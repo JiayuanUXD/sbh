@@ -10,38 +10,38 @@
 - Payload 需要标准 SQL 连接串（`postgres://host:5432`），CloudBase 内置 PG/MySQL 不提供 → 数据库用独立的 **TencentDB for PostgreSQL** 实例
 - CloudRun 容器无状态 → media 存 **腾讯云 COS（S3 兼容）**
 
-## 已完成 ✅
+## 已完成 ✅（截至 2026-07-24）
 
 | # | 任务 | 说明 |
 |---|------|------|
-| 1 | DB 适配器 SQLite → PostgreSQL | `@payloadcms/db-postgres`，`payload.config.ts` 用 `postgresAdapter` + `process.env.DATABASE_URL` |
-| 2 | Media 存储接入 COS(S3) | `@payloadcms/storage-s3`，plugins 绑定 `media`，`forcePathStyle:true` |
-| 3 | 容器化 Dockerfile + PORT | `next.config.mjs` 加 `output:'standalone'`；多阶段 Dockerfile；`.dockerignore`；`start` 读 `PORT` |
-| 4 | 本地构建验证 | `tsc --noEmit` + `pnpm build` 通过；首页改 `force-dynamic` 避免构建期连库；standalone 产物生成 |
+| 1 | DB 适配器 SQLite → PostgreSQL | `@payloadcms/db-postgres`；`payload.config.ts` 按有无 `DATABASE_URL` 自动切 PG/SQLite；`push:false` 禁 dev push（避免拨测表误删卡死） |
+| 2 | Media 存储接入 COS(S3) | `@payloadcms/storage-s3`，绑定 `media`，`forcePathStyle:true`（`S3_BUCKET` 未设时 disabled） |
+| 3 | 容器化 Dockerfile + PORT | 多阶段**完整镜像**（非 standalone，保留迁移能力）；`ENV PORT=80`+`EXPOSE 80`；启动跑 `payload migrate` 再 `next start` |
+| 4 | PG 迁移 + 修 ENUM bug | `src/migrations/20260723_160143_init.ts` 应用到 CloudBase PG；`Listings.listingType` 默认值 `private-office`→`traditional-office`（PG strict ENUM，SQLite 不报） |
+| 5 | 首次上线（MCP deploy） | CloudRun 服务 `sbh` 已 Running，100% 流量。域名 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com`；验证 `/`、`/api/listings`(有种子数据)、`/admin` 均 200 |
+| 6 | CI 自动部署 workflow | `.github/workflows/deploy.yml`：push master → `tcb cloudrun deploy` 上传 ZIP 在线构建 + 冒烟测试。已推送（commit `fd5e897`） |
 
-对应提交：`83656e0 feat: adapt Payload platform for CloudBase CloudRun deployment`
+**线上资源**：EnvId `sbh-d9gnr8h5ef7e22e30`；PG 实例 `postgres-ilf7zhts`（公网 `sh-postgres-ilf7zhts.sql.tencentcdb.com:26710`，内网 `172.17.0.8:5432`，db `postgres`，role `sbh`）；迁移 `20260723_160143_init` 已应用，种子数据 5 locations/2 buildings/2 listings/4 amenities/1 page。服务级环境变量 `DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV` 已在 CloudRun 配好（不入 git，存 `.env.local`）。
 
-## 待完成 ⏳
+## 待完成 ⏳（明天继续）
 
-### 前置条件（用户/终端侧）
-- [ ] 交互式终端执行 `claude mcp add cloudbase -- npx @cloudbase/cloudbase-mcp@latest`，重启 Claude Code（在 `~/App/sbh` 启动），使 CloudBase MCP 工具可用
-- [ ] MCP `auth` 设备码登录，`envQuery(action=list)` 确认 CloudBase EnvId
-- [ ] 开通 **TencentDB for PostgreSQL** 实例，拿连接串（host/port/db/user/password，允许 CloudRun 访问）
-- [ ] 开通 **COS 存储桶**，拿 bucket / region / S3 endpoint / SecretId / SecretKey
-- [ ] ⚠️ TencentDB PG 与 COS 为付费资源，非 CloudBase 免费额度内
+### 🔴 P0 — 让 CI 首次自动部署跑通
+> 现状：workflow 已推送，但首次运行会因缺 GitHub secret 在 `tcb login` 步失败（预期内）。
 
-### 任务 #5 — 部署到 CloudRun
-- [ ] 把真实凭证填入 `.env.local`（`DATABASE_URL` / `S3_*`）
-- [ ] 本地连真库跑 `pnpm dev`，验证 `/admin` 建管理员、`/api` 读接口、上传图片落 COS
-- [ ] MCP `manageCloudRun(action="deploy")`，Container mode，`targetPath` 绝对路径：
-  - `OpenAccessTypes:["PUBLIC"]`，`Cpu:0.5, Mem:1, MinNum:1, MaxNum:5`
-  - 注入环境变量：`PAYLOAD_SECRET`、`DATABASE_URL`、全部 `S3_*`
-- [ ] `queryCloudRun(action="detail")` 确认状态 Ready、拿服务域名
-- [ ] 访问 `<域名>/admin` 建首个管理员，CRUD 一条 listing，上传媒体验证持久化（重启容器后仍在）
-- [ ] 部署失败查 `queryCloudRun(action="getDeployLog")`
+- [ ] 腾讯云 [CAM](https://console.cloud.tencent.com/cam) 新建子用户（编程访问），拿 SecretId/SecretKey（**勿用主账号**）
+- [ ] 给子用户绑定预置策略：`QcloudAccessForTCBRole`、`QcloudAccessForTCBRoleInAccessCloudBaseRun`
+- [ ] 仓库 Settings → Secrets → Actions 加 3 个：`TCB_SECRET_ID`、`TCB_SECRET_KEY`、`TCB_ENV_ID`=`sbh-d9gnr8h5ef7e22e30`
+- [ ] Actions 页对失败运行点 Re-run（或 Run workflow 手动触发），确认 `tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿
+- [ ] 验收：以后任意 `git push master`（改 `payload-office-platform/`）即自动上线
 
-### 任务 #6 — 更新 README
-- [ ] 记录 CloudBase EnvId、CloudRun 服务域名、DB/COS 资源、环境变量清单、重新部署命令
+### 🟠 P1 — 业务可用
+- [ ] 浏览器访问 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com/admin` 注册首个管理员（users 表当前空）
+- [ ] 后台 CRUD 一条 listing / 上传一张媒体，重启容器后确认数据与媒体仍在（验 PG + COS 持久化）
+
+### 🟡 P2 — 优化（可选）
+- [ ] 流量稳定后把 CloudRun `MinNum` 1→0 省成本（代价：冷启动延迟）
+- [ ] 容器接 VPC + PG 内网地址 `172.17.0.8:5432` 替代公网（安全 + 延迟），去掉公网 PG 暴露
+- [ ] 真要用媒体上传时再配 COS：当前 `S3_*` 未设，上传走本地；上线前需补 bucket/密钥/endpoint 到服务环境变量
 
 ## Git 自动部署（CI）
 
@@ -71,7 +71,7 @@
 |------|------|
 | `payload-office-platform/src/payload.config.ts` | DB 适配器 + S3 插件（核心） |
 | `payload-office-platform/package.json` | 依赖、`start` 读 `PORT` |
-| `payload-office-platform/next.config.mjs` | `output:'standalone'` |
+| `payload-office-platform/next.config.mjs` | turbopack root + images 远程白名单（无 standalone，用完整镜像） |
 | `payload-office-platform/Dockerfile` / `.dockerignore` | Container mode |
 | `payload-office-platform/.env.example` | 环境变量模板 |
 | `payload-office-platform/src/app/(frontend)/page.tsx` | 首页动态渲染 + fallback |
