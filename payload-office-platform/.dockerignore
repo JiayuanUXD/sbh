@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+*.db
+*.db-journal
+.env
+.env.local
+.git
+.DS_Store
+media
+public/images
+*.tsbuildinfo
+npm-debug.log*

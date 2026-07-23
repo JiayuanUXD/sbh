@@ -1,0 +1,11 @@
+.env
+.env.local
+.next
+node_modules
+dist
+payload-types.ts
+*.tsbuildinfo
+*.db
+*.db-journal
+media
+public/images/
