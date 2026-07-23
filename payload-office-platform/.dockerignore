@@ -3,6 +3,10 @@ node_modules
 dist
 *.db
 *.db-journal
+*.sqlite
+*.sqlite-journal
+*.sqlite-*
+payload.db.sqlite
 .env
 .env.local
 .git

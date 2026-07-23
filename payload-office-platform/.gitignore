@@ -7,5 +7,8 @@ payload-types.ts
 *.tsbuildinfo
 *.db
 *.db-journal
+*.sqlite
+*.sqlite-journal
+*.sqlite-*
 media
 public/images/

@@ -44,7 +44,7 @@ export const Listings: CollectionConfig = {
       label: '类型',
       type: 'select',
       required: true,
-      defaultValue: 'private-office',
+      defaultValue: 'traditional-office',
       options: [
         { label: '传统办公室', value: 'traditional-office' },
         { label: '服务式办公室', value: 'serviced-office' },
