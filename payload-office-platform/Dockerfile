@@ -25,8 +25,9 @@ FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# CloudRun 注入 PORT；next start 读取 PORT
-ENV PORT=3717
+# CloudRun 服务 Port=80，平台把流量发到 80；next start 读 PORT env 监听。
+# 平台注入的 PORT 会覆盖此默认值，二者一致即可。
+ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 
@@ -42,6 +43,6 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-EXPOSE 3717
+EXPOSE 80
 # 容器启动：先跑迁移（幂等，已执行的自动跳过）再启动 Next server
 CMD ["sh", "-c", "pnpm exec payload migrate && pnpm start"]
