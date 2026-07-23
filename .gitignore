@@ -8,3 +8,8 @@ dist
 *.tsbuildinfo
 *.db
 *.db-journal
+
+# 本地开发工具产物（不入库）
+.claude/
+.agents/
+skills-lock.json

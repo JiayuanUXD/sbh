@@ -1,0 +1,72 @@
+# Git 自动部署 → CloudBase CloudRun
+#
+# 触发：push 到 master 且改动 payload-office-platform/ 或本 workflow 文件；
+#       也可在 Actions 页面手动触发 (workflow_dispatch)。
+#
+# 机制：用 CloudBase CLI (tcb) 上传 payload-office-platform/ 的 ZIP 到云端，
+#       平台在线 docker build 并发布新版本。与 MCP manageCloudRun(deploy) 同一底层。
+#       CI 端不装项目依赖、不构建——构建在平台发生。
+#
+# 鉴权：腾讯云 CAM 子账号 API 密钥 (SecretId/SecretKey)，tcb login --apiKeyId/--apiKey。
+#       子账号需绑定 CAM 策略：
+#         - QcloudAccessForTCBRole
+#         - QcloudAccessForTCBRoleInAccessCloudBaseRun
+#       密钥注入到 GitHub Secrets：TCB_SECRET_ID / TCB_SECRET_KEY / TCB_ENV_ID
+#
+# 环境变量：tcb cloudrun deploy 没有 env-vars 参数——服务级环境变量
+#       (DATABASE_URL / PAYLOAD_SECRET / NODE_ENV) 已在控制台/MCP 配好，
+#       代码部署只更新版本，不清空服务配置。无需每次重传。
+#       首次跑 CI 后建议到控制台核对环境变量仍在。
+
+name: Deploy to CloudBase CloudRun
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'payload-office-platform/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+# 部署互相排队，不中途取消（避免并发发布互相覆盖版本）
+concurrency:
+  group: deploy-sbh
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli@latest
+
+      - name: tcb login (CAM API key)
+        run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
+
+      - name: Deploy CloudRun service
+        run: |
+          tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun deploy \
+            -s sbh \
+            --source "${{ github.workspace }}/payload-office-platform" \
+            --port 80 \
+            --force
+
+      - name: Smoke test (新版本生效后访问 /api/listings)
+        run: |
+          # deploy 命令返回时新版本已切流量；留点缓冲再做健康检查
+          sleep 20
+          code=$(curl -s -o /dev/null -w "%{http_code}" "https://sbh-286300-10-1253925058.sh.run.tcloudbase.com/api/listings")
+          echo "GET /api/listings -> HTTP $code"
+          if [ "$code" != "200" ]; then
+            echo "::warning::冒烟测试未返回 200，请到 CloudRun 控制台查部署日志/实例日志"
+            exit 1
+          fi

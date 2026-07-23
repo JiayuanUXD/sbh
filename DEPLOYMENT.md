@@ -43,6 +43,28 @@
 ### 任务 #6 — 更新 README
 - [ ] 记录 CloudBase EnvId、CloudRun 服务域名、DB/COS 资源、环境变量清单、重新部署命令
 
+## Git 自动部署（CI）
+
+`push` 到 `master` 即自动部署到 CloudRun 服务 `sbh`。Workflow：[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
+
+机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
+
+### 一次性设置（在仓库 Settings → Secrets and variables → Actions → New repository secret）
+
+需要 3 个 secret，对应一个腾讯云 CAM 子账号（**不要**用主账号）：
+
+| Secret | 来源 |
+|--------|------|
+| `TCB_SECRET_ID` | 腾讯云 [CAM](https://console.cloud.tencent.com/cam) 新建子用户 → API 密钥 → SecretId |
+| `TCB_SECRET_KEY` | 同上 → SecretKey |
+| `TCB_ENV_ID` | `sbh-d9gnr8h5ef7e22e30` |
+
+子账号需绑定 CAM 预置策略：
+- `QcloudAccessForTCBRole`（云开发访问云资源）
+- `QcloudAccessForTCBRoleInAccessCloudBaseRun`（云托管访问 VPC/CVM）
+
+设置完成后,下次 `git push origin master`（改动 `payload-office-platform/`）即触发部署；也可在仓库 Actions 页手动 `Run workflow`。部署日志与冒烟测试（`GET /api/listings` 期望 200）在 Actions 运行记录里查看。
+
 ## 关键文件
 
 | 文件 | 作用 |
