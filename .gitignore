@@ -13,3 +13,6 @@ dist
 .claude/
 .agents/
 skills-lock.json
+
+# Subagent-driven development scratch
+/.superpowers/

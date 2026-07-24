@@ -110,6 +110,31 @@ async function seed() {
     sortOrder: 21,
   })
 
+  // === P0.3: 3 additional districts ===
+  const huangpu = await upsertBySlug<AnyDoc>(payload, 'locations', 'huangpu', {
+    name: '黄浦',
+    type: 'district',
+    parent: shanghai.id,
+    description: '外滩、人民广场等核心商务区。',
+    sortOrder: 10,
+  })
+
+  const xuhui = await upsertBySlug<AnyDoc>(payload, 'locations', 'xuhui', {
+    name: '徐汇',
+    type: 'district',
+    parent: shanghai.id,
+    description: '徐家汇、漕河泾等商务办公聚集区。',
+    sortOrder: 10,
+  })
+
+  const changning = await upsertBySlug<AnyDoc>(payload, 'locations', 'changning', {
+    name: '长宁',
+    type: 'district',
+    parent: shanghai.id,
+    description: '虹桥、古北等国际化商务办公区域。',
+    sortOrder: 10,
+  })
+
   const readyToMove = await upsertAmenity(payload, '可即刻入驻', 'office-service')
   const furnished = await upsertAmenity(payload, '精装带家具', 'space')
   const meetingRooms = await upsertAmenity(payload, '共享会议室', 'office-service')
@@ -141,6 +166,34 @@ async function seed() {
     summary: '适合总部办公、专业服务机构和外资企业形象展示。',
   })
 
+  // === P0.3: 3 additional buildings (one per new district) ===
+  const bHuangpu = await upsertBySlug<AnyDoc>(payload, 'buildings', 'huangpu-bund', {
+    name: '外滩源大厦',
+    status: 'published',
+    grade: 'super-grade-a',
+    district: huangpu.id,
+    address: '黄浦区中山东一路',
+    summary: '外滩核心区超甲级办公，历史建筑与现代设施融合。',
+  })
+
+  const bXuhui = await upsertBySlug<AnyDoc>(payload, 'buildings', 'xuhui-xujiahui', {
+    name: '徐家汇国际大厦',
+    status: 'published',
+    grade: 'grade-a',
+    district: xuhui.id,
+    address: '徐汇区虹桥路 1 号',
+    summary: '徐家汇商圈甲级写字楼，近地铁 1/9/11 号线。',
+  })
+
+  const bChangning = await upsertBySlug<AnyDoc>(payload, 'buildings', 'changning-hongqiao', {
+    name: '虹桥国际商务中心',
+    status: 'published',
+    grade: 'grade-a',
+    district: changning.id,
+    address: '长宁区虹桥路',
+    summary: '虹桥商务区核心办公，近虹桥枢纽。',
+  })
+
   await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-serviced-office-42-seats', {
     title: '静安南京西路 · 精装服务式办公室',
     status: 'available',
@@ -165,6 +218,85 @@ async function seed() {
     seats: 95,
     isFeatured: true,
     highlights: [{ text: '高区视野' }, { text: '整层可谈' }, { text: '企业形象佳' }],
+  })
+
+  // === P0.3: 6 additional listings (total 8, varied listingType/rentUnit) ===
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-coworking', {
+    title: '外滩源 · 共享办公 · 灵活工位',
+    status: 'available',
+    listingType: 'coworking',
+    building: bHuangpu.id,
+    rent: 1800,
+    rentUnit: 'rmb-seat-month',
+    area: 120,
+    seats: 20,
+    isFeatured: true,
+    highlights: [{ text: '外滩景观' }, { text: '灵活租期' }, { text: '含网络水电' }],
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'pudong-lujiazui-fullfloor', {
+    title: '陆家嘴 · 整层办公 1200㎡',
+    status: 'available',
+    listingType: 'full-floor',
+    building: lujiazuiTower.id,
+    rent: 10.5,
+    rentUnit: 'rmb-sqm-day',
+    area: 1200,
+    seats: 150,
+    isFeatured: false,
+    highlights: [{ text: '整层独立' }, { text: '高区江景' }, { text: '企业冠名' }],
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'xuhui-xujiahui-traditional', {
+    title: '徐家汇 · 传统办公 200㎡',
+    status: 'available',
+    listingType: 'traditional-office',
+    building: bXuhui.id,
+    rent: 25000,
+    rentUnit: 'rmb-month',
+    area: 200,
+    seats: 25,
+    isFeatured: false,
+    highlights: [{ text: '近地铁' }, { text: '毛坯交付' }, { text: '可定制装修' }],
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'changning-hongqiao-serviced', {
+    title: '虹桥 · 服务式办公 180㎡',
+    status: 'available',
+    listingType: 'serviced-office',
+    building: bChangning.id,
+    rent: 3200,
+    rentUnit: 'rmb-seat-month',
+    area: 180,
+    seats: 22,
+    isFeatured: false,
+    highlights: [{ text: '全配家具' }, { text: '即时入驻' }, { text: '近虹桥枢纽' }],
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-center-fullfloor', {
+    title: '静安 · 整层办公 850㎡',
+    status: 'available',
+    listingType: 'full-floor',
+    building: westNanjingTower.id,
+    rent: 11.0,
+    rentUnit: 'rmb-sqm-day',
+    area: 850,
+    seats: 100,
+    isFeatured: false,
+    highlights: [{ text: '南京西路核心' }, { text: '整层独立' }, { text: '品牌展示' }],
+  })
+
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-traditional', {
+    title: '外滩 · 传统办公 500㎡',
+    status: 'available',
+    listingType: 'traditional-office',
+    building: bHuangpu.id,
+    rent: 70000,
+    rentUnit: 'rmb-month',
+    area: 500,
+    seats: 60,
+    isFeatured: false,
+    highlights: [{ text: '外滩历史建筑' }, { text: '高端形象' }, { text: '适合金融/律所' }],
   })
 
   await upsertBySlug<AnyDoc>(payload, 'pages', 'home', {

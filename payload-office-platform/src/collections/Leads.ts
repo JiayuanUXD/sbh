@@ -42,6 +42,18 @@ export const Leads: CollectionConfig = {
       ],
     },
     {
+      name: 'source',
+      label: '线索来源',
+      type: 'select',
+      defaultValue: 'frontend-form',
+      options: [
+        { label: '前台表单', value: 'frontend-form' },
+        { label: '电话', value: 'phone' },
+        { label: '导入', value: 'import' },
+        { label: '其他', value: 'other' },
+      ],
+    },
+    {
       type: 'row',
       fields: [
         {
