@@ -37,6 +37,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # 非交互模式：所有确认提示（telemetry 询问、--force 确认）自动按默认值走。
+      # 否则 CI 无 tty，提示库收到 EOF 会以 exit 130 中断。
+      CLOUDBASE_CI: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
