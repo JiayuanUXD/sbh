@@ -37,7 +37,7 @@
 > 踩坑记录（见上表第 7 行）：secret 值误填为名字、telemetry 交互提示、灰度部署 list 提示，三个都会让 CI 在无 tty 下 exit 130。
 
 ### 🟠 P1 — 业务可用
-- [ ] 浏览器访问 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com/admin` 注册首个管理员（users 表当前空）
+- [x] 首个管理员已存在（`85851205@qq.com`），从 `/admin/login` 登录即可。注：`/admin/create-first-user` 在 users 表非空时会 `notFound()`（白屏是正常行为，不是 bug）
 - [ ] 后台 CRUD 一条 listing / 上传一张媒体，重启容器后确认数据与媒体仍在（验 PG + COS 持久化）
 
 ### 🟡 P2 — 优化（可选）
