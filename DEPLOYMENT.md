@@ -20,19 +20,21 @@
 | 4 | PG 迁移 + 修 ENUM bug | `src/migrations/20260723_160143_init.ts` 应用到 CloudBase PG；`Listings.listingType` 默认值 `private-office`→`traditional-office`（PG strict ENUM，SQLite 不报） |
 | 5 | 首次上线（MCP deploy） | CloudRun 服务 `sbh` 已 Running，100% 流量。域名 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com`；验证 `/`、`/api/listings`(有种子数据)、`/admin` 均 200 |
 | 6 | CI 自动部署 workflow | `.github/workflows/deploy.yml`：push master → `tcb cloudrun deploy` 上传 ZIP 在线构建 + 冒烟测试。已推送（commit `fd5e897`） |
+| 7 | CI 首次跑通 | 2026-07-24 跑通（run `30073559226`，`tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿）。修三个坑：① 3 个 GitHub secret 之前名字填成了 SecretId 的值（全空）→ 重建 `TCB_SECRET_ID`/`TCB_SECRET_KEY`/`TCB_ENV_ID`；② `tcb login` 后 telemetry `Y/n` 提示无 tty 卡 exit 130 → job 设 `CLOUDBASE_CI: '1'`（isYesMode 自动跳过）；③ 灰度部署 `list` 提示 `--force` 不挡 → `printf '\n\n\n' \|` 喂回车选默认"否"（自动切流量） |
 
 **线上资源**：EnvId `sbh-d9gnr8h5ef7e22e30`；PG 实例 `postgres-ilf7zhts`（公网 `sh-postgres-ilf7zhts.sql.tencentcdb.com:26710`，内网 `172.17.0.8:5432`，db `postgres`，role `sbh`）；迁移 `20260723_160143_init` 已应用，种子数据 5 locations/2 buildings/2 listings/4 amenities/1 page。服务级环境变量 `DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV` 已在 CloudRun 配好（不入 git，存 `.env.local`）。
 
-## 待完成 ⏳（明天继续）
+## 待完成 ⏳
 
-### 🔴 P0 — 让 CI 首次自动部署跑通
-> 现状：workflow 已推送，但首次运行会因缺 GitHub secret 在 `tcb login` 步失败（预期内）。
+### ✅ P0 — 让 CI 首次自动部署跑通（2026-07-24 完成）
 
-- [ ] 腾讯云 [CAM](https://console.cloud.tencent.com/cam) 新建子用户（编程访问），拿 SecretId/SecretKey（**勿用主账号**）
-- [ ] 给子用户绑定预置策略：`QcloudAccessForTCBRole`、`QcloudAccessForTCBRoleInAccessCloudBaseRun`
-- [ ] 仓库 Settings → Secrets → Actions 加 3 个：`TCB_SECRET_ID`、`TCB_SECRET_KEY`、`TCB_ENV_ID`=`sbh-d9gnr8h5ef7e22e30`
-- [ ] Actions 页对失败运行点 Re-run（或 Run workflow 手动触发），确认 `tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿
-- [ ] 验收：以后任意 `git push master`（改 `payload-office-platform/`）即自动上线
+- [x] 腾讯云 [CAM](https://console.cloud.tencent.com/cam) 新建子用户（编程访问），拿 SecretId/SecretKey（**勿用主账号**）
+- [x] 给子用户绑定预置策略：`QcloudAccessForTCBRole`、`QcloudAccessForTCBRoleInAccessCloudBaseRun`（能 deploy 成功即已绑对）
+- [x] 仓库 Settings → Secrets → Actions 加 3 个：`TCB_SECRET_ID`、`TCB_SECRET_KEY`、`TCB_ENV_ID`=`sbh-d9gnr8h5ef7e22e30`（用 `gh secret set` 写入）
+- [x] 触发运行确认 `tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿（run `30073559226`）
+- [x] 验收：以后任意 `git push master`（改 `payload-office-platform/`）即自动上线
+
+> 踩坑记录（见上表第 7 行）：secret 值误填为名字、telemetry 交互提示、灰度部署 list 提示，三个都会让 CI 在无 tty 下 exit 130。
 
 ### 🟠 P1 — 业务可用
 - [ ] 浏览器访问 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com/admin` 注册首个管理员（users 表当前空）
