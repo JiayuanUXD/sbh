@@ -1,3 +1,4 @@
+import { RichText } from '@payloadcms/richtext-lexical/react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -91,7 +92,9 @@ export default async function ListingDetailPage({
       {listing.description && (
         <section className="detail__section">
           <h2>房源说明</h2>
-          <div className="richtext">{/* lexical RTE -> plain render for MVP; upgrade in P4 */}</div>
+          <div className="richtext">
+            <RichText data={listing.description} />
+          </div>
         </section>
       )}
       {building && (
