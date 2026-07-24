@@ -58,7 +58,11 @@ jobs:
 
       - name: Deploy CloudRun service
         run: |
-          tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun deploy \
+          # --force 跳过 Y/n 确认；CLOUDBASE_CI=1 跳过 telemetry；
+          # 但“是否启用灰度部署？”是 list 类型提示，--force 不挡，CI 无 tty 会 exit 130。
+          # 用 printf 喂回车 → 选默认项“否”（发布成功后自动切流量到新版本）。
+          # 若将来仍卡在这里，改为 --traffic 灰度发布 + `tcb cloudrun traffic promote --stable 0 --canary 100` 显式切流。
+          printf '\n\n\n' | tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun deploy \
             -s sbh \
             --source "${{ github.workspace }}/payload-office-platform" \
             --port 80 \
