@@ -2,6 +2,10 @@ import type { MetadataRoute } from 'next'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 
+// sitemap 查库（listings/buildings），构建期无 DB。与 (frontend) 各页面一致，
+// 强制运行时动态生成，禁止构建期预渲染，否则 builder 阶段报 no such table。
+export const dynamic = 'force-dynamic'
+
 const base = 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
