@@ -1,4 +1,4 @@
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 import config from '@/payload.config'
 import { buildListingWhere, type ListingFilters } from '@/lib/frontend/filters'
 
@@ -27,7 +27,7 @@ export async function getListings(filters: ListingFilters) {
 
   const result = await payload.find({
     collection: 'listings',
-    where: where as any,
+    where: where as Where,
     page: filters.page,
     limit: PAGE_SIZE,
     sort: '-isFeatured -updatedAt',
