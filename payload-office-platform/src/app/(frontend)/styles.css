@@ -323,3 +323,14 @@ p {
 .detail__section { margin-top: 40px; }
 .detail__section h2 { font-size: 20px; color: var(--ink); margin-bottom: 12px; }
 @media (max-width: 768px) { .detail__top { grid-template-columns: 1fr; } }
+
+/* Inquiry modal */
+.modal__overlay { position: fixed; inset: 0; background: rgba(16,25,35,.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: #fff; border-radius: 12px; padding: 28px; width: min(440px, 92vw); position: relative; }
+.modal__close { position: absolute; top: 12px; right: 16px; border: none; background: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+.modal__title { font-size: 20px; color: var(--ink); }
+.modal__subtitle { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.modal__form { display: flex; flex-direction: column; gap: 12px; }
+.modal__label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.modal__error { color: #b00020; font-size: 13px; }
+.modal__success { text-align: center; }

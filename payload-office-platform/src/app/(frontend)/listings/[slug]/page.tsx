@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
-// InquiryModal wired in P3.2 — component doesn't exist yet in this task.
-// import InquiryModal from '@/components/frontend/InquiryModal'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingGallery from '@/components/frontend/ListingGallery'
 import { formatArea, formatRent } from '@/lib/frontend/format'
 import { getListingBySlug, getListingsByBuilding } from '@/lib/frontend/queries'
@@ -86,7 +85,7 @@ export default async function ListingDetailPage({
               ))}
             </div>
           )}
-          {/* <InquiryModal listingTitle={listing.title} /> */}
+          <InquiryModal listingTitle={listing.title} />
         </div>
       </div>
       {listing.description && (
