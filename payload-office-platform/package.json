@@ -11,7 +11,8 @@
     "generate:types": "payload generate:types",
     "seed": "node --env-file=.env.local --import tsx scripts/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.86.0",
@@ -28,6 +29,7 @@
     "sharp": "^0.34.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^24.9.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",

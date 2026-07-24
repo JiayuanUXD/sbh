@@ -12,3 +12,6 @@ payload-types.ts
 *.sqlite-*
 media
 public/images/
+test-results
+playwright-report
+.playwright
