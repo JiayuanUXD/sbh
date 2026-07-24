@@ -19,8 +19,11 @@ COPY . .
 # 缺失时 payload.find().docs 退化为泛型 JsonObject & TypeWithID（无 slug/name），
 # next build 的 tsc 检查在 (frontend)/listings/page.tsx 处报 TS2322 而失败。
 # generate:types 只读 payload.config、不连库，故在此无 DB 的构建阶段安全。
+# generate:importmap 重生成后台 client 组件映射：漏项会让整个 /admin SPA
+# 在 hydration 阶段崩溃白屏（含 login 页）。构建期强制重生成，避免有人改
+# config（加富文本/存储等 client 组件）后忘了本地生成导致线上后台白屏。
 # 构建期不连库：首页 force-dynamic，避免无 DB 时构建失败
-RUN pnpm generate:types && pnpm build
+RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
