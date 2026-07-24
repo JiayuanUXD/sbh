@@ -15,8 +15,12 @@ RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# 先生成 payload-types.ts：该文件被 gitignore，不进仓库也不进镜像上下文，
+# 缺失时 payload.find().docs 退化为泛型 JsonObject & TypeWithID（无 slug/name），
+# next build 的 tsc 检查在 (frontend)/listings/page.tsx 处报 TS2322 而失败。
+# generate:types 只读 payload.config、不连库，故在此无 DB 的构建阶段安全。
 # 构建期不连库：首页 force-dynamic，避免无 DB 时构建失败
-RUN pnpm build
+RUN pnpm generate:types && pnpm build
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
