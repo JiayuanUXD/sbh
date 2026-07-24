@@ -14,7 +14,6 @@ export async function getListings(filters: ListingFilters) {
       collection: 'buildings',
       where: { 'district.slug': { equals: filters.district } },
       limit: 200,
-      select: { id: true },
     })
     buildingIds = buildings.docs.map((d: any) => d.id)
     if (buildingIds.length === 0) {
@@ -28,7 +27,7 @@ export async function getListings(filters: ListingFilters) {
 
   const result = await payload.find({
     collection: 'listings',
-    where,
+    where: where as any,
     page: filters.page,
     limit: PAGE_SIZE,
     sort: '-isFeatured -updatedAt',
