@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import React from 'react'
-import { getDistricts, getFeaturedListings } from '@/lib/frontend/queries'
+import HeroSearch from '@/components/frontend/HeroSearch'
 import ListingCard from '@/components/frontend/ListingCard'
+import { getHomepage } from '@/domain/public-catalog'
+import { defaultSearchContext } from '@/domain/public-catalog'
 import './styles.css'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +11,12 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
   title: '上海中高端商务办公租赁平台',
   description: '聚合上海甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。',
+  alternates: { canonical: '/' },
 }
 
 export default async function HomePage() {
-  const [featured, districts] = await Promise.all([
-    getFeaturedListings(6),
-    getDistricts(),
-  ])
+  const ctx = defaultSearchContext()
+  const { featuredListings, districts } = await getHomepage(ctx)
 
   return (
     <div className="home">
@@ -25,13 +26,16 @@ export default async function HomePage() {
         <p className="hero__summary">
           聚合甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。
         </p>
-        <Link href="/listings" className="btn btn--primary">浏览在租房源</Link>
+        <HeroSearch districts={districts} />
       </section>
 
       <section className="section">
-        <h2 className="section__title">按区域浏览</h2>
+        <div className="section__header">
+          <h2 className="section__title">按区域浏览</h2>
+          <Link href="/listings" className="text-copper">查看全部 →</Link>
+        </div>
         <div className="district-chips">
-          {districts.map((d: any) => (
+          {districts.map((d) => (
             <Link key={d.id} href={`/listings?district=${d.slug}`} className="tag tag--lg">
               {d.name}
             </Link>
@@ -40,12 +44,15 @@ export default async function HomePage() {
       </section>
 
       <section className="section">
-        <h2 className="section__title">推荐房源</h2>
-        {featured.length === 0 ? (
+        <div className="section__header">
+          <h2 className="section__title">推荐房源</h2>
+          <Link href="/listings" className="text-copper">浏览全部房源 →</Link>
+        </div>
+        {featuredListings.length === 0 ? (
           <p className="empty">暂无推荐房源。</p>
         ) : (
           <div className="card-grid">
-            {featured.map((l: any) => (
+            {featuredListings.map((l) => (
               <ListingCard key={l.id} listing={l} />
             ))}
           </div>

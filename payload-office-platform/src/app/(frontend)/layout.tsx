@@ -1,38 +1,58 @@
 import React from 'react'
 import Link from 'next/link'
+import type { Metadata, Viewport } from 'next'
+import { siteConfig } from '@/lib/frontend/site-config'
+import SiteNav from '@/components/frontend/SiteNav'
 import './styles.css'
 
-export const metadata = {
+// F0.5：metadataBase 由类型化环境配置提供，禁止硬编码生产域名。
+// 见 specs/frontend-mvp/tasks.md 与 design.md §11。
+// 所有页面 canonical / OG 默认基于此 URL 解析相对路径。
+export const metadata: Metadata = {
+  metadataBase: siteConfig.siteUrl,
   title: {
     default: '商办租赁 · 上海中高端办公租赁平台',
     template: '%s · 商办租赁',
   },
   description: '上海甲级写字楼、服务式办公室、共享办公与整层办公租赁平台。',
+  applicationName: '商办租赁',
+  authors: [{ name: '商办租赁平台' }],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'zh_CN',
+    siteName: '商办租赁',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
-const NAV = [
-  { href: '/', label: '首页' },
-  { href: '/listings', label: '在租房源' },
-  { href: '/listings?type=serviced-office', label: '服务式办公' },
-  { href: '/listings?type=coworking', label: '共享办公' },
-]
+// F2.1：theme-color 与设计 token 中的 canvas 颜色保持一致，
+// 让移动端浏览器地址栏与页面背景融合，避免滚动时露出白色色块。
+export const viewport: Viewport = {
+  themeColor: '#fcfbf8',
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
   return (
     <html lang="zh-CN">
       <body>
+        {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
+        <a href="#main-content" className="skip-link">跳到主要内容</a>
         <header className="site-header">
           <div className="site-header__inner">
-            <Link href="/" className="site-logo">商办租赁</Link>
-            <nav className="site-nav">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href} className="site-nav__link">{n.label}</Link>
-              ))}
-            </nav>
+            <Link href="/" className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+            <SiteNav />
           </div>
         </header>
-        <main className="site-main">{children}</main>
+        <main id="main-content" className="site-main">{children}</main>
         <footer className="site-footer">
           <div className="site-footer__inner">
             <span>© {new Date().getFullYear()} 商办租赁平台</span>

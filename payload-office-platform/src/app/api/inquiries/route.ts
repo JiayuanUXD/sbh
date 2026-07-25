@@ -28,14 +28,15 @@ export async function POST(req: Request) {
     )
   }
 
-  let body: any
+  // 请求体视为 unknown，由 schema 白名单收窄
+  let body: unknown
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ ok: false, error: 'invalid_json' }, { status: 400 })
   }
 
-  const result = validateInquiry(body)
+  const result = validateInquiry(body as Parameters<typeof validateInquiry>[0])
   if (!result.ok) {
     return NextResponse.json({ ok: false, errors: result.errors }, { status: 422 })
   }
@@ -49,7 +50,8 @@ export async function POST(req: Request) {
     limit: 1,
     depth: 0,
   })
-  if (!listing.docs[0]) {
+  const listingDoc = listing.docs[0]
+  if (!listingDoc) {
     return NextResponse.json({ ok: false, error: 'listing_not_found' }, { status: 404 })
   }
 
@@ -61,7 +63,7 @@ export async function POST(req: Request) {
         phone: result.data.phone,
         status: 'new',
         source: 'frontend-form',
-        interestedListing: (listing.docs[0] as any).id,
+        interestedListing: listingDoc.id,
         notes: result.data.message,
       },
     })
