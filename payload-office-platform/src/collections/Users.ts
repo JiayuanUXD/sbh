@@ -122,9 +122,11 @@ export const Users: CollectionConfig = {
       hooks: {
         beforeChange: [
           ({ data }) => {
-            // 同步从 phone 字段派生
+            // 同步从 phone 字段派生。无手机号时返回 null（而非 ''）：
+            // phoneNormalized 是 unique，空串会占用唯一槽导致第二个无手机号账号冲突；
+            // null 在唯一索引下可多行并存。
             const raw = (data?.phone as string | undefined) ?? ''
-            return normalizePhone(raw)
+            return normalizePhone(raw) || null
           },
         ],
       },
@@ -269,9 +271,10 @@ export const Users: CollectionConfig = {
           }
         }
         // 手机号规范化（再次确认，防止直接传 phoneNormalized）
+        // 无手机号时写 null 而非 ''：phoneNormalized 唯一索引下空串会互相冲突，null 可并存。
         if (operation === 'create' || (operation === 'update' && data?.phone !== undefined)) {
           const raw = (data?.phone as string | undefined) ?? ''
-          data.phoneNormalized = normalizePhone(raw)
+          data.phoneNormalized = normalizePhone(raw) || null
         }
         return data
       },
