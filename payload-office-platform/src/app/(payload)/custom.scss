@@ -1,0 +1,432 @@
+:root {
+  --arco-admin-border: #e5e6eb;
+  --arco-admin-canvas: #f2f3f5;
+  --arco-admin-ink: #1d2129;
+  --arco-admin-muted: #86909c;
+}
+
+.nav {
+  border-right: 1px solid var(--arco-admin-border);
+  box-shadow: none;
+}
+
+.nav__brand {
+  border-bottom: 1px solid var(--arco-admin-border);
+}
+
+.nav-group__toggle,
+.nav__link {
+  border-radius: 6px;
+}
+
+.nav__link:hover,
+.nav__link.active {
+  background: #e8f3ff;
+  color: #165dff;
+}
+
+.app-header {
+  border-bottom: 1px solid var(--arco-admin-border);
+  box-shadow: none;
+}
+
+.btn {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.btn--style-primary {
+  background: #165dff;
+  border-color: #165dff;
+  color: #fff;
+}
+
+.field-type {
+  input,
+  textarea,
+  select {
+    border-radius: 4px;
+  }
+}
+
+.arco-admin-env-badge {
+  align-items: center;
+  background: #e8f3ff;
+  border: 1px solid #bedaff;
+  border-radius: 3px;
+  color: #165dff;
+  display: inline-flex;
+  font-size: 12px;
+  height: 24px;
+  line-height: 22px;
+  margin-inline-end: 8px;
+  padding: 0 8px;
+}
+
+.arco-admin-theme-toggle {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--arco-admin-border);
+  border-radius: 4px;
+  color: var(--arco-admin-ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  gap: 6px;
+  height: 28px;
+  margin-inline-end: 8px;
+  padding: 0 9px;
+  transition: background-color 160ms ease, border-color 160ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--arco-admin-canvas);
+    border-color: #94bfff;
+  }
+
+  svg {
+    height: 14px;
+    width: 14px;
+  }
+}
+
+.dashboard__wrap {
+  max-width: 1440px;
+}
+
+.arco-admin-dashboard {
+  --color-bg-2: #ffffff;
+  --color-border-2: #e5e6eb;
+  --color-fill-2: #f2f3f5;
+  --color-fill-3: #e5e6eb;
+  --color-text-1: #1d2129;
+  --color-text-2: #4e5969;
+  --color-text-3: #86909c;
+  color: var(--color-text-1);
+  max-width: 100%;
+  width: 100%;
+}
+
+.arco-admin-dashboard *,
+.arco-admin-dashboard *::before,
+.arco-admin-dashboard *::after {
+  box-sizing: border-box;
+}
+
+.arco-admin-dashboard .arco-row {
+  display: flex;
+  flex-flow: row wrap;
+  min-width: 0;
+}
+
+.arco-admin-dashboard [class*='arco-col-'] {
+  min-height: 1px;
+  min-width: 0;
+  position: relative;
+}
+
+.arco-admin-dashboard .arco-col-xs-12 {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
+
+.arco-admin-dashboard .arco-col-xs-24 {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+.arco-admin-dashboard .arco-space {
+  align-items: center;
+  display: inline-flex;
+}
+
+.arco-admin-dashboard .arco-space-vertical {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.arco-admin-dashboard .arco-space-wrap {
+  flex-wrap: wrap;
+}
+
+.arco-admin-dashboard .arco-tag {
+  align-items: center;
+  background: #e8f3ff;
+  border: 1px solid #bedaff;
+  border-radius: 3px;
+  color: #165dff;
+  display: inline-flex;
+  font-size: 12px;
+  height: 24px;
+  line-height: 22px;
+  padding: 0 8px;
+}
+
+.arco-admin-dashboard .arco-typography {
+  color: var(--color-text-1);
+}
+
+.arco-admin-dashboard .arco-typography-secondary {
+  color: var(--color-text-3);
+}
+
+.arco-admin-dashboard h2.arco-typography {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.arco-admin-dashboard h3.arco-typography {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.arco-admin-dashboard .arco-btn {
+  align-items: center;
+  appearance: none;
+  background: var(--color-fill-2);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-text-1);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  gap: 6px;
+  height: 36px;
+  justify-content: center;
+  line-height: 34px;
+  padding: 0 16px;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+  white-space: nowrap;
+}
+
+.arco-admin-dashboard .arco-btn:hover {
+  background: var(--color-fill-3);
+}
+
+.arco-admin-dashboard .arco-btn-primary {
+  background: #165dff;
+  color: #fff;
+}
+
+.arco-admin-dashboard .arco-btn-primary:hover {
+  background: #4080ff;
+}
+
+.arco-admin-dashboard .arco-btn-long {
+  width: 100%;
+}
+
+.arco-admin-dashboard .arco-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 1em;
+  width: 1em;
+}
+
+.arco-admin-dashboard .arco-card {
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border-2);
+  color: var(--color-text-1);
+  overflow: hidden;
+  position: relative;
+}
+
+.arco-admin-dashboard .arco-card-hoverable {
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.arco-admin-dashboard .arco-card-hoverable:hover {
+  border-color: #94bfff;
+  transform: translateY(-1px);
+}
+
+.arco-admin-dashboard .arco-card-header {
+  align-items: center;
+  border-bottom: 1px solid var(--color-border-2);
+  display: flex;
+  min-height: 48px;
+  padding: 0 18px;
+}
+
+.arco-admin-dashboard .arco-card-header-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.arco-admin-dashboard .arco-card-body {
+  padding: 18px;
+}
+
+.arco-admin-dashboard .arco-statistic-title {
+  color: var(--color-text-3);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.arco-admin-dashboard .arco-statistic-value {
+  color: var(--color-text-1);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.arco-admin-dashboard .arco-progress {
+  line-height: 1;
+  width: 100%;
+}
+
+.arco-admin-dashboard .arco-progress-line {
+  align-items: center;
+  display: flex;
+  width: 100%;
+}
+
+.arco-admin-dashboard .arco-progress-line-outer {
+  flex: 1;
+  width: 100%;
+}
+
+.arco-admin-dashboard .arco-progress-line-wrapper {
+  background: var(--color-fill-3);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.arco-admin-dashboard .arco-progress-line-inner {
+  border-radius: inherit;
+  height: 100%;
+  transition: width 240ms ease;
+}
+
+.arco-admin-dashboard__intro {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  min-height: 112px;
+  padding: 8px 0;
+}
+
+.arco-admin-dashboard__intro .arco-typography {
+  margin: 0;
+}
+
+.arco-admin-dashboard__actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.arco-admin-dashboard__metric,
+.arco-admin-dashboard__panel {
+  border-color: var(--color-border-2);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.arco-admin-dashboard__metric .arco-card-body {
+  padding: 18px;
+}
+
+.arco-admin-dashboard__metric-link {
+  align-items: center;
+  color: inherit;
+  display: flex;
+  gap: 14px;
+  text-decoration: none;
+}
+
+.arco-admin-dashboard__metric-icon {
+  align-items: center;
+  background: #e8f3ff;
+  border-radius: 8px;
+  color: #165dff;
+  display: inline-flex;
+  flex: 0 0 40px;
+  font-size: 20px;
+  height: 40px;
+  justify-content: center;
+}
+
+.arco-admin-dashboard__metric .arco-statistic-value {
+  color: var(--color-text-1);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.arco-admin-dashboard__detail-row {
+  margin-top: 16px;
+}
+
+.arco-admin-dashboard__panel {
+  height: 100%;
+}
+
+.arco-admin-dashboard__availability,
+.arco-admin-dashboard__lead-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arco-admin-dashboard__availability .arco-typography,
+.arco-admin-dashboard__lead-status .arco-typography {
+  margin: 0;
+}
+
+@media (max-width: 767px) {
+  .arco-admin-dashboard__intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .arco-admin-dashboard__actions {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .arco-admin-dashboard .arco-col-md-6 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+}
+
+@media (min-width: 992px) {
+  .arco-admin-dashboard .arco-col-lg-8 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+  }
+
+  .arco-admin-dashboard .arco-col-lg-16 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+  }
+}
+
+html[data-theme='dark'] {
+  --arco-admin-border: #333943;
+  --arco-admin-canvas: #17171a;
+  --arco-admin-ink: #f2f3f5;
+  --arco-admin-muted: #9ca3af;
+}
+
+html[data-theme='dark'] .arco-admin-dashboard {
+  --color-bg-2: #232324;
+  --color-border-2: #3c3c3f;
+  --color-fill-2: #2b2b2d;
+  --color-fill-3: #343437;
+  --color-text-1: #f2f3f5;
+  --color-text-2: #c9cdd4;
+  --color-text-3: #9ca3af;
+}
