@@ -14,9 +14,26 @@ import {
   VERIFICATION_STATUS_LABELS,
 } from '@/domain/supply/building'
 import { protectBuilding } from '@/domain/supply/building-protect'
+import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-check-endpoint'
+import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
+import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
+import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
 
 export const Buildings: CollectionConfig = {
   slug: 'buildings',
+  // 自定义端点必须挂在 collection 上（不能放顶层 config.endpoints）：
+  // Payload handleEndpoints 会在路径首段命中 collection slug 时，把匹配范围切到
+  // collection.config.endpoints 并剥掉 /{slug} 前缀 → 顶层同前缀端点永远匹配不到（404）。
+  endpoints: [
+    // M3.2 楼盘查重：GET /api/buildings/dedup-check
+    createBuildingDedupCheckEndpoint(),
+    // M3.2 楼盘合并：POST /api/buildings/:id/merge
+    createBuildingMergeEndpoint(),
+    // M3.5 楼盘停用影响预检：GET /api/buildings/:id/deactivation-impact
+    createBuildingDeactivationImpactEndpoint(),
+    // M3.4 楼盘启停：POST /api/buildings/:id/toggle-operational-status
+    createBuildingOperationalToggleEndpoint(),
+  ],
   labels: {
     singular: '楼盘',
     plural: '楼盘库',

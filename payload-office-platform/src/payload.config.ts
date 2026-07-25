@@ -34,12 +34,6 @@ import { Teams } from './collections/Teams'
 import { Brokers } from './collections/Brokers'
 import { Pages } from './collections/Pages'
 import { DisplayTags } from './collections/DisplayTags'
-import { createRoleCopyEndpoint } from './endpoints/role-copy-endpoint'
-import { createLocationReferencesEndpoint } from './endpoints/location-references-endpoint'
-import { createBuildingDedupCheckEndpoint } from './endpoints/building-dedup-check-endpoint'
-import { createBuildingMergeEndpoint } from './endpoints/building-merge-endpoint'
-import { createBuildingDeactivationImpactEndpoint } from './endpoints/building-deactivation-impact-endpoint'
-import { createBuildingOperationalToggleEndpoint } from './endpoints/building-operational-toggle-endpoint'
 import {
   EXPORT_LIMIT,
   createExportAuditHook,
@@ -120,20 +114,6 @@ export default buildConfig({
     Leads,
     Pages,
     DisplayTags,
-  ],
-  endpoints: [
-    // M1.5 角色复制：POST /api/roles/:id/copy
-    createRoleCopyEndpoint(),
-    // M2.2 区域引用数量：GET /api/locations/:id/references
-    createLocationReferencesEndpoint(),
-    // M3.2 楼盘查重：GET /api/buildings/dedup-check
-    createBuildingDedupCheckEndpoint(),
-    // M3.2 楼盘合并：POST /api/buildings/:id/merge
-    createBuildingMergeEndpoint(),
-    // M3.5 楼盘停用影响预检：GET /api/buildings/:id/deactivation-impact
-    createBuildingDeactivationImpactEndpoint(),
-    // M3.4 楼盘启停：POST /api/buildings/:id/toggle-operational-status
-    createBuildingOperationalToggleEndpoint(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [

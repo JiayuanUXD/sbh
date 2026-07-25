@@ -18,7 +18,9 @@ import { countLocationReferences } from '@/domain/geography/location-references'
  */
 export function createLocationReferencesEndpoint(): Endpoint {
   return {
-    path: '/locations/:id/references',
+    // 注册在 Locations collection 的 endpoints 上 → 实际 HTTP 路径 /api/locations/:id/references。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/:id/references',
     method: 'get',
     handler: async (req) => {
       if (!req.user) {

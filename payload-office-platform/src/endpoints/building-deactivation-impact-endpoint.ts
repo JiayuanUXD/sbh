@@ -26,7 +26,9 @@ import { countBuildingDeactivationImpact } from '@/domain/supply/building-refere
  */
 export function createBuildingDeactivationImpactEndpoint(): Endpoint {
   return {
-    path: '/buildings/:id/deactivation-impact',
+    // 注册在 Buildings collection 的 endpoints 上 → 实际 HTTP 路径 /api/buildings/:id/deactivation-impact。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/:id/deactivation-impact',
     method: 'get',
     handler: async (req) => {
       // 1. 鉴权：停用/预检同属「冻结」语义，要求 building:freeze

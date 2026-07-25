@@ -3,6 +3,7 @@ import { getPermissionContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { validatePermissionCodes } from '@/domain/auth/permission-codes'
 import { protectBuiltinRole } from '@/domain/auth/role-protect'
+import { createRoleCopyEndpoint } from '@/endpoints/role-copy-endpoint'
 
 /**
  * 角色 Collection（tasks.md M1.2, design.md §3.1）
@@ -26,6 +27,11 @@ export const Roles: CollectionConfig = {
     singular: '角色',
     plural: '角色管理',
   },
+  // 自定义端点挂 collection（不能放顶层 config.endpoints，否则被 slug 路由遮蔽 → 404）。
+  endpoints: [
+    // M1.5 角色复制：POST /api/roles/:id/copy
+    createRoleCopyEndpoint(),
+  ],
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['code', 'name', 'isBuiltin', 'status', 'dataScope', 'updatedAt'],

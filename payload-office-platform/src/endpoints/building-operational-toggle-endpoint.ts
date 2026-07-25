@@ -26,7 +26,9 @@ import { isBuildingOperationalStatus, type BuildingOperationalStatus } from '@/d
  */
 export function createBuildingOperationalToggleEndpoint(): Endpoint {
   return {
-    path: '/buildings/:id/toggle-operational-status',
+    // 注册在 Buildings collection 的 endpoints 上 → 实际 HTTP 路径 /api/buildings/:id/toggle-operational-status。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/:id/toggle-operational-status',
     method: 'post',
     handler: async (req) => {
       // 1. 鉴权：停用/启用属专用「冻结」权限语义，要求 building:freeze

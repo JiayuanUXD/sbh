@@ -27,7 +27,9 @@ import { mergeBuildings, type MergeErrorCode } from '@/domain/supply/building-de
  */
 export function createBuildingMergeEndpoint(): Endpoint {
   return {
-    path: '/buildings/:id/merge',
+    // 注册在 Buildings collection 的 endpoints 上 → 实际 HTTP 路径 /api/buildings/:id/merge。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/:id/merge',
     method: 'post',
     handler: async (req) => {
       // 1. 鉴权：必须具备 building:delete 权限（合并会软删源楼盘）

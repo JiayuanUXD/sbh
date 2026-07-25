@@ -5,6 +5,7 @@ import {
 } from '@/domain/geography/location-hierarchy'
 import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
+import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
@@ -18,6 +19,11 @@ export const Locations: CollectionConfig = {
     singular: '区域',
     plural: '区域管理',
   },
+  // 自定义端点挂 collection（不能放顶层 config.endpoints，否则被 slug 路由遮蔽 → 404）。
+  endpoints: [
+    // M2.2 区域引用数量：GET /api/locations/:id/references
+    createLocationReferencesEndpoint(),
+  ],
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],

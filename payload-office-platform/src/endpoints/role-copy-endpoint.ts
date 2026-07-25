@@ -26,7 +26,9 @@ import { copyRole } from '@/domain/auth/role-copy'
  */
 export function createRoleCopyEndpoint(): Endpoint {
   return {
-    path: '/roles/:id/copy',
+    // 注册在 Roles collection 的 endpoints 上 → 实际 HTTP 路径 /api/roles/:id/copy。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/:id/copy',
     method: 'post',
     handler: async (req) => {
       // 1. 鉴权：必须具备 role:manage 权限

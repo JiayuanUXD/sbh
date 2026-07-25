@@ -20,7 +20,9 @@ import { findBuildingDuplicates } from '@/domain/supply/building-dedup-service'
  */
 export function createBuildingDedupCheckEndpoint(): Endpoint {
   return {
-    path: '/buildings/dedup-check',
+    // 注册在 Buildings collection 的 endpoints 上 → 实际 HTTP 路径 /api/buildings/dedup-check。
+    // Payload 匹配前会先剥掉 /{slug}，故此处 path 用去 slug 前缀的相对路径。
+    path: '/dedup-check',
     method: 'get',
     handler: async (req) => {
       if (!req.user) {
