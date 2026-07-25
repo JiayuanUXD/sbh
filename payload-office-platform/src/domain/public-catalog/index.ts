@@ -6,7 +6,7 @@
  *
  * 职责边界：
  *   - 定义公开 DTO 与 mapper，把 Payload 文档投影成只读视图模型
- *   - 提供 Facade 函数（搜索、详情、楼盘、首页、facet、相关推荐）与 SupplyAdapter 契约
+ *   - 提供 Facade 函数（搜索、详情、楼盘、首页、facet、相关推荐、内容页）与 SupplyAdapter 契约
  *   - 字段白名单：不向浏览器暴露审核、举报、商户资质、内部电话、权限、审计
  *   - 当前过渡实现直接消费 Payload 文档；M4.7 服务就绪后替换 SupplyAdapter 内部，DTO 与 Facade 不变
  *
@@ -22,6 +22,11 @@
  *   - facade.ts 与 supply-adapter.ts 已完成（F1.3：骨架；过渡实现待 M4.7 替换）
  *   - F1.5 契约测试覆盖 Facade 与稳定排序（详见 tests/public-catalog-*.test.ts）
  *   - F1.6 删除旧 status=available 查询需等 M4.7 完成后才能执行
+ *
+ * F6.1-F6.4 进度：
+ *   - contracts/mappers 新增 PageDetailViewModel / PageSummaryViewModel（F6.1）
+ *   - facade 新增 getPageBySlug / listPublishedPages（F6.1 + F6.4）
+ *   - supply-adapter 新增 findPublishedPageBySlug / findPublishedPages（F6.1 + F6.4）
  */
 
 export * from './contracts'
@@ -67,4 +72,6 @@ export {
   assertEffectiveListing,
   getHomepage,
   getSearchFacets,
+  getPageBySlug,
+  listPublishedPages,
 } from './facade'

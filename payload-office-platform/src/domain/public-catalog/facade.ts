@@ -28,6 +28,8 @@ import type {
   ListingCardViewModel,
   ListingDetailViewModel,
   MediaViewModel,
+  PageDetailViewModel,
+  PageSummaryViewModel,
 } from './contracts'
 import {
   mapBuildingDetail,
@@ -35,6 +37,8 @@ import {
   mapDistrict,
   mapListingCard,
   mapListingDetail,
+  mapPageDetail,
+  mapPageSummary,
 } from './mappers'
 import {
   buildCanonicalSearchParams,
@@ -467,6 +471,43 @@ export async function getSearchFacets(
     })),
     totalDocs: cards.length,
   }
+}
+
+/**
+ * 按 slug 获取已发布的内容页详情；草稿/删除/不存在返回 null
+ *
+ * F6.1：内容页路由 /pages/[slug] 与首页 slug='home' 渲染入口。
+ * SupplyAdapter 已过滤 status=published + 未逻辑删除；mapper 进一步投影字段白名单。
+ * 返回 null 时路由层应调用 notFound()。
+ */
+export async function getPageBySlug(
+  slug: string,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<PageDetailViewModel | null> {
+  const raw = await adapter.findPublishedPageBySlug(slug, ctx)
+  if (!raw) return null
+  return mapPageDetail(raw)
+}
+
+/**
+ * 列出所有已发布的公开页面（用于 sitemap）
+ *
+ * F6.4：sitemap 调用此方法生成 /pages/<slug> URL。
+ * home slug 由调用方转换为 /（不重复 /pages/home）。
+ */
+export async function listPublishedPages(
+  ctx: SearchContext,
+  options: Readonly<{ limit?: number }> = {},
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly PageSummaryViewModel[]> {
+  const pages = await adapter.findPublishedPages(ctx, options.limit ?? 1000)
+  const summaries: PageSummaryViewModel[] = []
+  for (const p of pages) {
+    const s = mapPageSummary(p)
+    if (s) summaries.push(s)
+  }
+  return summaries
 }
 
 // ---------------------------------------------------------------------------

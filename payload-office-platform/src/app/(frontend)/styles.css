@@ -730,6 +730,119 @@ ol {
   font-size: var(--fs-13);
 }
 
+/* 桌面/移动筛选切换 */
+.filter-bar__desktop {
+  display: block;
+}
+
+.filter-bar__mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .filter-bar__desktop {
+    display: none;
+  }
+  .filter-bar__mobile {
+    display: block;
+    margin-bottom: var(--sp-4);
+  }
+}
+
+.filter-bar__mobile-trigger {
+  width: 100%;
+  justify-content: center;
+}
+
+/* 移动端筛选抽屉 */
+.filter-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  /* 软键盘适配：使用 dvh 单位，回退到 vh */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-drawer__handle {
+  width: 40px;
+  height: 4px;
+  background: var(--color-line-strong);
+  border-radius: 2px;
+  margin: var(--sp-2) auto var(--sp-1);
+}
+
+.filter-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.filter-drawer__title {
+  font-size: var(--fs-18);
+  font-weight: 600;
+  margin: 0;
+  outline: none;
+}
+
+.filter-drawer__close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-sm);
+}
+
+.filter-drawer__close:hover {
+  background: var(--color-paper);
+}
+
+.filter-drawer__close:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.filter-drawer__form {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  flex: 1;
+  /* 软键盘弹出时让表单可滚动 */
+  min-height: 0;
+}
+
+.filter-drawer__form .filter-bar__field {
+  width: 100%;
+}
+
+.filter-drawer__form .filter-bar__rent-group .filter-bar__input {
+  flex: 1;
+  width: auto;
+}
+
+.filter-drawer__actions {
+  display: flex;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--color-line);
+  margin-top: auto;
+}
+
+.filter-drawer__submit {
+  flex: 1;
+}
+
 .listings-page__header {
   margin-bottom: var(--sp-4);
 }
@@ -2026,4 +2139,206 @@ ol {
   border-radius: var(--radius-sm);
   padding: var(--sp-2) var(--sp-3);
   margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 18. 内容页 Page Detail（F6.2 / FP-06）
+ *    设计依据：specs/frontend-mvp/design.md §6.5、§11
+ *               docs/prd/前台网站_MVP_页面PRD/06-内容页_PRD.md §3、§8
+ *    守护不变量：
+ *      - 正文行宽 680–760px（FP-06 §8）；
+ *      - 标题层级从单一 H1 顺序展开（FP-06 §6）；
+ *      - 图片含 alt，纯装饰用空 alt；
+ *      - 目录吸顶偏移留作增强项，MVP 不强制。
+ * --------------------------------------------------------------------------- */
+
+.page-detail {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--container-pad-x) var(--sp-8);
+}
+
+.page-detail__hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+
+.page-detail__hero-image {
+  aspect-ratio: 16 / 9;
+  background: var(--color-paper);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.page-detail__hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-detail__hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.page-detail__eyebrow {
+  font-size: var(--fs-13);
+  color: var(--color-copper);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.page-detail__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-tight);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.page-detail__title--bare {
+  margin-top: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+
+.page-detail__summary {
+  font-size: var(--fs-18);
+  line-height: var(--lh-relaxed);
+  color: var(--color-ink-2);
+  margin: 0;
+}
+
+.page-detail__body {
+  font-size: var(--fs-16);
+  line-height: var(--lh-relaxed);
+  color: var(--color-ink-2);
+}
+
+/* PageContent 渲染容器（白名单节点） */
+.page-content :where(p, ul, ol) {
+  margin: 0 0 var(--sp-3);
+}
+
+.page-content :where(h2, h3, h4) {
+  color: var(--color-ink);
+  line-height: var(--lh-snug);
+  margin: var(--sp-5) 0 var(--sp-2);
+}
+
+.page-content h2 {
+  font-size: var(--fs-22);
+}
+
+.page-content h3 {
+  font-size: var(--fs-18);
+}
+
+.page-content h4 {
+  font-size: var(--fs-16);
+  font-weight: 600;
+}
+
+.page-content ul,
+.page-content ol {
+  padding-left: var(--sp-5);
+}
+
+.page-content li {
+  margin-bottom: var(--sp-1);
+}
+
+.page-content blockquote {
+  margin: var(--sp-4) 0;
+  padding: var(--sp-3) var(--sp-4);
+  border-left: 3px solid var(--color-copper);
+  background: var(--color-paper);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--color-ink-2);
+  font-style: italic;
+}
+
+.page-content hr {
+  margin: var(--sp-5) 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.page-content figure {
+  margin: var(--sp-4) 0;
+}
+
+.page-content figure img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.page-content a {
+  color: var(--color-copper);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.page-content a:hover {
+  color: var(--color-copper-hover);
+}
+
+.page-content code {
+  background: var(--color-paper);
+  padding: 0 var(--sp-1);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-numeric);
+  font-size: 0.9em;
+}
+
+/* 文末咨询 CTA */
+.page-detail__cta {
+  margin-top: var(--sp-7);
+  padding: var(--sp-5);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.page-detail__cta-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.page-detail__cta-title {
+  font-size: var(--fs-20);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.page-detail__cta-desc {
+  color: var(--color-ink-2);
+  margin: 0 0 var(--sp-2);
+}
+
+/* 移动端：内容页缩窄内边距，行宽仍保持可读 */
+@media (max-width: 768px) {
+  .page-detail {
+    padding: var(--sp-4) var(--sp-3) var(--sp-7);
+  }
+
+  .page-detail__title {
+    font-size: var(--fs-22);
+  }
+
+  .page-detail__summary {
+    font-size: var(--fs-16);
+  }
+
+  .page-content h2 {
+    font-size: var(--fs-20);
+  }
 }

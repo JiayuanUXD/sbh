@@ -3,6 +3,7 @@ import Link from 'next/link'
 import React from 'react'
 import FilterBar from '@/components/frontend/FilterBar'
 import ListingCard from '@/components/frontend/ListingCard'
+import MobileFilterDrawer from '@/components/frontend/MobileFilterDrawer'
 import Pagination from '@/components/frontend/Pagination'
 import {
   buildCanonicalSearchParams,
@@ -12,11 +13,12 @@ import {
   searchListings,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
+import { buildPageMetadata } from '@/lib/frontend/metadata'
 
 export const dynamic = 'force-dynamic'
 
 // ---------------------------------------------------------------------------
-// Metadata：canonical / robots（F3.6 提前接入）
+// Metadata：canonical / robots（F3.6 提前接入，F6.3 统一使用 buildPageMetadata）
 // ---------------------------------------------------------------------------
 
 /**
@@ -41,14 +43,10 @@ export async function generateMetadata({
   // 简化策略：page > 5 视为可能越界（一般 totalDocs ≤ 24*5=120），
   // 真实越界判定在页面渲染时 notFound 或显示空状态。
   // 这里始终 allow index，但 robots 限制非规范化 URL。
-  return {
+  return buildPageMetadata({
     title: '在租房源',
-    alternates: { canonical: canonicalPath },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  }
+    canonicalPath,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -105,14 +103,19 @@ export default async function ListingsPage({
         </p>
       </header>
 
-      <FilterBar districts={homepage.districts} />
+      <div className="filter-bar__desktop">
+        <FilterBar districts={homepage.districts} />
+      </div>
+      <div className="filter-bar__mobile">
+        <MobileFilterDrawer districts={homepage.districts} totalDocs={totalDocs} />
+      </div>
 
       {isOutOfBounds && (
         <div className="empty-state" role="status">
           <p className="empty-state__title">第 {page} 页超出范围</p>
           <p className="empty-state__desc">当前共 {totalPages} 页，已显示最后一页结果。</p>
           <div className="empty-state__action">
-            <Link href={buildPageHref(totalPages)} className="btn btn--ghost">
+            <Link href={buildPageHref(totalPages)} className="btn btn--ghost" data-event-name="listings_goto_last_page">
               查看第 {totalPages} 页
             </Link>
           </div>
@@ -124,7 +127,7 @@ export default async function ListingsPage({
           <p className="empty-state__title">没有符合条件的房源</p>
           <p className="empty-state__desc">试试调整筛选条件或扩大价格范围。</p>
           <div className="empty-state__action">
-            <Link href="/listings" className="btn btn--ghost">清除筛选</Link>
+            <Link href="/listings" className="btn btn--ghost" data-event-name="listings_clear_filters">清除筛选</Link>
           </div>
         </div>
       )}

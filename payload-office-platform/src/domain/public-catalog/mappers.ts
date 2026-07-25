@@ -15,7 +15,7 @@
  *   - 价格始终保留数值、币种、单位和可读文本
  */
 
-import type { Listing, Building, Location, Media, Amenity } from '@/payload-types'
+import type { Listing, Building, Location, Media, Amenity, Page } from '@/payload-types'
 import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
@@ -23,9 +23,14 @@ import type {
   ListingCardViewModel,
   ListingDetailViewModel,
   MediaViewModel,
+  PageDetailViewModel,
+  PageHeroViewModel,
+  PageSeoViewModel,
+  PageSummaryViewModel,
   PriceViewModel,
   PopulatedBuilding,
   PopulatedListing,
+  PopulatedPage,
 } from './contracts'
 
 // ---------------------------------------------------------------------------
@@ -287,5 +292,83 @@ export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null 
     amenities,
     summary: building.summary ?? '',
     description: building.description,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 内容页 DTO mapper（F6.1）
+// ---------------------------------------------------------------------------
+
+/**
+ * 类型守卫：判断输入是否为已填充关系的 Page 文档
+ *
+ * Page 文档必须包含 id / slug / title；status 可选（默认 published）。
+ * 不要求 status='published'，因为发布状态过滤由 SupplyAdapter 负责；
+ * mapper 只负责字段投影。
+ */
+function isPopulatedPage(v: unknown): v is PopulatedPage {
+  if (typeof v !== 'object' || v === null) return false
+  const p = v as Partial<Page>
+  return (
+    typeof p.id === 'number' &&
+    typeof p.slug === 'string' &&
+    typeof p.title === 'string'
+  )
+}
+
+/**
+ * 把 Payload Page 文档投影为 PageDetailViewModel。
+ *
+ * 字段白名单：只暴露 id / slug / title / status / hero / content / seo / updatedAt；
+ * 不暴露 createdBy / lastModifiedBy / deletedAt / _status 等内部字段。
+ *
+ * 草稿、删除或未发布页面不应进入此 mapper（由 SupplyAdapter 过滤）；
+ * 若上游错误传入，mapper 仍返回 null（守护不变量）。
+ */
+export function mapPageDetail(raw: unknown): PageDetailViewModel | null {
+  if (!isPopulatedPage(raw)) return null
+  const page = raw as PopulatedPage
+
+  const heroRaw = page.hero
+  const heroImageRaw = heroRaw?.image
+  const heroImage = mapMedia(heroImageRaw, page.title)
+  const hero: PageHeroViewModel = {
+    eyebrow: heroRaw?.eyebrow ?? null,
+    heading: heroRaw?.heading ?? null,
+    summary: heroRaw?.summary ?? null,
+    image: heroImage,
+  }
+
+  const seoRaw = page.seo
+  const seo: PageSeoViewModel = {
+    title: seoRaw?.title ?? null,
+    description: seoRaw?.description ?? null,
+  }
+
+  return {
+    id: page.id,
+    slug: page.slug,
+    title: page.title,
+    status: 'published',
+    hero,
+    content: page.content ?? null,
+    seo,
+    stableSortKey: `page-${page.id}`,
+    updatedAt: page.updatedAt,
+  }
+}
+
+/**
+ * 把 Payload Page 文档投影为 PageSummaryViewModel（用于 sitemap）。
+ *
+ * 仅暴露 id / slug / updatedAt；不暴露 content / hero / seo 详情。
+ */
+export function mapPageSummary(raw: unknown): PageSummaryViewModel | null {
+  if (!isPopulatedPage(raw)) return null
+  const page = raw as PopulatedPage
+  return {
+    id: page.id,
+    slug: page.slug,
+    updatedAt: page.updatedAt,
   }
 }

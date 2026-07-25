@@ -21,7 +21,7 @@
  */
 
 import type { Where } from 'payload'
-import type { Building, Listing, Location } from '@/payload-types'
+import type { Building, Listing, Location, Page } from '@/payload-types'
 import type { SearchContext, ListingSearchInput } from './types'
 
 /**
@@ -55,6 +55,22 @@ export interface SupplyAdapter {
 
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
+
+  /**
+   * 按 slug 返回已发布的公开页面；草稿、删除或不存在返回 null
+   *
+   * F6.1：只读取 status=published 的页面，草稿/删除/不存在返回 null。
+   * 用于内容页路由 /pages/[slug] 与首页 slug='home' 渲染。
+   */
+  findPublishedPageBySlug(slug: string, ctx: SearchContext): Promise<Page | null>
+
+  /**
+   * 返回所有已发布的公开页面（用于 sitemap）
+   *
+   * F6.4：仅返回 status=published 且未逻辑删除的页面，按 updatedAt 倒序。
+   * limit 用于规模拆分；MVP 单文件 sitemap，默认 1000。
+   */
+  findPublishedPages(ctx: SearchContext, limit?: number): Promise<readonly Page[]>
 }
 
 /**
@@ -323,6 +339,39 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
         depth: 0,
       })
       return (result.docs[0] as Listing | undefined) ?? null
+    },
+
+    async findPublishedPageBySlug(slug) {
+      // F6.1：只读取 status=published 且未逻辑删除的页面
+      // Pages collection 启用 trash，删除的文档 deletedAt 非空，需排除
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'pages',
+        where: {
+          slug: { equals: slug },
+          status: { equals: 'published' },
+          deletedAt: { exists: false },
+        },
+        limit: 1,
+        depth: 2, // hero.image 填充为 Media
+      })
+      return (result.docs[0] as Page | undefined) ?? null
+    },
+
+    async findPublishedPages(_ctx, limit = 1000) {
+      // F6.4：sitemap 用，仅返回已发布且未删除的页面
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'pages',
+        where: {
+          status: { equals: 'published' },
+          deletedAt: { exists: false },
+        },
+        limit,
+        depth: 0, // sitemap 只需 slug + updatedAt
+        sort: '-updatedAt',
+      })
+      return result.docs as readonly Page[]
     },
   }
 }

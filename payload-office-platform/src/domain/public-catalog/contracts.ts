@@ -19,6 +19,7 @@ import type {
   Location,
   Media,
   Amenity,
+  Page,
 } from '@/payload-types'
 
 // ---------------------------------------------------------------------------
@@ -166,4 +167,77 @@ export type PopulatedBuilding = Building & {
     | ReadonlyArray<{ image?: (number | null) | Media; id?: string | null }>
     | null
   amenities?: readonly (number | Amenity)[] | null
+}
+
+// ---------------------------------------------------------------------------
+// 内容页 DTO（PageDetailViewModel）
+// ---------------------------------------------------------------------------
+
+/**
+ * 内容页 SEO 视图：仅暴露前台渲染所需字段
+ *
+ * 不暴露内部 _status、trash、createdBy、lastModifiedBy、deletedAt 等敏感字段。
+ */
+export type PageSeoViewModel = Readonly<{
+  title: string | null
+  description: string | null
+}>
+
+/**
+ * 内容页 Hero 视图：eyebrow / heading / summary / 背景图
+ */
+export type PageHeroViewModel = Readonly<{
+  eyebrow: string | null
+  heading: string | null
+  summary: string | null
+  image: MediaViewModel | null
+}>
+
+/**
+ * 内容页详情视图模型
+ *
+ * 字段白名单依据 specs/frontend-mvp/tasks.md F6.1 与 FP-06 §2–§5：
+ *   - id / slug / title / status / hero / content / seo
+ *   - 不暴露 _status / trash / createdAt / createdBy / lastModifiedBy / deletedAt 等内部字段
+ *   - content 是 Lexical richText JSON，由 PageContent 组件按白名单节点类型渲染
+ *
+ * 草稿、逻辑删除或未发布的页面不会进入此 DTO（由 SupplyAdapter 与 Facade 过滤）。
+ */
+export type PageDetailViewModel = Readonly<{
+  id: number
+  slug: string
+  title: string
+  status: 'published'
+  hero: PageHeroViewModel
+  /** Lexical richText JSON；由 PageContent 组件按白名单节点渲染 */
+  content: Page['content']
+  seo: PageSeoViewModel
+  /** 稳定排序收束键（page-<id>） */
+  stableSortKey: string
+  /** 页面最后更新时间（ISO 字符串），用于 sitemap lastModified；不可作为发布日期声明 */
+  updatedAt: string
+}>
+
+/**
+ * 内容页摘要视图模型：用于 sitemap 与列表
+ *
+ * 仅暴露 sitemap 与列表渲染所需的字段，不暴露 content / hero 详情。
+ */
+export type PageSummaryViewModel = Readonly<{
+  id: number
+  slug: string
+  updatedAt: string
+}>
+
+/**
+ * Payload Page 文档的窄化类型（depth ≥ 1 时 image 已填充为 Media）。
+ * mapper 内部使用类型守卫验证后才视为已填充。
+ */
+export type PopulatedPage = Page & {
+  hero?: {
+    eyebrow?: string | null
+    heading?: string | null
+    summary?: string | null
+    image?: (number | null) | Media
+  } | null
 }

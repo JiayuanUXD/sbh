@@ -148,6 +148,13 @@ function createFakeAdapter(options: {
       if (!l || !isListingEffective(l)) return null
       return l
     },
+    async findPublishedPageBySlug(_slug) {
+      // Facade 单测不覆盖 Page，返回 null 即可；page 测试在单独文件
+      return null
+    },
+    async findPublishedPages() {
+      return []
+    },
   }
 }
 

@@ -20,7 +20,7 @@
  *   - BUILDING_DOCS：键为 'case-<场景>'，值为 PopulatedBuilding 形态文档
  */
 
-import type { Building, Listing, Location, Media, Amenity } from '@/payload-types'
+import type { Building, Listing, Location, Media, Amenity, Page } from '@/payload-types'
 
 /** 固定 asOf 锚点：2026-07-25 00:00:00 UTC = 上海 08:00 */
 export const AS_OF_ISO = '2026-07-25T00:00:00.000Z'
@@ -487,3 +487,145 @@ export const INQUIRY_LONG_INPUTS = {
   name_51: '测'.repeat(51),
   message_501: '测'.repeat(501),
 } as const
+
+// ---------------------------------------------------------------------------
+// Page fixtures（F6.1）
+// ---------------------------------------------------------------------------
+
+/**
+ * 简单 Lexical richText 内容：1 个段落 + 1 个 h2 + 1 个段落
+ *
+ * 用于 PageDetailViewModel 与 PageContent 渲染测试。
+ */
+export const PAGE_CONTENT_SIMPLE: NonNullable<Page['content']> = {
+  root: {
+    type: 'root',
+    children: [
+      {
+        type: 'paragraph',
+        version: 1,
+        children: [
+          { type: 'text', text: '这是首段正文。', version: 1, format: 0 },
+        ],
+        direction: 'ltr',
+        format: 'left',
+        indent: 0,
+      },
+      {
+        type: 'heading',
+        version: 1,
+        tag: 'h2',
+        children: [
+          { type: 'text', text: '二级标题', version: 1, format: 0 },
+        ],
+        direction: 'ltr',
+        format: 'left',
+        indent: 0,
+      },
+      {
+        type: 'paragraph',
+        version: 1,
+        children: [
+          { type: 'text', text: '标题下方段落。', version: 1, format: 0 },
+        ],
+        direction: 'ltr',
+        format: 'left',
+        indent: 0,
+      },
+    ],
+    direction: 'ltr',
+    format: 'left',
+    indent: 0,
+    version: 1,
+  },
+}
+
+/** 包含未支持节点（table）的 Lexical 内容：用于断言跳过 + 告警 */
+export const PAGE_CONTENT_WITH_UNSUPPORTED: NonNullable<Page['content']> = {
+  root: {
+    type: 'root',
+    children: [
+      {
+        type: 'paragraph',
+        version: 1,
+        children: [
+          { type: 'text', text: '正文。', version: 1, format: 0 },
+        ],
+        direction: 'ltr',
+        format: 'left',
+        indent: 0,
+      },
+      {
+        type: 'table',
+        version: 1,
+        // table 节点结构不完整也应被跳过而不崩溃
+        rows: [],
+      },
+    ],
+    direction: 'ltr',
+    format: 'left',
+    indent: 0,
+    version: 1,
+  },
+}
+
+/** 已发布的办公指南页面（含 hero / seo / content） */
+export const PAGE_PUBLISHED_GUIDE: Page = {
+  id: 5001,
+  title: '上海办公选址指南',
+  slug: 'office-guide',
+  status: 'published',
+  hero: {
+    eyebrow: '办公指南',
+    heading: '上海办公选址指南',
+    summary: '从区域到户型，全流程帮你理清选址思路。',
+    image: MEDIA_COVER_A,
+  },
+  content: PAGE_CONTENT_SIMPLE,
+  seo: {
+    title: '上海办公选址指南 · 商办租赁',
+    description: '上海办公选址完整指南，覆盖甲级写字楼、服务式办公、共享办公。',
+  },
+  updatedAt: '2026-07-20T00:00:00.000Z',
+  createdAt: '2026-07-01T00:00:00.000Z',
+}
+
+/** 首页 slug='home' 的已发布页面 */
+export const PAGE_PUBLISHED_HOME: Page = {
+  id: 5002,
+  title: '首页',
+  slug: 'home',
+  status: 'published',
+  hero: {
+    eyebrow: '首页',
+    heading: '商办租赁平台',
+    summary: null,
+    image: null,
+  },
+  content: null,
+  seo: {
+    title: null,
+    description: null,
+  },
+  updatedAt: '2026-07-22T00:00:00.000Z',
+  createdAt: '2026-07-01T00:00:00.000Z',
+}
+
+/** 草稿页面：不应进入 PageDetailViewModel */
+export const PAGE_DRAFT: Page = {
+  ...PAGE_PUBLISHED_GUIDE,
+  id: 5003,
+  slug: 'draft-page',
+  title: '草稿页面',
+  status: 'draft',
+}
+
+/** 逻辑删除的页面：deletedAt 非空 */
+export const PAGE_DELETED: Page = {
+  ...PAGE_PUBLISHED_GUIDE,
+  id: 5004,
+  slug: 'deleted-page',
+  title: '已删除页面',
+  status: 'published',
+  deletedAt: '2026-07-15T00:00:00.000Z',
+}
