@@ -1,4 +1,4 @@
-import type { DocumentViewServerProps } from 'payload'
+import type { BeforeDocumentControlsServerProps } from 'payload'
 
 import { computeBuildingSupplyAggregate } from '@/domain/supply/building-aggregate'
 import BuildingAggregateCardClient from './BuildingAggregateCardClient'
@@ -11,24 +11,27 @@ import BuildingAggregateCardClient from './BuildingAggregateCardClient'
  *
  * 口径：computeBuildingSupplyAggregate 的 M3 过渡谓词
  *   status='available' + building.operationalStatus='active' + deletedAt exists:false。
- * 聚合按当前用户数据权限脱敏（overrideAccess 默认 false，透传 req）。
+ *
+ * ⚠️ 关键：Payload 3.86 的 `beforeDocumentControls` 槽只传 `ServerProps`
+ * (`{ id, payload, user, i18n, locale, permissions }`)——**不含 `doc`/`req`**。
+ * 因此从 props 直接取 `id`；聚合无法透传 req，改用 `overrideAccess: true` 出全量
+ * 统计（编辑者已具备该文档访问权，卡片应展示楼盘真实有效供给,不做用户级脱敏）。
  *
  * 新建（未保存）楼盘无 id → 无可聚合对象 → 不渲染卡片。
  */
 export default async function BuildingAggregateCard({
-  doc,
+  id,
   payload,
-  initPageResult,
-}: DocumentViewServerProps) {
-  const building = doc as unknown as { id?: number | string }
-  const buildingId = building?.id
-  if (buildingId === undefined || buildingId === null || buildingId === '') return null
+}: BeforeDocumentControlsServerProps) {
+  if (id === undefined || id === null || id === '') return null
 
-  const aggregate = await computeBuildingSupplyAggregate(payload, buildingId, initPageResult.req)
+  const aggregate = await computeBuildingSupplyAggregate(payload, id, undefined, {
+    overrideAccess: true,
+  })
 
   return (
     <BuildingAggregateCardClient
-      buildingId={String(buildingId)}
+      buildingId={String(id)}
       count={aggregate.count}
       totalArea={aggregate.totalArea}
       rentRanges={aggregate.rentRanges}

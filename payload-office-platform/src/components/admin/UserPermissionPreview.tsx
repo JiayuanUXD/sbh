@@ -1,4 +1,4 @@
-import type { DocumentViewServerProps } from 'payload'
+import type { BeforeDocumentControlsServerProps } from 'payload'
 
 import type { Role, User } from '@/payload-types'
 import {
@@ -28,13 +28,27 @@ import {
  *   - 不可信任客户端表单数据；权限预览仅基于服务端 payload.find 加载的角色文档
  *   - 此组件仅展示，不修改任何字段；最终权限仍由 PermissionContext 在请求时派生
  *
- * 注：DocumentViewServerProps 不直接暴露 req；通过 ServerProps.payload 访问 Local API
+ * ⚠️ 关键：Payload 3.86 的 `beforeDocumentControls` 槽只传 `ServerProps`
+ * (`{ id, payload, user, i18n, locale, permissions }`)——**不含 `doc`/`req`**。
+ * 因此从 props 直接取 `id`，再用 `payload.findByID` 读回该账号（depth:1 带出角色文档）。
  */
 export default async function UserPermissionPreview({
-  doc,
+  id,
   payload,
-}: DocumentViewServerProps) {
-  const user = doc as unknown as User
+}: BeforeDocumentControlsServerProps) {
+  if (id === undefined || id === null || id === '') return null
+
+  let user: User | null = null
+  try {
+    user = (await payload.findByID({
+      collection: 'users',
+      id,
+      depth: 1,
+      overrideAccess: true,
+    })) as unknown as User
+  } catch {
+    return null
+  }
   if (!user || !user.id) return null
 
   // 加载绑定的角色文档（roles 字段可能是 ID 数组或文档数组）
