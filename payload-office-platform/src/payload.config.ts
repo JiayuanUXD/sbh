@@ -30,6 +30,7 @@ import { Locations } from './collections/Locations'
 import { BusinessAreaExtensions } from './collections/BusinessAreaExtensions'
 import { Merchants } from './collections/Merchants'
 import { BuildingMerchantRelations } from './collections/BuildingMerchantRelations'
+import { ListingMerchantRelations } from './collections/ListingMerchantRelations'
 import { Teams } from './collections/Teams'
 import { Brokers } from './collections/Brokers'
 import { Pages } from './collections/Pages'
@@ -110,6 +111,7 @@ export default buildConfig({
     Amenities,
     Buildings,
     BuildingMerchantRelations,
+    ListingMerchantRelations,
     Listings,
     Leads,
     Pages,
