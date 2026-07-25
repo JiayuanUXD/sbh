@@ -1,0 +1,88 @@
+name: Quality and migration baseline
+
+on:
+  pull_request:
+    paths:
+      - 'payload-office-platform/**'
+      - '.github/workflows/quality.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: payload-office-platform
+    env:
+      PAYLOAD_SECRET: ci-only-payload-secret
+      SQLITE_URL: file:./m0-ci.sqlite
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: payload-office-platform/.nvmrc
+          cache: pnpm
+          cache-dependency-path: payload-office-platform/pnpm-lock.yaml
+      - run: corepack enable
+      - run: corepack prepare pnpm@8.6.1 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm migrate:dry-run
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm seed
+      - run: pnpm migrate:verify
+      - run: pnpm baseline:capture
+      - run: pnpm test:e2e
+
+  postgres-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.6
+        env:
+          POSTGRES_USER: payload
+          POSTGRES_PASSWORD: payload
+          POSTGRES_DB: payload_m0
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U payload -d payload_m0"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: payload-office-platform
+    env:
+      PAYLOAD_SECRET: ci-only-payload-secret
+      DATABASE_URL: postgres://payload:payload@127.0.0.1:5432/payload_m0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: payload-office-platform/.nvmrc
+          cache: pnpm
+          cache-dependency-path: payload-office-platform/pnpm-lock.yaml
+      - run: corepack enable
+      - run: corepack prepare pnpm@8.6.1 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Validate migration source before writes
+        run: pnpm migrate:dry-run
+      - name: Apply all migrations to a fresh PostgreSQL database
+        run: pnpm exec payload migrate
+      - name: Verify fresh database
+        run: pnpm migrate:verify
+      - name: Populate existing business data
+        run: pnpm seed
+      - name: Re-run migrations against populated database
+        run: pnpm exec payload migrate
+      - name: Verify populated database after upgrade pass
+        run: pnpm migrate:verify
+      - name: Capture sanitized PostgreSQL baseline
+        run: pnpm baseline:capture
