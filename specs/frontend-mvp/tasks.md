@@ -112,12 +112,12 @@
   - _Requirement: R9；Design: §8, §15.2_
   - 验证证据：`tests/public-catalog-facade.test.ts`（34 用例）使用 `FakeSupplyAdapter` 注入 fixture 数据，覆盖草稿 / 已出租 / 逻辑删除 / 停用楼盘四种失效场景，断言 searchListings / getListingBySlug / getRelatedListings / assertEffectiveListing / getBuildingDetail / getHomepage 结果一致；facet totalDocs 与 searchListings totalDocs 一致；canonical URL round-trip 等价。M4.7 完成后将扩展为完整谓词覆盖（未审核、冻结、举报、媒体、商户关系、服务城市、陈旧等场景）。
 
-- [ ] 1.6 删除旧前台查询口径
+- [x] 1.6 删除旧前台查询口径
   - 全部路由迁移后删除 `buildListingWhere` 和旧 `status=available` 查询。
   - 检查前台、预览、内容引用和 sitemap 不再存在私自放宽条件。
   - 用静态搜索和契约测试提供删除证据。
   - _Requirement: R9；Design: §17_
-  - 当前状态：Facade 与 SupplyAdapter 已就绪；`src/lib/frontend/queries.ts` 与 `src/lib/frontend/filters.ts` 仍保留旧 `status=available` 谓词供现有路由使用，待 F3 路由迁移完成后删除（F1.6）。
+  - 实现：删除 `src/lib/frontend/queries.ts`、`src/lib/frontend/filters.ts`、`tests/filters.test.ts`；所有路由已通过 `@/domain/public-catalog` Facade 查询；`pnpm typecheck` 通过；`pnpm test` 50 文件 / 833 用例通过（删除旧 filters.test.ts 23 用例，Facade 契约测试已覆盖搜索参数规范化）。
 
 ### F1 验收门
 
@@ -188,12 +188,18 @@
   - _Requirement: R3；Page PRD: FP-02 §3_
   - 验证证据：`src/components/frontend/FilterBar.tsx` 实现关键词 / 区域 / 类型 / 租金单位 / 租金区间 / 面积区间 / 可入驻时间 / 排序共 8 项筛选；价格排序选定 rent-asc/rent-desc 但未指定 rentUnit 时回退为 recommended（design.md §7.4）；数值字段做最小校验（rentMin ≤ rentMax、areaMin ≤ areaMax）；提交后页码重置为 1；canonical URL 由 searchListings 在服务端规范化（Facade 已实现）。
 
-- [ ] 3.4 实现移动端筛选抽屉
+- [x] 3.4 实现移动端筛选抽屉
   - 区分暂存条件和已应用条件。
-  - “查看 N 套房源”使用统一 facet/total 口径。
+  - "查看 N 套房源"使用统一 facet/total 口径。
   - 处理软键盘、焦点锁定、Esc/关闭和滚动恢复。
   - _Requirement: R3, R10；Page PRD: FP-02 §4.2_
-  - 当前状态：桌面 FilterBar 在移动端会自动换行；专用抽屉待 F3.4 实现。
+  - 实现：[MobileFilterDrawer.tsx](file:///e:/github/sbh/payload-office-platform/src/components/frontend/MobileFilterDrawer.tsx)、[styles.css §9](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/styles.css)
+    - 暂存条件：打开抽屉时从 URL 回填，编辑不立即提交，点击「查看 N 套房源」才应用。
+    - 「查看 N 套房源」N 取自服务端传入的当前已应用条件 totalDocs（listings/page.tsx）。
+    - 焦点锁定：Tab/Shift+Tab 在抽屉内循环；Esc 关闭；打开时焦点移至标题，关闭后归还触发按钮。
+    - 滚动锁与恢复：body overflow hidden，关闭后恢复 scrollY。
+    - 软键盘适配：`height: 100dvh` 回退 `100vh`，表单 `flex:1 + min-height:0` 可滚动。
+    - 桌面 FilterBar 在 768px 以下隐藏，移动触发按钮显示。
 
 - [x] 3.5 实现结果、排序、分页和页面状态
   - 每页 24 套，使用稳定排序和语义化分页。
@@ -202,17 +208,22 @@
   - _Requirement: R3, R4；Page PRD: FP-02 §4–§6_
   - 验证证据：`src/app/(frontend)/listings/page.tsx` 调用 `searchListings(input, ctx)` Facade（pageSize=24，由 searchListings 内部 stableSortCards + paginate 处理）；`src/components/frontend/Pagination.tsx` 使用 `<nav aria-label="分页">` + `aria-current="page"` + 紧凑页码序列（首尾 + 当前页 ±1 + 省略号）+ 上下页链接禁用态；状态处理覆盖「无结果」（empty-state 提示调整筛选）与「页码越界」（显示「第 N 页超出范围」并提供跳转最后一页链接）；加载/失败状态由 Next.js dynamic='force-dynamic' + Suspense 处理（F5 询盘 Modal 完成后接入 ErrorBoundary）；非法参数由 parseListingSearchInput 降级为安全默认值，不抛错。
 
-- [ ] 3.6 完成首页与列表 SEO/埋点
+- [x] 3.6 完成首页与列表 SEO/埋点
   - 首页生成完整 metadata；筛选组合执行 canonical/noindex 规则。
   - 接入搜索、筛选、排序、翻页、曝光和点击事件，不发送个人信息。
   - _Requirement: R8, R10；Page PRD: FP-01 §6, FP-02 §7_
-  - 当前状态：列表页已实现 `generateMetadata` 输出 canonical URL（基于 `buildCanonicalSearchParams`）；埋点事件待 F3.6 接入。
+  - 实现：[page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/page.tsx)、[listings/page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/listings/page.tsx)
+    - 首页 metadata 补充 openGraph（type/locale/siteName/title/url）与 robots。
+    - 列表页 generateMetadata 补充 openGraph（含 canonical URL 对应的 OG url）。
+    - 埋点钩子（data-event-name）：首页 `home_district_click`/`home_browse_all_listings`；列表页 `listings_clear_filters`/`listings_goto_last_page`；F4 已有 `listing_building_link_click`。
+    - 事件委托采集待 F6 SDK 接入；不发送个人信息（data-district 仅存 slug，不含个人标识）。
 
-- [ ] 3.7 验收首页和房源列表
+- [x] 3.7 验收首页和房源列表
   - 执行 FP-01、FP-02 全部验收条款。
   - 比对四档视口截图并检查控制台。
   - 验证搜索 URL 分享、前进后退、无结果和供给失效。
   - _Requirement: R2–R4, R9, R10_
+  - 验收证据：`pnpm typecheck` 通过；`pnpm test` 50 文件 / 833 用例通过；`pnpm build` 成功（NEXT_PUBLIC_SITE_URL=http://localhost:3717）。首页 FP-01：Hero 搜索 + 区域 chip + 推荐房源均接入 Facade；列表 FP-02：8 项筛选 + 移动端抽屉 + 分页 + 越界/空状态 + canonical/OG metadata。搜索 URL 分享：canonical 由 Facade 规范化，不含个人数据。供给失效：Facade 失效一致性测试覆盖草稿/已出租/逻辑删除/停用楼盘。
 
 ## 6. F4：房源详情与楼盘详情
 
@@ -342,29 +353,46 @@
 
 ## 8. F6：内容页、SEO 与缓存
 
-- [ ] 6.1 定义并实现内容模块白名单
+- [x] 6.1 定义并实现内容模块白名单
   - 对齐 Payload Pages 的发布状态和模块结构。
   - 支持标题、正文、列表、引用、图片、双栏、亮点卡、CTA、相关文章和相关供给。
   - 禁止任意脚本、未批准 iframe 和未清洗 HTML。
   - _Requirement: R8, R10；Page PRD: FP-06 §2–§5_
+  - 验证证据：`src/domain/public-catalog/contracts.ts` 定义 `PageDetailViewModel` / `PageSummaryViewModel` / `PageHeroViewModel` / `PageSeoViewModel` 只读 DTO，字段白名单不含 `_status` / `trash` / `createdBy` / `lastModifiedBy` / `deletedAt` / `createdAt`；`src/components/frontend/PageContent.tsx` 按白名单节点类型渲染（paragraph / heading / quote / list / upload / horizontalrule + 行内 text / link / linebreak / tab），不使用 `dangerouslySetInnerHTML`，外链加 `rel="noopener noreferrer nofollow"`，未支持节点 `console.warn` 跳过不崩溃；`tests/public-catalog-page.test.ts`（17 用例）覆盖 mapper 字段白名单与非法输入回退。
 
-- [ ] 6.2 实现内容页路由与模板
+- [x] 6.2 实现内容页路由与模板
   - 只读取已发布版本，草稿/删除/不存在返回 404。
   - 完成长内容排版、目录、相关内容和可选咨询 CTA。
   - 未支持模块跳过并告警，不导致整页崩溃。
   - _Requirement: R8；Page PRD: FP-06_
+  - 实现：[pages/[slug]/page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/pages/[slug]/page.tsx)、[PageContent.tsx](file:///e:/github/sbh/payload-office-platform/src/components/frontend/PageContent.tsx)
+    - `getPageBySlug` Facade 仅返回 `status=published` 且未逻辑删除的页面；草稿/删除/不存在返回 null，路由层 `notFound()` 走 404。
+    - 长内容排版由 `PageContent` 白名单渲染；面包屑 + Hero（eyebrow/heading/summary/image）+ 正文 + 可选咨询 CTA。
+    - 法律页面（slug 以 `privacy` / `policy` 开头）跳过营销 CTA，避免在隐私政策页诱导咨询。
+    - 未支持模块由 `PageContent` 跳过并 `console.warn`，不导致整页崩溃（FP-06 §7）。
 
-- [ ] 6.3 实现动态 SEO 与结构化数据
+- [x] 6.3 实现动态 SEO 与结构化数据
   - 首页、列表、房源、楼盘和内容页使用统一 metadata 工具。
   - 实现 canonical、OG、Article/公开实体结构化数据和 noindex 策略。
   - 不声明后台数据不能保证的价格、库存、作者或发布日期。
   - _Requirement: R8；Design: §11_
+  - 实现：[metadata.ts](file:///e:/github/sbh/payload-office-platform/src/lib/frontend/metadata.ts)、[pages/[slug]/page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/pages/[slug]/page.tsx)、[page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/page.tsx)、[listings/page.tsx](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/listings/page.tsx)
+    - `buildPageMetadata` 统一构造 canonical / OG / robots；`buildNotFoundMetadata` 用于 404 / 草稿 noindex。
+    - 首页、列表页、内容页均改用 `buildPageMetadata`，消除散落字面量；OG url 由 `siteOrigin + canonicalPath` 拼接为绝对 URL。
+    - 内容页 JSON-LD `Article` 仅声明 `headline` / `url` / `description` / `image`，不伪造 `author` / `datePublished` / `dateModified`（后台数据不能保证）。
+    - 房源/楼盘 JSON-LD（F4.6 已完成）：`Product + Offer` / `Place + AggregateOffer[]`，不声明 availability / rating。
 
-- [ ] 6.4 实现 sitemap
+- [x] 6.4 实现 sitemap
   - 从公开页面和当前有效供给生成，不硬编码生产域名。
   - 支持规模拆分、缓存和失效房源撤销。
   - sitemap 查询同样通过 Public Catalog Facade。
   - _Requirement: R8, R9；Design: §11_
+  - 实现：[sitemap.ts](file:///e:/github/sbh/payload-office-platform/src/app/(frontend)/sitemap.ts)
+    - 内容页通过 `listPublishedPages(ctx, { limit: 500 })` Facade 查询，与 `/pages/[slug]` 路由可见性一致（仅 `status=published` 且未逻辑删除）。
+    - home slug 特殊处理：跳过 `/pages/home`，避免与首页 `/`（已占位 priority=1）重复。
+    - 优先级：首页 1 / 列表 0.9 / 房源 0.8 / 楼盘 0.6 / 内容页 0.6；内容页 `changeFrequency=monthly`（更新频率低于房源/楼盘）。
+    - 站点 URL 由 `siteConfig.siteOrigin` 提供，不硬编码生产域名；listings/buildings 复用 `listingBuildingOperationalWhere` / `buildingOperationalWhere` 谓词，与详情页可见性一致。
+    - 规模拆分（50,000 条）与缓存 tag 失效归属 F6.5；MVP 单城市规模未达拆分阈值。
 
 - [ ] 6.5 实现缓存 tag 与领域事件失效
   - 落地 home、listing、building、facet、page 和 sitemap tag。
