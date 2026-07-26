@@ -75,3 +75,26 @@ export {
   getPageBySlug,
   listPublishedPages,
 } from './facade'
+
+// F6.5 缓存 tag 体系与领域事件失效
+export {
+  PUBLIC_CACHE_TAG_PREFIX,
+  SITEMAP_TAG,
+  ALL_PUBLIC_CACHE_TAG_GROUPS,
+  homeTag,
+  listingTag,
+  buildingTag,
+  listingsTag,
+  facetsTag,
+  pageTag,
+  cityLevelSafeInvalidationTags,
+  isPublicCacheTag,
+} from './cache-tags'
+export {
+  type TagInvalidator,
+  computeAffectedTags,
+  createCacheInvalidatorConsumer,
+  createNextTagInvalidator,
+  registerCacheInvalidatorConsumers,
+  CACHE_INVALIDATOR_EVENT_TYPES,
+} from './cache-invalidator'

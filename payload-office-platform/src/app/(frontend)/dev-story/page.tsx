@@ -439,7 +439,7 @@ export default function DevStoryPage() {
           4. 表单字段
         </h2>
         <p className="dev-story__section-desc">
-          label / hint / error 通过 aria-describedby 关联；error 用 role="alert" 朗读
+          label / hint / error 通过 aria-describedby 关联；error 用 role=&quot;alert&quot; 朗读
         </p>
         <div
           className="dev-story__grid"

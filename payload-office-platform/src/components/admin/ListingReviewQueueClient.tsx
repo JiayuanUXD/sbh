@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Button,
@@ -114,38 +114,41 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
   const dualPermission = canReview && canPublish
 
   /** 调用 review 端点（通过/驳回/撤回)。返回是否成功。 */
-  async function callReview(
-    row: QueueRow,
-    decision: 'approve' | 'reject' | 'withdraw',
-    reason?: string,
-  ): Promise<boolean> {
-    const res = await fetch(`/api/listings/${row.listingId}/review`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        decision,
-        reason,
-        expectedVersion: row.version,
-      }),
-    })
-    const data = (await res.json().catch(() => ({}))) as {
-      ok?: boolean
-      error?: { message?: string } | string
-    }
-    if (!res.ok || !data.ok) {
-      const msg =
-        typeof data.error === 'string'
-          ? data.error
-          : data.error?.message || `操作失败（HTTP ${res.status}）`
-      Message.error(msg)
-      return false
-    }
-    return true
-  }
+  const callReview = useCallback(
+    async (
+      row: QueueRow,
+      decision: 'approve' | 'reject' | 'withdraw',
+      reason?: string,
+    ): Promise<boolean> => {
+      const res = await fetch(`/api/listings/${row.listingId}/review`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision,
+          reason,
+          expectedVersion: row.version,
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: { message?: string } | string
+      }
+      if (!res.ok || !data.ok) {
+        const msg =
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message || `操作失败（HTTP ${res.status}）`
+        Message.error(msg)
+        return false
+      }
+      return true
+    },
+    [],
+  )
 
   /** 调用 publish 端点（通过后上架）。返回是否成功。 */
-  async function callPublish(row: QueueRow): Promise<boolean> {
+  const callPublish = useCallback(async (row: QueueRow): Promise<boolean> => {
     const res = await fetch(`/api/listings/${row.listingId}/publish`, {
       method: 'POST',
       credentials: 'include',
@@ -165,31 +168,34 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
       return false
     }
     return true
-  }
+  }, [])
 
   /** 通过（可选通过后上架）。 */
-  async function handleApprove(row: QueueRow) {
-    setSubmitting(true)
-    try {
-      const approved = await callReview(row, 'approve')
-      if (!approved) return
-      if (dualPermission && publishAfterApprove) {
-        const published = await callPublish(row)
-        if (published) {
-          Message.success('已通过并上架')
+  const handleApprove = useCallback(
+    async (row: QueueRow) => {
+      setSubmitting(true)
+      try {
+        const approved = await callReview(row, 'approve')
+        if (!approved) return
+        if (dualPermission && publishAfterApprove) {
+          const published = await callPublish(row)
+          if (published) {
+            Message.success('已通过并上架')
+          } else {
+            Message.warning('已通过，但上架失败，请到房源列表手动上架')
+          }
         } else {
-          Message.warning('已通过，但上架失败，请到房源列表手动上架')
+          Message.success('已通过')
         }
-      } else {
-        Message.success('已通过')
+        setDetail(null)
+        setPublishAfterApprove(false)
+        router.refresh()
+      } finally {
+        setSubmitting(false)
       }
-      setDetail(null)
-      setPublishAfterApprove(false)
-      router.refresh()
-    } finally {
-      setSubmitting(false)
-    }
-  }
+    },
+    [dualPermission, publishAfterApprove, callReview, callPublish, router],
+  )
 
   /** 撤回（作者/运营把 pending 退回 not_submitted）。 */
   async function handleWithdraw(row: QueueRow) {
@@ -288,9 +294,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         ),
       },
     ],
-    // handleApprove/submitting 依赖闭包，随渲染刷新即可
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canReview, submitting],
+    [canReview, submitting, handleApprove],
   )
 
   return (

@@ -11,7 +11,7 @@
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
     "typecheck": "tsc --noEmit --pretty false",
-    "lint": "next lint",
+    "lint": "eslint .",
     "seed": "node --env-file=.env.local --import tsx scripts/seed.ts",
     "baseline:capture": "node --env-file=.env.local --import tsx scripts/baseline-snapshot.ts",
     "migrate:dry-run": "node --env-file=.env.local --import tsx scripts/migrate-dry-run.ts",
@@ -19,7 +19,11 @@
     "migrate:verify": "node --env-file=.env.local --import tsx scripts/migrate-verify.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "preflight": "node --env-file=.env.local --import tsx scripts/preflight.ts",
+    "preflight:env": "node --env-file=.env.local --import tsx scripts/preflight.ts env",
+    "preflight:migrate": "node --env-file=.env.local --import tsx scripts/preflight.ts migrations",
+    "data:audit": "node --env-file=.env.local --import tsx scripts/data-audit.ts"
   },
   "dependencies": {
     "@libsql/client": "0.14.0",
