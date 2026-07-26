@@ -1,5 +1,4 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
-import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { mediaGalleryPlugin } from 'payload-media-gallery'
 import { searchPlugin } from '@payloadcms/plugin-search'
@@ -41,6 +40,7 @@ import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { DomainEvents } from './collections/DomainEvents'
+import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
 import {
@@ -54,6 +54,9 @@ import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
 import { createOverviewEndpoint } from './endpoints/overview-endpoint'
 import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-endpoint'
 import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
+import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
+import { serializedSQLiteAdapter } from './lib/serialized-sqlite-adapter'
+import { assertProductionConfig } from './lib/runtime/config-guard'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -74,6 +77,11 @@ if (!metricRegistry.has('listings.total')) {
 }
 
 export default buildConfig({
+  // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（payload migrate / next start），
+  // 生产缺 PostgreSQL / 强密钥 / 合法站点 URL 时抛错拒绝启动；dev/build 不触发。
+  onInit: () => {
+    assertProductionConfig(process.env)
+  },
   i18n: {
     supportedLanguages: { zh },
     fallbackLanguage: 'zh',
@@ -142,6 +150,7 @@ export default buildConfig({
     ListingReviews,
     ListingReports,
     DomainEvents,
+    AuditLogs,
     Tasks,
     Notifications,
   ],
@@ -155,6 +164,8 @@ export default buildConfig({
     createOverviewEndpoint(),
     createListingAnalyticsEndpoint(),
     createLeadAnalyticsEndpoint(),
+    // M2.6 字典发布基线 endpoint（GET /api/dictionaries，只读枚举 + 可选展示标签）
+    createDictionariesEndpoint(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
@@ -188,10 +199,11 @@ export default buildConfig({
         // 发现“多余”表会提示 DROP 并在非 TTY 下卡死。共享库一律只走显式迁移，禁止 dev push。
         push: false,
       })
-    : sqliteAdapter({
+    : serializedSQLiteAdapter({
         client: {
           url: sqliteUrl,
         },
+        busyTimeout: 10_000,
       }),
   sharp,
   plugins: [

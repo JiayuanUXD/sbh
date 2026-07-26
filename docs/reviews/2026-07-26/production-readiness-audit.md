@@ -36,11 +36,13 @@
 
 **修复**：补注册两份迁移到 `index.ts`；重构 `preflight.ts` 为纯函数（解析数组 `name:` 字段、目录/索引集合相等校验、缺 down 升级 fail、风险扫描只针对 up body）。9 项单元测试 + 真实预检验证集合一致。证据见 `artifacts/verification/OPT-014/README.md`。
 
-### P0：生产配置缺失时会降级到临时 SQLite 和固定密钥
+### P0：生产配置缺失时会降级到临时 SQLite 和固定密钥 ✅ 已修复（OPT-015）
 
 当 `DATABASE_URL` 不存在或格式不以 `postgres` 开头时，配置自动启用本地 SQLite；当 `PAYLOAD_SECRET` 缺失时使用固定字符串。部署工作流没有运行环境预检，只依赖控制台已配置这一假设。
 
 在 CloudRun 中，这种配置错误可能表现为“服务健康但使用实例本地临时数据”，同时采用公开可预测的 Payload 密钥。生产模式必须 fail-closed。
+
+**修复**：新增 `src/lib/runtime/config-guard.ts` 纯函数守卫（`assertProductionConfig`），挂载到 `payload.config.ts` 的 `onInit`。生产缺 PostgreSQL / 强密钥（>=32 字符且非弱默认值）/ 合法 https 站点 URL 时抛错拒绝启动；dev/build 不触发。16 项单元测试 + 全量 1932 项回归通过。证据见 `artifacts/verification/OPT-015/README.md`。
 
 ### P1：发布工作流绕过项目质量门禁并直接切流
 
