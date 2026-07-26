@@ -417,8 +417,9 @@ export async function getHomepage(
  *   - 复用 adapter.findEffectiveListings（不带分页约束）；
  *   - 在内存中按 district / listingType / rentUnit 聚合。
  *
- * 注意：MVP 阶段 facet 不随搜索条件变化（仅基于全量有效房源）；
- * 若需 facet 跟随当前条件，需在 adapter 层增加 facet 专用方法（M4.7 后）。
+ * 注意：facet 跟随当前搜索条件（findEffectiveListings(facetInput)），
+ * totalDocs 与列表页 searchListings 使用同一筛选口径，保证 N 一致
+ * （OPT-009 移动筛选估算复用此口径）。
  */
 export async function getSearchFacets(
   input: ListingSearchInput,
@@ -501,7 +502,7 @@ export async function listPublishedPages(
   options: Readonly<{ limit?: number }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly PageSummaryViewModel[]> {
-  const pages = await adapter.findPublishedPages(ctx, options.limit ?? 1000)
+  const pages = await adapter.findPublishedPages(ctx, options.limit)
   const summaries: PageSummaryViewModel[] = []
   for (const p of pages) {
     const s = mapPageSummary(p)

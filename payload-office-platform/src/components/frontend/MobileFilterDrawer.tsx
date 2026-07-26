@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useId, useRef, useState } from 'react'
 
+import { estimateListingCount } from '@/app/(frontend)/listings/actions'
+
 /**
  * 移动端筛选抽屉（F3.4）
  *
@@ -58,6 +60,72 @@ function toIntOrNull(v: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null
 }
 
+/** 暂存条件集合（与 10 个 useState 一一对应） */
+type StagedFilters = {
+  q: string
+  district: string
+  type: string
+  rentMin: string
+  rentMax: string
+  rentUnit: string
+  areaMin: string
+  areaMax: string
+  availableBefore: string
+  sort: string
+}
+
+/**
+ * 校验暂存条件：返回错误消息或 null
+ *
+ * submit 与估算 effect 共用，保证估算与提交口径一致（OPT-009）。
+ */
+function validateStaging(s: StagedFilters): string | null {
+  const rentMinN = toIntOrNull(s.rentMin)
+  const rentMaxN = toIntOrNull(s.rentMax)
+  const areaMinN = toIntOrNull(s.areaMin)
+  const areaMaxN = toIntOrNull(s.areaMax)
+  if (rentMinN != null && rentMaxN != null && rentMinN > rentMaxN) {
+    return '租金最低不能高于最高'
+  }
+  if (areaMinN != null && areaMaxN != null && areaMinN > areaMaxN) {
+    return '面积最低不能高于最高'
+  }
+  return null
+}
+
+/**
+ * 构造与 submit 同口径的 URLSearchParams（OPT-009）
+ *
+ * 含 finalSort 回退（价格排序无 rentUnit -> recommended），
+ * 保证估算 N 与提交后列表页 totalDocs 使用同一查询口径。
+ */
+function buildStagedParams(s: StagedFilters): URLSearchParams {
+  const params = new URLSearchParams()
+  const rentMinN = toIntOrNull(s.rentMin)
+  const rentMaxN = toIntOrNull(s.rentMax)
+  const areaMinN = toIntOrNull(s.areaMin)
+  const areaMaxN = toIntOrNull(s.areaMax)
+
+  let finalSort = s.sort
+  if ((s.sort === 'rent-asc' || s.sort === 'rent-desc') && !s.rentUnit) {
+    finalSort = 'recommended'
+  }
+
+  const qNormalized = s.q.trim().slice(0, 60)
+  if (qNormalized) params.set('q', qNormalized)
+  if (s.district) params.set('district', s.district)
+  if (s.type) params.set('type', s.type)
+  if (rentMinN != null) params.set('rentMin', String(rentMinN))
+  if (rentMaxN != null) params.set('rentMax', String(rentMaxN))
+  if (s.rentUnit) params.set('rentUnit', s.rentUnit)
+  if (areaMinN != null) params.set('areaMin', String(areaMinN))
+  if (areaMaxN != null) params.set('areaMax', String(areaMaxN))
+  if (s.availableBefore) params.set('availableBefore', s.availableBefore)
+  if (finalSort && finalSort !== 'recommended') params.set('sort', finalSort)
+
+  return params
+}
+
 export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
   const router = useRouter()
   const sp = useSearchParams()
@@ -75,6 +143,10 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
   const [areaMax, setAreaMax] = useState('')
   const [availableBefore, setAvailableBefore] = useState('')
   const [sort, setSort] = useState('recommended')
+
+  // 暂存条件估算的候选结果数（OPT-009）：null 时 fallback 到已应用条件 totalDocs
+  const [estimateCount, setEstimateCount] = useState<number | null>(null)
+  const estimateReqIdRef = useRef(0)
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
@@ -94,6 +166,7 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
     setAvailableBefore(sp.get('availableBefore') || '')
     setSort(sp.get('sort') || 'recommended')
     setError(null)
+    setEstimateCount(null)
     setOpen(true)
   }
 
@@ -146,44 +219,42 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
     }
   }, [open])
 
+  // 暂存条件变化时估算候选结果数（OPT-009）
+  // debounce 300ms + requestId：仅取最新请求结果，避免旧请求覆盖
+  // setEstimateCount 只在 setTimeout 异步回调中调用，不在 effect body 同步 setState
+  useEffect(() => {
+    if (!open) return
+    const staging: StagedFilters = {
+      q, district, type, rentMin, rentMax, rentUnit,
+      areaMin, areaMax, availableBefore, sort,
+    }
+    if (validateStaging(staging)) return
+    const filters = Object.fromEntries(buildStagedParams(staging))
+    const reqId = ++estimateReqIdRef.current
+    const timer = setTimeout(async () => {
+      const count = await estimateListingCount(filters)
+      // 仅采纳最新请求结果
+      if (reqId === estimateReqIdRef.current) {
+        setEstimateCount(count)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [open, q, district, type, rentMin, rentMax, rentUnit, areaMin, areaMax, availableBefore, sort])
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const params = new URLSearchParams()
-
-    const rentMinN = toIntOrNull(rentMin)
-    const rentMaxN = toIntOrNull(rentMax)
-    const areaMinN = toIntOrNull(areaMin)
-    const areaMaxN = toIntOrNull(areaMax)
-
-    if (rentMinN != null && rentMaxN != null && rentMinN > rentMaxN) {
-      setError('租金最低不能高于最高')
+    const staging: StagedFilters = {
+      q, district, type, rentMin, rentMax, rentUnit,
+      areaMin, areaMax, availableBefore, sort,
+    }
+    const validationError = validateStaging(staging)
+    if (validationError) {
+      setError(validationError)
       return
     }
-    if (areaMinN != null && areaMaxN != null && areaMinN > areaMaxN) {
-      setError('面积最低不能高于最高')
-      return
-    }
-
-    let finalSort = sort
-    if ((sort === 'rent-asc' || sort === 'rent-desc') && !rentUnit) {
-      finalSort = 'recommended'
-    }
-
     setError(null)
 
-    const qNormalized = q.trim().slice(0, 60)
-    if (qNormalized) params.set('q', qNormalized)
-    if (district) params.set('district', district)
-    if (type) params.set('type', type)
-    if (rentMinN != null) params.set('rentMin', String(rentMinN))
-    if (rentMaxN != null) params.set('rentMax', String(rentMaxN))
-    if (rentUnit) params.set('rentUnit', rentUnit)
-    if (areaMinN != null) params.set('areaMin', String(areaMinN))
-    if (areaMaxN != null) params.set('areaMax', String(areaMaxN))
-    if (availableBefore) params.set('availableBefore', availableBefore)
-    if (finalSort && finalSort !== 'recommended') params.set('sort', finalSort)
-
-    const qs = params.toString()
+    const qs = buildStagedParams(staging).toString()
     router.push(qs ? `/listings?${qs}` : '/listings')
     setOpen(false)
   }
@@ -212,6 +283,7 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
         className="filter-bar__mobile-trigger btn btn--ghost"
         onClick={openDrawer}
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-controls={titleId}
       >
         筛选
@@ -385,7 +457,7 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
                 重置
               </button>
               <button type="submit" className="btn btn--primary filter-drawer__submit">
-                查看 {totalDocs} 套房源
+                查看 {estimateCount ?? totalDocs} 套房源
               </button>
             </div>
           </form>
