@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Metadata, Viewport } from 'next'
 import { siteConfig } from '@/lib/frontend/site-config'
 import SiteNav from '@/components/frontend/SiteNav'
+import { AnalyticsInit } from '@/lib/frontend/analytics'
 import './styles.css'
 
 // F0.5：metadataBase 由类型化环境配置提供，禁止硬编码生产域名。
@@ -59,6 +60,8 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
             <span>上海 · 商务办公租赁</span>
           </div>
         </footer>
+        {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
+        <AnalyticsInit />
       </body>
     </html>
   )
