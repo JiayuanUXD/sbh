@@ -4,10 +4,22 @@
 
 ## M7 工作台与数据看板
 
-- [ ] 7.1 建立指标注册表
+- [x] 7.1 建立指标注册表
   - 为每个指标定义编码、公式、去重、时间、权限、缓存和下钻模板。
   - 禁止页面独立拼装指标条件。
   - _Requirement: R7_
+  - 验证证据：
+    - 领域层:
+      - `payload-office-platform/src/domain/analytics/metric-types.ts`（M7.1 新增：METRIC_CATEGORIES / METRIC_UNITS / METRIC_DEDUP_STRATEGIES / METRIC_TIME_RANGES / METRIC_SCOPE_DIMS / METRIC_DRILLDOWN_TARGETS 枚举与守卫；MetricDefinition / MetricQueryAdapter / MetricScalarResult / MetricSeriesResult / MetricQueryContext 类型；isMetricDefinition 运行时校验）
+      - `payload-office-platform/src/domain/analytics/metric-context.ts`（M7.1 新增：sanitizeFilters 客户端不可信输入清洗 → 维度白名单 + 城市/团队上限求交集 + assignee dataScope=self 强制 = userId + range 365 天上限；canViewMetric 权限并集校验；EMPTY_FILTERS / MAX_RANGE_DAYS 常量）
+      - `payload-office-platform/src/domain/analytics/metric-registry.ts`（M7.1 新增：MetricRegistry 类 register/has/get/require/codes/listVisible/resolve/clear；DuplicateMetricError / MetricNotFoundError / MetricPermissionError；单例 metricRegistry）
+      - `payload-office-platform/src/domain/analytics/metric-drilldown.ts`（M7.1 新增：buildDrilldownUrl 占位符替换 {{collection}} / {{filter_keys}} / {{bucket.label}} / {{ctx.asOf}}，仅替换 sanitize 后的字段防 URL 扩大范围）
+      - `payload-office-platform/src/domain/analytics/metric-consistency.ts`（M7.1 新增：assertCardEqualsSeriesSum 卡片=序列和断言 / assertResultsEqual / assertSeriesEqual / assertUrlNotExpandScope 业务不变量）
+      - `payload-office-platform/src/domain/analytics/metrics/builtin.ts`（M7.1 新增：BUILTIN_METRICS 内置指标元数据，覆盖 listings.*/leads.*/tasks.*/supply.effective_count 等；stubQuery / stubSeriesQuery 占位查询供 M7.2 工作台先行接入，M7.3-M7.5 替换为真实查询；registerBuiltinMetrics 注册入口）
+      - `payload-office-platform/src/domain/analytics/index.ts`（聚合导出 metric-types / metric-context / metric-registry / metric-drilldown / metric-consistency）
+    - 测试: `payload-office-platform/tests/metric-registry.test.ts`（50 用例全通过，覆盖注册 / 重复注册 / 查找 / 列表 / sanitizeFilters 维度白名单 + 城市上限 + 越界 ID 丢弃 + dataScope=self 强制 assignee / canViewMetric 权限并集 + 通配符 * / buildDrilldownUrl 占位符替换 + 仅替换 sanitize 字段 / 业务不变量断言 / 内置指标元数据完整性：listings.*/leads.*/tasks.* 指标编码覆盖 / stubQuery 返回 0）
+    - 业务不变量验证: 编码唯一重复注册抛错；URL 参数不能扩大数据范围（sanitizeFilters 服务端兜底，未传城市时使用 permission 上限，越界 ID 丢弃）；卡片 = 趋势桶之和（assertCardEqualsSeriesSum）；所有内置指标 requiredPermissions / drilldown / cacheTtlMs>=0 完整
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 69 文件 1369 用例全通过（含 metric-registry.test.ts 50 用例）
 
 - [ ] 7.2 升级角色化工作台
   - 管理员/运营：待审核、今日供给、线索、跟进和超时。

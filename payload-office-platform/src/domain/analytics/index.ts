@@ -12,6 +12,18 @@
  *   - 卡片 = 图表点击 = 明细数量
  *   - URL 参数不能扩大数据范围
  *
- * M0 阶段：仅占位。
+ * 模块导出：
+ *   - metric-types：核心类型与枚举守卫（M7.1）
+ *   - metric-context：sanitizeFilters 过滤清洗 + canViewMetric 权限校验（M7.1）
+ *   - metric-registry：MetricRegistry 注册表 + 单例 metricRegistry（M7.1）
+ *   - metric-drilldown：buildDrilldownUrl 下钻 URL 生成（M7.1）
+ *   - metric-consistency：卡片=序列和 / URL 不扩大范围断言（M7.1，M7.6 集成测试复用）
+ *   - metrics/builtin：注册全部内置指标元数据（M7.1 stub，M7.3-M7.5 替换真实查询）
  */
 export const DOMAIN_TAG = 'analytics' as const
+
+export * from './metric-types'
+export * from './metric-context'
+export * from './metric-registry'
+export * from './metric-drilldown'
+export * from './metric-consistency'
