@@ -16,6 +16,8 @@ import {
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
 import { protectListing } from '@/domain/review/listing-protect'
+import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
+import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 
 export const Listings: CollectionConfig = {
   slug: 'listings',
@@ -32,6 +34,8 @@ export const Listings: CollectionConfig = {
   access: {
     read: () => true,
   },
+  // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
+  endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
   hooks: {
     beforeChange: [protectListing],
   },
