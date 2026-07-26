@@ -6,7 +6,7 @@ import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import ListingGallery from '@/components/frontend/ListingGallery'
-import { formatArea } from '@/lib/frontend/format'
+import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
@@ -122,8 +122,12 @@ export default async function ListingDetailPage({
     <div className="detail">
       <script
         type="application/ld+json"
-        // JSON-LD 由服务端生成，不含用户输入，无需转义用户数据
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // JSON-LD 由服务端生成；CMS 字段（标题/摘要）由管理员维护。
+        // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <，
+        // 若 CMS 字段含 "</script><script>..." 可闭合当前标签注入。
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
       />
       <div className="detail__top">
         <ListingGallery images={images} />
@@ -142,7 +146,7 @@ export default async function ListingDetailPage({
             </div>
             <div>
               <dt>可入驻</dt>
-              <dd>{listing.availableFrom || '面议'}</dd>
+              <dd>{formatAvailableDate(listing.availableFrom)}</dd>
             </div>
             <div>
               <dt>楼盘</dt>
@@ -172,14 +176,19 @@ export default async function ListingDetailPage({
               <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
             </div>
             <div className="detail__decision-cta">
-              <InquiryModal listingTitle={listing.title} />
+              <InquiryModal
+                pageType="listing"
+                targetListingSlug={slug}
+                targetSummary={listing.title}
+                triggerLabel="询价 / 预约看房"
+              />
             </div>
           </div>
         </div>
       </div>
       {listing.description && (
         <section className="detail__section">
-          <h2>房源说明</h2>
+          <h2>详细介绍</h2>
           <div className="richtext">
             <RichText data={listing.description} />
           </div>
@@ -221,7 +230,12 @@ export default async function ListingDetailPage({
           <span className="detail__mobile-bar-rent">{rentText}</span>
           <span className="detail__mobile-bar-title">{listing.title}</span>
         </div>
-        <InquiryModal listingTitle={listing.title} />
+        <InquiryModal
+          pageType="listing"
+          targetListingSlug={slug}
+          targetSummary={listing.title}
+          triggerLabel="询价 / 预约看房"
+        />
       </div>
     </div>
   )

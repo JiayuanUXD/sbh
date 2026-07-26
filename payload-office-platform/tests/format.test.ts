@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRent, formatArea, rentUnitLabel } from '@/lib/frontend/format'
+import { formatAvailableDate, formatRent, formatArea, rentUnitLabel } from '@/lib/frontend/format'
 
 describe('formatRent', () => {
   it('renders 元/㎡/天 with 1 decimal for rmb-sqm-day', () => {
@@ -30,5 +30,24 @@ describe('formatArea', () => {
   })
   it('returns 面议 when undefined', () => {
     expect(formatArea(undefined)).toBe('面议')
+  })
+})
+
+describe('formatAvailableDate', () => {
+  it('returns 面议 when null / empty / undefined', () => {
+    expect(formatAvailableDate(null)).toBe('面议')
+    expect(formatAvailableDate('')).toBe('面议')
+    expect(formatAvailableDate(undefined)).toBe('面议')
+  })
+  it('returns 面议 for invalid ISO string', () => {
+    expect(formatAvailableDate('not-a-date')).toBe('面议')
+  })
+  it('formats ISO to zh-CN date in Asia/Shanghai timezone', () => {
+    // UTC 2026-08-01 00:00 = 上海 2026-08-01 08:00 -> 同日
+    expect(formatAvailableDate('2026-08-01T00:00:00.000Z')).toBe('2026年8月1日')
+  })
+  it('applies Asia/Shanghai timezone at UTC cross-day boundary', () => {
+    // UTC 2026-07-31 16:00 = 上海 2026-08-01 00:00 -> 次日（验证不直接输出 ISO）
+    expect(formatAvailableDate('2026-07-31T16:00:00.000Z')).toBe('2026年8月1日')
   })
 })
