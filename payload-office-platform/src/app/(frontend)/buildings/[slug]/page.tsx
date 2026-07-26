@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
@@ -114,7 +115,10 @@ export default async function BuildingDetailPage({
     <div className="detail">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <。
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
       />
       <div className="detail__top">
         {heroImage ? (
@@ -222,9 +226,12 @@ export default async function BuildingDetailPage({
           </span>
           <span className="detail__mobile-bar-title">{building.name}</span>
         </div>
-        <Link href="/listings" className="btn btn--primary">
-          查看房源
-        </Link>
+        <InquiryModal
+          pageType="building"
+          targetBuildingSlug={slug}
+          targetSummary={building.name}
+          triggerLabel="咨询该楼盘"
+        />
       </div>
     </div>
   )

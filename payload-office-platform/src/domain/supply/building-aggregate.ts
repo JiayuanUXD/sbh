@@ -44,8 +44,7 @@ export type BuildingSupplyAggregate = {
   rentRanges: BuildingRentRange[]
 }
 
-/** 候选房源上限：MVP 内存精筛口径，超过封顶（后续优化点，与 supply-adapter 对齐）。 */
-const LISTING_CANDIDATE_CAP = 500
+const LISTING_QUERY_PAGE_SIZE = 200
 
 /** 安全读取有限数值,非数值/NaN/Infinity 返回 undefined。 */
 function readFiniteNumber(value: unknown): number | undefined {
@@ -86,21 +85,29 @@ export async function computeBuildingSupplyAggregate(
     ...(pausedIds.length > 0 ? { id: { not_in: pausedIds } } : {}),
   }
 
-  const findRes = await payload.find({
-    collection: 'listings',
-    where,
-    overrideAccess,
-    req,
-    pagination: false,
-    limit: LISTING_CANDIDATE_CAP,
-    depth: 2, // building + merchant + gallery，供精筛判定
-  })
+  const candidates: unknown[] = []
+  let page = 1
+  for (;;) {
+    const findRes = await payload.find({
+      collection: 'listings',
+      where,
+      overrideAccess,
+      req,
+      page,
+      limit: LISTING_QUERY_PAGE_SIZE,
+      depth: 2,
+      sort: 'id',
+    })
+    candidates.push(...(findRes.docs as unknown[]))
+    if (!findRes.hasNextPage || findRes.nextPage == null) break
+    page = findRes.nextPage
+  }
 
   let count = 0
   let totalArea = 0
   const rentGroups = new Map<string, { min: number; max: number; count: number }>()
 
-  for (const raw of findRes.docs as unknown[]) {
+  for (const raw of candidates) {
     if (typeof raw !== 'object' || raw === null) continue
     const doc = raw as Record<string, unknown>
 

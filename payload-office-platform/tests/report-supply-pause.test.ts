@@ -440,6 +440,50 @@ describe('getPausedListingIds — 异步查询', () => {
     const ids = await getPausedListingIds(mockPayload)
     expect(ids).toEqual([])
   })
+
+  it('reads every page instead of exposing paused listings after the first 1000', async () => {
+    const pages: number[] = []
+    const mockPayload: PayloadQueryPort = {
+      async find(params) {
+        const page = params.page ?? 1
+        pages.push(page)
+        if (page === 1) {
+          return {
+            docs: Array.from({ length: 1000 }, (_, index) => ({ targetListing: index + 1 })),
+            hasNextPage: true,
+            nextPage: 2,
+          }
+        }
+        return {
+          docs: [{ targetListing: 1001 }, { targetListing: 1002 }],
+          hasNextPage: false,
+          nextPage: null,
+        }
+      },
+    }
+
+    const ids = await getPausedListingIds(mockPayload)
+    expect(pages).toEqual([1, 2])
+    expect(ids).toHaveLength(1002)
+    expect(ids.at(-1)).toBe(1002)
+  })
+
+  it('fails closed when a later page cannot be read', async () => {
+    const mockPayload: PayloadQueryPort = {
+      async find(params) {
+        if ((params.page ?? 1) === 1) {
+          return {
+            docs: [{ targetListing: 1 }],
+            hasNextPage: true,
+            nextPage: 2,
+          }
+        }
+        throw new Error('report query failed')
+      },
+    }
+
+    await expect(getPausedListingIds(mockPayload)).rejects.toThrow('report query failed')
+  })
 })
 
 describe('isListingPaused — 判断 listing 是否在暂停列表', () => {

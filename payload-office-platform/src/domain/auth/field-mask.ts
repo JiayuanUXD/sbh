@@ -116,17 +116,17 @@ export const BUILDING_COORDINATE_MASK_RULES: readonly FieldMaskRule[] = [
 /**
  * 审计日志 before/after 值脱敏：缺失 audit:before_after 权限时返回 null。
  *
- * 用于审计 Collection afterRead hook；M1 暂未引入审计 Collection，
- * 此规则在 M8 操作日志落地后启用。
+ * 用于 AuditLogs Collection afterRead hook。
+ * 审计 before/after 含敏感字段（如手机号、坐标），按字段权限收窄。
  */
 export const AUDIT_BEFORE_AFTER_MASK_RULES: readonly FieldMaskRule[] = [
   {
-    field: 'beforeValue',
+    field: 'before',
     requiredPermission: 'audit:before_after',
     mask: () => null,
   },
   {
-    field: 'afterValue',
+    field: 'after',
     requiredPermission: 'audit:before_after',
     mask: () => null,
   },
@@ -162,6 +162,16 @@ export function getLeadMaskRules(): readonly FieldMaskRule[] {
  */
 export function getBuildingMaskRules(): readonly FieldMaskRule[] {
   return BUILDING_COORDINATE_MASK_RULES
+}
+
+/**
+ * 审计日志脱敏规则（before/after）。
+ *
+ * 用于 AuditLogs Collection afterRead：缺 audit:before_after → before/after 清空为 null
+ * 业务不变量：审计 before/after 含敏感字段（如手机号、坐标），按字段权限收窄
+ */
+export function getAuditMaskRules(): readonly FieldMaskRule[] {
+  return AUDIT_BEFORE_AFTER_MASK_RULES
 }
 
 // ────────────────────────────────────────────────────────────

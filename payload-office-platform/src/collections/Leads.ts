@@ -5,6 +5,34 @@ import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
 
+/**
+ * F5 前台咨询表单来源页面类型（FP-05 §2 入口）
+ *
+ * - home：首页"获取选址方案" / 收束咨询模块
+ * - search：房源列表无结果"提交需求"
+ * - listing：房源详情"询价 / 预约看房"
+ * - building：楼盘详情"咨询该楼盘"
+ * - content：内容页文末 CTA
+ */
+export const INQUIRY_SOURCE_PAGE_TYPES = [
+  'home',
+  'search',
+  'listing',
+  'building',
+  'content',
+] as const
+export type InquirySourcePageType = (typeof INQUIRY_SOURCE_PAGE_TYPES)[number]
+
+/**
+ * F5 询盘目标对象类型（FP-05 §2 入口必须携带目标房源/楼盘）
+ *
+ * - listing：带 listingSlug 的具体房源咨询
+ * - building：带 buildingSlug 的楼盘咨询
+ * - none：通用选址需求（房源失效转通用或无目标入口）
+ */
+export const INQUIRY_TARGET_TYPES = ['listing', 'building', 'none'] as const
+export type InquiryTargetType = (typeof INQUIRY_TARGET_TYPES)[number]
+
 export const Leads: CollectionConfig = {
   slug: 'leads',
   labels: {
@@ -13,7 +41,16 @@ export const Leads: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'phone', 'company', 'budget', 'status', 'createdAt'],
+    defaultColumns: [
+      'name',
+      'phone',
+      'company',
+      'stage',
+      'ownershipStatus',
+      'sourcePageType',
+      'targetType',
+      'createdAt',
+    ],
   },
   trash: true,
   hooks: {
@@ -386,6 +423,139 @@ export const Leads: CollectionConfig = {
               label: '跟进记录',
               type: 'textarea',
               admin: { rows: 12 },
+            },
+          ],
+        },
+        {
+          label: '前台询盘上下文',
+          description:
+            'F5 咨询表单采集的来源、目标、隐私同意与幂等键（FP-05 §2 / §5 / §8 / design §10）。后台只读，由 /api/inquiries 写入。',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'idempotencyKey',
+                  label: '幂等键',
+                  type: 'text',
+                  unique: true,
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description:
+                      'requestId + 标准化手机号 + 目标对象 的哈希。同键重复请求只创建一条 Lead（FP-05 §5）。数据库唯一约束兜底，防止并发请求绕过应用层软幂等检查。',
+                  },
+                },
+                {
+                  name: 'sourcePageType',
+                  label: '入口页面类型',
+                  type: 'select',
+                  options: INQUIRY_SOURCE_PAGE_TYPES.map((value) => ({ value, label: value })),
+                  admin: {
+                    readOnly: true,
+                    description: '前台入口页面类型：home / search / listing / building / content。',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'sourcePath',
+                  label: '入口路径',
+                  type: 'text',
+                  admin: {
+                    readOnly: true,
+                    description: '前台入口相对路径（白名单化，不含查询参数中的个人信息）。',
+                  },
+                },
+                {
+                  name: 'sourceUrl',
+                  label: '入口 URL',
+                  type: 'text',
+                  admin: {
+                    readOnly: true,
+                    description: '前台入口完整 URL（仅服务端日志记录，不展示给经纪人）。',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'targetType',
+                  label: '目标对象类型',
+                  type: 'select',
+                  options: INQUIRY_TARGET_TYPES.map((value) => ({ value, label: value })),
+                  admin: {
+                    readOnly: true,
+                    description: 'listing / building / none（通用需求）。',
+                  },
+                },
+                {
+                  name: 'targetListingSlug',
+                  label: '目标房源 slug',
+                  type: 'text',
+                  admin: {
+                    readOnly: true,
+                    description: '前台传入的房源 slug；通过 assertEffectiveListing 校验后写入。',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'targetBuildingSlug',
+              label: '目标楼盘 slug',
+              type: 'text',
+              admin: {
+                readOnly: true,
+                description: '前台传入的楼盘 slug。',
+              },
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'consentAccepted',
+                  label: '隐私同意已勾选',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  admin: {
+                    readOnly: true,
+                    description: '用户必须主动勾选，未勾选不得提交（FP-05 §3.1）。',
+                  },
+                },
+                {
+                  name: 'consentPolicyVersion',
+                  label: '隐私政策版本',
+                  type: 'text',
+                  admin: {
+                    readOnly: true,
+                    description: '同意时的隐私政策版本号（PRIVACY_POLICY_VERSION）。',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'campaign',
+              label: '活动归因',
+              type: 'json',
+              admin: {
+                readOnly: true,
+                description:
+                  '白名单化 UTM 参数（utm_source / utm_medium / utm_campaign / utm_content / utm_term），各键值长度 ≤ 100。',
+              },
+            },
+            {
+              name: 'requestId',
+              label: '请求 ID',
+              type: 'text',
+              admin: {
+                readOnly: true,
+                description: '前台生成的请求唯一标识，用于日志关联与幂等键计算。',
+              },
             },
           ],
         },

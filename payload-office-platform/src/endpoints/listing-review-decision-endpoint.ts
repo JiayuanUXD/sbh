@@ -1,6 +1,7 @@
 import type { Endpoint } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
+import { withAudit } from '@/domain/audit/with-audit'
 import {
   canTransitionReview,
   isReviewDecision,
@@ -129,41 +130,79 @@ export function createListingReviewDecisionEndpoint(): Endpoint {
       const rawUserId = (req.user as { id?: unknown } | null)?.id
       const userId = typeof rawUserId === 'number' ? rawUserId : undefined
 
-      // 9. append 审核记录（不可变）
+      // 9. append 审核记录（不可变） + 10. 更新房源审核轴
+      //    M8.2 高风险动作审计：两步操作用 withAudit 包装，审计失败视为整体失败
+      const auditAction: Record<string, 'listing.review_submit' | 'listing.review_approve' | 'listing.review_reject' | 'listing.update'> = {
+        submit: 'listing.review_submit',
+        approve: 'listing.review_approve',
+        reject: 'listing.review_reject',
+        withdraw: 'listing.update',
+      }
       const isSubmit = decision === 'submit'
       const isReview = decision === 'approve' || decision === 'reject'
-      const record = await req.payload.create({
-        collection: 'listing-reviews',
-        data: {
-          // 路由参数原样透传（可能为字符串 ID），Payload 内部归一为关系主键。
-          listing: listingId as number,
-          decision,
-          taskStatus,
-          reason: typeof body.reason === 'string' ? body.reason : undefined,
-          snapshot: snapshot as unknown as Record<string, unknown>,
-          snapshotHash,
-          submittedBy: isSubmit ? userId : undefined,
-          reviewedBy: isReview ? userId : undefined,
-          submittedAt: isSubmit ? nowIso : undefined,
-          reviewedAt: isReview ? nowIso : undefined,
-          listingVersion: typeof listing.version === 'number' ? listing.version : 1,
-          version: 1,
-        },
+      const listingVersion = typeof listing.version === 'number' ? listing.version : 1
+
+      const result = await withAudit({
         req,
+        action: auditAction[decision] ?? 'listing.update',
+        object: {
+          collection: 'listings',
+          objectId: listingId,
+          objectVersion: listingVersion,
+        },
+        before: listing,
+        fn: async () => {
+          const record = await req.payload.create({
+            collection: 'listing-reviews',
+            data: {
+              listing: listingId as number,
+              decision,
+              taskStatus,
+              reason: typeof body.reason === 'string' ? body.reason : undefined,
+              snapshot: snapshot as unknown as Record<string, unknown>,
+              snapshotHash,
+              submittedBy: isSubmit ? userId : undefined,
+              reviewedBy: isReview ? userId : undefined,
+              submittedAt: isSubmit ? nowIso : undefined,
+              reviewedAt: isReview ? nowIso : undefined,
+              listingVersion,
+              version: 1,
+            },
+            req,
+          })
+
+          // 更新房源审核轴——绝不触碰 publicationStatus
+          const updated = await req.payload.update({
+            collection: 'listings',
+            id: listingId,
+            data: { reviewStatus: next },
+            req,
+          })
+
+          return {
+            ok: true as const,
+            data: {
+              reviewStatus: next,
+              reviewId: (record as { id?: unknown } | null)?.id as string | number | undefined,
+            },
+            after: updated as unknown as Record<string, unknown>,
+            changedFields: ['reviewStatus'],
+          }
+        },
+        throwOnError: false,
       })
 
-      // 10. 更新房源审核轴——绝不触碰 publicationStatus
-      await req.payload.update({
-        collection: 'listings',
-        id: listingId,
-        data: { reviewStatus: next },
-        req, // 透传 req → auditFieldsPlugin
-      })
+      if (result === null) {
+        return Response.json(
+          { ok: false, error: '审核操作失败，请重试', code: 'REVIEW_FAILED' },
+          { status: 500 },
+        )
+      }
 
       return Response.json({
         ok: true,
-        reviewStatus: next,
-        reviewId: (record as { id?: unknown } | null)?.id,
+        reviewStatus: result.reviewStatus,
+        reviewId: result.reviewId,
       })
     },
   }

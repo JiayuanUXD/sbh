@@ -38,10 +38,11 @@ export function toId(value: unknown): number | string | null {
 export function buildEffectiveSnapshot(
   listing: Record<string, unknown>,
   relationPeriod: ValidityPeriod | null,
+  relationMerchant?: Record<string, unknown> | null,
 ): EffectiveSupplySnapshot {
   const gallery = Array.isArray(listing.gallery) ? listing.gallery : []
   const building = (listing.building ?? null) as Record<string, unknown> | null
-  const merchant = (listing.merchant ?? {}) as Record<string, unknown>
+  const merchant = relationMerchant ?? ((listing.merchant ?? {}) as Record<string, unknown>)
   const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
   return {
     mediaCount: gallery.length,
@@ -59,6 +60,59 @@ export function buildEffectiveSnapshot(
     },
     buildingCityId: building ? toId(building.city) : null,
     relationPeriod,
+  }
+}
+
+type EffectiveRelation = {
+  period: ValidityPeriod
+  merchant: Record<string, unknown> | null
+}
+
+async function loadEffectiveRelation(
+  payload: PayloadQueryPort,
+  listingId: number | string,
+  asOf: Date,
+  req?: unknown,
+): Promise<EffectiveRelation | null> {
+  const instant = asOf.toISOString()
+  const res = await payload.find({
+    collection: 'listing-merchant-relations',
+    where: {
+      and: [
+        { listing: { equals: listingId } },
+        { effectiveFrom: { less_than_equal: instant } },
+        {
+          or: [
+            { effectiveTo: { exists: false } },
+            { effectiveTo: { greater_than: instant } },
+          ],
+        },
+      ],
+    },
+    sort: '-effectiveFrom',
+    limit: 2,
+    depth: 2,
+    overrideAccess: true,
+    ...(req !== undefined ? { req } : {}),
+  } as Parameters<PayloadQueryPort['find']>[0])
+
+  // Zero or overlapping active relations are both invalid supply facts.
+  if (res.docs.length !== 1) return null
+  const doc = res.docs[0] as unknown as Record<string, unknown>
+  try {
+    const merchant =
+      typeof doc.merchant === 'object' && doc.merchant !== null
+        ? (doc.merchant as Record<string, unknown>)
+        : null
+    return {
+      period: toRelationPeriod(
+        doc.effectiveFrom as string | Date | null | undefined,
+        doc.effectiveTo as string | Date | null | undefined,
+      ),
+      merchant,
+    }
+  } catch {
+    return null
   }
 }
 
@@ -109,8 +163,12 @@ export async function resolveEffectiveSupply(
   req?: unknown,
 ): Promise<EffectiveSupplyResult> {
   const listingId = toId(listing.id)
-  const relationPeriod =
-    listingId === null ? null : await loadRelationPeriod(payload, listingId, req)
-  const snapshot = buildEffectiveSnapshot(listing, relationPeriod)
+  const relation =
+    listingId === null ? null : await loadEffectiveRelation(payload, listingId, asOf, req)
+  const snapshot = buildEffectiveSnapshot(
+    listing,
+    relation?.period ?? null,
+    relation?.merchant ?? {},
+  )
   return isListingEffectivelySupplied(snapshot, asOf)
 }

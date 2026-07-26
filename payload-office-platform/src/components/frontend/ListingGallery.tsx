@@ -40,6 +40,7 @@ export default function ListingGallery({ images }: Props) {
   const lightboxHeadingId = useId()
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const lightboxCloseRef = useRef<HTMLButtonElement | null>(null)
+  const lightboxRef = useRef<HTMLDivElement | null>(null)
 
   const safeActive = Math.min(active, Math.max(0, images.length - 1))
   const current = images[safeActive] ?? images[0]
@@ -61,13 +62,41 @@ export default function ListingGallery({ images }: Props) {
     window.requestAnimationFrame(() => triggerRef.current?.focus())
   }, [])
 
-  // 全屏模式：Esc/←/→ 快捷键 + 焦点锁定 + body 滚动锁
+  // 全屏模式：Esc/←/→ 快捷键 + Tab 焦点锁定 + body 滚动锁
   useEffect(() => {
     if (!lightboxOpen) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeLightbox()
-      else if (e.key === 'ArrowLeft') goPrev()
-      else if (e.key === 'ArrowRight') goNext()
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeLightbox()
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goPrev()
+        return
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goNext()
+        return
+      }
+      // Tab 焦点锁定：在 lightbox 内首尾循环，避免逃出到背景 DOM（WCAG 2.4.3）
+      if (e.key === 'Tab' && lightboxRef.current) {
+        const focusables = lightboxRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        )
+        if (focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
     document.addEventListener('keydown', onKey)
     const prevOverflow = document.body.style.overflow
@@ -100,6 +129,7 @@ export default function ListingGallery({ images }: Props) {
         type="button"
         className="gallery__main-btn"
         aria-label={`查看大图：${current?.alt ?? '房源图片'}（第 ${safeActive + 1} 张，共 ${images.length} 张）`}
+        aria-haspopup="dialog"
         onClick={openLightbox}
       >
         <div className="gallery__main">

@@ -41,15 +41,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const adapter = getDefaultSupplyAdapter()
   const [listings, buildings, pages] = await Promise.all([
     adapter.findEffectiveListings(parseSearchInput(new URLSearchParams()), ctx),
-    payload.find({
-      collection: 'buildings',
-      // 停用楼盘不进 sitemap（M3.5）
-      where: { status: { equals: 'published' }, ...buildingOperationalWhere() },
-      limit: 200,
-      depth: 0,
-    }),
+    (async () => {
+      const docs = []
+      let page = 1
+      for (;;) {
+        const result = await payload.find({
+          collection: 'buildings',
+          where: { status: { equals: 'published' }, ...buildingOperationalWhere() },
+          limit: 200,
+          page,
+          depth: 0,
+          sort: 'id',
+        })
+        docs.push(...result.docs)
+        if (!result.hasNextPage || result.nextPage == null) break
+        page = result.nextPage
+      }
+      return docs
+    })(),
     // F6.4：内容页通过 Public Catalog Facade 查询，与 /pages/[slug] 路由可见性一致
-    listPublishedPages(ctx, { limit: 500 }),
+    listPublishedPages(ctx),
   ])
 
   const lUrls = listings.map((d) => ({
@@ -58,7 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
-  const bUrls = buildings.docs.map((d) => ({
+  const bUrls = buildings.map((d) => ({
     url: `${base}/buildings/${d.slug}`,
     lastModified: new Date(d.updatedAt),
     changeFrequency: 'weekly' as const,

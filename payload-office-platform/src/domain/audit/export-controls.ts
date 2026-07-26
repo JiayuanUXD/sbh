@@ -20,6 +20,7 @@ import type { ExportAfterHook } from '@payloadcms/plugin-import-export/types'
 
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
+import { writeAuditSuccess } from './audit-writer'
 
 /** 单次导出的文档数上限（防止一次性导出全库；0 表示不限，此处显式设正整数）。 */
 export const EXPORT_LIMIT = 50 as const
@@ -67,27 +68,48 @@ export function overrideExportsCollection({
 }
 
 /**
- * 导出审计 after hook：每批写入文件后落一条结构化日志。
+ * 导出审计 after hook：每批写入文件后落一条审计日志（audit-logs collection）。
  *
- * 插件保证 hook 每批触发一次（totalBatches 为该次导出的总批数）。仅用于可观测与
- * 审计，返回值被插件忽略。绝不抛错以免阻断导出（导出本身是只读外流，审计失败
- * 不应回滚数据；高风险写操作的“审计失败即失败”另在写路径处理）。
+ * 插件保证 hook 每批触发一次（totalBatches 为该次导出的总批数）。
+ *
+ * M8.1 升级：从 logger.info 改为写入 audit-logs collection（append-only）。
+ * M8.2 语义：导出是只读数据外流，审计失败不回滚（没有数据变更），但记录失败到 console。
+ *
+ * 第 1 批时 objectVersion=1，后续批次递增（用于区分同一导出的不同批次）。
  */
 export function createExportAuditHook(): ExportAfterHook {
-  return ({ batchNumber, data, format, totalBatches, req }) => {
+  return async ({ batchNumber, data, format, totalBatches, req }) => {
     const user = req.user as { id?: number | string } | null | undefined
     const userId = user?.id ?? null
-    // exports 集合创建时，目标集合 slug 挂在 req.data.collectionSlug 上（插件约定）。
     const collectionSlug =
       (req as PayloadRequest & { data?: { collectionSlug?: unknown } }).data?.collectionSlug ?? null
-    req.payload.logger.info({
-      event: EXPORT_PERMISSION,
-      userId,
-      collectionSlug,
-      format,
-      batchNumber,
-      totalBatches,
-      rowCount: Array.isArray(data) ? data.length : 0,
-    })
+
+    const rowCount = Array.isArray(data) ? data.length : 0
+
+    try {
+      await writeAuditSuccess({
+        payload: req.payload,
+        req,
+        data: {
+          action: 'data.export',
+          object: {
+            collection: typeof collectionSlug === 'string' ? collectionSlug : 'unknown',
+            objectId: `export-batch-${batchNumber}-of-${totalBatches}`,
+            objectVersion: typeof batchNumber === 'number' ? batchNumber : 1,
+          },
+          after: {
+            format,
+            batchNumber,
+            totalBatches,
+            rowCount,
+            userId,
+          },
+          changedFields: ['exportBatch'],
+        },
+      })
+    } catch (err) {
+      // 导出审计失败不阻断导出（只读外流，无数据变更需要回滚）
+      console.warn('[audit] export audit write failed:', err)
+    }
   }
 }

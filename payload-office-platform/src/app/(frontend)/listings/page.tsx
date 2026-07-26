@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import React from 'react'
 import FilterBar from '@/components/frontend/FilterBar'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import MobileFilterDrawer from '@/components/frontend/MobileFilterDrawer'
 import Pagination from '@/components/frontend/Pagination'
@@ -128,6 +129,11 @@ export default async function ListingsPage({
           <p className="empty-state__desc">试试调整筛选条件或扩大价格范围。</p>
           <div className="empty-state__action">
             <Link href="/listings" className="btn btn--ghost" data-event-name="listings_clear_filters">清除筛选</Link>
+            <InquiryModal
+              pageType="search"
+              triggerLabel="提交需求"
+              triggerVariant="primary"
+            />
           </div>
         </div>
       )}

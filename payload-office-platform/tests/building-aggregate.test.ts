@@ -33,7 +33,16 @@ function eligibleListing(
 }
 
 /** 生效中的房源-商户关系（effectiveFrom 早、无 effectiveTo → 恒有效）。 */
-const EFFECTIVE_RELATION = { effectiveFrom: '2000-01-01T00:00:00.000Z', effectiveTo: null }
+const EFFECTIVE_RELATION = {
+  effectiveFrom: '2000-01-01T00:00:00.000Z',
+  effectiveTo: null,
+  merchant: {
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
+    serviceCities: [{ id: 100 }],
+  },
+}
 
 function makePayload(opts: {
   listings?: Array<Record<string, unknown>>
@@ -50,8 +59,10 @@ function makePayload(opts: {
       return { docs: opts.listings ?? [] }
     }
     if (collection === 'listing-merchant-relations') {
-      const where = params.where as { listing?: { equals?: unknown } } | undefined
-      const lid = String(where?.listing?.equals)
+      const where = params.where as
+        | { listing?: { equals?: unknown }; and?: Array<{ listing?: { equals?: unknown } }> }
+        | undefined
+      const lid = String(where?.listing?.equals ?? where?.and?.[0]?.listing?.equals)
       return { docs: opts.relationsByListing?.[lid] ?? [] }
     }
     return { docs: [] }

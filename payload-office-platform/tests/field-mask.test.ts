@@ -153,20 +153,20 @@ describe('field-mask/preset-rules', () => {
   })
 
   it('AUDIT_BEFORE_AFTER_MASK_RULES：缺 audit:before_after → 清空为 null', () => {
-    const doc = { beforeValue: { phone: '13812345678' }, afterValue: { phone: '13987654321' } }
+    const doc = { before: { phone: '13812345678' }, after: { phone: '13987654321' } }
     const result = maskDocFields(doc, AUDIT_BEFORE_AFTER_MASK_RULES, null)
-    expect(result.beforeValue).toBeNull()
-    expect(result.afterValue).toBeNull()
+    expect(result.before).toBeNull()
+    expect(result.after).toBeNull()
   })
 
   it('AUDIT_BEFORE_AFTER_MASK_RULES：有 audit:before_after → 保留原值', () => {
     const ctx = makeCtx(['audit:before_after'])
     const before = { phone: '13812345678' }
     const after = { phone: '13987654321' }
-    const doc = { beforeValue: before, afterValue: after }
+    const doc = { before, after }
     const result = maskDocFields(doc, AUDIT_BEFORE_AFTER_MASK_RULES, ctx)
-    expect(result.beforeValue).toBe(before)
-    expect(result.afterValue).toBe(after)
+    expect(result.before).toBe(before)
+    expect(result.after).toBe(after)
   })
 })
 

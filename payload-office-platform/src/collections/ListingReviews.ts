@@ -6,6 +6,11 @@ import {
   REVIEW_TASK_STATUSES,
   REVIEW_TASK_STATUS_LABELS,
 } from '@/domain/review/review-transition'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import {
+  buildReviewCityScopeWhere,
+  canReadListingReviews,
+} from '@/domain/review/listing-review-access'
 
 /**
  * 房源审核记录（tasks.md M4.4 / design.md §3.5、§4.3）
@@ -38,8 +43,13 @@ export const ListingReviews: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    read: async ({ req }) => {
+      const ctx = await getPermissionContext(req as RequestContext)
+      if (!ctx || !canReadListingReviews(ctx)) return false
+      return buildReviewCityScopeWhere(ctx, 'listing.building.city') ?? true
+    },
     // append-only：审核记录不可修改、不可物理删除（design §3.5）
+    create: () => false,
     update: () => false,
     delete: () => false,
   },

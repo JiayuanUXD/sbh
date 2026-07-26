@@ -134,8 +134,7 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 // 生产实现：统一有效供给谓词 + 逐条精筛
 // ---------------------------------------------------------------------------
 
-/** 候选房源上限：MVP 内存精筛口径，超过封顶（后续优化点）。 */
-const LISTING_CANDIDATE_CAP = 500
+const QUERY_PAGE_SIZE = 200
 
 /**
  * 生产供给适配器：查询层 `getEffectiveSupplyWhere` 粗筛 + 举报暂停排除 +
@@ -152,6 +151,28 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       payloadCache = await getPayload({ config })
     }
     return payloadCache
+  }
+
+  async function findAllListings(
+    where: Where,
+    depth: number,
+    sort = 'id',
+  ): Promise<Listing[]> {
+    const payload = await getPayload()
+    async function readPage(page: number, docs: Listing[]): Promise<Listing[]> {
+      const result = await payload.find({
+        collection: 'listings',
+        where,
+        depth,
+        sort,
+        limit: QUERY_PAGE_SIZE,
+        page,
+      })
+      docs.push(...(result.docs as Listing[]))
+      if (!result.hasNextPage || result.nextPage == null) return docs
+      return readPage(result.nextPage, docs)
+    }
+    return readPage(1, [])
   }
 
   async function resolveBuildingIdsByDistrict(
@@ -262,16 +283,10 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         where.building = { in: buildingIds }
       }
 
-      // 取候选（上限 LISTING_CANDIDATE_CAP），逐条精筛后交由 Facade 内存排序分页。
-      const limit = Math.min(input.pageSize * 5, LISTING_CANDIDATE_CAP)
-      const result = await payload.find({
-        collection: 'listings',
-        where: where as Where,
-        limit,
-        pagination: false,
-        depth: 2, // building + district + merchant + coverImage
-      })
-      return fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      // Read every coarse candidate in stable ID order. The Facade performs the
+      // requested global sort and pagination only after the fine filter.
+      const docs = await findAllListings(where as Where, 2)
+      return fineFilter(docs as unknown as Record<string, unknown>[], asOf)
     },
 
     async findEffectiveListingBySlug(slug, ctx) {
@@ -308,14 +323,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const asOf = new Date(ctx.asOf)
       const where = await baseEffectiveWhere(ctx)
       where.building = { equals: buildingId }
-      const result = await payload.find({
-        collection: 'listings',
-        where: where as Where,
-        limit: 24,
-        pagination: false,
-        depth: 2,
-      })
-      let kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      const docs = await findAllListings(where as Where, 2)
+      let kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
       // 排除自身（在内存中过滤，避免与 pausedIds 的 not_in 冲突）
       if (excludeListingId != null) {
         kept = kept.filter((d) => String(d.id) !== String(excludeListingId))
@@ -331,7 +340,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const result = await payload.find({
         collection: 'listings',
         where: where as Where,
-        limit: Math.min(limit * 5, LISTING_CANDIDATE_CAP),
+        limit: Math.max(limit * 5, limit),
         depth: 2,
         sort: '-updatedAt',
       })
@@ -387,20 +396,29 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       return (result.docs[0] as Page | undefined) ?? null
     },
 
-    async findPublishedPages(_ctx, limit = 1000) {
+    async findPublishedPages(_ctx, limit) {
       // F6.4：sitemap 用，仅返回已发布且未删除的页面
       const payload = await getPayload()
-      const result = await payload.find({
-        collection: 'pages',
-        where: {
-          status: { equals: 'published' },
-          deletedAt: { exists: false },
-        },
-        limit,
-        depth: 0, // sitemap 只需 slug + updatedAt
-        sort: '-updatedAt',
-      })
-      return result.docs as readonly Page[]
+      const requestedLimit = limit ?? Number.POSITIVE_INFINITY
+      async function readPage(page: number, docs: Page[]): Promise<Page[]> {
+        const result = await payload.find({
+          collection: 'pages',
+          where: {
+            status: { equals: 'published' },
+            deletedAt: { exists: false },
+          },
+          limit: Math.min(QUERY_PAGE_SIZE, requestedLimit - docs.length),
+          page,
+          depth: 0,
+          sort: '-updatedAt',
+        })
+        docs.push(...(result.docs as Page[]))
+        if (docs.length >= requestedLimit || !result.hasNextPage || result.nextPage == null) {
+          return docs
+        }
+        return readPage(result.nextPage, docs)
+      }
+      return readPage(1, [])
     },
   }
 }

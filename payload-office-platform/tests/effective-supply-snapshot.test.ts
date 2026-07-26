@@ -95,7 +95,7 @@ describe('effective-supply-snapshot/loadRelationPeriod', () => {
   })
 
   it('无关系记录 → null', async () => {
-    const find = vi.fn(async () => ({ docs: [] }))
+    const find = vi.fn(async (_params: unknown) => ({ docs: [] }))
     const payload = { find } as unknown as Parameters<typeof loadRelationPeriod>[0]
     expect(await loadRelationPeriod(payload, 1)).toBeNull()
   })
@@ -112,7 +112,12 @@ describe('effective-supply-snapshot/loadRelationPeriod', () => {
 describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
   it('有效供给齐全 → eligible=true', async () => {
     const find = vi.fn(async () => ({
-      docs: [{ id: 1, effectiveFrom: '2000-01-01T00:00:00.000Z', effectiveTo: null }],
+      docs: [{
+        id: 1,
+        effectiveFrom: '2000-01-01T00:00:00.000Z',
+        effectiveTo: null,
+        merchant: makeListing().merchant,
+      }],
     }))
     const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
     const r = await resolveEffectiveSupply(payload, makeListing(), asOf)
@@ -130,11 +135,74 @@ describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
 
   it('媒体不足 → INSUFFICIENT_MEDIA', async () => {
     const find = vi.fn(async () => ({
-      docs: [{ id: 1, effectiveFrom: '2000-01-01T00:00:00.000Z', effectiveTo: null }],
+      docs: [{
+        id: 1,
+        effectiveFrom: '2000-01-01T00:00:00.000Z',
+        effectiveTo: null,
+        merchant: makeListing().merchant,
+      }],
     }))
     const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
     const r = await resolveEffectiveSupply(payload, makeListing({ gallery: [{ id: 'a' }] }), asOf)
     expect(r.eligible).toBe(false)
     expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.INSUFFICIENT_MEDIA)
+  })
+
+  it('uses the merchant from the effective relation instead of stale listing data', async () => {
+    const find = vi.fn(async () => ({
+      docs: [{
+        id: 1,
+        effectiveFrom: '2000-01-01T00:00:00.000Z',
+        effectiveTo: null,
+        merchant: {
+          status: 'disabled',
+          qualificationStatus: 'valid',
+          qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
+          serviceCities: [{ id: 100 }],
+        },
+      }],
+    }))
+    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
+
+    const result = await resolveEffectiveSupply(payload, makeListing(), asOf)
+    expect(result.eligible).toBe(false)
+    expect(result.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
+  })
+
+  it('fails closed when overlapping relations are returned', async () => {
+    const relation = {
+      effectiveFrom: '2000-01-01T00:00:00.000Z',
+      effectiveTo: null,
+      merchant: makeListing().merchant,
+    }
+    const find = vi.fn(async () => ({ docs: [{ id: 1, ...relation }, { id: 2, ...relation }] }))
+    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
+
+    const result = await resolveEffectiveSupply(payload, makeListing(), asOf)
+    expect(result.eligible).toBe(false)
+    expect(result.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
+  })
+
+  it('queries the unique half-open relation at the requested asOf', async () => {
+    const find = vi.fn(async (_params: unknown) => ({ docs: [] }))
+    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
+    await resolveEffectiveSupply(payload, makeListing(), asOf)
+
+    const params = find.mock.calls[0][0] as Record<string, unknown>
+    expect(params.limit).toBe(2)
+    expect(params.depth).toBe(2)
+    expect(params.overrideAccess).toBe(true)
+    expect(params.where).toEqual({
+      and: [
+        { listing: { equals: 1 } },
+        { effectiveFrom: { less_than_equal: asOf.toISOString() } },
+        {
+          or: [
+            { effectiveTo: { exists: false } },
+            { effectiveTo: { greater_than: asOf.toISOString() } },
+          ],
+        },
+      ],
+    })
   })
 })

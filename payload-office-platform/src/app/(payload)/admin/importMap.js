@@ -35,6 +35,7 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../components/admin/BuildingOperationalToggle'
 import { default as default_32cd175b11a507bc1d2e1118d0c77c0b } from '../../../components/admin/BuildingAggregateCard'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
+import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { FormatField as FormatField_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
@@ -94,6 +95,7 @@ export const importMap = {
   "/components/admin/BuildingOperationalToggle#default": default_48ef1091d596d4c5cbcd8ac69d53a12a,
   "/components/admin/BuildingAggregateCard#default": default_32cd175b11a507bc1d2e1118d0c77c0b,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
+  "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-import-export/rsc#FormatField": FormatField_cdf7e044479f899a31f804427d568b36,

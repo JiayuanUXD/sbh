@@ -1,0 +1,55 @@
+{
+  "taskId": "F7.8",
+  "milestone": "M8.4 数据迁移和双读报告",
+  "generatedAt": "2026-07-26T14:40:46.222Z",
+  "environment": "development (SQLite local)",
+  "database": {
+    "kind": "sqlite",
+    "note": "本地开发 SQLite；生产 PG 环境需重新跑 pnpm data:audit"
+  },
+  "summary": {
+    "totalCollections": 9,
+    "totalConsistencyChecks": 5,
+    "passedChecks": 5,
+    "warnChecks": 0,
+    "failedChecks": 0,
+    "manualReviewItems": 0
+  },
+  "collections": {
+    "listings": { "total": 8, "statusBreakdown": { "review:approved|pub:published": 8 } },
+    "buildings": { "total": 5 },
+    "merchants": { "total": 2 },
+    "leads": { "total": 23, "statusBreakdown": { "new": 21, "qualified": 1, "following": 1 } },
+    "customers": { "total": 2 },
+    "users": { "total": 6 },
+    "locations": { "total": 8 },
+    "listing-merchant-relations": { "total": 8 },
+    "building-merchant-relations": { "total": 2 }
+  },
+  "effectiveSupplyDualRead": {
+    "predicateCount": 8,
+    "manualCount": 8,
+    "diff": 0,
+    "status": "pass",
+    "interpretation": "有效供给谓词与手动 (reviewStatus=approved AND publicationStatus=published) 计数完全一致，无双读差异。"
+  },
+  "rollbackGuidance": {
+    "migrationFiles": "src/migrations/ 下全部迁移均含 down() 函数；回滚前先在 PG 数据副本验证。",
+    "highRiskRollback": "含 DELETE / DROP 的回滚需用户明确确认。",
+    "postRollbackVerify": "回滚后立即执行 pnpm migrate:verify 校验数据完整性。",
+    "auditLogAppendOnly": "AuditLogs 集合 update/delete 返回 false，回滚不影响审计记录。"
+  },
+  "checksum": {
+    "listingsCount": 8,
+    "buildingsCount": 5,
+    "merchantsCount": 2,
+    "leadsCount": 23,
+    "customersCount": 2,
+    "usersCount": 6,
+    "locationsCount": 8,
+    "listingMerchantRelationsCount": 8,
+    "buildingMerchantRelationsCount": 2,
+    "effectiveSupplyCount": 8
+  },
+  "conclusion": "M8.4 dry-run 通过：所有一致性检查 pass、双读差异为 0、人工处理清单为空。F7.8 数据迁移 dry-run 与回滚准备项满足。"
+}

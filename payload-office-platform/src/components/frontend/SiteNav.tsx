@@ -119,6 +119,7 @@ export default function SiteNav() {
         className="site-menu-toggle"
         aria-label={open ? '关闭菜单' : '打开菜单'}
         aria-expanded={open}
+        aria-haspopup="dialog"
         aria-controls="mobile-drawer"
         onClick={() => setOpen((v) => !v)}
       >

@@ -30,15 +30,15 @@
 
 ## 里程碑任务索引
 
-- [M0 工程与数据基线](./tasks/M0-engineering-data.md)
-- [M1 账号、角色与四层权限](./tasks/M1-auth-permissions.md)
-- [M2 地理、商户与组织主数据](./tasks/M2-master-data.md)
-- [M3 楼盘增强与供给关系](./tasks/M3-building-supply.md)
-- [M4 房源审核、发布与可信供给](./tasks/M4-listing-review-supply.md)
-- [M5 客户、线索与跟进闭环](./tasks/M5-crm.md)
-- [M6 举报、待办、通知与 SLA](./tasks/M6-workflow.md)
-- [M7 工作台与数据看板](./tasks/M7-dashboard.md)
-- [M8 审计、导入导出与上线](./tasks/M8-launch.md)
+- [M0 工程与数据基线](task-details/M0-engineering-data.md)
+- [M1 账号、角色与四层权限](task-details/M1-auth-permissions.md)
+- [M2 地理、商户与组织主数据](task-details/M2-master-data.md)
+- [M3 楼盘增强与供给关系](task-details/M3-building-supply.md)
+- [M4 房源审核、发布与可信供给](task-details/M4-listing-review-supply.md)
+- [M5 客户、线索与跟进闭环](task-details/M5-crm.md)
+- [M6 举报、待办、通知与 SLA](task-details/M6-workflow.md)
+- [M7 工作台与数据看板](task-details/M7-dashboard.md)
+- [M8 审计、导入导出与上线](task-details/M8-launch.md)
 
 Detailed task status and evidence are maintained only in the linked milestone files.
 

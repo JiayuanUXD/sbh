@@ -91,8 +91,10 @@ export default async function PageDetailPage({
     <div className="page-detail">
       <script
         type="application/ld+json"
-        // JSON-LD 由服务端生成，不含用户输入，无需转义用户数据
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <。
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+        }}
       />
 
       <nav className="breadcrumb" aria-label="面包屑">
@@ -149,7 +151,11 @@ export default async function PageDetailPage({
             <p className="page-detail__cta-desc">
               留下联系方式，我们的顾问将在 1 个工作日内与你联系。
             </p>
-            <InquiryModal listingTitle={page.title} />
+            <InquiryModal
+              pageType="content"
+              targetSummary={page.title}
+              triggerLabel="提交需求"
+            />
           </div>
         </section>
       )}

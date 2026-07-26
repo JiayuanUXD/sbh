@@ -90,6 +90,7 @@ function makeReq(params: {
   req: PayloadRequest
   findByID: ReturnType<typeof vi.fn>
   update: ReturnType<typeof vi.fn>
+  create: ReturnType<typeof vi.fn>
 } {
   const {
     user = makeUser(),
@@ -99,7 +100,12 @@ function makeReq(params: {
     findByIDThrows = false,
     body = { action: 'publish' },
     // 当前生效的房源-商户关系（无限期，起始很早）
-    relationDocs = [{ id: 1, effectiveFrom: '2000-01-01T00:00:00.000Z', effectiveTo: null }],
+    relationDocs = [{
+      id: 1,
+      effectiveFrom: '2000-01-01T00:00:00.000Z',
+      effectiveTo: null,
+      merchant: makeEffectiveListing().merchant,
+    }],
   } = params
 
   // find 被两处调用：加载角色（collection: 'roles'）与查关系（collection: 'listing-merchant-relations'）
@@ -112,14 +118,16 @@ function makeReq(params: {
     return listing
   })
   const update = vi.fn(async () => ({ id: 1 }))
+  const create = vi.fn(async () => ({ id: 999, auditId: 'aud_test001' }))
   const req = {
     user: user ?? null,
     routeParams,
     data: body,
     json: async () => body,
-    payload: { find, findByID, update },
+    payload: { find, findByID, update, create },
+    headers: {},
   }
-  return { req: req as unknown as PayloadRequest, findByID, update }
+  return { req: req as unknown as PayloadRequest, findByID, update, create }
 }
 
 async function run(req: PayloadRequest): Promise<{ status: number; body: any }> {

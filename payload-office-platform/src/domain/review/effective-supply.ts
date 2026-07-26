@@ -147,10 +147,16 @@ export interface PayloadQueryPort {
     depth?: number
     /** 返回条数上限 */
     limit?: number
+    /** Payload 分页页码（从 1 开始） */
+    page?: number
     /** 是否绕过 access（用于内部查询） */
     overrideAccess?: boolean
   }) => Promise<{
     docs: Array<{ targetListing?: string | number | { id: string | number } | null }>
+    hasNextPage?: boolean
+    nextPage?: number | null
+    page?: number
+    totalPages?: number
   }>
 }
 
@@ -223,14 +229,33 @@ export function extractPausedListingIds(
 export async function getPausedListingIds(
   payload: PayloadQueryPort,
 ): Promise<Array<string | number>> {
-  const result = await payload.find({
-    collection: 'listing-reports',
-    where: listingReportPauseWhere(),
-    depth: 0,
-    limit: 1000,
-    overrideAccess: true,
-  })
-  return extractPausedListingIds(result.docs)
+  const ids = new Set<string | number>()
+  let page = 1
+
+  for (;;) {
+    // Any page failure intentionally propagates. Callers must not publish a
+    // partial exclusion set because that would make paused supply visible.
+    const result = await payload.find({
+      collection: 'listing-reports',
+      where: listingReportPauseWhere(),
+      depth: 0,
+      limit: 1000,
+      page,
+      overrideAccess: true,
+    })
+    for (const id of extractPausedListingIds(result.docs)) ids.add(id)
+
+    const nextPage =
+      typeof result.nextPage === 'number'
+        ? result.nextPage
+        : result.hasNextPage
+          ? page + 1
+          : null
+    if (nextPage === null || nextPage <= page) break
+    page = nextPage
+  }
+
+  return [...ids]
 }
 
 /**

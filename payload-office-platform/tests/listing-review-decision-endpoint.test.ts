@@ -102,6 +102,7 @@ function makeReq(params: {
     data: body,
     json: async () => body,
     payload: { find, findByID, update, create },
+    headers: {},
   }
   return { req: req as unknown as PayloadRequest, update, create }
 }
@@ -281,6 +282,6 @@ describe('listing-review-decision-endpoint/版本乐观锁', () => {
     const { status } = await run(req)
     expect(status).toBe(200)
     expect(update).toHaveBeenCalledTimes(1)
-    expect(create).toHaveBeenCalledTimes(1)
+    expect(create).toHaveBeenCalledTimes(2)
   })
 })

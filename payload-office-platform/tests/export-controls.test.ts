@@ -137,8 +137,9 @@ describe('export-controls/overrideExportsCollection', () => {
 })
 
 describe('export-controls/审计 after hook', () => {
-  it('每批写一条 payload.logger.info 审计，含操作者/集合/批次/条数', async () => {
-    const info = vi.fn()
+  it('每批写入一条 audit-logs 审计，含动作/集合/批次/条数', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 1, auditId: 'aud_test001' })
+    const find = vi.fn(async () => ({ docs: [makeAdmRole()] }))
     const hook = createExportAuditHook()
     await hook({
       batchNumber: 1,
@@ -149,21 +150,25 @@ describe('export-controls/审计 after hook', () => {
       req: {
         user: makeUser(),
         data: { collectionSlug: 'listings' },
-        payload: { logger: { info } },
+        payload: { create, find },
+        headers: {},
       } as unknown as PayloadRequest,
     })
-    expect(info).toHaveBeenCalledTimes(1)
-    const arg = info.mock.calls[0][0]
-    expect(arg.event).toBe('data:export')
-    expect(arg.userId).toBe(10)
-    expect(arg.batchNumber).toBe(1)
-    expect(arg.totalBatches).toBe(2)
-    expect(arg.rowCount).toBe(3)
-    expect(arg.format).toBe('csv')
+    expect(create).toHaveBeenCalledTimes(1)
+    const arg = create.mock.calls[0]?.[0] as any
+    expect(arg.collection).toBe('audit-logs')
+    expect(arg.data.action).toBe('data.export')
+    expect(arg.data.result).toBe('success')
+    expect(arg.data.objectCollection).toBe('listings')
+    expect(arg.data.after.rowCount).toBe(3)
+    expect(arg.data.after.batchNumber).toBe(1)
+    expect(arg.data.after.totalBatches).toBe(2)
+    expect(arg.data.after.format).toBe('csv')
   })
 
   it('未登录（系统触发）也不抛错，userId 记为 null', async () => {
-    const info = vi.fn()
+    const create = vi.fn().mockResolvedValue({ id: 2, auditId: 'aud_test002' })
+    const find = vi.fn(async () => ({ docs: [] }))
     const hook = createExportAuditHook()
     await hook({
       batchNumber: 1,
@@ -173,11 +178,13 @@ describe('export-controls/审计 after hook', () => {
       totalBatches: 1,
       req: {
         user: null,
-        payload: { logger: { info } },
+        payload: { create, find },
+        headers: {},
       } as unknown as PayloadRequest,
     })
-    expect(info).toHaveBeenCalledTimes(1)
-    expect(info.mock.calls[0][0].userId).toBeNull()
+    expect(create).toHaveBeenCalledTimes(1)
+    const arg = create.mock.calls[0]?.[0] as any
+    expect(arg.data.subjectUserId).toBeNull()
   })
 })
 

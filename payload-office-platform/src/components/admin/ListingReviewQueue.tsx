@@ -5,6 +5,10 @@ import {
   hasOperationPermission,
 } from '@/domain/auth/permission-context'
 import { checkListingCompleteness } from '@/domain/review/listing-completeness'
+import {
+  buildReviewCityScopeWhere,
+  canReadListingReviews,
+} from '@/domain/review/listing-review-access'
 import type { Listing, ListingReview, Role, User } from '@/payload-types'
 import ListingReviewQueueClient, {
   type QueueRow,
@@ -53,13 +57,26 @@ export default async function ListingReviewQueue({
         },
       })
     : null
-  const canReview = ctx ? hasOperationPermission(ctx, 'listing:review') : false
+  const canReview = ctx ? canReadListingReviews(ctx) : false
   const canPublish = ctx ? hasOperationPermission(ctx, 'listing:publish') : false
+
+  if (!ctx || !canReview) {
+    return (
+      <div className="listing-review-queue">
+        <div className="listing-review-queue__empty">暂无权限访问房源审核队列</div>
+      </div>
+    )
+  }
+
+  const cityScope = buildReviewCityScopeWhere(ctx, 'building.city')
+  const pendingWhere = {
+    and: [{ reviewStatus: { equals: 'pending' as const } }, ...(cityScope ? [cityScope] : [])],
+  }
 
   // 1. 待审核房源队列（reviewStatus=pending）
   const listingsResult = await payload.find({
     collection: 'listings',
-    where: { reviewStatus: { equals: 'pending' } },
+    where: pendingWhere,
     depth: 1,
     limit: 200,
     sort: 'updatedAt',

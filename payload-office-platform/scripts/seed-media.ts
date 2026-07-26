@@ -59,6 +59,37 @@ async function uploadMedia(
 }
 
 async function deleteAllMedia(payload: any): Promise<void> {
+  // seed.ts 幂等更新(非重建)后,listings/buildings/pages 仍持有对旧 media 的引用。
+  // listings_gallery.image_id 为 NOT NULL,直接删 media 会触发外键约束失败,
+  // 因此先解除所有引用(gallery 置空、coverImage/hero.image 置 null)再删。
+  const unmountFromCollection = async (
+    collection: 'listings' | 'buildings',
+  ): Promise<void> => {
+    const docs = await payload.find({ collection, limit: 1000, overrideAccess: true })
+    for (const doc of docs.docs) {
+      await payload.update({
+        collection,
+        id: doc.id,
+        data: { coverImage: null, gallery: [] },
+        overrideAccess: true,
+      })
+    }
+  }
+  await unmountFromCollection('listings')
+  await unmountFromCollection('buildings')
+
+  const pages = await payload.find({ collection: 'pages', limit: 1000, overrideAccess: true })
+  for (const page of pages.docs) {
+    if (page.hero?.image) {
+      await payload.update({
+        collection: 'pages',
+        id: page.id,
+        data: { hero: { ...page.hero, image: null } },
+        overrideAccess: true,
+      })
+    }
+  }
+
   const all = await payload.find({ collection: 'media', limit: 1000 })
   for (const doc of all.docs) {
     await payload.delete({ collection: 'media', id: doc.id })
@@ -124,29 +155,68 @@ async function seedMedia() {
     payload.logger.info(`已挂载: ${item.slug}`)
   }
 
-  // 5) 同步到 featured listings
-  payload.logger.info('将封面同步到首页推荐房源...')
-  const featuredListings = await payload.find({
+  // 5) 同步到 featured listings：封面 + gallery
+  //    F7.1 E2E：所有 listings（不止 featured）都需要 gallery ≥ 3，否则
+  //    有效供给精筛层 §6 会以 INSUFFICIENT_MEDIA 排除，导致前台 0 套房源。
+  payload.logger.info('将封面与 gallery 同步到所有 listings...')
+  const allListings = await payload.find({
     collection: 'listings',
-    where: { isFeatured: { equals: true } },
-    limit: 100,
+    limit: 1000,
+    overrideAccess: true,
   })
-  for (const listing of featuredListings.docs) {
-    if (!listing.building) continue
-    const building = await payload.findByID({
-      collection: 'buildings',
-      id: typeof listing.building === 'object' ? listing.building.id : listing.building,
-    })
-    if (building?.coverImage) {
-      const coverId =
-        typeof building.coverImage === 'object' ? building.coverImage.id : building.coverImage
-      await payload.update({
-        collection: 'listings',
-        id: listing.id,
-        data: { coverImage: coverId },
+  for (const listing of allListings.docs) {
+    const update: { coverImage?: number; gallery?: Array<{ image: number }> } = {}
+
+    // 5.1 同步封面：从所属 building 取
+    if (listing.building) {
+      const building = await payload.findByID({
+        collection: 'buildings',
+        id: typeof listing.building === 'object' ? listing.building.id : listing.building,
       })
-      payload.logger.info(`已挂载房源封面: ${listing.slug}`)
+      if (building?.coverImage) {
+        const coverId =
+          typeof building.coverImage === 'object' ? building.coverImage.id : building.coverImage
+        update.coverImage = coverId as number
+      }
     }
+
+    // 5.2 同步 gallery：所有房源统一挂载 3 张室内细节图，满足有效供给 §6（≥3）
+    update.gallery = galleryMedia.map((m) => ({ image: m.id }))
+
+    await payload.update({
+      collection: 'listings',
+      id: listing.id,
+      data: update,
+      overrideAccess: true,
+    })
+    payload.logger.info(`已挂载房源媒体: ${listing.slug}`)
+  }
+
+  // 6) 内容页 hero 图:为 about 页挂载 hero 封面,覆盖 pages/[slug] 的 hero-image 渲染路径
+  payload.logger.info('为内容页 about 挂载 hero 图...')
+  const aboutHero = await uploadMedia(
+    payload,
+    '关于我们页面 hero 配图:上海核心商圈天际线',
+    picsumUrl('shanghai-skyline-about-hero', COVER_W, COVER_H),
+    'page-about-hero',
+  )
+  const aboutPage = await payload.find({
+    collection: 'pages',
+    limit: 1,
+    where: { slug: { equals: 'about' } },
+    overrideAccess: true,
+  })
+  if (aboutPage.docs[0]) {
+    const existingHero = (aboutPage.docs[0] as any).hero ?? {}
+    await payload.update({
+      collection: 'pages',
+      id: aboutPage.docs[0].id,
+      data: { hero: { ...existingHero, image: aboutHero.id } },
+      overrideAccess: true,
+    })
+    payload.logger.info('已挂载 about 页 hero 图')
+  } else {
+    payload.logger.warn('未找到 about 页,跳过 hero 挂载')
   }
 
   payload.logger.info('媒体数据挂载完成。')

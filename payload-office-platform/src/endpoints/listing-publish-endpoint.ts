@@ -1,6 +1,7 @@
 import type { Endpoint } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
+import { withAudit } from '@/domain/audit/with-audit'
 import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
 import {
   canTransitionPublication,
@@ -162,19 +163,53 @@ export function createListingPublishEndpoint(): Endpoint {
       }
 
       // 8. 写入：只动发布轴 + 成交副作用，绝不触碰 reviewStatus
+      //    M8.2 高风险动作审计：审计失败视为业务失败
+      const auditAction =
+        action === 'publish' ? 'listing.publish' :
+        action === 'unpublish' ? 'listing.unpublish' :
+        'listing.unpublish' // mark_leased 也归为下架类审计
       const data: Record<string, unknown> = { publicationStatus: next }
       if (action === 'mark_leased') {
         // 已租自动撤销推荐（收回前台可见由 publicationStatus=leased 保证）
         data.isFeatured = false
       }
-      await req.payload.update({
-        collection: 'listings',
-        id: listingId,
-        data,
-        req, // 透传 req → auditFieldsPlugin 记录 lastModifiedBy
+      const changedFields: string[] = ['publicationStatus']
+      if (action === 'mark_leased') changedFields.push('isFeatured')
+
+      const result = await withAudit({
+        req,
+        action: auditAction,
+        object: {
+          collection: 'listings',
+          objectId: listingId,
+          objectVersion: typeof listing.version === 'number' ? listing.version : 1,
+        },
+        before: listing,
+        fn: async () => {
+          const updated = await req.payload.update({
+            collection: 'listings',
+            id: listingId,
+            data,
+            req,
+          })
+          return {
+            ok: true as const,
+            data: next,
+            after: updated as unknown as Record<string, unknown>,
+            changedFields,
+          }
+        },
+        throwOnError: false,
       })
 
-      return Response.json({ ok: true, publicationStatus: next })
+      if (result === null) {
+        return Response.json(
+          { ok: false, error: '发布操作失败，请重试', code: 'PUBLISH_FAILED' },
+          { status: 500 },
+        )
+      }
+
+      return Response.json({ ok: true, publicationStatus: result })
     },
   }
 }

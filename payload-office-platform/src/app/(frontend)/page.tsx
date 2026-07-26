@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import React from 'react'
 import HeroSearch from '@/components/frontend/HeroSearch'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import { getHomepage } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
@@ -30,6 +31,13 @@ export default async function HomePage() {
           聚合甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。
         </p>
         <HeroSearch districts={districts} />
+        <div className="hero__inquiry-cta">
+          <InquiryModal
+            pageType="home"
+            triggerLabel="获取选址方案"
+            triggerVariant="ghost"
+          />
+        </div>
       </section>
 
       <section className="section">
