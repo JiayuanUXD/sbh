@@ -51,5 +51,8 @@ COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 EXPOSE 80
-# 容器启动：先跑迁移（幂等，已执行的自动跳过）再启动 Next server
-CMD ["sh", "-c", "pnpm exec payload migrate && pnpm start"]
+# 容器启动：先跑迁移（advisory lock 互斥 + 幂等）再启动 Next server。
+# 多实例并发拉起时，PG advisory lock 保证只有一个实例真正跑迁移，
+# 其余实例等待锁释放后跑幂等 skip；避免并发迁移踩 schema 冲突。
+# 不用 disableOnInit：migrate-locked 内部 payload.init 会触发 onInit -> config-guard（OPT-015 fail-closed）。
+CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && pnpm start"]

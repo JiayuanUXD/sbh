@@ -44,11 +44,13 @@
 
 **修复**：新增 `src/lib/runtime/config-guard.ts` 纯函数守卫（`assertProductionConfig`），挂载到 `payload.config.ts` 的 `onInit`。生产缺 PostgreSQL / 强密钥（>=32 字符且非弱默认值）/ 合法 https 站点 URL 时抛错拒绝启动；dev/build 不触发。16 项单元测试 + 全量 1932 项回归通过。证据见 `artifacts/verification/OPT-015/README.md`。
 
-### P1：发布工作流绕过项目质量门禁并直接切流
+### P1：发布工作流绕过项目质量门禁并直接切流 ✅ 已修复
 
 GitHub Actions 不安装项目依赖、不运行 lint、类型、测试、构建、迁移预检或数据审计。它安装 `@cloudbase/cli@latest`，发布行为不可复现；部署提示通过管道输入回车处理，升级后容易改变语义。
 
 发布后自动全量切流，只等待固定 20 秒并检查单一健康端点。没有灰度比例、业务冒烟、自动回滚或迁移并发锁证据。容器的“迁移后启动”也会让多个新实例竞争执行迁移。
+
+**修复**：`.github/workflows/deploy.yml` 拆为 quality job（lint + typecheck + test + 迁移预检 + build，`deploy.needs: quality`）与 deploy job；CLI 锁定 `@cloudbase/cli@3.6.4`；新增 `scripts/migrate-locked.ts`（PG advisory lock 互斥，多实例只有一个跑迁移）+ `src/lib/runtime/migrate-lock.ts` 纯函数，Dockerfile CMD 改用该脚本；部署走灰度（deploy 0% -> `traffic --stable 90 --canary 10`）-> 冒烟（`/api/health` x10 + `/`）-> `traffic promote` 全量 / `traffic rollback` 回滚。6 项 migrate-lock 单元测试 + 全量 1938 项回归通过。证据见 `artifacts/verification/OPT-016/README.md`。
 
 ### P1：询盘限流可被多实例绕过，存储不会回收
 
