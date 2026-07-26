@@ -23,13 +23,13 @@
 
 ## 第三批：前台验收闭环
 
-> 第三阶段 OPT-009～OPT-013 已完成只读审查。OPT-013 已修复完成；OPT-011 为部分完成；OPT-009/010/012 待修复。统一证据见 `frontend-acceptance-audit.md`。
+> 第三阶段 OPT-009～OPT-013 全部修复完成（2026-07-26）：OPT-009 移动筛选预估数、OPT-010 可插拔埋点框架、OPT-011 浏览器验收闭环、OPT-012 lint 与缓存契约、OPT-013 详情页语义。统一证据见 `frontend-acceptance-audit.md` 与各 `artifacts/verification/OPT-0xx/`。
 
 | ID | 工作项 | 关联发现 | 完成标准 |
 | --- | --- | --- | --- |
 | OPT-009 | ✅ 实现移动筛选预估数 | P2-01 | 暂存条件变化后 N 使用同一 facet/total 口径更新。证据见 `artifacts/verification/OPT-009/README.md` |
 | OPT-010 | ✅ 接入真实埋点采集 | P2-02 | 事件名称、属性、隐私、去重和失败策略有自动测试。证据见 `artifacts/verification/OPT-010/README.md` |
-| OPT-011 | 完成桌面/移动浏览器验收 | P2-03 | 关键路径、404、空态、租金单位、停用场景均有截图和结果 |
+| OPT-011 | ✅ 完成桌面/移动浏览器验收 | P2-03 | 关键路径、404、空态、租金单位、停用场景均有截图和结果。证据见 `artifacts/verification/OPT-011/README.md` |
 | OPT-012 | ✅ 清理 lint 压制和缓存标签契约 | P2-04、P2-05 | 无规则压制；缓存失效集成测试验证真实 Next 行为。证据见 `artifacts/verification/OPT-012/README.md` |
 | OPT-013 | ✅ 修复详情页日期与标题语义 | P2-06 | 日期本地化；页面不存在重复同名章节标题。证据见 `artifacts/verification/OPT-013/README.md` |
 
