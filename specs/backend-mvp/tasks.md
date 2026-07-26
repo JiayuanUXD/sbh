@@ -306,10 +306,18 @@
 
 ## M6 举报、待办、通知与 SLA
 
-- [ ] 6.1 创建房源举报模型
+- [x] 6.1 创建房源举报模型
   - 创建举报原因、证据、处理状态、处理阶段版本、负责人和结论。
   - 实现分诊、领取、核实、等待资料、提交复核和关闭。
   - _Requirement: R5_
+  - 验证证据：
+    - Collection: `payload-office-platform/src/collections/ListingReports.ts`
+    - 领域服务: `payload-office-platform/src/domain/report/report-status.ts`、`report-transition.ts`、`report-supply-effect.ts`、`report-protect.ts`
+    - 测试工厂: `payload-office-platform/src/test/factory/reports.ts`
+    - 测试: `payload-office-platform/tests/listing-report.test.ts`（47 用例全通过）
+    - 迁移: `payload-office-platform/src/migrations/20260726_103500_m6_1_listing_reports.ts`
+    - 权限码: `report:read` / `report:manage`（新增）/ `report:triage` / `report:resolve`（已有）
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 63 文件 1071 用例全通过
 
 - [ ] 6.2 实现举报供给暂停
   - 有效举报暂停只影响统一有效供给谓词。
@@ -317,11 +325,24 @@
   - 恢复和关闭要求权限、原因和审计。
   - _Requirement: R4, R5, R8_
 
-- [ ] 6.3 创建事务 Outbox
+- [x] 6.3 创建事务 Outbox
   - 创建 Domain Events Collection。
   - 业务状态、事件和审计在同一事务写入。
   - 消费器按 event ID 和 aggregate version 幂等处理。
   - _Requirement: R8_
+  - 验证证据：
+    - Collection: `payload-office-platform/src/collections/DomainEvents.ts`（slug `domain-events`，append-only：`access.update/delete=false` 叠加 `protectDomainEvent` beforeChange hook 双重兜底）
+    - 领域服务:
+      - `payload-office-platform/src/domain/workflow/event-types.ts`（EVENT_TYPES / AGGREGATE_TYPES 枚举与守卫）
+      - `payload-office-platform/src/domain/workflow/event-publisher.ts`（`buildEventId` nanoid 21 字符、`publishEvent` 纯函数返回 DomainEvent，调用方同事务写库）
+      - `payload-office-platform/src/domain/workflow/event-consumer.ts`（`EventConsumer` / `EventDispatcher` / `EventStore` 接口，幂等检查 + 重试上限 + 死信标记）
+      - `payload-office-platform/src/domain/workflow/workflow-protect.ts`（`protectDomainEvent` hook：create 自动生成 eventId/occurredAt、强制 attemptCount=0/processedAt=null；update 禁止篡改不可变字段）
+    - 测试工厂: `payload-office-platform/src/test/factory/events.ts`（事件 fixture：已处理、未处理、各聚合类型）
+    - 测试: `payload-office-platform/tests/domain-events.test.ts`（53 用例全通过，覆盖事件类型校验、ID 生成、消费分发、幂等跳过、重试上限、无消费器、protect hook create/update 校验）
+    - 迁移: `payload-office-platform/src/migrations/20260726_103600_m6_3_domain_events.ts`（创建 `domain_events` 表、`enum_domain_events_event_type` / `enum_domain_events_aggregate_type` 枚举、`event_id` 唯一索引、`aggregate_type/aggregate_id/occurred_at/processed_at` 复合索引）
+    - 权限码: `events:read` / `events:write` / `events:manage`（新增，见 `permission-codes.ts`）
+    - Config 注册: `payload-office-platform/src/payload.config.ts` 已注册 `DomainEvents` Collection；`payload-office-platform/src/payload-types.ts` 已含 `domain-events` 类型
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 64 文件 1124 用例全通过
 
 - [ ] 6.4 创建待办模型和注册表
   - 为审核、举报、未分配线索、首次跟进、下次跟进和房源维护登记规则。
