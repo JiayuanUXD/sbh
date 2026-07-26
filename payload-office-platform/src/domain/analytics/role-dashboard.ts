@@ -237,10 +237,20 @@ export async function resolveRoleDashboard(
 }
 
 // ────────────────────────────────────────────────────────────
-// 内部辅助
+// 单卡解析（导出供 M7.3 经营概览等其他看板复用）
 // ────────────────────────────────────────────────────────────
 
-async function resolveSingleCard(
+/**
+ * 解析单张卡片。
+ *
+ * 设计要点：
+ *   - 单卡失败局部标记：单卡抛错不影响其他卡（try/catch）
+ *   - 无权限卡：status='no-permission'（registry.resolve 抛 MetricPermissionError）
+ *   - 不存在的指标：status='not-found'（registry.require 抛 MetricNotFoundError）
+ *   - 单卡按 metric.allowedScopeDims 重新 sanitize → 保证 URL 不扩大数据范围
+ *   - 下钻 URL：由 metric.drilldown + 按 metric 收窄后的 ctx.filters 派生
+ */
+export async function resolveSingleCard(
   code: MetricCode,
   base: DashboardBaseContext,
   registry: MetricRegistry,

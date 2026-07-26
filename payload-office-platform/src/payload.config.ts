@@ -48,6 +48,7 @@ import {
 import { metricRegistry } from './domain/analytics/metric-registry'
 import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
 import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
+import { createOverviewEndpoint } from './endpoints/overview-endpoint'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -137,8 +138,9 @@ export default buildConfig({
     Notifications,
   ],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
-  // 注册在顶层 endpoints（路径 /api/dashboard），不绑定具体 collection
-  endpoints: [createDashboardEndpoint()],
+  // M7.3 经营概览 endpoint（GET /api/overview，返回卡 / 趋势 / 分布 + asOf）
+  // 均注册在顶层 endpoints，不绑定具体 collection
+  endpoints: [createDashboardEndpoint(), createOverviewEndpoint()],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures,

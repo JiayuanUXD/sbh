@@ -3,11 +3,10 @@
  *
  * 本文件注册 M7 工作台、经营概览、房源分析、线索分析所需的全部指标元数据。
  *
- * M7.1 阶段：query 适配器统一使用 stubQuery（返回 0），仅校验注册表与权限基础设施。
- * M7.3-M7.5 阶段：按里程碑替换为真实查询适配器：
- *   - M7.3 经营概览：替换 listing/building/merchant 类指标
- *   - M7.4 房源分析：替换 listing 类细分指标（含有效供给口径）
- *   - M7.5 线索分析：替换 lead 类指标（依赖 M5 CRM 完成）
+ * M7.3 阶段：listing / building / merchant / supply 类指标已替换为真实查询适配器，
+ * 趋势（per-day）和分布（by-city / by-status）序列指标已注册。
+ * M7.4 阶段：在 listings.completeness_below_80 中替换为真实完整度字段（M5 完成后）。
+ * M7.5 阶段：lead 类指标依赖 M5 CRM，待 M5 完成后替换 stubQuery。
  *
  * 业务不变量：
  *   - 所有有效供给类指标必须复用 getEffectiveSupplyWhere / listingReportPauseWhere
@@ -17,15 +16,39 @@
 
 import type { MetricDefinition, MetricQueryAdapter, MetricQueryResult } from '../metric-types'
 import type { MetricRegistry } from '../metric-registry'
+import {
+  countEffectiveSupply,
+  countListingsCompletenessBelow80,
+  countListingsOffline,
+  countListingsPendingReview,
+  countListingsPublished,
+  countListingsRented,
+  countListingsRejected,
+  countListingsTotal,
+  distributionListingsByCity,
+  distributionListingsByStatus,
+  trendListingsCreatedPerDay30d,
+  trendListingsCreatedPerDay7d,
+} from '../queries/listing-queries'
+import {
+  countBuildingsActive,
+  countBuildingsInactive,
+  countBuildingsTotal,
+} from '../queries/building-queries'
+import {
+  countMerchantsActive,
+  countMerchantsQualificationExpiring,
+} from '../queries/merchant-queries'
 
 // ────────────────────────────────────────────────────────────
-// Stub 查询适配器（M7.1 阶段占位）
+// Stub 查询适配器（lead / task / review / report 类占位，待 M5/M6 替换）
 // ────────────────────────────────────────────────────────────
 
 /**
- * M7.1 阶段 stub：返回 0。
+ * Stub：返回 0。
  *
- * M7.3-M7.5 阶段按指标替换为真实查询。
+ * 用于依赖 M5 CRM / M6 工作流的指标（lead / task / review / report），
+ * 待对应里程碑完成后再替换为真实查询。
  * 真实查询必须：
  *   - 使用 ctx.payload 查询 Collection
  *   - 复用 getEffectiveSupplyWhere / listingReportPauseWhere 等已有谓词
@@ -72,7 +95,7 @@ const listingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsTotal,
   },
   {
     code: 'listings.published',
@@ -91,7 +114,7 @@ const listingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?publicationStatus=published&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsPublished,
   },
   {
     code: 'listings.pending_review',
@@ -110,7 +133,7 @@ const listingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?reviewStatus=pending&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsPendingReview,
   },
   {
     code: 'listings.rejected',
@@ -129,12 +152,12 @@ const listingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?reviewStatus=rejected&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsRejected,
   },
   {
     code: 'listings.offline',
     label: '已下架房源',
-    description: 'publicationStatus=offline 的房源数量',
+    description: 'publicationStatus=unpublished 的房源数量',
     category: 'listing',
     unit: 'count',
     dedup: 'distinct:id',
@@ -145,15 +168,15 @@ const listingMetrics: MetricDefinition[] = [
     drilldown: {
       target: 'collection-list',
       collection: 'listings',
-      pathTemplate: '/admin/collections/listings?publicationStatus=offline&{{filter_keys}}',
+      pathTemplate: '/admin/collections/listings?publicationStatus=unpublished&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsOffline,
   },
   {
     code: 'listings.rented',
     label: '已出租房源',
-    description: '已出租标记的房源数量',
+    description: 'publicationStatus=leased 的房源数量',
     category: 'listing',
     unit: 'count',
     dedup: 'distinct:id',
@@ -164,15 +187,15 @@ const listingMetrics: MetricDefinition[] = [
     drilldown: {
       target: 'collection-list',
       collection: 'listings',
-      pathTemplate: '/admin/collections/listings?rented=true&{{filter_keys}}',
+      pathTemplate: '/admin/collections/listings?publicationStatus=leased&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsRented,
   },
   {
     code: 'listings.completeness_below_80',
     label: '完整度低于 80% 房源',
-    description: 'listing completeness < 80 的房源数量（待维护）',
+    description: 'gallery 缺失或不足 3 张的房源数量（待维护，待 M5 完整度字段就绪后切换真实口径）',
     category: 'listing',
     unit: 'count',
     dedup: 'distinct:id',
@@ -186,7 +209,85 @@ const listingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?completenessLt=80&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countListingsCompletenessBelow80,
+  },
+  // M7.3 趋势指标：每日新建房源
+  {
+    code: 'listings.created_per_day_7d',
+    label: '近 7 天每日新建房源',
+    description: '按 Asia/Shanghai 自然日分桶，每日新建房源数量（趋势图）',
+    category: 'listing',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'rolling_7d',
+    requiredPermissions: ['listing:read'],
+    allowedScopeDims: ['city', 'team', 'merchant'],
+    cacheTtlMs: 5 * 60_000,
+    drilldown: {
+      target: 'collection-list',
+      collection: 'listings',
+      pathTemplate: '/admin/collections/listings?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
+    },
+    query: trendListingsCreatedPerDay7d,
+  },
+  {
+    code: 'listings.created_per_day_30d',
+    label: '近 30 天每日新建房源',
+    description: '按 Asia/Shanghai 自然日分桶，每日新建房源数量（趋势图）',
+    category: 'listing',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'rolling_30d',
+    requiredPermissions: ['listing:read'],
+    allowedScopeDims: ['city', 'team', 'merchant'],
+    cacheTtlMs: 10 * 60_000,
+    drilldown: {
+      target: 'collection-list',
+      collection: 'listings',
+      pathTemplate: '/admin/collections/listings?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
+    },
+    query: trendListingsCreatedPerDay30d,
+  },
+  // M7.3 分布指标：按城市/状态分组
+  {
+    code: 'listings.by_city',
+    label: '房源按城市分布',
+    description: '按 building.city 分组的房源数量（仅当 filters.cityIds 提供时返回）',
+    category: 'listing',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'snapshot',
+    requiredPermissions: ['listing:read'],
+    allowedScopeDims: ['city', 'team', 'merchant'],
+    cacheTtlMs: 60_000,
+    drilldown: {
+      target: 'collection-list',
+      collection: 'listings',
+      pathTemplate: '/admin/collections/listings?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
+    },
+    query: distributionListingsByCity,
+  },
+  {
+    code: 'listings.by_status',
+    label: '房源按状态分布',
+    description: '按 publicationStatus 分组的房源数量（draft/published/unpublished/leased）',
+    category: 'listing',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'snapshot',
+    requiredPermissions: ['listing:read'],
+    allowedScopeDims: ['city', 'team', 'merchant'],
+    cacheTtlMs: 60_000,
+    drilldown: {
+      target: 'collection-list',
+      collection: 'listings',
+      pathTemplate: '/admin/collections/listings?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
+    },
+    query: distributionListingsByStatus,
   },
 ]
 
@@ -208,7 +309,7 @@ const buildingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/buildings?{{filter_keys}}',
       filterKeys: ['cityIds'],
     },
-    query: stubQuery,
+    query: countBuildingsTotal,
   },
   {
     code: 'buildings.active',
@@ -227,7 +328,7 @@ const buildingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/buildings?operationalStatus=active&{{filter_keys}}',
       filterKeys: ['cityIds'],
     },
-    query: stubQuery,
+    query: countBuildingsActive,
   },
   {
     code: 'buildings.inactive',
@@ -246,7 +347,7 @@ const buildingMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/buildings?operationalStatus=inactive&{{filter_keys}}',
       filterKeys: ['cityIds'],
     },
-    query: stubQuery,
+    query: countBuildingsInactive,
   },
 ]
 
@@ -469,7 +570,7 @@ const supplyMetrics: MetricDefinition[] = [
   {
     code: 'supply.effective_count',
     label: '有效供给房源',
-    description: '符合统一有效供给 10 条的房源数量（前台可见）',
+    description: '符合统一有效供给 10 条的房源数量（前台可见，复用 getEffectiveSupplyWhere + 举报暂停排除）',
     category: 'supply',
     unit: 'count',
     dedup: 'distinct:id',
@@ -483,7 +584,7 @@ const supplyMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/listings?effectiveSupply=true&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
-    query: stubQuery,
+    query: countEffectiveSupply,
   },
 ]
 
@@ -606,7 +707,7 @@ const merchantMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/merchants?status=active&{{filter_keys}}',
       filterKeys: ['cityIds'],
     },
-    query: stubQuery,
+    query: countMerchantsActive,
   },
   {
     code: 'merchants.qualification_expiring',
@@ -622,10 +723,10 @@ const merchantMetrics: MetricDefinition[] = [
     drilldown: {
       target: 'collection-list',
       collection: 'merchants',
-      pathTemplate: '/admin/collections/merchants?qualificationExpiresIn=30d&{{filter_keys}}',
+      pathTemplate: '/admin/collections/merchants?qualificationExpiredIn=30d&{{filter_keys}}',
       filterKeys: ['cityIds'],
     },
-    query: stubQuery,
+    query: countMerchantsQualificationExpiring,
   },
 ]
 
