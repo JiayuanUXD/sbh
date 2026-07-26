@@ -52,11 +52,13 @@ GitHub Actions 不安装项目依赖、不运行 lint、类型、测试、构建
 
 **修复**：`.github/workflows/deploy.yml` 拆为 quality job（lint + typecheck + test + 迁移预检 + build，`deploy.needs: quality`）与 deploy job；CLI 锁定 `@cloudbase/cli@3.6.4`；新增 `scripts/migrate-locked.ts`（PG advisory lock 互斥，多实例只有一个跑迁移）+ `src/lib/runtime/migrate-lock.ts` 纯函数，Dockerfile CMD 改用该脚本；部署走灰度（deploy 0% -> `traffic --stable 90 --canary 10`）-> 冒烟（`/api/health` x10 + `/`）-> `traffic promote` 全量 / `traffic rollback` 回滚。6 项 migrate-lock 单元测试 + 全量 1938 项回归通过。证据见 `artifacts/verification/OPT-016/README.md`。
 
-### P1：询盘限流可被多实例绕过，存储不会回收
+### P1：询盘限流可被多实例绕过，存储不会回收 ✅ 已修复
 
 询盘 API 使用进程内全局 `Map`。CloudRun 多实例之间不共享计数，重启或扩容即可重置额度；Map 中过期 key 也没有清理机制，攻击者可持续制造新 key 占用内存。
 
 这只能作为单进程弱保护，不能满足生产批量接口限额与滥用防护。
+
+**修复**：新增 `src/lib/rate-limit-distributed.ts`（纯函数：窗口对齐/决策/TTL/容量/失败策略）+ `src/lib/rate-limit-pg.ts`（PG `INSERT...ON CONFLICT` 原子递增，多实例共享 `inquiry_rate_limit` 表）+ 迁移建表（含 `window_start` 索引）；route.ts 改用 `runDistributedRateLimit`，配置 `maxKeys=100_000` 容量保护 + `pruneIntervalMs=5min` TTL 回收 + `failOpen=true` 失败策略（PG 不可用放行 + 告警，下游幂等键兜底）。20 项 distributed 单元测试 + 30 项 route 集成测试（mock PG deps）+ 全量 1953 项回归通过。旧 `src/lib/rate-limit.ts` 已删除。证据见 `artifacts/verification/OPT-017/README.md`。
 
 ### P1：任务文档中的性能与监控证据高于实际实现
 

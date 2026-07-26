@@ -16,6 +16,7 @@ import * as migration_20260726_103700_m6_4_tasks from './20260726_103700_m6_4_ta
 import * as migration_20260726_103800_m6_7_notifications from './20260726_103800_m6_7_notifications';
 import * as migration_20260726_110000_m5_1_crm_collections from './20260726_110000_m5_1_crm_collections';
 import * as migration_20260726_140000_m5_2_leads_inquiry_context from './20260726_140000_m5_2_leads_inquiry_context';
+import * as migration_20260726_150000_opt017_inquiry_rate_limit from './20260726_150000_opt017_inquiry_rate_limit';
 
 export const migrations = [
   {
@@ -107,5 +108,10 @@ export const migrations = [
     up: migration_20260726_140000_m5_2_leads_inquiry_context.up,
     down: migration_20260726_140000_m5_2_leads_inquiry_context.down,
     name: '20260726_140000_m5_2_leads_inquiry_context',
+  },
+  {
+    up: migration_20260726_150000_opt017_inquiry_rate_limit.up,
+    down: migration_20260726_150000_opt017_inquiry_rate_limit.down,
+    name: '20260726_150000_opt017_inquiry_rate_limit',
   },
 ];

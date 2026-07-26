@@ -43,7 +43,7 @@
 | OPT-014 | ✅ 修复迁移清单与预检可信度 | P0 | 迁移目录与索引集合一致；漏项、危险项和不可回滚项能确定性阻断。证据见 `artifacts/verification/OPT-014/README.md` |
 | OPT-015 | ✅ 生产配置 fail-closed | P0 | 生产缺少 PostgreSQL、强密钥或合法站点 URL 时拒绝启动。证据见 `artifacts/verification/OPT-015/README.md` |
 | OPT-016 | ✅ 建立 CI/CD 质量门禁与渐进发布 | P1 | 锁定工具版本；发布前质量门通过；迁移单次执行；支持灰度、冒烟和回滚。证据见 `artifacts/verification/OPT-016/README.md` |
-| OPT-017 | 实现分布式限流与资源上限 | P1 | 多实例共享原子额度、TTL 回收、容量保护及失败策略有测试 |
+| OPT-017 | ✅ 实现分布式限流与资源上限 | P1 | 多实例共享原子额度、TTL 回收、容量保护及失败策略有测试。证据见 `artifacts/verification/OPT-017/README.md` |
 | OPT-018 | 接入生产可观测性与性能实测 | P1 | Web Vitals 和关键业务 SLI 有真实采集、阈值、看板和告警证据 |
 | OPT-019 | 收敛公开调试面与安全响应头 | P2 | 删除示例路由；生产安全头具备自动测试与部署响应证据 |
 
