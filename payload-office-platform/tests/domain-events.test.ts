@@ -121,13 +121,14 @@ describe('event-types — 枚举与守卫', () => {
     }
   })
 
-  it('AGGREGATE_TYPES 包含 listing / report / lead / followup / sla', () => {
+  it('AGGREGATE_TYPES 包含 listing / report / lead / followup / sla / task', () => {
     expect(AGGREGATE_TYPES).toEqual([
       'listing',
       'report',
       'lead',
       'followup',
       'sla',
+      'task',
     ])
   })
 })

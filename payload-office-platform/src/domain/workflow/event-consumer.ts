@@ -65,6 +65,9 @@ export interface EventConsumer<TPayload = Record<string, unknown>> {
  *
  * Dispatcher 通过该接口读取待处理事件并更新状态。
  * 真实实现由 Payload Local API 提供，测试用 in-memory 实现。
+ *
+ * M6.5 扩展：新增 createEvent（写入 Outbox）和 findByAggregate（按聚合根查询事件，
+ * 用于 SLA 扫描器的事件级幂等检查：相同 lead 不重复生成 sla.breached 事件）。
  */
 export interface EventStore {
   /** 按 eventId 读取事件 */
@@ -78,6 +81,23 @@ export interface EventStore {
     attemptCount?: number
     lastError?: string | null
   }): Promise<OperationResult<void>>
+  /**
+   * 写入事件到 Outbox（M6.5 新增）。
+   *
+   * 由 SLA 扫描器在发现违规时调用，将 'sla.breached' / 'lead.reclaimed' 等事件
+   * 写入 domain_events Collection。生产实现为 req.payload.create。
+   */
+  createEvent(event: DomainEvent): Promise<OperationResult<void>>
+  /**
+   * 按 eventType + aggregateId 查询已存在事件（M6.5 新增）。
+   *
+   * 用于 SLA 扫描器幂等检查：若该聚合根已有同类型事件，则跳过生成。
+   * 返回数组（可能多版本）；调用方按需检查非空。
+   */
+  findByAggregate(
+    eventType: EventType,
+    aggregateId: string,
+  ): Promise<DomainEvent[]>
 }
 
 /** 默认最大重试次数（达到后标记为死信，不再自动重试） */
@@ -324,6 +344,33 @@ export function createInMemoryEventStore(): EventStore & {
       if (params.attemptCount !== undefined) ev.attemptCount = params.attemptCount
       if (params.lastError !== undefined) ev.lastError = params.lastError
       return ok(undefined)
+    },
+    async createEvent(event: DomainEvent): Promise<OperationResult<void>> {
+      // eventId 唯一性兜底（防重复写入）
+      if (store.has(event.eventId)) {
+        return err(
+          new InvalidOperationError({
+            domain: 'workflow',
+            code: 'EVENT_DUPLICATE_ID',
+            message: `事件 ID 已存在：${event.eventId}`,
+            details: { eventId: event.eventId },
+          }),
+        )
+      }
+      store.set(event.eventId, { ...event })
+      return ok(undefined)
+    },
+    async findByAggregate(
+      eventType: EventType,
+      aggregateId: string,
+    ): Promise<DomainEvent[]> {
+      const matched: DomainEvent[] = []
+      for (const ev of store.values()) {
+        if (ev.eventType === eventType && ev.aggregateId === aggregateId) {
+          matched.push(ev)
+        }
+      }
+      return matched
     },
     seed(events: DomainEvent[]): void {
       for (const ev of events) store.set(ev.eventId, { ...ev })

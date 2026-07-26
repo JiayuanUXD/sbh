@@ -19,11 +19,15 @@
  *   - event-publisher：publishEvent 纯函数 + buildEventId（M6.3）
  *   - event-consumer：EventConsumer 接口 + EventDispatcher 幂等分发器（M6.3）
  *   - workflow-protect：Collection beforeChange hook 与权限守卫（M6.3）
+ *   - task-status：待办状态机纯函数（M6.4）
+ *   - task-types：待办类型枚举与生成规则元数据（M6.4）
+ *   - task-registry：TaskRegistry + 6 种任务类型规则注册（M6.4）
+ *   - task-service：createTaskFromEvent / completeTask / cancelTask / autoClose / autoCancel（M6.4）
+ *   - task-protect：Tasks Collection 守卫 hook（M6.4）
+ *   - sla-scan-types / sla-scanner：SLA 扫描任务（M6.5）
  *
- * 待实现（M6.4-M6.7）：
- *   - todos：待办模型与注册表
+ * 待实现（M6.7）：
  *   - notifications：站内通知
- *   - sla-scanner：SLA 扫描任务
  */
 export const DOMAIN_TAG = 'workflow' as const
 
@@ -31,3 +35,10 @@ export * from './event-types'
 export * from './event-publisher'
 export * from './event-consumer'
 export * from './workflow-protect'
+export * from './task-status'
+export * from './task-types'
+export * from './task-registry'
+export * from './task-service'
+export * from './task-protect'
+export * from './sla-scan-types'
+export * from './sla-scanner'

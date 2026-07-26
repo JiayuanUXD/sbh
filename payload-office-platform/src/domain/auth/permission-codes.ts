@@ -40,6 +40,8 @@ export const MENU_CODES = [
   // 举报与待办
   'reports',
   'todos',
+  // 站内通知（M6.7）
+  'notifications',
   // 数据看板
   'analytics',
   // 系统管理
@@ -91,6 +93,14 @@ export const OPERATION_CODES = [
   'events:read', // 读取领域事件列表 / 详情
   'events:write', // 业务操作同事务写入 Outbox（已认证用户即可）
   'events:manage', // 修改 / 删除事件（默认禁止，仅平台管理员）
+  // 待办（tasks.md M6.4）
+  'task:read', // 读取待办列表 / 详情（含数据范围收窄）
+  'task:manage', // 编辑 / 删除待办（管理动作）
+  'task:assign', // 领取 / 转派待办
+  'task:complete', // 标记处理中（来源完成 / 取消由系统自动闭环）
+  // 站内通知（tasks.md M6.7）
+  'notification:read', // 读取通知列表 / 详情（数据范围收窄到 recipient=self）
+  'notification:manage', // 标记已读 / 删除通知（管理动作）
   // 区域与字典
   'location:manage',
   'dictionary:manage',

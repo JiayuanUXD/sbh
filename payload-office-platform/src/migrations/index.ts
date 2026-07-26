@@ -12,6 +12,7 @@ import * as migration_20260725_181500_m4_2_listing_merchant_exclude from './2026
 import * as migration_20260725_185329_m4_4_listing_reviews from './20260725_185329_m4_4_listing_reviews';
 import * as migration_20260726_103500_m6_1_listing_reports from './20260726_103500_m6_1_listing_reports';
 import * as migration_20260726_103600_m6_3_domain_events from './20260726_103600_m6_3_domain_events';
+import * as migration_20260726_103700_m6_4_tasks from './20260726_103700_m6_4_tasks';
 
 export const migrations = [
   {
@@ -83,5 +84,10 @@ export const migrations = [
     up: migration_20260726_103600_m6_3_domain_events.up,
     down: migration_20260726_103600_m6_3_domain_events.down,
     name: '20260726_103600_m6_3_domain_events',
+  },
+  {
+    up: migration_20260726_103700_m6_4_tasks.up,
+    down: migration_20260726_103700_m6_4_tasks.down,
+    name: '20260726_103700_m6_4_tasks',
   },
 ];

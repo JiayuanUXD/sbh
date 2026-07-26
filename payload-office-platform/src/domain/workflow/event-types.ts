@@ -51,6 +51,12 @@ export const FOLLOWUP_EVENT_TYPES = [
   'sla.breached',
 ] as const
 
+/** 待办状态变更事件（M6.7 站内通知触发器） */
+export const TASK_EVENT_TYPES = [
+  'task.completed',
+  'task.cancelled',
+] as const
+
 /** 全部领域事件类型 */
 export const EVENT_TYPES = [
   ...LISTING_EVENT_TYPES,
@@ -58,6 +64,7 @@ export const EVENT_TYPES = [
   ...REPORT_EVENT_TYPES,
   ...LEAD_EVENT_TYPES,
   ...FOLLOWUP_EVENT_TYPES,
+  ...TASK_EVENT_TYPES,
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
@@ -81,6 +88,8 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   'followup.completed': '跟进已完成',
   'followup.corrected': '跟进已纠错',
   'sla.breached': 'SLA 已超时',
+  'task.completed': '待办已完成',
+  'task.cancelled': '待办已取消',
 }
 
 /** 是否为已注册的领域事件类型 */
@@ -107,6 +116,7 @@ export const AGGREGATE_TYPES = [
   'lead',
   'followup',
   'sla',
+  'task',
 ] as const
 
 export type AggregateType = (typeof AGGREGATE_TYPES)[number]

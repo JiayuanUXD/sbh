@@ -38,6 +38,8 @@ import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { DomainEvents } from './collections/DomainEvents'
+import { Tasks } from './collections/Tasks'
+import { Notifications } from './collections/Notifications'
 import {
   EXPORT_LIMIT,
   createExportAuditHook,
@@ -122,6 +124,8 @@ export default buildConfig({
     ListingReviews,
     ListingReports,
     DomainEvents,
+    Tasks,
+    Notifications,
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
