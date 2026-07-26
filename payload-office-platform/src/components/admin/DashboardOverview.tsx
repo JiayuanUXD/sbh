@@ -38,7 +38,9 @@ const metricCards = [
     key: 'availableListings',
     label: '当前可租',
     icon: <IconApps />,
-    href: '/admin/collections/listings?where[status][equals]=available',
+    // 近似 drilldown：卡片数走 M4.7 统一有效供给口径（含媒体/关系/商户逐条精筛),
+    // 但后台原生列表无法逐行跑异步精筛,故链接仅按发布态近似过滤,点进数量可能多于卡片数。
+    href: '/admin/collections/listings?where[publicationStatus][equals]=published',
   },
   {
     key: 'buildings',

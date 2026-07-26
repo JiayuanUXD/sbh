@@ -11,8 +11,9 @@ import { countBuildingDeactivationImpact } from '@/domain/supply/building-refere
  *
  * 语义：停用是人为决策，本端点只做「停用前展示受影响房源数量并二次确认」的预检，
  * 绝不阻断停用，也不改写任何 Listing 的审核 / 发布状态（design §9/§10, R3）。
- * 计数口径 = 该楼盘下当前对外可见（status=available）的房源数——即用户此刻能看到、
- * 停用后将看不到的部分。计数随调用者数据权限脱敏（overrideAccess 默认 false）。
+ * 计数口径 = 该楼盘下当前对外可见的房源数——走 M4.7 统一有效供给口径（查询层
+ * getEffectiveSupplyWhere + §5 举报暂停排除,取候选后逐条精筛媒体/关系/商户),
+ * 即用户此刻能看到、停用后将看不到的部分。计数随调用者数据权限脱敏（overrideAccess 默认 false）。
  *
  * 响应：
  *   - 200: { ok: true, report: { buildingId, sources, total, referenced } }

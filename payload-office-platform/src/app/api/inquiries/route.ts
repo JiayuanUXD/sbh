@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import config from '@/payload.config'
 import { validateInquiry } from '@/lib/frontend/validation'
 import { checkRateLimit, type RateLimitStore } from '@/lib/rate-limit'
+import { assertEffectiveListing, defaultSearchContext } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,15 +44,11 @@ export async function POST(req: Request) {
 
   const payload = await getPayload({ config })
 
-  // Resolve the listing by slug so we can link it.
-  const listing = await payload.find({
-    collection: 'listings',
-    where: { slug: { equals: result.data.listingSlug } },
-    limit: 1,
-    depth: 0,
-  })
-  const listingDoc = listing.docs[0]
-  if (!listingDoc) {
+  // M4.7（F1.6 收口）：按 slug 解析房源改走统一有效供给口径,与 C 端列表/详情可见性一致。
+  // 只对「当前对外可见」的房源留电——未审核/媒体<3/无有效关系/商户不合格/楼盘停用等
+  // 不合格房源一律 404,避免对不可见房源采集线索。assertEffectiveListing 无效供给返回 null。
+  const effective = await assertEffectiveListing(result.data.listingSlug, defaultSearchContext())
+  if (!effective) {
     return NextResponse.json({ ok: false, error: 'listing_not_found' }, { status: 404 })
   }
 
@@ -63,7 +60,7 @@ export async function POST(req: Request) {
         phone: result.data.phone,
         status: 'new',
         source: 'frontend-form',
-        interestedListing: listingDoc.id,
+        interestedListing: effective.id,
         notes: result.data.message,
       },
     })

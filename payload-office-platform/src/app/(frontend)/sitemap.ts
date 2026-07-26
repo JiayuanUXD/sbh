@@ -2,13 +2,12 @@ import type { MetadataRoute } from 'next'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { siteConfig } from '@/lib/frontend/site-config'
-import {
-  buildingOperationalWhere,
-  listingBuildingOperationalWhere,
-} from '@/domain/supply/building'
+import { buildingOperationalWhere } from '@/domain/supply/building'
 import {
   defaultSearchContext,
+  getDefaultSupplyAdapter,
   listPublishedPages,
+  parseSearchInput,
 } from '@/domain/public-catalog'
 
 // sitemap 查库（listings/buildings/pages），构建期无 DB。与 (frontend) 各页面一致，
@@ -29,19 +28,19 @@ const base = siteConfig.siteOrigin
  */
 const HOME_SLUG = 'home'
 
-// TODO(F1.6): 此处 `status=available` 是过渡性降级，待 M4.7 统一有效供给
-// 服务接入后改为通过 Public Catalog Facade 查询。见 specs/frontend-mvp/tasks.md F1.6。
+// M4.7（F1.6 收口）：listings 不再内联 `status=available` 过渡谓词，改走 Public Catalog
+// SupplyAdapter 的统一有效供给口径（查询层谓词 + 媒体/关系/商户逐条精筛），与 C 端列表 /
+// 详情可见性一致——满足 M4 验收门「同一房源可见性结论一致」。
+//   · MVP 计数封顶：findEffectiveListings 候选上限随 pageSize（默认 24×5=120），
+//     超大城市 sitemap 会封顶，与列表分页口径同源，属后续优化点。
+//   · 用 adapter 而非 searchListings：需保留 slug + updatedAt 供 lastModified，卡片 DTO 不含。
+// buildings 仍走原生查询（楼盘可见性只依赖楼盘自身状态 + 在营,无需房源级精筛）。
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const payload = await getPayload({ config })
   const ctx = defaultSearchContext()
+  const adapter = getDefaultSupplyAdapter()
   const [listings, buildings, pages] = await Promise.all([
-    payload.find({
-      collection: 'listings',
-      // 停用楼盘的房源不进 sitemap（M3.5，与 C 端可见性一致）
-      where: { status: { equals: 'available' }, ...listingBuildingOperationalWhere() },
-      limit: 500,
-      depth: 0,
-    }),
+    adapter.findEffectiveListings(parseSearchInput(new URLSearchParams()), ctx),
     payload.find({
       collection: 'buildings',
       // 停用楼盘不进 sitemap（M3.5）
@@ -53,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     listPublishedPages(ctx, { limit: 500 }),
   ])
 
-  const lUrls = listings.docs.map((d) => ({
+  const lUrls = listings.map((d) => ({
     url: `${base}/listings/${d.slug}`,
     lastModified: new Date(d.updatedAt),
     changeFrequency: 'weekly' as const,
