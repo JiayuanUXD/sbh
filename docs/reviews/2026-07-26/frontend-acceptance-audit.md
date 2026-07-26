@@ -91,5 +91,5 @@ Invalid project directory provided, no such directory: ...\payload-office-platfo
 | OPT-009 | 审查完成，待修复 |
 | OPT-010 | 审查完成，待修复 |
 | OPT-011 | 部分完成，待补充验收证据 |
-| OPT-012 | 审查完成，待修复 |
+| OPT-012 | ✅ 已修复（2026-07-26）；证据见 `artifacts/verification/OPT-012/README.md` |
 | OPT-013 | ✅ 已修复（2026-07-26）；证据见 `artifacts/verification/OPT-013/README.md` |
