@@ -25,6 +25,9 @@ import { Media } from './collections/Media'
 import { Amenities } from './collections/Amenities'
 import { Buildings } from './collections/Buildings'
 import { Leads } from './collections/Leads'
+import { Customers } from './collections/Customers'
+import { FollowUps } from './collections/FollowUps'
+import { LeadOwnershipHistory } from './collections/LeadOwnershipHistory'
 import { Listings } from './collections/Listings'
 import { Locations } from './collections/Locations'
 import { BusinessAreaExtensions } from './collections/BusinessAreaExtensions'
@@ -131,6 +134,9 @@ export default buildConfig({
     ListingMerchantRelations,
     Listings,
     Leads,
+    Customers,
+    LeadOwnershipHistory,
+    FollowUps,
     Pages,
     DisplayTags,
     ListingReviews,
@@ -244,6 +250,10 @@ export default buildConfig({
         'form-submissions',
         'exports',
         'imports',
+        // 追加式流水:创建后不可修改,lastModifiedBy 恒空;作者身份已由
+        // broker / operatedBy 记录,无需再注入审计字段(M5 / design §3.6)。
+        'follow-ups',
+        'lead-ownership-history',
       ],
       createdByLabel: '创建人',
       lastModifiedByLabel: '最后修改人',
