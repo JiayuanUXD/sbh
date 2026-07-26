@@ -13,7 +13,9 @@ import * as migration_20260725_185329_m4_4_listing_reviews from './20260725_1853
 import * as migration_20260726_103500_m6_1_listing_reports from './20260726_103500_m6_1_listing_reports';
 import * as migration_20260726_103600_m6_3_domain_events from './20260726_103600_m6_3_domain_events';
 import * as migration_20260726_103700_m6_4_tasks from './20260726_103700_m6_4_tasks';
+import * as migration_20260726_103800_m6_7_notifications from './20260726_103800_m6_7_notifications';
 import * as migration_20260726_110000_m5_1_crm_collections from './20260726_110000_m5_1_crm_collections';
+import * as migration_20260726_140000_m5_2_leads_inquiry_context from './20260726_140000_m5_2_leads_inquiry_context';
 
 export const migrations = [
   {
@@ -92,8 +94,18 @@ export const migrations = [
     name: '20260726_103700_m6_4_tasks',
   },
   {
+    up: migration_20260726_103800_m6_7_notifications.up,
+    down: migration_20260726_103800_m6_7_notifications.down,
+    name: '20260726_103800_m6_7_notifications',
+  },
+  {
     up: migration_20260726_110000_m5_1_crm_collections.up,
     down: migration_20260726_110000_m5_1_crm_collections.down,
     name: '20260726_110000_m5_1_crm_collections',
+  },
+  {
+    up: migration_20260726_140000_m5_2_leads_inquiry_context.up,
+    down: migration_20260726_140000_m5_2_leads_inquiry_context.down,
+    name: '20260726_140000_m5_2_leads_inquiry_context',
   },
 ];
