@@ -36,6 +36,7 @@ import { Brokers } from './collections/Brokers'
 import { Pages } from './collections/Pages'
 import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
+import { ListingReports } from './collections/ListingReports'
 import {
   EXPORT_LIMIT,
   createExportAuditHook,
@@ -118,6 +119,7 @@ export default buildConfig({
     Pages,
     DisplayTags,
     ListingReviews,
+    ListingReports,
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [

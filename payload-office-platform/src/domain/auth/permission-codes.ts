@@ -83,6 +83,8 @@ export const OPERATION_CODES = [
   // 经纪人
   'broker:manage',
   // 举报
+  'report:read', // 读取举报列表 / 详情
+  'report:manage', // 编辑 / 删除举报记录
   'report:triage', // 分诊 / 领取
   'report:resolve', // 核实 / 关闭
   // 区域与字典

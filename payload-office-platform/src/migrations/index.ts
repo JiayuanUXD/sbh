@@ -10,6 +10,7 @@ import * as migration_20260725_142500_m3_3_building_merchant_exclude from './202
 import * as migration_20260725_181426_m4_2_listing_merchant_relations from './20260725_181426_m4_2_listing_merchant_relations';
 import * as migration_20260725_181500_m4_2_listing_merchant_exclude from './20260725_181500_m4_2_listing_merchant_exclude';
 import * as migration_20260725_185329_m4_4_listing_reviews from './20260725_185329_m4_4_listing_reviews';
+import * as migration_20260726_103500_m6_1_listing_reports from './20260726_103500_m6_1_listing_reports';
 
 export const migrations = [
   {
@@ -71,5 +72,10 @@ export const migrations = [
     up: migration_20260725_185329_m4_4_listing_reviews.up,
     down: migration_20260725_185329_m4_4_listing_reviews.down,
     name: '20260725_185329_m4_4_listing_reviews'
+  },
+  {
+    up: migration_20260726_103500_m6_1_listing_reports.up,
+    down: migration_20260726_103500_m6_1_listing_reports.down,
+    name: '20260726_103500_m6_1_listing_reports',
   },
 ];
