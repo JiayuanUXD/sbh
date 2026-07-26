@@ -68,13 +68,17 @@ F7.4 已勾选完成，但文档同时注明 LCP、INP、CLS 尚未在生产环�
 
 **修复**：接入 `web-vitals@^6.0.0`，新增 `src/lib/observability/thresholds.ts`（Web Vitals + SLI 阈值与评级，单一事实源）+ `src/lib/frontend/analytics/web-vitals.ts`（复用 OPT-010 collector 流水线采集 LCP/INP/CLS/TTFB/FCP，评级统一走 thresholds）+ `src/lib/observability/sli.ts`（SLI 聚合纯函数，注入查询依赖）+ `/api/observability/sli` 端点（fail-closed API key 鉴权，返回成功率/限流 IP/提交量与评级，不暴露 PII）+ `src/lib/rate-limit-config.ts`（限流配置提取共享）。告警契约见 `docs/observability/alerting.md`（指标分层、阈值表、5 条 SLI + 3 条 Web Vitals p75 告警规则、抑制/恢复、Runbook、待接入清单）。42 项可观测性单测 + 全量 1995 项回归通过，typecheck 通过。证据见 `artifacts/verification/OPT-018/README.md`。
 
-### P2：存在无业务用途的公开示例路由
+### P2：存在无业务用途的公开示例路由 ✅ 已修复
 
 生产构建包含 `/my-route`，它初始化 Payload 后返回固定示例文本。该路由没有鉴权、限流或业务用途，会增加无谓的数据库初始化入口和公开攻击面。
 
-### P2：缺少统一生产安全响应头
+**修复**：删除 `src/app/my-route/route.ts`（Payload 模板示例路由）；同时关闭 `X-Powered-By`（`poweredByHeader: false`）收敛技术栈暴露。
+
+### P2：缺少统一生产安全响应头 ✅ 已修复
 
 Next 配置只设置 Turbopack 与远程图片规则，没有统一的 CSP、frame-ancestors/X-Frame-Options、Referrer-Policy、Permissions-Policy 和 HSTS 策略。平台层可能补充部分响应头，但仓库没有可验证的契约或自动测试。
+
+**修复**：新增 `src/lib/security-headers.ts`（纯函数 `buildSecurityHeaders(env)` + `toNextHeaderEntries`，单一事实源）；`next.config.mjs` 迁移为 `next.config.ts` 并在 `headers()` 调用纯函数，对所有路由应用安全头。生产含 HSTS（max-age=63072000; includeSubDomains; preload）+ CSP（default-src 'self'、frame-ancestors 'none'、object-src 'none' 等，保留 'unsafe-inline'/'unsafe-eval' 兼容 Payload admin）+ X-Content-Type-Options/X-Frame-Options/Referrer-Policy/Permissions-Policy；非生产不加 HSTS/CSP 避免破坏 dev 调试。6 项 security-headers 单测 + 全量 2001 项回归通过；tsx 加载 next.config.ts 验证生产 headers() 返回 6 个安全头（部署响应证据）。Dockerfile/DEPLOYMENT.md 同步更新 next.config.ts 引用。证据见 `artifacts/verification/OPT-019/README.md`。
 
 ## 状态判定
 
