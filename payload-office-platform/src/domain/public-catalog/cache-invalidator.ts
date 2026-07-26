@@ -246,7 +246,8 @@ export function registerCacheInvalidatorConsumers(
 export function createNextTagInvalidator(): TagInvalidator {
   return {
     revalidateTag(tag: string): void {
-      revalidateTag(tag)
+      // Next 16 起 revalidateTag 第二参数 profile 必填，'max' 表示按最长缓存生命重新验证
+      revalidateTag(tag, 'max')
     },
   }
 }
