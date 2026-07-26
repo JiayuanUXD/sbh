@@ -30,6 +30,9 @@ export const CLAIM_PROTECTION_SECONDS = 24 * 60 * 60
 /** 手机号查重窗口:同号在 30 天内的新线索判为重复需求(tasks.md M5.3)。 */
 export const DEDUP_WINDOW_DAYS = 30
 
+/** 跟进纠错窗口:跟进记录创建后 24 小时内可追加修正记录(tasks.md M5.5,记录本身不可改)。 */
+export const FOLLOWUP_CORRECTION_WINDOW_SECONDS = 24 * 60 * 60
+
 /**
  * 线索归属/SLA 参数快照结构（写入 leads 的 SLA 秒数字段 + runtime_policy_version）。
  *
