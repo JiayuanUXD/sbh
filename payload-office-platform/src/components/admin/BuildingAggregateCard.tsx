@@ -9,8 +9,9 @@ import BuildingAggregateCardClient from './BuildingAggregateCardClient'
  * 落点：楼盘编辑视图 `beforeDocumentControls`。R3 末条要求「预览楼盘时展示符合
  * 统一有效供给谓词的房源聚合」，编辑视图是正确落点（原生列表无法逐行跑异步聚合）。
  *
- * 口径：computeBuildingSupplyAggregate 的 M3 过渡谓词
- *   status='available' + building.operationalStatus='active' + deletedAt exists:false。
+ * 口径：computeBuildingSupplyAggregate 走 M4.7 统一有效供给口径——查询层
+ *   getEffectiveSupplyWhere（§1-4 状态 + §7 楼盘/城市/行政区在营）+ §5 举报暂停排除，
+ *   取候选后逐条精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），与前台 / 详情结论一致。
  *
  * ⚠️ 关键：Payload 3.86 的 `beforeDocumentControls` 槽只传 `ServerProps`
  * (`{ id, payload, user, i18n, locale, permissions }`)——**不含 `doc`/`req`**。

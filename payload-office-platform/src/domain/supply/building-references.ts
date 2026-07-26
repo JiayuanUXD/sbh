@@ -1,15 +1,28 @@
 /**
- * 楼盘停用影响预检（tasks.md M3.5「停用前展示受影响房源数量并二次确认」/ R3, R4, R8）
+ * 楼盘停用影响预检（tasks.md M3.5 → M4.7「统一有效供给查询」/ R3, R4, R8）
  *
- * 口径：停用某楼盘会从前台有效供给中撤除该楼盘下「当前对外可见（available）」的房源，
- * 这里统计其数量，供 UI 在停用前二次确认展示。停用不阻断（人为决策），也不改写任何
- * 房源的审核 / 发布状态——仅撤销有效供给谓词的楼盘侧可用性（design §9/§10, R3）。
+ * 口径：停用某楼盘会从前台有效供给中撤除该楼盘下「当前对外可见」的房源，这里统计其
+ * 数量，供 UI 在停用前二次确认展示。停用不阻断（人为决策），也不改写任何房源的审核 /
+ * 发布状态——仅撤销有效供给谓词的楼盘侧可用性（design §9/§10, R3）。
  *
- * 与 merchant-references / location-references 同构：依赖 payload.count（副作用），
- * 单测 mock count。房源与商户/楼盘的关系型 collection 在后续里程碑登记后自动纳入。
+ * M4.7：度量口径与前台 / 详情 / 楼盘聚合完全一致——查询层 getEffectiveSupplyWhere
+ * （§1-4 状态 + §7 楼盘/城市/行政区在营）粗筛 + building 约束 + §5 举报暂停 not_in
+ * 排除，取候选后逐条 resolveEffectiveSupply 精筛（媒体 §6 / 关系 §8 / 商户 §9-§10）。
+ * count = 精筛后长度（不再用 payload.count，因关系精筛需逐条查 listing-merchant-relations）。
+ *
+ * MVP 计数口径：取候选（limit LISTING_CANDIDATE_CAP=500）后精筛数长度；>500 会封顶
+ * （后续优化点，与 supply-adapter / building-aggregate 一致）。关系型数据经 unknown +
+ * 守卫读取，禁 any。
  */
 
-import type { CollectionSlug, Payload, PayloadRequest, Where } from 'payload'
+import type { Payload, PayloadRequest, Where } from 'payload'
+
+import {
+  getEffectiveSupplyWhere,
+  getPausedListingIds,
+  type PayloadQueryPort,
+} from '@/domain/review/effective-supply'
+import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
 
 export type BuildingReferenceSource = {
   collection: string
@@ -24,32 +37,14 @@ export type BuildingDeactivationImpactReport = {
   referenced: boolean
 }
 
-type CountSpec = {
-  collection: CollectionSlug
-  label: string
-  where: (id: number | string) => Where
-}
-
-/**
- * 停用影响来源清单。当前统计该楼盘下「对外可见（status=available）」的房源：
- * 这些房源随楼盘停用而从前台消失。房源与楼盘的关系型 collection 建立后同法登记。
- *
- * 注意：这里刻意与前台有效供给的过渡口径（filters.ts `status=available`）保持一致，
- * 度量的是「用户当前能看到、停用后将看不到」的房源，而非全部关联房源。
- */
-const REFERENCE_SPECS: CountSpec[] = [
-  {
-    collection: 'listings',
-    label: '对外可见房源',
-    where: (id) => ({
-      building: { equals: id },
-      status: { equals: 'available' },
-    }),
-  },
-]
+/** 候选房源上限：MVP 内存精筛口径，超过封顶（后续优化点，与 supply-adapter 对齐）。 */
+const LISTING_CANDIDATE_CAP = 500
 
 /**
  * 统计停用某楼盘的受影响房源数量（分来源聚合）。
+ *
+ * 当前唯一来源是该楼盘下有效供给房源：停用后随楼盘从前台消失。房源与楼盘的其他关系型
+ * collection 建立后可同法登记为新来源。
  *
  * @param options.overrideAccess 「停用影响」展示按数据权限脱敏，默认 false；
  *                               需全量统计（如后台完整性视图）时传 true。
@@ -61,18 +56,40 @@ export async function countBuildingDeactivationImpact(
   options?: { overrideAccess?: boolean },
 ): Promise<BuildingDeactivationImpactReport> {
   const overrideAccess = options?.overrideAccess ?? false
-  const results = await Promise.all(
-    REFERENCE_SPECS.map(async (spec) => {
-      const res = await payload.count({
-        collection: spec.collection,
-        where: spec.where(buildingId),
-        overrideAccess,
-        req,
-      })
-      return { collection: spec.collection, label: spec.label, count: res.totalDocs }
-    }),
-  )
-  const sources = results.filter((s) => s.count > 0)
-  const total = results.reduce((sum, s) => sum + s.count, 0)
+  // 楼盘停用预检取"现在"为基准；查询层谓词与 asOf 无关，精筛的关系/资质有效期需基准时刻。
+  const asOf = new Date()
+  const port = payload as unknown as PayloadQueryPort
+
+  // §5 举报暂停：查 listing-reports 拿被暂停 ID，not_in 排除。
+  const pausedIds = await getPausedListingIds(port)
+
+  const where: Where = {
+    building: { equals: buildingId },
+    ...(getEffectiveSupplyWhere(asOf) as Where),
+    ...(pausedIds.length > 0 ? { id: { not_in: pausedIds } } : {}),
+  }
+
+  const findRes = await payload.find({
+    collection: 'listings',
+    where,
+    overrideAccess,
+    req,
+    pagination: false,
+    limit: LISTING_CANDIDATE_CAP,
+    depth: 2, // building + merchant + gallery，供精筛判定
+  })
+
+  let effectiveCount = 0
+  for (const raw of findRes.docs as unknown[]) {
+    if (typeof raw !== 'object' || raw === null) continue
+    const supply = await resolveEffectiveSupply(port, raw as Record<string, unknown>, asOf, req)
+    if (supply.eligible) effectiveCount += 1
+  }
+
+  const sources: BuildingReferenceSource[] =
+    effectiveCount > 0
+      ? [{ collection: 'listings', label: '对外可见房源', count: effectiveCount }]
+      : []
+  const total = effectiveCount
   return { buildingId, sources, total, referenced: total > 0 }
 }
