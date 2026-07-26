@@ -45,6 +45,9 @@ import {
   createExportAuditHook,
   overrideExportsCollection,
 } from './domain/audit/export-controls'
+import { metricRegistry } from './domain/analytics/metric-registry'
+import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
+import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -57,6 +60,12 @@ const usePostgres = databaseUrl.startsWith('postgres')
 // SQLite 本地文件路径（放在项目根目录，已在 .gitignore 忽略）
 const sqliteFilePath = path.resolve(dirname, '..', 'payload.db.sqlite').replace(/\\/g, '/')
 const sqliteUrl = process.env.SQLITE_URL || `file:${sqliteFilePath}`
+
+// 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
+// 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
+if (!metricRegistry.has('listings.total')) {
+  registerBuiltinMetrics(metricRegistry)
+}
 
 export default buildConfig({
   i18n: {
@@ -127,6 +136,9 @@ export default buildConfig({
     Tasks,
     Notifications,
   ],
+  // M7.2 角色化工作台 endpoint（GET /api/dashboard）
+  // 注册在顶层 endpoints（路径 /api/dashboard），不绑定具体 collection
+  endpoints: [createDashboardEndpoint()],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
       ...defaultFeatures,
