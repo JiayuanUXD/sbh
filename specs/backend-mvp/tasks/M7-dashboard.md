@@ -21,11 +21,19 @@
     - 业务不变量验证: 编码唯一重复注册抛错；URL 参数不能扩大数据范围（sanitizeFilters 服务端兜底，未传城市时使用 permission 上限，越界 ID 丢弃）；卡片 = 趋势桶之和（assertCardEqualsSeriesSum）；所有内置指标 requiredPermissions / drilldown / cacheTtlMs>=0 完整
     - 验收: `pnpm typecheck` 通过；`pnpm test` 69 文件 1369 用例全通过（含 metric-registry.test.ts 50 用例）
 
-- [ ] 7.2 升级角色化工作台
+- [x] 7.2 升级角色化工作台
   - 管理员/运营：待审核、今日供给、线索、跟进和超时。
   - 销售主管：团队线索、待分配、跟进和有效商机。
   - 经纪人：我的新线索、今日待跟进、超时和推荐次数。
   - _Requirement: R1, R7_
+  - 验证证据：
+    - 领域层: `payload-office-platform/src/domain/analytics/role-dashboard.ts`（M7.2 新增：ROLE_DASHBOARD_TYPES / ROLE_DASHBOARD_CONFIG 三类角色对应指标卡 code 列表；deriveRoleDashboardType 多角色优先级 admin-ops > sales-manager > broker；resolveRoleDashboard 并发解析 + 单卡失败局部标记 status=failed/no-permission/not-found；每卡按自身 metric.allowedScopeDims 重新 sanitize，URL 不扩大范围；所有卡共用同一 asOf）
+    - endpoint: `payload-office-platform/src/endpoints/dashboard-endpoint.ts`（M7.2 新增：createDashboardEndpoint 注册在 payload.config.ts 顶层 endpoints，路径 GET /api/dashboard；createPayloadMetricPort 把 req.payload.count/find 包装为 MetricPayloadPort；parseFilterInput 解析 URL 查询参数为不可信 MetricFilterInput，由 sanitizeFilters 服务端收窄；401 未登录 / 200 返回 { ok, role, cards, asOf }）
+    - 启动注册: `payload-office-platform/src/payload.config.ts`（应用启动时幂等调用 registerBuiltinMetrics(metricRegistry)；endpoints: [createDashboardEndpoint()]）
+    - 导出: `payload-office-platform/src/domain/analytics/index.ts` 新增 `export * from './role-dashboard'`
+    - 测试: `payload-office-platform/tests/role-dashboard.test.ts`（覆盖角色派生优先级 / 三类角色卡片配置 / 单卡 query 抛错 → status=failed 其他正常 / 单卡无权限 → status=no-permission / 不存在 code → status=not-found / URL 不扩大范围（dataScope=self 强制 assignee=userId）/ type=null 返回空 cards / 所有卡共用 asOf）
+    - 业务不变量验证: 不同角色只看到授权指标和范围（registry.resolve 内部 canViewMetric 校验 + sanitizeFilters 服务端兜底）；URL 参数不能扩大数据范围（每张卡按自身 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件（Promise.all + try/catch per card）
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 71 文件 1414 用例全通过（含 role-dashboard.test.ts）
 
 - [ ] 7.3 建设经营概览
   - 城市、时间和团队筛选。
