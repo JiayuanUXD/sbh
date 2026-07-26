@@ -26,21 +26,21 @@
 
 ---
 
-# Implementation Plan
+## Implementation Plan
 
-## ???????
+## 里程碑任务索引
 
-- [ ] [M0 工程与数据基线](./tasks/M0-engineering-data.md) ? 3/4
-- [x] [M1 账号、角色与四层权限](./tasks/M1-auth-permissions.md) ? 6/6
-- [ ] [M2 地理、商户与组织主数据](./tasks/M2-master-data.md) ? 5/6
-- [ ] [M3 楼盘增强与供给关系](./tasks/M3-building-supply.md) ? 0/5
-- [ ] [M4 房源审核、发布与可信供给](./tasks/M4-listing-review-supply.md) ? 6/8
-- [ ] [M5 客户、线索与跟进闭环](./tasks/M5-crm.md) ? 0/8
-- [ ] [M6 举报、待办、通知与 SLA](./tasks/M6-workflow.md) ? 3/7
-- [ ] [M7 工作台与数据看板](./tasks/M7-dashboard.md) ? 0/6
-- [ ] [M8 审计、导入导出与上线](./tasks/M8-launch.md) ? 0/7
+- [M0 工程与数据基线](./tasks/M0-engineering-data.md)
+- [M1 账号、角色与四层权限](./tasks/M1-auth-permissions.md)
+- [M2 地理、商户与组织主数据](./tasks/M2-master-data.md)
+- [M3 楼盘增强与供给关系](./tasks/M3-building-supply.md)
+- [M4 房源审核、发布与可信供给](./tasks/M4-listing-review-supply.md)
+- [M5 客户、线索与跟进闭环](./tasks/M5-crm.md)
+- [M6 举报、待办、通知与 SLA](./tasks/M6-workflow.md)
+- [M7 工作台与数据看板](./tasks/M7-dashboard.md)
+- [M8 审计、导入导出与上线](./tasks/M8-launch.md)
 
-????????????????????????
+Detailed task status and evidence are maintained only in the linked milestone files.
 
 ## 3. 建议实施批次
 
@@ -90,4 +90,3 @@
 5. 保证现有后台和前台行为完全不变。
 
 M0 验收通过后，再单独确认进入 M1 权限模型开发。
-
