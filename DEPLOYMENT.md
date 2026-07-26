@@ -73,7 +73,7 @@
 |------|------|
 | `payload-office-platform/src/payload.config.ts` | DB 适配器 + S3 插件（核心） |
 | `payload-office-platform/package.json` | 依赖、`start` 读 `PORT` |
-| `payload-office-platform/next.config.mjs` | turbopack root + images 远程白名单（无 standalone，用完整镜像） |
+| `payload-office-platform/next.config.ts` | turbopack root + images 远程白名单 + 生产安全响应头（OPT-019，无 standalone，用完整镜像） |
 | `payload-office-platform/Dockerfile` / `.dockerignore` | Container mode |
 | `payload-office-platform/.env.example` | 环境变量模板 |
 | `payload-office-platform/src/app/(frontend)/page.tsx` | 首页动态渲染 + fallback |

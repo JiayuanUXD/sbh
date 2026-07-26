@@ -1,0 +1,284 @@
+/**
+ * M0 迁移 dry-run：静态分析待应用迁移，检测禁止操作并估算影响行数。
+ *
+ * 业务不变量（AGENTS.md §9.1）：
+ *   - 任何 Collection / 字段 / 索引 / 约束 / 关系变更都必须生成并提交显式迁移
+ *   - 迁移采用“扩展 → 回填 → 双读验证 → 切换 → 收敛”
+ *   - 未经用户明确确认，不得删除旧字段、表、索引或历史数据
+ *   - 每次迁移必须提供 dry-run、影响数量、校验结果和回滚说明
+ *   - 禁止迁移隐式删除旧字段或将旧房源自动视为审核通过（tasks.md M0.3）
+ *
+ * 安全原则：
+ *   - 完全静态分析，不连接数据库（避免 SQLite dev push 冲突）
+ *   - 不写任何数据
+ *   - 输出待应用迁移清单 + 风险标记 + 回滚提示
+ *
+ * 运行：pnpm migrate:dry-run
+ */
+import { readFileSync, existsSync } from 'node:fs'
+import { resolve, dirname as pathDirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const here = pathDirname(fileURLToPath(import.meta.url))
+const migrationsDir = resolve(here, '..', 'src', 'migrations')
+
+type ForbiddenPattern = {
+  pattern: RegExp
+  severity: 'block' | 'warn'
+  reason: string
+}
+
+// 禁止操作模式（block = 必须人工确认后才能放行；warn = 提醒）
+const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
+  {
+    pattern: /DROP\s+TABLE/i,
+    severity: 'block',
+    reason: '禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理',
+  },
+  {
+    pattern: /DROP\s+COLUMN/i,
+    severity: 'block',
+    reason: '禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移',
+  },
+  {
+    pattern: /DROP\s+INDEX/i,
+    severity: 'warn',
+    reason: '删除索引需确认是否影响查询性能；建议先停用再删除',
+  },
+  {
+    pattern: /ALTER\s+COLUMN.*TYPE/i,
+    severity: 'warn',
+    reason: '修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换',
+  },
+  {
+    pattern: /ADD\s+COLUMN(?!.*DEFAULT).*NOT\s+NULL/i,
+    severity: 'block',
+    reason: '已有表新增无默认值的非空字段会导致升级失败；必须先可空扩展、回填，再设置 NOT NULL',
+  },
+  {
+    pattern: /TRUNCATE/i,
+    severity: 'block',
+    reason: '禁止 TRUNCATE（AGENTS.md §5.5：不可变历史不得物理删除）',
+  },
+  {
+    pattern: /DELETE\s+FROM/i,
+    severity: 'warn',
+    reason: 'DELETE 需要白名单条件；不可变历史不得物理删除',
+  },
+  // 业务级语义检测：旧房源不能自动视为审核通过
+  {
+    pattern: /UPDATE\s+listings\s+SET\s+review_status\s*=\s*'approved'/i,
+    severity: 'block',
+    reason: '禁止迁移隐式将旧房源自动审核通过（tasks.md M0.3）',
+  },
+  {
+    pattern: /UPDATE\s+listings\s+SET\s+publication_status\s*=\s*'published'/i,
+    severity: 'block',
+    reason: '禁止迁移隐式将旧房源自动上架（AGENTS.md §5.1：只有显式发布动作才能上架）',
+  },
+]
+
+type MigrationAnalysis = {
+  name: string
+  hasUp: boolean
+  hasDown: boolean
+  hasJson: boolean
+  forbiddenHits: Array<{
+    severity: 'block' | 'warn'
+    pattern: string
+    reason: string
+    line: number
+    snippet: string
+  }>
+}
+
+type DryRunReport = {
+  generatedAt: string
+  database:
+    | { kind: 'sqlite'; note: string }
+    | { kind: 'postgres'; urlMasked: string }
+  totalMigrations: number
+  migrations: MigrationAnalysis[]
+  blockingCount: number
+  warningCount: number
+  /** dry-run 不写数据；此字段用于未来按行估算影响行数（PG 环境下可扩展） */
+  impactRowsEstimate: 'not-applicable-static-analysis'
+  rollbackGuidance: string
+}
+
+function getDatabaseMeta() {
+  const databaseUrl = process.env.DATABASE_URL || ''
+  if (databaseUrl.startsWith('postgres')) {
+    return { kind: 'postgres' as const, urlMasked: databaseUrl.replace(/:[^:@/]+@/, ':****@') }
+  }
+  return {
+    kind: 'sqlite' as const,
+    note: '本地开发 SQLite；dev 模式自动同步 schema，迁移跟踪主要给 PG 生产用',
+  }
+}
+
+function analyzeMigration(name: string): MigrationAnalysis {
+  const tsPath = resolve(migrationsDir, `${name}.ts`)
+  const jsonPath = resolve(migrationsDir, `${name}.json`)
+  const ts = existsSync(tsPath) ? readFileSync(tsPath, 'utf8') : ''
+
+  const forbiddenHits: MigrationAnalysis['forbiddenHits'] = []
+
+  // 只检查 up() 函数体：forward 迁移禁止破坏性操作
+  // down() 是回滚入口，DROP 是合理操作；AGENTS.md §9.1 的禁令针对 forward 迁移
+  const upBody = extractFunctionBody(ts, 'up')
+  const allLines = ts.split('\n')
+  const upStartLine = allLines.findIndex((l) => /export\s+async\s+function\s+up/.test(l))
+  const upLines = upBody.split('\n')
+
+  for (let i = 0; i < upLines.length; i++) {
+    const line = upLines[i]
+    for (const p of FORBIDDEN_PATTERNS) {
+      const m = line.match(p.pattern)
+      if (m) {
+        forbiddenHits.push({
+          severity: p.severity,
+          pattern: m[0],
+          reason: p.reason,
+          line: upStartLine >= 0 ? upStartLine + 1 + i : i + 1,
+          snippet: line.trim().slice(0, 120),
+        })
+      }
+    }
+  }
+
+  return {
+    name,
+    hasUp: /export\s+async\s+function\s+up/.test(ts),
+    hasDown: /export\s+async\s+function\s+down/.test(ts),
+    hasJson: existsSync(jsonPath),
+    forbiddenHits,
+  }
+}
+
+/** 提取指定函数体（从 `export async function name(` 开始到匹配的 `}` 结束） */
+export function extractFunctionBody(source: string, name: 'up' | 'down'): string {
+  const fnRegex = new RegExp(`export\\s+async\\s+function\\s+${name}\\s*\\(`)
+  const start = source.search(fnRegex)
+  if (start < 0) return ''
+  // 先跳过参数列表：从签名的 ( 起按圆括号深度匹配到闭合 )，
+  // 否则解构参数 `{ db, payload, req }` 的 { 会被误当作函数体起点。
+  const parenIdx = source.indexOf('(', start)
+  if (parenIdx < 0) return ''
+  let parenDepth = 0
+  let sigEnd = -1
+  for (let i = parenIdx; i < source.length; i++) {
+    const ch = source[i]
+    if (ch === '(') parenDepth++
+    else if (ch === ')') {
+      parenDepth--
+      if (parenDepth === 0) {
+        sigEnd = i
+        break
+      }
+    }
+  }
+  if (sigEnd < 0) return ''
+  // 函数体第一个 { 在签名闭合 ) 之后，按花括号深度匹配到最后一个 }
+  const openIdx = source.indexOf('{', sigEnd)
+  if (openIdx < 0) return ''
+  let depth = 0
+  let endIdx = -1
+  for (let i = openIdx; i < source.length; i++) {
+    const ch = source[i]
+    if (ch === '{') depth++
+    else if (ch === '}') {
+      depth--
+      if (depth === 0) {
+        endIdx = i
+        break
+      }
+    }
+  }
+  if (endIdx < 0) return ''
+  return source.slice(openIdx + 1, endIdx)
+}
+
+function listMigrationNames(): string[] {
+  const indexTsPath = resolve(migrationsDir, 'index.ts')
+  if (!existsSync(indexTsPath)) return []
+  const entries = readFileSync(indexTsPath, 'utf8')
+  return Array.from(entries.matchAll(/import\s+\*\s+as\s+\w+\s+from\s+'\.\/([^']+)'/g)).map(
+    (m) => m[1],
+  )
+}
+
+function generateReport(): DryRunReport {
+  const names = listMigrationNames()
+  const migrations = names.map(analyzeMigration)
+  const blockingCount = migrations.reduce(
+    (acc, m) => acc + m.forbiddenHits.filter((h) => h.severity === 'block').length,
+    0,
+  )
+  const warningCount = migrations.reduce(
+    (acc, m) => acc + m.forbiddenHits.filter((h) => h.severity === 'warn').length,
+    0,
+  )
+
+  return {
+    generatedAt: new Date().toISOString(),
+    database: getDatabaseMeta(),
+    totalMigrations: migrations.length,
+    migrations,
+    blockingCount,
+    warningCount,
+    impactRowsEstimate: 'not-applicable-static-analysis',
+    rollbackGuidance:
+      '每个迁移必须提供 down() 函数；回滚前先在 PG 数据副本验证。' +
+      '高风险回滚（含 DELETE / DROP）需用户明确确认。' +
+      '回滚后立即执行 migrate:verify 校验数据完整性。',
+  }
+}
+
+// biome-ignore lint/suspicious/noConsole: CLI script
+function main() {
+  const report = generateReport()
+  console.log('=== Migration Dry-Run Report ===')
+  console.log(`Generated: ${report.generatedAt}`)
+  console.log(`Database:  ${report.database.kind}`)
+  console.log(`Total migrations: ${report.totalMigrations}`)
+  console.log(`Blocking hits:    ${report.blockingCount}`)
+  console.log(`Warning hits:     ${report.warningCount}`)
+  console.log('')
+
+  for (const m of report.migrations) {
+    console.log(`- ${m.name}`)
+    console.log(`    up: ${m.hasUp}, down: ${m.hasDown}, json: ${m.hasJson}`)
+    if (m.forbiddenHits.length === 0) {
+      console.log('    no forbidden patterns')
+      continue
+    }
+    for (const h of m.forbiddenHits) {
+      const tag = h.severity === 'block' ? 'BLOCK' : 'WARN'
+      console.log(`    [${tag}] L${h.line}: ${h.pattern}`)
+      console.log(`      reason:  ${h.reason}`)
+      console.log(`      snippet: ${h.snippet}`)
+    }
+  }
+
+  console.log('')
+  console.log('Rollback guidance:')
+  console.log(`  ${report.rollbackGuidance}`)
+
+  if (report.blockingCount > 0) {
+    console.log('')
+    console.log(`❌ ${report.blockingCount} blocking issue(s) — 必须人工确认后才能执行迁移`)
+    process.exitCode = 1
+  } else if (report.warningCount > 0) {
+    console.log('')
+    console.log(`⚠️  ${report.warningCount} warning(s) — 复核后可继续`)
+  } else {
+    console.log('')
+    console.log('✅ static analysis passed — no forbidden patterns detected')
+  }
+}
+
+// 仅在作为脚本直接运行时执行；被测试 import 时不触发全库扫描。
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main()
+}

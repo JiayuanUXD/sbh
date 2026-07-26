@@ -2,6 +2,10 @@ import type { CollectionConfig } from 'payload'
 
 export const Amenities: CollectionConfig = {
   slug: 'amenities',
+  labels: {
+    singular: '配套',
+    plural: '配套设施',
+  },
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'category'],

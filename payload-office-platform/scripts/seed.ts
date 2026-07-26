@@ -1,9 +1,48 @@
 import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
+import type { Lead } from '../src/payload-types'
+import { BUILTIN_ROLES } from '../src/test/factory/roles'
 
 type AnyDoc = {
-  id: string | number
+  id: number
+}
+
+/**
+ * 生成最简 Lexical 富文本 JSON（一个 h2 标题 + 若干段落），用于 seed 房源说明 / 内容页正文。
+ * 结构对齐 src/test/frontend/payload-documents.ts 的 PAGE_CONTENT_SIMPLE，
+ * 保证 RichText / PageContent 渲染器能正确消费。
+ */
+function richText(heading: string, paragraphs: string[]): Record<string, unknown> {
+  return {
+    root: {
+      type: 'root',
+      direction: 'ltr',
+      format: '',
+      indent: 0,
+      version: 1,
+      children: [
+        {
+          type: 'heading',
+          tag: 'h2',
+          version: 1,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          children: [{ type: 'text', text: heading, version: 1, format: 0, style: '', mode: 'normal', detail: 0 }],
+        },
+        ...paragraphs.map((text) => ({
+          type: 'paragraph',
+          version: 1,
+          direction: 'ltr',
+          format: '',
+          indent: 0,
+          textFormat: 0,
+          children: [{ type: 'text', text, version: 1, format: 0, style: '', mode: 'normal', detail: 0 }],
+        })),
+      ],
+    },
+  }
 }
 
 async function upsertBySlug<T extends AnyDoc>(
@@ -71,16 +110,111 @@ async function upsertAmenity(
 async function seed() {
   const payload = await getPayload({ config })
 
+  // === M1.2：内置角色种子（ADM / OPS / MGR / BRK / CSR）===
+  // 内置角色不可删除或改码；首次 seed 时创建，已存在则按 code 跳过。
+  for (const role of Object.values(BUILTIN_ROLES)) {
+    const existing = await payload.find({
+      collection: 'roles',
+      where: { code: { equals: role.code } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) {
+      payload.logger.info(`角色 ${role.code} 已存在，跳过 seed`)
+      continue
+    }
+    await payload.create({
+      collection: 'roles',
+      data: {
+        code: role.code,
+        name: role.name,
+        description: role.description,
+        isBuiltin: true,
+        status: 'active',
+        dataScope: role.dataScope,
+        menuPermissions: role.menuPermissions,
+        operationPermissions: role.operationPermissions,
+        fieldPermissions: role.fieldPermissions,
+      },
+      overrideAccess: true,
+    })
+    payload.logger.info(`角色 ${role.code} 创建完成`)
+  }
+
+  // === M1.6：5 个 E2E 测试账号（每个内置角色一个）===
+  // 仅在 dev/staging 环境用于权限矩阵 E2E；生产环境不应运行 seed。
+  // 密码统一 Test1234!；邮箱 e2e-{rolecode lowercase}@example.com。
+  // 已存在（按邮箱匹配）则更新 roles / status，避免重复创建。
+  const e2eUsers: Array<{ code: string; name: string; email: string; password: string }> = [
+    { code: 'ADM', name: 'E2E 管理员', email: 'e2e-adm@example.com', password: 'Test1234!' },
+    { code: 'OPS', name: 'E2E 运营', email: 'e2e-ops@example.com', password: 'Test1234!' },
+    { code: 'MGR', name: 'E2E 主管', email: 'e2e-mgr@example.com', password: 'Test1234!' },
+    { code: 'BRK', name: 'E2E 经纪人', email: 'e2e-brk@example.com', password: 'Test1234!' },
+    { code: 'CSR', name: 'E2E 客服', email: 'e2e-csr@example.com', password: 'Test1234!' },
+  ]
+  for (const u of e2eUsers) {
+    const roleDoc = await payload.find({
+      collection: 'roles',
+      where: { code: { equals: u.code } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const roleId = roleDoc.docs[0]?.id
+    if (!roleId) {
+      payload.logger.warn(`E2E 用户 ${u.email} 缺少角色 ${u.code}，跳过`)
+      continue
+    }
+    const existing = await payload.find({
+      collection: 'users',
+      where: { email: { equals: u.email } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) {
+      await payload.update({
+        collection: 'users',
+        id: existing.docs[0].id,
+        data: { roles: [roleId], status: 'active' },
+        overrideAccess: true,
+      })
+      payload.logger.info(`E2E 用户 ${u.email} 已存在，已更新角色绑定`)
+      continue
+    }
+    // users 是 auth collection，Payload 类型对 create 有 draft 分支严格校验；
+    // seed 脚本走 overrideAccess 直接写入，类型断言到 any 与脚本其余位置一致
+    await (payload as any).create({
+      collection: 'users',
+      data: {
+        name: u.name,
+        email: u.email,
+        password: u.password,
+        roles: [roleId],
+        status: 'active',
+      },
+      overrideAccess: true,
+    })
+    payload.logger.info(`E2E 用户 ${u.email} 创建完成`)
+  }
+
   const shanghai = await upsertBySlug<AnyDoc>(payload, 'locations', 'shanghai', {
     name: '上海',
+    immutableCode: 'SH',
     type: 'city',
+    status: 'active',
+    frontendVisible: true,
     description: '中高端商务办公租赁核心城市。',
     sortOrder: 1,
   })
 
   const jingan = await upsertBySlug<AnyDoc>(payload, 'locations', 'jingan', {
     name: '静安区',
+    immutableCode: 'SH-JINGAN',
     type: 'district',
+    status: 'active',
+    frontendVisible: true,
     parent: shanghai.id,
     description: '南京西路、苏河湾等高端商务办公聚集区。',
     sortOrder: 10,
@@ -88,7 +222,10 @@ async function seed() {
 
   const pudong = await upsertBySlug<AnyDoc>(payload, 'locations', 'pudong', {
     name: '浦东新区',
+    immutableCode: 'SH-PUDONG',
     type: 'district',
+    status: 'active',
+    frontendVisible: true,
     parent: shanghai.id,
     description: '陆家嘴、前滩等总部型企业办公聚集区。',
     sortOrder: 20,
@@ -96,7 +233,10 @@ async function seed() {
 
   const nanjingWest = await upsertBySlug<AnyDoc>(payload, 'locations', 'nanjing-west-road', {
     name: '南京西路',
-    type: 'business-district',
+    immutableCode: 'SH-JINGAN-NJW',
+    type: 'business_area',
+    status: 'active',
+    frontendVisible: true,
     parent: jingan.id,
     description: '上海高端商务、零售与企业总部办公核心商圈。',
     sortOrder: 11,
@@ -104,7 +244,10 @@ async function seed() {
 
   const lujiazui = await upsertBySlug<AnyDoc>(payload, 'locations', 'lujiazui', {
     name: '陆家嘴',
-    type: 'business-district',
+    immutableCode: 'SH-PUDONG-LJZ',
+    type: 'business_area',
+    status: 'active',
+    frontendVisible: true,
     parent: pudong.id,
     description: '金融、专业服务与跨国企业总部办公核心区域。',
     sortOrder: 21,
@@ -113,7 +256,10 @@ async function seed() {
   // === P0.3: 3 additional districts ===
   const huangpu = await upsertBySlug<AnyDoc>(payload, 'locations', 'huangpu', {
     name: '黄浦',
+    immutableCode: 'SH-HUANGPU',
     type: 'district',
+    status: 'active',
+    frontendVisible: true,
     parent: shanghai.id,
     description: '外滩、人民广场等核心商务区。',
     sortOrder: 10,
@@ -121,7 +267,10 @@ async function seed() {
 
   const xuhui = await upsertBySlug<AnyDoc>(payload, 'locations', 'xuhui', {
     name: '徐汇',
+    immutableCode: 'SH-XUHUI',
     type: 'district',
+    status: 'active',
+    frontendVisible: true,
     parent: shanghai.id,
     description: '徐家汇、漕河泾等商务办公聚集区。',
     sortOrder: 10,
@@ -129,7 +278,10 @@ async function seed() {
 
   const changning = await upsertBySlug<AnyDoc>(payload, 'locations', 'changning', {
     name: '长宁',
+    immutableCode: 'SH-CHANGNING',
     type: 'district',
+    status: 'active',
+    frontendVisible: true,
     parent: shanghai.id,
     description: '虹桥、古北等国际化商务办公区域。',
     sortOrder: 10,
@@ -142,6 +294,7 @@ async function seed() {
 
   const westNanjingTower = await upsertBySlug<AnyDoc>(payload, 'buildings', 'west-nanjing-premium-center', {
     name: '南京西路高端商务中心',
+    city: shanghai.id,
     status: 'published',
     grade: 'serviced-office',
     district: jingan.id,
@@ -155,6 +308,7 @@ async function seed() {
 
   const lujiazuiTower = await upsertBySlug<AnyDoc>(payload, 'buildings', 'lujiazui-grade-a-river-view', {
     name: '陆家嘴江景甲级写字楼',
+    city: shanghai.id,
     status: 'published',
     grade: 'grade-a',
     district: pudong.id,
@@ -169,6 +323,7 @@ async function seed() {
   // === P0.3: 3 additional buildings (one per new district) ===
   const bHuangpu = await upsertBySlug<AnyDoc>(payload, 'buildings', 'huangpu-bund', {
     name: '外滩源大厦',
+    city: shanghai.id,
     status: 'published',
     grade: 'super-grade-a',
     district: huangpu.id,
@@ -178,6 +333,7 @@ async function seed() {
 
   const bXuhui = await upsertBySlug<AnyDoc>(payload, 'buildings', 'xuhui-xujiahui', {
     name: '徐家汇国际大厦',
+    city: shanghai.id,
     status: 'published',
     grade: 'grade-a',
     district: xuhui.id,
@@ -187,6 +343,7 @@ async function seed() {
 
   const bChangning = await upsertBySlug<AnyDoc>(payload, 'buildings', 'changning-hongqiao', {
     name: '虹桥国际商务中心',
+    city: shanghai.id,
     status: 'published',
     grade: 'grade-a',
     district: changning.id,
@@ -197,6 +354,9 @@ async function seed() {
   await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-serviced-office-42-seats', {
     title: '静安南京西路 · 精装服务式办公室',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'serviced-office',
     building: westNanjingTower.id,
     rent: 2800,
@@ -205,11 +365,20 @@ async function seed() {
     seats: 42,
     isFeatured: true,
     highlights: [{ text: '近地铁' }, { text: '可即刻入驻' }, { text: '带家具' }],
+    availableFrom: '2026-08-01',
+    description: richText('房源说明', [
+      '位于静安南京西路核心商圈的精装服务式办公室，42 个独立工位，即租即用。',
+      '配备全套办公家具、共享会议室与前台形象服务，7×24 门禁与智能空调，适合金融、咨询与消费品牌团队。',
+      '步行 5 分钟可达地铁 2/12/13 号线，周边餐饮、酒店与商业配套齐全。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'lujiazui-grade-a-780sqm', {
     title: '陆家嘴核心区 · 江景甲级办公',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'traditional-office',
     building: lujiazuiTower.id,
     rent: 9.8,
@@ -218,12 +387,21 @@ async function seed() {
     seats: 95,
     isFeatured: true,
     highlights: [{ text: '高区视野' }, { text: '整层可谈' }, { text: '企业形象佳' }],
+    availableFrom: '2026-09-01',
+    description: richText('房源说明', [
+      '陆家嘴核心区甲级写字楼高区单元，780㎡ 采光通透，正面江景视野。',
+      '标准 9 尺层高、独立新风与中央空调，可整层或分割承租，适合总部办公与外资机构形象展示。',
+      '楼下直连地铁 2 号线，紧邻国金中心与正大广场商业配套。',
+    ]),
   })
 
   // === P0.3: 6 additional listings (total 8, varied listingType/rentUnit) ===
   await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-coworking', {
     title: '外滩源 · 共享办公 · 灵活工位',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'coworking',
     building: bHuangpu.id,
     rent: 1800,
@@ -232,11 +410,20 @@ async function seed() {
     seats: 20,
     isFeatured: true,
     highlights: [{ text: '外滩景观' }, { text: '灵活租期' }, { text: '含网络水电' }],
+    availableFrom: '2026-08-15',
+    description: richText('房源说明', [
+      '外滩源历史建筑内的共享办公空间，20 个灵活工位，按月起租，随到随办公。',
+      '租金含高速网络、水电与公共区域清洁，配备共享会议室、茶水吧与打印区。',
+      '适合初创团队、远程团队与项目制小组，享受外滩景观与历史街区氛围。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'pudong-lujiazui-fullfloor', {
     title: '陆家嘴 · 整层办公 1200㎡',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'full-floor',
     building: lujiazuiTower.id,
     rent: 10.5,
@@ -245,11 +432,20 @@ async function seed() {
     seats: 150,
     isFeatured: false,
     highlights: [{ text: '整层独立' }, { text: '高区江景' }, { text: '企业冠名' }],
+    availableFrom: '2026-10-01',
+    description: richText('房源说明', [
+      '陆家嘴甲级写字楼整层 1200㎡，独立电梯厅与门禁，可企业冠名。',
+      '高区三面采光、正对黄浦江景，标准装修交付，支持按需定制平面与机电改造。',
+      '适合金融机构、跨国企业上海总部与专业服务机构长期承租。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'xuhui-xujiahui-traditional', {
     title: '徐家汇 · 传统办公 200㎡',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'traditional-office',
     building: bXuhui.id,
     rent: 25000,
@@ -258,11 +454,20 @@ async function seed() {
     seats: 25,
     isFeatured: false,
     highlights: [{ text: '近地铁' }, { text: '毛坯交付' }, { text: '可定制装修' }],
+    availableFrom: '2026-09-15',
+    description: richText('房源说明', [
+      '徐家汇商圈传统办公单元 200㎡，毛坯交付，可按企业需求定制装修。',
+      '规整方正、无异形空间，可容纳约 25 个工位，独立水电计量。',
+      '近地铁 1/9/11 号线徐家汇站，周边商业与交通配套成熟。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'changning-hongqiao-serviced', {
     title: '虹桥 · 服务式办公 180㎡',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'serviced-office',
     building: bChangning.id,
     rent: 3200,
@@ -271,11 +476,20 @@ async function seed() {
     seats: 22,
     isFeatured: false,
     highlights: [{ text: '全配家具' }, { text: '即时入驻' }, { text: '近虹桥枢纽' }],
+    availableFrom: '2026-08-20',
+    description: richText('房源说明', [
+      '虹桥商务区服务式办公室 180㎡，全套家具到位，签约即可入驻。',
+      '含前台、保洁与会议室预约服务，网络水电打包计费，省去装修与运营成本。',
+      '紧邻虹桥综合交通枢纽，高铁、机场与地铁 2/10/17 号线一站直达。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-center-fullfloor', {
     title: '静安 · 整层办公 850㎡',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'full-floor',
     building: westNanjingTower.id,
     rent: 11.0,
@@ -284,11 +498,20 @@ async function seed() {
     seats: 100,
     isFeatured: false,
     highlights: [{ text: '南京西路核心' }, { text: '整层独立' }, { text: '品牌展示' }],
+    availableFrom: '2026-10-15',
+    description: richText('房源说明', [
+      '南京西路核心商务中心整层 850㎡，独立楼层，适合企业品牌展示与团队扩张。',
+      '标准精装交付、独立会议区与开放办公区，中央空调与新风系统全覆盖。',
+      '步行可达地铁 2/12/13 号线，周边高端零售、酒店与餐饮配套一应俱全。',
+    ]),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-traditional', {
     title: '外滩 · 传统办公 500㎡',
     status: 'available',
+    // F7.1 E2E：种子房源显式设为已审核 + 已发布，使其通过有效供给谓词
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
     listingType: 'traditional-office',
     building: bHuangpu.id,
     rent: 70000,
@@ -297,6 +520,53 @@ async function seed() {
     seats: 60,
     isFeatured: false,
     highlights: [{ text: '外滩历史建筑' }, { text: '高端形象' }, { text: '适合金融/律所' }],
+    availableFrom: '2026-11-01',
+    description: richText('房源说明', [
+      '外滩历史保护建筑内的传统办公单元 500㎡，兼具历史底蕴与现代办公设施。',
+      '独立门牌与前厅，层高开阔，适合金融机构、律师事务所与高端服务机构塑造品牌形象。',
+      '紧邻外滩金融集聚带，周边高端酒店、会所与商业配套完善。',
+    ]),
+  })
+
+  // === 前端 CMS 内容页（pages/[slug] 路由）：标准内容页 + 法务页无 CTA 分支 ===
+  // about：hero + 正文富文本 + SEO，页尾渲染 InquiryModal CTA。
+  await upsertBySlug<AnyDoc>(payload, 'pages', 'about', {
+    title: '关于我们',
+    status: 'published',
+    hero: {
+      eyebrow: 'About Us',
+      heading: '专注上海中高端商务办公租赁',
+      summary: '以透明的房源信息与专业的选址顾问服务，帮助成长型企业高效落位。',
+    },
+    content: richText('我们做什么', [
+      '我们聚合上海核心商圈的甲级写字楼、服务式办公室、共享办公与整层办公资源，为企业提供一站式选址服务。',
+      '每一套对外展示的房源都经过审核与有效供给校验，确保信息真实、可租可看。',
+      '专业顾问团队覆盖静安、浦东、黄浦、徐汇、长宁等核心区域，从需求梳理、实地看房到商务谈判全程陪同。',
+    ]),
+    seo: {
+      title: '关于我们 · 中高端商务办公租赁平台',
+      description: '专注上海中高端商务办公租赁，提供透明房源与专业选址顾问服务。',
+    },
+  })
+
+  // privacy-policy：slug 以 privacy 开头，命中详情页法务分支——页尾不渲染 CTA。
+  await upsertBySlug<AnyDoc>(payload, 'pages', 'privacy-policy', {
+    title: '隐私政策',
+    status: 'published',
+    hero: {
+      eyebrow: 'Privacy Policy',
+      heading: '隐私政策',
+      summary: '我们如何收集、使用与保护您在本平台留下的信息。',
+    },
+    content: richText('信息收集与使用', [
+      '当您通过询价表单提交姓名与联系方式时，我们仅将其用于房源咨询与看房安排，不会出售给第三方。',
+      '我们采用行业通行的安全措施保护您的个人信息，并按相关法律法规要求留存与销毁。',
+      '如需查询、更正或删除您的信息，可通过页面公布的联系方式与我们联系。',
+    ]),
+    seo: {
+      title: '隐私政策 · 中高端商务办公租赁平台',
+      description: '了解本平台如何收集、使用与保护您的个人信息。',
+    },
   })
 
   await upsertBySlug<AnyDoc>(payload, 'pages', 'home', {
@@ -312,6 +582,537 @@ async function seed() {
       description: '上海甲级写字楼、服务式办公室、共享办公与整层办公租赁平台。',
     },
   })
+
+  // === 扩展：Leads 咨询线索（覆盖各跟进状态，用于后台列表/筛选 UI 测试）===
+  const leadsData: Array<
+    Pick<
+      Lead,
+      | 'area'
+      | 'budget'
+      | 'company'
+      | 'district'
+      | 'interestedListing'
+      | 'moveInTime'
+      | 'name'
+      | 'notes'
+      | 'phone'
+      | 'source'
+      | 'status'
+    >
+  > = [
+    {
+      name: '张磊',
+      phone: '13800138001',
+      company: '上海蓝海科技',
+      status: 'new',
+      source: 'frontend-form',
+      district: pudong.id,
+      budget: '5-8 万/月',
+      area: '300-500㎡',
+      moveInTime: '2026-09',
+      interestedListing: null,
+      notes: '咨询陆家嘴甲级办公，看重企业形象与江景视野。',
+    },
+    {
+      name: '李静',
+      phone: '13900139002',
+      company: '环球咨询上海分公司',
+      status: 'contacted',
+      source: 'frontend-form',
+      district: jingan.id,
+      budget: '3-5 万/月',
+      area: '200-300㎡',
+      moveInTime: '2026-08',
+      interestedListing: null,
+      notes: '已有经纪人电话联系，安排下周看房。',
+    },
+    {
+      name: '王伟',
+      phone: '13700137003',
+      company: '锐智律师事务所',
+      status: 'visited',
+      source: 'phone',
+      district: huangpu.id,
+      budget: '7 万/月以上',
+      area: '500㎡+',
+      moveInTime: '2026-10',
+      interestedListing: null,
+      notes: '已实地看过外滩源大厦，对企业形象满意，正在谈价格。',
+    },
+    {
+      name: '陈芳',
+      phone: '13600136004',
+      company: '欧憬品牌管理',
+      status: 'won',
+      source: 'frontend-form',
+      district: jingan.id,
+      budget: '2.8 万/月',
+      area: '360㎡',
+      moveInTime: '已入驻',
+      interestedListing: null,
+      notes: '已签约静安南京西路精装服务式办公室，42 工位。',
+    },
+    {
+      name: '赵明',
+      phone: '13500135005',
+      company: '个人创业',
+      status: 'new',
+      source: 'frontend-form',
+      district: huangpu.id,
+      budget: '1.5 万/月',
+      area: '工位 10-15',
+      moveInTime: '2026-08',
+      interestedListing: null,
+      notes: '初创团队，咨询外滩共享办公灵活工位方案。',
+    },
+    {
+      name: '刘洋',
+      phone: '13400134006',
+      company: '虹图建筑设计',
+      status: 'contacted',
+      source: 'import',
+      district: xuhui.id,
+      budget: '2.5 万/月',
+      area: '200㎡',
+      moveInTime: '2026-09',
+      interestedListing: null,
+      notes: '意向徐家汇传统办公，已发资料待回复。',
+    },
+    {
+      name: '孙琪',
+      phone: '13300133007',
+      company: '联欧贸易',
+      status: 'lost',
+      source: 'phone',
+      district: changning.id,
+      budget: '6 万/月',
+      area: '400㎡',
+      moveInTime: '已搁置',
+      interestedListing: null,
+      notes: '预算与虹桥服务式办公报价差距较大，暂搁置。',
+    },
+    {
+      name: '周涛',
+      phone: '13200132008',
+      company: '云启数据',
+      status: 'new',
+      source: 'frontend-form',
+      district: pudong.id,
+      budget: '10 万/月以上',
+      area: '1000-1200㎡',
+      moveInTime: '2026-10',
+      interestedListing: null,
+      notes: '总部升级需求，意向陆家嘴整层 1200㎡。',
+    },
+  ]
+
+  for (const lead of leadsData) {
+    const existing = await payload.find({
+      collection: 'leads',
+      limit: 1,
+      where: { phone: { equals: lead.phone } },
+    })
+    if (existing.docs[0]) {
+      await payload.update({ collection: 'leads', id: existing.docs[0].id, data: lead })
+    } else {
+      await payload.create({ collection: 'leads', data: lead })
+    }
+  }
+
+  // ============================================================
+  // 后台核心功能 mock 数据（M2.5 组织 / M3-M4 供给关系 / M5 CRM）
+  // 仅用于本地 SQLite 测试；全部幂等（find-then-create），走 overrideAccess。
+  // 追加式流水（follow-ups / lead-ownership-history）只 create，按 lead 去重跳过。
+  // ============================================================
+
+  /** 通用 find-or-create：按 where 命中则复用，否则创建（不更新既有）。 */
+  const findOrCreate = async (
+    collection: string,
+    where: Record<string, unknown>,
+    data: Record<string, unknown>,
+  ): Promise<AnyDoc> => {
+    const existing = await payload.find({
+      collection: collection as any,
+      where: where as any,
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) return existing.docs[0] as AnyDoc
+    return (await (payload as any).create({
+      collection,
+      data,
+      overrideAccess: true,
+    })) as AnyDoc
+  }
+
+  const userByEmail = async (email: string): Promise<number | string | null> => {
+    const res = await payload.find({
+      collection: 'users',
+      where: { email: { equals: email } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return res.docs[0]?.id ?? null
+  }
+
+  const listingBySlug = async (slug: string): Promise<number | string | null> => {
+    const res = await payload.find({
+      collection: 'listings',
+      where: { slug: { equals: slug } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return res.docs[0]?.id ?? null
+  }
+
+  const leadByPhone = async (phone: string): Promise<AnyDoc | null> => {
+    const res = await payload.find({
+      collection: 'leads',
+      where: { phone: { equals: phone } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    return (res.docs[0] as AnyDoc | undefined) ?? null
+  }
+
+  // 未来一年，用于资质到期时间（valid 资质必须带未来到期时刻）
+  const oneYearLater = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
+  const nextWeek = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+
+  // === (a) 团队 ===（cityScope 必须是启用的 city 节点；manager 可选）
+  const mgrUserId = await userByEmail('e2e-mgr@example.com')
+  const team1 = await findOrCreate(
+    'teams',
+    { name: { equals: '上海商办一队' } },
+    {
+      name: '上海商办一队',
+      manager: mgrUserId ?? undefined,
+      cityScope: [shanghai.id],
+      status: 'active',
+    },
+  )
+
+  // === (b) 经纪人 ===（一个 user ↔ 一个 broker，绑定不同 e2e 用户）
+  const brkUserId = await userByEmail('e2e-brk@example.com')
+  const csrUserId = await userByEmail('e2e-csr@example.com')
+  const broker1 = brkUserId
+    ? await findOrCreate(
+        'brokers',
+        { user: { equals: brkUserId } },
+        {
+          displayName: '陈经纪',
+          user: brkUserId,
+          team: team1.id,
+          serviceCities: [shanghai.id],
+          serviceBusinessAreas: [nanjingWest.id, lujiazui.id],
+          employmentStatus: 'active',
+        },
+      )
+    : null
+  const broker2 = csrUserId
+    ? await findOrCreate(
+        'brokers',
+        { user: { equals: csrUserId } },
+        {
+          displayName: '李经纪',
+          user: csrUserId,
+          team: team1.id,
+          serviceCities: [shanghai.id],
+          serviceBusinessAreas: [lujiazui.id],
+          employmentStatus: 'active',
+        },
+      )
+    : null
+
+  // === (c) 商户 ===（服务城市含上海；资质 valid 必带未来到期时刻；有效手机号）
+  const merchantOwner = await findOrCreate(
+    'merchants',
+    { name: { equals: '静安置业（业主）' } },
+    {
+      name: '静安置业（业主）',
+      type: 'OWNER',
+      contactName: '王经理',
+      contactPhone: '13811112222',
+      serviceCities: [shanghai.id],
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: oneYearLater,
+    },
+  )
+  const merchantAgency = await findOrCreate(
+    'merchants',
+    { name: { equals: '浦东商办代理（中介）' } },
+    {
+      name: '浦东商办代理（中介）',
+      type: 'AGENCY',
+      contactName: '赵经理',
+      contactPhone: '13822223333',
+      serviceCities: [shanghai.id],
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: oneYearLater,
+    },
+  )
+
+  // === (d) 供给关系 ===（楼盘关系 merchant 必填；房源关系 merchant 可选）
+  // 楼盘已带 city，资格校验（building.city ∈ merchant.serviceCities）通过。
+  await findOrCreate(
+    'building-merchant-relations',
+    { and: [{ building: { equals: westNanjingTower.id } }, { merchant: { equals: merchantOwner.id } }] },
+    {
+      building: westNanjingTower.id,
+      merchant: merchantOwner.id,
+      effectiveFrom: '2026-01-01T00:00:00.000Z',
+      createdReason: '业主直营授权',
+    },
+  )
+  await findOrCreate(
+    'building-merchant-relations',
+    { and: [{ building: { equals: lujiazuiTower.id } }, { merchant: { equals: merchantAgency.id } }] },
+    {
+      building: lujiazuiTower.id,
+      merchant: merchantAgency.id,
+      effectiveFrom: '2026-01-01T00:00:00.000Z',
+      createdReason: '独家代理授权',
+    },
+  )
+
+  const jinganListingId = await listingBySlug('jingan-serviced-office-42-seats')
+  const lujiazuiListingId = await listingBySlug('lujiazui-grade-a-780sqm')
+  if (jinganListingId) {
+    await findOrCreate(
+      'listing-merchant-relations',
+      { and: [{ listing: { equals: jinganListingId } }, { merchant: { equals: merchantOwner.id } }] },
+      {
+        listing: jinganListingId,
+        merchant: merchantOwner.id,
+        effectiveFrom: '2026-01-01T00:00:00.000Z',
+        createdReason: '房源挂牌授权',
+      },
+    )
+  }
+  if (lujiazuiListingId) {
+    await findOrCreate(
+      'listing-merchant-relations',
+      { and: [{ listing: { equals: lujiazuiListingId } }, { merchant: { equals: merchantAgency.id } }] },
+      {
+        listing: lujiazuiListingId,
+        merchant: merchantAgency.id,
+        effectiveFrom: '2026-01-01T00:00:00.000Z',
+        createdReason: '房源挂牌授权',
+      },
+    )
+  }
+
+  // === (d2) 全量房源-商户关系：F7.1 E2E 验收要求所有种子房源通过有效供给精筛
+  //   精筛层 §8 要求 listing-merchant-relations 落在有效期；§9-§10 要求 listing.merchant
+  //   字段引用合格商户（覆盖服务城市）。给所有 8 条房源补齐关系记录 + merchant 字段：
+  //   - west-nanjing-premium-center 楼盘房源 → merchantOwner（业主直营）
+  //   - 其他楼盘房源 → merchantAgency（独家代理）
+  //   避免任一种子房源因 RELATION_NOT_EFFECTIVE / MERCHANT_INELIGIBLE 被 0 套排除。
+  const allListingSlugs = [
+    'jingan-serviced-office-42-seats',
+    'lujiazui-grade-a-780sqm',
+    'huangpu-bund-coworking',
+    'pudong-lujiazui-fullfloor',
+    'xuhui-xujiahui-traditional',
+    'changning-hongqiao-serviced',
+    'jingan-center-fullfloor',
+    'huangpu-bund-traditional',
+  ]
+  for (const slug of allListingSlugs) {
+    const lid = await listingBySlug(slug)
+    if (!lid) continue
+    const building = await payload.find({
+      collection: 'listings',
+      where: { id: { equals: lid } },
+      limit: 1,
+      depth: 1,
+      overrideAccess: true,
+    })
+    const buildingId = (building.docs[0] as any)?.building
+    const buildingDoc =
+      typeof buildingId === 'object'
+        ? buildingId
+        : (buildingId
+          ? await payload.findByID({
+              collection: 'buildings',
+              id: buildingId as number,
+              overrideAccess: true,
+            })
+          : null) as any
+    const buildingSlug = buildingDoc?.slug as string | undefined
+    // 同楼盘同商户的关系：jingan/west-nanjing 用 merchantOwner；其他用 merchantAgency
+    const targetMerchant =
+      buildingSlug === 'west-nanjing-premium-center' ? merchantOwner.id : merchantAgency.id
+    await findOrCreate(
+      'listing-merchant-relations',
+      { and: [{ listing: { equals: lid } }, { merchant: { equals: targetMerchant } }] },
+      {
+        listing: lid,
+        merchant: targetMerchant,
+        effectiveFrom: '2026-01-01T00:00:00.000Z',
+        createdReason: '房源挂牌授权（种子补齐）',
+      },
+    )
+    // 同步 listings.merchant 字段，供 buildEffectiveSnapshot 精筛 §9-§10 使用
+    await payload.update({
+      collection: 'listings' as never,
+      id: lid as never,
+      data: { merchant: targetMerchant } as never,
+      overrideAccess: true,
+    })
+  }
+
+  // === (e) 客户档案 ===（按标准化手机号查重）
+  const customer1 = await findOrCreate(
+    'customers',
+    { phoneNormalized: { equals: '13800138001' } },
+    {
+      name: '张磊',
+      company: '上海蓝海科技',
+      phoneNormalized: '13800138001',
+      status: 'active',
+    },
+  )
+  const customer2 = await findOrCreate(
+    'customers',
+    { phoneNormalized: { equals: '13900139002' } },
+    {
+      name: '李静',
+      company: '环球咨询上海分公司',
+      phoneNormalized: '13900139002',
+      status: 'active',
+    },
+  )
+
+  // === (f) 线索补充 M5 字段 ===（不设 ownershipStatus——由动作单一推导）
+  const lead1 = await leadByPhone('13800138001')
+  if (lead1 && broker1) {
+    await payload.update({
+      collection: 'leads',
+      id: lead1.id,
+      overrideAccess: true,
+      data: {
+        customer: customer1.id,
+        owner: broker1.id,
+        team: team1.id,
+        city: shanghai.id,
+        stage: 'following',
+        areaMin: 300,
+        areaMax: 500,
+        budgetMin: 50000,
+        budgetMax: 80000,
+        currency: 'CNY',
+        billingPeriod: 'month',
+        seatCount: 60,
+        leaseMonths: 24,
+        specialRequirements: '需要独立会议室与前台形象。',
+      },
+    })
+  }
+  const lead2 = await leadByPhone('13900139002')
+  if (lead2 && broker2) {
+    await payload.update({
+      collection: 'leads',
+      id: lead2.id,
+      overrideAccess: true,
+      data: {
+        customer: customer2.id,
+        owner: broker2.id,
+        team: team1.id,
+        city: shanghai.id,
+        stage: 'qualified',
+        areaMin: 200,
+        areaMax: 300,
+        budgetMin: 30000,
+        budgetMax: 50000,
+        currency: 'CNY',
+        billingPeriod: 'month',
+        seatCount: 30,
+        leaseMonths: 12,
+      },
+    })
+  }
+
+  // === (g) 跟进记录 ===（追加式，只 create；按 lead 去重；recommended 必带关联房源）
+  const seedFollowUps = async (leadId: number | string, brokerId: number | string) => {
+    const existing = await payload.find({
+      collection: 'follow-ups',
+      where: { lead: { equals: leadId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) return
+    await (payload as any).create({
+      collection: 'follow-ups',
+      overrideAccess: true,
+      data: {
+        lead: leadId,
+        broker: brokerId,
+        method: 'phone',
+        result: 'connected',
+        content: '首次电话接通，客户确认选址需求与预算。',
+        nextFollowUpAt: nextWeek,
+      },
+    })
+    if (jinganListingId) {
+      await (payload as any).create({
+        collection: 'follow-ups',
+        overrideAccess: true,
+        data: {
+          lead: leadId,
+          broker: brokerId,
+          method: 'wechat',
+          result: 'recommended',
+          content: '微信推荐静安服务式办公室，客户表示有兴趣。',
+          relatedListings: [jinganListingId],
+        },
+      })
+    }
+  }
+  if (lead1 && broker1) await seedFollowUps(lead1.id, broker1.id)
+
+  // === (h) 归属历史 ===（追加式，只 create；按 lead+action 去重；负向动作必带原因）
+  const seedOwnershipHistory = async (leadId: number | string, brokerId: number | string) => {
+    const existing = await payload.find({
+      collection: 'lead-ownership-history',
+      where: { lead: { equals: leadId } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) return
+    // 分配（正向动作，无需原因）
+    await (payload as any).create({
+      collection: 'lead-ownership-history',
+      overrideAccess: true,
+      data: {
+        lead: leadId,
+        action: 'assign',
+        toOwner: brokerId,
+        operatedBy: mgrUserId ?? undefined,
+      },
+    })
+    // 进入公海（负向动作，必带原因）
+    await (payload as any).create({
+      collection: 'lead-ownership-history',
+      overrideAccess: true,
+      data: {
+        lead: leadId,
+        action: 'to_public_pool',
+        fromOwner: brokerId,
+        reason: '超过首次跟进 SLA，自动进入公海。',
+        operatedBy: mgrUserId ?? undefined,
+      },
+    })
+  }
+  if (lead2 && broker2) await seedOwnershipHistory(lead2.id, broker2.id)
 
   payload.logger.info('Seed data completed.')
 }

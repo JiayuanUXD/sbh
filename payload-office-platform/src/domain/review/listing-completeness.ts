@@ -1,0 +1,229 @@
+/**
+ * 房源完整度与草稿校验纯函数（tasks.md M4.3 / design §3.4 listings / R4）
+ *
+ * 两级门槛：
+ *   - draft  草稿保存：最小字段校验（标题 / 楼盘 / 房源类型），随写随存。
+ *   - submit 提交审核：完整字段 + 结构化价格 + 至少 3 张图片 + 有效商户关系。
+ *
+ * 返回完整度分数（满足必填项占比）与缺失项定位（field + 中文标签 + 原因），
+ * 供后台表单实时高亮缺失项、提交审核前拦截（tasks.md「展示完整度和缺失项定位」）。
+ *
+ * 无 payload / React 依赖,可独立单测。判定「是否有有效商户关系」「有效媒体数」
+ * 由调用方(protect hook / endpoint)解析关联后以快照传入,本模块不读库。
+ */
+
+import { isValidMoney, isValidSqmArea } from '@/domain/shared/money'
+import { isBusinessType, isDecorationStatus } from '@/domain/review/listing-fields'
+
+/** 提交审核要求的最少有效图片数（与 effective-supply §6 MIN_EFFECTIVE_MEDIA 对齐）。 */
+export const MIN_SUBMIT_MEDIA = 3
+
+/** 计价周期 / 单位合法值(与 money.ts PricingPeriod / PricingUnit 对齐,守卫用)。 */
+const PRICING_PERIODS = ['month', 'day', 'year'] as const
+const PRICING_UNITS = ['sqm', 'suite', 'seat'] as const
+
+/** 校验模式。 */
+export type CompletenessMode = 'draft' | 'submit'
+
+/** 结构化价格快照(对应 Listings.ts price group)。 */
+export interface PriceSnapshot {
+  amount?: number
+  currency?: string
+  period?: string
+  unit?: string
+}
+
+/**
+ * 完整度校验入参：房源已解析字段快照。
+ * 关联型判定(商户关系有效 / 有效媒体数)由调用方解析后传入布尔/计数,本模块只做纯校验。
+ */
+export interface ListingCompletenessSnapshot {
+  title?: unknown
+  slug?: unknown
+  listingType?: unknown
+  building?: unknown
+  businessType?: unknown
+  decorationStatus?: unknown
+  price?: PriceSnapshot
+  area?: unknown
+  floor?: unknown
+  minimumLeaseMonths?: unknown
+  paymentTerms?: unknown
+  availableFrom?: unknown
+  description?: unknown
+  contactBroker?: unknown
+  /** 有效图集图片数(调用方解析 gallery 后传入)。 */
+  galleryCount?: number
+  /** 是否已有当前有效的商户供给关系(调用方解析 listing-merchant-relations 后传入)。 */
+  hasValidMerchantRelation?: boolean
+}
+
+/** 单个缺失项定位。 */
+export interface MissingItem {
+  /** 字段键(对应后台表单字段,供前端定位高亮)。 */
+  field: string
+  /** 中文标签。 */
+  label: string
+  /** 缺失/不合格原因。 */
+  reason: string
+}
+
+export interface CompletenessResult {
+  mode: CompletenessMode
+  /** 是否满足该模式全部必填项。 */
+  complete: boolean
+  /** 完整度分数 0–100(满足必填项 / 总必填项 * 100,四舍五入)。 */
+  score: number
+  /** 缺失/不合格项定位列表。 */
+  missing: MissingItem[]
+}
+
+/** 草稿最小必填字段键。 */
+export const DRAFT_REQUIRED_FIELDS = ['title', 'building', 'listingType'] as const
+
+/** 提交审核完整必填字段键(草稿超集)。 */
+export const SUBMIT_REQUIRED_FIELDS = [
+  'title',
+  'building',
+  'listingType',
+  'businessType',
+  'decorationStatus',
+  'price',
+  'area',
+  'floor',
+  'minimumLeaseMonths',
+  'paymentTerms',
+  'availableFrom',
+  'description',
+  'contactBroker',
+  'gallery',
+  'merchant',
+] as const
+
+const FIELD_LABELS: Record<string, string> = {
+  title: '房源标题',
+  building: '所属楼盘',
+  listingType: '房源类型',
+  businessType: '租售类型',
+  decorationStatus: '装修状态',
+  price: '价格',
+  area: '面积',
+  floor: '楼层',
+  minimumLeaseMonths: '最短租期',
+  paymentTerms: '付款方式',
+  availableFrom: '可入驻时间',
+  description: '房源描述',
+  contactBroker: '联系经纪人',
+  gallery: '房源图集',
+  merchant: '供给商户',
+}
+
+/** 非空字符串。 */
+function isNonEmptyString(v: unknown): boolean {
+  return typeof v === 'string' && v.trim().length > 0
+}
+
+/** 关系型 id 存在(number 或非空字符串)。 */
+function hasRelation(v: unknown): boolean {
+  if (typeof v === 'number') return Number.isFinite(v)
+  return isNonEmptyString(v)
+}
+
+/** 正整数/正数。 */
+function isPositiveNumber(v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0
+}
+
+/** 价格快照是否为合法结构化价格(金额 > 0 + 合法币种/周期/单位)。 */
+function isValidPriceSnapshot(p: PriceSnapshot | undefined): boolean {
+  if (!p || typeof p !== 'object') return false
+  if (typeof p.amount !== 'number' || !isPositiveNumber(p.amount)) return false
+  if (!(PRICING_PERIODS as readonly string[]).includes(String(p.period))) return false
+  if (!(PRICING_UNITS as readonly string[]).includes(String(p.unit))) return false
+  // 复用 money 校验金额精度(≤2 位小数、非负、有限)
+  return isValidMoney({
+    amount: p.amount,
+    currency: 'CNY',
+    period: p.period as 'month',
+    unit: p.unit as 'sqm',
+  })
+}
+
+/**
+ * 校验房源完整度。draft 只查最小字段;submit 查完整字段 + 价格 + 图片 + 商户。
+ */
+export function checkListingCompleteness(
+  snapshot: ListingCompletenessSnapshot,
+  mode: CompletenessMode,
+): CompletenessResult {
+  const required = mode === 'draft' ? DRAFT_REQUIRED_FIELDS : SUBMIT_REQUIRED_FIELDS
+  const missing: MissingItem[] = []
+
+  const fail = (field: string, reason: string) => {
+    missing.push({ field, label: FIELD_LABELS[field] ?? field, reason })
+  }
+
+  for (const field of required) {
+    switch (field) {
+      case 'title':
+        if (!isNonEmptyString(snapshot.title)) fail('title', '请填写房源标题')
+        break
+      case 'building':
+        if (!hasRelation(snapshot.building)) fail('building', '请选择所属楼盘')
+        break
+      case 'listingType':
+        if (!isNonEmptyString(snapshot.listingType)) fail('listingType', '请选择房源类型')
+        break
+      case 'businessType':
+        if (!isBusinessType(snapshot.businessType)) fail('businessType', '请选择租售类型')
+        break
+      case 'decorationStatus':
+        if (!isDecorationStatus(snapshot.decorationStatus))
+          fail('decorationStatus', '请选择装修状态')
+        break
+      case 'price':
+        if (!isValidPriceSnapshot(snapshot.price))
+          fail('price', '请填写有效价格(金额、计价周期与单位)')
+        break
+      case 'area':
+        if (!isPositiveNumber(snapshot.area) || !isValidSqmArea(snapshot.area as number))
+          fail('area', '请填写有效面积(平方米,支持一位小数)')
+        break
+      case 'floor':
+        if (!isNonEmptyString(snapshot.floor)) fail('floor', '请填写楼层')
+        break
+      case 'minimumLeaseMonths':
+        if (!isPositiveNumber(snapshot.minimumLeaseMonths))
+          fail('minimumLeaseMonths', '请填写最短租期(月)')
+        break
+      case 'paymentTerms':
+        if (!isNonEmptyString(snapshot.paymentTerms)) fail('paymentTerms', '请填写付款方式')
+        break
+      case 'availableFrom':
+        if (!isNonEmptyString(snapshot.availableFrom)) fail('availableFrom', '请选择可入驻时间')
+        break
+      case 'description':
+        if (snapshot.description === undefined || snapshot.description === null)
+          fail('description', '请填写房源描述')
+        break
+      case 'contactBroker':
+        if (!hasRelation(snapshot.contactBroker)) fail('contactBroker', '请选择联系经纪人')
+        break
+      case 'gallery':
+        if ((snapshot.galleryCount ?? 0) < MIN_SUBMIT_MEDIA)
+          fail('gallery', `提交审核要求至少 ${MIN_SUBMIT_MEDIA} 张有效图片`)
+        break
+      case 'merchant':
+        if (snapshot.hasValidMerchantRelation !== true)
+          fail('merchant', '请确保存在当前有效的商户供给关系')
+        break
+    }
+  }
+
+  const total = required.length
+  const satisfied = total - missing.length
+  // total 恒 ≥ DRAFT_REQUIRED_FIELDS.length(3),无需防除零。
+  const score = Math.round((satisfied / total) * 100)
+
+  return { mode, complete: missing.length === 0, score, missing }
+}

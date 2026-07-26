@@ -1,0 +1,231 @@
+/**
+ * F5 询盘 schema 校验与白名单收窄
+ *
+ * 设计依据：specs/frontend-mvp/design.md §10.1 / §10.2、FP-05 §3 / §5 / §6
+ *
+ * 守护不变量：
+ *   - 输入视为 unknown，schema 白名单收窄后才落库
+ *   - 必填：name (1-50), phone (中国大陆 11 位), consent.accepted=true, consent.policyVersion, source.pageType, source.path, requestId
+ *   - 选填：company (≤100), message (≤1000), listingSlug, buildingSlug, demand.{district,budget,area,moveInTime}, source.campaign
+ *   - target_type 由 listingSlug / buildingSlug 派生，至少需要一个或 targetType=none
+ *   - 错误返回稳定安全错误码字符串数组（不抛 JS 异常、不泄露内部对象）
+ *
+ * 不依赖 payload / React，纯函数可独立单测。
+ */
+
+import { normalizePhone, isValidCnMobile } from '@/domain/shared/phone'
+import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { sanitizeCampaign, type CampaignAttribution } from './campaign'
+
+/** 入口页面类型（与 Leads Collection INQUIRY_SOURCE_PAGE_TYPES 对齐） */
+export const SOURCE_PAGE_TYPES = ['home', 'search', 'listing', 'building', 'content'] as const
+export type SourcePageType = (typeof SOURCE_PAGE_TYPES)[number]
+
+/** 目标对象类型（与 Leads Collection INQUIRY_TARGET_TYPES 对齐） */
+export const TARGET_TYPES = ['listing', 'building', 'none'] as const
+export type TargetType = (typeof TARGET_TYPES)[number]
+
+/** 字段长度限制（FP-05 §3） */
+export const LIMITS = {
+  NAME_MAX: 50,
+  COMPANY_MAX: 100,
+  MESSAGE_MAX: 1000,
+  PATH_MAX: 500,
+  URL_MAX: 2048,
+  REQUEST_ID_MAX: 100,
+  CAMPAIGN_VALUE_MAX: 100,
+} as const
+
+/**
+ * 标准化后的询盘请求（与 design.md §10.1 InquiryRequest 对齐）
+ * 所有字段在 schema 校验通过后保证类型与长度。
+ */
+export type InquiryRequest = Readonly<{
+  requestId: string
+  name: string
+  phone: string
+  phoneNormalized: string
+  company: string | null
+  message: string | null
+  listingSlug: string | null
+  buildingSlug: string | null
+  targetType: TargetType
+  demand: Readonly<{
+    district: string | null
+    budget: string | null
+    area: string | null
+    moveInTime: string | null
+  }>
+  consent: Readonly<{
+    accepted: true
+    policyVersion: string
+  }>
+  source: Readonly<{
+    pageType: SourcePageType
+    path: string
+    campaign: Readonly<CampaignAttribution>
+  }>
+}>
+
+export type ValidationResult =
+  | { ok: true; data: InquiryRequest }
+  | { ok: false; errors: readonly string[] }
+
+/**
+ * 校验并标准化询盘请求体（unknown 输入）。
+ *
+ * 错误码：
+ *   - name_required / name_too_long
+ *   - phone_invalid
+ *   - company_too_long
+ *   - message_too_long
+ *   - consent_required / consent_version_invalid
+ *   - source_required / source_page_type_invalid / source_path_required / source_path_too_long
+ *   - request_id_required / request_id_too_long
+ *   - target_invalid（listing/building slug 都缺失但 targetType 非 none）
+ *   - campaign_invalid
+ */
+export function validateInquiry(input: unknown): ValidationResult {
+  if (!isObject(input)) {
+    return { ok: false, errors: ['invalid_body'] }
+  }
+
+  const errors: string[] = []
+
+  // ----- 必填字段 -----
+  const name = trimString(input.name)
+  if (!name) errors.push('name_required')
+  else if (name.length > LIMITS.NAME_MAX) errors.push('name_too_long')
+
+  const phoneRaw = trimString(input.phone)
+  const phoneNormalized = phoneRaw ? normalizePhone(phoneRaw) : ''
+  if (!phoneNormalized || !isValidCnMobile(phoneNormalized)) {
+    errors.push('phone_invalid')
+  }
+
+  const requestId = trimString(input.requestId)
+  if (!requestId) errors.push('request_id_required')
+  else if (requestId.length > LIMITS.REQUEST_ID_MAX) errors.push('request_id_too_long')
+
+  // ----- 选填字段 -----
+  const company = trimString(input.company) || null
+  if (company && company.length > LIMITS.COMPANY_MAX) errors.push('company_too_long')
+
+  const message = trimString(input.message) || null
+  if (message && message.length > LIMITS.MESSAGE_MAX) errors.push('message_too_long')
+
+  const listingSlug = trimString(input.listingSlug) || null
+  const buildingSlug = trimString(input.buildingSlug) || null
+
+  // ----- consent -----
+  const consentRaw = input.consent
+  if (!isObject(consentRaw)) {
+    errors.push('consent_required')
+  } else {
+    if (consentRaw.accepted !== true) {
+      errors.push('consent_required')
+    }
+    const policyVersion = trimString(consentRaw.policyVersion)
+    if (!policyVersion) {
+      errors.push('consent_version_invalid')
+    } else if (policyVersion !== PRIVACY_POLICY_VERSION) {
+      // 版本不匹配：可能是过期表单或攻击者伪造
+      errors.push('consent_version_invalid')
+    }
+  }
+
+  // ----- source -----
+  const sourceRaw = input.source
+  if (!isObject(sourceRaw)) {
+    errors.push('source_required')
+    errors.push('source_path_required')
+  } else {
+    const pageType = trimString(sourceRaw.pageType)
+    if (!pageType || !isSourcePageType(pageType)) {
+      errors.push('source_page_type_invalid')
+    }
+    const path = trimString(sourceRaw.path)
+    if (!path) {
+      errors.push('source_path_required')
+    } else if (path.length > LIMITS.PATH_MAX) {
+      errors.push('source_path_too_long')
+    }
+    // campaign 白名单化（无效时不阻断，但记错误码）
+    const campaignResult = sanitizeCampaign(sourceRaw.campaign)
+    if (!campaignResult.ok) {
+      errors.push('campaign_invalid')
+    }
+  }
+
+  // ----- target_type 派生 -----
+  // listing 与 building slug 至少有一个；都没有 → targetType=none（通用需求）
+  // 同时有 → 优先 listing（API 路由会调用 assertEffectiveListing 复核房源有效性）
+  const targetType: TargetType = listingSlug ? 'listing' : buildingSlug ? 'building' : 'none'
+
+  // ----- demand（选填，仅白名单字段） -----
+  const demandRaw = isObject(input.demand) ? input.demand : {}
+  const demand = {
+    district: trimString(demandRaw.district) || null,
+    budget: trimString(demandRaw.budget) || null,
+    area: trimString(demandRaw.area) || null,
+    moveInTime: trimString(demandRaw.moveInTime) || null,
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors }
+  }
+
+  // 此时 consent 与 source 已校验通过，但 TS 无法推断，需断言
+  const consent = input.consent as { accepted: true; policyVersion: string }
+  const source = input.source as { pageType: SourcePageType; path: string; campaign?: unknown }
+  const campaign = sanitizeCampaign(source.campaign)
+  if (!campaign.ok) {
+    // 理论上前面已拦截，兜底
+    return { ok: false, errors: ['campaign_invalid'] }
+  }
+
+  // trim 后的 path 与 pageType 写回数据（前面校验已 trim 但未写回）
+  const trimmedPageType = trimString(source.pageType) as SourcePageType
+  const trimmedPath = trimString(source.path)
+
+  return {
+    ok: true,
+    data: {
+      requestId,
+      name,
+      phone: phoneNormalized,
+      phoneNormalized,
+      company,
+      message,
+      listingSlug,
+      buildingSlug,
+      targetType,
+      demand,
+      consent: {
+        accepted: true,
+        policyVersion: consent.policyVersion,
+      },
+      source: {
+        pageType: trimmedPageType,
+        path: trimmedPath,
+        campaign: campaign.data,
+      },
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 内部工具
+// ---------------------------------------------------------------------------
+
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function trimString(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : ''
+}
+
+function isSourcePageType(v: string): v is SourcePageType {
+  return (SOURCE_PAGE_TYPES as readonly string[]).includes(v)
+}

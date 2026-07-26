@@ -1,35 +1,62 @@
 import Link from 'next/link'
 import React from 'react'
-import { formatArea, formatRent } from '@/lib/frontend/format'
+import { formatArea } from '@/lib/frontend/format'
+import type { ListingCardViewModel } from '@/domain/public-catalog'
+import { Media, Price, Tag } from '@/components/frontend/ui'
 
-type Props = { listing: any }
+/**
+ * 房源卡片
+ *
+ * 设计依据：specs/frontend-mvp/design.md §6.5、§7.2；FP-02 §4.1
+ * 守护不变量：
+ *   - 只消费 ListingCardViewModel DTO，不接收 Payload 文档；
+ *   - 4:3 固定比例媒体，图片失败回退占位；
+ *   - 卡片整体可点击，保留语义化 <a>（Cmd/Ctrl+click / 中键支持）；
+ *   - alt 缺失时由"楼盘名 + 类型"生成可读替代；
+ *   - 价格使用 tabular-nums，最多三项亮点。
+ */
+
+type Props = { listing: ListingCardViewModel }
+
+const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
+  'traditional-office': '传统办公',
+  'serviced-office': '服务式办公',
+  'coworking': '共享办公',
+  'full-floor': '整层办公',
+}
 
 export default function ListingCard({ listing }: Props) {
-  const cover = listing.coverImage?.url || listing.building?.coverImage?.url
-  const rent = formatRent(listing.rent, listing.rentUnit)
-  const area = formatArea(listing.area)
-  const district = listing.building?.district?.name
-  const typeLabel: Record<string, string> = {
-    'traditional-office': '传统办公',
-    'serviced-office': '服务式办公',
-    'coworking': '共享办公',
-    'full-floor': '整层办公',
-  }
+  const { coverImage, price, area, building, highlights, listingType, title, slug } = listing
+  const district = building?.district?.name
+  const areaText = area != null ? formatArea(area) : null
+  const metaParts = [district, areaText, TYPE_LABEL[listingType]].filter(Boolean)
+  const fallbackAlt = `${building?.name ?? ''} ${TYPE_LABEL[listingType]}`.trim()
+
   return (
-    <Link href={`/listings/${listing.slug}`} className="listing-card">
-      {cover ? (
-        <img src={cover} alt={listing.title} className="listing-card__media" />
-      ) : (
-        <div className="listing-card__media" />
-      )}
+    <Link
+      href={`/listings/${slug}`}
+      className="listing-card"
+      aria-label={`${title}，${price?.text ?? '待面议'}`}
+    >
+      <div className="listing-card__media">
+        <Media
+          media={coverImage}
+          ratio="4/3"
+          fallbackAlt={fallbackAlt || title}
+        />
+      </div>
       <div className="listing-card__body">
-        <span className="listing-card__rent">{rent}</span>
-        <span className="listing-card__title">{listing.title}</span>
-        <span className="listing-card__meta">{[district, area, typeLabel[listing.listingType]].filter(Boolean).join(' · ')}</span>
-        {Array.isArray(listing.highlights) && listing.highlights.length > 0 && (
+        <Price price={price} size="md" />
+        <span className="listing-card__title">{title}</span>
+        {metaParts.length > 0 && (
+          <span className="listing-card__meta">{metaParts.join(' · ')}</span>
+        )}
+        {highlights.length > 0 && (
           <div className="listing-card__tags">
-            {listing.highlights.slice(0, 3).map((h: any, i: number) => (
-              <span key={i} className="tag">{h.text}</span>
+            {highlights.slice(0, 3).map((text, i) => (
+              <Tag key={`${i}-${text}`} variant="default">
+                {text}
+              </Tag>
             ))}
           </div>
         )}
