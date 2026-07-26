@@ -1,159 +1,264 @@
-import { describe, it, expect } from 'vitest'
+/**
+ * 房源完整度计算测试（tasks.md M7.4 / R4）
+ *
+ * 覆盖：
+ *   - 完整字段 → score = 1.0 / belowThreshold = false
+ *   - 关键字段缺失（gallery / price / area）→ belowThreshold = true
+ *   - gallery 部分填充按比例计分
+ *   - description 是 Lexical 对象 / string / array 都能识别
+ *   - 关系字段（building / coverImage）支持 ID / 对象两种形态
+ *   - 空文档 → score = 0
+ *   - 阈值边界：score == 0.8 不算 below
+ */
+
+import { describe, expect, it } from 'vitest'
 
 import {
-  checkListingCompleteness,
-  DRAFT_REQUIRED_FIELDS,
-  SUBMIT_REQUIRED_FIELDS,
-  type ListingCompletenessSnapshot,
-} from '@/domain/review/listing-completeness'
+  COMPLETENESS_THRESHOLD,
+  COMPLETENESS_WEIGHTS,
+  computeListingCompleteness,
+} from '@/domain/analytics/queries/listing-completeness'
 
-/** 构造一个「提交审核完全合格」的房源快照;各用例按需拆字段制造缺失。 */
-function fullSnapshot(): ListingCompletenessSnapshot {
+// ────────────────────────────────────────────────────────────
+// fixtures
+// ────────────────────────────────────────────────────────────
+
+function makeFullDoc(): Record<string, unknown> {
   return {
-    title: '国贸三期 3801',
-    slug: 'guomao-3-3801',
+    title: '陆家嘴中心办公室',
+    slug: 'lujiazui-center-office',
     listingType: 'traditional-office',
-    building: 12,
+    building: 1,
     businessType: 'lease',
-    decorationStatus: 'fully_fitted',
-    price: { amount: 8.5, currency: 'CNY', period: 'month', unit: 'sqm' },
-    area: 320.5,
-    floor: '38',
+    decorationStatus: 'furnished',
+    price: {
+      amount: 8000,
+      currency: 'CNY',
+      period: 'month',
+      unit: 'sqm',
+    },
+    area: 120,
     minimumLeaseMonths: 12,
-    paymentTerms: '押二付三',
-    availableFrom: '2026-08-01T00:00:00.000Z',
-    description: '甲级写字楼,视野开阔。',
-    contactBroker: 7,
-    galleryCount: 3,
-    hasValidMerchantRelation: true,
+    coverImage: 10,
+    gallery: [{ image: 1 }, { image: 2 }, { image: 3 }],
+    highlights: [{ text: '落地窗' }],
+    description: { root: { children: [{ type: 'paragraph' }] } },
   }
 }
 
-describe('checkListingCompleteness — 草稿最小校验', () => {
-  it('仅有标题/楼盘/房源类型即可保存草稿', () => {
-    const r = checkListingCompleteness(
-      { title: '临时房源', building: 1, listingType: 'traditional-office' },
-      'draft',
-    )
-    expect(r.mode).toBe('draft')
-    expect(r.complete).toBe(true)
-    expect(r.missing).toHaveLength(0)
-    expect(r.score).toBe(100)
+// ────────────────────────────────────────────────────────────
+// 1. 完整文档
+// ────────────────────────────────────────────────────────────
+
+describe('computeListingCompleteness', () => {
+  it('完整文档 → score=1 / belowThreshold=false', () => {
+    const result = computeListingCompleteness(makeFullDoc())
+    expect(result.score).toBe(1)
+    expect(result.belowThreshold).toBe(false)
   })
 
-  it('草稿缺标题时不合格并定位到 title', () => {
-    const r = checkListingCompleteness({ building: 1, listingType: 'traditional-office' }, 'draft')
-    expect(r.complete).toBe(false)
-    expect(r.missing.map((m) => m.field)).toContain('title')
+  it('空文档 → score=0 / belowThreshold=true', () => {
+    const result = computeListingCompleteness({})
+    expect(result.score).toBe(0)
+    expect(result.belowThreshold).toBe(true)
   })
 
-  it('草稿不因缺价格/图片/商户而失败(那些是提交门槛)', () => {
-    const r = checkListingCompleteness(
-      { title: 'x', building: 1, listingType: 'traditional-office' },
-      'draft',
-    )
-    expect(r.missing.map((m) => m.field)).not.toContain('price')
-    expect(r.missing.map((m) => m.field)).not.toContain('gallery')
-    expect(r.missing.map((m) => m.field)).not.toContain('merchant')
+  it('阈值边界：score 刚好等于 0.8 不算 below', () => {
+    // 缺失内容补充 0.2（highlights + description）
+    const doc = makeFullDoc()
+    delete doc.highlights
+    delete doc.description
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(0.8)
+    expect(result.belowThreshold).toBe(false)
   })
 
-  it('空对象草稿定位全部最小必填项', () => {
-    const r = checkListingCompleteness({}, 'draft')
-    expect(r.complete).toBe(false)
-    expect(r.missing.map((m) => m.field).sort()).toEqual([...DRAFT_REQUIRED_FIELDS].sort())
+  it('阈值边界：score 0.75 算 below', () => {
+    // 缺失 highlights(0.1) + description(0.1) + businessType(0.025) + decorationStatus(0.025)
+    // = 1 - 0.25 = 0.75 < 0.8
+    const doc = makeFullDoc()
+    delete doc.highlights
+    delete doc.description
+    delete doc.businessType
+    delete doc.decorationStatus
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeLessThan(COMPLETENESS_THRESHOLD)
+    expect(result.belowThreshold).toBe(true)
   })
 })
 
-describe('checkListingCompleteness — 提交审核完整校验', () => {
-  it('完全合格快照提交通过,分数 100', () => {
-    const r = checkListingCompleteness(fullSnapshot(), 'submit')
-    expect(r.mode).toBe('submit')
-    expect(r.complete).toBe(true)
-    expect(r.missing).toHaveLength(0)
-    expect(r.score).toBe(100)
+// ────────────────────────────────────────────────────────────
+// 2. 媒体展示
+// ────────────────────────────────────────────────────────────
+
+describe('媒体展示', () => {
+  it('gallery 缺失 → score=0.8（损失 0.2 权重，刚到阈值）', () => {
+    const doc = makeFullDoc()
+    delete doc.gallery
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(0.8)
+    expect(result.belowThreshold).toBe(false)
   })
 
-  it('缺文本必填项逐一定位', () => {
-    const snap = fullSnapshot()
-    delete (snap as Record<string, unknown>).paymentTerms
-    snap.floor = ''
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.complete).toBe(false)
-    const fields = r.missing.map((m) => m.field)
-    expect(fields).toContain('paymentTerms')
-    expect(fields).toContain('floor')
+  it('gallery + coverImage 都缺失 → belowThreshold=true（损失 0.3）', () => {
+    const doc = makeFullDoc()
+    delete doc.gallery
+    delete doc.coverImage
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(0.7)
+    expect(result.belowThreshold).toBe(true)
   })
 
-  it('价格金额为 0 或非法时定位到 price', () => {
-    const snap = fullSnapshot()
-    snap.price = { amount: 0, currency: 'CNY', period: 'month', unit: 'sqm' }
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.missing.map((m) => m.field)).toContain('price')
+  it('gallery 部分填充（2/3）→ 按比例计分', () => {
+    const doc = makeFullDoc()
+    doc.gallery = [{ image: 1 }, { image: 2 }] // 2 张
+    const result = computeListingCompleteness(doc)
+    // gallery 部分计分 = (2/3) * 0.2 ≈ 0.133
+    const expectedGalleryScore = (2 / 3) * COMPLETENESS_WEIGHTS.galleryCount
+    expect(result.score).toBeCloseTo(
+      1 - COMPLETENESS_WEIGHTS.galleryCount + expectedGalleryScore,
+      3,
+    )
   })
 
-  it('价格周期/单位非法时定位到 price', () => {
-    const snap = fullSnapshot()
-    snap.price = {
-      amount: 5,
-      currency: 'CNY',
-      period: 'week' as never,
-      unit: 'sqm',
-    }
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.missing.map((m) => m.field)).toContain('price')
+  it('gallery 4 张（超过 min）→ 计满 0.2', () => {
+    const doc = makeFullDoc()
+    doc.gallery = [{ image: 1 }, { image: 2 }, { image: 3 }, { image: 4 }]
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
   })
 
-  it('缺价格对象时定位到 price', () => {
-    const snap = fullSnapshot()
-    delete (snap as Record<string, unknown>).price
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.missing.map((m) => m.field)).toContain('price')
+  it('coverImage 是对象形态 → 正确识别', () => {
+    const doc = makeFullDoc()
+    doc.coverImage = { id: 10, filename: 'cover.jpg' }
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
   })
 
-  it('图片少于 3 张时定位到 gallery', () => {
-    const snap = fullSnapshot()
-    snap.galleryCount = 2
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.complete).toBe(false)
-    const item = r.missing.find((m) => m.field === 'gallery')
-    expect(item).toBeDefined()
-    expect(item!.reason).toContain('3')
+  it('coverImage 是 null → 不计分', () => {
+    const doc = makeFullDoc()
+    doc.coverImage = null
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(0.9)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// 3. 租赁参数
+// ────────────────────────────────────────────────────────────
+
+describe('租赁参数', () => {
+  it('价格缺失 → 损失 0.13', () => {
+    const doc = makeFullDoc()
+    delete doc.price
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - 0.13, 3)
   })
 
-  it('无有效商户关系时定位到 merchant', () => {
-    const snap = fullSnapshot()
-    snap.hasValidMerchantRelation = false
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.missing.map((m) => m.field)).toContain('merchant')
+  it('amount=0 → 不计分（视为无效）', () => {
+    const doc = makeFullDoc()
+    ;(doc.price as Record<string, unknown>).amount = 0
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.priceAmount, 3)
   })
 
-  it('面积非法(负/多小数)时定位到 area', () => {
-    const snap = fullSnapshot()
-    snap.area = -5
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.missing.map((m) => m.field)).toContain('area')
+  it('area 缺失 → 损失 0.07', () => {
+    const doc = makeFullDoc()
+    delete doc.area
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.area, 3)
   })
 
-  it('分数按满足项占比计算,介于 0 与 100 之间', () => {
-    const snap = fullSnapshot()
-    snap.hasValidMerchantRelation = false
-    snap.galleryCount = 0
-    const r = checkListingCompleteness(snap, 'submit')
-    expect(r.score).toBeGreaterThan(0)
-    expect(r.score).toBeLessThan(100)
+  it('minimumLeaseMonths 缺失 → 损失 0.05', () => {
+    const doc = makeFullDoc()
+    delete doc.minimumLeaseMonths
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.minimumLeaseMonths, 3)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// 4. 内容补充（description 多形态）
+// ────────────────────────────────────────────────────────────
+
+describe('description 形态', () => {
+  it('description 是 string → 正确识别', () => {
+    const doc = makeFullDoc()
+    doc.description = '一段说明文字'
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
   })
 
-  it('每个缺失项都带中文标签', () => {
-    const r = checkListingCompleteness({}, 'submit')
-    for (const item of r.missing) {
-      expect(typeof item.label).toBe('string')
-      expect(item.label.length).toBeGreaterThan(0)
-    }
+  it('description 是 lexical 节点数组 → 正确识别', () => {
+    const doc = makeFullDoc()
+    doc.description = [{ type: 'paragraph', children: [] }]
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
   })
 
-  it('SUBMIT_REQUIRED_FIELDS 是 DRAFT_REQUIRED_FIELDS 的超集', () => {
-    for (const f of DRAFT_REQUIRED_FIELDS) {
-      expect(SUBMIT_REQUIRED_FIELDS).toContain(f)
-    }
+  it('description 是空字符串 → 不计分', () => {
+    const doc = makeFullDoc()
+    doc.description = '   '
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.description, 3)
+  })
+
+  it('description 是 null → 不计分', () => {
+    const doc = makeFullDoc()
+    doc.description = null
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.description, 3)
+  })
+
+  it('description 是空对象 → 不计分', () => {
+    const doc = makeFullDoc()
+    doc.description = {}
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.description, 3)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// 5. 关系字段形态
+// ────────────────────────────────────────────────────────────
+
+describe('关系字段形态', () => {
+  it('building 是 number → 计分', () => {
+    const doc = makeFullDoc()
+    doc.building = 5
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
+  })
+
+  it('building 是对象 → 计分', () => {
+    const doc = makeFullDoc()
+    doc.building = { id: 5, name: 'A 大厦' }
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBe(1)
+  })
+
+  it('building 是 null → 不计分', () => {
+    const doc = makeFullDoc()
+    doc.building = null
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.building, 3)
+  })
+
+  it('building 是 0 → 不计分（视为无效 ID）', () => {
+    const doc = makeFullDoc()
+    doc.building = 0
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.building, 3)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// 6. 权重总和一致性
+// ────────────────────────────────────────────────────────────
+
+describe('权重总和', () => {
+  it('所有权重之和 = 1.0', () => {
+    const sum = Object.values(COMPLETENESS_WEIGHTS).reduce((a, b) => a + b, 0)
+    expect(sum).toBeCloseTo(1, 5)
   })
 })

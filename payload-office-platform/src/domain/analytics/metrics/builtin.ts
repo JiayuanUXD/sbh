@@ -5,7 +5,7 @@
  *
  * M7.3 阶段：listing / building / merchant / supply 类指标已替换为真实查询适配器，
  * 趋势（per-day）和分布（by-city / by-status）序列指标已注册。
- * M7.4 阶段：在 listings.completeness_below_80 中替换为真实完整度字段（M5 完成后）。
+ * M7.4 阶段：listings.completeness_below_80 已接入真实完整度计算（listing-completeness.ts 权重方案）。
  * M7.5 阶段：lead 类指标依赖 M5 CRM，待 M5 完成后替换 stubQuery。
  *
  * 业务不变量：
@@ -195,7 +195,7 @@ const listingMetrics: MetricDefinition[] = [
   {
     code: 'listings.completeness_below_80',
     label: '完整度低于 80% 房源',
-    description: 'gallery 缺失或不足 3 张的房源数量（待维护，待 M5 完整度字段就绪后切换真实口径）',
+    description: '基本信息/价格/媒体/内容综合完整度 < 0.8 的房源数量（待维护）',
     category: 'listing',
     unit: 'count',
     dedup: 'distinct:id',

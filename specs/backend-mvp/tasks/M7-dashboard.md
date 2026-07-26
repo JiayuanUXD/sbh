@@ -35,16 +35,35 @@
     - 业务不变量验证: 不同角色只看到授权指标和范围（registry.resolve 内部 canViewMetric 校验 + sanitizeFilters 服务端兜底）；URL 参数不能扩大数据范围（每张卡按自身 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件（Promise.all + try/catch per card）
     - 验收: `pnpm typecheck` 通过；`pnpm test` 71 文件 1414 用例全通过（含 role-dashboard.test.ts）
 
-- [ ] 7.3 建设经营概览
+- [x] 7.3 建设经营概览
   - 城市、时间和团队筛选。
   - 指标卡、趋势、来源分布和明细下钻。
   - 单卡失败局部重试并展示数据截至时间。
   - _Requirement: R7_
+  - 验证证据：
+    - 领域层: `payload-office-platform/src/domain/analytics/overview-dashboard.ts`（M7.3 新增：OVERVIEW_CARDS / OVERVIEW_TRENDS / OVERVIEW_DISTRIBUTIONS 三组只读 MetricCode 列表；resolveOverviewDashboard 并发解析三组 + 每卡独立 try/catch 标记 status=failed/no-permission/not-found；所有卡 / 趋势 / 分布共用同一 asOf）
+    - 查询适配: `payload-office-platform/src/domain/analytics/queries/listing-queries.ts`、`building-queries.ts`、`merchant-queries.ts`（M7.3 新增：替换 stubQuery 为真实 count / find 适配器；trendListingsCreatedPerDay7d 按 Asia/Shanghai 时间桶聚合；distributionListingsByStatus / distributionListingsByCity 按枚举 / city 维度分组）
+    - 范围工具: `payload-office-platform/src/domain/analytics/queries/scope-where.ts`（buildCityWhere / buildMerchantWhere / mergeWhere 把 sanitize 后的 filters 转为 Payload where 子句，保证 URL 不扩大范围）、`time-bucket.ts`（toShanghaiDayStart / buildDailyBuckets / formatShanghaiDate 时区稳定的日桶）
+    - 指标注册: `payload-office-platform/src/domain/analytics/metrics/builtin.ts`（替换 listings.total / listings.published / listings.pending_review / listings.offline / listings.leased / listings.created_per_day_7d / listings.by_status / listings.by_city / buildings.active / merchants.active / merchants.expiring / supply.effective_count 为真实查询）
+    - endpoint: `payload-office-platform/src/endpoints/overview-endpoint.ts`（M7.3 新增：GET /api/overview；requireAdminContext 鉴权；canViewOverviewDashboard 任意经营概览权限校验；parseFilterInput 解析 + sanitizeFilters 收窄；返回 { ok, cards, trends, distributions, asOf }；payload.config.ts 注册）
+    - 测试: `payload-office-platform/tests/overview-dashboard.test.ts`（覆盖三组卡片长度 / 共用 asOf / 趋势桶之和 / 分布数据 / 单卡失败局部标记 / URL 不扩大范围）
+    - 业务不变量验证: 卡片=序列和；URL 不扩大范围（每卡按 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 通过；`pnpm build` 通过
 
-- [ ] 7.4 建设房源分析
+- [x] 7.4 建设房源分析
   - 总数、上架、待审核、下架、出租和完整度低于 80%。
   - 所有有效供给指标复用统一供给谓词。
   - _Requirement: R4, R7_
+  - 验证证据：
+    - 领域层: `payload-office-platform/src/domain/analytics/listing-analytics.ts`（M7.4 新增：LISTING_ANALYTICS_CARDS / TRENDS / DISTRIBUTIONS 三组只读 MetricCode 列表，包含 listings.total / published / pending_review / offline / rented / completeness_below_80；resolveListingAnalytics 并发解析 + 单卡失败局部标记；所有组共用同一 asOf；canViewListingAnalytics 权限网关）
+    - 完整度计算: `payload-office-platform/src/domain/analytics/queries/listing-completeness.ts`（M7.4 新增：computeListingCompleteness 真实权重计算，覆盖基本信息 25% / 租赁参数 25% / 媒体展示 30% / 内容补充 20%；COMPLETENESS_THRESHOLD=0.8；支持 building / coverImage 关系字段两种形态；description 支持 string / Lexical 数组 / Lexical 根对象三种形态）
+    - 查询适配: `payload-office-platform/src/domain/analytics/queries/listing-queries.ts`（M7.4 替换 countListingsCompletenessBelow80 为内存计算：find depth=1 + limit=500 + 逐文档 computeListingCompleteness 统计 belowThreshold；不依赖 DB 数组长度计算）
+    - 指标元数据: `payload-office-platform/src/domain/analytics/metrics/builtin.ts`（更新 listings.completeness_below_80 描述与说明 M7.4 已接入真实完整度计算）
+    - endpoint: `payload-office-platform/src/endpoints/listing-analytics-endpoint.ts`（M7.4 新增：GET /api/listings/analytics；requireAdminContext 鉴权；canViewListingAnalytics 任意房源分析权限校验；parseFilterInput 解析 + sanitizeFilters 收窄；返回 { ok, cards, trends, distributions, asOf }；payload.config.ts 注册）
+    - 模块导出: `payload-office-platform/src/domain/analytics/index.ts` 新增 `export * from './listing-analytics'`
+    - 测试: `payload-office-platform/tests/listing-completeness.test.ts`（24 用例，覆盖完整文档 / 空文档 / 阈值边界 / 媒体展示部分填充按比例 / 租赁参数缺失 / description 多形态 / 关系字段 ID 与对象两种形态 / 权重总和=1.0）+ `payload-office-platform/tests/listing-analytics.test.ts`（24 用例，覆盖三组卡片长度 / 共用 asOf / completeness_below_80 真实完整度（完整 / 缺失 / 混合统计） / find depth=1 limit=500 / 单卡失败隔离 / 权限网关 / URL 不扩大范围 / 城市上限 / dataScope=self assignee 丢弃 / 下钻 URL 派生）
+    - 业务不变量验证: 卡片=序列和（listings.created_per_day_7d vs listings.total 趋势）；URL 不扩大范围（每卡按自身 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件；所有有效供给类指标复用 getEffectiveSupplyWhere + getPausedListingIds（makeListingCount 工厂 useEffectiveSupply 选项）
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 73 文件 1474 用例全通过（含 listing-completeness.test.ts 24 + listing-analytics.test.ts 24）；`pnpm build` 通过
 
 - [ ] 7.5 建设线索分析
   - 新增、有效、无效、已分配、及时率、推荐率和转化率。

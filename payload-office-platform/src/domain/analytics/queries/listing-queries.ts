@@ -3,7 +3,7 @@
  *
  * 覆盖：
  *   - listings.total / published / pending_review / rejected / offline / rented
- *   - listings.completeness_below_80
+ *   - listings.completeness_below_80（M7.4 真实完整度计算，权重见 listing-completeness.ts）
  *   - listings.created_per_day_7d / _30d（趋势）
  *   - listings.by_city（按城市分布）
  *
@@ -11,6 +11,7 @@
  *   - 所有有效供给类指标复用 getEffectiveSupplyWhere + getPausedListingIds
  *   - 时间窗口按 Asia/Shanghai 自然日
  *   - URL 参数不扩大数据范围（ctx.filters 已由 sanitizeFilters 服务端兜底）
+ *   - listings.completeness_below_80 内存过滤（DB 无法直接计算字段权重之和）
  */
 
 import {
@@ -33,6 +34,7 @@ import {
   mergeWhere,
 } from './scope-where'
 import { buildDailyBuckets, emptyBuckets } from './time-bucket'
+import { computeListingCompleteness } from './listing-completeness'
 
 // ────────────────────────────────────────────────────────────
 // 标量计数查询
@@ -112,28 +114,51 @@ export const countListingsRented: MetricQueryAdapter = makeListingCount({
 /**
  * listings.completeness_below_80：完整度 < 80%。
  *
- * Listing 当前无 completeness 持久化字段，M7.4 阶段先用「gallery 不足 3 张」
- * 作为完整度低于 80% 的代理口径（与有效供给 §6 媒体规则一致）。
- * M5/M6 完成后再切换为真实完整度字段。
+ * Listing 无 completeness 持久化字段，DB 无法直接计算字段权重之和。
+ * 此处先按 where 粗筛（deletedAt + city + merchant），再分页拉取候选 Listing
+ * 文档到内存，按 computeListingCompleteness 计算权重，统计 belowThreshold=true 的数量。
+ *
+ * 业务不变量：
+ *   - 候选 cap = 500（与 building-aggregate 一致），超过需人工介入
+ *   - 内存过滤后正确返回 belowThreshold 数量
+ *   - asOf 与查询时刻一致
+ *
+ * 注意：
+ *   - depth=1 让 Payload 解析 building/coverImage/gallery 关联，便于完整度判定
+ *   - 不依赖有效供给谓词（完整度针对所有未逻辑删除的房源，不论是否在 C 端曝光）
  */
+const COMPLETENESS_CANDIDATE_CAP = 500
+
 export const countListingsCompletenessBelow80: MetricQueryAdapter = async (
   ctx,
 ): Promise<MetricScalarResult> => {
-  // gallery 字段是数组；Payload SQLite/PG 都无法直接判断数组长度 < 3，
-  // 这里用 gallery: { exists: false } OR 取全部后内存过滤的折中方案：
-  // MVP 阶段简化为「无 gallery 的房源」（待 M5 完整度字段就绪后替换）。
   const where = mergeWhere(
     { deletedAt: { exists: false } },
-    { gallery: { exists: false } },
     buildCityWhere(ctx.filters),
     buildMerchantWhere(ctx.filters),
   )
-  const value = await ctx.payload.count({
+
+  // depth=1 让 building/coverImage/gallery 等关联解析为对象，便于 hasRef 判定
+  const result = await ctx.payload.find({
     collection: 'listings',
     where,
+    depth: 1,
+    limit: COMPLETENESS_CANDIDATE_CAP,
     overrideAccess: true,
   })
-  return { kind: 'scalar', value, asOf: ctx.asOf.toISOString() }
+
+  const docs = result.docs as ReadonlyArray<Record<string, unknown>>
+  let below = 0
+  for (const doc of docs) {
+    const { belowThreshold } = computeListingCompleteness(doc)
+    if (belowThreshold) below += 1
+  }
+
+  return {
+    kind: 'scalar',
+    value: below,
+    asOf: ctx.asOf.toISOString(),
+  }
 }
 
 /** supply.effective_count：复用统一供给谓词 + 举报暂停排除 */
