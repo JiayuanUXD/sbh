@@ -26,8 +26,8 @@
     "data:audit": "node --env-file=.env.local --import tsx scripts/data-audit.ts"
   },
   "dependencies": {
-    "@libsql/client": "0.14.0",
     "@arco-design/web-react": "^2.66.16",
+    "@libsql/client": "0.14.0",
     "@nouance/payload-better-fields-plugin": "^2.0.2",
     "@oversightstudio/blur-data-urls": "^1.0.4",
     "@payload-bites/audit-fields": "^1.7.0",
@@ -48,7 +48,8 @@
     "payload-media-gallery": "^0.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "sharp": "^0.34.4"
+    "sharp": "^0.34.4",
+    "web-vitals": "^6.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

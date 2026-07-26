@@ -74,6 +74,9 @@ dependencies:
   sharp:
     specifier: ^0.34.4
     version: 0.34.4
+  web-vitals:
+    specifier: ^6.0.0
+    version: 6.0.0
 
 devDependencies:
   '@playwright/test':
@@ -8052,6 +8055,10 @@ packages:
   /web-streams-polyfill@3.3.3:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
+    dev: false
+
+  /web-vitals@6.0.0:
+    resolution: {integrity: sha512-Guaibvy/+uNtL6Bsu4jmMJGzuSl91oeRH5iO9pPRbYftnFUr3yqT1TUNX/OE4o9HexuEMU3Kb/Wg7iKhlffZUA==}
     dev: false
 
   /whatwg-mimetype@3.0.0:

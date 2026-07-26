@@ -14,6 +14,7 @@
 import { useEffect } from 'react'
 import { createDataLayerAdapter, createConsoleAdapter, createNoopAdapter } from './adapter'
 import { createCollector, type Collector } from './collector'
+import { initWebVitals } from './web-vitals'
 
 let collectorSingleton: Collector | null = null
 
@@ -57,7 +58,18 @@ export function AnalyticsInit(): null {
     const onHide = () => void collector.flush()
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('pagehide', onHide)
+
+    // OPT-018: Web Vitals 采集（动态 import web-vitals，SSR 不触发）
+    let cancelled = false
+    let stopVitals: (() => void) | null = null
+    void initWebVitals(collector).then((stop) => {
+      if (cancelled) stop()
+      else stopVitals = stop
+    })
+
     return () => {
+      cancelled = true
+      stopVitals?.()
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pagehide', onHide)
     }

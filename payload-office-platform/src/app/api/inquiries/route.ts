@@ -34,8 +34,9 @@ import {
   validateInquiry,
   type InquiryRequest,
 } from '@/domain/inquiry'
-import { runDistributedRateLimit, type RateLimitConfig, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
+import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
+import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
@@ -45,22 +46,10 @@ export const runtime = 'nodejs'
 const MAX_BODY_BYTES = 16 * 1024
 
 /**
- * 限流配置（OPT-017：分布式固定窗口，PG 共享原子额度）。
- * - 每 IP 每分钟 5 次（design.md §13：429 + 合理 Retry-After）；
- * - maxKeys 容量保护：表内 key 数上限，防攻击者制造海量不同 IP 哈希撑爆表；
- * - pruneIntervalMs：TTL 清理间隔，过期窗口的 key 周期性删除；
- * - failOpen：PG 不可用时放行（公开端点优先可用性，下游幂等键 + schema 兜底）。
- *
  * IP 哈希存储：日志中不记录完整 IP（FP-05 §5），
  * 限流键使用 hashIpForLog(ip, dailySalt) 派生，避免原始 IP 进入存储或日志。
+ * 限流配置（windowMs/max/maxKeys/pruneIntervalMs/failOpen）见 @/lib/rate-limit-config。
  */
-const RATE_LIMIT_CONFIG: RateLimitConfig = {
-  windowMs: 60_000,
-  max: 5,
-  maxKeys: 100_000,
-  pruneIntervalMs: 5 * 60_000,
-  failOpen: true,
-}
 
 /**
  * 跨请求共享的 TTL 清理时间戳（模块级）。

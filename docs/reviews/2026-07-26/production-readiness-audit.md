@@ -60,11 +60,13 @@ GitHub Actions 不安装项目依赖、不运行 lint、类型、测试、构建
 
 **修复**：新增 `src/lib/rate-limit-distributed.ts`（纯函数：窗口对齐/决策/TTL/容量/失败策略）+ `src/lib/rate-limit-pg.ts`（PG `INSERT...ON CONFLICT` 原子递增，多实例共享 `inquiry_rate_limit` 表）+ 迁移建表（含 `window_start` 索引）；route.ts 改用 `runDistributedRateLimit`，配置 `maxKeys=100_000` 容量保护 + `pruneIntervalMs=5min` TTL 回收 + `failOpen=true` 失败策略（PG 不可用放行 + 告警，下游幂等键兜底）。20 项 distributed 单元测试 + 30 项 route 集成测试（mock PG deps）+ 全量 1953 项回归通过。旧 `src/lib/rate-limit.ts` 已删除。证据见 `artifacts/verification/OPT-017/README.md`。
 
-### P1：任务文档中的性能与监控证据高于实际实现
+### P1：任务文档中的性能与监控证据高于实际实现 ✅ 已修复
 
 F7.4 已勾选完成，但文档同时注明 LCP、INP、CLS 尚未在生产环境实测。F7.8 声称已经接入 `web-vitals`，实际依赖和源码中没有该库或采集实现；真实 analytics 闭环也已在 OPT-010 中确认缺失。
 
 因此性能预算、错误率、询盘成功率、无效供给曝光和 Core Web Vitals 均没有生产采集与告警证据。
+
+**修复**：接入 `web-vitals@^6.0.0`，新增 `src/lib/observability/thresholds.ts`（Web Vitals + SLI 阈值与评级，单一事实源）+ `src/lib/frontend/analytics/web-vitals.ts`（复用 OPT-010 collector 流水线采集 LCP/INP/CLS/TTFB/FCP，评级统一走 thresholds）+ `src/lib/observability/sli.ts`（SLI 聚合纯函数，注入查询依赖）+ `/api/observability/sli` 端点（fail-closed API key 鉴权，返回成功率/限流 IP/提交量与评级，不暴露 PII）+ `src/lib/rate-limit-config.ts`（限流配置提取共享）。告警契约见 `docs/observability/alerting.md`（指标分层、阈值表、5 条 SLI + 3 条 Web Vitals p75 告警规则、抑制/恢复、Runbook、待接入清单）。42 项可观测性单测 + 全量 1995 项回归通过，typecheck 通过。证据见 `artifacts/verification/OPT-018/README.md`。
 
 ### P2：存在无业务用途的公开示例路由
 

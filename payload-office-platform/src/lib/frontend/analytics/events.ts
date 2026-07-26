@@ -22,6 +22,8 @@ export const ANALYTICS_EVENTS = {
   inquiry_success: ['page_type', 'target_type', 'idempotent'],
   /** 咨询提交出错 */
   inquiry_error: ['page_type', 'error_code'],
+  /** Web Vitals 指标上报（OPT-018）：metric 枚举、value 数值、rating 评级 */
+  web_vital: ['metric', 'value', 'rating'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS
