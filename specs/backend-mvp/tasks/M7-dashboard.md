@@ -65,10 +65,21 @@
     - 业务不变量验证: 卡片=序列和（listings.created_per_day_7d vs listings.total 趋势）；URL 不扩大范围（每卡按自身 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件；所有有效供给类指标复用 getEffectiveSupplyWhere + getPausedListingIds（makeListingCount 工厂 useEffectiveSupply 选项）
     - 验收: `pnpm typecheck` 通过；`pnpm test` 73 文件 1474 用例全通过（含 listing-completeness.test.ts 24 + listing-analytics.test.ts 24）；`pnpm build` 通过
 
-- [ ] 7.5 建设线索分析
+- [x] 7.5 建设线索分析
   - 新增、有效、无效、已分配、及时率、推荐率和转化率。
   - 合并目标、有效创建时间和终态事件时间口径一致。
   - _Requirement: R6, R7_
+  - 验证证据：
+    - 领域层: `payload-office-platform/src/domain/analytics/lead-analytics.ts`（M7.5 新增：LEAD_ANALYTICS_CARDS / TRENDS / DISTRIBUTIONS 三组只读 MetricCode 列表，覆盖 leads.new / valid / invalid / assigned / timely_rate / recommendation_rate / conversion_rate；resolveLeadAnalytics 并发解析三组 + 单卡失败局部标记；所有组共用同一 asOf；canViewLeadAnalytics 权限网关）
+    - 查询适配: `payload-office-platform/src/domain/analytics/queries/lead-queries.ts`（M7.5 新增：替换 stubQuery 为真实查询；countLeadsNew / valid / invalid / assigned 标量计数；computeLeadsConversionRate 近 30d 滚动窗口 won/total；computeLeadsTimelyRate 近 7d 滚动窗口 first-follow-up task 4h 内完成率；trendLeadsCreatedPerDay7d 按 Asia/Shanghai 时间桶；distributionLeadsByStatus / by_source 按状态 / 来源分组）
+    - CRM 依赖: `payload-office-platform/src/domain/crm/lead-stage.ts`（M5.6 八阶段状态机：new/pending_assignment/following/qualified/viewing/negotiation/converted/lost，严格 transition + terminal 校验）、`policy.ts`（M5.4 SLA 参数：first_follow_up=4h / claim_protection=24h / public_pool_recycle=72h / daily_claim=20 / active_cap=100）、`sla.ts`（M5.4/M5.5 纯函数：firstFollowUpDeadline / isFirstFollowUpBreached / isPublicPoolRecyclable）
+    - 城市扩展: `lead-queries.ts` 内 expandCityToLocationIds（线索按城市过滤时扩展到所有后代 location IDs，因 Leads.district 字段可关联 city/district/business_area 任一类型）
+    - 指标注册: `payload-office-platform/src/domain/analytics/metrics/builtin.ts`（替换 leadMetrics 中 stubQuery 为真实查询适配器；新增 leads.created_per_day_7d / by_status / by_source 趋势与分布指标）
+    - endpoint: `payload-office-platform/src/endpoints/lead-analytics-endpoint.ts`（M7.5 新增：GET /api/leads/analytics；requireAdminContext 鉴权；canViewLeadAnalytics 任意线索分析权限校验；parseFilterInput 解析 + sanitizeFilters 收窄；返回 { ok, cards, trends, distributions, asOf }；payload.config.ts 注册）
+    - 模块导出: `payload-office-platform/src/domain/analytics/index.ts` 新增 `export * from './lead-analytics'`
+    - 测试: `payload-office-platform/tests/lead-analytics.test.ts`（34 用例，覆盖配置完整性 / 三组卡片长度 / 共用 asOf / timely_rate 真实计算（空候选 / 全 timely / 部分比率 / find depth=0 limit=500 / task where 包含 followup-first + sourceId） / conversion_rate 真实计算（除零 / won+createdAt 口径一致） / 单卡失败隔离 / 权限网关 / URL 不扩大范围（城市上限 / 越界 ID 丢弃 / dataScope=self 强制 assignee=userId） / 下钻 URL 派生 / 口径一致（统一用 createdAt））
+    - 业务不变量验证: 卡片=序列和（leads.created_per_day_7d 桶之和）；URL 不扩大范围（每卡按自身 metric.allowedScopeDims 重新 sanitize）；单卡失败不影响其他组件；合并目标、有效创建时间和终态事件时间口径一致（统一用 lead.createdAt 作为锚点，conversion_rate 分子分母均用 createdAt 时间窗口）；timely_rate 通过 task.completedAt - lead.createdAt <= 4h 计算
+    - 验收: `pnpm typecheck` 通过；`pnpm test` 78 文件 1568 用例全通过（含 lead-analytics.test.ts 34 用例）；`pnpm build` 通过（NEXT_PUBLIC_SITE_URL=http://localhost:3717）
 
 - [ ] 7.6 完成指标数据一致性测试
   - 卡片等于趋势桶之和。

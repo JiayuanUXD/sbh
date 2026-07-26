@@ -6,7 +6,8 @@
  * M7.3 阶段：listing / building / merchant / supply 类指标已替换为真实查询适配器，
  * 趋势（per-day）和分布（by-city / by-status）序列指标已注册。
  * M7.4 阶段：listings.completeness_below_80 已接入真实完整度计算（listing-completeness.ts 权重方案）。
- * M7.5 阶段：lead 类指标依赖 M5 CRM，待 M5 完成后替换 stubQuery。
+ * M7.5 阶段：lead 类指标已替换为真实查询适配器（new/valid/invalid/assigned/conversion_rate/timely_rate）；
+ *   leads.recommendation_rate 暂保留 stubQuery（依赖 M5.5 FollowUps collection）。
  *
  * 业务不变量：
  *   - 所有有效供给类指标必须复用 getEffectiveSupplyWhere / listingReportPauseWhere
@@ -39,6 +40,17 @@ import {
   countMerchantsActive,
   countMerchantsQualificationExpiring,
 } from '../queries/merchant-queries'
+import {
+  computeLeadsConversionRate,
+  computeLeadsTimelyRate,
+  countLeadsAssigned,
+  countLeadsInvalid,
+  countLeadsNew,
+  countLeadsValid,
+  distributionLeadsBySource,
+  distributionLeadsByStatus,
+  trendLeadsCreatedPerDay7d,
+} from '../queries/lead-queries'
 
 // ────────────────────────────────────────────────────────────
 // Stub 查询适配器（lead / task / review / report 类占位，待 M5/M6 替换）
@@ -369,7 +381,7 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?createdAt=gte:today&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: countLeadsNew,
   },
   {
     code: 'leads.valid',
@@ -388,7 +400,7 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?status=active&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: countLeadsValid,
   },
   {
     code: 'leads.invalid',
@@ -407,7 +419,7 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?status=invalid&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: countLeadsInvalid,
   },
   {
     code: 'leads.assigned',
@@ -426,12 +438,12 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?ownership=assigned&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: countLeadsAssigned,
   },
   {
     code: 'leads.timely_rate',
     label: '线索及时率',
-    description: '创建后 4 小时内首次跟进的线索占比（0-1）',
+    description: '创建后 4 小时内首次跟进的线索占比（0-1），通过 first-follow-up 任务 completedAt 计算',
     category: 'lead',
     unit: 'rate',
     dedup: 'distinct:id',
@@ -445,12 +457,12 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?timely=true&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: computeLeadsTimelyRate,
   },
   {
     code: 'leads.recommendation_rate',
     label: '线索推荐率',
-    description: '跟进结果至少一次「已推荐」的线索占比（0-1）',
+    description: '跟进结果至少一次「已推荐」的线索占比（0-1）。M5.5 FollowUps collection 完成后接入真实查询',
     category: 'lead',
     unit: 'rate',
     dedup: 'distinct:id',
@@ -469,7 +481,7 @@ const leadMetrics: MetricDefinition[] = [
   {
     code: 'leads.conversion_rate',
     label: '线索转化率',
-    description: '阶段进入「已转化」的线索占所有创建线索的比率（0-1）',
+    description: '阶段进入「已转化」的线索占所有创建线索的比率（0-1）。口径：分子=近 30d 创建且已转化的线索数，分母=近 30d 创建的线索总数',
     category: 'lead',
     unit: 'rate',
     dedup: 'distinct:id',
@@ -483,7 +495,67 @@ const leadMetrics: MetricDefinition[] = [
       pathTemplate: '/admin/collections/leads?stage=converted&{{filter_keys}}',
       filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
     },
-    query: stubQuery,
+    query: computeLeadsConversionRate,
+  },
+  // M7.5 趋势指标：每日新建线索
+  {
+    code: 'leads.created_per_day_7d',
+    label: '近 7 天每日新建线索',
+    description: '按 Asia/Shanghai 自然日分桶，每日新建线索数量（趋势图）',
+    category: 'lead',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'rolling_7d',
+    requiredPermissions: ['lead:read'],
+    allowedScopeDims: ['city', 'team', 'assignee'],
+    cacheTtlMs: 5 * 60_000,
+    drilldown: {
+      target: 'lead-list',
+      collection: 'leads',
+      pathTemplate: '/admin/collections/leads?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
+    },
+    query: trendLeadsCreatedPerDay7d,
+  },
+  // M7.5 分布指标：按状态分组
+  {
+    code: 'leads.by_status',
+    label: '线索按状态分布',
+    description: '按 status 分组的线索数量（new/contacted/visited/won/lost）',
+    category: 'lead',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'snapshot',
+    requiredPermissions: ['lead:read'],
+    allowedScopeDims: ['city', 'team', 'assignee'],
+    cacheTtlMs: 30_000,
+    drilldown: {
+      target: 'lead-list',
+      collection: 'leads',
+      pathTemplate: '/admin/collections/leads?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
+    },
+    query: distributionLeadsByStatus,
+  },
+  // M7.5 分布指标：按来源分组
+  {
+    code: 'leads.by_source',
+    label: '线索按来源分布',
+    description: '按 source 分组的线索数量（frontend-form/phone/import/other）',
+    category: 'lead',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'snapshot',
+    requiredPermissions: ['lead:read'],
+    allowedScopeDims: ['city', 'team', 'assignee'],
+    cacheTtlMs: 30_000,
+    drilldown: {
+      target: 'lead-list',
+      collection: 'leads',
+      pathTemplate: '/admin/collections/leads?{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'assigneeId'],
+    },
+    query: distributionLeadsBySource,
   },
 ]
 

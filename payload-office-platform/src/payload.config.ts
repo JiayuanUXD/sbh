@@ -50,6 +50,7 @@ import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
 import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
 import { createOverviewEndpoint } from './endpoints/overview-endpoint'
 import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-endpoint'
+import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -141,11 +142,13 @@ export default buildConfig({
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
   // M7.3 经营概览 endpoint（GET /api/overview，返回卡 / 趋势 / 分布 + asOf）
   // M7.4 房源分析 endpoint（GET /api/listings/analytics，复用统一有效供给谓词）
+  // M7.5 线索分析 endpoint（GET /api/leads/analytics，统一用 createdAt 作为有效创建时间）
   // 均注册在顶层 endpoints，不绑定具体 collection
   endpoints: [
     createDashboardEndpoint(),
     createOverviewEndpoint(),
     createListingAnalyticsEndpoint(),
+    createLeadAnalyticsEndpoint(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [

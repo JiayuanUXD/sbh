@@ -22,6 +22,7 @@
  *   - role-dashboard：角色化工作台派生 + 单卡局部失败标记（M7.2）
  *   - overview-dashboard：经营概览看板（M7.3）
  *   - listing-analytics：房源分析看板（M7.4）
+ *   - lead-analytics：线索分析看板（M7.5）
  */
 export const DOMAIN_TAG = 'analytics' as const
 
@@ -33,3 +34,4 @@ export * from './metric-consistency'
 export * from './role-dashboard'
 export * from './overview-dashboard'
 export * from './listing-analytics'
+export * from './lead-analytics'
