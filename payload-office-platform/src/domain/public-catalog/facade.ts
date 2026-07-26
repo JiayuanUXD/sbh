@@ -16,8 +16,8 @@
  *   - 推荐与最新排序以 listing_id 升序收束，跨页稳定；
  *   - 输入参数非法由 search-params 解析器降级，Facade 不再次抛错；
  *   - 失效供给返回 null/空数组，不混入失效数据；
- *   - M4.7 未完成前使用 TransitionalPayloadSupplyAdapter，仅用于开发预览；
- *     生产公开页面等待 M4.7 完成后再接入。
+ *   - 使用 PayloadSupplyAdapter（M4.7）：查询层有效供给谓词 + 逐条精筛，
+ *     前台、预览、楼盘聚合、Dashboard 对同一房源可见性结论一致。
  */
 
 import type { Listing, Building } from '@/payload-types'

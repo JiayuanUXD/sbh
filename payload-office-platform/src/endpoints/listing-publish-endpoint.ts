@@ -1,10 +1,7 @@
-import type { Endpoint, PayloadRequest } from 'payload'
+import type { Endpoint } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
-import {
-  isListingEffectivelySupplied,
-  type EffectiveSupplySnapshot,
-} from '@/domain/review/effective-supply'
+import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
 import {
   canTransitionPublication,
   isPublicationStatus,
@@ -12,8 +9,6 @@ import {
   nextPublicationStatus,
   type PublishAction,
 } from '@/domain/review/publication-status'
-import { toRelationPeriod } from '@/domain/supply/building-merchant-relation'
-import type { ValidityPeriod } from '@/domain/shared/validity'
 
 /**
  * 房源显式发布 endpoint（tasks.md M4.6「实现显式发布动作」/ R4, R8）
@@ -44,73 +39,6 @@ import type { ValidityPeriod } from '@/domain/shared/validity'
 /** publish/mark_leased 需要 listing:publish；unpublish 需要 listing:unpublish。 */
 function permissionForAction(action: PublishAction): string {
   return action === 'unpublish' ? 'listing:unpublish' : 'listing:publish'
-}
-
-/** 关系归一为 id。 */
-function toId(value: unknown): number | string | null {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'number' || typeof value === 'string') return value
-  if (typeof value === 'object') {
-    const id = (value as { id?: unknown }).id
-    if (typeof id === 'number' || typeof id === 'string') return id
-  }
-  return null
-}
-
-/**
- * 查询房源当前生效的商户关系区间：listing 命中、按 effectiveFrom 升序取最近一条，
- * 转 ValidityPeriod。无记录 → null（精筛层据此判 RELATION_NOT_EFFECTIVE）。
- */
-async function loadRelationPeriod(
-  req: PayloadRequest,
-  listingId: number | string,
-): Promise<ValidityPeriod | null> {
-  const res = await req.payload.find({
-    collection: 'listing-merchant-relations',
-    where: { listing: { equals: listingId } },
-    sort: '-effectiveFrom',
-    limit: 1,
-    depth: 0,
-    req,
-  })
-  const doc = (res?.docs ?? [])[0] as unknown as Record<string, unknown> | undefined
-  if (!doc) return null
-  try {
-    return toRelationPeriod(
-      doc.effectiveFrom as string | Date | null | undefined,
-      doc.effectiveTo as string | Date | null | undefined,
-    )
-  } catch {
-    return null
-  }
-}
-
-/** 从已解析房源文档构造有效供给精筛快照。 */
-function buildEffectiveSnapshot(
-  listing: Record<string, unknown>,
-  relationPeriod: ValidityPeriod | null,
-): EffectiveSupplySnapshot {
-  const gallery = Array.isArray(listing.gallery) ? listing.gallery : []
-  const building = (listing.building ?? null) as Record<string, unknown> | null
-  const merchant = (listing.merchant ?? {}) as Record<string, unknown>
-  const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
-  return {
-    mediaCount: gallery.length,
-    merchant: {
-      status: merchant.status,
-      qualificationStatus: merchant.qualificationStatus,
-      qualificationExpiresAt: (merchant.qualificationExpiresAt ?? null) as
-        | string
-        | Date
-        | null
-        | undefined,
-      serviceCityIds: serviceCities
-        .map((c) => toId(c))
-        .filter((id): id is number | string => id !== null),
-    },
-    buildingCityId: building ? toId(building.city) : null,
-    relationPeriod,
-  }
 }
 
 export function createListingPublishEndpoint(): Endpoint {
@@ -193,10 +121,28 @@ export function createListingPublishEndpoint(): Endpoint {
             { status: 422 },
           )
         }
-        // 7b. 有效供给精筛谓词（媒体 / 关系 / 商户）
-        const relationPeriod = await loadRelationPeriod(req, listingId)
-        const snapshot = buildEffectiveSnapshot(listing, relationPeriod)
-        const supply = isListingEffectivelySupplied(snapshot, new Date())
+        // 7b. 有效供给精筛谓词（媒体 / 关系 / 商户）——复用共享助手,与 C 端口径一致
+        // 包装 req.payload 为 PayloadQueryPort（find 签名差异由适配器抹平）
+        const payloadPort = {
+          find: async (params: {
+            collection: string
+            where: Record<string, unknown>
+            depth?: number
+            limit?: number
+            overrideAccess?: boolean
+          }) => {
+            const res = await req.payload.find({
+              collection: params.collection as never,
+              where: params.where as never,
+              depth: params.depth ?? 0,
+              limit: params.limit ?? 25,
+              overrideAccess: params.overrideAccess ?? true,
+              req,
+            })
+            return { docs: res.docs as unknown as Array<{ targetListing?: string | number | { id: string | number } | null }> }
+          },
+        }
+        const supply = await resolveEffectiveSupply(payloadPort, listing, new Date())
         if (!supply.eligible) {
           return Response.json(
             { ok: false, error: '房源不满足有效供给条件', reasons: supply.reasons },

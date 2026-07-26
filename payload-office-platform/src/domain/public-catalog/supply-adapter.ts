@@ -1,27 +1,37 @@
 /**
  * 公开目录查询供给适配器（Supply Adapter）
  *
- * 设计依据：specs/frontend-mvp/design.md §3.1、§8、§17
+ * 设计依据：specs/frontend-mvp/design.md §3.1、§8、§17；specs/backend-mvp M4.7
  *
  * 职责：
  *   - 定义 Facade 与"统一有效供给服务"之间的契约接口；
- *   - 提供过渡实现（基于 Payload Local API + 现有 `status=available` + `building.operationalStatus=active` 谓词）；
- *   - M4.7 完成后只需替换默认实现，Facade 与 DTO 不变。
+ *   - 提供生产实现 `createPayloadSupplyAdapter()`：查询层用 `getEffectiveSupplyWhere`
+ *     粗筛 + `getPausedListingIds` 排除举报暂停，取候选后逐条 `resolveEffectiveSupply`
+ *     精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保证前台、预览、楼盘聚合、Dashboard
+ *     对同一房源可见性结论一致（M4 验收门）。
  *
  * 守护不变量（FRONTEND_AGENT.md §6.1）：
  *   - 适配器是 Facade 唯一的数据入口，禁止在 Facade 内部直接拼 Payload where；
- *   - 过渡实现仅用于开发/预览，不得作为生产公开页面的有效供给真源；
- *   - M4.7 完成后所有调用方迁移到 `PayloadSupplyAdapter` 的新版本（消费服务输出），
- *     `TransitionalPayloadSupplyAdapter` 与旧 `status=available` 谓词将被删除（F1.6）。
+ *   - 有效供给判定统一走 `@/domain/review/effective-supply` 谓词，绝不内联旧
+ *     `status=available` 口径（F1.6：过渡适配器已删除）。
  *
  * 注意：
- *   - 当前接口返回 `Listing` / `Building` / `Location` 原始 Payload 文档；
+ *   - 接口返回 `Listing` / `Building` / `Location` 原始 Payload 文档；
  *   - Facade 在拿到文档后立即通过 mapper 投影为 DTO，组件不消费原始文档；
- *   - M4.7 完成后接口签名可保持不变，仅替换内部实现（服务返回的也是已过滤的文档）。
+ *   - 精筛在适配器内部完成，Facade 只负责内存排序与分页。
+ *
+ * MVP 计数口径：列表 / 楼内房源取候选（limit 上限 500）后精筛数长度，
+ *   与前台 / 详情完全一致；超过 500 的极端场景会封顶，属后续优化点。
  */
 
 import type { Where } from 'payload'
 import type { Building, Listing, Location, Page } from '@/payload-types'
+import {
+  getEffectiveSupplyWhere,
+  getPausedListingIds,
+  type PayloadQueryPort,
+} from '@/domain/review/effective-supply'
+import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
 import type { SearchContext, ListingSearchInput } from './types'
 
 /**
@@ -47,7 +57,7 @@ export interface SupplyAdapter {
     excludeListingId?: number | string,
   ): Promise<readonly Listing[]>
 
-  /** 首页精选有效房源（按 isFeatured + lastEffectiveMaintainedAt desc） */
+  /** 首页精选有效房源（按 isFeatured + updatedAt desc） */
   findFeaturedListings(ctx: SearchContext, limit?: number): Promise<readonly Listing[]>
 
   /** 当前城市的有效行政区列表（用于 facet 和筛选器） */
@@ -86,18 +96,15 @@ export type AdapterCallContext = {
 /**
  * 适配器工厂类型
  *
- * Facade 接受工厂函数（懒构造）或实例；
- * 默认使用 `createTransitionalPayloadAdapter()`。
+ * Facade 接受工厂函数（懒构造）或实例；默认使用 `createPayloadSupplyAdapter()`。
  */
 export type SupplyAdapterFactory = () => SupplyAdapter
 
 /**
  * 默认适配器实例（懒单例）
  *
- * M4.7 完成前使用 TransitionalPayloadSupplyAdapter；
- * 之后切换为 PayloadSupplyAdapter（消费服务输出）。
- *
- * 测试与页面可通过参数注入替换实现。
+ * 生产路径使用 PayloadSupplyAdapter（消费统一有效供给服务输出）。
+ * 测试与页面可通过 setDefaultSupplyAdapterFactory 注入替换实现。
  */
 let defaultAdapter: SupplyAdapter | null = null
 let defaultFactory: SupplyAdapterFactory | null = null
@@ -109,9 +116,7 @@ export function setDefaultSupplyAdapterFactory(factory: SupplyAdapterFactory | n
 
 export function getDefaultSupplyAdapter(): SupplyAdapter {
   if (!defaultAdapter) {
-    defaultAdapter = defaultFactory
-      ? defaultFactory()
-      : createTransitionalPayloadAdapter()
+    defaultAdapter = defaultFactory ? defaultFactory() : createPayloadSupplyAdapter()
   }
   return defaultAdapter
 }
@@ -126,18 +131,17 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 }
 
 // ---------------------------------------------------------------------------
-// 过渡实现：基于 Payload Local API + 旧 status=available 谓词
+// 生产实现：统一有效供给谓词 + 逐条精筛
 // ---------------------------------------------------------------------------
 
+/** 候选房源上限：MVP 内存精筛口径，超过封顶（后续优化点）。 */
+const LISTING_CANDIDATE_CAP = 500
+
 /**
- * 过渡实现：基于 Payload Local API + 旧 `status=available` + `building.operationalStatus=active` 谓词
- *
- * ⚠️ 注意（design.md §8、FRONTEND_AGENT.md §6.1）：
- *   - 此实现仅满足契约骨架与开发环境预览；
- *   - 不覆盖审核、举报、媒体完整、商户关系/资格/服务城市、可用性和陈旧等完整谓词；
- *   - M4.7 完成后必须删除此实现并切换到真实服务适配器，不得作为生产降级。
+ * 生产供给适配器：查询层 `getEffectiveSupplyWhere` 粗筛 + 举报暂停排除 +
+ * 逐条 `resolveEffectiveSupply` 精筛，与发布 endpoint、C 端口径完全一致。
  */
-export function createTransitionalPayloadAdapter(): SupplyAdapter {
+export function createPayloadSupplyAdapter(): SupplyAdapter {
   // 懒加载 payload，避免在模块顶层触发配置初始化
   let payloadCache: Awaited<ReturnType<typeof import('payload')['getPayload']>> | null = null
 
@@ -164,9 +168,47 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
     return result.docs.map((d) => d.id)
   }
 
+  /**
+   * 有效供给 where 片段（查询层粗筛）+ 举报暂停排除。
+   * 与 method-specific 约束合并后作为 payload.find 的 where。
+   */
+  async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
+    const payload = await getPayload()
+    const asOf = new Date(ctx.asOf)
+    const where: Record<string, unknown> = { ...getEffectiveSupplyWhere(asOf) }
+    // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
+    const pausedIds = await getPausedListingIds(payload as unknown as PayloadQueryPort)
+    if (pausedIds.length > 0) {
+      where.id = { not_in: pausedIds }
+    }
+    return where
+  }
+
+  /**
+   * 对候选文档逐条跑精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保留 eligible。
+   * 文档需 depth≥1 已展开 building / merchant。
+   */
+  async function fineFilter(
+    docs: readonly Record<string, unknown>[],
+    asOf: Date,
+  ): Promise<Listing[]> {
+    const payload = await getPayload()
+    const kept: Listing[] = []
+    for (const doc of docs) {
+      const supply = await resolveEffectiveSupply(
+        payload as unknown as PayloadQueryPort,
+        doc,
+        asOf,
+      )
+      if (supply.eligible) kept.push(doc as unknown as Listing)
+    }
+    return kept
+  }
+
   return {
     async findEffectiveListings(input, ctx) {
       const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
 
       // 解析 district → building IDs
       let buildingIds: number[] | undefined
@@ -176,19 +218,12 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
         buildingIds = resolved
       }
 
-      // 过渡谓词：旧 status=available + building.operationalStatus=active
-      // ⚠️ 待 M4.7 完成后删除（F1.6）
-      const where: Record<string, unknown> = {
-        status: { equals: 'available' },
-        'building.operationalStatus': { equals: 'active' },
-        deletedAt: { exists: false },
-      }
+      const where = await baseEffectiveWhere(ctx)
 
-      // 上下文中的 city 当前仅作为约束记录；实际 city 过滤由 building.city.slug 完成
+      // 上下文中的 city：由 building.city.slug 过滤
       if (ctx.city) {
         where['building.city.slug'] = { equals: ctx.city }
       }
-
       if (input.listingType && input.listingType.length > 0) {
         where.listingType = { in: [...input.listingType] }
       }
@@ -227,33 +262,31 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
         where.building = { in: buildingIds }
       }
 
-      // 取分页页内全部数据（按 input.pageSize 上限），交由 Facade 在内存中稳定排序与分页。
-      // 过渡实现假定结果集可控；M4.7 后由服务端做条件投影。
-      const limit = Math.min(input.pageSize * 5, 200)
+      // 取候选（上限 LISTING_CANDIDATE_CAP），逐条精筛后交由 Facade 内存排序分页。
+      const limit = Math.min(input.pageSize * 5, LISTING_CANDIDATE_CAP)
       const result = await payload.find({
         collection: 'listings',
         where: where as Where,
         limit,
         pagination: false,
-        depth: 2, // building + district + coverImage
+        depth: 2, // building + district + merchant + coverImage
       })
-      return result.docs as readonly Listing[]
+      return fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
     },
 
-    async findEffectiveListingBySlug(slug) {
+    async findEffectiveListingBySlug(slug, ctx) {
       const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
+      const where = await baseEffectiveWhere(ctx)
+      where.slug = { equals: slug }
       const result = await payload.find({
         collection: 'listings',
-        where: {
-          slug: { equals: slug },
-          status: { equals: 'available' },
-          'building.operationalStatus': { equals: 'active' },
-          deletedAt: { exists: false },
-        },
+        where: where as Where,
         limit: 1,
-        depth: 3, // building + gallery + amenities
+        depth: 3, // building + gallery + amenities + merchant
       })
-      return (result.docs[0] as Listing | undefined) ?? null
+      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      return kept[0] ?? null
     },
 
     async findEffectiveBuildingBySlug(slug) {
@@ -270,17 +303,11 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
       return (result.docs[0] as Building | undefined) ?? null
     },
 
-    async findEffectiveListingsByBuilding(buildingId, _ctx, excludeListingId) {
+    async findEffectiveListingsByBuilding(buildingId, ctx, excludeListingId) {
       const payload = await getPayload()
-      const where: Record<string, unknown> = {
-        building: { equals: buildingId },
-        status: { equals: 'available' },
-        'building.operationalStatus': { equals: 'active' },
-        deletedAt: { exists: false },
-      }
-      if (excludeListingId != null) {
-        where.id = { not_equals: excludeListingId }
-      }
+      const asOf = new Date(ctx.asOf)
+      const where = await baseEffectiveWhere(ctx)
+      where.building = { equals: buildingId }
       const result = await payload.find({
         collection: 'listings',
         where: where as Where,
@@ -288,24 +315,28 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
         pagination: false,
         depth: 2,
       })
-      return result.docs as readonly Listing[]
+      let kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      // 排除自身（在内存中过滤，避免与 pausedIds 的 not_in 冲突）
+      if (excludeListingId != null) {
+        kept = kept.filter((d) => String(d.id) !== String(excludeListingId))
+      }
+      return kept
     },
 
-    async findFeaturedListings(_ctx, limit = 6) {
+    async findFeaturedListings(ctx, limit = 6) {
       const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
+      const where = await baseEffectiveWhere(ctx)
+      where.isFeatured = { equals: true }
       const result = await payload.find({
         collection: 'listings',
-        where: {
-          status: { equals: 'available' },
-          isFeatured: { equals: true },
-          'building.operationalStatus': { equals: 'active' },
-          deletedAt: { exists: false },
-        },
-        limit,
+        where: where as Where,
+        limit: Math.min(limit * 5, LISTING_CANDIDATE_CAP),
         depth: 2,
         sort: '-updatedAt',
       })
-      return result.docs as readonly Listing[]
+      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      return kept.slice(0, limit)
     },
 
     async findEffectiveDistricts(ctx) {
@@ -323,22 +354,20 @@ export function createTransitionalPayloadAdapter(): SupplyAdapter {
       return result.docs as readonly Location[]
     },
 
-    async assertEffectiveListingBySlug(slug) {
-      // 过渡实现：等价于 findEffectiveListingBySlug，仅做存在性校验
-      // M4.7 完成后这里应调用 assertEffectiveListing 服务方法（含完整谓词）
+    async assertEffectiveListingBySlug(slug, ctx) {
+      // 与 findEffectiveListingBySlug 同口径（含完整精筛），用于询盘目标校验
       const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
+      const where = await baseEffectiveWhere(ctx)
+      where.slug = { equals: slug }
       const result = await payload.find({
         collection: 'listings',
-        where: {
-          slug: { equals: slug },
-          status: { equals: 'available' },
-          'building.operationalStatus': { equals: 'active' },
-          deletedAt: { exists: false },
-        },
+        where: where as Where,
         limit: 1,
-        depth: 0,
+        depth: 2, // 精筛需要 building + merchant + gallery
       })
-      return (result.docs[0] as Listing | undefined) ?? null
+      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      return kept[0] ?? null
     },
 
     async findPublishedPageBySlug(slug) {
