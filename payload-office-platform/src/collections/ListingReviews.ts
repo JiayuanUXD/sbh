@@ -27,6 +27,15 @@ export const ListingReviews: CollectionConfig = {
     useAsTitle: 'id',
     defaultColumns: ['listing', 'decision', 'taskStatus', 'submittedBy', 'createdAt'],
     description: '房源审核事件流：提交/撤回/通过/驳回。记录创建后不可修改或删除。',
+    components: {
+      // 整页替换默认列表视图为审核台（M4.5 / R1, R4）：
+      // 待审核队列 + 完整度缺失定位 + 审核历史时间线 + 通过/驳回/撤回 + 可选通过后上架。
+      views: {
+        list: {
+          Component: '/components/admin/ListingReviewQueue',
+        },
+      },
+    },
   },
   access: {
     read: () => true,
