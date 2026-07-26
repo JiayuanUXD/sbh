@@ -13,6 +13,10 @@
  *   - 举报关闭且结论为 partial（部分成立）→ 暂停供给（保守策略，部分成立也需复核）
  *   - 举报关闭且结论为 dismissed（不成立）→ 不暂停供给
  *   - 举报未关闭 → 不因结论暂停（结论仅 closed 时填）
+ *
+ * 证据计数（M6.2 新增）：
+ *   - evidenceCount 反映本次举报附带的证据数量，用于审计与诊断
+ *   - 证据数量不参与"是否暂停"判定（只要结论为 sustained/partial 即暂停）
  */
 
 import type { ReportConclusion, ReportStatus } from './report-status'
@@ -25,6 +29,8 @@ export interface SupplyPauseEffect {
   reason: 'sustained' | 'partial' | 'dismissed' | 'not-closed'
   /** 结论（透传，供审计日志记录） */
   conclusion: ReportConclusion | null
+  /** 证据数量（透传，供审计日志与诊断；状态转换路径不传时为 0） */
+  evidenceCount: number
 }
 
 /**
@@ -50,17 +56,24 @@ export function shouldPauseSupply(
  * 构建供给暂停副作用。
  *
  * 由 report-transition.ts 在状态转换时调用，推导本次转换对供给的影响。
+ * 也可由 report-supply-pause.ts 在关闭后单独调用，传入完整 evidence 数组。
  *
  * 注意：currentSupplyPaused 仅用于判断是否需要"恢复"动作；
  * 本函数只返回是否"应暂停"，恢复逻辑由 M6.2 的 supply pause 服务处理。
+ *
+ * evidence 参数可选：状态转换路径不传（evidenceCount=0），
+ * 供给暂停服务路径传入完整证据数组（evidenceCount=数组长度）。
  */
 export function buildSupplyPauseEffect(params: {
   status: ReportStatus
   conclusion: ReportConclusion | null
   currentSupplyPaused: boolean
+  /** 可选证据数组，用于透传 evidenceCount；缺省视为 0 */
+  evidence?: ReadonlyArray<unknown> | null
 }): SupplyPauseEffect {
   const { status, conclusion } = params
   const pause = shouldPauseSupply(status, conclusion)
+  const evidenceCount = Array.isArray(params.evidence) ? params.evidence.length : 0
 
   let reason: SupplyPauseEffect['reason']
   if (status !== 'closed') {
@@ -77,5 +90,6 @@ export function buildSupplyPauseEffect(params: {
     shouldPause: pause,
     reason,
     conclusion,
+    evidenceCount,
   }
 }

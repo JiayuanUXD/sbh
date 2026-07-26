@@ -24,6 +24,7 @@ import {
   aggregateTypeFromEventType,
   isEventType,
   isAggregateType,
+  type AggregateType,
   type EventType,
 } from './event-types'
 
@@ -54,7 +55,7 @@ export interface DomainEvent<TPayload = Record<string, unknown>> {
   /** 事件类型（如 'listing.published'） */
   eventType: EventType
   /** 聚合类型（如 'listing' / 'report' / 'lead'） */
-  aggregateType: string
+  aggregateType: AggregateType
   /** 聚合 ID（字符串形式，兼容 number / string / uuid） */
   aggregateId: string
   /** 聚合版本号（乐观锁，每次状态变更 +1） */
