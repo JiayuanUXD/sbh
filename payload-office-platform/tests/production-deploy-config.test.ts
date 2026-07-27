@@ -20,14 +20,25 @@ describe('生产部署配置', () => {
     expect(ensurePublic).toBeLessThan(copyPublic)
   })
 
-  it('CloudBase 发布显式启用灰度，不依赖交互式回车选择', () => {
+  it('CloudBase 通过可重试上传和官方 API 显式创建灰度版本', () => {
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
-    const deployCommand = workflow.match(
-      /tcb -e "\$\{\{ secrets\.TCB_ENV_ID \}\}" cloudrun deploy[\s\S]*?--force/,
-    )?.[0]
 
-    expect(deployCommand).toBeDefined()
-    expect(deployCommand).toContain('--traffic')
+    expect(workflow).toContain('DescribeCloudBaseBuildService')
+    expect(workflow).toContain('UpdateCloudRunServer')
+    expect(workflow).toContain(`ReleaseType: "GRAY"`)
+    expect(workflow).toContain('MAX_UPLOAD_ATTEMPTS')
+    expect(workflow).not.toContain('cloudrun deploy')
     expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
+  })
+
+  it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    expect(workflow).toContain(`case "$deploy_status" in`)
+    expect(workflow).toContain('normal)')
+    expect(workflow).toContain('build_failed|deploy_failed)')
+    expect(workflow).not.toContain('sleep 30')
+    expect(workflow).toContain(`if [ "$code" = "404" ]`)
+    expect(workflow).toContain(`if [ "$canary_ok" -lt 1 ]`)
   })
 })
