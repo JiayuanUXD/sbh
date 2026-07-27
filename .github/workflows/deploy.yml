@@ -143,55 +143,30 @@ jobs:
             --body "$request_body" |
             sed -n '/^{/,$p' > "$upload_info"
 
-          MAX_UPLOAD_ATTEMPTS=4 \
-          ARCHIVE_PATH="$archive" \
-          UPLOAD_INFO_PATH="$upload_info" \
-          PACKAGE_INFO_PATH="$package_info" \
-          node <<'NODE'
-          const fs = require('node:fs')
-
-          ;(async () => {
-            const archive = fs.readFileSync(process.env.ARCHIVE_PATH)
-            const response = JSON.parse(
-              fs.readFileSync(process.env.UPLOAD_INFO_PATH, 'utf8'),
-            ).data
-            const headers = Object.fromEntries(
-              (response.UploadHeaders || []).map(({ Key, Value }) => [Key, Value]),
-            )
-            const maxAttempts = Number(process.env.MAX_UPLOAD_ATTEMPTS)
-            let uploaded = false
-
-            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-              try {
-                const result = await fetch(response.UploadUrl, {
-                  method: 'PUT',
-                  headers,
-                  body: archive,
-                })
-                if (!result.ok) throw new Error(`HTTP ${result.status}`)
-                uploaded = true
-                console.log(`代码包上传成功（第 ${attempt} 次尝试）`)
-                break
-              } catch (error) {
-                console.error(`代码包上传失败（第 ${attempt}/${maxAttempts} 次）`)
-                if (attempt === maxAttempts) throw error
-                await new Promise((resolve) => setTimeout(resolve, attempt * 5000))
-              }
-            }
-
-            if (!uploaded) throw new Error('代码包上传未完成')
-            fs.writeFileSync(
-              process.env.PACKAGE_INFO_PATH,
-              JSON.stringify({
-                name: response.PackageName,
-                version: response.PackageVersion,
-              }),
-            )
-          })().catch((error) => {
-            console.error(error instanceof Error ? error.message : String(error))
-            process.exit(1)
-          })
-          NODE
+          upload_url=$(jq -r '.data.UploadUrl' "$upload_info")
+          curl_headers=()
+          while IFS=$'\t' read -r key value; do
+            if [ -n "$key" ]; then
+              curl_headers+=(--header "$key: $value")
+            fi
+          done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$upload_info")
+          curl \
+            --http1.1 \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 4 \
+            --retry-all-errors \
+            --retry-delay 5 \
+            --connect-timeout 20 \
+            --max-time 180 \
+            --upload-file "$archive" \
+            "${curl_headers[@]}" \
+            "$upload_url"
+          jq '{
+            name:.data.PackageName,
+            version:.data.PackageVersion
+          }' "$upload_info" > "$package_info"
 
           package_name=$(jq -r '.name' "$package_info")
           package_version=$(jq -r '.version' "$package_info")
