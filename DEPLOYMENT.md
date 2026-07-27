@@ -49,6 +49,8 @@
 
 `push` 到 `master` 即自动部署到 CloudRun 服务 `sbh`。Workflow：[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
 
+> ⚠️ **当前 deploy 阶段必失败**（2026-07-27 起）：GitHub 托管 Runner 上传代码包 180 秒超时、0 字节。`quality` 质量门仍然有效，可以继续当 PR 门禁用；实际发布请走上面的[本地发布](#本地发布ci-上传通道不可用时的正式路径)。修复方向是换中国大陆/腾讯云内的自托管 Runner。
+
 机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
 
 ### 一次性设置（在仓库 Settings → Secrets and variables → Actions → New repository secret）
@@ -67,10 +69,30 @@
 
 设置完成后,下次 `git push origin master`（改动 `payload-office-platform/`）即触发部署；也可在仓库 Actions 页手动 `Run workflow`。部署日志与冒烟测试（`GET /api/listings` 期望 200）在 Actions 运行记录里查看。
 
+## 本地发布（CI 上传通道不可用时的正式路径）
+
+> **现状（2026-07-27）**：GitHub 托管 Runner 上传代码包到 CloudBase 会连续 5 次 180 秒超时且**收到 0 字节**，CI 的 deploy 阶段因此必失败（quality 质量门是通过的）。同一个包从本地网络 2.4 秒传完。在换成中国大陆/腾讯云内的自托管 Runner 之前，**生产发布走本地脚本**。
+
+脚本：[`scripts/cloudrun-release.sh`](scripts/cloudrun-release.sh)。前置条件是本机 `tcb` CLI 已登录（`tcb login`）。
+
+```bash
+./scripts/cloudrun-release.sh release
+```
+
+`release` 按与 CI 相同的发布纪律串起全流程：打包上传 → 建灰度版本（**0% 流量**）→ 等状态 `normal` → 切 10% 灰度 → 冒烟 → 全量 → 复验，任一步失败立即 `traffic rollback`。也可以分步执行 `status` / `deploy` / `canary <pct>` / `smoke` / `promote` / `rollback`。
+
+脚本里固化了几个踩过的坑，改动前先读注释：
+
+- **打包必须用 `git -C "$REPO_ROOT"`**。在子目录里执行 `git archive HEAD:payload-office-platform`，路径会被相对解析，静默产出 22 字节的**空 zip**。脚本因此在上传前强制校验包大小与 Dockerfile 是否存在。
+- **环境变量不能通过管控面 API 改**。`UpdateCloudRunServer` 的 `Items` 接受 `{Key:"EnvParams",Value:...}` 且不报错，但平台会**静默忽略**——环境变量走 SDK 的 AES-256-CBC 加密通道。改 `DATABASE_URL` / `PAYLOAD_SECRET` 请到 CloudBase 控制台操作。
+- **不用 `set -u`**。macOS 自带 bash 3.2 展开空数组 `${arr[@]}` 会直接报错，而 `UploadHeaders` 目前就是空数组。
+- `tcb` CLI 的 stdout 混有 spinner 输出，取 JSON 必须 `sed -n '/^{/,$p'`。
+
 ## 关键文件
 
 | 文件 | 作用 |
 |------|------|
+| `scripts/cloudrun-release.sh` | 本地发布（灰度→冒烟→全量→回滚），CI 上传不通时的正式路径 |
 | `payload-office-platform/src/payload.config.ts` | DB 适配器 + S3 插件（核心） |
 | `payload-office-platform/package.json` | 依赖、`start` 读 `PORT` |
 | `payload-office-platform/next.config.ts` | turbopack root + images 远程白名单 + 生产安全响应头（OPT-019，无 standalone，用完整镜像） |
