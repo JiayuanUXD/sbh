@@ -14,7 +14,7 @@
  */
 import payload from 'payload'
 import config from '../src/payload.config'
-import { runMigrateLocked } from '../src/lib/runtime/migrate-lock'
+import { closeMigrationDb, runMigrateLocked } from '../src/lib/runtime/migrate-lock'
 
 /** advisory lock 标识（'SBMG' = sbh migration guard），所有实例共用同一 ID 才能互斥 */
 const LOCK_ID = 0x53424d47
@@ -28,6 +28,7 @@ interface PoolClientLike {
 }
 interface PoolLike {
   connect(): Promise<PoolClientLike>
+  end(): Promise<void>
 }
 interface MigratableDb {
   pool: PoolLike
@@ -72,7 +73,7 @@ async function main(): Promise<void> {
     }
   } finally {
     client.release()
-    await db.destroy?.()
+    await closeMigrationDb(db)
   }
 }
 

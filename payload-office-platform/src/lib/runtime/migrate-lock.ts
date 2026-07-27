@@ -20,6 +20,13 @@ export type Sleeper = (ms: number) => Promise<void>
 export type Now = () => number
 export type StatusReporter = (msg: string) => void
 
+type ClosableMigrationDb = {
+  destroy?: () => Promise<void>
+  pool: {
+    end: () => Promise<void>
+  }
+}
+
 export type MigrateLockedResult = 'acquired' | 'timeout'
 
 export type RunMigrateLockedOptions = {
@@ -72,4 +79,16 @@ export async function runMigrateLocked(
     await release().catch(() => {})
   }
   return 'acquired'
+}
+
+/**
+ * Payload 3.86 的 postgres adapter destroy() 只重置 adapter 状态，不会关闭 pg.Pool。
+ * 若不显式 pool.end()，一次性迁移脚本会被空闲连接挂住，容器无法继续执行 Web 服务。
+ */
+export async function closeMigrationDb(db: ClosableMigrationDb): Promise<void> {
+  try {
+    await db.destroy?.()
+  } finally {
+    await db.pool.end()
+  }
 }

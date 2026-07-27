@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { runMigrateLocked } from '../src/lib/runtime/migrate-lock'
+import { closeMigrationDb, runMigrateLocked } from '../src/lib/runtime/migrate-lock'
 
 const noop = () => undefined
 
@@ -111,5 +111,34 @@ describe('runMigrateLocked: advisory lock 互斥迁移', () => {
     // 第一次 retry（false），然后 acquired
     expect(onStatus).toHaveBeenCalledWith('retry')
     expect(onStatus).toHaveBeenCalledWith('acquired')
+  })
+})
+
+describe('closeMigrationDb: 迁移脚本退出前释放连接池', () => {
+  it('先清理 adapter，再关闭 PostgreSQL pool，避免进程因空闲连接悬挂', async () => {
+    const calls: string[] = []
+    const destroy = vi.fn(async () => {
+      calls.push('destroy')
+    })
+    const end = vi.fn(async () => {
+      calls.push('end')
+    })
+
+    await closeMigrationDb({ destroy, pool: { end } })
+
+    expect(calls).toEqual(['destroy', 'end'])
+  })
+
+  it('adapter 清理失败时仍关闭 PostgreSQL pool', async () => {
+    const end = vi.fn().mockResolvedValue(undefined)
+
+    await expect(
+      closeMigrationDb({
+        destroy: vi.fn().mockRejectedValue(new Error('destroy failed')),
+        pool: { end },
+      }),
+    ).rejects.toThrow('destroy failed')
+
+    expect(end).toHaveBeenCalledTimes(1)
   })
 })
