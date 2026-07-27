@@ -39,6 +39,9 @@
 
 ## 尚未验证
 
-- 未提交、未推送。
-- 未生成新 CloudBase 版本。
+- 迁移修复提交 `617394a` 已推送，GitHub Actions `30257724309` 的 quality 全部通过。
+- CI 使用的 CloudBase CLI 在创建构建任务前返回 HTTP 400；显式 API 上传同一源码包成功，确认不是代码包或权限问题。
+- 显式灰度版本 `sbh-010` 构建时发现 Dockerfile 复制不存在的 `/app/public`；版本保持 0% 流量。
+- 已增加 Docker 构建上下文与显式灰度参数回归测试，并修复空 `public` 目录处理。
+- 本机没有 Docker 命令，镜像层面的最终验证由下一次 CloudBase 构建承担。
 - 尚待验证灰度 `/api/health`、`/`、`/admin` 及真实生产数据迁移结果。

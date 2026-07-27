@@ -121,16 +121,15 @@ jobs:
         run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
 
       - name: Deploy 新版本（灰度，初始 0% 流量）
-        # --force 跳过 Y/n 确认；CLOUDBASE_CI=1 跳过 telemetry；
-        # 但"是否启用灰度部署？"是 list 类型提示，--force 不挡，CI 无 tty 会 exit 130。
-        # 用 printf 喂回车 -> 选默认项。
-        # tcb cloudrun deploy 默认把新版本发布为灰度版本（流量 0），线上流量仍在旧版本。
+        # --force 跳过 Y/n 确认；--traffic 显式启用灰度，避免交互默认项误选全量发布。
+        # 新版本发布为灰度版本（流量 0），线上流量仍在旧版本。
         # 失败保护：新版本创建/构建/启动失败时不会进入灰度流程，旧版本继续承接。
         run: |
-          printf '\n\n\n' | tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun deploy \
+          tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun deploy \
             -s sbh \
             --source "${{ github.workspace }}/payload-office-platform" \
             --port 80 \
+            --traffic \
             --force
 
       - name: 等待新版本就绪 + 切 10% 灰度

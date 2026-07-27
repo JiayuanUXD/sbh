@@ -26,6 +26,8 @@ COPY . .
 # NEXT_PUBLIC_SITE_URL：构建期 /sitemap.xml 与 /robots.txt page data 收集会触发
 # site-config fail-closed（生产缺此值抛错），必须在此注入（Next.js 内联 NEXT_PUBLIC_*）。
 ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+# Git 不跟踪空目录；没有静态资源时也要保留 public，供 runner 阶段稳定复制。
+RUN mkdir -p public
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 
 # ---------- runner ----------
