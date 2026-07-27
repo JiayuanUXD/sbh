@@ -4,10 +4,18 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "public"."enum_locations_status" AS ENUM('active', 'disabled');
   ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE text;
+  UPDATE "locations"
+  SET "type" = CASE "type"
+    WHEN 'business-district' THEN 'business_area'
+    WHEN 'metro' THEN 'metro_station'
+    ELSE "type"
+  END;
   DROP TYPE "public"."enum_locations_type";
   CREATE TYPE "public"."enum_locations_type" AS ENUM('city', 'district', 'business_area', 'metro_line', 'metro_station');
   ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE "public"."enum_locations_type" USING "type"::"public"."enum_locations_type";
-  ALTER TABLE "locations" ADD COLUMN "immutable_code" varchar NOT NULL;
+  ALTER TABLE "locations" ADD COLUMN "immutable_code" varchar;
+  UPDATE "locations" SET "immutable_code" = 'LEGACY_LOC_' || "id"::text;
+  ALTER TABLE "locations" ALTER COLUMN "immutable_code" SET NOT NULL;
   ALTER TABLE "locations" ADD COLUMN "status" "enum_locations_status" DEFAULT 'active' NOT NULL;
   ALTER TABLE "locations" ADD COLUMN "frontend_visible" boolean DEFAULT false;
   ALTER TABLE "locations" ADD COLUMN "center_latitude" numeric;
@@ -19,6 +27,13 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE text;
+  UPDATE "locations"
+  SET "type" = CASE "type"
+    WHEN 'business_area' THEN 'business-district'
+    WHEN 'metro_line' THEN 'metro'
+    WHEN 'metro_station' THEN 'metro'
+    ELSE "type"
+  END;
   DROP TYPE "public"."enum_locations_type";
   CREATE TYPE "public"."enum_locations_type" AS ENUM('city', 'district', 'business-district', 'metro');
   ALTER TABLE "locations" ALTER COLUMN "type" SET DATA TYPE "public"."enum_locations_type" USING "type"::"public"."enum_locations_type";
