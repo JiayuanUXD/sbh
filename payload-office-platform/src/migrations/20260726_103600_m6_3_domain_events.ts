@@ -33,7 +33,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "domain_events_rels" ADD CONSTRAINT "domain_events_rels_parent_fk" FOREIGN KEY ("parent_id") REFERENCES "public"."domain_events"("id") ON DELETE cascade ON UPDATE no action;
   ALTER TABLE "domain_events_rels" ADD CONSTRAINT "domain_events_rels_users_fk" FOREIGN KEY ("users_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "domain_events_event_id_idx" ON "domain_events" USING btree ("event_id");
-  CREATE UNIQUE INDEX "domain_events_event_id_unique" ON "domain_events" USING btree ("event_id");
   CREATE INDEX "domain_events_event_type_idx" ON "domain_events" USING btree ("event_type");
   CREATE INDEX "domain_events_aggregate_type_idx" ON "domain_events" USING btree ("aggregate_type");
   CREATE INDEX "domain_events_aggregate_id_idx" ON "domain_events" USING btree ("aggregate_id");
