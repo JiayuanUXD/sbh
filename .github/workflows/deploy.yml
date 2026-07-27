@@ -68,6 +68,13 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Payload types & importmap
+        # payload-types.ts 被 gitignore，CI checkout 后不存在；typecheck/build 前必须
+        # 先生成（与 Dockerfile 构建阶段一致）。generate:types 只读 payload.config、
+        # 不连库，无 DB/secret 也安全。漏掉会让 typecheck 报 TS2307 Cannot find module
+        # '@/payload-types'，preflight 失败 -> deploy 不跑 -> 生产滞后。
+        run: pnpm generate:types && pnpm payload generate:importmap
+
       - name: Lint
         run: pnpm lint
 

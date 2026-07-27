@@ -22,14 +22,19 @@ jobs:
       SQLITE_URL: file:./m0-ci.sqlite
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: payload-office-platform/.nvmrc
           cache: pnpm
           cache-dependency-path: payload-office-platform/pnpm-lock.yaml
-      - run: corepack enable
-      - run: corepack prepare pnpm@8.6.1 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Generate Payload types & importmap
+        # payload-types.ts 被 gitignore，CI 里不存在；typecheck/build 前必须先生成
+        #（与 Dockerfile 一致）。generate:types 只读 payload.config、不连库。
+        run: pnpm generate:types && pnpm payload generate:importmap
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm migrate:dry-run
@@ -64,13 +69,14 @@ jobs:
       DATABASE_URL: postgres://payload:payload@127.0.0.1:5432/payload_m0
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: payload-office-platform/.nvmrc
           cache: pnpm
           cache-dependency-path: payload-office-platform/pnpm-lock.yaml
-      - run: corepack enable
-      - run: corepack prepare pnpm@8.6.1 --activate
       - run: pnpm install --frozen-lockfile
       - name: Validate migration source before writes
         run: pnpm migrate:dry-run
