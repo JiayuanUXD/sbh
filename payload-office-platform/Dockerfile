@@ -23,6 +23,9 @@ COPY . .
 # 在 hydration 阶段崩溃白屏（含 login 页）。构建期强制重生成，避免有人改
 # config（加富文本/存储等 client 组件）后忘了本地生成导致线上后台白屏。
 # 构建期不连库：首页 force-dynamic，避免无 DB 时构建失败
+# NEXT_PUBLIC_SITE_URL：构建期 /sitemap.xml 与 /robots.txt page data 收集会触发
+# site-config fail-closed（生产缺此值抛错），必须在此注入（Next.js 内联 NEXT_PUBLIC_*）。
+ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 
 # ---------- runner ----------
@@ -31,6 +34,9 @@ RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# NEXT_PUBLIC_SITE_URL：运行时 config-guard（OPT-015 fail-closed）校验 https + 非 localhost。
+# 烤进镜像，避免依赖 CloudRun 控制台单独配置（tcb deploy 不传 env-vars）。
+ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
 ENV NEXT_TELEMETRY_DISABLED=1
 # CloudRun 服务 Port=80，平台把流量发到 80；next start 读 PORT env 监听。
 # 平台注入的 PORT 会覆盖此默认值，二者一致即可。

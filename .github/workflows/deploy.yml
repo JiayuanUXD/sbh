@@ -48,6 +48,10 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      # next build 收集 /sitemap.xml page data 时 site-config fail-closed 需此值；
+      # 与 Dockerfile 构建阶段 ENV 一致。
+      NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
     defaults:
       run:
         working-directory: payload-office-platform
