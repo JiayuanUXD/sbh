@@ -63,4 +63,9 @@ EXPOSE 80
 # 多实例并发拉起时，PG advisory lock 保证只有一个实例真正跑迁移，
 # 其余实例等待锁释放后跑幂等 skip；避免并发迁移踩 schema 冲突。
 # 不用 disableOnInit：migrate-locked 内部 payload.init 会触发 onInit -> config-guard（OPT-015 fail-closed）。
-CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && pnpm start"]
+#
+# `&&` 依赖迁移脚本**确定性退出**：Payload adapter 会永久占用一个 PostgreSQL client，
+# pool.end() 因此永不返回，脚本必须自己 process.exit(0)（见 src/lib/runtime/migrate-lock.ts），
+# 否则 Shell 卡在这一步、Next.js 永不启动、80 端口无人监听（sbh-011 / sbh-012 的失败原因）。
+# exec：让 next server 取代 shell 成为 PID 1，CloudRun 的 SIGTERM 才能直达进程做优雅退出。
+CMD ["sh", "-c", "pnpm exec tsx scripts/migrate-locked.ts && exec pnpm start"]

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
-import { closeMigrationDb, runMigrateLocked } from '../src/lib/runtime/migrate-lock'
+import {
+  closeMigrationDb,
+  flushProcessOutput,
+  runMigrateLocked,
+} from '../src/lib/runtime/migrate-lock'
 
 const noop = () => undefined
 
@@ -114,8 +118,16 @@ describe('runMigrateLocked: advisory lock 互斥迁移', () => {
   })
 })
 
-describe('closeMigrationDb: 迁移脚本退出前释放连接池', () => {
-  it('先清理 adapter，再关闭 PostgreSQL pool，避免进程因空闲连接悬挂', async () => {
+/** 立即触发的可注入计时器：单测不依赖真实时间 */
+const immediateSchedule = (fn: () => void) => {
+  const timer = setTimeout(fn, 0)
+  return () => clearTimeout(timer)
+}
+/** 永不触发的计时器：用于断言"没超时"的路径 */
+const neverSchedule = () => () => undefined
+
+describe('closeMigrationDb: 迁移脚本退出前尽力释放连接池', () => {
+  it('先清理 adapter，再关闭 PostgreSQL pool', async () => {
     const calls: string[] = []
     const destroy = vi.fn(async () => {
       calls.push('destroy')
@@ -124,21 +136,86 @@ describe('closeMigrationDb: 迁移脚本退出前释放连接池', () => {
       calls.push('end')
     })
 
-    await closeMigrationDb({ destroy, pool: { end } })
+    const result = await closeMigrationDb({ destroy, pool: { end } }, { schedule: neverSchedule })
 
+    expect(result).toBe('closed')
     expect(calls).toEqual(['destroy', 'end'])
   })
 
-  it('adapter 清理失败时仍关闭 PostgreSQL pool', async () => {
+  it('adapter 清理失败时仍关闭 PostgreSQL pool，且不向上抛错', async () => {
     const end = vi.fn().mockResolvedValue(undefined)
 
-    await expect(
-      closeMigrationDb({
+    const result = await closeMigrationDb(
+      {
         destroy: vi.fn().mockRejectedValue(new Error('destroy failed')),
         pool: { end },
-      }),
-    ).rejects.toThrow('destroy failed')
+      },
+      { schedule: neverSchedule },
+    )
 
+    // 迁移已提交，关连接失败不能让部署失败，只如实返回 'failed'
+    expect(result).toBe('failed')
     expect(end).toHaveBeenCalledTimes(1)
+  })
+
+  it('pool.end() 永不返回时超时返回 timeout，而不是永久挂起', async () => {
+    // 复现 Payload 3.86 的真实行为：adapter 永久占用一个 client，pool.end() 永远 pending
+    const end = vi.fn(() => new Promise<void>(() => {}))
+
+    const result = await closeMigrationDb(
+      { destroy: vi.fn().mockResolvedValue(undefined), pool: { end } },
+      { schedule: immediateSchedule },
+    )
+
+    expect(result).toBe('timeout')
+  })
+
+  it('pool.end() 抛错时返回 failed，不向上抛', async () => {
+    const result = await closeMigrationDb(
+      { pool: { end: vi.fn().mockRejectedValue(new Error('end failed')) } },
+      { schedule: neverSchedule },
+    )
+
+    expect(result).toBe('failed')
+  })
+})
+
+describe('flushProcessOutput: process.exit 前冲刷日志', () => {
+  it('等待每个流的写回调，保证最后几行日志不被 exit 截断', async () => {
+    const written: string[] = []
+    const makeStream = (name: string) => ({
+      write: (chunk: string, cb: () => void) => {
+        written.push(name)
+        setTimeout(cb, 0)
+        return true
+      },
+    })
+
+    await flushProcessOutput({
+      streams: [makeStream('stdout'), makeStream('stderr')],
+      schedule: neverSchedule,
+    })
+
+    expect(written).toEqual(['stdout', 'stderr'])
+  })
+
+  it('流永不回调时超时返回，不阻塞退出', async () => {
+    const stuck = { write: () => true }
+
+    await expect(
+      flushProcessOutput({ streams: [stuck], schedule: immediateSchedule }),
+    ).resolves.toBeUndefined()
+  })
+
+  it('流写入抛错时不影响退出', async () => {
+    const broken = {
+      write: () => {
+        throw new Error('EPIPE')
+      },
+    }
+
+    await expect(
+      flushProcessOutput({ streams: [broken], schedule: neverSchedule }),
+    ).resolves.toBeUndefined()
   })
 })

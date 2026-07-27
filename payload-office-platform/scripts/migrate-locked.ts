@@ -14,7 +14,11 @@
  */
 import payload from 'payload'
 import config from '../src/payload.config'
-import { closeMigrationDb, runMigrateLocked } from '../src/lib/runtime/migrate-lock'
+import {
+  closeMigrationDb,
+  flushProcessOutput,
+  runMigrateLocked,
+} from '../src/lib/runtime/migrate-lock'
 
 /** advisory lock 标识（'SBMG' = sbh migration guard），所有实例共用同一 ID 才能互斥 */
 const LOCK_ID = 0x53424d47
@@ -73,11 +77,34 @@ async function main(): Promise<void> {
     }
   } finally {
     client.release()
-    await closeMigrationDb(db)
+    const closed = await closeMigrationDb(db)
+    if (closed !== 'closed') {
+      // 不是错误：Payload adapter 会永久占用一个 client，pool.end() 本就可能不返回。
+      // 记一行日志便于线上确认走到了这里，随后由 exitProcess 强制退出。
+      payload.logger.warn(`[migrate-locked] 连接池未能优雅关闭（${closed}），将强制退出进程`)
+    }
   }
 }
 
-main().catch((err) => {
-  payload.logger.error({ err }, '[migrate-locked] 迁移失败')
-  process.exit(1)
-})
+/**
+ * 一次性迁移进程必须**确定性退出**，否则 Dockerfile 的
+ * `pnpm exec tsx scripts/migrate-locked.ts && pnpm start` 永远等不到 Next.js 启动。
+ *
+ * 迁移已经提交到 payload_migrations，此刻残留的句柄（Payload adapter 永不 release 的
+ * PostgreSQL client、S3 keep-alive socket 等）都没有清理价值，直接退出是安全的。
+ */
+async function exitProcess(code: number): Promise<never> {
+  await flushProcessOutput()
+  process.exit(code)
+}
+
+main()
+  .then(async () => {
+    payload.logger.info('[migrate-locked] 迁移阶段结束，退出码 0，交给 pnpm start')
+    await exitProcess(0)
+  })
+  .catch(async (err) => {
+    payload.logger.error({ err }, '[migrate-locked] 迁移失败')
+    // 退出码 1 阻止 Shell 继续执行 pnpm start，带着失败的迁移启动服务更危险
+    await exitProcess(1)
+  })

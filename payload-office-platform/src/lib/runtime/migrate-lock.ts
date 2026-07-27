@@ -27,6 +27,17 @@ type ClosableMigrationDb = {
   }
 }
 
+/** setTimeout 的可注入形式，返回取消函数；便于单测不依赖真实计时器 */
+export type TimerCanceller = () => void
+export type TimerScheduler = (fn: () => void, ms: number) => TimerCanceller
+
+const defaultScheduler: TimerScheduler = (fn, ms) => {
+  const timer = setTimeout(fn, ms)
+  // 看门狗自身不能把进程钉在事件循环里
+  timer.unref?.()
+  return () => clearTimeout(timer)
+}
+
 export type MigrateLockedResult = 'acquired' | 'timeout'
 
 export type RunMigrateLockedOptions = {
@@ -81,14 +92,109 @@ export async function runMigrateLocked(
   return 'acquired'
 }
 
+export type CloseMigrationDbResult = 'closed' | 'failed' | 'timeout'
+
+export type CloseMigrationDbOptions = {
+  timeoutMs?: number
+  schedule?: TimerScheduler
+}
+
+/** 关闭连接池的等待上界：超过就放弃优雅关闭，交由调用方强制退出 */
+export const CLOSE_DB_TIMEOUT_MS = 5_000
+
 /**
- * Payload 3.86 的 postgres adapter destroy() 只重置 adapter 状态，不会关闭 pg.Pool。
- * 若不显式 pool.end()，一次性迁移脚本会被空闲连接挂住，容器无法继续执行 Web 服务。
+ * 尽力关闭迁移用的数据库连接，**带超时上界且绝不抛错**。
+ *
+ * 为什么必须有上界（sbh-011 / sbh-012 启动失败的真因）：
+ *   1. Payload 3.86 postgres adapter 的 destroy() 只重置 adapter 内部状态，不碰 pg.Pool。
+ *   2. adapter 的 connect() 里 connectWithReconnect 会 `await pool.connect()` 取一个 client
+ *      挂 'error' 监听，**并且永不 release**（见 @payloadcms/db-postgres/dist/connect.js）。
+ *   3. pg 的 pool.end() 会等所有 checked-out client 归还 —— 那个 client 永远不还，
+ *      于是 pool.end() 永久 pending，一次性迁移进程卡在"迁移完成"之后，
+ *      Shell 里的 `&& pnpm start` 永远不执行，容器不监听 80，健康检查失败。
+ *
+ * 所以这里只做"尽力而为"的清理：能关就关，关不掉就如实返回状态，
+ * 由脚本入口显式 process.exit 结束进程（迁移已提交，退出是安全的）。
  */
-export async function closeMigrationDb(db: ClosableMigrationDb): Promise<void> {
+export async function closeMigrationDb(
+  db: ClosableMigrationDb,
+  opts: CloseMigrationDbOptions = {},
+): Promise<CloseMigrationDbResult> {
+  const { timeoutMs = CLOSE_DB_TIMEOUT_MS, schedule = defaultScheduler } = opts
+
+  const closing: Promise<CloseMigrationDbResult> = (async () => {
+    try {
+      try {
+        await db.destroy?.()
+      } finally {
+        await db.pool.end()
+      }
+      return 'closed'
+    } catch {
+      // 迁移已经提交，关连接失败不该让部署失败
+      return 'failed'
+    }
+  })()
+
+  let cancel: TimerCanceller = () => {}
+  const timedOut = new Promise<CloseMigrationDbResult>((resolve) => {
+    cancel = schedule(() => resolve('timeout'), timeoutMs)
+  })
+
   try {
-    await db.destroy?.()
+    return await Promise.race([closing, timedOut])
   } finally {
-    await db.pool.end()
+    cancel()
+  }
+}
+
+type WritableLike = {
+  write: (chunk: string, cb: () => void) => unknown
+}
+
+export type FlushOutputOptions = {
+  streams?: WritableLike[]
+  timeoutMs?: number
+  schedule?: TimerScheduler
+}
+
+/** 冲刷输出的等待上界：日志重要，但不能为了日志卡住退出 */
+export const FLUSH_OUTPUT_TIMEOUT_MS = 1_000
+
+/**
+ * 在 process.exit 前把 stdout/stderr 写穿。
+ *
+ * 容器里 stdout 是管道（异步写），直接 process.exit 会截掉最后几行日志——
+ * 而这几行恰好是判断"迁移是否真的走完"的唯一证据。同样带超时上界。
+ */
+export async function flushProcessOutput(opts: FlushOutputOptions = {}): Promise<void> {
+  const {
+    streams = [process.stdout, process.stderr],
+    timeoutMs = FLUSH_OUTPUT_TIMEOUT_MS,
+    schedule = defaultScheduler,
+  } = opts
+
+  const drained = Promise.all(
+    streams.map(
+      (stream) =>
+        new Promise<void>((resolve) => {
+          try {
+            stream.write('', () => resolve())
+          } catch {
+            resolve()
+          }
+        }),
+    ),
+  ).then(() => undefined)
+
+  let cancel: TimerCanceller = () => {}
+  const timedOut = new Promise<void>((resolve) => {
+    cancel = schedule(() => resolve(), timeoutMs)
+  })
+
+  try {
+    await Promise.race([drained, timedOut])
+  } finally {
+    cancel()
   }
 }
