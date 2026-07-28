@@ -104,30 +104,42 @@ describe('resolveAdminNavigation', () => {
   })
 
   it('配置遍历失败时，为有 dashboard 权限的用户返回工作台安全回退', () => {
+    let canReadCollectionCalls = 0
+    const canReadCollection = (slug: string): boolean => {
+      canReadCollectionCalls += 1
+      expect(slug).toBe('tasks')
+      throw new Error('collection access unavailable')
+    }
     const navigation = resolveAdminNavigation({
       groups: ADMIN_NAV_GROUPS,
       permission: makePermission({
         menuPermissions: new Set(['dashboard', 'todos']),
+        operationPermissions: new Set(['task:read']),
       }),
-      canReadCollection: () => {
-        throw new Error('collection access unavailable')
-      },
+      canReadCollection,
     })
 
+    expect(canReadCollectionCalls).toBe(1)
     expect(visibleItemIds(navigation)).toEqual(['workspace', 'overview'])
   })
 
   it('配置遍历失败时，不为无 dashboard 权限的用户提升可见性', () => {
+    let canReadCollectionCalls = 0
+    const canReadCollection = (slug: string): boolean => {
+      canReadCollectionCalls += 1
+      expect(slug).toBe('tasks')
+      throw new Error('collection access unavailable')
+    }
     const navigation = resolveAdminNavigation({
       groups: ADMIN_NAV_GROUPS,
       permission: makePermission({
         menuPermissions: new Set(['todos']),
+        operationPermissions: new Set(['task:read']),
       }),
-      canReadCollection: () => {
-        throw new Error('collection access unavailable')
-      },
+      canReadCollection,
     })
 
+    expect(canReadCollectionCalls).toBe(1)
     expect(navigation).toEqual([])
   })
 })
