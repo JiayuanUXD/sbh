@@ -55,6 +55,12 @@ import { createOverviewEndpoint } from './endpoints/overview-endpoint'
 import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-endpoint'
 import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
+import {
+  FORM_SUBMISSION_DEFAULT_COLUMNS,
+  appendFormSubmissionStatusFields,
+  formSubmissionUpdateAccess,
+  protectFormSubmissionStatus,
+} from './domain/forms/submission-status'
 import { serializedSQLiteAdapter } from './lib/serialized-sqlite-adapter'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 
@@ -234,6 +240,16 @@ export default buildConfig({
         labels: {
           singular: '表单提交',
           plural: '表单提交记录',
+        },
+        admin: {
+          defaultColumns: [...FORM_SUBMISSION_DEFAULT_COLUMNS],
+        },
+        fields: appendFormSubmissionStatusFields,
+        access: {
+          update: formSubmissionUpdateAccess,
+        },
+        hooks: {
+          beforeChange: [protectFormSubmissionStatus],
         },
       },
     }),

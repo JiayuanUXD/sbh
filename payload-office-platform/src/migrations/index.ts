@@ -18,6 +18,7 @@ import * as migration_20260726_110000_m5_1_crm_collections from './20260726_1100
 import * as migration_20260726_140000_m5_2_leads_inquiry_context from './20260726_140000_m5_2_leads_inquiry_context';
 import * as migration_20260726_150000_opt017_inquiry_rate_limit from './20260726_150000_opt017_inquiry_rate_limit';
 import * as migration_20260728_180000_opt_021_admin_navigation_roles from './20260728_180000_opt_021_admin_navigation_roles';
+import * as migration_20260728_181000_opt_021_form_submission_status from './20260728_181000_opt_021_form_submission_status';
 
 export const migrations = [
   {
@@ -119,5 +120,10 @@ export const migrations = [
     up: migration_20260728_180000_opt_021_admin_navigation_roles.up,
     down: migration_20260728_180000_opt_021_admin_navigation_roles.down,
     name: '20260728_180000_opt_021_admin_navigation_roles',
+  },
+  {
+    up: migration_20260728_181000_opt_021_form_submission_status.up,
+    down: migration_20260728_181000_opt_021_form_submission_status.down,
+    name: '20260728_181000_opt_021_form_submission_status',
   },
 ];
