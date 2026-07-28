@@ -88,6 +88,19 @@ describe('permission-codes/isRegisteredMenuCode', () => {
     expect(isRegisteredMenuCode('roles')).toBe(true)
   })
 
+  it('后台主导航使用的插件与系统集合编码均已注册', () => {
+    for (const code of [
+      'pages',
+      'media',
+      'forms',
+      'form-submissions',
+      'search',
+      'domain-events',
+    ]) {
+      expect(isRegisteredMenuCode(code)).toBe(true)
+    }
+  })
+
   it('未注册菜单编码 → false', () => {
     expect(isRegisteredMenuCode('unknown-menu')).toBe(false)
     expect(isRegisteredMenuCode('Dashboard')).toBe(false) // 大小写敏感

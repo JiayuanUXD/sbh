@@ -111,7 +111,7 @@ async function seed() {
   const payload = await getPayload({ config })
 
   // === M1.2：内置角色种子（ADM / OPS / MGR / BRK / CSR）===
-  // 内置角色不可删除或改码；首次 seed 时创建，已存在则按 code 跳过。
+  // 内置角色不可删除或改码；重复 seed 时按 code 收敛名称、描述和权限。
   for (const role of Object.values(BUILTIN_ROLES)) {
     const existing = await payload.find({
       collection: 'roles',
@@ -121,7 +121,19 @@ async function seed() {
       overrideAccess: true,
     })
     if (existing.docs[0]) {
-      payload.logger.info(`角色 ${role.code} 已存在，跳过 seed`)
+      await payload.update({
+        collection: 'roles',
+        id: existing.docs[0].id,
+        data: {
+          name: role.name,
+          description: role.description,
+          menuPermissions: role.menuPermissions,
+          operationPermissions: role.operationPermissions,
+          fieldPermissions: role.fieldPermissions,
+        },
+        overrideAccess: true,
+      })
+      payload.logger.info(`角色 ${role.code} 已存在，已更新 fixture 权限`)
       continue
     }
     await payload.create({
