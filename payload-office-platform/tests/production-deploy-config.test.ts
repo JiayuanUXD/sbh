@@ -24,6 +24,14 @@ describe('生产部署配置', () => {
     expect(script).not.toContain('grep -q " Dockerfile$"')
   })
 
+  it('本地发布脚本等待流量实际收敛后再继续', () => {
+    const script = readFileSync(resolve(repositoryRoot, 'scripts/cloudrun-release.sh'), 'utf8')
+
+    expect(script).toContain('wait_traffic "$expected"')
+    expect(script).toContain('wait_traffic "100"')
+    expect(script).toContain('流量在 60 秒内未收敛')
+  })
+
   it('Docker builder 始终提供可复制的 public 目录', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const ensurePublic = dockerfile.indexOf('RUN mkdir -p public')

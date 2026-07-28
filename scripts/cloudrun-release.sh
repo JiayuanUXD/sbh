@@ -176,6 +176,27 @@ cmd_status() {
   echo "$detail" | jq -r '.data.OnlineVersionInfos[] | "  \(.VersionName) -> \(.FlowRatio)%"'
 }
 
+wait_traffic() {
+  local expected="$1" attempt detail actual
+
+  for attempt in $(seq 1 20); do
+    detail="$(tcb_api tcbr DescribeCloudRunServerDetail 2022-02-17 \
+      "$(jq -cn --arg envId "$ENV_ID" --arg svc "$SERVICE" '{EnvId:$envId,ServerName:$svc}')")"
+    actual="$(echo "$detail" | jq -r \
+      '[.data.OnlineVersionInfos[].FlowRatio | tonumber] | sort | map(tostring) | join(",")')"
+
+    if [ "$actual" = "$expected" ]; then
+      ok "流量已收敛：$actual"
+      return 0
+    fi
+
+    printf '[%s/20] 等待流量收敛：当前 %s，期望 %s\n' "$attempt" "$actual" "$expected"
+    sleep 3
+  done
+
+  die "流量在 60 秒内未收敛：期望 $expected"
+}
+
 cmd_deploy() {
   local archive info task_id version
   archive="$(build_package)"
@@ -189,12 +210,20 @@ cmd_deploy() {
 }
 
 cmd_canary() {
-  local pct="$1"
+  local pct="$1" stable expected
   [ -n "$pct" ] || die "用法：$0 canary <百分比>"
   echo "$pct" | grep -qE '^[0-9]+$' || die "百分比必须是整数"
   [ "$pct" -ge 0 ] && [ "$pct" -le 100 ] || die "百分比需在 0–100 之间"
+  stable="$((100 - pct))"
+  if [ "$stable" -le "$pct" ]; then
+    expected="$stable,$pct"
+  else
+    expected="$pct,$stable"
+  fi
+
   log "切 $pct% 流量给灰度版本"
-  tcb -e "$ENV_ID" cloudrun traffic -s "$SERVICE" --stable "$((100 - pct))" --canary "$pct"
+  tcb -e "$ENV_ID" cloudrun traffic -s "$SERVICE" --stable "$stable" --canary "$pct"
+  wait_traffic "$expected"
   ok "流量已调整"
   cmd_status
 }
@@ -236,6 +265,7 @@ cmd_smoke() {
 cmd_promote() {
   log "全量发布"
   tcb -e "$ENV_ID" cloudrun traffic promote -s "$SERVICE"
+  wait_traffic "100"
   ok "全量发布完成"
   cmd_status
 }

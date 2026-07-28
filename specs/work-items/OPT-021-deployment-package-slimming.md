@@ -46,15 +46,15 @@
 ## 7. 验收
 
 - 对应 PRD条款：不适用。
-- 自动化测试：生产部署配置测试 6/6；全量单元测试 2019/2019。
+- 自动化测试：生产部署配置测试 8/8；全量单元测试 2021/2021。
 - 浏览器路径：不适用，未修改页面、路由或交互。
 - 数据/迁移检查：不适用。
 
 ## 8. 结果
 
 - 修改文件：`payload-office-platform/.gitattributes`、`payload-office-platform/tests/production-deploy-config.test.ts`、`.github/workflows/deploy.yml`、`DEPLOYMENT.md`。
-- 实际结果：部署 ZIP 约 849 KB，`artifacts/` 与 `tests/` 均未进入归档。
-- 验证摘要：Git Archive 清单与自动化测试均通过。
+- 实际结果：部署 ZIP 约 852 KB，`artifacts/` 与 `tests/` 均未进入归档；CloudBase 版本 `sbh-015` 已全量发布。
+- 验证摘要：Git Archive 清单、自动化测试、灰度与全量后生产冒烟均通过。
 - 详细证据：`../../artifacts/verification/OPT-021/README.md`
-- 剩余风险：尚未在本次任务内触发真实生产部署；本机 Node.js 为 24.14.0，而项目声明 Node 22.x。
-- 下一步：提交并推送当前变更后观察 GitHub Actions 上传耗时和 CloudBase 灰度部署结果。
+- 剩余风险：本机 Node.js 为 24.14.0，而项目声明 Node 22.x；lint 保留 8 条既有警告。
+- 下一步：将当前分支推送并合并到 `master`，使 GitHub Actions 与生产部署记录保持一致。
