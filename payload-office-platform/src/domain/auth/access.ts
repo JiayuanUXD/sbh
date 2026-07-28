@@ -58,12 +58,25 @@ export async function getPermissionContext(
   if (req[PERM_CTX_CACHE_KEY] !== undefined) {
     return req[PERM_CTX_CACHE_KEY]!
   }
+  const ctx = await derivePermissionContextFromRequest(req)
+  req[PERM_CTX_CACHE_KEY] = ctx
+  return ctx
+}
+
+/**
+ * Always derive a fresh permission context from the authenticated request user.
+ *
+ * Security-sensitive hooks that must remain authoritative even when Local API callers
+ * pass `overrideAccess: true` use this function instead of the request cache. This avoids
+ * treating a caller-supplied cache property or request context flag as authorization.
+ */
+export async function derivePermissionContextFromRequest(
+  req: RequestContext,
+): Promise<PermissionContext | null> {
   const user = extractUser(req)
-  if (!user) {
-    req[PERM_CTX_CACHE_KEY] = null
-    return null
-  }
-  const ctx = await buildPermissionContext({
+  if (!user) return null
+
+  return buildPermissionContext({
     user,
     loadRoles: async (roleIds) => {
       const docs = await req.payload.find({
@@ -76,8 +89,6 @@ export async function getPermissionContext(
       return docs.docs as unknown as Role[]
     },
   })
-  req[PERM_CTX_CACHE_KEY] = ctx
-  return ctx
 }
 
 /**

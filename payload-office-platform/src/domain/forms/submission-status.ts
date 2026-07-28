@@ -1,7 +1,14 @@
-import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import { isDeepStrictEqual } from 'node:util'
 
-import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import type {
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+  Field,
+} from 'payload'
+
+import { derivePermissionContextFromRequest } from '@/domain/auth/access'
 import { hasMenuPermission } from '@/domain/auth/permission-context'
+import type { FormSubmission } from '@/payload-types'
 
 export const FORM_SUBMISSION_STATUSES = ['new', 'processing', 'processed'] as const
 
@@ -14,13 +21,38 @@ export const FORM_SUBMISSION_DEFAULT_COLUMNS = [
   'processedBy',
 ] as const
 
+type ImmutableFactField = Extract<
+  Field,
+  { type: 'array' | 'relationship' }
+>
+
+function isImmutableFactField(field: Field): field is ImmutableFactField {
+  return (
+    'name' in field &&
+    ((field.name === 'form' && field.type === 'relationship') ||
+      (field.name === 'submissionData' && field.type === 'array'))
+  )
+}
+
 export function appendFormSubmissionStatusFields({
   defaultFields,
 }: {
   defaultFields: Field[]
 }): Field[] {
   return [
-    ...defaultFields,
+    ...defaultFields.map((field) => {
+      if (!isImmutableFactField(field)) {
+        return field
+      }
+
+      return {
+        ...field,
+        access: {
+          ...field.access,
+          update: () => false,
+        },
+      }
+    }),
     {
       name: 'processingStatus',
       type: 'select',
@@ -61,7 +93,7 @@ type FormSubmissionUpdateAccess = NonNullable<
 export const formSubmissionUpdateAccess: FormSubmissionUpdateAccess = async ({
   req,
 }) => {
-  const permission = await getPermissionContext(req as RequestContext)
+  const permission = await derivePermissionContextFromRequest(req)
   return Boolean(
     permission && hasMenuPermission(permission, 'form-submissions'),
   )
@@ -95,6 +127,8 @@ export class FormSubmissionStatusError extends Error {
     | 'FORM_SUBMISSION_STATUS_TRANSITION_INVALID'
     | 'FORM_SUBMISSION_ORIGINAL_REQUIRED'
     | 'FORM_SUBMISSION_PROCESSOR_REQUIRED'
+    | 'FORM_SUBMISSION_UPDATE_FORBIDDEN'
+    | 'FORM_SUBMISSION_FACT_IMMUTABLE'
 
   constructor(
     code: FormSubmissionStatusError['code'],
@@ -106,7 +140,7 @@ export class FormSubmissionStatusError extends Error {
   }
 }
 
-function getCurrentStatus(originalDoc: Record<string, unknown> | undefined): FormSubmissionStatus {
+function getCurrentStatus(originalDoc: FormSubmission | undefined): FormSubmissionStatus {
   const status = originalDoc?.processingStatus
   // Records created before this field existed are equivalent to the migration backfill value.
   if (status === undefined || status === null) return 'new'
@@ -117,13 +151,42 @@ function getCurrentStatus(originalDoc: Record<string, unknown> | undefined): For
   )
 }
 
+function getFormId(form: FormSubmission['form']): number {
+  return typeof form === 'number' ? form : form.id
+}
+
+function protectImmutableSubmissionFacts(
+  data: Partial<FormSubmission>,
+  originalDoc: FormSubmission,
+): void {
+  if (data.form !== undefined) {
+    if (getFormId(data.form) !== getFormId(originalDoc.form)) {
+      throw new FormSubmissionStatusError(
+        'FORM_SUBMISSION_FACT_IMMUTABLE',
+        '表单提交关联的表单不可修改',
+      )
+    }
+    delete data.form
+  }
+
+  if (data.submissionData !== undefined) {
+    if (!isDeepStrictEqual(data.submissionData, originalDoc.submissionData)) {
+      throw new FormSubmissionStatusError(
+        'FORM_SUBMISSION_FACT_IMMUTABLE',
+        '表单提交内容不可修改',
+      )
+    }
+    delete data.submissionData
+  }
+}
+
 /**
  * Protect the plugin-owned public create route and derive processing metadata on updates.
  *
  * Public submissions are always created as `new`. Update callers cannot set `processedAt`
  * or `processedBy`: those values come from the transition, original document and `req.user`.
  */
-export const protectFormSubmissionStatus: CollectionBeforeChangeHook = async ({
+export const protectFormSubmissionStatus: CollectionBeforeChangeHook<FormSubmission> = async ({
   data,
   operation,
   originalDoc,
@@ -138,12 +201,25 @@ export const protectFormSubmissionStatus: CollectionBeforeChangeHook = async ({
     return data
   }
 
+  const permission = await derivePermissionContextFromRequest(req)
+  if (
+    !permission ||
+    !hasMenuPermission(permission, 'form-submissions')
+  ) {
+    throw new FormSubmissionStatusError(
+      'FORM_SUBMISSION_UPDATE_FORBIDDEN',
+      '缺少表单提交更新权限',
+    )
+  }
+
   if (!originalDoc) {
     throw new FormSubmissionStatusError(
       'FORM_SUBMISSION_ORIGINAL_REQUIRED',
       '更新表单提交处理状态需要原始记录',
     )
   }
+
+  protectImmutableSubmissionFacts(data, originalDoc)
 
   const currentStatus = getCurrentStatus(originalDoc)
   const requestedStatus = data.processingStatus
