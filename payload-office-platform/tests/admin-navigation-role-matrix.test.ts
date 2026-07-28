@@ -104,6 +104,16 @@ describe('admin navigation role matrix', () => {
       expect(permissions).not.toContain('notification:manage')
     },
   )
+
+  it('OPS 可读取举报但不可管理，其他非管理员角色不新增举报权限', () => {
+    expect(BUILTIN_ROLES.OPS.operationPermissions).toContain('report:read')
+    expect(BUILTIN_ROLES.OPS.operationPermissions).not.toContain('report:manage')
+
+    for (const code of ['MGR', 'BRK', 'CSR'] as const) {
+      expect(BUILTIN_ROLES[code].operationPermissions).not.toContain('report:read')
+      expect(BUILTIN_ROLES[code].operationPermissions).not.toContain('report:manage')
+    }
+  })
 })
 
 describe('admin navigation role migration', () => {

@@ -87,6 +87,7 @@ const ADMIN_NAVIGATION_ROLE_PERMISSIONS: Readonly<Record<RoleCode, RolePermissio
       'listing:unpublish',
       'merchant:freeze',
       'merchant:restore',
+      'report:read',
       'report:triage',
       'report:resolve',
     ],

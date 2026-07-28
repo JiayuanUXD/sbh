@@ -75,6 +75,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       'listing:unpublish',
       'merchant:freeze',
       'merchant:restore',
+      'report:read',
       'report:triage',
       'report:resolve',
     ],
