@@ -240,6 +240,13 @@ export default buildConfig({
       formOverrides: {
         admin: {
           group: false,
+          components: {
+            edit: {
+              beforeDocumentControls: [
+                '/components/admin/FormSubmissionsLink',
+              ],
+            },
+          },
         },
         labels: {
           singular: '表单',

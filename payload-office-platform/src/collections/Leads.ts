@@ -52,6 +52,13 @@ export const Leads: CollectionConfig = {
       'targetType',
       'createdAt',
     ],
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          '/components/admin/LeadOwnershipHistoryLink',
+        ],
+      },
+    },
   },
   trash: true,
   hooks: {
