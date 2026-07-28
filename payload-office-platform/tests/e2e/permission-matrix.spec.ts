@@ -23,7 +23,10 @@
 
 import { expect, type APIRequestContext, test } from '@playwright/test'
 
-const BASE = 'http://localhost:3717'
+const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3717').replace(
+  /\/$/,
+  '',
+)
 
 const ROLE_ACCOUNTS = {
   ADM: { email: 'e2e-adm@example.com', password: 'Test1234!' },
@@ -46,9 +49,11 @@ async function loginAs(
     failOnStatusCode: false,
   })
   const setCookie = res.headers()['set-cookie'] || ''
-  // payload-login-token=...; HttpOnly; Path=/; ...
-  const token = setCookie.match(/payload-login-token=([^;]+)/)
-  const cookies = token ? `payload-login-token=${token[1]}` : ''
+  // Payload 3 默认签发 payload-token；兼容旧环境曾使用的 payload-login-token。
+  const token = setCookie.match(
+    /(?:^|,\s*)(payload(?:-login)?-token)=([^;]+)/,
+  )
+  const cookies = token ? `${token[1]}=${token[2]}` : ''
   return { cookies, status: res.status() }
 }
 
@@ -110,25 +115,19 @@ test.describe('权限矩阵 / /api/users', () => {
   test('CSR 不能列出用户（无 user:manage）', async ({ request }) => {
     const { cookies } = await loginAs(request, 'CSR')
     const { status, body } = await apiGet(request, cookies, '/api/users?limit=5')
-    // Payload access.read 返回 false 时返回 403 或空 docs
-    // Users.access.read 已收紧：自己可读自己，他人需 user:manage
-    // CSR 列表会返回 200 + docs=[自己] 或 403；两者都视为"看不到他人"
-    expect([200, 403]).toContain(status)
-    if (status === 200) {
-      const data = body as { docs?: Array<{ id?: number }> }
-      // CSR 最多只能看到自己（payload 默认列表也走 access.read 过滤）
-      expect(data.docs!.length).toBeLessThanOrEqual(1)
-    }
+    expect(status).toBe(200)
+    const data = body as { docs?: Array<{ email?: string }> }
+    expect(data.docs).toHaveLength(1)
+    expect(data.docs?.[0]?.email).toBe(ROLE_ACCOUNTS.CSR.email)
   })
 
   test('BRK 不能列出他人（无 user:manage）', async ({ request }) => {
     const { cookies } = await loginAs(request, 'BRK')
     const { status, body } = await apiGet(request, cookies, '/api/users?limit=5')
-    expect([200, 403]).toContain(status)
-    if (status === 200) {
-      const data = body as { docs?: Array<{ id?: number }> }
-      expect(data.docs!.length).toBeLessThanOrEqual(1)
-    }
+    expect(status).toBe(200)
+    const data = body as { docs?: Array<{ email?: string }> }
+    expect(data.docs).toHaveLength(1)
+    expect(data.docs?.[0]?.email).toBe(ROLE_ACCOUNTS.BRK.email)
   })
 })
 
@@ -150,11 +149,13 @@ test.describe('权限矩阵 / /api/roles', () => {
     expect(codes).toContain('CSR')
   })
 
-  test('CSR 可读角色（绑定到自己时需要）', async ({ request }) => {
+  test('CSR 只可读自己绑定的角色', async ({ request }) => {
     const { cookies } = await loginAs(request, 'CSR')
-    const { status } = await apiGet(request, cookies, '/api/roles?limit=10')
-    // Roles 默认允许登录用户读
+    const { status, body } = await apiGet(request, cookies, '/api/roles?limit=10')
     expect(status).toBe(200)
+    const data = body as { docs?: Array<{ code?: string }> }
+    expect(data.docs).toHaveLength(1)
+    expect(data.docs?.[0]?.code).toBe('CSR')
   })
 })
 
@@ -169,14 +170,15 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
     expect(status).toBe(200)
     const data = body as { docs?: Array<{ phone?: string }> }
     const docs = data.docs || []
-    if (docs.length > 0) {
-      // 至少一条 lead 的 phone 字段为脱敏格式 138****5678
-      const masked = docs.find((d) => d.phone && /\d{3}\*{4}\d{4}/.test(d.phone!))
-      expect(masked).toBeDefined()
-      // 不应出现完整手机号
-      const fullLeak = docs.find((d) => d.phone && /^1\d{10}$/.test(d.phone!))
-      expect(fullLeak).toBeUndefined()
-    }
+    expect(docs.length).toBeGreaterThan(0)
+    const masked = docs.find((doc) =>
+      typeof doc.phone === 'string' && /\d{3}\*{4}\d{4}/.test(doc.phone),
+    )
+    expect(masked).toBeDefined()
+    const fullLeak = docs.find((doc) =>
+      typeof doc.phone === 'string' && /^1\d{10}$/.test(doc.phone),
+    )
+    expect(fullLeak).toBeUndefined()
   })
 
   test('OPS 查看 leads → phone 字段保留原值', async ({ request }) => {
@@ -185,11 +187,11 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
     expect(status).toBe(200)
     const data = body as { docs?: Array<{ phone?: string }> }
     const docs = data.docs || []
-    if (docs.length > 0) {
-      // OPS 拥有 phone:full → 应看到完整手机号
-      const full = docs.find((d) => d.phone && /^1\d{10}$/.test(d.phone!))
-      expect(full).toBeDefined()
-    }
+    expect(docs.length).toBeGreaterThan(0)
+    const full = docs.find((doc) =>
+      typeof doc.phone === 'string' && /^1\d{10}$/.test(doc.phone),
+    )
+    expect(full).toBeDefined()
   })
 
   test('BRK 查看 leads → 自有范围内 phone 可看原值', async ({ request }) => {
@@ -269,16 +271,20 @@ test.describe('权限矩阵 / 越权 API', () => {
 
   test('CSR 不能删除角色（DELETE /api/roles/:id）', async ({ request }) => {
     const { cookies } = await loginAs(request, 'CSR')
-    // 先列出拿到一个非内置角色 ID（若不存在则跳过）
-    const list = await apiGet(request, cookies, '/api/roles?limit=1&where[isBuiltin][equals]=false')
+    // CSR 至少可读自己绑定的内置角色，但仍不能删除。
+    const list = await apiGet(request, cookies, '/api/roles?limit=1')
+    expect(list.status).toBe(200)
     const data = list.body as { docs?: Array<{ id?: number }> }
     const target = data.docs?.[0]
-    if (target?.id) {
-      const res = await request.delete(`${BASE}/api/roles/${target.id}`, {
-        headers: { cookie: cookies },
-        failOnStatusCode: false,
-      })
-      expect(res.status()).toBeGreaterThanOrEqual(400)
+    expect(target?.id).toBeDefined()
+    if (target?.id === undefined) {
+      throw new Error('CSR 自身角色 fixture 缺少 ID')
     }
+
+    const res = await request.delete(`${BASE}/api/roles/${target.id}`, {
+      headers: { cookie: cookies },
+      failOnStatusCode: false,
+    })
+    expect(res.status()).toBeGreaterThanOrEqual(400)
   })
 })
