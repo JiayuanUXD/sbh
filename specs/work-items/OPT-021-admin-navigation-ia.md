@@ -1,4 +1,4 @@
-# Task Packet：OPT-021 后台导航信息架构优化
+# Task Packet：OPT-021-admin-navigation-ia 后台导航信息架构优化
 
 > 状态：进行中
 > 创建日期：2026-07-28
@@ -74,6 +74,6 @@
 - 修改文件：`specs/work-items/OPT-021-admin-navigation-ia.md`。
 - 实际结果：已建立任务包和可追踪验收基线，实施验收项均保持待完成。
 - 验证摘要：已核对模板、设计稿第 12 节、当前 Payload 分组/Collection 配置，并检查占位符未残留。
-- 详细证据：`artifacts/verification/OPT-021/README.md`（后续实现任务补充）。
+- 详细证据：`../../artifacts/verification/OPT-021-admin-navigation-ia/README.md`（后续实现任务补充）。
 - 剩余风险：尚未执行功能实现、自动化测试或桌面/移动浏览器验收。
 - 下一步：按设计稿第 13 节的推进顺序实施导航配置、权限过滤、响应式交互、低频入口迁移和数量提醒。
