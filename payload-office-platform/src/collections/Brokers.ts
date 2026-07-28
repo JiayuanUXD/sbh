@@ -16,6 +16,7 @@ export const Brokers: CollectionConfig = {
     plural: '经纪人管理',
   },
   admin: {
+    group: false,
     useAsTitle: 'displayName',
     defaultColumns: ['displayName', 'user', 'team', 'employmentStatus'],
   },

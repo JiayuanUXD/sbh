@@ -37,9 +37,9 @@ export const Users: CollectionConfig = {
     plural: '用户管理',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'email', 'loginName', 'status', 'roles', 'updatedAt'],
-    group: '账号与权限',
     // 编辑页顶部追加权限预览组件（展示该账号有效权限并集）
     // Payload admin.components.edit 仅支持 beforeDocumentControls（顶部）/ editMenuItems（三点菜单）
     // 及若干按钮替换槽；不存在底部槽，组件放顶部

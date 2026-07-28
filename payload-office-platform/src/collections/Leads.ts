@@ -40,6 +40,7 @@ export const Leads: CollectionConfig = {
     plural: '咨询线索',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: [
       'name',

@@ -15,9 +15,10 @@ export const BusinessAreaExtensions: CollectionConfig = {
   slug: 'business-area-extensions',
   labels: {
     singular: '商圈扩展',
-    plural: '商圈配置',
+    plural: '商圈管理',
   },
   admin: {
+    group: false,
     useAsTitle: 'businessArea',
     defaultColumns: ['businessArea', 'extendedCenterLatitude', 'extendedCenterLongitude', 'version'],
     description:

@@ -38,6 +38,7 @@ export const DomainEvents: CollectionConfig = {
     plural: '领域事件',
   },
   admin: {
+    group: false,
     useAsTitle: 'eventType',
     defaultColumns: [
       'eventType',
@@ -50,7 +51,6 @@ export const DomainEvents: CollectionConfig = {
     ],
     description:
       '事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。',
-    group: 'workflow',
   },
   // Outbox 只追加：不允许删除（trash: false），update/delete 由 events:manage 控制
   // 默认 createCollectionAccess 不配置 update/delete 时要求登录态，但 Outbox

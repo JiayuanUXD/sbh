@@ -26,6 +26,7 @@ export const Listings: CollectionConfig = {
     plural: '房源列表',
   },
   admin: {
+    group: false,
     useAsTitle: 'title',
     defaultColumns: ['title', 'building', 'reviewStatus', 'publicationStatus', 'isFeatured'],
     preview: (doc) => (doc?.slug ? `/listings/${doc.slug}` : null),

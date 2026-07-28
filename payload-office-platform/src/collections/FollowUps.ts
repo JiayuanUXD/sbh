@@ -23,6 +23,7 @@ export const FollowUps: CollectionConfig = {
     plural: '跟进记录',
   },
   admin: {
+    group: false,
     useAsTitle: 'id',
     defaultColumns: ['lead', 'broker', 'method', 'result', 'createdAt'],
     description: '线索跟进流水：记录创建后不可修改或删除，纠错通过追加修正记录实现。',

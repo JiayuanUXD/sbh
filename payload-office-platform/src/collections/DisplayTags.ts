@@ -13,7 +13,7 @@ import { protectDisplayTag } from '@/domain/dictionary/display-tag-protect'
  * （见 display-tag.ts 的 snapshotTag），改名不影响历史记录展示。
  *
  * 当前暂无消费字段，作为通用能力先就位；M3/M4 再挂接到具体业务对象。
- * admin.hidden=true：注册但暂不进后台导航。
+ * admin.group=false：退出 Payload 默认导航，由自定义导航按权限承载。
  */
 export const DisplayTags: CollectionConfig = {
   slug: 'display-tags',
@@ -22,10 +22,9 @@ export const DisplayTags: CollectionConfig = {
     plural: '展示标签',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'code', 'sortOrder', 'visible', 'status'],
-    // 暂不进导航：字典能力先就位，待 M3/M4 挂接消费字段后再放出
-    hidden: true,
   },
   access: {
     read: () => true,

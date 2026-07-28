@@ -153,6 +153,7 @@ export const ListingReports: CollectionConfig = {
     plural: '房源举报',
   },
   admin: {
+    group: false,
     useAsTitle: 'reason',
     defaultColumns: ['reason', 'targetListing', 'status', 'assignee', 'supplyPaused', 'createdAt'],
     description:

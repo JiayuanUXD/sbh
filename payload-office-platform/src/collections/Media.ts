@@ -4,9 +4,10 @@ export const Media: CollectionConfig = {
   slug: 'media',
   labels: {
     singular: '媒体',
-    plural: '媒体资源',
+    plural: '素材库',
   },
   admin: {
+    group: false,
     useAsTitle: 'alt',
   },
   access: {

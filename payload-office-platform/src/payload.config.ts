@@ -47,6 +47,7 @@ import {
   EXPORT_LIMIT,
   createExportAuditHook,
   overrideExportsCollection,
+  overrideImportsCollection,
 } from './domain/audit/export-controls'
 import { metricRegistry } from './domain/analytics/metric-registry'
 import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
@@ -130,7 +131,6 @@ export default buildConfig({
       ],
       defaultLayout: [
         { widgetSlug: 'core-stats', width: 'full' },
-        { widgetSlug: 'collections', width: 'full' },
       ],
     },
   },
@@ -225,6 +225,9 @@ export default buildConfig({
       collections: ['listings', 'buildings'],
       searchOverrides: {
         slug: 'search',
+        admin: {
+          group: false,
+        },
         labels: {
           singular: '搜索记录',
           plural: '搜索索引',
@@ -234,6 +237,9 @@ export default buildConfig({
     // Form Builder:后台可视化表单构建(leads 咨询表单可用它替代手写)
     formBuilderPlugin({
       formOverrides: {
+        admin: {
+          group: false,
+        },
         labels: {
           singular: '表单',
           plural: '表单管理',
@@ -242,10 +248,11 @@ export default buildConfig({
       formSubmissionOverrides: {
         labels: {
           singular: '表单提交',
-          plural: '表单提交记录',
+          plural: '提交数据',
         },
         admin: {
           defaultColumns: [...FORM_SUBMISSION_DEFAULT_COLUMNS],
+          group: false,
         },
         fields: appendFormSubmissionStatusFields,
         access: {
@@ -269,6 +276,7 @@ export default buildConfig({
       ],
       exportLimit: EXPORT_LIMIT,
       overrideExportCollection: overrideExportsCollection,
+      overrideImportCollection: overrideImportsCollection,
     }),
     // Audit fields:给业务 collection 注入 createdBy / lastModifiedBy 追踪字段
     auditFieldsPlugin({

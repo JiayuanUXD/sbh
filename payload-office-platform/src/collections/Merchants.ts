@@ -68,6 +68,7 @@ export const Merchants: CollectionConfig = {
     plural: '商户管理',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'status', 'qualificationStatus', 'qualificationExpiresAt'],
   },

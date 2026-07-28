@@ -14,6 +14,7 @@ export const Customers: CollectionConfig = {
     plural: '客户档案',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'phoneMaskedSnapshot', 'company', 'status', 'createdAt'],
     description: '客户档案：手机号用于查重但不作为业务主键，一个客户可关联多条线索。',

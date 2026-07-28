@@ -33,9 +33,10 @@ export const Notifications: CollectionConfig = {
   slug: 'notifications',
   labels: {
     singular: '通知',
-    plural: '站内通知',
+    plural: '消息通知',
   },
   admin: {
+    group: false,
     useAsTitle: 'title',
     defaultColumns: [
       'title',
@@ -48,7 +49,6 @@ export const Notifications: CollectionConfig = {
     ],
     description:
       '站内通知：审核驳回 / 线索分配转派 / SLA 超时 / 待办变更。由领域事件消费器幂等生成，与业务状态解耦。',
-    group: 'workflow',
   },
   access: {
     ...createCollectionAccess({

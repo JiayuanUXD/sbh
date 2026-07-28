@@ -7,6 +7,7 @@ export const Pages: CollectionConfig = {
     plural: '页面内容',
   },
   admin: {
+    group: false,
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'status'],
     preview: (doc) => (doc?.slug === 'home' ? '/' : null),

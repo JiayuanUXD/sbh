@@ -33,9 +33,9 @@ export const Roles: CollectionConfig = {
     createRoleCopyEndpoint(),
   ],
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['code', 'name', 'isBuiltin', 'status', 'dataScope', 'updatedAt'],
-    group: '账号与权限',
     description: '内置角色不可删除或改码；自定义角色可编辑菜单/操作/数据/字段四层权限。',
     // 编辑页：
     //   - 顶部：复制角色按钮（基于当前角色创建自定义副本）
