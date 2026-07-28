@@ -1,5 +1,4 @@
-import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
 import type {
@@ -13,8 +12,8 @@ import {
   type RoleFixture,
 } from '@/test/factory/roles'
 import {
-  down as restorePreviousRolePermissions,
-  up as applyAdminNavigationRolePermissions,
+  planAdminNavigationRoleUpdates,
+  planPreviousRolePermissionUpdates,
 } from '@/migrations/20260728_180000_opt_021_admin_navigation_roles'
 
 function canSeeLeaf(role: RoleFixture, leaf: AdminNavLeaf): boolean {
@@ -108,82 +107,112 @@ describe('admin navigation role matrix', () => {
 })
 
 describe('admin navigation role migration', () => {
-  it('up 只查询五个内置角色并用 Local API 写入目标权限', async () => {
+  it('up 计划只包含五个内置角色及其目标权限', () => {
     const roleDocs = Object.keys(BUILTIN_ROLES).map((code, index) => ({
       id: index + 1,
       code,
       isBuiltin: true,
     }))
-    const find = vi.fn().mockResolvedValue({
-      docs: [
-        ...roleDocs,
-        { id: 98, code: 'OPS', isBuiltin: false },
-        { id: 99, code: 'CUSTOM', isBuiltin: true },
-      ],
-    })
-    const update = vi.fn().mockResolvedValue({})
-    const req = { transactionID: 'role-migration-test' }
-    const args = {
-      payload: { find, update },
-      req,
-    } as unknown as MigrateUpArgs
+    const returnedRoleDocs = [
+      ...roleDocs,
+      { id: 98, code: 'OPS', isBuiltin: false },
+      { id: 99, code: 'CUSTOM', isBuiltin: true },
+    ]
 
-    await applyAdminNavigationRolePermissions(args)
-
-    expect(find).toHaveBeenCalledWith({
-      collection: 'roles',
-      where: {
-        and: [
-          { isBuiltin: { equals: true } },
-          { code: { in: ['ADM', 'OPS', 'MGR', 'BRK', 'CSR'] } },
-        ],
-      },
-      limit: 5,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-    expect(update).toHaveBeenCalledTimes(5)
-    for (const role of Object.values(BUILTIN_ROLES)) {
-      expect(update).toHaveBeenCalledWith({
-        collection: 'roles',
-        id: roleDocs.find((doc) => doc.code === role.code)?.id,
-        data: {
+    expect(planAdminNavigationRoleUpdates(returnedRoleDocs)).toEqual(
+      Object.values(BUILTIN_ROLES).map((role, index) => ({
+        id: index + 1,
+        code: role.code,
+        permissions: {
           menuPermissions: role.menuPermissions,
           operationPermissions: role.operationPermissions,
           fieldPermissions: role.fieldPermissions,
         },
-        depth: 0,
-        overrideAccess: true,
-        req,
-      })
-    }
+      })),
+    )
   })
 
-  it('down 恢复变更前的 CSR 权限基线', async () => {
-    const find = vi
-      .fn()
-      .mockResolvedValue({ docs: [{ id: 5, code: 'CSR', isBuiltin: true }] })
-    const update = vi.fn().mockResolvedValue({})
-    const req = { transactionID: 'role-migration-down-test' }
-    const args = {
-      payload: { find, update },
-      req,
-    } as unknown as MigrateDownArgs
+  it('down 恢复五个角色的变更前权限基线', () => {
+    const roleDocs = Object.keys(BUILTIN_ROLES).map((code, index) => ({
+      id: index + 1,
+      code,
+      isBuiltin: true,
+    }))
 
-    await restorePreviousRolePermissions(args)
-
-    expect(update).toHaveBeenCalledWith({
-      collection: 'roles',
-      id: 5,
-      data: {
-        menuPermissions: ['leads', 'customers'],
-        operationPermissions: ['lead:create', 'lead:assign'],
-        fieldPermissions: ['phone:masked'],
+    expect(planPreviousRolePermissionUpdates(roleDocs)).toEqual([
+      {
+        id: 1,
+        code: 'ADM',
+        permissions: {
+          menuPermissions: ['*'],
+          operationPermissions: ['*'],
+          fieldPermissions: ['*'],
+        },
       },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
+      {
+        id: 2,
+        code: 'OPS',
+        permissions: {
+          menuPermissions: [
+            'dashboard',
+            'buildings',
+            'listings',
+            'listing-reviews',
+            'merchants',
+            'reports',
+            'analytics',
+          ],
+          operationPermissions: [
+            'listing:review',
+            'listing:publish',
+            'listing:unpublish',
+            'merchant:freeze',
+            'merchant:restore',
+            'report:triage',
+            'report:resolve',
+          ],
+          fieldPermissions: ['phone:full', 'phone:masked', 'audit:before_after'],
+        },
+      },
+      {
+        id: 3,
+        code: 'MGR',
+        permissions: {
+          menuPermissions: [
+            'dashboard',
+            'leads',
+            'customers',
+            'brokers',
+            'teams',
+            'follow-ups',
+          ],
+          operationPermissions: [
+            'lead:assign',
+            'lead:transfer',
+            'lead:reclaim',
+            'broker:manage',
+          ],
+          fieldPermissions: ['phone:full', 'phone:masked'],
+        },
+      },
+      {
+        id: 4,
+        code: 'BRK',
+        permissions: {
+          menuPermissions: ['my-leads', 'my-customers', 'follow-ups', 'listings'],
+          operationPermissions: ['lead:claim', 'lead:follow_up', 'lead:recommend'],
+          fieldPermissions: ['phone:full'],
+        },
+      },
+      {
+        id: 5,
+        code: 'CSR',
+        permissions: {
+          menuPermissions: ['leads', 'customers'],
+          operationPermissions: ['lead:create', 'lead:assign'],
+          fieldPermissions: ['phone:masked'],
+        },
+      },
+    ])
   })
 })

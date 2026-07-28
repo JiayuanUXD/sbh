@@ -1,8 +1,8 @@
 import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
 
-type RoleCode = 'ADM' | 'OPS' | 'MGR' | 'BRK' | 'CSR'
+export type RoleCode = 'ADM' | 'OPS' | 'MGR' | 'BRK' | 'CSR'
 
-type RolePermissions = {
+export type RolePermissions = {
   menuPermissions: string[]
   operationPermissions: string[]
   fieldPermissions: string[]
@@ -154,13 +154,63 @@ const ADMIN_NAVIGATION_ROLE_PERMISSIONS: Readonly<Record<RoleCode, RolePermissio
   },
 }
 
+export type MigrationRoleDocument = {
+  id: number | string
+  code: unknown
+  isBuiltin?: boolean | null
+}
+
+export type RolePermissionUpdate = {
+  id: number | string
+  code: RoleCode
+  permissions: RolePermissions
+}
+
+export function planAdminNavigationRoleUpdates(
+  roles: readonly MigrationRoleDocument[],
+): RolePermissionUpdate[] {
+  return planRolePermissionUpdates(roles, ADMIN_NAVIGATION_ROLE_PERMISSIONS)
+}
+
+export function planPreviousRolePermissionUpdates(
+  roles: readonly MigrationRoleDocument[],
+): RolePermissionUpdate[] {
+  return planRolePermissionUpdates(roles, PREVIOUS_ROLE_PERMISSIONS)
+}
+
 function isRoleCode(code: unknown): code is RoleCode {
-  return typeof code === 'string' && ROLE_CODES.includes(code as RoleCode)
+  return (
+    code === 'ADM' ||
+    code === 'OPS' ||
+    code === 'MGR' ||
+    code === 'BRK' ||
+    code === 'CSR'
+  )
+}
+
+function planRolePermissionUpdates(
+  roles: readonly MigrationRoleDocument[],
+  permissionsByCode: Readonly<Record<RoleCode, RolePermissions>>,
+): RolePermissionUpdate[] {
+  const updates: RolePermissionUpdate[] = []
+
+  for (const role of roles) {
+    if (role.isBuiltin !== true || !isRoleCode(role.code)) continue
+    updates.push({
+      id: role.id,
+      code: role.code,
+      permissions: permissionsByCode[role.code],
+    })
+  }
+
+  return updates
 }
 
 async function updateBuiltinRolePermissions(
   args: MigrateUpArgs | MigrateDownArgs,
-  permissionsByCode: Readonly<Record<RoleCode, RolePermissions>>,
+  planUpdates: (
+    roles: readonly MigrationRoleDocument[],
+  ) => RolePermissionUpdate[],
 ): Promise<void> {
   const { payload, req } = args
   const roles = await payload.find({
@@ -177,13 +227,11 @@ async function updateBuiltinRolePermissions(
     req,
   })
 
-  for (const role of roles.docs) {
-    if (role.isBuiltin !== true || !isRoleCode(role.code)) continue
-
+  for (const role of planUpdates(roles.docs)) {
     await payload.update({
       collection: 'roles',
       id: role.id,
-      data: permissionsByCode[role.code],
+      data: role.permissions,
       depth: 0,
       overrideAccess: true,
       req,
@@ -192,9 +240,9 @@ async function updateBuiltinRolePermissions(
 }
 
 export async function up(args: MigrateUpArgs): Promise<void> {
-  await updateBuiltinRolePermissions(args, ADMIN_NAVIGATION_ROLE_PERMISSIONS)
+  await updateBuiltinRolePermissions(args, planAdminNavigationRoleUpdates)
 }
 
 export async function down(args: MigrateDownArgs): Promise<void> {
-  await updateBuiltinRolePermissions(args, PREVIOUS_ROLE_PERMISSIONS)
+  await updateBuiltinRolePermissions(args, planPreviousRolePermissionUpdates)
 }
