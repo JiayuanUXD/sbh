@@ -118,6 +118,7 @@ export default buildConfig({
     },
     components: {
       actions: ['/components/admin/EnvBadge', '/components/admin/ThemeToggle'],
+      beforeNavLinks: ['/components/admin/AdminNavigation'],
     },
     dashboard: {
       widgets: [
