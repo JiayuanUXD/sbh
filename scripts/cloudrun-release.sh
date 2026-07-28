@@ -70,7 +70,10 @@ build_package() {
 
   # 空包会构建失败甚至发布出一个坏版本，宁可在这里挡住
   [ "$size" -gt 100000 ] || die "代码包异常（仅 $size 字节），检查 APP_DIR=$APP_DIR 是否正确"
-  unzip -l "$archive" 2>/dev/null | grep -q " Dockerfile$" || die "代码包里没有 Dockerfile"
+  # pipefail 下不能使用 `grep -q`：命中后 grep 提前退出会让 unzip 收到 SIGPIPE，
+  # 整条管道返回 141，把真实存在的 Dockerfile 误判为缺失。
+  unzip -Z1 "$archive" 2>/dev/null | grep -Fx "Dockerfile" >/dev/null ||
+    die "代码包里没有 Dockerfile"
 
   log "代码包：$(du -h "$archive" | cut -f1)，$file_count 个文件，commit $(git -C "$REPO_ROOT" rev-parse --short HEAD)" >&2
   echo "$archive"

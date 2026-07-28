@@ -25,7 +25,7 @@ tests/ export-ignore
   - 6 个测试通过
 - `pnpm test`
   - 108 个测试文件通过
-  - 2019 个测试通过
+  - 2020 个测试通过
 - `pnpm lint`
   - 0 个错误
   - 8 个既有警告
@@ -44,3 +44,14 @@ tests/ export-ignore
 
 - 本次未触发生产部署或流量切换。
 - 测试机器使用 Node.js 24.14.0，项目声明 Node.js 22.x；pnpm 给出 engine 警告，但测试全部通过。
+
+## 发布前完整性检查回归
+
+首次执行本地发布时，代码包在上传前被误报为缺少 `Dockerfile`。归档实际包含该文件，根因是脚本在 `set -o pipefail` 下使用 `unzip | grep -q`：匹配后 `grep` 提前退出，导致 `unzip` 收到 SIGPIPE，管道返回 141。
+
+修复后验证：
+
+- 发布脚本改为完整读取 `unzip -Z1` 清单并精确匹配 `Dockerfile`。
+- `bash -n scripts/cloudrun-release.sh` 通过。
+- 在 `pipefail` 开启时执行同一归档检查返回 0。
+- 生产部署配置测试新增对应回归用例，7/7 通过。

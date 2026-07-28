@@ -16,6 +16,14 @@ describe('生产部署配置', () => {
     expect(attributes).toMatch(/^tests\/ export-ignore$/m)
   })
 
+  it('本地发布脚本在 pipefail 下完整读取归档清单', () => {
+    const script = readFileSync(resolve(repositoryRoot, 'scripts/cloudrun-release.sh'), 'utf8')
+
+    expect(script).toContain('unzip -Z1 "$archive"')
+    expect(script).toContain('grep -Fx "Dockerfile" >/dev/null')
+    expect(script).not.toContain('grep -q " Dockerfile$"')
+  })
+
   it('Docker builder 始终提供可复制的 public 目录', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const ensurePublic = dockerfile.indexOf('RUN mkdir -p public')
