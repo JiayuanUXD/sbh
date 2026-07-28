@@ -1,13 +1,24 @@
 'use client'
 
-import { Link, toast, useConfig, useNav } from '@payloadcms/ui'
+import {
+  Link,
+  toast,
+  useConfig,
+  useNav,
+  useWindowInfo,
+} from '@payloadcms/ui'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  loadAdminNavigationBadges,
+  type AdminNavigationBadgeCounts,
+} from '@/domain/admin-navigation/navigation-badge-request'
 import { formatBadgeCount } from '@/domain/admin-navigation/navigation-badges'
 import {
   deriveOpenGroupId,
   findActiveLeaf,
+  shouldCloseNavAfterLeafClick,
   toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
@@ -20,17 +31,6 @@ import type { AdminNavigationBadgeKey } from '@/domain/admin-navigation/navigati
 type AdminNavigationClientProps = {
   groups: readonly ResolvedAdminNavGroup[]
 }
-
-type BadgeCounts = Partial<Record<AdminNavigationBadgeKey, number>>
-
-const BADGE_KEYS = [
-  'tasks',
-  'notifications',
-  'listingReviews',
-  'listingReports',
-  'leads',
-  'formSubmissions',
-] as const satisfies readonly AdminNavigationBadgeKey[]
 
 const WARNING_BADGE_KEYS = new Set<AdminNavigationBadgeKey>([
   'listingReviews',
@@ -45,46 +45,49 @@ export default function AdminNavigationClient({
   const pathname = usePathname()
   const { config } = useConfig()
   const { setNavOpen } = useNav()
-  const [badges, setBadges] = useState<BadgeCounts>({})
-  const [openGroupId, setOpenGroupId] = useState<string | null>(() =>
-    deriveOpenGroupId(groups, pathname),
-  )
-  const badgeRequestStarted = useRef(false)
+  const {
+    breakpoints: { s: smallBreak },
+  } = useWindowInfo()
+  const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
+  const [manualGroupState, setManualGroupState] = useState<{
+    groupId: string | null
+    pathname: string
+  } | null>(null)
   const badgeFailureReported = useRef(false)
   const activeLeafId = findActiveLeaf(groups, pathname)?.id ?? null
   const apiRoute = config.routes.api.replace(/\/$/, '')
+  const routeGroupId = deriveOpenGroupId(groups, pathname)
+  const openGroupId =
+    manualGroupState?.pathname === pathname
+      ? manualGroupState.groupId
+      : routeGroupId
 
   useEffect(() => {
-    setOpenGroupId(deriveOpenGroupId(groups, pathname))
-  }, [groups, pathname])
-
-  useEffect(() => {
-    if (badgeRequestStarted.current) return
-    badgeRequestStarted.current = true
+    const controller = new AbortController()
 
     const loadBadges = async () => {
-      try {
-        const response = await fetch(`${apiRoute}/admin-navigation`, {
-          credentials: 'include',
-        })
+      const result = await loadAdminNavigationBadges({
+        signal: controller.signal,
+        url: `${apiRoute}/admin-navigation`,
+      })
 
-        if (response.status === 401) return
-
-        const data: unknown = await response.json()
-        const parsedBadges = parseBadgeCounts(data)
-        if (!response.ok || !parsedBadges) {
-          reportBadgeFailure(badgeFailureReported)
-          return
-        }
-
-        setBadges(parsedBadges)
-      } catch {
+      if (controller.signal.aborted) return
+      if (result.status === 'success') {
+        setBadges(result.badges)
+      } else if (result.status === 'error') {
         reportBadgeFailure(badgeFailureReported)
       }
     }
 
     void loadBadges()
+    return () => controller.abort()
   }, [apiRoute])
+
+  const closeMobileNavAfterLeafClick = () => {
+    if (shouldCloseNavAfterLeafClick(smallBreak)) {
+      setNavOpen(false)
+    }
+  }
 
   return (
     <div aria-label="后台主导航" className="admin-navigation">
@@ -100,9 +103,10 @@ export default function AdminNavigationClient({
                 aria-expanded={isOpen}
                 className="admin-navigation__group-toggle"
                 onClick={() =>
-                  setOpenGroupId((current) =>
-                    toggleOpenGroup(current, group.id),
-                  )
+                  setManualGroupState({
+                    groupId: toggleOpenGroup(openGroupId, group.id),
+                    pathname,
+                  })
                 }
                 type="button"
               >
@@ -128,14 +132,14 @@ export default function AdminNavigationClient({
                           activeLeafId={activeLeafId}
                           badges={badges}
                           subgroup={item}
-                          onNavigate={() => setNavOpen(false)}
+                          onNavigate={closeMobileNavAfterLeafClick}
                         />
                       ) : (
                         <NavigationLeaf
                           active={item.id === activeLeafId}
                           badges={badges}
                           leaf={item}
-                          onNavigate={() => setNavOpen(false)}
+                          onNavigate={closeMobileNavAfterLeafClick}
                         />
                       )}
                     </li>
@@ -157,7 +161,7 @@ function NavigationSubgroup({
   onNavigate,
 }: {
   activeLeafId: string | null
-  badges: BadgeCounts
+  badges: AdminNavigationBadgeCounts
   subgroup: ResolvedAdminNavSubgroup
   onNavigate: () => void
 }) {
@@ -211,7 +215,7 @@ function NavigationLeaf({
   onNavigate,
 }: {
   active: boolean
-  badges: BadgeCounts
+  badges: AdminNavigationBadgeCounts
   leaf: ResolvedAdminNavLeaf
   onNavigate: () => void
 }) {
@@ -250,28 +254,6 @@ function NavigationLeaf({
       ) : null}
     </Link>
   )
-}
-
-function parseBadgeCounts(value: unknown): BadgeCounts | null {
-  if (!isRecord(value) || value.ok !== true || !isRecord(value.badges)) {
-    return null
-  }
-
-  const badges: BadgeCounts = {}
-  for (const key of BADGE_KEYS) {
-    const count = value.badges[key]
-    if (count === undefined) continue
-    if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
-      return null
-    }
-    badges[key] = count
-  }
-
-  return badges
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 function reportBadgeFailure(reported: { current: boolean }): void {

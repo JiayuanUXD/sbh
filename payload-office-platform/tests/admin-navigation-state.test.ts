@@ -4,6 +4,7 @@ import type { ResolvedAdminNavGroup } from '@/domain/admin-navigation/resolve-na
 import {
   deriveOpenGroupId,
   findActiveLeaf,
+  shouldCloseNavAfterLeafClick,
   toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 
@@ -81,5 +82,11 @@ describe('admin navigation state', () => {
   it('路径前缀只在完整分段边界上匹配', () => {
     expect(findActiveLeaf(groups, '/admin/collections/leads-archive')).toBeNull()
     expect(findActiveLeaf(groups, '/admin/collections/leads/123')?.id).toBe('leads')
+  })
+
+  it('仅在 Payload smallBreak 移动端抽屉中点击叶子后关闭导航', () => {
+    expect(shouldCloseNavAfterLeafClick(true)).toBe(true)
+    expect(shouldCloseNavAfterLeafClick(false)).toBe(false)
+    expect(shouldCloseNavAfterLeafClick(undefined)).toBe(false)
   })
 })

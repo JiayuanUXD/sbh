@@ -52,6 +52,12 @@ export function toggleOpenGroup(
   return currentGroupId === requestedGroupId ? null : requestedGroupId
 }
 
+export function shouldCloseNavAfterLeafClick(
+  smallBreak: boolean | undefined,
+): boolean {
+  return smallBreak === true
+}
+
 function isMatchingPathname(pathname: string, href: string): boolean {
   const normalizedPathname = normalizePath(pathname)
   const normalizedHref = normalizePath(href)
