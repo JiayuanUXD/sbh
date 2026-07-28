@@ -37,12 +37,59 @@ const ROLE_ACCOUNTS = {
 } as const
 
 type RoleCode = keyof typeof ROLE_ACCOUNTS
+type DocumentRecord = Record<string, unknown>
+type DocumentID = number | string
+
+function isRecord(value: unknown): value is DocumentRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function relationshipID(value: unknown): DocumentID | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (!isRecord(value)) return null
+  return typeof value.id === 'number' || typeof value.id === 'string'
+    ? value.id
+    : null
+}
+
+function requireDocs(body: unknown, context: string): DocumentRecord[] {
+  expect(isRecord(body), `${context} 应返回 JSON 对象`).toBe(true)
+  if (!isRecord(body)) throw new Error(`${context} 未返回 JSON 对象`)
+
+  expect(Array.isArray(body.docs), `${context} 应明确返回 docs 数组`).toBe(true)
+  if (!Array.isArray(body.docs)) throw new Error(`${context} 缺少 docs 数组`)
+
+  for (const [index, doc] of body.docs.entries()) {
+    expect(isRecord(doc), `${context} docs[${index}] 应为对象`).toBe(true)
+    if (!isRecord(doc)) throw new Error(`${context} docs[${index}] 不是对象`)
+  }
+  return body.docs as DocumentRecord[]
+}
+
+function expectLeadsOwnedByUser(
+  body: unknown,
+  userID: DocumentID,
+  context: string,
+): DocumentRecord[] {
+  const docs = requireDocs(body, context)
+  expect(docs.length, `${context} fixture 应至少包含一条自有线索`).toBeGreaterThan(0)
+
+  for (const doc of docs) {
+    const owner = isRecord(doc.owner) ? doc.owner : null
+    const ownerUserID = relationshipID(owner?.user)
+    expect(
+      ownerUserID,
+      `${context} 线索 ${String(doc.id)} 必须归属当前 BRK 用户`,
+    ).toBe(userID)
+  }
+  return docs
+}
 
 /** 用指定角色登录，返回携带 cookie 的 APIRequestContext */
 async function loginAs(
   request: APIRequestContext,
   role: RoleCode,
-): Promise<{ cookies: string; status: number }> {
+): Promise<{ cookies: string; status: number; userID: DocumentID }> {
   const account = ROLE_ACCOUNTS[role]
   const res = await request.post(`${BASE}/api/users/login`, {
     data: { email: account.email, password: account.password },
@@ -54,7 +101,14 @@ async function loginAs(
     /(?:^|,\s*)(payload(?:-login)?-token)=([^;]+)/,
   )
   const cookies = token ? `${token[1]}=${token[2]}` : ''
-  return { cookies, status: res.status() }
+  const body: unknown = await res.json().catch(() => null)
+  const userID = isRecord(body) && isRecord(body.user)
+    ? relationshipID(body.user)
+    : null
+  expect(userID, `${role} 登录响应应返回当前用户 ID`).not.toBeNull()
+  if (userID === null) throw new Error(`${role} 登录响应缺少用户 ID`)
+
+  return { cookies, status: res.status(), userID }
 }
 
 async function apiGet(
@@ -107,27 +161,27 @@ test.describe('权限矩阵 / /api/users', () => {
     const { cookies } = await loginAs(request, 'ADM')
     const { status, body } = await apiGet(request, cookies, '/api/users?limit=5')
     expect(status).toBe(200)
-    const data = body as { docs?: unknown[] }
-    expect(Array.isArray(data.docs)).toBe(true)
-    expect(data.docs!.length).toBeGreaterThan(0)
+    expect(requireDocs(body, 'ADM 用户列表').length).toBeGreaterThan(0)
   })
 
   test('CSR 不能列出用户（无 user:manage）', async ({ request }) => {
-    const { cookies } = await loginAs(request, 'CSR')
+    const { cookies, userID } = await loginAs(request, 'CSR')
     const { status, body } = await apiGet(request, cookies, '/api/users?limit=5')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ email?: string }> }
-    expect(data.docs).toHaveLength(1)
-    expect(data.docs?.[0]?.email).toBe(ROLE_ACCOUNTS.CSR.email)
+    const docs = requireDocs(body, 'CSR 用户列表')
+    expect(docs).toHaveLength(1)
+    expect(relationshipID(docs[0])).toBe(userID)
+    expect(docs[0]?.email).toBe(ROLE_ACCOUNTS.CSR.email)
   })
 
   test('BRK 不能列出他人（无 user:manage）', async ({ request }) => {
-    const { cookies } = await loginAs(request, 'BRK')
+    const { cookies, userID } = await loginAs(request, 'BRK')
     const { status, body } = await apiGet(request, cookies, '/api/users?limit=5')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ email?: string }> }
-    expect(data.docs).toHaveLength(1)
-    expect(data.docs?.[0]?.email).toBe(ROLE_ACCOUNTS.BRK.email)
+    const docs = requireDocs(body, 'BRK 用户列表')
+    expect(docs).toHaveLength(1)
+    expect(relationshipID(docs[0])).toBe(userID)
+    expect(docs[0]?.email).toBe(ROLE_ACCOUNTS.BRK.email)
   })
 })
 
@@ -140,8 +194,8 @@ test.describe('权限矩阵 / /api/roles', () => {
     const { cookies } = await loginAs(request, 'ADM')
     const { status, body } = await apiGet(request, cookies, '/api/roles?limit=10')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ code?: string }> }
-    const codes = (data.docs || []).map((d) => d.code).sort()
+    const docs = requireDocs(body, 'ADM 角色列表')
+    const codes = docs.map((doc) => doc.code).sort()
     expect(codes).toContain('ADM')
     expect(codes).toContain('OPS')
     expect(codes).toContain('MGR')
@@ -153,9 +207,9 @@ test.describe('权限矩阵 / /api/roles', () => {
     const { cookies } = await loginAs(request, 'CSR')
     const { status, body } = await apiGet(request, cookies, '/api/roles?limit=10')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ code?: string }> }
-    expect(data.docs).toHaveLength(1)
-    expect(data.docs?.[0]?.code).toBe('CSR')
+    const docs = requireDocs(body, 'CSR 角色列表')
+    expect(docs).toHaveLength(1)
+    expect(docs[0]?.code).toBe('CSR')
   })
 })
 
@@ -168,8 +222,7 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
     const { cookies } = await loginAs(request, 'CSR')
     const { status, body } = await apiGet(request, cookies, '/api/leads?limit=5')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ phone?: string }> }
-    const docs = data.docs || []
+    const docs = requireDocs(body, 'CSR 线索列表')
     expect(docs.length).toBeGreaterThan(0)
     const masked = docs.find((doc) =>
       typeof doc.phone === 'string' && /\d{3}\*{4}\d{4}/.test(doc.phone),
@@ -185,8 +238,7 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
     const { cookies } = await loginAs(request, 'OPS')
     const { status, body } = await apiGet(request, cookies, '/api/leads?limit=5')
     expect(status).toBe(200)
-    const data = body as { docs?: Array<{ phone?: string }> }
-    const docs = data.docs || []
+    const docs = requireDocs(body, 'OPS 线索列表')
     expect(docs.length).toBeGreaterThan(0)
     const full = docs.find((doc) =>
       typeof doc.phone === 'string' && /^1\d{10}$/.test(doc.phone),
@@ -195,11 +247,24 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
   })
 
   test('BRK 查看 leads → 自有范围内 phone 可看原值', async ({ request }) => {
-    // BRK 有 phone:full 权限，但数据范围 self；列表层只会返回自己的 lead
-    // 验证：调用不报错（200），不出现他人完整手机号即可
-    const { cookies } = await loginAs(request, 'BRK')
-    const { status } = await apiGet(request, cookies, '/api/leads?limit=5')
-    expect([200, 403]).toContain(status)
+    // BRK 有 phone:full 权限，但 dataScope=self；200 时逐条证明归属本人，
+    // 再验证职责范围内的手机号保留完整值。
+    const { cookies, userID } = await loginAs(request, 'BRK')
+    const { status, body } = await apiGet(
+      request,
+      cookies,
+      '/api/leads?limit=20&depth=2',
+    )
+    if (status === 403) {
+      expect(status).toBe(403)
+      return
+    }
+
+    expect(status).toBe(200)
+    const docs = expectLeadsOwnedByUser(body, userID, 'BRK 线索列表')
+    for (const doc of docs) {
+      expect(doc.phone).toMatch(/^1\d{10}$/)
+    }
   })
 })
 
@@ -209,30 +274,47 @@ test.describe('权限矩阵 / /api/leads 字段脱敏', () => {
 
 test.describe('权限矩阵 / URL 参数不扩大范围', () => {
   test('BRK 传 city=999 不扩大数据范围', async ({ request }) => {
-    const { cookies } = await loginAs(request, 'BRK')
+    const { cookies, userID } = await loginAs(request, 'BRK')
     // 即使 URL 上传任意 city 参数，access 层应不信任
     const { status, body } = await apiGet(
       request,
       cookies,
-      '/api/leads?limit=5&city=999&cityIds=1,2,3,999,9999',
+      '/api/leads?limit=20&depth=2&city=999&cityIds=1,2,3,999,9999',
     )
-    expect([200, 403]).toContain(status)
-    if (status === 200) {
-      const data = body as { docs?: unknown[] }
-      // BRK dataScope=self → 只看到自己负责的 lead（即便 URL 传了 999 也不放大）
-      expect((data.docs || []).length).toBeLessThanOrEqual(5)
+    if (status === 403) {
+      expect(status).toBe(403)
+      return
     }
+
+    expect(status).toBe(200)
+    expectLeadsOwnedByUser(body, userID, 'BRK 伪造城市参数后的线索列表')
   })
 
   test('CSR 传 role=ADM 不提升权限', async ({ request }) => {
-    const { cookies } = await loginAs(request, 'CSR')
+    const { cookies, userID } = await loginAs(request, 'CSR')
     // 客户端伪造 role 参数 → 不应获得 ADM 权限
-    const { status } = await apiGet(
+    const { status, body } = await apiGet(
       request,
       cookies,
       '/api/users?limit=5&role=ADM&operation=user:manage',
     )
-    expect([200, 403]).toContain(status)
+    if (status === 403) {
+      expect(status).toBe(403)
+      return
+    }
+
+    expect(status).toBe(200)
+    const docs = requireDocs(body, 'CSR 伪造 ADM 参数后的用户列表')
+    expect(docs).toHaveLength(1)
+    expect(relationshipID(docs[0])).toBe(userID)
+    expect(docs[0]?.email).toBe(ROLE_ACCOUNTS.CSR.email)
+
+    const roleCodes = Array.isArray(docs[0]?.roles)
+      ? docs[0].roles
+          .map((role) => (isRecord(role) ? role.code : null))
+          .filter((code): code is string => typeof code === 'string')
+      : []
+    expect(roleCodes).not.toContain('ADM')
   })
 })
 
@@ -242,31 +324,45 @@ test.describe('权限矩阵 / URL 参数不扩大范围', () => {
 
 test.describe('权限矩阵 / 越权 API', () => {
   test('CSR 不能创建用户（POST /api/users）', async ({ request }) => {
+    const targetEmail = 'should-not-create-csr@example.com'
     const { cookies } = await loginAs(request, 'CSR')
     const res = await request.post(`${BASE}/api/users`, {
       headers: { cookie: cookies },
-      data: { name: '不该创建', email: 'should-not-create@example.com', password: 'Test1234!' },
+      data: { name: '不该创建', email: targetEmail, password: 'Test1234!' },
       failOnStatusCode: false,
     })
     expect(res.status()).toBeGreaterThanOrEqual(400)
     expect(res.status()).toBeLessThan(500)
-    // 确认未实际写入
-    const listRes = await apiGet(request, cookies, '/api/users?where[email][equals]=should-not-create@example.com')
-    const data = listRes.body as { docs?: unknown[] }
-    if (data.docs) {
-      expect(data.docs.length).toBe(0)
-    }
+
+    const { cookies: adminCookies } = await loginAs(request, 'ADM')
+    const listRes = await apiGet(
+      request,
+      adminCookies,
+      `/api/users?where[email][equals]=${encodeURIComponent(targetEmail)}`,
+    )
+    expect(listRes.status).toBe(200)
+    expect(requireDocs(listRes.body, 'ADM 核验 CSR 越权写入结果')).toHaveLength(0)
   })
 
   test('BRK 不能创建用户（无 user:manage）', async ({ request }) => {
+    const targetEmail = 'should-not-create-brk@example.com'
     const { cookies } = await loginAs(request, 'BRK')
     const res = await request.post(`${BASE}/api/users`, {
       headers: { cookie: cookies },
-      data: { name: '不该创建', email: 'should-not-create@example.com', password: 'Test1234!' },
+      data: { name: '不该创建', email: targetEmail, password: 'Test1234!' },
       failOnStatusCode: false,
     })
     expect(res.status()).toBeGreaterThanOrEqual(400)
     expect(res.status()).toBeLessThan(500)
+
+    const { cookies: adminCookies } = await loginAs(request, 'ADM')
+    const listRes = await apiGet(
+      request,
+      adminCookies,
+      `/api/users?where[email][equals]=${encodeURIComponent(targetEmail)}`,
+    )
+    expect(listRes.status).toBe(200)
+    expect(requireDocs(listRes.body, 'ADM 核验 BRK 越权写入结果')).toHaveLength(0)
   })
 
   test('CSR 不能删除角色（DELETE /api/roles/:id）', async ({ request }) => {
@@ -274,14 +370,15 @@ test.describe('权限矩阵 / 越权 API', () => {
     // CSR 至少可读自己绑定的内置角色，但仍不能删除。
     const list = await apiGet(request, cookies, '/api/roles?limit=1')
     expect(list.status).toBe(200)
-    const data = list.body as { docs?: Array<{ id?: number }> }
-    const target = data.docs?.[0]
-    expect(target?.id).toBeDefined()
-    if (target?.id === undefined) {
+    const docs = requireDocs(list.body, 'CSR 自身角色列表')
+    expect(docs).toHaveLength(1)
+    const targetID = relationshipID(docs[0])
+    expect(targetID).not.toBeNull()
+    if (targetID === null) {
       throw new Error('CSR 自身角色 fixture 缺少 ID')
     }
 
-    const res = await request.delete(`${BASE}/api/roles/${target.id}`, {
+    const res = await request.delete(`${BASE}/api/roles/${targetID}`, {
       headers: { cookie: cookies },
       failOnStatusCode: false,
     })

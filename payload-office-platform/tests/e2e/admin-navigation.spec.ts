@@ -15,6 +15,18 @@ const ROLE_ACCOUNTS = {
 
 type RoleCode = keyof typeof ROLE_ACCOUNTS
 
+const ALL_TOP_GROUPS = [
+  '工作台',
+  '房源运营',
+  '审核与风控',
+  '客户运营',
+  '商户合作',
+  '团队管理',
+  '内容管理',
+  '表单中心',
+  '系统管理',
+] as const
+
 const ROLE_NAVIGATION = {
   ADM: {
     groups: [
@@ -107,12 +119,28 @@ function topGroupButton(page: Page, name: string): Locator {
     .and(page.locator('.admin-navigation__group-toggle'))
 }
 
-async function visibleTopGroupNames(page: Page): Promise<string[]> {
-  return topGroupButtons(page).evaluateAll((buttons) =>
-    buttons.map((button) =>
-      button.querySelector('span')?.textContent?.trim() ?? '',
-    ),
-  )
+async function expectRoleGroups(page: Page, role: RoleCode): Promise<void> {
+  const allowed = ROLE_NAVIGATION[role].groups
+  await expect(topGroupButtons(page)).toHaveCount(allowed.length)
+
+  for (const [index, group] of allowed.entries()) {
+    await expect(
+      topGroupButton(page, group),
+      `${role} 应显示 ${group}`,
+    ).toBeVisible()
+    await expect(
+      topGroupButtons(page).nth(index).locator('span').first(),
+    ).toHaveText(group)
+  }
+
+  for (const group of ALL_TOP_GROUPS.filter(
+    (candidate) => !allowed.some((allowedGroup) => allowedGroup === candidate),
+  )) {
+    await expect(
+      topGroupButton(page, group),
+      `${role} 不应渲染无权分组 ${group}`,
+    ).toHaveCount(0)
+  }
 }
 
 async function openGroup(page: Page, name: string): Promise<void> {
@@ -174,6 +202,32 @@ async function navigationTextColors(page: Page): Promise<{
   })
 }
 
+async function expectUncovered(
+  locator: Locator,
+  viewportHeight: number,
+): Promise<void> {
+  const box = await locator.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.y).toBeGreaterThanOrEqual(0)
+  expect(box!.y + box!.height).toBeLessThanOrEqual(viewportHeight)
+
+  await expect
+    .poll(() =>
+      locator.evaluate((element) => {
+        const box = element.getBoundingClientRect()
+        const topmost = document.elementFromPoint(
+          box.left + box.width / 2,
+          box.top + box.height / 2,
+        )
+        return (
+          topmost !== null &&
+          (topmost === element || element.contains(topmost))
+        )
+      }),
+    )
+    .toBe(true)
+}
+
 test.describe('后台导航 / 五角色桌面矩阵', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
@@ -184,9 +238,7 @@ test.describe('后台导航 / 五角色桌面矩阵', () => {
       await ensureDesktopNavigationOpen(page)
       await expect(page.locator('.admin-navigation')).toBeVisible()
 
-      expect(await visibleTopGroupNames(page)).toEqual(
-        ROLE_NAVIGATION[role].groups,
-      )
+      await expectRoleGroups(page, role)
 
       const { group, leaf, slug } = ROLE_NAVIGATION[role].allowed
       await openGroup(page, group)
@@ -276,32 +328,6 @@ test.describe('后台导航 / 桌面交互', () => {
     ).toHaveAttribute('aria-current', 'page')
   })
 
-  test('导航具备独立滚动能力，主题和退出控件始终可达', async ({ page }) => {
-    const navigation = page.locator('.admin-navigation')
-    await expect(navigation).toHaveCSS('overflow-y', 'auto')
-
-    const themeToggle = page.getByRole('button', {
-      name: '切换到深色模式',
-    })
-    const account = page.getByRole('link', { name: '账号' })
-    const logout = page.getByRole('link', { name: '登出' })
-    await expect(themeToggle).toBeVisible()
-    await expect(account).toBeVisible()
-    await expect(logout).toBeVisible()
-
-    for (const control of [account, logout]) {
-      const box = await control.boundingBox()
-      expect(box).not.toBeNull()
-      expect(box!.y).toBeGreaterThanOrEqual(0)
-      expect(box!.y + box!.height).toBeLessThanOrEqual(900)
-    }
-
-    await navigation.evaluate((element) => {
-      element.scrollTop = element.scrollHeight
-    })
-    await expect(logout).toBeVisible()
-  })
-
   test('数量提醒正确格式化 0、1、99、100 边界', async ({ page }) => {
     await page.route('**/api/admin-navigation', async (route) => {
       await route.fulfill({
@@ -322,11 +348,11 @@ test.describe('后台导航 / 桌面交互', () => {
     await page.reload()
     await ensureDesktopNavigationOpen(page)
 
-    await expect(
-      page
-        .getByRole('link', { name: '我的待办', exact: true })
-        .locator('.admin-navigation__badge'),
-    ).toHaveCount(0)
+    const tasksLink = page.locator(
+      'a.admin-navigation__link[href="/admin/collections/tasks"]',
+    )
+    await expect(tasksLink).toBeVisible()
+    await expect(tasksLink.locator('.admin-navigation__badge')).toHaveCount(0)
     await expect(
       page.getByLabel('消息通知待处理 1 项', { exact: true }),
     ).toHaveText('1')
@@ -365,10 +391,56 @@ test.describe('后台导航 / 桌面交互', () => {
   })
 })
 
+test.describe('后台导航 / 较矮桌面滚动', () => {
+  const VIEWPORT_HEIGHT = 600
+  test.use({ viewport: { width: 1440, height: VIEWPORT_HEIGHT } })
+
+  test('真实溢出时导航可滚动，账号和退出控件不被遮挡', async ({ page }) => {
+    await loginAs(page, 'ADM')
+    await page.goto('/admin')
+    await ensureDesktopNavigationOpen(page)
+
+    // Next.js dev-only toolbar occupies the lower-left corner in local E2E runs.
+    // Disable only that framework overlay's hit target so this check measures the
+    // product navigation and its fixed footer, as a production build does.
+    await page.addStyleTag({
+      content: 'nextjs-portal { pointer-events: none !important; }',
+    })
+
+    const navigation = page.locator('.admin-navigation')
+    await expect(navigation).toBeVisible()
+    await expect(navigation).toHaveCSS('overflow-y', 'auto')
+
+    const dimensions = await navigation.evaluate((element) => ({
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }))
+    expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.clientHeight)
+
+    await navigation.evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
+    const scrollTop = await navigation.evaluate((element) => element.scrollTop)
+    expect(scrollTop).toBeGreaterThan(0)
+
+    const themeToggle = page.getByRole('button', { name: '切换到深色模式' })
+    const account = page.getByRole('link', { name: '账号' })
+    const logout = page.getByRole('link', { name: '登出' })
+    await expect(themeToggle).toBeVisible()
+    await expect(account).toBeVisible()
+    await expect(logout).toBeVisible()
+    await expectUncovered(account, VIEWPORT_HEIGHT)
+    await expectUncovered(logout, VIEWPORT_HEIGHT)
+  })
+})
+
 test.describe('后台导航 / 移动交互', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('全屏抽屉置底系统管理，并以不同语义区分返回和关闭', async ({
+  // The seeded roles do not contain a source-read/target-no-read combination.
+  // Task 9's Server wrapper unit tests remain the authoritative negative gate;
+  // this browser suite exercises both real positive journeys without forging roles.
+  test('上下文入口可进入带过滤条件的列表，抽屉置底系统管理并区分返回和关闭', async ({
     page,
   }, testInfo) => {
     await loginAs(page, 'ADM')
@@ -381,12 +453,65 @@ test.describe('后台导航 / 移动交互', () => {
     expect(leadId).toBeDefined()
 
     await page.goto(`/admin/collections/leads/${leadId}`)
-    await expect(page.getByRole('link', { name: '归属记录' })).toHaveAttribute(
+    const ownershipHistoryLink = page.getByRole('link', { name: '归属记录' })
+    await expect(ownershipHistoryLink).toHaveAttribute(
       'href',
       new RegExp(
         `/admin/collections/lead-ownership-history\\?where%5Blead%5D%5Bequals%5D=${leadId}$`,
       ),
     )
+    await ownershipHistoryLink.click()
+    await expect(page).toHaveURL(
+      /\/admin\/collections\/lead-ownership-history(?:\?.*)?$/,
+    )
+    expect(new URL(page.url()).searchParams.get('where[lead][equals]')).toBe(
+      String(leadId),
+    )
+    await expect(
+      page.getByRole('heading', { level: 1, name: '线索归属历史' }),
+    ).toBeVisible()
+
+    const formResponse = await page.request.post('/api/forms', {
+      data: {
+        title: `E2E 上下文入口表单 ${Date.now()}`,
+        fields: [],
+        confirmationType: 'redirect',
+        redirect: { url: 'https://example.com/thanks' },
+      },
+      failOnStatusCode: false,
+    })
+    expect(formResponse.status()).toBe(201)
+    const form = (await formResponse.json()) as {
+      doc?: { id?: number | string }
+    }
+    const formId = form.doc?.id
+    expect(formId).toBeDefined()
+
+    try {
+      await page.goto(`/admin/collections/forms/${formId}`)
+      const submissionsLink = page.getByRole('link', {
+        name: '查看提交数据',
+      })
+      await expect(submissionsLink).toBeVisible()
+      await submissionsLink.click()
+      await expect(page).toHaveURL(
+        /\/admin\/collections\/form-submissions(?:\?.*)?$/,
+      )
+      expect(new URL(page.url()).searchParams.get('where[form][equals]')).toBe(
+        String(formId),
+      )
+      await expect(
+        page.getByRole('heading', { level: 1, name: '提交数据' }),
+      ).toBeVisible()
+    } finally {
+      const deleteFormResponse = await page.request.delete(
+        `/api/forms/${formId}`,
+        { failOnStatusCode: false },
+      )
+      expect(deleteFormResponse.status()).toBe(200)
+    }
+
+    await page.goto(`/admin/collections/leads/${leadId}`)
 
     const returnToList = page
       .getByRole('banner')
@@ -407,8 +532,9 @@ test.describe('后台导航 / 移动交互', () => {
     const drawerBox = await drawer.boundingBox()
     expect(drawerBox).toEqual({ x: 0, y: 0, width: 390, height: 844 })
 
-    const groupNames = await visibleTopGroupNames(page)
-    expect(groupNames.at(-1)).toBe('系统管理')
+    await expect(
+      topGroupButtons(page).last().locator('span').first(),
+    ).toHaveText('系统管理')
 
     const systemBox = await topGroupButton(page, '系统管理').boundingBox()
     const workspaceBox = await topGroupButton(page, '工作台').boundingBox()
@@ -427,11 +553,17 @@ test.describe('后台导航 / 移动交互', () => {
     await expect(drawer).not.toHaveClass(/nav--nav-open/)
   })
 
-  test('线索创建页没有对象 ID 时不显示归属记录入口', async ({ page }) => {
+  test('线索和表单创建页没有对象 ID 时不显示上下文入口', async ({ page }) => {
     await loginAs(page, 'ADM')
     await page.goto('/admin/collections/leads/create')
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.getByRole('link', { name: '归属记录' })).toHaveCount(0)
+
+    await page.goto('/admin/collections/forms/create')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: '查看提交数据' }),
+    ).toHaveCount(0)
   })
 })
