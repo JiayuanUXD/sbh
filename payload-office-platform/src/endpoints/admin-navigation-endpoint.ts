@@ -8,6 +8,10 @@ import {
   requireAdminContext,
   type RequestContext,
 } from '@/domain/auth/access'
+import { ForbiddenError } from '@/domain/shared/errors'
+
+const AUTHENTICATION_ERROR_MESSAGE = '未登录或会话已失效'
+const INTERNAL_ERROR_MESSAGE = '后台导航暂时不可用'
 
 export type AdminNavigationResponse =
   | {
@@ -26,10 +30,29 @@ export function createAdminNavigationEndpoint(): Endpoint {
       try {
         permission = await requireAdminContext(req as RequestContext)
       } catch (caught) {
-        const error = caught instanceof Error ? caught.message : '未登录'
+        if (caught instanceof ForbiddenError) {
+          return Response.json(
+            {
+              ok: false,
+              error: AUTHENTICATION_ERROR_MESSAGE,
+            } satisfies AdminNavigationResponse,
+            { status: 401 },
+          )
+        }
+
+        const message =
+          caught instanceof Error
+            ? `${caught.name}: ${caught.message}`
+            : String(caught)
+        req.payload.logger?.error?.(
+          `[admin-navigation] permission context failed: ${message}`,
+        )
         return Response.json(
-          { ok: false, error } satisfies AdminNavigationResponse,
-          { status: 401 },
+          {
+            ok: false,
+            error: INTERNAL_ERROR_MESSAGE,
+          } satisfies AdminNavigationResponse,
+          { status: 500 },
         )
       }
 

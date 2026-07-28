@@ -46,6 +46,7 @@ type CountCall = {
 function makeReq(options: {
   user?: User | null
   role?: Role
+  roleLookupError?: Error
   count?: (input: CountCall) => Promise<{ totalDocs: number }>
 } = {}): {
   req: PayloadRequest
@@ -69,7 +70,10 @@ function makeReq(options: {
   }
   Object.assign(req, {
     payload: {
-      find: vi.fn(async () => ({ docs: user ? [role] : [] })),
+      find: vi.fn(async () => {
+        if (options.roleLookupError) throw options.roleLookupError
+        return { docs: user ? [role] : [] }
+      }),
       count,
       logger: { error },
     },
@@ -98,7 +102,27 @@ describe('GET /admin-navigation', () => {
 
     expect(result.status).toBe(401)
     expect(result.body.ok).toBe(false)
+    expect(result.body.error).toBe('未登录或会话已失效')
     expect(count).not.toHaveBeenCalled()
+  })
+
+  it('角色查询内部故障返回稳定 500 且不向响应泄漏原文', async () => {
+    const sensitiveMessage =
+      'postgres connection failed: password=super-secret host=db.internal'
+    const { req, count, error } = makeReq({
+      roleLookupError: new Error(sensitiveMessage),
+    })
+
+    const result = await run(req)
+
+    expect(result.status).toBe(500)
+    expect(result.body).toEqual({
+      ok: false,
+      error: '后台导航暂时不可用',
+    })
+    expect(JSON.stringify(result.body)).not.toContain(sensitiveMessage)
+    expect(count).not.toHaveBeenCalled()
+    expect(error).toHaveBeenCalledTimes(1)
   })
 
   it('返回固定合同并对每项 count 强制透传 req 与 overrideAccess=false', async () => {
