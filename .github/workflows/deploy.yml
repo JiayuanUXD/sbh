@@ -134,7 +134,19 @@ jobs:
           package_info="$RUNNER_TEMP/sbh-package.json"
           deploy_info="$RUNNER_TEMP/sbh-deploy.json"
 
+          # 包体积是这条通道的命门：跨境传到腾讯云 COS，7.6MB 会撑爆 --max-time，
+          # 5 次重试全部 0 字节超时（run 30265028880）；297KB 时代 52s 内传完。
+          # payload-office-platform/.gitattributes 用 export-ignore 把 artifacts/
+          # 与 tests/ 挡在包外（.dockerignore 在这一步不生效——平台先收包再 build）。
+          # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗 15 分钟超时后才暴露。
           git archive --format=zip HEAD:payload-office-platform > "$archive"
+          archive_bytes=$(wc -c < "$archive")
+          echo "代码包体积：$archive_bytes bytes"
+          if [ "$archive_bytes" -gt 3145728 ]; then
+            echo "::error::代码包 $archive_bytes bytes 超过 3MB 阈值，跨境上传大概率超时。"
+            echo "::error::检查是否有构建产物/截图/大文件进了仓库，按需加进 .gitattributes 的 export-ignore。"
+            exit 1
+          fi
           request_body=$(jq -cn --arg envId "$TCB_ENV_ID" \
             '{EnvId:$envId,ServiceName:"sbh"}')
           tcb api tcb DescribeCloudBaseBuildService \
@@ -159,7 +171,7 @@ jobs:
             --retry-all-errors \
             --retry-delay 5 \
             --connect-timeout 20 \
-            --max-time 180 \
+            --max-time 600 \
             --upload-file "$archive" \
             "${curl_headers[@]}" \
             "$upload_url"

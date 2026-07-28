@@ -49,7 +49,21 @@
 
 `push` 到 `master` 即自动部署到 CloudRun 服务 `sbh`。Workflow：[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
 
-> ⚠️ **当前 deploy 阶段必失败**（2026-07-27 起）：GitHub 托管 Runner 上传代码包 180 秒超时、0 字节。`quality` 质量门仍然有效，可以继续当 PR 门禁用；实际发布请走上面的[本地发布](#本地发布ci-上传通道不可用时的正式路径)。修复方向是换中国大陆/腾讯云内的自托管 Runner。
+> ⚠️ **代码包体积是这条通道的命门**。CI 把 `payload-office-platform/` 打成 ZIP 传到腾讯云 COS，跨境吞吐下体积直接决定成败：
+>
+> | 包体积 | 结果 |
+> |---|---|
+> | 297 KB（`255f82b` 及之前） | ✅ 连续 4 次部署，52s–1m12s |
+> | 7.64 MB（`e0159fe` merge 起） | ❌ `curl: (28) timed out after 180002 ms with 0 bytes received`，5 次重试全挂 |
+>
+> 2026-07-27 的连续部署失败就是这么来的：`payload-office-platform/artifacts/verification/` 里 31 个视觉回归 PNG 把包撑到 6.5 MB。**当时误判成「GitHub 托管 Runner 上传通道不可用、需换大陆自托管 Runner」——不成立**，同一 Runner 同一 COS 端点在 297 KB 时代跑得好好的。
+>
+> 现在的防线（2026-07-28）：
+> - `payload-office-platform/.gitattributes` 用 `export-ignore` 把 `artifacts/` 与 `tests/` 挡在包外（**`.dockerignore` 在这一步不生效**——平台是先收包、再在云端 build）。包回到 869 KB。
+> - deploy 步骤有 3 MB 硬阈值，超了立刻失败并提示，而不是耗 15 分钟超时才暴露。
+> - `--max-time` 从 180s 提到 600s，给跨境传输留余量。
+>
+> 再遇到上传超时，**先看日志里打印的「代码包体积」**，别急着怀疑 Runner。自托管 Runner 仍是值得做的长期优化（跨境延迟客观存在），但不是这次的阻塞项。CI 不通时的正式发布路径见上面的[本地发布](#本地发布ci-上传通道不可用时的正式路径)。
 
 机制：GitHub Actions 用 CloudBase CLI（`tcb`）上传 `payload-office-platform/` 的 ZIP 到云端，平台在线 `docker build` 并发布新版本（与 MCP `manageCloudRun(deploy)` 同一底层）。CI 端不装依赖、不构建。服务级环境变量（`DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV`）在控制台/MCP 配好后由服务保留，代码部署不清空，无需每次重传。
 
