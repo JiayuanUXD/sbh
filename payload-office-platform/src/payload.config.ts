@@ -55,6 +55,7 @@ import { createOverviewEndpoint } from './endpoints/overview-endpoint'
 import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-endpoint'
 import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
+import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -172,6 +173,8 @@ export default buildConfig({
     createLeadAnalyticsEndpoint(),
     // M2.6 字典发布基线 endpoint（GET /api/dictionaries，只读枚举 + 可选展示标签）
     createDictionariesEndpoint(),
+    // OPT-021 后台导航行动数量（按当前用户权限与数据范围安全聚合）
+    createAdminNavigationEndpoint(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
