@@ -9,6 +9,13 @@ const appRoot = resolve(here, '..')
 const repositoryRoot = resolve(appRoot, '..')
 
 describe('生产部署配置', () => {
+  it('Git Archive 排除验证产物与测试目录', () => {
+    const attributes = readFileSync(resolve(appRoot, '.gitattributes'), 'utf8')
+
+    expect(attributes).toMatch(/^artifacts\/ export-ignore$/m)
+    expect(attributes).toMatch(/^tests\/ export-ignore$/m)
+  })
+
   it('Docker builder 始终提供可复制的 public 目录', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const ensurePublic = dockerfile.indexOf('RUN mkdir -p public')
@@ -44,9 +51,11 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('DescribeCloudBaseBuildService')
     expect(workflow).toContain('UpdateCloudRunServer')
     expect(workflow).toContain(`ReleaseType: "GRAY"`)
+    expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
+    expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
     expect(workflow).toContain('--retry 4')
-    expect(workflow).toContain('--max-time 180')
+    expect(workflow).toContain('--max-time 600')
     expect(workflow).not.toContain('cloudrun deploy')
     expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
   })
