@@ -1,4 +1,4 @@
-import type { BeforeDocumentControlsServerProps } from 'payload'
+import type { SanitizedPermissions } from 'payload'
 
 import { canReadContextCollection } from '@/domain/admin-navigation/context-links'
 import LeadOwnershipHistoryLinkClient from './LeadOwnershipHistoryLinkClient'
@@ -12,7 +12,10 @@ import LeadOwnershipHistoryLinkClient from './LeadOwnershipHistoryLinkClient'
 export default function LeadOwnershipHistoryLink({
   id,
   permissions,
-}: BeforeDocumentControlsServerProps) {
+}: {
+  id?: number | string
+  permissions?: SanitizedPermissions
+}) {
   if (id === undefined || id === null || id === '') return null
   if (!canReadContextCollection(permissions, 'lead-ownership-history')) return null
 

@@ -1,4 +1,4 @@
-import type { BeforeDocumentControlsServerProps } from 'payload'
+import type { SanitizedPermissions } from 'payload'
 
 import { canReadContextCollection } from '@/domain/admin-navigation/context-links'
 import FormSubmissionsLinkClient from './FormSubmissionsLinkClient'
@@ -11,7 +11,10 @@ import FormSubmissionsLinkClient from './FormSubmissionsLinkClient'
 export default function FormSubmissionsLink({
   id,
   permissions,
-}: BeforeDocumentControlsServerProps) {
+}: {
+  id?: number | string
+  permissions?: SanitizedPermissions
+}) {
   if (id === undefined || id === null || id === '') return null
   if (!canReadContextCollection(permissions, 'form-submissions')) return null
 

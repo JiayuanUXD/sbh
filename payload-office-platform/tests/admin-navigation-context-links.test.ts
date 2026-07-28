@@ -1,7 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { SanitizedPermissions } from 'payload'
+import { isValidElement } from 'react'
 
 import { Leads } from '@/collections/Leads'
+
+vi.mock('@/components/admin/FormSubmissionsLinkClient', () => ({
+  default: function FormSubmissionsLinkClient() {
+    return null
+  },
+}))
+
+vi.mock('@/components/admin/LeadOwnershipHistoryLinkClient', () => ({
+  default: function LeadOwnershipHistoryLinkClient() {
+    return null
+  },
+}))
+
+import FormSubmissionsLink from '@/components/admin/FormSubmissionsLink'
+import FormSubmissionsLinkClient from '@/components/admin/FormSubmissionsLinkClient'
+import LeadOwnershipHistoryLink from '@/components/admin/LeadOwnershipHistoryLink'
+import LeadOwnershipHistoryLinkClient from '@/components/admin/LeadOwnershipHistoryLinkClient'
 import {
   buildFormSubmissionsURL,
   buildLeadOwnershipHistoryURL,
@@ -73,6 +91,54 @@ describe('admin navigation context links', () => {
     expect(canReadContextCollection(readable, 'lead-ownership-history')).toBe(true)
     expect(canReadContextCollection(unreadable, 'lead-ownership-history')).toBe(false)
     expect(canReadContextCollection(undefined, 'form-submissions')).toBe(false)
+  })
+
+  it('does not render the ownership history client link without target read permission', () => {
+    const element = LeadOwnershipHistoryLink({
+      id: 'lead-1',
+      permissions: { collections: { 'lead-ownership-history': { fields: true } } },
+    })
+
+    expect(element).toBeNull()
+  })
+
+  it('renders the ownership history client link without serializing permissions', () => {
+    const element = LeadOwnershipHistoryLink({
+      id: 'lead-1',
+      permissions: {
+        collections: { 'lead-ownership-history': { fields: true, read: true } },
+      },
+    })
+
+    expect(isValidElement(element)).toBe(true)
+    if (!isValidElement(element)) throw new Error('expected a React element')
+    expect(element.type).toBe(LeadOwnershipHistoryLinkClient)
+    expect(element.props).toEqual({})
+    expect(element.props).not.toHaveProperty('permissions')
+  })
+
+  it('does not render the submissions client link without target read permission', () => {
+    const element = FormSubmissionsLink({
+      id: 'form-1',
+      permissions: { collections: { 'form-submissions': { fields: true } } },
+    })
+
+    expect(element).toBeNull()
+  })
+
+  it('renders the submissions client link without serializing permissions', () => {
+    const element = FormSubmissionsLink({
+      id: 'form-1',
+      permissions: {
+        collections: { 'form-submissions': { fields: true, read: true } },
+      },
+    })
+
+    expect(isValidElement(element)).toBe(true)
+    if (!isValidElement(element)) throw new Error('expected a React element')
+    expect(element.type).toBe(FormSubmissionsLinkClient)
+    expect(element.props).toEqual({})
+    expect(element.props).not.toHaveProperty('permissions')
   })
 
   it('registers the ownership history link before lead document controls', () => {
