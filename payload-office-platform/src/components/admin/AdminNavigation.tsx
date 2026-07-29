@@ -1,7 +1,10 @@
 import type { ServerProps } from 'payload'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
-import { resolveAdminNavigation } from '@/domain/admin-navigation/resolve-navigation'
+import {
+  resolveAdminNavigation,
+  type ResolvedAdminNavGroup,
+} from '@/domain/admin-navigation/resolve-navigation'
 import { buildPermissionContext } from '@/domain/auth/permission-context'
 
 import AdminNavigationClient from './AdminNavigationClient'
@@ -14,6 +17,9 @@ export default async function AdminNavigation({
 }: ServerProps) {
   if (!user || permissions?.canAccessAdmin !== true) return null
 
+  // 解析在 try/catch 内完成，JSX 构造放到 try 之外：
+  // 服务端组件的 JSX 渲染错误不会被此 try/catch 捕获（react-hooks/error-boundaries）。
+  let groups: readonly ResolvedAdminNavGroup[]
   try {
     const permission = await buildPermissionContext({
       user,
@@ -36,14 +42,12 @@ export default async function AdminNavigation({
 
     if (!permission) return null
 
-    const groups = resolveAdminNavigation({
+    groups = resolveAdminNavigation({
       groups: ADMIN_NAV_GROUPS,
       permission,
       canReadCollection: (slug) =>
         permissions.collections?.[slug]?.read === true,
     })
-
-    return <AdminNavigationClient groups={groups} />
   } catch (caught) {
     const error = caught instanceof Error ? caught : new Error(String(caught))
     payload.logger.error(
@@ -51,4 +55,6 @@ export default async function AdminNavigation({
     )
     return null
   }
+
+  return <AdminNavigationClient groups={groups} />
 }
