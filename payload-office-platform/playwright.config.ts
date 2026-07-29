@@ -36,7 +36,16 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // dev server 由开发者/CI 预先启动（pnpm dev），
-  // Playwright 仅复用：避免与 vitest / 手动调试会话争用端口。
-  // CI 中通过 `playwright test --config=playwright.config.ts` 前置启动 server。
+  // 本地 dev server 自管理：CI 里自动拉起 `pnpm dev`（next dev -p 3717，dev 模式不触发
+  // 生产 fail-closed，连 job 级 SQLITE_URL 的已 seed 库）；本地若已有 server 在跑则复用，
+  // 避免与 vitest / 手动调试争用端口。url 用 baseURL（未设 NEXT_PUBLIC_SITE_URL 时即
+  // http://localhost:3717），确保等待和请求都指向本地 server 而非线上。
+  webServer: {
+    command: `pnpm exec next dev -p ${PORT}`,
+    url: `${baseURL}/admin`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 180_000,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  },
 })

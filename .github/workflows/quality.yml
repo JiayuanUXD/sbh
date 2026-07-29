@@ -38,11 +38,19 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm migrate:dry-run
-      - run: pnpm build
+      - name: Build
+        run: pnpm build
+        env:
+          # 仅 build 需要：生产构建收集 /sitemap.xml page data 时前端 site-config
+          # fail-closed 需此值（与 deploy.yml 一致）。不能设成 job 级——否则会成为
+          # Playwright 的 baseURL，把 E2E 打到线上而非本地 server。
+          NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm seed
       - run: pnpm migrate:verify
       - run: pnpm baseline:capture
+      # test:e2e 的本地 server 由 playwright.config 的 webServer 自动拉起（pnpm dev，
+      # dev 模式不触发生产 fail-closed，用 job 级 SQLITE_URL 连已 seed 的库）。
       - run: pnpm test:e2e
 
   postgres-migrations:
