@@ -19,6 +19,7 @@ import * as migration_20260726_140000_m5_2_leads_inquiry_context from './2026072
 import * as migration_20260726_150000_opt017_inquiry_rate_limit from './20260726_150000_opt017_inquiry_rate_limit';
 import * as migration_20260728_180000_opt_021_admin_navigation_roles from './20260728_180000_opt_021_admin_navigation_roles';
 import * as migration_20260728_181000_opt_021_form_submission_status from './20260728_181000_opt_021_form_submission_status';
+import * as migration_20260729_094725_locked_docs_audit_logs_rel from './20260729_094725_locked_docs_audit_logs_rel';
 
 export const migrations = [
   {
@@ -79,7 +80,7 @@ export const migrations = [
   {
     up: migration_20260725_185329_m4_4_listing_reviews.up,
     down: migration_20260725_185329_m4_4_listing_reviews.down,
-    name: '20260725_185329_m4_4_listing_reviews'
+    name: '20260725_185329_m4_4_listing_reviews',
   },
   {
     up: migration_20260726_103500_m6_1_listing_reports.up,
@@ -125,5 +126,10 @@ export const migrations = [
     up: migration_20260728_181000_opt_021_form_submission_status.up,
     down: migration_20260728_181000_opt_021_form_submission_status.down,
     name: '20260728_181000_opt_021_form_submission_status',
+  },
+  {
+    up: migration_20260729_094725_locked_docs_audit_logs_rel.up,
+    down: migration_20260729_094725_locked_docs_audit_logs_rel.down,
+    name: '20260729_094725_locked_docs_audit_logs_rel'
   },
 ];
