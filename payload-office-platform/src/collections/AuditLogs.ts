@@ -46,6 +46,7 @@ export const AuditLogs: CollectionConfig = {
     plural: '审计日志',
   },
   admin: {
+    group: false,
     useAsTitle: 'action',
     defaultColumns: [
       'action',
@@ -57,7 +58,6 @@ export const AuditLogs: CollectionConfig = {
     ],
     description:
       '追加式审计日志：记录所有高风险业务动作。只允许查看和追加，禁止修改或删除。查看详情和导出本身也会被审计。',
-    group: 'system',
   },
   access: {
     ...createCollectionAccess({

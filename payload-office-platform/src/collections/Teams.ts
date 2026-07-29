@@ -15,6 +15,7 @@ export const Teams: CollectionConfig = {
     plural: '团队管理',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'manager', 'status'],
   },

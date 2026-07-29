@@ -17,7 +17,7 @@ export const Locations: CollectionConfig = {
   slug: 'locations',
   labels: {
     singular: '区域',
-    plural: '区域管理',
+    plural: '行政区域',
   },
   // 自定义端点挂 collection（不能放顶层 config.endpoints，否则被 slug 路由遮蔽 → 404）。
   endpoints: [
@@ -25,6 +25,7 @@ export const Locations: CollectionConfig = {
     createLocationReferencesEndpoint(),
   ],
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],
     // M2.2：以树形管理视图整页替换默认列表（PRD 03_城市区域）

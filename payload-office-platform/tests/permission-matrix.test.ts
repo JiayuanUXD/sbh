@@ -231,9 +231,12 @@ describe('permission-matrix/MGR', () => {
 // ────────────────────────────────────────────────────────────
 
 describe('permission-matrix/BRK', () => {
-  it('菜单：仅"我的"和跟进可见；CRM 全量菜单禁止', async () => {
+  it('菜单：工作台、房源和"我的"CRM 可见；CRM 全量菜单禁止', async () => {
     const ctx = await buildCtxForRole('BRK')
     expect(ctx.dataScope).toBe('self')
+    expect(hasMenuPermission(ctx, 'dashboard')).toBe(true)
+    expect(hasMenuPermission(ctx, 'todos')).toBe(true)
+    expect(hasMenuPermission(ctx, 'notifications')).toBe(true)
     expect(hasMenuPermission(ctx, 'my-leads')).toBe(true)
     expect(hasMenuPermission(ctx, 'my-customers')).toBe(true)
     expect(hasMenuPermission(ctx, 'follow-ups')).toBe(true)
@@ -241,7 +244,6 @@ describe('permission-matrix/BRK', () => {
     // 禁止
     expect(hasMenuPermission(ctx, 'leads')).toBe(false)
     expect(hasMenuPermission(ctx, 'customers')).toBe(false)
-    expect(hasMenuPermission(ctx, 'dashboard')).toBe(false)
     expect(hasMenuPermission(ctx, 'brokers')).toBe(false)
     expect(hasMenuPermission(ctx, 'users')).toBe(false)
   })
@@ -272,13 +274,17 @@ describe('permission-matrix/BRK', () => {
 // ────────────────────────────────────────────────────────────
 
 describe('permission-matrix/CSR', () => {
-  it('菜单：仅线索 / 客户可见；审核 / 工作台禁止', async () => {
+  it('菜单：工作台、线索 / 客户和表单中心可见；审核禁止', async () => {
     const ctx = await buildCtxForRole('CSR')
     expect(ctx.dataScope).toBe('global')
+    expect(hasMenuPermission(ctx, 'dashboard')).toBe(true)
+    expect(hasMenuPermission(ctx, 'todos')).toBe(true)
+    expect(hasMenuPermission(ctx, 'notifications')).toBe(true)
     expect(hasMenuPermission(ctx, 'leads')).toBe(true)
     expect(hasMenuPermission(ctx, 'customers')).toBe(true)
+    expect(hasMenuPermission(ctx, 'forms')).toBe(true)
+    expect(hasMenuPermission(ctx, 'form-submissions')).toBe(true)
     // 禁止
-    expect(hasMenuPermission(ctx, 'dashboard')).toBe(false)
     expect(hasMenuPermission(ctx, 'listing-reviews')).toBe(false)
     expect(hasMenuPermission(ctx, 'users')).toBe(false)
     expect(hasMenuPermission(ctx, 'roles')).toBe(false)

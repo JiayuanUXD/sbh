@@ -39,6 +39,7 @@ export const Buildings: CollectionConfig = {
     plural: '楼盘库',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'city', 'district', 'grade', 'status', 'operationalStatus'],
     preview: (doc) => (doc?.slug ? `/buildings/${doc.slug}` : null),

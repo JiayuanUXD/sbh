@@ -44,9 +44,16 @@ export const MENU_CODES = [
   'notifications',
   // 数据看板
   'analytics',
+  // 内容与表单插件
+  'pages',
+  'media',
+  'forms',
+  'form-submissions',
   // 系统管理
   'users',
   'roles',
+  'search',
+  'domain-events',
   'audit-logs',
   // 个人区
   'my-leads',

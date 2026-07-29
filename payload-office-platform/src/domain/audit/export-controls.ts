@@ -60,9 +60,28 @@ export function overrideExportsCollection({
 }): CollectionConfig {
   return {
     ...collection,
+    admin: {
+      ...collection.admin,
+      group: false,
+    },
     access: {
       ...collection.access,
       create: buildExportAccessCreate(),
+    },
+  }
+}
+
+/** 覆盖插件生成的 imports 集合：退出默认导航，同时保留插件全部既有配置。 */
+export function overrideImportsCollection({
+  collection,
+}: {
+  collection: CollectionConfig
+}): CollectionConfig {
+  return {
+    ...collection,
+    admin: {
+      ...collection.admin,
+      group: false,
     },
   }
 }

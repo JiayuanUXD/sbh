@@ -26,9 +26,10 @@ export const ListingReviews: CollectionConfig = {
   slug: 'listing-reviews',
   labels: {
     singular: '审核记录',
-    plural: '房源审核',
+    plural: '审核队列',
   },
   admin: {
+    group: false,
     useAsTitle: 'id',
     defaultColumns: ['listing', 'decision', 'taskStatus', 'submittedBy', 'createdAt'],
     description: '房源审核事件流：提交/撤回/通过/驳回。记录创建后不可修改或删除。',

@@ -49,9 +49,10 @@ export const Tasks: CollectionConfig = {
   slug: 'tasks',
   labels: {
     singular: '待办',
-    plural: '待办',
+    plural: '我的待办',
   },
   admin: {
+    group: false,
     useAsTitle: 'taskType',
     defaultColumns: [
       'taskType',
@@ -63,7 +64,6 @@ export const Tasks: CollectionConfig = {
     ],
     description:
       '工作流待办：审核 / 举报 / 线索 / 跟进 / 房源维护。状态机 pending → in_progress → completed；pending/in_progress → cancelled。由来源业务事件驱动创建与闭环。',
-    group: 'workflow',
   },
   access: {
     ...createCollectionAccess({

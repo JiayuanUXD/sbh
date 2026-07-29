@@ -23,6 +23,7 @@ export const LeadOwnershipHistory: CollectionConfig = {
     plural: '线索归属历史',
   },
   admin: {
+    group: false,
     useAsTitle: 'id',
     defaultColumns: ['lead', 'action', 'fromOwner', 'toOwner', 'createdAt'],
     description: '线索归属流水：分配/认领/转派/进入公海/回收。记录创建后不可修改或删除。',

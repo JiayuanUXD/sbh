@@ -4,9 +4,10 @@ export const Amenities: CollectionConfig = {
   slug: 'amenities',
   labels: {
     singular: '配套',
-    plural: '配套设施',
+    plural: '配套字典',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'category'],
   },

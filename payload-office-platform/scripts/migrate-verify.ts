@@ -317,7 +317,13 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('[migrate:verify] failed:', err)
-  process.exitCode = 1
-})
+main()
+  .catch((err) => {
+    console.error('[migrate:verify] failed:', err)
+    process.exitCode = 1
+  })
+  .finally(() => {
+    // PG 适配器 db.destroy 后仍可能残留连接 handle，导致进程不退出、CI job hang
+    // （base 分支同样卡在 Verify fresh database 步）。检查已全部完成，显式退出。
+    process.exit(process.exitCode || 0)
+  })

@@ -4,6 +4,7 @@ import { getLeadMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
+import { leadReadAccess } from '@/domain/crm/lead-read-access'
 
 /**
  * F5 前台咨询表单来源页面类型（FP-05 §2 入口）
@@ -40,6 +41,7 @@ export const Leads: CollectionConfig = {
     plural: '咨询线索',
   },
   admin: {
+    group: false,
     useAsTitle: 'name',
     defaultColumns: [
       'name',
@@ -51,6 +53,16 @@ export const Leads: CollectionConfig = {
       'targetType',
       'createdAt',
     ],
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          '/components/admin/LeadOwnershipHistoryLink',
+        ],
+      },
+    },
+  },
+  access: {
+    read: leadReadAccess,
   },
   trash: true,
   hooks: {

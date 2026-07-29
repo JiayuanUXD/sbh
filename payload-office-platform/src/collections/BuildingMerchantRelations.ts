@@ -19,10 +19,9 @@ export const BuildingMerchantRelations: CollectionConfig = {
     plural: '楼盘商户关系',
   },
   admin: {
+    group: false,
     useAsTitle: 'id',
     defaultColumns: ['building', 'merchant', 'effectiveFrom', 'effectiveTo'],
-    // M3.3 阶段先不进导航,关系维护入口在 M3.4/M4 挂接
-    hidden: true,
   },
   access: {
     read: () => true,

@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import config from '../src/payload.config'
 import type { Lead } from '../src/payload-types'
 import { BUILTIN_ROLES } from '../src/test/factory/roles'
+import { syncBuiltinRoles } from '../src/domain/auth/sync-builtin-roles'
 
 type AnyDoc = {
   id: number
@@ -111,36 +112,57 @@ async function seed() {
   const payload = await getPayload({ config })
 
   // === M1.2：内置角色种子（ADM / OPS / MGR / BRK / CSR）===
-  // 内置角色不可删除或改码；首次 seed 时创建，已存在则按 code 跳过。
-  for (const role of Object.values(BUILTIN_ROLES)) {
-    const existing = await payload.find({
-      collection: 'roles',
-      where: { code: { equals: role.code } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    if (existing.docs[0]) {
-      payload.logger.info(`角色 ${role.code} 已存在，跳过 seed`)
-      continue
-    }
-    await payload.create({
-      collection: 'roles',
-      data: {
-        code: role.code,
-        name: role.name,
-        description: role.description,
-        isBuiltin: true,
-        status: 'active',
-        dataScope: role.dataScope,
-        menuPermissions: role.menuPermissions,
-        operationPermissions: role.operationPermissions,
-        fieldPermissions: role.fieldPermissions,
+  // 内置角色不可删除或改码；重复 seed 时按 code 收敛名称、描述和权限。
+  await syncBuiltinRoles(
+    {
+      findByCode: async (code) => {
+        const existing = await payload.find({
+          collection: 'roles',
+          where: { code: { equals: code } },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        const role = existing.docs[0]
+        return role
+          ? { id: role.id, isBuiltin: role.isBuiltin }
+          : undefined
       },
-      overrideAccess: true,
-    })
-    payload.logger.info(`角色 ${role.code} 创建完成`)
-  }
+      update: async (id, role) => {
+        await payload.update({
+          collection: 'roles',
+          id,
+          data: {
+            name: role.name,
+            description: role.description,
+            menuPermissions: role.menuPermissions,
+            operationPermissions: role.operationPermissions,
+            fieldPermissions: role.fieldPermissions,
+          },
+          overrideAccess: true,
+        })
+      },
+      create: async (role) => {
+        await payload.create({
+          collection: 'roles',
+          data: {
+            code: role.code,
+            name: role.name,
+            description: role.description,
+            isBuiltin: true,
+            status: 'active',
+            dataScope: role.dataScope,
+            menuPermissions: role.menuPermissions,
+            operationPermissions: role.operationPermissions,
+            fieldPermissions: role.fieldPermissions,
+          },
+          overrideAccess: true,
+        })
+      },
+      info: (message) => payload.logger.info(message),
+    },
+    Object.values(BUILTIN_ROLES),
+  )
 
   // === M1.6：5 个 E2E 测试账号（每个内置角色一个）===
   // 仅在 dev/staging 环境用于权限矩阵 E2E；生产环境不应运行 seed。

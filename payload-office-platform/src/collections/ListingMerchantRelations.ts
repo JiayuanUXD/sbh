@@ -12,7 +12,7 @@ import { protectListingMerchantRelation } from '@/domain/supply/listing-merchant
  * 不变量、准入门禁、区间合法、同房源不重叠、版本乐观锁全部在 beforeChange hook 守护。
  * 生产 PG 另有 EXCLUDE USING gist 兜底同房源区间不重叠;SQLite 只靠 hook 校验。
  *
- * admin.hidden:true —— 供给关系通过房源侧维护,列表不进后台导航。
+ * admin.group:false —— 供给关系通过房源侧维护，由自定义导航承载直接路由。
  */
 export const ListingMerchantRelations: CollectionConfig = {
   slug: 'listing-merchant-relations',
@@ -21,9 +21,9 @@ export const ListingMerchantRelations: CollectionConfig = {
     plural: '房源商户关系',
   },
   admin: {
+    group: false,
     useAsTitle: 'id',
     defaultColumns: ['listing', 'merchant', 'effectiveFrom', 'effectiveTo'],
-    hidden: true,
   },
   access: {
     read: () => true,
