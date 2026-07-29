@@ -1,8 +1,8 @@
 # Task Packet：OPT-021-admin-navigation-ia 后台导航信息架构优化
 
-> 状态：进行中
+> 状态：自动化验证已通过 / 浏览器截图证据待补
 > 创建日期：2026-07-28
-> 最后更新：2026-07-28
+> 最后更新：2026-07-29
 
 ## 1. 目标
 
@@ -71,9 +71,13 @@
 
 ## 8. 结果
 
-- 修改文件：`specs/work-items/OPT-021-admin-navigation-ia.md`。
-- 实际结果：已建立任务包和可追踪验收基线，实施验收项均保持待完成。
-- 验证摘要：已核对模板、设计稿第 12 节、当前 Payload 分组/Collection 配置，并检查占位符未残留。
-- 详细证据：`../../artifacts/verification/OPT-021-admin-navigation-ia/README.md`（后续实现任务补充）。
-- 剩余风险：尚未执行功能实现、自动化测试或桌面/移动浏览器验收。
-- 下一步：按设计稿第 13 节的推进顺序实施导航配置、权限过滤、响应式交互、低频入口迁移和数量提醒。
+- 实现范围：Task 1–10 代码已落地（导航配置/角色权限/服务端可见性/表单提交状态/数量 endpoint/默认导航退出/响应式导航/详情上下文入口/E2E 用例）。
+- 安全缺口修复：E2E 发现 BRK 可读「负责人为空/他人」线索；`src/domain/crm/lead-read-access.ts` 补 `self` 范围服务端 read（`owner.user === userId` + 账号城市上限），单测 `tests/lead-read-access.test.ts` 3 passed，E2E `permission-matrix.spec.ts` 加回归。
+- 本轮改动：修复 `AdminNavigation.tsx` 的 `react-hooks/error-boundaries` lint error（JSX 构造移出 try/catch）。
+- 自动化验证（全部退出码 0）：
+  - `generate:types` / `generate:importmap` 无 diff；`tsc --noEmit` 无错误；`pnpm lint` 0 error（仅 8 条前端既有 `<img>` warning）。
+  - `pnpm test`：120 文件 / 2125 测试全通过。
+  - `pnpm build`：编译成功、全路由（含 `/admin`）在产物中（需 `NEXT_PUBLIC_SITE_URL`）。
+  - `migrate:dry-run`：两个 OPT-021 迁移 up/down/no forbidden patterns；`migrate:verify`：100 checks / 0 fail。
+- 详细证据：`../../artifacts/verification/OPT-021-admin-navigation-ia/README.md`。
+- 剩余项：五角色 × 桌面/移动 × 亮暗色浏览器截图、badge 边界 0/1/99/100、未授权直接 URL 拒绝的可视化证据，以及 E2E 实跑（需 dev server + seed）。用户已选「先跑自动化验证」，浏览器证据留待下一轮。
