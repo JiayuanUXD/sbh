@@ -137,7 +137,12 @@ async function capture(): Promise<void> {
   )
 }
 
-capture().catch((error: unknown) => {
-  console.error('[baseline] capture failed:', error)
-  process.exitCode = 1
-})
+capture()
+  .catch((error: unknown) => {
+    console.error('[baseline] capture failed:', error)
+    process.exitCode = 1
+  })
+  .finally(() => {
+    // 同 migrate-verify：PG 适配器 destroy 后残留连接 handle，进程不退出、CI job hang。
+    process.exit(process.exitCode || 0)
+  })
