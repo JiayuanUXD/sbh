@@ -23,10 +23,13 @@
 
 import { expect, type APIRequestContext, test } from '@playwright/test'
 
-const BASE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3717').replace(
-  /\/$/,
-  '',
-)
+// 与 playwright.config.ts 的 baseURL 保持一致：优先 NEXT_PUBLIC_SITE_URL，
+// 否则用 http://localhost:${PORT}（默认 3717）。硬编码 3717 会在服务跑在非默认
+// 端口时把 API 请求静默打到别的服务上，导致假失败。
+const BASE = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  `http://localhost:${process.env.PORT ?? 3717}`
+).replace(/\/$/, '')
 
 const ROLE_ACCOUNTS = {
   ADM: { email: 'e2e-adm@example.com', password: 'Test1234!' },
