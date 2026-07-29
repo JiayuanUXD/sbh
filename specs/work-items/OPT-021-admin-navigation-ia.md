@@ -1,6 +1,6 @@
 # Task Packet：OPT-021-admin-navigation-ia 后台导航信息架构优化
 
-> 状态：自动化验证已通过 / 浏览器截图证据待补
+> 状态：已完成（自动化 + E2E 34 passed + 截图证据齐备）
 > 创建日期：2026-07-28
 > 最后更新：2026-07-29
 
@@ -80,4 +80,6 @@
   - `pnpm build`：编译成功、全路由（含 `/admin`）在产物中（需 `NEXT_PUBLIC_SITE_URL`）。
   - `migrate:dry-run`：两个 OPT-021 迁移 up/down/no forbidden patterns；`migrate:verify`：100 checks / 0 fail。
 - 详细证据：`../../artifacts/verification/OPT-021-admin-navigation-ia/README.md`。
-- 剩余项：五角色 × 桌面/移动 × 亮暗色浏览器截图、badge 边界 0/1/99/100、未授权直接 URL 拒绝的可视化证据，以及 E2E 实跑（需 dev server + seed）。用户已选「先跑自动化验证」，浏览器证据留待下一轮。
+- 浏览器 / E2E（隔离 SQLite + seed，worktree server 3718）：`admin-navigation.spec.ts` + `permission-matrix.spec.ts` **34 passed / 0 failed**；四张截图（adm-desktop / ops-desktop / brk-mobile / dark-mode）已生成，角色矩阵/响应式/暗色均符合设计。
+- 修复：`permission-matrix.spec.ts` 的 `BASE` 由硬编码 3717 改为跟随 `PORT`，消除非默认端口下 API 打错服务的假失败；新增 `scripts/opt021-shots.ts` 截图脚本。
+- 剩余项：无（Task 11 证据齐备，待并入主线）。

@@ -65,16 +65,30 @@ OPT-021 迁移（均已在 `src/migrations/index.ts` 注册）：
 - `20260728_180000_opt_021_admin_navigation_roles`
 - `20260728_181000_opt_021_form_submission_status`
 
-## 6. 待补（本轮范围外，用户已选「先跑自动化验证」）
+## 6. 浏览器 / E2E 证据（已完成）
 
-以下为 Task 11 剩余的**浏览器证据**，需启动 dev server + seed 数据库后采集：
-- 五角色（ADM/OPS/MGR/BRK/CSR）× 桌面 1440×900 / 移动 390×844 × 亮/暗色截图。
-- badge 数量边界 0 / 1 / 99 / 100（100 显示 `99+`、0 隐藏）。
-- 未授权直接 URL 被服务端拒绝（403 / Not Found / 无数据）。
-- E2E `admin-navigation.spec.ts` + `permission-matrix.spec.ts`（`--project=chromium`）实跑。
+**环境**：隔离 SQLite（注释 `.env.local` 的 `DATABASE_URL`）+ `pnpm seed`（5 角色 + 5 个 `e2e-*@example.com` + 演示数据）。因主树 dev server 占用 3717，worktree server 跑在 **3718**。
 
-截图占位文件：`adm-desktop.png` / `ops-desktop.png` / `brk-mobile.png` / `dark-mode.png`（待生成）。
+### 6.1 E2E（Playwright chromium）
+
+```bash
+PORT=3718 pnpm exec playwright test \
+  tests/e2e/admin-navigation.spec.ts tests/e2e/permission-matrix.spec.ts --project=chromium
+```
+
+结果：**34 passed / 0 failed**（退出码 0）。覆盖五角色一级分组矩阵、单组手风琴、当前路由高亮、移动全屏抽屉、badge 边界 0/1/99/100（100→`99+`、0 隐藏）、`/api/leads` 字段脱敏、BRK 自有范围与伪造 `city` 参数不扩权、越权直接 API 被拒。
+
+> 排障记录（重要）：首轮出现 2 个 BRK 假失败。根因是 `permission-matrix.spec.ts` 的 `BASE` 硬编码 `?? 'http://localhost:3717'`，忽略 `PORT`，导致 API 请求打到主树 3717（`master` 代码、无本次 read-scope 修复、Postgres `sbh_dev`，e2e-brk 在那边是 user 5）而非 worktree 3718。curl 直连 3718 证明修复正确（BRK=user4 只见自有 lead 1；未认证返回 0 条）。已修 `BASE` 为 `?? http://localhost:${PORT ?? 3717}`，与 `playwright.config.ts` 对齐；仅 `PORT=3718` 复跑即 **34 passed**。
+
+### 6.2 截图（`scripts/opt021-shots.ts` 生成）
+
+| 文件 | 内容 | 校验 |
+|---|---|---|
+| `adm-desktop.png` | ADM 桌面 1440×900 亮色 | 9 个一级分组全显示 |
+| `ops-desktop.png` | OPS 桌面 1440×900 亮色 | 仅 6 组，无 客户运营/团队管理/系统管理 |
+| `brk-mobile.png` | BRK 移动 390×844 全屏抽屉 | 仅 3 组（工作台/房源运营/客户运营）+ 关闭按钮 |
+| `dark-mode.png` | ADM 桌面暗色 | 暗色主题，9 组，切换按钮变「浅色」 |
 
 ## 7. 结论
 
-自动化验证（生成 / 类型 / lint / 单测 / 构建 / 迁移 dry-run+verify）**全部通过**，安全缺口有实现 + 单测 + E2E 回归三重覆盖。剩余仅浏览器截图证据，待用户确认后补齐即可收口。
+自动化验证（生成 / 类型 / lint / 单测 / 构建 / 迁移 dry-run+verify）+ **E2E 34 passed** + 四张角色/响应式/暗色截图**全部通过**。安全缺口有实现 + 单测 + E2E 回归 + curl 直连四重确认。Task 11 证据齐备。
