@@ -17,6 +17,12 @@
  */
 import { expect, test } from '@playwright/test'
 
+// dev-story 是 dev-only 组件走查页，生产构建（next start）下返回 404。CI 用生产 server
+// 跑 E2E（E2E_PROD_SERVER=1），故依赖 /dev-story 的用例仅本地 dev 运行、生产 server 下跳过。
+const DEV_STORY_UNAVAILABLE = !!process.env.E2E_PROD_SERVER
+const DEV_STORY_SKIP_REASON =
+  'dev-story 仅 dev 可见；生产 server（next start）下 404，跳过'
+
 test.describe('F7.3 可访问性验收', () => {
   test('首页有唯一 main landmark 与 h1', async ({ page }) => {
     await page.goto('/')
@@ -35,6 +41,7 @@ test.describe('F7.3 可访问性验收', () => {
   })
 
   test('dev-story 标题层级连续', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
     // 应有 h1（页面主标题）
     const h1 = page.locator('h1')
@@ -80,6 +87,7 @@ test.describe('F7.3 可访问性验收', () => {
   })
 
   test('图片有 alt 文本', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
     const images = page.locator('img')
     const count = await images.count()

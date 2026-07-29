@@ -40,8 +40,12 @@ test.describe('OPT-011 停用供给不可达', () => {
     // sitemap 至少含若干房源/楼盘（seed 数据存在）
     expect(detailUrls.length).toBeGreaterThan(0)
     for (const url of detailUrls) {
-      const r = await request.get(url)
-      expect(r.status(), `${url} 应可访问`).toBe(200)
+      // sitemap 的 <loc> 是绝对 URL，origin 来自 NEXT_PUBLIC_SITE_URL（生产 server 下为
+      // 线上 https，与本地测试 server 不同）。只取 pathname 走 baseURL，确保命中被测的
+      // 本地 server 而非线上/其它端口（与下方「列表页链接均在 sitemap」用例同款处理）。
+      const path = new URL(url).pathname
+      const r = await request.get(path)
+      expect(r.status(), `${path} 应可访问`).toBe(200)
     }
   })
 
