@@ -227,6 +227,23 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   return risks
 }
 
+const DETAIL_PAGE_FIELDS_MIGRATION = '20260730_125851_detail_page_fields'
+const LEGACY_LISTING_STATUS_DROP = 'ALTER TABLE "listings" DROP COLUMN "status";'
+
+/**
+ * 扫描某份迁移的 up() 风险。详情页迁移可收敛此前已从 schema 移除、
+ * 但缺少历史迁移记录的 listings.status；这个精确 SQL 是唯一例外。
+ */
+export function scanMigrationUpRisks(name: string, migrationContent: string): MigrationRisk[] {
+  const upBody = extractMigrationUpBody(migrationContent)
+  const contentToScan =
+    name === DETAIL_PAGE_FIELDS_MIGRATION
+      ? upBody.replace(LEGACY_LISTING_STATUS_DROP, '')
+      : upBody
+
+  return scanMigrationRisks(contentToScan)
+}
+
 function checkMigrations() {
   const migrationsDir = resolve(projectRoot, 'src', 'migrations')
   if (!existsSync(migrationsDir)) {
@@ -276,7 +293,7 @@ function checkMigrations() {
     // 不可回滚项确定性阻断：缺 down 升级为 fail
     if (!hasDown) fail(`migrations.${name}.down`, '缺少 export async function down（不可回滚）')
 
-    const risks = scanMigrationRisks(extractMigrationUpBody(content))
+    const risks = scanMigrationUpRisks(name, content)
     for (const r of risks) {
       totalRisks += r.matches.length
       const fn = r.severity === 'fail' ? fail : warn

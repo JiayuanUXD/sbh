@@ -20,7 +20,7 @@ import * as migration_20260726_150000_opt017_inquiry_rate_limit from './20260726
 import * as migration_20260728_175500_locked_docs_audit_logs_rel from './20260728_175500_locked_docs_audit_logs_rel';
 import * as migration_20260728_180000_opt_021_admin_navigation_roles from './20260728_180000_opt_021_admin_navigation_roles';
 import * as migration_20260728_181000_opt_021_form_submission_status from './20260728_181000_opt_021_form_submission_status';
-import * as migration_20260730_124229_detail_page_fields from './20260730_124229_detail_page_fields';
+import * as migration_20260730_125851_detail_page_fields from './20260730_125851_detail_page_fields';
 
 export const migrations = [
   {
@@ -134,8 +134,8 @@ export const migrations = [
     name: '20260728_181000_opt_021_form_submission_status',
   },
   {
-    up: migration_20260730_124229_detail_page_fields.up,
-    down: migration_20260730_124229_detail_page_fields.down,
-    name: '20260730_124229_detail_page_fields'
+    up: migration_20260730_125851_detail_page_fields.up,
+    down: migration_20260730_125851_detail_page_fields.down,
+    name: '20260730_125851_detail_page_fields'
   },
 ];

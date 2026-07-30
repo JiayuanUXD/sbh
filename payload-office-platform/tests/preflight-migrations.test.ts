@@ -10,6 +10,7 @@ import {
   checkMigrationShape,
   extractMigrationUpBody,
   scanMigrationRisks,
+  scanMigrationUpRisks,
 } from '../scripts/preflight'
 
 const here = pathDirname(fileURLToPath(import.meta.url))
@@ -30,7 +31,7 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
-    expect(names).toContain('20260730_124229_detail_page_fields')
+    expect(names).toContain('20260730_125851_detail_page_fields')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
@@ -40,7 +41,7 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
-    expect(names).toContain('20260730_124229_detail_page_fields')
+    expect(names).toContain('20260730_125851_detail_page_fields')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })
@@ -104,6 +105,22 @@ describe('preflight migrations: 纯函数', () => {
     // 整个 up body 无高风险操作
     expect(scanMigrationRisks(upBody)).toHaveLength(0)
   })
+
+  it('只放行详情页迁移中精确的 legacy listings.status 删除', () => {
+    const content = [
+      'export async function up({ db }) {',
+      '  await db.execute(sql`',
+      '    ALTER TABLE "listings" DROP COLUMN "status";',
+      '    ALTER TABLE "listings" DROP COLUMN "another_legacy_column";',
+      '  `)',
+      '}',
+      'export async function down() {}',
+    ].join('\n')
+
+    const risks = scanMigrationUpRisks('20260730_125851_detail_page_fields', content)
+    expect(risks.filter((risk) => risk.severity === 'fail')).toHaveLength(1)
+    expect(risks[0]?.matches).toEqual(['DROP COLUMN'])
+  })
 })
 
 describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心断言）', () => {
@@ -132,17 +149,7 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const upBody = extractMigrationUpBody(content)
-      const allowedLegacyListingStatusDrop =
-        name === '20260730_124229_detail_page_fields' &&
-        upBody.includes('ALTER TABLE "listings" DROP COLUMN "status";')
-      // 该生成迁移还收敛了已在 schema 中移除、但此前没有迁移记录的 listings.status。
-      // 仅排除这条精确语句，其余 DROP 仍由通用风险扫描阻断。
-      const risks = scanMigrationRisks(
-        allowedLegacyListingStatusDrop
-          ? upBody.replace('ALTER TABLE "listings" DROP COLUMN "status";', '')
-          : upBody,
-      )
+      const risks = scanMigrationUpRisks(name, content)
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }
