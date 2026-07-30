@@ -21,6 +21,7 @@ import * as migration_20260728_175500_locked_docs_audit_logs_rel from './2026072
 import * as migration_20260728_180000_opt_021_admin_navigation_roles from './20260728_180000_opt_021_admin_navigation_roles';
 import * as migration_20260728_181000_opt_021_form_submission_status from './20260728_181000_opt_021_form_submission_status';
 import * as migration_20260730_125851_detail_page_fields from './20260730_125851_detail_page_fields';
+import * as migration_20260730_134600_inquiry_detail_context from './20260730_134600_inquiry_detail_context';
 
 export const migrations = [
   {
@@ -136,6 +137,11 @@ export const migrations = [
   {
     up: migration_20260730_125851_detail_page_fields.up,
     down: migration_20260730_125851_detail_page_fields.down,
-    name: '20260730_125851_detail_page_fields'
+    name: '20260730_125851_detail_page_fields',
+  },
+  {
+    up: migration_20260730_134600_inquiry_detail_context.up,
+    down: migration_20260730_134600_inquiry_detail_context.down,
+    name: '20260730_134600_inquiry_detail_context'
   },
 ];

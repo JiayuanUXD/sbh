@@ -423,6 +423,20 @@ export async function assertEffectiveListing(
 }
 
 /**
+ * 询盘楼盘目标有效性复核。与房源复核共用 Public Catalog facade，
+ * 使路由层不会接触 Payload 查询条件或原始文档。
+ */
+export async function assertEffectiveBuilding(
+  slug: string,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingDetailViewModel | null> {
+  const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
+  if (!raw) return null
+  return mapBuildingDetail(raw)
+}
+
+/**
  * 首页数据：精选房源 + 热门区域
  *
  * design.md §5.2：精选、热门区域数量使用同一 asOf 与谓词。

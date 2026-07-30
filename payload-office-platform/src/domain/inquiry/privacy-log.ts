@@ -46,6 +46,12 @@ export type InquiryLogEntry = Readonly<{
   errorCode: string | null
   /** 处理耗时（毫秒） */
   durationMs: number
+  /** 是否携带非权威价格快照（不记录金额、周期或单位）。 */
+  hasPriceSnapshot: boolean
+  /** 详情页入口区块（仅白名单枚举）。 */
+  section: string | null
+  /** 最终服务端复核后的目标归属。 */
+  targetResolution: 'listing' | 'building' | 'general'
 }>
 
 /** 字段完整度枚举（FP-05 §8 埋点：inquiry_submit 字段完整度枚举） */
@@ -95,7 +101,12 @@ export function deriveFieldCompleteness(req: InquiryRequest): FieldCompleteness 
  */
 export function buildInquiryLogEntry(
   req: InquiryRequest,
-  opts: Readonly<{ idempotent: boolean; errorCode: string | null; durationMs: number }>,
+  opts: Readonly<{
+    idempotent: boolean
+    errorCode: string | null
+    durationMs: number
+    targetResolution?: 'listing' | 'building' | 'general'
+  }>,
 ): InquiryLogEntry {
   const targetSlug = deriveTargetSlugForLog(req)
   return {
@@ -113,7 +124,16 @@ export function buildInquiryLogEntry(
     ),
     errorCode: opts.errorCode,
     durationMs: opts.durationMs,
+    hasPriceSnapshot: req.priceSnapshot !== null,
+    section: req.source.section,
+    targetResolution: opts.targetResolution ?? targetResolutionOf(req.targetType),
   }
+}
+
+function targetResolutionOf(targetType: InquiryRequest['targetType']): 'listing' | 'building' | 'general' {
+  if (targetType === 'listing') return 'listing'
+  if (targetType === 'building') return 'building'
+  return 'general'
 }
 
 function deriveTargetSlugForLog(req: InquiryRequest): string | null {

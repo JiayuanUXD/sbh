@@ -21,6 +21,43 @@ import { sanitizeCampaign, type CampaignAttribution } from './campaign'
 export const SOURCE_PAGE_TYPES = ['home', 'search', 'listing', 'building', 'content'] as const
 export type SourcePageType = (typeof SOURCE_PAGE_TYPES)[number]
 
+/** 详情页询盘入口区块；只保留可分析的产品枚举。 */
+export const SOURCE_SECTIONS = [
+  'hero',
+  'sticky-card',
+  'mobile-bar',
+  'supply-lease',
+  'supply-sale',
+  'supply-coworking',
+  'recommendation',
+] as const
+export type SourceSection = (typeof SOURCE_SECTIONS)[number]
+
+/** 楼盘详情供给分组，与 Public Catalog DTO 保持一致。 */
+export const SUPPLY_GROUPS = ['lease', 'sale', 'coworking'] as const
+export type InquirySupplyGroup = (typeof SUPPLY_GROUPS)[number]
+
+/** 公开价格展示单位；询盘只接受该有限枚举，绝不接收自由文本。 */
+export const PRICE_UNITS = [
+  'rmb-sqm-day',
+  'rmb-month',
+  'rmb-seat-month',
+  'rmb-total',
+] as const
+export type InquiryPriceUnit = (typeof PRICE_UNITS)[number]
+
+export type InquiryPriceSnapshot = Readonly<{
+  amount: number
+  currency: 'CNY'
+  period: 'day' | 'month' | 'year' | 'one-time'
+  unit: InquiryPriceUnit
+}>
+
+export type InquiryCurrentFilters = Readonly<{
+  group?: InquirySupplyGroup
+  priceUnit?: InquiryPriceUnit
+}>
+
 /** 目标对象类型（与 Leads Collection INQUIRY_TARGET_TYPES 对齐） */
 export const TARGET_TYPES = ['listing', 'building', 'none'] as const
 export type TargetType = (typeof TARGET_TYPES)[number]
@@ -63,8 +100,12 @@ export type InquiryRequest = Readonly<{
   source: Readonly<{
     pageType: SourcePageType
     path: string
+    section: SourceSection | null
+    currentFilters: InquiryCurrentFilters | null
     campaign: Readonly<CampaignAttribution>
   }>
+  priceSnapshot: InquiryPriceSnapshot | null
+  activeSupplyGroup: InquirySupplyGroup | null
 }>
 
 export type ValidationResult =
@@ -136,6 +177,8 @@ export function validateInquiry(input: unknown): ValidationResult {
 
   // ----- source -----
   const sourceRaw = input.source
+  let section: SourceSection | null = null
+  let currentFilters: InquiryCurrentFilters | null = null
   if (!isObject(sourceRaw)) {
     errors.push('source_required')
     errors.push('source_path_required')
@@ -150,6 +193,13 @@ export function validateInquiry(input: unknown): ValidationResult {
     } else if (path.length > LIMITS.PATH_MAX) {
       errors.push('source_path_too_long')
     }
+    const sectionResult = sanitizeSourceSection(sourceRaw.section)
+    if (!sectionResult.ok) errors.push('source_section_invalid')
+    else section = sectionResult.data
+
+    const filtersResult = sanitizeCurrentFilters(sourceRaw.currentFilters)
+    if (!filtersResult.ok) errors.push('source_filters_invalid')
+    else currentFilters = filtersResult.data
     // campaign 白名单化（无效时不阻断，但记错误码）
     const campaignResult = sanitizeCampaign(sourceRaw.campaign)
     if (!campaignResult.ok) {
@@ -171,6 +221,12 @@ export function validateInquiry(input: unknown): ValidationResult {
     moveInTime: trimString(demandRaw.moveInTime) || null,
   }
 
+  const priceSnapshotResult = sanitizePriceSnapshot(input.priceSnapshot)
+  if (!priceSnapshotResult.ok) errors.push('price_snapshot_invalid')
+
+  const activeSupplyGroupResult = sanitizeSupplyGroup(input.activeSupplyGroup)
+  if (!activeSupplyGroupResult.ok) errors.push('active_supply_group_invalid')
+
   if (errors.length > 0) {
     return { ok: false, errors }
   }
@@ -187,6 +243,8 @@ export function validateInquiry(input: unknown): ValidationResult {
   // trim 后的 path 与 pageType 写回数据（前面校验已 trim 但未写回）
   const trimmedPageType = trimString(source.pageType) as SourcePageType
   const trimmedPath = trimString(source.path)
+  const priceSnapshot = priceSnapshotResult.ok ? priceSnapshotResult.data : null
+  const activeSupplyGroup = activeSupplyGroupResult.ok ? activeSupplyGroupResult.data : null
 
   return {
     ok: true,
@@ -208,8 +266,12 @@ export function validateInquiry(input: unknown): ValidationResult {
       source: {
         pageType: trimmedPageType,
         path: trimmedPath,
+        section,
+        currentFilters,
         campaign: campaign.data,
       },
+      priceSnapshot,
+      activeSupplyGroup,
     },
   }
 }
@@ -228,4 +290,73 @@ function trimString(v: unknown): string {
 
 function isSourcePageType(v: string): v is SourcePageType {
   return (SOURCE_PAGE_TYPES as readonly string[]).includes(v)
+}
+
+function sanitizeSourceSection(value: unknown): { ok: true; data: SourceSection | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  const section = trimString(value)
+  if (!section || !(SOURCE_SECTIONS as readonly string[]).includes(section)) return { ok: false }
+  return { ok: true, data: section as SourceSection }
+}
+
+function sanitizeSupplyGroup(value: unknown): { ok: true; data: InquirySupplyGroup | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  const group = trimString(value)
+  if (!group || !(SUPPLY_GROUPS as readonly string[]).includes(group)) return { ok: false }
+  return { ok: true, data: group as InquirySupplyGroup }
+}
+
+function sanitizeCurrentFilters(value: unknown): { ok: true; data: InquiryCurrentFilters | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  if (!isObject(value)) return { ok: false }
+  const keys = Object.keys(value)
+  if (keys.some((key) => key !== 'group' && key !== 'priceUnit')) return { ok: false }
+
+  const group = sanitizeSupplyGroup(value.group)
+  if (!group.ok) return { ok: false }
+  const priceUnit = sanitizePriceUnit(value.priceUnit)
+  if (!priceUnit.ok) return { ok: false }
+  if (group.data === null && priceUnit.data === null) return { ok: true, data: null }
+
+  return {
+    ok: true,
+    data: {
+      ...(group.data ? { group: group.data } : {}),
+      ...(priceUnit.data ? { priceUnit: priceUnit.data } : {}),
+    },
+  }
+}
+
+function sanitizePriceUnit(value: unknown): { ok: true; data: InquiryPriceUnit | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  const unit = trimString(value)
+  if (!unit || !(PRICE_UNITS as readonly string[]).includes(unit)) return { ok: false }
+  return { ok: true, data: unit as InquiryPriceUnit }
+}
+
+function sanitizePriceSnapshot(value: unknown): { ok: true; data: InquiryPriceSnapshot | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  if (!isObject(value)) return { ok: false }
+  const keys = Object.keys(value)
+  if (keys.some((key) => key !== 'amount' && key !== 'currency' && key !== 'period' && key !== 'unit')) {
+    return { ok: false }
+  }
+  const amount = value.amount
+  const period = trimString(value.period)
+  const unit = sanitizePriceUnit(value.unit)
+  if (
+    typeof amount !== 'number' ||
+    !Number.isFinite(amount) ||
+    amount < 0 ||
+    value.currency !== 'CNY' ||
+    !(['day', 'month', 'year', 'one-time'] as const).includes(period as InquiryPriceSnapshot['period']) ||
+    !unit.ok ||
+    unit.data === null
+  ) {
+    return { ok: false }
+  }
+  return {
+    ok: true,
+    data: { amount, currency: 'CNY', period: period as InquiryPriceSnapshot['period'], unit: unit.data },
+  }
 }

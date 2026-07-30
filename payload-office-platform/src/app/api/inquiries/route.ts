@@ -23,6 +23,7 @@ import { getPayload } from 'payload'
 import { NextResponse } from 'next/server'
 import config from '@/payload.config'
 import {
+  assertEffectiveBuilding,
   assertEffectiveListing,
   defaultSearchContext,
 } from '@/domain/public-catalog'
@@ -201,46 +202,39 @@ export async function POST(req: Request): Promise<Response> {
       depth: 0,
     })
     if (existing.docs.length > 0) {
+      const existingTarget = (existing.docs[0] as { targetType?: unknown }).targetType
+      const targetResolution =
+        existingTarget === 'listing'
+          ? 'listing'
+          : existingTarget === 'building'
+            ? 'building'
+            : 'general'
       // 幂等命中：返回与首次相同成功语义，不暴露 Lead ID
       payload.logger.info(
         buildInquiryLogEntry(inquiry, {
           idempotent: true,
           errorCode: null,
           durationMs: Date.now() - startedAt,
+          targetResolution,
         }),
         'inquiry_idempotent_hit',
       )
-      return NextResponse.json({ ok: true })
+      return NextResponse.json({ ok: true, targetResolution })
     }
   } catch (e) {
     payload.logger.error({ err: e }, 'inquiry_idempotency_check_failed')
     // 幂等检查失败时继续创建：最坏情况下重复 Lead，但避免阻塞用户
   }
 
-  // ----- 7. 目标有效性复核（FP-05 §5：失效房源不得建立兴趣关系） -----
-  let interestedListingId: number | null = null
-  if (inquiry.targetType === 'listing' && inquiry.listingSlug) {
-    const effective = await assertEffectiveListing(
-      inquiry.listingSlug,
-      defaultSearchContext(),
-    )
-    if (!effective) {
-      // 房源失效：返回 409，提示用户可转为通用需求
-      payload.logger.info(
-        buildInquiryLogEntry(inquiry, {
-          idempotent: false,
-          errorCode: 'listing_not_found',
-          durationMs: Date.now() - startedAt,
-        }),
-        'inquiry_listing_invalid',
-      )
-      return NextResponse.json(
-        { ok: false, error: 'listing_not_found' },
-        { status: 409 },
-      )
-    }
-    interestedListingId = effective.id
-  }
+  // ----- 7. 目标有效性复核（同一 ctx；listing → building → general） -----
+  const ctx = defaultSearchContext()
+  const listing = inquiry.listingSlug
+    ? await assertEffectiveListing(inquiry.listingSlug, ctx)
+    : null
+  const building = !listing && inquiry.buildingSlug
+    ? await assertEffectiveBuilding(inquiry.buildingSlug, ctx)
+    : null
+  const targetResolution = listing ? 'listing' : building ? 'building' : 'general'
 
   // ----- 8. 创建 Lead（含完整询盘上下文） -----
   try {
@@ -257,7 +251,7 @@ export async function POST(req: Request): Promise<Response> {
         area: inquiry.demand.area ?? undefined,
         moveInTime: inquiry.demand.moveInTime ?? undefined,
         // 意向房源（仅有效供给时关联）
-        interestedListing: interestedListingId ?? undefined,
+        interestedListing: listing?.id,
         // 留言（与跟进记录区分：留言进 notes，跟进记录由经纪人后续填写）
         notes: inquiry.message ?? undefined,
         // 前台询盘上下文（FP-05 §5 / §8）
@@ -265,10 +259,14 @@ export async function POST(req: Request): Promise<Response> {
         sourcePageType: inquiry.source.pageType,
         sourcePath: inquiry.source.path,
         sourceUrl: `${siteConfig.siteOrigin}${inquiry.source.path}`,
-        targetType: inquiry.targetType,
-        targetListingSlug: inquiry.targetType === 'listing' ? inquiry.listingSlug : undefined,
-        targetBuildingSlug:
-          inquiry.targetType === 'building' ? inquiry.buildingSlug : undefined,
+        targetType: targetResolution === 'general' ? 'none' : targetResolution,
+        targetListingSlug: targetResolution === 'listing' ? inquiry.listingSlug : null,
+        targetBuildingSlug: targetResolution === 'building' ? inquiry.buildingSlug : null,
+        sourceSection: inquiry.source.section,
+        activeSupplyGroup: inquiry.activeSupplyGroup,
+        currentFilters: inquiry.source.currentFilters,
+        priceSnapshot: inquiry.priceSnapshot,
+        priceSnapshotSubmittedAt: inquiry.priceSnapshot ? new Date().toISOString() : null,
         consentAccepted: inquiry.consent.accepted,
         consentPolicyVersion: inquiry.consent.policyVersion,
         campaign: inquiry.source.campaign,
@@ -281,11 +279,12 @@ export async function POST(req: Request): Promise<Response> {
         idempotent: false,
         errorCode: null,
         durationMs: Date.now() - startedAt,
+        targetResolution,
       }),
       'inquiry_success',
     )
     // 不暴露 Lead ID（FP-05 §7）
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, targetResolution })
   } catch (e) {
     payload.logger.error({ err: e }, 'inquiry_create_failed')
     payload.logger.info(
@@ -293,6 +292,7 @@ export async function POST(req: Request): Promise<Response> {
         idempotent: false,
         errorCode: 'server_error',
         durationMs: Date.now() - startedAt,
+        targetResolution,
       }),
       'inquiry_error',
     )

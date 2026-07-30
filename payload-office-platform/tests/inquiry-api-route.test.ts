@@ -55,11 +55,13 @@ vi.mock('payload', async (importOriginal) => {
 })
 
 const assertEffectiveListingMock = vi.fn()
+const assertEffectiveBuildingMock = vi.fn()
 vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
     assertEffectiveListing: (...args: unknown[]) => assertEffectiveListingMock(...args),
+    assertEffectiveBuilding: (...args: unknown[]) => assertEffectiveBuildingMock(...args),
     defaultSearchContext: () => ({ asOf: new Date('2026-07-25T00:00:00Z') }),
   }
 })
@@ -174,6 +176,7 @@ beforeEach(() => {
   payloadLoggerError.mockReset()
   payloadLoggerWarn.mockReset()
   assertEffectiveListingMock.mockReset()
+  assertEffectiveBuildingMock.mockReset()
   inMemoryRateStore.clear()
 })
 
@@ -189,7 +192,7 @@ describe('POST /api/inquiries / 正常提交', () => {
 
     const r = await run(makeReq({ body: makeValidBody() }))
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ ok: true })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing' })
   })
 
   it('调用 payload.create 一次', async () => {
@@ -227,6 +230,33 @@ describe('POST /api/inquiries / 正常提交', () => {
     })
   })
 
+  it('仅持久化白名单详情上下文和非权威价格快照', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    await run(makeReq({ body: makeValidBody({
+      activeSupplyGroup: 'lease',
+      priceSnapshot: { amount: 8.5, currency: 'CNY', period: 'day', unit: 'rmb-sqm-day' },
+      source: {
+        pageType: 'listing',
+        path: '/listings/jingan-center-100-monthly',
+        section: 'sticky-card',
+        currentFilters: { group: 'lease', priceUnit: 'rmb-sqm-day' },
+      },
+    }) }))
+
+    expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceSection: 'sticky-card',
+        activeSupplyGroup: 'lease',
+        currentFilters: { group: 'lease', priceUnit: 'rmb-sqm-day' },
+        priceSnapshot: { amount: 8.5, currency: 'CNY', period: 'day', unit: 'rmb-sqm-day' },
+        priceSnapshotSubmittedAt: expect.any(String),
+      }),
+    }))
+  })
+
   it('通用需求（无 listingSlug）→ 不调用 assertEffectiveListing', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     payloadCreateMock.mockResolvedValue({ id: 1 })
@@ -243,7 +273,7 @@ describe('POST /api/inquiries / 正常提交', () => {
     assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
 
     const r = await run(makeReq({ body: makeValidBody() }))
-    expect(r.body).toEqual({ ok: true })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing' })
     expect(JSON.stringify(r.body)).not.toContain('99999')
   })
 })
@@ -315,11 +345,11 @@ describe('POST /api/inquiries / 幂等', () => {
     expect(payloadCreateMock).toHaveBeenCalledTimes(1)
 
     // 第二次：找到既有 Lead（幂等命中），不再创建
-    payloadFindMock.mockResolvedValueOnce({ docs: [{ id: 1 }] })
+    payloadFindMock.mockResolvedValueOnce({ docs: [{ id: 1, targetType: 'listing' }] })
     const req2 = makeReq({ body }) // 相同 requestId + phone + target
     const r2 = await run(req2)
     expect(r2.status).toBe(200)
-    expect(r2.body).toEqual({ ok: true })
+    expect(r2.body).toEqual({ ok: true, targetResolution: 'listing' })
     expect(payloadCreateMock).toHaveBeenCalledTimes(1) // 仍然只调用一次
   })
 
@@ -344,32 +374,83 @@ describe('POST /api/inquiries / 幂等', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/inquiries / 失效房源', () => {
-  it('assertEffectiveListing 返回 null → 409 listing_not_found', async () => {
+  it('房源失效但楼盘仍有效时创建楼盘需求', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     assertEffectiveListingMock.mockResolvedValue(null)
+    assertEffectiveBuildingMock.mockResolvedValue({ id: 88, slug: 'bund-soho' })
 
-    const r = await run(makeReq({ body: makeValidBody() }))
-    expect(r.status).toBe(409)
-    expect(r.body).toEqual({ ok: false, error: 'listing_not_found' })
+    const r = await run(makeReq({
+      body: makeValidBody({ listingSlug: 'expired', buildingSlug: 'bund-soho' }),
+    }))
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'building' })
+    expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        targetType: 'building',
+        targetListingSlug: null,
+        targetBuildingSlug: 'bund-soho',
+        interestedListing: undefined,
+      }),
+    }))
   })
 
-  it('房源失效时不调用 payload.create', async () => {
+  it('房源和楼盘均失效时创建通用需求', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     assertEffectiveListingMock.mockResolvedValue(null)
+    assertEffectiveBuildingMock.mockResolvedValue(null)
+    payloadCreateMock.mockResolvedValue({ id: 1 })
 
-    await run(makeReq({ body: makeValidBody() }))
-    expect(payloadCreateMock).not.toHaveBeenCalled()
+    const r = await run(makeReq({
+      body: makeValidBody({ listingSlug: 'expired', buildingSlug: 'bund-soho' }),
+    }))
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'general' })
+    expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        targetType: 'none',
+        targetListingSlug: null,
+        targetBuildingSlug: null,
+        interestedListing: undefined,
+      }),
+    }))
   })
 
-  it('房源失效时记录 inquiry_listing_invalid 日志', async () => {
+  it('目标降级日志不包含价格、筛选、姓名、手机号或备注', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     assertEffectiveListingMock.mockResolvedValue(null)
+    assertEffectiveBuildingMock.mockResolvedValue({ id: 88, slug: 'bund-soho' })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
 
-    await run(makeReq({ body: makeValidBody() }))
+    await run(makeReq({ body: makeValidBody({
+      listingSlug: 'expired',
+      buildingSlug: 'bund-soho',
+      name: '赵敏',
+      phone: '13900002222',
+      message: '请回电',
+      activeSupplyGroup: 'lease',
+      priceSnapshot: { amount: 8.5, currency: 'CNY', period: 'day', unit: 'rmb-sqm-day' },
+      source: {
+        pageType: 'building',
+        path: '/buildings/bund-soho',
+        section: 'supply-lease',
+        currentFilters: { group: 'lease', priceUnit: 'rmb-sqm-day' },
+      },
+    }) }))
     expect(payloadLoggerInfo).toHaveBeenCalledWith(
-      expect.objectContaining({ errorCode: 'listing_not_found' }),
-      'inquiry_listing_invalid',
+      expect.objectContaining({
+        hasPriceSnapshot: true,
+        section: 'supply-lease',
+        targetResolution: 'building',
+      }),
+      'inquiry_success',
     )
+    const logCall = payloadLoggerInfo.mock.calls.find((c) => c[1] === 'inquiry_success')
+    expect(logCall).toBeTruthy()
+    expect(JSON.stringify(logCall?.[0])).not.toContain('8.5')
+    expect(JSON.stringify(logCall?.[0])).not.toContain('rmb-sqm-day')
+    expect(JSON.stringify(logCall?.[0])).not.toContain('赵敏')
+    expect(JSON.stringify(logCall?.[0])).not.toContain('13900002222')
+    expect(JSON.stringify(logCall?.[0])).not.toContain('请回电')
   })
 })
 

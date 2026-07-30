@@ -498,6 +498,9 @@ describe('F7.5 隐私日志守护不变量汇总', () => {
         'campaignKeys',
         'errorCode',
         'durationMs',
+        'hasPriceSnapshot',
+        'section',
+        'targetResolution',
       ].sort(),
     )
   })
@@ -656,6 +659,8 @@ describe('F7.5 询盘完整链路守护不变量汇总', () => {
         'demand',
         'consent',
         'source',
+        'priceSnapshot',
+        'activeSupplyGroup',
       ].sort(),
     )
   })

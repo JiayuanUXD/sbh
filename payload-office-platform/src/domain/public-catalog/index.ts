@@ -85,6 +85,7 @@ export {
   getListingsByBuilding,
   getRelatedListings,
   assertEffectiveListing,
+  assertEffectiveBuilding,
   getHomepage,
   getSearchFacets,
   getPageBySlug,

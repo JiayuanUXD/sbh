@@ -1000,6 +1000,41 @@ export interface Lead {
    */
   targetBuildingSlug?: string | null;
   /**
+   * 仅保存白名单化的详情页入口区块；不保存任意前台文案。
+   */
+  sourceSection?:
+    | ('hero' | 'sticky-card' | 'mobile-bar' | 'supply-lease' | 'supply-sale' | 'supply-coworking' | 'recommendation')
+    | null;
+  /**
+   * 提交时页面当前的供给分组，仅接受 lease / sale / coworking。
+   */
+  activeSupplyGroup?: ('lease' | 'sale' | 'coworking') | null;
+  /**
+   * 已白名单化的 group / priceUnit 枚举；不保存自由文本或用户标识。
+   */
+  currentFilters?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * 非权威来源快照，仅供跟进参考，不参与公开价格或排序。
+   */
+  priceSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  priceSnapshotSubmittedAt?: string | null;
+  /**
    * 用户必须主动勾选，未勾选不得提交（FP-05 §3.1）。
    */
   consentAccepted?: boolean | null;
@@ -2774,6 +2809,11 @@ export interface LeadsSelect<T extends boolean = true> {
   targetType?: T;
   targetListingSlug?: T;
   targetBuildingSlug?: T;
+  sourceSection?: T;
+  activeSupplyGroup?: T;
+  currentFilters?: T;
+  priceSnapshot?: T;
+  priceSnapshotSubmittedAt?: T;
   consentAccepted?: T;
   consentPolicyVersion?: T;
   campaign?: T;

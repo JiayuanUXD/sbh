@@ -30,6 +30,7 @@ import {
 import { sanitizeCampaign, CAMPAIGN_KEYS } from '@/domain/inquiry/campaign'
 import {
   LIMITS,
+  SOURCE_SECTIONS,
   SOURCE_PAGE_TYPES,
   TARGET_TYPES,
   validateInquiry,
@@ -84,6 +85,70 @@ function buildValidInput(overrides: Record<string, unknown> = {}): unknown {
 // ---------------------------------------------------------------------------
 
 describe('validateInquiry: 合法输入', () => {
+  it('只接受白名单 section 和供给筛选', () => {
+    const r = validateInquiry(
+      buildValidInput({
+        source: {
+          pageType: 'building',
+          path: '/buildings/bund-soho',
+          section: 'supply-lease',
+          currentFilters: { group: 'lease', priceUnit: 'rmb-sqm-day' },
+        },
+        activeSupplyGroup: 'lease',
+        priceSnapshot: {
+          amount: 8.5,
+          currency: 'CNY',
+          period: 'day',
+          unit: 'rmb-sqm-day',
+        },
+      }),
+    )
+
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.data.source.section).toBe('supply-lease')
+    expect(r.data.source.currentFilters).toEqual({ group: 'lease', priceUnit: 'rmb-sqm-day' })
+    expect(r.data.activeSupplyGroup).toBe('lease')
+    expect(r.data.priceSnapshot).toEqual({
+      amount: 8.5,
+      currency: 'CNY',
+      period: 'day',
+      unit: 'rmb-sqm-day',
+    })
+    expect(SOURCE_SECTIONS).toContain('supply-lease')
+  })
+
+  it('拒绝未白名单的详情上下文且不保留原值', () => {
+    const r = validateInquiry(
+      buildValidInput({
+        source: {
+          pageType: 'building',
+          path: '/buildings/bund-soho',
+          section: 'notes=李四13800001111',
+          currentFilters: { group: 'lease', keyword: '李四' },
+        },
+        activeSupplyGroup: 'unknown',
+        priceSnapshot: {
+          amount: 8.5,
+          currency: 'USD',
+          period: 'day',
+          unit: 'rmb-sqm-day',
+        },
+      }),
+    )
+
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'source_section_invalid',
+      'source_filters_invalid',
+      'active_supply_group_invalid',
+      'price_snapshot_invalid',
+    ]))
+    expect(JSON.stringify(r)).not.toContain('李四')
+    expect(JSON.stringify(r)).not.toContain('13800001111')
+  })
+
   it('完整合法输入 → ok=true，字段全部映射', () => {
     const r = validateInquiry(buildValidInput())
     expect(r.ok).toBe(true)
@@ -584,9 +649,11 @@ describe('deriveFieldCompleteness', () => {
         moveInTime: opts.moveInTime ?? null,
       },
       consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
-      source: { pageType: 'listing', path: '/test', campaign: {
+      source: { pageType: 'listing', path: '/test', section: null, currentFilters: null, campaign: {
         utm_source: '', utm_medium: '', utm_campaign: '', utm_content: '', utm_term: '',
       } },
+      priceSnapshot: null,
+      activeSupplyGroup: null,
     }
   }
 
@@ -639,6 +706,8 @@ describe('buildInquiryLogEntry', () => {
       source: {
         pageType: 'listing',
         path: VALID_PATH,
+        section: null,
+        currentFilters: null,
         campaign: {
           utm_source: 'baidu',
           utm_medium: 'cpc',
@@ -647,6 +716,8 @@ describe('buildInquiryLogEntry', () => {
           utm_term: '',
         },
       },
+      priceSnapshot: null,
+      activeSupplyGroup: null,
       ...overrides,
     }
   }
