@@ -57,6 +57,13 @@ export interface SupplyAdapter {
     excludeListingId?: number | string,
   ): Promise<readonly Listing[]>
 
+  /** 当前楼盘周边的有效公开楼盘（排除自身，稳定收束）。 */
+  findEffectiveBuildingsNear(
+    buildingId: number | string,
+    ctx: SearchContext,
+    limit: number,
+  ): Promise<readonly Building[]>
+
   /** 首页精选有效房源（按 isFeatured + updatedAt desc） */
   findFeaturedListings(ctx: SearchContext, limit?: number): Promise<readonly Listing[]>
 
@@ -173,6 +180,44 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       return readPage(result.nextPage, docs)
     }
     return readPage(1, [])
+  }
+
+  function publicBuildingWhere(): Record<string, unknown> {
+    return {
+      operationalStatus: { equals: 'active' },
+      status: { equals: 'published' },
+      deletedAt: { exists: false },
+    }
+  }
+
+  function isPublicBuilding(building: Building | null | undefined): building is Building {
+    return Boolean(
+      building &&
+      building.operationalStatus === 'active' &&
+      building.status === 'published' &&
+      !building.deletedAt,
+    )
+  }
+
+  function relationId(value: unknown): number | string | null {
+    if (typeof value === 'number' || typeof value === 'string') return value
+    if (value && typeof value === 'object' && 'id' in value) {
+      const id = (value as { id?: unknown }).id
+      if (typeof id === 'number' || typeof id === 'string') return id
+    }
+    return null
+  }
+
+  function proximitySquared(a: Building, b: Building): number | null {
+    if (
+      typeof a.latitude !== 'number' ||
+      typeof a.longitude !== 'number' ||
+      typeof b.latitude !== 'number' ||
+      typeof b.longitude !== 'number'
+    ) return null
+    const latitude = a.latitude - b.latitude
+    const longitude = a.longitude - b.longitude
+    return latitude * latitude + longitude * longitude
   }
 
   async function resolveBuildingIdsByDistrict(
@@ -309,8 +354,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const result = await payload.find({
         collection: 'buildings',
         where: {
+          ...publicBuildingWhere(),
           slug: { equals: slug },
-          operationalStatus: { equals: 'active' },
         },
         limit: 1,
         depth: 2,
@@ -330,6 +375,47 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         kept = kept.filter((d) => String(d.id) !== String(excludeListingId))
       }
       return kept
+    },
+
+    async findEffectiveBuildingsNear(buildingId, _ctx, limit) {
+      const payload = await getPayload()
+      const current = await payload.findByID({
+        collection: 'buildings',
+        id: buildingId,
+        depth: 1,
+      }) as Building
+      if (!isPublicBuilding(current)) return []
+
+      // Prefer the more precise business district; an administrative district
+      // is the documented fallback when the former is absent.
+      const businessDistrictId = relationId(current.businessDistrict)
+      const districtId = relationId(current.district)
+      const locality = businessDistrictId != null
+        ? { businessDistrict: { equals: businessDistrictId } }
+        : districtId != null
+          ? { district: { equals: districtId } }
+          : null
+      if (!locality) return []
+
+      const result = await payload.find({
+        collection: 'buildings',
+        where: { ...publicBuildingWhere(), ...locality } as unknown as Where,
+        depth: 1,
+        pagination: false,
+        limit: Math.max(limit * 5, limit),
+        sort: 'id',
+      })
+      return (result.docs as Building[])
+        .filter((building) => isPublicBuilding(building) && String(building.id) !== String(current.id))
+        .sort((a, b) => {
+          const pa = proximitySquared(current, a)
+          const pb = proximitySquared(current, b)
+          if (pa != null && pb != null && pa !== pb) return pa - pb
+          if (pa != null && pb == null) return -1
+          if (pa == null && pb != null) return 1
+          return a.id - b.id
+        })
+        .slice(0, Math.max(0, limit))
     },
 
     async findFeaturedListings(ctx, limit = 6) {

@@ -282,6 +282,10 @@ function createFullPredicateAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
+    async findEffectiveBuildingsNear(buildingId, ctx) {
+      syncAsOf(ctx)
+      return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
+    },
     async findFeaturedListings(ctx, limit = 6) {
       syncAsOf(ctx)
       return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)
@@ -441,7 +445,7 @@ describe('F7.6 陈旧数据边界：陈旧规则不剔除公开供给', () => {
 
     expect(search.docs.some((c) => c.id === listing.id)).toBe(true)
     expect(detail?.id).toBe(listing.id)
-    expect(building.listings.some((c) => c.id === listing.id)).toBe(true)
+    expect(building.supply.groups.flatMap((group) => group.listings).some((c) => c.id === listing.id)).toBe(true)
     expect(homepage.featuredListings.some((c) => c.id === listing.id)).toBe(true)
     expect(facets.totalDocs).toBeGreaterThanOrEqual(1)
     expect(inquiry?.id).toBe(listing.id)
@@ -619,7 +623,7 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
     // related 排除自身
     expect(related.some((c) => c.id === listing.id)).toBe(false)
     expect(inquiry?.id).toBe(listing.id)
-    expect(building.listings.map((c) => c.id)).toEqual(searchIds)
+    expect(building.supply.groups.flatMap((group) => group.listings).map((c) => c.id)).toEqual(searchIds)
     expect(homepage.featuredListings.map((c) => c.id)).toEqual(searchIds)
     expect(facets.totalDocs).toBe(searchIds.length)
   })
@@ -641,9 +645,9 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
     const homepage = await getHomepage(ctx, { featuredLimit: 6 }, adapter)
     const facets = await getSearchFacets(parseSearchInput(new URLSearchParams('')), ctx, adapter)
 
-    // searchListings 与 buildingDetail.listings 是同一集合（仅排序不同）
+    // searchListings 与 buildingDetail 供给快照是同一集合（仅排序不同）
     const searchSet = [...search.docs.map((c) => c.id)].sort()
-    const buildingSet = [...building.listings.map((c) => c.id)].sort()
+    const buildingSet = [...building.supply.groups.flatMap((group) => group.listings).map((c) => c.id)].sort()
     expect(buildingSet).toEqual(searchSet)
 
     // facets.totalDocs 等于有效房源数
@@ -683,8 +687,8 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
 
     // searchListings.docs 仅含有效
     expect([...search.docs.map((c) => c.id)].sort()).toEqual(validIds)
-    // buildingDetail.listings 仅含有效
-    expect([...building.listings.map((c) => c.id)].sort()).toEqual(validIds)
+    // buildingDetail 供给快照仅含有效
+    expect([...building.supply.groups.flatMap((group) => group.listings).map((c) => c.id)].sort()).toEqual(validIds)
     // facets.totalDocs 等于有效数
     expect(facets.totalDocs).toBe(validIds.length)
     // 失效不在 homepage 中

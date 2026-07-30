@@ -139,6 +139,35 @@ export type VerificationViewModel = Readonly<{
 
 export type BuildingSupplyGroup = 'lease' | 'sale' | 'coworking'
 
+/** 楼盘供给的单一、不可跨用比较的价格区间。 */
+export type BuildingSupplyPriceRange = Readonly<{
+  /** businessType:currency:period:basis；仅相同 key 的价格可以聚合或比较。 */
+  key: string
+  businessType: PriceViewModel['businessType']
+  currency: PriceViewModel['currency']
+  period: PriceViewModel['period']
+  basis: PriceViewModel['basis']
+  displayUnit: PriceViewModel['displayUnit']
+  min: number
+  max: number
+  count: number
+}>
+
+/** 一个租赁、出售或联合办公供给组。 */
+export type BuildingSupplyGroupViewModel = Readonly<{
+  key: BuildingSupplyGroup
+  listings: readonly ListingCardViewModel[]
+  priceRanges: readonly BuildingSupplyPriceRange[]
+}>
+
+/** 楼盘详情页在同一 asOf 时刻生成的供给快照。 */
+export type BuildingSupplySnapshot = Readonly<{
+  asOf: string
+  groups: readonly BuildingSupplyGroupViewModel[]
+  totalEffectiveListings: number
+  validationErrors: readonly 'price_unit_required'[]
+}>
+
 // ---------------------------------------------------------------------------
 // 详情 DTO
 // ---------------------------------------------------------------------------

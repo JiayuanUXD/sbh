@@ -135,6 +135,9 @@ function createFakeAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
+    async findEffectiveBuildingsNear(buildingId) {
+      return options.buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
+    },
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings
         .filter((l) => isListingEffective(l) && l.isFeatured)
@@ -332,22 +335,21 @@ describe('getListingBySlug', () => {
 // ---------------------------------------------------------------------------
 
 describe('getBuildingDetail', () => {
-  it('有效楼盘返回详情 + 楼内房源 + 价格区间', async () => {
+  it('有效楼盘返回详情 + 楼内供给快照', async () => {
     const r = await getBuildingDetail('jingan-center', ctx, fullFixture())
     expect(r.building?.id).toBe(200)
     expect(r.building?.slug).toBe('jingan-center')
     // 楼内房源：1001（静安中心）和 1003（共享工位，building=静安中心）
-    expect(r.listings.map((c) => c.id).sort()).toEqual([1001, 1003])
+    expect(r.supply.groups.flatMap((group) => group.listings).map((c) => c.id).sort()).toEqual([1001, 1003])
     // 价格区间按 rentUnit 分组：rmb-month（1001=25000）+ rmb-seat-month（1003=2800）
-    const units = r.priceRanges.map((p) => p.unit).sort()
+    const units = r.supply.groups.flatMap((group) => group.priceRanges).map((p) => p.displayUnit).sort()
     expect(units).toEqual(['rmb-month', 'rmb-seat-month'])
   })
 
   it('停用楼盘返回 null + 空列表', async () => {
     const r = await getBuildingDetail('disabled-building', ctx, fullFixture())
     expect(r.building).toBeNull()
-    expect(r.listings).toEqual([])
-    expect(r.priceRanges).toEqual([])
+    expect(r.supply.groups).toEqual([])
   })
 
   it('未知楼盘 slug 返回 null', async () => {
@@ -358,8 +360,9 @@ describe('getBuildingDetail', () => {
   it('价格区间不跨 rentUnit 合并', async () => {
     // 构造多单位房源同楼盘
     const r = await getBuildingDetail('jingan-center', ctx, fullFixture())
-    const monthRange = r.priceRanges.find((p) => p.unit === 'rmb-month')
-    const seatRange = r.priceRanges.find((p) => p.unit === 'rmb-seat-month')
+    const ranges = r.supply.groups.flatMap((group) => group.priceRanges)
+    const monthRange = ranges.find((p) => p.displayUnit === 'rmb-month')
+    const seatRange = ranges.find((p) => p.displayUnit === 'rmb-seat-month')
     expect(monthRange).toBeDefined()
     expect(seatRange).toBeDefined()
     expect(monthRange?.min).toBe(25000)

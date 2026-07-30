@@ -315,6 +315,9 @@ function createFullPredicateAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
+    async findEffectiveBuildingsNear(buildingId) {
+      return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
+    },
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)
     },
@@ -351,7 +354,7 @@ function defaultInput(overrides: Partial<ListingSearchInput> = {}): ListingSearc
  *   2. getListingBySlug
  *   3. getRelatedListings（以该 listing 的 slug 为入参）
  *   4. assertEffectiveListing
- *   5. getBuildingDetail.listings + priceRanges
+ *   5. getBuildingDetail.supply.groups + priceRanges
  *   6. getHomepage.featuredListings
  *   7. getSearchFacets.totalDocs + facets
  */
@@ -380,9 +383,11 @@ async function assertConsistentVisibility(params: {
 
   // 5. 楼盘聚合
   const buildingDetail = await getBuildingDetail('jingan-center', ctx, adapter)
-  const inBuilding = buildingDetail.listings.some((c) => c.id === id)
-  const inPriceRange = buildingDetail.priceRanges.some(
-    (p) => p.unit === listing.rentUnit && p.count > 0 && search.docs.some((c) => c.id === id),
+  const supplyCards = buildingDetail.supply.groups.flatMap((group) => group.listings)
+  const supplyRanges = buildingDetail.supply.groups.flatMap((group) => group.priceRanges)
+  const inBuilding = supplyCards.some((c) => c.id === id)
+  const inPriceRange = supplyRanges.some(
+    (p) => p.displayUnit === listing.rentUnit && p.count > 0 && search.docs.some((c) => c.id === id),
   )
 
   // 6. 首页精选
@@ -833,11 +838,13 @@ describe('F1.2 混合场景：有效与失效共存', () => {
     expect(facets.listingTypes.find((f) => f.value === 'traditional-office')?.count).toBe(1)
 
     const buildingDetail = await getBuildingDetail('jingan-center', ctx, adapter)
-    expect(buildingDetail.listings.map((c) => c.id).sort()).toEqual([1001])
+    const supplyCards = buildingDetail.supply.groups.flatMap((group) => group.listings)
+    const supplyRanges = buildingDetail.supply.groups.flatMap((group) => group.priceRanges)
+    expect(supplyCards.map((c) => c.id).sort()).toEqual([1001])
     // priceRanges 仅含有效房源的价格
-    expect(buildingDetail.priceRanges.length).toBe(1)
-    expect(buildingDetail.priceRanges[0]?.unit).toBe('rmb-month')
-    expect(buildingDetail.priceRanges[0]?.count).toBe(1)
+    expect(supplyRanges).toHaveLength(1)
+    expect(supplyRanges[0]?.displayUnit).toBe('rmb-month')
+    expect(supplyRanges[0]?.count).toBe(1)
 
     const homepage = await getHomepage(ctx, { featuredLimit: 6 }, adapter)
     expect(homepage.featuredListings.map((c) => c.id)).toEqual([1001])

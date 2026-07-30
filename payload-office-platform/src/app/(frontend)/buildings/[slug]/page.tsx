@@ -65,8 +65,10 @@ export default async function BuildingDetailPage({
 }) {
   const { slug } = await params
   const ctx = defaultSearchContext()
-  const { building, listings, priceRanges } = await getBuildingDetail(slug, ctx)
+  const { building, supply } = await getBuildingDetail(slug, ctx)
   if (!building) notFound()
+  const listings = supply.groups.flatMap((group) => group.listings)
+  const priceRanges = supply.groups.flatMap((group) => group.priceRanges)
 
   const district = building.district
   const coverImage = building.coverImage
@@ -179,13 +181,13 @@ export default async function BuildingDetailPage({
           <div className="price-range-group">
             <h3 className="building-stats__label">按计价单位分组的价格区间</h3>
             {priceRanges.map((range) => {
-              const unitLabel = rentUnitLabel(range.unit) || range.unit
+              const unitLabel = rentUnitLabel(range.displayUnit) || range.displayUnit
               const rangeText =
                 range.min === range.max
                   ? `${range.min} ${unitLabel}`
                   : `${range.min}–${range.max} ${unitLabel}`
               return (
-                <div key={range.unit} className="price-range-group__item">
+                <div key={range.key} className="price-range-group__item">
                   <span className="price-range-group__unit">
                     {unitLabel}（{range.count} 套）
                   </span>
