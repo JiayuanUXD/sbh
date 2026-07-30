@@ -738,7 +738,7 @@ describe('buildInquiryLogEntry', () => {
       phone: VALID_PHONE,
       phoneNormalized: VALID_PHONE,
       company: '测试公司',
-      message: '想约看',
+      message: '团队规模：10-20 人\n想约看',
       listingSlug: VALID_LISTING_SLUG,
       buildingSlug: null,
       targetType: 'listing',
@@ -773,6 +773,7 @@ describe('buildInquiryLogEntry', () => {
     expect(json).not.toContain('张三')
     expect(json).not.toContain(VALID_PHONE)
     expect(json).not.toContain('想约看')
+    expect(json).not.toContain('团队规模：10-20 人')
     expect(json).not.toContain('测试公司')
   })
 

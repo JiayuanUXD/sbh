@@ -45,7 +45,9 @@ type Props = {
   triggerClassName?: string
 }
 
-type SubmitStatus = 'idle' | 'submitting' | 'ok' | 'error'
+type InquiryStep = 'contact' | 'requirements' | 'success'
+type SubmitStatus = 'idle' | 'submitting' | 'error'
+type TargetResolution = 'listing' | 'building' | 'general'
 
 /** UTM 参数白名单（与 domain/inquiry/campaign.ts CAMPAIGN_KEYS 对齐） */
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
@@ -55,6 +57,7 @@ const LIMITS = {
   NAME_MAX: 50,
   COMPANY_MAX: 100,
   MESSAGE_MAX: 1000,
+  TEAM_SIZE_MAX: 50,
 } as const
 
 /** 错误码 → 中文提示（不暴露内部信息） */
@@ -66,6 +69,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   name_required: '请填写姓名',
   name_too_long: `姓名不能超过 ${LIMITS.NAME_MAX} 字`,
   phone_invalid: '请填写有效的中国大陆手机号',
+  team_size_required: '请填写团队规模',
+  team_size_too_long: `团队规模不能超过 ${LIMITS.TEAM_SIZE_MAX} 字`,
   company_too_long: `公司名不能超过 ${LIMITS.COMPANY_MAX} 字`,
   message_too_long: `留言不能超过 ${LIMITS.MESSAGE_MAX} 字`,
   consent_required: '请勾选隐私政策同意',
@@ -84,6 +89,12 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 const DEFAULT_TRIGGER_LABEL = '在线询价 / 留电'
+
+const resolutionCopy: Record<TargetResolution, string> = {
+  listing: '已记录这套房源，顾问将与您确认看房。',
+  building: '该房源状态已变化，已为您登记同楼盘需求。',
+  general: '目标状态已变化，已为您登记通用选址需求。',
+}
 
 function generateRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -130,6 +141,7 @@ export default function InquiryModal(props: Props) {
   } = props
 
   const [open, setOpen] = useState(false)
+  const [step, setStep] = useState<InquiryStep>('contact')
   const [status, setStatus] = useState<SubmitStatus>('idle')
   const [errors, setErrors] = useState<string[]>([])
   const [serverError, setServerError] = useState<string | null>(null)
@@ -138,6 +150,7 @@ export default function InquiryModal(props: Props) {
   // 表单字段
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [teamSize, setTeamSize] = useState('')
   const [company, setCompany] = useState('')
   const [message, setMessage] = useState('')
   const [demandDistrict, setDemandDistrict] = useState('')
@@ -145,6 +158,7 @@ export default function InquiryModal(props: Props) {
   const [demandArea, setDemandArea] = useState('')
   const [demandMoveInTime, setDemandMoveInTime] = useState('')
   const [consentAccepted, setConsentAccepted] = useState(false)
+  const [targetResolution, setTargetResolution] = useState<TargetResolution>('general')
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
@@ -172,6 +186,8 @@ export default function InquiryModal(props: Props) {
     setServerError(null)
     setListingFallback(false)
     setStatus('idle')
+    setStep('contact')
+    setTargetResolution('general')
     setOpen(true)
     track('inquiry_open', {
       page_type: pageType,
@@ -228,25 +244,48 @@ export default function InquiryModal(props: Props) {
     }
   }, [open])
 
-  // 客户端即时校验（不阻断提交，仅提示）
-  function validateClient(): string[] {
+  function messageForRequest(): string {
+    const teamSizePrefix = `团队规模：${teamSize.trim()}`
+    const userMessage = message.trim()
+    return userMessage.startsWith(teamSizePrefix)
+      ? userMessage
+      : [teamSizePrefix, userMessage].filter(Boolean).join('\n')
+  }
+
+  // 第一步与 API 的必填字段对齐；团队规模存入已有的 message 白名单字段，避免发送未定义字段。
+  function validateContact(): string[] {
     const errs: string[] = []
     if (!name.trim()) errs.push('name_required')
     else if (name.trim().length > LIMITS.NAME_MAX) errs.push('name_too_long')
     // 简单手机号格式校验：服务端做最终校验
     const phoneTrimmed = phone.replace(/[\s\-()]/g, '')
     if (!/^1[3-9]\d{9}$/.test(phoneTrimmed)) errs.push('phone_invalid')
-    if (company && company.length > LIMITS.COMPANY_MAX) errs.push('company_too_long')
-    if (message && message.length > LIMITS.MESSAGE_MAX) errs.push('message_too_long')
+    if (!teamSize.trim()) errs.push('team_size_required')
+    else if (teamSize.trim().length > LIMITS.TEAM_SIZE_MAX) errs.push('team_size_too_long')
     if (!consentAccepted) errs.push('consent_required')
     return errs
+  }
+
+  function validateRequirements(): string[] {
+    const errs = validateContact()
+    if (company && company.length > LIMITS.COMPANY_MAX) errs.push('company_too_long')
+    if (messageForRequest().length > LIMITS.MESSAGE_MAX) errs.push('message_too_long')
+    return errs
+  }
+
+  function advanceToRequirements(e: React.FormEvent) {
+    e.preventDefault()
+    const clientErrors = validateContact()
+    setErrors(clientErrors)
+    setServerError(null)
+    if (clientErrors.length === 0) setStep('requirements')
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (status === 'submitting') return
 
-    const clientErrors = validateClient()
+    const clientErrors = validateRequirements()
     setErrors(clientErrors)
     if (clientErrors.length > 0) {
       return
@@ -265,7 +304,7 @@ export default function InquiryModal(props: Props) {
       name: name.trim(),
       phone: phoneNormalized,
       company: company.trim() || undefined,
-      message: message.trim() || undefined,
+      message: messageForRequest(),
       listingSlug: targetListingSlug || undefined,
       buildingSlug: targetBuildingSlug || undefined,
       demand: {
@@ -309,19 +348,27 @@ export default function InquiryModal(props: Props) {
         body: JSON.stringify(requestBody),
       })
 
+      const data = (await res.json().catch(() => ({}))) as {
+        errors?: string[]
+        error?: string
+        targetResolution?: TargetResolution
+      }
+
       if (res.ok) {
-        setStatus('ok')
+        const resolvedTarget = data.targetResolution
+        setTargetResolution(
+          resolvedTarget === 'listing' || resolvedTarget === 'building' || resolvedTarget === 'general'
+            ? resolvedTarget
+            : 'general',
+        )
+        setStatus('idle')
+        setStep('success')
         track('inquiry_success', {
           page_type: pageType,
           target_type: targetType,
           idempotent: false,
         })
         return
-      }
-
-      const data = (await res.json().catch(() => ({}))) as {
-        errors?: string[]
-        error?: string
       }
 
       // 房源失效：提示用户转为通用需求（保留已填内容）
@@ -381,6 +428,7 @@ export default function InquiryModal(props: Props) {
   function resetForm() {
     setName('')
     setPhone('')
+    setTeamSize('')
     setCompany('')
     setMessage('')
     setDemandDistrict('')
@@ -392,6 +440,8 @@ export default function InquiryModal(props: Props) {
     setServerError(null)
     setListingFallback(false)
     setStatus('idle')
+    setStep('contact')
+    setTargetResolution('general')
   }
 
   function handleSuccessClose() {
@@ -455,11 +505,11 @@ export default function InquiryModal(props: Props) {
             </h3>
             <p className="modal__subtitle">{subtitle}</p>
 
-            {status === 'ok' ? (
+            {step === 'success' ? (
               <div className="modal__success" role="status" aria-live="polite">
                 <p>已收到你的需求</p>
                 <p className="modal__success-detail">
-                  我们的顾问将在 1 个工作日内与你联系。
+                  {resolutionCopy[targetResolution]}
                 </p>
                 <div className="modal__footer">
                   <button
@@ -471,15 +521,16 @@ export default function InquiryModal(props: Props) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : step === 'contact' ? (
               <form
                 ref={formRef}
                 className="modal__form"
-                onSubmit={submit}
+                onSubmit={advanceToRequirements}
                 noValidate
               >
+                <p className="modal__step" aria-current="step">第一步：联系方式</p>
                 <label className="modal__label" htmlFor={`f-name-${titleId}`}>
-                  姓名
+                  称呼
                   <span className="modal__required" aria-hidden="true">*</span>
                   <input
                     id={`f-name-${titleId}`}
@@ -512,80 +563,19 @@ export default function InquiryModal(props: Props) {
                   />
                 </label>
 
-                <label className="modal__label" htmlFor={`f-company-${titleId}`}>
-                  公司名称（选填）
+                <label className="modal__label" htmlFor={`f-team-size-${titleId}`}>
+                  团队规模
+                  <span className="modal__required" aria-hidden="true">*</span>
                   <input
-                    id={`f-company-${titleId}`}
+                    id={`f-team-size-${titleId}`}
                     className="modal__input"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    maxLength={LIMITS.COMPANY_MAX}
-                    autoComplete="organization"
-                  />
-                </label>
-
-                <details className="modal__advanced">
-                  <summary className="modal__advanced-summary">
-                    需求详情（选填）
-                  </summary>
-                  <div className="modal__advanced-body">
-                    <label className="modal__label" htmlFor={`f-district-${titleId}`}>
-                      意向区域
-                      <input
-                        id={`f-district-${titleId}`}
-                        className="modal__input"
-                        value={demandDistrict}
-                        onChange={(e) => setDemandDistrict(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：静安、浦东"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-budget-${titleId}`}>
-                      预算
-                      <input
-                        id={`f-budget-${titleId}`}
-                        className="modal__input"
-                        value={demandBudget}
-                        onChange={(e) => setDemandBudget(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：1-2 万元/月"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-area-${titleId}`}>
-                      需求面积
-                      <input
-                        id={`f-area-${titleId}`}
-                        className="modal__input"
-                        value={demandArea}
-                        onChange={(e) => setDemandArea(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：100-200 ㎡"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-movein-${titleId}`}>
-                      计划入驻时间
-                      <input
-                        id={`f-movein-${titleId}`}
-                        className="modal__input"
-                        value={demandMoveInTime}
-                        onChange={(e) => setDemandMoveInTime(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：2026 年 9 月"
-                      />
-                    </label>
-                  </div>
-                </details>
-
-                <label className="modal__label" htmlFor={`f-message-${titleId}`}>
-                  留言（选填）
-                  <textarea
-                    id={`f-message-${titleId}`}
-                    className="modal__input modal__textarea"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                    maxLength={LIMITS.MESSAGE_MAX}
-                    placeholder="如：希望有落地窗、可立即入驻"
+                    value={teamSize}
+                    onChange={(e) => setTeamSize(e.target.value)}
+                    required
+                    maxLength={LIMITS.TEAM_SIZE_MAX}
+                    placeholder="如：10-20 人"
+                    aria-required="true"
+                    aria-invalid={errors.includes('team_size_required') || errors.includes('team_size_too_long')}
                   />
                 </label>
 
@@ -626,19 +616,72 @@ export default function InquiryModal(props: Props) {
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  className="btn btn--primary btn--block"
-                  disabled={status === 'submitting'}
-                  data-event-name="inquiry_submit_click"
-                  data-page-type={pageType}
-                >
-                  {status === 'submitting' ? '提交中…' : '提交'}
+                <button type="submit" className="btn btn--primary btn--block">
+                  下一步
                 </button>
 
                 <p className="modal__hint">
                   我们仅在必要时使用你的联系方式与你沟通房源信息。
                 </p>
+              </form>
+            ) : (
+              <form ref={formRef} className="modal__form" onSubmit={submit} noValidate>
+                <p className="modal__step" aria-current="step">第二步：需求补充（选填）</p>
+                <label className="modal__label" htmlFor={`f-company-${titleId}`}>
+                  公司名称（选填）
+                  <input
+                    id={`f-company-${titleId}`}
+                    className="modal__input"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    maxLength={LIMITS.COMPANY_MAX}
+                    autoComplete="organization"
+                  />
+                </label>
+
+                <details className="modal__advanced" open>
+                  <summary className="modal__advanced-summary">需求详情（选填）</summary>
+                  <div className="modal__advanced-body">
+                    <label className="modal__label" htmlFor={`f-district-${titleId}`}>
+                      意向区域
+                      <input id={`f-district-${titleId}`} className="modal__input" value={demandDistrict} onChange={(e) => setDemandDistrict(e.target.value)} maxLength={50} placeholder="如：静安、浦东" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-budget-${titleId}`}>
+                      预算
+                      <input id={`f-budget-${titleId}`} className="modal__input" value={demandBudget} onChange={(e) => setDemandBudget(e.target.value)} maxLength={50} placeholder="如：1-2 万元/月" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-area-${titleId}`}>
+                      需求面积
+                      <input id={`f-area-${titleId}`} className="modal__input" value={demandArea} onChange={(e) => setDemandArea(e.target.value)} maxLength={50} placeholder="如：100-200 ㎡" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-movein-${titleId}`}>
+                      计划入驻时间
+                      <input id={`f-movein-${titleId}`} className="modal__input" value={demandMoveInTime} onChange={(e) => setDemandMoveInTime(e.target.value)} maxLength={50} placeholder="如：2026 年 9 月" />
+                    </label>
+                  </div>
+                </details>
+
+                <label className="modal__label" htmlFor={`f-message-${titleId}`}>
+                  留言（选填）
+                  <textarea id={`f-message-${titleId}`} className="modal__input modal__textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} maxLength={LIMITS.MESSAGE_MAX} placeholder="如：希望有落地窗、可立即入驻" />
+                </label>
+
+                {errors.length > 0 && (
+                  <ul className="modal__error-list" role="alert" aria-live="polite">
+                    {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                  </ul>
+                )}
+
+                {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
+
+                <div className="modal__footer">
+                  <button type="button" className="btn btn--ghost" onClick={() => setStep('contact')} disabled={status === 'submitting'}>
+                    上一步
+                  </button>
+                  <button type="submit" className="btn btn--primary" disabled={status === 'submitting'} data-event-name="inquiry_submit_click" data-page-type={pageType}>
+                    {status === 'submitting' ? '提交中…' : '提交'}
+                  </button>
+                </div>
               </form>
             )}
           </div>
