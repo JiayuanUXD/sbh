@@ -33,6 +33,27 @@ async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
   expect(bounds!.lastContentBottom).toBeLessThanOrEqual(bounds!.ctaTop)
 }
 
+function collectPageRuntimeErrors(page: Page) {
+  const consoleErrors: string[] = []
+  const pageErrors: string[] = []
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      consoleErrors.push(message.text())
+    }
+  })
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.message)
+  })
+
+  return { consoleErrors, pageErrors }
+}
+
+function expectNoPageRuntimeErrors(errors: ReturnType<typeof collectPageRuntimeErrors>) {
+  expect(errors.consoleErrors, '页面不应输出 console.error').toEqual([])
+  expect(errors.pageErrors, '页面不应产生未捕获异常').toEqual([])
+}
+
 test.describe('房源详情 P0', () => {
   test('有效房源按决策顺序展示概况、锚点和咨询入口', async ({ page }) => {
     const response = await page.goto(`/listings/${LISTING_SLUG}`)
@@ -92,10 +113,12 @@ test.describe('房源详情 P0', () => {
 
   for (const viewport of DETAIL_VIEWPORTS) {
     test(`房源详情在 ${viewport.width}px 无横向溢出，移动操作栏不遮挡内容`, async ({ page }) => {
+      const runtimeErrors = collectPageRuntimeErrors(page)
       await page.setViewportSize(viewport)
       const response = await page.goto(`/listings/${LISTING_SLUG}`)
 
       expect(response?.status()).toBe(200)
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
       expect(await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       )).toBe(true)
@@ -105,8 +128,29 @@ test.describe('房源详情 P0', () => {
         await expect(mobileBar).toBeVisible()
         await expectMobileCtaDoesNotObscureLastContent(page)
       }
+
+      expectNoPageRuntimeErrors(runtimeErrors)
     })
   }
+
+  test('图片加载失败时在对应图库项显示稳定兜底', async ({ page }) => {
+    const response = await page.goto(`/listings/${LISTING_SLUG}`)
+
+    expect(response?.status()).toBe(200)
+    const galleryItems = page.locator('.detail-gallery__item')
+    const imageItemIndex = await galleryItems.evaluateAll(
+      (items) => items.findIndex((item) => item.querySelector('img') !== null),
+    )
+    expect(imageItemIndex).toBeGreaterThanOrEqual(0)
+    const imageItem = galleryItems.nth(imageItemIndex)
+    const image = imageItem.locator('img')
+    await expect(image).toBeVisible()
+
+    await image.dispatchEvent('error')
+
+    await expect(imageItem.getByRole('img', { name: '媒体加载失败' })).toBeVisible()
+    await expect(imageItem.locator('img')).toHaveCount(0)
+  })
 
   test('媒体画廊支持全屏、左右键、Escape 和焦点归还', async ({ page }) => {
     await page.goto(`/listings/${LISTING_SLUG}`)
@@ -234,10 +278,12 @@ test.describe('楼盘详情 P0', () => {
 
   for (const viewport of DETAIL_VIEWPORTS) {
     test(`楼盘详情在 ${viewport.width}px 无横向溢出`, async ({ page }) => {
+      const runtimeErrors = collectPageRuntimeErrors(page)
       await page.setViewportSize(viewport)
       const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
 
       expect(response?.status()).toBe(200)
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1)
       expect(await page.evaluate(
         () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
       )).toBe(true)
@@ -247,6 +293,8 @@ test.describe('楼盘详情 P0', () => {
         await expect(mobileBar).toBeVisible()
         await expectMobileCtaDoesNotObscureLastContent(page)
       }
+
+      expectNoPageRuntimeErrors(runtimeErrors)
     })
   }
 })
