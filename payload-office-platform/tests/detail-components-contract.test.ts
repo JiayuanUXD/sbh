@@ -6,13 +6,16 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
-import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
+import ListingCard from '@/components/frontend/ListingCard'
+import * as BuildingSupplyBrowserModule from '@/components/frontend/BuildingSupplyBrowser'
 import type {
   BuildingSupplySnapshot,
   DetailMediaViewModel,
   FactGroupViewModel,
   ListingCardViewModel,
 } from '@/domain/public-catalog'
+
+const BuildingSupplyBrowser = BuildingSupplyBrowserModule.default
 
 const DETAIL_COMPONENT_FILES = [
   'DetailGallery.tsx',
@@ -115,6 +118,26 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('javascript:alert')
   })
 
+  it('画廊媒体交互只暴露匿名类别、序号和页面类型', () => {
+    const html = renderToStaticMarkup(createElement(DetailGallery, {
+      title: '静安中心',
+      pageType: 'listing',
+      media: [{
+        id: 'image-1',
+        kind: 'image',
+        category: 'interior',
+        resource: { src: '/office.jpg', alt: '办公室内部' },
+        capturedAt: null,
+        isSchematic: false,
+      }],
+    }))
+
+    expect(html).toContain('data-detail-analytics-event="media_view"')
+    expect(html).toContain('data-analytics-page-type="listing"')
+    expect(html).toContain('data-analytics-media-category="interior"')
+    expect(html).not.toContain('data-analytics-title')
+  })
+
   it('锚点导航只输出可见项', () => {
     const html = renderToStaticMarkup(
       createElement(DetailAnchorNav, {
@@ -187,6 +210,53 @@ describe('detail component contracts', () => {
     expect(html).toContain('请选择价格单位后再按价格排序')
     expect(html).toContain('当前按稳定默认顺序显示')
     expect(html).toContain('value="price-asc" selected=""')
+  })
+
+  it('供给筛选埋点只传筛选摘要，不传原始面积或日期', () => {
+    const getSupplyFilterAnalyticsProps = Reflect.get(
+      BuildingSupplyBrowserModule,
+      'getSupplyFilterAnalyticsProps',
+    )
+    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
+    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
+
+    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, {
+      group: 'lease',
+      areaMin: 100,
+      areaMax: 200,
+      priceUnit: 'rmb-sqm-day',
+      availableBefore: '2026-08-01',
+      sort: 'price-asc',
+    })
+
+    expect(props).toEqual({
+      building_id: 88,
+      supply_group: 'lease',
+      sort: 'price-asc',
+      result_count: 1,
+      as_of: '2026-07-30T10:00:00.000Z',
+      filter_completeness: 3,
+    })
+    expect(props).not.toHaveProperty('areaMin')
+    expect(props).not.toHaveProperty('availableBefore')
+  })
+
+  it('推荐房源卡只写入匿名点击上下文', () => {
+    const html = renderToStaticMarkup(createElement(ListingCard, {
+      listing: makeCard({ id: 102, title: '静安中心 102 室' }),
+      detailAnalytics: {
+        event: 'recommendation_click',
+        parentId: 101,
+        rank: 1,
+        section: 'related',
+        recommendationType: 'same_building',
+      },
+    }))
+
+    expect(html).toContain('data-detail-analytics-event="recommendation_click"')
+    expect(html).toContain('data-analytics-parent-id="101"')
+    expect(html).toContain('data-analytics-rank="1"')
+    expect(html).not.toContain('data-analytics-title')
   })
 
 })

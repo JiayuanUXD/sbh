@@ -7,9 +7,12 @@ import type {
   BuildingSupplySnapshot,
 } from '@/domain/public-catalog'
 import ListingCard from '@/components/frontend/ListingCard'
+import { track } from '@/lib/frontend/analytics'
 
 type BuildingSupplyBrowserProps = Readonly<{
   snapshot: BuildingSupplySnapshot
+  /** Immutable public DTO ID used for anonymous analytics only. */
+  buildingId?: number
   /** Parsed URL inputs; values stay in the native GET form rather than client state. */
   input?: BuildingSupplyInput
 }>
@@ -20,11 +23,32 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
   coworking: '联合办公',
 }
 
+/** Returns only aggregate/filter-enum analytics props; never raw filter values. */
+export function getSupplyFilterAnalyticsProps(
+  buildingId: number,
+  snapshot: BuildingSupplySnapshot,
+  input: BuildingSupplyInput,
+): Record<string, string | number> {
+  const filterCompleteness = Number(input.areaMin != null || input.areaMax != null) +
+    Number(Boolean(input.decorationStatus)) +
+    Number(Boolean(input.availableBefore)) +
+    Number(Boolean(input.priceUnit))
+
+  return {
+    building_id: buildingId,
+    ...(input.group ? { supply_group: input.group } : {}),
+    sort: input.sort ?? 'recommended',
+    result_count: snapshot.totalEffectiveListings,
+    as_of: snapshot.asOf,
+    filter_completeness: filterCompleteness,
+  }
+}
+
 /**
  * A progressively enhanced supply browser. Native GET submission keeps the
  * URL as the filtering source of truth; this component never re-sorts cards.
  */
-export default function BuildingSupplyBrowser({ snapshot, input = {} }: BuildingSupplyBrowserProps) {
+export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
@@ -51,7 +75,14 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
       aria-label="楼盘房源"
       data-supply-as-of={snapshot.asOf}
     >
-      <form method="get" className="building-supply-browser__filters">
+      <form
+        method="get"
+        className="building-supply-browser__filters"
+        onSubmit={() => {
+          if (typeof buildingId !== 'number' || !Number.isSafeInteger(buildingId) || buildingId <= 0) return
+          track('supply_filter', getSupplyFilterAnalyticsProps(buildingId, snapshot, input))
+        }}
+      >
         <fieldset>
           <legend>筛选房源</legend>
           <label>
@@ -168,9 +199,21 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
                       </tr>
                     </thead>
                     <tbody>
-                      {group.listings.map((listing) => (
+                      {group.listings.map((listing, index) => (
                         <tr key={`${group.key}:${listing.id}`}>
-                          <td><a href={`/listings/${listing.slug}`}>{listing.title}</a></td>
+                          <td>
+                            <a
+                              href={`/listings/${listing.slug}`}
+                              data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
+                              data-analytics-parent-id={buildingId}
+                              data-analytics-listing-id={buildingId ? listing.id : undefined}
+                              data-analytics-supply-group={buildingId ? group.key : undefined}
+                              data-analytics-rank={buildingId ? index + 1 : undefined}
+                              data-analytics-section={buildingId ? 'supply' : undefined}
+                            >
+                              {listing.title}
+                            </a>
+                          </td>
                           <td>{listing.area == null ? '—' : `${listing.area} ㎡`}</td>
                           <td>{listing.price?.text ?? '价格面议'}</td>
                         </tr>
@@ -180,11 +223,18 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
                 </div>
               ) : (
                 <div className="building-supply-browser__cards" data-supply-group={group.key}>
-                  {group.listings.map((listing) => (
+                  {group.listings.map((listing, index) => (
                     <ListingCard
                       key={`${group.key}:${listing.id}`}
                       listing={listing}
                       variant="building-supply"
+                      detailAnalytics={buildingId ? {
+                        event: 'building_listing_click',
+                        parentId: buildingId,
+                        rank: index + 1,
+                        section: 'supply',
+                        supplyGroup: group.key,
+                      } : undefined}
                     />
                   ))}
                 </div>

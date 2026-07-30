@@ -5,11 +5,13 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
+import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
+import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
@@ -40,25 +42,7 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     }
   }
-  const title = listing.title
-  const description = `${listing.title}，${listing.price?.text ?? '待面议'}，${formatArea(listing.area)}，${TYPE_LABEL[listing.listingType] ?? '办公'}`
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `/listings/${slug}`,
-    },
-    openGraph: {
-      title,
-      description,
-      url: `${siteConfig.siteOrigin}/listings/${slug}`,
-      type: 'website',
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
-  }
+  return buildListingMetadata(listing, siteConfig.siteOrigin)
 }
 
 export default async function ListingDetailPage({
@@ -87,7 +71,6 @@ export default async function ListingDetailPage({
         isSchematic: false,
       }))
   const rentText = listing.price?.text ?? '价格面议'
-  const canonicalUrl = `${siteConfig.siteOrigin}/listings/${slug}`
   const hasAmenities = listing.amenityGroups.some((group) => group.items.length > 0)
   const anchors = [
     { id: 'overview', label: '房源概况', visible: true },
@@ -97,33 +80,7 @@ export default async function ListingDetailPage({
     { id: 'related', label: '其他房源', visible: relatedFiltered.length > 0 },
   ]
 
-  // F4.6：schema.org 结构化数据（仅声明后台可保证的字段，不伪造库存/作者/发布日期）
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: listing.title,
-    url: canonicalUrl,
-    description: `${listing.title}，${rentText}，${formatArea(listing.area)}`,
-  }
-  if (listing.coverImage) {
-    jsonLd.image = listing.coverImage.src
-  }
-  if (listing.price) {
-    jsonLd.offers = {
-      '@type': 'Offer',
-      priceCurrency: 'CNY',
-      price: listing.price.amount,
-      url: canonicalUrl,
-      // 不声明 availability 与 availabilityStarts：后台数据不能保证
-    }
-  }
-  if (building) {
-    jsonLd.brand = {
-      '@type': 'Place',
-      name: building.name,
-      address: building.address || undefined,
-    }
-  }
+  const jsonLd = buildListingJsonLd(listing, siteConfig.siteOrigin)
 
   return (
     <div className="detail">
@@ -133,7 +90,7 @@ export default async function ListingDetailPage({
         // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <，
         // 若 CMS 字段含 "</script><script>..." 可闭合当前标签注入。
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          __html: serializeJsonLd(jsonLd),
         }}
       />
       <Breadcrumb
@@ -157,7 +114,7 @@ export default async function ListingDetailPage({
         )}
       </header>
       <section className="detail-hero" aria-label="房源核心信息">
-        <DetailGallery media={media} title={listing.title} />
+        <DetailGallery media={media} title={listing.title} pageType="listing" />
         <div className="detail__summary">
           <div className="detail__rent">{rentText}</div>
           <dl className="detail__specs">
@@ -237,7 +194,10 @@ export default async function ListingDetailPage({
           <Link
             href={`/buildings/${building.slug}`}
             className="btn btn--ghost"
-            data-event-name="listing_building_link_click"
+            data-detail-analytics-event="listing_building_click"
+            data-analytics-listing-id={listing.id}
+            data-analytics-building-id={building.id}
+            data-analytics-section="building"
           >
             查看楼盘
           </Link>
@@ -247,7 +207,19 @@ export default async function ListingDetailPage({
         <section id="related" className="detail__section">
           <h2>同楼盘其他房源</h2>
           <div className="card-grid">
-            {relatedFiltered.map((r) => <ListingCard key={r.id} listing={r} />)}
+            {relatedFiltered.map((r, index) => (
+              <ListingCard
+                key={r.id}
+                listing={r}
+                detailAnalytics={{
+                  event: 'recommendation_click',
+                  parentId: listing.id,
+                  rank: index + 1,
+                  section: 'related',
+                  recommendationType: 'same_building',
+                }}
+              />
+            ))}
           </div>
         </section>
       )}
@@ -265,6 +237,7 @@ export default async function ListingDetailPage({
           sourceSection="mobile-bar"
         />
       </div>
+      <DetailClickAnalytics />
     </div>
   )
 }

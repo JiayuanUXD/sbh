@@ -5,10 +5,12 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
+import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import { rentUnitLabel } from '@/lib/frontend/format'
+import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
@@ -35,20 +37,7 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     }
   }
-  const title = building.name
-  const description = building.summary || `${building.name}，${building.address}${building.district ? `，${building.district.name}` : ''}`
-  return {
-    title,
-    description,
-    alternates: { canonical: `/buildings/${slug}` },
-    openGraph: {
-      title,
-      description,
-      url: `${siteConfig.siteOrigin}/buildings/${slug}`,
-      type: 'website',
-    },
-    robots: { index: true, follow: true },
-  }
+  return buildBuildingMetadata(building, siteConfig.siteOrigin)
 }
 
 const SUPPLY_GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
@@ -118,30 +107,13 @@ export default async function BuildingDetailPage({
     { id: 'description', label: '楼盘说明', visible: hasDescription },
     { id: 'related', label: '相关楼盘', visible: hasRelated },
   ]
-  const jsonLd: Record<string, unknown> = {
-    '@context': 'https://schema.org',
-    '@type': 'Place',
-    name: building.name,
-    url: `${siteConfig.siteOrigin}/buildings/${building.slug}`,
-    address: building.address || undefined,
-    ...(building.summary ? { description: building.summary } : {}),
-    ...(building.coverImage ? { image: building.coverImage.src } : {}),
-  }
-  if (hasSupply) {
-    jsonLd.offers = supply.groups.flatMap((group) => group.priceRanges.map((range) => ({
-      '@type': 'AggregateOffer',
-      priceCurrency: 'CNY',
-      lowPrice: range.min,
-      highPrice: range.max,
-      offerCount: range.count,
-    })))
-  }
+  const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin)
 
   return (
     <div className="detail">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <header className="detail__header">
         {building.district && <span className="detail__type">{building.district.name}</span>}
@@ -151,7 +123,7 @@ export default async function BuildingDetailPage({
       </header>
 
       <section className="detail-hero" aria-label="楼盘核心信息">
-        <DetailGallery media={building.mediaItems} title={building.name} />
+        <DetailGallery media={building.mediaItems} title={building.name} pageType="building" />
         <section id="overview" className="detail__overview">
           <DetailFacts groups={building.factGroups} />
         </section>
@@ -162,7 +134,7 @@ export default async function BuildingDetailPage({
       <section id="supply" className="detail__section" data-supply-as-of={supply.asOf}>
         <h2>当前有效供给</h2>
         {hasSupply && <BuildingSupplyPriceRanges groups={supply.groups} />}
-        <BuildingSupplyBrowser snapshot={supply} input={supplyInput} />
+        <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} input={supplyInput} />
       </section>
 
       {building.description && (
@@ -176,9 +148,19 @@ export default async function BuildingDetailPage({
         <section id="related" className="detail__section">
           <h2>相关楼盘</h2>
           <ul className="detail__related-buildings">
-            {visibleRelatedBuildings.map((item) => (
+            {visibleRelatedBuildings.map((item, index) => (
               <li key={item.id}>
-                <Link href={`/buildings/${item.slug}`}>{item.name}</Link>
+                <Link
+                  href={`/buildings/${item.slug}`}
+                  data-detail-analytics-event="related_building_click"
+                  data-analytics-parent-id={building.id}
+                  data-analytics-building-id={item.id}
+                  data-analytics-rank={index + 1}
+                  data-analytics-section="related"
+                  data-analytics-recommendation-type="similar_building"
+                >
+                  {item.name}
+                </Link>
               </li>
             ))}
           </ul>
@@ -197,6 +179,7 @@ export default async function BuildingDetailPage({
           sourceSection="mobile-bar"
         />
       </div>
+      <DetailClickAnalytics />
     </div>
   )
 }

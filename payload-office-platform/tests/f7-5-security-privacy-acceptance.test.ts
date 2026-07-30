@@ -624,15 +624,27 @@ describe('F7.5 HTML 渲染守护不变量（汇总）', () => {
       'src/app/(frontend)/buildings/[slug]/page.tsx',
       'src/app/(frontend)/pages/[slug]/page.tsx',
     ]
+    const serializerPath = path.resolve(
+      __dirname,
+      '..',
+      'src',
+      'lib',
+      'frontend',
+      'detail-metadata.ts',
+    )
+    const serializerSource = await fs.readFile(serializerPath, 'utf-8')
+    expect(serializerSource, '共享 JSON-LD 序列化器必须转义 <').toMatch(/\.replace\(/)
+    expect(serializerSource, '共享 JSON-LD 序列化器必须转义为 u003c').toContain('u003c')
+
     for (const rel of files) {
       const filePath = path.resolve(__dirname, '..', ...rel.split('/'))
       const source = await fs.readFile(filePath, 'utf-8')
       // 若使用 dangerouslySetInnerHTML，必须含 </script> 转义
       if (source.includes('dangerouslySetInnerHTML')) {
-        // 标准做法：.replace(/</g, '\\u003c') 或类似变体
-        // 检查必须含 replace 调用 + u003c 字符串字面量
-        expect(source, `${rel} 必须含 .replace 调用做 </script> 转义`).toMatch(/\.replace\(/)
-        expect(source, `${rel} 必须转义为 u003c`).toContain('u003c')
+        // 页面可内联转义，也可调用已验证的共享序列化器。
+        const hasInlineEscape = /\.replace\(/.test(source) && source.includes('u003c')
+        const usesSharedSerializer = source.includes('serializeJsonLd(')
+        expect(hasInlineEscape || usesSharedSerializer, `${rel} 必须使用 JSON-LD 转义器`).toBe(true)
       }
     }
   })

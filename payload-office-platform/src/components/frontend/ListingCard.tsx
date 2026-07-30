@@ -20,6 +20,15 @@ type Props = Readonly<{
   listing: ListingCardViewModel
   /** Compact semantic variation for cards embedded in a building supply group. */
   variant?: 'default' | 'building-supply'
+  /** Public IDs and fixed enums for a page-scoped delegated analytics listener. */
+  detailAnalytics?: Readonly<{
+    event: 'recommendation_click' | 'building_listing_click'
+    parentId: number
+    rank: number
+    section: 'related' | 'supply'
+    recommendationType?: 'same_building'
+    supplyGroup?: 'lease' | 'sale' | 'coworking'
+  }>
 }>
 
 const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
@@ -29,7 +38,7 @@ const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
   'full-floor': '整层办公',
 }
 
-export default function ListingCard({ listing, variant = 'default' }: Props) {
+export default function ListingCard({ listing, variant = 'default', detailAnalytics }: Props) {
   const { coverImage, price, area, building, highlights, listingType, title, slug } = listing
   const district = building?.district?.name
   const areaText = area != null ? formatArea(area) : null
@@ -42,6 +51,13 @@ export default function ListingCard({ listing, variant = 'default' }: Props) {
       className={`listing-card${variant === 'building-supply' ? ' listing-card--building-supply' : ''}`}
       data-listing-card-variant={variant}
       aria-label={`${title}，${price?.text ?? '待面议'}`}
+      data-detail-analytics-event={detailAnalytics?.event}
+      data-analytics-parent-id={detailAnalytics?.parentId}
+      data-analytics-listing-id={detailAnalytics ? listing.id : undefined}
+      data-analytics-rank={detailAnalytics?.rank}
+      data-analytics-section={detailAnalytics?.section}
+      data-analytics-recommendation-type={detailAnalytics?.recommendationType}
+      data-analytics-supply-group={detailAnalytics?.supplyGroup}
     >
       <div className="listing-card__media">
         <Media

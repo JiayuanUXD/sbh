@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { validateEvent, serializeProps, ANALYTICS_EVENTS } from '@/lib/frontend/analytics/events'
+import {
+  ANALYTICS_EVENTS,
+  assertSafeAnalyticsProps,
+  serializeProps,
+  validateEvent,
+} from '@/lib/frontend/analytics/events'
 
 describe('OPT-010 events validateEvent', () => {
   it('已知事件 + 白名单内属性 -> 通过并保留', () => {
@@ -112,5 +117,36 @@ describe('OPT-010 events ANALYTICS_EVENTS 白名单完整性', () => {
         expect(sensitive, `${eventName}.${k} 不应是敏感字段`).not.toContain(k)
       }
     }
+  })
+})
+
+describe('detail page analytics privacy contract', () => {
+  it('分析属性拒绝 PII key', () => {
+    expect(() => assertSafeAnalyticsProps({ phone: '13800001111' })).toThrow()
+    expect(() => assertSafeAnalyticsProps({ phoneNumber: '13800001111' })).toThrow()
+    expect(() => assertSafeAnalyticsProps({ note: '请联系我' })).toThrow()
+  })
+
+  it('详情事件只接受匿名 ID、枚举、计数、排名、section、asOf 和完整度', () => {
+    const result = validateEvent('recommendation_click', {
+      listing_id: 101,
+      target_listing_id: 102,
+      recommendation_type: 'same_building',
+      rank: 1,
+      section: 'related',
+      title: '不应保留',
+      phone: '13800001111',
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      sanitized: {
+        listing_id: 101,
+        target_listing_id: 102,
+        recommendation_type: 'same_building',
+        rank: 1,
+        section: 'related',
+      },
+    })
   })
 })
