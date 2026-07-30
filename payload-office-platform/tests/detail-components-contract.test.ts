@@ -273,6 +273,39 @@ describe('detail component contracts', () => {
     expect(JSON.stringify(props)).not.toContain('message')
   })
 
+  it('供给分组 submitter 覆盖当前 GET group，且只接受表单 group 枚举', () => {
+    const getSupplyFilterAnalyticsProps = Reflect.get(
+      BuildingSupplyBrowserModule,
+      'getSupplyFilterAnalyticsProps',
+    )
+    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
+    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
+
+    const submitted = new FormData()
+    submitted.set('sort', 'recommended')
+    const groupClick = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
+      isCurrentFormButton: true,
+      name: 'group',
+      value: 'coworking',
+    })
+    const maliciousSubmitter = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
+      isCurrentFormButton: true,
+      name: 'phone',
+      value: '13800001111',
+    })
+    const maliciousValue = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
+      isCurrentFormButton: true,
+      name: 'group',
+      value: 'lease&phone=13800001111',
+    })
+
+    expect(groupClick).toMatchObject({ supply_group: 'coworking' })
+    expect(maliciousSubmitter).not.toHaveProperty('phone')
+    expect(maliciousSubmitter).not.toHaveProperty('supply_group')
+    expect(JSON.stringify(maliciousSubmitter)).not.toContain('13800001111')
+    expect(maliciousValue).not.toHaveProperty('supply_group')
+  })
+
   it('推荐房源卡只写入匿名点击上下文', () => {
     const html = renderToStaticMarkup(createElement(ListingCard, {
       listing: makeCard({ id: 102, title: '静安中心 102 室' }),

@@ -90,7 +90,8 @@ function hasSharedJsonLdScriptSerialization(source: string): boolean {
   if (!importedSerializerName) return false
 
   let hasLocalShadow = false
-  let hasSerializedScript = false
+  let matchingScriptCount = 0
+  let hasUnsafeMatchingScript = false
   const visit = (node: ts.Node): void => {
     if (
       (ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node) || ts.isParameter(node)) &&
@@ -116,6 +117,9 @@ function hasSharedJsonLdScriptSerialization(source: string): boolean {
         ts.isStringLiteral(typeAttribute.initializer) &&
         typeAttribute.initializer.text === 'application/ld+json'
       const dangerousExpression = dangerousAttribute?.initializer
+      if (typeIsJsonLd && dangerousAttribute) {
+        matchingScriptCount += 1
+      }
       if (typeIsJsonLd && dangerousExpression && ts.isJsxExpression(dangerousExpression) && dangerousExpression.expression && ts.isObjectLiteralExpression(dangerousExpression.expression)) {
         const htmlAssignment = dangerousExpression.expression.properties.find((property): property is ts.PropertyAssignment =>
           ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === '__html',
@@ -126,14 +130,18 @@ function hasSharedJsonLdScriptSerialization(source: string): boolean {
           ts.isIdentifier(htmlAssignment.initializer.expression) &&
           htmlAssignment.initializer.expression.text === importedSerializerName
         ) {
-          hasSerializedScript = true
+          // This matching JSON-LD script directly uses the imported helper.
+        } else {
+          hasUnsafeMatchingScript = true
         }
+      } else if (typeIsJsonLd && dangerousAttribute) {
+        hasUnsafeMatchingScript = true
       }
     }
     ts.forEachChild(node, visit)
   }
   visit(sourceFile)
-  return hasSerializedScript && !hasLocalShadow
+  return matchingScriptCount > 0 && !hasUnsafeMatchingScript && !hasLocalShadow
 }
 
 // ---------------------------------------------------------------------------
@@ -721,11 +729,41 @@ describe('F7.5 HTML 渲染守护不变量（汇总）', () => {
         return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
       }
     `
+    const mixedSafeAndUnsafe = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({}) }} />
+        </>
+      }
+    `
+    const multipleSafe = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({ one: true }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({ two: true }) }} />
+        </>
+      }
+    `
+    const mixedSafeAndMissingHtml = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML />
+        </>
+      }
+    `
 
     expect(hasSharedJsonLdScriptSerialization(correct)).toBe(true)
     expect(hasSharedJsonLdScriptSerialization(commentOnly)).toBe(false)
     expect(hasSharedJsonLdScriptSerialization(wrongImport)).toBe(false)
     expect(hasSharedJsonLdScriptSerialization(localShadow)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(mixedSafeAndUnsafe)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(multipleSafe)).toBe(true)
+    expect(hasSharedJsonLdScriptSerialization(mixedSafeAndMissingHtml)).toBe(false)
   })
 })
 

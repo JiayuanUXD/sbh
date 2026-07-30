@@ -28,6 +28,12 @@ const SORT_VALUES = ['recommended', 'area-asc', 'area-desc', 'price-asc', 'price
 const PRICE_UNIT_VALUES = ['rmb-sqm-day', 'rmb-month', 'rmb-seat-month', 'rmb-total'] as const
 const DECORATION_VALUES = ['rough', 'simple', 'furnished', 'fully_fitted'] as const
 
+type SupplyFormSubmitter = Readonly<{
+  isCurrentFormButton: boolean
+  name: string
+  value: string
+}>
+
 function safeEnumValue<const T extends readonly string[]>(formData: FormData, name: string, values: T): T[number] | undefined {
   const value = formData.get(name)
   return typeof value === 'string' && values.includes(value) ? value as T[number] : undefined
@@ -38,13 +44,32 @@ function hasSubmittedValue(formData: FormData, name: string): boolean {
   return typeof value === 'string' && value.trim() !== ''
 }
 
+function safeGroupSubmitter(submitter: SupplyFormSubmitter | undefined): BuildingSupplyGroupViewModel['key'] | undefined {
+  if (!submitter?.isCurrentFormButton || submitter.name !== 'group') return undefined
+  return SUPPLY_GROUP_VALUES.includes(submitter.value as BuildingSupplyGroupViewModel['key'])
+    ? submitter.value as BuildingSupplyGroupViewModel['key']
+    : undefined
+}
+
+function hasNativeSubmitter(event: Event): event is SubmitEvent {
+  return 'submitter' in event
+}
+
+function currentFormButtonSubmitter(form: HTMLFormElement, nativeEvent: Event): SupplyFormSubmitter | undefined {
+  if (!hasNativeSubmitter(nativeEvent)) return undefined
+  const submitter = nativeEvent.submitter
+  if (!(submitter instanceof HTMLButtonElement) || submitter.form !== form) return undefined
+  return { isCurrentFormButton: true, name: submitter.name, value: submitter.value }
+}
+
 /** Returns only aggregate/filter-enum analytics props; never raw filter values. */
 export function getSupplyFilterAnalyticsProps(
   buildingId: number,
   snapshot: BuildingSupplySnapshot,
   formData: FormData,
+  submitter?: SupplyFormSubmitter,
 ): Record<string, string | number> {
-  const group = safeEnumValue(formData, 'group', SUPPLY_GROUP_VALUES)
+  const group = safeGroupSubmitter(submitter) ?? safeEnumValue(formData, 'group', SUPPLY_GROUP_VALUES)
   const sort = safeEnumValue(formData, 'sort', SORT_VALUES) ?? 'recommended'
   const priceUnit = safeEnumValue(formData, 'priceUnit', PRICE_UNIT_VALUES)
   const decorationStatus = safeEnumValue(formData, 'decorationStatus', DECORATION_VALUES)
@@ -99,7 +124,13 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
         className="building-supply-browser__filters"
         onSubmit={(event) => {
           if (typeof buildingId !== 'number' || !Number.isSafeInteger(buildingId) || buildingId <= 0) return
-          track('supply_filter', getSupplyFilterAnalyticsProps(buildingId, snapshot, new FormData(event.currentTarget)))
+          const form = event.currentTarget
+          track('supply_filter', getSupplyFilterAnalyticsProps(
+            buildingId,
+            snapshot,
+            new FormData(form),
+            currentFormButtonSubmitter(form, event.nativeEvent),
+          ))
         }}
       >
         <fieldset>
