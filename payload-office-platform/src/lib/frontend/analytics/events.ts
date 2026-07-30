@@ -31,7 +31,7 @@ export const ANALYTICS_EVENTS = {
   /** 房源详情相关推荐点击。 */
   recommendation_click: ['listing_id', 'target_listing_id', 'recommendation_type', 'rank', 'section'],
   /** 楼盘页当前供给筛选；只记录枚举和结果摘要，不记录原始筛选值。 */
-  supply_filter: ['building_id', 'supply_group', 'sort', 'result_count', 'as_of', 'filter_completeness'],
+  supply_filter: ['building_id', 'supply_group', 'sort', 'price_unit', 'decoration_status', 'result_count', 'as_of', 'filter_completeness'],
   /** 楼盘页楼内房源入口。 */
   building_listing_click: ['building_id', 'listing_id', 'supply_group', 'rank', 'section'],
   /** 楼盘页相关楼盘入口。 */

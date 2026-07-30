@@ -23,21 +23,40 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
   coworking: '联合办公',
 }
 
+const SUPPLY_GROUP_VALUES = ['lease', 'sale', 'coworking'] as const
+const SORT_VALUES = ['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'] as const
+const PRICE_UNIT_VALUES = ['rmb-sqm-day', 'rmb-month', 'rmb-seat-month', 'rmb-total'] as const
+const DECORATION_VALUES = ['rough', 'simple', 'furnished', 'fully_fitted'] as const
+
+function safeEnumValue<const T extends readonly string[]>(formData: FormData, name: string, values: T): T[number] | undefined {
+  const value = formData.get(name)
+  return typeof value === 'string' && values.includes(value) ? value as T[number] : undefined
+}
+
+function hasSubmittedValue(formData: FormData, name: string): boolean {
+  const value = formData.get(name)
+  return typeof value === 'string' && value.trim() !== ''
+}
+
 /** Returns only aggregate/filter-enum analytics props; never raw filter values. */
 export function getSupplyFilterAnalyticsProps(
   buildingId: number,
   snapshot: BuildingSupplySnapshot,
-  input: BuildingSupplyInput,
+  formData: FormData,
 ): Record<string, string | number> {
-  const filterCompleteness = Number(input.areaMin != null || input.areaMax != null) +
-    Number(Boolean(input.decorationStatus)) +
-    Number(Boolean(input.availableBefore)) +
-    Number(Boolean(input.priceUnit))
+  const group = safeEnumValue(formData, 'group', SUPPLY_GROUP_VALUES)
+  const sort = safeEnumValue(formData, 'sort', SORT_VALUES) ?? 'recommended'
+  const priceUnit = safeEnumValue(formData, 'priceUnit', PRICE_UNIT_VALUES)
+  const decorationStatus = safeEnumValue(formData, 'decorationStatus', DECORATION_VALUES)
+  const filterCompleteness = Number(hasSubmittedValue(formData, 'areaMin') || hasSubmittedValue(formData, 'areaMax')) +
+    Number(hasSubmittedValue(formData, 'availableBefore'))
 
   return {
     building_id: buildingId,
-    ...(input.group ? { supply_group: input.group } : {}),
-    sort: input.sort ?? 'recommended',
+    ...(group ? { supply_group: group } : {}),
+    sort,
+    ...(priceUnit ? { price_unit: priceUnit } : {}),
+    ...(decorationStatus ? { decoration_status: decorationStatus } : {}),
     result_count: snapshot.totalEffectiveListings,
     as_of: snapshot.asOf,
     filter_completeness: filterCompleteness,
@@ -78,9 +97,9 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
       <form
         method="get"
         className="building-supply-browser__filters"
-        onSubmit={() => {
+        onSubmit={(event) => {
           if (typeof buildingId !== 'number' || !Number.isSafeInteger(buildingId) || buildingId <= 0) return
-          track('supply_filter', getSupplyFilterAnalyticsProps(buildingId, snapshot, input))
+          track('supply_filter', getSupplyFilterAnalyticsProps(buildingId, snapshot, new FormData(event.currentTarget)))
         }}
       >
         <fieldset>

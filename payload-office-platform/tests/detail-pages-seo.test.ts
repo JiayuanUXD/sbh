@@ -149,4 +149,39 @@ describe('detail metadata and JSON-LD', () => {
     expect(serialized).not.toContain('</script>')
     expect(serialized).toContain('\\u003c/script>')
   })
+
+  it('将每个 CMS slug 编码为单一路径段，防止 canonical/JSON-LD 注入 query 或 fragment', () => {
+    const unsafeBuilding = makeBuilding({ slug: '静安?group=lease#supply/100%' })
+    const unsafeListing = makeListing({
+      slug: '101?phone=13800001111#overview/100%',
+      building: {
+        id: unsafeBuilding.id,
+        slug: unsafeBuilding.slug,
+        name: unsafeBuilding.name,
+        address: unsafeBuilding.address,
+        ...(unsafeBuilding.district ? { district: unsafeBuilding.district } : {}),
+        ...(unsafeBuilding.coverImage ? { coverImage: unsafeBuilding.coverImage } : {}),
+        ...(unsafeBuilding.summary ? { summary: unsafeBuilding.summary } : {}),
+      },
+    })
+    const listingMetadata = buildListingMetadata(unsafeListing, ORIGIN)
+    const listingJsonLd = buildListingJsonLd(unsafeListing, ORIGIN)
+    const buildingMetadata = buildBuildingMetadata(unsafeBuilding, ORIGIN)
+    const buildingJsonLd = buildBuildingJsonLd(unsafeBuilding, EMPTY_SUPPLY, ORIGIN)
+    const encodedListingSlug = encodeURIComponent(unsafeListing.slug)
+    const encodedBuildingSlug = encodeURIComponent(unsafeBuilding.slug)
+    const listingPath = `/listings/${encodedListingSlug}`
+    const buildingPath = `/buildings/${encodedBuildingSlug}`
+
+    expect(listingMetadata.alternates?.canonical).toBe(listingPath)
+    expect(listingMetadata.openGraph?.url).toBe(`${ORIGIN}${listingPath}`)
+    expect(listingJsonLd.url).toBe(`${ORIGIN}${listingPath}`)
+    expect(listingJsonLd.breadcrumb.itemListElement.at(-2)?.item).toBe(`${ORIGIN}${buildingPath}`)
+    expect(listingJsonLd.breadcrumb.itemListElement.at(-1)?.item).toBe(`${ORIGIN}${listingPath}`)
+    expect(buildingMetadata.alternates?.canonical).toBe(buildingPath)
+    expect(buildingJsonLd.url).toBe(`${ORIGIN}${buildingPath}`)
+    expect(buildingJsonLd.breadcrumb.itemListElement.at(-1)?.item).toBe(`${ORIGIN}${buildingPath}`)
+    expect(listingJsonLd.url).not.toContain('?phone=')
+    expect(listingJsonLd.url).not.toContain('#overview')
+  })
 })

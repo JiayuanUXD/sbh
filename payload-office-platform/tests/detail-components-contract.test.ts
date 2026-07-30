@@ -212,7 +212,7 @@ describe('detail component contracts', () => {
     expect(html).toContain('value="price-asc" selected=""')
   })
 
-  it('供给筛选埋点只传筛选摘要，不传原始面积或日期', () => {
+  it('供给筛选埋点从提交时的 FormData 读取安全枚举，不使用初始筛选', () => {
     const getSupplyFilterAnalyticsProps = Reflect.get(
       BuildingSupplyBrowserModule,
       'getSupplyFilterAnalyticsProps',
@@ -220,25 +220,57 @@ describe('detail component contracts', () => {
     expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
     if (typeof getSupplyFilterAnalyticsProps !== 'function') return
 
-    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, {
-      group: 'lease',
-      areaMin: 100,
-      areaMax: 200,
-      priceUnit: 'rmb-sqm-day',
-      availableBefore: '2026-08-01',
-      sort: 'price-asc',
-    })
+    const submitted = new FormData()
+    submitted.set('group', 'sale')
+    submitted.set('areaMin', '100')
+    submitted.set('areaMax', '200')
+    submitted.set('priceUnit', 'rmb-sqm-day')
+    submitted.set('decorationStatus', 'furnished')
+    submitted.set('availableBefore', '2026-08-01')
+    submitted.set('sort', 'price-asc')
+    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted)
 
     expect(props).toEqual({
       building_id: 88,
-      supply_group: 'lease',
+      supply_group: 'sale',
       sort: 'price-asc',
+      price_unit: 'rmb-sqm-day',
+      decoration_status: 'furnished',
       result_count: 1,
       as_of: '2026-07-30T10:00:00.000Z',
-      filter_completeness: 3,
+      filter_completeness: 2,
     })
     expect(props).not.toHaveProperty('areaMin')
     expect(props).not.toHaveProperty('availableBefore')
+  })
+
+  it('供给筛选埋点丢弃无效和 PII 形态枚举，仅保留筛选存在摘要', () => {
+    const getSupplyFilterAnalyticsProps = Reflect.get(
+      BuildingSupplyBrowserModule,
+      'getSupplyFilterAnalyticsProps',
+    )
+    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
+    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
+
+    const submitted = new FormData()
+    submitted.set('group', 'lease&phone=13800001111')
+    submitted.set('sort', 'phoneNumber')
+    submitted.set('priceUnit', 'javascript:alert(1)')
+    submitted.set('decorationStatus', 'note=请联系我')
+    submitted.set('areaMin', 'phone=13800001111')
+    submitted.set('availableBefore', 'message=private')
+    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted)
+
+    expect(props).toEqual({
+      building_id: 88,
+      sort: 'recommended',
+      result_count: 1,
+      as_of: '2026-07-30T10:00:00.000Z',
+      filter_completeness: 2,
+    })
+    expect(JSON.stringify(props)).not.toContain('phone')
+    expect(JSON.stringify(props)).not.toContain('note')
+    expect(JSON.stringify(props)).not.toContain('message')
   })
 
   it('推荐房源卡只写入匿名点击上下文', () => {

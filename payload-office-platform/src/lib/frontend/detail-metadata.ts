@@ -94,11 +94,11 @@ function safePublicMedia(src: unknown): string | undefined {
 }
 
 function listingPath(listing: ListingDetailViewModel): string {
-  return `/listings/${listing.slug}`
+  return `/listings/${encodeURIComponent(listing.slug)}`
 }
 
 function buildingPath(building: BuildingDetailViewModel): string {
-  return `/buildings/${building.slug}`
+  return `/buildings/${encodeURIComponent(building.slug)}`
 }
 
 function breadcrumbs(
@@ -110,7 +110,7 @@ function breadcrumbs(
     { name: '首页', path: '/' },
     { name: '办公选址', path: '/listings' },
   ]
-  if (building) values.push({ name: building.name, path: `/buildings/${building.slug}` })
+  if (building) values.push({ name: building.name, path: `/buildings/${encodeURIComponent(building.slug)}` })
   values.push(terminal)
 
   return {
