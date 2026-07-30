@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
@@ -34,10 +34,13 @@ function toRenderableMedia(item: DetailMediaViewModel, title: string): Renderabl
  * an invalid media URL before placing it in a browser media element.
  */
 export default function DetailGallery({ media, title, pageType }: DetailGalleryProps) {
-  const renderableMedia = media.flatMap((item) => {
-    const renderable = toRenderableMedia(item, title)
-    return renderable ? [renderable] : []
-  })
+  const renderableMedia = useMemo(
+    () => media.flatMap((item) => {
+      const renderable = toRenderableMedia(item, title)
+      return renderable ? [renderable] : []
+    }),
+    [media, title],
+  )
   const [activeIndex, setActiveIndex] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [failedMediaIds, setFailedMediaIds] = useState<ReadonlySet<string>>(() => new Set())
