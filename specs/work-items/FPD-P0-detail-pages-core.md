@@ -21,7 +21,7 @@
 
 ## 4. 当前行为与证据
 
-- 验证目标提交：`769a04f`。
+- 验证目标提交：`35ae3b2`。
 - 详情页只消费 Public Catalog DTO；有效性、推荐、聚合、咨询候选与 sitemap 复用统一供给规则。
 
 ## 5. 影响范围
@@ -53,5 +53,5 @@
 - 实际结果：Tasks 1–10 完成；详情字段、公开查询、供给比较、咨询、SEO、响应式与可访问性交付。
 - 迁移：专用数据库 `sbh_detail_pages_p0` fresh replay 24/24；dry-run 0 blocking；verify 109 checks / 0 fail；status 0 pending。
 - 工程门禁：typecheck PASS；lint 0 errors / 9 warnings；Vitest 126 files / 2204 tests；build PASS。
-- 浏览器：四文件 Playwright 35/35；四档视口和相邻 `/listings` 控制台验证通过。
+- 浏览器：四文件 Playwright 无 retries 36/36；图片 error 稳定降级占位通过；房源/楼盘四档唯一 H1、`console.error` / `pageerror` 0 已固化；F7.3 alt 原子 DOM 快照 repeat 3/3。
 - 详细证据与剩余风险：[FPD-P0 验证 README](../../artifacts/verification/FPD-P0/README.md)。

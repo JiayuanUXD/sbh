@@ -3,7 +3,7 @@
 ## 验证对象
 
 - 分支：`codex/detail-pages-p0-core`
-- 验证目标提交：`769a04f`
+- 验证目标提交：`35ae3b2`
 - 基线：`3271c30`
 - 环境：Node.js 22.23.2、pnpm 8.6.1、PostgreSQL
 - 独立数据库：`sbh_detail_pages_p0`（不含密码）
@@ -46,7 +46,7 @@ pnpm migrate:status
 | `pnpm lint` | PASS；0 errors、9 warnings |
 | `pnpm test` | PASS；126 files、2204 tests |
 | `NEXT_PUBLIC_SITE_URL=http://localhost:3727 pnpm build` | PASS；详情、列表、API、sitemap 路由成功构建 |
-| 四文件 Playwright 精确矩阵 | PASS；35/35，52.3s |
+| 四文件 Playwright 精确矩阵 | PASS；无 retries，36/36 |
 
 Playwright 命令：
 
@@ -65,8 +65,10 @@ PORT=3727 PLAYWRIGHT_BASE_URL=http://localhost:3727 pnpm exec playwright test \
 - 无供给楼盘：`empty-building` 保留楼盘正文和咨询入口，不显示最低价或空供给 Tab。
 - 价格面议：`jingan-price-on-request-300sqm` 首屏及移动 CTA 均显示“价格面议”，不显示零元。
 - 跨单位：楼盘可同时展示元/㎡/天、元/工位/月、元/月分组；单元测试确认不跨完整价格 key 聚合或排序。
+- 图片失败：详情媒体触发原生 `error` 后移除失败图片，并稳定显示“媒体加载失败”语义占位。
 - 咨询：两步流程真实浏览器提交成功；API 测试覆盖房源瞬时失效后降级为楼盘级或通用需求，且不创建错误房源关系。
-- 可访问性：画廊与咨询弹层覆盖焦点锁定、Esc、焦点归还、原生视频控件双向循环、label、live region 和 44px 触控目标。
+- 四档详情：房源与楼盘在 375、768、1440、1920 四档均断言唯一 H1，且 `console.error`、`pageerror` 均为 0；断言已固化在 `detail-pages.spec.ts`。
+- 可访问性：画廊与咨询弹层覆盖焦点锁定、Esc、焦点归还、原生视频控件双向循环、label、live region 和 44px 触控目标；F7.3 图片 alt 检查使用单次原子 DOM 快照，repeat 验证 3/3 通过。
 
 四档视口、相邻页面和控制台结果见 [browser-matrix.md](./browser-matrix.md)。
 
