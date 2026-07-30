@@ -65,6 +65,13 @@ interface Props {
   canPublish: boolean
 }
 
+/** 房源类型中文标签（与 Listings collection options 一致）。 */
+const LISTING_TYPE_LABELS: Record<string, string> = {
+  'traditional-office': '传统办公室',
+  'serviced-office': '服务式办公室',
+  coworking: '共享办公',
+}
+
 /** 审核动作中文标签（与 review-status.ts 一致，客户端内联避免引入 node:crypto）。 */
 const DECISION_LABELS: Record<string, string> = {
   submit: '提交审核',
@@ -238,7 +245,11 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
     () => [
       { title: '房源', dataIndex: 'title', render: (v: string) => <strong>{v}</strong> },
       { title: '所属楼盘', dataIndex: 'buildingName' },
-      { title: '租售类型', dataIndex: 'listingType' },
+      {
+        title: '租售类型',
+        dataIndex: 'listingType',
+        render: (v: string) => LISTING_TYPE_LABELS[v] ?? (v || '—'),
+      },
       {
         title: '完整度',
         dataIndex: 'completenessScore',
@@ -298,7 +309,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
   )
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="listing-review-queue" style={{ padding: 24 }}>
       <Typography.Title heading={5} style={{ marginTop: 0 }}>
         房源审核台
       </Typography.Title>
@@ -366,7 +377,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
               size="small"
               data={[
                 { label: '所属楼盘', value: detail.buildingName },
-                { label: '租售类型', value: detail.listingType || '—' },
+                { label: '租售类型', value: LISTING_TYPE_LABELS[detail.listingType] ?? (detail.listingType || '—') },
                 { label: 'slug', value: detail.slug || '—' },
                 { label: '工作版本', value: `v${detail.version}` },
                 {

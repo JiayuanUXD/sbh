@@ -69,7 +69,7 @@ function createFakeAdapter(options: {
   ]
 
   function isListingEffective(l: Listing): boolean {
-    if (l.status !== 'available') return false
+    if (l.publicationStatus !== 'published') return false
     if (l.deletedAt) return false
     const b = resolveBuilding(l.building)
     if (!b || b.operationalStatus !== 'active') return false

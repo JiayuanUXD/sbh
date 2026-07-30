@@ -1,32 +1,40 @@
 .admin-navigation {
-  --admin-navigation-accent: #165dff;
-  --admin-navigation-accent-soft: #e8f3ff;
-  --admin-navigation-badge: #165dff;
-  --admin-navigation-badge-ink: #ffffff;
-  --admin-navigation-focus: #4080ff;
-  --admin-navigation-hover: var(--theme-elevation-100);
-  --admin-navigation-muted: var(--theme-elevation-500);
-  --admin-navigation-text: var(--theme-elevation-900);
-  --admin-navigation-warning: #d46b08;
-  --admin-navigation-warning-soft: #fff7e8;
+  --admin-nav-accent: #165dff;
+  --admin-nav-accent-soft: #e8f3ff;
+  --admin-nav-accent-soft-active: #d4e7ff;
+  --admin-nav-badge: #165dff;
+  --admin-nav-badge-ink: #ffffff;
+  --admin-nav-focus: #4080ff;
+  --admin-nav-hover: rgba(22, 93, 255, 0.06);
+  --admin-nav-muted: #86909c;
+  --admin-nav-text: #1d2129;
+  --admin-nav-text-light: #4e5969;
+  --admin-nav-warning: #d46b08;
+  --admin-nav-warning-soft: #fff7e8;
+  --admin-nav-icon-size: 18px;
+  --admin-nav-indent: 12px;
+  --admin-nav-collapsed-width: 48px;
 
   box-sizing: border-box;
-  color: var(--admin-navigation-text);
-  max-height: calc(100dvh - 12rem);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 0 0.25rem 0.75rem 0;
-  scrollbar-gutter: stable;
+  color: var(--admin-nav-text);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   width: 100%;
 
   html[data-theme='dark'] & {
-    --admin-navigation-accent: #7eb0ff;
-    --admin-navigation-accent-soft: rgb(22 93 255 / 18%);
-    --admin-navigation-badge: #4080ff;
-    --admin-navigation-focus: #94bfff;
-    --admin-navigation-hover: var(--theme-elevation-150);
-    --admin-navigation-warning: #ffb65d;
-    --admin-navigation-warning-soft: rgb(255 182 93 / 14%);
+    --admin-nav-accent: #7eb0ff;
+    --admin-nav-accent-soft: rgb(22 93 255 / 18%);
+    --admin-nav-accent-soft-active: rgb(22 93 255 / 22%);
+    --admin-nav-badge: #4080ff;
+    --admin-nav-focus: #94bfff;
+    --admin-nav-hover: rgba(126, 176, 255, 0.08);
+    --admin-nav-muted: #86909c;
+    --admin-nav-text: #f2f3f5;
+    --admin-nav-text-light: #c9cdd4;
+    --admin-nav-warning: #ffb65d;
+    --admin-nav-warning-soft: rgb(255 182 93 / 14%);
   }
 
   &,
@@ -36,64 +44,158 @@
     box-sizing: border-box;
   }
 
+  // 列表重置
   &__groups,
   &__items,
-  &__subgroup-items {
+  &__subgroup-items,
+  &__flyout-items {
     list-style: none;
     margin: 0;
     padding: 0;
   }
 
-  &__group {
-    margin-block-end: 0.25rem;
+  // 可滚动的分组列表区域（flex:1 撑满剩余空间，底部按钮靠下）
+  &__groups {
+    flex: 1 1 auto;
+    list-style: none;
+    margin: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 4px 8px;
   }
 
-  &__group-toggle,
-  &__subgroup-toggle {
+  // ─── 一级分组 ───
+
+  &__group {
+    margin-bottom: 2px;
+    position: relative;
+  }
+
+  &__group-toggle {
     align-items: center;
     background: transparent;
     border: 0;
-    border-radius: 0.375rem;
-    color: var(--admin-navigation-text);
+    border-radius: 6px;
+    color: var(--admin-nav-text);
     cursor: pointer;
     display: flex;
     font: inherit;
+    font-size: 14px;
     font-weight: 600;
-    justify-content: space-between;
-    min-height: 44px;
-    padding: 0.625rem 0.75rem;
+    gap: 10px;
+    height: 40px;
+    padding: 0 10px;
+    position: relative;
     text-align: start;
+    transition: background-color 150ms ease, color 150ms ease;
     width: 100%;
 
     &:hover {
-      background: var(--admin-navigation-hover);
+      background: var(--admin-nav-hover);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--admin-navigation-focus);
-      outline-offset: 2px;
+      outline: 2px solid var(--admin-nav-focus);
+      outline-offset: -2px;
     }
 
     &[aria-expanded='true'] {
-      color: var(--admin-navigation-accent);
+      color: var(--admin-nav-accent);
 
       .admin-navigation__chevron {
-        transform: rotate(180deg);
+        transform: rotate(90deg);
       }
     }
   }
 
-  &__chevron {
-    color: currentColor;
-    display: inline-block;
-    flex: 0 0 auto;
-    font-size: 1rem;
-    line-height: 1;
-    transition: transform 160ms ease;
+  // 激活状态的 group（其下有激活子项时）
+  &__group--open &__group-toggle,
+  &__group--active &__group-toggle {
+    color: var(--admin-nav-accent);
   }
 
+  &__group-icon {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: var(--admin-nav-icon-size);
+    height: var(--admin-nav-icon-size);
+    justify-content: center;
+    width: var(--admin-nav-icon-size);
+
+    .arco-icon {
+      font-size: var(--admin-nav-icon-size);
+    }
+  }
+
+  &__group-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ─── 箭头（一级 + 子组） ───
+
+  &__chevron {
+    color: var(--admin-nav-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms ease;
+
+    .arco-icon {
+      font-size: 12px;
+    }
+
+    &--sub {
+      font-size: 10px;
+
+      .arco-icon {
+        font-size: 10px;
+      }
+    }
+  }
+
+  &__group-toggle:hover &__chevron,
+  &__subgroup-toggle:hover &__chevron {
+    color: var(--admin-nav-text-light);
+  }
+
+  &__group-toggle[aria-expanded='true'] &__chevron,
+  &__subgroup-toggle[aria-expanded='true'] &__chevron {
+    color: var(--admin-nav-accent);
+  }
+
+  // ─── 展开面板（平滑动画） ───
+
   &__group-panel {
-    padding-block-end: 0.25rem;
+    display: grid;
+    grid-template-rows: 0fr;
+    isolation: isolate;
+    overflow: hidden;
+    transition: grid-template-rows 220ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s linear 220ms;
+    visibility: hidden;
+
+    &--open {
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0s linear 0s;
+      visibility: visible;
+    }
+  }
+
+  &__group-panel > &__items {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__items {
+    padding: 2px 0 4px 0;
   }
 
   &__item,
@@ -101,99 +203,309 @@
     margin: 0;
   }
 
+  // ─── 叶子链接 ───
+
   &__link {
     align-items: center;
-    border-radius: 0.375rem;
-    color: var(--admin-navigation-text);
+    border-radius: 6px;
+    color: var(--admin-nav-text-light);
     display: flex;
-    gap: 0.5rem;
+    font-size: 14px;
+    gap: 8px;
+    height: 36px;
     justify-content: space-between;
-    min-height: 44px;
-    padding: 0.625rem 0.75rem 0.625rem 1rem;
+    margin: 1px 0;
+    padding: 0 10px 0 calc(var(--admin-nav-icon-size) + 10px + 10px);
     text-decoration: none;
+    transition: background-color 150ms ease, color 150ms ease;
     width: 100%;
 
     &:hover {
-      background: var(--admin-navigation-hover);
-      color: var(--admin-navigation-text);
+      background: var(--admin-nav-hover);
+      color: var(--admin-nav-text);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--admin-navigation-focus);
-      outline-offset: 2px;
+      outline: 2px solid var(--admin-nav-focus);
+      outline-offset: -2px;
     }
 
     &--active {
-      background: var(--admin-navigation-accent-soft);
-      color: var(--admin-navigation-accent);
-      font-weight: 600;
+      background: var(--admin-nav-accent-soft);
+      color: var(--admin-nav-accent);
+      font-weight: 500;
+    }
+
+    &--sub {
+      font-size: 13px;
+      height: 34px;
+      padding-left: calc(var(--admin-nav-icon-size) + 10px + 10px + var(--admin-nav-indent));
     }
   }
 
   &__link-label {
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ─── 二级子组 ───
+
+  &__subgroup {
+    margin-bottom: 1px;
   }
 
   &__subgroup-toggle {
-    color: var(--admin-navigation-muted);
-    font-size: 0.875rem;
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: var(--admin-nav-muted);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 13px;
     font-weight: 500;
-    padding-inline-start: 1rem;
+    gap: 8px;
+    height: 34px;
+    justify-content: space-between;
+    padding: 0 10px 0 calc(var(--admin-nav-icon-size) + 10px + 10px);
+    text-align: start;
+    transition: background-color 150ms ease, color 150ms ease;
+    width: 100%;
+
+    &:hover {
+      background: var(--admin-nav-hover);
+      color: var(--admin-nav-text-light);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--admin-nav-focus);
+      outline-offset: -2px;
+    }
+
+    &--active {
+      color: var(--admin-nav-text-light);
+    }
+  }
+
+  &__subgroup-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: none;
+    white-space: nowrap;
+  }
+
+  &__subgroup-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    isolation: isolate;
+    overflow: hidden;
+    transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1),
+      visibility 0s linear 200ms;
+    visibility: hidden;
+
+    &--open {
+      grid-template-rows: 1fr;
+      transition: grid-template-rows 200ms cubic-bezier(0.4, 0, 0.2, 1),
+        visibility 0s linear 0s;
+      visibility: visible;
+    }
+  }
+
+  &__subgroup-panel > &__subgroup-items {
+    min-height: 0;
+    overflow: hidden;
   }
 
   &__subgroup-items {
-    border-inline-start: 1px solid var(--theme-elevation-200);
-    margin-inline-start: 1rem;
-    padding-inline-start: 0.375rem;
-  }
+    padding: 1px 0;
+    position: relative;
 
-  &__subgroup-item .admin-navigation__link {
-    color: var(--admin-navigation-muted);
-    font-size: 0.875rem;
-    padding-inline-start: 1.125rem;
-
-    &--active {
-      color: var(--admin-navigation-accent);
+    // 左侧竖线（Arco Pro 风格的层级指示线）
+    &::before {
+      border-left: 1px solid var(--theme-elevation-150, #e5e6eb);
+      bottom: 4px;
+      content: '';
+      left: calc(var(--admin-nav-icon-size) + 10px + 10px + 6px);
+      position: absolute;
+      top: 4px;
     }
   }
+
+  // ─── 徽标 ───
 
   &__badge {
     align-items: center;
-    background: var(--admin-navigation-badge);
-    border-radius: 999px;
-    color: var(--admin-navigation-badge-ink);
+    background: var(--admin-nav-badge);
+    border-radius: 10px;
+    color: var(--admin-nav-badge-ink);
     display: inline-flex;
     flex: 0 0 auto;
-    font-size: 0.6875rem;
+    font-size: 12px;
     font-variant-numeric: tabular-nums;
-    font-weight: 700;
+    font-weight: 600;
+    height: 18px;
     justify-content: center;
     line-height: 1;
-    min-height: 1.25rem;
-    min-width: 1.25rem;
-    padding: 0.25rem 0.375rem;
+    min-width: 18px;
+    padding: 0 5px;
 
     &--warning {
-      background: var(--admin-navigation-warning-soft);
-      box-shadow: inset 0 0 0 1px var(--admin-navigation-warning);
-      color: var(--admin-navigation-warning);
+      background: var(--admin-nav-warning-soft);
+      box-shadow: inset 0 0 0 1px var(--admin-nav-warning);
+      color: var(--admin-nav-warning);
     }
   }
 
-  @media (max-width: 768px) {
-    max-height: calc(100dvh - 9rem);
-    padding-inline-end: 0;
+  // ═══════════════════════════════════════════════════
+  // ─── 折叠模式（Arco Design Pro 风格：icon-only） ───
+  // ═══════════════════════════════════════════════════
 
-    &__group-toggle,
-    &__subgroup-toggle,
-    &__link {
-      min-height: 44px;
+  &--collapsed {
+    // 折叠模式：nav 宽 48px，.nav__scroll 已有左右各 4px padding，
+    // groups 不再额外加左右 padding，避免双层 padding 累加导致
+    // 40px 的 toggle 被截断（48 - 4*2 = 40px 刚好容纳 toggle）
+    .admin-navigation__groups {
+      padding: 8px 0 0;
+    }
+
+    .admin-navigation__group {
+      margin-bottom: 4px;
+    }
+
+    // 一级按钮：仅显示居中 icon，40x40 方形按钮
+    .admin-navigation__group-toggle {
+      border-radius: 8px;
+      height: 40px;
+      justify-content: center;
+      margin: 0 auto;
+      padding: 0;
+      width: 40px;
+    }
+
+    .admin-navigation__group-icon {
+      font-size: 20px;
+      height: 20px;
+      width: 20px;
+
+      .arco-icon {
+        font-size: 20px;
+      }
+    }
+
+    // 隐藏文字和箭头
+    .admin-navigation__group-label,
+    .admin-navigation__chevron {
+      display: none;
+    }
+
+    // 激活的一级 icon：蓝色软背景
+    .admin-navigation__group--active > .admin-navigation__group-toggle,
+    .admin-navigation__group-toggle--active {
+      background: var(--admin-nav-accent-soft);
+      color: var(--admin-nav-accent);
+
+      &:hover {
+        background: var(--admin-nav-accent-soft-active);
+      }
     }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    &__chevron {
-      transition: none;
+  // ─── 折叠模式浮层面板 ───
+
+  &__flyout {
+    background: var(--theme-elevation-50, #fff);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    left: calc(100% + 8px);
+    min-width: 200px;
+    padding: 6px;
+    position: absolute;
+    top: 0;
+    z-index: 1000;
+
+    html[data-theme='dark'] & {
+      background: var(--theme-elevation-100, #232324);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__flyout-title {
+    color: var(--admin-nav-muted);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    padding: 6px 10px 4px;
+  }
+
+  &__flyout-items {
+    display: flex;
+    flex-direction: column;
+
+    &--sub {
+      padding-left: 12px;
+    }
+  }
+
+  &__flyout-item {
+    margin: 0;
+
+    // 浮层内的子组 toggle
+    .admin-navigation__subgroup-toggle {
+      height: 34px;
+      padding: 0 10px;
+    }
+
+    // 浮层内的叶子链接
+    .admin-navigation__link {
+      height: 34px;
+      padding: 0 10px;
+    }
+
+    .admin-navigation__link--sub {
+      font-size: 13px;
+      height: 32px;
+      padding-left: 22px;
+    }
+
+    // 浮层内的子组竖线指示
+    .admin-navigation__subgroup-items::before {
+      left: 16px;
+    }
+  }
+
+  // ─── 底部收起/展开按钮 ───
+
+  &__toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--admin-nav-muted);
+    cursor: pointer;
+    display: flex;
+    flex: 0 0 auto;
+    font-size: 18px;
+    height: 48px;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 150ms ease, color 150ms ease;
+    width: 100%;
+
+    &:hover {
+      background: var(--admin-nav-hover);
+      color: var(--admin-nav-text-light);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--admin-nav-focus);
+      outline-offset: -2px;
+    }
+
+    .arco-icon {
+      font-size: 18px;
     }
   }
 }

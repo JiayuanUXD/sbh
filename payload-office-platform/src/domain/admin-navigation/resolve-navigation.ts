@@ -20,6 +20,7 @@ export type ResolvedAdminNavItem = ResolvedAdminNavLeaf | ResolvedAdminNavSubgro
 export type ResolvedAdminNavGroup = {
   id: string
   label: string
+  icon: string
   children: readonly ResolvedAdminNavItem[]
 }
 
@@ -49,7 +50,7 @@ function resolveGroup(
 ): ResolvedAdminNavGroup[] {
   const children = group.children.flatMap((item) => resolveItem(item, input))
 
-  return children.length > 0 ? [{ id: group.id, label: group.label, children }] : []
+  return children.length > 0 ? [{ id: group.id, label: group.label, icon: group.icon, children }] : []
 }
 
 function resolveItem(
@@ -100,6 +101,7 @@ function resolveWorkspaceFallback(permission: PermissionContext): readonly Resol
     {
       id: workspace.id,
       label: workspace.label,
+      icon: workspace.icon,
       children: [toResolvedLeaf(overview)],
     },
   ]

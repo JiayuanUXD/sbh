@@ -91,6 +91,146 @@
   }
 }
 
+// ─── 右上角账号下拉菜单（替代 Payload 默认的左下角退出 + 右上角头像链接） ───
+// 用 absolute 定位脱离 actions 流，固定到 header 最右边
+// .app-header__actions-wrapper 默认 position:relative 会截断定位上下文，
+// 改为 static 后定位上下文回到 .app-header__content（全宽 header）
+.app-header__actions-wrapper {
+  position: static;
+}
+
+.arco-admin-account {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+
+  &__trigger {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    color: var(--arco-admin-ink);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    height: 32px;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0;
+    transition: box-shadow 160ms ease;
+    width: 32px;
+
+    // 复用 Payload 内置 Account 组件渲染的头像 img
+    .gravatar-account,
+    .default-account {
+      height: 32px;
+      width: 32px;
+    }
+  }
+
+  &__trigger:hover {
+    box-shadow: 0 0 0 2px var(--arco-admin-border);
+  }
+
+  &__avatar {
+    line-height: 1;
+  }
+
+  &__menu {
+    background: var(--theme-elevation-50, #fff);
+    border: 1px solid var(--arco-admin-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    min-width: 200px;
+    overflow: hidden;
+    padding: 4px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 1000;
+
+    html[data-theme='dark'] & {
+      background: var(--theme-elevation-100, #232324);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  &__header {
+    border-bottom: 1px solid var(--arco-admin-border);
+    margin-bottom: 4px;
+    padding: 8px 10px 10px;
+  }
+
+  &__name {
+    color: var(--arco-admin-ink);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__email {
+    color: var(--arco-admin-muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: var(--arco-admin-ink);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 14px;
+    gap: 8px;
+    padding: 8px 10px;
+    text-decoration: none;
+    transition: background-color 150ms ease, color 150ms ease;
+    width: 100%;
+
+    .arco-icon {
+      color: var(--arco-admin-muted);
+      flex: 0 0 auto;
+      font-size: 16px;
+    }
+
+    &:hover {
+      background: var(--arco-admin-canvas);
+      color: var(--arco-admin-ink);
+
+      .arco-icon {
+        color: var(--arco-admin-ink);
+      }
+    }
+  }
+
+  &__item--danger:hover {
+    background: #fff1f0;
+    color: #f53f3f;
+
+    .arco-icon {
+      color: #f53f3f;
+    }
+
+    html[data-theme='dark'] & {
+      background: rgba(245, 63, 63, 0.12);
+    }
+  }
+}
+
 .dashboard__wrap {
   max-width: 1440px;
 }
@@ -421,6 +561,86 @@ html[data-theme='dark'] {
   --arco-admin-muted: #9ca3af;
 }
 
+// ═══════════════════════════════════════════════════════
+// ─── 导航自定义（Arco Design Pro 风格） ───
+// ═══════════════════════════════════════════════════════
+//
+// 核心机制：
+// - 桌面端（≥1024px）：CSS 媒体查询强制导航可见 + grid 布局，不依赖 JS navOpen
+// - 折叠时：JS 设置 :root { --nav-width: 48px } + body.admin-nav-collapsed
+// - 移动端（<1024px）：保持 Payload 原生抽屉式导航，不做任何干预
+
+// 始终隐藏 Payload 默认的导航分组（我们的自定义 admin-navigation 已完全替代）
+.nav__groups {
+  display: none !important;
+}
+
+// 始终隐藏 Payload 默认的左下角退出按钮（已合并到右上角 AccountMenu 下拉菜单）
+.nav__controls {
+  display: none !important;
+}
+
+// 隐藏 Payload 默认的右上角账号头像链接（由 AccountMenu 下拉菜单替代）
+.app-header__account {
+  display: none !important;
+}
+
+// 我们的导航组件：撑满 nav__wrap 的可用高度
+.admin-navigation {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+// 侧边栏宽度过渡（展开↔折叠平滑动画）
+.nav {
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ─── 桌面端（≥1024px）：强制导航常驻可见 ───
+// Payload 默认用 navOpen 状态控制导航显示/隐藏，
+// 桌面端我们绕过它，用 CSS 直接强制可见
+@media (min-width: 1024px) {
+  // 强制 grid 布局：导航列 + 内容列
+  .template-default {
+    grid-template-columns: var(--nav-width, 220px) 1fr !important;
+  }
+
+  // 强制导航可见
+  .nav {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+
+  // 隐藏移动端汉堡按钮
+  .nav-toggler {
+    display: none !important;
+  }
+
+  // 隐藏移动端关闭按钮
+  .nav__mobile-close {
+    display: none !important;
+  }
+}
+
+// ─── 折叠模式（icon-only，48px 宽） ───
+
+body.admin-nav-collapsed {
+  // 品牌 logo 区域：折叠时隐藏
+  .nav__brand {
+    display: none !important;
+  }
+
+  // nav__scroll 默认有 padding: 56px 20px 40px，
+  // 折叠到 48px 后左右各 20px 会把内容压到只剩 ~8px，
+  // 需要清除左右 padding 让 icon-only 按钮有空间显示
+  .nav__scroll {
+    overflow-x: hidden;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
+
 html[data-theme='dark'] .arco-admin-dashboard {
   --color-bg-2: #232324;
   --color-border-2: #3c3c3f;
@@ -429,4 +649,206 @@ html[data-theme='dark'] .arco-admin-dashboard {
   --color-text-1: #f2f3f5;
   --color-text-2: #c9cdd4;
   --color-text-3: #9ca3af;
+}
+
+// 房源审核队列 - Arco Table/Drawer/Modal 在 Payload admin 中的样式微调
+.listing-review-queue {
+  // Arco 表格使用自身字体，确保在 Payload 后台中继承合理字体
+  .arco-table {
+    font-size: 14px;
+  }
+
+  .arco-table-th {
+    background-color: var(--theme-elevation-50, #f7f8fa);
+    font-weight: 600;
+  }
+
+  .arco-table-tr:hover > .arco-table-td {
+    background-color: var(--theme-elevation-40, #f2f3f5);
+  }
+
+  // 操作列按钮间距
+  .arco-space .arco-btn {
+    margin-right: 0;
+  }
+}
+
+// ─── Payload 内置 Tabs 修复（Arco 全局 CSS 覆盖了 Payload 默认样式） ───
+
+// 字段级 Tabs（编辑页的"基本信息/租赁参数/审核与发布/展示内容"）
+.tabs-field__tabs {
+  display: flex;
+  gap: 0;
+}
+
+.tabs-field__tab-button {
+  background: transparent;
+  border: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  color: var(--theme-elevation-600, #656565);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+  padding: 8px 16px 20px;
+  position: relative;
+  text-align: center;
+  transition: color 150ms ease;
+  white-space: nowrap;
+
+  // 覆盖 Payload 默认的 ::after 指示器：改为蓝色（而非黑色），确保正确显示
+  &::after {
+    background: transparent;
+    bottom: -1px;
+    content: '';
+    height: 2px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    transition: background-color 150ms ease, transform 200ms ease;
+  }
+
+  &:hover {
+    color: var(--theme-text, #2f2f2f);
+  }
+
+  &--active {
+    color: var(--vscode-icube-colorStatusRegular, #2f74ff);
+    font-weight: 600;
+
+    &::after {
+      background: var(--vscode-icube-colorStatusRegular, #2f74ff);
+    }
+  }
+}
+
+// 文档级 Tabs（编辑/API 切换）
+.doc-tabs__tabs {
+  display: flex;
+  gap: 0;
+}
+
+.doc-tab {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--theme-elevation-600, #656565);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  justify-content: center;
+  line-height: 1.5;
+  margin: 0;
+  padding: 8px 16px;
+  text-decoration: none;
+  transition: color 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--theme-text, #2f2f2f);
+  }
+
+  &--active {
+    border-bottom-color: var(--vscode-icube-colorStatusRegular, #2f74ff);
+    color: var(--vscode-icube-colorStatusRegular, #2f74ff);
+    font-weight: 600;
+  }
+}
+
+// ─── Payload 表单布局优化（Arco 风格：等宽多列 + 合理垂直间距） ───
+
+// 作用域限定在 Collection 文档编辑页（.collection-edit 是编辑页根容器），
+// 避免影响列表筛选、dashboard、全局设置等其他页面
+.collection-edit {
+  // ── 字段垂直间距：同级字段之间 20px ──
+  // tab 内顶级字段（全宽字段、row、group-field）
+  .tabs-field__tab > .render-fields > .field-type,
+  .document-fields__fields > .render-fields > .field-type {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  // group-field 内部的字段
+  .group-field__wrap > .render-fields > .field-type {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  // ── Row 多列容器 ──
+  // row__fields 是 flex 容器，内部子字段等宽分布
+  .row__fields {
+    column-gap: 16px !important;
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 20px;
+
+    // 每个子字段：flex:1 均分宽度，min-width:0 防止内容撑破
+    // 清除水平 margin-right（Payload 默认 5px 做间距，已用 gap 替代），
+    // 清除垂直 margin-bottom（由 row-gap 和外层 row 的 margin-bottom 控制，避免不同字段类型 margin 不一致导致对齐问题）
+    > .field-type {
+      flex: 1 1 0% !important;
+      flex-basis: 0% !important;
+      margin-bottom: 0 !important;
+      margin-right: 0 !important;
+      min-width: 0;
+    }
+  }
+
+  // ── 字段内部：label 与控件间距 ──
+  .field-label {
+    margin-bottom: 8px;
+    padding: 0;
+  }
+
+  // ── 字段描述/帮助文字 ──
+  .field-description,
+  .admin-description {
+    margin-top: 6px;
+    margin-bottom: 0;
+  }
+}
+
+// 深色模式适配
+html[data-theme='dark'] {
+  .tabs-field__tab-button {
+    color: var(--theme-elevation-400, #9a9a9a);
+
+    &:hover {
+      color: var(--theme-text, #f2f3f5);
+    }
+
+    &--active {
+      color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+
+      &::after {
+        background: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+      }
+    }
+  }
+
+  .doc-tab {
+    color: var(--theme-elevation-400, #9a9a9a);
+
+    &:hover {
+      color: var(--theme-text, #f2f3f5);
+    }
+
+    &--active {
+      border-bottom-color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+      color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+    }
+  }
 }

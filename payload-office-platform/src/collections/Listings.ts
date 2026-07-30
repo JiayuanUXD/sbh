@@ -46,7 +46,7 @@ export const Listings: CollectionConfig = {
       tabs: [
         {
           label: '基本信息',
-          description: '维护房源名称、状态、类型和所属楼盘。',
+          description: '维护房源名称、URL 标识、类型和所属楼盘。',
           fields: [
             {
               name: 'title',
@@ -55,31 +55,14 @@ export const Listings: CollectionConfig = {
               required: true,
             },
             {
-              type: 'row',
-              fields: [
-                {
-                  name: 'slug',
-                  label: 'URL 标识',
-                  type: 'text',
-                  required: true,
-                  unique: true,
-                },
-                {
-                  name: 'status',
-                  label: '状态（旧字段，过渡期保留）',
-                  type: 'select',
-                  defaultValue: 'available',
-                  admin: {
-                    description: '发布/审核状态已迁移至“审核与发布”页，此字段仅供过渡期兼容。',
-                  },
-                  options: [
-                    { label: '可租', value: 'available' },
-                    { label: '预留', value: 'reserved' },
-                    { label: '已租', value: 'leased' },
-                    { label: '下架', value: 'archived' },
-                  ],
-                },
-              ],
+              name: 'slug',
+              label: 'URL 标识',
+              type: 'text',
+              required: true,
+              unique: true,
+              admin: {
+                description: '留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。',
+              },
             },
             {
               type: 'row',

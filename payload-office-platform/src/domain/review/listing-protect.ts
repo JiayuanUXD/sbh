@@ -17,6 +17,7 @@
 
 import type { CollectionBeforeChangeHook } from 'payload'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
+import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
 import { isReviewStatus } from './review-status'
 import { isPublicationStatus, isSupplyVisibilityHold } from './publication-status'
 import { isBusinessType, isDecorationStatus } from './listing-fields'
@@ -34,7 +35,12 @@ function assertOptionalEnum(
   }
 }
 
-export const protectListing: CollectionBeforeChangeHook = async ({ data, originalDoc, operation }) => {
+export const protectListing: CollectionBeforeChangeHook = async ({
+  data,
+  originalDoc,
+  operation,
+  req,
+}) => {
   // —— 枚举二次校验（审核/发布/供给冻结三轴 + 房源自身枚举）——
   assertOptionalEnum(
     data?.reviewStatus,
@@ -66,6 +72,42 @@ export const protectListing: CollectionBeforeChangeHook = async ({ data, origina
     'INVALID_DECORATION_STATUS',
     '非法的装修状态',
   )
+
+  // —— slug 自动生成：留空时根据标题生成拼音 slug，冲突时追加序号 ——
+  // 用户手动填写的 slug 不会被覆盖；仅当 slug 为空字符串/undefined 时自动生成。
+  const title = typeof data?.title === 'string' ? data.title : ''
+  const currentSlug = typeof data?.slug === 'string' ? data.slug.trim() : ''
+  const originalSlug =
+    originalDoc && typeof (originalDoc as { slug?: unknown }).slug === 'string'
+      ? ((originalDoc as { slug: string }).slug as string)
+      : ''
+
+  const needGenerateSlug = !currentSlug && title
+  if (needGenerateSlug) {
+    // 若 update 场景下原有 slug 已存在且标题未变，保留原 slug（不重新生成）
+    if (operation === 'update' && originalSlug) {
+      data.slug = originalSlug
+    } else {
+      const base = slugify(title)
+      if (base) {
+        const selfId =
+          operation === 'update' && originalDoc?.id
+            ? String((originalDoc as { id: unknown }).id)
+            : undefined
+        data.slug = await ensureUniqueSlug(base, async (candidate) => {
+          const res = await req.payload.find({
+            collection: 'listings',
+            where: {
+              slug: { equals: candidate },
+              ...(selfId ? { id: { not_equals: selfId } } : {}),
+            },
+            limit: 1,
+          })
+          return res.totalDocs > 0
+        })
+      }
+    }
+  }
 
   if (operation === 'create') {
     // —— 三轴状态缺省初始化（不覆盖已显式给定的合法值）——

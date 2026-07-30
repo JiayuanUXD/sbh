@@ -12,6 +12,7 @@ const groups: readonly ResolvedAdminNavGroup[] = [
   {
     id: 'supply',
     label: '房源运营',
+    icon: 'building',
     children: [
       {
         id: 'listings',
@@ -34,6 +35,7 @@ const groups: readonly ResolvedAdminNavGroup[] = [
   {
     id: 'crm',
     label: '客户运营',
+    icon: 'user',
     children: [
       {
         id: 'leads',
@@ -45,6 +47,7 @@ const groups: readonly ResolvedAdminNavGroup[] = [
   {
     id: 'system',
     label: '系统管理',
+    icon: 'settings',
     children: [
       {
         id: 'advanced-tools',

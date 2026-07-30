@@ -6,6 +6,17 @@ export type AdminNavigationBadgeKey =
   | 'leads'
   | 'formSubmissions'
 
+export type AdminNavIconKey =
+  | 'dashboard'
+  | 'building'
+  | 'shield'
+  | 'user'
+  | 'shop'
+  | 'team'
+  | 'file'
+  | 'form'
+  | 'settings'
+
 export type AdminNavLeaf = {
   id: string
   label: string
@@ -28,5 +39,6 @@ export type AdminNavItem = AdminNavLeaf | AdminNavSubgroup
 export type AdminNavGroup = {
   id: string
   label: string
+  icon: AdminNavIconKey
   children: readonly AdminNavItem[]
 }

@@ -12,13 +12,20 @@ import { protectListing } from '@/domain/review/listing-protect'
  *   - R3：hook 不隐式改写审核/发布状态（仅在缺省时初始化，不覆盖已有值）
  */
 
+// Mock req：提供 payload.find 供 slug 唯一性检查使用（返回空 = 无冲突）
+const mockReq = {
+  payload: {
+    find: async () => ({ totalDocs: 0, docs: [] }),
+  },
+} as never
+
 const create = (data: Record<string, unknown>) =>
-  protectListing({ operation: 'create', originalDoc: undefined, data } as never) as Promise<
+  protectListing({ operation: 'create', originalDoc: undefined, data, req: mockReq } as never) as Promise<
     Record<string, unknown>
   >
 
 const update = (data: Record<string, unknown>, originalDoc: Record<string, unknown>) =>
-  protectListing({ operation: 'update', originalDoc, data } as never) as Promise<
+  protectListing({ operation: 'update', originalDoc, data, req: mockReq } as never) as Promise<
     Record<string, unknown>
   >
 
@@ -34,6 +41,7 @@ describe('listing-protect/create 初始化', () => {
   it('create 不覆盖已显式给定的合法状态', async () => {
     const out = await create({
       title: '房源A',
+      slug: 'existing-slug',
       reviewStatus: 'not_submitted',
       publicationStatus: 'draft',
       supplyVisibilityHold: 'normal',
@@ -75,7 +83,7 @@ describe('listing-protect/枚举二次校验', () => {
   })
 
   it('合法可选枚举 create 通过', async () => {
-    const out = await create({ businessType: 'lease', decorationStatus: 'fully_fitted' })
+    const out = await create({ businessType: 'lease', decorationStatus: 'fully_fitted', slug: 's1' })
     expect(out.businessType).toBe('lease')
     expect(out.decorationStatus).toBe('fully_fitted')
   })
@@ -83,25 +91,25 @@ describe('listing-protect/枚举二次校验', () => {
 
 describe('listing-protect/版本乐观锁', () => {
   it('提交旧版本 → VERSION_CONFLICT', async () => {
-    await expect(update({ version: 2 }, { version: 5 })).rejects.toMatchObject({
+    await expect(update({ version: 2, slug: 's' }, { version: 5, slug: 's' })).rejects.toMatchObject({
       code: 'VERSION_CONFLICT',
     })
   })
 
   it('版本一致 → 自增', async () => {
-    const out = await update({ version: 5 }, { version: 5 })
+    const out = await update({ version: 5, slug: 's' }, { version: 5, slug: 's' })
     expect(out.version).toBe(6)
   })
 
   it('update 未提交 version → 按当前版本自增', async () => {
-    const out = await update({ title: '改名' }, { version: 3 })
+    const out = await update({ title: '改名', slug: 'existing-slug' }, { version: 3, slug: 'existing-slug' })
     expect(out.version).toBe(4)
   })
 
   it('update 不重置三轴状态', async () => {
     const out = await update(
-      { title: '改名' },
-      { version: 1, reviewStatus: 'approved', publicationStatus: 'published' },
+      { title: '改名', slug: 'existing-slug' },
+      { version: 1, slug: 'existing-slug', reviewStatus: 'approved', publicationStatus: 'published' },
     )
     expect(out.reviewStatus).toBeUndefined()
     expect(out.publicationStatus).toBeUndefined()

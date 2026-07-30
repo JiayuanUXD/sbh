@@ -725,11 +725,10 @@ export interface ListingMerchantRelation {
 export interface Listing {
   id: number;
   title: string;
-  slug: string;
   /**
-   * 发布/审核状态已迁移至“审核与发布”页，此字段仅供过渡期兼容。
+   * 留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。
    */
-  status?: ('available' | 'reserved' | 'leased' | 'archived') | null;
+  slug: string;
   listingType: 'traditional-office' | 'serviced-office' | 'coworking' | 'full-floor';
   building: number | Building;
   businessType?: ('lease' | 'sale') | null;
@@ -2506,7 +2505,6 @@ export interface ListingMerchantRelationsSelect<T extends boolean = true> {
 export interface ListingsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  status?: T;
   listingType?: T;
   building?: T;
   businessType?: T;

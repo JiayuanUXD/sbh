@@ -122,7 +122,11 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     components: {
-      actions: ['/components/admin/EnvBadge', '/components/admin/ThemeToggle'],
+      actions: [
+        '/components/admin/EnvBadge',
+        '/components/admin/ThemeToggle',
+        '/components/admin/AccountMenu',
+      ],
       beforeNavLinks: ['/components/admin/AdminNavigation'],
     },
     dashboard: {
