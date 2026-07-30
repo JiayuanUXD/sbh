@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { protectBuilding } from '@/domain/supply/building-protect'
 
@@ -37,7 +37,34 @@ const create = (data: Record<string, unknown>) =>
     data,
   } as never) as Promise<Record<string, unknown>>
 
+async function runBuildingProtect(data: Record<string, unknown>, now = new Date()) {
+  vi.useFakeTimers()
+  vi.setSystemTime(now)
+  try {
+    return await create(data)
+  } finally {
+    vi.useRealTimers()
+  }
+}
+
 describe('building-protect/枚举双保险', () => {
+  it('拒绝过期楼盘认证作为公开认证', async () => {
+    await expect(
+      runBuildingProtect(
+        {
+          certifications: [
+            {
+              name: 'LEED',
+              validTo: '2026-01-01T00:00:00.000Z',
+              publicVisible: true,
+            },
+          ],
+        },
+        new Date('2026-07-30T00:00:00.000Z'),
+      ),
+    ).rejects.toThrow('过期认证不可公开')
+  })
+
   it('非法启停状态 → INVALID_OPERATIONAL_STATUS', async () => {
     await expect(create({ operationalStatus: 'published' })).rejects.toMatchObject({
       code: 'INVALID_OPERATIONAL_STATUS',

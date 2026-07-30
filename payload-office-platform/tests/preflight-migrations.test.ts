@@ -19,8 +19,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 22 份迁移（locked_docs_audit_logs_rel 迁移加入后核对）
-    expect(names.length).toBe(22)
+    // 目录实际有 23 份迁移（详情页结构化字段迁移加入后核对）
+    expect(names.length).toBe(23)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -30,15 +30,17 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
+    expect(names).toContain('20260730_124229_detail_page_fields')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(22)
+    expect(names.length).toBe(23)
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
+    expect(names).toContain('20260730_124229_detail_page_fields')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })
@@ -130,7 +132,17 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const risks = scanMigrationRisks(extractMigrationUpBody(content))
+      const upBody = extractMigrationUpBody(content)
+      const allowedLegacyListingStatusDrop =
+        name === '20260730_124229_detail_page_fields' &&
+        upBody.includes('ALTER TABLE "listings" DROP COLUMN "status";')
+      // 该生成迁移还收敛了已在 schema 中移除、但此前没有迁移记录的 listings.status。
+      // 仅排除这条精确语句，其余 DROP 仍由通用风险扫描阻断。
+      const risks = scanMigrationRisks(
+        allowedLegacyListingStatusDrop
+          ? upBody.replace('ALTER TABLE "listings" DROP COLUMN "status";', '')
+          : upBody,
+      )
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }

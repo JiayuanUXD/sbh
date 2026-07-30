@@ -35,3 +35,23 @@ export const DECORATION_STATUS_LABELS: Record<DecorationStatus, string> = {
 export function isDecorationStatus(value: unknown): value is DecorationStatus {
   return typeof value === 'string' && (DECORATION_STATUSES as readonly string[]).includes(value)
 }
+
+/** 工商注册状态（详情页字段）。 */
+export const REGISTRATION_STATUSES = ['available', 'conditional', 'unavailable', 'confirm'] as const
+export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number]
+
+export function isRegistrationStatus(value: unknown): value is RegistrationStatus {
+  return typeof value === 'string' && (REGISTRATION_STATUSES as readonly string[]).includes(value)
+}
+
+/** 租赁费用是否包含的统一枚举（详情页字段）。 */
+export const COST_INCLUSION_STATUSES = ['included', 'excluded', 'confirm'] as const
+
+/** 详情页媒体类型与房源媒体分类。 */
+export const DETAIL_MEDIA_KINDS = ['image', 'floor-plan', 'video'] as const
+export const LISTING_MEDIA_CATEGORIES = [
+  'workspace',
+  'meeting-room',
+  'common-area',
+  'exterior',
+] as const

@@ -20,7 +20,7 @@ import { InvalidOperationError, VersionConflictError } from '@/domain/shared/err
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
 import { isReviewStatus } from './review-status'
 import { isPublicationStatus, isSupplyVisibilityHold } from './publication-status'
-import { isBusinessType, isDecorationStatus } from './listing-fields'
+import { isBusinessType, isDecorationStatus, isRegistrationStatus } from './listing-fields'
 
 /** 可选枚举字段：给了就必须合法，没给放行（可空）。 */
 function assertOptionalEnum(
@@ -72,6 +72,36 @@ export const protectListing: CollectionBeforeChangeHook = async ({
     'INVALID_DECORATION_STATUS',
     '非法的装修状态',
   )
+  assertOptionalEnum(
+    data?.registrationStatus,
+    isRegistrationStatus,
+    'INVALID_REGISTRATION_STATUS',
+    '非法的工商注册状态',
+  )
+
+  // —— 详情页空间参数不变量 ——
+  const spaceDetails = data?.spaceDetails
+  if (spaceDetails && typeof spaceDetails === 'object') {
+    const { efficiencyRate, seatMin, seatMax } = spaceDetails as {
+      efficiencyRate?: unknown
+      seatMin?: unknown
+      seatMax?: unknown
+    }
+    if (typeof efficiencyRate === 'number' && (efficiencyRate < 0 || efficiencyRate > 100)) {
+      throw new InvalidOperationError({
+        domain: 'review',
+        code: 'INVALID_EFFICIENCY_RATE',
+        message: '得房率必须在 0–100 之间',
+      })
+    }
+    if (typeof seatMin === 'number' && typeof seatMax === 'number' && seatMin > seatMax) {
+      throw new InvalidOperationError({
+        domain: 'review',
+        code: 'INVALID_SEAT_RANGE',
+        message: '工位区间下限不得大于上限',
+      })
+    }
+  }
 
   // —— slug 自动生成：留空时根据标题生成拼音 slug，冲突时追加序号 ——
   // 用户手动填写的 slug 不会被覆盖；仅当 slug 为空字符串/undefined 时自动生成。

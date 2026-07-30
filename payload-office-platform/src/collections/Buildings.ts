@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { DETAIL_MEDIA_KINDS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
@@ -18,6 +19,8 @@ import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-che
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
 import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
+
+const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
 
 export const Buildings: CollectionConfig = {
   slug: 'buildings',
@@ -282,6 +285,63 @@ export const Buildings: CollectionConfig = {
               type: 'number',
               min: 0,
             },
+            {
+              name: 'developerAndScale',
+              label: '开发商与规模',
+              type: 'group',
+              fields: [
+                { name: 'developer', label: '开发商', type: 'text', maxLength: 100 },
+                { name: 'grossFloorArea', label: '总建筑面积（㎡）', type: 'number', min: 0 },
+                { name: 'typicalFloorArea', label: '标准层面积（㎡）', type: 'number', min: 0 },
+                { name: 'standardFloorHeight', label: '标准层高（m）', type: 'number', min: 0 },
+                { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
+                { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+              ],
+            },
+            {
+              name: 'verticalTransport',
+              label: '垂直交通',
+              type: 'group',
+              fields: [
+                { name: 'passengerElevators', label: '客梯数量', type: 'number', min: 0 },
+                { name: 'freightElevators', label: '货梯数量', type: 'number', min: 0 },
+                { name: 'zoningNote', label: '分区说明', type: 'textarea', maxLength: 300 },
+              ],
+            },
+            {
+              name: 'buildingServices',
+              label: '楼宇服务',
+              type: 'group',
+              fields: [
+                { name: 'airConditioning', label: '空调', type: 'text', maxLength: 100 },
+                { name: 'network', label: '网络', type: 'text', maxLength: 100 },
+                { name: 'powerSupply', label: '供电', type: 'text', maxLength: 100 },
+                { name: 'accessControl', label: '门禁', type: 'text', maxLength: 100 },
+                { name: 'parkingFee', label: '停车费', type: 'text', maxLength: 100 },
+                { name: 'serviceHours', label: '服务时间', type: 'text', maxLength: 100 },
+              ],
+            },
+            {
+              name: 'certifications',
+              label: '楼盘认证',
+              type: 'array',
+              fields: [
+                { name: 'name', label: '认证名称', type: 'text', required: true },
+                { name: 'certificateNumber', label: '证书编号', type: 'text' },
+                { name: 'validFrom', label: '有效期开始', type: 'date' },
+                { name: 'validTo', label: '有效期结束', type: 'date' },
+                { name: 'publicVisible', label: '公开展示', type: 'checkbox', defaultValue: false },
+              ],
+            },
+            {
+              name: 'verificationInfo',
+              label: '核验信息',
+              type: 'group',
+              fields: [
+                { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
+                { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+              ],
+            },
           ],
         },
         {
@@ -317,6 +377,32 @@ export const Buildings: CollectionConfig = {
               type: 'relationship',
               relationTo: 'amenities',
               hasMany: true,
+            },
+            {
+              name: 'mediaItems',
+              label: '详情页媒体',
+              type: 'array',
+              maxRows: 40,
+              fields: [
+                { name: 'resource', label: '资源', type: 'upload', relationTo: 'media', required: true },
+                {
+                  name: 'kind',
+                  label: '类型',
+                  type: 'select',
+                  required: true,
+                  options: DETAIL_MEDIA_KINDS.map((value) => ({ label: value, value })),
+                },
+                {
+                  name: 'category',
+                  label: '分类',
+                  type: 'select',
+                  required: true,
+                  options: BUILDING_MEDIA_CATEGORIES.map((value) => ({ label: value, value })),
+                },
+                { name: 'alt', label: '替代文本', type: 'text', required: true, maxLength: 160 },
+                { name: 'capturedAt', label: '拍摄时间', type: 'date' },
+                { name: 'isSchematic', label: '示意图', type: 'checkbox', defaultValue: false },
+              ],
             },
           ],
         },
