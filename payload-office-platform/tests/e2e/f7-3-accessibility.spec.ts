@@ -86,6 +86,19 @@ test.describe('F7.3 可访问性验收', () => {
     await expect(dialog).toBeHidden()
   })
 
+  test('详情询盘关闭后将焦点归还给触发按钮', async ({ page }) => {
+    await page.goto('/listings/jingan-serviced-office-42-seats')
+    const trigger = page.getByRole('button', { name: /询价|预约看房|在线询价/ }).first()
+    await trigger.focus()
+    await trigger.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(trigger).toBeFocused()
+  })
+
   test('图片有 alt 文本', async ({ page }) => {
     test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')

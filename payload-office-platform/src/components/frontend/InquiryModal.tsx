@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { SourceSection } from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
@@ -241,6 +241,7 @@ export default function InquiryModal(props: Props) {
   const feedbackRef = useRef<HTMLDivElement | null>(null)
   const previousStepRef = useRef<InquiryStep | null>(null)
   const titleId = useId()
+  const modalId = useId()
   const consentId = useId()
 
   // 入口路径（白名单化，仅 pathname，不含 query）
@@ -279,7 +280,7 @@ export default function InquiryModal(props: Props) {
   }
 
   // Esc 关闭 + 焦点锁定 + 滚动锁 + 滚动恢复
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return
     const dialog = dialogRef.current
     if (!dialog) return
@@ -310,7 +311,7 @@ export default function InquiryModal(props: Props) {
     const prevOverflow = document.body.style.overflow
     const prevScrollY = window.scrollY
     document.body.style.overflow = 'hidden'
-    window.requestAnimationFrame(() => titleRef.current?.focus())
+    titleRef.current?.focus()
 
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -539,7 +540,7 @@ export default function InquiryModal(props: Props) {
         onClick={openModal}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-controls={titleId}
+        aria-controls={modalId}
         data-event-name="inquiry_open_trigger"
         data-page-type={pageType}
         data-source-section={sourceSection ?? undefined}
@@ -554,6 +555,7 @@ export default function InquiryModal(props: Props) {
         >
           <div
             ref={dialogRef}
+            id={modalId}
             className="modal"
             role="dialog"
             aria-modal="true"

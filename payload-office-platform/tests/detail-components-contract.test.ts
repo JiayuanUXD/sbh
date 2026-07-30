@@ -138,6 +138,24 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('data-analytics-title')
   })
 
+  it('详情画廊为全屏预览提供语义化触发按钮与可访问名称', () => {
+    const html = renderToStaticMarkup(createElement(DetailGallery, {
+      title: '静安中心',
+      media: [{
+        id: 'image-1',
+        kind: 'image',
+        category: 'interior',
+        resource: { src: '/office.jpg', alt: '办公室内部' },
+        capturedAt: null,
+        isSchematic: false,
+      }],
+    }))
+
+    expect(html).toContain('<button')
+    expect(html).toContain('查看全屏媒体')
+    expect(html).toContain('aria-haspopup="dialog"')
+  })
+
   it('锚点导航只输出可见项', () => {
     const html = renderToStaticMarkup(
       createElement(DetailAnchorNav, {

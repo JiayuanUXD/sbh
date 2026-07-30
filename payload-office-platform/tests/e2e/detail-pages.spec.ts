@@ -3,6 +3,12 @@ import { expect, test } from '@playwright/test'
 const LISTING_SLUG = 'jingan-serviced-office-42-seats'
 const PRICE_ON_REQUEST_SLUG = 'jingan-price-on-request-300sqm'
 const PUBLISHED_INEFFECTIVE_SLUG = 'jingan-published-pending-recheck'
+const DETAIL_VIEWPORTS = [
+  { width: 375, height: 812 },
+  { width: 768, height: 1024 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+] as const
 
 test.describe('房源详情 P0', () => {
   test('有效房源按决策顺序展示概况、锚点和咨询入口', async ({ page }) => {
@@ -56,9 +62,74 @@ test.describe('房源详情 P0', () => {
     await expect(mobilePrice).toBeVisible()
     await expect(mobilePrice).toHaveText('价格面议')
     expect(await page.locator('main').evaluate(
-      (element) => !/(^|\s)0\s*元(?=\s|$)/.test(element.textContent ?? ''),
+      (element) => !/(?<![\d.])0\s*元(?![\d.])/.test(element.textContent ?? ''),
     )).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+  })
+
+  for (const viewport of DETAIL_VIEWPORTS) {
+    test(`房源详情在 ${viewport.width}px 无横向溢出，移动操作栏不遮挡内容`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      const response = await page.goto(`/listings/${LISTING_SLUG}`)
+
+      expect(response?.status()).toBe(200)
+      expect(await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      )).toBe(true)
+
+      if (viewport.width <= 767) {
+        const mobileBar = page.getByRole('region', { name: '询价操作栏' })
+        await expect(mobileBar).toBeVisible()
+        const metrics = await page.locator('.detail').evaluate((detail, barSelector) => {
+          const bar = document.querySelector(barSelector)
+          if (!(bar instanceof HTMLElement)) return null
+          return {
+            paddingBottom: Number.parseFloat(getComputedStyle(detail).paddingBottom),
+            barHeight: bar.getBoundingClientRect().height,
+          }
+        }, '[role="region"][aria-label="询价操作栏"]')
+        expect(metrics).not.toBeNull()
+        expect(metrics!.paddingBottom).toBeGreaterThanOrEqual(metrics!.barHeight)
+      }
+    })
+  }
+
+  test('媒体画廊支持全屏、左右键、Escape 和焦点归还', async ({ page }) => {
+    await page.goto(`/listings/${LISTING_SLUG}`)
+    const gallery = page.getByRole('region', { name: /图片与视频/ })
+    const openGallery = gallery.getByRole('button', { name: /查看全屏媒体/ }).first()
+    await expect(openGallery).toBeVisible()
+    await openGallery.focus()
+    await openGallery.press('Enter')
+
+    const dialog = page.getByRole('dialog', { name: /全屏媒体预览/ })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('button', { name: '关闭全屏媒体预览' })).toBeFocused()
+    const counter = dialog.getByRole('status')
+    const before = await counter.textContent()
+    await page.keyboard.press('ArrowRight')
+    await expect(counter).not.toHaveText(before ?? '')
+    await page.keyboard.press('ArrowLeft')
+    await expect(counter).toHaveText(before ?? '')
+
+    await page.keyboard.press('Shift+Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(openGallery).toBeFocused()
+  })
+
+  test('详情锚点为可键盘激活的原生链接，并遵守减少动效偏好', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto(`/listings/${LISTING_SLUG}`)
+    const firstAnchor = page.getByRole('navigation', { name: '详情导航' }).getByRole('link').first()
+    await expect(firstAnchor).toHaveAttribute('href', '#overview')
+    await firstAnchor.focus()
+    await firstAnchor.press('Enter')
+    await expect(page).toHaveURL(/#overview$/)
+    expect(await page.locator('.detail-gallery__open').first().evaluate(
+      (element) => Number.parseFloat(getComputedStyle(element).transitionDuration),
+    )).toBeLessThanOrEqual(0.01)
   })
 })
 
@@ -122,4 +193,31 @@ test.describe('楼盘详情 P0', () => {
     await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
     await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
   })
+
+  for (const viewport of DETAIL_VIEWPORTS) {
+    test(`楼盘详情在 ${viewport.width}px 无横向溢出`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+
+      expect(response?.status()).toBe(200)
+      expect(await page.evaluate(
+        () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      )).toBe(true)
+
+      if (viewport.width <= 767) {
+        const mobileBar = page.getByRole('region', { name: '询价操作栏' })
+        await expect(mobileBar).toBeVisible()
+        const metrics = await page.locator('.detail').evaluate((detail, barSelector) => {
+          const bar = document.querySelector(barSelector)
+          if (!(bar instanceof HTMLElement)) return null
+          return {
+            paddingBottom: Number.parseFloat(getComputedStyle(detail).paddingBottom),
+            barHeight: bar.getBoundingClientRect().height,
+          }
+        }, '[role="region"][aria-label="询价操作栏"]')
+        expect(metrics).not.toBeNull()
+        expect(metrics!.paddingBottom).toBeGreaterThanOrEqual(metrics!.barHeight)
+      }
+    })
+  }
 })
