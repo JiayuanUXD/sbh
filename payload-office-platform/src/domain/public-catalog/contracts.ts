@@ -143,29 +143,16 @@ export type BuildingSupplyGroup = 'lease' | 'sale' | 'coworking'
 // 详情 DTO
 // ---------------------------------------------------------------------------
 
-/** 房源详情视图模型：卡片字段 + 公开画廊 + 楼盘摘要 + 富文本说明 */
-export type ListingDetailViewModel = Readonly<{
-  id: number
-  slug: string
-  title: string
-  price: PriceViewModel | null
-  area: number | null
+/** 房源详情视图模型：完整卡片字段 + 详情专属公开数据。 */
+export type ListingDetailViewModel = Readonly<ListingCardViewModel & {
   seats: number | null
-  listingType: Listing['listingType']
-  availableFrom: string | null
-  isFeatured: boolean
-  building: BuildingSummaryViewModel | null
-  coverImage: MediaViewModel | null
   gallery: readonly MediaViewModel[]
   mediaItems: readonly DetailMediaViewModel[]
   factGroups: readonly FactGroupViewModel[]
   amenityGroups: readonly AmenityGroupViewModel[]
   verification: VerificationViewModel
-  highlights: readonly string[]
   /** 富文本说明（Lexical JSON），由服务端白名单渲染 */
   description: Listing['description']
-  /** 稳定排序收束键 */
-  stableSortKey: string
 }>
 
 /** 楼盘详情视图模型 */

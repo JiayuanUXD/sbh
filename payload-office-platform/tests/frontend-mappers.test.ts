@@ -45,6 +45,34 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('mapPrice', () => {
+  it.each([
+    ['day', 'sqm', 'sqm', 'rmb-sqm-day', '12 元/㎡/天'],
+    ['day', 'suite', 'total', 'rmb-total', '12 元/天'],
+    ['day', 'seat', 'seat', 'rmb-total', '12 元/工位/天'],
+    ['month', 'sqm', 'sqm', 'rmb-total', '12 元/㎡/月'],
+    ['month', 'suite', 'total', 'rmb-month', '12 元/月'],
+    ['month', 'seat', 'seat', 'rmb-seat-month', '12 元/工位/月'],
+    ['year', 'sqm', 'sqm', 'rmb-total', '12 元/㎡/年'],
+    ['year', 'suite', 'total', 'rmb-total', '12 元/年'],
+    ['year', 'seat', 'seat', 'rmb-total', '12 元/工位/年'],
+  ] as const)('结构化价格 %s/%s 不被丢弃且保留语义', (period, unit, basis, displayUnit, text) => {
+    const card = mapListingCard({
+      ...LISTING_MONTHLY_STANDARD,
+      rent: undefined,
+      rentUnit: null,
+      price: { amount: 12, currency: 'CNY', period, unit },
+    })
+    expect(card?.price).toMatchObject({
+      amount: 12,
+      currency: 'CNY',
+      businessType: 'lease',
+      period,
+      basis,
+      displayUnit,
+      text,
+    })
+  })
+
   it('rmb-month: 保留数值、币种、单位并产出可读文本', () => {
     const p = mapPrice(25000, 'rmb-month')
     expect(p).not.toBeNull()
@@ -250,6 +278,23 @@ describe('mapBuildingSummary', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapListingCard', () => {
+  it('无旧 rent 的结构化价格房源仍映射为公开卡片和详情', () => {
+    const listing = {
+      ...LISTING_MONTHLY_STANDARD,
+      rent: undefined,
+      rentUnit: null,
+      price: { amount: 8, currency: 'CNY', period: 'day', unit: 'sqm' },
+    }
+    expect(mapListingCard(listing)?.price?.text).toBe('8 元/㎡/天')
+    expect(mapListingDetail(listing)?.id).toBe(LISTING_MONTHLY_STANDARD.id)
+  })
+
+  it('价格待面议的房源不因缺少 rent 被拒绝', () => {
+    const listing = { ...LISTING_MONTHLY_STANDARD, rent: undefined, rentUnit: null, price: undefined }
+    expect(mapListingCard(listing)).toMatchObject({ id: LISTING_MONTHLY_STANDARD.id, price: null })
+    expect(mapListingDetail(listing)?.price).toBeNull()
+  })
+
   it('月租房源：完整字段投影', () => {
     const card = mapListingCard(LISTING_MONTHLY_STANDARD)
     expect(card?.id).toBe(1001)
@@ -441,6 +486,26 @@ describe('mapListingDetail', () => {
     })
   })
 
+  it('仅公开房源媒体的闭合分类', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      mediaItems: [
+        { resource: MEDIA_COVER_A, kind: 'image', category: 'workspace', alt: '办公区' },
+        { resource: MEDIA_COVER_A, kind: 'image', category: '13800001111', alt: '电话' },
+      ],
+    })
+    expect(detail?.mediaItems.map((item) => item.category)).toEqual(['workspace'])
+  })
+
+  it('详情显式保留卡片的业务类型和装修状态', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      businessType: 'sale',
+      decorationStatus: 'fully_fitted',
+    })
+    expect(detail).toMatchObject({ businessType: 'sale', decorationStatus: 'fully_fitted' })
+  })
+
   it('在卡片字段上增加画廊、楼盘摘要和富文本说明', () => {
     const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)
     expect(detail).not.toBeNull()
@@ -493,6 +558,17 @@ describe('mapListingDetail', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapBuildingDetail', () => {
+  it('仅公开楼盘媒体的闭合分类', () => {
+    const detail = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      mediaItems: [
+        { resource: MEDIA_COVER_A, kind: 'image', category: 'exterior', alt: '外立面' },
+        { resource: MEDIA_COVER_A, kind: 'image', category: 'workspace', alt: '不适用分类' },
+      ],
+    })
+    expect(detail?.mediaItems.map((item) => item.category)).toEqual(['exterior'])
+  })
+
   it('完整 Building → 投影公开字段', () => {
     const b = mapBuildingDetail(BUILDING_JINGAN_CENTER)
     expect(b?.id).toBe(200)

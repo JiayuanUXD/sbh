@@ -45,10 +45,12 @@ export function convertPrice(input: Readonly<{
 
   if (input.unit === 'total' && input.period === 'month') {
     const amount = roundToOneDecimal(input.amount / input.area / 30)
+    if (!isNonNegativeFinite(amount)) return []
     return [price(amount, 'lease', 'day', 'sqm', 'rmb-sqm-day', '元/㎡/天')]
   }
   if (input.unit === 'sqm' && input.period === 'day') {
     const amount = roundToOneDecimal(input.amount * input.area * 30)
+    if (!isNonNegativeFinite(amount)) return []
     return [price(amount, 'lease', 'month', 'total', 'rmb-month', '元/月')]
   }
   return []

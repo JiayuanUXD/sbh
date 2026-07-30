@@ -83,6 +83,13 @@ function isAmenity(v: unknown): v is Amenity {
   )
 }
 
+const PUBLIC_LISTING_TYPES = new Set<Listing['listingType']>([
+  'traditional-office',
+  'serviced-office',
+  'coworking',
+  'full-floor',
+])
+
 function isPopulatedListing(v: unknown): v is PopulatedListing {
   if (typeof v !== 'object' || v === null) return false
   const l = v as Partial<Listing>
@@ -91,7 +98,7 @@ function isPopulatedListing(v: unknown): v is PopulatedListing {
     typeof l.slug === 'string' &&
     typeof l.title === 'string' &&
     typeof l.listingType === 'string' &&
-    typeof l.rent === 'number'
+    PUBLIC_LISTING_TYPES.has(l.listingType as Listing['listingType'])
   )
 }
 
@@ -115,13 +122,6 @@ const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel
   'rmb-seat-month': { currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month' },
 }
 
-const PRICE_LABEL: Record<PriceViewModel['displayUnit'], string> = {
-  'rmb-sqm-day': '元/㎡/天',
-  'rmb-month': '元/月',
-  'rmb-seat-month': '元/工位/月',
-  'rmb-total': '元',
-}
-
 function publicBusinessType(value: unknown): PriceViewModel['businessType'] {
   return value === 'sale' ? 'sale' : 'lease'
 }
@@ -135,8 +135,19 @@ function createPrice(
     amount,
     businessType,
     ...key,
-    text: `${amount} ${PRICE_LABEL[key.displayUnit]}`,
+    text: formatPriceText(amount, key.period, key.basis),
   }
+}
+
+function formatPriceText(
+  amount: number,
+  period: PriceViewModel['period'],
+  basis: PriceViewModel['basis'],
+): string {
+  const basisText = basis === 'sqm' ? '元/㎡' : basis === 'seat' ? '元/工位' : '元'
+  if (period === 'one-time') return `${amount} ${basisText}`
+  const periodText = period === 'day' ? '天' : period === 'month' ? '月' : '年'
+  return `${amount} ${basisText}/${periodText}`
 }
 
 /** 把 Listing.rent + rentUnit 投影为 PriceViewModel；rent 缺失或非法时返回 null */
@@ -167,8 +178,7 @@ function mapStructuredPrice(
     basis === 'sqm' && period === 'day' ? 'rmb-sqm-day' :
     basis === 'seat' && period === 'month' ? 'rmb-seat-month' :
     basis === 'total' && period === 'month' ? 'rmb-month' :
-    basis === 'total' ? 'rmb-total' : null
-  if (!displayUnit) return null
+    'rmb-total'
   return createPrice(raw.amount, publicBusinessType(businessType), {
     currency: 'CNY',
     period,
@@ -282,15 +292,19 @@ function isDetailMediaKind(value: unknown): value is DetailMediaViewModel['kind'
   return value === 'image' || value === 'floor-plan' || value === 'video'
 }
 
+const LISTING_DETAIL_MEDIA_CATEGORIES = new Set(['workspace', 'meeting-room', 'common-area', 'exterior'])
+const BUILDING_DETAIL_MEDIA_CATEGORIES = new Set(['exterior', 'lobby', 'common-area', 'facilities'])
+
 function mapDetailMedia(
   items: unknown,
   fallbackAlt: string,
+  categories: ReadonlySet<string>,
 ): readonly DetailMediaViewModel[] {
   if (!Array.isArray(items)) return []
   return items.flatMap((item, index) => {
     if (!isObject(item)) return []
     const resource = mapMedia(item.resource, fallbackAlt)
-    if (!resource || !isDetailMediaKind(item.kind) || typeof item.category !== 'string') return []
+    if (!resource || !isDetailMediaKind(item.kind) || typeof item.category !== 'string' || !categories.has(item.category)) return []
     return [{
       id: `${resource.src}:${index}`,
       kind: item.kind,
@@ -455,7 +469,7 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
     ...card,
     seats: listing.seats ?? null,
     gallery,
-    mediaItems: mapDetailMedia(listing.mediaItems, listing.title),
+    mediaItems: mapDetailMedia(listing.mediaItems, listing.title, LISTING_DETAIL_MEDIA_CATEGORIES),
     factGroups: mapListingFactGroups(listing),
     amenityGroups: [{ id: 'highlights', title: '亮点', items: card.highlights }],
     verification: mapVerification(listing.verificationInfo),
@@ -501,7 +515,7 @@ export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null 
     nearestMetro: mapDistrict(building.nearestMetro),
     coverImage,
     gallery,
-    mediaItems: mapDetailMedia(building.mediaItems, building.name),
+    mediaItems: mapDetailMedia(building.mediaItems, building.name, BUILDING_DETAIL_MEDIA_CATEGORIES),
     factGroups: mapBuildingFactGroups(building),
     amenityGroups: mapBuildingAmenityGroups(building),
     verification: mapVerification(building.verificationInfo),

@@ -32,4 +32,15 @@ describe('detail values', () => {
       seats: 20,
     })).toEqual([])
   })
+
+  it('极端有限输入产生溢出时不返回非有限换算价格', () => {
+    expect(convertPrice({
+      amount: Number.MAX_VALUE,
+      currency: 'CNY',
+      period: 'month',
+      unit: 'total',
+      area: 0.1,
+      seats: null,
+    })).toEqual([])
+  })
 })
