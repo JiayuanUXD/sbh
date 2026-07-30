@@ -1,6 +1,3 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import type {
   BuildingSupplyInput,
   BuildingSupplyGroupViewModel,
@@ -27,18 +24,6 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
 export default function BuildingSupplyBrowser({ snapshot, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
-  const [view, setView] = useState<'cards' | 'table'>('cards')
-
-  // The desktop switch must never make a narrow layout render an unreadable table.
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)')
-    const resetToCards = () => {
-      if (mediaQuery.matches) setView('cards')
-    }
-    resetToCards()
-    mediaQuery.addEventListener('change', resetToCards)
-    return () => mediaQuery.removeEventListener('change', resetToCards)
-  }, [])
 
   return (
     <section
@@ -104,57 +89,41 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
           </p>
         )}
 
-        <nav className="building-supply-browser__tabs" aria-label="供给类型" role="tablist">
-          {groups.map((group) => (
-            <button
-              key={group.key}
-              data-supply-tab={group.key}
-              type="submit"
-              name="group"
-              value={group.key}
-              role="tab"
-              aria-selected={input.group === group.key || (!input.group && group.key === groups[0]?.key)}
-            >
-              {GROUP_LABEL[group.key]}
-            </button>
-          ))}
+        <nav
+          className="building-supply-browser__tabs"
+          aria-label={input.group ? '按供给类型筛选' : '按供给类型筛选，当前显示全部供给类型'}
+        >
+          {groups.map((group) => {
+            const isCurrent = input.group === group.key
+            const label = GROUP_LABEL[group.key]
+            return (
+              <button
+                key={group.key}
+                data-supply-tab={group.key}
+                type="submit"
+                name="group"
+                value={group.key}
+                aria-current={isCurrent ? 'true' : undefined}
+                aria-label={isCurrent ? `按${label}筛选（当前筛选）` : `按${label}筛选`}
+              >
+                {label}
+              </button>
+            )
+          })}
         </nav>
       </form>
 
       {groups.length === 0 ? <p className="building-supply-browser__empty">当前暂无公开可选空间</p> : (
-        <>
-          <div className="building-supply-browser__view-toggle" role="group" aria-label="供给展示方式">
-            <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>卡片</button>
-            <button type="button" aria-pressed={view === 'table'} onClick={() => setView('table')}>表格</button>
-          </div>
-          {groups.map((group) => (
-            <details key={group.key} className="building-supply-browser__group" open>
-              <summary>{GROUP_LABEL[group.key]}</summary>
-              {view === 'cards' ? (
-                <div className="building-supply-browser__cards" data-supply-group={group.key}>
-                  {group.listings.map((listing) => (
-                    <ListingCard key={listing.id} listing={listing} variant="building-supply" />
-                  ))}
-                </div>
-              ) : (
-                <div className="building-supply-browser__table-wrap">
-                  <table className="building-supply-browser__table">
-                    <thead><tr><th scope="col">房源</th><th scope="col">面积</th><th scope="col">价格</th></tr></thead>
-                    <tbody>
-                      {group.listings.map((listing) => (
-                        <tr key={listing.id}>
-                          <td><a href={`/listings/${listing.slug}`}>{listing.title}</a></td>
-                          <td>{listing.area == null ? '—' : `${listing.area} ㎡`}</td>
-                          <td>{listing.price?.text ?? '价格面议'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </details>
-          ))}
-        </>
+        groups.map((group) => (
+          <details key={group.key} className="building-supply-browser__group" open>
+            <summary>{GROUP_LABEL[group.key]}</summary>
+            <div className="building-supply-browser__cards" data-supply-group={group.key}>
+              {group.listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} variant="building-supply" />
+              ))}
+            </div>
+          </details>
+        ))
       )}
     </section>
   )

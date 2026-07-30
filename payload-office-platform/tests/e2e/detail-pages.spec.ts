@@ -64,13 +64,15 @@ test.describe('房源详情 P0', () => {
 
 test.describe('楼盘详情 P0', () => {
   test('楼盘页按有效供给显示非空分组', async ({ page }) => {
-    const response = await page.goto('/buildings/west-nanjing-premium-center')
+    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
 
     expect(response?.status()).toBe(200)
     await expect(page.getByRole('heading', { name: '当前有效供给' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: '出租' })).toBeVisible()
-    await expect(page.getByRole('tab', { name: '出售' })).toHaveCount(0)
-    await expect(page.getByRole('tab', { name: '联合办公' })).toHaveCount(0)
+    const activeLeaseFilter = page.getByRole('button', { name: '按出租筛选（当前筛选）' })
+    await expect(activeLeaseFilter).toBeVisible()
+    await expect(activeLeaseFilter).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('button', { name: '按出售筛选' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: '按联合办公筛选' })).toHaveCount(0)
     // The held `jingan-published-pending-recheck` fixture belongs to this
     // building but is not effective public supply.
     await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
@@ -82,7 +84,7 @@ test.describe('楼盘详情 P0', () => {
     expect(response?.status()).toBe(200)
     await expect(page.getByText('当前暂无公开可选空间')).toBeVisible()
     await expect(page.getByText('最低价', { exact: false })).toHaveCount(0)
-    await expect(page.getByRole('tab')).toHaveCount(0)
+    await expect(page.locator('[data-supply-tab]')).toHaveCount(0)
   })
 
   test('楼盘详情供给聚合和列表使用同一 asOf 快照', async ({ page }) => {

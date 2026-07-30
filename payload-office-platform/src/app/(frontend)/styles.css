@@ -1150,34 +1150,6 @@ ol {
   align-items: start;
 }
 
-.building-supply-browser__view-toggle {
-  display: none;
-}
-
-.building-supply-browser__table-wrap {
-  overflow-x: auto;
-}
-
-.building-supply-browser__table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.building-supply-browser__table th,
-.building-supply-browser__table td {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--color-line);
-  text-align: left;
-}
-
-@media (min-width: 768px) {
-  .building-supply-browser__view-toggle {
-    display: flex;
-    gap: var(--sp-2);
-    margin: var(--sp-3) 0;
-  }
-}
-
 @media (max-width: 767px) {
   .detail-hero {
     grid-template-columns: minmax(0, 1fr);

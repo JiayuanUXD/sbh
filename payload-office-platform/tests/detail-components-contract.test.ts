@@ -150,12 +150,20 @@ describe('detail component contracts', () => {
     expect(html).toContain('估算')
   })
 
-  it('空供给组不会生成 tab，供给浏览器保留 GET 表单与面议卡片', () => {
+  it('供给组是原生 GET 筛选按钮，不伪装为 ARIA tab，并暴露当前筛选', () => {
     const html = renderToStaticMarkup(
-      createElement(BuildingSupplyBrowser, { snapshot: LEASE_ONLY_SNAPSHOT }),
+      createElement(BuildingSupplyBrowser, {
+        snapshot: LEASE_ONLY_SNAPSHOT,
+        input: { group: 'lease' },
+      }),
     )
 
     expect(html).toContain('method="get"')
+    expect(html).toContain('type="submit"')
+    expect(html).toContain('aria-current="true"')
+    expect(html).toContain('按供给类型筛选')
+    expect(html).not.toContain('role="tab"')
+    expect(html).not.toContain('role="tablist"')
     expect(html).toContain('出租')
     expect(html).toContain('价格面议')
     expect(html).not.toContain('出售')
