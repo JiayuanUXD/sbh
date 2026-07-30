@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
+import type { SourceSection } from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
 
@@ -43,6 +44,8 @@ type Props = {
   triggerVariant?: 'primary' | 'ghost' | 'ink'
   /** 触发按钮附加 className */
   triggerClassName?: string
+  /** 可分析的产品入口区块（与询盘 schema 的枚举保持一致） */
+  sourceSection?: SourceSection
 }
 
 export type InquiryStep = 'contact' | 'requirements' | 'success'
@@ -202,6 +205,7 @@ export default function InquiryModal(props: Props) {
     pageType,
     targetListingSlug,
     targetBuildingSlug,
+    sourceSection,
     triggerLabel = DEFAULT_TRIGGER_LABEL,
     triggerVariant = 'primary',
     triggerClassName,
@@ -388,6 +392,7 @@ export default function InquiryModal(props: Props) {
       source: {
         pageType,
         path: sourcePath,
+        section: sourceSection ?? null,
         campaign,
       },
     }
@@ -537,6 +542,7 @@ export default function InquiryModal(props: Props) {
         aria-controls={titleId}
         data-event-name="inquiry_open_trigger"
         data-page-type={pageType}
+        data-source-section={sourceSection ?? undefined}
       >
         {triggerLabel}
       </button>

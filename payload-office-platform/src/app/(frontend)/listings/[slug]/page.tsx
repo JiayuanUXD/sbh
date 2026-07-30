@@ -4,8 +4,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
+import DetailFacts from '@/components/frontend/DetailFacts'
+import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
-import ListingGallery from '@/components/frontend/ListingGallery'
+import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -72,23 +75,27 @@ export default async function ListingDetailPage({
   const related = await getRelatedListings(slug, ctx, { limit: 6 })
   const relatedFiltered = related.filter((r) => r.id !== listing.id).slice(0, 5)
 
-  const images = listing.gallery.map((m) => ({
-    src: m.src,
-    alt: m.alt,
-    width: m.width,
-    height: m.height,
-  }))
-  if (listing.coverImage && !images.some((m) => m.src === listing.coverImage?.src)) {
-    images.unshift({
-      src: listing.coverImage.src,
-      alt: listing.coverImage.alt,
-      width: listing.coverImage.width,
-      height: listing.coverImage.height,
-    })
-  }
-
-  const rentText = listing.price?.text ?? '待面议'
+  // `gallery` is a legacy public DTO fallback, never a Payload document.
+  const media = listing.mediaItems.length > 0
+    ? listing.mediaItems
+    : listing.gallery.map((resource, index) => ({
+        id: `legacy-gallery-${index}-${resource.src}`,
+        kind: 'image' as const,
+        category: '图片',
+        resource,
+        capturedAt: null,
+        isSchematic: false,
+      }))
+  const rentText = listing.price?.text ?? '价格面议'
   const canonicalUrl = `${siteConfig.siteOrigin}/listings/${slug}`
+  const hasAmenities = listing.amenityGroups.some((group) => group.items.length > 0)
+  const anchors = [
+    { id: 'overview', label: '房源概况', visible: true },
+    { id: 'amenities', label: '配套设施', visible: hasAmenities },
+    { id: 'description', label: '房源描述', visible: listing.description != null },
+    { id: 'building', label: '所在楼盘', visible: building != null },
+    { id: 'related', label: '其他房源', visible: relatedFiltered.length > 0 },
+  ]
 
   // F4.6：schema.org 结构化数据（仅声明后台可保证的字段，不伪造库存/作者/发布日期）
   const jsonLd: Record<string, unknown> = {
@@ -129,11 +136,29 @@ export default async function ListingDetailPage({
           __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
         }}
       />
-      <div className="detail__top">
-        <ListingGallery images={images} />
+      <Breadcrumb
+        items={[
+          { label: '首页', href: '/' },
+          { label: '办公选址', href: '/listings' },
+          ...(building?.district ? [{ label: building.district.name }] : []),
+          ...(building ? [{ label: building.name, href: `/buildings/${building.slug}` }] : []),
+          { label: listing.title },
+        ]}
+      />
+      <header className="detail__header">
+        <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
+        <h1 className="detail__title">{listing.title}</h1>
+        {listing.highlights.length > 0 && (
+          <div className="detail__tags" aria-label="房源亮点">
+            {listing.highlights.slice(0, 3).map((text, i) => (
+              <span key={i} className="tag">{text}</span>
+            ))}
+          </div>
+        )}
+      </header>
+      <section className="detail-hero" aria-label="房源核心信息">
+        <DetailGallery media={media} title={listing.title} />
         <div className="detail__summary">
-          <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
-          <h1 className="detail__title">{listing.title}</h1>
           <div className="detail__rent">{rentText}</div>
           <dl className="detail__specs">
             <div>
@@ -142,7 +167,7 @@ export default async function ListingDetailPage({
             </div>
             <div>
               <dt>工位</dt>
-              <dd>{listing.seats ?? '面议'}</dd>
+              <dd>{listing.seats ?? '咨询确认'}</dd>
             </div>
             <div>
               <dt>可入驻</dt>
@@ -156,20 +181,7 @@ export default async function ListingDetailPage({
               <dt>区域</dt>
               <dd>{building?.district?.name ?? '—'}</dd>
             </div>
-            <div>
-              <dt>地址</dt>
-              <dd>{building?.address ?? '—'}</dd>
-            </div>
           </dl>
-          {listing.highlights.length > 0 && (
-            <div className="detail__tags">
-              {listing.highlights.map((text, i) => (
-                <span key={i} className="tag">
-                  {text}
-                </span>
-              ))}
-            </div>
-          )}
           <div className="detail__decision">
             <div className="detail__decision-row">
               <span className="detail__rent">{rentText}</span>
@@ -178,50 +190,64 @@ export default async function ListingDetailPage({
             <div className="detail__decision-cta">
               <InquiryModal
                 pageType="listing"
-                targetListingSlug={slug}
+                targetListingSlug={listing.slug}
+                targetBuildingSlug={building?.slug}
                 targetSummary={listing.title}
                 triggerLabel="询价 / 预约看房"
+                sourceSection="hero"
               />
             </div>
           </div>
         </div>
-      </div>
+      </section>
+      <DetailAnchorNav items={anchors} />
+      <section id="overview" className="detail__section">
+        <h2>房源概况</h2>
+        <DetailFacts groups={listing.factGroups} />
+      </section>
+      {hasAmenities && (
+        <section id="amenities" className="detail__section">
+          <h2>配套设施</h2>
+          {listing.amenityGroups.filter((group) => group.items.length > 0).map((group) => (
+            <div key={group.id}>
+              <h3>{group.title}</h3>
+              <ul className="detail__amenities">
+                {group.items.map((item) => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
       {listing.description && (
-        <section className="detail__section">
-          <h2>详细介绍</h2>
+        <section id="description" className="detail__section">
+          <h2>房源描述</h2>
           <div className="richtext">
             <RichText data={listing.description} />
           </div>
         </section>
       )}
       {building && (
-        <section className="detail__section">
+        <section id="building" className="detail__section">
           <h2>所在楼盘</h2>
           <p>
             {building.name}
             {building.address ? ` · ${building.address}` : ''}
           </p>
-          {building.summary && (
-            <p className="detail__building-summary">{building.summary}</p>
-          )}
-          {building.slug && (
-            <Link
-              href={`/buildings/${building.slug}`}
-              className="btn btn--ghost"
-              data-event-name="listing_building_link_click"
-            >
-              查看楼盘
-            </Link>
-          )}
+          {building.summary && <p className="detail__building-summary">{building.summary}</p>}
+          <Link
+            href={`/buildings/${building.slug}`}
+            className="btn btn--ghost"
+            data-event-name="listing_building_link_click"
+          >
+            查看楼盘
+          </Link>
         </section>
       )}
       {relatedFiltered.length > 0 && (
-        <section className="detail__section">
+        <section id="related" className="detail__section">
           <h2>同楼盘其他房源</h2>
           <div className="card-grid">
-            {relatedFiltered.map((r) => (
-              <ListingCard key={r.id} listing={r} />
-            ))}
+            {relatedFiltered.map((r) => <ListingCard key={r.id} listing={r} />)}
           </div>
         </section>
       )}
@@ -232,9 +258,11 @@ export default async function ListingDetailPage({
         </div>
         <InquiryModal
           pageType="listing"
-          targetListingSlug={slug}
+          targetListingSlug={listing.slug}
+          targetBuildingSlug={building?.slug}
           targetSummary={listing.title}
           triggerLabel="询价 / 预约看房"
+          sourceSection="mobile-bar"
         />
       </div>
     </div>

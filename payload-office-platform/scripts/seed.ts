@@ -528,6 +528,29 @@ async function seed() {
     ]),
   })
 
+  // P0 detail-page acceptance: published effective supply whose price is
+  // intentionally undisclosed. This is a real seed fixture for the
+  // "价格面议，不显示 0 元" browser assertion.
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-price-on-request-300sqm', {
+    title: '静安 · 精装办公 300㎡ · 价格面议',
+    status: 'available',
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
+    listingType: 'traditional-office',
+    building: westNanjingTower.id,
+    rent: null,
+    rentUnit: 'rmb-sqm-day',
+    area: 300,
+    seats: 36,
+    isFeatured: false,
+    highlights: [{ text: '价格面议' }, { text: '近地铁' }, { text: '精装交付' }],
+    availableFrom: '2026-09-01',
+    description: richText('房源说明', [
+      '静安核心区精装办公单元，约 300㎡，适合 30 至 40 人团队。',
+      '当前租金需由顾问结合租期、交付需求和看房安排确认。',
+    ]),
+  })
+
   await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-traditional', {
     title: '外滩 · 传统办公 500㎡',
     status: 'available',
@@ -944,6 +967,7 @@ async function seed() {
     'xuhui-xujiahui-traditional',
     'changning-hongqiao-serviced',
     'jingan-center-fullfloor',
+    'jingan-price-on-request-300sqm',
     'huangpu-bund-traditional',
   ]
   for (const slug of allListingSlugs) {

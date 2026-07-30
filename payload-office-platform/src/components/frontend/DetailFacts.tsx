@@ -1,4 +1,5 @@
 import type { FactGroupViewModel } from '@/domain/public-catalog'
+import { formatFact } from '@/lib/frontend/format'
 
 type DetailFactsProps = Readonly<{
   groups: readonly FactGroupViewModel[]
@@ -12,13 +13,8 @@ type VisibleFact = Readonly<{
 
 function visibleFacts(group: FactGroupViewModel): readonly VisibleFact[] {
   return group.facts.flatMap((fact) => {
-    if (fact.value != null) {
-      return [{ label: fact.label, value: fact.value, estimated: fact.estimated }]
-    }
-    if (fact.critical) {
-      return [{ label: fact.label, value: '咨询确认', estimated: false }]
-    }
-    return []
+    const value = formatFact(fact.value, { critical: fact.critical })
+    return value == null ? [] : [{ label: fact.label, value, estimated: fact.estimated }]
   })
 }
 
