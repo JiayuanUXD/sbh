@@ -9,7 +9,7 @@
  *   - 禁止迁移隐式删除旧字段或将旧房源自动视为审核通过（tasks.md M0.3）
  *
  * 安全原则：
- *   - 完全静态分析，不连接数据库（避免 SQLite dev push 冲突）
+ *   - 完全静态分析，不连接数据库
  *   - 不写任何数据
  *   - 输出待应用迁移清单 + 风险标记 + 回滚提示
  *
@@ -94,9 +94,7 @@ type MigrationAnalysis = {
 
 type DryRunReport = {
   generatedAt: string
-  database:
-    | { kind: 'sqlite'; note: string }
-    | { kind: 'postgres'; urlMasked: string }
+  database: { kind: 'postgres'; urlMasked: string }
   totalMigrations: number
   migrations: MigrationAnalysis[]
   blockingCount: number
@@ -108,13 +106,7 @@ type DryRunReport = {
 
 function getDatabaseMeta() {
   const databaseUrl = process.env.DATABASE_URL || ''
-  if (databaseUrl.startsWith('postgres')) {
-    return { kind: 'postgres' as const, urlMasked: databaseUrl.replace(/:[^:@/]+@/, ':****@') }
-  }
-  return {
-    kind: 'sqlite' as const,
-    note: '本地开发 SQLite；dev 模式自动同步 schema，迁移跟踪主要给 PG 生产用',
-  }
+  return { kind: 'postgres' as const, urlMasked: databaseUrl.replace(/:[^:@/]+@/, ':****@') }
 }
 
 function analyzeMigration(name: string): MigrationAnalysis {

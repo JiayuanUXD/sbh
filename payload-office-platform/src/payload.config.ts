@@ -63,20 +63,17 @@ import {
   formSubmissionUpdateAccess,
   protectFormSubmissionStatus,
 } from './domain/forms/submission-status'
-import { serializedSQLiteAdapter } from './lib/serialized-sqlite-adapter'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// 生产 / CloudBase：设了 postgres:// 连接串 → 用 PostgreSQL（TencentDB）
-// 本地开发：不设 DATABASE_URL → 用 SQLite 本地文件，零外部依赖
+// 本地/CI/生产统一 PostgreSQL（push: false，只走显式迁移），已移除 SQLite 回退。
+// DATABASE_URL 必须是 postgres://。fail-fast 放在 onInit（连库时）而非模块加载期——因为
+// generate:types / generate:importmap / build / migrate:dry-run 只加载 config、不调 getPayload，
+// 这些纯静态命令无需 DATABASE_URL 即可运行；dev / start / migrate / seed 等连库命令走
+// getPayload → onInit，缺省/非 postgres 时在那里抛错（见下方 onInit）。
 const databaseUrl = process.env.DATABASE_URL || ''
-const usePostgres = databaseUrl.startsWith('postgres')
-
-// SQLite 本地文件路径（放在项目根目录，已在 .gitignore 忽略）
-const sqliteFilePath = path.resolve(dirname, '..', 'payload.db.sqlite').replace(/\\/g, '/')
-const sqliteUrl = process.env.SQLITE_URL || `file:${sqliteFilePath}`
 
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
@@ -85,9 +82,17 @@ if (!metricRegistry.has('listings.total')) {
 }
 
 export default buildConfig({
-  // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（payload migrate / next start），
-  // 生产缺 PostgreSQL / 强密钥 / 合法站点 URL 时抛错拒绝启动；dev/build 不触发。
+  // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（db 连接成功后），
+  // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
+  // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload
+  // （dev/start/migrate/seed 等连库命令）触发，不影响 generate/build 等纯静态命令加载 config。
   onInit: () => {
+    const dbUrl = process.env.DATABASE_URL?.trim()
+    if (!dbUrl || !dbUrl.startsWith('postgres')) {
+      throw new Error(
+        '[db] 必须提供 PostgreSQL 的 DATABASE_URL（postgres://...）；已移除 SQLite 回退',
+      )
+    }
     assertProductionConfig(process.env)
   },
   i18n: {
@@ -199,22 +204,15 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: usePostgres
-    ? postgresAdapter({
-        pool: {
-          connectionString: databaseUrl,
-        },
-        // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
-        // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，
-        // 发现“多余”表会提示 DROP 并在非 TTY 下卡死。共享库一律只走显式迁移，禁止 dev push。
-        push: false,
-      })
-    : serializedSQLiteAdapter({
-        client: {
-          url: sqliteUrl,
-        },
-        busyTimeout: 10_000,
-      }),
+  db: postgresAdapter({
+    pool: {
+      connectionString: databaseUrl,
+    },
+    // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
+    // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，
+    // 发现“多余”表会提示 DROP 并在非 TTY 下卡死。本地/CI/生产统一只走显式迁移，禁止 dev push。
+    push: false,
+  }),
   sharp,
   plugins: [
     // 将 Media 后台列表页替换为响应式卡片网格视图(带 lightbox / 拖拽批量上传 / 元数据侧栏)

@@ -4,12 +4,11 @@
  * 业务约束（AGENTS.md §9.2, §3.3）：
  *   - PostgreSQL 供给有效期关系必须使用数据库级约束防止重叠
  *   - 生产 PostgreSQL 专属约束必须在 PostgreSQL 环境验证
- *   - SQLite 通过不能取代 PostgreSQL 约束验证
  *
  * 安全原则：
  *   - 只读，不写业务数据
  *   - PG：检查 payload_migrations 表 + 关键表存在性 + 行数
- *   - SQLite / PG：实际连接数据库并查询每个已注册 Collection
+ *   - 实际连接 PostgreSQL 并查询每个已注册 Collection
  *
  * 运行：pnpm migrate:verify
  */
@@ -157,46 +156,14 @@ function extractUpBody(source: string): string {
 
 async function verifyDatabase(): Promise<VerifyResult['checks']> {
   const checks: VerifyResult['checks'] = []
-  const databaseUrl = process.env.DATABASE_URL || ''
-  const isPg = databaseUrl.startsWith('postgres')
-
-  if (!isPg) {
-    const { createClient } = await import('@libsql/client')
-    const sqliteUrl = process.env.SQLITE_URL || 'file:./payload.db.sqlite'
-    const client = createClient({ url: sqliteUrl })
-    try {
-      for (const exp of COLLECTION_EXPECTATIONS) {
-        try {
-          const result = await client.execute(
-            `SELECT COUNT(*) AS total FROM "${exp.table.replaceAll('"', '""')}"`,
-          )
-          const total = Number(result.rows[0]?.total ?? 0)
-          checks.push({
-            name: `db:collection:${exp.slug}`,
-            status: 'pass',
-            message: `${exp.table} 表存在，行数 ${total}`,
-          })
-        } catch (error) {
-          checks.push({
-            name: `db:collection:${exp.slug}`,
-            status: 'fail',
-            message: `${exp.table} 表查询失败：${(error as Error).message}`,
-          })
-        }
-      }
-    } finally {
-      client.close()
-    }
-    return checks
-  }
 
   const { getPayload } = await import('payload')
   const config = (await import('../src/payload.config')).default
   const payload = await getPayload({ config })
 
   try {
-    // 1. PostgreSQL 下检查 payload_migrations 表。
-    if (isPg) try {
+    // 1. 检查 payload_migrations 表。
+    try {
       // payload_migrations 表由 Payload 维护，drizzle schema 中作为隐式表存在
       const dbAny = payload.db as unknown as {
         drizzle?: {
@@ -260,7 +227,7 @@ async function verifyDatabase(): Promise<VerifyResult['checks']> {
 
     // 3. M3+ 期间将检查 building_merchant_relationships 的 EXCLUDE 约束
     // 当前 M0 阶段没有 PG 专属约束，仅占位
-    if (isPg) checks.push({
+    checks.push({
       name: 'pg:supply-validity-exclude-constraint',
       status: 'skip',
       message: 'M3.3 引入 Building 商户有效期关系时添加 EXCLUDE 约束验证',
@@ -275,16 +242,11 @@ async function verifyDatabase(): Promise<VerifyResult['checks']> {
 // biome-ignore lint/suspicious/noConsole: CLI script
 async function main() {
   const databaseUrl = process.env.DATABASE_URL || ''
-  const isPg = databaseUrl.startsWith('postgres')
 
   console.log('=== Migration Verify ===')
   console.log(`Generated: ${new Date().toISOString()}`)
-  console.log(`Database:  ${isPg ? 'postgres' : 'sqlite'}`)
-  if (isPg) {
-    console.log(`  URL: ${databaseUrl.replace(/:[^:@/]+@/, ':****@')}`)
-  } else {
-    console.log('  本地 SQLite；执行静态迁移检查和实际 Collection 查询')
-  }
+  console.log(`Database:  postgres`)
+  console.log(`  URL: ${databaseUrl.replace(/:[^:@/]+@/, ':****@')}`)
   console.log('')
 
   const staticChecks = verifyStatic()

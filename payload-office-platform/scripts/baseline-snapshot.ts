@@ -2,8 +2,7 @@
  * M0 数据基线快照。
  *
  * 保存实际数据库表结构、记录数，以及最多 3 条只含 id/时间戳的脱敏样本。
- * SQLite 使用只读 SQL，避免与运行中的开发服务争抢 schema push；PostgreSQL
- * 使用 Payload Local API 并保持 overrideAccess。
+ * PostgreSQL 使用 Payload Local API 并保持 overrideAccess。
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -18,55 +17,6 @@ type BaselineItem = {
   topLevelFieldNames: string[]
   recordCount: number
   samples: Array<Record<string, unknown>>
-}
-
-async function captureSqlite(): Promise<BaselineItem[]> {
-  const { createClient } = await import('@libsql/client')
-  const client = createClient({
-    url: process.env.SQLITE_URL || 'file:./payload.db.sqlite',
-  })
-
-  try {
-    const tableResult = await client.execute(`
-      SELECT name
-      FROM sqlite_master
-      WHERE type = 'table'
-        AND name NOT LIKE 'sqlite_%'
-      ORDER BY name
-    `)
-    const items: BaselineItem[] = []
-
-    for (const row of tableResult.rows) {
-      const table = String(row.name)
-      const quotedTable = `"${table.replaceAll('"', '""')}"`
-      const columnsResult = await client.execute(`PRAGMA table_info(${quotedTable})`)
-      const columns = columnsResult.rows.map((column) => String(column.name))
-      const countResult = await client.execute(`SELECT COUNT(*) AS total FROM ${quotedTable}`)
-      const safeColumns = ['id', 'created_at', 'updated_at'].filter((column) =>
-        columns.includes(column),
-      )
-      const samples =
-        safeColumns.length === 0
-          ? []
-          : (
-              await client.execute(
-                `SELECT ${safeColumns.map((column) => `"${column}"`).join(', ')}
-                 FROM ${quotedTable} LIMIT 3`,
-              )
-            ).rows.map((sample) => ({ ...sample }))
-
-      items.push({
-        slug: table,
-        fieldCount: columns.length,
-        topLevelFieldNames: columns,
-        recordCount: Number(countResult.rows[0]?.total ?? 0),
-        samples,
-      })
-    }
-    return items
-  } finally {
-    client.close()
-  }
 }
 
 async function capturePostgres(): Promise<BaselineItem[]> {
@@ -107,8 +57,8 @@ async function capturePostgres(): Promise<BaselineItem[]> {
 }
 
 async function capture(): Promise<void> {
-  const database = process.env.DATABASE_URL?.startsWith('postgres') ? 'postgres' : 'sqlite'
-  const collections = database === 'postgres' ? await capturePostgres() : await captureSqlite()
+  const database = 'postgres'
+  const collections = await capturePostgres()
   const snapshot = {
     capturedAt: new Date().toISOString(),
     runtime: {
@@ -117,7 +67,6 @@ async function capture(): Promise<void> {
       payload: pkg.dependencies.payload,
       next: pkg.dependencies.next,
       postgresAdapter: pkg.dependencies['@payloadcms/db-postgres'],
-      sqliteAdapter: pkg.dependencies['@payloadcms/db-sqlite'],
     },
     database,
     collections,

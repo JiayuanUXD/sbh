@@ -19,7 +19,6 @@ jobs:
         working-directory: payload-office-platform
     env:
       PAYLOAD_SECRET: ci-only-payload-secret
-      SQLITE_URL: file:./m0-ci.sqlite
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -42,12 +41,9 @@ jobs:
         run: pnpm build
         env:
           # 仅 build 需要：生产构建收集 /sitemap.xml page data 时前端 site-config
-          # fail-closed 需此值（与 deploy.yml 一致）。全量 E2E 已移到独立 `e2e` 作业
-          #（生产 server + PostgreSQL），本作业只跑 SQLite 快检，不再跑 Playwright。
+          # fail-closed 需此值（与 deploy.yml 一致）。本作业不连库；DB 相关校验
+          #（迁移 / seed / verify / baseline / 全量 E2E）由 postgres-migrations 与 e2e 作业在 PG 上覆盖。
           NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
-      - run: pnpm seed
-      - run: pnpm migrate:verify
-      - run: pnpm baseline:capture
 
   # 全链路 E2E：用生产 server（next build + next start）跑 Playwright，消除 next dev
   # 逐路由 JIT 编译慢导致的导航 10s poll 超时。next start 触发生产 fail-closed 守卫，
