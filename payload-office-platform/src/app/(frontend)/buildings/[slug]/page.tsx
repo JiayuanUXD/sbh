@@ -10,6 +10,7 @@ import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
   getBuildingDetail,
+  type BuildingSupplyGroupViewModel,
 } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
@@ -58,6 +59,49 @@ const GRADE_LABEL: Record<string, string> = {
   'serviced-office': '服务式办公',
 }
 
+const SUPPLY_GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
+  lease: '出租',
+  sale: '出售',
+  coworking: '联合办公',
+}
+
+/** Keeps price ranges visibly scoped to their supply group. */
+export function BuildingSupplyPriceRanges({
+  groups,
+}: Readonly<{ groups: readonly BuildingSupplyGroupViewModel[] }>) {
+  const groupsWithRanges = groups.filter((group) => group.priceRanges.length > 0)
+  if (groupsWithRanges.length === 0) return null
+  return (
+    <div className="price-range-group">
+      <h3 className="building-stats__label">按供给类型和计价单位分组的价格区间</h3>
+      {groupsWithRanges.map((group) => (
+        <div key={group.key} className="price-range-group__supply" data-supply-group={group.key}>
+          <h4 className="building-stats__label">{SUPPLY_GROUP_LABEL[group.key]}</h4>
+          {group.priceRanges.map((range) => {
+            const unitLabel = rentUnitLabel(range.displayUnit) || range.displayUnit
+            const rangeText =
+              range.min === range.max
+                ? `${range.min} ${unitLabel}`
+                : `${range.min}–${range.max} ${unitLabel}`
+            return (
+              <div
+                key={`${group.key}:${range.key}`}
+                className="price-range-group__item"
+                data-price-range-key={`${group.key}:${range.key}`}
+              >
+                <span className="price-range-group__unit">
+                  {unitLabel}（{range.count} 套）
+                </span>
+                <span className="price-range-group__range">{rangeText}</span>
+              </div>
+            )
+          })}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default async function BuildingDetailPage({
   params,
 }: {
@@ -68,7 +112,10 @@ export default async function BuildingDetailPage({
   const { building, supply } = await getBuildingDetail(slug, ctx)
   if (!building) notFound()
   const listings = supply.groups.flatMap((group) => group.listings)
-  const priceRanges = supply.groups.flatMap((group) => group.priceRanges)
+  const priceRangeCount = supply.groups.reduce(
+    (total, group) => total + group.priceRanges.length,
+    0,
+  )
 
   const district = building.district
   const coverImage = building.coverImage
@@ -102,15 +149,17 @@ export default async function BuildingDetailPage({
   if (heroImage) {
     jsonLd.image = heroImage.src
   }
-  if (totalListings > 0 && priceRanges.length > 0) {
+  if (totalListings > 0 && priceRangeCount > 0) {
     // 仅当存在有效房源时声明聚合报价；不伪造评分或库存
-    jsonLd.offers = priceRanges.map((r) => ({
-      '@type': 'AggregateOffer',
-      priceCurrency: 'CNY',
-      lowPrice: r.min,
-      highPrice: r.max,
-      offerCount: r.count,
-    }))
+    jsonLd.offers = supply.groups.flatMap((group) =>
+      group.priceRanges.map((range) => ({
+        '@type': 'AggregateOffer',
+        priceCurrency: 'CNY',
+        lowPrice: range.min,
+        highPrice: range.max,
+        offerCount: range.count,
+      })),
+    )
   }
 
   return (
@@ -169,7 +218,7 @@ export default async function BuildingDetailPage({
           </div>
           <div className="building-stats__item">
             <span className="building-stats__label">价格区间组</span>
-            <span className="building-stats__value">{priceRanges.length}</span>
+            <span className="building-stats__value">{priceRangeCount}</span>
           </div>
           <div className="building-stats__item">
             <span className="building-stats__label">立即可入驻</span>
@@ -177,26 +226,7 @@ export default async function BuildingDetailPage({
           </div>
         </div>
 
-        {priceRanges.length > 0 && (
-          <div className="price-range-group">
-            <h3 className="building-stats__label">按计价单位分组的价格区间</h3>
-            {priceRanges.map((range) => {
-              const unitLabel = rentUnitLabel(range.displayUnit) || range.displayUnit
-              const rangeText =
-                range.min === range.max
-                  ? `${range.min} ${unitLabel}`
-                  : `${range.min}–${range.max} ${unitLabel}`
-              return (
-                <div key={range.key} className="price-range-group__item">
-                  <span className="price-range-group__unit">
-                    {unitLabel}（{range.count} 套）
-                  </span>
-                  <span className="price-range-group__range">{rangeText}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        <BuildingSupplyPriceRanges groups={supply.groups} />
       </section>
 
       {building.description && (
@@ -214,8 +244,15 @@ export default async function BuildingDetailPage({
           <p className="empty">该楼盘暂无在租房源。</p>
         ) : (
           <div className="card-grid">
-            {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+            {supply.groups.map((group) => (
+              <div key={group.key} className="building-supply-group" data-supply-group={group.key}>
+                <h3>{SUPPLY_GROUP_LABEL[group.key]}</h3>
+                <div className="card-grid">
+                  {group.listings.map((listing) => (
+                    <ListingCard key={`${group.key}:${listing.id}`} listing={listing} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}

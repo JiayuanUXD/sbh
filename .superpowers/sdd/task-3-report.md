@@ -63,3 +63,48 @@ npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test'
 ## 关注点
 
 - 价格请求卡在显式价格单位筛选时仍保留，以满足“不能丢弃”的要求；UI 若需只显示可报价条目，应提供独立的显式筛选条件，而不是复用 `priceUnit`。
+
+## Review follow-up（Task 3 requested changes）
+
+### RED / GREEN
+
+新增下列回归到 `tests/building-supply.test.ts` 后执行：
+
+```sh
+npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts'
+```
+
+RED：7 个测试中 3 个按预期失败：
+
+- `BuildingSupplyPriceRanges` 未导出，不能渲染跨组的相同完整价格键；
+- `limit=0/-1/NaN` 仍调用了 fake adapter；
+- `rankRelatedBuildingsByProximity` 不存在。
+
+GREEN：实现后同一命令 7/7 通过；聚焦 `building-supply` + `public-catalog-facade` 为 41/41 通过。
+
+### 修复
+
+- 楼盘页增加 `BuildingSupplyPriceRanges`，以供给组嵌套渲染价格范围，显式显示“出租 / 出售 / 联合办公”；行 React key 与 `data-price-range-key` 均为 `${group.key}:${range.key}`，使跨组相同完整价格键可区分。房源卡也按供给组可见地嵌套，key 包含组键。
+- `findEffectiveBuildingsNear` 现在用 Payload 3.86.0 支持的 `pagination: false` 且**省略** `limit`。本地 Payload 类型源码注释确认 `pagination: false` 会返回全部文档；因此先得到完整商圈/行政区候选、过滤有效公开楼盘、距离/ID 排序，再截取规范化 limit。回归使用 ID 2–31 的远候选和 ID 99 的最近候选，确认 ID 99 取胜。
+- `getRelatedBuildings` 在任何适配器调用前将 limit 规范化为非负整数；零、负数及 NaN 立即返回 `[]`。默认适配器也作相同防御，避免直接调用时将不安全 limit 传入 Payload。
+
+### Follow-up 验证
+
+```sh
+npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts tests/public-catalog-facade.test.ts && pnpm typecheck'
+```
+
+结果：41/41 通过，typecheck 通过。
+
+```sh
+npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test'
+```
+
+结果：121 个文件、2156 个测试全通过。
+
+### Follow-up files
+
+- `payload-office-platform/src/app/(frontend)/buildings/[slug]/page.tsx`
+- `payload-office-platform/src/domain/public-catalog/facade.ts`
+- `payload-office-platform/src/domain/public-catalog/supply-adapter.ts`
+- `payload-office-platform/tests/building-supply.test.ts`

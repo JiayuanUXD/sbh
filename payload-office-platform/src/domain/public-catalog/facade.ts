@@ -336,9 +336,10 @@ export async function getRelatedBuildings(
   options: Readonly<{ limit?: number }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly BuildingSummaryViewModel[]> {
+  const limit = normalizeRelatedBuildingLimit(options.limit)
+  if (limit === 0) return []
   const current = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!current) return []
-  const limit = options.limit ?? 6
   const nearby = await adapter.findEffectiveBuildingsNear(current.id, ctx, limit)
   const summaries: BuildingSummaryViewModel[] = []
   for (const raw of nearby) {
@@ -347,6 +348,12 @@ export async function getRelatedBuildings(
     if (summary) summaries.push(summary)
   }
   return summaries.slice(0, Math.max(0, limit))
+}
+
+function normalizeRelatedBuildingLimit(limit: number | undefined): number {
+  if (limit == null) return 6
+  if (!Number.isFinite(limit)) return 0
+  return Math.max(0, Math.floor(limit))
 }
 
 /**

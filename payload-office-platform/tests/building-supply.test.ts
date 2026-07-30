@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { buildBuildingSupplySnapshot } from '@/domain/public-catalog/building-supply'
 import { getBuildingDetail, getRelatedBuildings, type ListingCardViewModel } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
+import { rankRelatedBuildingsByProximity } from '@/domain/public-catalog/supply-adapter'
+import { BuildingSupplyPriceRanges } from '@/app/(frontend)/buildings/[slug]/page'
 import type { Building } from '@/payload-types'
 import { BUILDING_JINGAN_CENTER, LISTING_MONTHLY_STANDARD } from '@/test/frontend/payload-documents'
 
@@ -97,6 +101,24 @@ describe('buildBuildingSupplySnapshot', () => {
     expect(snapshot.validationErrors).toContain('price_unit_required')
     expect(snapshot.groups[0]?.priceRanges).toHaveLength(2)
   })
+
+  it('相同完整价格键在不同供给组中保留可见组标签和唯一展示键', () => {
+    const snapshot = buildBuildingSupplySnapshot(
+      [
+        makeCard(),
+        makeCard({ id: 2, slug: 'coworking', listingType: 'coworking' }),
+      ],
+      {},
+      AS_OF,
+    )
+
+    const markup = renderToStaticMarkup(createElement(BuildingSupplyPriceRanges, { groups: snapshot.groups }))
+
+    expect(markup).toContain('出租')
+    expect(markup).toContain('联合办公')
+    expect(markup).toContain('data-price-range-key="lease:lease:CNY:day:sqm"')
+    expect(markup).toContain('data-price-range-key="coworking:lease:CNY:day:sqm"')
+  })
 })
 
 describe('getRelatedBuildings', () => {
@@ -128,6 +150,48 @@ describe('getRelatedBuildings', () => {
 
     expect(result.map((item) => item.slug)).not.toContain('bund-soho')
     expect(result.map((item) => item.slug)).toEqual(['nearby-active-building'])
+  })
+
+  it('零、负数或 NaN 限制在进入适配器前返回空数组', async () => {
+    let calls = 0
+    const adapter = {
+      async findEffectiveBuildingBySlug() {
+        calls += 1
+        return null
+      },
+      async findEffectiveBuildingsNear() {
+        calls += 1
+        return []
+      },
+    }
+    const ctx = defaultSearchContext(new Date(AS_OF))
+
+    await expect(getRelatedBuildings('bund-soho', ctx, { limit: 0 }, adapter as never)).resolves.toEqual([])
+    await expect(getRelatedBuildings('bund-soho', ctx, { limit: -1 }, adapter as never)).resolves.toEqual([])
+    await expect(getRelatedBuildings('bund-soho', ctx, { limit: Number.NaN }, adapter as never)).resolves.toEqual([])
+    expect(calls).toBe(0)
+  })
+
+  it('按距离排序完整候选集，最接近的楼盘可位于旧 ID 前缀之外', () => {
+    const current = { id: 1, latitude: 31, longitude: 121 } as Building
+    const idSortedPrefix = Array.from({ length: 30 }, (_, index) => ({
+      id: index + 2,
+      latitude: 35,
+      longitude: 125,
+    } as Building))
+    const closestOutsideFormerPrefix = {
+      id: 99,
+      latitude: 31.0001,
+      longitude: 121.0001,
+    } as Building
+
+    const result = rankRelatedBuildingsByProximity(
+      current,
+      [...idSortedPrefix, closestOutsideFormerPrefix],
+      1,
+    )
+
+    expect(result.map((building) => building.id)).toEqual([99])
   })
 })
 

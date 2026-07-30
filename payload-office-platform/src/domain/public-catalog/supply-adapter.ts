@@ -143,6 +143,37 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 
 const QUERY_PAGE_SIZE = 200
 
+function proximitySquared(a: Building, b: Building): number | null {
+  if (
+    typeof a.latitude !== 'number' ||
+    typeof a.longitude !== 'number' ||
+    typeof b.latitude !== 'number' ||
+    typeof b.longitude !== 'number'
+  ) return null
+  const latitude = a.latitude - b.latitude
+  const longitude = a.longitude - b.longitude
+  return latitude * latitude + longitude * longitude
+}
+
+/** Rank the complete locality-bounded candidate set before applying a limit. */
+export function rankRelatedBuildingsByProximity(
+  current: Building,
+  candidates: readonly Building[],
+  limit: number,
+): Building[] {
+  return candidates
+    .filter((building) => String(building.id) !== String(current.id))
+    .sort((a, b) => {
+      const pa = proximitySquared(current, a)
+      const pb = proximitySquared(current, b)
+      if (pa != null && pb != null && pa !== pb) return pa - pb
+      if (pa != null && pb == null) return -1
+      if (pa == null && pb != null) return 1
+      return a.id - b.id
+    })
+    .slice(0, limit)
+}
+
 /**
  * 生产供给适配器：查询层 `getEffectiveSupplyWhere` 粗筛 + 举报暂停排除 +
  * 逐条 `resolveEffectiveSupply` 精筛，与发布 endpoint、C 端口径完全一致。
@@ -208,16 +239,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return null
   }
 
-  function proximitySquared(a: Building, b: Building): number | null {
-    if (
-      typeof a.latitude !== 'number' ||
-      typeof a.longitude !== 'number' ||
-      typeof b.latitude !== 'number' ||
-      typeof b.longitude !== 'number'
-    ) return null
-    const latitude = a.latitude - b.latitude
-    const longitude = a.longitude - b.longitude
-    return latitude * latitude + longitude * longitude
+  function normalizeNearbyBuildingLimit(limit: number): number {
+    if (!Number.isFinite(limit)) return 0
+    return Math.max(0, Math.floor(limit))
   }
 
   async function resolveBuildingIdsByDistrict(
@@ -378,6 +402,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     },
 
     async findEffectiveBuildingsNear(buildingId, _ctx, limit) {
+      const normalizedLimit = normalizeNearbyBuildingLimit(limit)
+      if (normalizedLimit === 0) return []
       const payload = await getPayload()
       const current = await payload.findByID({
         collection: 'buildings',
@@ -401,21 +427,16 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         collection: 'buildings',
         where: { ...publicBuildingWhere(), ...locality } as unknown as Where,
         depth: 1,
+        // Payload pagination:false returns the complete locality-bounded result;
+        // do not add a limit before distance ranking.
         pagination: false,
-        limit: Math.max(limit * 5, limit),
         sort: 'id',
       })
-      return (result.docs as Building[])
-        .filter((building) => isPublicBuilding(building) && String(building.id) !== String(current.id))
-        .sort((a, b) => {
-          const pa = proximitySquared(current, a)
-          const pb = proximitySquared(current, b)
-          if (pa != null && pb != null && pa !== pb) return pa - pb
-          if (pa != null && pb == null) return -1
-          if (pa == null && pb != null) return 1
-          return a.id - b.id
-        })
-        .slice(0, Math.max(0, limit))
+      return rankRelatedBuildingsByProximity(
+        current,
+        (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
+        normalizedLimit,
+      )
     },
 
     async findFeaturedListings(ctx, limit = 6) {
