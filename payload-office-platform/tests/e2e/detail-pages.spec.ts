@@ -61,3 +61,39 @@ test.describe('房源详情 P0', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
   })
 })
+
+test.describe('楼盘详情 P0', () => {
+  test('楼盘页按有效供给显示非空分组', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
+
+    expect(response?.status()).toBe(200)
+    await expect(page.getByRole('heading', { name: '当前有效供给' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '出租' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '出售' })).toHaveCount(0)
+    await expect(page.getByRole('tab', { name: '联合办公' })).toHaveCount(0)
+    // The held `jingan-published-pending-recheck` fixture belongs to this
+    // building but is not effective public supply.
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
+  })
+
+  test('无供给楼盘不显示最低价和空 tab', async ({ page }) => {
+    const response = await page.goto('/buildings/empty-building')
+
+    expect(response?.status()).toBe(200)
+    await expect(page.getByText('当前暂无公开可选空间')).toBeVisible()
+    await expect(page.getByText('最低价', { exact: false })).toHaveCount(0)
+    await expect(page.getByRole('tab')).toHaveCount(0)
+  })
+
+  test('楼盘详情供给聚合和列表使用同一 asOf 快照', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
+
+    expect(response?.status()).toBe(200)
+    const aggregate = page.locator('[data-supply-as-of]').first()
+    const list = page.locator('.building-supply-browser[data-supply-as-of]')
+    await expect(aggregate).toHaveAttribute('data-supply-as-of', /.+/)
+    const asOf = await aggregate.getAttribute('data-supply-as-of')
+    expect(asOf).not.toBeNull()
+    await expect(list).toHaveAttribute('data-supply-as-of', asOf ?? '')
+  })
+})

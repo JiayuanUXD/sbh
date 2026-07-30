@@ -3,16 +3,20 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
-import InquiryModal from '@/components/frontend/InquiryModal'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
+import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
+import DetailFacts from '@/components/frontend/DetailFacts'
+import DetailGallery from '@/components/frontend/DetailGallery'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
   getBuildingDetail,
+  getRelatedBuildings,
   parseBuildingSupplySearchParams,
-  type BuildingSupplyInput,
   type BuildingSupplyGroupViewModel,
+  type BuildingSupplyInput,
 } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
@@ -32,33 +36,19 @@ export async function generateMetadata({
     }
   }
   const title = building.name
-  const description =
-    building.summary ||
-    `${building.name}，${building.address}${building.district ? `，${building.district.name}` : ''}`
+  const description = building.summary || `${building.name}，${building.address}${building.district ? `，${building.district.name}` : ''}`
   return {
     title,
     description,
-    alternates: {
-      canonical: `/buildings/${slug}`,
-    },
+    alternates: { canonical: `/buildings/${slug}` },
     openGraph: {
       title,
       description,
       url: `${siteConfig.siteOrigin}/buildings/${slug}`,
       type: 'website',
     },
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: { index: true, follow: true },
   }
-}
-
-const GRADE_LABEL: Record<string, string> = {
-  'grade-a': '甲级',
-  'super-grade-a': '超甲级',
-  'creative-park': '创意园',
-  'serviced-office': '服务式办公',
 }
 
 const SUPPLY_GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
@@ -73,6 +63,7 @@ export function BuildingSupplyPriceRanges({
 }: Readonly<{ groups: readonly BuildingSupplyGroupViewModel[] }>) {
   const groupsWithRanges = groups.filter((group) => group.priceRanges.length > 0)
   if (groupsWithRanges.length === 0) return null
+
   return (
     <div className="price-range-group">
       <h3 className="building-stats__label">按供给类型和计价单位分组的价格区间</h3>
@@ -81,19 +72,16 @@ export function BuildingSupplyPriceRanges({
           <h4 className="building-stats__label">{SUPPLY_GROUP_LABEL[group.key]}</h4>
           {group.priceRanges.map((range) => {
             const unitLabel = rentUnitLabel(range.displayUnit) || range.displayUnit
-            const rangeText =
-              range.min === range.max
-                ? `${range.min} ${unitLabel}`
-                : `${range.min}–${range.max} ${unitLabel}`
+            const rangeText = range.min === range.max
+              ? `${range.min} ${unitLabel}`
+              : `${range.min}–${range.max} ${unitLabel}`
             return (
               <div
                 key={`${group.key}:${range.key}`}
                 className="price-range-group__item"
                 data-price-range-key={`${group.key}:${range.key}`}
               >
-                <span className="price-range-group__unit">
-                  {unitLabel}（{range.count} 套）
-                </span>
+                <span className="price-range-group__unit">{unitLabel}（{range.count} 套）</span>
                 <span className="price-range-group__range">{rangeText}</span>
               </div>
             )
@@ -114,152 +102,99 @@ export default async function BuildingDetailPage({
   const { slug } = await params
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
   const ctx = defaultSearchContext()
-  const { building, supply } = await getBuildingDetail(slug, ctx, supplyInput)
+  const [{ building, supply }, relatedBuildings] = await Promise.all([
+    getBuildingDetail(slug, ctx, supplyInput),
+    getRelatedBuildings(slug, ctx),
+  ])
   if (!building) notFound()
-  const listings = supply.groups.flatMap((group) => group.listings)
-  const priceRangeCount = supply.groups.reduce(
-    (total, group) => total + group.priceRanges.length,
-    0,
-  )
 
-  const district = building.district
-  const coverImage = building.coverImage
-  const galleryImages = building.gallery
-
-  // 聚合统计
-  const totalListings = listings.length
-  const areas = listings.map((l) => l.area).filter((a): a is number => a != null)
-  const areaMin = areas.length > 0 ? Math.min(...areas) : null
-  const areaMax = areas.length > 0 ? Math.max(...areas) : null
-  const availableNow = listings.filter((l) => !l.availableFrom).length
-
-  // 优先用 coverImage；若有 gallery 但没有 coverImage，则用 gallery 首图
-  const heroImage = coverImage ?? (galleryImages.length > 0 ? galleryImages[0] : null)
-
-  const gradeLabel = building.grade ? GRADE_LABEL[building.grade] ?? building.grade : null
-  const typeParts = [gradeLabel, district?.name].filter(Boolean)
-
-  // F4.6：schema.org 结构化数据（Place 类型，仅声明后台可保证字段）
-  const canonicalUrl = `${siteConfig.siteOrigin}/buildings/${slug}`
+  const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
+  const hasDescription = Boolean(building.description)
+  const hasRelated = visibleRelatedBuildings.length > 0
+  const hasSupply = supply.totalEffectiveListings > 0
+  const anchors = [
+    { id: 'overview', label: '楼盘概况', visible: building.factGroups.length > 0 },
+    { id: 'supply', label: '当前有效供给', visible: true },
+    { id: 'description', label: '楼盘说明', visible: hasDescription },
+    { id: 'related', label: '相关楼盘', visible: hasRelated },
+  ]
   const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Place',
     name: building.name,
-    url: canonicalUrl,
+    url: `${siteConfig.siteOrigin}/buildings/${building.slug}`,
     address: building.address || undefined,
+    ...(building.summary ? { description: building.summary } : {}),
+    ...(building.coverImage ? { image: building.coverImage.src } : {}),
   }
-  if (building.summary) {
-    jsonLd.description = building.summary
-  }
-  if (heroImage) {
-    jsonLd.image = heroImage.src
-  }
-  if (totalListings > 0 && priceRangeCount > 0) {
-    // 仅当存在有效房源时声明聚合报价；不伪造评分或库存
-    jsonLd.offers = supply.groups.flatMap((group) =>
-      group.priceRanges.map((range) => ({
-        '@type': 'AggregateOffer',
-        priceCurrency: 'CNY',
-        lowPrice: range.min,
-        highPrice: range.max,
-        offerCount: range.count,
-      })),
-    )
+  if (hasSupply) {
+    jsonLd.offers = supply.groups.flatMap((group) => group.priceRanges.map((range) => ({
+      '@type': 'AggregateOffer',
+      priceCurrency: 'CNY',
+      lowPrice: range.min,
+      highPrice: range.max,
+      offerCount: range.count,
+    })))
   }
 
   return (
     <div className="detail">
       <script
         type="application/ld+json"
-        // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <。
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
       />
-      <div className="detail__top">
-        {heroImage ? (
-          <div className="gallery__main">
-            <img src={heroImage.src} alt={heroImage.alt} />
-          </div>
-        ) : (
-          <div className="gallery__main gallery__empty">暂无图片</div>
-        )}
-        <div className="detail__summary">
-          {typeParts.length > 0 && (
-            <span className="detail__type">{typeParts.join(' · ')}</span>
-          )}
-          <h1 className="detail__title">{building.name}</h1>
-          <p className="detail__building-summary">{building.address}</p>
-          {building.summary && <p>{building.summary}</p>}
-          {building.amenities.length > 0 && (
-            <div className="detail__tags">
-              {building.amenities.map((name) => (
-                <span key={name} className="tag">
-                  {name}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <header className="detail__header">
+        {building.district && <span className="detail__type">{building.district.name}</span>}
+        <h1 className="detail__title">{building.name}</h1>
+        {building.address && <p className="detail__building-summary">{building.address}</p>}
+        {building.summary && <p className="detail__building-summary">{building.summary}</p>}
+      </header>
 
-      {/* F4.5：楼盘有效供给聚合统计 */}
-      <section className="detail__section">
-        <h2>楼盘概览</h2>
-        <div className="building-stats">
-          <div className="building-stats__item">
-            <span className="building-stats__label">在租房源</span>
-            <span className="building-stats__value">{totalListings}</span>
-          </div>
-          <div className="building-stats__item">
-            <span className="building-stats__label">面积区间</span>
-            <span className="building-stats__value">
-              {areaMin != null && areaMax != null
-                ? areaMin === areaMax
-                  ? `${areaMin} ㎡`
-                  : `${areaMin}–${areaMax} ㎡`
-                : '—'}
-            </span>
-          </div>
-          <div className="building-stats__item">
-            <span className="building-stats__label">价格区间组</span>
-            <span className="building-stats__value">{priceRangeCount}</span>
-          </div>
-          <div className="building-stats__item">
-            <span className="building-stats__label">立即可入驻</span>
-            <span className="building-stats__value">{availableNow}</span>
-          </div>
-        </div>
-
-        <BuildingSupplyPriceRanges groups={supply.groups} />
+      <section className="detail-hero" aria-label="楼盘核心信息">
+        <DetailGallery media={building.mediaItems} title={building.name} />
+        <section id="overview" className="detail__overview">
+          <DetailFacts groups={building.factGroups} />
+        </section>
       </section>
 
-      {building.description && (
-        <section className="detail__section">
-          <h2>楼盘说明</h2>
-          <div className="richtext">
-            <RichText data={building.description} />
-          </div>
-        </section>
-      )}
+      <DetailAnchorNav items={anchors} />
 
-      <section className="detail__section">
-        <h2>在租房源</h2>
+      <section id="supply" className="detail__section" data-supply-as-of={supply.asOf}>
+        <h2>当前有效供给</h2>
+        {hasSupply && <BuildingSupplyPriceRanges groups={supply.groups} />}
         <BuildingSupplyBrowser snapshot={supply} input={supplyInput} />
       </section>
 
+      {building.description && (
+        <section id="description" className="detail__section">
+          <h2>楼盘说明</h2>
+          <div className="richtext"><RichText data={building.description} /></div>
+        </section>
+      )}
+
+      {hasRelated && (
+        <section id="related" className="detail__section">
+          <h2>相关楼盘</h2>
+          <ul className="detail__related-buildings">
+            {visibleRelatedBuildings.map((item) => (
+              <li key={item.id}>
+                <Link href={`/buildings/${item.slug}`}>{item.name}</Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <div className="detail__mobile-bar" role="region" aria-label="询价操作栏">
         <div className="detail__mobile-bar-info">
-          <span className="detail__mobile-bar-rent">
-            {totalListings} 套在租
-          </span>
           <span className="detail__mobile-bar-title">{building.name}</span>
         </div>
         <InquiryModal
           pageType="building"
-          targetBuildingSlug={slug}
+          targetBuildingSlug={building.slug}
           targetSummary={building.name}
           triggerLabel="咨询该楼盘"
+          sourceSection="mobile-bar"
         />
       </div>
     </div>

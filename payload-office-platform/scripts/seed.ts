@@ -328,6 +328,24 @@ async function seed() {
     summary: '面向金融、咨询、消费品牌和成长型团队的高端服务式办公空间。',
   })
 
+  // P0 building-detail acceptance: a real public building with no effective
+  // listings. Keep it separate from held / pending-review fixtures so the
+  // empty-state route proves that the facade does not invent supply.
+  await upsertBySlug<AnyDoc>(payload, 'buildings', 'empty-building', {
+    name: '静安待租楼盘',
+    city: shanghai.id,
+    status: 'published',
+    operationalStatus: 'active',
+    grade: 'grade-a',
+    district: jingan.id,
+    businessDistrict: nanjingWest.id,
+    address: '上海市静安区南京西路 88 号',
+    latitude: 31.228,
+    longitude: 121.458,
+    amenities: [metro.id],
+    summary: '公开空间暂未释放，欢迎咨询后续供应计划。',
+  })
+
   const lujiazuiTower = await upsertBySlug<AnyDoc>(payload, 'buildings', 'lujiazui-grade-a-river-view', {
     name: '陆家嘴江景甲级写字楼',
     city: shanghai.id,

@@ -16,7 +16,11 @@ import { Media, Price, Tag } from '@/components/frontend/ui'
  *   - 价格使用 tabular-nums，最多三项亮点。
  */
 
-type Props = { listing: ListingCardViewModel }
+type Props = Readonly<{
+  listing: ListingCardViewModel
+  /** Compact semantic variation for cards embedded in a building supply group. */
+  variant?: 'default' | 'building-supply'
+}>
 
 const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
   'traditional-office': '传统办公',
@@ -25,7 +29,7 @@ const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
   'full-floor': '整层办公',
 }
 
-export default function ListingCard({ listing }: Props) {
+export default function ListingCard({ listing, variant = 'default' }: Props) {
   const { coverImage, price, area, building, highlights, listingType, title, slug } = listing
   const district = building?.district?.name
   const areaText = area != null ? formatArea(area) : null
@@ -35,7 +39,8 @@ export default function ListingCard({ listing }: Props) {
   return (
     <Link
       href={`/listings/${slug}`}
-      className="listing-card"
+      className={`listing-card${variant === 'building-supply' ? ' listing-card--building-supply' : ''}`}
+      data-listing-card-variant={variant}
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >
       <div className="listing-card__media">
@@ -46,7 +51,11 @@ export default function ListingCard({ listing }: Props) {
         />
       </div>
       <div className="listing-card__body">
-        <Price price={price} size="md" />
+        {variant === 'building-supply' && price == null ? (
+          <span className="price tabular price--md">价格面议</span>
+        ) : (
+          <Price price={price} size="md" />
+        )}
         <span className="listing-card__title">{title}</span>
         {metaParts.length > 0 && (
           <span className="listing-card__meta">{metaParts.join(' · ')}</span>
