@@ -7,7 +7,7 @@
  *   - 容器启动 `payload migrate` -> getPayload -> onInit -> 守卫
  *   - `next start` 首次请求 -> getPayload -> onInit -> 守卫
  *   - `next build` / `generate:types` 不调 getPayload -> 不触发（构建期无运行 env 也不阻断）
- *   - 本地 `next dev` NODE_ENV 非 production -> 守卫跳过（允许 SQLite + 默认密钥）
+ *   - 本地 `next dev` NODE_ENV 非 production -> 本守卫跳过；DB 必须为 PostgreSQL 由 payload.config onInit fail-fast 保证（dev 也强制）
  *
  * 设计原则：
  *   - 仅在 NODE_ENV=production 检查；dev/test 永不阻断

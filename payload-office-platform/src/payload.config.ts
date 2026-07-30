@@ -63,20 +63,25 @@ import {
   formSubmissionUpdateAccess,
   protectFormSubmissionStatus,
 } from './domain/forms/submission-status'
-import { serializedSQLiteAdapter } from './lib/serialized-sqlite-adapter'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// 生产 / CloudBase：设了 postgres:// 连接串 → 用 PostgreSQL（TencentDB）
-// 本地开发：不设 DATABASE_URL → 用 SQLite 本地文件，零外部依赖
+// 本地/CI/生产统一 PostgreSQL（push: false，只走显式迁移）。
+// 必须提供 postgres:// 的 DATABASE_URL；缺省或非 postgres 一律 fail-fast，不再回退 SQLite。
+// 顶层 fail-fast：dev / start / migrate / seed / payload CLI 等会连库的命令，在 db adapter 初始化前
+// 直接抛错（先于 onInit，避免被 pg 连接错误掩盖文案）；onInit 再兜底一次。
+// build（含 collectPageData worker）/ generate:types / lint / typecheck / test 等纯静态命令不连库，
+// 按 NEXT_PHASE=phase-production-build 或 npm_lifecycle_event 跳过（worker 继承父进程 NEXT_PHASE）。
 const databaseUrl = process.env.DATABASE_URL || ''
-const usePostgres = databaseUrl.startsWith('postgres')
-
-// SQLite 本地文件路径（放在项目根目录，已在 .gitignore 忽略）
-const sqliteFilePath = path.resolve(dirname, '..', 'payload.db.sqlite').replace(/\\/g, '/')
-const sqliteUrl = process.env.SQLITE_URL || `file:${sqliteFilePath}`
+const _lifecycle = process.env.npm_lifecycle_event || ''
+const _skipDbCheck =
+  process.env.NEXT_PHASE === 'phase-production-build' ||
+  /^(?:pre?build|postbuild|generate:.+|importmap|lint|typecheck|test(?::.+)?|vitest)$/.test(_lifecycle)
+if (!_skipDbCheck && (!databaseUrl || !databaseUrl.startsWith('postgres'))) {
+  throw new Error('[db] 必须提供 PostgreSQL 的 DATABASE_URL（postgres://...）；已移除 SQLite 回退')
+}
 
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
@@ -85,9 +90,16 @@ if (!metricRegistry.has('listings.total')) {
 }
 
 export default buildConfig({
-  // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（payload migrate / next start），
-  // 生产缺 PostgreSQL / 强密钥 / 合法站点 URL 时抛错拒绝启动；dev/build 不触发。
+  // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（db 连接成功后），
+  // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
+  // 统一 PG：顶层已在 db adapter 前对 DATABASE_URL fail-fast；onInit 再兜底一次（防御 db adapter 未来变 lazy）。
   onInit: () => {
+    const dbUrl = process.env.DATABASE_URL?.trim()
+    if (!dbUrl || !dbUrl.startsWith('postgres')) {
+      throw new Error(
+        '[db] 必须提供 PostgreSQL 的 DATABASE_URL（postgres://...）；已移除 SQLite 回退',
+      )
+    }
     assertProductionConfig(process.env)
   },
   i18n: {
@@ -199,22 +211,15 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: usePostgres
-    ? postgresAdapter({
-        pool: {
-          connectionString: databaseUrl,
-        },
-        // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
-        // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，
-        // 发现“多余”表会提示 DROP 并在非 TTY 下卡死。共享库一律只走显式迁移，禁止 dev push。
-        push: false,
-      })
-    : serializedSQLiteAdapter({
-        client: {
-          url: sqliteUrl,
-        },
-        busyTimeout: 10_000,
-      }),
+  db: postgresAdapter({
+    pool: {
+      connectionString: databaseUrl,
+    },
+    // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
+    // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，
+    // 发现“多余”表会提示 DROP 并在非 TTY 下卡死。本地/CI/生产统一只走显式迁移，禁止 dev push。
+    push: false,
+  }),
   sharp,
   plugins: [
     // 将 Media 后台列表页替换为响应式卡片网格视图(带 lightbox / 拖拽批量上传 / 元数据侧栏)

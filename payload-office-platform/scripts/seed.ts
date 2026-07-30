@@ -743,7 +743,7 @@ async function seed() {
 
   // ============================================================
   // 后台核心功能 mock 数据（M2.5 组织 / M3-M4 供给关系 / M5 CRM）
-  // 仅用于本地 SQLite 测试；全部幂等（find-then-create），走 overrideAccess。
+  // 种子数据全部幂等（find-then-create），走 overrideAccess。
   // 追加式流水（follow-ups / lead-ownership-history）只 create，按 lead 去重跳过。
   // ============================================================
 
