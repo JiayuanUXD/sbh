@@ -23,11 +23,13 @@
 
 import { expect, type APIRequestContext, test } from '@playwright/test'
 
-// 与 playwright.config.ts 的 baseURL 保持一致：优先 NEXT_PUBLIC_SITE_URL，
+// 与 playwright.config.ts 的 baseURL 保持一致：优先 PLAYWRIGHT_BASE_URL，
 // 否则用 http://localhost:${PORT}（默认 3717）。硬编码 3717 会在服务跑在非默认
 // 端口时把 API 请求静默打到别的服务上，导致假失败。
+// **绝不**用 NEXT_PUBLIC_SITE_URL：生产 server（next start）下它是线上 https URL，
+// 会把登录/接口请求打到线上而非本地被测 server（与 playwright.config baseURL 解耦同理）。
 const BASE = (
-  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.PLAYWRIGHT_BASE_URL ??
   `http://localhost:${process.env.PORT ?? 3717}`
 ).replace(/\/$/, '')
 

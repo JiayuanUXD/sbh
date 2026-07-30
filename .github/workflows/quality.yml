@@ -42,23 +42,76 @@ jobs:
         run: pnpm build
         env:
           # 仅 build 需要：生产构建收集 /sitemap.xml page data 时前端 site-config
-          # fail-closed 需此值（与 deploy.yml 一致）。不能设成 job 级——否则会成为
-          # Playwright 的 baseURL，把 E2E 打到线上而非本地 server。
+          # fail-closed 需此值（与 deploy.yml 一致）。全量 E2E 已移到独立 `e2e` 作业
+          #（生产 server + PostgreSQL），本作业只跑 SQLite 快检，不再跑 Playwright。
           NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
-      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm seed
       - run: pnpm migrate:verify
       - run: pnpm baseline:capture
-      # test:e2e 的本地 server 由 playwright.config 的 webServer 自动拉起（pnpm dev，
-      # dev 模式不触发生产 fail-closed，用 job 级 SQLITE_URL 连已 seed 的库）。
-      #
-      # 暂设非阻断（continue-on-error）：全量 e2e 套件在 CI 从未跑通——next dev 逐路由
-      # JIT 编译太慢、超 10s poll，且前端 F7/inquiry spec 有各自的数据/时序问题。
-      # 「让全量 E2E 在 CI 跑绿」单列为独立任务（需给 E2E 作业配生产 server：PG service
-      # + 强密钥 + URL 过 fail-closed）。OPT-021 的 admin-navigation/permission-matrix
-      # 已本地验证 34/34（见 artifacts/verification/OPT-021-admin-navigation-ia）。
-      - run: pnpm test:e2e
-        continue-on-error: true
+
+  # 全链路 E2E：用生产 server（next build + next start）跑 Playwright，消除 next dev
+  # 逐路由 JIT 编译慢导致的导航 10s poll 超时。next start 触发生产 fail-closed 守卫，
+  # 故配 PostgreSQL service + 强密钥 + 合法 https 站点 URL（三者见下方 env 注释）。
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.6
+        env:
+          POSTGRES_USER: payload
+          POSTGRES_PASSWORD: payload
+          POSTGRES_DB: payload_m0
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U payload -d payload_m0"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: payload-office-platform
+    env:
+      # next start（NODE_ENV=production）首个请求触发 lib/runtime/config-guard 的
+      # assertProductionConfig：缺 PG 连接串 / 弱或短密钥 / 非法站点 URL 任一即拒启动。
+      # ① PostgreSQL 连接串（禁止降级 SQLite）
+      DATABASE_URL: postgres://payload:payload@127.0.0.1:5432/payload_m0
+      # ② 强密钥：非弱默认值且 ≥32 字符（仅 CI，勿用于生产）
+      PAYLOAD_SECRET: ci-e2e-payload-secret-do-not-use-in-prod-0123456789
+      # ③ 合法 https 非 localhost 站点 URL；同时 build 期注入 sitemap/canonical。
+      #    Playwright 的 baseURL 已与之解耦（playwright.config 用 PLAYWRIGHT_BASE_URL /
+      #    localhost:PORT），故这里设线上 URL 不会把 E2E 打到线上。
+      NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+      # 本地 server 端口 + 让 playwright.config 的 webServer 切到 next start 生产 server
+      PORT: '3717'
+      E2E_PROD_SERVER: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: payload-office-platform/.nvmrc
+          cache: pnpm
+          cache-dependency-path: payload-office-platform/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Payload types & importmap
+        # payload-types.ts 被 gitignore；typecheck/build 前必须先生成（与 Dockerfile 一致）。
+        run: pnpm generate:types && pnpm payload generate:importmap
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Apply migrations to fresh PostgreSQL
+        run: pnpm exec payload migrate
+      - name: Seed business data
+        run: pnpm seed
+      - name: Seed media（gallery ≥3，否则有效供给精筛 §6 排除全部房源 → 前台 0 套）
+        # CI 走 sharp 本地合成占位图（seed-media 里 OFFLINE 分支），不依赖外网 picsum。
+        run: pnpm seed:media
+      - name: Build production bundle
+        run: pnpm build
+      - name: Run E2E against next start (production server)
+        # playwright.config 的 webServer 自动拉起 `next start -p 3717`（E2E_PROD_SERVER=1）。
+        run: pnpm test:e2e
 
   postgres-migrations:
     runs-on: ubuntu-latest

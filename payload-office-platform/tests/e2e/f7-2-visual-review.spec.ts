@@ -35,6 +35,14 @@ const SCREENSHOT_DIR = resolve(
   'f7-2-visual-review',
 )
 
+// dev-story 是 dev-only 组件走查页（fixture 驱动，展示骨架/空/错误/极值等状态），
+// 生产构建下由 page.tsx `notFound()` 返回 404（dev-story/page.tsx）。CI 用 next start
+// 生产 server（E2E_PROD_SERVER=1）跑 E2E，故这些走查用例仅在本地 next dev 运行、
+// 生产 server 下跳过（与「dev-story 在生产环境不可访问」用例同款约定）。
+const DEV_STORY_UNAVAILABLE = !!process.env.E2E_PROD_SERVER
+const DEV_STORY_SKIP_REASON =
+  'dev-story 仅 dev 可见；生产 server（next start）下 404，走查在本地 dev 运行'
+
 test.describe('F7.2 浏览器设计走查', () => {
   test.beforeAll(() => {
     mkdirSync(SCREENSHOT_DIR, { recursive: true })
@@ -42,6 +50,7 @@ test.describe('F7.2 浏览器设计走查', () => {
 
   for (const vp of VIEWPORTS) {
     test(`dev-story 在 ${vp.label} 视口下渲染正常`, async ({ page }: { page: Page }) => {
+      test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
       await page.setViewportSize({ width: vp.width, height: vp.height })
       await page.goto('/dev-story')
       await expect(page.locator('h1')).toContainText('dev-story')
@@ -134,6 +143,7 @@ test.describe('F7.2 浏览器设计走查', () => {
   })
 
   test('加载状态（骨架）在 dev-story 可见', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/dev-story')
     // 骨架节点应可见
@@ -144,11 +154,13 @@ test.describe('F7.2 浏览器设计走查', () => {
   })
 
   test('空状态在 dev-story 可见', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
     await expect(page.locator('text=没有符合条件的房源')).toBeVisible()
   })
 
   test('错误状态在 dev-story 可见', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
     // 错误状态区的 .error-state__title，避开图片加载失败等其他相似文本
     await expect(page.locator('.error-state__title')).toBeVisible()
@@ -156,6 +168,7 @@ test.describe('F7.2 浏览器设计走查', () => {
   })
 
   test('极值价格不溢出卡片', async ({ page }) => {
+    test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/dev-story')
     const extremeHighCard = page
