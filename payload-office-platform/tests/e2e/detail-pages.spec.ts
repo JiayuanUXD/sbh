@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 const LISTING_SLUG = 'jingan-serviced-office-42-seats'
 const PRICE_ON_REQUEST_SLUG = 'jingan-price-on-request-300sqm'
@@ -9,6 +9,29 @@ const DETAIL_VIEWPORTS = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ] as const
+
+async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
+  const bounds = await page.evaluate(async () => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      // Chromium supports immediate scrolling; it avoids the site's smooth-scroll CSS.
+      behavior: 'instant' as ScrollBehavior,
+    })
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+
+    const mobileBar = document.querySelector<HTMLElement>('[role="region"][aria-label="询价操作栏"]')
+    const content = Array.from(document.querySelectorAll<HTMLElement>('.detail > section'))
+      .at(-1)
+    if (!mobileBar || !content) return null
+    return {
+      ctaTop: mobileBar.getBoundingClientRect().top,
+      lastContentBottom: content.getBoundingClientRect().bottom,
+    }
+  })
+
+  expect(bounds).not.toBeNull()
+  expect(bounds!.lastContentBottom).toBeLessThanOrEqual(bounds!.ctaTop)
+}
 
 test.describe('房源详情 P0', () => {
   test('有效房源按决策顺序展示概况、锚点和咨询入口', async ({ page }) => {
@@ -80,16 +103,7 @@ test.describe('房源详情 P0', () => {
       if (viewport.width <= 767) {
         const mobileBar = page.getByRole('region', { name: '询价操作栏' })
         await expect(mobileBar).toBeVisible()
-        const metrics = await page.locator('.detail').evaluate((detail, barSelector) => {
-          const bar = document.querySelector(barSelector)
-          if (!(bar instanceof HTMLElement)) return null
-          return {
-            paddingBottom: Number.parseFloat(getComputedStyle(detail).paddingBottom),
-            barHeight: bar.getBoundingClientRect().height,
-          }
-        }, '[role="region"][aria-label="询价操作栏"]')
-        expect(metrics).not.toBeNull()
-        expect(metrics!.paddingBottom).toBeGreaterThanOrEqual(metrics!.barHeight)
+        await expectMobileCtaDoesNotObscureLastContent(page)
       }
     })
   }
@@ -117,6 +131,30 @@ test.describe('房源详情 P0', () => {
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
     await expect(openGallery).toBeFocused()
+  })
+
+  test('视频幻灯片的原生控件参与双向焦点循环', async ({ page }) => {
+    await page.goto(`/listings/${LISTING_SLUG}`)
+    const gallery = page.getByRole('region', { name: /图片与视频/ })
+    const videoTrigger = gallery.getByRole('button', { name: /查看全屏媒体：.*视频/ })
+    await expect(videoTrigger).toBeVisible()
+    await videoTrigger.click()
+
+    const dialog = page.getByRole('dialog', { name: /全屏媒体预览/ })
+    const close = dialog.getByRole('button', { name: '关闭全屏媒体预览' })
+    const next = dialog.getByRole('button', { name: '下一张媒体' })
+    const video = dialog.locator('video[controls]')
+    await expect(video).toBeVisible()
+
+    await next.focus()
+    await next.press('Tab')
+    await expect(video).toBeFocused()
+    await video.press('Tab')
+    await expect(close).toBeFocused()
+
+    await close.press('Shift+Tab')
+    await expect(video).toBeFocused()
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
   })
 
   test('详情锚点为可键盘激活的原生链接，并遵守减少动效偏好', async ({ page }) => {
@@ -207,16 +245,7 @@ test.describe('楼盘详情 P0', () => {
       if (viewport.width <= 767) {
         const mobileBar = page.getByRole('region', { name: '询价操作栏' })
         await expect(mobileBar).toBeVisible()
-        const metrics = await page.locator('.detail').evaluate((detail, barSelector) => {
-          const bar = document.querySelector(barSelector)
-          if (!(bar instanceof HTMLElement)) return null
-          return {
-            paddingBottom: Number.parseFloat(getComputedStyle(detail).paddingBottom),
-            barHeight: bar.getBoundingClientRect().height,
-          }
-        }, '[role="region"][aria-label="询价操作栏"]')
-        expect(metrics).not.toBeNull()
-        expect(metrics!.paddingBottom).toBeGreaterThanOrEqual(metrics!.barHeight)
+        await expectMobileCtaDoesNotObscureLastContent(page)
       }
     })
   }

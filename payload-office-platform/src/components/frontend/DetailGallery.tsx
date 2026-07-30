@@ -105,7 +105,7 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
       }
       if (event.key !== 'Tab') return
       const focusable = dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), [href], input, select, textarea, audio[controls], video[controls], [tabindex]:not([tabindex="-1"])',
       )
       if (focusable.length === 0) return
       const first = focusable[0]
