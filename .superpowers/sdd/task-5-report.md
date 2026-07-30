@@ -42,3 +42,26 @@
 
 - 已确认无新增 UI 依赖、没有测试专用生产导出、没有改变 API payload 白名单或隐私日志字段。
 - 目前团队规模是兼容性备注，无法支持结构化运营统计；如需该指标，应在后续任务中同时扩展 inquiry schema、Lead 数据模型、API route、隐私/审计策略和迁移，而不是由浏览器发送未校验字段。
+
+## Review 修复（Task 5 follow-up）
+
+### RED → GREEN
+
+- RED：新增 `building-supply-search`、`public-media-url` 和 `inquiry-modal-state` 测试后，严格 parser、媒体 URL normalizer 与询盘状态 helpers 均为缺失导出；gallery 与 mapper 测试同时确认旧实现会传递 `javascript:`、`data:`、protocol-relative 和带 credentials 的 URL。
+- RED：为最终合并后的团队规模 message 长度增加 requirements 校验测试，先失败于缺失 `validateInquiryRequirements`。
+- GREEN：实现严格解析、共享媒体 normalizer、Gallery 防御、询盘真实状态/焦点 helpers 后，focused 184 测试、typecheck 和 Node 22 全量套件均通过。
+
+### 本轮文件与边界
+
+- 新增 `payload-office-platform/src/domain/public-catalog/media-url.ts`，并从公共目录入口导出。它允许单斜杠同源路径和无 credentials 的 http/https URL，拒绝 protocol-relative、反斜杠、javascript/data/file、凭据与畸形 URL；mapper 与 DetailGallery 均使用它。
+- `parseBuildingSupplySearchParams` 位于 public-catalog URL 边界，接受 unknown/Next searchParams/URLSearchParams，只接受单值、有限非负范围、有效日期和白名单枚举，反转面积范围整体降级。
+- 楼盘详情页 await Next 16 `searchParams`，将解析后的 `BuildingSupplyInput` 传给 `getBuildingDetail` 并传给 GET 表单回显；页面仍仅消费 public-catalog DTO/facade，不拼 Payload where 或读取原始文档。
+- `BuildingSupplyBrowser` 控件名与 parser 一致（group、areaMin、areaMax、decorationStatus、availableBefore、priceUnit、sort），使用原生 GET form/radio group；不在客户端复制筛选状态、不重排 snapshot，price-on-request 仍可见。
+- `InquiryModal` 现在将真实业务纯逻辑作为生产 helpers：联系信息校验、requirements 最终 message 长度校验、状态 reducer、targetResolution 降级和焦点目标选择。effect 以 step/errors 为依赖，在 React commit 后移动焦点，无 setTimeout；打开/关闭的标题与 trigger 焦点逻辑仍保留。
+
+### 验证（review 修复）
+
+- focused：`tests/building-supply-search.test.ts`、`tests/public-media-url.test.ts`、`tests/inquiry-modal-state.test.ts`、mapper/detail-component/building-supply/inquiry-domain 测试，共 184 tests 通过。
+- `pnpm typecheck` 通过。
+- 临时 Node `v22.23.2` + pnpm `8.6.1` wrapper：全量 125 文件、2187 tests 通过。
+- `git diff --check` 通过。

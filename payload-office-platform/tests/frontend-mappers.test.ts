@@ -163,6 +163,15 @@ describe('mapMedia', () => {
     expect(m).toBeNull()
   })
 
+  it.each([
+    '//cdn.example.com/office.jpg',
+    'javascript:alert(1)',
+    'data:image/png;base64,xxx',
+    'https://user:pass@cdn.example.com/office.jpg',
+  ])('不安全媒体 URL 不进入公开 DTO：%s', (url) => {
+    expect(mapMedia({ ...MEDIA_COVER_A, url }, 'fallback')).toBeNull()
+  })
+
   it('非对象输入 → 返回 null', () => {
     expect(mapMedia(null, 'fallback')).toBeNull()
     expect(mapMedia(undefined, 'fallback')).toBeNull()

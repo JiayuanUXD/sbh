@@ -1,4 +1,5 @@
 import type {
+  BuildingSupplyInput,
   BuildingSupplyGroupViewModel,
   BuildingSupplySnapshot,
   ListingCardViewModel,
@@ -6,6 +7,8 @@ import type {
 
 type BuildingSupplyBrowserProps = Readonly<{
   snapshot: BuildingSupplySnapshot
+  /** Parsed URL inputs; values stay in the native GET form rather than client state. */
+  input?: BuildingSupplyInput
 }>
 
 const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
@@ -36,11 +39,8 @@ function SupplyCard({ listing }: Readonly<{ listing: ListingCardViewModel }>) {
  * A progressively enhanced supply browser. Native GET submission keeps the
  * URL as the filtering source of truth; this component never re-sorts cards.
  */
-export default function BuildingSupplyBrowser({ snapshot }: BuildingSupplyBrowserProps) {
+export default function BuildingSupplyBrowser({ snapshot, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
-  if (groups.length === 0) {
-    return <p className="building-supply-browser__empty">该楼盘暂无可展示房源。</p>
-  }
 
   return (
     <section className="building-supply-browser" aria-label="楼盘房源">
@@ -49,15 +49,39 @@ export default function BuildingSupplyBrowser({ snapshot }: BuildingSupplyBrowse
           <legend>筛选房源</legend>
           <label>
             面积下限
-            <input name="areaMin" type="number" min="0" inputMode="numeric" />
+            <input name="areaMin" type="number" min="0" inputMode="numeric" defaultValue={input.areaMin} />
           </label>
           <label>
             面积上限
-            <input name="areaMax" type="number" min="0" inputMode="numeric" />
+            <input name="areaMax" type="number" min="0" inputMode="numeric" defaultValue={input.areaMax} />
+          </label>
+          <label>
+            装修状态
+            <select name="decorationStatus" defaultValue={input.decorationStatus ?? ''}>
+              <option value="">不限</option>
+              <option value="rough">毛坯</option>
+              <option value="simple">简装</option>
+              <option value="furnished">精装</option>
+              <option value="fully_fitted">拎包入住</option>
+            </select>
+          </label>
+          <label>
+            最晚可入驻日期
+            <input name="availableBefore" type="date" defaultValue={input.availableBefore} />
+          </label>
+          <label>
+            价格单位
+            <select name="priceUnit" defaultValue={input.priceUnit ?? ''}>
+              <option value="">不限</option>
+              <option value="rmb-sqm-day">元/㎡/天</option>
+              <option value="rmb-month">元/月</option>
+              <option value="rmb-seat-month">元/工位/月</option>
+              <option value="rmb-total">总价</option>
+            </select>
           </label>
           <label>
             排序
-            <select name="sort" defaultValue="recommended">
+            <select name="sort" defaultValue={input.sort ?? 'recommended'}>
               <option value="recommended">推荐排序</option>
               <option value="area-asc">面积从小到大</option>
               <option value="area-desc">面积从大到小</option>
@@ -70,20 +94,23 @@ export default function BuildingSupplyBrowser({ snapshot }: BuildingSupplyBrowse
 
         <nav className="building-supply-browser__tabs" aria-label="供给类型">
           {groups.map((group) => (
-            <button
+            <label
               key={group.key}
-              type="submit"
-              name="group"
-              value={group.key}
               data-supply-tab={group.key}
             >
+              <input
+                type="radio"
+                name="group"
+                value={group.key}
+                defaultChecked={input.group === group.key}
+              />
               {GROUP_LABEL[group.key]}
-            </button>
+            </label>
           ))}
         </nav>
       </form>
 
-      {groups.map((group) => (
+      {groups.length === 0 ? <p className="building-supply-browser__empty">该楼盘暂无可展示房源。</p> : groups.map((group) => (
         <details key={group.key} className="building-supply-browser__group" open>
           <summary>{GROUP_LABEL[group.key]}</summary>
           <div className="building-supply-browser__cards" data-supply-group={group.key}>

@@ -98,6 +98,23 @@ describe('detail component contracts', () => {
     expect(fallback).toContain('role="img"')
   })
 
+  it('画廊防御性拒绝 mapper 之外流入的不安全媒体 URL', () => {
+    const html = renderToStaticMarkup(createElement(DetailGallery, {
+      title: '静安中心',
+      media: [{
+        id: 'unsafe',
+        kind: 'image',
+        category: 'interior',
+        resource: { src: 'javascript:alert(1)', alt: '不应渲染' },
+        capturedAt: null,
+        isSchematic: false,
+      }],
+    }))
+
+    expect(html).toContain('暂无可展示媒体')
+    expect(html).not.toContain('javascript:alert')
+  })
+
   it('锚点导航只输出可见项', () => {
     const html = renderToStaticMarkup(
       createElement(DetailAnchorNav, {
@@ -145,19 +162,4 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('联合办公')
   })
 
-  it('询盘弹层定义 contact、requirements、success 三步及目标解析成功文案', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'src/components/frontend/InquiryModal.tsx'),
-      'utf8',
-    )
-
-    expect(source).toContain("type InquiryStep = 'contact' | 'requirements' | 'success'")
-    expect(source).toContain('团队规模')
-    expect(source).toContain('targetResolution')
-    expect(source).toContain('团队规模：${teamSize.trim()}')
-    expect(source).toContain('messageForRequest().length > LIMITS.MESSAGE_MAX')
-    expect(source).not.toContain('teamSize: teamSize')
-    expect(source).toContain('该房源状态已变化，已为您登记同楼盘需求。')
-    expect(source).toContain('目标状态已变化，已为您登记通用选址需求。')
-  })
 })

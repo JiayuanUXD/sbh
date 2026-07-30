@@ -36,6 +36,7 @@ import type {
   PopulatedPage,
 } from './contracts'
 import { computeUsableArea, deriveSeatRange } from './detail-values'
+import { normalizePublicMediaUrl } from './media-url'
 
 // ---------------------------------------------------------------------------
 // 类型守卫
@@ -193,8 +194,8 @@ export function mapMedia(
   fallbackAlt: string,
 ): MediaViewModel | null {
   if (!isMedia(raw)) return null
-  const url = raw.url
-  if (typeof url !== 'string' || url.length === 0) return null
+  const url = normalizePublicMediaUrl(raw.url)
+  if (!url) return null
   return {
     src: url,
     width: raw.width ?? undefined,

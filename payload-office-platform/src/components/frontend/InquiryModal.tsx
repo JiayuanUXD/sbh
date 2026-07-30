@@ -45,9 +45,10 @@ type Props = {
   triggerClassName?: string
 }
 
-type InquiryStep = 'contact' | 'requirements' | 'success'
+export type InquiryStep = 'contact' | 'requirements' | 'success'
 type SubmitStatus = 'idle' | 'submitting' | 'error'
-type TargetResolution = 'listing' | 'building' | 'general'
+export type TargetResolution = 'listing' | 'building' | 'general'
+export type InquiryFocusTarget = 'none' | 'contact-name' | 'requirements-heading' | 'error'
 
 /** UTM 参数白名单（与 domain/inquiry/campaign.ts CAMPAIGN_KEYS 对齐） */
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
@@ -94,6 +95,71 @@ const resolutionCopy: Record<TargetResolution, string> = {
   listing: '已记录这套房源，顾问将与您确认看房。',
   building: '该房源状态已变化，已为您登记同楼盘需求。',
   general: '目标状态已变化，已为您登记通用选址需求。',
+}
+
+export function buildInquiryMessage(teamSize: string, message: string): string {
+  const teamSizePrefix = `团队规模：${teamSize.trim()}`
+  const userMessage = message.trim()
+  return userMessage.startsWith(teamSizePrefix)
+    ? userMessage
+    : [teamSizePrefix, userMessage].filter(Boolean).join('\n')
+}
+
+export function validateInquiryContact(input: Readonly<{
+  name: string
+  phone: string
+  teamSize: string
+  consentAccepted: boolean
+}>): string[] {
+  const errors: string[] = []
+  if (!input.name.trim()) errors.push('name_required')
+  else if (input.name.trim().length > LIMITS.NAME_MAX) errors.push('name_too_long')
+  const phoneTrimmed = input.phone.replace(/[\s\-()]/g, '')
+  if (!/^1[3-9]\d{9}$/.test(phoneTrimmed)) errors.push('phone_invalid')
+  if (!input.teamSize.trim()) errors.push('team_size_required')
+  else if (input.teamSize.trim().length > LIMITS.TEAM_SIZE_MAX) errors.push('team_size_too_long')
+  if (!input.consentAccepted) errors.push('consent_required')
+  return errors
+}
+
+export function validateInquiryRequirements(input: Readonly<{
+  name: string
+  phone: string
+  teamSize: string
+  consentAccepted: boolean
+  company: string
+  message: string
+}>): string[] {
+  const errors = validateInquiryContact(input)
+  if (input.company.length > LIMITS.COMPANY_MAX) errors.push('company_too_long')
+  if (buildInquiryMessage(input.teamSize, input.message).length > LIMITS.MESSAGE_MAX) {
+    errors.push('message_too_long')
+  }
+  return errors
+}
+
+export function reduceInquiryStep(
+  step: InquiryStep,
+  action: Readonly<{ type: 'continue'; errors: readonly string[] } | { type: 'back' } | { type: 'submitted' }>,
+): InquiryStep {
+  if (action.type === 'continue') return step === 'contact' && action.errors.length === 0 ? 'requirements' : step
+  if (action.type === 'back') return step === 'requirements' ? 'contact' : step
+  return step === 'requirements' ? 'success' : step
+}
+
+export function resolveTargetResolution(value: unknown): TargetResolution {
+  return value === 'listing' || value === 'building' || value === 'general' ? value : 'general'
+}
+
+export function getInquiryFocusTarget(
+  previousStep: InquiryStep | null,
+  nextStep: InquiryStep,
+  hasError: boolean,
+): InquiryFocusTarget {
+  if (hasError) return 'error'
+  if (previousStep === 'contact' && nextStep === 'requirements') return 'requirements-heading'
+  if (previousStep === 'requirements' && nextStep === 'contact') return 'contact-name'
+  return 'none'
 }
 
 function generateRequestId(): string {
@@ -164,6 +230,10 @@ export default function InquiryModal(props: Props) {
   const titleRef = useRef<HTMLHeadingElement | null>(null)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
+  const contactNameRef = useRef<HTMLInputElement | null>(null)
+  const requirementsHeadingRef = useRef<HTMLParagraphElement | null>(null)
+  const feedbackRef = useRef<HTMLDivElement | null>(null)
+  const previousStepRef = useRef<InquiryStep | null>(null)
   const titleId = useId()
   const consentId = useId()
 
@@ -244,33 +314,28 @@ export default function InquiryModal(props: Props) {
     }
   }, [open])
 
+  // Step/error focus moves after React commits the new form; no timeout race.
+  useEffect(() => {
+    const previousStep = previousStepRef.current
+    previousStepRef.current = step
+    if (!open) return
+    const focusTarget = getInquiryFocusTarget(previousStep, step, errors.length > 0 || serverError !== null)
+    if (focusTarget === 'requirements-heading') requirementsHeadingRef.current?.focus()
+    if (focusTarget === 'contact-name') contactNameRef.current?.focus()
+    if (focusTarget === 'error') feedbackRef.current?.focus()
+  }, [errors, open, serverError, step])
+
   function messageForRequest(): string {
-    const teamSizePrefix = `团队规模：${teamSize.trim()}`
-    const userMessage = message.trim()
-    return userMessage.startsWith(teamSizePrefix)
-      ? userMessage
-      : [teamSizePrefix, userMessage].filter(Boolean).join('\n')
+    return buildInquiryMessage(teamSize, message)
   }
 
   // 第一步与 API 的必填字段对齐；团队规模存入已有的 message 白名单字段，避免发送未定义字段。
   function validateContact(): string[] {
-    const errs: string[] = []
-    if (!name.trim()) errs.push('name_required')
-    else if (name.trim().length > LIMITS.NAME_MAX) errs.push('name_too_long')
-    // 简单手机号格式校验：服务端做最终校验
-    const phoneTrimmed = phone.replace(/[\s\-()]/g, '')
-    if (!/^1[3-9]\d{9}$/.test(phoneTrimmed)) errs.push('phone_invalid')
-    if (!teamSize.trim()) errs.push('team_size_required')
-    else if (teamSize.trim().length > LIMITS.TEAM_SIZE_MAX) errs.push('team_size_too_long')
-    if (!consentAccepted) errs.push('consent_required')
-    return errs
+    return validateInquiryContact({ name, phone, teamSize, consentAccepted })
   }
 
   function validateRequirements(): string[] {
-    const errs = validateContact()
-    if (company && company.length > LIMITS.COMPANY_MAX) errs.push('company_too_long')
-    if (messageForRequest().length > LIMITS.MESSAGE_MAX) errs.push('message_too_long')
-    return errs
+    return validateInquiryRequirements({ name, phone, teamSize, consentAccepted, company, message })
   }
 
   function advanceToRequirements(e: React.FormEvent) {
@@ -278,7 +343,7 @@ export default function InquiryModal(props: Props) {
     const clientErrors = validateContact()
     setErrors(clientErrors)
     setServerError(null)
-    if (clientErrors.length === 0) setStep('requirements')
+    setStep(reduceInquiryStep(step, { type: 'continue', errors: clientErrors }))
   }
 
   async function submit(e: React.FormEvent) {
@@ -355,14 +420,9 @@ export default function InquiryModal(props: Props) {
       }
 
       if (res.ok) {
-        const resolvedTarget = data.targetResolution
-        setTargetResolution(
-          resolvedTarget === 'listing' || resolvedTarget === 'building' || resolvedTarget === 'general'
-            ? resolvedTarget
-            : 'general',
-        )
+        setTargetResolution(resolveTargetResolution(data.targetResolution))
         setStatus('idle')
-        setStep('success')
+        setStep(reduceInquiryStep(step, { type: 'submitted' }))
         track('inquiry_success', {
           page_type: pageType,
           target_type: targetType,
@@ -533,6 +593,7 @@ export default function InquiryModal(props: Props) {
                   称呼
                   <span className="modal__required" aria-hidden="true">*</span>
                   <input
+                    ref={contactNameRef}
                     id={`f-name-${titleId}`}
                     className="modal__input"
                     value={name}
@@ -602,18 +663,15 @@ export default function InquiryModal(props: Props) {
                   </span>
                 </label>
 
-                {errors.length > 0 && (
-                  <ul className="modal__error-list" role="alert" aria-live="polite">
-                    {errors.map((code) => (
-                      <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>
-                    ))}
-                  </ul>
-                )}
-
-                {serverError && (
-                  <p className="modal__error" role="alert" aria-live="polite">
-                    {serverError}
-                  </p>
+                {(errors.length > 0 || serverError) && (
+                  <div ref={feedbackRef} tabIndex={-1}>
+                    {errors.length > 0 && (
+                      <ul className="modal__error-list" role="alert" aria-live="polite">
+                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                      </ul>
+                    )}
+                    {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
+                  </div>
                 )}
 
                 <button type="submit" className="btn btn--primary btn--block">
@@ -626,7 +684,9 @@ export default function InquiryModal(props: Props) {
               </form>
             ) : (
               <form ref={formRef} className="modal__form" onSubmit={submit} noValidate>
-                <p className="modal__step" aria-current="step">第二步：需求补充（选填）</p>
+                <p ref={requirementsHeadingRef} className="modal__step" aria-current="step" tabIndex={-1}>
+                  第二步：需求补充（选填）
+                </p>
                 <label className="modal__label" htmlFor={`f-company-${titleId}`}>
                   公司名称（选填）
                   <input
@@ -666,16 +726,19 @@ export default function InquiryModal(props: Props) {
                   <textarea id={`f-message-${titleId}`} className="modal__input modal__textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} maxLength={LIMITS.MESSAGE_MAX} placeholder="如：希望有落地窗、可立即入驻" />
                 </label>
 
-                {errors.length > 0 && (
-                  <ul className="modal__error-list" role="alert" aria-live="polite">
-                    {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
-                  </ul>
+                {(errors.length > 0 || serverError) && (
+                  <div ref={feedbackRef} tabIndex={-1}>
+                    {errors.length > 0 && (
+                      <ul className="modal__error-list" role="alert" aria-live="polite">
+                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                      </ul>
+                    )}
+                    {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
+                  </div>
                 )}
 
-                {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
-
                 <div className="modal__footer">
-                  <button type="button" className="btn btn--ghost" onClick={() => setStep('contact')} disabled={status === 'submitting'}>
+                  <button type="button" className="btn btn--ghost" onClick={() => setStep(reduceInquiryStep(step, { type: 'back' }))} disabled={status === 'submitting'}>
                     上一步
                   </button>
                   <button type="submit" className="btn btn--primary" disabled={status === 'submitting'} data-event-name="inquiry_submit_click" data-page-type={pageType}>

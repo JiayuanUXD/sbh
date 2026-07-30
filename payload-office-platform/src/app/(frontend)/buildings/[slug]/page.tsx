@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import ListingCard from '@/components/frontend/ListingCard'
+import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
   getBuildingDetail,
+  parseBuildingSupplySearchParams,
+  type BuildingSupplyInput,
   type BuildingSupplyGroupViewModel,
 } from '@/domain/public-catalog'
 
@@ -104,12 +106,15 @@ export function BuildingSupplyPriceRanges({
 
 export default async function BuildingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { slug } = await params
+  const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
   const ctx = defaultSearchContext()
-  const { building, supply } = await getBuildingDetail(slug, ctx)
+  const { building, supply } = await getBuildingDetail(slug, ctx, supplyInput)
   if (!building) notFound()
   const listings = supply.groups.flatMap((group) => group.listings)
   const priceRangeCount = supply.groups.reduce(
@@ -240,22 +245,7 @@ export default async function BuildingDetailPage({
 
       <section className="detail__section">
         <h2>在租房源</h2>
-        {listings.length === 0 ? (
-          <p className="empty">该楼盘暂无在租房源。</p>
-        ) : (
-          <div className="card-grid">
-            {supply.groups.map((group) => (
-              <div key={group.key} className="building-supply-group" data-supply-group={group.key}>
-                <h3>{SUPPLY_GROUP_LABEL[group.key]}</h3>
-                <div className="card-grid">
-                  {group.listings.map((listing) => (
-                    <ListingCard key={`${group.key}:${listing.id}`} listing={listing} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <BuildingSupplyBrowser snapshot={supply} input={supplyInput} />
       </section>
 
       <div className="detail__mobile-bar" role="region" aria-label="询价操作栏">
