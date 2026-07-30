@@ -46,8 +46,10 @@ import {
 } from './search-params'
 import {
   filterByRentUnit,
+  filterByPriceKey,
   isSameRentUnit,
   paginate,
+  priceKeyOf,
   stableSortCards,
 } from './stable-sort'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
@@ -164,7 +166,7 @@ function prepareCardsForPriceSort(
   if (input.rentUnit) {
     return {
       cards: filterByRentUnit(cards, input.rentUnit),
-      filteredByRentUnit: cards.length > 0 && cards[0].price?.unit !== input.rentUnit,
+      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.rentUnit),
     }
   }
   // 未指定 rentUnit 但请求价格排序：取首个非空单位
@@ -176,7 +178,7 @@ function prepareCardsForPriceSort(
     return { cards: cards.slice(), filteredByRentUnit: false }
   }
   return {
-    cards: filterByRentUnit(cards, firstWithPrice.price.unit),
+    cards: filterByPriceKey(cards, priceKeyOf(firstWithPrice.price)!),
     filteredByRentUnit: true,
   }
 }
@@ -453,7 +455,7 @@ export async function getSearchFacets(
       listingTypeCounts.set(c.listingType, (listingTypeCounts.get(c.listingType) ?? 0) + 1)
     }
     if (c.price) {
-      rentUnitCounts.set(c.price.unit, (rentUnitCounts.get(c.price.unit) ?? 0) + 1)
+      rentUnitCounts.set(c.price.displayUnit, (rentUnitCounts.get(c.price.displayUnit) ?? 0) + 1)
     }
   }
 
@@ -523,10 +525,10 @@ export async function listPublishedPages(
 function buildPriceRangesByUnit(
   cards: readonly ListingCardViewModel[],
 ): ReadonlyArray<{ unit: string; min: number; max: number; count: number }> {
-  const groups = new Map<string, { min: number; max: number; count: number }>()
+  const groups = new Map<string, { displayUnit: string; min: number; max: number; count: number }>()
   for (const c of cards) {
     if (!c.price) continue
-    const unit = c.price.unit
+    const unit = priceKeyOf(c.price)!
     const existing = groups.get(unit)
     if (existing) {
       existing.min = Math.min(existing.min, c.price.amount)
@@ -534,14 +536,17 @@ function buildPriceRangesByUnit(
       existing.count += 1
     } else {
       groups.set(unit, {
+        displayUnit: c.price.displayUnit,
         min: c.price.amount,
         max: c.price.amount,
         count: 1,
       })
     }
   }
-  return Array.from(groups.entries()).map(([unit, r]) => ({
-    unit,
-    ...r,
+  return Array.from(groups.values()).map((r) => ({
+    unit: r.displayUnit,
+    min: r.min,
+    max: r.max,
+    count: r.count,
   }))
 }

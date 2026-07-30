@@ -15,6 +15,10 @@ import type { Listing } from '@/payload-types'
 /** 租金计价单位（与 Listing.rentUnit 一致） */
 export type RentUnit = NonNullable<Listing['rentUnit']>
 
+/** 价格排序的完整语义键中，由旧 rentUnit URL 投影出的周期与计价基础。 */
+export type PricePeriod = 'day' | 'month'
+export type PriceBasis = 'sqm' | 'seat' | 'total'
+
 /** 排序方式（design.md §7.4） */
 export type ListingSort = 'recommended' | 'rent-asc' | 'rent-desc' | 'newest'
 
@@ -45,6 +49,10 @@ export type ListingSearchInput = Readonly<{
   rentMax?: number
   /** 价格排序时必须指定单位，禁止跨单位直接排序 */
   rentUnit?: RentUnit
+  /** 由 rentUnit 兼容解析而来；新消费者应使用此结构化键。 */
+  pricePeriod?: PricePeriod
+  /** 由 rentUnit 兼容解析而来；新消费者应使用此结构化键。 */
+  priceBasis?: PriceBasis
   /** ISO 日期字符串，如 '2026-08-01' */
   availableBefore?: string
   q?: string

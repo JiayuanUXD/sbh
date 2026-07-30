@@ -50,7 +50,10 @@ describe('mapPrice', () => {
     expect(p).not.toBeNull()
     expect(p?.amount).toBe(25000)
     expect(p?.currency).toBe('CNY')
-    expect(p?.unit).toBe('rmb-month')
+    expect(p?.displayUnit).toBe('rmb-month')
+    expect(p?.period).toBe('month')
+    expect(p?.basis).toBe('total')
+    expect(p?.businessType).toBe('lease')
     expect(p?.text).toBe('25000 元/月')
   })
 
@@ -271,7 +274,7 @@ describe('mapListingCard', () => {
   it('日租房源：rmb-sqm-day 价格正确', () => {
     const card = mapListingCard(LISTING_DAILY_PER_SQM)
     expect(card?.price?.text).toBe('8.5 元/㎡/天')
-    expect(card?.price?.unit).toBe('rmb-sqm-day')
+    expect(card?.price?.displayUnit).toBe('rmb-sqm-day')
     expect(card?.price?.amount).toBe(8.5)
   })
 
@@ -402,6 +405,42 @@ describe('mapListingCard', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapListingDetail', () => {
+  it('mapper 不公开 contactBroker 和审核字段', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      contactBroker: { id: 1, phone: '13800001111' },
+      reviewStatus: 'approved',
+      spaceDetails: { efficiencyRate: 70, seatMin: 8, seatMax: 16 },
+      costTerms: { depositMonths: 3 },
+      registrationStatus: 'available',
+      mediaItems: [{
+        resource: MEDIA_COVER_A,
+        kind: 'image',
+        category: 'workspace',
+        alt: '  公开工位图  ',
+        capturedAt: '2026-07-01T00:00:00.000Z',
+        isSchematic: false,
+      }],
+      verificationInfo: {
+        verifiedAt: '2026-07-01T00:00:00.000Z',
+        priceVerifiedAt: '2026-07-02T00:00:00.000Z',
+      },
+    })
+    expect(detail).not.toHaveProperty('contactBroker')
+    expect(detail).not.toHaveProperty('reviewStatus')
+    expect(JSON.stringify(detail)).not.toContain('13800001111')
+    expect(detail?.mediaItems).toHaveLength(1)
+    expect(detail?.mediaItems[0]).toMatchObject({
+      id: '/media/cover-jingan-center.jpg:0',
+      category: 'workspace',
+      capturedAt: '2026-07-01T00:00:00.000Z',
+    })
+    expect(detail?.verification).toEqual({
+      verifiedAt: '2026-07-01T00:00:00.000Z',
+      priceVerifiedAt: '2026-07-02T00:00:00.000Z',
+    })
+  })
+
   it('在卡片字段上增加画廊、楼盘摘要和富文本说明', () => {
     const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)
     expect(detail).not.toBeNull()

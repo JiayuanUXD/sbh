@@ -53,18 +53,28 @@ function updatedAtOf(card: ListingCardViewModel): number {
   return Date.parse(FIXTURE_BY_ID[card.id] ?? '')
 }
 
+function price(
+  amount: number,
+  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month',
+) {
+  const key = displayUnit === 'rmb-sqm-day'
+    ? { period: 'day' as const, basis: 'sqm' as const }
+    : displayUnit === 'rmb-seat-month'
+      ? { period: 'month' as const, basis: 'seat' as const }
+      : { period: 'month' as const, basis: 'total' as const }
+  const label = displayUnit === 'rmb-sqm-day' ? '元/㎡/天' : displayUnit === 'rmb-seat-month' ? '元/工位/月' : '元/月'
+  return { amount, currency: 'CNY' as const, businessType: 'lease' as const, ...key, displayUnit, text: `${amount} ${label}` }
+}
+
 function card(id: number, overrides: Partial<ListingCardViewModel> = {}): ListingCardViewModel {
   const base: ListingCardViewModel = {
     id,
     slug: `listing-${id}`,
     title: `房源 ${id}`,
-    price: {
-      amount: 100 * id,
-      currency: 'CNY',
-      unit: 'rmb-month',
-      text: `${100 * id} 元/月`,
-    },
+    price: price(100 * id, 'rmb-month'),
     area: 100,
+    businessType: 'lease',
+    decorationStatus: null,
     listingType: 'traditional-office',
     availableFrom: null,
     isFeatured: false,
@@ -140,6 +150,8 @@ describe('parseListingSearchInput', () => {
     const input = parseListingSearchInput(sp)
     expect(input.sort).toBe('rent-desc')
     expect(input.rentUnit).toBe('rmb-sqm-day')
+    expect(input.pricePeriod).toBe('day')
+    expect(input.priceBasis).toBe('sqm')
   })
 
   it('非法日期格式被丢弃', () => {
@@ -275,9 +287,9 @@ describe('stableSortCards', () => {
 
   it('rent-asc: 同单位价格升序 → id asc 收束', () => {
     const cards = [
-      card(3, { price: { amount: 300, currency: 'CNY', unit: 'rmb-month', text: '300 元/月' } }),
-      card(2, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
+      card(3, { price: price(300, 'rmb-month') }),
+      card(2, { price: price(200, 'rmb-month') }),
+      card(1, { price: price(200, 'rmb-month') }),
     ]
     const sorted = stableSortCards(cards, 'rent-asc', updatedAtOf)
     // 200 元并列，按 id 升序：1 → 2 → 3
@@ -286,19 +298,49 @@ describe('stableSortCards', () => {
 
   it('rent-desc: 同单位价格降序 → id asc 收束', () => {
     const cards = [
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
-      card(2, { price: { amount: 300, currency: 'CNY', unit: 'rmb-month', text: '300 元/月' } }),
-      card(3, { price: { amount: 300, currency: 'CNY', unit: 'rmb-month', text: '300 元/月' } }),
+      card(1, { price: price(200, 'rmb-month') }),
+      card(2, { price: price(300, 'rmb-month') }),
+      card(3, { price: price(300, 'rmb-month') }),
     ]
     const sorted = stableSortCards(cards, 'rent-desc', updatedAtOf)
     // 300 元并列，按 id 升序：2 → 3 → 1
     expect(sorted.map((c) => c.id)).toEqual([2, 3, 1])
   })
 
+  it('价格 key 不完整相同时不按金额混排', () => {
+    const cards = [
+      card(1, {
+        businessType: 'lease',
+        price: {
+          amount: 100,
+          currency: 'CNY',
+          businessType: 'lease',
+          period: 'month',
+          basis: 'total',
+          displayUnit: 'rmb-month',
+          text: '100 元/月',
+        },
+      }),
+      card(2, {
+        businessType: 'sale',
+        price: {
+          amount: 1,
+          currency: 'CNY',
+          businessType: 'sale',
+          period: 'month',
+          basis: 'total',
+          displayUnit: 'rmb-month',
+          text: '1 元/月',
+        },
+      }),
+    ]
+    expect(stableSortCards(cards, 'rent-asc', updatedAtOf).map((item) => item.id)).toEqual([1, 2])
+  })
+
   it('rent-asc: price=null 卡片始终末尾', () => {
     const cards = [
       card(1, { price: null }),
-      card(2, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
+      card(2, { price: price(200, 'rmb-month') }),
       card(3, { price: null }),
     ]
     const sorted = stableSortCards(cards, 'rent-asc', updatedAtOf)
@@ -330,16 +372,16 @@ describe('stableSortCards', () => {
 describe('isSameRentUnit', () => {
   it('同单位 → true', () => {
     const cards = [
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
-      card(2, { price: { amount: 300, currency: 'CNY', unit: 'rmb-month', text: '300 元/月' } }),
+      card(1, { price: price(200, 'rmb-month') }),
+      card(2, { price: price(300, 'rmb-month') }),
     ]
     expect(isSameRentUnit(cards)).toBe(true)
   })
 
   it('混合单位 → false（禁跨单位排序）', () => {
     const cards = [
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
-      card(2, { price: { amount: 8.5, currency: 'CNY', unit: 'rmb-sqm-day', text: '8.5 元/㎡/天' } }),
+      card(1, { price: price(200, 'rmb-month') }),
+      card(2, { price: price(8.5, 'rmb-sqm-day') }),
     ]
     expect(isSameRentUnit(cards)).toBe(false)
   })
@@ -363,9 +405,9 @@ describe('isSameRentUnit', () => {
 describe('filterByRentUnit', () => {
   it('仅保留指定单位卡片', () => {
     const cards = [
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
-      card(2, { price: { amount: 8.5, currency: 'CNY', unit: 'rmb-sqm-day', text: '8.5 元/㎡/天' } }),
-      card(3, { price: { amount: 300, currency: 'CNY', unit: 'rmb-month', text: '300 元/月' } }),
+      card(1, { price: price(200, 'rmb-month') }),
+      card(2, { price: price(8.5, 'rmb-sqm-day') }),
+      card(3, { price: price(300, 'rmb-month') }),
     ]
     const filtered = filterByRentUnit(cards, 'rmb-month')
     expect(filtered.map((c) => c.id)).toEqual([1, 3])
@@ -373,7 +415,7 @@ describe('filterByRentUnit', () => {
 
   it('无匹配单位 → 空数组', () => {
     const cards = [
-      card(1, { price: { amount: 200, currency: 'CNY', unit: 'rmb-month', text: '200 元/月' } }),
+      card(1, { price: price(200, 'rmb-month') }),
     ]
     expect(filterByRentUnit(cards, 'rmb-sqm-day')).toEqual([])
   })
@@ -459,6 +501,8 @@ describe('Public Catalog DTO 字段白名单契约', () => {
         'title',
         'price',
         'area',
+        'businessType',
+        'decorationStatus',
         'listingType',
         'availableFrom',
         'isFeatured',

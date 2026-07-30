@@ -183,6 +183,8 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
         'title',
         'price',
         'area',
+        'businessType',
+        'decorationStatus',
         'listingType',
         'availableFrom',
         'isFeatured',
@@ -194,10 +196,14 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     )
   })
 
-  it('ListingDetailViewModel 在 Card 字段上增加 seats / gallery / description', () => {
+  it('ListingDetailViewModel 在 Card 字段上增加详情值对象', () => {
     const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)!
     expect(detail).toHaveProperty('seats')
     expect(detail).toHaveProperty('gallery')
+    expect(detail).toHaveProperty('mediaItems')
+    expect(detail).toHaveProperty('factGroups')
+    expect(detail).toHaveProperty('amenityGroups')
+    expect(detail).toHaveProperty('verification')
     expect(detail).toHaveProperty('description')
   })
 
@@ -219,9 +225,10 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     // description 是受控字段（PageContent 白名单渲染），允许暴露
     expect(detail).toHaveProperty('description')
     // 但不应有未在 DTO 契约声明的字段
-    const allowed = ['id', 'slug', 'title', 'price', 'area', 'seats', 'listingType',
-      'availableFrom', 'isFeatured', 'building', 'coverImage', 'gallery',
-      'highlights', 'description', 'stableSortKey']
+    const allowed = ['id', 'slug', 'title', 'price', 'area', 'seats', 'businessType',
+      'decorationStatus', 'listingType', 'availableFrom', 'isFeatured', 'building',
+      'coverImage', 'gallery', 'mediaItems', 'factGroups', 'amenityGroups',
+      'verification', 'highlights', 'description', 'stableSortKey']
     for (const k of Object.keys(detail)) {
       expect(allowed, `ListingDetailViewModel 不应包含未声明字段 ${k}`).toContain(k)
     }

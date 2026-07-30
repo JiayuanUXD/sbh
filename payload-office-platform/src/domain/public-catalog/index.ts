@@ -35,13 +35,22 @@ export * from './types'
 export {
   parseListingSearchInput,
   buildCanonicalSearchParams,
+  legacyRentUnitToPriceKey,
 } from './search-params'
 export {
   stableSortCards,
+  priceKeyOf,
   isSameRentUnit,
   filterByRentUnit,
+  filterByPriceKey,
   paginate,
 } from './stable-sort'
+export {
+  computeUsableArea,
+  deriveSeatRange,
+  convertPrice,
+} from './detail-values'
+export type { EstimatedNumber } from './detail-values'
 export type {
   SupplyAdapter,
   SupplyAdapterFactory,

@@ -18,6 +18,8 @@
 import type {
   ListingSearchInput,
   ListingSort,
+  PriceBasis,
+  PricePeriod,
   RentUnit,
 } from './types'
 
@@ -44,6 +46,22 @@ const SORT_WHITELIST = new Set<string>([
   'rent-desc',
   'newest',
 ])
+
+const LEGACY_RENT_UNIT_PRICE_KEY: Readonly<Record<RentUnit, Readonly<{
+  period: PricePeriod
+  basis: PriceBasis
+}>>> = {
+  'rmb-sqm-day': { period: 'day', basis: 'sqm' },
+  'rmb-month': { period: 'month', basis: 'total' },
+  'rmb-seat-month': { period: 'month', basis: 'seat' },
+}
+
+/** 将旧 URL rentUnit 转换为结构化价格周期和计价基础。 */
+export function legacyRentUnitToPriceKey(
+  rentUnit: RentUnit | undefined,
+): Readonly<{ period: PricePeriod; basis: PriceBasis }> | undefined {
+  return rentUnit ? LEGACY_RENT_UNIT_PRICE_KEY[rentUnit] : undefined
+}
 
 /**
  * 解析单个查询参数为字符串数组
@@ -154,6 +172,7 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
   const businessArea = parseStringArray(sp, 'businessArea')
   const metro = parseStringArray(sp, 'metro')
   const rentUnit = parseEnum<RentUnit>(sp, 'rentUnit', RENT_UNIT_WHITELIST)
+  const priceKey = legacyRentUnitToPriceKey(rentUnit)
   const sortRaw = parseEnum<ListingSort>(sp, 'sort', SORT_WHITELIST)
   const sort = normalizeSort(sortRaw, rentUnit)
   const areaMin = parseIntInRange(sp, 'areaMin', 0, 1_000_000)
@@ -176,6 +195,8 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
     rentMin,
     rentMax,
     rentUnit,
+    pricePeriod: priceKey?.period,
+    priceBasis: priceKey?.basis,
     availableBefore,
     q,
     sort,

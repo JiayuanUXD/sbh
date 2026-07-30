@@ -44,8 +44,10 @@ export type MediaViewModel = Readonly<{
 export type PriceViewModel = Readonly<{
   amount: number
   currency: 'CNY'
-  /** 原始 rentUnit 枚举，用于排序与分组 */
-  unit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month'
+  businessType: 'lease' | 'sale'
+  period: 'day' | 'month' | 'year' | 'one-time'
+  basis: 'sqm' | 'seat' | 'total'
+  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month' | 'rmb-total'
   /** 可读文本，如 "8.5 元/㎡/天" */
   text: string
 }>
@@ -88,6 +90,9 @@ export type ListingCardViewModel = Readonly<{
   title: string
   price: PriceViewModel | null
   area: number | null
+  /** 历史房源缺失该字段时兼容为 lease。 */
+  businessType: 'lease' | 'sale'
+  decorationStatus: NonNullable<Listing['decorationStatus']> | null
   listingType: Listing['listingType']
   availableFrom: string | null
   isFeatured: boolean
@@ -98,6 +103,41 @@ export type ListingCardViewModel = Readonly<{
   /** 稳定排序收束键（不可变 listing_id） */
   stableSortKey: string
 }>
+
+export type DetailMediaViewModel = Readonly<{
+  id: string
+  kind: 'image' | 'floor-plan' | 'video'
+  category: string
+  resource: MediaViewModel
+  capturedAt: string | null
+  isSchematic: boolean
+}>
+
+export type FactValue = Readonly<{
+  label: string
+  value: string | null
+  estimated: boolean
+  critical: boolean
+}>
+
+export type FactGroupViewModel = Readonly<{
+  id: string
+  title: string
+  facts: readonly FactValue[]
+}>
+
+export type AmenityGroupViewModel = Readonly<{
+  id: string
+  title: string
+  items: readonly string[]
+}>
+
+export type VerificationViewModel = Readonly<{
+  verifiedAt: string | null
+  priceVerifiedAt: string | null
+}>
+
+export type BuildingSupplyGroup = 'lease' | 'sale' | 'coworking'
 
 // ---------------------------------------------------------------------------
 // 详情 DTO
@@ -117,6 +157,10 @@ export type ListingDetailViewModel = Readonly<{
   building: BuildingSummaryViewModel | null
   coverImage: MediaViewModel | null
   gallery: readonly MediaViewModel[]
+  mediaItems: readonly DetailMediaViewModel[]
+  factGroups: readonly FactGroupViewModel[]
+  amenityGroups: readonly AmenityGroupViewModel[]
+  verification: VerificationViewModel
   highlights: readonly string[]
   /** 富文本说明（Lexical JSON），由服务端白名单渲染 */
   description: Listing['description']
@@ -136,6 +180,10 @@ export type BuildingDetailViewModel = Readonly<{
   nearestMetro?: DistrictViewModel
   coverImage: MediaViewModel | null
   gallery: readonly MediaViewModel[]
+  mediaItems: readonly DetailMediaViewModel[]
+  factGroups: readonly FactGroupViewModel[]
+  amenityGroups: readonly AmenityGroupViewModel[]
+  verification: VerificationViewModel
   amenities: readonly string[]
   summary: string
   description: Building['description']

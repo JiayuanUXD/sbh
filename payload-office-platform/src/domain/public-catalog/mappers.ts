@@ -20,6 +20,9 @@ import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
   DistrictViewModel,
+  DetailMediaViewModel,
+  FactGroupViewModel,
+  AmenityGroupViewModel,
   ListingCardViewModel,
   ListingDetailViewModel,
   MediaViewModel,
@@ -32,10 +35,15 @@ import type {
   PopulatedListing,
   PopulatedPage,
 } from './contracts'
+import { computeUsableArea, deriveSeatRange } from './detail-values'
 
 // ---------------------------------------------------------------------------
 // 类型守卫
 // ---------------------------------------------------------------------------
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
 
 function isMedia(v: unknown): v is Media {
   return (
@@ -101,27 +109,72 @@ function isPopulatedBuilding(v: unknown): v is PopulatedBuilding {
 // 基础值对象 mapper
 // ---------------------------------------------------------------------------
 
-const RENT_UNIT_LABEL: Record<NonNullable<Listing['rentUnit']>, string> = {
+const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>> = {
+  'rmb-sqm-day': { currency: 'CNY', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day' },
+  'rmb-month': { currency: 'CNY', period: 'month', basis: 'total', displayUnit: 'rmb-month' },
+  'rmb-seat-month': { currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month' },
+}
+
+const PRICE_LABEL: Record<PriceViewModel['displayUnit'], string> = {
   'rmb-sqm-day': '元/㎡/天',
   'rmb-month': '元/月',
   'rmb-seat-month': '元/工位/月',
+  'rmb-total': '元',
+}
+
+function publicBusinessType(value: unknown): PriceViewModel['businessType'] {
+  return value === 'sale' ? 'sale' : 'lease'
+}
+
+function createPrice(
+  amount: number,
+  businessType: PriceViewModel['businessType'],
+  key: Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>,
+): PriceViewModel {
+  return {
+    amount,
+    businessType,
+    ...key,
+    text: `${amount} ${PRICE_LABEL[key.displayUnit]}`,
+  }
 }
 
 /** 把 Listing.rent + rentUnit 投影为 PriceViewModel；rent 缺失或非法时返回 null */
 export function mapPrice(
   rent: number | null | undefined,
   unit: Listing['rentUnit'],
+  businessType: Listing['businessType'] = 'lease',
 ): PriceViewModel | null {
   if (typeof rent !== 'number' || !Number.isFinite(rent) || rent < 0) return null
   if (!unit) return null
-  const label = RENT_UNIT_LABEL[unit]
-  if (!label) return null
-  return {
-    amount: rent,
-    currency: 'CNY',
-    unit,
-    text: `${rent} ${label}`,
+  const key = LEGACY_PRICE[unit]
+  return key ? createPrice(rent, publicBusinessType(businessType), key) : null
+}
+
+function mapStructuredPrice(
+  raw: unknown,
+  businessType: Listing['businessType'],
+): PriceViewModel | null {
+  if (!isObject(raw) || typeof raw.amount !== 'number' || !Number.isFinite(raw.amount) || raw.amount < 0) {
+    return null
   }
+  if (raw.currency !== 'CNY') return null
+  const basis = raw.unit === 'sqm' || raw.unit === 'seat' ? raw.unit : raw.unit === 'suite' ? 'total' : null
+  const period = raw.period
+  if (!basis || (period !== 'day' && period !== 'month' && period !== 'year')) return null
+
+  const displayUnit =
+    basis === 'sqm' && period === 'day' ? 'rmb-sqm-day' :
+    basis === 'seat' && period === 'month' ? 'rmb-seat-month' :
+    basis === 'total' && period === 'month' ? 'rmb-month' :
+    basis === 'total' ? 'rmb-total' : null
+  if (!displayUnit) return null
+  return createPrice(raw.amount, publicBusinessType(businessType), {
+    currency: 'CNY',
+    period,
+    basis,
+    displayUnit,
+  })
 }
 
 /** 把 Media 投影为 MediaViewModel；非媒体或无 url 返回 null */
@@ -201,8 +254,10 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
     id: listing.id,
     slug: listing.slug,
     title: listing.title,
-    price: mapPrice(listing.rent, listing.rentUnit),
+    price: mapStructuredPrice(listing.price, listing.businessType) ?? mapPrice(listing.rent, listing.rentUnit, listing.businessType),
     area: listing.area ?? null,
+    businessType: publicBusinessType(listing.businessType),
+    decorationStatus: listing.decorationStatus ?? null,
     listingType: listing.listingType,
     availableFrom: listing.availableFrom ?? null,
     isFeatured: listing.isFeatured === true,
@@ -216,6 +271,159 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
 // ---------------------------------------------------------------------------
 // 详情 DTO mapper
 // ---------------------------------------------------------------------------
+
+function trimPublicText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function isDetailMediaKind(value: unknown): value is DetailMediaViewModel['kind'] {
+  return value === 'image' || value === 'floor-plan' || value === 'video'
+}
+
+function mapDetailMedia(
+  items: unknown,
+  fallbackAlt: string,
+): readonly DetailMediaViewModel[] {
+  if (!Array.isArray(items)) return []
+  return items.flatMap((item, index) => {
+    if (!isObject(item)) return []
+    const resource = mapMedia(item.resource, fallbackAlt)
+    if (!resource || !isDetailMediaKind(item.kind) || typeof item.category !== 'string') return []
+    return [{
+      id: `${resource.src}:${index}`,
+      kind: item.kind,
+      category: item.category,
+      resource: { ...resource, alt: trimPublicText(item.alt) || resource.alt },
+      capturedAt: typeof item.capturedAt === 'string' ? item.capturedAt : null,
+      isSchematic: item.isSchematic === true,
+    }]
+  })
+}
+
+function publicValue(value: unknown, suffix = ''): string | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return `${value}${suffix}`
+  return trimPublicText(value)
+}
+
+function fact(
+  label: string,
+  value: unknown,
+  options: Readonly<{ estimated?: boolean; critical?: boolean; suffix?: string }> = {},
+) {
+  return {
+    label,
+    value: publicValue(value, options.suffix),
+    estimated: options.estimated === true,
+    critical: options.critical === true,
+  }
+}
+
+function mapVerification(raw: unknown) {
+  const value = isObject(raw) ? raw : {}
+  return {
+    verifiedAt: typeof value.verifiedAt === 'string' ? value.verifiedAt : null,
+    priceVerifiedAt: typeof value.priceVerifiedAt === 'string' ? value.priceVerifiedAt : null,
+  }
+}
+
+function mapListingFactGroups(listing: PopulatedListing): readonly FactGroupViewModel[] {
+  const details = isObject(listing.spaceDetails) ? listing.spaceDetails : {}
+  const costs = isObject(listing.costTerms) ? listing.costTerms : {}
+  const usableArea = computeUsableArea(
+    typeof listing.area === 'number' ? listing.area : null,
+    typeof details.efficiencyRate === 'number' ? details.efficiencyRate : null,
+  )
+  const seats = deriveSeatRange({
+    seatMin: typeof details.seatMin === 'number' ? details.seatMin : null,
+    seatMax: typeof details.seatMax === 'number' ? details.seatMax : null,
+    suggestedSeats: typeof listing.seats === 'number' ? listing.seats : null,
+    area: typeof listing.area === 'number' ? listing.area : null,
+  })
+  return [
+    {
+      id: 'space',
+      title: '空间信息',
+      facts: [
+        fact('建筑面积', listing.area, { suffix: ' ㎡', critical: true }),
+        fact('套内参考面积', usableArea?.amount ?? null, { suffix: ' ㎡', estimated: usableArea?.estimated === true }),
+        fact('得房率', details.efficiencyRate, { suffix: '%' }),
+        fact('工位数', seats ? `${seats.min}–${seats.max}` : null, { estimated: seats?.estimated === true }),
+        fact('朝向', details.orientation),
+        fact('净层高', details.netCeilingHeight, { suffix: ' m' }),
+        fact('可分割', details.isDivisible === true ? '可分割' : details.isDivisible === false ? '不可分割' : null),
+        fact('家具', details.furnitureStatus),
+        fact('注册', listing.registrationStatus),
+      ],
+    },
+    {
+      id: 'cost',
+      title: '费用条款',
+      facts: [
+        fact('押金月数', costs.depositMonths, { suffix: ' 个月' }),
+        fact('物业费', costs.propertyFeeInclusion),
+        fact('物业费金额', costs.propertyFeeAmount, { suffix: ' 元/㎡/月' }),
+        fact('发票', costs.invoiceStatus),
+        fact('其他固定费用', costs.otherFixedCosts),
+      ],
+    },
+  ]
+}
+
+function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupViewModel[] {
+  const scale = isObject(building.developerAndScale) ? building.developerAndScale : {}
+  const transport = isObject(building.verticalTransport) ? building.verticalTransport : {}
+  const services = isObject(building.buildingServices) ? building.buildingServices : {}
+  return [
+    {
+      id: 'building',
+      title: '楼盘信息',
+      facts: [
+        fact('开发商', scale.developer),
+        fact('总建筑面积', scale.grossFloorArea, { suffix: ' ㎡' }),
+        fact('标准层面积', scale.typicalFloorArea, { suffix: ' ㎡' }),
+        fact('标准层高', scale.standardFloorHeight, { suffix: ' m' }),
+        fact('净层高', scale.netCeilingHeight, { suffix: ' m' }),
+        fact('得房率', scale.efficiencyRate, { suffix: '%' }),
+      ],
+    },
+    {
+      id: 'transport',
+      title: '垂直交通',
+      facts: [
+        fact('客梯', transport.passengerElevators, { suffix: ' 部' }),
+        fact('货梯', transport.freightElevators, { suffix: ' 部' }),
+        fact('分区说明', transport.zoningNote),
+      ],
+    },
+    {
+      id: 'services',
+      title: '楼宇服务',
+      facts: [
+        fact('空调', services.airConditioning),
+        fact('网络', services.network),
+        fact('供电', services.powerSupply),
+        fact('门禁', services.accessControl),
+        fact('停车费', services.parkingFee),
+        fact('服务时间', services.serviceHours),
+      ],
+    },
+  ]
+}
+
+function mapBuildingAmenityGroups(building: PopulatedBuilding): readonly AmenityGroupViewModel[] {
+  const amenities = Array.isArray(building.amenities)
+    ? building.amenities.flatMap((item) => isAmenity(item) ? [item.name] : [])
+    : []
+  const certifications = Array.isArray(building.certifications)
+    ? building.certifications.flatMap((item) => item?.publicVisible === true && trimPublicText(item.name) ? [item.name.trim()] : [])
+    : []
+  return [
+    { id: 'amenities', title: '配套', items: amenities },
+    { id: 'certifications', title: '认证', items: certifications },
+  ]
+}
 
 /**
  * 把 Payload Listing 文档投影为 ListingDetailViewModel。
@@ -247,6 +455,10 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
     ...card,
     seats: listing.seats ?? null,
     gallery,
+    mediaItems: mapDetailMedia(listing.mediaItems, listing.title),
+    factGroups: mapListingFactGroups(listing),
+    amenityGroups: [{ id: 'highlights', title: '亮点', items: card.highlights }],
+    verification: mapVerification(listing.verificationInfo),
     description: listing.description,
   }
 }
@@ -289,6 +501,10 @@ export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null 
     nearestMetro: mapDistrict(building.nearestMetro),
     coverImage,
     gallery,
+    mediaItems: mapDetailMedia(building.mediaItems, building.name),
+    factGroups: mapBuildingFactGroups(building),
+    amenityGroups: mapBuildingAmenityGroups(building),
+    verification: mapVerification(building.verificationInfo),
     amenities,
     summary: building.summary ?? '',
     description: building.description,
