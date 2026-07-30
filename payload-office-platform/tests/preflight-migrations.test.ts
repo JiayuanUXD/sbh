@@ -108,12 +108,11 @@ describe('preflight migrations: 纯函数', () => {
     expect(scanMigrationRisks(upBody)).toHaveLength(0)
   })
 
-  it('只放行详情页迁移中精确的 legacy listings.status 删除', () => {
+  it('迁移名称不得豁免 up() 中的 legacy listings.status 删除', () => {
     const content = [
       'export async function up({ db }) {',
       '  await db.execute(sql`',
       '    ALTER TABLE "listings" DROP COLUMN "status";',
-      '    ALTER TABLE "listings" DROP COLUMN "another_legacy_column";',
       '  `)',
       '}',
       'export async function down() {}',
@@ -155,5 +154,17 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }
+  })
+
+  it('详情页字段迁移自身不包含前向破坏操作', () => {
+    const content = readFileSync(
+      resolve(migrationsDir, '20260730_125851_detail_page_fields.ts'),
+      'utf-8',
+    )
+    const blocking = scanMigrationRisks(extractMigrationUpBody(content)).filter(
+      (risk) => risk.severity === 'fail',
+    )
+
+    expect(blocking).toHaveLength(0)
   })
 })

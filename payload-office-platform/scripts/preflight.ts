@@ -227,21 +227,9 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   return risks
 }
 
-const DETAIL_PAGE_FIELDS_MIGRATION = '20260730_125851_detail_page_fields'
-const LEGACY_LISTING_STATUS_DROP = 'ALTER TABLE "listings" DROP COLUMN "status";'
-
-/**
- * 扫描某份迁移的 up() 风险。详情页迁移可收敛此前已从 schema 移除、
- * 但缺少历史迁移记录的 listings.status；这个精确 SQL 是唯一例外。
- */
-export function scanMigrationUpRisks(name: string, migrationContent: string): MigrationRisk[] {
-  const upBody = extractMigrationUpBody(migrationContent)
-  const contentToScan =
-    name === DETAIL_PAGE_FIELDS_MIGRATION
-      ? upBody.replace(LEGACY_LISTING_STATUS_DROP, '')
-      : upBody
-
-  return scanMigrationRisks(contentToScan)
+/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则。 */
+export function scanMigrationUpRisks(_name: string, migrationContent: string): MigrationRisk[] {
+  return scanMigrationRisks(extractMigrationUpBody(migrationContent))
 }
 
 function checkMigrations() {

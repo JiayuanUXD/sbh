@@ -89,18 +89,14 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE INDEX "buildings_media_items_resource_idx" ON "buildings_media_items" USING btree ("resource_id");
   CREATE INDEX "listings_media_items_order_idx" ON "listings_media_items" USING btree ("_order");
   CREATE INDEX "listings_media_items_parent_id_idx" ON "listings_media_items" USING btree ("_parent_id");
-  CREATE INDEX "listings_media_items_resource_idx" ON "listings_media_items" USING btree ("resource_id");
-  ALTER TABLE "listings" DROP COLUMN "status";
-  DROP TYPE "public"."enum_listings_status";`)
+  CREATE INDEX "listings_media_items_resource_idx" ON "listings_media_items" USING btree ("resource_id");`)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
-   CREATE TYPE "public"."enum_listings_status" AS ENUM('available', 'reserved', 'leased', 'archived');
   DROP TABLE "buildings_certifications" CASCADE;
   DROP TABLE "buildings_media_items" CASCADE;
   DROP TABLE "listings_media_items" CASCADE;
-  ALTER TABLE "listings" ADD COLUMN "status" "enum_listings_status" DEFAULT 'available';
   ALTER TABLE "buildings" DROP COLUMN "developer_and_scale_developer";
   ALTER TABLE "buildings" DROP COLUMN "developer_and_scale_gross_floor_area";
   ALTER TABLE "buildings" DROP COLUMN "developer_and_scale_typical_floor_area";
