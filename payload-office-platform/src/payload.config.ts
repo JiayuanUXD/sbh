@@ -68,20 +68,12 @@ import { assertProductionConfig } from './lib/runtime/config-guard'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// 本地/CI/生产统一 PostgreSQL（push: false，只走显式迁移）。
-// 必须提供 postgres:// 的 DATABASE_URL；缺省或非 postgres 一律 fail-fast，不再回退 SQLite。
-// 顶层 fail-fast：dev / start / migrate / seed / payload CLI 等会连库的命令，在 db adapter 初始化前
-// 直接抛错（先于 onInit，避免被 pg 连接错误掩盖文案）；onInit 再兜底一次。
-// build（含 collectPageData worker）/ generate:types / lint / typecheck / test 等纯静态命令不连库，
-// 按 NEXT_PHASE=phase-production-build 或 npm_lifecycle_event 跳过（worker 继承父进程 NEXT_PHASE）。
+// 本地/CI/生产统一 PostgreSQL（push: false，只走显式迁移），已移除 SQLite 回退。
+// DATABASE_URL 必须是 postgres://。fail-fast 放在 onInit（连库时）而非模块加载期——因为
+// generate:types / generate:importmap / build / migrate:dry-run 只加载 config、不调 getPayload，
+// 这些纯静态命令无需 DATABASE_URL 即可运行；dev / start / migrate / seed 等连库命令走
+// getPayload → onInit，缺省/非 postgres 时在那里抛错（见下方 onInit）。
 const databaseUrl = process.env.DATABASE_URL || ''
-const _lifecycle = process.env.npm_lifecycle_event || ''
-const _skipDbCheck =
-  process.env.NEXT_PHASE === 'phase-production-build' ||
-  /^(?:pre?build|postbuild|generate:.+|importmap|lint|typecheck|test(?::.+)?|vitest)$/.test(_lifecycle)
-if (!_skipDbCheck && (!databaseUrl || !databaseUrl.startsWith('postgres'))) {
-  throw new Error('[db] 必须提供 PostgreSQL 的 DATABASE_URL（postgres://...）；已移除 SQLite 回退')
-}
 
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
@@ -92,7 +84,8 @@ if (!metricRegistry.has('listings.total')) {
 export default buildConfig({
   // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（db 连接成功后），
   // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
-  // 统一 PG：顶层已在 db adapter 前对 DATABASE_URL fail-fast；onInit 再兜底一次（防御 db adapter 未来变 lazy）。
+  // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload
+  // （dev/start/migrate/seed 等连库命令）触发，不影响 generate/build 等纯静态命令加载 config。
   onInit: () => {
     const dbUrl = process.env.DATABASE_URL?.trim()
     if (!dbUrl || !dbUrl.startsWith('postgres')) {
