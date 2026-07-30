@@ -9,10 +9,9 @@
 
 ## 数据库（关键，别踩）
 
-- `src/payload.config.ts` 按环境切库：`process.env.DATABASE_URL` 以 `postgres` 开头 → PostgreSQL；否则本地 SQLite（`payload.db.sqlite`）。
-- **本地开发用 SQLite**：`.env.local` 里的 `DATABASE_URL` 是占位符，已注释掉，别恢复。
-- **生产 Postgres 是共享 TencentDB，`push: false`**：Payload 默认的 dev pushSchema 扫全库会误删腾讯云拨测表、并在非 TTY 下卡死。**生产/类生产环境一律只走显式迁移**（`npx payload migrate`），禁用 dev push。改 collection 配置后必须 `npx payload migrate:create` 生成迁移并提交 `src/migrations/`，**迁移文件正文绝不可手改**。
-- 本地 SQLite 会按 collection 配置自动同步 schema，迁移文件主要给生产用。
+- **本地/CI/生产统一 PostgreSQL，`push: false`**：`src/payload.config.ts` 只留 postgres 单路径，`DATABASE_URL` 缺省或非 `postgres` 一律 fail-fast（onInit 抛错），已移除 SQLite 回退。本地也必须设 `DATABASE_URL=postgres://...`。
+- **生产 Postgres 是共享 TencentDB，`push: false`**：Payload 默认的 dev pushSchema 扫全库会误删腾讯云拨测表、并在非 TTY 下卡死。**本地/CI/生产一律只走显式迁移**（`npx payload migrate`），禁用 dev push。改 collection 配置后必须 `npx payload migrate:create` 生成迁移并提交 `src/migrations/`，**迁移文件正文绝不可手改**。
+- 多 worktree 并行各用独立 PG 库（如主树 `sbh_dev`、其它树 `sbh_dev_<task>`），别共用、别指向生产 TencentDB。
 
 ## 路由分组
 
@@ -34,7 +33,7 @@ C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不�
 
 ## 待验风险
 
-`queries.ts` 用点分键 `'district.slug': { equals }` 过滤楼盘——SQLite 本地验证通过，**Postgres 生产未验**。若 P1 在类生产环境验证失败，回退为两跳查询（先按 slug 查 location，再按 `district: { equals: locationId }` 查楼盘）。
+`queries.ts` 用点分键 `'district.slug': { equals }` 过滤楼盘--本地/生产统一 PostgreSQL 后方言差异消除。若类生产环境仍出现异常，回退为两跳查询（先按 slug 查 location，再按 `district: { equals: locationId }` 查楼盘）。
 
 ## 测试
 
