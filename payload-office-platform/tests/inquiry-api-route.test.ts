@@ -325,6 +325,27 @@ describe('POST /api/inquiries / 字段错误', () => {
     expect(r.status).toBe(422)
     expect(r.body.errors).toContain('source_page_type_invalid')
   })
+
+  it('source 注入未知嵌套字段 → 422 且响应、错误和日志不含 PII 形状值', async () => {
+    const injectedPii = '李四13900009999'
+    const r = await run(makeReq({
+      body: makeValidBody({
+        source: {
+          pageType: 'listing',
+          path: '/listings/jingan-center-100-monthly',
+          campaign: {},
+          injected: { profile: { contact: injectedPii } },
+        },
+      }),
+    }))
+
+    expect(r.status).toBe(422)
+    expect(r.body.errors).toContain('source_invalid')
+    expect(JSON.stringify(r.body)).not.toContain(injectedPii)
+    expect(JSON.stringify(payloadLoggerInfo.mock.calls)).not.toContain(injectedPii)
+    expect(JSON.stringify(payloadLoggerError.mock.calls)).not.toContain(injectedPii)
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
 })
 
 // ---------------------------------------------------------------------------

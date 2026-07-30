@@ -39,3 +39,10 @@
 
 - 确认既有 idempotency 查询和分布式限流顺序未改变；幂等命中从已保存的最终 `targetType` 恢复 `targetResolution`。
 - 本机只有 Node `24.14.0`，项目声明 Node 22.x；pnpm `8.6.1` 与项目锁定版本一致。所有命令产生 engine warning；未找到可用的 Node 22 wrapper，因此仍需在 Node 22 CI/目标环境复跑。
+
+## Review P1 follow-up — RED / GREEN / Node 22 verification
+
+- RED：为 `MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT` 边界、超界/`Number.MAX_VALUE` 拒绝，以及 source 顶层未知嵌套字段注入增加测试后，`pnpm test -- tests/inquiry-domain.test.ts tests/inquiry-api-route.test.ts` 出现 3 个预期失败：边界常量尚未导出、0/超界金额仍会通过、source 未知键仍会被忽略并创建 Lead。
+- GREEN：导出并文档化 `MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT = 1_000_000_000_000` CNY；价格快照仅允许 `(0, MAX]` 内有限数。source 顶层现在精确限制为 `pageType`、`path`、`section`、`currentFilters`、`campaign`；任何未知键返回稳定 `source_invalid`。`currentFilters` 原有的键和值 allowlist 保持不变。
+- 隐私回归：domain 与 API 测试均使用嵌套 `李四13900009999` 注入值，断言 schema 错误、HTTP 响应与 logger 调用序列化均不含该值，且不调用 Lead 创建。
+- 按审查指定的 wrapper 成功执行：Node `v22.23.2`、pnpm `8.6.1`；4 个相关测试文件 **153/153**、`pnpm typecheck`、全量 `pnpm test` **121 files / 2,162 tests** 均通过。

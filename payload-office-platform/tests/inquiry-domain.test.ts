@@ -30,6 +30,7 @@ import {
 import { sanitizeCampaign, CAMPAIGN_KEYS } from '@/domain/inquiry/campaign'
 import {
   LIMITS,
+  MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT,
   SOURCE_SECTIONS,
   SOURCE_PAGE_TYPES,
   TARGET_TYPES,
@@ -147,6 +148,46 @@ describe('validateInquiry: 合法输入', () => {
     ]))
     expect(JSON.stringify(r)).not.toContain('李四')
     expect(JSON.stringify(r)).not.toContain('13800001111')
+  })
+
+  it('价格快照金额只接受正数且不超过明确上限', () => {
+    const atBoundary = validateInquiry(buildValidInput({
+      priceSnapshot: {
+        amount: MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT,
+        currency: 'CNY',
+        period: 'day',
+        unit: 'rmb-sqm-day',
+      },
+    }))
+    expect(atBoundary.ok).toBe(true)
+
+    for (const amount of [0, -1, MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT + 1, Number.MAX_VALUE]) {
+      const r = validateInquiry(buildValidInput({
+        priceSnapshot: { amount, currency: 'CNY', period: 'day', unit: 'rmb-sqm-day' },
+      }))
+      expect(r.ok).toBe(false)
+      if (!r.ok) {
+        expect(r.errors).toContain('price_snapshot_invalid')
+        expect(JSON.stringify(r)).not.toContain(String(amount))
+      }
+    }
+  })
+
+  it('source 只接受精确浅层白名单且不回显嵌套 PII 形状数据', () => {
+    const injectedPii = '李四13900009999'
+    const r = validateInquiry(buildValidInput({
+      source: {
+        pageType: 'listing',
+        path: VALID_PATH,
+        campaign: {},
+        injected: { profile: { contact: injectedPii } },
+      },
+    }))
+
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toContain('source_invalid')
+    expect(JSON.stringify(r)).not.toContain(injectedPii)
   })
 
   it('完整合法输入 → ok=true，字段全部映射', () => {

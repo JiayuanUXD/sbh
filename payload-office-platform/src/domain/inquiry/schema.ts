@@ -46,6 +46,14 @@ export const PRICE_UNITS = [
 ] as const
 export type InquiryPriceUnit = (typeof PRICE_UNITS)[number]
 
+/**
+ * 非权威询盘价格快照的绝对上限（CNY）。
+ *
+ * 此值只限制外部输入的存储幅度，避免异常数值占用日志、JSON 或后续人工处理路径；
+ * 不表示公开价格的业务上限。
+ */
+export const MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT = 1_000_000_000_000
+
 export type InquiryPriceSnapshot = Readonly<{
   amount: number
   currency: 'CNY'
@@ -121,10 +129,10 @@ export type ValidationResult =
  *   - company_too_long
  *   - message_too_long
  *   - consent_required / consent_version_invalid
- *   - source_required / source_page_type_invalid / source_path_required / source_path_too_long
+ *   - source_required / source_invalid / source_page_type_invalid / source_path_required / source_path_too_long
  *   - request_id_required / request_id_too_long
  *   - target_invalid（listing/building slug 都缺失但 targetType 非 none）
- *   - campaign_invalid
+ *   - campaign_invalid / price_snapshot_invalid / active_supply_group_invalid
  */
 export function validateInquiry(input: unknown): ValidationResult {
   if (!isObject(input)) {
@@ -183,6 +191,14 @@ export function validateInquiry(input: unknown): ValidationResult {
     errors.push('source_required')
     errors.push('source_path_required')
   } else {
+    const sourceKeys = Object.keys(sourceRaw)
+    if (
+      sourceKeys.some(
+        (key) => key !== 'pageType' && key !== 'path' && key !== 'section' && key !== 'currentFilters' && key !== 'campaign',
+      )
+    ) {
+      errors.push('source_invalid')
+    }
     const pageType = trimString(sourceRaw.pageType)
     if (!pageType || !isSourcePageType(pageType)) {
       errors.push('source_page_type_invalid')
@@ -347,7 +363,8 @@ function sanitizePriceSnapshot(value: unknown): { ok: true; data: InquiryPriceSn
   if (
     typeof amount !== 'number' ||
     !Number.isFinite(amount) ||
-    amount < 0 ||
+    amount <= 0 ||
+    amount > MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT ||
     value.currency !== 'CNY' ||
     !(['day', 'month', 'year', 'one-time'] as const).includes(period as InquiryPriceSnapshot['period']) ||
     !unit.ok ||
