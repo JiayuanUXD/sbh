@@ -41,6 +41,7 @@ function SupplyCard({ listing }: Readonly<{ listing: ListingCardViewModel }>) {
  */
 export default function BuildingSupplyBrowser({ snapshot, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
+  const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
 
   return (
     <section className="building-supply-browser" aria-label="楼盘房源">
@@ -81,7 +82,11 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
           </label>
           <label>
             排序
-            <select name="sort" defaultValue={input.sort ?? 'recommended'}>
+            <select
+              name="sort"
+              defaultValue={input.sort ?? 'recommended'}
+              aria-describedby={hasPriceUnitRequired ? 'building-supply-price-sort-hint' : undefined}
+            >
               <option value="recommended">推荐排序</option>
               <option value="area-asc">面积从小到大</option>
               <option value="area-desc">面积从大到小</option>
@@ -91,6 +96,12 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
           </label>
           <button type="submit">应用筛选</button>
         </fieldset>
+
+        {hasPriceUnitRequired && (
+          <p id="building-supply-price-sort-hint" role="status" aria-live="polite">
+            请选择价格单位后再按价格排序；当前按稳定默认顺序显示。
+          </p>
+        )}
 
         <nav className="building-supply-browser__tabs" aria-label="供给类型">
           {groups.map((group) => (

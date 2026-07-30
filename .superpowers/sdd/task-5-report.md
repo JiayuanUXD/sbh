@@ -65,3 +65,17 @@
 - `pnpm typecheck` 通过。
 - 临时 Node `v22.23.2` + pnpm `8.6.1` wrapper：全量 125 文件、2187 tests 通过。
 - `git diff --check` 通过。
+
+## Final review 修复
+
+### RED → GREEN
+
+- RED：新增成功步骤焦点目标测试时，`requirements → success` 返回 `none`；新增供给浏览器静态渲染测试时不存在可访问的价格排序降级说明。
+- GREEN：`success-heading` 成为真实焦点目标，成功状态使用可聚焦的 heading ref；供给浏览器仅针对已知 `price_unit_required` 输出 `role=status` 的说明和 sort `aria-describedby`。
+
+### 本轮文件与验证
+
+- `payload-office-platform/src/components/frontend/InquiryModal.tsx`：成功步骤 heading 使用 `tabIndex=-1` 和 ref，step effect 负责从 requirements 提交到 success 后聚焦它；错误、前进、返回与 open/close 焦点路径保留。
+- `payload-office-platform/src/components/frontend/BuildingSupplyBrowser.tsx`：当 snapshot 表示价格单位缺失时，明确说明“请选择价格单位后再按价格排序；当前按稳定默认顺序显示。”；不回显任何未知 validation error，已选 sort 保持可见。
+- `payload-office-platform/tests/inquiry-modal-state.test.ts` 与 `payload-office-platform/tests/detail-components-contract.test.ts`：覆盖 success focus 和可访问静态降级提示。
+- focused modal/component/building-supply：3 文件、18 tests 通过；`pnpm typecheck` 通过；Node `v22.23.2` + pnpm `8.6.1` 全量：125 文件、2188 tests 通过。

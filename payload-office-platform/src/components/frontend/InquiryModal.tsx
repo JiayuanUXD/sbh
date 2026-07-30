@@ -48,7 +48,7 @@ type Props = {
 export type InquiryStep = 'contact' | 'requirements' | 'success'
 type SubmitStatus = 'idle' | 'submitting' | 'error'
 export type TargetResolution = 'listing' | 'building' | 'general'
-export type InquiryFocusTarget = 'none' | 'contact-name' | 'requirements-heading' | 'error'
+export type InquiryFocusTarget = 'none' | 'contact-name' | 'requirements-heading' | 'success-heading' | 'error'
 
 /** UTM 参数白名单（与 domain/inquiry/campaign.ts CAMPAIGN_KEYS 对齐） */
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
@@ -159,6 +159,7 @@ export function getInquiryFocusTarget(
   if (hasError) return 'error'
   if (previousStep === 'contact' && nextStep === 'requirements') return 'requirements-heading'
   if (previousStep === 'requirements' && nextStep === 'contact') return 'contact-name'
+  if (previousStep === 'requirements' && nextStep === 'success') return 'success-heading'
   return 'none'
 }
 
@@ -232,6 +233,7 @@ export default function InquiryModal(props: Props) {
   const formRef = useRef<HTMLFormElement | null>(null)
   const contactNameRef = useRef<HTMLInputElement | null>(null)
   const requirementsHeadingRef = useRef<HTMLParagraphElement | null>(null)
+  const successHeadingRef = useRef<HTMLHeadingElement | null>(null)
   const feedbackRef = useRef<HTMLDivElement | null>(null)
   const previousStepRef = useRef<InquiryStep | null>(null)
   const titleId = useId()
@@ -322,6 +324,7 @@ export default function InquiryModal(props: Props) {
     const focusTarget = getInquiryFocusTarget(previousStep, step, errors.length > 0 || serverError !== null)
     if (focusTarget === 'requirements-heading') requirementsHeadingRef.current?.focus()
     if (focusTarget === 'contact-name') contactNameRef.current?.focus()
+    if (focusTarget === 'success-heading') successHeadingRef.current?.focus()
     if (focusTarget === 'error') feedbackRef.current?.focus()
   }, [errors, open, serverError, step])
 
@@ -567,7 +570,7 @@ export default function InquiryModal(props: Props) {
 
             {step === 'success' ? (
               <div className="modal__success" role="status" aria-live="polite">
-                <p>已收到你的需求</p>
+                <h4 ref={successHeadingRef} tabIndex={-1}>已收到你的需求</h4>
                 <p className="modal__success-detail">
                   {resolutionCopy[targetResolution]}
                 </p>

@@ -162,4 +162,18 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('联合办公')
   })
 
+  it('价格排序缺少单位时显示可访问的降级说明，同时保留已选排序', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot: { ...LEASE_ONLY_SNAPSHOT, validationErrors: ['price_unit_required'] },
+        input: { sort: 'price-asc' },
+      }),
+    )
+
+    expect(html).toContain('role="status"')
+    expect(html).toContain('请选择价格单位后再按价格排序')
+    expect(html).toContain('当前按稳定默认顺序显示')
+    expect(html).toContain('value="price-asc" selected=""')
+  })
+
 })

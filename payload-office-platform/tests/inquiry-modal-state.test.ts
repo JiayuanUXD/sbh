@@ -51,6 +51,7 @@ describe('inquiry modal state helpers', () => {
     expect(resolveTargetResolution('unexpected')).toBe('general')
     expect(getInquiryFocusTarget('contact', 'requirements', false)).toBe('requirements-heading')
     expect(getInquiryFocusTarget('requirements', 'contact', false)).toBe('contact-name')
+    expect(getInquiryFocusTarget('requirements', 'success', false)).toBe('success-heading')
     expect(getInquiryFocusTarget('contact', 'contact', true)).toBe('error')
   })
 })
