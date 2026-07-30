@@ -102,13 +102,13 @@ test.describe('F7.3 可访问性验收', () => {
   test('图片有 alt 文本', async ({ page }) => {
     test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
-    const images = page.locator('img')
-    const count = await images.count()
-    for (let i = 0; i < count; i++) {
-      const alt = await images.nth(i).getAttribute('alt')
-      // alt 属性必须存在（即使是空字符串也表示装饰图）
-      expect(alt, `第 ${i + 1} 张 img 必须有 alt 属性`).not.toBeNull()
-    }
+    const missingAltImages = await page.locator('img').evaluateAll((images) =>
+      images.flatMap((image, index) => image.hasAttribute('alt')
+        ? []
+        : [{ index: index + 1, src: image.getAttribute('src') ?? '<missing src>' }]),
+    )
+    // alt 属性必须存在（即使是空字符串也表示装饰图）
+    expect(missingAltImages, '所有 img 都必须有 alt 属性').toEqual([])
   })
 
   test('表单字段有 label 关联', async ({ page }) => {
