@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import type {
   BuildingSupplyInput,
   BuildingSupplyGroupViewModel,
@@ -24,6 +27,23 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
 export default function BuildingSupplyBrowser({ snapshot, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
+  const [isMobile, setIsMobile] = useState(false)
+
+  // The view selector is purely presentational. Supply/filter state remains
+  // server-derived from the native GET URL, and narrow screens always render cards.
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)')
+    const syncViewport = () => {
+      setIsMobile(mediaQuery.matches)
+      if (mediaQuery.matches) setViewMode('cards')
+    }
+    syncViewport()
+    mediaQuery.addEventListener('change', syncViewport)
+    return () => mediaQuery.removeEventListener('change', syncViewport)
+  }, [])
+
+  const isTableView = viewMode === 'table' && !isMobile
 
   return (
     <section
@@ -114,16 +134,64 @@ export default function BuildingSupplyBrowser({ snapshot, input = {} }: Building
       </form>
 
       {groups.length === 0 ? <p className="building-supply-browser__empty">当前暂无公开可选空间</p> : (
-        groups.map((group) => (
-          <details key={group.key} className="building-supply-browser__group" open>
-            <summary>{GROUP_LABEL[group.key]}</summary>
-            <div className="building-supply-browser__cards" data-supply-group={group.key}>
-              {group.listings.map((listing) => (
-                <ListingCard key={listing.id} listing={listing} variant="building-supply" />
-              ))}
+        <>
+          {!isMobile && (
+            <div className="building-supply-browser__view-toggle" role="group" aria-label="供给展示方式">
+              <button
+                type="button"
+                aria-pressed={!isTableView}
+                onClick={() => setViewMode('cards')}
+              >
+                卡片视图
+              </button>
+              <button
+                type="button"
+                aria-pressed={isTableView}
+                onClick={() => setViewMode('table')}
+              >
+                表格视图
+              </button>
             </div>
-          </details>
-        ))
+          )}
+          {groups.map((group) => (
+            <details key={group.key} className="building-supply-browser__group" open>
+              <summary>{GROUP_LABEL[group.key]}</summary>
+              {isTableView ? (
+                <div className="building-supply-browser__table-wrap" data-supply-group={group.key}>
+                  <table className="building-supply-browser__table">
+                    <caption>{GROUP_LABEL[group.key]}供给列表</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">房源</th>
+                        <th scope="col">面积</th>
+                        <th scope="col">价格</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.listings.map((listing) => (
+                        <tr key={`${group.key}:${listing.id}`}>
+                          <td><a href={`/listings/${listing.slug}`}>{listing.title}</a></td>
+                          <td>{listing.area == null ? '—' : `${listing.area} ㎡`}</td>
+                          <td>{listing.price?.text ?? '价格面议'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="building-supply-browser__cards" data-supply-group={group.key}>
+                  {group.listings.map((listing) => (
+                    <ListingCard
+                      key={`${group.key}:${listing.id}`}
+                      listing={listing}
+                      variant="building-supply"
+                    />
+                  ))}
+                </div>
+              )}
+            </details>
+          ))}
+        </>
       )}
     </section>
   )

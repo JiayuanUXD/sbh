@@ -98,4 +98,28 @@ test.describe('楼盘详情 P0', () => {
     expect(asOf).not.toBeNull()
     await expect(list).toHaveAttribute('data-supply-as-of', asOf ?? '')
   })
+
+  test('桌面楼盘供给可在卡片和表格视图间切换', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+
+    expect(response?.status()).toBe(200)
+    const viewControls = page.getByRole('group', { name: '供给展示方式' })
+    await expect(viewControls.getByRole('button', { name: '卡片视图' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
+
+    await viewControls.getByRole('button', { name: '表格视图' }).click()
+    await expect(viewControls.getByRole('button', { name: '表格视图' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.building-supply-browser__table')).toBeVisible()
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(0)
+  })
+
+  test('窄屏楼盘供给始终使用卡片且不显示视图切换', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+
+    expect(response?.status()).toBe(200)
+    await expect(page.getByRole('group', { name: '供给展示方式' })).toHaveCount(0)
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
+    await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
+  })
 })
