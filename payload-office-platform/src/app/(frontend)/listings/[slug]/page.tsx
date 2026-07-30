@@ -199,12 +199,12 @@ export default async function ListingDetailPage({
             </div>
           </div>
         </div>
+        <section id="overview" className="detail__overview">
+          <h2>房源概况</h2>
+          <DetailFacts groups={listing.factGroups} />
+        </section>
       </section>
       <DetailAnchorNav items={anchors} />
-      <section id="overview" className="detail__section">
-        <h2>房源概况</h2>
-        <DetailFacts groups={listing.factGroups} />
-      </section>
       {hasAmenities && (
         <section id="amenities" className="detail__section">
           <h2>配套设施</h2>

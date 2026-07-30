@@ -551,6 +551,29 @@ async function seed() {
     ]),
   })
 
+  // Published and approved, but deliberately held for a supply recheck. This
+  // remains a real REST-visible fixture while the public catalog must 404 it.
+  // Do not add it to `allListingSlugs`: it must also lack an effective listing
+  // merchant relation. Offline media seeding is safe because the hold alone is
+  // sufficient to make it ineligible.
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-published-pending-recheck', {
+    title: '静安 · 待复核办公 260㎡',
+    status: 'available',
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
+    supplyVisibilityHold: 'pending_recheck',
+    listingType: 'traditional-office',
+    building: westNanjingTower.id,
+    rent: 8.8,
+    rentUnit: 'rmb-sqm-day',
+    area: 260,
+    seats: 30,
+    isFeatured: false,
+    highlights: [{ text: '待复核' }],
+    availableFrom: '2026-09-01',
+    description: richText('房源说明', ['该公开测试记录用于验证待复核供给不会被前台详情页展示。']),
+  })
+
   await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-traditional', {
     title: '外滩 · 传统办公 500㎡',
     status: 'available',
