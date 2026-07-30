@@ -19,10 +19,14 @@ test('list → detail → submit inquiry creates a lead', async ({ page }) => {
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
 
-  await dialog.getByLabel('姓名').fill('E2E 用户')
+  await dialog.getByLabel('称呼').fill('E2E 用户')
   await dialog.getByLabel('手机号').fill('13800001111')
+  await dialog.getByLabel('团队规模').fill('10-20 人')
   // consent 复选框 required：不勾选时浏览器原生校验会拦截提交，须先同意隐私政策
   await dialog.getByRole('checkbox').check()
+  await dialog.getByRole('button', { name: '下一步', exact: true }).click()
+
+  await expect(dialog.getByText('第二步：需求补充（选填）')).toBeVisible()
   await dialog.getByRole('button', { name: '提交', exact: true }).click()
 
   await expect(dialog.getByText(/已收到/)).toBeVisible()
