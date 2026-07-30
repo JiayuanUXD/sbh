@@ -1,6 +1,12 @@
 import { getPayload } from 'payload'
+import sharp from 'sharp'
 
 import config from '../src/payload.config'
+
+// CI / 离线：不走外部网络（picsum.photos 慢且不稳），改用 sharp 本地合成纯色 JPEG。
+// 有效供给精筛只看 gallery.length（≥3），不校验图片内容，占位纯色图完全够用。
+const OFFLINE = !!process.env.CI || !!process.env.SEED_MEDIA_OFFLINE
+const SOURCE_LABEL = OFFLINE ? 'sharp 本地生成' : 'picsum.photos 下载'
 
 type AnyDoc = { id: number }
 
@@ -38,13 +44,37 @@ async function fetchImageBuffer(url: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer)
 }
 
+// 由 seed 字符串派生确定性 RGB，保证同 seed 生成同色（幂等、可辨识）。
+function seedColor(seed: string): { r: number; g: number; b: number } {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  }
+  return { r: (h >> 16) & 0xff, g: (h >> 8) & 0xff, b: h & 0xff }
+}
+
+// sharp 本地合成纯色 JPEG（无网络）。sharp 已是依赖（Payload 图片处理用）。
+async function generateImageBuffer(seed: string, w: number, h: number): Promise<Buffer> {
+  const background = seedColor(seed)
+  return sharp({ create: { width: w, height: h, channels: 3, background } })
+    .jpeg({ quality: 70 })
+    .toBuffer()
+}
+
+// 统一图片来源：离线/CI 走 sharp 合成，否则拉 picsum.photos 真实摄影。
+async function resolveImageBuffer(seed: string, w: number, h: number): Promise<Buffer> {
+  return OFFLINE ? generateImageBuffer(seed, w, h) : fetchImageBuffer(picsumUrl(seed, w, h))
+}
+
 async function uploadMedia(
   payload: any,
   alt: string,
-  url: string,
+  seed: string,
+  w: number,
+  h: number,
   filename: string,
 ): Promise<AnyDoc> {
-  const buffer = await fetchImageBuffer(url)
+  const buffer = await resolveImageBuffer(seed, w, h)
   const media = await payload.create({
     collection: 'media',
     data: { alt },
@@ -104,28 +134,32 @@ async function seedMedia() {
   await deleteAllMedia(payload)
 
   // 2) 上传 5 张楼盘封面
-  payload.logger.info('开始下载并上传楼盘封面图(picsum.photos)...')
+  payload.logger.info(`开始上传楼盘封面图（${SOURCE_LABEL}）...`)
   const covers: Record<string, AnyDoc> = {}
   for (const item of buildingCovers) {
-    payload.logger.info(`下载封面: ${item.alt} (seed=${item.seed})`)
+    payload.logger.info(`封面: ${item.alt} (seed=${item.seed})`)
     const media = await uploadMedia(
       payload,
       item.alt,
-      picsumUrl(item.seed, COVER_W, COVER_H),
+      item.seed,
+      COVER_W,
+      COVER_H,
       `cover-${item.slug}`,
     )
     covers[item.slug] = media
   }
 
   // 3) 上传 3 张室内细节图(共用)
-  payload.logger.info('开始下载并上传室内细节图...')
+  payload.logger.info(`开始上传室内细节图（${SOURCE_LABEL}）...`)
   const galleryMedia: AnyDoc[] = []
   for (const item of galleryImages) {
-    payload.logger.info(`下载细节图: ${item.alt} (seed=${item.seed})`)
+    payload.logger.info(`细节图: ${item.alt} (seed=${item.seed})`)
     const media = await uploadMedia(
       payload,
       item.alt,
-      picsumUrl(item.seed, GALLERY_W, GALLERY_H),
+      item.seed,
+      GALLERY_W,
+      GALLERY_H,
       `gallery-${galleryMedia.length + 1}`,
     )
     galleryMedia.push(media)
@@ -197,7 +231,9 @@ async function seedMedia() {
   const aboutHero = await uploadMedia(
     payload,
     '关于我们页面 hero 配图:上海核心商圈天际线',
-    picsumUrl('shanghai-skyline-about-hero', COVER_W, COVER_H),
+    'shanghai-skyline-about-hero',
+    COVER_W,
+    COVER_H,
     'page-about-hero',
   )
   const aboutPage = await payload.find({
