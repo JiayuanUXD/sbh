@@ -21,3 +21,18 @@ export const INQUIRY_RATE_LIMIT_CONFIG: RateLimitConfig = {
   failOpen: true,
 }
 
+/**
+ * 纠错端点限流配置（FPD-P1 Task 6）：每 IP 每分钟 3 次。
+ *
+ * 纠错频率应低于询盘（用户只在发现错误时提交），配额独立。
+ * 与 INQUIRY_RATE_LIMIT_CONFIG 共享 inquiry_rate_limit 表，但限流键加
+ * 'correction:' 前缀（见 route.ts），配额互不影响。
+ */
+export const CORRECTION_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 3,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: true,
+}
+

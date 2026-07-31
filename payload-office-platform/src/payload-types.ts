@@ -88,6 +88,7 @@ export interface Config {
     'display-tags': DisplayTag;
     'listing-reviews': ListingReview;
     'listing-reports': ListingReport;
+    'information-corrections': InformationCorrection;
     'domain-events': DomainEvent;
     'audit-logs': AuditLog;
     tasks: Task;
@@ -126,6 +127,7 @@ export interface Config {
     'display-tags': DisplayTagsSelect<false> | DisplayTagsSelect<true>;
     'listing-reviews': ListingReviewsSelect<false> | ListingReviewsSelect<true>;
     'listing-reports': ListingReportsSelect<false> | ListingReportsSelect<true>;
+    'information-corrections': InformationCorrectionsSelect<false> | InformationCorrectionsSelect<true>;
     'domain-events': DomainEventsSelect<false> | DomainEventsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     tasks: TasksSelect<false> | TasksSelect<true>;
@@ -1374,6 +1376,28 @@ export interface ListingReport {
   createdAt: string;
 }
 /**
+ * 公开信息纠错记录：只追加，创建后事实不可改、不可删；status 由后台流转。前台不可读取处理状态。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "information-corrections".
+ */
+export interface InformationCorrection {
+  id: number;
+  targetType: 'listing' | 'building';
+  targetSlug: string;
+  category: 'price' | 'area' | 'availability' | 'media' | 'location' | 'building-fact' | 'other';
+  description: string;
+  status: 'new' | 'triaged' | 'resolved' | 'rejected';
+  requestId: string;
+  idempotencyKey: string;
+  /**
+   * 提交 IP 哈希（反垃圾），不存原始 IP
+   */
+  reporterIpHash?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * 事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1407,11 +1431,12 @@ export interface DomainEvent {
     | 'followup.corrected'
     | 'sla.breached'
     | 'task.completed'
-    | 'task.cancelled';
+    | 'task.cancelled'
+    | 'correction.created';
   /**
    * 聚合根类型（listing / report / lead / followup / sla）。
    */
-  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task';
+  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction';
   /**
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
@@ -2285,6 +2310,10 @@ export interface PayloadLockedDocument {
         value: number | ListingReport;
       } | null)
     | ({
+        relationTo: 'information-corrections';
+        value: number | InformationCorrection;
+      } | null)
+    | ({
         relationTo: 'domain-events';
         value: number | DomainEvent;
       } | null)
@@ -2971,6 +3000,22 @@ export interface ListingReportsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "information-corrections_select".
+ */
+export interface InformationCorrectionsSelect<T extends boolean = true> {
+  targetType?: T;
+  targetSlug?: T;
+  category?: T;
+  description?: T;
+  status?: T;
+  requestId?: T;
+  idempotencyKey?: T;
+  reporterIpHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domain-events_select".
  */
 export interface DomainEventsSelect<T extends boolean = true> {
@@ -3408,6 +3453,7 @@ export interface TaskCreateCollectionExport {
       | 'display-tags'
       | 'listing-reviews'
       | 'listing-reports'
+      | 'information-corrections'
       | 'domain-events'
       | 'audit-logs'
       | 'tasks'

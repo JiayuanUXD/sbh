@@ -10,6 +10,7 @@ import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
 import LocationPanel from '@/components/frontend/LocationPanel'
+import CorrectionModal from '@/components/frontend/CorrectionModal'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
@@ -180,6 +181,11 @@ export default async function ListingDetailPage({
               <ShareSaveActions
                 canonicalUrl={`${siteConfig.siteOrigin}/listings/${listing.slug}`}
                 savedDetail={{ type: 'listing', id: listing.id, slug: listing.slug }}
+              />
+              <CorrectionModal
+                targetType="listing"
+                targetSlug={listing.slug}
+                targetSummary={listing.title}
               />
             </div>
           </div>

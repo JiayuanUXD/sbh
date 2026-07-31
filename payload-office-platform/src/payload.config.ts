@@ -39,6 +39,7 @@ import { Pages } from './collections/Pages'
 import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
+import { InformationCorrections } from './collections/InformationCorrections'
 import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
@@ -166,6 +167,7 @@ export default buildConfig({
     DisplayTags,
     ListingReviews,
     ListingReports,
+    InformationCorrections,
     DomainEvents,
     AuditLogs,
     Tasks,
@@ -303,6 +305,9 @@ export default buildConfig({
         // broker / operatedBy 记录,无需再注入审计字段(M5 / design §3.6)。
         'follow-ups',
         'lead-ownership-history',
+        // P1 Task 6 纠错:追加式审计轨迹,事实字段创建后不可改(P1 §7);
+        // 创建人为匿名前台提交,createdBy/lastModifiedBy 恒空,不注入审计字段。
+        'information-corrections',
       ],
       createdByLabel: '创建人',
       lastModifiedByLabel: '最后修改人',

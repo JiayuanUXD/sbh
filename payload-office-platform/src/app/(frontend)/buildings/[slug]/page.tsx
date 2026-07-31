@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
+import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
@@ -192,6 +193,11 @@ export default async function BuildingDetailPage({
             <ShareSaveActions
               canonicalUrl={`${siteConfig.siteOrigin}/buildings/${building.slug}`}
               savedDetail={{ type: 'building', id: building.id, slug: building.slug }}
+            />
+            <CorrectionModal
+              targetType="building"
+              targetSlug={building.slug}
+              targetSummary={building.name}
             />
           </div>
         </aside>
