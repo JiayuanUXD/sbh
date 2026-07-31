@@ -14,6 +14,7 @@
 
 import {
   LocationServiceError,
+  parseCoordinates,
   type Coordinates,
 } from './contracts'
 
@@ -42,6 +43,56 @@ export function parseRouteMode(value: unknown): RouteMode | null {
   return (ROUTE_MODES as readonly string[]).includes(value)
     ? (value as RouteMode)
     : null
+}
+
+/** 路线请求（API 入参白名单） */
+export type RouteRequest = Readonly<{
+  origin: Coordinates
+  destination: Coordinates
+  mode: RouteMode
+  requestId: string
+}>
+
+export type ValidateRouteResult =
+  | { ok: true; data: RouteRequest }
+  | { ok: false; errors: string[] }
+
+/**
+ * 校验路线请求体（视为 unknown）。仅接受白名单字段并收窄类型；
+ * 起点/终点必须为合法坐标，mode 白名单，requestId 非空字符串（≤128）。
+ */
+export function validateRouteRequest(body: unknown): ValidateRouteResult {
+  const errors: string[] = []
+  if (typeof body !== 'object' || body === null) {
+    return { ok: false, errors: ['invalid_body'] }
+  }
+  const record = body as Record<string, unknown>
+
+  const origin = isRecord(record.origin)
+    ? parseCoordinates(record.origin as { latitude: unknown; longitude: unknown })
+    : null
+  if (origin === null) errors.push('invalid_origin')
+
+  const destination = isRecord(record.destination)
+    ? parseCoordinates(record.destination as { latitude: unknown; longitude: unknown })
+    : null
+  if (destination === null) errors.push('invalid_destination')
+
+  const mode = parseRouteMode(record.mode)
+  if (mode === null) errors.push('invalid_mode')
+
+  const requestId = record.requestId
+  if (typeof requestId !== 'string' || requestId.length === 0 || requestId.length > 128) {
+    errors.push('invalid_request_id')
+  }
+
+  if (errors.length > 0 || origin === null || destination === null || mode === null) {
+    return { ok: false, errors }
+  }
+  return {
+    ok: true,
+    data: { origin, destination, mode, requestId: requestId as string },
+  }
 }
 
 const DEFAULT_TIMEOUT_MS = 2500

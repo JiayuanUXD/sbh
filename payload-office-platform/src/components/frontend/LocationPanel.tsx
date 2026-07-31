@@ -15,6 +15,7 @@
 
 import { useState } from 'react'
 import AmapMapCanvas from '@/components/frontend/AmapMapCanvas'
+import RoutePlanner from '@/components/frontend/RoutePlanner'
 import type { CoordinatesViewModel } from '@/domain/public-catalog'
 import type { NearbyPoi, PoiCategory } from '@/domain/location-services'
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
@@ -114,6 +115,14 @@ export default function LocationPanel({
             </a>
           )}
         </div>
+        {/* P2：用户主动触发的路线建议（点击后才一次性定位），拒绝/失败保留外链 */}
+        {coordinates && (
+          <RoutePlanner
+            destination={coordinates}
+            destinationName={building.name}
+            amapLinkUrl={buildAmapPlaceUrl(building.name, coordinates)}
+          />
+        )}
       </div>
 
       {/* 地图区：懒加载，缺坐标/Key 时 AmapMapCanvas 返回 null */}

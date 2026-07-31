@@ -36,3 +36,18 @@ export const CORRECTION_RATE_LIMIT_CONFIG: RateLimitConfig = {
   failOpen: true,
 }
 
+/**
+ * 路线摘要端点限流配置（FPD-P2 Task 2）：每 IP 每分钟 10 次。
+ *
+ * 路线由用户主动点击触发，一次交互可能尝试多种出行方式（transit/driving/
+ * walking），配额略高于询盘。与 INQUIRY_RATE_LIMIT_CONFIG 共享 inquiry_rate_limit
+ * 表，但限流键加 'route:' 前缀（见 api/routes/route.ts），配额互不影响。
+ */
+export const ROUTE_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 10,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: true,
+}
+
