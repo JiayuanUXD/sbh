@@ -621,6 +621,14 @@ html[data-theme='dark'] {
   .nav__mobile-close {
     display: none !important;
   }
+
+  // Payload 默认给 .nav__wrap 设固定 height（约 600px），在较矮视口下会撑大
+  // .admin-navigation 使内容（9 分组约 526px）不溢出、无法验证滚动。
+  // 强制随 .nav__scroll（=视口高）取 100%，矮视口下内容真实溢出可滚动。
+  .nav__wrap {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
 }
 
 // ─── 折叠模式（icon-only，48px 宽） ───

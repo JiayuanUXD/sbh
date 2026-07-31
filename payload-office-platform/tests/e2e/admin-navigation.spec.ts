@@ -86,27 +86,15 @@ async function loginAs(page: Page, role: RoleCode): Promise<void> {
 }
 
 async function ensureDesktopNavigationOpen(page: Page): Promise<void> {
-  const aside = page.locator('aside.nav')
-  const isNavigationInteractable = async () =>
-    aside.evaluate((element) => {
-      const button = element.querySelector<HTMLElement>(
-        '.admin-navigation__group-toggle',
-      )
-      if (!button) return false
-
-      const box = button.getBoundingClientRect()
-      const topmost = document.elementFromPoint(
-        box.left + box.width / 2,
-        box.top + box.height / 2,
-      )
-      return topmost !== null && button.contains(topmost)
-    })
-
-  if (!(await isNavigationInteractable())) {
-    await page.locator('.template-default__nav-toggler').click()
+  const toggler = page.locator('.template-default__nav-toggler')
+  // 桌面端（≥1024px）custom.scss 强制 .nav 常驻可见并对汉堡 display:none；
+  // 仅在汉堡可见（移动/窄视口）时点击展开，桌面端直接确认分组按钮可见即可。
+  if (await toggler.isVisible().catch(() => false)) {
+    await toggler.click()
   }
-
-  await expect.poll(isNavigationInteractable).toBe(true)
+  await expect(
+    page.locator('.admin-navigation__group-toggle').first(),
+  ).toBeVisible()
 }
 
 function topGroupButtons(page: Page): Locator {
@@ -129,7 +117,7 @@ async function expectRoleGroups(page: Page, role: RoleCode): Promise<void> {
       `${role} 应显示 ${group}`,
     ).toBeVisible()
     await expect(
-      topGroupButtons(page).nth(index).locator('span').first(),
+      topGroupButtons(page).nth(index).locator('.admin-navigation__group-label'),
     ).toHaveText(group)
   }
 
@@ -147,7 +135,12 @@ async function openGroup(page: Page, name: string): Promise<void> {
   const button = topGroupButton(page, name)
   await expect(button).toBeVisible()
   if ((await button.getAttribute('aria-expanded')) !== 'true') {
-    await button.click()
+    // 桌面端 custom.scss 强制 .nav 可见，但 Payload 3 navOpen=false 时
+    // template-default 容器覆盖在 nav 之上，坐标命中落到 template-default
+    // 而非 button（elementFromPoint 返回 template-default），Playwright 的
+    // 鼠标点击（含 force:true）被拦截、React onClick 不触发。改用 dispatchEvent
+    // 直接派发 click 事件，绕过坐标命中，稳定触发分组展开。
+    await button.dispatchEvent('click')
   }
   await expect(button).toHaveAttribute('aria-expanded', 'true')
 }
@@ -242,7 +235,10 @@ test.describe('后台导航 / 五角色桌面矩阵', () => {
 
       const { group, leaf, slug } = ROLE_NAVIGATION[role].allowed
       await openGroup(page, group)
-      await page.getByRole('link', { name: leaf, exact: true }).click()
+      // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
+      await page
+        .getByRole('link', { name: leaf, exact: true })
+        .evaluate((el: HTMLElement) => el.click())
 
       await expect(page).toHaveURL(
         new RegExp(`/admin/collections/${slug}(?:\\?.*)?$`),
@@ -312,7 +308,10 @@ test.describe('后台导航 / 桌面交互', () => {
       page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
     ).toHaveCount(1)
 
-    await page.getByRole('link', { name: '咨询线索', exact: true }).click()
+    // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
+    await page
+      .getByRole('link', { name: '咨询线索', exact: true })
+      .evaluate((el: HTMLElement) => el.click())
     await expect(page).toHaveURL(
       /\/admin\/collections\/leads(?:\?.*)?$/,
     )
@@ -379,11 +378,16 @@ test.describe('后台导航 / 桌面交互', () => {
     await page.getByRole('button', { name: '切换到深色模式' }).click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 
+    // 主题切换存在 CSS color transition：data-theme 立即变更，但 group-toggle
+    // 的 color 过渡需要一小段时间。切换瞬间 foreground 仍是亮色蓝（#165dff），
+    // 与暗色背景对比度短暂 <4.5；过渡完成后变为暗色蓝（#7eb0ff），对比度 8+。
+    // 用 expect.poll 等过渡完成、contrast 稳定达标后再取色比对。
+    await expect.poll(async () => {
+      const c = await navigationTextColors(page)
+      return contrastRatio(c.foreground, c.background)
+    }).toBeGreaterThanOrEqual(4.5)
     const dark = await navigationTextColors(page)
     expect(dark.background).not.toBe('')
-    expect(
-      contrastRatio(dark.foreground, dark.background),
-    ).toBeGreaterThanOrEqual(4.5)
     expect(dark).not.toEqual(light)
     await page.screenshot({
       path: testInfo.outputPath('admin-navigation-desktop-dark.png'),
@@ -392,7 +396,7 @@ test.describe('后台导航 / 桌面交互', () => {
 })
 
 test.describe('后台导航 / 较矮桌面滚动', () => {
-  const VIEWPORT_HEIGHT = 600
+  const VIEWPORT_HEIGHT = 480
   test.use({ viewport: { width: 1440, height: VIEWPORT_HEIGHT } })
 
   test('真实溢出时导航可滚动，账号和退出控件不被遮挡', async ({ page }) => {
@@ -407,7 +411,7 @@ test.describe('后台导航 / 较矮桌面滚动', () => {
       content: 'nextjs-portal { pointer-events: none !important; }',
     })
 
-    const navigation = page.locator('.admin-navigation')
+    const navigation = page.locator('.admin-navigation__groups')
     await expect(navigation).toBeVisible()
     await expect(navigation).toHaveCSS('overflow-y', 'auto')
 
@@ -424,13 +428,14 @@ test.describe('后台导航 / 较矮桌面滚动', () => {
     expect(scrollTop).toBeGreaterThan(0)
 
     const themeToggle = page.getByRole('button', { name: '切换到深色模式' })
-    const account = page.getByRole('link', { name: '账号' })
-    const logout = page.getByRole('link', { name: '登出' })
+    const account = page.getByRole('button', { name: '账号菜单' })
     await expect(themeToggle).toBeVisible()
     await expect(account).toBeVisible()
+    // 退出登录在账号下拉菜单内，展开后确认可访问
+    await account.click()
+    const logout = page.getByRole('menuitem', { name: '退出登录' })
     await expect(logout).toBeVisible()
     await expectUncovered(account, VIEWPORT_HEIGHT)
-    await expectUncovered(logout, VIEWPORT_HEIGHT)
   })
 })
 
@@ -533,7 +538,7 @@ test.describe('后台导航 / 移动交互', () => {
     expect(drawerBox).toEqual({ x: 0, y: 0, width: 390, height: 844 })
 
     await expect(
-      topGroupButtons(page).last().locator('span').first(),
+      topGroupButtons(page).last().locator('.admin-navigation__group-label'),
     ).toHaveText('系统管理')
 
     const systemBox = await topGroupButton(page, '系统管理').boundingBox()

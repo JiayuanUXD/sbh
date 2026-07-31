@@ -22,6 +22,7 @@ import * as migration_20260728_180000_opt_021_admin_navigation_roles from './202
 import * as migration_20260728_181000_opt_021_form_submission_status from './20260728_181000_opt_021_form_submission_status';
 import * as migration_20260730_125851_detail_page_fields from './20260730_125851_detail_page_fields';
 import * as migration_20260730_134600_inquiry_detail_context from './20260730_134600_inquiry_detail_context';
+import * as migration_20260731_110500_fix_tasks_notifications_relationship from './20260731_110500_fix_tasks_notifications_relationship';
 
 export const migrations = [
   {
@@ -143,5 +144,10 @@ export const migrations = [
     up: migration_20260730_134600_inquiry_detail_context.up,
     down: migration_20260730_134600_inquiry_detail_context.down,
     name: '20260730_134600_inquiry_detail_context'
+  },
+  {
+    up: migration_20260731_110500_fix_tasks_notifications_relationship.up,
+    down: migration_20260731_110500_fix_tasks_notifications_relationship.down,
+    name: '20260731_110500_fix_tasks_notifications_relationship',
   },
 ];
