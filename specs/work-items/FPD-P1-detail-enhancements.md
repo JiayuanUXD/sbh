@@ -36,7 +36,7 @@
 ## 6. 实施清单
 
 - [x] Task 1：建立 P1 任务包和位置服务契约（`contracts.ts` / `index.ts`）。
-- [ ] Task 2：实现高德 POI provider 和缓存。
+- [x] Task 2：实现高德 POI provider 和缓存。
 - [ ] Task 3：增加延迟地图和静态降级。
 - [ ] Task 4：完成视频和平面图媒体体验。
 - [ ] Task 5：实现 canonical 分享和本地收藏。
@@ -54,4 +54,4 @@
 
 ## 8. 结果
 
-- 进行中：Task 1 已完成，契约纯函数 5 tests PASS、typecheck PASS。
+- 进行中：Task 1-2 已完成。契约 5 tests + provider/缓存 13 tests PASS（合计全量 2244 PASS）、typecheck PASS、lint PASS。
