@@ -81,6 +81,11 @@ jobs:
       # 本地 server 端口 + 让 playwright.config 的 webServer 切到 next start 生产 server
       PORT: '3717'
       E2E_PROD_SERVER: '1'
+      # 地图降级用例（detail-location.spec）需 mapEnabled=true 才渲染"查看地图"按钮，
+      # 而 mapEnabled = coordinates != null && NEXT_PUBLIC_AMAP_JS_KEY。此 public key 在
+      # next build 期内联入前端 bundle。用例点击后 abort webapi.amap.com 断言降级，真实
+      # 请求永不发出，故此处用占位假 key（域名白名单 key，非机密，勿用于生产）。
+      NEXT_PUBLIC_AMAP_JS_KEY: e2e-fake-amap-js-key-not-real
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
