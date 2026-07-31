@@ -9,8 +9,10 @@ import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
+import LocationPanel from '@/components/frontend/LocationPanel'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
+import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -58,6 +60,9 @@ export default async function ListingDetailPage({
   const building = listing.building
   const related = await getRelatedListings(slug, ctx, { limit: 6 })
   const relatedFiltered = related.filter((r) => r.id !== listing.id).slice(0, 5)
+  const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
+  const mapEnabled =
+    building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
 
   // `gallery` is a legacy public DTO fallback, never a Payload document.
   const media = listing.mediaItems.length > 0
@@ -91,6 +96,7 @@ export default async function ListingDetailPage({
     { id: 'amenities', label: '配套设施', visible: hasAmenities },
     { id: 'description', label: '房源描述', visible: listing.description != null },
     { id: 'building', label: '所在楼盘', visible: building != null },
+    { id: 'location', label: '位置交通', visible: building != null },
     { id: 'related', label: '其他房源', visible: relatedFiltered.length > 0 },
   ]
 
@@ -219,6 +225,21 @@ export default async function ListingDetailPage({
             查看楼盘
           </Link>
         </section>
+      )}
+      {building && (
+        <LocationPanel
+          building={{
+            id: building.id,
+            name: building.name,
+            address: building.address,
+            coordinates: building.coordinates,
+            nearestMetro: building.nearestMetro
+              ? { name: building.nearestMetro.name }
+              : undefined,
+          }}
+          pois={pois}
+          mapEnabled={mapEnabled}
+        />
       )}
       {relatedFiltered.length > 0 && (
         <section id="related" className="detail__section">

@@ -19,6 +19,7 @@ import type { Listing, Building, Location, Media, Amenity, Page } from '@/payloa
 import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
+  CoordinatesViewModel,
   DistrictViewModel,
   DetailMediaViewModel,
   FactGroupViewModel,
@@ -216,6 +217,29 @@ export function mapDistrict(raw: unknown): DistrictViewModel | undefined {
   return { id: raw.id, slug: raw.slug, name: raw.name }
 }
 
+/**
+ * 把 Payload 楼盘坐标投影为 CoordinatesViewModel（高德 GCJ-02）。
+ *
+ * 非有限数字或超界（纬度 [-90,90]、经度 [-180,180]）返回 undefined，
+ * 位置面板据此降级为静态地址卡片，不渲染地图。
+ */
+export function mapCoordinates(
+  latitude: unknown,
+  longitude: unknown,
+): CoordinatesViewModel | undefined {
+  if (
+    typeof latitude !== 'number' ||
+    typeof longitude !== 'number' ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return undefined
+  }
+  if (latitude < -90 || latitude > 90) return undefined
+  if (longitude < -180 || longitude > 180) return undefined
+  return { latitude, longitude }
+}
+
 /** 把 Building 投影为 BuildingSummaryViewModel；非楼盘返回 null */
 export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | null {
   if (!isBuilding(raw)) return null
@@ -231,6 +255,8 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     district: mapDistrict(districtRaw),
     coverImage: mapMedia(coverRaw, raw.name) ?? undefined,
     summary: raw.summary ?? undefined,
+    coordinates: mapCoordinates(raw.latitude, raw.longitude),
+    nearestMetro: mapDistrict(populated?.nearestMetro),
   }
 }
 
@@ -622,6 +648,7 @@ export function mapBuildingDetail(
     amenities,
     summary: building.summary ?? '',
     description: building.description,
+    coordinates: mapCoordinates(building.latitude, building.longitude),
   }
 }
 

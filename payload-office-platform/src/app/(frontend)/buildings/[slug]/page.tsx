@@ -9,7 +9,9 @@ import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import LocationPanel from '@/components/frontend/LocationPanel'
 import { rentUnitLabel } from '@/lib/frontend/format'
+import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -137,6 +139,10 @@ export default async function BuildingDetailPage({
   ])
   if (!building) notFound()
 
+  const pois = await fetchNearbyPois(building.id, building.coordinates)
+  const mapEnabled =
+    building.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
+
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasDescription = Boolean(building.description)
   const hasRelated = visibleRelatedBuildings.length > 0
@@ -145,6 +151,7 @@ export default async function BuildingDetailPage({
     { id: 'overview', label: '楼盘概况', visible: building.factGroups.length > 0 },
     { id: 'supply', label: '当前有效供给', visible: true },
     { id: 'description', label: '楼盘说明', visible: hasDescription },
+    { id: 'location', label: '位置交通', visible: true },
     { id: 'related', label: '相关楼盘', visible: hasRelated },
   ]
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin)
@@ -199,6 +206,20 @@ export default async function BuildingDetailPage({
           <div className="richtext"><RichText data={building.description} /></div>
         </section>
       )}
+
+      <LocationPanel
+        building={{
+          id: building.id,
+          name: building.name,
+          address: building.address,
+          coordinates: building.coordinates,
+          nearestMetro: building.nearestMetro
+            ? { name: building.nearestMetro.name }
+            : undefined,
+        }}
+        pois={pois}
+        mapEnabled={mapEnabled}
+      />
 
       {hasRelated && (
         <section id="related" className="detail__section">
