@@ -3078,6 +3078,61 @@ ol {
   color: var(--color-ink-2);
 }
 
+/* P2 看房时段选择器 */
+.viewing-slot-picker {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--sp-3);
+  margin: var(--sp-2) 0;
+}
+
+.viewing-slot-picker__legend {
+  font-weight: 600;
+  padding: 0 var(--sp-1);
+}
+
+.viewing-slot-picker__hint {
+  font-size: var(--fs-sm);
+  color: var(--color-ink-2);
+  margin: 0 0 var(--sp-2);
+}
+
+.viewing-slot-picker__dates,
+.viewing-slot-picker__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-2);
+}
+
+.viewing-slot-picker__date,
+.viewing-slot-picker__slot {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+}
+
+.viewing-slot-picker__date[data-active='true'],
+.viewing-slot-picker__slot[data-active='true'] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border-color: var(--color-ink);
+}
+
+.viewing-slot-picker__clear {
+  background: none;
+  border: none;
+  color: var(--color-ink-2);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  padding: 0;
+}
+
 .location-panel__pois {
   display: flex;
   flex-wrap: wrap;

@@ -790,6 +790,7 @@ describe('F7.5 询盘完整链路守护不变量汇总', () => {
         'source',
         'priceSnapshot',
         'activeSupplyGroup',
+        'viewingPreference',
       ].sort(),
     )
   })

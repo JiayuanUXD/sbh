@@ -1064,6 +1064,15 @@ export interface Lead {
    * 前台生成的请求唯一标识，用于日志关联与幂等键计算。
    */
   requestId?: string | null;
+  /**
+   * 用户在询盘时选择的偏好看房时段，服务端已复核落在平台服务时间内。始终为“待顾问确认”，不代表已确认预约。
+   */
+  viewingPreference?: {
+    startsAt?: string | null;
+    endsAt?: string | null;
+    timezone?: string | null;
+    status?: 'pending-confirmation' | null;
+  };
   createdBy?: {
     relationTo: 'users';
     value: number | User;
@@ -2851,6 +2860,14 @@ export interface LeadsSelect<T extends boolean = true> {
   consentPolicyVersion?: T;
   campaign?: T;
   requestId?: T;
+  viewingPreference?:
+    | T
+    | {
+        startsAt?: T;
+        endsAt?: T;
+        timezone?: T;
+        status?: T;
+      };
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;

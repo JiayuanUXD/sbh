@@ -23,8 +23,9 @@ import * as migration_20260728_181000_opt_021_form_submission_status from './202
 import * as migration_20260730_125851_detail_page_fields from './20260730_125851_detail_page_fields';
 import * as migration_20260730_134600_inquiry_detail_context from './20260730_134600_inquiry_detail_context';
 import * as migration_20260731_110500_fix_tasks_notifications_relationship from './20260731_110500_fix_tasks_notifications_relationship';
-import * as migration_20260731_114958_advisor_service_hours from './20260731_114958_advisor_service_hours';
 import * as migration_20260731_120000_information_corrections from './20260731_120000_information_corrections';
+import * as migration_20260731_120838_advisor_service_hours from './20260731_120838_advisor_service_hours';
+import * as migration_20260731_120857_lead_viewing_preference from './20260731_120857_lead_viewing_preference';
 
 export const migrations = [
   {
@@ -153,13 +154,18 @@ export const migrations = [
     name: '20260731_110500_fix_tasks_notifications_relationship',
   },
   {
-    up: migration_20260731_114958_advisor_service_hours.up,
-    down: migration_20260731_114958_advisor_service_hours.down,
-    name: '20260731_114958_advisor_service_hours',
-  },
-  {
     up: migration_20260731_120000_information_corrections.up,
     down: migration_20260731_120000_information_corrections.down,
-    name: '20260731_120000_information_corrections'
+    name: '20260731_120000_information_corrections',
+  },
+  {
+    up: migration_20260731_120838_advisor_service_hours.up,
+    down: migration_20260731_120838_advisor_service_hours.down,
+    name: '20260731_120838_advisor_service_hours',
+  },
+  {
+    up: migration_20260731_120857_lead_viewing_preference.up,
+    down: migration_20260731_120857_lead_viewing_preference.down,
+    name: '20260731_120857_lead_viewing_preference'
   },
 ];

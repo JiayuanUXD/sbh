@@ -725,6 +725,7 @@ describe('deriveFieldCompleteness', () => {
       } },
       priceSnapshot: null,
       activeSupplyGroup: null,
+      viewingPreference: null,
     }
   }
 
@@ -789,6 +790,7 @@ describe('buildInquiryLogEntry', () => {
       },
       priceSnapshot: null,
       activeSupplyGroup: null,
+      viewingPreference: null,
       ...overrides,
     }
   }

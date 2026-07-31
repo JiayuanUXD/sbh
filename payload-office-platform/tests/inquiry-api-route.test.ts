@@ -30,6 +30,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const payloadFindMock = vi.fn()
 const payloadCreateMock = vi.fn()
+const payloadFindGlobalMock = vi.fn()
 const payloadLoggerInfo = vi.fn()
 const payloadLoggerError = vi.fn()
 const payloadLoggerWarn = vi.fn()
@@ -41,6 +42,7 @@ vi.mock('payload', async (importOriginal) => {
     getPayload: vi.fn(async () => ({
       find: payloadFindMock,
       create: payloadCreateMock,
+      findGlobal: payloadFindGlobalMock,
       logger: {
         info: payloadLoggerInfo,
         error: payloadLoggerError,
@@ -172,6 +174,7 @@ async function run(req: Request): Promise<{ status: number; body: any; headers: 
 beforeEach(() => {
   payloadFindMock.mockReset()
   payloadCreateMock.mockReset()
+  payloadFindGlobalMock.mockReset()
   payloadLoggerInfo.mockReset()
   payloadLoggerError.mockReset()
   payloadLoggerWarn.mockReset()
@@ -798,5 +801,107 @@ describe('POST /api/inquiries / 日志记录', () => {
       expect(json).not.toContain('张三')
       expect(json).not.toContain('想约看')
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// P2 Task 4：偏好看房时段（服务端复核）
+// ---------------------------------------------------------------------------
+
+import { buildViewingSlots } from '@/domain/inquiry/viewing-slots'
+import type { ServiceSchedule } from '@/domain/advisor-availability'
+
+const VP_SCHEDULE = {
+  timezone: 'Asia/Shanghai',
+  weeklyHours: [
+    { day: '1', start: '09:00', end: '18:00' },
+    { day: '2', start: '09:00', end: '18:00' },
+    { day: '3', start: '09:00', end: '18:00' },
+    { day: '4', start: '09:00', end: '18:00' },
+    { day: '5', start: '09:00', end: '18:00' },
+  ],
+  holidays: [],
+  openMessage: '服务中',
+  closedMessage: '非服务时段',
+}
+
+const VP_DOMAIN_SCHEDULE: ServiceSchedule = {
+  timezone: 'Asia/Shanghai',
+  weekly: {
+    0: [],
+    1: [{ start: '09:00', end: '18:00' }],
+    2: [{ start: '09:00', end: '18:00' }],
+    3: [{ start: '09:00', end: '18:00' }],
+    4: [{ start: '09:00', end: '18:00' }],
+    5: [{ start: '09:00', end: '18:00' }],
+    6: [],
+  },
+  holidays: [],
+  openMessage: '服务中',
+  closedMessage: '非服务时段',
+}
+
+describe('POST /api/inquiries / 偏好看房时段', () => {
+  it('合法时段 -> 落库 pending-confirmation', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    payloadFindGlobalMock.mockResolvedValue(VP_SCHEDULE)
+    assertEffectiveListingMock.mockResolvedValue({ id: 42, slug: 'jingan-center-100-monthly' })
+
+    // 用当前时间生成一个未来合法时段
+    const slot = buildViewingSlots(VP_DOMAIN_SCHEDULE, new Date().toISOString())[0]
+    expect(slot).toBeTruthy()
+
+    const r = await run(
+      makeReq({
+        body: makeValidBody({
+          viewingPreference: {
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            timezone: slot.timezone,
+          },
+        }),
+      }),
+    )
+    expect(r.status).toBe(200)
+    const created = payloadCreateMock.mock.calls[0][0].data
+    expect(created.viewingPreference).toEqual({
+      startsAt: slot.startsAt,
+      endsAt: slot.endsAt,
+      timezone: slot.timezone,
+      status: 'pending-confirmation',
+    })
+  })
+
+  it('过期时段 -> 422 viewing_slot_invalid，不落库', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadFindGlobalMock.mockResolvedValue(VP_SCHEDULE)
+    assertEffectiveListingMock.mockResolvedValue({ id: 42, slug: 'jingan-center-100-monthly' })
+
+    const r = await run(
+      makeReq({
+        body: makeValidBody({
+          viewingPreference: {
+            startsAt: '2020-01-06T02:00:00.000Z',
+            endsAt: '2020-01-06T04:00:00.000Z',
+            timezone: 'Asia/Shanghai',
+          },
+        }),
+      }),
+    )
+    expect(r.status).toBe(422)
+    expect(r.body.errors).toContain('viewing_slot_invalid')
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
+  it('无时段 -> 正常提交，viewingPreference 为 undefined', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 42, slug: 'jingan-center-100-monthly' })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+    expect(r.status).toBe(200)
+    const created = payloadCreateMock.mock.calls[0][0].data
+    expect(created.viewingPreference).toBeUndefined()
   })
 })

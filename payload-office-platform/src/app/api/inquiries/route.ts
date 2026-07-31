@@ -33,8 +33,10 @@ import {
   deriveTargetSlug,
   hashIpForLog,
   validateInquiry,
+  validateViewingPreference,
   type InquiryRequest,
 } from '@/domain/inquiry'
+import { mapGlobalToSchedule } from '@/domain/advisor-availability'
 import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
@@ -264,6 +266,38 @@ export async function POST(req: Request): Promise<Response> {
   }
   const inquiry: InquiryRequest = result.data
 
+  // ----- 4b. 偏好看房时段服务端复核（P2 Task 4） -----
+  // 用户可选时段；若提交了时段，用平台服务时间在提交瞬间复核有效性
+  //（过期/非服务时段/非 30 分边界/非 2 小时 -> 422），防止前端陈旧时段绕过。
+  let viewingPreferenceToPersist:
+    | { startsAt: string; endsAt: string; timezone: string; status: 'pending-confirmation' }
+    | null = null
+  if (inquiry.viewingPreference) {
+    try {
+      const scheduleDoc = await payload.findGlobal({
+        slug: 'advisor-service-hours',
+        depth: 0,
+        overrideAccess: true,
+      })
+      const schedule = mapGlobalToSchedule(scheduleDoc as unknown as Record<string, unknown>)
+      const check = validateViewingPreference(
+        inquiry.viewingPreference,
+        schedule,
+        new Date().toISOString(),
+      )
+      if (!check.ok) {
+        return NextResponse.json({ ok: false, errors: [check.error] }, { status: 422 })
+      }
+      viewingPreferenceToPersist = {
+        ...inquiry.viewingPreference,
+        status: 'pending-confirmation',
+      }
+    } catch {
+      // global 不可用：不阻断询盘主流程，仅丢弃时段（询盘仍可提交）
+      viewingPreferenceToPersist = null
+    }
+  }
+
   // ----- 5. 计算幂等键（domain/inquiry/idempotency.ts） -----
   const targetSlug = deriveTargetSlug(
     inquiry.targetType,
@@ -351,6 +385,8 @@ export async function POST(req: Request): Promise<Response> {
         consentPolicyVersion: inquiry.consent.policyVersion,
         campaign: inquiry.source.campaign,
         requestId: inquiry.requestId,
+        // P2 Task 4：偏好看房时段（已服务端复核，恒 pending-confirmation）
+        viewingPreference: viewingPreferenceToPersist ?? undefined,
       },
     })
 

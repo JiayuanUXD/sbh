@@ -37,21 +37,21 @@ export type ServiceStatus = Readonly<{
 }>
 
 /** 上海时区某时刻的日历分解 */
-type ZonedParts = Readonly<{
+export type ZonedParts = Readonly<{
   date: string // YYYY-MM-DD
   weekday: Weekday
   minutes: number // 自 00:00 起的分钟数
 }>
 
 /** 'HH:MM' -> 分钟数；非法返回 NaN */
-function parseHhmm(value: string): number {
+export function parseHhmm(value: string): number {
   const m = /^(\d{2}):(\d{2})$/.exec(value)
   if (!m) return NaN
   return Number(m[1]) * 60 + Number(m[2])
 }
 
 /** 用 Intl 把 ISO 时刻分解到指定时区的 date/weekday/minutes */
-function toZonedParts(iso: string, timeZone: string): ZonedParts {
+export function toZonedParts(iso: string, timeZone: string): ZonedParts {
   const d = new Date(iso)
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone,
@@ -75,7 +75,7 @@ function toZonedParts(iso: string, timeZone: string): ZonedParts {
 }
 
 /** 取某日期在 schedule 下的有效时段（例外优先） */
-function rangesForDate(schedule: ServiceSchedule, date: string, weekday: Weekday): readonly TimeRange[] {
+export function rangesForDate(schedule: ServiceSchedule, date: string, weekday: Weekday): readonly TimeRange[] {
   const holiday = schedule.holidays.find((h) => h.date === date)
   if (holiday) return holiday.ranges
   return schedule.weekly[weekday] ?? []
@@ -140,7 +140,7 @@ function addDaysZoned(now: string, tz: string, days: number): ZonedParts {
  * 把「tz 下的 date + 分钟数」转回 UTC ISO。Asia/Shanghai 恒 UTC+8（无 DST），
  * 用固定偏移换算；若未来支持其他时区需改用偏移探测。
  */
-function zonedDateTimeToIso(date: string, minutes: number, tz: string): string {
+export function zonedDateTimeToIso(date: string, minutes: number, tz: string): string {
   const offsetMinutes = tzOffsetMinutes(tz)
   const [y, mo, d] = date.split('-').map(Number)
   const hh = Math.floor(minutes / 60)

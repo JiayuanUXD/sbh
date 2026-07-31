@@ -7,3 +7,4 @@
  */
 
 export * from './service-hours'
+export * from './global-schedule'

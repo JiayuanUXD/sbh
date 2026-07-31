@@ -12,51 +12,7 @@
 
 import { getPayload } from 'payload'
 import config from '@/payload.config'
-import {
-  resolveServiceStatus,
-  type ServiceSchedule,
-  type TimeRange,
-  type Weekday,
-} from '@/domain/advisor-availability'
-
-/** 把 Payload global doc 映射为 ServiceSchedule（类型安全转换） */
-function toServiceSchedule(doc: Record<string, unknown>): ServiceSchedule | null {
-  try {
-    const timezone = typeof doc.timezone === 'string' ? doc.timezone : 'Asia/Shanghai'
-    const rawHours = Array.isArray(doc.weeklyHours) ? doc.weeklyHours : []
-    const weekly: Record<Weekday, TimeRange[]> = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] }
-    for (const row of rawHours) {
-      if (!row || typeof row !== 'object') continue
-      const day = Number((row as Record<string, unknown>).day) as Weekday
-      if (!Number.isInteger(day) || day < 0 || day > 6) continue
-      const start = (row as Record<string, unknown>).start
-      const end = (row as Record<string, unknown>).end
-      if (typeof start !== 'string' || typeof end !== 'string') continue
-      weekly[day].push({ start, end })
-    }
-    const rawHolidays = Array.isArray(doc.holidays) ? doc.holidays : []
-    const holidays = rawHolidays
-      .filter((h): h is Record<string, unknown> => !!h && typeof h === 'object')
-      .map((h) => ({
-        date: typeof h.date === 'string' ? h.date : '',
-        ranges: Array.isArray(h.ranges)
-          ? h.ranges
-              .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object')
-              .map((r) => ({ start: String(r.start ?? ''), end: String(r.end ?? '') }))
-          : [],
-      }))
-      .filter((h) => /^\d{4}-\d{2}-\d{2}$/.test(h.date))
-    return {
-      timezone,
-      weekly: weekly as ServiceSchedule['weekly'],
-      holidays,
-      openMessage: typeof doc.openMessage === 'string' ? doc.openMessage : '当前服务中',
-      closedMessage: typeof doc.closedMessage === 'string' ? doc.closedMessage : '当前非服务时段',
-    }
-  } catch {
-    return null
-  }
-}
+import { mapGlobalToSchedule, resolveServiceStatus } from '@/domain/advisor-availability'
 
 /** 把 nextOpenAt ISO 格式化为可读中文时间（Asia/Shanghai） */
 function formatNextOpenAt(iso: string): string {
@@ -75,8 +31,7 @@ export default async function AdvisorAvailability() {
   try {
     const payload = await getPayload({ config })
     const doc = await payload.findGlobal({ slug: 'advisor-service-hours', depth: 1, overrideAccess: true })
-    const schedule = toServiceSchedule(doc as unknown as Record<string, unknown>)
-    if (!schedule) return null
+    const schedule = mapGlobalToSchedule(doc as unknown as Record<string, unknown>)
     const status = resolveServiceStatus(schedule, new Date().toISOString())
     return (
       <div className="advisor-availability" data-state={status.state}>

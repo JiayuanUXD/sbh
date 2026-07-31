@@ -115,6 +115,12 @@ export type InquiryRequest = Readonly<{
   }>
   priceSnapshot: InquiryPriceSnapshot | null
   activeSupplyGroup: InquirySupplyGroup | null
+  /** P2：偏好看房时段（待顾问确认）；形状校验在此，服务时段有效性在路由复核 */
+  viewingPreference: Readonly<{
+    startsAt: string
+    endsAt: string
+    timezone: string
+  }> | null
 }>
 
 export type ValidationResult =
@@ -249,6 +255,10 @@ export function validateInquiry(input: unknown): ValidationResult {
   const activeSupplyGroupResult = sanitizeSupplyGroup(input.activeSupplyGroup)
   if (!activeSupplyGroupResult.ok) errors.push('active_supply_group_invalid')
 
+  // ----- viewingPreference（选填；仅形状校验，服务时段有效性由路由复核） -----
+  const viewingPreferenceResult = sanitizeViewingPreference(input.viewingPreference)
+  if (!viewingPreferenceResult.ok) errors.push('viewing_preference_invalid')
+
   if (errors.length > 0) {
     return { ok: false, errors }
   }
@@ -266,6 +276,7 @@ export function validateInquiry(input: unknown): ValidationResult {
   const trimmedPageType = trimString(source.pageType) as SourcePageType
   const priceSnapshot = priceSnapshotResult.ok ? priceSnapshotResult.data : null
   const activeSupplyGroup = activeSupplyGroupResult.ok ? activeSupplyGroupResult.data : null
+  const viewingPreference = viewingPreferenceResult.ok ? viewingPreferenceResult.data : null
 
   return {
     ok: true,
@@ -293,8 +304,33 @@ export function validateInquiry(input: unknown): ValidationResult {
       },
       priceSnapshot,
       activeSupplyGroup,
+      viewingPreference,
     },
   }
+}
+
+/**
+ * 形状校验偏好看房时段：startsAt/endsAt 为合法 ISO、timezone 非空字符串。
+ * 不校验服务时段有效性（由路由用 AdvisorServiceHours 复核）。
+ * 缺省（未选时段）返回 { ok:true, data:null }。
+ */
+function sanitizeViewingPreference(
+  value: unknown,
+): { ok: true; data: { startsAt: string; endsAt: string; timezone: string } | null } | { ok: false } {
+  if (value === undefined || value === null) return { ok: true, data: null }
+  if (!isObject(value)) return { ok: false }
+  const startsAt = value.startsAt
+  const endsAt = value.endsAt
+  const timezone = value.timezone
+  if (typeof startsAt !== 'string' || typeof endsAt !== 'string' || typeof timezone !== 'string') {
+    return { ok: false }
+  }
+  if (timezone.length === 0 || timezone.length > 64) return { ok: false }
+  const startMs = Date.parse(startsAt)
+  const endMs = Date.parse(endsAt)
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return { ok: false }
+  if (endMs <= startMs) return { ok: false }
+  return { ok: true, data: { startsAt, endsAt, timezone } }
 }
 
 // ---------------------------------------------------------------------------

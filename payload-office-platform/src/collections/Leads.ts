@@ -627,6 +627,30 @@ export const Leads: CollectionConfig = {
                 description: '前台生成的请求唯一标识，用于日志关联与幂等键计算。',
               },
             },
+            {
+              // P2 Task 4：偏好看房时段。status 恒为 pending-confirmation；
+              // P2 不建实时日历锁位，顾问在后台确认后另行流转。
+              name: 'viewingPreference',
+              label: '偏好看房时段（待顾问确认）',
+              type: 'group',
+              admin: {
+                readOnly: true,
+                description:
+                  '用户在询盘时选择的偏好看房时段，服务端已复核落在平台服务时间内。始终为“待顾问确认”，不代表已确认预约。',
+              },
+              fields: [
+                { name: 'startsAt', label: '开始时间', type: 'date', admin: { readOnly: true } },
+                { name: 'endsAt', label: '结束时间', type: 'date', admin: { readOnly: true } },
+                { name: 'timezone', label: '时区', type: 'text', admin: { readOnly: true } },
+                {
+                  name: 'status',
+                  label: '状态',
+                  type: 'select',
+                  options: [{ label: '待顾问确认', value: 'pending-confirmation' }],
+                  admin: { readOnly: true },
+                },
+              ],
+            },
           ],
         },
       ],
