@@ -221,9 +221,10 @@ async function seedMedia() {
       gallery?: Array<{ image: number }>
       mediaItems?: Array<{
         resource: number
-        kind: 'image' | 'video'
+        kind: 'image' | 'floor-plan' | 'video'
         category: 'exterior' | 'common-area' | 'workspace' | 'meeting-room'
         alt: string
+        isSchematic?: boolean
       }>
     } = {}
 
@@ -249,6 +250,14 @@ async function seedMedia() {
         { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
         { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
         { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+      ]
+    } else if (listing.slug === 'media-rich-listing') {
+      // P1 Task 4：图片 + 视频 + 平面图（示意图）三类媒体，供 detail-media E2E 验证。
+      update.mediaItems = [
+        { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
+        { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+        { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
+        { resource: galleryMedia[2].id, kind: 'floor-plan', category: 'workspace', alt: '平面图示意图', isSchematic: true },
       ]
     } else {
       update.mediaItems = []

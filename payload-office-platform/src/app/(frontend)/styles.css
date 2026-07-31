@@ -3114,3 +3114,59 @@ ol {
     grid-template-columns: 1fr;
   }
 }
+
+/* P1 Task 4：详情媒体分类 Tab 与平面图示意声明 */
+.detail-gallery__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--color-line);
+  margin-bottom: var(--sp-3);
+  grid-column: 1 / -1;
+}
+
+.detail-gallery__tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--color-muted);
+  font-size: var(--fs-14);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.detail-gallery__tab:hover {
+  color: var(--color-ink-2);
+}
+
+.detail-gallery__tab:focus-visible {
+  outline: 2px solid var(--color-copper);
+  outline-offset: 2px;
+}
+
+.detail-gallery__tab[data-active] {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-copper);
+  font-weight: 600;
+}
+
+.detail-gallery__panel {
+  display: contents;
+}
+
+.detail-gallery__schematic-note {
+  display: block;
+  margin-top: var(--sp-1);
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+}
+
+.detail-gallery__schematic-declaration {
+  grid-column: 1 / -1;
+  margin: var(--sp-2) 0 0;
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+  font-style: italic;
+}

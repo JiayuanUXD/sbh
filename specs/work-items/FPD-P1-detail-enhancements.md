@@ -38,7 +38,7 @@
 - [x] Task 1：建立 P1 任务包和位置服务契约（`contracts.ts` / `index.ts`）。
 - [x] Task 2：实现高德 POI provider 和缓存。
 - [x] Task 3：增加延迟地图和静态降级。
-- [ ] Task 4：完成视频和平面图媒体体验。
+- [x] Task 4：完成视频和平面图媒体体验。
 - [ ] Task 5：实现 canonical 分享和本地收藏。
 - [ ] Task 6：实现可审计信息纠错。
 - [ ] Task 7：P1 全量验证和证据。
@@ -54,6 +54,7 @@
 
 ## 8. 结果
 
-- 进行中：Task 1-3 已完成。契约 5 tests + provider/缓存 13 tests PASS（合计全量 2244 PASS）、typecheck PASS、lint PASS（0 error）。
+- 进行中：Task 1-4 已完成。契约 5 tests + provider/缓存 13 tests PASS（合计全量 2244 PASS）、typecheck PASS、lint PASS（0 error）。
   Task 3 详情页位置交通：amap-map-loader（点击加载 SDK、5s 超时）、AmapMapCanvas（失败兜底）、LocationPanel（地址/最近地铁/复制地址/高德外链 + POI 分类 tab）、location-pois 服务端聚合；e2e 2 passed（地图失败兜底 + 进入视口前不加载 SDK）、typecheck PASS、lint 0 error。
   注：本地 sbh_dev 曾落后 6 个 migration（0728-0731）导致 detail 页 500，已重建库 fresh migrate + seed 修复。
+  Task 4 视频和平面图媒体体验：DetailGallery 重构为分类 Tab（图片/视频/平面图，仅非空分类渲染 Tab，默认图片）、DetailVideo 延迟挂载（preload="none"、无 autoplay，仅在切到「视频」Tab 后挂载）、平面图示意图声明（figcaption 注 + 面板底部 note）；左右键翻页仅图片分类生效，视频对话框无上/下一张。seed 增 media-rich-listing（2 图片 + 1 视频 + 1 平面图，三类齐全）并补 listing-merchant-relations 使其通过有效供给精筛。e2e detail-media 3 passed（默认图片无 video + 视频延迟挂载不自动播放 + 平面图示意声明）、detail-pages 22 passed（媒体 Tab 适配 + 楼盘供给 count 3→4）、detail-location 2 passed、disabled-supply/frontend-journey/inquiry-flow 16 passed；typecheck PASS、lint 0 error。
