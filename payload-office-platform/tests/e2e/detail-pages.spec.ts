@@ -193,7 +193,10 @@ test.describe('房源详情 P0', () => {
     // 单个视频项：对话框无上一张/下一张翻页按钮
     await expect(dialog.getByRole('button', { name: '下一张媒体' })).toHaveCount(0)
 
-    await close.focus()
+    // 等待对话框 effect 的 rAF 初始聚焦关闭按钮：这同时保证 effect 已注册 keydown
+    // 焦点循环处理（handler 先于 rAF 注册），避免在套件负载下 press 早于 handler 注册
+    // 导致 Shift+Tab 焦点循环不触发、视频控件拿不到焦点。
+    await expect(close).toBeFocused()
     await close.press('Shift+Tab')
     await expect(video).toBeFocused()
     await video.press('Tab')
