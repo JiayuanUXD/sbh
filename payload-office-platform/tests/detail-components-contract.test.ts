@@ -48,12 +48,24 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
 const LEASE_ONLY_SNAPSHOT: BuildingSupplySnapshot = {
   asOf: '2026-07-30T10:00:00.000Z',
   totalEffectiveListings: 1,
+  resultCount: 1,
   validationErrors: [],
   groups: [
-    { key: 'lease', listings: [makeCard()], priceRanges: [] },
-    { key: 'sale', listings: [], priceRanges: [] },
-    { key: 'coworking', listings: [], priceRanges: [] },
+    {
+      key: 'lease',
+      listings: [makeCard()],
+      priceRanges: [],
+      areaRange: { min: 101, max: 101 },
+      immediateAvailabilityCount: 1,
+    },
   ],
+  availableGroups: [{
+    key: 'lease',
+    totalEffectiveListings: 1,
+    priceRanges: [],
+    areaRange: { min: 101, max: 101 },
+    immediateAvailabilityCount: 1,
+  }],
 }
 
 describe('detail component contracts', () => {
@@ -191,7 +203,7 @@ describe('detail component contracts', () => {
     expect(html).toContain('估算')
   })
 
-  it('供给组是原生 GET 筛选按钮，不伪装为 ARIA tab，并暴露当前筛选', () => {
+  it('供给组使用原生 GET 筛选按钮，桌面服务端默认输出紧凑表格', () => {
     const html = renderToStaticMarkup(
       createElement(BuildingSupplyBrowser, {
         snapshot: LEASE_ONLY_SNAPSHOT,
@@ -209,11 +221,46 @@ describe('detail component contracts', () => {
     expect(html).toContain('aria-pressed="true"')
     expect(html).toContain('卡片视图')
     expect(html).toContain('表格视图')
-    expect(html).not.toContain('<table')
+    expect(html).toContain('<table')
     expect(html).toContain('出租')
     expect(html).toContain('价格面议')
     expect(html).not.toContain('出售')
     expect(html).not.toContain('联合办公')
+  })
+
+  it('group query 只收窄结果区，未筛选非空业务组仍保留可提交入口', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot: {
+          ...LEASE_ONLY_SNAPSHOT,
+          totalEffectiveListings: 3,
+          availableGroups: [
+            ...LEASE_ONLY_SNAPSHOT.availableGroups,
+            {
+              key: 'sale',
+              totalEffectiveListings: 1,
+              priceRanges: [],
+              areaRange: { min: 200, max: 200 },
+              immediateAvailabilityCount: 1,
+            },
+            {
+              key: 'coworking',
+              totalEffectiveListings: 1,
+              priceRanges: [],
+              areaRange: { min: 60, max: 60 },
+              immediateAvailabilityCount: 1,
+            },
+          ],
+        },
+        input: { group: 'lease' },
+      }),
+    )
+
+    expect(html).toContain('data-supply-tab="lease"')
+    expect(html).toContain('data-supply-tab="sale"')
+    expect(html).toContain('data-supply-tab="coworking"')
+    expect(html).toContain('aria-label="按出售筛选"')
+    expect(html).toContain('aria-label="按联合办公筛选"')
   })
 
   it('价格排序缺少单位时显示可访问的降级说明，同时保留已选排序', () => {

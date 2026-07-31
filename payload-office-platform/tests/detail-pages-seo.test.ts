@@ -78,8 +78,10 @@ function makeBuilding(overrides: Partial<BuildingDetailViewModel> = {}): Buildin
 const EMPTY_SUPPLY: BuildingSupplySnapshot = {
   asOf: '2026-07-30T10:00:00.000Z',
   totalEffectiveListings: 0,
+  resultCount: 0,
   validationErrors: [],
   groups: [],
+  availableGroups: [],
 }
 
 describe('detail metadata and JSON-LD', () => {
@@ -94,10 +96,33 @@ describe('detail metadata and JSON-LD', () => {
     const supply: BuildingSupplySnapshot = {
       ...EMPTY_SUPPLY,
       totalEffectiveListings: 5,
+      resultCount: 0,
       groups: [
         {
           key: 'lease',
           listings: [],
+          priceRanges: [
+            {
+              key: 'lease:CNY:day:sqm',
+              businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm',
+              displayUnit: 'rmb-sqm-day', min: 7, max: 9, count: 2,
+            },
+            {
+              key: 'lease:CNY:month:total',
+              businessType: 'lease', currency: 'CNY', period: 'month', basis: 'total',
+              displayUnit: 'rmb-month', min: 12000, max: 15000, count: 3,
+            },
+          ],
+          areaRange: null,
+          immediateAvailabilityCount: 0,
+        },
+      ],
+      availableGroups: [
+        {
+          key: 'lease',
+          totalEffectiveListings: 5,
+          areaRange: null,
+          immediateAvailabilityCount: 0,
           priceRanges: [
             {
               key: 'lease:CNY:day:sqm',
@@ -121,6 +146,43 @@ describe('detail metadata and JSON-LD', () => {
       expect.objectContaining({ lowPrice: 7, highPrice: 9, offerCount: 2 }),
       expect.objectContaining({ lowPrice: 12000, highPrice: 15000, offerCount: 3 }),
     ]))
+  })
+
+  it('楼盘 AggregateOffer 只使用未筛选统一公开聚合，不随结果行变化', () => {
+    const availableGroups: BuildingSupplySnapshot['availableGroups'] = [
+      {
+        key: 'lease',
+        totalEffectiveListings: 2,
+        areaRange: { min: 80, max: 180 },
+        immediateAvailabilityCount: 1,
+        priceRanges: [{
+          key: 'lease:CNY:day:sqm',
+          businessType: 'lease',
+          currency: 'CNY',
+          period: 'day',
+          basis: 'sqm',
+          displayUnit: 'rmb-sqm-day',
+          min: 7,
+          max: 9,
+          count: 2,
+        }],
+      },
+    ]
+    const unfiltered: BuildingSupplySnapshot = {
+      ...EMPTY_SUPPLY,
+      totalEffectiveListings: 2,
+      resultCount: 2,
+      groups: [],
+      availableGroups,
+    }
+    const filtered: BuildingSupplySnapshot = {
+      ...unfiltered,
+      resultCount: 0,
+      groups: [],
+    }
+
+    expect(buildBuildingJsonLd(makeBuilding(), filtered, ORIGIN).offers)
+      .toEqual(buildBuildingJsonLd(makeBuilding(), unfiltered, ORIGIN).offers)
   })
 
   it('metadata 使用 validated origin、canonical、公开封面与 BreadcrumbList', () => {

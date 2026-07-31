@@ -230,6 +230,33 @@ describe('POST /api/inquiries / 正常提交', () => {
     })
   })
 
+  it('source query/hash 中的手机号不会进入持久化或日志', async () => {
+    const injectedPhone = '13900009999'
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({
+      body: makeValidBody({
+        source: {
+          pageType: 'listing',
+          path: `/listings/jingan-center-100-monthly?phone=${injectedPhone}#contact=${injectedPhone}`,
+          campaign: {},
+        },
+      }),
+    }))
+
+    expect(r.status).toBe(200)
+    expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourcePath: '/listings/jingan-center-100-monthly',
+        sourceUrl: expect.stringMatching(/\/listings\/jingan-center-100-monthly$/),
+      }),
+    }))
+    expect(JSON.stringify(payloadCreateMock.mock.calls)).not.toContain(injectedPhone)
+    expect(JSON.stringify(payloadLoggerInfo.mock.calls)).not.toContain(injectedPhone)
+  })
+
   it('仅持久化白名单详情上下文和非权威价格快照', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     payloadCreateMock.mockResolvedValue({ id: 1 })
@@ -388,6 +415,45 @@ describe('POST /api/inquiries / 幂等', () => {
     await run(makeReq({ body: makeValidBody() }))
     expect(assertEffectiveListingMock).not.toHaveBeenCalled()
   })
+
+  it('两个并发首提发生唯一约束竞争时都返回首次成功语义且只创建一条 Lead', async () => {
+    let leadFindCount = 0
+    let persistedLeadCount = 0
+    payloadFindMock.mockImplementation(async (args: { collection?: string }) => {
+      if (args.collection !== 'leads') return { docs: [] }
+      leadFindCount += 1
+      return leadFindCount <= 2
+        ? { docs: [] }
+        : { docs: [{ id: 1, targetType: 'listing' }] }
+    })
+    payloadCreateMock
+      .mockImplementationOnce(async () => {
+        persistedLeadCount += 1
+        return { id: 1 }
+      })
+      .mockRejectedValueOnce(Object.assign(new Error('duplicate key'), {
+        code: '23505',
+        constraint: 'leads_idempotency_key_idx',
+      }))
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const body = makeValidBody()
+    const [first, second] = await Promise.all([
+      run(makeReq({ body })),
+      run(makeReq({ body })),
+    ])
+
+    expect([first.status, second.status]).toEqual([200, 200])
+    expect(first.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(second.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(payloadCreateMock).toHaveBeenCalledTimes(2)
+    expect(persistedLeadCount).toBe(1)
+    expect(payloadFindMock).toHaveBeenCalledTimes(3)
+    expect(payloadLoggerInfo).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotent: true }),
+      'inquiry_idempotent_hit',
+    )
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -396,7 +462,11 @@ describe('POST /api/inquiries / 幂等', () => {
 
 describe('POST /api/inquiries / 失效房源', () => {
   it('房源失效但楼盘仍有效时创建楼盘需求', async () => {
-    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadFindMock.mockImplementation(async (args: { collection?: string }) =>
+      args.collection === 'listings'
+        ? { docs: [{ building: { slug: 'bund-soho' } }] }
+        : { docs: [] },
+    )
     assertEffectiveListingMock.mockResolvedValue(null)
     assertEffectiveBuildingMock.mockResolvedValue({ id: 88, slug: 'bund-soho' })
 
@@ -416,7 +486,11 @@ describe('POST /api/inquiries / 失效房源', () => {
   })
 
   it('房源和楼盘均失效时创建通用需求', async () => {
-    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadFindMock.mockImplementation(async (args: { collection?: string }) =>
+      args.collection === 'listings'
+        ? { docs: [{ building: { slug: 'bund-soho' } }] }
+        : { docs: [] },
+    )
     assertEffectiveListingMock.mockResolvedValue(null)
     assertEffectiveBuildingMock.mockResolvedValue(null)
     payloadCreateMock.mockResolvedValue({ id: 1 })
@@ -436,8 +510,39 @@ describe('POST /api/inquiries / 失效房源', () => {
     }))
   })
 
+  it('房源失效时忽略客户端伪造的楼盘 slug，降级为通用需求', async () => {
+    payloadFindMock.mockImplementation(async (args: { collection?: string }) =>
+      args.collection === 'listings'
+        ? { docs: [{ building: { slug: 'real-building' } }] }
+        : { docs: [] },
+    )
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue(null)
+
+    const r = await run(makeReq({
+      body: makeValidBody({
+        listingSlug: 'expired',
+        buildingSlug: 'forged-building',
+      }),
+    }))
+
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'general' })
+    expect(assertEffectiveBuildingMock).not.toHaveBeenCalled()
+    expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        targetType: 'none',
+        targetBuildingSlug: null,
+      }),
+    }))
+  })
+
   it('目标降级日志不包含价格、筛选、姓名、手机号或备注', async () => {
-    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadFindMock.mockImplementation(async (args: { collection?: string }) =>
+      args.collection === 'listings'
+        ? { docs: [{ building: { slug: 'bund-soho' } }] }
+        : { docs: [] },
+    )
     assertEffectiveListingMock.mockResolvedValue(null)
     assertEffectiveBuildingMock.mockResolvedValue({ id: 88, slug: 'bund-soho' })
     payloadCreateMock.mockResolvedValue({ id: 1 })

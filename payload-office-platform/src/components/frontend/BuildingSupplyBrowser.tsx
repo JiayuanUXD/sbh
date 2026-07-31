@@ -82,7 +82,7 @@ export function getSupplyFilterAnalyticsProps(
     sort,
     ...(priceUnit ? { price_unit: priceUnit } : {}),
     ...(decorationStatus ? { decoration_status: decorationStatus } : {}),
-    result_count: snapshot.totalEffectiveListings,
+    result_count: snapshot.resultCount,
     as_of: snapshot.asOf,
     filter_completeness: filterCompleteness,
   }
@@ -94,8 +94,9 @@ export function getSupplyFilterAnalyticsProps(
  */
 export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {} }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
+  const availableGroups = snapshot.availableGroups.filter((group) => group.totalEffectiveListings > 0)
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards')
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table')
   const [isMobile, setIsMobile] = useState(false)
 
   // The view selector is purely presentational. Supply/filter state remains
@@ -194,7 +195,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
           className="building-supply-browser__tabs"
           aria-label={input.group ? '按供给类型筛选' : '按供给类型筛选，当前显示全部供给类型'}
         >
-          {groups.map((group) => {
+          {availableGroups.map((group) => {
             const isCurrent = input.group === group.key
             const label = GROUP_LABEL[group.key]
             return (
@@ -214,7 +215,11 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
         </nav>
       </form>
 
-      {groups.length === 0 ? <p className="building-supply-browser__empty">当前暂无公开可选空间</p> : (
+      {groups.length === 0 ? (
+        <p className="building-supply-browser__empty">
+          {availableGroups.length === 0 ? '当前暂无公开可选空间' : '当前筛选下暂无匹配空间'}
+        </p>
+      ) : (
         <>
           {!isMobile && (
             <div className="building-supply-browser__view-toggle" role="group" aria-label="供给展示方式">

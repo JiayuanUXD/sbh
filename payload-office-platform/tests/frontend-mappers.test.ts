@@ -38,6 +38,7 @@ import {
   LISTING_SEAT_PER_MONTH,
   MEDIA_BROKEN,
   MEDIA_COVER_A,
+  MEDIA_GALLERY_1,
 } from '@/test/frontend/payload-documents'
 
 // ---------------------------------------------------------------------------
@@ -515,6 +516,33 @@ describe('mapListingDetail', () => {
     expect(detail).toMatchObject({ businessType: 'sale', decorationStatus: 'fully_fitted' })
   })
 
+  it('公开事实覆盖 P0 房源楼层、装修、入驻、租期、付款和核验更新时间', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      floor: '18F',
+      decorationStatus: 'fully_fitted',
+      availableFrom: '2026-08-01T00:00:00.000Z',
+      minimumLeaseMonths: 24,
+      paymentTerms: '押三付一',
+      registrationStatus: 'conditional',
+      verificationInfo: {
+        verifiedAt: '2026-07-20T00:00:00.000Z',
+        priceVerifiedAt: '2026-07-21T00:00:00.000Z',
+      },
+    })
+    const facts = detail?.factGroups.flatMap((group) => group.facts) ?? []
+    expect(facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: '房源楼层', value: '18F' }),
+      expect.objectContaining({ label: '装修', value: '拎包入住' }),
+      expect.objectContaining({ label: '可入驻日期', value: '2026-08-01T00:00:00.000Z' }),
+      expect.objectContaining({ label: '最短租期', value: '24 个月' }),
+      expect.objectContaining({ label: '付款方式', value: '押三付一' }),
+      expect.objectContaining({ label: '注册', value: '有条件注册' }),
+      expect.objectContaining({ label: '信息核验时间', value: '2026-07-20T00:00:00.000Z' }),
+      expect.objectContaining({ label: '价格核验时间', value: '2026-07-21T00:00:00.000Z' }),
+    ]))
+  })
+
   it('在卡片字段上增加画廊、楼盘摘要和富文本说明', () => {
     const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)
     expect(detail).not.toBeNull()
@@ -525,29 +553,38 @@ describe('mapListingDetail', () => {
     expect(detail?.gallery[0].src).toBe('/media/cover-jingan-center.jpg')
   })
 
-  it('画廊合并房源 coverImage 与楼盘 gallery（去重）', () => {
-    const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)
-    expect(detail?.gallery.length).toBe(3) // 1 张 cover + 2 张楼盘 gallery
+  it('legacy 画廊只合并房源 coverImage 与房源 gallery（去重）', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      gallery: [
+        { image: MEDIA_COVER_A, id: 'listing-duplicate-cover' },
+        { image: MEDIA_GALLERY_1, id: 'listing-gallery-1' },
+      ],
+    })
+    expect(detail?.gallery.length).toBe(2)
     const srcs = detail?.gallery.map((g) => g.src)
     expect(srcs).toContain('/media/cover-jingan-center.jpg')
     expect(srcs).toContain('/media/lobby.jpg')
-    expect(srcs).toContain('/media/meeting-room.jpg')
+    expect(srcs).not.toContain('/media/meeting-room.jpg')
     // 不应重复
     expect(new Set(srcs).size).toBe(srcs?.length)
   })
 
-  it('房源无 coverImage 时使用楼盘 gallery', () => {
-    const detail = mapListingDetail(LISTING_DAILY_PER_SQM)
-    // 浦东大厦 coverImage=1002（id）→ mapMedia 返回 null → gallery 来自楼盘 gallery
-    // BUILDING_PUDONG_FLAT.gallery=null，所以 gallery 应为空数组
+  it('房源没有自有媒体时不得以楼盘 gallery 冒充房源媒体', () => {
+    const detail = mapListingDetail({
+      ...LISTING_MONTHLY_STANDARD,
+      coverImage: null,
+      gallery: null,
+    })
     expect(detail?.gallery).toEqual([])
   })
 
   it('重复 src 被去重', () => {
-    // 构造一个 coverImage 与楼盘 gallery 首图相同的场景
+    // 构造一个 coverImage 与房源 gallery 首图相同的场景
     const listingWithDupCover: typeof LISTING_MONTHLY_STANDARD = {
       ...LISTING_MONTHLY_STANDARD,
-      coverImage: MEDIA_COVER_A, // 与 BUILDING_JINGAN_CENTER.coverImage 相同
+      coverImage: MEDIA_COVER_A,
+      gallery: [{ image: MEDIA_COVER_A, id: 'same-as-cover' }],
     }
     const detail = mapListingDetail(listingWithDupCover)
     const srcs = detail?.gallery.map((g) => g.src)
@@ -567,6 +604,54 @@ describe('mapListingDetail', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapBuildingDetail', () => {
+  it('认证按同一 asOf 过滤公开状态和有效期', () => {
+    const b = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      certifications: [
+        { name: '未来认证', publicVisible: true, validFrom: '2026-08-01T00:00:00.000Z' },
+        { name: '当前认证', publicVisible: true, validFrom: '2026-01-01T00:00:00.000Z', validTo: '2026-08-01T00:00:00.000Z' },
+        { name: '已过期认证', publicVisible: true, validTo: '2026-07-01T00:00:00.000Z' },
+        { name: '内部认证', publicVisible: false },
+      ],
+    }, '2026-07-30T00:00:00.000Z')
+    expect(b?.amenityGroups.find((group) => group.id === 'certifications')?.items)
+      .toEqual(['当前认证'])
+  })
+
+  it('公开事实覆盖 P0 楼盘身份、建筑、物业、停车和注册能力且不混入房源事实', () => {
+    const b = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      buildingType: 'office_building',
+      grade: 'grade-a',
+      registrationCapability: 'supported',
+      completionDate: '2020-01-01T00:00:00.000Z',
+      totalFloors: 32,
+      propertyCompany: '测试物业',
+      propertyFee: 28,
+      parkingSpaces: 300,
+      floor: '18F',
+      decorationStatus: 'fully_fitted',
+      minimumLeaseMonths: 24,
+    })
+    expect(b).toMatchObject({ buildingType: 'office_building', grade: 'grade-a' })
+    const facts = b?.factGroups.flatMap((group) => group.facts) ?? []
+    expect(facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: '物业类型', value: '写字楼' }),
+      expect.objectContaining({ label: '楼宇等级', value: '甲级' }),
+      expect.objectContaining({ label: '注册能力', value: '支持注册' }),
+      expect.objectContaining({ label: '竣工时间', value: '2020-01-01T00:00:00.000Z' }),
+      expect.objectContaining({ label: '总楼层', value: '32 层' }),
+      expect.objectContaining({ label: '物业公司', value: '测试物业' }),
+      expect.objectContaining({ label: '物业费', value: '28 元/㎡/月' }),
+      expect.objectContaining({ label: '停车位', value: '300 个' }),
+    ]))
+    expect(facts.map((item) => item.label)).not.toEqual(expect.arrayContaining([
+      '房源楼层',
+      '装修',
+      '最短租期',
+    ]))
+  })
+
   it('仅公开楼盘媒体的闭合分类', () => {
     const detail = mapBuildingDetail({
       ...BUILDING_JINGAN_CENTER,

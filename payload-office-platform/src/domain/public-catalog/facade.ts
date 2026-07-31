@@ -280,7 +280,7 @@ export async function getBuildingBySlug(
 ): Promise<BuildingDetailViewModel | null> {
   const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!raw) return null
-  return mapBuildingDetail(raw)
+  return mapBuildingDetail(raw, ctx.asOf)
 }
 
 /**
@@ -315,7 +315,7 @@ export async function getBuildingDetail(
   if (!buildingRaw) {
     return { building: null, supply: emptyBuildingSupplySnapshot(ctx.asOf) }
   }
-  const building = mapBuildingDetail(buildingRaw)
+  const building = mapBuildingDetail(buildingRaw, ctx.asOf)
   const listingsRaw = await adapter.findEffectiveListingsByBuilding(
     buildingRaw.id,
     ctx,
@@ -433,7 +433,7 @@ export async function assertEffectiveBuilding(
 ): Promise<BuildingDetailViewModel | null> {
   const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!raw) return null
-  return mapBuildingDetail(raw)
+  return mapBuildingDetail(raw, ctx.asOf)
 }
 
 /**

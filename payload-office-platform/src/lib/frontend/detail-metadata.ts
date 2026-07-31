@@ -230,7 +230,7 @@ function aggregateOffers(snapshot: BuildingSupplySnapshot): readonly AggregateOf
   if (snapshot.totalEffectiveListings <= 0) return []
 
   const byPriceKey = new Map<string, BuildingSupplyPriceRange>()
-  for (const group of snapshot.groups) {
+  for (const group of snapshot.availableGroups) {
     for (const range of group.priceRanges) {
       if (!isAggregateRange(range)) continue
       const previous = byPriceKey.get(range.key)

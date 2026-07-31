@@ -1410,6 +1410,68 @@ ol {
   grid-column: span 5;
 }
 
+.building-supply-overview {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.building-supply-overview > h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--fs-16);
+}
+
+.building-supply-overview__groups {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.building-supply-overview__group {
+  padding: var(--sp-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-paper);
+}
+
+.building-supply-overview__group h3 {
+  margin: 0 0 var(--sp-2);
+  color: var(--color-ink);
+  font-size: var(--fs-14);
+}
+
+.building-supply-overview__group dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.building-supply-overview__group dt {
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+}
+
+.building-supply-overview__group dd {
+  margin: var(--sp-1) 0 0;
+  color: var(--color-ink);
+  font-family: var(--font-numeric);
+  font-size: var(--fs-14);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.detail__decision-title {
+  margin: 0;
+  color: var(--color-ink-2);
+  line-height: var(--lh-relaxed);
+}
+
+@media (max-width: 1199px) {
+  .detail__summary {
+    grid-column: 1;
+  }
+}
+
 .detail__type {
   color: var(--color-copper);
   font-size: var(--fs-13);
@@ -1769,6 +1831,10 @@ ol {
 }
 
 @media (max-width: 767px) {
+  .building-supply-overview__group dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .detail__mobile-bar {
     position: fixed;
     bottom: 0;

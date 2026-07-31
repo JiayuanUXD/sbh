@@ -29,9 +29,18 @@ import type { Building, Listing, Location, Page } from '@/payload-types'
 import {
   getEffectiveSupplyWhere,
   getPausedListingIds,
+  isListingEffectivelySupplied,
   type PayloadQueryPort,
 } from '@/domain/review/effective-supply'
-import { resolveEffectiveSupply } from '@/domain/review/effective-supply-snapshot'
+import {
+  buildEffectiveSnapshot,
+  toId,
+} from '@/domain/review/effective-supply-snapshot'
+import {
+  getPublicBuildingWhere,
+  isPublicBuilding,
+} from '@/domain/supply/public-building'
+import { toRelationPeriod } from '@/domain/supply/building-merchant-relation'
 import type { SearchContext, ListingSearchInput } from './types'
 
 /**
@@ -142,6 +151,8 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 // ---------------------------------------------------------------------------
 
 const QUERY_PAGE_SIZE = 200
+export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
+const RELATED_BUILDING_CANDIDATE_LIMIT = 500
 
 function proximitySquared(a: Building, b: Building): number | null {
   if (
@@ -207,27 +218,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         page,
       })
       docs.push(...(result.docs as Listing[]))
+      if (docs.length >= PUBLIC_CATALOG_CANDIDATE_LIMIT) {
+        return docs.slice(0, PUBLIC_CATALOG_CANDIDATE_LIMIT)
+      }
       if (!result.hasNextPage || result.nextPage == null) return docs
       return readPage(result.nextPage, docs)
     }
     return readPage(1, [])
-  }
-
-  function publicBuildingWhere(): Record<string, unknown> {
-    return {
-      operationalStatus: { equals: 'active' },
-      status: { equals: 'published' },
-      deletedAt: { exists: false },
-    }
-  }
-
-  function isPublicBuilding(building: Building | null | undefined): building is Building {
-    return Boolean(
-      building &&
-      building.operationalStatus === 'active' &&
-      building.status === 'published' &&
-      !building.deletedAt,
-    )
   }
 
   function relationId(value: unknown): number | string | null {
@@ -252,8 +249,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     const result = await payload.find({
       collection: 'buildings',
       where: { 'district.slug': { in: [...districtSlugs] } },
-      limit: 200,
-      pagination: false,
+      limit: PUBLIC_CATALOG_CANDIDATE_LIMIT,
     })
     return result.docs.map((d) => d.id)
   }
@@ -278,18 +274,90 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    * 对候选文档逐条跑精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保留 eligible。
    * 文档需 depth≥1 已展开 building / merchant。
    */
+  type ActiveRelation = Readonly<{
+    period: ReturnType<typeof toRelationPeriod>
+    merchant: Record<string, unknown> | null
+  }>
+
+  async function loadActiveRelations(
+    docs: readonly Record<string, unknown>[],
+    asOf: Date,
+  ): Promise<Map<string, ActiveRelation>> {
+    const payload = await getPayload()
+    const listingIds = docs
+      .map((doc) => toId(doc.id))
+      .filter((id): id is number | string => id !== null)
+    const grouped = new Map<string, ActiveRelation[]>()
+
+    if (listingIds.length > 0) {
+      const instant = asOf.toISOString()
+      const result = await payload.find({
+        collection: 'listing-merchant-relations',
+        where: {
+          and: [
+            { listing: { in: listingIds } },
+            { effectiveFrom: { less_than_equal: instant } },
+            {
+              or: [
+                { effectiveTo: { exists: false } },
+                { effectiveTo: { greater_than: instant } },
+              ],
+            },
+          ],
+        },
+        sort: '-effectiveFrom',
+        limit: listingIds.length * 2,
+        depth: 2,
+        overrideAccess: true,
+      })
+      for (const relation of result.docs as unknown as Record<string, unknown>[]) {
+        const listingId = toId(relation.listing)
+        if (listingId === null) continue
+        try {
+          const candidate: ActiveRelation = {
+            period: toRelationPeriod(
+              relation.effectiveFrom as string | Date | null | undefined,
+              relation.effectiveTo as string | Date | null | undefined,
+            ),
+            merchant:
+              typeof relation.merchant === 'object' && relation.merchant !== null
+                ? relation.merchant as Record<string, unknown>
+                : null,
+          }
+          const key = String(listingId)
+          grouped.set(key, [...(grouped.get(key) ?? []), candidate])
+        } catch {
+          // Invalid periods fail closed below.
+        }
+      }
+    }
+
+    const unique = new Map<string, ActiveRelation>()
+    for (const [listingId, relations] of grouped) {
+      if (relations.length === 1) unique.set(listingId, relations[0])
+    }
+    return unique
+  }
+
+  /**
+   * Batch-load relation and merchant data, then evaluate every candidate in memory.
+   * This keeps the exact-one-active-relation invariant without a sequential N+1.
+   */
   async function fineFilter(
     docs: readonly Record<string, unknown>[],
     asOf: Date,
   ): Promise<Listing[]> {
-    const payload = await getPayload()
+    const relations = await loadActiveRelations(docs, asOf)
     const kept: Listing[] = []
     for (const doc of docs) {
-      const supply = await resolveEffectiveSupply(
-        payload as unknown as PayloadQueryPort,
+      const listingId = toId(doc.id)
+      const relation = listingId === null ? null : relations.get(String(listingId)) ?? null
+      const snapshot = buildEffectiveSnapshot(
         doc,
-        asOf,
+        relation?.period ?? null,
+        relation?.merchant ?? {},
       )
+      const supply = isListingEffectivelySupplied(snapshot, asOf)
       if (supply.eligible) kept.push(doc as unknown as Listing)
     }
     return kept
@@ -378,7 +446,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const result = await payload.find({
         collection: 'buildings',
         where: {
-          ...publicBuildingWhere(),
+          ...getPublicBuildingWhere(),
           slug: { equals: slug },
         },
         limit: 1,
@@ -425,11 +493,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
       const result = await payload.find({
         collection: 'buildings',
-        where: { ...publicBuildingWhere(), ...locality } as unknown as Where,
+        where: { ...getPublicBuildingWhere(), ...locality } as unknown as Where,
         depth: 1,
-        // Payload pagination:false returns the complete locality-bounded result;
-        // do not add a limit before distance ranking.
-        pagination: false,
+        limit: RELATED_BUILDING_CANDIDATE_LIMIT,
         sort: 'id',
       })
       return rankRelatedBuildingsByProximity(

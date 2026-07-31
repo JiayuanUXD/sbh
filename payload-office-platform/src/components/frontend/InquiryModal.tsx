@@ -1,7 +1,12 @@
 'use client'
 
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { SourceSection } from '@/domain/inquiry/schema'
+import type {
+  InquiryCurrentFilters,
+  InquiryPriceSnapshot,
+  InquirySupplyGroup,
+  SourceSection,
+} from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
 
@@ -46,6 +51,12 @@ type Props = {
   triggerClassName?: string
   /** 可分析的产品入口区块（与询盘 schema 的枚举保持一致） */
   sourceSection?: SourceSection
+  /** 由公开 DTO 派生的非权威价格快照。 */
+  priceSnapshot?: InquiryPriceSnapshot
+  /** 当前详情供给分组。 */
+  activeSupplyGroup?: InquirySupplyGroup
+  /** 当前详情筛选，只接受 schema 白名单字段。 */
+  currentFilters?: InquiryCurrentFilters
 }
 
 export type InquiryStep = 'contact' | 'requirements' | 'success'
@@ -83,6 +94,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   source_page_type_invalid: '入口类型无效',
   source_path_required: '入口路径缺失',
   source_path_too_long: '入口路径过长',
+  source_path_invalid: '入口路径无效',
   request_id_required: '请求标识缺失',
   request_id_too_long: '请求标识过长',
   campaign_invalid: '活动参数无效',
@@ -98,6 +110,16 @@ const resolutionCopy: Record<TargetResolution, string> = {
   listing: '已记录这套房源，顾问将与您确认看房。',
   building: '该房源状态已变化，已为您登记同楼盘需求。',
   general: '目标状态已变化，已为您登记通用选址需求。',
+}
+
+export function getInquiryResolutionCopy(
+  resolution: TargetResolution,
+  pageType: PageType,
+): string {
+  if (resolution === 'building' && pageType === 'building') {
+    return '已记录这个楼盘，顾问将与您确认可选房源。'
+  }
+  return resolutionCopy[resolution]
 }
 
 export function buildInquiryMessage(teamSize: string, message: string): string {
@@ -206,6 +228,9 @@ export default function InquiryModal(props: Props) {
     targetListingSlug,
     targetBuildingSlug,
     sourceSection,
+    priceSnapshot,
+    activeSupplyGroup,
+    currentFilters,
     triggerLabel = DEFAULT_TRIGGER_LABEL,
     triggerVariant = 'primary',
     triggerClassName,
@@ -243,6 +268,7 @@ export default function InquiryModal(props: Props) {
   const titleId = useId()
   const modalId = useId()
   const consentId = useId()
+  const errorSummaryId = useId()
 
   // 入口路径（白名单化，仅 pathname，不含 query）
   const sourcePath = useMemo(() => {
@@ -330,7 +356,11 @@ export default function InquiryModal(props: Props) {
     if (focusTarget === 'requirements-heading') requirementsHeadingRef.current?.focus()
     if (focusTarget === 'contact-name') contactNameRef.current?.focus()
     if (focusTarget === 'success-heading') successHeadingRef.current?.focus()
-    if (focusTarget === 'error') feedbackRef.current?.focus()
+    if (focusTarget === 'error') {
+      const invalidField = dialogRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      if (invalidField) invalidField.focus()
+      else feedbackRef.current?.focus()
+    }
   }, [errors, open, serverError, step])
 
   function messageForRequest(): string {
@@ -380,6 +410,8 @@ export default function InquiryModal(props: Props) {
       message: messageForRequest(),
       listingSlug: targetListingSlug || undefined,
       buildingSlug: targetBuildingSlug || undefined,
+      priceSnapshot,
+      activeSupplyGroup,
       demand: {
         district: demandDistrict.trim() || undefined,
         budget: demandBudget.trim() || undefined,
@@ -394,6 +426,7 @@ export default function InquiryModal(props: Props) {
         pageType,
         path: sourcePath,
         section: sourceSection ?? null,
+        currentFilters: currentFilters ?? null,
         campaign,
       },
     }
@@ -580,7 +613,7 @@ export default function InquiryModal(props: Props) {
               <div className="modal__success" role="status" aria-live="polite">
                 <h4 ref={successHeadingRef} tabIndex={-1}>已收到你的需求</h4>
                 <p className="modal__success-detail">
-                  {resolutionCopy[targetResolution]}
+                  {getInquiryResolutionCopy(targetResolution, pageType)}
                 </p>
                 <div className="modal__footer">
                   <button
@@ -614,6 +647,11 @@ export default function InquiryModal(props: Props) {
                     autoComplete="name"
                     aria-required="true"
                     aria-invalid={errors.includes('name_required') || errors.includes('name_too_long')}
+                    aria-describedby={
+                      errors.includes('name_required') || errors.includes('name_too_long')
+                        ? errorSummaryId
+                        : undefined
+                    }
                   />
                 </label>
 
@@ -632,6 +670,7 @@ export default function InquiryModal(props: Props) {
                     maxLength={15}
                     aria-required="true"
                     aria-invalid={errors.includes('phone_invalid')}
+                    aria-describedby={errors.includes('phone_invalid') ? errorSummaryId : undefined}
                   />
                 </label>
 
@@ -648,6 +687,11 @@ export default function InquiryModal(props: Props) {
                     placeholder="如：10-20 人"
                     aria-required="true"
                     aria-invalid={errors.includes('team_size_required') || errors.includes('team_size_too_long')}
+                    aria-describedby={
+                      errors.includes('team_size_required') || errors.includes('team_size_too_long')
+                        ? errorSummaryId
+                        : undefined
+                    }
                   />
                 </label>
 
@@ -660,6 +704,7 @@ export default function InquiryModal(props: Props) {
                     required
                     aria-required="true"
                     aria-invalid={errors.includes('consent_required')}
+                    aria-describedby={errors.includes('consent_required') ? errorSummaryId : undefined}
                   />
                   <span>
                     我已阅读并同意
@@ -675,7 +720,7 @@ export default function InquiryModal(props: Props) {
                 </label>
 
                 {(errors.length > 0 || serverError) && (
-                  <div ref={feedbackRef} tabIndex={-1}>
+                  <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
                     {errors.length > 0 && (
                       <ul className="modal__error-list" role="alert" aria-live="polite">
                         {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
@@ -707,6 +752,8 @@ export default function InquiryModal(props: Props) {
                     onChange={(e) => setCompany(e.target.value)}
                     maxLength={LIMITS.COMPANY_MAX}
                     autoComplete="organization"
+                    aria-invalid={errors.includes('company_too_long')}
+                    aria-describedby={errors.includes('company_too_long') ? errorSummaryId : undefined}
                   />
                 </label>
 
@@ -734,11 +781,21 @@ export default function InquiryModal(props: Props) {
 
                 <label className="modal__label" htmlFor={`f-message-${titleId}`}>
                   留言（选填）
-                  <textarea id={`f-message-${titleId}`} className="modal__input modal__textarea" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} maxLength={LIMITS.MESSAGE_MAX} placeholder="如：希望有落地窗、可立即入驻" />
+                  <textarea
+                    id={`f-message-${titleId}`}
+                    className="modal__input modal__textarea"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={3}
+                    maxLength={LIMITS.MESSAGE_MAX}
+                    placeholder="如：希望有落地窗、可立即入驻"
+                    aria-invalid={errors.includes('message_too_long')}
+                    aria-describedby={errors.includes('message_too_long') ? errorSummaryId : undefined}
+                  />
                 </label>
 
                 {(errors.length > 0 || serverError) && (
-                  <div ref={feedbackRef} tabIndex={-1}>
+                  <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
                     {errors.length > 0 && (
                       <ul className="modal__error-list" role="alert" aria-live="polite">
                         {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}

@@ -71,6 +71,20 @@ export default async function ListingDetailPage({
         isSchematic: false,
       }))
   const rentText = listing.price?.text ?? '价格面议'
+  const inquirySupplyGroup: 'lease' | 'sale' | 'coworking' =
+    listing.listingType === 'coworking' ? 'coworking' : listing.businessType
+  const inquiryPriceSnapshot = listing.price
+    ? {
+        amount: listing.price.amount,
+        currency: listing.price.currency,
+        period: listing.price.period,
+        unit: listing.price.displayUnit,
+      } as const
+    : undefined
+  const inquiryCurrentFilters = {
+    group: inquirySupplyGroup,
+    ...(listing.price ? { priceUnit: listing.price.displayUnit } : {}),
+  } as const
   const hasAmenities = listing.amenityGroups.some((group) => group.items.length > 0)
   const anchors = [
     { id: 'overview', label: '房源概况', visible: true },
@@ -152,6 +166,9 @@ export default async function ListingDetailPage({
                 targetSummary={listing.title}
                 triggerLabel="询价 / 预约看房"
                 sourceSection="hero"
+                priceSnapshot={inquiryPriceSnapshot}
+                activeSupplyGroup={inquirySupplyGroup}
+                currentFilters={inquiryCurrentFilters}
               />
             </div>
           </div>
@@ -235,6 +252,9 @@ export default async function ListingDetailPage({
           targetSummary={listing.title}
           triggerLabel="询价 / 预约看房"
           sourceSection="mobile-bar"
+          priceSnapshot={inquiryPriceSnapshot}
+          activeSupplyGroup={inquirySupplyGroup}
+          currentFilters={inquiryCurrentFilters}
         />
       </div>
       <DetailClickAnalytics />

@@ -112,7 +112,8 @@ export function buildInquiryLogEntry(
   return {
     requestId: req.requestId,
     pageType: req.source.pageType,
-    path: req.source.path,
+    // schema 已保证 path 安全；此处仍做纵深清洗，防止手工构造对象绕过边界。
+    path: sanitizeUrlForLog(req.source.path),
     targetType: req.targetType,
     targetSlug,
     phoneMasked: maskPhone(req.phoneNormalized),

@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next'
 import { getPayload } from 'payload'
 import config from '@/payload.config'
+import type { Building } from '@/payload-types'
 import { siteConfig } from '@/lib/frontend/site-config'
-import { buildingOperationalWhere } from '@/domain/supply/building'
+import { getPublicBuildingWhere } from '@/domain/supply/public-building'
 import {
   defaultSearchContext,
   getDefaultSupplyAdapter,
@@ -27,6 +28,7 @@ const base = siteConfig.siteOrigin
  * 见 facade.ts listPublishedPages 注释：home slug 由调用方转换。
  */
 const HOME_SLUG = 'home'
+const SITEMAP_ENTITY_LIMIT = 5_000
 
 // M4.7（F1.6 收口）：listings 不再内联 `status=available` 过渡谓词，改走 Public Catalog
 // SupplyAdapter 的统一有效供给口径（查询层谓词 + 媒体/关系/商户逐条精筛），与 C 端列表 /
@@ -42,13 +44,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [listings, buildings, pages] = await Promise.all([
     adapter.findEffectiveListings(parseSearchInput(new URLSearchParams()), ctx),
     (async () => {
-      const docs = []
+      const docs: Building[] = []
       let page = 1
-      for (;;) {
+      while (docs.length < SITEMAP_ENTITY_LIMIT) {
         const result = await payload.find({
           collection: 'buildings',
-          where: { status: { equals: 'published' }, ...buildingOperationalWhere() },
-          limit: 200,
+          where: getPublicBuildingWhere(),
+          limit: Math.min(200, SITEMAP_ENTITY_LIMIT - docs.length),
           page,
           depth: 0,
           sort: 'id',
@@ -60,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       return docs
     })(),
     // F6.4：内容页通过 Public Catalog Facade 查询，与 /pages/[slug] 路由可见性一致
-    listPublishedPages(ctx),
+    listPublishedPages(ctx, { limit: SITEMAP_ENTITY_LIMIT }),
   ])
 
   const lUrls = listings.map((d) => ({

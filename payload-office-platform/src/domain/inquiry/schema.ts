@@ -8,6 +8,7 @@
  *   - 必填：name (1-50), phone (中国大陆 11 位), consent.accepted=true, consent.policyVersion, source.pageType, source.path, requestId
  *   - 选填：company (≤100), message (≤1000), listingSlug, buildingSlug, demand.{district,budget,area,moveInTime}, source.campaign
  *   - target_type 由 listingSlug / buildingSlug 派生，至少需要一个或 targetType=none
+ *   - source.path 只接受同源 pathname；query/hash 被剥离，绝对 URL、协议相对 URL 与控制字符被拒绝
  *   - 错误返回稳定安全错误码字符串数组（不抛 JS 异常、不泄露内部对象）
  *
  * 不依赖 payload / React，纯函数可独立单测。
@@ -120,6 +121,13 @@ export type ValidationResult =
   | { ok: true; data: InquiryRequest }
   | { ok: false; errors: readonly string[] }
 
+export type SourcePathResult =
+  | { ok: true; data: string }
+  | {
+      ok: false
+      error: 'source_path_required' | 'source_path_too_long' | 'source_path_invalid'
+    }
+
 /**
  * 校验并标准化询盘请求体（unknown 输入）。
  *
@@ -129,7 +137,7 @@ export type ValidationResult =
  *   - company_too_long
  *   - message_too_long
  *   - consent_required / consent_version_invalid
- *   - source_required / source_invalid / source_page_type_invalid / source_path_required / source_path_too_long
+ *   - source_required / source_invalid / source_page_type_invalid / source_path_required / source_path_too_long / source_path_invalid
  *   - request_id_required / request_id_too_long
  *   - target_invalid（listing/building slug 都缺失但 targetType 非 none）
  *   - campaign_invalid / price_snapshot_invalid / active_supply_group_invalid
@@ -187,6 +195,7 @@ export function validateInquiry(input: unknown): ValidationResult {
   const sourceRaw = input.source
   let section: SourceSection | null = null
   let currentFilters: InquiryCurrentFilters | null = null
+  let sourcePath = ''
   if (!isObject(sourceRaw)) {
     errors.push('source_required')
     errors.push('source_path_required')
@@ -203,12 +212,9 @@ export function validateInquiry(input: unknown): ValidationResult {
     if (!pageType || !isSourcePageType(pageType)) {
       errors.push('source_page_type_invalid')
     }
-    const path = trimString(sourceRaw.path)
-    if (!path) {
-      errors.push('source_path_required')
-    } else if (path.length > LIMITS.PATH_MAX) {
-      errors.push('source_path_too_long')
-    }
+    const pathResult = normalizeSourcePath(sourceRaw.path)
+    if (!pathResult.ok) errors.push(pathResult.error)
+    else sourcePath = pathResult.data
     const sectionResult = sanitizeSourceSection(sourceRaw.section)
     if (!sectionResult.ok) errors.push('source_section_invalid')
     else section = sectionResult.data
@@ -249,16 +255,15 @@ export function validateInquiry(input: unknown): ValidationResult {
 
   // 此时 consent 与 source 已校验通过，但 TS 无法推断，需断言
   const consent = input.consent as { accepted: true; policyVersion: string }
-  const source = input.source as { pageType: SourcePageType; path: string; campaign?: unknown }
+  const source = input.source as { pageType: SourcePageType; campaign?: unknown }
   const campaign = sanitizeCampaign(source.campaign)
   if (!campaign.ok) {
     // 理论上前面已拦截，兜底
     return { ok: false, errors: ['campaign_invalid'] }
   }
 
-  // trim 后的 path 与 pageType 写回数据（前面校验已 trim 但未写回）
+  // trim 后的 pageType 与归一化 pathname 写回数据
   const trimmedPageType = trimString(source.pageType) as SourcePageType
-  const trimmedPath = trimString(source.path)
   const priceSnapshot = priceSnapshotResult.ok ? priceSnapshotResult.data : null
   const activeSupplyGroup = activeSupplyGroupResult.ok ? activeSupplyGroupResult.data : null
 
@@ -281,7 +286,7 @@ export function validateInquiry(input: unknown): ValidationResult {
       },
       source: {
         pageType: trimmedPageType,
-        path: trimmedPath,
+        path: sourcePath,
         section,
         currentFilters,
         campaign: campaign.data,
@@ -306,6 +311,40 @@ function trimString(v: unknown): string {
 
 function isSourcePageType(v: string): v is SourcePageType {
   return (SOURCE_PAGE_TYPES as readonly string[]).includes(v)
+}
+
+/**
+ * 把外部来源路径收窄为可持久化、可日志化的 same-origin pathname。
+ *
+ * query/hash 可能被恶意塞入手机号等 PII，因此合法相对 URL 只保留 pathname；
+ * 绝对/协议相对 URL、反斜线与原始/百分号编码控制字符全部拒绝。
+ */
+export function normalizeSourcePath(value: unknown): SourcePathResult {
+  if (typeof value !== 'string') return { ok: false, error: 'source_path_required' }
+  if (/[\u0000-\u001f\u007f]/.test(value)) {
+    return { ok: false, error: 'source_path_invalid' }
+  }
+  const raw = value.trim()
+  if (!raw) return { ok: false, error: 'source_path_required' }
+  if (raw.length > LIMITS.PATH_MAX) return { ok: false, error: 'source_path_too_long' }
+  if (
+    !raw.startsWith('/') ||
+    raw.startsWith('//') ||
+    raw.includes('\\') ||
+    /%(?:0[0-9a-f]|1[0-9a-f]|7f)/i.test(raw)
+  ) {
+    return { ok: false, error: 'source_path_invalid' }
+  }
+
+  try {
+    const parsed = new URL(raw, 'http://source-path.local')
+    if (parsed.origin !== 'http://source-path.local' || !parsed.pathname.startsWith('/')) {
+      return { ok: false, error: 'source_path_invalid' }
+    }
+    return { ok: true, data: parsed.pathname }
+  } catch {
+    return { ok: false, error: 'source_path_invalid' }
+  }
 }
 
 function sanitizeSourceSection(value: unknown): { ok: true; data: SourceSection | null } | { ok: false } {

@@ -190,6 +190,36 @@ describe('validateInquiry: 合法输入', () => {
     expect(JSON.stringify(r)).not.toContain(injectedPii)
   })
 
+  it('source.path 只保留同源 pathname，剥离 query/hash 中的手机号', () => {
+    const injectedPhone = '13900009999'
+    const r = validateInquiry(buildValidInput({
+      source: {
+        pageType: 'listing',
+        path: `${VALID_PATH}?phone=${injectedPhone}#contact=${injectedPhone}`,
+        campaign: {},
+      },
+    }))
+
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.data.source.path).toBe(VALID_PATH)
+    expect(JSON.stringify(r.data)).not.toContain(injectedPhone)
+  })
+
+  it.each([
+    'https://evil.example/listings/x',
+    '//evil.example/listings/x',
+    '/listings/x\nX-Injected: yes',
+    '/listings/x%0d%0aX-Injected',
+  ])('source.path 拒绝绝对/协议相对 URL 与控制字符：%s', (path) => {
+    const r = validateInquiry(buildValidInput({
+      source: { pageType: 'listing', path, campaign: {} },
+    }))
+
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors).toContain('source_path_invalid')
+  })
+
   it('完整合法输入 → ok=true，字段全部映射', () => {
     const r = validateInquiry(buildValidInput())
     expect(r.ok).toBe(true)
@@ -312,7 +342,7 @@ describe('validateInquiry: 合法输入', () => {
         message: '测'.repeat(LIMITS.MESSAGE_MAX),
         source: {
           pageType: 'listing',
-          path: '/'.repeat(LIMITS.PATH_MAX),
+          path: `/${'a'.repeat(LIMITS.PATH_MAX - 1)}`,
         },
       }),
     )
@@ -798,6 +828,22 @@ describe('buildInquiryLogEntry', () => {
     expect(entry.path).toBe(VALID_PATH)
     expect(entry.targetType).toBe('listing')
     expect(entry.targetSlug).toBe(VALID_LISTING_SLUG)
+  })
+
+  it('纵深清洗手工构造请求中的 query/hash PII 后再写日志', () => {
+    const injectedPhone = '13900009999'
+    const entry = buildInquiryLogEntry(
+      validReq({
+        source: {
+          ...validReq().source,
+          path: `${VALID_PATH}?phone=${injectedPhone}#contact=${injectedPhone}`,
+        },
+      }),
+      { idempotent: false, errorCode: null, durationMs: 1 },
+    )
+
+    expect(entry.path).toBe(VALID_PATH)
+    expect(JSON.stringify(entry)).not.toContain(injectedPhone)
   })
 
   it('campaignKeys 仅记录存在的键，不含值', () => {

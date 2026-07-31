@@ -1,5 +1,7 @@
 import type {
+  BuildingSupplyAreaRange,
   BuildingSupplyGroup,
+  BuildingSupplyGroupAvailability,
   BuildingSupplyGroupViewModel,
   BuildingSupplyPriceRange,
   BuildingSupplySnapshot,
@@ -125,8 +127,43 @@ function buildPriceRanges(cards: readonly ListingCardViewModel[]): readonly Buil
   return Array.from(ranges.values()).sort((a, b) => a.key.localeCompare(b.key))
 }
 
+function buildAreaRange(cards: readonly ListingCardViewModel[]): BuildingSupplyAreaRange | null {
+  const areas = cards
+    .map((card) => card.area)
+    .filter((area): area is number => typeof area === 'number' && Number.isFinite(area) && area >= 0)
+  if (areas.length === 0) return null
+  return { min: Math.min(...areas), max: Math.max(...areas) }
+}
+
+function isImmediatelyAvailable(card: ListingCardViewModel, asOf: string): boolean {
+  if (!card.availableFrom) return true
+  const availableAt = Date.parse(card.availableFrom)
+  const snapshotAt = Date.parse(asOf)
+  return Number.isFinite(availableAt) && Number.isFinite(snapshotAt) && availableAt <= snapshotAt
+}
+
+function aggregateGroup(
+  key: BuildingSupplyGroup,
+  cards: readonly ListingCardViewModel[],
+  asOf: string,
+): Omit<BuildingSupplyGroupAvailability, 'totalEffectiveListings'> {
+  return {
+    key,
+    areaRange: buildAreaRange(cards),
+    immediateAvailabilityCount: cards.filter((card) => isImmediatelyAvailable(card, asOf)).length,
+    priceRanges: buildPriceRanges(cards),
+  }
+}
+
 export function emptyBuildingSupplySnapshot(asOf: string): BuildingSupplySnapshot {
-  return { asOf, groups: [], totalEffectiveListings: 0, validationErrors: [] }
+  return {
+    asOf,
+    groups: [],
+    availableGroups: [],
+    totalEffectiveListings: 0,
+    resultCount: 0,
+    validationErrors: [],
+  }
 }
 
 export function buildBuildingSupplySnapshot(
@@ -140,18 +177,32 @@ export function buildBuildingSupplySnapshot(
   const validationErrors = mixedPricesWithoutUnit ? (['price_unit_required'] as const) : []
   const canComparePrices = !isPriceSort || Boolean(input.priceUnit) || !mixedPricesWithoutUnit
   const groups: BuildingSupplyGroupViewModel[] = []
+  const availableGroups: BuildingSupplyGroupAvailability[] = []
 
   for (const key of GROUP_ORDER) {
+    const availableCards = cards.filter((card) => groupOf(card) === key)
+    if (availableCards.length > 0) {
+      availableGroups.push({
+        ...aggregateGroup(key, availableCards, asOf),
+        totalEffectiveListings: availableCards.length,
+      })
+    }
+
     const groupCards = filtered.filter((card) => groupOf(card) === key)
     if (groupCards.length === 0) continue
     const sorted = sortCards(groupCards, input, canComparePrices && !hasMixedPriceKeys(groupCards))
-    groups.push({ key, listings: sorted, priceRanges: buildPriceRanges(sorted) })
+    groups.push({
+      ...aggregateGroup(key, sorted, asOf),
+      listings: sorted,
+    })
   }
 
   return {
     asOf,
     groups,
-    totalEffectiveListings: filtered.length,
+    availableGroups,
+    totalEffectiveListings: cards.length,
+    resultCount: filtered.length,
     validationErrors,
   }
 }

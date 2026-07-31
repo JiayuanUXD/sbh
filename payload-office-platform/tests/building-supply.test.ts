@@ -80,6 +80,63 @@ describe('buildBuildingSupplySnapshot', () => {
     expect(snapshot.groups.map((group) => group.key)).toEqual(['lease', 'sale', 'coworking'])
   })
 
+  it('分组筛选只收窄结果行，保留全部非空业务组及统一公开聚合', () => {
+    const cards = [
+      makeCard({ id: 1, slug: 'lease', area: 100, availableFrom: null }),
+      makeCard({
+        id: 2,
+        slug: 'sale',
+        area: 240,
+        businessType: 'sale',
+        availableFrom: '2026-08-01',
+        price: {
+          amount: 50000,
+          businessType: 'sale',
+          currency: 'CNY',
+          period: 'one-time',
+          basis: 'total',
+          displayUnit: 'rmb-total',
+          text: '50000 元',
+        },
+      }),
+      makeCard({
+        id: 3,
+        slug: 'coworking',
+        area: 60,
+        listingType: 'coworking',
+        availableFrom: '2026-07-01',
+        price: {
+          amount: 2000,
+          businessType: 'lease',
+          currency: 'CNY',
+          period: 'month',
+          basis: 'seat',
+          displayUnit: 'rmb-seat-month',
+          text: '2000 元/工位/月',
+        },
+      }),
+    ]
+
+    const snapshot = buildBuildingSupplySnapshot(cards, { group: 'lease' }, AS_OF)
+
+    expect(snapshot.groups.map((group) => group.key)).toEqual(['lease'])
+    expect(snapshot.availableGroups.map((group) => group.key)).toEqual(['lease', 'sale', 'coworking'])
+    expect(snapshot.totalEffectiveListings).toBe(3)
+    expect(snapshot.resultCount).toBe(1)
+    expect(snapshot.availableGroups).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        key: 'sale',
+        areaRange: { min: 240, max: 240 },
+        immediateAvailabilityCount: 0,
+      }),
+      expect.objectContaining({
+        key: 'coworking',
+        areaRange: { min: 60, max: 60 },
+        immediateAvailabilityCount: 1,
+      }),
+    ]))
+  })
+
   it('不同价格单位不合并且不共同排序', () => {
     const snapshot = buildBuildingSupplySnapshot(
       [

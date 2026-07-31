@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildInquiryMessage,
+  getInquiryResolutionCopy,
   getInquiryFocusTarget,
   reduceInquiryStep,
   resolveTargetResolution,
@@ -53,5 +54,12 @@ describe('inquiry modal state helpers', () => {
     expect(getInquiryFocusTarget('requirements', 'contact', false)).toBe('contact-name')
     expect(getInquiryFocusTarget('requirements', 'success', false)).toBe('success-heading')
     expect(getInquiryFocusTarget('contact', 'contact', true)).toBe('error')
+  })
+
+  it('直接楼盘咨询成功时不显示房源失效降级文案', () => {
+    expect(getInquiryResolutionCopy('building', 'building')).toBe(
+      '已记录这个楼盘，顾问将与您确认可选房源。',
+    )
+    expect(getInquiryResolutionCopy('building', 'listing')).toContain('房源状态已变化')
   })
 })

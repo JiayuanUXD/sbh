@@ -17,6 +17,7 @@ import {
   getBuildingDetail,
   getRelatedBuildings,
   parseBuildingSupplySearchParams,
+  type BuildingSupplyGroupAvailability,
   type BuildingSupplyGroupViewModel,
   type BuildingSupplyInput,
 } from '@/domain/public-catalog'
@@ -49,7 +50,7 @@ const SUPPLY_GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = 
 /** Keeps price ranges visibly scoped to their supply group. */
 export function BuildingSupplyPriceRanges({
   groups,
-}: Readonly<{ groups: readonly BuildingSupplyGroupViewModel[] }>) {
+}: Readonly<{ groups: readonly Pick<BuildingSupplyGroupViewModel, 'key' | 'priceRanges'>[] }>) {
   const groupsWithRanges = groups.filter((group) => group.priceRanges.length > 0)
   if (groupsWithRanges.length === 0) return null
 
@@ -78,6 +79,45 @@ export function BuildingSupplyPriceRanges({
         </div>
       ))}
     </div>
+  )
+}
+
+function areaRangeLabel(range: BuildingSupplyGroupAvailability['areaRange']): string {
+  if (!range) return '面积待确认'
+  return range.min === range.max ? `${range.min} ㎡` : `${range.min}–${range.max} ㎡`
+}
+
+/** Canonical, query-independent supply overview generated from the same public snapshot. */
+export function BuildingSupplyOverview({
+  groups,
+}: Readonly<{ groups: readonly BuildingSupplyGroupAvailability[] }>) {
+  if (groups.length === 0) return null
+
+  return (
+    <section className="building-supply-overview" aria-labelledby="building-supply-overview-title">
+      <h2 id="building-supply-overview-title">供给概览</h2>
+      <div className="building-supply-overview__groups">
+        {groups.map((group) => (
+          <article key={group.key} className="building-supply-overview__group">
+            <h3>{SUPPLY_GROUP_LABEL[group.key]}</h3>
+            <dl>
+              <div>
+                <dt>有效供给</dt>
+                <dd>{group.totalEffectiveListings} 套</dd>
+              </div>
+              <div>
+                <dt>可选面积</dt>
+                <dd>{areaRangeLabel(group.areaRange)}</dd>
+              </div>
+              <div>
+                <dt>立即可入驻</dt>
+                <dd>{group.immediateAvailabilityCount} 套</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -124,16 +164,32 @@ export default async function BuildingDetailPage({
 
       <section className="detail-hero" aria-label="楼盘核心信息">
         <DetailGallery media={building.mediaItems} title={building.name} pageType="building" />
-        <section id="overview" className="detail__overview">
-          <DetailFacts groups={building.factGroups} />
-        </section>
+        <aside className="detail__summary" aria-label="楼盘决策信息">
+          <section id="overview" className="detail__overview">
+            <DetailFacts groups={building.factGroups} />
+          </section>
+          <BuildingSupplyOverview groups={supply.availableGroups} />
+          <div className="detail__decision">
+            <p className="detail__decision-title">
+              {hasSupply ? `${supply.totalEffectiveListings} 套当前有效供给` : '暂无公开供给，也可登记找房需求'}
+            </p>
+            <InquiryModal
+              pageType="building"
+              targetBuildingSlug={building.slug}
+              targetSummary={building.name}
+              triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
+              triggerClassName="detail__decision-inquiry"
+              sourceSection="hero"
+            />
+          </div>
+        </aside>
       </section>
 
       <DetailAnchorNav items={anchors} />
 
       <section id="supply" className="detail__section" data-supply-as-of={supply.asOf}>
         <h2>当前有效供给</h2>
-        {hasSupply && <BuildingSupplyPriceRanges groups={supply.groups} />}
+        {hasSupply && <BuildingSupplyPriceRanges groups={supply.availableGroups} />}
         <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} input={supplyInput} />
       </section>
 

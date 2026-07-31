@@ -153,18 +153,40 @@ export type BuildingSupplyPriceRange = Readonly<{
   count: number
 }>
 
+export type BuildingSupplyAreaRange = Readonly<{
+  min: number
+  max: number
+}>
+
+/** 未受页面 query 影响的业务组公开供给概览。 */
+export type BuildingSupplyGroupAvailability = Readonly<{
+  key: BuildingSupplyGroup
+  totalEffectiveListings: number
+  areaRange: BuildingSupplyAreaRange | null
+  immediateAvailabilityCount: number
+  priceRanges: readonly BuildingSupplyPriceRange[]
+}>
+
 /** 一个租赁、出售或联合办公供给组。 */
 export type BuildingSupplyGroupViewModel = Readonly<{
   key: BuildingSupplyGroup
   listings: readonly ListingCardViewModel[]
   priceRanges: readonly BuildingSupplyPriceRange[]
+  areaRange: BuildingSupplyAreaRange | null
+  immediateAvailabilityCount: number
 }>
 
 /** 楼盘详情页在同一 asOf 时刻生成的供给快照。 */
 export type BuildingSupplySnapshot = Readonly<{
   asOf: string
+  /** 当前 query 对应的结果行和分组。 */
   groups: readonly BuildingSupplyGroupViewModel[]
+  /** 未受 group/filter/sort query 影响的非空业务组和 canonical 聚合。 */
+  availableGroups: readonly BuildingSupplyGroupAvailability[]
+  /** 同一公开快照内的全部有效供给数。 */
   totalEffectiveListings: number
+  /** 当前 query 对应的结果数。 */
+  resultCount: number
   validationErrors: readonly 'price_unit_required'[]
 }>
 
@@ -190,6 +212,7 @@ export type BuildingDetailViewModel = Readonly<{
   slug: string
   name: string
   address: string
+  buildingType?: Building['buildingType']
   grade?: Building['grade']
   district?: DistrictViewModel
   businessDistrict?: DistrictViewModel

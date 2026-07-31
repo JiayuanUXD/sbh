@@ -37,6 +37,11 @@ import type {
 } from './contracts'
 import { computeUsableArea, deriveSeatRange } from './detail-values'
 import { normalizePublicMediaUrl } from './media-url'
+import {
+  BUILDING_TYPE_LABELS,
+  REGISTRATION_CAPABILITY_LABELS,
+} from '@/domain/supply/building'
+import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
 
 // ---------------------------------------------------------------------------
 // 类型守卫
@@ -365,22 +370,55 @@ function mapListingFactGroups(listing: PopulatedListing): readonly FactGroupView
         fact('套内参考面积', usableArea?.amount ?? null, { suffix: ' ㎡', estimated: usableArea?.estimated === true }),
         fact('得房率', details.efficiencyRate, { suffix: '%' }),
         fact('工位数', seats ? `${seats.min}–${seats.max}` : null, { estimated: seats?.estimated === true }),
+        fact('房源楼层', listing.floor),
         fact('朝向', details.orientation),
         fact('净层高', details.netCeilingHeight, { suffix: ' m' }),
         fact('可分割', details.isDivisible === true ? '可分割' : details.isDivisible === false ? '不可分割' : null),
+      ],
+    },
+    {
+      id: 'delivery',
+      title: '装修与交付',
+      facts: [
+        fact(
+          '装修',
+          listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
+        ),
         fact('家具', details.furnitureStatus),
-        fact('注册', listing.registrationStatus),
+        fact('可入驻日期', listing.availableFrom),
       ],
     },
     {
       id: 'cost',
       title: '费用条款',
       facts: [
+        fact(
+          '注册',
+          listing.registrationStatus === 'available'
+            ? '可注册'
+            : listing.registrationStatus === 'conditional'
+              ? '有条件注册'
+              : listing.registrationStatus === 'unavailable'
+                ? '不可注册'
+                : listing.registrationStatus === 'confirm'
+                  ? '咨询确认'
+                  : null,
+        ),
+        fact('最短租期', listing.minimumLeaseMonths, { suffix: ' 个月' }),
+        fact('付款方式', listing.paymentTerms),
         fact('押金月数', costs.depositMonths, { suffix: ' 个月' }),
         fact('物业费', costs.propertyFeeInclusion),
         fact('物业费金额', costs.propertyFeeAmount, { suffix: ' 元/㎡/月' }),
         fact('发票', costs.invoiceStatus),
         fact('其他固定费用', costs.otherFixedCosts),
+      ],
+    },
+    {
+      id: 'verification',
+      title: '信息时效',
+      facts: [
+        fact('信息核验时间', listing.verificationInfo?.verifiedAt),
+        fact('价格核验时间', listing.verificationInfo?.priceVerifiedAt),
       ],
     },
   ]
@@ -392,10 +430,39 @@ function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupV
   const services = isObject(building.buildingServices) ? building.buildingServices : {}
   return [
     {
-      id: 'building',
-      title: '楼盘信息',
+      id: 'identity',
+      title: '身份与注册',
       facts: [
-        fact('开发商', scale.developer),
+        fact(
+          '物业类型',
+          building.buildingType ? BUILDING_TYPE_LABELS[building.buildingType] : null,
+        ),
+        fact(
+          '楼宇等级',
+          building.grade === 'grade-a'
+            ? '甲级'
+            : building.grade === 'super-grade-a'
+              ? '超甲级'
+              : building.grade === 'creative-park'
+                ? '创意园区'
+                : building.grade === 'serviced-office'
+                  ? '服务式办公'
+                  : null,
+        ),
+        fact(
+          '注册能力',
+          building.registrationCapability
+            ? REGISTRATION_CAPABILITY_LABELS[building.registrationCapability]
+            : null,
+        ),
+      ],
+    },
+    {
+      id: 'building',
+      title: '建筑信息',
+      facts: [
+        fact('竣工时间', building.completionDate),
+        fact('总楼层', building.totalFloors, { suffix: ' 层' }),
         fact('总建筑面积', scale.grossFloorArea, { suffix: ' ㎡' }),
         fact('标准层面积', scale.typicalFloorArea, { suffix: ' ㎡' }),
         fact('标准层高', scale.standardFloorHeight, { suffix: ' m' }),
@@ -404,12 +471,23 @@ function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupV
       ],
     },
     {
+      id: 'property',
+      title: '开发物业',
+      facts: [
+        fact('开发商', scale.developer),
+        fact('物业公司', building.propertyCompany),
+        fact('物业费', building.propertyFee, { suffix: ' 元/㎡/月' }),
+      ],
+    },
+    {
       id: 'transport',
-      title: '垂直交通',
+      title: '电梯与停车',
       facts: [
         fact('客梯', transport.passengerElevators, { suffix: ' 部' }),
         fact('货梯', transport.freightElevators, { suffix: ' 部' }),
         fact('分区说明', transport.zoningNote),
+        fact('停车位', building.parkingSpaces, { suffix: ' 个' }),
+        fact('停车费', services.parkingFee),
       ],
     },
     {
@@ -420,19 +498,35 @@ function mapBuildingFactGroups(building: PopulatedBuilding): readonly FactGroupV
         fact('网络', services.network),
         fact('供电', services.powerSupply),
         fact('门禁', services.accessControl),
-        fact('停车费', services.parkingFee),
         fact('服务时间', services.serviceHours),
       ],
     },
   ]
 }
 
-function mapBuildingAmenityGroups(building: PopulatedBuilding): readonly AmenityGroupViewModel[] {
+function isCertificationPublicAt(
+  item: NonNullable<Building['certifications']>[number],
+  asOf: Date,
+): boolean {
+  if (item.publicVisible !== true || !trimPublicText(item.name)) return false
+  if (!Number.isFinite(asOf.getTime())) return false
+  const validFrom = item.validFrom == null ? null : Date.parse(item.validFrom)
+  const validTo = item.validTo == null ? null : Date.parse(item.validTo)
+  if (item.validFrom != null && !Number.isFinite(validFrom)) return false
+  if (item.validTo != null && !Number.isFinite(validTo)) return false
+  const instant = asOf.getTime()
+  return (validFrom == null || validFrom <= instant) && (validTo == null || instant < validTo)
+}
+
+function mapBuildingAmenityGroups(
+  building: PopulatedBuilding,
+  asOf: Date,
+): readonly AmenityGroupViewModel[] {
   const amenities = Array.isArray(building.amenities)
     ? building.amenities.flatMap((item) => isAmenity(item) ? [item.name] : [])
     : []
   const certifications = Array.isArray(building.certifications)
-    ? building.certifications.flatMap((item) => item?.publicVisible === true && trimPublicText(item.name) ? [item.name.trim()] : [])
+    ? building.certifications.flatMap((item) => isCertificationPublicAt(item, asOf) ? [item.name.trim()] : [])
     : []
   return [
     { id: 'amenities', title: '配套', items: amenities },
@@ -444,7 +538,7 @@ function mapBuildingAmenityGroups(building: PopulatedBuilding): readonly Amenity
  * 把 Payload Listing 文档投影为 ListingDetailViewModel。
  *
  * 详情 DTO 在卡片字段上增加画廊、楼盘摘要和富文本说明。
- * 画廊来源：房源 coverImage + 楼盘 gallery，去重后保留有效 url。
+ * 画廊来源：房源 coverImage + 房源 legacy gallery，去重后保留有效 url。
  */
 export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
   const card = mapListingCard(raw)
@@ -452,14 +546,14 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
   const listing = raw as PopulatedListing
 
   const gallery: MediaViewModel[] = []
-  if (card.coverImage) gallery.push(card.coverImage)
+  const listingCover = mapMedia(listing.coverImage, listing.title)
+  if (listingCover) gallery.push(listingCover)
 
-  const buildingRaw = listing.building
-  if (isBuilding(buildingRaw) && Array.isArray(buildingRaw.gallery)) {
-    for (const g of buildingRaw.gallery) {
+  if (Array.isArray(listing.gallery)) {
+    for (const g of listing.gallery) {
       if (!g || typeof g !== 'object') continue
       const img = (g as { image?: unknown }).image
-      const media = mapMedia(img, buildingRaw.name)
+      const media = mapMedia(img, listing.title)
       if (media && !gallery.some((m) => m.src === media.src)) {
         gallery.push(media)
       }
@@ -479,9 +573,13 @@ export function mapListingDetail(raw: unknown): ListingDetailViewModel | null {
 }
 
 /** 把 Payload Building 文档投影为 BuildingDetailViewModel */
-export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null {
+export function mapBuildingDetail(
+  raw: unknown,
+  asOfInput: string | Date = new Date(),
+): BuildingDetailViewModel | null {
   if (!isPopulatedBuilding(raw)) return null
   const building = raw as PopulatedBuilding
+  const asOf = asOfInput instanceof Date ? asOfInput : new Date(asOfInput)
 
   const coverImage = mapMedia(building.coverImage, building.name) ?? null
 
@@ -510,6 +608,7 @@ export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null 
     slug: building.slug,
     name: building.name,
     address: building.address ?? '',
+    buildingType: building.buildingType ?? undefined,
     grade: building.grade ?? undefined,
     district: mapDistrict(building.district),
     businessDistrict: mapDistrict(building.businessDistrict),
@@ -518,7 +617,7 @@ export function mapBuildingDetail(raw: unknown): BuildingDetailViewModel | null 
     gallery,
     mediaItems: mapDetailMedia(building.mediaItems, building.name, BUILDING_DETAIL_MEDIA_CATEGORIES),
     factGroups: mapBuildingFactGroups(building),
-    amenityGroups: mapBuildingAmenityGroups(building),
+    amenityGroups: mapBuildingAmenityGroups(building, asOf),
     verification: mapVerification(building.verificationInfo),
     amenities,
     summary: building.summary ?? '',
