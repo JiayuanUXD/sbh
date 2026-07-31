@@ -37,7 +37,7 @@
 
 - [x] Task 1：建立 P1 任务包和位置服务契约（`contracts.ts` / `index.ts`）。
 - [x] Task 2：实现高德 POI provider 和缓存。
-- [ ] Task 3：增加延迟地图和静态降级。
+- [x] Task 3：增加延迟地图和静态降级。
 - [ ] Task 4：完成视频和平面图媒体体验。
 - [ ] Task 5：实现 canonical 分享和本地收藏。
 - [ ] Task 6：实现可审计信息纠错。
@@ -54,4 +54,6 @@
 
 ## 8. 结果
 
-- 进行中：Task 1-2 已完成。契约 5 tests + provider/缓存 13 tests PASS（合计全量 2244 PASS）、typecheck PASS、lint PASS。
+- 进行中：Task 1-3 已完成。契约 5 tests + provider/缓存 13 tests PASS（合计全量 2244 PASS）、typecheck PASS、lint PASS（0 error）。
+  Task 3 详情页位置交通：amap-map-loader（点击加载 SDK、5s 超时）、AmapMapCanvas（失败兜底）、LocationPanel（地址/最近地铁/复制地址/高德外链 + POI 分类 tab）、location-pois 服务端聚合；e2e 2 passed（地图失败兜底 + 进入视口前不加载 SDK）、typecheck PASS、lint 0 error。
+  注：本地 sbh_dev 曾落后 6 个 migration（0728-0731）导致 detail 页 500，已重建库 fresh migrate + seed 修复。
