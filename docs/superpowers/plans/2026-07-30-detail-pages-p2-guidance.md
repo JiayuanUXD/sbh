@@ -6,7 +6,7 @@
 
 **Architecture:** 路线能力复用 P1 `LocationProvider` 并在用户明确点击后才读取一次性位置；服务时段使用平台级规则而非公开个人顾问排班；预约时段作为 Lead 的偏好而非已确认日历。推荐由当前实体、显式筛选和有效供给计算，不建立跨会话用户画像。
 
-**Tech Stack:** Next.js 16、React 19、Payload 3.86、Tencent Location Service、PostgreSQL、Vitest、Playwright。
+**Tech Stack:** Next.js 16、React 19、Payload 3.86、高德地图服务、PostgreSQL、Vitest、Playwright。
 
 ## Global Constraints
 
@@ -65,7 +65,7 @@ it('路线摘要不包含原始起点坐标', async () => {
     durationMinutes: 36,
     distanceMeters: 12500,
     transfers: 1,
-    source: 'tencent-location-service',
+    source: 'amap-location-service',
   })
   expect(JSON.stringify(summary)).not.toContain('31.20')
 })
@@ -90,7 +90,7 @@ export type RouteSummary = Readonly<{
   durationMinutes: number
   distanceMeters: number
   transfers: number | null
-  source: 'tencent-location-service'
+  source: 'amap-location-service'
 }>
 
 export interface RouteProvider {
@@ -102,9 +102,9 @@ export interface RouteProvider {
 }
 ```
 
-- [ ] **Step 4: 扩展腾讯 provider**
+- [ ] **Step 4: 扩展高德 provider**
 
-使用腾讯路线 WebService；请求只在当前交互内存在。日志仅记录 mode、成功/失败、耗时区间，不记录 URL 或坐标。
+使用高德路线 WebService；请求只在当前交互内存在。日志仅记录 mode、成功/失败、耗时区间，不记录 URL 或坐标。
 
 - [ ] **Step 5: 跑绿并提交**
 
@@ -147,7 +147,7 @@ test('拒绝定位后保留外部导航', async ({ page, context }) => {
   await page.goto('/buildings/jingan-center')
   await page.getByRole('button', { name: '查看到这里的路线' }).click()
   await expect(page.getByText('无法获取当前位置')).toBeVisible()
-  await expect(page.getByRole('link', { name: '打开腾讯地图' })).toBeVisible()
+  await expect(page.getByRole('link', { name: '打开高德地图' })).toBeVisible()
 })
 ```
 
