@@ -413,6 +413,27 @@ async function seed() {
     ]),
   })
 
+  // P1 Task 4：媒体丰富房源，挂载图片/视频/平面图三类结构化媒体，供 detail-media E2E 验证。
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'media-rich-listing', {
+    title: '南京西路 · 媒体样例房源',
+    status: 'available',
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
+    listingType: 'serviced-office',
+    building: westNanjingTower.id,
+    rent: 3600,
+    rentUnit: 'rmb-seat-month',
+    area: 540,
+    seats: 60,
+    isFeatured: false,
+    highlights: [{ text: '媒体齐全' }, { text: '近地铁' }, { text: '可即刻入驻' }],
+    availableFrom: '2026-08-20',
+    description: richText('房源说明', [
+      '南京西路核心商圈服务式办公室，配套图片、视频与平面图三类媒体，便于详情页媒体体验验收。',
+      '即租即用，带全套家具与共享会议室，适合中型团队入驻。',
+    ]),
+  })
+
   await upsertBySlug<AnyDoc>(payload, 'listings', 'lujiazui-grade-a-780sqm', {
     title: '陆家嘴核心区 · 江景甲级办公',
     status: 'available',
@@ -1010,6 +1031,7 @@ async function seed() {
     'jingan-center-fullfloor',
     'jingan-price-on-request-300sqm',
     'huangpu-bund-traditional',
+    'media-rich-listing',
   ]
   for (const slug of allListingSlugs) {
     const lid = await listingBySlug(slug)

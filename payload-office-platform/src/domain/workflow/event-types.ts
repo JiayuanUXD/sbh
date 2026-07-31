@@ -57,6 +57,11 @@ export const TASK_EVENT_TYPES = [
   'task.cancelled',
 ] as const
 
+/** 信息纠错事件（FPD-P1 Task 6） */
+export const CORRECTION_EVENT_TYPES = [
+  'correction.created',
+] as const
+
 /** 全部领域事件类型 */
 export const EVENT_TYPES = [
   ...LISTING_EVENT_TYPES,
@@ -65,6 +70,7 @@ export const EVENT_TYPES = [
   ...LEAD_EVENT_TYPES,
   ...FOLLOWUP_EVENT_TYPES,
   ...TASK_EVENT_TYPES,
+  ...CORRECTION_EVENT_TYPES,
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
@@ -90,6 +96,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   'sla.breached': 'SLA 已超时',
   'task.completed': '待办已完成',
   'task.cancelled': '待办已取消',
+  'correction.created': '纠错已提交',
 }
 
 /** 是否为已注册的领域事件类型 */
@@ -117,6 +124,7 @@ export const AGGREGATE_TYPES = [
   'followup',
   'sla',
   'task',
+  'correction',
 ] as const
 
 export type AggregateType = (typeof AGGREGATE_TYPES)[number]

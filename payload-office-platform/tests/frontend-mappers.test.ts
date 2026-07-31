@@ -258,10 +258,15 @@ describe('mapBuildingSummary', () => {
     expect(JSON.stringify(b)).not.toContain('verified')
   })
 
-  it('不暴露 latitude/longitude（精确内部坐标）', () => {
-    const b = mapBuildingSummary(BUILDING_JINGAN_CENTER)
-    expect(JSON.stringify(b)).not.toContain('latitude')
-    expect(JSON.stringify(b)).not.toContain('longitude')
+  it('仅暴露公开近似坐标，不暴露高精度内部坐标（PRD 04 §358）', () => {
+    const b = mapBuildingSummary({
+      ...BUILDING_JINGAN_CENTER,
+      latitude: 31.223647,
+      longitude: 121.455412,
+    })
+    expect(b?.coordinates).toEqual({ latitude: 31.2236, longitude: 121.4554 })
+    expect(JSON.stringify(b)).not.toContain('31.223647')
+    expect(JSON.stringify(b)).not.toContain('121.455412')
   })
 
   it('不暴露 createdBy/lastModifiedBy（审计字段）', () => {
@@ -701,17 +706,16 @@ describe('mapBuildingDetail', () => {
     expect(JSON.stringify(b)).not.toContain('verificationStatus')
   })
 
-  it('不暴露 latitude/longitude 精确坐标', () => {
+  it('仅暴露公开近似坐标，不暴露高精度内部坐标（PRD 04 §358 / P1 Task 3）', () => {
     const b = mapBuildingDetail({
       ...BUILDING_JINGAN_CENTER,
-      latitude: 31.2236,
-      longitude: 121.4554,
+      latitude: 31.223647,
+      longitude: 121.455412,
     })
+    expect(b?.coordinates).toEqual({ latitude: 31.2236, longitude: 121.4554 })
     const json = JSON.stringify(b)
-    expect(json).not.toContain('latitude')
-    expect(json).not.toContain('longitude')
-    expect(json).not.toContain('31.2236')
-    expect(json).not.toContain('121.4554')
+    expect(json).not.toContain('31.223647')
+    expect(json).not.toContain('121.455412')
   })
 
   it('不暴露 createdBy/lastModifiedBy/version', () => {
@@ -732,15 +736,16 @@ describe('mapBuildingDetail', () => {
     expect(JSON.stringify(b)).not.toMatch(/"status":/)
   })
 
-  it('不暴露已停用楼盘的精确坐标', () => {
+  it('已停用楼盘仍映射公开近似坐标（可见性由查询门面决定，非 mapper 职责）', () => {
     const b = mapBuildingDetail({
       ...BUILDING_DISABLED,
-      latitude: 31.0,
-      longitude: 121.0,
+      latitude: 31.000047,
+      longitude: 121.000012,
     })
+    expect(b?.coordinates).toEqual({ latitude: 31, longitude: 121 })
     const json = JSON.stringify(b)
-    expect(json).not.toContain('31')
-    expect(json).not.toContain('121')
+    expect(json).not.toContain('31.000047')
+    expect(json).not.toContain('121.000012')
   })
 
   it('非 Building 输入 → 返回 null', () => {

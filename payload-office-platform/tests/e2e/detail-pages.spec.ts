@@ -154,7 +154,7 @@ test.describe('房源详情 P0', () => {
 
   test('媒体画廊支持全屏、左右键、Escape 和焦点归还', async ({ page }) => {
     await page.goto(`/listings/${LISTING_SLUG}`)
-    const gallery = page.getByRole('region', { name: /图片与视频/ })
+    const gallery = page.getByRole('region', { name: /详情媒体/ })
     const openGallery = gallery.getByRole('button', { name: /查看全屏媒体/ }).first()
     await expect(openGallery).toBeVisible()
     await openGallery.focus()
@@ -177,27 +177,30 @@ test.describe('房源详情 P0', () => {
     await expect(openGallery).toBeFocused()
   })
 
-  test('视频幻灯片的原生控件参与双向焦点循环', async ({ page }) => {
+  test('视频对话框的原生控件参与双向焦点循环', async ({ page }) => {
     await page.goto(`/listings/${LISTING_SLUG}`)
-    const gallery = page.getByRole('region', { name: /图片与视频/ })
+    const gallery = page.getByRole('region', { name: /详情媒体/ })
+    // 视频在独立分类 Tab，需先切换才出现视频入口
+    await gallery.getByRole('tab', { name: '视频' }).click()
     const videoTrigger = gallery.getByRole('button', { name: /查看全屏媒体：.*视频/ })
     await expect(videoTrigger).toBeVisible()
     await videoTrigger.click()
 
     const dialog = page.getByRole('dialog', { name: /全屏媒体预览/ })
     const close = dialog.getByRole('button', { name: '关闭全屏媒体预览' })
-    const next = dialog.getByRole('button', { name: '下一张媒体' })
     const video = dialog.locator('video[controls]')
     await expect(video).toBeVisible()
+    // 单个视频项：对话框无上一张/下一张翻页按钮
+    await expect(dialog.getByRole('button', { name: '下一张媒体' })).toHaveCount(0)
 
-    await next.focus()
-    await next.press('Tab')
+    // 等待对话框 effect 的 rAF 初始聚焦关闭按钮：这同时保证 effect 已注册 keydown
+    // 焦点循环处理（handler 先于 rAF 注册），避免在套件负载下 press 早于 handler 注册
+    // 导致 Shift+Tab 焦点循环不触发、视频控件拿不到焦点。
+    await expect(close).toBeFocused()
+    await close.press('Shift+Tab')
     await expect(video).toBeFocused()
     await video.press('Tab')
     await expect(close).toBeFocused()
-
-    await close.press('Shift+Tab')
-    await expect(video).toBeFocused()
     expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
   })
 
@@ -225,8 +228,9 @@ test.describe('楼盘详情 P0', () => {
     await expect(activeLeaseFilter).toBeVisible()
     await expect(activeLeaseFilter).toHaveAttribute('aria-current', 'true')
     // The held `jingan-published-pending-recheck` fixture belongs to this
-    // building but is not effective public supply.
-    await expect(page.locator('.building-supply-browser__table tbody tr')).toHaveCount(3)
+    // building but is not effective public supply. `media-rich-listing` (P1
+    // 媒体样例) is an additional effective lease listing.
+    await expect(page.locator('.building-supply-browser__table tbody tr')).toHaveCount(4)
   })
 
   test('结果筛选为空时仍保留未筛选非空业务组入口和 canonical JSON-LD', async ({ page }) => {
@@ -276,7 +280,7 @@ test.describe('楼盘详情 P0', () => {
 
     await viewControls.getByRole('button', { name: '卡片视图' }).click()
     await expect(viewControls.getByRole('button', { name: '卡片视图' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(4)
   })
 
   test('桌面有供给楼盘首屏提供唯一可见咨询入口', async ({ page }) => {
@@ -295,7 +299,7 @@ test.describe('楼盘详情 P0', () => {
 
     expect(response?.status()).toBe(200)
     await expect(page.getByRole('group', { name: '供给展示方式' })).toHaveCount(0)
-    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(3)
+    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(4)
     await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
   })
 

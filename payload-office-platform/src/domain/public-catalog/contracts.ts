@@ -70,7 +70,22 @@ export type BuildingSummaryViewModel = Readonly<{
   coverImage?: MediaViewModel
   /** 楼盘一句话简介，用于详情页"所在楼盘"模块 */
   summary?: string
+  /**
+   * 地理坐标（高德 GCJ-02）；缺失时位置面板不渲染地图，仅展示静态地址。
+   * P1 Task 3 引入，供 LocationPanel / AmapMapCanvas 使用。
+   */
+  coordinates?: CoordinatesViewModel
+  /** 最近地铁站（P1 Task 3 位置面板静态区展示） */
+  nearestMetro?: DistrictViewModel
 }>
+
+/**
+ * 地理坐标视图模型（高德 GCJ-02）。
+ *
+ * 与 location-services/contracts.Coordinates 解耦：public-catalog DTO 只承载
+ * 已映射的公开数据，不依赖 provider 实现细节。
+ */
+export type CoordinatesViewModel = Readonly<{ latitude: number; longitude: number }>
 
 // ---------------------------------------------------------------------------
 // 卡片 DTO（ListingCardViewModel）
@@ -226,6 +241,11 @@ export type BuildingDetailViewModel = Readonly<{
   amenities: readonly string[]
   summary: string
   description: Building['description']
+  /**
+   * 地理坐标（高德 GCJ-02）；缺失时位置面板不渲染地图，仅展示静态地址。
+   * P1 Task 3 引入。
+   */
+  coordinates?: CoordinatesViewModel
 }>
 
 // ---------------------------------------------------------------------------

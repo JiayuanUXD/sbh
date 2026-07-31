@@ -96,6 +96,9 @@ export const OPERATION_CODES = [
   'report:manage', // 编辑 / 删除举报记录
   'report:triage', // 分诊 / 领取
   'report:resolve', // 核实 / 关闭
+  // 信息纠错（FPD-P1 Task 6）
+  'correction:read', // 读取纠错记录列表 / 详情
+  'correction:manage', // 流转纠错状态 / 删除
   // 领域事件 / 事务 Outbox（tasks.md M6.3）
   'events:read', // 读取领域事件列表 / 详情
   'events:write', // 业务操作同事务写入 Outbox（已认证用户即可）
