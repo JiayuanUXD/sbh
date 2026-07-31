@@ -218,10 +218,26 @@ export function mapDistrict(raw: unknown): DistrictViewModel | undefined {
 }
 
 /**
+ * 公开坐标精度：小数点后 4 位（约 11m，楼盘级近似坐标）。
+ *
+ * PRD（04-楼盘详情 §358 / 03-房源详情 §258）要求「高精度内部坐标不得进入 DTO」，
+ * 故公开 DTO 仅暴露近似坐标；内部高精度距离计算（supply-adapter.proximitySquared）
+ * 直接读原始坐标，不经此函数。位置服务（POI）消费此近似坐标，不消费内部高精度
+ * 坐标（P1 Task 1 契约：Building DTO 的公开近似坐标）。
+ */
+export const PUBLIC_COORDINATE_PRECISION = 4
+
+function roundToPrecision(value: number, precision: number): number {
+  const factor = 10 ** precision
+  return Math.round(value * factor) / factor
+}
+
+/**
  * 把 Payload 楼盘坐标投影为 CoordinatesViewModel（高德 GCJ-02）。
  *
  * 非有限数字或超界（纬度 [-90,90]、经度 [-180,180]）返回 undefined，
  * 位置面板据此降级为静态地址卡片，不渲染地图。
+ * 坐标舍入到 PUBLIC_COORDINATE_PRECISION 位小数，仅暴露公开近似坐标。
  */
 export function mapCoordinates(
   latitude: unknown,
@@ -237,7 +253,10 @@ export function mapCoordinates(
   }
   if (latitude < -90 || latitude > 90) return undefined
   if (longitude < -180 || longitude > 180) return undefined
-  return { latitude, longitude }
+  return {
+    latitude: roundToPrecision(latitude, PUBLIC_COORDINATE_PRECISION),
+    longitude: roundToPrecision(longitude, PUBLIC_COORDINATE_PRECISION),
+  }
 }
 
 /** 把 Building 投影为 BuildingSummaryViewModel；非楼盘返回 null */

@@ -81,7 +81,7 @@ describe('detail component contracts', () => {
   })
 
   it('画廊为有效媒体使用原生媒体语义，并为无效媒体提供确定性回退', () => {
-    const media: DetailMediaViewModel[] = [
+    const imageMedia: DetailMediaViewModel[] = [
       {
         id: 'image-1',
         kind: 'image',
@@ -90,6 +90,8 @@ describe('detail component contracts', () => {
         capturedAt: null,
         isSchematic: false,
       },
+    ]
+    const videoMedia: DetailMediaViewModel[] = [
       {
         id: 'video-1',
         kind: 'video',
@@ -100,15 +102,23 @@ describe('detail component contracts', () => {
       },
     ]
 
-    const html = renderToStaticMarkup(createElement(DetailGallery, { media, title: '静安中心' }))
+    // 图片分类默认渲染，使用原生 figure/img
+    const imageHtml = renderToStaticMarkup(
+      createElement(DetailGallery, { media: imageMedia, title: '静安中心' }),
+    )
+    // 视频分类单独渲染时默认即视频 Tab，使用原生 video controls（P1: 视频延迟挂载
+    // 不进首屏，但单一视频分类下视频 Tab 即默认 Tab，SSR 仍输出原生 video 语义）
+    const videoHtml = renderToStaticMarkup(
+      createElement(DetailGallery, { media: videoMedia, title: '静安中心' }),
+    )
     const fallback = renderToStaticMarkup(
       createElement(DetailGallery, { media: [], title: '静安中心' }),
     )
 
-    expect(html).toContain('<figure')
-    expect(html).toContain('<img')
-    expect(html).toContain('<video')
-    expect(html).toContain('controls=""')
+    expect(imageHtml).toContain('<figure')
+    expect(imageHtml).toContain('<img')
+    expect(videoHtml).toContain('<video')
+    expect(videoHtml).toContain('controls=""')
     expect(fallback).toContain('暂无可展示媒体')
     expect(fallback).toContain('role="img"')
   })
