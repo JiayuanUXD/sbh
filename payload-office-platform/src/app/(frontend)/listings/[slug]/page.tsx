@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
@@ -166,6 +167,7 @@ export default async function ListingDetailPage({
               <span className="detail__rent">{rentText}</span>
               <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
             </div>
+            <AdvisorAvailability />
             <div className="detail__decision-cta">
               <InquiryModal
                 pageType="listing"

@@ -3049,6 +3049,35 @@ ol {
   font-size: var(--fs-sm);
 }
 
+/* P2 平台顾问服务状态 */
+.advisor-availability {
+  font-size: var(--fs-sm);
+  margin: var(--sp-1) 0;
+}
+
+.advisor-availability__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.advisor-availability__status--open {
+  color: var(--color-positive, #1a7f37);
+}
+
+.advisor-availability__status--open::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-positive, #1a7f37);
+  display: inline-block;
+}
+
+.advisor-availability__status--closed {
+  color: var(--color-ink-2);
+}
+
 .location-panel__pois {
   display: flex;
   flex-wrap: wrap;

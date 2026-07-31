@@ -147,8 +147,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'advisor-service-hours': AdvisorServiceHour;
+  };
+  globalsSelect: {
+    'advisor-service-hours': AdvisorServiceHoursSelect<false> | AdvisorServiceHoursSelect<true>;
+  };
   locale: null;
   widgets: {
     'core-stats': CoreStatsWidget;
@@ -3401,6 +3405,93 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * 平台级服务时间（Asia/Shanghai）。用于前台展示"当前服务中/非服务时段"，不含个人顾问排班或联系方式。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advisor-service-hours".
+ */
+export interface AdvisorServiceHour {
+  id: number;
+  /**
+   * 时区固定 Asia/Shanghai
+   */
+  timezone?: string | null;
+  /**
+   * 每行一个时段；同一天可多行。start 含、end 不含（HH:MM）。
+   */
+  weeklyHours?:
+    | {
+        day: '0' | '1' | '2' | '3' | '4' | '5' | '6';
+        start: string;
+        end: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 例外日期（YYYY-MM-DD）。不填时段=全天休息；填写则覆盖当天常规时段。
+   */
+  holidays?:
+    | {
+        date: string;
+        ranges?:
+          | {
+              start: string;
+              end: string;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  openMessage: string;
+  closedMessage: string;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "advisor-service-hours_select".
+ */
+export interface AdvisorServiceHoursSelect<T extends boolean = true> {
+  timezone?: T;
+  weeklyHours?:
+    | T
+    | {
+        day?: T;
+        start?: T;
+        end?: T;
+        id?: T;
+      };
+  holidays?:
+    | T
+    | {
+        date?: T;
+        ranges?:
+          | T
+          | {
+              start?: T;
+              end?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  openMessage?: T;
+  closedMessage?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
