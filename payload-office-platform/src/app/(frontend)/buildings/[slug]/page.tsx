@@ -10,6 +10,7 @@ import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import LocationPanel from '@/components/frontend/LocationPanel'
+import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
@@ -187,6 +188,10 @@ export default async function BuildingDetailPage({
               triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
               triggerClassName="detail__decision-inquiry"
               sourceSection="hero"
+            />
+            <ShareSaveActions
+              canonicalUrl={`${siteConfig.siteOrigin}/buildings/${building.slug}`}
+              savedDetail={{ type: 'building', id: building.id, slug: building.slug }}
             />
           </div>
         </aside>

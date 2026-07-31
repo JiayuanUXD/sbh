@@ -10,6 +10,7 @@ import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
 import LocationPanel from '@/components/frontend/LocationPanel'
+import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
@@ -175,6 +176,10 @@ export default async function ListingDetailPage({
                 priceSnapshot={inquiryPriceSnapshot}
                 activeSupplyGroup={inquirySupplyGroup}
                 currentFilters={inquiryCurrentFilters}
+              />
+              <ShareSaveActions
+                canonicalUrl={`${siteConfig.siteOrigin}/listings/${listing.slug}`}
+                savedDetail={{ type: 'listing', id: listing.id, slug: listing.slug }}
               />
             </div>
           </div>

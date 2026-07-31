@@ -3170,3 +3170,54 @@ ol {
   font-size: var(--fs-12);
   font-style: italic;
 }
+
+/* P1 Task 5：canonical 分享与本地收藏 */
+.share-save-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.share-save-actions__btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--color-ink-2);
+  font-size: var(--fs-14);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.share-save-actions__btn:hover:not(:disabled) {
+  color: var(--color-ink);
+  border-color: var(--color-copper);
+}
+
+.share-save-actions__btn:focus-visible {
+  outline: 2px solid var(--color-copper);
+  outline-offset: 2px;
+}
+
+.share-save-actions__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.share-save-actions__btn[aria-pressed="true"] {
+  color: var(--color-copper);
+  border-color: var(--color-copper);
+  background: var(--color-copper-soft);
+}
+
+.share-save-actions__feedback,
+.share-save-actions__hint {
+  font-size: var(--fs-12);
+  color: var(--color-muted);
+}
+
+.share-save-actions__hint {
+  font-style: italic;
+}
