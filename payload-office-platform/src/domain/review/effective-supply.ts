@@ -34,6 +34,7 @@
 
 import { isWithinValidity, type ValidityPeriod } from '@/domain/shared/validity'
 import { checkMerchantEligibility } from '@/domain/supply/building-merchant-relation'
+import { getListingPublicBuildingWhere } from '@/domain/supply/public-building'
 
 /** 有效媒体数量下限（design §6）。 */
 export const MIN_EFFECTIVE_MEDIA = 3
@@ -61,9 +62,7 @@ export function getEffectiveSupplyWhere(_asOf: Date): Record<string, unknown> {
     publicationStatus: { equals: 'published' },
     reviewStatus: { equals: 'approved' },
     supplyVisibilityHold: { equals: 'normal' },
-    'building.operationalStatus': { equals: 'active' },
-    'building.city.status': { equals: 'active' },
-    'building.district.status': { equals: 'active' },
+    ...getListingPublicBuildingWhere(),
   }
 }
 

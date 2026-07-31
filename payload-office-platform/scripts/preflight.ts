@@ -227,6 +227,11 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   return risks
 }
 
+/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则。 */
+export function scanMigrationUpRisks(_name: string, migrationContent: string): MigrationRisk[] {
+  return scanMigrationRisks(extractMigrationUpBody(migrationContent))
+}
+
 function checkMigrations() {
   const migrationsDir = resolve(projectRoot, 'src', 'migrations')
   if (!existsSync(migrationsDir)) {
@@ -276,7 +281,7 @@ function checkMigrations() {
     // 不可回滚项确定性阻断：缺 down 升级为 fail
     if (!hasDown) fail(`migrations.${name}.down`, '缺少 export async function down（不可回滚）')
 
-    const risks = scanMigrationRisks(extractMigrationUpBody(content))
+    const risks = scanMigrationUpRisks(name, content)
     for (const r of risks) {
       totalRisks += r.matches.length
       const fn = r.severity === 'fail' ? fail : warn

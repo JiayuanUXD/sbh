@@ -30,6 +30,8 @@ import {
 import { sanitizeCampaign, CAMPAIGN_KEYS } from '@/domain/inquiry/campaign'
 import {
   LIMITS,
+  MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT,
+  SOURCE_SECTIONS,
   SOURCE_PAGE_TYPES,
   TARGET_TYPES,
   validateInquiry,
@@ -84,6 +86,140 @@ function buildValidInput(overrides: Record<string, unknown> = {}): unknown {
 // ---------------------------------------------------------------------------
 
 describe('validateInquiry: 合法输入', () => {
+  it('只接受白名单 section 和供给筛选', () => {
+    const r = validateInquiry(
+      buildValidInput({
+        source: {
+          pageType: 'building',
+          path: '/buildings/bund-soho',
+          section: 'supply-lease',
+          currentFilters: { group: 'lease', priceUnit: 'rmb-sqm-day' },
+        },
+        activeSupplyGroup: 'lease',
+        priceSnapshot: {
+          amount: 8.5,
+          currency: 'CNY',
+          period: 'day',
+          unit: 'rmb-sqm-day',
+        },
+      }),
+    )
+
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.data.source.section).toBe('supply-lease')
+    expect(r.data.source.currentFilters).toEqual({ group: 'lease', priceUnit: 'rmb-sqm-day' })
+    expect(r.data.activeSupplyGroup).toBe('lease')
+    expect(r.data.priceSnapshot).toEqual({
+      amount: 8.5,
+      currency: 'CNY',
+      period: 'day',
+      unit: 'rmb-sqm-day',
+    })
+    expect(SOURCE_SECTIONS).toContain('supply-lease')
+  })
+
+  it('拒绝未白名单的详情上下文且不保留原值', () => {
+    const r = validateInquiry(
+      buildValidInput({
+        source: {
+          pageType: 'building',
+          path: '/buildings/bund-soho',
+          section: 'notes=李四13800001111',
+          currentFilters: { group: 'lease', keyword: '李四' },
+        },
+        activeSupplyGroup: 'unknown',
+        priceSnapshot: {
+          amount: 8.5,
+          currency: 'USD',
+          period: 'day',
+          unit: 'rmb-sqm-day',
+        },
+      }),
+    )
+
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toEqual(expect.arrayContaining([
+      'source_section_invalid',
+      'source_filters_invalid',
+      'active_supply_group_invalid',
+      'price_snapshot_invalid',
+    ]))
+    expect(JSON.stringify(r)).not.toContain('李四')
+    expect(JSON.stringify(r)).not.toContain('13800001111')
+  })
+
+  it('价格快照金额只接受正数且不超过明确上限', () => {
+    const atBoundary = validateInquiry(buildValidInput({
+      priceSnapshot: {
+        amount: MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT,
+        currency: 'CNY',
+        period: 'day',
+        unit: 'rmb-sqm-day',
+      },
+    }))
+    expect(atBoundary.ok).toBe(true)
+
+    for (const amount of [0, -1, MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT + 1, Number.MAX_VALUE]) {
+      const r = validateInquiry(buildValidInput({
+        priceSnapshot: { amount, currency: 'CNY', period: 'day', unit: 'rmb-sqm-day' },
+      }))
+      expect(r.ok).toBe(false)
+      if (!r.ok) {
+        expect(r.errors).toContain('price_snapshot_invalid')
+        expect(JSON.stringify(r)).not.toContain(String(amount))
+      }
+    }
+  })
+
+  it('source 只接受精确浅层白名单且不回显嵌套 PII 形状数据', () => {
+    const injectedPii = '李四13900009999'
+    const r = validateInquiry(buildValidInput({
+      source: {
+        pageType: 'listing',
+        path: VALID_PATH,
+        campaign: {},
+        injected: { profile: { contact: injectedPii } },
+      },
+    }))
+
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toContain('source_invalid')
+    expect(JSON.stringify(r)).not.toContain(injectedPii)
+  })
+
+  it('source.path 只保留同源 pathname，剥离 query/hash 中的手机号', () => {
+    const injectedPhone = '13900009999'
+    const r = validateInquiry(buildValidInput({
+      source: {
+        pageType: 'listing',
+        path: `${VALID_PATH}?phone=${injectedPhone}#contact=${injectedPhone}`,
+        campaign: {},
+      },
+    }))
+
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.data.source.path).toBe(VALID_PATH)
+    expect(JSON.stringify(r.data)).not.toContain(injectedPhone)
+  })
+
+  it.each([
+    'https://evil.example/listings/x',
+    '//evil.example/listings/x',
+    '/listings/x\nX-Injected: yes',
+    '/listings/x%0d%0aX-Injected',
+  ])('source.path 拒绝绝对/协议相对 URL 与控制字符：%s', (path) => {
+    const r = validateInquiry(buildValidInput({
+      source: { pageType: 'listing', path, campaign: {} },
+    }))
+
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.errors).toContain('source_path_invalid')
+  })
+
   it('完整合法输入 → ok=true，字段全部映射', () => {
     const r = validateInquiry(buildValidInput())
     expect(r.ok).toBe(true)
@@ -206,7 +342,7 @@ describe('validateInquiry: 合法输入', () => {
         message: '测'.repeat(LIMITS.MESSAGE_MAX),
         source: {
           pageType: 'listing',
-          path: '/'.repeat(LIMITS.PATH_MAX),
+          path: `/${'a'.repeat(LIMITS.PATH_MAX - 1)}`,
         },
       }),
     )
@@ -584,9 +720,11 @@ describe('deriveFieldCompleteness', () => {
         moveInTime: opts.moveInTime ?? null,
       },
       consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
-      source: { pageType: 'listing', path: '/test', campaign: {
+      source: { pageType: 'listing', path: '/test', section: null, currentFilters: null, campaign: {
         utm_source: '', utm_medium: '', utm_campaign: '', utm_content: '', utm_term: '',
       } },
+      priceSnapshot: null,
+      activeSupplyGroup: null,
     }
   }
 
@@ -630,7 +768,7 @@ describe('buildInquiryLogEntry', () => {
       phone: VALID_PHONE,
       phoneNormalized: VALID_PHONE,
       company: '测试公司',
-      message: '想约看',
+      message: '团队规模：10-20 人\n想约看',
       listingSlug: VALID_LISTING_SLUG,
       buildingSlug: null,
       targetType: 'listing',
@@ -639,6 +777,8 @@ describe('buildInquiryLogEntry', () => {
       source: {
         pageType: 'listing',
         path: VALID_PATH,
+        section: null,
+        currentFilters: null,
         campaign: {
           utm_source: 'baidu',
           utm_medium: 'cpc',
@@ -647,6 +787,8 @@ describe('buildInquiryLogEntry', () => {
           utm_term: '',
         },
       },
+      priceSnapshot: null,
+      activeSupplyGroup: null,
       ...overrides,
     }
   }
@@ -661,6 +803,7 @@ describe('buildInquiryLogEntry', () => {
     expect(json).not.toContain('张三')
     expect(json).not.toContain(VALID_PHONE)
     expect(json).not.toContain('想约看')
+    expect(json).not.toContain('团队规模：10-20 人')
     expect(json).not.toContain('测试公司')
   })
 
@@ -685,6 +828,22 @@ describe('buildInquiryLogEntry', () => {
     expect(entry.path).toBe(VALID_PATH)
     expect(entry.targetType).toBe('listing')
     expect(entry.targetSlug).toBe(VALID_LISTING_SLUG)
+  })
+
+  it('纵深清洗手工构造请求中的 query/hash PII 后再写日志', () => {
+    const injectedPhone = '13900009999'
+    const entry = buildInquiryLogEntry(
+      validReq({
+        source: {
+          ...validReq().source,
+          path: `${VALID_PATH}?phone=${injectedPhone}#contact=${injectedPhone}`,
+        },
+      }),
+      { idempotent: false, errorCode: null, durationMs: 1 },
+    )
+
+    expect(entry.path).toBe(VALID_PATH)
+    expect(JSON.stringify(entry)).not.toContain(injectedPhone)
   })
 
   it('campaignKeys 仅记录存在的键，不含值', () => {

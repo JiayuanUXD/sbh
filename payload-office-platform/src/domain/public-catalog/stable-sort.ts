@@ -5,8 +5,8 @@
  *
  * 守护不变量：
  *   - 同权重必须以不可变 listing_id 升序收束，保证跨页稳定；
- *   - 价格排序按同币种、同单位的标准字段排序；
- *   - 跨币种、跨租售类型或租赁单位不合并排序，调用方必须先按 rentUnit 分组；
+ *   - 价格排序仅按完整价格 key 相同的标准字段排序；
+ *   - 跨币种、跨租售类型、周期或计价基础不合并排序；
  *   - 排序在内存中执行，假定输入已是有效供给结果（M4.7 完成后由服务返回）。
  *
  * 排序规则（design.md §7.4）：
@@ -83,9 +83,9 @@ function compareNewest(
 }
 
 /**
- * 按价格排序（必须同 rentUnit）：rent asc/desc → id asc
+ * 按价格排序（必须同完整价格 key）：rent asc/desc → id asc
  *
- * 调用方必须在分组前已校验所有 card 的 price.unit 相同；
+ * 调用方必须在分组前已校验所有 card 的 businessType/currency/period/basis 相同；
  * 此函数不再做单位校验，假设输入已分组。
  *
  * 缺失价格（price=null）的卡片始终排到末尾，无论升降序。
@@ -124,6 +124,7 @@ export function stableSortCards(
   lastEffAt: (card: ListingCardViewModel) => number,
 ): ListingCardViewModel[] {
   const arr = cards.slice()
+  const canSortByPrice = isSameRentUnit(arr)
   arr.sort((a, b) => {
     switch (sort) {
       case 'recommended':
@@ -131,26 +132,35 @@ export function stableSortCards(
       case 'newest':
         return compareNewest(a, b, lastEffAt)
       case 'rent-asc':
-        return comparePrice(a, b, 'asc')
+        return canSortByPrice ? comparePrice(a, b, 'asc') : ascNumber(a.id, b.id)
       case 'rent-desc':
-        return comparePrice(a, b, 'desc')
+        return canSortByPrice ? comparePrice(a, b, 'desc') : ascNumber(a.id, b.id)
     }
   })
   return arr
 }
 
 /**
- * 检查卡片列表是否所有非空价格都属同一 rentUnit
+ * 返回完整价格 key。displayUnit 仅用于展示，不能作为排序/聚合键。
+ */
+export function priceKeyOf(price: ListingCardViewModel['price']): string | null {
+  if (!price) return null
+  return `${price.businessType}:${price.currency}:${price.period}:${price.basis}`
+}
+
+/**
+ * 检查卡片列表是否所有非空价格都属同一完整价格 key。
  *
  * 用于价格排序前的安全校验。design.md §7.4：禁止跨单位直接价格排序。
  */
 export function isSameRentUnit(cards: readonly ListingCardViewModel[]): boolean {
-  let unit: string | null = null
+  let key: string | null = null
   for (const c of cards) {
-    if (c.price == null) continue
-    if (unit == null) {
-      unit = c.price.unit
-    } else if (c.price.unit !== unit) {
+    const current = priceKeyOf(c.price)
+    if (current == null) continue
+    if (key == null) {
+      key = current
+    } else if (current !== key) {
       return false
     }
   }
@@ -170,7 +180,20 @@ export function filterByRentUnit(
   cards: readonly ListingCardViewModel[],
   unit: string,
 ): ListingCardViewModel[] {
-  return cards.filter((c) => c.price?.unit === unit)
+  const displayUnit = {
+    'rmb-sqm-day': 'rmb-sqm-day',
+    'rmb-month': 'rmb-month',
+    'rmb-seat-month': 'rmb-seat-month',
+  }[unit]
+  return cards.filter((c) => c.price?.displayUnit === displayUnit)
+}
+
+/** 仅保留完整价格 key 相同的卡片，供价格排序前收束。 */
+export function filterByPriceKey(
+  cards: readonly ListingCardViewModel[],
+  key: string,
+): ListingCardViewModel[] {
+  return cards.filter((card) => priceKeyOf(card.price) === key)
 }
 
 /**

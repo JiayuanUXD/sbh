@@ -608,6 +608,41 @@ export interface Building {
    */
   propertyFee?: number | null;
   parkingSpaces?: number | null;
+  developerAndScale?: {
+    developer?: string | null;
+    grossFloorArea?: number | null;
+    typicalFloorArea?: number | null;
+    standardFloorHeight?: number | null;
+    netCeilingHeight?: number | null;
+    efficiencyRate?: number | null;
+  };
+  verticalTransport?: {
+    passengerElevators?: number | null;
+    freightElevators?: number | null;
+    zoningNote?: string | null;
+  };
+  buildingServices?: {
+    airConditioning?: string | null;
+    network?: string | null;
+    powerSupply?: string | null;
+    accessControl?: string | null;
+    parkingFee?: string | null;
+    serviceHours?: string | null;
+  };
+  certifications?:
+    | {
+        name: string;
+        certificateNumber?: string | null;
+        validFrom?: string | null;
+        validTo?: string | null;
+        publicVisible?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  verificationInfo?: {
+    verifiedAt?: string | null;
+    priceVerifiedAt?: string | null;
+  };
   coverImage?: (number | null) | Media;
   /**
    * 最多 20 张，可拖拽调整顺序
@@ -619,6 +654,17 @@ export interface Building {
       }[]
     | null;
   amenities?: (number | Amenity)[] | null;
+  mediaItems?:
+    | {
+        resource: number | Media;
+        kind: 'image' | 'floor-plan' | 'video';
+        category: 'exterior' | 'lobby' | 'common-area' | 'facilities';
+        alt: string;
+        capturedAt?: string | null;
+        isSchematic?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   summary?: string | null;
   description?: {
     root: {
@@ -733,6 +779,7 @@ export interface Listing {
   building: number | Building;
   businessType?: ('lease' | 'sale') | null;
   decorationStatus?: ('rough' | 'simple' | 'furnished' | 'fully_fitted') | null;
+  registrationStatus?: ('available' | 'conditional' | 'unavailable' | 'confirm') | null;
   /**
    * 价格必须保存金额、币种、周期和单位,禁止仅存展示文本。
    */
@@ -753,6 +800,22 @@ export interface Listing {
   minimumLeaseMonths?: number | null;
   paymentTerms?: string | null;
   availableFrom?: string | null;
+  spaceDetails?: {
+    efficiencyRate?: number | null;
+    seatMin?: number | null;
+    seatMax?: number | null;
+    orientation?: string | null;
+    netCeilingHeight?: number | null;
+    isDivisible?: boolean | null;
+    furnitureStatus?: ('included' | 'optional' | 'none' | 'confirm') | null;
+  };
+  costTerms?: {
+    depositMonths?: number | null;
+    propertyFeeInclusion?: ('included' | 'excluded' | 'confirm') | null;
+    propertyFeeAmount?: number | null;
+    invoiceStatus?: ('included' | 'extra-tax' | 'unavailable' | 'confirm') | null;
+    otherFixedCosts?: string | null;
+  };
   isFeatured?: boolean | null;
   /**
    * 由提交/审核流程驱动。
@@ -775,6 +838,10 @@ export interface Listing {
    */
   merchant?: (number | null) | Merchant;
   contactBroker?: (number | null) | Broker;
+  verificationInfo?: {
+    verifiedAt?: string | null;
+    priceVerifiedAt?: string | null;
+  };
   coverImage?: (number | null) | Media;
   /**
    * 提交审核要求至少 3 张有效图片。
@@ -782,6 +849,17 @@ export interface Listing {
   gallery?:
     | {
         image: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  mediaItems?:
+    | {
+        resource: number | Media;
+        kind: 'image' | 'floor-plan' | 'video';
+        category: 'workspace' | 'meeting-room' | 'common-area' | 'exterior';
+        alt: string;
+        capturedAt?: string | null;
+        isSchematic?: boolean | null;
         id?: string | null;
       }[]
     | null;
@@ -921,6 +999,41 @@ export interface Lead {
    * 前台传入的楼盘 slug。
    */
   targetBuildingSlug?: string | null;
+  /**
+   * 仅保存白名单化的详情页入口区块；不保存任意前台文案。
+   */
+  sourceSection?:
+    | ('hero' | 'sticky-card' | 'mobile-bar' | 'supply-lease' | 'supply-sale' | 'supply-coworking' | 'recommendation')
+    | null;
+  /**
+   * 提交时页面当前的供给分组，仅接受 lease / sale / coworking。
+   */
+  activeSupplyGroup?: ('lease' | 'sale' | 'coworking') | null;
+  /**
+   * 已白名单化的 group / priceUnit 枚举；不保存自由文本或用户标识。
+   */
+  currentFilters?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * 非权威来源快照，仅供跟进参考，不参与公开价格或排序。
+   */
+  priceSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  priceSnapshotSubmittedAt?: string | null;
   /**
    * 用户必须主动勾选，未勾选不得提交（FP-05 §3.1）。
    */
@@ -2444,6 +2557,49 @@ export interface BuildingsSelect<T extends boolean = true> {
   propertyCompany?: T;
   propertyFee?: T;
   parkingSpaces?: T;
+  developerAndScale?:
+    | T
+    | {
+        developer?: T;
+        grossFloorArea?: T;
+        typicalFloorArea?: T;
+        standardFloorHeight?: T;
+        netCeilingHeight?: T;
+        efficiencyRate?: T;
+      };
+  verticalTransport?:
+    | T
+    | {
+        passengerElevators?: T;
+        freightElevators?: T;
+        zoningNote?: T;
+      };
+  buildingServices?:
+    | T
+    | {
+        airConditioning?: T;
+        network?: T;
+        powerSupply?: T;
+        accessControl?: T;
+        parkingFee?: T;
+        serviceHours?: T;
+      };
+  certifications?:
+    | T
+    | {
+        name?: T;
+        certificateNumber?: T;
+        validFrom?: T;
+        validTo?: T;
+        publicVisible?: T;
+        id?: T;
+      };
+  verificationInfo?:
+    | T
+    | {
+        verifiedAt?: T;
+        priceVerifiedAt?: T;
+      };
   coverImage?: T;
   gallery?:
     | T
@@ -2452,6 +2608,17 @@ export interface BuildingsSelect<T extends boolean = true> {
         id?: T;
       };
   amenities?: T;
+  mediaItems?:
+    | T
+    | {
+        resource?: T;
+        kind?: T;
+        category?: T;
+        alt?: T;
+        capturedAt?: T;
+        isSchematic?: T;
+        id?: T;
+      };
   summary?: T;
   description?: T;
   seo?:
@@ -2509,6 +2676,7 @@ export interface ListingsSelect<T extends boolean = true> {
   building?: T;
   businessType?: T;
   decorationStatus?: T;
+  registrationStatus?: T;
   price?:
     | T
     | {
@@ -2525,6 +2693,26 @@ export interface ListingsSelect<T extends boolean = true> {
   minimumLeaseMonths?: T;
   paymentTerms?: T;
   availableFrom?: T;
+  spaceDetails?:
+    | T
+    | {
+        efficiencyRate?: T;
+        seatMin?: T;
+        seatMax?: T;
+        orientation?: T;
+        netCeilingHeight?: T;
+        isDivisible?: T;
+        furnitureStatus?: T;
+      };
+  costTerms?:
+    | T
+    | {
+        depositMonths?: T;
+        propertyFeeInclusion?: T;
+        propertyFeeAmount?: T;
+        invoiceStatus?: T;
+        otherFixedCosts?: T;
+      };
   isFeatured?: T;
   reviewStatus?: T;
   publicationStatus?: T;
@@ -2532,11 +2720,28 @@ export interface ListingsSelect<T extends boolean = true> {
   version?: T;
   merchant?: T;
   contactBroker?: T;
+  verificationInfo?:
+    | T
+    | {
+        verifiedAt?: T;
+        priceVerifiedAt?: T;
+      };
   coverImage?: T;
   gallery?:
     | T
     | {
         image?: T;
+        id?: T;
+      };
+  mediaItems?:
+    | T
+    | {
+        resource?: T;
+        kind?: T;
+        category?: T;
+        alt?: T;
+        capturedAt?: T;
+        isSchematic?: T;
         id?: T;
       };
   highlights?:
@@ -2604,6 +2809,11 @@ export interface LeadsSelect<T extends boolean = true> {
   targetType?: T;
   targetListingSlug?: T;
   targetBuildingSlug?: T;
+  sourceSection?: T;
+  activeSupplyGroup?: T;
+  currentFilters?: T;
+  priceSnapshot?: T;
+  priceSnapshotSubmittedAt?: T;
   consentAccepted?: T;
   consentPolicyVersion?: T;
   campaign?: T;

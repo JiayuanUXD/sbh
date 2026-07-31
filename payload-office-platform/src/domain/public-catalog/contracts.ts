@@ -44,8 +44,10 @@ export type MediaViewModel = Readonly<{
 export type PriceViewModel = Readonly<{
   amount: number
   currency: 'CNY'
-  /** 原始 rentUnit 枚举，用于排序与分组 */
-  unit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month'
+  businessType: 'lease' | 'sale'
+  period: 'day' | 'month' | 'year' | 'one-time'
+  basis: 'sqm' | 'seat' | 'total'
+  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month' | 'rmb-total'
   /** 可读文本，如 "8.5 元/㎡/天" */
   text: string
 }>
@@ -88,6 +90,9 @@ export type ListingCardViewModel = Readonly<{
   title: string
   price: PriceViewModel | null
   area: number | null
+  /** 历史房源缺失该字段时兼容为 lease。 */
+  businessType: 'lease' | 'sale'
+  decorationStatus: NonNullable<Listing['decorationStatus']> | null
   listingType: Listing['listingType']
   availableFrom: string | null
   isFeatured: boolean
@@ -99,29 +104,106 @@ export type ListingCardViewModel = Readonly<{
   stableSortKey: string
 }>
 
+export type DetailMediaViewModel = Readonly<{
+  id: string
+  kind: 'image' | 'floor-plan' | 'video'
+  category: string
+  resource: MediaViewModel
+  capturedAt: string | null
+  isSchematic: boolean
+}>
+
+export type FactValue = Readonly<{
+  label: string
+  value: string | null
+  estimated: boolean
+  critical: boolean
+}>
+
+export type FactGroupViewModel = Readonly<{
+  id: string
+  title: string
+  facts: readonly FactValue[]
+}>
+
+export type AmenityGroupViewModel = Readonly<{
+  id: string
+  title: string
+  items: readonly string[]
+}>
+
+export type VerificationViewModel = Readonly<{
+  verifiedAt: string | null
+  priceVerifiedAt: string | null
+}>
+
+export type BuildingSupplyGroup = 'lease' | 'sale' | 'coworking'
+
+/** 楼盘供给的单一、不可跨用比较的价格区间。 */
+export type BuildingSupplyPriceRange = Readonly<{
+  /** businessType:currency:period:basis；仅相同 key 的价格可以聚合或比较。 */
+  key: string
+  businessType: PriceViewModel['businessType']
+  currency: PriceViewModel['currency']
+  period: PriceViewModel['period']
+  basis: PriceViewModel['basis']
+  displayUnit: PriceViewModel['displayUnit']
+  min: number
+  max: number
+  count: number
+}>
+
+export type BuildingSupplyAreaRange = Readonly<{
+  min: number
+  max: number
+}>
+
+/** 未受页面 query 影响的业务组公开供给概览。 */
+export type BuildingSupplyGroupAvailability = Readonly<{
+  key: BuildingSupplyGroup
+  totalEffectiveListings: number
+  areaRange: BuildingSupplyAreaRange | null
+  immediateAvailabilityCount: number
+  priceRanges: readonly BuildingSupplyPriceRange[]
+}>
+
+/** 一个租赁、出售或联合办公供给组。 */
+export type BuildingSupplyGroupViewModel = Readonly<{
+  key: BuildingSupplyGroup
+  listings: readonly ListingCardViewModel[]
+  priceRanges: readonly BuildingSupplyPriceRange[]
+  areaRange: BuildingSupplyAreaRange | null
+  immediateAvailabilityCount: number
+}>
+
+/** 楼盘详情页在同一 asOf 时刻生成的供给快照。 */
+export type BuildingSupplySnapshot = Readonly<{
+  asOf: string
+  /** 当前 query 对应的结果行和分组。 */
+  groups: readonly BuildingSupplyGroupViewModel[]
+  /** 未受 group/filter/sort query 影响的非空业务组和 canonical 聚合。 */
+  availableGroups: readonly BuildingSupplyGroupAvailability[]
+  /** 同一公开快照内的全部有效供给数。 */
+  totalEffectiveListings: number
+  /** 当前 query 对应的结果数。 */
+  resultCount: number
+  validationErrors: readonly 'price_unit_required'[]
+}>
+
 // ---------------------------------------------------------------------------
 // 详情 DTO
 // ---------------------------------------------------------------------------
 
-/** 房源详情视图模型：卡片字段 + 公开画廊 + 楼盘摘要 + 富文本说明 */
-export type ListingDetailViewModel = Readonly<{
-  id: number
-  slug: string
-  title: string
-  price: PriceViewModel | null
-  area: number | null
+/** 房源详情视图模型：完整卡片字段 + 详情专属公开数据。 */
+export type ListingDetailViewModel = Readonly<ListingCardViewModel & {
   seats: number | null
-  listingType: Listing['listingType']
-  availableFrom: string | null
-  isFeatured: boolean
-  building: BuildingSummaryViewModel | null
-  coverImage: MediaViewModel | null
   gallery: readonly MediaViewModel[]
-  highlights: readonly string[]
+  mediaItems: readonly DetailMediaViewModel[]
+  factGroups: readonly FactGroupViewModel[]
+  amenityGroups: readonly AmenityGroupViewModel[]
+  verification: VerificationViewModel
   /** 富文本说明（Lexical JSON），由服务端白名单渲染 */
   description: Listing['description']
-  /** 稳定排序收束键 */
-  stableSortKey: string
 }>
 
 /** 楼盘详情视图模型 */
@@ -130,12 +212,17 @@ export type BuildingDetailViewModel = Readonly<{
   slug: string
   name: string
   address: string
+  buildingType?: Building['buildingType']
   grade?: Building['grade']
   district?: DistrictViewModel
   businessDistrict?: DistrictViewModel
   nearestMetro?: DistrictViewModel
   coverImage: MediaViewModel | null
   gallery: readonly MediaViewModel[]
+  mediaItems: readonly DetailMediaViewModel[]
+  factGroups: readonly FactGroupViewModel[]
+  amenityGroups: readonly AmenityGroupViewModel[]
+  verification: VerificationViewModel
   amenities: readonly string[]
   summary: string
   description: Building['description']

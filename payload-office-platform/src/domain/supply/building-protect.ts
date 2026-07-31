@@ -117,6 +117,27 @@ export const protectBuilding: CollectionBeforeChangeHook = async ({
     })
   }
 
+  // —— 公开认证有效期 ——
+  if (Array.isArray(data?.certifications)) {
+    for (const certification of data.certifications) {
+      if (!certification || typeof certification !== 'object') continue
+      const { publicVisible, validTo } = certification as {
+        publicVisible?: unknown
+        validTo?: unknown
+      }
+      if (!publicVisible || (typeof validTo !== 'string' && !(validTo instanceof Date))) continue
+
+      const validToDate = new Date(validTo)
+      if (!Number.isNaN(validToDate.getTime()) && validToDate.getTime() < Date.now()) {
+        throw new InvalidOperationError({
+          domain: 'supply',
+          code: 'EXPIRED_PUBLIC_CERTIFICATION',
+          message: '过期认证不可公开',
+        })
+      }
+    }
+  }
+
   // —— 版本乐观锁 ——
   if (operation === 'create') {
     data.version = 1

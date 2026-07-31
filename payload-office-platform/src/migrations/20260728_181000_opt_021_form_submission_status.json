@@ -7831,6 +7831,477 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.audit_logs": {
+      "name": "audit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "audit_id": {
+          "name": "audit_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "enum_audit_logs_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "enum_audit_logs_result",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_collection": {
+          "name": "object_collection",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_id": {
+          "name": "object_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "object_version": {
+          "name": "object_version",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changed_fields": {
+          "name": "changed_fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_user_id": {
+          "name": "subject_user_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_role_codes": {
+          "name": "subject_role_codes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_team_id": {
+          "name": "subject_team_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_city_scope": {
+          "name": "subject_city_scope",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_id": {
+          "name": "request_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip": {
+          "name": "ip",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "method": {
+          "name": "method",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp(3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "audit_logs_audit_id_idx": {
+          "name": "audit_logs_audit_id_idx",
+          "columns": [
+            {
+              "expression": "audit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_action_idx": {
+          "name": "audit_logs_action_idx",
+          "columns": [
+            {
+              "expression": "action",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_result_idx": {
+          "name": "audit_logs_result_idx",
+          "columns": [
+            {
+              "expression": "result",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_object_collection_idx": {
+          "name": "audit_logs_object_collection_idx",
+          "columns": [
+            {
+              "expression": "object_collection",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_object_id_idx": {
+          "name": "audit_logs_object_id_idx",
+          "columns": [
+            {
+              "expression": "object_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_subject_user_id_idx": {
+          "name": "audit_logs_subject_user_id_idx",
+          "columns": [
+            {
+              "expression": "subject_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_request_id_idx": {
+          "name": "audit_logs_request_id_idx",
+          "columns": [
+            {
+              "expression": "request_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_event_id_idx": {
+          "name": "audit_logs_event_id_idx",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_occurred_at_idx": {
+          "name": "audit_logs_occurred_at_idx",
+          "columns": [
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_updated_at_idx": {
+          "name": "audit_logs_updated_at_idx",
+          "columns": [
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_created_at_idx": {
+          "name": "audit_logs_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.audit_logs_rels": {
+      "name": "audit_logs_rels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path": {
+          "name": "path",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "users_id": {
+          "name": "users_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "audit_logs_rels_order_idx": {
+          "name": "audit_logs_rels_order_idx",
+          "columns": [
+            {
+              "expression": "order",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_rels_parent_idx": {
+          "name": "audit_logs_rels_parent_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_rels_path_idx": {
+          "name": "audit_logs_rels_path_idx",
+          "columns": [
+            {
+              "expression": "path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audit_logs_rels_users_id_idx": {
+          "name": "audit_logs_rels_users_id_idx",
+          "columns": [
+            {
+              "expression": "users_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "audit_logs_rels_parent_fk": {
+          "name": "audit_logs_rels_parent_fk",
+          "tableFrom": "audit_logs_rels",
+          "tableTo": "audit_logs",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "audit_logs_rels_users_fk": {
+          "name": "audit_logs_rels_users_fk",
+          "tableFrom": "audit_logs_rels",
+          "tableTo": "users",
+          "columnsFrom": [
+            "users_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.tasks": {
       "name": "tasks",
       "schema": "",
@@ -11717,6 +12188,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "audit_logs_id": {
+          "name": "audit_logs_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "tasks_id": {
           "name": "tasks_id",
           "type": "integer",
@@ -12124,6 +12601,21 @@
           "method": "btree",
           "with": {}
         },
+        "payload_locked_documents_rels_audit_logs_id_idx": {
+          "name": "payload_locked_documents_rels_audit_logs_id_idx",
+          "columns": [
+            {
+              "expression": "audit_logs_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "payload_locked_documents_rels_tasks_id_idx": {
           "name": "payload_locked_documents_rels_tasks_id_idx",
           "columns": [
@@ -12493,6 +12985,19 @@
           "tableTo": "domain_events",
           "columnsFrom": [
             "domain_events_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "payload_locked_documents_rels_audit_logs_fk": {
+          "name": "payload_locked_documents_rels_audit_logs_fk",
+          "tableFrom": "payload_locked_documents_rels",
+          "tableTo": "audit_logs",
+          "columnsFrom": [
+            "audit_logs_id"
           ],
           "columnsTo": [
             "id"
@@ -13364,6 +13869,69 @@
         "task"
       ]
     },
+    "public.enum_audit_logs_action": {
+      "name": "enum_audit_logs_action",
+      "schema": "public",
+      "values": [
+        "listing.create",
+        "listing.update",
+        "listing.delete",
+        "listing.review_submit",
+        "listing.review_approve",
+        "listing.review_reject",
+        "listing.publish",
+        "listing.unpublish",
+        "building.create",
+        "building.update",
+        "building.delete",
+        "building.freeze",
+        "building.restore",
+        "merchant.create",
+        "merchant.update",
+        "merchant.freeze",
+        "merchant.restore",
+        "report.triage",
+        "report.sustain",
+        "report.dismiss",
+        "report.pause_supply",
+        "report.resume_supply",
+        "report.close",
+        "lead.create",
+        "lead.update",
+        "lead.assign",
+        "lead.claim",
+        "lead.transfer",
+        "lead.to_public_pool",
+        "lead.reclaim",
+        "lead.lose",
+        "lead.stage_transition",
+        "customer.create",
+        "customer.update",
+        "followup.create",
+        "followup.correct",
+        "user.create",
+        "user.disable",
+        "user.enable",
+        "user.reset_password",
+        "role.create",
+        "role.update",
+        "role.delete",
+        "role.assign",
+        "role.revoke",
+        "data.import",
+        "data.export",
+        "audit.view_detail",
+        "audit.export"
+      ]
+    },
+    "public.enum_audit_logs_result": {
+      "name": "enum_audit_logs_result",
+      "schema": "public",
+      "values": [
+        "success",
+        "failed"
+      ]
+    },
     "public.enum_tasks_task_type": {
       "name": "enum_tasks_task_type",
       "schema": "public",
@@ -13526,6 +14094,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "9fcbb116-f78e-42f1-9c9f-5cb3ced2bf2b",
+  "id": "7369ca8d-1b6e-467c-9309-4436aea26f39",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

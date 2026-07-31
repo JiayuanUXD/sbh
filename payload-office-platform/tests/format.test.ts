@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatAvailableDate, formatRent, formatArea, rentUnitLabel } from '@/lib/frontend/format'
+import { formatAvailableDate, formatRent, formatArea, formatFact, rentUnitLabel } from '@/lib/frontend/format'
 
 describe('formatRent', () => {
   it('renders 元/㎡/天 with 1 decimal for rmb-sqm-day', () => {
@@ -30,6 +30,13 @@ describe('formatArea', () => {
   })
   it('returns 面议 when undefined', () => {
     expect(formatArea(undefined)).toBe('面议')
+  })
+})
+
+describe('formatFact', () => {
+  it('uses 咨询确认 only for a missing critical decision fact', () => {
+    expect(formatFact(null, { critical: true })).toBe('咨询确认')
+    expect(formatFact(null, { critical: false })).toBeNull()
   })
 })
 

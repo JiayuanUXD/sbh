@@ -25,6 +25,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import ts from 'typescript'
 import {
   mapBuildingDetail,
   mapBuildingSummary,
@@ -67,6 +68,80 @@ function buildValidInquiryRequest(): InquiryRequest {
   const result = validateInquiry(VALID_INQUIRY_BODY)
   if (!result.ok) throw new Error('fixture 应通过校验')
   return result.data
+}
+
+const SHARED_JSON_LD_MODULE = '@/lib/frontend/detail-metadata'
+
+/**
+ * Rejects comments, wrong imports, and locally-shadowed helpers by checking
+ * the TSX AST rather than looking for serializer text in the source.
+ */
+function hasSharedJsonLdScriptSerialization(source: string): boolean {
+  const sourceFile = ts.createSourceFile('route.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  let importedSerializerName: string | null = null
+
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== SHARED_JSON_LD_MODULE) continue
+    const namedBindings = statement.importClause?.namedBindings
+    if (!namedBindings || !ts.isNamedImports(namedBindings)) continue
+    const serializer = namedBindings.elements.find((element) => element.propertyName == null && element.name.text === 'serializeJsonLd')
+    if (serializer) importedSerializerName = serializer.name.text
+  }
+  if (!importedSerializerName) return false
+
+  let hasLocalShadow = false
+  let matchingScriptCount = 0
+  let hasUnsafeMatchingScript = false
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node) || ts.isParameter(node)) &&
+      node.name && ts.isIdentifier(node.name) && node.name.text === importedSerializerName
+    ) {
+      hasLocalShadow = true
+    }
+
+    const openingElement = ts.isJsxElement(node)
+      ? node.openingElement
+      : ts.isJsxSelfClosingElement(node)
+        ? node
+        : null
+    if (openingElement && openingElement.tagName.getText(sourceFile) === 'script') {
+      const attributes = openingElement.attributes.properties
+      const typeAttribute = attributes.find((attribute): attribute is ts.JsxAttribute =>
+        ts.isJsxAttribute(attribute) && attribute.name.getText(sourceFile) === 'type',
+      )
+      const dangerousAttribute = attributes.find((attribute): attribute is ts.JsxAttribute =>
+        ts.isJsxAttribute(attribute) && attribute.name.getText(sourceFile) === 'dangerouslySetInnerHTML',
+      )
+      const typeIsJsonLd = typeAttribute?.initializer != null &&
+        ts.isStringLiteral(typeAttribute.initializer) &&
+        typeAttribute.initializer.text === 'application/ld+json'
+      const dangerousExpression = dangerousAttribute?.initializer
+      if (typeIsJsonLd && dangerousAttribute) {
+        matchingScriptCount += 1
+      }
+      if (typeIsJsonLd && dangerousExpression && ts.isJsxExpression(dangerousExpression) && dangerousExpression.expression && ts.isObjectLiteralExpression(dangerousExpression.expression)) {
+        const htmlAssignment = dangerousExpression.expression.properties.find((property): property is ts.PropertyAssignment =>
+          ts.isPropertyAssignment(property) && ts.isIdentifier(property.name) && property.name.text === '__html',
+        )
+        if (
+          htmlAssignment &&
+          ts.isCallExpression(htmlAssignment.initializer) &&
+          ts.isIdentifier(htmlAssignment.initializer.expression) &&
+          htmlAssignment.initializer.expression.text === importedSerializerName
+        ) {
+          // This matching JSON-LD script directly uses the imported helper.
+        } else {
+          hasUnsafeMatchingScript = true
+        }
+      } else if (typeIsJsonLd && dangerousAttribute) {
+        hasUnsafeMatchingScript = true
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sourceFile)
+  return matchingScriptCount > 0 && !hasUnsafeMatchingScript && !hasLocalShadow
 }
 
 // ---------------------------------------------------------------------------
@@ -183,6 +258,8 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
         'title',
         'price',
         'area',
+        'businessType',
+        'decorationStatus',
         'listingType',
         'availableFrom',
         'isFeatured',
@@ -194,10 +271,14 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     )
   })
 
-  it('ListingDetailViewModel 在 Card 字段上增加 seats / gallery / description', () => {
+  it('ListingDetailViewModel 在 Card 字段上增加详情值对象', () => {
     const detail = mapListingDetail(LISTING_MONTHLY_STANDARD)!
     expect(detail).toHaveProperty('seats')
     expect(detail).toHaveProperty('gallery')
+    expect(detail).toHaveProperty('mediaItems')
+    expect(detail).toHaveProperty('factGroups')
+    expect(detail).toHaveProperty('amenityGroups')
+    expect(detail).toHaveProperty('verification')
     expect(detail).toHaveProperty('description')
   })
 
@@ -219,9 +300,10 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     // description 是受控字段（PageContent 白名单渲染），允许暴露
     expect(detail).toHaveProperty('description')
     // 但不应有未在 DTO 契约声明的字段
-    const allowed = ['id', 'slug', 'title', 'price', 'area', 'seats', 'listingType',
-      'availableFrom', 'isFeatured', 'building', 'coverImage', 'gallery',
-      'highlights', 'description', 'stableSortKey']
+    const allowed = ['id', 'slug', 'title', 'price', 'area', 'seats', 'businessType',
+      'decorationStatus', 'listingType', 'availableFrom', 'isFeatured', 'building',
+      'coverImage', 'gallery', 'mediaItems', 'factGroups', 'amenityGroups',
+      'verification', 'highlights', 'description', 'stableSortKey']
     for (const k of Object.keys(detail)) {
       expect(allowed, `ListingDetailViewModel 不应包含未声明字段 ${k}`).toContain(k)
     }
@@ -491,6 +573,9 @@ describe('F7.5 隐私日志守护不变量汇总', () => {
         'campaignKeys',
         'errorCode',
         'durationMs',
+        'hasPriceSnapshot',
+        'section',
+        'targetResolution',
       ].sort(),
     )
   })
@@ -606,7 +691,7 @@ describe('F7.5 HTML 渲染守护不变量（汇总）', () => {
     expect(source).not.toMatch(/dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html:\s*[a-zA-Z_]/)
   })
 
-  it('JSON-LD script 标签的 dangerouslySetInnerHTML 必须做 </script> 转义', async () => {
+  it('JSON-LD script 必须导入共享序列化器并直接写入 __html', async () => {
     const fs = await import('node:fs/promises')
     const path = await import('node:path')
     const files = [
@@ -617,14 +702,68 @@ describe('F7.5 HTML 渲染守护不变量（汇总）', () => {
     for (const rel of files) {
       const filePath = path.resolve(__dirname, '..', ...rel.split('/'))
       const source = await fs.readFile(filePath, 'utf-8')
-      // 若使用 dangerouslySetInnerHTML，必须含 </script> 转义
       if (source.includes('dangerouslySetInnerHTML')) {
-        // 标准做法：.replace(/</g, '\\u003c') 或类似变体
-        // 检查必须含 replace 调用 + u003c 字符串字面量
-        expect(source, `${rel} 必须含 .replace 调用做 </script> 转义`).toMatch(/\.replace\(/)
-        expect(source, `${rel} 必须转义为 u003c`).toContain('u003c')
+        expect(hasSharedJsonLdScriptSerialization(source), `${rel} 必须从共享模块导入 serializeJsonLd 并直接写入 script.__html`).toBe(true)
       }
     }
+  })
+
+  it('JSON-LD source guard 拒绝注释、局部 shadow 和错误模块导入', () => {
+    const correct = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() { return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} /> }
+    `
+    const commentOnly = `
+      // import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      // dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }}
+      export function Page() { return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({}) }} /> }
+    `
+    const wrongImport = `
+      import { serializeJsonLd } from '@/lib/frontend/other-metadata'
+      export function Page() { return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} /> }
+    `
+    const localShadow = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        const serializeJsonLd = () => 'unsafe'
+        return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
+      }
+    `
+    const mixedSafeAndUnsafe = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({}) }} />
+        </>
+      }
+    `
+    const multipleSafe = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({ one: true }) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({ two: true }) }} />
+        </>
+      }
+    `
+    const mixedSafeAndMissingHtml = `
+      import { serializeJsonLd } from '${SHARED_JSON_LD_MODULE}'
+      export function Page() {
+        return <>
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd({}) }} />
+          <script type="application/ld+json" dangerouslySetInnerHTML />
+        </>
+      }
+    `
+
+    expect(hasSharedJsonLdScriptSerialization(correct)).toBe(true)
+    expect(hasSharedJsonLdScriptSerialization(commentOnly)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(wrongImport)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(localShadow)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(mixedSafeAndUnsafe)).toBe(false)
+    expect(hasSharedJsonLdScriptSerialization(multipleSafe)).toBe(true)
+    expect(hasSharedJsonLdScriptSerialization(mixedSafeAndMissingHtml)).toBe(false)
   })
 })
 
@@ -649,6 +788,8 @@ describe('F7.5 询盘完整链路守护不变量汇总', () => {
         'demand',
         'consent',
         'source',
+        'priceSnapshot',
+        'activeSupplyGroup',
       ].sort(),
     )
   })

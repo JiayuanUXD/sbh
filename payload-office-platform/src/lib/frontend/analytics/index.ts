@@ -16,6 +16,7 @@ export { track, flushAnalytics, AnalyticsInit, getCollector } from './init'
 export { createCollector, type Collector, type CollectorOptions } from './collector'
 export {
   validateEvent,
+  assertSafeAnalyticsProps,
   serializeProps,
   ANALYTICS_EVENTS,
   type AnalyticsEventName,

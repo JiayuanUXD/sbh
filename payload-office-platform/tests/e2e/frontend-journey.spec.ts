@@ -53,12 +53,16 @@ test.describe('F7.1 全链路 E2E', () => {
       .click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
-    // 5. 填写表单
-    await page.getByLabel('姓名').fill('E2E 用户')
+    // 5. 填写表单（第一步：联系方式）
+    await page.getByLabel('称呼').fill('E2E 用户')
     await page.getByLabel('手机号').fill('13800001111')
+    await page.getByLabel('团队规模').fill('10-20 人')
     await page.getByLabel(/我已阅读并同意/).check()
 
-    // 6. 提交
+    // 6. 进入第二步（需求补充）
+    await page.getByRole('button', { name: '下一步' }).click()
+
+    // 7. 提交
     await page.getByRole('button', { name: '提交' }).click()
     await expect(page.getByText(/已收到/)).toBeVisible({ timeout: 10_000 })
   })
@@ -81,8 +85,8 @@ test.describe('F7.1 全链路 E2E', () => {
     await expect(page).toHaveURL(/\/buildings\//)
     await expect(page.locator('h1')).toBeVisible()
 
-    // 楼盘应有"在租房源"区块（h2 标题，避开 site-nav 与 building-stats 文本重复）
-    const inBuildingSection = page.getByRole('heading', { level: 2, name: '在租房源' })
+    // 楼盘应有"当前有效供给"区块（h2 标题，避开 site-nav 与 building-stats 文本重复）
+    const inBuildingSection = page.getByRole('heading', { level: 2, name: '当前有效供给' })
     await expect(inBuildingSection).toBeVisible()
 
     // 楼内房源卡片应可点击进入详情

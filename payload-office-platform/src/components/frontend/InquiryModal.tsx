@@ -1,6 +1,12 @@
 'use client'
 
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type {
+  InquiryCurrentFilters,
+  InquiryPriceSnapshot,
+  InquirySupplyGroup,
+  SourceSection,
+} from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
 
@@ -43,9 +49,20 @@ type Props = {
   triggerVariant?: 'primary' | 'ghost' | 'ink'
   /** 触发按钮附加 className */
   triggerClassName?: string
+  /** 可分析的产品入口区块（与询盘 schema 的枚举保持一致） */
+  sourceSection?: SourceSection
+  /** 由公开 DTO 派生的非权威价格快照。 */
+  priceSnapshot?: InquiryPriceSnapshot
+  /** 当前详情供给分组。 */
+  activeSupplyGroup?: InquirySupplyGroup
+  /** 当前详情筛选，只接受 schema 白名单字段。 */
+  currentFilters?: InquiryCurrentFilters
 }
 
-type SubmitStatus = 'idle' | 'submitting' | 'ok' | 'error'
+export type InquiryStep = 'contact' | 'requirements' | 'success'
+type SubmitStatus = 'idle' | 'submitting' | 'error'
+export type TargetResolution = 'listing' | 'building' | 'general'
+export type InquiryFocusTarget = 'none' | 'contact-name' | 'requirements-heading' | 'success-heading' | 'error'
 
 /** UTM 参数白名单（与 domain/inquiry/campaign.ts CAMPAIGN_KEYS 对齐） */
 const CAMPAIGN_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as const
@@ -55,6 +72,7 @@ const LIMITS = {
   NAME_MAX: 50,
   COMPANY_MAX: 100,
   MESSAGE_MAX: 1000,
+  TEAM_SIZE_MAX: 50,
 } as const
 
 /** 错误码 → 中文提示（不暴露内部信息） */
@@ -66,6 +84,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   name_required: '请填写姓名',
   name_too_long: `姓名不能超过 ${LIMITS.NAME_MAX} 字`,
   phone_invalid: '请填写有效的中国大陆手机号',
+  team_size_required: '请填写团队规模',
+  team_size_too_long: `团队规模不能超过 ${LIMITS.TEAM_SIZE_MAX} 字`,
   company_too_long: `公司名不能超过 ${LIMITS.COMPANY_MAX} 字`,
   message_too_long: `留言不能超过 ${LIMITS.MESSAGE_MAX} 字`,
   consent_required: '请勾选隐私政策同意',
@@ -74,6 +94,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   source_page_type_invalid: '入口类型无效',
   source_path_required: '入口路径缺失',
   source_path_too_long: '入口路径过长',
+  source_path_invalid: '入口路径无效',
   request_id_required: '请求标识缺失',
   request_id_too_long: '请求标识过长',
   campaign_invalid: '活动参数无效',
@@ -84,6 +105,88 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 const DEFAULT_TRIGGER_LABEL = '在线询价 / 留电'
+
+const resolutionCopy: Record<TargetResolution, string> = {
+  listing: '已记录这套房源，顾问将与您确认看房。',
+  building: '该房源状态已变化，已为您登记同楼盘需求。',
+  general: '目标状态已变化，已为您登记通用选址需求。',
+}
+
+export function getInquiryResolutionCopy(
+  resolution: TargetResolution,
+  pageType: PageType,
+): string {
+  if (resolution === 'building' && pageType === 'building') {
+    return '已记录这个楼盘，顾问将与您确认可选房源。'
+  }
+  return resolutionCopy[resolution]
+}
+
+export function buildInquiryMessage(teamSize: string, message: string): string {
+  const teamSizePrefix = `团队规模：${teamSize.trim()}`
+  const userMessage = message.trim()
+  return userMessage.startsWith(teamSizePrefix)
+    ? userMessage
+    : [teamSizePrefix, userMessage].filter(Boolean).join('\n')
+}
+
+export function validateInquiryContact(input: Readonly<{
+  name: string
+  phone: string
+  teamSize: string
+  consentAccepted: boolean
+}>): string[] {
+  const errors: string[] = []
+  if (!input.name.trim()) errors.push('name_required')
+  else if (input.name.trim().length > LIMITS.NAME_MAX) errors.push('name_too_long')
+  const phoneTrimmed = input.phone.replace(/[\s\-()]/g, '')
+  if (!/^1[3-9]\d{9}$/.test(phoneTrimmed)) errors.push('phone_invalid')
+  if (!input.teamSize.trim()) errors.push('team_size_required')
+  else if (input.teamSize.trim().length > LIMITS.TEAM_SIZE_MAX) errors.push('team_size_too_long')
+  if (!input.consentAccepted) errors.push('consent_required')
+  return errors
+}
+
+export function validateInquiryRequirements(input: Readonly<{
+  name: string
+  phone: string
+  teamSize: string
+  consentAccepted: boolean
+  company: string
+  message: string
+}>): string[] {
+  const errors = validateInquiryContact(input)
+  if (input.company.length > LIMITS.COMPANY_MAX) errors.push('company_too_long')
+  if (buildInquiryMessage(input.teamSize, input.message).length > LIMITS.MESSAGE_MAX) {
+    errors.push('message_too_long')
+  }
+  return errors
+}
+
+export function reduceInquiryStep(
+  step: InquiryStep,
+  action: Readonly<{ type: 'continue'; errors: readonly string[] } | { type: 'back' } | { type: 'submitted' }>,
+): InquiryStep {
+  if (action.type === 'continue') return step === 'contact' && action.errors.length === 0 ? 'requirements' : step
+  if (action.type === 'back') return step === 'requirements' ? 'contact' : step
+  return step === 'requirements' ? 'success' : step
+}
+
+export function resolveTargetResolution(value: unknown): TargetResolution {
+  return value === 'listing' || value === 'building' || value === 'general' ? value : 'general'
+}
+
+export function getInquiryFocusTarget(
+  previousStep: InquiryStep | null,
+  nextStep: InquiryStep,
+  hasError: boolean,
+): InquiryFocusTarget {
+  if (hasError) return 'error'
+  if (previousStep === 'contact' && nextStep === 'requirements') return 'requirements-heading'
+  if (previousStep === 'requirements' && nextStep === 'contact') return 'contact-name'
+  if (previousStep === 'requirements' && nextStep === 'success') return 'success-heading'
+  return 'none'
+}
 
 function generateRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -124,12 +227,17 @@ export default function InquiryModal(props: Props) {
     pageType,
     targetListingSlug,
     targetBuildingSlug,
+    sourceSection,
+    priceSnapshot,
+    activeSupplyGroup,
+    currentFilters,
     triggerLabel = DEFAULT_TRIGGER_LABEL,
     triggerVariant = 'primary',
     triggerClassName,
   } = props
 
   const [open, setOpen] = useState(false)
+  const [step, setStep] = useState<InquiryStep>('contact')
   const [status, setStatus] = useState<SubmitStatus>('idle')
   const [errors, setErrors] = useState<string[]>([])
   const [serverError, setServerError] = useState<string | null>(null)
@@ -138,6 +246,7 @@ export default function InquiryModal(props: Props) {
   // 表单字段
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [teamSize, setTeamSize] = useState('')
   const [company, setCompany] = useState('')
   const [message, setMessage] = useState('')
   const [demandDistrict, setDemandDistrict] = useState('')
@@ -145,13 +254,21 @@ export default function InquiryModal(props: Props) {
   const [demandArea, setDemandArea] = useState('')
   const [demandMoveInTime, setDemandMoveInTime] = useState('')
   const [consentAccepted, setConsentAccepted] = useState(false)
+  const [targetResolution, setTargetResolution] = useState<TargetResolution>('general')
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const formRef = useRef<HTMLFormElement | null>(null)
+  const contactNameRef = useRef<HTMLInputElement | null>(null)
+  const requirementsHeadingRef = useRef<HTMLParagraphElement | null>(null)
+  const successHeadingRef = useRef<HTMLHeadingElement | null>(null)
+  const feedbackRef = useRef<HTMLDivElement | null>(null)
+  const previousStepRef = useRef<InquiryStep | null>(null)
   const titleId = useId()
+  const modalId = useId()
   const consentId = useId()
+  const errorSummaryId = useId()
 
   // 入口路径（白名单化，仅 pathname，不含 query）
   const sourcePath = useMemo(() => {
@@ -172,6 +289,8 @@ export default function InquiryModal(props: Props) {
     setServerError(null)
     setListingFallback(false)
     setStatus('idle')
+    setStep('contact')
+    setTargetResolution('general')
     setOpen(true)
     track('inquiry_open', {
       page_type: pageType,
@@ -187,7 +306,7 @@ export default function InquiryModal(props: Props) {
   }
 
   // Esc 关闭 + 焦点锁定 + 滚动锁 + 滚动恢复
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return
     const dialog = dialogRef.current
     if (!dialog) return
@@ -218,7 +337,7 @@ export default function InquiryModal(props: Props) {
     const prevOverflow = document.body.style.overflow
     const prevScrollY = window.scrollY
     document.body.style.overflow = 'hidden'
-    window.requestAnimationFrame(() => titleRef.current?.focus())
+    titleRef.current?.focus()
 
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -228,25 +347,48 @@ export default function InquiryModal(props: Props) {
     }
   }, [open])
 
-  // 客户端即时校验（不阻断提交，仅提示）
-  function validateClient(): string[] {
-    const errs: string[] = []
-    if (!name.trim()) errs.push('name_required')
-    else if (name.trim().length > LIMITS.NAME_MAX) errs.push('name_too_long')
-    // 简单手机号格式校验：服务端做最终校验
-    const phoneTrimmed = phone.replace(/[\s\-()]/g, '')
-    if (!/^1[3-9]\d{9}$/.test(phoneTrimmed)) errs.push('phone_invalid')
-    if (company && company.length > LIMITS.COMPANY_MAX) errs.push('company_too_long')
-    if (message && message.length > LIMITS.MESSAGE_MAX) errs.push('message_too_long')
-    if (!consentAccepted) errs.push('consent_required')
-    return errs
+  // Step/error focus moves after React commits the new form; no timeout race.
+  useEffect(() => {
+    const previousStep = previousStepRef.current
+    previousStepRef.current = step
+    if (!open) return
+    const focusTarget = getInquiryFocusTarget(previousStep, step, errors.length > 0 || serverError !== null)
+    if (focusTarget === 'requirements-heading') requirementsHeadingRef.current?.focus()
+    if (focusTarget === 'contact-name') contactNameRef.current?.focus()
+    if (focusTarget === 'success-heading') successHeadingRef.current?.focus()
+    if (focusTarget === 'error') {
+      const invalidField = dialogRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      if (invalidField) invalidField.focus()
+      else feedbackRef.current?.focus()
+    }
+  }, [errors, open, serverError, step])
+
+  function messageForRequest(): string {
+    return buildInquiryMessage(teamSize, message)
+  }
+
+  // 第一步与 API 的必填字段对齐；团队规模存入已有的 message 白名单字段，避免发送未定义字段。
+  function validateContact(): string[] {
+    return validateInquiryContact({ name, phone, teamSize, consentAccepted })
+  }
+
+  function validateRequirements(): string[] {
+    return validateInquiryRequirements({ name, phone, teamSize, consentAccepted, company, message })
+  }
+
+  function advanceToRequirements(e: React.FormEvent) {
+    e.preventDefault()
+    const clientErrors = validateContact()
+    setErrors(clientErrors)
+    setServerError(null)
+    setStep(reduceInquiryStep(step, { type: 'continue', errors: clientErrors }))
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (status === 'submitting') return
 
-    const clientErrors = validateClient()
+    const clientErrors = validateRequirements()
     setErrors(clientErrors)
     if (clientErrors.length > 0) {
       return
@@ -265,9 +407,11 @@ export default function InquiryModal(props: Props) {
       name: name.trim(),
       phone: phoneNormalized,
       company: company.trim() || undefined,
-      message: message.trim() || undefined,
+      message: messageForRequest(),
       listingSlug: targetListingSlug || undefined,
       buildingSlug: targetBuildingSlug || undefined,
+      priceSnapshot,
+      activeSupplyGroup,
       demand: {
         district: demandDistrict.trim() || undefined,
         budget: demandBudget.trim() || undefined,
@@ -281,6 +425,8 @@ export default function InquiryModal(props: Props) {
       source: {
         pageType,
         path: sourcePath,
+        section: sourceSection ?? null,
+        currentFilters: currentFilters ?? null,
         campaign,
       },
     }
@@ -309,19 +455,22 @@ export default function InquiryModal(props: Props) {
         body: JSON.stringify(requestBody),
       })
 
+      const data = (await res.json().catch(() => ({}))) as {
+        errors?: string[]
+        error?: string
+        targetResolution?: TargetResolution
+      }
+
       if (res.ok) {
-        setStatus('ok')
+        setTargetResolution(resolveTargetResolution(data.targetResolution))
+        setStatus('idle')
+        setStep(reduceInquiryStep(step, { type: 'submitted' }))
         track('inquiry_success', {
           page_type: pageType,
           target_type: targetType,
           idempotent: false,
         })
         return
-      }
-
-      const data = (await res.json().catch(() => ({}))) as {
-        errors?: string[]
-        error?: string
       }
 
       // 房源失效：提示用户转为通用需求（保留已填内容）
@@ -381,6 +530,7 @@ export default function InquiryModal(props: Props) {
   function resetForm() {
     setName('')
     setPhone('')
+    setTeamSize('')
     setCompany('')
     setMessage('')
     setDemandDistrict('')
@@ -392,6 +542,8 @@ export default function InquiryModal(props: Props) {
     setServerError(null)
     setListingFallback(false)
     setStatus('idle')
+    setStep('contact')
+    setTargetResolution('general')
   }
 
   function handleSuccessClose() {
@@ -421,9 +573,10 @@ export default function InquiryModal(props: Props) {
         onClick={openModal}
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-controls={titleId}
+        aria-controls={modalId}
         data-event-name="inquiry_open_trigger"
         data-page-type={pageType}
+        data-source-section={sourceSection ?? undefined}
       >
         {triggerLabel}
       </button>
@@ -435,6 +588,7 @@ export default function InquiryModal(props: Props) {
         >
           <div
             ref={dialogRef}
+            id={modalId}
             className="modal"
             role="dialog"
             aria-modal="true"
@@ -455,11 +609,11 @@ export default function InquiryModal(props: Props) {
             </h3>
             <p className="modal__subtitle">{subtitle}</p>
 
-            {status === 'ok' ? (
+            {step === 'success' ? (
               <div className="modal__success" role="status" aria-live="polite">
-                <p>已收到你的需求</p>
+                <h4 ref={successHeadingRef} tabIndex={-1}>已收到你的需求</h4>
                 <p className="modal__success-detail">
-                  我们的顾问将在 1 个工作日内与你联系。
+                  {getInquiryResolutionCopy(targetResolution, pageType)}
                 </p>
                 <div className="modal__footer">
                   <button
@@ -471,17 +625,19 @@ export default function InquiryModal(props: Props) {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : step === 'contact' ? (
               <form
                 ref={formRef}
                 className="modal__form"
-                onSubmit={submit}
+                onSubmit={advanceToRequirements}
                 noValidate
               >
+                <p className="modal__step" aria-current="step">第一步：联系方式</p>
                 <label className="modal__label" htmlFor={`f-name-${titleId}`}>
-                  姓名
+                  称呼
                   <span className="modal__required" aria-hidden="true">*</span>
                   <input
+                    ref={contactNameRef}
                     id={`f-name-${titleId}`}
                     className="modal__input"
                     value={name}
@@ -491,6 +647,11 @@ export default function InquiryModal(props: Props) {
                     autoComplete="name"
                     aria-required="true"
                     aria-invalid={errors.includes('name_required') || errors.includes('name_too_long')}
+                    aria-describedby={
+                      errors.includes('name_required') || errors.includes('name_too_long')
+                        ? errorSummaryId
+                        : undefined
+                    }
                   />
                 </label>
 
@@ -509,83 +670,28 @@ export default function InquiryModal(props: Props) {
                     maxLength={15}
                     aria-required="true"
                     aria-invalid={errors.includes('phone_invalid')}
+                    aria-describedby={errors.includes('phone_invalid') ? errorSummaryId : undefined}
                   />
                 </label>
 
-                <label className="modal__label" htmlFor={`f-company-${titleId}`}>
-                  公司名称（选填）
+                <label className="modal__label" htmlFor={`f-team-size-${titleId}`}>
+                  团队规模
+                  <span className="modal__required" aria-hidden="true">*</span>
                   <input
-                    id={`f-company-${titleId}`}
+                    id={`f-team-size-${titleId}`}
                     className="modal__input"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    maxLength={LIMITS.COMPANY_MAX}
-                    autoComplete="organization"
-                  />
-                </label>
-
-                <details className="modal__advanced">
-                  <summary className="modal__advanced-summary">
-                    需求详情（选填）
-                  </summary>
-                  <div className="modal__advanced-body">
-                    <label className="modal__label" htmlFor={`f-district-${titleId}`}>
-                      意向区域
-                      <input
-                        id={`f-district-${titleId}`}
-                        className="modal__input"
-                        value={demandDistrict}
-                        onChange={(e) => setDemandDistrict(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：静安、浦东"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-budget-${titleId}`}>
-                      预算
-                      <input
-                        id={`f-budget-${titleId}`}
-                        className="modal__input"
-                        value={demandBudget}
-                        onChange={(e) => setDemandBudget(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：1-2 万元/月"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-area-${titleId}`}>
-                      需求面积
-                      <input
-                        id={`f-area-${titleId}`}
-                        className="modal__input"
-                        value={demandArea}
-                        onChange={(e) => setDemandArea(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：100-200 ㎡"
-                      />
-                    </label>
-                    <label className="modal__label" htmlFor={`f-movein-${titleId}`}>
-                      计划入驻时间
-                      <input
-                        id={`f-movein-${titleId}`}
-                        className="modal__input"
-                        value={demandMoveInTime}
-                        onChange={(e) => setDemandMoveInTime(e.target.value)}
-                        maxLength={50}
-                        placeholder="如：2026 年 9 月"
-                      />
-                    </label>
-                  </div>
-                </details>
-
-                <label className="modal__label" htmlFor={`f-message-${titleId}`}>
-                  留言（选填）
-                  <textarea
-                    id={`f-message-${titleId}`}
-                    className="modal__input modal__textarea"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                    maxLength={LIMITS.MESSAGE_MAX}
-                    placeholder="如：希望有落地窗、可立即入驻"
+                    value={teamSize}
+                    onChange={(e) => setTeamSize(e.target.value)}
+                    required
+                    maxLength={LIMITS.TEAM_SIZE_MAX}
+                    placeholder="如：10-20 人"
+                    aria-required="true"
+                    aria-invalid={errors.includes('team_size_required') || errors.includes('team_size_too_long')}
+                    aria-describedby={
+                      errors.includes('team_size_required') || errors.includes('team_size_too_long')
+                        ? errorSummaryId
+                        : undefined
+                    }
                   />
                 </label>
 
@@ -598,6 +704,7 @@ export default function InquiryModal(props: Props) {
                     required
                     aria-required="true"
                     aria-invalid={errors.includes('consent_required')}
+                    aria-describedby={errors.includes('consent_required') ? errorSummaryId : undefined}
                   />
                   <span>
                     我已阅读并同意
@@ -612,33 +719,100 @@ export default function InquiryModal(props: Props) {
                   </span>
                 </label>
 
-                {errors.length > 0 && (
-                  <ul className="modal__error-list" role="alert" aria-live="polite">
-                    {errors.map((code) => (
-                      <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>
-                    ))}
-                  </ul>
+                {(errors.length > 0 || serverError) && (
+                  <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
+                    {errors.length > 0 && (
+                      <ul className="modal__error-list" role="alert" aria-live="polite">
+                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                      </ul>
+                    )}
+                    {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
+                  </div>
                 )}
 
-                {serverError && (
-                  <p className="modal__error" role="alert" aria-live="polite">
-                    {serverError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="btn btn--primary btn--block"
-                  disabled={status === 'submitting'}
-                  data-event-name="inquiry_submit_click"
-                  data-page-type={pageType}
-                >
-                  {status === 'submitting' ? '提交中…' : '提交'}
+                <button type="submit" className="btn btn--primary btn--block">
+                  下一步
                 </button>
 
                 <p className="modal__hint">
                   我们仅在必要时使用你的联系方式与你沟通房源信息。
                 </p>
+              </form>
+            ) : (
+              <form ref={formRef} className="modal__form" onSubmit={submit} noValidate>
+                <p ref={requirementsHeadingRef} className="modal__step" aria-current="step" tabIndex={-1}>
+                  第二步：需求补充（选填）
+                </p>
+                <label className="modal__label" htmlFor={`f-company-${titleId}`}>
+                  公司名称（选填）
+                  <input
+                    id={`f-company-${titleId}`}
+                    className="modal__input"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    maxLength={LIMITS.COMPANY_MAX}
+                    autoComplete="organization"
+                    aria-invalid={errors.includes('company_too_long')}
+                    aria-describedby={errors.includes('company_too_long') ? errorSummaryId : undefined}
+                  />
+                </label>
+
+                <details className="modal__advanced" open>
+                  <summary className="modal__advanced-summary">需求详情（选填）</summary>
+                  <div className="modal__advanced-body">
+                    <label className="modal__label" htmlFor={`f-district-${titleId}`}>
+                      意向区域
+                      <input id={`f-district-${titleId}`} className="modal__input" value={demandDistrict} onChange={(e) => setDemandDistrict(e.target.value)} maxLength={50} placeholder="如：静安、浦东" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-budget-${titleId}`}>
+                      预算
+                      <input id={`f-budget-${titleId}`} className="modal__input" value={demandBudget} onChange={(e) => setDemandBudget(e.target.value)} maxLength={50} placeholder="如：1-2 万元/月" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-area-${titleId}`}>
+                      需求面积
+                      <input id={`f-area-${titleId}`} className="modal__input" value={demandArea} onChange={(e) => setDemandArea(e.target.value)} maxLength={50} placeholder="如：100-200 ㎡" />
+                    </label>
+                    <label className="modal__label" htmlFor={`f-movein-${titleId}`}>
+                      计划入驻时间
+                      <input id={`f-movein-${titleId}`} className="modal__input" value={demandMoveInTime} onChange={(e) => setDemandMoveInTime(e.target.value)} maxLength={50} placeholder="如：2026 年 9 月" />
+                    </label>
+                  </div>
+                </details>
+
+                <label className="modal__label" htmlFor={`f-message-${titleId}`}>
+                  留言（选填）
+                  <textarea
+                    id={`f-message-${titleId}`}
+                    className="modal__input modal__textarea"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={3}
+                    maxLength={LIMITS.MESSAGE_MAX}
+                    placeholder="如：希望有落地窗、可立即入驻"
+                    aria-invalid={errors.includes('message_too_long')}
+                    aria-describedby={errors.includes('message_too_long') ? errorSummaryId : undefined}
+                  />
+                </label>
+
+                {(errors.length > 0 || serverError) && (
+                  <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>
+                    {errors.length > 0 && (
+                      <ul className="modal__error-list" role="alert" aria-live="polite">
+                        {errors.map((code) => <li key={code}>{ERROR_MESSAGES[code] ?? code}</li>)}
+                      </ul>
+                    )}
+                    {serverError && <p className="modal__error" role="alert" aria-live="polite">{serverError}</p>}
+                  </div>
+                )}
+
+                <div className="modal__footer">
+                  <button type="button" className="btn btn--ghost" onClick={() => setStep(reduceInquiryStep(step, { type: 'back' }))} disabled={status === 'submitting'}>
+                    上一步
+                  </button>
+                  <button type="submit" className="btn btn--primary" disabled={status === 'submitting'} data-event-name="inquiry_submit_click" data-page-type={pageType}>
+                    {status === 'submitting' ? '提交中…' : '提交'}
+                  </button>
+                </div>
               </form>
             )}
           </div>

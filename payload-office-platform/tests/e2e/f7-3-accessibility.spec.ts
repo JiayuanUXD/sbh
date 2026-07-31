@@ -86,16 +86,29 @@ test.describe('F7.3 可访问性验收', () => {
     await expect(dialog).toBeHidden()
   })
 
+  test('详情询盘关闭后将焦点归还给触发按钮', async ({ page }) => {
+    await page.goto('/listings/jingan-serviced-office-42-seats')
+    const trigger = page.getByRole('button', { name: /询价|预约看房|在线询价/ }).first()
+    await trigger.focus()
+    await trigger.press('Enter')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(trigger).toBeFocused()
+  })
+
   test('图片有 alt 文本', async ({ page }) => {
     test.skip(DEV_STORY_UNAVAILABLE, DEV_STORY_SKIP_REASON)
     await page.goto('/dev-story')
-    const images = page.locator('img')
-    const count = await images.count()
-    for (let i = 0; i < count; i++) {
-      const alt = await images.nth(i).getAttribute('alt')
-      // alt 属性必须存在（即使是空字符串也表示装饰图）
-      expect(alt, `第 ${i + 1} 张 img 必须有 alt 属性`).not.toBeNull()
-    }
+    const missingAltImages = await page.locator('img').evaluateAll((images) =>
+      images.flatMap((image, index) => image.hasAttribute('alt')
+        ? []
+        : [{ index: index + 1, src: image.getAttribute('src') ?? '<missing src>' }]),
+    )
+    // alt 属性必须存在（即使是空字符串也表示装饰图）
+    expect(missingAltImages, '所有 img 都必须有 alt 属性').toEqual([])
   })
 
   test('表单字段有 label 关联', async ({ page }) => {

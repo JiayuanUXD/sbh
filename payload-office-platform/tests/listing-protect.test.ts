@@ -24,6 +24,8 @@ const create = (data: Record<string, unknown>) =>
     Record<string, unknown>
   >
 
+const runListingProtect = (data: Record<string, unknown>) => create(data)
+
 const update = (data: Record<string, unknown>, originalDoc: Record<string, unknown>) =>
   protectListing({ operation: 'update', originalDoc, data, req: mockReq } as never) as Promise<
     Record<string, unknown>
@@ -52,6 +54,14 @@ describe('listing-protect/create 初始化', () => {
 })
 
 describe('listing-protect/枚举二次校验', () => {
+  it('拒绝非法得房率和反向工位区间', async () => {
+    await expect(
+      runListingProtect({
+        spaceDetails: { efficiencyRate: 101, seatMin: 30, seatMax: 20 },
+      }),
+    ).rejects.toThrow('得房率必须在 0–100 之间')
+  })
+
   it('非法 reviewStatus → INVALID_REVIEW_STATUS', async () => {
     await expect(create({ reviewStatus: 'bogus' })).rejects.toMatchObject({
       code: 'INVALID_REVIEW_STATUS',

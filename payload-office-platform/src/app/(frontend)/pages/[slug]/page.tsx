@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import PageContent from '@/components/frontend/PageContent'
+import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -32,7 +33,7 @@ export async function generateMetadata({
 
   const title = page.seo.title || page.title
   const description = page.seo.description ?? undefined
-  const canonicalPath = `/pages/${slug}`
+  const canonicalPath = `/pages/${encodeURIComponent(slug)}`
   const ogImage = page.hero.image?.src
 
   return buildPageMetadata({
@@ -58,7 +59,7 @@ export default async function PageDetailPage({
   const page = await getPageBySlug(slug, ctx)
   if (!page) notFound()
 
-  const canonicalUrl = `${siteConfig.siteOrigin}/pages/${slug}`
+  const canonicalUrl = `${siteConfig.siteOrigin}/pages/${encodeURIComponent(slug)}`
 
   // F6.3：JSON-LD Article 结构化数据
   // 仅声明后台可保证的字段：headline / description / url
@@ -93,7 +94,7 @@ export default async function PageDetailPage({
         type="application/ld+json"
         // 转义 </script> 防止存储型 XSS：JSON.stringify 不会转义 <。
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          __html: serializeJsonLd(jsonLd),
         }}
       />
 

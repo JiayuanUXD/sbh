@@ -66,12 +66,27 @@ const BASE_FAVORITE_IMAGE =
 
 const BROKEN_IMAGE_SRC = 'https://invalid.invalid.invalid/sample.png'
 
+function price(
+  amount: number,
+  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month',
+  text: string,
+) {
+  const key = displayUnit === 'rmb-sqm-day'
+    ? { period: 'day' as const, basis: 'sqm' as const }
+    : displayUnit === 'rmb-seat-month'
+      ? { period: 'month' as const, basis: 'seat' as const }
+      : { period: 'month' as const, basis: 'total' as const }
+  return { amount, currency: 'CNY' as const, businessType: 'lease' as const, ...key, displayUnit, text }
+}
+
 function makeListing(
   overrides: Partial<ListingCardViewModel> & { id: number; slug: string; title: string },
 ): ListingCardViewModel {
   return {
-    price: { amount: 8.5, currency: 'CNY', unit: 'rmb-sqm-day', text: '8.5 元/㎡·天' },
+    price: price(8.5, 'rmb-sqm-day', '8.5 元/㎡·天'),
     area: 120,
+    businessType: 'lease',
+    decorationStatus: null,
     listingType: 'traditional-office',
     availableFrom: '2026-08-01',
     isFeatured: false,
@@ -133,33 +148,33 @@ const FIXTURES = {
     id: 5,
     slug: 'extreme-high',
     title: '极值价格 · 高（元/月）',
-    price: { amount: 999999, currency: 'CNY', unit: 'rmb-month', text: '999,999 元/月' },
+    price: price(999999, 'rmb-month', '999,999 元/月'),
     area: 800,
   }),
   extremeLow: makeListing({
     id: 6,
     slug: 'extreme-low',
     title: '极值价格 · 低（元/㎡·天）',
-    price: { amount: 0.01, currency: 'CNY', unit: 'rmb-sqm-day', text: '0.01 元/㎡·天' },
+    price: price(0.01, 'rmb-sqm-day', '0.01 元/㎡·天'),
     area: 30,
   }),
   rentSqmDay: makeListing({
     id: 7,
     slug: 'unit-sqm-day',
     title: '租金单位 · 元/㎡·天',
-    price: { amount: 6.5, currency: 'CNY', unit: 'rmb-sqm-day', text: '6.5 元/㎡·天' },
+    price: price(6.5, 'rmb-sqm-day', '6.5 元/㎡·天'),
   }),
   rentMonth: makeListing({
     id: 8,
     slug: 'unit-month',
     title: '租金单位 · 元/月',
-    price: { amount: 18000, currency: 'CNY', unit: 'rmb-month', text: '18,000 元/月' },
+    price: price(18000, 'rmb-month', '18,000 元/月'),
   }),
   rentSeatMonth: makeListing({
     id: 9,
     slug: 'unit-seat-month',
     title: '租金单位 · 元/工位/月',
-    price: { amount: 2200, currency: 'CNY', unit: 'rmb-seat-month', text: '2,200 元/工位/月' },
+    price: price(2200, 'rmb-seat-month', '2,200 元/工位/月'),
     listingType: 'coworking',
   }),
   noHighlights: makeListing({

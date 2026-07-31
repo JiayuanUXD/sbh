@@ -24,6 +24,18 @@ export function formatArea(area?: number | null): string {
 }
 
 /**
+ * Uses an explicit decision fallback only where the public DTO marks the
+ * missing value as critical. Ordinary absent facts are omitted from detail UI.
+ */
+export function formatFact(
+  value: string | number | null | undefined,
+  options: Readonly<{ critical: boolean }>,
+): string | null {
+  if (value == null || value === '') return options.critical ? '咨询确认' : null
+  return String(value)
+}
+
+/**
  * 格式化房源可入驻日期为面向用户的中文日期（Asia/Shanghai 时区）。
  *
  * 守护不变量：

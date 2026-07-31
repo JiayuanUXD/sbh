@@ -11,8 +11,12 @@ import {
 import {
   BUSINESS_TYPES,
   BUSINESS_TYPE_LABELS,
+  COST_INCLUSION_STATUSES,
   DECORATION_STATUSES,
   DECORATION_STATUS_LABELS,
+  DETAIL_MEDIA_KINDS,
+  LISTING_MEDIA_CATEGORIES,
+  REGISTRATION_STATUSES,
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
 import { protectListing } from '@/domain/review/listing-protect'
@@ -112,6 +116,12 @@ export const Listings: CollectionConfig = {
                   })),
                 },
               ],
+            },
+            {
+              name: 'registrationStatus',
+              label: '工商注册状态',
+              type: 'select',
+              options: REGISTRATION_STATUSES.map((value) => ({ label: value, value })),
             },
           ],
         },
@@ -272,6 +282,47 @@ export const Listings: CollectionConfig = {
               ],
             },
             {
+              name: 'spaceDetails',
+              label: '空间明细',
+              type: 'group',
+              fields: [
+                { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+                { name: 'seatMin', label: '最少工位数', type: 'number', min: 0 },
+                { name: 'seatMax', label: '最多工位数', type: 'number', min: 0 },
+                { name: 'orientation', label: '朝向', type: 'text', maxLength: 30 },
+                { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
+                { name: 'isDivisible', label: '可分割', type: 'checkbox', defaultValue: false },
+                {
+                  name: 'furnitureStatus',
+                  label: '家具状态',
+                  type: 'select',
+                  options: ['included', 'optional', 'none', 'confirm'],
+                },
+              ],
+            },
+            {
+              name: 'costTerms',
+              label: '费用条款',
+              type: 'group',
+              fields: [
+                { name: 'depositMonths', label: '押金月数', type: 'number', min: 0 },
+                {
+                  name: 'propertyFeeInclusion',
+                  label: '物业费包含情况',
+                  type: 'select',
+                  options: COST_INCLUSION_STATUSES.map((value) => ({ label: value, value })),
+                },
+                { name: 'propertyFeeAmount', label: '物业费金额', type: 'number', min: 0 },
+                {
+                  name: 'invoiceStatus',
+                  label: '发票情况',
+                  type: 'select',
+                  options: ['included', 'extra-tax', 'unavailable', 'confirm'],
+                },
+                { name: 'otherFixedCosts', label: '其他固定费用', type: 'textarea', maxLength: 500 },
+              ],
+            },
+            {
               name: 'isFeatured',
               label: '首页推荐',
               type: 'checkbox',
@@ -364,6 +415,15 @@ export const Listings: CollectionConfig = {
               type: 'relationship',
               relationTo: 'brokers',
             },
+            {
+              name: 'verificationInfo',
+              label: '核验信息',
+              type: 'group',
+              fields: [
+                { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
+                { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+              ],
+            },
           ],
         },
         {
@@ -391,6 +451,32 @@ export const Listings: CollectionConfig = {
                   relationTo: 'media',
                   required: true,
                 },
+              ],
+            },
+            {
+              name: 'mediaItems',
+              label: '详情页媒体',
+              type: 'array',
+              maxRows: 40,
+              fields: [
+                { name: 'resource', label: '资源', type: 'upload', relationTo: 'media', required: true },
+                {
+                  name: 'kind',
+                  label: '类型',
+                  type: 'select',
+                  required: true,
+                  options: DETAIL_MEDIA_KINDS.map((value) => ({ label: value, value })),
+                },
+                {
+                  name: 'category',
+                  label: '分类',
+                  type: 'select',
+                  required: true,
+                  options: LISTING_MEDIA_CATEGORIES.map((value) => ({ label: value, value })),
+                },
+                { name: 'alt', label: '替代文本', type: 'text', required: true, maxLength: 160 },
+                { name: 'capturedAt', label: '拍摄时间', type: 'date' },
+                { name: 'isSchematic', label: '示意图', type: 'checkbox', defaultValue: false },
               ],
             },
             {

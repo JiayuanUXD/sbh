@@ -24,6 +24,18 @@ export const ANALYTICS_EVENTS = {
   inquiry_error: ['page_type', 'error_code'],
   /** Web Vitals 指标上报（OPT-018）：metric 枚举、value 数值、rating 评级 */
   web_vital: ['metric', 'value', 'rating'],
+  /** 详情画廊中的公开媒体交互。 */
+  media_view: ['page_type', 'media_category', 'rank'],
+  /** 房源页进入关联楼盘。 */
+  listing_building_click: ['listing_id', 'building_id', 'section'],
+  /** 房源详情相关推荐点击。 */
+  recommendation_click: ['listing_id', 'target_listing_id', 'recommendation_type', 'rank', 'section'],
+  /** 楼盘页当前供给筛选；只记录枚举和结果摘要，不记录原始筛选值。 */
+  supply_filter: ['building_id', 'supply_group', 'sort', 'price_unit', 'decoration_status', 'result_count', 'as_of', 'filter_completeness'],
+  /** 楼盘页楼内房源入口。 */
+  building_listing_click: ['building_id', 'listing_id', 'supply_group', 'rank', 'section'],
+  /** 楼盘页相关楼盘入口。 */
+  related_building_click: ['building_id', 'target_building_id', 'recommendation_type', 'rank', 'section'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS
@@ -33,6 +45,22 @@ const MAX_VALUE_LENGTH = 100
 
 /** 允许的属性值类型 */
 type AllowedValue = string | number | boolean
+
+const PII_PROP_KEY = /(?:^|_)(?:phone|mobile|email|name|note|message|path|url|query|location|latitude|longitude|address|ip)(?:$|_)/i
+
+/**
+ * Fails closed when a caller tries to pass a direct identifier, free text, URL,
+ * query, or precise location into a detail analytics event. `validateEvent`
+ * remains non-throwing for the collector and strips non-allowlisted fields.
+ */
+export function assertSafeAnalyticsProps(props: Record<string, unknown>): void {
+  for (const key of Object.keys(props)) {
+    const normalizedKey = key.replace(/([a-z])([A-Z])/g, '$1_$2').replace(/-/g, '_')
+    if (PII_PROP_KEY.test(normalizedKey)) {
+      throw new Error(`unsafe analytics property: ${key}`)
+    }
+  }
+}
 
 /**
  * 校验并脱敏单个事件。

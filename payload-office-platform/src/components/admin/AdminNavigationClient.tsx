@@ -103,11 +103,16 @@ export default function AdminNavigationClient({
   // 标记 mounted + 监听窗口大小变化
   useEffect(() => {
     const updateWidth = () => setWindowWidth(window.innerWidth)
-    updateWidth()
-    setMounted(true)
-    setCollapsed(getInitialCollapsed())
     window.addEventListener('resize', updateWidth)
-    return () => window.removeEventListener('resize', updateWidth)
+    const initialFrame = window.requestAnimationFrame(() => {
+      updateWidth()
+      setMounted(true)
+      setCollapsed(getInitialCollapsed())
+    })
+    return () => {
+      window.cancelAnimationFrame(initialFrame)
+      window.removeEventListener('resize', updateWidth)
+    }
   }, [])
 
   // 折叠状态持久化

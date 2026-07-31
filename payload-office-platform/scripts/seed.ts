@@ -328,6 +328,24 @@ async function seed() {
     summary: '面向金融、咨询、消费品牌和成长型团队的高端服务式办公空间。',
   })
 
+  // P0 building-detail acceptance: a real public building with no effective
+  // listings. Keep it separate from held / pending-review fixtures so the
+  // empty-state route proves that the facade does not invent supply.
+  await upsertBySlug<AnyDoc>(payload, 'buildings', 'empty-building', {
+    name: '静安待租楼盘',
+    city: shanghai.id,
+    status: 'published',
+    operationalStatus: 'active',
+    grade: 'grade-a',
+    district: jingan.id,
+    businessDistrict: nanjingWest.id,
+    address: '上海市静安区南京西路 88 号',
+    latitude: 31.228,
+    longitude: 121.458,
+    amenities: [metro.id],
+    summary: '公开空间暂未释放，欢迎咨询后续供应计划。',
+  })
+
   const lujiazuiTower = await upsertBySlug<AnyDoc>(payload, 'buildings', 'lujiazui-grade-a-river-view', {
     name: '陆家嘴江景甲级写字楼',
     city: shanghai.id,
@@ -526,6 +544,52 @@ async function seed() {
       '标准精装交付、独立会议区与开放办公区，中央空调与新风系统全覆盖。',
       '步行可达地铁 2/12/13 号线，周边高端零售、酒店与餐饮配套一应俱全。',
     ]),
+  })
+
+  // P0 detail-page acceptance: published effective supply whose price is
+  // intentionally undisclosed. This is a real seed fixture for the
+  // "价格面议，不显示 0 元" browser assertion.
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-price-on-request-300sqm', {
+    title: '静安 · 精装办公 300㎡ · 价格面议',
+    status: 'available',
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
+    listingType: 'traditional-office',
+    building: westNanjingTower.id,
+    rent: null,
+    rentUnit: 'rmb-sqm-day',
+    area: 300,
+    seats: 36,
+    isFeatured: false,
+    highlights: [{ text: '价格面议' }, { text: '近地铁' }, { text: '精装交付' }],
+    availableFrom: '2026-09-01',
+    description: richText('房源说明', [
+      '静安核心区精装办公单元，约 300㎡，适合 30 至 40 人团队。',
+      '当前租金需由顾问结合租期、交付需求和看房安排确认。',
+    ]),
+  })
+
+  // Published and approved, but deliberately held for a supply recheck. This
+  // remains a real REST-visible fixture while the public catalog must 404 it.
+  // Do not add it to `allListingSlugs`: it must also lack an effective listing
+  // merchant relation. Offline media seeding is safe because the hold alone is
+  // sufficient to make it ineligible.
+  await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-published-pending-recheck', {
+    title: '静安 · 待复核办公 260㎡',
+    status: 'available',
+    reviewStatus: 'approved',
+    publicationStatus: 'published',
+    supplyVisibilityHold: 'pending_recheck',
+    listingType: 'traditional-office',
+    building: westNanjingTower.id,
+    rent: 8.8,
+    rentUnit: 'rmb-sqm-day',
+    area: 260,
+    seats: 30,
+    isFeatured: false,
+    highlights: [{ text: '待复核' }],
+    availableFrom: '2026-09-01',
+    description: richText('房源说明', ['该公开测试记录用于验证待复核供给不会被前台详情页展示。']),
   })
 
   await upsertBySlug<AnyDoc>(payload, 'listings', 'huangpu-bund-traditional', {
@@ -944,6 +1008,7 @@ async function seed() {
     'xuhui-xujiahui-traditional',
     'changning-hongqiao-serviced',
     'jingan-center-fullfloor',
+    'jingan-price-on-request-300sqm',
     'huangpu-bund-traditional',
   ]
   for (const slug of allListingSlugs) {

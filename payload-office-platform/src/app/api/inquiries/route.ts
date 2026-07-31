@@ -19,10 +19,11 @@
  *   - 不暴露 Lead ID、内部错误或房源失效原因（FP-05 §6、§7）。
  */
 
-import { getPayload } from 'payload'
+import { getPayload, type Payload } from 'payload'
 import { NextResponse } from 'next/server'
 import config from '@/payload.config'
 import {
+  assertEffectiveBuilding,
   assertEffectiveListing,
   defaultSearchContext,
 } from '@/domain/public-catalog'
@@ -97,6 +98,93 @@ function isSameOrigin(req: Request): boolean {
 function isJsonContentType(req: Request): boolean {
   const ct = req.headers.get('content-type') ?? ''
   return ct.toLowerCase().startsWith('application/json')
+}
+
+type TargetResolution = 'listing' | 'building' | 'general'
+
+type ExistingInquiryResolution = Readonly<{
+  found: boolean
+  targetResolution: TargetResolution
+}>
+
+async function findExistingInquiryResolution(
+  payload: Payload,
+  idempotencyKey: string,
+): Promise<ExistingInquiryResolution> {
+  const existing = await payload.find({
+    collection: 'leads',
+    where: { idempotencyKey: { equals: idempotencyKey } },
+    limit: 1,
+    depth: 0,
+  })
+  if (existing.docs.length === 0) {
+    return { found: false, targetResolution: 'general' }
+  }
+  const existingTarget = existing.docs[0]?.targetType
+  return {
+    found: true,
+    targetResolution:
+      existingTarget === 'listing'
+        ? 'listing'
+        : existingTarget === 'building'
+          ? 'building'
+          : 'general',
+  }
+}
+
+function isIdempotencyUniqueViolation(error: unknown): boolean {
+  let candidate: unknown = error
+  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
+    const record = candidate as Record<string, unknown>
+    const marker = [record.constraint, record.detail, record.message]
+      .filter((part): part is string => typeof part === 'string')
+      .join(' ')
+      .toLowerCase()
+    if (
+      record.code === '23505' &&
+      (marker.includes('leads_idempotency_key_idx') || marker.includes('idempotency_key'))
+    ) {
+      return true
+    }
+    candidate = record.cause
+  }
+  return false
+}
+
+function populatedBuildingSlug(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null
+  const slug = (value as Record<string, unknown>).slug
+  return typeof slug === 'string' && slug.length > 0 ? slug : null
+}
+
+async function findOwningBuildingSlug(payload: Payload, listingSlug: string): Promise<string | null> {
+  const result = await payload.find({
+    collection: 'listings',
+    where: { slug: { equals: listingSlug } },
+    select: { building: true },
+    limit: 1,
+    depth: 1,
+    overrideAccess: true,
+  })
+  return populatedBuildingSlug(result.docs[0]?.building)
+}
+
+function logIdempotentSuccess(
+  payload: Payload,
+  inquiry: InquiryRequest,
+  startedAt: number,
+  targetResolution: TargetResolution,
+): Response {
+  payload.logger.info(
+    buildInquiryLogEntry(inquiry, {
+      idempotent: true,
+      errorCode: null,
+      durationMs: Date.now() - startedAt,
+      targetResolution,
+    }),
+    'inquiry_idempotent_hit',
+  )
+  return NextResponse.json({ ok: true, targetResolution })
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -194,53 +282,39 @@ export async function POST(req: Request): Promise<Response> {
 
   // ----- 6. 幂等检查：同键已存在 Lead → 返回首次成功语义（FP-05 §5） -----
   try {
-    const existing = await payload.find({
-      collection: 'leads',
-      where: { idempotencyKey: { equals: idempotencyKey } },
-      limit: 1,
-      depth: 0,
-    })
-    if (existing.docs.length > 0) {
-      // 幂等命中：返回与首次相同成功语义，不暴露 Lead ID
-      payload.logger.info(
-        buildInquiryLogEntry(inquiry, {
-          idempotent: true,
-          errorCode: null,
-          durationMs: Date.now() - startedAt,
-        }),
-        'inquiry_idempotent_hit',
-      )
-      return NextResponse.json({ ok: true })
+    const existing = await findExistingInquiryResolution(payload, idempotencyKey)
+    if (existing.found) {
+      return logIdempotentSuccess(payload, inquiry, startedAt, existing.targetResolution)
     }
   } catch (e) {
     payload.logger.error({ err: e }, 'inquiry_idempotency_check_failed')
     // 幂等检查失败时继续创建：最坏情况下重复 Lead，但避免阻塞用户
   }
 
-  // ----- 7. 目标有效性复核（FP-05 §5：失效房源不得建立兴趣关系） -----
-  let interestedListingId: number | null = null
-  if (inquiry.targetType === 'listing' && inquiry.listingSlug) {
-    const effective = await assertEffectiveListing(
-      inquiry.listingSlug,
-      defaultSearchContext(),
-    )
-    if (!effective) {
-      // 房源失效：返回 409，提示用户可转为通用需求
-      payload.logger.info(
-        buildInquiryLogEntry(inquiry, {
-          idempotent: false,
-          errorCode: 'listing_not_found',
-          durationMs: Date.now() - startedAt,
-        }),
-        'inquiry_listing_invalid',
-      )
-      return NextResponse.json(
-        { ok: false, error: 'listing_not_found' },
-        { status: 409 },
-      )
+  // ----- 7. 目标有效性复核（同一 ctx；listing → building → general） -----
+  const ctx = defaultSearchContext()
+  const listing = inquiry.listingSlug
+    ? await assertEffectiveListing(inquiry.listingSlug, ctx)
+    : null
+  let building = null
+  if (!listing && inquiry.buildingSlug) {
+    if (inquiry.listingSlug) {
+      // 房源失效时客户端 buildingSlug 不可信：只允许降级到该房源真实所属楼盘。
+      let owningBuildingSlug: string | null = null
+      try {
+        owningBuildingSlug = await findOwningBuildingSlug(payload, inquiry.listingSlug)
+      } catch {
+        payload.logger.warn('inquiry_listing_building_resolution_failed')
+      }
+      if (owningBuildingSlug === inquiry.buildingSlug) {
+        building = await assertEffectiveBuilding(owningBuildingSlug, ctx)
+      }
+    } else {
+      // 直接楼盘咨询没有房源归属可比对，仍按统一有效楼盘服务复核。
+      building = await assertEffectiveBuilding(inquiry.buildingSlug, ctx)
     }
-    interestedListingId = effective.id
   }
+  const targetResolution = listing ? 'listing' : building ? 'building' : 'general'
 
   // ----- 8. 创建 Lead（含完整询盘上下文） -----
   try {
@@ -257,7 +331,7 @@ export async function POST(req: Request): Promise<Response> {
         area: inquiry.demand.area ?? undefined,
         moveInTime: inquiry.demand.moveInTime ?? undefined,
         // 意向房源（仅有效供给时关联）
-        interestedListing: interestedListingId ?? undefined,
+        interestedListing: listing?.id,
         // 留言（与跟进记录区分：留言进 notes，跟进记录由经纪人后续填写）
         notes: inquiry.message ?? undefined,
         // 前台询盘上下文（FP-05 §5 / §8）
@@ -265,10 +339,14 @@ export async function POST(req: Request): Promise<Response> {
         sourcePageType: inquiry.source.pageType,
         sourcePath: inquiry.source.path,
         sourceUrl: `${siteConfig.siteOrigin}${inquiry.source.path}`,
-        targetType: inquiry.targetType,
-        targetListingSlug: inquiry.targetType === 'listing' ? inquiry.listingSlug : undefined,
-        targetBuildingSlug:
-          inquiry.targetType === 'building' ? inquiry.buildingSlug : undefined,
+        targetType: targetResolution === 'general' ? 'none' : targetResolution,
+        targetListingSlug: targetResolution === 'listing' ? inquiry.listingSlug : null,
+        targetBuildingSlug: targetResolution === 'building' ? building?.slug ?? null : null,
+        sourceSection: inquiry.source.section,
+        activeSupplyGroup: inquiry.activeSupplyGroup,
+        currentFilters: inquiry.source.currentFilters,
+        priceSnapshot: inquiry.priceSnapshot,
+        priceSnapshotSubmittedAt: inquiry.priceSnapshot ? new Date().toISOString() : null,
         consentAccepted: inquiry.consent.accepted,
         consentPolicyVersion: inquiry.consent.policyVersion,
         campaign: inquiry.source.campaign,
@@ -281,18 +359,30 @@ export async function POST(req: Request): Promise<Response> {
         idempotent: false,
         errorCode: null,
         durationMs: Date.now() - startedAt,
+        targetResolution,
       }),
       'inquiry_success',
     )
     // 不暴露 Lead ID（FP-05 §7）
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, targetResolution })
   } catch (e) {
+    if (isIdempotencyUniqueViolation(e)) {
+      try {
+        const raced = await findExistingInquiryResolution(payload, idempotencyKey)
+        if (raced.found) {
+          return logIdempotentSuccess(payload, inquiry, startedAt, raced.targetResolution)
+        }
+      } catch (readError) {
+        payload.logger.error({ err: readError }, 'inquiry_idempotency_race_read_failed')
+      }
+    }
     payload.logger.error({ err: e }, 'inquiry_create_failed')
     payload.logger.info(
       buildInquiryLogEntry(inquiry, {
         idempotent: false,
         errorCode: 'server_error',
         durationMs: Date.now() - startedAt,
+        targetResolution,
       }),
       'inquiry_error',
     )

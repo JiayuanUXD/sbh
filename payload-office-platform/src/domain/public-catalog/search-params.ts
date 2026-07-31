@@ -18,8 +18,11 @@
 import type {
   ListingSearchInput,
   ListingSort,
+  PriceBasis,
+  PricePeriod,
   RentUnit,
 } from './types'
+import type { BuildingSupplyInput } from './building-supply'
 
 const DEFAULT_PAGE_SIZE = 24 as const
 const MAX_ARRAY_LEN = 20
@@ -44,6 +47,27 @@ const SORT_WHITELIST = new Set<string>([
   'rent-desc',
   'newest',
 ])
+
+const BUILDING_SUPPLY_GROUPS = new Set(['lease', 'sale', 'coworking'])
+const BUILDING_SUPPLY_DECORATION_STATUSES = new Set(['rough', 'simple', 'furnished', 'fully_fitted'])
+const BUILDING_SUPPLY_PRICE_UNITS = new Set(['rmb-sqm-day', 'rmb-month', 'rmb-seat-month', 'rmb-total'])
+const BUILDING_SUPPLY_SORTS = new Set(['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'])
+
+const LEGACY_RENT_UNIT_PRICE_KEY: Readonly<Record<RentUnit, Readonly<{
+  period: PricePeriod
+  basis: PriceBasis
+}>>> = {
+  'rmb-sqm-day': { period: 'day', basis: 'sqm' },
+  'rmb-month': { period: 'month', basis: 'total' },
+  'rmb-seat-month': { period: 'month', basis: 'seat' },
+}
+
+/** 将旧 URL rentUnit 转换为结构化价格周期和计价基础。 */
+export function legacyRentUnitToPriceKey(
+  rentUnit: RentUnit | undefined,
+): Readonly<{ period: PricePeriod; basis: PriceBasis }> | undefined {
+  return rentUnit ? LEGACY_RENT_UNIT_PRICE_KEY[rentUnit] : undefined
+}
 
 /**
  * 解析单个查询参数为字符串数组
@@ -143,6 +167,91 @@ function normalizeSort(
   return sort ?? 'recommended'
 }
 
+type SearchParamsRecord = Readonly<Record<string, string | readonly string[] | undefined>>
+
+function isSearchParamsRecord(value: unknown): value is SearchParamsRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Returns a parameter only when it is exactly one string value. */
+function readSingleSearchParam(value: unknown, key: string): string | undefined {
+  if (value instanceof URLSearchParams) {
+    const values = value.getAll(key)
+    return values.length === 1 ? values[0] : undefined
+  }
+  if (!isSearchParamsRecord(value)) return undefined
+  const raw = value[key]
+  return typeof raw === 'string' ? raw : undefined
+}
+
+function parseBuildingSupplyNumber(value: unknown, key: string): number | undefined {
+  const raw = readSingleSearchParam(value, key)
+  if (!raw || raw.trim() !== raw) return undefined
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined
+}
+
+function parseBuildingSupplyEnum<T extends string>(
+  value: unknown,
+  key: string,
+  whitelist: ReadonlySet<string>,
+): T | undefined {
+  const raw = readSingleSearchParam(value, key)
+  return raw && whitelist.has(raw) ? raw as T : undefined
+}
+
+function parseBuildingSupplyDate(value: unknown, key: string): string | undefined {
+  const raw = readSingleSearchParam(value, key)
+  if (!raw) return undefined
+  const params = new URLSearchParams([[key, raw]])
+  return parseDate(params, key)
+}
+
+/**
+ * Strictly narrows Next searchParams or URLSearchParams into a supply input.
+ * Invalid individual values are dropped; a reversed area range drops both.
+ */
+export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyInput {
+  let areaMin = parseBuildingSupplyNumber(value, 'areaMin')
+  let areaMax = parseBuildingSupplyNumber(value, 'areaMax')
+  if (areaMin != null && areaMax != null && areaMin > areaMax) {
+    areaMin = undefined
+    areaMax = undefined
+  }
+
+  const group = parseBuildingSupplyEnum<NonNullable<BuildingSupplyInput['group']>>(
+    value,
+    'group',
+    BUILDING_SUPPLY_GROUPS,
+  )
+  const decorationStatus = parseBuildingSupplyEnum<string>(
+    value,
+    'decorationStatus',
+    BUILDING_SUPPLY_DECORATION_STATUSES,
+  )
+  const priceUnit = parseBuildingSupplyEnum<NonNullable<BuildingSupplyInput['priceUnit']>>(
+    value,
+    'priceUnit',
+    BUILDING_SUPPLY_PRICE_UNITS,
+  )
+  const sort = parseBuildingSupplyEnum<NonNullable<BuildingSupplyInput['sort']>>(
+    value,
+    'sort',
+    BUILDING_SUPPLY_SORTS,
+  )
+  const availableBefore = parseBuildingSupplyDate(value, 'availableBefore')
+
+  return {
+    ...(group ? { group } : {}),
+    ...(areaMin != null ? { areaMin } : {}),
+    ...(areaMax != null ? { areaMax } : {}),
+    ...(decorationStatus ? { decorationStatus } : {}),
+    ...(availableBefore ? { availableBefore } : {}),
+    ...(priceUnit ? { priceUnit } : {}),
+    ...(sort ? { sort } : {}),
+  }
+}
+
 /**
  * 把 URLSearchParams 解析为安全的 ListingSearchInput
  *
@@ -154,6 +263,7 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
   const businessArea = parseStringArray(sp, 'businessArea')
   const metro = parseStringArray(sp, 'metro')
   const rentUnit = parseEnum<RentUnit>(sp, 'rentUnit', RENT_UNIT_WHITELIST)
+  const priceKey = legacyRentUnitToPriceKey(rentUnit)
   const sortRaw = parseEnum<ListingSort>(sp, 'sort', SORT_WHITELIST)
   const sort = normalizeSort(sortRaw, rentUnit)
   const areaMin = parseIntInRange(sp, 'areaMin', 0, 1_000_000)
@@ -176,6 +286,8 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
     rentMin,
     rentMax,
     rentUnit,
+    pricePeriod: priceKey?.period,
+    priceBasis: priceKey?.basis,
     availableBefore,
     q,
     sort,

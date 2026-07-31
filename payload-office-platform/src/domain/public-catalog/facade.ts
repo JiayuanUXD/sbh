@@ -24,6 +24,7 @@ import type { Listing, Building } from '@/payload-types'
 import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
+  BuildingSupplySnapshot,
   DistrictViewModel,
   ListingCardViewModel,
   ListingDetailViewModel,
@@ -31,6 +32,8 @@ import type {
   PageDetailViewModel,
   PageSummaryViewModel,
 } from './contracts'
+import type { BuildingSupplyInput } from './building-supply'
+import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
 import {
   mapBuildingDetail,
   mapBuildingSummary,
@@ -46,8 +49,10 @@ import {
 } from './search-params'
 import {
   filterByRentUnit,
+  filterByPriceKey,
   isSameRentUnit,
   paginate,
+  priceKeyOf,
   stableSortCards,
 } from './stable-sort'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
@@ -82,17 +87,10 @@ export type SearchFacets = Readonly<{
   totalDocs: number
 }>
 
-/** 楼盘详情聚合：楼盘 + 楼内房源 + 价格区间 */
+/** 楼盘详情聚合：楼盘 + 同一 asOf 下的供给快照。 */
 export type BuildingDetailResult = Readonly<{
   building: BuildingDetailViewModel | null
-  listings: readonly ListingCardViewModel[]
-  /** 按相同 rentUnit 分组的价格区间；跨单位不合并 */
-  priceRanges: ReadonlyArray<{
-    unit: string
-    min: number
-    max: number
-    count: number
-  }>
+  supply: BuildingSupplySnapshot
 }>
 
 /** 楼盘详情页（不含房源聚合）：仅楼盘 DTO */
@@ -164,7 +162,7 @@ function prepareCardsForPriceSort(
   if (input.rentUnit) {
     return {
       cards: filterByRentUnit(cards, input.rentUnit),
-      filteredByRentUnit: cards.length > 0 && cards[0].price?.unit !== input.rentUnit,
+      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.rentUnit),
     }
   }
   // 未指定 rentUnit 但请求价格排序：取首个非空单位
@@ -176,7 +174,7 @@ function prepareCardsForPriceSort(
     return { cards: cards.slice(), filteredByRentUnit: false }
   }
   return {
-    cards: filterByRentUnit(cards, firstWithPrice.price.unit),
+    cards: filterByPriceKey(cards, priceKeyOf(firstWithPrice.price)!),
     filteredByRentUnit: true,
   }
 }
@@ -282,7 +280,7 @@ export async function getBuildingBySlug(
 ): Promise<BuildingDetailViewModel | null> {
   const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!raw) return null
-  return mapBuildingDetail(raw)
+  return mapBuildingDetail(raw, ctx.asOf)
 }
 
 /**
@@ -290,28 +288,72 @@ export async function getBuildingBySlug(
  *
  * design.md §5.5：不同币种、租售类型或租赁单位不得合并成一个价格区间。
  */
+export function getBuildingDetail(
+  slug: string,
+  ctx: SearchContext,
+  adapter?: SupplyAdapter,
+): Promise<BuildingDetailResult>
+export function getBuildingDetail(
+  slug: string,
+  ctx: SearchContext,
+  input: BuildingSupplyInput,
+  adapter?: SupplyAdapter,
+): Promise<BuildingDetailResult>
 export async function getBuildingDetail(
   slug: string,
   ctx: SearchContext,
-  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+  inputOrAdapter: BuildingSupplyInput | SupplyAdapter = {},
+  suppliedAdapter?: SupplyAdapter,
 ): Promise<BuildingDetailResult> {
+  const adapter: SupplyAdapter = 'findEffectiveListingsByBuilding' in inputOrAdapter
+    ? inputOrAdapter as SupplyAdapter
+    : suppliedAdapter ?? getDefaultSupplyAdapter()
+  const input: BuildingSupplyInput = 'findEffectiveListingsByBuilding' in inputOrAdapter
+    ? {}
+    : inputOrAdapter
   const buildingRaw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!buildingRaw) {
-    return { building: null, listings: [], priceRanges: [] }
+    return { building: null, supply: emptyBuildingSupplySnapshot(ctx.asOf) }
   }
-  const building = mapBuildingDetail(buildingRaw)
+  const building = mapBuildingDetail(buildingRaw, ctx.asOf)
   const listingsRaw = await adapter.findEffectiveListingsByBuilding(
     buildingRaw.id,
     ctx,
   )
   const cards = mapListingsToCards(listingsRaw)
-  const lastEffAt = buildLastEffAtLookup(listingsRaw)
-  const sorted = stableSortCards(cards, 'recommended', lastEffAt)
   return {
     building,
-    listings: sorted,
-    priceRanges: buildPriceRangesByUnit(sorted),
+    supply: buildBuildingSupplySnapshot(cards, input, ctx.asOf),
   }
+}
+
+/**
+ * 相关楼盘：同商圈（无商圈时同行政区）的当前有效公开楼盘，排除自身。
+ */
+export async function getRelatedBuildings(
+  slug: string,
+  ctx: SearchContext,
+  options: Readonly<{ limit?: number }> = {},
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly BuildingSummaryViewModel[]> {
+  const limit = normalizeRelatedBuildingLimit(options.limit)
+  if (limit === 0) return []
+  const current = await adapter.findEffectiveBuildingBySlug(slug, ctx)
+  if (!current) return []
+  const nearby = await adapter.findEffectiveBuildingsNear(current.id, ctx, limit)
+  const summaries: BuildingSummaryViewModel[] = []
+  for (const raw of nearby) {
+    if (String(raw.id) === String(current.id)) continue
+    const summary = mapBuildingSummary(raw)
+    if (summary) summaries.push(summary)
+  }
+  return summaries.slice(0, Math.max(0, limit))
+}
+
+function normalizeRelatedBuildingLimit(limit: number | undefined): number {
+  if (limit == null) return 6
+  if (!Number.isFinite(limit)) return 0
+  return Math.max(0, Math.floor(limit))
 }
 
 /**
@@ -378,6 +420,20 @@ export async function assertEffectiveListing(
   const raw = await adapter.assertEffectiveListingBySlug(slug, ctx)
   if (!raw) return null
   return mapListingCard(raw)
+}
+
+/**
+ * 询盘楼盘目标有效性复核。与房源复核共用 Public Catalog facade，
+ * 使路由层不会接触 Payload 查询条件或原始文档。
+ */
+export async function assertEffectiveBuilding(
+  slug: string,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingDetailViewModel | null> {
+  const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
+  if (!raw) return null
+  return mapBuildingDetail(raw, ctx.asOf)
 }
 
 /**
@@ -453,7 +509,7 @@ export async function getSearchFacets(
       listingTypeCounts.set(c.listingType, (listingTypeCounts.get(c.listingType) ?? 0) + 1)
     }
     if (c.price) {
-      rentUnitCounts.set(c.price.unit, (rentUnitCounts.get(c.price.unit) ?? 0) + 1)
+      rentUnitCounts.set(c.price.displayUnit, (rentUnitCounts.get(c.price.displayUnit) ?? 0) + 1)
     }
   }
 
@@ -509,39 +565,4 @@ export async function listPublishedPages(
     if (s) summaries.push(s)
   }
   return summaries
-}
-
-// ---------------------------------------------------------------------------
-// 工具：按 rentUnit 分组价格区间
-// ---------------------------------------------------------------------------
-
-/**
- * 按 rentUnit 分组计算价格区间
- *
- * design.md §5.5：不同币种、租售类型或租赁单位不得合并成一个价格区间。
- */
-function buildPriceRangesByUnit(
-  cards: readonly ListingCardViewModel[],
-): ReadonlyArray<{ unit: string; min: number; max: number; count: number }> {
-  const groups = new Map<string, { min: number; max: number; count: number }>()
-  for (const c of cards) {
-    if (!c.price) continue
-    const unit = c.price.unit
-    const existing = groups.get(unit)
-    if (existing) {
-      existing.min = Math.min(existing.min, c.price.amount)
-      existing.max = Math.max(existing.max, c.price.amount)
-      existing.count += 1
-    } else {
-      groups.set(unit, {
-        min: c.price.amount,
-        max: c.price.amount,
-        count: 1,
-      })
-    }
-  }
-  return Array.from(groups.entries()).map(([unit, r]) => ({
-    unit,
-    ...r,
-  }))
 }

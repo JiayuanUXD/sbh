@@ -10,6 +10,7 @@ import {
   checkMigrationShape,
   extractMigrationUpBody,
   scanMigrationRisks,
+  scanMigrationUpRisks,
 } from '../scripts/preflight'
 
 const here = pathDirname(fileURLToPath(import.meta.url))
@@ -19,8 +20,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 22 份迁移（locked_docs_audit_logs_rel 迁移加入后核对）
-    expect(names.length).toBe(22)
+    // 目录实际有 25 份迁移（tasks/notifications 关系修复迁移加入后核对）
+    expect(names.length).toBe(25)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -30,15 +31,19 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
+    expect(names).toContain('20260730_125851_detail_page_fields')
+    expect(names).toContain('20260730_134600_inquiry_detail_context')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(22)
+    expect(names.length).toBe(25)
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
+    expect(names).toContain('20260730_125851_detail_page_fields')
+    expect(names).toContain('20260730_134600_inquiry_detail_context')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })
@@ -102,6 +107,21 @@ describe('preflight migrations: 纯函数', () => {
     // 整个 up body 无高风险操作
     expect(scanMigrationRisks(upBody)).toHaveLength(0)
   })
+
+  it('迁移名称不得豁免 up() 中的 legacy listings.status 删除', () => {
+    const content = [
+      'export async function up({ db }) {',
+      '  await db.execute(sql`',
+      '    ALTER TABLE "listings" DROP COLUMN "status";',
+      '  `)',
+      '}',
+      'export async function down() {}',
+    ].join('\n')
+
+    const risks = scanMigrationUpRisks('20260730_125851_detail_page_fields', content)
+    expect(risks.filter((risk) => risk.severity === 'fail')).toHaveLength(1)
+    expect(risks[0]?.matches).toEqual(['DROP COLUMN'])
+  })
 })
 
 describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心断言）', () => {
@@ -130,9 +150,21 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const risks = scanMigrationRisks(extractMigrationUpBody(content))
+      const risks = scanMigrationUpRisks(name, content)
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }
+  })
+
+  it('详情页字段迁移自身不包含前向破坏操作', () => {
+    const content = readFileSync(
+      resolve(migrationsDir, '20260730_125851_detail_page_fields.ts'),
+      'utf-8',
+    )
+    const blocking = scanMigrationRisks(extractMigrationUpBody(content)).filter(
+      (risk) => risk.severity === 'fail',
+    )
+
+    expect(blocking).toHaveLength(0)
   })
 })

@@ -52,6 +52,9 @@ function createFakePageAdapter(options: {
     async findEffectiveListingsByBuilding() {
       return []
     },
+    async findEffectiveBuildingsNear() {
+      return []
+    },
     async findFeaturedListings() {
       return []
     },
