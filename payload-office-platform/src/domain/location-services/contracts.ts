@@ -5,6 +5,7 @@
  *
  * 守护不变量：
  *   - POI 类别固定四类（transport/restaurant/bank/hotel），不可扩展
+ *   - 交通子分类固定两类（subway/bus），仅 transport 类别有效
  *   - 坐标范围为有效经纬度（纬度 [-90,90]、经度 [-180,180]），超界/非数字拒绝
  *   - Coordinates / NearbyPoi 为只读；外部响应始终按 unknown 解析后收窄
  *   - LocationServiceError 携带稳定错误码，不泄露上游原始响应
@@ -13,6 +14,14 @@
 
 export const POI_CATEGORIES = ['transport', 'restaurant', 'bank', 'hotel'] as const
 export type PoiCategory = (typeof POI_CATEGORIES)[number]
+
+/**
+ * 交通 POI 子分类（仅 transport 类别有效）。
+ * - subway：地铁站（高德 typecode 1505xx）
+ * - bus：公交站（高德 typecode 1507xx）
+ */
+export const TRANSPORT_SUBCATEGORIES = ['subway', 'bus'] as const
+export type TransportSubCategory = (typeof TRANSPORT_SUBCATEGORIES)[number]
 
 export type Coordinates = Readonly<{ latitude: number; longitude: number }>
 
@@ -25,6 +34,16 @@ export type NearbyPoi = Readonly<{
   direction: string | null
   source: 'amap-location-service'
   fetchedAt: string
+  /**
+   * 交通子分类（仅 category === 'transport' 时有意义）。
+   * 其他类别恒为 null；transport 缺 typecode 时也为 null（UI 降级为无子 Tab）。
+   */
+  subCategory: TransportSubCategory | null
+  /**
+   * 地铁线路名（仅 subCategory === 'subway' 时可能有值）。
+   * 从高德 POI tag 字段提取，如 ["2号线", "12号线"]；无线路信息为空数组。
+   */
+  metroLines: readonly string[]
 }>
 
 export interface LocationProvider {
@@ -57,6 +76,14 @@ export function parsePoiCategory(value: unknown): PoiCategory | null {
   if (typeof value !== 'string') return null
   return (POI_CATEGORIES as readonly string[]).includes(value)
     ? (value as PoiCategory)
+    : null
+}
+
+/** 解析交通子分类，非白名单或非字符串返回 null */
+export function parseTransportSubCategory(value: unknown): TransportSubCategory | null {
+  if (typeof value !== 'string') return null
+  return (TRANSPORT_SUBCATEGORIES as readonly string[]).includes(value)
+    ? (value as TransportSubCategory)
     : null
 }
 

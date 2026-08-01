@@ -12,7 +12,9 @@ import { describe, it, expect } from 'vitest'
 
 import {
   POI_CATEGORIES,
+  TRANSPORT_SUBCATEGORIES,
   parsePoiCategory,
+  parseTransportSubCategory,
   parseCoordinates,
   LocationServiceError,
 } from '@/domain/location-services/contracts'
@@ -24,6 +26,15 @@ describe('location-services 契约', () => {
     }
     expect(parsePoiCategory('hospital')).toBeNull()
     expect(parsePoiCategory('')).toBeNull()
+  })
+
+  it('交通子分类只允许 subway/bus', () => {
+    for (const c of TRANSPORT_SUBCATEGORIES) {
+      expect(parseTransportSubCategory(c)).toBe(c)
+    }
+    expect(parseTransportSubCategory('taxi')).toBeNull()
+    expect(parseTransportSubCategory('')).toBeNull()
+    expect(parseTransportSubCategory(123)).toBeNull()
   })
 
   it('坐标超界被拒绝', () => {

@@ -17,7 +17,7 @@ import { useState } from 'react'
 import AmapMapCanvas from '@/components/frontend/AmapMapCanvas'
 import RoutePlanner from '@/components/frontend/RoutePlanner'
 import type { CoordinatesViewModel } from '@/domain/public-catalog'
-import type { NearbyPoi, PoiCategory } from '@/domain/location-services'
+import type { NearbyPoi, PoiCategory, TransportSubCategory } from '@/domain/location-services'
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
 
 /** LocationPanel 需要的楼盘信息（从 BuildingDetail/SummaryViewModel 投影） */
@@ -35,6 +35,18 @@ const POI_CATEGORY_TABS = [
   { key: 'bank', label: '银行', icon: 'bank' },
   { key: 'hotel', label: '酒店', icon: 'hotel' },
 ] as const
+
+/**
+ * 交通子 Tab 配置（仅 transport 类别下显示）。
+ * 仅当对应子分类有 POI 时渲染对应 Tab，无 subCategory 的 POI 不进子 Tab。
+ */
+const TRANSPORT_SUB_TABS: ReadonlyArray<{
+  key: TransportSubCategory
+  label: string
+}> = [
+  { key: 'subway', label: '地铁' },
+  { key: 'bus', label: '公交' },
+]
 
 /** POI 列表项左侧字母锚点（最多 5 项，对应 A-E） */
 const POI_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const
@@ -112,12 +124,32 @@ export default function LocationPanel({
   mapEnabled: boolean
 }>) {
   const [activeCategory, setActiveCategory] = useState<PoiCategory>('transport')
+  const [activeSubCategory, setActiveSubCategory] = useState<TransportSubCategory>('subway')
   const [highlightedPoiId, setHighlightedPoiId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   const coordinates = building.coordinates
-  const activePois = pois[activeCategory]
   const hasAnyPoi = POI_CATEGORY_TABS.some((tab) => pois[tab.key].length > 0)
+
+  // 交通类按子分类（subway/bus）筛分；非交通类别整组透传
+  const transportPois = pois.transport
+  const transportSubPois = transportPois.filter(
+    (poi) => poi.subCategory === activeSubCategory,
+  )
+  // 地图 markers：交通类始终显示全部 transport POI（地铁+公交），
+  // 切换子 Tab 只筛选列表，不重建地图 markers。
+  // 非交通类则只展示该类别 POI。
+  const mapPois =
+    activeCategory === 'transport' ? transportPois : pois[activeCategory]
+  // 列表：交通类按子分类筛选，非交通类整组
+  const activePois =
+    activeCategory === 'transport' ? transportSubPois : pois[activeCategory]
+
+  // 交通子 Tab 仅渲染有 POI 的子分类
+  const visibleSubTabs = TRANSPORT_SUB_TABS.filter((tab) =>
+    transportPois.some((poi) => poi.subCategory === tab.key),
+  )
+  const hasSubTabs = activeCategory === 'transport' && visibleSubTabs.length > 1
 
   async function copyAddress() {
     try {
@@ -182,7 +214,7 @@ export default function LocationPanel({
       <div className="location-panel__map-area">
         <AmapMapCanvas
           coordinates={coordinates}
-          pois={activePois}
+          pois={mapPois}
           mapEnabled={mapEnabled}
           highlightedPoiId={highlightedPoiId}
         />
@@ -216,6 +248,38 @@ export default function LocationPanel({
                 )
               })}
             </div>
+            {/* 交通双层 Tab：仅当存在 ≥2 种子分类时显示 */}
+            {hasSubTabs && (
+              <div
+                className="location-panel__poi-subtabs"
+                role="tablist"
+                aria-label="交通子分类"
+              >
+                {visibleSubTabs.map((tab) => {
+                  const count = transportPois.filter(
+                    (poi) => poi.subCategory === tab.key,
+                  ).length
+                  const isActive = activeSubCategory === tab.key
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls="location-panel-poi-list"
+                      className="location-panel__poi-subtab"
+                      data-active={isActive}
+                      onClick={() => {
+                        setActiveSubCategory(tab.key)
+                        setHighlightedPoiId(null)
+                      }}
+                    >
+                      {tab.label}（{count}）
+                    </button>
+                  )
+                })}
+              </div>
+            )}
             {activePois.length > 0 && (
               <ul
                 id="location-panel-poi-list"
@@ -235,9 +299,18 @@ export default function LocationPanel({
                         <span className="location-panel__poi-letter" aria-hidden="true">{letter}</span>
                         <span className="location-panel__poi-info">
                           <span className="location-panel__poi-name">{poi.name}</span>
-                          <span className="location-panel__poi-distance">
-                            <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
-                            {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
+                          <span className="location-panel__poi-meta">
+                            {poi.metroLines.length > 0 && (
+                              <span className="location-panel__poi-lines" aria-label="地铁线路">
+                                {poi.metroLines.map((line) => (
+                                  <span key={line} className="location-panel__poi-line-tag">{line}</span>
+                                ))}
+                              </span>
+                            )}
+                            <span className="location-panel__poi-distance">
+                              <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
+                              {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
+                            </span>
                           </span>
                         </span>
                       </button>
