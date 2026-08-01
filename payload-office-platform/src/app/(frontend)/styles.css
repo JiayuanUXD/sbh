@@ -3357,3 +3357,26 @@ ol {
 .share-save-actions__hint {
   font-style: italic;
 }
+
+/* P2 Task 5: 可解释情境推荐标签 */
+.recommendation-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.recommendation-reasons {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  padding: 0 0.25rem;
+}
+.recommendation-reason-tag {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  color: var(--color-primary, #6366f1);
+  background: var(--color-primary-50, #eef2ff);
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}

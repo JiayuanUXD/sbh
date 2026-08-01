@@ -26,7 +26,7 @@ type Props = Readonly<{
     parentId: number
     rank: number
     section: 'related' | 'supply'
-    recommendationType?: 'same_building'
+    recommendationType?: 'same_building' | 'contextual'
     supplyGroup?: 'lease' | 'sale' | 'coworking'
   }>
 }>

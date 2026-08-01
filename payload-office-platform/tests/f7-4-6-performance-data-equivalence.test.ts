@@ -187,8 +187,8 @@ describe('F7.6 数据等价 · 公开消费者全部通过 Facade', () => {
     expect(source, '房源详情应通过 getListingBySlug 获取数据').toContain(
       'getListingBySlug',
     )
-    expect(source, '房源详情应通过 getRelatedListings 获取相关').toContain(
-      'getRelatedListings',
+    expect(source, '房源详情应通过 getDetailRecommendations 获取推荐').toContain(
+      'getDetailRecommendations',
     )
   })
 
