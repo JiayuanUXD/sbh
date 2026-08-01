@@ -27,30 +27,37 @@ function formatNextOpenAt(iso: string): string {
   })
 }
 
-export default async function AdvisorAvailability() {
+/** 获取顾问服务状态数据；失败时返回 null（静默降级） */
+async function fetchAdvisorStatus() {
   try {
     const payload = await getPayload({ config })
     const doc = await payload.findGlobal({ slug: 'advisor-service-hours', depth: 1, overrideAccess: true })
     const schedule = mapGlobalToSchedule(doc as unknown as Record<string, unknown>)
-    const status = resolveServiceStatus(schedule, new Date().toISOString())
-    return (
-      <div className="advisor-availability" data-state={status.state}>
-        {status.state === 'open' ? (
-          <span className="advisor-availability__status advisor-availability__status--open">
-            {status.message}
-          </span>
-        ) : (
-          <span className="advisor-availability__status advisor-availability__status--closed">
-            {status.message}
-            {status.nextOpenAt && (
-              <>,&nbsp;预计 {formatNextOpenAt(status.nextOpenAt)} 恢复</>
-            )}
-          </span>
-        )}
-      </div>
-    )
+    return resolveServiceStatus(schedule, new Date().toISOString())
   } catch {
     // global 未配置或 DB 不可用：静默降级，不阻断页面
     return null
   }
+}
+
+export default async function AdvisorAvailability() {
+  const status = await fetchAdvisorStatus()
+  if (!status) return null
+
+  return (
+    <div className="advisor-availability" data-state={status.state}>
+      {status.state === 'open' ? (
+        <span className="advisor-availability__status advisor-availability__status--open">
+          {status.message}
+        </span>
+      ) : (
+        <span className="advisor-availability__status advisor-availability__status--closed">
+          {status.message}
+          {status.nextOpenAt && (
+            <>,&nbsp;预计 {formatNextOpenAt(status.nextOpenAt)} 恢复</>
+          )}
+        </span>
+      )}
+    </div>
+  )
 }
