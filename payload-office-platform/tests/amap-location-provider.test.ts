@@ -178,6 +178,116 @@ describe('createAmapLocationProvider', () => {
       expect(stack).not.toContain('server-key')
     }
   })
+
+  it('transport 拆地铁/公交双请求，从 address 提取地铁线路', async () => {
+    // mock fetch：按请求 URL 区分地铁/公交子请求
+    const subwayFixture = {
+      status: '1',
+      count: '2',
+      pois: [
+        {
+          id: 'T001',
+          name: '南京西路(地铁站)',
+          location: '121.46012,31.23015',
+          distance: '180',
+          direction: '西南',
+          typecode: '150500',
+          address: '12号线;13号线;2号线',
+        },
+        {
+          id: 'T002',
+          name: '自然博物馆(地铁站)',
+          location: '121.47000,31.23500',
+          distance: '420',
+          direction: '东',
+          typecode: '150500',
+          address: '13号线',
+        },
+      ],
+    }
+    const busFixture = {
+      status: '1',
+      count: '2',
+      pois: [
+        {
+          id: 'T003',
+          name: '南京西路石门一路(公交站)',
+          location: '121.46500,31.22800',
+          distance: '260',
+          direction: '南',
+          typecode: '150700',
+          address: '20路;330路;37路',
+        },
+      ],
+    }
+    const fetchImpl: FetchLike = async (url) => {
+      if (url.includes('type=150500')) {
+        return { ok: true, status: 200, json: async () => subwayFixture }
+      }
+      if (url.includes('type=150700')) {
+        return { ok: true, status: 200, json: async () => busFixture }
+      }
+      throw new Error(`unexpected url: ${url}`)
+    }
+    const provider = createAmapLocationProvider({ key: 'server-key', fetchImpl })
+    const result = await provider.nearby({
+      center: { latitude: 31.23, longitude: 121.48 },
+      category: 'transport',
+      limit: 5,
+    })
+    // 地铁 2 条 + 公交 1 条 = 3 条
+    expect(result).toHaveLength(3)
+    // 地铁站
+    const subway1 = result.find((p) => p.id === 'T001')!
+    expect(subway1.subCategory).toBe('subway')
+    expect(subway1.metroLines).toEqual(['12号线', '13号线', '2号线'])
+    const subway2 = result.find((p) => p.id === 'T002')!
+    expect(subway2.subCategory).toBe('subway')
+    expect(subway2.metroLines).toEqual(['13号线'])
+    // 公交站
+    const bus = result.find((p) => p.id === 'T003')!
+    expect(bus.subCategory).toBe('bus')
+    expect(bus.metroLines).toEqual([])
+  })
+
+  it('transport 子请求失败不阻断其他子分类', async () => {
+    const fetchImpl: FetchLike = async (url) => {
+      if (url.includes('type=150500')) {
+        return { ok: false, status: 502, json: async () => ({}) }
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          status: '1',
+          pois: [
+            { id: 'B001', name: '公交站', location: '121.46,31.23', distance: '100', address: '20路' },
+          ],
+        }),
+      }
+    }
+    const provider = createAmapLocationProvider({ key: 'server-key', fetchImpl })
+    const result = await provider.nearby({
+      center: { latitude: 31.23, longitude: 121.48 },
+      category: 'transport',
+      limit: 5,
+    })
+    // 地铁子请求失败降级为空，公交正常返回
+    expect(result).toHaveLength(1)
+    expect(result[0].subCategory).toBe('bus')
+  })
+
+  it('非 transport 类别的 subCategory 恒为 null', async () => {
+    const provider = createAmapLocationProvider({
+      key: 'server-key',
+      fetchImpl: mockAmapResponse(AMAP_POI_FIXTURE),
+    })
+    const result = await provider.nearby(INPUT)
+    for (const poi of result) {
+      expect(poi.subCategory).toBeNull()
+      expect(poi.metroLines).toEqual([])
+    }
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -193,6 +303,8 @@ const SAMPLE_POI: NearbyPoi = {
   direction: '东北',
   source: 'amap-location-service',
   fetchedAt: '2026-07-31T00:00:00.000Z',
+  subCategory: null,
+  metroLines: [],
 }
 
 function fakeProvider(pois: readonly NearbyPoi[]): {

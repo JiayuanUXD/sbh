@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import Link from 'next/link'
 import type { Metadata, Viewport } from 'next'
 import { siteConfig } from '@/lib/frontend/site-config'
@@ -50,7 +50,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <header className="site-header">
           <div className="site-header__inner">
             <Link href="/" className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
-            <SiteNav />
+            <Suspense fallback={<nav className="site-nav" aria-label="主导航" />}>
+              <SiteNav />
+            </Suspense>
           </div>
         </header>
         <main id="main-content" className="site-main">{children}</main>

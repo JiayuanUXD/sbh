@@ -3263,6 +3263,61 @@ ol {
   gap: 4px;
 }
 
+/* 交通双层子 Tab（地铁/公交） */
+.location-panel__poi-subtabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-line);
+  padding: 0 var(--sp-3);
+  background: var(--color-canvas);
+}
+
+.location-panel__poi-subtab {
+  flex: 0 0 auto;
+  padding: var(--sp-1) var(--sp-2);
+  margin: var(--sp-1) 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink-2);
+  font-size: var(--fs-12);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.location-panel__poi-subtab[data-active='true'] {
+  background: var(--color-copper-soft);
+  color: var(--color-copper);
+  font-weight: 600;
+}
+
+/* POI 项元数据区（线路标签 + 距离） */
+.location-panel__poi-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.location-panel__poi-lines {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.location-panel__poi-line-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-copper-soft);
+  color: var(--color-copper);
+  font-size: var(--fs-11);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
 /* 高德地图 Canvas（进入视口自动加载） */
 .amap-map-canvas {
   position: relative;
