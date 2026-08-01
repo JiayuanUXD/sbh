@@ -3380,3 +3380,226 @@ ol {
   border-radius: 0.25rem;
   white-space: nowrap;
 }
+
+/* ===== P0 评审优化：BuildingKeyMetrics 起价强调 ===== */
+.building-key-metrics {
+  /* 复用 .building-stats 容器样式；此处仅补充起价强调 */
+  margin-top: 0;
+  margin-bottom: var(--sp-5);
+}
+
+.building-key-metrics__unit {
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+.building-stats__value[data-emphasis='price'] {
+  color: var(--color-copper);
+  font-size: var(--fs-26);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* ===== P0 评审优化：AdvisorCard 平台顾问卡片 ===== */
+.advisor-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.advisor-card__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-copper-soft);
+  color: var(--color-copper-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.advisor-card__avatar-text {
+  letter-spacing: 0.02em;
+}
+
+.advisor-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.advisor-card__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.advisor-card__name {
+  color: var(--color-ink);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.advisor-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-12);
+  font-weight: 500;
+}
+
+.advisor-card__status--open {
+  color: var(--color-positive, #1a7f37);
+}
+
+.advisor-card__status--closed {
+  color: var(--color-muted);
+}
+
+.advisor-card__status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.advisor-card__status--open .advisor-card__status-dot {
+  animation: advisor-card-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes advisor-card-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(26, 127, 55, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(26, 127, 55, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advisor-card__status--open .advisor-card__status-dot {
+    animation: none;
+  }
+}
+
+.advisor-card__status-detail {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-relaxed);
+}
+
+.advisor-card__hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+  font-style: italic;
+}
+
+.advisor-card__cta {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@media (max-width: 767px) {
+  .advisor-card__cta {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* ===== P0 评审优化：BuildingSupplyBrowser 面积分桶 tab ===== */
+.building-supply-browser__area-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+}
+
+.building-supply-browser__area-bucket {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  min-height: var(--touch-target);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.building-supply-browser__area-bucket:hover {
+  color: var(--color-ink);
+  border-color: var(--color-copper);
+}
+
+.building-supply-browser__area-bucket[data-active='true'],
+.building-supply-browser__area-bucket[aria-current='true'] {
+  background: var(--color-copper-soft);
+  border-color: var(--color-copper);
+  color: var(--color-copper-hover);
+  font-weight: 600;
+}
+
+.building-supply-browser__area-bucket-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-12);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.building-supply-browser__area-bucket[data-active='true']
+  .building-supply-browser__area-bucket-count,
+.building-supply-browser__area-bucket[aria-current='true']
+  .building-supply-browser__area-bucket-count {
+  color: var(--color-copper);
+}
+
+.building-supply-browser__group-count {
+  margin-left: var(--sp-2);
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .building-supply-browser__area-buckets {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: var(--sp-1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .building-supply-browser__area-bucket {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+

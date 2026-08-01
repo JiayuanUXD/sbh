@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import AdvisorCard from '@/components/frontend/AdvisorCard'
+import BuildingKeyMetrics from '@/components/frontend/BuildingKeyMetrics'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
@@ -10,7 +12,6 @@ import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { rentUnitLabel } from '@/lib/frontend/format'
@@ -172,6 +173,13 @@ export default async function BuildingDetailPage({
         {building.summary && <p className="detail__building-summary">{building.summary}</p>}
       </header>
 
+      <BuildingKeyMetrics
+        availableGroups={supply.availableGroups}
+        totalEffectiveListings={supply.totalEffectiveListings}
+        nearestMetro={building.nearestMetro ? { name: building.nearestMetro.name } : undefined}
+        coordinates={building.coordinates}
+      />
+
       <section className="detail-hero" aria-label="楼盘核心信息">
         <DetailGallery media={building.mediaItems} title={building.name} pageType="building" />
         <aside className="detail__summary" aria-label="楼盘决策信息">
@@ -183,7 +191,7 @@ export default async function BuildingDetailPage({
             <p className="detail__decision-title">
               {hasSupply ? `${supply.totalEffectiveListings} 套当前有效供给` : '暂无公开供给，也可登记找房需求'}
             </p>
-            <AdvisorAvailability />
+            <AdvisorCard />
             <InquiryModal
               pageType="building"
               targetBuildingSlug={building.slug}

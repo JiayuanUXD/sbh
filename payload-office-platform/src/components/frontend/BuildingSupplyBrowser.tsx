@@ -24,6 +24,29 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
 }
 
 const SUPPLY_GROUP_VALUES = ['lease', 'sale', 'coworking'] as const
+
+/**
+ * 面积分桶（评审 P0-4）。区间为左闭右开 [min, max)，最后一档无上限。
+ * null area 的房源仅在「全部」桶中可见，不参与具体面积桶筛选。
+ */
+const AREA_BUCKETS = [
+  { key: 'all', label: '全部', min: null, max: null },
+  { key: '0-100', label: '0–100 ㎡', min: 0, max: 100 },
+  { key: '100-300', label: '100–300 ㎡', min: 100, max: 300 },
+  { key: '300-500', label: '300–500 ㎡', min: 300, max: 500 },
+  { key: '500-1000', label: '500–1000 ㎡', min: 500, max: 1000 },
+  { key: '1000+', label: '1000 ㎡ 以上', min: 1000, max: null },
+] as const
+
+type AreaBucketKey = (typeof AREA_BUCKETS)[number]['key']
+
+function listingMatchesBucket(area: number | null, bucket: (typeof AREA_BUCKETS)[number]): boolean {
+  if (bucket.key === 'all') return true
+  if (area == null) return false
+  if (bucket.min != null && area < bucket.min) return false
+  if (bucket.max != null && area >= bucket.max) return false
+  return true
+}
 const SORT_VALUES = ['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'] as const
 const PRICE_UNIT_VALUES = ['rmb-sqm-day', 'rmb-month', 'rmb-seat-month', 'rmb-total'] as const
 const DECORATION_VALUES = ['rough', 'simple', 'furnished', 'fully_fitted'] as const
@@ -98,6 +121,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table')
   const [isMobile, setIsMobile] = useState(false)
+  const [activeAreaBucket, setActiveAreaBucket] = useState<AreaBucketKey>('all')
 
   // The view selector is purely presentational. Supply/filter state remains
   // server-derived from the native GET URL, and narrow screens always render cards.
@@ -221,6 +245,41 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
         </p>
       ) : (
         <>
+          {/* 面积分桶（评审 P0-4）：跨组聚合计数，client-side filter 当前选中桶。
+              URL 的 areaMin/areaMax 仍是精确筛选的 single source of truth；桶是
+              快速分桶视图，与 form 的精确筛选正交。
+              a11y 用 group+aria-pressed 而非 tablist：与 view-toggle 一致，
+              因为是 toggle filter 而非 tabpanel 切换（contract 测试要求不出现 role=tab）。 */}
+          <div
+            className="building-supply-browser__area-buckets"
+            role="group"
+            aria-label="按面积快速分桶"
+          >
+            {AREA_BUCKETS.map((bucket) => {
+              const allListings = groups.flatMap((group) => group.listings)
+              const count = allListings.filter((listing) =>
+                listingMatchesBucket(listing.area, bucket),
+              ).length
+              if (bucket.key !== 'all' && count === 0) return null
+              const isActive = activeAreaBucket === bucket.key
+              return (
+                <button
+                  key={bucket.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  className="building-supply-browser__area-bucket"
+                  data-active={isActive || undefined}
+                  onClick={() => setActiveAreaBucket(bucket.key)}
+                >
+                  {bucket.label}
+                  <span className="building-supply-browser__area-bucket-count">
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
           {!isMobile && (
             <div className="building-supply-browser__view-toggle" role="group" aria-label="供给展示方式">
               <button
@@ -239,63 +298,81 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
               </button>
             </div>
           )}
-          {groups.map((group) => (
-            <details key={group.key} className="building-supply-browser__group" open>
-              <summary>{GROUP_LABEL[group.key]}</summary>
-              {isTableView ? (
-                <div className="building-supply-browser__table-wrap" data-supply-group={group.key}>
-                  <table className="building-supply-browser__table">
-                    <caption>{GROUP_LABEL[group.key]}供给列表</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">房源</th>
-                        <th scope="col">面积</th>
-                        <th scope="col">价格</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {group.listings.map((listing, index) => (
-                        <tr key={`${group.key}:${listing.id}`}>
-                          <td>
-                            <a
-                              href={`/listings/${listing.slug}`}
-                              data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
-                              data-analytics-parent-id={buildingId}
-                              data-analytics-listing-id={buildingId ? listing.id : undefined}
-                              data-analytics-supply-group={buildingId ? group.key : undefined}
-                              data-analytics-rank={buildingId ? index + 1 : undefined}
-                              data-analytics-section={buildingId ? 'supply' : undefined}
-                            >
-                              {listing.title}
-                            </a>
-                          </td>
-                          <td>{listing.area == null ? '—' : `${listing.area} ㎡`}</td>
-                          <td>{listing.price?.text ?? '价格面议'}</td>
+          {groups.map((group) => {
+            const filteredListings = group.listings.filter((listing) =>
+              listingMatchesBucket(
+                listing.area,
+                AREA_BUCKETS.find((b) => b.key === activeAreaBucket) ?? AREA_BUCKETS[0],
+              ),
+            )
+            if (filteredListings.length === 0) return null
+            return (
+              <details key={group.key} className="building-supply-browser__group" open>
+                <summary>
+                  {GROUP_LABEL[group.key]}
+                  <span className="building-supply-browser__group-count">
+                    {filteredListings.length} 套
+                  </span>
+                </summary>
+                {isTableView ? (
+                  <div className="building-supply-browser__table-wrap" data-supply-group={group.key}>
+                    <table className="building-supply-browser__table">
+                      <caption>{GROUP_LABEL[group.key]}供给列表</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">房源</th>
+                          <th scope="col">面积</th>
+                          <th scope="col">价格</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="building-supply-browser__cards" data-supply-group={group.key}>
-                  {group.listings.map((listing, index) => (
-                    <ListingCard
-                      key={`${group.key}:${listing.id}`}
-                      listing={listing}
-                      variant="building-supply"
-                      detailAnalytics={buildingId ? {
-                        event: 'building_listing_click',
-                        parentId: buildingId,
-                        rank: index + 1,
-                        section: 'supply',
-                        supplyGroup: group.key,
-                      } : undefined}
-                    />
+                      </thead>
+                      <tbody>
+                        {filteredListings.map((listing, index) => (
+                          <tr key={`${group.key}:${listing.id}`}>
+                            <td>
+                              <a
+                                href={`/listings/${listing.slug}`}
+                                data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
+                                data-analytics-parent-id={buildingId}
+                                data-analytics-listing-id={buildingId ? listing.id : undefined}
+                                data-analytics-supply-group={buildingId ? group.key : undefined}
+                                data-analytics-rank={buildingId ? index + 1 : undefined}
+                                data-analytics-section={buildingId ? 'supply' : undefined}
+                              >
+                                {listing.title}
+                              </a>
+                            </td>
+                            <td>{listing.area == null ? '—' : `${listing.area} ㎡`}</td>
+                            <td>{listing.price?.text ?? '价格面议'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="building-supply-browser__cards" data-supply-group={group.key}>
+                    {filteredListings.map((listing, index) => (
+                      <ListingCard
+                        key={`${group.key}:${listing.id}`}
+                        listing={listing}
+                        variant="building-supply"
+                        detailAnalytics={
+                          buildingId
+                            ? {
+                                event: 'building_listing_click',
+                                parentId: buildingId,
+                                rank: index + 1,
+                                section: 'supply',
+                                supplyGroup: group.key,
+                              }
+                            : undefined
+                        }
+                      />
                   ))}
                 </div>
               )}
             </details>
-          ))}
+            )
+          })}
         </>
       )}
     </section>
