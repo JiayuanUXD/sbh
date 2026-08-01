@@ -25,6 +25,8 @@ describe('buildSecurityHeaders', () => {
   it('生产 CSP 含关键收紧指令', () => {
     const csp = buildSecurityHeaders({ isProduction: true })['Content-Security-Policy']
     expect(csp).toContain("default-src 'self'")
+    // 高德 JS API 视口自动注入，CSP 必须放行其 script 源（防止地图被 CSP 阻止）
+    expect(csp).toContain('https://webapi.amap.com')
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("base-uri 'self'")
     expect(csp).toContain("form-action 'self'")

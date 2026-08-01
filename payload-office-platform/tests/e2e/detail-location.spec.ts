@@ -5,7 +5,7 @@
  *
  * 守护不变量：
  *   - 地图 SDK 加载失败仍展示静态地址、复制地址、打开高德地图外链
- *   - 用户未点击"查看地图"前不请求 webapi.amap.com（懒加载）
+ *   - 地图改为进入视口自动加载（IntersectionObserver），用户未滚动到位置区前不请求 webapi.amap.com
  *
  * slug 用 seed building `west-nanjing-premium-center`（有完整坐标）。
  */
@@ -20,8 +20,8 @@ test.describe('楼盘详情位置交通 P1', () => {
     await page.route('**/webapi.amap.com/**', (route) => route.abort())
     await page.goto(`/buildings/${BUILDING_SLUG}`)
 
-    // 点击"查看地图"触发懒加载，加载失败降级
-    await page.getByRole('button', { name: '查看地图' }).click()
+    // 滚动到位置交通区，触发 IntersectionObserver 自动加载（加载失败降级为静态卡片）
+    await page.locator('#location').scrollIntoViewIfNeeded()
     await expect(page.getByText('地图暂时不可用')).toBeVisible()
 
     // 静态区始终保留：复制地址 + 打开高德地图外链
@@ -32,8 +32,16 @@ test.describe('楼盘详情位置交通 P1', () => {
   test('进入视口前不加载地图 SDK', async ({ page }) => {
     const requests: string[] = []
     page.on('request', (request) => requests.push(request.url()))
+    // route abort 仍会触发 request 事件，可用于验证懒加载触发时机
+    await page.route('**/webapi.amap.com/**', (route) => route.abort())
     await page.goto(`/buildings/${BUILDING_SLUG}`)
-    // 初始未点击，不应请求高德 JS API
+    // 初始未滚动到位置区，不应请求高德 JS API
     expect(requests.some((url) => url.includes('webapi.amap.com'))).toBe(false)
+
+    // 滚动到位置区后触发懒加载
+    await page.locator('#location').scrollIntoViewIfNeeded()
+    await expect.poll(
+      () => requests.some((url) => url.includes('webapi.amap.com')),
+    ).toBe(true)
   })
 })
