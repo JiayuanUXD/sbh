@@ -1,18 +1,22 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import AdvisorCard from '@/components/frontend/AdvisorCard'
+import BackToTop from '@/components/frontend/BackToTop'
+import BuildingKeyMetrics from '@/components/frontend/BuildingKeyMetrics'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
+import BuildingCardMini from '@/components/frontend/BuildingCardMini'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
+import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
+import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
@@ -107,16 +111,25 @@ export function BuildingSupplyOverview({
             <h3>{SUPPLY_GROUP_LABEL[group.key]}</h3>
             <dl>
               <div>
-                <dt>有效供给</dt>
-                <dd>{group.totalEffectiveListings} 套</dd>
+                <dt>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" /></svg>
+                  有效供给
+                </dt>
+                <dd><strong>{group.totalEffectiveListings}</strong> 套</dd>
               </div>
               <div>
-                <dt>可选面积</dt>
+                <dt>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1" /><path d="M9 3v18M3 9h18" /></svg>
+                  可选面积
+                </dt>
                 <dd>{areaRangeLabel(group.areaRange)}</dd>
               </div>
               <div>
-                <dt>立即可入驻</dt>
-                <dd>{group.immediateAvailabilityCount} 套</dd>
+                <dt>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M5 12a7 7 0 1014 0 7 7 0 00-14 0z" /></svg>
+                  立即可入驻
+                </dt>
+                <dd><strong>{group.immediateAvailabilityCount}</strong> 套</dd>
               </div>
             </dl>
           </article>
@@ -165,12 +178,35 @@ export default async function BuildingDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
+      <Breadcrumb
+        items={[
+          { label: '首页', href: '/' },
+          { label: '办公选址', href: '/listings' },
+          ...(building.district ? [{ label: building.district.name }] : []),
+          { label: building.name },
+        ]}
+      />
       <header className="detail__header">
-        {building.district && <span className="detail__type">{building.district.name}</span>}
+        <div className="detail__header-tags">
+          {building.district && <span className="detail__type">{building.district.name}</span>}
+          {(() => {
+            const gradeLabel = getBuildingGradeLabel(building.grade)
+            return gradeLabel ? (
+              <span className="detail__grade-badge" data-grade={building.grade}>{gradeLabel}</span>
+            ) : null
+          })()}
+        </div>
         <h1 className="detail__title">{building.name}</h1>
         {building.address && <p className="detail__building-summary">{building.address}</p>}
         {building.summary && <p className="detail__building-summary">{building.summary}</p>}
       </header>
+
+      <BuildingKeyMetrics
+        availableGroups={supply.availableGroups}
+        totalEffectiveListings={supply.totalEffectiveListings}
+        nearestMetro={building.nearestMetro ? { name: building.nearestMetro.name } : undefined}
+        coordinates={building.coordinates}
+      />
 
       <section className="detail-hero" aria-label="楼盘核心信息">
         <DetailGallery media={building.mediaItems} title={building.name} pageType="building" />
@@ -183,13 +219,13 @@ export default async function BuildingDetailPage({
             <p className="detail__decision-title">
               {hasSupply ? `${supply.totalEffectiveListings} 套当前有效供给` : '暂无公开供给，也可登记找房需求'}
             </p>
-            <AdvisorAvailability />
+            <AdvisorCard />
             <InquiryModal
               pageType="building"
               targetBuildingSlug={building.slug}
               targetSummary={building.name}
               triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
-              triggerClassName="detail__decision-inquiry"
+              triggerClassName="btn--lg detail__decision-inquiry"
               sourceSection="hero"
             />
             <ShareSaveActions
@@ -237,23 +273,16 @@ export default async function BuildingDetailPage({
       {hasRelated && (
         <section id="related" className="detail__section">
           <h2>相关楼盘</h2>
-          <ul className="detail__related-buildings">
+          <div className="card-grid">
             {visibleRelatedBuildings.map((item, index) => (
-              <li key={item.id}>
-                <Link
-                  href={`/buildings/${item.slug}`}
-                  data-detail-analytics-event="related_building_click"
-                  data-analytics-parent-id={building.id}
-                  data-analytics-building-id={item.id}
-                  data-analytics-rank={index + 1}
-                  data-analytics-section="related"
-                  data-analytics-recommendation-type="similar_building"
-                >
-                  {item.name}
-                </Link>
-              </li>
+              <BuildingCardMini
+                key={item.id}
+                building={item}
+                parentId={building.id}
+                rank={index + 1}
+              />
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
@@ -269,6 +298,7 @@ export default async function BuildingDetailPage({
           sourceSection="mobile-bar"
         />
       </div>
+      <BackToTop />
       <DetailClickAnalytics />
     </div>
   )

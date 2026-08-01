@@ -1,10 +1,12 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
+import AdvisorCard from '@/components/frontend/AdvisorCard'
+import BackToTop from '@/components/frontend/BackToTop'
+import AmenityList from '@/components/frontend/AmenityList'
+import BuildingSummaryCard from '@/components/frontend/BuildingSummaryCard'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
@@ -21,6 +23,7 @@ import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
+  getBuildingBySlug,
   getListingBySlug,
   getDetailRecommendations,
 } from '@/domain/public-catalog'
@@ -62,6 +65,7 @@ export default async function ListingDetailPage({
   if (!listing) notFound()
 
   const building = listing.building
+  const buildingDetail = building ? await getBuildingBySlug(building.slug, ctx) : null
   const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
   const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
   const mapEnabled =
@@ -93,7 +97,11 @@ export default async function ListingDetailPage({
     group: inquirySupplyGroup,
     ...(listing.price ? { priceUnit: listing.price.displayUnit } : {}),
   } as const
-  const hasAmenities = listing.amenityGroups.some((group) => group.items.length > 0)
+  const amenityGroups = [
+    ...listing.amenityGroups,
+    ...(buildingDetail?.amenityGroups.filter((group) => group.items.length > 0) ?? []),
+  ]
+  const hasAmenities = amenityGroups.some((group) => group.items.length > 0)
   const anchors = [
     { id: 'overview', label: '房源概况', visible: true },
     { id: 'amenities', label: '配套设施', visible: hasAmenities },
@@ -142,32 +150,43 @@ export default async function ListingDetailPage({
           <div className="detail__rent">{rentText}</div>
           <dl className="detail__specs">
             <div>
-              <dt>面积</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9h16M4 9v8h16V9M4 9l3-4h10l3 4M9 17v-4h6v4" /></svg>
+                面积
+              </dt>
               <dd>{formatArea(listing.area)}</dd>
             </div>
             <div>
-              <dt>工位</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="6" rx="1" /><rect x="5" y="13" width="14" height="6" rx="1" /><path d="M9 7h.01M9 16h.01" /></svg>
+                工位
+              </dt>
               <dd>{listing.seats ?? '咨询确认'}</dd>
             </div>
             <div>
-              <dt>可入驻</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="1" /><path d="M4 9h16M9 3v4M15 3v4M9 14l2 2 4-4" /></svg>
+                可入驻
+              </dt>
               <dd>{formatAvailableDate(listing.availableFrom)}</dd>
             </div>
             <div>
-              <dt>楼盘</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" /></svg>
+                楼盘
+              </dt>
               <dd>{building?.name ?? '—'}</dd>
             </div>
             <div>
-              <dt>区域</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-5.5-7-11a7 7 0 0114 0c0 5.5-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                区域
+              </dt>
               <dd>{building?.district?.name ?? '—'}</dd>
             </div>
           </dl>
           <div className="detail__decision">
-            <div className="detail__decision-row">
-              <span className="detail__rent">{rentText}</span>
-              <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
-            </div>
-            <AdvisorAvailability />
+            <AdvisorCard />
             <div className="detail__decision-cta">
               <InquiryModal
                 pageType="listing"
@@ -175,6 +194,7 @@ export default async function ListingDetailPage({
                 targetBuildingSlug={building?.slug}
                 targetSummary={listing.title}
                 triggerLabel="询价 / 预约看房"
+                triggerClassName="btn--lg detail__decision-inquiry"
                 sourceSection="hero"
                 priceSnapshot={inquiryPriceSnapshot}
                 activeSupplyGroup={inquirySupplyGroup}
@@ -201,14 +221,7 @@ export default async function ListingDetailPage({
       {hasAmenities && (
         <section id="amenities" className="detail__section">
           <h2>配套设施</h2>
-          {listing.amenityGroups.filter((group) => group.items.length > 0).map((group) => (
-            <div key={group.id}>
-              <h3>{group.title}</h3>
-              <ul className="detail__amenities">
-                {group.items.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            </div>
-          ))}
+          <AmenityList groups={amenityGroups} />
         </section>
       )}
       {listing.description && (
@@ -222,21 +235,7 @@ export default async function ListingDetailPage({
       {building && (
         <section id="building" className="detail__section">
           <h2>所在楼盘</h2>
-          <p>
-            {building.name}
-            {building.address ? ` · ${building.address}` : ''}
-          </p>
-          {building.summary && <p className="detail__building-summary">{building.summary}</p>}
-          <Link
-            href={`/buildings/${building.slug}`}
-            className="btn btn--ghost"
-            data-detail-analytics-event="listing_building_click"
-            data-analytics-listing-id={listing.id}
-            data-analytics-building-id={building.id}
-            data-analytics-section="building"
-          >
-            查看楼盘
-          </Link>
+          <BuildingSummaryCard building={building} listingId={listing.id} />
         </section>
       )}
       {building && (
@@ -293,6 +292,7 @@ export default async function ListingDetailPage({
           currentFilters={inquiryCurrentFilters}
         />
       </div>
+      <BackToTop />
       <DetailClickAnalytics />
     </div>
   )

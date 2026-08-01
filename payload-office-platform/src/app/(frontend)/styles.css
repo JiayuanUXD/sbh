@@ -3380,3 +3380,655 @@ ol {
   border-radius: 0.25rem;
   white-space: nowrap;
 }
+
+/* ===== P0 评审优化：BuildingKeyMetrics 起价强调 ===== */
+.building-key-metrics {
+  /* 复用 .building-stats 容器样式；此处仅补充起价强调 */
+  margin-top: 0;
+  margin-bottom: var(--sp-5);
+}
+
+.building-key-metrics__unit {
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+.building-stats__value[data-emphasis='price'] {
+  color: var(--color-copper);
+  font-size: var(--fs-26);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* ===== P0 评审优化：AdvisorCard 平台顾问卡片 ===== */
+.advisor-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.advisor-card__avatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-copper-soft);
+  color: var(--color-copper-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.advisor-card__avatar-text {
+  letter-spacing: 0.02em;
+}
+
+.advisor-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.advisor-card__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.advisor-card__name {
+  color: var(--color-ink);
+  font-size: var(--fs-14);
+  font-weight: 600;
+}
+
+.advisor-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-12);
+  font-weight: 500;
+}
+
+.advisor-card__status--open {
+  color: var(--color-positive, #1a7f37);
+}
+
+.advisor-card__status--closed {
+  color: var(--color-muted);
+}
+
+.advisor-card__status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.advisor-card__status--open .advisor-card__status-dot {
+  animation: advisor-card-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes advisor-card-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(26, 127, 55, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(26, 127, 55, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advisor-card__status--open .advisor-card__status-dot {
+    animation: none;
+  }
+}
+
+.advisor-card__status-detail {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-relaxed);
+}
+
+.advisor-card__hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+  font-style: italic;
+}
+
+.advisor-card__cta {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@media (max-width: 767px) {
+  .advisor-card__cta {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* ===== P0 评审优化：BuildingSupplyBrowser 面积分桶 tab ===== */
+.building-supply-browser__area-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+}
+
+.building-supply-browser__area-bucket {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  min-height: var(--touch-target);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink-2);
+  font-size: var(--fs-13);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.building-supply-browser__area-bucket:hover {
+  color: var(--color-ink);
+  border-color: var(--color-copper);
+}
+
+.building-supply-browser__area-bucket[data-active='true'],
+.building-supply-browser__area-bucket[aria-current='true'] {
+  background: var(--color-copper-soft);
+  border-color: var(--color-copper);
+  color: var(--color-copper-hover);
+  font-weight: 600;
+}
+
+.building-supply-browser__area-bucket-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-12);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+}
+
+.building-supply-browser__area-bucket[data-active='true']
+  .building-supply-browser__area-bucket-count,
+.building-supply-browser__area-bucket[aria-current='true']
+  .building-supply-browser__area-bucket-count {
+  color: var(--color-copper);
+}
+
+.building-supply-browser__group-count {
+  margin-left: var(--sp-2);
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .building-supply-browser__area-buckets {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: var(--sp-1);
+    -webkit-overflow-scrolling: touch;
+  }
+  .building-supply-browser__area-bucket {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* ===== P1 评审优化：BuildingSummaryCard 所在楼盘卡片 ===== */
+.building-summary-card {
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.building-summary-card__media {
+  flex-shrink: 0;
+  width: 180px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2, #f5f5f4);
+}
+
+.building-summary-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.building-summary-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.building-summary-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.building-summary-card__name {
+  margin: 0;
+  font-size: var(--fs-20);
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.3;
+}
+
+.building-summary-card__grade {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--color-copper);
+  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
+}
+
+.building-summary-card__district {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-12);
+  color: var(--color-ink-2);
+  background: var(--color-surface-2, #f5f5f4);
+}
+
+.building-summary-card__address {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: var(--fs-14);
+  line-height: var(--lh-relaxed);
+}
+
+.building-summary-card__summary {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  line-height: var(--lh-relaxed);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.building-summary-card__metro {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-13);
+}
+
+.building-summary-card__metro-label {
+  color: var(--color-muted);
+}
+
+.building-summary-card__metro-value {
+  color: var(--color-ink-2);
+  font-weight: 600;
+}
+
+.building-summary-card__cta {
+  align-self: flex-start;
+  margin-top: var(--sp-1);
+}
+
+@media (max-width: 767px) {
+  .building-summary-card {
+    flex-direction: column;
+    gap: var(--sp-3);
+    padding: var(--sp-3);
+  }
+
+  .building-summary-card__media {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* ===== P1 评审优化：AmenityList 配套设施图标化 ===== */
+.amenity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.amenity-list__group-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+.amenity-list__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amenity-list__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-13);
+  color: var(--color-ink-2);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.amenity-list__item:hover {
+  border-color: var(--color-copper);
+  background: color-mix(in srgb, var(--color-copper) 6%, var(--color-paper));
+}
+
+.amenity-list__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-copper);
+  flex-shrink: 0;
+}
+
+.amenity-list__label {
+  line-height: 1.4;
+}
+
+/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 ===== */
+.building-card-mini {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.building-card-mini:hover {
+  border-color: var(--color-copper);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.building-card-mini__media {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--color-surface-2, #f5f5f4);
+}
+
+.building-card-mini__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.building-card-mini:hover .building-card-mini__media img {
+  transform: scale(1.03);
+}
+
+.building-card-mini__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-muted);
+}
+
+.building-card-mini__body {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.building-card-mini__name {
+  margin: 0;
+  font-size: var(--fs-15);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.building-card-mini__district {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-12);
+  color: var(--color-ink-2);
+  background: var(--color-surface-2, #f5f5f4);
+  align-self: flex-start;
+}
+
+.building-card-mini__address {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ===== P2 评审优化：房源 specs 图标对齐 ===== */
+.detail__specs dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail__specs dt svg {
+  color: var(--color-copper);
+  flex-shrink: 0;
+}
+
+/* ===== P3 评审优化：楼盘 header grade 徽章 ===== */
+.detail__header-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.detail__grade-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--color-copper);
+  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
+}
+
+.detail__grade-badge[data-grade='super-grade-a'] {
+  color: #b45309;
+  background: color-mix(in srgb, #b45309 14%, transparent);
+}
+
+/* ===== P3 评审优化：供给概览图标对齐 + 数值强调 ===== */
+.building-supply-overview__group dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.building-supply-overview__group dt svg {
+  color: var(--color-copper);
+  flex-shrink: 0;
+}
+
+.building-supply-overview__group dd strong {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* ===== P3 评审优化：询价 CTA 视觉强化 ===== */
+.detail__decision-inquiry.btn--lg {
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-copper) 28%, transparent);
+}
+
+.detail__decision-inquiry.btn--lg:hover {
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-copper) 38%, transparent);
+  transform: translateY(-1px);
+}
+
+/* ===== P4 评审优化：LocationPanel POI 图标 ===== */
+.location-panel__poi-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.location-panel__poi-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-2);
+}
+
+.location-panel__poi-tab[data-active='true'] .location-panel__poi-tab-icon {
+  color: var(--color-copper);
+}
+
+.location-panel__poi-distance {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.location-panel__poi-distance-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+/* ===== P4 评审优化：BackToTop 返回顶部按钮 ===== */
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.back-to-top:hover {
+  color: var(--color-copper);
+  border-color: var(--color-copper);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 767px) {
+  .back-to-top {
+    right: 16px;
+    bottom: 72px;
+  }
+}
+
+/* ===== P4 评审优化：画廊首图加载骨架 ===== */
+.detail-gallery__open {
+  background: linear-gradient(
+    110deg,
+    var(--color-surface-2, #f5f5f4) 30%,
+    color-mix(in srgb, var(--color-surface-2, #f5f5f4) 80%, #fff) 50%,
+    var(--color-surface-2, #f5f5f4) 70%
+  );
+  background-size: 200% 100%;
+  animation: gallery-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.detail-gallery__open img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.detail-gallery__open img[src]:not([src='']) {
+  opacity: 1;
+}
+
+@keyframes gallery-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-gallery__open {
+    animation: none;
+    background: var(--color-surface-2, #f5f5f4);
+  }
+
+  .back-to-top {
+    transition: none;
+  }
+}
+

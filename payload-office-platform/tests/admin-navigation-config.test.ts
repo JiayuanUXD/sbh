@@ -114,6 +114,10 @@ describe('admin navigation config', () => {
       expectedGroup('team-management', '团队管理', [
         expectedLeaf('teams', '团队管理', '/admin/collections/teams', ['teams']),
         expectedLeaf('brokers', '经纪人管理', '/admin/collections/brokers', ['brokers']),
+        expectedLeaf('advisor-service-hours', '顾问服务时间', '/admin/globals/advisor-service-hours', [
+          'teams',
+          'brokers',
+        ]),
       ]),
       expectedGroup('content', '内容管理', [
         expectedLeaf('pages', '页面内容', '/admin/collections/pages', ['pages']),

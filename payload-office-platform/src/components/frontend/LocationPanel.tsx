@@ -30,11 +30,61 @@ export interface LocationPanelBuilding {
 }
 
 const POI_CATEGORY_TABS = [
-  { key: 'transport', label: '交通' },
-  { key: 'restaurant', label: '餐饮' },
-  { key: 'bank', label: '银行' },
-  { key: 'hotel', label: '酒店' },
+  { key: 'transport', label: '交通', icon: 'transport' },
+  { key: 'restaurant', label: '餐饮', icon: 'restaurant' },
+  { key: 'bank', label: '银行', icon: 'bank' },
+  { key: 'hotel', label: '酒店', icon: 'hotel' },
 ] as const
+
+type PoiIconKey = (typeof POI_CATEGORY_TABS)[number]['icon']
+
+function PoiCategoryIcon({ name }: Readonly<{ name: PoiIconKey }>) {
+  const common = {
+    width: 14,
+    height: 14,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.6,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  switch (name) {
+    case 'transport':
+      return (
+        <svg {...common}>
+          <rect x="4" y="3" width="16" height="14" rx="2" />
+          <path d="M4 11h16M7 17v2M17 17v2M8 7h.01M16 7h.01" />
+        </svg>
+      )
+    case 'restaurant':
+      return (
+        <svg {...common}>
+          <path d="M6 3v8a2 2 0 002 2v8M6 3v5M9 3v5M18 3c-2 0-3 2-3 5s1 4 3 4v9" />
+        </svg>
+      )
+    case 'bank':
+      return (
+        <svg {...common}>
+          <path d="M4 9l8-5 8 5M5 9v8M19 9v8M5 17h14M9 17v-3M15 17v-3M4 21h16" />
+        </svg>
+      )
+    case 'hotel':
+      return (
+        <svg {...common}>
+          <path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-5h6v5M7 11h.01M17 11h.01" />
+        </svg>
+      )
+  }
+}
+
+const DistanceIcon = (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" />
+    <circle cx="12" cy="9" r="2.5" />
+  </svg>
+)
 
 const COPY_FEEDBACK_MS = 2000
 
@@ -154,6 +204,9 @@ export default function LocationPanel({
                   setHighlightedPoiId(null)
                 }}
               >
+                <span className="location-panel__poi-tab-icon" aria-hidden="true">
+                  <PoiCategoryIcon name={tab.icon} />
+                </span>
                 {tab.label}（{count}）
               </button>
             )
@@ -176,6 +229,7 @@ export default function LocationPanel({
               >
                 <span className="location-panel__poi-name">{poi.name}</span>
                 <span className="location-panel__poi-distance">
+                  <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
                   {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
                 </span>
               </button>

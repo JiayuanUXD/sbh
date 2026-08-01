@@ -30,6 +30,8 @@ export const AdvisorServiceHours: GlobalConfig = {
     read: () => true,
   },
   admin: {
+    group: '团队管理',
+    hidden: true,
     description:
       '平台级服务时间（Asia/Shanghai）。用于前台展示"当前服务中/非服务时段"，不含个人顾问排班或联系方式。',
   },
