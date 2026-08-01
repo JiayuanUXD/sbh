@@ -87,6 +87,10 @@ export const ADMIN_NAV_GROUPS = [
   group('team-management', '团队管理', 'team', [
     leaf('teams', '团队管理', '/admin/collections/teams', ['teams']),
     leaf('brokers', '经纪人管理', '/admin/collections/brokers', ['brokers']),
+    leaf('advisor-service-hours', '顾问服务时间', '/admin/globals/advisor-service-hours', [
+      'teams',
+      'brokers',
+    ]),
   ]),
   group('content', '内容管理', 'file', [
     leaf('pages', '页面内容', '/admin/collections/pages', ['pages']),

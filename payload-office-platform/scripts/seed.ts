@@ -109,10 +109,14 @@ async function upsertAmenity(
 }
 
 async function seed() {
+  console.log('--- Starting seed ---');
+  console.log('Initializing payload...');
   const payload = await getPayload({ config })
+  console.log('Payload initialized!');
 
   // === M1.2：内置角色种子（ADM / OPS / MGR / BRK / CSR）===
   // 内置角色不可删除或改码；重复 seed 时按 code 收敛名称、描述和权限。
+  console.log('Syncing builtin roles...');
   await syncBuiltinRoles(
     {
       findByCode: async (code) => {
@@ -163,6 +167,8 @@ async function seed() {
     },
     Object.values(BUILTIN_ROLES),
   )
+
+  console.log('Builtin roles synced!');
 
   // === M1.6：5 个 E2E 测试账号（每个内置角色一个）===
   // 仅在 dev/staging 环境用于权限矩阵 E2E；生产环境不应运行 seed。
@@ -221,6 +227,9 @@ async function seed() {
     payload.logger.info(`E2E 用户 ${u.email} 创建完成`)
   }
 
+  console.log('E2E Users synced!');
+
+  console.log('Upserting locations...');
   const shanghai = await upsertBySlug<AnyDoc>(payload, 'locations', 'shanghai', {
     name: '上海',
     immutableCode: 'SH',
@@ -391,6 +400,9 @@ async function seed() {
     summary: '虹桥商务区核心办公，近虹桥枢纽。',
   })
 
+  console.log('Locations and buildings seeded!');
+
+  console.log('Upserting listings...');
   await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-serviced-office-42-seats', {
     title: '静安南京西路 · 精装服务式办公室',
     status: 'available',
@@ -635,6 +647,8 @@ async function seed() {
     ]),
   })
 
+  console.log('Listings seeded!');
+
   // === 前端 CMS 内容页（pages/[slug] 路由）：标准内容页 + 法务页无 CTA 分支 ===
   // about：hero + 正文富文本 + SEO，页尾渲染 InquiryModal CTA。
   await upsertBySlug<AnyDoc>(payload, 'pages', 'about', {
@@ -689,6 +703,8 @@ async function seed() {
       description: '上海甲级写字楼、服务式办公室、共享办公与整层办公租赁平台。',
     },
   })
+
+  console.log('Pages seeded!');
 
   // === 扩展：Leads 咨询线索（覆盖各跟进状态，用于后台列表/筛选 UI 测试）===
   const leadsData: Array<
@@ -813,6 +829,7 @@ async function seed() {
     },
   ]
 
+  console.log('Seeding leads...');
   for (const lead of leadsData) {
     const existing = await payload.find({
       collection: 'leads',
@@ -825,6 +842,8 @@ async function seed() {
       await payload.create({ collection: 'leads', data: lead })
     }
   }
+
+  console.log('Leads seeded! Seeding core mock data (teams, brokers, merchants)...');
 
   // ============================================================
   // 后台核心功能 mock 数据（M2.5 组织 / M3-M4 供给关系 / M5 CRM）
