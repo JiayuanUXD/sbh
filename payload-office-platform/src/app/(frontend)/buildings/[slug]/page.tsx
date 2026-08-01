@@ -10,6 +10,7 @@ import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { rentUnitLabel } from '@/lib/frontend/format'
@@ -182,6 +183,7 @@ export default async function BuildingDetailPage({
             <p className="detail__decision-title">
               {hasSupply ? `${supply.totalEffectiveListings} 套当前有效供给` : '暂无公开供给，也可登记找房需求'}
             </p>
+            <AdvisorAvailability />
             <InquiryModal
               pageType="building"
               targetBuildingSlug={building.slug}

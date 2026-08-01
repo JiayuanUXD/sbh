@@ -86,6 +86,8 @@ export {
   getRelatedBuildings,
   getListingsByBuilding,
   getRelatedListings,
+  getDetailRecommendations,
+  type DetailRecommendationItem,
   assertEffectiveListing,
   assertEffectiveBuilding,
   getHomepage,

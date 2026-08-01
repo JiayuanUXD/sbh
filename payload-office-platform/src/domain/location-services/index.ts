@@ -9,3 +9,4 @@
 export * from './contracts'
 export * from './amap-provider'
 export * from './cache'
+export * from './routes'

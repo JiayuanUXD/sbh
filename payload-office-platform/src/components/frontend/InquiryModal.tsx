@@ -9,6 +9,9 @@ import type {
 } from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
+import ViewingSlotPicker, {
+  type SelectedViewingPreference,
+} from '@/components/frontend/ViewingSlotPicker'
 
 /**
  * F5.2 可访问咨询 Modal（多入口）
@@ -255,6 +258,8 @@ export default function InquiryModal(props: Props) {
   const [demandMoveInTime, setDemandMoveInTime] = useState('')
   const [consentAccepted, setConsentAccepted] = useState(false)
   const [targetResolution, setTargetResolution] = useState<TargetResolution>('general')
+  // P2 Task 4：偏好看房时段（选填，提交后服务端复核有效性）
+  const [viewingPreference, setViewingPreference] = useState<SelectedViewingPreference | null>(null)
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
@@ -412,6 +417,7 @@ export default function InquiryModal(props: Props) {
       buildingSlug: targetBuildingSlug || undefined,
       priceSnapshot,
       activeSupplyGroup,
+      viewingPreference: viewingPreference ?? undefined,
       demand: {
         district: demandDistrict.trim() || undefined,
         budget: demandBudget.trim() || undefined,
@@ -537,6 +543,7 @@ export default function InquiryModal(props: Props) {
     setDemandBudget('')
     setDemandArea('')
     setDemandMoveInTime('')
+    setViewingPreference(null)
     setConsentAccepted(false)
     setErrors([])
     setServerError(null)
@@ -778,6 +785,8 @@ export default function InquiryModal(props: Props) {
                     </label>
                   </div>
                 </details>
+
+                <ViewingSlotPicker value={viewingPreference} onChange={setViewingPreference} />
 
                 <label className="modal__label" htmlFor={`f-message-${titleId}`}>
                   留言（选填）

@@ -58,6 +58,13 @@ import {
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
 import type { SupplyAdapter } from './supply-adapter'
 import { getDefaultSupplyAdapter } from './supply-adapter'
+import {
+  rankDetailRecommendations,
+  type RecommendationCandidate,
+  type RecommendationContext,
+  type RecommendationResult,
+  type ReasonCode,
+} from '@/domain/recommendation/detail-recommendations'
 
 // ---------------------------------------------------------------------------
 // 公共返回类型
@@ -96,6 +103,12 @@ export type BuildingDetailResult = Readonly<{
 /** 楼盘详情页（不含房源聚合）：仅楼盘 DTO */
 export type BuildingDetailPageResult = Readonly<{
   building: BuildingDetailViewModel | null
+}>
+
+/** 情境推荐结果（P2 Task 5） */
+export type DetailRecommendationItem = Readonly<{
+  card: ListingCardViewModel
+  reasonCodes: readonly ReasonCode[]
 }>
 
 // ---------------------------------------------------------------------------
@@ -565,4 +578,211 @@ export async function listPublishedPages(
     if (s) summaries.push(s)
   }
   return summaries
+}
+
+
+// ---------------------------------------------------------------------------
+// 可解释情境推荐（P2 Task 5）
+// ---------------------------------------------------------------------------
+
+/**
+ * 从原始 Listing 提取 building.businessDistrict 的 ID（关系可能是 number 或展开对象）
+ */
+function extractBuildingBusinessDistrictId(listing: Listing): number | null {
+  const building = listing.building
+  if (typeof building !== 'object' || building === null) return null
+  const bd = (building as Building).businessDistrict
+  if (typeof bd === 'number') return bd
+  if (bd && typeof bd === 'object' && 'id' in bd) {
+    const id = (bd as { id?: unknown }).id
+    if (typeof id === 'number') return id
+  }
+  return null
+}
+
+/**
+ * 从原始 Listing 提取 building.district 的 ID
+ */
+function extractBuildingDistrictId(listing: Listing): number | null {
+  const building = listing.building
+  if (typeof building !== 'object' || building === null) return null
+  const d = (building as Building).district
+  if (typeof d === 'number') return d
+  if (d && typeof d === 'object' && 'id' in d) {
+    const id = (d as { id?: unknown }).id
+    if (typeof id === 'number') return id
+  }
+  return null
+}
+
+/**
+ * 从原始 Listing 提取价格单位的 displayUnit 字符串
+ */
+function extractPriceUnit(listing: Listing): string | null {
+  const price = listing.price
+  if (!price) return null
+  const unit = price.unit
+  const period = price.period
+  if (!unit || !period) return listing.rentUnit ?? null
+  // 映射到 displayUnit 格式
+  if (unit === 'sqm' && period === 'day') return 'rmb-sqm-day'
+  if (unit === 'suite' && period === 'month') return 'rmb-month'
+  if (unit === 'seat' && period === 'month') return 'rmb-seat-month'
+  return listing.rentUnit ?? null
+}
+
+/**
+ * 从原始 Listing 提取价格金额
+ */
+function extractPriceAmount(listing: Listing): number | null {
+  if (listing.price?.amount != null) return listing.price.amount
+  return listing.rent ?? null
+}
+
+/**
+ * 把原始 Listing 转为推荐候选
+ */
+function listingToCandidate(listing: Listing): RecommendationCandidate {
+  return {
+    id: listing.id,
+    listingType: listing.listingType,
+    businessType: listing.businessType ?? 'lease',
+    area: listing.area ?? null,
+    priceAmount: extractPriceAmount(listing),
+    priceUnit: extractPriceUnit(listing),
+    buildingDistrictId: extractBuildingDistrictId(listing),
+    buildingBusinessDistrictId: extractBuildingBusinessDistrictId(listing),
+  }
+}
+
+/**
+ * 从原始 Listing 提取 building.businessDistrict 的 slug（关系在 depth=3 时已展开为 Location 对象）
+ */
+function extractBuildingBusinessDistrictSlug(listing: Listing): string | null {
+  const building = listing.building
+  if (typeof building !== 'object' || building === null) return null
+  const bd = (building as Building).businessDistrict
+  if (bd && typeof bd === 'object' && 'slug' in bd) {
+    const slug = (bd as { slug?: unknown }).slug
+    if (typeof slug === 'string' && slug.length > 0) return slug
+  }
+  return null
+}
+
+/**
+ * 从原始 Listing 提取 building.district 的 slug
+ */
+function extractBuildingDistrictSlug(listing: Listing): string | null {
+  const building = listing.building
+  if (typeof building !== 'object' || building === null) return null
+  const d = (building as Building).district
+  if (d && typeof d === 'object' && 'slug' in d) {
+    const slug = (d as { slug?: unknown }).slug
+    if (typeof slug === 'string' && slug.length > 0) return slug
+  }
+  return null
+}
+
+/**
+ * 可解释情境推荐（P2 Task 5）
+ *
+ * 基于当前房源上下文，从同商圈/同行政区有效供给中确定性打分排序，
+ * 返回最多 6 条推荐，每条附带可读理由。
+ *
+ * 不变量：
+ *   - 不读取 cookie、localStorage、用户 ID、手机号
+ *   - 不使用跨会话历史
+ *   - 确定性：相同输入始终产出相同顺序
+ *   - 只使用有效供给（复用 SupplyAdapter 有效供给谓词）
+ *
+ * @param listingSlug - 当前详情页房源 slug
+ * @param ctx - 搜索上下文（asOf、city）
+ * @param options - 可选参数
+ * @param adapter - 供给适配器（可注入测试替身）
+ */
+export async function getDetailRecommendations(
+  listingSlug: string,
+  ctx: SearchContext,
+  options: Readonly<{ limit?: number }> = {},
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly DetailRecommendationItem[]> {
+  // 1. 加载当前房源原始文档（depth=3，含 building.businessDistrict）
+  const currentListing = await adapter.findEffectiveListingBySlug(listingSlug, ctx)
+  if (!currentListing) return []
+
+  // 2. 构建推荐上下文
+  const context: RecommendationContext = {
+    currentListingId: currentListing.id,
+    listingType: currentListing.listingType,
+    businessType: currentListing.businessType ?? 'lease',
+    area: currentListing.area ?? null,
+    priceAmount: extractPriceAmount(currentListing),
+    priceUnit: extractPriceUnit(currentListing),
+    buildingDistrictId: extractBuildingDistrictId(currentListing),
+    buildingBusinessDistrictId: extractBuildingBusinessDistrictId(currentListing),
+  }
+
+  // 3. 获取候选房源：同商圈或同行政区的有效供给
+  //    优先使用 businessDistrict（商圈），fallback 到 district（行政区）
+  //    findEffectiveListings 的 businessArea/district 参数使用 slug 字符串
+  const businessDistrictSlug = extractBuildingBusinessDistrictSlug(currentListing)
+  const districtSlug = extractBuildingDistrictSlug(currentListing)
+
+  let candidateListings: readonly Listing[]
+  if (businessDistrictSlug != null) {
+    // 同商圈候选
+    candidateListings = await adapter.findEffectiveListings(
+      { businessArea: [businessDistrictSlug], page: 1, pageSize: 24 },
+      ctx,
+    )
+  } else if (districtSlug != null) {
+    // 同行政区候选
+    candidateListings = await adapter.findEffectiveListings(
+      { district: [districtSlug], page: 1, pageSize: 24 },
+      ctx,
+    )
+  } else {
+    // 无地理信息，退化为同楼盘
+    const buildingRef = currentListing.building
+    const buildingId =
+      typeof buildingRef === 'object' && buildingRef !== null
+        ? buildingRef.id
+        : (buildingRef as number | string | null)
+    if (buildingId == null) return []
+    candidateListings = await adapter.findEffectiveListingsByBuilding(
+      buildingId,
+      ctx,
+      currentListing.id,
+    )
+  }
+
+  if (candidateListings.length === 0) return []
+
+  // 4. 转为候选对象并打分
+  const candidates = candidateListings.map(listingToCandidate)
+  const ranked = rankDetailRecommendations(candidates, context)
+
+  // 5. 限制数量
+  const limit = options.limit ?? 6
+  const topResults = ranked.slice(0, limit)
+
+  // 6. 把获胜候选映射回 ListingCardViewModel
+  const winnerIds = new Set(topResults.map((r) => r.candidate.id))
+  const winnerListings = candidateListings.filter((l) => winnerIds.has(l.id))
+  const cardMap = new Map<number, ListingCardViewModel>()
+  for (const l of winnerListings) {
+    const card = mapListingCard(l)
+    if (card) cardMap.set(l.id, card)
+  }
+
+  // 7. 按打分顺序组装结果
+  const items: DetailRecommendationItem[] = []
+  for (const r of topResults) {
+    const card = cardMap.get(r.candidate.id)
+    if (card) {
+      items.push({ card, reasonCodes: r.reasonCodes })
+    }
+  }
+
+  return items
 }

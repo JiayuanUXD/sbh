@@ -4,12 +4,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import AdvisorAvailability from '@/components/frontend/AdvisorAvailability'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
 import LocationPanel from '@/components/frontend/LocationPanel'
+import RecommendationReason from '@/components/frontend/RecommendationReason'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
@@ -20,7 +22,7 @@ import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
   getListingBySlug,
-  getRelatedListings,
+  getDetailRecommendations,
 } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
@@ -60,8 +62,7 @@ export default async function ListingDetailPage({
   if (!listing) notFound()
 
   const building = listing.building
-  const related = await getRelatedListings(slug, ctx, { limit: 6 })
-  const relatedFiltered = related.filter((r) => r.id !== listing.id).slice(0, 5)
+  const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
   const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
   const mapEnabled =
     building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
@@ -99,7 +100,7 @@ export default async function ListingDetailPage({
     { id: 'description', label: '房源描述', visible: listing.description != null },
     { id: 'building', label: '所在楼盘', visible: building != null },
     { id: 'location', label: '位置交通', visible: building != null },
-    { id: 'related', label: '其他房源', visible: relatedFiltered.length > 0 },
+    { id: 'related', label: '相关推荐', visible: recommendations.length > 0 },
   ]
 
   const jsonLd = buildListingJsonLd(listing, siteConfig.siteOrigin)
@@ -166,6 +167,7 @@ export default async function ListingDetailPage({
               <span className="detail__rent">{rentText}</span>
               <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
             </div>
+            <AdvisorAvailability />
             <div className="detail__decision-cta">
               <InquiryModal
                 pageType="listing"
@@ -252,22 +254,24 @@ export default async function ListingDetailPage({
           mapEnabled={mapEnabled}
         />
       )}
-      {relatedFiltered.length > 0 && (
+      {recommendations.length > 0 && (
         <section id="related" className="detail__section">
-          <h2>同楼盘其他房源</h2>
+          <h2>相关推荐</h2>
           <div className="card-grid">
-            {relatedFiltered.map((r, index) => (
-              <ListingCard
-                key={r.id}
-                listing={r}
-                detailAnalytics={{
-                  event: 'recommendation_click',
-                  parentId: listing.id,
-                  rank: index + 1,
-                  section: 'related',
-                  recommendationType: 'same_building',
-                }}
-              />
+            {recommendations.map((rec, index) => (
+              <div key={rec.card.id} className="recommendation-card-wrapper">
+                <ListingCard
+                  listing={rec.card}
+                  detailAnalytics={{
+                    event: 'recommendation_click',
+                    parentId: listing.id,
+                    rank: index + 1,
+                    section: 'related',
+                    recommendationType: 'contextual',
+                  }}
+                />
+                <RecommendationReason reasonCodes={rec.reasonCodes} />
+              </div>
             ))}
           </div>
         </section>
