@@ -1,3 +1,7 @@
+# 行尾符统一为 LF（Windows 开发 / Linux 部署统一）
+# 已跟踪文本文件通过 `git add --renormalize` 一次性规范化；新增文件自动按 LF 存储
+* text=auto eol=lf
+
 # 部署包瘦身：CI 用 `git archive HEAD:payload-office-platform` 打 ZIP 上传到
 # CloudBase，平台收包后才在云端 docker build。所以 .dockerignore 在这一步**不生效**
 # ——包得先传上去。跨境到腾讯云 COS 的吞吐下，7.6MB 会撑爆 curl --max-time，
