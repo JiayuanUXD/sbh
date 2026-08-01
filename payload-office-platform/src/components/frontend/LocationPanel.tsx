@@ -36,6 +36,9 @@ const POI_CATEGORY_TABS = [
   { key: 'hotel', label: '酒店', icon: 'hotel' },
 ] as const
 
+/** POI 列表项左侧字母锚点（最多 5 项，对应 A-E） */
+const POI_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const
+
 type PoiIconKey = (typeof POI_CATEGORY_TABS)[number]['icon']
 
 function PoiCategoryIcon({ name }: Readonly<{ name: PoiIconKey }>) {
@@ -175,68 +178,77 @@ export default function LocationPanel({
         )}
       </div>
 
-      {/* 地图区：懒加载，缺坐标/Key 时 AmapMapCanvas 返回 null */}
-      <AmapMapCanvas
-        coordinates={coordinates}
-        pois={activePois}
-        mapEnabled={mapEnabled}
-        highlightedPoiId={highlightedPoiId}
-      />
+      {/* 地图区 + POI 浮动面板：地图占满宽度，POI 面板绝对定位浮在右侧 */}
+      <div className="location-panel__map-area">
+        <AmapMapCanvas
+          coordinates={coordinates}
+          pois={activePois}
+          mapEnabled={mapEnabled}
+          highlightedPoiId={highlightedPoiId}
+        />
 
-      {/* POI 分类列表 */}
-      {hasAnyPoi && (
-        <div className="location-panel__pois" role="tablist" aria-label="周边配套">
-          {POI_CATEGORY_TABS.map((tab) => {
-            const count = pois[tab.key].length
-            if (count === 0) return null
-            const isActive = activeCategory === tab.key
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-controls="location-panel-poi-list"
-                className="location-panel__poi-tab"
-                data-active={isActive}
-                onClick={() => {
-                  setActiveCategory(tab.key)
-                  setHighlightedPoiId(null)
-                }}
+        {hasAnyPoi && (
+          <div className="location-panel__poi-panel" aria-label="周边配套">
+            <div className="location-panel__pois" role="tablist" aria-label="周边配套类别">
+              {POI_CATEGORY_TABS.map((tab) => {
+                const count = pois[tab.key].length
+                if (count === 0) return null
+                const isActive = activeCategory === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls="location-panel-poi-list"
+                    className="location-panel__poi-tab"
+                    data-active={isActive}
+                    onClick={() => {
+                      setActiveCategory(tab.key)
+                      setHighlightedPoiId(null)
+                    }}
+                  >
+                    <span className="location-panel__poi-tab-icon" aria-hidden="true">
+                      <PoiCategoryIcon name={tab.icon} />
+                    </span>
+                    {tab.label}（{count}）
+                  </button>
+                )
+              })}
+            </div>
+            {activePois.length > 0 && (
+              <ul
+                id="location-panel-poi-list"
+                className="location-panel__poi-list"
+                role="tabpanel"
               >
-                <span className="location-panel__poi-tab-icon" aria-hidden="true">
-                  <PoiCategoryIcon name={tab.icon} />
-                </span>
-                {tab.label}（{count}）
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {hasAnyPoi && activePois.length > 0 && (
-        <ul
-          id="location-panel-poi-list"
-          className="location-panel__poi-list"
-          role="tabpanel"
-        >
-          {activePois.map((poi) => (
-            <li key={poi.id}>
-              <button
-                type="button"
-                className="location-panel__poi-item"
-                data-highlighted={highlightedPoiId === poi.id}
-                onClick={() => setHighlightedPoiId(poi.id)}
-              >
-                <span className="location-panel__poi-name">{poi.name}</span>
-                <span className="location-panel__poi-distance">
-                  <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
-                  {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                {activePois.map((poi, index) => {
+                  const letter = POI_LETTERS[index] ?? ''
+                  return (
+                    <li key={poi.id}>
+                      <button
+                        type="button"
+                        className="location-panel__poi-item"
+                        data-highlighted={highlightedPoiId === poi.id}
+                        onClick={() => setHighlightedPoiId(poi.id)}
+                      >
+                        <span className="location-panel__poi-letter" aria-hidden="true">{letter}</span>
+                        <span className="location-panel__poi-info">
+                          <span className="location-panel__poi-name">{poi.name}</span>
+                          <span className="location-panel__poi-distance">
+                            <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
+                            {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

@@ -219,6 +219,14 @@ test.describe('房源详情 P0', () => {
 })
 
 test.describe('楼盘详情 P0', () => {
+  // 楼盘详情页含 LocationPanel，地图进入视口会自动加载高德 JS API。
+  // CI 用假 Key（NEXT_PUBLIC_AMAP_JS_KEY=e2e-fake-amap-js-key-not-real），真实加载会
+  // 触发 SDK 内部 error 污染 console.error 断言。route abort 让地图走 error 降级，
+  // 不影响布局/供给/无横向溢出等断言（这些测试不断言地图本身）。
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/webapi.amap.com/**', (route) => route.abort())
+  })
+
   test('楼盘页按有效供给显示非空分组', async ({ page }) => {
     const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
 
