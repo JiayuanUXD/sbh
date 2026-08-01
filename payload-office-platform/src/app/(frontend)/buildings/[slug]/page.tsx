@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import AdvisorCard from '@/components/frontend/AdvisorCard'
+import BackToTop from '@/components/frontend/BackToTop'
 import BuildingKeyMetrics from '@/components/frontend/BuildingKeyMetrics'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import BuildingCardMini from '@/components/frontend/BuildingCardMini'
@@ -297,6 +298,7 @@ export default async function BuildingDetailPage({
           sourceSection="mobile-bar"
         />
       </div>
+      <BackToTop />
       <DetailClickAnalytics />
     </div>
   )

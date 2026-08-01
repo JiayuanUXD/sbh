@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import AdvisorCard from '@/components/frontend/AdvisorCard'
+import BackToTop from '@/components/frontend/BackToTop'
 import AmenityList from '@/components/frontend/AmenityList'
 import BuildingSummaryCard from '@/components/frontend/BuildingSummaryCard'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
@@ -291,6 +292,7 @@ export default async function ListingDetailPage({
           currentFilters={inquiryCurrentFilters}
         />
       </div>
+      <BackToTop />
       <DetailClickAnalytics />
     </div>
   )

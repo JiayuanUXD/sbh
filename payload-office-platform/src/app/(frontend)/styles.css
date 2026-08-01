@@ -3929,3 +3929,106 @@ ol {
   transform: translateY(-1px);
 }
 
+/* ===== P4 评审优化：LocationPanel POI 图标 ===== */
+.location-panel__poi-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.location-panel__poi-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink-2);
+}
+
+.location-panel__poi-tab[data-active='true'] .location-panel__poi-tab-icon {
+  color: var(--color-copper);
+}
+
+.location-panel__poi-distance {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.location-panel__poi-distance-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+/* ===== P4 评审优化：BackToTop 返回顶部按钮 ===== */
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.back-to-top:hover {
+  color: var(--color-copper);
+  border-color: var(--color-copper);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 767px) {
+  .back-to-top {
+    right: 16px;
+    bottom: 72px;
+  }
+}
+
+/* ===== P4 评审优化：画廊首图加载骨架 ===== */
+.detail-gallery__open {
+  background: linear-gradient(
+    110deg,
+    var(--color-surface-2, #f5f5f4) 30%,
+    color-mix(in srgb, var(--color-surface-2, #f5f5f4) 80%, #fff) 50%,
+    var(--color-surface-2, #f5f5f4) 70%
+  );
+  background-size: 200% 100%;
+  animation: gallery-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.detail-gallery__open img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.detail-gallery__open img[src]:not([src='']) {
+  opacity: 1;
+}
+
+@keyframes gallery-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-gallery__open {
+    animation: none;
+    background: var(--color-surface-2, #f5f5f4);
+  }
+
+  .back-to-top {
+    transition: none;
+  }
+}
+
