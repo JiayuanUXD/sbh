@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 
 /**
@@ -25,17 +25,37 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/listings?type=coworking', label: '共享办公' },
 ] as const
 
-/** 判断当前路径是否匹配给定 href（含 query 时只匹配 path 部分） */
-function isCurrent(pathname: string, href: string): boolean {
-  const [path] = href.split('?')
+/**
+ * 判断当前路径是否匹配给定 href。
+ * - href 含 query 时：pathname 与 query 参数须同时精确匹配
+ *   （如 /listings?type=serviced-office 仅在 type=serviced-office 时高亮）
+ * - href 无 query 时：pathname 匹配即可，但若当前 URL 含更具体的 type 筛选
+ *   则不高亮"在租房源"总览，避免与子分类同时高亮
+ */
+function isCurrent(
+  pathname: string,
+  searchParams: ReadonlyURLSearchParams,
+  href: string,
+): boolean {
+  const [path, query = ''] = href.split('?')
   if (!path) return false
   if (path === '/') return pathname === '/'
-  // 列表页及其子路径都算"在租房源"高亮
-  return pathname === path || pathname.startsWith(path + '/')
+  if (pathname !== path && !pathname.startsWith(path + '/')) return false
+  if (query) {
+    // href 含 query：当前 search 须包含 href 的全部 query 参数
+    const hrefParams = new URLSearchParams(query)
+    for (const [key, value] of hrefParams) {
+      if (searchParams.get(key) !== value) return false
+    }
+    return true
+  }
+  // href 无 query（如 /listings 总览）：仅当当前无 type 筛选时高亮
+  return !searchParams.has('type')
 }
 
 export default function SiteNav() {
   const pathname = usePathname() || '/'
+  const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
@@ -98,7 +118,7 @@ export default function SiteNav() {
       {/* 桌面端导航 */}
       <nav className="site-nav" aria-label="主导航">
         {NAV_ITEMS.map((item) => {
-          const current = isCurrent(pathname, item.href)
+          const current = isCurrent(pathname, searchParams, item.href)
           return (
             <Link
               key={item.href}
@@ -168,7 +188,7 @@ export default function SiteNav() {
           >
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
               {NAV_ITEMS.map((item) => {
-                const current = isCurrent(pathname, item.href)
+                const current = isCurrent(pathname, searchParams, item.href)
                 return (
                   <Link
                     key={item.href}
