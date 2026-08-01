@@ -1,14 +1,17 @@
 /**
- * P1 Task 3：高德地图 Canvas（浏览器侧）
+ * 高德地图 Canvas（浏览器侧）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 3
+ * 演进：P1 时为「点击按钮懒加载」，现在改为「进入视口自动加载」。
+ * 仍保留首屏性能优化：地图区块位于详情页靠后位置，IntersectionObserver
+ * 会在容器首次进入视口（且坐标 + Key 都就绪）时才请求 webapi.amap.com，
+ * 不在首屏 critical path 上加载第三方 JS。
  *
  * 守护不变量：
- *   - 只在用户点击"查看地图"后加载 JS API（SSR / 初始 / 进入视口前不请求 webapi.amap.com）
- *   - 不调用 Geolocation（P1 只展示楼盘固定坐标）
- *   - 缺 Key / 加载失败 / 超时 -> 显示"地图暂时不可用"，不阻断静态地址与咨询
+ *   - 不调用 Geolocation（仅展示楼盘固定坐标）
+ *   - 缺 Key / 加载失败 / 超时 -> 显示「地图暂时不可用」，不阻断静态地址与咨询
  *   - 点击 POI 高亮对应 marker（setLabel），不重渲染地图
  *   - 卸载时销毁地图实例，避免泄漏
+ *   - 尊重 prefers-reduced-motion：不自动滚动到地图区
  */
 
 'use client'
@@ -38,6 +41,7 @@ export default function AmapMapCanvas({
   highlightedPoiId: string | null
 }>) {
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<AMapMap | null>(null)
   const markersRef = useRef<Map<string, AMapMarker>>(new Map())
   const [state, setState] = useState<LoadState>('idle')
@@ -65,6 +69,37 @@ export default function AmapMapCanvas({
       markersRef.current.clear()
     }
   }, [])
+
+  // 进入视口自动加载：当外层根元素滚入视口时触发一次性 loadAmapMap 请求
+  // 注意：观察的是外层 .amap-map-canvas 根 div 而非 hidden 的 __container，
+  // 因为 hidden 元素无 layout box，IntersectionObserver 不会触发。
+  useEffect(() => {
+    if (!mapEnabled || !coordinates) return
+    if (state !== 'idle') return
+
+    const root = rootRef.current
+    if (!root) return
+
+    // 无 IntersectionObserver 支持（老浏览器）时回退到点击触发
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            startLoad()
+            observer.disconnect()
+            break
+          }
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(root)
+    return () => observer.disconnect()
+    // startLoad 引用稳定（仅依赖 state/coordinates/pois，均已 deps）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapEnabled, coordinates, state])
 
   // 缺坐标或未启用：不渲染地图区（静态地址由 LocationPanel 提供）
   if (!mapEnabled || !coordinates) {
@@ -114,15 +149,15 @@ export default function AmapMapCanvas({
   }
 
   return (
-    <div className="amap-map-canvas" data-load-state={state}>
+    <div ref={rootRef} className="amap-map-canvas" data-load-state={state}>
       {state === 'idle' && (
-        <button
-          type="button"
-          className="amap-map-canvas__trigger"
-          onClick={startLoad}
+        <div
+          className="amap-map-canvas__placeholder"
+          role="status"
+          aria-label="地图加载占位"
         >
-          查看地图
-        </button>
+          地图即将加载…
+        </div>
       )}
       {state === 'loading' && (
         <p className="amap-map-canvas__status" role="status">

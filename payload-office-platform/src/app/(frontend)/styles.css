@@ -3196,7 +3196,7 @@ ol {
   color: var(--color-muted);
 }
 
-/* 高德地图 Canvas（懒加载） */
+/* 高德地图 Canvas（进入视口自动加载） */
 .amap-map-canvas {
   position: relative;
   min-height: 120px;
@@ -3206,22 +3206,32 @@ ol {
   overflow: hidden;
 }
 
-.amap-map-canvas__trigger {
+/* 视口懒加载占位：进入视口前展示轻量骨架，避免空白 */
+.amap-map-canvas__placeholder {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--color-copper);
-  border-radius: var(--radius-pill);
-  background: var(--color-paper);
-  color: var(--color-copper);
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  margin: 0;
+  padding: var(--sp-3);
   font-size: var(--fs-14);
-  cursor: pointer;
+  color: var(--color-muted);
+  background:
+    linear-gradient(
+      110deg,
+      var(--color-canvas) 30%,
+      color-mix(in srgb, var(--color-canvas) 80%, #fff) 50%,
+      var(--color-canvas) 70%
+    );
+  background-size: 200% 100%;
+  animation: amap-canvas-shimmer 1.6s ease-in-out infinite;
 }
 
-.amap-map-canvas__trigger:hover {
-  background: var(--color-copper-soft);
+@keyframes amap-canvas-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .amap-map-canvas__status {
