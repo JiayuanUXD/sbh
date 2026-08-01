@@ -1,10 +1,11 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import AdvisorCard from '@/components/frontend/AdvisorCard'
+import AmenityList from '@/components/frontend/AmenityList'
+import BuildingSummaryCard from '@/components/frontend/BuildingSummaryCard'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
@@ -21,6 +22,7 @@ import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
   defaultSearchContext,
+  getBuildingBySlug,
   getListingBySlug,
   getDetailRecommendations,
 } from '@/domain/public-catalog'
@@ -62,6 +64,7 @@ export default async function ListingDetailPage({
   if (!listing) notFound()
 
   const building = listing.building
+  const buildingDetail = building ? await getBuildingBySlug(building.slug, ctx) : null
   const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
   const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
   const mapEnabled =
@@ -93,7 +96,11 @@ export default async function ListingDetailPage({
     group: inquirySupplyGroup,
     ...(listing.price ? { priceUnit: listing.price.displayUnit } : {}),
   } as const
-  const hasAmenities = listing.amenityGroups.some((group) => group.items.length > 0)
+  const amenityGroups = [
+    ...listing.amenityGroups,
+    ...(buildingDetail?.amenityGroups.filter((group) => group.items.length > 0) ?? []),
+  ]
+  const hasAmenities = amenityGroups.some((group) => group.items.length > 0)
   const anchors = [
     { id: 'overview', label: '房源概况', visible: true },
     { id: 'amenities', label: '配套设施', visible: hasAmenities },
@@ -197,14 +204,7 @@ export default async function ListingDetailPage({
       {hasAmenities && (
         <section id="amenities" className="detail__section">
           <h2>配套设施</h2>
-          {listing.amenityGroups.filter((group) => group.items.length > 0).map((group) => (
-            <div key={group.id}>
-              <h3>{group.title}</h3>
-              <ul className="detail__amenities">
-                {group.items.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            </div>
-          ))}
+          <AmenityList groups={amenityGroups} />
         </section>
       )}
       {listing.description && (
@@ -218,21 +218,7 @@ export default async function ListingDetailPage({
       {building && (
         <section id="building" className="detail__section">
           <h2>所在楼盘</h2>
-          <p>
-            {building.name}
-            {building.address ? ` · ${building.address}` : ''}
-          </p>
-          {building.summary && <p className="detail__building-summary">{building.summary}</p>}
-          <Link
-            href={`/buildings/${building.slug}`}
-            className="btn btn--ghost"
-            data-detail-analytics-event="listing_building_click"
-            data-analytics-listing-id={listing.id}
-            data-analytics-building-id={building.id}
-            data-analytics-section="building"
-          >
-            查看楼盘
-          </Link>
+          <BuildingSummaryCard building={building} listingId={listing.id} />
         </section>
       )}
       {building && (
