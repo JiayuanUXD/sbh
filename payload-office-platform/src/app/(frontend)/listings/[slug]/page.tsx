@@ -193,6 +193,7 @@ export default async function ListingDetailPage({
                 targetBuildingSlug={building?.slug}
                 targetSummary={listing.title}
                 triggerLabel="询价 / 预约看房"
+                triggerClassName="btn--lg detail__decision-inquiry"
                 sourceSection="hero"
                 priceSnapshot={inquiryPriceSnapshot}
                 activeSupplyGroup={inquirySupplyGroup}

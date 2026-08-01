@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
+import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 
 /**
  * 房源详情页「所在楼盘」卡片
@@ -21,16 +22,9 @@ type BuildingSummaryCardProps = Readonly<{
   listingId?: number
 }>
 
-const GRADE_LABEL: Readonly<Partial<Record<NonNullable<BuildingSummaryViewModel['grade']>, string>>> = {
-  'grade-a': '甲级',
-  'super-grade-a': '超甲级',
-  'creative-park': '创意园区',
-  'serviced-office': '服务式办公',
-}
-
 export default function BuildingSummaryCard({ building, listingId }: BuildingSummaryCardProps) {
   const coverSrc = building.coverImage ? normalizePublicMediaUrl(building.coverImage.src) : null
-  const gradeLabel = building.grade ? GRADE_LABEL[building.grade] : undefined
+  const gradeLabel = getBuildingGradeLabel(building.grade)
 
   return (
     <article className="building-summary-card">

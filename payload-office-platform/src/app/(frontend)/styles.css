@@ -3877,3 +3877,55 @@ ol {
   flex-shrink: 0;
 }
 
+/* ===== P3 评审优化：楼盘 header grade 徽章 ===== */
+.detail__header-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.detail__grade-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--color-copper);
+  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
+}
+
+.detail__grade-badge[data-grade='super-grade-a'] {
+  color: #b45309;
+  background: color-mix(in srgb, #b45309 14%, transparent);
+}
+
+/* ===== P3 评审优化：供给概览图标对齐 + 数值强调 ===== */
+.building-supply-overview__group dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.building-supply-overview__group dt svg {
+  color: var(--color-copper);
+  flex-shrink: 0;
+}
+
+.building-supply-overview__group dd strong {
+  font-size: var(--fs-16);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* ===== P3 评审优化：询价 CTA 视觉强化 ===== */
+.detail__decision-inquiry.btn--lg {
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-copper) 28%, transparent);
+}
+
+.detail__decision-inquiry.btn--lg:hover {
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-copper) 38%, transparent);
+  transform: translateY(-1px);
+}
+
