@@ -73,39 +73,7 @@ export default function AmapMapCanvas({
   // 进入视口自动加载：当外层根元素滚入视口时触发一次性 loadAmapMap 请求
   // 注意：观察的是外层 .amap-map-canvas 根 div 而非 hidden 的 __container，
   // 因为 hidden 元素无 layout box，IntersectionObserver 不会触发。
-  useEffect(() => {
-    if (!mapEnabled || !coordinates) return
-    if (state !== 'idle') return
-
-    const root = rootRef.current
-    if (!root) return
-
-    // 无 IntersectionObserver 支持（老浏览器）时回退到点击触发
-    if (typeof IntersectionObserver === 'undefined') return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            startLoad()
-            observer.disconnect()
-            break
-          }
-        }
-      },
-      { rootMargin: '200px' },
-    )
-    observer.observe(root)
-    return () => observer.disconnect()
-    // startLoad 引用稳定（仅依赖 state/coordinates/pois，均已 deps）
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapEnabled, coordinates, state])
-
-  // 缺坐标或未启用：不渲染地图区（静态地址由 LocationPanel 提供）
-  if (!mapEnabled || !coordinates) {
-    return null
-  }
-
+  // startLoad 在 effect 之前声明，避免 react-hooks/immutability 的"声明前访问"告警
   function startLoad() {
     if (state !== 'idle' || !coordinates) return
     setState('loading')
@@ -146,6 +114,39 @@ export default function AmapMapCanvas({
       .catch(() => {
         setState('error')
       })
+  }
+
+  useEffect(() => {
+    if (!mapEnabled || !coordinates) return
+    if (state !== 'idle') return
+
+    const root = rootRef.current
+    if (!root) return
+
+    // 无 IntersectionObserver 支持（老浏览器）时回退到点击触发
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            startLoad()
+            observer.disconnect()
+            break
+          }
+        }
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(root)
+    return () => observer.disconnect()
+    // startLoad 引用稳定（仅依赖 state/coordinates/pois，均已 deps）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapEnabled, coordinates, state])
+
+  // 缺坐标或未启用：不渲染地图区（静态地址由 LocationPanel 提供）
+  if (!mapEnabled || !coordinates) {
+    return null
   }
 
   return (
