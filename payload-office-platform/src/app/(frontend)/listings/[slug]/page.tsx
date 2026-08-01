@@ -149,23 +149,38 @@ export default async function ListingDetailPage({
           <div className="detail__rent">{rentText}</div>
           <dl className="detail__specs">
             <div>
-              <dt>面积</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 9h16M4 9v8h16V9M4 9l3-4h10l3 4M9 17v-4h6v4" /></svg>
+                面积
+              </dt>
               <dd>{formatArea(listing.area)}</dd>
             </div>
             <div>
-              <dt>工位</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="6" rx="1" /><rect x="5" y="13" width="14" height="6" rx="1" /><path d="M9 7h.01M9 16h.01" /></svg>
+                工位
+              </dt>
               <dd>{listing.seats ?? '咨询确认'}</dd>
             </div>
             <div>
-              <dt>可入驻</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="1" /><path d="M4 9h16M9 3v4M15 3v4M9 14l2 2 4-4" /></svg>
+                可入驻
+              </dt>
               <dd>{formatAvailableDate(listing.availableFrom)}</dd>
             </div>
             <div>
-              <dt>楼盘</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13M9 21v-6h6v6" /></svg>
+                楼盘
+              </dt>
               <dd>{building?.name ?? '—'}</dd>
             </div>
             <div>
-              <dt>区域</dt>
+              <dt>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 21s-7-5.5-7-11a7 7 0 0114 0c0 5.5-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+                区域
+              </dt>
               <dd>{building?.district?.name ?? '—'}</dd>
             </div>
           </dl>

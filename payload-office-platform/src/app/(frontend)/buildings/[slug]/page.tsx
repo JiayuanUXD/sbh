@@ -1,11 +1,11 @@
 import { RichText } from '@payloadcms/richtext-lexical/react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import AdvisorCard from '@/components/frontend/AdvisorCard'
 import BuildingKeyMetrics from '@/components/frontend/BuildingKeyMetrics'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
+import BuildingCardMini from '@/components/frontend/BuildingCardMini'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
@@ -14,6 +14,7 @@ import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
+import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
@@ -166,6 +167,14 @@ export default async function BuildingDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
+      <Breadcrumb
+        items={[
+          { label: '首页', href: '/' },
+          { label: '办公选址', href: '/listings' },
+          ...(building.district ? [{ label: building.district.name }] : []),
+          { label: building.name },
+        ]}
+      />
       <header className="detail__header">
         {building.district && <span className="detail__type">{building.district.name}</span>}
         <h1 className="detail__title">{building.name}</h1>
@@ -245,23 +254,16 @@ export default async function BuildingDetailPage({
       {hasRelated && (
         <section id="related" className="detail__section">
           <h2>相关楼盘</h2>
-          <ul className="detail__related-buildings">
+          <div className="card-grid">
             {visibleRelatedBuildings.map((item, index) => (
-              <li key={item.id}>
-                <Link
-                  href={`/buildings/${item.slug}`}
-                  data-detail-analytics-event="related_building_click"
-                  data-analytics-parent-id={building.id}
-                  data-analytics-building-id={item.id}
-                  data-analytics-rank={index + 1}
-                  data-analytics-section="related"
-                  data-analytics-recommendation-type="similar_building"
-                >
-                  {item.name}
-                </Link>
-              </li>
+              <BuildingCardMini
+                key={item.id}
+                building={item}
+                parentId={building.id}
+                rank={index + 1}
+              />
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
