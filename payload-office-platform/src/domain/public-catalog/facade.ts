@@ -100,6 +100,12 @@ export type BuildingDetailResult = Readonly<{
   supply: BuildingSupplySnapshot
 }>
 
+/** 楼盘列表搜索结果（含在租面积聚合） */
+export type BuildingSearchResult = Readonly<{
+  docs: readonly BuildingSummaryViewModel[]
+  totalDocs: number
+}>
+
 /** 楼盘详情页（不含房源聚合）：仅楼盘 DTO */
 export type BuildingDetailPageResult = Readonly<{
   building: BuildingDetailViewModel | null
@@ -264,6 +270,38 @@ export async function searchListings(
     canonical: buildCanonicalSearchParams(input).toString(),
     filteredByRentUnit,
   }
+}
+
+/**
+ * 搜索楼盘列表：返回所有有效公开楼盘（含在租面积聚合）
+ *
+ * 步骤：
+ *   1. adapter.findEffectiveBuildings → 原始 Building[]
+ *   2. 并行查询每个楼盘的有效房源，聚合在租面积
+ *   3. mapBuildingSummary + leasableArea → BuildingSummaryViewModel[]
+ *
+ * 注意：N+1 查询（每个楼盘单独查房源），MVP 阶段楼盘数量有限可接受；
+ *      后续可优化为批量查询或物化视图。
+ */
+export async function searchBuildings(
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingSearchResult> {
+  const rawBuildings = await adapter.findEffectiveBuildings(ctx)
+  const docs = await Promise.all(
+    rawBuildings.map(async (raw) => {
+      const summary = mapBuildingSummary(raw)
+      if (!summary) return null
+      const listings = await adapter.findEffectiveListingsByBuilding(raw.id, ctx)
+      const leasableArea = listings.reduce((sum, l) => {
+        const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
+        return sum + area
+      }, 0)
+      return leasableArea > 0 ? { ...summary, leasableArea } : summary
+    }),
+  )
+  const filtered = docs.filter((d): d is BuildingSummaryViewModel => d !== null)
+  return { docs: filtered, totalDocs: filtered.length }
 }
 
 /**

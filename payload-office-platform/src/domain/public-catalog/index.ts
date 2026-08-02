@@ -76,10 +76,12 @@ export {
   type SearchFacets,
   type BuildingDetailResult,
   type BuildingDetailPageResult,
+  type BuildingSearchResult,
   // 函数
   parseSearchInput,
   buildCanonical,
   searchListings,
+  searchBuildings,
   getListingBySlug,
   getBuildingBySlug,
   getBuildingDetail,

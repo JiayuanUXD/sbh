@@ -66,11 +66,12 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
   const areaText = area != null ? formatArea(area) : null
   const fallbackAlt = `${building?.name ?? ''} ${TYPE_LABEL[listingType]}`.trim()
 
-  // 地址行：地址 + 最近地铁
-  const addressParts: string[] = []
-  if (building?.address) addressParts.push(building.address)
-  if (building?.nearestMetro?.name) addressParts.push(`近${building.nearestMetro.name}`)
-  const addressLine = addressParts.join(' · ')
+  // 位置行：行政区 · 近XX地铁（参考阿里商办「行政区-商圈」格式）
+  const locationParts: string[] = []
+  if (building?.district?.name) locationParts.push(building.district.name)
+  else if (building?.address) locationParts.push(building.address)
+  if (building?.nearestMetro?.name) locationParts.push(`近${building.nearestMetro.name}`)
+  const locationLine = locationParts.join(' · ')
 
   // 标签：highlights + 装修状态 + 楼盘级别（去重，受 maxTags 上限）
   const maxTags = view === 'list' ? 5 : 3
@@ -110,18 +111,10 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
         {isFeatured && <span className="listing-card__featured-tag">必看好房</span>}
       </div>
       <div className="listing-card__body">
-        <div className="listing-card__price-row">
-          {variant === 'building-supply' && price == null ? (
-            <span className="price tabular price--md">价格面议</span>
-          ) : (
-            <Price price={price} size="lg" />
-          )}
-          {areaText && <span className="listing-card__area">{areaText}</span>}
-        </div>
         <h3 className="listing-card__title">{title}</h3>
-        {addressLine && (
-          <span className="listing-card__address" title={addressLine}>
-            {addressLine}
+        {locationLine && (
+          <span className="listing-card__location" title={locationLine}>
+            {locationLine}
           </span>
         )}
         {tags.length > 0 && (
@@ -133,6 +126,14 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
             ))}
           </div>
         )}
+        <div className="listing-card__meta">
+          {variant === 'building-supply' && price == null ? (
+            <span className="price tabular price--md">价格面议</span>
+          ) : (
+            <Price price={price} size="md" />
+          )}
+          {areaText && <span className="listing-card__area">{areaText}</span>}
+        </div>
       </div>
     </Link>
   )

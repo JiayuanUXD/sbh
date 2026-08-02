@@ -1002,7 +1002,29 @@ ol {
   flex: 1;
   padding: var(--sp-4) var(--sp-5);
   gap: var(--sp-2);
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+/* 左列：标题 / 位置 / 标签 */
+.listing-card--list .listing-card__title,
+.listing-card--list .listing-card__location,
+.listing-card--list .listing-card__tags {
+  grid-column: 1;
+  min-width: 0;
+}
+
+/* 右列：价格 + 面积，跨所有行垂直居中 */
+.listing-card--list .listing-card__meta {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: center;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 0;
+  gap: var(--sp-1);
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -1013,6 +1035,18 @@ ol {
     flex: none;
     max-width: 100%;
     aspect-ratio: 16 / 10;
+  }
+  /* 移动端 body 回退单列，价格置底 */
+  .listing-card--list .listing-card__body {
+    display: flex;
+    flex-direction: column;
+  }
+  .listing-card--list .listing-card__meta {
+    grid-column: auto;
+    grid-row: auto;
+    flex-direction: row;
+    align-items: baseline;
+    margin-top: auto;
   }
 }
 
@@ -1049,12 +1083,13 @@ ol {
   z-index: 1;
 }
 
-/* 价格行：价格 + 面积并排 */
-.listing-card__price-row {
+/* 底部信息行：价格 + 面积并排（参考阿里商办，价格置底） */
+.listing-card__meta {
   display: flex;
   align-items: baseline;
   gap: var(--sp-3);
   flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .listing-card__area {
@@ -1064,8 +1099,8 @@ ol {
   font-variant-numeric: tabular-nums;
 }
 
-/* 地址行（单行省略） */
-.listing-card__address {
+/* 位置行：行政区 · 近XX地铁（单行省略） */
+.listing-card__location {
   font-size: var(--fs-13);
   color: var(--color-muted);
   line-height: var(--lh-normal);
@@ -1093,6 +1128,7 @@ ol {
 /* 筛选条：标签按钮式 */
 .filter-bar {
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
 }

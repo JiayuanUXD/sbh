@@ -379,6 +379,60 @@ const LISTINGS: ListingFill[] = [
   { slug: 'huangpu-bund-traditional', decoration: 'simple', registration: 'available', floor: '中区 8F', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '南' },
 ]
 
+// ---------------------------------------------------------------------------
+// 为每个楼盘新增多个可租面积（小 / 中 / 大面积段，混合房源类型）
+// 每个新房源建恰好 1 条有效 merchant 关系，满足"有效供给"谓词以在前台展示。
+// ---------------------------------------------------------------------------
+type NewListing = {
+  buildingSlug: string
+  slug: string
+  listingType: 'traditional-office' | 'serviced-office' | 'coworking' | 'full-floor'
+  area: number
+  seats: number
+  rent: number
+  rentUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month'
+  floor: string
+  decoration: 'rough' | 'simple' | 'furnished' | 'fully_fitted'
+  registration: 'available' | 'conditional' | 'unavailable' | 'confirm'
+  minLease: number
+  paymentTerms: string
+  orientation: string
+}
+
+const NEW_LISTINGS: NewListing[] = [
+  // west-nanjing-premium-center（服务式办公楼盘）
+  { buildingSlug: 'west-nanjing-premium-center', slug: 'wn-80sqm-serviced', listingType: 'serviced-office', area: 80, seats: 6, rent: 2800, rentUnit: 'rmb-seat-month', floor: '低区 5F', decoration: 'fully_fitted', registration: 'available', minLease: 3, paymentTerms: '押二付三，按季支付', orientation: '南' },
+  { buildingSlug: 'west-nanjing-premium-center', slug: 'wn-150sqm-serviced', listingType: 'serviced-office', area: 150, seats: 12, rent: 2600, rentUnit: 'rmb-seat-month', floor: '中区 12F', decoration: 'fully_fitted', registration: 'available', minLease: 3, paymentTerms: '押二付三，按季支付', orientation: '东南' },
+  { buildingSlug: 'west-nanjing-premium-center', slug: 'wn-220sqm-coworking', listingType: 'coworking', area: 220, seats: 18, rent: 2300, rentUnit: 'rmb-seat-month', floor: '高区 20F', decoration: 'furnished', registration: 'available', minLease: 1, paymentTerms: '押一付三，按月支付', orientation: '南' },
+  // empty-building（甲级，静安）
+  { buildingSlug: 'empty-building', slug: 'eb-120sqm-traditional', listingType: 'traditional-office', area: 120, seats: 8, rent: 7.5, rentUnit: 'rmb-sqm-day', floor: '低区 4F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '南' },
+  { buildingSlug: 'empty-building', slug: 'eb-380sqm-traditional', listingType: 'traditional-office', area: 380, seats: 25, rent: 8, rentUnit: 'rmb-sqm-day', floor: '中区 10F', decoration: 'simple', registration: 'conditional', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '东南' },
+  { buildingSlug: 'empty-building', slug: 'eb-850sqm-fullfloor', listingType: 'full-floor', area: 850, seats: 57, rent: 8.5, rentUnit: 'rmb-sqm-day', floor: '高区 18F 整层', decoration: 'rough', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '三面采光' },
+  // lujiazui-grade-a-river-view（甲级江景）
+  { buildingSlug: 'lujiazui-grade-a-river-view', slug: 'ljz-160sqm-traditional', listingType: 'traditional-office', area: 160, seats: 11, rent: 10, rentUnit: 'rmb-sqm-day', floor: '低区 8F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '南' },
+  { buildingSlug: 'lujiazui-grade-a-river-view', slug: 'ljz-520sqm-traditional', listingType: 'traditional-office', area: 520, seats: 35, rent: 10.5, rentUnit: 'rmb-sqm-day', floor: '中区 25F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '东南' },
+  { buildingSlug: 'lujiazui-grade-a-river-view', slug: 'ljz-1200sqm-fullfloor', listingType: 'full-floor', area: 1200, seats: 80, rent: 12, rentUnit: 'rmb-sqm-day', floor: '高区 45F 整层 江景', decoration: 'fully_fitted', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '江景三面' },
+  // huangpu-bund（超甲格外滩）
+  { buildingSlug: 'huangpu-bund', slug: 'hp-100sqm-coworking', listingType: 'coworking', area: 100, seats: 5, rent: 2200, rentUnit: 'rmb-seat-month', floor: '低区 2F', decoration: 'fully_fitted', registration: 'available', minLease: 1, paymentTerms: '押一付三，按月支付', orientation: '东南' },
+  { buildingSlug: 'huangpu-bund', slug: 'hp-300sqm-traditional', listingType: 'traditional-office', area: 300, seats: 20, rent: 12, rentUnit: 'rmb-sqm-day', floor: '中区 8F', decoration: 'simple', registration: 'conditional', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '南' },
+  { buildingSlug: 'huangpu-bund', slug: 'hp-650sqm-fullfloor', listingType: 'full-floor', area: 650, seats: 43, rent: 13, rentUnit: 'rmb-sqm-day', floor: '高区 15F 整层', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '外滩景观' },
+  // xuhui-xujiahui（甲级徐家汇）
+  { buildingSlug: 'xuhui-xujiahui', slug: 'xh-110sqm-traditional', listingType: 'traditional-office', area: 110, seats: 7, rent: 6.5, rentUnit: 'rmb-sqm-day', floor: '低区 3F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '南' },
+  { buildingSlug: 'xuhui-xujiahui', slug: 'xh-360sqm-traditional', listingType: 'traditional-office', area: 360, seats: 24, rent: 7, rentUnit: 'rmb-sqm-day', floor: '中区 12F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '东南' },
+  { buildingSlug: 'xuhui-xujiahui', slug: 'xh-900sqm-fullfloor', listingType: 'full-floor', area: 900, seats: 60, rent: 7.5, rentUnit: 'rmb-sqm-day', floor: '高区 30F 整层', decoration: 'rough', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '三面采光' },
+  // changning-hongqiao（甲级虹桥）
+  { buildingSlug: 'changning-hongqiao', slug: 'cn-90sqm-serviced', listingType: 'serviced-office', area: 90, seats: 6, rent: 2400, rentUnit: 'rmb-seat-month', floor: '低区 4F', decoration: 'fully_fitted', registration: 'available', minLease: 3, paymentTerms: '押二付三，按季支付', orientation: '南' },
+  { buildingSlug: 'changning-hongqiao', slug: 'cn-280sqm-traditional', listingType: 'traditional-office', area: 280, seats: 19, rent: 6, rentUnit: 'rmb-sqm-day', floor: '中区 10F', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '东南' },
+  { buildingSlug: 'changning-hongqiao', slug: 'cn-720sqm-fullfloor', listingType: 'full-floor', area: 720, seats: 48, rent: 6.5, rentUnit: 'rmb-sqm-day', floor: '高区 25F 整层', decoration: 'simple', registration: 'available', minLease: 12, paymentTerms: '押三付一，按月支付', orientation: '三面采光' },
+]
+
+const TYPE_LABEL: Record<string, string> = {
+  'traditional-office': '传统办公',
+  'serviced-office': '服务式办公',
+  'coworking': '共享办公',
+  'full-floor': '整层办公',
+}
+
 /** 按 rentUnit 反推结构化 price；rent=null（价格面议）返回 null。 */
 function priceFor(
   rent: number | null | undefined,
@@ -626,6 +680,89 @@ async function main() {
     payload.logger.info(`房源已补全: ${f.slug}`)
   }
   console.log(`listings 补全 ${listingCount} 个`)
+
+  // ===== 5b. 为每个楼盘新增多个可租面积房源 + merchant 关系 =====
+  console.log('\n[5b] 为每个楼盘新增可租面积房源 + merchant 关系...')
+
+  // 沿用现有有效房源的 merchant（确保准入与服务城市覆盖一致）
+  const sampleRelRes = await payload.find({ collection: 'listing-merchant-relations', limit: 1, depth: 1, sort: 'id', overrideAccess: true })
+  const sampleRel = sampleRelRes.docs[0] as any
+  const sharedMerchantId = sampleRel ? (typeof sampleRel.merchant === 'object' ? sampleRel.merchant?.id : sampleRel.merchant) : undefined
+  if (!sharedMerchantId) payload.logger.warn('未找到现有 merchant 关系，新房源将无法建立有效供给')
+
+  // 楼盘 slug -> {id, name, coverImage} 缓存
+  const buildingCache: Record<string, { id: number; name: string; coverImage: number | null }> = {}
+  for (const b of BUILDINGS) {
+    const doc = await findBySlug(payload, 'buildings', b.slug)
+    if (doc) {
+      const full = await payload.findByID({ collection: 'buildings', id: doc.id, depth: 0, overrideAccess: true }) as any
+      buildingCache[b.slug] = { id: doc.id, name: full?.name ?? b.slug, coverImage: full?.coverImage ?? null }
+    }
+  }
+
+  const relEffectiveFrom = new Date(now - DAY).toISOString()
+  let newCount = 0
+  for (let i = 0; i < NEW_LISTINGS.length; i++) {
+    const n = NEW_LISTINGS[i]
+    const b = buildingCache[n.buildingSlug]
+    if (!b) {
+      payload.logger.warn(`未找到楼盘 ${n.buildingSlug}，跳过 ${n.slug}`)
+      continue
+    }
+    const price = priceFor(n.rent, n.rentUnit)
+    const data: Record<string, unknown> = {
+      title: `${b.name} · ${n.area}㎡ ${TYPE_LABEL[n.listingType]}`,
+      listingType: n.listingType,
+      building: b.id,
+      businessType: 'lease',
+      decorationStatus: n.decoration,
+      registrationStatus: n.registration,
+      rent: n.rent,
+      rentUnit: n.rentUnit,
+      area: n.area,
+      seats: n.seats,
+      floor: n.floor,
+      minimumLeaseMonths: n.minLease,
+      paymentTerms: n.paymentTerms,
+      spaceDetails: spaceDetailsFor(n.listingType, n.seats, n.orientation, n.decoration),
+      costTerms: costTermsFor(n.listingType),
+      verificationInfo: { verifiedAt: past90, priceVerifiedAt: price ? past30 : null },
+      coverImage: b.coverImage ?? workspaceImg.id,
+      gallery: listingGallery,
+      mediaItems: listingMediaItems,
+      reviewStatus: 'approved',
+      publicationStatus: 'published',
+      supplyVisibilityHold: 'normal',
+    }
+    if (price) data.price = price
+    if (brokers.length > 0) data.contactBroker = brokers[(i + listingCount) % brokers.length].id
+
+    // 幂等：按 slug 查，存在则 update，不存在则 create
+    const existing = await findBySlug(payload, 'listings', n.slug)
+    let listingId: number
+    if (existing) {
+      const updated = await payload.update({ collection: 'listings', id: existing.id, data: data as any, overrideAccess: true }) as any
+      listingId = updated.id
+    } else {
+      const created = await payload.create({ collection: 'listings', data: { ...data, slug: n.slug } as any, overrideAccess: true }) as any
+      listingId = created.id
+      payload.logger.info(`新房源已创建: ${n.slug}`)
+    }
+
+    // 恰好 1 条有效 merchant 关系（幂等：已有则跳过，避免 unique 失效）
+    if (sharedMerchantId) {
+      const existingRel = await payload.find({ collection: 'listing-merchant-relations', where: { listing: { equals: listingId } }, limit: 1, depth: 0, overrideAccess: true })
+      if (existingRel.docs.length === 0) {
+        await payload.create({
+          collection: 'listing-merchant-relations',
+          data: { listing: listingId, merchant: sharedMerchantId, effectiveFrom: relEffectiveFrom, effectiveTo: null, createdReason: '测试数据种子' } as any,
+          overrideAccess: true,
+        })
+      }
+    }
+    newCount++
+  }
+  console.log(`新增可租面积房源 ${newCount} 个（含 merchant 关系）`)
 
   // ===== 6. AdvisorServiceHours global =====
   console.log('\n[6/7] 配置平台顾问服务时间 global...')

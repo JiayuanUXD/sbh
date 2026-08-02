@@ -73,6 +73,9 @@ export interface SupplyAdapter {
     limit: number,
   ): Promise<readonly Building[]>
 
+  /** 返回所有有效公开楼盘（用于楼盘列表页，按 updatedAt 倒序） */
+  findEffectiveBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
+
   /** 首页精选有效房源（按 isFeatured + updatedAt desc） */
   findFeaturedListings(ctx: SearchContext, limit?: number): Promise<readonly Listing[]>
 
@@ -503,6 +506,18 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
         normalizedLimit,
       )
+    },
+
+    async findEffectiveBuildings(_ctx, limit = 200) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'buildings',
+        where: getPublicBuildingWhere() as unknown as Where,
+        depth: 2,
+        limit: Math.min(limit, 500),
+        sort: '-updatedAt',
+      })
+      return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
     },
 
     async findFeaturedListings(ctx, limit = 6) {

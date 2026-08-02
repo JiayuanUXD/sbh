@@ -21,6 +21,7 @@ type NavItem = { href: string; label: string }
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/', label: '首页' },
   { href: '/listings', label: '在租房源' },
+  { href: '/buildings', label: '找写字楼' },
   { href: '/listings?type=serviced-office', label: '服务式办公' },
   { href: '/listings?type=coworking', label: '共享办公' },
 ] as const

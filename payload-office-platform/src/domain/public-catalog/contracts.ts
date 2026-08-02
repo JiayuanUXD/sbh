@@ -77,6 +77,8 @@ export type BuildingSummaryViewModel = Readonly<{
   coordinates?: CoordinatesViewModel
   /** 最近地铁站（P1 Task 3 位置面板静态区展示） */
   nearestMetro?: DistrictViewModel
+  /** 在租面积（楼内有效房源面积总和，单位㎡）；楼盘列表页卡片展示 */
+  leasableArea?: number
 }>
 
 /**

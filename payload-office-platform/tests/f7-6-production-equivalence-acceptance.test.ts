@@ -286,6 +286,12 @@ function createFullPredicateAdapter(options: {
       syncAsOf(ctx)
       return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
     },
+    async findEffectiveBuildings(ctx, limit = 200) {
+      syncAsOf(ctx)
+      return buildings
+        .filter((building) => building.operationalStatus === 'active')
+        .slice(0, limit)
+    },
     async findFeaturedListings(ctx, limit = 6) {
       syncAsOf(ctx)
       return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)

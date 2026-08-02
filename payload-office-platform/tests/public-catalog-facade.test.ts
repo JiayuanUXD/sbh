@@ -138,6 +138,11 @@ function createFakeAdapter(options: {
     async findEffectiveBuildingsNear(buildingId) {
       return options.buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
     },
+    async findEffectiveBuildings(_ctx, limit = 200) {
+      return options.buildings
+        .filter((building) => building.operationalStatus === 'active')
+        .slice(0, limit)
+    },
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings
         .filter((l) => isListingEffective(l) && l.isFeatured)
