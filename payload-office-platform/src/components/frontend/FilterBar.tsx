@@ -1,29 +1,23 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useState } from 'react'
 
 /**
- * 列表页桌面筛选条（F3.3）
- *
- * 设计依据：specs/frontend-mvp/design.md §7.1、§7.4
- *           Page PRD: FP-02 §3
+ * 列表页筛选条（标签按钮式，参考阿里商办）
  *
  * 守护不变量：
- *   - 提交后跳转 /listings?<canonical>，URL 可复现条件；
- *   - 租金排序选定 rent-asc/rent-desc 时强制要求 rentUnit（或回退到 recommended）；
- *   - 数值字段做最小校验（rentMin ≤ rentMax、areaMin ≤ areaMax）；
- *   - 不直接拼 Payload where（由 Facade 在服务端处理）；
- *   - 移动端筛选抽屉在 F3.4 实现，本组件仅服务桌面端；
- *   - 提交后页码重置为 1（避免越界）。
+ *   - 区域/类型/排序/单位/快速筛选：点击即导航（Link），URL 可复现条件；
+ *   - 数值字段（关键词/租金/面积/可入驻）：表单提交，提交后页码重置为 1；
+ *   - 租金排序选定 rent-asc/rent-desc 时提示选定单位（后端缺 rentUnit 回退 recommended）；
+ *   - 数值字段做最小校验（rentMin ≤ rentMax、areaMin ≤ areaMax）。
  */
 
 type District = { id: string | number; slug: string; name: string }
 
 type Props = {
   districts: readonly District[]
-  /** 当前 rentUnit 选择（用于回填） */
-  initialRentUnit?: string
 }
 
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -53,27 +47,55 @@ function toIntOrNull(v: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null
 }
 
+/** 基于当前 searchParams 构造新 URL（切换筛选时重置页码） */
+function buildHref(sp: URLSearchParams, updates: Record<string, string | null>): string {
+  const next = new URLSearchParams(sp)
+  for (const [k, v] of Object.entries(updates)) {
+    if (v === null || v === '') next.delete(k)
+    else next.set(k, v)
+  }
+  next.delete('page')
+  const qs = next.toString()
+  return qs ? `/listings?${qs}` : '/listings'
+}
+
+/** toggle：全部参数已匹配则清除，否则设置 */
+function toggleHref(sp: URLSearchParams, updates: Record<string, string>): string {
+  const allMatch = Object.entries(updates).every(([k, v]) => sp.get(k) === v)
+  const next = new URLSearchParams(sp)
+  for (const [k] of Object.entries(updates)) {
+    if (allMatch) next.delete(k)
+  }
+  if (!allMatch) {
+    for (const [k, v] of Object.entries(updates)) next.set(k, v)
+  }
+  next.delete('page')
+  const qs = next.toString()
+  return qs ? `/listings?${qs}` : '/listings'
+}
+
 export default function FilterBar({ districts }: Props) {
-  const router = useRouter()
   const sp = useSearchParams()
+  const router = useRouter()
+
+  const district = sp.get('district') || ''
+  const type = sp.get('type') || ''
+  const sort = sp.get('sort') || 'recommended'
+  const rentUnit = sp.get('rentUnit') || ''
 
   const [q, setQ] = useState(sp.get('q') || '')
-  const [district, setDistrict] = useState(sp.get('district') || '')
-  const [type, setType] = useState(sp.get('type') || '')
   const [rentMin, setRentMin] = useState(sp.get('rentMin') || '')
   const [rentMax, setRentMax] = useState(sp.get('rentMax') || '')
-  const [rentUnit, setRentUnit] = useState(sp.get('rentUnit') || '')
   const [areaMin, setAreaMin] = useState(sp.get('areaMin') || '')
   const [areaMax, setAreaMax] = useState(sp.get('areaMax') || '')
   const [availableBefore, setAvailableBefore] = useState(sp.get('availableBefore') || '')
-  const [sort, setSort] = useState(sp.get('sort') || 'recommended')
   const [error, setError] = useState<string | null>(null)
+
+  const isPriceSort = sort === 'rent-asc' || sort === 'rent-desc'
+  const qMatches = (val: string) => sp.get('q') === val
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const params = new URLSearchParams()
-
-    // 数值字段校验
     const rentMinN = toIntOrNull(rentMin)
     const rentMaxN = toIntOrNull(rentMax)
     const areaMinN = toIntOrNull(areaMin)
@@ -88,192 +110,218 @@ export default function FilterBar({ districts }: Props) {
       return
     }
 
-    // 价格排序与 rentUnit 一致性（design.md §7.4）
-    let finalSort = sort
-    if ((sort === 'rent-asc' || sort === 'rent-desc') && !rentUnit) {
-      // 缺少 rentUnit 时回退为 recommended，避免跨单位排序
-      finalSort = 'recommended'
-    }
-
     setError(null)
+
+    const params = new URLSearchParams(sp)
+    params.delete('q')
+    params.delete('rentMin')
+    params.delete('rentMax')
+    params.delete('areaMin')
+    params.delete('areaMax')
+    params.delete('availableBefore')
 
     const qNormalized = q.trim().slice(0, 60)
     if (qNormalized) params.set('q', qNormalized)
-    if (district) params.set('district', district)
-    if (type) params.set('type', type)
     if (rentMinN != null) params.set('rentMin', String(rentMinN))
     if (rentMaxN != null) params.set('rentMax', String(rentMaxN))
-    if (rentUnit) params.set('rentUnit', rentUnit)
     if (areaMinN != null) params.set('areaMin', String(areaMinN))
     if (areaMaxN != null) params.set('areaMax', String(areaMaxN))
     if (availableBefore) params.set('availableBefore', availableBefore)
-    if (finalSort && finalSort !== 'recommended') params.set('sort', finalSort)
 
-    // 提交后页码重置为 1
+    params.delete('page')
+
     const qs = params.toString()
     router.push(qs ? `/listings?${qs}` : '/listings')
   }
 
-  function reset() {
-    setQ('')
-    setDistrict('')
-    setType('')
-    setRentMin('')
-    setRentMax('')
-    setRentUnit('')
-    setAreaMin('')
-    setAreaMax('')
-    setAvailableBefore('')
-    setSort('recommended')
-    setError(null)
-    router.push('/listings')
-  }
-
-  const isPriceSort = sort === 'rent-asc' || sort === 'rent-desc'
-
   return (
-    <form className="filter-bar" onSubmit={submit}>
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-q">关键词</label>
-        <input
-          id="fb-q"
-          className="filter-bar__input"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="如：江景、整层"
-          maxLength={60}
-        />
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-district">区域</label>
-        <select
-          id="fb-district"
-          className="filter-bar__select"
-          value={district}
-          onChange={(e) => setDistrict(e.target.value)}
-        >
-          <option value="">全部</option>
-          {districts.map((d) => (
-            <option key={d.id} value={d.slug}>{d.name}</option>
+    <div className="filter-bar">
+      {/* 排序 + 单位（相邻，价格排序时需选定单位） */}
+      <div className="filter-bar__row">
+        <span className="filter-bar__row-label">排序</span>
+        <div className="filter-bar__chips">
+          {SORT_OPTIONS.map((s) => (
+            <Link
+              key={s.value}
+              className={`filter-chip${sort === s.value ? ' is-active' : ''}`}
+              href={buildHref(sp, { sort: s.value === 'recommended' ? null : s.value })}
+            >
+              {s.label}
+            </Link>
           ))}
-        </select>
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-type">类型</label>
-        <select
-          id="fb-type"
-          className="filter-bar__select"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="">全部</option>
-          {TYPE_OPTIONS.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-rent-unit">租金单位</label>
-        <select
-          id="fb-rent-unit"
-          className="filter-bar__select"
-          value={rentUnit}
-          onChange={(e) => setRentUnit(e.target.value)}
-          aria-describedby={isPriceSort && !rentUnit ? 'fb-rent-unit-hint' : undefined}
-        >
-          <option value="">不限</option>
+        </div>
+        <span className="filter-bar__row-label filter-bar__row-label--unit">单位</span>
+        <div className="filter-bar__chips">
+          <Link
+            className={`filter-chip${!rentUnit ? ' is-active' : ''}`}
+            href={buildHref(sp, { rentUnit: null })}
+          >
+            不限
+          </Link>
           {RENT_UNIT_OPTIONS.map((u) => (
-            <option key={u.value} value={u.value}>{u.label}</option>
+            <Link
+              key={u.value}
+              className={`filter-chip${rentUnit === u.value ? ' is-active' : ''}`}
+              href={buildHref(sp, { rentUnit: u.value })}
+            >
+              {u.label}
+            </Link>
           ))}
-        </select>
+        </div>
         {isPriceSort && !rentUnit && (
-          <span id="fb-rent-unit-hint" className="filter-bar__hint filter-bar__hint--warn">
-            价格排序需选定单位
-          </span>
+          <span className="filter-bar__hint filter-bar__hint--warn">价格排序需选定单位</span>
         )}
       </div>
 
-      <div className="filter-bar__field">
-        <label className="filter-bar__label">租金（元）</label>
-        <div className="filter-bar__rent-group">
-          <input
-            className="filter-bar__input"
-            value={rentMin}
-            onChange={(e) => setRentMin(e.target.value)}
-            placeholder="最低"
-            inputMode="numeric"
-            aria-label="租金最低"
-          />
-          <span aria-hidden="true">–</span>
-          <input
-            className="filter-bar__input"
-            value={rentMax}
-            onChange={(e) => setRentMax(e.target.value)}
-            placeholder="最高"
-            inputMode="numeric"
-            aria-label="租金最高"
-          />
-        </div>
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label">面积（㎡）</label>
-        <div className="filter-bar__rent-group">
-          <input
-            className="filter-bar__input"
-            value={areaMin}
-            onChange={(e) => setAreaMin(e.target.value)}
-            placeholder="最低"
-            inputMode="numeric"
-            aria-label="面积最低"
-          />
-          <span aria-hidden="true">–</span>
-          <input
-            className="filter-bar__input"
-            value={areaMax}
-            onChange={(e) => setAreaMax(e.target.value)}
-            placeholder="最高"
-            inputMode="numeric"
-            aria-label="面积最高"
-          />
-        </div>
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-available">可入驻时间</label>
-        <input
-          id="fb-available"
-          type="date"
-          className="filter-bar__input"
-          value={availableBefore}
-          onChange={(e) => setAvailableBefore(e.target.value)}
-          aria-label="可入驻时间上限"
-        />
-      </div>
-
-      <div className="filter-bar__field">
-        <label className="filter-bar__label" htmlFor="fb-sort">排序</label>
-        <select
-          id="fb-sort"
-          className="filter-bar__select"
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-        >
-          {SORT_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>{s.label}</option>
+      {/* 区域 */}
+      <div className="filter-bar__row">
+        <span className="filter-bar__row-label">区域</span>
+        <div className="filter-bar__chips">
+          <Link
+            className={`filter-chip${!district ? ' is-active' : ''}`}
+            href={buildHref(sp, { district: null })}
+          >
+            全部
+          </Link>
+          {districts.map((d) => (
+            <Link
+              key={d.id}
+              className={`filter-chip${district === d.slug ? ' is-active' : ''}`}
+              href={buildHref(sp, { district: d.slug })}
+            >
+              {d.name}
+            </Link>
           ))}
-        </select>
+        </div>
       </div>
 
-      {error && (
-        <p className="filter-bar__error" role="alert">{error}</p>
-      )}
+      {/* 类型 */}
+      <div className="filter-bar__row">
+        <span className="filter-bar__row-label">类型</span>
+        <div className="filter-bar__chips">
+          <Link
+            className={`filter-chip${!type ? ' is-active' : ''}`}
+            href={buildHref(sp, { type: null })}
+          >
+            全部
+          </Link>
+          {TYPE_OPTIONS.map((t) => (
+            <Link
+              key={t.value}
+              className={`filter-chip${type === t.value ? ' is-active' : ''}`}
+              href={buildHref(sp, { type: t.value })}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
-      <button type="submit" className="btn btn--primary">筛选</button>
-      <button type="button" className="btn btn--ghost" onClick={reset}>重置</button>
-    </form>
+      {/* 快速筛选 */}
+      <div className="filter-bar__row">
+        <span className="filter-bar__row-label">快速筛选</span>
+        <div className="filter-bar__chips">
+          <Link
+            className={`filter-chip${qMatches('地铁') ? ' is-active' : ''}`}
+            href={toggleHref(sp, { q: '地铁' })}
+          >
+            近地铁
+          </Link>
+          <Link
+            className={`filter-chip${qMatches('精装修') ? ' is-active' : ''}`}
+            href={toggleHref(sp, { q: '精装修' })}
+          >
+            精装修
+          </Link>
+          <Link
+            className={`filter-chip${sp.get('rentMax') === '3' && sp.get('rentUnit') === 'rmb-sqm-day' ? ' is-active' : ''}`}
+            href={toggleHref(sp, { rentMax: '3', rentUnit: 'rmb-sqm-day' })}
+          >
+            ≤3元/㎡/天
+          </Link>
+          <Link
+            className={`filter-chip${sp.get('areaMax') === '100' ? ' is-active' : ''}`}
+            href={toggleHref(sp, { areaMax: '100' })}
+          >
+            ≤100㎡
+          </Link>
+        </div>
+      </div>
+
+      {/* 数值字段（表单提交） */}
+      <form className="filter-bar__form" onSubmit={submit}>
+        <div className="filter-bar__field">
+          <label className="filter-bar__label" htmlFor="fb-q">关键词</label>
+          <input
+            id="fb-q"
+            className="filter-bar__input"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="如：江景、整层"
+            maxLength={60}
+          />
+        </div>
+        <div className="filter-bar__field">
+          <label className="filter-bar__label">租金（元）</label>
+          <div className="filter-bar__range">
+            <input
+              className="filter-bar__input"
+              value={rentMin}
+              onChange={(e) => setRentMin(e.target.value)}
+              placeholder="最低"
+              inputMode="numeric"
+              aria-label="租金最低"
+            />
+            <span aria-hidden="true">–</span>
+            <input
+              className="filter-bar__input"
+              value={rentMax}
+              onChange={(e) => setRentMax(e.target.value)}
+              placeholder="最高"
+              inputMode="numeric"
+              aria-label="租金最高"
+            />
+          </div>
+        </div>
+        <div className="filter-bar__field">
+          <label className="filter-bar__label">面积（㎡）</label>
+          <div className="filter-bar__range">
+            <input
+              className="filter-bar__input"
+              value={areaMin}
+              onChange={(e) => setAreaMin(e.target.value)}
+              placeholder="最低"
+              inputMode="numeric"
+              aria-label="面积最低"
+            />
+            <span aria-hidden="true">–</span>
+            <input
+              className="filter-bar__input"
+              value={areaMax}
+              onChange={(e) => setAreaMax(e.target.value)}
+              placeholder="最高"
+              inputMode="numeric"
+              aria-label="面积最高"
+            />
+          </div>
+        </div>
+        <div className="filter-bar__field">
+          <label className="filter-bar__label" htmlFor="fb-available">可入驻</label>
+          <input
+            id="fb-available"
+            type="date"
+            className="filter-bar__input"
+            value={availableBefore}
+            onChange={(e) => setAvailableBefore(e.target.value)}
+            aria-label="可入驻时间上限"
+          />
+        </div>
+        {error && (
+          <p className="filter-bar__error" role="alert">{error}</p>
+        )}
+        <button type="submit" className="btn btn--primary">筛选</button>
+        <Link href="/listings" className="btn btn--ghost">重置</Link>
+      </form>
+    </div>
   )
 }

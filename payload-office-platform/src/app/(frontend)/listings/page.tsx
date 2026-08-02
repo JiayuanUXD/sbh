@@ -3,7 +3,7 @@ import Link from 'next/link'
 import React from 'react'
 import FilterBar from '@/components/frontend/FilterBar'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import ListingCard from '@/components/frontend/ListingCard'
+import ListingGrid from '@/components/frontend/ListingGrid'
 import MobileFilterDrawer from '@/components/frontend/MobileFilterDrawer'
 import Pagination from '@/components/frontend/Pagination'
 import {
@@ -92,6 +92,12 @@ export default async function ListingsPage({
 
   const isEmpty = docs.length === 0
 
+  // 当前页显示范围（用于分页计数）
+  const rangeStart = docs.length > 0
+    ? (page < totalPages ? (page - 1) * docs.length + 1 : totalDocs - docs.length + 1)
+    : 0
+  const rangeEnd = rangeStart > 0 ? rangeStart + docs.length - 1 : 0
+
   return (
     <div className="listings-page">
       <header className="listings-page__header">
@@ -140,11 +146,11 @@ export default async function ListingsPage({
 
       {!isOutOfBounds && !isEmpty && (
         <>
-          <div className="card-grid">
-            {docs.map((l) => (
-              <ListingCard key={l.id} listing={l} />
-            ))}
-          </div>
+          <ListingGrid docs={docs} />
+
+          <p className="listings-page__count" aria-live="polite">
+            显示第 {rangeStart}–{rangeEnd} 套，共 {totalDocs} 套
+          </p>
 
           <Pagination
             page={page}

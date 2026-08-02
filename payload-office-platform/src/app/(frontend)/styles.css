@@ -924,6 +924,302 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
+ * 10.5 列表页优化（视图切换 + 横向卡片 + 标签筛选）
+ * --------------------------------------------------------------------------- */
+
+/* 视图切换器 */
+.listings-grid {
+  margin-bottom: var(--sp-3);
+}
+
+.view-switcher {
+  display: flex;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-4);
+  padding: 3px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.view-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-3);
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.view-switcher__btn:hover {
+  color: var(--color-ink);
+}
+
+.view-switcher__btn.is-active {
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* 网格视图 */
+.card-grid--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-5);
+}
+
+@media (min-width: 1024px) {
+  .card-grid--grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+/* 列表视图（横向卡片，单列） */
+.card-grid--list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.listing-card--list {
+  flex-direction: row;
+}
+
+.listing-card--list .listing-card__media {
+  flex: 0 0 280px;
+  aspect-ratio: 16 / 10;
+  max-width: 320px;
+}
+
+.listing-card--list .listing-card__body {
+  flex: 1;
+  padding: var(--sp-4) var(--sp-5);
+  gap: var(--sp-2);
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .listing-card--list {
+    flex-direction: column;
+  }
+  .listing-card--list .listing-card__media {
+    flex: none;
+    max-width: 100%;
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* 媒体容器定位上下文（角标） */
+.listing-card__media {
+  position: relative;
+}
+
+/* 类型角标（左上） */
+.listing-card__type-badge {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  padding: 2px var(--sp-2);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: var(--fs-12);
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(4px);
+  z-index: 1;
+}
+
+/* 必看好房角标（右上） */
+.listing-card__featured-tag {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  padding: 2px var(--sp-2);
+  background: var(--color-copper);
+  color: #fff;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  z-index: 1;
+}
+
+/* 价格行：价格 + 面积并排 */
+.listing-card__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.listing-card__area {
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 地址行（单行省略） */
+.listing-card__address {
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  line-height: var(--lh-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* list 视图标题单行 */
+.listing-card--list .listing-card__title {
+  -webkit-line-clamp: 1;
+}
+
+/* 卡片 hover 增强（copper 边框 + 图片缩放） */
+.listing-card:hover {
+  border-color: var(--color-copper);
+  box-shadow: var(--shadow-md);
+}
+
+.listing-card:hover .listing-card__media img {
+  transform: scale(1.05);
+}
+
+/* 筛选条：标签按钮式 */
+.filter-bar {
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.filter-bar__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.filter-bar__row-label {
+  flex: 0 0 auto;
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  min-width: 4em;
+}
+
+.filter-bar__row-label--unit {
+  margin-left: var(--sp-4);
+}
+
+.filter-bar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--color-ink);
+  font-size: var(--fs-13);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.filter-chip:hover {
+  border-color: var(--color-copper);
+  color: var(--color-copper);
+  text-decoration: none;
+}
+
+.filter-chip.is-active {
+  background: var(--color-copper-soft);
+  border-color: var(--color-copper);
+  color: var(--color-copper-hover);
+  font-weight: 500;
+}
+
+/* 数值字段表单 */
+.filter-bar__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: flex-end;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--color-line);
+  margin-top: var(--sp-1);
+}
+
+.filter-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.filter-bar__label {
+  font-size: var(--fs-12);
+  color: var(--color-muted);
+}
+
+.filter-bar__input {
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-13);
+  background: #fff;
+  color: var(--color-ink);
+  min-width: 80px;
+}
+
+.filter-bar__input:focus {
+  outline: none;
+  border-color: var(--color-copper);
+  box-shadow: 0 0 0 2px var(--color-copper-soft);
+}
+
+.filter-bar__range {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.filter-bar__hint {
+  font-size: var(--fs-12);
+}
+
+.filter-bar__hint--warn {
+  color: var(--color-copper-hover);
+}
+
+.filter-bar__error {
+  font-size: var(--fs-12);
+  color: #c0392b;
+  margin: 0;
+}
+
+/* 分页计数 */
+.listings-page__count {
+  text-align: center;
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  margin: var(--sp-3) 0 0;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
  * 11. 首页 Hero 与 section
  * --------------------------------------------------------------------------- */
 
