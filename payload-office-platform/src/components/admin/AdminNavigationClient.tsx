@@ -33,6 +33,7 @@ import {
   deriveOpenGroupId,
   findActiveLeaf,
   toggleGroupInSet,
+  toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
   ResolvedAdminNavGroup,
@@ -146,16 +147,13 @@ export default function AdminNavigationClient({
     }
   }, [effectiveCollapsed])
 
-  // 路由切换时：自动把新激活分组加入展开集（不关闭其他已展开分组）
-  useEffect(() => {
-    if (!activeGroupId) return
-    setOpenGroupIds((prev) => {
-      if (prev.has(activeGroupId)) return prev
-      const next = new Set(prev)
-      next.add(activeGroupId)
-      return next
-    })
-  }, [activeGroupId])
+  // 激活分组始终视为展开（派生合并），避免在 effect 内 setState 触发级联渲染
+  const effectiveOpenGroups = useMemo(() => {
+    if (!activeGroupId || openGroupIds.has(activeGroupId)) return openGroupIds
+    const next = new Set(openGroupIds)
+    next.add(activeGroupId)
+    return next
+  }, [openGroupIds, activeGroupId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -191,7 +189,7 @@ export default function AdminNavigationClient({
     >
       <ul className="admin-navigation__groups">
         {groups.map((group) => {
-          const isOpen = !effectiveCollapsed && openGroupIds.has(group.id)
+          const isOpen = !effectiveCollapsed && effectiveOpenGroups.has(group.id)
           const isActiveGroup = group.id === activeGroupId
           const isHovered = effectiveCollapsed && group.id === hoveredGroupId
           const panelId = `admin-navigation-group-${group.id}`

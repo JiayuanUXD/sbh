@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Field } from 'payload'
 import { normalizePhone } from '@/domain/shared/phone'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getUserMaskRules } from '@/domain/auth/field-mask'
@@ -60,7 +60,7 @@ export const Users: CollectionConfig = {
           Field: '/components/admin/UserPermissionPreview',
         },
       },
-    },
+    } as unknown as Field,
     // Email added by default by auth: true
     {
       name: 'name',

@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Field } from 'payload'
 import { DETAIL_MEDIA_KINDS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
@@ -75,7 +75,7 @@ export const Buildings: CollectionConfig = {
           Field: '/components/admin/BuildingAggregateCard',
         },
       },
-    },
+    } as unknown as Field,
     {
       type: 'tabs',
       tabs: [
