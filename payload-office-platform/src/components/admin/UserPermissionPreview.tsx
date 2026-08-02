@@ -112,8 +112,9 @@ export default async function UserPermissionPreview({ payload, data, id }: Field
   const dataScopeLabels: Record<DataScope, string> = {
     none: '无数据权限',
     self: '仅本人数据',
+    team: '本团队数据',
     city: '本城市数据',
-    all: '全部数据',
+    global: '全部数据',
   }
 
   return (
