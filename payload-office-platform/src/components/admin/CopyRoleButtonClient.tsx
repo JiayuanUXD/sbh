@@ -81,57 +81,23 @@ export default function CopyRoleButtonClient({
       <button
         type="button"
         onClick={handleOpen}
-        style={{
-          padding: '6px 14px',
-          fontSize: 13,
-          fontWeight: 500,
-          color: '#0b5fff',
-          background: '#fff',
-          border: '1px solid #0b5fff',
-          borderRadius: 6,
-          cursor: 'pointer',
-        }}
+        className="copy-role-btn"
       >
         复制角色
       </button>
 
       {isOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-          onClick={handleClose}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#fff',
-              padding: 24,
-              borderRadius: 8,
-              minWidth: 400,
-              maxWidth: '90vw',
-            }}
-          >
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 600 }}>
-              复制角色
-            </h3>
-            <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6b7280' }}>
+        <div className="copy-role-overlay" onClick={handleClose}>
+          <div className="copy-role-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="copy-role-modal__title">复制角色</h3>
+            <p className="copy-role-modal__desc">
               基于当前角色（{roleCode || roleName}）创建一个自定义角色副本。
               副本始终为非内置角色，权限编码会原样复制。
             </p>
             <form onSubmit={handleSubmit}>
-              <label style={{ display: 'block', marginBottom: 12 }}>
-                <span style={{ display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 500 }}>
-                  新角色编码 <span style={{ color: '#e03131' }}>*</span>
+              <label className="copy-role-modal__field">
+                <span className="copy-role-modal__label">
+                  新角色编码 <span className="copy-role-modal__required">*</span>
                 </span>
                 <input
                   type="text"
@@ -140,21 +106,14 @@ export default function CopyRoleButtonClient({
                   placeholder="例如 CUSTOM_OPS_LITE"
                   required
                   autoFocus
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    fontSize: 13,
-                    border: '1px solid #d1d5db',
-                    borderRadius: 4,
-                    boxSizing: 'border-box',
-                  }}
+                  className="copy-role-modal__input"
                 />
-                <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: '#9ca3af' }}>
+                <span className="copy-role-modal__hint">
                   大写字母开头，仅含大写字母/数字/下划线，长度 2-32
                 </span>
               </label>
-              <label style={{ display: 'block', marginBottom: 12 }}>
-                <span style={{ display: 'block', marginBottom: 4, fontSize: 13, fontWeight: 500 }}>
+              <label className="copy-role-modal__field">
+                <span className="copy-role-modal__label">
                   新角色名称（可选）
                 </span>
                 <input
@@ -162,60 +121,25 @@ export default function CopyRoleButtonClient({
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="留空将默认为「原名称 - 副本」"
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    fontSize: 13,
-                    border: '1px solid #d1d5db',
-                    borderRadius: 4,
-                    boxSizing: 'border-box',
-                  }}
+                  className="copy-role-modal__input"
                 />
               </label>
               {error && (
-                <div
-                  style={{
-                    marginBottom: 12,
-                    padding: 8,
-                    background: '#fff5f5',
-                    border: '1px solid #ffa8a8',
-                    borderRadius: 4,
-                    color: '#c92a2a',
-                    fontSize: 12,
-                  }}
-                >
-                  {error}
-                </div>
+                <div className="copy-role-modal__error">{error}</div>
               )}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <div className="copy-role-modal__actions">
                 <button
                   type="button"
                   onClick={handleClose}
                   disabled={submitting}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: 13,
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: 4,
-                    cursor: submitting ? 'not-allowed' : 'pointer',
-                  }}
+                  className="copy-role-modal__btn copy-role-modal__btn--cancel"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: '#fff',
-                    background: '#0b5fff',
-                    border: '1px solid #0b5fff',
-                    borderRadius: 4,
-                    cursor: submitting ? 'not-allowed' : 'pointer',
-                  }}
+                  className="copy-role-modal__btn copy-role-modal__btn--confirm"
                 >
                   {submitting ? '创建中...' : '创建副本'}
                 </button>

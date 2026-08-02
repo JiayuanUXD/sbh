@@ -32,7 +32,7 @@ import { formatBadgeCount } from '@/domain/admin-navigation/navigation-badges'
 import {
   deriveOpenGroupId,
   findActiveLeaf,
-  toggleOpenGroup,
+  toggleGroupInSet,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
   ResolvedAdminNavGroup,
@@ -84,10 +84,13 @@ export default function AdminNavigationClient({
   const { config } = useConfig()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
-  const [manualGroupState, setManualGroupState] = useState<{
-    groupId: string | null
-    pathname: string
-  } | null>(null)
+  const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => {
+    // 初始展开集：包含当前激活页所在的分组
+    const s = new Set<string>()
+    const ag = deriveOpenGroupId(groups, pathname)
+    if (ag) s.add(ag)
+    return s
+  })
   const [collapsed, setCollapsed] = useState<boolean>(false)
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -143,14 +146,16 @@ export default function AdminNavigationClient({
     }
   }, [effectiveCollapsed])
 
-  const openGroupId = useMemo(() => {
-    if (effectiveCollapsed) {
-      return null
-    }
-    return manualGroupState?.pathname === pathname
-      ? manualGroupState.groupId
-      : activeGroupId
-  }, [effectiveCollapsed, manualGroupState, pathname, activeGroupId])
+  // 路由切换时：自动把新激活分组加入展开集（不关闭其他已展开分组）
+  useEffect(() => {
+    if (!activeGroupId) return
+    setOpenGroupIds((prev) => {
+      if (prev.has(activeGroupId)) return prev
+      const next = new Set(prev)
+      next.add(activeGroupId)
+      return next
+    })
+  }, [activeGroupId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -175,10 +180,8 @@ export default function AdminNavigationClient({
 
   const handleGroupClick = (groupId: string) => {
     if (effectiveCollapsed) return
-    setManualGroupState({
-      groupId: toggleOpenGroup(openGroupId, groupId),
-      pathname,
-    })
+    // 多展开模式：切换点击的分组，不影响其他分组
+    setOpenGroupIds((prev) => toggleGroupInSet(prev, groupId))
   }
 
   return (
@@ -188,7 +191,7 @@ export default function AdminNavigationClient({
     >
       <ul className="admin-navigation__groups">
         {groups.map((group) => {
-          const isOpen = group.id === openGroupId
+          const isOpen = !effectiveCollapsed && openGroupIds.has(group.id)
           const isActiveGroup = group.id === activeGroupId
           const isHovered = effectiveCollapsed && group.id === hoveredGroupId
           const panelId = `admin-navigation-group-${group.id}`

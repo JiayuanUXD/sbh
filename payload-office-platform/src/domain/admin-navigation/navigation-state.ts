@@ -52,6 +52,23 @@ export function toggleOpenGroup(
   return currentGroupId === requestedGroupId ? null : requestedGroupId
 }
 
+/**
+ * 在多展开模式下切换单个组的展开状态（不影响其他组）。
+ * 返回新的 Set（不可变更新）。
+ */
+export function toggleGroupInSet(
+  currentOpen: ReadonlySet<string>,
+  groupId: string,
+): Set<string> {
+  const next = new Set(currentOpen)
+  if (next.has(groupId)) {
+    next.delete(groupId)
+  } else {
+    next.add(groupId)
+  }
+  return next
+}
+
 export function shouldCloseNavAfterLeafClick(
   smallBreak: boolean | undefined,
 ): boolean {

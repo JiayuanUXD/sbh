@@ -49,18 +49,25 @@
   }
 }
 
-.arco-admin-env-badge {
-  align-items: center;
-  background: #e8f3ff;
-  border: 1px solid #bedaff;
-  border-radius: 3px;
-  color: #165dff;
-  display: inline-flex;
-  font-size: 12px;
-  height: 24px;
-  line-height: 22px;
-  margin-inline-end: 8px;
-  padding: 0 8px;
+// 后台品牌标题（左侧导航栏顶部，替代原右上角环境标签）
+.admin-brand-title {
+  font-family: var(--font-source-han-sans), -apple-system, BlinkMacSystemFont,
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--theme-text, #1a1a1a);
+  padding: 0 24px 0;
+  margin-top: -40px;
+  margin-bottom: 20px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 160ms ease;
+}
+
+// 侧边栏收起时隐藏品牌标题
+body.admin-nav-collapsed .admin-brand-title {
+  display: none;
 }
 
 .arco-admin-theme-toggle {
@@ -649,14 +656,172 @@ body.admin-nav-collapsed {
   }
 }
 
+// ─── Dashboard 深色模式（基于 Arco 官方暗色色板，specificity 高于全局覆盖） ───
 html[data-theme='dark'] .arco-admin-dashboard {
+  // Arco 暗色色板变量（覆盖浅色默认值）
+  --color-bg-1: #17171a;
   --color-bg-2: #232324;
-  --color-border-2: #3c3c3f;
-  --color-fill-2: #2b2b2d;
-  --color-fill-3: #343437;
+  --color-bg-3: #2a2a2c;
+  --color-border-1: #2e2e32;
+  --color-border-2: #343438;
+  --color-border-3: #3e3e42;
+  --color-fill-1: #202022;
+  --color-fill-2: #2a2a2c;
+  --color-fill-3: #343438;
+  --color-fill-4: #3e3e42;
   --color-text-1: #f2f3f5;
   --color-text-2: #c9cdd4;
-  --color-text-3: #9ca3af;
+  --color-text-3: #86909c;
+  --color-text-4: #4e5969;
+  --color-primary-light-1: rgba(22, 93, 255, 0.2);
+  --color-primary-light-2: rgba(22, 93, 255, 0.3);
+
+  // 基础文本
+  color: var(--color-text-1);
+
+  // ── Card ──
+  .arco-card {
+    background-color: var(--color-bg-2) !important;
+    border-color: var(--color-border-2) !important;
+    color: var(--color-text-1);
+  }
+
+  .arco-card-hoverable:hover {
+    border-color: #4080ff !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .arco-card-header {
+    background-color: transparent !important;
+    border-bottom-color: var(--color-border-2) !important;
+  }
+
+  .arco-card-header-title {
+    color: var(--color-text-1) !important;
+  }
+
+  .arco-card-header-extra {
+    color: var(--color-text-2);
+  }
+
+  .arco-card-body {
+    background-color: transparent !important;
+    color: var(--color-text-1);
+  }
+
+  // ── Metric icon（硬编码浅蓝，覆盖为深色版） ──
+  .arco-admin-dashboard__metric-icon {
+    background-color: var(--color-primary-light-1) !important;
+    color: #4080ff !important;
+  }
+
+  // ── Tag（Dashboard 内 Tag 有硬编码浅色背景，全量覆盖） ──
+  .arco-tag {
+    background-color: var(--color-primary-light-1) !important;
+    color: #4080ff !important;
+    border-color: transparent !important;
+  }
+
+  .arco-tag-green {
+    background-color: rgba(0, 180, 42, 0.15) !important;
+    color: #23c343 !important;
+  }
+
+  .arco-tag-red {
+    background-color: rgba(245, 63, 63, 0.15) !important;
+    color: #f53f3f !important;
+  }
+
+  .arco-tag-orange {
+    background-color: rgba(255, 125, 0, 0.15) !important;
+    color: #ff7d00 !important;
+  }
+
+  .arco-tag-gray,
+  .arco-tag-default {
+    background-color: var(--color-fill-2) !important;
+    color: var(--color-text-2) !important;
+  }
+
+  .arco-tag-arcoblue {
+    background-color: var(--color-primary-light-1) !important;
+    color: #4080ff !important;
+  }
+
+  // ── Button ──
+  .arco-btn {
+    background-color: var(--color-fill-2) !important;
+    border-color: transparent !important;
+    color: var(--color-text-1) !important;
+  }
+
+  .arco-btn:hover {
+    background-color: var(--color-fill-3) !important;
+  }
+
+  .arco-btn-primary {
+    background-color: #165dff !important;
+    color: #fff !important;
+  }
+
+  .arco-btn-primary:hover {
+    background-color: #4080ff !important;
+  }
+
+  .arco-btn-text {
+    background-color: transparent !important;
+    color: #4080ff !important;
+    border-color: transparent !important;
+  }
+
+  .arco-btn-text:hover {
+    background-color: var(--color-primary-light-1) !important;
+    color: #4080ff !important;
+  }
+
+  // ── Typography ──
+  .arco-typography {
+    color: var(--color-text-1) !important;
+  }
+
+  h2.arco-typography {
+    color: var(--color-text-1) !important;
+  }
+
+  h3.arco-typography {
+    color: var(--color-text-1) !important;
+  }
+
+  .arco-typography-secondary {
+    color: var(--color-text-2) !important;
+  }
+
+  // ── Statistic ──
+  .arco-statistic-title {
+    color: var(--color-text-3) !important;
+  }
+
+  .arco-statistic-value {
+    color: var(--color-text-1) !important;
+  }
+
+  .arco-statistic-suffix {
+    color: var(--color-text-1) !important;
+  }
+
+  // ── Progress ──
+  .arco-progress-line-wrapper {
+    background-color: var(--color-fill-3) !important;
+  }
+
+  .arco-progress-line-inner {
+    background-color: #4080ff !important;
+  }
+
+  // ── Space 内文本 ──
+  .arco-space .arco-typography {
+    color: var(--color-text-2);
+  }
 }
 
 // 房源审核队列 - Arco Table/Drawer/Modal 在 Payload admin 中的样式微调
@@ -857,6 +1022,994 @@ html[data-theme='dark'] {
     &--active {
       border-bottom-color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
       color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+    }
+  }
+}
+
+// ─── 深色模式：Arco Design 组件适配（楼盘编辑页聚合卡片 + 运营状态） ───
+// Arco Design 的深色模式需 body[arco-theme="dark"] 触发，但项目用 html[data-theme]，
+// 导致 Arco 组件在深色模式下仍用浅色样式。此处手动覆盖。
+html[data-theme='dark'] .collection-edit {
+  // Tag 深色适配：半透明底 + 亮色字
+  .arco-tag {
+    &.arco-tag-green {
+      background-color: rgba(0, 180, 42, 0.15);
+      color: #23c343;
+      border-color: transparent;
+    }
+    &.arco-tag-gray {
+      background-color: var(--theme-elevation-100, #333);
+      color: var(--theme-elevation-400, #9a9a9a);
+      border-color: transparent;
+    }
+    &.arco-tag-arcoblue {
+      background-color: rgba(22, 93, 255, 0.15);
+      color: #4080ff;
+      border-color: transparent;
+    }
+    &.arco-tag-orange {
+      background-color: rgba(255, 125, 0, 0.15);
+      color: #ff7d00;
+      border-color: transparent;
+    }
+  }
+
+  // Button 深色适配
+  .arco-btn-secondary {
+    background-color: var(--theme-elevation-100, #333);
+    color: var(--theme-text, #f2f3f5);
+    border-color: var(--theme-elevation-200, #444);
+
+    &:hover {
+      background-color: var(--theme-elevation-200, #444);
+      color: var(--theme-text, #f2f3f5);
+    }
+  }
+
+  .arco-btn-outline {
+    background-color: transparent;
+    color: var(--theme-text, #f2f3f5);
+    border-color: var(--theme-elevation-200, #555);
+
+    &.arco-btn-status-warning {
+      color: #ff7d00;
+      border-color: rgba(255, 125, 0, 0.5);
+
+      &:hover {
+        background-color: rgba(255, 125, 0, 0.1);
+        border-color: #ff7d00;
+        color: #ff7d00;
+      }
+    }
+  }
+
+  // Typography 次要文字
+  .arco-typography-secondary {
+    color: var(--theme-elevation-400, #9a9a9a);
+  }
+
+  // Descriptions 标签和值
+  .arco-descriptions-item-label-inline {
+    color: var(--theme-elevation-400, #9a9a9a);
+  }
+  .arco-descriptions-item-value-inline {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  // Empty 空状态
+  .arco-empty-description {
+    color: var(--theme-elevation-400, #9a9a9a);
+  }
+}
+
+// ─── 权限预览组件（UserPermissionPreview） ───
+.perm-preview {
+  margin-top: 20px;
+  padding: 20px 24px;
+  border: 1px solid var(--theme-elevation-100, #e5e7eb);
+  border-radius: 10px;
+  background: var(--theme-elevation-50, #fafbfc);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.perm-preview__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.perm-preview__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--theme-text, #1d2129);
+  line-height: 1.4;
+}
+
+.perm-preview__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 10px;
+  color: var(--theme-elevation-500, #86909c);
+  background: var(--theme-elevation-100, #f2f3f5);
+  border: 1px solid var(--theme-elevation-150, #e5e6eb);
+}
+
+.perm-preview__desc {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--theme-elevation-500, #86909c);
+}
+
+// ── 元信息行（绑定角色 / 数据范围 / 城市上限） ──
+.perm-preview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--theme-elevation-0, #ffffff);
+  border: 1px solid var(--theme-elevation-100, #f2f3f5);
+}
+
+.perm-preview__meta-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 4px 0;
+}
+
+.perm-preview__meta-item + .perm-preview__meta-item {
+  border-left: 1px solid var(--theme-elevation-100, #f2f3f5);
+  padding-left: 16px;
+  margin-left: 16px;
+}
+
+.perm-preview__meta-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--theme-elevation-500, #86909c);
+  white-space: nowrap;
+}
+
+.perm-preview__meta-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-text, #1d2129);
+  word-break: break-all;
+}
+
+.perm-preview__meta-value--strong {
+  color: var(--theme-success-600, #00b42a);
+  font-weight: 600;
+}
+
+// ── 权限块容器 ──
+.perm-preview__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.perm-preview__block {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--theme-elevation-100, #f2f3f5);
+  background: var(--theme-elevation-0, #ffffff);
+}
+
+.perm-preview__block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.perm-preview__block-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--theme-text, #1d2129);
+}
+
+.perm-preview__block-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 11px;
+}
+
+.perm-preview__block-count--blue {
+  color: #4080ff;
+  background: rgba(22, 93, 255, 0.1);
+}
+
+.perm-preview__block-count--green {
+  color: #23c343;
+  background: rgba(0, 180, 42, 0.1);
+}
+
+.perm-preview__block-count--orange {
+  color: #ff7d00;
+  background: rgba(255, 125, 0, 0.1);
+}
+
+.perm-preview__empty-text {
+  font-size: 12px;
+  color: var(--theme-elevation-400, #c9cdd4);
+  font-style: italic;
+}
+
+.perm-preview__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perm-preview__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 12px;
+  line-height: 22px;
+  height: 24px;
+  border-radius: 4px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.perm-preview__tag--blue {
+  color: #4080ff;
+  background: rgba(22, 93, 255, 0.08);
+}
+
+.perm-preview__tag--green {
+  color: #00b42a;
+  background: rgba(0, 180, 42, 0.08);
+}
+
+.perm-preview__tag--orange {
+  color: #ff7d00;
+  background: rgba(255, 125, 0, 0.08);
+}
+
+// ── 深色模式 ──
+html[data-theme='dark'] .perm-preview {
+  border-color: var(--theme-elevation-150, #2e2e32);
+  background: var(--theme-elevation-50, #1a1a1d);
+}
+
+html[data-theme='dark'] .perm-preview__title {
+  color: var(--theme-text, #f2f3f5);
+}
+
+html[data-theme='dark'] .perm-preview__badge {
+  color: #86909c;
+  background: var(--theme-elevation-100, #232324);
+  border-color: var(--theme-elevation-150, #2e2e32);
+}
+
+html[data-theme='dark'] .perm-preview__desc {
+  color: var(--theme-elevation-400, #86909c);
+}
+
+html[data-theme='dark'] .perm-preview__meta {
+  background: var(--theme-elevation-100, #232324);
+  border-color: var(--theme-elevation-150, #2e2e32);
+}
+
+html[data-theme='dark'] .perm-preview__meta-item + .perm-preview__meta-item {
+  border-left-color: var(--theme-elevation-150, #2e2e32);
+}
+
+html[data-theme='dark'] .perm-preview__meta-label {
+  color: var(--theme-elevation-400, #86909c);
+}
+
+html[data-theme='dark'] .perm-preview__meta-value {
+  color: var(--theme-text, #f2f3f5);
+}
+
+html[data-theme='dark'] .perm-preview__meta-value--strong {
+  color: #23c343;
+}
+
+html[data-theme='dark'] .perm-preview__block {
+  background: var(--theme-elevation-100, #232324);
+  border-color: var(--theme-elevation-150, #2e2e32);
+}
+
+html[data-theme='dark'] .perm-preview__block-title {
+  color: var(--theme-text, #f2f3f5);
+}
+
+html[data-theme='dark'] .perm-preview__empty-text {
+  color: var(--theme-elevation-400, #4e5969);
+}
+
+html[data-theme='dark'] .perm-preview__tag--blue {
+  color: #4080ff;
+  background: rgba(22, 93, 255, 0.15);
+}
+
+html[data-theme='dark'] .perm-preview__tag--green {
+  color: #23c343;
+  background: rgba(0, 180, 42, 0.15);
+}
+
+html[data-theme='dark'] .perm-preview__tag--orange {
+  color: #ff7d00;
+  background: rgba(255, 125, 0, 0.15);
+}
+
+html[data-theme='dark'] .perm-preview__block-count--blue {
+  color: #4080ff;
+  background: rgba(22, 93, 255, 0.15);
+}
+
+html[data-theme='dark'] .perm-preview__block-count--green {
+  color: #23c343;
+  background: rgba(0, 180, 42, 0.15);
+}
+
+html[data-theme='dark'] .perm-preview__block-count--orange {
+  color: #ff7d00;
+  background: rgba(255, 125, 0, 0.15);
+}
+
+// ─── 角色风险提示组件（RoleRiskWarning） ───
+.risk-warning {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.risk-warning--safe {
+  padding: 12px;
+  border: 1px solid #d3f9d8;
+  background: #ebfbee;
+  font-size: 13px;
+}
+
+.risk-warning__safe-title {
+  color: #2f9e44;
+}
+
+.risk-warning__safe-desc {
+  margin-left: 8px;
+  color: #495057;
+}
+
+.risk-warning--danger {
+  border: 1px solid #ffa8a8;
+  background: #fff5f5;
+}
+
+.risk-warning__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #c92a2a;
+}
+
+.risk-warning__desc {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #868e96;
+}
+
+.risk-warning__list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--theme-text, #1a1a1a);
+}
+
+.risk-warning__badge {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 3px;
+}
+
+.risk-warning__msg {
+  margin-left: 8px;
+  color: #495057;
+}
+
+html[data-theme='dark'] .risk-warning--safe {
+  border-color: rgba(0, 180, 42, 0.3);
+  background: rgba(0, 180, 42, 0.08);
+}
+html[data-theme='dark'] .risk-warning__safe-title {
+  color: #23c343;
+}
+html[data-theme='dark'] .risk-warning__safe-desc {
+  color: var(--theme-elevation-400, #9a9a9a);
+}
+
+html[data-theme='dark'] .risk-warning--danger {
+  border-color: rgba(255, 77, 79, 0.4);
+  background: rgba(255, 77, 79, 0.08);
+}
+html[data-theme='dark'] .risk-warning__title {
+  color: #ff7875;
+}
+html[data-theme='dark'] .risk-warning__desc,
+html[data-theme='dark'] .risk-warning__msg {
+  color: var(--theme-elevation-400, #9a9a9a);
+}
+
+// ─── 复制角色按钮 + Modal（CopyRoleButtonClient） ───
+.copy-role-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-success-500, #0b5fff);
+  background: var(--theme-elevation-0, #fff);
+  border: 1px solid var(--theme-success-500, #0b5fff);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+.copy-role-btn:hover {
+  background: rgba(11, 95, 255, 0.06);
+}
+
+.copy-role-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.copy-role-modal {
+  background: var(--theme-elevation-0, #fff);
+  padding: 24px;
+  border-radius: 8px;
+  min-width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+}
+
+.copy-role-modal__title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--theme-text, #1a1a1a);
+}
+
+.copy-role-modal__desc {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--theme-elevation-400, #6b7280);
+}
+
+.copy-role-modal__field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.copy-role-modal__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--theme-text, #1a1a1a);
+}
+
+.copy-role-modal__required {
+  color: #f53f3f;
+}
+
+.copy-role-modal__input {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--theme-elevation-100, #d1d5db);
+  border-radius: 4px;
+  box-sizing: border-box;
+  background: var(--theme-elevation-0, #fff);
+  color: var(--theme-text, #1a1a1a);
+  outline: none;
+  transition: border-color 150ms;
+}
+.copy-role-modal__input:focus {
+  border-color: var(--theme-success-500, #0b5fff);
+}
+
+.copy-role-modal__hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--theme-elevation-400, #9ca3af);
+}
+
+.copy-role-modal__error {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(255, 77, 79, 0.08);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 4px;
+  color: #f53f3f;
+  font-size: 12px;
+}
+
+.copy-role-modal__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.copy-role-modal__btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.copy-role-modal__btn--cancel {
+  background: var(--theme-elevation-50, #f3f4f6);
+  border: 1px solid var(--theme-elevation-100, #d1d5db);
+  color: var(--theme-text, #1a1a1a);
+}
+.copy-role-modal__btn--cancel:hover {
+  background: var(--theme-elevation-100, #e5e7eb);
+}
+.copy-role-modal__btn--cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.copy-role-modal__btn--confirm {
+  font-weight: 500;
+  color: #fff;
+  background: #0b5fff;
+  border: 1px solid #0b5fff;
+}
+.copy-role-modal__btn--confirm:hover {
+  background: #2f74ff;
+}
+.copy-role-modal__btn--confirm:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+html[data-theme='dark'] .copy-role-btn {
+  background: var(--theme-elevation-100, #232324);
+  border-color: #4080ff;
+  color: #4080ff;
+}
+html[data-theme='dark'] .copy-role-btn:hover {
+  background: rgba(64, 128, 255, 0.12);
+}
+
+html[data-theme='dark'] .copy-role-modal {
+  background: var(--theme-elevation-100, #232324);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+html[data-theme='dark'] .copy-role-modal__input {
+  background: var(--theme-elevation-200, #2b2b2d);
+  border-color: var(--theme-elevation-200, #3c3c3f);
+}
+html[data-theme='dark'] .copy-role-modal__btn--cancel {
+  background: var(--theme-elevation-200, #2b2b2d);
+  border-color: var(--theme-elevation-200, #3c3c3f);
+  color: var(--theme-text, #f2f3f5);
+}
+html[data-theme='dark'] .copy-role-modal__btn--cancel:hover {
+  background: var(--theme-elevation-300, #3a3a3d);
+}
+
+// ─── Arco Design 深色模式全局覆盖（自定义视图） ───
+// 问题根因：Arco 深色模式需 body[arco-theme="dark"]，但项目用 html[data-theme="dark"]。
+// 以下覆盖适用于所有自定义后台页面（审核队列、区域树形视图、聚合卡片、Dashboard 等）。
+html[data-theme='dark'] {
+  // Arco Tag 全量深色适配
+  .arco-tag {
+    &.arco-tag-green,
+    &.arco-tag-success {
+      background-color: rgba(0, 180, 42, 0.15);
+      color: #23c343;
+      border-color: transparent;
+    }
+    &.arco-tag-red,
+    &.arco-tag-danger {
+      background-color: rgba(245, 63, 63, 0.15);
+      color: #f76965;
+      border-color: transparent;
+    }
+    &.arco-tag-arcoblue,
+    &.arco-tag-primary {
+      background-color: rgba(22, 93, 255, 0.15);
+      color: #4080ff;
+      border-color: transparent;
+    }
+    &.arco-tag-orange,
+    &.arco-tag-warning {
+      background-color: rgba(255, 125, 0, 0.15);
+      color: #ff7d00;
+      border-color: transparent;
+    }
+    &.arco-tag-gray,
+    &.arco-tag-default {
+      background-color: var(--theme-elevation-100, #2b2b2d);
+      color: var(--theme-elevation-400, #9a9a9a);
+      border-color: transparent;
+    }
+    &.arco-tag-cyan {
+      background-color: rgba(20, 201, 201, 0.15);
+      color: #14c9c9;
+      border-color: transparent;
+    }
+    &.arco-tag-purple {
+      background-color: rgba(114, 46, 209, 0.15);
+      color: #8f70db;
+      border-color: transparent;
+    }
+    &.arco-tag-orangered {
+      background-color: rgba(255, 77, 79, 0.15);
+      color: #ff7875;
+      border-color: transparent;
+    }
+    &.arco-tag-gold {
+      background-color: rgba(255, 215, 0, 0.15);
+      color: #e8c44c;
+      border-color: transparent;
+    }
+  }
+
+  // Arco Button 深色适配
+  .arco-btn-secondary {
+    background-color: var(--theme-elevation-100, #2b2b2d);
+    color: var(--theme-text, #f2f3f5);
+    border-color: var(--theme-elevation-200, #3c3c3f);
+    &:hover {
+      background-color: var(--theme-elevation-200, #3a3a3d);
+      color: var(--theme-text, #f2f3f5);
+    }
+  }
+  .arco-btn-outline {
+    background-color: transparent;
+    border-color: var(--theme-elevation-200, #3c3c3f);
+    &.arco-btn-status-warning {
+      color: #ff7d00;
+      border-color: rgba(255, 125, 0, 0.5);
+      &:hover {
+        background-color: rgba(255, 125, 0, 0.1);
+        border-color: #ff7d00;
+        color: #ff7d00;
+      }
+    }
+    &.arco-btn-status-danger {
+      color: #f76965;
+      border-color: rgba(245, 63, 63, 0.5);
+      &:hover {
+        background-color: rgba(245, 63, 63, 0.1);
+        border-color: #f53f3f;
+        color: #f53f3f;
+      }
+    }
+  }
+  .arco-btn-text {
+    color: var(--theme-text, #c9cdd4);
+    &:hover {
+      background-color: var(--theme-elevation-100, #2b2b2d);
+    }
+  }
+
+  // Arco Table 深色适配
+  .arco-table-container {
+    background-color: var(--theme-elevation-0, #17171a);
+  }
+  .arco-table-th {
+    background-color: var(--theme-elevation-50, #1a1a1d);
+    color: var(--theme-text, #f2f3f5);
+    border-color: var(--theme-elevation-100, #2b2b2d);
+  }
+  .arco-table-td {
+    border-color: var(--theme-elevation-100, #2b2b2d);
+    color: var(--theme-text, #c9cdd4);
+  }
+  .arco-table-tr:hover > .arco-table-td {
+    background-color: var(--theme-elevation-50, #1f1f22);
+  }
+
+  // Arco Drawer / Modal 深色适配
+  .arco-drawer-header,
+  .arco-modal-header {
+    border-color: var(--theme-elevation-100, #2b2b2d);
+  }
+  .arco-drawer-content,
+  .arco-modal-content {
+    color: var(--theme-text, #c9cdd4);
+  }
+  .arco-drawer-footer,
+  .arco-modal-footer {
+    border-color: var(--theme-elevation-100, #2b2b2d);
+  }
+
+  // Arco Card 深色适配
+  .arco-card {
+    background-color: var(--theme-elevation-50, #1a1a1d);
+    border-color: var(--theme-elevation-100, #2b2b2d);
+  }
+  .arco-card-header {
+    border-color: var(--theme-elevation-100, #2b2b2d);
+  }
+  .arco-card-header-title {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  // Arco Typography 深色适配
+  .arco-typography {
+    color: var(--theme-text, #f2f3f5);
+  }
+  .arco-typography-secondary {
+    color: var(--theme-elevation-400, #86909c);
+  }
+
+  // Arco Input 深色适配
+  .arco-input-inner-wrapper {
+    background-color: var(--theme-elevation-50, #1a1a1d);
+    border-color: var(--theme-elevation-100, #2b2b2d);
+    color: var(--theme-text, #f2f3f5);
+  }
+  .arco-input-inner-wrapper:hover,
+  .arco-input-inner-wrapper-focus {
+    border-color: var(--theme-success-500, #3491fa);
+  }
+
+  // Arco Tree 深色适配
+  .arco-tree {
+    color: var(--theme-text, #c9cdd4);
+    background: transparent;
+  }
+  .arco-tree-node-title {
+    color: var(--theme-text, #c9cdd4);
+  }
+  .arco-tree-node:hover .arco-tree-node-title,
+  .arco-tree-node-title:hover {
+    background-color: var(--theme-elevation-100, #2b2b2d);
+    color: var(--theme-text, #f2f3f5);
+  }
+  .arco-tree-node-selected .arco-tree-node-title,
+  .arco-tree-node-selected .arco-tree-node-title:hover {
+    background-color: var(--theme-elevation-100, #2b2b2d);
+    color: var(--theme-text, #f2f3f5);
+  }
+  .arco-tree-node-switcher {
+    color: var(--theme-elevation-400, #86909c);
+  }
+
+  // Arco Descriptions 深色适配
+  .arco-descriptions-item-label,
+  .arco-descriptions-item-label-inline {
+    color: var(--theme-elevation-400, #86909c);
+  }
+  .arco-descriptions-item-value,
+  .arco-descriptions-item-value-inline {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  // Arco Progress 深色适配
+  .arco-progress-line-outer {
+    background-color: var(--theme-elevation-100, #2b2b2d);
+  }
+
+  // Arco Timeline 深色适配
+  .arco-timeline-item-dot-custom,
+  .arco-timeline-item-dot {
+    border-color: var(--theme-elevation-200, #3c3c3f);
+  }
+  .arco-timeline-item-tail {
+    background-color: var(--theme-elevation-100, #2b2b2d);
+  }
+
+  // Arco Empty 深色适配
+  .arco-empty-description {
+    color: var(--theme-elevation-400, #86909c);
+  }
+
+  // Arco Spin 深色适配
+  .arco-spin-dot-item {
+    background-color: var(--theme-text, #86909c);
+  }
+
+  // ─── Payload 原生组件深色适配 ───
+  // Payload 3.x 使用 react-select（rs__ 前缀）、自定义关系字段、Checkbox 等，
+  // 部分控件未通过 --theme-* 变量响应深色模式，此处手动覆盖。
+
+  // Payload 列表/编辑页容器背景兜底
+  .collection-list,
+  .collection-edit,
+  .collection-edit__form,
+  .doc-controls,
+  .list-view,
+  .list-controls {
+    background-color: transparent;
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  // react-select 控件（Payload Select 字段）
+  .rs__control {
+    background-color: var(--theme-elevation-50, #222) !important;
+    border-color: var(--theme-elevation-200, #4a4a4a) !important;
+    color: var(--theme-text, #f2f3f5) !important;
+  }
+
+  .rs__value-container {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  .rs__single-value,
+  .rs__placeholder {
+    color: var(--theme-text, #c9cdd4);
+  }
+
+  .rs__placeholder {
+    color: var(--theme-elevation-400, #8d8d8d);
+  }
+
+  .rs__input-container,
+  .rs__input {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  .rs__indicator {
+    color: var(--theme-elevation-400, #8d8d8d);
+  }
+
+  .rs__indicator-separator {
+    background-color: var(--theme-elevation-200, #4a4a4a);
+  }
+
+  .rs__menu {
+    background-color: var(--theme-elevation-50, #2a2a2a) !important;
+    border-color: var(--theme-elevation-200, #4a4a4a) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .rs__menu-list {
+    background-color: var(--theme-elevation-50, #2a2a2a);
+  }
+
+  .rs__option {
+    background-color: transparent !important;
+    color: var(--theme-text, #f2f3f5) !important;
+  }
+
+  .rs__option--is-focused,
+  .rs__option--is-focused:hover {
+    background-color: var(--theme-elevation-100, #333) !important;
+  }
+
+  .rs__option--is-selected {
+    background-color: rgba(22, 93, 255, 0.2) !important;
+    color: #4080ff !important;
+  }
+
+  // 关系字段（relationship）选择器容器
+  .relationship--single > .rs__control,
+  .relationship--many > .rs__control {
+    background-color: var(--theme-elevation-50, #222) !important;
+  }
+
+  .relationship-add-new__add-button,
+  .doc-drawer__toggler {
+    background-color: var(--theme-elevation-50, #222);
+    border-color: var(--theme-elevation-200, #4a4a4a);
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  .relationship-add-new__add-button:hover,
+  .doc-drawer__toggler:hover {
+    background-color: var(--theme-elevation-100, #333);
+    border-color: var(--theme-elevation-200, #555);
+  }
+
+  // 关系字段已选值 pill
+  .relationship--single .rs__single-value,
+  .pill,
+  .multi-value,
+  .multi-value__label {
+    background-color: var(--theme-elevation-100, #333);
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  // 文档抽屉（doc-drawer，关系字段选择弹窗）
+  .doc-drawer__content,
+  .list-drawer__content {
+    background-color: var(--theme-elevation-0, #141414);
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  .doc-drawer__header,
+  .list-drawer__header {
+    border-bottom-color: var(--theme-elevation-100, #2f2f2f);
+    background-color: var(--theme-elevation-0, #141414);
+  }
+
+  // Checkbox
+  .checkbox-input,
+  .field-type.checkbox input[type='checkbox'] {
+    background-color: var(--theme-elevation-50, #222);
+    border-color: var(--theme-elevation-200, #4a4a4a);
+  }
+
+  // 字段标签和描述
+  .field-label {
+    color: var(--theme-text, #f2f3f5);
+  }
+
+  .field-description {
+    color: var(--theme-elevation-400, #8d8d8d);
+  }
+
+  // Payload 按钮
+  .btn--style-secondary {
+    background-color: var(--theme-elevation-50, #222);
+    color: var(--theme-text, #f2f3f5);
+    border-color: var(--theme-elevation-200, #4a4a4a);
+
+    &:hover {
+      background-color: var(--theme-elevation-100, #333);
+    }
+  }
+
+  // Upload 组件
+  .upload__card,
+  .thumbnail-card {
+    background-color: var(--theme-elevation-50, #222);
+    border-color: var(--theme-elevation-100, #2f2f2f);
+  }
+
+  // 代码编辑器/JSON 字段
+  .code-editor,
+  .field-type.code-field {
+    background-color: var(--theme-elevation-50, #1e1e1e);
+  }
+
+  // Array/Blocks 字段
+  .array-field__drag-handle,
+  .blocks-field__drawer-toggler,
+  .array-field__add-row,
+  .row-label {
+    background-color: var(--theme-elevation-50, #222);
+    border-color: var(--theme-elevation-100, #2f2f2f);
+    color: var(--theme-text, #c9cdd4);
+  }
+
+  // Tabs 字段
+  .tabs-field__tab-button {
+    color: var(--theme-elevation-400, #8d8d8d);
+    &--active {
+      color: var(--theme-text, #f2f3f5);
+      border-bottom-color: var(--theme-text, #f2f3f5);
     }
   }
 }

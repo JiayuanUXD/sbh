@@ -36,18 +36,9 @@ export default async function RoleRiskWarning({
 
   if (risks.length === 0) {
     return (
-      <div
-        style={{
-          marginTop: 24,
-          padding: 12,
-          border: '1px solid #d3f9d8',
-          borderRadius: 8,
-          background: '#ebfbee',
-          fontSize: 13,
-        }}
-      >
-        <strong style={{ color: '#2f9e44' }}>✓ 风险检查通过</strong>
-        <span style={{ marginLeft: 8, color: '#495057' }}>
+      <div className="risk-warning risk-warning--safe">
+        <strong className="risk-warning__safe-title">✓ 风险检查通过</strong>
+        <span className="risk-warning__safe-desc">
           自定义角色未使用通配符或 global 数据范围。
         </span>
       </div>
@@ -55,41 +46,25 @@ export default async function RoleRiskWarning({
   }
 
   return (
-    <div
-      style={{
-        marginTop: 24,
-        padding: 16,
-        border: '1px solid #ffa8a8',
-        borderRadius: 8,
-        background: '#fff5f5',
-      }}
-    >
-      <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 600, color: '#c92a2a' }}>
+    <div className="risk-warning risk-warning--danger">
+      <h3 className="risk-warning__title">
         ⚠ 自定义角色风险提示（{risks.length}）
       </h3>
-      <p style={{ margin: '0 0 12px', fontSize: 12, color: '#868e96' }}>
+      <p className="risk-warning__desc">
         以下配置可授予超出预期的权限；最终由 Collection validate / beforeChange 兜底校验，
         建议改为按需明确列出权限编码。
       </p>
-      <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: '1.8' }}>
+      <ul className="risk-warning__list">
         {risks.map((risk, idx) => (
           <li key={`${risk.code}-${idx}`}>
             <span
-              style={{
-                display: 'inline-block',
-                padding: '1px 8px',
-                marginRight: 8,
-                fontSize: 11,
-                fontWeight: 600,
-                color: '#fff',
-                background: riskLevelColor(risk.level),
-                borderRadius: 3,
-              }}
+              className="risk-warning__badge"
+              style={{ background: riskLevelColor(risk.level) }}
             >
               {riskLevelLabel(risk.level)}
             </span>
             <strong>{risk.field ?? risk.code}</strong>
-            <span style={{ marginLeft: 8, color: '#495057' }}>{risk.message}</span>
+            <span className="risk-warning__msg">{risk.message}</span>
           </li>
         ))}
       </ul>

@@ -100,7 +100,24 @@ export function buildLocationForest(
   }
 
   const forest = build(null)
-  const expandedIds = matched ? Array.from(matched) : nodes.map((n) => n.id)
+
+  // 只收集实际有子节点的 id 作为展开集：
+  // - 有关键词时：命中链中所有非叶子节点（有 children 的）
+  // - 无关键词时：所有有 children 的非叶子节点
+  // 注意：不能把叶子节点（children=[]）加入 expandedKeys，
+  // 否则 Arco Tree 会给叶子节点错误添加 arco-tree-node-disabled 类，导致文字变灰。
+  const collectExpandable = (items: LocationTreeItem[]): Array<number | string> => {
+    const ids: Array<number | string> = []
+    for (const item of items) {
+      if (item.children.length > 0) {
+        ids.push(item.id)
+        ids.push(...collectExpandable(item.children))
+      }
+    }
+    return ids
+  }
+
+  const expandedIds = collectExpandable(forest)
 
   return { forest, expandedIds }
 }

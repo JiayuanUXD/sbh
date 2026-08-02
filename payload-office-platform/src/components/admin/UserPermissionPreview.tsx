@@ -1,4 +1,4 @@
-import type { BeforeDocumentControlsServerProps } from 'payload'
+import type { Payload } from 'payload'
 
 import type { Role, User } from '@/payload-types'
 import {
@@ -15,12 +15,17 @@ import {
 /**
  * 用户权限预览组件（tasks.md M1.5）
  *
- * 在用户编辑页顶部展示：
+ * 在用户编辑页表单顶部展示：
  *   - 绑定角色列表
  *   - 菜单权限并集
  *   - 操作权限并集
  *   - 字段权限并集
  *   - 数据范围上限（最宽）+ 账号城市上限
+ *
+ * 落点：用户编辑视图表单顶部（ui 字段），占满主内容区宽度。
+ * 原先挂在 beforeDocumentControls（右侧按钮区，宽度仅 ~290px），
+ * 三列权限块布局严重挤压、且溢出遮挡下方表单——改为 ui 字段后
+ * 模块在表单区顶部渲染，有充足横向空间。
  *
  * 仅展示，不参与写入；数据来自服务端加载的角色文档。
  *
@@ -28,21 +33,23 @@ import {
  *   - 不可信任客户端表单数据；权限预览仅基于服务端 payload.find 加载的角色文档
  *   - 此组件仅展示，不修改任何字段；最终权限仍由 PermissionContext 在请求时派生
  *
- * ⚠️ 关键：Payload 3.86 的 `beforeDocumentControls` 槽只传 `ServerProps`
- * (`{ id, payload, user, i18n, locale, permissions }`)——**不含 `doc`/`req`**。
- * 因此从 props 直接取 `id`，再用 `payload.findByID` 读回该账号（depth:1 带出角色文档）。
+ * 新建（未保存）用户无 id → 不渲染。
  */
-export default async function UserPermissionPreview({
-  id,
-  payload,
-}: BeforeDocumentControlsServerProps) {
-  if (id === undefined || id === null || id === '') return null
+type FieldProps = Readonly<{
+  payload: Payload
+  data?: Readonly<{ id?: string | number }> & Record<string, unknown>
+  id?: string | number
+}>
+
+export default async function UserPermissionPreview({ payload, data, id }: FieldProps) {
+  const docId = id ?? data?.id
+  if (docId === undefined || docId === null || docId === '') return null
 
   let user: User | null = null
   try {
     user = (await payload.findByID({
       collection: 'users',
-      id,
+      id: docId,
       depth: 1,
       overrideAccess: true,
     })) as unknown as User
@@ -101,38 +108,48 @@ export default async function UserPermissionPreview({
   const operationList = expandWildcard(operationPermissions, OPERATION_CODES)
   const fieldList = expandWildcard(fieldPermissions, FIELD_CODES)
 
+  // 数据范围中文映射
+  const dataScopeLabels: Record<DataScope, string> = {
+    none: '无数据权限',
+    self: '仅本人数据',
+    city: '本城市数据',
+    all: '全部数据',
+  }
+
   return (
-    <div
-      style={{
-        marginTop: 24,
-        padding: 16,
-        border: '1px solid #e5e7eb',
-        borderRadius: 8,
-        background: '#f9fafb',
-      }}
-    >
-      <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>
-        权限预览（服务端派生）
-      </h3>
-      <p style={{ margin: '0 0 12px', fontSize: 12, color: '#6b7280' }}>
-        展示该账号绑定角色的权限并集；最终生效权限仍由服务端 PermissionContext 在请求时派生，
-        账号城市绑定作为最终上限。
+    <div className="perm-preview">
+      <div className="perm-preview__header">
+        <h3 className="perm-preview__title">权限预览</h3>
+        <span className="perm-preview__badge">服务端派生</span>
+      </div>
+      <p className="perm-preview__desc">
+        展示该账号绑定角色的权限并集；最终生效权限仍由服务端 PermissionContext 在请求时派生，账号城市绑定作为最终上限。
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 16px', fontSize: 13 }}>
-        <strong>绑定角色：</strong>
-        <span>{roleCodes.length === 0 ? <em>无</em> : roleCodes.join(' / ')}</span>
-
-        <strong>数据范围上限：</strong>
-        <span>{dataScope}</span>
-
-        <strong>账号城市上限：</strong>
-        <span>{cityScopeLabel}</span>
+      <div className="perm-preview__meta">
+        <div className="perm-preview__meta-item">
+          <span className="perm-preview__meta-label">绑定角色</span>
+          <span className="perm-preview__meta-value">
+            {roleCodes.length === 0 ? <em className="perm-preview__empty-text">无</em> : roleCodes.join(' / ')}
+          </span>
+        </div>
+        <div className="perm-preview__meta-item">
+          <span className="perm-preview__meta-label">数据范围上限</span>
+          <span className="perm-preview__meta-value perm-preview__meta-value--strong">
+            {dataScopeLabels[dataScope]}
+          </span>
+        </div>
+        <div className="perm-preview__meta-item">
+          <span className="perm-preview__meta-label">账号城市上限</span>
+          <span className="perm-preview__meta-value">{cityScopeLabel}</span>
+        </div>
       </div>
 
-      <PermissionBlock title="菜单权限" codes={menuList} color="#0b5fff" />
-      <PermissionBlock title="操作权限" codes={operationList} color="#2f9e44" />
-      <PermissionBlock title="字段权限" codes={fieldList} color="#e8590c" />
+      <div className="perm-preview__blocks">
+        <PermissionBlock title="菜单权限" codes={menuList} variant="blue" />
+        <PermissionBlock title="操作权限" codes={operationList} variant="green" />
+        <PermissionBlock title="字段权限" codes={fieldList} variant="orange" />
+      </div>
     </div>
   )
 }
@@ -140,35 +157,26 @@ export default async function UserPermissionPreview({
 function PermissionBlock({
   title,
   codes,
-  color,
+  variant,
 }: {
   title: string
   codes: readonly string[]
-  color: string
+  variant: 'blue' | 'green' | 'orange'
 }) {
   return (
-    <div style={{ marginTop: 16 }}>
-      <strong style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>
-        {title}（{codes.length}）
-      </strong>
+    <div className={`perm-preview__block perm-preview__block--${variant}`}>
+      <div className="perm-preview__block-header">
+        <span className="perm-preview__block-title">{title}</span>
+        <span className={`perm-preview__block-count perm-preview__block-count--${variant}`}>
+          {codes.length}
+        </span>
+      </div>
       {codes.length === 0 ? (
-        <em style={{ color: '#9ca3af', fontSize: 12 }}>无权限</em>
+        <span className="perm-preview__empty-text">无权限</span>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <div className="perm-preview__tags">
           {codes.map((code) => (
-            <span
-              key={code}
-              style={{
-                display: 'inline-block',
-                padding: '2px 8px',
-                fontSize: 12,
-                lineHeight: '20px',
-                color,
-                background: `${color}1a`,
-                borderRadius: 4,
-                border: `1px solid ${color}40`,
-              }}
-            >
+            <span key={code} className={`perm-preview__tag perm-preview__tag--${variant}`}>
               {code}
             </span>
           ))}

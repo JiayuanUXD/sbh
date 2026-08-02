@@ -40,18 +40,6 @@ export const Users: CollectionConfig = {
     group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'email', 'loginName', 'status', 'roles', 'updatedAt'],
-    // 编辑页顶部追加权限预览组件（展示该账号有效权限并集）
-    // Payload admin.components.edit 仅支持 beforeDocumentControls（顶部）/ editMenuItems（三点菜单）
-    // 及若干按钮替换槽；不存在底部槽，组件放顶部
-    components: {
-      edit: {
-        beforeDocumentControls: [
-          {
-            path: '/components/admin/UserPermissionPreview',
-          },
-        ],
-      },
-    },
   },
   auth: {
     // 使用 Payload 默认 email/password；登录后由 payload 校验 status === 'active'
@@ -63,6 +51,16 @@ export const Users: CollectionConfig = {
   },
   trash: false,
   fields: [
+    // 权限预览卡片（M1.5）：渲染在表单顶部，占满主内容区宽度。
+    // 不能用 beforeDocumentControls（右侧按钮区，宽度仅 ~290px，会挤压/遮挡）。
+    {
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/admin/UserPermissionPreview',
+        },
+      },
+    },
     // Email added by default by auth: true
     {
       name: 'name',

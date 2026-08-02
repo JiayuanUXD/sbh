@@ -117,8 +117,10 @@ describe('location-tree/buildLocationForest', () => {
     // 1号线下挂陆家嘴站
     const line = sh.children.find((c) => c.id === 5)!
     expect(line.children.map((c) => c.id)).toEqual([6])
-    // 展开集含全部 8 个节点
-    expect(expandedIds.sort((a, b) => Number(a) - Number(b))).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    // 展开集仅包含有子节点的非叶子节点：上海(1)、浦东(2)、1号线(5)、北京(7)
+    // 叶子节点（陆家嘴3、黄浦4、陆家嘴站6、朝阳8）不能加入 expandedKeys，
+    // 否则 Arco Tree 会错误标记为 arco-tree-node-disabled 导致文字变灰。
+    expect(expandedIds.sort((a, b) => Number(a) - Number(b))).toEqual([1, 2, 5, 7])
   })
 
   it('关键词：仅保留命中链，展开集为命中集', () => {
@@ -128,7 +130,8 @@ describe('location-tree/buildLocationForest', () => {
     const sh = forest[0]
     expect(sh.children.map((c) => c.id)).toEqual([5])
     expect(sh.children[0].children.map((c) => c.id)).toEqual([6])
-    expect(expandedIds.sort((a, b) => Number(a) - Number(b))).toEqual([1, 5, 6])
+    // 展开集仅包含命中链中的非叶子节点：上海(1)、1号线(5)
+    expect(expandedIds.sort((a, b) => Number(a) - Number(b))).toEqual([1, 5])
   })
 
   it('关键词无命中：空森林', () => {

@@ -48,11 +48,10 @@ export const Buildings: CollectionConfig = {
     preview: (doc) => (doc?.slug ? `/buildings/${doc.slug}` : null),
     components: {
       edit: {
-        // 编辑视图控件区上方（M3.4 / R3）：启停按钮 + 有效房源聚合卡片（含查看房源）。
+        // 编辑视图控件区上方（M3.4）：启停按钮。
         // 权限门与状态翻转全在对应 endpoint 服务端强制，组件仅展示与触发。
         beforeDocumentControls: [
           '/components/admin/BuildingOperationalToggle',
-          '/components/admin/BuildingAggregateCard',
         ],
       },
     },
@@ -68,6 +67,15 @@ export const Buildings: CollectionConfig = {
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
   },
   fields: [
+    {
+      // 有效房源聚合卡片（M3.4 / R3）：渲染在表单顶部，占满主内容区宽度。
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/admin/BuildingAggregateCard',
+        },
+      },
+    },
     {
       type: 'tabs',
       tabs: [

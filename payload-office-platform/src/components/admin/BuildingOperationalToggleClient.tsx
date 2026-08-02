@@ -101,7 +101,7 @@ export default function BuildingOperationalToggleClient({
   }
 
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div>
       <Space align="center">
         <Text type="secondary" style={{ fontSize: 12 }}>
           运营状态

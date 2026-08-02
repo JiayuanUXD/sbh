@@ -125,11 +125,10 @@ export default buildConfig({
     },
     components: {
       actions: [
-        '/components/admin/EnvBadge',
         '/components/admin/ThemeToggle',
         '/components/admin/AccountMenu',
       ],
-      beforeNavLinks: ['/components/admin/AdminNavigation'],
+      beforeNavLinks: ['/components/admin/EnvBadge', '/components/admin/AdminNavigation'],
     },
     dashboard: {
       widgets: [
