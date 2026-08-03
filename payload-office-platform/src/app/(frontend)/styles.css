@@ -1314,6 +1314,11 @@ ol {
   align-items: start;
 }
 
+.detail__overview {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
 .detail-gallery {
   grid-column: span 7;
   display: flex;
