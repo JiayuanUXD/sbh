@@ -1359,11 +1359,11 @@ ol {
 }
 
 .detail-gallery {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  min-width: 0;
   grid-column: span 7;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
 }
 
 .detail-gallery__item {
@@ -1379,6 +1379,7 @@ ol {
 .detail-gallery video {
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-md);
   background: var(--color-paper);
@@ -1711,7 +1712,7 @@ ol {
 
 @media (max-width: 767px) {
 
-  .detail-gallery {
+  .detail-gallery__panel {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1863,8 +1864,11 @@ ol {
   margin-bottom: var(--sp-4);
 }
 
-.detail__section {
+.detail__section,
+.detail__overview,
+.location-panel {
   margin-top: var(--sp-7);
+  scroll-margin-top: 80px;
 }
 
 .detail__section h2 {
@@ -2148,6 +2152,23 @@ ol {
 
 .detail__decision-cta .btn {
   width: 100%;
+}
+
+.detail__decision-cta .btn--ghost {
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-2);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.detail__decision-cta .btn--ghost:hover {
+  color: var(--color-ink);
+  border-color: var(--color-copper);
+}
+
+.detail__decision-cta .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(164, 111, 63, 0.25);
+  border-color: var(--color-copper);
 }
 
 /* 移动端隐藏桌面粘性决策卡，由底部固定栏承担 CTA */
@@ -3757,7 +3778,10 @@ ol {
 }
 
 .detail-gallery__panel {
-  display: contents;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  width: 100%;
 }
 
 .detail-gallery__schematic-note {

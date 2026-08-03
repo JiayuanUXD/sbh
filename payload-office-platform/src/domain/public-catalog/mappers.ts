@@ -43,6 +43,7 @@ import {
   REGISTRATION_CAPABILITY_LABELS,
 } from '@/domain/supply/building'
 import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
+import { formatAvailableDate } from '@/lib/frontend/format'
 
 // ---------------------------------------------------------------------------
 // 类型守卫
