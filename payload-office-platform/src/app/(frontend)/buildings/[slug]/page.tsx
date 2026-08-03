@@ -156,8 +156,7 @@ export default async function BuildingDetailPage({
   if (!building) notFound()
 
   const pois = await fetchNearbyPois(building.id, building.coordinates)
-  const mapEnabled =
-    building.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
+  const mapEnabled = building.coordinates != null
 
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasDescription = Boolean(building.description)
