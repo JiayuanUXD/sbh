@@ -1295,6 +1295,25 @@ ol {
   margin-bottom: var(--sp-4);
 }
 
+.detail {
+  padding: var(--sp-4) 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.detail__header {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-5) 0;
+}
+
+.detail-hero {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(var(--sp-5), 3vw, var(--sp-7));
+  align-items: start;
+}
+
 .detail-gallery {
   grid-column: span 7;
   display: flex;
