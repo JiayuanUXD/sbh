@@ -1295,46 +1295,6 @@ ol {
   margin-bottom: var(--sp-4);
 }
 
-.section__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--sp-4);
-  gap: var(--sp-4);
-  flex-wrap: wrap;
-}
-
-.district-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-/* ---------------------------------------------------------------------------
- * 12. 页面标题
- * --------------------------------------------------------------------------- */
-
-.page-title {
-  font-size: var(--fs-26);
-  color: var(--color-ink);
-}
-
-.page-subtitle {
-  color: var(--color-muted);
-  margin: var(--sp-1) 0 var(--sp-5);
-  font-size: var(--fs-14);
-}
-
-.empty {
-  color: var(--color-muted);
-  padding: var(--sp-7) 0;
-  text-align: center;
-}
-
-/* ---------------------------------------------------------------------------
- * 13. 房源/楼盘详情（design.md §6.5：详情主图 16:10）
- * --------------------------------------------------------------------------- */
-
 .detail {
   padding: var(--sp-4) 0;
   min-width: 0;
@@ -1356,34 +1316,148 @@ ol {
 
 .detail__overview {
   grid-column: 1 / -1;
+  width: 100%;
 }
 
 .detail-gallery {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  min-width: 0;
   grid-column: span 7;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
 }
 
-.detail-gallery__item {
+/* 58 商办风格：主大图区 */
+.detail-gallery__main {
+  position: relative;
+  width: 100%;
   margin: 0;
   min-width: 0;
-}
-
-.detail-gallery__item:first-child {
-  grid-column: 1 / -1;
-}
-
-.detail-gallery__open,
-.detail-gallery video {
-  display: block;
-  width: 100%;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-md);
+  overflow: hidden;
   background: var(--color-paper);
 }
 
+.detail-gallery__main-video-wrapper,
+.detail-gallery__main-media {
+  width: 100%;
+  height: 100%;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.detail-gallery__main-media img,
+.detail-gallery__main-video-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.detail-gallery__main-media:hover img {
+  transform: scale(1.02);
+}
+
+.detail-gallery__main-badge {
+  position: absolute;
+  left: var(--sp-3);
+  bottom: var(--sp-3);
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-13);
+  font-weight: 500;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+/* 58 商办风格：下侧缩略图轨与两侧控制箭头 */
+.detail-gallery__track {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-top: var(--sp-1);
+}
+
+.detail-gallery__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 60px;
+  border: none;
+  background: var(--color-canvas-subtle, #f0ede6);
+  color: var(--color-ink-2);
+  font-size: var(--fs-20);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.detail-gallery__arrow:hover {
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+.detail-gallery__arrow--next {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.detail-gallery__arrow--next:hover {
+  background: var(--color-copper);
+}
+
+.detail-gallery__thumbnails {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.detail-gallery__thumbnails::-webkit-scrollbar {
+  display: none;
+}
+
+.detail-gallery__thumb {
+  position: relative;
+  width: 90px;
+  height: 60px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--color-paper);
+  transition: border-color 0.15s ease;
+}
+
+.detail-gallery__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.detail-gallery__thumb--active,
+.detail-gallery__thumb[data-active] {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 1px #0284c7;
+}
+
+/* 画廊全屏弹窗入口 (58 风格保留) */
 .detail-gallery__open {
   position: relative;
   min-height: var(--touch-target);
@@ -1711,7 +1785,7 @@ ol {
 
 @media (max-width: 767px) {
 
-  .detail-gallery {
+  .detail-gallery__panel {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1863,8 +1937,11 @@ ol {
   margin-bottom: var(--sp-4);
 }
 
-.detail__section {
+.detail__section,
+.detail__overview,
+.location-panel {
   margin-top: var(--sp-7);
+  scroll-margin-top: 80px;
 }
 
 .detail__section h2 {
@@ -2148,6 +2225,23 @@ ol {
 
 .detail__decision-cta .btn {
   width: 100%;
+}
+
+.detail__decision-cta .btn--ghost {
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-2);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.detail__decision-cta .btn--ghost:hover {
+  color: var(--color-ink);
+  border-color: var(--color-copper);
+}
+
+.detail__decision-cta .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(164, 111, 63, 0.25);
+  border-color: var(--color-copper);
 }
 
 /* 移动端隐藏桌面粘性决策卡，由底部固定栏承担 CTA */
@@ -3492,13 +3586,14 @@ ol {
   flex-wrap: nowrap;
   gap: 0;
   border-bottom: 1px solid var(--color-line);
-  padding: 0 var(--sp-1);
-  overflow-x: auto;
+  padding: 0;
+  overflow: hidden;
 }
 
 .location-panel__poi-tab {
-  flex: 0 0 auto;
-  padding: var(--sp-2) var(--sp-3);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-1);
   border: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
@@ -3507,6 +3602,10 @@ ol {
   font-size: var(--fs-13);
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  justify-content: center;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
@@ -3757,7 +3856,10 @@ ol {
 }
 
 .detail-gallery__panel {
-  display: contents;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  width: 100%;
 }
 
 .detail-gallery__schematic-note {

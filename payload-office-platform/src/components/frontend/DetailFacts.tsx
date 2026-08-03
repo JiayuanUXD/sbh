@@ -1,5 +1,5 @@
 import type { FactGroupViewModel } from '@/domain/public-catalog'
-import { formatFact } from '@/lib/frontend/format'
+import { formatFact, formatAvailableDate } from '@/lib/frontend/format'
 
 type DetailFactsProps = Readonly<{
   groups: readonly FactGroupViewModel[]
@@ -11,10 +11,19 @@ type VisibleFact = Readonly<{
   estimated: boolean
 }>
 
+function renderFactValue(label: string, rawValue: string): string {
+  if (label === '可入驻日期') {
+    return formatAvailableDate(rawValue)
+  }
+  return rawValue
+}
+
 function visibleFacts(group: FactGroupViewModel): readonly VisibleFact[] {
   return group.facts.flatMap((fact) => {
     const value = formatFact(fact.value, { critical: fact.critical })
-    return value == null ? [] : [{ label: fact.label, value, estimated: fact.estimated }]
+    return value == null
+      ? []
+      : [{ label: fact.label, value: renderFactValue(fact.label, value), estimated: fact.estimated }]
   })
 }
 

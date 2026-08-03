@@ -199,66 +199,121 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
         </div>
       )}
 
-      <div className="detail-gallery__panel" role="tabpanel">
-        {currentList.map((renderable, index) => {
-          const { item, src, alt } = renderable
-          const hasFailed = failedMediaIds.has(item.id)
-          const captionId = `detail-gallery-caption-${item.id}`
-          return (
-            <figure
-              key={item.id}
-              className="detail-gallery__item"
-              data-media-kind={item.kind}
-              data-detail-analytics-event={pageType ? 'media_view' : undefined}
-              data-analytics-page-type={pageType}
-              data-analytics-media-category={pageType ? item.category : undefined}
-              data-analytics-rank={pageType ? index + 1 : undefined}
+      {activeMedia && (
+        <figure
+          className="detail-gallery__main detail-gallery__item"
+          data-media-kind={activeMedia.item.kind}
+          data-detail-analytics-event={pageType ? 'media_view' : undefined}
+          data-analytics-page-type={pageType}
+          data-analytics-media-category={pageType ? activeMedia.item.category : undefined}
+          data-analytics-rank={pageType ? safeActiveIndex + 1 : undefined}
+        >
+          {activeMedia.item.kind === 'video' ? (
+            <div className="detail-gallery__main-video-wrapper">
+              {failedMediaIds.has(activeMedia.item.id) ? (
+                <MediaFallback />
+              ) : (
+                <DetailVideo src={activeMedia.src} alt={activeMedia.alt} />
+              )}
+              <button
+                type="button"
+                className="detail-gallery__open detail-gallery__open--video"
+                aria-label={`查看全屏媒体：${activeMedia.alt}（第 ${safeActiveIndex + 1} 个，共 ${currentList.length} 个）`}
+                aria-haspopup="dialog"
+                onClick={(event) => open(safeActiveIndex, event.currentTarget)}
+              >
+                全屏查看视频
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="detail-gallery__main-media detail-gallery__open"
+              aria-label={`查看全屏媒体：${activeMedia.alt}（第 ${safeActiveIndex + 1} 个，共 ${currentList.length} 个）`}
+              aria-haspopup="dialog"
+              onClick={(event) => open(safeActiveIndex, event.currentTarget)}
             >
-              {item.kind === 'video' ? (
-                <>
+              {failedMediaIds.has(activeMedia.item.id) ? (
+                <MediaFallback />
+              ) : (
+                <img
+                  src={activeMedia.src}
+                  alt={activeMedia.alt}
+                  loading="eager"
+                  onError={() => markFailed(activeMedia.item.id)}
+                />
+              )}
+            </button>
+          )}
+
+          <span className="detail-gallery__main-badge">
+            {activeMedia.item.category}
+            {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && ' (示意图)'}
+          </span>
+          {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && (
+            <figcaption className="detail-gallery__caption">
+              <span className="detail-gallery__schematic-note">示意图，以现场实际情况为准</span>
+            </figcaption>
+          )}
+        </figure>
+      )}
+
+      {activeKind === 'floor-plan' && (
+        <p className="detail-gallery__schematic-declaration" role="note">
+          示意图，以现场实际情况为准
+        </p>
+      )}
+
+      {currentList.length > 1 && (
+        <div className="detail-gallery__track" role="region" aria-label="媒体缩略图列表">
+          <button
+            type="button"
+            className="detail-gallery__arrow detail-gallery__arrow--prev"
+            aria-label="上一个媒体"
+            onClick={() => goTo(safeActiveIndex - 1)}
+          >
+            ‹
+          </button>
+          <div className="detail-gallery__thumbnails" role="tablist" aria-label="缩略图按键">
+            {currentList.map((renderable, index) => {
+              const { item, src, alt } = renderable
+              const isActive = index === safeActiveIndex
+              const hasFailed = failedMediaIds.has(item.id)
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  className={`detail-gallery__thumb ${isActive ? 'detail-gallery__thumb--active' : ''}`}
+                  aria-selected={isActive}
+                  aria-label={`${alt}（第 ${index + 1} 张）`}
+                  data-active={isActive || undefined}
+                  data-media-kind={item.kind}
+                  data-detail-analytics-event={pageType ? 'media_view' : undefined}
+                  data-analytics-page-type={pageType}
+                  data-analytics-media-category={pageType ? item.category : undefined}
+                  data-analytics-rank={pageType ? index + 1 : undefined}
+                  onClick={() => setActiveIndex(index)}
+                >
                   {hasFailed ? (
                     <MediaFallback />
                   ) : (
-                    <DetailVideo src={src} alt={alt} />
+                    <img src={src} alt={alt} loading="lazy" onError={() => markFailed(item.id)} />
                   )}
-                  <button
-                    type="button"
-                    className="detail-gallery__open detail-gallery__open--video"
-                    aria-label={`查看全屏媒体：${alt}（第 ${index + 1} 个，共 ${currentList.length} 个）`}
-                    aria-describedby={captionId}
-                    aria-haspopup="dialog"
-                    onClick={(event) => open(index, event.currentTarget)}
-                  >
-                    全屏查看视频
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="detail-gallery__open"
-                  aria-label={`查看全屏媒体：${alt}（第 ${index + 1} 个，共 ${currentList.length} 个）`}
-                  aria-describedby={captionId}
-                  aria-haspopup="dialog"
-                  onClick={(event) => open(index, event.currentTarget)}
-                >
-                  {hasFailed ? <MediaFallback /> : <img src={src} alt={alt} loading={index === 0 ? 'eager' : 'lazy'} onError={() => markFailed(item.id)} />}
                 </button>
-              )}
-              <figcaption id={captionId}>
-                {item.category}
-                {item.kind === 'floor-plan' && item.isSchematic && (
-                  <span className="detail-gallery__schematic-note">示意图，以现场实际情况为准</span>
-                )}
-              </figcaption>
-            </figure>
-          )
-        })}
-        {activeKind === 'floor-plan' && (
-          <p className="detail-gallery__schematic-declaration" role="note">
-            示意图，以现场实际情况为准
-          </p>
-        )}
-      </div>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="detail-gallery__arrow detail-gallery__arrow--next"
+            aria-label="下一个媒体"
+            onClick={() => goTo(safeActiveIndex + 1)}
+          >
+            ›
+          </button>
+        </div>
+      )}
 
       {isOpen && activeMedia && (
         <div

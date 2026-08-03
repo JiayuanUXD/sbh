@@ -35,6 +35,7 @@ export interface AMapMarker {
 declare global {
   interface Window {
     AMap?: AMapNamespace
+    _AMapSecurityConfig?: { securityJsCode: string }
   }
 }
 
@@ -69,11 +70,7 @@ let amapPromise: Promise<AMapNamespace> | null = null
 export function loadAmapMap(): Promise<AMapNamespace> {
   if (amapPromise) return amapPromise
   amapPromise = new Promise<AMapNamespace>((resolve, reject) => {
-    const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY
-    if (!key) {
-      reject(new AmapLoaderError('amap_js_key_missing', '高德 JS API Key 未配置'))
-      return
-    }
+    const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY || '74b8801d0a5e8484f934b9d0b8d5236b'
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       reject(new AmapLoaderError('amap_js_ssr', '高德 JS API 不能在 SSR 环境 加载'))
       return
@@ -83,6 +80,12 @@ export function loadAmapMap(): Promise<AMapNamespace> {
       resolve(window.AMap)
       return
     }
+
+    // 高德 JS API v2.0 安全密钥注入
+    window._AMapSecurityConfig = {
+      securityJsCode: process.env.NEXT_PUBLIC_AMAP_SECURITY_KEY || '',
+    }
+
     const script = document.createElement('script')
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(key)}`
     script.async = true
