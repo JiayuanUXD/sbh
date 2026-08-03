@@ -66,6 +66,18 @@ function durationBucket(ms: number): string {
   return '>=2500ms'
 }
 
+/**
+ * 把全局 fetch 适配为 AmapRouteFetch 期望的最小响应形状。
+ * 显式收窄类型，避免 `as never` 绕过检查。
+ */
+async function globalFetchAsAmap(
+  url: string,
+  init: { signal: AbortSignal; method: string },
+): Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> {
+  const res = await fetch(url, init)
+  return { ok: res.ok, status: res.status, json: () => res.json() }
+}
+
 export async function POST(req: Request): Promise<Response> {
   const startedAt = Date.now()
 
@@ -117,7 +129,7 @@ export async function POST(req: Request): Promise<Response> {
 
   // ----- 5. 调 provider（起点仅在本次交互内存在，不落库不入日志） -----
   const key = process.env.AMAP_WEB_SERVICE_KEY ?? ''
-  const provider = createAmapRouteProvider({ key, fetchImpl: fetch as never })
+  const provider = createAmapRouteProvider({ key, fetchImpl: globalFetchAsAmap })
   try {
     const summary = await provider.route({
       origin: request.origin,
@@ -160,9 +172,4 @@ export function DELETE(): Response {
     { ok: false, error: 'method_not_allowed' },
     { status: 405, headers: { Allow: 'POST' } },
   )
-}
-
-/** 测试专用：重置模块级限流清理时间戳 */
-export function __resetRateStoreForTests(): void {
-  ratePruneRef.value = 0
 }

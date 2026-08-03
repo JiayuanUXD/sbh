@@ -19,6 +19,7 @@ import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
+import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -68,6 +69,7 @@ export default async function ListingDetailPage({
   const buildingDetail = building ? await getBuildingBySlug(building.slug, ctx) : null
   const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
   const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
+  const serviceSchedule = await getServiceSchedule()
   const mapEnabled =
     building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
 
@@ -199,6 +201,7 @@ export default async function ListingDetailPage({
                 priceSnapshot={inquiryPriceSnapshot}
                 activeSupplyGroup={inquirySupplyGroup}
                 currentFilters={inquiryCurrentFilters}
+                serviceSchedule={serviceSchedule}
               />
               <ShareSaveActions
                 canonicalUrl={`${siteConfig.siteOrigin}/listings/${listing.slug}`}
@@ -290,6 +293,7 @@ export default async function ListingDetailPage({
           priceSnapshot={inquiryPriceSnapshot}
           activeSupplyGroup={inquirySupplyGroup}
           currentFilters={inquiryCurrentFilters}
+          serviceSchedule={serviceSchedule}
         />
       </div>
       <BackToTop />

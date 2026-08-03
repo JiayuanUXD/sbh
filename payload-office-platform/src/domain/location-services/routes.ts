@@ -169,6 +169,16 @@ export function createAmapRouteProvider(
   }
 }
 
+/**
+ * transit 模式默认城市（上海 adcode 前缀）。
+ *
+ * 高德 direction/transit/integrated 要求 city（起点城市）。当前平台仅在上海市上线，
+ * 故用上海区号 021 作为默认值。多城市上线时，应从 destination 所在 building.city
+ * 推导真实 adcode 并通过 RouteProvider.route 的 input 传入，替换此默认。
+ * TODO(P2-followup): 多城市支持 - 把 city 提为 route input 的可选参数。
+ */
+const TRANSIT_DEFAULT_CITY = '021'
+
 /** 构建高德 direction 请求 URL（不对外暴露，避免 Key 泄露） */
 function buildRouteUrl(
   key: string,
@@ -180,8 +190,7 @@ function buildRouteUrl(
   url.searchParams.set('origin', `${origin.longitude},${origin.latitude}`)
   url.searchParams.set('destination', `${destination.longitude},${destination.latitude}`)
   if (mode === 'transit') {
-    // transit 需城市参数；用目的地经纬度所在城市由高德自解析，此处传 city=分钟级可省略。
-    url.searchParams.set('city', '021')
+    url.searchParams.set('city', TRANSIT_DEFAULT_CITY)
   }
   url.searchParams.set('key', key)
   return url

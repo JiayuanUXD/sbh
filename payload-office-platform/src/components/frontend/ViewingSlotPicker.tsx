@@ -73,18 +73,25 @@ export default function ViewingSlotPicker({
   value,
   onChange,
   nowIso,
+  schedule,
 }: Readonly<{
   value: SelectedViewingPreference | null
   onChange: (next: SelectedViewingPreference | null) => void
   /** 注入当前时间（测试可控）；默认取运行时 now */
   nowIso?: string
+  /**
+   * 服务端传入的真实平台服务时间（来自 AdvisorServiceHours global）。
+   * 未传时回退到 DEFAULT_SCHEDULE，保证客户端独立可用。
+   */
+  schedule?: ServiceSchedule
 }>) {
-  const tz = DEFAULT_SCHEDULE.timezone
+  const effectiveSchedule = schedule ?? DEFAULT_SCHEDULE
+  const tz = effectiveSchedule.timezone
   const grouped = useMemo(() => {
     const now = nowIso ?? new Date().toISOString()
-    const slots = buildViewingSlots(DEFAULT_SCHEDULE, now)
+    const slots = buildViewingSlots(effectiveSchedule, now)
     return groupByDate(slots, tz)
-  }, [nowIso, tz])
+  }, [nowIso, tz, effectiveSchedule])
 
   const dates = [...grouped.keys()]
   const [activeDate, setActiveDate] = useState<string>(dates[0] ?? '')
