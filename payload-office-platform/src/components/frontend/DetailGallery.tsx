@@ -250,7 +250,18 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
             {activeMedia.item.category}
             {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && ' (示意图)'}
           </span>
+          {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && (
+            <figcaption className="detail-gallery__caption">
+              <span className="detail-gallery__schematic-note">示意图，以现场实际情况为准</span>
+            </figcaption>
+          )}
         </figure>
+      )}
+
+      {activeKind === 'floor-plan' && (
+        <p className="detail-gallery__schematic-declaration" role="note">
+          示意图，以现场实际情况为准
+        </p>
       )}
 
       {currentList.length > 1 && (
