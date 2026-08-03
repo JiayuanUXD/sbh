@@ -70,7 +70,8 @@ export default async function ListingDetailPage({
   const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
   const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
   const serviceSchedule = await getServiceSchedule()
-  const mapEnabled = building?.coordinates != null
+  const mapEnabled =
+    building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
 
   // `gallery` is a legacy public DTO fallback, never a Payload document.
   const media = listing.mediaItems.length > 0
