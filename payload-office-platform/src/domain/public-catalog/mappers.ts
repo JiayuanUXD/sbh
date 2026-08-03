@@ -15,12 +15,15 @@
  *   - 价格始终保留数值、币种、单位和可读文本
  */
 
-import type { Listing, Building, Location, Media, Amenity, Page } from '@/payload-types'
+import type { Listing, Building, Location, Media, Amenity, Page, Article } from '@/payload-types'
 import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
   CoordinatesViewModel,
   DistrictViewModel,
+  DistrictCardViewModel,
+  ArticleCardViewModel,
+  ArticleDetailViewModel,
   DetailMediaViewModel,
   FactGroupViewModel,
   AmenityGroupViewModel,
@@ -88,6 +91,16 @@ function isAmenity(v: unknown): v is Amenity {
     v !== null &&
     typeof (v as Amenity).id === 'number' &&
     typeof (v as Amenity).name === 'string'
+  )
+}
+
+function isArticle(v: unknown): v is Article {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    typeof (v as Article).id === 'number' &&
+    typeof (v as Article).slug === 'string' &&
+    typeof (v as Article).title === 'string'
   )
 }
 
@@ -277,6 +290,92 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     summary: raw.summary ?? undefined,
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
     nearestMetro: mapDistrict(populated?.nearestMetro),
+  }
+}
+
+/**
+ * 首页商圈卡：Location + 代表楼盘封面。
+ *
+ * 封面由 facade 从「有封面的公开楼盘」按商圈分组派生后传入；
+ * 若该商圈暂无代表楼盘封面，coverImage 为 null（组件降级为纸色底卡片）。
+ * 非区域返回 null。
+ */
+export function mapDistrictCard(
+  raw: unknown,
+  coverImage: MediaViewModel | null,
+): DistrictCardViewModel | null {
+  if (!isLocation(raw)) return null
+  return {
+    id: raw.id,
+    slug: raw.slug,
+    name: raw.name,
+    coverImage,
+  }
+}
+
+/**
+ * 把 Article 文档投影为 ArticleCardViewModel。
+ *
+ * 仅消费白名单字段；content/seo/审计字段不进入 DTO。
+ * coverImage 缺失时为 null；publishedAt/category 缺失时为 null。
+ * 非资讯或被逻辑删除的记录不应到达此函数（SupplyAdapter 已过滤），
+ * 但仍以类型守卫兜底，返回 null 由上层跳过。
+ */
+export function mapArticleCard(raw: unknown): ArticleCardViewModel | null {
+  if (!isArticle(raw)) return null
+  return {
+    id: raw.id,
+    slug: raw.slug,
+    title: raw.title,
+    category: raw.category ?? null,
+    excerpt: raw.excerpt ?? null,
+    coverImage: mapMedia(raw.coverImage, raw.title),
+    publishedAt: raw.publishedAt ?? null,
+    stableSortKey: `article-${raw.id}`,
+  }
+}
+
+/**
+ * 把 Article 文档投影为 ArticleDetailViewModel（详情页）。
+ *
+ * 在卡片基础上增加 content、关联楼盘/区域与 SEO。
+ * 关联字段在 depth ≥ 2 时为对象数组；非数组或缺失时为空数组。
+ * 非资讯或被逻辑删除的记录不应到达此函数，仍以类型守卫兜底返回 null。
+ */
+export function mapArticleDetail(raw: unknown): ArticleDetailViewModel | null {
+  if (!isArticle(raw)) return null
+  const relatedBuildings: BuildingSummaryViewModel[] = []
+  if (Array.isArray(raw.relatedBuildings)) {
+    for (const b of raw.relatedBuildings) {
+      const vm = mapBuildingSummary(b)
+      if (vm) relatedBuildings.push(vm)
+    }
+  }
+  const relatedDistricts: DistrictViewModel[] = []
+  if (Array.isArray(raw.relatedDistricts)) {
+    for (const d of raw.relatedDistricts) {
+      const vm = mapDistrict(d)
+      if (vm) relatedDistricts.push(vm)
+    }
+  }
+  const seo = raw.seo
+    ? {
+        title: raw.seo.title ?? null,
+        description: raw.seo.description ?? null,
+      }
+    : null
+  return {
+    id: raw.id,
+    slug: raw.slug,
+    title: raw.title,
+    category: raw.category ?? null,
+    excerpt: raw.excerpt ?? null,
+    coverImage: mapMedia(raw.coverImage, raw.title),
+    publishedAt: raw.publishedAt ?? null,
+    content: raw.content ?? null,
+    relatedBuildings,
+    relatedDistricts,
+    seo,
   }
 }
 

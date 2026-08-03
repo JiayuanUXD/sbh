@@ -96,6 +96,8 @@ export {
   getSearchFacets,
   getPageBySlug,
   listPublishedPages,
+  getArticleBySlug,
+  listPublishedArticles,
 } from './facade'
 
 // F6.5 缓存 tag 体系与领域事件失效

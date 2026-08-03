@@ -26,6 +26,10 @@ import type {
   BuildingSummaryViewModel,
   BuildingSupplySnapshot,
   DistrictViewModel,
+  DistrictCardViewModel,
+  ArticleCardViewModel,
+  ArticleDetailViewModel,
+  ArticleListResult,
   ListingCardViewModel,
   ListingDetailViewModel,
   MediaViewModel,
@@ -38,6 +42,9 @@ import {
   mapBuildingDetail,
   mapBuildingSummary,
   mapDistrict,
+  mapDistrictCard,
+  mapArticleCard,
+  mapArticleDetail,
   mapListingCard,
   mapListingDetail,
   mapPageDetail,
@@ -80,10 +87,16 @@ export type ListingSearchResult = Readonly<{
   filteredByRentUnit: boolean
 }>
 
-/** 首页数据：精选房源 + 热门区域 */
+/** 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯 */
 export type HomepageData = Readonly<{
   featuredListings: readonly ListingCardViewModel[]
   districts: readonly DistrictViewModel[]
+  /** 精选楼盘（默认取 8 张，匹配首页两行布局） */
+  featuredBuildings: readonly BuildingSummaryViewModel[]
+  /** 商圈卡：区域 + 代表楼盘封面（无代表封面的商圈不进入卡片区） */
+  districtCards: readonly DistrictCardViewModel[]
+  /** 最新资讯（默认取 5 条，按 publishedAt 倒序） */
+  latestArticles: readonly ArticleCardViewModel[]
 }>
 
 /** 搜索 facet：当前可见房源的分布统计 */
@@ -488,30 +501,79 @@ export async function assertEffectiveBuilding(
 }
 
 /**
- * 首页数据：精选房源 + 热门区域
+ * 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯
  *
  * design.md §5.2：精选、热门区域数量使用同一 asOf 与谓词。
+ * T2 扩展：在原有两路查询基础上，并行拉取精选楼盘与最新资讯，
+ * 并由精选楼盘按商圈派生代表封面，组装商圈卡（避免对全量房源做计数聚合）。
  */
 export async function getHomepage(
   ctx: SearchContext,
-  options: Readonly<{ featuredLimit?: number }> = {},
+  options: Readonly<{ featuredLimit?: number; featuredBuildingsLimit?: number; latestArticlesLimit?: number }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
-  const [featuredListings, districts] = await Promise.all([
-    adapter.findFeaturedListings(ctx, options.featuredLimit ?? 6),
+  const featuredLimit = options.featuredLimit ?? 8
+  // 楼盘过取（默认 30）以获得足够商圈代表封面，首页精选展示再截 8 张
+  const buildingsFetchLimit = Math.max(options.featuredBuildingsLimit ?? 30, featuredLimit)
+  const articlesLimit = options.latestArticlesLimit ?? 5
+
+  const [featuredListings, districts, featuredBuildings, latestArticles] = await Promise.all([
+    adapter.findFeaturedListings(ctx, featuredLimit),
     adapter.findEffectiveDistricts(ctx),
+    adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
+    adapter.findLatestArticles(ctx, articlesLimit),
   ])
+
   const cards = mapListingsToCards(featuredListings)
   const lastEffAt = buildLastEffAtLookup(featuredListings)
   const sorted = stableSortCards(cards, 'recommended', lastEffAt)
+
   const districtVMs: DistrictViewModel[] = []
   for (const d of districts) {
     const vm = mapDistrict(d)
     if (vm) districtVMs.push(vm)
   }
+
+  // 精选楼盘：先全部映射为 VM（带 district + coverImage），再按排序取前 N 张
+  const buildingVMs: BuildingSummaryViewModel[] = []
+  for (const b of featuredBuildings) {
+    const vm = mapBuildingSummary(b)
+    if (vm) buildingVMs.push(vm)
+  }
+  const featuredBuildingSlice = buildingVMs.slice(0, featuredLimit)
+
+  // 商圈卡：每个商圈取首个有封面的精选楼盘作为代表封面。
+  // 楼盘已按 recommendedOrder / updatedAt 排序，故同一商圈首个命中的即代表。
+  const coverByDistrictSlug = new Map<string, NonNullable<MediaViewModel>>()
+  for (const b of buildingVMs) {
+    if (!b.district || !b.coverImage) continue
+    const slug = b.district.slug
+    if (!coverByDistrictSlug.has(slug)) {
+      coverByDistrictSlug.set(slug, b.coverImage)
+    }
+  }
+
+  const districtCards: DistrictCardViewModel[] = []
+  for (const d of districts) {
+    const districtVM = mapDistrict(d)
+    if (!districtVM) continue
+    const cover = coverByDistrictSlug.get(districtVM.slug) ?? null
+    const card = mapDistrictCard(d, cover)
+    if (card) districtCards.push(card)
+  }
+
+  const latestArticleVMs: ArticleCardViewModel[] = []
+  for (const a of latestArticles) {
+    const vm = mapArticleCard(a)
+    if (vm) latestArticleVMs.push(vm)
+  }
+
   return {
     featuredListings: sorted,
     districts: districtVMs,
+    featuredBuildings: featuredBuildingSlice,
+    districtCards,
+    latestArticles: latestArticleVMs,
   }
 }
 
@@ -616,6 +678,43 @@ export async function listPublishedPages(
     if (s) summaries.push(s)
   }
   return summaries
+}
+
+/**
+ * 资讯详情：/news/[slug]
+ *
+ * 仅返回已发布资讯；草稿、删除、不存在返回 null。
+ */
+export async function getArticleBySlug(
+  slug: string,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<ArticleDetailViewModel | null> {
+  const raw = await adapter.findPublishedArticleBySlug(slug, ctx)
+  if (!raw) return null
+  return mapArticleDetail(raw)
+}
+
+/**
+ * 资讯列表：/news 列表页（分页）
+ *
+ * 仅返回已发布资讯，按 publishedAt 倒序。page 从 1 起。
+ */
+export async function listPublishedArticles(
+  ctx: SearchContext,
+  options: Readonly<{ page?: number; pageSize?: number }> = {},
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<ArticleListResult> {
+  const { docs, totalDocs } = await adapter.findPublishedArticles(ctx, options)
+  const cards: ArticleCardViewModel[] = []
+  for (const a of docs) {
+    const vm = mapArticleCard(a)
+    if (vm) cards.push(vm)
+  }
+  const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48)
+  const page = Math.max(options.page ?? 1, 1)
+  const totalPages = Math.max(1, Math.ceil(totalDocs / pageSize))
+  return { docs: cards, totalDocs, page, totalPages }
 }
 
 

@@ -54,3 +54,43 @@ export function formatAvailableDate(iso: string | null | undefined): string {
   if (!y || !m || !day) return '面议'
   return `${y}年${m}月${day}日`
 }
+
+/**
+ * 格式化文章发布日期为紧凑数字日期（Asia/Shanghai 时区）。
+ *
+ * 守护不变量：
+ *   - null / 空字符串 / 非法 ISO -> 空字符串（调用方自行决定是否渲染）；
+ *   - 其余按 Asia/Shanghai 时区渲染为「YYYY.MM.DD」，纯数字适配 --font-numeric；
+ *   - 与 formatAvailableDate（散文式「YYYY年M月D日」，用于房源可入驻日期）区分：
+ *     文章发布日期是可扫描元数据，紧凑数字更合适且跨列表/详情一致。
+ *   - 延续项目「原生 Intl，不引 date-fns/dayjs」约定，复用 domain/shared/time。
+ */
+export function formatPublishedDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = parseUtcIso(iso)
+  if (!d) return ''
+  const parts = shanghaiDate(d).split('-').map(Number)
+  const [y, m, day] = parts
+  if (!y || !m || !day) return ''
+  return `${y}.${String(m).padStart(2, '0')}.${String(day).padStart(2, '0')}`
+}
+
+/**
+ * 首页「资讯中心」列表短日期（Asia/Shanghai 时区）。
+ *
+ * 守护不变量：
+ *   - null / 空字符串 / 非法 ISO -> 空字符串（调用方自行决定是否渲染）；
+ *   - 渲染为「MM/DD」（如 07/28），对齐 homepage-preview.html 资讯列表的 56px 日期列；
+ *   - 与 formatPublishedDate（YYYY.MM.DD，用于 /news 列表与详情）区分：首页列表列宽窄，
+ *     只显示月/日，年份由上下文（最新资讯）隐含；
+ *   - 延续项目「原生 Intl，不引 date-fns/dayjs」约定，复用 domain/shared/time。
+ */
+export function formatNewsListDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = parseUtcIso(iso)
+  if (!d) return ''
+  const parts = shanghaiDate(d).split('-').map(Number)
+  const [, m, day] = parts
+  if (!m || !day) return ''
+  return `${String(m).padStart(2, '0')}/${String(day).padStart(2, '0')}`
+}

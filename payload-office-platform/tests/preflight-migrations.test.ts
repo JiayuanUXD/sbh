@@ -20,8 +20,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 28 份迁移（P2 平台服务时间 + 看房偏好迁移加入后核对）
-    expect(names.length).toBe(28)
+    // 目录实际有 29 份迁移（新增 articles 资讯迁移后核对）
+    expect(names.length).toBe(29)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -33,17 +33,19 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
     expect(names).toContain('20260730_125851_detail_page_fields')
     expect(names).toContain('20260730_134600_inquiry_detail_context')
+    expect(names).toContain('20260803_104120_add_articles')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(28)
+    expect(names.length).toBe(29)
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
     expect(names).toContain('20260730_125851_detail_page_fields')
     expect(names).toContain('20260730_134600_inquiry_detail_context')
+    expect(names).toContain('20260803_104120_add_articles')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })

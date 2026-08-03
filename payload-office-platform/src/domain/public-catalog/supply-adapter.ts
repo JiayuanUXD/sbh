@@ -25,7 +25,7 @@
  */
 
 import type { Where } from 'payload'
-import type { Building, Listing, Location, Page } from '@/payload-types'
+import type { Building, Listing, Location, Page, Article } from '@/payload-types'
 import {
   getEffectiveSupplyWhere,
   getPausedListingIds,
@@ -100,6 +100,43 @@ export interface SupplyAdapter {
    * limit 用于规模拆分；MVP 单文件 sitemap，默认 1000。
    */
   findPublishedPages(ctx: SearchContext, limit?: number): Promise<readonly Page[]>
+
+  /**
+   * 首页精选楼盘（用于「精选楼盘」分区）
+   *
+   * 仅返回有封面的公开楼盘（公开判定走 `getPublicBuildingWhere`）。
+   * 排序：recommendedOrder 升序在前（PG ASC 默认 NULLS LAST，未设置的排后），
+   * updatedAt 倒序兜底，保证既有运营手填权重、又有近更新自然顺序。
+   * depth=2 以便 coverImage / district 在 mapper 一次填充到位。
+   */
+  findFeaturedBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
+
+  /**
+   * 首页资讯（用于「资讯中心」分区）
+   *
+   * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
+   * depth=2 以便 coverImage 填充为 Media。草稿、未来发布、删除均不返回。
+   */
+  findLatestArticles(ctx: SearchContext, limit?: number): Promise<readonly Article[]>
+
+  /**
+   * 资讯列表（用于 /news 列表页，分页）
+   *
+   * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
+   * page 从 1 起，pageSize 控制每页条数；depth=2 填充 coverImage。
+   */
+  findPublishedArticles(
+    ctx: SearchContext,
+    options: Readonly<{ page?: number; pageSize?: number }>,
+  ): Promise<{ docs: readonly Article[]; totalDocs: number }>
+
+  /**
+   * 按 slug 返回已发布资讯（用于 /news/[slug] 详情页）
+   *
+   * 仅 status=published 且未逻辑删除；depth=3 以便关联楼盘/区域填充。
+   * 草稿、删除、不存在返回 null。
+   */
+  findPublishedArticleBySlug(slug: string, ctx: SearchContext): Promise<Article | null>
 }
 
 /**
@@ -520,6 +557,18 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
     },
 
+    async findFeaturedBuildings(_ctx, limit = 8) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'buildings',
+        where: getPublicBuildingWhere() as unknown as Where,
+        depth: 2, // coverImage + district 一次填充；缺封面楼盘由卡片降级占位
+        limit: Math.min(Math.max(limit, 1), 50),
+        sort: ['recommendedOrder', '-updatedAt'],
+      })
+      return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
+    },
+
     async findFeaturedListings(ctx, limit = 6) {
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf)
@@ -532,8 +581,27 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         depth: 2,
         sort: '-updatedAt',
       })
-      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
-      return kept.slice(0, limit)
+      let kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+      // 回填：精选不足 limit 时，用非精选的有效房源补足（按 updatedAt 倒序），
+      // 保证首页「推荐房源」两行布局在精选数据稀缺时仍能填满，不出现稀疏单行。
+      if (kept.length < limit) {
+        const excludeIds = kept.map((l) => l.id)
+        const fallbackWhere = await baseEffectiveWhere(ctx)
+        if (excludeIds.length) fallbackWhere.id = { not_in: excludeIds }
+        const more = await payload.find({
+          collection: 'listings',
+          where: fallbackWhere as Where,
+          limit: (limit - kept.length) * 3,
+          depth: 2,
+          sort: '-updatedAt',
+        })
+        const moreKept = await fineFilter(
+          more.docs as unknown as Record<string, unknown>[],
+          asOf,
+        )
+        kept = [...kept, ...moreKept].slice(0, limit)
+      }
+      return kept
     },
 
     async findEffectiveDistricts(ctx) {
@@ -549,6 +617,54 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         sort: 'sortOrder',
       })
       return result.docs as readonly Location[]
+    },
+
+    async findLatestArticles(_ctx, limit = 5) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'articles',
+        where: {
+          status: { equals: 'published' },
+          deletedAt: { exists: false }, // articles 启用 trash，排除逻辑删除
+        },
+        depth: 2, // coverImage 填充为 Media
+        limit: Math.min(Math.max(limit, 1), 50),
+        sort: '-publishedAt',
+      })
+      return result.docs as readonly Article[]
+    },
+
+    async findPublishedArticles(_ctx, options = {}) {
+      const payload = await getPayload()
+      const page = Math.max(options.page ?? 1, 1)
+      const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48)
+      const result = await payload.find({
+        collection: 'articles',
+        where: {
+          status: { equals: 'published' },
+          deletedAt: { exists: false },
+        },
+        depth: 2, // coverImage 填充为 Media
+        limit: pageSize,
+        page,
+        sort: '-publishedAt',
+      })
+      return { docs: result.docs as readonly Article[], totalDocs: result.totalDocs }
+    },
+
+    async findPublishedArticleBySlug(slug) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'articles',
+        where: {
+          slug: { equals: slug },
+          status: { equals: 'published' },
+          deletedAt: { exists: false },
+        },
+        depth: 3, // 关联楼盘/区域填充
+        limit: 1,
+      })
+      return (result.docs[0] as Article | undefined) ?? null
     },
 
     async assertEffectiveListingBySlug(slug, ctx) {

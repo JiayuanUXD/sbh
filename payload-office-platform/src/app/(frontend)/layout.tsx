@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Metadata, Viewport } from 'next'
 import { siteConfig } from '@/lib/frontend/site-config'
 import SiteNav from '@/components/frontend/SiteNav'
+import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
 import './styles.css'
 
@@ -56,12 +57,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           </div>
         </header>
         <main id="main-content" className="site-main">{children}</main>
-        <footer className="site-footer">
-          <div className="site-footer__inner">
-            <span>© {new Date().getFullYear()} 商办租赁平台</span>
-            <span>上海 · 商务办公租赁</span>
-          </div>
-        </footer>
+        <SiteFooter />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
         <AnalyticsInit />
       </body>

@@ -85,6 +85,7 @@ export interface Config {
     'lead-ownership-history': LeadOwnershipHistory;
     'follow-ups': FollowUp;
     pages: Page;
+    articles: Article;
     'display-tags': DisplayTag;
     'listing-reviews': ListingReview;
     'listing-reports': ListingReport;
@@ -124,6 +125,7 @@ export interface Config {
     'lead-ownership-history': LeadOwnershipHistorySelect<false> | LeadOwnershipHistorySelect<true>;
     'follow-ups': FollowUpsSelect<false> | FollowUpsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
     'display-tags': DisplayTagsSelect<false> | DisplayTagsSelect<true>;
     'listing-reviews': ListingReviewsSelect<false> | ListingReviewsSelect<true>;
     'listing-reports': ListingReportsSelect<false> | ListingReportsSelect<true>;
@@ -1202,6 +1204,62 @@ export interface Page {
     };
     [k: string]: unknown;
   } | null;
+  seo?: {
+    title?: string | null;
+    description?: string | null;
+  };
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  /**
+   * 用于 /news/[slug] 路由，唯一不可重复。
+   */
+  slug: string;
+  status?: ('draft' | 'published') | null;
+  category?: ('market' | 'guide' | 'building' | 'industry') | null;
+  publishedAt?: string | null;
+  /**
+   * 首页资讯区策展权重，越小越靠前；0 表示按发布时间倒序。
+   */
+  featuredOrder?: number | null;
+  coverImage?: (number | null) | Media;
+  /**
+   * 列表/SEO 用，建议 60–120 字。
+   */
+  excerpt?: string | null;
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  relatedBuildings?: (number | Building)[] | null;
+  relatedDistricts?: (number | Location)[] | null;
   seo?: {
     title?: string | null;
     description?: string | null;
@@ -2311,6 +2369,10 @@ export interface PayloadLockedDocument {
         value: number | Page;
       } | null)
     | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
         relationTo: 'display-tags';
         value: number | DisplayTag;
       } | null)
@@ -2953,6 +3015,34 @@ export interface PagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles_select".
+ */
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  status?: T;
+  category?: T;
+  publishedAt?: T;
+  featuredOrder?: T;
+  coverImage?: T;
+  excerpt?: T;
+  content?: T;
+  relatedBuildings?: T;
+  relatedDistricts?: T;
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "display-tags_select".
  */
 export interface DisplayTagsSelect<T extends boolean = true> {
@@ -3558,6 +3648,7 @@ export interface TaskCreateCollectionExport {
       | 'lead-ownership-history'
       | 'follow-ups'
       | 'pages'
+      | 'articles'
       | 'display-tags'
       | 'listing-reviews'
       | 'listing-reports'
