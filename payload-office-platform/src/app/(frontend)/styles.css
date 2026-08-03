@@ -1331,6 +1331,8 @@ ol {
 .detail-gallery__main {
   position: relative;
   width: 100%;
+  margin: 0;
+  min-width: 0;
   aspect-ratio: 16 / 10;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -1455,33 +1457,7 @@ ol {
   box-shadow: 0 0 0 1px #0284c7;
 }
 
-.detail-gallery {
-  grid-column: span 7;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  min-width: 0;
-}
-
-.detail-gallery__item {
-  margin: 0;
-  min-width: 0;
-}
-
-.detail-gallery__item:first-child {
-  grid-column: 1 / -1;
-}
-
-.detail-gallery__open,
-.detail-gallery video {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--radius-md);
-  background: var(--color-paper);
-}
-
+/* 画廊全屏弹窗入口 (58 风格保留) */
 .detail-gallery__open {
   position: relative;
   min-height: var(--touch-target);
@@ -3610,13 +3586,14 @@ ol {
   flex-wrap: nowrap;
   gap: 0;
   border-bottom: 1px solid var(--color-line);
-  padding: 0 var(--sp-1);
-  overflow-x: auto;
+  padding: 0;
+  overflow: hidden;
 }
 
 .location-panel__poi-tab {
-  flex: 0 0 auto;
-  padding: var(--sp-2) var(--sp-3);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-1);
   border: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
@@ -3625,6 +3602,10 @@ ol {
   font-size: var(--fs-13);
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  justify-content: center;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
