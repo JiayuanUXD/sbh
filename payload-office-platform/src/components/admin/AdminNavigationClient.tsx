@@ -32,8 +32,8 @@ import { formatBadgeCount } from '@/domain/admin-navigation/navigation-badges'
 import {
   deriveOpenGroupId,
   findActiveLeaf,
+  findActiveParentKeys,
   toggleGroupInSet,
-  toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 import type {
   ResolvedAdminNavGroup,
@@ -85,11 +85,13 @@ export default function AdminNavigationClient({
   const { config } = useConfig()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
-  const [openGroupIds, setOpenGroupIds] = useState<Set<string>>(() => {
-    // 初始展开集：包含当前激活页所在的分组
+  const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
+    // 初始展开集：包含当前激活路径上的所有父节点 ID (一级 Group 与二级 Subgroup)
     const s = new Set<string>()
-    const ag = deriveOpenGroupId(groups, pathname)
-    if (ag) s.add(ag)
+    const activeParentKeys = findActiveParentKeys(groups, pathname)
+    for (const key of activeParentKeys) {
+      s.add(key)
+    }
     return s
   })
   const [collapsed, setCollapsed] = useState<boolean>(false)
@@ -147,13 +149,25 @@ export default function AdminNavigationClient({
     }
   }, [effectiveCollapsed])
 
-  // 激活分组始终视为展开（派生合并），避免在 effect 内 setState 触发级联渲染
-  const effectiveOpenGroups = useMemo(() => {
-    if (!activeGroupId || openGroupIds.has(activeGroupId)) return openGroupIds
-    const next = new Set(openGroupIds)
-    next.add(activeGroupId)
-    return next
-  }, [openGroupIds, activeGroupId])
+  // 路由变化时：在渲染阶段增量将新激活路径上的父级 key (Group & Subgroup) 加入展开集
+  const [prevPathname, setPrevPathname] = useState(pathname)
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname)
+    const activeParentKeys = findActiveParentKeys(groups, pathname)
+    if (activeParentKeys.length > 0) {
+      setOpenKeys((prev) => {
+        let changed = false
+        const next = new Set(prev)
+        for (const key of activeParentKeys) {
+          if (!next.has(key)) {
+            next.add(key)
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -176,10 +190,10 @@ export default function AdminNavigationClient({
     return () => controller.abort()
   }, [apiRoute])
 
-  const handleGroupClick = (groupId: string) => {
+  const handleToggleKey = (key: string) => {
     if (effectiveCollapsed) return
-    // 多展开模式：切换点击的分组，不影响其他分组
-    setOpenGroupIds((prev) => toggleGroupInSet(prev, groupId))
+    // 多展开模式：切换点击的分组/子分组，不影响其他分组
+    setOpenKeys((prev) => toggleGroupInSet(prev, key))
   }
 
   return (
@@ -189,7 +203,7 @@ export default function AdminNavigationClient({
     >
       <ul className="admin-navigation__groups">
         {groups.map((group) => {
-          const isOpen = !effectiveCollapsed && effectiveOpenGroups.has(group.id)
+          const isOpen = !effectiveCollapsed && openKeys.has(group.id)
           const isActiveGroup = group.id === activeGroupId
           const isHovered = effectiveCollapsed && group.id === hoveredGroupId
           const panelId = `admin-navigation-group-${group.id}`
@@ -219,7 +233,7 @@ export default function AdminNavigationClient({
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                onClick={() => handleGroupClick(group.id)}
+                onClick={() => handleToggleKey(group.id)}
                 title={effectiveCollapsed ? group.label : undefined}
                 type="button"
               >
@@ -246,6 +260,8 @@ export default function AdminNavigationClient({
                           <NavigationSubgroup
                             activeLeafId={activeLeafId}
                             badges={badges}
+                            onToggleKey={handleToggleKey}
+                            openKeys={openKeys}
                             subgroup={item}
                           />
                         ) : (
@@ -273,8 +289,10 @@ export default function AdminNavigationClient({
                             activeLeafId={activeLeafId}
                             badges={badges}
                             collapsed
-                            subgroup={item}
                             onNavigate={() => setHoveredGroupId(null)}
+                            onToggleKey={handleToggleKey}
+                            openKeys={openKeys}
+                            subgroup={item}
                           />
                         ) : (
                           <NavigationLeaf
@@ -314,17 +332,20 @@ function NavigationSubgroup({
   activeLeafId,
   badges,
   collapsed = false,
-  subgroup,
   onNavigate,
+  onToggleKey,
+  openKeys,
+  subgroup,
 }: {
   activeLeafId: string | null
   badges: AdminNavigationBadgeCounts
   collapsed?: boolean
-  subgroup: ResolvedAdminNavSubgroup
   onNavigate?: () => void
+  onToggleKey: (key: string) => void
+  openKeys: Set<string>
+  subgroup: ResolvedAdminNavSubgroup
 }) {
-  const [openSubgroupId, setOpenSubgroupId] = useState<string | null>(null)
-  const isOpen = openSubgroupId === subgroup.id
+  const isOpen = openKeys.has(subgroup.id)
   const panelId = `admin-navigation-subgroup-${subgroup.id}`
   const isActive = useMemo(
     () => subgroup.children.some((leaf) => leaf.id === activeLeafId),
@@ -342,11 +363,7 @@ function NavigationSubgroup({
         ]
           .filter(Boolean)
           .join(' ')}
-        onClick={() =>
-          setOpenSubgroupId((current) =>
-            toggleOpenGroup(current, subgroup.id),
-          )
-        }
+        onClick={() => onToggleKey(subgroup.id)}
         type="button"
       >
         <span className="admin-navigation__subgroup-label">{subgroup.label}</span>
@@ -387,10 +404,7 @@ function NavigationSubgroup({
                 active={leaf.id === activeLeafId}
                 badges={badges}
                 leaf={leaf}
-                onNavigate={() => {
-                  setOpenSubgroupId(null)
-                  onNavigate?.()
-                }}
+                onNavigate={onNavigate}
                 subgroup
               />
             </li>

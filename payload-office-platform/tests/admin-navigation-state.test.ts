@@ -4,7 +4,9 @@ import type { ResolvedAdminNavGroup } from '@/domain/admin-navigation/resolve-na
 import {
   deriveOpenGroupId,
   findActiveLeaf,
+  findActiveParentKeys,
   shouldCloseNavAfterLeafClick,
+  toggleGroupInSet,
   toggleOpenGroup,
 } from '@/domain/admin-navigation/navigation-state'
 
@@ -70,6 +72,21 @@ describe('admin navigation state', () => {
 
     expect(findActiveLeaf(groups, pathname)?.id).toBe('leads')
     expect(deriveOpenGroupId(groups, pathname)).toBe('crm')
+  })
+
+  it('多级导航：能精确返回深层激活项的所有父级 key（Group 与 Subgroup）', () => {
+    expect(findActiveParentKeys(groups, '/admin/collections/locations')).toEqual(['supply', 'supply-settings'])
+    expect(findActiveParentKeys(groups, '/admin/collections/audit-logs')).toEqual(['system', 'advanced-tools'])
+    expect(findActiveParentKeys(groups, '/admin/collections/leads')).toEqual(['crm'])
+  })
+
+  it('多展开模式：展开/收起二级菜单仅改变对应的 key，不影响其他一级或二级菜单', () => {
+    const openSet = new Set(['supply', 'supply-settings', 'crm'])
+    // 收起二级菜单 supply-settings
+    const nextSet = toggleGroupInSet(openSet, 'supply-settings')
+    expect(nextSet.has('supply')).toBe(true)
+    expect(nextSet.has('crm')).toBe(true)
+    expect(nextSet.has('supply-settings')).toBe(false)
   })
 
   it('打开房源运营会关闭客户运营，再次点击当前组会折叠', () => {
