@@ -70,7 +70,11 @@ let amapPromise: Promise<AMapNamespace> | null = null
 export function loadAmapMap(): Promise<AMapNamespace> {
   if (amapPromise) return amapPromise
   amapPromise = new Promise<AMapNamespace>((resolve, reject) => {
-    const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY || '74b8801d0a5e8484f934b9d0b8d5236b'
+    const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY
+    if (!key) {
+      reject(new AmapLoaderError('amap_js_key_missing', '高德 JS API Key 未配置'))
+      return
+    }
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       reject(new AmapLoaderError('amap_js_ssr', '高德 JS API 不能在 SSR 环境 加载'))
       return
