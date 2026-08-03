@@ -36,6 +36,7 @@ import { ListingMerchantRelations } from './collections/ListingMerchantRelations
 import { Teams } from './collections/Teams'
 import { Brokers } from './collections/Brokers'
 import { Pages } from './collections/Pages'
+import { Articles } from './collections/Articles'
 import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
@@ -164,6 +165,7 @@ export default buildConfig({
     LeadOwnershipHistory,
     FollowUps,
     Pages,
+    Articles,
     DisplayTags,
     ListingReviews,
     ListingReports,

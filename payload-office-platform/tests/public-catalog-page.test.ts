@@ -61,6 +61,18 @@ function createFakePageAdapter(options: {
     async findFeaturedListings() {
       return []
     },
+    async findFeaturedBuildings() {
+      return []
+    },
+    async findLatestArticles() {
+      return []
+    },
+    async findPublishedArticles() {
+      return { docs: [], totalDocs: 0 }
+    },
+    async findPublishedArticleBySlug() {
+      return null
+    },
     async findEffectiveDistricts() {
       return []
     },

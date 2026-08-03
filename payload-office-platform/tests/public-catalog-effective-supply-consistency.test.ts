@@ -326,6 +326,18 @@ function createFullPredicateAdapter(options: {
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)
     },
+    async findFeaturedBuildings() {
+      return []
+    },
+    async findLatestArticles() {
+      return []
+    },
+    async findPublishedArticles() {
+      return { docs: [], totalDocs: 0 }
+    },
+    async findPublishedArticleBySlug() {
+      return null
+    },
     async findEffectiveDistricts() {
       return districts
     },

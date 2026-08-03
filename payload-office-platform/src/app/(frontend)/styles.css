@@ -385,6 +385,20 @@ ol {
   }
 }
 
+/* 顶部右侧动作区：铜色 CTA + 移动端汉堡（对齐 homepage-preview.html 顶部）。
+   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。 */
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+/* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
+.site-header__actions .btn--sm {
+  white-space: nowrap;
+}
+
 .site-main {
   max-width: var(--container-max);
   margin: 0 auto;
@@ -405,13 +419,102 @@ ol {
 .site-footer__inner {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: var(--sp-6) var(--container-pad-x);
+  padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+.site-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.site-footer__logo {
+  font-family: var(--font-display);
+  font-size: var(--fs-20);
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 0.04em;
+}
+
+.site-footer__logo:hover {
+  text-decoration: none;
+  color: var(--color-copper);
+}
+
+.site-footer__tagline {
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  line-height: var(--lh-relaxed);
+  max-width: 360px;
+}
+
+.site-footer__nav {
+  display: contents;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.site-footer__col-title {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-copper);
+}
+
+.site-footer__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.site-footer__link {
+  font-size: var(--fs-14);
+  color: var(--color-ink-2);
+}
+
+.site-footer__link:hover {
+  color: var(--color-copper);
+  text-decoration: none;
+}
+
+.site-footer__bar {
+  border-top: 1px solid var(--color-line);
+}
+
+.site-footer__bar-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--sp-4) var(--container-pad-x);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--sp-4);
+  gap: var(--sp-2);
   color: var(--color-muted);
-  font-size: var(--fs-13);
+  font-size: var(--fs-12);
+}
+
+@media (max-width: 767px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: var(--sp-5);
+  }
+
+  .site-footer__bar-inner {
+    justify-content: flex-start;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -3007,61 +3110,47 @@ ol {
   display: flex;
   gap: var(--sp-2);
   width: 100%;
-  max-width: 560px;
+  max-width: 760px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
-.hero-search__input {
-  flex: 1 1 320px;
+/* 下拉式筛选（对齐 demo）：三个 select 单行收起，自定义 chevron 由 token 派生 */
+.hero-search__select {
+  flex: 1 1 140px;
   min-width: 0;
+  appearance: none;
   border: 1px solid var(--color-line-strong);
   border-radius: var(--radius-md);
   padding: var(--sp-3) var(--sp-4);
+  padding-right: var(--sp-6);
   font-size: var(--fs-16);
   background: #fff;
   color: var(--color-ink);
-  min-height: 48px;
+  min-height: 52px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-muted) 50%),
+    linear-gradient(135deg, var(--color-muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
   transition: border-color var(--duration-fast) var(--ease-standard),
     box-shadow var(--duration-fast) var(--ease-standard);
 }
 
-.hero-search__input:hover {
+.hero-search__select:hover {
   border-color: var(--color-ink-2);
 }
 
-.hero-search__input:focus-visible {
+.hero-search__select:focus-visible {
   outline: none;
   border-color: var(--color-copper);
   box-shadow: var(--shadow-focus);
 }
 
-.hero-search__error {
-  color: var(--color-danger);
-  font-size: var(--fs-13);
-  background: var(--color-danger-soft);
-  border-radius: var(--radius-sm);
-  padding: var(--sp-1) var(--sp-3);
-}
-
-.hero-search__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  align-items: center;
-  justify-content: center;
-  max-width: 720px;
-}
-
-.hero-search__chip-label {
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  margin-right: var(--sp-1);
-}
-
-.hero-search .tag--lg {
-  cursor: pointer;
-  background: #fff;
+/* 搜索按钮与 select 等高（form 为 flex，align-items 默认 stretch） */
+.hero-search__form .btn {
+  flex-shrink: 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -4601,4 +4690,677 @@ ol {
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * 22. 首页分区头 + 新分区组件（plans/temporal-imagining-sonnet.md §9）
+ *   - .section__header：标题左 / 查看全部右，baseline 对齐（修正原未定义样式）
+ *   - .cat-tiles：类型入口瓷砖
+ *   - .district-cards：1 大 + N 小商圈拼贴
+ *   - .value-band：价值主张深色带（01/02/03）
+ *   - .news-list：资讯列表（日期 + 分类 + 标题垂直居中）
+ *   守护：只用设计 token；遮罩/次要文字用 color-mix 由 token 派生，不引入新色值。
+ * --------------------------------------------------------------------------- */
+
+.section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.section__header .section__title {
+  margin-bottom: 0;
+}
+
+.section__header .text-copper {
+  font-size: var(--fs-14);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.section__header .text-copper:hover {
+  text-decoration: none;
+}
+
+/* 22.1 类型瓷砖 ----------------------------------------------------------- */
+
+.cat-tiles {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-4);
+}
+
+.cat-tile {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-5) var(--sp-4);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  color: var(--color-ink);
+  position: relative;
+  min-height: var(--touch-target);
+  transition: border-color var(--duration-base) var(--ease-standard),
+    background var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard);
+}
+
+.cat-tile:hover {
+  border-color: var(--color-copper);
+  background: var(--color-canvas);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.cat-tile__no {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-13);
+  color: var(--color-copper);
+  letter-spacing: 0.08em;
+}
+
+.cat-tile__label {
+  font-family: var(--font-display);
+  font-size: var(--fs-20);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-top: var(--sp-2);
+}
+
+.cat-tile__sublabel {
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+  margin-top: var(--sp-1);
+}
+
+.cat-tile__arrow {
+  position: absolute;
+  top: var(--sp-4);
+  right: var(--sp-4);
+  color: var(--color-copper);
+  font-family: var(--font-numeric);
+  font-size: var(--fs-14);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.cat-tile:hover .cat-tile__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 22.2 商圈拼贴卡 --------------------------------------------------------- */
+
+.district-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 180px;
+  gap: var(--sp-4);
+}
+
+.district-card {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  min-height: var(--touch-target);
+  background: var(--color-paper);
+}
+
+.district-card--lg {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.district-card__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+.district-card__placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-paper),
+    var(--color-paper) 12px,
+    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 12px,
+    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 24px
+  );
+}
+
+.district-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--color-ink) 74%, transparent),
+    color-mix(in srgb, var(--color-ink) 20%, transparent) 55%,
+    transparent
+  );
+}
+
+.district-card__body {
+  position: relative;
+  z-index: 2;
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.district-card__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-22);
+  font-weight: 600;
+  color: var(--color-on-ink);
+}
+
+.district-card--lg .district-card__name {
+  font-size: var(--fs-26);
+}
+
+.district-card__cta {
+  font-size: var(--fs-13);
+  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
+}
+
+.district-card:hover .district-card__media {
+  transform: scale(1.04);
+}
+
+@media (max-width: 1023px) {
+  .district-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .district-cards {
+    grid-template-columns: 1fr;
+    grid-auto-rows: 160px;
+  }
+
+  .district-card--lg {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+}
+
+/* 22.3 价值主张深色带 ----------------------------------------------------- */
+
+/* 价值主张带：浅色 paper 底（对齐 preview 7.7），非深色 ink —— 用户反馈黑底不契合。
+   编辑式 01/02/03 编号 + 铜色顶部标线，文字用 ink/muted。 */
+.value-band {
+  margin-top: var(--sp-8);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-7) var(--sp-5);
+}
+
+.value-band__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  color: var(--color-ink);
+  margin-bottom: var(--sp-6);
+}
+
+.value-band__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--sp-6);
+}
+
+.value-band__item {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: flex-start;
+  padding-top: var(--sp-4);
+  border-top: 2px solid var(--color-copper);
+}
+
+.value-band__no {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-26);
+  color: var(--color-copper);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.value-band__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.value-band__name {
+  font-family: var(--font-display);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.value-band__desc {
+  font-size: var(--fs-14);
+  color: var(--color-muted);
+  line-height: var(--lh-relaxed);
+}
+
+/* 22.4 资讯中心：1 头条 + 日期列表（对齐 homepage-preview.html 7.8） ----------- */
+
+.news-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: var(--sp-6);
+}
+
+@media (max-width: 1023px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.news-feature {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  color: var(--color-ink);
+  transition: box-shadow var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+
+.news-feature:hover {
+  border-color: var(--color-line-strong);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+}
+
+.news-feature__media {
+  aspect-ratio: 16 / 9;
+  background: var(--color-paper);
+  overflow: hidden;
+}
+
+.news-feature__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.news-feature__body {
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.news-feature__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-20);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: var(--lh-snug);
+}
+
+.news-feature__excerpt {
+  font-size: var(--fs-14);
+  color: var(--color-muted);
+  line-height: var(--lh-relaxed);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.news-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.news-item {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: var(--sp-4);
+  align-items: center;
+  padding: var(--sp-5) 0;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-ink);
+}
+
+.news-item:hover {
+  text-decoration: none;
+}
+
+.news-item:hover .news-item__title {
+  color: var(--color-copper);
+}
+
+.news-item__date {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-14);
+  color: var(--color-copper);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.news-item__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-16);
+  color: var(--color-ink);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.news-item__cat {
+  flex-shrink: 0;
+  font-size: var(--fs-12);
+  color: var(--color-muted);
+  padding: 1px var(--sp-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  line-height: 1.6;
+}
+
+/* 22.5 行内空状态（替代原 .empty，与 empty-state 体系对齐） ---------------- */
+
+.empty-state--inline {
+  padding: var(--sp-6) 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: var(--fs-14);
+}
+
+/* 22.6 首页推荐房源 / 精选楼盘：桌面端 4 列以呈现 2 行 × 8 卡（用户要求）
+ *    仅作用域 .home 内的 .card-grid，不影响列表页等全局共享类。
+ *    ≥1280px 强制 4 列；以下回退 auto-fill（平板 3 列、手机 1 列）。 */
+@media (min-width: 1280px) {
+  .home .card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * 23. 资讯页（/news 列表 + /news/[slug] 详情）
+ *   - .page-title / .page-subtitle：列表页标题（原全局缺失，顺带补齐）
+ *   - .article-grid / .article-card：资讯卡片网格
+ *   - .news-detail__*：详情页头部、封面、相关推荐
+ *   守护：只用设计 token；卡片悬停仅 border + shadow，不引入新色值。
+ * --------------------------------------------------------------------------- */
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-tight);
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: var(--fs-16);
+  color: var(--color-muted);
+  margin-top: var(--sp-2);
+}
+
+.news-page__header {
+  margin-bottom: var(--sp-6);
+}
+
+/* 23.1 资讯卡片网格 ------------------------------------------------------- */
+
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-5);
+}
+
+.article-card {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    transform var(--duration-base) var(--ease-standard);
+}
+
+.article-card:hover {
+  border-color: var(--color-line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.article-card__link {
+  display: flex;
+  flex-direction: column;
+  color: var(--color-ink);
+  height: 100%;
+}
+
+.article-card__link:hover {
+  text-decoration: none;
+}
+
+.article-card__media {
+  aspect-ratio: 16 / 9;
+  background: var(--color-paper);
+  overflow: hidden;
+}
+
+.article-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-slow) var(--ease-standard);
+}
+
+.article-card:hover .article-card__img {
+  transform: scale(1.04);
+}
+
+.article-card__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-paper),
+    var(--color-paper) 12px,
+    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 12px,
+    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 24px
+  );
+}
+
+.article-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  flex: 1;
+}
+
+.article-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.article-card__cat {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-12);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--color-copper);
+  color: color-mix(in srgb, var(--color-copper-hover) 80%, var(--color-ink));
+  background: var(--color-copper-soft);
+  border-radius: var(--radius-pill);
+  line-height: 1.4;
+}
+
+.article-card__date {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-12);
+  color: var(--color-muted);
+}
+
+.article-card__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-18);
+  font-weight: 600;
+  color: var(--color-ink);
+  line-height: var(--lh-snug);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.article-card:hover .article-card__title {
+  color: var(--color-copper);
+}
+
+.article-card__excerpt {
+  font-size: var(--fs-14);
+  color: var(--color-muted);
+  line-height: var(--lh-normal);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 23.2 资讯详情 ----------------------------------------------------------- */
+
+.news-detail__header {
+  margin: var(--sp-5) 0 var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.news-detail__cat {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-12);
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--color-copper);
+  color: color-mix(in srgb, var(--color-copper-hover) 80%, var(--color-ink));
+  background: var(--color-copper-soft);
+  border-radius: var(--radius-pill);
+  line-height: 1.4;
+}
+
+.news-detail__date {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-13);
+  color: var(--color-muted);
+}
+
+.news-detail__cover {
+  margin-bottom: var(--sp-5);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-paper);
+}
+
+.news-detail__cover-img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+
+.news-detail__excerpt {
+  font-size: var(--fs-18);
+  line-height: var(--lh-relaxed);
+  color: var(--color-ink-2);
+  margin-bottom: var(--sp-5);
+}
+
+.news-detail__related {
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--color-line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.news-detail__related .section__title {
+  margin-bottom: 0;
+}
+
+.news-detail__related-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.news-detail__related-label {
+  font-family: var(--font-numeric);
+  font-size: var(--fs-12);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-copper);
+}
+
+.news-detail__related-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+}
+
+.news-detail__related-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--fs-14);
+  color: var(--color-ink-2);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+}
+
+.news-detail__related-link:hover {
+  border-color: var(--color-copper);
+  color: var(--color-copper);
+  background: var(--color-copper-soft);
+  text-decoration: none;
+}
+
 

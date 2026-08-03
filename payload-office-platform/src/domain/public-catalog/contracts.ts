@@ -20,6 +20,7 @@ import type {
   Media,
   Amenity,
   Page,
+  Article,
 } from '@/payload-types'
 
 // ---------------------------------------------------------------------------
@@ -350,3 +351,69 @@ export type PopulatedPage = Page & {
     image?: (number | null) | Media
   } | null
 }
+
+// ---------------------------------------------------------------------------
+// 资讯 DTO（ArticleCardViewModel）+ 首页商圈卡
+// ---------------------------------------------------------------------------
+
+/**
+ * 资讯卡片视图模型：首页「资讯中心」分区 + /news 列表
+ *
+ * 字段白名单：id / slug / title / category / excerpt / coverImage / publishedAt。
+ * 不暴露 content（富文本正文仅在详情页渲染）、seo、createdBy 等内部字段。
+ * 草稿、逻辑删除的文章不会进入此 DTO（由 SupplyAdapter 过滤 status=published）。
+ */
+export type ArticleCardViewModel = Readonly<{
+  id: number
+  slug: string
+  title: string
+  category: Article['category'] | null
+  excerpt: string | null
+  coverImage: MediaViewModel | null
+  publishedAt: string | null
+  /** 稳定排序收束键（article-<id>） */
+  stableSortKey: string
+}>
+
+/**
+ * 首页商圈卡视图模型：区域 + 代表楼盘封面
+ *
+ * 封面由该商圈下一个有封面的公开楼盘派生（D6：不改 locations schema）。
+ * 本期不计「在售房源数」--避免首页每次请求全量聚合有效房源；
+ * 如需计数，后续可走 facet 缓存或 buildings 聚合字段。
+ */
+export type DistrictCardViewModel = Readonly<{
+  id: number
+  slug: string
+  name: string
+  coverImage: MediaViewModel | null
+}>
+
+/**
+ * 资讯详情视图模型：/news/[slug] 详情页
+ *
+ * 在卡片白名单基础上增加 content（Lexical 富文本，仅详情页渲染）、
+ * 关联楼盘/区域（可选，组件缺失时跳过）与 SEO。
+ * 草稿、未发布、逻辑删除的资讯不会进入此 DTO。
+ */
+export type ArticleDetailViewModel = Readonly<{
+  id: number
+  slug: string
+  title: string
+  category: Article['category'] | null
+  excerpt: string | null
+  coverImage: MediaViewModel | null
+  publishedAt: string | null
+  content: Article['content']
+  relatedBuildings: readonly BuildingSummaryViewModel[]
+  relatedDistricts: readonly DistrictViewModel[]
+  seo: Readonly<{ title: string | null; description: string | null }> | null
+}>
+
+/** 资讯列表结果：/news 列表页 */
+export type ArticleListResult = Readonly<{
+  docs: readonly ArticleCardViewModel[]
+  totalDocs: number
+  page: number
+  totalPages: number
+}>

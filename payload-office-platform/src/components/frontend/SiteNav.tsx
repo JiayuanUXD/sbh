@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
+import InquiryModal from '@/components/frontend/InquiryModal'
 
 /**
  * 公开站点主导航
@@ -18,12 +19,14 @@ import React, { useEffect, useRef, useState } from 'react'
 
 type NavItem = { href: string; label: string }
 
+// 对齐 homepage-preview.html 顶部导航：不设「首页」（logo 即回首页），
+// 顺序与文案与 preview 一致。
 const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/', label: '首页' },
-  { href: '/listings', label: '在租房源' },
-  { href: '/buildings', label: '找写字楼' },
+  { href: '/listings', label: '找办公室' },
+  { href: '/buildings', label: '找楼盘' },
   { href: '/listings?type=serviced-office', label: '服务式办公' },
   { href: '/listings?type=coworking', label: '共享办公' },
+  { href: '/news', label: '资讯' },
 ] as const
 
 /**
@@ -60,6 +63,17 @@ export default function SiteNav() {
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
+
+  // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
+  // pageType 仅记录入口上下文，按当前路径粗分类以便分析。
+  const ctaPageType =
+    pathname.startsWith('/buildings')
+      ? 'building'
+      : pathname.startsWith('/news')
+        ? 'content'
+        : pathname.startsWith('/listings')
+          ? 'search'
+          : 'home'
 
   // Esc 关闭 + Tab 焦点锁定，归还焦点到触发器
   useEffect(() => {
@@ -133,41 +147,52 @@ export default function SiteNav() {
         })}
       </nav>
 
-      {/* 移动端菜单触发器 */}
-      <button
-        ref={toggleRef}
-        type="button"
-        className="site-menu-toggle"
-        aria-label={open ? '关闭菜单' : '打开菜单'}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-controls="mobile-drawer"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          aria-hidden="true"
+      {/* 右侧动作区：铜色 CTA（开询价弹层）+ 移动端菜单触发器。
+          包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
+      <div className="site-header__actions">
+        <InquiryModal
+          pageType={ctaPageType}
+          triggerLabel="获取选址方案"
+          triggerVariant="primary"
+          triggerClassName="btn--sm"
+        />
+
+        {/* 移动端菜单触发器 */}
+        <button
+          ref={toggleRef}
+          type="button"
+          className="site-menu-toggle"
+          aria-label={open ? '关闭菜单' : '打开菜单'}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-controls="mobile-drawer"
+          onClick={() => setOpen((v) => !v)}
         >
-          {open ? (
-            <>
-              <line x1="6" y1="6" x2="18" y2="18" />
-              <line x1="18" y1="6" x2="6" y2="18" />
-            </>
-          ) : (
-            <>
-              <line x1="3" y1="7" x2="21" y2="7" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="17" x2="21" y2="17" />
-            </>
-          )}
-        </svg>
-      </button>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            {open ? (
+              <>
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+              </>
+            ) : (
+              <>
+                <line x1="3" y1="7" x2="21" y2="7" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="17" x2="21" y2="17" />
+              </>
+            )}
+          </svg>
+        </button>
+      </div>
 
       {/* 移动端抽屉 */}
       {open && (

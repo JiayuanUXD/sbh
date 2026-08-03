@@ -4,6 +4,11 @@ import React from 'react'
 import HeroSearch from '@/components/frontend/HeroSearch'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
+import CategoryTiles from '@/components/frontend/CategoryTiles'
+import DistrictCards from '@/components/frontend/DistrictCards'
+import FeaturedBuildings from '@/components/frontend/FeaturedBuildings'
+import ValueProps from '@/components/frontend/ValueProps'
+import NewsSection from '@/components/frontend/NewsSection'
 import { getHomepage } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
@@ -20,7 +25,13 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default async function HomePage() {
   const ctx = defaultSearchContext()
-  const { featuredListings, districts } = await getHomepage(ctx)
+  const {
+    featuredListings,
+    districts,
+    featuredBuildings,
+    districtCards,
+    latestArticles,
+  } = await getHomepage(ctx)
 
   return (
     <div className="home">
@@ -40,27 +51,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="section__header">
-          <h2 className="section__title">按区域浏览</h2>
-          <Link href="/listings" className="text-copper" data-event-name="home_view_all_listings">查看全部 →</Link>
-        </div>
-        <div className="district-chips">
-          {districts.map((d) => (
-            <Link key={d.id} href={`/listings?district=${d.slug}`} className="tag tag--lg" data-event-name="home_district_click" data-district={d.slug}>
-              {d.name}
-            </Link>
-          ))}
-        </div>
-      </section>
+      <CategoryTiles />
 
-      <section className="section">
+      <DistrictCards districts={districtCards} />
+
+      <FeaturedBuildings buildings={featuredBuildings} />
+
+      <section className="section" aria-labelledby="featured-listings-title">
         <div className="section__header">
-          <h2 className="section__title">推荐房源</h2>
+          <h2 className="section__title" id="featured-listings-title">推荐房源</h2>
           <Link href="/listings" className="text-copper" data-event-name="home_browse_all_listings">浏览全部房源 →</Link>
         </div>
         {featuredListings.length === 0 ? (
-          <p className="empty">暂无推荐房源。</p>
+          <p className="empty-state empty-state--inline">暂无推荐房源。</p>
         ) : (
           <div className="card-grid">
             {featuredListings.map((l) => (
@@ -69,6 +72,10 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      <ValueProps />
+
+      <NewsSection articles={latestArticles} />
     </div>
   )
 }
