@@ -284,29 +284,35 @@ test.describe('后台导航 / 桌面交互', () => {
     await expect(page.locator('.admin-navigation')).toBeVisible()
   })
 
-  test('一次只展开一个分组，刷新后恢复当前分组和高亮叶子', async ({ page }) => {
+  test('多分组可同时展开，刷新后恢复当前分组和高亮叶子', async ({ page }) => {
+    // 当前路由 /admin 的激活分组为"工作台"，初始自动展开
     await expect(topGroupButton(page, '工作台')).toHaveAttribute(
       'aria-expanded',
       'true',
     )
 
+    // 多展开模式（对标 Arco Design Pro）：打开新分组不收起已展开分组
     await openGroup(page, '房源运营')
-    await expect(topGroupButton(page, '工作台')).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
-    await expect(
-      page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
-    ).toHaveCount(1)
-
-    await openGroup(page, '客户运营')
     await expect(topGroupButton(page, '房源运营')).toHaveAttribute(
       'aria-expanded',
-      'false',
+      'true',
+    )
+    await expect(topGroupButton(page, '工作台')).toHaveAttribute(
+      'aria-expanded',
+      'true',
     )
     await expect(
       page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
-    ).toHaveCount(1)
+    ).toHaveCount(2)
+
+    await openGroup(page, '客户运营')
+    await expect(topGroupButton(page, '客户运营')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    await expect(
+      page.locator('.admin-navigation__group-toggle[aria-expanded="true"]'),
+    ).toHaveCount(3)
 
     // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
     await page
@@ -318,6 +324,7 @@ test.describe('后台导航 / 桌面交互', () => {
     await page.reload()
     await ensureDesktopNavigationOpen(page)
 
+    // 刷新后恢复当前路由所在分组（客户运营）并高亮叶子
     await expect(topGroupButton(page, '客户运营')).toHaveAttribute(
       'aria-expanded',
       'true',
