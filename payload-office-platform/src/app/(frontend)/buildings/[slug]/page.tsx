@@ -19,6 +19,7 @@ import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
+import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
@@ -149,9 +150,10 @@ export default async function BuildingDetailPage({
   const { slug } = await params
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
   const ctx = defaultSearchContext()
-  const [{ building, supply }, relatedBuildings] = await Promise.all([
+  const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
     getBuildingDetail(slug, ctx, supplyInput),
     getRelatedBuildings(slug, ctx),
+    getServiceSchedule(),
   ])
   if (!building) notFound()
 
@@ -226,6 +228,7 @@ export default async function BuildingDetailPage({
               triggerLabel={hasSupply ? '询价 / 预约看房' : '登记找房需求'}
               triggerClassName="btn--lg detail__decision-inquiry"
               sourceSection="hero"
+              serviceSchedule={serviceSchedule}
             />
             <ShareSaveActions
               canonicalUrl={`${siteConfig.siteOrigin}/buildings/${building.slug}`}
@@ -295,6 +298,7 @@ export default async function BuildingDetailPage({
           targetSummary={building.name}
           triggerLabel="咨询该楼盘"
           sourceSection="mobile-bar"
+          serviceSchedule={serviceSchedule}
         />
       </div>
       <BackToTop />

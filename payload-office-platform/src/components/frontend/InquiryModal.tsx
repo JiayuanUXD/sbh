@@ -12,6 +12,7 @@ import { track } from '@/lib/frontend/analytics'
 import ViewingSlotPicker, {
   type SelectedViewingPreference,
 } from '@/components/frontend/ViewingSlotPicker'
+import type { ServiceSchedule } from '@/domain/advisor-availability'
 
 /**
  * F5.2 可访问咨询 Modal（多入口）
@@ -60,6 +61,12 @@ type Props = {
   activeSupplyGroup?: InquirySupplyGroup
   /** 当前详情筛选，只接受 schema 白名单字段。 */
   currentFilters?: InquiryCurrentFilters
+  /**
+   * P2 Task 4：平台服务时间 schedule（服务端从 AdvisorServiceHours global 读取）。
+   * 传入时看房时段选择器用真实 schedule 生成候选，消除客户端/服务端分歧；
+   * 未传时回退到客户端默认（周一至五 09:00-18:00）。
+   */
+  serviceSchedule?: ServiceSchedule
 }
 
 export type InquiryStep = 'contact' | 'requirements' | 'success'
@@ -234,6 +241,7 @@ export default function InquiryModal(props: Props) {
     priceSnapshot,
     activeSupplyGroup,
     currentFilters,
+    serviceSchedule,
     triggerLabel = DEFAULT_TRIGGER_LABEL,
     triggerVariant = 'primary',
     triggerClassName,
@@ -786,7 +794,7 @@ export default function InquiryModal(props: Props) {
                   </div>
                 </details>
 
-                <ViewingSlotPicker value={viewingPreference} onChange={setViewingPreference} />
+                <ViewingSlotPicker value={viewingPreference} onChange={setViewingPreference} schedule={serviceSchedule} />
 
                 <label className="modal__label" htmlFor={`f-message-${titleId}`}>
                   留言（选填）
