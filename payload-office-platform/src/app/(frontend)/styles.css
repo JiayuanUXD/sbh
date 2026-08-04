@@ -1393,7 +1393,7 @@ ol {
 .filter-bar__input:focus {
   outline: none;
   border-color: var(--color-copper);
-  box-shadow: 0 0 0 2px var(--color-copper-soft);
+  box-shadow: var(--shadow-focus);
 }
 
 .filter-bar__range {
@@ -2194,7 +2194,7 @@ ol {
 
 .detail__decision-cta .btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(164, 111, 63, 0.25);
+  box-shadow: var(--shadow-focus);
   border-color: var(--color-copper);
 }
 
