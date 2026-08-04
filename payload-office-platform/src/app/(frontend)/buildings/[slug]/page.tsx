@@ -216,7 +216,12 @@ export default async function BuildingDetailPage({
           <section id="overview" className="detail__overview">
             <DetailFacts groups={building.factGroups} />
           </section>
-          <BuildingSupplyOverview groups={supply.availableGroups} />
+          {/* 单一供给类型时，概览的「有效供给 N 套 / 可选面积」与顶部统计带的
+              「在租房源 N 套 / 可租面积」是同两个数字换措辞重说一遍。多组供给
+              （出租 + 出售 + 联合办公）时才需要按组拆开看。 */}
+          {supply.availableGroups.length > 1 && (
+            <BuildingSupplyOverview groups={supply.availableGroups} />
+          )}
           <div className="detail__decision">
             <p className="detail__decision-title">
               {hasSupply ? `${supply.totalEffectiveListings} 套当前有效供给` : '暂无公开供给，也可登记找房需求'}
@@ -248,7 +253,12 @@ export default async function BuildingDetailPage({
 
       <section id="supply" className="detail__section" data-supply-as-of={supply.asOf}>
         <h2>当前有效供给</h2>
-        {hasSupply && <BuildingSupplyPriceRanges groups={supply.availableGroups} />}
+        {/* 价格区间是聚合视图，只有在供给多到无法逐条扫读时才有价值。
+            1 套供给时它与下方供给表的价格完全重复，标题还在向用户解释
+            数据结构（"按供给类型和计价单位分组"）。 */}
+        {hasSupply && supply.totalEffectiveListings > 1 && (
+          <BuildingSupplyPriceRanges groups={supply.availableGroups} />
+        )}
         <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} input={supplyInput} />
       </section>
 
