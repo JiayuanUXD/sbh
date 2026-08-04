@@ -3173,7 +3173,7 @@ ol {
 }
 
 .dev-story__header h1 {
-  font-size: var(--fs-24);
+  font-size: var(--fs-26);
   margin: 0 0 var(--sp-2) 0;
   color: var(--color-ink);
 }
@@ -3550,7 +3550,7 @@ ol {
 }
 
 .route-planner__summary dt {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
   color: var(--color-ink-2);
 }
 
@@ -3561,12 +3561,12 @@ ol {
 
 .route-planner__fallback {
   color: var(--color-ink-2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
 }
 
 /* P2 平台顾问服务状态 */
 .advisor-availability {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
   margin: var(--sp-1) 0;
 }
 
@@ -3607,7 +3607,7 @@ ol {
 }
 
 .viewing-slot-picker__hint {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
   color: var(--color-ink-2);
   margin: 0 0 var(--sp-2);
 }
@@ -3628,7 +3628,7 @@ ol {
   background: var(--color-paper);
   color: var(--color-ink-2);
   cursor: pointer;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
 }
 
 .viewing-slot-picker__date[data-active='true'],
@@ -3644,7 +3644,7 @@ ol {
   color: var(--color-ink-2);
   text-decoration: underline;
   cursor: pointer;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-14);
   padding: 0;
 }
 
@@ -3832,7 +3832,7 @@ ol {
   border-radius: var(--radius-sm);
   background: var(--color-copper-soft);
   color: var(--color-copper);
-  font-size: var(--fs-11);
+  font-size: var(--fs-12);
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
@@ -4492,7 +4492,7 @@ ol {
 
 .building-card-mini__name {
   margin: 0;
-  font-size: var(--fs-15);
+  font-size: var(--fs-16);
   font-weight: 600;
   color: var(--color-ink);
   line-height: 1.3;
