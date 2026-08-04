@@ -1556,8 +1556,8 @@ ol {
 
 .detail-gallery__thumb--active,
 .detail-gallery__thumb[data-active] {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 1px #0284c7;
+  border-color: var(--color-copper);
+  box-shadow: 0 0 0 1px var(--color-copper);
 }
 
 /* 画廊全屏弹窗入口 (58 风格保留) */
