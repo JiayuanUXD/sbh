@@ -1843,37 +1843,15 @@ ol {
   font-size: var(--fs-16);
 }
 
-/* 规格条（F-002 规格条 / Apple 产品页 spec strip）：
-   值大号在上、标签小号在下，靠竖分隔线成横条，让面积/工位/可入驻这类
-   决策数字一瞥即得，而不是读一列 12px 的 label-value 对。 */
 .detail-facts dl {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-  gap: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
   margin: 0;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-canvas);
-  overflow: hidden;
 }
 
 .detail-facts__item {
   min-width: 0;
-  display: flex;
-  flex-direction: column-reverse;
-  gap: var(--sp-1);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 1px solid var(--color-line);
-}
-
-.detail-facts__item:first-child {
-  border-left: 0;
-}
-
-/* 单项时不拉满整行：一个"甲级"横跨 1200px 只会显得空。 */
-.detail-facts dl:has(.detail-facts__item:only-child) {
-  display: inline-grid;
-  min-width: 8.5rem;
 }
 
 .detail-facts dt {
@@ -1882,14 +1860,8 @@ ol {
 }
 
 .detail-facts dd {
-  margin: 0;
+  margin: var(--sp-1) 0 0;
   overflow-wrap: anywhere;
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  font-size: var(--fs-18);
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--color-ink);
 }
 
 .detail-facts__estimated {
