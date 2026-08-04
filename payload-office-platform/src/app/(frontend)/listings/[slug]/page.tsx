@@ -103,7 +103,18 @@ export default async function ListingDetailPage({
     ...listing.amenityGroups,
     ...(buildingDetail?.amenityGroups.filter((group) => group.items.length > 0) ?? []),
   ]
-  const hasAmenities = amenityGroups.some((group) => group.items.length > 0)
+  // 跨组去重：后续组不重复前面组已展示的项目（房源与楼盘的配套常有交集，
+  // 如"近地铁"同时出现在亮点与配套，同一屏内渲染两遍）
+  const seenAmenities = new Set<string>()
+  const dedupedAmenityGroups = amenityGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (seenAmenities.has(item)) return false
+      seenAmenities.add(item)
+      return true
+    }),
+  }))
+  const hasAmenities = dedupedAmenityGroups.some((group) => group.items.length > 0)
   const anchors = [
     { id: 'overview', label: '房源概况', visible: true },
     { id: 'amenities', label: '配套设施', visible: hasAmenities },
@@ -224,7 +235,7 @@ export default async function ListingDetailPage({
       {hasAmenities && (
         <section id="amenities" className="detail__section">
           <h2>配套设施</h2>
-          <AmenityList groups={amenityGroups} />
+          <AmenityList groups={dedupedAmenityGroups} />
         </section>
       )}
       {listing.description && (
