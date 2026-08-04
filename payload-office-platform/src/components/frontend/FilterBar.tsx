@@ -94,6 +94,12 @@ export default function FilterBar({ districts }: Props) {
   const isPriceSort = sort === 'rent-asc' || sort === 'rent-desc'
   const qMatches = (val: string) => sp.get('q') === val
 
+  // 高级筛选（快速筛选 + 数值字段）默认收起，结果优先；
+  // 有任一高级条件生效时默认展开，并显示生效数量徽标
+  const ADVANCED_KEYS = ['q', 'rentMin', 'rentMax', 'areaMin', 'areaMax', 'availableBefore'] as const
+  const activeAdvancedCount = ADVANCED_KEYS.filter((k) => sp.get(k)).length
+  const [showAdvanced, setShowAdvanced] = useState(activeAdvancedCount > 0)
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const rentMinN = toIntOrNull(rentMin)
@@ -217,6 +223,26 @@ export default function FilterBar({ districts }: Props) {
         </div>
       </div>
 
+      {/* 更多筛选开关 */}
+      <button
+        type="button"
+        className="filter-bar__more"
+        aria-expanded={showAdvanced}
+        aria-controls="filter-bar-advanced"
+        onClick={() => setShowAdvanced((v) => !v)}
+      >
+        {showAdvanced ? '收起筛选' : '更多筛选'}
+        {activeAdvancedCount > 0 && (
+          <span className="filter-bar__more-count" aria-label={`${activeAdvancedCount} 个条件生效中`}>
+            {activeAdvancedCount}
+          </span>
+        )}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`filter-bar__more-chevron${showAdvanced ? ' is-open' : ''}`}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      <div id="filter-bar-advanced" className="filter-bar__advanced" hidden={!showAdvanced}>
       {/* 快速筛选 */}
       <div className="filter-bar__row">
         <span className="filter-bar__row-label">快速筛选</span>
@@ -322,6 +348,7 @@ export default function FilterBar({ districts }: Props) {
         <button type="submit" className="btn btn--primary">筛选</button>
         <Link href="/listings" className="btn btn--ghost">重置</Link>
       </form>
+      </div>
     </div>
   )
 }

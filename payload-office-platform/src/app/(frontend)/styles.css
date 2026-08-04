@@ -1260,6 +1260,62 @@ ol {
   gap: var(--sp-2);
 }
 
+/* 更多筛选开关：默认收起快速筛选与数值字段，首屏结果优先 */
+.filter-bar__more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-copper-hover);
+  font-size: var(--fs-13);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.filter-bar__more:hover {
+  border-color: var(--color-copper);
+  background: var(--color-copper-soft);
+}
+
+.filter-bar__more-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-copper);
+  color: var(--color-on-copper);
+  font-size: var(--fs-12);
+  line-height: 1;
+}
+
+.filter-bar__more-chevron {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.filter-bar__more-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.filter-bar__advanced {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.filter-bar__advanced[hidden] {
+  display: none;
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;
