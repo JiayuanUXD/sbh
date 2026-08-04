@@ -20,6 +20,7 @@
   --color-muted: #6b7079;      /* 辅助文字 */
   --color-paper: #f5f1e8;      /* 品牌浅底 */
   --color-canvas: #fcfbf8;     /* 页面背景 */
+  --color-surface: #ffffff;    /* 提亮面：卡片/表单控件/弹层，纯白以区别于奶油画布 */
   --color-line: #d5d0c7;       /* 分隔、输入边界 */
   --color-line-strong: #b8b1a3;
   --color-copper: #a46f3f;     /* 主强调、关键 CTA */
@@ -111,6 +112,8 @@
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
 
   /* 1.10 层级 z-index */
+  --z-raised: 10;              /* 局部叠加：地图浮层等，低于全局层 */
+  --z-floating: 40;            /* 固定浮动元素：回到顶部等，低于 header */
   --z-header: 100;
   --z-drawer: 200;
   --z-modal: 300;
@@ -628,7 +631,7 @@ ol {
 .listing-card {
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -793,7 +796,7 @@ ol {
   border-radius: var(--radius-md);
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--fs-14);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   min-height: 36px;
   transition: border-color var(--duration-fast) var(--ease-standard),
@@ -880,7 +883,7 @@ ol {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: #fff;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   /* 软键盘适配：使用 dvh 单位，回退到 vh */
@@ -994,7 +997,7 @@ ol {
   border-radius: var(--radius-md);
   font-size: var(--fs-14);
   color: var(--color-ink);
-  background: #fff;
+  background: var(--color-surface);
   transition: border-color var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard);
 }
@@ -1085,7 +1088,7 @@ ol {
 }
 
 .view-switcher__btn.is-active {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
@@ -1186,7 +1189,7 @@ ol {
   left: var(--sp-2);
   padding: 2px var(--sp-2);
   background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  color: var(--color-on-ink);
   font-size: var(--fs-12);
   border-radius: var(--radius-pill);
   backdrop-filter: blur(4px);
@@ -1200,7 +1203,7 @@ ol {
   right: var(--sp-2);
   padding: 2px var(--sp-2);
   background: var(--color-copper);
-  color: #fff;
+  color: var(--color-on-ink);
   font-size: var(--fs-12);
   font-weight: 600;
   border-radius: var(--radius-pill);
@@ -1344,7 +1347,7 @@ ol {
   padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-pill);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   font-size: var(--fs-13);
   line-height: 1.4;
@@ -1395,7 +1398,7 @@ ol {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   font-size: var(--fs-13);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   min-width: 80px;
 }
@@ -1549,7 +1552,7 @@ ol {
   left: var(--sp-3);
   bottom: var(--sp-3);
   background: rgba(0, 0, 0, 0.65);
-  color: #ffffff;
+  color: var(--color-on-ink);
   padding: 4px 12px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-13);
@@ -1586,12 +1589,12 @@ ol {
 
 .detail-gallery__arrow:hover {
   background: var(--color-ink);
-  color: #ffffff;
+  color: var(--color-on-ink);
 }
 
 .detail-gallery__arrow--next {
   background: #1e293b;
-  color: #ffffff;
+  color: var(--color-on-ink);
 }
 
 .detail-gallery__arrow--next:hover {
@@ -2159,7 +2162,7 @@ ol {
   flex-direction: column;
   gap: var(--sp-3);
   padding: var(--sp-4);
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
 }
@@ -2327,7 +2330,7 @@ ol {
   justify-content: space-between;
   align-items: baseline;
   padding: var(--sp-2) var(--sp-3);
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
 }
@@ -2368,7 +2371,7 @@ ol {
 }
 
 .modal {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   padding: var(--sp-6);
   width: min(440px, 92vw);
@@ -2443,7 +2446,7 @@ ol {
   border-radius: var(--radius-md);
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--fs-14);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   min-height: var(--touch-target);
   font-family: var(--font-sans);
@@ -2499,7 +2502,7 @@ ol {
   border-radius: var(--radius-md);
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--fs-14);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   min-height: var(--touch-target);
   font-family: var(--font-sans);
@@ -2986,7 +2989,7 @@ ol {
   padding: var(--sp-3) var(--sp-4);
   padding-right: var(--sp-6);
   font-size: var(--fs-16);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   min-height: 52px;
   cursor: pointer;
@@ -3057,7 +3060,7 @@ ol {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 999px;
   padding: 4px 12px;
@@ -3070,7 +3073,7 @@ ol {
 .dev-story__section {
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--color-surface);
   padding: var(--sp-5);
 }
 
@@ -3519,7 +3522,7 @@ ol {
   position: absolute;
   top: var(--sp-3);
   right: var(--sp-3);
-  z-index: 10;
+  z-index: var(--z-raised);
   width: 320px;
   max-height: calc(500px - var(--sp-6));
   display: flex;
@@ -3727,7 +3730,7 @@ ol {
     linear-gradient(
       110deg,
       var(--color-canvas) 30%,
-      color-mix(in srgb, var(--color-canvas) 80%, #fff) 50%,
+      color-mix(in srgb, var(--color-canvas) 80%, var(--color-surface)) 50%,
       var(--color-canvas) 70%
     );
   background-size: 200% 100%;
@@ -4492,7 +4495,7 @@ ol {
   position: fixed;
   right: 24px;
   bottom: 80px;
-  z-index: 40;
+  z-index: var(--z-floating);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4526,7 +4529,7 @@ ol {
   background: linear-gradient(
     110deg,
     var(--color-paper) 30%,
-    color-mix(in srgb, var(--color-paper) 80%, #fff) 50%,
+    color-mix(in srgb, var(--color-paper) 80%, var(--color-surface)) 50%,
     var(--color-paper) 70%
   );
   background-size: 200% 100%;
@@ -4853,7 +4856,7 @@ ol {
 .news-feature {
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -5015,7 +5018,7 @@ ol {
 }
 
 .article-card {
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   overflow: hidden;
