@@ -39,6 +39,13 @@ export default function ListingGrid({
   const [override, setOverride] = useState<'grid' | 'list' | null>(null)
   const view = override ?? storedView
 
+  // F-011: "必看好房"徽章上限 ≤20%，避免通胀。按渲染顺序取前 budget 个 featured。
+  const featuredBadgeIds = new Set<number>()
+  const badgeBudget = Math.max(1, Math.floor(docs.length * 0.2))
+  for (const d of docs) {
+    if (d.isFeatured && featuredBadgeIds.size < badgeBudget) featuredBadgeIds.add(d.id)
+  }
+
   function changeView(next: 'grid' | 'list') {
     if (next === view) return
     setOverride(next)
@@ -84,7 +91,7 @@ export default function ListingGrid({
 
       <div className={`card-grid card-grid--${view}`}>
         {docs.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} view={view} />
+          <ListingCard key={listing.id} listing={listing} view={view} showFeaturedTag={featuredBadgeIds.has(listing.id)} />
         ))}
       </div>
     </div>

@@ -67,7 +67,7 @@ export default async function HomePage() {
         ) : (
           <div className="card-grid">
             {featuredListings.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <ListingCard key={l.id} listing={l} showFeaturedTag={false} />
             ))}
           </div>
         )}

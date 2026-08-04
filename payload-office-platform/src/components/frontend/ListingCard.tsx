@@ -22,6 +22,12 @@ type Props = Readonly<{
   variant?: 'default' | 'building-supply'
   /** 视图模式：grid 竖卡 / list 横卡（左图右文，高信息密度） */
   view?: 'grid' | 'list'
+  /**
+   * 是否显示"必看好房"徽章。省略时回退到 listing.isFeatured。
+   * 列表页用于按 ≤20% 上限裁剪徽章（F-011），避免通胀；
+   * 首页"推荐房源"section 传 false（标题已表达推荐）。
+   */
+  showFeaturedTag?: boolean
   /** Public IDs and fixed enums for a page-scoped delegated analytics listener. */
   detailAnalytics?: Readonly<{
     event: 'recommendation_click' | 'building_listing_click'
@@ -61,8 +67,9 @@ function tagVariantFor(text: string): 'default' | 'forest' | 'copper' {
   return 'default'
 }
 
-export default function ListingCard({ listing, variant = 'default', view = 'grid', detailAnalytics }: Props) {
+export default function ListingCard({ listing, variant = 'default', view = 'grid', showFeaturedTag, detailAnalytics }: Props) {
   const { coverImage, price, area, building, highlights, listingType, title, slug, decorationStatus, isFeatured } = listing
+  const featuredTagOn = showFeaturedTag ?? isFeatured
   const areaText = area != null ? formatArea(area) : null
   const fallbackAlt = `${building?.name ?? ''} ${TYPE_LABEL[listingType]}`.trim()
 
@@ -108,7 +115,7 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
           fallbackAlt={fallbackAlt || title}
         />
         <span className="listing-card__type-badge">{TYPE_LABEL[listingType]}</span>
-        {isFeatured && <span className="listing-card__featured-tag">必看好房</span>}
+        {featuredTagOn && <span className="listing-card__featured-tag">必看好房</span>}
       </div>
       <div className="listing-card__body">
         <h3 className="listing-card__title">{title}</h3>
