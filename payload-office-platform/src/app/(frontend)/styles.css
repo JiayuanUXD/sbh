@@ -40,12 +40,15 @@
    *   --font-numeric: 数字与英文（IBM Plex Sans）
    * 通过 next/font 在 layout 注入 CSS 变量；未注入时回退到系统字体栈。
    */
-  --font-display: var(--font-source-han-serif), "Songti SC", "STSong",
+  /* next/font 目前未注入 --font-source-han-* / --font-ibm-plex，
+     var() 无兜底会让整条声明失效并落到 Times New Roman（中文站用西文
+     衬线渲染汉字）。给每个变量补同族兜底：变量将来注入时照常优先生效。 */
+  --font-display: var(--font-source-han-serif, "Songti SC"), "Songti SC", "STSong",
     "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
-  --font-sans: var(--font-source-han-sans), -apple-system, BlinkMacSystemFont,
+  --font-sans: var(--font-source-han-sans, "PingFang SC"), -apple-system, BlinkMacSystemFont,
     "PingFang SC", "Microsoft YaHei", "Source Han Sans SC",
     "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
-  --font-numeric: var(--font-ibm-plex), "IBM Plex Sans", ui-sans-serif, system-ui,
+  --font-numeric: var(--font-ibm-plex, "IBM Plex Sans"), "IBM Plex Sans", ui-sans-serif, system-ui,
     "SF Pro Text", "Segoe UI", sans-serif;
 
   /* 1.3 字号 token（design.md §6.3：H1 流体，正文最小 16px） */
