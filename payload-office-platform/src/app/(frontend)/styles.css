@@ -1680,15 +1680,46 @@ ol {
   text-align: center;
 }
 
+/* 无媒体时不占据首屏左栏：画廊降级为一行声明，决策栏升为全宽，
+   避免首屏出现大块无信息的奶油色空地（F-004）。 */
 .detail-gallery--empty {
-  display: grid;
-  min-height: 15rem;
-  place-items: center;
-  padding: var(--sp-4);
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 0;
+  padding: var(--sp-2) 0;
   color: var(--color-muted);
-  background: var(--color-paper);
-  border-radius: var(--radius-md);
-  text-align: center;
+  font-size: var(--fs-13);
+  background: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+}
+
+/* 画廊缺席时决策信息接管整行，但仍保持"正文 + 右侧决策卡"两栏，
+   避免决策卡在全宽容器里塌成一条窄柱。 */
+.detail-hero:has(.detail-gallery--empty) .detail__summary {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1024px) {
+  .detail-hero:has(.detail-gallery--empty) .detail__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
+    align-items: start;
+    column-gap: clamp(var(--sp-5), 3vw, var(--sp-7));
+  }
+
+  .detail-hero:has(.detail-gallery--empty) .detail__summary > .detail__overview,
+  .detail-hero:has(.detail-gallery--empty) .detail__summary > .building-supply-overview {
+    grid-column: 1;
+  }
+
+  .detail-hero:has(.detail-gallery--empty) .detail__summary > .detail__decision {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
 }
 
 .detail-gallery__dialog {
