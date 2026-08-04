@@ -81,7 +81,7 @@ export default function BuildingListCard({ building, view = 'grid' }: Props) {
         <div className="listing-card__meta">
           {leasableText ? (
             <>
-              <span className="price price--md tabular">在租 {leasableText}㎡</span>
+              <span className="price price--md tabular">在租 {leasableText}</span>
             </>
           ) : (
             <span className="price price--md tabular">暂无在租</span>
