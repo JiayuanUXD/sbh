@@ -5,7 +5,7 @@ import { buildBuildingSupplySnapshot } from '@/domain/public-catalog/building-su
 import { getBuildingDetail, getRelatedBuildings, type ListingCardViewModel } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
 import { rankRelatedBuildingsByProximity } from '@/domain/public-catalog/supply-adapter'
-import { BuildingSupplyPriceRanges } from '@/app/(frontend)/buildings/[slug]/page'
+import { BuildingSupplyPriceRanges } from '@/components/frontend/building-detail/BuildingDetailLayout'
 import type { Building } from '@/payload-types'
 import { BUILDING_JINGAN_CENTER, LISTING_MONTHLY_STANDARD } from '@/test/frontend/payload-documents'
 
