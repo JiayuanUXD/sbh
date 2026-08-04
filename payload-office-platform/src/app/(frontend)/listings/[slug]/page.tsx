@@ -11,6 +11,7 @@ import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
+import DetailMobileBarPrice from '@/components/frontend/DetailMobileBarPrice'
 import ListingCard from '@/components/frontend/ListingCard'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import RecommendationReason from '@/components/frontend/RecommendationReason'
@@ -291,7 +292,7 @@ export default async function ListingDetailPage({
       )}
       <div className="detail__mobile-bar" role="region" aria-label="询价操作栏">
         <div className="detail__mobile-bar-info">
-          <span className="detail__mobile-bar-rent">{rentText}</span>
+          <DetailMobileBarPrice rentText={rentText} />
           <span className="detail__mobile-bar-title">{listing.title}</span>
         </div>
         <InquiryModal
