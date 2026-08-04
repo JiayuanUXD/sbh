@@ -3841,7 +3841,8 @@ ol {
 /* 高德地图 Canvas（进入视口自动加载） */
 .amap-map-canvas {
   position: relative;
-  min-height: 120px;
+  /* 与 __container 同高：地图未加载/失败时也撑满，POI 浮动面板不会溢出到下一节，且避免加载后 CLS */
+  height: 500px;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   background: var(--color-canvas);
@@ -3894,6 +3895,10 @@ ol {
 }
 
 @media (max-width: 640px) {
+  .amap-map-canvas {
+    height: 320px;
+  }
+
   .amap-map-canvas__container {
     height: 320px;
   }
