@@ -17,3 +17,4 @@ skills-lock.json
 # Subagent-driven development scratch
 /.superpowers/
 /.worktrees/
+.gstack/
