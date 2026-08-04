@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import React from 'react'
-import BuildingDetailLayoutV2 from '@/components/frontend/building-detail/BuildingDetailLayoutV2'
+import BuildingDetailLayout from '@/components/frontend/building-detail/BuildingDetailLayout'
 import type {
   BuildingDetailViewModel,
   BuildingSummaryViewModel,
@@ -234,12 +234,12 @@ export default function BuildingDetailDemoPage() {
       <p className="dev-story-banner" role="note">
         演示页：数据为虚拟 fixture，仅用于评审详情页重构结构，非真实楼盘信息
       </p>
-      <BuildingDetailLayoutV2
+      <BuildingDetailLayout
         building={FIXTURE_BUILDING}
         supply={FIXTURE_SUPPLY}
         relatedBuildings={FIXTURE_RELATED}
         pois={FIXTURE_POIS}
-        mapEnabled={false}
+        mapEnabled={true}
       />
     </>
   )

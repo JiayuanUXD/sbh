@@ -55,14 +55,13 @@ function expectNoPageRuntimeErrors(errors: ReturnType<typeof collectPageRuntimeE
 }
 
 test.describe('房源详情 P0', () => {
-  test('有效房源按决策顺序展示概况、锚点和咨询入口', async ({ page }) => {
+  test('有效房源按决策顺序展示概况和咨询入口', async ({ page }) => {
     const response = await page.goto(`/listings/${LISTING_SLUG}`)
 
     expect(response?.status()).toBe(200)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: '房源概况' })).toBeVisible()
     await expect(page.locator('.detail-hero #overview')).toHaveCount(1)
-    await expect(page.getByRole('navigation', { name: '详情导航' })).toBeVisible()
     await expect(page.getByRole('link', { name: '查看楼盘' })).toBeVisible()
     await expect(
       page.locator('button[data-source-section="hero"]', { hasText: '询价 / 预约看房' }),
@@ -204,14 +203,9 @@ test.describe('房源详情 P0', () => {
     expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
   })
 
-  test('详情锚点为可键盘激活的原生链接，并遵守减少动效偏好', async ({ page }) => {
+  test('详情画廊遵守减少动效偏好', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto(`/listings/${LISTING_SLUG}`)
-    const firstAnchor = page.getByRole('navigation', { name: '详情导航' }).getByRole('link').first()
-    await expect(firstAnchor).toHaveAttribute('href', '#overview')
-    await firstAnchor.focus()
-    await firstAnchor.press('Enter')
-    await expect(page).toHaveURL(/#overview$/)
     expect(await page.locator('.detail-gallery__open').first().evaluate(
       (element) => Number.parseFloat(getComputedStyle(element).transitionDuration),
     )).toBeLessThanOrEqual(0.01)
@@ -227,39 +221,44 @@ test.describe('楼盘详情 P0', () => {
     await page.route('**/webapi.amap.com/**', (route) => route.abort())
   })
 
-  test('楼盘页按有效供给显示非空分组', async ({ page }) => {
-    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+  test('楼盘页按有效供给显示在租房源表格', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
 
     expect(response?.status()).toBe(200)
-    await expect(page.getByRole('heading', { name: '当前有效供给' })).toBeVisible()
-    const activeLeaseFilter = page.getByRole('button', { name: '按出租筛选（当前筛选）' })
-    await expect(activeLeaseFilter).toBeVisible()
-    await expect(activeLeaseFilter).toHaveAttribute('aria-current', 'true')
+    await expect(page.getByRole('heading', { name: '在租房源' })).toBeVisible()
     // The held `jingan-published-pending-recheck` fixture belongs to this
     // building but is not effective public supply. `media-rich-listing` (P1
     // 媒体样例) is an additional effective lease listing.
     await expect(page.locator('.building-supply-browser__table tbody tr')).toHaveCount(4)
   })
 
-  test('结果筛选为空时仍保留未筛选非空业务组入口和 canonical JSON-LD', async ({ page }) => {
+  test('楼盘供给分桶筛选默认全选且可切换', async ({ page }) => {
     await page.goto('/buildings/west-nanjing-premium-center')
     const canonicalJsonLd = await page.locator('script[type="application/ld+json"]').textContent()
-    await expect(page.locator('[data-supply-tab="lease"]')).toBeVisible()
+    const areaGroup = page.getByRole('group', { name: '按面积筛选' })
+    const priceGroup = page.getByRole('group', { name: '按价格筛选' })
+    await expect(areaGroup).toBeVisible()
+    await expect(priceGroup).toBeVisible()
+    await expect(areaGroup.getByRole('button', { name: /全部/ })).toHaveAttribute('aria-pressed', 'true')
+    await expect(priceGroup.getByRole('button', { name: /全部/ })).toHaveAttribute('aria-pressed', 'true')
 
-    await page.goto('/buildings/west-nanjing-premium-center?group=lease&areaMin=999999')
-
-    await expect(page.locator('[data-supply-tab="lease"]')).toBeVisible()
-    await expect(page.getByText('当前筛选下暂无匹配空间')).toBeVisible()
+    // 切换到任一非空面积桶后，antd list 仍可渲染且 canonical JSON-LD 不变
+    const firstAreaBucket = areaGroup.getByRole('button').nth(1)
+    if (await firstAreaBucket.isVisible()) {
+      await firstAreaBucket.click()
+      await expect(firstAreaBucket).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('.building-supply-browser__table')).toBeVisible()
+    }
     expect(await page.locator('script[type="application/ld+json"]').textContent()).toBe(canonicalJsonLd)
   })
 
-  test('无供给楼盘不显示最低价和空 tab', async ({ page }) => {
+  test('无供给楼盘不显示最低价和分桶', async ({ page }) => {
     const response = await page.goto('/buildings/empty-building')
 
     expect(response?.status()).toBe(200)
     await expect(page.getByText('当前暂无公开可选空间')).toBeVisible()
     await expect(page.getByText('最低价', { exact: false })).toHaveCount(0)
-    await expect(page.locator('[data-supply-tab]')).toHaveCount(0)
+    await expect(page.locator('.building-supply-browser__bucket')).toHaveCount(0)
     await expect(
       page.locator('button[data-source-section="hero"]', { hasText: '登记找房需求' }),
     ).toBeVisible()
@@ -277,18 +276,13 @@ test.describe('楼盘详情 P0', () => {
     await expect(list).toHaveAttribute('data-supply-as-of', asOf ?? '')
   })
 
-  test('桌面楼盘供给默认紧凑表格并可切换到卡片', async ({ page }) => {
-    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+  test('桌面楼盘供给默认紧凑表格且无视图切换', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
 
     expect(response?.status()).toBe(200)
-    const viewControls = page.getByRole('group', { name: '供给展示方式' })
-    await expect(viewControls.getByRole('button', { name: '表格视图' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('group', { name: '供给展示方式' })).toHaveCount(0)
     await expect(page.locator('.building-supply-browser__table')).toBeVisible()
     await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(0)
-
-    await viewControls.getByRole('button', { name: '卡片视图' }).click()
-    await expect(viewControls.getByRole('button', { name: '卡片视图' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(4)
   })
 
   test('桌面有供给楼盘首屏提供唯一可见咨询入口', async ({ page }) => {
@@ -301,12 +295,11 @@ test.describe('楼盘详情 P0', () => {
     await expect(page.getByRole('region', { name: '询价操作栏' })).toBeHidden()
   })
 
-  test('窄屏楼盘供给始终使用卡片且不显示视图切换', async ({ page }) => {
+  test('窄屏楼盘供给始终使用卡片', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
-    const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
 
     expect(response?.status()).toBe(200)
-    await expect(page.getByRole('group', { name: '供给展示方式' })).toHaveCount(0)
     await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(4)
     await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
   })

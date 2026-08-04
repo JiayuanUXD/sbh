@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { createElement } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { buildBuildingSupplySnapshot } from '@/domain/public-catalog/building-supply'
 import { getBuildingDetail, getRelatedBuildings, type ListingCardViewModel } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
 import { rankRelatedBuildingsByProximity } from '@/domain/public-catalog/supply-adapter'
-import { BuildingSupplyPriceRanges } from '@/components/frontend/building-detail/BuildingDetailLayout'
 import type { Building } from '@/payload-types'
 import { BUILDING_JINGAN_CENTER, LISTING_MONTHLY_STANDARD } from '@/test/frontend/payload-documents'
 
@@ -157,24 +154,6 @@ describe('buildBuildingSupplySnapshot', () => {
 
     expect(snapshot.validationErrors).toContain('price_unit_required')
     expect(snapshot.groups[0]?.priceRanges).toHaveLength(2)
-  })
-
-  it('相同完整价格键在不同供给组中保留可见组标签和唯一展示键', () => {
-    const snapshot = buildBuildingSupplySnapshot(
-      [
-        makeCard(),
-        makeCard({ id: 2, slug: 'coworking', listingType: 'coworking' }),
-      ],
-      {},
-      AS_OF,
-    )
-
-    const markup = renderToStaticMarkup(createElement(BuildingSupplyPriceRanges, { groups: snapshot.groups }))
-
-    expect(markup).toContain('出租')
-    expect(markup).toContain('联合办公')
-    expect(markup).toContain('data-price-range-key="lease:lease:CNY:day:sqm"')
-    expect(markup).toContain('data-price-range-key="coworking:lease:CNY:day:sqm"')
   })
 })
 

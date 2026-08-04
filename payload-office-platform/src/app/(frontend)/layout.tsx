@@ -1,8 +1,7 @@
-import React, { Suspense } from 'react'
-import Link from 'next/link'
+import React from 'react'
 import type { Metadata, Viewport } from 'next'
 import { siteConfig } from '@/lib/frontend/site-config'
-import SiteNav from '@/components/frontend/SiteNav'
+import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
 import './styles.css'
@@ -48,14 +47,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <header className="site-header">
-          <div className="site-header__inner">
-            <Link href="/" className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
-            <Suspense fallback={<nav className="site-nav" aria-label="主导航" />}>
-              <SiteNav />
-            </Suspense>
-          </div>
-        </header>
+        <SiteHeader />
         <main id="main-content" className="site-main">{children}</main>
         <SiteFooter />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}

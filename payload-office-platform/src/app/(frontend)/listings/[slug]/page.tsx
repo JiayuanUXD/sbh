@@ -7,7 +7,6 @@ import AdvisorCard from '@/components/frontend/AdvisorCard'
 import BackToTop from '@/components/frontend/BackToTop'
 import AmenityList from '@/components/frontend/AmenityList'
 import BuildingSummaryCard from '@/components/frontend/BuildingSummaryCard'
-import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
@@ -118,14 +117,6 @@ export default async function ListingDetailPage({
     }),
   }))
   const hasAmenities = dedupedAmenityGroups.some((group) => group.items.length > 0)
-  const anchors = [
-    { id: 'overview', label: '房源概况', visible: true },
-    { id: 'amenities', label: '配套设施', visible: hasAmenities },
-    { id: 'description', label: '房源描述', visible: listing.description != null },
-    { id: 'building', label: '所在楼盘', visible: building != null },
-    { id: 'location', label: '位置交通', visible: building != null },
-    { id: 'related', label: '相关推荐', visible: recommendations.length > 0 },
-  ]
 
   const jsonLd = buildListingJsonLd(listing, siteConfig.siteOrigin)
 
@@ -234,7 +225,6 @@ export default async function ListingDetailPage({
           <DetailFacts groups={listing.factGroups} />
         </section>
       </section>
-      <DetailAnchorNav items={anchors} />
       {hasAmenities && (
         <section id="amenities" className="detail__section">
           <h2>配套设施</h2>

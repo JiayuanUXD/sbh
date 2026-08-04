@@ -1,6 +1,7 @@
 import type {
   BuildingSupplyGroupAvailability,
   BuildingSupplyPriceRange,
+  PriceViewModel,
 } from '@/domain/public-catalog'
 
 type PriceDisplayUnit = BuildingSupplyPriceRange['displayUnit']
@@ -43,4 +44,24 @@ export function aggregateAreaRange(
 export function formatAreaRange(range: { min: number; max: number }): string {
   if (range.min === range.max) return `${range.min} ㎡`
   return `${range.min}–${range.max} ㎡`
+}
+
+/**
+ * 估算月租金总额（58 式表格「总价」列）。
+ * 仅对可按面积折算的计价方式给出估算；其余返回 null（显示「—」）。
+ */
+export function estimateMonthlyTotal(price: PriceViewModel | null, area: number | null): number | null {
+  if (!price || area == null) return null
+  const { amount, basis, period } = price
+  if (basis === 'total') return amount
+  if (basis === 'seat') return amount * area
+  if (period === 'day') return amount * area * 30
+  if (period === 'month') return amount * area
+  return null
+}
+
+/** 月租金总额 → 可读文本（万元/月，小值用元/月）。 */
+export function formatMonthlyTotal(total: number): string {
+  if (total >= 10000) return `${(total / 10000).toFixed(1)}万/月`
+  return `${Math.round(total)}元/月`
 }

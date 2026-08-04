@@ -85,8 +85,8 @@ test.describe('F7.1 全链路 E2E', () => {
     await expect(page).toHaveURL(/\/buildings\//)
     await expect(page.locator('h1')).toBeVisible()
 
-    // 楼盘应有"当前有效供给"区块（h2 标题，避开 site-nav 与 building-stats 文本重复）
-    const inBuildingSection = page.getByRole('heading', { level: 2, name: '当前有效供给' })
+    // 楼盘应有"在租房源"区块（h2 标题，避开 site-nav 文本重复）
+    const inBuildingSection = page.getByRole('heading', { level: 2, name: '在租房源' })
     await expect(inBuildingSection).toBeVisible()
 
     // 楼内房源卡片应可点击进入详情

@@ -36,18 +36,26 @@ export default async function HomePage() {
   return (
     <div className="home">
       <section className="hero">
-        <p className="hero__eyebrow">Shanghai Premium Office Leasing</p>
-        <h1 className="hero__heading">为成长型企业匹配更体面的上海办公室</h1>
-        <p className="hero__summary">
-          聚合甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。
-        </p>
-        <HeroSearch districts={districts} />
-        <div className="hero__inquiry-cta">
-          <InquiryModal
-            pageType="home"
-            triggerLabel="获取选址方案"
-            triggerVariant="ghost"
-          />
+        <div className="hero__bg" aria-hidden="true">
+          <video autoPlay muted loop playsInline preload="metadata">
+            <source src="/media/bg.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div className="hero__scrim" aria-hidden="true" />
+        <div className="hero__inner">
+          <p className="hero__eyebrow">Shanghai Premium Office Leasing</p>
+          <h1 className="hero__heading">为成长型企业匹配更体面的上海办公室</h1>
+          <p className="hero__summary">
+            聚合甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。
+          </p>
+          <HeroSearch districts={districts} />
+          <div className="hero__inquiry-cta">
+            <InquiryModal
+              pageType="home"
+              triggerLabel="获取选址方案"
+              triggerVariant="ghost"
+            />
+          </div>
         </div>
       </section>
 

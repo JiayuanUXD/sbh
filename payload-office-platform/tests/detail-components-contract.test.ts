@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import DetailAnchorNav from '@/components/frontend/DetailAnchorNav'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
@@ -19,7 +18,6 @@ const BuildingSupplyBrowser = BuildingSupplyBrowserModule.default
 
 const DETAIL_COMPONENT_FILES = [
   'DetailGallery.tsx',
-  'DetailAnchorNav.tsx',
   'DetailFacts.tsx',
   'BuildingSupplyBrowser.tsx',
   'InquiryModal.tsx',
@@ -178,20 +176,6 @@ describe('detail component contracts', () => {
     expect(html).toContain('aria-haspopup="dialog"')
   })
 
-  it('锚点导航只输出可见项', () => {
-    const html = renderToStaticMarkup(
-      createElement(DetailAnchorNav, {
-        items: [
-          { id: 'overview', label: '概览', visible: true },
-          { id: 'supply', label: '房源', visible: false },
-        ],
-      }),
-    )
-
-    expect(html).toContain('href="#overview"')
-    expect(html).not.toContain('房源')
-  })
-
   it('事实组件将关键缺失值标为咨询确认，并忽略普通缺失值', () => {
     const groups: FactGroupViewModel[] = [
       {
@@ -213,172 +197,82 @@ describe('detail component contracts', () => {
     expect(html).toContain('估算')
   })
 
-  it('供给组使用原生 GET 筛选按钮，桌面服务端默认输出紧凑表格', () => {
+  it('桌面服务端默认输出单一表格与面积/价格分桶，不使用 GET 表单或 tab 语义', () => {
     const html = renderToStaticMarkup(
-      createElement(BuildingSupplyBrowser, {
-        snapshot: LEASE_ONLY_SNAPSHOT,
-        input: { group: 'lease' },
-      }),
+      createElement(BuildingSupplyBrowser, { snapshot: LEASE_ONLY_SNAPSHOT }),
     )
 
-    expect(html).toContain('method="get"')
-    expect(html).toContain('type="submit"')
-    expect(html).toContain('aria-current="true"')
-    expect(html).toContain('按供给类型筛选')
+    expect(html).toContain('<table')
+    expect(html).toContain('在租房源列表')
+    expect(html).toContain('面积')
+    expect(html).toContain('价格')
+    expect(html).toContain('aria-pressed="true"')
+    expect(html).toContain('价格面议')
+    expect(html).not.toContain('method="get"')
+    expect(html).not.toContain('type="submit"')
     expect(html).not.toContain('role="tab"')
     expect(html).not.toContain('role="tablist"')
-    expect(html).toContain('aria-label="供给展示方式"')
-    expect(html).toContain('aria-pressed="true"')
-    expect(html).toContain('卡片视图')
-    expect(html).toContain('表格视图')
-    expect(html).toContain('<table')
-    expect(html).toContain('出租')
-    expect(html).toContain('价格面议')
-    expect(html).not.toContain('出售')
-    expect(html).not.toContain('联合办公')
+    expect(html).not.toContain('卡片视图')
+    expect(html).not.toContain('表格视图')
+    expect(html).not.toContain('供给展示方式')
+    expect(html).not.toContain('按供给类型筛选')
   })
 
-  it('group query 只收窄结果区，未筛选非空业务组仍保留可提交入口', () => {
+  it('价格分桶只统计元/㎡/天房源，空桶不渲染', () => {
     const html = renderToStaticMarkup(
       createElement(BuildingSupplyBrowser, {
         snapshot: {
           ...LEASE_ONLY_SNAPSHOT,
-          totalEffectiveListings: 3,
-          availableGroups: [
-            ...LEASE_ONLY_SNAPSHOT.availableGroups,
-            {
-              key: 'sale',
-              totalEffectiveListings: 1,
-              priceRanges: [],
-              areaRange: { min: 200, max: 200 },
-              immediateAvailabilityCount: 1,
-            },
-            {
-              key: 'coworking',
-              totalEffectiveListings: 1,
-              priceRanges: [],
-              areaRange: { min: 60, max: 60 },
-              immediateAvailabilityCount: 1,
-            },
-          ],
+          groups: [{
+            key: 'lease',
+            listings: [
+              makeCard({ id: 1, price: { amount: 8.5, currency: 'CNY', businessType: 'lease', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', text: '8.5 元/㎡/天' } }),
+              makeCard({ id: 2, price: { amount: 100000, currency: 'CNY', businessType: 'lease', period: 'month', basis: 'total', displayUnit: 'rmb-total', text: '10 万元/月' } }),
+            ],
+            priceRanges: [],
+            areaRange: null,
+            immediateAvailabilityCount: 2,
+          }],
         },
-        input: { group: 'lease' },
       }),
     )
 
-    expect(html).toContain('data-supply-tab="lease"')
-    expect(html).toContain('data-supply-tab="sale"')
-    expect(html).toContain('data-supply-tab="coworking"')
-    expect(html).toContain('aria-label="按出售筛选"')
-    expect(html).toContain('aria-label="按联合办公筛选"')
+    // 8.5 落在「8–9 元」桶；总价单位不参与日租桶，仅计入「全部」
+    expect(html).toContain('8–9 元')
+    expect(html).toContain('8.5 元/㎡/天')
+    expect(html).toContain('10 万元/月')
+    expect(html).not.toContain('8 元以下')
+    expect(html).not.toContain('9–10 元')
+    expect(html).not.toContain('10 元以上')
   })
 
-  it('价格排序缺少单位时显示可访问的降级说明，同时保留已选排序', () => {
+  it('面积分桶计数正确，空桶与 null 面积房源不落入具体桶', () => {
     const html = renderToStaticMarkup(
       createElement(BuildingSupplyBrowser, {
-        snapshot: { ...LEASE_ONLY_SNAPSHOT, validationErrors: ['price_unit_required'] },
-        input: { sort: 'price-asc' },
+        snapshot: {
+          ...LEASE_ONLY_SNAPSHOT,
+          groups: [{
+            key: 'lease',
+            listings: [
+              makeCard({ id: 1, area: 50 }),
+              makeCard({ id: 2, area: 150 }),
+              makeCard({ id: 3, area: 500 }),
+              makeCard({ id: 4, area: null }),
+            ],
+            priceRanges: [],
+            areaRange: { min: 50, max: 500 },
+            immediateAvailabilityCount: 4,
+          }],
+        },
       }),
     )
 
-    expect(html).toContain('role="status"')
-    expect(html).toContain('请选择价格单位后再按价格排序')
-    expect(html).toContain('当前按稳定默认顺序显示')
-    expect(html).toContain('value="price-asc" selected=""')
-  })
-
-  it('供给筛选埋点从提交时的 FormData 读取安全枚举，不使用初始筛选', () => {
-    const getSupplyFilterAnalyticsProps = Reflect.get(
-      BuildingSupplyBrowserModule,
-      'getSupplyFilterAnalyticsProps',
-    )
-    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
-    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
-
-    const submitted = new FormData()
-    submitted.set('group', 'sale')
-    submitted.set('areaMin', '100')
-    submitted.set('areaMax', '200')
-    submitted.set('priceUnit', 'rmb-sqm-day')
-    submitted.set('decorationStatus', 'furnished')
-    submitted.set('availableBefore', '2026-08-01')
-    submitted.set('sort', 'price-asc')
-    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted)
-
-    expect(props).toEqual({
-      building_id: 88,
-      supply_group: 'sale',
-      sort: 'price-asc',
-      price_unit: 'rmb-sqm-day',
-      decoration_status: 'furnished',
-      result_count: 1,
-      as_of: '2026-07-30T10:00:00.000Z',
-      filter_completeness: 2,
-    })
-    expect(props).not.toHaveProperty('areaMin')
-    expect(props).not.toHaveProperty('availableBefore')
-  })
-
-  it('供给筛选埋点丢弃无效和 PII 形态枚举，仅保留筛选存在摘要', () => {
-    const getSupplyFilterAnalyticsProps = Reflect.get(
-      BuildingSupplyBrowserModule,
-      'getSupplyFilterAnalyticsProps',
-    )
-    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
-    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
-
-    const submitted = new FormData()
-    submitted.set('group', 'lease&phone=13800001111')
-    submitted.set('sort', 'phoneNumber')
-    submitted.set('priceUnit', 'javascript:alert(1)')
-    submitted.set('decorationStatus', 'note=请联系我')
-    submitted.set('areaMin', 'phone=13800001111')
-    submitted.set('availableBefore', 'message=private')
-    const props = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted)
-
-    expect(props).toEqual({
-      building_id: 88,
-      sort: 'recommended',
-      result_count: 1,
-      as_of: '2026-07-30T10:00:00.000Z',
-      filter_completeness: 2,
-    })
-    expect(JSON.stringify(props)).not.toContain('phone')
-    expect(JSON.stringify(props)).not.toContain('note')
-    expect(JSON.stringify(props)).not.toContain('message')
-  })
-
-  it('供给分组 submitter 覆盖当前 GET group，且只接受表单 group 枚举', () => {
-    const getSupplyFilterAnalyticsProps = Reflect.get(
-      BuildingSupplyBrowserModule,
-      'getSupplyFilterAnalyticsProps',
-    )
-    expect(typeof getSupplyFilterAnalyticsProps).toBe('function')
-    if (typeof getSupplyFilterAnalyticsProps !== 'function') return
-
-    const submitted = new FormData()
-    submitted.set('sort', 'recommended')
-    const groupClick = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
-      isCurrentFormButton: true,
-      name: 'group',
-      value: 'coworking',
-    })
-    const maliciousSubmitter = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
-      isCurrentFormButton: true,
-      name: 'phone',
-      value: '13800001111',
-    })
-    const maliciousValue = getSupplyFilterAnalyticsProps(88, LEASE_ONLY_SNAPSHOT, submitted, {
-      isCurrentFormButton: true,
-      name: 'group',
-      value: 'lease&phone=13800001111',
-    })
-
-    expect(groupClick).toMatchObject({ supply_group: 'coworking' })
-    expect(maliciousSubmitter).not.toHaveProperty('phone')
-    expect(maliciousSubmitter).not.toHaveProperty('supply_group')
-    expect(JSON.stringify(maliciousSubmitter)).not.toContain('13800001111')
-    expect(maliciousValue).not.toHaveProperty('supply_group')
+    expect(html).toContain('0–100 ㎡')
+    expect(html).toContain('100–300 ㎡')
+    expect(html).toContain('500–1000 ㎡')
+    // 500 落入 [500,1000)，300–500 桶为空；null 面积仅出现在「全部」
+    expect(html).not.toContain('300–500 ㎡')
+    expect(html).not.toContain('1000 ㎡ 以上')
   })
 
   it('推荐房源卡只写入匿名点击上下文', () => {
