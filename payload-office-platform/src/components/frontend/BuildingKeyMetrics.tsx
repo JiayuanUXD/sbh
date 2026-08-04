@@ -120,19 +120,6 @@ export default function BuildingKeyMetrics({
     })
   }
 
-  // 立即可入驻是租客最在意的时间信息，原先只在「供给概览」里出现；
-  // 单组供给时概览整块与本统计带重复而被折叠，故在此接管该指标。
-  const immediateCount = availableGroups.reduce(
-    (sum, group) => sum + group.immediateAvailabilityCount,
-    0,
-  )
-  if (immediateCount > 0) {
-    metrics.push({
-      label: '立即可入驻',
-      value: `${immediateCount} 套`,
-    })
-  }
-
   if (nearestMetro?.name) {
     metrics.push({
       label: '最近地铁',
