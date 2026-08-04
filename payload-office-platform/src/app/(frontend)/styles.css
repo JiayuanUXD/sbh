@@ -330,6 +330,9 @@ ol {
 }
 
 .site-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-target);
   color: var(--color-muted);
   font-size: var(--fs-14);
   padding: var(--sp-2) 0;
@@ -397,6 +400,8 @@ ol {
 /* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
 .site-header__actions .btn--sm {
   white-space: nowrap;
+  /* 44px 触控目标，恰好不撑高 56px 头部 */
+  min-height: var(--touch-target);
 }
 
 .site-main {
@@ -969,8 +974,8 @@ ol {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  min-width: var(--touch-target);
+  height: var(--touch-target);
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
@@ -1050,6 +1055,7 @@ ol {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
+  min-height: var(--touch-target);
   padding: var(--sp-1) var(--sp-3);
   border: none;
   background: transparent;
@@ -1321,6 +1327,7 @@ ol {
 .filter-chip {
   display: inline-flex;
   align-items: center;
+  min-height: var(--touch-target);
   padding: var(--sp-1) var(--sp-3);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-pill);
@@ -3740,6 +3747,7 @@ ol {
 .location-panel__poi-tab {
   flex: 1 1 0;
   min-width: 0;
+  min-height: var(--touch-target);
   padding: var(--sp-2) var(--sp-1);
   border: none;
   border-bottom: 2px solid transparent;
