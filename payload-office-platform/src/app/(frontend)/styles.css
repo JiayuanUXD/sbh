@@ -675,7 +675,7 @@ ol {
 }
 
 .listing-card__title {
-  font-size: var(--fs-16);
+  font-size: var(--fs-18);
   font-weight: 600;
   color: var(--color-ink);
   line-height: var(--lh-snug);
@@ -1107,7 +1107,9 @@ ol {
   gap: var(--sp-2);
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: center;
+  /* 顶对齐基线：标题与价格同一水平线起始，消除垂直居中造成的漂浮感 */
+  align-items: start;
+  align-content: center;
 }
 
 /* 左列：标题 / 位置 / 标签 */
@@ -1118,11 +1120,11 @@ ol {
   min-width: 0;
 }
 
-/* 右列：价格 + 面积，跨所有行垂直居中 */
+/* 右列：价格 + 面积，与标题顶对齐 */
 .listing-card--list .listing-card__meta {
   grid-column: 2;
   grid-row: 1 / -1;
-  align-self: center;
+  align-self: start;
   flex-direction: column;
   align-items: flex-end;
   margin-top: 0;
