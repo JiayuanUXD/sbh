@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#e8d9c5"/>
+  <rect x="250" y="120" width="300" height="300" fill="#d9c3a6"/>
+  <rect x="280" y="150" width="60" height="270" fill="#a46f3f" opacity="0.5"/>
+  <rect x="370" y="150" width="60" height="270" fill="#a46f3f" opacity="0.35"/>
+  <rect x="460" y="150" width="60" height="270" fill="#a46f3f" opacity="0.2"/>
+  <text x="50%" y="80" font-family="sans-serif" font-size="28" fill="#a46f3f" text-anchor="middle">楼盘示例图 · 外立面</text>
+</svg>
