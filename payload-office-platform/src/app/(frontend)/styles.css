@@ -665,6 +665,16 @@ ol {
   transform: scale(1.03);
 }
 
+/* F-023: 暂无在租楼盘卡片降饱和、价格文字弱化，与在租卡片区分 */
+.building-card--vacant .listing-card__media img {
+  filter: grayscale(0.6);
+  opacity: 0.85;
+}
+
+.building-card--vacant .price {
+  color: var(--color-muted);
+}
+
 .listing-card__body {
   padding: var(--sp-4);
   display: flex;

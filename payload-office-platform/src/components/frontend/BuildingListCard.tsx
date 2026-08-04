@@ -47,11 +47,12 @@ export default function BuildingListCard({ building, view = 'grid' }: Props) {
 
   const viewClass = view === 'list' ? ' listing-card--list' : ' listing-card--grid'
   const leasableText = leasableArea != null ? formatArea(leasableArea) : null
+  const vacantClass = leasableText ? '' : ' building-card--vacant'
 
   return (
     <Link
       href={`/buildings/${slug}`}
-      className={`listing-card${viewClass} building-card`}
+      className={`listing-card${viewClass} building-card${vacantClass}`}
       aria-label={`${name}楼盘`}
     >
       <div className="listing-card__media">
