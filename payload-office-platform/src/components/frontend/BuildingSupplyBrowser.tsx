@@ -25,6 +25,9 @@ const GROUP_LABEL: Record<BuildingSupplyGroupViewModel['key'], string> = {
 
 const SUPPLY_GROUP_VALUES = ['lease', 'sale', 'coworking'] as const
 
+/** 供给条数不超过此值时，精确筛选表单收起（F-017）。 */
+const SUPPLY_FILTER_MIN_LISTINGS = 10
+
 /**
  * 面积分桶（评审 P0-4）。区间为左闭右开 [min, max)，最后一档无上限。
  * null area 的房源仅在「全部」桶中可见，不参与具体面积桶筛选。
@@ -119,6 +122,13 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
   const availableGroups = snapshot.availableGroups.filter((group) => group.totalEffectiveListings > 0)
   const hasPriceUnitRequired = snapshot.validationErrors.includes('price_unit_required')
+  // 供给少于阈值时精确筛选没有收益（对 1 套房源渲染 6 字段表单读起来像后台报表），
+  // 直接呈现供给表即可。已带筛选参数的 URL 仍然渲染表单，否则用户无法看到或清除
+  // 当前生效的筛选条件。
+  const hasActiveFilters = Boolean(
+    input.areaMin ?? input.areaMax ?? input.decorationStatus ?? input.availableBefore ?? input.priceUnit,
+  ) || (input.sort != null && input.sort !== 'recommended')
+  const showPreciseFilters = snapshot.totalEffectiveListings > SUPPLY_FILTER_MIN_LISTINGS || hasActiveFilters
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table')
   const [isMobile, setIsMobile] = useState(false)
   const [activeAreaBucket, setActiveAreaBucket] = useState<AreaBucketKey>('all')
@@ -158,56 +168,58 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
           ))
         }}
       >
-        <fieldset>
-          <legend>筛选房源</legend>
-          <label>
-            面积下限
-            <input name="areaMin" type="number" min="0" inputMode="numeric" defaultValue={input.areaMin} />
-          </label>
-          <label>
-            面积上限
-            <input name="areaMax" type="number" min="0" inputMode="numeric" defaultValue={input.areaMax} />
-          </label>
-          <label>
-            装修状态
-            <select name="decorationStatus" defaultValue={input.decorationStatus ?? ''}>
-              <option value="">不限</option>
-              <option value="rough">毛坯</option>
-              <option value="simple">简装</option>
-              <option value="furnished">精装</option>
-              <option value="fully_fitted">拎包入住</option>
-            </select>
-          </label>
-          <label>
-            最晚可入驻日期
-            <input name="availableBefore" type="date" defaultValue={input.availableBefore} />
-          </label>
-          <label>
-            价格单位
-            <select name="priceUnit" defaultValue={input.priceUnit ?? ''}>
-              <option value="">不限</option>
-              <option value="rmb-sqm-day">元/㎡/天</option>
-              <option value="rmb-month">元/月</option>
-              <option value="rmb-seat-month">元/工位/月</option>
-              <option value="rmb-total">总价</option>
-            </select>
-          </label>
-          <label>
-            排序
-            <select
-              name="sort"
-              defaultValue={input.sort ?? 'recommended'}
-              aria-describedby={hasPriceUnitRequired ? 'building-supply-price-sort-hint' : undefined}
-            >
-              <option value="recommended">推荐排序</option>
-              <option value="area-asc">面积从小到大</option>
-              <option value="area-desc">面积从大到小</option>
-              <option value="price-asc">价格从低到高</option>
-              <option value="price-desc">价格从高到低</option>
-            </select>
-          </label>
-          <button type="submit">应用筛选</button>
-        </fieldset>
+        {showPreciseFilters && (
+          <fieldset>
+            <legend>筛选房源</legend>
+            <label>
+              面积下限
+              <input name="areaMin" type="number" min="0" inputMode="numeric" defaultValue={input.areaMin} />
+            </label>
+            <label>
+              面积上限
+              <input name="areaMax" type="number" min="0" inputMode="numeric" defaultValue={input.areaMax} />
+            </label>
+            <label>
+              装修状态
+              <select name="decorationStatus" defaultValue={input.decorationStatus ?? ''}>
+                <option value="">不限</option>
+                <option value="rough">毛坯</option>
+                <option value="simple">简装</option>
+                <option value="furnished">精装</option>
+                <option value="fully_fitted">拎包入住</option>
+              </select>
+            </label>
+            <label>
+              最晚可入驻日期
+              <input name="availableBefore" type="date" defaultValue={input.availableBefore} />
+            </label>
+            <label>
+              价格单位
+              <select name="priceUnit" defaultValue={input.priceUnit ?? ''}>
+                <option value="">不限</option>
+                <option value="rmb-sqm-day">元/㎡/天</option>
+                <option value="rmb-month">元/月</option>
+                <option value="rmb-seat-month">元/工位/月</option>
+                <option value="rmb-total">总价</option>
+              </select>
+            </label>
+            <label>
+              排序
+              <select
+                name="sort"
+                defaultValue={input.sort ?? 'recommended'}
+                aria-describedby={hasPriceUnitRequired ? 'building-supply-price-sort-hint' : undefined}
+              >
+                <option value="recommended">推荐排序</option>
+                <option value="area-asc">面积从小到大</option>
+                <option value="area-desc">面积从大到小</option>
+                <option value="price-asc">价格从低到高</option>
+                <option value="price-desc">价格从高到低</option>
+              </select>
+            </label>
+            <button type="submit">应用筛选</button>
+          </fieldset>
+        )}
 
         {hasPriceUnitRequired && (
           <p id="building-supply-price-sort-hint" role="status" aria-live="polite">
@@ -250,6 +262,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
               快速分桶视图，与 form 的精确筛选正交。
               a11y 用 group+aria-pressed 而非 tablist：与 view-toggle 一致，
               因为是 toggle filter 而非 tabpanel 切换（contract 测试要求不出现 role=tab）。 */}
+          {showPreciseFilters && (
           <div
             className="building-supply-browser__area-buckets"
             role="group"
@@ -279,6 +292,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId, input = {}
               )
             })}
           </div>
+          )}
 
           {!isMobile && (
             <div className="building-supply-browser__view-toggle" role="group" aria-label="供给展示方式">
