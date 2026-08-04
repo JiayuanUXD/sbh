@@ -105,8 +105,10 @@ export default async function ListingDetailPage({
     ...(buildingDetail?.amenityGroups.filter((group) => group.items.length > 0) ?? []),
   ]
   // 跨组去重：后续组不重复前面组已展示的项目（房源与楼盘的配套常有交集，
-  // 如"近地铁"同时出现在亮点与配套，同一屏内渲染两遍）
-  const seenAmenities = new Set<string>()
+  // 如"近地铁"同时出现在亮点与配套，同一屏内渲染两遍）。
+  // header 的 highlights 先占位，使同一标签全页只出现一次（F-012）。
+  const headerHighlights = listing.highlights.slice(0, 3)
+  const seenAmenities = new Set<string>(headerHighlights)
   const dedupedAmenityGroups = amenityGroups.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
@@ -150,10 +152,10 @@ export default async function ListingDetailPage({
       <header className="detail__header">
         <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
         <h1 className="detail__title">{listing.title}</h1>
-        {listing.highlights.length > 0 && (
+        {headerHighlights.length > 0 && (
           <div className="detail__tags" aria-label="房源亮点">
-            {listing.highlights.slice(0, 3).map((text, i) => (
-              <span key={i} className="tag">{text}</span>
+            {headerHighlights.map((text) => (
+              <span key={text} className="tag">{text}</span>
             ))}
           </div>
         )}
