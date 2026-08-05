@@ -38,7 +38,7 @@ export default async function HomePage() {
       <section className="hero">
         <div className="hero__bg" aria-hidden="true">
           <video autoPlay muted loop playsInline preload="metadata">
-            <source src="/media/bg.mp4" type="video/mp4" />
+            <source src="/hero/bg.mp4" type="video/mp4" />
           </video>
         </div>
         <div className="hero__scrim" aria-hidden="true" />
