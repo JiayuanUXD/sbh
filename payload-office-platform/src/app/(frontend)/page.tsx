@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 // F6.3：统一使用 buildPageMetadata 构造 metadata（canonical / OG / robots）
 export const metadata: Metadata = buildPageMetadata({
   title: '上海中高端商务办公租赁平台',
-  description: '聚合上海甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。',
+  description: '覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策。',
   canonicalPath: '/',
 })
 
