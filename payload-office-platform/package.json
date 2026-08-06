@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.16",
+    "@aws-sdk/client-s3": "3.1102.0",
     "@nouance/payload-better-fields-plugin": "^2.0.2",
     "@oversightstudio/blur-data-urls": "^1.0.4",
     "@payload-bites/audit-fields": "^1.7.0",
@@ -37,6 +38,7 @@
     "@payloadcms/plugin-import-export": "^3.86.0",
     "@payloadcms/plugin-search": "^3.86.0",
     "@payloadcms/richtext-lexical": "3.86.0",
+    "@payloadcms/storage-s3": "3.86.0",
     "@payloadcms/translations": "3.86.0",
     "@payloadcms/ui": "3.86.0",
     "cross-env": "^7.0.3",

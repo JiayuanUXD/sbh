@@ -10,6 +10,11 @@ const VALID: ConfigGuardEnv = {
   DATABASE_URL: 'postgres://user:pass@host:5432/db',
   PAYLOAD_SECRET: 'a'.repeat(40),
   NEXT_PUBLIC_SITE_URL: 'https://sbh.example.com',
+  COS_BUCKET: 'sbh-media-1253925058',
+  COS_REGION: 'ap-shanghai',
+  COS_ENDPOINT: 'https://cos.ap-shanghai.myqcloud.com',
+  COS_SECRET_ID: 'secret-id',
+  COS_SECRET_KEY: 'secret-key',
 }
 
 describe('config-guard: dev/test 环境不阻断', () => {
@@ -75,6 +80,20 @@ describe('config-guard: 生产 NEXT_PUBLIC_SITE_URL 合法 https', () => {
   it('非法 URL -> 违例', () => {
     const v = validateProductionConfig({ ...VALID, NEXT_PUBLIC_SITE_URL: 'not-a-url' })
     expect(v.some((x) => x.field === 'NEXT_PUBLIC_SITE_URL' && /合法 URL/.test(x.reason))).toBe(true)
+  })
+})
+
+describe('config-guard: 生产媒体必须使用 COS', () => {
+  it('未配置 COS 时拒绝启动，避免上传落到 CloudRun 临时磁盘', () => {
+    const v = validateProductionConfig({
+      ...VALID,
+      COS_BUCKET: undefined,
+      COS_REGION: undefined,
+      COS_ENDPOINT: undefined,
+      COS_SECRET_ID: undefined,
+      COS_SECRET_KEY: undefined,
+    })
+    expect(v.some((x) => x.field === 'COS_STORAGE' && /临时磁盘/.test(x.reason))).toBe(true)
   })
 })
 

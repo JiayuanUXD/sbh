@@ -7,6 +7,7 @@ import { importExportPlugin } from '@payloadcms/plugin-import-export'
 import { zh } from '@payloadcms/translations/languages/zh'
 import { auditFieldsPlugin } from '@payload-bites/audit-fields'
 import { blurDataUrlsPlugin } from '@oversightstudio/blur-data-urls'
+import { s3Storage } from '@payloadcms/storage-s3'
 import {
   TextColorFeature,
   TextSizeFeature,
@@ -67,6 +68,7 @@ import {
   protectFormSubmissionStatus,
 } from './domain/forms/submission-status'
 import { assertProductionConfig } from './lib/runtime/config-guard'
+import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -77,6 +79,7 @@ const dirname = path.dirname(filename)
 // 这些纯静态命令无需 DATABASE_URL 即可运行；dev / start / migrate / seed 等连库命令走
 // getPayload → onInit，缺省/非 postgres 时在那里抛错（见下方 onInit）。
 const databaseUrl = process.env.DATABASE_URL || ''
+const cosStorageConfig = parseCosStorageConfig(process.env)
 
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
@@ -224,6 +227,25 @@ export default buildConfig({
   }),
   sharp,
   plugins: [
+    // 腾讯云 COS 使用 S3 兼容接口。生产由 config-guard 强制完整配置；开发环境只有在
+    // 五项 COS_* 全部缺省时才允许本地上传。保留 Payload 文件路由与 access control，
+    // 因此既有 media.url 和业务关系无需改写；专用桶内 object key 统一置于 media/ 前缀。
+    s3Storage({
+      enabled: cosStorageConfig.enabled,
+      collections: { media: { prefix: MEDIA_COS_PREFIX } },
+      bucket: cosStorageConfig.enabled ? cosStorageConfig.bucket : 'local-storage-disabled',
+      config: cosStorageConfig.enabled
+        ? {
+            credentials: {
+              accessKeyId: cosStorageConfig.accessKeyId,
+              secretAccessKey: cosStorageConfig.secretAccessKey,
+            },
+            endpoint: cosStorageConfig.endpoint,
+            forcePathStyle: false,
+            region: cosStorageConfig.region,
+          }
+        : {},
+    }),
     // 将 Media 后台列表页替换为响应式卡片网格视图(带 lightbox / 拖拽批量上传 / 元数据侧栏)
     mediaGalleryPlugin({
       collectionSlug: 'media',
