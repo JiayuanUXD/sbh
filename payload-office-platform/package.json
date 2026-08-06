@@ -24,6 +24,8 @@
     "preflight": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts",
     "preflight:env": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts env",
     "preflight:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts migrations",
+    "districts:merge:plan": "node --env-file-if-exists=.env.local --import tsx scripts/merge-duplicate-districts.ts",
+    "districts:merge:execute": "node --env-file-if-exists=.env.local --import tsx scripts/merge-duplicate-districts.ts --execute",
     "verify:leasable-area": "node --env-file-if-exists=.env.local --import tsx scripts/verify-leasable-area-parity.ts",
     "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts"
   },
