@@ -95,6 +95,18 @@ describe('config-guard: 生产媒体必须使用 COS', () => {
     })
     expect(v.some((x) => x.field === 'COS_STORAGE' && /临时磁盘/.test(x.reason))).toBe(true)
   })
+  it('CI e2e（CI=true）未配置 COS 不拒绝：媒体走 seed-media 离线 sharp，非 CloudRun 部署', () => {
+    const v = validateProductionConfig({
+      ...VALID,
+      COS_BUCKET: undefined,
+      COS_REGION: undefined,
+      COS_ENDPOINT: undefined,
+      COS_SECRET_ID: undefined,
+      COS_SECRET_KEY: undefined,
+      CI: 'true',
+    })
+    expect(v.some((x) => x.field === 'COS_STORAGE')).toBe(false)
+  })
 })
 
 describe('config-guard: assertProductionConfig 整体行为', () => {

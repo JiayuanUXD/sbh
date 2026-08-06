@@ -19,6 +19,7 @@ import { collectCosProductionViolations } from '../storage/cos-config'
 
 export type ConfigGuardEnv = {
   NODE_ENV?: string
+  CI?: string
   DATABASE_URL?: string
   PAYLOAD_SECRET?: string
   NEXT_PUBLIC_SITE_URL?: string
