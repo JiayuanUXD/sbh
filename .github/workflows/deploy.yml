@@ -122,8 +122,12 @@ jobs:
         run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
 
       - name: 上传代码包并提交灰度版本（初始 0% 流量）
-        # CLI 的上传实现遇到 ECONNRESET 不重试；这里沿用同一官方 API，
-        # 上传最多重试 4 次，并显式提交 ReleaseType=GRAY。
+        # 病根（run 31098998980）：跨境到腾讯云 COS 的预签名 URL 有效窗口短，2.6MB 在
+        # ~10KB/s 下要传 ~270s，常在收尾时被 COS 以 400 拒（连接被重置/签名失效）。原实现
+        # `curl --retry 4` 复用**同一个**预签名 URL，一旦它失效，4 次重试注定全部 400，日志里
+        # 连续两条 curl (22) 400 后被取消。
+        # 修复：每次尝试**重新拉取**预签名 URL 再上传（失效 URL 不再连累后续重试），并加停滞
+        # 检测（<1KB/s 持续 30s 视为死连接，立即放弃并换新 URL 重试，而不是骑满整个窗口）。
         # 失败保护：新版本创建/构建/启动失败时不会进入灰度流程，旧版本继续承接。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -131,14 +135,12 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/sbh-source.zip"
           upload_info="$RUNNER_TEMP/sbh-upload.json"
-          package_info="$RUNNER_TEMP/sbh-package.json"
           deploy_info="$RUNNER_TEMP/sbh-deploy.json"
 
-          # 包体积是这条通道的命门：跨境传到腾讯云 COS，7.6MB 会撑爆 --max-time，
-          # 5 次重试全部 0 字节超时（run 30265028880）；297KB 时代 52s 内传完。
-          # payload-office-platform/.gitattributes 用 export-ignore 把 artifacts/
-          # 与 tests/ 挡在包外（.dockerignore 在这一步不生效——平台先收包再 build）。
-          # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗 15 分钟超时后才暴露。
+          # 包体积是这条通道的命门：跨境传到腾讯云 COS，包越大越容易在签名窗口内传不完。
+          # payload-office-platform/.gitattributes 用 export-ignore 把 artifacts/、tests/
+          # 与 src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）挡在包外。
+          # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗十几分钟超时后才暴露。
           git archive --format=zip HEAD:payload-office-platform > "$archive"
           archive_bytes=$(wc -c < "$archive")
           echo "代码包体积：$archive_bytes bytes"
@@ -147,41 +149,60 @@ jobs:
             echo "::error::检查是否有构建产物/截图/大文件进了仓库，按需加进 .gitattributes 的 export-ignore。"
             exit 1
           fi
-          request_body=$(jq -cn --arg envId "$TCB_ENV_ID" \
-            '{EnvId:$envId,ServiceName:"sbh"}')
-          tcb api tcb DescribeCloudBaseBuildService \
-            --api-version 2018-06-08 \
-            --json \
-            --body "$request_body" |
-            sed -n '/^{/,$p' > "$upload_info"
 
-          upload_url=$(jq -r '.data.UploadUrl' "$upload_info")
-          curl_headers=()
-          while IFS=$'\t' read -r key value; do
-            if [ -n "$key" ]; then
-              curl_headers+=(--header "$key: $value")
+          # 每次调用都会分配新的 PackageName/PackageVersion 与配套预签名 URL；上传成功后
+          # 必须用**同一次**调用返回的包名/版本提交部署（$upload_info 即当前成功那次）。
+          # tcb api 无内置超时，包 timeout 防挂死拖满整个 job。
+          fetch_upload_info() {
+            local body
+            body=$(jq -cn --arg envId "$TCB_ENV_ID" '{EnvId:$envId,ServiceName:"sbh"}')
+            timeout 60 tcb api tcb DescribeCloudBaseBuildService \
+              --api-version 2018-06-08 \
+              --json \
+              --body "$body" |
+              sed -n '/^{/,$p' > "$upload_info"
+            jq -e '.data.UploadUrl and .data.PackageName and .data.PackageVersion' "$upload_info" >/dev/null
+          }
+
+          uploaded=0
+          for attempt in 1 2 3 4; do
+            echo "== 上传尝试 $attempt/4：拉取新预签名 URL =="
+            fetch_upload_info
+            upload_url=$(jq -r '.data.UploadUrl' "$upload_info")
+            curl_headers=()
+            while IFS=$'\t' read -r key value; do
+              if [ -n "$key" ]; then
+                curl_headers+=(--header "$key: $value")
+              fi
+            done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$upload_info")
+            # --max-time 300：给进行中的慢传留够收尾时间；--speed-limit/--speed-time：
+            # 只杀真正停滞的死连接，不误伤稳定慢传。
+            if curl \
+              --http1.1 \
+              --fail \
+              --silent \
+              --show-error \
+              --connect-timeout 20 \
+              --max-time 300 \
+              --speed-limit 1024 \
+              --speed-time 30 \
+              --upload-file "$archive" \
+              "${curl_headers[@]}" \
+              "$upload_url"; then
+              uploaded=1
+              echo "== 上传成功（尝试 $attempt）=="
+              break
             fi
-          done < <(jq -r '.data.UploadHeaders[]? | [.Key,.Value] | @tsv' "$upload_info")
-          curl \
-            --http1.1 \
-            --fail \
-            --silent \
-            --show-error \
-            --retry 4 \
-            --retry-all-errors \
-            --retry-delay 5 \
-            --connect-timeout 20 \
-            --max-time 600 \
-            --upload-file "$archive" \
-            "${curl_headers[@]}" \
-            "$upload_url"
-          jq '{
-            name:.data.PackageName,
-            version:.data.PackageVersion
-          }' "$upload_info" > "$package_info"
+            echo "::warning::上传尝试 $attempt 失败，3s 后换新 URL 重试"
+            sleep 3
+          done
+          if [ "$uploaded" != "1" ]; then
+            echo "::error::4 次上传全部失败"
+            exit 1
+          fi
 
-          package_name=$(jq -r '.name' "$package_info")
-          package_version=$(jq -r '.version' "$package_info")
+          package_name=$(jq -r '.data.PackageName' "$upload_info")
+          package_version=$(jq -r '.data.PackageVersion' "$upload_info")
           deploy_body=$(jq -cn \
             --arg envId "$TCB_ENV_ID" \
             --arg packageName "$package_name" \
@@ -200,7 +221,7 @@ jobs:
                 {Key:"Port",IntValue:80}
               ]
             }')
-          tcb api tcbr UpdateCloudRunServer \
+          timeout 60 tcb api tcbr UpdateCloudRunServer \
             --api-version 2022-02-17 \
             --json \
             --body "$deploy_body" |

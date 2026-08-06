@@ -12,3 +12,8 @@
 # 排除后包体积 7.64MB -> 869KB。
 artifacts/ export-ignore
 tests/ export-ignore
+
+# 迁移 .json 快照只供 `migrate:create` 本地 diff 用；运行时 `payload migrate` 只读
+# 同名 .ts（src/migrations/index.ts 也只 import .ts），构建/运行都不需要它们。
+# 全目录约 20 个、压缩后 ~320KB，排除纯属给跨境上传省窗口。
+src/migrations/*.json export-ignore
