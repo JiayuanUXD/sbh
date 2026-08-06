@@ -106,7 +106,14 @@ const crawled: Crawled[] = JSON.parse(readFileSync(DATA_FILE, 'utf-8'))
 const payload = await getPayload({ config })
 const EXECUTE = MODE === 'execute'
 
-const city = await payload.find({ collection: 'locations', where: { type: { equals: 'city' } }, limit: 1, depth: 0 })
+// 只取 active 城市：区域合并后存有被停用的 shang-hai 城市根，按默认排序
+// （createdAt DESC）会先取到它，导致新区/商圈挂到已停用城市下触发 PARENT_DISABLED。
+const city = await payload.find({
+  collection: 'locations',
+  where: { type: { equals: 'city' }, status: { equals: 'active' } },
+  limit: 1,
+  depth: 0,
+})
 if (city.docs.length === 0) {
   console.error('❌ 未找到城市节点')
   process.exit(1)
