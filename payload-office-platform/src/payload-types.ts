@@ -367,39 +367,15 @@ export interface Location {
    */
   centerLongitude?: number | null;
   description?: string | null;
+  /**
+   * 首页商圈卡的背景图。留空时前台回退为该商圈下首个有封面的楼盘图片。
+   */
+  coverImage?: (number | null) | Media;
   sortOrder?: number | null;
   /**
    * 乐观锁版本，由系统维护
    */
   version?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "teams".
- */
-export interface Team {
-  id: number;
-  name: string;
-  /**
-   * 团队主管账号；主管须具备 MGR 角色属分配/团队管理门禁（M5）
-   */
-  manager?: (number | null) | User;
-  cityScope?: (number | Location)[] | null;
-  status: 'active' | 'disabled';
-  /**
-   * 乐观锁版本，保存时自动递增
-   */
-  version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -431,6 +407,34 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teams".
+ */
+export interface Team {
+  id: number;
+  name: string;
+  /**
+   * 团队主管账号；主管须具备 MGR 角色属分配/团队管理门禁（M5）
+   */
+  manager?: (number | null) | User;
+  cityScope?: (number | Location)[] | null;
+  status: 'active' | 'disabled';
+  /**
+   * 乐观锁版本，保存时自动递增
+   */
+  version?: number | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * 仅维护已启用商圈的边界、扩展中心点、别名与同城站点关联；基础字段在「城市区域」页维护。
@@ -2548,6 +2552,7 @@ export interface LocationsSelect<T extends boolean = true> {
   centerLatitude?: T;
   centerLongitude?: T;
   description?: T;
+  coverImage?: T;
   sortOrder?: T;
   version?: T;
   updatedAt?: T;

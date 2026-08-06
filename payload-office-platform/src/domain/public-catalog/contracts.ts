@@ -387,6 +387,13 @@ export type DistrictCardViewModel = Readonly<{
   slug: string
   name: string
   coverImage: MediaViewModel | null
+  /**
+   * 代表楼盘名（最多 4 个，按 recommendedOrder 取）。
+   *
+   * 卡片在商圈名下方列出这几个名字，让用户一眼看出该商圈有什么楼——只有名字，
+   * 不带链接，点击仍走整卡跳转。楼盘不足时按实有数量渲染，不补位。
+   */
+  buildings: readonly string[]
 }>
 
 /**

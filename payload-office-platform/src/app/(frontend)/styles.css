@@ -4749,6 +4749,26 @@ ol {
   color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
 }
 
+/* 代表楼盘名：商圈名下一条细分隔线，再以「｜」分隔平铺 */
+.district-card__buildings {
+  position: relative;
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
+}
+
+.district-card__buildings::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-on-ink) 55%, transparent);
+}
+
 .district-card:hover .district-card__media {
   transform: scale(1.04);
 }

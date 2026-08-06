@@ -62,6 +62,7 @@ function createFakeAdapter(options: {
   listings: readonly Listing[]
   buildings: readonly Building[]
   districts?: readonly Location[]
+  businessAreas?: readonly Location[]
 }): SupplyAdapter {
   const districts: readonly Location[] = options.districts ?? [
     BUILDING_JINGAN_CENTER.district as Location,
@@ -147,6 +148,18 @@ function createFakeAdapter(options: {
       }
       return sums
     },
+    async findEffectiveBusinessAreas() {
+      if (options.businessAreas) return options.businessAreas
+      // 缺省从楼盘的 businessDistrict 派生，保证卡片测试有可用数据
+      const seen = new Map<string, Location>()
+      for (const b of options.buildings) {
+        const ba = b.businessDistrict
+        if (typeof ba === 'object' && ba !== null && !seen.has(ba.slug)) {
+          seen.set(ba.slug, ba as Location)
+        }
+      }
+      return [...seen.values()]
+    },
     async findEffectiveBuildingsNear(buildingId) {
       return options.buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
     },
@@ -160,8 +173,10 @@ function createFakeAdapter(options: {
         .filter((l) => isListingEffective(l) && l.isFeatured)
         .slice(0, limit)
     },
-    async findFeaturedBuildings() {
-      return []
+    async findFeaturedBuildings(_ctx, limit = 30) {
+      return options.buildings
+        .filter((b) => b.operationalStatus === 'active')
+        .slice(0, limit)
     },
     async findLatestArticles() {
       return []
@@ -197,7 +212,7 @@ function createFakeAdapter(options: {
 const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
 
 /** 全量有效 fixture：3 条有效房源 + 1 条停用楼盘房源 + 失效房源集合 */
-function fullFixture(overrides: { districts?: readonly Location[] } = {}) {
+function fullFixture(overrides: { districts?: readonly Location[]; businessAreas?: readonly Location[] } = {}) {
   return createFakeAdapter({
     ...overrides,
     listings: [
@@ -456,42 +471,48 @@ describe('getHomepage', () => {
   })
 
   /**
-   * 商圈卡张数上限：栅格 4 列、大卡跨 2x2，不设上限时商圈一多首页会被撑爆，
-   * 且末行留豁口。展示「哪些」商圈由 Locations 的「前台可见」在适配器层控制，
-   * 这里只锁「多少张」。
+   * 首页「热门商圈」的数据源是商圈（Locations 第三层），不是行政区——两者是
+   * 包含关系，一个行政区下有多个商圈。此前误用行政区，卡片列出的是黄浦、徐汇。
    */
-  it('商圈卡默认截到 9 张（1 大 + 8 小，填满 3 行）', async () => {
-    const many: Location[] = Array.from({ length: 15 }, (_, i) => ({
-      ...(BUILDING_JINGAN_CENTER.district as Location),
-      id: 9100 + i,
-      name: `商圈${i}`,
-      slug: `district-${i}`,
-      immutableCode: `TEST-D${i}`,
-    }))
-    const h = await getHomepage(ctx, {}, fullFixture({ districts: many }))
-
-    expect(h.districtCards).toHaveLength(9)
-    // 上限只截卡片区；搜索框的区域下拉仍列出全部前台可见商圈
-    expect(h.districts).toHaveLength(15)
-  })
-
-  it('商圈卡张数可由 districtCardsLimit 覆盖', async () => {
-    const many: Location[] = Array.from({ length: 15 }, (_, i) => ({
-      ...(BUILDING_JINGAN_CENTER.district as Location),
-      id: 9200 + i,
-      name: `商圈${i}`,
-      slug: `d${i}`,
-      immutableCode: `TEST-E${i}`,
-    }))
-    const h = await getHomepage(ctx, { districtCardsLimit: 5 }, fullFixture({ districts: many }))
-
-    expect(h.districtCards).toHaveLength(5)
-  })
-
-  it('商圈少于上限时全部展示，不补位', async () => {
+  it('商圈卡来自商圈而非行政区', async () => {
     const h = await getHomepage(ctx, {}, fullFixture())
-    expect(h.districtCards.length).toBeLessThanOrEqual(9)
-    expect(h.districtCards.length).toBe(h.districts.length)
+    const areaSlugs = h.districtCards.map((c) => c.slug)
+    const districtSlugs = h.districts.map((d) => d.slug)
+    expect(areaSlugs.length).toBeGreaterThan(0)
+    for (const slug of areaSlugs) expect(districtSlugs).not.toContain(slug)
+  })
+
+  it('商圈卡带代表楼盘名', async () => {
+    const h = await getHomepage(ctx, {}, fullFixture())
+    const card = h.districtCards[0]
+    expect(card.buildings.length).toBeGreaterThan(0)
+    expect(card.buildings.length).toBeLessThanOrEqual(4)
+  })
+
+  /**
+   * 质量门槛：库中商圈达 205 个而多数暂无楼盘，没有在营楼盘的商圈若进入卡片区
+   * 会渲染成只有名字的空卡。
+   */
+  it('无楼盘的商圈不进卡片区', async () => {
+    const empty: Location = {
+      ...(BUILDING_JINGAN_CENTER.businessDistrict as Location),
+      id: 9901,
+      name: '空商圈',
+      slug: 'empty-area',
+      immutableCode: 'TEST-EMPTY',
+    }
+    const h = await getHomepage(ctx, {}, fullFixture({ businessAreas: [empty] }))
+    expect(h.districtCards).toHaveLength(0)
+  })
+
+  /**
+   * 栅格 4 列、大卡跨 2x2，1 大 + 4 小恰好填满 2 行；不设上限时首页会被撑爆。
+   */
+  it('商圈卡张数受 districtCardsLimit 约束', async () => {
+    const unlimited = await getHomepage(ctx, {}, fullFixture())
+    const capped = await getHomepage(ctx, { districtCardsLimit: 1 }, fullFixture())
+    expect(unlimited.districtCards.length).toBeLessThanOrEqual(5)
+    expect(capped.districtCards.length).toBeLessThanOrEqual(1)
   })
 })
 

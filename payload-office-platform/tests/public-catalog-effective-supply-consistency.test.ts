@@ -327,6 +327,9 @@ function createFullPredicateAdapter(options: {
       }
       return sums
     },
+    async findEffectiveBusinessAreas() {
+      return []
+    },
     async findEffectiveBuildingsNear(buildingId) {
       return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
     },

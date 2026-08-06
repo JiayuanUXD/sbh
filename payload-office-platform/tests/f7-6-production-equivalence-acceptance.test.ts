@@ -295,6 +295,9 @@ function createFullPredicateAdapter(options: {
       }
       return sums
     },
+    async findEffectiveBusinessAreas() {
+      return []
+    },
     async findEffectiveBuildingsNear(buildingId, ctx) {
       syncAsOf(ctx)
       return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')

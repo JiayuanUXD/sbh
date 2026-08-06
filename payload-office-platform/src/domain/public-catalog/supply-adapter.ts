@@ -97,6 +97,16 @@ export interface SupplyAdapter {
   /** 当前城市的有效行政区列表（用于 facet 和筛选器） */
   findEffectiveDistricts(ctx: SearchContext): Promise<readonly Location[]>
 
+  /**
+   * 当前城市的前台可见商圈（用于首页「热门商圈」）。
+   *
+   * 商圈是 Locations 的第三层（城市 > 行政区 > 商圈），与行政区是包含关系而非
+   * 同一层——首页此前误用行政区，导致「热门商圈」列出的是黄浦、徐汇这类行政区。
+   * 库中商圈达 205 个且多数暂无楼盘，故一律要求 frontendVisible=true，由运营
+   * 按需放出。
+   */
+  findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>
+
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
 
@@ -715,6 +725,24 @@ GROUP BY l.building_id
         },
         limit: 100,
         sort: 'sortOrder',
+      })
+      return result.docs as readonly Location[]
+    },
+
+    async findEffectiveBusinessAreas(ctx) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'locations',
+        where: {
+          type: { equals: 'business_area' },
+          status: { equals: 'active' },
+          frontendVisible: { equals: true },
+          // 商圈的 parent 是行政区，城市在再上一层，故按祖父的 slug 过滤
+          ...(ctx.city ? { 'parent.parent.slug': { equals: ctx.city } } : {}),
+        },
+        limit: 200,
+        sort: 'sortOrder',
+        depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
       })
       return result.docs as readonly Location[]
     },
