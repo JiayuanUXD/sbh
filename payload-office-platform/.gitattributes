@@ -17,3 +17,8 @@ tests/ export-ignore
 # 同名 .ts（src/migrations/index.ts 也只 import .ts），构建/运行都不需要它们。
 # 全目录约 20 个、压缩后 ~320KB，排除纯属给跨境上传省窗口。
 src/migrations/*.json export-ignore
+
+# 首页 hero 背景视频（1.23MB，压缩后仍占全包 ~50%）已迁移到 COS 媒体库，
+# 前端改引 /api/media/file/hero-bg.mp4?prefix=media（本地开发回退 public/ 静态文件），
+# 不再随部署包上传。
+public/hero/ export-ignore
