@@ -1,5 +1,6 @@
 .env
 .env.local
+.env*.local
 .next
 node_modules
 dist
@@ -14,5 +15,9 @@ media
 public/images/
 test-results
 playwright-report
+
+# 本地临时产物与抓取的原始数据（不入库）
+tmp/
+scripts/import-huizuxuanzhi/data/
 .playwright
 .baseline

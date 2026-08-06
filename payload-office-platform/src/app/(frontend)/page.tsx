@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic'
 // F6.3：统一使用 buildPageMetadata 构造 metadata（canonical / OG / robots）
 export const metadata: Metadata = buildPageMetadata({
   title: '上海中高端商务办公租赁平台',
-  description: '聚合上海甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。',
+  description: '覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策。',
   canonicalPath: '/',
 })
 
@@ -44,9 +44,9 @@ export default async function HomePage() {
         <div className="hero__scrim" aria-hidden="true" />
         <div className="hero__inner">
           <p className="hero__eyebrow">Shanghai Premium Office Leasing</p>
-          <h1 className="hero__heading">为成长型企业匹配更体面的上海办公室</h1>
+          <h1 className="hero__heading">汇聚高端商务空间，赋能企业卓越成长</h1>
           <p className="hero__summary">
-            聚合甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮你匹配。
+            覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策
           </p>
           <HeroSearch districts={districts} />
           <div className="hero__inquiry-cta">

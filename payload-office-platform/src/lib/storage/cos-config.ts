@@ -80,6 +80,10 @@ export function collectCosProductionViolations(
   env: CosConfigEnv,
 ): Array<{ field: string; reason: string }> {
   if (env.NODE_ENV !== 'production') return []
+  // CI e2e（GitHub Actions 恒设 CI=true）用 `next start` 跑生产 server，但媒体走
+  // seed-media 离线 sharp 本地合成，并非 CloudRun 部署，COS 需求不适用——跳过以免
+  // 守卫误拒启动。真实 CloudRun 不设 CI，仍强制 COS。
+  if (env.CI) return []
 
   try {
     const config = parseCosStorageConfig(env)

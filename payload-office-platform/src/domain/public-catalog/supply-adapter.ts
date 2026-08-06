@@ -66,6 +66,21 @@ export interface SupplyAdapter {
     excludeListingId?: number | string,
   ): Promise<readonly Listing[]>
 
+  /**
+   * 批量聚合多个楼盘的在租面积（楼盘卡片「在租 xxx ㎡」用）。
+   *
+   * 返回 Map<楼盘 id, 面积合计>；无有效房源的楼盘不出现在 Map 中，调用方据此
+   * 判定「暂无在租」。
+   *
+   * 与 findEffectiveListingsByBuilding 的区别：本方法只求一个数，不需要把房源
+   * 文档取出来。实现走 SQL 聚合，口径与逐条精筛一致（见实现处的规则对照与
+   * scripts/verify-leasable-area-parity.ts 的全量比对）。
+   */
+  sumEffectiveLeasableAreaByBuildings(
+    buildingIds: readonly (number | string)[],
+    ctx: SearchContext,
+  ): Promise<ReadonlyMap<string, number>>
+
   /** 当前楼盘周边的有效公开楼盘（排除自身，稳定收束）。 */
   findEffectiveBuildingsNear(
     buildingId: number | string,
@@ -81,6 +96,16 @@ export interface SupplyAdapter {
 
   /** 当前城市的有效行政区列表（用于 facet 和筛选器） */
   findEffectiveDistricts(ctx: SearchContext): Promise<readonly Location[]>
+
+  /**
+   * 当前城市的前台可见商圈（用于首页「热门商圈」）。
+   *
+   * 商圈是 Locations 的第三层（城市 > 行政区 > 商圈），与行政区是包含关系而非
+   * 同一层——首页此前误用行政区，导致「热门商圈」列出的是黄浦、徐汇这类行政区。
+   * 库中商圈达 205 个且多数暂无楼盘，故一律要求 frontendVisible=true，由运营
+   * 按需放出。
+   */
+  findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>
 
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
@@ -347,7 +372,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         },
         sort: '-effectiveFrom',
         limit: listingIds.length * 2,
-        depth: 2,
+        // depth 1 足够：本函数从关系上只取 listing 的 id（下面 toId(relation.listing)）
+        // 与 merchant 对象；merchant.serviceCities 保持 id 数组即可，
+        // buildEffectiveSnapshot 的 toId 同时接受 id 与对象。
+        // 用 depth 2 会把每条关系的 listing 整个文档连同其楼盘/图库再展开一层，
+        // 数千条关系时这是楼盘列表页最大的一笔开销（实测 /buildings 80s → 63s）。
+        depth: 1,
         overrideAccess: true,
       })
       for (const relation of result.docs as unknown as Record<string, unknown>[]) {
@@ -509,6 +539,82 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       return kept
     },
 
+    async sumEffectiveLeasableAreaByBuildings(buildingIds, ctx) {
+      const sums = new Map<string, number>()
+      if (buildingIds.length === 0) return sums
+      const payload = await getPayload()
+      const asOf = new Date(ctx.asOf).toISOString()
+
+      // 每个 WHERE 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
+      // isListingEffectivelySupplied 的逐条精筛一一对应：
+      //   l.deleted_at / publication_status / review_status / supply_visibility_hold
+      //                                            → getEffectiveSupplyWhere
+      //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
+      //   g.n >= 3                                 → §6 有效媒体 ≥ 3
+      //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
+      //   m.status / qualification_*               → §9 商户启用 + 资质有效
+      //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
+      //   listing_reports.supply_paused            → §5 举报暂停排除
+      // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
+      // 「SQL vs 逐条精筛」全量比对守护，改动规则时必须重跑。
+      const sql = `
+WITH active_rel AS (
+  SELECT r.listing_id, r.merchant_id,
+         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
+  FROM listing_merchant_relations r
+  WHERE r.effective_from <= $1
+    AND (r.effective_to IS NULL OR r.effective_to > $1)
+),
+media AS (
+  SELECT _parent_id AS listing_id, COUNT(*) AS n
+  FROM listings_gallery GROUP BY _parent_id
+)
+SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
+FROM listings l
+JOIN buildings  b    ON b.id = l.building_id
+JOIN locations  city ON city.id = b.city_id
+JOIN locations  dist ON dist.id = b.district_id
+JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
+JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN media      g    ON g.listing_id = l.id
+WHERE l.building_id = ANY($2)
+  AND l.deleted_at IS NULL
+  AND l.publication_status = 'published'
+  AND l.review_status = 'approved'
+  AND l.supply_visibility_hold = 'normal'
+  AND g.n >= 3
+  AND b.status = 'published'
+  AND b.operational_status = 'active'
+  AND b.deleted_at IS NULL
+  AND city.status = 'active'
+  AND dist.status = 'active'
+  AND m.status = 'active'
+  AND m.qualification_status = 'valid'
+  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
+  AND EXISTS (
+    SELECT 1 FROM merchants_rels mr
+    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_reports rep
+    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
+  )
+GROUP BY l.building_id
+`
+      const pool = (payload.db as unknown as {
+        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number }> }> }
+      }).pool
+      const result = await pool.query(sql, [asOf, buildingIds.map((id) => Number(id))])
+
+      for (const row of result.rows) {
+        const total = Number(row.total)
+        if (!Number.isFinite(total) || total <= 0) continue
+        // numeric 逐条相加会积累出 160846.65999999997 这类尾数，收敛到 2 位小数
+        sums.set(String(row.bid), Math.round(total * 100) / 100)
+      }
+      return sums
+    },
+
     async findEffectiveBuildingsNear(buildingId, _ctx, limit) {
       const normalizedLimit = normalizeNearbyBuildingLimit(limit)
       if (normalizedLimit === 0) return []
@@ -611,10 +717,32 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         where: {
           type: { equals: 'district' },
           status: { equals: 'active' },
+          // Locations 的「前台可见」开关此前只被后台地区树用来画标记，C 端查询
+          // 没读过它——运营勾掉不生效。接上后运营即可控制哪些商圈进入 C 端。
+          // location-protect 保证停用节点会被强制取消勾选，故与 status 不冲突。
+          frontendVisible: { equals: true },
           ...(ctx.city ? { 'parent.slug': { equals: ctx.city } } : {}),
         },
         limit: 100,
         sort: 'sortOrder',
+      })
+      return result.docs as readonly Location[]
+    },
+
+    async findEffectiveBusinessAreas(ctx) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'locations',
+        where: {
+          type: { equals: 'business_area' },
+          status: { equals: 'active' },
+          frontendVisible: { equals: true },
+          // 商圈的 parent 是行政区，城市在再上一层，故按祖父的 slug 过滤
+          ...(ctx.city ? { 'parent.parent.slug': { equals: ctx.city } } : {}),
+        },
+        limit: 200,
+        sort: 'sortOrder',
+        depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
       })
       return result.docs as readonly Location[]
     },

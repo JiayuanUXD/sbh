@@ -28,6 +28,7 @@ import * as migration_20260731_120838_advisor_service_hours from './20260731_120
 import * as migration_20260731_120857_lead_viewing_preference from './20260731_120857_lead_viewing_preference';
 import * as migration_20260803_104120_add_articles from './20260803_104120_add_articles';
 import * as migration_20260805_033418_cos_media_prefix from './20260805_033418_cos_media_prefix';
+import * as migration_20260806_080629_locations_cover_image from './20260806_080629_locations_cover_image';
 
 export const migrations = [
   {
@@ -173,11 +174,16 @@ export const migrations = [
   {
     up: migration_20260803_104120_add_articles.up,
     down: migration_20260803_104120_add_articles.down,
-    name: '20260803_104120_add_articles'
+    name: '20260803_104120_add_articles',
   },
   {
     up: migration_20260805_033418_cos_media_prefix.up,
     down: migration_20260805_033418_cos_media_prefix.down,
-    name: '20260805_033418_cos_media_prefix'
+    name: '20260805_033418_cos_media_prefix',
+  },
+  {
+    up: migration_20260806_080629_locations_cover_image.up,
+    down: migration_20260806_080629_locations_cover_image.down,
+    name: '20260806_080629_locations_cover_image'
   },
 ];

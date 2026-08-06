@@ -52,6 +52,12 @@ function createFakePageAdapter(options: {
     async findEffectiveListingsByBuilding() {
       return []
     },
+    async sumEffectiveLeasableAreaByBuildings() {
+      return new Map<string, number>()
+    },
+    async findEffectiveBusinessAreas() {
+      return []
+    },
     async findEffectiveBuildingsNear() {
       return []
     },

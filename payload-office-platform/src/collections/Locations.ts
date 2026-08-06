@@ -133,6 +133,16 @@ export const Locations: CollectionConfig = {
       type: 'textarea',
     },
     {
+      name: 'coverImage',
+      label: '封面图',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description:
+          '首页商圈卡的背景图。留空时前台回退为该商圈下首个有封面的楼盘图片。',
+      },
+    },
+    {
       name: 'sortOrder',
       label: '排序',
       type: 'number',

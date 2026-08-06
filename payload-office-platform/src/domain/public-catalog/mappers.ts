@@ -303,6 +303,7 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
 export function mapDistrictCard(
   raw: unknown,
   coverImage: MediaViewModel | null,
+  buildings: readonly string[] = [],
 ): DistrictCardViewModel | null {
   if (!isLocation(raw)) return null
   return {
@@ -310,6 +311,7 @@ export function mapDistrictCard(
     slug: raw.slug,
     name: raw.name,
     coverImage,
+    buildings,
   }
 }
 

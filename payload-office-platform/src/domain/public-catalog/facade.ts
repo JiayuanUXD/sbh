@@ -43,6 +43,7 @@ import {
   mapBuildingSummary,
   mapDistrict,
   mapDistrictCard,
+  mapMedia,
   mapArticleCard,
   mapArticleDetail,
   mapListingCard,
@@ -211,6 +212,40 @@ function prepareCardsForPriceSort(
   }
 }
 
+/**
+ * 给楼盘 VM 批量补上在租面积（一次 SQL 聚合覆盖全部楼盘）。
+ *
+ * 缺这个字段的后果不只是少显示一个数字：BuildingListCard 会据此判定
+ * 「暂无在租」并给封面加 grayscale 降饱和，整片卡片发灰。首页与楼盘列表页
+ * 必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
+ */
+async function attachLeasableArea(
+  summaries: readonly BuildingSummaryViewModel[],
+  ctx: SearchContext,
+  adapter: SupplyAdapter,
+): Promise<BuildingSummaryViewModel[]> {
+  if (summaries.length === 0) return []
+  const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
+    summaries.map((s) => s.id),
+    ctx,
+  )
+  return summaries.map((s) => {
+    const leasableArea = areaByBuilding.get(String(s.id))
+    return leasableArea != null && leasableArea > 0 ? { ...s, leasableArea } : s
+  })
+}
+
+/**
+ * 首页商圈卡默认张数。
+ *
+ * 栅格 4 列、大卡跨 2x2，1 大 + 4 小恰好填满 2 行。
+ * 展示哪些商圈由 Locations 的「前台可见」控制，本常量只限制张数。
+ */
+const DEFAULT_DISTRICT_CARDS_LIMIT = 5
+
+/** 每张商圈卡最多列出的代表楼盘名数量 */
+const AREA_CARD_BUILDINGS_MAX = 4
+
 /** 计算分页元数据 */
 function buildPagination(
   totalDocs: number,
@@ -290,31 +325,21 @@ export async function searchListings(
  *
  * 步骤：
  *   1. adapter.findEffectiveBuildings → 原始 Building[]
- *   2. 并行查询每个楼盘的有效房源，聚合在租面积
- *   3. mapBuildingSummary + leasableArea → BuildingSummaryViewModel[]
- *
- * 注意：N+1 查询（每个楼盘单独查房源），MVP 阶段楼盘数量有限可接受；
- *      后续可优化为批量查询或物化视图。
+ *   2. mapBuildingSummary → BuildingSummaryViewModel[]
+ *   3. attachLeasableArea 一次 SQL 聚合补齐在租面积（不再逐楼盘查房源）
  */
 export async function searchBuildings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingSearchResult> {
   const rawBuildings = await adapter.findEffectiveBuildings(ctx)
-  const docs = await Promise.all(
-    rawBuildings.map(async (raw) => {
-      const summary = mapBuildingSummary(raw)
-      if (!summary) return null
-      const listings = await adapter.findEffectiveListingsByBuilding(raw.id, ctx)
-      const leasableArea = listings.reduce((sum, l) => {
-        const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
-        return sum + area
-      }, 0)
-      return leasableArea > 0 ? { ...summary, leasableArea } : summary
-    }),
-  )
-  const filtered = docs.filter((d): d is BuildingSummaryViewModel => d !== null)
-  return { docs: filtered, totalDocs: filtered.length }
+  const summaries: BuildingSummaryViewModel[] = []
+  for (const raw of rawBuildings) {
+    const summary = mapBuildingSummary(raw)
+    if (summary) summaries.push(summary)
+  }
+  const docs = await attachLeasableArea(summaries, ctx, adapter)
+  return { docs, totalDocs: docs.length }
 }
 
 /**
@@ -509,17 +534,27 @@ export async function assertEffectiveBuilding(
  */
 export async function getHomepage(
   ctx: SearchContext,
-  options: Readonly<{ featuredLimit?: number; featuredBuildingsLimit?: number; latestArticlesLimit?: number }> = {},
+  options: Readonly<{
+    featuredLimit?: number
+    featuredBuildingsLimit?: number
+    latestArticlesLimit?: number
+    districtCardsLimit?: number
+  }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
   const featuredLimit = options.featuredLimit ?? 8
   // 楼盘过取（默认 30）以获得足够商圈代表封面，首页精选展示再截 8 张
   const buildingsFetchLimit = Math.max(options.featuredBuildingsLimit ?? 30, featuredLimit)
   const articlesLimit = options.latestArticlesLimit ?? 5
+  // 商圈卡默认 9 张：栅格 4 列、大卡占 2x2，1 大 + 8 小恰好填满 3 行。
+  // 不设上限时商圈一多首页会被撑爆且末行留豁口（15 个商圈时末行只剩 2 张）。
+  // 只截卡片区，不影响 districts（首页搜索框的区域下拉仍列出全部前台可见商圈）。
+  const districtCardsLimit = options.districtCardsLimit ?? DEFAULT_DISTRICT_CARDS_LIMIT
 
-  const [featuredListings, districts, featuredBuildings, latestArticles] = await Promise.all([
+  const [featuredListings, districts, businessAreas, featuredBuildings, latestArticles] = await Promise.all([
     adapter.findFeaturedListings(ctx, featuredLimit),
     adapter.findEffectiveDistricts(ctx),
+    adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
     adapter.findLatestArticles(ctx, articlesLimit),
   ])
@@ -540,25 +575,40 @@ export async function getHomepage(
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
-  const featuredBuildingSlice = buildingVMs.slice(0, featuredLimit)
+  // 只对最终展示的切片聚合：楼盘是过取的（默认 30，供商圈封面挑选）
+  const featuredBuildingSlice = await attachLeasableArea(
+    buildingVMs.slice(0, featuredLimit),
+    ctx,
+    adapter,
+  )
 
-  // 商圈卡：每个商圈取首个有封面的精选楼盘作为代表封面。
-  // 楼盘已按 recommendedOrder / updatedAt 排序，故同一商圈首个命中的即代表。
-  const coverByDistrictSlug = new Map<string, NonNullable<MediaViewModel>>()
-  for (const b of buildingVMs) {
-    if (!b.district || !b.coverImage) continue
-    const slug = b.district.slug
-    if (!coverByDistrictSlug.has(slug)) {
-      coverByDistrictSlug.set(slug, b.coverImage)
-    }
+  // 商圈卡：按商圈（而非行政区）聚合。楼盘已按 recommendedOrder 排序，故同一
+  // 商圈内首个命中的楼盘即代表封面，前几个名字即代表楼盘。
+  const byArea = new Map<string, { cover: NonNullable<MediaViewModel> | null; names: string[] }>()
+  for (const raw of featuredBuildings) {
+    const ba = raw.businessDistrict
+    if (typeof ba !== 'object' || ba === null) continue
+    const slug = ba.slug
+    if (!slug) continue
+    const entry = byArea.get(slug) ?? { cover: null, names: [] }
+    const vm = mapBuildingSummary(raw)
+    if (!entry.cover && vm?.coverImage) entry.cover = vm.coverImage
+    if (entry.names.length < AREA_CARD_BUILDINGS_MAX) entry.names.push(raw.name)
+    byArea.set(slug, entry)
   }
 
   const districtCards: DistrictCardViewModel[] = []
-  for (const d of districts) {
-    const districtVM = mapDistrict(d)
-    if (!districtVM) continue
-    const cover = coverByDistrictSlug.get(districtVM.slug) ?? null
-    const card = mapDistrictCard(d, cover)
+  for (const area of businessAreas) {
+    if (districtCards.length >= districtCardsLimit) break
+    const areaVM = mapDistrict(area)
+    if (!areaVM) continue
+    const agg = byArea.get(areaVM.slug)
+    // 质量门槛：库中商圈有 205 个而多数暂无楼盘，没有在营楼盘的不进卡片区，
+    // 否则首页会出现只有名字的空卡。
+    if (!agg || agg.names.length === 0) continue
+    // 封面优先取运营在后台配置的商圈封面，缺省回退该商圈首个有封面的楼盘
+    const cover = mapMedia(area.coverImage, area.name) ?? agg.cover ?? null
+    const card = mapDistrictCard(area, cover, agg.names)
     if (card) districtCards.push(card)
   }
 

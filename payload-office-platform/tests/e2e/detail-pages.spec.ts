@@ -102,6 +102,8 @@ test.describe('房源详情 P0', () => {
     const mobilePrice = page.locator('.detail__mobile-bar-rent')
     await expect(heroPrice).toBeVisible()
     await expect(heroPrice).toHaveText('价格面议')
+    // F-016：底部栏价格在页内价格滚出视口后才显示，先滚出首屏再断言
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
     await expect(mobilePrice).toBeVisible()
     await expect(mobilePrice).toHaveText('价格面议')
     expect(await page.locator('main').evaluate(
@@ -256,7 +258,7 @@ test.describe('楼盘详情 P0', () => {
     const response = await page.goto('/buildings/empty-building')
 
     expect(response?.status()).toBe(200)
-    await expect(page.getByText('当前暂无公开可选空间')).toBeVisible()
+    await expect(page.getByText('当前暂无公开可选空间').first()).toBeVisible()
     await expect(page.getByText('最低价', { exact: false })).toHaveCount(0)
     await expect(page.locator('.building-supply-browser__bucket')).toHaveCount(0)
     await expect(

@@ -5,11 +5,15 @@ import type { DistrictCardViewModel } from '@/domain/public-catalog'
 /**
  * 首页「热门商圈」拼贴卡：1 大 + N 小
  *
+ * 数据源是商圈（Locations 第三层），不是行政区——两者是包含关系，
+ * 一个行政区下有多个商圈。
+ *
  * 设计依据：plans/temporal-imagining-sonnet.md §9（商圈入口，soolou IA + 本站 token）
  * 守护不变量：
  *   - 只消费 DistrictCardViewModel DTO（区域 + 代表楼盘封面）；
  *   - 封面缺失时降级为纸色底卡片，不渲染破碎图；
- *   - 卡片整体可点击，链接到 /listings?district=<slug>；
+ *   - 卡片整体可点击，链接到 /listings?businessArea=<slug>；
+ *   - 商圈名下列出代表楼盘名（最多 4 个），楼盘不足时按实有数量渲染；
  *   - 只用设计 token；移动端折叠为单列。
  *
  * 布局：首张为大卡（跨 2 列 2 行），其余为小卡；<4 个时仍稳定。
@@ -45,10 +49,10 @@ function DistrictCard({
   const cover = district.coverImage
   return (
     <Link
-      href={`/listings?district=${district.slug}`}
+      href={`/listings?businessArea=${district.slug}`}
       className={`district-card district-card--${variant}`}
       data-event-name="home_district_card_click"
-      data-district={district.slug}
+      data-business-area={district.slug}
     >
       {cover ? (
         <img
@@ -64,7 +68,13 @@ function DistrictCard({
       <span className="district-card__overlay" aria-hidden="true" />
       <span className="district-card__body">
         <span className="district-card__name">{district.name}</span>
-        <span className="district-card__cta">查看房源 →</span>
+        {district.buildings.length > 0 ? (
+          <span className="district-card__buildings">
+            {district.buildings.join(' ｜ ')}
+          </span>
+        ) : (
+          <span className="district-card__cta">查看房源 →</span>
+        )}
       </span>
     </Link>
   )
