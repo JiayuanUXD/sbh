@@ -38,6 +38,8 @@ export default async function HomePage() {
       <section className="hero">
         <div className="hero__bg" aria-hidden="true">
           <video autoPlay muted loop playsInline preload="metadata">
+            {/* 主源走 COS 媒体库（部署包不再打包视频）；本地开发媒体库无此资源时回退 public/ 静态文件 */}
+            <source src="/api/media/file/hero-bg.mp4?prefix=media" type="video/mp4" />
             <source src="/hero/bg.mp4" type="video/mp4" />
           </video>
         </div>
