@@ -206,3 +206,53 @@ describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
     })
   })
 })
+
+/**
+ * depth 归一化契约（供 SupplyAdapter.loadActiveRelations 依赖）
+ *
+ * 批量载入商户关系时用 depth 1 而非 depth 2：关系上只需要 listing 的 id 与
+ * merchant 对象，listing 保持 id 形态即可。depth 2 会把每条关系的 listing
+ * 整个文档再展开一层，数千条关系时是楼盘列表页最大的一笔开销。
+ *
+ * 本用例锁住该前提：merchant 的 serviceCities 无论是 id 数组（depth 1）还是
+ * 已展开对象数组（depth 2），派生出的快照必须完全相同。前提一旦被破坏，
+ * 房源可见性口径会在前台/预览/聚合/Dashboard 之间分叉。
+ */
+describe('buildEffectiveSnapshot: depth 1 与 depth 2 形态等价', () => {
+  const merchantDepth2 = {
+    id: 20,
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2027-01-01T00:00:00.000Z',
+    serviceCities: [{ id: 100, name: '上海' }, { id: 101, name: '北京' }],
+  }
+  const merchantDepth1 = { ...merchantDepth2, serviceCities: [100, 101] }
+  const period = { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null }
+  const gallery = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+
+  it('serviceCities 为 id 数组或对象数组，快照一致', () => {
+    const listing = { id: 1, gallery, building: { id: 5, city: 100 } }
+
+    const fromDepth2 = buildEffectiveSnapshot(listing, period, merchantDepth2)
+    const fromDepth1 = buildEffectiveSnapshot(listing, period, merchantDepth1)
+
+    expect(fromDepth1).toEqual(fromDepth2)
+    expect(fromDepth1.merchant.serviceCityIds).toEqual([100, 101])
+  })
+
+  it('building.city 为 id 或已展开对象，buildingCityId 一致', () => {
+    const cityAsId = buildEffectiveSnapshot(
+      { id: 1, gallery, building: { id: 5, city: 100 } },
+      period,
+      merchantDepth1,
+    )
+    const cityAsObject = buildEffectiveSnapshot(
+      { id: 1, gallery, building: { id: 5, city: { id: 100, name: '上海' } } },
+      period,
+      merchantDepth1,
+    )
+
+    expect(cityAsId.buildingCityId).toBe(100)
+    expect(cityAsObject.buildingCityId).toBe(100)
+  })
+})

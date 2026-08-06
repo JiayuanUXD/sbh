@@ -347,7 +347,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         },
         sort: '-effectiveFrom',
         limit: listingIds.length * 2,
-        depth: 2,
+        // depth 1 足够：本函数从关系上只取 listing 的 id（下面 toId(relation.listing)）
+        // 与 merchant 对象；merchant.serviceCities 保持 id 数组即可，
+        // buildEffectiveSnapshot 的 toId 同时接受 id 与对象。
+        // 用 depth 2 会把每条关系的 listing 整个文档连同其楼盘/图库再展开一层，
+        // 数千条关系时这是楼盘列表页最大的一笔开销（实测 /buildings 80s → 63s）。
+        depth: 1,
         overrideAccess: true,
       })
       for (const relation of result.docs as unknown as Record<string, unknown>[]) {
