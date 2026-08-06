@@ -234,6 +234,15 @@ async function attachLeasableArea(
   })
 }
 
+/**
+ * 首页商圈卡默认张数。
+ *
+ * 栅格 4 列、大卡跨 2x2，故整齐的张数是 5（1 大 + 4 小，2 行）、
+ * 9（3 行）、13（4 行）。取 9 兼顾信息量与整齐。
+ * 展示哪些商圈由 Locations 的「前台可见」控制，本常量只限制张数。
+ */
+const DEFAULT_DISTRICT_CARDS_LIMIT = 9
+
 /** 计算分页元数据 */
 function buildPagination(
   totalDocs: number,
@@ -522,13 +531,22 @@ export async function assertEffectiveBuilding(
  */
 export async function getHomepage(
   ctx: SearchContext,
-  options: Readonly<{ featuredLimit?: number; featuredBuildingsLimit?: number; latestArticlesLimit?: number }> = {},
+  options: Readonly<{
+    featuredLimit?: number
+    featuredBuildingsLimit?: number
+    latestArticlesLimit?: number
+    districtCardsLimit?: number
+  }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<HomepageData> {
   const featuredLimit = options.featuredLimit ?? 8
   // 楼盘过取（默认 30）以获得足够商圈代表封面，首页精选展示再截 8 张
   const buildingsFetchLimit = Math.max(options.featuredBuildingsLimit ?? 30, featuredLimit)
   const articlesLimit = options.latestArticlesLimit ?? 5
+  // 商圈卡默认 9 张：栅格 4 列、大卡占 2x2，1 大 + 8 小恰好填满 3 行。
+  // 不设上限时商圈一多首页会被撑爆且末行留豁口（15 个商圈时末行只剩 2 张）。
+  // 只截卡片区，不影响 districts（首页搜索框的区域下拉仍列出全部前台可见商圈）。
+  const districtCardsLimit = options.districtCardsLimit ?? DEFAULT_DISTRICT_CARDS_LIMIT
 
   const [featuredListings, districts, featuredBuildings, latestArticles] = await Promise.all([
     adapter.findFeaturedListings(ctx, featuredLimit),
@@ -573,6 +591,7 @@ export async function getHomepage(
 
   const districtCards: DistrictCardViewModel[] = []
   for (const d of districts) {
+    if (districtCards.length >= districtCardsLimit) break
     const districtVM = mapDistrict(d)
     if (!districtVM) continue
     const cover = coverByDistrictSlug.get(districtVM.slug) ?? null

@@ -707,6 +707,10 @@ GROUP BY l.building_id
         where: {
           type: { equals: 'district' },
           status: { equals: 'active' },
+          // Locations 的「前台可见」开关此前只被后台地区树用来画标记，C 端查询
+          // 没读过它——运营勾掉不生效。接上后运营即可控制哪些商圈进入 C 端。
+          // location-protect 保证停用节点会被强制取消勾选，故与 status 不冲突。
+          frontendVisible: { equals: true },
           ...(ctx.city ? { 'parent.slug': { equals: ctx.city } } : {}),
         },
         limit: 100,

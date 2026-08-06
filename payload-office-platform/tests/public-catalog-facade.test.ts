@@ -197,8 +197,9 @@ function createFakeAdapter(options: {
 const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
 
 /** 全量有效 fixture：3 条有效房源 + 1 条停用楼盘房源 + 失效房源集合 */
-function fullFixture() {
+function fullFixture(overrides: { districts?: readonly Location[] } = {}) {
   return createFakeAdapter({
+    ...overrides,
     listings: [
       LISTING_MONTHLY_STANDARD,
       LISTING_DAILY_PER_SQM,
@@ -452,6 +453,45 @@ describe('getHomepage', () => {
     expect(ids).not.toContain(2001) // 草稿
     expect(ids).not.toContain(2002) // 已出租
     expect(ids).not.toContain(2005) // 逻辑删除
+  })
+
+  /**
+   * 商圈卡张数上限：栅格 4 列、大卡跨 2x2，不设上限时商圈一多首页会被撑爆，
+   * 且末行留豁口。展示「哪些」商圈由 Locations 的「前台可见」在适配器层控制，
+   * 这里只锁「多少张」。
+   */
+  it('商圈卡默认截到 9 张（1 大 + 8 小，填满 3 行）', async () => {
+    const many: Location[] = Array.from({ length: 15 }, (_, i) => ({
+      ...(BUILDING_JINGAN_CENTER.district as Location),
+      id: 9100 + i,
+      name: `商圈${i}`,
+      slug: `district-${i}`,
+      immutableCode: `TEST-D${i}`,
+    }))
+    const h = await getHomepage(ctx, {}, fullFixture({ districts: many }))
+
+    expect(h.districtCards).toHaveLength(9)
+    // 上限只截卡片区；搜索框的区域下拉仍列出全部前台可见商圈
+    expect(h.districts).toHaveLength(15)
+  })
+
+  it('商圈卡张数可由 districtCardsLimit 覆盖', async () => {
+    const many: Location[] = Array.from({ length: 15 }, (_, i) => ({
+      ...(BUILDING_JINGAN_CENTER.district as Location),
+      id: 9200 + i,
+      name: `商圈${i}`,
+      slug: `d${i}`,
+      immutableCode: `TEST-E${i}`,
+    }))
+    const h = await getHomepage(ctx, { districtCardsLimit: 5 }, fullFixture({ districts: many }))
+
+    expect(h.districtCards).toHaveLength(5)
+  })
+
+  it('商圈少于上限时全部展示，不补位', async () => {
+    const h = await getHomepage(ctx, {}, fullFixture())
+    expect(h.districtCards.length).toBeLessThanOrEqual(9)
+    expect(h.districtCards.length).toBe(h.districts.length)
   })
 })
 
