@@ -410,6 +410,7 @@ export interface Team {
 export interface Media {
   id: number;
   alt: string;
+  prefix?: string | null;
   createdBy?: {
     relationTo: 'users';
     value: number | User;
@@ -2516,6 +2517,7 @@ export interface RolesSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  prefix?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   blurDataUrl?: T;

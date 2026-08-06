@@ -15,11 +15,18 @@
  *   - assertProductionConfig 抛错时进程退出，CloudRun 不切流量 -> fail-closed
  */
 
+import { collectCosProductionViolations } from '../storage/cos-config'
+
 export type ConfigGuardEnv = {
   NODE_ENV?: string
   DATABASE_URL?: string
   PAYLOAD_SECRET?: string
   NEXT_PUBLIC_SITE_URL?: string
+  COS_BUCKET?: string
+  COS_REGION?: string
+  COS_ENDPOINT?: string
+  COS_SECRET_ID?: string
+  COS_SECRET_KEY?: string
 }
 
 export type ConfigGuardViolation = {
@@ -110,6 +117,8 @@ export function validateProductionConfig(env: ConfigGuardEnv): ConfigGuardViolat
       })
     }
   }
+
+  violations.push(...collectCosProductionViolations(env))
 
   return violations
 }
