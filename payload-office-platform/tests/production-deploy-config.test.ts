@@ -70,8 +70,13 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
     expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
-    expect(workflow).toContain('--retry 4')
-    expect(workflow).toContain('--max-time 600')
+    // 重试机制：每次尝试重新拉取预签名 URL 再上传。curl --retry 会复用同一个
+    // 可能已过期的 URL，跨境慢传常在收尾被 COS 以 400 拒（run 31098998980）。
+    expect(workflow).toContain('for attempt in 1 2 3 4')
+    expect(workflow).toContain('fetch_upload_info')
+    expect(workflow).toContain('--max-time 300')
+    // 停滞检测：死连接 30s 内放弃换新 URL，而不是骑满整个签名窗口
+    expect(workflow).toContain('--speed-time 30')
     expect(workflow).not.toContain('cloudrun deploy')
     expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
   })
