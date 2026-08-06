@@ -282,6 +282,19 @@ function createFullPredicateAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
+    async sumEffectiveLeasableAreaByBuildings(buildingIds, ctx) {
+      syncAsOf(ctx)
+      const sums = new Map<string, number>()
+      for (const l of options.listings) {
+        if (!isListingEffective(l)) continue
+        const bid = typeof l.building === 'object' ? l.building.id : l.building
+        if (!buildingIds.some((id) => id === bid)) continue
+        const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
+        if (area <= 0) continue
+        sums.set(String(bid), (sums.get(String(bid)) ?? 0) + area)
+      }
+      return sums
+    },
     async findEffectiveBuildingsNear(buildingId, ctx) {
       syncAsOf(ctx)
       return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')

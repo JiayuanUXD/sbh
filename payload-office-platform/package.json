@@ -24,6 +24,7 @@
     "preflight": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts",
     "preflight:env": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts env",
     "preflight:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts migrations",
+    "verify:leasable-area": "node --env-file-if-exists=.env.local --import tsx scripts/verify-leasable-area-parity.ts",
     "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts"
   },
   "dependencies": {

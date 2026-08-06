@@ -211,6 +211,29 @@ function prepareCardsForPriceSort(
   }
 }
 
+/**
+ * 给楼盘 VM 批量补上在租面积（一次 SQL 聚合覆盖全部楼盘）。
+ *
+ * 缺这个字段的后果不只是少显示一个数字：BuildingListCard 会据此判定
+ * 「暂无在租」并给封面加 grayscale 降饱和，整片卡片发灰。首页与楼盘列表页
+ * 必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
+ */
+async function attachLeasableArea(
+  summaries: readonly BuildingSummaryViewModel[],
+  ctx: SearchContext,
+  adapter: SupplyAdapter,
+): Promise<BuildingSummaryViewModel[]> {
+  if (summaries.length === 0) return []
+  const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
+    summaries.map((s) => s.id),
+    ctx,
+  )
+  return summaries.map((s) => {
+    const leasableArea = areaByBuilding.get(String(s.id))
+    return leasableArea != null && leasableArea > 0 ? { ...s, leasableArea } : s
+  })
+}
+
 /** 计算分页元数据 */
 function buildPagination(
   totalDocs: number,
@@ -290,31 +313,21 @@ export async function searchListings(
  *
  * 步骤：
  *   1. adapter.findEffectiveBuildings → 原始 Building[]
- *   2. 并行查询每个楼盘的有效房源，聚合在租面积
- *   3. mapBuildingSummary + leasableArea → BuildingSummaryViewModel[]
- *
- * 注意：N+1 查询（每个楼盘单独查房源），MVP 阶段楼盘数量有限可接受；
- *      后续可优化为批量查询或物化视图。
+ *   2. mapBuildingSummary → BuildingSummaryViewModel[]
+ *   3. attachLeasableArea 一次 SQL 聚合补齐在租面积（不再逐楼盘查房源）
  */
 export async function searchBuildings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingSearchResult> {
   const rawBuildings = await adapter.findEffectiveBuildings(ctx)
-  const docs = await Promise.all(
-    rawBuildings.map(async (raw) => {
-      const summary = mapBuildingSummary(raw)
-      if (!summary) return null
-      const listings = await adapter.findEffectiveListingsByBuilding(raw.id, ctx)
-      const leasableArea = listings.reduce((sum, l) => {
-        const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
-        return sum + area
-      }, 0)
-      return leasableArea > 0 ? { ...summary, leasableArea } : summary
-    }),
-  )
-  const filtered = docs.filter((d): d is BuildingSummaryViewModel => d !== null)
-  return { docs: filtered, totalDocs: filtered.length }
+  const summaries: BuildingSummaryViewModel[] = []
+  for (const raw of rawBuildings) {
+    const summary = mapBuildingSummary(raw)
+    if (summary) summaries.push(summary)
+  }
+  const docs = await attachLeasableArea(summaries, ctx, adapter)
+  return { docs, totalDocs: docs.length }
 }
 
 /**
@@ -540,7 +553,12 @@ export async function getHomepage(
     const vm = mapBuildingSummary(b)
     if (vm) buildingVMs.push(vm)
   }
-  const featuredBuildingSlice = buildingVMs.slice(0, featuredLimit)
+  // 只对最终展示的切片聚合：楼盘是过取的（默认 30，供商圈封面挑选）
+  const featuredBuildingSlice = await attachLeasableArea(
+    buildingVMs.slice(0, featuredLimit),
+    ctx,
+    adapter,
+  )
 
   // 商圈卡：每个商圈取首个有封面的精选楼盘作为代表封面。
   // 楼盘已按 recommendedOrder / updatedAt 排序，故同一商圈首个命中的即代表。

@@ -66,6 +66,21 @@ export interface SupplyAdapter {
     excludeListingId?: number | string,
   ): Promise<readonly Listing[]>
 
+  /**
+   * 批量聚合多个楼盘的在租面积（楼盘卡片「在租 xxx ㎡」用）。
+   *
+   * 返回 Map<楼盘 id, 面积合计>；无有效房源的楼盘不出现在 Map 中，调用方据此
+   * 判定「暂无在租」。
+   *
+   * 与 findEffectiveListingsByBuilding 的区别：本方法只求一个数，不需要把房源
+   * 文档取出来。实现走 SQL 聚合，口径与逐条精筛一致（见实现处的规则对照与
+   * scripts/verify-leasable-area-parity.ts 的全量比对）。
+   */
+  sumEffectiveLeasableAreaByBuildings(
+    buildingIds: readonly (number | string)[],
+    ctx: SearchContext,
+  ): Promise<ReadonlyMap<string, number>>
+
   /** 当前楼盘周边的有效公开楼盘（排除自身，稳定收束）。 */
   findEffectiveBuildingsNear(
     buildingId: number | string,
@@ -512,6 +527,82 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         kept = kept.filter((d) => String(d.id) !== String(excludeListingId))
       }
       return kept
+    },
+
+    async sumEffectiveLeasableAreaByBuildings(buildingIds, ctx) {
+      const sums = new Map<string, number>()
+      if (buildingIds.length === 0) return sums
+      const payload = await getPayload()
+      const asOf = new Date(ctx.asOf).toISOString()
+
+      // 每个 WHERE 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
+      // isListingEffectivelySupplied 的逐条精筛一一对应：
+      //   l.deleted_at / publication_status / review_status / supply_visibility_hold
+      //                                            → getEffectiveSupplyWhere
+      //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
+      //   g.n >= 3                                 → §6 有效媒体 ≥ 3
+      //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
+      //   m.status / qualification_*               → §9 商户启用 + 资质有效
+      //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
+      //   listing_reports.supply_paused            → §5 举报暂停排除
+      // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
+      // 「SQL vs 逐条精筛」全量比对守护，改动规则时必须重跑。
+      const sql = `
+WITH active_rel AS (
+  SELECT r.listing_id, r.merchant_id,
+         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
+  FROM listing_merchant_relations r
+  WHERE r.effective_from <= $1
+    AND (r.effective_to IS NULL OR r.effective_to > $1)
+),
+media AS (
+  SELECT _parent_id AS listing_id, COUNT(*) AS n
+  FROM listings_gallery GROUP BY _parent_id
+)
+SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
+FROM listings l
+JOIN buildings  b    ON b.id = l.building_id
+JOIN locations  city ON city.id = b.city_id
+JOIN locations  dist ON dist.id = b.district_id
+JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
+JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN media      g    ON g.listing_id = l.id
+WHERE l.building_id = ANY($2)
+  AND l.deleted_at IS NULL
+  AND l.publication_status = 'published'
+  AND l.review_status = 'approved'
+  AND l.supply_visibility_hold = 'normal'
+  AND g.n >= 3
+  AND b.status = 'published'
+  AND b.operational_status = 'active'
+  AND b.deleted_at IS NULL
+  AND city.status = 'active'
+  AND dist.status = 'active'
+  AND m.status = 'active'
+  AND m.qualification_status = 'valid'
+  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
+  AND EXISTS (
+    SELECT 1 FROM merchants_rels mr
+    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_reports rep
+    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
+  )
+GROUP BY l.building_id
+`
+      const pool = (payload.db as unknown as {
+        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number }> }> }
+      }).pool
+      const result = await pool.query(sql, [asOf, buildingIds.map((id) => Number(id))])
+
+      for (const row of result.rows) {
+        const total = Number(row.total)
+        if (!Number.isFinite(total) || total <= 0) continue
+        // numeric 逐条相加会积累出 160846.65999999997 这类尾数，收敛到 2 位小数
+        sums.set(String(row.bid), Math.round(total * 100) / 100)
+      }
+      return sums
     },
 
     async findEffectiveBuildingsNear(buildingId, _ctx, limit) {
