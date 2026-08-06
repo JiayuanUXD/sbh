@@ -21,7 +21,7 @@ test.describe('楼盘详情位置交通 P1', () => {
     await page.goto(`/buildings/${BUILDING_SLUG}`)
 
     // 滚动到位置交通区，触发 IntersectionObserver 自动加载（加载失败降级为静态卡片）
-    await page.locator('#location').scrollIntoViewIfNeeded()
+    await page.locator('#location').first().scrollIntoViewIfNeeded()
     await expect(page.getByText('地图暂时不可用')).toBeVisible()
   })
 
@@ -35,7 +35,7 @@ test.describe('楼盘详情位置交通 P1', () => {
     expect(requests.some((url) => url.includes('webapi.amap.com'))).toBe(false)
 
     // 滚动到位置区后触发懒加载
-    await page.locator('#location').scrollIntoViewIfNeeded()
+    await page.locator('#location').first().scrollIntoViewIfNeeded()
     await expect.poll(
       () => requests.some((url) => url.includes('webapi.amap.com')),
     ).toBe(true)
