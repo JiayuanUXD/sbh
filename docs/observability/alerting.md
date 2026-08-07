@@ -141,7 +141,7 @@ Web Vitals 经 GTM 进入分析平台后，在分析平台侧按 p75 口径告�
 ### LCPPoor / INPPoor / CLSPoor
 1. 在分析平台定位受影响页面/设备。
 2. 排查首屏资源体积、第三方脚本、布局抖动。
-3. 参见 `docs/superpowers/specs/2026-07-24-c-end-public-site-design.md` 性能预算。
+3. 参考 C 端性能预算（LCP ≤2.5s、INP ≤200ms、CLS ≤0.1，见 `.agent/testing.md`）。
 
 ## 9. 相关文件
 

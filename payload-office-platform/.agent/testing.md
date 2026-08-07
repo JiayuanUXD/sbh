@@ -35,7 +35,7 @@ pnpm build
 
 ## 证据
 
-详细输出存入 `artifacts/verification/<task-id>/README.md`。Tasks 仅保存状态、短结论和相对链接，禁止粘贴长日志。
+详细输出（长日志、截图等）存入任务包或 PR 描述或临时验证目录，禁止粘贴长日志到 Tasks。
 
 ## 完成定义
 

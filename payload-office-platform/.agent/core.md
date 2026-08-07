@@ -4,15 +4,13 @@
 
 - Next.js 16 App Router、React 19、Payload CMS 3.86。
 - pnpm；本地 SQLite，生产 PostgreSQL。
-- Payload Lexical；媒体当前使用本地上传。
+- Payload Lexical；媒体生产走腾讯云 COS（`@payloadcms/storage-s3`，prefix `media`）。
 - 默认产品与文档语言为简体中文，产品时间为 `Asia/Shanghai`。
 
 ## 权威事实
 
-- 后台页面基线：`../../docs/prd/后台管理系统_MVP_页面PRD/`。
-- 前台页面基线：`../../docs/prd/前台网站_MVP_页面PRD/`。
-- `specs/*/requirements.md` 定义需求，`design.md` 定义架构，`tasks.md` 只定义实施顺序。
-- 旧版后台汇总和 `docs/superpowers` 只用于理解历史，不覆盖当前基线。
+- 历史 PRD / 实施计划 / 规格已移除，**以代码为唯一事实源**。
+- 页面/路由/领域行为以 `src/app`、`src/domain`、collection 配置与迁移为准；业务规则按领域见 `.agent/` 对应专项文件。
 
 ## 核心状态
 

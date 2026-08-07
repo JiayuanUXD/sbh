@@ -14,7 +14,7 @@
 ## 分支模型
 
 - 默认分支 `master` 触发 CI 自动部署到 CloudBase CloudRun。**不要在 `master` 上直接写代码**——先开 `feat/*` 分支。
-- C 端公开站在建，分支 `feat/c-end-public-site`，计划见 `docs/superpowers/plans/2026-07-24-c-end-public-site.md`，规格见 `docs/superpowers/specs/2026-07-24-c-end-public-site-design.md`。
+- C 端公开站（首页 + 房源/楼盘列表与详情 + 询价 + SEO）已合入 master 上线。后台 MVP 与优化项（41 项）均已合入。新建功能照常开 `feat/*` 分支。历史实施计划/PRD 已移除，以代码为唯一事实源。
 
 ## CloudBase 部署事实
 
