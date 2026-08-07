@@ -10,7 +10,7 @@
 - Payload 需要标准 SQL 连接串（`postgres://host:5432`），CloudBase 内置 PG/MySQL 不提供 → 数据库用独立的 **TencentDB for PostgreSQL** 实例
 - CloudRun 容器无状态 → media 存 **腾讯云 COS（S3 兼容）**
 
-## 已完成 ✅（截至 2026-07-24）
+## 已完成 ✅（截至 2026-08-07）
 
 | # | 任务 | 说明 |
 |---|------|------|
@@ -38,12 +38,13 @@
 
 ### 🟠 P1 — 业务可用
 - [x] 首个管理员已存在（`85851205@qq.com`），从 `/admin/login` 登录即可。注：`/admin/create-first-user` 在 users 表非空时会 `notFound()`（白屏是正常行为，不是 bug）
-- [ ] 后台 CRUD 一条 listing / 上传一张媒体，重启容器后确认数据与媒体仍在（验 PG + COS 持久化）
+- [x] 后台 CRUD listing / 上传媒体，重启容器后数据与媒体仍在（PG + COS 持久化已验证）
 
 ### 🟡 P2 — 优化（可选）
 - [ ] 流量稳定后把 CloudRun `MinNum` 1→0 省成本（代价：冷启动延迟）
 - [ ] 容器接 VPC + PG 内网地址 `172.17.0.8:5432` 替代公网（安全 + 延迟），去掉公网 PG 暴露
-- [ ] 真要用媒体上传时再配 COS：当前 `S3_*` 未设，上传走本地；上线前需补 bucket/密钥/endpoint 到服务环境变量
+
+> **当前状态（2026-08-07）**：生产**强制 COS 存媒体**（`config-guard` 校验，缺 `COS_*` 拒绝启动；CI e2e 豁免）。首页 hero 背景视频已迁到 COS 媒体库（`/api/media/file/hero-bg.mp4?prefix=media`），不再打包进部署包，包体积 2.51MB → 1.02MB。
 
 ## Git 自动部署（CI）
 
@@ -59,7 +60,7 @@
 > 2026-07-27 的连续部署失败就是这么来的：`payload-office-platform/artifacts/verification/` 里 31 个视觉回归 PNG 把包撑到 6.5 MB。**当时误判成「GitHub 托管 Runner 上传通道不可用、需换大陆自托管 Runner」——不成立**，同一 Runner 同一 COS 端点在 297 KB 时代跑得好好的。
 >
 > 现在的防线（2026-07-28）：
-> - `payload-office-platform/.gitattributes` 用 `export-ignore` 把 `artifacts/` 与 `tests/` 挡在包外（**`.dockerignore` 在这一步不生效**——平台是先收包、再在云端 build）。包回到 869 KB。
+> - `payload-office-platform/.gitattributes` 用 `export-ignore` 把 `tests/` 与 `src/migrations/*.json` 挡在包外（**`.dockerignore` 在这一步不生效**——平台是先收包、再在云端 build）。包回到 869 KB。历史视觉回归 `artifacts/` 目录已整体删除，不再需要排除。
 > - deploy 步骤有 3 MB 硬阈值，超了立刻失败并提示，而不是耗 15 分钟超时才暴露。
 > - `--max-time` 从 180s 提到 600s，给跨境传输留余量。
 >

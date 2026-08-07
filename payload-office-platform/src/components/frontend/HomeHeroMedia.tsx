@@ -40,7 +40,7 @@ export default function HomeHeroMedia() {
       />
       {loadVideo && (
         <video autoPlay muted loop playsInline preload="none" poster="/hero/poster.jpg">
-          <source src="/hero/bg.mp4" type="video/mp4" />
+          <source src="/api/media/file/hero-bg.mp4?prefix=media" type="video/mp4" />
         </video>
       )}
     </div>

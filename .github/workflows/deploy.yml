@@ -138,7 +138,7 @@ jobs:
           deploy_info="$RUNNER_TEMP/sbh-deploy.json"
 
           # 包体积是这条通道的命门：跨境传到腾讯云 COS，包越大越容易在签名窗口内传不完。
-          # payload-office-platform/.gitattributes 用 export-ignore 把 artifacts/、tests/
+          # payload-office-platform/.gitattributes 用 export-ignore 把 tests/
           # 与 src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）挡在包外。
           # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗十几分钟超时后才暴露。
           git archive --format=zip HEAD:payload-office-platform > "$archive"
