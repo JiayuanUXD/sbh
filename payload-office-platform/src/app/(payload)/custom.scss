@@ -49,6 +49,14 @@
   }
 }
 
+// Payload PerPage 的按钮 reset 后于 PopupButtonList 加载，会把菜单项 padding 清零。
+// 用组合 class 恢复上游 PopupButtonList 的原始间距，仅影响分页弹层选项。
+.popup__content .popup-button-list__button.per-page__button {
+  padding-block: calc(2px + var(--popup-button-list-gap) / 2);
+  padding-inline: var(--list-button-padding);
+  line-height: var(--base);
+}
+
 // 后台品牌标题（左侧导航栏顶部，替代原右上角环境标签）
 .admin-brand-title {
   font-family: var(--font-source-han-sans), -apple-system, BlinkMacSystemFont,
