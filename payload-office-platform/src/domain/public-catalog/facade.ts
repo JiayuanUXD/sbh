@@ -526,6 +526,24 @@ export async function assertEffectiveBuilding(
 }
 
 /**
+ * 房源列表页区域筛选选项。
+ *
+ * 列表页只需要公开可见区域，不应为筛选栏加载整套首页数据。
+ */
+export async function getListingDistrictOptions(
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly DistrictViewModel[]> {
+  const districts = await adapter.findEffectiveDistricts(ctx)
+  const result: DistrictViewModel[] = []
+  for (const district of districts) {
+    const mapped = mapDistrict(district)
+    if (mapped) result.push(mapped)
+  }
+  return result
+}
+
+/**
  * 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯
  *
  * design.md §5.2：精选、热门区域数量使用同一 asOf 与谓词。

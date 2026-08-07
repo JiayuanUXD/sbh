@@ -6,10 +6,7 @@ import BuildingGrid from '@/components/frontend/BuildingGrid'
 import { BUILDING_GRADE_LABELS, type BuildingGrade } from '@/components/frontend/building-grade'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import Pagination from '@/components/frontend/Pagination'
-import {
-  defaultSearchContext,
-  searchBuildings,
-} from '@/domain/public-catalog'
+import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 
 export const dynamic = 'force-dynamic'
@@ -37,8 +34,7 @@ export default async function BuildingsPage({
       ? (resolved.grade as BuildingGrade)
       : undefined
 
-  const ctx = defaultSearchContext()
-  const result = await searchBuildings(ctx)
+  const result = await getCachedSearchBuildings()
   const { docs: allDocs } = result
 
   // 筛选候选值取自全量结果，这样切换筛选时 chip 组不会自己消失。

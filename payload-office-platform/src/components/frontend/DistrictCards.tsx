@@ -30,7 +30,7 @@ export default function DistrictCards({ districts }: Props) {
     <section className="section district-section" aria-labelledby="district-title">
       <div className="section__header">
         <h2 className="section__title" id="district-title">热门商圈</h2>
-        <Link href="/listings" className="text-copper" data-event-name="home_district_view_all">全部商圈 →</Link>
+        <Link href="/listings" prefetch={false} className="text-copper" data-event-name="home_district_view_all">全部商圈 →</Link>
       </div>
       <div className="district-cards">
         <DistrictCard district={first} variant="lg" />
@@ -50,6 +50,7 @@ function DistrictCard({
   return (
     <Link
       href={`/listings?businessArea=${district.slug}`}
+      prefetch={false}
       className={`district-card district-card--${variant}`}
       data-event-name="home_district_card_click"
       data-business-area={district.slug}

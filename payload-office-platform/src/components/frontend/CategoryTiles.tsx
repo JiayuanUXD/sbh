@@ -34,12 +34,17 @@ export default function CategoryTiles() {
     <section className="section cat-tiles-section" aria-labelledby="cat-tiles-title">
       <div className="section__header">
         <h2 className="section__title" id="cat-tiles-title">按类型浏览</h2>
-        <Link href="/listings" className="text-copper" data-event-name="home_cat_view_all">查看全部房源 →</Link>
+        <Link href="/listings" prefetch={false} className="text-copper" data-event-name="home_cat_view_all">查看全部房源 →</Link>
       </div>
       <ul className="cat-tiles" role="list">
         {TILES.map((t) => (
           <li key={t.no} className="cat-tiles__item">
-            <Link href={t.href} className="cat-tile" data-event-name={t.event}>
+            <Link
+              href={t.href}
+              prefetch={t.href.startsWith('/listings') ? false : undefined}
+              className="cat-tile"
+              data-event-name={t.event}
+            >
               <span className="cat-tile__no">{t.no}</span>
               <span className="cat-tile__label">{t.label}</span>
               <span className="cat-tile__sublabel">{t.sublabel}</span>

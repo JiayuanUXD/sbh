@@ -7,9 +7,12 @@ import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
+  getCachedBuildingDetail,
+  getCachedRelatedBuildings,
+} from '@/lib/frontend/cached-queries'
+import {
   defaultSearchContext,
   getBuildingDetail,
-  getRelatedBuildings,
   parseBuildingSupplySearchParams,
   type BuildingSupplyInput,
 } from '@/domain/public-catalog'
@@ -22,8 +25,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const { building } = await getBuildingDetail(slug, ctx)
+  const { building } = await getCachedBuildingDetail(slug)
   if (!building) {
     return {
       title: '楼盘未找到',
@@ -45,7 +47,7 @@ export default async function BuildingDetailPage({
   const ctx = defaultSearchContext()
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
     getBuildingDetail(slug, ctx, supplyInput),
-    getRelatedBuildings(slug, ctx),
+    getCachedRelatedBuildings(slug),
     getServiceSchedule(),
   ])
   if (!building) notFound()

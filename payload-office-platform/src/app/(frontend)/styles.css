@@ -1495,10 +1495,20 @@ ol {
   z-index: 0;
 }
 
+.hero__poster,
 .hero__bg video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hero__poster {
+  display: block;
+}
+
+.hero__bg video {
+  position: absolute;
+  inset: 0;
 }
 
 /* 文字对比度遮罩：用 --color-ink 同色系 rgba */

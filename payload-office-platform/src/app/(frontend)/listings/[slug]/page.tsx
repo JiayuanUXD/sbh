@@ -23,11 +23,10 @@ import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
-  defaultSearchContext,
-  getBuildingBySlug,
-  getListingBySlug,
-  getDetailRecommendations,
-} from '@/domain/public-catalog'
+  getCachedBuildingBySlug,
+  getCachedDetailRecommendations,
+  getCachedListingBySlug,
+} from '@/lib/frontend/cached-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,8 +43,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const listing = await getListingBySlug(slug, ctx)
+  const listing = await getCachedListingBySlug(slug)
   if (!listing) {
     return {
       title: '房源未找到',
@@ -61,15 +59,16 @@ export default async function ListingDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const listing = await getListingBySlug(slug, ctx)
+  const listing = await getCachedListingBySlug(slug)
   if (!listing) notFound()
 
   const building = listing.building
-  const buildingDetail = building ? await getBuildingBySlug(building.slug, ctx) : null
-  const recommendations = await getDetailRecommendations(slug, ctx, { limit: 6 })
-  const pois = await fetchNearbyPois(building?.id ?? 0, building?.coordinates)
-  const serviceSchedule = await getServiceSchedule()
+  const [buildingDetail, recommendations, pois, serviceSchedule] = await Promise.all([
+    building ? getCachedBuildingBySlug(building.slug) : Promise.resolve(null),
+    getCachedDetailRecommendations(slug, 6),
+    fetchNearbyPois(building?.id ?? 0, building?.coordinates),
+    getServiceSchedule(),
+  ])
   const mapEnabled =
     building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
 

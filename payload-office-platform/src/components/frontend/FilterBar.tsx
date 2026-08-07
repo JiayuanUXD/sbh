@@ -151,6 +151,7 @@ export default function FilterBar({ districts }: Props) {
               key={s.value}
               className={`filter-chip${sort === s.value ? ' is-active' : ''}`}
               href={buildHref(sp, { sort: s.value === 'recommended' ? null : s.value })}
+              prefetch={false}
             >
               {s.label}
             </Link>
@@ -161,6 +162,7 @@ export default function FilterBar({ districts }: Props) {
           <Link
             className={`filter-chip${!rentUnit ? ' is-active' : ''}`}
             href={buildHref(sp, { rentUnit: null })}
+            prefetch={false}
           >
             不限
           </Link>
@@ -169,6 +171,7 @@ export default function FilterBar({ districts }: Props) {
               key={u.value}
               className={`filter-chip${rentUnit === u.value ? ' is-active' : ''}`}
               href={buildHref(sp, { rentUnit: u.value })}
+              prefetch={false}
             >
               {u.label}
             </Link>
@@ -186,6 +189,7 @@ export default function FilterBar({ districts }: Props) {
           <Link
             className={`filter-chip${!district ? ' is-active' : ''}`}
             href={buildHref(sp, { district: null })}
+            prefetch={false}
           >
             全部
           </Link>
@@ -194,6 +198,7 @@ export default function FilterBar({ districts }: Props) {
               key={d.id}
               className={`filter-chip${district === d.slug ? ' is-active' : ''}`}
               href={buildHref(sp, { district: d.slug })}
+              prefetch={false}
             >
               {d.name}
             </Link>
@@ -208,6 +213,7 @@ export default function FilterBar({ districts }: Props) {
           <Link
             className={`filter-chip${!type ? ' is-active' : ''}`}
             href={buildHref(sp, { type: null })}
+            prefetch={false}
           >
             全部
           </Link>
@@ -216,6 +222,7 @@ export default function FilterBar({ districts }: Props) {
               key={t.value}
               className={`filter-chip${type === t.value ? ' is-active' : ''}`}
               href={buildHref(sp, { type: t.value })}
+              prefetch={false}
             >
               {t.label}
             </Link>
@@ -250,24 +257,28 @@ export default function FilterBar({ districts }: Props) {
           <Link
             className={`filter-chip${qMatches('地铁') ? ' is-active' : ''}`}
             href={toggleHref(sp, { q: '地铁' })}
+            prefetch={false}
           >
             近地铁
           </Link>
           <Link
             className={`filter-chip${qMatches('精装修') ? ' is-active' : ''}`}
             href={toggleHref(sp, { q: '精装修' })}
+            prefetch={false}
           >
             精装修
           </Link>
           <Link
             className={`filter-chip${sp.get('rentMax') === '3' && sp.get('rentUnit') === 'rmb-sqm-day' ? ' is-active' : ''}`}
             href={toggleHref(sp, { rentMax: '3', rentUnit: 'rmb-sqm-day' })}
+            prefetch={false}
           >
             ≤3元/㎡/天
           </Link>
           <Link
             className={`filter-chip${sp.get('areaMax') === '100' ? ' is-active' : ''}`}
             href={toggleHref(sp, { areaMax: '100' })}
+            prefetch={false}
           >
             ≤100㎡
           </Link>
@@ -346,7 +357,7 @@ export default function FilterBar({ districts }: Props) {
           <p className="filter-bar__error" role="alert">{error}</p>
         )}
         <button type="submit" className="btn btn--primary">筛选</button>
-        <Link href="/listings" className="btn btn--ghost">重置</Link>
+        <Link href="/listings" prefetch={false} className="btn btn--ghost">重置</Link>
       </form>
       </div>
     </div>

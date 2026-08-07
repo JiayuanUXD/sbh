@@ -1,110 +1,113 @@
-# Task 3 — 楼盘供给分组、聚合、筛选和排序
+# OPT-025 Task 3 — 静态、生产构建、性能与浏览器验收
 
-## 状态
+## 原验证记录（已由本次 follow-up 更正）
 
-完成并提交前验证通过。
+首次验收曾在 Node 24 环境中得到 typecheck、构建和 `/buildings` 缓存命中证据，但证据表将一个 500 错误地同时称作“`/buildings` warmup”与“首页 warmup”。该描述不可采信，已由以下 Node 22 follow-up 以明确 URL、HTTP 状态和服务端日志替换。旧记录中的筛选、分页、四档视口与 `/listings` 浏览器功能观察保留为历史证据。
 
-## RED / GREEN 证据
+## Follow-up：Node 22 自动化与构建
 
-1. RED：新增 `tests/building-supply.test.ts` 后执行：
-
-   ```sh
-   npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts'
-   ```
-
-   结果：预期失败，`Cannot find package '@/domain/public-catalog/building-supply'`。
-
-2. GREEN：创建 `building-supply.ts` 和快照契约后重跑相同命令，2/2 通过。
-
-3. RED：为 `getRelatedBuildings` 加入契约测试后，测试按预期失败：`getRelatedBuildings is not a function`。
-
-4. GREEN：导出并实现门面及适配器方法后，`tests/building-supply.test.ts` 3/3 通过；随后加入单次楼内供给查询断言，最终为 4/4 通过。
-
-## 实现
-
-- 新增 `buildBuildingSupplySnapshot(cards, input, asOf)`、`emptyBuildingSupplySnapshot(asOf)` 和稳定公开 DTO：`BuildingSupplySnapshot`、分组与完整价格键区间。
-- 联合办公使用现有且明确的领域判别 `listingType === 'coworking'`；该类型优先于租赁 businessType。
-- 价格区间的唯一键是 `businessType:currency:period:basis`；不会跨完整键合并或比较。
-- 价格排序遇到混合完整价格键且未提供 `priceUnit` 时返回 `price_unit_required`，并只以稳定 ID 收束，不会选择任意单位排序。
-- `price === null`（待面议）卡片不被过滤或聚合流程丢弃；显式 `priceUnit` 过滤也保留它们。
-- `getBuildingDetail` 改为 `{ building, supply }`，空楼盘返回同一 `ctx.asOf` 的空快照；通过兼容 overload 保留原有第三参数 adapter 注入方式，并支持传入供给筛选输入。
-- `getRelatedBuildings` 与 `SupplyAdapter.findEffectiveBuildingsNear` 已加入。默认适配器先读取当前楼盘的商圈（无商圈时行政区），应用同一公开楼盘谓词（已发布、未删除、active），排除自身，并按坐标距离或稳定 ID 排序；没有通过历史房源推断楼盘状态。
-- 楼盘页面、既有 façade/一致性/生产等价性测试已迁移至 `supply.groups`。
-
-## Query / asOf 证据
-
-`tests/building-supply.test.ts` 的 `getBuildingDetail` 测试断言：
-
-- `findEffectiveListingsByBuilding` 调用次数：**1**；
-- `findEffectiveBuildingBySlug` 和唯一一次楼内供给查询接收到的 `asOf`：均为 `2026-07-30T10:00:00.000Z`；
-- 返回快照的 `totalEffectiveListings` 为该同一 raw 集合映射所得。
-
-## 验证
+所有以下命令在 `payload-office-platform` 内执行；先安全加载主工作区 `.env.local`，不输出任何变量值，再显式设置本地验收 URL：
 
 ```sh
-npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts tests/public-catalog-effective-supply-consistency.test.ts tests/public-catalog-facade.test.ts && pnpm typecheck'
+set -a; source /Users/liujiayuan/App/sbh/payload-office-platform/.env.local; set +a
+NEXT_PUBLIC_SITE_URL=http://localhost:3718 \
+  npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'node --version && pnpm --version && pnpm test -- tests/public-catalog-cache-invalidator.test.ts tests/cache-next-adapter-integration.test.ts tests/f7-4-6-performance-data-equivalence.test.ts tests/buildings-navigation-performance-contract.test.ts'
 ```
 
-结果：67/67 通过，`tsc --noEmit` 通过。
+实际版本：Node `v22.23.2`、pnpm `8.6.1`；结果：4 个文件、38/38 测试通过。覆盖内容包括：
+
+- `buildings-navigation-performance-contract`：楼盘缓存同时依赖 `public:buildings`、`public:listings`，重验证为 300 秒，页面不再直接创建搜索上下文。
+- `public-catalog-cache-invalidator`：房源/楼盘事件的类别 tag 与具体 tag、缺失 ID 的安全处理、所有关注事件的覆盖。
+- `cache-next-adapter-integration`：真实 `next/cache.revalidateTag` 接线及 `listing.published` 失效路径。
+- `f7-4-6-performance-data-equivalence`：缓存 tag、发布/审核/举报事件覆盖，以及前台消费者的数据等价守护。
 
 ```sh
-npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test'
+set -a; source /Users/liujiayuan/App/sbh/payload-office-platform/.env.local; set +a
+NEXT_PUBLIC_SITE_URL=http://localhost:3718 \
+  npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'node --version && pnpm --version && pnpm exec tsc --noEmit --pretty false'
 ```
 
-结果：121 个测试文件、2153 个测试全部通过。
-
-## 自审
-
-- 复核完整价格 key 的范围聚合与价格排序路径：没有以 `displayUnit` 作为比较或合并键。
-- 复核联合办公分组：使用项目 schema 中已有 `listingType` 枚举，未杜撰判别字段。
-- 复核相关楼盘：只查询 buildings 集合；不从 listing 历史状态反推；默认路径排除自身并有稳定排序。
-- `git diff --check` 通过。
-
-## 关注点
-
-- 价格请求卡在显式价格单位筛选时仍保留，以满足“不能丢弃”的要求；UI 若需只显示可报价条目，应提供独立的显式筛选条件，而不是复用 `priceUnit`。
-
-## Review follow-up（Task 3 requested changes）
-
-### RED / GREEN
-
-新增下列回归到 `tests/building-supply.test.ts` 后执行：
+结果：Node `v22.23.2`、pnpm `8.6.1`；exit 0、无 TypeScript 错误。
 
 ```sh
-npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts'
+set -a; source /Users/liujiayuan/App/sbh/payload-office-platform/.env.local; set +a
+NEXT_PUBLIC_SITE_URL=http://localhost:3718 \
+  npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'node --version && pnpm --version && pnpm build'
 ```
 
-RED：7 个测试中 3 个按预期失败：
+结果：Node `v22.23.2`、pnpm `8.6.1`；exit 0。Next 编译、TypeScript、数据收集和静态页生成均完成，`/buildings` 在路由清单中为动态 server-rendered 路由；未出现 Node engine 警告。
 
-- `BuildingSupplyPriceRanges` 未导出，不能渲染跨组的相同完整价格键；
-- `limit=0/-1/NaN` 仍调用了 fake adapter；
-- `rankRelatedBuildingsByProximity` 不存在。
+`NEXT_PUBLIC_SITE_URL` 是生产必需配置：在隔离 worktree 未显式提供时，构建会在 `/robots.txt` 失败。这是环境配置限制，不是 OPT-025 代码失败；本次没有把该失败计入上述绿色构建。
 
-GREEN：实现后同一命令 7/7 通过；聚焦 `building-supply` + `public-catalog-facade` 为 41/41 通过。
+## Follow-up：Node 22 生产 HTTP 与服务端日志
 
-### 修复
+确认 3718 空闲后，使用上述 Node 22 产物启动生产服务；3717 从未停止或修改。Ready 日志为 Next `✓ Ready in 79ms`，随后才开始请求目标路由。首次目标请求和后续连续请求如下：
 
-- 楼盘页增加 `BuildingSupplyPriceRanges`，以供给组嵌套渲染价格范围，显式显示“出租 / 出售 / 联合办公”；行 React key 与 `data-price-range-key` 均为 `${group.key}:${range.key}`，使跨组相同完整价格键可区分。房源卡也按供给组可见地嵌套，key 包含组键。
-- `findEffectiveBuildingsNear` 现在用 Payload 3.86.0 支持的 `pagination: false` 且**省略** `limit`。本地 Payload 类型源码注释确认 `pagination: false` 会返回全部文档；因此先得到完整商圈/行政区候选、过滤有效公开楼盘、距离/ID 排序，再截取规范化 limit。回归使用 ID 2–31 的远候选和 ID 99 的最近候选，确认 ID 99 取胜。
-- `getRelatedBuildings` 在任何适配器调用前将 limit 规范化为非负整数；零、负数及 NaN 立即返回 `[]`。默认适配器也作相同防御，避免直接调用时将不安全 limit 传入 Payload。
+| 请求 | HTTP | TTFB (s) | 总时长 (s) | 实际观察 |
+| --- | ---: | ---: | ---: | --- |
+| `/` 首次 | 500 | 0.194135 | 0.228337 | 服务器日志记录 config guard 失败，见下节 |
+| `/buildings` 首次 | 200 | 0.027428 | 0.029420 | 目标页正常 |
+| `/listings` 首次 | 200 | 1.189062 | 1.189952 | 相邻页正常 |
+| `/buildings` #2 | 200 | 0.006181 | 0.006987 | 缓存命中 |
+| `/buildings` #3 | 200 | 0.006084 | 0.006803 | 缓存命中 |
+| `/buildings?page=2` | 200 | 0.005814 | 0.006346 | 复用同一缓存结果 |
+| `/` 重试 | 200 | 0.594952 | 0.596482 | 同一服务后续响应恢复 |
+| `/?opt025followup=1` | 200 | 0.528642 | 0.530438 | 强制新 URL 的后续首页响应 |
 
-### Follow-up 验证
+`/buildings` 两次连续命中与 `?page=2` 为约 5.8–6.2ms TTFB，仍不稳定承担设计基线 818–834ms 的聚合耗时。首次 `/buildings` 的 27.4ms 不能标记为新的冷缓存基线，因此没有伪造冷/热阈值结论。
+
+服务端首次 `/` 的日志明确为：`[config-guard]` 拒绝 `NEXT_PUBLIC_SITE_URL=http://localhost:3718`，理由是生产配置要求 HTTPS 且不得指向 localhost；随后 Payload 记录 `Error running onInit function`。这解释了首次 `/` 的 500：它是无效验收配置的结果，而不是 OPT-025 代码故障。
+
+## Follow-up：浏览器逐路由
+
+浏览器复测与 HTTP 测量使用同一 Node 22 服务。浏览器在此前标签释放后需重新连接；本次创建的三个标签最终均已 finalize。
+
+| 路由 | HTTP 结果 | 页面结果 | console `error` |
+| --- | --- | --- | --- |
+| `/` | 首次 500；后续 `/` 和唯一 query URL 均 200 | 后续 fresh query 页面显示首页标题“汇聚高端商务空间，赋能企业卓越成长” | `[]` |
+| `/buildings` | 首次 200 | 标题“找写字楼”、共 26 个楼盘、24 张第 1 页卡片 | `[]` |
+| `/listings` | 首次 200 | 标题“在租房源”、24 个房源链接 | `[]` |
+
+完整浏览器矩阵见 `artifacts/verification/OPT-025/README.md`：它逐行区分原生产服务的实际首页跳转、黄浦筛选（`district=huangpu` / 2 项）、分页（`page=2` / 25–26 共 26 / 2 卡）、`/listings`（24 链接）及四视口无水平溢出，和有效 HTTPS URL 后实际重跑的最小首页→楼盘复核；每行记录预期、实际、可用 HTTP 和 console error，未把未重跑项目记作新结果。
+
+## Follow-up：有效生产 URL 闭环
+
+`tests/config-guard.test.ts` 明确以 `https://sbh.example.com` 作为有效生产 URL，并断言 HTTP 与 localhost 都应被拒绝。因此以该文档化的非秘密占位值重新构建并启动 Node 22 服务，同时仍通过 `http://localhost:3718` 访问本地服务器：
 
 ```sh
-npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test -- tests/building-supply.test.ts tests/public-catalog-facade.test.ts && pnpm typecheck'
+set -a; source /Users/liujiayuan/App/sbh/payload-office-platform/.env.local; set +a
+NEXT_PUBLIC_SITE_URL=https://sbh.example.com \
+  npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'node --version && pnpm --version && pnpm build'
 ```
 
-结果：41/41 通过，typecheck 通过。
+结果：Node `v22.23.2`、pnpm `8.6.1`、exit 0；Next 完成编译、TypeScript、数据收集和静态页生成，`/buildings` 路由构建成功。
 
 ```sh
-npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'pnpm test'
+set -a; source /Users/liujiayuan/App/sbh/payload-office-platform/.env.local; set +a
+NEXT_PUBLIC_SITE_URL=https://sbh.example.com \
+  npx --yes --package=node@22 --package=pnpm@8.6.1 --call 'node --version && pnpm exec next start -p 3718'
 ```
 
-结果：121 个文件、2156 个测试全通过。
+实际服务版本为 Node `v22.23.2`；监听地址仍是 `http://localhost:3718`。
 
-### Follow-up files
+在服务 `✓ Ready in 99ms` 后，三个**首个**目标请求均为 200：
 
-- `payload-office-platform/src/app/(frontend)/buildings/[slug]/page.tsx`
-- `payload-office-platform/src/domain/public-catalog/facade.ts`
-- `payload-office-platform/src/domain/public-catalog/supply-adapter.ts`
-- `payload-office-platform/tests/building-supply.test.ts`
+| 请求 | HTTP | TTFB (s) | 总时长 (s) |
+| --- | ---: | ---: | ---: |
+| `/` | 200 | 0.846162 | 0.848860 |
+| `/buildings` | 200 | 0.018179 | 0.024667 |
+| `/listings` | 200 | 1.197365 | 1.201542 |
+
+服务端日志没有 error；仅有已知的“未提供 email adapter，邮件将写入控制台”警告。最小浏览器复核在同一服务上：首页主标题存在，点击“找写字楼”后 URL 为 `/buildings`、显示“共 26 个楼盘”；点击前后 console `error` 均为 `[]`。本次标签已 finalize；筛选、分页、相邻页和四视口采用 README 中明确标识的原生产服务实际观察。
+
+## 文件变更、自审与限制
+
+- 更新 `artifacts/verification/OPT-025/README.md`：以 Node 22 命令、focused 测试、明确 URL 的 HTTP/日志和逐路由浏览器结果替换矛盾的 warmup 描述，并添加有效 HTTPS 占位 URL 的闭环证据。
+- 更新 `specs/work-items/OPT-025-buildings-navigation-performance.md`：有效配置下的三个首请求、首页→楼盘浏览器复核均通过后，任务状态改为“已完成”。
+- 本文件仅保留 OPT-025 原验证更正及本次 follow-up，不含其他任务的历史内容。
+- 本次没有修改生产代码或合同测试，没有数据写入、迁移、git add、commit 或 push。
+- 验收结束后只终止本次启动的 3718 进程，并确认端口释放。
+
+## 结论
+
+缓存实现的 focused 自动化、Node 22 typecheck、Node 22 production build、`/buildings` 命中性能、首页/目标页/相邻页首请求，以及首页→楼盘浏览器复核均有绿色证据。`http://localhost:3718` 是访问地址，不是可用于生产 canonical/OG 配置的站点 URL；使用 guard 认可的 `https://sbh.example.com` 占位值后验收闭环，任务完成。
