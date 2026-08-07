@@ -138,6 +138,7 @@ export default function SiteNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={item.href.startsWith('/listings') ? false : undefined}
               className="site-nav__link"
               aria-current={current ? 'page' : undefined}
             >
@@ -219,6 +220,7 @@ export default function SiteNav() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={item.href.startsWith('/listings') ? false : undefined}
                     className="mobile-drawer__link"
                     aria-current={current ? 'page' : undefined}
                     onClick={() => {

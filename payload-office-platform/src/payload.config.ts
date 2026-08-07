@@ -61,6 +61,7 @@ import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-en
 import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
 import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
+import { createDashboardStatsEndpoint } from './endpoints/dashboard-stats-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -185,6 +186,7 @@ export default buildConfig({
   // M7.5 线索分析 endpoint（GET /api/leads/analytics，统一用 createdAt 作为有效创建时间）
   // 均注册在顶层 endpoints，不绑定具体 collection
   endpoints: [
+    createDashboardStatsEndpoint(),
     createDashboardEndpoint(),
     createOverviewEndpoint(),
     createListingAnalyticsEndpoint(),

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import React from 'react'
 import HeroSearch from '@/components/frontend/HeroSearch'
+import HomeHeroMedia from '@/components/frontend/HomeHeroMedia'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import CategoryTiles from '@/components/frontend/CategoryTiles'
@@ -9,8 +10,7 @@ import DistrictCards from '@/components/frontend/DistrictCards'
 import FeaturedBuildings from '@/components/frontend/FeaturedBuildings'
 import ValueProps from '@/components/frontend/ValueProps'
 import NewsSection from '@/components/frontend/NewsSection'
-import { getHomepage } from '@/domain/public-catalog'
-import { defaultSearchContext } from '@/domain/public-catalog'
+import { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import './styles.css'
 
@@ -24,25 +24,18 @@ export const metadata: Metadata = buildPageMetadata({
 })
 
 export default async function HomePage() {
-  const ctx = defaultSearchContext()
   const {
     featuredListings,
     districts,
     featuredBuildings,
     districtCards,
     latestArticles,
-  } = await getHomepage(ctx)
+  } = await getCachedHomepage()
 
   return (
     <div className="home">
       <section className="hero">
-        <div className="hero__bg" aria-hidden="true">
-          <video autoPlay muted loop playsInline preload="metadata">
-            {/* 主源走 COS 媒体库（部署包不再打包视频）；本地开发媒体库无此资源时回退 public/ 静态文件 */}
-            <source src="/api/media/file/hero-bg.mp4?prefix=media" type="video/mp4" />
-            <source src="/hero/bg.mp4" type="video/mp4" />
-          </video>
-        </div>
+        <HomeHeroMedia />
         <div className="hero__scrim" aria-hidden="true" />
         <div className="hero__inner">
           <p className="hero__eyebrow">Shanghai Premium Office Leasing</p>
@@ -70,7 +63,7 @@ export default async function HomePage() {
       <section className="section" aria-labelledby="featured-listings-title">
         <div className="section__header">
           <h2 className="section__title" id="featured-listings-title">推荐房源</h2>
-          <Link href="/listings" className="text-copper" data-event-name="home_browse_all_listings">浏览全部房源 →</Link>
+          <Link href="/listings" prefetch={false} className="text-copper" data-event-name="home_browse_all_listings">浏览全部房源 →</Link>
         </div>
         {featuredListings.length === 0 ? (
           <p className="empty-state empty-state--inline">暂无推荐房源。</p>

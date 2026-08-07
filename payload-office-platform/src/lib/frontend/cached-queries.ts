@@ -31,11 +31,15 @@ import {
   getBuildingBySlug,
   getBuildingDetail,
   getHomepage,
+  getListingDistrictOptions,
   getListingBySlug,
   getPageBySlug,
+  getRelatedBuildings,
   getRelatedListings,
+  getDetailRecommendations,
   getSearchFacets,
   listPublishedPages,
+  searchBuildings,
   searchListings,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
@@ -99,6 +103,7 @@ export const getCachedHomepage = unstable_cache(
       LISTINGS_CATEGORY_TAG,
       facetsTag('shanghai'),
     ],
+    revalidate: 300,
   },
 )
 
@@ -139,6 +144,66 @@ export const getCachedRelatedListings = unstable_cache(
       BUILDINGS_CATEGORY_TAG,
       SITEMAP_TAG,
     ],
+  },
+)
+
+/**
+ * 房源详情解释型相关推荐。
+ *
+ * tags：listings 类别 + buildings 类别 + sitemap；300 秒兜底重新验证
+ */
+export const getCachedDetailRecommendations = unstable_cache(
+  async (listingSlug: string, limit: number = 6) => {
+    return getDetailRecommendations(listingSlug, defaultCtx(), { limit })
+  },
+  ['detail-recommendations'],
+  {
+    tags: [
+      LISTINGS_CATEGORY_TAG,
+      BUILDINGS_CATEGORY_TAG,
+      SITEMAP_TAG,
+    ],
+    revalidate: 300,
+  },
+)
+
+/**
+ * 楼盘相关推荐。
+ *
+ * tags：buildings 类别 + listings 类别；300 秒兜底重新验证
+ */
+export const getCachedRelatedBuildings = unstable_cache(
+  async (buildingSlug: string, limit: number = 6) => {
+    return getRelatedBuildings(buildingSlug, defaultCtx(), { limit })
+  },
+  ['related-buildings'],
+  {
+    tags: [
+      BUILDINGS_CATEGORY_TAG,
+      LISTINGS_CATEGORY_TAG,
+      SITEMAP_TAG,
+    ],
+    revalidate: 300,
+  },
+)
+
+/**
+ * 楼盘搜索结果（全量楼盘 + 在租面积聚合）
+ *
+ * tags：buildings 类别 + listings 类别
+ * 失效触发：building.* / listing.* 事件；300 秒兜底重新验证
+ */
+export const getCachedSearchBuildings = unstable_cache(
+  async () => {
+    return searchBuildings(defaultCtx())
+  },
+  ['search-buildings'],
+  {
+    tags: [
+      BUILDINGS_CATEGORY_TAG,
+      LISTINGS_CATEGORY_TAG,
+    ],
+    revalidate: 300,
   },
 )
 
@@ -204,6 +269,27 @@ export const getCachedSearchListings = unstable_cache(
       homeTag('shanghai'),
       SITEMAP_TAG,
     ],
+    revalidate: 300,
+  },
+)
+
+/**
+ * 房源列表区域筛选选项。
+ *
+ * 只读取有效区域，避免列表页为了筛选栏加载首页精选房源、楼盘、资讯等数据。
+ */
+export const getCachedListingDistrictOptions = unstable_cache(
+  async () => {
+    return getListingDistrictOptions(defaultCtx())
+  },
+  ['listing-district-options'],
+  {
+    tags: [
+      BUILDINGS_CATEGORY_TAG,
+      LISTINGS_CATEGORY_TAG,
+      facetsTag('shanghai'),
+    ],
+    revalidate: 300,
   },
 )
 

@@ -17,17 +17,9 @@ import {
   IconStorage,
   IconUserGroup,
 } from '@arco-design/web-react/icon'
+import type { DashboardStats } from '@/domain/analytics/dashboard-stats'
 
-type DashboardOverviewProps = {
-  activeLeads: number
-  availableListings: number
-  buildings: number
-  featuredListings: number
-  leads: number
-  listings: number
-  listingsWithoutCover: number
-  newLeads: number
-}
+type DashboardOverviewProps = DashboardStats
 
 const { Row, Col } = Grid
 const { Title, Text } = Typography

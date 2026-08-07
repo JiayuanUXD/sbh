@@ -1,0 +1,28 @@
+{
+  "command": "node --env-file-if-exists=.env.local --import tsx scripts/verification/opt022-batch-resolver-measure.ts",
+  "database": "local PostgreSQL configured outside this artifact",
+  "captures": [
+    {
+      "label": "original Task 4 capture",
+      "candidates": 500,
+      "relationFindCalls": 1,
+      "elapsedMs": 146.21,
+      "eligible": 500
+    },
+    {
+      "label": "retained-command reproduction",
+      "candidates": 500,
+      "relationFindCalls": 1,
+      "elapsedMs": 147.27,
+      "eligible": 500
+    },
+    {
+      "label": "final-path reproduction",
+      "candidates": 500,
+      "relationFindCalls": 1,
+      "elapsedMs": 161.94,
+      "eligible": 500
+    }
+  ],
+  "safety": "The command is read-only and emits no environment variables, connection string, credentials, or cookies."
+}

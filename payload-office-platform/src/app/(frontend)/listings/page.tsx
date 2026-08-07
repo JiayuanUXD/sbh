@@ -8,13 +8,13 @@ import MobileFilterDrawer from '@/components/frontend/MobileFilterDrawer'
 import Pagination from '@/components/frontend/Pagination'
 import {
   buildCanonicalSearchParams,
-  defaultSearchContext,
-  getHomepage,
   parseListingSearchInput,
-  searchListings,
-  type ListingSearchInput,
 } from '@/domain/public-catalog'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
+import {
+  getCachedListingDistrictOptions,
+  getCachedSearchListings,
+} from '@/lib/frontend/cached-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,12 +61,11 @@ export default async function ListingsPage({
 }) {
   const sp = await resolveSearchParams(searchParams)
   const input = parseListingSearchInput(sp)
-  const ctx = defaultSearchContext()
+  const canonical = buildCanonicalSearchParams(input).toString()
 
-  // 使用 Facade 替代旧 queries.ts（F1.6 部分迁移）
-  const [result, homepage] = await Promise.all([
-    searchListings(input, ctx),
-    getHomepage(ctx),
+  const [result, districts] = await Promise.all([
+    getCachedSearchListings(canonical, input),
+    getCachedListingDistrictOptions(),
   ])
 
   const { docs, pagination, filteredByRentUnit } = result
@@ -111,10 +110,10 @@ export default async function ListingsPage({
       </header>
 
       <div className="filter-bar__desktop">
-        <FilterBar districts={homepage.districts} />
+        <FilterBar districts={districts} />
       </div>
       <div className="filter-bar__mobile">
-        <MobileFilterDrawer districts={homepage.districts} totalDocs={totalDocs} />
+        <MobileFilterDrawer districts={districts} totalDocs={totalDocs} />
       </div>
 
       {isOutOfBounds && (

@@ -7,8 +7,8 @@
 # ——包得先传上去。跨境到腾讯云 COS 的吞吐下，7.6MB 会撑爆 curl --max-time，
 # 5 次重试全部 0 字节超时（run 30265028880）；297KB 时代连续 4 次部署 52s 内完成。
 #
-# 下面两个目录既不进 Docker 构建也不进镜像（Dockerfile 只 COPY .next/public/
-# src/scripts 和几个配置文件，src/ 也没有任何地方 import tests/），纯搭便车。
+# artifacts/ 和 tests/ 既不进 Docker 构建也不进镜像（Dockerfile 只 COPY .next/public/
+# src/scripts 和几个配置文件，src/ 也没有任何地方 import 这些验证产物），纯搭便车。
 # 排除后包体积 7.64MB -> 869KB。
 artifacts/ export-ignore
 tests/ export-ignore
@@ -19,6 +19,6 @@ tests/ export-ignore
 src/migrations/*.json export-ignore
 
 # 首页 hero 背景视频（1.23MB，压缩后仍占全包 ~50%）已迁移到 COS 媒体库，
-# 前端改引 /api/media/file/hero-bg.mp4?prefix=media（本地开发回退 public/ 静态文件），
+# 前端改引 /api/media/file/hero-bg.mp4?prefix=media，
 # 不再随部署包上传。
 public/hero/ export-ignore

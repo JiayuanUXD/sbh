@@ -530,6 +530,103 @@ body.admin-nav-collapsed .admin-brand-title {
   margin: 0;
 }
 
+.arco-admin-dashboard__loading,
+.arco-admin-dashboard__error {
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  color: var(--color-text-2);
+  padding: 20px;
+}
+
+.arco-admin-dashboard__loading {
+  min-height: 380px;
+}
+
+.arco-admin-dashboard__skeleton-heading,
+.arco-admin-dashboard__skeleton-card,
+.arco-admin-dashboard__skeleton-detail {
+  animation: arco-admin-dashboard-skeleton 1.2s ease-in-out infinite alternate;
+  background: var(--color-fill-2);
+  border-radius: 6px;
+}
+
+.arco-admin-dashboard__skeleton-heading {
+  height: 22px;
+  margin-bottom: 20px;
+  max-width: 200px;
+}
+
+.arco-admin-dashboard__skeleton-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.arco-admin-dashboard__skeleton-card {
+  height: 104px;
+}
+
+.arco-admin-dashboard__skeleton-detail {
+  height: 170px;
+  margin-top: 16px;
+}
+
+.arco-admin-dashboard__error {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.arco-admin-dashboard__error p {
+  margin: 0;
+}
+
+.arco-admin-dashboard__error button {
+  background: var(--color-bg-2);
+  border: 1px solid #165dff;
+  border-radius: 4px;
+  color: #165dff;
+  cursor: pointer;
+  font: inherit;
+  min-height: 44px;
+  padding: 7px 12px;
+}
+
+.arco-admin-dashboard__error button:hover {
+  background: #e8f3ff;
+}
+
+.arco-admin-dashboard__sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@keyframes arco-admin-dashboard-skeleton {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arco-admin-dashboard__skeleton-heading,
+  .arco-admin-dashboard__skeleton-card,
+  .arco-admin-dashboard__skeleton-detail {
+    animation: none;
+  }
+}
+
 @media (max-width: 767px) {
   .arco-admin-dashboard__intro {
     align-items: flex-start;
@@ -539,6 +636,15 @@ body.admin-nav-collapsed .admin-brand-title {
 
   .arco-admin-dashboard__actions {
     width: 100%;
+  }
+
+  .arco-admin-dashboard__skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arco-admin-dashboard__error {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

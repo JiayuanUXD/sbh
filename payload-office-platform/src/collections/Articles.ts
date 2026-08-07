@@ -1,4 +1,14 @@
-import type { CollectionConfig } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionConfig,
+} from 'payload'
+
+import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
+
+const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
+  revalidateArticlePublicCache()
+}
 
 /**
  * 资讯（Articles）collection
@@ -7,10 +17,8 @@ import type { CollectionConfig } from 'payload'
  * 立场：纯展示型内容集合，前台只读 `status=published`；无评论/标签/搜索（见 redesign PRD §19）。
  * 数据：新增 collection，须由 `migrate:create` 生成迁移（迁移正文不可手改）。
  *
- * 缓存失效说明：首页 / /news / /news/[slug] 均为 force-dynamic（直接调 getHomepage /
- * listPublishedArticles / getArticleBySlug，未走 unstable_cache），文章变更即时可见，
- * 无需 revalidateTag 失效。若未来首页改用 getCachedHomepage 启用 unstable_cache，
- * 需在此补 afterChange/afterDelete hook 调 revalidateTag(homeTag('shanghai'), 'max')。
+ * 缓存失效说明：首页已通过 getCachedHomepage 启用 unstable_cache；
+ * 资讯变更后失效首页与 sitemap 相关 tag。失效失败只记录日志，不回滚内容写入。
  */
 export const Articles: CollectionConfig = {
   slug: 'articles',
@@ -28,6 +36,10 @@ export const Articles: CollectionConfig = {
   access: {
     // 与 Pages 一致：前台读公开；published 过滤由 facade 查询承担。
     read: () => true,
+  },
+  hooks: {
+    afterChange: [invalidateArticlePublicCache],
+    afterDelete: [invalidateArticlePublicCache],
   },
   fields: [
     {

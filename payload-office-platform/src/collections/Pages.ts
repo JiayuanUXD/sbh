@@ -1,4 +1,14 @@
-import type { CollectionConfig } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionConfig,
+} from 'payload'
+
+import { invalidatePagePublicCache as revalidatePagePublicCache } from '@/lib/frontend/public-cache-revalidation'
+
+const invalidatePagePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
+  revalidatePagePublicCache()
+}
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -15,6 +25,10 @@ export const Pages: CollectionConfig = {
   trash: true,
   access: {
     read: () => true,
+  },
+  hooks: {
+    afterChange: [invalidatePagePublicCache],
+    afterDelete: [invalidatePagePublicCache],
   },
   fields: [
     {

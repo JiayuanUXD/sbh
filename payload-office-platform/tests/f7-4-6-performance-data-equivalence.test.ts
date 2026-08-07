@@ -153,27 +153,28 @@ describe('F7.4 性能预算 · 缓存命中守护', () => {
 // ---------------------------------------------------------------------------
 
 describe('F7.6 数据等价 · 公开消费者全部通过 Facade', () => {
-  it('首页 page.tsx 调用 getHomepage Facade', async () => {
+  it('首页 page.tsx 通过 Facade 或 Facade 缓存封装获取数据', async () => {
     const filePath = resolve(ROOT, 'src', 'app', '(frontend)', 'page.tsx')
     const source = await readFile(filePath, 'utf-8')
-    expect(source, '首页应通过 getHomepage 获取数据').toContain('getHomepage')
+    expect(source, '首页应通过 getHomepage 或 getCachedHomepage 获取数据')
+      .toMatch(/getHomepage|getCachedHomepage/)
     // 不应直接调用 payload DB
     expect(source, '首页不应直接调用 payload.find').not.toMatch(
       /payload\.(find|findOne|findByID)\s*\(/,
     )
   })
 
-  it('列表页 page.tsx 调用 searchListings Facade', async () => {
+  it('列表页 page.tsx 通过 Facade 或 Facade 缓存封装获取数据', async () => {
     const filePath = resolve(ROOT, 'src', 'app', '(frontend)', 'listings', 'page.tsx')
     const source = await readFile(filePath, 'utf-8')
-    expect(source, '列表页应通过 searchListings / getSearchFacets 获取数据')
-      .toMatch(/searchListings|getSearchFacets/)
+    expect(source, '列表页应通过 searchListings / getSearchFacets 或缓存封装获取数据')
+      .toMatch(/searchListings|getSearchFacets|getCachedSearchListings/)
     expect(source, '列表页不应直接调用 payload.find').not.toMatch(
       /payload\.(find|findOne|findByID)\s*\(/,
     )
   })
 
-  it('房源详情 page.tsx 调用 getListingBySlug Facade', async () => {
+  it('房源详情 page.tsx 通过 Facade 或 Facade 缓存封装获取数据', async () => {
     const filePath = resolve(
       ROOT,
       'src',
@@ -184,12 +185,10 @@ describe('F7.6 数据等价 · 公开消费者全部通过 Facade', () => {
       'page.tsx',
     )
     const source = await readFile(filePath, 'utf-8')
-    expect(source, '房源详情应通过 getListingBySlug 获取数据').toContain(
-      'getListingBySlug',
-    )
-    expect(source, '房源详情应通过 getDetailRecommendations 获取推荐').toContain(
-      'getDetailRecommendations',
-    )
+    expect(source, '房源详情应通过 getListingBySlug 或 getCachedListingBySlug 获取数据')
+      .toMatch(/getListingBySlug|getCachedListingBySlug/)
+    expect(source, '房源详情应通过 getDetailRecommendations 或缓存封装获取推荐')
+      .toMatch(/getDetailRecommendations|getCachedDetailRecommendations/)
   })
 
   it('楼盘详情 page.tsx 调用 getBuildingDetail Facade', async () => {

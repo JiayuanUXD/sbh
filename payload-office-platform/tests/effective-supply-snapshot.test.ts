@@ -5,6 +5,7 @@ import {
   buildEffectiveSnapshot,
   loadRelationPeriod,
   resolveEffectiveSupply,
+  resolveEffectiveSupplies,
 } from '@/domain/review/effective-supply-snapshot'
 import { EFFECTIVE_SUPPLY_EXCLUSION_CODES } from '@/domain/review/effective-supply'
 
@@ -207,8 +208,277 @@ describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
   })
 })
 
+describe('effective-supply-snapshot/resolveEffectiveSupplies', () => {
+  it('loads two listings with one relation query and fails closed for overlaps', async () => {
+    const merchant = makeListing().merchant
+    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
+      docs: Array<Record<string, unknown>>
+    }>>(async () => ({
+      docs: [
+        {
+          id: 11,
+          listing: 1,
+          effectiveFrom: '2000-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        },
+        {
+          id: 21,
+          listing: { id: 2 },
+          effectiveFrom: '2000-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        },
+        {
+          id: 22,
+          listing: { id: 2 },
+          effectiveFrom: '2020-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        },
+      ],
+      hasNextPage: false,
+      nextPage: null,
+    }))
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    const results = await resolveEffectiveSupplies(
+      payload,
+      [makeListing(), makeListing({ id: 2 })],
+      asOf,
+    )
+
+    expect(find).toHaveBeenCalledTimes(1)
+    expect(results.get('1')).toMatchObject({ eligible: true })
+    expect(results.get('2')?.eligible).toBe(false)
+    expect(results.get('2')?.reasons).toContain(
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+    )
+    expect(find.mock.calls[0][0]).toMatchObject({
+      collection: 'listing-merchant-relations',
+      depth: 1,
+      limit: 1_000,
+      page: 1,
+      overrideAccess: true,
+      where: {
+        and: [
+          { listing: { in: [1, 2] } },
+          { effectiveFrom: { less_than_equal: asOf.toISOString() } },
+          {
+            or: [
+              { effectiveTo: { exists: false } },
+              { effectiveTo: { greater_than: asOf.toISOString() } },
+            ],
+          },
+        ],
+      },
+    })
+  })
+
+  it('paginates active relations so a later page overlap fails closed', async () => {
+    const merchant = makeListing().merchant
+    const firstPage = [
+      ...Array.from({ length: 999 }, (_, index) => ({
+        id: index + 21,
+        listing: 2,
+        effectiveFrom: '2025-01-02T00:00:00.000Z',
+        effectiveTo: null,
+        merchant,
+      })),
+      {
+        id: 1_020,
+        listing: 1,
+        effectiveFrom: '2025-01-01T00:00:00.000Z',
+        effectiveTo: null,
+        merchant,
+      },
+    ]
+    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
+      docs: Array<Record<string, unknown>>
+      hasNextPage: boolean
+      nextPage: number | null
+    }>>(async (params) => {
+      if (params.page === 2) {
+        return {
+          docs: [{
+            id: 12,
+            listing: 1,
+            effectiveFrom: '2024-01-01T00:00:00.000Z',
+            effectiveTo: null,
+            merchant,
+          }],
+          hasNextPage: false,
+          nextPage: null,
+        }
+      }
+      return { docs: firstPage, hasNextPage: true, nextPage: 2 }
+    })
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    const results = await resolveEffectiveSupplies(
+      payload,
+      [makeListing(), makeListing({ id: 2 })],
+      asOf,
+    )
+
+    expect(results.get('1')?.eligible).toBe(false)
+    expect(results.get('1')?.reasons).toContain(
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+    )
+    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
+    expect(find.mock.calls[0][0]).toMatchObject({ limit: 1_000, page: 1 })
+  })
+
+  it('continues when nextPage alone indicates forward progress', async () => {
+    const merchant = makeListing().merchant
+    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
+      docs: Array<Record<string, unknown>>
+      hasNextPage?: boolean
+      nextPage?: number | null
+    }>>(async (params) => {
+      if (params.page === 2) {
+        return {
+          docs: [{
+            id: 12,
+            listing: 1,
+            effectiveFrom: '2024-01-01T00:00:00.000Z',
+            effectiveTo: null,
+            merchant,
+          }],
+          hasNextPage: false,
+          nextPage: null,
+        }
+      }
+      return {
+        docs: [{
+          id: 11,
+          listing: 1,
+          effectiveFrom: '2025-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        }],
+        nextPage: 2,
+      }
+    })
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
+
+    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
+    expect(results.get('1')?.eligible).toBe(false)
+    expect(results.get('1')?.reasons).toContain(
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+    )
+  })
+
+  it('continues to the following page when hasNextPage alone is true', async () => {
+    const merchant = makeListing().merchant
+    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
+      docs: Array<Record<string, unknown>>
+      hasNextPage?: boolean
+      nextPage?: number | null
+    }>>(async (params) => {
+      if (params.page === 2) {
+        return {
+          docs: [{
+            id: 12,
+            listing: 1,
+            effectiveFrom: '2024-01-01T00:00:00.000Z',
+            effectiveTo: null,
+            merchant,
+          }],
+          hasNextPage: false,
+        }
+      }
+      return {
+        docs: [{
+          id: 11,
+          listing: 1,
+          effectiveFrom: '2025-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        }],
+        hasNextPage: true,
+      }
+    })
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
+
+    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
+    expect(results.get('1')?.eligible).toBe(false)
+    expect(results.get('1')?.reasons).toContain(
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+    )
+  })
+
+  it.each([
+    ['missing pagination metadata', {}],
+    ['null next page', { hasNextPage: true, nextPage: null }],
+    ['non-advancing next page', { hasNextPage: true, nextPage: 1 }],
+  ])('rejects malformed pagination metadata: %s', async (_label, metadata) => {
+    let queryCount = 0
+    const find = vi.fn(async () => {
+      queryCount += 1
+      if (queryCount > 2) throw new Error('pagination regression test guard exceeded')
+      return { docs: [], ...metadata }
+    })
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    await expect(resolveEffectiveSupplies(payload, [makeListing()], asOf)).rejects.toThrow(
+      'invalid effective-relation pagination metadata',
+    )
+  })
+
+  it('rejects contradictory terminal and forward pagination metadata', async () => {
+    const find = vi.fn(async () => ({
+      docs: [],
+      hasNextPage: false,
+      nextPage: 2,
+    }))
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    await expect(resolveEffectiveSupplies(payload, [makeListing()], asOf)).rejects.toThrow(
+      'invalid effective-relation pagination metadata',
+    )
+    expect(find).toHaveBeenCalledTimes(1)
+  })
+
+  it('counts malformed active rows before parsing cardinality', async () => {
+    const merchant = makeListing().merchant
+    const find = vi.fn(async () => ({
+      docs: [
+        {
+          id: 11,
+          listing: 1,
+          effectiveFrom: '2025-01-01T00:00:00.000Z',
+          effectiveTo: null,
+          merchant,
+        },
+        {
+          id: 12,
+          listing: 1,
+          effectiveFrom: 'not-a-date',
+          effectiveTo: null,
+          merchant,
+        },
+      ],
+      hasNextPage: false,
+      nextPage: null,
+    }))
+    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+
+    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
+
+    expect(results.get('1')?.eligible).toBe(false)
+    expect(results.get('1')?.reasons).toContain(
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+    )
+  })
+})
+
 /**
- * depth 归一化契约（供 SupplyAdapter.loadActiveRelations 依赖）
+ * depth 归一化契约（供 loadEffectiveRelations 依赖）
  *
  * 批量载入商户关系时用 depth 1 而非 depth 2：关系上只需要 listing 的 id 与
  * merchant 对象，listing 保持 id 形态即可。depth 2 会把每条关系的 listing

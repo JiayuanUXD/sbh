@@ -36,9 +36,9 @@
 
 C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不要调 REST `/api/*`**。唯一新增的 HTTP 端点是 `/api/inquiries`（询价留电）。查询/筛选/格式化逻辑集中在 `src/lib/frontend/`（`queries.ts` / `filters.ts` / `format.ts` / `validation.ts`），纯函数有 Vitest 单测。
 
-## C 端在建状态
+## C 端公开站现状
 
-分支 `feat/c-end-public-site`。计划 `docs/superpowers/plans/2026-07-24-c-end-public-site.md`（P0 基线 → P1 列表筛选 → P2 详情 → P3 询价 → P4 SEO → P5 E2E+部署）。P0 已完成（Leads 加 `source` 字段+迁移、seed 数据、`lib/frontend` 三件套+16 单测）。
+已全量合入 master 上线：首页（hero + 热门商圈 + 推荐房源）、房源/楼盘列表与筛选、详情页（58 式布局）、询价（`/api/inquiries`）、内容页 + SEO（sitemap/robots/metadata）。里程碑 P0 基线 → P1 列表筛选 → P2 详情 → P3 询价 → P4 SEO → P5 E2E+部署 均已落地。历史实施计划已移除，以代码为唯一事实源。
 
 ## 设计系统
 
@@ -51,4 +51,4 @@ C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不�
 ## 测试
 
 - 纯逻辑（`filters`/`format`/`validation`）用 Vitest，严格 TDD（先写失败测试→跑红→实现→跑绿→提交）。
-- 页面/路由用 `pnpm build`（类型检查）+ `curl` 烟测。端到端用 Playwright（P5 装计划中已写）。
+- 页面/路由用 `pnpm build`（类型检查）+ `curl` 烟测。端到端用 Playwright（见 `tests/e2e/`）。

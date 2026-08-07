@@ -92,6 +92,7 @@ export {
   type DetailRecommendationItem,
   assertEffectiveListing,
   assertEffectiveBuilding,
+  getListingDistrictOptions,
   getHomepage,
   getSearchFacets,
   getPageBySlug,
