@@ -334,7 +334,7 @@ ol {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4);
+  gap: var(--sp-8);
   min-height: 56px;
 }
 
@@ -357,7 +357,8 @@ ol {
 .site-nav {
   display: none;
   align-items: center;
-  gap: var(--sp-5);
+  gap: var(--sp-7);
+  margin-left: auto;
 }
 
 @media (min-width: 768px) {
@@ -1556,10 +1557,11 @@ ol {
 
 .hero__summary {
   color: rgba(255, 255, 255, 0.9);
-  max-width: 560px;
+  max-width: 760px;
   margin: 0 auto var(--sp-5);
   font-size: var(--fs-16);
   line-height: var(--lh-relaxed);
+  white-space: nowrap;
 }
 
 /* 减少动态效果：隐藏视频，回退到 --color-ink 深底 */
@@ -2688,13 +2690,6 @@ ol {
   margin-top: var(--sp-2);
 }
 
-/* 首页 hero 询价 CTA（F5.2 home 入口） */
-.hero__inquiry-cta {
-  margin-top: var(--sp-3);
-  display: flex;
-  justify-content: center;
-}
-
 /* hero 视频上的 ghost 按钮：白描边（仅作用域 .hero，不污染全局 ghost） */
 .hero .btn--ghost {
   color: #fff;
@@ -3061,32 +3056,44 @@ ol {
   display: flex;
   gap: var(--sp-2);
   width: 100%;
-  max-width: 760px;
-  flex-wrap: wrap;
+  max-width: 980px;
+  flex-wrap: nowrap;
   justify-content: center;
 }
 
-/* 下拉式筛选：视频上透明白玻璃态，chevron 颜色同步换白 */
-.hero-search__select {
+/* 下拉式筛选与关键词输入：视频上透明白玻璃态，chevron 颜色同步换白 */
+.hero-search__select,
+.hero-search__input {
   flex: 1 1 140px;
   min-width: 0;
-  appearance: none;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius-md);
   padding: var(--sp-3) var(--sp-4);
-  padding-right: var(--sp-6);
   font-size: var(--fs-16);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
   min-height: 52px;
+  transition: border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.hero-search__input {
+  flex: 2 1 200px;
+}
+
+.hero-search__select {
+  appearance: none;
+  padding-right: var(--sp-6);
   cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.7) 50%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.7) 50%, transparent 50%);
   background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.hero-search__input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* 原生下拉弹层不可做透明玻璃态，选项用白底深字保证可读 */
@@ -3095,11 +3102,13 @@ ol {
   background: var(--color-surface);
 }
 
-.hero-search__select:hover {
+.hero-search__select:hover,
+.hero-search__input:hover {
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-.hero-search__select:focus-visible {
+.hero-search__select:focus-visible,
+.hero-search__input:focus-visible {
   outline: none;
   border-color: #fff;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
@@ -3107,7 +3116,70 @@ ol {
 
 /* 搜索按钮与 select 等高（form 为 flex，align-items 默认 stretch） */
 .hero-search__form .btn {
-  flex-shrink: 0;
+  flex: 0 0 112px;
+  min-height: 52px;
+}
+
+/* 快速搜索词：位于搜索框下方，单行，超出搜索框宽度时截断 */
+.hero-search__quick {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  max-width: 980px;
+  overflow: hidden;
+  font-size: var(--fs-14);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-search__quick-list {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.hero-search__quick-item {
+  display: inline-block;
+  max-width: 160px;
+  padding: var(--sp-1) 0;
+  color: #fff;
+  opacity: 0.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.hero-search__quick-item:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.hero-search__quick-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 760px) {
+  .hero-search__form {
+    flex-wrap: wrap;
+  }
+
+  .hero-search__form .btn {
+    flex: 1 1 140px;
+  }
+
+  .hero-search__quick {
+    flex-wrap: wrap;
+  }
+
+  .hero-search__quick-list {
+    flex-wrap: wrap;
+  }
 }
 
 /* ---------------------------------------------------------------------------

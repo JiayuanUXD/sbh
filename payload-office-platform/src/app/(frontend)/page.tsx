@@ -3,7 +3,6 @@ import Link from 'next/link'
 import React from 'react'
 import HeroSearch from '@/components/frontend/HeroSearch'
 import HomeHeroMedia from '@/components/frontend/HomeHeroMedia'
-import InquiryModal from '@/components/frontend/InquiryModal'
 import ListingCard from '@/components/frontend/ListingCard'
 import CategoryTiles from '@/components/frontend/CategoryTiles'
 import DistrictCards from '@/components/frontend/DistrictCards'
@@ -43,14 +42,13 @@ export default async function HomePage() {
           <p className="hero__summary">
             覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策
           </p>
-          <HeroSearch districts={districts} />
-          <div className="hero__inquiry-cta">
-            <InquiryModal
-              pageType="home"
-              triggerLabel="获取选址方案"
-              triggerVariant="ghost"
-            />
-          </div>
+          <HeroSearch
+            districts={districts}
+            featuredBuildings={featuredBuildings.slice(0, 6).map((b) => ({
+              slug: b.slug,
+              name: b.name,
+            }))}
+          />
         </div>
       </section>
 

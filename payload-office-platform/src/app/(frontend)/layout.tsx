@@ -44,7 +44,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
   return (
     <html lang="zh-CN">
-      <body>
+      <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
         <SiteHeader />
