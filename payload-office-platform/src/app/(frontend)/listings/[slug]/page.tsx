@@ -22,6 +22,7 @@ import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { buildListingJsonLd, buildListingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import {
   getCachedBuildingBySlug,
   getCachedDetailRecommendations,
@@ -69,8 +70,7 @@ export default async function ListingDetailPage({
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])
-  const mapEnabled =
-    building?.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
+  const mapEnabled = building?.coordinates != null && hasAmapJsKey()
 
   // `gallery` is a legacy public DTO fallback, never a Payload document.
   const media = listing.mediaItems.length > 0

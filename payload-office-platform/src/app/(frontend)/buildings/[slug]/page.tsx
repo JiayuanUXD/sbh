@@ -6,6 +6,7 @@ import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import {
   getCachedBuildingDetail,
   getCachedRelatedBuildings,
@@ -53,8 +54,7 @@ export default async function BuildingDetailPage({
   if (!building) notFound()
 
   const pois = await fetchNearbyPois(building.id, building.coordinates)
-  const mapEnabled =
-    building.coordinates != null && Boolean(process.env.NEXT_PUBLIC_AMAP_JS_KEY)
+  const mapEnabled = building.coordinates != null && hasAmapJsKey()
 
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin)
 

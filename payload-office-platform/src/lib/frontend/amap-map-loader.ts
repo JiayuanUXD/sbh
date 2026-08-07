@@ -1,3 +1,5 @@
+import { getAmapJsKey } from '@/lib/frontend/amap-public-config'
+
 /**
  * P1 Task 3：高德 JS API 地图加载器
  *
@@ -70,7 +72,7 @@ let amapPromise: Promise<AMapNamespace> | null = null
 export function loadAmapMap(): Promise<AMapNamespace> {
   if (amapPromise) return amapPromise
   amapPromise = new Promise<AMapNamespace>((resolve, reject) => {
-    const key = process.env.NEXT_PUBLIC_AMAP_JS_KEY
+    const key = getAmapJsKey()
     if (!key) {
       reject(new AmapLoaderError('amap_js_key_missing', '高德 JS API Key 未配置'))
       return
