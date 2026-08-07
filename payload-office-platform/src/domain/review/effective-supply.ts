@@ -148,10 +148,14 @@ export interface PayloadQueryPort {
     limit?: number
     /** Payload 分页页码（从 1 开始） */
     page?: number
+    /** 排序字段 */
+    sort?: string
     /** 是否绕过 access（用于内部查询） */
     overrideAccess?: boolean
+    /** 可选的 Payload 请求上下文 */
+    req?: unknown
   }) => Promise<{
-    docs: Array<{ targetListing?: string | number | { id: string | number } | null }>
+    docs: Array<Record<string, unknown> & PausedReportLike>
     hasNextPage?: boolean
     nextPage?: number | null
     page?: number

@@ -6,7 +6,7 @@
  * 职责：
  *   - 定义 Facade 与"统一有效供给服务"之间的契约接口；
  *   - 提供生产实现 `createPayloadSupplyAdapter()`：查询层用 `getEffectiveSupplyWhere`
- *     粗筛 + `getPausedListingIds` 排除举报暂停，取候选后逐条 `resolveEffectiveSupply`
+ *     粗筛 + `getPausedListingIds` 排除举报暂停，取候选后批量 `resolveEffectiveSupplies`
  *     精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保证前台、预览、楼盘聚合、Dashboard
  *     对同一房源可见性结论一致（M4 验收门）。
  *
@@ -29,18 +29,16 @@ import type { Building, Listing, Location, Page, Article } from '@/payload-types
 import {
   getEffectiveSupplyWhere,
   getPausedListingIds,
-  isListingEffectivelySupplied,
-  type PayloadQueryPort,
 } from '@/domain/review/effective-supply'
+import { createEffectiveSupplyPayloadPort } from '@/domain/review/effective-supply-payload-port'
 import {
-  buildEffectiveSnapshot,
+  resolveEffectiveSupplies,
   toId,
 } from '@/domain/review/effective-supply-snapshot'
 import {
   getPublicBuildingWhere,
   isPublicBuilding,
 } from '@/domain/supply/public-building'
-import { toRelationPeriod } from '@/domain/supply/building-merchant-relation'
 import type { SearchContext, ListingSearchInput } from './types'
 
 /**
@@ -252,7 +250,7 @@ export function rankRelatedBuildingsByProximity(
 
 /**
  * 生产供给适配器：查询层 `getEffectiveSupplyWhere` 粗筛 + 举报暂停排除 +
- * 逐条 `resolveEffectiveSupply` 精筛，与发布 endpoint、C 端口径完全一致。
+ * 批量 `resolveEffectiveSupplies` 精筛，与发布 endpoint、C 端口径完全一致。
  */
 export function createPayloadSupplyAdapter(): SupplyAdapter {
   // 懒加载 payload，避免在模块顶层触发配置初始化
@@ -265,6 +263,11 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       payloadCache = await getPayload({ config })
     }
     return payloadCache
+  }
+
+  /** 单一 Payload 查询端口边界，供统一有效供给服务复用。 */
+  async function getPayloadQueryPort() {
+    return createEffectiveSupplyPayloadPort(await getPayload())
   }
 
   async function findAllListings(
@@ -324,11 +327,11 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    * 与 method-specific 约束合并后作为 payload.find 的 where。
    */
   async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
-    const payload = await getPayload()
+    const payload = await getPayloadQueryPort()
     const asOf = new Date(ctx.asOf)
     const where: Record<string, unknown> = { ...getEffectiveSupplyWhere(asOf) }
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
-    const pausedIds = await getPausedListingIds(payload as unknown as PayloadQueryPort)
+    const pausedIds = await getPausedListingIds(payload)
     if (pausedIds.length > 0) {
       where.id = { not_in: pausedIds }
     }
@@ -336,99 +339,20 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   }
 
   /**
-   * 对候选文档逐条跑精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保留 eligible。
+   * 批量解析候选的关系与有效供给，保留 eligible 文档，避免关系查询 N+1。
    * 文档需 depth≥1 已展开 building / merchant。
-   */
-  type ActiveRelation = Readonly<{
-    period: ReturnType<typeof toRelationPeriod>
-    merchant: Record<string, unknown> | null
-  }>
-
-  async function loadActiveRelations(
-    docs: readonly Record<string, unknown>[],
-    asOf: Date,
-  ): Promise<Map<string, ActiveRelation>> {
-    const payload = await getPayload()
-    const listingIds = docs
-      .map((doc) => toId(doc.id))
-      .filter((id): id is number | string => id !== null)
-    const grouped = new Map<string, ActiveRelation[]>()
-
-    if (listingIds.length > 0) {
-      const instant = asOf.toISOString()
-      const result = await payload.find({
-        collection: 'listing-merchant-relations',
-        where: {
-          and: [
-            { listing: { in: listingIds } },
-            { effectiveFrom: { less_than_equal: instant } },
-            {
-              or: [
-                { effectiveTo: { exists: false } },
-                { effectiveTo: { greater_than: instant } },
-              ],
-            },
-          ],
-        },
-        sort: '-effectiveFrom',
-        limit: listingIds.length * 2,
-        // depth 1 足够：本函数从关系上只取 listing 的 id（下面 toId(relation.listing)）
-        // 与 merchant 对象；merchant.serviceCities 保持 id 数组即可，
-        // buildEffectiveSnapshot 的 toId 同时接受 id 与对象。
-        // 用 depth 2 会把每条关系的 listing 整个文档连同其楼盘/图库再展开一层，
-        // 数千条关系时这是楼盘列表页最大的一笔开销（实测 /buildings 80s → 63s）。
-        depth: 1,
-        overrideAccess: true,
-      })
-      for (const relation of result.docs as unknown as Record<string, unknown>[]) {
-        const listingId = toId(relation.listing)
-        if (listingId === null) continue
-        try {
-          const candidate: ActiveRelation = {
-            period: toRelationPeriod(
-              relation.effectiveFrom as string | Date | null | undefined,
-              relation.effectiveTo as string | Date | null | undefined,
-            ),
-            merchant:
-              typeof relation.merchant === 'object' && relation.merchant !== null
-                ? relation.merchant as Record<string, unknown>
-                : null,
-          }
-          const key = String(listingId)
-          grouped.set(key, [...(grouped.get(key) ?? []), candidate])
-        } catch {
-          // Invalid periods fail closed below.
-        }
-      }
-    }
-
-    const unique = new Map<string, ActiveRelation>()
-    for (const [listingId, relations] of grouped) {
-      if (relations.length === 1) unique.set(listingId, relations[0])
-    }
-    return unique
-  }
-
-  /**
-   * Batch-load relation and merchant data, then evaluate every candidate in memory.
-   * This keeps the exact-one-active-relation invariant without a sequential N+1.
    */
   async function fineFilter(
     docs: readonly Record<string, unknown>[],
     asOf: Date,
   ): Promise<Listing[]> {
-    const relations = await loadActiveRelations(docs, asOf)
+    const payload = await getPayloadQueryPort()
+    const supplies = await resolveEffectiveSupplies(payload, docs, asOf)
     const kept: Listing[] = []
     for (const doc of docs) {
       const listingId = toId(doc.id)
-      const relation = listingId === null ? null : relations.get(String(listingId)) ?? null
-      const snapshot = buildEffectiveSnapshot(
-        doc,
-        relation?.period ?? null,
-        relation?.merchant ?? {},
-      )
-      const supply = isListingEffectivelySupplied(snapshot, asOf)
-      if (supply.eligible) kept.push(doc as unknown as Listing)
+      const supply = listingId === null ? null : supplies.get(String(listingId)) ?? null
+      if (supply?.eligible) kept.push(doc as unknown as Listing)
     }
     return kept
   }

@@ -68,6 +68,132 @@ type EffectiveRelation = {
   merchant: Record<string, unknown> | null
 }
 
+const RELATION_QUERY_PAGE_SIZE = 1_000
+
+function nextEffectiveRelationPage(
+  result: Awaited<ReturnType<PayloadQueryPort['find']>>,
+  currentPage: number,
+): number | null {
+  const { hasNextPage, nextPage } = result
+  const hasPaginationMetadata = hasNextPage !== undefined || nextPage !== undefined
+  const hasValidHasNextPage = hasNextPage === undefined || typeof hasNextPage === 'boolean'
+
+  if (!hasPaginationMetadata || !hasValidHasNextPage) {
+    throw new Error('invalid effective-relation pagination metadata')
+  }
+
+  if (nextPage !== undefined) {
+    if (nextPage === null) {
+      if (hasNextPage === true) {
+        throw new Error('invalid effective-relation pagination metadata')
+      }
+      return null
+    }
+    if (
+      hasNextPage === false ||
+      !Number.isSafeInteger(nextPage) ||
+      nextPage <= currentPage
+    ) {
+      throw new Error('invalid effective-relation pagination metadata')
+    }
+    return nextPage
+  }
+
+  if (hasNextPage === true) {
+    const followingPage = currentPage + 1
+    if (!Number.isSafeInteger(followingPage)) {
+      throw new Error('invalid effective-relation pagination metadata')
+    }
+    return followingPage
+  }
+  if (hasNextPage === false) return null
+
+  throw new Error('invalid effective-relation pagination metadata')
+}
+
+/**
+ * 批量查询多个房源在指定时刻生效的商户关系。
+ *
+ * 关系按归一化后的 listing ID 分组；只有恰好一条当前生效关系才会写入结果。
+ * 缺失、重叠或无效的关系均不返回，以便调用方 fail closed。
+ */
+export async function loadEffectiveRelations(
+  payload: PayloadQueryPort,
+  listings: readonly Record<string, unknown>[],
+  asOf: Date,
+  req?: unknown,
+): Promise<ReadonlyMap<string, EffectiveRelation>> {
+  const listingIds = [...new Set(
+    listings
+      .map((listing) => toId(listing.id))
+      .filter((id): id is number | string => id !== null),
+  )]
+  const grouped = new Map<string, EffectiveRelation[]>()
+  const rawRelationCounts = new Map<string, number>()
+
+  if (listingIds.length === 0) return new Map()
+
+  const instant = asOf.toISOString()
+  let page = 1
+  while (true) {
+    const result = await payload.find({
+      collection: 'listing-merchant-relations',
+      where: {
+        and: [
+          { listing: { in: listingIds } },
+          { effectiveFrom: { less_than_equal: instant } },
+          {
+            or: [
+              { effectiveTo: { exists: false } },
+              { effectiveTo: { greater_than: instant } },
+            ],
+          },
+        ],
+      },
+      sort: '-effectiveFrom',
+      limit: RELATION_QUERY_PAGE_SIZE,
+      page,
+      depth: 1,
+      overrideAccess: true,
+      ...(req !== undefined ? { req } : {}),
+    })
+
+    for (const relation of result.docs) {
+      const listingId = toId(relation.listing)
+      if (listingId === null) continue
+      const key = String(listingId)
+      rawRelationCounts.set(key, (rawRelationCounts.get(key) ?? 0) + 1)
+      try {
+        const candidate: EffectiveRelation = {
+          period: toRelationPeriod(
+            relation.effectiveFrom as string | Date | null | undefined,
+            relation.effectiveTo as string | Date | null | undefined,
+          ),
+          merchant:
+            typeof relation.merchant === 'object' && relation.merchant !== null
+              ? relation.merchant as Record<string, unknown>
+              : null,
+        }
+        grouped.set(key, [...(grouped.get(key) ?? []), candidate])
+      } catch {
+        // Invalid periods fail closed below.
+      }
+    }
+
+    const nextPage = nextEffectiveRelationPage(result, page)
+    if (nextPage === null) break
+    page = nextPage
+  }
+
+  const unique = new Map<string, EffectiveRelation>()
+  for (const [listingId, relations] of grouped) {
+    if (rawRelationCounts.get(listingId) === 1 && relations.length === 1) {
+      unique.set(listingId, relations[0])
+    }
+  }
+  return unique
+}
+
 async function loadEffectiveRelation(
   payload: PayloadQueryPort,
   listingId: number | string,
@@ -94,11 +220,11 @@ async function loadEffectiveRelation(
     depth: 2,
     overrideAccess: true,
     ...(req !== undefined ? { req } : {}),
-  } as Parameters<PayloadQueryPort['find']>[0])
+  })
 
   // Zero or overlapping active relations are both invalid supply facts.
   if (res.docs.length !== 1) return null
-  const doc = res.docs[0] as unknown as Record<string, unknown>
+  const doc = res.docs[0]
   try {
     const merchant =
       typeof doc.merchant === 'object' && doc.merchant !== null
@@ -136,8 +262,8 @@ export async function loadRelationPeriod(
     limit: 1,
     depth: 0,
     ...(req !== undefined ? { req } : {}),
-  } as Parameters<PayloadQueryPort['find']>[0])
-  const doc = (res?.docs ?? [])[0] as unknown as Record<string, unknown> | undefined
+  })
+  const doc = res.docs[0]
   if (!doc) return null
   try {
     return toRelationPeriod(
@@ -171,4 +297,32 @@ export async function resolveEffectiveSupply(
     relation?.merchant ?? {},
   )
   return isListingEffectivelySupplied(snapshot, asOf)
+}
+
+/**
+ * 批量解析候选房源的有效供给结果，避免逐条查询关系造成 N+1。
+ *
+ * 每个房源均使用 `loadEffectiveRelations` 的 exact-one 结果；没有唯一当前关系的
+ * 房源以空关系快照参与判定，因此保持 fail-closed 语义。
+ */
+export async function resolveEffectiveSupplies(
+  payload: PayloadQueryPort,
+  listings: readonly Record<string, unknown>[],
+  asOf: Date,
+  req?: unknown,
+): Promise<ReadonlyMap<string, EffectiveSupplyResult>> {
+  const relations = await loadEffectiveRelations(payload, listings, asOf, req)
+  const results = new Map<string, EffectiveSupplyResult>()
+  for (const listing of listings) {
+    const listingId = toId(listing.id)
+    if (listingId === null) continue
+    const relation = relations.get(String(listingId)) ?? null
+    const snapshot = buildEffectiveSnapshot(
+      listing,
+      relation?.period ?? null,
+      relation?.merchant ?? {},
+    )
+    results.set(String(listingId), isListingEffectivelySupplied(snapshot, asOf))
+  }
+  return results
 }
