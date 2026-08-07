@@ -17,7 +17,7 @@ export type AdminNavigationBadgeQuery = {
   collection:
     | 'tasks'
     | 'notifications'
-    | 'listing-reviews'
+    | 'listings'
     | 'listing-reports'
     | 'leads'
     | 'form-submissions'
@@ -69,10 +69,10 @@ export function buildAdminNavigationBadgeQueries(
   if (canReadListingReviews(permission)) {
     queries.push({
       key: 'listingReviews',
-      collection: 'listing-reviews',
+      collection: 'listings',
       where: combineWhere(
-        { taskStatus: { in: ['pending', 'processing'] } },
-        buildReviewCityScopeWhere(permission, 'listing.building.city'),
+        { reviewStatus: { equals: 'pending' } },
+        buildReviewCityScopeWhere(permission, 'building.city'),
       ),
     })
   }

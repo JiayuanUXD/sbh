@@ -78,8 +78,8 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
       },
     })
     expect(queryByKey(queries, 'listingReviews')).toMatchObject({
-      collection: 'listing-reviews',
-      where: { taskStatus: { in: ['pending', 'processing'] } },
+      collection: 'listings',
+      where: { reviewStatus: { equals: 'pending' } },
     })
     expect(queryByKey(queries, 'listingReports')).toMatchObject({
       collection: 'listing-reports',
@@ -121,8 +121,8 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
 
     expect(queryByKey(queries, 'listingReviews').where).toEqual({
       and: [
-        { taskStatus: { in: ['pending', 'processing'] } },
-        { 'listing.building.city': { in: [11, 12] } },
+        { reviewStatus: { equals: 'pending' } },
+        { 'building.city': { in: [11, 12] } },
       ],
     })
     expect(queryByKey(queries, 'listingReports').where).toEqual({
