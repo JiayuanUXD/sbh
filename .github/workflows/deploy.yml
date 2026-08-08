@@ -173,13 +173,29 @@ jobs:
           before_deploy_id=$(jq -r '.data.DeployRecords[0].DeployId // empty' "$before_records")
 
           echo "Deploy image: $IMAGE_URL"
-          timeout 900 tcb -e "$TCB_ENV_ID" cloudrun deploy \
-            -s sbh \
-            --imageUrl "$IMAGE_URL" \
-            --port 80 \
-            --force \
-            --json |
-            sed -n '/^{/,$p'
+          deploy_info="$RUNNER_TEMP/sbh-image-deploy.json"
+          deploy_body=$(jq -cn \
+            --arg envId "$TCB_ENV_ID" \
+            --arg imageUrl "$IMAGE_URL" \
+            '{
+              EnvId:$envId,
+              ServerName:"sbh",
+              DeployInfo:{
+                DeployType:"image",
+                ImageUrl:$imageUrl,
+                ReleaseType:"FULL"
+              },
+              Items:[
+                {Key:"AccessTypes",ArrayValue:["OA","PUBLIC","MINIAPP"]},
+                {Key:"Port",IntValue:80}
+              ]
+            }')
+          timeout 60 tcb api tcbr UpdateCloudRunServer \
+            --api-version 2022-02-17 \
+            --json \
+            --body "$deploy_body" |
+            sed -n '/^{/,$p' > "$deploy_info"
+          jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
           ready=0
           for attempt in $(seq 1 80); do
@@ -396,51 +412,32 @@ jobs:
             --stable 90 \
             --canary 10
 
-      - name: Smoke test（灰度版本健康检查）
+      - name: Smoke test after image deploy
         id: smoke
         run: |
-          # 灰度 10% 期间多次请求，提高命中新版本概率；
-          # 同时验证整体服务可用（旧版本不被新版本部署影响）。
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
-          fail=0
-          canary_ok=0
-          for i in $(seq 1 50); do
+          healthy=0
+          for i in $(seq 1 12); do
             body_file="$RUNNER_TEMP/health-$i.json"
             code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health")
             echo "[$i] GET /api/health -> HTTP $code"
-            if [ "$code" = "200" ]; then
-              if jq -e '.status == "ok"' "$body_file" >/dev/null; then
-                canary_ok=$((canary_ok + 1))
-              else
-                fail=1
-              fi
-              continue
+            if [ "$code" = "200" ] && jq -e '.status == "ok"' "$body_file" >/dev/null; then
+              healthy=1
+              break
             fi
-            # 稳定版本 sbh-007 尚无该路由；灰度期间命中旧版本的 404 可接受。
-            if [ "$code" = "404" ]; then
-              continue
-            fi
-            fail=1
+            sleep 5
           done
-          if [ "$canary_ok" -lt 1 ]; then
-            echo "::error::50 次请求均未命中健康的灰度版本"
-            fail=1
-          fi
-          # 首页可达（SSR 不崩）
-          home=$(curl -s -o /dev/null -w "%{http_code}" "$URL/")
-          echo "GET / -> HTTP $home"
-          if [ "$home" != "200" ]; then fail=1; fi
-          if [ "$fail" = "1" ]; then
-            echo "::error::冒烟失败，将触发回滚"
+          if [ "$healthy" != "1" ]; then
+            echo "::error::Health check failed after image deploy"
             exit 1
           fi
-          echo "✅ 冒烟通过"
-
-      - name: Promote 全量发布
-        if: success()
-        run: |
-          echo "Image deploy path is already active after CloudRun deploy; no traffic promote needed."
-
+          home=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" "$URL/")
+          echo "GET / -> HTTP $home"
+          if [ "$home" != "200" ]; then
+            echo "::error::Homepage check failed after image deploy"
+            exit 1
+          fi
+          echo "Image deploy smoke passed"
       - name: 全量发布后验证
         if: success()
         run: |
