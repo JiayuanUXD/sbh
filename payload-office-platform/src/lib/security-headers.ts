@@ -26,7 +26,7 @@ const PRODUCTION_CSP = [
   "default-src 'self'",
   // Payload admin bootstrap 需内联脚本；保留 unsafe-eval 兼容 admin 运行时
   // 高德 JS API 由 AmapMapCanvas 在视口内自动注入，需放行 webapi.amap.com
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://jsapi.amap.com https://restapi.amap.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://jsapi.amap.com https://restapi.amap.com https://mapplugin.amap.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",

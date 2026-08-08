@@ -29,6 +29,7 @@ describe('buildSecurityHeaders', () => {
     expect(csp).toContain('https://webapi.amap.com')
     expect(csp).toContain('https://jsapi.amap.com')
     expect(csp).toContain('https://restapi.amap.com')
+    expect(csp).toContain('https://mapplugin.amap.com')
     expect(csp).toContain("worker-src 'self' blob:")
     expect(csp).toContain("frame-ancestors 'none'")
     expect(csp).toContain("base-uri 'self'")
