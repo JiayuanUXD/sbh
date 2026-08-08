@@ -29,6 +29,7 @@ import * as migration_20260731_120857_lead_viewing_preference from './20260731_1
 import * as migration_20260803_104120_add_articles from './20260803_104120_add_articles';
 import * as migration_20260805_033418_cos_media_prefix from './20260805_033418_cos_media_prefix';
 import * as migration_20260806_080629_locations_cover_image from './20260806_080629_locations_cover_image';
+import * as migration_20260808_224000_articles_menu_for_ops from './20260808_224000_articles_menu_for_ops';
 
 export const migrations = [
   {
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20260806_080629_locations_cover_image.up,
     down: migration_20260806_080629_locations_cover_image.down,
     name: '20260806_080629_locations_cover_image'
+  },
+  {
+    up: migration_20260808_224000_articles_menu_for_ops.up,
+    down: migration_20260808_224000_articles_menu_for_ops.down,
+    name: '20260808_224000_articles_menu_for_ops'
   },
 ];

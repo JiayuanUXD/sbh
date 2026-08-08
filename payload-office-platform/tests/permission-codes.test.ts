@@ -91,6 +91,7 @@ describe('permission-codes/isRegisteredMenuCode', () => {
   it('后台主导航使用的插件与系统集合编码均已注册', () => {
     for (const code of [
       'pages',
+      'articles',
       'media',
       'forms',
       'form-submissions',

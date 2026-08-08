@@ -94,6 +94,7 @@ export const ADMIN_NAV_GROUPS = [
   ]),
   group('content', '内容管理', 'file', [
     leaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
+    leaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
     leaf('media', '素材库', '/admin/collections/media', ['media']),
   ]),
   group('form-center', '表单中心', 'form', [

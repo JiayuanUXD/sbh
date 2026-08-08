@@ -121,6 +121,7 @@ describe('admin navigation config', () => {
       ]),
       expectedGroup('content', '内容管理', [
         expectedLeaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
+        expectedLeaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
         expectedLeaf('media', '素材库', '/admin/collections/media', ['media']),
       ]),
       expectedGroup('form-center', '表单中心', [
@@ -196,6 +197,7 @@ describe('admin navigation config', () => {
       'customers',
       'follow-ups',
       'pages',
+      'articles',
       'listing-reviews',
       'listing-reports',
       'domain-events',

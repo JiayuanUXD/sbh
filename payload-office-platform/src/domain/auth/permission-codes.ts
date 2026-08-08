@@ -46,6 +46,7 @@ export const MENU_CODES = [
   'analytics',
   // 内容与表单插件
   'pages',
+  'articles',
   'media',
   'forms',
   'form-submissions',
