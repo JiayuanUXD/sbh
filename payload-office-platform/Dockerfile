@@ -8,6 +8,13 @@ COPY package.json pnpm-lock.yaml ./
 # 含 devDeps（tsx）：payload CLI 需要 tsx 加载 ts 配置才能在容器内跑迁移
 RUN pnpm install --frozen-lockfile
 
+# ---------- prod deps ----------
+FROM node:22-slim AS prod-deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
+
 # ---------- builder ----------
 FROM node:22-slim AS builder
 WORKDIR /app
@@ -51,8 +58,8 @@ ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 
-# 完整 node_modules（含 tsx，供 payload CLI 加载 ts 配置跑迁移）
-COPY --from=deps /app/node_modules ./node_modules
+# 只复制生产依赖；tsx 保留在 dependencies，供启动迁移脚本加载 TS 配置。
+COPY --from=prod-deps /app/node_modules ./node_modules
 # 构建产物
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public

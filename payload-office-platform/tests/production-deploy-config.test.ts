@@ -53,6 +53,16 @@ describe('生产部署配置', () => {
     expect(pruneCache).toBeLessThan(copyNext)
   })
 
+  it('Docker runner 只复制生产依赖，避免把完整 devDependencies 打进镜像', () => {
+    const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+    const runner = dockerfile.slice(dockerfile.indexOf('FROM node:22-slim AS runner'))
+
+    expect(dockerfile).toContain('FROM node:22-slim AS prod-deps')
+    expect(dockerfile).toContain('RUN pnpm install --prod --frozen-lockfile')
+    expect(runner).toContain('COPY --from=prod-deps /app/node_modules ./node_modules')
+    expect(runner).not.toContain('COPY --from=deps /app/node_modules ./node_modules')
+  })
+
   it('容器启动先跑迁移再由 exec 接管 Web 服务', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
 
