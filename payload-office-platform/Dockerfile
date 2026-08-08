@@ -30,6 +30,9 @@ ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
 # Git 不跟踪空目录；没有静态资源时也要保留 public，供 runner 阶段稳定复制。
 RUN mkdir -p public
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
+# Next build cache only speeds local/incremental builds. It is not needed at runtime and can
+# make the pushed CloudRun image enormous.
+RUN rm -rf .next/cache
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，

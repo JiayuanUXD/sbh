@@ -101,7 +101,7 @@ jobs:
   deploy:
     needs: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     env:
       # 非交互模式：所有确认提示（telemetry 询问、--force 确认）自动按默认值走。
       # 否则 CI 无 tty，提示库收到 EOF 会以 exit 130 中断。
@@ -151,8 +151,8 @@ jobs:
           tags: |
             ${{ steps.image.outputs.image }}
             ${{ steps.image.outputs.repo }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
 
       - name: Deploy image to CloudBase CloudRun
         env:

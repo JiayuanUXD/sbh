@@ -43,6 +43,16 @@ describe('生产部署配置', () => {
     expect(ensurePublic).toBeLessThan(copyPublic)
   })
 
+  it('Docker builder 不把 Next 构建缓存打进运行镜像', () => {
+    const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+    const build = dockerfile.indexOf('pnpm generate:types')
+    const pruneCache = dockerfile.indexOf('RUN rm -rf .next/cache')
+    const copyNext = dockerfile.indexOf('COPY --from=builder /app/.next ./.next')
+
+    expect(pruneCache).toBeGreaterThan(build)
+    expect(pruneCache).toBeLessThan(copyNext)
+  })
+
   it('容器启动先跑迁移再由 exec 接管 Web 服务', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
 
@@ -69,8 +79,9 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh')
     expect(workflow).toContain('docker/build-push-action@v6')
     expect(workflow).toContain('push: true')
-    expect(workflow).toContain('cache-from: type=gha')
-    expect(workflow).toContain('cache-to: type=gha,mode=max')
+    expect(workflow).toContain('provenance: false')
+    expect(workflow).toContain('sbom: false')
+    expect(workflow).not.toContain('cache-to: type=gha')
     expect(workflow).toContain('cloudrun deploy')
     expect(workflow).toContain('--imageUrl "$IMAGE_URL"')
     expect(workflow).toContain('--traffic')
