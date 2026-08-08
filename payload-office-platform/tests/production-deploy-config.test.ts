@@ -61,12 +61,33 @@ describe('生产部署配置', () => {
     expect(script).toContain('exitProcess(1)')
   })
 
-  it('CloudBase 通过可重试上传和官方 API 显式创建灰度版本', () => {
+  it('CloudBase 镜像部署通过 GitHub Actions 构建推送镜像并灰度切流', () => {
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    expect(workflow).toContain('docker/setup-buildx-action@v3')
+    expect(workflow).toContain('docker/login-action@v3')
+    expect(workflow).toContain('ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh')
+    expect(workflow).toContain('docker/build-push-action@v6')
+    expect(workflow).toContain('push: true')
+    expect(workflow).toContain('cache-from: type=gha')
+    expect(workflow).toContain('cache-to: type=gha,mode=max')
+    expect(workflow).toContain('cloudrun deploy')
+    expect(workflow).toContain('--imageUrl "$IMAGE_URL"')
+    expect(workflow).toContain('--traffic')
+    expect(workflow).toContain('--stable 90')
+    expect(workflow).toContain('--canary 10')
+    expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
+  })
+
+  it('旧源码包上传部署路径保留但不再默认执行', () => {
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
 
     expect(workflow).toContain('DescribeCloudBaseBuildService')
     expect(workflow).toContain('UpdateCloudRunServer')
     expect(workflow).toContain(`ReleaseType: "GRAY"`)
+    expect(workflow).toContain('上传代码包并提交灰度版本')
+    expect(workflow).toContain('等待新版本就绪 + 切 10% 灰度')
+    expect(workflow).toContain('if: ${{ false }}')
     expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
     expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
@@ -77,8 +98,6 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('--max-time 300')
     // 停滞检测：死连接 30s 内放弃换新 URL，而不是骑满整个签名窗口
     expect(workflow).toContain('--speed-time 30')
-    expect(workflow).not.toContain('cloudrun deploy')
-    expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
   })
 
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
