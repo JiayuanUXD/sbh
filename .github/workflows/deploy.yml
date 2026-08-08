@@ -116,12 +116,116 @@ jobs:
           node-version: 22
 
       - name: Install CloudBase CLI（锁版本，避免 @latest 漂移破坏命令语义）
-        run: npm install -g @cloudbase/cli@3.6.4
+        run: npm install -g @cloudbase/cli@3.7.0
 
       - name: tcb login (CAM API key)
         run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Tencent Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ccr.ccs.tencentyun.com
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+
+      - name: Set image tag
+        id: image
+        run: |
+          set -euo pipefail
+          repo="ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh"
+          tag="${GITHUB_SHA::12}"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "image=$repo:$tag" >> "$GITHUB_OUTPUT"
+          echo "Image: $repo:$tag"
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: payload-office-platform
+          file: payload-office-platform/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ${{ steps.image.outputs.repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy image to CloudBase CloudRun
+        env:
+          TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
+          IMAGE_URL: ${{ steps.image.outputs.image }}
+        run: |
+          set -euo pipefail
+          before_records="$RUNNER_TEMP/sbh-records-before.json"
+          records_info="$RUNNER_TEMP/sbh-records.json"
+
+          records_body=$(jq -cn --arg envId "$TCB_ENV_ID" \
+            '{EnvId:$envId,ServerName:"sbh"}')
+          tcb api tcbr DescribeCloudRunDeployRecord \
+            --api-version 2022-02-17 \
+            --json \
+            --body "$records_body" |
+            sed -n '/^{/,$p' > "$before_records"
+          before_deploy_id=$(jq -r '.data.DeployRecords[0].DeployId // empty' "$before_records")
+
+          echo "Deploy image: $IMAGE_URL"
+          timeout 900 tcb -e "$TCB_ENV_ID" cloudrun deploy \
+            -s sbh \
+            --imageUrl "$IMAGE_URL" \
+            --port 80 \
+            --force \
+            --traffic \
+            --json |
+            sed -n '/^{/,$p'
+
+          ready=0
+          for attempt in $(seq 1 80); do
+            tcb api tcbr DescribeCloudRunDeployRecord \
+              --api-version 2022-02-17 \
+              --json \
+              --body "$records_body" |
+              sed -n '/^{/,$p' > "$records_info"
+
+            deploy_id=$(jq -r '.data.DeployRecords[0].DeployId // empty' "$records_info")
+            deploy_status=$(jq -r '.data.DeployRecords[0].Status // empty' "$records_info")
+            echo "[$attempt/80] latest deploy $deploy_id -> $deploy_status"
+
+            if [ -z "$deploy_id" ] || [ "$deploy_id" = "$before_deploy_id" ]; then
+              sleep 15
+              continue
+            fi
+
+            case "$deploy_status" in
+              normal)
+                ready=1
+                break
+                ;;
+              build_failed|deploy_failed)
+                echo "::error::Image deploy failed: $deploy_status"
+                exit 1
+                ;;
+              *)
+                sleep 15
+                ;;
+            esac
+          done
+
+          if [ "$ready" != "1" ]; then
+            echo "::error::Timed out waiting for image deploy to become normal"
+            exit 1
+          fi
+
+          tcb -e "$TCB_ENV_ID" cloudrun traffic \
+            -s sbh \
+            --stable 90 \
+            --canary 10
+
       - name: 上传代码包并提交灰度版本（初始 0% 流量）
+        if: ${{ false }}
         # 病根（run 31098998980）：跨境到腾讯云 COS 的预签名 URL 有效窗口短，2.6MB 在
         # ~10KB/s 下要传 ~270s，常在收尾时被 COS 以 400 拒（连接被重置/签名失效）。原实现
         # `curl --retry 4` 复用**同一个**预签名 URL，一旦它失效，4 次重试注定全部 400，日志里
@@ -229,6 +333,7 @@ jobs:
           jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
       - name: 等待新版本就绪 + 切 10% 灰度
+        if: ${{ false }}
         # 轮询部署记录，只有镜像构建、迁移、容器探针全部正常后才切流。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
