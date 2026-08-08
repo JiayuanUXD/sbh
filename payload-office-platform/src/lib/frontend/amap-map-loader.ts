@@ -21,6 +21,7 @@ export interface AMapNamespace {
 }
 
 export interface AMapMap {
+  resize(): void
   setCenter(center: unknown): void
   setFitView(): void
   destroy(): void

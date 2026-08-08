@@ -110,6 +110,9 @@ export default function AmapMapCanvas({
           map.setFitView()
         }
         setState('ready')
+        requestAnimationFrame(() => {
+          map.resize()
+        })
       })
       .catch(() => {
         setState('error')
@@ -176,7 +179,7 @@ export default function AmapMapCanvas({
       <div
         ref={containerRef}
         className="amap-map-canvas__container"
-        hidden={state !== 'ready'}
+        data-ready={state === 'ready' ? 'true' : 'false'}
       />
     </div>
   )

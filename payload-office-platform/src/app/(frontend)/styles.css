@@ -3924,6 +3924,15 @@ ol {
   height: 500px;
 }
 
+.amap-map-canvas__container[data-ready="false"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.amap-map-canvas__container[data-ready="true"] {
+  opacity: 1;
+}
+
 @media (max-width: 640px) {
   .amap-map-canvas {
     height: 320px;
