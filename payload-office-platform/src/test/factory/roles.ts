@@ -63,6 +63,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       'reports',
       'analytics',
       'pages',
+      'articles',
       'media',
       'forms',
       'form-submissions',

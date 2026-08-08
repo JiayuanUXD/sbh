@@ -63,6 +63,15 @@ describe('resolveAdminNavigation', () => {
     expect(visibleItemIds(navigation)).toEqual(['crm', 'leads'])
   })
 
+  it('articles 菜单编码加 Collection read 权限可显示资讯中心', () => {
+    const navigation = resolveVisibleNavigation({
+      menuCodes: ['articles'],
+      readableCollections: ['articles'],
+    })
+
+    expect(visibleItemIds(navigation)).toEqual(['content', 'articles'])
+  })
+
   it('缺少目标 Collection read 权限时隐藏叶子，即使菜单权限存在', () => {
     const navigation = resolveVisibleNavigation({
       menuCodes: ['listings'],
