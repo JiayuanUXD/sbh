@@ -178,7 +178,6 @@ jobs:
             --imageUrl "$IMAGE_URL" \
             --port 80 \
             --force \
-            --traffic \
             --json |
             sed -n '/^{/,$p'
 
@@ -216,24 +215,6 @@ jobs:
 
           if [ "$ready" != "1" ]; then
             echo "::error::Timed out waiting for image deploy to become normal"
-            exit 1
-          fi
-
-          traffic_ready=0
-          for attempt in $(seq 1 20); do
-            if tcb -e "$TCB_ENV_ID" cloudrun traffic \
-              -s sbh \
-              --stable 90 \
-              --canary 10; then
-              traffic_ready=1
-              break
-            fi
-            echo "::warning::CloudRun traffic not ready yet ($attempt/20); waiting for service state to settle"
-            sleep 15
-          done
-
-          if [ "$traffic_ready" != "1" ]; then
-            echo "::error::Timed out waiting for CloudRun traffic command to accept gray release"
             exit 1
           fi
 
@@ -458,8 +439,7 @@ jobs:
       - name: Promote 全量发布
         if: success()
         run: |
-          tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic promote -s sbh
-          echo "✅ 全量发布完成"
+          echo "Image deploy path is already active after CloudRun deploy; no traffic promote needed."
 
       - name: 全量发布后验证
         if: success()
