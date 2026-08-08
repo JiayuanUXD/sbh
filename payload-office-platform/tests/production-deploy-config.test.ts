@@ -99,6 +99,8 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('--traffic')
     expect(workflow).toContain('--stable 90')
     expect(workflow).toContain('--canary 10')
+    expect(workflow).toContain('traffic_ready=0')
+    expect(workflow).toContain('CloudRun traffic not ready yet')
     expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
   })
 

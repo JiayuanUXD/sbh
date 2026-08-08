@@ -219,10 +219,23 @@ jobs:
             exit 1
           fi
 
-          tcb -e "$TCB_ENV_ID" cloudrun traffic \
-            -s sbh \
-            --stable 90 \
-            --canary 10
+          traffic_ready=0
+          for attempt in $(seq 1 20); do
+            if tcb -e "$TCB_ENV_ID" cloudrun traffic \
+              -s sbh \
+              --stable 90 \
+              --canary 10; then
+              traffic_ready=1
+              break
+            fi
+            echo "::warning::CloudRun traffic not ready yet ($attempt/20); waiting for service state to settle"
+            sleep 15
+          done
+
+          if [ "$traffic_ready" != "1" ]; then
+            echo "::error::Timed out waiting for CloudRun traffic command to accept gray release"
+            exit 1
+          fi
 
       - name: 上传代码包并提交灰度版本（初始 0% 流量）
         if: ${{ false }}
