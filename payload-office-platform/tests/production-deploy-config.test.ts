@@ -51,14 +51,16 @@ describe('生产部署配置', () => {
 
     expect(pruneCache).toBeGreaterThan(build)
     expect(pruneCache).toBeLessThan(copyNext)
+    expect(dockerfile).toContain("find .next -type f -name '*.map' -delete")
   })
 
-  it('Docker runner 只复制生产依赖，避免把完整 devDependencies 打进镜像', () => {
+  it('Docker runner 只复制瘦身后的生产依赖，避免把完整 devDependencies 打进镜像', () => {
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const runner = dockerfile.slice(dockerfile.indexOf('FROM node:22-slim AS runner'))
 
     expect(dockerfile).toContain('FROM node:22-slim AS prod-deps')
     expect(dockerfile).toContain('RUN pnpm install --prod --frozen-lockfile')
+    expect(dockerfile).toContain("find node_modules -type f \\( -name '*.map'")
     expect(runner).toContain('COPY --from=prod-deps /app/node_modules ./node_modules')
     expect(runner).not.toContain('COPY --from=deps /app/node_modules ./node_modules')
   })

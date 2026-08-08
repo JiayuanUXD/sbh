@@ -14,6 +14,9 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --prod --frozen-lockfile
+# Runtime does not need package source maps, type sources, docs, or test fixtures.
+RUN find node_modules -type f \( -name '*.map' -o -name '*.md' -o -name '*.markdown' -o -name '*.ts' -o -name '*.tsx' -o -name '*.d.ts' \) -delete \
+  && find node_modules -type d \( -name test -o -name tests -o -name __tests__ -o -name docs -o -name doc -o -name example -o -name examples -o -name coverage \) -prune -exec rm -rf '{}' +
 
 # ---------- builder ----------
 FROM node:22-slim AS builder
@@ -39,7 +42,7 @@ RUN mkdir -p public
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
 # Next build cache only speeds local/incremental builds. It is not needed at runtime and can
 # make the pushed CloudRun image enormous.
-RUN rm -rf .next/cache
+RUN rm -rf .next/cache && find .next -type f -name '*.map' -delete
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
