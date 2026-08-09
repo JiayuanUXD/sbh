@@ -23,10 +23,24 @@ type FieldProps = {
   children: React.ReactNode
 }
 
+export function mergeFieldAriaDescribedBy(...ids: Array<string | undefined>): string | undefined {
+  const uniqueIds = [...new Set(ids.flatMap((id) => id?.split(/\s+/).filter(Boolean) ?? []))]
+  return uniqueIds.length > 0 ? uniqueIds.join(' ') : undefined
+}
+
+function getAriaDescribedBy(props: unknown): string | undefined {
+  if (typeof props !== 'object' || props === null || !('aria-describedby' in props)) return undefined
+  const describedBy = props['aria-describedby']
+  return typeof describedBy === 'string' ? describedBy : undefined
+}
+
 export function Field({ label, id, error, hint, required, className, children }: FieldProps) {
   const hintId = hint ? `${id}-hint` : undefined
   const errorId = error ? `${id}-error` : undefined
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
+  const childDescribedBy = React.isValidElement(children)
+    ? getAriaDescribedBy(children.props)
+    : undefined
+  const describedBy = mergeFieldAriaDescribedBy(childDescribedBy, hintId, errorId)
   return (
     <div className={['field', className ?? ''].filter(Boolean).join(' ')}>
       <label htmlFor={id} className="field__label">

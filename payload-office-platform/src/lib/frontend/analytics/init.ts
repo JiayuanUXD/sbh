@@ -12,11 +12,27 @@
  */
 
 import { useEffect } from 'react'
-import { createDataLayerAdapter, createConsoleAdapter, createNoopAdapter } from './adapter'
+import {
+  createConsoleAdapter,
+  createDataLayerAdapter,
+  createNoopAdapter,
+  type AnalyticsAdapter,
+} from './adapter'
 import { createCollector, type Collector } from './collector'
 import { initWebVitals } from './web-vitals'
 
 let collectorSingleton: Collector | null = null
+
+/** 创建使用统一曝光去重配置的 collector，供客户端单例与测试边界复用。 */
+export function createDefaultCollector(
+  adapter: AnalyticsAdapter,
+  now: () => number = () => Date.now(),
+): Collector {
+  return createCollector(adapter, {
+    now,
+    dedupe: { windows: { inquiry_open: 2000, landing_view: 2000 } },
+  })
+}
 
 /** 获取单例 collector（client 优先；SSR 返回 NoopAdapter 包装的实例，事件安全丢弃） */
 export function getCollector(): Collector {
@@ -28,10 +44,7 @@ export function getCollector(): Collector {
         ? createDataLayerAdapter()
         : createConsoleAdapter()
   adapter.init?.()
-  collectorSingleton = createCollector(adapter, {
-    // inquiry_open 为曝光类，2s 内同属性去重防抖
-    dedupe: { windows: { inquiry_open: 2000 } },
-  })
+  collectorSingleton = createDefaultCollector(adapter)
   return collectorSingleton
 }
 

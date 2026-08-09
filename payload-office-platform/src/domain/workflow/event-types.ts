@@ -62,6 +62,11 @@ export const CORRECTION_EVENT_TYPES = [
   'correction.created',
 ] as const
 
+/** 公开房源投放申请事件（/publish） */
+export const SUPPLY_SUBMISSION_EVENT_TYPES = [
+  'supply-submission.created',
+] as const
+
 /** 全部领域事件类型 */
 export const EVENT_TYPES = [
   ...LISTING_EVENT_TYPES,
@@ -71,6 +76,7 @@ export const EVENT_TYPES = [
   ...FOLLOWUP_EVENT_TYPES,
   ...TASK_EVENT_TYPES,
   ...CORRECTION_EVENT_TYPES,
+  ...SUPPLY_SUBMISSION_EVENT_TYPES,
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
@@ -97,6 +103,7 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   'task.completed': '待办已完成',
   'task.cancelled': '待办已取消',
   'correction.created': '纠错已提交',
+  'supply-submission.created': '投放申请已创建',
 }
 
 /** 是否为已注册的领域事件类型 */
@@ -125,6 +132,7 @@ export const AGGREGATE_TYPES = [
   'sla',
   'task',
   'correction',
+  'supply-submission',
 ] as const
 
 export type AggregateType = (typeof AGGREGATE_TYPES)[number]

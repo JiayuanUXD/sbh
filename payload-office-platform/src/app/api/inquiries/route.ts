@@ -37,10 +37,11 @@ import {
   type InquiryRequest,
 } from '@/domain/inquiry'
 import { mapGlobalToSchedule } from '@/domain/advisor-availability'
-import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
+import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { ratePruneRef } from './rate-limit-state'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -53,12 +54,6 @@ const MAX_BODY_BYTES = 16 * 1024
  * 限流键使用 hashIpForLog(ip, dailySalt) 派生，避免原始 IP 进入存储或日志。
  * 限流配置（windowMs/max/maxKeys/pruneIntervalMs/failOpen）见 @/lib/rate-limit-config。
  */
-
-/**
- * 跨请求共享的 TTL 清理时间戳（模块级）。
- * CloudRun 多实例各自维护清理周期，但 inquiry_rate_limit 表共享，任一实例清理都生效。
- */
-const ratePruneRef: PruneTimestampRef = { value: 0 }
 
 /** 提取客户端 IP（CloudRun / 反代场景取首跳） */
 function clientIp(req: Request): string {
@@ -355,7 +350,9 @@ export async function POST(req: Request): Promise<Response> {
     await payload.create({
       collection: 'leads',
       data: {
-        name: inquiry.name,
+        // entrust 渠道无姓名：传 undefined，交给 fillEntrustLeadName 兜底。
+        // Payload 的静态生成类型无法表示 beforeValidate 会补齐 required 字段。
+        name: (inquiry.name || undefined) as string,
         phone: inquiry.phone,
         company: inquiry.company ?? undefined,
         status: 'new',
@@ -438,19 +435,6 @@ export function GET(): Response {
       headers: { Allow: 'POST' },
     },
   )
-}
-
-/**
- * 测试专用：重置模块级限流清理时间戳。
- *
- * OPT-017 后限流改为 PG 分布式（runDistributedRateLimit + inquiry_rate_limit 表），
- * 限流配额本身由 PG 表持有，测试间通过 mock createPgRateLimitDeps 注入内存实现重置；
- * 但跨请求共享的 ratePruneRef 仍是模块级引用，需此函数在 beforeEach 重置为 0，
- * 让首个请求的 TTL 清理逻辑按"从未清理过"运行，避免上一测试的清理时间戳影响下一测试。
- * 生产代码不调用此函数。
- */
-export function __resetRateStoreForTests(): void {
-  ratePruneRef.value = 0
 }
 
 export function PUT(): Response {

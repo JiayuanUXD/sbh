@@ -42,6 +42,7 @@ import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { InformationCorrections } from './collections/InformationCorrections'
+import { SupplySubmissions } from './collections/SupplySubmissions'
 import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
@@ -70,6 +71,10 @@ import {
 } from './domain/forms/submission-status'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
+import {
+  SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+  supplySubmissionNotificationTask,
+} from './domain/supply-submission/submission-notify'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -89,6 +94,31 @@ if (!metricRegistry.has('listings.total')) {
 }
 
 export default buildConfig({
+  // Dedicated CloudRun / Next container: Payload's persistent Jobs Queue is
+  // safe to auto-run here (unlike request-only serverless runtimes).
+  jobs: {
+    access: {
+      cancel: () => false,
+      queue: () => false,
+      // Keep the public REST/GraphQL runner closed. Payload autoRun uses its
+      // trusted Local API path (which may override access); explicit internal
+      // calls with access enabled are also limited to Local API requests.
+      run: ({ req }) => req.payloadAPI === 'local',
+    },
+    tasks: [supplySubmissionNotificationTask],
+    shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
+    autoRun: [
+      {
+        // 30 秒一次：投放申请是低频事件（日均个位数），而每个 CloudRun 实例都会
+        // 各自轮询同一个共享生产库。5 秒一次是纯粹的常态负载浪费。
+        cron: '*/30 * * * * *',
+        queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+        disableScheduling: true,
+        limit: 10,
+        silent: true,
+      },
+    ],
+  },
   // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（db 连接成功后），
   // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
   // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload
@@ -174,6 +204,7 @@ export default buildConfig({
     ListingReviews,
     ListingReports,
     InformationCorrections,
+    SupplySubmissions,
     DomainEvents,
     AuditLogs,
     Tasks,

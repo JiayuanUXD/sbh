@@ -78,7 +78,32 @@ const getCachedSitemapEntries = unstable_cache(
 )
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const { listings, buildings, pages } = await getCachedSitemapEntries()
+  const staticUrls: MetadataRoute.Sitemap = [
+    { url: `${base}/`, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
+    { url: `${base}/listings`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    {
+      url: `${base}/entrust`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${base}/publish`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+  ]
+
+  let entities: Awaited<ReturnType<typeof getCachedSitemapEntries>>
+  try {
+    entities = await getCachedSitemapEntries()
+  } catch {
+    console.error('[sitemap] dynamic_entries_unavailable')
+    return staticUrls
+  }
+
+  const { listings, buildings, pages } = entities
 
   const lUrls = listings.map((d) => ({
     url: `${base}/listings/${d.slug}`,
@@ -106,8 +131,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
 
   return [
-    { url: `${base}/`, lastModified: new Date(), changeFrequency: 'daily', priority: 1 },
-    { url: `${base}/listings`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.9 },
+    ...staticUrls,
     ...lUrls,
     ...bUrls,
     ...pUrls,

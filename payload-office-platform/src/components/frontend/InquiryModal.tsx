@@ -35,7 +35,7 @@ import type { ServiceSchedule } from '@/domain/advisor-availability'
  *   - 分析事件：inquiry_open / inquiry_submit / inquiry_success / inquiry_error，
  *     仅记录枚举与上下文，不记录姓名/手机号/留言正文。
  */
-type PageType = 'home' | 'search' | 'listing' | 'building' | 'content'
+type PageType = 'home' | 'search' | 'listing' | 'building' | 'content' | 'entrust'
 type TargetType = 'listing' | 'building' | 'none'
 
 type Props = {

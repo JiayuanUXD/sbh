@@ -360,7 +360,8 @@ describe('articles menu role migration', () => {
     expect(update).toEqual({
       id: 2,
       code: 'OPS',
-      menuPermissions: BUILTIN_ROLES.OPS.menuPermissions,
+      // This historical migration predates the later additive supply-submission migration.
+      menuPermissions: TARGET_OPS_MENU_PERMISSIONS,
     })
   })
 

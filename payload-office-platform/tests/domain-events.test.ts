@@ -130,6 +130,7 @@ describe('event-types — 枚举与守卫', () => {
       'sla',
       'task',
       'correction',
+      'supply-submission',
     ])
   })
 })
@@ -797,6 +798,27 @@ describe('protectDomainEvent — Collection beforeChange hook', () => {
       originalDoc,
     )
     expect(result.processedAt).toBe('2026-07-01T00:05:00.000Z')
+    expect(result.attemptCount).toBe(1)
+  })
+
+  it('update：Payload 重建等值 JSON payload 时仍允许处理状态更新', async () => {
+    const originalDoc = {
+      eventId: 'evt_001',
+      eventType: 'listing.published',
+      aggregateType: 'listing',
+      aggregateId: 'listing-1',
+      aggregateVersion: 1,
+      payload: { nested: { actorId: 'user-1' } },
+      occurredAt: '2026-07-01T00:00:00.000Z',
+    }
+    const result = await update(
+      {
+        ...originalDoc,
+        payload: { nested: { actorId: 'user-1' } },
+        attemptCount: 1,
+      },
+      originalDoc,
+    )
     expect(result.attemptCount).toBe(1)
   })
 })

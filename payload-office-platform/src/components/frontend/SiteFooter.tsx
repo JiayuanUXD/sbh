@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
 
 /**
  * 公开站点页脚
@@ -11,31 +12,6 @@ import React from 'react'
  *   - 链接对齐既有路由（/news 由 T6 落地，此前为预留入口）；
  *   - 语义化 <footer> 内分栏，移动端折叠为单列。
  */
-type FooterColumn = Readonly<{
-  title: string
-  links: ReadonlyArray<Readonly<{ href: string; label: string }>>
-}>
-
-const COLUMNS: readonly FooterColumn[] = [
-  {
-    title: '浏览',
-    links: [
-      { href: '/listings', label: '在租房源' },
-      { href: '/buildings', label: '找写字楼' },
-      { href: '/news', label: '资讯中心' },
-    ],
-  },
-  {
-    title: '按类型',
-    links: [
-      { href: '/listings?type=traditional-office', label: '传统办公' },
-      { href: '/listings?type=serviced-office', label: '服务式办公' },
-      { href: '/listings?type=coworking', label: '联合办公' },
-      { href: '/listings?type=full-floor', label: '整层办公' },
-    ],
-  },
-]
-
 export default function SiteFooter() {
   const year = new Date().getFullYear()
   return (
@@ -48,7 +24,7 @@ export default function SiteFooter() {
           </p>
         </div>
         <nav className="site-footer__nav" aria-label="页脚导航">
-          {COLUMNS.map((col) => (
+          {FOOTER_COLUMNS.map((col) => (
             <div key={col.title} className="site-footer__col">
               <h3 className="site-footer__col-title">{col.title}</h3>
               <ul className="site-footer__links" role="list">

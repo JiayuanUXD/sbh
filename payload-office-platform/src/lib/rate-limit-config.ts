@@ -51,3 +51,18 @@ export const ROUTE_RATE_LIMIT_CONFIG: RateLimitConfig = {
   failOpen: true,
 }
 
+/**
+ * 投放房源端点限流配置：每 IP 每分钟 3 次。
+ *
+ * 业主提交频率天然很低（一处房源提交一次），配额与纠错端点一致。
+ * 与 INQUIRY_RATE_LIMIT_CONFIG 共享 inquiry_rate_limit 表，但限流键加
+ * 'supply:' 前缀（见 api/supply-submissions/route.ts），配额互不影响。
+ */
+export const SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 3,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: true,
+}
+

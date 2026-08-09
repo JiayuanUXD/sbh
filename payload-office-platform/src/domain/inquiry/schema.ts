@@ -5,7 +5,7 @@
  *
  * 守护不变量：
  *   - 输入视为 unknown，schema 白名单收窄后才落库
- *   - 必填：name (1-50), phone (中国大陆 11 位), consent.accepted=true, consent.policyVersion, source.pageType, source.path, requestId
+ *   - 必填：phone (中国大陆 11 位), consent.accepted=true, consent.policyVersion, source.pageType, source.path, requestId；name (1-50) 除 pageType='entrust' 外必填
  *   - 选填：company (≤100), message (≤1000), listingSlug, buildingSlug, demand.{district,budget,area,moveInTime}, source.campaign
  *   - target_type 由 listingSlug / buildingSlug 派生，至少需要一个或 targetType=none
  *   - source.path 只接受同源 pathname；query/hash 被剥离，绝对 URL、协议相对 URL 与控制字符被拒绝
@@ -19,7 +19,7 @@ import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { sanitizeCampaign, type CampaignAttribution } from './campaign'
 
 /** 入口页面类型（与 Leads Collection INQUIRY_SOURCE_PAGE_TYPES 对齐） */
-export const SOURCE_PAGE_TYPES = ['home', 'search', 'listing', 'building', 'content'] as const
+export const SOURCE_PAGE_TYPES = ['home', 'search', 'listing', 'building', 'content', 'entrust'] as const
 export type SourcePageType = (typeof SOURCE_PAGE_TYPES)[number]
 
 /** 详情页询盘入口区块；只保留可分析的产品枚举。 */
@@ -156,8 +156,14 @@ export function validateInquiry(input: unknown): ValidationResult {
   const errors: string[] = []
 
   // ----- 必填字段 -----
+  // 委托找房落地页（source.pageType='entrust'）首屏只采集手机号，没有姓名输入框；
+  // 该渠道允许省略姓名，落库时由 Leads 的 fillEntrustLeadName hook 兜底填充。
+  // 不放宽 Leads.name 的 required，后台视图依赖它非空。
+  const entrustChannel =
+    isObject(input.source) && trimString(input.source.pageType) === 'entrust'
+
   const name = trimString(input.name)
-  if (!name) errors.push('name_required')
+  if (!name && !entrustChannel) errors.push('name_required')
   else if (name.length > LIMITS.NAME_MAX) errors.push('name_too_long')
 
   const phoneRaw = trimString(input.phone)

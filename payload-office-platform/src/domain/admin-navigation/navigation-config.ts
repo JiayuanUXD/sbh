@@ -58,6 +58,12 @@ export const ADMIN_NAV_GROUPS = [
   group('supply', '房源运营', 'building', [
     leaf('listings', '房源列表', '/admin/collections/listings', ['listings']),
     leaf('buildings', '楼盘库', '/admin/collections/buildings', ['buildings']),
+    leaf('supply-submissions', '房源投放申请', '/admin/collections/supply-submissions', [
+      'supply-submissions',
+    ], {
+      collectionSlug: 'supply-submissions',
+      requiredOperationCode: 'supply_submission:read',
+    }),
     subgroup('supply-settings', '基础配置', [
       leaf('locations', '行政区域', '/admin/collections/locations', ['locations']),
       leaf('business-areas', '商圈管理', '/admin/collections/business-area-extensions', [

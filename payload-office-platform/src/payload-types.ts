@@ -90,6 +90,7 @@ export interface Config {
     'listing-reviews': ListingReview;
     'listing-reports': ListingReport;
     'information-corrections': InformationCorrection;
+    'supply-submissions': SupplySubmission;
     'domain-events': DomainEvent;
     'audit-logs': AuditLog;
     tasks: Task;
@@ -130,6 +131,7 @@ export interface Config {
     'listing-reviews': ListingReviewsSelect<false> | ListingReviewsSelect<true>;
     'listing-reports': ListingReportsSelect<false> | ListingReportsSelect<true>;
     'information-corrections': InformationCorrectionsSelect<false> | InformationCorrectionsSelect<true>;
+    'supply-submissions': SupplySubmissionsSelect<false> | SupplySubmissionsSelect<true>;
     'domain-events': DomainEventsSelect<false> | DomainEventsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     tasks: TasksSelect<false> | TasksSelect<true>;
@@ -163,6 +165,7 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -991,7 +994,7 @@ export interface Lead {
   /**
    * 前台入口页面类型：home / search / listing / building / content。
    */
-  sourcePageType?: ('home' | 'search' | 'listing' | 'building' | 'content') | null;
+  sourcePageType?: ('home' | 'search' | 'listing' | 'building' | 'content' | 'entrust') | null;
   /**
    * 前台入口相对路径（白名单化，不含查询参数中的个人信息）。
    */
@@ -1474,6 +1477,72 @@ export interface InformationCorrection {
   createdAt: string;
 }
 /**
+ * 业主/物业/中介从 /publish 提交的房源投放申请。提交事实不可改、不可删；status 由后台流转，可转为房源草稿。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-submissions".
+ */
+export interface SupplySubmission {
+  id: number;
+  buildingName: string;
+  /**
+   * 楼号/单元号/房间号。
+   */
+  address: string;
+  areaSqm: number;
+  /**
+   * 业主愿意悬赏的佣金月数，成交后支付。有悬赏的申请优先处理。
+   */
+  commissionMonths: 'none' | '0.5' | '1' | '1.5' | '2';
+  rentAmount?: number | null;
+  rentUnit?: ('rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month' | 'rmb-total') | null;
+  contactPhone: string;
+  status: 'pending' | 'contacted' | 'converted' | 'rejected' | 'duplicate';
+  assignee?: (number | null) | User;
+  contactName?: string | null;
+  companyName?: string | null;
+  submitterRole?: ('owner' | 'property' | 'agency' | 'operator') | null;
+  leaseMode?: ('whole-floor' | 'office' | 'seat' | 'sale') | null;
+  fitoutStatus?: ('bare' | 'simple' | 'full' | 'furnished') | null;
+  availableFrom?: string | null;
+  city?: (number | null) | Location;
+  district?: (number | null) | Location;
+  description?: string | null;
+  reviewNote?: string | null;
+  matchedBuilding?: (number | null) | Building;
+  convertedListing?: (number | null) | Listing;
+  /**
+   * 状态流转到终态时自动写入。
+   */
+  handledAt?: string | null;
+  requestId: string;
+  /**
+   * requestId + 标准化手机号 + 楼盘名 的哈希。唯一约束防并发重复。
+   */
+  idempotencyKey: string;
+  /**
+   * 同源 pathname，不含查询参数。
+   */
+  sourcePath?: string | null;
+  sourceUrl?: string | null;
+  consentAccepted?: boolean | null;
+  consentPolicyVersion?: string | null;
+  /**
+   * 反垃圾用，不存原始 IP。
+   */
+  submitterIpHash?: string | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * 事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1508,11 +1577,12 @@ export interface DomainEvent {
     | 'sla.breached'
     | 'task.completed'
     | 'task.cancelled'
-    | 'correction.created';
+    | 'correction.created'
+    | 'supply-submission.created';
   /**
    * 聚合根类型（listing / report / lead / followup / sla）。
    */
-  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction';
+  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction' | 'supply-submission';
   /**
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
@@ -1864,7 +1934,14 @@ export interface Notification {
   /**
    * 通知类型枚举，由触发事件派生。
    */
-  type: 'review-rejected' | 'lead-assigned' | 'lead-transferred' | 'sla-breached' | 'task-completed' | 'task-cancelled';
+  type:
+    | 'review-rejected'
+    | 'lead-assigned'
+    | 'lead-transferred'
+    | 'sla-breached'
+    | 'task-completed'
+    | 'task-cancelled'
+    | 'supply-submission-created';
   /**
    * 通知标题（简洁中文文案）。
    */
@@ -1876,7 +1953,7 @@ export interface Notification {
   /**
    * 来源业务对象类型（listing-review / lead / followup / task）。
    */
-  sourceType: 'listing-review' | 'lead' | 'followup' | 'task';
+  sourceType: 'listing-review' | 'lead' | 'followup' | 'task' | 'supply-submission';
   /**
    * 来源业务对象 ID，用于点击通知跳转到详情页。
    */
@@ -2254,7 +2331,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'createCollectionExport' | 'createCollectionImport';
+        taskSlug: 'inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport';
         taskID: string;
         input?:
           | {
@@ -2287,7 +2364,8 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'createCollectionExport' | 'createCollectionImport') | null;
+  taskSlug?:
+    ('inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -2392,6 +2470,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'information-corrections';
         value: number | InformationCorrection;
+      } | null)
+    | ({
+        relationTo: 'supply-submissions';
+        value: number | SupplySubmission;
       } | null)
     | ({
         relationTo: 'domain-events';
@@ -3134,6 +3216,45 @@ export interface InformationCorrectionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-submissions_select".
+ */
+export interface SupplySubmissionsSelect<T extends boolean = true> {
+  buildingName?: T;
+  address?: T;
+  areaSqm?: T;
+  commissionMonths?: T;
+  rentAmount?: T;
+  rentUnit?: T;
+  contactPhone?: T;
+  status?: T;
+  assignee?: T;
+  contactName?: T;
+  companyName?: T;
+  submitterRole?: T;
+  leaseMode?: T;
+  fitoutStatus?: T;
+  availableFrom?: T;
+  city?: T;
+  district?: T;
+  description?: T;
+  reviewNote?: T;
+  matchedBuilding?: T;
+  convertedListing?: T;
+  handledAt?: T;
+  requestId?: T;
+  idempotencyKey?: T;
+  sourcePath?: T;
+  sourceUrl?: T;
+  consentAccepted?: T;
+  consentPolicyVersion?: T;
+  submitterIpHash?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domain-events_select".
  */
 export interface DomainEventsSelect<T extends boolean = true> {
@@ -3629,6 +3750,18 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskNotify-supply-submission-created".
+ */
+export interface TaskNotifySupplySubmissionCreated {
+  input: {
+    eventId: string;
+  };
+  output: {
+    delivered: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -3660,6 +3793,7 @@ export interface TaskCreateCollectionExport {
       | 'listing-reviews'
       | 'listing-reports'
       | 'information-corrections'
+      | 'supply-submissions'
       | 'domain-events'
       | 'audit-logs'
       | 'tasks'
