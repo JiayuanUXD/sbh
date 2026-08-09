@@ -112,7 +112,9 @@ describe('生产部署配置', () => {
     // 拆开后 push 可独立重试，registry 已收下的 blob 会被跳过，重试是增量推进的。
     // 断言钉步骤名与实际命令行，不钉注释里也会出现的裸字串。
     expect(workflow).toContain('- name: Build Docker image（只构建，不推送）')
-    expect(workflow).toContain('- name: Push image to Tencent Container Registry（跨境，带超时重试）')
+    expect(workflow).toContain(
+      '- name: Push image to Tencent Container Registry（跨境，超时重试 + 服务端校验）',
+    )
     expect(workflow).toContain('--file payload-office-platform/Dockerfile')
     expect(workflow).not.toContain('docker/build-push-action')
 
@@ -121,7 +123,7 @@ describe('生产部署配置', () => {
 
     // 重试必须是有限轮次且失败可见，不能静默放过。
     expect(workflow).toContain('for attempt in 1 2 3 4 5')
-    expect(workflow).toContain('::error::push $ref 5 次全部失败')
+    expect(workflow).toContain('::error::push $ref 5 次全部失败，且 registry 查无该 tag')
 
     // cache-to gha mode=max 在 31292071284 里花了 390 秒导出 deps/builder 全部中间层，
     // 吃掉五分之一预算，而 build 从零也只要 4 分钟——净负担，别加回来。
@@ -131,6 +133,27 @@ describe('生产部署配置', () => {
     // setup-buildx 会把默认 builder 换成 docker-container 驱动，产物不落本地镜像库，
     // 拆开 push 后还得多一次 --load 导出。裸 docker build 走 daemon 内置 buildkit。
     expect(workflow).not.toContain('docker/setup-buildx-action')
+  })
+
+  it('push 结果以 registry 服务端状态为准，失败时输出诊断', () => {
+    // run 31295202647：4 轮重试每轮 15 个 layer 全是 Layer already exists（blob 早已收下），
+    // 之后无输出无报错直到 timeout —— 卡在 manifest/config 写入，不是数据传输。
+    // 客户端超时 ≠ 服务端没写成功，所以必须问 registry 而不是信 docker push 的退出码。
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    // 鉴权入口来自 registry 的 401 challenge，不是猜的。
+    expect(workflow).toContain('https://ccr.ccs.tencentyun.com/service/token?service=token-service')
+
+    // 服务端校验：HEAD manifests 拿 Docker-Content-Digest，命中即判定 push 成功。
+    expect(workflow).toContain('docker-content-digest:')
+    expect(workflow).toContain('判定成功')
+
+    // 失败时必须打印 tag 数量（配额触顶看这里）与目标 tag 的 manifest 响应。
+    expect(workflow).toContain('/tags/list')
+    expect(workflow).toContain('count: (.tags | length)')
+
+    // :latest 推不上去不该阻断发布——CloudRun 部署用的是 SHA tag。
+    expect(workflow).toContain('不阻断发布')
   })
 
   it('运行时代码依赖的包不在 devDependencies（prod-deps 镜像装不到）', () => {

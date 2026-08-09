@@ -172,33 +172,99 @@ jobs:
           # 镜像体积直接决定跨境 push 时长，记进日志便于事后归因。
           docker image inspect "$IMAGE" --format 'Image size: {{.Size}} bytes'
 
-      - name: Push image to Tencent Container Registry（跨境，带超时重试）
+      - name: Push image to Tencent Container Registry（跨境，超时重试 + 服务端校验）
         timeout-minutes: 25
         env:
           IMAGE: ${{ steps.image.outputs.image }}
           LATEST: ${{ steps.image.outputs.repo }}:latest
+          TAG: ${{ steps.image.outputs.tag }}
+          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+          REPO_PATH: tcb-100000818451-xfjy/ca-gevmmbac_sbh
         run: |
           set -euo pipefail
-          # 单次 push 最多 7 分钟：停滞的跨境连接不会骑满整个步骤预算，超时即掐断换新连接。
-          # 重试是增量的——registry 已收下的 blob 会在下次 push 时被跳过，每轮都在推进。
-          push_with_retry() {
-            local ref="$1"
-            local attempt
+
+          # run 31295202647 的实测：4 轮重试，每轮 15 个 layer 全部 "Layer already exists"
+          # （blob 第 1 轮就全被 registry 收下了），然后无输出、无报错，直到 timeout 静默掐断。
+          # 也就是说卡住的不是数据传输，是层推完之后那一小步（config blob / manifest 写入）。
+          # 由此推翻了"跨境带宽不够"的判断——数据早就传完了。
+          #
+          # 关键推论：docker push 客户端超时 ≠ 服务端没写成功。写入很可能已经生效、只是响应
+          # 没回来。所以不信客户端退出码，直接问 registry 这个 tag 在不在（HEAD manifests）。
+
+          registry_token() {
+            curl -sS --max-time 30 -u "$TCR_USERNAME:$TCR_PASSWORD" \
+              "https://ccr.ccs.tencentyun.com/service/token?service=token-service&scope=repository:${REPO_PATH}:pull" \
+              | jq -r '.token // empty'
+          }
+
+          # 命中则回显 Docker-Content-Digest，未命中则为空。
+          manifest_digest() {
+            local tag="$1" token
+            token=$(registry_token) || return 0
+            [ -n "$token" ] || return 0
+            curl -sS --max-time 30 -I \
+              -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+              -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+              "https://ccr.ccs.tencentyun.com/v2/${REPO_PATH}/manifests/${tag}" 2>/dev/null \
+              | tr -d '\r' \
+              | awk 'tolower($1)=="docker-content-digest:" {print $2}'
+          }
+
+          # push 全败时把 registry 的实际状态打出来，下次失败自带结论，不用手查。
+          diagnose() {
+            echo "===== registry 诊断 ====="
+            local token
+            token=$(registry_token) || true
+            if [ -z "${token:-}" ]; then
+              echo "::error::拿不到 registry token —— 凭据或网络问题，后续诊断无法进行"
+              return 0
+            fi
+            echo "--- tag 数量与列表（配额触顶的话这里看得出来）---"
+            curl -sS --max-time 60 -H "Authorization: Bearer $token" \
+              "https://ccr.ccs.tencentyun.com/v2/${REPO_PATH}/tags/list" \
+              | jq '{count: (.tags | length), tags: .tags}' || echo "tags/list 调用失败"
+            echo "--- 目标 tag ($TAG) 的 manifest HTTP 响应 ---"
+            curl -sS --max-time 60 -I \
+              -H "Authorization: Bearer $token" \
+              -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' \
+              "https://ccr.ccs.tencentyun.com/v2/${REPO_PATH}/manifests/${TAG}" || echo "manifest HEAD 调用失败"
+          }
+
+          # 单次 push 最多 7 分钟：停滞的连接不会骑满整个步骤预算，超时即掐断换新连接。
+          push_with_verify() {
+            local ref="$1" tag="$2" attempt digest
             for attempt in 1 2 3 4 5; do
               echo "== push $ref 尝试 $attempt/5 =="
               if timeout 420 docker push "$ref"; then
                 echo "== push $ref 成功（尝试 $attempt）=="
                 return 0
               fi
-              echo "::warning::push $ref 尝试 $attempt 失败/超时，10s 后重试（已传 blob 会被跳过）"
+              # 客户端超时后先问服务端：tag 在就是成功，不必再重试。
+              digest=$(manifest_digest "$tag") || true
+              if [ -n "${digest:-}" ]; then
+                echo "== push $ref 客户端超时，但 registry 已有该 tag（$digest），判定成功 =="
+                return 0
+              fi
+              echo "::warning::push $ref 尝试 $attempt 失败，且 registry 查无该 tag，10s 后重试"
               sleep 10
             done
-            echo "::error::push $ref 5 次全部失败"
+            echo "::error::push $ref 5 次全部失败，且 registry 查无该 tag"
             return 1
           }
-          push_with_retry "$IMAGE"
-          # :latest 与上面同一份镜像，blob 已在 registry，这次只推 manifest，秒级完成。
-          push_with_retry "$LATEST"
+
+          # tag 用 commit SHA（${GITHUB_SHA::12}），同名 tag 只可能来自同一 commit 的同一份
+          # 构建，所以"registry 上存在该 tag"足以判定内容正确，不需要再比对 digest。
+          if ! push_with_verify "$IMAGE" "$TAG"; then
+            diagnose
+            exit 1
+          fi
+
+          # :latest 只是给人看的，CloudRun 部署用的是上面的 SHA tag。推不上去不该阻断发布。
+          if ! push_with_verify "$LATEST" latest; then
+            echo "::warning:::latest 推送失败，不阻断发布（部署用的是 $IMAGE）"
+          fi
 
       - name: Deploy image to CloudBase CloudRun
         env:
