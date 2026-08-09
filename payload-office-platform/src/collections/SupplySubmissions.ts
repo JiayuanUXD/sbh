@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { createCollectionAccess } from '@/domain/auth/access'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { PRICE_UNITS } from '@/domain/inquiry/schema'
+import { notifySupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
 import { protectSupplySubmission } from '@/domain/supply-submission/submission-protect'
 import {
   COMMISSION_MONTHS,
@@ -74,6 +75,7 @@ export const SupplySubmissions: CollectionConfig = {
   },
   hooks: {
     beforeChange: [protectSupplySubmission],
+    afterChange: [notifySupplySubmissionCreated],
   },
   fields: [
     {
