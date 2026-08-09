@@ -40,6 +40,14 @@ function relationId(value: unknown): string | number | null {
   return typeof id === 'string' || typeof id === 'number' ? id : null
 }
 
+function hasSupplySubmissionReadPermission(value: unknown): boolean {
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    return false
+  }
+
+  return value.includes('supply_submission:read') || value.includes('*')
+}
+
 /**
  * 新投放申请站内通知。
  *
@@ -59,22 +67,14 @@ export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
     const submission = doc as SubmissionNotificationDoc
     const roles = await req.payload.find({
       collection: 'roles',
-      where: {
-        and: [
-          { status: { equals: 'active' } },
-          {
-            or: [
-              { operationPermissions: { contains: 'supply_submission:read' } },
-              { operationPermissions: { contains: '*' } },
-            ],
-          },
-        ],
-      },
+      where: { status: { equals: 'active' } },
       limit: QUERY_LIMIT,
       depth: 0,
       overrideAccess: true,
     })
-    const roleIds = roles.docs.map((role) => role.id)
+    const roleIds = roles.docs
+      .filter((role) => hasSupplySubmissionReadPermission(role.operationPermissions))
+      .map((role) => role.id)
     if (roleIds.length === 0) return doc
 
     const users = await req.payload.find({

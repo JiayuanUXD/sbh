@@ -31,7 +31,7 @@ function submissionDoc(overrides: Record<string, unknown> = {}) {
 }
 
 function createHarness(options?: {
-  roles?: Array<{ id: Identifier }>
+  roles?: Array<{ id: Identifier; operationPermissions?: unknown }>
   users?: Array<{ id: Identifier }>
   existingNotifications?: Array<{
     recipient: Identifier | { id: Identifier }
@@ -46,7 +46,9 @@ function createHarness(options?: {
   const findCalls: FindCall[] = []
   const createCalls: CreateCall[] = []
   const errors: unknown[][] = []
-  const roles = options?.roles ?? [{ id: 10 }]
+  const roles = options?.roles ?? [
+    { id: 10, operationPermissions: ['supply_submission:read'] },
+  ]
   const users = options?.users ?? [{ id: 20 }]
   const notifications = [...(options?.existingNotifications ?? [])]
   const notificationKeys = new Set(
@@ -165,7 +167,10 @@ describe('notifySupplySubmissionCreated', () => {
 
   it('notifies enabled users of enabled exact-or-wildcard read roles', async () => {
     const harness = createHarness({
-      roles: [{ id: 10 }, { id: 'adm-role' }],
+      roles: [
+        { id: 10, operationPermissions: ['supply_submission:read'] },
+        { id: 'adm-role', operationPermissions: ['*'] },
+      ],
       users: [{ id: 20 }, { id: 'user-21' }],
     })
 
@@ -174,17 +179,7 @@ describe('notifySupplySubmissionCreated', () => {
     expect(harness.findCalls).toEqual([
       {
         collection: 'roles',
-        where: {
-          and: [
-            { status: { equals: 'active' } },
-            {
-              or: [
-                { operationPermissions: { contains: 'supply_submission:read' } },
-                { operationPermissions: { contains: '*' } },
-              ],
-            },
-          ],
-        },
+        where: { status: { equals: 'active' } },
         limit: 100,
         depth: 0,
         overrideAccess: true,
@@ -243,6 +238,37 @@ describe('notifySupplySubmissionCreated', () => {
         overrideAccess: true,
       },
     ])
+  })
+
+  it('filters mixed role JSON values using exact string-array permissions only', async () => {
+    const harness = createHarness({
+      roles: [
+        { id: 10, operationPermissions: ['supply_submission:read'] },
+        { id: 11, operationPermissions: ['*'] },
+        { id: 12, operationPermissions: ['lead:read'] },
+        { id: 13, operationPermissions: { permission: 'supply_submission:read' } },
+        { id: 14, operationPermissions: 'supply_submission:read' },
+        { id: 15, operationPermissions: null },
+        { id: 16, operationPermissions: [123, 'supply_submission:read'] },
+        { id: 17, operationPermissions: ['not_supply_submission:read'] },
+      ],
+      users: [{ id: 20 }],
+    })
+
+    await runHook(harness)
+
+    expect(harness.findCalls[1]).toEqual({
+      collection: 'users',
+      where: {
+        and: [
+          { status: { equals: 'active' } },
+          { roles: { in: [10, 11] } },
+        ],
+      },
+      limit: 100,
+      depth: 0,
+      overrideAccess: true,
+    })
   })
 
   it('never includes the submitted phone number in notification content or logs', async () => {
