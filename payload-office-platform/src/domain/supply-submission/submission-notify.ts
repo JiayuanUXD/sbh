@@ -3,6 +3,8 @@ import type { CollectionAfterChangeHook, Payload, PayloadRequest, TaskConfig } f
 export const SUPPLY_SUBMISSION_NOTIFICATION_TASK = 'notify-supply-submission-created'
 export const SUPPLY_SUBMISSION_NOTIFICATION_QUEUE = 'supply-submission-notifications'
 
+// Product safety cap: prevents a malformed role assignment from fan-out writes.
+// Queries are ID-sorted so retries always select the same capped recipient set.
 const MAX_RECIPIENTS = 50
 const QUERY_LIMIT = 100
 const EVENT_TYPE = 'supply-submission.created'
@@ -92,26 +94,20 @@ export const enqueueSupplySubmissionCreated: CollectionAfterChangeHook = async (
   })
 
   if (existing.docs.length === 0) {
-    try {
-      await req.payload.create({
-        collection: 'domain-events',
-        data: {
-          eventId,
-          eventType: EVENT_TYPE,
-          aggregateType: 'supply-submission',
-          aggregateId: submissionId,
-          aggregateVersion: 1,
-          payload: { submissionId },
-          occurredAt: new Date().toISOString(),
-        },
-        overrideAccess: true,
-        req,
-      })
-    } catch (error) {
-      // Concurrent replay can observe the same stable event after its initial
-      // read. The unique event key makes that replay successful.
-      if (!isUniqueViolation(error)) throw error
-    }
+    await req.payload.create({
+      collection: 'domain-events',
+      data: {
+        eventId,
+        eventType: EVENT_TYPE,
+        aggregateType: 'supply-submission',
+        aggregateId: submissionId,
+        aggregateVersion: 1,
+        payload: { submissionId },
+        occurredAt: new Date().toISOString(),
+      },
+      overrideAccess: true,
+      req,
+    })
   }
 
   await req.payload.jobs.queue({
@@ -177,6 +173,7 @@ export async function consumeSupplySubmissionCreated(args: {
     const roles = await payload.find({
       collection: 'roles',
       where: { status: { equals: 'active' } },
+      sort: 'id',
       limit: QUERY_LIMIT,
       depth: 0,
       overrideAccess: true,
@@ -195,6 +192,7 @@ export async function consumeSupplySubmissionCreated(args: {
               { roles: { in: roleIds } },
             ],
           },
+          sort: 'id',
           limit: QUERY_LIMIT,
           depth: 0,
           overrideAccess: true,
@@ -229,9 +227,10 @@ export async function consumeSupplySubmissionCreated(args: {
     )
     const missing = recipients.filter((recipient) => !existingRecipientIds.has(String(recipient)))
     const body = notificationBody(submission)
-    const outcomes = await Promise.allSettled(
-      missing.map((recipient) =>
-        payload.create({
+    let delivered = 0
+    for (const recipient of missing) {
+      try {
+        await payload.create({
           collection: 'notifications',
           data: {
             recipient,
@@ -243,22 +242,36 @@ export async function consumeSupplySubmissionCreated(args: {
             eventId,
           },
           overrideAccess: true,
-          req,
-        }),
-      ),
-    )
-    const failures = outcomes.filter(
-      (outcome): outcome is PromiseRejectedResult =>
-        outcome.status === 'rejected' && !isUniqueViolation(outcome.reason),
-    )
-    if (failures.length > 0) throw new Error('notification_delivery_failed')
+        })
+        delivered += 1
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw new Error('notification_delivery_failed')
+
+        // A 23505 aborts its own Local API transaction. Treat it as a replay
+        // only after an independent exact read proves the winning row exists.
+        const confirmed = await payload.find({
+          collection: 'notifications',
+          where: {
+            and: [
+              { eventId: { equals: eventId } },
+              { type: { equals: NOTIFICATION_TYPE } },
+              { recipient: { equals: recipient } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+          overrideAccess: true,
+        })
+        if (confirmed.docs.length === 0) throw new Error('notification_delivery_failed')
+      }
+    }
 
     await updateAttempt(payload, req, eventDatabaseId, {
       attemptCount,
       processedAt: new Date().toISOString(),
       lastError: null,
     })
-    return { delivered: outcomes.filter((outcome) => outcome.status === 'fulfilled').length }
+    return { delivered }
   } catch {
     await updateAttempt(payload, req, eventDatabaseId, {
       attemptCount,

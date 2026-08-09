@@ -100,9 +100,9 @@ export default buildConfig({
     access: {
       cancel: () => false,
       queue: () => false,
-      // autoRun itself goes through this access callback in Payload 3.86.
-      // Permit only Payload-created Local API requests; REST/GraphQL callers
-      // remain closed even when authenticated.
+      // Keep the public REST/GraphQL runner closed. Payload autoRun uses its
+      // trusted Local API path (which may override access); explicit internal
+      // calls with access enabled are also limited to Local API requests.
       run: ({ req }) => req.payloadAPI === 'local',
     },
     tasks: [supplySubmissionNotificationTask],

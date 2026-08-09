@@ -26,7 +26,7 @@ function submissionDoc(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function enqueueHarness(options?: { failEvent?: boolean; failQueue?: boolean }) {
+function enqueueHarness(options?: { failEvent?: boolean | 'unique'; failQueue?: boolean }) {
   const creates: Array<Record<string, unknown>> = []
   const queues: Array<Record<string, unknown>> = []
   const payload = {
@@ -35,7 +35,11 @@ function enqueueHarness(options?: { failEvent?: boolean; failQueue?: boolean }) 
     },
     async create(args: Record<string, unknown>) {
       creates.push(args)
-      if (options?.failEvent) throw new Error('outbox unavailable')
+      if (options?.failEvent) {
+        const error = new Error('outbox unavailable') as Error & { code?: string }
+        if (options.failEvent === 'unique') error.code = '23505'
+        throw error
+      }
       return { id: 1 }
     },
     jobs: {
@@ -107,6 +111,12 @@ describe('supply submission outbox producer', () => {
       await expect(runEnqueue(harness)).rejects.toThrow()
     },
   )
+
+  it('lets a same-request event 23505 abort the parent transaction instead of swallowing it', async () => {
+    const harness = enqueueHarness({ failEvent: 'unique' })
+    await expect(runEnqueue(harness)).rejects.toMatchObject({ code: '23505' })
+    expect(harness.queues).toEqual([])
+  })
 })
 
 function consumerHarness(options?: {
@@ -114,14 +124,20 @@ function consumerHarness(options?: {
   existingRecipients?: Identifier[]
   failRecipients?: Identifier[]
   uniqueConflictRecipients?: Identifier[]
+  confirmUniqueConflicts?: boolean
   processedAt?: string | null
 }) {
   const creates: Array<Record<string, unknown>> = []
   const updates: Array<Record<string, unknown>> = []
+  const finds: Array<Record<string, unknown>> = []
   const recipients = options?.recipients ?? [20, 21]
   const existingRecipients = options?.existingRecipients ?? []
+  const conflictedRecipients = new Set<Identifier>()
+  let inFlightCreates = 0
+  let maxInFlightCreates = 0
   const payload = {
     async find(args: { collection: string }) {
+      finds.push(args)
       if (args.collection === 'domain-events') {
         return {
           docs: [{
@@ -146,7 +162,13 @@ function consumerHarness(options?: {
       }
       if (args.collection === 'users') return { docs: recipients.map((id) => ({ id })) }
       if (args.collection === 'notifications') {
-        return { docs: existingRecipients.map((recipient) => ({ recipient })) }
+        const confirmed = options?.confirmUniqueConflicts === false
+          ? []
+          : [...conflictedRecipients]
+        return {
+          docs: [...new Set([...existingRecipients, ...confirmed])]
+            .map((recipient) => ({ recipient })),
+        }
       }
       throw new Error(`unexpected find ${args.collection}`)
     },
@@ -157,22 +179,30 @@ function consumerHarness(options?: {
     async create(args: Record<string, unknown>) {
       creates.push(args)
       const data = args.data as { recipient: Identifier }
-      if (options?.uniqueConflictRecipients?.includes(data.recipient)) {
-        const error = new Error('duplicate key') as Error & { code: string }
-        error.code = '23505'
-        throw error
+      inFlightCreates += 1
+      maxInFlightCreates = Math.max(maxInFlightCreates, inFlightCreates)
+      try {
+        await Promise.resolve()
+        if (options?.uniqueConflictRecipients?.includes(data.recipient)) {
+          conflictedRecipients.add(data.recipient)
+          const error = new Error('duplicate key') as Error & { code: string }
+          error.code = '23505'
+          throw error
+        }
+        if (options?.failRecipients?.includes(data.recipient)) {
+          throw new Error('sensitive failure content 13800003333')
+        }
+        return { id: creates.length }
+      } finally {
+        inFlightCreates -= 1
       }
-      if (options?.failRecipients?.includes(data.recipient)) {
-        throw new Error('sensitive failure content 13800003333')
-      }
-      return { id: creates.length }
     },
     async update(args: Record<string, unknown>) {
       updates.push(args)
       return { id: 41 }
     },
   }
-  return { payload, creates, updates }
+  return { payload, creates, updates, finds, maxInFlightCreates: () => maxInFlightCreates }
 }
 
 describe('supply submission notification job consumer', () => {
@@ -240,6 +270,31 @@ describe('supply submission notification job consumer', () => {
     })
   })
 
+  it('selects the capped recipient set in stable ID order', async () => {
+    const harness = consumerHarness()
+    await consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })
+
+    expect(harness.finds.find((call) => call.collection === 'roles')).toMatchObject({ sort: 'id' })
+    expect(harness.finds.find((call) => call.collection === 'users')).toMatchObject({ sort: 'id' })
+  })
+
+  it('creates recipient notifications sequentially in independent Local API transactions', async () => {
+    const harness = consumerHarness()
+    const jobRequest = { transactionID: 77 }
+    await consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+      req: jobRequest as never,
+    })
+
+    expect(harness.maxInFlightCreates()).toBe(1)
+    expect(harness.creates.every((call) => call.req === undefined)).toBe(true)
+    expect(harness.updates.at(-1)?.req).toBe(jobRequest)
+  })
+
   it('throws after partial failure, leaves the event unprocessed, then fills only missing recipients on retry', async () => {
     const failed = consumerHarness({ failRecipients: [21] })
     await expect(
@@ -282,5 +337,22 @@ describe('supply submission notification job consumer', () => {
     ).resolves.toEqual({ delivered: 0 })
     expect(replay.creates).toEqual([])
     expect(replay.updates).toEqual([])
+  })
+
+  it('does not swallow a 23505 unless an independent exact lookup confirms the notification', async () => {
+    const unconfirmed = consumerHarness({
+      recipients: [20],
+      uniqueConflictRecipients: [20],
+      confirmUniqueConflicts: false,
+    })
+    await expect(
+      consumeSupplySubmissionCreated({
+        eventId: 'supply-submission-created:321',
+        payload: unconfirmed.payload as never,
+      }),
+    ).rejects.toThrow('supply_submission_notification_delivery_failed')
+    expect(unconfirmed.updates.at(-1)).toMatchObject({
+      data: { processedAt: null, lastError: 'notification_delivery_failed' },
+    })
   })
 })
