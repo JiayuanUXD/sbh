@@ -19,7 +19,7 @@
 | Task 1 导航与页脚 | ✅ 完成 | `3b29379`，review 通过，5/5 单测 |
 | Task 2 投放房源纯函数 | ✅ 完成 | `73d30fc`，1 轮修复（控制字符正则），19/19 单测 |
 | Task 3 集合 + 迁移 | ✅ 完成 | `5836f1c`，迁移 `20260809_142444_supply_submissions_and_entrust_source`，2418 单测全绿 |
-| Task 4 提交端点 | 🔄 进行中 | |
+| Task 4 提交端点 | ✅ 完成 | `dac9e79` + `c00a8bf`，1 轮安全修复，review 通过 |
 | Task 5 entrust 链路 | ⬜ 未开始 | |
 | Task 6 骨架组件 | ⬜ 未开始 | |
 | Task 7 `/entrust` 页 | ⬜ 未开始 | |
@@ -1607,7 +1607,7 @@ Leads 来源枚举加 entrust，Notifications 加投放申请通知枚举；一�
 - Consumes: Task 2 的 `validateSupplySubmission` / `computeSupplyIdempotencyKey` / `buildSupplyLogEntry` / `hashIpForLog`、Task 3 的 collection slug `'supply-submissions'`
 - Produces: `POST /api/supply-submissions`，响应形状 `{ ok: true }` | `{ ok: false, errors: string[] }` | `{ ok: false, error: string }`；`rate-limit-state.ts` 导出 `__resetRateStoreForTests()`，route 模块不额外导出测试 helper。
 
-- [ ] **Step 1: 加限流配置**
+- [x] **Step 1: 加限流配置**
 
 在 `src/lib/rate-limit-config.ts` 末尾追加：
 
@@ -1628,7 +1628,7 @@ export const SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG: RateLimitConfig = {
 }
 ```
 
-- [ ] **Step 2: 实现路由**
+- [x] **Step 2: 实现路由**
 
 创建 `src/app/api/supply-submissions/route.ts`：
 
@@ -1909,7 +1909,7 @@ export function __resetRateStoreForTests(): void {
 }
 ```
 
-- [ ] **Step 3: 类型检查**
+- [x] **Step 3: 类型检查**
 
 ```bash
 cd payload-office-platform && pnpm typecheck
@@ -1917,7 +1917,7 @@ cd payload-office-platform && pnpm typecheck
 
 Expected: 通过（无输出）
 
-- [ ] **Step 4: 起本地服务做烟测**
+- [x] **Step 4: 起本地服务做烟测**
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -1953,7 +1953,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3719/api/supply-submis
 
 Expected: `405`
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add payload-office-platform/src/app/api/supply-submissions/route.ts payload-office-platform/src/lib/rate-limit-config.ts
