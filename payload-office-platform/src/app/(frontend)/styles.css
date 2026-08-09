@@ -361,7 +361,7 @@ ol {
   margin-left: auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .site-nav {
     display: flex;
   }
@@ -420,7 +420,7 @@ ol {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .site-menu-toggle {
     display: none;
   }
@@ -2926,7 +2926,7 @@ ol {
   font-weight: 600;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .mobile-drawer__overlay {
     display: none;
   }
@@ -6249,9 +6249,16 @@ ol {
 
   .bottom-cta {
     position: sticky;
-    bottom: 0;
+    /* bottom: 0 会在 CTA 自然位置进入视口前将其推到首屏；top 阈值仅在滚动接近 CTA 后生效。 */
+    top: calc(100vh - 9rem);
+    top: calc(100dvh - 9rem);
+    bottom: auto;
     z-index: var(--z-floating);
     padding: var(--sp-3) var(--sp-4);
     box-shadow: var(--shadow-md);
+  }
+
+  .bottom-cta .btn {
+    min-height: var(--touch-target);
   }
 }
