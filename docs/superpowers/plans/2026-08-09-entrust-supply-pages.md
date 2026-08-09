@@ -1597,11 +1597,15 @@ Leads 来源枚举加 entrust，Notifications 加投放申请通知枚举；一�
 
 **Files:**
 - Create: `src/app/api/supply-submissions/route.ts`
+- Create: `src/app/api/supply-submissions/request-guards.ts`
+- Create: `src/app/api/supply-submissions/rate-limit-state.ts`
+- Create: `tests/supply-submission-api-guards.test.ts`
+- Create: `tests/supply-submission-api-route.test.ts`
 - Modify: `src/lib/rate-limit-config.ts`
 
 **Interfaces:**
 - Consumes: Task 2 的 `validateSupplySubmission` / `computeSupplyIdempotencyKey` / `buildSupplyLogEntry` / `hashIpForLog`、Task 3 的 collection slug `'supply-submissions'`
-- Produces: `POST /api/supply-submissions`，响应形状 `{ ok: true }` | `{ ok: false, errors: string[] }` | `{ ok: false, error: string }`；导出 `__resetRateStoreForTests()`
+- Produces: `POST /api/supply-submissions`，响应形状 `{ ok: true }` | `{ ok: false, errors: string[] }` | `{ ok: false, error: string }`；`rate-limit-state.ts` 导出 `__resetRateStoreForTests()`，route 模块不额外导出测试 helper。
 
 - [ ] **Step 1: 加限流配置**
 

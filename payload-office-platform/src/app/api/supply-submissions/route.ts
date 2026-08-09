@@ -24,19 +24,22 @@ import {
   validateSupplySubmission,
   type SupplySubmissionRequest,
 } from '@/domain/supply-submission'
-import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
-import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
+import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
+import { createPgRateLimitDeps } from '@/lib/rate-limit-pg'
 import { SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { ratePruneRef } from './rate-limit-state'
+import {
+  extractPgPool,
+  isStrictJsonContentType,
+  resolveDefaultCityId,
+} from './request-guards'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /** 每请求 body 最大字节数 */
 const MAX_BODY_BYTES = 16 * 1024
-
-/** 跨请求共享的 TTL 清理时间戳（模块级）。 */
-const ratePruneRef: PruneTimestampRef = { value: 0 }
 
 /** 提取客户端 IP（CloudRun / 反代场景取首跳） */
 function clientIp(req: Request): string {
@@ -60,11 +63,6 @@ function isSameOrigin(req: Request): boolean {
   } catch {
     return false
   }
-}
-
-/** Content-Type 校验：必须为 application/json */
-function isJsonContentType(req: Request): boolean {
-  return (req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')
 }
 
 function isIdempotencyUniqueViolation(error: unknown): boolean {
@@ -102,22 +100,6 @@ function logIdempotentSuccess(
   return NextResponse.json({ ok: true })
 }
 
-/** 解析默认城市 Location（MVP 单城；解析失败不阻断提交） */
-async function resolveDefaultCityId(payload: Payload): Promise<number | null> {
-  try {
-    const result = await payload.find({
-      collection: 'locations',
-      where: { slug: { equals: siteConfig.defaultCity } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    return result.docs[0]?.id ?? null
-  } catch {
-    return null
-  }
-}
-
 export async function POST(req: Request): Promise<Response> {
   const startedAt = Date.now()
   const ip = clientIp(req)
@@ -127,7 +109,12 @@ export async function POST(req: Request): Promise<Response> {
 
   // ----- 1. 限流 -----
   const payload = await getPayload({ config })
-  const pgDeps = createPgRateLimitDeps((payload.db as unknown as { pool: PoolLike }).pool)
+  const pool = extractPgPool(payload.db)
+  if (!pool) {
+    payload.logger.error({ errorCode: 'rate_limit_pool_unavailable' }, 'supply_submission_pool_unavailable')
+    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
+  }
+  const pgDeps = createPgRateLimitDeps(pool)
   const rate = await runDistributedRateLimit(pgDeps, RATE_LIMIT_CONFIG, rateKey, ratePruneRef)
   if (rate.failedOpen) {
     payload.logger.warn({ rateKey }, 'rate_limit_store_unavailable_fail_open')
@@ -143,7 +130,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!isSameOrigin(req)) {
     return NextResponse.json({ ok: false, error: 'forbidden' }, { status: 403 })
   }
-  if (!isJsonContentType(req)) {
+  if (!isStrictJsonContentType(req.headers.get('content-type'))) {
     return NextResponse.json({ ok: false, errors: ['invalid_content_type'] }, { status: 415 })
   }
   const contentLength = Number(req.headers.get('content-length') ?? '0')
@@ -189,14 +176,33 @@ export async function POST(req: Request): Promise<Response> {
     if (existing.docs.length > 0) {
       return logIdempotentSuccess(payload, submission, startedAt)
     }
-  } catch (e) {
-    payload.logger.error({ err: e }, 'supply_submission_idempotency_check_failed')
+  } catch {
+    payload.logger.error(
+      { errorCode: 'idempotency_check_failed' },
+      'supply_submission_idempotency_check_failed',
+    )
     // 幂等检查失败时继续创建：unique 约束兜底
   }
 
   // ----- 7. 创建申请 -----
+  const cityId = await resolveDefaultCityId(payload, siteConfig.defaultCity)
+  if (cityId === null) {
+    payload.logger.error(
+      { errorCode: 'default_city_unavailable' },
+      'supply_submission_default_city_unavailable',
+    )
+    payload.logger.info(
+      buildSupplyLogEntry(submission, {
+        idempotent: false,
+        errorCode: 'default_city_unavailable',
+        durationMs: Date.now() - startedAt,
+      }),
+      'supply_submission_error',
+    )
+    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
+  }
+
   try {
-    const cityId = await resolveDefaultCityId(payload)
     await payload.create({
       collection: 'supply-submissions',
       data: {
@@ -233,7 +239,10 @@ export async function POST(req: Request): Promise<Response> {
     if (isIdempotencyUniqueViolation(e)) {
       return logIdempotentSuccess(payload, submission, startedAt)
     }
-    payload.logger.error({ err: e }, 'supply_submission_create_failed')
+    payload.logger.error(
+      { errorCode: 'create_failed' },
+      'supply_submission_create_failed',
+    )
     payload.logger.info(
       buildSupplyLogEntry(submission, {
         idempotent: false,
@@ -266,9 +275,4 @@ export function DELETE(): Response {
     { ok: false, error: 'method_not_allowed' },
     { status: 405, headers: { Allow: 'POST' } },
   )
-}
-
-/** 测试专用：重置模块级限流清理时间戳。生产代码不调用。 */
-function __resetRateStoreForTests(): void {
-  ratePruneRef.value = 0
 }
