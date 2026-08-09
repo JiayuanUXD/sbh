@@ -32,7 +32,12 @@ function submissionDoc(overrides: Record<string, unknown> = {}) {
 function createHarness(options?: {
   roles?: Array<{ id: Identifier }>
   users?: Array<{ id: Identifier }>
-  failFindCollection?: 'roles' | 'users'
+  existingNotifications?: Array<{
+    recipient: Identifier | { id: Identifier }
+    eventId?: string
+    type?: string
+  }>
+  failFindCollection?: 'roles' | 'users' | 'notifications'
   failCreateRecipient?: Identifier
 }) {
   const findCalls: FindCall[] = []
@@ -40,6 +45,7 @@ function createHarness(options?: {
   const errors: unknown[][] = []
   const roles = options?.roles ?? [{ id: 10 }]
   const users = options?.users ?? [{ id: 20 }]
+  const notifications = [...(options?.existingNotifications ?? [])]
 
   const payload = {
     async find(args: FindCall) {
@@ -49,6 +55,7 @@ function createHarness(options?: {
       }
       if (args.collection === 'roles') return { docs: roles }
       if (args.collection === 'users') return { docs: users }
+      if (args.collection === 'notifications') return { docs: notifications }
       throw new Error(`unexpected collection: ${args.collection}`)
     },
     async create(args: CreateCall) {
@@ -56,6 +63,11 @@ function createHarness(options?: {
       if (String(args.data.recipient) === String(options?.failCreateRecipient)) {
         throw new Error('notification create failed')
       }
+      notifications.push({
+        recipient: args.data.recipient as Identifier,
+        eventId: args.data.eventId as string,
+        type: args.data.type as string,
+      })
       return { id: createCalls.length, ...args.data }
     },
     logger: {
@@ -65,7 +77,7 @@ function createHarness(options?: {
     },
   }
 
-  return { payload, findCalls, createCalls, errors }
+  return { payload, findCalls, createCalls, errors, notifications }
 }
 
 async function runHook(
@@ -149,6 +161,19 @@ describe('notifySupplySubmissionCreated', () => {
         depth: 0,
         overrideAccess: true,
       },
+      {
+        collection: 'notifications',
+        where: {
+          and: [
+            { eventId: { equals: 'supply-submission-created:321' } },
+            { type: { equals: 'supply-submission-created' } },
+            { recipient: { in: [20, 'user-21'] } },
+          ],
+        },
+        limit: 100,
+        depth: 0,
+        overrideAccess: true,
+      },
     ])
     expect(harness.createCalls).toEqual([
       {
@@ -201,7 +226,34 @@ describe('notifySupplySubmissionCreated', () => {
     expect(new Set(harness.createCalls.map((call) => call.data.recipient)).size).toBe(50)
   })
 
-  it.each(['roles', 'users'] as const)(
+  it('does not create duplicate notifications when the same submission hook is replayed', async () => {
+    const harness = createHarness({ users: [{ id: 20 }, { id: 21 }] })
+    const doc = submissionDoc()
+
+    await runHook(harness, 'create', doc)
+    await runHook(harness, 'create', doc)
+
+    expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([20, 21])
+  })
+
+  it('creates only missing recipients when part of the submission fan-out already exists', async () => {
+    const harness = createHarness({
+      users: [{ id: 20 }, { id: 21 }],
+      existingNotifications: [
+        {
+          recipient: { id: 20 },
+          eventId: 'supply-submission-created:321',
+          type: 'supply-submission-created',
+        },
+      ],
+    })
+
+    await runHook(harness)
+
+    expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([21])
+  })
+
+  it.each(['roles', 'users', 'notifications'] as const)(
     'returns the created submission when the %s recipient query fails',
     async (collection) => {
       const harness = createHarness({ failFindCollection: collection })

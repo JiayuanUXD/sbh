@@ -32,11 +32,21 @@ function logFailureSafely(log: () => void): void {
   }
 }
 
+function relationId(value: unknown): string | number | null {
+  if (typeof value === 'string' || typeof value === 'number') return value
+  if (!value || typeof value !== 'object') return null
+
+  const id = (value as { id?: unknown }).id
+  return typeof id === 'string' || typeof id === 'number' ? id : null
+}
+
 /**
  * 新投放申请站内通知。
  *
  * 仅在创建时通知拥有 supply_submission:read（或通配符）权限的启用用户。
  * 通知属于旁路副作用：查询、单个写入乃至日志失败都不能影响申请落库。
+ * 当前通过写前批量查重实现重放幂等；Notifications 尚无复合唯一约束，跨进程并发
+ * 仍可能竞态重复，后续需以数据库唯一索引消除该 schema debt。
  */
 export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
   doc,
@@ -87,9 +97,33 @@ export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
 
     const sourceId = String(submission.id)
     const eventId = `supply-submission-created:${sourceId}`
+    const existingNotifications = await req.payload.find({
+      collection: 'notifications',
+      where: {
+        and: [
+          { eventId: { equals: eventId } },
+          { type: { equals: 'supply-submission-created' } },
+          { recipient: { in: recipientIds } },
+        ],
+      },
+      limit: QUERY_LIMIT,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const existingRecipientIds = new Set(
+      existingNotifications.docs
+        .map((notification) => relationId(notification.recipient))
+        .filter((id): id is string | number => id !== null)
+        .map(String),
+    )
+    const missingRecipientIds = recipientIds.filter(
+      (recipientId) => !existingRecipientIds.has(String(recipientId)),
+    )
+    if (missingRecipientIds.length === 0) return doc
+
     const body = notificationBody(submission)
     const results = await Promise.allSettled(
-      recipientIds.map((recipient) =>
+      missingRecipientIds.map((recipient) =>
         req.payload.create({
           collection: 'notifications',
           data: {
