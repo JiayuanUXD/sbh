@@ -23,7 +23,7 @@
 | Task 5 entrust 链路 | ✅ 完成 | `f30f808` + `469f08d`，1 轮 update-delta 修复，review 通过 |
 | Task 6 骨架组件 | ✅ 完成 | `6002fc8` + `64a6355`，1 轮层叠/成功态/无障碍修复，review 通过 |
 | Task 7 `/entrust` 页 | ✅ 完成 | `8805db5` + `15b30a6` + `579b16a` + `4b7ba79`，3 轮提交状态/响应式/吸底修复，review 与真实浏览器/PG 验证通过 |
-| Task 8 `/publish` 页 | ⬜ 未开始 | |
+| Task 8 `/publish` 页 | ✅ 完成 | `4df3eee` + `4529cd5` + `0280cbb`，2 轮层级/面积后缀响应式修复，review 与真实浏览器/PG 验证通过 |
 | Task 9 站内通知 | ⬜ 未开始 | |
 | Task 10 埋点 | ⬜ 未开始 | |
 | Task 11 sitemap | ⬜ 未开始 | |
@@ -3291,7 +3291,7 @@ git commit -m "feat(frontend): 新增 /entrust 委托找房落地页
 - Consumes: Task 4 的 `POST /api/supply-submissions`、Task 2 的 `COMMISSION_MONTHS` / `COMMISSION_MONTHS_LABELS`、Task 6 的骨架组件与 `PUBLISH_COPY` / `PUBLISH_STEPS`
 - Produces: 路由 `/publish`
 
-- [ ] **Step 1: 创建 `SupplySubmissionForm.tsx`**
+- [x] **Step 1: 创建 `SupplySubmissionForm.tsx`**
 
 ```tsx
 'use client'
@@ -3587,7 +3587,7 @@ export default function SupplySubmissionForm() {
 }
 ```
 
-- [ ] **Step 2: 创建 `src/app/(frontend)/publish/page.tsx`**
+- [x] **Step 2: 创建 `src/app/(frontend)/publish/page.tsx`**
 
 ```tsx
 import type { Metadata } from 'next'
@@ -3645,7 +3645,9 @@ export default function PublishPage() {
 }
 ```
 
-- [ ] **Step 3: 类型检查 + 构建**
+- [x] **Step 3: 类型检查 + 构建**
+
+> 验证记录：Task 8 聚焦测试 2 files / 11 tests 与限定 lint 通过。类型检查仅被仓库既有 `.next/dev/types` Route Handler 测试辅助导出阻断；webpack 构建的同类全局债务已记录并留给 Task 12 统一修复。
 
 ```bash
 cd payload-office-platform && pnpm typecheck && pnpm build
@@ -3653,7 +3655,7 @@ cd payload-office-platform && pnpm typecheck && pnpm build
 
 Expected: 构建成功；`/publish` 为静态（`○`）。
 
-- [ ] **Step 4: 浏览器人工核对**
+- [x] **Step 4: 浏览器人工核对**
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -3669,7 +3671,7 @@ cd payload-office-platform && PORT=3719 pnpm dev
 6. 后台 `/admin/collections/supply-submissions` 出现该条，佣金列显示所选值；
 7. 375 / 768 / 1280 三档无横向滚动，移动端卡片不溢出。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add payload-office-platform/src/components/frontend/landing/SupplySubmissionForm.tsx "payload-office-platform/src/app/(frontend)/publish/page.tsx"
