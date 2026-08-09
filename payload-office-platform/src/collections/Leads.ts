@@ -5,6 +5,7 @@ import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
 import { leadReadAccess } from '@/domain/crm/lead-read-access'
+import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
 import { SOURCE_SECTIONS, SUPPLY_GROUPS } from '@/domain/inquiry/schema'
 
 /**
@@ -69,6 +70,8 @@ export const Leads: CollectionConfig = {
   },
   trash: true,
   hooks: {
+    // 委托找房零门槛渠道：无姓名线索填兜底姓名，早于必填校验。
+    beforeValidate: [fillEntrustLeadName],
     // 字段脱敏（tasks.md M1.4）：缺 phone:full 权限 → 返回 138****1111
     // 业务不变量：经纪人只能看自己负责线索的完整手机号（M5 进一步收窄）
     afterRead: createFieldMaskHooks(getLeadMaskRules()),

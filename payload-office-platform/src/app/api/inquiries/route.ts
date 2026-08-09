@@ -355,7 +355,9 @@ export async function POST(req: Request): Promise<Response> {
     await payload.create({
       collection: 'leads',
       data: {
-        name: inquiry.name,
+        // entrust 渠道无姓名：传 undefined，交给 fillEntrustLeadName 兜底。
+        // Payload 的静态生成类型无法表示 beforeValidate 会补齐 required 字段。
+        name: (inquiry.name || undefined) as string,
         phone: inquiry.phone,
         company: inquiry.company ?? undefined,
         status: 'new',

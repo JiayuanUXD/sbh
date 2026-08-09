@@ -28,6 +28,7 @@ import {
   sanitizeUrlForLog,
 } from '@/domain/inquiry/privacy-log'
 import { sanitizeCampaign, CAMPAIGN_KEYS } from '@/domain/inquiry/campaign'
+import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
 import {
   LIMITS,
   MAX_INQUIRY_PRICE_SNAPSHOT_AMOUNT,
@@ -532,7 +533,7 @@ describe('validateInquiry: 长度超限', () => {
 
 describe('validateInquiry: 枚举', () => {
   it('SOURCE_PAGE_TYPES 与 INQUIRY_SOURCE_PAGE_TYPES 对齐', () => {
-    expect(SOURCE_PAGE_TYPES).toEqual(['home', 'search', 'listing', 'building', 'content'])
+    expect(SOURCE_PAGE_TYPES).toEqual(['home', 'search', 'listing', 'building', 'content', 'entrust'])
   })
 
   it('TARGET_TYPES 与 INQUIRY_TARGET_TYPES 对齐', () => {
@@ -947,5 +948,100 @@ describe('hashIpForLog', () => {
     expect(h).not.toContain('1.2.3.4')
     expect(h).not.toContain('1.')
     expect(h).not.toContain('.4')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 委托找房落地页（PRD §4.3 / §4.4）
+// ---------------------------------------------------------------------------
+
+describe('validateInquiry - entrust 渠道', () => {
+  /** 委托找房首屏只采集手机号，没有姓名字段。 */
+  const entrustBody = {
+    phone: '13800001111',
+    requestId: 'entrust-1',
+    targetType: 'none',
+    consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
+    source: { pageType: 'entrust', path: '/entrust' },
+  }
+
+  it('缺姓名也通过，name 归一化为字符串', () => {
+    const r = validateInquiry(entrustBody)
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.data.name).toBe('')
+    expect(r.data.source.pageType).toBe('entrust')
+    expect(r.data.targetType).toBe('none')
+  })
+
+  it('其他渠道缺姓名仍报 name_required', () => {
+    const r = validateInquiry({
+      ...entrustBody,
+      source: { pageType: 'home', path: '/' },
+    })
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toContain('name_required')
+  })
+
+  it('entrust 渠道手机号非法仍被拒绝', () => {
+    const r = validateInquiry({ ...entrustBody, phone: '123' })
+    expect(r.ok).toBe(false)
+    if (r.ok) return
+    expect(r.errors).toContain('phone_invalid')
+  })
+
+  it('entrust 渠道未同意隐私政策仍被拒绝', () => {
+    const r = validateInquiry({
+      ...entrustBody,
+      consent: { accepted: false, policyVersion: PRIVACY_POLICY_VERSION },
+    })
+    expect(r.ok).toBe(false)
+  })
+})
+
+describe('fillEntrustLeadName', () => {
+  it('entrust 渠道且无姓名时填入兜底姓名（含手机号后四位）', async () => {
+    const data = await fillEntrustLeadName({
+      data: { phone: '13800001111', sourcePageType: 'entrust' },
+      operation: 'create',
+      req: {} as never,
+      collection: {} as never,
+      context: {} as never,
+    } as never)
+    expect((data as { name: string }).name).toBe('未留姓名（1111）')
+  })
+
+  it('已有姓名时不覆盖', async () => {
+    const data = await fillEntrustLeadName({
+      data: { name: '张先生', phone: '13800001111', sourcePageType: 'entrust' },
+      operation: 'create',
+      req: {} as never,
+      collection: {} as never,
+      context: {} as never,
+    } as never)
+    expect((data as { name: string }).name).toBe('张先生')
+  })
+
+  it('非 entrust 渠道不填兜底姓名', async () => {
+    const data = await fillEntrustLeadName({
+      data: { phone: '13800001111', sourcePageType: 'listing' },
+      operation: 'create',
+      req: {} as never,
+      collection: {} as never,
+      context: {} as never,
+    } as never)
+    expect((data as { name?: string }).name).toBeUndefined()
+  })
+
+  it('手机号缺失时用固定兜底文案，不抛异常', async () => {
+    const data = await fillEntrustLeadName({
+      data: { sourcePageType: 'entrust' },
+      operation: 'create',
+      req: {} as never,
+      collection: {} as never,
+      context: {} as never,
+    } as never)
+    expect((data as { name: string }).name).toBe('未留姓名')
   })
 })
