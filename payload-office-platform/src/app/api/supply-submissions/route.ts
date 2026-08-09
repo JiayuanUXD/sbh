@@ -108,7 +108,10 @@ export async function POST(req: Request): Promise<Response> {
   const rateKey = `supply:${ipHash}`
 
   // ----- 1. 限流 -----
-  const payload = await getPayload({ config })
+  // This dedicated CloudRun / Next process owns the Payload Jobs auto-runner.
+  // `cron: true` initializes it even when traffic only reaches this custom
+  // route and no Payload REST endpoint has been requested yet.
+  const payload = await getPayload({ config, cron: true })
   const pool = extractPgPool(payload.db)
   if (!pool) {
     payload.logger.error({ errorCode: 'rate_limit_pool_unavailable' }, 'supply_submission_pool_unavailable')

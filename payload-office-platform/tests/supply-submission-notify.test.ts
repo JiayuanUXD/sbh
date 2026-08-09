@@ -1,371 +1,286 @@
 import { describe, expect, it } from 'vitest'
 
 import { Notifications } from '@/collections/Notifications'
-import { notifySupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
+import {
+  SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+  SUPPLY_SUBMISSION_NOTIFICATION_TASK,
+  consumeSupplySubmissionCreated,
+  enqueueSupplySubmissionCreated,
+  supplySubmissionNotificationTask,
+} from '@/domain/supply-submission/submission-notify'
+
+const { default: payloadConfigPromise } = await import('@/payload.config')
 
 type Identifier = string | number
-
-interface FindCall {
-  collection: string
-  where?: unknown
-  limit?: number
-  depth?: number
-  overrideAccess?: boolean
-}
-
-interface CreateCall {
-  collection: string
-  data: Record<string, unknown>
-  overrideAccess?: boolean
-}
 
 function submissionDoc(overrides: Record<string, unknown> = {}) {
   return {
     id: 321,
     buildingName: '虹桥商务中心',
+    address: '敏感地址不得入事件',
     areaSqm: 280,
     commissionMonths: '1',
     contactPhone: '13800003333',
+    submitterIpHash: 'sensitive-ip-hash',
     ...overrides,
   }
 }
 
-function createHarness(options?: {
-  roles?: Array<{ id: Identifier; operationPermissions?: unknown }>
-  users?: Array<{ id: Identifier }>
-  existingNotifications?: Array<{
-    recipient: Identifier | { id: Identifier }
-    eventId?: string
-    type?: string
-  }>
-  failFindCollection?: 'roles' | 'users' | 'notifications'
-  failCreateRecipient?: Identifier
-  synchronizeNotificationFinds?: number
-  enforceNotificationUnique?: boolean
-}) {
-  const findCalls: FindCall[] = []
-  const createCalls: CreateCall[] = []
-  const errors: unknown[][] = []
-  const roles = options?.roles ?? [
-    { id: 10, operationPermissions: ['supply_submission:read'] },
-  ]
-  const users = options?.users ?? [{ id: 20 }]
-  const notifications = [...(options?.existingNotifications ?? [])]
-  const notificationKeys = new Set(
-    notifications.map(
-      (notification) =>
-        `${notification.eventId}:${String(
-          typeof notification.recipient === 'object'
-            ? notification.recipient.id
-            : notification.recipient,
-        )}:${notification.type}`,
-    ),
-  )
-  let notificationFindCount = 0
-  let releaseNotificationFinds: (() => void) | undefined
-  const notificationFindBarrier = new Promise<void>((resolve) => {
-    releaseNotificationFinds = resolve
-  })
-
+function enqueueHarness(options?: { failEvent?: boolean; failQueue?: boolean }) {
+  const creates: Array<Record<string, unknown>> = []
+  const queues: Array<Record<string, unknown>> = []
   const payload = {
-    async find(args: FindCall) {
-      findCalls.push(args)
-      if (options?.failFindCollection === args.collection) {
-        throw new Error('13800003333 must never reach logs')
-      }
-      if (args.collection === 'roles') return { docs: roles }
-      if (args.collection === 'users') return { docs: users }
-      if (args.collection === 'notifications') {
-        const snapshot = [...notifications]
-        if (options?.synchronizeNotificationFinds) {
-          notificationFindCount += 1
-          if (notificationFindCount >= options.synchronizeNotificationFinds) {
-            releaseNotificationFinds?.()
-          }
-          await notificationFindBarrier
-        }
-        return { docs: snapshot }
-      }
-      throw new Error(`unexpected collection: ${args.collection}`)
+    async find() {
+      return { docs: [] }
     },
-    async create(args: CreateCall) {
-      createCalls.push(args)
-      if (String(args.data.recipient) === String(options?.failCreateRecipient)) {
-        throw new Error('notification create failed')
-      }
-      const notificationKey = `${args.data.eventId}:${String(args.data.recipient)}:${args.data.type}`
-      if (options?.enforceNotificationUnique && notificationKeys.has(notificationKey)) {
-        throw new Error('duplicate key value violates unique constraint')
-      }
-      notificationKeys.add(notificationKey)
-      notifications.push({
-        recipient: args.data.recipient as Identifier,
-        eventId: args.data.eventId as string,
-        type: args.data.type as string,
-      })
-      return { id: createCalls.length, ...args.data }
+    async create(args: Record<string, unknown>) {
+      creates.push(args)
+      if (options?.failEvent) throw new Error('outbox unavailable')
+      return { id: 1 }
     },
-    logger: {
-      error(...args: unknown[]) {
-        errors.push(args)
+    jobs: {
+      async queue(args: Record<string, unknown>) {
+        queues.push(args)
+        if (options?.failQueue) throw new Error('queue unavailable')
+        return { id: 2 }
       },
     },
   }
-
-  return { payload, findCalls, createCalls, errors, notifications }
+  return { payload, creates, queues }
 }
 
-async function runHook(
-  harness: ReturnType<typeof createHarness>,
+async function runEnqueue(
+  harness: ReturnType<typeof enqueueHarness>,
   operation: 'create' | 'update' = 'create',
-  doc = submissionDoc(),
 ) {
-  return notifySupplySubmissionCreated({
-    doc,
+  return enqueueSupplySubmissionCreated({
+    doc: submissionDoc(),
     operation,
-    req: { payload: harness.payload },
+    req: { payload: harness.payload, transactionID: 77 },
   } as never)
 }
 
-describe('notifySupplySubmissionCreated', () => {
-  it('declares the database unique key used by notification replay protection', () => {
+describe('supply submission outbox producer', () => {
+  it('only emits on create and writes stable PII-free event before queuing with the same request', async () => {
+    const harness = enqueueHarness()
+
+    await runEnqueue(harness)
+
+    expect(harness.creates).toHaveLength(1)
+    expect(harness.queues).toHaveLength(1)
+    expect(harness.creates[0]).toMatchObject({
+      collection: 'domain-events',
+      data: {
+        eventId: 'supply-submission-created:321',
+        eventType: 'supply-submission.created',
+        aggregateType: 'supply-submission',
+        aggregateId: '321',
+        aggregateVersion: 1,
+        payload: { submissionId: '321' },
+      },
+      overrideAccess: true,
+    })
+    expect(harness.queues[0]).toMatchObject({
+      task: SUPPLY_SUBMISSION_NOTIFICATION_TASK,
+      queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+      input: { eventId: 'supply-submission-created:321' },
+      overrideAccess: true,
+    })
+    expect(harness.creates[0]?.req).toBe(harness.queues[0]?.req)
+    const persisted = JSON.stringify([harness.creates, harness.queues])
+    expect(persisted).not.toContain('13800003333')
+    expect(persisted).not.toContain('敏感地址')
+    expect(persisted).not.toContain('sensitive-ip-hash')
+  })
+
+  it('does nothing for updates', async () => {
+    const harness = enqueueHarness()
+    await runEnqueue(harness, 'update')
+    expect(harness.creates).toEqual([])
+    expect(harness.queues).toEqual([])
+  })
+
+  it.each(['failEvent', 'failQueue'] as const)(
+    'does not swallow %s persistence failures so the submission transaction can retry',
+    async (failure) => {
+      const harness = enqueueHarness({ [failure]: true })
+      await expect(runEnqueue(harness)).rejects.toThrow()
+    },
+  )
+})
+
+function consumerHarness(options?: {
+  recipients?: Identifier[]
+  existingRecipients?: Identifier[]
+  failRecipients?: Identifier[]
+  uniqueConflictRecipients?: Identifier[]
+  processedAt?: string | null
+}) {
+  const creates: Array<Record<string, unknown>> = []
+  const updates: Array<Record<string, unknown>> = []
+  const recipients = options?.recipients ?? [20, 21]
+  const existingRecipients = options?.existingRecipients ?? []
+  const payload = {
+    async find(args: { collection: string }) {
+      if (args.collection === 'domain-events') {
+        return {
+          docs: [{
+            id: 41,
+            eventId: 'supply-submission-created:321',
+            eventType: 'supply-submission.created',
+            aggregateType: 'supply-submission',
+            aggregateId: '321',
+            payload: { submissionId: '321' },
+            processedAt: options?.processedAt ?? null,
+            attemptCount: 0,
+          }],
+        }
+      }
+      if (args.collection === 'roles') {
+        return {
+          docs: [
+            { id: 10, status: 'active', operationPermissions: ['supply_submission:read'] },
+            { id: 11, status: 'active', operationPermissions: ['lead:read'] },
+          ],
+        }
+      }
+      if (args.collection === 'users') return { docs: recipients.map((id) => ({ id })) }
+      if (args.collection === 'notifications') {
+        return { docs: existingRecipients.map((recipient) => ({ recipient })) }
+      }
+      throw new Error(`unexpected find ${args.collection}`)
+    },
+    async findByID(args: { collection: string }) {
+      if (args.collection === 'supply-submissions') return submissionDoc()
+      throw new Error(`unexpected findByID ${args.collection}`)
+    },
+    async create(args: Record<string, unknown>) {
+      creates.push(args)
+      const data = args.data as { recipient: Identifier }
+      if (options?.uniqueConflictRecipients?.includes(data.recipient)) {
+        const error = new Error('duplicate key') as Error & { code: string }
+        error.code = '23505'
+        throw error
+      }
+      if (options?.failRecipients?.includes(data.recipient)) {
+        throw new Error('sensitive failure content 13800003333')
+      }
+      return { id: creates.length }
+    },
+    async update(args: Record<string, unknown>) {
+      updates.push(args)
+      return { id: 41 }
+    },
+  }
+  return { payload, creates, updates }
+}
+
+describe('supply submission notification job consumer', () => {
+  it('keeps the notification database unique key as the final concurrency guard', () => {
     expect(Notifications.indexes).toContainEqual({
       fields: ['eventId', 'recipient', 'type'],
       unique: true,
     })
   })
 
-  it('skips updates without querying recipients', async () => {
-    const harness = createHarness()
-    const doc = submissionDoc()
-
-    await expect(runHook(harness, 'update', doc)).resolves.toBe(doc)
-
-    expect(harness.findCalls).toEqual([])
-    expect(harness.createCalls).toEqual([])
-  })
-
-  it('silently skips when no enabled role has read permission', async () => {
-    const harness = createHarness({ roles: [] })
-    const doc = submissionDoc()
-
-    await expect(runHook(harness, 'create', doc)).resolves.toBe(doc)
-
-    expect(harness.findCalls).toHaveLength(1)
-    expect(harness.createCalls).toEqual([])
-  })
-
-  it('silently skips when matching roles have no enabled users', async () => {
-    const harness = createHarness({ users: [] })
-    const doc = submissionDoc()
-
-    await expect(runHook(harness, 'create', doc)).resolves.toBe(doc)
-
-    expect(harness.findCalls).toHaveLength(2)
-    expect(harness.createCalls).toEqual([])
-  })
-
-  it('notifies enabled users of enabled exact-or-wildcard read roles', async () => {
-    const harness = createHarness({
-      roles: [
-        { id: 10, operationPermissions: ['supply_submission:read'] },
-        { id: 'adm-role', operationPermissions: ['*'] },
-      ],
-      users: [{ id: 20 }, { id: 'user-21' }],
+  it('registers a retrying dedicated task with event-only input', () => {
+    expect(supplySubmissionNotificationTask).toMatchObject({
+      slug: SUPPLY_SUBMISSION_NOTIFICATION_TASK,
+      retries: { attempts: 5 },
+      inputSchema: [{ name: 'eventId', type: 'text', required: true }],
     })
-
-    await runHook(harness)
-
-    expect(harness.findCalls).toEqual([
-      {
-        collection: 'roles',
-        where: { status: { equals: 'active' } },
-        limit: 100,
-        depth: 0,
-        overrideAccess: true,
-      },
-      {
-        collection: 'users',
-        where: {
-          and: [
-            { status: { equals: 'active' } },
-            { roles: { in: [10, 'adm-role'] } },
-          ],
-        },
-        limit: 100,
-        depth: 0,
-        overrideAccess: true,
-      },
-      {
-        collection: 'notifications',
-        where: {
-          and: [
-            { eventId: { equals: 'supply-submission-created:321' } },
-            { type: { equals: 'supply-submission-created' } },
-            { recipient: { in: [20, 'user-21'] } },
-          ],
-        },
-        limit: 100,
-        depth: 0,
-        overrideAccess: true,
-      },
-    ])
-    expect(harness.createCalls).toEqual([
-      {
-        collection: 'notifications',
-        data: {
-          recipient: 20,
-          type: 'supply-submission-created',
-          title: '新的房源投放申请',
-          body: '虹桥商务中心，280㎡，悬赏 1 个月佣金',
-          sourceType: 'supply-submission',
-          sourceId: '321',
-          eventId: 'supply-submission-created:321',
-        },
-        overrideAccess: true,
-      },
-      {
-        collection: 'notifications',
-        data: {
-          recipient: 'user-21',
-          type: 'supply-submission-created',
-          title: '新的房源投放申请',
-          body: '虹桥商务中心，280㎡，悬赏 1 个月佣金',
-          sourceType: 'supply-submission',
-          sourceId: '321',
-          eventId: 'supply-submission-created:321',
-        },
-        overrideAccess: true,
-      },
-    ])
   })
 
-  it('filters mixed role JSON values using exact string-array permissions only', async () => {
-    const harness = createHarness({
-      roles: [
-        { id: 10, operationPermissions: ['supply_submission:read'] },
-        { id: 11, operationPermissions: ['*'] },
-        { id: 12, operationPermissions: ['lead:read'] },
-        { id: 13, operationPermissions: { permission: 'supply_submission:read' } },
-        { id: 14, operationPermissions: 'supply_submission:read' },
-        { id: 15, operationPermissions: null },
-        { id: 16, operationPermissions: [123, 'supply_submission:read'] },
-        { id: 17, operationPermissions: ['not_supply_submission:read'] },
-      ],
-      users: [{ id: 20 }],
-    })
+  it('registers the task and dedicated auto-run queue while external job access stays closed', async () => {
+    const config = await payloadConfigPromise
+    expect(config.jobs?.tasks?.map((task) => task.slug)).toContain(
+      SUPPLY_SUBMISSION_NOTIFICATION_TASK,
+    )
+    expect(config.jobs?.autoRun).toEqual([
+      expect.objectContaining({
+        cron: '*/5 * * * * *',
+        queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+        disableScheduling: true,
+      }),
+    ])
+    await expect(
+      Promise.resolve(config.jobs?.access?.queue?.({ req: {} as never })),
+    ).resolves.toBe(false)
+    await expect(
+      Promise.resolve(config.jobs?.access?.run?.({ req: {} as never })),
+    ).resolves.toBe(false)
+    await expect(
+      Promise.resolve(
+        config.jobs?.access?.run?.({ req: { payloadAPI: 'local' } as never }),
+      ),
+    ).resolves.toBe(true)
+  })
 
-    await runHook(harness)
+  it('delivers to exact active-role recipients and marks the event processed only after success', async () => {
+    const harness = consumerHarness()
 
-    expect(harness.findCalls[1]).toEqual({
-      collection: 'users',
-      where: {
-        and: [
-          { status: { equals: 'active' } },
-          { roles: { in: [10, 11] } },
-        ],
-      },
-      limit: 100,
-      depth: 0,
+    await expect(
+      consumeSupplySubmissionCreated({
+        eventId: 'supply-submission-created:321',
+        payload: harness.payload as never,
+      }),
+    ).resolves.toEqual({ delivered: 2 })
+
+    expect(harness.creates.map((call) => (call.data as { recipient: Identifier }).recipient)).toEqual([
+      20,
+      21,
+    ])
+    expect(JSON.stringify(harness.creates)).not.toContain('13800003333')
+    expect(JSON.stringify(harness.creates)).not.toContain('敏感地址')
+    expect(harness.updates.at(-1)).toMatchObject({
+      collection: 'domain-events',
+      id: 41,
+      data: { processedAt: expect.any(String), attemptCount: 1, lastError: null },
       overrideAccess: true,
     })
   })
 
-  it('never includes the submitted phone number in notification content or logs', async () => {
-    const harness = createHarness()
-    const phone = '13800003333'
-
-    await runHook(harness, 'create', submissionDoc({ contactPhone: phone }))
-
-    expect(JSON.stringify(harness.createCalls)).not.toContain(phone)
-    expect(JSON.stringify(harness.errors)).not.toContain(phone)
-  })
-
-  it('deduplicates recipients and caps one submission fan-out at 50 users', async () => {
-    const users = Array.from({ length: 60 }, (_, index) => ({ id: index + 1 }))
-    users.splice(25, 0, { id: 5 }, { id: 25 })
-    const harness = createHarness({ users })
-
-    await runHook(harness)
-
-    expect(harness.createCalls).toHaveLength(50)
-    expect(new Set(harness.createCalls.map((call) => call.data.recipient)).size).toBe(50)
-  })
-
-  it('does not create duplicate notifications when the same submission hook is replayed', async () => {
-    const harness = createHarness({ users: [{ id: 20 }, { id: 21 }] })
-    const doc = submissionDoc()
-
-    await runHook(harness, 'create', doc)
-    await runHook(harness, 'create', doc)
-
-    expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([20, 21])
-  })
-
-  it('creates only missing recipients when part of the submission fan-out already exists', async () => {
-    const harness = createHarness({
-      users: [{ id: 20 }, { id: 21 }],
-      existingNotifications: [
-        {
-          recipient: { id: 20 },
-          eventId: 'supply-submission-created:321',
-          type: 'supply-submission-created',
-        },
-      ],
+  it('throws after partial failure, leaves the event unprocessed, then fills only missing recipients on retry', async () => {
+    const failed = consumerHarness({ failRecipients: [21] })
+    await expect(
+      consumeSupplySubmissionCreated({
+        eventId: 'supply-submission-created:321',
+        payload: failed.payload as never,
+      }),
+    ).rejects.toThrow('supply_submission_notification_delivery_failed')
+    expect(failed.updates.at(-1)).toMatchObject({
+      data: { processedAt: null, attemptCount: 1, lastError: 'notification_delivery_failed' },
     })
+    expect(JSON.stringify(failed.updates)).not.toContain('13800003333')
 
-    await runHook(harness)
-
-    expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([21])
+    const retried = consumerHarness({ existingRecipients: [20] })
+    await consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: retried.payload as never,
+    })
+    expect(retried.creates.map((call) => (call.data as { recipient: Identifier }).recipient)).toEqual([
+      21,
+    ])
   })
 
-  it('isolates unique conflicts during concurrent replay without persisting duplicates', async () => {
-    const harness = createHarness({
-      users: [{ id: 20 }, { id: 21 }],
-      synchronizeNotificationFinds: 2,
-      enforceNotificationUnique: true,
-    })
-    const doc = submissionDoc()
+  it('treats notification 23505 races and already-processed event replays as success', async () => {
+    const concurrent = consumerHarness({ uniqueConflictRecipients: [20, 21] })
+    await expect(
+      consumeSupplySubmissionCreated({
+        eventId: 'supply-submission-created:321',
+        payload: concurrent.payload as never,
+      }),
+    ).resolves.toEqual({ delivered: 0 })
+    expect(concurrent.updates.at(-1)).toMatchObject({ data: { processedAt: expect.any(String) } })
 
-    await Promise.all([runHook(harness, 'create', doc), runHook(harness, 'create', doc)])
-
-    expect(harness.notifications).toHaveLength(2)
-    expect(
-      new Set(
-        harness.notifications.map((notification) =>
-          typeof notification.recipient === 'object'
-            ? notification.recipient.id
-            : notification.recipient,
-        ),
-      ),
-    ).toEqual(new Set([20, 21]))
-    expect(harness.errors).toHaveLength(1)
-  })
-
-  it.each(['roles', 'users', 'notifications'] as const)(
-    'returns the created submission when the %s recipient query fails',
-    async (collection) => {
-      const harness = createHarness({ failFindCollection: collection })
-      const doc = submissionDoc()
-
-      await expect(runHook(harness, 'create', doc)).resolves.toBe(doc)
-
-      expect(harness.createCalls).toEqual([])
-      expect(harness.errors).toHaveLength(1)
-      expect(JSON.stringify(harness.errors)).not.toContain('13800003333')
-    },
-  )
-
-  it('attempts every recipient and returns the submission when one notification create fails', async () => {
-    const harness = createHarness({
-      users: [{ id: 20 }, { id: 21 }, { id: 22 }],
-      failCreateRecipient: 21,
-    })
-    const doc = submissionDoc()
-
-    await expect(runHook(harness, 'create', doc)).resolves.toBe(doc)
-
-    expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([20, 21, 22])
-    expect(harness.errors).toHaveLength(1)
+    const replay = consumerHarness({ processedAt: '2026-08-10T00:00:00.000Z' })
+    await expect(
+      consumeSupplySubmissionCreated({
+        eventId: 'supply-submission-created:321',
+        payload: replay.payload as never,
+      }),
+    ).resolves.toEqual({ delivered: 0 })
+    expect(replay.creates).toEqual([])
+    expect(replay.updates).toEqual([])
   })
 })

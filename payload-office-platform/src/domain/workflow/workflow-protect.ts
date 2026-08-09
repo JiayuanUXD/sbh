@@ -19,6 +19,7 @@
  */
 
 import type { CollectionBeforeChangeHook } from 'payload'
+import { isDeepStrictEqual } from 'node:util'
 
 import { InvalidOperationError } from '@/domain/shared/errors'
 import { isEventType, isAggregateType } from './event-types'
@@ -151,7 +152,11 @@ export const protectDomainEvent: CollectionBeforeChangeHook = async ({
     for (const field of immutableFields) {
       const original = (originalDoc as Record<string, unknown>)[field]
       const next = (data as Record<string, unknown> | undefined)?.[field]
-      if (next !== undefined && next !== original) {
+      const changed =
+        field === 'payload'
+          ? !isDeepStrictEqual(next, original)
+          : next !== original
+      if (next !== undefined && changed) {
         throw new InvalidOperationError({
           domain: 'workflow',
           code: 'EVENT_IMMUTABLE_FIELD',

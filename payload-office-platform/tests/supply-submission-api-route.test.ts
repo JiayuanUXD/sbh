@@ -5,6 +5,16 @@ const payloadCreateMock = vi.fn()
 const payloadLoggerError = vi.fn()
 const payloadLoggerInfo = vi.fn()
 const payloadLoggerWarn = vi.fn()
+const getPayloadMock = vi.fn(async (_options: unknown) => ({
+  db: payloadState.db,
+  find: payloadFindMock,
+  create: payloadCreateMock,
+  logger: {
+    error: payloadLoggerError,
+    info: payloadLoggerInfo,
+    warn: payloadLoggerWarn,
+  },
+}))
 const payloadState: { db: unknown } = {
   db: { pool: { query: vi.fn() } },
 }
@@ -13,16 +23,7 @@ vi.mock('payload', async (importOriginal) => {
   const actual = await importOriginal<typeof import('payload')>()
   return {
     ...actual,
-    getPayload: vi.fn(async () => ({
-      db: payloadState.db,
-      find: payloadFindMock,
-      create: payloadCreateMock,
-      logger: {
-        error: payloadLoggerError,
-        info: payloadLoggerInfo,
-        warn: payloadLoggerWarn,
-      },
-    })),
+    getPayload: (options: unknown) => getPayloadMock(options),
   }
 })
 
@@ -68,6 +69,7 @@ beforeEach(() => {
   payloadLoggerError.mockReset()
   payloadLoggerInfo.mockReset()
   payloadLoggerWarn.mockReset()
+  getPayloadMock.mockClear()
   payloadState.db = { pool: { query: vi.fn() } }
 })
 
@@ -89,6 +91,7 @@ describe('POST /api/supply-submissions safety boundaries', () => {
         overrideAccess: true,
       }),
     )
+    expect(getPayloadMock).toHaveBeenCalledWith({ config: expect.anything(), cron: true })
   })
 
   it('does not create a submission when the default city cannot be found', async () => {

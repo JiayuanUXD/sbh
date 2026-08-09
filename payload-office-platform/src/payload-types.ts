@@ -165,6 +165,7 @@ export interface Config {
   user: User;
   jobs: {
     tasks: {
+      'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -1576,11 +1577,12 @@ export interface DomainEvent {
     | 'sla.breached'
     | 'task.completed'
     | 'task.cancelled'
-    | 'correction.created';
+    | 'correction.created'
+    | 'supply-submission.created';
   /**
    * 聚合根类型（listing / report / lead / followup / sla）。
    */
-  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction';
+  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction' | 'supply-submission';
   /**
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
@@ -2329,7 +2331,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'createCollectionExport' | 'createCollectionImport';
+        taskSlug: 'inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport';
         taskID: string;
         input?:
           | {
@@ -2362,7 +2364,8 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'createCollectionExport' | 'createCollectionImport') | null;
+  taskSlug?:
+    ('inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -3744,6 +3747,18 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskNotify-supply-submission-created".
+ */
+export interface TaskNotifySupplySubmissionCreated {
+  input: {
+    eventId: string;
+  };
+  output: {
+    delivered: number;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

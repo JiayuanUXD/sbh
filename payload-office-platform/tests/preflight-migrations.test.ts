@@ -20,8 +20,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 35 份迁移（追加供给提交角色权限升级迁移后核对）
-    expect(names.length).toBe(35)
+    // 目录实际有 37 份迁移（追加只读预检与 Payload Jobs schema 后核对）
+    expect(names.length).toBe(37)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -36,14 +36,16 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260803_104120_add_articles')
     expect(names).toContain('20260808_224000_articles_menu_for_ops')
     expect(names).toContain('20260809_142444_supply_submissions_and_entrust_source')
+    expect(names).toContain('20260809_180000_supply_notification_duplicates_preflight')
     expect(names).toContain('20260809_183327_supply_submission_notification_unique')
+    expect(names).toContain('20260809_203911_supply_submission_notification_jobs')
     expect(names).toContain('20260810_090000_supply_submission_role_permissions')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(35)
+    expect(names.length).toBe(37)
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
@@ -52,7 +54,9 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260803_104120_add_articles')
     expect(names).toContain('20260808_224000_articles_menu_for_ops')
     expect(names).toContain('20260809_142444_supply_submissions_and_entrust_source')
+    expect(names).toContain('20260809_180000_supply_notification_duplicates_preflight')
     expect(names).toContain('20260809_183327_supply_submission_notification_unique')
+    expect(names).toContain('20260809_203911_supply_submission_notification_jobs')
     expect(names).toContain('20260810_090000_supply_submission_role_permissions')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
@@ -143,6 +147,13 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     // 漏项与悬空引用都必须为空，否则容器 payload migrate 会漏跑或引用失败
     expect(diff.missingFromIndex).toEqual([])
     expect(diff.missingFromDirectory).toEqual([])
+  })
+
+  it('通知重复数据只读预检严格位于复合唯一索引之前', () => {
+    const names = parseRegisteredMigrationNames(readFileSync(indexPath, 'utf-8'))
+    expect(names.indexOf('20260809_180000_supply_notification_duplicates_preflight')).toBeLessThan(
+      names.indexOf('20260809_183327_supply_submission_notification_unique'),
+    )
   })
 
   it('每份迁移文件都有 up 与 down（不可回滚项能被检测）', () => {

@@ -71,6 +71,10 @@ import {
 } from './domain/forms/submission-status'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
+import {
+  SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+  supplySubmissionNotificationTask,
+} from './domain/supply-submission/submission-notify'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -90,6 +94,29 @@ if (!metricRegistry.has('listings.total')) {
 }
 
 export default buildConfig({
+  // Dedicated CloudRun / Next container: Payload's persistent Jobs Queue is
+  // safe to auto-run here (unlike request-only serverless runtimes).
+  jobs: {
+    access: {
+      cancel: () => false,
+      queue: () => false,
+      // autoRun itself goes through this access callback in Payload 3.86.
+      // Permit only Payload-created Local API requests; REST/GraphQL callers
+      // remain closed even when authenticated.
+      run: ({ req }) => req.payloadAPI === 'local',
+    },
+    tasks: [supplySubmissionNotificationTask],
+    shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
+    autoRun: [
+      {
+        cron: '*/5 * * * * *',
+        queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+        disableScheduling: true,
+        limit: 10,
+        silent: true,
+      },
+    ],
+  },
   // OPT-015 生产 fail-closed：onInit 在 getPayload 时执行（db 连接成功后），
   // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
   // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload

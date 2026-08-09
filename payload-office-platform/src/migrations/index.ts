@@ -31,7 +31,9 @@ import * as migration_20260805_033418_cos_media_prefix from './20260805_033418_c
 import * as migration_20260806_080629_locations_cover_image from './20260806_080629_locations_cover_image';
 import * as migration_20260808_224000_articles_menu_for_ops from './20260808_224000_articles_menu_for_ops';
 import * as migration_20260809_142444_supply_submissions_and_entrust_source from './20260809_142444_supply_submissions_and_entrust_source';
+import * as migration_20260809_180000_supply_notification_duplicates_preflight from './20260809_180000_supply_notification_duplicates_preflight';
 import * as migration_20260809_183327_supply_submission_notification_unique from './20260809_183327_supply_submission_notification_unique';
+import * as migration_20260809_203911_supply_submission_notification_jobs from './20260809_203911_supply_submission_notification_jobs';
 import * as migration_20260810_090000_supply_submission_role_permissions from './20260810_090000_supply_submission_role_permissions';
 
 export const migrations = [
@@ -201,9 +203,19 @@ export const migrations = [
     name: '20260809_142444_supply_submissions_and_entrust_source',
   },
   {
+    up: migration_20260809_180000_supply_notification_duplicates_preflight.up,
+    down: migration_20260809_180000_supply_notification_duplicates_preflight.down,
+    name: '20260809_180000_supply_notification_duplicates_preflight',
+  },
+  {
     up: migration_20260809_183327_supply_submission_notification_unique.up,
     down: migration_20260809_183327_supply_submission_notification_unique.down,
-    name: '20260809_183327_supply_submission_notification_unique'
+    name: '20260809_183327_supply_submission_notification_unique',
+  },
+  {
+    up: migration_20260809_203911_supply_submission_notification_jobs.up,
+    down: migration_20260809_203911_supply_submission_notification_jobs.down,
+    name: '20260809_203911_supply_submission_notification_jobs',
   },
   {
     up: migration_20260810_090000_supply_submission_role_permissions.up,
