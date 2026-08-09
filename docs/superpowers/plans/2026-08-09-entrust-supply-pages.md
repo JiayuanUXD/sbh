@@ -27,7 +27,7 @@
 | Task 9 站内通知 | ✅ 完成 | `4b53e40` + `73d6ff4` + `465c8ab` + `e40ad32`，重放/并发幂等与 PostgreSQL JSON 权限查询修复，review 与真实端点/PG 验证通过 |
 | Task 10 埋点 | ✅ 完成 | `de3ae4c` + `26772cc`，补齐无效提交漏斗口径，review 与真实浏览器事件/PII 验证通过 |
 | Task 11 sitemap | ✅ 完成 | `b6e8090` + `56827f9`，静态降级与日志脱敏，review/HTTP 验证通过 |
-| Task 12 E2E 与验证 | ⬜ 未开始 | |
+| Task 12 E2E 与验证 | ✅ 完成（本地） | `aeabd68`..`95288fc`，永久 E2E、构建/迁移阻断、安全复审修复与最终验收通过；未执行 push/PR/deploy |
 
 执行期已修的两处**计划自身缺陷**（均已 commit 并回写本文档）：
 
@@ -4167,7 +4167,7 @@ git commit -m "feat(seo): sitemap 收录 /entrust 与 /publish"
 - Consumes: 全部前序任务
 - Produces: 两页的成功提交与校验失败 E2E 覆盖
 
-- [ ] **Step 1: 写 E2E**
+- [x] **Step 1: 写 E2E**
 
 创建 `tests/e2e/landing-pages.spec.ts`（先看 `tests/e2e/inquiry-flow.spec.ts` 的 baseURL 与前置约定，保持一致）：
 
@@ -4268,7 +4268,7 @@ test.describe('/publish 投放房源', () => {
 })
 ```
 
-- [ ] **Step 2: 跑 E2E**
+- [x] **Step 2: 跑 E2E**
 
 ```bash
 cd payload-office-platform && pnpm test:e2e --grep "委托找房|投放房源|主导航入口调整"
@@ -4276,7 +4276,7 @@ cd payload-office-platform && pnpm test:e2e --grep "委托找房|投放房源|�
 
 Expected: 全部通过。若因 Playwright 的 webServer 端口与本工作树 dev 端口冲突，按 `playwright.config.ts` 的既有约定调整（**不要**改成 3717）。
 
-- [ ] **Step 3: 全量验证**
+- [x] **Step 3: 全量验证**
 
 ```bash
 cd payload-office-platform && pnpm typecheck && pnpm lint && pnpm test && pnpm build
@@ -4284,7 +4284,7 @@ cd payload-office-platform && pnpm typecheck && pnpm lint && pnpm test && pnpm b
 
 Expected: 四项全绿。构建输出中 `/entrust` 与 `/publish` 均为静态。
 
-- [ ] **Step 4: 迁移可重放验证**
+- [x] **Step 4: 迁移可重放验证**
 
 ```bash
 cd payload-office-platform && pnpm migrate:status && pnpm migrate:dry-run
@@ -4292,7 +4292,7 @@ cd payload-office-platform && pnpm migrate:status && pnpm migrate:dry-run
 
 Expected: 无 pending，dry-run 无 BLOCK。
 
-- [ ] **Step 5: 提交并推分支**
+- [x] **Step 5: 本地提交（推送需用户授权）**
 
 ```bash
 git add payload-office-platform/tests/e2e/landing-pages.spec.ts
@@ -4300,7 +4300,7 @@ git commit -m "test(e2e): 覆盖委托找房/投放房源两页与导航调整"
 git push -u origin claude/delegated-search-listing-pages-7eeeef
 ```
 
-- [ ] **Step 6: 开 draft PR**
+- [x] **Step 6: 准备 draft PR（创建需用户授权）**
 
 ```bash
 gh pr create --draft --base master --title "feat: 委托找房 / 投放房源 双落地页" --body "实施 docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md（v2）。
@@ -4312,6 +4312,16 @@ gh pr create --draft --base master --title "feat: 委托找房 / 投放房源 �
 
 待运营确认：landing-config.ts 里 ENTRUST_STATS 三个数字为占位口径，上线前需替换为真实数据（PRD §13 Q3）。"
 ```
+
+> **Task 12 最终验收（2026-08-10）：**
+>
+> - 永久 Playwright：生产 `next start` + DataLayerAdapter，8/8 通过；两条真实提交、移动端吸底/无横向溢出、console/pageerror 严格为空、埋点无 PII。
+> - Vitest：168 files / 2552 tests；TypeScript 通过；ESLint 0 errors（18 条既有 warnings）。
+> - `next build --webpack` 通过，`/entrust` 与 `/publish` 均为 `○ Static`。默认 Turbopack 在当前 Windows 深 worktree 仍因 pnpm 深路径解析报既有 module-not-found，未作为业务失败掩盖。
+> - 迁移：37 code / 37 applied / 0 pending；dry-run 0 BLOCK / 2 条既有 warning；verify 151 checks / 0 fail / 13 条既有 warning。
+> - 安全复审追加修复：匿名集合 create fail-closed、角色权限矩阵、转换双权限、刷新幂等、持久化 Payload Jobs 通知、历史重复预检、独立通知事务、23505 精确确认、active roles 完整分页与稳定前 50 收件人。
+> - 旧 Payload 生成迁移的 `down` 未手改；当前由 `rollback:supply:preflight` 对 8 类不兼容数据 fail-closed，状态为 **MITIGATED**，执行回滚仍需受控 DBA 流程。
+> - 所有代码均已本地提交；因没有远端变更授权，未执行 `git push`、创建 PR 或部署。上面的 PR 命令与正文保留为授权后的操作模板。
 
 ---
 
