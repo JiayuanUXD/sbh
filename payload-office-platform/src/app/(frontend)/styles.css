@@ -1652,6 +1652,50 @@ ol {
   transform: scale(1.02);
 }
 
+.detail-gallery__main-nav {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.detail-gallery__main-nav-button {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.42);
+  color: var(--color-on-ink);
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translateY(-50%);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  backdrop-filter: blur(6px);
+}
+
+.detail-gallery__main-nav-button:hover,
+.detail-gallery__main-nav-button:focus-visible {
+  background: rgba(17, 24, 39, 0.7);
+  border-color: rgba(255, 255, 255, 0.72);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.detail-gallery__main-nav-button--prev {
+  left: var(--sp-3);
+}
+
+.detail-gallery__main-nav-button--next {
+  right: var(--sp-3);
+}
+
 .detail-gallery__main-badge {
   position: absolute;
   left: var(--sp-3);
@@ -2132,6 +2176,20 @@ ol {
 
   .detail-gallery__nav--previous { left: var(--sp-2); }
   .detail-gallery__nav--next { right: var(--sp-2); }
+
+  .detail-gallery__main-nav-button {
+    width: 38px;
+    height: 38px;
+    font-size: 26px;
+  }
+
+  .detail-gallery__main-nav-button--prev {
+    left: var(--sp-2);
+  }
+
+  .detail-gallery__main-nav-button--next {
+    right: var(--sp-2);
+  }
 }
 
 .detail__summary {
@@ -5635,21 +5693,30 @@ ol {
 
 /* 参数区子标题 */
 .detail-v2__subsection-title {
-  margin: var(--sp-5) 0 var(--sp-3);
+  margin: var(--sp-6) 0 var(--sp-3);
   font-size: var(--fs-18);
 }
 
-/* 位置区灰底成带 */
-.detail-v2__location-band {
-  padding: var(--sp-5);
-  margin-bottom: var(--sp-6);
-  background: var(--color-canvas);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
+.detail-v2__features-body {
+  line-height: 1.85;
 }
 
-.detail-v2__location-band > h2 {
+.detail-v2__features-body :where(p, ul, ol) {
+  line-height: 1.85;
+}
+
+/* 位置区 */
+.detail-v2__location-band {
+  padding: 0;
+  margin-bottom: var(--sp-6);
+}
+
+.detail-v2__location-band .location-panel {
   margin-top: 0;
+}
+
+.detail-v2__location-band .location-panel > h2 {
+  display: none;
 }
 
 /* 周边楼盘横滑 */
@@ -5735,6 +5802,6 @@ ol {
   }
 
   .detail-v2__location-band {
-    padding: var(--sp-4);
+    padding: 0;
   }
 }

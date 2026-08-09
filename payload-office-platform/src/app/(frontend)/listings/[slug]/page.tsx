@@ -31,13 +31,6 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const TYPE_LABEL: Record<string, string> = {
-  'traditional-office': '传统办公',
-  'serviced-office': '服务式办公',
-  coworking: '共享办公',
-  'full-floor': '整层办公',
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -140,7 +133,6 @@ export default async function ListingDetailPage({
         ]}
       />
       <header className="detail__header">
-        <span className="detail__type">{TYPE_LABEL[listing.listingType]}</span>
         <h1 className="detail__title">{listing.title}</h1>
         {headerHighlights.length > 0 && (
           <div className="detail__tags" aria-label="房源亮点">

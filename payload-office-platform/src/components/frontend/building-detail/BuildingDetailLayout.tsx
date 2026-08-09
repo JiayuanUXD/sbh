@@ -10,7 +10,6 @@ import DetailGallery from '@/components/frontend/DetailGallery'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import LocationPanel from '@/components/frontend/LocationPanel'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
-import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { rentUnitLabel } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
@@ -109,21 +108,7 @@ export default function BuildingDetailLayout({
 
       <header className="detail-v2__titlebar">
         <div>
-          <div className="detail__header-tags">
-            {building.district && <span className="detail__type">{building.district.name}</span>}
-            {(() => {
-              const gradeLabel = getBuildingGradeLabel(building.grade)
-              return gradeLabel ? (
-                <span className="detail__grade-badge" data-grade={building.grade}>
-                  {gradeLabel}
-                </span>
-              ) : null
-            })()}
-          </div>
           <h1 className="detail__title">{building.name}</h1>
-          {building.address && (
-            <p className="detail__building-summary">{building.address}</p>
-          )}
         </div>
         <div className="detail-v2__titlebar-actions">
           <ShareSaveActions
@@ -174,7 +159,7 @@ export default function BuildingDetailLayout({
           {building.description && (
             <>
               <h3 className="detail-v2__subsection-title">楼盘特色</h3>
-              <div className="richtext">
+              <div className="richtext detail-v2__features-body">
                 <RichText data={building.description} />
               </div>
             </>
@@ -183,7 +168,6 @@ export default function BuildingDetailLayout({
       )}
 
       <section id="location" className="detail-v2__location-band">
-        <h2>位置及周边</h2>
         <LocationPanel
           building={{
             id: building.id,

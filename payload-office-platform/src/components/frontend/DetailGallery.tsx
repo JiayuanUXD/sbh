@@ -246,6 +246,27 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
             </button>
           )}
 
+          {activeMedia.item.kind !== 'video' && currentList.length > 1 && (
+            <div className="detail-gallery__main-nav" aria-label="主图切换">
+              <button
+                type="button"
+                className="detail-gallery__main-nav-button detail-gallery__main-nav-button--prev"
+                aria-label="上一张图片"
+                onClick={() => goTo(safeActiveIndex - 1)}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="detail-gallery__main-nav-button detail-gallery__main-nav-button--next"
+                aria-label="下一张图片"
+                onClick={() => goTo(safeActiveIndex + 1)}
+              >
+                ›
+              </button>
+            </div>
+          )}
+
           <span className="detail-gallery__main-badge">
             {activeMedia.item.category}
             {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && ' (示意图)'}
