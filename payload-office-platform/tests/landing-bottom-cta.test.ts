@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import React from 'react'
 import BottomCtaBar, {
+  activateBottomCta,
   focusLandingTarget,
   shouldDockBottomCta,
 } from '@/components/frontend/landing/BottomCtaBar'
+import type { LandingAnalyticsRecord } from '@/lib/frontend/analytics/landing'
 
 describe('focusLandingTarget', () => {
   it('scrolls to a focusable target and transfers focus without moving it again', () => {
@@ -70,6 +72,37 @@ describe('focusLandingTarget', () => {
   })
 })
 
+describe('activateBottomCta', () => {
+  it('tracks only page type and still focuses when analytics throws', () => {
+    const events: LandingAnalyticsRecord[] = []
+    const target = {
+      tabIndex: 0,
+      hasAttribute: () => false,
+      scrollIntoView: () => undefined,
+      focus: () => undefined,
+    }
+    const environment = {
+      findTarget: () => target,
+      prefersReducedMotion: () => false,
+    }
+
+    expect(
+      activateBottomCta('entrust', 'entrust-phone', environment, (name, props) => {
+        events.push({ name, props })
+      }),
+    ).toBe(true)
+    expect(events).toEqual([
+      { name: 'landing_bottom_cta_click', props: { page_type: 'entrust' } },
+    ])
+
+    expect(
+      activateBottomCta('entrust', 'entrust-phone', environment, () => {
+        throw new Error('analytics unavailable')
+      }),
+    ).toBe(true)
+  })
+})
+
 describe('shouldDockBottomCta', () => {
   it('docks only after the CTA anchor reaches the viewport, and undocks before it', () => {
     expect(shouldDockBottomCta(813, 812)).toBe(false)
@@ -88,6 +121,7 @@ describe('shouldDockBottomCta', () => {
         text: '现在开始定制服务',
         ctaLabel: '免费委托定制',
         targetId: 'entrust-phone',
+        pageType: 'entrust',
       }),
     )
 

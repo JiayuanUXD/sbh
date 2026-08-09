@@ -4,6 +4,12 @@ import Link from 'next/link'
 import React, { useId, useState } from 'react'
 import { Button, Field, Input } from '@/components/frontend/ui'
 import { ENTRUST_COPY } from '@/lib/frontend/landing-config'
+import { track } from '@/lib/frontend/analytics'
+import {
+  createLandingOnceTracker,
+  safeTrackLandingEvent,
+  type LandingAnalyticsTrack,
+} from '@/lib/frontend/analytics/landing'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 
 export type EntrustInquiryBody = Readonly<{
@@ -91,6 +97,7 @@ export function createEntrustSubmissionCoordinator(
   requestIdFactory: () => string,
   requester: EntrustRequester,
   onStateChange: (state: EntrustFormState) => void = () => undefined,
+  analyticsTrack: LandingAnalyticsTrack = track,
 ): EntrustSubmissionCoordinator {
   const requestId = requestIdFactory()
   let state: EntrustFormState = { status: 'idle', error: null }
@@ -105,19 +112,43 @@ export function createEntrustSubmissionCoordinator(
     if (pendingSubmission) return pendingSubmission
     if (!isValidEntrustPhone(phone)) {
       updateState({ status: 'error', error: PHONE_ERROR })
+      safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
+        page_type: 'entrust',
+        error_code: 'validation_failed',
+      })
       return Promise.resolve(state)
     }
 
     updateState({ status: 'submitting', error: null })
     pendingSubmission = submitEntrustInquiry(buildEntrustInquiryBody(phone, requestId), requester)
       .then((result) => {
-        if (result.ok) updateState({ status: 'success', error: null })
-        else updateState({ status: 'error', error: getEntrustSubmissionError(result.error) })
+        if (result.ok) {
+          updateState({ status: 'success', error: null })
+          safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
+            page_type: 'entrust',
+          })
+        }
+        else {
+          updateState({ status: 'error', error: getEntrustSubmissionError(result.error) })
+          safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
+            page_type: 'entrust',
+            error_code:
+              result.error === 'rate_limited'
+                ? 'rate_limited'
+                : result.error === 'network_error'
+                  ? 'network_error'
+                  : 'submit_failed',
+          })
+        }
         return state
       })
       .finally(() => {
         pendingSubmission = null
       })
+    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
+      page_type: 'entrust',
+      field_completeness: 1,
+    })
     return pendingSubmission
   }
 
@@ -138,6 +169,9 @@ export default function EntrustForm() {
   const [phone, setPhone] = useState('')
   const [formState, setFormState] = useState<EntrustFormState>({ status: 'idle', error: null })
   const [coordinator] = useState(() => createEntrustSubmissionCoordinator(newRequestId, fetch, setFormState))
+  const [trackFormStart] = useState(() =>
+    createLandingOnceTracker('landing_form_start', 'entrust', track),
+  )
 
   if (formState.status === 'success') {
     return (
@@ -164,6 +198,7 @@ export default function EntrustForm() {
           placeholder={ENTRUST_COPY.formPlaceholder}
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
+          onFocus={trackFormStart}
           aria-describedby={noteId}
         />
       </Field>

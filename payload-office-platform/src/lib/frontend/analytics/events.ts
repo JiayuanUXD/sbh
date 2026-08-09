@@ -36,6 +36,18 @@ export const ANALYTICS_EVENTS = {
   building_listing_click: ['building_id', 'listing_id', 'supply_group', 'rank', 'section'],
   /** 楼盘页相关楼盘入口。 */
   related_building_click: ['building_id', 'target_building_id', 'recommendation_type', 'rank', 'section'],
+  /** Landing-page exposure. */
+  landing_view: ['page_type'],
+  /** First interaction with a landing-page form. */
+  landing_form_start: ['page_type'],
+  /** Valid landing-page submission attempt; values are aggregate/enumerated only. */
+  landing_form_submit: ['page_type', 'field_completeness', 'commission_months'],
+  /** Successful landing-page submission. */
+  landing_form_success: ['page_type'],
+  /** Failed landing-page submission with a safe, fixed error code. */
+  landing_form_error: ['page_type', 'error_code'],
+  /** Landing-page footer CTA click. */
+  landing_bottom_cta_click: ['page_type'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS

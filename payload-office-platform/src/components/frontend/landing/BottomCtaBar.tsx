@@ -2,6 +2,12 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/frontend/ui'
+import { track } from '@/lib/frontend/analytics'
+import {
+  safeTrackLandingEvent,
+  type LandingAnalyticsTrack,
+  type LandingPageType,
+} from '@/lib/frontend/analytics/landing'
 
 type FocusableLandingTarget = {
   tabIndex: number
@@ -20,6 +26,7 @@ type BottomCtaBarProps = {
   text: string
   ctaLabel: string
   targetId: string
+  pageType: LandingPageType
 }
 
 function isFocusableTarget(target: unknown): target is FocusableLandingTarget {
@@ -47,6 +54,18 @@ export function focusLandingTarget(targetId: string, environment: LandingFocusEn
   return true
 }
 
+export function activateBottomCta(
+  pageType: LandingPageType,
+  targetId: string,
+  environment: LandingFocusEnvironment,
+  analyticsTrack: LandingAnalyticsTrack = track,
+): boolean {
+  safeTrackLandingEvent(analyticsTrack, 'landing_bottom_cta_click', {
+    page_type: pageType,
+  })
+  return focusLandingTarget(targetId, environment)
+}
+
 /** CTA 锚点进入视口后才吸底，回滚到锚点前则恢复普通流。 */
 export function shouldDockBottomCta(anchorTop: number, viewportHeight: number): boolean {
   return Number.isFinite(anchorTop)
@@ -65,7 +84,7 @@ function createBrowserFocusEnvironment(): LandingFocusEnvironment {
   }
 }
 
-export default function BottomCtaBar({ text, ctaLabel, targetId }: BottomCtaBarProps) {
+export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: BottomCtaBarProps) {
   const anchorRef = useRef<HTMLDivElement | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
   const [docked, setDocked] = useState(false)
@@ -114,7 +133,7 @@ export default function BottomCtaBar({ text, ctaLabel, targetId }: BottomCtaBarP
   }, [])
 
   const focusTarget = () => {
-    focusLandingTarget(targetId, createBrowserFocusEnvironment())
+    activateBottomCta(pageType, targetId, createBrowserFocusEnvironment())
   }
 
   return (

@@ -150,3 +150,44 @@ describe('detail page analytics privacy contract', () => {
     })
   })
 })
+
+describe('landing conversion analytics privacy contract', () => {
+  it('registers the six funnel events with only aggregate and enumerated properties', () => {
+    expect(ANALYTICS_EVENTS).toMatchObject({
+      landing_view: ['page_type'],
+      landing_form_start: ['page_type'],
+      landing_form_submit: ['page_type', 'field_completeness', 'commission_months'],
+      landing_form_success: ['page_type'],
+      landing_form_error: ['page_type', 'error_code'],
+      landing_bottom_cta_click: ['page_type'],
+    })
+
+    const result = validateEvent('landing_form_submit', {
+      page_type: 'publish',
+      field_completeness: 6,
+      commission_months: '1',
+      phone: '13800001111',
+      name: 'private building',
+      address: 'private address',
+      path: '/publish?phone=13800001111',
+    })
+
+    expect(result).toEqual({
+      ok: true,
+      eventName: 'landing_form_submit',
+      sanitized: {
+        page_type: 'publish',
+        field_completeness: 6,
+        commission_months: '1',
+      },
+    })
+  })
+
+  it('rejects every prohibited landing-event property key before collection', () => {
+    for (const key of ['phone', 'name', 'address', 'path', 'url']) {
+      expect(() => assertSafeAnalyticsProps({ [key]: 'private' })).toThrow(
+        `unsafe analytics property: ${key}`,
+      )
+    }
+  })
+})

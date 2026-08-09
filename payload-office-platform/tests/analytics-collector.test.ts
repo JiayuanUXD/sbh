@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { createCollector } from '@/lib/frontend/analytics/collector'
 import type { AnalyticsAdapter } from '@/lib/frontend/analytics/adapter'
+import { createDefaultCollector } from '@/lib/frontend/analytics/init'
 
 describe('OPT-010 collector 集成', () => {
   beforeEach(() => vi.useFakeTimers())
@@ -70,5 +71,19 @@ describe('OPT-010 collector 集成', () => {
     const sent = send.mock.calls[0][0][0]
     expect(sent.eventName).toBe('inquiry_success')
     expect(sent.timestamp).toBe(12345)
+  })
+
+  it('deduplicates landing-page exposure in the default collector', async () => {
+    const send = vi.fn()
+    const adapter: AnalyticsAdapter = { name: 't', send }
+    const collector = createDefaultCollector(adapter, () => 100)
+
+    collector.track('landing_view', { page_type: 'entrust' })
+    collector.track('landing_view', { page_type: 'entrust' })
+    await collector.flush()
+
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send.mock.calls[0][0]).toHaveLength(1)
+    expect(send.mock.calls[0][0][0].eventName).toBe('landing_view')
   })
 })

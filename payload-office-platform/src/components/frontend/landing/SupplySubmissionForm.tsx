@@ -12,6 +12,12 @@ import {
   type CommissionMonths,
 } from '@/domain/supply-submission/schema'
 import { PUBLISH_COPY, PUBLISH_STEPS } from '@/lib/frontend/landing-config'
+import { track } from '@/lib/frontend/analytics'
+import {
+  createLandingOnceTracker,
+  safeTrackLandingEvent,
+  type LandingAnalyticsTrack,
+} from '@/lib/frontend/analytics/landing'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 
 const RENT_UNIT_OPTIONS = [
@@ -192,6 +198,7 @@ export function createSupplySubmissionCoordinator(
   requestIdFactory: () => string,
   requester: SupplyRequester,
   onStateChange: (state: SupplyFormState) => void = () => undefined,
+  analyticsTrack: LandingAnalyticsTrack = track,
 ): SupplySubmissionCoordinator {
   const requestId = requestIdFactory()
   let state = INITIAL_STATE
@@ -208,6 +215,10 @@ export function createSupplySubmissionCoordinator(
     const clientErrors = getSupplyFieldErrors(values)
     if (Object.keys(clientErrors).length > 0) {
       updateState({ status: 'error', fieldErrors: clientErrors, formError: null })
+      safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
+        page_type: 'publish',
+        error_code: 'validation_failed',
+      })
       return Promise.resolve(state)
     }
 
@@ -219,6 +230,9 @@ export function createSupplySubmissionCoordinator(
       .then((result) => {
         if (result.ok) {
           updateState({ status: 'success', fieldErrors: {}, formError: null })
+          safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
+            page_type: 'publish',
+          })
           return state
         }
 
@@ -232,11 +246,35 @@ export function createSupplySubmissionCoordinator(
               ? null
               : getSubmissionFormError(result),
         })
+        safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
+          page_type: 'publish',
+          error_code:
+            result.error === 'validation_error'
+              ? 'validation_failed'
+              : result.error === 'rate_limited'
+                ? 'rate_limited'
+                : result.error === 'network_error'
+                  ? 'network_error'
+                  : 'submit_failed',
+        })
         return state
       })
       .finally(() => {
         pendingSubmission = null
       })
+    const filledCount = [
+      values.buildingName.trim(),
+      values.address.trim(),
+      values.areaSqm.trim(),
+      values.rentAmount.trim(),
+      values.rentUnit,
+      values.contactPhone.trim(),
+    ].filter(Boolean).length
+    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
+      page_type: 'publish',
+      field_completeness: filledCount,
+      commission_months: values.commissionMonths,
+    })
     return pendingSubmission
   }
 
@@ -270,6 +308,9 @@ export default function SupplySubmissionForm() {
   const [formState, setFormState] = useState<SupplyFormState>(INITIAL_STATE)
   const [coordinator] = useState(() =>
     createSupplySubmissionCoordinator(newRequestId, fetch, setFormState),
+  )
+  const [trackFormStart] = useState(() =>
+    createLandingOnceTracker('landing_form_start', 'publish', track),
   )
 
   if (formState.status === 'success') {
@@ -311,6 +352,7 @@ export default function SupplySubmissionForm() {
             placeholder="请输入楼盘名称…"
             value={values.buildingName}
             onChange={(event) => updateValue('buildingName', event.target.value)}
+            onFocus={trackFormStart}
           />
         </Field>
 
@@ -327,6 +369,7 @@ export default function SupplySubmissionForm() {
             placeholder="请输入楼号、单元号或房间号…"
             value={values.address}
             onChange={(event) => updateValue('address', event.target.value)}
+            onFocus={trackFormStart}
           />
         </Field>
 
@@ -345,6 +388,7 @@ export default function SupplySubmissionForm() {
             placeholder="请输入出租面积…"
             value={values.areaSqm}
             onChange={(event) => updateValue('areaSqm', event.target.value)}
+            onFocus={trackFormStart}
           />
         </Field>
 
@@ -359,12 +403,14 @@ export default function SupplySubmissionForm() {
               placeholder="请输入期望价格…"
               value={values.rentAmount}
               onChange={(event) => updateValue('rentAmount', event.target.value)}
+              onFocus={trackFormStart}
             />
           </Field>
           <Field label="租金单位" id="publish-rent-unit">
             <Select
               name="rentUnit"
               value={values.rentUnit}
+              onFocus={trackFormStart}
               onChange={(event) =>
                 updateValue('rentUnit', event.target.value as InquiryPriceUnit)
               }
@@ -423,6 +469,7 @@ export default function SupplySubmissionForm() {
             placeholder="请输入手机号…"
             value={values.contactPhone}
             onChange={(event) => updateValue('contactPhone', event.target.value)}
+            onFocus={trackFormStart}
             aria-describedby={contactNoteId}
           />
         </Field>

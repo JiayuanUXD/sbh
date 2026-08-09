@@ -3,6 +3,7 @@ import React from 'react'
 import BottomCtaBar from '@/components/frontend/landing/BottomCtaBar'
 import EntrustForm from '@/components/frontend/landing/EntrustForm'
 import LandingHero from '@/components/frontend/landing/LandingHero'
+import LandingViewAnalytics from '@/components/frontend/landing/LandingViewAnalytics'
 import ProcessSteps from '@/components/frontend/landing/ProcessSteps'
 import StatHighlights from '@/components/frontend/landing/StatHighlights'
 import {
@@ -37,6 +38,7 @@ export default function EntrustPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SERVICE_JSON_LD) }}
       />
+      <LandingViewAnalytics pageType="entrust" />
       <LandingHero
         variant="split"
         badge={BRAND_BADGE}
@@ -66,6 +68,7 @@ export default function EntrustPage() {
         text={ENTRUST_COPY.bottomCtaText}
         ctaLabel={ENTRUST_COPY.bottomCtaLabel}
         targetId="entrust-phone"
+        pageType="entrust"
       />
     </>
   )

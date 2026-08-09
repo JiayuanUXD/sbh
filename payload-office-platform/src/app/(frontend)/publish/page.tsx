@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import React from 'react'
 import LandingHero from '@/components/frontend/landing/LandingHero'
+import LandingViewAnalytics from '@/components/frontend/landing/LandingViewAnalytics'
 import SupplySubmissionForm from '@/components/frontend/landing/SupplySubmissionForm'
 import { PUBLISH_COPY } from '@/lib/frontend/landing-config'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
@@ -31,6 +32,7 @@ export default function PublishPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SERVICE_JSON_LD) }}
       />
+      <LandingViewAnalytics pageType="publish" />
       <LandingHero
         variant="centered"
         title={PUBLISH_COPY.title}

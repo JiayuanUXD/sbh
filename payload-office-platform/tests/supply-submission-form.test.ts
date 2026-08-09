@@ -10,6 +10,7 @@ import SupplySubmissionForm, {
   type SupplyFormValues,
 } from '@/components/frontend/landing/SupplySubmissionForm'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import type { LandingAnalyticsRecord } from '@/lib/frontend/analytics/landing'
 
 const VALID_VALUES: SupplyFormValues = {
   buildingName: ' 世纪商贸广场 ',
@@ -112,7 +113,13 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       if (typeof init?.body === 'string') requestBodies.push(init.body)
       return response
     }
-    const coordinator = createSupplySubmissionCoordinator(requestIdFactory, requester)
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createSupplySubmissionCoordinator(
+      requestIdFactory,
+      requester,
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
 
     const first = coordinator.submit(VALID_VALUES)
     const second = coordinator.submit(VALID_VALUES)
@@ -130,6 +137,83 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       fieldErrors: {},
       formError: null,
     })
+    expect(events).toEqual([
+      {
+        name: 'landing_form_submit',
+        props: {
+          page_type: 'publish',
+          field_completeness: 6,
+          commission_months: '1',
+        },
+      },
+      { name: 'landing_form_success', props: { page_type: 'publish' } },
+    ])
+    expect(JSON.stringify(events)).not.toMatch(/涓栫邯|13800001111|2299|\/publish/)
+  })
+
+  it('tracks client validation without reporting a network submit', async () => {
+    let requests = 0
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createSupplySubmissionCoordinator(
+      () => 'publish-invalid',
+      async () => {
+        requests += 1
+        return new Response('{}', { status: 500 })
+      },
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
+
+    await coordinator.submit({ ...VALID_VALUES, buildingName: '', contactPhone: '123' })
+
+    expect(requests).toBe(0)
+    expect(events).toEqual([
+      {
+        name: 'landing_form_error',
+        props: { page_type: 'publish', error_code: 'validation_failed' },
+      },
+    ])
+  })
+
+  it('uses fixed safe error codes for rate-limit, network, and generic failures', async () => {
+    let attempt = 0
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createSupplySubmissionCoordinator(
+      () => 'publish-safe-errors',
+      async () => {
+        attempt += 1
+        if (attempt === 1) return new Response('{}', { status: 429 })
+        if (attempt === 2) throw new Error('private network detail')
+        return new Response('{}', { status: 500 })
+      },
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
+
+    await coordinator.submit(VALID_VALUES)
+    await coordinator.submit(VALID_VALUES)
+    await coordinator.submit(VALID_VALUES)
+
+    expect(events.filter((event) => event.name === 'landing_form_error')).toEqual([
+      { name: 'landing_form_error', props: { page_type: 'publish', error_code: 'rate_limited' } },
+      { name: 'landing_form_error', props: { page_type: 'publish', error_code: 'network_error' } },
+      { name: 'landing_form_error', props: { page_type: 'publish', error_code: 'submit_failed' } },
+    ])
+    expect(events.filter((event) => event.name === 'landing_form_submit')).toHaveLength(3)
+    expect(JSON.stringify(events)).not.toContain('private network detail')
+  })
+
+  it('keeps submission successful when analytics throws', async () => {
+    const coordinator = createSupplySubmissionCoordinator(
+      () => 'publish-analytics-failure',
+      async () => new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      undefined,
+      () => {
+        throw new Error('analytics unavailable')
+      },
+    )
+
+    await expect(coordinator.submit(VALID_VALUES)).resolves.toMatchObject({ status: 'success' })
   })
 
   it('reuses the mounted request ID after failure and maps 422 errors to fields', async () => {
@@ -145,7 +229,13 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       }
       return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }))
     }
-    const coordinator = createSupplySubmissionCoordinator(() => 'publish-retry-id', requester)
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createSupplySubmissionCoordinator(
+      () => 'publish-retry-id',
+      requester,
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
 
     await coordinator.submit(VALID_VALUES)
     expect(coordinator.getState()).toEqual({
@@ -163,6 +253,13 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(requestBodies[0]).toContain('"requestId":"publish-retry-id"')
     expect(requestBodies[1]).toContain('"requestId":"publish-retry-id"')
     expect(coordinator.getState().status).toBe('success')
+    expect(events.map((event) => event.name)).toEqual([
+      'landing_form_submit',
+      'landing_form_error',
+      'landing_form_submit',
+      'landing_form_success',
+    ])
+    expect(events[1].props).toEqual({ page_type: 'publish', error_code: 'validation_failed' })
   })
 
   it('renders labels, controls, defaults, descriptions, and live regions accessibly', () => {
