@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 
 /**
  * 公开站点主导航
@@ -16,18 +17,6 @@ import InquiryModal from '@/components/frontend/InquiryModal'
  *   - 抽屉打开时锁焦点、Esc 关闭、归还焦点到触发器；
  *   - 触控目标 ≥ 44×44px。
  */
-
-type NavItem = { href: string; label: string }
-
-// 对齐 homepage-preview.html 顶部导航：不设「首页」（logo 即回首页），
-// 顺序与文案与 preview 一致。
-const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/listings', label: '找办公室' },
-  { href: '/buildings', label: '找楼盘' },
-  { href: '/listings?type=serviced-office', label: '服务式办公' },
-  { href: '/listings?type=coworking', label: '共享办公' },
-  { href: '/news', label: '资讯' },
-] as const
 
 /**
  * 判断当前路径是否匹配给定 href。
@@ -132,7 +121,7 @@ export default function SiteNav() {
     <>
       {/* 桌面端导航 */}
       <nav className="site-nav" aria-label="主导航">
-        {NAV_ITEMS.map((item) => {
+        {MAIN_NAV_ITEMS.map((item) => {
           const current = isCurrent(pathname, searchParams, item.href)
           return (
             <Link
@@ -214,7 +203,7 @@ export default function SiteNav() {
             onClick={(e) => e.stopPropagation()}
           >
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
-              {NAV_ITEMS.map((item) => {
+              {MAIN_NAV_ITEMS.map((item) => {
                 const current = isCurrent(pathname, searchParams, item.href)
                 return (
                   <Link
