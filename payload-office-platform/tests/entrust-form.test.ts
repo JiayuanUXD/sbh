@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildEntrustInquiryBody,
+  createEntrustSubmissionCoordinator,
   getEntrustSubmissionError,
   isValidEntrustPhone,
   normalizeEntrustPhone,
@@ -71,5 +72,74 @@ describe('EntrustForm submission boundary', () => {
     expect(getEntrustSubmissionError('rate_limited')).toBe('提交过于频繁，请稍后再试')
     expect(getEntrustSubmissionError('failed')).toBe('提交失败，请稍后重试')
     expect(getEntrustSubmissionError('network_error')).toBe('网络异常，请稍后重试')
+  })
+
+  it('creates one request ID, sends once for a double submit, and transitions to success', async () => {
+    const requestIdFactory = vi.fn(() => 'entrust-one-mount')
+    let calls = 0
+    let resolveResponse: (response: Response) => void = () => undefined
+    const response = new Promise<Response>((resolve) => {
+      resolveResponse = resolve
+    })
+    const requester = (_url: string, _init?: RequestInit): Promise<Response> => {
+      calls += 1
+      return response
+    }
+    const states: string[] = []
+    const coordinator = createEntrustSubmissionCoordinator(requestIdFactory, requester, (state) => {
+      states.push(state.status)
+    })
+
+    const firstSubmit = coordinator.submit('13800001111')
+    const secondSubmit = coordinator.submit('13800001111')
+
+    expect(requestIdFactory).toHaveBeenCalledTimes(1)
+    expect(calls).toBe(1)
+    expect(firstSubmit).toBe(secondSubmit)
+    expect(coordinator.getState()).toEqual({ status: 'submitting', error: null })
+
+    resolveResponse(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    await firstSubmit
+
+    expect(coordinator.getState()).toEqual({ status: 'success', error: null })
+    expect(states).toEqual(['submitting', 'success'])
+  })
+
+  it('retains the mounted request ID when retrying after a rate limit', async () => {
+    const requestBodies: string[] = []
+    const requester = (_url: string, init?: RequestInit): Promise<Response> => {
+      if (typeof init?.body === 'string') requestBodies.push(init.body)
+      return Promise.resolve(
+        requestBodies.length === 1
+          ? new Response(JSON.stringify({ ok: false }), { status: 429 })
+          : new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      )
+    }
+    const coordinator = createEntrustSubmissionCoordinator(() => 'entrust-retry-id', requester)
+
+    await coordinator.submit('13800001111')
+    expect(coordinator.getState()).toEqual({ status: 'error', error: '提交过于频繁，请稍后再试' })
+
+    await coordinator.submit('13800001111')
+
+    expect(requestBodies).toHaveLength(2)
+    expect(requestBodies[0]).toContain('"requestId":"entrust-retry-id"')
+    expect(requestBodies[1]).toContain('"requestId":"entrust-retry-id"')
+    expect(coordinator.getState()).toEqual({ status: 'success', error: null })
+  })
+
+  it('exposes safe error states for invalid phone and network failures', async () => {
+    const coordinator = createEntrustSubmissionCoordinator(
+      () => 'entrust-network-id',
+      async () => {
+        throw new Error('offline')
+      },
+    )
+
+    await coordinator.submit('123')
+    expect(coordinator.getState()).toEqual({ status: 'error', error: '请输入正确的 11 位手机号' })
+
+    await coordinator.submit('13800001111')
+    expect(coordinator.getState()).toEqual({ status: 'error', error: '网络异常，请稍后重试' })
   })
 })

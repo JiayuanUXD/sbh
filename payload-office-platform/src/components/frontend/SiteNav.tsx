@@ -6,6 +6,16 @@ import React, { useEffect, useRef, useState } from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 
+export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
+
+export function resolveCtaPageType(pathname: string): CtaPageType {
+  if (pathname.startsWith('/entrust')) return 'entrust'
+  if (pathname.startsWith('/buildings')) return 'building'
+  if (pathname.startsWith('/news')) return 'content'
+  if (pathname.startsWith('/listings')) return 'search'
+  return 'home'
+}
+
 /**
  * 公开站点主导航
  *
@@ -55,14 +65,7 @@ export default function SiteNav() {
 
   // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
   // pageType 仅记录入口上下文，按当前路径粗分类以便分析。
-  const ctaPageType =
-    pathname.startsWith('/buildings')
-      ? 'building'
-      : pathname.startsWith('/news')
-        ? 'content'
-        : pathname.startsWith('/listings')
-          ? 'search'
-          : 'home'
+  const ctaPageType = resolveCtaPageType(pathname)
 
   // Esc 关闭 + Tab 焦点锁定，归还焦点到触发器
   useEffect(() => {

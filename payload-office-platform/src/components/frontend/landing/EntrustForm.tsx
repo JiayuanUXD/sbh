@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import React, { useId, useRef, useState } from 'react'
+import React, { useId, useState } from 'react'
 import { Button, Field, Input } from '@/components/frontend/ui'
 import { ENTRUST_COPY } from '@/lib/frontend/landing-config'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
@@ -27,6 +27,16 @@ export type EntrustSubmissionResult =
   | Readonly<{ ok: false; error: EntrustSubmissionError }>
 
 type EntrustRequester = (url: string, init?: RequestInit) => Promise<Response>
+
+export type EntrustFormState = Readonly<{
+  status: 'idle' | 'submitting' | 'success' | 'error'
+  error: string | null
+}>
+
+export type EntrustSubmissionCoordinator = Readonly<{
+  getState: () => EntrustFormState
+  submit: (phone: string) => Promise<EntrustFormState>
+}>
 
 const PHONE_ERROR = '请输入正确的 11 位手机号'
 
@@ -77,6 +87,43 @@ export function getEntrustSubmissionError(error: EntrustSubmissionError): string
   return '提交失败，请稍后重试'
 }
 
+export function createEntrustSubmissionCoordinator(
+  requestIdFactory: () => string,
+  requester: EntrustRequester,
+  onStateChange: (state: EntrustFormState) => void = () => undefined,
+): EntrustSubmissionCoordinator {
+  const requestId = requestIdFactory()
+  let state: EntrustFormState = { status: 'idle', error: null }
+  let pendingSubmission: Promise<EntrustFormState> | null = null
+
+  const updateState = (nextState: EntrustFormState) => {
+    state = nextState
+    onStateChange(state)
+  }
+
+  const submit = (phone: string): Promise<EntrustFormState> => {
+    if (pendingSubmission) return pendingSubmission
+    if (!isValidEntrustPhone(phone)) {
+      updateState({ status: 'error', error: PHONE_ERROR })
+      return Promise.resolve(state)
+    }
+
+    updateState({ status: 'submitting', error: null })
+    pendingSubmission = submitEntrustInquiry(buildEntrustInquiryBody(phone, requestId), requester)
+      .then((result) => {
+        if (result.ok) updateState({ status: 'success', error: null })
+        else updateState({ status: 'error', error: getEntrustSubmissionError(result.error) })
+        return state
+      })
+      .finally(() => {
+        pendingSubmission = null
+      })
+    return pendingSubmission
+  }
+
+  return { getState: () => state, submit }
+}
+
 function newRequestId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return `entrust-${crypto.randomUUID()}`
@@ -89,13 +136,10 @@ export default function EntrustForm() {
   const inputId = 'entrust-phone'
   const noteId = useId()
   const [phone, setPhone] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
-  const [requestId] = useState(newRequestId)
-  const submittingRef = useRef(false)
+  const [formState, setFormState] = useState<EntrustFormState>({ status: 'idle', error: null })
+  const [coordinator] = useState(() => createEntrustSubmissionCoordinator(newRequestId, fetch, setFormState))
 
-  if (done) {
+  if (formState.status === 'success') {
     return (
       <div className="entrust-form__success" role="status" aria-live="polite">
         <h2>{ENTRUST_COPY.successTitle}</h2>
@@ -106,29 +150,12 @@ export default function EntrustForm() {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (submittingRef.current) return
-
-    if (!isValidEntrustPhone(phone)) {
-      setError(PHONE_ERROR)
-      return
-    }
-
-    submittingRef.current = true
-    setError(null)
-    setSubmitting(true)
-    const result = await submitEntrustInquiry(buildEntrustInquiryBody(phone, requestId))
-    if (result.ok) {
-      setDone(true)
-    } else {
-      setError(getEntrustSubmissionError(result.error))
-    }
-    submittingRef.current = false
-    setSubmitting(false)
+    await coordinator.submit(phone)
   }
 
   return (
     <form className="entrust-form" onSubmit={onSubmit} noValidate>
-      <Field label="手机号" id={inputId} error={error} required className="entrust-form__field">
+      <Field label="手机号" id={inputId} error={formState.error} required className="entrust-form__field">
         <Input
           type="tel"
           name="phone"
@@ -140,7 +167,7 @@ export default function EntrustForm() {
           aria-describedby={noteId}
         />
       </Field>
-      <Button type="submit" variant="primary" loading={submitting}>
+      <Button type="submit" variant="primary" loading={formState.status === 'submitting'}>
         {ENTRUST_COPY.formSubmit}
       </Button>
       <p className="entrust-form__note" id={noteId}>
