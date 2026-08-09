@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
 import { createCollectionAccess } from '@/domain/auth/access'
+import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
+import { getSupplySubmissionMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { PRICE_UNITS } from '@/domain/inquiry/schema'
 import { enqueueSupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
@@ -78,6 +80,9 @@ export const SupplySubmissions: CollectionConfig = {
   hooks: {
     beforeChange: [protectSupplySubmission],
     afterChange: [enqueueSupplySubmissionCreated],
+    // 字段脱敏：缺 phone:full 权限 → contactPhone 返回 138****1111。
+    // 与 Leads 的 afterRead 口径一致；房东联系手机号不因集合不同而失去保护。
+    afterRead: createFieldMaskHooks(getSupplySubmissionMaskRules()),
   },
   fields: [
     {

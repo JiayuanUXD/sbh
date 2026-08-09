@@ -260,7 +260,8 @@ describe('supply submission notification job consumer', () => {
     )
     expect(config.jobs?.autoRun).toEqual([
       expect.objectContaining({
-        cron: '*/5 * * * * *',
+        // 30 秒：投放申请是低频事件，而每个实例都各自轮询同一个共享生产库。
+        cron: '*/30 * * * * *',
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
         disableScheduling: true,
       }),

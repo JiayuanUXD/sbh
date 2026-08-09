@@ -31,12 +31,21 @@ function relationId(value: unknown): Identifier | null {
   return typeof id === 'string' || typeof id === 'number' ? id : null
 }
 
-function hasSupplySubmissionReadPermission(value: unknown): boolean {
+function hasPermission(value: unknown, code: string): boolean {
   return (
     Array.isArray(value) &&
     value.every((item) => typeof item === 'string') &&
-    (value.includes('supply_submission:read') || value.includes('*'))
+    (value.includes(code) || value.includes('*'))
   )
+}
+
+function hasSupplySubmissionReadPermission(value: unknown): boolean {
+  return hasPermission(value, 'supply_submission:read')
+}
+
+/** 能真正处理申请的角色（可流转状态 / 补录），通知名额优先给他们。 */
+function hasSupplySubmissionManagePermission(value: unknown): boolean {
+  return hasPermission(value, 'supply_submission:manage')
 }
 
 function notificationBody(submission: SubmissionNotificationDoc): string {
@@ -236,29 +245,53 @@ export async function consumeSupplySubmissionCreated(args: {
     })) as SubmissionNotificationDoc
 
     const roles = await findAllActiveRoles(payload, req)
-    const roleIds = roles
-      .filter((role) => hasSupplySubmissionReadPermission(role.operationPermissions))
+    const readableRoles = roles.filter((role) =>
+      hasSupplySubmissionReadPermission(role.operationPermissions),
+    )
+    // 名额优先给能处理申请的角色。此前是所有可读角色混在一起按 user id 排序取前 50，
+    // 只读角色人数多且 id 更小时，真正要审单的人可能一条通知都收不到。
+    const actionableRoleIds = readableRoles
+      .filter((role) => hasSupplySubmissionManagePermission(role.operationPermissions))
+      .map((role) => role.id)
+    const readOnlyRoleIds = readableRoles
+      .filter((role) => !hasSupplySubmissionManagePermission(role.operationPermissions))
       .map((role) => role.id)
 
-    const users = roleIds.length
-      ? await payload.find({
-          collection: 'users',
-          where: {
-            and: [
-              { status: { equals: 'active' } },
-              { roles: { in: roleIds } },
-            ],
-          },
-          sort: 'id',
-          limit: QUERY_LIMIT,
-          depth: 0,
-          overrideAccess: true,
-          req,
-        })
-      : { docs: [] }
-    const recipients = Array.from(
-      new Map(users.docs.map((user) => [String(user.id), user.id])).values(),
-    ).slice(0, MAX_RECIPIENTS)
+    // 返回值保持 users 集合自身的 id 类型（PG 下为 number），不放宽成 Identifier，
+    // 否则 notifications.recipient 的类型约束会被破坏。
+    const findActiveUsersByRoles = async (
+      roleIds: readonly Identifier[],
+      limit: number,
+    ): Promise<number[]> => {
+      if (roleIds.length === 0 || limit <= 0) return []
+      const result = await payload.find({
+        collection: 'users',
+        where: {
+          and: [
+            { status: { equals: 'active' } },
+            { roles: { in: [...roleIds] } },
+          ],
+        },
+        sort: 'id',
+        limit: Math.min(limit, QUERY_LIMIT),
+        depth: 0,
+        overrideAccess: true,
+        req,
+      })
+      return result.docs.map((user) => user.id)
+    }
+
+    const prioritized = await findActiveUsersByRoles(actionableRoleIds, MAX_RECIPIENTS)
+    const seen = new Map<string, number>()
+    for (const id of prioritized) seen.set(String(id), id)
+    if (seen.size < MAX_RECIPIENTS) {
+      const filler = await findActiveUsersByRoles(readOnlyRoleIds, MAX_RECIPIENTS)
+      for (const id of filler) {
+        if (seen.size >= MAX_RECIPIENTS) break
+        if (!seen.has(String(id))) seen.set(String(id), id)
+      }
+    }
+    const recipients = Array.from(seen.values()).slice(0, MAX_RECIPIENTS)
 
     const existingNotifications = recipients.length
       ? await payload.find({

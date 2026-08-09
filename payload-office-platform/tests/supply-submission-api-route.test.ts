@@ -94,17 +94,23 @@ describe('POST /api/supply-submissions safety boundaries', () => {
     expect(getPayloadMock).toHaveBeenCalledWith({ config: expect.anything(), cron: true })
   })
 
-  it('does not create a submission when the default city cannot be found', async () => {
+  /**
+   * 城市是可空的元数据字段（collection 未设 required，DB 里 city_id 允许 NULL）。
+   * 解析失败必须降级留空并继续落库：否则生产库里那条 slug='shanghai' 的 location
+   * 一旦被改名 / 停用，整个投放入口就会 500、房东线索全部丢失。
+   */
+  it('still creates the submission with city omitted when the default city cannot be found', async () => {
     payloadFindMock
       .mockResolvedValueOnce({ docs: [] })
       .mockResolvedValueOnce({ docs: [] })
 
     const response = await POST(request())
 
-    expect(response.status).toBe(500)
-    await expect(response.json()).resolves.toEqual({ ok: false, error: 'server_error' })
-    expect(payloadCreateMock).not.toHaveBeenCalled()
-    expect(payloadLoggerError).toHaveBeenCalledWith(
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true })
+    expect(payloadCreateMock).toHaveBeenCalledTimes(1)
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBeUndefined()
+    expect(payloadLoggerWarn).toHaveBeenCalledWith(
       { errorCode: 'default_city_unavailable' },
       'supply_submission_default_city_unavailable',
     )

@@ -9,7 +9,10 @@ import SupplySubmissionForm, {
   submitSupplySubmission,
   type SupplyFormValues,
 } from '@/components/frontend/landing/SupplySubmissionForm'
-import { createSupplyPendingRequestStore } from '@/lib/frontend/supply-submission-request'
+import {
+  createSupplyPendingRequestStore,
+  getSupplyIntentIdentity,
+} from '@/lib/frontend/supply-submission-request'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import type { LandingAnalyticsRecord } from '@/lib/frontend/analytics/landing'
 
@@ -541,6 +544,30 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     )
     expect(css).toMatch(
       /\.input-suffix \.filter-bar__input\s*\{(?=[^}]*width:\s*100%)(?=[^}]*padding-right:\s*var\(--sp-7\))[^}]*\}/,
+    )
+  })
+})
+
+describe('getSupplyIntentIdentity', () => {
+  const base = { buildingName: '静安嘉里中心', address: '3 号楼 12 层 1203 室', contactPhone: '13800001111' }
+
+  it('归一化手机号并 trim 各段，同一意图得到同一身份', () => {
+    expect(getSupplyIntentIdentity(base)).toBe(
+      getSupplyIntentIdentity({
+        buildingName: ' 静安嘉里中心 ',
+        address: ' 3 号楼 12 层 1203 室 ',
+        contactPhone: ' 138-0000-1111 ',
+      }),
+    )
+  })
+
+  /**
+   * 同一业主在同一楼盘有多套在租房源是商办常态。地址若不参与身份，第二套会复用
+   * sessionStorage 里的 requestId，被服务端判为重放、返回 ok 但不落库（审查发现）。
+   */
+  it('同人同楼盘但地址不同则身份不同', () => {
+    expect(getSupplyIntentIdentity({ ...base, address: '3 号楼 15 层 1505 室' })).not.toBe(
+      getSupplyIntentIdentity(base),
     )
   })
 })

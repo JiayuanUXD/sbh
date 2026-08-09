@@ -109,7 +109,9 @@ export default buildConfig({
     shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
     autoRun: [
       {
-        cron: '*/5 * * * * *',
+        // 30 秒一次：投放申请是低频事件（日均个位数），而每个 CloudRun 实例都会
+        // 各自轮询同一个共享生产库。5 秒一次是纯粹的常态负载浪费。
+        cron: '*/30 * * * * *',
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
         disableScheduling: true,
         limit: 10,

@@ -155,6 +155,27 @@ export function getLeadMaskRules(): readonly FieldMaskRule[] {
   return [PHONE_MASK_RULE]
 }
 
+/** 投放申请联系手机号脱敏：缺失 phone:full → 返回 138****1111 */
+export const SUPPLY_CONTACT_PHONE_MASK_RULE: FieldMaskRule = {
+  field: 'contactPhone',
+  requiredPermission: 'phone:full',
+  mask: (v) => {
+    if (typeof v !== 'string') return v
+    return maskPhone(v)
+  },
+}
+
+/**
+ * 投放申请文档脱敏规则（contactPhone）。
+ *
+ * 用于 SupplySubmissions afterRead：缺 phone:full → 返回 138****1111
+ * 业务不变量：房东联系手机号与线索手机号同属一类 PII，不因集合不同而失去保护
+ * （审查发现：新集合原先无任何 afterRead 脱敏，与 Leads 的既有口径不一致）
+ */
+export function getSupplySubmissionMaskRules(): readonly FieldMaskRule[] {
+  return [SUPPLY_CONTACT_PHONE_MASK_RULE]
+}
+
 /**
  * 楼盘文档脱敏规则（坐标）。
  *

@@ -191,16 +191,40 @@ describe('validateSupplySubmission - 失败路径', () => {
 
 describe('computeSupplyIdempotencyKeySync', () => {
   it('同输入同键，64 位 hex', () => {
-    const a = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心')
-    const b = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心')
+    const a = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心', '3 号楼 1203')
+    const b = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心', '3 号楼 1203')
     expect(a).toBe(b)
     expect(a).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('楼盘名或手机号不同则键不同', () => {
-    const base = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心')
-    expect(computeSupplyIdempotencyKeySync('req-1', '13800001111', '恒隆广场')).not.toBe(base)
-    expect(computeSupplyIdempotencyKeySync('req-1', '13900002222', '静安嘉里中心')).not.toBe(base)
+    const base = computeSupplyIdempotencyKeySync('req-1', '13800001111', '静安嘉里中心', '3 号楼 1203')
+    expect(
+      computeSupplyIdempotencyKeySync('req-1', '13800001111', '恒隆广场', '3 号楼 1203'),
+    ).not.toBe(base)
+    expect(
+      computeSupplyIdempotencyKeySync('req-1', '13900002222', '静安嘉里中心', '3 号楼 1203'),
+    ).not.toBe(base)
+  })
+
+  /**
+   * 同一业主在同一楼盘有多套在租房源是商办常态。地址若不参与幂等键，第二套会被
+   * 判为重放、服务端返回 ok 但不落库，线索静默丢失（审查发现）。
+   */
+  it('同人同楼盘但地址不同则键不同', () => {
+    const unitA = computeSupplyIdempotencyKeySync(
+      'req-1',
+      '13800001111',
+      '静安嘉里中心',
+      '3 号楼 12 层 1203 室',
+    )
+    const unitB = computeSupplyIdempotencyKeySync(
+      'req-1',
+      '13800001111',
+      '静安嘉里中心',
+      '3 号楼 15 层 1505 室',
+    )
+    expect(unitB).not.toBe(unitA)
   })
 })
 

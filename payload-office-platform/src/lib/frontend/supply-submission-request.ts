@@ -3,8 +3,13 @@ import { normalizePhone } from '@/domain/shared/phone'
 const STORAGE_KEY = 'sbh:publish:submission-request:v1'
 const STORAGE_VERSION = 1
 
+/**
+ * 幂等身份取材字段。必须与服务端 computeSupplyIdempotencyKey 的取材一致，
+ * 否则同一业主在同一楼盘的第二套房源会复用 requestId、被服务端判为重放而丢弃。
+ */
 type SupplyIntentValues = Readonly<{
   buildingName: string
+  address: string
   contactPhone: string
 }>
 
@@ -74,7 +79,11 @@ export function createBrowserSupplyPendingRequestStore(): SupplyPendingRequestSt
 }
 
 export function getSupplyIntentIdentity(values: SupplyIntentValues): string {
-  return `${normalizePhone(values.contactPhone.trim())}|${values.buildingName.trim()}`
+  return [
+    normalizePhone(values.contactPhone.trim()),
+    values.buildingName.trim(),
+    values.address.trim(),
+  ].join('|')
 }
 
 export async function createSupplyIntentFingerprint(

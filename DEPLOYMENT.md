@@ -103,6 +103,29 @@
 - **不用 `set -u`**。macOS 自带 bash 3.2 展开空数组 `${arr[@]}` 会直接报错，而 `UploadHeaders` 目前就是空数组。
 - `tcb` CLI 的 stdout 混有 spinner 输出，取 JSON 必须 `sed -n '/^{/,$p'`。
 
+## 迁移部署前置检查：notifications 唯一索引的锁风险
+
+迁移 `20260809_183327_supply_submission_notification_unique` 在**共享的 `notifications` 表**上建唯一索引：
+
+```sql
+CREATE UNIQUE INDEX "eventId_recipient_type_idx" ON "notifications" ("event_id","recipient_id","type");
+```
+
+它没有用 `CONCURRENTLY`，而且**不可能**用：Payload 把每个 `migration.up()` 包在一个事务里（`payload/dist/database/migrations/migrate.js`：`initTransaction` → `up()` → `commitTransaction`），而 PostgreSQL 不允许在事务块内执行 `CREATE INDEX CONCURRENTLY`。该迁移是生成物（有配套 `.json` snapshot），按本仓库约束**正文不可手改**。
+
+后果：索引构建期间该表持 SHARE 锁，**阻塞所有通知写入**。`notifications` 是全平台通知共用表（审核驳回 / 线索分配 / SLA 超时 / 待办等），不只是投放申请。
+
+**部署前必做**：先量表大小再决定走哪条路。
+
+```bash
+psql "$DATABASE_URL" -c "SELECT count(*) FROM notifications;"
+```
+
+- **行数较小（万级以内）**：构建是毫秒级，直接随 `payload migrate` 上，无需特殊处理。
+- **行数较大**：走受控路径，不要让迁移在业务高峰期在线建索引。先在业务低峰用 `CREATE UNIQUE INDEX CONCURRENTLY` 手工建好（不在事务内），确认 `duplicate (event_id, recipient_id, type)` 为零后，再把该迁移标记为已应用，避免它重复建索引而失败。此路径必须由 DBA 走审阅过的变更单。
+
+另外 `20260809_180000_..._duplicates_preflight` 与本迁移是**两个独立事务**：预检通过后、索引建成前若有新的重复通知写入，索引创建会失败（安全失败、无数据丢失，但会断部署）。高风险窗口内可先暂停通知队列（`PAYLOAD_DISABLE_JOB_AUTORUN=1`）。
+
 ## 关键文件
 
 | 文件 | 作用 |

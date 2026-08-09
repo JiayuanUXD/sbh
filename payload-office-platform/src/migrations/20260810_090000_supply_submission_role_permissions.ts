@@ -1,6 +1,11 @@
 import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
 
-const TARGET_ROLE_CODES = ['OPS', 'MGR', 'BRK'] as const
+/**
+ * BRK（经纪人，dataScope=self）刻意不在此列：投放申请的读取不做逐条数据范围
+ * 收窄，授予读权限等于把全平台房东的完整手机号与详细地址开放给全体经纪人，
+ * 形成绕开平台的渠道风险。审单是供给运营（OPS）的职责。
+ */
+const TARGET_ROLE_CODES = ['OPS', 'MGR'] as const
 type TargetRoleCode = (typeof TARGET_ROLE_CODES)[number]
 
 const REQUIRED_PERMISSIONS: Readonly<
@@ -15,10 +20,6 @@ const REQUIRED_PERMISSIONS: Readonly<
     ],
   },
   MGR: {
-    menu: ['supply-submissions'],
-    operation: ['supply_submission:read'],
-  },
-  BRK: {
     menu: ['supply-submissions'],
     operation: ['supply_submission:read'],
   },
@@ -93,6 +94,20 @@ export async function up({ payload, req }: MigrateUpArgs): Promise<void> {
     overrideAccess: true,
     req,
   })
+
+  // 静默 no-op 是真实风险：全新环境或运营改过内置角色 code 时，迁移会报成功
+  // 但一个权限都没授。缺失只告警不失败（新库尚未 seed 角色属正常）。
+  const foundCodes = new Set(
+    roles.docs.map((document) => (typeof document.code === 'string' ? document.code : '')),
+  )
+  const missingCodes = TARGET_ROLE_CODES.filter((code) => !foundCodes.has(code))
+  if (missingCodes.length > 0) {
+    // 可选链：迁移在测试与部分 CLI 上下文里拿到的 payload 可能没有 logger，
+    // 告警本身绝不能反过来让迁移失败。
+    payload.logger?.warn?.(
+      `[migration] supply_submission role permissions not applied to missing built-in role(s): ${missingCodes.join(', ')}`,
+    )
+  }
 
   for (const document of roles.docs) {
     const update = planSupplySubmissionRoleUpdate(document)

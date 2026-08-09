@@ -22,11 +22,21 @@ describe('built-in supply submission role matrix', () => {
     )
   })
 
-  it.each(['MGR', 'BRK'] as const)('%s has read-only access', (code) => {
-    expect(BUILTIN_ROLES[code].menuPermissions).toContain('supply-submissions')
-    expect(BUILTIN_ROLES[code].operationPermissions).toContain('supply_submission:read')
-    expect(BUILTIN_ROLES[code].operationPermissions).not.toContain('supply_submission:manage')
-    expect(BUILTIN_ROLES[code].operationPermissions).not.toContain('supply_submission:convert')
+  it('MGR has read-only access', () => {
+    expect(BUILTIN_ROLES.MGR.menuPermissions).toContain('supply-submissions')
+    expect(BUILTIN_ROLES.MGR.operationPermissions).toContain('supply_submission:read')
+    expect(BUILTIN_ROLES.MGR.operationPermissions).not.toContain('supply_submission:manage')
+    expect(BUILTIN_ROLES.MGR.operationPermissions).not.toContain('supply_submission:convert')
+  })
+
+  // 审查结论：BRK 的 dataScope 是 self，而投放申请的读取不做逐条数据范围收窄，
+  // 授予读权限等于把全平台房东的完整手机号与详细地址开放给全体经纪人，形成
+  // 绕开平台的渠道风险。审单是供给运营（OPS）的职责，经纪人无需读取。
+  it('BRK has no supply submission access at all', () => {
+    expect(BUILTIN_ROLES.BRK.menuPermissions).not.toContain('supply-submissions')
+    expect(BUILTIN_ROLES.BRK.operationPermissions).not.toContain('supply_submission:read')
+    expect(BUILTIN_ROLES.BRK.operationPermissions).not.toContain('supply_submission:manage')
+    expect(BUILTIN_ROLES.BRK.operationPermissions).not.toContain('supply_submission:convert')
   })
 
   it('CSR has no supply submission menu or operation permission', () => {
@@ -65,13 +75,18 @@ describe('supply submission role data migration planner', () => {
     })
   })
 
-  it.each(['MGR', 'BRK'])('adds read-only access for %s', (code) => {
-    const update = planSupplySubmissionRoleUpdate(role({ code }))
+  it('adds read-only access for MGR', () => {
+    const update = planSupplySubmissionRoleUpdate(role({ code: 'MGR' }))
 
     expect(update?.menuPermissions).toContain('supply-submissions')
     expect(update?.operationPermissions).toContain('supply_submission:read')
     expect(update?.operationPermissions).not.toContain('supply_submission:manage')
     expect(update?.operationPermissions).not.toContain('supply_submission:convert')
+  })
+
+  /** BRK 不在迁移目标内，规划器必须完全跳过它，不授予任何投放申请权限。 */
+  it('plans no change for BRK', () => {
+    expect(planSupplySubmissionRoleUpdate(role({ code: 'BRK' }))).toBeNull()
   })
 
   it.each([

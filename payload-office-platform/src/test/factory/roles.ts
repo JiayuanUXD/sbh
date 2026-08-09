@@ -129,11 +129,13 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
     description: '跟进自有线索 / 推荐房源 / 记录跟进',
     builtin: true,
     dataScope: 'self',
+    // 不含 supply-submissions：BRK 的 dataScope 是 self，而投放申请的读取
+    // 不做逐条数据范围收窄，授权即等于放开全平台房东手机号 / 地址（审查发现的
+     // 渠道绕开风险）。审单是供给运营（OPS）的职责，经纪人无需读取。
     menuPermissions: [
       'dashboard',
       'todos',
       'notifications',
-      'supply-submissions',
       'listings',
       'my-leads',
       'my-customers',
@@ -142,7 +144,6 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
     operationPermissions: [
       'task:read',
       'notification:read',
-      'supply_submission:read',
       'lead:claim',
       'lead:follow_up',
       'lead:recommend',

@@ -165,6 +165,7 @@ export async function POST(req: Request): Promise<Response> {
     submission.requestId,
     submission.phoneNormalized,
     submission.buildingName,
+    submission.address,
   )
 
   // ----- 6. 幂等检查 -----
@@ -188,21 +189,16 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ----- 7. 创建申请 -----
+  // 城市是可空的元数据字段（collection 未设 required，DB 里 city_id 允许 NULL）。
+  // 解析失败只告警并留空，绝不因此拒绝一条有效的公开提交——否则生产库里那条
+  // slug='shanghai' 的 location 被改名/停用就会让整个投放入口 500、线索全丢。
+  // 城市可由审单顾问在后台补录。
   const cityId = await resolveDefaultCityId(payload, siteConfig.defaultCity)
   if (cityId === null) {
-    payload.logger.error(
+    payload.logger.warn(
       { errorCode: 'default_city_unavailable' },
       'supply_submission_default_city_unavailable',
     )
-    payload.logger.info(
-      buildSupplyLogEntry(submission, {
-        idempotent: false,
-        errorCode: 'default_city_unavailable',
-        durationMs: Date.now() - startedAt,
-      }),
-      'supply_submission_error',
-    )
-    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
   }
 
   try {
