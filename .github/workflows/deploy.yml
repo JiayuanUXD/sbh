@@ -143,6 +143,7 @@ jobs:
           echo "Image: $repo:$tag"
 
       - name: Build and push Docker image
+        timeout-minutes: 20
         uses: docker/build-push-action@v6
         with:
           context: payload-office-platform
@@ -153,6 +154,8 @@ jobs:
             ${{ steps.image.outputs.repo }}:latest
           provenance: false
           sbom: false
+          cache-from: type=gha,scope=sbh-cloudrun
+          cache-to: type=gha,mode=max,scope=sbh-cloudrun
 
       - name: Deploy image to CloudBase CloudRun
         env:
