@@ -1013,7 +1013,7 @@ git commit -m "feat(supply): 投放房源提交 schema/幂等/日志纯函数
 - Produces:
   - Collection slug `'supply-submissions'`
   - `protectSupplySubmission: CollectionBeforeChangeHook`
-  - 权限编码 `supply-submissions`(MENU)、`supply-submission:read` / `supply-submission:manage` / `supply-submission:convert`(OPERATION)
+  - 权限编码 `supply-submissions`(MENU)、`supply_submission:read` / `supply_submission:manage` / `supply_submission:convert`(OPERATION)
   - `Notifications` 新增 `type` 值 `supply-submission-created`、`sourceType` 值 `supply-submission`
 
 - [ ] **Step 1: 实现保护 hook `src/domain/supply-submission/submission-protect.ts`**
@@ -1030,7 +1030,7 @@ git commit -m "feat(supply): 投放房源提交 schema/幂等/日志纯函数
  *     只允许后台补录字段与流程字段变更；
  *   - status 流转到终态（converted/rejected/duplicate）时自动补 handledAt。
  *
- * 与 access 叠加：access.create 公开、access.update 需 supply-submission:manage、
+ * 与 access 叠加：access.create 公开、access.update 需 supply_submission:manage、
  * access.delete=false；protect 在 beforeChange 兜底，挡 Local API overrideAccess 绕过。
  */
 
@@ -1099,9 +1099,9 @@ export const protectSupplySubmission: CollectionBeforeChangeHook = ({
 
 ```ts
   // 投放房源审单（委托找房/投放房源 PRD §5.6）
-  'supply-submission:read', // 读取投放申请列表 / 详情
-  'supply-submission:manage', // 流转状态 / 补录字段
-  'supply-submission:convert', // 转为房源草稿
+  'supply_submission:read', // 读取投放申请列表 / 详情
+  'supply_submission:manage', // 流转状态 / 补录字段
+  'supply_submission:convert', // 转为房源草稿
 ```
 
 - [ ] **Step 3: 创建集合 `src/collections/SupplySubmissions.ts`**
@@ -1142,12 +1142,12 @@ const PRICE_UNIT_LABELS: Record<(typeof PRICE_UNITS)[number], string> = {
  *   - 提交事实字段 append-only：创建后不可改（protect hook 兜底）、不可删除（access.delete=false）；
  *   - 前台只能写 6 个提交字段 + 溯源/同意；后台补录字段与流程字段外部不可写；
  *   - 幂等键唯一索引兜底：同 requestId + 手机号 + 楼盘名只留一条；
- *   - 审单动作（转房源草稿 / 拒绝）由后台 supply-submission:manage / :convert 操作。
+ *   - 审单动作（转房源草稿 / 拒绝）由后台 supply_submission:manage / :convert 操作。
  *
  * 权限：
- *   - read：supply-submission:read
+ *   - read：supply_submission:read
  *   - create：公开（任何人都可提交投放申请）
- *   - update：supply-submission:manage
+ *   - update：supply_submission:manage
  *   - delete：禁止（审计轨迹）
  */
 export const SupplySubmissions: CollectionConfig = {
@@ -1173,8 +1173,8 @@ export const SupplySubmissions: CollectionConfig = {
   },
   access: {
     ...createCollectionAccess({
-      read: 'supply-submission:read',
-      update: 'supply-submission:manage',
+      read: 'supply_submission:read',
+      update: 'supply_submission:manage',
     }),
     // create 公开：任何人都可提交投放申请（字段白名单由端点 schema 收窄）
     create: () => true,
@@ -1474,7 +1474,7 @@ import { SupplySubmissions } from './collections/SupplySubmissions'
       'supply-submissions',
     ], {
       collectionSlug: 'supply-submissions',
-      requiredOperationCode: 'supply-submission:read',
+      requiredOperationCode: 'supply_submission:read',
     }),
 ```
 
@@ -3648,7 +3648,7 @@ git commit -m "feat(frontend): 新增 /publish 投放房源落地页
 - Modify: `src/collections/SupplySubmissions.ts`（挂 `afterChange`）
 
 **Interfaces:**
-- Consumes: Task 3 的 `Notifications` 新枚举值（`supply-submission-created` / `supply-submission`）、`supply-submission:read` 操作编码
+- Consumes: Task 3 的 `Notifications` 新枚举值（`supply-submission-created` / `supply-submission`）、`supply_submission:read` 操作编码
 - Produces: `notifySupplySubmissionCreated: CollectionAfterChangeHook`
 
 - [ ] **Step 1: 实现通知 hook**
@@ -3661,7 +3661,7 @@ git commit -m "feat(frontend): 新增 /publish 投放房源落地页
  *
  * 守护不变量：
  *   - 只在 operation='create' 触发；
- *   - 收件人 = 拥有 supply-submission:read 操作权限的启用用户（按角色反查）；
+ *   - 收件人 = 拥有 supply_submission:read 操作权限的启用用户（按角色反查）；
  *   - 通知正文只含楼盘名与面积/佣金摘要，不含手机号；
  *   - 通知失败绝不影响申请落库（整段 try/catch，只记日志）；
  *   - 收件人为空时静默跳过（后台列表仍能看到 pending 申请）。
@@ -3694,7 +3694,7 @@ export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
       where: {
         and: [
           { status: { equals: 'active' } },
-          { operationPermissions: { contains: 'supply-submission:read' } },
+          { operationPermissions: { contains: 'supply_submission:read' } },
         ],
       },
       limit: 100,
@@ -3776,7 +3776,7 @@ Expected: 通过
 
 - [ ] **Step 4: 烟测通知**
 
-先在后台给自己的账号所属角色勾上 `supply-submission:read`，然后：
+先在后台给自己的账号所属角色勾上 `supply_submission:read`，然后：
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -3788,7 +3788,7 @@ curl -s -X POST http://localhost:3719/api/supply-submissions -H 'content-type: a
 
 Expected: `{"ok":true}`；`/admin/collections/notifications` 出现一条「新的房源投放申请」，正文含楼盘名与面积、悬赏，**不含手机号**。
 
-再验证"通知失败不影响落库"：把角色的 `supply-submission:read` 取消（收件人为空），再提交一条不同楼盘名的申请，Expected: 仍 `{"ok":true}`，申请落库，无通知，无报错。
+再验证"通知失败不影响落库"：把角色的 `supply_submission:read` 取消（收件人为空），再提交一条不同楼盘名的申请，Expected: 仍 `{"ok":true}`，申请落库，无通知，无报错。
 
 - [ ] **Step 5: 提交**
 
@@ -3796,7 +3796,7 @@ Expected: `{"ok":true}`；`/admin/collections/notifications` 出现一条「新�
 git add payload-office-platform/src/domain/supply-submission/submission-notify.ts payload-office-platform/src/collections/SupplySubmissions.ts
 git commit -m "feat(supply): 新投放申请给审单角色发站内通知
 
-按 supply-submission:read 反查角色与用户逐个投递；正文不含手机号；
+按 supply_submission:read 反查角色与用户逐个投递；正文不含手机号；
 通知失败只记日志、不影响申请落库；收件人为空时静默跳过。"
 ```
 
@@ -4278,4 +4278,4 @@ gh pr create --draft --base master --title "feat: 委托找房 / 投放房源 �
 - 多城市（MVP 固定上海，服务端写入默认城市）
 - 需求与房源自动匹配推荐
 - 佣金的线上支付/结算（只采集悬赏意愿）
-- 后台「转为房源草稿」的一键预填按钮：本计划只建立 `convertedListing` 关系字段与 `supply-submission:convert` 权限编码，**自定义后台按钮组件未包含**。当前审单动作是人工新建 Listing 后回填关系字段。若要一键转草稿，需单独一个任务写 admin 自定义组件。
+- 后台「转为房源草稿」的一键预填按钮：本计划只建立 `convertedListing` 关系字段与 `supply_submission:convert` 权限编码，**自定义后台按钮组件未包含**。当前审单动作是人工新建 Listing 后回填关系字段。若要一键转草稿，需单独一个任务写 admin 自定义组件。
