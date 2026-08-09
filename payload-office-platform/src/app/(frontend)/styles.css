@@ -6248,17 +6248,19 @@ ol {
   }
 
   .bottom-cta {
-    position: sticky;
-    /* bottom: 0 会在 CTA 自然位置进入视口前将其推到首屏；top 阈值仅在滚动接近 CTA 后生效。 */
-    top: calc(100vh - 9rem);
-    top: calc(100dvh - 9rem);
-    bottom: auto;
-    z-index: var(--z-floating);
     padding: var(--sp-3) var(--sp-4);
-    box-shadow: var(--shadow-md);
   }
 
   .bottom-cta .btn {
     min-height: var(--touch-target);
+  }
+
+  .bottom-cta--docked {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-floating);
+    box-shadow: var(--shadow-md);
   }
 }

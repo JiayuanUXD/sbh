@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/frontend/ui'
 
 type FocusableLandingTarget = {
@@ -47,6 +47,14 @@ export function focusLandingTarget(targetId: string, environment: LandingFocusEn
   return true
 }
 
+/** CTA 锚点进入视口后才吸底，回滚到锚点前则恢复普通流。 */
+export function shouldDockBottomCta(anchorTop: number, viewportHeight: number): boolean {
+  return Number.isFinite(anchorTop)
+    && Number.isFinite(viewportHeight)
+    && viewportHeight > 0
+    && anchorTop <= viewportHeight
+}
+
 function createBrowserFocusEnvironment(): LandingFocusEnvironment {
   return {
     findTarget: (targetId) => {
@@ -58,14 +66,67 @@ function createBrowserFocusEnvironment(): LandingFocusEnvironment {
 }
 
 export default function BottomCtaBar({ text, ctaLabel, targetId }: BottomCtaBarProps) {
+  const anchorRef = useRef<HTMLDivElement | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
+  const [docked, setDocked] = useState(false)
+  const [barHeight, setBarHeight] = useState(0)
+
+  useEffect(() => {
+    const anchor = anchorRef.current
+    const bar = barRef.current
+    if (!anchor || !bar) return
+
+    const mobileQuery = window.matchMedia('(max-width: 640px)')
+    let animationFrame: number | null = null
+
+    const updateBarHeight = () => {
+      const nextHeight = Math.ceil(bar.getBoundingClientRect().height)
+      setBarHeight((currentHeight) => currentHeight === nextHeight ? currentHeight : nextHeight)
+    }
+    const updateDocking = () => {
+      animationFrame = null
+      updateBarHeight()
+      const nextDocked = mobileQuery.matches
+        && shouldDockBottomCta(anchor.getBoundingClientRect().top, window.innerHeight)
+      setDocked((currentDocked) => currentDocked === nextDocked ? currentDocked : nextDocked)
+    }
+    const scheduleUpdate = () => {
+      if (animationFrame !== null) return
+      animationFrame = window.requestAnimationFrame(updateDocking)
+    }
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleUpdate)
+
+    resizeObserver?.observe(bar)
+    updateDocking()
+    window.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate)
+    mobileQuery.addEventListener('change', scheduleUpdate)
+
+    return () => {
+      window.removeEventListener('scroll', scheduleUpdate)
+      window.removeEventListener('resize', scheduleUpdate)
+      mobileQuery.removeEventListener('change', scheduleUpdate)
+      resizeObserver?.disconnect()
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame)
+    }
+  }, [])
+
   const focusTarget = () => {
     focusLandingTarget(targetId, createBrowserFocusEnvironment())
   }
 
   return (
-    <div className="bottom-cta">
-      <p className="bottom-cta__text">{text}</p>
-      <Button variant="primary" size="lg" onClick={focusTarget}>{ctaLabel}</Button>
+    <div
+      ref={anchorRef}
+      className="bottom-cta-anchor"
+      style={docked && barHeight > 0 ? { minHeight: `${barHeight}px` } : undefined}
+    >
+      <div ref={barRef} className={docked ? 'bottom-cta bottom-cta--docked' : 'bottom-cta'}>
+        <p className="bottom-cta__text">{text}</p>
+        <Button variant="primary" size="lg" onClick={focusTarget}>{ctaLabel}</Button>
+      </div>
     </div>
   )
 }
