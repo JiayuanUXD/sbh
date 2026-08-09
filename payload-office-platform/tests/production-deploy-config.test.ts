@@ -86,16 +86,9 @@ describe('生产部署配置', () => {
   it('CloudBase 镜像部署通过 GitHub Actions 构建推送镜像并灰度切流', () => {
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
 
-    expect(workflow).toContain('docker/setup-buildx-action@v3')
     expect(workflow).toContain('docker/login-action@v3')
     expect(workflow).toContain('ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh')
-    expect(workflow).toContain('docker/build-push-action@v6')
-    expect(workflow).toContain('push: true')
-    expect(workflow).toContain('provenance: false')
-    expect(workflow).toContain('sbom: false')
     expect(workflow).toContain('timeout-minutes: 20')
-    expect(workflow).toContain('cache-from: type=gha,scope=sbh-cloudrun')
-    expect(workflow).toContain('cache-to: type=gha,mode=max,scope=sbh-cloudrun')
     expect(workflow).toContain('tcb api tcbr UpdateCloudRunServer')
     expect(workflow).toContain('DeployType:"image"')
     expect(workflow).toContain('ImageUrl:$imageUrl')
@@ -107,6 +100,51 @@ describe('生产部署配置', () => {
     expect(workflow).not.toContain('traffic_ready=0')
     expect(workflow).not.toContain('CloudRun traffic not ready yet')
     expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
+  })
+
+  it('镜像推送与构建分离，跨境 push 有超时重试', () => {
+    // 病根（run 31292071284 / 31290760006）：GitHub 美国 runner -> 上海 TCR 的链路会
+    // 静默停滞，buildkit 推 blob 没有停滞检测，连接死掉既不报错也不重试，一路挂到
+    // job timeout。31292071284 里 build 3分55秒就完事，push 之后 15 分钟零输出被杀。
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    // build 与 push 必须分离：融在一个 action 里时一次卡死 = 整步白费、下次从零再来。
+    // 拆开后 push 可独立重试，registry 已收下的 blob 会被跳过，重试是增量推进的。
+    // 断言钉步骤名与实际命令行，不钉注释里也会出现的裸字串。
+    expect(workflow).toContain('- name: Build Docker image（只构建，不推送）')
+    expect(workflow).toContain('- name: Push image to Tencent Container Registry（跨境，带超时重试）')
+    expect(workflow).toContain('--file payload-office-platform/Dockerfile')
+    expect(workflow).not.toContain('docker/build-push-action')
+
+    // 单次 push 必须有超时，否则停滞连接会骑满整个步骤预算，退化回原来的卡死。
+    expect(workflow).toContain('timeout 420 docker push')
+
+    // 重试必须是有限轮次且失败可见，不能静默放过。
+    expect(workflow).toContain('for attempt in 1 2 3 4 5')
+    expect(workflow).toContain('::error::push $ref 5 次全部失败')
+
+    // cache-to gha mode=max 在 31292071284 里花了 390 秒导出 deps/builder 全部中间层，
+    // 吃掉五分之一预算，而 build 从零也只要 4 分钟——净负担，别加回来。
+    expect(workflow).not.toContain('cache-to: type=gha')
+    expect(workflow).not.toContain('cache-from: type=gha')
+
+    // setup-buildx 会把默认 builder 换成 docker-container 驱动，产物不落本地镜像库，
+    // 拆开 push 后还得多一次 --load 导出。裸 docker build 走 daemon 内置 buildkit。
+    expect(workflow).not.toContain('docker/setup-buildx-action')
+  })
+
+  it('运行时代码依赖的包不在 devDependencies（prod-deps 镜像装不到）', () => {
+    // sbh-053 部署失败：Cannot find package 'pinyin-pro' imported from
+    // /app/src/domain/shared/slug.ts。slug.ts 是运行时代码，容器启动跑 migrate-locked.ts
+    // 时必然加载到，但 pinyin-pro 当时在 devDependencies；runner 阶段只装 --prod，
+    // 于是容器起不来、探针失败、流量留在旧版本。
+    const pkg = JSON.parse(readFileSync(resolve(appRoot, 'package.json'), 'utf8')) as {
+      dependencies: Record<string, string>
+      devDependencies: Record<string, string>
+    }
+
+    expect(pkg.dependencies).toHaveProperty('pinyin-pro')
+    expect(pkg.devDependencies).not.toHaveProperty('pinyin-pro')
   })
 
   it('旧源码包上传部署路径保留但不再默认执行', () => {

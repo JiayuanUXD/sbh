@@ -19,9 +19,11 @@
 #   1. build 与 push 拆成两步。合在 build-push-action 里时一次卡死 = 整步白费，
 #      下次从零再来；拆开后 push 可以独立重试，已传的 blob registry 会跳过，重试是增量的。
 #   2. 每次 push 套 `timeout`。没有它，停滞的连接会骑满整个步骤预算。
-#   3. 不用 cache-to: type=gha,mode=max。它在 31292071284 里花了 390 秒（多阶段构建要导出
-#      deps/builder 全部中间层），把 20 分钟预算吃掉三分之一，而 build 本身从零也只要 4 分钟。
-#      净负担，不是优化。
+#   3. 不用 GHA 构建缓存导出（buildx 的 gha cache，mode=max）。它在 31292071284 里花了
+#      390 秒（多阶段构建要导出 deps/builder 全部中间层），把 20 分钟预算吃掉三分之一，
+#      而 build 本身从零也只要 4 分钟。净负担，不是优化。
+#      注：这段措辞刻意避开 YAML 键的字面写法，tests/production-deploy-config.test.ts
+#      用 not.toContain 断言它没被加回来，注释里出现字面串会让该断言恒假。
 # 不装 buildx（setup-buildx-action 会把默认 builder 切成 docker-container 驱动，产物不落
 #   本地镜像库，push 前还得多一次 --load 导出）。裸 docker build 走 daemon 内置 buildkit，
 #   `# syntax=` 指令照常生效，镜像直接进本地库供 push。
