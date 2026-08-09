@@ -1023,6 +1023,18 @@ describe('fillEntrustLeadName', () => {
     expect((data as { name: string }).name).toBe('张先生')
   })
 
+  it('局部更新不覆盖 originalDoc 中已有的姓名', async () => {
+    const data = await fillEntrustLeadName({
+      data: { phone: '13800001111', sourcePageType: 'entrust' },
+      originalDoc: { name: '张女士', phone: '13800001111', sourcePageType: 'entrust' },
+      operation: 'update',
+      req: {} as never,
+      collection: {} as never,
+      context: {} as never,
+    } as never)
+    expect((data as { name: string }).name).toBe('张女士')
+  })
+
   it('非 entrust 渠道不填兜底姓名', async () => {
     const data = await fillEntrustLeadName({
       data: { phone: '13800001111', sourcePageType: 'listing' },

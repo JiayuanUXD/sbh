@@ -12,14 +12,22 @@
 import type { CollectionBeforeValidateHook } from 'payload'
 import { normalizePhone, phoneLast4 } from '@/domain/shared/phone'
 
-export const fillEntrustLeadName: CollectionBeforeValidateHook = ({ data }) => {
+export const fillEntrustLeadName: CollectionBeforeValidateHook = ({ data, operation, originalDoc }) => {
   const next = (data ?? {}) as Record<string, unknown>
   if (next.sourcePageType !== 'entrust') return next
 
   const existing = typeof next.name === 'string' ? next.name.trim() : ''
   if (existing) return next
 
+  const original = isRecord(originalDoc) ? originalDoc : null
+  const originalName = original && typeof original.name === 'string' ? original.name.trim() : ''
+  if (operation === 'update' && originalName) return { ...next, name: originalName }
+
   const phone = typeof next.phone === 'string' ? normalizePhone(next.phone) : ''
   const last4 = phone ? phoneLast4(phone) : ''
   return { ...next, name: last4 ? `未留姓名（${last4}）` : '未留姓名' }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
