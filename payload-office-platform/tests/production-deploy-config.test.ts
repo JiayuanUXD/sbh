@@ -132,6 +132,24 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('Promote 全量发布')
   })
 
+  it('冒烟靠 version 认出灰度版本，而不是只看 status', () => {
+    // run 31275171164 报 success 但线上版本没换：冒烟打生产域名，流量还在旧版本上，
+    // 旧版本健康所以必然通过。canary_ok 必须比对 version，否则这个假成功会重演。
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    // commit 注入代码包：平台在线构建拿不到 --build-arg，只能走包内文件。
+    expect(workflow).toContain(`printf '{"commit":"%s"}\\n' "$GITHUB_SHA"`)
+    expect(workflow).toContain('zip -q "$archive" build-info.json')
+
+    // 灰度期：必须至少命中一次 version == 本次 commit，否则失败并回滚。
+    expect(workflow).toContain('expected="$GITHUB_SHA"')
+    expect(workflow).toContain(`if [ "$version" = "$expected" ]; then`)
+    expect(workflow).toContain('::error::50 次请求均未命中 version=$expected 的灰度版本')
+
+    // promote 之后：全量流量都必须是本次版本，这是"确实上线了"的最终确认。
+    expect(workflow).toContain('::error::promote 后线上仍是 version=$version，期望 $expected')
+  })
+
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
 

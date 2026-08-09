@@ -5,6 +5,8 @@
 node_modules
 dist
 payload-types.ts
+# CI 发布时注入代码包（见 .github/workflows/deploy.yml），不进仓库
+build-info.json
 *.tsbuildinfo
 *.db
 *.db-journal
