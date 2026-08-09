@@ -212,6 +212,20 @@ export function createSupplySubmissionCoordinator(
   const submit = (values: SupplyFormValues): Promise<SupplyFormState> => {
     if (pendingSubmission) return pendingSubmission
 
+    const filledCount = [
+      values.buildingName.trim(),
+      values.address.trim(),
+      values.areaSqm.trim(),
+      values.rentAmount.trim(),
+      values.rentUnit,
+      values.contactPhone.trim(),
+    ].filter(Boolean).length
+    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
+      page_type: 'publish',
+      field_completeness: filledCount,
+      commission_months: values.commissionMonths,
+    })
+
     const clientErrors = getSupplyFieldErrors(values)
     if (Object.keys(clientErrors).length > 0) {
       updateState({ status: 'error', fieldErrors: clientErrors, formError: null })
@@ -262,19 +276,6 @@ export function createSupplySubmissionCoordinator(
       .finally(() => {
         pendingSubmission = null
       })
-    const filledCount = [
-      values.buildingName.trim(),
-      values.address.trim(),
-      values.areaSqm.trim(),
-      values.rentAmount.trim(),
-      values.rentUnit,
-      values.contactPhone.trim(),
-    ].filter(Boolean).length
-    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
-      page_type: 'publish',
-      field_completeness: filledCount,
-      commission_months: values.commissionMonths,
-    })
     return pendingSubmission
   }
 

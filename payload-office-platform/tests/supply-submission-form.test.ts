@@ -151,7 +151,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(JSON.stringify(events)).not.toMatch(/涓栫邯|13800001111|2299|\/publish/)
   })
 
-  it('tracks client validation without reporting a network submit', async () => {
+  it('tracks a partial client-side attempt before validation without making a request', async () => {
     let requests = 0
     const events: LandingAnalyticsRecord[] = []
     const coordinator = createSupplySubmissionCoordinator(
@@ -168,6 +168,49 @@ describe('SupplySubmissionForm validation and request boundary', () => {
 
     expect(requests).toBe(0)
     expect(events).toEqual([
+      {
+        name: 'landing_form_submit',
+        props: {
+          page_type: 'publish',
+          field_completeness: 5,
+          commission_months: '1',
+        },
+      },
+      {
+        name: 'landing_form_error',
+        props: { page_type: 'publish', error_code: 'validation_failed' },
+      },
+    ])
+  })
+
+  it('counts the default rent unit as the sole completed field on an otherwise empty attempt', async () => {
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createSupplySubmissionCoordinator(
+      () => 'publish-empty',
+      async () => new Response('{}', { status: 500 }),
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
+
+    await coordinator.submit({
+      buildingName: '',
+      address: '',
+      areaSqm: '',
+      rentAmount: '',
+      rentUnit: 'rmb-sqm-day',
+      commissionMonths: 'none',
+      contactPhone: '',
+    })
+
+    expect(events).toEqual([
+      {
+        name: 'landing_form_submit',
+        props: {
+          page_type: 'publish',
+          field_completeness: 1,
+          commission_months: 'none',
+        },
+      },
       {
         name: 'landing_form_error',
         props: { page_type: 'publish', error_code: 'validation_failed' },

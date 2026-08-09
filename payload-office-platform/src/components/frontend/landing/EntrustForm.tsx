@@ -110,6 +110,10 @@ export function createEntrustSubmissionCoordinator(
 
   const submit = (phone: string): Promise<EntrustFormState> => {
     if (pendingSubmission) return pendingSubmission
+    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
+      page_type: 'entrust',
+      field_completeness: phone.trim() ? 1 : 0,
+    })
     if (!isValidEntrustPhone(phone)) {
       updateState({ status: 'error', error: PHONE_ERROR })
       safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
@@ -145,10 +149,6 @@ export function createEntrustSubmissionCoordinator(
       .finally(() => {
         pendingSubmission = null
       })
-    safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
-      page_type: 'entrust',
-      field_completeness: 1,
-    })
     return pendingSubmission
   }
 

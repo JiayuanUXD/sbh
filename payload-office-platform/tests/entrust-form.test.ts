@@ -141,7 +141,7 @@ describe('EntrustForm submission boundary', () => {
     expect(JSON.stringify(events)).not.toContain('private_server_code')
   })
 
-  it('tracks client validation and network errors without a submit event for invalid input', async () => {
+  it('tracks every client-side attempt before validation and reports network errors separately', async () => {
     const events: LandingAnalyticsRecord[] = []
     const coordinator = createEntrustSubmissionCoordinator(
       () => 'entrust-network-analytics',
@@ -157,6 +157,10 @@ describe('EntrustForm submission boundary', () => {
 
     expect(events).toEqual([
       {
+        name: 'landing_form_submit',
+        props: { page_type: 'entrust', field_completeness: 1 },
+      },
+      {
         name: 'landing_form_error',
         props: { page_type: 'entrust', error_code: 'validation_failed' },
       },
@@ -167,6 +171,29 @@ describe('EntrustForm submission boundary', () => {
       {
         name: 'landing_form_error',
         props: { page_type: 'entrust', error_code: 'network_error' },
+      },
+    ])
+  })
+
+  it('reports zero completeness for an empty phone before the validation error', async () => {
+    const events: LandingAnalyticsRecord[] = []
+    const coordinator = createEntrustSubmissionCoordinator(
+      () => 'entrust-empty-analytics',
+      async () => new Response('{}', { status: 500 }),
+      undefined,
+      (name, props) => events.push({ name, props }),
+    )
+
+    await coordinator.submit('   ')
+
+    expect(events).toEqual([
+      {
+        name: 'landing_form_submit',
+        props: { page_type: 'entrust', field_completeness: 0 },
+      },
+      {
+        name: 'landing_form_error',
+        props: { page_type: 'entrust', error_code: 'validation_failed' },
       },
     ])
   })
