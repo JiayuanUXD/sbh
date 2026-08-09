@@ -44,4 +44,23 @@ describe('focusLandingTarget', () => {
     })).toBe(false)
     expect(focusCalls).toEqual([{ preventScroll: true }])
   })
+
+  it('does not scroll or focus a disabled target', () => {
+    const scrollCalls: ScrollIntoViewOptions[] = []
+    const focusCalls: FocusOptions[] = []
+    const target = {
+      tabIndex: 0,
+      disabled: true,
+      hasAttribute: () => false,
+      scrollIntoView: (options: ScrollIntoViewOptions) => scrollCalls.push(options),
+      focus: (options: FocusOptions) => focusCalls.push(options),
+    }
+
+    expect(focusLandingTarget('entrust-phone', {
+      findTarget: () => target,
+      prefersReducedMotion: () => false,
+    })).toBe(false)
+    expect(scrollCalls).toEqual([])
+    expect(focusCalls).toEqual([])
+  })
 })

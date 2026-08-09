@@ -27,7 +27,7 @@ function StepIcon({ icon }: { icon: ProcessIconKey }) {
 
 export default function ProcessSteps({ steps, size = 'card' }: ProcessStepsProps) {
   return (
-    <ol className={`process-steps process-steps--${size}`}>
+    <ol className={`process-steps process-steps--${size}`} role="list">
       {steps.map((step, index) => (
         <li key={`${step.icon}-${step.label}`} className="process-steps__item">
           <div className="process-steps__icon">

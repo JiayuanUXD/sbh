@@ -5,6 +5,7 @@ import { Button } from '@/components/frontend/ui'
 
 type FocusableLandingTarget = {
   tabIndex: number
+  disabled?: boolean
   hasAttribute: (qualifiedName: string) => boolean
   scrollIntoView: (options: ScrollIntoViewOptions) => void
   focus: (options?: FocusOptions) => void
@@ -29,6 +30,7 @@ function isFocusableTarget(target: unknown): target is FocusableLandingTarget {
     && candidate.tabIndex >= 0
     && typeof candidate.hasAttribute === 'function'
     && !candidate.hasAttribute('disabled')
+    && candidate.disabled !== true
     && typeof candidate.scrollIntoView === 'function'
     && typeof candidate.focus === 'function'
 }
