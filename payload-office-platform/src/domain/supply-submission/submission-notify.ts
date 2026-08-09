@@ -66,6 +66,59 @@ function stableEventId(submissionId: Identifier): string {
   return `supply-submission-created:${String(submissionId)}`
 }
 
+async function findAllActiveRoles(
+  payload: Payload,
+  req: PayloadRequest | undefined,
+): Promise<Array<{ id: Identifier; operationPermissions?: unknown }>> {
+  const roles: Array<{ id: Identifier; operationPermissions?: unknown }> = []
+  let page = 1
+
+  while (true) {
+    const result = await payload.find({
+      collection: 'roles',
+      where: { status: { equals: 'active' } },
+      sort: 'id',
+      page,
+      limit: QUERY_LIMIT,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+    roles.push(...result.docs.map((role) => ({
+      id: role.id,
+      operationPermissions: role.operationPermissions,
+    })))
+
+    const reportedPage = result.page
+    const reportedTotalPages = result.totalPages
+    const currentPage = typeof reportedPage === 'number' &&
+      Number.isSafeInteger(reportedPage) && reportedPage > 0
+      ? reportedPage
+      : page
+    const totalPages = typeof reportedTotalPages === 'number' &&
+      Number.isSafeInteger(reportedTotalPages) && reportedTotalPages >= currentPage
+      ? reportedTotalPages
+      : null
+    const hasNextPage = result.hasNextPage === true || (
+      totalPages !== null && currentPage < totalPages
+    )
+    if (!hasNextPage) return roles
+
+    // Payload normally supplies all three pagination fields. Refuse malformed
+    // metadata instead of risking an unbounded loop or silently skipping roles.
+    if (totalPages === null) throw new Error('supply_notification_role_pagination_invalid')
+    const nextPage = result.nextPage ?? currentPage + 1
+    if (
+      !Number.isSafeInteger(nextPage) ||
+      nextPage <= currentPage ||
+      nextPage > totalPages
+    ) {
+      throw new Error('supply_notification_role_pagination_invalid')
+    }
+    page = nextPage
+  }
+}
+
 /**
  * Supply submission transactional outbox producer.
  *
@@ -170,16 +223,8 @@ export async function consumeSupplySubmissionCreated(args: {
       req,
     })) as SubmissionNotificationDoc
 
-    const roles = await payload.find({
-      collection: 'roles',
-      where: { status: { equals: 'active' } },
-      sort: 'id',
-      limit: QUERY_LIMIT,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-    const roleIds = roles.docs
+    const roles = await findAllActiveRoles(payload, req)
+    const roleIds = roles
       .filter((role) => hasSupplySubmissionReadPermission(role.operationPermissions))
       .map((role) => role.id)
 

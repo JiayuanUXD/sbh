@@ -125,6 +125,8 @@ function consumerHarness(options?: {
   failRecipients?: Identifier[]
   uniqueConflictRecipients?: Identifier[]
   confirmUniqueConflicts?: boolean
+  rolePages?: Array<Array<{ id: Identifier; operationPermissions: string[] }>>
+  rolePaginationLoop?: boolean
   processedAt?: string | null
 }) {
   const creates: Array<Record<string, unknown>> = []
@@ -153,6 +155,19 @@ function consumerHarness(options?: {
         }
       }
       if (args.collection === 'roles') {
+        if (options?.rolePages) {
+          const page = Number((args as { page?: number }).page ?? 1)
+          const totalPages = options.rolePages.length
+          return {
+            docs: options.rolePages[page - 1] ?? [],
+            page,
+            totalPages,
+            hasNextPage: page < totalPages,
+            nextPage: page < totalPages
+              ? (options.rolePaginationLoop ? page : page + 1)
+              : null,
+          }
+        }
         return {
           docs: [
             { id: 10, status: 'active', operationPermissions: ['supply_submission:read'] },
@@ -279,6 +294,44 @@ describe('supply submission notification job consumer', () => {
 
     expect(harness.finds.find((call) => call.collection === 'roles')).toMatchObject({ sort: 'id' })
     expect(harness.finds.find((call) => call.collection === 'users')).toMatchObject({ sort: 'id' })
+  })
+
+  it('reads every active-role page before selecting the stable capped users', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({
+      id: index + 1,
+      operationPermissions: ['lead:read'],
+    }))
+    const harness = consumerHarness({
+      recipients: [20],
+      rolePages: [
+        firstPage,
+        [{ id: 101, operationPermissions: ['supply_submission:read'] }],
+      ],
+    })
+
+    await expect(consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })).resolves.toEqual({ delivered: 1 })
+    expect(harness.finds
+      .filter((call) => call.collection === 'roles')
+      .map((call) => call.page)).toEqual([1, 2])
+  })
+
+  it('fails retryably instead of looping when role pagination does not advance', async () => {
+    const harness = consumerHarness({
+      rolePages: [
+        [{ id: 10, operationPermissions: ['lead:read'] }],
+        [{ id: 11, operationPermissions: ['supply_submission:read'] }],
+      ],
+      rolePaginationLoop: true,
+    })
+
+    await expect(consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })).rejects.toThrow('supply_submission_notification_delivery_failed')
+    expect(harness.finds.filter((call) => call.collection === 'roles')).toHaveLength(1)
   })
 
   it('creates recipient notifications sequentially in independent Local API transactions', async () => {
