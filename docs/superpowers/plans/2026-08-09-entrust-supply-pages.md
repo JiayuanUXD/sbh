@@ -24,7 +24,7 @@
 | Task 6 骨架组件 | ✅ 完成 | `6002fc8` + `64a6355`，1 轮层叠/成功态/无障碍修复，review 通过 |
 | Task 7 `/entrust` 页 | ✅ 完成 | `8805db5` + `15b30a6` + `579b16a` + `4b7ba79`，3 轮提交状态/响应式/吸底修复，review 与真实浏览器/PG 验证通过 |
 | Task 8 `/publish` 页 | ✅ 完成 | `4df3eee` + `4529cd5` + `0280cbb`，2 轮层级/面积后缀响应式修复，review 与真实浏览器/PG 验证通过 |
-| Task 9 站内通知 | ⬜ 未开始 | |
+| Task 9 站内通知 | ✅ 完成 | `4b53e40` + `73d6ff4` + `465c8ab` + `e40ad32`，重放/并发幂等与 PostgreSQL JSON 权限查询修复，review 与真实端点/PG 验证通过 |
 | Task 10 埋点 | ⬜ 未开始 | |
 | Task 11 sitemap | ⬜ 未开始 | |
 | Task 12 E2E 与验证 | ⬜ 未开始 | |
@@ -3693,7 +3693,7 @@ git commit -m "feat(frontend): 新增 /publish 投放房源落地页
 - Consumes: Task 3 的 `Notifications` 新枚举值（`supply-submission-created` / `supply-submission`）、`supply_submission:read` 操作编码
 - Produces: `notifySupplySubmissionCreated: CollectionAfterChangeHook`
 
-- [ ] **Step 1: 实现通知 hook**
+- [x] **Step 1: 实现通知 hook**
 
 ```ts
 /**
@@ -3791,7 +3791,7 @@ export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
 
 > 字段名已核对：`Roles.operationPermissions`（`:151`）、`Roles.status`（`:107`，值 `active`/`inactive`）、`Users.roles`（`:149`，指向 roles 的数组关系）。`operationPermissions` 是字符串数组，用 `contains` 匹配单个编码。
 
-- [ ] **Step 2: 挂到集合**
+- [x] **Step 2: 挂到集合**
 
 `src/collections/SupplySubmissions.ts` 的 `hooks` 改为：
 
@@ -3808,7 +3808,7 @@ export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
 import { notifySupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
 ```
 
-- [ ] **Step 3: 类型检查**
+- [x] **Step 3: 类型检查**
 
 ```bash
 cd payload-office-platform && pnpm typecheck
@@ -3816,7 +3816,9 @@ cd payload-office-platform && pnpm typecheck
 
 Expected: 通过
 
-- [ ] **Step 4: 烟测通知**
+- [x] **Step 4: 烟测通知**
+
+> 验证记录：真实 PostgreSQL 中 JSON 字段 `contains` 会生成不兼容的 `ILIKE jsonb`，实现已改为数据库筛 active 角色、应用层严格筛权限数组。另用 Payload 生成迁移 `20260809_183327_supply_submission_notification_unique` 建立 `(event_id, recipient_id, type)` 复合唯一约束；同 requestId 连续提交两次最终仅 1 条申请和 1 条通知，正文不含手机号。
 
 先在后台给自己的账号所属角色勾上 `supply_submission:read`，然后：
 
@@ -3832,7 +3834,7 @@ Expected: `{"ok":true}`；`/admin/collections/notifications` 出现一条「新�
 
 再验证"通知失败不影响落库"：把角色的 `supply_submission:read` 取消（收件人为空），再提交一条不同楼盘名的申请，Expected: 仍 `{"ok":true}`，申请落库，无通知，无报错。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add payload-office-platform/src/domain/supply-submission/submission-notify.ts payload-office-platform/src/collections/SupplySubmissions.ts
