@@ -26,7 +26,7 @@
 | Task 8 `/publish` 页 | ✅ 完成 | `4df3eee` + `4529cd5` + `0280cbb`，2 轮层级/面积后缀响应式修复，review 与真实浏览器/PG 验证通过 |
 | Task 9 站内通知 | ✅ 完成 | `4b53e40` + `73d6ff4` + `465c8ab` + `e40ad32`，重放/并发幂等与 PostgreSQL JSON 权限查询修复，review 与真实端点/PG 验证通过 |
 | Task 10 埋点 | ✅ 完成 | `de3ae4c` + `26772cc`，补齐无效提交漏斗口径，review 与真实浏览器事件/PII 验证通过 |
-| Task 11 sitemap | ⬜ 未开始 | |
+| Task 11 sitemap | ✅ 完成 | `b6e8090` + `56827f9`，静态降级与日志脱敏，review/HTTP 验证通过 |
 | Task 12 E2E 与验证 | ⬜ 未开始 | |
 
 执行期已修的两处**计划自身缺陷**（均已 commit 并回写本文档）：
@@ -4116,7 +4116,7 @@ git commit -m "feat(analytics): 两个落地页转化漏斗埋点
 - Consumes: Task 7 / Task 8 的两个路由
 - Produces: sitemap 含 `/entrust` 与 `/publish`
 
-- [ ] **Step 1: 加静态项**
+- [x] **Step 1: 加静态项**
 
 在 `src/app/(frontend)/sitemap.ts` 的静态条目列表里（`:109-111` 附近，`/listings` 那条之后）加两条：
 
@@ -4137,7 +4137,7 @@ git commit -m "feat(analytics): 两个落地页转化漏斗埋点
 
 优先级取 0.7：低于列表页（0.9）、高于内容页（0.6）——这两页是转化入口但内容量小。
 
-- [ ] **Step 2: 烟测 sitemap**
+- [x] **Step 2: 烟测 sitemap**
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -4149,7 +4149,7 @@ curl -s http://localhost:3719/sitemap.xml | grep -c -e '/entrust' -e '/publish'
 
 Expected: `2`
 
-- [ ] **Step 3: 提交**
+- [x] **Step 3: 提交**
 
 ```bash
 git add "payload-office-platform/src/app/(frontend)/sitemap.ts"
