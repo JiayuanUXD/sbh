@@ -20,7 +20,7 @@
 | Task 2 投放房源纯函数 | ✅ 完成 | `73d30fc`，1 轮修复（控制字符正则），19/19 单测 |
 | Task 3 集合 + 迁移 | ✅ 完成 | `5836f1c`，迁移 `20260809_142444_supply_submissions_and_entrust_source`，2418 单测全绿 |
 | Task 4 提交端点 | ✅ 完成 | `dac9e79` + `c00a8bf`，1 轮安全修复，review 通过 |
-| Task 5 entrust 链路 | ⬜ 未开始 | |
+| Task 5 entrust 链路 | ✅ 完成 | `f30f808` + `469f08d`，1 轮 update-delta 修复，review 通过 |
 | Task 6 骨架组件 | ⬜ 未开始 | |
 | Task 7 `/entrust` 页 | ⬜ 未开始 | |
 | Task 8 `/publish` 页 | ⬜ 未开始 | |
@@ -1980,7 +1980,7 @@ git commit -m "feat(supply): 新增 /api/supply-submissions 公开提交端点
   - `validateInquiry` 在 `source.pageType === 'entrust'` 时允许省略 `name`（返回空串）
   - `fillEntrustLeadName: CollectionBeforeValidateHook`
 
-- [ ] **Step 1: 追加失败测试**
+- [x] **Step 1: 追加失败测试**
 
 在 `tests/inquiry-domain.test.ts` 末尾追加（import 区按需补 `fillEntrustLeadName`）：
 
@@ -2089,7 +2089,7 @@ import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
 
 （`PRIVACY_POLICY_VERSION` 与 `validateInquiry` 该文件已有 import；若没有则补 `import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'`。）
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/inquiry-domain.test.ts
@@ -2097,7 +2097,7 @@ cd payload-office-platform && pnpm vitest run tests/inquiry-domain.test.ts
 
 Expected: FAIL — 无法解析 `@/domain/inquiry/entrust-name-fallback`；且 entrust 缺姓名用例报 `name_required`
 
-- [ ] **Step 3: 改 `src/domain/inquiry/schema.ts`**
+- [x] **Step 3: 改 `src/domain/inquiry/schema.ts`**
 
 3a. `SOURCE_PAGE_TYPES`（`:21-23` 附近）加 `'entrust'`，并更新其上方注释：
 
@@ -2135,7 +2135,7 @@ export const SOURCE_PAGE_TYPES = [
  *     name (1-50) 除 pageType='entrust' 外必填
 ```
 
-- [ ] **Step 4: 实现 `src/domain/inquiry/entrust-name-fallback.ts`**
+- [x] **Step 4: 实现 `src/domain/inquiry/entrust-name-fallback.ts`**
 
 ```ts
 /**
@@ -2167,7 +2167,7 @@ export const fillEntrustLeadName: CollectionBeforeValidateHook = ({ data }) => {
 }
 ```
 
-- [ ] **Step 5: 在 `Leads` 挂 hook**
+- [x] **Step 5: 在 `Leads` 挂 hook**
 
 `src/collections/Leads.ts`：import 区加
 
@@ -2187,7 +2187,7 @@ import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
   },
 ```
 
-- [ ] **Step 6: 路由传姓名时容许空值**
+- [x] **Step 6: 路由传姓名时容许空值**
 
 `src/app/api/inquiries/route.ts` 的 `payload.create` 里，把 `name: inquiry.name,`（`:358`）改为：
 
@@ -2196,7 +2196,7 @@ import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
         name: inquiry.name || undefined,
 ```
 
-- [ ] **Step 7: 跑测试确认通过**
+- [x] **Step 7: 跑测试确认通过**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/inquiry-domain.test.ts && pnpm test
@@ -2204,7 +2204,7 @@ cd payload-office-platform && pnpm vitest run tests/inquiry-domain.test.ts && pn
 
 Expected: 全绿（新增 8 个用例通过，原有询盘用例不回归）
 
-- [ ] **Step 8: 烟测 entrust 提交**
+- [x] **Step 8: 烟测 entrust 提交**
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -2216,7 +2216,7 @@ curl -s -X POST http://localhost:3719/api/inquiries -H 'content-type: applicatio
 
 Expected: `{"ok":true,"targetResolution":"general"}`；后台 `/admin/collections/leads` 出现一条姓名为 `未留姓名（2222）`、来源为 `entrust` 的线索。
 
-- [ ] **Step 9: 提交**
+- [x] **Step 9: 提交**
 
 ```bash
 cd .. && git add payload-office-platform/src/domain/inquiry/schema.ts payload-office-platform/src/domain/inquiry/entrust-name-fallback.ts payload-office-platform/src/collections/Leads.ts payload-office-platform/src/app/api/inquiries/route.ts payload-office-platform/tests/inquiry-domain.test.ts
