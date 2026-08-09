@@ -9,11 +9,15 @@
  *     只允许后台补录字段与流程字段变更；
  *   - status 流转到终态（converted/rejected/duplicate）时自动补 handledAt。
  *
- * 与 access 叠加：access.create 公开、access.update 需 supply_submission:manage、
- * access.delete=false；protect 在 beforeChange 兜底，挡 Local API overrideAccess 绕过。
+ * 与 access 叠加：access.create 关闭、access.update 需 supply_submission:manage、
+ * access.delete=false；转换动作在 beforeChange 再校验 manage + convert，挡带身份的
+ * Local API overrideAccess 绕过；无身份的受信系统 Local API 调用保留维护语义。
  */
 
 import type { CollectionBeforeChangeHook } from 'payload'
+import { derivePermissionContextFromRequest, type RequestContext } from '@/domain/auth/access'
+import { hasOperationPermission } from '@/domain/auth/permission-context'
+import { ForbiddenError } from '@/domain/shared/errors'
 
 /** 提交事实字段：创建后不可改 */
 const IMMUTABLE_FIELDS = [
@@ -36,10 +40,31 @@ const IMMUTABLE_FIELDS = [
 /** 需要写 handledAt 的终态 */
 const TERMINAL_STATUSES = new Set(['converted', 'rejected', 'duplicate'])
 
-export const protectSupplySubmission: CollectionBeforeChangeHook = ({
+function relationshipId(value: unknown): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id
+    if (typeof id === 'number' || typeof id === 'string') return id
+  }
+  return null
+}
+
+function requiresConvertPermission(
+  next: Record<string, unknown>,
+  previous: Record<string, unknown> | null,
+): boolean {
+  const statusTransition = next.status === 'converted' && previous?.status !== 'converted'
+  const listingChanged =
+    'convertedListing' in next &&
+    relationshipId(next.convertedListing) !== relationshipId(previous?.convertedListing)
+  return statusTransition || listingChanged
+}
+
+export const protectSupplySubmission: CollectionBeforeChangeHook = async ({
   data,
   operation,
   originalDoc,
+  req,
 }) => {
   const next = (data ?? {}) as Record<string, unknown>
 
@@ -52,6 +77,26 @@ export const protectSupplySubmission: CollectionBeforeChangeHook = ({
   if (prev) {
     for (const field of IMMUTABLE_FIELDS) {
       if (field in prev) fixed[field] = prev[field]
+    }
+  }
+
+  // A request with an authenticated actor remains permission-bound even when a
+  // Local API caller passes overrideAccess=true. Actor-less Local API calls are
+  // reserved for trusted system jobs and remain available for maintenance.
+  if (requiresConvertPermission(fixed, prev) && req.user) {
+    const permission = await derivePermissionContextFromRequest(req as RequestContext)
+    if (
+      !permission ||
+      !hasOperationPermission(permission, 'supply_submission:manage') ||
+      !hasOperationPermission(permission, 'supply_submission:convert')
+    ) {
+      throw new ForbiddenError({
+        domain: 'auth',
+        message: '缺少操作权限：supply_submission:convert',
+        details: {
+          requiredOperations: ['supply_submission:manage', 'supply_submission:convert'],
+        },
+      })
     }
   }
 

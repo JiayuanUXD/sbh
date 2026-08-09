@@ -72,6 +72,25 @@ beforeEach(() => {
 })
 
 describe('POST /api/supply-submissions safety boundaries', () => {
+  it('creates only through the dedicated route with Local API overrideAccess', async () => {
+    payloadFindMock
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [{ id: 1 }] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true })
+    expect(payloadCreateMock).toHaveBeenCalledOnce()
+    expect(payloadCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'supply-submissions',
+        overrideAccess: true,
+      }),
+    )
+  })
+
   it('does not create a submission when the default city cannot be found', async () => {
     payloadFindMock
       .mockResolvedValueOnce({ docs: [] })

@@ -38,7 +38,7 @@ const PRICE_UNIT_LABELS: Record<(typeof PRICE_UNITS)[number], string> = {
  *
  * 权限：
  *   - read：supply_submission:read
- *   - create：公开（任何人都可提交投放申请）
+ *   - create：Collection 边界关闭；公开提交仅走专用 Next route
  *   - update：supply_submission:manage
  *   - delete：禁止（审计轨迹）
  */
@@ -68,8 +68,10 @@ export const SupplySubmissions: CollectionConfig = {
       read: 'supply_submission:read',
       update: 'supply_submission:manage',
     }),
-    // create 公开：任何人都可提交投放申请（字段白名单由端点 schema 收窄）
-    create: () => true,
+    // Collection 创建边界关闭：公开提交仅走专用端点的 schema / 同源 / 限流守卫。
+    // Public writes must pass the dedicated hardened Next route, which uses
+    // Local API overrideAccess deliberately after validation and rate limiting.
+    create: () => false,
     // 只追加：禁止删除（审计轨迹）
     delete: () => false,
   },
