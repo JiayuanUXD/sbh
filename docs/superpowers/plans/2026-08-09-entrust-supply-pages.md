@@ -21,7 +21,7 @@
 | Task 3 集合 + 迁移 | ✅ 完成 | `5836f1c`，迁移 `20260809_142444_supply_submissions_and_entrust_source`，2418 单测全绿 |
 | Task 4 提交端点 | ✅ 完成 | `dac9e79` + `c00a8bf`，1 轮安全修复，review 通过 |
 | Task 5 entrust 链路 | ✅ 完成 | `f30f808` + `469f08d`，1 轮 update-delta 修复，review 通过 |
-| Task 6 骨架组件 | ⬜ 未开始 | |
+| Task 6 骨架组件 | ✅ 完成 | `6002fc8` + `64a6355`，1 轮层叠/成功态/无障碍修复，review 通过 |
 | Task 7 `/entrust` 页 | ⬜ 未开始 | |
 | Task 8 `/publish` 页 | ⬜ 未开始 | |
 | Task 9 站内通知 | ⬜ 未开始 | |
@@ -2247,7 +2247,7 @@ SOURCE_PAGE_TYPES 加 entrust；该渠道允许省略姓名，
   - `StatHighlights({ items })`，`items: readonly { value: string; unit: string; caption: string }[]`
   - `BottomCtaBar({ text, ctaLabel, targetId })`
 
-- [ ] **Step 1: 创建文案与数字配置 `src/lib/frontend/landing-config.ts`**
+- [x] **Step 1: 创建文案与数字配置 `src/lib/frontend/landing-config.ts`**
 
 ```ts
 /**
@@ -2328,7 +2328,7 @@ export const PUBLISH_STEPS = [
 ] as const
 ```
 
-- [ ] **Step 2: 创建 `ProcessSteps.tsx`**
+- [x] **Step 2: 创建 `ProcessSteps.tsx`**
 
 ```tsx
 import React from 'react'
@@ -2408,7 +2408,7 @@ export default function ProcessSteps({ steps, size = 'card' }: Props) {
 }
 ```
 
-- [ ] **Step 3: 创建 `LandingHero.tsx`**
+- [x] **Step 3: 创建 `LandingHero.tsx`**
 
 ```tsx
 import React from 'react'
@@ -2472,7 +2472,7 @@ export default function LandingHero({ variant, badge, title, subtitle, children 
 }
 ```
 
-- [ ] **Step 4: 创建 `StatHighlights.tsx`**
+- [x] **Step 4: 创建 `StatHighlights.tsx`**
 
 ```tsx
 import React from 'react'
@@ -2506,7 +2506,7 @@ export default function StatHighlights({ items }: { items: readonly StatItem[] }
 }
 ```
 
-- [ ] **Step 5: 创建 `BottomCtaBar.tsx`**
+- [x] **Step 5: 创建 `BottomCtaBar.tsx`**
 
 ```tsx
 'use client'
@@ -2551,7 +2551,7 @@ export default function BottomCtaBar({ text, ctaLabel, targetId }: Props) {
 }
 ```
 
-- [ ] **Step 6: 追加样式到 `src/app/(frontend)/styles.css`**
+- [x] **Step 6: 追加样式到 `src/app/(frontend)/styles.css`**
 
 在文件末尾追加（只用既有 CSS 变量，不引入新色值；`--gold` / `--deep` 承接对标站的红色位置）：
 
@@ -2996,7 +2996,7 @@ export default function BottomCtaBar({ text, ctaLabel, targetId }: Props) {
 }
 ```
 
-- [ ] **Step 7: 类型检查**
+- [x] **Step 7: 类型检查**
 
 ```bash
 cd payload-office-platform && pnpm typecheck
@@ -3004,7 +3004,7 @@ cd payload-office-platform && pnpm typecheck
 
 Expected: 通过
 
-- [ ] **Step 8: 提交**
+- [x] **Step 8: 提交**
 
 ```bash
 git add payload-office-platform/src/lib/frontend/landing-config.ts payload-office-platform/src/components/frontend/landing payload-office-platform/src/app/\(frontend\)/styles.css
