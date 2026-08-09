@@ -9,6 +9,7 @@ import SupplySubmissionForm, {
   submitSupplySubmission,
   type SupplyFormValues,
 } from '@/components/frontend/landing/SupplySubmissionForm'
+import { createSupplyPendingRequestStore } from '@/lib/frontend/supply-submission-request'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import type { LandingAnalyticsRecord } from '@/lib/frontend/analytics/landing'
 
@@ -20,6 +21,34 @@ const VALID_VALUES: SupplyFormValues = {
   rentUnit: 'rmb-sqm-day',
   commissionMonths: '1',
   contactPhone: ' +86 138-0000-1111 ',
+}
+
+class MemoryStorage implements Storage {
+  private readonly values = new Map<string, string>()
+
+  get length(): number {
+    return this.values.size
+  }
+
+  clear(): void {
+    this.values.clear()
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null
+  }
+
+  key(index: number): string | null {
+    return [...this.values.keys()][index] ?? null
+  }
+
+  removeItem(key: string): void {
+    this.values.delete(key)
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value)
+  }
 }
 
 describe('SupplySubmissionForm validation and request boundary', () => {
@@ -103,6 +132,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
   })
 
   it('creates one request ID, deduplicates an in-flight double submit, and reaches success', async () => {
+    const storage = new MemoryStorage()
     const requestIdFactory = vi.fn(() => 'publish-one-mount')
     const requestBodies: string[] = []
     let resolveResponse: (response: Response) => void = () => undefined
@@ -114,19 +144,32 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       return response
     }
     const events: LandingAnalyticsRecord[] = []
+    let resolveIntentKey: (value: string) => void = () => undefined
+    const intentKey = new Promise<string>((resolve) => {
+      resolveIntentKey = resolve
+    })
     const coordinator = createSupplySubmissionCoordinator(
       requestIdFactory,
       requester,
       undefined,
       (name, props) => events.push({ name, props }),
+      {
+        pendingRequestStore: createSupplyPendingRequestStore(storage),
+        intentKeyFactory: () => intentKey,
+      },
     )
 
     const first = coordinator.submit(VALID_VALUES)
     const second = coordinator.submit(VALID_VALUES)
 
     expect(first).toBe(second)
+    expect(requestIdFactory).not.toHaveBeenCalled()
+    expect(requestBodies).toHaveLength(0)
+
+    resolveIntentKey('a'.repeat(64))
+    await vi.waitFor(() => expect(requestBodies).toHaveLength(1))
+
     expect(requestIdFactory).toHaveBeenCalledTimes(1)
-    expect(requestBodies).toHaveLength(1)
     expect(coordinator.getState().status).toBe('submitting')
 
     resolveResponse(new Response(JSON.stringify({ ok: true }), { status: 200 }))
@@ -149,6 +192,151 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       { name: 'landing_form_success', props: { page_type: 'publish' } },
     ])
     expect(JSON.stringify(events)).not.toMatch(/涓栫邯|13800001111|2299|\/publish/)
+  })
+
+  it('does not persist a request ID on mount or for a client-invalid attempt', async () => {
+    const storage = new MemoryStorage()
+    const requestIdFactory = vi.fn(() => 'publish-valid-only')
+    const intentKeyFactory = vi.fn(async () => 'intent-valid-only')
+    const coordinator = createSupplySubmissionCoordinator(
+      requestIdFactory,
+      async () => new Response('{}', { status: 500 }),
+      undefined,
+      undefined,
+      {
+        pendingRequestStore: createSupplyPendingRequestStore(storage),
+        intentKeyFactory,
+      },
+    )
+
+    expect(storage.length).toBe(0)
+    await coordinator.submit({ ...VALID_VALUES, contactPhone: '123' })
+
+    expect(storage.length).toBe(0)
+    expect(requestIdFactory).not.toHaveBeenCalled()
+    expect(intentKeyFactory).not.toHaveBeenCalled()
+  })
+
+  it('reuses the same request ID after a successful submit and a simulated refresh', async () => {
+    const storage = new MemoryStorage()
+    const requestBodies: string[] = []
+    const requester = async (_url: string, init?: RequestInit): Promise<Response> => {
+      if (typeof init?.body === 'string') requestBodies.push(init.body)
+      return new Response(JSON.stringify({ ok: true }), { status: 200 })
+    }
+    const firstFactory = vi.fn(() => 'publish-before-refresh')
+    const secondFactory = vi.fn(() => 'publish-must-not-be-used')
+    const options = { pendingRequestStore: createSupplyPendingRequestStore(storage) }
+
+    await createSupplySubmissionCoordinator(
+      firstFactory,
+      requester,
+      undefined,
+      undefined,
+      options,
+    ).submit(VALID_VALUES)
+    await createSupplySubmissionCoordinator(
+      secondFactory,
+      requester,
+      undefined,
+      undefined,
+      options,
+    ).submit({
+      ...VALID_VALUES,
+      buildingName: '世纪商贸广场',
+      contactPhone: '13800001111',
+    })
+
+    expect(requestBodies).toHaveLength(2)
+    expect(requestBodies[0]).toContain('"requestId":"publish-before-refresh"')
+    expect(requestBodies[1]).toContain('"requestId":"publish-before-refresh"')
+    expect(firstFactory).toHaveBeenCalledTimes(1)
+    expect(secondFactory).not.toHaveBeenCalled()
+    expect(storage.length).toBe(1)
+    const persistedValue = storage.getItem(storage.key(0) ?? '') ?? ''
+    expect(persistedValue).not.toContain('13800001111')
+    expect(persistedValue).not.toContain('世纪商贸广场')
+  })
+
+  it('rotates the persisted request ID when the normalized phone or building intent changes', async () => {
+    const storage = new MemoryStorage()
+    const requestBodies: string[] = []
+    const requestIdFactory = vi
+      .fn<() => string>()
+      .mockReturnValueOnce('publish-intent-a')
+      .mockReturnValueOnce('publish-intent-b')
+      .mockReturnValueOnce('publish-intent-c')
+    const coordinator = createSupplySubmissionCoordinator(
+      requestIdFactory,
+      async (_url, init) => {
+        if (typeof init?.body === 'string') requestBodies.push(init.body)
+        return new Response('{}', { status: 500 })
+      },
+      undefined,
+      undefined,
+      {
+        pendingRequestStore: createSupplyPendingRequestStore(storage),
+      },
+    )
+
+    await coordinator.submit(VALID_VALUES)
+    await coordinator.submit({ ...VALID_VALUES, contactPhone: '13900002222' })
+    await coordinator.submit({
+      ...VALID_VALUES,
+      contactPhone: '13900002222',
+      buildingName: '另一栋楼',
+    })
+
+    expect(requestBodies[0]).toContain('"requestId":"publish-intent-a"')
+    expect(requestBodies[1]).toContain('"requestId":"publish-intent-b"')
+    expect(requestBodies[2]).toContain('"requestId":"publish-intent-c"')
+    expect(requestIdFactory).toHaveBeenCalledTimes(3)
+  })
+
+  it('falls back to mount-local retry idempotency when sessionStorage is unavailable', async () => {
+    const unavailableStorage: Storage = {
+      get length(): number {
+        throw new Error('storage unavailable')
+      },
+      clear() {
+        throw new Error('storage unavailable')
+      },
+      getItem() {
+        throw new Error('storage unavailable')
+      },
+      key(): string | null {
+        throw new Error('storage unavailable')
+      },
+      removeItem() {
+        throw new Error('storage unavailable')
+      },
+      setItem() {
+        throw new Error('storage unavailable')
+      },
+    }
+    const requestBodies: string[] = []
+    const requestIdFactory = vi.fn(() => 'publish-storage-fallback')
+    const coordinator = createSupplySubmissionCoordinator(
+      requestIdFactory,
+      async (_url, init) => {
+        if (typeof init?.body === 'string') requestBodies.push(init.body)
+        return new Response('{}', { status: 500 })
+      },
+      undefined,
+      undefined,
+      {
+        pendingRequestStore: createSupplyPendingRequestStore(unavailableStorage),
+        intentKeyFactory: async () => 'intent-fallback',
+      },
+    )
+
+    await coordinator.submit(VALID_VALUES)
+    await coordinator.submit(VALID_VALUES)
+
+    expect(requestBodies).toHaveLength(2)
+    expect(requestBodies[0]).toContain('"requestId":"publish-storage-fallback"')
+    expect(requestBodies[1]).toContain('"requestId":"publish-storage-fallback"')
+    expect(requestIdFactory).toHaveBeenCalledTimes(1)
   })
 
   it('tracks a partial client-side attempt before validation without making a request', async () => {

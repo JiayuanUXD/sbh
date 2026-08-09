@@ -19,6 +19,12 @@ import {
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import {
+  createBrowserSupplyPendingRequestStore,
+  createSupplyIntentFingerprint,
+  getSupplyIntentIdentity,
+  type SupplyPendingRequestStore,
+} from '@/lib/frontend/supply-submission-request'
 
 const RENT_UNIT_OPTIONS = [
   { value: 'rmb-sqm-day', label: '元/㎡/天' },
@@ -71,6 +77,11 @@ export type SupplyFormState = Readonly<{
 export type SupplySubmissionCoordinator = Readonly<{
   getState: () => SupplyFormState
   submit: (values: SupplyFormValues) => Promise<SupplyFormState>
+}>
+
+type SupplySubmissionCoordinatorOptions = Readonly<{
+  pendingRequestStore?: SupplyPendingRequestStore
+  intentKeyFactory?: (values: SupplyFormValues) => Promise<string | null>
 }>
 
 const ERROR_CODE_MAP: Readonly<
@@ -199,10 +210,14 @@ export function createSupplySubmissionCoordinator(
   requester: SupplyRequester,
   onStateChange: (state: SupplyFormState) => void = () => undefined,
   analyticsTrack: LandingAnalyticsTrack = track,
+  options: SupplySubmissionCoordinatorOptions = {},
 ): SupplySubmissionCoordinator {
-  const requestId = requestIdFactory()
   let state = INITIAL_STATE
   let pendingSubmission: Promise<SupplyFormState> | null = null
+  let activeIntentIdentity: string | null = null
+  let activeRequestId: string | null = null
+  const pendingRequestStore = options.pendingRequestStore
+  const intentKeyFactory = options.intentKeyFactory ?? createSupplyIntentFingerprint
 
   const updateState = (nextState: SupplyFormState) => {
     state = nextState
@@ -237,10 +252,32 @@ export function createSupplySubmissionCoordinator(
     }
 
     updateState({ status: 'submitting', fieldErrors: {}, formError: null })
-    pendingSubmission = submitSupplySubmission(
-      buildSupplySubmissionBody(values, requestId),
-      requester,
-    )
+    const intentIdentity = getSupplyIntentIdentity(values)
+    const submitWithRequestId = (requestId: string) => {
+      activeIntentIdentity = intentIdentity
+      activeRequestId = requestId
+      return submitSupplySubmission(buildSupplySubmissionBody(values, requestId), requester)
+    }
+    const submissionResult = pendingRequestStore
+      ? (async () => {
+          const intentFingerprint = await intentKeyFactory(values)
+          const storedRequestId = intentFingerprint
+            ? pendingRequestStore.readRequestId(intentFingerprint)
+            : null
+          const requestId =
+            activeIntentIdentity === intentIdentity && activeRequestId
+              ? activeRequestId
+              : storedRequestId ?? requestIdFactory()
+          if (intentFingerprint) pendingRequestStore.rememberRequestId(intentFingerprint, requestId)
+          return submitWithRequestId(requestId)
+        })()
+      : submitWithRequestId(
+          activeIntentIdentity === intentIdentity && activeRequestId
+            ? activeRequestId
+            : requestIdFactory(),
+        )
+
+    pendingSubmission = submissionResult
       .then((result) => {
         if (result.ok) {
           updateState({ status: 'success', fieldErrors: {}, formError: null })
@@ -308,7 +345,9 @@ export default function SupplySubmissionForm() {
   const [values, setValues] = useState<SupplyFormValues>(INITIAL_VALUES)
   const [formState, setFormState] = useState<SupplyFormState>(INITIAL_STATE)
   const [coordinator] = useState(() =>
-    createSupplySubmissionCoordinator(newRequestId, fetch, setFormState),
+    createSupplySubmissionCoordinator(newRequestId, fetch, setFormState, track, {
+      pendingRequestStore: createBrowserSupplyPendingRequestStore(),
+    }),
   )
   const [trackFormStart] = useState(() =>
     createLandingOnceTracker('landing_form_start', 'publish', track),
