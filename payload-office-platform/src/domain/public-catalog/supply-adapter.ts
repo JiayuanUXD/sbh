@@ -452,13 +452,83 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     async findEffectiveListingsByBuilding(buildingId, ctx, excludeListingId) {
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf)
-      const where = await baseEffectiveWhere(ctx)
-      where.building = { equals: buildingId }
-      const docs = await findAllListings(where as Where, 2)
-      let kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
-      // 排除自身（在内存中过滤，避免与 pausedIds 的 not_in 冲突）
-      if (excludeListingId != null) {
-        kept = kept.filter((d) => String(d.id) !== String(excludeListingId))
+      const numericBuildingId = Number(buildingId)
+      if (!Number.isSafeInteger(numericBuildingId)) return []
+      const excludedListingId = excludeListingId == null ? null : Number(excludeListingId)
+      if (excludeListingId != null && !Number.isSafeInteger(excludedListingId)) return []
+
+      // Keep the effective-supply predicate in SQL for this detail-page path.
+      // Payload's nested relationship where can be very slow in local dev when
+      // combined with a direct building filter; IDs first keeps rendering fast.
+      const sql = `
+WITH active_rel AS (
+  SELECT r.listing_id, r.merchant_id,
+         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
+  FROM listing_merchant_relations r
+  WHERE r.effective_from <= $1
+    AND (r.effective_to IS NULL OR r.effective_to > $1)
+),
+media AS (
+  SELECT _parent_id AS listing_id, COUNT(*) AS n
+  FROM listings_gallery GROUP BY _parent_id
+)
+SELECT l.id
+FROM listings l
+JOIN buildings  b    ON b.id = l.building_id
+JOIN locations  city ON city.id = b.city_id
+JOIN locations  dist ON dist.id = b.district_id
+JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
+JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN media      g    ON g.listing_id = l.id
+WHERE l.building_id = $2
+  AND ($3::int IS NULL OR l.id <> $3::int)
+  AND l.deleted_at IS NULL
+  AND l.publication_status = 'published'
+  AND l.review_status = 'approved'
+  AND l.supply_visibility_hold = 'normal'
+  AND g.n >= 3
+  AND b.status = 'published'
+  AND b.operational_status = 'active'
+  AND b.deleted_at IS NULL
+  AND city.status = 'active'
+  AND dist.status = 'active'
+  AND m.status = 'active'
+  AND m.qualification_status = 'valid'
+  AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
+  AND EXISTS (
+    SELECT 1 FROM merchants_rels mr
+    WHERE mr.parent_id = m.id AND mr.path = 'serviceCities' AND mr.locations_id = b.city_id
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM listing_reports rep
+    WHERE rep.target_listing_id = l.id AND rep.supply_paused = true
+  )
+ORDER BY l.id
+LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
+`
+      const pool = (payload.db as unknown as {
+        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ id: number }> }> }
+      }).pool
+      const idResult = await pool.query(sql, [
+        asOf.toISOString(),
+        numericBuildingId,
+        excludedListingId,
+      ])
+      const ids = idResult.rows.map((row) => row.id)
+      if (ids.length === 0) return []
+
+      const result = await payload.find({
+        collection: 'listings',
+        where: { id: { in: ids } } as Where,
+        depth: 2,
+        sort: 'id',
+        limit: ids.length,
+      })
+      const byId = new Map((result.docs as Listing[]).map((doc) => [String(doc.id), doc]))
+      const kept: Listing[] = []
+      for (const id of ids) {
+        const doc = byId.get(String(id))
+        if (doc) kept.push(doc)
       }
       return kept
     },
