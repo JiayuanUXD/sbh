@@ -346,10 +346,17 @@ jobs:
             fi
             fail=1
           done
+          # 这里不把"没命中灰度版本"判为失败——实测（run 31300263780）切流命令回显
+          # canary 10/stable 90 成功，紧接着 50 次请求仍 0 命中。真是 10% 的话 0/50 概率
+          # 约 0.5%，不是运气问题。两个已知成因：
+          #   1. 切流后路由需要时间收敛。仓库自己的 scripts/cloudrun-release.sh 就带
+          #      wait_traffic 助手和"流量在 60 秒内未收敛"的报错，deploy.yml 却没有等待。
+          #   2. 50 次请求都来自同一个 runner IP，可能被粘在同一后端。
+          # 结论：灰度期"一定能命中新版本"这个前提不成立，拿它当硬门槛会误杀正常发布。
+          # 真正的门槛放在 promote 之后——那时 100% 流量都是新版本，判定确定无疑。
           if [ "$canary_ok" -lt 1 ]; then
-            echo "::error::50 次请求均未命中 version=$expected 的灰度版本"
-            echo "::error::灰度版本没在承接流量，不能 promote —— 这正是 31275171164 那次漏掉的检查"
-            fail=1
+            echo "::notice::50 次请求未命中 version=$expected 的灰度版本（可能是路由未收敛或同 IP 粘连）"
+            echo "::notice::不阻断发布；是否真正上线由 promote 之后的版本校验判定"
           fi
           echo "命中灰度版本 $canary_ok/50 次"
           # 首页可达（SSR 不崩）
@@ -375,18 +382,32 @@ jobs:
           health=$(curl -sS --max-time 15 "$URL/api/health")
           echo "$health" | jq -e '.status == "ok"' >/dev/null
 
-          # promote 之后 100% 流量都该是新版本。这是"确实上线了"的最终确认——
-          # 光看 status == ok 通不过这一关，旧版本也返回 ok。
-          # 灰度期允许命中旧版本（只需至少一次命中新版本），这里不允许。
+          # 这是整条流水线唯一的硬门槛，也是堵死"假成功"的地方。
+          # promote 后 100% 流量都是新版本，判定确定无疑——不像灰度期那样受路由收敛
+          # 与同 IP 粘连影响（run 31300263780 实测灰度 0/50 命中，见冒烟步骤注释）。
+          # 光看 status == ok 通不过这一关：旧版本同样返回 ok，run 31275171164 的假
+          # success 正是这么来的。
           expected="$GITHUB_SHA"
-          for i in 1 2 3 4 5; do
+          matched=0
+          # 切流后允许收敛：最多等 100 秒，出现 3 次连续匹配才算数（防抖动误判）。
+          for i in $(seq 1 20); do
             version=$(curl -sS --max-time 15 "$URL/api/health" | jq -r '.version // ""')
-            echo "[$i] 线上 version=$version"
-            if [ "$version" != "$expected" ]; then
-              echo "::error::promote 后线上仍是 version=$version，期望 $expected —— 全量发布未生效"
-              exit 1
+            if [ "$version" = "$expected" ]; then
+              matched=$((matched + 1))
+              echo "[$i] version=$version ✓（连续匹配 $matched/3）"
+              if [ "$matched" -ge 3 ]; then break; fi
+            else
+              # version 为空 = 旧版本（早于本机制，无该字段）；unknown = 注入或内联失效。
+              matched=0
+              echo "[$i] version=${version:-<无该字段/旧版本>} 尚未收敛"
             fi
+            sleep 5
           done
+          if [ "$matched" -lt 3 ]; then
+            echo "::error::promote 后线上版本始终不是 $expected —— 全量发布未生效，触发回滚"
+            echo "::error::若持续为 unknown，说明 build-info.json 注入或构建期内联失效"
+            exit 1
+          fi
           echo "✅ 全量流量已是本次版本 $expected"
 
           for path in / /admin; do

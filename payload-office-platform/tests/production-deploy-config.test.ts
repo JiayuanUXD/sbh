@@ -141,13 +141,19 @@ describe('生产部署配置', () => {
     expect(workflow).toContain(`printf '{"commit":"%s"}\\n' "$GITHUB_SHA"`)
     expect(workflow).toContain('zip -q "$archive" build-info.json')
 
-    // 灰度期：必须至少命中一次 version == 本次 commit，否则失败并回滚。
+    // 灰度期记录命中情况但不阻断：run 31300263780 实测切流回显成功后仍 0/50 命中
+    // （路由收敛延迟 + 同 IP 粘连），拿它当硬门槛会误杀正常发布。
     expect(workflow).toContain('expected="$GITHUB_SHA"')
     expect(workflow).toContain(`if [ "$version" = "$expected" ]; then`)
-    expect(workflow).toContain('::error::50 次请求均未命中 version=$expected 的灰度版本')
+    expect(workflow).toContain('::notice::不阻断发布；是否真正上线由 promote 之后的版本校验判定')
 
-    // promote 之后：全量流量都必须是本次版本，这是"确实上线了"的最终确认。
-    expect(workflow).toContain('::error::promote 后线上仍是 version=$version，期望 $expected')
+    // promote 之后才是硬门槛——100% 流量时判定确定无疑，旧版本过不去这一关。
+    expect(workflow).toContain(
+      '::error::promote 后线上版本始终不是 $expected —— 全量发布未生效，触发回滚',
+    )
+    // 允许收敛但要求连续匹配，避免抖动期误判成功。
+    expect(workflow).toContain('if [ "$matched" -ge 3 ]; then break; fi')
+    expect(workflow).toContain('if [ "$matched" -lt 3 ]; then')
   })
 
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
