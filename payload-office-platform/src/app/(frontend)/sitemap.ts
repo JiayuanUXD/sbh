@@ -98,10 +98,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let entities: Awaited<ReturnType<typeof getCachedSitemapEntries>>
   try {
     entities = await getCachedSitemapEntries()
-  } catch (error) {
-    console.error('[sitemap] failed to load dynamic entries', {
-      error: error instanceof Error ? error.message : 'unknown error',
-    })
+  } catch {
+    console.error('[sitemap] dynamic_entries_unavailable')
     return staticUrls
   }
 

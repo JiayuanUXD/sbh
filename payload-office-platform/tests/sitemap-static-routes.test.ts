@@ -67,7 +67,8 @@ describe('public sitemap static conversion routes', () => {
   })
 
   it('keeps static routes when loading dynamic Local API entries fails', async () => {
-    getPayload.mockRejectedValueOnce(new Error('Local API unavailable'))
+    const secretMarker = 'postgres://secret-user:secret-pass@db.example/sbh'
+    getPayload.mockRejectedValueOnce(new Error(`Local API unavailable: ${secretMarker}`))
     const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 
     try {
@@ -77,6 +78,8 @@ describe('public sitemap static conversion routes', () => {
           expect.objectContaining({ url: 'https://example.com/publish' }),
         ]),
       )
+      expect(errorLog).toHaveBeenCalledWith('[sitemap] dynamic_entries_unavailable')
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(secretMarker)
     } finally {
       errorLog.mockRestore()
     }
