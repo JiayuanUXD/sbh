@@ -178,6 +178,15 @@ describe('validateSupplySubmission - 失败路径', () => {
       expect(r.errors).toContain('source_path_invalid')
     }
   })
+
+  it('source.path 含控制字符被拒', () => {
+    for (const bad of ['/publish\x00', '/pub\x1flish', '/publish\x7f']) {
+      const r = validateSupplySubmission(validBody({ source: { path: bad } }))
+      expect(r.ok).toBe(false)
+      if (r.ok) continue
+      expect(r.errors).toContain('source_path_invalid')
+    }
+  })
 })
 
 describe('computeSupplyIdempotencyKeySync', () => {
