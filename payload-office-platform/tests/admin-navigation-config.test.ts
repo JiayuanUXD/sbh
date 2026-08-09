@@ -86,6 +86,12 @@ describe('admin navigation config', () => {
       expectedGroup('supply', '房源运营', [
         expectedLeaf('listings', '房源列表', '/admin/collections/listings', ['listings']),
         expectedLeaf('buildings', '楼盘库', '/admin/collections/buildings', ['buildings']),
+        expectedLeaf(
+          'supply-submissions',
+          '房源投放申请',
+          '/admin/collections/supply-submissions',
+          ['supply-submissions'],
+        ),
         expectedGroup('supply-settings', '基础配置', [
           expectedLeaf('locations', '行政区域', '/admin/collections/locations', ['locations']),
           expectedLeaf('business-areas', '商圈管理', '/admin/collections/business-area-extensions', [
@@ -192,6 +198,7 @@ describe('admin navigation config', () => {
       'brokers',
       'amenities',
       'buildings',
+      'supply-submissions',
       'listings',
       'leads',
       'customers',

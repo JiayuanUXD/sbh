@@ -30,6 +30,7 @@ export const NOTIFICATION_TYPES = [
   'sla-breached',
   'task-completed',
   'task-cancelled',
+  'supply-submission-created',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
@@ -42,6 +43,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   'sla-breached': 'SLA 超时',
   'task-completed': '待办完成',
   'task-cancelled': '待办取消',
+  'supply-submission-created': '新的房源投放申请',
 }
 
 /** 是否为已注册的通知类型 */
@@ -62,6 +64,7 @@ export const NOTIFICATION_SOURCE_TYPES = [
   'lead',
   'followup',
   'task',
+  'supply-submission',
 ] as const
 
 export type NotificationSourceType =
@@ -76,6 +79,7 @@ export const NOTIFICATION_SOURCE_TYPE_LABELS: Record<
   lead: '线索',
   followup: '跟进',
   task: '待办',
+  'supply-submission': '房源投放申请',
 }
 
 /** 是否为已注册的通知来源类型 */

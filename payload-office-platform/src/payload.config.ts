@@ -42,6 +42,7 @@ import { DisplayTags } from './collections/DisplayTags'
 import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { InformationCorrections } from './collections/InformationCorrections'
+import { SupplySubmissions } from './collections/SupplySubmissions'
 import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
@@ -174,6 +175,7 @@ export default buildConfig({
     ListingReviews,
     ListingReports,
     InformationCorrections,
+    SupplySubmissions,
     DomainEvents,
     AuditLogs,
     Tasks,

@@ -15,6 +15,7 @@ import { SOURCE_SECTIONS, SUPPLY_GROUPS } from '@/domain/inquiry/schema'
  * - listing：房源详情"询价 / 预约看房"
  * - building：楼盘详情"咨询该楼盘"
  * - content：内容页文末 CTA
+ * - entrust：委托找房落地页零门槛留电（只采集手机号）
  */
 export const INQUIRY_SOURCE_PAGE_TYPES = [
   'home',
@@ -22,6 +23,7 @@ export const INQUIRY_SOURCE_PAGE_TYPES = [
   'listing',
   'building',
   'content',
+  'entrust',
 ] as const
 export type InquirySourcePageType = (typeof INQUIRY_SOURCE_PAGE_TYPES)[number]
 
