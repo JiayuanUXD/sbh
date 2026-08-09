@@ -127,6 +127,9 @@ function consumerHarness(options?: {
   confirmUniqueConflicts?: boolean
   rolePages?: Array<Array<{ id: Identifier; operationPermissions: string[] }>>
   rolePaginationLoop?: boolean
+  rolePaginationStalePage?: boolean
+  rolePaginationSkipPage?: boolean
+  rolePaginationMissingMetadata?: boolean
   processedAt?: string | null
 }) {
   const creates: Array<Record<string, unknown>> = []
@@ -137,6 +140,7 @@ function consumerHarness(options?: {
   const conflictedRecipients = new Set<Identifier>()
   let inFlightCreates = 0
   let maxInFlightCreates = 0
+  let roleFindCount = 0
   const payload = {
     async find(args: { collection: string }) {
       finds.push(args)
@@ -156,15 +160,28 @@ function consumerHarness(options?: {
       }
       if (args.collection === 'roles') {
         if (options?.rolePages) {
+          roleFindCount += 1
+          if (options.rolePaginationStalePage && roleFindCount > 2) {
+            throw new Error('test_role_pagination_runaway')
+          }
           const page = Number((args as { page?: number }).page ?? 1)
           const totalPages = options.rolePages.length
+          if (options.rolePaginationMissingMetadata) {
+            return { docs: options.rolePages[page - 1] ?? [] }
+          }
           return {
             docs: options.rolePages[page - 1] ?? [],
-            page,
+            page: options.rolePaginationStalePage && page === 2 ? 1 : page,
             totalPages,
             hasNextPage: page < totalPages,
             nextPage: page < totalPages
-              ? (options.rolePaginationLoop ? page : page + 1)
+              ? (
+                  options.rolePaginationLoop
+                    ? page
+                    : options.rolePaginationSkipPage && page === 1
+                      ? page + 2
+                      : page + 1
+                )
               : null,
           }
         }
@@ -332,6 +349,56 @@ describe('supply submission notification job consumer', () => {
       payload: harness.payload as never,
     })).rejects.toThrow('supply_submission_notification_delivery_failed')
     expect(harness.finds.filter((call) => call.collection === 'roles')).toHaveLength(1)
+  })
+
+  it('rejects a stale response page before it can repeat the same request', async () => {
+    const harness = consumerHarness({
+      rolePages: [
+        [{ id: 10, operationPermissions: ['lead:read'] }],
+        [{ id: 11, operationPermissions: ['supply_submission:read'] }],
+      ],
+      rolePaginationStalePage: true,
+    })
+
+    await expect(consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })).rejects.toThrow('supply_submission_notification_delivery_failed')
+    expect(harness.finds.filter((call) => call.collection === 'roles')).toHaveLength(2)
+  })
+
+  it('rejects a full role page when every pagination metadata field is missing', async () => {
+    const harness = consumerHarness({
+      rolePages: [Array.from({ length: 100 }, (_, index) => ({
+        id: index + 1,
+        operationPermissions: ['lead:read'],
+      }))],
+      rolePaginationMissingMetadata: true,
+    })
+
+    await expect(consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })).rejects.toThrow('supply_submission_notification_delivery_failed')
+  })
+
+  it('rejects nextPage metadata that skips an active-role page', async () => {
+    const harness = consumerHarness({
+      rolePages: [
+        [{ id: 10, operationPermissions: ['lead:read'] }],
+        [{ id: 11, operationPermissions: ['supply_submission:read'] }],
+        [{ id: 12, operationPermissions: ['supply_submission:read'] }],
+      ],
+      rolePaginationSkipPage: true,
+    })
+
+    await expect(consumeSupplySubmissionCreated({
+      eventId: 'supply-submission-created:321',
+      payload: harness.payload as never,
+    })).rejects.toThrow('supply_submission_notification_delivery_failed')
+    expect(harness.finds
+      .filter((call) => call.collection === 'roles')
+      .map((call) => call.page)).toEqual([1])
   })
 
   it('creates recipient notifications sequentially in independent Local API transactions', async () => {

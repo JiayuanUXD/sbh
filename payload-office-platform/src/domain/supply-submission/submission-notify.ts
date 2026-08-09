@@ -89,33 +89,45 @@ async function findAllActiveRoles(
       operationPermissions: role.operationPermissions,
     })))
 
-    const reportedPage = result.page
-    const reportedTotalPages = result.totalPages
-    const currentPage = typeof reportedPage === 'number' &&
-      Number.isSafeInteger(reportedPage) && reportedPage > 0
-      ? reportedPage
-      : page
-    const totalPages = typeof reportedTotalPages === 'number' &&
-      Number.isSafeInteger(reportedTotalPages) && reportedTotalPages >= currentPage
-      ? reportedTotalPages
-      : null
-    const hasNextPage = result.hasNextPage === true || (
-      totalPages !== null && currentPage < totalPages
-    )
-    if (!hasNextPage) return roles
+    const paginationMetadataMissing =
+      result.page === undefined &&
+      result.totalPages === undefined &&
+      result.hasNextPage === undefined &&
+      (result.nextPage === null || result.nextPage === undefined)
+    if (paginationMetadataMissing) {
+      if (result.docs.length < QUERY_LIMIT) return roles
+      throw new Error('supply_notification_role_pagination_invalid')
+    }
 
-    // Payload normally supplies all three pagination fields. Refuse malformed
-    // metadata instead of risking an unbounded loop or silently skipping roles.
-    if (totalPages === null) throw new Error('supply_notification_role_pagination_invalid')
-    const nextPage = result.nextPage ?? currentPage + 1
+    const reportedPage = result.page
+    const totalPages = result.totalPages
     if (
-      !Number.isSafeInteger(nextPage) ||
-      nextPage <= currentPage ||
-      nextPage > totalPages
+      typeof reportedPage !== 'number' ||
+      !Number.isSafeInteger(reportedPage) ||
+      reportedPage !== page ||
+      typeof totalPages !== 'number' ||
+      !Number.isSafeInteger(totalPages) ||
+      totalPages < page ||
+      typeof result.hasNextPage !== 'boolean'
     ) {
       throw new Error('supply_notification_role_pagination_invalid')
     }
-    page = nextPage
+
+    const expectsNextPage = page < totalPages
+    if (result.hasNextPage !== expectsNextPage) {
+      throw new Error('supply_notification_role_pagination_invalid')
+    }
+    if (!expectsNextPage) {
+      if (result.nextPage !== null && result.nextPage !== undefined) {
+        throw new Error('supply_notification_role_pagination_invalid')
+      }
+      return roles
+    }
+
+    if (result.nextPage !== page + 1) {
+      throw new Error('supply_notification_role_pagination_invalid')
+    }
+    page += 1
   }
 }
 
