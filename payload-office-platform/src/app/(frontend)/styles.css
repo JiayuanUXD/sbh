@@ -6149,6 +6149,7 @@ ol {
 }
 
 .input-suffix .filter-bar__input {
+  width: 100%;
   padding-right: var(--sp-7);
 }
 

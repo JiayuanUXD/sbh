@@ -211,5 +211,8 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(css).toMatch(
       /\.publish-card\s*\{(?=[^}]*position:\s*relative)(?=[^}]*z-index:\s*calc\(var\(--z-raised\)\s*\+\s*1\))[^}]*\}/,
     )
+    expect(css).toMatch(
+      /\.input-suffix \.filter-bar__input\s*\{(?=[^}]*width:\s*100%)(?=[^}]*padding-right:\s*var\(--sp-7\))[^}]*\}/,
+    )
   })
 })
