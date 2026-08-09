@@ -10,6 +10,30 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md`（v2）
 
+## 执行进度
+
+逐任务派发实现者 + 每任务 review 门禁（详细记账见 `.superpowers/sdd/2026-08-09-entrust-supply-pages/progress.md`）。
+
+| 任务 | 状态 | commit / 备注 |
+|---|---|---|
+| Task 1 导航与页脚 | ✅ 完成 | `3b29379`，review 通过，5/5 单测 |
+| Task 2 投放房源纯函数 | ✅ 完成 | `73d30fc`，1 轮修复（控制字符正则），19/19 单测 |
+| Task 3 集合 + 迁移 | 🔄 进行中 | 迁移已生成 `20260809_142444_supply_submissions_and_entrust_source`；操作码命名冲突已裁定改下划线形式，修复轮进行中 |
+| Task 4 提交端点 | ⬜ 未开始 | |
+| Task 5 entrust 链路 | ⬜ 未开始 | |
+| Task 6 骨架组件 | ⬜ 未开始 | |
+| Task 7 `/entrust` 页 | ⬜ 未开始 | |
+| Task 8 `/publish` 页 | ⬜ 未开始 | |
+| Task 9 站内通知 | ⬜ 未开始 | |
+| Task 10 埋点 | ⬜ 未开始 | |
+| Task 11 sitemap | ⬜ 未开始 | |
+| Task 12 E2E 与验证 | ⬜ 未开始 | |
+
+执行期已修的两处**计划自身缺陷**（均已 commit 并回写本文档）：
+
+1. `3d254cf` — 控制字符正则原文含字面控制字节，转写会静默丢失导致过滤失效，改为 `/[\x00-\x1F\x7F]/` 转义写法并补 DEL。
+2. `db97ded` — 操作权限编码 `supply-submission:*` 违反 `permission-codes.ts` 的 `/^[a-z_]+:[a-z_]+$/` 约定，改为 `supply_submission:*`（MENU 编码与 collection slug 仍为 kebab-case）。
+
 ## Global Constraints
 
 - 包管理器是 **pnpm**，不用 npm/yarn。
@@ -74,6 +98,8 @@
 
 ## Task 1: 导航与页脚收敛 + 入口调整
 
+> **状态：** ✅ 已完成（commits ed5f7cd..3b29379，review 通过，5/5 单测）
+
 **Files:**
 - Create: `src/lib/frontend/public-nav.ts`
 - Modify: `src/components/frontend/SiteNav.tsx`（删除 `NAV_ITEMS` 常量，改为 import）
@@ -87,7 +113,7 @@
   - `export const MAIN_NAV_ITEMS: readonly PublicNavItem[]`
   - `export const FOOTER_COLUMNS: readonly { title: string; links: readonly PublicNavItem[] }[]`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `tests/public-nav.test.ts`：
 
@@ -142,7 +168,7 @@ describe('FOOTER_COLUMNS', () => {
 })
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/public-nav.test.ts
@@ -150,7 +176,7 @@ cd payload-office-platform && pnpm vitest run tests/public-nav.test.ts
 
 Expected: FAIL — `Failed to resolve import "@/lib/frontend/public-nav"`
 
-- [ ] **Step 3: 创建 `src/lib/frontend/public-nav.ts`**
+- [x] **Step 3: 创建 `src/lib/frontend/public-nav.ts`**
 
 ```ts
 /**
@@ -211,7 +237,7 @@ export const FOOTER_COLUMNS: readonly PublicNavColumn[] = [
 ] as const
 ```
 
-- [ ] **Step 4: 跑测试确认通过**
+- [x] **Step 4: 跑测试确认通过**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/public-nav.test.ts
@@ -219,7 +245,7 @@ cd payload-office-platform && pnpm vitest run tests/public-nav.test.ts
 
 Expected: PASS（5 个测试）
 
-- [ ] **Step 5: 改 `SiteNav.tsx` 用共享数据**
+- [x] **Step 5: 改 `SiteNav.tsx` 用共享数据**
 
 删除文件内的 `type NavItem` 与 `const NAV_ITEMS = [...] as const` 整块（原 `:22-28`，含其上方那段"对齐 homepage-preview.html"注释），在 import 区加：
 
@@ -229,7 +255,7 @@ import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 
 然后把文件里**两处** `NAV_ITEMS.map(...)`（桌面 `<nav>` 与移动抽屉各一处）改成 `MAIN_NAV_ITEMS.map(...)`。`isCurrent()` 函数与其余逻辑**不动**——`/entrust` 与 `/publish` 无 query，走"无 query 分支"，`!searchParams.has('type')` 对这两个路径恒为真，高亮正确。
 
-- [ ] **Step 6: 改 `SiteFooter.tsx` 用共享数据**
+- [x] **Step 6: 改 `SiteFooter.tsx` 用共享数据**
 
 删除文件顶部的 `COLUMNS` 常量整块（原 `:20-37`），加 import 并把 `COLUMNS.map` 改为 `FOOTER_COLUMNS.map`：
 
@@ -237,7 +263,7 @@ import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
 ```
 
-- [ ] **Step 7: 类型检查 + 全量单测**
+- [x] **Step 7: 类型检查 + 全量单测**
 
 ```bash
 cd payload-office-platform && pnpm typecheck && pnpm test
@@ -245,7 +271,7 @@ cd payload-office-platform && pnpm typecheck && pnpm test
 
 Expected: 类型检查无输出（通过）；单测全绿。
 
-- [ ] **Step 8: 提交**
+- [x] **Step 8: 提交**
 
 ```bash
 git add payload-office-platform/src/lib/frontend/public-nav.ts payload-office-platform/src/components/frontend/SiteNav.tsx payload-office-platform/src/components/frontend/SiteFooter.tsx payload-office-platform/tests/public-nav.test.ts
@@ -258,6 +284,8 @@ git commit -m "feat(frontend): 导航去掉服务式办公，新增委托找房/
 ---
 
 ## Task 2: 投放房源纯函数（schema / 幂等 / 日志）
+
+> **状态：** ✅ 已完成（commits 3b29379..73d30fc，含 1 轮修复，review 通过，19/19 单测）
 
 **Files:**
 - Create: `src/domain/supply-submission/schema.ts`
@@ -278,7 +306,7 @@ git commit -m "feat(frontend): 导航去掉服务式办公，新增委托找房/
   - `buildSupplyLogEntry(req, opts): SupplySubmissionLogEntry`
   - `hashIpForLog(ip, salt): string`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `tests/supply-submission-domain.test.ts`：
 
@@ -510,7 +538,7 @@ describe('hashIpForLog', () => {
 })
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/supply-submission-domain.test.ts
@@ -518,7 +546,7 @@ cd payload-office-platform && pnpm vitest run tests/supply-submission-domain.tes
 
 Expected: FAIL — 无法解析 `@/domain/supply-submission/schema`
 
-- [ ] **Step 3: 实现 `src/domain/supply-submission/schema.ts`**
+- [x] **Step 3: 实现 `src/domain/supply-submission/schema.ts`**
 
 ```ts
 /**
@@ -808,7 +836,7 @@ function normalizeSamePath(raw: string): string | null {
 }
 ```
 
-- [ ] **Step 4: 实现 `src/domain/supply-submission/idempotency.ts`**
+- [x] **Step 4: 实现 `src/domain/supply-submission/idempotency.ts`**
 
 ```ts
 /**
@@ -858,7 +886,7 @@ function bufferToHex(buf: ArrayBuffer): string {
 }
 ```
 
-- [ ] **Step 5: 实现 `src/domain/supply-submission/privacy-log.ts`**
+- [x] **Step 5: 实现 `src/domain/supply-submission/privacy-log.ts`**
 
 ```ts
 /**
@@ -929,7 +957,7 @@ export function hashIpForLog(ip: string, salt: string): string {
 }
 ```
 
-- [ ] **Step 6: 实现 `src/domain/supply-submission/index.ts`**
+- [x] **Step 6: 实现 `src/domain/supply-submission/index.ts`**
 
 ```ts
 /**
@@ -972,7 +1000,7 @@ export {
 } from './privacy-log'
 ```
 
-- [ ] **Step 7: 跑测试确认通过**
+- [x] **Step 7: 跑测试确认通过**
 
 ```bash
 cd payload-office-platform && pnpm vitest run tests/supply-submission-domain.test.ts
@@ -980,7 +1008,7 @@ cd payload-office-platform && pnpm vitest run tests/supply-submission-domain.tes
 
 Expected: PASS（全部用例）
 
-- [ ] **Step 8: 类型检查并提交**
+- [x] **Step 8: 类型检查并提交**
 
 ```bash
 cd payload-office-platform && pnpm typecheck
