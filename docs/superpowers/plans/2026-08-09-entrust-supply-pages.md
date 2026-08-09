@@ -800,7 +800,7 @@ function normalizeSamePath(raw: string): string | null {
   if (!raw.startsWith('/')) return null
   if (raw.startsWith('//')) return null
   // eslint-disable-next-line no-control-regex
-  if (/[ -]/.test(raw)) return null
+  if (/[\x00-\x1F\x7F]/.test(raw)) return null
   const withoutHash = raw.split('#')[0] ?? ''
   const pathname = withoutHash.split('?')[0] ?? ''
   if (!pathname.startsWith('/')) return null
