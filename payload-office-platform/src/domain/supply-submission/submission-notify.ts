@@ -45,8 +45,8 @@ function relationId(value: unknown): string | number | null {
  *
  * 仅在创建时通知拥有 supply_submission:read（或通配符）权限的启用用户。
  * 通知属于旁路副作用：查询、单个写入乃至日志失败都不能影响申请落库。
- * 当前通过写前批量查重实现重放幂等；Notifications 尚无复合唯一约束，跨进程并发
- * 仍可能竞态重复，后续需以数据库唯一索引消除该 schema debt。
+ * 写前批量查重避免串行重放，Notifications 复合唯一索引兜底跨进程竞态；唯一冲突
+ * 作为单个投递失败由 allSettled 隔离。
  */
 export const notifySupplySubmissionCreated: CollectionAfterChangeHook = async ({
   doc,

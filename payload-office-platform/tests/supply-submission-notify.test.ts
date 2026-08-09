@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { Notifications } from '@/collections/Notifications'
 import { notifySupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
 
 type Identifier = string | number
@@ -39,6 +40,8 @@ function createHarness(options?: {
   }>
   failFindCollection?: 'roles' | 'users' | 'notifications'
   failCreateRecipient?: Identifier
+  synchronizeNotificationFinds?: number
+  enforceNotificationUnique?: boolean
 }) {
   const findCalls: FindCall[] = []
   const createCalls: CreateCall[] = []
@@ -46,6 +49,21 @@ function createHarness(options?: {
   const roles = options?.roles ?? [{ id: 10 }]
   const users = options?.users ?? [{ id: 20 }]
   const notifications = [...(options?.existingNotifications ?? [])]
+  const notificationKeys = new Set(
+    notifications.map(
+      (notification) =>
+        `${notification.eventId}:${String(
+          typeof notification.recipient === 'object'
+            ? notification.recipient.id
+            : notification.recipient,
+        )}:${notification.type}`,
+    ),
+  )
+  let notificationFindCount = 0
+  let releaseNotificationFinds: (() => void) | undefined
+  const notificationFindBarrier = new Promise<void>((resolve) => {
+    releaseNotificationFinds = resolve
+  })
 
   const payload = {
     async find(args: FindCall) {
@@ -55,7 +73,17 @@ function createHarness(options?: {
       }
       if (args.collection === 'roles') return { docs: roles }
       if (args.collection === 'users') return { docs: users }
-      if (args.collection === 'notifications') return { docs: notifications }
+      if (args.collection === 'notifications') {
+        const snapshot = [...notifications]
+        if (options?.synchronizeNotificationFinds) {
+          notificationFindCount += 1
+          if (notificationFindCount >= options.synchronizeNotificationFinds) {
+            releaseNotificationFinds?.()
+          }
+          await notificationFindBarrier
+        }
+        return { docs: snapshot }
+      }
       throw new Error(`unexpected collection: ${args.collection}`)
     },
     async create(args: CreateCall) {
@@ -63,6 +91,11 @@ function createHarness(options?: {
       if (String(args.data.recipient) === String(options?.failCreateRecipient)) {
         throw new Error('notification create failed')
       }
+      const notificationKey = `${args.data.eventId}:${String(args.data.recipient)}:${args.data.type}`
+      if (options?.enforceNotificationUnique && notificationKeys.has(notificationKey)) {
+        throw new Error('duplicate key value violates unique constraint')
+      }
+      notificationKeys.add(notificationKey)
       notifications.push({
         recipient: args.data.recipient as Identifier,
         eventId: args.data.eventId as string,
@@ -93,6 +126,13 @@ async function runHook(
 }
 
 describe('notifySupplySubmissionCreated', () => {
+  it('declares the database unique key used by notification replay protection', () => {
+    expect(Notifications.indexes).toContainEqual({
+      fields: ['eventId', 'recipient', 'type'],
+      unique: true,
+    })
+  })
+
   it('skips updates without querying recipients', async () => {
     const harness = createHarness()
     const doc = submissionDoc()
@@ -251,6 +291,29 @@ describe('notifySupplySubmissionCreated', () => {
     await runHook(harness)
 
     expect(harness.createCalls.map((call) => call.data.recipient)).toEqual([21])
+  })
+
+  it('isolates unique conflicts during concurrent replay without persisting duplicates', async () => {
+    const harness = createHarness({
+      users: [{ id: 20 }, { id: 21 }],
+      synchronizeNotificationFinds: 2,
+      enforceNotificationUnique: true,
+    })
+    const doc = submissionDoc()
+
+    await Promise.all([runHook(harness, 'create', doc), runHook(harness, 'create', doc)])
+
+    expect(harness.notifications).toHaveLength(2)
+    expect(
+      new Set(
+        harness.notifications.map((notification) =>
+          typeof notification.recipient === 'object'
+            ? notification.recipient.id
+            : notification.recipient,
+        ),
+      ),
+    ).toEqual(new Set([20, 21]))
+    expect(harness.errors).toHaveLength(1)
   })
 
   it.each(['roles', 'users', 'notifications'] as const)(

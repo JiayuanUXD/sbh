@@ -31,6 +31,12 @@ import { protectNotification } from '@/domain/workflow/notification-protect'
  */
 export const Notifications: CollectionConfig = {
   slug: 'notifications',
+  indexes: [
+    {
+      fields: ['eventId', 'recipient', 'type'],
+      unique: true,
+    },
+  ],
   labels: {
     singular: '通知',
     plural: '消息通知',
