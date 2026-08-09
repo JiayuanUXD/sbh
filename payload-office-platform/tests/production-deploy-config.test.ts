@@ -43,26 +43,17 @@ describe('生产部署配置', () => {
     expect(ensurePublic).toBeLessThan(copyPublic)
   })
 
-  it('Docker builder 不把 Next 构建缓存打进运行镜像', () => {
-    const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
-    const build = dockerfile.indexOf('pnpm generate:types')
-    const pruneCache = dockerfile.indexOf('RUN rm -rf .next/cache')
-    const copyNext = dockerfile.indexOf('COPY --from=builder /app/.next ./.next')
-
-    expect(pruneCache).toBeGreaterThan(build)
-    expect(pruneCache).toBeLessThan(copyNext)
-    expect(dockerfile).toContain("find .next -type f -name '*.map' -delete")
-  })
-
-  it('Docker runner 只复制瘦身后的生产依赖，避免把完整 devDependencies 打进镜像', () => {
+  it('Docker runner 复制完整 node_modules，容器内才跑得动迁移', () => {
+    // 镜像由平台在线构建、不出境，体积不再是瓶颈，因此不做 --prod 瘦身。
+    // prod-deps 瘦身曾把 devDeps 挡在镜像外，导致 sbh-053 启动即 ERR_MODULE_NOT_FOUND；
+    // 其中 `find node_modules -name '*.ts' -delete` 对任何运行时读 .ts 的包都是隐患。
     const dockerfile = readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
     const runner = dockerfile.slice(dockerfile.indexOf('FROM node:22-slim AS runner'))
 
-    expect(dockerfile).toContain('FROM node:22-slim AS prod-deps')
-    expect(dockerfile).toContain('RUN pnpm install --prod --frozen-lockfile')
-    expect(dockerfile).toContain("find node_modules -type f \\( -name '*.map'")
-    expect(runner).toContain('COPY --from=prod-deps /app/node_modules ./node_modules')
-    expect(runner).not.toContain('COPY --from=deps /app/node_modules ./node_modules')
+    expect(runner).toContain('COPY --from=deps /app/node_modules ./node_modules')
+    expect(dockerfile).not.toContain('AS prod-deps')
+    expect(dockerfile).not.toContain('pnpm install --prod')
+    expect(dockerfile).not.toContain("find node_modules -type f \\( -name '*.map'")
   })
 
   it('容器启动先跑迁移再由 exec 接管 Web 服务', () => {
@@ -83,61 +74,13 @@ describe('生产部署配置', () => {
     expect(script).toContain('exitProcess(1)')
   })
 
-  it('CloudBase 镜像部署通过 GitHub Actions 构建推送镜像并灰度切流', () => {
-    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
-
-    expect(workflow).toContain('docker/login-action@v3')
-    expect(workflow).toContain('ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh')
-    expect(workflow).toContain('timeout-minutes: 20')
-    expect(workflow).toContain('tcb api tcbr UpdateCloudRunServer')
-    expect(workflow).toContain('DeployType:"image"')
-    expect(workflow).toContain('ImageUrl:$imageUrl')
-    expect(workflow).toContain('ReleaseType:"FULL"')
-    expect(workflow).toContain("jq -e '.data.TaskId | numbers'")
-    expect(workflow).not.toContain('cloudrun deploy')
-    expect(workflow).not.toContain('--imageUrl "$IMAGE_URL"')
-    expect(workflow).not.toContain('Image deploy path is already active after CloudRun deploy')
-    expect(workflow).not.toContain('traffic_ready=0')
-    expect(workflow).not.toContain('CloudRun traffic not ready yet')
-    expect(workflow).not.toContain(`printf '\\n\\n\\n' | tcb`)
-  })
-
-  it('镜像推送与构建分离，跨境 push 有超时重试', () => {
-    // 病根（run 31292071284 / 31290760006）：GitHub 美国 runner -> 上海 TCR 的链路会
-    // 静默停滞，buildkit 推 blob 没有停滞检测，连接死掉既不报错也不重试，一路挂到
-    // job timeout。31292071284 里 build 3分55秒就完事，push 之后 15 分钟零输出被杀。
-    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
-
-    // build 与 push 必须分离：融在一个 action 里时一次卡死 = 整步白费、下次从零再来。
-    // 拆开后 push 可独立重试，registry 已收下的 blob 会被跳过，重试是增量推进的。
-    // 断言钉步骤名与实际命令行，不钉注释里也会出现的裸字串。
-    expect(workflow).toContain('- name: Build Docker image（只构建，不推送）')
-    expect(workflow).toContain('- name: Push image to Tencent Container Registry（跨境，带超时重试）')
-    expect(workflow).toContain('--file payload-office-platform/Dockerfile')
-    expect(workflow).not.toContain('docker/build-push-action')
-
-    // 单次 push 必须有超时，否则停滞连接会骑满整个步骤预算，退化回原来的卡死。
-    expect(workflow).toContain('timeout 420 docker push')
-
-    // 重试必须是有限轮次且失败可见，不能静默放过。
-    expect(workflow).toContain('for attempt in 1 2 3 4 5')
-    expect(workflow).toContain('::error::push $ref 5 次全部失败')
-
-    // cache-to gha mode=max 在 31292071284 里花了 390 秒导出 deps/builder 全部中间层，
-    // 吃掉五分之一预算，而 build 从零也只要 4 分钟——净负担，别加回来。
-    expect(workflow).not.toContain('cache-to: type=gha')
-    expect(workflow).not.toContain('cache-from: type=gha')
-
-    // setup-buildx 会把默认 builder 换成 docker-container 驱动，产物不落本地镜像库，
-    // 拆开 push 后还得多一次 --load 导出。裸 docker build 走 daemon 内置 buildkit。
-    expect(workflow).not.toContain('docker/setup-buildx-action')
-  })
-
-  it('运行时代码依赖的包不在 devDependencies（prod-deps 镜像装不到）', () => {
+  it('运行时代码依赖的包不在 devDependencies', () => {
     // sbh-053 部署失败：Cannot find package 'pinyin-pro' imported from
     // /app/src/domain/shared/slug.ts。slug.ts 是运行时代码，容器启动跑 migrate-locked.ts
-    // 时必然加载到，但 pinyin-pro 当时在 devDependencies；runner 阶段只装 --prod，
-    // 于是容器起不来、探针失败、流量留在旧版本。
+    // 时必然加载到，却被放在 devDependencies 里。当时 runner 只装 --prod，于是容器
+    // 起不来、探针失败、流量留在旧版本。
+    // 现在 runner 复制完整 node_modules，这个错位不再致命，但依赖归类本身仍是错的：
+    // 运行时 import 的包就该在 dependencies，别再挪回去。
     const pkg = JSON.parse(readFileSync(resolve(appRoot, 'package.json'), 'utf8')) as {
       dependencies: Record<string, string>
       devDependencies: Record<string, string>
@@ -147,7 +90,9 @@ describe('生产部署配置', () => {
     expect(pkg.devDependencies).not.toHaveProperty('pinyin-pro')
   })
 
-  it('旧源码包上传部署路径保留但不再默认执行', () => {
+  it('发布走代码包上传 + 平台在线构建，不在 CI 里推镜像', () => {
+    // 回退依据：CI 推镜像到 ccr.ccs.tencentyun.com 连续失败，最后一次成功上线的
+    // sbh-050 就是这条代码包路径产出的。镜像不出境，CI 也不需要 TCR 凭据。
     const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
 
     expect(workflow).toContain('DescribeCloudBaseBuildService')
@@ -155,7 +100,6 @@ describe('生产部署配置', () => {
     expect(workflow).toContain(`ReleaseType: "GRAY"`)
     expect(workflow).toContain('上传代码包并提交灰度版本')
     expect(workflow).toContain('等待新版本就绪 + 切 10% 灰度')
-    expect(workflow).toContain('if: ${{ false }}')
     expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
     expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
@@ -166,6 +110,26 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('--max-time 300')
     // 停滞检测：死连接 30s 内放弃换新 URL，而不是骑满整个签名窗口
     expect(workflow).toContain('--speed-time 30')
+
+    // 这条路径必须是真正在跑的，不能又被 if: false 关掉。
+    expect(workflow).not.toContain('if: ${{ false }}')
+
+    // 镜像路径的残留一律不许留下——它们正是这次回退要去掉的东西。
+    expect(workflow).not.toContain('docker/build-push-action')
+    expect(workflow).not.toContain('docker/setup-buildx-action')
+    expect(workflow).not.toContain('docker/login-action')
+    expect(workflow).not.toContain('docker push')
+    expect(workflow).not.toContain('DeployType:"image"')
+  })
+
+  it('灰度冒烟通过后 promote 全量，失败则 rollback', () => {
+    // 切镜像方式（FULL 发布）时 Promote 步骤被删过。代码包路径是 GRAY 发布，
+    // 少了 promote 流量会永远停在 90/10，新版本上不了线。
+    const workflow = readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+    expect(workflow).toContain('cloudrun traffic promote -s sbh')
+    expect(workflow).toContain('cloudrun traffic rollback -s sbh')
+    expect(workflow).toContain('Promote 全量发布')
   })
 
   it('等待部署记录就绪后再切流，并允许稳定旧版本健康接口返回 404', () => {
@@ -174,10 +138,9 @@ describe('生产部署配置', () => {
     expect(workflow).toContain(`case "$deploy_status" in`)
     expect(workflow).toContain('normal)')
     expect(workflow).toContain('build_failed|deploy_failed)')
-    expect(workflow).not.toContain('sleep 30')
-    expect(workflow).toContain('Smoke test after image deploy')
-    expect(workflow).toContain('healthy=0')
-    expect(workflow).toContain('Image deploy smoke passed')
-    expect(workflow).not.toContain(`if [ "$canary_ok" -lt 1 ]`)
+    expect(workflow).toContain('Smoke test（灰度版本健康检查）')
+    expect(workflow).toContain('canary_ok=0')
+    // 灰度期间请求可能命中尚无该路由的稳定旧版本，404 不算失败。
+    expect(workflow).toContain(`if [ "$code" = "404" ]; then`)
   })
 })

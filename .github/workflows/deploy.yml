@@ -9,27 +9,11 @@
 #   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）-> 切 10% 灰度 ->
 #              冒烟（/api/health + /）-> 通过则 traffic promote 全量，失败则 traffic rollback。
 #
-# 机制：CI runner 上 docker build，推镜像到腾讯云 TCR，再用 CloudBase API 提交 image 版本。
-#
-# 跨境推镜像是这条通道的命门（run 31292071284 / 31290760006 的失败原因）：
-#   GitHub 美国 runner -> ccr.ccs.tencentyun.com（上海）链路会静默停滞，buildkit 推 blob
-#   时没有停滞检测，连接死掉既不报错也不重试，一路挂到 job timeout 被杀。
-#   31292071284 里 build 3分55秒就完事，push 之后 15 分钟零输出直接撞 20 分钟上限。
-# 因此这里有三条硬约束，别改回去：
-#   1. build 与 push 拆成两步。合在 build-push-action 里时一次卡死 = 整步白费，
-#      下次从零再来；拆开后 push 可以独立重试，已传的 blob registry 会跳过，重试是增量的。
-#   2. 每次 push 套 `timeout`。没有它，停滞的连接会骑满整个步骤预算。
-#   3. 不用 GHA 构建缓存导出（buildx 的 gha cache，mode=max）。它在 31292071284 里花了
-#      390 秒（多阶段构建要导出 deps/builder 全部中间层），把 20 分钟预算吃掉三分之一，
-#      而 build 本身从零也只要 4 分钟。净负担，不是优化。
-#      注：这段措辞刻意避开 YAML 键的字面写法，tests/production-deploy-config.test.ts
-#      用 not.toContain 断言它没被加回来，注释里出现字面串会让该断言恒假。
-# 不装 buildx（setup-buildx-action 会把默认 builder 切成 docker-container 驱动，产物不落
-#   本地镜像库，push 前还得多一次 --load 导出）。裸 docker build 走 daemon 内置 buildkit，
-#   `# syntax=` 指令照常生效，镜像直接进本地库供 push。
-#
-# 根治方向是把构建搬到境内（云托管绑定 GitHub 仓库由平台拉代码构建，或境内 self-hosted
-#   runner），跨境只走代码不走镜像。本文件是搬迁前的止血。
+# 机制：用 CloudBase 官方 API 分配上传地址，带重试上传 ZIP，再显式提交 GRAY 版本。
+#       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败。
+#       平台在线 docker build 并发布新版本。
+#       CI 端不装项目依赖、不构建--构建在平台发生（quality job 的 build 仅作质量门，
+#       产物留在 quality runner，不进 ZIP）。
 #
 # 迁移单次执行：容器启动时跑 scripts/migrate-locked.ts（PG advisory lock 互斥 + 幂等），
 #       多实例并发拉起只有一个实例真正跑迁移。CI 不单独跑迁移。
@@ -117,9 +101,7 @@ jobs:
   deploy:
     needs: quality
     runs-on: ubuntu-latest
-    # build 20 + push 25 + 部署轮询 20（80×15s）已逼近 60，留出余量避免 job 级超时
-    # 抢在步骤级超时前面触发（那样日志停在半空，看不出是哪一步卡的）。
-    timeout-minutes: 90
+    timeout-minutes: 25
     env:
       # 非交互模式：所有确认提示（telemetry 询问、--force 确认）自动按默认值走。
       # 否则 CI 无 tty，提示库收到 EOF 会以 exit 130 中断。
@@ -134,154 +116,12 @@ jobs:
           node-version: 22
 
       - name: Install CloudBase CLI（锁版本，避免 @latest 漂移破坏命令语义）
-        run: npm install -g @cloudbase/cli@3.7.0
+        run: npm install -g @cloudbase/cli@3.6.4
 
       - name: tcb login (CAM API key)
         run: tcb login --apiKeyId "${{ secrets.TCB_SECRET_ID }}" --apiKey "${{ secrets.TCB_SECRET_KEY }}"
 
-      - name: Login to Tencent Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ccr.ccs.tencentyun.com
-          username: ${{ secrets.TCR_USERNAME }}
-          password: ${{ secrets.TCR_PASSWORD }}
-
-      - name: Set image tag
-        id: image
-        run: |
-          set -euo pipefail
-          repo="ccr.ccs.tencentyun.com/tcb-100000818451-xfjy/ca-gevmmbac_sbh"
-          tag="${GITHUB_SHA::12}"
-          echo "repo=$repo" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "image=$repo:$tag" >> "$GITHUB_OUTPUT"
-          echo "Image: $repo:$tag"
-
-      - name: Build Docker image（只构建，不推送）
-        timeout-minutes: 20
-        env:
-          IMAGE: ${{ steps.image.outputs.image }}
-          LATEST: ${{ steps.image.outputs.repo }}:latest
-        run: |
-          set -euo pipefail
-          docker build \
-            --file payload-office-platform/Dockerfile \
-            --tag "$IMAGE" \
-            --tag "$LATEST" \
-            payload-office-platform
-          # 镜像体积直接决定跨境 push 时长，记进日志便于事后归因。
-          docker image inspect "$IMAGE" --format 'Image size: {{.Size}} bytes'
-
-      - name: Push image to Tencent Container Registry（跨境，带超时重试）
-        timeout-minutes: 25
-        env:
-          IMAGE: ${{ steps.image.outputs.image }}
-          LATEST: ${{ steps.image.outputs.repo }}:latest
-        run: |
-          set -euo pipefail
-          # 单次 push 最多 7 分钟：停滞的跨境连接不会骑满整个步骤预算，超时即掐断换新连接。
-          # 重试是增量的——registry 已收下的 blob 会在下次 push 时被跳过，每轮都在推进。
-          push_with_retry() {
-            local ref="$1"
-            local attempt
-            for attempt in 1 2 3 4 5; do
-              echo "== push $ref 尝试 $attempt/5 =="
-              if timeout 420 docker push "$ref"; then
-                echo "== push $ref 成功（尝试 $attempt）=="
-                return 0
-              fi
-              echo "::warning::push $ref 尝试 $attempt 失败/超时，10s 后重试（已传 blob 会被跳过）"
-              sleep 10
-            done
-            echo "::error::push $ref 5 次全部失败"
-            return 1
-          }
-          push_with_retry "$IMAGE"
-          # :latest 与上面同一份镜像，blob 已在 registry，这次只推 manifest，秒级完成。
-          push_with_retry "$LATEST"
-
-      - name: Deploy image to CloudBase CloudRun
-        env:
-          TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
-          IMAGE_URL: ${{ steps.image.outputs.image }}
-        run: |
-          set -euo pipefail
-          before_records="$RUNNER_TEMP/sbh-records-before.json"
-          records_info="$RUNNER_TEMP/sbh-records.json"
-
-          records_body=$(jq -cn --arg envId "$TCB_ENV_ID" \
-            '{EnvId:$envId,ServerName:"sbh"}')
-          tcb api tcbr DescribeCloudRunDeployRecord \
-            --api-version 2022-02-17 \
-            --json \
-            --body "$records_body" |
-            sed -n '/^{/,$p' > "$before_records"
-          before_deploy_id=$(jq -r '.data.DeployRecords[0].DeployId // empty' "$before_records")
-
-          echo "Deploy image: $IMAGE_URL"
-          deploy_info="$RUNNER_TEMP/sbh-image-deploy.json"
-          deploy_body=$(jq -cn \
-            --arg envId "$TCB_ENV_ID" \
-            --arg imageUrl "$IMAGE_URL" \
-            '{
-              EnvId:$envId,
-              ServerName:"sbh",
-              DeployInfo:{
-                DeployType:"image",
-                ImageUrl:$imageUrl,
-                ReleaseType:"FULL"
-              },
-              Items:[
-                {Key:"AccessTypes",ArrayValue:["OA","PUBLIC","MINIAPP"]},
-                {Key:"Port",IntValue:80}
-              ]
-            }')
-          timeout 60 tcb api tcbr UpdateCloudRunServer \
-            --api-version 2022-02-17 \
-            --json \
-            --body "$deploy_body" |
-            sed -n '/^{/,$p' > "$deploy_info"
-          jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
-
-          ready=0
-          for attempt in $(seq 1 80); do
-            tcb api tcbr DescribeCloudRunDeployRecord \
-              --api-version 2022-02-17 \
-              --json \
-              --body "$records_body" |
-              sed -n '/^{/,$p' > "$records_info"
-
-            deploy_id=$(jq -r '.data.DeployRecords[0].DeployId // empty' "$records_info")
-            deploy_status=$(jq -r '.data.DeployRecords[0].Status // empty' "$records_info")
-            echo "[$attempt/80] latest deploy $deploy_id -> $deploy_status"
-
-            if [ -z "$deploy_id" ] || [ "$deploy_id" = "$before_deploy_id" ]; then
-              sleep 15
-              continue
-            fi
-
-            case "$deploy_status" in
-              normal)
-                ready=1
-                break
-                ;;
-              build_failed|deploy_failed)
-                echo "::error::Image deploy failed: $deploy_status"
-                exit 1
-                ;;
-              *)
-                sleep 15
-                ;;
-            esac
-          done
-
-          if [ "$ready" != "1" ]; then
-            echo "::error::Timed out waiting for image deploy to become normal"
-            exit 1
-          fi
-
       - name: 上传代码包并提交灰度版本（初始 0% 流量）
-        if: ${{ false }}
         # 病根（run 31098998980）：跨境到腾讯云 COS 的预签名 URL 有效窗口短，2.6MB 在
         # ~10KB/s 下要传 ~270s，常在收尾时被 COS 以 400 拒（连接被重置/签名失效）。原实现
         # `curl --retry 4` 复用**同一个**预签名 URL，一旦它失效，4 次重试注定全部 400，日志里
@@ -389,7 +229,6 @@ jobs:
           jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
       - name: 等待新版本就绪 + 切 10% 灰度
-        if: ${{ false }}
         # 轮询部署记录，只有镜像构建、迁移、容器探针全部正常后才切流。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -458,32 +297,52 @@ jobs:
             --stable 90 \
             --canary 10
 
-      - name: Smoke test after image deploy
+      - name: Smoke test（灰度版本健康检查）
         id: smoke
         run: |
+          # 灰度 10% 期间多次请求，提高命中新版本概率；
+          # 同时验证整体服务可用（旧版本不被新版本部署影响）。
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
-          healthy=0
-          for i in $(seq 1 12); do
+          fail=0
+          canary_ok=0
+          for i in $(seq 1 50); do
             body_file="$RUNNER_TEMP/health-$i.json"
             code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health")
             echo "[$i] GET /api/health -> HTTP $code"
-            if [ "$code" = "200" ] && jq -e '.status == "ok"' "$body_file" >/dev/null; then
-              healthy=1
-              break
+            if [ "$code" = "200" ]; then
+              if jq -e '.status == "ok"' "$body_file" >/dev/null; then
+                canary_ok=$((canary_ok + 1))
+              else
+                fail=1
+              fi
+              continue
             fi
-            sleep 5
+            # 稳定版本 sbh-007 尚无该路由；灰度期间命中旧版本的 404 可接受。
+            if [ "$code" = "404" ]; then
+              continue
+            fi
+            fail=1
           done
-          if [ "$healthy" != "1" ]; then
-            echo "::error::Health check failed after image deploy"
-            exit 1
+          if [ "$canary_ok" -lt 1 ]; then
+            echo "::error::50 次请求均未命中健康的灰度版本"
+            fail=1
           fi
-          home=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" "$URL/")
+          # 首页可达（SSR 不崩）
+          home=$(curl -s -o /dev/null -w "%{http_code}" "$URL/")
           echo "GET / -> HTTP $home"
-          if [ "$home" != "200" ]; then
-            echo "::error::Homepage check failed after image deploy"
+          if [ "$home" != "200" ]; then fail=1; fi
+          if [ "$fail" = "1" ]; then
+            echo "::error::冒烟失败，将触发回滚"
             exit 1
           fi
-          echo "Image deploy smoke passed"
+          echo "✅ 冒烟通过"
+
+      - name: Promote 全量发布
+        if: success()
+        run: |
+          tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic promote -s sbh
+          echo "✅ 全量发布完成"
+
       - name: 全量发布后验证
         if: success()
         run: |

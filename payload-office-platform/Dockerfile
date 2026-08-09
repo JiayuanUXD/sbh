@@ -8,16 +8,6 @@ COPY package.json pnpm-lock.yaml ./
 # 含 devDeps（tsx）：payload CLI 需要 tsx 加载 ts 配置才能在容器内跑迁移
 RUN pnpm install --frozen-lockfile
 
-# ---------- prod deps ----------
-FROM node:22-slim AS prod-deps
-WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
-# Runtime does not need package source maps, type sources, docs, or test fixtures.
-RUN find node_modules -type f \( -name '*.map' -o -name '*.md' -o -name '*.markdown' -o -name '*.ts' -o -name '*.tsx' -o -name '*.d.ts' \) -delete \
-  && find node_modules -type d \( -name test -o -name tests -o -name __tests__ -o -name docs -o -name doc -o -name example -o -name examples -o -name coverage \) -prune -exec rm -rf '{}' +
-
 # ---------- builder ----------
 FROM node:22-slim AS builder
 WORKDIR /app
@@ -40,9 +30,6 @@ ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
 # Git 不跟踪空目录；没有静态资源时也要保留 public，供 runner 阶段稳定复制。
 RUN mkdir -p public
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
-# Next build cache only speeds local/incremental builds. It is not needed at runtime and can
-# make the pushed CloudRun image enormous.
-RUN rm -rf .next/cache && find .next -type f -name '*.map' -delete
 
 # ---------- runner ----------
 # 完整镜像（非 standalone）：standalone 产物不含 src/migrations/tsx/payload CLI，
@@ -61,8 +48,8 @@ ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 
-# 只复制生产依赖；tsx 保留在 dependencies，供启动迁移脚本加载 TS 配置。
-COPY --from=prod-deps /app/node_modules ./node_modules
+# 完整 node_modules（含 tsx，供 payload CLI 加载 ts 配置跑迁移）
+COPY --from=deps /app/node_modules ./node_modules
 # 构建产物
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
