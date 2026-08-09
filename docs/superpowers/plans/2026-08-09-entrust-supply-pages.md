@@ -25,7 +25,7 @@
 | Task 7 `/entrust` 页 | ✅ 完成 | `8805db5` + `15b30a6` + `579b16a` + `4b7ba79`，3 轮提交状态/响应式/吸底修复，review 与真实浏览器/PG 验证通过 |
 | Task 8 `/publish` 页 | ✅ 完成 | `4df3eee` + `4529cd5` + `0280cbb`，2 轮层级/面积后缀响应式修复，review 与真实浏览器/PG 验证通过 |
 | Task 9 站内通知 | ✅ 完成 | `4b53e40` + `73d6ff4` + `465c8ab` + `e40ad32`，重放/并发幂等与 PostgreSQL JSON 权限查询修复，review 与真实端点/PG 验证通过 |
-| Task 10 埋点 | ⬜ 未开始 | |
+| Task 10 埋点 | ✅ 完成 | `de3ae4c` + `26772cc`，补齐无效提交漏斗口径，review 与真实浏览器事件/PII 验证通过 |
 | Task 11 sitemap | ⬜ 未开始 | |
 | Task 12 E2E 与验证 | ⬜ 未开始 | |
 
@@ -3864,7 +3864,7 @@ git commit -m "feat(supply): 新投放申请给审单角色发站内通知
 
 > **重要（PII 白名单）**：`events.ts` 的 `assertSafeAnalyticsProps` 会对含 `name/phone/path/url/address/...` 的属性 key **抛错**。因此属性只能用 `page_type` / `error_code` / `commission_months` / `field_completeness` / `idempotent` 这类枚举与布尔，**绝不能传楼盘名、地址、手机号**。
 
-- [ ] **Step 1: 注册事件白名单**
+- [x] **Step 1: 注册事件白名单**
 
 在 `src/lib/frontend/analytics/events.ts` 的 `ANALYTICS_EVENTS` 里，`related_building_click` 之后加：
 
@@ -3883,7 +3883,7 @@ git commit -m "feat(supply): 新投放申请给审单角色发站内通知
   landing_bottom_cta_click: ['page_type'],
 ```
 
-- [ ] **Step 2: 创建曝光埋点组件**
+- [x] **Step 2: 创建曝光埋点组件**
 
 创建 `src/components/frontend/landing/LandingViewAnalytics.tsx`：
 
@@ -3913,7 +3913,7 @@ export default function LandingViewAnalytics({
 }
 ```
 
-- [ ] **Step 3: 在两页挂曝光埋点**
+- [x] **Step 3: 在两页挂曝光埋点**
 
 `src/app/(frontend)/entrust/page.tsx`：import 区加
 
@@ -3929,7 +3929,7 @@ import LandingViewAnalytics from '@/components/frontend/landing/LandingViewAnaly
 
 `src/app/(frontend)/publish/page.tsx` 同样处理，参数为 `pageType="publish"`。
 
-- [ ] **Step 4: EntrustForm 加漏斗埋点**
+- [x] **Step 4: EntrustForm 加漏斗埋点**
 
 `src/components/frontend/landing/EntrustForm.tsx`：
 
@@ -3981,7 +3981,7 @@ import { track } from '@/lib/frontend/analytics'
       track('landing_form_error', { page_type: 'entrust', error_code: 'network_error' })
 ```
 
-- [ ] **Step 5: SupplySubmissionForm 加漏斗埋点**
+- [x] **Step 5: SupplySubmissionForm 加漏斗埋点**
 
 `src/components/frontend/landing/SupplySubmissionForm.tsx`：
 
@@ -4042,7 +4042,7 @@ import { track } from '@/lib/frontend/analytics'
       track('landing_form_error', { page_type: 'publish', error_code: 'network_error' })
 ```
 
-- [ ] **Step 6: BottomCtaBar 加点击埋点**
+- [x] **Step 6: BottomCtaBar 加点击埋点**
 
 `src/components/frontend/landing/BottomCtaBar.tsx`：加 `pageType` prop 并上报。
 
@@ -4066,7 +4066,9 @@ import 区加 `import { track } from '@/lib/frontend/analytics'`；`focusTarget`
 
 并在 `src/app/(frontend)/entrust/page.tsx` 的 `<BottomCtaBar ... />` 上补 `pageType="entrust"`。
 
-- [ ] **Step 7: 类型检查 + 构建**
+- [x] **Step 7: 类型检查 + 构建**
+
+> 验证记录：Task 10 聚焦 7 files / 55 tests、限定 lint 通过；全量只剩 Task 9 新迁移引起的 preflight 迁移数量基线与既有 Route Handler 导出构建债务，统一留给 Task 12 收口。
 
 ```bash
 cd payload-office-platform && pnpm typecheck && pnpm test && pnpm build
@@ -4074,7 +4076,7 @@ cd payload-office-platform && pnpm typecheck && pnpm test && pnpm build
 
 Expected: 全绿。
 
-- [ ] **Step 8: 验证埋点真的发出**
+- [x] **Step 8: 验证埋点真的发出**
 
 `.env.local` 里设 `NEXT_PUBLIC_ANALYTICS_ENABLED=true`，重启 dev：
 
@@ -4092,7 +4094,7 @@ cd payload-office-platform && PORT=3719 pnpm dev
 
 `/publish` 同样验证一遍，额外确认 `landing_form_submit` 带 `commission_months` 与 `field_completeness` 计数。
 
-- [ ] **Step 9: 提交**
+- [x] **Step 9: 提交**
 
 ```bash
 git add payload-office-platform/src/lib/frontend/analytics/events.ts payload-office-platform/src/components/frontend/landing "payload-office-platform/src/app/(frontend)/entrust/page.tsx" "payload-office-platform/src/app/(frontend)/publish/page.tsx"
