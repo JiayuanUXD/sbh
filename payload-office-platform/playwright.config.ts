@@ -20,6 +20,17 @@ const PORT = Number(process.env.PORT ?? 3717)
 // 与 NEXT_PUBLIC_SITE_URL 解耦——后者在生产 server 下必须是线上 https（过 fail-closed 守卫）。
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`
 
+export function resolveServerReadyURL(
+  localBaseURL: string,
+  explicitURL: string | undefined,
+): string {
+  return explicitURL ?? `${localBaseURL}/admin`
+}
+
+// 深工作树的 webpack dev 编译 Payload admin 代价高；允许调用方改用已知轻量路由探活。
+// 默认仍保持既有 /admin 契约，CI 与历史套件行为不变。
+const serverReadyURL = resolveServerReadyURL(baseURL, process.env.PLAYWRIGHT_SERVER_URL)
+
 // E2E_PROD_SERVER=1 时用生产 server（先 `next build` 再 `next start`），消除 next dev
 // 的逐路由 JIT 编译慢（admin 导航在 10s poll 内不可交互的根因）。本地默认走 next dev。
 const useProdServer = !!process.env.E2E_PROD_SERVER
@@ -53,7 +64,7 @@ export default defineConfig({
   // url 用 baseURL（localhost:PORT），确保等待和请求都指向本地 server 而非线上。
   webServer: {
     command: serverCommand,
-    url: `${baseURL}/admin`,
+    url: serverReadyURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     stdout: 'pipe',
