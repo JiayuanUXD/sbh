@@ -6082,6 +6082,8 @@ ol {
 }
 
 .publish-card {
+  position: relative;
+  z-index: calc(var(--z-raised) + 1);
   max-width: 44rem;
   margin: calc(var(--sp-8) * -1) auto var(--sp-7);
   padding: var(--sp-6);
@@ -6144,6 +6146,10 @@ ol {
 .input-suffix {
   position: relative;
   display: block;
+}
+
+.input-suffix .filter-bar__input {
+  padding-right: var(--sp-7);
 }
 
 .input-suffix__unit {

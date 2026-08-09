@@ -250,6 +250,18 @@ function newRequestId(): string {
   return `publish-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
 }
 
+/** 让 Field 注入的 id/aria 属性直达真实 input，同时保留输入框内单位后缀。 */
+function AreaInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <span className="input-suffix">
+      <Input {...props} />
+      <span className="input-suffix__unit" aria-hidden="true">
+        ㎡
+      </span>
+    </span>
+  )
+}
+
 /** 房源投放卡片；一次挂载内的失败重试沿用同一幂等 requestId。 */
 export default function SupplySubmissionForm() {
   const commissionId = useId()
@@ -319,12 +331,12 @@ export default function SupplySubmissionForm() {
         </Field>
 
         <Field
-          label="出租面积（㎡）"
+          label="出租面积"
           id="publish-area"
           required
           error={formState.fieldErrors.areaSqm}
         >
-          <Input
+          <AreaInput
             name="areaSqm"
             type="number"
             inputMode="decimal"

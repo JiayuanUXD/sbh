@@ -1,4 +1,5 @@
 import React from 'react'
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import SupplySubmissionForm, {
@@ -171,6 +172,9 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(markup).toContain('id="publish-building"')
     expect(markup).toContain('id="publish-address"')
     expect(markup).toContain('id="publish-area"')
+    expect(markup).toMatch(
+      /class="input-suffix"[^>]*>.*id="publish-area".*class="input-suffix__unit"[^>]*aria-hidden="true"[^>]*>㎡<\/span>/,
+    )
     expect(markup).toContain('id="publish-phone"')
     expect(markup).toContain('name="commissionMonths"')
     expect(markup).toMatch(
@@ -179,5 +183,33 @@ describe('SupplySubmissionForm validation and request boundary', () => {
     expect(markup).toContain('aria-describedby="publish-contact-note"')
     expect(markup).toContain('aria-live="polite"')
     expect(markup).toContain('href="/pages/privacy"')
+  })
+
+  it('keeps the six user-facing field groups in the required order with five commission choices', () => {
+    const markup = renderToStaticMarkup(React.createElement(SupplySubmissionForm))
+    const orderedLabels = ['楼盘名称', '详细地址', '出租面积', '租金', '佣金', '手机号']
+    let previousIndex = -1
+
+    for (const label of orderedLabels) {
+      const currentIndex = markup.indexOf(label, previousIndex + 1)
+      expect(currentIndex, `${label} should follow the previous field group`).toBeGreaterThan(
+        previousIndex,
+      )
+      previousIndex = currentIndex
+    }
+
+    expect(markup.match(/name="commissionMonths"/g)).toHaveLength(5)
+    expect(markup).toContain('<h2 class="publish-card__title">免费投放房源</h2>')
+  })
+
+  it('raises the overlapping publish card above the centered hero stacking layer', () => {
+    const css = readFileSync(
+      new URL('../src/app/(frontend)/styles.css', import.meta.url),
+      'utf8',
+    )
+
+    expect(css).toMatch(
+      /\.publish-card\s*\{(?=[^}]*position:\s*relative)(?=[^}]*z-index:\s*calc\(var\(--z-raised\)\s*\+\s*1\))[^}]*\}/,
+    )
   })
 })
