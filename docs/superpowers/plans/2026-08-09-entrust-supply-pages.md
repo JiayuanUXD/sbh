@@ -22,7 +22,7 @@
 | Task 4 提交端点 | ✅ 完成 | `dac9e79` + `c00a8bf`，1 轮安全修复，review 通过 |
 | Task 5 entrust 链路 | ✅ 完成 | `f30f808` + `469f08d`，1 轮 update-delta 修复，review 通过 |
 | Task 6 骨架组件 | ✅ 完成 | `6002fc8` + `64a6355`，1 轮层叠/成功态/无障碍修复，review 通过 |
-| Task 7 `/entrust` 页 | ⬜ 未开始 | |
+| Task 7 `/entrust` 页 | ✅ 完成 | `8805db5` + `15b30a6` + `579b16a` + `4b7ba79`，3 轮提交状态/响应式/吸底修复，review 与真实浏览器/PG 验证通过 |
 | Task 8 `/publish` 页 | ⬜ 未开始 | |
 | Task 9 站内通知 | ⬜ 未开始 | |
 | Task 10 埋点 | ⬜ 未开始 | |
@@ -3026,7 +3026,7 @@ LandingHero(split/centered)、ProcessSteps(card/compact)、StatHighlights、Bott
 - Consumes: Task 5 的 `entrust` 渠道端点行为、Task 6 的 `LandingHero` / `ProcessSteps` / `StatHighlights` / `BottomCtaBar` / `landing-config`
 - Produces: 路由 `/entrust`；首屏输入框 id 固定为 `entrust-phone`（`BottomCtaBar` 依赖它）
 
-- [ ] **Step 1: 创建 `EntrustForm.tsx`**
+- [x] **Step 1: 创建 `EntrustForm.tsx`**
 
 ```tsx
 'use client'
@@ -3151,7 +3151,7 @@ export default function EntrustForm() {
 
 > `Field` 会给子元素注入 `aria-describedby`，此处显式再传一次以确保授权文案也被关联；两者由 `Field` 合并逻辑取后者，不会重复朗读。
 
-- [ ] **Step 2: 创建 `src/app/(frontend)/entrust/page.tsx`**
+- [x] **Step 2: 创建 `src/app/(frontend)/entrust/page.tsx`**
 
 ```tsx
 import type { Metadata } from 'next'
@@ -3243,7 +3243,9 @@ export default function EntrustPage() {
 
 > `.section` / `.section__header` / `.section__title` 是 `styles.css` 已有的 class（`:1577` / `:4719` / `:1581`）；`.section__subtitle` 原本不存在，已在 Task 6 的样式块里新增，无需再补。
 
-- [ ] **Step 3: 类型检查 + 构建**
+- [x] **Step 3: 类型检查 + 构建**
+
+> 验证记录：Task 7 聚焦测试与全量测试通过；类型检查在启动 dev 前通过。`next build --webpack` 已完成编译，随后被仓库既有 Route Handler 测试辅助导出（`api/corrections` 等）阻断，该全局构建债务留给 Task 12 统一修复。
 
 ```bash
 cd payload-office-platform && pnpm typecheck && pnpm build
@@ -3251,7 +3253,7 @@ cd payload-office-platform && pnpm typecheck && pnpm build
 
 Expected: 构建成功；构建输出中 `/entrust` 标记为静态（`○`），**不是** `ƒ`（动态）。若显示动态，检查是否误引入了读库调用。
 
-- [ ] **Step 4: 浏览器人工核对**
+- [x] **Step 4: 浏览器人工核对**
 
 ```bash
 cd payload-office-platform && PORT=3719 pnpm dev
@@ -3267,7 +3269,7 @@ cd payload-office-platform && PORT=3719 pnpm dev
 6. 输入合法手机号提交 → 表单区就地变成成功态，URL 仍是 `/entrust`；
 7. 浏览器宽度切 375 / 768 / 1280 三档，均无横向滚动条。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add payload-office-platform/src/components/frontend/landing/EntrustForm.tsx "payload-office-platform/src/app/(frontend)/entrust/page.tsx"
