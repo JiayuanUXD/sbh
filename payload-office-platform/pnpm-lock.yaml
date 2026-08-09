@@ -65,6 +65,9 @@ dependencies:
   payload-media-gallery:
     specifier: ^0.1.1
     version: 0.1.1(@payloadcms/ui@3.86.0)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)
+  pinyin-pro:
+    specifier: ^3.28.2
+    version: 3.28.2
   react:
     specifier: ^19.2.0
     version: 19.2.0
@@ -100,9 +103,6 @@ devDependencies:
   eslint-config-next:
     specifier: ^16.2.10
     version: 16.2.10(@typescript-eslint/parser@8.64.0)(eslint@9.38.0)(typescript@5.9.3)
-  pinyin-pro:
-    specifier: ^3.28.2
-    version: 3.28.2
   typescript:
     specifier: ^5.9.3
     version: 5.9.3
@@ -6942,7 +6942,7 @@ packages:
 
   /pinyin-pro@3.28.2:
     resolution: {integrity: sha512-jV38yxXHLfidirMC4hrXasLDozLCSq/4DfX88GnHcSEJ2+GpSedG6I9VOiEXJu6iQ5dbJC/RjmzyMuS5h/wH5A==}
-    dev: true
+    dev: false
 
   /playwright-core@1.61.1:
     resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
