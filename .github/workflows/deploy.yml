@@ -142,6 +142,15 @@ jobs:
           # 与 src/migrations/*.json 快照（仅 migrate:create 用，运行时不读）挡在包外。
           # 这里加硬阈值：再有大文件混进来立刻失败，而不是耗十几分钟超时后才暴露。
           git archive --format=zip HEAD:payload-office-platform > "$archive"
+
+          # 把本次 commit 注入包内：镜像由平台在线构建，CI 传不了 --build-arg，
+          # 只能走代码包。next.config.ts 在构建期把它内联进产物，/api/health 回显
+          # version，冒烟据此判断"新版本确实在承接流量"而不只是"域名还活着"。
+          # 病根 run 31275171164：报 success 但线上版本没变——冒烟打生产域名，流量还在
+          # 旧版本上，旧版本健康所以必然通过，假成功掩盖了后续 7 次真失败。
+          printf '{"commit":"%s"}\n' "$GITHUB_SHA" > "$RUNNER_TEMP/build-info.json"
+          (cd "$RUNNER_TEMP" && zip -q "$archive" build-info.json)
+
           archive_bytes=$(wc -c < "$archive")
           echo "代码包体积：$archive_bytes bytes"
           if [ "$archive_bytes" -gt 3145728 ]; then
@@ -302,21 +311,35 @@ jobs:
         run: |
           # 灰度 10% 期间多次请求，提高命中新版本概率；
           # 同时验证整体服务可用（旧版本不被新版本部署影响）。
+          #
+          # canary_ok 必须靠 version 字段认人：只看 status == "ok" 无法区分新旧版本，
+          # 旧版本同样返回 ok。run 31275171164 就是这么报出假 success 的——线上版本
+          # 压根没变，而冒烟"通过"了，后续 7 次真失败因此被掩盖。
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
+          expected="$GITHUB_SHA"
+          echo "期望灰度版本 version=$expected"
           fail=0
           canary_ok=0
           for i in $(seq 1 50); do
             body_file="$RUNNER_TEMP/health-$i.json"
             code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health")
-            echo "[$i] GET /api/health -> HTTP $code"
             if [ "$code" = "200" ]; then
               if jq -e '.status == "ok"' "$body_file" >/dev/null; then
-                canary_ok=$((canary_ok + 1))
+                version=$(jq -r '.version // ""' "$body_file")
+                if [ "$version" = "$expected" ]; then
+                  canary_ok=$((canary_ok + 1))
+                  echo "[$i] HTTP 200 version=$version ← 命中灰度版本"
+                else
+                  # 命中稳定旧版本是灰度期的正常情况，不算失败。
+                  echo "[$i] HTTP 200 version=$version（旧版本）"
+                fi
               else
+                echo "[$i] HTTP 200 但 status != ok"
                 fail=1
               fi
               continue
             fi
+            echo "[$i] GET /api/health -> HTTP $code"
             # 稳定版本 sbh-007 尚无该路由；灰度期间命中旧版本的 404 可接受。
             if [ "$code" = "404" ]; then
               continue
@@ -324,9 +347,11 @@ jobs:
             fail=1
           done
           if [ "$canary_ok" -lt 1 ]; then
-            echo "::error::50 次请求均未命中健康的灰度版本"
+            echo "::error::50 次请求均未命中 version=$expected 的灰度版本"
+            echo "::error::灰度版本没在承接流量，不能 promote —— 这正是 31275171164 那次漏掉的检查"
             fail=1
           fi
+          echo "命中灰度版本 $canary_ok/50 次"
           # 首页可达（SSR 不崩）
           home=$(curl -s -o /dev/null -w "%{http_code}" "$URL/")
           echo "GET / -> HTTP $home"
@@ -349,6 +374,21 @@ jobs:
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
           health=$(curl -sS --max-time 15 "$URL/api/health")
           echo "$health" | jq -e '.status == "ok"' >/dev/null
+
+          # promote 之后 100% 流量都该是新版本。这是"确实上线了"的最终确认——
+          # 光看 status == ok 通不过这一关，旧版本也返回 ok。
+          # 灰度期允许命中旧版本（只需至少一次命中新版本），这里不允许。
+          expected="$GITHUB_SHA"
+          for i in 1 2 3 4 5; do
+            version=$(curl -sS --max-time 15 "$URL/api/health" | jq -r '.version // ""')
+            echo "[$i] 线上 version=$version"
+            if [ "$version" != "$expected" ]; then
+              echo "::error::promote 后线上仍是 version=$version，期望 $expected —— 全量发布未生效"
+              exit 1
+            fi
+          done
+          echo "✅ 全量流量已是本次版本 $expected"
+
           for path in / /admin; do
             code=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" "$URL$path")
             echo "GET $path -> HTTP $code"

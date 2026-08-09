@@ -34,6 +34,13 @@ interface HealthResponse {
   status: HealthStatus
   checks: HealthCheck
   timestamp: string
+  /**
+   * 构建该产物的 commit SHA，由 next.config.ts 在构建期内联（CI 注入 build-info.json）。
+   * 灰度期间冒烟测试靠它分辨命中的是新版本还是旧版本——只看 status 无法区分，
+   * 旧版本同样返回 ok（run 31275171164 的假成功即源于此）。
+   * 本地开发与未注入的构建为 'unknown'。
+   */
+  version: string
   env: string
   region?: string
 }
@@ -74,6 +81,7 @@ export async function GET() {
     status,
     checks,
     timestamp: new Date().toISOString(),
+    version: process.env.BUILD_COMMIT ?? 'unknown',
     env: process.env.NODE_ENV ?? 'unknown',
     region: process.env.TCB_REGION ?? undefined,
   }
