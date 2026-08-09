@@ -18,8 +18,8 @@
 |---|---|---|
 | Task 1 导航与页脚 | ✅ 完成 | `3b29379`，review 通过，5/5 单测 |
 | Task 2 投放房源纯函数 | ✅ 完成 | `73d30fc`，1 轮修复（控制字符正则），19/19 单测 |
-| Task 3 集合 + 迁移 | 🔄 进行中 | 迁移已生成 `20260809_142444_supply_submissions_and_entrust_source`；操作码命名冲突已裁定改下划线形式，修复轮进行中 |
-| Task 4 提交端点 | ⬜ 未开始 | |
+| Task 3 集合 + 迁移 | ✅ 完成 | `5836f1c`，迁移 `20260809_142444_supply_submissions_and_entrust_source`，2418 单测全绿 |
+| Task 4 提交端点 | 🔄 进行中 | |
 | Task 5 entrust 链路 | ⬜ 未开始 | |
 | Task 6 骨架组件 | ⬜ 未开始 | |
 | Task 7 `/entrust` 页 | ⬜ 未开始 | |
@@ -97,6 +97,8 @@
 ---
 
 ## Task 1: 导航与页脚收敛 + 入口调整
+
+> **状态：** ✅ 已完成（commits ed5f7cd..3b29379，review 通过，5/5 单测）
 
 > **状态：** ✅ 已完成（commits ed5f7cd..3b29379，review 通过，5/5 单测）
 
@@ -284,6 +286,8 @@ git commit -m "feat(frontend): 导航去掉服务式办公，新增委托找房/
 ---
 
 ## Task 2: 投放房源纯函数（schema / 幂等 / 日志）
+
+> **状态：** ✅ 已完成（commits 3b29379..73d30fc，含 1 轮修复，review 通过，19/19 单测）
 
 > **状态：** ✅ 已完成（commits 3b29379..73d30fc，含 1 轮修复，review 通过，19/19 单测）
 
@@ -1026,6 +1030,8 @@ git commit -m "feat(supply): 投放房源提交 schema/幂等/日志纯函数
 
 ## Task 3: `SupplySubmissions` 集合 + 权限编码 + 全部 schema 变更与迁移
 
+> **状态：** ✅ 已完成（commit 5836f1c，含 1 轮修复，review 通过，2418 单测全绿）
+
 **Files:**
 - Create: `src/collections/SupplySubmissions.ts`
 - Create: `src/domain/supply-submission/submission-protect.ts`
@@ -1044,7 +1050,7 @@ git commit -m "feat(supply): 投放房源提交 schema/幂等/日志纯函数
   - 权限编码 `supply-submissions`(MENU)、`supply_submission:read` / `supply_submission:manage` / `supply_submission:convert`(OPERATION)
   - `Notifications` 新增 `type` 值 `supply-submission-created`、`sourceType` 值 `supply-submission`
 
-- [ ] **Step 1: 实现保护 hook `src/domain/supply-submission/submission-protect.ts`**
+- [x] **Step 1: 实现保护 hook `src/domain/supply-submission/submission-protect.ts`**
 
 ```ts
 /**
@@ -1114,7 +1120,7 @@ export const protectSupplySubmission: CollectionBeforeChangeHook = ({
 }
 ```
 
-- [ ] **Step 2: 注册权限编码**
+- [x] **Step 2: 注册权限编码**
 
 在 `src/domain/auth/permission-codes.ts` 的 `MENU_CODES` 里，`'reports'` 一行之后加：
 
@@ -1132,7 +1138,7 @@ export const protectSupplySubmission: CollectionBeforeChangeHook = ({
   'supply_submission:convert', // 转为房源草稿
 ```
 
-- [ ] **Step 3: 创建集合 `src/collections/SupplySubmissions.ts`**
+- [x] **Step 3: 创建集合 `src/collections/SupplySubmissions.ts`**
 
 ```ts
 import type { CollectionConfig } from 'payload'
@@ -1479,7 +1485,7 @@ export const SupplySubmissions: CollectionConfig = {
 }
 ```
 
-- [ ] **Step 4: 注册到 `payload.config.ts`**
+- [x] **Step 4: 注册到 `payload.config.ts`**
 
 在 import 区 `import { InformationCorrections } from './collections/InformationCorrections'`（`:44`）之后加：
 
@@ -1493,7 +1499,7 @@ import { SupplySubmissions } from './collections/SupplySubmissions'
     SupplySubmissions,
 ```
 
-- [ ] **Step 5: 后台导航加入口**
+- [x] **Step 5: 后台导航加入口**
 
 在 `src/domain/admin-navigation/navigation-config.ts` 的 `group('supply', '房源运营', 'building', [...])` 数组里，`leaf('buildings', ...)` 之后加：
 
@@ -1506,7 +1512,7 @@ import { SupplySubmissions } from './collections/SupplySubmissions'
     }),
 ```
 
-- [ ] **Step 6: `Leads` 来源枚举加 `entrust`**
+- [x] **Step 6: `Leads` 来源枚举加 `entrust`**
 
 在 `src/collections/Leads.ts` 的 `INQUIRY_SOURCE_PAGE_TYPES`（`:19-25`）里，`'content',` 之后加一行，并在其上方注释块补一行说明：
 
@@ -1518,7 +1524,7 @@ import { SupplySubmissions } from './collections/SupplySubmissions'
   'entrust',
 ```
 
-- [ ] **Step 7: 通知枚举加值**
+- [x] **Step 7: 通知枚举加值**
 
 枚举定义在 `src/domain/workflow/notification-types.ts`（**不在集合文件内**，集合通过 map 自动跟随）。
 
@@ -1546,7 +1552,7 @@ import { SupplySubmissions } from './collections/SupplySubmissions'
   'supply-submission': '房源投放申请',
 ```
 
-- [ ] **Step 8: 生成迁移**
+- [x] **Step 8: 生成迁移**
 
 确认 `.env.local` 里 `DATABASE_URL` 指向本工作树独立库（如 `postgres://.../sbh_dev_entrust`），然后：
 
@@ -1556,7 +1562,7 @@ cd payload-office-platform && pnpm payload migrate:create supply_submissions_and
 
 Expected: 在 `src/migrations/` 生成一对 `<timestamp>_supply_submissions_and_entrust_source.ts` / `.json`，内容包含 `supply_submissions` 建表、`idempotency_key` 唯一索引、`leads.source_page_type` 与两个 notifications 枚举的新值。**不要手改生成的文件正文。**
 
-- [ ] **Step 9: 应用迁移并验证可重放**
+- [x] **Step 9: 应用迁移并验证可重放**
 
 ```bash
 cd payload-office-platform && pnpm payload migrate && pnpm migrate:status
@@ -1564,7 +1570,7 @@ cd payload-office-platform && pnpm payload migrate && pnpm migrate:status
 
 Expected: 迁移状态显示新迁移已应用，无 pending。
 
-- [ ] **Step 10: 类型检查 + 全量单测**
+- [x] **Step 10: 类型检查 + 全量单测**
 
 ```bash
 cd payload-office-platform && pnpm generate:types && pnpm typecheck && pnpm test
@@ -1574,7 +1580,7 @@ Expected: `payload-types.ts` 重新生成后类型检查通过；单测全绿（
 
 > **注意**：`payload-types.ts` 是生成物且已取消 git 跟踪，**不要提交它**。若生成时报缺 COS 配置，先补齐 `.env.local` 的 COS 变量再生成，避免 `Media.prefix` 被误删。
 
-- [ ] **Step 11: 提交**
+- [x] **Step 11: 提交**
 
 ```bash
 git add payload-office-platform/src/collections/SupplySubmissions.ts payload-office-platform/src/domain/supply-submission/submission-protect.ts payload-office-platform/src/domain/auth/permission-codes.ts payload-office-platform/src/domain/admin-navigation/navigation-config.ts payload-office-platform/src/collections/Leads.ts payload-office-platform/src/collections/Notifications.ts payload-office-platform/src/payload.config.ts payload-office-platform/src/migrations
