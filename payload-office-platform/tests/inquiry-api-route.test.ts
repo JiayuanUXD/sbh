@@ -111,6 +111,10 @@ vi.mock('@/lib/rate-limit-pg', () => ({
 // ---------------------------------------------------------------------------
 
 import { POST, GET } from '@/app/api/inquiries/route'
+import {
+  __resetRateStoreForTests,
+  ratePruneRef,
+} from '@/app/api/inquiries/rate-limit-state'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 
 // ---------------------------------------------------------------------------
@@ -181,6 +185,15 @@ beforeEach(() => {
   assertEffectiveListingMock.mockReset()
   assertEffectiveBuildingMock.mockReset()
   inMemoryRateStore.clear()
+  __resetRateStoreForTests()
+})
+
+it('测试重置会清空询盘限流的跨请求清理时间戳', () => {
+  ratePruneRef.value = 123
+
+  __resetRateStoreForTests()
+
+  expect(ratePruneRef.value).toBe(0)
 })
 
 // ---------------------------------------------------------------------------

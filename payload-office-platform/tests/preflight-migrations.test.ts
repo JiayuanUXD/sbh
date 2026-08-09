@@ -20,8 +20,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 33 份迁移（补投放房源 schema 迁移后核对）
-    expect(names.length).toBe(33)
+    // 目录实际有 34 份迁移（补供给提交通知唯一约束迁移后核对）
+    expect(names.length).toBe(34)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -36,12 +36,13 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260803_104120_add_articles')
     expect(names).toContain('20260808_224000_articles_menu_for_ops')
     expect(names).toContain('20260809_142444_supply_submissions_and_entrust_source')
+    expect(names).toContain('20260809_183327_supply_submission_notification_unique')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(33)
+    expect(names.length).toBe(34)
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
     expect(names).toContain('20260728_180000_opt_021_admin_navigation_roles')
@@ -50,6 +51,7 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260803_104120_add_articles')
     expect(names).toContain('20260808_224000_articles_menu_for_ops')
     expect(names).toContain('20260809_142444_supply_submissions_and_entrust_source')
+    expect(names).toContain('20260809_183327_supply_submission_notification_unique')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })

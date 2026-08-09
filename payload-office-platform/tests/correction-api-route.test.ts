@@ -82,6 +82,10 @@ vi.mock('@/lib/rate-limit-pg', () => ({
 // ---------------------------------------------------------------------------
 
 import { POST, GET } from '@/app/(frontend)/api/corrections/route'
+import {
+  __resetRateStoreForTests,
+  ratePruneRef,
+} from '@/app/(frontend)/api/corrections/rate-limit-state'
 
 // ---------------------------------------------------------------------------
 // 辅助构造器
@@ -140,6 +144,15 @@ beforeEach(() => {
   payloadLoggerError.mockReset()
   payloadLoggerWarn.mockReset()
   inMemoryRateStore.clear()
+  __resetRateStoreForTests()
+})
+
+it('测试重置会清空纠错限流的跨请求清理时间戳', () => {
+  ratePruneRef.value = 123
+
+  __resetRateStoreForTests()
+
+  expect(ratePruneRef.value).toBe(0)
 })
 
 // ---------------------------------------------------------------------------

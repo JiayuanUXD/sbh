@@ -27,21 +27,16 @@ import {
   validateCorrection,
   type CorrectionRequest,
 } from '@/domain/corrections'
-import { runDistributedRateLimit, type PruneTimestampRef } from '@/lib/rate-limit-distributed'
+import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { CORRECTION_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
+import { ratePruneRef } from './rate-limit-state'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 /** 每请求 body 最大字节数（FPD-P1 Task 6：20KB） */
 const MAX_BODY_BYTES = 20 * 1024
-
-/**
- * 跨请求共享的 TTL 清理时间戳（模块级）。
- * CloudRun 多实例各自维护清理周期，但 inquiry_rate_limit 表共享，任一实例清理都生效。
- */
-const ratePruneRef: PruneTimestampRef = { value: 0 }
 
 /** 提取客户端 IP（CloudRun / 反代场景取首跳） */
 function clientIp(req: Request): string {
@@ -280,12 +275,4 @@ export function DELETE(): Response {
     { ok: false, error: 'method_not_allowed' },
     { status: 405, headers: { Allow: 'POST' } },
   )
-}
-
-/**
- * 测试专用：重置模块级限流清理时间戳。
- * 生产代码不调用此函数。
- */
-export function __resetRateStoreForTests(): void {
-  ratePruneRef.value = 0
 }
