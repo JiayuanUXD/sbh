@@ -1,35 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
-
-type AnalyticsRecord = Readonly<{
-  name: string
-  props: Record<string, unknown>
-}>
+import { captureAnalytics } from './support/landing-analytics-capture'
 
 const runSuffix = Date.now().toString().slice(-8).padStart(8, '0')
 const entrustPhone = `139${runSuffix}`
 const publishPhone = `138${runSuffix}`
 
 const browserErrors = new WeakMap<Page, string[]>()
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function captureAnalytics(page: Page): AnalyticsRecord[] {
-  const events: AnalyticsRecord[] = []
-  page.on('console', async (message) => {
-    if (message.type() !== 'debug') return
-    const args = message.args()
-    if (args.length < 3) return
-    const [marker, name, props] = await Promise.all(
-      args.slice(0, 3).map(async (argument) => argument.jsonValue()),
-    )
-    if (marker === '[analytics]' && typeof name === 'string' && isRecord(props)) {
-      events.push({ name, props })
-    }
-  })
-  return events
-}
 
 async function flushAnalytics(page: Page): Promise<void> {
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
@@ -96,7 +72,7 @@ test.describe('/entrust 委托找房', () => {
 
   test('合法提交后就地成功且埋点不含 PII', async ({ page }) => {
     const submittedBodies: unknown[] = []
-    const analyticsEvents = captureAnalytics(page)
+    const analyticsCapture = await captureAnalytics(page)
     page.on('request', (request) => {
       if (request.method() === 'POST' && request.url().endsWith('/api/inquiries')) {
         submittedBodies.push(request.postDataJSON())
@@ -118,7 +94,7 @@ test.describe('/entrust 委托找房', () => {
     })
 
     await flushAnalytics(page)
-    await expect.poll(() => analyticsEvents.map((event) => event.name)).toEqual(
+    await expect.poll(async () => (await analyticsCapture.read()).map((event) => event.name)).toEqual(
       expect.arrayContaining([
         'landing_view',
         'landing_form_start',
@@ -126,7 +102,7 @@ test.describe('/entrust 委托找房', () => {
         'landing_form_success',
       ]),
     )
-    const serializedEvents = JSON.stringify(analyticsEvents)
+    const serializedEvents = JSON.stringify(await analyticsCapture.read())
     expect(serializedEvents).not.toContain(entrustPhone)
     expect(serializedEvents).not.toContain('phone')
   })
@@ -174,7 +150,7 @@ test.describe('/publish 投放房源', () => {
     const buildingName = `E2E 楼盘 ${runSuffix}`
     const address = `上海市静安区测试路 ${runSuffix} 号 601`
     const submittedBodies: unknown[] = []
-    const analyticsEvents = captureAnalytics(page)
+    const analyticsCapture = await captureAnalytics(page)
     page.on('request', (request) => {
       if (request.method() === 'POST' && request.url().endsWith('/api/supply-submissions')) {
         submittedBodies.push(request.postDataJSON())
@@ -206,7 +182,7 @@ test.describe('/publish 投放房源', () => {
     })
 
     await flushAnalytics(page)
-    await expect.poll(() => analyticsEvents.map((event) => event.name)).toEqual(
+    await expect.poll(async () => (await analyticsCapture.read()).map((event) => event.name)).toEqual(
       expect.arrayContaining([
         'landing_view',
         'landing_form_start',
@@ -214,7 +190,7 @@ test.describe('/publish 投放房源', () => {
         'landing_form_success',
       ]),
     )
-    const serializedEvents = JSON.stringify(analyticsEvents)
+    const serializedEvents = JSON.stringify(await analyticsCapture.read())
     expect(serializedEvents).not.toContain(publishPhone)
     expect(serializedEvents).not.toContain(buildingName)
     expect(serializedEvents).not.toContain(address)
