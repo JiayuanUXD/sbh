@@ -31,6 +31,7 @@
     "districts:merge:plan": "node --env-file-if-exists=.env.local --import tsx scripts/merge-duplicate-districts.ts",
     "districts:merge:execute": "node --env-file-if-exists=.env.local --import tsx scripts/merge-duplicate-districts.ts --execute",
     "verify:leasable-area": "node --env-file-if-exists=.env.local --import tsx scripts/verify-leasable-area-parity.ts",
+    "verify:location-counts": "node --env-file-if-exists=.env.local --import tsx scripts/verify-location-counts.ts",
     "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts"
   },
   "dependencies": {
@@ -49,12 +50,13 @@
     "@payloadcms/translations": "3.86.0",
     "@payloadcms/ui": "3.86.0",
     "cross-env": "^7.0.3",
+    "drizzle-orm": "0.45.2",
     "graphql": "^16.11.0",
     "next": "16.2.10",
     "payload": "3.86.0",
-    "pinyin-pro": "^3.28.2",
     "payload-lexical-typography": "^0.5.2",
     "payload-media-gallery": "^0.1.1",
+    "pinyin-pro": "^3.28.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sharp": "^0.34.4",
