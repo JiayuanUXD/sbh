@@ -56,8 +56,10 @@ import { default as default_fc85bd5ac375c29cf24795ab8778bf43 } from '../../../co
 import { default as default_b93c325b2a001186130a7950fae795ee } from '../../../components/admin/AccountMenu'
 import { default as default_7623765cb892464d588afef4e6aed6bd } from '../../../components/admin/EnvBadge'
 import { default as default_58e4bdc8b962b7bf92f13fdc929c1e63 } from '../../../components/admin/AdminNavigation'
+import { default as default_dfd2727dd25d331b5764d036ddfaa58a } from '../../../components/admin/ArcoReact19Provider'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { default as default_fe003e590f4f23a58ea1c1c973022f22 } from '../../../components/admin/geography/GeographyListView'
 import { default as default_018c8550c7c935ba02e37f496184ad52 } from '../../../components/admin/StatsWidget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -121,8 +123,10 @@ export const importMap = {
   "/components/admin/AccountMenu#default": default_b93c325b2a001186130a7950fae795ee,
   "/components/admin/EnvBadge#default": default_7623765cb892464d588afef4e6aed6bd,
   "/components/admin/AdminNavigation#default": default_58e4bdc8b962b7bf92f13fdc929c1e63,
+  "/components/admin/ArcoReact19Provider#default": default_dfd2727dd25d331b5764d036ddfaa58a,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
+  "/components/admin/geography/GeographyListView#default": default_fe003e590f4f23a58ea1c1c973022f22,
   "/components/admin/StatsWidget#default": default_018c8550c7c935ba02e37f496184ad52,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

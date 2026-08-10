@@ -346,10 +346,10 @@ type GeographyModuleConfig = {
 5. 抽屉保存走 `PATCH /api/locations/:id`，**带 `version` 乐观锁**，冲突时展示后端返回的 `VersionConflictError` 文案，不静默覆盖。
 
 **验收**
-- [ ] 四个路由可访问，未登录跳登录。
-- [ ] 筛选与分页状态完整反映在 URL，刷新与后退行为正确。
-- [ ] 抽屉保存成功后列表原地刷新，筛选不丢。
-- [ ] 计算列表头无排序控件（明确不可排序，不是坏掉的排序）。
+- [x] 四个路由可访问，未登录跳登录。（Playwright：匿名访问 4 路由均跳 `/admin/login?redirect=...` 且零数据泄漏；登录后正常渲染。注：Payload 3.86 `isCustomAdminView` 把自定义视图当公共路由、不自动加认证门槛，已在共享 server 组件 `GeographyListView.tsx` 顶层补 `req.user` 判定 + `redirect()`，一处保护四路由。）
+- [x] 筛选与分页状态完整反映在 URL，刷新与后退行为正确。（筛选写进 URL search params，`router.push` 携带，刷新/后退保真。）
+- [x] 抽屉保存成功后列表原地刷新，筛选不丢。（PATCH 带 `version` 乐观锁，成功后 `Message.success('已保存')` + `router.refresh()` 保留筛选。）
+- [x] 计算列表头无排序控件（明确不可排序，不是坏掉的排序）。（计算列标记 `sortable: false`，表头无排序箭头。）
 
 ---
 
@@ -843,7 +843,7 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | `city` 字段实际列名 | `city_id`（integer, nullable）；索引 `locations_city_idx`；外键 `locations_city_id_locations_id_fk` ON DELETE set null（迁移 `20260810_114857_locations_city_field`） |
 | `parent` 实际列名 | `parent_id`（integer, nullable） |
 | `metroStations` 关系中间表名 | `business_area_extensions_rels`（`parent_id`=扩展记录 id, `locations_id`=站点 id, `order`=排序） |
-| Payload 3.86 自定义 admin 视图注册方式 | 待填 |
+| Payload 3.86 自定义 admin 视图注册方式 | `admin.components.views = { <键>: { Component, path } }`（`path` 以 `/` 开头，`exact` 缺省按前缀匹配）。⚠️ 3.86 的 `isCustomAdminView`（`@payloadcms/next`）把**所有**自定义视图当公共路由、跳过 `/admin` 登录重定向（`AdminViewConfig` 类型无 `public` 字段），未登录可直接访问并读到数据。必须在自定义视图 server 组件顶层自检 `initPageResult.req.user`，为空则 `redirect()` 到 `${admin.routes.login}?redirect=<当前路由>`（本计划在共享 `GeographyListView.tsx` 补一处，四路由共用） |
 | `buildings` 可见性/软删除条件 | `trash: true`，软删除列 `deleted_at`（过滤 `deleted_at IS NULL`）；地理关系列 `city_id`/`district_id`/`business_district_id`/`nearest_metro_id` |
 
 | 换乘站归属口径 | 待定（B1.5） |
@@ -856,7 +856,9 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | 2 城市解析纯函数 + 查询辅助 | ✅ 完成 | `feat(geography): Task 2 城市解析纯函数与查询辅助`；TDD 13 用例全绿 |
 | 3 写侧维护 `city` + 同城校验常数级 | ✅ 完成 | `feat(geography): Task 3 写侧维护 city 与同城校验`；`resolveCityId` O(1) 读 city 字段；`CITY_UNRESOLVED` 防孤儿节点；站点批量 `find({id:{in}})` 一次查询；全仓 2602 用例绿 |
 | 4 存量数据回填迁移 | ✅ 完成 | `feat(geography): Task 4 存量数据回填迁移`；手写 `20260810_200000_backfill_location_city`（递归 CTE 纯 UPDATE）；灌 2 城×5 类型样例后 `type<>'city' AND city_id IS NULL` = 0；up→down→up 往返验证通过。注：`parent_id` FK 在库层阻止断链父级，真孤儿无法落库，孤儿分支为防御性 |
-| 5–17 开发 | 待开始 | |
+| 5 聚合计数服务 | ✅ 完成 | `feat(geography): Task 5 聚合计数服务`；`location-counts.ts` 原生 SQL 经 `payload.db.drizzle` 执行；每函数固定 1~2 条 SQL（`ANY($ids::int[])` 单参数绑定，ids 空直接空 Map）；商圈站点/线路走 `business_area_extensions_rels`；缺边界=无扩展或 boundary NULL/空；楼盘计数照搬 public-building 可见性；`drizzle-orm@0.45.2` 加为直接依赖（与 db-postgres 同版）；单测 8 例 + `verify:location-counts` 2 城 9 断言全过 |
+| 6 自定义 admin 路由骨架 + 共享列表组件 | ✅ 完成 | `feat(geography): Task 6 自定义 admin 路由骨架与共享列表组件`；四视图注册 `admin.components.views`（键+`path`，3.86 类型为准）；共享 `GeographyListView.tsx`(server)+`GeographyListViewClient.tsx`(client)+`geography-modules.ts`(模块注册)，四模块同一套组件非复制；筛选/分页全进 URL；抽屉 PATCH 带 `version` 乐观锁、冲突展示 `VersionConflictError` 文案；计算列 `sortable:false`。两个修复：`payload-after-error.ts` afterError 钩把 `DomainError` 映射回状态码（否则 `VersionConflictError` 被 500 兜底吞掉）；`ArcoReact19Provider`(`setCreateRoot`) 修 React 19 下 Arco `Message.success` 静默不渲染。C2 门禁：`pnpm test` 2610 绿、`pnpm build` 过、无 schema 变更（免 migrate）、`git diff --stat` 范围达标。期间发现并修复**匿名访问泄漏**——3.86 自定义视图无认证门槛，共享组件顶层补 `req.user` 判定 + `redirect()`（见 B3 视图注册行） |
+| 5–17 开发 | 进行中（Task 6 完，接 Task 7） | |
 | 18–22 导入 | 待开始（依赖 1–17 完成） | |
 
 **七城导入登记**（Task 21 逐城填写）

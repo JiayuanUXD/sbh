@@ -69,6 +69,7 @@ import {
   formSubmissionUpdateAccess,
   protectFormSubmissionStatus,
 } from './domain/forms/submission-status'
+import { domainErrorAfterError } from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
 import {
@@ -164,6 +165,29 @@ export default buildConfig({
         '/components/admin/AccountMenu',
       ],
       beforeNavLinks: ['/components/admin/EnvBadge', '/components/admin/AdminNavigation'],
+      // Arco × React 19 兼容补丁：setCreateRoot 注入 createRoot，修复
+      // Message/Modal 等 portal 组件在 React 19 下静默不渲染（见组件内注释）。
+      providers: ['/components/admin/ArcoReact19Provider'],
+      // 地理四模块自定义 admin 视图（Task 6）：共享同一列表组件，按 pathname 解析模块。
+      // 注册键 + path 写法以安装版本 3.86 的 AdminViewConfig 为准。
+      views: {
+        GeographyCities: {
+          Component: '/components/admin/geography/GeographyListView',
+          path: '/geography/cities',
+        },
+        GeographyDistricts: {
+          Component: '/components/admin/geography/GeographyListView',
+          path: '/geography/districts',
+        },
+        GeographyBusinessAreas: {
+          Component: '/components/admin/geography/GeographyListView',
+          path: '/geography/business-areas',
+        },
+        GeographyMetroLines: {
+          Component: '/components/admin/geography/GeographyListView',
+          path: '/geography/metro-lines',
+        },
+      },
     },
     dashboard: {
       widgets: [
@@ -259,6 +283,12 @@ export default buildConfig({
     push: false,
   }),
   sharp,
+  hooks: {
+    // 领域错误 → HTTP 状态码与文案映射（routeError 兜底后执行）。
+    // 否则 DomainError 会被 Payload 替换成 500 "Something went wrong."，
+    // 前端拿不到版本冲突等业务文案（见 domain/shared/payload-after-error.ts）。
+    afterError: [domainErrorAfterError],
+  },
   plugins: [
     // 腾讯云 COS 使用 S3 兼容接口。生产由 config-guard 强制完整配置；开发环境只有在
     // 五项 COS_* 全部缺省时才允许本地上传。保留 Payload 文件路由与 access control，
