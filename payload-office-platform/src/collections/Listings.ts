@@ -498,6 +498,45 @@ export const Listings: CollectionConfig = {
             },
           ],
         },
+        {
+          label: '数据来源',
+          description: '标记外部抓取来源与同步信息，便于追溯、去重与增量更新。',
+          fields: [
+            {
+              name: 'dataSource',
+              label: '数据来源',
+              type: 'group',
+              admin: { hideGutter: true },
+              fields: [
+                {
+                  name: 'source',
+                  label: '来源平台',
+                  type: 'select',
+                  options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
+                  admin: { description: '外部抓取来源标识' },
+                },
+                {
+                  name: 'externalId',
+                  label: '外部 ID',
+                  type: 'text',
+                  admin: { description: '源平台原始房源编号' },
+                },
+                {
+                  name: 'sourceUrl',
+                  label: '源地址',
+                  type: 'text',
+                  admin: { description: '详情页原始 URL' },
+                },
+                {
+                  name: 'syncedAt',
+                  label: '同步时间',
+                  type: 'date',
+                  admin: { readOnly: true, description: '最后一次从源平台同步的时间' },
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
   ],

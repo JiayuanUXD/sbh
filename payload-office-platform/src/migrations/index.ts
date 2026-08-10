@@ -34,6 +34,7 @@ import * as migration_20260809_142444_supply_submissions_and_entrust_source from
 import * as migration_20260809_180000_supply_notification_duplicates_preflight from './20260809_180000_supply_notification_duplicates_preflight';
 import * as migration_20260809_183327_supply_submission_notification_unique from './20260809_183327_supply_submission_notification_unique';
 import * as migration_20260809_203911_supply_submission_notification_jobs from './20260809_203911_supply_submission_notification_jobs';
+import * as migration_20260810_003111_align_listings_data_source_with_production from './20260810_003111_align_listings_data_source_with_production';
 import * as migration_20260810_090000_supply_submission_role_permissions from './20260810_090000_supply_submission_role_permissions';
 
 export const migrations = [
@@ -216,6 +217,11 @@ export const migrations = [
     up: migration_20260809_203911_supply_submission_notification_jobs.up,
     down: migration_20260809_203911_supply_submission_notification_jobs.down,
     name: '20260809_203911_supply_submission_notification_jobs',
+  },
+  {
+    up: migration_20260810_003111_align_listings_data_source_with_production.up,
+    down: migration_20260810_003111_align_listings_data_source_with_production.down,
+    name: '20260810_003111_align_listings_data_source_with_production',
   },
   {
     up: migration_20260810_090000_supply_submission_role_permissions.up,

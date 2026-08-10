@@ -900,6 +900,24 @@ export interface Listing {
     };
     [k: string]: unknown;
   } | null;
+  dataSource?: {
+    /**
+     * 外部抓取来源标识
+     */
+    source?: 'huizuxuanzhi' | null;
+    /**
+     * 源平台原始房源编号
+     */
+    externalId?: string | null;
+    /**
+     * 详情页原始 URL
+     */
+    sourceUrl?: string | null;
+    /**
+     * 最后一次从源平台同步的时间
+     */
+    syncedAt?: string | null;
+  };
   createdBy?: {
     relationTo: 'users';
     value: number | User;
@@ -2944,6 +2962,14 @@ export interface ListingsSelect<T extends boolean = true> {
         id?: T;
       };
   description?: T;
+  dataSource?:
+    | T
+    | {
+        source?: T;
+        externalId?: T;
+        sourceUrl?: T;
+        syncedAt?: T;
+      };
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
