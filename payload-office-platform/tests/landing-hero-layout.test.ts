@@ -9,6 +9,9 @@ describe('LandingHero layout', () => {
     expect(css).toMatch(
       /\.landing-hero\s*\{(?=[^}]*width:\s*100vw)(?=[^}]*margin-inline:\s*calc\(50%\s*-\s*50vw\))[^}]*\}/,
     )
+    expect(css).toMatch(
+      /\.landing-hero\s*\{(?=[^}]*margin-block-start:\s*calc\(var\(--sp-6\)\s*\*\s*-1\))[^}]*\}/,
+    )
     expect(css).toMatch(/\.landing-hero__inner\s*\{(?=[^}]*width:\s*min\(100%,\s*var\(--container-max\)\))[^}]*\}/)
   })
 

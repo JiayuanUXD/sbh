@@ -72,6 +72,7 @@ export {
 export {
   // 类型
   type ListingSearchResult,
+  type ListingSearchSource,
   type HomepageData,
   type SearchFacets,
   type BuildingDetailResult,
@@ -81,6 +82,8 @@ export {
   parseSearchInput,
   buildCanonical,
   searchListings,
+  buildListingSearchSource,
+  paginateListingSearchSource,
   searchBuildings,
   getListingBySlug,
   getBuildingBySlug,
@@ -105,6 +108,7 @@ export {
 export {
   PUBLIC_CACHE_TAG_PREFIX,
   SITEMAP_TAG,
+  ARTICLES_CATEGORY_TAG,
   ALL_PUBLIC_CACHE_TAG_GROUPS,
   homeTag,
   listingTag,

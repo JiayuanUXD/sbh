@@ -30,6 +30,9 @@ export const PUBLIC_CACHE_TAG_PREFIX = 'public' as const
 /** sitemap 固定 tag（不区分城市，sitemap 包含全量公开 URL） */
 export const SITEMAP_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:sitemap` as const
 
+/** 资讯列表/详情类别 tag */
+export const ARTICLES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:articles` as const
+
 /**
  * 首页 tag：按城市区分
  * @param city 城市 slug；'all' 或缺省表示全城市首页
@@ -110,6 +113,7 @@ export const ALL_PUBLIC_CACHE_TAG_GROUPS = [
   'building',
   'facets',
   'page',
+  'articles',
   'sitemap',
 ] as const
 

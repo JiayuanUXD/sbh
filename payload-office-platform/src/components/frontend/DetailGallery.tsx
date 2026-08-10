@@ -371,5 +371,10 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
 }
 
 function MediaFallback() {
-  return <span className="detail-gallery__fallback" role="img" aria-label="媒体加载失败">媒体加载失败</span>
+  return (
+    <span className="detail-gallery__fallback" role="img" aria-label="图片暂未加载">
+      <strong>图片暂未加载</strong>
+      <span>可先查看房源信息，实景可预约顾问确认</span>
+    </span>
+  )
 }

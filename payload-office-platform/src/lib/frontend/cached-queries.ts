@@ -27,20 +27,25 @@
 import { unstable_cache } from 'next/cache'
 
 import {
+  ARTICLES_CATEGORY_TAG as PUBLIC_ARTICLES_CATEGORY_TAG,
   defaultSearchContext,
+  buildCanonicalSearchParams,
+  buildListingSearchSource,
   getBuildingBySlug,
   getBuildingDetail,
+  getArticleBySlug,
   getHomepage,
   getListingDistrictOptions,
   getListingBySlug,
   getPageBySlug,
+  listPublishedArticles,
   getRelatedBuildings,
   getRelatedListings,
   getDetailRecommendations,
   getSearchFacets,
   listPublishedPages,
+  paginateListingSearchSource,
   searchBuildings,
-  searchListings,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
 import {
@@ -66,6 +71,9 @@ const BUILDINGS_CATEGORY_TAG = 'public:buildings'
 
 /** 内容页类别 tag */
 const PAGES_CATEGORY_TAG = 'public:pages'
+
+/** 资讯类别 tag */
+export const ARTICLES_CATEGORY_TAG = PUBLIC_ARTICLES_CATEGORY_TAG
 
 // ---------------------------------------------------------------------------
 // 默认搜索上下文
@@ -249,19 +257,24 @@ export const getCachedBuildingBySlug = unstable_cache(
 )
 
 /**
- * 房源搜索结果（按 canonical query + page 缓存）
+ * 房源搜索源数据（按 canonical query 去除 page 后缓存）
  *
  * tags：listings 类别 + facets:shanghai + home:shanghai + sitemap
  * 失效触发：listing.* / report.supply_* 事件
  *
- * @param canonicalQuery canonical 查询串（由 buildCanonicalSearchParams 派生）
- * @param input 完整搜索输入（用于执行查询）
+ * page 不进入昂贵源数据的 cache key；翻页只做内存切片，避免重复读取
+ * 同一筛选条件下的完整有效供给候选集。
  */
-export const getCachedSearchListings = unstable_cache(
-  async (canonicalQuery: string, input: ListingSearchInput) => {
-    return searchListings(input, defaultCtx())
+export function buildListingSearchSourceCacheKey(input: ListingSearchInput): string {
+  return buildCanonicalSearchParams({ ...input, page: 1 }).toString()
+}
+
+export const getCachedListingSearchSource = unstable_cache(
+  async (sourceCacheKey: string, input: ListingSearchInput) => {
+    void sourceCacheKey
+    return buildListingSearchSource(input, defaultCtx())
   },
-  ['search-listings'],
+  ['listing-search-source'],
   {
     tags: [
       LISTINGS_CATEGORY_TAG,
@@ -272,6 +285,23 @@ export const getCachedSearchListings = unstable_cache(
     revalidate: 300,
   },
 )
+
+/**
+ * 房源搜索结果：复用去 page 的昂贵源数据缓存，再按当前 page 分页。
+ *
+ * @param canonicalQuery 完整 canonical 查询串；保留参数兼容现有 route 调用
+ * @param input 完整搜索输入（分页在缓存命中后执行）
+ */
+export async function getCachedSearchListings(
+  canonicalQuery: string,
+  input: ListingSearchInput,
+) {
+  void canonicalQuery
+  const sourceInput = { ...input, page: 1 }
+  const sourceCacheKey = buildListingSearchSourceCacheKey(input)
+  const source = await getCachedListingSearchSource(sourceCacheKey, sourceInput)
+  return paginateListingSearchSource(source, input)
+}
 
 /**
  * 房源列表区域筛选选项。
@@ -351,5 +381,47 @@ export const getCachedPublishedPages = unstable_cache(
       PAGES_CATEGORY_TAG,
       SITEMAP_TAG,
     ],
+  },
+)
+
+/**
+ * 已发布资讯列表。
+ *
+ * tags：articles 类别 + home:shanghai + sitemap
+ * 失效触发：article.* 事件；300 秒兜底重新验证。
+ */
+export const getCachedPublishedArticles = unstable_cache(
+  async (page: number = 1, pageSize: number = 12) => {
+    return listPublishedArticles(defaultCtx(), { page, pageSize })
+  },
+  ['published-articles'],
+  {
+    tags: [
+      ARTICLES_CATEGORY_TAG,
+      homeTag('shanghai'),
+      SITEMAP_TAG,
+    ],
+    revalidate: 300,
+  },
+)
+
+/**
+ * 资讯详情（按 slug 缓存）。
+ *
+ * tags：articles 类别 + home:shanghai + sitemap
+ * 失效触发：article.* 事件；300 秒兜底重新验证。
+ */
+export const getCachedArticleBySlug = unstable_cache(
+  async (slug: string) => {
+    return getArticleBySlug(slug, defaultCtx())
+  },
+  ['article-by-slug'],
+  {
+    tags: [
+      ARTICLES_CATEGORY_TAG,
+      homeTag('shanghai'),
+      SITEMAP_TAG,
+    ],
+    revalidate: 300,
   },
 )

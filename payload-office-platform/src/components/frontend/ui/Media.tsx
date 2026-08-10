@@ -50,6 +50,10 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
           <circle cx="9" cy="9" r="2" />
           <path d="m21 15-5-5L5 21" />
         </svg>
+        <span className="media-placeholder__text">
+          <strong>图片暂未加载</strong>
+          <span>可先查看房源信息</span>
+        </span>
       </div>
     )
   }

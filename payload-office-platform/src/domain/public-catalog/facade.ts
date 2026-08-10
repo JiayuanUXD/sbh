@@ -88,6 +88,12 @@ export type ListingSearchResult = Readonly<{
   filteredByRentUnit: boolean
 }>
 
+/** 房源搜索的昂贵中间结果：已完成有效供给精筛、映射、排序，但尚未分页。 */
+export type ListingSearchSource = Readonly<{
+  docs: readonly ListingCardViewModel[]
+  filteredByRentUnit: boolean
+}>
+
 /** 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯 */
 export type HomepageData = Readonly<{
   featuredListings: readonly ListingCardViewModel[]
@@ -305,18 +311,43 @@ export async function searchListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ListingSearchResult> {
+  const source = await buildListingSearchSource(input, ctx, adapter)
+  return paginateListingSearchSource(source, input)
+}
+
+/**
+ * 构建房源搜索源数据：完成有效供给精筛、卡片映射和全局排序，但不分页。
+ *
+ * 列表页缓存可复用该结果，使 `/listings?page=2` 不再重复执行最重的候选集查询。
+ */
+export async function buildListingSearchSource(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<ListingSearchSource> {
   const rawListings = await adapter.findEffectiveListings(input, ctx)
   const cards = mapListingsToCards(rawListings)
   const { cards: sortTarget, filteredByRentUnit } = prepareCardsForPriceSort(cards, input)
   const lastEffAt = buildLastEffAtLookup(rawListings)
   const sorted = stableSortCards(sortTarget, input.sort ?? 'recommended', lastEffAt)
-  const paged = paginate(sorted, input.page, input.pageSize)
 
+  return {
+    docs: sorted,
+    filteredByRentUnit,
+  }
+}
+
+/** 对已缓存的房源搜索源数据做轻量分页，保持原有 canonical 与分页语义。 */
+export function paginateListingSearchSource(
+  source: ListingSearchSource,
+  input: ListingSearchInput,
+): ListingSearchResult {
+  const paged = paginate(source.docs, input.page, input.pageSize)
   return {
     docs: paged.docs,
     pagination: buildPagination(paged.totalDocs, input.page, input.pageSize),
     canonical: buildCanonicalSearchParams(input).toString(),
-    filteredByRentUnit,
+    filteredByRentUnit: source.filteredByRentUnit,
   }
 }
 

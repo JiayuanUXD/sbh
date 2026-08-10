@@ -9,10 +9,7 @@ import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadat
 import { formatPublishedDate } from '@/lib/frontend/format'
 import { siteConfig } from '@/lib/frontend/site-config'
 import type { Page } from '@/payload-types'
-import {
-  defaultSearchContext,
-  getArticleBySlug,
-} from '@/domain/public-catalog'
+import { getCachedArticleBySlug } from '@/lib/frontend/cached-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,8 +30,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const article = await getArticleBySlug(slug, ctx)
+  const article = await getCachedArticleBySlug(slug)
   if (!article) {
     return buildNotFoundMetadata('资讯未找到')
   }
@@ -63,8 +59,7 @@ export default async function ArticleDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const article = await getArticleBySlug(slug, ctx)
+  const article = await getCachedArticleBySlug(slug)
   if (!article) notFound()
 
   const canonicalUrl = `${siteConfig.siteOrigin}/news/${encodeURIComponent(slug)}`

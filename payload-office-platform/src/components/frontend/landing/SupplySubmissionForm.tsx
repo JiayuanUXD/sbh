@@ -402,16 +402,15 @@ const AreaInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<H
   },
 )
 
-export function SupplySubmissionSuccessCard(
-  props: Readonly<{ cardRef?: React.RefObject<HTMLDivElement | null> }> = {},
-) {
+export const SupplySubmissionSuccessCard = React.forwardRef<HTMLDivElement>(
+  function SupplySubmissionSuccessCard(_props, ref) {
   return (
     <div
       className="publish-card"
       role="status"
       aria-live="polite"
       tabIndex={-1}
-      ref={props.cardRef}
+      ref={ref}
     >
       <h2 className="publish-card__title">{PUBLISH_COPY.successTitle}</h2>
       <p className="publish-card__footer">{PUBLISH_COPY.successBody}</p>
@@ -422,7 +421,8 @@ export function SupplySubmissionSuccessCard(
       </div>
     </div>
   )
-}
+  },
+)
 
 /** 房源投放卡片；一次挂载内的失败重试沿用同一幂等 requestId。 */
 export default function SupplySubmissionForm() {
@@ -460,7 +460,7 @@ export default function SupplySubmissionForm() {
   }, [formState])
 
   if (formState.status === 'success') {
-    return <SupplySubmissionSuccessCard cardRef={successRef} />
+    return <SupplySubmissionSuccessCard ref={successRef} />
   }
 
   const updateValue = <Key extends keyof SupplyFormValues>(

@@ -2,9 +2,14 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('next/cache', () => ({
+  unstable_cache: <T extends (...args: never[]) => unknown>(loader: T) => loader,
+}))
+
 import * as publicCatalog from '@/domain/public-catalog'
 import type { DistrictViewModel, SearchContext, SupplyAdapter } from '@/domain/public-catalog'
 import { defaultSearchContext } from '@/domain/public-catalog'
+import { buildListingSearchSourceCacheKey } from '@/lib/frontend/cached-queries'
 import { DISTRICT_JINGAN } from '@/test/frontend/payload-documents'
 
 const ROOT = process.cwd()
@@ -43,6 +48,25 @@ describe('OPT-026 lightweight listing district options', () => {
 })
 
 describe('OPT-026 route cache and prefetch contracts', () => {
+  it('shares the expensive listing search source cache across pages of the same query', () => {
+    const base = publicCatalog.parseSearchInput(
+      new URLSearchParams('type=traditional-office&sort=newest&page=1'),
+    )
+
+    const firstPageKey = buildListingSearchSourceCacheKey(base)
+    const secondPageKey = buildListingSearchSourceCacheKey({ ...base, page: 2 })
+    const differentSortKey = buildListingSearchSourceCacheKey({ ...base, sort: 'rent-asc' })
+    const differentFilterKey = buildListingSearchSourceCacheKey({
+      ...base,
+      listingType: ['serviced-office'],
+    })
+
+    expect(secondPageKey).toBe(firstPageKey)
+    expect(firstPageKey).not.toContain('page=1')
+    expect(differentSortKey).not.toBe(firstPageKey)
+    expect(differentFilterKey).not.toBe(firstPageKey)
+  })
+
   it('routes canonical searches through tagged caches without loading the homepage', async () => {
     const [page, cachedQueries] = await Promise.all([
       readFile(resolve(ROOT, 'src/app/(frontend)/listings/page.tsx'), 'utf8'),
@@ -52,9 +76,8 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(page).toContain('getCachedSearchListings(canonical, input)')
     expect(page).toContain('getCachedListingDistrictOptions()')
     expect(page).not.toContain('getHomepage(')
-    expect(cachedQueries).toMatch(
-      /export const getCachedSearchListings = unstable_cache\([\s\S]*?revalidate:\s*300[\s\S]*?\n\)/,
-    )
+    expect(cachedQueries).toContain('getCachedListingSearchSource = unstable_cache(')
+    expect(cachedQueries).toContain('revalidate: 300')
   })
 
   it('disables automatic prefetch for high-cardinality listing links', async () => {

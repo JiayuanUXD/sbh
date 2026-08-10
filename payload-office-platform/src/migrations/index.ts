@@ -37,6 +37,7 @@ import * as migration_20260809_203911_supply_submission_notification_jobs from '
 import * as migration_20260810_003111_align_listings_data_source_with_production from './20260810_003111_align_listings_data_source_with_production';
 import * as migration_20260810_090000_supply_submission_role_permissions from './20260810_090000_supply_submission_role_permissions';
 import * as migration_20260810_153500_landing_hero_media_assets from './20260810_153500_landing_hero_media_assets';
+import * as migration_20260810_170000_public_page_performance_indexes from './20260810_170000_public_page_performance_indexes';
 
 export const migrations = [
   {
@@ -233,5 +234,10 @@ export const migrations = [
     up: migration_20260810_153500_landing_hero_media_assets.up,
     down: migration_20260810_153500_landing_hero_media_assets.down,
     name: '20260810_153500_landing_hero_media_assets',
+  },
+  {
+    up: migration_20260810_170000_public_page_performance_indexes.up,
+    down: migration_20260810_170000_public_page_performance_indexes.down,
+    name: '20260810_170000_public_page_performance_indexes',
   },
 ];

@@ -1,6 +1,7 @@
 import { revalidateTag } from 'next/cache'
 
 import {
+  ARTICLES_CATEGORY_TAG,
   PUBLIC_CACHE_TAG_PREFIX,
   SITEMAP_TAG,
   homeTag,
@@ -47,6 +48,7 @@ export function invalidatePagePublicCache(): void {
 export function invalidateArticlePublicCache(): void {
   revalidatePublicCacheTags(
     [
+      ARTICLES_CATEGORY_TAG,
       homeTag('shanghai'),
       SITEMAP_TAG,
     ],

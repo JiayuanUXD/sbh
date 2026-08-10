@@ -2,10 +2,7 @@ import type { Metadata } from 'next'
 import React from 'react'
 import ArticleCard from '@/components/frontend/ArticleCard'
 import Pagination from '@/components/frontend/Pagination'
-import {
-  defaultSearchContext,
-  listPublishedArticles,
-} from '@/domain/public-catalog'
+import { getCachedPublishedArticles } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 
 export const dynamic = 'force-dynamic'
@@ -37,8 +34,7 @@ export default async function NewsIndexPage({
   const pageParam = typeof resolved.page === 'string' ? resolved.page : '1'
   const page = Math.max(1, parseInt(pageParam, 10) || 1)
 
-  const ctx = defaultSearchContext()
-  const result = await listPublishedArticles(ctx, { page, pageSize: PAGE_SIZE })
+  const result = await getCachedPublishedArticles(page, PAGE_SIZE)
   const safePage = Math.min(page, result.totalPages)
 
   function buildPageHref(targetPage: number): string {
