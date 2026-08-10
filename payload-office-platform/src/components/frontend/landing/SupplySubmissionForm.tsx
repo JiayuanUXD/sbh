@@ -492,7 +492,7 @@ export default function SupplySubmissionForm() {
         <h3 className="publish-card__group-title">{PUBLISH_COPY.groupContact}</h3>
         <p className="publish-card__group-note" id={contactNoteId}>
           {PUBLISH_COPY.contactNote}提交即表示同意
-          <Link href="/pages/privacy">《隐私政策》</Link>。
+          <Link href="/pages/privacy" target="_blank" rel="noopener noreferrer">《隐私政策》</Link>。
         </p>
         <Field
           label="手机号"

@@ -11,13 +11,35 @@ type LandingHeroProps = {
 function SkylineDecor() {
   return (
     <svg className="landing-hero__decor" viewBox="0 0 320 200" fill="currentColor" aria-hidden="true" focusable="false">
-      <rect x="12" y="96" width="34" height="104" rx="2" opacity="0.28" />
-      <rect x="54" y="60" width="42" height="140" rx="2" opacity="0.42" />
-      <rect x="104" y="118" width="30" height="82" rx="2" opacity="0.24" />
-      <rect x="142" y="34" width="48" height="166" rx="3" opacity="0.55" />
-      <rect x="198" y="84" width="38" height="116" rx="2" opacity="0.34" />
-      <rect x="244" y="52" width="30" height="148" rx="2" opacity="0.4" />
-      <rect x="282" y="110" width="26" height="90" rx="2" opacity="0.22" />
+      {/* 远景低层，衬出纵深 */}
+      <rect x="6" y="116" width="30" height="84" opacity="0.16" />
+      <rect x="104" y="122" width="30" height="78" opacity="0.2" />
+      <rect x="284" y="104" width="30" height="96" opacity="0.18" />
+      {/* 阶梯顶塔楼 */}
+      <path d="M46 200V66h14V52h18v14h14v134Z" opacity="0.36" />
+      {/* 坡顶主塔 + 天线 */}
+      <path d="M142 200V42l24-12 24 12v158Z" opacity="0.52" />
+      <rect x="164" y="14" width="3" height="17" opacity="0.52" />
+      {/* 主塔楼层线 */}
+      <g stroke="currentColor" strokeWidth="2" opacity="0.22">
+        <line x1="150" y1="70" x2="182" y2="70" />
+        <line x1="150" y1="96" x2="182" y2="96" />
+        <line x1="150" y1="122" x2="182" y2="122" />
+        <line x1="150" y1="148" x2="182" y2="148" />
+        <line x1="150" y1="174" x2="182" y2="174" />
+      </g>
+      {/* 平屋顶中塔 + 屋顶机房 */}
+      <rect x="198" y="86" width="38" height="114" opacity="0.3" />
+      <rect x="206" y="74" width="14" height="12" opacity="0.3" />
+      {/* 高塔 + 退台 */}
+      <path d="M244 200V64h12V52h18v148Z" opacity="0.42" />
+      <g stroke="currentColor" strokeWidth="2" opacity="0.18">
+        <line x1="250" y1="92" x2="268" y2="92" />
+        <line x1="250" y1="120" x2="268" y2="120" />
+        <line x1="250" y1="148" x2="268" y2="148" />
+      </g>
+      {/* 地面基线 */}
+      <rect x="0" y="198" width="320" height="2" opacity="0.28" />
     </svg>
   )
 }

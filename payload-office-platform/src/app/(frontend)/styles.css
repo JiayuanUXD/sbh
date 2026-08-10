@@ -464,7 +464,8 @@ ol {
   margin: 0 auto;
   padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
   gap: var(--sp-6);
   align-items: start;
 }
@@ -547,6 +548,16 @@ ol {
   gap: var(--sp-2);
   color: var(--color-muted);
   font-size: var(--fs-12);
+}
+
+@media (max-width: 1024px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .site-footer__brand {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 767px) {
@@ -5853,6 +5864,9 @@ ol {
   margin-bottom: var(--sp-3);
   color: var(--color-ink);
   font-size: var(--fs-h1);
+  /* CJK 不在词中折行（「办公室」不被拦腰截断），需折时两行均衡 */
+  word-break: keep-all;
+  text-wrap: balance;
 }
 
 .landing-hero__subtitle {

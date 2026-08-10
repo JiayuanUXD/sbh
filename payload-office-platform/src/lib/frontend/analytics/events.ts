@@ -48,6 +48,8 @@ export const ANALYTICS_EVENTS = {
   landing_form_error: ['page_type', 'error_code'],
   /** Landing-page footer CTA click. */
   landing_bottom_cta_click: ['page_type'],
+  /** Site-header CTA click on a landing page (scrolls to the page form). */
+  landing_header_cta_click: ['page_type'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS

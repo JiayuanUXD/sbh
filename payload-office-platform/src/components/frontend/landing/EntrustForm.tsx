@@ -1,12 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import React, { useId, useState } from 'react'
+import React, { useEffect, useId, useState } from 'react'
 import { Button, Field, Input } from '@/components/frontend/ui'
 import { ENTRUST_COPY } from '@/lib/frontend/landing-config'
 import { track } from '@/lib/frontend/analytics'
 import {
   createLandingOnceTracker,
+  dispatchLandingConverted,
   safeTrackLandingEvent,
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
@@ -173,6 +174,11 @@ export default function EntrustForm() {
     createLandingOnceTracker('landing_form_start', 'entrust', track),
   )
 
+  // 成功态广播：吸底/收束 CTA 切换「已收到」并停止吸底。
+  useEffect(() => {
+    if (formState.status === 'success') dispatchLandingConverted('entrust')
+  }, [formState.status])
+
   if (formState.status === 'success') {
     return (
       <div className="entrust-form__success" role="status" aria-live="polite">
@@ -195,9 +201,10 @@ export default function EntrustForm() {
           name="phone"
           inputMode="numeric"
           autoComplete="tel"
+          maxLength={11}
           placeholder={ENTRUST_COPY.formPlaceholder}
           value={phone}
-          onChange={(event) => setPhone(event.target.value)}
+          onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 11))}
           onFocus={trackFormStart}
           aria-describedby={noteId}
         />
@@ -207,7 +214,7 @@ export default function EntrustForm() {
       </Button>
       <p className="entrust-form__note" id={noteId}>
         提交即表示同意
-        <Link href="/pages/privacy">《隐私政策》</Link>
+        <Link href="/pages/privacy" target="_blank" rel="noopener noreferrer">《隐私政策》</Link>
         ，并授权我们与您联系
       </p>
     </form>

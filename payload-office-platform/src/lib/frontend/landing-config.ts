@@ -66,7 +66,7 @@ export const ENTRUST_STEPS = [
 ] as const
 
 export const PUBLISH_STEPS = [
-  { label: '提交房源', icon: 'form' },
+  { label: '提交房源', icon: 'submit' },
   { label: '实勘采集', icon: 'survey' },
   { label: '推广曝光', icon: 'promote' },
   { label: '签约成交', icon: 'sign' },

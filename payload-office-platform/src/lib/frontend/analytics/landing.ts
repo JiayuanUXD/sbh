@@ -37,3 +37,15 @@ export function createLandingOnceTracker(
     safeTrackLandingEvent(tracker, name, { page_type: pageType })
   }
 }
+
+/** 落地页表单提交成功后广播的 DOM 事件；吸底 CTA 据此切换已收到态并停止吸底。 */
+export const LANDING_CONVERTED_EVENT = 'landing:converted'
+
+export type LandingConvertedDetail = Readonly<{ pageType: LandingPageType }>
+
+export function dispatchLandingConverted(pageType: LandingPageType): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(
+    new CustomEvent<LandingConvertedDetail>(LANDING_CONVERTED_EVENT, { detail: { pageType } }),
+  )
+}
