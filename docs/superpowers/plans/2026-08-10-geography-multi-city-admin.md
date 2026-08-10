@@ -853,7 +853,8 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | Task | 状态 | commit / 备注 |
 |---|---|---|
 | 1 `locations.city` 反范式字段 | ✅ 完成 | `feat(geography): Task 1 locations.city 反范式字段`；列名 `city_id` 已核对，计数守卫测试 40→41 |
-| 2–17 开发 | 待开始 | |
+| 2 城市解析纯函数 + 查询辅助 | ✅ 完成 | `feat(geography): Task 2 城市解析纯函数与查询辅助`；TDD 13 用例全绿 |
+| 3–17 开发 | 待开始 | |
 | 18–22 导入 | 待开始（依赖 1–17 完成） | |
 
 **七城导入登记**（Task 21 逐城填写）
