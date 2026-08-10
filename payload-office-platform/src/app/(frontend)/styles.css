@@ -5942,6 +5942,66 @@ ol {
   font-size: var(--fs-14);
 }
 
+/* 两步留电第二步：可选需求补充表单（成功态下方原地展开） */
+.entrust-demand {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.entrust-demand__head {
+  margin-bottom: var(--sp-4);
+}
+
+.entrust-demand__title {
+  margin-bottom: var(--sp-1);
+  color: var(--color-ink);
+  font-size: var(--fs-16);
+}
+
+.entrust-demand__hint {
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+}
+
+.entrust-demand__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.entrust-demand__error {
+  margin-top: var(--sp-2);
+  color: var(--color-danger, var(--color-copper));
+  font-size: var(--fs-13);
+}
+
+.entrust-demand__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.entrust-demand__skip {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: var(--fs-14);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.entrust-demand__skip:hover {
+  color: var(--color-ink-2);
+}
+
+@media (max-width: 640px) {
+  .entrust-demand__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .entrust-form__note,
 .section__subtitle {
   margin-top: var(--sp-1);

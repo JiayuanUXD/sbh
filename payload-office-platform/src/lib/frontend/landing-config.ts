@@ -22,6 +22,18 @@ export const ENTRUST_COPY = {
   bottomCtaLabel: '免费委托定制',
   successTitle: '已收到您的委托',
   successBody: '专属顾问将尽快与您联系，为您定制选址方案。',
+  demandTitle: '补充选址需求（可选）',
+  demandHint: '留下意向，顾问回访时方案更准；不想填可直接跳过。',
+  demandSubmit: '补充需求',
+  demandSkip: '跳过',
+  demandSuccess: '已记录您的选址需求',
+  demandError: '提交失败，可稍后在顾问回访时补充',
+  demandFields: {
+    district: { label: '意向区域', placeholder: '如：浦东陆家嘴' },
+    area: { label: '需求面积', placeholder: '如：200㎡' },
+    budget: { label: '预算', placeholder: '如：3万/月' },
+    moveInTime: { label: '期望入驻时间', placeholder: '如：3个月内' },
+  },
 } as const
 
 /**
