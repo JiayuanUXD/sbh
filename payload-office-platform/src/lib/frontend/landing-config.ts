@@ -1,6 +1,11 @@
 /** 落地页共享文案与静态服务数据。 */
 
 export const BRAND_NAME = '商办租赁'
+/**
+ * 与站点 metadata 标题同源（`(frontend)/layout.tsx` 的
+ * `商办租赁 · 上海中高端办公租赁平台`），不是待替换的占位文案。
+ * 若要改品牌短标签，两处必须一起改，否则标题与落地页徽标会对不上。
+ */
 export const BRAND_BADGE = '上海中高端办公租赁平台'
 
 export const ENTRUST_COPY = {
@@ -19,11 +24,22 @@ export const ENTRUST_COPY = {
   successBody: '专属顾问将尽快与您联系，为您定制选址方案。',
 } as const
 
-/** 静态服务范围说明；如运营数据口径变更，应在此处统一更新。 */
+/**
+ * 数字背书：三项都必须是能从生产库直接核对的事实，不放无法验证的服务承诺。
+ *
+ * 取数口径（2026-08-10 于生产库实测）：
+ *   - 在租房源 2211 条：`SELECT count(*) FROM listings WHERE status = 'available'`（全部为 available）
+ *   - 已收录写字楼 70 座：`SELECT count(*) FROM buildings`
+ *   - 覆盖行政区 9 个：`SELECT count(DISTINCT district_id) FROM buildings WHERE district_id IS NOT NULL`
+ *     （注意不要用 locations 里 206 条 business_area 条目冒充覆盖度，那是目录而非在营商圈）
+ *
+ * 刻意写成静态常量而非查库：两个落地页是全静态页（无 force-dynamic），
+ * 为三个数字把整页动态化不值得。数据量显著变化时按上面的 SQL 重新核对再改这里。
+ */
 export const ENTRUST_STATS = [
-  { value: '全城', unit: '覆盖', caption: '上海核心商圈写字楼在租房源' },
-  { value: '1', unit: '对 1', caption: '专属顾问选址分析，省心省力' },
-  { value: '2', unit: '小时', caption: '工作时间内响应，快速给出方案' },
+  { value: '2200', unit: '+ 套', caption: '在租办公房源，价格与面积公开可查' },
+  { value: '70', unit: ' 座', caption: '已收录写字楼，含实勘信息与配套' },
+  { value: '9', unit: ' 个', caption: '覆盖上海核心行政区' },
 ] as const
 
 export const PUBLISH_COPY = {

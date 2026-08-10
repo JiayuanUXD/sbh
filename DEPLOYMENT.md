@@ -103,6 +103,71 @@
 - **不用 `set -u`**。macOS 自带 bash 3.2 展开空数组 `${arr[@]}` 会直接报错，而 `UploadHeaders` 目前就是空数组。
 - `tcb` CLI 的 stdout 混有 spinner 输出，取 JSON 必须 `sed -n '/^{/,$p'`。
 
+## ⚠️ 未决：生产库有 6 条迁移在仓库里不存在（schema 漂移）
+
+**发现时间**：2026-08-10，双落地页部署后核对生产 `payload_migrations` 时。
+
+生产库已应用 43 条迁移，master 只有 37 个迁移文件。以下 6 条**在生产已应用，但 `git cat-file` 确认不在 master、`git log --all` 确认不在本仓库任何分支**：
+
+```
+20260805_063954
+20260805_082216_add_listings_data_source
+20260809_180000_import_huizuxuanzhi_shared_offices
+20260809_183000_remove_shared_office_source_branding
+20260809_184000_attach_shared_office_building_covers
+20260809_190000_complete_shared_office_images
+```
+
+**这不是数据-only 漂移，含 schema 变更。** 生产 `listings` 表存在仓库完全没有声明的字段组（`grep -rn dataSource src/` 为空）：
+
+| 生产列 | 类型 |
+|---|---|
+| `data_source_external_id` | varchar |
+| `data_source_source` | USER-DEFINED（自定义枚举） |
+| `data_source_source_url` | varchar |
+| `data_source_synced_at` | timestamptz |
+
+**日常无害**：`push: false` 下 Payload 不碰未声明的列，应用也不读它们。当前生产 70 座楼盘 / 2211 条房源正常服务。
+
+**真正的风险有两条**：
+
+1. **无法从 master 重建这个库。** 新建 staging、灾备重建或任何"从零跑迁移"的环境，都会缺这 6 条迁移的 schema 与数据（含惠租选址的共享办公导入数据）。重建出来的环境与生产不等价。
+2. **一旦有人对生产开了 dev pushSchema，那 4 个未声明的列会被判为多余而删掉**，连带其中的导入数据。本文档开头已警告禁用 dev push，这条漂移让该警告的后果变严重。
+
+### 已定位情况（2026-08-10 排查结果）
+
+**2 条可直接恢复** —— 在远端分支 `origin/feat/import-huizuxuanzhi` 上完好存在（含配套 `.json`）：
+
+```
+payload-office-platform/src/migrations/20260805_063954.ts / .json
+payload-office-platform/src/migrations/20260805_082216_add_listings_data_source.ts / .json
+```
+
+这两条正是 `listings` 那 4 个 `data_source_*` 列的来源。该分支**从未合入 master**，但生产被从它部署过。
+
+**4 条暂未找到** —— 已搜遍全部 28 个远端分支、全部本地分支、`git fsck --lost-found` 的 18 个悬空提交、以及现存 stash，均无：
+
+```
+20260809_180000_import_huizuxuanzhi_shared_offices
+20260809_183000_remove_shared_office_source_branding
+20260809_184000_attach_shared_office_building_covers
+20260809_190000_complete_shared_office_images
+```
+
+它们只在生产 `payload_migrations` 里留了名字。按时间戳（2026-08-09）推断是在某台机器的未提交工作区里直接跑的。
+
+**为什么没有直接把漂移"修掉"**：那 4 条含共享办公房源的数据导入逻辑，无法从生产 schema 反推；照现状手写"追平迁移"等于伪造迁移历史，还拿不回导入逻辑。这需要执行者提供原始文件。
+
+**恢复清单**（按顺序做）：
+
+1. **先合 `feat/import-huizuxuanzhi`**（或只把那 2 个迁移 cherry-pick 到 master）。这一步能立刻消掉 2/6 的漂移，且是本仓库内可自足完成的。合并前在全新空库上验证能从零重放。
+2. 向 2026-08-09 执行共享办公导入的人索取剩下 4 个 `.ts` + `.json`，**不要改文件名与内容**（时间戳决定执行顺序）。
+3. 在一个**全新空库**上跑 `pnpm payload migrate`，验证 43 条能从零重放到与生产一致的 schema。
+4. `pnpm migrate:status` 确认目标环境 0 pending 后再合并；生产已应用过这些名字，合并后不会重复执行。
+5. 若确认那 4 个文件永久丢失：由 DBA 导出生产 schema，人工编写一次性对齐迁移，并在本节记录该决定与差异清单。
+
+**在恢复完成前**：不要新建从 master 重建的环境并假设它与生产等价；不要对生产启用 dev pushSchema。
+
 ## 迁移部署前置检查：notifications 唯一索引的锁风险
 
 迁移 `20260809_183327_supply_submission_notification_unique` 在**共享的 `notifications` 表**上建唯一索引：
