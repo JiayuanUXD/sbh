@@ -354,6 +354,10 @@ export interface Location {
    */
   parent?: (number | null) | Location;
   /**
+   * 由系统按层级自动维护；城市节点本身留空（其城市即自身）。
+   */
+  city?: (number | null) | Location;
+  /**
    * 停用后不出现在新业务候选，但历史引用仍展示。
    */
   status: 'active' | 'disabled';
@@ -2647,6 +2651,7 @@ export interface LocationsSelect<T extends boolean = true> {
   slug?: T;
   type?: T;
   parent?: T;
+  city?: T;
   status?: T;
   frontendVisible?: T;
   centerLatitude?: T;

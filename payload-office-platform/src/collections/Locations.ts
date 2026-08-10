@@ -88,6 +88,26 @@ export const Locations: CollectionConfig = {
         description: '类型决定合法上级；移动不可跨城市。城市无上级。',
       },
     },
+    // 反范式城市字段：解锁「按城市」索引查询，避免逐级上溯解析归属城市。
+    // 语义约定（后续所有查询都依赖，勿手写各处）：
+    //   - 非 city 节点：city = 所属城市 id（由 protectLocation hook 在 beforeChange 写入）
+    //   - city 节点自身：city 留空，不自引用（创建时自身 id 未知，自引用需 afterChange 回写，
+    //     活动部件更多、失败模式更隐蔽，故不自引用）
+    //   - 「某城市的全部节点（含城市自身）」必须走 cityScopeWhere() 辅助函数（location-city.ts），
+    //     条件为 { or: [{ id: equals cityId }, { city: equals cityId }] }，不要各处手写。
+    // 关键前提：protectLocation 已有「移动不可跨城市」硬约束 -> 节点归属城市一经创建永不改变 ->
+    // city 字段不需要任何级联更新逻辑。只读：UI 不可编辑，由系统维护。
+    {
+      name: 'city',
+      label: '所属城市',
+      type: 'relationship',
+      relationTo: 'locations',
+      index: true,
+      admin: {
+        readOnly: true,
+        description: '由系统按层级自动维护；城市节点本身留空（其城市即自身）。',
+      },
+    },
     {
       name: 'status',
       label: '状态',

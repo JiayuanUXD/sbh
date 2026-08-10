@@ -840,11 +840,11 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 
 | 项 | 值 |
 |---|---|
-| `city` 字段实际列名 | 待填 |
-| `parent` 实际列名 | 待填 |
-| `metroStations` 关系中间表名 | 待填 |
+| `city` 字段实际列名 | `city_id`（integer, nullable）；索引 `locations_city_idx`；外键 `locations_city_id_locations_id_fk` ON DELETE set null（迁移 `20260810_114857_locations_city_field`） |
+| `parent` 实际列名 | `parent_id`（integer, nullable） |
+| `metroStations` 关系中间表名 | `business_area_extensions_rels`（`parent_id`=扩展记录 id, `locations_id`=站点 id, `order`=排序） |
 | Payload 3.86 自定义 admin 视图注册方式 | 待填 |
-| `buildings` 可见性/软删除条件 | 待填 |
+| `buildings` 可见性/软删除条件 | `trash: true`，软删除列 `deleted_at`（过滤 `deleted_at IS NULL`）；地理关系列 `city_id`/`district_id`/`business_district_id`/`nearest_metro_id` |
 
 | 换乘站归属口径 | 待定（B1.5） |
 | 商圈口径 | 待定（B1.5） |
@@ -852,7 +852,8 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 
 | Task | 状态 | commit / 备注 |
 |---|---|---|
-| 1–17 开发 | 待开始 | |
+| 1 `locations.city` 反范式字段 | ✅ 完成 | `feat(geography): Task 1 locations.city 反范式字段`；列名 `city_id` 已核对，计数守卫测试 40→41 |
+| 2–17 开发 | 待开始 | |
 | 18–22 导入 | 待开始（依赖 1–17 完成） | |
 
 **七城导入登记**（Task 21 逐城填写）
