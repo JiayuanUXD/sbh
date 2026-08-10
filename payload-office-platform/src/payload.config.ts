@@ -170,22 +170,32 @@ export default buildConfig({
       providers: ['/components/admin/ArcoReact19Provider'],
       // 地理四模块自定义 admin 视图（Task 6）：共享同一列表组件，按 pathname 解析模块。
       // 注册键 + path 写法以安装版本 3.86 的 AdminViewConfig 为准。
+      // 列表视图 exact: true，否则前缀匹配会吞掉 /geography/cities/:id（Task 7 详情页）。
       views: {
         GeographyCities: {
           Component: '/components/admin/geography/GeographyListView',
           path: '/geography/cities',
+          exact: true,
         },
         GeographyDistricts: {
           Component: '/components/admin/geography/GeographyListView',
           path: '/geography/districts',
+          exact: true,
         },
         GeographyBusinessAreas: {
           Component: '/components/admin/geography/GeographyListView',
           path: '/geography/business-areas',
+          exact: true,
         },
         GeographyMetroLines: {
           Component: '/components/admin/geography/GeographyListView',
           path: '/geography/metro-lines',
+          exact: true,
+        },
+        // Task 7 城市详情页：/geography/cities/:id（动态段，path-to-regexp 解析）。
+        GeographyCityDetail: {
+          Component: '/components/admin/geography/GeographyCityDetail',
+          path: '/geography/cities/:id',
         },
       },
     },

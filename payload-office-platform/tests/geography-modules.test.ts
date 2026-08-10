@@ -5,14 +5,17 @@ import {
   getGeographyModuleByPath,
   type GeographyColumn,
 } from '@/components/admin/geography/geography-modules'
+import type { LocationType } from '@/domain/geography/location-hierarchy'
 
 /** 计算列 = count 类列，来自 Task 5 聚合 SQL，**不可排序**（A2 决策）。 */
 const countKeys = (cols: GeographyColumn[]) =>
   cols.filter((c) => c.kind === 'count').map((c) => c.key)
 
+const MODULE_TYPES: LocationType[] = ['city', 'district', 'business_area', 'metro_line']
+
 describe('geography-modules/四模块共享列表配置', () => {
   it('注册四个模块，类型/标题/路由/筛选齐全', () => {
-    const expectModule = (type: string, title: string, route: string, filters: string[]) => {
+    const expectModule = (type: LocationType, title: string, route: string, filters: string[]) => {
       const m = GEOGRAPHY_MODULES[type]
       expect(m).toBeDefined()
       expect(m?.title).toBe(title)
@@ -39,7 +42,7 @@ describe('geography-modules/四模块共享列表配置', () => {
   })
 
   it('计算列全部为 count 类（不可排序），字段列不含聚合计数', () => {
-    for (const type of ['city', 'district', 'business_area', 'metro_line']) {
+    for (const type of MODULE_TYPES) {
       const m = GEOGRAPHY_MODULES[type]!
       for (const c of m.columns) {
         if (c.kind === 'count') {
@@ -60,7 +63,7 @@ describe('geography-modules/四模块共享列表配置', () => {
   })
 
   it('每个模块都有计数服务与空态文案', () => {
-    for (const type of ['city', 'district', 'business_area', 'metro_line']) {
+    for (const type of MODULE_TYPES) {
       const m = GEOGRAPHY_MODULES[type]!
       expect(typeof m.counter).toBe('function')
       expect(m.emptyHint.length).toBeGreaterThan(0)
