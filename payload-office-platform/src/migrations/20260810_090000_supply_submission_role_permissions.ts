@@ -1,4 +1,4 @@
-import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
+import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres'
 
 /**
  * BRK（经纪人，dataScope=self）刻意不在此列：投放申请的读取不做逐条数据范围
@@ -80,25 +80,37 @@ export function planSupplySubmissionRoleUpdate(
   return { id: role.id, menuPermissions, operationPermissions }
 }
 
-export async function up({ payload, req }: MigrateUpArgs): Promise<void> {
-  const roles = await payload.find({
-    collection: 'roles',
-    where: {
-      and: [
-        { isBuiltin: { equals: true } },
-        { code: { in: [...TARGET_ROLE_CODES] } },
-      ],
-    },
-    limit: TARGET_ROLE_CODES.length,
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
+type RoleRow = {
+  id: number | string
+  code: unknown
+  is_builtin?: boolean | null
+  menu_permissions?: unknown
+  operation_permissions?: unknown
+}
+
+function rowToMigrationRole(row: RoleRow): SupplySubmissionMigrationRole {
+  return {
+    id: row.id,
+    code: row.code,
+    isBuiltin: row.is_builtin,
+    menuPermissions: row.menu_permissions,
+    operationPermissions: row.operation_permissions,
+  }
+}
+
+export async function up({ db, payload }: MigrateUpArgs): Promise<void> {
+  const result = await db.execute(sql`
+    SELECT "id", "code", "is_builtin", "menu_permissions", "operation_permissions"
+    FROM "roles"
+    WHERE "is_builtin" = true
+      AND "code" IN ('OPS', 'MGR');
+  `)
+  const roles = result.rows.map((row) => rowToMigrationRole(row as RoleRow))
 
   // 静默 no-op 是真实风险：全新环境或运营改过内置角色 code 时，迁移会报成功
   // 但一个权限都没授。缺失只告警不失败（新库尚未 seed 角色属正常）。
   const foundCodes = new Set(
-    roles.docs.map((document) => (typeof document.code === 'string' ? document.code : '')),
+    roles.map((document) => (typeof document.code === 'string' ? document.code : '')),
   )
   const missingCodes = TARGET_ROLE_CODES.filter((code) => !foundCodes.has(code))
   if (missingCodes.length > 0) {
@@ -109,20 +121,16 @@ export async function up({ payload, req }: MigrateUpArgs): Promise<void> {
     )
   }
 
-  for (const document of roles.docs) {
+  for (const document of roles) {
     const update = planSupplySubmissionRoleUpdate(document)
     if (!update) continue
-    await payload.update({
-      collection: 'roles',
-      id: update.id,
-      data: {
-        menuPermissions: update.menuPermissions,
-        operationPermissions: update.operationPermissions,
-      },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
+    await db.execute(sql`
+      UPDATE "roles"
+      SET
+        "menu_permissions" = ${JSON.stringify(update.menuPermissions)}::jsonb,
+        "operation_permissions" = ${JSON.stringify(update.operationPermissions)}::jsonb
+      WHERE "id" = ${update.id};
+    `)
   }
 }
 

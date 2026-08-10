@@ -464,7 +464,8 @@ ol {
   margin: 0 auto;
   padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
   gap: var(--sp-6);
   align-items: start;
 }
@@ -547,6 +548,16 @@ ol {
   gap: var(--sp-2);
   color: var(--color-muted);
   font-size: var(--fs-12);
+}
+
+@media (max-width: 1024px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .site-footer__brand {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 767px) {
@@ -5810,16 +5821,44 @@ ol {
 .landing-hero {
   position: relative;
   overflow: hidden;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
   border-bottom: 1px solid var(--color-line);
   background: linear-gradient(160deg, var(--color-paper), var(--color-canvas));
 }
 
+.landing-hero__background,
+.landing-hero__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-hero__background-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.landing-hero__scrim {
+  background: linear-gradient(
+    90deg,
+    rgba(23, 26, 29, 0.7) 0%,
+    rgba(23, 26, 29, 0.48) 45%,
+    rgba(23, 26, 29, 0.34) 100%
+  );
+}
+
 .landing-hero__inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--sp-6);
   align-items: center;
   width: min(100%, var(--container-max));
   margin: 0 auto;
+  min-height: clamp(21rem, 38vw, 34rem);
   padding: var(--sp-8) var(--container-pad-x);
 }
 
@@ -5853,11 +5892,35 @@ ol {
   margin-bottom: var(--sp-3);
   color: var(--color-ink);
   font-size: var(--fs-h1);
+  /* CJK 不在词中折行（「办公室」不被拦腰截断），需折时两行均衡 */
+  word-break: keep-all;
+  text-wrap: balance;
 }
 
 .landing-hero__subtitle {
   color: var(--color-muted);
   font-size: var(--fs-18);
+}
+
+.landing-hero--with-background {
+  border-bottom: 0;
+  background: var(--color-ink);
+}
+
+.landing-hero--with-background .landing-hero__badge {
+  background: rgba(255, 248, 239, 0.14);
+  color: var(--color-on-ink);
+  backdrop-filter: blur(10px);
+}
+
+.landing-hero--with-background .landing-hero__title,
+.landing-hero--with-background .landing-hero__subtitle {
+  color: var(--color-on-ink);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.32);
+}
+
+.landing-hero--with-background .landing-hero__subtitle {
+  color: rgba(247, 245, 240, 0.86);
 }
 
 .landing-hero__slot {
@@ -5926,6 +5989,66 @@ ol {
 .entrust-form__success p {
   color: var(--color-muted);
   font-size: var(--fs-14);
+}
+
+/* 两步留电第二步：可选需求补充表单（成功态下方原地展开） */
+.entrust-demand {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.entrust-demand__head {
+  margin-bottom: var(--sp-4);
+}
+
+.entrust-demand__title {
+  margin-bottom: var(--sp-1);
+  color: var(--color-ink);
+  font-size: var(--fs-16);
+}
+
+.entrust-demand__hint {
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+}
+
+.entrust-demand__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+.entrust-demand__error {
+  margin-top: var(--sp-2);
+  color: var(--color-danger, var(--color-copper));
+  font-size: var(--fs-13);
+}
+
+.entrust-demand__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.entrust-demand__skip {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: var(--fs-14);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.entrust-demand__skip:hover {
+  color: var(--color-ink-2);
+}
+
+@media (max-width: 640px) {
+  .entrust-demand__fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 .entrust-form__note,
@@ -6135,6 +6258,17 @@ ol {
 
 .publish-card__footer {
   text-align: center;
+}
+
+.publish-card__status {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-size: var(--fs-13);
+  line-height: 1.7;
 }
 
 .publish-card__error {

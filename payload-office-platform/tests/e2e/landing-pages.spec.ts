@@ -132,9 +132,11 @@ test.describe('/publish 投放房源', () => {
     await page.getByLabel('楼盘名称').fill('E2E 测试楼盘')
     await page.getByRole('button', { name: '立即投放' }).click()
 
+    await expect(page.locator('.publish-card__status')).toContainText('还有几项信息需要补充')
     await expect(page.getByText('请输入详细地址')).toBeVisible()
     await expect(page.getByText('请输入出租面积')).toBeVisible()
     await expect(page.getByText('请输入正确的 11 位手机号')).toBeVisible()
+    await expect(page.getByLabel('详细地址')).toBeFocused()
     await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 测试楼盘')
   })
 
@@ -151,10 +153,14 @@ test.describe('/publish 投放房源', () => {
     const address = `上海市静安区测试路 ${runSuffix} 号 601`
     const submittedBodies: unknown[] = []
     const analyticsCapture = await captureAnalytics(page)
-    page.on('request', (request) => {
-      if (request.method() === 'POST' && request.url().endsWith('/api/supply-submissions')) {
-        submittedBodies.push(request.postDataJSON())
-      }
+    await page.route('**/api/supply-submissions', async (route) => {
+      const request = route.request()
+      if (request.method() === 'POST') submittedBodies.push(request.postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
+      })
     })
 
     await page.goto('/publish')
@@ -167,6 +173,8 @@ test.describe('/publish 投放房源', () => {
     await page.getByRole('button', { name: '立即投放' }).click()
 
     await expect(page.getByRole('status')).toContainText('已收到您的房源', { timeout: 30_000 })
+    await expect(page.getByRole('status')).toBeFocused()
+    await expect(page.getByRole('link', { name: '返回首页' })).toBeVisible()
     expect(new URL(page.url()).pathname).toBe('/publish')
     expect(submittedBodies).toHaveLength(1)
     expect(submittedBodies[0]).toMatchObject({
@@ -194,6 +202,54 @@ test.describe('/publish 投放房源', () => {
     expect(serializedEvents).not.toContain(publishPhone)
     expect(serializedEvents).not.toContain(buildingName)
     expect(serializedEvents).not.toContain(address)
+
+    await page.getByRole('link', { name: '返回首页' }).click()
+    await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('服务暂时不可用时保留内容并允许重新提交', async ({ page }) => {
+    await page.route('**/api/supply-submissions', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false }),
+      }),
+    )
+
+    await page.goto('/publish')
+    await page.getByLabel('楼盘名称').fill('E2E 失败楼盘')
+    await page.getByLabel('详细地址').fill('上海市静安区测试路 1 号')
+    await page.getByLabel('出租面积').fill('200')
+    await page.getByLabel('手机号').fill(publishPhone)
+    await page.getByRole('button', { name: '立即投放' }).click()
+
+    await expect(page.locator('.publish-card__status')).toContainText('暂时没有提交成功')
+    await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 失败楼盘')
+    await expect(page.getByLabel('详细地址')).toHaveValue('上海市静安区测试路 1 号')
+    await expect(page.getByRole('button', { name: '重新提交' })).toBeVisible()
+    browserErrors.set(page, [])
+  })
+
+  test('提交过于频繁时提示稍后重试且不清空表单', async ({ page }) => {
+    await page.route('**/api/supply-submissions', (route) =>
+      route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false, error: 'rate_limited' }),
+      }),
+    )
+
+    await page.goto('/publish')
+    await page.getByLabel('楼盘名称').fill('E2E 限流楼盘')
+    await page.getByLabel('详细地址').fill('上海市静安区测试路 2 号')
+    await page.getByLabel('出租面积').fill('188')
+    await page.getByLabel('手机号').fill(publishPhone)
+    await page.getByRole('button', { name: '立即投放' }).click()
+
+    await expect(page.locator('.publish-card__status')).toContainText('刚才提交得有点频繁')
+    await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 限流楼盘')
+    await expect(page.getByRole('button', { name: '稍后重试' })).toBeVisible()
+    browserErrors.set(page, [])
   })
 
   test('375px 视口无横向滚动', async ({ page }) => {

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import React, { useId, useState } from 'react'
+import React, { useEffect, useId, useRef, useState } from 'react'
 import ProcessSteps from '@/components/frontend/landing/ProcessSteps'
 import { Button, Field, Input, Select } from '@/components/frontend/ui'
 import type { InquiryPriceUnit } from '@/domain/inquiry/schema'
@@ -68,10 +68,18 @@ export type SupplySubmissionResult =
   | Readonly<{ ok: true }>
   | Readonly<{ ok: false; error: SupplySubmissionError; errors?: readonly string[] }>
 
+export type SupplyFormErrorReason =
+  | 'client_validation'
+  | 'server_validation'
+  | 'rate_limited'
+  | 'network_error'
+  | 'server_error'
+
 export type SupplyFormState = Readonly<{
   status: 'idle' | 'submitting' | 'success' | 'error'
   fieldErrors: SupplyFieldErrors
   formError: string | null
+  errorReason: SupplyFormErrorReason | null
 }>
 
 export type SupplySubmissionCoordinator = Readonly<{
@@ -111,6 +119,7 @@ const INITIAL_STATE: SupplyFormState = {
   status: 'idle',
   fieldErrors: {},
   formError: null,
+  errorReason: null,
 }
 
 export function getSupplyFieldErrors(values: SupplyFormValues): SupplyFieldErrors {
@@ -199,10 +208,56 @@ function mapSupplyValidationErrors(codes: readonly string[]): SupplyFieldErrors 
 }
 
 function getSubmissionFormError(result: Exclude<SupplySubmissionResult, { ok: true }>): string {
-  if (result.error === 'rate_limited') return '提交过于频繁，请稍后再试'
-  if (result.error === 'network_error') return '网络异常，请稍后重试'
+  if (result.error === 'rate_limited') return '刚才提交得有点频繁，请稍后再试。'
+  if (result.error === 'network_error') return '网络好像不太稳定，已填写的内容还在，请检查网络后再试。'
   if (result.error === 'validation_error') return '提交内容有误，请检查后重试'
-  return '提交失败，请稍后重试'
+  return '暂时没有提交成功，已填写的内容还在，请稍后再试。'
+}
+
+const SUBMIT_LABELS: Record<SupplyFormState['status'], string> = {
+  idle: PUBLISH_COPY.submit,
+  submitting: '提交中...',
+  success: PUBLISH_COPY.submit,
+  error: '重新提交',
+}
+
+const FIELD_ERROR_ORDER = [
+  'buildingName',
+  'address',
+  'areaSqm',
+  'rentAmount',
+  'contactPhone',
+] as const satisfies readonly (keyof SupplyFieldErrors)[]
+
+export function getSupplySubmitLabel(state: SupplyFormState): string {
+  if (state.status === 'error' && state.errorReason === 'rate_limited') return '稍后重试'
+  return SUBMIT_LABELS[state.status]
+}
+
+export function getSupplyStatusMessage(state: SupplyFormState): string | null {
+  if (state.status === 'submitting') return '正在提交，我们会为您保留已填写的信息。'
+  return state.formError
+}
+
+export function getFirstSupplyErrorField(
+  errors: SupplyFieldErrors,
+): keyof SupplyFieldErrors | null {
+  for (const field of FIELD_ERROR_ORDER) {
+    if (errors[field]) return field
+  }
+  return null
+}
+
+function getSupplyErrorReason(
+  result: Exclude<SupplySubmissionResult, { ok: true }>,
+  fieldErrors: SupplyFieldErrors,
+): SupplyFormErrorReason {
+  if (result.error === 'rate_limited') return 'rate_limited'
+  if (result.error === 'network_error') return 'network_error'
+  if (result.error === 'validation_error' && Object.keys(fieldErrors).length > 0) {
+    return 'server_validation'
+  }
+  return 'server_error'
 }
 
 export function createSupplySubmissionCoordinator(
@@ -243,7 +298,12 @@ export function createSupplySubmissionCoordinator(
 
     const clientErrors = getSupplyFieldErrors(values)
     if (Object.keys(clientErrors).length > 0) {
-      updateState({ status: 'error', fieldErrors: clientErrors, formError: null })
+      updateState({
+        status: 'error',
+        fieldErrors: clientErrors,
+        formError: '还有几项信息需要补充，请检查后再提交。',
+        errorReason: 'client_validation',
+      })
       safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
         page_type: 'publish',
         error_code: 'validation_failed',
@@ -251,7 +311,7 @@ export function createSupplySubmissionCoordinator(
       return Promise.resolve(state)
     }
 
-    updateState({ status: 'submitting', fieldErrors: {}, formError: null })
+    updateState({ status: 'submitting', fieldErrors: {}, formError: null, errorReason: null })
     const intentIdentity = getSupplyIntentIdentity(values)
     const submitWithRequestId = (requestId: string) => {
       activeIntentIdentity = intentIdentity
@@ -280,7 +340,7 @@ export function createSupplySubmissionCoordinator(
     pendingSubmission = submissionResult
       .then((result) => {
         if (result.ok) {
-          updateState({ status: 'success', fieldErrors: {}, formError: null })
+          updateState({ status: 'success', fieldErrors: {}, formError: null, errorReason: null })
           safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
             page_type: 'publish',
           })
@@ -289,13 +349,15 @@ export function createSupplySubmissionCoordinator(
 
         const fieldErrors =
           result.error === 'validation_error' ? mapSupplyValidationErrors(result.errors ?? []) : {}
+        const errorReason = getSupplyErrorReason(result, fieldErrors)
         updateState({
           status: 'error',
           fieldErrors,
           formError:
-            result.error === 'validation_error' && Object.keys(fieldErrors).length > 0
-              ? null
+            errorReason === 'server_validation'
+              ? '有几项信息还需要调整，请检查后再提交。'
               : getSubmissionFormError(result),
+          errorReason,
         })
         safeTrackLandingEvent(analyticsTrack, 'landing_form_error', {
           page_type: 'publish',
@@ -327,14 +389,38 @@ function newRequestId(): string {
 }
 
 /** 让 Field 注入的 id/aria 属性直达真实 input，同时保留输入框内单位后缀。 */
-function AreaInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <span className="input-suffix">
-      <Input {...props} />
-      <span className="input-suffix__unit" aria-hidden="true">
-        ㎡
+const AreaInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  function AreaInput(props, ref) {
+    return (
+      <span className="input-suffix">
+        <Input {...props} ref={ref} />
+        <span className="input-suffix__unit" aria-hidden="true">
+          ㎡
+        </span>
       </span>
-    </span>
+    )
+  },
+)
+
+export function SupplySubmissionSuccessCard(
+  props: Readonly<{ cardRef?: React.RefObject<HTMLDivElement | null> }> = {},
+) {
+  return (
+    <div
+      className="publish-card"
+      role="status"
+      aria-live="polite"
+      tabIndex={-1}
+      ref={props.cardRef}
+    >
+      <h2 className="publish-card__title">{PUBLISH_COPY.successTitle}</h2>
+      <p className="publish-card__footer">{PUBLISH_COPY.successBody}</p>
+      <div className="publish-card__actions">
+        <Button as="link" href="/" variant="primary">
+          返回首页
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -342,6 +428,12 @@ function AreaInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 export default function SupplySubmissionForm() {
   const commissionId = useId()
   const contactNoteId = 'publish-contact-note'
+  const successRef = useRef<HTMLDivElement>(null)
+  const buildingNameRef = useRef<HTMLInputElement>(null)
+  const addressRef = useRef<HTMLInputElement>(null)
+  const areaSqmRef = useRef<HTMLInputElement>(null)
+  const rentAmountRef = useRef<HTMLInputElement>(null)
+  const contactPhoneRef = useRef<HTMLInputElement>(null)
   const [values, setValues] = useState<SupplyFormValues>(INITIAL_VALUES)
   const [formState, setFormState] = useState<SupplyFormState>(INITIAL_STATE)
   const [coordinator] = useState(() =>
@@ -353,13 +445,22 @@ export default function SupplySubmissionForm() {
     createLandingOnceTracker('landing_form_start', 'publish', track),
   )
 
+  useEffect(() => {
+    if (formState.status === 'success') {
+      successRef.current?.focus()
+      return
+    }
+    if (formState.status !== 'error') return
+    const firstErrorField = getFirstSupplyErrorField(formState.fieldErrors)
+    if (firstErrorField === 'buildingName') buildingNameRef.current?.focus()
+    if (firstErrorField === 'address') addressRef.current?.focus()
+    if (firstErrorField === 'areaSqm') areaSqmRef.current?.focus()
+    if (firstErrorField === 'rentAmount') rentAmountRef.current?.focus()
+    if (firstErrorField === 'contactPhone') contactPhoneRef.current?.focus()
+  }, [formState])
+
   if (formState.status === 'success') {
-    return (
-      <div className="publish-card" role="status" aria-live="polite">
-        <h2 className="publish-card__title">{PUBLISH_COPY.successTitle}</h2>
-        <p className="publish-card__footer">{PUBLISH_COPY.successBody}</p>
-      </div>
-    )
+    return <SupplySubmissionSuccessCard cardRef={successRef} />
   }
 
   const updateValue = <Key extends keyof SupplyFormValues>(
@@ -371,6 +472,7 @@ export default function SupplySubmissionForm() {
     event.preventDefault()
     await coordinator.submit(values)
   }
+  const statusMessage = getSupplyStatusMessage(formState)
 
   return (
     <form className="publish-card" onSubmit={onSubmit} noValidate>
@@ -386,6 +488,7 @@ export default function SupplySubmissionForm() {
           error={formState.fieldErrors.buildingName}
         >
           <Input
+            ref={buildingNameRef}
             name="buildingName"
             autoComplete="off"
             maxLength={100}
@@ -403,6 +506,7 @@ export default function SupplySubmissionForm() {
           error={formState.fieldErrors.address}
         >
           <Input
+            ref={addressRef}
             name="address"
             autoComplete="street-address"
             maxLength={200}
@@ -420,6 +524,7 @@ export default function SupplySubmissionForm() {
           error={formState.fieldErrors.areaSqm}
         >
           <AreaInput
+            ref={areaSqmRef}
             name="areaSqm"
             type="number"
             inputMode="decimal"
@@ -435,6 +540,7 @@ export default function SupplySubmissionForm() {
         <div className="publish-card__row">
           <Field label="租金" id="publish-rent" error={formState.fieldErrors.rentAmount}>
             <Input
+              ref={rentAmountRef}
               name="rentAmount"
               type="number"
               inputMode="decimal"
@@ -492,7 +598,7 @@ export default function SupplySubmissionForm() {
         <h3 className="publish-card__group-title">{PUBLISH_COPY.groupContact}</h3>
         <p className="publish-card__group-note" id={contactNoteId}>
           {PUBLISH_COPY.contactNote}提交即表示同意
-          <Link href="/pages/privacy">《隐私政策》</Link>。
+          <Link href="/pages/privacy" target="_blank" rel="noopener noreferrer">《隐私政策》</Link>。
         </p>
         <Field
           label="手机号"
@@ -501,6 +607,7 @@ export default function SupplySubmissionForm() {
           error={formState.fieldErrors.contactPhone}
         >
           <Input
+            ref={contactPhoneRef}
             name="contactPhone"
             type="tel"
             inputMode="numeric"
@@ -515,17 +622,19 @@ export default function SupplySubmissionForm() {
         </Field>
       </div>
 
-      <div aria-live="polite">
-        {formState.formError ? (
-          <p className="publish-card__error" role="alert">
-            {formState.formError}
-          </p>
-        ) : null}
-      </div>
+      {statusMessage ? (
+        <div
+          className="publish-card__status"
+          role={formState.status === 'error' ? 'alert' : 'status'}
+          aria-live={formState.status === 'error' ? 'assertive' : 'polite'}
+        >
+          {statusMessage}
+        </div>
+      ) : null}
 
       <div className="publish-card__actions">
         <Button type="submit" variant="primary" loading={formState.status === 'submitting'}>
-          {PUBLISH_COPY.submit}
+          {getSupplySubmitLabel(formState)}
         </Button>
         <p className="publish-card__footer">{PUBLISH_COPY.cardFooter}</p>
       </div>

@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  buildEntrustDemandBody,
   buildEntrustInquiryBody,
   createEntrustSubmissionCoordinator,
   getEntrustSubmissionError,
   isValidEntrustPhone,
   normalizeEntrustPhone,
+  submitEntrustDemand,
   submitEntrustInquiry,
 } from '@/components/frontend/landing/EntrustForm'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
@@ -263,5 +265,85 @@ describe('EntrustForm submission boundary', () => {
 
     await coordinator.submit('13800001111')
     expect(coordinator.getState()).toEqual({ status: 'error', error: '网络异常，请稍后重试' })
+  })
+})
+
+describe('EntrustForm two-step demand update', () => {
+  it('builds demand body with trimmed non-empty fields only', () => {
+    expect(
+      buildEntrustDemandBody('entrust-req', '13800001111', {
+        district: ' 浦东 ',
+        area: '',
+        budget: ' 3万/月 ',
+        moveInTime: '   ',
+      }),
+    ).toEqual({
+      requestId: 'entrust-req',
+      phone: '13800001111',
+      demand: { district: '浦东', budget: '3万/月' },
+    })
+  })
+
+  it('submits demand to /api/inquiries/demand and maps status codes', async () => {
+    const okReq = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    const ok = await submitEntrustDemand(
+      buildEntrustDemandBody('entrust-req', '13800001111', { budget: '3万' }),
+      okReq,
+    )
+    expect(ok).toEqual({ ok: true })
+    expect(okReq).toHaveBeenCalledWith('/api/inquiries/demand', expect.objectContaining({ method: 'POST' }))
+
+    const rate = await submitEntrustDemand(
+      buildEntrustDemandBody('entrust-req', '13800001111', { area: '200' }),
+      async () => new Response('{}', { status: 429 }),
+    )
+    expect(rate).toEqual({ ok: false, error: 'rate_limited' })
+
+    const notFound = await submitEntrustDemand(
+      buildEntrustDemandBody('entrust-req', '13800001111', { area: '200' }),
+      async () => new Response('{}', { status: 404 }),
+    )
+    expect(notFound).toEqual({ ok: false, error: 'not_found' })
+
+    const failed = await submitEntrustDemand(
+      buildEntrustDemandBody('entrust-req', '13800001111', { area: '200' }),
+      async () => new Response('{}', { status: 500 }),
+    )
+    expect(failed).toEqual({ ok: false, error: 'failed' })
+
+    const network = await submitEntrustDemand(
+      buildEntrustDemandBody('entrust-req', '13800001111', { area: '200' }),
+      async () => {
+        throw new Error('offline')
+      },
+    )
+    expect(network).toEqual({ ok: false, error: 'network_error' })
+  })
+
+  it('refuses demand update before a successful phone submit, then sends after success', async () => {
+    const sentBodies: string[] = []
+    const requester = (_url: string, init?: RequestInit): Promise<Response> => {
+      if (typeof init?.body === 'string') sentBodies.push(init.body)
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    }
+    const coordinator = createEntrustSubmissionCoordinator(
+      () => 'entrust-two-step',
+      requester,
+    )
+
+    const early = await coordinator.submitDemand({ budget: '3万' })
+    expect(early).toEqual({ ok: false, error: 'not_found' })
+    expect(sentBodies).toHaveLength(0)
+
+    await coordinator.submit('13800001111')
+    expect(coordinator.getState()).toEqual({ status: 'success', error: null })
+
+    const result = await coordinator.submitDemand({ budget: '3万', area: '200㎡' })
+    expect(result).toEqual({ ok: true })
+    expect(sentBodies).toHaveLength(2)
+    expect(sentBodies[1]).toContain('"requestId":"entrust-two-step"')
+    expect(sentBodies[1]).toContain('"phone":"13800001111"')
+    expect(sentBodies[1]).toContain('"budget":"3万"')
+    expect(sentBodies[1]).toContain('"area":"200㎡"')
   })
 })

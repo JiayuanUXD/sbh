@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { HERO_POSTER_SRC } from '@/lib/frontend/hero-poster'
 
 type NetworkInformation = Readonly<{
   saveData?: boolean
@@ -32,14 +33,14 @@ export default function HomeHeroMedia() {
   return (
     <div className="hero__bg" aria-hidden="true">
       <img
-        src="/hero/poster.jpg"
+        src={HERO_POSTER_SRC}
         alt=""
         loading="eager"
         decoding="async"
         className="hero__poster"
       />
       {loadVideo && (
-        <video autoPlay muted loop playsInline preload="none" poster="/hero/poster.jpg">
+        <video autoPlay muted loop playsInline preload="none" poster={HERO_POSTER_SRC}>
           <source src="/api/media/file/hero-bg.mp4?prefix=media" type="video/mp4" />
         </video>
       )}

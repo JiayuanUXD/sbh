@@ -20,8 +20,8 @@ const indexPath = resolve(migrationsDir, 'index.ts')
 describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
-    // 目录实际有 38 份迁移（追加 listings.dataSource 向生产对齐迁移后核对）
-    expect(names.length).toBe(38)
+    // 目录实际有 39 份迁移（追加 landing hero COS 媒体元数据迁移后核对）
+    expect(names.length).toBe(39)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -40,12 +40,13 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260809_183327_supply_submission_notification_unique')
     expect(names).toContain('20260809_203911_supply_submission_notification_jobs')
     expect(names).toContain('20260810_090000_supply_submission_role_permissions')
+    expect(names).toContain('20260810_153500_landing_hero_media_assets')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(38)
+    expect(names.length).toBe(39)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
@@ -59,6 +60,7 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260809_183327_supply_submission_notification_unique')
     expect(names).toContain('20260809_203911_supply_submission_notification_jobs')
     expect(names).toContain('20260810_090000_supply_submission_role_permissions')
+    expect(names).toContain('20260810_153500_landing_hero_media_assets')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })
@@ -155,6 +157,20 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     expect(names.indexOf('20260809_180000_supply_notification_duplicates_preflight')).toBeLessThan(
       names.indexOf('20260809_183327_supply_submission_notification_unique'),
     )
+  })
+
+  it('listings data_source 对齐迁移可重复执行，兼容半应用本地库', () => {
+    const content = readFileSync(
+      resolve(migrationsDir, '20260810_003111_align_listings_data_source_with_production.ts'),
+      'utf-8',
+    )
+    const up = extractMigrationUpBody(content)
+
+    expect(up).toContain('to_regtype')
+    expect(up).toContain('ADD COLUMN IF NOT EXISTS "data_source_source"')
+    expect(up).toContain('ADD COLUMN IF NOT EXISTS "data_source_external_id"')
+    expect(up).toContain('ADD COLUMN IF NOT EXISTS "data_source_source_url"')
+    expect(up).toContain('ADD COLUMN IF NOT EXISTS "data_source_synced_at"')
   })
 
   it('每份迁移文件都有 up 与 down（不可回滚项能被检测）', () => {

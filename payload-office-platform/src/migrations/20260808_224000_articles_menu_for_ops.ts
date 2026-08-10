@@ -1,4 +1,4 @@
-import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
+import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres'
 
 /**
  * 为内置 OPS（运营人员）角色授予 `articles` 菜单编码，
@@ -76,43 +76,23 @@ export function planArticlesMenuRoleUpdate(
   }
 }
 
-async function findBuiltinOpsRole(
-  args: MigrateUpArgs | MigrateDownArgs,
-): Promise<MigrationOpsRoleDocument | null> {
-  const { payload, req } = args
-  const result = await payload.find({
-    collection: 'roles',
-    where: {
-      and: [{ isBuiltin: { equals: true } }, { code: { equals: OPS_ROLE_CODE } }],
-    },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
-
-  return result.docs[0] ?? null
-}
-
 async function applyOpsMenuPermissions(
   args: MigrateUpArgs | MigrateDownArgs,
   menuPermissions: readonly string[],
 ): Promise<void> {
-  const { payload, req } = args
-  const role = await findBuiltinOpsRole(args)
-  if (!role) return
-
-  const update = planArticlesMenuRoleUpdate(role, menuPermissions)
+  const { db } = args
+  const update = planArticlesMenuRoleUpdate(
+    { id: OPS_ROLE_CODE, code: OPS_ROLE_CODE, isBuiltin: true },
+    menuPermissions,
+  )
   if (!update) return
 
-  await payload.update({
-    collection: 'roles',
-    id: update.id,
-    data: { menuPermissions: update.menuPermissions },
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
+  await db.execute(sql`
+    UPDATE "roles"
+    SET "menu_permissions" = ${JSON.stringify(update.menuPermissions)}::jsonb
+    WHERE "is_builtin" = true
+      AND "code" = ${update.code};
+  `)
 }
 
 export async function up(args: MigrateUpArgs): Promise<void> {

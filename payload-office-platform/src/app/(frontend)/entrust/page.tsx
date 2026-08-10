@@ -13,12 +13,14 @@ import {
   ENTRUST_STEPS,
 } from '@/lib/frontend/landing-config'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { heroPosterAbsoluteUrl } from '@/lib/frontend/hero-poster'
 import { siteConfig } from '@/lib/frontend/site-config'
 
 export const metadata: Metadata = buildPageMetadata({
   title: '委托找房｜免费定制选址方案',
   description: '留下手机号，专属顾问 1 对 1 分析选址需求，免费定制上海写字楼、服务式办公与共享办公的选址方案。',
   canonicalPath: '/entrust',
+  ogImage: heroPosterAbsoluteUrl(siteConfig.siteOrigin),
 })
 
 const SERVICE_JSON_LD = {
@@ -41,6 +43,7 @@ export default function EntrustPage() {
       <LandingViewAnalytics pageType="entrust" />
       <LandingHero
         variant="split"
+        backgroundImage={{ src: '/api/media/file/landing-hero-entrust-20260810.jpg?prefix=media' }}
         badge={BRAND_BADGE}
         title={ENTRUST_COPY.title}
         subtitle={ENTRUST_COPY.subtitle}
@@ -67,6 +70,7 @@ export default function EntrustPage() {
       <BottomCtaBar
         text={ENTRUST_COPY.bottomCtaText}
         ctaLabel={ENTRUST_COPY.bottomCtaLabel}
+        convertedText={`${ENTRUST_COPY.successTitle}，${ENTRUST_COPY.successBody}`}
         targetId="entrust-phone"
         pageType="entrust"
       />

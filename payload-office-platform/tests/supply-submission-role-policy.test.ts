@@ -112,32 +112,32 @@ describe('supply submission role data migration planner', () => {
     ).toBeNull()
   })
 
-  it('updates only changed fields through Payload Local API with overrideAccess', async () => {
-    const update = vi.fn(async () => undefined)
+  it('updates only changed fields through raw SQL without Payload Local API', async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: 1,
+            code: 'OPS',
+            is_builtin: true,
+            menu_permissions: ['dashboard', 'custom-menu'],
+            operation_permissions: ['notification:read', 'custom:permission'],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
     const payload = {
-      find: vi.fn(async () => ({ docs: [role({})] })),
-      update,
+      find: vi.fn(),
+      update: vi.fn(),
+      logger: { warn: vi.fn() },
     }
 
-    await up({ payload, req: { id: 'migration-request' } } as never)
+    await up({ db: { execute }, payload } as never)
 
-    expect(update).toHaveBeenCalledOnce()
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: 'roles',
-        id: 1,
-        overrideAccess: true,
-        data: expect.objectContaining({
-          menuPermissions: ['dashboard', 'custom-menu', 'supply-submissions'],
-          operationPermissions: expect.arrayContaining([
-            'custom:permission',
-            'supply_submission:read',
-            'supply_submission:manage',
-            'supply_submission:convert',
-          ]),
-        }),
-      }),
-    )
+    expect(payload.find).not.toHaveBeenCalled()
+    expect(payload.update).not.toHaveBeenCalled()
+    expect(execute).toHaveBeenCalledTimes(2)
   })
 
   it('uses a non-destructive down path', async () => {

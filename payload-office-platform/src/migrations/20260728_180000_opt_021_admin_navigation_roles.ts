@@ -1,4 +1,4 @@
-import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-postgres'
+import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres'
 
 export type RoleCode = 'ADM' | 'OPS' | 'MGR' | 'BRK' | 'CSR'
 
@@ -213,30 +213,19 @@ async function updateBuiltinRolePermissions(
     roles: readonly MigrationRoleDocument[],
   ) => RolePermissionUpdate[],
 ): Promise<void> {
-  const { payload, req } = args
-  const roles = await payload.find({
-    collection: 'roles',
-    where: {
-      and: [
-        { isBuiltin: { equals: true } },
-        { code: { in: [...ROLE_CODES] } },
-      ],
-    },
-    limit: ROLE_CODES.length,
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
+  const { db } = args
+  const roleDocs = ROLE_CODES.map((code) => ({ id: code, code, isBuiltin: true }))
 
-  for (const role of planUpdates(roles.docs)) {
-    await payload.update({
-      collection: 'roles',
-      id: role.id,
-      data: role.permissions,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
+  for (const role of planUpdates(roleDocs)) {
+    await db.execute(sql`
+      UPDATE "roles"
+      SET
+        "menu_permissions" = ${JSON.stringify(role.permissions.menuPermissions)}::jsonb,
+        "operation_permissions" = ${JSON.stringify(role.permissions.operationPermissions)}::jsonb,
+        "field_permissions" = ${JSON.stringify(role.permissions.fieldPermissions)}::jsonb
+      WHERE "is_builtin" = true
+        AND "code" = ${role.code};
+    `)
   }
 }
 

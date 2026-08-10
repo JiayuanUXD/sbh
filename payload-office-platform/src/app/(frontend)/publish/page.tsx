@@ -35,6 +35,7 @@ export default function PublishPage() {
       <LandingViewAnalytics pageType="publish" />
       <LandingHero
         variant="centered"
+        backgroundImage={{ src: '/api/media/file/landing-hero-publish-20260810.jpg?prefix=media' }}
         title={PUBLISH_COPY.title}
         subtitle={PUBLISH_COPY.subtitle}
       />

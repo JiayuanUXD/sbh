@@ -1,6 +1,7 @@
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import EntrustPage from '@/app/(frontend)/entrust/page'
 import PublishPage, { metadata } from '@/app/(frontend)/publish/page'
 
 describe('/publish page', () => {
@@ -19,5 +20,19 @@ describe('/publish page', () => {
     expect(markup).toContain('房源委托 商办租赁 帮您出租')
     expect(markup).toContain('"@type":"Service"')
     expect(markup).not.toContain('"@type":"FAQPage"')
+  })
+
+  it('uses a publish-specific COS hero background that is separate from entrust', () => {
+    const publishMarkup = renderToStaticMarkup(React.createElement(PublishPage))
+    const entrustMarkup = renderToStaticMarkup(React.createElement(EntrustPage))
+
+    const publishBackground = '/api/media/file/landing-hero-publish-20260810.jpg?prefix=media'
+    const entrustBackground = '/api/media/file/landing-hero-entrust-20260810.jpg?prefix=media'
+
+    expect(publishMarkup).toContain(publishBackground)
+    expect(entrustMarkup).toContain(entrustBackground)
+    expect(publishBackground).not.toBe(entrustBackground)
+    expect(publishMarkup).not.toContain(entrustBackground)
+    expect(entrustMarkup).not.toContain(publishBackground)
   })
 })

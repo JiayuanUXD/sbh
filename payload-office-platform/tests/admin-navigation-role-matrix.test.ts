@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
 import type {
@@ -14,11 +14,13 @@ import {
 import {
   planAdminNavigationRoleUpdates,
   planPreviousRolePermissionUpdates,
+  up as adminNavigationRolesUp,
 } from '@/migrations/20260728_180000_opt_021_admin_navigation_roles'
 import {
   planArticlesMenuRoleUpdate,
   PREVIOUS_OPS_MENU_PERMISSIONS,
   TARGET_OPS_MENU_PERMISSIONS,
+  up as articlesMenuUp,
 } from '@/migrations/20260808_224000_articles_menu_for_ops'
 
 function canSeeLeaf(role: RoleFixture, leaf: AdminNavLeaf): boolean {
@@ -340,6 +342,17 @@ describe('admin navigation role migration', () => {
       },
     ])
   })
+
+  it('up 通过 raw SQL 写 roles，不依赖 Payload 当前 schema', async () => {
+    const execute = vi.fn(async () => ({ rows: [] }))
+    const payload = { find: vi.fn(), update: vi.fn() }
+
+    await adminNavigationRolesUp({ db: { execute }, payload } as never)
+
+    expect(payload.find).not.toHaveBeenCalled()
+    expect(payload.update).not.toHaveBeenCalled()
+    expect(execute).toHaveBeenCalledTimes(5)
+  })
 })
 
 describe('articles menu role migration', () => {
@@ -382,5 +395,16 @@ describe('articles menu role migration', () => {
     expect(
       planArticlesMenuRoleUpdate({ id: 3, code: 'MGR', isBuiltin: true }, TARGET_OPS_MENU_PERMISSIONS),
     ).toBeNull()
+  })
+
+  it('up 通过 raw SQL 写 OPS 菜单，不依赖 Payload 当前 schema', async () => {
+    const execute = vi.fn(async () => ({ rows: [] }))
+    const payload = { find: vi.fn(), update: vi.fn() }
+
+    await articlesMenuUp({ db: { execute }, payload } as never)
+
+    expect(payload.find).not.toHaveBeenCalled()
+    expect(payload.update).not.toHaveBeenCalled()
+    expect(execute).toHaveBeenCalledOnce()
   })
 })

@@ -4,6 +4,12 @@ import Link from 'next/link'
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
+import {
+  createBrowserFocusEnvironment,
+  focusLandingTarget,
+} from '@/components/frontend/landing/BottomCtaBar'
+import { track } from '@/lib/frontend/analytics'
+import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 
 export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
@@ -140,15 +146,31 @@ export default function SiteNav() {
         })}
       </nav>
 
-      {/* 右侧动作区：铜色 CTA（开询价弹层）+ 移动端菜单触发器。
+      {/* 右侧动作区：铜色 CTA + 移动端菜单触发器。
+          委托找房页自带零门槛表单，头部 CTA 直接滚动聚焦本页表单，
+          避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
           包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
       <div className="site-header__actions">
-        <InquiryModal
-          pageType={ctaPageType}
-          triggerLabel="获取选址方案"
-          triggerVariant="primary"
-          triggerClassName="btn--sm"
-        />
+        {ctaPageType === 'entrust' ? (
+          <button
+            type="button"
+            className="btn btn--primary btn--sm"
+            onClick={() => {
+              safeTrackLandingEvent(track, 'landing_header_cta_click', { page_type: 'entrust' })
+              const focused = focusLandingTarget('entrust-phone', createBrowserFocusEnvironment())
+              if (!focused) window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
+            获取选址方案
+          </button>
+        ) : (
+          <InquiryModal
+            pageType={ctaPageType}
+            triggerLabel="获取选址方案"
+            triggerVariant="primary"
+            triggerClassName="btn--sm"
+          />
+        )}
 
         {/* 移动端菜单触发器 */}
         <button

@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/frontend/ui'
 import { track } from '@/lib/frontend/analytics'
 import {
+  LANDING_CONVERTED_EVENT,
   safeTrackLandingEvent,
   type LandingAnalyticsTrack,
   type LandingPageType,
@@ -27,6 +28,8 @@ type BottomCtaBarProps = {
   ctaLabel: string
   targetId: string
   pageType: LandingPageType
+  /** 用户已提交成功后吸底/收束条展示的文案；缺省则沿用 text。 */
+  convertedText?: string
 }
 
 function isFocusableTarget(target: unknown): target is FocusableLandingTarget {
@@ -84,11 +87,25 @@ function createBrowserFocusEnvironment(): LandingFocusEnvironment {
   }
 }
 
-export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: BottomCtaBarProps) {
+export { createBrowserFocusEnvironment }
+
+export default function BottomCtaBar({ text, ctaLabel, targetId, pageType, convertedText }: BottomCtaBarProps) {
   const anchorRef = useRef<HTMLDivElement | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
   const [docked, setDocked] = useState(false)
   const [barHeight, setBarHeight] = useState(0)
+  const [converted, setConverted] = useState(false)
+  const footerVisibleRef = useRef(false)
+
+  // 表单提交成功 → 收束条切「已收到」态，不再对用户重复索取。
+  useEffect(() => {
+    const onConverted = (event: Event) => {
+      const detail = (event as CustomEvent<{ pageType?: string }>).detail
+      if (detail?.pageType === pageType) setConverted(true)
+    }
+    window.addEventListener(LANDING_CONVERTED_EVENT, onConverted)
+    return () => window.removeEventListener(LANDING_CONVERTED_EVENT, onConverted)
+  }, [pageType])
 
   useEffect(() => {
     const anchor = anchorRef.current
@@ -105,7 +122,10 @@ export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: Bot
     const updateDocking = () => {
       animationFrame = null
       updateBarHeight()
-      const nextDocked = mobileQuery.matches
+      // 页脚进入视口时让行：滚到底不再被吸底条遮挡页脚末行。
+      const nextDocked = !converted
+        && !footerVisibleRef.current
+        && mobileQuery.matches
         && shouldDockBottomCta(anchor.getBoundingClientRect().top, window.innerHeight)
       setDocked((currentDocked) => currentDocked === nextDocked ? currentDocked : nextDocked)
     }
@@ -116,8 +136,19 @@ export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: Bot
     const resizeObserver = typeof ResizeObserver === 'undefined'
       ? null
       : new ResizeObserver(scheduleUpdate)
+    const footer = document.querySelector('footer')
+    const footerObserver = footer && typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(
+        (entries) => {
+          footerVisibleRef.current = entries.some((entry) => entry.isIntersecting)
+          scheduleUpdate()
+        },
+        { threshold: 0 },
+      )
+      : null
 
     resizeObserver?.observe(bar)
+    if (footer) footerObserver?.observe(footer)
     updateDocking()
     window.addEventListener('scroll', scheduleUpdate, { passive: true })
     window.addEventListener('resize', scheduleUpdate)
@@ -128,9 +159,10 @@ export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: Bot
       window.removeEventListener('resize', scheduleUpdate)
       mobileQuery.removeEventListener('change', scheduleUpdate)
       resizeObserver?.disconnect()
+      footerObserver?.disconnect()
       if (animationFrame !== null) window.cancelAnimationFrame(animationFrame)
     }
-  }, [])
+  }, [converted])
 
   const focusTarget = () => {
     activateBottomCta(pageType, targetId, createBrowserFocusEnvironment())
@@ -143,8 +175,14 @@ export default function BottomCtaBar({ text, ctaLabel, targetId, pageType }: Bot
       style={docked && barHeight > 0 ? { minHeight: `${barHeight}px` } : undefined}
     >
       <div ref={barRef} className={docked ? 'bottom-cta bottom-cta--docked' : 'bottom-cta'}>
-        <p className="bottom-cta__text">{text}</p>
-        <Button variant="primary" size="lg" onClick={focusTarget}>{ctaLabel}</Button>
+        {converted ? (
+          <p className="bottom-cta__text" role="status">{convertedText ?? text}</p>
+        ) : (
+          <>
+            <p className="bottom-cta__text">{text}</p>
+            <Button variant="primary" size="lg" onClick={focusTarget}>{ctaLabel}</Button>
+          </>
+        )}
       </div>
     </div>
   )

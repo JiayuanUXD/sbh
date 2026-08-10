@@ -80,6 +80,8 @@ export const LIMITS = {
   URL_MAX: 2048,
   REQUEST_ID_MAX: 100,
   CAMPAIGN_VALUE_MAX: 100,
+  /** 两步留电第二步：单条需求文本字段上限 */
+  DEMAND_FIELD_MAX: 100,
 } as const
 
 /**
@@ -311,6 +313,89 @@ export function validateInquiry(input: unknown): ValidationResult {
       priceSnapshot,
       activeSupplyGroup,
       viewingPreference,
+    },
+  }
+}
+
+/**
+ * 两步留电第二步：可选需求补充表单的请求体校验。
+ *
+ * 守护不变量：
+ *   - 输入视为 unknown，白名单收窄到 requestId / phone / demand.{district,budget,area,moveInTime}；
+ *   - phone 走 normalizePhone + isValidCnMobile（与主询盘一致）；
+ *   - demand 各字段选填文本，trim 后空值归 null，≤ LIMITS.DEMAND_FIELD_MAX；
+ *   - 至少一个 demand 字段非空，否则 demand_empty（无需求不应调用更新端点）；
+ *   - 不接收 consent / source / target——第二步不重新建 Lead，只更新已建 Lead 的需求字段。
+ *
+ * 错误码：
+ *   - invalid_body / request_id_required / request_id_too_long / phone_invalid / demand_invalid / demand_empty
+ */
+export type DemandUpdate = Readonly<{
+  district: string | null
+  budget: string | null
+  area: string | null
+  moveInTime: string | null
+}>
+
+export type DemandUpdateRequest = Readonly<{
+  requestId: string
+  phone: string
+  phoneNormalized: string
+  demand: DemandUpdate
+}>
+
+export type DemandUpdateResult =
+  | { ok: true; data: DemandUpdateRequest }
+  | { ok: false; errors: readonly string[] }
+
+function sanitizeDemandField(value: unknown, errors: string[], code: string): string | null {
+  const text = trimString(value)
+  if (!text) return null
+  if (text.length > LIMITS.DEMAND_FIELD_MAX) {
+    errors.push(code)
+    return null
+  }
+  return text
+}
+
+export function validateDemandUpdate(input: unknown): DemandUpdateResult {
+  if (!isObject(input)) {
+    return { ok: false, errors: ['invalid_body'] }
+  }
+
+  const errors: string[] = []
+
+  const requestId = trimString(input.requestId)
+  if (!requestId) errors.push('request_id_required')
+  else if (requestId.length > LIMITS.REQUEST_ID_MAX) errors.push('request_id_too_long')
+
+  const phoneRaw = trimString(input.phone)
+  const phoneNormalized = phoneRaw ? normalizePhone(phoneRaw) : ''
+  if (!phoneNormalized || !isValidCnMobile(phoneNormalized)) {
+    errors.push('phone_invalid')
+  }
+
+  const demandRaw = isObject(input.demand) ? input.demand : {}
+  const district = sanitizeDemandField(demandRaw.district, errors, 'demand_invalid')
+  const budget = sanitizeDemandField(demandRaw.budget, errors, 'demand_invalid')
+  const area = sanitizeDemandField(demandRaw.area, errors, 'demand_invalid')
+  const moveInTime = sanitizeDemandField(demandRaw.moveInTime, errors, 'demand_invalid')
+
+  if (!district && !budget && !area && !moveInTime) {
+    errors.push('demand_empty')
+  }
+
+  if (errors.length > 0) {
+    return { ok: false, errors }
+  }
+
+  return {
+    ok: true,
+    data: {
+      requestId,
+      phone: phoneNormalized,
+      phoneNormalized,
+      demand: { district, budget, area, moveInTime },
     },
   }
 }

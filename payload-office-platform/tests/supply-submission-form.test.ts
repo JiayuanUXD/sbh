@@ -3,10 +3,15 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import SupplySubmissionForm, {
+  SupplySubmissionSuccessCard,
   buildSupplySubmissionBody,
   createSupplySubmissionCoordinator,
+  getFirstSupplyErrorField,
   getSupplyFieldErrors,
+  getSupplyStatusMessage,
+  getSupplySubmitLabel,
   submitSupplySubmission,
+  type SupplyFormState,
   type SupplyFormValues,
 } from '@/components/frontend/landing/SupplySubmissionForm'
 import {
@@ -55,6 +60,48 @@ class MemoryStorage implements Storage {
 }
 
 describe('SupplySubmissionForm validation and request boundary', () => {
+  it('derives friendly submit labels and status messages from submission state', () => {
+    const idle: SupplyFormState = {
+      status: 'idle',
+      fieldErrors: {},
+      formError: null,
+      errorReason: null,
+    }
+    const submitting: SupplyFormState = {
+      status: 'submitting',
+      fieldErrors: {},
+      formError: null,
+      errorReason: null,
+    }
+    const rateLimited: SupplyFormState = {
+      status: 'error',
+      fieldErrors: {},
+      formError: '刚才提交得有点频繁，请稍后再试。',
+      errorReason: 'rate_limited',
+    }
+    const genericFailure: SupplyFormState = {
+      status: 'error',
+      fieldErrors: {},
+      formError: '暂时没有提交成功，已填写的内容还在，请稍后再试。',
+      errorReason: 'server_error',
+    }
+
+    expect(getSupplySubmitLabel(idle)).toBe('立即投放')
+    expect(getSupplySubmitLabel(submitting)).toBe('提交中...')
+    expect(getSupplySubmitLabel(rateLimited)).toBe('稍后重试')
+    expect(getSupplySubmitLabel(genericFailure)).toBe('重新提交')
+    expect(getSupplyStatusMessage(submitting)).toBe('正在提交，我们会为您保留已填写的信息。')
+    expect(getSupplyStatusMessage(genericFailure)).toBe('暂时没有提交成功，已填写的内容还在，请稍后再试。')
+  })
+
+  it('returns the first invalid supply field in visual order', () => {
+    expect(getFirstSupplyErrorField({ address: '请输入详细地址', contactPhone: '请输入正确的 11 位手机号' }))
+      .toBe('address')
+    expect(getFirstSupplyErrorField({ rentAmount: '租金数值不合法', contactPhone: '请输入正确的 11 位手机号' }))
+      .toBe('rentAmount')
+    expect(getFirstSupplyErrorField({})).toBeNull()
+  })
+
   it('returns field-level errors without discarding the supplied values', () => {
     const values: SupplyFormValues = {
       ...VALID_VALUES,
@@ -182,6 +229,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       status: 'success',
       fieldErrors: {},
       formError: null,
+      errorReason: null,
     })
     expect(events).toEqual([
       {
@@ -478,7 +526,8 @@ describe('SupplySubmissionForm validation and request boundary', () => {
         address: '请输入详细地址',
         contactPhone: '请输入正确的 11 位手机号',
       },
-      formError: null,
+      formError: '有几项信息还需要调整，请检查后再提交。',
+      errorReason: 'server_validation',
     })
 
     await coordinator.submit(VALID_VALUES)
@@ -512,8 +561,19 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       /<input(?=[^>]*name="commissionMonths")(?=[^>]*value="none")(?=[^>]*checked="")[^>]*>/,
     )
     expect(markup).toContain('aria-describedby="publish-contact-note"')
-    expect(markup).toContain('aria-live="polite"')
+    expect(markup).not.toContain('publish-card__status')
     expect(markup).toContain('href="/pages/privacy"')
+  })
+
+  it('renders a success card with a return-home action', () => {
+    const markup = renderToStaticMarkup(React.createElement(SupplySubmissionSuccessCard))
+
+    expect(markup).toContain('role="status"')
+    expect(markup).toContain('tabindex="-1"')
+    expect(markup).toContain('已收到您的房源')
+    expect(markup).toContain('href="/"')
+    expect(markup).toContain('返回首页')
+    expect(markup).not.toContain('继续投放另一套')
   })
 
   it('keeps the six user-facing field groups in the required order with five commission choices', () => {

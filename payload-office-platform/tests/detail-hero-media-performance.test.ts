@@ -39,7 +39,10 @@ describe('OPT-028 detail caching and hero media contracts', () => {
 
     expect(homePage).toContain('<HomeHeroMedia />')
     expect(homePage).not.toContain('<video autoPlay')
-    expect(heroVideo).toContain("poster=\"/hero/poster.jpg\"")
+    // poster 走 next 构建产物而非 public/（平台在线构建曾剥离 public 二进制致 404）
+    expect(heroVideo).toContain("from '@/lib/frontend/hero-poster'")
+    expect(heroVideo).toContain('poster={HERO_POSTER_SRC}')
+    expect(heroVideo).not.toContain('/hero/poster.jpg')
     expect(heroVideo).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
     expect(heroVideo).toContain("matchMedia('(max-width: 767px)')")
     expect(heroVideo).toContain('connection?.saveData')
