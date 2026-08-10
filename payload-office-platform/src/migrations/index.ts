@@ -39,6 +39,7 @@ import * as migration_20260810_090000_supply_submission_role_permissions from '.
 import * as migration_20260810_114857_locations_city_field from './20260810_114857_locations_city_field';
 import * as migration_20260810_153500_landing_hero_media_assets from './20260810_153500_landing_hero_media_assets';
 import * as migration_20260810_170000_public_page_performance_indexes from './20260810_170000_public_page_performance_indexes';
+import * as migration_20260810_200000_backfill_location_city from './20260810_200000_backfill_location_city';
 
 export const migrations = [
   {
@@ -245,5 +246,10 @@ export const migrations = [
     up: migration_20260810_170000_public_page_performance_indexes.up,
     down: migration_20260810_170000_public_page_performance_indexes.down,
     name: '20260810_170000_public_page_performance_indexes'
+  },
+  {
+    up: migration_20260810_200000_backfill_location_city.up,
+    down: migration_20260810_200000_backfill_location_city.down,
+    name: '20260810_200000_backfill_location_city'
   },
 ];
