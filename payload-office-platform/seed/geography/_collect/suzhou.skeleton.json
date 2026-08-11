@@ -1,0 +1,31 @@
+{
+  "_header": [
+    "============================================================",
+    "苏州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、苏州轨道交通官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/suzhou.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "苏州市",
+    "immutableCode": "CITY-SZ",
+    "slug": "suzhou",
+    "sortOrder": 4
+  },
+  "districts": [
+    { "name": "虎丘区", "immutableCode": "SZ-D-320505", "slug": "suzhou-huqiu", "sortOrder": 1 },
+    { "name": "吴中区", "immutableCode": "SZ-D-320506", "slug": "suzhou-wuzhong", "sortOrder": 2 },
+    { "name": "相城区", "immutableCode": "SZ-D-320507", "slug": "suzhou-xiangcheng", "sortOrder": 3 },
+    { "name": "姑苏区", "immutableCode": "SZ-D-320508", "slug": "suzhou-gusu", "sortOrder": 4 },
+    { "name": "吴江区", "immutableCode": "SZ-D-320509", "slug": "suzhou-wujiang", "sortOrder": 5 },
+    { "name": "常熟市", "immutableCode": "SZ-D-320581", "slug": "suzhou-changshu", "sortOrder": 6 },
+    { "name": "张家港市", "immutableCode": "SZ-D-320582", "slug": "suzhou-zhangjiagang", "sortOrder": 7 },
+    { "name": "昆山市", "immutableCode": "SZ-D-320583", "slug": "suzhou-kunshan", "sortOrder": 8 },
+    { "name": "太仓市", "immutableCode": "SZ-D-320585", "slug": "suzhou-taichang", "sortOrder": 9 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}

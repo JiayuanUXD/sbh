@@ -1,0 +1,38 @@
+{
+  "_header": [
+    "============================================================",
+    "上海地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、上海地铁官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/shanghai.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "上海市",
+    "immutableCode": "CITY-SH",
+    "slug": "shanghai",
+    "sortOrder": 1
+  },
+  "districts": [
+    { "name": "黄浦区", "immutableCode": "SH-D-310101", "slug": "shanghai-huangpu", "sortOrder": 1 },
+    { "name": "徐汇区", "immutableCode": "SH-D-310104", "slug": "shanghai-xuhui", "sortOrder": 2 },
+    { "name": "长宁区", "immutableCode": "SH-D-310105", "slug": "shanghai-changning", "sortOrder": 3 },
+    { "name": "静安区", "immutableCode": "SH-D-310106", "slug": "shanghai-jingan", "sortOrder": 4 },
+    { "name": "普陀区", "immutableCode": "SH-D-310107", "slug": "shanghai-putuo", "sortOrder": 5 },
+    { "name": "虹口区", "immutableCode": "SH-D-310109", "slug": "shanghai-hongkou", "sortOrder": 6 },
+    { "name": "杨浦区", "immutableCode": "SH-D-310110", "slug": "shanghai-yangpu", "sortOrder": 7 },
+    { "name": "闵行区", "immutableCode": "SH-D-310112", "slug": "shanghai-minhang", "sortOrder": 8 },
+    { "name": "宝山区", "immutableCode": "SH-D-310113", "slug": "shanghai-baoshan", "sortOrder": 9 },
+    { "name": "嘉定区", "immutableCode": "SH-D-310114", "slug": "shanghai-jiading", "sortOrder": 10 },
+    { "name": "浦东新区", "immutableCode": "SH-D-310115", "slug": "shanghai-pudong", "sortOrder": 11 },
+    { "name": "金山区", "immutableCode": "SH-D-310116", "slug": "shanghai-jinshan", "sortOrder": 12 },
+    { "name": "松江区", "immutableCode": "SH-D-310117", "slug": "shanghai-songjiang", "sortOrder": 13 },
+    { "name": "青浦区", "immutableCode": "SH-D-310118", "slug": "shanghai-qingpu", "sortOrder": 14 },
+    { "name": "奉贤区", "immutableCode": "SH-D-310120", "slug": "shanghai-fengxian", "sortOrder": 15 },
+    { "name": "崇明区", "immutableCode": "SH-D-310151", "slug": "shanghai-chongming", "sortOrder": 16 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}

@@ -1,0 +1,29 @@
+{
+  "_header": [
+    "============================================================",
+    "无锡地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、无锡地铁官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/wuxi.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "无锡市",
+    "immutableCode": "CITY-WX",
+    "slug": "wuxi",
+    "sortOrder": 5
+  },
+  "districts": [
+    { "name": "锡山区", "immutableCode": "WX-D-320205", "slug": "wuxi-xishan", "sortOrder": 1 },
+    { "name": "惠山区", "immutableCode": "WX-D-320206", "slug": "wuxi-huishan", "sortOrder": 2 },
+    { "name": "滨湖区", "immutableCode": "WX-D-320211", "slug": "wuxi-binhu", "sortOrder": 3 },
+    { "name": "梁溪区", "immutableCode": "WX-D-320213", "slug": "wuxi-liangxi", "sortOrder": 4 },
+    { "name": "新吴区", "immutableCode": "WX-D-320214", "slug": "wuxi-xinwu", "sortOrder": 5 },
+    { "name": "江阴市", "immutableCode": "WX-D-320281", "slug": "wuxi-jiangyin", "sortOrder": 6 },
+    { "name": "宜兴市", "immutableCode": "WX-D-320282", "slug": "wuxi-yixing", "sortOrder": 7 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}

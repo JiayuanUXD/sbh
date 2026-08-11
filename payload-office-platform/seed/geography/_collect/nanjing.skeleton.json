@@ -1,0 +1,33 @@
+{
+  "_header": [
+    "============================================================",
+    "南京地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、南京地铁官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/nanjing.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "南京市",
+    "immutableCode": "CITY-NJ",
+    "slug": "nanjing",
+    "sortOrder": 2
+  },
+  "districts": [
+    { "name": "玄武区", "immutableCode": "NJ-D-320102", "slug": "nanjing-xuanwu", "sortOrder": 1 },
+    { "name": "秦淮区", "immutableCode": "NJ-D-320104", "slug": "nanjing-qinhuai", "sortOrder": 2 },
+    { "name": "建邺区", "immutableCode": "NJ-D-320105", "slug": "nanjing-jianye", "sortOrder": 3 },
+    { "name": "鼓楼区", "immutableCode": "NJ-D-320106", "slug": "nanjing-gulou", "sortOrder": 4 },
+    { "name": "浦口区", "immutableCode": "NJ-D-320111", "slug": "nanjing-pukou", "sortOrder": 5 },
+    { "name": "栖霞区", "immutableCode": "NJ-D-320113", "slug": "nanjing-qixia", "sortOrder": 6 },
+    { "name": "雨花台区", "immutableCode": "NJ-D-320114", "slug": "nanjing-yuhuatai", "sortOrder": 7 },
+    { "name": "江宁区", "immutableCode": "NJ-D-320115", "slug": "nanjing-jiangning", "sortOrder": 8 },
+    { "name": "六合区", "immutableCode": "NJ-D-320116", "slug": "nanjing-liuhe", "sortOrder": 9 },
+    { "name": "溧水区", "immutableCode": "NJ-D-320117", "slug": "nanjing-lishui", "sortOrder": 10 },
+    { "name": "高淳区", "immutableCode": "NJ-D-320118", "slug": "nanjing-gaochun", "sortOrder": 11 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}

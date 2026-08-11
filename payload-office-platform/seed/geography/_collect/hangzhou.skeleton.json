@@ -1,0 +1,35 @@
+{
+  "_header": [
+    "============================================================",
+    "杭州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、杭州地铁官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/hangzhou.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "杭州市",
+    "immutableCode": "CITY-HZ",
+    "slug": "hangzhou",
+    "sortOrder": 3
+  },
+  "districts": [
+    { "name": "上城区", "immutableCode": "HZ-D-330102", "slug": "hangzhou-shangcheng", "sortOrder": 1 },
+    { "name": "拱墅区", "immutableCode": "HZ-D-330105", "slug": "hangzhou-gongshu", "sortOrder": 2 },
+    { "name": "西湖区", "immutableCode": "HZ-D-330106", "slug": "hangzhou-xihu", "sortOrder": 3 },
+    { "name": "滨江区", "immutableCode": "HZ-D-330108", "slug": "hangzhou-binjiang", "sortOrder": 4 },
+    { "name": "萧山区", "immutableCode": "HZ-D-330109", "slug": "hangzhou-xiaoshan", "sortOrder": 5 },
+    { "name": "余杭区", "immutableCode": "HZ-D-330110", "slug": "hangzhou-yuhang", "sortOrder": 6 },
+    { "name": "富阳区", "immutableCode": "HZ-D-330111", "slug": "hangzhou-fuyang", "sortOrder": 7 },
+    { "name": "临安区", "immutableCode": "HZ-D-330112", "slug": "hangzhou-linan", "sortOrder": 8 },
+    { "name": "临平区", "immutableCode": "HZ-D-330113", "slug": "hangzhou-linping", "sortOrder": 9 },
+    { "name": "钱塘区", "immutableCode": "HZ-D-330114", "slug": "hangzhou-qiantang", "sortOrder": 10 },
+    { "name": "桐庐县", "immutableCode": "HZ-D-330122", "slug": "hangzhou-tonglu", "sortOrder": 11 },
+    { "name": "淳安县", "immutableCode": "HZ-D-330127", "slug": "hangzhou-chunan", "sortOrder": 12 },
+    { "name": "建德市", "immutableCode": "HZ-D-330182", "slug": "hangzhou-jiande", "sortOrder": 13 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}

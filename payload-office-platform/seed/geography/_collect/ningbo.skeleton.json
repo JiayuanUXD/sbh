@@ -1,0 +1,32 @@
+{
+  "_header": [
+    "============================================================",
+    "宁波地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、宁波轨道交通官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/ningbo.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "宁波市",
+    "immutableCode": "CITY-NB",
+    "slug": "ningbo",
+    "sortOrder": 6
+  },
+  "districts": [
+    { "name": "海曙区", "immutableCode": "NB-D-330203", "slug": "ningbo-haishu", "sortOrder": 1 },
+    { "name": "江北区", "immutableCode": "NB-D-330205", "slug": "ningbo-jiangbei", "sortOrder": 2 },
+    { "name": "北仑区", "immutableCode": "NB-D-330206", "slug": "ningbo-beilun", "sortOrder": 3 },
+    { "name": "镇海区", "immutableCode": "NB-D-330211", "slug": "ningbo-zhenhai", "sortOrder": 4 },
+    { "name": "鄞州区", "immutableCode": "NB-D-330212", "slug": "ningbo-yinzhou", "sortOrder": 5 },
+    { "name": "奉化区", "immutableCode": "NB-D-330213", "slug": "ningbo-fenghua", "sortOrder": 6 },
+    { "name": "象山县", "immutableCode": "NB-D-330225", "slug": "ningbo-xiangshan", "sortOrder": 7 },
+    { "name": "宁海县", "immutableCode": "NB-D-330226", "slug": "ningbo-ninghai", "sortOrder": 8 },
+    { "name": "余姚市", "immutableCode": "NB-D-330281", "slug": "ningbo-yuyao", "sortOrder": 9 },
+    { "name": "慈溪市", "immutableCode": "NB-D-330282", "slug": "ningbo-cixi", "sortOrder": 10 }
+  ],
+  "businessAreas": [],
+  "metroLines": []
+}
