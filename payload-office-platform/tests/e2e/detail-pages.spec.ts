@@ -149,7 +149,7 @@ test.describe('房源详情 P0', () => {
 
     await image.dispatchEvent('error')
 
-    await expect(imageItem.getByRole('img', { name: '媒体加载失败' })).toBeVisible()
+    await expect(imageItem.getByRole('img', { name: '图片暂未加载' })).toBeVisible()
     await expect(imageItem.locator('img')).toHaveCount(0)
   })
 
