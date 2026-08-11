@@ -10,6 +10,7 @@
   "city": {
     "name": "上海市",
     "immutableCode": "CITY-SH",
+    "legacyCodes": ["LEGACY_LOC_1", "SH"],
     "legacyCodes": ["SH"],
     "slug": "shanghai",
     "sortOrder": 1,
@@ -20,6 +21,7 @@
     {
       "name": "黄浦区",
       "immutableCode": "SH-D-310101",
+      "legacyCodes": ["SH-HUANGPUQU"],
       "legacyCodes": ["SH-HUANGPU"],
       "slug": "shanghai-huangpu",
       "sortOrder": 1,
@@ -29,6 +31,7 @@
     {
       "name": "徐汇区",
       "immutableCode": "SH-D-310104",
+      "legacyCodes": ["SH-XUHUIQU"],
       "legacyCodes": ["SH-XUHUI"],
       "slug": "shanghai-xuhui",
       "sortOrder": 2,
@@ -38,6 +41,7 @@
     {
       "name": "长宁区",
       "immutableCode": "SH-D-310105",
+      "legacyCodes": ["SH-CHANGNINGQU"],
       "legacyCodes": ["SH-CHANGNING"],
       "slug": "shanghai-changning",
       "sortOrder": 3,
@@ -47,6 +51,7 @@
     {
       "name": "静安区",
       "immutableCode": "SH-D-310106",
+      "legacyCodes": ["LEGACY_LOC_2"],
       "legacyCodes": ["SH-JINGAN"],
       "slug": "shanghai-jingan",
       "sortOrder": 4,
@@ -56,6 +61,7 @@
     {
       "name": "普陀区",
       "immutableCode": "SH-D-310107",
+      "legacyCodes": ["SH-PUTUOQU"],
       "slug": "shanghai-putuo",
       "sortOrder": 5,
       "centerLatitude": 31.249618,
@@ -64,6 +70,7 @@
     {
       "name": "虹口区",
       "immutableCode": "SH-D-310109",
+      "legacyCodes": ["SH-HONGKOUQU"],
       "slug": "shanghai-hongkou",
       "sortOrder": 6,
       "centerLatitude": 31.264917,
@@ -72,6 +79,7 @@
     {
       "name": "杨浦区",
       "immutableCode": "SH-D-310110",
+      "legacyCodes": ["SH-YANGPUQU"],
       "slug": "shanghai-yangpu",
       "sortOrder": 7,
       "centerLatitude": 31.259588,
@@ -80,6 +88,7 @@
     {
       "name": "闵行区",
       "immutableCode": "SH-D-310112",
+      "legacyCodes": ["SH-MINXINGQU"],
       "slug": "shanghai-minhang",
       "sortOrder": 8,
       "centerLatitude": 31.112834,
@@ -88,6 +97,7 @@
     {
       "name": "宝山区",
       "immutableCode": "SH-D-310113",
+      "legacyCodes": ["SH-BAOSHAN"],
       "slug": "shanghai-baoshan",
       "sortOrder": 9,
       "centerLatitude": 31.405242,
@@ -96,6 +106,7 @@
     {
       "name": "嘉定区",
       "immutableCode": "SH-D-310114",
+      "legacyCodes": ["SH-JIADING"],
       "slug": "shanghai-jiading",
       "sortOrder": 10,
       "centerLatitude": 31.375566,
@@ -104,6 +115,7 @@
     {
       "name": "浦东新区",
       "immutableCode": "SH-D-310115",
+      "legacyCodes": ["LEGACY_LOC_3"],
       "legacyCodes": ["SH-PUDONG"],
       "slug": "shanghai-pudong",
       "sortOrder": 11,
@@ -113,6 +125,7 @@
     {
       "name": "金山区",
       "immutableCode": "SH-D-310116",
+      "legacyCodes": ["SH-JINSHAN"],
       "slug": "shanghai-jinshan",
       "sortOrder": 12,
       "centerLatitude": 30.742769,
@@ -121,6 +134,7 @@
     {
       "name": "松江区",
       "immutableCode": "SH-D-310117",
+      "legacyCodes": ["SH-SONGJIANG"],
       "slug": "shanghai-songjiang",
       "sortOrder": 13,
       "centerLatitude": 31.03257,
@@ -129,6 +143,7 @@
     {
       "name": "青浦区",
       "immutableCode": "SH-D-310118",
+      "legacyCodes": ["SH-QINGPU"],
       "slug": "shanghai-qingpu",
       "sortOrder": 14,
       "centerLatitude": 31.15098,
@@ -137,6 +152,7 @@
     {
       "name": "奉贤区",
       "immutableCode": "SH-D-310120",
+      "legacyCodes": ["SH-FENGXIAN"],
       "slug": "shanghai-fengxian",
       "sortOrder": 15,
       "centerLatitude": 30.918406,
@@ -145,6 +161,7 @@
     {
       "name": "崇明区",
       "immutableCode": "SH-D-310151",
+      "legacyCodes": ["SH-CHONGMING"],
       "slug": "shanghai-chongming",
       "sortOrder": 16,
       "centerLatitude": 31.623863,
@@ -157,6 +174,7 @@
       "districtCode": "SH-D-310115",
       "slug": "shanghai-lujiazui",
       "immutableCode": "SH-BA-LUJIAZUI",
+      "legacyCodes": ["LEGACY_LOC_5"],
       "legacyCodes": ["SH-PUDONG-LJZ"],
       "centerLatitude": 31.237015,
       "centerLongitude": 121.5025
@@ -166,6 +184,7 @@
       "districtCode": "SH-D-310106",
       "slug": "shanghai-nanjing-xilu",
       "immutableCode": "SH-BA-NANJINGXILU",
+      "legacyCodes": ["LEGACY_LOC_4"],
       "legacyCodes": ["SH-JINGAN-NJW"],
       "centerLatitude": 31.229853,
       "centerLongitude": 121.459971
@@ -175,6 +194,7 @@
       "districtCode": "SH-D-310106",
       "slug": "shanghai-jingansi",
       "immutableCode": "SH-BA-JINGANSI",
+      "legacyCodes": ["SH-JINGAN-JINGANSI"],
       "centerLatitude": 31.223505,
       "centerLongitude": 121.44532
     },
@@ -183,6 +203,7 @@
       "districtCode": "SH-D-310101",
       "slug": "shanghai-huaihai-zhonglu",
       "immutableCode": "SH-BA-HUAIHAIZHONGLU",
+      "legacyCodes": ["SH-HUANGPUQU-HUAIHAIZHONGLU"],
       "centerLatitude": 31.202581,
       "centerLongitude": 121.435968
     },
@@ -191,6 +212,7 @@
       "districtCode": "SH-D-310101",
       "slug": "shanghai-renmin-guangchang",
       "immutableCode": "SH-BA-RENMINGUANGCHANG",
+      "legacyCodes": ["SH-HUANGPU-RENMINGUANGCHANG"],
       "centerLatitude": 31.228827,
       "centerLongitude": 121.475213
     },
@@ -199,6 +221,7 @@
       "districtCode": "SH-D-310104",
       "slug": "shanghai-xujiahui",
       "immutableCode": "SH-BA-XUJIAHUI",
+      "legacyCodes": ["SH-XUHUI-XUJIAHUI"],
       "centerLatitude": 31.193908,
       "centerLongitude": 121.440641
     },
@@ -223,6 +246,7 @@
       "districtCode": "SH-D-310115",
       "slug": "shanghai-zhangjiang",
       "immutableCode": "SH-BA-ZHANGJIANG",
+      "legacyCodes": ["SH-PUDONGXINQU-ZHANGJIANG"],
       "centerLatitude": 31.203482,
       "centerLongitude": 121.610937
     },
@@ -231,6 +255,7 @@
       "districtCode": "SH-D-310115",
       "slug": "shanghai-qiantan",
       "immutableCode": "SH-BA-QIANTAN",
+      "legacyCodes": ["SH-PUDONG-QIANTAN"],
       "centerLatitude": 31.151472,
       "centerLongitude": 121.482591
     },
@@ -239,6 +264,7 @@
       "districtCode": "SH-D-310110",
       "slug": "shanghai-wujiaochang",
       "immutableCode": "SH-BA-WUJIAOCHANG",
+      "legacyCodes": ["SH-YANGPUQU-WUJIAOCHANG"],
       "centerLatitude": 31.303979,
       "centerLongitude": 121.506943
     },
@@ -247,6 +273,7 @@
       "districtCode": "SH-D-310105",
       "slug": "shanghai-gubei",
       "immutableCode": "SH-BA-GUBEI",
+      "legacyCodes": ["SH-CHANGNING-GUBEI"],
       "centerLatitude": 31.198206,
       "centerLongitude": 121.400909
     },
@@ -255,6 +282,7 @@
       "districtCode": "SH-D-310105",
       "slug": "shanghai-zhongshan-gongyuan",
       "immutableCode": "SH-BA-ZHONGSHANGONGYUAN",
+      "legacyCodes": ["SH-CHANGNINGQU-ZHONGSHANGONGYUAN"],
       "centerLatitude": 31.221611,
       "centerLongitude": 121.419034
     },
@@ -263,6 +291,7 @@
       "districtCode": "SH-D-310115",
       "slug": "shanghai-huamu",
       "immutableCode": "SH-BA-HUAMU",
+      "legacyCodes": ["SH-PUDONG-HUAMU"],
       "centerLatitude": 31.185286,
       "centerLongitude": 121.21121
     },
@@ -271,6 +300,7 @@
       "districtCode": "SH-D-310115",
       "slug": "shanghai-jinqiao",
       "immutableCode": "SH-BA-JINQIAO",
+      "legacyCodes": ["SH-PUDONG-JINQIAO"],
       "centerLatitude": 31.253796,
       "centerLongitude": 121.600891
     },
@@ -287,6 +317,7 @@
       "districtCode": "SH-D-310109",
       "slug": "shanghai-beiwaitan",
       "immutableCode": "SH-BA-BEIWAITAN",
+      "legacyCodes": ["SH-HONGKOU-BEIWAITAN"],
       "centerLatitude": 31.252725,
       "centerLongitude": 121.502975
     },
@@ -295,6 +326,7 @@
       "districtCode": "SH-D-310109",
       "slug": "shanghai-sichuan-beilu",
       "immutableCode": "SH-BA-SICHUANBEILU",
+      "legacyCodes": ["SH-HONGKOUQU-SICHUANBEILU"],
       "centerLatitude": 31.252035,
       "centerLongitude": 121.484208
     },
@@ -303,6 +335,7 @@
       "districtCode": "SH-D-310106",
       "slug": "shanghai-daning",
       "immutableCode": "SH-BA-DANING",
+      // TODO(存量对账·待人工决策)：生产同区有「大宁路」SH-JINGAN-DANINGLU（启用，0 楼盘）；名称不完全一致，待确认是否同一商圈
       "centerLatitude": 31.274037,
       "centerLongitude": 121.452239
     },
@@ -311,6 +344,7 @@
       "districtCode": "SH-D-310107",
       "slug": "shanghai-changshoulu",
       "immutableCode": "SH-BA-CHANGSHOULU",
+      "legacyCodes": ["SH-PUTUO-CHANGSHOULU"],
       "centerLatitude": 31.24086,
       "centerLongitude": 121.438272
     },
@@ -327,6 +361,7 @@
       "districtCode": "SH-D-310112",
       "slug": "shanghai-xinzhuang",
       "immutableCode": "SH-BA-XINZHUANG",
+      // TODO(存量对账·待人工决策)：生产同区有两条：SH-MINHANG-SHENZHUANG「莘庄」(启用,0楼盘) 与 SH-MINXINGQU-SHENZHUANGGONGYEQU「莘庄工业区」(启用,前台可见,1楼盘)；须人工二选一
       "centerLatitude": 31.10633,
       "centerLongitude": 121.3786
     },
@@ -335,6 +370,7 @@
       "districtCode": "SH-D-310112",
       "slug": "shanghai-qibao",
       "immutableCode": "SH-BA-QIBAO",
+      "legacyCodes": ["SH-MINHANG-QIBAO"],
       "centerLatitude": 31.153669,
       "centerLongitude": 121.359428
     },
@@ -359,6 +395,7 @@
       "districtCode": "SH-D-310114",
       "slug": "shanghai-jiading-xincheng",
       "immutableCode": "SH-BA-JIADINGXINCHENG",
+      "legacyCodes": ["SH-JIADING-JIADINGXINCHENG"],
       "centerLatitude": 31.330062,
       "centerLongitude": 121.254294
     }

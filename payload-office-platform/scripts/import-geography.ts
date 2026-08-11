@@ -42,6 +42,37 @@ const UPDATE_EXISTING = process.argv.includes('--update-existing')
 const ALL = process.argv.includes('--all')
 const fileArg = process.argv.indexOf('--file')
 
+/**
+ * --only <sections>：只导入种子文件的部分内容，逗号分隔。
+ *   districts | business-areas | metro
+ *
+ * 用途：生产的存量与种子重合度按类型差异很大。以上海为例，生产已有 19 个行政区、
+ * 206 个商圈（需逐个配 legacyCodes 才能对上），但**一条地铁数据都没有**。
+ * `--only metro` 让零冲突的地铁部分先落地，行政区/商圈等对账做完再single独导入。
+ *
+ * 城市节点始终处理（它是所有下级的父级），但若配了 legacyCodes 会走「沿用存量」，
+ * 不会新建重复城市。
+ */
+const onlyArg = process.argv.indexOf('--only')
+const ONLY: Set<string> | null =
+  onlyArg === -1
+    ? null
+    : new Set(
+        (process.argv[onlyArg + 1] ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+const VALID_SECTIONS = ['districts', 'business-areas', 'metro']
+if (ONLY) {
+  const bad = [...ONLY].filter((s) => !VALID_SECTIONS.includes(s))
+  if (bad.length > 0 || ONLY.size === 0) {
+    console.error(`✗ --only 取值非法：${bad.join(', ') || '(空)'}；可选 ${VALID_SECTIONS.join(' | ')}`)
+    process.exit(2)
+  }
+}
+const wants = (section: string): boolean => ONLY === null || ONLY.has(section)
+
 // —— 参数处理 ——
 if (!ALL && fileArg === -1) {
   console.error('用法：--file <path> 或 --all（--dry-run 默认，--apply 才写库）')
@@ -138,6 +169,11 @@ async function findExisting(
   })
   if (byCode.docs[0]) return byCode.docs[0] as unknown as ExistingDoc
 
+  // 收集**全部**命中的别名而不是首个即返回：同一份 legacyCodes 在不同库里可能命中
+  // 不同记录，甚至在同一个库里多个都存在（生产上 `SH` 与 `LEGACY_LOC_1` 都是「上海」，
+  // 前者停用且空、后者挂着 71 个楼盘）。静默取第一个 = 把整棵树挂错父级，
+  // 因此多命中时必须显式报警，让人回去把别名收敛成一个。
+  const hits: Array<{ legacy: string; doc: ExistingDoc }> = []
   for (const legacy of legacyCodes) {
     const res = await payload.find({
       collection: 'locations',
@@ -145,11 +181,17 @@ async function findExisting(
       limit: 1,
       depth: 0,
     })
-    if (res.docs[0]) {
-      return { ...(res.docs[0] as unknown as ExistingDoc), matchedByLegacy: legacy }
-    }
+    if (res.docs[0]) hits.push({ legacy, doc: res.docs[0] as unknown as ExistingDoc })
   }
-  return null
+  if (hits.length === 0) return null
+  if (hits.length > 1) {
+    const detail = hits
+      .map((h) => `${h.legacy}(id=${h.doc.id}, ${h.doc.status === 'disabled' ? '停用' : '启用'})`)
+      .join(' / ')
+    log(`  ⚠ ${code} 的 legacyCodes 同时命中多条存量记录：${detail}`)
+    log(`      按声明顺序取首个 ${hits[0].legacy}；若不是想要的那条，请收敛该节点的 legacyCodes`)
+  }
+  return { ...hits[0].doc, matchedByLegacy: hits[0].legacy }
 }
 function toId(v: unknown): number | string | null {
   if (v === null || v === undefined) return null
@@ -453,7 +495,7 @@ for (const file of seedFiles) {
   }
 
   // 2. 行政区
-  for (const d of seed.districts as SeedDistrict[]) {
+  for (const d of (wants('districts') ? (seed.districts as SeedDistrict[]) : [])) {
     await upsertNode({
       code: d.immutableCode,
       type: 'district',
@@ -466,7 +508,7 @@ for (const file of seedFiles) {
   }
 
   // 3. 商圈（挂行政区）
-  for (const b of seed.businessAreas as SeedBusinessArea[]) {
+  for (const b of (wants('business-areas') ? (seed.businessAreas as SeedBusinessArea[]) : [])) {
     const districtId = await resolveId(b.districtCode)
     if (districtId === null) {
       counters.failed++
@@ -485,7 +527,7 @@ for (const file of seedFiles) {
   }
 
   // 4. 地铁线路 → 站点
-  for (const m of seed.metroLines as SeedMetroLine[]) {
+  for (const m of (wants('metro') ? (seed.metroLines as SeedMetroLine[]) : [])) {
     await upsertNode({
       code: m.immutableCode,
       type: 'metro_line',
@@ -520,7 +562,8 @@ for (const file of seedFiles) {
   // 重复双树的成因，且它「静默成功」，不报错。故每城结束后反查：该城下还有哪些
   // 存量节点既不在种子的 immutableCode 集合、也不在 legacyCodes 集合里，并按名称
   // 给出可能的对应关系供人工判断。只报告、不自动合并。
-  await reportUnclaimed(seed, cityId)
+  if (ONLY === null) await reportUnclaimed(seed, cityId)
+  else log(`  （--only ${[...ONLY].join(',')}，跳过未认领存量节点报告；全量导入时才有意义）`)
 
   log(`  ── 合计：新建 ${counters.created} ｜ 沿用存量 ${counters.adopted} ｜ 跳过 ${counters.skipped} ｜ 冲突 ${counters.conflicts} ｜ 更新 ${counters.updated} ｜ 失败 ${counters.failed}`)
   if (counters.failed > 0) anyFailure = true

@@ -968,7 +968,62 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 
 </details>
 
-生产库仍未导入；执行须走 `--apply --confirm-db <库名>` 并先备份。
+### 生产导入 Runbook（2026-08-11 生产库只读勘察后定稿）
+
+**生产实况**（`queryPgDatabase` 只读查询，env `sbh-d9gnr8h5ef7e22e30`，库名 `postgres`）：
+
+| 项 | 生产 | 说明 |
+|---|---|---|
+| 城市 | 2 条，**均为上海** | `LEGACY_LOC_1`（启用/可见/slug=`shanghai`/19 区/**71 楼盘**）、`SH`（停用、空） |
+| 行政区 | 19 | 三套命名法并存：`LEGACY_LOC_n`、`SH-XXXQU`、`SH-XXX`；含 3 个停用空壳重复（静安×2、浦东×3） |
+| 商圈 | 206 | 前台可见 16 |
+| 地铁线路 / 站点 | **0 / 0** | 完全没有 |
+| 商圈扩展 | 0 | |
+| 孤儿节点 | **0** | `parent_id` 为空 0 条、断链 0 条 → 回填迁移无 `CITY_UNRESOLVED` 风险 |
+
+其余六城（杭州/苏州/南京/宁波/无锡/嘉兴）生产**一条都没有**。
+
+**若不做对账直接全量导入，会新建约 500 个垃圾节点**：第三个上海城市、16 个重复行政区
+（含挂着 18 / 13 个楼盘的静安、浦东的副本）、约 20 个重复商圈（含 `LEGACY_LOC_5` 陆家嘴
+7 楼盘、`LEGACY_LOC_4` 南京西路 11 楼盘的副本），且**全程不报错**。
+
+#### 第一波：零冲突部分（无需任何决策）
+
+生产不存在这些对象，纯新增，约 **1448** 个节点。
+
+```bash
+# 1. 六城全量（生产无这些城市）
+for c in hangzhou suzhou nanjing ningbo wuxi jiaxing; do
+  node --import tsx scripts/import-geography.ts --file seed/geography/$c.json
+done
+# 2. 上海地铁（21 线 + 394 站，生产地铁数据为 0；城市走 legacyCodes 沿用 LEGACY_LOC_1）
+node --import tsx scripts/import-geography.ts --file seed/geography/shanghai.json --only metro
+
+# dry-run 确认无误后逐条加 --apply --confirm-db postgres
+```
+
+#### 第二波：上海行政区与商圈（需先结掉 2 个决策）
+
+`shanghai.json` 已写入 **35 个 `legacyCodes`**（1 城 + 16 区 + 18 商圈），覆盖生产存量。
+落地后第二波**实际只新建 6 个节点**（漕河泾开发区、长风商务区、大虹桥、虹桥商务区、
+临港、松江新城）——其余全部沿用存量。别名的价值不在新增，在于**挡掉 34 个重复**。
+
+生产另有约 180 个种子未覆盖的商圈，按「存量为准」原样保留、不动。
+
+**两个待人工决策**（已在 `shanghai.json` 用 `TODO(存量对账·待人工决策)` 标注）：
+
+| 种子节点 | 生产候选 | 待定 |
+|---|---|---|
+| `SH-BA-DANING`「大宁」 | `SH-JINGAN-DANINGLU`「大宁路」（启用，0 楼盘） | 是否同一商圈 |
+| `SH-BA-XINZHUANG`「莘庄」 | `SH-MINHANG-SHENZHUANG`「莘庄」（启用，0 楼盘）／ `SH-MINXINGQU-SHENZHUANGGONGYEQU`「莘庄工业区」（启用，前台可见，1 楼盘） | 二选一 |
+
+#### 通用前置
+
+1. 代码先合并部署，让 `city_id` 列与回填迁移在生产落地。
+2. 部署后立刻查 `SELECT count(*) FROM locations WHERE type<>'city' AND city_id IS NULL;`（预期 0）。
+3. 每波执行前备份；dry-run 人工核对输出；`--apply --confirm-db postgres`。
+4. 全部导入节点 `frontendVisible=false`，C 端零可见变化，由运营逐个开。
+
 
 **Task 22 导入后验收结果**
 
