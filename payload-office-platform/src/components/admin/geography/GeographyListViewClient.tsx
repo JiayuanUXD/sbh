@@ -143,9 +143,18 @@ export default function GeographyListViewClient({
   )
 
   const handleCityChange = (value: string | undefined) => {
-    setFilter('city', value)
-    // 城市变化后，原来的行政区（parent）筛选大概率失效，一并重置
-    setFilter('parent', undefined)
+    // 城市变化后，原来的行政区（parent）筛选大概率失效，一并重置。
+    // 必须在同一次 URL 更新内完成：若拆成两次 setFilter，第二次会复用旧的
+    // searchParams 闭包（此刻尚未包含刚写入的 city），其 router.push(pathname)
+    // 会把 URL 重置回无参状态，导致 city 筛选丢失（Task 17 E2E flow3 暴露）。
+    const next = new URLSearchParams(searchParams.toString())
+    if (value === undefined || value === '') next.delete('city')
+    else next.set('city', value)
+    next.delete('parent')
+    next.delete('page')
+    const qs = next.toString()
+    if (qs) router.push(`${pathname}?${qs}`)
+    else router.push(pathname)
   }
 
   const handleSearch = () => {
