@@ -197,6 +197,12 @@ export default buildConfig({
           Component: '/components/admin/geography/GeographyCityDetail',
           path: '/geography/cities/:id',
         },
+        // Task 8 行政区「新建」轻量视图：/geography/districts/new（预填 type+parent，
+        // 提交过 protectLocation hook）。列表视图已 exact:true，不会误吞 /new。
+        GeographyDistrictCreate: {
+          Component: '/components/admin/geography/GeographyCreateView',
+          path: '/geography/districts/new',
+        },
       },
     },
     dashboard: {

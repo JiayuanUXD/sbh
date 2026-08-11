@@ -44,10 +44,12 @@ export type GeographyRow = {
 /** 传给客户端的模块配置必须是可序列化数据（不含 counter 函数）。 */
 type ClientModule = {
   type: GeographyModuleConfig['type']
+  route: GeographyModuleConfig['route']
   title: string
   columns: GeographyColumn[]
   filters: GeographyFilter[]
   emptyHint: string
+  create?: { parentFilter: 'city' | 'district' }
 }
 
 type Props = {
@@ -208,11 +210,35 @@ export default function GeographyListViewClient({
   const hasStatusFilter = module.filters.includes('status')
   const hasKeywordFilter = module.filters.includes('keyword')
 
+  /** 跳本模块「新建」视图，携带当前筛选作为预填上下文（parentFilter 决定带 city 还是 parent）。 */
+  const goCreate = () => {
+    const sp = new URLSearchParams()
+    if (module.create?.parentFilter === 'city' && city) sp.set('city', city)
+    if (module.create?.parentFilter === 'district' && parent) sp.set('parent', parent)
+    const qs = sp.toString()
+    window.location.href = `/admin${module.route}/new${qs ? `?${qs}` : ''}`
+  }
+
   return (
     <div style={{ padding: 24 }}>
-      <Typography.Title heading={5} style={{ marginTop: 0 }}>
-        {module.title}
-      </Typography.Title>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
+        <Typography.Title heading={5} style={{ margin: 0 }}>
+          {module.title}
+        </Typography.Title>
+        {module.create ? (
+          <Button type="primary" onClick={goCreate}>
+            新建
+          </Button>
+        ) : null}
+      </div>
 
       {/* 筛选栏：所有筛选写入 URL search params（可分享、后退可用） */}
       <Space wrap style={{ marginBottom: 16 }}>

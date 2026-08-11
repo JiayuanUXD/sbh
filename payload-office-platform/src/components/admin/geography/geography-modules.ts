@@ -34,6 +34,18 @@ export type GeographyColumn = {
 
 export type GeographyFilter = 'city' | 'district' | 'status' | 'keyword'
 
+/** 模块「新建」配置：跳轻量自定义新建视图（GeographyCreateView），预填类型 + 父级。 */
+export type GeographyCreateConfig = {
+  /** 新建时固定的 location.type（创建后不可改） */
+  type: LocationType
+  /** 用哪个筛选参数作为 parent 预填：city→城市筛选值，district→行政区筛选值 */
+  parentFilter: 'city' | 'district'
+  /** parent 下拉候选的节点类型 */
+  parentTargetType: LocationType
+  /** 新建按钮文案 */
+  label: string
+}
+
 /** Task 5 聚合计数服务签名（四模块统一：传本页 location id 数组 → Map<id, counts>） */
 export type ModuleCounter = (
   payload: Payload,
@@ -49,6 +61,8 @@ export type GeographyModuleConfig = {
   filters: GeographyFilter[]
   emptyHint: string
   counter: ModuleCounter
+  /** 有值则列表页头部出现「新建」按钮，跳 /admin<route>/new 轻量新建视图 */
+  create?: GeographyCreateConfig
 }
 
 const CITY_COLUMNS: GeographyColumn[] = [
@@ -114,6 +128,12 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     filters: ['city', 'status', 'keyword'],
     emptyHint: '暂无行政区',
     counter: countForDistricts,
+    create: {
+      type: 'district',
+      parentFilter: 'city',
+      parentTargetType: 'city',
+      label: '新建行政区',
+    },
   },
   business_area: {
     type: 'business_area',
@@ -140,6 +160,14 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
 export function getGeographyModuleByPath(pathname: string): GeographyModuleConfig | null {
   for (const m of Object.values(GEOGRAPHY_MODULES)) {
     if (m && pathname.endsWith(m.route)) return m
+  }
+  return null
+}
+
+/** 按「新建」路径解析模块（/admin/geography/districts/new → district 模块），仅解析有 create 配置的模块 */
+export function getGeographyModuleByCreatePath(pathname: string): GeographyModuleConfig | null {
+  for (const m of Object.values(GEOGRAPHY_MODULES)) {
+    if (m?.create && pathname.endsWith(`${m.route}/new`)) return m
   }
   return null
 }

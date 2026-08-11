@@ -125,10 +125,12 @@ export default async function GeographyListView(props: AdminViewServerProps) {
     <GeographyListViewClient
       module={{
         type: module.type,
+        route: module.route,
         title: module.title,
         columns: module.columns,
         filters: module.filters,
         emptyHint: module.emptyHint,
+        create: module.create ? { parentFilter: module.create.parentFilter } : undefined,
       }}
       rows={rows}
       total={result.totalDocs}

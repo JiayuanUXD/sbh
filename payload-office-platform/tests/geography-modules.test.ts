@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 import {
   GEOGRAPHY_MODULES,
+  getGeographyModuleByCreatePath,
   getGeographyModuleByPath,
   type GeographyColumn,
 } from '@/components/admin/geography/geography-modules'
@@ -68,5 +69,23 @@ describe('geography-modules/四模块共享列表配置', () => {
       expect(typeof m.counter).toBe('function')
       expect(m.emptyHint.length).toBeGreaterThan(0)
     }
+  })
+
+  it('行政区模块有新建配置：type=district，父级取城市筛选', () => {
+    const c = GEOGRAPHY_MODULES.district?.create
+    expect(c).toMatchObject({
+      type: 'district',
+      parentFilter: 'city',
+      parentTargetType: 'city',
+    })
+    expect(c?.label.length).toBeGreaterThan(0)
+  })
+
+  it('getGeographyModuleByCreatePath 仅解析带新建配置的 /<route>/new', () => {
+    expect(getGeographyModuleByCreatePath('/admin/geography/districts/new')?.type).toBe('district')
+    // 列表路径（非 /new）与无新建配置的模块（城市）都不命中
+    expect(getGeographyModuleByCreatePath('/admin/geography/districts')).toBeNull()
+    expect(getGeographyModuleByCreatePath('/admin/geography/cities/new')).toBeNull()
+    expect(getGeographyModuleByCreatePath('/admin/geography/unknown/new')).toBeNull()
   })
 })

@@ -377,9 +377,9 @@ type GeographyModuleConfig = {
 **新建**：跳 `/admin/collections/locations/create`，预填 `type=district` 与当前筛选的城市作为 `parent`。
 
 **验收**
-- [ ] 切换城市筛选列表正确变化，URL 可分享。
-- [ ] 新建预填正确，保存后 `city` 字段由 hook 自动填对。
-- [ ] 楼盘数与 `buildings.district` 实际关联数一致（含软删除过滤）。
+- [x] 切换城市筛选列表正确变化，URL 可分享。
+- [x] 新建预填正确，保存后 `city` 字段由 hook 自动填对。
+- [x] 楼盘数与 `buildings.district` 实际关联数一致（含软删除过滤）。
 
 ---
 
@@ -844,6 +844,7 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | `parent` 实际列名 | `parent_id`（integer, nullable） |
 | `metroStations` 关系中间表名 | `business_area_extensions_rels`（`parent_id`=扩展记录 id, `locations_id`=站点 id, `order`=排序） |
 | Payload 3.86 自定义 admin 视图注册方式 | `admin.components.views = { <键>: { Component, path } }`（`path` 以 `/` 开头，`exact` 缺省按前缀匹配）。⚠️ 3.86 的 `isCustomAdminView`（`@payloadcms/next`）把**所有**自定义视图当公共路由、跳过 `/admin` 登录重定向（`AdminViewConfig` 类型无 `public` 字段），未登录可直接访问并读到数据。必须在自定义视图 server 组件顶层自检 `initPageResult.req.user`，为空则 `redirect()` 到 `${admin.routes.login}?redirect=<当前路由>`（本计划在共享 `GeographyListView.tsx` 补一处，四路由共用） |
+| Payload 3.86 原生创建页预填 | **不支持从 query params 预填**。`Document/renderDocument` 在 create（无 id）时 `initialData:null`，`@payloadcms/next/views/Root` 不读 `?field=` 到初始表单态。Task 8 起「新建」改走轻量自定义视图 `/geography/<route>/new`（Server 解析模块+预填父级，Client 提交 REST 过 hook）——Task 9/10 复用同一套，别再用 query 预填原生创建页 |
 | `buildings` 可见性/软删除条件 | `trash: true`，软删除列 `deleted_at`（过滤 `deleted_at IS NULL`）；地理关系列 `city_id`/`district_id`/`business_district_id`/`nearest_metro_id` |
 
 | 换乘站归属口径 | 待定（B1.5） |
@@ -858,8 +859,9 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | 4 存量数据回填迁移 | ✅ 完成 | `feat(geography): Task 4 存量数据回填迁移`；手写 `20260810_200000_backfill_location_city`（递归 CTE 纯 UPDATE）；灌 2 城×5 类型样例后 `type<>'city' AND city_id IS NULL` = 0；up→down→up 往返验证通过。注：`parent_id` FK 在库层阻止断链父级，真孤儿无法落库，孤儿分支为防御性 |
 | 5 聚合计数服务 | ✅ 完成 | `feat(geography): Task 5 聚合计数服务`；`location-counts.ts` 原生 SQL 经 `payload.db.drizzle` 执行；每函数固定 1~2 条 SQL（`ANY($ids::int[])` 单参数绑定，ids 空直接空 Map）；商圈站点/线路走 `business_area_extensions_rels`；缺边界=无扩展或 boundary NULL/空；楼盘计数照搬 public-building 可见性；`drizzle-orm@0.45.2` 加为直接依赖（与 db-postgres 同版）；单测 8 例 + `verify:location-counts` 2 城 9 断言全过 |
 | 6 自定义 admin 路由骨架 + 共享列表组件 | ✅ 完成 | `feat(geography): Task 6 自定义 admin 路由骨架与共享列表组件`；四视图注册 `admin.components.views`（键+`path`，3.86 类型为准）；共享 `GeographyListView.tsx`(server)+`GeographyListViewClient.tsx`(client)+`geography-modules.ts`(模块注册)，四模块同一套组件非复制；筛选/分页全进 URL；抽屉 PATCH 带 `version` 乐观锁、冲突展示 `VersionConflictError` 文案；计算列 `sortable:false`。两个修复：`payload-after-error.ts` afterError 钩把 `DomainError` 映射回状态码（否则 `VersionConflictError` 被 500 兜底吞掉）；`ArcoReact19Provider`(`setCreateRoot`) 修 React 19 下 Arco `Message.success` 静默不渲染。C2 门禁：`pnpm test` 2610 绿、`pnpm build` 过、无 schema 变更（免 migrate）、`git diff --stat` 范围达标。期间发现并修复**匿名访问泄漏**——3.86 自定义视图无认证门槛，共享组件顶层补 `req.user` 判定 + `redirect()`（见 B3 视图注册行） |
-| 5–17 开发 | 进行中（Task 7 完，接 Task 8） | |
+| 5–17 开发 | 进行中（Task 8 完，接 Task 9） | |
 | 18–22 导入 | 待开始（依赖 1–17 完成） | |
+| 8 行政区模块（新建预填） | ✅ 完成 | `feat(geography): Task 8 行政区管理模块与新建视图`；行政区列表沿用 Task 6 共享组件（列/城市筛选/`countForDistricts` 计数已就绪）。重点打通「新建」：**发现 Payload 3.86 原生创建页不从 query params 预填**（`renderDocument` create 时 `initialData:null`，Root 视图不读 `?type=/parent=`）→ 用户拍板弃用「跳原生页预填」，改**轻量自定义新建视图** `GeographyCreateView`(server)+`GeographyCreateViewClient`(client)，注册 `/geography/districts/new`；`geography-modules.ts` 加 `create` 配置（type/parentFilter/parentTargetType/label）+ `getGeographyModuleByCreatePath`；列表头部按模块 create 配置渲染「新建」按钮，携带当前城市筛选跳 `/new?city=<id>` 预填 parent；表单提交 REST `/api/locations` 过 `protectLocation` hook → city 自动填对。单测 7 例（新增 create 配置 + 路径解析）。C2 门禁：`pnpm test` 2621 绿、`pnpm build` 过、无 schema 变更；浏览器验收：城市筛选预填 parent=上海、创建后跳编辑页 2014、`city` 自动写 2006、楼盘数与 `buildings.district` 一致（长宁=1）、匿名访问 `/new` 跳登录 |
 | 7 城市管理模块（详情页 + 只读层级树） | ✅ 完成 | `feat(geography): Task 7 城市管理模块`；新建 `/geography/cities/:id`，`GeographyCityDetail.tsx`(server)+`GeographyCityDetailClient.tsx`(client)；`location-tree.ts` 新增 `CITY_CHILD_GROUP_ORDER` + `groupCityDirectChildren`（DIRECT 子节点按类型分组，仅 district/metro_line 两个合法直接子类型，空的类型组不渲染，顺序固定 district→metro_line），TDD 4 用例；只读树默认展开一层（城市 + 各类型分组节点），无编辑/新建按钮，节点点击跳对应模块 `?q=<immutableCode>` 定位。三个修复：①`toFlatLocationNode` 只认对象 parent，`depth:0` 时关系字段回退为裸 number 导致 `parentId` 全 null、树只剩孤根——补 number 分支；②Arco Tree `selectedKeys` 是字符串 key，`byId` 却按 number 建索引，点击节点查不到而不跳转——统一字符串索引；③`findByID` 对不存在 id 抛 NotFound→500，改 `find(limit:1)` 过滤 type=city 一次查询，不存在/非城市走空态。C2 门禁：`pnpm test` 2619 绿、`pnpm build` 过、无 schema 变更（免 migrate）；浏览器验收上海完备度卡（行政区 5/缺边界 2 高亮/楼盘 6）、只读树分组与点击跳转、苏州/杭州 2 城、无效 id 空态、匿名登录重定向 |
 
 **七城导入登记**（Task 21 逐城填写）
