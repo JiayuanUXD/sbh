@@ -62,6 +62,7 @@ export const Locations: CollectionConfig = {
       required: true,
       unique: true,
       admin: {
+        readOnly: true,
         description: '全局唯一，创建后不可修改（大写字母/数字开头，2–64 位）',
       },
     },
@@ -79,6 +80,7 @@ export const Locations: CollectionConfig = {
       required: true,
       options: TYPE_OPTIONS,
       admin: {
+        readOnly: true,
         description: '固定层级：城市>行政区>商圈；城市>地铁线路>地铁站。创建后不可修改。',
       },
     },
@@ -88,6 +90,8 @@ export const Locations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       admin: {
+        // Task 14：城市无上级，非 city 才显示
+        condition: (data: { type?: unknown }) => data?.type !== 'city',
         description: '类型决定合法上级；移动不可跨城市。城市无上级。',
       },
     },
@@ -154,6 +158,11 @@ export const Locations: CollectionConfig = {
       name: 'description',
       label: '区域介绍',
       type: 'textarea',
+      admin: {
+        // Task 14：仅商圈与行政区有区域介绍
+        condition: (data: { type?: unknown }) =>
+          data?.type === 'business_area' || data?.type === 'district',
+      },
     },
     {
       name: 'coverImage',
@@ -161,6 +170,8 @@ export const Locations: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       admin: {
+        condition: (data: { type?: unknown }) =>
+          data?.type === 'business_area' || data?.type === 'district',
         description:
           '首页商圈卡的背景图。留空时前台回退为该商圈下首个有封面的楼盘图片。',
       },
