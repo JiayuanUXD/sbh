@@ -3,6 +3,7 @@ import { default as default_bf427791821cb68b80fd6a2a599fcca7 } from '../../../co
 import { default as default_a21b07bba5852f35566112350bac0679 } from '../../../components/admin/RoleRiskWarning'
 import { MediaGalleryListViewServer as MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0 } from 'payload-media-gallery/rsc'
 import { default as default_b3a30fd964c8ef5325a0c9cb68de576b } from '../../../components/admin/BusinessAreaExtensionPanel'
+import { default as default_53f14d1d17ec4cdae999bca8a04d34c3 } from '../../../components/admin/MetroLineStationsPanel'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_8ad26390242516b13cedc5e35ab214db } from '../../../components/admin/LocationTreeView'
@@ -73,6 +74,7 @@ export const importMap = {
   "/components/admin/RoleRiskWarning#default": default_a21b07bba5852f35566112350bac0679,
   "payload-media-gallery/rsc#MediaGalleryListViewServer": MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0,
   "/components/admin/BusinessAreaExtensionPanel#default": default_b3a30fd964c8ef5325a0c9cb68de576b,
+  "/components/admin/MetroLineStationsPanel#default": default_53f14d1d17ec4cdae999bca8a04d34c3,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "/components/admin/LocationTreeView#default": default_8ad26390242516b13cedc5e35ab214db,

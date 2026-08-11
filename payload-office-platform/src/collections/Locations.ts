@@ -195,5 +195,16 @@ export const Locations: CollectionConfig = {
         components: { Field: '/components/admin/BusinessAreaExtensionPanel' },
       },
     } as unknown as Field,
+    {
+      // 地铁线路的站点内嵌面板（Task 12）：内嵌进地铁线路编辑页，维护该线路全部站点。
+      // 必须有 id 才展示：新建线路无 id 时没有站点可列，由面板自身在无 id 时返回 null。
+      name: 'metroLineStations',
+      type: 'ui',
+      admin: {
+        condition: (data: { type?: unknown; id?: unknown }) =>
+          data?.type === 'metro_line' && Boolean(data?.id),
+        components: { Field: '/components/admin/MetroLineStationsPanel' },
+      },
+    } as unknown as Field,
   ],
 }
