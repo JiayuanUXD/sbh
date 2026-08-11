@@ -18,7 +18,9 @@ export const Locations: CollectionConfig = {
   slug: 'locations',
   labels: {
     singular: '区域',
-    plural: '行政区域',
+    // Task 16：地理管理重构后 locations 不再出现在导航，plural 仅用于面包屑等，
+    // 改为中性「地理数据」（排障兜底列表的入口仍在）。
+    plural: '地理数据',
   },
   // 自定义端点挂 collection（不能放顶层 config.endpoints，否则被 slug 路由遮蔽 → 404）。
   endpoints: [
@@ -31,14 +33,6 @@ export const Locations: CollectionConfig = {
     group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],
-    // M2.2：以树形管理视图整页替换默认列表（PRD 03_城市区域）
-    components: {
-      views: {
-        list: {
-          Component: '/components/admin/LocationTreeView',
-        },
-      },
-    },
   },
   access: {
     read: () => true,

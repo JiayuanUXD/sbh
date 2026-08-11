@@ -45,7 +45,7 @@ const targetPluralLabels = {
   media: '素材库',
   articles: '资讯中心',
   'form-submissions': '提交数据',
-  locations: '行政区域',
+  locations: '地理数据',
   'business-area-extensions': '商圈管理',
   amenities: '配套字典',
 } as const
