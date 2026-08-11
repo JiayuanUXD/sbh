@@ -93,10 +93,12 @@ describe('admin navigation config', () => {
           ['supply-submissions'],
         ),
         expectedGroup('supply-settings', '基础配置', [
-          expectedLeaf('locations', '行政区域', '/admin/collections/locations', ['locations']),
-          expectedLeaf('business-areas', '商圈管理', '/admin/collections/business-area-extensions', [
+          expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
+          expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
+          expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
             'business-areas',
           ]),
+          expectedLeaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations']),
           expectedLeaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
         ]),
       ]),
