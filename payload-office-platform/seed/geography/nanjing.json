@@ -1,87 +1,108 @@
-
+// ============================================================
+// 南京地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、南京地铁官方线网图、核心办公商圈人工盘点
+// 采集日期：待回填
+// 核对人：<name>
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/nanjing.json
+// ============================================================
 {
-  "_header": [
-    "============================================================",
-    "南京地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
-    "来源：国家统计局行政区划代码、南京地铁官方线网图、核心办公商圈人工盘点",
-    "采集日期：待回填",
-    "核对人：<name>",
-    "行政区划核对截止：2025-06-30",
-    "说明：坐标回填后由本骨架生成 seed/geography/nanjing.json",
-    "============================================================"
-  ],
   "city": {
     "name": "南京市",
     "immutableCode": "CITY-NJ",
     "slug": "nanjing",
-    "sortOrder": 2
+    "sortOrder": 2,
+    "centerLatitude": 32.059344,
+    "centerLongitude": 118.796624
   },
   "districts": [
     {
       "name": "玄武区",
       "immutableCode": "NJ-D-320102",
       "slug": "nanjing-xuanwu",
-      "sortOrder": 1
+      "sortOrder": 1,
+      "centerLatitude": 32.048644,
+      "centerLongitude": 118.797779
     },
     {
       "name": "秦淮区",
       "immutableCode": "NJ-D-320104",
       "slug": "nanjing-qinhuai",
-      "sortOrder": 2
+      "sortOrder": 2,
+      "centerLatitude": 32.039065,
+      "centerLongitude": 118.794792
     },
     {
       "name": "建邺区",
       "immutableCode": "NJ-D-320105",
       "slug": "nanjing-jianye",
-      "sortOrder": 3
+      "sortOrder": 3,
+      "centerLatitude": 32.003343,
+      "centerLongitude": 118.731642
     },
     {
       "name": "鼓楼区",
       "immutableCode": "NJ-D-320106",
       "slug": "nanjing-gulou",
-      "sortOrder": 4
+      "sortOrder": 4,
+      "centerLatitude": 32.066814,
+      "centerLongitude": 118.769943
     },
     {
       "name": "浦口区",
       "immutableCode": "NJ-D-320111",
       "slug": "nanjing-pukou",
-      "sortOrder": 5
+      "sortOrder": 5,
+      "centerLatitude": 32.059796,
+      "centerLongitude": 118.627165
     },
     {
       "name": "栖霞区",
       "immutableCode": "NJ-D-320113",
       "slug": "nanjing-qixia",
-      "sortOrder": 6
+      "sortOrder": 6,
+      "centerLatitude": 32.096423,
+      "centerLongitude": 118.909117
     },
     {
       "name": "雨花台区",
       "immutableCode": "NJ-D-320114",
       "slug": "nanjing-yuhuatai",
-      "sortOrder": 7
+      "sortOrder": 7,
+      "centerLatitude": 31.991291,
+      "centerLongitude": 118.779087
     },
     {
       "name": "江宁区",
       "immutableCode": "NJ-D-320115",
       "slug": "nanjing-jiangning",
-      "sortOrder": 8
+      "sortOrder": 8,
+      "centerLatitude": 31.953195,
+      "centerLongitude": 118.83951
     },
     {
       "name": "六合区",
       "immutableCode": "NJ-D-320116",
       "slug": "nanjing-liuhe",
-      "sortOrder": 9
+      "sortOrder": 9,
+      "centerLatitude": 32.323235,
+      "centerLongitude": 118.822241
     },
     {
       "name": "溧水区",
       "immutableCode": "NJ-D-320117",
       "slug": "nanjing-lishui",
-      "sortOrder": 10
+      "sortOrder": 10,
+      "centerLatitude": 31.651108,
+      "centerLongitude": 119.028414
     },
     {
       "name": "高淳区",
       "immutableCode": "NJ-D-320118",
       "slug": "nanjing-gaochun",
-      "sortOrder": 11
+      "sortOrder": 11,
+      "centerLatitude": 31.328678,
+      "centerLongitude": 118.892074
     }
   ],
   "businessAreas": [
@@ -89,115 +110,153 @@
       "name": "新街口中央商务区",
       "districtCode": "NJ-D-320104",
       "slug": "nanjing-xinjie-kou",
-      "immutableCode": "NJ-BA-XINJIEKOU"
+      "immutableCode": "NJ-BA-XINJIEKOU",
+      "centerLatitude": 32.030481,
+      "centerLongitude": 118.738613
     },
     {
       "name": "鼓楼商务区",
       "districtCode": "NJ-D-320106",
       "slug": "nanjing-gulou-shangwuqu",
-      "immutableCode": "NJ-BA-GULOU"
+      "immutableCode": "NJ-BA-GULOU",
+      "centerLatitude": 32.088424,
+      "centerLongitude": 118.739779
     },
     {
       "name": "湖南路商务区",
       "districtCode": "NJ-D-320106",
       "slug": "nanjing-hunan-lu",
-      "immutableCode": "NJ-BA-HUNANLU"
+      "immutableCode": "NJ-BA-HUNANLU",
+      "centerLatitude": 32.072695,
+      "centerLongitude": 118.783368
     },
     {
       "name": "龙江商务区",
       "districtCode": "NJ-D-320106",
       "slug": "nanjing-longjiang",
-      "immutableCode": "NJ-BA-LONGJIANG"
+      "immutableCode": "NJ-BA-LONGJIANG",
+      "centerLatitude": 31.989436,
+      "centerLongitude": 118.720828
     },
     {
       "name": "珠江路科技街",
       "districtCode": "NJ-D-320102",
       "slug": "nanjing-zhujiang-lu",
-      "immutableCode": "NJ-BA-ZHUJIANGLU"
+      "immutableCode": "NJ-BA-ZHUJIANGLU",
+      "centerLatitude": 32.050017,
+      "centerLongitude": 118.788398
     },
     {
       "name": "徐庄软件园",
       "districtCode": "NJ-D-320102",
       "slug": "nanjing-xuzhuang",
-      "immutableCode": "NJ-BA-XUZHUANG"
+      "immutableCode": "NJ-BA-XUZHUANG",
+      "centerLatitude": 32.087063,
+      "centerLongitude": 118.890183
     },
     {
       "name": "河西CBD",
       "districtCode": "NJ-D-320105",
       "slug": "nanjing-hexi",
-      "immutableCode": "NJ-BA-HEXI"
+      "immutableCode": "NJ-BA-HEXI",
+      "centerLatitude": 32.001457,
+      "centerLongitude": 118.728739
     },
     {
       "name": "南京金融城",
       "districtCode": "NJ-D-320105",
       "slug": "nanjing-jinrong-cheng",
-      "immutableCode": "NJ-BA-JINRONGCHENG"
+      "immutableCode": "NJ-BA-JINRONGCHENG",
+      "centerLatitude": 31.988642,
+      "centerLongitude": 118.718214
     },
     {
       "name": "软件谷商务区",
       "districtCode": "NJ-D-320114",
       "slug": "nanjing-ruanjiangu",
-      "immutableCode": "NJ-BA-RUANJIANGU"
+      "immutableCode": "NJ-BA-RUANJIANGU",
+      "centerLatitude": 31.974277,
+      "centerLongitude": 118.750145
     },
     {
       "name": "江北新区中央商务区",
       "districtCode": "NJ-D-320111",
       "slug": "nanjing-jiangbei",
-      "immutableCode": "NJ-BA-JIANGBEI"
+      "immutableCode": "NJ-BA-JIANGBEI",
+      "centerLatitude": 32.057916,
+      "centerLongitude": 118.680354
     },
     {
       "name": "江北研创园",
       "districtCode": "NJ-D-320111",
       "slug": "nanjing-yanchuang-yuan",
-      "immutableCode": "NJ-BA-YANCHUANGYUAN"
+      "immutableCode": "NJ-BA-YANCHUANGYUAN",
+      "centerLatitude": 32.034393,
+      "centerLongitude": 118.642908
     },
     {
       "name": "南部新城",
       "districtCode": "NJ-D-320104",
       "slug": "nanjing-nanbu-xincheng",
-      "immutableCode": "NJ-BA-NANBUXINCHENG"
+      "immutableCode": "NJ-BA-NANBUXINCHENG",
+      "centerLatitude": 32.0036,
+      "centerLongitude": 118.840863
     },
     {
       "name": "百家湖商务区",
       "districtCode": "NJ-D-320115",
       "slug": "nanjing-baijia-hu",
-      "immutableCode": "NJ-BA-BAIJIAHU"
+      "immutableCode": "NJ-BA-BAIJIAHU",
+      "centerLatitude": 31.933138,
+      "centerLongitude": 118.811716
     },
     {
       "name": "九龙湖商务区",
       "districtCode": "NJ-D-320115",
       "slug": "nanjing-jiulong-hu",
-      "immutableCode": "NJ-BA-JIULONGHU"
+      "immutableCode": "NJ-BA-JIULONGHU",
+      "centerLatitude": 31.913907,
+      "centerLongitude": 118.818524
     },
     {
       "name": "江宁开发区",
       "districtCode": "NJ-D-320115",
       "slug": "nanjing-jiangning-kaifaqu",
-      "immutableCode": "NJ-BA-JIANGNINGKAIFAQU"
+      "immutableCode": "NJ-BA-JIANGNINGKAIFAQU",
+      "centerLatitude": 31.927235,
+      "centerLongitude": 118.789216
     },
     {
       "name": "仙林商务区",
       "districtCode": "NJ-D-320113",
       "slug": "nanjing-xianlin",
-      "immutableCode": "NJ-BA-XIANLIN"
+      "immutableCode": "NJ-BA-XIANLIN",
+      "centerLatitude": 32.104,
+      "centerLongitude": 118.929625
     },
     {
       "name": "燕子矶新城",
       "districtCode": "NJ-D-320113",
       "slug": "nanjing-yanziji",
-      "immutableCode": "NJ-BA-YANZIJI"
+      "immutableCode": "NJ-BA-YANZIJI",
+      "centerLatitude": 32.13744,
+      "centerLongitude": 118.83376
     },
     {
       "name": "南京经开区",
       "districtCode": "NJ-D-320113",
       "slug": "nanjing-jingkai-qu",
-      "immutableCode": "NJ-BA-JINGKAIQU"
+      "immutableCode": "NJ-BA-JINGKAIQU",
+      "centerLatitude": 32.161197,
+      "centerLongitude": 118.866972
     },
     {
       "name": "六合雄州商务区",
       "districtCode": "NJ-D-320116",
       "slug": "nanjing-xiongzhou",
-      "immutableCode": "NJ-BA-XIONGZHOU"
+      "immutableCode": "NJ-BA-XIONGZHOU",
+      "centerLatitude": 32.013675,
+      "centerLongitude": 118.739675
     }
   ],
   "metroLines": [
@@ -211,175 +270,233 @@
           "name": "八卦洲大桥南",
           "immutableCode": "NJ-MS-BAGUAZHOUDAQIAOAN",
           "slug": "nanjing-metro-bagua-zhou-da-qiao-nan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.145568,
+          "centerLongitude": 118.842255
         },
         {
           "name": "晓庄",
           "immutableCode": "NJ-MS-XIAOZHUANG",
           "slug": "nanjing-metro-xiao-zhuang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.117229,
+          "centerLongitude": 118.818517
         },
         {
           "name": "迈皋桥",
           "immutableCode": "NJ-MS-MAIGAOQIAO",
           "slug": "nanjing-metro-mai-gao-qiao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.102712,
+          "centerLongitude": 118.809677
         },
         {
           "name": "红山动物园",
           "immutableCode": "NJ-MS-HONGSHANDONGWUYUAN",
           "slug": "nanjing-metro-hongshan-dongwuyuan",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.095774,
+          "centerLongitude": 118.802053
         },
         {
           "name": "南京站",
           "immutableCode": "NJ-MS-NANJINGZHAN",
           "slug": "nanjing-metro-nanjing-zhan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.089322,
+          "centerLongitude": 118.796509
         },
         {
           "name": "新模范马路",
           "immutableCode": "NJ-MS-XINMOFANMALU",
           "slug": "nanjing-metro-xin-mofan-malu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.079871,
+          "centerLongitude": 118.783714
         },
         {
           "name": "玄武门",
           "immutableCode": "NJ-MS-XUANWUMEN",
           "slug": "nanjing-metro-xuanwu-men",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.070381,
+          "centerLongitude": 118.784221
         },
         {
           "name": "鼓楼",
           "immutableCode": "NJ-MS-GULOU",
           "slug": "nanjing-metro-gulou",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.058667,
+          "centerLongitude": 118.783701
         },
         {
           "name": "珠江路",
           "immutableCode": "NJ-MS-ZHUJIANGLU",
           "slug": "nanjing-metro-zhujiang-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.050974,
+          "centerLongitude": 118.784208
         },
         {
           "name": "新街口",
           "immutableCode": "NJ-MS-XINJIEKOU",
           "slug": "nanjing-metro-xinjie-kou",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.041806,
+          "centerLongitude": 118.784136
         },
         {
           "name": "张府园",
           "immutableCode": "NJ-MS-ZHANGFUYUAN",
           "slug": "nanjing-metro-zhangfu-yuan",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.030966,
+          "centerLongitude": 118.783837
         },
         {
           "name": "三山街",
           "immutableCode": "NJ-MS-SANSHANJIE",
           "slug": "nanjing-metro-sanshan-jie",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.023021,
+          "centerLongitude": 118.781583
         },
         {
           "name": "中华门",
           "immutableCode": "NJ-MS-ZHONGHUAMEN",
           "slug": "nanjing-metro-zhonghua-men",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.006748,
+          "centerLongitude": 118.774447
         },
         {
           "name": "安德门",
           "immutableCode": "NJ-MS-ANDEMEN",
           "slug": "nanjing-metro-ande-men",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.990862,
+          "centerLongitude": 118.762136
         },
         {
           "name": "天隆寺",
           "immutableCode": "NJ-MS-TIANLONGSI",
           "slug": "nanjing-metro-tianlong-si",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.979272,
+          "centerLongitude": 118.763131
         },
         {
           "name": "软件大道",
           "immutableCode": "NJ-MS-RUANJIANDADAO",
           "slug": "nanjing-metro-ruanjian-dadao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.976801,
+          "centerLongitude": 118.774598
         },
         {
           "name": "花神庙",
           "immutableCode": "NJ-MS-HUASHENMIAO",
           "slug": "nanjing-metro-huashen-miao",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.977795,
+          "centerLongitude": 118.785648
         },
         {
           "name": "南京南站",
           "immutableCode": "NJ-MS-NANJINGNANZHAN",
           "slug": "nanjing-metro-nanjing-nan-zhan",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.970968,
+          "centerLongitude": 118.796786
         },
         {
           "name": "双龙大道",
           "immutableCode": "NJ-MS-SHUANGLONGDADAO",
           "slug": "nanjing-metro-shuanglong-dadao",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.963833,
+          "centerLongitude": 118.817196
         },
         {
           "name": "河定桥",
           "immutableCode": "NJ-MS-HEDINGQIAO",
           "slug": "nanjing-metro-heding-qiao",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.952092,
+          "centerLongitude": 118.820141
         },
         {
           "name": "胜太路",
           "immutableCode": "NJ-MS-SHENGTAILU",
           "slug": "nanjing-metro-shengtai-lu",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.943549,
+          "centerLongitude": 118.821393
         },
         {
           "name": "百家湖",
           "immutableCode": "NJ-MS-BAIJIAHU",
           "slug": "nanjing-metro-baijia-hu",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 31.931941,
+          "centerLongitude": 118.820843
         },
         {
           "name": "小龙湾",
           "immutableCode": "NJ-MS-XIAOLONGWAN",
           "slug": "nanjing-metro-xiaolong-wan",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 31.929735,
+          "centerLongitude": 118.832734
         },
         {
           "name": "竹山路",
           "immutableCode": "NJ-MS-ZHUSHANLU",
           "slug": "nanjing-metro-zhushan-lu",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 31.931865,
+          "centerLongitude": 118.845709
         },
         {
           "name": "天印大道",
           "immutableCode": "NJ-MS-TIANYINDADAO",
           "slug": "nanjing-metro-tianyin-dadao",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 31.937638,
+          "centerLongitude": 118.863561
         },
         {
           "name": "龙眠大道",
           "immutableCode": "NJ-MS-LONGMIANDADAO",
           "slug": "nanjing-metro-longmian-dadao",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 31.939902,
+          "centerLongitude": 118.877156
         },
         {
           "name": "南医大·江苏经贸学院",
           "immutableCode": "NJ-MS-NANYIDAJIANGSUJINGMAOXUEYUAN",
           "slug": "nanjing-metro-nanyi-jiangsu-jingmao-xueyuan",
-          "sortOrder": 27
+          "sortOrder": 27,
+          "centerLatitude": 31.933475,
+          "centerLongitude": 118.890239
         },
         {
           "name": "南京交院",
           "immutableCode": "NJ-MS-NANJINGJIAOYUAN",
           "slug": "nanjing-metro-nanjing-jiaoyuan",
-          "sortOrder": 28
+          "sortOrder": 28,
+          "centerLatitude": 31.91286,
+          "centerLongitude": 118.904804
         },
         {
           "name": "中国药科大学",
           "immutableCode": "NJ-MS-ZHONGGUOYAOKEDAXUE",
           "slug": "nanjing-metro-zhongguo-yaoke-daxue",
-          "sortOrder": 29
+          "sortOrder": 29,
+          "centerLatitude": 31.897684,
+          "centerLongitude": 118.914127
         }
       ]
     },
@@ -393,175 +510,233 @@
           "name": "鱼嘴",
           "immutableCode": "NJ-MS-YUZUI",
           "slug": "nanjing-metro-yuzui",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.96673,
+          "centerLongitude": 118.669853
         },
         {
           "name": "天保街",
           "immutableCode": "NJ-MS-TIANBAOJIE",
           "slug": "nanjing-metro-tianbao-jie",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.965968,
+          "centerLongitude": 118.678564
         },
         {
           "name": "青莲街",
           "immutableCode": "NJ-MS-QINGLIANJIE",
           "slug": "nanjing-metro-qinglian-jie",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.961349,
+          "centerLongitude": 118.691773
         },
         {
           "name": "螺塘路",
           "immutableCode": "NJ-MS-LUOTANGLU",
           "slug": "nanjing-metro-luotang-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.961404,
+          "centerLongitude": 118.7017
         },
         {
           "name": "油坊桥",
           "immutableCode": "NJ-MS-YOUFANGQIAO",
           "slug": "nanjing-metro-youfang-qiao",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.966454,
+          "centerLongitude": 118.721361
         },
         {
           "name": "雨润大街",
           "immutableCode": "NJ-MS-YURUNDAJIE",
           "slug": "nanjing-metro-yurun-dajie",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.983679,
+          "centerLongitude": 118.722613
         },
         {
           "name": "元通",
           "immutableCode": "NJ-MS-YUANTONG",
           "slug": "nanjing-metro-yuantong",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.995471,
+          "centerLongitude": 118.721449
         },
         {
           "name": "奥体东",
           "immutableCode": "NJ-MS-AOTIDONG",
           "slug": "nanjing-metro-aoti-dong",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.005077,
+          "centerLongitude": 118.729086
         },
         {
           "name": "兴隆大街",
           "immutableCode": "NJ-MS-XINGLONGDAJIE",
           "slug": "nanjing-metro-xinglong-dajie",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.015197,
+          "centerLongitude": 118.736465
         },
         {
           "name": "集庆门大街",
           "immutableCode": "NJ-MS-JIQINGMENDAJIE",
           "slug": "nanjing-metro-jiqingmen-dajie",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.028573,
+          "centerLongitude": 118.73958
         },
         {
           "name": "云锦路",
           "immutableCode": "NJ-MS-YUNJINLU",
           "slug": "nanjing-metro-yunjin-lu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.034912,
+          "centerLongitude": 118.747323
         },
         {
           "name": "莫愁湖",
           "immutableCode": "NJ-MS-MOCHOUHU",
           "slug": "nanjing-metro-mochou-hu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.037428,
+          "centerLongitude": 118.759568
         },
         {
           "name": "汉中门",
           "immutableCode": "NJ-MS-HANZHONGMEN",
           "slug": "nanjing-metro-hanzhong-men",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.042725,
+          "centerLongitude": 118.76708
         },
         {
           "name": "上海路",
           "immutableCode": "NJ-MS-SHANGHAILU",
           "slug": "nanjing-metro-shanghai-lu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.04228,
+          "centerLongitude": 118.776208
         },
         {
           "name": "大行宫",
           "immutableCode": "NJ-MS-DAXINGGONG",
           "slug": "nanjing-metro-daxing-gong",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.041737,
+          "centerLongitude": 118.794787
         },
         {
           "name": "西安门",
           "immutableCode": "NJ-MS-XIANMEN",
           "slug": "nanjing-metro-xian-men",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 32.040108,
+          "centerLongitude": 118.805761
         },
         {
           "name": "明故宫",
           "immutableCode": "NJ-MS-MINGGUGONG",
           "slug": "nanjing-metro-minggu-gong",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 32.039218,
+          "centerLongitude": 118.819746
         },
         {
           "name": "苜蓿园",
           "immutableCode": "NJ-MS-MUXUYUAN",
           "slug": "nanjing-metro-muxu-yuan",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 32.040239,
+          "centerLongitude": 118.83531
         },
         {
           "name": "下马坊",
           "immutableCode": "NJ-MS-XIAMAFANG",
           "slug": "nanjing-metro-xiama-fang",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 32.037578,
+          "centerLongitude": 118.848373
         },
         {
           "name": "孝陵卫",
           "immutableCode": "NJ-MS-XIAOLINGWEI",
           "slug": "nanjing-metro-xiaoling-wei",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 32.035416,
+          "centerLongitude": 118.858058
         },
         {
           "name": "钟灵街",
           "immutableCode": "NJ-MS-ZHONGLINGJIE",
           "slug": "nanjing-metro-zhongling-jie",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 32.039146,
+          "centerLongitude": 118.869395
         },
         {
           "name": "马群",
           "immutableCode": "NJ-MS-MAQUN",
           "slug": "nanjing-metro-maqun",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 32.049649,
+          "centerLongitude": 118.894721
         },
         {
           "name": "金马路",
           "immutableCode": "NJ-MS-JINMALU",
           "slug": "nanjing-metro-jinma-lu",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 32.071737,
+          "centerLongitude": 118.906302
         },
         {
           "name": "仙鹤门",
           "immutableCode": "NJ-MS-XIANHEMEN",
           "slug": "nanjing-metro-xianhe-men",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 32.084911,
+          "centerLongitude": 118.904914
         },
         {
           "name": "学则路",
           "immutableCode": "NJ-MS-XUEZELU",
           "slug": "nanjing-metro-xueze-lu",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 32.09128,
+          "centerLongitude": 118.916778
         },
         {
           "name": "仙林中心",
           "immutableCode": "NJ-MS-XIANLINZHONGXIN",
           "slug": "nanjing-metro-xianlin-zhongxin",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 32.098663,
+          "centerLongitude": 118.930412
         },
         {
           "name": "羊山公园",
           "immutableCode": "NJ-MS-YANGSHANGONGYUAN",
           "slug": "nanjing-metro-yangshan-gongyuan",
-          "sortOrder": 27
+          "sortOrder": 27,
+          "centerLatitude": 32.103465,
+          "centerLongitude": 118.939324
         },
         {
           "name": "南大仙林校区",
           "immutableCode": "NJ-MS-NANDAXIANLINXIAOQU",
           "slug": "nanjing-metro-nanda-xianlin-xiaoqu",
-          "sortOrder": 28
+          "sortOrder": 28,
+          "centerLatitude": 32.108763,
+          "centerLongitude": 118.95951
         },
         {
           "name": "经天路",
           "immutableCode": "NJ-MS-JINGTIANLU",
           "slug": "nanjing-metro-jingtian-lu",
-          "sortOrder": 29
+          "sortOrder": 29,
+          "centerLatitude": 32.116151,
+          "centerLongitude": 118.976654
         }
       ]
     },
@@ -575,151 +750,201 @@
           "name": "林场",
           "immutableCode": "NJ-MS-LINCHANG",
           "slug": "nanjing-metro-linchang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.16369,
+          "centerLongitude": 118.671339
         },
         {
           "name": "泰冯路",
           "immutableCode": "NJ-MS-TAIFENGLU",
           "slug": "nanjing-metro-taifeng-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.153441,
+          "centerLongitude": 118.718931
         },
         {
           "name": "天润城",
           "immutableCode": "NJ-MS-TIANRUNCHENG",
           "slug": "nanjing-metro-tianrun-cheng",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.150854,
+          "centerLongitude": 118.734078
         },
         {
           "name": "柳洲东路",
           "immutableCode": "NJ-MS-LIUZHOUDONGLU",
           "slug": "nanjing-metro-liuzhou-dong-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.139965,
+          "centerLongitude": 118.746237
         },
         {
           "name": "浦珠路",
           "immutableCode": "NJ-MS-PUZHULU",
           "slug": "nanjing-metro-puzhu-lu",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.118663,
+          "centerLongitude": 118.718666
         },
         {
           "name": "五塘广场",
           "immutableCode": "NJ-MS-WUTANGGUANGCHANG",
           "slug": "nanjing-metro-wutang-guangchang",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.1105,
+          "centerLongitude": 118.777688
         },
         {
           "name": "上元门",
           "immutableCode": "NJ-MS-SHANGYUANMEN",
           "slug": "nanjing-metro-shangyuan-men",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.115468,
+          "centerLongitude": 118.769921
         },
         {
           "name": "小市",
           "immutableCode": "NJ-MS-XIAOSHI",
           "slug": "nanjing-metro-xiaoshi",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.094998,
+          "centerLongitude": 118.785737
         },
         {
           "name": "新庄",
           "immutableCode": "NJ-MS-XINZHUANG",
           "slug": "nanjing-metro-xinzhuang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.076463,
+          "centerLongitude": 118.810435
         },
         {
           "name": "鸡鸣寺",
           "immutableCode": "NJ-MS-JIMINGSI",
           "slug": "nanjing-metro-jiming-si",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.057266,
+          "centerLongitude": 118.798082
         },
         {
           "name": "浮桥",
           "immutableCode": "NJ-MS-FUQIAO",
           "slug": "nanjing-metro-fuqiao",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.04866,
+          "centerLongitude": 118.796107
         },
         {
           "name": "常府街",
           "immutableCode": "NJ-MS-CHANGFUJIE",
           "slug": "nanjing-metro-changfu-jie",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.033401,
+          "centerLongitude": 118.792317
         },
         {
           "name": "夫子庙",
           "immutableCode": "NJ-MS-FUZIMIAO",
           "slug": "nanjing-metro-fuzi-miao",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.023567,
+          "centerLongitude": 118.791072
         },
         {
           "name": "武定门",
           "immutableCode": "NJ-MS-WUDINGMEN",
           "slug": "nanjing-metro-wuding-men",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.013747,
+          "centerLongitude": 118.794632
         },
         {
           "name": "雨花门",
           "immutableCode": "NJ-MS-YUHUAMEN",
           "slug": "nanjing-metro-yuhua-men",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.003779,
+          "centerLongitude": 118.792454
         },
         {
           "name": "卡子门",
           "immutableCode": "NJ-MS-KAZIMEN",
           "slug": "nanjing-metro-kazi-men",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.994818,
+          "centerLongitude": 118.796879
         },
         {
           "name": "大明路",
           "immutableCode": "NJ-MS-DAMINGLU",
           "slug": "nanjing-metro-daming-lu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.986114,
+          "centerLongitude": 118.799624
         },
         {
           "name": "明发广场",
           "immutableCode": "NJ-MS-MINGFAGUANGCHANG",
           "slug": "nanjing-metro-mingfa-guangchang",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.97705,
+          "centerLongitude": 118.800512
         },
         {
           "name": "宏运大道",
           "immutableCode": "NJ-MS-HONGYUNDADAO",
           "slug": "nanjing-metro-hongyun-dadao",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.959019,
+          "centerLongitude": 118.804067
         },
         {
           "name": "胜太西路",
           "immutableCode": "NJ-MS-SHENGTAIXILU",
           "slug": "nanjing-metro-shengtai-xi-lu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.943772,
+          "centerLongitude": 118.807434
         },
         {
           "name": "天元西路",
           "immutableCode": "NJ-MS-TIANYUANXILU",
           "slug": "nanjing-metro-tianyuan-xi-lu",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.927697,
+          "centerLongitude": 118.808591
         },
         {
           "name": "九龙湖",
           "immutableCode": "NJ-MS-JIULONGHU",
           "slug": "nanjing-metro-jiulong-hu",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 31.915939,
+          "centerLongitude": 118.821263
         },
         {
           "name": "诚信大道",
           "immutableCode": "NJ-MS-CHENGXINDADAO",
           "slug": "nanjing-metro-chengxin-dadao",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 31.909256,
+          "centerLongitude": 118.831717
         },
         {
           "name": "东大九龙湖校区",
           "immutableCode": "NJ-MS-DONGDAJIULONGHUXIAOQU",
           "slug": "nanjing-metro-dongda-jiulonghu-xiaoqu",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 31.896037,
+          "centerLongitude": 118.83045
         },
         {
           "name": "秣周东路",
           "immutableCode": "NJ-MS-MOZHOUDONGLU",
           "slug": "nanjing-metro-mozhou-dong-lu",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 31.868977,
+          "centerLongitude": 118.831022
         }
       ]
     },
@@ -733,91 +958,121 @@
           "name": "龙江",
           "immutableCode": "NJ-MS-LONGJIANG",
           "slug": "nanjing-metro-longjiang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.057926,
+          "centerLongitude": 118.73805
         },
         {
           "name": "草场门",
           "immutableCode": "NJ-MS-CAOCHANGMEN",
           "slug": "nanjing-metro-caochang-men",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.060337,
+          "centerLongitude": 118.755501
         },
         {
           "name": "云南路",
           "immutableCode": "NJ-MS-YUNNANLU",
           "slug": "nanjing-metro-yunnan-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.060115,
+          "centerLongitude": 118.77454
         },
         {
           "name": "九华山",
           "immutableCode": "NJ-MS-JIUHUASHAN",
           "slug": "nanjing-metro-jiuhua-shan",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.057314,
+          "centerLongitude": 118.806
         },
         {
           "name": "岗子村",
           "immutableCode": "NJ-MS-GANGZICUN",
           "slug": "nanjing-metro-gangzi-cun",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.065571,
+          "centerLongitude": 118.815835
         },
         {
           "name": "蒋王庙",
           "immutableCode": "NJ-MS-JIANGWANGMIAO",
           "slug": "nanjing-metro-jiangwang-miao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.077536,
+          "centerLongitude": 118.831148
         },
         {
           "name": "王家湾",
           "immutableCode": "NJ-MS-WANGJIAWAN",
           "slug": "nanjing-metro-wangjia-wan",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.085238,
+          "centerLongitude": 118.837855
         },
         {
           "name": "聚宝山",
           "immutableCode": "NJ-MS-JUBAOSHAN",
           "slug": "nanjing-metro-jubao-shan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.093858,
+          "centerLongitude": 118.864212
         },
         {
           "name": "徐庄",
           "immutableCode": "NJ-MS-XUZHUANG",
           "slug": "nanjing-metro-xuzhuang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.084861,
+          "centerLongitude": 118.889679
         },
         {
           "name": "汇通路",
           "immutableCode": "NJ-MS-HUITONGLU",
           "slug": "nanjing-metro-huitong-lu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.078018,
+          "centerLongitude": 118.931631
         },
         {
           "name": "灵山",
           "immutableCode": "NJ-MS-LINGSHAN",
           "slug": "nanjing-metro-lingshan",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.077698,
+          "centerLongitude": 118.943672
         },
         {
           "name": "东流",
           "immutableCode": "NJ-MS-DONGLIU",
           "slug": "nanjing-metro-dongliu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.077173,
+          "centerLongitude": 118.964224
         },
         {
           "name": "孟北",
           "immutableCode": "NJ-MS-MENGBEI",
           "slug": "nanjing-metro-mengbei",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.084468,
+          "centerLongitude": 118.98724
         },
         {
           "name": "桦墅",
           "immutableCode": "NJ-MS-HUASHU",
           "slug": "nanjing-metro-huashu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.098965,
+          "centerLongitude": 118.996482
         },
         {
           "name": "仙林湖",
           "immutableCode": "NJ-MS-XIANLINHU",
           "slug": "nanjing-metro-xianlin-hu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.125509,
+          "centerLongitude": 118.992658
         }
       ]
     },
@@ -831,127 +1086,169 @@
           "name": "仙新路",
           "immutableCode": "NJ-MS-XIANXINLU",
           "slug": "nanjing-metro-xianxin-lu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.126693,
+          "centerLongitude": 118.895297
         },
         {
           "name": "尧化门",
           "immutableCode": "NJ-MS-YAOHUAMEN",
           "slug": "nanjing-metro-yaohua-men",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.122646,
+          "centerLongitude": 118.887867
         },
         {
           "name": "尧化新村",
           "immutableCode": "NJ-MS-YAOHUAXINCUN",
           "slug": "nanjing-metro-yaohua-xincun",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.115239,
+          "centerLongitude": 118.875715
         },
         {
           "name": "丁家庄南",
           "immutableCode": "NJ-MS-DINGJIAZHUANGNAN",
           "slug": "nanjing-metro-dingjiazhuang-nan",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.107659,
+          "centerLongitude": 118.859908
         },
         {
           "name": "丁家庄",
           "immutableCode": "NJ-MS-DINGJIAZHUANG",
           "slug": "nanjing-metro-dingjiazhuang",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.111546,
+          "centerLongitude": 118.849892
         },
         {
           "name": "万寿",
           "immutableCode": "NJ-MS-WANSHOU",
           "slug": "nanjing-metro-wanshou",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.119434,
+          "centerLongitude": 118.833819
         },
         {
           "name": "幕府山",
           "immutableCode": "NJ-MS-MUFUSHAN",
           "slug": "nanjing-metro-mufu-shan",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.114303,
+          "centerLongitude": 118.798662
         },
         {
           "name": "幕府西路",
           "immutableCode": "NJ-MS-MUFUXILU",
           "slug": "nanjing-metro-mufu-xi-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.105533,
+          "centerLongitude": 118.771274
         },
         {
           "name": "钟阜路",
           "immutableCode": "NJ-MS-ZHONGFULU",
           "slug": "nanjing-metro-zhongfu-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.091454,
+          "centerLongitude": 118.771722
         },
         {
           "name": "福建路",
           "immutableCode": "NJ-MS-FUJIANLU",
           "slug": "nanjing-metro-fujian-lu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.079904,
+          "centerLongitude": 118.759362
         },
         {
           "name": "古平岗",
           "immutableCode": "NJ-MS-GUPINGGANG",
           "slug": "nanjing-metro-guping-gang",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.071226,
+          "centerLongitude": 118.757933
         },
         {
           "name": "清凉山",
           "immutableCode": "NJ-MS-QINGLIANGSHAN",
           "slug": "nanjing-metro-qingliang-shan",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.048316,
+          "centerLongitude": 118.760168
         },
         {
           "name": "大士茶亭",
           "immutableCode": "NJ-MS-DASHICHATING",
           "slug": "nanjing-metro-dashi-chating",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.031757,
+          "centerLongitude": 118.757333
         },
         {
           "name": "南湖",
           "immutableCode": "NJ-MS-NANHU",
           "slug": "nanjing-metro-nanhu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.023787,
+          "centerLongitude": 118.754317
         },
         {
           "name": "应天大街",
           "immutableCode": "NJ-MS-YINGTIANDAJIE",
           "slug": "nanjing-metro-yingtian-dajie",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.016428,
+          "centerLongitude": 118.749161
         },
         {
           "name": "梦都大街东",
           "immutableCode": "NJ-MS-MENGDUDAJIEDONG",
           "slug": "nanjing-metro-mengdu-dajie-dong",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 32.003936,
+          "centerLongitude": 118.746448
         },
         {
           "name": "新城科技园",
           "immutableCode": "NJ-MS-XINCHENGKEJIYUAN",
           "slug": "nanjing-metro-xincheng-keji-yuan",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.993694,
+          "centerLongitude": 118.738239
         },
         {
           "name": "中胜",
           "immutableCode": "NJ-MS-ZHONGSHENG",
           "slug": "nanjing-metro-zhongsheng",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.987911,
+          "centerLongitude": 118.73317
         },
         {
           "name": "嘉陵江东街",
           "immutableCode": "NJ-MS-JIALINGJIANGDONGJIE",
           "slug": "nanjing-metro-jialingjiang-dong-jie",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.982159,
+          "centerLongitude": 118.727853
         },
         {
           "name": "太清路",
           "immutableCode": "NJ-MS-TAIQINGLU",
           "slug": "nanjing-metro-taiqing-lu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.966395,
+          "centerLongitude": 118.703159
         },
         {
           "name": "西善桥",
           "immutableCode": "NJ-MS-XISHANQIAO",
           "slug": "nanjing-metro-xishan-qiao",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.947161,
+          "centerLongitude": 118.690861
         }
       ]
     },
@@ -965,121 +1262,161 @@
           "name": "东七路",
           "immutableCode": "NJ-MS-DONGQILU",
           "slug": "nanjing-metro-dongqi-lu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.003936,
+          "centerLongitude": 118.746448
         },
         {
           "name": "杨庄",
           "immutableCode": "NJ-MS-YANGZHUANG",
           "slug": "nanjing-metro-yangzhuang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.006609,
+          "centerLongitude": 118.862962
         },
         {
           "name": "石杨东路",
           "immutableCode": "NJ-MS-SHIYANGDONGLU",
           "slug": "nanjing-metro-shiyang-dong-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.007313,
+          "centerLongitude": 118.861306
         },
         {
           "name": "高桥门",
           "immutableCode": "NJ-MS-GAOQIAOMEN",
           "slug": "nanjing-metro-gaoqiao-men",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.005137,
+          "centerLongitude": 118.842209
         },
         {
           "name": "承天大道",
           "immutableCode": "NJ-MS-CHENGTIANDADAO",
           "slug": "nanjing-metro-chengtian-dadao",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.000957,
+          "centerLongitude": 118.828985
         },
         {
           "name": "机场跑道旧址",
           "immutableCode": "NJ-MS-JICHANGPAODAOJIUZHI",
           "slug": "nanjing-metro-jichang-paodao-jiuzhi",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.991306,
+          "centerLongitude": 118.811808
         },
         {
           "name": "大校场",
           "immutableCode": "NJ-MS-DAJIAOCHANG",
           "slug": "nanjing-metro-dajiao-chang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.997965,
+          "centerLongitude": 118.822552
         },
         {
           "name": "雨花台",
           "immutableCode": "NJ-MS-YUHUATAI",
           "slug": "nanjing-metro-yuhua-tai",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.992722,
+          "centerLongitude": 118.780883
         },
         {
           "name": "共青团路",
           "immutableCode": "NJ-MS-GONGQINGTUANLU",
           "slug": "nanjing-metro-gongqingtuan-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.993539,
+          "centerLongitude": 118.774051
         },
         {
           "name": "小行",
           "immutableCode": "NJ-MS-XIAOHANG",
           "slug": "nanjing-metro-xiao-hang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.982464,
+          "centerLongitude": 118.744681
         },
         {
           "name": "奥体中心",
           "immutableCode": "NJ-MS-AOTIZHONGXIN",
           "slug": "nanjing-metro-aoti-zhongxin",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.009065,
+          "centerLongitude": 118.718286
         },
         {
           "name": "梦都大街",
           "immutableCode": "NJ-MS-MENGDUDAJIE",
           "slug": "nanjing-metro-mengdu-dajie",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.015473,
+          "centerLongitude": 118.721781
         },
         {
           "name": "绿博园",
           "immutableCode": "NJ-MS-LUBOYUAN",
           "slug": "nanjing-metro-lubo-yuan",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.024569,
+          "centerLongitude": 118.714176
         },
         {
           "name": "江心洲",
           "immutableCode": "NJ-MS-JIANGXINZHOU",
           "slug": "nanjing-metro-jiangxin-zhou",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.031632,
+          "centerLongitude": 118.703335
         },
         {
           "name": "临江",
           "immutableCode": "NJ-MS-LINJIANG",
           "slug": "nanjing-metro-linjiang",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.057186,
+          "centerLongitude": 118.665528
         },
         {
           "name": "浦口万汇城",
           "immutableCode": "NJ-MS-PUKOUWANHUICHENG",
           "slug": "nanjing-metro-pukou-wanhui-cheng",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 32.061689,
+          "centerLongitude": 118.657082
         },
         {
           "name": "南京工业大学",
           "immutableCode": "NJ-MS-NANJINGGONGYEDAXUE",
           "slug": "nanjing-metro-nanjing-gongye-daxue",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 32.066794,
+          "centerLongitude": 118.648245
         },
         {
           "name": "龙华路",
           "immutableCode": "NJ-MS-LONGHUALU",
           "slug": "nanjing-metro-longhua-lu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 32.064712,
+          "centerLongitude": 118.635204
         },
         {
           "name": "文德路",
           "immutableCode": "NJ-MS-WENDELU",
           "slug": "nanjing-metro-wende-lu",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 32.057396,
+          "centerLongitude": 118.626645
         },
         {
           "name": "雨山路",
           "immutableCode": "NJ-MS-YUSHANLU",
           "slug": "nanjing-metro-yushan-lu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 32.044496,
+          "centerLongitude": 118.615125
         }
       ]
     },
@@ -1093,49 +1430,65 @@
           "name": "翠屏山",
           "immutableCode": "NJ-MS-CUIPINGSHAN",
           "slug": "nanjing-metro-cuiping-shan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.94253,
+          "centerLongitude": 118.784514
         },
         {
           "name": "河海大学·佛城西路",
           "immutableCode": "NJ-MS-HEHAIDAXUEFOCHENGXILU",
           "slug": "nanjing-metro-hehai-daxue-focheng-xi-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.913439,
+          "centerLongitude": 118.791067
         },
         {
           "name": "吉印大道",
           "immutableCode": "NJ-MS-JIYINDADAO",
           "slug": "nanjing-metro-jiyin-dadao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.886312,
+          "centerLongitude": 118.795378
         },
         {
           "name": "正方中路",
           "immutableCode": "NJ-MS-ZHENGFANGZHONGLU",
           "slug": "nanjing-metro-zhengfang-zhong-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.845115,
+          "centerLongitude": 118.805809
         },
         {
           "name": "翔宇路北",
           "immutableCode": "NJ-MS-XIANGYULUBEI",
           "slug": "nanjing-metro-xiangyu-lu-bei",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.791284,
+          "centerLongitude": 118.821542
         },
         {
           "name": "翔宇路南",
           "immutableCode": "NJ-MS-XIANGYULUNAN",
           "slug": "nanjing-metro-xiangyu-lu-nan",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.754866,
+          "centerLongitude": 118.829201
         },
         {
           "name": "禄口机场",
           "immutableCode": "NJ-MS-LUKOUJICHANG",
           "slug": "nanjing-metro-lukou-jichang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.73037,
+          "centerLongitude": 118.873817
         },
         {
           "name": "空港新城江宁",
           "immutableCode": "NJ-MS-KONGGANGXINCHENGJIANGNING",
           "slug": "nanjing-metro-konggang-xincheng-jiangning",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.737687,
+          "centerLongitude": 118.887659
         }
       ]
     },
@@ -1149,103 +1502,137 @@
           "name": "景明佳园",
           "immutableCode": "NJ-MS-JINGMINGJIAYUAN",
           "slug": "nanjing-metro-jingming-jiayuan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.962302,
+          "centerLongitude": 118.77869
         },
         {
           "name": "铁心桥",
           "immutableCode": "NJ-MS-TIEXINQIAO",
           "slug": "nanjing-metro-tiexin-qiao",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.964416,
+          "centerLongitude": 118.763796
         },
         {
           "name": "春江路",
           "immutableCode": "NJ-MS-CHUNJIANGLU",
           "slug": "nanjing-metro-chunjiang-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.962385,
+          "centerLongitude": 118.748257
         },
         {
           "name": "贾西",
           "immutableCode": "NJ-MS-JIAXI",
           "slug": "nanjing-metro-jiaxi",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.959242,
+          "centerLongitude": 118.734119
         },
         {
           "name": "永初路",
           "immutableCode": "NJ-MS-YONGCHULU",
           "slug": "nanjing-metro-yongchu-lu",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.974264,
+          "centerLongitude": 118.712185
         },
         {
           "name": "天保",
           "immutableCode": "NJ-MS-TIANBAO",
           "slug": "nanjing-metro-tianbao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.953164,
+          "centerLongitude": 118.67741
         },
         {
           "name": "刘村",
           "immutableCode": "NJ-MS-LIUCUN",
           "slug": "nanjing-metro-liucun",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.944342,
+          "centerLongitude": 118.665113
         },
         {
           "name": "石碛河",
           "immutableCode": "NJ-MS-SHIQIHE",
           "slug": "nanjing-metro-shiqi-he",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.938032,
+          "centerLongitude": 118.558049
         },
         {
           "name": "平凉大街",
           "immutableCode": "NJ-MS-PINGLIANGDAJIE",
           "slug": "nanjing-metro-pingliang-dajie",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.97783,
+          "centerLongitude": 118.702696
         },
         {
           "name": "兰花塘",
           "immutableCode": "NJ-MS-LANHUATANG",
           "slug": "nanjing-metro-lanhua-tang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.95826,
+          "centerLongitude": 118.574859
         },
         {
           "name": "武侯街",
           "immutableCode": "NJ-MS-WUHOUJIE",
           "slug": "nanjing-metro-wuhou-jie",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.975465,
+          "centerLongitude": 118.693035
         },
         {
           "name": "双龙",
           "immutableCode": "NJ-MS-SHUANGLONG",
           "slug": "nanjing-metro-shuanglong",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.963833,
+          "centerLongitude": 118.817196
         },
         {
           "name": "桥林新城",
           "immutableCode": "NJ-MS-QIAOLINXINCHENG",
           "slug": "nanjing-metro-qiaolin-xincheng",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.929882,
+          "centerLongitude": 118.547446
         },
         {
           "name": "林山",
           "immutableCode": "NJ-MS-LINSHAN",
           "slug": "nanjing-metro-linshan",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.918826,
+          "centerLongitude": 118.531084
         },
         {
           "name": "高庙路",
           "immutableCode": "NJ-MS-GAOMIAOLU",
           "slug": "nanjing-metro-gaomiao-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.968334,
+          "centerLongitude": 118.688338
         },
         {
           "name": "马骡圩",
           "immutableCode": "NJ-MS-MALUOWEI",
           "slug": "nanjing-metro-maluo-wei",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.97315,
+          "centerLongitude": 118.58838
         },
         {
           "name": "高家冲",
           "immutableCode": "NJ-MS-GAOJIACHONG",
           "slug": "nanjing-metro-gaojia-chong",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.909242,
+          "centerLongitude": 118.517253
         }
       ]
     },
@@ -1259,67 +1646,89 @@
           "name": "麒麟门",
           "immutableCode": "NJ-MS-QILINMEN",
           "slug": "nanjing-metro-qilin-men",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.053061,
+          "centerLongitude": 118.928506
         },
         {
           "name": "东郊小镇",
           "immutableCode": "NJ-MS-DONGJIAOXIAOZHEN",
           "slug": "nanjing-metro-dongjiao-xiaozhen",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.051792,
+          "centerLongitude": 118.952496
         },
         {
           "name": "古泉",
           "immutableCode": "NJ-MS-GUQUAN",
           "slug": "nanjing-metro-guquan",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.049302,
+          "centerLongitude": 119.009178
         },
         {
           "name": "南京猿人洞",
           "immutableCode": "NJ-MS-NANJINGYUANRENDONG",
           "slug": "nanjing-metro-nanjing-yuanren-dong",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.06142,
+          "centerLongitude": 119.052783
         },
         {
           "name": "汤山",
           "immutableCode": "NJ-MS-TANGSHAN",
           "slug": "nanjing-metro-tangshan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.048019,
+          "centerLongitude": 119.067994
         },
         {
           "name": "泉都大街",
           "immutableCode": "NJ-MS-QUANDUDAJIE",
           "slug": "nanjing-metro-quandu-dajie",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.033838,
+          "centerLongitude": 119.05207
         },
         {
           "name": "黄梅",
           "immutableCode": "NJ-MS-HUANGMEI",
           "slug": "nanjing-metro-huangmei",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.019259,
+          "centerLongitude": 119.083556
         },
         {
           "name": "童世界",
           "immutableCode": "NJ-MS-TONGSHIJIE",
           "slug": "nanjing-metro-tongshi-jie",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.070445,
+          "centerLongitude": 118.784466
         },
         {
           "name": "华阳",
           "immutableCode": "NJ-MS-HUAYANG",
           "slug": "nanjing-metro-huayang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.932937,
+          "centerLongitude": 119.102093
         },
         {
           "name": "崇明",
           "immutableCode": "NJ-MS-CHONGMING",
           "slug": "nanjing-metro-chongming",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.014622,
+          "centerLongitude": 118.840607
         },
         {
           "name": "句容",
           "immutableCode": "NJ-MS-JURONG",
           "slug": "nanjing-metro-jurong",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.71613,
+          "centerLongitude": 118.965962
         }
       ]
     },
@@ -1333,49 +1742,65 @@
           "name": "柘塘",
           "immutableCode": "NJ-MS-ZHETANG",
           "slug": "nanjing-metro-zhetang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.75674,
+          "centerLongitude": 118.937897
         },
         {
           "name": "空港新城溧水",
           "immutableCode": "NJ-MS-KONGGANGXINCHENGLISHUI",
           "slug": "nanjing-metro-konggang-xincheng-lishui",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.733816,
+          "centerLongitude": 118.98925
         },
         {
           "name": "群力",
           "immutableCode": "NJ-MS-QUNLI",
           "slug": "nanjing-metro-qunli",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.721048,
+          "centerLongitude": 119.014737
         },
         {
           "name": "卧龙湖",
           "immutableCode": "NJ-MS-WOLONGHU",
           "slug": "nanjing-metro-wolong-hu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.686304,
+          "centerLongitude": 119.04329
         },
         {
           "name": "溧水",
           "immutableCode": "NJ-MS-LISHUI",
           "slug": "nanjing-metro-lishui",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.662698,
+          "centerLongitude": 119.04456
         },
         {
           "name": "中山湖",
           "immutableCode": "NJ-MS-ZHONGSHANHU",
           "slug": "nanjing-metro-zhongshan-hu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.646761,
+          "centerLongitude": 119.045275
         },
         {
           "name": "幸庄",
           "immutableCode": "NJ-MS-XINGZHUANG",
           "slug": "nanjing-metro-xingzhuang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.624602,
+          "centerLongitude": 119.046113
         },
         {
           "name": "无想山",
           "immutableCode": "NJ-MS-WUXIANGSHAN",
           "slug": "nanjing-metro-wuxiang-shan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.611448,
+          "centerLongitude": 119.046528
         }
       ]
     },
@@ -1389,109 +1814,145 @@
           "name": "长江大桥北",
           "immutableCode": "NJ-MS-CHANGJIANGDAQIAOBEI",
           "slug": "nanjing-metro-changjiang-daqiao-bei",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 32.128295,
+          "centerLongitude": 118.730028
         },
         {
           "name": "毛纺厂路",
           "immutableCode": "NJ-MS-MAOFANGCHANGLU",
           "slug": "nanjing-metro-maofang-chang-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 32.134721,
+          "centerLongitude": 118.72664
         },
         {
           "name": "泰山新村",
           "immutableCode": "NJ-MS-TAISHANXINCUN",
           "slug": "nanjing-metro-taishan-xincun",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 32.144295,
+          "centerLongitude": 118.716268
         },
         {
           "name": "高新开发区",
           "immutableCode": "NJ-MS-GAOXINKAIFAQU",
           "slug": "nanjing-metro-gaoxin-kaifa-qu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 32.177538,
+          "centerLongitude": 118.719487
         },
         {
           "name": "信息工程大学",
           "immutableCode": "NJ-MS-XINXIGONGCHENGDAXUE",
           "slug": "nanjing-metro-xinxi-gongcheng-daxue",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 32.202465,
+          "centerLongitude": 118.726966
         },
         {
           "name": "卸甲甸",
           "immutableCode": "NJ-MS-XIEJIADIAN",
           "slug": "nanjing-metro-xiejia-dian",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 32.214756,
+          "centerLongitude": 118.730587
         },
         {
           "name": "大厂",
           "immutableCode": "NJ-MS-DACHANG",
           "slug": "nanjing-metro-dachang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 32.228848,
+          "centerLongitude": 118.740131
         },
         {
           "name": "葛塘",
           "immutableCode": "NJ-MS-GETANG",
           "slug": "nanjing-metro-getang",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 32.244525,
+          "centerLongitude": 118.753717
         },
         {
           "name": "长芦",
           "immutableCode": "NJ-MS-CHANGLU",
           "slug": "nanjing-metro-changlu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 32.273454,
+          "centerLongitude": 118.776599
         },
         {
           "name": "化工园",
           "immutableCode": "NJ-MS-HUAGONGYUAN",
           "slug": "nanjing-metro-huagong-yuan",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 32.28538,
+          "centerLongitude": 118.78556
         },
         {
           "name": "六合开发区",
           "immutableCode": "NJ-MS-LUHEKAIFAQU",
           "slug": "nanjing-metro-luhe-kaifa-qu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 32.305162,
+          "centerLongitude": 118.805296
         },
         {
           "name": "龙池",
           "immutableCode": "NJ-MS-LONGCHI",
           "slug": "nanjing-metro-longchi",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 32.319014,
+          "centerLongitude": 118.82015
         },
         {
           "name": "雄州",
           "immutableCode": "NJ-MS-XIONGZHOU",
           "slug": "nanjing-metro-xiongzhou",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 32.33461,
+          "centerLongitude": 118.836662
         },
         {
           "name": "凤凰山公园",
           "immutableCode": "NJ-MS-FENGHUANGSHANGONGYUAN",
           "slug": "nanjing-metro-fenghuangshan-gongyuan",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 32.346842,
+          "centerLongitude": 118.845116
         },
         {
           "name": "方州广场",
           "immutableCode": "NJ-MS-FANGZHOUGUANGCHANG",
           "slug": "nanjing-metro-fangzhou-guangchang",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 32.359539,
+          "centerLongitude": 118.850115
         },
         {
           "name": "沈桥",
           "immutableCode": "NJ-MS-SHENQIAO",
           "slug": "nanjing-metro-shenqiao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 32.399891,
+          "centerLongitude": 118.891854
         },
         {
           "name": "八百桥",
           "immutableCode": "NJ-MS-BABAIQIAO",
           "slug": "nanjing-metro-babai-qiao",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 32.42705,
+          "centerLongitude": 118.933243
         },
         {
           "name": "金牛湖",
           "immutableCode": "NJ-MS-JINNIUHU",
           "slug": "nanjing-metro-jinniu-hu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 32.465377,
+          "centerLongitude": 118.964583
         }
       ]
     },
@@ -1505,31 +1966,41 @@
           "name": "铜山",
           "immutableCode": "NJ-MS-TONGSHAN",
           "slug": "nanjing-metro-tongshan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.696082,
+          "centerLongitude": 118.881885
         },
         {
           "name": "石臼湖",
           "immutableCode": "NJ-MS-SHIJIUHU",
           "slug": "nanjing-metro-shijiu-hu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.46746,
+          "centerLongitude": 118.882541
         },
         {
           "name": "明觉",
           "immutableCode": "NJ-MS-MINGJUE",
           "slug": "nanjing-metro-mingjue",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.546324,
+          "centerLongitude": 118.902178
         },
         {
           "name": "团结圩",
           "immutableCode": "NJ-MS-TUANJIEWEI",
           "slug": "nanjing-metro-tuanjie-wei",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.395788,
+          "centerLongitude": 118.887696
         },
         {
           "name": "高淳",
           "immutableCode": "NJ-MS-GAOCHUN",
           "slug": "nanjing-metro-gaochun",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.340956,
+          "centerLongitude": 118.877193
         }
       ]
     }

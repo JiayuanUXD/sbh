@@ -1,83 +1,102 @@
-
+// ============================================================
+// 苏州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、苏州轨道交通官方线网图、核心办公商圈人工盘点
+// 采集日期：待回填
+// 核对人：<name>
+// 行政区划核对截止：2025-06-30
+// 说明：苏州工业园区为功能区，无官方统计 6 位码，code SZ-D-320571 为合成占位（待核对），
+//       slug 用 suzhou-gongyeyuanqu
+// 说明：坐标回填后由本骨架生成 seed/geography/suzhou.json
+// ============================================================
 {
-  "_header": [
-    "============================================================",
-    "苏州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
-    "来源：国家统计局行政区划代码、苏州轨道交通官方线网图、核心办公商圈人工盘点",
-    "采集日期：待回填",
-    "核对人：<name>",
-    "行政区划核对截止：2025-06-30",
-    "说明：苏州工业园区为功能区，无官方统计 6 位码，code SZ-D-320571 为合成占位（待核对），",
-    "      slug 用 suzhou-gongyeyuanqu",
-    "说明：坐标回填后由本骨架生成 seed/geography/suzhou.json",
-    "============================================================"
-  ],
   "city": {
     "name": "苏州市",
     "immutableCode": "CITY-SZ",
     "slug": "suzhou",
-    "sortOrder": 4
+    "sortOrder": 4,
+    "centerLatitude": 31.299758,
+    "centerLongitude": 120.585294
   },
   "districts": [
     {
       "name": "虎丘区",
       "immutableCode": "SZ-D-320505",
       "slug": "suzhou-huqiu",
-      "sortOrder": 1
+      "sortOrder": 1,
+      "centerLatitude": 31.329601,
+      "centerLongitude": 120.434238
     },
     {
       "name": "吴中区",
       "immutableCode": "SZ-D-320506",
       "slug": "suzhou-wuzhong",
-      "sortOrder": 2
+      "sortOrder": 2,
+      "centerLatitude": 31.263604,
+      "centerLongitude": 120.632094
     },
     {
       "name": "相城区",
       "immutableCode": "SZ-D-320507",
       "slug": "suzhou-xiangcheng",
-      "sortOrder": 3
+      "sortOrder": 3,
+      "centerLatitude": 31.369189,
+      "centerLongitude": 120.642391
     },
     {
       "name": "姑苏区",
       "immutableCode": "SZ-D-320508",
       "slug": "suzhou-gusu",
-      "sortOrder": 4
+      "sortOrder": 4,
+      "centerLatitude": 31.335648,
+      "centerLongitude": 120.617367
     },
     {
       "name": "吴江区",
       "immutableCode": "SZ-D-320509",
       "slug": "suzhou-wujiang",
-      "sortOrder": 5
+      "sortOrder": 5,
+      "centerLatitude": 31.138525,
+      "centerLongitude": 120.645728
     },
     {
       "name": "苏州工业园区",
       "immutableCode": "SZ-D-320571",
       "slug": "suzhou-gongyeyuanqu",
-      "sortOrder": 6
+      "sortOrder": 6,
+      "centerLatitude": 31.263604,
+      "centerLongitude": 120.632094
     },
     {
       "name": "常熟市",
       "immutableCode": "SZ-D-320581",
       "slug": "suzhou-changshu",
-      "sortOrder": 7
+      "sortOrder": 7,
+      "centerLatitude": 31.656016,
+      "centerLongitude": 120.752512
     },
     {
       "name": "张家港市",
       "immutableCode": "SZ-D-320582",
       "slug": "suzhou-zhangjiagang",
-      "sortOrder": 8
+      "sortOrder": 8,
+      "centerLatitude": 31.876739,
+      "centerLongitude": 120.555979
     },
     {
       "name": "昆山市",
       "immutableCode": "SZ-D-320583",
       "slug": "suzhou-kunshan",
-      "sortOrder": 9
+      "sortOrder": 9,
+      "centerLatitude": 31.385476,
+      "centerLongitude": 120.980795
     },
     {
       "name": "太仓市",
       "immutableCode": "SZ-D-320585",
       "slug": "suzhou-taichang",
-      "sortOrder": 10
+      "sortOrder": 10,
+      "centerLatitude": 31.458043,
+      "centerLongitude": 121.130344
     }
   ],
   "businessAreas": [
@@ -85,85 +104,113 @@
       "name": "湖西CBD",
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-huxi",
-      "immutableCode": "SZ-BA-HUXI"
+      "immutableCode": "SZ-BA-HUXI",
+      "centerLatitude": 31.304193,
+      "centerLongitude": 120.678066
     },
     {
       "name": "湖东CBD",
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-hudong",
-      "immutableCode": "SZ-BA-HUDONG"
+      "immutableCode": "SZ-BA-HUDONG",
+      "centerLatitude": 31.311418,
+      "centerLongitude": 120.742208
     },
     {
       "name": "苏州中心",
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-suzhouzhongxin",
-      "immutableCode": "SZ-BA-SUZHOUZHONGXIN"
+      "immutableCode": "SZ-BA-SUZHOUZHONGXIN",
+      "centerLatitude": 31.29893,
+      "centerLongitude": 120.5853
     },
     {
       "name": "金鸡湖商务区",
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-jinjihu",
-      "immutableCode": "SZ-BA-JINJIHU"
+      "immutableCode": "SZ-BA-JINJIHU",
+      "centerLatitude": 31.316332,
+      "centerLongitude": 120.675154
     },
     {
       "name": "独墅湖高教创新区",
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-dushuhu",
-      "immutableCode": "SZ-BA-DUSHUHU"
+      "immutableCode": "SZ-BA-DUSHUHU",
+      "centerLatitude": 31.262916,
+      "centerLongitude": 120.724372
     },
     {
       "name": "狮山商务区",
       "districtCode": "SZ-D-320505",
       "slug": "suzhou-shishan",
-      "immutableCode": "SZ-BA-SHISHAN"
+      "immutableCode": "SZ-BA-SHISHAN",
+      "centerLatitude": 31.29802,
+      "centerLongitude": 120.56935
     },
     {
       "name": "苏州科技城",
       "districtCode": "SZ-D-320505",
       "slug": "suzhou-kejicheng",
-      "immutableCode": "SZ-BA-KEJICHENG"
+      "immutableCode": "SZ-BA-KEJICHENG",
+      "centerLatitude": 31.33647,
+      "centerLongitude": 120.422014
     },
     {
       "name": "高铁新城商务区",
       "districtCode": "SZ-D-320507",
       "slug": "suzhou-gaotiexincheng",
-      "immutableCode": "SZ-BA-GAOTIEXINCHENG"
+      "immutableCode": "SZ-BA-GAOTIEXINCHENG",
+      "centerLatitude": 31.430312,
+      "centerLongitude": 120.631575
     },
     {
       "name": "相城CBD",
       "districtCode": "SZ-D-320507",
       "slug": "suzhou-xiangcheng-cbd",
-      "immutableCode": "SZ-BA-XIANGCHENG"
+      "immutableCode": "SZ-BA-XIANGCHENG",
+      "centerLatitude": 31.385248,
+      "centerLongitude": 120.633428
     },
     {
       "name": "吴中中心城区",
       "districtCode": "SZ-D-320506",
       "slug": "suzhou-wuzhong-chengqu",
-      "immutableCode": "SZ-BA-WUZHONG"
+      "immutableCode": "SZ-BA-WUZHONG",
+      "centerLatitude": 31.272114,
+      "centerLongitude": 120.634315
     },
     {
       "name": "吴江太湖新城",
       "districtCode": "SZ-D-320509",
       "slug": "suzhou-wujiang-taihuxincheng",
-      "immutableCode": "SZ-BA-WUJIANG"
+      "immutableCode": "SZ-BA-WUJIANG",
+      "centerLatitude": 31.090983,
+      "centerLongitude": 120.603087
     },
     {
       "name": "观前街商务区",
       "districtCode": "SZ-D-320508",
       "slug": "suzhou-guanqianjie",
-      "immutableCode": "SZ-BA-GUANQIANJIE"
+      "immutableCode": "SZ-BA-GUANQIANJIE",
+      "centerLatitude": 31.311048,
+      "centerLongitude": 120.629522
     },
     {
       "name": "平江新城",
       "districtCode": "SZ-D-320508",
       "slug": "suzhou-pingjiangxincheng",
-      "immutableCode": "SZ-BA-PINGJIANGXINCHENG"
+      "immutableCode": "SZ-BA-PINGJIANGXINCHENG",
+      "centerLatitude": 31.342993,
+      "centerLongitude": 120.595711
     },
     {
       "name": "昆山开发区",
       "districtCode": "SZ-D-320583",
       "slug": "suzhou-kunshan-kaifaqu",
-      "immutableCode": "SZ-BA-KUNSHANKAIFAQU"
+      "immutableCode": "SZ-BA-KUNSHANKAIFAQU",
+      "centerLatitude": 31.383011,
+      "centerLongitude": 121.039607
     }
   ],
   "metroLines": [
@@ -177,127 +224,169 @@
           "name": "木渎",
           "immutableCode": "SZ-MS-MUDU",
           "slug": "suzhou-metro-mudu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.274974,
+          "centerLongitude": 120.518128
         },
         {
           "name": "金枫路",
           "immutableCode": "SZ-MS-JINFENGLU",
           "slug": "suzhou-metro-jinfeng-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.276492,
+          "centerLongitude": 120.529572
         },
         {
           "name": "汾湖路",
           "immutableCode": "SZ-MS-FENHULU",
           "slug": "suzhou-metro-fenhu-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.278047,
+          "centerLongitude": 120.54183
         },
         {
           "name": "玉山路",
           "immutableCode": "SZ-MS-YUSHANLU",
           "slug": "suzhou-metro-yushan-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.283409,
+          "centerLongitude": 120.549468
         },
         {
           "name": "竹园路",
           "immutableCode": "SZ-MS-ZHUYUANLU",
           "slug": "suzhou-metro-zhuyuan-lu",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.278047,
+          "centerLongitude": 120.54183
         },
         {
           "name": "塔园路",
           "immutableCode": "SZ-MS-TAYUANLU",
           "slug": "suzhou-metro-tayuan-lu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.299963,
+          "centerLongitude": 120.556692
         },
         {
           "name": "滨河路",
           "immutableCode": "SZ-MS-BINHELU",
           "slug": "suzhou-metro-binhe-lu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.300779,
+          "centerLongitude": 120.566119
         },
         {
           "name": "西环路",
           "immutableCode": "SZ-MS-XIHUANLU",
           "slug": "suzhou-metro-xihuan-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.301539,
+          "centerLongitude": 120.577161
         },
         {
           "name": "桐泾北路",
           "immutableCode": "SZ-MS-TONGJINGBEILU",
           "slug": "suzhou-metro-tongjing-bei-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.303005,
+          "centerLongitude": 120.5912
         },
         {
           "name": "广济南路",
           "immutableCode": "SZ-MS-GUANGJINANLU",
           "slug": "suzhou-metro-guangji-nan-lu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.304529,
+          "centerLongitude": 120.601066
         },
         {
           "name": "养育巷",
           "immutableCode": "SZ-MS-YANGYUXIANG",
           "slug": "suzhou-metro-yangyu-xiang",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.30514,
+          "centerLongitude": 120.614052
         },
         {
           "name": "乐桥",
           "immutableCode": "SZ-MS-LEQIAO",
           "slug": "suzhou-metro-leqiao",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.306404,
+          "centerLongitude": 120.622324
         },
         {
           "name": "临顿路",
           "immutableCode": "SZ-MS-LINDUNLU",
           "slug": "suzhou-metro-lindun-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.308679,
+          "centerLongitude": 120.630459
         },
         {
           "name": "相门",
           "immutableCode": "SZ-MS-XIANGMEN",
           "slug": "suzhou-metro-xiangmen",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.309803,
+          "centerLongitude": 120.638847
         },
         {
           "name": "东环路",
           "immutableCode": "SZ-MS-DONGHUANLU",
           "slug": "suzhou-metro-donghuan-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.312254,
+          "centerLongitude": 120.649874
         },
         {
           "name": "中央公园",
           "immutableCode": "SZ-MS-ZHONGYANGGONGYUAN",
           "slug": "suzhou-metro-zhongyang-gongyuan",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.314041,
+          "centerLongitude": 120.658951
         },
         {
           "name": "星海广场",
           "immutableCode": "SZ-MS-XINGHAIGUANGCHANG",
           "slug": "suzhou-metro-xinghai-guangchang",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.315499,
+          "centerLongitude": 120.670812
         },
         {
           "name": "星湖街",
           "immutableCode": "SZ-MS-XINGHUJIE",
           "slug": "suzhou-metro-xinghu-jie",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.323183,
+          "centerLongitude": 120.720431
         },
         {
           "name": "南施街",
           "immutableCode": "SZ-MS-NANSHIJIE",
           "slug": "suzhou-metro-nanshi-jie",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.324493,
+          "centerLongitude": 120.733132
         },
         {
           "name": "星塘街",
           "immutableCode": "SZ-MS-XINGTANGJIE",
           "slug": "suzhou-metro-xingtang-jie",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.325622,
+          "centerLongitude": 120.744012
         },
         {
           "name": "钟南街",
           "immutableCode": "SZ-MS-ZHONGNANJIE",
           "slug": "suzhou-metro-zhongnan-jie",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.326506,
+          "centerLongitude": 120.756226
         }
       ]
     },
@@ -311,211 +400,281 @@
           "name": "骑河",
           "immutableCode": "SZ-MS-QIHE",
           "slug": "suzhou-metro-qihe",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.437447,
+          "centerLongitude": 120.655018
         },
         {
           "name": "富翔路",
           "immutableCode": "SZ-MS-FUXIANGLU",
           "slug": "suzhou-metro-fuxiang-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.430051,
+          "centerLongitude": 120.651223
         },
         {
           "name": "高铁新城",
           "immutableCode": "SZ-MS-GAOTIEXINCHENG",
           "slug": "suzhou-metro-gaotie-xincheng",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.372877,
+          "centerLongitude": 120.525071
         },
         {
           "name": "大湾",
           "immutableCode": "SZ-MS-DAWAN",
           "slug": "suzhou-metro-dawan",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.416501,
+          "centerLongitude": 120.633174
         },
         {
           "name": "蠡口",
           "immutableCode": "SZ-MS-LIKOU",
           "slug": "suzhou-metro-likou",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.388126,
+          "centerLongitude": 120.623705
         },
         {
           "name": "富元路",
           "immutableCode": "SZ-MS-FUYUANLU",
           "slug": "suzhou-metro-fuyuan-lu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.40352,
+          "centerLongitude": 120.624914
         },
         {
           "name": "相城大道",
           "immutableCode": "SZ-MS-XIANGCHENGDADAO",
           "slug": "suzhou-metro-xiangcheng-dadao",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.418716,
+          "centerLongitude": 120.630076
         },
         {
           "name": "阳澄湖中路",
           "immutableCode": "SZ-MS-YANGCHENGHUZHONGLU",
           "slug": "suzhou-metro-yangchenghu-zhong-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.366755,
+          "centerLongitude": 120.62693
         },
         {
           "name": "徐图港",
           "immutableCode": "SZ-MS-XUTUGANG",
           "slug": "suzhou-metro-xutu-gang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.375625,
+          "centerLongitude": 120.625667
         },
         {
           "name": "陆慕",
           "immutableCode": "SZ-MS-LUMU",
           "slug": "suzhou-metro-lumu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.353291,
+          "centerLongitude": 120.623449
         },
         {
           "name": "平泷路东",
           "immutableCode": "SZ-MS-PINGLONGLUDONG",
           "slug": "suzhou-metro-pinglong-lu-dong",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.344237,
+          "centerLongitude": 120.613004
         },
         {
           "name": "平河路",
           "immutableCode": "SZ-MS-PINGHELU",
           "slug": "suzhou-metro-pinghe-lu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.336854,
+          "centerLongitude": 120.614445
         },
         {
           "name": "苏州火车站",
           "immutableCode": "SZ-MS-SUZHOUHUOCHEZHAN",
           "slug": "suzhou-metro-suzhou-huoche-zhan",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.330882,
+          "centerLongitude": 120.610463
         },
         {
           "name": "山塘街",
           "immutableCode": "SZ-MS-SHANTANGJIE",
           "slug": "suzhou-metro-shantang-jie",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.319722,
+          "centerLongitude": 120.60193
         },
         {
           "name": "石路",
           "immutableCode": "SZ-MS-SHILU",
           "slug": "suzhou-metro-shilu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.311222,
+          "centerLongitude": 120.600138
         },
         {
           "name": "三香广场",
           "immutableCode": "SZ-MS-SANXIANGGUANGCHANG",
           "slug": "suzhou-metro-sanxiang-guangchang",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.297912,
+          "centerLongitude": 120.598143
         },
         {
           "name": "劳动路",
           "immutableCode": "SZ-MS-LAODONGLU",
           "slug": "suzhou-metro-laodong-lu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.291601,
+          "centerLongitude": 120.597195
         },
         {
           "name": "胥江路",
           "immutableCode": "SZ-MS-XUJIANGLU",
           "slug": "suzhou-metro-xujiang-lu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.28524,
+          "centerLongitude": 120.598602
         },
         {
           "name": "桐泾公园",
           "immutableCode": "SZ-MS-TONGJINGGONGYUAN",
           "slug": "suzhou-metro-tongjing-gongyuan",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.279358,
+          "centerLongitude": 120.599313
         },
         {
           "name": "友联",
           "immutableCode": "SZ-MS-YOULIAN",
           "slug": "suzhou-metro-youlian",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.271473,
+          "centerLongitude": 120.608623
         },
         {
           "name": "盘蠡路",
           "immutableCode": "SZ-MS-PANLILU",
           "slug": "suzhou-metro-panli-lu",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.266658,
+          "centerLongitude": 120.614546
         },
         {
           "name": "新家桥",
           "immutableCode": "SZ-MS-XINJIAQIAO",
           "slug": "suzhou-metro-xinjia-qiao",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 31.256147,
+          "centerLongitude": 120.614869
         },
         {
           "name": "石湖东路",
           "immutableCode": "SZ-MS-SHIHUDONGLU",
           "slug": "suzhou-metro-shihu-dong-lu",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 31.252785,
+          "centerLongitude": 120.629556
         },
         {
           "name": "宝带桥南",
           "immutableCode": "SZ-MS-BAODAIQIAONAN",
           "slug": "suzhou-metro-baodai-qiao-nan",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 31.249798,
+          "centerLongitude": 120.648844
         },
         {
           "name": "尹中路",
           "immutableCode": "SZ-MS-YINZHONGLU",
           "slug": "suzhou-metro-yinzhong-lu",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 31.249772,
+          "centerLongitude": 120.664068
         },
         {
           "name": "郭巷",
           "immutableCode": "SZ-MS-GUOXIANG",
           "slug": "suzhou-metro-guoxiang",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 31.248922,
+          "centerLongitude": 120.673794
         },
         {
           "name": "郭苑路",
           "immutableCode": "SZ-MS-GUOYUANLU",
           "slug": "suzhou-metro-guoyuan-lu",
-          "sortOrder": 27
+          "sortOrder": 27,
+          "centerLatitude": 31.248353,
+          "centerLongitude": 120.684481
         },
         {
           "name": "尹山湖",
           "immutableCode": "SZ-MS-YINSHANHU",
           "slug": "suzhou-metro-yinshan-hu",
-          "sortOrder": 28
+          "sortOrder": 28,
+          "centerLatitude": 31.248099,
+          "centerLongitude": 120.697374
         },
         {
           "name": "独墅湖南",
           "immutableCode": "SZ-MS-DUSHUHUNAN",
           "slug": "suzhou-metro-dushuhu-nan",
-          "sortOrder": 29
+          "sortOrder": 29,
+          "centerLatitude": 31.248059,
+          "centerLongitude": 120.704464
         },
         {
           "name": "独墅湖邻里中心",
           "immutableCode": "SZ-MS-DUSHUHULINLIZHONGXIN",
           "slug": "suzhou-metro-dushuhu-linli-zhongxin",
-          "sortOrder": 30
+          "sortOrder": 30,
+          "centerLatitude": 31.253313,
+          "centerLongitude": 120.722818
         },
         {
           "name": "月亮湾",
           "immutableCode": "SZ-MS-YUELIANGWAN",
           "slug": "suzhou-metro-yueliang-wan",
-          "sortOrder": 31
+          "sortOrder": 31,
+          "centerLatitude": 31.260112,
+          "centerLongitude": 120.726957
         },
         {
           "name": "松涛街",
           "immutableCode": "SZ-MS-SONGTAOJIE",
           "slug": "suzhou-metro-songtao-jie",
-          "sortOrder": 32
+          "sortOrder": 32,
+          "centerLatitude": 31.263829,
+          "centerLongitude": 120.739939
         },
         {
           "name": "金谷路",
           "immutableCode": "SZ-MS-JINGULU",
           "slug": "suzhou-metro-jingu-lu",
-          "sortOrder": 33
+          "sortOrder": 33,
+          "centerLatitude": 31.269516,
+          "centerLongitude": 120.756966
         },
         {
           "name": "金尚路",
           "immutableCode": "SZ-MS-JINSHANGLU",
           "slug": "suzhou-metro-jinshang-lu",
-          "sortOrder": 34
+          "sortOrder": 34,
+          "centerLatitude": 31.270834,
+          "centerLongitude": 120.770544
         },
         {
           "name": "桑田岛",
           "immutableCode": "SZ-MS-SANGTIANDAO",
           "slug": "suzhou-metro-sangtian-dao",
-          "sortOrder": 35
+          "sortOrder": 35,
+          "centerLatitude": 31.272372,
+          "centerLongitude": 120.781237
         }
       ]
     },
@@ -529,109 +688,145 @@
           "name": "苏州新区火车站",
           "immutableCode": "SZ-MS-SUZHOUXINQUHUOCHEZHAN",
           "slug": "suzhou-metro-suzhou-xinqu-huoche-zhan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.372573,
+          "centerLongitude": 120.525106
         },
         {
           "name": "惠昌路",
           "immutableCode": "SZ-MS-HUICHANGLU",
           "slug": "suzhou-metro-huichang-lu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.360981,
+          "centerLongitude": 120.529029
         },
         {
           "name": "文昌路",
           "immutableCode": "SZ-MS-WENCHANGLU",
           "slug": "suzhou-metro-wenchang-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.355243,
+          "centerLongitude": 120.524394
         },
         {
           "name": "长亭",
           "immutableCode": "SZ-MS-CHANGTING",
           "slug": "suzhou-metro-chang-ting",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.341712,
+          "centerLongitude": 120.529723
         },
         {
           "name": "铜墩",
           "immutableCode": "SZ-MS-TONGDUN",
           "slug": "suzhou-metro-tongdun",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.327141,
+          "centerLongitude": 120.531527
         },
         {
           "name": "马运路",
           "immutableCode": "SZ-MS-MAYUNLU",
           "slug": "suzhou-metro-mayun-lu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.317646,
+          "centerLongitude": 120.539455
         },
         {
           "name": "新庄",
           "immutableCode": "SZ-MS-XINZHUANG",
           "slug": "suzhou-metro-xinzhuang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.536959,
+          "centerLongitude": 120.702127
         },
         {
           "name": "狮山",
           "immutableCode": "SZ-MS-SHISHAN",
           "slug": "suzhou-metro-shishan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.293387,
+          "centerLongitude": 120.559261
         },
         {
           "name": "横塘",
           "immutableCode": "SZ-MS-HENGTANG",
           "slug": "suzhou-metro-hengtang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.271416,
+          "centerLongitude": 120.581543
         },
         {
           "name": "石湖北",
           "immutableCode": "SZ-MS-SHIHUBEI",
           "slug": "suzhou-metro-shihu-bei",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.258768,
+          "centerLongitude": 120.586796
         },
         {
           "name": "新郭",
           "immutableCode": "SZ-MS-XINGUO",
           "slug": "suzhou-metro-xinguo",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.262707,
+          "centerLongitude": 120.596498
         },
         {
           "name": "迎春路",
           "immutableCode": "SZ-MS-YINGCHUNLU",
           "slug": "suzhou-metro-yingchun-lu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.267662,
+          "centerLongitude": 120.640353
         },
         {
           "name": "东兴路",
           "immutableCode": "SZ-MS-DONGXINGLU",
           "slug": "suzhou-metro-dongxing-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.279339,
+          "centerLongitude": 120.673227
         },
         {
           "name": "通园路",
           "immutableCode": "SZ-MS-TONGYUANLU",
           "slug": "suzhou-metro-tongyuan-lu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.269543,
+          "centerLongitude": 120.668468
         },
         {
           "name": "金厍桥",
           "immutableCode": "SZ-MS-JINSHEQIAO",
           "slug": "suzhou-metro-jinshe-qiao",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.296533,
+          "centerLongitude": 120.67834
         },
         {
           "name": "李公堤南",
           "immutableCode": "SZ-MS-LIGONGDINAN",
           "slug": "suzhou-metro-ligong-di-nan",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.296107,
+          "centerLongitude": 120.695664
         },
         {
           "name": "苏州奥体中心",
           "immutableCode": "SZ-MS-SUZHOUAOTIZHONGXIN",
           "slug": "suzhou-metro-suzhou-aoti-zhongxin",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.308427,
+          "centerLongitude": 120.744258
         },
         {
           "name": "唯亭",
           "immutableCode": "SZ-MS-WEITING",
           "slug": "suzhou-metro-weiting",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.364479,
+          "centerLongitude": 120.788977
         }
       ]
     },
@@ -645,133 +840,177 @@
           "name": "龙道浜",
           "immutableCode": "SZ-MS-LONGDAOBANG",
           "slug": "suzhou-metro-longdao-bang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.403075,
+          "centerLongitude": 120.606558
         },
         {
           "name": "张庄",
           "immutableCode": "SZ-MS-ZHANGZHUANG",
           "slug": "suzhou-metro-zhangzhuang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.397384,
+          "centerLongitude": 120.597671
         },
         {
           "name": "夏桥",
           "immutableCode": "SZ-MS-XIAQIAO",
           "slug": "suzhou-metro-xiaqiao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.334866,
+          "centerLongitude": 121.048798
         },
         {
           "name": "北寺塔",
           "immutableCode": "SZ-MS-BEISITA",
           "slug": "suzhou-metro-bei-si-ta",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.320379,
+          "centerLongitude": 120.619714
         },
         {
           "name": "察院场",
           "immutableCode": "SZ-MS-CHAYUANCHANG",
           "slug": "suzhou-metro-chayuan-chang",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.311354,
+          "centerLongitude": 120.621309
         },
         {
           "name": "三元坊",
           "immutableCode": "SZ-MS-SANYUANFANG",
           "slug": "suzhou-metro-sanyuan-fang",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.298061,
+          "centerLongitude": 120.623637
         },
         {
           "name": "南门",
           "immutableCode": "SZ-MS-NANMEN",
           "slug": "suzhou-metro-nanmen",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.292053,
+          "centerLongitude": 120.624441
         },
         {
           "name": "团结桥",
           "immutableCode": "SZ-MS-TUANJIEQIAO",
           "slug": "suzhou-metro-tuanjie-qiao",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.276379,
+          "centerLongitude": 120.627181
         },
         {
           "name": "宝带路",
           "immutableCode": "SZ-MS-BAODAILU",
           "slug": "suzhou-metro-baodai-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.267177,
+          "centerLongitude": 120.628465
         },
         {
           "name": "红庄",
           "immutableCode": "SZ-MS-HONGZHUANG",
           "slug": "suzhou-metro-hongzhuang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.236657,
+          "centerLongitude": 120.628762
         },
         {
           "name": "清树湾",
           "immutableCode": "SZ-MS-QINGSHUWAN",
           "slug": "suzhou-metro-qingshu-wan",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.220085,
+          "centerLongitude": 120.632626
         },
         {
           "name": "花港",
           "immutableCode": "SZ-MS-HUAGANG",
           "slug": "suzhou-metro-huagang",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.203489,
+          "centerLongitude": 120.632947
         },
         {
           "name": "江陵西路",
           "immutableCode": "SZ-MS-JIANGLINGXILU",
           "slug": "suzhou-metro-jiangling-xi-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.177948,
+          "centerLongitude": 120.639829
         },
         {
           "name": "江兴西路",
           "immutableCode": "SZ-MS-JIANGXINGXILU",
           "slug": "suzhou-metro-jiangxing-xi-lu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.169538,
+          "centerLongitude": 120.632325
         },
         {
           "name": "流虹路",
           "immutableCode": "SZ-MS-LIUHONGLU",
           "slug": "suzhou-metro-liuhong-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.162165,
+          "centerLongitude": 120.618897
         },
         {
           "name": "笠泽路",
           "immutableCode": "SZ-MS-LIZELU",
           "slug": "suzhou-metro-lize-lu",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.154779,
+          "centerLongitude": 120.61595
         },
         {
           "name": "顾家荡",
           "immutableCode": "SZ-MS-GUJIADANG",
           "slug": "suzhou-metro-gujia-dang",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.145429,
+          "centerLongitude": 120.614757
         },
         {
           "name": "苏州湾东",
           "immutableCode": "SZ-MS-SUZHOUWANDONG",
           "slug": "suzhou-metro-suzhou-wan-dong",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.136534,
+          "centerLongitude": 120.615572
         },
         {
           "name": "松陵大道",
           "immutableCode": "SZ-MS-SONGLINGDADAO",
           "slug": "suzhou-metro-songling-dadao",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.131411,
+          "centerLongitude": 120.623955
         },
         {
           "name": "吴江人民广场",
           "immutableCode": "SZ-MS-WUJIANGRENMINGUANGCHANG",
           "slug": "suzhou-metro-wujiang-renmin-guangchang",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.133265,
+          "centerLongitude": 120.643479
         },
         {
           "name": "吴江汽车站",
           "immutableCode": "SZ-MS-WUJIANGQICHEZHAN",
           "slug": "suzhou-metro-wujiang-qiche-zhan",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.137079,
+          "centerLongitude": 120.662959
         },
         {
           "name": "同里",
           "immutableCode": "SZ-MS-TONGLI",
           "slug": "suzhou-metro-tongli",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 31.137393,
+          "centerLongitude": 120.699928
         }
       ]
     },
@@ -785,115 +1024,153 @@
           "name": "太湖香山",
           "immutableCode": "SZ-MS-TAIHUXIANGSHAN",
           "slug": "suzhou-metro-taihu-xiangshan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.225612,
+          "centerLongitude": 120.452883
         },
         {
           "name": "花墩",
           "immutableCode": "SZ-MS-HUADUN",
           "slug": "suzhou-metro-huadun",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.223807,
+          "centerLongitude": 120.465584
         },
         {
           "name": "津桥",
           "immutableCode": "SZ-MS-JINQIAO",
           "slug": "suzhou-metro-jinqiao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.22929,
+          "centerLongitude": 120.47273
         },
         {
           "name": "胥口",
           "immutableCode": "SZ-MS-XUKOU",
           "slug": "suzhou-metro-xukou",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.236213,
+          "centerLongitude": 120.481833
         },
         {
           "name": "茅蓬路东",
           "immutableCode": "SZ-MS-MAOPENGLUDONG",
           "slug": "suzhou-metro-maopeng-lu-dong",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.243799,
+          "centerLongitude": 120.492444
         },
         {
           "name": "许家桥",
           "immutableCode": "SZ-MS-XUJIAQIAO",
           "slug": "suzhou-metro-xujia-qiao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.249801,
+          "centerLongitude": 120.498147
         },
         {
           "name": "灵岩山",
           "immutableCode": "SZ-MS-LINGYANSHAN",
           "slug": "suzhou-metro-lingyan-shan",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.253352,
+          "centerLongitude": 120.503433
         },
         {
           "name": "渎川",
           "immutableCode": "SZ-MS-DUCHUAN",
           "slug": "suzhou-metro-duchuan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.261465,
+          "centerLongitude": 120.51896
         },
         {
           "name": "大治桥",
           "immutableCode": "SZ-MS-DAZHIQIAO",
           "slug": "suzhou-metro-dazhi-qiao",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.262371,
+          "centerLongitude": 120.535444
         },
         {
           "name": "西跨塘",
           "immutableCode": "SZ-MS-XIKUATANG",
           "slug": "suzhou-metro-xikuatang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.263092,
+          "centerLongitude": 120.546817
         },
         {
           "name": "石城",
           "immutableCode": "SZ-MS-SHICHENG",
           "slug": "suzhou-metro-shicheng",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.273138,
+          "centerLongitude": 120.553134
         },
         {
           "name": "落星桥",
           "immutableCode": "SZ-MS-LUOXINGQIAO",
           "slug": "suzhou-metro-luoxing-qiao",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.281107,
+          "centerLongitude": 120.559934
         },
         {
           "name": "索山桥西",
           "immutableCode": "SZ-MS-SUOSHANQIAOXI",
           "slug": "suzhou-metro-suoshan-qiaoxi",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.28313,
+          "centerLongitude": 120.572542
         },
         {
           "name": "竹辉路",
           "immutableCode": "SZ-MS-ZHUHUILU",
           "slug": "suzhou-metro-zhuhui-lu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.294299,
+          "centerLongitude": 120.647133
         },
         {
           "name": "南园北路",
           "immutableCode": "SZ-MS-NANYUANBEILU",
           "slug": "suzhou-metro-nanyuan-bei-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.293345,
+          "centerLongitude": 120.635254
         },
         {
           "name": "新市桥",
           "immutableCode": "SZ-MS-XINSHIQIAO",
           "slug": "suzhou-metro-xinshi-qiao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.290127,
+          "centerLongitude": 120.611408
         },
         {
           "name": "盘胥路",
           "immutableCode": "SZ-MS-PANXULU",
           "slug": "suzhou-metro-panxu-lu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.290991,
+          "centerLongitude": 120.611654
         },
         {
           "name": "方洲公园",
           "immutableCode": "SZ-MS-FANGZHOUGONGYUAN",
           "slug": "suzhou-metro-fangzhou-gongyuan",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.317383,
+          "centerLongitude": 120.744107
         },
         {
           "name": "阳澄湖南",
           "immutableCode": "SZ-MS-YANGCHENGHUNAN",
           "slug": "suzhou-metro-yangchenghu-nan",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.370246,
+          "centerLongitude": 120.782668
         }
       ]
     },
@@ -907,61 +1184,81 @@
           "name": "西津桥",
           "immutableCode": "SZ-MS-XIJINQIAO",
           "slug": "suzhou-metro-xijin-qiao",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.313193,
+          "centerLongitude": 120.54617
         },
         {
           "name": "金阊新城",
           "immutableCode": "SZ-MS-JINCHANGXINCHENG",
           "slug": "suzhou-metro-jinchang-xincheng",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.374599,
+          "centerLongitude": 120.54555
         },
         {
           "name": "白洋湾公园",
           "immutableCode": "SZ-MS-BAIYANGWANGONGYUAN",
           "slug": "suzhou-metro-baiyangwan-gongyuan",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.340345,
+          "centerLongitude": 120.559981
         },
         {
           "name": "虎丘",
           "immutableCode": "SZ-MS-HUQIU",
           "slug": "suzhou-metro-huqiu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.330074,
+          "centerLongitude": 120.579227
         },
         {
           "name": "拙政园",
           "immutableCode": "SZ-MS-ZHUOZHENGYUAN",
           "slug": "suzhou-metro-zhuozheng-yuan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.324185,
+          "centerLongitude": 120.626333
         },
         {
           "name": "苏州大学",
           "immutableCode": "SZ-MS-SUZHOUDAXUE",
           "slug": "suzhou-metro-suzhou-daxue",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.304817,
+          "centerLongitude": 120.640536
         },
         {
           "name": "文化博览中心",
           "immutableCode": "SZ-MS-WENHUABOLANZHONGXIN",
           "slug": "suzhou-metro-wenhua-bolan-zhongxin",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.322733,
+          "centerLongitude": 120.704929
         },
         {
           "name": "金鸡湖",
           "immutableCode": "SZ-MS-JINJIHU",
           "slug": "suzhou-metro-jinji-hu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.316854,
+          "centerLongitude": 120.68073
         },
         {
           "name": "莲花新村",
           "immutableCode": "SZ-MS-LIANHUAXINCUN",
           "slug": "suzhou-metro-lianhua-xincun",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.3224,
+          "centerLongitude": 120.591815
         },
         {
           "name": "新庆路",
           "immutableCode": "SZ-MS-XINQINGLU",
           "slug": "suzhou-metro-xinqing-lu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.270834,
+          "centerLongitude": 120.770544
         }
       ]
     },
@@ -975,19 +1272,25 @@
           "name": "常楼",
           "immutableCode": "SZ-MS-CHANGLOU",
           "slug": "suzhou-metro-changlou",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.411,
+          "centerLongitude": 120.652778
         },
         {
           "name": "苏州北站",
           "immutableCode": "SZ-MS-SUZHOUBEIZHAN",
           "slug": "suzhou-metro-suzhou-beizhan",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.421767,
+          "centerLongitude": 120.645008
         },
         {
           "name": "木里",
           "immutableCode": "SZ-MS-MULI",
           "slug": "suzhou-metro-muli",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.182368,
+          "centerLongitude": 120.577445
         }
       ]
     },
@@ -1001,7 +1304,9 @@
           "name": "车坊",
           "immutableCode": "SZ-MS-CHEFANG",
           "slug": "suzhou-metro-chefang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.247993,
+          "centerLongitude": 120.746891
         }
       ]
     },
@@ -1015,49 +1320,65 @@
           "name": "祖冲之公园",
           "immutableCode": "SZ-MS-ZUCHONGZHIGONGYUAN",
           "slug": "suzhou-metro-zuchongzhi-gongyuan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.381239,
+          "centerLongitude": 120.894722
         },
         {
           "name": "昆山文化艺术中心",
           "immutableCode": "SZ-MS-KUNSHANWENHUAYISHUZHONGXIN",
           "slug": "suzhou-metro-kunshan-wenhua-yishu-zhongxin",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.381338,
+          "centerLongitude": 120.904724
         },
         {
           "name": "玉山广场",
           "immutableCode": "SZ-MS-YUSHANGUANGCHANG",
           "slug": "suzhou-metro-yushan-guangchang",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.382397,
+          "centerLongitude": 120.957339
         },
         {
           "name": "菉葭",
           "immutableCode": "SZ-MS-LUJIA",
           "slug": "suzhou-metro-lujia",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.308714,
+          "centerLongitude": 121.046106
         },
         {
           "name": "花溪公园",
           "immutableCode": "SZ-MS-HUAXIGONGYUAN",
           "slug": "suzhou-metro-huaxi-gongyuan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.298829,
+          "centerLongitude": 121.091049
         },
         {
           "name": "集善",
           "immutableCode": "SZ-MS-JISHAN",
           "slug": "suzhou-metro-jishan",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.295553,
+          "centerLongitude": 121.079476
         },
         {
           "name": "光明路",
           "immutableCode": "SZ-MS-GUANGMINGLU",
           "slug": "suzhou-metro-guangming-lu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.29621,
+          "centerLongitude": 121.117186
         },
         {
           "name": "花桥",
           "immutableCode": "SZ-MS-HUAQIAO",
           "slug": "suzhou-metro-huaqiao",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.3035,
+          "centerLongitude": 121.10601
         }
       ]
     }

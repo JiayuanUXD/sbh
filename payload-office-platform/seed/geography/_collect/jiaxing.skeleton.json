@@ -17,14 +17,110 @@
     "sortOrder": 7
   },
   "districts": [
-    { "name": "南湖区", "immutableCode": "JX-D-330402", "slug": "jiaxing-nanhu", "sortOrder": 1 },
-    { "name": "秀洲区", "immutableCode": "JX-D-330411", "slug": "jiaxing-xiuzhou", "sortOrder": 2 },
-    { "name": "嘉善县", "immutableCode": "JX-D-330421", "slug": "jiaxing-jiashan", "sortOrder": 3 },
-    { "name": "海盐县", "immutableCode": "JX-D-330424", "slug": "jiaxing-haiyan", "sortOrder": 4 },
-    { "name": "海宁市", "immutableCode": "JX-D-330481", "slug": "jiaxing-haining", "sortOrder": 5 },
-    { "name": "平湖市", "immutableCode": "JX-D-330482", "slug": "jiaxing-pinghu", "sortOrder": 6 },
-    { "name": "桐乡市", "immutableCode": "JX-D-330483", "slug": "jiaxing-tongxiang", "sortOrder": 7 }
+    {
+      "name": "南湖区",
+      "immutableCode": "JX-D-330402",
+      "slug": "jiaxing-nanhu",
+      "sortOrder": 1
+    },
+    {
+      "name": "秀洲区",
+      "immutableCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhou",
+      "sortOrder": 2
+    },
+    {
+      "name": "嘉善县",
+      "immutableCode": "JX-D-330421",
+      "slug": "jiaxing-jiashan",
+      "sortOrder": 3
+    },
+    {
+      "name": "海盐县",
+      "immutableCode": "JX-D-330424",
+      "slug": "jiaxing-haiyan",
+      "sortOrder": 4
+    },
+    {
+      "name": "海宁市",
+      "immutableCode": "JX-D-330481",
+      "slug": "jiaxing-haining",
+      "sortOrder": 5
+    },
+    {
+      "name": "平湖市",
+      "immutableCode": "JX-D-330482",
+      "slug": "jiaxing-pinghu",
+      "sortOrder": 6
+    },
+    {
+      "name": "桐乡市",
+      "immutableCode": "JX-D-330483",
+      "slug": "jiaxing-tongxiang",
+      "sortOrder": 7
+    }
   ],
-  "businessAreas": [],
+  "businessAreas": [
+    {
+      "name": "嘉兴科技城",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-kejicheng",
+      "immutableCode": "JX-BA-KEJICHENG"
+    },
+    {
+      "name": "南湖 CBD",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-nanhu-cbd",
+      "immutableCode": "JX-BA-NANHUCBD"
+    },
+    {
+      "name": "高铁新城",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-gaotiexincheng",
+      "immutableCode": "JX-BA-GAOTIEXINCHENG"
+    },
+    {
+      "name": "嘉兴经济技术开发区",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-jingkaiqu",
+      "immutableCode": "JX-BA-JINGKAIQU"
+    },
+    {
+      "name": "秀洲高新区",
+      "districtCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhougaoxinqu",
+      "immutableCode": "JX-BA-XIUZHOUGAOXINQU"
+    },
+    {
+      "name": "秀洲新区",
+      "districtCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhouxinqu",
+      "immutableCode": "JX-BA-XIUZHOUXINQU"
+    },
+    {
+      "name": "嘉善城区",
+      "districtCode": "JX-D-330421",
+      "slug": "jiaxing-jiashanchengqu",
+      "immutableCode": "JX-BA-JIASHANCHENGQU"
+    },
+    {
+      "name": "平湖经济开发区",
+      "districtCode": "JX-D-330482",
+      "slug": "jiaxing-pinghukaifaqu",
+      "immutableCode": "JX-BA-PINGHUKAIFAQU"
+    },
+    {
+      "name": "桐乡城区",
+      "districtCode": "JX-D-330483",
+      "slug": "jiaxing-tongxiangchengqu",
+      "immutableCode": "JX-BA-TONGXIANGCHENGQU"
+    },
+    {
+      "name": "海宁中心商务区",
+      "districtCode": "JX-D-330481",
+      "slug": "jiaxing-haining-cbd",
+      "immutableCode": "JX-BA-HAININGCBD"
+    }
+  ],
   "metroLines": []
 }

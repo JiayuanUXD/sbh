@@ -1,80 +1,100 @@
+// ============================================================
+// 宁波地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、宁波轨道交通官方线网图、核心办公商圈人工盘点
+// 采集日期：待回填
+// 核对人：<name>
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/ningbo.json
+// ============================================================
 {
-  "_header": [
-    "============================================================",
-    "宁波地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
-    "来源：国家统计局行政区划代码、宁波轨道交通官方线网图、核心办公商圈人工盘点",
-    "采集日期：待回填",
-    "核对人：<name>",
-    "行政区划核对截止：2025-06-30",
-    "说明：坐标回填后由本骨架生成 seed/geography/ningbo.json",
-    "============================================================"
-  ],
   "city": {
     "name": "宁波市",
     "immutableCode": "CITY-NB",
     "slug": "ningbo",
-    "sortOrder": 6
+    "sortOrder": 6,
+    "centerLatitude": 29.860258,
+    "centerLongitude": 121.62454
   },
   "districts": [
     {
       "name": "海曙区",
       "immutableCode": "NB-D-330203",
       "slug": "ningbo-haishu",
-      "sortOrder": 1
+      "sortOrder": 1,
+      "centerLatitude": 29.873705,
+      "centerLongitude": 121.550485
     },
     {
       "name": "江北区",
       "immutableCode": "NB-D-330205",
       "slug": "ningbo-jiangbei",
-      "sortOrder": 2
+      "sortOrder": 2,
+      "centerLatitude": 29.88673,
+      "centerLongitude": 121.555067
     },
     {
       "name": "北仑区",
       "immutableCode": "NB-D-330206",
       "slug": "ningbo-beilun",
-      "sortOrder": 3
+      "sortOrder": 3,
+      "centerLatitude": 29.899548,
+      "centerLongitude": 121.844601
     },
     {
       "name": "镇海区",
       "immutableCode": "NB-D-330211",
       "slug": "ningbo-zhenhai",
-      "sortOrder": 4
+      "sortOrder": 4,
+      "centerLatitude": 29.965212,
+      "centerLongitude": 121.596686
     },
     {
       "name": "鄞州区",
       "immutableCode": "NB-D-330212",
       "slug": "ningbo-yinzhou",
-      "sortOrder": 5
+      "sortOrder": 5,
+      "centerLatitude": 29.817302,
+      "centerLongitude": 121.546617
     },
     {
       "name": "奉化区",
       "immutableCode": "NB-D-330213",
       "slug": "ningbo-fenghua",
-      "sortOrder": 6
+      "sortOrder": 6,
+      "centerLatitude": 29.655292,
+      "centerLongitude": 121.406151
     },
     {
       "name": "象山县",
       "immutableCode": "NB-D-330225",
       "slug": "ningbo-xiangshan",
-      "sortOrder": 7
+      "sortOrder": 7,
+      "centerLatitude": 29.476826,
+      "centerLongitude": 121.869251
     },
     {
       "name": "宁海县",
       "immutableCode": "NB-D-330226",
       "slug": "ningbo-ninghai",
-      "sortOrder": 8
+      "sortOrder": 8,
+      "centerLatitude": 29.287929,
+      "centerLongitude": 121.429729
     },
     {
       "name": "余姚市",
       "immutableCode": "NB-D-330281",
       "slug": "ningbo-yuyao",
-      "sortOrder": 9
+      "sortOrder": 9,
+      "centerLatitude": 30.037967,
+      "centerLongitude": 121.154572
     },
     {
       "name": "慈溪市",
       "immutableCode": "NB-D-330282",
       "slug": "ningbo-cixi",
-      "sortOrder": 10
+      "sortOrder": 10,
+      "centerLatitude": 30.170695,
+      "centerLongitude": 121.266525
     }
   ],
   "businessAreas": [
@@ -82,73 +102,97 @@
       "name": "三江口",
       "districtCode": "NB-D-330203",
       "slug": "ningbo-sanjiangkou",
-      "immutableCode": "NB-BA-SANJIANGKOU"
+      "immutableCode": "NB-BA-SANJIANGKOU",
+      "centerLatitude": 29.873476,
+      "centerLongitude": 121.56023
     },
     {
       "name": "东部新城",
       "districtCode": "NB-D-330212",
       "slug": "ningbo-dongbu-xincheng",
-      "immutableCode": "NB-BA-DONGBUXINCHENG"
+      "immutableCode": "NB-BA-DONGBUXINCHENG",
+      "centerLatitude": 29.861073,
+      "centerLongitude": 121.616288
     },
     {
       "name": "南部商务区",
       "districtCode": "NB-D-330212",
       "slug": "ningbo-nanbu-shangwuqu",
-      "immutableCode": "NB-BA-NANBUSHANGWUQU"
+      "immutableCode": "NB-BA-NANBUSHANGWUQU",
+      "centerLatitude": 29.805153,
+      "centerLongitude": 121.54648
     },
     {
       "name": "鄞州中心区",
       "districtCode": "NB-D-330212",
       "slug": "ningbo-yinzhou-zhongxinqu",
-      "immutableCode": "NB-BA-YINZHOUZHONGXINQU"
+      "immutableCode": "NB-BA-YINZHOUZHONGXINQU",
+      "centerLatitude": 29.809517,
+      "centerLongitude": 121.541275
     },
     {
       "name": "高新区",
       "districtCode": "NB-D-330212",
       "slug": "ningbo-gaoxinqu",
-      "immutableCode": "NB-BA-GAOXINQU"
+      "immutableCode": "NB-BA-GAOXINQU",
+      "centerLatitude": 29.881933,
+      "centerLongitude": 121.629545
     },
     {
       "name": "江北核心区",
       "districtCode": "NB-D-330205",
       "slug": "ningbo-jiangbei-hexinqu",
-      "immutableCode": "NB-BA-JIANGBEIHEXINQU"
+      "immutableCode": "NB-BA-JIANGBEIHEXINQU",
+      "centerLatitude": 29.87121,
+      "centerLongitude": 121.629795
     },
     {
       "name": "湾头",
       "districtCode": "NB-D-330205",
       "slug": "ningbo-wantou",
-      "immutableCode": "NB-BA-WANTOU"
+      "immutableCode": "NB-BA-WANTOU",
+      "centerLatitude": 29.899188,
+      "centerLongitude": 121.551076
     },
     {
       "name": "镇海新城",
       "districtCode": "NB-D-330211",
       "slug": "ningbo-zhenhai-xincheng",
-      "immutableCode": "NB-BA-ZHENHAIXINCHENG"
+      "immutableCode": "NB-BA-ZHENHAIXINCHENG",
+      "centerLatitude": 29.964736,
+      "centerLongitude": 121.593183
     },
     {
       "name": "北仑中心",
       "districtCode": "NB-D-330206",
       "slug": "ningbo-beilun-zhongxin",
-      "immutableCode": "NB-BA-BEILUNZHONGXIN"
+      "immutableCode": "NB-BA-BEILUNZHONGXIN",
+      "centerLatitude": 29.906425,
+      "centerLongitude": 121.825725
     },
     {
       "name": "奉化中心",
       "districtCode": "NB-D-330213",
       "slug": "ningbo-fenghua-zhongxin",
-      "immutableCode": "NB-BA-FENGHUAZHONGXIN"
+      "immutableCode": "NB-BA-FENGHUAZHONGXIN",
+      "centerLatitude": 29.671512,
+      "centerLongitude": 121.422353
     },
     {
       "name": "余姚中心",
       "districtCode": "NB-D-330281",
       "slug": "ningbo-yuyao-zhongxin",
-      "immutableCode": "NB-BA-YUYAOZHONGXIN"
+      "immutableCode": "NB-BA-YUYAOZHONGXIN",
+      "centerLatitude": 30.025603,
+      "centerLongitude": 121.158805
     },
     {
       "name": "慈溪中心",
       "districtCode": "NB-D-330282",
       "slug": "ningbo-cixi-zhongxin",
-      "immutableCode": "NB-BA-CIXIZHONGXIN"
+      "immutableCode": "NB-BA-CIXIZHONGXIN",
+      "centerLatitude": 30.149075,
+      "centerLongitude": 121.240525
     }
   ],
   "metroLines": [
@@ -162,175 +206,233 @@
           "name": "高桥西",
           "immutableCode": "NB-MS-GAOQIAOXI",
           "slug": "ningbo-metro-gaoqiao-xi",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.910802,
+          "centerLongitude": 121.453556
         },
         {
           "name": "高桥",
           "immutableCode": "NB-MS-GAOQIAO",
           "slug": "ningbo-metro-gaoqiao",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.901488,
+          "centerLongitude": 121.464107
         },
         {
           "name": "梁祝",
           "immutableCode": "NB-MS-LIANGZHU",
           "slug": "ningbo-metro-liangzhu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.89488,
+          "centerLongitude": 121.476733
         },
         {
           "name": "芦港",
           "immutableCode": "NB-MS-LUGANG",
           "slug": "ningbo-metro-lugang",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.89034,
+          "centerLongitude": 121.487283
         },
         {
           "name": "徐家漕长乐",
           "immutableCode": "NB-MS-XUJIACAOCHANGLE",
           "slug": "ningbo-metro-xujiacao-changle",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.887631,
+          "centerLongitude": 121.496877
         },
         {
           "name": "望春桥",
           "immutableCode": "NB-MS-WANGCHUNQIAO",
           "slug": "ningbo-metro-wangchunqiao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.883639,
+          "centerLongitude": 121.507489
         },
         {
           "name": "泽民",
           "immutableCode": "NB-MS-ZEMIN",
           "slug": "ningbo-metro-zemin",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.87863,
+          "centerLongitude": 121.521148
         },
         {
           "name": "大卿桥",
           "immutableCode": "NB-MS-DAQINGQIAO",
           "slug": "ningbo-metro-daqingqiao",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.876588,
+          "centerLongitude": 121.53188
         },
         {
           "name": "西门口",
           "immutableCode": "NB-MS-XIMENKOU",
           "slug": "ningbo-metro-ximenkou",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.874847,
+          "centerLongitude": 121.539928
         },
         {
           "name": "鼓楼",
           "immutableCode": "NB-MS-GULOU",
           "slug": "ningbo-metro-gulou",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.873914,
+          "centerLongitude": 121.54897
         },
         {
           "name": "东门口",
           "immutableCode": "NB-MS-DONGMENKOU",
           "slug": "ningbo-metro-dongmenkou",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.871481,
+          "centerLongitude": 121.555432
         },
         {
           "name": "江厦桥东",
           "immutableCode": "NB-MS-JIANGXIAQIAODONG",
           "slug": "ningbo-metro-jiangxia-qiaodong",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.86941,
+          "centerLongitude": 121.565095
         },
         {
           "name": "舟孟北路",
           "immutableCode": "NB-MS-ZHOUMENGBEILU",
           "slug": "ningbo-metro-zhoumeng-beilu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.867206,
+          "centerLongitude": 121.573982
         },
         {
           "name": "樱花公园",
           "immutableCode": "NB-MS-YINGHUAGONGYUAN",
           "slug": "ningbo-metro-yinghua-gongyuan",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.864732,
+          "centerLongitude": 121.580259
         },
         {
           "name": "福明路",
           "immutableCode": "NB-MS-FUMINGLU",
           "slug": "ningbo-metro-fuming-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.86098,
+          "centerLongitude": 121.593092
         },
         {
           "name": "世纪大道",
           "immutableCode": "NB-MS-SHIJIDADAO",
           "slug": "ningbo-metro-shiji-dadao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.859027,
+          "centerLongitude": 121.602005
         },
         {
           "name": "海晏北路",
           "immutableCode": "NB-MS-HAIYANBEILU",
           "slug": "ningbo-metro-haiyan-beilu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.860128,
+          "centerLongitude": 121.614646
         },
         {
           "name": "福庆北路",
           "immutableCode": "NB-MS-FUQINGBEILU",
           "slug": "ningbo-metro-fuqing-beilu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.858826,
+          "centerLongitude": 121.624204
         },
         {
           "name": "盛莫路",
           "immutableCode": "NB-MS-SHENGMOLU",
           "slug": "ningbo-metro-shengmo-lu",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.856445,
+          "centerLongitude": 121.636273
         },
         {
           "name": "东环南路",
           "immutableCode": "NB-MS-DONGHUANNANLU",
           "slug": "ningbo-metro-donghuan-nanlu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 29.853024,
+          "centerLongitude": 121.650587
         },
         {
           "name": "邱隘东",
           "immutableCode": "NB-MS-QIUGAIDONG",
           "slug": "ningbo-metro-qiugai-dong",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 29.846556,
+          "centerLongitude": 121.661438
         },
         {
           "name": "五乡",
           "immutableCode": "NB-MS-WUXIANG",
           "slug": "ningbo-metro-wuxiang",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 29.838494,
+          "centerLongitude": 121.690153
         },
         {
           "name": "宝幢",
           "immutableCode": "NB-MS-BAOZHUANG",
           "slug": "ningbo-metro-baozhuang",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 29.839346,
+          "centerLongitude": 121.733579
         },
         {
           "name": "邬隘",
           "immutableCode": "NB-MS-WUGAI",
           "slug": "ningbo-metro-wugai",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 29.874725,
+          "centerLongitude": 121.782269
         },
         {
           "name": "大碶",
           "immutableCode": "NB-MS-DAQI",
           "slug": "ningbo-metro-daqi",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 29.893302,
+          "centerLongitude": 121.794673
         },
         {
           "name": "松花江路",
           "immutableCode": "NB-MS-SONGHUAJIANGLU",
           "slug": "ningbo-metro-songhuajiang-lu",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 29.904403,
+          "centerLongitude": 121.808452
         },
         {
           "name": "中河路",
           "immutableCode": "NB-MS-ZHONGHELU",
           "slug": "ningbo-metro-zhonghe-lu",
-          "sortOrder": 27
+          "sortOrder": 27,
+          "centerLatitude": 29.893725,
+          "centerLongitude": 121.829607
         },
         {
           "name": "长江路",
           "immutableCode": "NB-MS-CHANGJIANGLU",
           "slug": "ningbo-metro-changjiang-lu",
-          "sortOrder": 28
+          "sortOrder": 28,
+          "centerLatitude": 29.890794,
+          "centerLongitude": 121.843544
         },
         {
           "name": "霞浦",
           "immutableCode": "NB-MS-XIAPU",
           "slug": "ningbo-metro-xiapu",
-          "sortOrder": 29
+          "sortOrder": 29,
+          "centerLatitude": 29.890445,
+          "centerLongitude": 121.85675
         }
       ]
     },
@@ -344,157 +446,209 @@
           "name": "栎社国际机场",
           "immutableCode": "NB-MS-LISHEGUOJIJICHANG",
           "slug": "ningbo-metro-lishe-guoji-jichang",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.817857,
+          "centerLongitude": 121.461234
         },
         {
           "name": "栎社",
           "immutableCode": "NB-MS-LISHE",
           "slug": "ningbo-metro-lishe",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.809483,
+          "centerLongitude": 121.483496
         },
         {
           "name": "鄞州大道",
           "immutableCode": "NB-MS-YINZHOUDADAO",
           "slug": "ningbo-metro-yinzhou-dadao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.818439,
+          "centerLongitude": 121.496395
         },
         {
           "name": "石碶",
           "immutableCode": "NB-MS-SHIQI",
           "slug": "ningbo-metro-shiqi",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.825732,
+          "centerLongitude": 121.504304
         },
         {
           "name": "轻纺城",
           "immutableCode": "NB-MS-QINGFANGCHENG",
           "slug": "ningbo-metro-qingfangcheng",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.8315,
+          "centerLongitude": 121.514326
         },
         {
           "name": "藕池",
           "immutableCode": "NB-MS-OUCHI",
           "slug": "ningbo-metro-ouchi",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.841524,
+          "centerLongitude": 121.512768
         },
         {
           "name": "客运中心",
           "immutableCode": "NB-MS-KEYUNZHONGXIN",
           "slug": "ningbo-metro-keyun-zhongxin",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.861873,
+          "centerLongitude": 121.533557
         },
         {
           "name": "丽园南路",
           "immutableCode": "NB-MS-LIYUANNANLU",
           "slug": "ningbo-metro-liyuan-nanlu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.858133,
+          "centerLongitude": 121.517716
         },
         {
           "name": "云霞路",
           "immutableCode": "NB-MS-YUNXIALU",
           "slug": "ningbo-metro-yunxia-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.858542,
+          "centerLongitude": 121.526364
         },
         {
           "name": "宁波火车站",
           "immutableCode": "NB-MS-NINGBOHUOCHEZHAN",
           "slug": "ningbo-metro-ningbo-huochezhan",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.862141,
+          "centerLongitude": 121.537022
         },
         {
           "name": "城隍庙",
           "immutableCode": "NB-MS-CHENGHUANGMIAO",
           "slug": "ningbo-metro-chenghuangmiao",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.867124,
+          "centerLongitude": 121.548778
         },
         {
           "name": "外滩大桥",
           "immutableCode": "NB-MS-WAITANDAQIAO",
           "slug": "ningbo-metro-waitan-daqiao",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.882812,
+          "centerLongitude": 121.558811
         },
         {
           "name": "正大路",
           "immutableCode": "NB-MS-ZHENGDALU",
           "slug": "ningbo-metro-zhengda-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.88979,
+          "centerLongitude": 121.560887
         },
         {
           "name": "倪家堰",
           "immutableCode": "NB-MS-NIJIAYAN",
           "slug": "ningbo-metro-nijiayan",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.898239,
+          "centerLongitude": 121.566719
         },
         {
           "name": "压赛堰",
           "immutableCode": "NB-MS-YASAIYAN",
           "slug": "ningbo-metro-yasaiyan",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.903443,
+          "centerLongitude": 121.575493
         },
         {
           "name": "大通桥",
           "immutableCode": "NB-MS-DATONGQIAO",
           "slug": "ningbo-metro-datongqiao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.903762,
+          "centerLongitude": 121.581424
         },
         {
           "name": "孔浦",
           "immutableCode": "NB-MS-KONGPU",
           "slug": "ningbo-metro-kongpu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.904137,
+          "centerLongitude": 121.592313
         },
         {
           "name": "路林",
           "immutableCode": "NB-MS-LULIN",
           "slug": "ningbo-metro-lulin",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.908967,
+          "centerLongitude": 121.612425
         },
         {
           "name": "三官堂",
           "immutableCode": "NB-MS-SANGUANTANG",
           "slug": "ningbo-metro-sanguantang",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.911651,
+          "centerLongitude": 121.620865
         },
         {
           "name": "宁波大学",
           "immutableCode": "NB-MS-NINGBODAXUE",
           "slug": "ningbo-metro-ningbo-daxue",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 29.911594,
+          "centerLongitude": 121.634428
         },
         {
           "name": "清水浦",
           "immutableCode": "NB-MS-QINGSHUIPU",
           "slug": "ningbo-metro-qingshuipu",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 29.921765,
+          "centerLongitude": 121.660928
         },
         {
           "name": "五里牌",
           "immutableCode": "NB-MS-WULIPAI",
           "slug": "ningbo-metro-wulipai",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 29.938232,
+          "centerLongitude": 121.677461
         },
         {
           "name": "枫园",
           "immutableCode": "NB-MS-FENGYUAN",
           "slug": "ningbo-metro-fengyuan",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 29.951993,
+          "centerLongitude": 121.694486
         },
         {
           "name": "聪园路",
           "immutableCode": "NB-MS-CONGYUANLU",
           "slug": "ningbo-metro-congyuan-lu",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 29.951484,
+          "centerLongitude": 121.705416
         },
         {
           "name": "招宝山",
           "immutableCode": "NB-MS-ZHAOBAOSHAN",
           "slug": "ningbo-metro-zhaobaoshan",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 29.950004,
+          "centerLongitude": 121.716425
         },
         {
           "name": "红联",
           "immutableCode": "NB-MS-HONGLIAN",
           "slug": "ningbo-metro-honglian",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 29.939249,
+          "centerLongitude": 121.723628
         }
       ]
     },
@@ -508,133 +662,177 @@
           "name": "金海路",
           "immutableCode": "NB-MS-JINHAILU",
           "slug": "ningbo-metro-jinhai-lu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.651501,
+          "centerLongitude": 121.449288
         },
         {
           "name": "大成东路",
           "immutableCode": "NB-MS-DACHENGDONGLU",
           "slug": "ningbo-metro-dacheng-donglu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.672472,
+          "centerLongitude": 121.449564
         },
         {
           "name": "南渡",
           "immutableCode": "NB-MS-NANDU",
           "slug": "ningbo-metro-nandu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.708765,
+          "centerLongitude": 121.447345
         },
         {
           "name": "琎琳",
           "immutableCode": "NB-MS-JINLIN",
           "slug": "ningbo-metro-jinlin",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.722085,
+          "centerLongitude": 121.448437
         },
         {
           "name": "方桥",
           "immutableCode": "NB-MS-FANGQIAO",
           "slug": "ningbo-metro-fangqiao",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.745643,
+          "centerLongitude": 121.452395
         },
         {
           "name": "朝阳",
           "immutableCode": "NB-MS-CHAOYANG",
           "slug": "ningbo-metro-chaoyang",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.765047,
+          "centerLongitude": 121.488964
         },
         {
           "name": "明辉路",
           "immutableCode": "NB-MS-MINGHUILU",
           "slug": "ningbo-metro-minghui-lu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.764278,
+          "centerLongitude": 121.505396
         },
         {
           "name": "狮山",
           "immutableCode": "NB-MS-SHISHAN",
           "slug": "ningbo-metro-shishan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.763928,
+          "centerLongitude": 121.519014
         },
         {
           "name": "姜山",
           "immutableCode": "NB-MS-JIANGSHAN",
           "slug": "ningbo-metro-jiangshan",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.770623,
+          "centerLongitude": 121.527543
         },
         {
           "name": "高塘桥",
           "immutableCode": "NB-MS-GAOTANGQIAO",
           "slug": "ningbo-metro-gaotangqiao",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.789553,
+          "centerLongitude": 121.529142
         },
         {
           "name": "句章路",
           "immutableCode": "NB-MS-GOUZHANGLU",
           "slug": "ningbo-metro-gouzhang-lu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.796911,
+          "centerLongitude": 121.530988
         },
         {
           "name": "鄞州客运总站",
           "immutableCode": "NB-MS-YINZHOUKEYUNZONGZHAN",
           "slug": "ningbo-metro-yinzhou-keyunzongzhan",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.799868,
+          "centerLongitude": 121.541624
         },
         {
           "name": "南部商务区",
           "immutableCode": "NB-MS-NANBUSHANGWUQU",
           "slug": "ningbo-metro-nanbu-shangwuqu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.806882,
+          "centerLongitude": 121.549155
         },
         {
           "name": "鄞州区政府",
           "immutableCode": "NB-MS-YINZHOUQUZHENGFU",
           "slug": "ningbo-metro-yinzhou-quzhengfu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.818272,
+          "centerLongitude": 121.550169
         },
         {
           "name": "四明中路",
           "immutableCode": "NB-MS-SIMINGZHONGLU",
           "slug": "ningbo-metro-siming-zhonglu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.827977,
+          "centerLongitude": 121.550596
         },
         {
           "name": "锦寓路",
           "immutableCode": "NB-MS-JINYULU",
           "slug": "ningbo-metro-jinyu-lu",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.82998,
+          "centerLongitude": 121.556043
         },
         {
           "name": "钱湖北路",
           "immutableCode": "NB-MS-QIANHUBEILU",
           "slug": "ningbo-metro-qianhu-beilu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.835794,
+          "centerLongitude": 121.565616
         },
         {
           "name": "仇毕",
           "immutableCode": "NB-MS-QIUBI",
           "slug": "ningbo-metro-qiubi",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.845328,
+          "centerLongitude": 121.575374
         },
         {
           "name": "儿童公园",
           "immutableCode": "NB-MS-ERTONGGONGYUAN",
           "slug": "ningbo-metro-ertong-gongyuan",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.853835,
+          "centerLongitude": 121.577686
         },
         {
           "name": "体育馆",
           "immutableCode": "NB-MS-TIYUGUAN",
           "slug": "ningbo-metro-tiyuguan",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 29.872526,
+          "centerLongitude": 121.585194
         },
         {
           "name": "明楼",
           "immutableCode": "NB-MS-MINGLOU",
           "slug": "ningbo-metro-minglou",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 29.879741,
+          "centerLongitude": 121.589196
         },
         {
           "name": "中兴大桥南",
           "immutableCode": "NB-MS-ZHONGXINGDAQIAONAN",
           "slug": "ningbo-metro-zhongxing-daqiaonan",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 29.890126,
+          "centerLongitude": 121.587855
         }
       ]
     },
@@ -648,145 +846,193 @@
           "name": "慈城西",
           "immutableCode": "NB-MS-CICHENGXI",
           "slug": "ningbo-metro-cicheng-xi",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.985012,
+          "centerLongitude": 121.437545
         },
         {
           "name": "慈城",
           "immutableCode": "NB-MS-CICHENG",
           "slug": "ningbo-metro-cicheng",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.975471,
+          "centerLongitude": 121.450973
         },
         {
           "name": "官山河",
           "immutableCode": "NB-MS-GUANSHANHE",
           "slug": "ningbo-metro-guanshanhe",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.961327,
+          "centerLongitude": 121.460099
         },
         {
           "name": "长兴路",
           "immutableCode": "NB-MS-CHANGXINGLU",
           "slug": "ningbo-metro-changxing-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.948101,
+          "centerLongitude": 121.462151
         },
         {
           "name": "金山路",
           "immutableCode": "NB-MS-JINSHANLU",
           "slug": "ningbo-metro-jinshan-lu",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.94107,
+          "centerLongitude": 121.4707
         },
         {
           "name": "奥体中心",
           "immutableCode": "NB-MS-AOTIZHONGXIN",
           "slug": "ningbo-metro-aoti-zhongxin",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.934132,
+          "centerLongitude": 121.490244
         },
         {
           "name": "洪塘中路",
           "immutableCode": "NB-MS-HONGTANGZHONGLU",
           "slug": "ningbo-metro-hongtang-zhonglu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.92757,
+          "centerLongitude": 121.501582
         },
         {
           "name": "洪大路",
           "immutableCode": "NB-MS-HONGDALU",
           "slug": "ningbo-metro-hongda-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.921287,
+          "centerLongitude": 121.521839
         },
         {
           "name": "庄桥火车站",
           "immutableCode": "NB-MS-ZHUANGQIAOHUOCHEZHAN",
           "slug": "ningbo-metro-zhuangqiao-huochezhan",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.921992,
+          "centerLongitude": 121.53451
         },
         {
           "name": "丽江路",
           "immutableCode": "NB-MS-LIJIANGLU",
           "slug": "ningbo-metro-lijiang-lu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.910628,
+          "centerLongitude": 121.538966
         },
         {
           "name": "双东路",
           "immutableCode": "NB-MS-SHUANGDONGLU",
           "slug": "ningbo-metro-shuangdong-lu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.896567,
+          "centerLongitude": 121.53286
         },
         {
           "name": "翠柏里",
           "immutableCode": "NB-MS-CUIBAILI",
           "slug": "ningbo-metro-cuibaili",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.888041,
+          "centerLongitude": 121.532273
         },
         {
           "name": "柳西",
           "immutableCode": "NB-MS-LIUXI",
           "slug": "ningbo-metro-liuxi",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.871117,
+          "centerLongitude": 121.53132
         },
         {
           "name": "兴宁桥西",
           "immutableCode": "NB-MS-XINGNINGQIAOXI",
           "slug": "ningbo-metro-xingning-qiaoxi",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.858654,
+          "centerLongitude": 121.548649
         },
         {
           "name": "兴宁桥东",
           "immutableCode": "NB-MS-XINGNINGQIAODONG",
           "slug": "ningbo-metro-xingning-qiaodong",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.854361,
+          "centerLongitude": 121.556207
         },
         {
           "name": "白鹤",
           "immutableCode": "NB-MS-BAIHE",
           "slug": "ningbo-metro-baihe",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.852318,
+          "centerLongitude": 121.566228
         },
         {
           "name": "矮柳",
           "immutableCode": "NB-MS-AILIU",
           "slug": "ningbo-metro-ailiu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.851379,
+          "centerLongitude": 121.587279
         },
         {
           "name": "潘火路",
           "immutableCode": "NB-MS-PANHUOLU",
           "slug": "ningbo-metro-panhuo-lu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.840471,
+          "centerLongitude": 121.591643
         },
         {
           "name": "嵩江东路",
           "immutableCode": "NB-MS-SONGJIANGDONGLU",
           "slug": "ningbo-metro-songjiang-donglu",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.825887,
+          "centerLongitude": 121.583548
         },
         {
           "name": "南高教园区",
           "immutableCode": "NB-MS-NANGAOJIAOYUANQU",
           "slug": "ningbo-metro-nangaojiao-yuanqu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 29.81658,
+          "centerLongitude": 121.580031
         },
         {
           "name": "金达南路",
           "immutableCode": "NB-MS-JINDANANLU",
           "slug": "ningbo-metro-jinda-nanlu",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 29.80424,
+          "centerLongitude": 121.592477
         },
         {
           "name": "小洋江",
           "immutableCode": "NB-MS-XIAOYANGJIANG",
           "slug": "ningbo-metro-xiaoyangjiang",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 29.793052,
+          "centerLongitude": 121.611398
         },
         {
           "name": "东钱湖",
           "immutableCode": "NB-MS-DONGQIANHU",
           "slug": "ningbo-metro-dongqianhu",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 29.781908,
+          "centerLongitude": 121.628325
         },
         {
           "name": "国际会议中心",
           "immutableCode": "NB-MS-GUOJIHUIYIZHONGXIN",
           "slug": "ningbo-metro-guoji-huiyi-zhongxin",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 29.76276,
+          "centerLongitude": 121.635033
         }
       ]
     },
@@ -800,133 +1046,177 @@
           "name": "布政",
           "immutableCode": "NB-MS-BUZHENG",
           "slug": "ningbo-metro-buzheng",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.846156,
+          "centerLongitude": 121.472388
         },
         {
           "name": "张家潭",
           "immutableCode": "NB-MS-ZHANGJIATAN",
           "slug": "ningbo-metro-zhangjiatan",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.838365,
+          "centerLongitude": 121.479479
         },
         {
           "name": "同德路",
           "immutableCode": "NB-MS-TONGDELU",
           "slug": "ningbo-metro-tongde-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.827899,
+          "centerLongitude": 121.490796
         },
         {
           "name": "雅渡",
           "immutableCode": "NB-MS-YADU",
           "slug": "ningbo-metro-yadu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.819305,
+          "centerLongitude": 121.509656
         },
         {
           "name": "庙堰",
           "immutableCode": "NB-MS-MIAOYAN",
           "slug": "ningbo-metro-miaoyan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.819415,
+          "centerLongitude": 121.526543
         },
         {
           "name": "钟公庙",
           "immutableCode": "NB-MS-ZHONGGONGMIAO",
           "slug": "ningbo-metro-zhonggongmiao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.819222,
+          "centerLongitude": 121.539177
         },
         {
           "name": "钱湖南路",
           "immutableCode": "NB-MS-QIANHUNANLU",
           "slug": "ningbo-metro-qianhu-nanlu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.819643,
+          "centerLongitude": 121.567827
         },
         {
           "name": "下应路",
           "immutableCode": "NB-MS-XIAYINGLU",
           "slug": "ningbo-metro-xiaying-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.811657,
+          "centerLongitude": 121.592974
         },
         {
           "name": "大洋江",
           "immutableCode": "NB-MS-DAYANGJIANG",
           "slug": "ningbo-metro-dayangjiang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.816927,
+          "centerLongitude": 121.601724
         },
         {
           "name": "泗港",
           "immutableCode": "NB-MS-SIGANG",
           "slug": "ningbo-metro-sigang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.825054,
+          "centerLongitude": 121.604826
         },
         {
           "name": "曹隘",
           "immutableCode": "NB-MS-CAOGAI",
           "slug": "ningbo-metro-caogai",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.840577,
+          "centerLongitude": 121.608837
         },
         {
           "name": "柳隘",
           "immutableCode": "NB-MS-LIUGAI",
           "slug": "ningbo-metro-liugai",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.8522,
+          "centerLongitude": 121.612057
         },
         {
           "name": "民安东路",
           "immutableCode": "NB-MS-MINANDONGLU",
           "slug": "ningbo-metro-minan-donglu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.868104,
+          "centerLongitude": 121.617371
         },
         {
           "name": "会展中心",
           "immutableCode": "NB-MS-HUIZHANZHONGXIN",
           "slug": "ningbo-metro-huizhan-zhongxin",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.874243,
+          "centerLongitude": 121.619617
         },
         {
           "name": "院士路",
           "immutableCode": "NB-MS-YUANSHILU",
           "slug": "ningbo-metro-yuanshi-lu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.887354,
+          "centerLongitude": 121.622301
         },
         {
           "name": "盎孟港",
           "immutableCode": "NB-MS-ANGMENGGANG",
           "slug": "ningbo-metro-angmenggang",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.89655,
+          "centerLongitude": 121.621916
         },
         {
           "name": "兴庄路",
           "immutableCode": "NB-MS-XINGZHUANGLU",
           "slug": "ningbo-metro-xingzhuang-lu",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.920837,
+          "centerLongitude": 121.614554
         },
         {
           "name": "兴海南路",
           "immutableCode": "NB-MS-XINGHAINANLU",
           "slug": "ningbo-metro-xinghai-nanlu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.923497,
+          "centerLongitude": 121.605479
         },
         {
           "name": "梅堰",
           "immutableCode": "NB-MS-MEIYAN",
           "slug": "ningbo-metro-meiyan",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.923653,
+          "centerLongitude": 121.59707
         },
         {
           "name": "永茂路",
           "immutableCode": "NB-MS-YONGMAOLU",
           "slug": "ningbo-metro-yongmao-lu",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 29.948673,
+          "centerLongitude": 121.584046
         },
         {
           "name": "镇海大道",
           "immutableCode": "NB-MS-ZHENHAIDADAO",
           "slug": "ningbo-metro-zhenhai-dadao",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 29.967652,
+          "centerLongitude": 121.584767
         },
         {
           "name": "骆驼桥",
           "immutableCode": "NB-MS-LUOTUOQIAO",
           "slug": "ningbo-metro-luotuoqiao",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 29.982465,
+          "centerLongitude": 121.585467
         }
       ]
     },
@@ -940,91 +1230,121 @@
           "name": "古林",
           "immutableCode": "NB-MS-GULIN",
           "slug": "ningbo-metro-gulin",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.835453,
+          "centerLongitude": 121.436502
         },
         {
           "name": "云林西路",
           "immutableCode": "NB-MS-YUNLINXILU",
           "slug": "ningbo-metro-yunlin-xilu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.84986,
+          "centerLongitude": 121.438251
         },
         {
           "name": "集士港",
           "immutableCode": "NB-MS-JISHIGANG",
           "slug": "ningbo-metro-jishigang",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.861409,
+          "centerLongitude": 121.438398
         },
         {
           "name": "汇士路",
           "immutableCode": "NB-MS-HUISHILU",
           "slug": "ningbo-metro-huishi-lu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.873612,
+          "centerLongitude": 121.447997
         },
         {
           "name": "卖面桥",
           "immutableCode": "NB-MS-MAIMIANQIAO",
           "slug": "ningbo-metro-maimianqiao",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.875618,
+          "centerLongitude": 121.47435
         },
         {
           "name": "宋家漕",
           "immutableCode": "NB-MS-SONGJIACAO",
           "slug": "ningbo-metro-songjiacao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.87934,
+          "centerLongitude": 121.491528
         },
         {
           "name": "新芝路",
           "immutableCode": "NB-MS-XINZHILU",
           "slug": "ningbo-metro-xinzhi-lu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.88708,
+          "centerLongitude": 121.539277
         },
         {
           "name": "庆丰桥东",
           "immutableCode": "NB-MS-QINGFENGQIAODONG",
           "slug": "ningbo-metro-qingfeng-qiaodong",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.882907,
+          "centerLongitude": 121.576754
         },
         {
           "name": "明珠路",
           "immutableCode": "NB-MS-MINGZHULU",
           "slug": "ningbo-metro-mingzhu-lu",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.882161,
+          "centerLongitude": 121.598165
         },
         {
           "name": "沧海北路",
           "immutableCode": "NB-MS-CANGHAIBEILU",
           "slug": "ningbo-metro-canghai-beilu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.886495,
+          "centerLongitude": 121.603021
         },
         {
           "name": "聚贤路",
           "immutableCode": "NB-MS-JUXIANLU",
           "slug": "ningbo-metro-juxian-lu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.888525,
+          "centerLongitude": 121.634105
         },
         {
           "name": "梅墟",
           "immutableCode": "NB-MS-MEIXU",
           "slug": "ningbo-metro-meixu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.893829,
+          "centerLongitude": 121.655227
         },
         {
           "name": "谢墅",
           "immutableCode": "NB-MS-XIESHU",
           "slug": "ningbo-metro-xieshu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.911151,
+          "centerLongitude": 121.681359
         },
         {
           "name": "小港西",
           "immutableCode": "NB-MS-XIAOGANGXI",
           "slug": "ningbo-metro-xiaogang-xi",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.923364,
+          "centerLongitude": 121.699402
         },
         {
           "name": "衙前",
           "immutableCode": "NB-MS-YAQIAN",
           "slug": "ningbo-metro-yaqian",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.929485,
+          "centerLongitude": 121.709248
         }
       ]
     },
@@ -1038,115 +1358,153 @@
           "name": "俞范",
           "immutableCode": "NB-MS-YUFAN",
           "slug": "ningbo-metro-yufan",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.964897,
+          "centerLongitude": 121.658783
         },
         {
           "name": "明海北路",
           "immutableCode": "NB-MS-MINGHAIBEILU",
           "slug": "ningbo-metro-minghai-beilu",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.961489,
+          "centerLongitude": 121.623833
         },
         {
           "name": "贵驷",
           "immutableCode": "NB-MS-GUISI",
           "slug": "ningbo-metro-guisi",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.964465,
+          "centerLongitude": 121.612775
         },
         {
           "name": "镇海市民广场",
           "immutableCode": "NB-MS-ZHENHAISHIMINGUANGCHANG",
           "slug": "ningbo-metro-zhenhai-shiminguangchang",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.966723,
+          "centerLongitude": 121.598243
         },
         {
           "name": "骆兴",
           "immutableCode": "NB-MS-LUOXING",
           "slug": "ningbo-metro-luoxing",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.967543,
+          "centerLongitude": 121.565084
         },
         {
           "name": "应嘉路",
           "immutableCode": "NB-MS-YINGJIALU",
           "slug": "ningbo-metro-yingjia-lu",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.956372,
+          "centerLongitude": 121.550547
         },
         {
           "name": "宁慈东路",
           "immutableCode": "NB-MS-NINGCIDONGLU",
           "slug": "ningbo-metro-ningci-donglu",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.930374,
+          "centerLongitude": 121.544715
         },
         {
           "name": "云飞路",
           "immutableCode": "NB-MS-YUNFEILU",
           "slug": "ningbo-metro-yunfei-lu",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.915681,
+          "centerLongitude": 121.543653
         },
         {
           "name": "湾头",
           "immutableCode": "NB-MS-WANTOU",
           "slug": "ningbo-metro-wantou",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.899188,
+          "centerLongitude": 121.551076
         },
         {
           "name": "宁波大剧院",
           "immutableCode": "NB-MS-NINGBODAJUYUAN",
           "slug": "ningbo-metro-ningbo-dajuyuan",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.890314,
+          "centerLongitude": 121.550407
         },
         {
           "name": "曙光",
           "immutableCode": "NB-MS-SHUGUANG",
           "slug": "ningbo-metro-shuguang",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.876565,
+          "centerLongitude": 121.572978
         },
         {
           "name": "福民公园",
           "immutableCode": "NB-MS-FUMINGONGYUAN",
           "slug": "ningbo-metro-fumin-gongyuan",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.873572,
+          "centerLongitude": 121.596907
         },
         {
           "name": "新天路",
           "immutableCode": "NB-MS-XINTIANLU",
           "slug": "ningbo-metro-xintian-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.87134,
+          "centerLongitude": 121.60553
         },
         {
           "name": "北明程路",
           "immutableCode": "NB-MS-BEIMINGCHENGLU",
           "slug": "ningbo-metro-beimingcheng-lu",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 29.865603,
+          "centerLongitude": 121.626729
         },
         {
           "name": "邱隘",
           "immutableCode": "NB-MS-QIUGAI",
           "slug": "ningbo-metro-qiugai",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 29.848025,
+          "centerLongitude": 121.634392
         },
         {
           "name": "尚德路",
           "immutableCode": "NB-MS-SHANGDELU",
           "slug": "ningbo-metro-shangde-lu",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 29.830164,
+          "centerLongitude": 121.630111
         },
         {
           "name": "回龙",
           "immutableCode": "NB-MS-HUILONG",
           "slug": "ningbo-metro-huilong",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 29.818271,
+          "centerLongitude": 121.62758
         },
         {
           "name": "安石路",
           "immutableCode": "NB-MS-ANSHILU",
           "slug": "ningbo-metro-anshi-lu",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 29.799677,
+          "centerLongitude": 121.626809
         },
         {
           "name": "云龙",
           "immutableCode": "NB-MS-YUNLONG",
           "slug": "ningbo-metro-yunlong",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 29.78318,
+          "centerLongitude": 121.602208
         }
       ]
     },
@@ -1160,79 +1518,105 @@
           "name": "开元路",
           "immutableCode": "NB-MS-KAIYUANLU",
           "slug": "ningbo-metro-kaiyuan-lu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 29.945814,
+          "centerLongitude": 121.499351
         },
         {
           "name": "洪塘",
           "immutableCode": "NB-MS-HONGTANG",
           "slug": "ningbo-metro-hongtang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 29.93904,
+          "centerLongitude": 121.507101
         },
         {
           "name": "洪盛路",
           "immutableCode": "NB-MS-HONGSHENGLU",
           "slug": "ningbo-metro-hongsheng-lu",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 29.930912,
+          "centerLongitude": 121.516745
         },
         {
           "name": "榭嘉",
           "immutableCode": "NB-MS-XIEJIA",
           "slug": "ningbo-metro-xiejia",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 29.913957,
+          "centerLongitude": 121.519749
         },
         {
           "name": "青林湾",
           "immutableCode": "NB-MS-QINGLINWAN",
           "slug": "ningbo-metro-qinglinwan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 29.900772,
+          "centerLongitude": 121.518916
         },
         {
           "name": "市中医院",
           "immutableCode": "NB-MS-SHIZHONGYIYUAN",
           "slug": "ningbo-metro-shizhongyiyuan",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 29.887791,
+          "centerLongitude": 121.520971
         },
         {
           "name": "联丰",
           "immutableCode": "NB-MS-LIANFENG",
           "slug": "ningbo-metro-lianfeng",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 29.869711,
+          "centerLongitude": 121.51579
         },
         {
           "name": "南苑",
           "immutableCode": "NB-MS-NANYUAN",
           "slug": "ningbo-metro-nanyuan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 29.848998,
+          "centerLongitude": 121.523851
         },
         {
           "name": "段塘",
           "immutableCode": "NB-MS-DUANTANG",
           "slug": "ningbo-metro-duantang",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 29.841036,
+          "centerLongitude": 121.52346
         },
         {
           "name": "堇山西路",
           "immutableCode": "NB-MS-JINSHANXILU",
           "slug": "ningbo-metro-jinshan-xilu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 29.828847,
+          "centerLongitude": 121.528517
         },
         {
           "name": "鄞州公园南",
           "immutableCode": "NB-MS-YINZHOUGONGYUANNAN",
           "slug": "ningbo-metro-yinzhou-gongyuannan",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 29.807507,
+          "centerLongitude": 121.540395
         },
         {
           "name": "学府路",
           "immutableCode": "NB-MS-XUEFULU",
           "slug": "ningbo-metro-xuefu-lu",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 29.8046,
+          "centerLongitude": 121.559497
         },
         {
           "name": "寒松路",
           "immutableCode": "NB-MS-HANSONGLU",
           "slug": "ningbo-metro-hansong-lu",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 29.793416,
+          "centerLongitude": 121.576569
         }
       ]
     }

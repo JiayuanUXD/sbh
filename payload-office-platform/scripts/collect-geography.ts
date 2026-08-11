@@ -57,9 +57,18 @@ async function pace(): Promise<void> {
 async function amap(path: string, params: Record<string, string>): Promise<Record<string, unknown>> {
   await pace()
   const qs = new URLSearchParams({ key: KEY, ...params }).toString()
-  const res = await fetch(`${BASE}${path}?${qs}`)
-  if (!res.ok) throw new Error(`高德 HTTP ${res.status}`)
-  return (await res.json()) as Record<string, unknown>
+  const url = `${BASE}${path}?${qs}`
+  // 网络偶发断连（ECONNRESET 等）时退避重试，最多 3 次
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`高德 HTTP ${res.status}`)
+      return (await res.json()) as Record<string, unknown>
+    } catch (e) {
+      if (attempt >= 3) throw e
+      await new Promise((r) => setTimeout(r, 800 * attempt))
+    }
+  }
 }
 
 /** 行政区 / 城市中心：地理编码。返回 [lng, lat] 或 null。 */

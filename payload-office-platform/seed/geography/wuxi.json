@@ -1,63 +1,76 @@
-
+// ============================================================
+// 无锡地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、无锡地铁官方线网图、核心办公商圈人工盘点
+// 采集日期：待回填
+// 核对人：<name>
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/wuxi.json
+// ============================================================
 {
-  "_header": [
-    "============================================================",
-    "无锡地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
-    "来源：国家统计局行政区划代码、无锡地铁官方线网图、核心办公商圈人工盘点",
-    "采集日期：待回填",
-    "核对人：<name>",
-    "行政区划核对截止：2025-06-30",
-    "说明：坐标回填后由本骨架生成 seed/geography/wuxi.json",
-    "============================================================"
-  ],
   "city": {
     "name": "无锡市",
     "immutableCode": "CITY-WX",
     "slug": "wuxi",
-    "sortOrder": 5
+    "sortOrder": 5,
+    "centerLatitude": 31.491064,
+    "centerLongitude": 120.311889
   },
   "districts": [
     {
       "name": "锡山区",
       "immutableCode": "WX-D-320205",
       "slug": "wuxi-xishan",
-      "sortOrder": 1
+      "sortOrder": 1,
+      "centerLatitude": 31.589484,
+      "centerLongitude": 120.357732
     },
     {
       "name": "惠山区",
       "immutableCode": "WX-D-320206",
       "slug": "wuxi-huishan",
-      "sortOrder": 2
+      "sortOrder": 2,
+      "centerLatitude": 31.680282,
+      "centerLongitude": 120.29843
     },
     {
       "name": "滨湖区",
       "immutableCode": "WX-D-320211",
       "slug": "wuxi-binhu",
-      "sortOrder": 3
+      "sortOrder": 3,
+      "centerLatitude": 31.527846,
+      "centerLongitude": 120.284381
     },
     {
       "name": "梁溪区",
       "immutableCode": "WX-D-320213",
       "slug": "wuxi-liangxi",
-      "sortOrder": 4
+      "sortOrder": 4,
+      "centerLatitude": 31.566226,
+      "centerLongitude": 120.303551
     },
     {
       "name": "新吴区",
       "immutableCode": "WX-D-320214",
       "slug": "wuxi-xinwu",
-      "sortOrder": 5
+      "sortOrder": 5,
+      "centerLatitude": 31.49085,
+      "centerLongitude": 120.364303
     },
     {
       "name": "江阴市",
       "immutableCode": "WX-D-320281",
       "slug": "wuxi-jiangyin",
-      "sortOrder": 6
+      "sortOrder": 6,
+      "centerLatitude": 31.921642,
+      "centerLongitude": 120.284794
     },
     {
       "name": "宜兴市",
       "immutableCode": "WX-D-320282",
       "slug": "wuxi-yixing",
-      "sortOrder": 7
+      "sortOrder": 7,
+      "centerLatitude": 31.338429,
+      "centerLongitude": 119.821873
     }
   ],
   "businessAreas": [
@@ -65,73 +78,97 @@
       "name": "太湖新城",
       "districtCode": "WX-D-320211",
       "slug": "wuxi-taihu-xincheng",
-      "immutableCode": "WX-BA-TAIHUXINCHENG"
+      "immutableCode": "WX-BA-TAIHUXINCHENG",
+      "centerLatitude": 31.542277,
+      "centerLongitude": 120.283203
     },
     {
       "name": "梁溪CBD",
       "districtCode": "WX-D-320213",
       "slug": "wuxi-liangxi-cbd",
-      "immutableCode": "WX-BA-LIANGXICBD"
+      "immutableCode": "WX-BA-LIANGXICBD",
+      "centerLatitude": 31.663725,
+      "centerLongitude": 120.302625
     },
     {
       "name": "崇安",
       "districtCode": "WX-D-320213",
       "slug": "wuxi-chongan",
-      "immutableCode": "WX-BA-CHONGAN"
+      "immutableCode": "WX-BA-CHONGAN",
+      "centerLatitude": 31.578312,
+      "centerLongitude": 120.301784
     },
     {
       "name": "南长",
       "districtCode": "WX-D-320213",
       "slug": "wuxi-nanchang",
-      "immutableCode": "WX-BA-NANCHANG"
+      "immutableCode": "WX-BA-NANCHANG",
+      "centerLatitude": 31.558918,
+      "centerLongitude": 120.314405
     },
     {
       "name": "蠡湖",
       "districtCode": "WX-D-320211",
       "slug": "wuxi-lihu",
-      "immutableCode": "WX-BA-LIHU"
+      "immutableCode": "WX-BA-LIHU",
+      "centerLatitude": 31.513485,
+      "centerLongitude": 120.251273
     },
     {
       "name": "滨湖",
       "districtCode": "WX-D-320211",
       "slug": "wuxi-binhu-cbd",
-      "immutableCode": "WX-BA-BINHU"
+      "immutableCode": "WX-BA-BINHU",
+      "centerLatitude": 31.527846,
+      "centerLongitude": 120.284381
     },
     {
       "name": "河埒口",
       "districtCode": "WX-D-320211",
       "slug": "wuxi-heliekou",
-      "immutableCode": "WX-BA-HELIEKOU"
+      "immutableCode": "WX-BA-HELIEKOU",
+      "centerLatitude": 31.562011,
+      "centerLongitude": 120.260863
     },
     {
       "name": "无锡新区",
       "districtCode": "WX-D-320214",
       "slug": "wuxi-wuxi-xinqu",
-      "immutableCode": "WX-BA-WUXIXINQU"
+      "immutableCode": "WX-BA-WUXIXINQU",
+      "centerLatitude": 31.498044,
+      "centerLongitude": 120.3919
     },
     {
       "name": "惠山",
       "districtCode": "WX-D-320206",
       "slug": "wuxi-huishan-cbd",
-      "immutableCode": "WX-BA-HUISHAN"
+      "immutableCode": "WX-BA-HUISHAN",
+      "centerLatitude": 31.680282,
+      "centerLongitude": 120.29843
     },
     {
       "name": "锡东新城",
       "districtCode": "WX-D-320205",
       "slug": "wuxi-xidong-xincheng",
-      "immutableCode": "WX-BA-XIDONGXINCHENG"
+      "immutableCode": "WX-BA-XIDONGXINCHENG",
+      "centerLatitude": 31.607263,
+      "centerLongitude": 120.4755
     },
     {
       "name": "东亭",
       "districtCode": "WX-D-320205",
       "slug": "wuxi-dongting",
-      "immutableCode": "WX-BA-DONGTING"
+      "immutableCode": "WX-BA-DONGTING",
+      "centerLatitude": 31.582134,
+      "centerLongitude": 120.363665
     },
     {
       "name": "江阴",
       "districtCode": "WX-D-320281",
       "slug": "wuxi-jiangyin-cbd",
-      "immutableCode": "WX-BA-JIANGYIN"
+      "immutableCode": "WX-BA-JIANGYIN",
+      "centerLatitude": 31.921642,
+      "centerLongitude": 120.284794
     }
   ],
   "metroLines": [
@@ -145,163 +182,217 @@
           "name": "堰桥",
           "immutableCode": "WX-MS-YANQIAO",
           "slug": "wuxi-metro-yanqiao",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.675557,
+          "centerLongitude": 120.31491
         },
         {
           "name": "锡北运河",
           "immutableCode": "WX-MS-XIBEIYUNHE",
           "slug": "wuxi-metro-xibei-yunhe",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.662275,
+          "centerLongitude": 120.314878
         },
         {
           "name": "西漳",
           "immutableCode": "WX-MS-XIZHANG",
           "slug": "wuxi-metro-xizhang",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.645835,
+          "centerLongitude": 120.303648
         },
         {
           "name": "天一",
           "immutableCode": "WX-MS-TIANYI",
           "slug": "wuxi-metro-tianyi",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.637838,
+          "centerLongitude": 120.304345
         },
         {
           "name": "刘潭",
           "immutableCode": "WX-MS-LIUTAN",
           "slug": "wuxi-metro-liutan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.626619,
+          "centerLongitude": 120.304405
         },
         {
           "name": "庄前",
           "immutableCode": "WX-MS-ZHUANGQIAN",
           "slug": "wuxi-metro-zhuangqian",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.609833,
+          "centerLongitude": 120.304897
         },
         {
           "name": "民丰",
           "immutableCode": "WX-MS-MINFENG",
           "slug": "wuxi-metro-minfeng",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.600949,
+          "centerLongitude": 120.303539
         },
         {
           "name": "无锡火车站",
           "immutableCode": "WX-MS-WUXIHUOCHEZHAN",
           "slug": "wuxi-metro-wuxihuochezhan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.589666,
+          "centerLongitude": 120.307016
         },
         {
           "name": "胜利门",
           "immutableCode": "WX-MS-SHENGLIMEN",
           "slug": "wuxi-metro-shenglimen",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.581945,
+          "centerLongitude": 120.299901
         },
         {
           "name": "三阳广场",
           "immutableCode": "WX-MS-SANYANGGUANGCHANG",
           "slug": "wuxi-metro-sanyangguangchang",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.575787,
+          "centerLongitude": 120.299815
         },
         {
           "name": "南禅寺",
           "immutableCode": "WX-MS-NANCHANSI",
           "slug": "wuxi-metro-nanchansi",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.567481,
+          "centerLongitude": 120.306161
         },
         {
           "name": "谈渡桥",
           "immutableCode": "WX-MS-TANDUQIAO",
           "slug": "wuxi-metro-tanduqiao",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.562049,
+          "centerLongitude": 120.305131
         },
         {
           "name": "太湖广场",
           "immutableCode": "WX-MS-TAIHUGUANGCHANG",
           "slug": "wuxi-metro-taihuguangchang",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.555193,
+          "centerLongitude": 120.305212
         },
         {
           "name": "清名桥",
           "immutableCode": "WX-MS-QINGMINGQIAO",
           "slug": "wuxi-metro-qingmingqiao",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.549902,
+          "centerLongitude": 120.310694
         },
         {
           "name": "人民医院",
           "immutableCode": "WX-MS-RENMINYIYUAN",
           "slug": "wuxi-metro-renminyiyuan",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.541931,
+          "centerLongitude": 120.3193
         },
         {
           "name": "华清大桥",
           "immutableCode": "WX-MS-HUAQINGDAQIAO",
           "slug": "wuxi-metro-huaqingdaqiao",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.533799,
+          "centerLongitude": 120.327989
         },
         {
           "name": "扬名",
           "immutableCode": "WX-MS-YANGMING",
           "slug": "wuxi-metro-yangming",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.521122,
+          "centerLongitude": 120.3245
         },
         {
           "name": "南湖家园",
           "immutableCode": "WX-MS-NANHUJIAYUAN",
           "slug": "wuxi-metro-nanhujiayuan",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.509787,
+          "centerLongitude": 120.324167
         },
         {
           "name": "塘铁桥",
           "immutableCode": "WX-MS-TANGTIEQIAO",
           "slug": "wuxi-metro-tangtieqiao",
-          "sortOrder": 19
+          "sortOrder": 19,
+          "centerLatitude": 31.500782,
+          "centerLongitude": 120.325888
         },
         {
           "name": "金匮公园",
           "immutableCode": "WX-MS-JINKUIGONGYUAN",
           "slug": "wuxi-metro-jinkuigongyuan",
-          "sortOrder": 20
+          "sortOrder": 20,
+          "centerLatitude": 31.492862,
+          "centerLongitude": 120.319796
         },
         {
           "name": "市民中心",
           "immutableCode": "WX-MS-SHIMINZHONGXIN",
           "slug": "wuxi-metro-shiminzhongxin",
-          "sortOrder": 21
+          "sortOrder": 21,
+          "centerLatitude": 31.491559,
+          "centerLongitude": 120.30675
         },
         {
           "name": "文化宫",
           "immutableCode": "WX-MS-WENHUAGONG",
           "slug": "wuxi-metro-wenhuagong",
-          "sortOrder": 22
+          "sortOrder": 22,
+          "centerLatitude": 31.490014,
+          "centerLongitude": 120.291179
         },
         {
           "name": "江南大学",
           "immutableCode": "WX-MS-JIANGNANDAXUE",
           "slug": "wuxi-metro-jiangnandaxue",
-          "sortOrder": 23
+          "sortOrder": 23,
+          "centerLatitude": 31.483933,
+          "centerLongitude": 120.278763
         },
         {
           "name": "长广溪",
           "immutableCode": "WX-MS-CHANGGUANGXI",
           "slug": "wuxi-metro-changguangxi",
-          "sortOrder": 24
+          "sortOrder": 24,
+          "centerLatitude": 31.473366,
+          "centerLongitude": 120.277388
         },
         {
           "name": "雪浪",
           "immutableCode": "WX-MS-XUELANG",
           "slug": "wuxi-metro-xuelang",
-          "sortOrder": 25
+          "sortOrder": 25,
+          "centerLatitude": 31.459934,
+          "centerLongitude": 120.279623
         },
         {
           "name": "葛埭桥",
           "immutableCode": "WX-MS-GEDAIQIAO",
           "slug": "wuxi-metro-gedaiqiao",
-          "sortOrder": 26
+          "sortOrder": 26,
+          "centerLatitude": 31.447716,
+          "centerLongitude": 120.274265
         },
         {
           "name": "南方泉",
           "immutableCode": "WX-MS-NANFANGQUAN",
           "slug": "wuxi-metro-nanfangquan",
-          "sortOrder": 27
+          "sortOrder": 27,
+          "centerLatitude": 31.436882,
+          "centerLongitude": 120.270275
         }
       ]
     },
@@ -315,109 +406,145 @@
           "name": "梅园开原寺",
           "immutableCode": "WX-MS-MEIYUANKAIYUANSI",
           "slug": "wuxi-metro-meiyuan-kaiyuansi",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.550948,
+          "centerLongitude": 120.219585
         },
         {
           "name": "荣巷",
           "immutableCode": "WX-MS-RONGXIANG",
           "slug": "wuxi-metro-rongxiang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.556647,
+          "centerLongitude": 120.236493
         },
         {
           "name": "小桃园",
           "immutableCode": "WX-MS-XIAOTAOYUAN",
           "slug": "wuxi-metro-xiaotaoyuan",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.908758,
+          "centerLongitude": 120.239782
         },
         {
           "name": "河埒口",
           "immutableCode": "WX-MS-HELIEKOU",
           "slug": "wuxi-metro-heliekou",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.562011,
+          "centerLongitude": 120.260863
         },
         {
           "name": "大王基",
           "immutableCode": "WX-MS-DAWANGJI",
           "slug": "wuxi-metro-dawangji",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.564803,
+          "centerLongitude": 120.275666
         },
         {
           "name": "梁溪大桥",
           "immutableCode": "WX-MS-LIANGXIDAQIAO",
           "slug": "wuxi-metro-liangxidaqiao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.567255,
+          "centerLongitude": 120.28637
         },
         {
           "name": "五爱广场",
           "immutableCode": "WX-MS-WUAIGUANGCHANG",
           "slug": "wuxi-metro-wuaiguangchang",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.573626,
+          "centerLongitude": 120.290551
         },
         {
           "name": "东林广场",
           "immutableCode": "WX-MS-DONGLINGUANGCHANG",
           "slug": "wuxi-metro-donglinguangchang",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.578479,
+          "centerLongitude": 120.308394
         },
         {
           "name": "上马墩",
           "immutableCode": "WX-MS-SHANGMADUN",
           "slug": "wuxi-metro-shangmadun",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.582366,
+          "centerLongitude": 120.320767
         },
         {
           "name": "靖海",
           "immutableCode": "WX-MS-JINGHAI",
           "slug": "wuxi-metro-jinghai",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.58332,
+          "centerLongitude": 120.330128
         },
         {
           "name": "广益",
           "immutableCode": "WX-MS-GUANGYI",
           "slug": "wuxi-metro-guangyi",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.586566,
+          "centerLongitude": 120.341347
         },
         {
           "name": "柏庄",
           "immutableCode": "WX-MS-BAIZHUANG",
           "slug": "wuxi-metro-baizhuang",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.585997,
+          "centerLongitude": 120.351078
         },
         {
           "name": "云林",
           "immutableCode": "WX-MS-YUNLIN",
           "slug": "wuxi-metro-yunlin",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.579536,
+          "centerLongitude": 120.39503
         },
         {
           "name": "九里河公园",
           "immutableCode": "WX-MS-JIULIHEGONGYUAN",
           "slug": "wuxi-metro-jiulihegongyuan",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.580374,
+          "centerLongitude": 120.408619
         },
         {
           "name": "查桥",
           "immutableCode": "WX-MS-ZHAQIAO",
           "slug": "wuxi-metro-zhaqiao",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.58112,
+          "centerLongitude": 120.431377
         },
         {
           "name": "映月湖公园",
           "immutableCode": "WX-MS-YINGYUEHUGONGYUAN",
           "slug": "wuxi-metro-yingyuehugongyuan",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.587221,
+          "centerLongitude": 120.449123
         },
         {
           "name": "无锡东站",
           "immutableCode": "WX-MS-WUXIDONGZHAN",
           "slug": "wuxi-metro-wuxidongzhan",
-          "sortOrder": 17
+          "sortOrder": 17,
+          "centerLatitude": 31.596666,
+          "centerLongitude": 120.460431
         },
         {
           "name": "安镇",
           "immutableCode": "WX-MS-ANZHEN",
           "slug": "wuxi-metro-anzhen",
-          "sortOrder": 18
+          "sortOrder": 18,
+          "centerLatitude": 31.601327,
+          "centerLongitude": 120.464783
         }
       ]
     },
@@ -431,97 +558,129 @@
           "name": "苏庙",
           "immutableCode": "WX-MS-SUMIAO",
           "slug": "wuxi-metro-sumiao",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.596784,
+          "centerLongitude": 120.21606
         },
         {
           "name": "钱桥",
           "immutableCode": "WX-MS-QIANQIAO",
           "slug": "wuxi-metro-qianqiao",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.596498,
+          "centerLongitude": 120.229675
         },
         {
           "name": "龙山梢",
           "immutableCode": "WX-MS-LONGSHANSHAO",
           "slug": "wuxi-metro-longshanshao",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.600435,
+          "centerLongitude": 120.244096
         },
         {
           "name": "石门路",
           "immutableCode": "WX-MS-SHIMENLU",
           "slug": "wuxi-metro-shimenlu",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.597377,
+          "centerLongitude": 120.259095
         },
         {
           "name": "盛岸",
           "immutableCode": "WX-MS-SHENGAN",
           "slug": "wuxi-metro-shengan",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.592325,
+          "centerLongitude": 120.269806
         },
         {
           "name": "吴桥",
           "immutableCode": "WX-MS-WUQIAO",
           "slug": "wuxi-metro-wuqiao",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.593864,
+          "centerLongitude": 120.285964
         },
         {
           "name": "北栅口",
           "immutableCode": "WX-MS-BEIZHAKOU",
           "slug": "wuxi-metro-beizhakou",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.590948,
+          "centerLongitude": 120.297063
         },
         {
           "name": "广瑞",
           "immutableCode": "WX-MS-GUANGRUI",
           "slug": "wuxi-metro-guangrui",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.588917,
+          "centerLongitude": 120.318447
         },
         {
           "name": "东亭",
           "immutableCode": "WX-MS-DONGTING",
           "slug": "wuxi-metro-dongting",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.582134,
+          "centerLongitude": 120.363665
         },
         {
           "name": "芙蓉湖",
           "immutableCode": "WX-MS-FURONGHU",
           "slug": "wuxi-metro-furonghu",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.929413,
+          "centerLongitude": 120.291993
         },
         {
           "name": "新光路",
           "immutableCode": "WX-MS-XINGUANGLU",
           "slug": "wuxi-metro-xinguanglu",
-          "sortOrder": 11
+          "sortOrder": 11,
+          "centerLatitude": 31.549408,
+          "centerLongitude": 120.352475
         },
         {
           "name": "无锡新区站",
           "immutableCode": "WX-MS-WUXIXINQUZHAN",
           "slug": "wuxi-metro-wuxixinquzhan",
-          "sortOrder": 12
+          "sortOrder": 12,
+          "centerLatitude": 31.499378,
+          "centerLongitude": 120.392141
         },
         {
           "name": "新安",
           "immutableCode": "WX-MS-XINAN",
           "slug": "wuxi-metro-xinan",
-          "sortOrder": 13
+          "sortOrder": 13,
+          "centerLatitude": 31.488609,
+          "centerLongitude": 120.376112
         },
         {
           "name": "硕放",
           "immutableCode": "WX-MS-SHUOFANG",
           "slug": "wuxi-metro-shuofang",
-          "sortOrder": 14
+          "sortOrder": 14,
+          "centerLatitude": 31.502584,
+          "centerLongitude": 120.430807
         },
         {
           "name": "长江南路",
           "immutableCode": "WX-MS-CHANGJIANGNANLU",
           "slug": "wuxi-metro-changjiangnanlu",
-          "sortOrder": 15
+          "sortOrder": 15,
+          "centerLatitude": 31.49739,
+          "centerLongitude": 120.403221
         },
         {
           "name": "苏南硕放机场",
           "immutableCode": "WX-MS-SUNANSHUOFANGJICHANG",
           "slug": "wuxi-metro-sunanshuofangjichang",
-          "sortOrder": 16
+          "sortOrder": 16,
+          "centerLatitude": 31.502584,
+          "centerLongitude": 120.430807
         }
       ]
     },
@@ -535,61 +694,81 @@
           "name": "广石路",
           "immutableCode": "WX-MS-GUANGSHILU",
           "slug": "wuxi-metro-guangshilu",
-          "sortOrder": 1
+          "sortOrder": 1,
+          "centerLatitude": 31.617803,
+          "centerLongitude": 120.290063
         },
         {
           "name": "黄巷",
           "immutableCode": "WX-MS-HUANGXIANG",
           "slug": "wuxi-metro-huangxiang",
-          "sortOrder": 2
+          "sortOrder": 2,
+          "centerLatitude": 31.59936,
+          "centerLongitude": 120.280027
         },
         {
           "name": "惠山古镇",
           "immutableCode": "WX-MS-HUISHANGUZHEN",
           "slug": "wuxi-metro-huishanguzhen",
-          "sortOrder": 3
+          "sortOrder": 3,
+          "centerLatitude": 31.581157,
+          "centerLongitude": 120.277689
         },
         {
           "name": "青山湾",
           "immutableCode": "WX-MS-QINGSHANWAN",
           "slug": "wuxi-metro-qingshanwan",
-          "sortOrder": 4
+          "sortOrder": 4,
+          "centerLatitude": 31.568685,
+          "centerLongitude": 120.26975
         },
         {
           "name": "西园弄",
           "immutableCode": "WX-MS-XIYUANNONG",
           "slug": "wuxi-metro-xiyuannong",
-          "sortOrder": 5
+          "sortOrder": 5,
+          "centerLatitude": 31.548637,
+          "centerLongitude": 120.262141
         },
         {
           "name": "蠡园",
           "immutableCode": "WX-MS-LIYUAN",
           "slug": "wuxi-metro-liyuan",
-          "sortOrder": 6
+          "sortOrder": 6,
+          "centerLatitude": 31.522083,
+          "centerLongitude": 120.266252
         },
         {
           "name": "蠡湖大桥",
           "immutableCode": "WX-MS-LIHUDAQIAO",
           "slug": "wuxi-metro-lihudaqiao",
-          "sortOrder": 7
+          "sortOrder": 7,
+          "centerLatitude": 31.522083,
+          "centerLongitude": 120.266252
         },
         {
           "name": "大剧院",
           "immutableCode": "WX-MS-DAJUYUAN",
           "slug": "wuxi-metro-dajuyuan",
-          "sortOrder": 8
+          "sortOrder": 8,
+          "centerLatitude": 31.514691,
+          "centerLongitude": 120.278871
         },
         {
           "name": "周新镇",
           "immutableCode": "WX-MS-ZHOUXINZHEN",
           "slug": "wuxi-metro-zhouxinzhen",
-          "sortOrder": 9
+          "sortOrder": 9,
+          "centerLatitude": 31.507925,
+          "centerLongitude": 120.301325
         },
         {
           "name": "博览中心",
           "immutableCode": "WX-MS-BOLANZHONGXIN",
           "slug": "wuxi-metro-bolanzhongxin",
-          "sortOrder": 10
+          "sortOrder": 10,
+          "centerLatitude": 31.476891,
+          "centerLongitude": 120.325461
         }
       ]
     }
