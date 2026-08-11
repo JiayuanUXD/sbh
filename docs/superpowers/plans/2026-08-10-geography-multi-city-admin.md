@@ -617,8 +617,8 @@ subgroup('supply-settings', '基础配置', [
    - `slug` 全局唯一（`Locations.slug` 有 unique 约束），命名规范同样写进文档。
 
 **验收**
-- [ ] 规范文档已提交，含冲突处理规则（同名商圈、跨线同名站、行政区改名）。
-- [ ] `_template.json` 可通过 Task 19 的校验器。
+- [x] 规范文档已提交（`docs/geography-code-convention.md`），含冲突处理规则（同名商圈、跨线同名站、行政区改名）。
+- [ ] `_template.json` 可通过 Task 19 的校验器（待 Task 19 落地后回填）。
 
 ---
 

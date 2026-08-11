@@ -1,0 +1,67 @@
+// ============================================================
+// 地理种子数据模板（示例城市：杭州）
+// 来源：国家统计局行政区划代码、杭州地铁集团官方线网图、核心办公商圈人工盘点
+// 采集日期：YYYY-MM-DD
+// 核对人：<name>
+// 行政区划核对截止：YYYY-MM-DD
+// 说明：本文件含 // 与 /* */ 注释，导入脚本（scripts/import-geography.ts）
+//       会在 JSON.parse 前剥离。引用一律用 immutableCode，不用 id。
+//       slug 全局唯一。坐标需经纬度成对。sortOrder 默认 100。
+// ============================================================
+{
+  "city": {
+    "name": "杭州市",
+    "immutableCode": "CITY-HZ",
+    "slug": "hangzhou",
+    "centerLatitude": 30.2741,
+    "centerLongitude": 120.1551,
+    "sortOrder": 30
+  },
+  "districts": [
+    {
+      "name": "上城区",
+      "immutableCode": "HZ-D-330102",
+      "slug": "hangzhou-shangcheng",
+      "centerLatitude": 30.2,
+      "centerLongitude": 120.2,
+      "sortOrder": 10
+    },
+    {
+      "name": "拱墅区",
+      "immutableCode": "HZ-D-330105",
+      "slug": "hangzhou-gongshu",
+      "centerLatitude": 30.32,
+      "centerLongitude": 120.14,
+      "sortOrder": 20
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "武林广场",
+      "immutableCode": "HZ-BA-WULINGUANGCHANG",
+      "slug": "hangzhou-wulin",
+      "districtCode": "HZ-D-330102",
+      "centerLatitude": 30.27,
+      "centerLongitude": 120.16,
+      "sortOrder": 10
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "HZ-ML-1",
+      "slug": "hangzhou-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "湘湖",
+          "immutableCode": "HZ-MS-XIANGHU",
+          "slug": "hangzhou-metro-xianghu",
+          "centerLatitude": 30.15,
+          "centerLongitude": 120.25,
+          "sortOrder": 1
+        }
+      ]
+    }
+  ]
+}
