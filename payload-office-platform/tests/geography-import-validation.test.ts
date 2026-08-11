@@ -216,3 +216,61 @@ describe('validateSeedFile：legacyCodes 存量别名', () => {
     expect(validateSeedFile(seed)).toEqual([])
   })
 })
+
+/**
+ * 重复键检测。真实事故：先按本地存量写了一遍 legacyCodes、后按生产存量又写一遍，
+ * 同一节点出现两个 legacyCodes 键，JSON.parse 静默取后者 → 生产别名被丢弃 →
+ * 导入会在生产建出重复城市并把整棵树挂错父级，且全程不报错。
+ */
+describe('parseSeedJson：重复键检测', () => {
+  it('同一对象内重复键直接抛错', () => {
+    const raw = `{
+      "city": {
+        "name": "上海市",
+        "immutableCode": "CITY-SH",
+        "legacyCodes": ["LEGACY_LOC_1", "SH"],
+        "legacyCodes": ["SH"],
+        "slug": "shanghai"
+      },
+      "districts": [], "businessAreas": [], "metroLines": []
+    }`
+    expect(() => parseSeedJson(raw)).toThrow(/重复键「legacyCodes」/)
+  })
+
+  it('不同对象的同名键不算重复', () => {
+    const raw = `{
+      "city": { "name": "上海市", "immutableCode": "CITY-SH", "slug": "shanghai" },
+      "districts": [
+        { "name": "黄浦区", "immutableCode": "SH-D-310101", "slug": "sh-huangpu" },
+        { "name": "徐汇区", "immutableCode": "SH-D-310104", "slug": "sh-xuhui" }
+      ],
+      "businessAreas": [], "metroLines": []
+    }`
+    expect(() => parseSeedJson(raw)).not.toThrow()
+  })
+
+  it('字符串值里出现的花括号与冒号不干扰判定', () => {
+    const raw = `{
+      "city": { "name": "上海 {市}: 测试", "immutableCode": "CITY-SH", "slug": "a\\"b" },
+      "districts": [], "businessAreas": [], "metroLines": []
+    }`
+    expect(() => parseSeedJson(raw)).not.toThrow()
+  })
+
+  it('注释里的重复键不算数（先剥离注释再检测）', () => {
+    const raw = `{
+      // "legacyCodes": ["X"],
+      "city": { "name": "上海市", "immutableCode": "CITY-SH", "slug": "shanghai", "legacyCodes": ["SH"] },
+      "districts": [], "businessAreas": [], "metroLines": []
+    }`
+    expect(() => parseSeedJson(raw)).not.toThrow()
+  })
+
+  it('七城种子文件全部无重复键', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs')
+    const dir = 'seed/geography'
+    for (const f of readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+      expect(() => parseSeedJson(readFileSync(`${dir}/${f}`, 'utf-8')), f).not.toThrow()
+    }
+  })
+})

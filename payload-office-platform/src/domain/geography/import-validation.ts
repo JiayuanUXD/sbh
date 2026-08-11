@@ -90,7 +90,58 @@ export function stripJsonComments(raw: string): string {
 /** 剥离注释后 JSON.parse；解析失败抛错（带原始信息）。 */
 export function parseSeedJson(raw: string): unknown {
   const stripped = stripJsonComments(raw)
+  assertNoDuplicateKeys(stripped)
   return JSON.parse(stripped)
+}
+
+/**
+ * 重复键检测：`JSON.parse` 对同一对象里重复出现的键**静默取最后一个**，
+ * 前面的值无声消失。种子文件是人工 + 脚本混合维护的，很容易出现同一节点被
+ * 两次写入 `legacyCodes` 这类情况（真实发生过：先按本地存量写了一遍别名，
+ * 后按生产存量又写了一遍，结果生产别名被本地别名覆盖，导入会挂错父级树）。
+ *
+ * `JSON.parse` 的 reviver 拿不到重复键（此时已被覆盖），故用最小状态机扫描
+ * 原始文本，按对象层级收集键名。只关心对象键，数组与字符串内容跳过。
+ */
+export function assertNoDuplicateKeys(json: string): void {
+  const stack: Array<Set<string>> = []
+  let i = 0
+  const n = json.length
+  while (i < n) {
+    const ch = json[i]
+    if (ch === '"') {
+      // 读一个完整字符串（处理转义）
+      let j = i + 1
+      let out = ''
+      while (j < n) {
+        if (json[j] === '\\') {
+          out += json[j + 1] ?? ''
+          j += 2
+          continue
+        }
+        if (json[j] === '"') break
+        out += json[j]
+        j += 1
+      }
+      // 判断它是不是对象键：跳过空白后下一个非空白字符是冒号
+      let k = j + 1
+      while (k < n && /\s/.test(json[k])) k += 1
+      if (json[k] === ':' && stack.length > 0) {
+        const scope = stack[stack.length - 1]
+        if (scope.has(out)) {
+          throw new Error(
+            `种子文件存在重复键「${out}」——JSON.parse 会静默丢弃前一个值，必须先去重再导入`,
+          )
+        }
+        scope.add(out)
+      }
+      i = j + 1
+      continue
+    }
+    if (ch === '{') stack.push(new Set())
+    else if (ch === '}') stack.pop()
+    i += 1
+  }
 }
 
 /** 把弱类型解析结果归一为 SeedFile；结构错误以 issue 形式返回（不校验业务字段）。 */

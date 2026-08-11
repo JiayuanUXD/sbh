@@ -1010,12 +1010,24 @@ node --import tsx scripts/import-geography.ts --file seed/geography/shanghai.jso
 
 生产另有约 180 个种子未覆盖的商圈，按「存量为准」原样保留、不动。
 
-**两个待人工决策**（已在 `shanghai.json` 用 `TODO(存量对账·待人工决策)` 标注）：
+**两个决策已结（2026-08-11 业务确认）**：
 
-| 种子节点 | 生产候选 | 待定 |
+| 种子节点 | 认领的存量节点 | 决策 |
 |---|---|---|
-| `SH-BA-DANING`「大宁」 | `SH-JINGAN-DANINGLU`「大宁路」（启用，0 楼盘） | 是否同一商圈 |
-| `SH-BA-XINZHUANG`「莘庄」 | `SH-MINHANG-SHENZHUANG`「莘庄」（启用，0 楼盘）／ `SH-MINXINGQU-SHENZHUANGGONGYEQU`「莘庄工业区」（启用，前台可见，1 楼盘） | 二选一 |
+| `SH-BA-DANING`「大宁」 | `SH-JINGAN-DANINGLU`「大宁路」 | 确认为同一商圈 |
+| `SH-BA-XINZHUANG`「莘庄」 | `SH-MINHANG-SHENZHUANG`「莘庄」 | 认领「莘庄」本身；`SH-MINXINGQU-SHENZHUANGGONGYEQU`「莘庄工业区」是另一个独立商圈，存量为准保留、不认领 |
+
+`shanghai.json` 现共 **37 个 `legacyCodes`**：1 城 + 16 区（16/16 全覆盖）+ 20 商圈（20/26）。
+第二波实际只新建 6 个商圈：虹桥商务区、漕河泾开发区、临港、长风商务区、大虹桥、松江新城。
+
+> **存量码拼音错误不修**：生产把「莘庄」拼成 `SHENZHUANG`、「闵行」拼成 `MINXING`
+> （正确应为 `xinzhuang` / `minhang`）。区域代码创建后不可改（`protectLocation`
+> 的 `IMMUTABLE_CODE`），且改码会波及全部引用，故按存量为准保持原样；本仓库
+> 新建节点一律用正确拼音（如 `SH-BA-XINZHUANG`、`SH-MS-XINZHUANG`）。
+
+> **别名顺序即优先级**：同一节点的 `legacyCodes` 里，**生产存量码在前、本地 dev 码在后**。
+> 例如 `CITY-SH` 是 `["LEGACY_LOC_1", "SH"]`——生产两个码都存在（`LEGACY_LOC_1` 挂 71 个
+> 楼盘，`SH` 停用且空），取错就是整棵树挂错父级。导入器多命中时会显式报警。
 
 #### 通用前置
 
