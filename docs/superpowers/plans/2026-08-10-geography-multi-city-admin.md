@@ -887,3 +887,12 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | **合计** | **74** | **108** | **66** | **1236** | | |
 
 > 导入口径：`scripts/import-geography.ts --apply`，幂等键=immutableCode；全部 `frontendVisible=false`（C 端不可见，Task 22 不批量开启）。7 城合计 7 城记录+74 行政区+108 商圈+66 线路+1236 站点 = **1491 条，0 冲突 0 失败**。导入后校验：`type<>'city' AND city_id IS NULL` = 0（无孤儿）；E2E 专用 7 条 fixture（`E2E-*`）保留未动。**slug 冲突处理（已向用户确认）**：旧 HZ/SZ/SH 城市为 C 端在线存量、须保规范 slug（`hangzhou`/`suzhou`/`shanghai`），新导入 dormant 城市 CITY-HZ/SZ/SH 改过渡 slug（`hangzhou-new`/`suzhou-new`/`shanghai-new`），C 端 parent 链恢复无异常。旧格式 24 条遗留记录：10 条叶子节点被物理删除，14 条被 `protectLocationDelete` 守卫拦截保留（被开发楼盘/商户节点引用，只能「停用」不能删），符合删除守卫预期。
+
+**Task 22 导入后验收结果**
+
+| 项 | 结果 |
+|---|---|
+| 数据质量抽检（每城 5 商圈 + 5 站点） | ✅ 抽检无错误：商圈/站点名称、`immutable_code`、经纬度、上级行政区/所属线路均与种子一致；仅旧格式遗留 `HZ-QJ`（杭州钱江新城，无坐标）按预期存在 |
+| 前台可见性 | ✅ 全部 1491 条导入节点 `frontendVisible=false`；E2E 7 条 fixture 不受影响 |
+| C 端无异常 | ✅ slug 冲突处理后 C 端上海 parent 链恢复（旧 SH 城市 slug=`shanghai`、旧区 parent.slug=`shanghai`、新 CITY-SH slug=`shanghai-new` dormant），首页热门商圈/筛选项仍只展示 `frontendVisible=true` 节点 |
+| 规模验收（四模块页 <1s / 沪详情树 ~650 节点 / 全局搜索 <300ms） | ⏳ **人工项**：需后台登录 + in-app 浏览器，本机无后台登录凭据无法实测，登记为人工测试（数据规模已就绪，~2000 节点即在库中） |
