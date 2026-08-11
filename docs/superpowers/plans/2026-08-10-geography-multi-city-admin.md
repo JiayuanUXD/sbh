@@ -847,9 +847,9 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | Payload 3.86 原生创建页预填 | **不支持从 query params 预填**。`Document/renderDocument` 在 create（无 id）时 `initialData:null`，`@payloadcms/next/views/Root` 不读 `?field=` 到初始表单态。Task 8 起「新建」改走轻量自定义视图 `/geography/<route>/new`（Server 解析模块+预填父级，Client 提交 REST 过 hook）——Task 9/10 复用同一套，别再用 query 预填原生创建页 |
 | `buildings` 可见性/软删除条件 | `trash: true`，软删除列 `deleted_at`（过滤 `deleted_at IS NULL`）；地理关系列 `city_id`/`district_id`/`business_district_id`/`nearest_metro_id` |
 
-| 换乘站归属口径 | 待定（B1.5） |
-| 商圈口径 | 待定（B1.5） |
-| 嘉兴轨道交通核实结论 | 待填 |
+| 换乘站归属口径 | 首开线路（B1.5 已定稿）：同名换乘站在库中只存一条，`parent`=首开线路，其他线路对该站的关系本期不建模；同期开通按线路号小的归属 |
+| 商圈口径 | 只导入核心办公商圈（B1.5 已定稿）：以「有实际在售/在租商办供给」为判定标准，配额按城市能级递减作软上限，宁缺毋滥；无供给不导入 |
+| 嘉兴轨道交通核实结论 | **无地铁**（已核实）：嘉兴目前仅有市域铁路/有轨电车，不属本模型 `metro_line`，故嘉兴 `metroLines = []`（合法空数组）。种子 `jiaxing.json` 含 7 行政区 + 10 商圈，0 线路 0 站点 |
 
 | Task | 状态 | commit / 备注 |
 |---|---|---|
@@ -860,7 +860,7 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | 5 聚合计数服务 | ✅ 完成 | `feat(geography): Task 5 聚合计数服务`；`location-counts.ts` 原生 SQL 经 `payload.db.drizzle` 执行；每函数固定 1~2 条 SQL（`ANY($ids::int[])` 单参数绑定，ids 空直接空 Map）；商圈站点/线路走 `business_area_extensions_rels`；缺边界=无扩展或 boundary NULL/空；楼盘计数照搬 public-building 可见性；`drizzle-orm@0.45.2` 加为直接依赖（与 db-postgres 同版）；单测 8 例 + `verify:location-counts` 2 城 9 断言全过 |
 | 6 自定义 admin 路由骨架 + 共享列表组件 | ✅ 完成 | `feat(geography): Task 6 自定义 admin 路由骨架与共享列表组件`；四视图注册 `admin.components.views`（键+`path`，3.86 类型为准）；共享 `GeographyListView.tsx`(server)+`GeographyListViewClient.tsx`(client)+`geography-modules.ts`(模块注册)，四模块同一套组件非复制；筛选/分页全进 URL；抽屉 PATCH 带 `version` 乐观锁、冲突展示 `VersionConflictError` 文案；计算列 `sortable:false`。两个修复：`payload-after-error.ts` afterError 钩把 `DomainError` 映射回状态码（否则 `VersionConflictError` 被 500 兜底吞掉）；`ArcoReact19Provider`(`setCreateRoot`) 修 React 19 下 Arco `Message.success` 静默不渲染。C2 门禁：`pnpm test` 2610 绿、`pnpm build` 过、无 schema 变更（免 migrate）、`git diff --stat` 范围达标。期间发现并修复**匿名访问泄漏**——3.86 自定义视图无认证门槛，共享组件顶层补 `req.user` 判定 + `redirect()`（见 B3 视图注册行） |
 | 5–17 开发 | ✅ 完成 | Task 5–16 见各自行；Task 17（E2E 与最终验收）见下方行 |
-| 18–22 导入 | 待开始（依赖 1–17 完成） | |
+| 18–22 导入 | ✅ 完成 | Task 20 七城种子数据落盘（`seed/geography/*.json`，含坐标与文件头核对日期注释）；Task 21 分城导入执行（见「七城导入登记」表，7 城共 1491 条，0 冲突 0 失败）；Task 22 导入后验收与前台开关见下方行 |
 | 10 地铁管理模块（站点数 + 无站点行） | ✅ 完成 | 无新增代码（Task 6 共享列表 + `metro_line` 模块配置 + Task 5 `countForMetroLines` 已齐备）：列=线路名/区域代码/所属城市/站点数/状态/排序，筛选=城市/状态/关键词，`metro_station` 在 `GEOGRAPHY_MODULES` 为 `undefined`（不建独立列表）。验收：站点数正确（`countForMetroLines` Task 5 核实 1 号线=1；真实库直查 1 号线=1/2 号线=1，页面同计数）；列表页不出现站点行（登录后 `/admin/geography/metro-lines` 只渲染 1/2 号线，站名「龙翔桥站」出现 0 次）。计划未给该模块配「新建」按钮，故不新增 create 配置 |
 | 11 商圈扩展面板内嵌进商圈编辑页 | ✅ 完成 | `feat(geography): Task 11 商圈扩展面板`；新建 `BusinessAreaExtensionPanel.tsx`（**client**，用 `@payloadcms/ui` 的 `useDocumentInfo()` 取当前商圈 `data.id`/`data.city`，无 payload 依赖），`Locations.ts` 末尾挂 `type:'ui'` 字段（condition 只按 `type==='business_area'`，不看 id——新建无 id 时由面板自身提示「保存后可配置空间信息」，与计划边界注一致）。面板读写全走 REST（GET `/api/business-area-extensions?where[businessArea][equals]=<id>&limit=1&depth=0` → 无记录 POST 带 `businessArea` / 有则 PATCH 带 `version` 乐观锁），编辑 boundary/经纬度/aliases/metroStations；站点候选 `where[type]=metro_station&where[status]=active&where[city]=<cityId>`（Task 1 `city` 字段直接兑现点），已被关联但此后停用的站点按 id 补取标签防裸 id。`BusinessAreaExtensions.ts` 加 `admin.hidden:true`（从默认导航隐藏，collection+protect hook 全保留，直接 URL 仍可访问排障）、description 改「本页仅供排障…」、`defaultColumns` 改 `['businessArea','boundary','aliases','updatedAt']`。未改 `protectBusinessAreaExtension` 任何不变量/错误码。C2 门禁：`pnpm test` 2624 绿、`pnpm build` 过、无 schema 变更（免 migrate）；REST 验收：钱江(1003) 扩展读取 version=1→正确版本 PATCH version 1→2 成功、错版本 PATCH→409 版本冲突、跨城(苏州 2005)站点强行提交→422 INVALID_STATION_RELATION、杭州候选仅龙翔桥站、金鸡湖(2003) POST 新建成功（验收后删除测试扩展还原缺边界态）。同步更新 `admin-navigation-payload-config.test.ts`——原断言 `business-area-extensions.admin.hidden!==true`，Task 11 起改为断言其 `hidden===true`（其余 custom-navigation collection 仍断言不隐藏） |
 | 12 地铁线路的站点内嵌面板 | ✅ 完成 | `feat(geography): Task 12 地铁线路的站点内嵌面板`；新建 `MetroLineStationsPanel.tsx`（**client**，`useDocumentInfo()` 取当前线路 `data.id`/`data.type`），`Locations.ts` 末尾再挂 `type:'ui'` 字段，condition `data.type==='metro_line' && Boolean(data.id)`（新建线路无 id 不显示，无站点可列）。能力：①列出该线路全部站点 `?where[parent][equals]=<lineId>&where[type][equals]=metro_station&sort=sortOrder&depth=0`；②**拖拽排序**——原生 HTML5（每行 `draggable` + dragStart/dragOver/drop 重排数组），「保存排序」逐条**串行 PATCH** `{sortOrder, version}`（每条都过 `protectLocation` hook，带乐观锁版本），任一条失败在对应行红字反馈、成功绿字「已保存」，汇总 Message 报失败条数，**不静默部分成功**；③**快速新增**——只填名称+区域代码，POST 带 `parent=<lineId>`、`type=metro_station`、`status=active`、`slug=metro-<code小写>`，`protectLocation` 自动写 `city`（Task 1 兑现）与 `version=1`，成功后刷新列表；④单站启停 Switch（PATCH status 带 version）。C2 门禁：`pnpm test` 2624 绿、`pnpm build` 过、无 schema 变更（免 migrate）；REST 验收：临时站 POST 后 `parent=1004`/`city=1001`/`type=metro_station`/`version=1` 自动正确（验收后删除还原），1号线(1004)/2号线(2004) 各 1 站现有数据可用。注：本机无后台登录凭据 + in-app 浏览器预览不可用，拖拽/逐条反馈的**交互**未做真实浏览器点击验证（编译与 REST 契约已验证），已在回报中说明（另登记为人工测试任务 #15）。**2026-08-11 已用 `e2e-adm@example.com` 浏览器实测补全**：快速新增（名称+代码→站点出现、auto parent/city/type）✓、单站启停 Switch ✓、拖拽重排（dragstart→drop 顺序交换）✓、「保存排序」逐条串行 PATCH 后每行绿字「已保存」+ 持久化 ✓。测试数据（临时站）已 REST 删除还原，不影响 E2E 确定性计数。 |
@@ -877,10 +877,13 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 
 | 城市 | 行政区 | 商圈 | 线路 | 站点 | dry-run 日期 | 生产执行日期 |
 |---|---|---|---|---|---|---|
-| 杭州 | | | | | | |
-| 苏州 | | | | | | |
-| 无锡 | | | | | | |
-| 宁波 | | | | | | |
-| 嘉兴 | | | | | | |
-| 南京 | | | | | | |
-| 上海 | | | | | | |
+| 杭州 | 13 | 15 | 12 | 258 | 2026-08-10 | 2026-08-10 |
+| 苏州 | 10 | 14 | 9 | 137 | 2026-08-10 | 2026-08-10 |
+| 无锡 | 7 | 12 | 4 | 71 | 2026-08-10 | 2026-08-10 |
+| 宁波 | 10 | 12 | 8 | 170 | 2026-08-10 | 2026-08-10 |
+| 嘉兴 | 7 | 10 | 0 | 0 | 2026-08-10 | 2026-08-10 |
+| 南京 | 11 | 19 | 12 | 206 | 2026-08-10 | 2026-08-10 |
+| 上海 | 16 | 26 | 21 | 394 | 2026-08-10 | 2026-08-10 |
+| **合计** | **74** | **108** | **66** | **1236** | | |
+
+> 导入口径：`scripts/import-geography.ts --apply`，幂等键=immutableCode；全部 `frontendVisible=false`（C 端不可见，Task 22 不批量开启）。7 城合计 7 城记录+74 行政区+108 商圈+66 线路+1236 站点 = **1491 条，0 冲突 0 失败**。导入后校验：`type<>'city' AND city_id IS NULL` = 0（无孤儿）；E2E 专用 7 条 fixture（`E2E-*`）保留未动。**slug 冲突处理（已向用户确认）**：旧 HZ/SZ/SH 城市为 C 端在线存量、须保规范 slug（`hangzhou`/`suzhou`/`shanghai`），新导入 dormant 城市 CITY-HZ/SZ/SH 改过渡 slug（`hangzhou-new`/`suzhou-new`/`shanghai-new`），C 端 parent 链恢复无异常。旧格式 24 条遗留记录：10 条叶子节点被物理删除，14 条被 `protectLocationDelete` 守卫拦截保留（被开发楼盘/商户节点引用，只能「停用」不能删），符合删除守卫预期。
