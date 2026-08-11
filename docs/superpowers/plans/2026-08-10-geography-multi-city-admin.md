@@ -653,9 +653,9 @@ pnpm tsx scripts/import-geography.ts --all --dry-run
 - 校验逻辑抽成纯函数放 `src/domain/geography/import-validation.ts`，单测覆盖。
 
 **验收**
-- [ ] `tests/geography-import-validation.test.ts`：格式错、层级断链、文件内重复 code、坐标越界、slug 冲突，各有用例。
-- [ ] 空库对 `_template.json` 跑 dry-run → apply → 再跑 dry-run，**第二次输出应为"全部跳过、0 新建"**（幂等验证）。
-- [ ] 故意改一个字段后重跑，输出冲突清单且默认不覆盖。
+- [x] `tests/geography-import-validation.test.ts`：格式错、层级断链、文件内重复 code、坐标越界、slug 冲突，各有用例。
+- [x] 空库（`sbh_dev_geo_import` 临时库）对 `_template.json` 跑 dry-run → apply → 再跑 dry-run，第二次输出"全部跳过、0 新建"（幂等验证）。
+- [x] 故意改一个字段后重跑，输出冲突清单且默认不覆盖（`--apply --update-existing` 才更新，实测 name/sortOrder 被更新）。
 
 ---
 
