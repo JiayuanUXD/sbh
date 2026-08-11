@@ -22,6 +22,7 @@ function makeUser(): User {
     email: 'admin@example.com',
     status: 'active',
     sessionVersion: 1,
+    roles: [9],
     updatedAt: '',
     createdAt: '',
     collection: 'users',
@@ -33,11 +34,39 @@ function makePayloadFind(docs: unknown[]) {
   return vi.fn(async () => ({ docs, totalDocs: docs.length, totalPages: 1, page: 1 }))
 }
 
-function makeReq(query: Record<string, unknown> = {}, findDocs: unknown[] = [], user: User | null = makeUser()): PayloadRequest {
+/** 带地理菜单权限的角色文档（审核修复 P1-1 后端点需要它才放行） */
+function makeRole(menuPermissions: string[]) {
+  return { id: 9, code: 'OPS', status: 'active', menuPermissions, dataScope: 'global' }
+}
+
+/**
+ * find 按 collection 分流：roles → 角色文档；其余 → 预设 location docs。
+ * 只统计 locations 的调用，保持「短词不打库」等断言的语义不被角色查询污染。
+ */
+function makePayloadFindByCollection(locationDocs: unknown[], roleDocs: unknown[]) {
+  const locationCalls: unknown[][] = []
+  const find = vi.fn(async (args: { collection?: string }) => {
+    if (args?.collection === 'roles') {
+      return { docs: roleDocs, totalDocs: roleDocs.length, totalPages: 1, page: 1 }
+    }
+    locationCalls.push([args])
+    return { docs: locationDocs, totalDocs: locationDocs.length, totalPages: 1, page: 1 }
+  })
+  return { find, locationCalls }
+}
+
+function makeReq(
+  query: Record<string, unknown> = {},
+  findDocs: unknown[] = [],
+  user: User | null = makeUser(),
+  roleDocs: unknown[] = [makeRole(['locations', 'business-areas'])],
+): PayloadRequest {
+  const { find, locationCalls } = makePayloadFindByCollection(findDocs, roleDocs)
   return {
     query,
     user,
-    payload: { find: makePayloadFind(findDocs) },
+    payload: { find },
+    __locationCalls: locationCalls,
     headers: {},
     method: 'GET',
     url: '/api/locations/search',
@@ -48,7 +77,8 @@ async function callEndpoint(req: PayloadRequest): Promise<{ status: number; body
   const endpoint = createLocationSearchEndpoint()
   const res = (await endpoint.handler(req as never)) as Response
   const body = await res.json()
-  const findCalls = (req.payload as unknown as { find: { mock: { calls: unknown[][] } } }).find.mock.calls
+  // 只看 locations 查询，角色查询不计入
+  const findCalls = (req as unknown as { __locationCalls: unknown[][] }).__locationCalls
   return { status: res.status, body, findCalls }
 }
 
@@ -167,7 +197,36 @@ describe('createLocationSearchEndpoint（HTTP 包装）', () => {
     const req = makeReq({ q: '龙翔', limit: '999' }, [])
     const r = await callEndpoint(req)
     expect(r.status).toBe(200)
-    const arg = (req.payload as unknown as { find: { mock: { calls: [{ limit: number }][] } } }).find.mock.calls[0][0]
+    const arg = r.findCalls[0][0] as { limit: number }
     expect(arg.limit).toBe(50)
+  })
+
+  // —— 审核修复 P1-1：只判登录不够，需地理模块菜单权限 ——
+  it('已登录但无地理菜单权限返回 403，且不查 locations', async () => {
+    const req = makeReq({ q: '龙翔' }, [{ id: 1 }], makeUser(), [makeRole(['leads', 'customers'])])
+    const r = await callEndpoint(req)
+    expect(r.status).toBe(403)
+    expect(r.body.ok).toBe(false)
+    expect(r.findCalls).toHaveLength(0)
+  })
+
+  it('仅有 business-areas 菜单权限也放行（任一命中即可）', async () => {
+    const req = makeReq(
+      { q: '龙翔' },
+      [{ id: 1005, name: '龙翔桥站', type: 'metro_station' }],
+      makeUser(),
+      [makeRole(['business-areas'])],
+    )
+    const r = await callEndpoint(req)
+    expect(r.status).toBe(200)
+    expect(r.body.results).toHaveLength(1)
+  })
+
+  it('停用账号返回 401（buildPermissionContext 对非 active 返回 null）', async () => {
+    const disabled = { ...makeUser(), status: 'disabled' } as unknown as User
+    const req = makeReq({ q: '龙翔' }, [{ id: 1 }], disabled)
+    const r = await callEndpoint(req)
+    expect(r.status).toBe(401)
+    expect(r.findCalls).toHaveLength(0)
   })
 })

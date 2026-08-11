@@ -57,6 +57,12 @@ export type GeographyModuleConfig = {
   /** 与 payload.config.ts admin.components.views 注册的 path 一致，用于按 pathname 解析模块 */
   route: string
   title: string
+  /**
+   * 访问该模块所需的菜单权限码（任一命中即放行），与 navigation-config.ts 的同名叶子一致。
+   * 自定义 admin 路由不经 Payload 的 collection access，导航隐藏也只是隐藏入口——
+   * 直接敲 URL 仍可达，故必须在视图服务端用它做真正的准入判定（require-geography-access.ts）。
+   */
+  menuCodes: readonly string[]
   columns: GeographyColumn[]
   filters: GeographyFilter[]
   /** 快捷筛选 chip（如商圈的「仅看缺边界」/「仅看缺封面」），以 URL `chip=a,b` 表达、可多选 */
@@ -119,6 +125,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     type: 'city',
     route: '/geography/cities',
     title: '城市管理',
+    menuCodes: ['locations'],
     columns: CITY_COLUMNS,
     filters: ['status', 'keyword'],
     emptyHint: '暂无城市',
@@ -128,6 +135,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     type: 'district',
     route: '/geography/districts',
     title: '行政区管理',
+    menuCodes: ['locations'],
     columns: DISTRICT_COLUMNS,
     filters: ['city', 'status', 'keyword'],
     emptyHint: '暂无行政区',
@@ -143,6 +151,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     type: 'business_area',
     route: '/geography/business-areas',
     title: '商圈管理',
+    menuCodes: ['business-areas'],
     columns: BUSINESS_AREA_COLUMNS,
     filters: ['city', 'district', 'status', 'keyword'],
     chips: [
@@ -156,6 +165,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     type: 'metro_line',
     route: '/geography/metro-lines',
     title: '地铁管理',
+    menuCodes: ['locations'],
     columns: METRO_LINE_COLUMNS,
     filters: ['city', 'status', 'keyword'],
     emptyHint: '暂无地铁线路',

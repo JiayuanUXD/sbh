@@ -1,8 +1,8 @@
-import { redirect } from 'next/navigation'
-
 import type { AdminViewServerProps, Payload, Where } from 'payload'
 
 import type { Location } from '@/payload-types'
+import { GEOGRAPHY_MODULES } from './geography-modules'
+import { GeographyForbidden, requireGeographyAccess } from './require-geography-access'
 import { countForCities } from '@/domain/geography/location-counts'
 import { cityScopeWhere } from '@/domain/geography/location-city'
 import type { FlatLocationNode } from '@/domain/geography/location-tree'
@@ -41,15 +41,12 @@ export default async function GeographyCityDetail(props: AdminViewServerProps) {
   const req = initPageResult.req
   const payload = req.payload
 
-  // 与共享列表一致：3.86 自定义视图无认证门槛，手动补登录判定。
-  if (!req.user) {
-    const adminRoute = payload.config.routes.admin
-    const loginRoute = payload.config.admin.routes.login
-    const current = req.pathname ?? ''
-    const qs = req.searchParams.toString()
-    const target = `${adminRoute}${loginRoute}?redirect=${encodeURIComponent(qs ? `${current}?${qs}` : current)}`
-    redirect(target)
-  }
+  // 准入：与城市管理模块同权（未登录跳登录；无 locations 菜单权限 → 403）。
+  const allowed = await requireGeographyAccess(
+    req,
+    GEOGRAPHY_MODULES.city?.menuCodes ?? ['locations'],
+  )
+  if (!allowed) return <GeographyForbidden />
 
   const cityId = parseCityId(req.pathname, req.searchParams)
   if (!cityId) {

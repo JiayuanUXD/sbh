@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation'
-
 import type { AdminViewServerProps, Payload, Where } from 'payload'
 
 import type { Location } from '@/payload-types'
 import { getGeographyModuleByPath } from './geography-modules'
+import { GeographyForbidden, requireGeographyAccess } from './require-geography-access'
 import {
   fetchBusinessAreaBoundaryStatus,
   fetchBusinessAreaMissingBoundaryIds,
@@ -51,19 +50,13 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   const req = initPageResult.req
   const payload = req.payload
 
-  // Payload 3.86 不自动给自定义 admin 视图加认证门槛（isCustomAdminView 把
-  // 所有自定义视图当作公共路由，绕过 /admin 的登录重定向）。手动补上：未登录
-  // 直接跳登录页，杜绝匿名访问管理数据。计划验收「未登录跳登录」。
-  if (!req.user) {
-    const adminRoute = payload.config.routes.admin
-    const loginRoute = payload.config.admin.routes.login
-    const current = req.pathname ?? ''
-    const qs = req.searchParams.toString()
-    const target = `${adminRoute}${loginRoute}?redirect=${encodeURIComponent(qs ? `${current}?${qs}` : current)}`
-    redirect(target)
-  }
-
   const module = getGeographyModuleByPath(req.pathname ?? '')
+
+  // 准入：Payload 3.86 自定义视图既不做登录重定向、也不经导航的 menuCode 过滤，
+  // 必须在此显式判定（未登录→跳登录；已登录但无该模块菜单权限→403）。
+  const allowed = await requireGeographyAccess(req, module?.menuCodes ?? ['locations'])
+  if (!allowed) return <GeographyForbidden />
+
   if (!module) {
     return <div>未知的地理模块</div>
   }

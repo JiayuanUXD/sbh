@@ -6,6 +6,8 @@ import {
   getGeographyModuleByPath,
   type GeographyColumn,
 } from '@/components/admin/geography/geography-modules'
+import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
+import { MENU_CODES } from '@/domain/auth/permission-codes'
 import type { LocationType } from '@/domain/geography/location-hierarchy'
 
 /** 计算列 = count 类列，来自 Task 5 聚合 SQL，**不可排序**（A2 决策）。 */
@@ -120,5 +122,48 @@ describe('geography-modules/四模块共享列表配置', () => {
     expect(getGeographyModuleByCreatePath('/admin/geography/districts')).toBeNull()
     expect(getGeographyModuleByCreatePath('/admin/geography/cities/new')).toBeNull()
     expect(getGeographyModuleByCreatePath('/admin/geography/unknown/new')).toBeNull()
+  })
+
+  // —— 审核修复 P1-1：模块准入用的 menuCodes 必须与导航叶子一致 ——
+  describe('menuCodes 与导航配置一致（防守卫与入口漂移）', () => {
+    /** 摊平导航树，取所有叶子 */
+    function allLeaves(): { href: string; menuCodes: readonly string[] }[] {
+      const out: { href: string; menuCodes: readonly string[] }[] = []
+      const walk = (children: readonly unknown[]) => {
+        for (const child of children as Array<Record<string, unknown>>) {
+          if (Array.isArray(child.children)) walk(child.children)
+          else if (typeof child.href === 'string')
+            out.push({ href: child.href, menuCodes: child.menuCodes as string[] })
+        }
+      }
+      walk(ADMIN_NAV_GROUPS)
+      return out
+    }
+
+    it('每个模块都声明了非空 menuCodes', () => {
+      for (const m of Object.values(GEOGRAPHY_MODULES)) {
+        if (!m) continue
+        expect(m.menuCodes.length, `${m.route} 缺少 menuCodes`).toBeGreaterThan(0)
+      }
+    })
+
+    it('模块 menuCodes 与同 href 的导航叶子完全相同', () => {
+      const leaves = allLeaves()
+      for (const m of Object.values(GEOGRAPHY_MODULES)) {
+        if (!m) continue
+        const leaf = leaves.find((l) => l.href === `/admin${m.route}`)
+        expect(leaf, `导航里找不到 /admin${m.route}`).toBeDefined()
+        expect([...m.menuCodes].sort()).toEqual([...leaf!.menuCodes].sort())
+      }
+    })
+
+    it('menuCodes 全部是合法的 MENU_CODES 成员', () => {
+      for (const m of Object.values(GEOGRAPHY_MODULES)) {
+        if (!m) continue
+        for (const code of m.menuCodes) {
+          expect(MENU_CODES as readonly string[]).toContain(code)
+        }
+      }
+    })
   })
 })

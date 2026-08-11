@@ -1,9 +1,8 @@
-import { redirect } from 'next/navigation'
-
 import type { AdminViewServerProps, Payload, Where } from 'payload'
 
 import type { Location } from '@/payload-types'
 import { getGeographyModuleByCreatePath } from './geography-modules'
+import { GeographyForbidden, requireGeographyAccess } from './require-geography-access'
 import GeographyCreateViewClient from './GeographyCreateViewClient'
 
 /** 拉取 parent 候选（新建时父级下拉），可选按城市收窄（行政区级联）。 */
@@ -37,17 +36,13 @@ export default async function GeographyCreateView(props: AdminViewServerProps) {
   const req = initPageResult.req
   const payload = req.payload
 
-  // 与共享列表一致：3.86 自定义视图无认证门槛，手动补登录判定。
-  if (!req.user) {
-    const adminRoute = payload.config.routes.admin
-    const loginRoute = payload.config.admin.routes.login
-    const current = req.pathname ?? ''
-    const qs = req.searchParams.toString()
-    const target = `${adminRoute}${loginRoute}?redirect=${encodeURIComponent(qs ? `${current}?${qs}` : current)}`
-    redirect(target)
-  }
-
   const module = getGeographyModuleByCreatePath(req.pathname ?? '')
+
+  // 准入：本视图能创建 location（写侧），只判登录不够——必须校验模块菜单权限，
+  // 否则任意登录账号敲 URL 即可新建行政区。
+  const allowed = await requireGeographyAccess(req, module?.menuCodes ?? ['locations'])
+  if (!allowed) return <GeographyForbidden />
+
   if (!module?.create) {
     return <div>未知的地理模块</div>
   }
