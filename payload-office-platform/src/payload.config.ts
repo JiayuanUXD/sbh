@@ -163,6 +163,8 @@ export default buildConfig({
       actions: [
         '/components/admin/ThemeToggle',
         '/components/admin/AccountMenu',
+        // Task 13 全局地理搜索：Cmd/Ctrl+K 唤起（挂 action 才能常驻监听）
+        '/components/admin/GeographyQuickSearch',
       ],
       beforeNavLinks: ['/components/admin/EnvBadge', '/components/admin/AdminNavigation'],
       // Arco × React 19 兼容补丁：setCreateRoot 注入 createRoot，修复

@@ -56,6 +56,7 @@ import { ImportPreview as ImportPreview_cdf7e044479f899a31f804427d568b36 } from 
 import { ImportSaveButton as ImportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_fc85bd5ac375c29cf24795ab8778bf43 } from '../../../components/admin/ThemeToggle'
 import { default as default_b93c325b2a001186130a7950fae795ee } from '../../../components/admin/AccountMenu'
+import { default as default_ac23024ecc4af7b353c926fc0aafc2f3 } from '../../../components/admin/GeographyQuickSearch'
 import { default as default_7623765cb892464d588afef4e6aed6bd } from '../../../components/admin/EnvBadge'
 import { default as default_58e4bdc8b962b7bf92f13fdc929c1e63 } from '../../../components/admin/AdminNavigation'
 import { default as default_dfd2727dd25d331b5764d036ddfaa58a } from '../../../components/admin/ArcoReact19Provider'
@@ -127,6 +128,7 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ImportSaveButton": ImportSaveButton_cdf7e044479f899a31f804427d568b36,
   "/components/admin/ThemeToggle#default": default_fc85bd5ac375c29cf24795ab8778bf43,
   "/components/admin/AccountMenu#default": default_b93c325b2a001186130a7950fae795ee,
+  "/components/admin/GeographyQuickSearch#default": default_ac23024ecc4af7b353c926fc0aafc2f3,
   "/components/admin/EnvBadge#default": default_7623765cb892464d588afef4e6aed6bd,
   "/components/admin/AdminNavigation#default": default_58e4bdc8b962b7bf92f13fdc929c1e63,
   "/components/admin/ArcoReact19Provider#default": default_dfd2727dd25d331b5764d036ddfaa58a,

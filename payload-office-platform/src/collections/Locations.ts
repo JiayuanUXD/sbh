@@ -6,6 +6,7 @@ import {
 import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
 import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
+import { createLocationSearchEndpoint } from '@/endpoints/location-search-endpoint'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
@@ -23,6 +24,8 @@ export const Locations: CollectionConfig = {
   endpoints: [
     // M2.2 区域引用数量：GET /api/locations/:id/references
     createLocationReferencesEndpoint(),
+    // Task 13 全局搜索：GET /api/locations/search?q=&limit=
+    createLocationSearchEndpoint(),
   ],
   admin: {
     group: false,
