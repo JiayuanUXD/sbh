@@ -23,12 +23,12 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const KEY = process.env.AMAP_KEY ?? ''
+const KEY = process.env.AMAP_WEB_SERVICE_KEY ?? process.env.AMAP_KEY ?? ''
 const RATE_MS = Number(process.env.AMAP_RATE_MS ?? 330)
 const BASE = 'https://restapi.amap.com/v3'
 
 if (!KEY) {
-  console.error('缺少 AMAP_KEY 环境变量（高德 Web 服务 key）。请配置到 .env.local：AMAP_KEY=...')
+  console.error('缺少 AMAP_WEB_SERVICE_KEY（或 AMAP_KEY）环境变量（高德 Web 服务 key）。请配置到 .env.local')
   process.exit(2)
 }
 
@@ -158,7 +158,9 @@ async function run(skeletonPath: string): Promise<void> {
   // 线路 → 站点
   for (const m of s.metroLines) {
     for (const st of m.stations ?? []) {
-      const p = await poiSearch(st.name, cityName, '150500')
+      // 带类型 150500 搜索失败时，去掉类型过滤兜底重试一次（部分站点高德未归入地铁站类型）
+      let p = await poiSearch(st.name, cityName, '150500')
+      if (!p) p = await poiSearch(st.name, cityName)
       withCoords(st, p ? p.location : null, 'metro_station', counters)
       console.log(`  站 ${st.name}: ${st.centerLatitude}, ${st.centerLongitude}`)
     }

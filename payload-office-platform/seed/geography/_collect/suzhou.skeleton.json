@@ -6,6 +6,8 @@
     "采集日期：待回填",
     "核对人：<name>",
     "行政区划核对截止：2025-06-30",
+    "说明：苏州工业园区为功能区，无官方统计 6 位码，code SZ-D-320571 为合成占位（待核对），",
+    "      slug 用 suzhou-gongyeyuanqu",
     "说明：坐标回填后由本骨架生成 seed/geography/suzhou.json",
     "============================================================"
   ],
@@ -21,10 +23,11 @@
     { "name": "相城区", "immutableCode": "SZ-D-320507", "slug": "suzhou-xiangcheng", "sortOrder": 3 },
     { "name": "姑苏区", "immutableCode": "SZ-D-320508", "slug": "suzhou-gusu", "sortOrder": 4 },
     { "name": "吴江区", "immutableCode": "SZ-D-320509", "slug": "suzhou-wujiang", "sortOrder": 5 },
-    { "name": "常熟市", "immutableCode": "SZ-D-320581", "slug": "suzhou-changshu", "sortOrder": 6 },
-    { "name": "张家港市", "immutableCode": "SZ-D-320582", "slug": "suzhou-zhangjiagang", "sortOrder": 7 },
-    { "name": "昆山市", "immutableCode": "SZ-D-320583", "slug": "suzhou-kunshan", "sortOrder": 8 },
-    { "name": "太仓市", "immutableCode": "SZ-D-320585", "slug": "suzhou-taichang", "sortOrder": 9 }
+    { "name": "苏州工业园区", "immutableCode": "SZ-D-320571", "slug": "suzhou-gongyeyuanqu", "sortOrder": 6 },
+    { "name": "常熟市", "immutableCode": "SZ-D-320581", "slug": "suzhou-changshu", "sortOrder": 7 },
+    { "name": "张家港市", "immutableCode": "SZ-D-320582", "slug": "suzhou-zhangjiagang", "sortOrder": 8 },
+    { "name": "昆山市", "immutableCode": "SZ-D-320583", "slug": "suzhou-kunshan", "sortOrder": 9 },
+    { "name": "太仓市", "immutableCode": "SZ-D-320585", "slug": "suzhou-taichang", "sortOrder": 10 }
   ],
   "businessAreas": [],
   "metroLines": []
