@@ -301,6 +301,28 @@ async function seedMedia() {
     payload.logger.warn('未找到 about 页,跳过 hero 挂载')
   }
 
+  // 7) 落地页 hero 装饰背景图:补传两张(CI/离线走 sharp 本地合成)。
+  //    /entrust、/publish 硬编码 /api/media/file/landing-hero-{publish,entrust}-20260810.jpg?prefix=media。
+  //    seed-media 的 deleteAllMedia 会删掉迁移建的 hero 记录但从不重传,导致 CI/dev 该 URL 404,
+  //    浏览器 console 报错并撞上 landing-pages e2e 的 browserErrors 断言。此处按文件名原样重传字节。
+  payload.logger.info(`上传落地页 hero 背景图（${SOURCE_LABEL}）...`)
+  const landingHeroes: Array<{ filename: string; alt: string; colorSeed: string }> = [
+    {
+      filename: 'landing-hero-publish-20260810',
+      alt: '高端写字楼空置空间与城市天际线背景',
+      colorSeed: 'landing-hero-publish',
+    },
+    {
+      filename: 'landing-hero-entrust-20260810',
+      alt: '商务选址顾问会议桌与上海天际线背景',
+      colorSeed: 'landing-hero-entrust',
+    },
+  ]
+  for (const hero of landingHeroes) {
+    payload.logger.info(`hero: ${hero.alt}`)
+    await uploadMedia(payload, hero.alt, hero.colorSeed, COVER_W, COVER_H, hero.filename)
+  }
+
   payload.logger.info('媒体数据挂载完成。')
 }
 
