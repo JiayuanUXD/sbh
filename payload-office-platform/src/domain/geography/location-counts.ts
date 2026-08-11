@@ -286,3 +286,64 @@ export async function countForMetroLines(
   )
   return shapeMetroLineCounts(stationRows, ids)
 }
+
+/** 商圈边界状态整形（Task 9）：未命中任何扩展行的 id 视为缺边界（false）。 */
+export function shapeBoundaryStatus(
+  ids: readonly (number | string)[],
+  rows: ReadonlyArray<Row>,
+): Map<number, boolean> {
+  const out = new Map<number, boolean>()
+  for (const id of ids) out.set(toNum(id), false)
+  for (const row of rows) out.set(toNum(row.id), toNum(row.has_boundary) === 1)
+  return out
+}
+
+/**
+ * 本页商圈边界状态（Task 9 边界列）：Map<businessAreaId, hasBoundary>。
+ * 口径与 countForCities 的 missing_boundary 一致——有非空 boundary 才算「有边界」。
+ */
+export async function fetchBusinessAreaBoundaryStatus(
+  payload: Payload,
+  ids: readonly (number | string)[],
+): Promise<Map<number, boolean>> {
+  if (ids.length === 0) return new Map()
+  const db = payload.db.drizzle as Queryable
+  const idParams = intArrayLiteral(ids)
+  const rows = await run(
+    db,
+    sql`
+      SELECT business_area_id AS id,
+        (boundary IS NOT NULL AND boundary != '{}'::jsonb)::int AS has_boundary
+      FROM "business_area_extensions"
+      WHERE business_area_id = ANY(${idParams}::int[])
+    `,
+  )
+  return shapeBoundaryStatus(ids, rows)
+}
+
+/**
+ * 「缺边界」商圈 id 集合（Task 9 快捷 chip）。返回供列表页把 `id: { in: [...] }` 并入
+ * where，实现分页前过滤。口径与 countForCities 的 missing_boundary 完全一致：无扩展记录
+ * 或 boundary 为 NULL / 空对象。
+ *
+ * 边界说明：这只返回**商圈 id 的集合**（不含名称/坐标/边界等任何行级明细），且这些 id
+ * 本就是登录管理员有权浏览的商圈记录（列表页会原样展示），故不违反文件头部「原生 SQL
+ * 只回聚合」的边界。id 集合作为 where 的缩小条件，最终行仍由带 access control 的
+ * `payload.find` 返回。
+ */
+export async function fetchBusinessAreaMissingBoundaryIds(payload: Payload): Promise<number[]> {
+  const db = payload.db.drizzle as Queryable
+  const rows = await run(
+    db,
+    sql`
+      SELECT l.id FROM "locations" l
+      WHERE l.type = 'business_area'
+        AND NOT EXISTS (
+          SELECT 1 FROM "business_area_extensions" bae
+          WHERE bae.business_area_id = l.id
+            AND bae.boundary IS NOT NULL AND bae.boundary != '{}'::jsonb
+        )
+    `,
+  )
+  return rows.map((r) => toNum(r.id))
+}

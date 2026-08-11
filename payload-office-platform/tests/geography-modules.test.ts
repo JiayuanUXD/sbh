@@ -54,6 +54,39 @@ describe('geography-modules/四模块共享列表配置', () => {
     }
   })
 
+  it('商圈模块 11 列，含边界/封面两个 flag 列', () => {
+    const m = GEOGRAPHY_MODULES.business_area!
+    expect(m.columns).toHaveLength(11)
+    // 边界/封面是 flag 列，取自 row 布尔字段（hasBoundary/hasCover），非计数
+    const flags = m.columns.filter((c) => c.kind === 'flag')
+    expect(flags.map((f) => f.key)).toEqual(['hasBoundary', 'hasCover'])
+    // 边界/封面列紧随关联线路数之后，位于状态列之前（与计划列序一致）
+    const keys = m.columns.map((c) => c.key)
+    expect(keys).toEqual([
+      'name',
+      'immutableCode',
+      'parentName',
+      'cityName',
+      'buildings',
+      'stations',
+      'metroLines',
+      'hasBoundary',
+      'hasCover',
+      'status',
+      'frontendVisible',
+    ])
+  })
+
+  it('商圈模块提供「仅看缺边界」「仅看缺封面」快捷 chip', () => {
+    const chips = GEOGRAPHY_MODULES.business_area?.chips
+    expect(chips?.map((c) => c.key)).toEqual(['missingBoundary', 'missingCover'])
+    expect(chips?.every((c) => c.label.length > 0)).toBe(true)
+    // 其余模块无快捷 chip
+    for (const type of ['city', 'district', 'metro_line'] as const) {
+      expect(GEOGRAPHY_MODULES[type]?.chips).toBeUndefined()
+    }
+  })
+
   it('getGeographyModuleByPath 依 admin 路径解析模块', () => {
     expect(getGeographyModuleByPath('/admin/geography/cities')?.type).toBe('city')
     expect(getGeographyModuleByPath('/admin/geography/districts')?.type).toBe('district')

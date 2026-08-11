@@ -38,6 +38,10 @@ export type GeographyRow = {
   version: number
   parentName: string | null
   cityName: string | null
+  /** 边界列用：该商圈是否有非空 boundary（缺边界=无扩展或 boundary 空） */
+  hasBoundary: boolean
+  /** 封面列用：该商圈是否配置了 coverImage */
+  hasCover: boolean
   counts: Record<string, number>
 }
 
@@ -48,6 +52,7 @@ type ClientModule = {
   title: string
   columns: GeographyColumn[]
   filters: GeographyFilter[]
+  chips: { key: string; label: string }[]
   emptyHint: string
   create?: { parentFilter: 'city' | 'district' }
 }
@@ -62,6 +67,7 @@ type Props = {
   parent?: string
   status?: string
   q?: string
+  chips?: string[]
   cityOptions: { id: number; name: string }[]
   districtOptions: { id: number; name: string }[]
 }
@@ -71,10 +77,14 @@ const STATUS_OPTIONS = [
   { label: '停用', value: 'disabled' },
 ]
 
-/** 计算列渲染：纯数字（增值高亮留到对应模块 Task 处理）。 */
+/** 计算列渲染：纯数字；flag 列渲染 ✓/⚠。 */
 function renderCell(col: GeographyColumn, row: GeographyRow) {
   if (col.kind === 'count') {
     return <span>{row.counts[col.source] ?? 0}</span>
+  }
+  if (col.kind === 'flag') {
+    const v = (row as unknown as Record<string, boolean>)[col.source]
+    return v ? <Tag color="green">✓</Tag> : <Tag color="orange">⚠</Tag>
   }
   if (col.source === 'status') {
     return row.status === 'active' ? <Tag color="green">启用</Tag> : <Tag color="gray">停用</Tag>
@@ -96,6 +106,7 @@ export default function GeographyListViewClient({
   parent,
   status,
   q,
+  chips = [],
   cityOptions,
   districtOptions,
 }: Props) {
@@ -140,6 +151,17 @@ export default function GeographyListViewClient({
   const handleSearch = () => {
     setFilter('q', keyword.trim() || undefined)
   }
+
+  /** 切换快捷 chip：多选以逗号写回 URL `chip=a,b`，全关时删参。切 chip 会回到第一页。 */
+  const toggleChip = useCallback(
+    (key: string) => {
+      const next = new Set(chips)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      setFilter('chip', next.size ? [...next].join(',') : undefined)
+    },
+    [chips, setFilter],
+  )
 
   const columns = useMemo<ColumnProps<GeographyRow>[]>(() => {
     const cols: ColumnProps<GeographyRow>[] = module.columns.map((c) => ({
@@ -288,6 +310,20 @@ export default function GeographyListViewClient({
             <Button type="primary" onClick={handleSearch}>
               搜索
             </Button>
+          </Space>
+        )}
+        {module.chips.length > 0 && (
+          <Space wrap>
+            {module.chips.map((c) => (
+              <Button
+                key={c.key}
+                size="small"
+                type={chips.includes(c.key) ? 'primary' : 'outline'}
+                onClick={() => toggleChip(c.key)}
+              >
+                {c.label}
+              </Button>
+            ))}
           </Space>
         )}
       </Space>

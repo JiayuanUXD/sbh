@@ -389,9 +389,9 @@ type GeographyModuleConfig = {
 **筛选**：城市、行政区（随城市联动）、状态、关键词、**「仅看缺边界」/「仅看缺封面」快捷 chip**
 
 **验收**
-- [ ] 行政区筛选项随城市联动，切城市后重置。
-- [ ] 「仅看缺边界」结果与 Task 5 的 `businessAreasMissingBoundary` 口径完全一致。
-- [ ] 关联线路数为去重后的线路数，不是站点数。
+- [x] 行政区筛选项随城市联动，切城市后重置。
+- [x] 「仅看缺边界」结果与 Task 5 的 `businessAreasMissingBoundary` 口径完全一致。
+- [x] 关联线路数为去重后的线路数，不是站点数。
 
 ---
 
@@ -861,6 +861,7 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | 6 自定义 admin 路由骨架 + 共享列表组件 | ✅ 完成 | `feat(geography): Task 6 自定义 admin 路由骨架与共享列表组件`；四视图注册 `admin.components.views`（键+`path`，3.86 类型为准）；共享 `GeographyListView.tsx`(server)+`GeographyListViewClient.tsx`(client)+`geography-modules.ts`(模块注册)，四模块同一套组件非复制；筛选/分页全进 URL；抽屉 PATCH 带 `version` 乐观锁、冲突展示 `VersionConflictError` 文案；计算列 `sortable:false`。两个修复：`payload-after-error.ts` afterError 钩把 `DomainError` 映射回状态码（否则 `VersionConflictError` 被 500 兜底吞掉）；`ArcoReact19Provider`(`setCreateRoot`) 修 React 19 下 Arco `Message.success` 静默不渲染。C2 门禁：`pnpm test` 2610 绿、`pnpm build` 过、无 schema 变更（免 migrate）、`git diff --stat` 范围达标。期间发现并修复**匿名访问泄漏**——3.86 自定义视图无认证门槛，共享组件顶层补 `req.user` 判定 + `redirect()`（见 B3 视图注册行） |
 | 5–17 开发 | 进行中（Task 8 完，接 Task 9） | |
 | 18–22 导入 | 待开始（依赖 1–17 完成） | |
+| 9 商圈管理模块（边界/封面列 + 快捷 chip） | ✅ 完成 | `feat(geography): Task 9 商圈管理模块`；沿用共享列表，`geography-modules.ts` 加 `chips` 配置 + `GeographyColumn` 增 `flag` 列型（✓/⚠），`BUSINESS_AREA_COLUMNS` 至 11 列（插 边界/封面 两 flag 列，紧邻关联线路数后、状态列前）。边界列数据/「仅看缺边界」chip 走 `business-area-extensions` 表：`location-counts.ts` 新增 `fetchBusinessAreaBoundaryStatus`(本页 Map<id,hasBoundary>) + `fetchBusinessAreaMissingBoundaryIds`(全范围缺边界 id 集合，`id:{in}` 并入 where 实现分页前过滤，口径=无扩展或 boundary NULL/空)；「仅看缺封面」chip 用原生 `coverImage:{exists:false}`。chip 多选以 URL `chip=a,b` 表达、切 chip 回第一页，非法 key 丢弃。行政区随城市联动（切城重置 parent）Task 6 已就绪。单测 9 例（flag 列/11 列序/chips 配置 + `shapeBoundaryStatus`）。C2 门禁：`pnpm test` 2624 绿、`pnpm build` 过、无 schema 变更（免 migrate）；新增 `scripts/verify-business-area-boundary.ts`（`pnpm verify:business-area-boundary`）真实库验证：钱江=有边界/金鸡=缺边界、缺边界集合按城过滤与 Task 5 `businessAreasMissingBoundary` 逐城一致、关联线路数沿用去重 `COUNT(DISTINCT parent_id)`；HTTP 验收：登录后 `/admin/geography/business-areas` 渲染 11 列 + 两 chip，`?chip=missingBoundary` 只留金鸡湖（钱江被滤）、`?chip=missingCover` 缺封面者俱现 |
 | 8 行政区模块（新建预填） | ✅ 完成 | `feat(geography): Task 8 行政区管理模块与新建视图`；行政区列表沿用 Task 6 共享组件（列/城市筛选/`countForDistricts` 计数已就绪）。重点打通「新建」：**发现 Payload 3.86 原生创建页不从 query params 预填**（`renderDocument` create 时 `initialData:null`，Root 视图不读 `?type=/parent=`）→ 用户拍板弃用「跳原生页预填」，改**轻量自定义新建视图** `GeographyCreateView`(server)+`GeographyCreateViewClient`(client)，注册 `/geography/districts/new`；`geography-modules.ts` 加 `create` 配置（type/parentFilter/parentTargetType/label）+ `getGeographyModuleByCreatePath`；列表头部按模块 create 配置渲染「新建」按钮，携带当前城市筛选跳 `/new?city=<id>` 预填 parent；表单提交 REST `/api/locations` 过 `protectLocation` hook → city 自动填对。单测 7 例（新增 create 配置 + 路径解析）。C2 门禁：`pnpm test` 2621 绿、`pnpm build` 过、无 schema 变更；浏览器验收：城市筛选预填 parent=上海、创建后跳编辑页 2014、`city` 自动写 2006、楼盘数与 `buildings.district` 一致（长宁=1）、匿名访问 `/new` 跳登录 |
 | 7 城市管理模块（详情页 + 只读层级树） | ✅ 完成 | `feat(geography): Task 7 城市管理模块`；新建 `/geography/cities/:id`，`GeographyCityDetail.tsx`(server)+`GeographyCityDetailClient.tsx`(client)；`location-tree.ts` 新增 `CITY_CHILD_GROUP_ORDER` + `groupCityDirectChildren`（DIRECT 子节点按类型分组，仅 district/metro_line 两个合法直接子类型，空的类型组不渲染，顺序固定 district→metro_line），TDD 4 用例；只读树默认展开一层（城市 + 各类型分组节点），无编辑/新建按钮，节点点击跳对应模块 `?q=<immutableCode>` 定位。三个修复：①`toFlatLocationNode` 只认对象 parent，`depth:0` 时关系字段回退为裸 number 导致 `parentId` 全 null、树只剩孤根——补 number 分支；②Arco Tree `selectedKeys` 是字符串 key，`byId` 却按 number 建索引，点击节点查不到而不跳转——统一字符串索引；③`findByID` 对不存在 id 抛 NotFound→500，改 `find(limit:1)` 过滤 type=city 一次查询，不存在/非城市走空态。C2 门禁：`pnpm test` 2619 绿、`pnpm build` 过、无 schema 变更（免 migrate）；浏览器验收上海完备度卡（行政区 5/缺边界 2 高亮/楼盘 6）、只读树分组与点击跳转、苏州/杭州 2 城、无效 id 空态、匿名登录重定向 |
 

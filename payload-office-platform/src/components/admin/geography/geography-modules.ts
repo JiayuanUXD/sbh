@@ -25,9 +25,9 @@ import {
 export type GeographyColumn = {
   key: string
   label: string
-  /** field: 取自 row 字段；count: 取自 row.counts 聚合键 */
-  kind: 'field' | 'count'
-  /** kind=field 时是 row 上的字段名；kind=count 时是 counts 对象的键 */
+  /** field: 取自 row 字段；count: 取自 row.counts 聚合键；flag: 取自 row 布尔字段，渲染 ✓/⚠ */
+  kind: 'field' | 'count' | 'flag'
+  /** kind=field 时是 row 上的字段名；kind=count 时是 counts 对象的键；kind=flag 时是 row 布尔字段名 */
   source: string
   width?: number
 }
@@ -59,6 +59,8 @@ export type GeographyModuleConfig = {
   title: string
   columns: GeographyColumn[]
   filters: GeographyFilter[]
+  /** 快捷筛选 chip（如商圈的「仅看缺边界」/「仅看缺封面」），以 URL `chip=a,b` 表达、可多选 */
+  chips?: { key: string; label: string }[]
   emptyHint: string
   counter: ModuleCounter
   /** 有值则列表页头部出现「新建」按钮，跳 /admin<route>/new 轻量新建视图 */
@@ -97,6 +99,8 @@ const BUSINESS_AREA_COLUMNS: GeographyColumn[] = [
   { key: 'buildings', label: '楼盘数', kind: 'count', source: 'buildings' },
   { key: 'stations', label: '关联站点数', kind: 'count', source: 'stations' },
   { key: 'metroLines', label: '关联线路数', kind: 'count', source: 'metroLines' },
+  { key: 'hasBoundary', label: '边界', kind: 'flag', source: 'hasBoundary' },
+  { key: 'hasCover', label: '封面', kind: 'flag', source: 'hasCover' },
   { key: 'status', label: '状态', kind: 'field', source: 'status' },
   { key: 'frontendVisible', label: '前台可见', kind: 'field', source: 'frontendVisible' },
 ]
@@ -141,6 +145,10 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     title: '商圈管理',
     columns: BUSINESS_AREA_COLUMNS,
     filters: ['city', 'district', 'status', 'keyword'],
+    chips: [
+      { key: 'missingBoundary', label: '仅看缺边界' },
+      { key: 'missingCover', label: '仅看缺封面' },
+    ],
     emptyHint: '暂无商圈',
     counter: countForBusinessAreas,
   },

@@ -9,6 +9,7 @@ import {
   shapeDistrictCounts,
   shapeBusinessAreaCounts,
   shapeMetroLineCounts,
+  shapeBoundaryStatus,
 } from '../src/domain/geography/location-counts'
 
 const ZERO_CITY = {
@@ -82,6 +83,33 @@ describe('location-counts/整形纯函数', () => {
       new Map([[1, { buildings: 0, stations: 3, metroLines: 2 }]]),
     )
     expect(shapeMetroLineCounts([], [5])).toEqual(new Map([[5, { stations: 0 }]]))
+  })
+
+  it('商圈边界状态整形：无扩展行的 id 缺省为 false（缺边界），命中的按 has_boundary 取值', () => {
+    // 无任何扩展行 → 全部缺边界
+    expect(shapeBoundaryStatus([1, 2, 3], [])).toEqual(
+      new Map([
+        [1, false],
+        [2, false],
+        [3, false],
+      ]),
+    )
+    // 有扩展行的：1 有边界、2 无（has_boundary=0）、3 无扩展行保持 false
+    expect(
+      shapeBoundaryStatus(
+        [1, 2, 3],
+        [
+          { id: 1, has_boundary: '1' },
+          { id: 2, has_boundary: '0' },
+        ],
+      ),
+    ).toEqual(
+      new Map([
+        [1, true],
+        [2, false],
+        [3, false],
+      ]),
+    )
   })
 })
 

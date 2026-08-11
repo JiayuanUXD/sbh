@@ -4,6 +4,10 @@ import type { AdminViewServerProps, Payload, Where } from 'payload'
 
 import type { Location } from '@/payload-types'
 import { getGeographyModuleByPath } from './geography-modules'
+import {
+  fetchBusinessAreaBoundaryStatus,
+  fetchBusinessAreaMissingBoundaryIds,
+} from '@/domain/geography/location-counts'
 import GeographyListViewClient, { type GeographyRow } from './GeographyListViewClient'
 
 const PAGE_SIZE = 20
@@ -72,6 +76,15 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   const status = sp.get('status') ?? undefined
   const q = sp.get('q')?.trim() || undefined
 
+  // 快捷 chip：只接受模块配置里声明过的 key，多选以逗号分隔（chip=a,b）。
+  // 非法 / 未声明 key 一律丢弃，避免把结果滤成空。
+  const validChips = module.chips ?? []
+  const chipSet = new Set(
+    (sp.get('chip')?.split(',').map((s) => s.trim()).filter(Boolean) ?? []).filter((k) =>
+      validChips.some((c) => c.key === k),
+    ),
+  )
+
   // 只应用该模块支持的筛选，避免非法参数把结果滤成空
   const and: Where[] = [{ type: { equals: module.type } }]
   if (module.filters.includes('city') && city) and.push({ city: { equals: city } })
@@ -80,6 +93,13 @@ export default async function GeographyListView(props: AdminViewServerProps) {
     and.push({ status: { equals: status } })
   if (module.filters.includes('keyword') && q) {
     and.push({ or: [{ name: { contains: q } }, { immutableCode: { contains: q } }] })
+  }
+  // 快捷 chip：缺封面是 coverImage 字段直接判空；缺边界是「无扩展或 boundary 空」，
+  // 用 SQL 预取缺边界商圈 id 集合再并入 where（分页前过滤，口径与 Task 5 一致）。
+  if (chipSet.has('missingCover')) and.push({ coverImage: { exists: false } })
+  if (chipSet.has('missingBoundary')) {
+    const missingIds = await fetchBusinessAreaMissingBoundaryIds(payload)
+    and.push({ id: { in: missingIds } })
   }
 
   const result = await payload.find({
@@ -96,6 +116,10 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   >
   const ids = docs.map((d) => d.id)
   const counts = ids.length > 0 ? await module.counter(payload, ids) : new Map()
+  // 仅商圈模块有边界列（flag source=hasBoundary）时才查扩展表；其余模块直接空 Map 全 false
+  const needsBoundary = module.columns.some((c) => c.kind === 'flag' && c.source === 'hasBoundary')
+  const boundaryStatus =
+    needsBoundary && ids.length > 0 ? await fetchBusinessAreaBoundaryStatus(payload, ids) : new Map<number, boolean>()
 
   const rows: GeographyRow[] = docs.map((d) => ({
     id: d.id,
@@ -109,6 +133,8 @@ export default async function GeographyListView(props: AdminViewServerProps) {
     version: typeof d.version === 'number' ? d.version : 1,
     parentName: popName(d.parent),
     cityName: popName(d.city),
+    hasBoundary: boundaryStatus.get(d.id) ?? false,
+    hasCover: d.coverImage != null,
     counts: counts.get(d.id) ?? {},
   }))
 
@@ -129,6 +155,7 @@ export default async function GeographyListView(props: AdminViewServerProps) {
         title: module.title,
         columns: module.columns,
         filters: module.filters,
+        chips: module.chips ?? [],
         emptyHint: module.emptyHint,
         create: module.create ? { parentFilter: module.create.parentFilter } : undefined,
       }}
@@ -140,6 +167,7 @@ export default async function GeographyListView(props: AdminViewServerProps) {
       parent={parent}
       status={status}
       q={q}
+      chips={[...chipSet]}
       cityOptions={cityOptions}
       districtOptions={districtOptions}
     />
