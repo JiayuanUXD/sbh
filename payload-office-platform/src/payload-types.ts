@@ -444,7 +444,7 @@ export interface Team {
   createdAt: string;
 }
 /**
- * 仅维护已启用商圈的边界、扩展中心点、别名与同城站点关联；基础字段在「城市区域」页维护。
+ * 本页仅供排障；日常配置请在「商圈管理」中打开对应商圈
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "business-area-extensions".

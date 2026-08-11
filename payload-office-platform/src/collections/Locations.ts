@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Field } from 'payload'
 import {
   LOCATION_TYPES,
   LOCATION_TYPE_LABELS,
@@ -185,5 +185,15 @@ export const Locations: CollectionConfig = {
         description: '乐观锁版本，由系统维护',
       },
     },
+    {
+      // 商圈空间扩展面板（Task 11）：内嵌进商圈编辑页，替代「商圈管理」独立页。
+      // 条件只按 type 收敛（不看 id）：新建商圈无 id 时由面板自身提示「保存后可配置空间信息」。
+      name: 'businessAreaExtension',
+      type: 'ui',
+      admin: {
+        condition: (data: { type?: unknown }) => data?.type === 'business_area',
+        components: { Field: '/components/admin/BusinessAreaExtensionPanel' },
+      },
+    } as unknown as Field,
   ],
 }
