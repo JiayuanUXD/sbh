@@ -895,4 +895,4 @@ git diff --stat HEAD         # 确认改动范围与 Task 描述一致，无越�
 | 数据质量抽检（每城 5 商圈 + 5 站点） | ✅ 抽检无错误：商圈/站点名称、`immutable_code`、经纬度、上级行政区/所属线路均与种子一致；仅旧格式遗留 `HZ-QJ`（杭州钱江新城，无坐标）按预期存在 |
 | 前台可见性 | ✅ 全部 1491 条导入节点 `frontendVisible=false`；E2E 7 条 fixture 不受影响 |
 | C 端无异常 | ✅ slug 冲突处理后 C 端上海 parent 链恢复（旧 SH 城市 slug=`shanghai`、旧区 parent.slug=`shanghai`、新 CITY-SH slug=`shanghai-new` dormant），首页热门商圈/筛选项仍只展示 `frontendVisible=true` 节点 |
-| 规模验收（四模块页 <1s / 沪详情树 ~650 节点 / 全局搜索 <300ms） | ⏳ **人工项**：需后台登录 + in-app 浏览器，本机无后台登录凭据无法实测，登记为人工测试（数据规模已就绪，~2000 节点即在库中） |
+| 规模验收（四模块页 <1s / 沪详情树 ~650 节点 / 全局搜索 <300ms） | ✅ **2026-08-11 已用 `e2e-adm@example.com` 浏览器实测**（dev server 3721, sbh_dev_geo）：四模块首屏 **城市 938ms / 行政区 359ms / 商圈 417ms / 地铁 289ms**（均 <1s，server 日志 `application-code`）；上海详情页（id=3065，~650 节点）首屏 **769ms**，只读树完整渲染 16 行政区 + 21 线路，展开地铁1号线加载 28 站点可用；全局搜索 endpoint 广查询 **27–42ms**（`路`=36ms/`地铁`=42ms/`SH-MS-`=27ms，均 <300ms），Cmd+K 在标准后台页唤起正常、输入「龙翔」正确返回 `HZ-MS-LONGXIANGQIAO`。控制台仅 Arco×React19 已知弃用告警，无实际错误 |
