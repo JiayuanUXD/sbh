@@ -163,3 +163,56 @@ describe('stripJsonComments / parseSeedJson', () => {
     expect(stripJsonComments(raw)).not.toMatch(/header/)
   })
 })
+
+/**
+ * legacyCodes（存量对账别名）—— 「存量为准、只补差集」策略的入口（审核修复 P0-1）。
+ * 声明错了会导致要么白建重复节点、要么错认成别的现实对象，故校验从严。
+ */
+describe('validateSeedFile：legacyCodes 存量别名', () => {
+  it('合法的 legacyCodes 不产生 issue', () => {
+    const seed = makeValidSeed()
+    seed.city.legacyCodes = ['HZ']
+    seed.districts[0].legacyCodes = ['HZ-XH', 'HZ-XIHU']
+    expect(validateSeedFile(seed)).toEqual([])
+  })
+
+  it('legacyCodes 非数组 → INVALID_LEGACY_CODES', () => {
+    const seed = makeValidSeed()
+    ;(seed.city as { legacyCodes?: unknown }).legacyCodes = 'HZ'
+    expect(validateSeedFile(seed).map((i) => i.code)).toContain('INVALID_LEGACY_CODES')
+  })
+
+  it('别名格式非法（小写 / 过短）→ INVALID_LEGACY_CODE', () => {
+    const seed = makeValidSeed()
+    seed.city.legacyCodes = ['hz']
+    expect(validateSeedFile(seed).map((i) => i.code)).toContain('INVALID_LEGACY_CODE')
+  })
+
+  it('别名等于自身 immutableCode → LEGACY_CODE_SELF', () => {
+    const seed = makeValidSeed()
+    seed.city.legacyCodes = ['CITY-HZ']
+    expect(validateSeedFile(seed).map((i) => i.code)).toContain('LEGACY_CODE_SELF')
+  })
+
+  it('两个节点认领同一个存量别名 → DUP_LEGACY_CODE', () => {
+    const seed = makeValidSeed()
+    seed.city.legacyCodes = ['HZ-OLD']
+    seed.districts[0].legacyCodes = ['HZ-OLD']
+    expect(validateSeedFile(seed).map((i) => i.code)).toContain('DUP_LEGACY_CODE')
+  })
+
+  it('别名撞上文件内某节点的 immutableCode → LEGACY_CODE_COLLIDES_WITH_CODE', () => {
+    const seed = makeValidSeed()
+    // 城市认领了「行政区自己的新码」，会让两个种子节点指向同一条库记录
+    seed.city.legacyCodes = [seed.districts[0].immutableCode]
+    expect(validateSeedFile(seed).map((i) => i.code)).toContain(
+      'LEGACY_CODE_COLLIDES_WITH_CODE',
+    )
+  })
+
+  it('legacyCodes 缺省时行为不变（向后兼容既有种子文件）', () => {
+    const seed = makeValidSeed()
+    expect(seed.city.legacyCodes).toBeUndefined()
+    expect(validateSeedFile(seed)).toEqual([])
+  })
+})

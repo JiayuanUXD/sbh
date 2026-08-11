@@ -12,6 +12,9 @@
  *   - dry-run 是默认，--apply 才真正写入。
  *   - 幂等：按 immutableCode 查已存在记录 —— 一致则跳过；不一致则列出差异并默认跳过，
  *     --update-existing 才更新。绝不静默覆盖。
+ *   - **存量为准、只补差集**（审核修复 P0-1）：种子节点可声明 legacyCodes（存量旧编码）；
+ *     命中后沿用存量节点（不改名/不改码/不改 slug），只把它当作下级父级，避免同一个
+ *     现实对象被当成新节点再建一遍而产生「重复双树」。每城结束报告未认领的存量节点。
  *   - 严格按 城市 → 行政区 → 商圈 / 线路 → 站点 顺序，逐条 payload.create（过 protectLocation hook）。
  *   - 每条失败单独记录并继续，最后汇总失败清单，退出码非 0。
  *   - 全程日志写 .tmp/geography-import-<city>-<timestamp>.log。
@@ -81,7 +84,9 @@ const seedFiles: string[] = []
 if (ALL) {
   const dir = 'seed/geography'
   const names = readFilePaths(dir)
-  seedFiles.push(...names.filter((n) => !n.endsWith('_template.json')).sort())
+  // readdirSync 只返回文件名，必须拼上目录才是可读路径（原实现漏了 join，
+  // --all 一直是「文件不存在」全量失败，此前的分城导入都是逐个 --file 跑的）
+  seedFiles.push(...names.filter((n) => !n.endsWith('_template.json')).sort().map((n) => join(dir, n)))
 } else {
   seedFiles.push(process.argv[fileArg + 1])
 }
@@ -114,16 +119,37 @@ type ExistingDoc = {
   parent?: unknown
 }
 
-/** 按 immutableCode 查已存在记录（depth 0，拿 parent id / version）。 */
-async function findExisting(code: string): Promise<ExistingDoc | null> {
-  const res = await payload.find({
+/**
+ * 按 immutableCode 或存量别名查已存在记录（depth 0，拿 parent id / version）。
+ *
+ * 「存量为准、只补差集」（审核修复 P0-1）：先按本规范的 immutableCode 精确匹配；
+ * 未命中再按种子声明的 legacyCodes 匹配存量旧编码。命中别名时返回 matchedByLegacy，
+ * 调用方据此**沿用存量节点**（不改名/不改码/不改 slug），只把它当作下级的父级。
+ */
+async function findExisting(
+  code: string,
+  legacyCodes: readonly string[] = [],
+): Promise<(ExistingDoc & { matchedByLegacy?: string }) | null> {
+  const byCode = await payload.find({
     collection: 'locations',
     where: { immutableCode: { equals: code } },
     limit: 1,
     depth: 0,
   })
-  const doc = res.docs[0]
-  return doc ? (doc as unknown as ExistingDoc) : null
+  if (byCode.docs[0]) return byCode.docs[0] as unknown as ExistingDoc
+
+  for (const legacy of legacyCodes) {
+    const res = await payload.find({
+      collection: 'locations',
+      where: { immutableCode: { equals: legacy } },
+      limit: 1,
+      depth: 0,
+    })
+    if (res.docs[0]) {
+      return { ...(res.docs[0] as unknown as ExistingDoc), matchedByLegacy: legacy }
+    }
+  }
+  return null
 }
 function toId(v: unknown): number | string | null {
   if (v === null || v === undefined) return null
@@ -197,8 +223,81 @@ function fieldDiff(existing: ExistingDoc, seed: ContentFields): string[] {
   return diffs
 }
 
+/** 名称归一化：去掉行政区划后缀与空白，用于「可能对应」提示（仅提示，不自动合并） */
+function normalizeName(name: string): string {
+  return name.trim().replace(/[市区县]$/u, '').replace(/\s+/g, '')
+}
+
+/** 摊平种子的全部节点（含站点），返回 [code, name] 与 legacyCodes 集合 */
+function seedNodeIndex(seed: SeedFile): {
+  codes: Set<string>
+  legacy: Set<string>
+  byNormName: Map<string, string>
+} {
+  const codes = new Set<string>()
+  const legacy = new Set<string>()
+  const byNormName = new Map<string, string>()
+  const add = (n: { name: string; immutableCode: string; legacyCodes?: string[] }) => {
+    codes.add(n.immutableCode)
+    for (const l of n.legacyCodes ?? []) legacy.add(l)
+    const key = normalizeName(n.name)
+    if (!byNormName.has(key)) byNormName.set(key, n.immutableCode)
+  }
+  add(seed.city)
+  seed.districts.forEach(add)
+  seed.businessAreas.forEach(add)
+  seed.metroLines.forEach((m) => {
+    add(m)
+    ;(m.stations ?? []).forEach(add)
+  })
+  return { codes, legacy, byNormName }
+}
+
+/**
+ * 报告该城下未被种子认领的存量节点。
+ *
+ * 「未认领」= 存量节点的 immutableCode 既不在种子 codes 里、也不在任何 legacyCodes 里。
+ * 这类节点要么是种子该覆盖但漏了 legacyCodes 声明（→ 会造成重复建点），
+ * 要么是真正的历史遗留（→ 该停用或删除）。两种都需要人工判断，脚本不自动处置。
+ */
+async function reportUnclaimed(seed: SeedFile, cityId: number | string | null): Promise<void> {
+  // dry-run 下城市是合成负 id（库里还没有），无存量可查
+  if (cityId === null || (typeof cityId === 'number' && cityId < 0)) return
+
+  const { codes, legacy, byNormName } = seedNodeIndex(seed)
+  const res = await payload.find({
+    collection: 'locations',
+    where: { or: [{ id: { equals: cityId } }, { city: { equals: cityId } }] },
+    limit: 5000,
+    depth: 0,
+  })
+  const unclaimed = (res.docs as unknown as Array<{ id: number | string; name?: unknown; type?: unknown; immutableCode?: unknown }>)
+    .filter((d) => {
+      const code = typeof d.immutableCode === 'string' ? d.immutableCode : ''
+      return code !== '' && !codes.has(code) && !legacy.has(code)
+    })
+
+  if (unclaimed.length === 0) return
+  log(`  ⚠ 该城有 ${unclaimed.length} 个存量节点未被种子认领：`)
+  for (const d of unclaimed.slice(0, 50)) {
+    const name = typeof d.name === 'string' ? d.name : ''
+    const guess = byNormName.get(normalizeName(name))
+    const hint = guess ? `  ← 疑似对应种子 ${guess}，若确认请在种子里加 legacyCodes: ["${String(d.immutableCode)}"]` : '  （种子里无同名节点，可能是应停用的历史遗留）'
+    log(`      ${String(d.type)} 「${name}」(${String(d.immutableCode)}, id=${d.id})${hint}`)
+  }
+  if (unclaimed.length > 50) log(`      …另有 ${unclaimed.length - 50} 个未列出`)
+}
+
 // —— 逐节点写入（幂等 + 冲突检测） ——
-type Counters = { created: number; skipped: number; conflicts: number; updated: number; failed: number }
+type Counters = {
+  created: number
+  skipped: number
+  conflicts: number
+  updated: number
+  failed: number
+  /** 命中存量别名、按「存量为准」沿用的节点数 */
+  adopted: number
+}
 
 async function upsertNode(args: {
   code: string
@@ -207,9 +306,27 @@ async function upsertNode(args: {
   content: ContentFields
   expectedParentId: number | string | null
   counters: Counters
+  legacyCodes?: readonly string[]
 }): Promise<void> {
-  const { code, type, data, content, expectedParentId, counters } = args
-  const existing = await findExisting(code)
+  const { code, type, data, content, expectedParentId, counters, legacyCodes = [] } = args
+  const existing = await findExisting(code, legacyCodes)
+
+  // —— 存量为准：命中别名即沿用存量节点，不改名/不改码/不改 slug ——
+  // 这里必须 return，绝不能走下面的 fieldDiff/更新分支：种子里的规范名称与
+  // 新编码只在「库里还没有这个现实对象」时才用得上；对象已存在时，改它的名字
+  // 或编码会波及所有引用它的房源 / 线索 / 楼盘，正是本策略要避免的。
+  if (existing?.matchedByLegacy) {
+    counters.adopted++
+    knownIds.set(code, existing.id)
+    const cur = contentOf(existing)
+    log(
+      `  ≡ 沿用存量 ${type}「${cur.name}」(存量码 ${existing.matchedByLegacy} ← 种子码 ${code}, id=${existing.id})`,
+    )
+    if (cur.name !== content.name) {
+      log(`      名称差异（保留存量，不改写）：${cur.name} ← 种子「${content.name}」`)
+    }
+    return
+  }
   if (!existing) {
     counters.created++
     log(`  ＋ 新建 ${type}「${data.name}」(${code})`)
@@ -314,7 +431,7 @@ for (const file of seedFiles) {
 
   const cityName = seed.city.name
   const cityCode = seed.city.immutableCode
-  const counters: Counters = { created: 0, skipped: 0, conflicts: 0, updated: 0, failed: 0 }
+  const counters: Counters = { created: 0, skipped: 0, conflicts: 0, updated: 0, failed: 0, adopted: 0 }
   log(`\n===== ${cityName} ${cityCode}（${APPLY ? 'apply' : 'dry-run'}${UPDATE_EXISTING ? ' + update-existing' : ''}）=====`)
 
   // 1. 城市
@@ -326,6 +443,7 @@ for (const file of seedFiles) {
     content: cityContent,
     expectedParentId: null,
     counters,
+    legacyCodes: seed.city.legacyCodes ?? [],
   })
   const cityId = await resolveId(cityCode)
   if (cityId === null) {
@@ -343,6 +461,7 @@ for (const file of seedFiles) {
       content: seedContent(d),
       expectedParentId: cityId,
       counters,
+      legacyCodes: d.legacyCodes ?? [],
     })
   }
 
@@ -361,6 +480,7 @@ for (const file of seedFiles) {
       content: seedContent(b),
       expectedParentId: districtId,
       counters,
+      legacyCodes: b.legacyCodes ?? [],
     })
   }
 
@@ -373,6 +493,7 @@ for (const file of seedFiles) {
       content: seedContent(m),
       expectedParentId: cityId,
       counters,
+      legacyCodes: m.legacyCodes ?? [],
     })
     const lineId = await resolveId(m.immutableCode)
     if (lineId === null) {
@@ -388,11 +509,20 @@ for (const file of seedFiles) {
         content: seedContent(s),
         expectedParentId: lineId,
         counters,
+        legacyCodes: s.legacyCodes ?? [],
       })
     }
   }
 
-  log(`  ── 合计：新建 ${counters.created} ｜ 跳过 ${counters.skipped} ｜ 冲突 ${counters.conflicts} ｜ 更新 ${counters.updated} ｜ 失败 ${counters.failed}`)
+  // 5. 未认领存量节点报告（「存量为准」的审计面）
+  //
+  // 种子没有 legacyCodes 声明时，同一个现实对象会被当成新节点再建一遍 —— 这正是
+  // 重复双树的成因，且它「静默成功」，不报错。故每城结束后反查：该城下还有哪些
+  // 存量节点既不在种子的 immutableCode 集合、也不在 legacyCodes 集合里，并按名称
+  // 给出可能的对应关系供人工判断。只报告、不自动合并。
+  await reportUnclaimed(seed, cityId)
+
+  log(`  ── 合计：新建 ${counters.created} ｜ 沿用存量 ${counters.adopted} ｜ 跳过 ${counters.skipped} ｜ 冲突 ${counters.conflicts} ｜ 更新 ${counters.updated} ｜ 失败 ${counters.failed}`)
   if (counters.failed > 0) anyFailure = true
 
   // 归档日志

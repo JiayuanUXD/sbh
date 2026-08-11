@@ -12,6 +12,7 @@
   "city": {
     "name": "苏州市",
     "immutableCode": "CITY-SZ",
+    "legacyCodes": ["SZ"],
     "slug": "suzhou",
     "sortOrder": 4,
     "centerLatitude": 31.299758,
@@ -45,6 +46,7 @@
     {
       "name": "姑苏区",
       "immutableCode": "SZ-D-320508",
+      "legacyCodes": ["SZ-GS"],
       "slug": "suzhou-gusu",
       "sortOrder": 4,
       "centerLatitude": 31.335648,
@@ -129,6 +131,7 @@
       "districtCode": "SZ-D-320571",
       "slug": "suzhou-jinjihu",
       "immutableCode": "SZ-BA-JINJIHU",
+      "legacyCodes": ["SZ-JJH"],
       "centerLatitude": 31.316332,
       "centerLongitude": 120.675154
     },

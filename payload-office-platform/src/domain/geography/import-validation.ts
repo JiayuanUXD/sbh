@@ -28,6 +28,20 @@ export type SeedNodeBase = {
   centerLatitude?: number | null
   centerLongitude?: number | null
   sortOrder?: number
+  /**
+   * 存量对账别名（「存量为准、只补差集」策略，审核修复 P0-1）。
+   *
+   * 库里已有的历史节点往往用的是旧编码（如上海静安区存量码 `SH-JINGAN`，
+   * 而本规范是 `SH-D-310106`）。导入时若只按 immutableCode 匹配，会把同一个
+   * 现实对象当成新节点再建一遍，产生「重复双树」。
+   *
+   * 在此显式列出该节点对应的存量编码，导入器命中后**沿用存量节点**：
+   * 不改名、不改码、不改 slug，只把它作为下级节点的父级。
+   *
+   * 刻意要求人工显式声明而非按名称模糊匹配——地理节点改名后果重，
+   * 宁可 dry-run 报「未认领存量节点」让人补，也不自动猜。
+   */
+  legacyCodes?: string[]
 }
 
 export type SeedCity = SeedNodeBase
@@ -126,6 +140,35 @@ function checkNodeBase(base: SeedNodeBase, path: string, issues: ImportValidatio
       value: base.immutableCode,
     })
   }
+  // 存量对账别名：必须是字符串数组、格式合法、且不等于自身 code
+  if (base.legacyCodes !== undefined) {
+    if (!Array.isArray(base.legacyCodes)) {
+      issues.push({
+        code: 'INVALID_LEGACY_CODES',
+        path,
+        message: 'legacyCodes 必须是字符串数组',
+        value: base.legacyCodes,
+      })
+    } else {
+      base.legacyCodes.forEach((code, i) => {
+        if (typeof code !== 'string' || !isValidRegionCode(code)) {
+          issues.push({
+            code: 'INVALID_LEGACY_CODE',
+            path: `${path}.legacyCodes[${i}]`,
+            message: `存量别名代码格式非法：${String(code)}`,
+            value: code,
+          })
+        } else if (code === base.immutableCode) {
+          issues.push({
+            code: 'LEGACY_CODE_SELF',
+            path: `${path}.legacyCodes[${i}]`,
+            message: `存量别名不能等于自身 immutableCode：${code}`,
+            value: code,
+          })
+        }
+      })
+    }
+  }
   // 坐标：必须成对且在范围
   const lat = base.centerLatitude
   const lng = base.centerLongitude
@@ -204,6 +247,38 @@ export function validateSeedFile(input: unknown): ImportValidationIssue[] {
     ;(m.stations ?? []).forEach((s, j) =>
       record(s.immutableCode, s.slug, `metroLines[${i}].stations[${j}]`),
     )
+  })
+
+  // —— 存量别名唯一性：同一个存量编码不能被两个种子节点认领，也不能撞上文件内的 immutableCode ——
+  const legacySeen = new Map<string, string>()
+  const recordLegacy = (node: SeedNodeBase | undefined, path: string) => {
+    for (const code of node?.legacyCodes ?? []) {
+      if (typeof code !== 'string' || code === '') continue
+      if (codeSeen.has(code)) {
+        issues.push({
+          code: 'LEGACY_CODE_COLLIDES_WITH_CODE',
+          path,
+          message: `存量别名 ${code} 与文件内 immutableCode 冲突（见 ${codeSeen.get(code)}）`,
+          value: code,
+        })
+      } else if (legacySeen.has(code)) {
+        issues.push({
+          code: 'DUP_LEGACY_CODE',
+          path,
+          message: `存量别名重复认领：${code}（亦见于 ${legacySeen.get(code)}）`,
+          value: code,
+        })
+      } else {
+        legacySeen.set(code, path)
+      }
+    }
+  }
+  recordLegacy(file.city, 'city')
+  file.districts.forEach((d, i) => recordLegacy(d, `districts[${i}]`))
+  file.businessAreas.forEach((b, i) => recordLegacy(b, `businessAreas[${i}]`))
+  file.metroLines.forEach((m, i) => {
+    recordLegacy(m, `metroLines[${i}]`)
+    ;(m.stations ?? []).forEach((s, j) => recordLegacy(s, `metroLines[${i}].stations[${j}]`))
   })
 
   // —— 层级引用：商圈 districtCode 必须指向文件内存在的行政区 (否则写侧 hook 会 PARENT 解析失败) ——

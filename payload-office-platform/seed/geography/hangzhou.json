@@ -10,6 +10,7 @@
   "city": {
     "name": "杭州市",
     "immutableCode": "CITY-HZ",
+    "legacyCodes": ["HZ"],
     "slug": "hangzhou",
     "sortOrder": 3,
     "centerLatitude": 30.246566,
@@ -35,6 +36,7 @@
     {
       "name": "西湖区",
       "immutableCode": "HZ-D-330106",
+      "legacyCodes": ["HZ-XH"],
       "slug": "hangzhou-xihu",
       "sortOrder": 3,
       "centerLatitude": 30.259242,
@@ -135,6 +137,7 @@
       "districtCode": "HZ-D-330102",
       "slug": "hangzhou-qianjiang-xincheng",
       "immutableCode": "HZ-BA-QIANJIANGXINCHENG",
+      "legacyCodes": ["HZ-QJ"],
       "centerLatitude": 30.250328,
       "centerLongitude": 120.214223
     },
