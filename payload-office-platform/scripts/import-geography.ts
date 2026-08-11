@@ -44,6 +44,39 @@ if (!ALL && fileArg === -1) {
   console.error('用法：--file <path> 或 --all（--dry-run 默认，--apply 才写库）')
   process.exit(2)
 }
+
+// —— 非本地库防护（审核修复 P0-2）——
+// 生产是共享 TencentDB，误对着它跑 --apply 会直接写入 1500+ 条且没有一键回滚。
+// dry-run 只读，任何库都放行；--apply 对非 localhost 库要求显式声明目标库名。
+if (APPLY) {
+  const dbUrl = process.env.DATABASE_URL ?? ''
+  let host = ''
+  let dbName = ''
+  try {
+    const u = new URL(dbUrl)
+    host = u.hostname
+    dbName = u.pathname.replace(/^\//, '')
+  } catch {
+    console.error(`✗ DATABASE_URL 无法解析，拒绝 --apply：${dbUrl ? '(格式非法)' : '(未设置)'}`)
+    process.exit(2)
+  }
+  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1'
+  if (!isLocal) {
+    const confirmArg = process.argv.indexOf('--confirm-db')
+    const confirmed = confirmArg !== -1 ? process.argv[confirmArg + 1] : undefined
+    if (confirmed !== dbName) {
+      console.error(
+        [
+          `✗ 目标库不在本机（host=${host}, db=${dbName}），拒绝 --apply。`,
+          `  确认这是你要写入的库后，追加：--confirm-db ${dbName}`,
+          `  写入生产前请先备份，并已核对 dry-run 输出的冲突清单。`,
+        ].join('\n'),
+      )
+      process.exit(2)
+    }
+    console.warn(`⚠ 正在对非本机库执行写入：host=${host}, db=${dbName}`)
+  }
+}
 const seedFiles: string[] = []
 if (ALL) {
   const dir = 'seed/geography'

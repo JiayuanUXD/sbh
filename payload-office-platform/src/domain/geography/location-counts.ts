@@ -13,7 +13,10 @@
  *   城市 city → 行政区 district → 商圈 business_area
  *   城市 city → 地铁线路 metro_line → 地铁站 metro_station
  * 商圈的站点 / 线路计数走 business_area_extensions_rels 关系中间表
- * （parent_id → 扩展记录，locations_id → 站点）。
+ * （parent_id → 扩展记录，locations_id → 站点）。该表按 `path` 区分同一 collection 下的
+ * 多个 hasMany 关系字段，**必须带 `rels.path = 'metroStations'`**：目前该 collection 只有
+ * 这一个指向 locations 的 hasMany 字段，漏掉 path 暂时也算得对，但一旦新增第二个，
+ * 站点数 / 线路数会静默算错。
  */
 
 import type { Payload } from 'payload'
@@ -165,7 +168,15 @@ export function shapeMetroLineCounts(
   )
 }
 
-/** 楼盘可见性条件：照搬 src/domain/supply/public-building.ts（published + 启用 + 未删除） */
+/**
+ * 楼盘计数的可见性条件：published + 启用 + 未软删。
+ *
+ * 口径说明（**与 C 端不完全相同，有意为之**）：`src/domain/supply/public-building.ts`
+ * 的公开可见条件除这三条外，还要求 `city.status='active'` 与 `district.status='active'`。
+ * 后台计数**刻意不带这两条**——运营需要看到「停用城市/行政区下还挂着多少楼盘」，
+ * 否则停用一个行政区，它的楼盘数会瞬间归零、让人误以为数据丢了。
+ * 因此本文件的楼盘数 ≥ C 端可见楼盘数，二者不应互相对齐。
+ */
 const BUILDING_VISIBLE = sql`status = 'published' AND operational_status = 'active' AND deleted_at IS NULL`
 
 export async function countForCities(
@@ -258,7 +269,8 @@ export async function countForBusinessAreas(
         (COUNT(DISTINCT rels.locations_id))::int AS stations,
         (COUNT(DISTINCT st.parent_id))::int AS metro_lines
       FROM "business_area_extensions" bae
-      JOIN "business_area_extensions_rels" rels ON rels.parent_id = bae.id
+      JOIN "business_area_extensions_rels" rels
+        ON rels.parent_id = bae.id AND rels.path = 'metroStations'
       JOIN "locations" st ON st.id = rels.locations_id
       WHERE bae.business_area_id = ANY(${idParams}::int[])
       GROUP BY bae.business_area_id
