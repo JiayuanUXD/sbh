@@ -21,6 +21,7 @@ export default function GeographyQuickSearch() {
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<LocationSearchResult[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
   // Cmd/Ctrl+K 全局唤起
@@ -40,6 +41,7 @@ export default function GeographyQuickSearch() {
     if (open) {
       setQ('')
       setResults([])
+      setError(null)
       setActiveIndex(0)
     }
   }, [open])
@@ -50,21 +52,36 @@ export default function GeographyQuickSearch() {
     const keyword = q.trim()
     if (keyword.length < 2) {
       setResults([])
+      setError(null)
       setActiveIndex(0)
       return
     }
     let cancelled = false
     const timer = setTimeout(async () => {
       setLoading(true)
+      setError(null)
       try {
         const res = await fetch(`/api/locations/search?q=${encodeURIComponent(keyword)}&limit=20`)
-        const data = await res.json()
-        if (!cancelled) {
-          setResults(data?.results ?? [])
-          setActiveIndex(0)
+        const data = await res.json().catch(() => null)
+        if (cancelled) return
+        // 审核修复 P3-1：失败必须与「无结果」区分开。
+        // 原实现既不看 res.ok，catch 里也只 setResults([])，于是 401/403/500 与网络
+        // 中断全都渲染成「无匹配结果」——用户以为搜不到，实际是没权限或服务出错。
+        if (!res.ok || data?.ok === false) {
+          setResults([])
+          setError(
+            typeof data?.error === 'string' && data.error
+              ? data.error
+              : `搜索失败（HTTP ${res.status}）`,
+          )
+          return
         }
-      } catch {
-        if (!cancelled) setResults([])
+        setResults(Array.isArray(data?.results) ? data.results : [])
+        setActiveIndex(0)
+      } catch (err) {
+        if (cancelled) return
+        setResults([])
+        setError(err instanceof Error ? `搜索失败：${err.message}` : '搜索失败：网络错误')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -170,6 +187,10 @@ export default function GeographyQuickSearch() {
         <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: '4px 0' }}>
           {loading ? (
             <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>搜索中…</div>
+          ) : error ? (
+            <div style={{ padding: 16, textAlign: 'center', color: '#f53f3f' }} role="alert">
+              {error}
+            </div>
           ) : q.trim().length < 2 ? (
             <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>输入至少 2 个字符开始搜索</div>
           ) : groups.length === 0 ? (
