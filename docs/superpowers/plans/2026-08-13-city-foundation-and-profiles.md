@@ -320,7 +320,7 @@ git commit -m "feat: resolve frontend city context"
 **Interfaces:**
 - Produces: `cityProfileTag(slug)`, deterministic affected-tag computation for profile and Location events.
 
-- [ ] **Step 1: Write failing tag tests**
+- [x] **Step 1: Write failing tag tests**
 
 ```ts
 expect(cityProfileTag('hangzhou')).toBe('public:city-profile:hangzhou')
@@ -333,17 +333,17 @@ expect(tagsForProfileChange(profile)).toEqual(expect.arrayContaining([
 expect(tagsForLocationVisibilityChange(location)).toContain('public:facets:hangzhou')
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-profile-cache-invalidator.test.ts`
 
 Expected: FAIL because invalidator does not exist.
 
-- [ ] **Step 3: Implement and wire invalidation hooks**
+- [x] **Step 3: Implement and wire invalidation hooks**
 
 After profile changes/deletes, invalidate city profile, city home, and sitemap. After Location status/frontendVisible/featured-region-relevant changes, invalidate the owning city's profile/home/facets plus sitemap. If city cannot be resolved, use category-level conservative tags and log only object ID/error code.
 
-- [ ] **Step 4: Run foundation verification**
+- [x] **Step 4: Run foundation verification**
 
 Run:
 
@@ -356,7 +356,7 @@ git diff --check
 
 Inspect generated diffs and retain only intentional `payload-types.ts` changes. Expected: all tests/typecheck pass and diff check is clean.
 
-- [ ] **Step 5: Commit Task 4 and record Gate A evidence**
+- [x] **Step 5: Commit Task 4 and record Gate A evidence**
 
 ```bash
 git add payload-office-platform/src/domain/city-site-profile/cache-invalidator.ts payload-office-platform/src/collections/CitySiteProfiles.ts payload-office-platform/src/collections/Locations.ts payload-office-platform/src/lib/frontend/public-cache-revalidation.ts payload-office-platform/tests/city-profile-cache-invalidator.test.ts payload-office-platform/src/payload-types.ts
@@ -364,3 +364,11 @@ git commit -m "feat: invalidate city profile caches"
 ```
 
 Record migration counts, focused test counts, typecheck result, and commit SHA in this plan before starting Plan 2.
+
+## Completion Evidence
+
+- Commits: `9790a4a`/`0dbb988` model and partial-update protection; `2a44957`/`ed6fa90`/`b23c4e6` migrations and rollback/identity hardening; `6d1b223`/`792db11` resolver and DTO fail-closed validation; `3e9b291`/`1592c3a` cache invalidation.
+- Tests: foundation verification passed 7 files / 84 tests; final task-specific rechecks passed 45 resolver tests and 7 invalidation/access tests; TypeScript passed.
+- Migrations: local PostgreSQL 44/44 applied, 0 pending; verifier 173 checks / 0 failures / 17 historical missing-snapshot warnings; profiles total 7, live 1, coming-soon 6, duplicate city groups 0.
+- Browser: not applicable to Plan 1; no user-visible route was introduced.
+- Remaining review items: generated schema `down` required one reviewed statement-order correction to make rollback executable; local geography prerequisite created 1,483 frontend-hidden test nodes; both are documented in the SDD report for final user review.
