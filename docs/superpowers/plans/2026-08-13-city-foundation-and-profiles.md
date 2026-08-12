@@ -137,7 +137,7 @@ git commit -m "feat: add city site profile model"
 - Consumes: Collection slug and fields from Task 1.
 - Produces: PostgreSQL table/relationships/unique city constraint and exactly seven initial profiles.
 
-- [ ] **Step 1: Write failing migration safety tests**
+- [x] **Step 1: Write failing migration safety tests**
 
 ```ts
 expect(schemaMigrationText).toContain('city_site_profiles')
@@ -149,13 +149,13 @@ expect(seedMigrationText).not.toMatch(/UPDATE\s+locations\s+SET\s+frontend_visib
 
 Assert the seed is idempotent, aborts on zero/multiple city matches, sets Shanghai `live`, sets the six other cities `coming-soon`, and does not guess by city name.
 
-- [ ] **Step 2: Run migration test and verify RED**
+- [x] **Step 2: Run migration test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-site-profile-migration.test.ts`
 
 Expected: FAIL because migrations do not exist.
 
-- [ ] **Step 3: Generate schema migration and types**
+- [x] **Step 3: Generate schema migration and types**
 
 Run: `pnpm exec payload migrate:create --name city_site_profiles`
 
@@ -163,7 +163,7 @@ Rename the generated `.ts` and `.json` to the exact Task 2 paths and update only
 
 Run: `pnpm exec payload generate:types`
 
-- [ ] **Step 4: Add the idempotent data migration**
+- [x] **Step 4: Add the idempotent data migration**
 
 Implement `up` as a transaction that resolves the exact immutable codes and inserts missing profiles. On existing rows, verify city/status/content identity and skip; on mismatch, throw `city_site_profile_seed_conflict`. Make this data migration's `down` an explicit no-op with a comment: deleting profiles after operations may have edited them is unsafe; a full rollback immediately continues to the preceding generated schema migration, which drops the new table. Do not add a hidden ownership marker solely for rollback.
 
@@ -188,7 +188,7 @@ For the six coming-soon cities, leave optional Hero/intro/contact/media/featured
 
 Expected counts after `up`: `live=1`, `coming-soon=6`, total `7`, duplicate city groups `0`.
 
-- [ ] **Step 5: Run dry-run, apply locally, and verify PostgreSQL data**
+- [x] **Step 5: Run dry-run, apply locally, and verify PostgreSQL data**
 
 Run in the local PostgreSQL test database:
 
@@ -203,7 +203,7 @@ Expected: dry-run has zero blocking errors; both new migrations apply; pending c
 
 Run a read-only query/assertion script and record: profile total 7, per-status counts 1/6, duplicate city 0, invalid city relation 0, and no Location `frontendVisible` change from the pre-migration baseline.
 
-- [ ] **Step 6: Run migration tests and commit Task 2**
+- [x] **Step 6: Run migration tests and commit Task 2**
 
 Run: `pnpm exec vitest run tests/city-site-profile-migration.test.ts tests/preflight-migrations.test.ts`
 
