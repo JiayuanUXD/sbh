@@ -1,4 +1,5 @@
-import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres'
+import { sql, type MigrateDownArgs } from '@payloadcms/db-postgres'
+import type { SQL } from 'drizzle-orm'
 
 type CitySiteProfileSeed = {
   cityCodes: readonly string[]
@@ -9,10 +10,20 @@ type CitySiteProfileSeed = {
   heroEyebrow: null | string
   heroHeading: null | string
   heroBody: null | string
+  heroMediaId: null | number
+  introBody: null | string
+  introHeading: null | string
+  contactBody: null | string
+  contactHeading: null | string
+  featuredRegionIds: readonly number[]
 }
 
 type ResolvedCity = {
   id: number
+}
+
+type SeedDb = {
+  execute: (query: SQL) => Promise<{ rows: Array<Record<string, unknown>> }>
 }
 
 const shanghaiCopy = {
@@ -29,12 +40,18 @@ const comingSoonCopy = (cityName: string) => ({
   seoDescription: `商办租赁为您提供${cityName}办公室租赁、写字楼与共享办公选址服务，覆盖重点商务区域与楼宇信息；可提交企业选址需求、发布本地房源或申请成为城市合伙人，由运营团队核验后跟进。`,
 })
 
-const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
+export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   {
     cityCodes: ['LEGACY_LOC_1', 'CITY-SH', 'SH'],
     serviceStatus: 'live',
     sortOrder: 10,
     ...shanghaiCopy,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-HZ'],
@@ -44,6 +61,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-NB'],
@@ -53,6 +76,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-SZ'],
@@ -62,6 +91,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-NJ'],
@@ -71,6 +106,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-JX'],
@@ -80,6 +121,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
   {
     cityCodes: ['CITY-WX'],
@@ -89,6 +136,12 @@ const citySiteProfileSeeds: readonly CitySiteProfileSeed[] = [
     heroEyebrow: null,
     heroHeading: null,
     heroBody: null,
+    heroMediaId: null,
+    introHeading: null,
+    introBody: null,
+    contactHeading: null,
+    contactBody: null,
+    featuredRegionIds: [],
   },
 ]
 
@@ -107,6 +160,11 @@ function profileMatchesSeed(
     profile.hero_eyebrow === seed.heroEyebrow &&
     profile.hero_heading === seed.heroHeading &&
     profile.hero_body === seed.heroBody
+    && profile.hero_media_id === seed.heroMediaId
+    && profile.intro_heading === seed.introHeading
+    && profile.intro_body === seed.introBody
+    && profile.contact_heading === seed.contactHeading
+    && profile.contact_body === seed.contactBody
   )
 }
 
@@ -114,8 +172,8 @@ function profileMatchesSeed(
  * Payload invokes each migration inside a PostgreSQL transaction. Each city is resolved
  * by immutable code, then either inserted once or checked byte-for-byte before being skipped.
  */
-export async function up({ db }: MigrateUpArgs): Promise<void> {
-  for (const seed of citySiteProfileSeeds) {
+async function applyCitySiteProfileSeed(db: SeedDb): Promise<void> {
+  for (const seed of CITY_SITE_PROFILE_SEEDS) {
     const cityCodePredicates = seed.cityCodes.map(
       (cityCode) => sql`"immutable_code" = ${cityCode}`,
     )
@@ -150,6 +208,11 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
           "hero_eyebrow",
           "hero_heading",
           "hero_body"
+          , "hero_media_id"
+          , "intro_heading"
+          , "intro_body"
+          , "contact_heading"
+          , "contact_body"
         FROM "city_site_profiles"
         WHERE "city_id" = ${city.id};
     `)
@@ -165,6 +228,22 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       if (!profileMatchesSeed(existingProfile, city, seed)) {
         throw new Error(`city_site_profile_seed_conflict: content mismatch for ${cityCodeLabel}`)
       }
+      const featuredRegionsResult = await db.execute(sql`
+        SELECT "locations_id"
+        FROM "city_site_profiles_rels"
+        WHERE "parent_id" = ${city.id}
+          AND "path" = 'featuredRegions'
+        ORDER BY "order" ASC, "id" ASC;
+      `)
+      const featuredRegionIds = featuredRegionsResult.rows
+        .map((row) => row.locations_id)
+        .filter((id): id is number => typeof id === 'number')
+      if (
+        featuredRegionIds.length !== seed.featuredRegionIds.length ||
+        featuredRegionIds.some((id, index) => id !== seed.featuredRegionIds[index])
+      ) {
+        throw new Error(`city_site_profile_seed_conflict: featured-region mismatch for ${cityCodeLabel}`)
+      }
       continue
     }
 
@@ -179,6 +258,11 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
           "hero_eyebrow",
           "hero_heading",
           "hero_body",
+          "hero_media_id",
+          "intro_heading",
+          "intro_body",
+          "contact_heading",
+          "contact_body",
           "created_at",
           "updated_at"
         ) VALUES (
@@ -191,11 +275,20 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
           ${seed.heroEyebrow},
           ${seed.heroHeading},
           ${seed.heroBody},
+          ${seed.heroMediaId},
+          ${seed.introHeading},
+          ${seed.introBody},
+          ${seed.contactHeading},
+          ${seed.contactBody},
           now(),
           now()
         );
     `)
   }
+}
+
+export async function up({ db }: { db: SeedDb }): Promise<void> {
+  await applyCitySiteProfileSeed(db)
 }
 
 /**
