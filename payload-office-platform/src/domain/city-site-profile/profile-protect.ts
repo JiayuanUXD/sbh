@@ -94,9 +94,12 @@ async function assertFeaturedRegions(params: {
 
 export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
   data,
+  operation,
+  originalDoc,
   req,
 }) => {
-  const cityId = relationshipId(data.city)
+  const validationData = operation === 'update' && originalDoc ? { ...originalDoc, ...data } : data
+  const cityId = relationshipId(validationData.city)
   if (cityId === null) {
     throw cityProfileError('city_profile_city_invalid', '城市站点必须关联启用的城市节点')
   }
@@ -105,7 +108,7 @@ export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
     throw cityProfileError('city_profile_city_invalid', '城市站点必须关联启用的城市节点')
   }
 
-  if (!isCityServiceStatus(data.serviceStatus)) {
+  if (!isCityServiceStatus(validationData.serviceStatus)) {
     throw cityProfileError('city_profile_service_status_invalid', '城市服务状态不合法')
   }
 
@@ -115,7 +118,7 @@ export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
   }
 
   assertTextIncludesCity({
-    value: data.seoTitle,
+    value: validationData.seoTitle,
     cityName,
     minimum: 1,
     maximum: 60,
@@ -123,7 +126,7 @@ export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
     cityErrorCode: 'seo_title_city_required',
   })
   assertTextIncludesCity({
-    value: data.seoDescription,
+    value: validationData.seoDescription,
     cityName,
     minimum: 70,
     maximum: 160,
@@ -131,7 +134,7 @@ export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
     cityErrorCode: 'seo_description_city_required',
   })
 
-  await assertFeaturedRegions({ req, cityId, value: data.featuredRegions })
+  await assertFeaturedRegions({ req, cityId, value: validationData.featuredRegions })
 
   return data
 }

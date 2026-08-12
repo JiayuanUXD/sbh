@@ -22,12 +22,15 @@ const LOCATIONS: readonly LocationNode[] = [
   { id: 7, name: '1号线', type: 'metro_line', status: 'active', frontendVisible: true, city: 1 },
 ]
 
-function makeHookArgs(data: Record<string, unknown>) {
+function makeHookArgs(
+  data: Record<string, unknown>,
+  options: { operation?: 'create' | 'update'; originalDoc?: Record<string, unknown> } = {},
+) {
   const locationById = new Map(LOCATIONS.map((location) => [location.id, location]))
   return {
-    operation: 'create',
+    operation: options.operation ?? 'create',
     data,
-    originalDoc: undefined,
+    originalDoc: options.originalDoc,
     req: {
       payload: {
         findByID: async ({ id }: { id: number }) => {
@@ -60,6 +63,17 @@ describe('city-site-profile contract', () => {
   it('accepts a valid coming-soon profile', async () => {
     const profile = await protectCitySiteProfile(makeHookArgs(validInput('杭州')))
     expect(profile).toMatchObject({ serviceStatus: 'coming-soon' })
+  })
+
+  it('accepts a partial update using the persisted profile for validation', async () => {
+    const patch = { switcherVisible: false }
+    const profile = await protectCitySiteProfile(
+      makeHookArgs(patch, {
+        operation: 'update',
+        originalDoc: { id: 101, ...validInput('杭州') },
+      }),
+    )
+    expect(profile).toEqual(patch)
   })
 
   it('rejects a profile whose city relation is not a city', async () => {
