@@ -71,25 +71,43 @@ async function resolveCitySlug(
   }
 }
 
-const invalidateCitySiteProfileCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async ({
-  doc,
-  req,
-}) => {
-  const record = toCacheRecord(doc)
-  if (!record) return doc
+async function invalidateCitySiteProfileCacheRecords(
+  doc: unknown,
+  previousDoc: unknown,
+  req: PayloadRequest,
+): Promise<void> {
+  const records = [toCacheRecord(doc), toCacheRecord(previousDoc)]
+  const tags = new Set<string>()
 
-  const citySlug = await resolveCitySlug(req, record)
-  if (!citySlug) {
-    console.error('[city-profile-cache-invalidation] city_unresolved', {
-      objectId: record.id,
-      errorCode: 'city_slug_unresolved',
-    })
+  for (const record of records) {
+    if (!record) continue
+
+    const citySlug = await resolveCitySlug(req, record)
+    if (!citySlug) {
+      console.error('[city-profile-cache-invalidation] city_unresolved', {
+        objectId: record.id,
+        errorCode: 'city_slug_unresolved',
+      })
+    }
+    for (const tag of tagsForProfileChange(citySlug ? { ...record, citySlug } : record)) {
+      tags.add(tag)
+    }
   }
 
-  invalidateCitySiteProfilePublicCache(
-    tagsForProfileChange(citySlug ? { ...record, citySlug } : record),
-    'city_site_profile',
-  )
+  if (tags.size > 0) invalidateCitySiteProfilePublicCache([...tags], 'city_site_profile')
+}
+
+const invalidateCitySiteProfileAfterChange: CollectionAfterChangeHook = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  await invalidateCitySiteProfileCacheRecords(doc, previousDoc, req)
+  return doc
+}
+
+const invalidateCitySiteProfileAfterDelete: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  await invalidateCitySiteProfileCacheRecords(doc, undefined, req)
   return doc
 }
 
@@ -114,8 +132,8 @@ export const CitySiteProfiles: CollectionConfig = {
   },
   hooks: {
     beforeChange: [protectCitySiteProfile],
-    afterChange: [invalidateCitySiteProfileCache],
-    afterDelete: [invalidateCitySiteProfileCache],
+    afterChange: [invalidateCitySiteProfileAfterChange],
+    afterDelete: [invalidateCitySiteProfileAfterDelete],
   },
   fields: [
     {
