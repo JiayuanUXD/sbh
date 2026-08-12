@@ -36,7 +36,7 @@
 - Produces: `CITY_SERVICE_STATUSES`, `CityServiceStatus`, `PublicCitySiteProfile`, `protectCitySiteProfile`, Collection slug `city-site-profiles`.
 - `PublicCitySiteProfile` is the only profile shape frontend routes may consume.
 
-- [ ] **Step 1: Write failing schema and protection tests**
+- [x] **Step 1: Write failing schema and protection tests**
 
 ```ts
 expect(CITY_SERVICE_STATUSES).toEqual(['live', 'coming-soon'])
@@ -48,13 +48,13 @@ await expect(protectCitySiteProfile(inputWithTitleWithoutCityName)).rejects.toTh
 
 Also assert title ≤60 characters, description 70–160 characters and contains city name, `featuredRegions` ≤12, featured regions are active/frontend-visible district or business area in the same city, and duplicate city profiles are rejected.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-site-profile-domain.test.ts tests/city-site-profile-access.test.ts tests/admin-navigation-config.test.ts`
 
 Expected: FAIL because the domain module, Collection, and navigation leaf do not exist.
 
-- [ ] **Step 3: Implement the closed enums and public DTO**
+- [x] **Step 3: Implement the closed enums and public DTO**
 
 ```ts
 export const CITY_SERVICE_STATUSES = ['live', 'coming-soon'] as const
@@ -88,7 +88,7 @@ export type PublicCitySiteProfile = Readonly<{
 
 Use explicit DTO media/region subsets; do not expose raw Payload documents or internal status fields.
 
-- [ ] **Step 4: Implement server-side protection and Collection fields**
+- [x] **Step 4: Implement server-side protection and Collection fields**
 
 Create fields exactly matching spec §5.1: `city`, `serviceStatus`, `switcherVisible`, `sortOrder`, SEO fields, optional Hero/intro/contact fields, and `featuredRegions`. Configure:
 
@@ -106,7 +106,7 @@ hooks: { beforeChange: [protectCitySiteProfile] }
 
 Register `CitySiteProfiles` in `payload.config.ts`. Add “城市站点配置” under “区域管理”, using menu `locations`, Collection slug `city-site-profiles`, and required operation `location:manage`.
 
-- [ ] **Step 5: Run focused tests and typecheck**
+- [x] **Step 5: Run focused tests and typecheck**
 
 Run: `pnpm exec vitest run tests/city-site-profile-domain.test.ts tests/city-site-profile-access.test.ts tests/admin-navigation-config.test.ts`
 
@@ -116,7 +116,7 @@ Run: `pnpm exec tsc --noEmit --pretty false`
 
 Expected: PASS with no type errors.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add payload-office-platform/src/domain/city-site-profile/schema.ts payload-office-platform/src/domain/city-site-profile/profile-protect.ts payload-office-platform/src/domain/city-site-profile/public-contract.ts payload-office-platform/src/collections/CitySiteProfiles.ts payload-office-platform/src/payload.config.ts payload-office-platform/src/domain/admin-navigation/navigation-config.ts payload-office-platform/tests/city-site-profile-domain.test.ts payload-office-platform/tests/city-site-profile-access.test.ts payload-office-platform/tests/admin-navigation-config.test.ts
