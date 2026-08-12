@@ -1,5 +1,7 @@
 # 后台基础配置移入系统管理 Implementation Plan
 
+> **已被取代：** 用户于 2026-08-12 调整方案为新增一级“区域管理”，请勿执行本计划；后续实施以 `2026-08-12-admin-region-management-navigation.md` 为准。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将后台“基础配置”二级分组从“房源运营”移动到“系统管理”，保持五个入口、路由和权限不变。
