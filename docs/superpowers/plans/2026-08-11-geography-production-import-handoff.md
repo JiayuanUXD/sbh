@@ -1,5 +1,8 @@
 # 七城地理数据·生产导入交接文档
 
+> ✅ **已于 2026-08-12 执行完成**，Wave 1 / Wave 2 全部验收通过，0 冲突 0 失败。
+> 实际执行结果已回填到 [2026-08-10-geography-multi-city-admin.md](2026-08-10-geography-multi-city-admin.md) 的「七城导入登记」表。本文件保留作操作记录与今后类似导入的参考。
+
 > **执行者须知**：本文件是可独立执行的操作手册，不需要读实现代码。
 > 但**必须从头读完再动手**——第 3 节的护栏和第 7 节的红线决定了出错时能不能救回来。
 > 全程只有第 5、6 节的两条 `--apply` 命令会写生产库，其余都是只读。
@@ -29,11 +32,25 @@
 
 ## 2. 前置条件（逐条确认，缺一不可）
 
-- [ ] **PR #37 已合并到 master，且 CloudRun 已部署完成**。导入依赖 `locations.city_id` 列，它由本次部署的迁移创建。
-- [ ] 部署后核对回填结果（下面第 4 节第 1 条），**结果必须是 0**。
+- [x] **PR #37 已合并到 master，且 CloudRun 已部署完成**。导入依赖 `locations.city_id` 列，它由本次部署的迁移创建。
+  - 合并 commit `5d49559`；该次部署因 `pnpm lint` 报错失败（PR 触发的 `quality.yml` 不跑 lint，合入 master 后 deploy 工作流的 quality job 才暴露），已由 [PR #39](https://github.com/JiayuanUXD/sbh/pull/39) 修复 4 处 lint error 并重新部署。
+  - **最终部署成功于 commit `68e8f08`**（2026-08-12 03:31 UTC，`Deploy to CloudBase CloudRun` 工作流 conclusion=success）。
+- [x] 部署后核对回填结果（下面第 4 节第 1 条），**结果必须是 0**。—— 已用 CloudBase MCP 只读查询验证：`SELECT count(*) FROM locations WHERE type <> 'city' AND city_id IS NULL` = **0**；基线 `city 2 / district 19 / business_area 206` 与预期一致。
 - [ ] 已对生产库做**备份 / 快照**。
 - [ ] 代码在最新 master 上：`git fetch && git switch master && git pull`。
 - [ ] `cd payload-office-platform && pnpm install --frozen-lockfile`。
+
+### 2.2 附：PR #37 合入时 CI e2e 曾报 11 处失败，已排查为 master 遗留问题，非本次改动引入
+
+创建 PR #37 时其 e2e 检查曾报红（`landing-pages.spec.ts` 9 处 + `detail-pages.spec.ts` 1-2 处）。用干净的 `origin/master` worktree 独立复现，确认这些失败在合并前的 master 上本就存在，与地理模块改动无关（本分支未改动任何 C 端文件）。已拆分为独立任务 `task_700656a4` 排查修复，产出 [PR #38](https://github.com/JiayuanUXD/sbh/pull/38)（已合并，`3502b2a`）。
+
+排查结论（并非产品回归，是三处遗留问题的级联）：
+
+1. **根因**：`deleteAllMedia` 删掉了迁移建的落地页 hero 背景图记录但从未重传，导致 `/api/media/file/landing-hero-{publish,entrust}-20260810.jpg` 在 CI/本地存储 404。浏览器 console 报错撞上 `landing-pages.spec` 的 `afterEach browserErrors` 断言，整个 spec 文件因此全红——这才是「移动端吸底 CTA」「表单提交报错」两处看着像产品回归的表象根源：hero 图 404 遮蔽了页面真实渲染状态，测试断言因此在错误的 DOM 状态上跑，而非产品本身有缺陷。
+2. 图片兜底组件断言口径写反（测试误抄了视频兜底文案 `媒体加载失败`，实际组件渲染的是 `图片暂未加载`）——改测试，未动组件。
+3. hero 404 遮蔽解除后，「委托成功」与「移动端吸底 CTA」两处测试断言与真实行为的选择器 / 时序对齐（`role=status` 严格模式双匹配、`scrollIntoViewIfNeeded` 会滚到底导致吸底判定误判）——同样是改测试对齐真实行为，未动产品代码。
+
+结论：**两处一度怀疑的"线上回归"经排查均非产品缺陷**，是测试环境数据缺失（hero 图未重传）导致的级联误报 + 测试断言未跟上后续 UI 迭代。已通过 PR #38 修复并合并，master 现在 e2e 全绿。此节仅作记录，不影响本文档后续的生产导入步骤。
 
 ### 2.1 生产库连接（先解决这个，否则后面都跑不了）
 
