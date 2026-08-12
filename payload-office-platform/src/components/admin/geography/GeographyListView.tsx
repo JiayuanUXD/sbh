@@ -50,14 +50,14 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   const req = initPageResult.req
   const payload = req.payload
 
-  const module = getGeographyModuleByPath(req.pathname ?? '')
+  const geoModule = getGeographyModuleByPath(req.pathname ?? '')
 
   // 准入：Payload 3.86 自定义视图既不做登录重定向、也不经导航的 menuCode 过滤，
   // 必须在此显式判定（未登录→跳登录；已登录但无该模块菜单权限→403）。
-  const allowed = await requireGeographyAccess(req, module?.menuCodes ?? ['locations'])
+  const allowed = await requireGeographyAccess(req, geoModule?.menuCodes ?? ['locations'])
   if (!allowed) return <GeographyForbidden />
 
-  if (!module) {
+  if (!geoModule) {
     return <div>未知的地理模块</div>
   }
 
@@ -71,7 +71,7 @@ export default async function GeographyListView(props: AdminViewServerProps) {
 
   // 快捷 chip：只接受模块配置里声明过的 key，多选以逗号分隔（chip=a,b）。
   // 非法 / 未声明 key 一律丢弃，避免把结果滤成空。
-  const validChips = module.chips ?? []
+  const validChips = geoModule.chips ?? []
   const chipSet = new Set(
     (sp.get('chip')?.split(',').map((s) => s.trim()).filter(Boolean) ?? []).filter((k) =>
       validChips.some((c) => c.key === k),
@@ -79,12 +79,12 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   )
 
   // 只应用该模块支持的筛选，避免非法参数把结果滤成空
-  const and: Where[] = [{ type: { equals: module.type } }]
-  if (module.filters.includes('city') && city) and.push({ city: { equals: city } })
-  if (module.filters.includes('district') && parent) and.push({ parent: { equals: parent } })
-  if (module.filters.includes('status') && status)
+  const and: Where[] = [{ type: { equals: geoModule.type } }]
+  if (geoModule.filters.includes('city') && city) and.push({ city: { equals: city } })
+  if (geoModule.filters.includes('district') && parent) and.push({ parent: { equals: parent } })
+  if (geoModule.filters.includes('status') && status)
     and.push({ status: { equals: status } })
-  if (module.filters.includes('keyword') && q) {
+  if (geoModule.filters.includes('keyword') && q) {
     and.push({ or: [{ name: { contains: q } }, { immutableCode: { contains: q } }] })
   }
   // 快捷 chip：缺封面是 coverImage 字段直接判空；缺边界是「无扩展或 boundary 空」，
@@ -108,9 +108,9 @@ export default async function GeographyListView(props: AdminViewServerProps) {
     Location & { parent?: Location | number | null; city?: Location | number | null }
   >
   const ids = docs.map((d) => d.id)
-  const counts = ids.length > 0 ? await module.counter(payload, ids) : new Map()
+  const counts = ids.length > 0 ? await geoModule.counter(payload, ids) : new Map()
   // 仅商圈模块有边界列（flag source=hasBoundary）时才查扩展表；其余模块直接空 Map 全 false
-  const needsBoundary = module.columns.some((c) => c.kind === 'flag' && c.source === 'hasBoundary')
+  const needsBoundary = geoModule.columns.some((c) => c.kind === 'flag' && c.source === 'hasBoundary')
   const boundaryStatus =
     needsBoundary && ids.length > 0 ? await fetchBusinessAreaBoundaryStatus(payload, ids) : new Map<number, boolean>()
 
@@ -132,25 +132,25 @@ export default async function GeographyListView(props: AdminViewServerProps) {
   }))
 
   // 城市筛选下拉：全部城市；行政区级联下拉（仅商圈模块且选了城市时）
-  const cityOptions = module.filters.includes('city')
+  const cityOptions = geoModule.filters.includes('city')
     ? await fetchLocationOptions(payload, 'city', null)
     : []
   const districtOptions =
-    module.filters.includes('district') && city
+    geoModule.filters.includes('district') && city
       ? await fetchLocationOptions(payload, 'district', city)
       : []
 
   return (
     <GeographyListViewClient
       module={{
-        type: module.type,
-        route: module.route,
-        title: module.title,
-        columns: module.columns,
-        filters: module.filters,
-        chips: module.chips ?? [],
-        emptyHint: module.emptyHint,
-        create: module.create ? { parentFilter: module.create.parentFilter } : undefined,
+        type: geoModule.type,
+        route: geoModule.route,
+        title: geoModule.title,
+        columns: geoModule.columns,
+        filters: geoModule.filters,
+        chips: geoModule.chips ?? [],
+        emptyHint: geoModule.emptyHint,
+        create: geoModule.create ? { parentFilter: geoModule.create.parentFilter } : undefined,
       }}
       rows={rows}
       total={result.totalDocs}

@@ -36,35 +36,35 @@ export default async function GeographyCreateView(props: AdminViewServerProps) {
   const req = initPageResult.req
   const payload = req.payload
 
-  const module = getGeographyModuleByCreatePath(req.pathname ?? '')
+  const geoModule = getGeographyModuleByCreatePath(req.pathname ?? '')
 
   // 准入：本视图能创建 location（写侧），只判登录不够——必须校验模块菜单权限，
   // 否则任意登录账号敲 URL 即可新建行政区。
-  const allowed = await requireGeographyAccess(req, module?.menuCodes ?? ['locations'])
+  const allowed = await requireGeographyAccess(req, geoModule?.menuCodes ?? ['locations'])
   if (!allowed) return <GeographyForbidden />
 
-  if (!module?.create) {
+  if (!geoModule?.create) {
     return <div>未知的地理模块</div>
   }
-  const create = module.create
+  const create = geoModule.create
 
   const sp = req.searchParams
   // 预填源：parentFilter=city 用城市筛选值，=district 用行政区筛选值；无则留空由用户选。
   const city = sp.get('city') ?? null
   const parent = sp.get('parent') ?? sp.get('city') ?? null
-  const prefilledParentId = create.parentFilter === 'city' ? city : parent
+  const prefilledParentId = geoModule.create.parentFilter === 'city' ? city : parent
 
   const parentOptions = await fetchParentOptions(
     payload,
-    create.parentTargetType,
-    create.parentTargetType === 'district' ? city : null,
+    geoModule.create.parentTargetType,
+    geoModule.create.parentTargetType === 'district' ? city : null,
   )
 
   return (
     <GeographyCreateViewClient
-      moduleType={module.type}
-      title={module.title}
-      createLabel={create.label}
+      moduleType={geoModule.type}
+      title={geoModule.title}
+      createLabel={geoModule.create.label}
       fixedType={create.type}
       parentFilter={create.parentFilter}
       parentOptions={parentOptions}
