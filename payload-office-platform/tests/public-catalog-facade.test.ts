@@ -34,7 +34,7 @@ import {
   searchListings,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import { defaultSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
+import { createSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
 import {
   BUILDING_DISABLED,
   BUILDING_JINGAN_CENTER,
@@ -209,7 +209,7 @@ function createFakeAdapter(options: {
 // 共享 fixture
 // ---------------------------------------------------------------------------
 
-const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
 /** 全量有效 fixture：3 条有效房源 + 1 条停用楼盘房源 + 失效房源集合 */
 function fullFixture(overrides: { districts?: readonly Location[]; businessAreas?: readonly Location[] } = {}) {

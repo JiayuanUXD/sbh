@@ -25,7 +25,7 @@ import config from '@/payload.config'
 import {
   assertEffectiveBuilding,
   assertEffectiveListing,
-  defaultSearchContext,
+  createSearchContext,
 } from '@/domain/public-catalog'
 import {
   buildInquiryLogEntry,
@@ -321,7 +321,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ----- 7. 目标有效性复核（同一 ctx；listing → building → general） -----
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(siteConfig.defaultCity)
   const listing = inquiry.listingSlug
     ? await assertEffectiveListing(inquiry.listingSlug, ctx)
     : null

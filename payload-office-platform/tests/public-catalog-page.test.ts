@@ -21,7 +21,7 @@ import {
   mapPageSummary,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import { defaultSearchContext } from '@/domain/public-catalog'
+import { createSearchContext } from '@/domain/public-catalog'
 import type { Page } from '@/payload-types'
 import {
   PAGE_DELETED,
@@ -30,7 +30,7 @@ import {
   PAGE_PUBLISHED_HOME,
 } from '@/test/frontend/payload-documents'
 
-const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
 // ---------------------------------------------------------------------------
 // 内存版 SupplyAdapter（仅覆盖 Page 方法）

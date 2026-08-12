@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildBuildingSupplySnapshot } from '@/domain/public-catalog/building-supply'
 import { getBuildingDetail, getRelatedBuildings, type ListingCardViewModel } from '@/domain/public-catalog'
-import { defaultSearchContext } from '@/domain/public-catalog'
+import { createSearchContext } from '@/domain/public-catalog'
 import { rankRelatedBuildingsByProximity } from '@/domain/public-catalog/supply-adapter'
 import type { Building } from '@/payload-types'
 import { BUILDING_JINGAN_CENTER, LISTING_MONTHLY_STANDARD } from '@/test/frontend/payload-documents'
@@ -179,7 +179,7 @@ describe('getRelatedBuildings', () => {
 
     const result = await getRelatedBuildings(
       'bund-soho',
-      defaultSearchContext(new Date(AS_OF)),
+      createSearchContext('shanghai', new Date(AS_OF)),
       { limit: 6 },
       adapter as never,
     )
@@ -200,7 +200,7 @@ describe('getRelatedBuildings', () => {
         return []
       },
     }
-    const ctx = defaultSearchContext(new Date(AS_OF))
+    const ctx = createSearchContext('shanghai', new Date(AS_OF))
 
     await expect(getRelatedBuildings('bund-soho', ctx, { limit: 0 }, adapter as never)).resolves.toEqual([])
     await expect(getRelatedBuildings('bund-soho', ctx, { limit: -1 }, adapter as never)).resolves.toEqual([])
@@ -249,7 +249,7 @@ describe('getBuildingDetail', () => {
 
     const result = await getBuildingDetail(
       'jingan-center',
-      defaultSearchContext(new Date(AS_OF)),
+      createSearchContext('shanghai', new Date(AS_OF)),
       adapter as never,
     )
 

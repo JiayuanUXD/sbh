@@ -28,7 +28,7 @@ import { unstable_cache } from 'next/cache'
 
 import {
   ARTICLES_CATEGORY_TAG as PUBLIC_ARTICLES_CATEGORY_TAG,
-  defaultSearchContext,
+  createSearchContext,
   buildCanonicalSearchParams,
   buildListingSearchSource,
   getBuildingBySlug,
@@ -48,6 +48,7 @@ import {
   searchBuildings,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
+import { siteConfig } from '@/lib/frontend/site-config'
 import {
   SITEMAP_TAG,
   facetsTag,
@@ -86,7 +87,7 @@ export const ARTICLES_CATEGORY_TAG = PUBLIC_ARTICLES_CATEGORY_TAG
  * 失效后重新查询会获取新的 asOf。
  */
 function defaultCtx() {
-  return defaultSearchContext()
+  return createSearchContext(siteConfig.defaultCity)
 }
 
 // ---------------------------------------------------------------------------

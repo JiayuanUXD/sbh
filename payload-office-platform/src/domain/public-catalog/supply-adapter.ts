@@ -304,6 +304,14 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return null
   }
 
+  function relationSlug(value: unknown): string | null {
+    if (value && typeof value === 'object' && 'slug' in value) {
+      const slug = (value as { slug?: unknown }).slug
+      if (typeof slug === 'string') return slug
+    }
+    return null
+  }
+
   function normalizeNearbyBuildingLimit(limit: number): number {
     if (!Number.isFinite(limit)) return 0
     return Math.max(0, Math.floor(limit))
@@ -311,12 +319,16 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
   async function resolveBuildingIdsByDistrict(
     districtSlugs: readonly string[],
+    ctx: SearchContext,
   ): Promise<number[] | undefined> {
     if (districtSlugs.length === 0) return undefined
     const payload = await getPayload()
     const result = await payload.find({
       collection: 'buildings',
-      where: { 'district.slug': { in: [...districtSlugs] } },
+      where: {
+        'city.slug': { equals: ctx.city },
+        'district.slug': { in: [...districtSlugs] },
+      },
       limit: PUBLIC_CATALOG_CANDIDATE_LIMIT,
     })
     return result.docs.map((d) => d.id)
@@ -329,7 +341,10 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
     const payload = await getPayloadQueryPort()
     const asOf = new Date(ctx.asOf)
-    const where: Record<string, unknown> = { ...getEffectiveSupplyWhere(asOf) }
+    const where: Record<string, unknown> = {
+      ...getEffectiveSupplyWhere(asOf),
+      'building.city.slug': { equals: ctx.city },
+    }
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
     const pausedIds = await getPausedListingIds(payload)
     if (pausedIds.length > 0) {
@@ -365,17 +380,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // 解析 district → building IDs
       let buildingIds: number[] | undefined
       if (input.district && input.district.length > 0) {
-        const resolved = await resolveBuildingIdsByDistrict(input.district)
+        const resolved = await resolveBuildingIdsByDistrict(input.district, ctx)
         if (!resolved || resolved.length === 0) return []
         buildingIds = resolved
       }
 
       const where = await baseEffectiveWhere(ctx)
 
-      // 上下文中的 city：由 building.city.slug 过滤
-      if (ctx.city) {
-        where['building.city.slug'] = { equals: ctx.city }
-      }
       if (input.listingType && input.listingType.length > 0) {
         where.listingType = { in: [...input.listingType] }
       }
@@ -435,12 +446,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       return kept[0] ?? null
     },
 
-    async findEffectiveBuildingBySlug(slug) {
+    async findEffectiveBuildingBySlug(slug, ctx) {
       const payload = await getPayload()
       const result = await payload.find({
         collection: 'buildings',
         where: {
           ...getPublicBuildingWhere(),
+          'city.slug': { equals: ctx.city },
           slug: { equals: slug },
         },
         limit: 1,
@@ -491,6 +503,7 @@ WHERE l.building_id = $2
   AND b.operational_status = 'active'
   AND b.deleted_at IS NULL
   AND city.status = 'active'
+  AND city.slug = $4
   AND dist.status = 'active'
   AND m.status = 'active'
   AND m.qualification_status = 'valid'
@@ -513,6 +526,7 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
         asOf.toISOString(),
         numericBuildingId,
         excludedListingId,
+        ctx.city,
       ])
       const ids = idResult.rows.map((row) => row.id)
       if (ids.length === 0) return []
@@ -581,6 +595,7 @@ WHERE l.building_id = ANY($2)
   AND b.operational_status = 'active'
   AND b.deleted_at IS NULL
   AND city.status = 'active'
+  AND city.slug = $3
   AND dist.status = 'active'
   AND m.status = 'active'
   AND m.qualification_status = 'valid'
@@ -598,7 +613,11 @@ GROUP BY l.building_id
       const pool = (payload.db as unknown as {
         pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number }> }> }
       }).pool
-      const result = await pool.query(sql, [asOf, buildingIds.map((id) => Number(id))])
+      const result = await pool.query(sql, [
+        asOf,
+        buildingIds.map((id) => Number(id)),
+        ctx.city,
+      ])
 
       for (const row of result.rows) {
         const total = Number(row.total)
@@ -609,7 +628,7 @@ GROUP BY l.building_id
       return sums
     },
 
-    async findEffectiveBuildingsNear(buildingId, _ctx, limit) {
+    async findEffectiveBuildingsNear(buildingId, ctx, limit) {
       const normalizedLimit = normalizeNearbyBuildingLimit(limit)
       if (normalizedLimit === 0) return []
       const payload = await getPayload()
@@ -619,6 +638,7 @@ GROUP BY l.building_id
         depth: 1,
       }) as Building
       if (!isPublicBuilding(current)) return []
+      if (relationSlug(current.city) !== ctx.city) return []
 
       // Prefer the more precise business district; an administrative district
       // is the documented fallback when the former is absent.
@@ -633,7 +653,11 @@ GROUP BY l.building_id
 
       const result = await payload.find({
         collection: 'buildings',
-        where: { ...getPublicBuildingWhere(), ...locality } as unknown as Where,
+        where: {
+          ...getPublicBuildingWhere(),
+          'city.slug': { equals: ctx.city },
+          ...locality,
+        } as unknown as Where,
         depth: 1,
         limit: RELATED_BUILDING_CANDIDATE_LIMIT,
         sort: 'id',
@@ -645,11 +669,14 @@ GROUP BY l.building_id
       )
     },
 
-    async findEffectiveBuildings(_ctx, limit = 200) {
+    async findEffectiveBuildings(ctx, limit = 200) {
       const payload = await getPayload()
       const result = await payload.find({
         collection: 'buildings',
-        where: getPublicBuildingWhere() as unknown as Where,
+        where: {
+          ...getPublicBuildingWhere(),
+          'city.slug': { equals: ctx.city },
+        } as unknown as Where,
         depth: 2,
         limit: Math.min(limit, 500),
         sort: '-updatedAt',
@@ -657,11 +684,14 @@ GROUP BY l.building_id
       return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
     },
 
-    async findFeaturedBuildings(_ctx, limit = 8) {
+    async findFeaturedBuildings(ctx, limit = 8) {
       const payload = await getPayload()
       const result = await payload.find({
         collection: 'buildings',
-        where: getPublicBuildingWhere() as unknown as Where,
+        where: {
+          ...getPublicBuildingWhere(),
+          'city.slug': { equals: ctx.city },
+        } as unknown as Where,
         depth: 2, // coverImage + district 一次填充；缺封面楼盘由卡片降级占位
         limit: Math.min(Math.max(limit, 1), 50),
         sort: ['recommendedOrder', '-updatedAt'],
@@ -715,7 +745,7 @@ GROUP BY l.building_id
           // 没读过它——运营勾掉不生效。接上后运营即可控制哪些商圈进入 C 端。
           // location-protect 保证停用节点会被强制取消勾选，故与 status 不冲突。
           frontendVisible: { equals: true },
-          ...(ctx.city ? { 'parent.slug': { equals: ctx.city } } : {}),
+          'parent.slug': { equals: ctx.city },
         },
         limit: 100,
         sort: 'sortOrder',
@@ -732,7 +762,7 @@ GROUP BY l.building_id
           status: { equals: 'active' },
           frontendVisible: { equals: true },
           // 商圈的 parent 是行政区，城市在再上一层，故按祖父的 slug 过滤
-          ...(ctx.city ? { 'parent.parent.slug': { equals: ctx.city } } : {}),
+          'parent.parent.slug': { equals: ctx.city },
         },
         limit: 200,
         sort: 'sortOrder',

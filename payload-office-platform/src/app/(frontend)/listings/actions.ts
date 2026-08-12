@@ -1,10 +1,11 @@
 'use server'
 
 import {
-  defaultSearchContext,
+  createSearchContext,
   getSearchFacets,
   parseListingSearchInput,
 } from '@/domain/public-catalog'
+import { siteConfig } from '@/lib/frontend/site-config'
 
 /**
  * 估算给定筛选条件下的房源数（OPT-009）
@@ -27,7 +28,7 @@ export async function estimateListingCount(
       if (v) params.set(k, v)
     }
     const input = parseListingSearchInput(params)
-    const ctx = defaultSearchContext()
+    const ctx = createSearchContext(siteConfig.defaultCity)
     const facets = await getSearchFacets(input, ctx)
     return facets.totalDocs
   } catch {

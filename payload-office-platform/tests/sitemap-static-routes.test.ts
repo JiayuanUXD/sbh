@@ -20,7 +20,7 @@ vi.mock('@/domain/supply/public-building', () => ({
 }))
 vi.mock('@/domain/public-catalog', () => ({
   SITEMAP_TAG: 'public:sitemap',
-  defaultSearchContext: () => ({}),
+  createSearchContext: (city: string) => ({ city }),
   getDefaultSupplyAdapter: () => ({ findEffectiveListings }),
   listPublishedPages,
   parseSearchInput: () => ({}),

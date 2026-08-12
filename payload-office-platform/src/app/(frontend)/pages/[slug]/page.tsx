@@ -8,7 +8,7 @@ import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 import {
-  defaultSearchContext,
+  createSearchContext,
   getPageBySlug,
 } from '@/domain/public-catalog'
 
@@ -24,7 +24,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(siteConfig.defaultCity)
   const page = await getPageBySlug(slug, ctx)
   if (!page) {
     // 草稿、删除或不存在 → noindex（F6.3 noindex 策略）
@@ -55,7 +55,7 @@ export default async function PageDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(siteConfig.defaultCity)
   const page = await getPageBySlug(slug, ctx)
   if (!page) notFound()
 

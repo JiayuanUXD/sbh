@@ -6,7 +6,7 @@ import type { Building } from '@/payload-types'
 import { siteConfig } from '@/lib/frontend/site-config'
 import { getPublicBuildingWhere } from '@/domain/supply/public-building'
 import {
-  defaultSearchContext,
+  createSearchContext,
   getDefaultSupplyAdapter,
   listPublishedPages,
   parseSearchInput,
@@ -42,7 +42,7 @@ const SITEMAP_ENTITY_LIMIT = 5_000
 const getCachedSitemapEntries = unstable_cache(
   async () => {
     const payload = await getPayload({ config })
-    const ctx = defaultSearchContext()
+    const ctx = createSearchContext(siteConfig.defaultCity)
     const adapter = getDefaultSupplyAdapter()
     const [listings, buildings, pages] = await Promise.all([
       adapter.findEffectiveListings(parseSearchInput(new URLSearchParams()), ctx),
@@ -52,7 +52,10 @@ const getCachedSitemapEntries = unstable_cache(
         while (docs.length < SITEMAP_ENTITY_LIMIT) {
           const result = await payload.find({
             collection: 'buildings',
-            where: getPublicBuildingWhere(),
+            where: {
+              ...getPublicBuildingWhere(),
+              'city.slug': { equals: ctx.city },
+            },
             limit: Math.min(200, SITEMAP_ENTITY_LIMIT - docs.length),
             page,
             depth: 0,

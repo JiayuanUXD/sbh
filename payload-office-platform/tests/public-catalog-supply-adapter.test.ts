@@ -16,7 +16,7 @@ vi.mock('@/payload.config', () => ({ default: {} }))
 
 import {
   createPayloadSupplyAdapter,
-  defaultSearchContext,
+  createSearchContext,
   parseSearchInput,
 } from '@/domain/public-catalog'
 
@@ -87,7 +87,7 @@ describe('Payload public catalog supply adapter', () => {
     const adapter = createPayloadSupplyAdapter()
     const docs = await adapter.findEffectiveListings(
       parseSearchInput(new URLSearchParams()),
-      defaultSearchContext(new Date('2026-07-30T00:00:00.000Z')),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
     )
 
     expect(docs.map((doc) => doc.id)).toEqual([1, 2])
@@ -119,7 +119,7 @@ describe('Payload public catalog supply adapter', () => {
     const adapter = createPayloadSupplyAdapter()
     await adapter.findEffectiveListings(
       parseSearchInput(new URLSearchParams()),
-      defaultSearchContext(new Date('2026-07-30T00:00:00.000Z')),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
     )
 
     expect(

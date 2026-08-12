@@ -58,13 +58,19 @@ vi.mock('payload', async (importOriginal) => {
 
 const assertEffectiveListingMock = vi.fn()
 const assertEffectiveBuildingMock = vi.fn()
+const createSearchContextMock = vi.fn((city: string) => ({
+  asOf: new Date('2026-07-25T00:00:00Z').toISOString(),
+  timezone: 'Asia/Shanghai' as const,
+  channel: 'public-web' as const,
+  city,
+}))
 vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
     assertEffectiveListing: (...args: unknown[]) => assertEffectiveListingMock(...args),
     assertEffectiveBuilding: (...args: unknown[]) => assertEffectiveBuildingMock(...args),
-    defaultSearchContext: () => ({ asOf: new Date('2026-07-25T00:00:00Z') }),
+    createSearchContext: (city: string) => createSearchContextMock(city),
   }
 })
 
@@ -115,7 +121,7 @@ import {
   __resetRateStoreForTests,
   ratePruneRef,
 } from '@/app/api/inquiries/rate-limit-state'
-import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
 
 // ---------------------------------------------------------------------------
 // 辅助构造器
@@ -184,6 +190,7 @@ beforeEach(() => {
   payloadLoggerWarn.mockReset()
   assertEffectiveListingMock.mockReset()
   assertEffectiveBuildingMock.mockReset()
+  createSearchContextMock.mockClear()
   inMemoryRateStore.clear()
   __resetRateStoreForTests()
 })
@@ -218,6 +225,20 @@ describe('POST /api/inquiries / 正常提交', () => {
 
     await run(makeReq({ body: makeValidBody() }))
     expect(payloadCreateMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('用显式默认城市上下文复核询盘目标有效供给', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    await run(makeReq({ body: makeValidBody() }))
+
+    expect(createSearchContextMock).toHaveBeenCalledWith(siteConfig.defaultCity)
+    expect(assertEffectiveListingMock).toHaveBeenCalledWith(
+      'jingan-center-100-monthly',
+      expect.objectContaining({ city: siteConfig.defaultCity }),
+    )
   })
 
   it('Lead 数据包含完整询盘上下文', async () => {

@@ -12,7 +12,7 @@ import {
   getCachedRelatedBuildings,
 } from '@/lib/frontend/cached-queries'
 import {
-  defaultSearchContext,
+  createSearchContext,
   getBuildingDetail,
   parseBuildingSupplySearchParams,
   type BuildingSupplyInput,
@@ -45,7 +45,7 @@ export default async function BuildingDetailPage({
 }) {
   const { slug } = await params
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(siteConfig.defaultCity)
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
     getBuildingDetail(slug, ctx, supplyInput),
     getCachedRelatedBuildings(slug),
