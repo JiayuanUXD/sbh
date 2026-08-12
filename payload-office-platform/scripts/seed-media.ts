@@ -104,6 +104,20 @@ async function uploadDetailGalleryVideoFixture(payload: any): Promise<AnyDoc> {
   })
 }
 
+async function uploadHeroBackgroundVideo(payload: any): Promise<AnyDoc> {
+  const buffer = Buffer.from(DETAIL_GALLERY_VIDEO_FIXTURE, 'base64')
+  return payload.create({
+    collection: 'media',
+    data: { alt: '首页 hero 背景视频占位' },
+    file: {
+      data: buffer,
+      mimetype: 'video/mp4',
+      name: 'hero-bg.mp4',
+      size: buffer.length,
+    },
+  })
+}
+
 async function deleteAllMedia(payload: any): Promise<void> {
   // seed.ts 幂等更新(非重建)后,listings/buildings/pages 仍持有对旧 media 的引用。
   // listings_gallery.image_id 为 NOT NULL,直接删 media 会触发外键约束失败,
@@ -322,6 +336,13 @@ async function seedMedia() {
     payload.logger.info(`hero: ${hero.alt}`)
     await uploadMedia(payload, hero.alt, hero.colorSeed, COVER_W, COVER_H, hero.filename)
   }
+
+  // 8) 首页 hero 背景视频:补传 hero-bg.mp4。
+  //    HomeHeroMedia 硬编码 /api/media/file/hero-bg.mp4?prefix=media,deleteAllMedia 会删掉
+  //    生产迁移建的记录但从不重传,导致 CI/dev 该 URL 403,浏览器 console 报错并撞上
+  //    landing-pages e2e 的 browserErrors 断言。复用内嵌 MP4 fixture 补字节占位。
+  payload.logger.info('上传首页 hero 背景视频 hero-bg.mp4...')
+  await uploadHeroBackgroundVideo(payload)
 
   payload.logger.info('媒体数据挂载完成。')
 }
