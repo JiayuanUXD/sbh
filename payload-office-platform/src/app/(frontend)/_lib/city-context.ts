@@ -3,7 +3,6 @@ import { unstable_cache } from 'next/cache'
 import { getPayload } from 'payload'
 
 import config from '@/payload.config'
-import type { CitySiteProfile, Location, Media } from '@/payload-types'
 import {
   createCityContextResolver,
   normalizeCitySlug,
@@ -22,56 +21,117 @@ type CachedResolver = () => Promise<CityContext | null>
 
 const cityResolvers = new Map<string, CachedResolver>()
 
-function asLocation(value: number | Location): Location | null {
-  return typeof value === 'object' ? value : null
+type MappingResult<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false }>
+
+function valid<T>(value: T): MappingResult<T> {
+  return { ok: true, value }
 }
 
-function mapHeroMedia(value: CitySiteProfile['heroMedia']): PublicCitySiteProfile['hero']['media'] {
-  if (value === null || value === undefined || typeof value !== 'object') return null
-  const media: Media = value
-  if (typeof media.url !== 'string' || media.url.length === 0 || typeof media.alt !== 'string') {
-    return null
-  }
-  return {
-    src: media.url,
-    ...(typeof media.width === 'number' ? { width: media.width } : {}),
-    ...(typeof media.height === 'number' ? { height: media.height } : {}),
-    alt: media.alt,
-  }
+function invalid(): MappingResult<never> {
+  return { ok: false }
 }
 
-function mapFeaturedRegions(value: CitySiteProfile['featuredRegions']): PublicCitySiteProfile['featuredRegions'] | null {
-  if (!value) return []
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isIdentifier(value: unknown): value is number | string {
+  return (
+    (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) ||
+    (typeof value === 'string' && value.trim().length > 0)
+  )
+}
+
+function isRequiredString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+function mapOptionalString(value: unknown): MappingResult<string> {
+  if (value === null || value === undefined) return valid('')
+  return typeof value === 'string' ? valid(value) : invalid()
+}
+
+function isValidDimension(value: unknown): value is number | null | undefined {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === 'number' && Number.isFinite(value) && value > 0)
+  )
+}
+
+function mapHeroMedia(value: unknown): MappingResult<PublicCitySiteProfile['hero']['media']> {
+  if (value === null || value === undefined) return valid(null)
+  if (!isRecord(value) || !isRequiredString(value.url) || typeof value.alt !== 'string') {
+    return invalid()
+  }
+  if (!isValidDimension(value.width) || !isValidDimension(value.height)) {
+    return invalid()
+  }
+  return valid({
+    src: value.url,
+    ...(typeof value.width === 'number' ? { width: value.width } : {}),
+    ...(typeof value.height === 'number' ? { height: value.height } : {}),
+    alt: value.alt,
+  })
+}
+
+function mapFeaturedRegions(
+  value: unknown,
+): MappingResult<PublicCitySiteProfile['featuredRegions']> {
+  if (value === null || value === undefined) return valid([])
+  if (!Array.isArray(value)) return invalid()
   const regions: PublicCitySiteProfile['featuredRegions'][number][] = []
   for (const relation of value) {
-    const region = asLocation(relation)
-    const slug = region ? normalizeCitySlug(region.slug) : null
+    const slug = isRecord(relation) ? normalizeCitySlug(relation.slug) : null
     if (
-      !region ||
+      !isRecord(relation) ||
+      !isIdentifier(relation.id) ||
       !slug ||
-      (region.type !== 'district' && region.type !== 'business_area') ||
-      typeof region.name !== 'string' ||
-      region.name.length === 0
+      (relation.type !== 'district' && relation.type !== 'business_area') ||
+      !isRequiredString(relation.name)
     ) {
-      return null
+      return invalid()
     }
-    regions.push({ id: region.id, slug, name: region.name, type: region.type })
+    regions.push({ id: relation.id, slug, name: relation.name, type: relation.type })
   }
-  return regions
+  return valid(regions)
 }
 
-function mapPublicCityProfile(value: CitySiteProfile): PublicCitySiteProfile | null {
-  const city = asLocation(value.city)
-  const citySlug = city ? normalizeCitySlug(city.slug) : null
+function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
+  if (!isRecord(value) || !isRecord(value.city)) return null
+  const city = value.city
+  const citySlug = normalizeCitySlug(city.slug)
+  const eyebrow = mapOptionalString(value.heroEyebrow)
+  const heading = mapOptionalString(value.heroHeading)
+  const heroBody = mapOptionalString(value.heroBody)
+  const introHeading = mapOptionalString(value.introHeading)
+  const introBody = mapOptionalString(value.introBody)
+  const contactHeading = mapOptionalString(value.contactHeading)
+  const contactBody = mapOptionalString(value.contactBody)
+  const media = mapHeroMedia(value.heroMedia)
   const featuredRegions = mapFeaturedRegions(value.featuredRegions)
   if (
-    !city ||
+    !isIdentifier(city.id) ||
     !citySlug ||
     city.type !== 'city' ||
-    typeof city.name !== 'string' ||
-    city.name.length === 0 ||
+    city.status !== 'active' ||
+    !isRequiredString(city.name) ||
     (value.serviceStatus !== 'live' && value.serviceStatus !== 'coming-soon') ||
-    featuredRegions === null
+    typeof value.switcherVisible !== 'boolean' ||
+    typeof value.sortOrder !== 'number' ||
+    !Number.isFinite(value.sortOrder) ||
+    value.sortOrder < 0 ||
+    !isRequiredString(value.seoTitle) ||
+    !isRequiredString(value.seoDescription) ||
+    !eyebrow.ok ||
+    !heading.ok ||
+    !heroBody.ok ||
+    !introHeading.ok ||
+    !introBody.ok ||
+    !contactHeading.ok ||
+    !contactBody.ok ||
+    !media.ok ||
+    !featuredRegions.ok
   ) {
     return null
   }
@@ -81,19 +141,19 @@ function mapPublicCityProfile(value: CitySiteProfile): PublicCitySiteProfile | n
     citySlug,
     cityName: city.name,
     serviceStatus: value.serviceStatus,
-    switcherVisible: value.switcherVisible === true,
+    switcherVisible: value.switcherVisible,
     sortOrder: value.sortOrder,
     seoTitle: value.seoTitle,
     seoDescription: value.seoDescription,
     hero: {
-      eyebrow: value.heroEyebrow ?? '',
-      heading: value.heroHeading ?? '',
-      body: value.heroBody ?? '',
-      media: mapHeroMedia(value.heroMedia),
+      eyebrow: eyebrow.value,
+      heading: heading.value,
+      body: heroBody.value,
+      media: media.value,
     },
-    intro: { heading: value.introHeading ?? '', body: value.introBody ?? '' },
-    contact: { heading: value.contactHeading ?? '', body: value.contactBody ?? '' },
-    featuredRegions,
+    intro: { heading: introHeading.value, body: introBody.value },
+    contact: { heading: contactHeading.value, body: contactBody.value },
+    featuredRegions: featuredRegions.value,
   }
 }
 
