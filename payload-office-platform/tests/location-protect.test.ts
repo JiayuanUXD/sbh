@@ -2,8 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { protectLocation } from '@/domain/geography/location-protect'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
 
-/** 内存节点图：id → { type, parent, status } */
-type Node = { id: number; type: string; parent?: number | null; status?: string }
+/** 内存节点图：id → { type, parent, status, city }（city 为反范式字段） */
+type Node = {
+  id: number
+  type: string
+  parent?: number | null
+  status?: string
+  city?: number | null
+}
 
 function makeReq(nodes: Node[]) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
@@ -12,7 +18,13 @@ function makeReq(nodes: Node[]) {
       findByID: async ({ id }: { id: number | string }) => {
         const n = byId.get(Number(id))
         if (!n) throw new Error('not found')
-        return { id: n.id, type: n.type, parent: n.parent ?? null, status: n.status }
+        return {
+          id: n.id,
+          type: n.type,
+          parent: n.parent ?? null,
+          status: n.status,
+          city: n.city ?? null,
+        }
       },
     },
   } as never
@@ -21,12 +33,12 @@ function makeReq(nodes: Node[]) {
 /** 节点图：上海(1)>浦东(2)>陆家嘴(3)；上海>1号线(4)>陆家嘴站(5)；北京(6)>朝阳(7) */
 const GRAPH: Node[] = [
   { id: 1, type: 'city' },
-  { id: 2, type: 'district', parent: 1 },
-  { id: 3, type: 'business_area', parent: 2 },
-  { id: 4, type: 'metro_line', parent: 1 },
-  { id: 5, type: 'metro_station', parent: 4 },
+  { id: 2, type: 'district', parent: 1, city: 1 },
+  { id: 3, type: 'business_area', parent: 2, city: 1 },
+  { id: 4, type: 'metro_line', parent: 1, city: 1 },
+  { id: 5, type: 'metro_station', parent: 4, city: 1 },
   { id: 6, type: 'city' },
-  { id: 7, type: 'district', parent: 6 },
+  { id: 7, type: 'district', parent: 6, city: 6 },
 ]
 
 const baseArgs = (over: Record<string, unknown>) => ({
@@ -117,7 +129,7 @@ describe('location-protect/跨城市移动', () => {
   })
 
   it('同城市内移动（浦东→另一上海行政区）不报跨城市', async () => {
-    const graph: Node[] = [...GRAPH, { id: 8, type: 'district', parent: 1 }]
+    const graph: Node[] = [...GRAPH, { id: 8, type: 'district', parent: 1, city: 1 }]
     const orig = { id: 3, type: 'business_area', immutableCode: 'BA1', parent: 2, version: 1 }
     const data = { type: 'business_area', immutableCode: 'BA1', parent: 8, version: 1 }
     const out = await protectLocation({
@@ -204,7 +216,7 @@ describe('location-protect/启停联动', () => {
   it('启用节点且所有祖先启用 → 通过', async () => {
     const graph: Node[] = [
       { id: 1, type: 'city', status: 'active' },
-      { id: 2, type: 'district', parent: 1, status: 'active' },
+      { id: 2, type: 'district', parent: 1, status: 'active', city: 1 },
     ]
     const orig = { id: 3, type: 'business_area', immutableCode: 'BA1', parent: 2, version: 1, status: 'disabled' }
     const data = { type: 'business_area', immutableCode: 'BA1', parent: 2, version: 1, status: 'active' }
@@ -244,5 +256,61 @@ describe('location-protect/坐标与代码', () => {
     await expect(protectLocation(baseArgs({ data }) as never)).rejects.toMatchObject({
       code: 'INVALID_LATITUDE',
     })
+  })
+})
+
+describe('location-protect/写侧维护所属城市', () => {
+  it('城市下新建行政区 → data.city 为所属城市 id', async () => {
+    const out = (await protectLocation(
+      baseArgs({ data: { type: 'district', immutableCode: 'D2', parent: 1 } }) as never,
+    )) as Record<string, unknown>
+    expect(out.city).toBe(1)
+  })
+
+  it('行政区下新建商圈 → data.city 为所属城市 id', async () => {
+    const out = (await protectLocation(
+      baseArgs({ data: { type: 'business_area', immutableCode: 'BA2', parent: 2 } }) as never,
+    )) as Record<string, unknown>
+    expect(out.city).toBe(1)
+  })
+
+  it('线路下新建地铁站 → data.city 为所属城市 id', async () => {
+    const out = (await protectLocation(
+      baseArgs({ data: { type: 'metro_station', immutableCode: 'ST2', parent: 4 } }) as never,
+    )) as Record<string, unknown>
+    expect(out.city).toBe(1)
+  })
+
+  it('城市节点新建 → data.city 为空（不自引用）', async () => {
+    const out = (await protectLocation(
+      baseArgs({ data: { type: 'city', immutableCode: 'GZ' } }) as never,
+    )) as Record<string, unknown>
+    expect(out.city).toBeNull()
+  })
+
+  it('上级为非城市节点且 city 字段缺失 → 抛 CITY_UNRESOLVED', async () => {
+    // 浦东(2)无 city（存量未回填脏数据），其下建商圈无法解析城市
+    const graph: Node[] = [
+      { id: 1, type: 'city' },
+      { id: 2, type: 'district', parent: 1 },
+    ]
+    const data = { type: 'business_area', immutableCode: 'BA9', parent: 2 }
+    await expect(
+      protectLocation({
+        operation: 'create',
+        originalDoc: undefined,
+        req: makeReq(graph),
+        data,
+      } as never),
+    ).rejects.toMatchObject({ code: 'CITY_UNRESOLVED' })
+  })
+
+  it('update 也回写 data.city（重解析父级城市）', async () => {
+    const orig = { id: 3, type: 'business_area', immutableCode: 'BA1', parent: 2, version: 1 }
+    const data = { type: 'business_area', immutableCode: 'BA1', parent: 2, version: 1, status: 'active' }
+    const out = (await protectLocation(
+      baseArgs({ operation: 'update', originalDoc: orig, data }) as never,
+    )) as Record<string, unknown>
+    expect(out.city).toBe(1)
   })
 })

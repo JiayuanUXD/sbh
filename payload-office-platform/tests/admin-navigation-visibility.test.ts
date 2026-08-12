@@ -109,7 +109,12 @@ describe('resolveAdminNavigation', () => {
       readableCollections: ['locations'],
     })
 
-    expect(visibleItemIds(navigation)).toEqual(['supply', 'supply-settings', 'locations'])
+    expect(visibleItemIds(navigation)).toEqual([
+      'region-management',
+      'cities',
+      'districts',
+      'metro-lines',
+    ])
   })
 
   it('配置遍历失败时，为有 dashboard 权限的用户返回工作台安全回退', () => {

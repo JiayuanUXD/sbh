@@ -18,6 +18,7 @@ type RoleCode = keyof typeof ROLE_ACCOUNTS
 const ALL_TOP_GROUPS = [
   '工作台',
   '房源运营',
+  '区域管理',
   '审核与风控',
   '客户运营',
   '商户合作',
@@ -32,6 +33,7 @@ const ROLE_NAVIGATION = {
     groups: [
       '工作台',
       '房源运营',
+      '区域管理',
       '审核与风控',
       '客户运营',
       '商户合作',
@@ -43,7 +45,16 @@ const ROLE_NAVIGATION = {
     allowed: { group: '内容管理', leaf: '页面内容', slug: 'pages' },
   },
   OPS: {
-    groups: ['工作台', '房源运营', '审核与风控', '商户合作', '内容管理', '表单中心'],
+    groups: [
+      '工作台',
+      '房源运营',
+      '区域管理',
+      '审核与风控',
+      '商户合作',
+      '内容管理',
+      '表单中心',
+      '系统管理',
+    ],
     allowed: {
       group: '审核与风控',
       leaf: '审核队列',

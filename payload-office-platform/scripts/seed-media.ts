@@ -104,6 +104,20 @@ async function uploadDetailGalleryVideoFixture(payload: any): Promise<AnyDoc> {
   })
 }
 
+async function uploadHeroBackgroundVideo(payload: any): Promise<AnyDoc> {
+  const buffer = Buffer.from(DETAIL_GALLERY_VIDEO_FIXTURE, 'base64')
+  return payload.create({
+    collection: 'media',
+    data: { alt: '首页 hero 背景视频占位' },
+    file: {
+      data: buffer,
+      mimetype: 'video/mp4',
+      name: 'hero-bg.mp4',
+      size: buffer.length,
+    },
+  })
+}
+
 async function deleteAllMedia(payload: any): Promise<void> {
   // seed.ts 幂等更新(非重建)后,listings/buildings/pages 仍持有对旧 media 的引用。
   // listings_gallery.image_id 为 NOT NULL,直接删 media 会触发外键约束失败,
@@ -300,6 +314,35 @@ async function seedMedia() {
   } else {
     payload.logger.warn('未找到 about 页,跳过 hero 挂载')
   }
+
+  // 7) 落地页 hero 装饰背景图:补传两张(CI/离线走 sharp 本地合成)。
+  //    /entrust、/publish 硬编码 /api/media/file/landing-hero-{publish,entrust}-20260810.jpg?prefix=media。
+  //    seed-media 的 deleteAllMedia 会删掉迁移建的 hero 记录但从不重传,导致 CI/dev 该 URL 404,
+  //    浏览器 console 报错并撞上 landing-pages e2e 的 browserErrors 断言。此处按文件名原样重传字节。
+  payload.logger.info(`上传落地页 hero 背景图（${SOURCE_LABEL}）...`)
+  const landingHeroes: Array<{ filename: string; alt: string; colorSeed: string }> = [
+    {
+      filename: 'landing-hero-publish-20260810',
+      alt: '高端写字楼空置空间与城市天际线背景',
+      colorSeed: 'landing-hero-publish',
+    },
+    {
+      filename: 'landing-hero-entrust-20260810',
+      alt: '商务选址顾问会议桌与上海天际线背景',
+      colorSeed: 'landing-hero-entrust',
+    },
+  ]
+  for (const hero of landingHeroes) {
+    payload.logger.info(`hero: ${hero.alt}`)
+    await uploadMedia(payload, hero.alt, hero.colorSeed, COVER_W, COVER_H, hero.filename)
+  }
+
+  // 8) 首页 hero 背景视频:补传 hero-bg.mp4。
+  //    HomeHeroMedia 硬编码 /api/media/file/hero-bg.mp4?prefix=media,deleteAllMedia 会删掉
+  //    生产迁移建的记录但从不重传,导致 CI/dev 该 URL 403,浏览器 console 报错并撞上
+  //    landing-pages e2e 的 browserErrors 断言。复用内嵌 MP4 fixture 补字节占位。
+  payload.logger.info('上传首页 hero 背景视频 hero-bg.mp4...')
+  await uploadHeroBackgroundVideo(payload)
 
   payload.logger.info('媒体数据挂载完成。')
 }

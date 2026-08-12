@@ -44,6 +44,7 @@ type LocationNode = {
   type?: unknown
   parent?: unknown
   status?: unknown
+  city?: unknown
 }
 
 /** 读取单个节点（类型 / 父级 id / 状态），失败返回 null */
@@ -84,23 +85,19 @@ async function findInactiveAncestor(
 }
 
 /**
- * 向上解析归属城市 id。
- *   - city 自身即城市
- *   - 其余沿 parent 上溯，遇到 city 即返回；防御性设最大深度 8。
- * 解析失败返回 null（由调用方决定是否放行）。
+ * 解析某节点归属城市 id（O(1)，依赖反范式 city 字段）：
+ *   - city 节点自身即城市
+ *   - 其余直接读 city 字段（写侧由 beforeChange 维护，存量由回填迁移补齐）
+ * 解析失败返回 null（字段缺失的存量/脏数据，由调用方决定是否放行）。
  */
 async function resolveCityId(
   req: PayloadRequest,
   startId: number | string,
 ): Promise<number | string | null> {
-  let currentId: number | string | null = startId
-  for (let depth = 0; depth < 8 && currentId !== null; depth++) {
-    const node = await loadNode(req, currentId)
-    if (!node) return null
-    if (node.type === 'city') return node.id
-    currentId = toId(node.parent)
-  }
-  return null
+  const node = await loadNode(req, startId)
+  if (!node) return null
+  if (node.type === 'city') return node.id
+  return toId(node.city)
 }
 
 export const protectLocation: CollectionBeforeChangeHook = async ({
@@ -253,6 +250,22 @@ export const protectLocation: CollectionBeforeChangeHook = async ({
       })
     }
     data.version = currentVersion + 1
+  }
+
+  // —— 写侧维护所属城市（反范式字段，供 O(1) 城市解析）——
+  // 城市节点不自引用，city 留空；其余重解析父级城市并写回。
+  if (childType === 'city') {
+    data.city = null
+  } else {
+    const cityId = await resolveCityId(req, parentId as number | string)
+    if (cityId === null) {
+      throw new InvalidOperationError({
+        domain: 'geography',
+        code: 'CITY_UNRESOLVED',
+        message: '无法解析上级节点的所属城市，禁止落库无归属城市的下级节点',
+      })
+    }
+    data.city = cityId
   }
 
   return data

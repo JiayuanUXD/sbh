@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload'
+import type { CollectionConfig, Field } from 'payload'
 import {
   LOCATION_TYPES,
   LOCATION_TYPE_LABELS,
@@ -6,6 +6,7 @@ import {
 import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
 import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
+import { createLocationSearchEndpoint } from '@/endpoints/location-search-endpoint'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
@@ -17,25 +18,21 @@ export const Locations: CollectionConfig = {
   slug: 'locations',
   labels: {
     singular: '区域',
-    plural: '行政区域',
+    // Task 16：地理管理重构后 locations 不再出现在导航，plural 仅用于面包屑等，
+    // 改为中性「地理数据」（排障兜底列表的入口仍在）。
+    plural: '地理数据',
   },
   // 自定义端点挂 collection（不能放顶层 config.endpoints，否则被 slug 路由遮蔽 → 404）。
   endpoints: [
     // M2.2 区域引用数量：GET /api/locations/:id/references
     createLocationReferencesEndpoint(),
+    // Task 13 全局搜索：GET /api/locations/search?q=&limit=
+    createLocationSearchEndpoint(),
   ],
   admin: {
     group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],
-    // M2.2：以树形管理视图整页替换默认列表（PRD 03_城市区域）
-    components: {
-      views: {
-        list: {
-          Component: '/components/admin/LocationTreeView',
-        },
-      },
-    },
   },
   access: {
     read: () => true,
@@ -59,6 +56,7 @@ export const Locations: CollectionConfig = {
       required: true,
       unique: true,
       admin: {
+        readOnly: true,
         description: '全局唯一，创建后不可修改（大写字母/数字开头，2–64 位）',
       },
     },
@@ -76,6 +74,7 @@ export const Locations: CollectionConfig = {
       required: true,
       options: TYPE_OPTIONS,
       admin: {
+        readOnly: true,
         description: '固定层级：城市>行政区>商圈；城市>地铁线路>地铁站。创建后不可修改。',
       },
     },
@@ -85,7 +84,29 @@ export const Locations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       admin: {
+        // Task 14：城市无上级，非 city 才显示
+        condition: (data: { type?: unknown }) => data?.type !== 'city',
         description: '类型决定合法上级；移动不可跨城市。城市无上级。',
+      },
+    },
+    // 反范式城市字段：解锁「按城市」索引查询，避免逐级上溯解析归属城市。
+    // 语义约定（后续所有查询都依赖，勿手写各处）：
+    //   - 非 city 节点：city = 所属城市 id（由 protectLocation hook 在 beforeChange 写入）
+    //   - city 节点自身：city 留空，不自引用（创建时自身 id 未知，自引用需 afterChange 回写，
+    //     活动部件更多、失败模式更隐蔽，故不自引用）
+    //   - 「某城市的全部节点（含城市自身）」必须走 cityScopeWhere() 辅助函数（location-city.ts），
+    //     条件为 { or: [{ id: equals cityId }, { city: equals cityId }] }，不要各处手写。
+    // 关键前提：protectLocation 已有「移动不可跨城市」硬约束 -> 节点归属城市一经创建永不改变 ->
+    // city 字段不需要任何级联更新逻辑。只读：UI 不可编辑，由系统维护。
+    {
+      name: 'city',
+      label: '所属城市',
+      type: 'relationship',
+      relationTo: 'locations',
+      index: true,
+      admin: {
+        readOnly: true,
+        description: '由系统按层级自动维护；城市节点本身留空（其城市即自身）。',
       },
     },
     {
@@ -131,6 +152,11 @@ export const Locations: CollectionConfig = {
       name: 'description',
       label: '区域介绍',
       type: 'textarea',
+      admin: {
+        // Task 14：仅商圈与行政区有区域介绍
+        condition: (data: { type?: unknown }) =>
+          data?.type === 'business_area' || data?.type === 'district',
+      },
     },
     {
       name: 'coverImage',
@@ -138,6 +164,8 @@ export const Locations: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       admin: {
+        condition: (data: { type?: unknown }) =>
+          data?.type === 'business_area' || data?.type === 'district',
         description:
           '首页商圈卡的背景图。留空时前台回退为该商圈下首个有封面的楼盘图片。',
       },
@@ -165,5 +193,26 @@ export const Locations: CollectionConfig = {
         description: '乐观锁版本，由系统维护',
       },
     },
+    {
+      // 商圈空间扩展面板（Task 11）：内嵌进商圈编辑页，替代「商圈管理」独立页。
+      // 条件只按 type 收敛（不看 id）：新建商圈无 id 时由面板自身提示「保存后可配置空间信息」。
+      name: 'businessAreaExtension',
+      type: 'ui',
+      admin: {
+        condition: (data: { type?: unknown }) => data?.type === 'business_area',
+        components: { Field: '/components/admin/BusinessAreaExtensionPanel' },
+      },
+    } as unknown as Field,
+    {
+      // 地铁线路的站点内嵌面板（Task 12）：内嵌进地铁线路编辑页，维护该线路全部站点。
+      // 必须有 id 才展示：新建线路无 id 时没有站点可列，由面板自身在无 id 时返回 null。
+      name: 'metroLineStations',
+      type: 'ui',
+      admin: {
+        condition: (data: { type?: unknown; id?: unknown }) =>
+          data?.type === 'metro_line' && Boolean(data?.id),
+        components: { Field: '/components/admin/MetroLineStationsPanel' },
+      },
+    } as unknown as Field,
   ],
 }

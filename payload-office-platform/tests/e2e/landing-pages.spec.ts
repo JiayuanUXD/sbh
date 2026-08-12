@@ -83,7 +83,8 @@ test.describe('/entrust 委托找房', () => {
     await page.getByLabel('手机号').fill(entrustPhone)
     await page.getByRole('button', { name: '免费委托', exact: true }).click()
 
-    await expect(page.getByRole('status')).toContainText('已收到您的委托', { timeout: 30_000 })
+    // 表单成功块与收束 CTA(converted)都是 role=status 的独立活动区,这里只断言表单内联成功块。
+    await expect(page.locator('.entrust-form__success')).toContainText('已收到您的委托', { timeout: 30_000 })
     expect(new URL(page.url()).pathname).toBe('/entrust')
     expect(submittedBodies).toHaveLength(1)
     expect(submittedBodies[0]).toMatchObject({
@@ -113,7 +114,13 @@ test.describe('/entrust 委托找房', () => {
     const cta = page.locator('.bottom-cta')
 
     await expect(cta).not.toHaveClass(/bottom-cta--docked/)
-    await page.locator('.bottom-cta-anchor').scrollIntoViewIfNeeded()
+    // 吸底触发条件:锚点顶端进入视口且页脚仍在折叠线以下(页脚一进视口吸底条按设计让行,
+    // 见 BottomCtaBar 页脚让行注释)。scrollIntoViewIfNeeded 会滚到底、页脚可见,故手动滚进吸底带。
+    await page.evaluate(() => {
+      const anchor = document.querySelector<HTMLElement>('.bottom-cta-anchor')!
+      const target = anchor.getBoundingClientRect().top + window.scrollY - (window.innerHeight - 40)
+      window.scrollTo({ top: target, behavior: 'instant' as ScrollBehavior })
+    })
     await expect(cta).toHaveClass(/bottom-cta--docked/)
     await expect.poll(() => cta.evaluate((element) => getComputedStyle(element).position)).toBe('fixed')
 
@@ -121,7 +128,7 @@ test.describe('/entrust 委托找房', () => {
     await expect(page.getByLabel('手机号')).toBeFocused()
     await expectNoHorizontalOverflow(page)
 
-    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }))
     await expect(cta).not.toHaveClass(/bottom-cta--docked/)
   })
 })

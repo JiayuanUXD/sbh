@@ -1,0 +1,1240 @@
+{
+  "_header": [
+    "============================================================",
+    "宁波地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、宁波轨道交通官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/ningbo.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "宁波市",
+    "immutableCode": "CITY-NB",
+    "slug": "ningbo",
+    "sortOrder": 6
+  },
+  "districts": [
+    {
+      "name": "海曙区",
+      "immutableCode": "NB-D-330203",
+      "slug": "ningbo-haishu",
+      "sortOrder": 1
+    },
+    {
+      "name": "江北区",
+      "immutableCode": "NB-D-330205",
+      "slug": "ningbo-jiangbei",
+      "sortOrder": 2
+    },
+    {
+      "name": "北仑区",
+      "immutableCode": "NB-D-330206",
+      "slug": "ningbo-beilun",
+      "sortOrder": 3
+    },
+    {
+      "name": "镇海区",
+      "immutableCode": "NB-D-330211",
+      "slug": "ningbo-zhenhai",
+      "sortOrder": 4
+    },
+    {
+      "name": "鄞州区",
+      "immutableCode": "NB-D-330212",
+      "slug": "ningbo-yinzhou",
+      "sortOrder": 5
+    },
+    {
+      "name": "奉化区",
+      "immutableCode": "NB-D-330213",
+      "slug": "ningbo-fenghua",
+      "sortOrder": 6
+    },
+    {
+      "name": "象山县",
+      "immutableCode": "NB-D-330225",
+      "slug": "ningbo-xiangshan",
+      "sortOrder": 7
+    },
+    {
+      "name": "宁海县",
+      "immutableCode": "NB-D-330226",
+      "slug": "ningbo-ninghai",
+      "sortOrder": 8
+    },
+    {
+      "name": "余姚市",
+      "immutableCode": "NB-D-330281",
+      "slug": "ningbo-yuyao",
+      "sortOrder": 9
+    },
+    {
+      "name": "慈溪市",
+      "immutableCode": "NB-D-330282",
+      "slug": "ningbo-cixi",
+      "sortOrder": 10
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "三江口",
+      "districtCode": "NB-D-330203",
+      "slug": "ningbo-sanjiangkou",
+      "immutableCode": "NB-BA-SANJIANGKOU"
+    },
+    {
+      "name": "东部新城",
+      "districtCode": "NB-D-330212",
+      "slug": "ningbo-dongbu-xincheng",
+      "immutableCode": "NB-BA-DONGBUXINCHENG"
+    },
+    {
+      "name": "南部商务区",
+      "districtCode": "NB-D-330212",
+      "slug": "ningbo-nanbu-shangwuqu",
+      "immutableCode": "NB-BA-NANBUSHANGWUQU"
+    },
+    {
+      "name": "鄞州中心区",
+      "districtCode": "NB-D-330212",
+      "slug": "ningbo-yinzhou-zhongxinqu",
+      "immutableCode": "NB-BA-YINZHOUZHONGXINQU"
+    },
+    {
+      "name": "高新区",
+      "districtCode": "NB-D-330212",
+      "slug": "ningbo-gaoxinqu",
+      "immutableCode": "NB-BA-GAOXINQU"
+    },
+    {
+      "name": "江北核心区",
+      "districtCode": "NB-D-330205",
+      "slug": "ningbo-jiangbei-hexinqu",
+      "immutableCode": "NB-BA-JIANGBEIHEXINQU"
+    },
+    {
+      "name": "湾头",
+      "districtCode": "NB-D-330205",
+      "slug": "ningbo-wantou",
+      "immutableCode": "NB-BA-WANTOU"
+    },
+    {
+      "name": "镇海新城",
+      "districtCode": "NB-D-330211",
+      "slug": "ningbo-zhenhai-xincheng",
+      "immutableCode": "NB-BA-ZHENHAIXINCHENG"
+    },
+    {
+      "name": "北仑中心",
+      "districtCode": "NB-D-330206",
+      "slug": "ningbo-beilun-zhongxin",
+      "immutableCode": "NB-BA-BEILUNZHONGXIN"
+    },
+    {
+      "name": "奉化中心",
+      "districtCode": "NB-D-330213",
+      "slug": "ningbo-fenghua-zhongxin",
+      "immutableCode": "NB-BA-FENGHUAZHONGXIN"
+    },
+    {
+      "name": "余姚中心",
+      "districtCode": "NB-D-330281",
+      "slug": "ningbo-yuyao-zhongxin",
+      "immutableCode": "NB-BA-YUYAOZHONGXIN"
+    },
+    {
+      "name": "慈溪中心",
+      "districtCode": "NB-D-330282",
+      "slug": "ningbo-cixi-zhongxin",
+      "immutableCode": "NB-BA-CIXIZHONGXIN"
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "NB-ML-1",
+      "slug": "ningbo-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "高桥西",
+          "immutableCode": "NB-MS-GAOQIAOXI",
+          "slug": "ningbo-metro-gaoqiao-xi",
+          "sortOrder": 1
+        },
+        {
+          "name": "高桥",
+          "immutableCode": "NB-MS-GAOQIAO",
+          "slug": "ningbo-metro-gaoqiao",
+          "sortOrder": 2
+        },
+        {
+          "name": "梁祝",
+          "immutableCode": "NB-MS-LIANGZHU",
+          "slug": "ningbo-metro-liangzhu",
+          "sortOrder": 3
+        },
+        {
+          "name": "芦港",
+          "immutableCode": "NB-MS-LUGANG",
+          "slug": "ningbo-metro-lugang",
+          "sortOrder": 4
+        },
+        {
+          "name": "徐家漕长乐",
+          "immutableCode": "NB-MS-XUJIACAOCHANGLE",
+          "slug": "ningbo-metro-xujiacao-changle",
+          "sortOrder": 5
+        },
+        {
+          "name": "望春桥",
+          "immutableCode": "NB-MS-WANGCHUNQIAO",
+          "slug": "ningbo-metro-wangchunqiao",
+          "sortOrder": 6
+        },
+        {
+          "name": "泽民",
+          "immutableCode": "NB-MS-ZEMIN",
+          "slug": "ningbo-metro-zemin",
+          "sortOrder": 7
+        },
+        {
+          "name": "大卿桥",
+          "immutableCode": "NB-MS-DAQINGQIAO",
+          "slug": "ningbo-metro-daqingqiao",
+          "sortOrder": 8
+        },
+        {
+          "name": "西门口",
+          "immutableCode": "NB-MS-XIMENKOU",
+          "slug": "ningbo-metro-ximenkou",
+          "sortOrder": 9
+        },
+        {
+          "name": "鼓楼",
+          "immutableCode": "NB-MS-GULOU",
+          "slug": "ningbo-metro-gulou",
+          "sortOrder": 10
+        },
+        {
+          "name": "东门口",
+          "immutableCode": "NB-MS-DONGMENKOU",
+          "slug": "ningbo-metro-dongmenkou",
+          "sortOrder": 11
+        },
+        {
+          "name": "江厦桥东",
+          "immutableCode": "NB-MS-JIANGXIAQIAODONG",
+          "slug": "ningbo-metro-jiangxia-qiaodong",
+          "sortOrder": 12
+        },
+        {
+          "name": "舟孟北路",
+          "immutableCode": "NB-MS-ZHOUMENGBEILU",
+          "slug": "ningbo-metro-zhoumeng-beilu",
+          "sortOrder": 13
+        },
+        {
+          "name": "樱花公园",
+          "immutableCode": "NB-MS-YINGHUAGONGYUAN",
+          "slug": "ningbo-metro-yinghua-gongyuan",
+          "sortOrder": 14
+        },
+        {
+          "name": "福明路",
+          "immutableCode": "NB-MS-FUMINGLU",
+          "slug": "ningbo-metro-fuming-lu",
+          "sortOrder": 15
+        },
+        {
+          "name": "世纪大道",
+          "immutableCode": "NB-MS-SHIJIDADAO",
+          "slug": "ningbo-metro-shiji-dadao",
+          "sortOrder": 16
+        },
+        {
+          "name": "海晏北路",
+          "immutableCode": "NB-MS-HAIYANBEILU",
+          "slug": "ningbo-metro-haiyan-beilu",
+          "sortOrder": 17
+        },
+        {
+          "name": "福庆北路",
+          "immutableCode": "NB-MS-FUQINGBEILU",
+          "slug": "ningbo-metro-fuqing-beilu",
+          "sortOrder": 18
+        },
+        {
+          "name": "盛莫路",
+          "immutableCode": "NB-MS-SHENGMOLU",
+          "slug": "ningbo-metro-shengmo-lu",
+          "sortOrder": 19
+        },
+        {
+          "name": "东环南路",
+          "immutableCode": "NB-MS-DONGHUANNANLU",
+          "slug": "ningbo-metro-donghuan-nanlu",
+          "sortOrder": 20
+        },
+        {
+          "name": "邱隘东",
+          "immutableCode": "NB-MS-QIUGAIDONG",
+          "slug": "ningbo-metro-qiugai-dong",
+          "sortOrder": 21
+        },
+        {
+          "name": "五乡",
+          "immutableCode": "NB-MS-WUXIANG",
+          "slug": "ningbo-metro-wuxiang",
+          "sortOrder": 22
+        },
+        {
+          "name": "宝幢",
+          "immutableCode": "NB-MS-BAOZHUANG",
+          "slug": "ningbo-metro-baozhuang",
+          "sortOrder": 23
+        },
+        {
+          "name": "邬隘",
+          "immutableCode": "NB-MS-WUGAI",
+          "slug": "ningbo-metro-wugai",
+          "sortOrder": 24
+        },
+        {
+          "name": "大碶",
+          "immutableCode": "NB-MS-DAQI",
+          "slug": "ningbo-metro-daqi",
+          "sortOrder": 25
+        },
+        {
+          "name": "松花江路",
+          "immutableCode": "NB-MS-SONGHUAJIANGLU",
+          "slug": "ningbo-metro-songhuajiang-lu",
+          "sortOrder": 26
+        },
+        {
+          "name": "中河路",
+          "immutableCode": "NB-MS-ZHONGHELU",
+          "slug": "ningbo-metro-zhonghe-lu",
+          "sortOrder": 27
+        },
+        {
+          "name": "长江路",
+          "immutableCode": "NB-MS-CHANGJIANGLU",
+          "slug": "ningbo-metro-changjiang-lu",
+          "sortOrder": 28
+        },
+        {
+          "name": "霞浦",
+          "immutableCode": "NB-MS-XIAPU",
+          "slug": "ningbo-metro-xiapu",
+          "sortOrder": 29
+        }
+      ]
+    },
+    {
+      "name": "地铁2号线",
+      "immutableCode": "NB-ML-2",
+      "slug": "ningbo-metro-2",
+      "sortOrder": 2,
+      "stations": [
+        {
+          "name": "栎社国际机场",
+          "immutableCode": "NB-MS-LISHEGUOJIJICHANG",
+          "slug": "ningbo-metro-lishe-guoji-jichang",
+          "sortOrder": 1
+        },
+        {
+          "name": "栎社",
+          "immutableCode": "NB-MS-LISHE",
+          "slug": "ningbo-metro-lishe",
+          "sortOrder": 2
+        },
+        {
+          "name": "鄞州大道",
+          "immutableCode": "NB-MS-YINZHOUDADAO",
+          "slug": "ningbo-metro-yinzhou-dadao",
+          "sortOrder": 3
+        },
+        {
+          "name": "石碶",
+          "immutableCode": "NB-MS-SHIQI",
+          "slug": "ningbo-metro-shiqi",
+          "sortOrder": 4
+        },
+        {
+          "name": "轻纺城",
+          "immutableCode": "NB-MS-QINGFANGCHENG",
+          "slug": "ningbo-metro-qingfangcheng",
+          "sortOrder": 5
+        },
+        {
+          "name": "藕池",
+          "immutableCode": "NB-MS-OUCHI",
+          "slug": "ningbo-metro-ouchi",
+          "sortOrder": 6
+        },
+        {
+          "name": "客运中心",
+          "immutableCode": "NB-MS-KEYUNZHONGXIN",
+          "slug": "ningbo-metro-keyun-zhongxin",
+          "sortOrder": 7
+        },
+        {
+          "name": "丽园南路",
+          "immutableCode": "NB-MS-LIYUANNANLU",
+          "slug": "ningbo-metro-liyuan-nanlu",
+          "sortOrder": 8
+        },
+        {
+          "name": "云霞路",
+          "immutableCode": "NB-MS-YUNXIALU",
+          "slug": "ningbo-metro-yunxia-lu",
+          "sortOrder": 9
+        },
+        {
+          "name": "宁波火车站",
+          "immutableCode": "NB-MS-NINGBOHUOCHEZHAN",
+          "slug": "ningbo-metro-ningbo-huochezhan",
+          "sortOrder": 10
+        },
+        {
+          "name": "城隍庙",
+          "immutableCode": "NB-MS-CHENGHUANGMIAO",
+          "slug": "ningbo-metro-chenghuangmiao",
+          "sortOrder": 11
+        },
+        {
+          "name": "外滩大桥",
+          "immutableCode": "NB-MS-WAITANDAQIAO",
+          "slug": "ningbo-metro-waitan-daqiao",
+          "sortOrder": 12
+        },
+        {
+          "name": "正大路",
+          "immutableCode": "NB-MS-ZHENGDALU",
+          "slug": "ningbo-metro-zhengda-lu",
+          "sortOrder": 13
+        },
+        {
+          "name": "倪家堰",
+          "immutableCode": "NB-MS-NIJIAYAN",
+          "slug": "ningbo-metro-nijiayan",
+          "sortOrder": 14
+        },
+        {
+          "name": "压赛堰",
+          "immutableCode": "NB-MS-YASAIYAN",
+          "slug": "ningbo-metro-yasaiyan",
+          "sortOrder": 15
+        },
+        {
+          "name": "大通桥",
+          "immutableCode": "NB-MS-DATONGQIAO",
+          "slug": "ningbo-metro-datongqiao",
+          "sortOrder": 16
+        },
+        {
+          "name": "孔浦",
+          "immutableCode": "NB-MS-KONGPU",
+          "slug": "ningbo-metro-kongpu",
+          "sortOrder": 17
+        },
+        {
+          "name": "路林",
+          "immutableCode": "NB-MS-LULIN",
+          "slug": "ningbo-metro-lulin",
+          "sortOrder": 18
+        },
+        {
+          "name": "三官堂",
+          "immutableCode": "NB-MS-SANGUANTANG",
+          "slug": "ningbo-metro-sanguantang",
+          "sortOrder": 19
+        },
+        {
+          "name": "宁波大学",
+          "immutableCode": "NB-MS-NINGBODAXUE",
+          "slug": "ningbo-metro-ningbo-daxue",
+          "sortOrder": 20
+        },
+        {
+          "name": "清水浦",
+          "immutableCode": "NB-MS-QINGSHUIPU",
+          "slug": "ningbo-metro-qingshuipu",
+          "sortOrder": 21
+        },
+        {
+          "name": "五里牌",
+          "immutableCode": "NB-MS-WULIPAI",
+          "slug": "ningbo-metro-wulipai",
+          "sortOrder": 22
+        },
+        {
+          "name": "枫园",
+          "immutableCode": "NB-MS-FENGYUAN",
+          "slug": "ningbo-metro-fengyuan",
+          "sortOrder": 23
+        },
+        {
+          "name": "聪园路",
+          "immutableCode": "NB-MS-CONGYUANLU",
+          "slug": "ningbo-metro-congyuan-lu",
+          "sortOrder": 24
+        },
+        {
+          "name": "招宝山",
+          "immutableCode": "NB-MS-ZHAOBAOSHAN",
+          "slug": "ningbo-metro-zhaobaoshan",
+          "sortOrder": 25
+        },
+        {
+          "name": "红联",
+          "immutableCode": "NB-MS-HONGLIAN",
+          "slug": "ningbo-metro-honglian",
+          "sortOrder": 26
+        }
+      ]
+    },
+    {
+      "name": "地铁3号线",
+      "immutableCode": "NB-ML-3",
+      "slug": "ningbo-metro-3",
+      "sortOrder": 3,
+      "stations": [
+        {
+          "name": "金海路",
+          "immutableCode": "NB-MS-JINHAILU",
+          "slug": "ningbo-metro-jinhai-lu",
+          "sortOrder": 1
+        },
+        {
+          "name": "大成东路",
+          "immutableCode": "NB-MS-DACHENGDONGLU",
+          "slug": "ningbo-metro-dacheng-donglu",
+          "sortOrder": 2
+        },
+        {
+          "name": "南渡",
+          "immutableCode": "NB-MS-NANDU",
+          "slug": "ningbo-metro-nandu",
+          "sortOrder": 3
+        },
+        {
+          "name": "琎琳",
+          "immutableCode": "NB-MS-JINLIN",
+          "slug": "ningbo-metro-jinlin",
+          "sortOrder": 4
+        },
+        {
+          "name": "方桥",
+          "immutableCode": "NB-MS-FANGQIAO",
+          "slug": "ningbo-metro-fangqiao",
+          "sortOrder": 5
+        },
+        {
+          "name": "朝阳",
+          "immutableCode": "NB-MS-CHAOYANG",
+          "slug": "ningbo-metro-chaoyang",
+          "sortOrder": 6
+        },
+        {
+          "name": "明辉路",
+          "immutableCode": "NB-MS-MINGHUILU",
+          "slug": "ningbo-metro-minghui-lu",
+          "sortOrder": 7
+        },
+        {
+          "name": "狮山",
+          "immutableCode": "NB-MS-SHISHAN",
+          "slug": "ningbo-metro-shishan",
+          "sortOrder": 8
+        },
+        {
+          "name": "姜山",
+          "immutableCode": "NB-MS-JIANGSHAN",
+          "slug": "ningbo-metro-jiangshan",
+          "sortOrder": 9
+        },
+        {
+          "name": "高塘桥",
+          "immutableCode": "NB-MS-GAOTANGQIAO",
+          "slug": "ningbo-metro-gaotangqiao",
+          "sortOrder": 10
+        },
+        {
+          "name": "句章路",
+          "immutableCode": "NB-MS-GOUZHANGLU",
+          "slug": "ningbo-metro-gouzhang-lu",
+          "sortOrder": 11
+        },
+        {
+          "name": "鄞州客运总站",
+          "immutableCode": "NB-MS-YINZHOUKEYUNZONGZHAN",
+          "slug": "ningbo-metro-yinzhou-keyunzongzhan",
+          "sortOrder": 12
+        },
+        {
+          "name": "南部商务区",
+          "immutableCode": "NB-MS-NANBUSHANGWUQU",
+          "slug": "ningbo-metro-nanbu-shangwuqu",
+          "sortOrder": 13
+        },
+        {
+          "name": "鄞州区政府",
+          "immutableCode": "NB-MS-YINZHOUQUZHENGFU",
+          "slug": "ningbo-metro-yinzhou-quzhengfu",
+          "sortOrder": 14
+        },
+        {
+          "name": "四明中路",
+          "immutableCode": "NB-MS-SIMINGZHONGLU",
+          "slug": "ningbo-metro-siming-zhonglu",
+          "sortOrder": 15
+        },
+        {
+          "name": "锦寓路",
+          "immutableCode": "NB-MS-JINYULU",
+          "slug": "ningbo-metro-jinyu-lu",
+          "sortOrder": 16
+        },
+        {
+          "name": "钱湖北路",
+          "immutableCode": "NB-MS-QIANHUBEILU",
+          "slug": "ningbo-metro-qianhu-beilu",
+          "sortOrder": 17
+        },
+        {
+          "name": "仇毕",
+          "immutableCode": "NB-MS-QIUBI",
+          "slug": "ningbo-metro-qiubi",
+          "sortOrder": 18
+        },
+        {
+          "name": "儿童公园",
+          "immutableCode": "NB-MS-ERTONGGONGYUAN",
+          "slug": "ningbo-metro-ertong-gongyuan",
+          "sortOrder": 19
+        },
+        {
+          "name": "体育馆",
+          "immutableCode": "NB-MS-TIYUGUAN",
+          "slug": "ningbo-metro-tiyuguan",
+          "sortOrder": 20
+        },
+        {
+          "name": "明楼",
+          "immutableCode": "NB-MS-MINGLOU",
+          "slug": "ningbo-metro-minglou",
+          "sortOrder": 21
+        },
+        {
+          "name": "中兴大桥南",
+          "immutableCode": "NB-MS-ZHONGXINGDAQIAONAN",
+          "slug": "ningbo-metro-zhongxing-daqiaonan",
+          "sortOrder": 22
+        }
+      ]
+    },
+    {
+      "name": "地铁4号线",
+      "immutableCode": "NB-ML-4",
+      "slug": "ningbo-metro-4",
+      "sortOrder": 4,
+      "stations": [
+        {
+          "name": "慈城西",
+          "immutableCode": "NB-MS-CICHENGXI",
+          "slug": "ningbo-metro-cicheng-xi",
+          "sortOrder": 1
+        },
+        {
+          "name": "慈城",
+          "immutableCode": "NB-MS-CICHENG",
+          "slug": "ningbo-metro-cicheng",
+          "sortOrder": 2
+        },
+        {
+          "name": "官山河",
+          "immutableCode": "NB-MS-GUANSHANHE",
+          "slug": "ningbo-metro-guanshanhe",
+          "sortOrder": 3
+        },
+        {
+          "name": "长兴路",
+          "immutableCode": "NB-MS-CHANGXINGLU",
+          "slug": "ningbo-metro-changxing-lu",
+          "sortOrder": 4
+        },
+        {
+          "name": "金山路",
+          "immutableCode": "NB-MS-JINSHANLU",
+          "slug": "ningbo-metro-jinshan-lu",
+          "sortOrder": 5
+        },
+        {
+          "name": "奥体中心",
+          "immutableCode": "NB-MS-AOTIZHONGXIN",
+          "slug": "ningbo-metro-aoti-zhongxin",
+          "sortOrder": 6
+        },
+        {
+          "name": "洪塘中路",
+          "immutableCode": "NB-MS-HONGTANGZHONGLU",
+          "slug": "ningbo-metro-hongtang-zhonglu",
+          "sortOrder": 7
+        },
+        {
+          "name": "洪大路",
+          "immutableCode": "NB-MS-HONGDALU",
+          "slug": "ningbo-metro-hongda-lu",
+          "sortOrder": 8
+        },
+        {
+          "name": "庄桥火车站",
+          "immutableCode": "NB-MS-ZHUANGQIAOHUOCHEZHAN",
+          "slug": "ningbo-metro-zhuangqiao-huochezhan",
+          "sortOrder": 9
+        },
+        {
+          "name": "丽江路",
+          "immutableCode": "NB-MS-LIJIANGLU",
+          "slug": "ningbo-metro-lijiang-lu",
+          "sortOrder": 10
+        },
+        {
+          "name": "双东路",
+          "immutableCode": "NB-MS-SHUANGDONGLU",
+          "slug": "ningbo-metro-shuangdong-lu",
+          "sortOrder": 11
+        },
+        {
+          "name": "翠柏里",
+          "immutableCode": "NB-MS-CUIBAILI",
+          "slug": "ningbo-metro-cuibaili",
+          "sortOrder": 12
+        },
+        {
+          "name": "柳西",
+          "immutableCode": "NB-MS-LIUXI",
+          "slug": "ningbo-metro-liuxi",
+          "sortOrder": 13
+        },
+        {
+          "name": "兴宁桥西",
+          "immutableCode": "NB-MS-XINGNINGQIAOXI",
+          "slug": "ningbo-metro-xingning-qiaoxi",
+          "sortOrder": 14
+        },
+        {
+          "name": "兴宁桥东",
+          "immutableCode": "NB-MS-XINGNINGQIAODONG",
+          "slug": "ningbo-metro-xingning-qiaodong",
+          "sortOrder": 15
+        },
+        {
+          "name": "白鹤",
+          "immutableCode": "NB-MS-BAIHE",
+          "slug": "ningbo-metro-baihe",
+          "sortOrder": 16
+        },
+        {
+          "name": "矮柳",
+          "immutableCode": "NB-MS-AILIU",
+          "slug": "ningbo-metro-ailiu",
+          "sortOrder": 17
+        },
+        {
+          "name": "潘火路",
+          "immutableCode": "NB-MS-PANHUOLU",
+          "slug": "ningbo-metro-panhuo-lu",
+          "sortOrder": 18
+        },
+        {
+          "name": "嵩江东路",
+          "immutableCode": "NB-MS-SONGJIANGDONGLU",
+          "slug": "ningbo-metro-songjiang-donglu",
+          "sortOrder": 19
+        },
+        {
+          "name": "南高教园区",
+          "immutableCode": "NB-MS-NANGAOJIAOYUANQU",
+          "slug": "ningbo-metro-nangaojiao-yuanqu",
+          "sortOrder": 20
+        },
+        {
+          "name": "金达南路",
+          "immutableCode": "NB-MS-JINDANANLU",
+          "slug": "ningbo-metro-jinda-nanlu",
+          "sortOrder": 21
+        },
+        {
+          "name": "小洋江",
+          "immutableCode": "NB-MS-XIAOYANGJIANG",
+          "slug": "ningbo-metro-xiaoyangjiang",
+          "sortOrder": 22
+        },
+        {
+          "name": "东钱湖",
+          "immutableCode": "NB-MS-DONGQIANHU",
+          "slug": "ningbo-metro-dongqianhu",
+          "sortOrder": 23
+        },
+        {
+          "name": "国际会议中心",
+          "immutableCode": "NB-MS-GUOJIHUIYIZHONGXIN",
+          "slug": "ningbo-metro-guoji-huiyi-zhongxin",
+          "sortOrder": 24
+        }
+      ]
+    },
+    {
+      "name": "地铁5号线",
+      "immutableCode": "NB-ML-5",
+      "slug": "ningbo-metro-5",
+      "sortOrder": 5,
+      "stations": [
+        {
+          "name": "布政",
+          "immutableCode": "NB-MS-BUZHENG",
+          "slug": "ningbo-metro-buzheng",
+          "sortOrder": 1
+        },
+        {
+          "name": "张家潭",
+          "immutableCode": "NB-MS-ZHANGJIATAN",
+          "slug": "ningbo-metro-zhangjiatan",
+          "sortOrder": 2
+        },
+        {
+          "name": "同德路",
+          "immutableCode": "NB-MS-TONGDELU",
+          "slug": "ningbo-metro-tongde-lu",
+          "sortOrder": 3
+        },
+        {
+          "name": "雅渡",
+          "immutableCode": "NB-MS-YADU",
+          "slug": "ningbo-metro-yadu",
+          "sortOrder": 4
+        },
+        {
+          "name": "庙堰",
+          "immutableCode": "NB-MS-MIAOYAN",
+          "slug": "ningbo-metro-miaoyan",
+          "sortOrder": 5
+        },
+        {
+          "name": "钟公庙",
+          "immutableCode": "NB-MS-ZHONGGONGMIAO",
+          "slug": "ningbo-metro-zhonggongmiao",
+          "sortOrder": 6
+        },
+        {
+          "name": "钱湖南路",
+          "immutableCode": "NB-MS-QIANHUNANLU",
+          "slug": "ningbo-metro-qianhu-nanlu",
+          "sortOrder": 7
+        },
+        {
+          "name": "下应路",
+          "immutableCode": "NB-MS-XIAYINGLU",
+          "slug": "ningbo-metro-xiaying-lu",
+          "sortOrder": 8
+        },
+        {
+          "name": "大洋江",
+          "immutableCode": "NB-MS-DAYANGJIANG",
+          "slug": "ningbo-metro-dayangjiang",
+          "sortOrder": 9
+        },
+        {
+          "name": "泗港",
+          "immutableCode": "NB-MS-SIGANG",
+          "slug": "ningbo-metro-sigang",
+          "sortOrder": 10
+        },
+        {
+          "name": "曹隘",
+          "immutableCode": "NB-MS-CAOGAI",
+          "slug": "ningbo-metro-caogai",
+          "sortOrder": 11
+        },
+        {
+          "name": "柳隘",
+          "immutableCode": "NB-MS-LIUGAI",
+          "slug": "ningbo-metro-liugai",
+          "sortOrder": 12
+        },
+        {
+          "name": "民安东路",
+          "immutableCode": "NB-MS-MINANDONGLU",
+          "slug": "ningbo-metro-minan-donglu",
+          "sortOrder": 13
+        },
+        {
+          "name": "会展中心",
+          "immutableCode": "NB-MS-HUIZHANZHONGXIN",
+          "slug": "ningbo-metro-huizhan-zhongxin",
+          "sortOrder": 14
+        },
+        {
+          "name": "院士路",
+          "immutableCode": "NB-MS-YUANSHILU",
+          "slug": "ningbo-metro-yuanshi-lu",
+          "sortOrder": 15
+        },
+        {
+          "name": "盎孟港",
+          "immutableCode": "NB-MS-ANGMENGGANG",
+          "slug": "ningbo-metro-angmenggang",
+          "sortOrder": 16
+        },
+        {
+          "name": "兴庄路",
+          "immutableCode": "NB-MS-XINGZHUANGLU",
+          "slug": "ningbo-metro-xingzhuang-lu",
+          "sortOrder": 17
+        },
+        {
+          "name": "兴海南路",
+          "immutableCode": "NB-MS-XINGHAINANLU",
+          "slug": "ningbo-metro-xinghai-nanlu",
+          "sortOrder": 18
+        },
+        {
+          "name": "梅堰",
+          "immutableCode": "NB-MS-MEIYAN",
+          "slug": "ningbo-metro-meiyan",
+          "sortOrder": 19
+        },
+        {
+          "name": "永茂路",
+          "immutableCode": "NB-MS-YONGMAOLU",
+          "slug": "ningbo-metro-yongmao-lu",
+          "sortOrder": 20
+        },
+        {
+          "name": "镇海大道",
+          "immutableCode": "NB-MS-ZHENHAIDADAO",
+          "slug": "ningbo-metro-zhenhai-dadao",
+          "sortOrder": 21
+        },
+        {
+          "name": "骆驼桥",
+          "immutableCode": "NB-MS-LUOTUOQIAO",
+          "slug": "ningbo-metro-luotuoqiao",
+          "sortOrder": 22
+        }
+      ]
+    },
+    {
+      "name": "地铁6号线",
+      "immutableCode": "NB-ML-6",
+      "slug": "ningbo-metro-6",
+      "sortOrder": 6,
+      "stations": [
+        {
+          "name": "古林",
+          "immutableCode": "NB-MS-GULIN",
+          "slug": "ningbo-metro-gulin",
+          "sortOrder": 1
+        },
+        {
+          "name": "云林西路",
+          "immutableCode": "NB-MS-YUNLINXILU",
+          "slug": "ningbo-metro-yunlin-xilu",
+          "sortOrder": 2
+        },
+        {
+          "name": "集士港",
+          "immutableCode": "NB-MS-JISHIGANG",
+          "slug": "ningbo-metro-jishigang",
+          "sortOrder": 3
+        },
+        {
+          "name": "汇士路",
+          "immutableCode": "NB-MS-HUISHILU",
+          "slug": "ningbo-metro-huishi-lu",
+          "sortOrder": 4
+        },
+        {
+          "name": "卖面桥",
+          "immutableCode": "NB-MS-MAIMIANQIAO",
+          "slug": "ningbo-metro-maimianqiao",
+          "sortOrder": 5
+        },
+        {
+          "name": "宋家漕",
+          "immutableCode": "NB-MS-SONGJIACAO",
+          "slug": "ningbo-metro-songjiacao",
+          "sortOrder": 6
+        },
+        {
+          "name": "新芝路",
+          "immutableCode": "NB-MS-XINZHILU",
+          "slug": "ningbo-metro-xinzhi-lu",
+          "sortOrder": 7
+        },
+        {
+          "name": "庆丰桥东",
+          "immutableCode": "NB-MS-QINGFENGQIAODONG",
+          "slug": "ningbo-metro-qingfeng-qiaodong",
+          "sortOrder": 8
+        },
+        {
+          "name": "明珠路",
+          "immutableCode": "NB-MS-MINGZHULU",
+          "slug": "ningbo-metro-mingzhu-lu",
+          "sortOrder": 9
+        },
+        {
+          "name": "沧海北路",
+          "immutableCode": "NB-MS-CANGHAIBEILU",
+          "slug": "ningbo-metro-canghai-beilu",
+          "sortOrder": 10
+        },
+        {
+          "name": "聚贤路",
+          "immutableCode": "NB-MS-JUXIANLU",
+          "slug": "ningbo-metro-juxian-lu",
+          "sortOrder": 11
+        },
+        {
+          "name": "梅墟",
+          "immutableCode": "NB-MS-MEIXU",
+          "slug": "ningbo-metro-meixu",
+          "sortOrder": 12
+        },
+        {
+          "name": "谢墅",
+          "immutableCode": "NB-MS-XIESHU",
+          "slug": "ningbo-metro-xieshu",
+          "sortOrder": 13
+        },
+        {
+          "name": "小港西",
+          "immutableCode": "NB-MS-XIAOGANGXI",
+          "slug": "ningbo-metro-xiaogang-xi",
+          "sortOrder": 14
+        },
+        {
+          "name": "衙前",
+          "immutableCode": "NB-MS-YAQIAN",
+          "slug": "ningbo-metro-yaqian",
+          "sortOrder": 15
+        }
+      ]
+    },
+    {
+      "name": "地铁7号线",
+      "immutableCode": "NB-ML-7",
+      "slug": "ningbo-metro-7",
+      "sortOrder": 7,
+      "stations": [
+        {
+          "name": "俞范",
+          "immutableCode": "NB-MS-YUFAN",
+          "slug": "ningbo-metro-yufan",
+          "sortOrder": 1
+        },
+        {
+          "name": "明海北路",
+          "immutableCode": "NB-MS-MINGHAIBEILU",
+          "slug": "ningbo-metro-minghai-beilu",
+          "sortOrder": 2
+        },
+        {
+          "name": "贵驷",
+          "immutableCode": "NB-MS-GUISI",
+          "slug": "ningbo-metro-guisi",
+          "sortOrder": 3
+        },
+        {
+          "name": "镇海市民广场",
+          "immutableCode": "NB-MS-ZHENHAISHIMINGUANGCHANG",
+          "slug": "ningbo-metro-zhenhai-shiminguangchang",
+          "sortOrder": 4
+        },
+        {
+          "name": "骆兴",
+          "immutableCode": "NB-MS-LUOXING",
+          "slug": "ningbo-metro-luoxing",
+          "sortOrder": 5
+        },
+        {
+          "name": "应嘉路",
+          "immutableCode": "NB-MS-YINGJIALU",
+          "slug": "ningbo-metro-yingjia-lu",
+          "sortOrder": 6
+        },
+        {
+          "name": "宁慈东路",
+          "immutableCode": "NB-MS-NINGCIDONGLU",
+          "slug": "ningbo-metro-ningci-donglu",
+          "sortOrder": 7
+        },
+        {
+          "name": "云飞路",
+          "immutableCode": "NB-MS-YUNFEILU",
+          "slug": "ningbo-metro-yunfei-lu",
+          "sortOrder": 8
+        },
+        {
+          "name": "湾头",
+          "immutableCode": "NB-MS-WANTOU",
+          "slug": "ningbo-metro-wantou",
+          "sortOrder": 9
+        },
+        {
+          "name": "宁波大剧院",
+          "immutableCode": "NB-MS-NINGBODAJUYUAN",
+          "slug": "ningbo-metro-ningbo-dajuyuan",
+          "sortOrder": 10
+        },
+        {
+          "name": "曙光",
+          "immutableCode": "NB-MS-SHUGUANG",
+          "slug": "ningbo-metro-shuguang",
+          "sortOrder": 11
+        },
+        {
+          "name": "福民公园",
+          "immutableCode": "NB-MS-FUMINGONGYUAN",
+          "slug": "ningbo-metro-fumin-gongyuan",
+          "sortOrder": 12
+        },
+        {
+          "name": "新天路",
+          "immutableCode": "NB-MS-XINTIANLU",
+          "slug": "ningbo-metro-xintian-lu",
+          "sortOrder": 13
+        },
+        {
+          "name": "北明程路",
+          "immutableCode": "NB-MS-BEIMINGCHENGLU",
+          "slug": "ningbo-metro-beimingcheng-lu",
+          "sortOrder": 14
+        },
+        {
+          "name": "邱隘",
+          "immutableCode": "NB-MS-QIUGAI",
+          "slug": "ningbo-metro-qiugai",
+          "sortOrder": 15
+        },
+        {
+          "name": "尚德路",
+          "immutableCode": "NB-MS-SHANGDELU",
+          "slug": "ningbo-metro-shangde-lu",
+          "sortOrder": 16
+        },
+        {
+          "name": "回龙",
+          "immutableCode": "NB-MS-HUILONG",
+          "slug": "ningbo-metro-huilong",
+          "sortOrder": 17
+        },
+        {
+          "name": "安石路",
+          "immutableCode": "NB-MS-ANSHILU",
+          "slug": "ningbo-metro-anshi-lu",
+          "sortOrder": 18
+        },
+        {
+          "name": "云龙",
+          "immutableCode": "NB-MS-YUNLONG",
+          "slug": "ningbo-metro-yunlong",
+          "sortOrder": 19
+        }
+      ]
+    },
+    {
+      "name": "地铁8号线",
+      "immutableCode": "NB-ML-8",
+      "slug": "ningbo-metro-8",
+      "sortOrder": 8,
+      "stations": [
+        {
+          "name": "开元路",
+          "immutableCode": "NB-MS-KAIYUANLU",
+          "slug": "ningbo-metro-kaiyuan-lu",
+          "sortOrder": 1
+        },
+        {
+          "name": "洪塘",
+          "immutableCode": "NB-MS-HONGTANG",
+          "slug": "ningbo-metro-hongtang",
+          "sortOrder": 2
+        },
+        {
+          "name": "洪盛路",
+          "immutableCode": "NB-MS-HONGSHENGLU",
+          "slug": "ningbo-metro-hongsheng-lu",
+          "sortOrder": 3
+        },
+        {
+          "name": "榭嘉",
+          "immutableCode": "NB-MS-XIEJIA",
+          "slug": "ningbo-metro-xiejia",
+          "sortOrder": 4
+        },
+        {
+          "name": "青林湾",
+          "immutableCode": "NB-MS-QINGLINWAN",
+          "slug": "ningbo-metro-qinglinwan",
+          "sortOrder": 5
+        },
+        {
+          "name": "市中医院",
+          "immutableCode": "NB-MS-SHIZHONGYIYUAN",
+          "slug": "ningbo-metro-shizhongyiyuan",
+          "sortOrder": 6
+        },
+        {
+          "name": "联丰",
+          "immutableCode": "NB-MS-LIANFENG",
+          "slug": "ningbo-metro-lianfeng",
+          "sortOrder": 7
+        },
+        {
+          "name": "南苑",
+          "immutableCode": "NB-MS-NANYUAN",
+          "slug": "ningbo-metro-nanyuan",
+          "sortOrder": 8
+        },
+        {
+          "name": "段塘",
+          "immutableCode": "NB-MS-DUANTANG",
+          "slug": "ningbo-metro-duantang",
+          "sortOrder": 9
+        },
+        {
+          "name": "堇山西路",
+          "immutableCode": "NB-MS-JINSHANXILU",
+          "slug": "ningbo-metro-jinshan-xilu",
+          "sortOrder": 10
+        },
+        {
+          "name": "鄞州公园南",
+          "immutableCode": "NB-MS-YINZHOUGONGYUANNAN",
+          "slug": "ningbo-metro-yinzhou-gongyuannan",
+          "sortOrder": 11
+        },
+        {
+          "name": "学府路",
+          "immutableCode": "NB-MS-XUEFULU",
+          "slug": "ningbo-metro-xuefu-lu",
+          "sortOrder": 12
+        },
+        {
+          "name": "寒松路",
+          "immutableCode": "NB-MS-HANSONGLU",
+          "slug": "ningbo-metro-hansong-lu",
+          "sortOrder": 13
+        }
+      ]
+    }
+  ]
+}

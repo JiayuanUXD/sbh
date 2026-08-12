@@ -1,0 +1,160 @@
+// ============================================================
+// 嘉兴地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、核心办公商圈人工盘点
+// 采集日期：2026-08-11（坐标经高德地图 API 回填，见 seed/geography/_collect/）
+// 核对人：未经人工核对 —— 本文件由实现代理生成，行政区划码/线网/商圈口径尚待业务方逐条复核后在此回填姓名与日期
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/jiaxing.json
+// 嘉兴暂无城市地铁（市域铁路/有轨电车不属地铁，B1.5 口径），metroLines 留空
+// ============================================================
+{
+  "city": {
+    "name": "嘉兴市",
+    "immutableCode": "CITY-JX",
+    "slug": "jiaxing",
+    "sortOrder": 7,
+    "centerLatitude": 30.746814,
+    "centerLongitude": 120.755623
+  },
+  "districts": [
+    {
+      "name": "南湖区",
+      "immutableCode": "JX-D-330402",
+      "slug": "jiaxing-nanhu",
+      "sortOrder": 1,
+      "centerLatitude": 30.747738,
+      "centerLongitude": 120.782952
+    },
+    {
+      "name": "秀洲区",
+      "immutableCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhou",
+      "sortOrder": 2,
+      "centerLatitude": 30.764811,
+      "centerLongitude": 120.709047
+    },
+    {
+      "name": "嘉善县",
+      "immutableCode": "JX-D-330421",
+      "slug": "jiaxing-jiashan",
+      "sortOrder": 3,
+      "centerLatitude": 30.83085,
+      "centerLongitude": 120.926031
+    },
+    {
+      "name": "海盐县",
+      "immutableCode": "JX-D-330424",
+      "slug": "jiaxing-haiyan",
+      "sortOrder": 4,
+      "centerLatitude": 30.52664,
+      "centerLongitude": 120.94628
+    },
+    {
+      "name": "海宁市",
+      "immutableCode": "JX-D-330481",
+      "slug": "jiaxing-haining",
+      "sortOrder": 5,
+      "centerLatitude": 30.511536,
+      "centerLongitude": 120.680224
+    },
+    {
+      "name": "平湖市",
+      "immutableCode": "JX-D-330482",
+      "slug": "jiaxing-pinghu",
+      "sortOrder": 6,
+      "centerLatitude": 30.677804,
+      "centerLongitude": 121.015619
+    },
+    {
+      "name": "桐乡市",
+      "immutableCode": "JX-D-330483",
+      "slug": "jiaxing-tongxiang",
+      "sortOrder": 7,
+      "centerLatitude": 30.630375,
+      "centerLongitude": 120.565127
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "嘉兴科技城",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-kejicheng",
+      "immutableCode": "JX-BA-KEJICHENG",
+      "centerLatitude": 30.852692,
+      "centerLongitude": 120.95178
+    },
+    {
+      "name": "南湖 CBD",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-nanhu-cbd",
+      "immutableCode": "JX-BA-NANHUCBD",
+      "centerLatitude": 30.736996,
+      "centerLongitude": 120.799843
+    },
+    {
+      "name": "高铁新城",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-gaotiexincheng",
+      "immutableCode": "JX-BA-GAOTIEXINCHENG",
+      "centerLatitude": 30.793966,
+      "centerLongitude": 120.923786
+    },
+    {
+      "name": "嘉兴经济技术开发区",
+      "districtCode": "JX-D-330402",
+      "slug": "jiaxing-jingkaiqu",
+      "immutableCode": "JX-BA-JINGKAIQU",
+      "centerLatitude": 30.728946,
+      "centerLongitude": 120.732776
+    },
+    {
+      "name": "秀洲高新区",
+      "districtCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhougaoxinqu",
+      "immutableCode": "JX-BA-XIUZHOUGAOXINQU",
+      "centerLatitude": 30.760405,
+      "centerLongitude": 120.646631
+    },
+    {
+      "name": "秀洲新区",
+      "districtCode": "JX-D-330411",
+      "slug": "jiaxing-xiuzhouxinqu",
+      "immutableCode": "JX-BA-XIUZHOUXINQU",
+      "centerLatitude": 30.760155,
+      "centerLongitude": 120.693085
+    },
+    {
+      "name": "嘉善城区",
+      "districtCode": "JX-D-330421",
+      "slug": "jiaxing-jiashanchengqu",
+      "immutableCode": "JX-BA-JIASHANCHENGQU",
+      "centerLatitude": 30.860221,
+      "centerLongitude": 120.934014
+    },
+    {
+      "name": "平湖经济开发区",
+      "districtCode": "JX-D-330482",
+      "slug": "jiaxing-pinghukaifaqu",
+      "immutableCode": "JX-BA-PINGHUKAIFAQU",
+      "centerLatitude": 30.726238,
+      "centerLongitude": 121.016984
+    },
+    {
+      "name": "桐乡城区",
+      "districtCode": "JX-D-330483",
+      "slug": "jiaxing-tongxiangchengqu",
+      "immutableCode": "JX-BA-TONGXIANGCHENGQU",
+      "centerLatitude": 30.630375,
+      "centerLongitude": 120.565127
+    },
+    {
+      "name": "海宁中心商务区",
+      "districtCode": "JX-D-330481",
+      "slug": "jiaxing-haining-cbd",
+      "immutableCode": "JX-BA-HAININGCBD",
+      "centerLatitude": 30.503869,
+      "centerLongitude": 120.692895
+    }
+  ],
+  "metroLines": []
+}

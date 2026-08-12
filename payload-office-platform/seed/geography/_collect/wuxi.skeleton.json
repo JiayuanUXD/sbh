@@ -1,0 +1,597 @@
+
+{
+  "_header": [
+    "============================================================",
+    "无锡地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、无锡地铁官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：坐标回填后由本骨架生成 seed/geography/wuxi.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "无锡市",
+    "immutableCode": "CITY-WX",
+    "slug": "wuxi",
+    "sortOrder": 5
+  },
+  "districts": [
+    {
+      "name": "锡山区",
+      "immutableCode": "WX-D-320205",
+      "slug": "wuxi-xishan",
+      "sortOrder": 1
+    },
+    {
+      "name": "惠山区",
+      "immutableCode": "WX-D-320206",
+      "slug": "wuxi-huishan",
+      "sortOrder": 2
+    },
+    {
+      "name": "滨湖区",
+      "immutableCode": "WX-D-320211",
+      "slug": "wuxi-binhu",
+      "sortOrder": 3
+    },
+    {
+      "name": "梁溪区",
+      "immutableCode": "WX-D-320213",
+      "slug": "wuxi-liangxi",
+      "sortOrder": 4
+    },
+    {
+      "name": "新吴区",
+      "immutableCode": "WX-D-320214",
+      "slug": "wuxi-xinwu",
+      "sortOrder": 5
+    },
+    {
+      "name": "江阴市",
+      "immutableCode": "WX-D-320281",
+      "slug": "wuxi-jiangyin",
+      "sortOrder": 6
+    },
+    {
+      "name": "宜兴市",
+      "immutableCode": "WX-D-320282",
+      "slug": "wuxi-yixing",
+      "sortOrder": 7
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "太湖新城",
+      "districtCode": "WX-D-320211",
+      "slug": "wuxi-taihu-xincheng",
+      "immutableCode": "WX-BA-TAIHUXINCHENG"
+    },
+    {
+      "name": "梁溪CBD",
+      "districtCode": "WX-D-320213",
+      "slug": "wuxi-liangxi-cbd",
+      "immutableCode": "WX-BA-LIANGXICBD"
+    },
+    {
+      "name": "崇安",
+      "districtCode": "WX-D-320213",
+      "slug": "wuxi-chongan",
+      "immutableCode": "WX-BA-CHONGAN"
+    },
+    {
+      "name": "南长",
+      "districtCode": "WX-D-320213",
+      "slug": "wuxi-nanchang",
+      "immutableCode": "WX-BA-NANCHANG"
+    },
+    {
+      "name": "蠡湖",
+      "districtCode": "WX-D-320211",
+      "slug": "wuxi-lihu",
+      "immutableCode": "WX-BA-LIHU"
+    },
+    {
+      "name": "滨湖",
+      "districtCode": "WX-D-320211",
+      "slug": "wuxi-binhu-cbd",
+      "immutableCode": "WX-BA-BINHU"
+    },
+    {
+      "name": "河埒口",
+      "districtCode": "WX-D-320211",
+      "slug": "wuxi-heliekou",
+      "immutableCode": "WX-BA-HELIEKOU"
+    },
+    {
+      "name": "无锡新区",
+      "districtCode": "WX-D-320214",
+      "slug": "wuxi-wuxi-xinqu",
+      "immutableCode": "WX-BA-WUXIXINQU"
+    },
+    {
+      "name": "惠山",
+      "districtCode": "WX-D-320206",
+      "slug": "wuxi-huishan-cbd",
+      "immutableCode": "WX-BA-HUISHAN"
+    },
+    {
+      "name": "锡东新城",
+      "districtCode": "WX-D-320205",
+      "slug": "wuxi-xidong-xincheng",
+      "immutableCode": "WX-BA-XIDONGXINCHENG"
+    },
+    {
+      "name": "东亭",
+      "districtCode": "WX-D-320205",
+      "slug": "wuxi-dongting",
+      "immutableCode": "WX-BA-DONGTING"
+    },
+    {
+      "name": "江阴",
+      "districtCode": "WX-D-320281",
+      "slug": "wuxi-jiangyin-cbd",
+      "immutableCode": "WX-BA-JIANGYIN"
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "WX-ML-1",
+      "slug": "wuxi-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "堰桥",
+          "immutableCode": "WX-MS-YANQIAO",
+          "slug": "wuxi-metro-yanqiao",
+          "sortOrder": 1
+        },
+        {
+          "name": "锡北运河",
+          "immutableCode": "WX-MS-XIBEIYUNHE",
+          "slug": "wuxi-metro-xibei-yunhe",
+          "sortOrder": 2
+        },
+        {
+          "name": "西漳",
+          "immutableCode": "WX-MS-XIZHANG",
+          "slug": "wuxi-metro-xizhang",
+          "sortOrder": 3
+        },
+        {
+          "name": "天一",
+          "immutableCode": "WX-MS-TIANYI",
+          "slug": "wuxi-metro-tianyi",
+          "sortOrder": 4
+        },
+        {
+          "name": "刘潭",
+          "immutableCode": "WX-MS-LIUTAN",
+          "slug": "wuxi-metro-liutan",
+          "sortOrder": 5
+        },
+        {
+          "name": "庄前",
+          "immutableCode": "WX-MS-ZHUANGQIAN",
+          "slug": "wuxi-metro-zhuangqian",
+          "sortOrder": 6
+        },
+        {
+          "name": "民丰",
+          "immutableCode": "WX-MS-MINFENG",
+          "slug": "wuxi-metro-minfeng",
+          "sortOrder": 7
+        },
+        {
+          "name": "无锡火车站",
+          "immutableCode": "WX-MS-WUXIHUOCHEZHAN",
+          "slug": "wuxi-metro-wuxihuochezhan",
+          "sortOrder": 8
+        },
+        {
+          "name": "胜利门",
+          "immutableCode": "WX-MS-SHENGLIMEN",
+          "slug": "wuxi-metro-shenglimen",
+          "sortOrder": 9
+        },
+        {
+          "name": "三阳广场",
+          "immutableCode": "WX-MS-SANYANGGUANGCHANG",
+          "slug": "wuxi-metro-sanyangguangchang",
+          "sortOrder": 10
+        },
+        {
+          "name": "南禅寺",
+          "immutableCode": "WX-MS-NANCHANSI",
+          "slug": "wuxi-metro-nanchansi",
+          "sortOrder": 11
+        },
+        {
+          "name": "谈渡桥",
+          "immutableCode": "WX-MS-TANDUQIAO",
+          "slug": "wuxi-metro-tanduqiao",
+          "sortOrder": 12
+        },
+        {
+          "name": "太湖广场",
+          "immutableCode": "WX-MS-TAIHUGUANGCHANG",
+          "slug": "wuxi-metro-taihuguangchang",
+          "sortOrder": 13
+        },
+        {
+          "name": "清名桥",
+          "immutableCode": "WX-MS-QINGMINGQIAO",
+          "slug": "wuxi-metro-qingmingqiao",
+          "sortOrder": 14
+        },
+        {
+          "name": "人民医院",
+          "immutableCode": "WX-MS-RENMINYIYUAN",
+          "slug": "wuxi-metro-renminyiyuan",
+          "sortOrder": 15
+        },
+        {
+          "name": "华清大桥",
+          "immutableCode": "WX-MS-HUAQINGDAQIAO",
+          "slug": "wuxi-metro-huaqingdaqiao",
+          "sortOrder": 16
+        },
+        {
+          "name": "扬名",
+          "immutableCode": "WX-MS-YANGMING",
+          "slug": "wuxi-metro-yangming",
+          "sortOrder": 17
+        },
+        {
+          "name": "南湖家园",
+          "immutableCode": "WX-MS-NANHUJIAYUAN",
+          "slug": "wuxi-metro-nanhujiayuan",
+          "sortOrder": 18
+        },
+        {
+          "name": "塘铁桥",
+          "immutableCode": "WX-MS-TANGTIEQIAO",
+          "slug": "wuxi-metro-tangtieqiao",
+          "sortOrder": 19
+        },
+        {
+          "name": "金匮公园",
+          "immutableCode": "WX-MS-JINKUIGONGYUAN",
+          "slug": "wuxi-metro-jinkuigongyuan",
+          "sortOrder": 20
+        },
+        {
+          "name": "市民中心",
+          "immutableCode": "WX-MS-SHIMINZHONGXIN",
+          "slug": "wuxi-metro-shiminzhongxin",
+          "sortOrder": 21
+        },
+        {
+          "name": "文化宫",
+          "immutableCode": "WX-MS-WENHUAGONG",
+          "slug": "wuxi-metro-wenhuagong",
+          "sortOrder": 22
+        },
+        {
+          "name": "江南大学",
+          "immutableCode": "WX-MS-JIANGNANDAXUE",
+          "slug": "wuxi-metro-jiangnandaxue",
+          "sortOrder": 23
+        },
+        {
+          "name": "长广溪",
+          "immutableCode": "WX-MS-CHANGGUANGXI",
+          "slug": "wuxi-metro-changguangxi",
+          "sortOrder": 24
+        },
+        {
+          "name": "雪浪",
+          "immutableCode": "WX-MS-XUELANG",
+          "slug": "wuxi-metro-xuelang",
+          "sortOrder": 25
+        },
+        {
+          "name": "葛埭桥",
+          "immutableCode": "WX-MS-GEDAIQIAO",
+          "slug": "wuxi-metro-gedaiqiao",
+          "sortOrder": 26
+        },
+        {
+          "name": "南方泉",
+          "immutableCode": "WX-MS-NANFANGQUAN",
+          "slug": "wuxi-metro-nanfangquan",
+          "sortOrder": 27
+        }
+      ]
+    },
+    {
+      "name": "地铁2号线",
+      "immutableCode": "WX-ML-2",
+      "slug": "wuxi-metro-2",
+      "sortOrder": 2,
+      "stations": [
+        {
+          "name": "梅园开原寺",
+          "immutableCode": "WX-MS-MEIYUANKAIYUANSI",
+          "slug": "wuxi-metro-meiyuan-kaiyuansi",
+          "sortOrder": 1
+        },
+        {
+          "name": "荣巷",
+          "immutableCode": "WX-MS-RONGXIANG",
+          "slug": "wuxi-metro-rongxiang",
+          "sortOrder": 2
+        },
+        {
+          "name": "小桃园",
+          "immutableCode": "WX-MS-XIAOTAOYUAN",
+          "slug": "wuxi-metro-xiaotaoyuan",
+          "sortOrder": 3
+        },
+        {
+          "name": "河埒口",
+          "immutableCode": "WX-MS-HELIEKOU",
+          "slug": "wuxi-metro-heliekou",
+          "sortOrder": 4
+        },
+        {
+          "name": "大王基",
+          "immutableCode": "WX-MS-DAWANGJI",
+          "slug": "wuxi-metro-dawangji",
+          "sortOrder": 5
+        },
+        {
+          "name": "梁溪大桥",
+          "immutableCode": "WX-MS-LIANGXIDAQIAO",
+          "slug": "wuxi-metro-liangxidaqiao",
+          "sortOrder": 6
+        },
+        {
+          "name": "五爱广场",
+          "immutableCode": "WX-MS-WUAIGUANGCHANG",
+          "slug": "wuxi-metro-wuaiguangchang",
+          "sortOrder": 7
+        },
+        {
+          "name": "东林广场",
+          "immutableCode": "WX-MS-DONGLINGUANGCHANG",
+          "slug": "wuxi-metro-donglinguangchang",
+          "sortOrder": 8
+        },
+        {
+          "name": "上马墩",
+          "immutableCode": "WX-MS-SHANGMADUN",
+          "slug": "wuxi-metro-shangmadun",
+          "sortOrder": 9
+        },
+        {
+          "name": "靖海",
+          "immutableCode": "WX-MS-JINGHAI",
+          "slug": "wuxi-metro-jinghai",
+          "sortOrder": 10
+        },
+        {
+          "name": "广益",
+          "immutableCode": "WX-MS-GUANGYI",
+          "slug": "wuxi-metro-guangyi",
+          "sortOrder": 11
+        },
+        {
+          "name": "柏庄",
+          "immutableCode": "WX-MS-BAIZHUANG",
+          "slug": "wuxi-metro-baizhuang",
+          "sortOrder": 12
+        },
+        {
+          "name": "云林",
+          "immutableCode": "WX-MS-YUNLIN",
+          "slug": "wuxi-metro-yunlin",
+          "sortOrder": 13
+        },
+        {
+          "name": "九里河公园",
+          "immutableCode": "WX-MS-JIULIHEGONGYUAN",
+          "slug": "wuxi-metro-jiulihegongyuan",
+          "sortOrder": 14
+        },
+        {
+          "name": "查桥",
+          "immutableCode": "WX-MS-ZHAQIAO",
+          "slug": "wuxi-metro-zhaqiao",
+          "sortOrder": 15
+        },
+        {
+          "name": "映月湖公园",
+          "immutableCode": "WX-MS-YINGYUEHUGONGYUAN",
+          "slug": "wuxi-metro-yingyuehugongyuan",
+          "sortOrder": 16
+        },
+        {
+          "name": "无锡东站",
+          "immutableCode": "WX-MS-WUXIDONGZHAN",
+          "slug": "wuxi-metro-wuxidongzhan",
+          "sortOrder": 17
+        },
+        {
+          "name": "安镇",
+          "immutableCode": "WX-MS-ANZHEN",
+          "slug": "wuxi-metro-anzhen",
+          "sortOrder": 18
+        }
+      ]
+    },
+    {
+      "name": "地铁3号线",
+      "immutableCode": "WX-ML-3",
+      "slug": "wuxi-metro-3",
+      "sortOrder": 3,
+      "stations": [
+        {
+          "name": "苏庙",
+          "immutableCode": "WX-MS-SUMIAO",
+          "slug": "wuxi-metro-sumiao",
+          "sortOrder": 1
+        },
+        {
+          "name": "钱桥",
+          "immutableCode": "WX-MS-QIANQIAO",
+          "slug": "wuxi-metro-qianqiao",
+          "sortOrder": 2
+        },
+        {
+          "name": "龙山梢",
+          "immutableCode": "WX-MS-LONGSHANSHAO",
+          "slug": "wuxi-metro-longshanshao",
+          "sortOrder": 3
+        },
+        {
+          "name": "石门路",
+          "immutableCode": "WX-MS-SHIMENLU",
+          "slug": "wuxi-metro-shimenlu",
+          "sortOrder": 4
+        },
+        {
+          "name": "盛岸",
+          "immutableCode": "WX-MS-SHENGAN",
+          "slug": "wuxi-metro-shengan",
+          "sortOrder": 5
+        },
+        {
+          "name": "吴桥",
+          "immutableCode": "WX-MS-WUQIAO",
+          "slug": "wuxi-metro-wuqiao",
+          "sortOrder": 6
+        },
+        {
+          "name": "北栅口",
+          "immutableCode": "WX-MS-BEIZHAKOU",
+          "slug": "wuxi-metro-beizhakou",
+          "sortOrder": 7
+        },
+        {
+          "name": "广瑞",
+          "immutableCode": "WX-MS-GUANGRUI",
+          "slug": "wuxi-metro-guangrui",
+          "sortOrder": 8
+        },
+        {
+          "name": "东亭",
+          "immutableCode": "WX-MS-DONGTING",
+          "slug": "wuxi-metro-dongting",
+          "sortOrder": 9
+        },
+        {
+          "name": "芙蓉湖",
+          "immutableCode": "WX-MS-FURONGHU",
+          "slug": "wuxi-metro-furonghu",
+          "sortOrder": 10
+        },
+        {
+          "name": "新光路",
+          "immutableCode": "WX-MS-XINGUANGLU",
+          "slug": "wuxi-metro-xinguanglu",
+          "sortOrder": 11
+        },
+        {
+          "name": "无锡新区站",
+          "immutableCode": "WX-MS-WUXIXINQUZHAN",
+          "slug": "wuxi-metro-wuxixinquzhan",
+          "sortOrder": 12
+        },
+        {
+          "name": "新安",
+          "immutableCode": "WX-MS-XINAN",
+          "slug": "wuxi-metro-xinan",
+          "sortOrder": 13
+        },
+        {
+          "name": "硕放",
+          "immutableCode": "WX-MS-SHUOFANG",
+          "slug": "wuxi-metro-shuofang",
+          "sortOrder": 14
+        },
+        {
+          "name": "长江南路",
+          "immutableCode": "WX-MS-CHANGJIANGNANLU",
+          "slug": "wuxi-metro-changjiangnanlu",
+          "sortOrder": 15
+        },
+        {
+          "name": "苏南硕放机场",
+          "immutableCode": "WX-MS-SUNANSHUOFANGJICHANG",
+          "slug": "wuxi-metro-sunanshuofangjichang",
+          "sortOrder": 16
+        }
+      ]
+    },
+    {
+      "name": "地铁4号线",
+      "immutableCode": "WX-ML-4",
+      "slug": "wuxi-metro-4",
+      "sortOrder": 4,
+      "stations": [
+        {
+          "name": "广石路",
+          "immutableCode": "WX-MS-GUANGSHILU",
+          "slug": "wuxi-metro-guangshilu",
+          "sortOrder": 1
+        },
+        {
+          "name": "黄巷",
+          "immutableCode": "WX-MS-HUANGXIANG",
+          "slug": "wuxi-metro-huangxiang",
+          "sortOrder": 2
+        },
+        {
+          "name": "惠山古镇",
+          "immutableCode": "WX-MS-HUISHANGUZHEN",
+          "slug": "wuxi-metro-huishanguzhen",
+          "sortOrder": 3
+        },
+        {
+          "name": "青山湾",
+          "immutableCode": "WX-MS-QINGSHANWAN",
+          "slug": "wuxi-metro-qingshanwan",
+          "sortOrder": 4
+        },
+        {
+          "name": "西园弄",
+          "immutableCode": "WX-MS-XIYUANNONG",
+          "slug": "wuxi-metro-xiyuannong",
+          "sortOrder": 5
+        },
+        {
+          "name": "蠡园",
+          "immutableCode": "WX-MS-LIYUAN",
+          "slug": "wuxi-metro-liyuan",
+          "sortOrder": 6
+        },
+        {
+          "name": "蠡湖大桥",
+          "immutableCode": "WX-MS-LIHUDAQIAO",
+          "slug": "wuxi-metro-lihudaqiao",
+          "sortOrder": 7
+        },
+        {
+          "name": "大剧院",
+          "immutableCode": "WX-MS-DAJUYUAN",
+          "slug": "wuxi-metro-dajuyuan",
+          "sortOrder": 8
+        },
+        {
+          "name": "周新镇",
+          "immutableCode": "WX-MS-ZHOUXINZHEN",
+          "slug": "wuxi-metro-zhouxinzhen",
+          "sortOrder": 9
+        },
+        {
+          "name": "博览中心",
+          "immutableCode": "WX-MS-BOLANZHONGXIN",
+          "slug": "wuxi-metro-bolanzhongxin",
+          "sortOrder": 10
+        }
+      ]
+    }
+  ]
+}

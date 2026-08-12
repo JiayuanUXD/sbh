@@ -14,6 +14,7 @@ import {
   IconFile,
   IconHome,
   IconInteraction,
+  IconLocation,
   IconMenuFold,
   IconMenuUnfold,
   IconSafe,
@@ -60,6 +61,7 @@ const WARNING_BADGE_KEYS = new Set([
 const GROUP_ICONS: Record<AdminNavIconKey, ReactNode> = {
   dashboard: <IconDashboard />,
   building: <IconHome />,
+  location: <IconLocation />,
   shield: <IconSafe />,
   user: <IconUser />,
   shop: <IconInteraction />,

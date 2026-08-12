@@ -9,6 +9,7 @@ export type AdminNavigationBadgeKey =
 export type AdminNavIconKey =
   | 'dashboard'
   | 'building'
+  | 'location'
   | 'shield'
   | 'user'
   | 'shop'

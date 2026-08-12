@@ -20,6 +20,7 @@ playwright-report
 
 # 本地临时产物与抓取的原始数据（不入库）
 tmp/
+.tmp/
 scripts/import-huizuxuanzhi/data/
 .playwright
 .baseline

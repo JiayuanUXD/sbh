@@ -45,6 +45,7 @@ type LocationNode = {
   type?: unknown
   parent?: unknown
   status?: unknown
+  city?: unknown
 }
 
 async function loadNode(req: PayloadRequest, id: number | string): Promise<LocationNode | null> {
@@ -58,21 +59,6 @@ async function loadNode(req: PayloadRequest, id: number | string): Promise<Locat
   } catch {
     return null
   }
-}
-
-/** 向上解析归属城市 id（自身或沿 parent 上溯遇 city）；防御性最大深度 8 */
-async function resolveCityId(
-  req: PayloadRequest,
-  startId: number | string,
-): Promise<number | string | null> {
-  let currentId: number | string | null = startId
-  for (let depth = 0; depth < 8 && currentId !== null; depth++) {
-    const node = await loadNode(req, currentId)
-    if (!node) return null
-    if (node.type === 'city') return node.id
-    currentId = toId(node.parent)
-  }
-  return null
 }
 
 /** 从节点起逐级上溯，返回首个非启用祖先 id（含自身）；全部启用返回 null。最大深度 8 */
@@ -150,22 +136,37 @@ export const protectBusinessAreaExtension: CollectionBeforeChangeHook = async ({
   data.aliases = normalizeAliases(data?.aliases)
 
   // —— 站点关联：存在 + type=metro_station + 启用 + 同城 ——
+  // 同城校验直接比对商圈与站点的反范式 city 字段（O(1)），
+  // 站点一次批量 find 取回（查询次数不随站点数增长）。
   const stationIds = toIds(data?.metroStations)
   if (stationIds.length > 0) {
-    const areaCity = await resolveCityId(req, businessAreaId)
+    const areaCity = toId(areaNode.city)
     const invalidStations: Array<number | string> = []
+    const { docs: stationDocs } = await req.payload.find({
+      collection: 'locations',
+      where: { id: { in: stationIds } },
+      depth: 0,
+      limit: stationIds.length,
+      req,
+    })
+    const stationById = new Map<string, LocationNode>(
+      (stationDocs as unknown as LocationNode[]).map((s) => [
+        String(toId(s.id)),
+        s,
+      ]),
+    )
     for (const sid of stationIds) {
-      const station = await loadNode(req, sid)
+      const station = stationById.get(String(sid))
+      const stationCity = toId(station?.city)
+      // 商圈或站点任一 city 为空（无法解析）视为数据异常，一并拒
       if (
         !station ||
         station.type !== 'metro_station' ||
-        (station.status !== undefined && station.status !== 'active')
+        (station.status !== undefined && station.status !== 'active') ||
+        areaCity === null ||
+        stationCity === null ||
+        String(areaCity) !== String(stationCity)
       ) {
-        invalidStations.push(sid)
-        continue
-      }
-      const stationCity = await resolveCityId(req, sid)
-      if (areaCity !== null && stationCity !== null && String(areaCity) !== String(stationCity)) {
         invalidStations.push(sid)
       }
     }

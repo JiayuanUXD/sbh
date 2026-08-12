@@ -2,9 +2,10 @@ import { default as default_827acf3e2f93407d227d925f16874b79 } from '../../../co
 import { default as default_bf427791821cb68b80fd6a2a599fcca7 } from '../../../components/admin/CopyRoleButton'
 import { default as default_a21b07bba5852f35566112350bac0679 } from '../../../components/admin/RoleRiskWarning'
 import { MediaGalleryListViewServer as MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0 } from 'payload-media-gallery/rsc'
+import { default as default_b3a30fd964c8ef5325a0c9cb68de576b } from '../../../components/admin/BusinessAreaExtensionPanel'
+import { default as default_53f14d1d17ec4cdae999bca8a04d34c3 } from '../../../components/admin/MetroLineStationsPanel'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
-import { default as default_8ad26390242516b13cedc5e35ab214db } from '../../../components/admin/LocationTreeView'
 import { default as default_32cd175b11a507bc1d2e1118d0c77c0b } from '../../../components/admin/BuildingAggregateCard'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -54,10 +55,15 @@ import { ImportPreview as ImportPreview_cdf7e044479f899a31f804427d568b36 } from 
 import { ImportSaveButton as ImportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_fc85bd5ac375c29cf24795ab8778bf43 } from '../../../components/admin/ThemeToggle'
 import { default as default_b93c325b2a001186130a7950fae795ee } from '../../../components/admin/AccountMenu'
+import { default as default_ac23024ecc4af7b353c926fc0aafc2f3 } from '../../../components/admin/GeographyQuickSearch'
 import { default as default_7623765cb892464d588afef4e6aed6bd } from '../../../components/admin/EnvBadge'
 import { default as default_58e4bdc8b962b7bf92f13fdc929c1e63 } from '../../../components/admin/AdminNavigation'
+import { default as default_dfd2727dd25d331b5764d036ddfaa58a } from '../../../components/admin/ArcoReact19Provider'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { default as default_fe003e590f4f23a58ea1c1c973022f22 } from '../../../components/admin/geography/GeographyListView'
+import { default as default_149bcf953abd30d20a90498c0f5e7731 } from '../../../components/admin/geography/GeographyCityDetail'
+import { default as default_d7899e398b483fc6273e55af42972903 } from '../../../components/admin/geography/GeographyCreateView'
 import { default as default_018c8550c7c935ba02e37f496184ad52 } from '../../../components/admin/StatsWidget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -67,9 +73,10 @@ export const importMap = {
   "/components/admin/CopyRoleButton#default": default_bf427791821cb68b80fd6a2a599fcca7,
   "/components/admin/RoleRiskWarning#default": default_a21b07bba5852f35566112350bac0679,
   "payload-media-gallery/rsc#MediaGalleryListViewServer": MediaGalleryListViewServer_3e46141c3d0a2077c718b1f751552cf0,
+  "/components/admin/BusinessAreaExtensionPanel#default": default_b3a30fd964c8ef5325a0c9cb68de576b,
+  "/components/admin/MetroLineStationsPanel#default": default_53f14d1d17ec4cdae999bca8a04d34c3,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
-  "/components/admin/LocationTreeView#default": default_8ad26390242516b13cedc5e35ab214db,
   "/components/admin/BuildingAggregateCard#default": default_32cd175b11a507bc1d2e1118d0c77c0b,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -119,10 +126,15 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ImportSaveButton": ImportSaveButton_cdf7e044479f899a31f804427d568b36,
   "/components/admin/ThemeToggle#default": default_fc85bd5ac375c29cf24795ab8778bf43,
   "/components/admin/AccountMenu#default": default_b93c325b2a001186130a7950fae795ee,
+  "/components/admin/GeographyQuickSearch#default": default_ac23024ecc4af7b353c926fc0aafc2f3,
   "/components/admin/EnvBadge#default": default_7623765cb892464d588afef4e6aed6bd,
   "/components/admin/AdminNavigation#default": default_58e4bdc8b962b7bf92f13fdc929c1e63,
+  "/components/admin/ArcoReact19Provider#default": default_dfd2727dd25d331b5764d036ddfaa58a,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
+  "/components/admin/geography/GeographyListView#default": default_fe003e590f4f23a58ea1c1c973022f22,
+  "/components/admin/geography/GeographyCityDetail#default": default_149bcf953abd30d20a90498c0f5e7731,
+  "/components/admin/geography/GeographyCreateView#default": default_d7899e398b483fc6273e55af42972903,
   "/components/admin/StatsWidget#default": default_018c8550c7c935ba02e37f496184ad52,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

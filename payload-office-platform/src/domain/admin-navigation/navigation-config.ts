@@ -64,13 +64,20 @@ export const ADMIN_NAV_GROUPS = [
       collectionSlug: 'supply-submissions',
       requiredOperationCode: 'supply_submission:read',
     }),
-    subgroup('supply-settings', '基础配置', [
-      leaf('locations', '行政区域', '/admin/collections/locations', ['locations']),
-      leaf('business-areas', '商圈管理', '/admin/collections/business-area-extensions', [
-        'business-areas',
-      ]),
-      leaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
-    ]),
+  ]),
+  group('region-management', '区域管理', 'location', [
+    leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
+      collectionSlug: 'locations',
+    }),
+    leaf('districts', '行政区域', '/admin/geography/districts', ['locations'], {
+      collectionSlug: 'locations',
+    }),
+    leaf('business-areas', '商圈管理', '/admin/geography/business-areas', ['business-areas'], {
+      collectionSlug: 'locations',
+    }),
+    leaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations'], {
+      collectionSlug: 'locations',
+    }),
   ]),
   group('risk', '审核与风控', 'shield', [
     leaf('listing-reviews', '审核队列', '/admin/collections/listing-reviews', ['listing-reviews'], {
@@ -112,6 +119,9 @@ export const ADMIN_NAV_GROUPS = [
   group('system', '系统管理', 'settings', [
     leaf('users', '用户管理', '/admin/collections/users', ['users']),
     leaf('roles', '角色管理', '/admin/collections/roles', ['roles']),
+    subgroup('supply-settings', '基础配置', [
+      leaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
+    ]),
     subgroup('advanced-tools', '高级工具', [
       leaf('search', '搜索索引', '/admin/collections/search', ['search']),
       leaf('domain-events', '领域事件', '/admin/collections/domain-events', ['domain-events'], {

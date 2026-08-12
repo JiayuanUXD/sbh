@@ -121,3 +121,37 @@ export function buildLocationForest(
 
   return { forest, expandedIds }
 }
+
+/** 城市直属子节点的合法类型（固定层级：城市→行政区/地铁线路），虚拟分组节点按此顺序渲染 */
+export const CITY_CHILD_GROUP_ORDER: ReadonlyArray<LocationType> = ['district', 'metro_line']
+
+/** 城市直属子节点按类型分组（Task 7 只读树）：只保留合法子类型，组内成员按父级排序 */
+export type CityGroupedChildren = {
+  type: LocationType
+  members: readonly FlatLocationNode[]
+}
+
+/**
+ * 把某城市的**直属**子节点按类型分组。只保留城市合法的直属子类型（行政区/地铁线路）；
+ * 商圈挂在行政区下、地铁站挂在线路下，均非城市直属，不进分组。组顺序固定为
+ * CITY_CHILD_GROUP_ORDER。纯函数，供城市详情页只读树生成虚拟分组节点「行政区 (n)」等。
+ */
+export function groupCityDirectChildren(
+  nodes: readonly FlatLocationNode[],
+  cityId: number | string,
+): CityGroupedChildren[] {
+  const childrenIndex = buildChildrenIndex(nodes)
+  const cityChildren = childrenIndex.get(cityId) ?? []
+  const byType = new Map<LocationType, FlatLocationNode[]>()
+  for (const n of cityChildren) {
+    if (CITY_CHILD_GROUP_ORDER.includes(n.type)) {
+      const arr = byType.get(n.type) ?? []
+      arr.push(n)
+      byType.set(n.type, arr)
+    }
+  }
+  return CITY_CHILD_GROUP_ORDER.filter((t) => byType.has(t)).map((t) => ({
+    type: t,
+    members: byType.get(t)!,
+  }))
+}
