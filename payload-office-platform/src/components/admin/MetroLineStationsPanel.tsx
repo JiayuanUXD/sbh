@@ -72,10 +72,9 @@ export default function MetroLineStationsPanel() {
   const [adding, setAdding] = useState(false)
 
   useEffect(() => {
-    if (lineId == null) {
-      setLoading(false)
-      return
-    }
+    // lineId 为空时渲染层已提前返回(见下方 if (lineId == null) return)，不展示 loading，
+    // 无需在此同步 setLoading(false)，避免 react-hooks/set-state-in-effect。
+    if (lineId == null) return
     let cancelled = false
     async function load() {
       setLoading(true)

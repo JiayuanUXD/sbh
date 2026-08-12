@@ -51,10 +51,9 @@ export default function BusinessAreaExtensionPanel() {
   const [stationOptions, setStationOptions] = useState<StationOpt[]>([])
 
   useEffect(() => {
-    if (locationId == null) {
-      setLoading(false)
-      return
-    }
+    // locationId 为空时渲染层已提前返回(见下方 if (locationId == null) return)，不展示 loading，
+    // 无需在此同步 setLoading(false)，避免 react-hooks/set-state-in-effect。
+    if (locationId == null) return
     let cancelled = false
     async function load() {
       setLoading(true)

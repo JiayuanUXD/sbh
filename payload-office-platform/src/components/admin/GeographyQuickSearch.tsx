@@ -24,6 +24,16 @@ export default function GeographyQuickSearch() {
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
+  // 打开时清空搜索结果：在渲染期调整状态（React 官方「You Might Not Need an Effect」
+  // 推荐的 reset-on-open 模式），避免在 effect 里同步 setState 触发级联渲染。
+  // 守卫条件保证重置一次后即满足，不会无限循环。
+  if (open && (q !== '' || results.length > 0 || error !== null || activeIndex !== 0)) {
+    setQ('')
+    setResults([])
+    setError(null)
+    setActiveIndex(0)
+  }
+
   // Cmd/Ctrl+K 全局唤起
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -36,26 +46,12 @@ export default function GeographyQuickSearch() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // 打开时清空并聚焦
-  useEffect(() => {
-    if (open) {
-      setQ('')
-      setResults([])
-      setError(null)
-      setActiveIndex(0)
-    }
-  }, [open])
-
-  // 防抖搜索：q 去空格后 <2 不打库
+  // 防抖搜索：q 去空格后 <2 不打库。渲染层已按 q.trim().length<2 优先展示「输入至少 2 个字符」
+  // 提示（不依赖 results/error 状态），故此处直接 return，不在此同步清状态（避免级联渲染）。
   useEffect(() => {
     if (!open) return
     const keyword = q.trim()
-    if (keyword.length < 2) {
-      setResults([])
-      setError(null)
-      setActiveIndex(0)
-      return
-    }
+    if (keyword.length < 2) return
     let cancelled = false
     const timer = setTimeout(async () => {
       setLoading(true)
@@ -187,12 +183,12 @@ export default function GeographyQuickSearch() {
         <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: '4px 0' }}>
           {loading ? (
             <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>搜索中…</div>
+          ) : q.trim().length < 2 ? (
+            <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>输入至少 2 个字符开始搜索</div>
           ) : error ? (
             <div style={{ padding: 16, textAlign: 'center', color: '#f53f3f' }} role="alert">
               {error}
             </div>
-          ) : q.trim().length < 2 ? (
-            <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>输入至少 2 个字符开始搜索</div>
           ) : groups.length === 0 ? (
             <div style={{ padding: 16, textAlign: 'center', color: '#86909c' }}>无匹配结果</div>
           ) : (
