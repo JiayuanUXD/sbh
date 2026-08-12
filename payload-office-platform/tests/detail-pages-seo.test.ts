@@ -19,6 +19,8 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
     id: 101,
     slug: 'jingan-center-101',
     title: '静安中心 101 室',
+    citySlug: 'shanghai',
+    cityName: '上海市',
     price: {
       amount: 8.5,
       currency: 'CNY',
@@ -38,6 +40,8 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
       id: 88,
       slug: 'jingan-center',
       name: '静安中心',
+      citySlug: 'shanghai',
+      cityName: '上海市',
       address: '南京西路 100 号',
       district: { id: 8, slug: 'jingan', name: '静安区' },
     },
@@ -60,6 +64,8 @@ function makeBuilding(overrides: Partial<BuildingDetailViewModel> = {}): Buildin
     id: 88,
     slug: 'jingan-center',
     name: '静安中心',
+    citySlug: 'shanghai',
+    cityName: '上海市',
     address: '南京西路 100 号',
     district: { id: 8, slug: 'jingan', name: '静安区' },
     coverImage: { src: 'https://cdn.example.com/building-cover.jpg', alt: '楼盘外立面' },
@@ -85,6 +91,18 @@ const EMPTY_SUPPLY: BuildingSupplySnapshot = {
 }
 
 describe('detail metadata and JSON-LD', () => {
+  it('uses DTO cityName as JSON-LD address locality', () => {
+    const listing = makeListing({ citySlug: 'hangzhou', cityName: '杭州市' })
+    const building = makeBuilding({ citySlug: 'hangzhou', cityName: '杭州市' })
+
+    expect(buildListingJsonLd(listing, ORIGIN).brand?.address).toMatchObject({
+      addressLocality: '杭州市',
+    })
+    expect(buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN).address).toMatchObject({
+      addressLocality: '杭州市',
+    })
+  })
+
   it('无可信价格时 Product 不输出 offers', () => {
     const jsonLd = buildListingJsonLd(makeListing({ price: null }), ORIGIN)
 
@@ -220,6 +238,8 @@ describe('detail metadata and JSON-LD', () => {
         id: unsafeBuilding.id,
         slug: unsafeBuilding.slug,
         name: unsafeBuilding.name,
+        citySlug: unsafeBuilding.citySlug,
+        cityName: unsafeBuilding.cityName,
         address: unsafeBuilding.address,
         ...(unsafeBuilding.district ? { district: unsafeBuilding.district } : {}),
         ...(unsafeBuilding.coverImage ? { coverImage: unsafeBuilding.coverImage } : {}),

@@ -91,6 +91,8 @@ function makeListing(
     availableFrom: '2026-08-01',
     isFeatured: false,
     building: {
+      citySlug: 'shanghai',
+      cityName: '上海市',
       id: 1,
       slug: 'jing-an-center',
       name: '静安中心',
@@ -113,6 +115,8 @@ function makeListing(
     highlights: ['可分割', '带家具', '独立空调'],
     stableSortKey: '100001',
     ...overrides,
+    citySlug: overrides.citySlug ?? 'shanghai',
+    cityName: overrides.cityName ?? '上海市',
   }
 }
 

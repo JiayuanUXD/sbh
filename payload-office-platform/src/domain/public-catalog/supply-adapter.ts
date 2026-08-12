@@ -39,7 +39,9 @@ import {
   getPublicBuildingWhere,
   isPublicBuilding,
 } from '@/domain/supply/public-building'
-import type { SearchContext, ListingSearchInput } from './types'
+import { createSearchContext, type SearchContext, type ListingSearchInput } from './types'
+import type { PublicRouteIdentity } from './contracts'
+import { mapBuildingCity } from './mappers'
 
 /**
  * 公开目录供给适配器契约
@@ -54,8 +56,14 @@ export interface SupplyAdapter {
   /** 按 slug 返回单个有效房源；不存在或失效返回 null */
   findEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
 
+  /** Cityless legacy-route exception; returns no display or inventory data. */
+  findListingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>
+
   /** 按 slug 返回有效楼盘；停用、不存在返回 null */
   findEffectiveBuildingBySlug(slug: string, ctx: SearchContext): Promise<Building | null>
+
+  /** Cityless legacy-route exception; returns no display or inventory data. */
+  findBuildingRouteIdentity(slug: string): Promise<PublicRouteIdentity | null>
 
   /** 楼盘内有效房源（用于楼内列表、聚合和相关推荐） */
   findEffectiveListingsByBuilding(
@@ -337,12 +345,10 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    * 有效供给 where 片段（查询层粗筛）+ 举报暂停排除。
    * 与 method-specific 约束合并后作为 payload.find 的 where。
    */
-  async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
+  async function baseEffectiveWhereWithoutCity(asOf: Date): Promise<Record<string, unknown>> {
     const payload = await getPayloadQueryPort()
-    const asOf = new Date(ctx.asOf)
     const where: Record<string, unknown> = {
       ...getEffectiveSupplyWhere(asOf),
-      'building.city.slug': { equals: ctx.city },
     }
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
     const pausedIds = await getPausedListingIds(payload)
@@ -350,6 +356,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       where.id = { not_in: pausedIds }
     }
     return where
+  }
+
+  async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
+    return {
+      ...await baseEffectiveWhereWithoutCity(new Date(ctx.asOf)),
+      'building.city.slug': { equals: ctx.city },
+    }
   }
 
   /**
@@ -369,6 +382,24 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       if (supply?.eligible) kept.push(doc as unknown as Listing)
     }
     return kept
+  }
+
+  async function findEffectiveListingBySlugInCity(
+    slug: string,
+    ctx: SearchContext,
+  ): Promise<Listing | null> {
+    const payload = await getPayload()
+    const asOf = new Date(ctx.asOf)
+    const where = await baseEffectiveWhere(ctx)
+    where.slug = { equals: slug }
+    const result = await payload.find({
+      collection: 'listings',
+      where: where as Where,
+      limit: 1,
+      depth: 3,
+    })
+    const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
+    return kept[0] ?? null
   }
 
   return {
@@ -431,18 +462,34 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     },
 
     async findEffectiveListingBySlug(slug, ctx) {
+      return findEffectiveListingBySlugInCity(slug, ctx)
+    },
+
+    async findListingRouteIdentity(slug) {
       const payload = await getPayload()
-      const asOf = new Date(ctx.asOf)
-      const where = await baseEffectiveWhere(ctx)
+      const asOf = new Date()
+      const where = await baseEffectiveWhereWithoutCity(asOf)
       where.slug = { equals: slug }
       const result = await payload.find({
         collection: 'listings',
         where: where as Where,
         limit: 1,
-        depth: 3, // building + gallery + amenities + merchant
+        depth: 2,
+        select: { slug: true, building: true },
       })
-      const kept = await fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
-      return kept[0] ?? null
+      const candidate = result.docs[0] as Listing | undefined
+      if (!candidate || typeof candidate.slug !== 'string') return null
+      const candidateCity = mapBuildingCity(candidate.building)
+      if (!candidateCity) return null
+
+      const effective = await findEffectiveListingBySlugInCity(
+        candidate.slug,
+        createSearchContext(candidateCity.citySlug, asOf),
+      )
+      if (!effective) return null
+      const effectiveCity = mapBuildingCity(effective.building)
+      if (!effectiveCity || effectiveCity.citySlug !== candidateCity.citySlug) return null
+      return { slug: effective.slug, citySlug: effectiveCity.citySlug }
     },
 
     async findEffectiveBuildingBySlug(slug, ctx) {
@@ -458,6 +505,24 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         depth: 2,
       })
       return (result.docs[0] as Building | undefined) ?? null
+    },
+
+    async findBuildingRouteIdentity(slug) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'buildings',
+        where: {
+          ...getPublicBuildingWhere(),
+          slug: { equals: slug },
+        } as unknown as Where,
+        limit: 1,
+        depth: 1,
+        select: { slug: true, city: true },
+      })
+      const building = result.docs[0] as Building | undefined
+      if (!building || typeof building.slug !== 'string') return null
+      const city = mapBuildingCity(building)
+      return city ? { slug: building.slug, citySlug: city.citySlug } : null
     },
 
     async findEffectiveListingsByBuilding(buildingId, ctx, excludeListingId) {

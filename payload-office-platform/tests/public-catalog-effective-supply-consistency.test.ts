@@ -344,11 +344,26 @@ function createFullPredicateAdapter(options: {
       if (!l || !isListingEffective(l, queryCtx)) return null
       return l
     },
+    async findListingRouteIdentity(slug) {
+      const listing = options.listings.find((candidate) => candidate.slug === slug)
+      if (!listing) return null
+      const building = typeof listing.building === 'object' ? listing.building : null
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      if (!city || !isListingEffective(listing, createSearchContext(city.slug, new Date(ctx.asOf)))) return null
+      return { slug: listing.slug, citySlug: city.slug }
+    },
     async findEffectiveBuildingBySlug(slug, queryCtx) {
       const b = buildings.find((x) => x.slug === slug)
       if (!b || b.operationalStatus !== 'active') return null
       if (typeof b.city !== 'object' || !b.city || b.city.slug !== queryCtx.city) return null
       return b
+    },
+    async findBuildingRouteIdentity(slug) {
+      const building = buildings.find((candidate) => candidate.slug === slug)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return building?.operationalStatus === 'active' && city
+        ? { slug: building.slug, citySlug: city.slug }
+        : null
     },
     async findEffectiveListingsByBuilding(buildingId, queryCtx, excludeListingId) {
       return options.listings.filter(

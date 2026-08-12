@@ -123,10 +123,24 @@ function createFakeAdapter(options: {
       if (!l || !isListingEffective(l)) return null
       return l
     },
+    async findListingRouteIdentity(slug) {
+      const listing = options.listings.find((candidate) => candidate.slug === slug)
+      if (!listing || !isListingEffective(listing)) return null
+      const building = resolveBuilding(listing.building)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return city ? { slug: listing.slug, citySlug: city.slug } : null
+    },
     async findEffectiveBuildingBySlug(slug) {
       const b = options.buildings.find((x) => x.slug === slug)
       if (!b || b.operationalStatus !== 'active') return null
       return b
+    },
+    async findBuildingRouteIdentity(slug) {
+      const building = options.buildings.find((candidate) => candidate.slug === slug)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return building?.operationalStatus === 'active' && city
+        ? { slug: building.slug, citySlug: city.slug }
+        : null
     },
     async findEffectiveListingsByBuilding(buildingId, _ctx, excludeListingId) {
       return options.listings.filter(

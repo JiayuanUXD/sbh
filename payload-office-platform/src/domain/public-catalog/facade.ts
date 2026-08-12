@@ -35,6 +35,7 @@ import type {
   MediaViewModel,
   PageDetailViewModel,
   PageSummaryViewModel,
+  PublicRouteIdentity,
 } from './contracts'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
@@ -401,6 +402,24 @@ export async function getBuildingBySlug(
   const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!raw) return null
   return mapBuildingDetail(raw, ctx.asOf)
+}
+
+/** Minimal cityless lookup used only by legacy/correction listing redirects. */
+export async function resolveListingRouteIdentity(
+  slug: string,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<PublicRouteIdentity | null> {
+  const identity = await adapter.findListingRouteIdentity(slug)
+  return identity ? { slug: identity.slug, citySlug: identity.citySlug } : null
+}
+
+/** Minimal cityless lookup used only by legacy/correction building redirects. */
+export async function resolveBuildingRouteIdentity(
+  slug: string,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<PublicRouteIdentity | null> {
+  const identity = await adapter.findBuildingRouteIdentity(slug)
+  return identity ? { slug: identity.slug, citySlug: identity.citySlug } : null
 }
 
 /**

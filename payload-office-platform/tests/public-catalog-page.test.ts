@@ -43,7 +43,13 @@ function createFakePageAdapter(options: {
     async findEffectiveListingBySlug() {
       return null
     },
+    async findListingRouteIdentity() {
+      return null
+    },
     async findEffectiveBuildingBySlug() {
+      return null
+    },
+    async findBuildingRouteIdentity() {
       return null
     },
     async findEffectiveListingsByBuilding() {

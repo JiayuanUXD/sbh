@@ -39,6 +39,12 @@ type AggregateOfferJsonLd = Readonly<{
   }>[]
 }>
 
+type PostalAddressJsonLd = Readonly<{
+  '@type': 'PostalAddress'
+  addressLocality: string
+  streetAddress?: string
+}>
+
 export type ListingJsonLd = Readonly<{
   '@context': 'https://schema.org'
   '@type': 'Product'
@@ -46,7 +52,7 @@ export type ListingJsonLd = Readonly<{
   url: string
   description: string
   image?: string
-  brand?: Readonly<{ '@type': 'Place'; name: string; address?: string }>
+  brand?: Readonly<{ '@type': 'Place'; name: string; address: PostalAddressJsonLd }>
   offers?: OfferJsonLd
   breadcrumb: BreadcrumbJsonLd
 }>
@@ -56,7 +62,7 @@ export type BuildingJsonLd = Readonly<{
   '@type': 'Place'
   name: string
   url: string
-  address?: string
+  address: PostalAddressJsonLd
   description?: string
   image?: string
   offers?: readonly AggregateOfferJsonLd[]
@@ -181,7 +187,11 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
       brand: {
         '@type': 'Place',
         name: building.name,
-        ...(building.address ? { address: building.address } : {}),
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: listing.cityName,
+          ...(building.address ? { streetAddress: building.address } : {}),
+        },
       },
     } : {}),
     ...(price ? {
@@ -269,7 +279,11 @@ export function buildBuildingJsonLd(
     '@type': 'Place',
     name: building.name,
     url: canonicalUrl(origin, canonicalPath),
-    ...(building.address ? { address: building.address } : {}),
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: building.cityName,
+      ...(building.address ? { streetAddress: building.address } : {}),
+    },
     ...(building.summary ? { description: building.summary } : {}),
     ...(image ? { image } : {}),
     ...(offers.length > 0 ? { offers } : {}),

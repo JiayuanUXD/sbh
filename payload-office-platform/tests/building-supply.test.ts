@@ -33,6 +33,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
     highlights: [],
     stableSortKey: 'listing-1',
     ...overrides,
+    citySlug: overrides.citySlug ?? 'shanghai',
+    cityName: overrides.cityName ?? '上海市',
   }
 }
 
@@ -165,6 +167,13 @@ describe('getRelatedBuildings', () => {
       name: '外滩 SOHO',
       address: '中山东二路',
       operationalStatus: 'active',
+      city: {
+        id: 100,
+        name: '上海市',
+        slug: 'shanghai',
+        type: 'city',
+        status: 'active',
+      },
     } as Building
     const nearby = {
       ...current,

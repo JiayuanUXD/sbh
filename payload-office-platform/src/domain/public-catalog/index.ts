@@ -89,6 +89,8 @@ export {
   searchBuildings,
   getListingBySlug,
   getBuildingBySlug,
+  resolveListingRouteIdentity,
+  resolveBuildingRouteIdentity,
   getBuildingDetail,
   getRelatedBuildings,
   getListingsByBuilding,

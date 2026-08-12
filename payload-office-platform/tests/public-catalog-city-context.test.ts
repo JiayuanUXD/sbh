@@ -32,6 +32,8 @@ import {
   listPublishedArticles,
   listPublishedPages,
   parseSearchInput,
+  resolveBuildingRouteIdentity,
+  resolveListingRouteIdentity,
   searchListings,
   type ListingSearchInput,
   type SearchContext,
@@ -176,7 +178,12 @@ function effectiveListing(
       status: 'published',
       operationalStatus: 'active',
       address: `${city.slug} address`,
-      city: { ...city, status: 'active' },
+      city: {
+        ...city,
+        name: city.slug === 'hangzhou' ? '杭州市' : '上海市',
+        type: 'city',
+        status: 'active',
+      },
       district: {
         id: id * 10 + 1,
         slug: `${city.slug}-district`,
@@ -444,5 +451,41 @@ describe('required city in public catalog context', () => {
     expect(buildingWheres).toContainEqual(expect.objectContaining({
       'city.slug': { equals: 'hangzhou' },
     }))
+  })
+
+  it('resolves cityless legacy route identities without returning display data', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    await expect(
+      resolveListingRouteIdentity('hangzhou-effective-office', adapter),
+    ).resolves.toEqual({ slug: 'hangzhou-effective-office', citySlug: 'hangzhou' })
+    await expect(
+      resolveListingRouteIdentity('hidden-listing', adapter),
+    ).resolves.toBeNull()
+    await expect(
+      resolveBuildingRouteIdentity('hangzhou-building', adapter),
+    ).resolves.toEqual({ slug: 'hangzhou-building', citySlug: 'hangzhou' })
+
+    const identity = await resolveListingRouteIdentity(
+      'hangzhou-effective-office',
+      adapter,
+    )
+    expect(identity && Object.keys(identity).sort()).toEqual(['citySlug', 'slug'])
+  })
+
+  it('populates building.city in the catalog query without a location lookup', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    const detail = await getListingBySlug('hangzhou-effective-office', context, adapter)
+
+    expect(detail).toMatchObject({ citySlug: 'hangzhou', cityName: '杭州市' })
+    const listingCalls = payloadState.find.mock.calls
+      .map(([params]) => params)
+      .filter((params) => params.collection === 'listings')
+    expect(listingCalls).toHaveLength(1)
+    expect(listingCalls[0]).toMatchObject({ depth: 3 })
+    expect(
+      payloadState.find.mock.calls.filter(([params]) => params.collection === 'locations'),
+    ).toHaveLength(0)
   })
 })

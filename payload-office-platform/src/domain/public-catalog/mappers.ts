@@ -38,7 +38,9 @@ import type {
   PopulatedBuilding,
   PopulatedListing,
   PopulatedPage,
+  PublicCityIdentity,
 } from './contracts'
+import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import { computeUsableArea, deriveSeatRange } from './detail-values'
 import { normalizePublicMediaUrl } from './media-url'
 import {
@@ -73,6 +75,24 @@ function isLocation(v: unknown): v is Location {
     typeof (v as Location).slug === 'string' &&
     typeof (v as Location).name === 'string'
   )
+}
+
+/** Strictly maps an already-populated, active canonical city relationship. */
+export function mapBuildingCity(building: unknown): PublicCityIdentity | null {
+  if (!isObject(building)) return null
+  const city = building.city
+  if (!isLocation(city)) return null
+  const normalizedSlug = normalizeCitySlug(city.slug)
+  if (
+    city.type !== 'city' ||
+    city.status !== 'active' ||
+    normalizedSlug === null ||
+    city.slug !== normalizedSlug ||
+    city.name.trim().length === 0
+  ) {
+    return null
+  }
+  return { citySlug: city.slug, cityName: city.name }
 }
 
 function isBuilding(v: unknown): v is Building {
@@ -276,10 +296,13 @@ export function mapCoordinates(
 /** 把 Building 投影为 BuildingSummaryViewModel；非楼盘返回 null */
 export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | null {
   if (!isBuilding(raw)) return null
+  const city = mapBuildingCity(raw)
+  if (!city) return null
   const populated = isPopulatedBuilding(raw) ? raw : null
   const districtRaw = populated?.district
   const coverRaw = populated?.coverImage
   return {
+    ...city,
     id: raw.id,
     slug: raw.slug,
     name: raw.name,
@@ -398,6 +421,7 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
   const listing = raw as PopulatedListing
 
   const building = mapBuildingSummary(listing.building)
+  if (!building) return null
   const coverImage =
     mapMedia(listing.coverImage, listing.title) ??
     building?.coverImage ??
@@ -414,6 +438,8 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
   }
 
   return {
+    citySlug: building.citySlug,
+    cityName: building.cityName,
     id: listing.id,
     slug: listing.slug,
     title: listing.title,
@@ -726,6 +752,8 @@ export function mapBuildingDetail(
 ): BuildingDetailViewModel | null {
   if (!isPopulatedBuilding(raw)) return null
   const building = raw as PopulatedBuilding
+  const city = mapBuildingCity(building)
+  if (!city) return null
   const asOf = asOfInput instanceof Date ? asOfInput : new Date(asOfInput)
 
   const coverImage = mapMedia(building.coverImage, building.name) ?? null
@@ -751,6 +779,7 @@ export function mapBuildingDetail(
   }
 
   return {
+    ...city,
     id: building.id,
     slug: building.slug,
     name: building.name,

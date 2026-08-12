@@ -13,6 +13,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  mapBuildingCity,
   mapBuildingDetail,
   mapBuildingSummary,
   mapDistrict,
@@ -25,6 +26,7 @@ import {
   BUILDING_DISABLED,
   BUILDING_JINGAN_CENTER,
   BUILDING_PUDONG_FLAT,
+  CITY_HANGZHOU,
   INVALID_INPUTS,
   LISTING_DAILY_PER_SQM,
   LISTING_DELETED,
@@ -40,6 +42,14 @@ import {
   MEDIA_COVER_A,
   MEDIA_GALLERY_1,
 } from '@/test/frontend/payload-documents'
+
+const BUILDING_HANGZHOU = {
+  ...BUILDING_JINGAN_CENTER,
+  id: 210,
+  slug: 'hangzhou-center',
+  name: '杭州中心',
+  city: CITY_HANGZHOU,
+}
 
 // ---------------------------------------------------------------------------
 // mapPrice
@@ -233,6 +243,17 @@ describe('mapDistrict', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapBuildingSummary', () => {
+  it('exposes the populated canonical city identity', () => {
+    expect(mapBuildingSummary(BUILDING_JINGAN_CENTER)).toMatchObject({
+      citySlug: 'shanghai',
+      cityName: '上海市',
+    })
+  })
+
+  it('fails closed when the city relationship is not populated', () => {
+    expect(mapBuildingSummary(BUILDING_PUDONG_FLAT)).toBeNull()
+  })
+
   it('完整 Building → 投影公开字段', () => {
     const b = mapBuildingSummary(BUILDING_JINGAN_CENTER)
     expect(b?.id).toBe(200)
@@ -243,13 +264,6 @@ describe('mapBuildingSummary', () => {
     expect(b?.district?.slug).toBe('jingan')
     expect(b?.coverImage?.src).toBe('/media/cover-jingan-center.jpg')
     expect(b?.summary).toBe('南京西路核心地段甲级写字楼')
-  })
-
-  it('depth=0 形式（district 为 id）→ district 投影为 undefined', () => {
-    const b = mapBuildingSummary(BUILDING_PUDONG_FLAT)
-    expect(b?.id).toBe(201)
-    expect(b?.district).toBeUndefined()
-    expect(b?.coverImage).toBeUndefined()
   })
 
   it('不暴露 verificationStatus（内部审核字段）', () => {
@@ -293,6 +307,23 @@ describe('mapBuildingSummary', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapListingCard', () => {
+  it('copies canonical city identity to listing card and detail DTOs', () => {
+    expect(mapListingCard(LISTING_MONTHLY_STANDARD)).toMatchObject({
+      citySlug: 'shanghai',
+      cityName: '上海市',
+    })
+    expect(mapListingDetail(LISTING_MONTHLY_STANDARD)).toMatchObject({
+      citySlug: 'shanghai',
+      cityName: '上海市',
+    })
+  })
+
+  it('fails closed when a listing building does not expose a canonical city', () => {
+    const listing = { ...LISTING_DAILY_PER_SQM, building: BUILDING_PUDONG_FLAT }
+    expect(mapListingCard(listing)).toBeNull()
+    expect(mapListingDetail(listing)).toBeNull()
+  })
+
   it('无旧 rent 的结构化价格房源仍映射为公开卡片和详情', () => {
     const listing = {
       ...LISTING_MONTHLY_STANDARD,
@@ -609,6 +640,29 @@ describe('mapListingDetail', () => {
 // ---------------------------------------------------------------------------
 
 describe('mapBuildingDetail', () => {
+  it('exposes the persisted Hangzhou city identity', () => {
+    expect(mapBuildingDetail(BUILDING_HANGZHOU)).toMatchObject({
+      citySlug: 'hangzhou',
+      cityName: '杭州市',
+    })
+  })
+
+  it('rejects raw, missing, disabled, malformed, and noncanonical city relationships', () => {
+    const invalidCities: unknown[] = [
+      100,
+      undefined,
+      { ...CITY_HANGZHOU, status: 'disabled' },
+      { ...CITY_HANGZHOU, type: 'district' },
+      { ...CITY_HANGZHOU, slug: ' Hangzhou ' },
+      { ...CITY_HANGZHOU, name: '   ' },
+    ]
+
+    for (const city of invalidCities) {
+      expect(mapBuildingCity({ ...BUILDING_HANGZHOU, city })).toBeNull()
+      expect(mapBuildingDetail({ ...BUILDING_HANGZHOU, city })).toBeNull()
+    }
+  })
+
   it('认证按同一 asOf 过滤公开状态和有效期', () => {
     const b = mapBuildingDetail({
       ...BUILDING_JINGAN_CENTER,
@@ -695,10 +749,8 @@ describe('mapBuildingDetail', () => {
     expect(b?.amenities).toEqual(['停车场', '咖啡厅'])
   })
 
-  it('gallery=null 时仅返回 coverImage 或空数组', () => {
-    const b = mapBuildingDetail(BUILDING_PUDONG_FLAT)
-    // coverImage=1002（id）→ mapMedia 返回 null → gallery 为空数组
-    expect(b?.gallery).toEqual([])
+  it('rejects a depth=0 building whose city is only an id', () => {
+    expect(mapBuildingDetail(BUILDING_PUDONG_FLAT)).toBeNull()
   })
 
   it('不暴露 verificationStatus（内部审核字段）', () => {
