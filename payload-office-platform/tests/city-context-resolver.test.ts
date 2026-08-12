@@ -1,13 +1,24 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { findCityProfiles, unstableCache } = vi.hoisted(() => ({
-  findCityProfiles: vi.fn(),
-  unstableCache: vi.fn((
-    fn: (...args: unknown[]) => unknown,
-    _keyParts: readonly string[],
-    _options: Readonly<{ revalidate?: number; tags?: readonly string[] }>,
-  ) => fn),
-}))
+const { findCityProfiles, stalePublicProfiles, unstableCache } = vi.hoisted(() => {
+  const stalePublicProfiles: { enabled: boolean; value: readonly unknown[] } = {
+    enabled: false,
+    value: [],
+  }
+  return {
+    findCityProfiles: vi.fn(),
+    stalePublicProfiles,
+    unstableCache: vi.fn((
+      fn: (...args: unknown[]) => unknown,
+      keyParts: readonly string[],
+      _options: Readonly<{ revalidate?: number; tags?: readonly string[] }>,
+    ) => {
+      if (keyParts[0] !== 'public-city-profiles') return fn
+      return (...args: unknown[]) =>
+        stalePublicProfiles.enabled ? Promise.resolve(stalePublicProfiles.value) : fn(...args)
+    }),
+  }
+})
 
 vi.mock('next/cache', () => ({
   unstable_cache: unstableCache,
@@ -62,6 +73,32 @@ function cityProfileDocument(overrides: Record<string, unknown> = {}): Record<st
     ...overrides,
   }
 }
+
+function cityCacheFactoryCalls(slug: string): readonly unknown[][] {
+  return unstableCache.mock.calls.filter((call) =>
+    Array.isArray(call[1]) && call[1][0] === 'public-city-profile' && call[1][1] === slug,
+  )
+}
+
+function cityProfileDocuments(prefix: string, count: number): readonly Record<string, unknown>[] {
+  return Array.from({ length: count }, (_, index) => {
+    const number = index + 1
+    const slug = `${prefix}-${number}`
+    const name = `${prefix} ${number}`
+    return cityProfileDocument({
+      id: 1000 + number,
+      city: { id: 1000 + number, slug, name, type: 'city', status: 'active' },
+      sortOrder: number,
+      seoTitle: `${name} office leasing`,
+      seoDescription: `${name} public office leasing and site selection profile with current service information.`,
+    })
+  })
+}
+
+afterEach(() => {
+  stalePublicProfiles.enabled = false
+  stalePublicProfiles.value = []
+})
 
 describe('city context resolver', () => {
   it('normalizes a valid city slug and rejects path-like input', () => {
@@ -288,16 +325,73 @@ describe('city context resolver', () => {
     ])
   })
 
-  it('does not allocate a per-slug cache wrapper for an unknown valid slug', async () => {
+  it('resolves a newly valid city through the exact lookup even when the cached list is stale', async () => {
+    const hangzhou = cityProfileDocument({
+      city: { id: 2, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
+      serviceStatus: 'coming-soon',
+      sortOrder: 20,
+      seoTitle: 'Hangzhou office leasing',
+      seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+    })
+    stalePublicProfiles.enabled = true
+    stalePublicProfiles.value = []
+    findCityProfiles.mockResolvedValue({ docs: [hangzhou] })
+
+    await expect(resolveCityContext('hangzhou')).resolves.toMatchObject({ slug: 'hangzhou' })
+
+    expect(findCityProfiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'city-site-profiles',
+        limit: 1,
+        where: { 'city.slug': { equals: 'hangzhou' } },
+      }),
+    )
+  })
+
+  it('performs an exact fail-closed lookup for an unknown valid slug', async () => {
     findCityProfiles.mockResolvedValue({ docs: [] })
 
     await expect(resolveCityContext('unknown-city')).resolves.toBeNull()
 
-    expect(
-      unstableCache.mock.calls.some((call) =>
-        Array.isArray(call[1]) && call[1][0] === 'public-city-profile' && call[1][1] === 'unknown-city',
-      ),
-    ).toBe(false)
+    expect(cityCacheFactoryCalls('unknown-city')).toHaveLength(1)
+    expect(findCityProfiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'city-site-profiles',
+        limit: 1,
+        where: { 'city.slug': { equals: 'unknown-city' } },
+      }),
+    )
+  })
+
+  it('caps per-slug cache wrappers at 64 and evicts the least-recently-used entry', async () => {
+    const documents = cityProfileDocuments('capacity-city', 65)
+    findCityProfiles.mockResolvedValue({ docs: documents })
+
+    for (let number = 1; number <= 65; number += 1) {
+      await resolveCityContext(`capacity-city-${number}`)
+    }
+    await resolveCityContext('capacity-city-1')
+
+    expect(cityCacheFactoryCalls('capacity-city-1')).toHaveLength(2)
+    expect(cityCacheFactoryCalls('capacity-city-65')).toHaveLength(1)
+  })
+
+  it('refreshes LRU recency on a cache hit before evicting the next oldest entry', async () => {
+    const documents = cityProfileDocuments('recency-city', 65)
+    findCityProfiles.mockResolvedValue({ docs: documents })
+
+    for (let number = 1; number <= 64; number += 1) {
+      await resolveCityContext(`recency-city-${number}`)
+    }
+    await resolveCityContext('recency-city-1')
+    expect(cityCacheFactoryCalls('recency-city-1')).toHaveLength(1)
+
+    await resolveCityContext('recency-city-65')
+    await resolveCityContext('recency-city-1')
+    await resolveCityContext('recency-city-2')
+
+    expect(cityCacheFactoryCalls('recency-city-1')).toHaveLength(1)
+    expect(cityCacheFactoryCalls('recency-city-2')).toHaveLength(2)
   })
 
   it('configures a known per-city cache with expiry and both specific and category tags', async () => {

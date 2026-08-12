@@ -28,6 +28,7 @@ export type PublicCityOption = Readonly<{
 type CachedResolver = () => Promise<CityContext | null>
 
 const cityResolvers = new Map<string, CachedResolver>()
+const CITY_RESOLVER_CACHE_CAPACITY = 64
 const CITY_PROFILE_REVALIDATE_SECONDS = 300
 
 type MappingResult<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false }>
@@ -212,7 +213,11 @@ async function findPublicCityProfiles(): Promise<readonly PublicCitySiteProfile[
 
 function getCachedResolver(citySlug: string): CachedResolver {
   const existing = cityResolvers.get(citySlug)
-  if (existing) return existing
+  if (existing) {
+    cityResolvers.delete(citySlug)
+    cityResolvers.set(citySlug, existing)
+    return existing
+  }
 
   const resolver = createCityContextResolver(findPublicCityProfile)
   const cachedResolver = unstable_cache(
@@ -224,18 +229,16 @@ function getCachedResolver(citySlug: string): CachedResolver {
     },
   )
   cityResolvers.set(citySlug, cachedResolver)
+  if (cityResolvers.size > CITY_RESOLVER_CACHE_CAPACITY) {
+    const leastRecentlyUsedSlug = cityResolvers.keys().next().value
+    if (leastRecentlyUsedSlug !== undefined) cityResolvers.delete(leastRecentlyUsedSlug)
+  }
   return cachedResolver
 }
 
 export const resolveCityContext = cache(async (slug: unknown): Promise<CityContext | null> => {
   const normalizedSlug = normalizeCitySlug(slug)
   if (!normalizedSlug) return null
-  try {
-    const publicProfiles = await listPublicCityProfiles()
-    if (!publicProfiles.some((profile) => profile.citySlug === normalizedSlug)) return null
-  } catch {
-    return null
-  }
   return getCachedResolver(normalizedSlug)()
 })
 
