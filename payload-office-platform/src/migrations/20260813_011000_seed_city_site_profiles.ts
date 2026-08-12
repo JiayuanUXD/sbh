@@ -199,6 +199,7 @@ async function applyCitySiteProfileSeed(db: SeedDb): Promise<void> {
 
     const profileResult = await db.execute(sql`
         SELECT
+          "id",
           "city_id",
           "service_status",
           "switcher_visible",
@@ -228,10 +229,13 @@ async function applyCitySiteProfileSeed(db: SeedDb): Promise<void> {
       if (!profileMatchesSeed(existingProfile, city, seed)) {
         throw new Error(`city_site_profile_seed_conflict: content mismatch for ${cityCodeLabel}`)
       }
+      if (typeof existingProfile.id !== 'number') {
+        throw new Error(`city_site_profile_seed_conflict: profile for ${cityCodeLabel} did not resolve`)
+      }
       const featuredRegionsResult = await db.execute(sql`
         SELECT "locations_id"
         FROM "city_site_profiles_rels"
-        WHERE "parent_id" = ${city.id}
+        WHERE "parent_id" = ${existingProfile.id}
           AND "path" = 'featuredRegions'
         ORDER BY "order" ASC, "id" ASC;
       `)
