@@ -54,6 +54,7 @@ describe('admin navigation role matrix', () => {
     expect(visibleTopGroups('ADM')).toEqual([
       '工作台',
       '房源运营',
+      '区域管理',
       '审核与风控',
       '客户运营',
       '商户合作',
@@ -68,10 +69,12 @@ describe('admin navigation role matrix', () => {
     expect(visibleTopGroups('OPS')).toEqual([
       '工作台',
       '房源运营',
+      '区域管理',
       '审核与风控',
       '商户合作',
       '内容管理',
       '表单中心',
+      '系统管理',
     ])
   })
 

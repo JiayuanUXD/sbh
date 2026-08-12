@@ -60,10 +60,11 @@ function expectedGroup(
 }
 
 describe('admin navigation config', () => {
-  it('按已确认顺序提供九个一级分组', () => {
+  it('按已确认顺序提供十个一级分组', () => {
     expect(ADMIN_NAV_GROUPS.map((group) => group.label)).toEqual([
       '工作台',
       '房源运营',
+      '区域管理',
       '审核与风控',
       '客户运营',
       '商户合作',
@@ -92,15 +93,14 @@ describe('admin navigation config', () => {
           '/admin/collections/supply-submissions',
           ['supply-submissions'],
         ),
-        expectedGroup('supply-settings', '基础配置', [
-          expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
-          expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
-          expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
-            'business-areas',
-          ]),
-          expectedLeaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations']),
-          expectedLeaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
+      ]),
+      expectedGroup('region-management', '区域管理', [
+        expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
+        expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
+        expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
+          'business-areas',
         ]),
+        expectedLeaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations']),
       ]),
       expectedGroup('risk', '审核与风控', [
         expectedLeaf('listing-reviews', '审核队列', '/admin/collections/listing-reviews', [
@@ -141,6 +141,9 @@ describe('admin navigation config', () => {
       expectedGroup('system', '系统管理', [
         expectedLeaf('users', '用户管理', '/admin/collections/users', ['users']),
         expectedLeaf('roles', '角色管理', '/admin/collections/roles', ['roles']),
+        expectedGroup('supply-settings', '基础配置', [
+          expectedLeaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
+        ]),
         expectedGroup('advanced-tools', '高级工具', [
           expectedLeaf('search', '搜索索引', '/admin/collections/search', ['search']),
           expectedLeaf('domain-events', '领域事件', '/admin/collections/domain-events', [

@@ -110,8 +110,7 @@ describe('resolveAdminNavigation', () => {
     })
 
     expect(visibleItemIds(navigation)).toEqual([
-      'supply',
-      'supply-settings',
+      'region-management',
       'cities',
       'districts',
       'metro-lines',
