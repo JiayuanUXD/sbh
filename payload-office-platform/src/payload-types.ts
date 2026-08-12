@@ -72,6 +72,7 @@ export interface Config {
     media: Media;
     locations: Location;
     'business-area-extensions': BusinessAreaExtension;
+    'city-site-profiles': CitySiteProfile;
     merchants: Merchant;
     teams: Team;
     brokers: Broker;
@@ -113,6 +114,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     locations: LocationsSelect<false> | LocationsSelect<true>;
     'business-area-extensions': BusinessAreaExtensionsSelect<false> | BusinessAreaExtensionsSelect<true>;
+    'city-site-profiles': CitySiteProfilesSelect<false> | CitySiteProfilesSelect<true>;
     merchants: MerchantsSelect<false> | MerchantsSelect<true>;
     teams: TeamsSelect<false> | TeamsSelect<true>;
     brokers: BrokersSelect<false> | BrokersSelect<true>;
@@ -492,6 +494,38 @@ export interface BusinessAreaExtension {
    * 乐观锁版本，由系统维护
    */
   version?: number | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-site-profiles".
+ */
+export interface CitySiteProfile {
+  id: number;
+  city: number | Location;
+  serviceStatus: 'live' | 'coming-soon';
+  switcherVisible: boolean;
+  sortOrder: number;
+  seoTitle: string;
+  seoDescription: string;
+  heroEyebrow?: string | null;
+  heroHeading?: string | null;
+  heroBody?: string | null;
+  heroMedia?: (number | null) | Media;
+  introHeading?: string | null;
+  introBody?: string | null;
+  contactHeading?: string | null;
+  contactBody?: string | null;
+  featuredRegions?: (number | Location)[] | null;
   createdBy?: {
     relationTo: 'users';
     value: number | User;
@@ -2422,6 +2456,10 @@ export interface PayloadLockedDocument {
         value: number | BusinessAreaExtension;
       } | null)
     | ({
+        relationTo: 'city-site-profiles';
+        value: number | CitySiteProfile;
+      } | null)
+    | ({
         relationTo: 'merchants';
         value: number | Merchant;
       } | null)
@@ -2680,6 +2718,31 @@ export interface BusinessAreaExtensionsSelect<T extends boolean = true> {
       };
   metroStations?: T;
   version?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-site-profiles_select".
+ */
+export interface CitySiteProfilesSelect<T extends boolean = true> {
+  city?: T;
+  serviceStatus?: T;
+  switcherVisible?: T;
+  sortOrder?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  heroEyebrow?: T;
+  heroHeading?: T;
+  heroBody?: T;
+  heroMedia?: T;
+  introHeading?: T;
+  introBody?: T;
+  contactHeading?: T;
+  contactBody?: T;
+  featuredRegions?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -3806,6 +3869,7 @@ export interface TaskCreateCollectionExport {
       | 'media'
       | 'locations'
       | 'business-area-extensions'
+      | 'city-site-profiles'
       | 'merchants'
       | 'teams'
       | 'brokers'
