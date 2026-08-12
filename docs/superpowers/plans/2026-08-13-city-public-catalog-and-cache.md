@@ -37,7 +37,7 @@
 - Consumes: `CityContext['slug']` from Plan 1.
 - Produces: `createSearchContext(citySlug, now?)`; required `SearchContext.city: string`.
 
-- [ ] **Step 1: Write failing fail-open regression tests**
+- [x] **Step 1: Write failing fail-open regression tests**
 
 ```ts
 expectTypeOf<SearchContext>().toMatchTypeOf<{ city: string }>()
@@ -49,13 +49,13 @@ expect(adapter.lastWhere).toContainEqual({ 'building.city.slug': { equals: 'hang
 
 Add a cross-city fixture containing one Shanghai and one Hangzhou effective listing and assert Hangzhou returns only Hangzhou for list, detail, recommendations, homepage, facets, and inquiry target validation.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/public-catalog-city-context.test.ts tests/public-catalog-effective-supply-consistency.test.ts`
 
 Expected: FAIL because city is optional and `defaultSearchContext()` exists.
 
-- [ ] **Step 3: Replace the default context constructor**
+- [x] **Step 3: Replace the default context constructor**
 
 ```ts
 export type SearchContext = Readonly<{
@@ -74,11 +74,11 @@ export function createSearchContext(city: string, now: Date = new Date()): Searc
 
 Delete `defaultSearchContext`. Replace every import/call with an explicit city. During this intermediate plan, legacy pages pass `siteConfig.defaultCity`; Plan 4 replaces route boundaries with resolved `CityContext.slug`.
 
-- [ ] **Step 4: Remove conditional city filtering**
+- [x] **Step 4: Remove conditional city filtering**
 
 Replace `if (ctx.city)` branches in the Supply Adapter with unconditional city predicates. Ensure buildings, listing relationships, facets, homepage regions, recommendations, and counts all use the same context.
 
-- [ ] **Step 5: Run focused tests and compile**
+- [x] **Step 5: Run focused tests and compile**
 
 Run:
 
@@ -89,7 +89,7 @@ pnpm exec tsc --noEmit --pretty false
 
 Expected: PASS; `rg "defaultSearchContext|city\?: string" src/domain/public-catalog src/lib/frontend src/app` returns no city-context regressions.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add payload-office-platform/src/domain/public-catalog/types.ts payload-office-platform/src/domain/public-catalog/supply-adapter.ts payload-office-platform/src/domain/public-catalog/index.ts payload-office-platform/src/app/api/inquiries/route.ts payload-office-platform/src/app/\(frontend\)/listings/actions.ts payload-office-platform/src/app/\(frontend\)/pages/\[slug\]/page.tsx payload-office-platform/src/app/\(frontend\)/buildings/\[slug\]/page.tsx payload-office-platform/src/test/factory/listings.ts payload-office-platform/tests/public-catalog-city-context.test.ts payload-office-platform/tests/public-catalog-effective-supply-consistency.test.ts
