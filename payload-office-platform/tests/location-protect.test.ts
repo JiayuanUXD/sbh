@@ -11,7 +11,7 @@ type Node = {
   city?: number | null
 }
 
-function makeReq(nodes: Node[]) {
+function makeReq(nodes: Node[], profiledCityIds: readonly number[] = []) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   return {
     payload: {
@@ -25,6 +25,10 @@ function makeReq(nodes: Node[]) {
           status: n.status,
           city: n.city ?? null,
         }
+      },
+      find: async ({ collection }: { collection: string }) => {
+        if (collection !== 'city-site-profiles') return { docs: [] }
+        return { docs: profiledCityIds.map((city) => ({ city })) }
       },
     },
   } as never
@@ -46,6 +50,42 @@ const baseArgs = (over: Record<string, unknown>) => ({
   originalDoc: undefined,
   req: makeReq(GRAPH),
   ...over,
+})
+
+describe('location-protect city profile slug freeze', () => {
+  it('rejects a city slug change once the city has a site profile', async () => {
+    const city = { id: 1, type: 'city', immutableCode: 'SH', slug: 'shanghai', version: 1 }
+    const data = { type: 'city', immutableCode: 'SH', slug: 'shanghai-new', version: 1 }
+
+    await expect(
+      protectLocation({
+        operation: 'update',
+        originalDoc: city,
+        req: makeReq(GRAPH, [1]),
+        data,
+      } as never),
+    ).rejects.toMatchObject({ code: 'city_slug_frozen' })
+  })
+
+  it('allows a city name edit while its slug is unchanged', async () => {
+    const city = { id: 1, type: 'city', immutableCode: 'SH', slug: 'shanghai', version: 1 }
+    const data = {
+      type: 'city',
+      immutableCode: 'SH',
+      slug: 'shanghai',
+      name: 'Shanghai City',
+      version: 1,
+    }
+
+    await expect(
+      protectLocation({
+        operation: 'update',
+        originalDoc: city,
+        req: makeReq(GRAPH, [1]),
+        data,
+      } as never),
+    ).resolves.toMatchObject({ name: 'Shanghai City' })
+  })
 })
 
 describe('location-protect/固定层级', () => {
