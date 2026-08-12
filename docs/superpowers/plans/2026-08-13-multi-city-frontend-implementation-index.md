@@ -77,7 +77,7 @@ Record five concrete lines: commit SHA/subject; exact test commands/pass counts;
 
 ## Cross-Plan Release Gates
 
-- [ ] **Gate A — foundation:** PostgreSQL has exactly seven valid City Site Profiles, one per canonical city; resolver and slug freeze tests pass.
+- [x] **Gate A — foundation:** PostgreSQL has exactly seven valid City Site Profiles, one per canonical city; resolver and slug freeze tests pass.
 - [ ] **Gate B — isolation:** all catalog consumers compile with required city; cross-city cache-hit tests prove no Shanghai records appear in another city.
 - [ ] **Gate C — application safety:** all three application flows persist server-resolved city; partner permissions, idempotency, notification fallback, and no-auto-conversion tests pass.
 - [ ] **Gate D — reversible routing:** `MULTI_CITY_ROUTING_ENABLED=false` preserves old canonical URLs; `true` uses page-level 307s and prefixed canonical URLs.
