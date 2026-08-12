@@ -228,7 +228,7 @@ git commit -m "feat: migrate seven city site profiles"
 **Interfaces:**
 - Produces: `CityContext`, `normalizeCitySlug`, `createCityContextResolver`, request-cached `resolveCityContext`, cached `listPublicCityProfiles`, compact `listPublicCityOptions`, and `getMultiCityRoutingEnabled`.
 
-- [ ] **Step 1: Write failing resolver/config tests**
+- [x] **Step 1: Write failing resolver/config tests**
 
 ```ts
 expect(normalizeCitySlug(' Hangzhou ')).toBe('hangzhou')
@@ -245,13 +245,13 @@ expect(await listPublicCityOptions()).toEqual([
 
 Also assert `SUPPORTED_CITIES` is removed, missing default profile does not crash build-time config parsing, `MULTI_CITY_ROUTING_ENABLED` accepts only `'true'`/`'false'`, and updating a Location city slug with an existing profile throws `city_slug_frozen`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-context-resolver.test.ts tests/site-config.test.ts tests/location-protect.test.ts`
 
 Expected: FAIL on missing resolver and old compile-time whitelist behavior.
 
-- [ ] **Step 3: Implement pure resolver interfaces**
+- [x] **Step 3: Implement pure resolver interfaces**
 
 ```ts
 export type CityContext = Readonly<{
@@ -269,7 +269,7 @@ export function createCityContextResolver(lookup: CityProfileLookup): (slug: unk
 
 Reject malformed slugs and fail closed on absent/invalid profiles. Do not default to Shanghai inside this resolver.
 
-- [ ] **Step 4: Add request and cross-request cache wrappers**
+- [x] **Step 4: Add request and cross-request cache wrappers**
 
 Use a module `Map<string, CachedResolver>` whose `unstable_cache` key parts and tag both include the normalized city slug, then wrap the exported route resolver in `React.cache()`:
 
@@ -283,7 +283,7 @@ export const resolveCityContext = cache(async (slug: unknown) => {
 
 Tag format: `public:city-profile:{citySlug}`. Return mapped DTO only. Add a separate cached profile-list query tagged `public:city-profiles` for `generateStaticParams`, sitemap, and the header; `listPublicCityOptions` filters `switcherVisible=true` and returns only slug/name/status/sortOrder sorted deterministically.
 
-- [ ] **Step 5: Replace compile-time city whitelist and freeze city slug**
+- [x] **Step 5: Replace compile-time city whitelist and freeze city slug**
 
 Remove `SUPPORTED_CITIES` and `SupportedCity`. Keep `DEFAULT_CITY='shanghai'`; `siteConfig.defaultCity` becomes `string`. Implement server-only:
 
@@ -295,7 +295,7 @@ export function getMultiCityRoutingEnabled(): boolean {
 
 Extend `protectLocation` so a city slug change queries `city-site-profiles`; if a profile exists, reject before write. Keep city names editable and do not add aliases.
 
-- [ ] **Step 6: Run tests, typecheck, and commit Task 3**
+- [x] **Step 6: Run tests, typecheck, and commit Task 3**
 
 Run: `pnpm exec vitest run tests/city-context-resolver.test.ts tests/site-config.test.ts tests/location-protect.test.ts`
 
