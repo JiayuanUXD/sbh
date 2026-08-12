@@ -7,6 +7,7 @@ import {
   fetchBusinessAreaBoundaryStatus,
   fetchBusinessAreaMissingBoundaryIds,
 } from '@/domain/geography/location-counts'
+import GeographyAdminTemplate from './GeographyAdminTemplate'
 import GeographyListViewClient, { type GeographyRow } from './GeographyListViewClient'
 
 const PAGE_SIZE = 20
@@ -45,7 +46,7 @@ async function fetchLocationOptions(
  * / metro-lines），从 URL search params 读筛选（city / parent / status / q / page），
  * 一次 `payload.find` 取本页，再调 Task 5 聚合计数服务（本页 ids 一次聚合）合并进行。
  */
-export default async function GeographyListView(props: AdminViewServerProps) {
+async function renderGeographyListContent(props: AdminViewServerProps) {
   const { initPageResult } = props
   const req = initPageResult.req
   const payload = req.payload
@@ -165,4 +166,10 @@ export default async function GeographyListView(props: AdminViewServerProps) {
       districtOptions={districtOptions}
     />
   )
+}
+
+export default async function GeographyListView(props: AdminViewServerProps) {
+  const content = await renderGeographyListContent(props)
+
+  return <GeographyAdminTemplate {...props}>{content}</GeographyAdminTemplate>
 }

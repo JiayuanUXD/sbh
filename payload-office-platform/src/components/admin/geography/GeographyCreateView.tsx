@@ -3,6 +3,7 @@ import type { AdminViewServerProps, Payload, Where } from 'payload'
 import type { Location } from '@/payload-types'
 import { getGeographyModuleByCreatePath } from './geography-modules'
 import { GeographyForbidden, requireGeographyAccess } from './require-geography-access'
+import GeographyAdminTemplate from './GeographyAdminTemplate'
 import GeographyCreateViewClient from './GeographyCreateViewClient'
 
 /** 拉取 parent 候选（新建时父级下拉），可选按城市收窄（行政区级联）。 */
@@ -31,7 +32,7 @@ async function fetchParentOptions(
  * （parentFilter 决定用哪个筛选参数：city→城市筛选，district→行政区筛选），提交走
  * REST /api/locations 过 protectLocation hook（city 由 hook 自动填对）。
  */
-export default async function GeographyCreateView(props: AdminViewServerProps) {
+async function renderGeographyCreateContent(props: AdminViewServerProps) {
   const { initPageResult } = props
   const req = initPageResult.req
   const payload = req.payload
@@ -72,4 +73,10 @@ export default async function GeographyCreateView(props: AdminViewServerProps) {
       cityId={city}
     />
   )
+}
+
+export default async function GeographyCreateView(props: AdminViewServerProps) {
+  const content = await renderGeographyCreateContent(props)
+
+  return <GeographyAdminTemplate {...props}>{content}</GeographyAdminTemplate>
 }

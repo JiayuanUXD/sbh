@@ -6,6 +6,7 @@ import { GeographyForbidden, requireGeographyAccess } from './require-geography-
 import { countForCities } from '@/domain/geography/location-counts'
 import { cityScopeWhere } from '@/domain/geography/location-city'
 import type { FlatLocationNode } from '@/domain/geography/location-tree'
+import GeographyAdminTemplate from './GeographyAdminTemplate'
 import GeographyCityDetailClient from './GeographyCityDetailClient'
 
 /** 从 /admin/geography/cities/:id 解析城市 id（3.86 自定义视图不落 routeParams，自取）。 */
@@ -36,7 +37,7 @@ function toFlatLocationNode(d: Location): FlatLocationNode {
  * 服务端：校验登录 → 解析 cityId → 取城市节点 + 完备度计数（Task 5 一次聚合）+
  * `cityScopeWhere(cityId)` 拉全城节点（供只读树），合并后交客户端渲染。
  */
-export default async function GeographyCityDetail(props: AdminViewServerProps) {
+async function renderGeographyCityDetailContent(props: AdminViewServerProps) {
   const { initPageResult } = props
   const req = initPageResult.req
   const payload = req.payload
@@ -83,4 +84,10 @@ export default async function GeographyCityDetail(props: AdminViewServerProps) {
   const nodes = (scope.docs as Location[]).map(toFlatLocationNode)
 
   return <GeographyCityDetailClient cityId={cityId} counts={counts} nodes={nodes} />
+}
+
+export default async function GeographyCityDetail(props: AdminViewServerProps) {
+  const content = await renderGeographyCityDetailContent(props)
+
+  return <GeographyAdminTemplate {...props}>{content}</GeographyAdminTemplate>
 }
