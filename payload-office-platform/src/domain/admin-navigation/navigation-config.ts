@@ -65,10 +65,20 @@ export const ADMIN_NAV_GROUPS = [
       requiredOperationCode: 'supply_submission:read',
     }),
     subgroup('supply-settings', '基础配置', [
-      leaf('locations', '行政区域', '/admin/collections/locations', ['locations']),
-      leaf('business-areas', '商圈管理', '/admin/collections/business-area-extensions', [
-        'business-areas',
-      ]),
+      // Task 15：地理管理重构后导航面向四个平级模块，复用既有菜单码（locations/business-areas），
+      // 显式传 collectionSlug:'locations' 以便下游按 locations 读权限做可见性过滤。
+      leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
+        collectionSlug: 'locations',
+      }),
+      leaf('districts', '行政区域', '/admin/geography/districts', ['locations'], {
+        collectionSlug: 'locations',
+      }),
+      leaf('business-areas', '商圈管理', '/admin/geography/business-areas', ['business-areas'], {
+        collectionSlug: 'locations',
+      }),
+      leaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations'], {
+        collectionSlug: 'locations',
+      }),
       leaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
     ]),
   ]),

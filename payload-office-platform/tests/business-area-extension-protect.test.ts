@@ -9,16 +9,40 @@ import { DomainError } from '@/domain/shared/errors'
  * 内存节点图 + mock findByID，断言：商圈类型/启用/祖先启用、同城站点、
  * businessArea 不可变、版本乐观锁。
  */
-type Node = { id: number; type: string; parent?: number | null; status?: string }
+type Node = {
+  id: number
+  type: string
+  parent?: number | null
+  status?: string
+  city?: number | null
+}
 
 function makeReq(nodes: Node[]) {
   const byId = new Map(nodes.map((n) => [n.id, n]))
+  const state = { findCalls: 0 }
+  const shape = (n: Node) => ({
+    id: n.id,
+    type: n.type,
+    parent: n.parent ?? null,
+    status: n.status,
+    city: n.city ?? null,
+  })
   return {
+    _state: state,
     payload: {
       findByID: async ({ id }: { id: number | string }) => {
         const n = byId.get(Number(id))
         if (!n) throw new Error('not found')
-        return { id: n.id, type: n.type, parent: n.parent ?? null, status: n.status }
+        return shape(n)
+      },
+      find: async ({ where }: { where: { id: { in: Array<number | string> } } }) => {
+        state.findCalls += 1
+        const ids = where.id.in.map(Number)
+        const docs = ids
+          .map((id) => byId.get(id))
+          .filter((n): n is Node => Boolean(n))
+          .map(shape)
+        return { docs }
       },
     },
   } as never
@@ -32,17 +56,17 @@ function makeReq(nodes: Node[]) {
  */
 const GRAPH: Node[] = [
   { id: 1, type: 'city', status: 'active' },
-  { id: 2, type: 'district', parent: 1, status: 'active' },
-  { id: 3, type: 'business_area', parent: 2, status: 'active' },
-  { id: 4, type: 'metro_line', parent: 1, status: 'active' },
-  { id: 5, type: 'metro_station', parent: 4, status: 'active' },
+  { id: 2, type: 'district', parent: 1, status: 'active', city: 1 },
+  { id: 3, type: 'business_area', parent: 2, status: 'active', city: 1 },
+  { id: 4, type: 'metro_line', parent: 1, status: 'active', city: 1 },
+  { id: 5, type: 'metro_station', parent: 4, status: 'active', city: 1 },
   { id: 6, type: 'city', status: 'active' },
-  { id: 7, type: 'district', parent: 6, status: 'active' },
-  { id: 8, type: 'business_area', parent: 7, status: 'active' },
-  { id: 9, type: 'metro_line', parent: 6, status: 'active' },
-  { id: 10, type: 'metro_station', parent: 9, status: 'active' },
-  { id: 12, type: 'district', parent: 1, status: 'active' },
-  { id: 11, type: 'business_area', parent: 12, status: 'disabled' },
+  { id: 7, type: 'district', parent: 6, status: 'active', city: 6 },
+  { id: 8, type: 'business_area', parent: 7, status: 'active', city: 6 },
+  { id: 9, type: 'metro_line', parent: 6, status: 'active', city: 6 },
+  { id: 10, type: 'metro_station', parent: 9, status: 'active', city: 6 },
+  { id: 12, type: 'district', parent: 1, status: 'active', city: 1 },
+  { id: 11, type: 'business_area', parent: 12, status: 'disabled', city: 1 },
 ]
 
 const create = (data: Record<string, unknown>) =>
@@ -107,6 +131,46 @@ describe('business-area-extension-protect/站点关联', () => {
       const e = err as DomainError
       expect((e.details as { invalidStations: number[] }).invalidStations).toContain(10)
     }
+  })
+
+  it('站点批量校验只发一次 find（不随站点数线性增长）', async () => {
+    const graph: Node[] = [
+      { id: 1, type: 'city', status: 'active' },
+      { id: 2, type: 'district', parent: 1, status: 'active', city: 1 },
+      { id: 3, type: 'business_area', parent: 2, status: 'active', city: 1 },
+      { id: 4, type: 'metro_line', parent: 1, status: 'active', city: 1 },
+      { id: 5, type: 'metro_station', parent: 4, status: 'active', city: 1 },
+      { id: 13, type: 'metro_station', parent: 4, status: 'active', city: 1 },
+      { id: 14, type: 'metro_station', parent: 4, status: 'active', city: 1 },
+    ]
+    const req = makeReq(graph)
+    await protectBusinessAreaExtension({
+      operation: 'create',
+      originalDoc: undefined,
+      req,
+      data: { businessArea: 3, metroStations: [5, 13, 14] },
+    } as never)
+    const state = (req as { _state: { findCalls: number } })._state
+    expect(state.findCalls).toBe(1)
+  })
+
+  it('站点 city 字段缺失 → 视为数据异常，INVALID_STATION_RELATION', async () => {
+    // 站点 5 无 city（脏数据），商圈 3 有城市 → 无法校验同城 → 拒
+    const graph: Node[] = [
+      { id: 1, type: 'city', status: 'active' },
+      { id: 2, type: 'district', parent: 1, status: 'active', city: 1 },
+      { id: 3, type: 'business_area', parent: 2, status: 'active', city: 1 },
+      { id: 4, type: 'metro_line', parent: 1, status: 'active', city: 1 },
+      { id: 5, type: 'metro_station', parent: 4, status: 'active' },
+    ]
+    await expect(
+      protectBusinessAreaExtension({
+        operation: 'create',
+        originalDoc: undefined,
+        req: makeReq(graph),
+        data: { businessArea: 3, metroStations: [5] },
+      } as never),
+    ).rejects.toMatchObject({ code: 'INVALID_STATION_RELATION' })
   })
 })
 

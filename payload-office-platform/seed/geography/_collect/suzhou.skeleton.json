@@ -1,0 +1,1065 @@
+
+{
+  "_header": [
+    "============================================================",
+    "苏州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）",
+    "来源：国家统计局行政区划代码、苏州轨道交通官方线网图、核心办公商圈人工盘点",
+    "采集日期：待回填",
+    "核对人：<name>",
+    "行政区划核对截止：2025-06-30",
+    "说明：苏州工业园区为功能区，无官方统计 6 位码，code SZ-D-320571 为合成占位（待核对），",
+    "      slug 用 suzhou-gongyeyuanqu",
+    "说明：坐标回填后由本骨架生成 seed/geography/suzhou.json",
+    "============================================================"
+  ],
+  "city": {
+    "name": "苏州市",
+    "immutableCode": "CITY-SZ",
+    "slug": "suzhou",
+    "sortOrder": 4
+  },
+  "districts": [
+    {
+      "name": "虎丘区",
+      "immutableCode": "SZ-D-320505",
+      "slug": "suzhou-huqiu",
+      "sortOrder": 1
+    },
+    {
+      "name": "吴中区",
+      "immutableCode": "SZ-D-320506",
+      "slug": "suzhou-wuzhong",
+      "sortOrder": 2
+    },
+    {
+      "name": "相城区",
+      "immutableCode": "SZ-D-320507",
+      "slug": "suzhou-xiangcheng",
+      "sortOrder": 3
+    },
+    {
+      "name": "姑苏区",
+      "immutableCode": "SZ-D-320508",
+      "slug": "suzhou-gusu",
+      "sortOrder": 4
+    },
+    {
+      "name": "吴江区",
+      "immutableCode": "SZ-D-320509",
+      "slug": "suzhou-wujiang",
+      "sortOrder": 5
+    },
+    {
+      "name": "苏州工业园区",
+      "immutableCode": "SZ-D-320571",
+      "slug": "suzhou-gongyeyuanqu",
+      "sortOrder": 6
+    },
+    {
+      "name": "常熟市",
+      "immutableCode": "SZ-D-320581",
+      "slug": "suzhou-changshu",
+      "sortOrder": 7
+    },
+    {
+      "name": "张家港市",
+      "immutableCode": "SZ-D-320582",
+      "slug": "suzhou-zhangjiagang",
+      "sortOrder": 8
+    },
+    {
+      "name": "昆山市",
+      "immutableCode": "SZ-D-320583",
+      "slug": "suzhou-kunshan",
+      "sortOrder": 9
+    },
+    {
+      "name": "太仓市",
+      "immutableCode": "SZ-D-320585",
+      "slug": "suzhou-taichang",
+      "sortOrder": 10
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "湖西CBD",
+      "districtCode": "SZ-D-320571",
+      "slug": "suzhou-huxi",
+      "immutableCode": "SZ-BA-HUXI"
+    },
+    {
+      "name": "湖东CBD",
+      "districtCode": "SZ-D-320571",
+      "slug": "suzhou-hudong",
+      "immutableCode": "SZ-BA-HUDONG"
+    },
+    {
+      "name": "苏州中心",
+      "districtCode": "SZ-D-320571",
+      "slug": "suzhou-suzhouzhongxin",
+      "immutableCode": "SZ-BA-SUZHOUZHONGXIN"
+    },
+    {
+      "name": "金鸡湖商务区",
+      "districtCode": "SZ-D-320571",
+      "slug": "suzhou-jinjihu",
+      "immutableCode": "SZ-BA-JINJIHU"
+    },
+    {
+      "name": "独墅湖高教创新区",
+      "districtCode": "SZ-D-320571",
+      "slug": "suzhou-dushuhu",
+      "immutableCode": "SZ-BA-DUSHUHU"
+    },
+    {
+      "name": "狮山商务区",
+      "districtCode": "SZ-D-320505",
+      "slug": "suzhou-shishan",
+      "immutableCode": "SZ-BA-SHISHAN"
+    },
+    {
+      "name": "苏州科技城",
+      "districtCode": "SZ-D-320505",
+      "slug": "suzhou-kejicheng",
+      "immutableCode": "SZ-BA-KEJICHENG"
+    },
+    {
+      "name": "高铁新城商务区",
+      "districtCode": "SZ-D-320507",
+      "slug": "suzhou-gaotiexincheng",
+      "immutableCode": "SZ-BA-GAOTIEXINCHENG"
+    },
+    {
+      "name": "相城CBD",
+      "districtCode": "SZ-D-320507",
+      "slug": "suzhou-xiangcheng-cbd",
+      "immutableCode": "SZ-BA-XIANGCHENG"
+    },
+    {
+      "name": "吴中中心城区",
+      "districtCode": "SZ-D-320506",
+      "slug": "suzhou-wuzhong-chengqu",
+      "immutableCode": "SZ-BA-WUZHONG"
+    },
+    {
+      "name": "吴江太湖新城",
+      "districtCode": "SZ-D-320509",
+      "slug": "suzhou-wujiang-taihuxincheng",
+      "immutableCode": "SZ-BA-WUJIANG"
+    },
+    {
+      "name": "观前街商务区",
+      "districtCode": "SZ-D-320508",
+      "slug": "suzhou-guanqianjie",
+      "immutableCode": "SZ-BA-GUANQIANJIE"
+    },
+    {
+      "name": "平江新城",
+      "districtCode": "SZ-D-320508",
+      "slug": "suzhou-pingjiangxincheng",
+      "immutableCode": "SZ-BA-PINGJIANGXINCHENG"
+    },
+    {
+      "name": "昆山开发区",
+      "districtCode": "SZ-D-320583",
+      "slug": "suzhou-kunshan-kaifaqu",
+      "immutableCode": "SZ-BA-KUNSHANKAIFAQU"
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "SZ-ML-1",
+      "slug": "suzhou-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "木渎",
+          "immutableCode": "SZ-MS-MUDU",
+          "slug": "suzhou-metro-mudu",
+          "sortOrder": 1
+        },
+        {
+          "name": "金枫路",
+          "immutableCode": "SZ-MS-JINFENGLU",
+          "slug": "suzhou-metro-jinfeng-lu",
+          "sortOrder": 2
+        },
+        {
+          "name": "汾湖路",
+          "immutableCode": "SZ-MS-FENHULU",
+          "slug": "suzhou-metro-fenhu-lu",
+          "sortOrder": 3
+        },
+        {
+          "name": "玉山路",
+          "immutableCode": "SZ-MS-YUSHANLU",
+          "slug": "suzhou-metro-yushan-lu",
+          "sortOrder": 4
+        },
+        {
+          "name": "竹园路",
+          "immutableCode": "SZ-MS-ZHUYUANLU",
+          "slug": "suzhou-metro-zhuyuan-lu",
+          "sortOrder": 5
+        },
+        {
+          "name": "塔园路",
+          "immutableCode": "SZ-MS-TAYUANLU",
+          "slug": "suzhou-metro-tayuan-lu",
+          "sortOrder": 6
+        },
+        {
+          "name": "滨河路",
+          "immutableCode": "SZ-MS-BINHELU",
+          "slug": "suzhou-metro-binhe-lu",
+          "sortOrder": 7
+        },
+        {
+          "name": "西环路",
+          "immutableCode": "SZ-MS-XIHUANLU",
+          "slug": "suzhou-metro-xihuan-lu",
+          "sortOrder": 8
+        },
+        {
+          "name": "桐泾北路",
+          "immutableCode": "SZ-MS-TONGJINGBEILU",
+          "slug": "suzhou-metro-tongjing-bei-lu",
+          "sortOrder": 9
+        },
+        {
+          "name": "广济南路",
+          "immutableCode": "SZ-MS-GUANGJINANLU",
+          "slug": "suzhou-metro-guangji-nan-lu",
+          "sortOrder": 10
+        },
+        {
+          "name": "养育巷",
+          "immutableCode": "SZ-MS-YANGYUXIANG",
+          "slug": "suzhou-metro-yangyu-xiang",
+          "sortOrder": 11
+        },
+        {
+          "name": "乐桥",
+          "immutableCode": "SZ-MS-LEQIAO",
+          "slug": "suzhou-metro-leqiao",
+          "sortOrder": 12
+        },
+        {
+          "name": "临顿路",
+          "immutableCode": "SZ-MS-LINDUNLU",
+          "slug": "suzhou-metro-lindun-lu",
+          "sortOrder": 13
+        },
+        {
+          "name": "相门",
+          "immutableCode": "SZ-MS-XIANGMEN",
+          "slug": "suzhou-metro-xiangmen",
+          "sortOrder": 14
+        },
+        {
+          "name": "东环路",
+          "immutableCode": "SZ-MS-DONGHUANLU",
+          "slug": "suzhou-metro-donghuan-lu",
+          "sortOrder": 15
+        },
+        {
+          "name": "中央公园",
+          "immutableCode": "SZ-MS-ZHONGYANGGONGYUAN",
+          "slug": "suzhou-metro-zhongyang-gongyuan",
+          "sortOrder": 16
+        },
+        {
+          "name": "星海广场",
+          "immutableCode": "SZ-MS-XINGHAIGUANGCHANG",
+          "slug": "suzhou-metro-xinghai-guangchang",
+          "sortOrder": 17
+        },
+        {
+          "name": "星湖街",
+          "immutableCode": "SZ-MS-XINGHUJIE",
+          "slug": "suzhou-metro-xinghu-jie",
+          "sortOrder": 18
+        },
+        {
+          "name": "南施街",
+          "immutableCode": "SZ-MS-NANSHIJIE",
+          "slug": "suzhou-metro-nanshi-jie",
+          "sortOrder": 19
+        },
+        {
+          "name": "星塘街",
+          "immutableCode": "SZ-MS-XINGTANGJIE",
+          "slug": "suzhou-metro-xingtang-jie",
+          "sortOrder": 20
+        },
+        {
+          "name": "钟南街",
+          "immutableCode": "SZ-MS-ZHONGNANJIE",
+          "slug": "suzhou-metro-zhongnan-jie",
+          "sortOrder": 21
+        }
+      ]
+    },
+    {
+      "name": "地铁2号线",
+      "immutableCode": "SZ-ML-2",
+      "slug": "suzhou-metro-2",
+      "sortOrder": 2,
+      "stations": [
+        {
+          "name": "骑河",
+          "immutableCode": "SZ-MS-QIHE",
+          "slug": "suzhou-metro-qihe",
+          "sortOrder": 1
+        },
+        {
+          "name": "富翔路",
+          "immutableCode": "SZ-MS-FUXIANGLU",
+          "slug": "suzhou-metro-fuxiang-lu",
+          "sortOrder": 2
+        },
+        {
+          "name": "高铁新城",
+          "immutableCode": "SZ-MS-GAOTIEXINCHENG",
+          "slug": "suzhou-metro-gaotie-xincheng",
+          "sortOrder": 3
+        },
+        {
+          "name": "大湾",
+          "immutableCode": "SZ-MS-DAWAN",
+          "slug": "suzhou-metro-dawan",
+          "sortOrder": 4
+        },
+        {
+          "name": "蠡口",
+          "immutableCode": "SZ-MS-LIKOU",
+          "slug": "suzhou-metro-likou",
+          "sortOrder": 5
+        },
+        {
+          "name": "富元路",
+          "immutableCode": "SZ-MS-FUYUANLU",
+          "slug": "suzhou-metro-fuyuan-lu",
+          "sortOrder": 6
+        },
+        {
+          "name": "相城大道",
+          "immutableCode": "SZ-MS-XIANGCHENGDADAO",
+          "slug": "suzhou-metro-xiangcheng-dadao",
+          "sortOrder": 7
+        },
+        {
+          "name": "阳澄湖中路",
+          "immutableCode": "SZ-MS-YANGCHENGHUZHONGLU",
+          "slug": "suzhou-metro-yangchenghu-zhong-lu",
+          "sortOrder": 8
+        },
+        {
+          "name": "徐图港",
+          "immutableCode": "SZ-MS-XUTUGANG",
+          "slug": "suzhou-metro-xutu-gang",
+          "sortOrder": 9
+        },
+        {
+          "name": "陆慕",
+          "immutableCode": "SZ-MS-LUMU",
+          "slug": "suzhou-metro-lumu",
+          "sortOrder": 10
+        },
+        {
+          "name": "平泷路东",
+          "immutableCode": "SZ-MS-PINGLONGLUDONG",
+          "slug": "suzhou-metro-pinglong-lu-dong",
+          "sortOrder": 11
+        },
+        {
+          "name": "平河路",
+          "immutableCode": "SZ-MS-PINGHELU",
+          "slug": "suzhou-metro-pinghe-lu",
+          "sortOrder": 12
+        },
+        {
+          "name": "苏州火车站",
+          "immutableCode": "SZ-MS-SUZHOUHUOCHEZHAN",
+          "slug": "suzhou-metro-suzhou-huoche-zhan",
+          "sortOrder": 13
+        },
+        {
+          "name": "山塘街",
+          "immutableCode": "SZ-MS-SHANTANGJIE",
+          "slug": "suzhou-metro-shantang-jie",
+          "sortOrder": 14
+        },
+        {
+          "name": "石路",
+          "immutableCode": "SZ-MS-SHILU",
+          "slug": "suzhou-metro-shilu",
+          "sortOrder": 15
+        },
+        {
+          "name": "三香广场",
+          "immutableCode": "SZ-MS-SANXIANGGUANGCHANG",
+          "slug": "suzhou-metro-sanxiang-guangchang",
+          "sortOrder": 16
+        },
+        {
+          "name": "劳动路",
+          "immutableCode": "SZ-MS-LAODONGLU",
+          "slug": "suzhou-metro-laodong-lu",
+          "sortOrder": 17
+        },
+        {
+          "name": "胥江路",
+          "immutableCode": "SZ-MS-XUJIANGLU",
+          "slug": "suzhou-metro-xujiang-lu",
+          "sortOrder": 18
+        },
+        {
+          "name": "桐泾公园",
+          "immutableCode": "SZ-MS-TONGJINGGONGYUAN",
+          "slug": "suzhou-metro-tongjing-gongyuan",
+          "sortOrder": 19
+        },
+        {
+          "name": "友联",
+          "immutableCode": "SZ-MS-YOULIAN",
+          "slug": "suzhou-metro-youlian",
+          "sortOrder": 20
+        },
+        {
+          "name": "盘蠡路",
+          "immutableCode": "SZ-MS-PANLILU",
+          "slug": "suzhou-metro-panli-lu",
+          "sortOrder": 21
+        },
+        {
+          "name": "新家桥",
+          "immutableCode": "SZ-MS-XINJIAQIAO",
+          "slug": "suzhou-metro-xinjia-qiao",
+          "sortOrder": 22
+        },
+        {
+          "name": "石湖东路",
+          "immutableCode": "SZ-MS-SHIHUDONGLU",
+          "slug": "suzhou-metro-shihu-dong-lu",
+          "sortOrder": 23
+        },
+        {
+          "name": "宝带桥南",
+          "immutableCode": "SZ-MS-BAODAIQIAONAN",
+          "slug": "suzhou-metro-baodai-qiao-nan",
+          "sortOrder": 24
+        },
+        {
+          "name": "尹中路",
+          "immutableCode": "SZ-MS-YINZHONGLU",
+          "slug": "suzhou-metro-yinzhong-lu",
+          "sortOrder": 25
+        },
+        {
+          "name": "郭巷",
+          "immutableCode": "SZ-MS-GUOXIANG",
+          "slug": "suzhou-metro-guoxiang",
+          "sortOrder": 26
+        },
+        {
+          "name": "郭苑路",
+          "immutableCode": "SZ-MS-GUOYUANLU",
+          "slug": "suzhou-metro-guoyuan-lu",
+          "sortOrder": 27
+        },
+        {
+          "name": "尹山湖",
+          "immutableCode": "SZ-MS-YINSHANHU",
+          "slug": "suzhou-metro-yinshan-hu",
+          "sortOrder": 28
+        },
+        {
+          "name": "独墅湖南",
+          "immutableCode": "SZ-MS-DUSHUHUNAN",
+          "slug": "suzhou-metro-dushuhu-nan",
+          "sortOrder": 29
+        },
+        {
+          "name": "独墅湖邻里中心",
+          "immutableCode": "SZ-MS-DUSHUHULINLIZHONGXIN",
+          "slug": "suzhou-metro-dushuhu-linli-zhongxin",
+          "sortOrder": 30
+        },
+        {
+          "name": "月亮湾",
+          "immutableCode": "SZ-MS-YUELIANGWAN",
+          "slug": "suzhou-metro-yueliang-wan",
+          "sortOrder": 31
+        },
+        {
+          "name": "松涛街",
+          "immutableCode": "SZ-MS-SONGTAOJIE",
+          "slug": "suzhou-metro-songtao-jie",
+          "sortOrder": 32
+        },
+        {
+          "name": "金谷路",
+          "immutableCode": "SZ-MS-JINGULU",
+          "slug": "suzhou-metro-jingu-lu",
+          "sortOrder": 33
+        },
+        {
+          "name": "金尚路",
+          "immutableCode": "SZ-MS-JINSHANGLU",
+          "slug": "suzhou-metro-jinshang-lu",
+          "sortOrder": 34
+        },
+        {
+          "name": "桑田岛",
+          "immutableCode": "SZ-MS-SANGTIANDAO",
+          "slug": "suzhou-metro-sangtian-dao",
+          "sortOrder": 35
+        }
+      ]
+    },
+    {
+      "name": "地铁3号线",
+      "immutableCode": "SZ-ML-3",
+      "slug": "suzhou-metro-3",
+      "sortOrder": 3,
+      "stations": [
+        {
+          "name": "苏州新区火车站",
+          "immutableCode": "SZ-MS-SUZHOUXINQUHUOCHEZHAN",
+          "slug": "suzhou-metro-suzhou-xinqu-huoche-zhan",
+          "sortOrder": 1
+        },
+        {
+          "name": "惠昌路",
+          "immutableCode": "SZ-MS-HUICHANGLU",
+          "slug": "suzhou-metro-huichang-lu",
+          "sortOrder": 2
+        },
+        {
+          "name": "文昌路",
+          "immutableCode": "SZ-MS-WENCHANGLU",
+          "slug": "suzhou-metro-wenchang-lu",
+          "sortOrder": 3
+        },
+        {
+          "name": "长亭",
+          "immutableCode": "SZ-MS-CHANGTING",
+          "slug": "suzhou-metro-chang-ting",
+          "sortOrder": 4
+        },
+        {
+          "name": "铜墩",
+          "immutableCode": "SZ-MS-TONGDUN",
+          "slug": "suzhou-metro-tongdun",
+          "sortOrder": 5
+        },
+        {
+          "name": "马运路",
+          "immutableCode": "SZ-MS-MAYUNLU",
+          "slug": "suzhou-metro-mayun-lu",
+          "sortOrder": 6
+        },
+        {
+          "name": "新庄",
+          "immutableCode": "SZ-MS-XINZHUANG",
+          "slug": "suzhou-metro-xinzhuang",
+          "sortOrder": 7
+        },
+        {
+          "name": "狮山",
+          "immutableCode": "SZ-MS-SHISHAN",
+          "slug": "suzhou-metro-shishan",
+          "sortOrder": 8
+        },
+        {
+          "name": "横塘",
+          "immutableCode": "SZ-MS-HENGTANG",
+          "slug": "suzhou-metro-hengtang",
+          "sortOrder": 9
+        },
+        {
+          "name": "石湖北",
+          "immutableCode": "SZ-MS-SHIHUBEI",
+          "slug": "suzhou-metro-shihu-bei",
+          "sortOrder": 10
+        },
+        {
+          "name": "新郭",
+          "immutableCode": "SZ-MS-XINGUO",
+          "slug": "suzhou-metro-xinguo",
+          "sortOrder": 11
+        },
+        {
+          "name": "迎春路",
+          "immutableCode": "SZ-MS-YINGCHUNLU",
+          "slug": "suzhou-metro-yingchun-lu",
+          "sortOrder": 12
+        },
+        {
+          "name": "东兴路",
+          "immutableCode": "SZ-MS-DONGXINGLU",
+          "slug": "suzhou-metro-dongxing-lu",
+          "sortOrder": 13
+        },
+        {
+          "name": "通园路",
+          "immutableCode": "SZ-MS-TONGYUANLU",
+          "slug": "suzhou-metro-tongyuan-lu",
+          "sortOrder": 14
+        },
+        {
+          "name": "金厍桥",
+          "immutableCode": "SZ-MS-JINSHEQIAO",
+          "slug": "suzhou-metro-jinshe-qiao",
+          "sortOrder": 15
+        },
+        {
+          "name": "李公堤南",
+          "immutableCode": "SZ-MS-LIGONGDINAN",
+          "slug": "suzhou-metro-ligong-di-nan",
+          "sortOrder": 16
+        },
+        {
+          "name": "苏州奥体中心",
+          "immutableCode": "SZ-MS-SUZHOUAOTIZHONGXIN",
+          "slug": "suzhou-metro-suzhou-aoti-zhongxin",
+          "sortOrder": 17
+        },
+        {
+          "name": "唯亭",
+          "immutableCode": "SZ-MS-WEITING",
+          "slug": "suzhou-metro-weiting",
+          "sortOrder": 18
+        }
+      ]
+    },
+    {
+      "name": "地铁4号线",
+      "immutableCode": "SZ-ML-4",
+      "slug": "suzhou-metro-4",
+      "sortOrder": 4,
+      "stations": [
+        {
+          "name": "龙道浜",
+          "immutableCode": "SZ-MS-LONGDAOBANG",
+          "slug": "suzhou-metro-longdao-bang",
+          "sortOrder": 1
+        },
+        {
+          "name": "张庄",
+          "immutableCode": "SZ-MS-ZHANGZHUANG",
+          "slug": "suzhou-metro-zhangzhuang",
+          "sortOrder": 2
+        },
+        {
+          "name": "夏桥",
+          "immutableCode": "SZ-MS-XIAQIAO",
+          "slug": "suzhou-metro-xiaqiao",
+          "sortOrder": 3
+        },
+        {
+          "name": "北寺塔",
+          "immutableCode": "SZ-MS-BEISITA",
+          "slug": "suzhou-metro-bei-si-ta",
+          "sortOrder": 4
+        },
+        {
+          "name": "察院场",
+          "immutableCode": "SZ-MS-CHAYUANCHANG",
+          "slug": "suzhou-metro-chayuan-chang",
+          "sortOrder": 5
+        },
+        {
+          "name": "三元坊",
+          "immutableCode": "SZ-MS-SANYUANFANG",
+          "slug": "suzhou-metro-sanyuan-fang",
+          "sortOrder": 6
+        },
+        {
+          "name": "南门",
+          "immutableCode": "SZ-MS-NANMEN",
+          "slug": "suzhou-metro-nanmen",
+          "sortOrder": 7
+        },
+        {
+          "name": "团结桥",
+          "immutableCode": "SZ-MS-TUANJIEQIAO",
+          "slug": "suzhou-metro-tuanjie-qiao",
+          "sortOrder": 8
+        },
+        {
+          "name": "宝带路",
+          "immutableCode": "SZ-MS-BAODAILU",
+          "slug": "suzhou-metro-baodai-lu",
+          "sortOrder": 9
+        },
+        {
+          "name": "红庄",
+          "immutableCode": "SZ-MS-HONGZHUANG",
+          "slug": "suzhou-metro-hongzhuang",
+          "sortOrder": 10
+        },
+        {
+          "name": "清树湾",
+          "immutableCode": "SZ-MS-QINGSHUWAN",
+          "slug": "suzhou-metro-qingshu-wan",
+          "sortOrder": 11
+        },
+        {
+          "name": "花港",
+          "immutableCode": "SZ-MS-HUAGANG",
+          "slug": "suzhou-metro-huagang",
+          "sortOrder": 12
+        },
+        {
+          "name": "江陵西路",
+          "immutableCode": "SZ-MS-JIANGLINGXILU",
+          "slug": "suzhou-metro-jiangling-xi-lu",
+          "sortOrder": 13
+        },
+        {
+          "name": "江兴西路",
+          "immutableCode": "SZ-MS-JIANGXINGXILU",
+          "slug": "suzhou-metro-jiangxing-xi-lu",
+          "sortOrder": 14
+        },
+        {
+          "name": "流虹路",
+          "immutableCode": "SZ-MS-LIUHONGLU",
+          "slug": "suzhou-metro-liuhong-lu",
+          "sortOrder": 15
+        },
+        {
+          "name": "笠泽路",
+          "immutableCode": "SZ-MS-LIZELU",
+          "slug": "suzhou-metro-lize-lu",
+          "sortOrder": 16
+        },
+        {
+          "name": "顾家荡",
+          "immutableCode": "SZ-MS-GUJIADANG",
+          "slug": "suzhou-metro-gujia-dang",
+          "sortOrder": 17
+        },
+        {
+          "name": "苏州湾东",
+          "immutableCode": "SZ-MS-SUZHOUWANDONG",
+          "slug": "suzhou-metro-suzhou-wan-dong",
+          "sortOrder": 18
+        },
+        {
+          "name": "松陵大道",
+          "immutableCode": "SZ-MS-SONGLINGDADAO",
+          "slug": "suzhou-metro-songling-dadao",
+          "sortOrder": 19
+        },
+        {
+          "name": "吴江人民广场",
+          "immutableCode": "SZ-MS-WUJIANGRENMINGUANGCHANG",
+          "slug": "suzhou-metro-wujiang-renmin-guangchang",
+          "sortOrder": 20
+        },
+        {
+          "name": "吴江汽车站",
+          "immutableCode": "SZ-MS-WUJIANGQICHEZHAN",
+          "slug": "suzhou-metro-wujiang-qiche-zhan",
+          "sortOrder": 21
+        },
+        {
+          "name": "同里",
+          "immutableCode": "SZ-MS-TONGLI",
+          "slug": "suzhou-metro-tongli",
+          "sortOrder": 22
+        }
+      ]
+    },
+    {
+      "name": "地铁5号线",
+      "immutableCode": "SZ-ML-5",
+      "slug": "suzhou-metro-5",
+      "sortOrder": 5,
+      "stations": [
+        {
+          "name": "太湖香山",
+          "immutableCode": "SZ-MS-TAIHUXIANGSHAN",
+          "slug": "suzhou-metro-taihu-xiangshan",
+          "sortOrder": 1
+        },
+        {
+          "name": "花墩",
+          "immutableCode": "SZ-MS-HUADUN",
+          "slug": "suzhou-metro-huadun",
+          "sortOrder": 2
+        },
+        {
+          "name": "津桥",
+          "immutableCode": "SZ-MS-JINQIAO",
+          "slug": "suzhou-metro-jinqiao",
+          "sortOrder": 3
+        },
+        {
+          "name": "胥口",
+          "immutableCode": "SZ-MS-XUKOU",
+          "slug": "suzhou-metro-xukou",
+          "sortOrder": 4
+        },
+        {
+          "name": "茅蓬路东",
+          "immutableCode": "SZ-MS-MAOPENGLUDONG",
+          "slug": "suzhou-metro-maopeng-lu-dong",
+          "sortOrder": 5
+        },
+        {
+          "name": "许家桥",
+          "immutableCode": "SZ-MS-XUJIAQIAO",
+          "slug": "suzhou-metro-xujia-qiao",
+          "sortOrder": 6
+        },
+        {
+          "name": "灵岩山",
+          "immutableCode": "SZ-MS-LINGYANSHAN",
+          "slug": "suzhou-metro-lingyan-shan",
+          "sortOrder": 7
+        },
+        {
+          "name": "渎川",
+          "immutableCode": "SZ-MS-DUCHUAN",
+          "slug": "suzhou-metro-duchuan",
+          "sortOrder": 8
+        },
+        {
+          "name": "大治桥",
+          "immutableCode": "SZ-MS-DAZHIQIAO",
+          "slug": "suzhou-metro-dazhi-qiao",
+          "sortOrder": 9
+        },
+        {
+          "name": "西跨塘",
+          "immutableCode": "SZ-MS-XIKUATANG",
+          "slug": "suzhou-metro-xikuatang",
+          "sortOrder": 10
+        },
+        {
+          "name": "石城",
+          "immutableCode": "SZ-MS-SHICHENG",
+          "slug": "suzhou-metro-shicheng",
+          "sortOrder": 11
+        },
+        {
+          "name": "落星桥",
+          "immutableCode": "SZ-MS-LUOXINGQIAO",
+          "slug": "suzhou-metro-luoxing-qiao",
+          "sortOrder": 12
+        },
+        {
+          "name": "索山桥西",
+          "immutableCode": "SZ-MS-SUOSHANQIAOXI",
+          "slug": "suzhou-metro-suoshan-qiaoxi",
+          "sortOrder": 13
+        },
+        {
+          "name": "竹辉路",
+          "immutableCode": "SZ-MS-ZHUHUILU",
+          "slug": "suzhou-metro-zhuhui-lu",
+          "sortOrder": 14
+        },
+        {
+          "name": "南园北路",
+          "immutableCode": "SZ-MS-NANYUANBEILU",
+          "slug": "suzhou-metro-nanyuan-bei-lu",
+          "sortOrder": 15
+        },
+        {
+          "name": "新市桥",
+          "immutableCode": "SZ-MS-XINSHIQIAO",
+          "slug": "suzhou-metro-xinshi-qiao",
+          "sortOrder": 16
+        },
+        {
+          "name": "盘胥路",
+          "immutableCode": "SZ-MS-PANXULU",
+          "slug": "suzhou-metro-panxu-lu",
+          "sortOrder": 17
+        },
+        {
+          "name": "方洲公园",
+          "immutableCode": "SZ-MS-FANGZHOUGONGYUAN",
+          "slug": "suzhou-metro-fangzhou-gongyuan",
+          "sortOrder": 18
+        },
+        {
+          "name": "阳澄湖南",
+          "immutableCode": "SZ-MS-YANGCHENGHUNAN",
+          "slug": "suzhou-metro-yangchenghu-nan",
+          "sortOrder": 19
+        }
+      ]
+    },
+    {
+      "name": "地铁6号线",
+      "immutableCode": "SZ-ML-6",
+      "slug": "suzhou-metro-6",
+      "sortOrder": 6,
+      "stations": [
+        {
+          "name": "西津桥",
+          "immutableCode": "SZ-MS-XIJINQIAO",
+          "slug": "suzhou-metro-xijin-qiao",
+          "sortOrder": 1
+        },
+        {
+          "name": "金阊新城",
+          "immutableCode": "SZ-MS-JINCHANGXINCHENG",
+          "slug": "suzhou-metro-jinchang-xincheng",
+          "sortOrder": 2
+        },
+        {
+          "name": "白洋湾公园",
+          "immutableCode": "SZ-MS-BAIYANGWANGONGYUAN",
+          "slug": "suzhou-metro-baiyangwan-gongyuan",
+          "sortOrder": 3
+        },
+        {
+          "name": "虎丘",
+          "immutableCode": "SZ-MS-HUQIU",
+          "slug": "suzhou-metro-huqiu",
+          "sortOrder": 4
+        },
+        {
+          "name": "拙政园",
+          "immutableCode": "SZ-MS-ZHUOZHENGYUAN",
+          "slug": "suzhou-metro-zhuozheng-yuan",
+          "sortOrder": 5
+        },
+        {
+          "name": "苏州大学",
+          "immutableCode": "SZ-MS-SUZHOUDAXUE",
+          "slug": "suzhou-metro-suzhou-daxue",
+          "sortOrder": 6
+        },
+        {
+          "name": "文化博览中心",
+          "immutableCode": "SZ-MS-WENHUABOLANZHONGXIN",
+          "slug": "suzhou-metro-wenhua-bolan-zhongxin",
+          "sortOrder": 7
+        },
+        {
+          "name": "金鸡湖",
+          "immutableCode": "SZ-MS-JINJIHU",
+          "slug": "suzhou-metro-jinji-hu",
+          "sortOrder": 8
+        },
+        {
+          "name": "莲花新村",
+          "immutableCode": "SZ-MS-LIANHUAXINCUN",
+          "slug": "suzhou-metro-lianhua-xincun",
+          "sortOrder": 9
+        },
+        {
+          "name": "新庆路",
+          "immutableCode": "SZ-MS-XINQINGLU",
+          "slug": "suzhou-metro-xinqing-lu",
+          "sortOrder": 10
+        }
+      ]
+    },
+    {
+      "name": "地铁7号线",
+      "immutableCode": "SZ-ML-7",
+      "slug": "suzhou-metro-7",
+      "sortOrder": 7,
+      "stations": [
+        {
+          "name": "常楼",
+          "immutableCode": "SZ-MS-CHANGLOU",
+          "slug": "suzhou-metro-changlou",
+          "sortOrder": 1
+        },
+        {
+          "name": "苏州北站",
+          "immutableCode": "SZ-MS-SUZHOUBEIZHAN",
+          "slug": "suzhou-metro-suzhou-beizhan",
+          "sortOrder": 2
+        },
+        {
+          "name": "木里",
+          "immutableCode": "SZ-MS-MULI",
+          "slug": "suzhou-metro-muli",
+          "sortOrder": 3
+        }
+      ]
+    },
+    {
+      "name": "地铁8号线",
+      "immutableCode": "SZ-ML-8",
+      "slug": "suzhou-metro-8",
+      "sortOrder": 8,
+      "stations": [
+        {
+          "name": "车坊",
+          "immutableCode": "SZ-MS-CHEFANG",
+          "slug": "suzhou-metro-chefang",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "name": "地铁11号线",
+      "immutableCode": "SZ-ML-11",
+      "slug": "suzhou-metro-11",
+      "sortOrder": 11,
+      "stations": [
+        {
+          "name": "祖冲之公园",
+          "immutableCode": "SZ-MS-ZUCHONGZHIGONGYUAN",
+          "slug": "suzhou-metro-zuchongzhi-gongyuan",
+          "sortOrder": 1
+        },
+        {
+          "name": "昆山文化艺术中心",
+          "immutableCode": "SZ-MS-KUNSHANWENHUAYISHUZHONGXIN",
+          "slug": "suzhou-metro-kunshan-wenhua-yishu-zhongxin",
+          "sortOrder": 2
+        },
+        {
+          "name": "玉山广场",
+          "immutableCode": "SZ-MS-YUSHANGUANGCHANG",
+          "slug": "suzhou-metro-yushan-guangchang",
+          "sortOrder": 3
+        },
+        {
+          "name": "菉葭",
+          "immutableCode": "SZ-MS-LUJIA",
+          "slug": "suzhou-metro-lujia",
+          "sortOrder": 4
+        },
+        {
+          "name": "花溪公园",
+          "immutableCode": "SZ-MS-HUAXIGONGYUAN",
+          "slug": "suzhou-metro-huaxi-gongyuan",
+          "sortOrder": 5
+        },
+        {
+          "name": "集善",
+          "immutableCode": "SZ-MS-JISHAN",
+          "slug": "suzhou-metro-jishan",
+          "sortOrder": 6
+        },
+        {
+          "name": "光明路",
+          "immutableCode": "SZ-MS-GUANGMINGLU",
+          "slug": "suzhou-metro-guangming-lu",
+          "sortOrder": 7
+        },
+        {
+          "name": "花桥",
+          "immutableCode": "SZ-MS-HUAQIAO",
+          "slug": "suzhou-metro-huaqiao",
+          "sortOrder": 8
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3723 @@
+// ============================================================
+// 上海地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、上海地铁官方线网图、核心办公商圈人工盘点
+// 采集日期：2026-08-11（坐标经高德地图 API 回填，见 seed/geography/_collect/）
+// 核对人：未经人工核对 —— 本文件由实现代理生成，行政区划码/线网/商圈口径尚待业务方逐条复核后在此回填姓名与日期
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/shanghai.json
+// ============================================================
+{
+  "city": {
+    "name": "上海市",
+    "immutableCode": "CITY-SH",
+    "legacyCodes": ["LEGACY_LOC_1", "SH"],
+    "slug": "shanghai",
+    "sortOrder": 1,
+    "centerLatitude": 31.230525,
+    "centerLongitude": 121.473667
+  },
+  "districts": [
+    {
+      "name": "黄浦区",
+      "immutableCode": "SH-D-310101",
+      "legacyCodes": ["SH-HUANGPUQU", "SH-HUANGPU"],
+      "slug": "shanghai-huangpu",
+      "sortOrder": 1,
+      "centerLatitude": 31.231661,
+      "centerLongitude": 121.48442
+    },
+    {
+      "name": "徐汇区",
+      "immutableCode": "SH-D-310104",
+      "legacyCodes": ["SH-XUHUIQU", "SH-XUHUI"],
+      "slug": "shanghai-xuhui",
+      "sortOrder": 2,
+      "centerLatitude": 31.188334,
+      "centerLongitude": 121.436307
+    },
+    {
+      "name": "长宁区",
+      "immutableCode": "SH-D-310105",
+      "legacyCodes": ["SH-CHANGNINGQU", "SH-CHANGNING"],
+      "slug": "shanghai-changning",
+      "sortOrder": 3,
+      "centerLatitude": 31.220537,
+      "centerLongitude": 121.424751
+    },
+    {
+      "name": "静安区",
+      "immutableCode": "SH-D-310106",
+      "legacyCodes": ["LEGACY_LOC_2", "SH-JINGAN"],
+      "slug": "shanghai-jingan",
+      "sortOrder": 4,
+      "centerLatitude": 31.227718,
+      "centerLongitude": 121.447348
+    },
+    {
+      "name": "普陀区",
+      "immutableCode": "SH-D-310107",
+      "legacyCodes": ["SH-PUTUOQU"],
+      "slug": "shanghai-putuo",
+      "sortOrder": 5,
+      "centerLatitude": 31.249618,
+      "centerLongitude": 121.39547
+    },
+    {
+      "name": "虹口区",
+      "immutableCode": "SH-D-310109",
+      "legacyCodes": ["SH-HONGKOUQU"],
+      "slug": "shanghai-hongkou",
+      "sortOrder": 6,
+      "centerLatitude": 31.264917,
+      "centerLongitude": 121.504994
+    },
+    {
+      "name": "杨浦区",
+      "immutableCode": "SH-D-310110",
+      "legacyCodes": ["SH-YANGPUQU"],
+      "slug": "shanghai-yangpu",
+      "sortOrder": 7,
+      "centerLatitude": 31.259588,
+      "centerLongitude": 121.525409
+    },
+    {
+      "name": "闵行区",
+      "immutableCode": "SH-D-310112",
+      "legacyCodes": ["SH-MINXINGQU"],
+      "slug": "shanghai-minhang",
+      "sortOrder": 8,
+      "centerLatitude": 31.112834,
+      "centerLongitude": 121.380857
+    },
+    {
+      "name": "宝山区",
+      "immutableCode": "SH-D-310113",
+      "legacyCodes": ["SH-BAOSHAN"],
+      "slug": "shanghai-baoshan",
+      "sortOrder": 9,
+      "centerLatitude": 31.405242,
+      "centerLongitude": 121.489431
+    },
+    {
+      "name": "嘉定区",
+      "immutableCode": "SH-D-310114",
+      "legacyCodes": ["SH-JIADING"],
+      "slug": "shanghai-jiading",
+      "sortOrder": 10,
+      "centerLatitude": 31.375566,
+      "centerLongitude": 121.265276
+    },
+    {
+      "name": "浦东新区",
+      "immutableCode": "SH-D-310115",
+      "legacyCodes": ["LEGACY_LOC_3", "SH-PUDONG"],
+      "slug": "shanghai-pudong",
+      "sortOrder": 11,
+      "centerLatitude": 31.221461,
+      "centerLongitude": 121.544346
+    },
+    {
+      "name": "金山区",
+      "immutableCode": "SH-D-310116",
+      "legacyCodes": ["SH-JINSHAN"],
+      "slug": "shanghai-jinshan",
+      "sortOrder": 12,
+      "centerLatitude": 30.742769,
+      "centerLongitude": 121.341774
+    },
+    {
+      "name": "松江区",
+      "immutableCode": "SH-D-310117",
+      "legacyCodes": ["SH-SONGJIANG"],
+      "slug": "shanghai-songjiang",
+      "sortOrder": 13,
+      "centerLatitude": 31.03257,
+      "centerLongitude": 121.227676
+    },
+    {
+      "name": "青浦区",
+      "immutableCode": "SH-D-310118",
+      "legacyCodes": ["SH-QINGPU"],
+      "slug": "shanghai-qingpu",
+      "sortOrder": 14,
+      "centerLatitude": 31.15098,
+      "centerLongitude": 121.124249
+    },
+    {
+      "name": "奉贤区",
+      "immutableCode": "SH-D-310120",
+      "legacyCodes": ["SH-FENGXIAN"],
+      "slug": "shanghai-fengxian",
+      "sortOrder": 15,
+      "centerLatitude": 30.918406,
+      "centerLongitude": 121.473945
+    },
+    {
+      "name": "崇明区",
+      "immutableCode": "SH-D-310151",
+      "legacyCodes": ["SH-CHONGMING"],
+      "slug": "shanghai-chongming",
+      "sortOrder": 16,
+      "centerLatitude": 31.623863,
+      "centerLongitude": 121.397662
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "陆家嘴",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-lujiazui",
+      "immutableCode": "SH-BA-LUJIAZUI",
+      "legacyCodes": ["LEGACY_LOC_5", "SH-PUDONG-LJZ"],
+      "centerLatitude": 31.237015,
+      "centerLongitude": 121.5025
+    },
+    {
+      "name": "南京西路",
+      "districtCode": "SH-D-310106",
+      "slug": "shanghai-nanjing-xilu",
+      "immutableCode": "SH-BA-NANJINGXILU",
+      "legacyCodes": ["LEGACY_LOC_4", "SH-JINGAN-NJW"],
+      "centerLatitude": 31.229853,
+      "centerLongitude": 121.459971
+    },
+    {
+      "name": "静安寺",
+      "districtCode": "SH-D-310106",
+      "slug": "shanghai-jingansi",
+      "immutableCode": "SH-BA-JINGANSI",
+      "legacyCodes": ["SH-JINGAN-JINGANSI"],
+      "centerLatitude": 31.223505,
+      "centerLongitude": 121.44532
+    },
+    {
+      "name": "淮海中路",
+      "districtCode": "SH-D-310101",
+      "slug": "shanghai-huaihai-zhonglu",
+      "immutableCode": "SH-BA-HUAIHAIZHONGLU",
+      "legacyCodes": ["SH-HUANGPUQU-HUAIHAIZHONGLU"],
+      "centerLatitude": 31.202581,
+      "centerLongitude": 121.435968
+    },
+    {
+      "name": "人民广场",
+      "districtCode": "SH-D-310101",
+      "slug": "shanghai-renmin-guangchang",
+      "immutableCode": "SH-BA-RENMINGUANGCHANG",
+      "legacyCodes": ["SH-HUANGPU-RENMINGUANGCHANG"],
+      "centerLatitude": 31.228827,
+      "centerLongitude": 121.475213
+    },
+    {
+      "name": "徐家汇",
+      "districtCode": "SH-D-310104",
+      "slug": "shanghai-xujiahui",
+      "immutableCode": "SH-BA-XUJIAHUI",
+      "legacyCodes": ["SH-XUHUI-XUJIAHUI"],
+      "centerLatitude": 31.193908,
+      "centerLongitude": 121.440641
+    },
+    {
+      "name": "虹桥商务区",
+      "districtCode": "SH-D-310112",
+      "slug": "shanghai-hongqiao-shangwuqu",
+      "immutableCode": "SH-BA-HONGQIAOSHANGWUQU",
+      "centerLatitude": 31.18932,
+      "centerLongitude": 121.318006
+    },
+    {
+      "name": "漕河泾开发区",
+      "districtCode": "SH-D-310104",
+      "slug": "shanghai-caohejing-kaifaqu",
+      "immutableCode": "SH-BA-CAOHEJINGKAIFAQU",
+      "centerLatitude": 31.170644,
+      "centerLongitude": 121.397769
+    },
+    {
+      "name": "张江",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-zhangjiang",
+      "immutableCode": "SH-BA-ZHANGJIANG",
+      "legacyCodes": ["SH-PUDONGXINQU-ZHANGJIANG"],
+      "centerLatitude": 31.203482,
+      "centerLongitude": 121.610937
+    },
+    {
+      "name": "前滩",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-qiantan",
+      "immutableCode": "SH-BA-QIANTAN",
+      "legacyCodes": ["SH-PUDONG-QIANTAN"],
+      "centerLatitude": 31.151472,
+      "centerLongitude": 121.482591
+    },
+    {
+      "name": "五角场",
+      "districtCode": "SH-D-310110",
+      "slug": "shanghai-wujiaochang",
+      "immutableCode": "SH-BA-WUJIAOCHANG",
+      "legacyCodes": ["SH-YANGPUQU-WUJIAOCHANG"],
+      "centerLatitude": 31.303979,
+      "centerLongitude": 121.506943
+    },
+    {
+      "name": "古北",
+      "districtCode": "SH-D-310105",
+      "slug": "shanghai-gubei",
+      "immutableCode": "SH-BA-GUBEI",
+      "legacyCodes": ["SH-CHANGNING-GUBEI"],
+      "centerLatitude": 31.198206,
+      "centerLongitude": 121.400909
+    },
+    {
+      "name": "中山公园",
+      "districtCode": "SH-D-310105",
+      "slug": "shanghai-zhongshan-gongyuan",
+      "immutableCode": "SH-BA-ZHONGSHANGONGYUAN",
+      "legacyCodes": ["SH-CHANGNINGQU-ZHONGSHANGONGYUAN"],
+      "centerLatitude": 31.221611,
+      "centerLongitude": 121.419034
+    },
+    {
+      "name": "花木",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-huamu",
+      "immutableCode": "SH-BA-HUAMU",
+      "legacyCodes": ["SH-PUDONG-HUAMU"],
+      "centerLatitude": 31.185286,
+      "centerLongitude": 121.21121
+    },
+    {
+      "name": "金桥",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-jinqiao",
+      "immutableCode": "SH-BA-JINQIAO",
+      "legacyCodes": ["SH-PUDONG-JINQIAO"],
+      "centerLatitude": 31.253796,
+      "centerLongitude": 121.600891
+    },
+    {
+      "name": "临港",
+      "districtCode": "SH-D-310115",
+      "slug": "shanghai-lingang",
+      "immutableCode": "SH-BA-LINGANG",
+      "centerLatitude": 30.894496,
+      "centerLongitude": 121.905747
+    },
+    {
+      "name": "北外滩",
+      "districtCode": "SH-D-310109",
+      "slug": "shanghai-beiwaitan",
+      "immutableCode": "SH-BA-BEIWAITAN",
+      "legacyCodes": ["SH-HONGKOU-BEIWAITAN"],
+      "centerLatitude": 31.252725,
+      "centerLongitude": 121.502975
+    },
+    {
+      "name": "四川北路",
+      "districtCode": "SH-D-310109",
+      "slug": "shanghai-sichuan-beilu",
+      "immutableCode": "SH-BA-SICHUANBEILU",
+      "legacyCodes": ["SH-HONGKOUQU-SICHUANBEILU"],
+      "centerLatitude": 31.252035,
+      "centerLongitude": 121.484208
+    },
+    {
+      "name": "大宁",
+      "districtCode": "SH-D-310106",
+      "slug": "shanghai-daning",
+      "immutableCode": "SH-BA-DANING",
+      "legacyCodes": ["SH-JINGAN-DANINGLU"],
+      // 存量名为「大宁路」，业务确认与本节点同一商圈（2026-08-11）；存量为准，不改其名与码
+      "centerLatitude": 31.274037,
+      "centerLongitude": 121.452239
+    },
+    {
+      "name": "长寿路",
+      "districtCode": "SH-D-310107",
+      "slug": "shanghai-changshoulu",
+      "immutableCode": "SH-BA-CHANGSHOULU",
+      "legacyCodes": ["SH-PUTUO-CHANGSHOULU"],
+      "centerLatitude": 31.24086,
+      "centerLongitude": 121.438272
+    },
+    {
+      "name": "长风商务区",
+      "districtCode": "SH-D-310107",
+      "slug": "shanghai-changfeng",
+      "immutableCode": "SH-BA-CHANGFENG",
+      "centerLatitude": 31.22157,
+      "centerLongitude": 121.387246
+    },
+    {
+      "name": "莘庄",
+      "districtCode": "SH-D-310112",
+      "slug": "shanghai-xinzhuang",
+      "immutableCode": "SH-BA-XINZHUANG",
+      "legacyCodes": ["SH-MINHANG-SHENZHUANG"],
+      // 业务确认认领「莘庄」本身（2026-08-11）；生产的「莘庄工业区」
+      // SH-MINXINGQU-SHENZHUANGGONGYEQU 是另一个独立商圈，按存量为准保留、不认领。
+      // 注：存量码把「莘庄」误拼成 SHENZHUANG、「闵行」误拼成 MINXING，
+      // 正确拼音是 xinzhuang / minhang。区域代码创建后不可改（protectLocation
+      // IMMUTABLE_CODE），且改码会波及全部引用，故存量码保持原样；
+      // 本仓库新建节点一律用正确拼音（本节点码 SH-BA-XINZHUANG 即是）。
+      "centerLatitude": 31.10633,
+      "centerLongitude": 121.3786
+    },
+    {
+      "name": "七宝",
+      "districtCode": "SH-D-310112",
+      "slug": "shanghai-qibao",
+      "immutableCode": "SH-BA-QIBAO",
+      "legacyCodes": ["SH-MINHANG-QIBAO"],
+      "centerLatitude": 31.153669,
+      "centerLongitude": 121.359428
+    },
+    {
+      "name": "大虹桥",
+      "districtCode": "SH-D-310118",
+      "slug": "shanghai-dahongqiao",
+      "immutableCode": "SH-BA-DAHONGQIAO",
+      "centerLatitude": 31.124406,
+      "centerLongitude": 121.360324
+    },
+    {
+      "name": "松江新城",
+      "districtCode": "SH-D-310117",
+      "slug": "shanghai-songjiang-xincheng",
+      "immutableCode": "SH-BA-SONGJIANGXINCHENG",
+      "centerLatitude": 31.030295,
+      "centerLongitude": 121.230739
+    },
+    {
+      "name": "嘉定新城",
+      "districtCode": "SH-D-310114",
+      "slug": "shanghai-jiading-xincheng",
+      "immutableCode": "SH-BA-JIADINGXINCHENG",
+      "legacyCodes": ["SH-JIADING-JIADINGXINCHENG"],
+      "centerLatitude": 31.330062,
+      "centerLongitude": 121.254294
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "SH-ML-1",
+      "slug": "shanghai-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "莘庄",
+          "immutableCode": "SH-MS-XINZHUANG",
+          "slug": "shanghai-metro-xinzhuang",
+          "sortOrder": 1,
+          "centerLatitude": 31.111152,
+          "centerLongitude": 121.385373
+        },
+        {
+          "name": "外环路",
+          "immutableCode": "SH-MS-WAIHUANLU",
+          "slug": "shanghai-metro-waihuanlu",
+          "sortOrder": 2,
+          "centerLatitude": 31.359592,
+          "centerLongitude": 121.15135
+        },
+        {
+          "name": "莲花路",
+          "immutableCode": "SH-MS-LIANHUALU",
+          "slug": "shanghai-metro-lianhualu",
+          "sortOrder": 3,
+          "centerLatitude": 31.1309,
+          "centerLongitude": 121.40291
+        },
+        {
+          "name": "锦江乐园",
+          "immutableCode": "SH-MS-JINJIANGLEYUAN",
+          "slug": "shanghai-metro-jinjiang-leyuan",
+          "sortOrder": 4,
+          "centerLatitude": 31.142005,
+          "centerLongitude": 121.413642
+        },
+        {
+          "name": "上海南站",
+          "immutableCode": "SH-MS-SHANGHAINANZHAN",
+          "slug": "shanghai-metro-shanghai-nanzhan",
+          "sortOrder": 5,
+          "centerLatitude": 31.154579,
+          "centerLongitude": 121.430041
+        },
+        {
+          "name": "漕宝路",
+          "immutableCode": "SH-MS-CAOBAOLU",
+          "slug": "shanghai-metro-caobaolu",
+          "sortOrder": 6,
+          "centerLatitude": 31.168344,
+          "centerLongitude": 121.433143
+        },
+        {
+          "name": "上海体育馆",
+          "immutableCode": "SH-MS-SHANGHAITIYUGUAN",
+          "slug": "shanghai-metro-shanghai-tiyuguan",
+          "sortOrder": 7,
+          "centerLatitude": 31.182813,
+          "centerLongitude": 121.437423
+        },
+        {
+          "name": "徐家汇",
+          "immutableCode": "SH-MS-XUJIAHUI",
+          "slug": "shanghai-metro-xujiahui",
+          "sortOrder": 8,
+          "centerLatitude": 31.195514,
+          "centerLongitude": 121.436603
+        },
+        {
+          "name": "衡山路",
+          "immutableCode": "SH-MS-HENGSHANLU",
+          "slug": "shanghai-metro-hengshanlu",
+          "sortOrder": 9,
+          "centerLatitude": 31.204528,
+          "centerLongitude": 121.446424
+        },
+        {
+          "name": "常熟路",
+          "immutableCode": "SH-MS-CHANGSHULU",
+          "slug": "shanghai-metro-changshulu",
+          "sortOrder": 10,
+          "centerLatitude": 31.213524,
+          "centerLongitude": 121.449141
+        },
+        {
+          "name": "陕西南路",
+          "immutableCode": "SH-MS-SHANXINANLU",
+          "slug": "shanghai-metro-shanxi-nanlu",
+          "sortOrder": 11,
+          "centerLatitude": 31.21515,
+          "centerLongitude": 121.458744
+        },
+        {
+          "name": "黄陂南路",
+          "immutableCode": "SH-MS-HUANGPINANLU",
+          "slug": "shanghai-metro-huangpi-nanlu",
+          "sortOrder": 12,
+          "centerLatitude": 31.223653,
+          "centerLongitude": 121.472339
+        },
+        {
+          "name": "人民广场",
+          "immutableCode": "SH-MS-RENMINGUANGCHANG",
+          "slug": "shanghai-metro-renmin-guangchang",
+          "sortOrder": 13,
+          "centerLatitude": 31.232687,
+          "centerLongitude": 121.475108
+        },
+        {
+          "name": "新闸路",
+          "immutableCode": "SH-MS-XINZHALU",
+          "slug": "shanghai-metro-xinzha-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.238373,
+          "centerLongitude": 121.468151
+        },
+        {
+          "name": "汉中路",
+          "immutableCode": "SH-MS-HANZHONGLU",
+          "slug": "shanghai-metro-hanzhong-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.241883,
+          "centerLongitude": 121.458699
+        },
+        {
+          "name": "上海火车站",
+          "immutableCode": "SH-MS-SHANGHAIHUOCHEZHAN",
+          "slug": "shanghai-metro-shanghai-huochezhan",
+          "sortOrder": 16,
+          "centerLatitude": 31.249632,
+          "centerLongitude": 121.457939
+        },
+        {
+          "name": "中山北路",
+          "immutableCode": "SH-MS-ZHONGSHANBEILU",
+          "slug": "shanghai-metro-zhongshan-beilu",
+          "sortOrder": 17,
+          "centerLatitude": 31.258891,
+          "centerLongitude": 121.459204
+        },
+        {
+          "name": "延长路",
+          "immutableCode": "SH-MS-YANCHANGLU",
+          "slug": "shanghai-metro-yanchang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.271675,
+          "centerLongitude": 121.455329
+        },
+        {
+          "name": "上海马戏城",
+          "immutableCode": "SH-MS-SHANGHAIMAXICHENG",
+          "slug": "shanghai-metro-shanghai-maxicheng",
+          "sortOrder": 19,
+          "centerLatitude": 31.279895,
+          "centerLongitude": 121.452023
+        },
+        {
+          "name": "汶水路",
+          "immutableCode": "SH-MS-WENSHUILU",
+          "slug": "shanghai-metro-wenshui-lu",
+          "sortOrder": 20,
+          "centerLatitude": 31.292556,
+          "centerLongitude": 121.450251
+        },
+        {
+          "name": "彭浦新村",
+          "immutableCode": "SH-MS-PENGPUXINCUN",
+          "slug": "shanghai-metro-pengpu-xincun",
+          "sortOrder": 21,
+          "centerLatitude": 31.306604,
+          "centerLongitude": 121.448642
+        },
+        {
+          "name": "共康路",
+          "immutableCode": "SH-MS-GONGKANGLU",
+          "slug": "shanghai-metro-gongkang-lu",
+          "sortOrder": 22,
+          "centerLatitude": 31.318936,
+          "centerLongitude": 121.447063
+        },
+        {
+          "name": "通河新村",
+          "immutableCode": "SH-MS-TONGHEXINCUN",
+          "slug": "shanghai-metro-tonghe-xincun",
+          "sortOrder": 23,
+          "centerLatitude": 31.33113,
+          "centerLongitude": 121.441546
+        },
+        {
+          "name": "呼兰路",
+          "immutableCode": "SH-MS-HULANLU",
+          "slug": "shanghai-metro-hulan-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.339703,
+          "centerLongitude": 121.437711
+        },
+        {
+          "name": "共富新村",
+          "immutableCode": "SH-MS-GONGFUXINCUN",
+          "slug": "shanghai-metro-gongfu-xincun",
+          "sortOrder": 25,
+          "centerLatitude": 31.355082,
+          "centerLongitude": 121.434063
+        },
+        {
+          "name": "宝安公路",
+          "immutableCode": "SH-MS-BAOANGONGLU",
+          "slug": "shanghai-metro-baoan-gonglu",
+          "sortOrder": 26,
+          "centerLatitude": 31.369555,
+          "centerLongitude": 121.430914
+        },
+        {
+          "name": "友谊西路",
+          "immutableCode": "SH-MS-YOUYIXILU",
+          "slug": "shanghai-metro-youyi-xilu",
+          "sortOrder": 27,
+          "centerLatitude": 31.381296,
+          "centerLongitude": 121.427953
+        },
+        {
+          "name": "富锦路",
+          "immutableCode": "SH-MS-FUJINLU",
+          "slug": "shanghai-metro-fujin-lu",
+          "sortOrder": 28,
+          "centerLatitude": 31.39226,
+          "centerLongitude": 121.424661
+        }
+      ]
+    },
+    {
+      "name": "地铁2号线",
+      "immutableCode": "SH-ML-2",
+      "slug": "shanghai-metro-2",
+      "sortOrder": 2,
+      "stations": [
+        {
+          "name": "徐泾东",
+          "immutableCode": "SH-MS-XUJINGDONG",
+          "slug": "shanghai-metro-xujing-dong",
+          "sortOrder": 1,
+          "centerLatitude": 31.175518,
+          "centerLongitude": 121.241668
+        },
+        {
+          "name": "虹桥火车站",
+          "immutableCode": "SH-MS-HONGQIAOHUOCHEZHAN",
+          "slug": "shanghai-metro-hongqiao-huochezhan",
+          "sortOrder": 2,
+          "centerLatitude": 31.193987,
+          "centerLongitude": 121.31891
+        },
+        {
+          "name": "虹桥2号航站楼",
+          "immutableCode": "SH-MS-HONGQIAOERHAOHANGZHANLOU",
+          "slug": "shanghai-metro-hongqiao-erhao-hangzhanlou",
+          "sortOrder": 3,
+          "centerLatitude": 31.194055,
+          "centerLongitude": 121.324443
+        },
+        {
+          "name": "淞虹路",
+          "immutableCode": "SH-MS-SONGHONGLU",
+          "slug": "shanghai-metro-songhong-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.218225,
+          "centerLongitude": 121.359536
+        },
+        {
+          "name": "北新泾",
+          "immutableCode": "SH-MS-BEIXINJING",
+          "slug": "shanghai-metro-beixinjing",
+          "sortOrder": 5,
+          "centerLatitude": 31.216395,
+          "centerLongitude": 121.373998
+        },
+        {
+          "name": "威宁路",
+          "immutableCode": "SH-MS-WEININGLU",
+          "slug": "shanghai-metro-weining-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.21487,
+          "centerLongitude": 121.387285
+        },
+        {
+          "name": "娄山关路",
+          "immutableCode": "SH-MS-LOUSHANGUANLU",
+          "slug": "shanghai-metro-loushanguan-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.211158,
+          "centerLongitude": 121.404058
+        },
+        {
+          "name": "中山公园",
+          "immutableCode": "SH-MS-ZHONGSHANGONGYUAN",
+          "slug": "shanghai-metro-zhongshan-gongyuan",
+          "sortOrder": 8,
+          "centerLatitude": 31.218318,
+          "centerLongitude": 121.415504
+        },
+        {
+          "name": "江苏路",
+          "immutableCode": "SH-MS-JIANGSULU",
+          "slug": "shanghai-metro-jiangsu-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.220408,
+          "centerLongitude": 121.430635
+        },
+        {
+          "name": "静安寺",
+          "immutableCode": "SH-MS-JINGANSI",
+          "slug": "shanghai-metro-jingansi",
+          "sortOrder": 10,
+          "centerLatitude": 31.223231,
+          "centerLongitude": 121.446533
+        },
+        {
+          "name": "南京西路",
+          "immutableCode": "SH-MS-NANJINGXILU",
+          "slug": "shanghai-metro-nanjing-xilu",
+          "sortOrder": 11,
+          "centerLatitude": 31.229853,
+          "centerLongitude": 121.459971
+        },
+        {
+          "name": "南京东路",
+          "immutableCode": "SH-MS-NANJINGDONGLU",
+          "slug": "shanghai-metro-nanjing-donglu",
+          "sortOrder": 12,
+          "centerLatitude": 31.238101,
+          "centerLongitude": 121.484628
+        },
+        {
+          "name": "陆家嘴",
+          "immutableCode": "SH-MS-LUJIAZUI",
+          "slug": "shanghai-metro-lujiazui",
+          "sortOrder": 13,
+          "centerLatitude": 31.238259,
+          "centerLongitude": 121.502129
+        },
+        {
+          "name": "东昌路",
+          "immutableCode": "SH-MS-DONGCHANGLU",
+          "slug": "shanghai-metro-dongchang-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.23327,
+          "centerLongitude": 121.515556
+        },
+        {
+          "name": "世纪大道",
+          "immutableCode": "SH-MS-SHIJIDADAO",
+          "slug": "shanghai-metro-shiji-dadao",
+          "sortOrder": 15,
+          "centerLatitude": 31.228682,
+          "centerLongitude": 121.527213
+        },
+        {
+          "name": "上海科技馆",
+          "immutableCode": "SH-MS-SHANGHAIKEJIGUAN",
+          "slug": "shanghai-metro-shanghai-kejiguan",
+          "sortOrder": 16,
+          "centerLatitude": 31.218114,
+          "centerLongitude": 121.541358
+        },
+        {
+          "name": "世纪公园",
+          "immutableCode": "SH-MS-SHIJIGONGYUAN",
+          "slug": "shanghai-metro-shiji-gongyuan",
+          "sortOrder": 17,
+          "centerLatitude": 31.210206,
+          "centerLongitude": 121.550562
+        },
+        {
+          "name": "龙阳路",
+          "immutableCode": "SH-MS-LONGYANGLU",
+          "slug": "shanghai-metro-longyang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.203575,
+          "centerLongitude": 121.557634
+        },
+        {
+          "name": "张江高科",
+          "immutableCode": "SH-MS-ZHANGJIANGGAOKE",
+          "slug": "shanghai-metro-zhangjiang-gaoke",
+          "sortOrder": 19,
+          "centerLatitude": 31.201872,
+          "centerLongitude": 121.58749
+        },
+        {
+          "name": "金科路",
+          "immutableCode": "SH-MS-JINKELU",
+          "slug": "shanghai-metro-jinke-lu",
+          "sortOrder": 20,
+          "centerLatitude": 31.204213,
+          "centerLongitude": 121.601989
+        },
+        {
+          "name": "广兰路",
+          "immutableCode": "SH-MS-GUANGLANLU",
+          "slug": "shanghai-metro-guanglan-lu",
+          "sortOrder": 21,
+          "centerLatitude": 31.20722,
+          "centerLongitude": 121.619445
+        },
+        {
+          "name": "唐镇",
+          "immutableCode": "SH-MS-TANGZHEN",
+          "slug": "shanghai-metro-tangzhen",
+          "sortOrder": 22,
+          "centerLatitude": 31.214107,
+          "centerLongitude": 121.656269
+        },
+        {
+          "name": "创新中路",
+          "immutableCode": "SH-MS-CHUANGXINZHONGLU",
+          "slug": "shanghai-metro-chuangxin-zhonglu",
+          "sortOrder": 23,
+          "centerLatitude": 31.213871,
+          "centerLongitude": 121.673713
+        },
+        {
+          "name": "华夏东路",
+          "immutableCode": "SH-MS-HUAXIADONGLU",
+          "slug": "shanghai-metro-huaxia-donglu",
+          "sortOrder": 24,
+          "centerLatitude": 31.196575,
+          "centerLongitude": 121.680972
+        },
+        {
+          "name": "川沙",
+          "immutableCode": "SH-MS-CHUANSHA",
+          "slug": "shanghai-metro-chuansha",
+          "sortOrder": 25,
+          "centerLatitude": 31.186741,
+          "centerLongitude": 121.69821
+        },
+        {
+          "name": "凌空路",
+          "immutableCode": "SH-MS-LINGKONGLU",
+          "slug": "shanghai-metro-lingkong-lu",
+          "sortOrder": 26,
+          "centerLatitude": 31.192861,
+          "centerLongitude": 121.724095
+        },
+        {
+          "name": "远东大道",
+          "immutableCode": "SH-MS-YUANDONGDADAO",
+          "slug": "shanghai-metro-yuandong-dadao",
+          "sortOrder": 27,
+          "centerLatitude": 31.199385,
+          "centerLongitude": 121.755301
+        },
+        {
+          "name": "海天三路",
+          "immutableCode": "SH-MS-HAITIANSANLU",
+          "slug": "shanghai-metro-haitian-sanlu",
+          "sortOrder": 28,
+          "centerLatitude": 31.168459,
+          "centerLongitude": 121.796878
+        },
+        {
+          "name": "浦东国际机场",
+          "immutableCode": "SH-MS-PUDONGGUOJIJICHANG",
+          "slug": "shanghai-metro-pudong-guoji-jichang",
+          "sortOrder": 29,
+          "centerLatitude": 31.118692,
+          "centerLongitude": 121.817888
+        }
+      ]
+    },
+    {
+      "name": "地铁3号线",
+      "immutableCode": "SH-ML-3",
+      "slug": "shanghai-metro-3",
+      "sortOrder": 3,
+      "stations": [
+        {
+          "name": "石龙路",
+          "immutableCode": "SH-MS-SHILONGLU",
+          "slug": "shanghai-metro-shilong-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.157949,
+          "centerLongitude": 121.443205
+        },
+        {
+          "name": "龙漕路",
+          "immutableCode": "SH-MS-LONGCAOLU",
+          "slug": "shanghai-metro-longcao-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.169458,
+          "centerLongitude": 121.444383
+        },
+        {
+          "name": "漕溪路",
+          "immutableCode": "SH-MS-CAOXILU",
+          "slug": "shanghai-metro-caoxi-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.176746,
+          "centerLongitude": 121.43841
+        },
+        {
+          "name": "宜山路",
+          "immutableCode": "SH-MS-YISHANLU",
+          "slug": "shanghai-metro-yishan-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.186717,
+          "centerLongitude": 121.427194
+        },
+        {
+          "name": "虹桥路",
+          "immutableCode": "SH-MS-HONGQIAOLU",
+          "slug": "shanghai-metro-hongqiao-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.197524,
+          "centerLongitude": 121.420814
+        },
+        {
+          "name": "延安西路",
+          "immutableCode": "SH-MS-YANANXILU",
+          "slug": "shanghai-metro-yanan-xilu",
+          "sortOrder": 6,
+          "centerLatitude": 31.209616,
+          "centerLongitude": 121.417062
+        },
+        {
+          "name": "金沙江路",
+          "immutableCode": "SH-MS-JINSHAJIANGLU",
+          "slug": "shanghai-metro-jinshajiang-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.232147,
+          "centerLongitude": 121.413201
+        },
+        {
+          "name": "曹杨路",
+          "immutableCode": "SH-MS-CAOYANGLU",
+          "slug": "shanghai-metro-caoyang-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.239302,
+          "centerLongitude": 121.417701
+        },
+        {
+          "name": "镇坪路",
+          "immutableCode": "SH-MS-ZHENPINGLU",
+          "slug": "shanghai-metro-zhenping-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.246369,
+          "centerLongitude": 121.429779
+        },
+        {
+          "name": "中潭路",
+          "immutableCode": "SH-MS-ZHONGTANLU",
+          "slug": "shanghai-metro-zhongtan-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.254568,
+          "centerLongitude": 121.441001
+        },
+        {
+          "name": "宝山路",
+          "immutableCode": "SH-MS-BAOSHANLU",
+          "slug": "shanghai-metro-baoshan-lu",
+          "sortOrder": 11,
+          "centerLatitude": 31.251523,
+          "centerLongitude": 121.476298
+        },
+        {
+          "name": "东宝兴路",
+          "immutableCode": "SH-MS-DONGBAOXINGLU",
+          "slug": "shanghai-metro-dongbaoxing-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.259886,
+          "centerLongitude": 121.480202
+        },
+        {
+          "name": "虹口足球场",
+          "immutableCode": "SH-MS-HONGKOUZUQIUCHANG",
+          "slug": "shanghai-metro-hongkou-zuqiuchang",
+          "sortOrder": 13,
+          "centerLatitude": 31.271392,
+          "centerLongitude": 121.479154
+        },
+        {
+          "name": "赤峰路",
+          "immutableCode": "SH-MS-CHIFENGLU",
+          "slug": "shanghai-metro-chifeng-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.281247,
+          "centerLongitude": 121.482429
+        },
+        {
+          "name": "大柏树",
+          "immutableCode": "SH-MS-DABAISHU",
+          "slug": "shanghai-metro-dabaishu",
+          "sortOrder": 15,
+          "centerLatitude": 31.289433,
+          "centerLongitude": 121.483216
+        },
+        {
+          "name": "江湾镇",
+          "immutableCode": "SH-MS-JIANGWANZHEN",
+          "slug": "shanghai-metro-jiangwan-zhen",
+          "sortOrder": 16,
+          "centerLatitude": 31.305566,
+          "centerLongitude": 121.485064
+        },
+        {
+          "name": "殷高西路",
+          "immutableCode": "SH-MS-YINGAOXILU",
+          "slug": "shanghai-metro-yingao-xilu",
+          "sortOrder": 17,
+          "centerLatitude": 31.320005,
+          "centerLongitude": 121.484856
+        },
+        {
+          "name": "长江南路",
+          "immutableCode": "SH-MS-CHANGJIANGNANLU",
+          "slug": "shanghai-metro-changjiang-nanlu",
+          "sortOrder": 18,
+          "centerLatitude": 31.332062,
+          "centerLongitude": 121.491482
+        },
+        {
+          "name": "淞发路",
+          "immutableCode": "SH-MS-SONGFALU",
+          "slug": "shanghai-metro-songfa-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.345135,
+          "centerLongitude": 121.50039
+        },
+        {
+          "name": "张华浜",
+          "immutableCode": "SH-MS-ZHANGHUABANG",
+          "slug": "shanghai-metro-zhanghuabang",
+          "sortOrder": 20,
+          "centerLatitude": 31.358016,
+          "centerLongitude": 121.498671
+        },
+        {
+          "name": "淞滨路",
+          "immutableCode": "SH-MS-SONGBINLU",
+          "slug": "shanghai-metro-songbin-lu",
+          "sortOrder": 21,
+          "centerLatitude": 31.370928,
+          "centerLongitude": 121.492818
+        },
+        {
+          "name": "水产路",
+          "immutableCode": "SH-MS-SHUICHANLU",
+          "slug": "shanghai-metro-shuichan-lu",
+          "sortOrder": 22,
+          "centerLatitude": 31.381302,
+          "centerLongitude": 121.488247
+        },
+        {
+          "name": "宝杨路",
+          "immutableCode": "SH-MS-BAOYANGLU",
+          "slug": "shanghai-metro-baoyang-lu",
+          "sortOrder": 23,
+          "centerLatitude": 31.395315,
+          "centerLongitude": 121.479574
+        },
+        {
+          "name": "友谊路",
+          "immutableCode": "SH-MS-YOUYILU",
+          "slug": "shanghai-metro-youyi-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.404016,
+          "centerLongitude": 121.475924
+        },
+        {
+          "name": "铁力路",
+          "immutableCode": "SH-MS-TIELILU",
+          "slug": "shanghai-metro-tieli-lu",
+          "sortOrder": 25,
+          "centerLatitude": 31.40812,
+          "centerLongitude": 121.461139
+        },
+        {
+          "name": "江杨北路",
+          "immutableCode": "SH-MS-JIANGYANGBEILU",
+          "slug": "shanghai-metro-jiangyang-beilu",
+          "sortOrder": 26,
+          "centerLatitude": 31.407858,
+          "centerLongitude": 121.439819
+        }
+      ]
+    },
+    {
+      "name": "地铁4号线",
+      "immutableCode": "SH-ML-4",
+      "slug": "shanghai-metro-4",
+      "sortOrder": 4,
+      "stations": [
+        {
+          "name": "上海体育场",
+          "immutableCode": "SH-MS-SHANGHAITIYUCHANG",
+          "slug": "shanghai-metro-shanghai-tiyuchang",
+          "sortOrder": 1,
+          "centerLatitude": 31.185605,
+          "centerLongitude": 121.443529
+        },
+        {
+          "name": "东安路",
+          "immutableCode": "SH-MS-DONGANLU",
+          "slug": "shanghai-metro-dongan-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.190819,
+          "centerLongitude": 121.454897
+        },
+        {
+          "name": "大木桥路",
+          "immutableCode": "SH-MS-DAMUQIAOLU",
+          "slug": "shanghai-metro-damuqiao-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.194057,
+          "centerLongitude": 121.463278
+        },
+        {
+          "name": "鲁班路",
+          "immutableCode": "SH-MS-LUBANLU",
+          "slug": "shanghai-metro-luban-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.199221,
+          "centerLongitude": 121.475148
+        },
+        {
+          "name": "西藏南路",
+          "immutableCode": "SH-MS-XIZANGNANLU",
+          "slug": "shanghai-metro-xizang-nanlu",
+          "sortOrder": 5,
+          "centerLatitude": 31.201967,
+          "centerLongitude": 121.489555
+        },
+        {
+          "name": "南浦大桥",
+          "immutableCode": "SH-MS-NANPUDAQIAO",
+          "slug": "shanghai-metro-nanpu-daqiao",
+          "sortOrder": 6,
+          "centerLatitude": 31.208504,
+          "centerLongitude": 121.499725
+        },
+        {
+          "name": "塘桥",
+          "immutableCode": "SH-MS-TANGQIAO",
+          "slug": "shanghai-metro-tangqiao",
+          "sortOrder": 7,
+          "centerLatitude": 31.209762,
+          "centerLongitude": 121.51869
+        },
+        {
+          "name": "蓝村路",
+          "immutableCode": "SH-MS-LANCUNLU",
+          "slug": "shanghai-metro-lancun-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.211672,
+          "centerLongitude": 121.527627
+        },
+        {
+          "name": "浦电路",
+          "immutableCode": "SH-MS-PUDIANLU",
+          "slug": "shanghai-metro-pudian-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.220154,
+          "centerLongitude": 121.529351
+        },
+        {
+          "name": "浦东大道",
+          "immutableCode": "SH-MS-PUDONGDADAO",
+          "slug": "shanghai-metro-pudong-dadao",
+          "sortOrder": 10,
+          "centerLatitude": 31.240308,
+          "centerLongitude": 121.519302
+        },
+        {
+          "name": "杨树浦路",
+          "immutableCode": "SH-MS-YANGSHUPULU",
+          "slug": "shanghai-metro-yangshupu-lu",
+          "sortOrder": 11,
+          "centerLatitude": 31.251935,
+          "centerLongitude": 121.51721
+        },
+        {
+          "name": "大连路",
+          "immutableCode": "SH-MS-DALIANLU",
+          "slug": "shanghai-metro-dalian-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.257938,
+          "centerLongitude": 121.513088
+        },
+        {
+          "name": "临平路",
+          "immutableCode": "SH-MS-LINPINGLU",
+          "slug": "shanghai-metro-linping-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.260874,
+          "centerLongitude": 121.500696
+        },
+        {
+          "name": "海伦路",
+          "immutableCode": "SH-MS-HAILUNLU",
+          "slug": "shanghai-metro-hailun-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.259303,
+          "centerLongitude": 121.488697
+        }
+      ]
+    },
+    {
+      "name": "地铁5号线",
+      "immutableCode": "SH-ML-5",
+      "slug": "shanghai-metro-5",
+      "sortOrder": 5,
+      "stations": [
+        {
+          "name": "春申路",
+          "immutableCode": "SH-MS-CHUNSHENLU",
+          "slug": "shanghai-metro-chunshen-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.09825,
+          "centerLongitude": 121.385818
+        },
+        {
+          "name": "银都路",
+          "immutableCode": "SH-MS-YINDULU",
+          "slug": "shanghai-metro-yindu-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.089345,
+          "centerLongitude": 121.390264
+        },
+        {
+          "name": "颛桥",
+          "immutableCode": "SH-MS-ZHUANQIAO",
+          "slug": "shanghai-metro-zhuanqiao",
+          "sortOrder": 3,
+          "centerLatitude": 31.067013,
+          "centerLongitude": 121.401868
+        },
+        {
+          "name": "北桥",
+          "immutableCode": "SH-MS-BEIQIAO",
+          "slug": "shanghai-metro-beiqiao",
+          "sortOrder": 4,
+          "centerLatitude": 31.045112,
+          "centerLongitude": 121.410054
+        },
+        {
+          "name": "剑川路",
+          "immutableCode": "SH-MS-JIANCHUANLU",
+          "slug": "shanghai-metro-jianchuan-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.026483,
+          "centerLongitude": 121.416582
+        },
+        {
+          "name": "东川路",
+          "immutableCode": "SH-MS-DONGCHUANLU",
+          "slug": "shanghai-metro-dongchuan-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.018197,
+          "centerLongitude": 121.419901
+        },
+        {
+          "name": "江川路",
+          "immutableCode": "SH-MS-JIANGCHUANLU",
+          "slug": "shanghai-metro-jiangchuan-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.005428,
+          "centerLongitude": 121.423474
+        },
+        {
+          "name": "西渡",
+          "immutableCode": "SH-MS-XIDU",
+          "slug": "shanghai-metro-xidu",
+          "sortOrder": 8,
+          "centerLatitude": 30.98935,
+          "centerLongitude": 121.432441
+        },
+        {
+          "name": "肖塘",
+          "immutableCode": "SH-MS-XIAOTANG",
+          "slug": "shanghai-metro-xiaotang",
+          "sortOrder": 9,
+          "centerLatitude": 30.965888,
+          "centerLongitude": 121.441857
+        },
+        {
+          "name": "奉浦大道",
+          "immutableCode": "SH-MS-FENGPUDADAO",
+          "slug": "shanghai-metro-fengpu-dadao",
+          "sortOrder": 10,
+          "centerLatitude": 30.942055,
+          "centerLongitude": 121.448984
+        },
+        {
+          "name": "环城东路",
+          "immutableCode": "SH-MS-HUANCHENGDONGLU",
+          "slug": "shanghai-metro-huancheng-donglu",
+          "sortOrder": 11,
+          "centerLatitude": 30.931168,
+          "centerLongitude": 121.463204
+        },
+        {
+          "name": "望园路",
+          "immutableCode": "SH-MS-WANGYUANLU",
+          "slug": "shanghai-metro-wangyuan-lu",
+          "sortOrder": 12,
+          "centerLatitude": 30.932509,
+          "centerLongitude": 121.483528
+        },
+        {
+          "name": "金海湖",
+          "immutableCode": "SH-MS-JINHAIHU",
+          "slug": "shanghai-metro-jinhaihu",
+          "sortOrder": 13,
+          "centerLatitude": 30.928805,
+          "centerLongitude": 121.492506
+        },
+        {
+          "name": "奉贤新城",
+          "immutableCode": "SH-MS-FENGXIANXINCHENG",
+          "slug": "shanghai-metro-fengxian-xincheng",
+          "sortOrder": 14,
+          "centerLatitude": 30.913916,
+          "centerLongitude": 121.49629
+        },
+        {
+          "name": "平庄公路",
+          "immutableCode": "SH-MS-PINGZHUANGGONGLU",
+          "slug": "shanghai-metro-pingzhuang-gonglu",
+          "sortOrder": 15,
+          "centerLatitude": 30.897428,
+          "centerLongitude": 121.561543
+        }
+      ]
+    },
+    {
+      "name": "地铁6号线",
+      "immutableCode": "SH-ML-6",
+      "slug": "shanghai-metro-6",
+      "sortOrder": 6,
+      "stations": [
+        {
+          "name": "东方体育中心",
+          "immutableCode": "SH-MS-DONGFANGTIYUZHONGXIN",
+          "slug": "shanghai-metro-dongfang-tiyu-zhongxin",
+          "sortOrder": 1,
+          "centerLatitude": 31.153366,
+          "centerLongitude": 121.480304
+        },
+        {
+          "name": "华夏西路",
+          "immutableCode": "SH-MS-HUAXIAXILU",
+          "slug": "shanghai-metro-huaxia-xilu",
+          "sortOrder": 2,
+          "centerLatitude": 31.149878,
+          "centerLongitude": 121.514539
+        },
+        {
+          "name": "上南路",
+          "immutableCode": "SH-MS-SHANGNANLU",
+          "slug": "shanghai-metro-shangnan-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.14882,
+          "centerLongitude": 121.506447
+        },
+        {
+          "name": "灵岩南路",
+          "immutableCode": "SH-MS-LINGYANNANLU",
+          "slug": "shanghai-metro-lingyan-nanlu",
+          "sortOrder": 4,
+          "centerLatitude": 31.148665,
+          "centerLongitude": 121.495295
+        },
+        {
+          "name": "成山路",
+          "immutableCode": "SH-MS-CHENGSHANLU",
+          "slug": "shanghai-metro-chengshan-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.170511,
+          "centerLongitude": 121.496326
+        },
+        {
+          "name": "东明路",
+          "immutableCode": "SH-MS-DONGMINGLU",
+          "slug": "shanghai-metro-dongming-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.172646,
+          "centerLongitude": 121.510868
+        },
+        {
+          "name": "高科西路",
+          "immutableCode": "SH-MS-GAOKEXILU",
+          "slug": "shanghai-metro-gaoke-xilu",
+          "sortOrder": 7,
+          "centerLatitude": 31.185761,
+          "centerLongitude": 121.509845
+        },
+        {
+          "name": "临沂新村",
+          "immutableCode": "SH-MS-LINYIXINCUN",
+          "slug": "shanghai-metro-linyi-xincun",
+          "sortOrder": 8,
+          "centerLatitude": 31.193202,
+          "centerLongitude": 121.516695
+        },
+        {
+          "name": "上海儿童医学中心",
+          "immutableCode": "SH-MS-SHANGHAIERTONGYIXUEZHONGXIN",
+          "slug": "shanghai-metro-shanghai-ertong-yixue-zhongxin",
+          "sortOrder": 9,
+          "centerLatitude": 31.203277,
+          "centerLongitude": 121.523482
+        },
+        {
+          "name": "源深体育中心",
+          "immutableCode": "SH-MS-YUANSHENTIYUZHONGXIN",
+          "slug": "shanghai-metro-yuanshen-tiyu-zhongxin",
+          "sortOrder": 10,
+          "centerLatitude": 31.233004,
+          "centerLongitude": 121.534642
+        },
+        {
+          "name": "民生路",
+          "immutableCode": "SH-MS-MINSHENGLU",
+          "slug": "shanghai-metro-minsheng-lu",
+          "sortOrder": 11,
+          "centerLatitude": 31.235851,
+          "centerLongitude": 121.543527
+        },
+        {
+          "name": "北洋泾路",
+          "immutableCode": "SH-MS-BEIYANGJINGLU",
+          "slug": "shanghai-metro-beiyangjing-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.239145,
+          "centerLongitude": 121.552314
+        },
+        {
+          "name": "德平路",
+          "immutableCode": "SH-MS-DEPINGLU",
+          "slug": "shanghai-metro-deping-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.2454,
+          "centerLongitude": 121.564237
+        },
+        {
+          "name": "云山路",
+          "immutableCode": "SH-MS-YUNSHANLU",
+          "slug": "shanghai-metro-yunshan-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.250969,
+          "centerLongitude": 121.571153
+        },
+        {
+          "name": "金桥路",
+          "immutableCode": "SH-MS-JINQIAOLU",
+          "slug": "shanghai-metro-jinqiao-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.257084,
+          "centerLongitude": 121.581817
+        },
+        {
+          "name": "博兴路",
+          "immutableCode": "SH-MS-BOXINGLU",
+          "slug": "shanghai-metro-boxing-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.26352,
+          "centerLongitude": 121.586689
+        },
+        {
+          "name": "五莲路",
+          "immutableCode": "SH-MS-WULIANLU",
+          "slug": "shanghai-metro-wulian-lu",
+          "sortOrder": 17,
+          "centerLatitude": 31.272025,
+          "centerLongitude": 121.587866
+        },
+        {
+          "name": "巨峰路",
+          "immutableCode": "SH-MS-JUFENGLU",
+          "slug": "shanghai-metro-jufeng-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.280684,
+          "centerLongitude": 121.588365
+        },
+        {
+          "name": "东靖路",
+          "immutableCode": "SH-MS-DONGJINGLU",
+          "slug": "shanghai-metro-dongjing-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.290684,
+          "centerLongitude": 121.588736
+        },
+        {
+          "name": "五洲大道",
+          "immutableCode": "SH-MS-WUZHOUDADAO",
+          "slug": "shanghai-metro-wuzhou-dadao",
+          "sortOrder": 20,
+          "centerLatitude": 31.302569,
+          "centerLongitude": 121.589212
+        },
+        {
+          "name": "洲海路",
+          "immutableCode": "SH-MS-ZHOUHAILU",
+          "slug": "shanghai-metro-zhouhai-lu",
+          "sortOrder": 21,
+          "centerLatitude": 31.312229,
+          "centerLongitude": 121.589396
+        },
+        {
+          "name": "航津路",
+          "immutableCode": "SH-MS-HANGJINLU",
+          "slug": "shanghai-metro-hangjin-lu",
+          "sortOrder": 22,
+          "centerLatitude": 31.335371,
+          "centerLongitude": 121.593974
+        },
+        {
+          "name": "外高桥保税区北",
+          "immutableCode": "SH-MS-WAIGAOQIAOBAOSHUQUBEI",
+          "slug": "shanghai-metro-waigaoqiao-baoshuiqu-bei",
+          "sortOrder": 23,
+          "centerLatitude": 31.347802,
+          "centerLongitude": 121.586926
+        },
+        {
+          "name": "港城路",
+          "immutableCode": "SH-MS-GANGCHENGLU",
+          "slug": "shanghai-metro-gangcheng-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.353223,
+          "centerLongitude": 121.575017
+        },
+        {
+          "name": "外高桥保税区南",
+          "immutableCode": "SH-MS-WAIGAOQIAOBAOSHUQUNAN",
+          "slug": "shanghai-metro-waigaoqiao-baoshuiqu-nan",
+          "sortOrder": 25,
+          "centerLatitude": 31.321578,
+          "centerLongitude": 121.601963
+        }
+      ]
+    },
+    {
+      "name": "地铁7号线",
+      "immutableCode": "SH-ML-7",
+      "slug": "shanghai-metro-7",
+      "sortOrder": 7,
+      "stations": [
+        {
+          "name": "美兰湖",
+          "immutableCode": "SH-MS-MEILANHU",
+          "slug": "shanghai-metro-meilanhu",
+          "sortOrder": 1,
+          "centerLatitude": 31.401889,
+          "centerLongitude": 121.349894
+        },
+        {
+          "name": "罗南新村",
+          "immutableCode": "SH-MS-LUONANXINCUN",
+          "slug": "shanghai-metro-luonan-xincun",
+          "sortOrder": 2,
+          "centerLatitude": 31.388831,
+          "centerLongitude": 121.35747
+        },
+        {
+          "name": "潘广路",
+          "immutableCode": "SH-MS-PANGUANGLU",
+          "slug": "shanghai-metro-panguang-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.364182,
+          "centerLongitude": 121.355845
+        },
+        {
+          "name": "刘行",
+          "immutableCode": "SH-MS-LIUXING",
+          "slug": "shanghai-metro-liuxing",
+          "sortOrder": 4,
+          "centerLatitude": 31.357586,
+          "centerLongitude": 121.362376
+        },
+        {
+          "name": "顾村公园",
+          "immutableCode": "SH-MS-GUCUNGONGYUAN",
+          "slug": "shanghai-metro-gucun-gongyuan",
+          "sortOrder": 5,
+          "centerLatitude": 31.344594,
+          "centerLongitude": 121.373009
+        },
+        {
+          "name": "祁华路",
+          "immutableCode": "SH-MS-QIHUALU",
+          "slug": "shanghai-metro-qihua-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.322388,
+          "centerLongitude": 121.373529
+        },
+        {
+          "name": "上海大学",
+          "immutableCode": "SH-MS-SHANGHAIDAXUE",
+          "slug": "shanghai-metro-shanghai-daxue",
+          "sortOrder": 7,
+          "centerLatitude": 31.320586,
+          "centerLongitude": 121.388884
+        },
+        {
+          "name": "南陈路",
+          "immutableCode": "SH-MS-NANCHENLU",
+          "slug": "shanghai-metro-nanchen-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.32174,
+          "centerLongitude": 121.398419
+        },
+        {
+          "name": "上大路",
+          "immutableCode": "SH-MS-SHANGDALU",
+          "slug": "shanghai-metro-shangda-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.314969,
+          "centerLongitude": 121.408686
+        },
+        {
+          "name": "场中路",
+          "immutableCode": "SH-MS-CHANGZHONGLU",
+          "slug": "shanghai-metro-changzhong-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.303682,
+          "centerLongitude": 121.413458
+        },
+        {
+          "name": "大场镇",
+          "immutableCode": "SH-MS-DACHANGZHEN",
+          "slug": "shanghai-metro-dachang-zhen",
+          "sortOrder": 11,
+          "centerLatitude": 31.293259,
+          "centerLongitude": 121.416157
+        },
+        {
+          "name": "行知路",
+          "immutableCode": "SH-MS-XINGZHILU",
+          "slug": "shanghai-metro-xingzhi-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.284496,
+          "centerLongitude": 121.42177
+        },
+        {
+          "name": "大华三路",
+          "immutableCode": "SH-MS-DAHUASANLU",
+          "slug": "shanghai-metro-dahua-sanlu",
+          "sortOrder": 13,
+          "centerLatitude": 31.274047,
+          "centerLongitude": 121.422949
+        },
+        {
+          "name": "新村路",
+          "immutableCode": "SH-MS-XINCUNLU",
+          "slug": "shanghai-metro-xincun-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.263855,
+          "centerLongitude": 121.422668
+        },
+        {
+          "name": "岚皋路",
+          "immutableCode": "SH-MS-LANGGAOLU",
+          "slug": "shanghai-metro-langgao-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.256198,
+          "centerLongitude": 121.421939
+        },
+        {
+          "name": "长寿路",
+          "immutableCode": "SH-MS-CHANGSHOULU",
+          "slug": "shanghai-metro-changshou-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.24086,
+          "centerLongitude": 121.438272
+        },
+        {
+          "name": "昌平路",
+          "immutableCode": "SH-MS-CHANGPINGLU",
+          "slug": "shanghai-metro-changping-lu",
+          "sortOrder": 17,
+          "centerLatitude": 31.233749,
+          "centerLongitude": 121.442617
+        },
+        {
+          "name": "肇嘉浜路",
+          "immutableCode": "SH-MS-ZHAOJIABANGLU",
+          "slug": "shanghai-metro-zhaojiabang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.199436,
+          "centerLongitude": 121.450212
+        },
+        {
+          "name": "船厂路",
+          "immutableCode": "SH-MS-CHUANCHANGLU",
+          "slug": "shanghai-metro-chuanchang-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.186617,
+          "centerLongitude": 121.459475
+        },
+        {
+          "name": "云锦路",
+          "immutableCode": "SH-MS-YUNJINLU",
+          "slug": "shanghai-metro-yunjin-lu",
+          "sortOrder": 20,
+          "centerLatitude": 31.166488,
+          "centerLongitude": 121.458519
+        },
+        {
+          "name": "龙华中路",
+          "immutableCode": "SH-MS-LONGHUAZHONGLU",
+          "slug": "shanghai-metro-longhua-zhonglu",
+          "sortOrder": 21,
+          "centerLatitude": 31.184379,
+          "centerLongitude": 121.457064
+        },
+        {
+          "name": "后滩",
+          "immutableCode": "SH-MS-HOUTAN",
+          "slug": "shanghai-metro-houtan",
+          "sortOrder": 22,
+          "centerLatitude": 31.171918,
+          "centerLongitude": 121.473756
+        },
+        {
+          "name": "长清路",
+          "immutableCode": "SH-MS-CHANGQINGLU",
+          "slug": "shanghai-metro-changqing-lu",
+          "sortOrder": 23,
+          "centerLatitude": 31.174008,
+          "centerLongitude": 121.488524
+        },
+        {
+          "name": "耀华路",
+          "immutableCode": "SH-MS-YAOHUALU",
+          "slug": "shanghai-metro-yaohua-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.178513,
+          "centerLongitude": 121.494605
+        },
+        {
+          "name": "云台路",
+          "immutableCode": "SH-MS-YUNTAILU",
+          "slug": "shanghai-metro-yuntai-lu",
+          "sortOrder": 25,
+          "centerLatitude": 31.182212,
+          "centerLongitude": 121.500439
+        },
+        {
+          "name": "花木路",
+          "immutableCode": "SH-MS-HUAMULU",
+          "slug": "shanghai-metro-huamu-lu",
+          "sortOrder": 26,
+          "centerLatitude": 31.211212,
+          "centerLongitude": 121.562754
+        },
+        {
+          "name": "芳华路",
+          "immutableCode": "SH-MS-FANGHUALU",
+          "slug": "shanghai-metro-fanghua-lu",
+          "sortOrder": 27,
+          "centerLatitude": 31.19311,
+          "centerLongitude": 121.550115
+        }
+      ]
+    },
+    {
+      "name": "地铁8号线",
+      "immutableCode": "SH-ML-8",
+      "slug": "shanghai-metro-8",
+      "sortOrder": 8,
+      "stations": [
+        {
+          "name": "沈杜公路",
+          "immutableCode": "SH-MS-SHENDUGONGLU",
+          "slug": "shanghai-metro-shendu-gonglu",
+          "sortOrder": 1,
+          "centerLatitude": 31.061427,
+          "centerLongitude": 121.512272
+        },
+        {
+          "name": "联航路",
+          "immutableCode": "SH-MS-LIANHANGLU",
+          "slug": "shanghai-metro-lianhang-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.073567,
+          "centerLongitude": 121.510594
+        },
+        {
+          "name": "江月路",
+          "immutableCode": "SH-MS-JIANGYUELU",
+          "slug": "shanghai-metro-jiangyue-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.084253,
+          "centerLongitude": 121.508603
+        },
+        {
+          "name": "浦江镇",
+          "immutableCode": "SH-MS-PUJIANGZHEN",
+          "slug": "shanghai-metro-pujiang-zhen",
+          "sortOrder": 4,
+          "centerLatitude": 31.09659,
+          "centerLongitude": 121.506272
+        },
+        {
+          "name": "芦恒路",
+          "immutableCode": "SH-MS-LUHENGLU",
+          "slug": "shanghai-metro-luheng-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.119059,
+          "centerLongitude": 121.498226
+        },
+        {
+          "name": "凌兆新村",
+          "immutableCode": "SH-MS-LINGZHAOXINCUN",
+          "slug": "shanghai-metro-lingzhao-xincun",
+          "sortOrder": 6,
+          "centerLatitude": 31.141301,
+          "centerLongitude": 121.489663
+        },
+        {
+          "name": "杨思",
+          "immutableCode": "SH-MS-YANGSI",
+          "slug": "shanghai-metro-yangsi",
+          "sortOrder": 7,
+          "centerLatitude": 31.161089,
+          "centerLongitude": 121.493523
+        },
+        {
+          "name": "中华艺术宫",
+          "immutableCode": "SH-MS-ZHONGHUAYISHUGONG",
+          "slug": "shanghai-metro-zhonghua-yishugong",
+          "sortOrder": 8,
+          "centerLatitude": 31.185242,
+          "centerLongitude": 121.493626
+        },
+        {
+          "name": "陆家浜路",
+          "immutableCode": "SH-MS-LUJIABANGLU",
+          "slug": "shanghai-metro-lujiabang-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.211789,
+          "centerLongitude": 121.486115
+        },
+        {
+          "name": "老西门",
+          "immutableCode": "SH-MS-LAOXIMEN",
+          "slug": "shanghai-metro-laoximen",
+          "sortOrder": 10,
+          "centerLatitude": 31.219014,
+          "centerLongitude": 121.483793
+        },
+        {
+          "name": "大世界",
+          "immutableCode": "SH-MS-DASHIJIE",
+          "slug": "shanghai-metro-dashijie",
+          "sortOrder": 11,
+          "centerLatitude": 31.227392,
+          "centerLongitude": 121.479182
+        },
+        {
+          "name": "曲阜路",
+          "immutableCode": "SH-MS-QUFULU",
+          "slug": "shanghai-metro-qufu-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.242307,
+          "centerLongitude": 121.471543
+        },
+        {
+          "name": "中兴路",
+          "immutableCode": "SH-MS-ZHONGXINGLU",
+          "slug": "shanghai-metro-zhongxing-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.253228,
+          "centerLongitude": 121.469026
+        },
+        {
+          "name": "西藏北路",
+          "immutableCode": "SH-MS-XIZANGBEILU",
+          "slug": "shanghai-metro-xizang-beilu",
+          "sortOrder": 14,
+          "centerLatitude": 31.263453,
+          "centerLongitude": 121.468818
+        },
+        {
+          "name": "曲阳路",
+          "immutableCode": "SH-MS-QUYANGLU",
+          "slug": "shanghai-metro-quyang-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.276524,
+          "centerLongitude": 121.491138
+        },
+        {
+          "name": "四平路",
+          "immutableCode": "SH-MS-SIPINGLU",
+          "slug": "shanghai-metro-siping-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.27488,
+          "centerLongitude": 121.501488
+        },
+        {
+          "name": "鞍山新村",
+          "immutableCode": "SH-MS-ANSHANXINCUN",
+          "slug": "shanghai-metro-anshan-xincun",
+          "sortOrder": 17,
+          "centerLatitude": 31.273242,
+          "centerLongitude": 121.509685
+        },
+        {
+          "name": "江浦路",
+          "immutableCode": "SH-MS-JIANGPULU",
+          "slug": "shanghai-metro-jiangpu-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.274946,
+          "centerLongitude": 121.518379
+        },
+        {
+          "name": "黄兴路",
+          "immutableCode": "SH-MS-HUANGXINGLU",
+          "slug": "shanghai-metro-huangxing-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.278814,
+          "centerLongitude": 121.528401
+        },
+        {
+          "name": "延吉中路",
+          "immutableCode": "SH-MS-YANJIZHONGLU",
+          "slug": "shanghai-metro-yanji-zhonglu",
+          "sortOrder": 20,
+          "centerLatitude": 31.288543,
+          "centerLongitude": 121.534941
+        },
+        {
+          "name": "黄兴公园",
+          "immutableCode": "SH-MS-HUANGXINGGONGYUAN",
+          "slug": "shanghai-metro-huangxing-gongyuan",
+          "sortOrder": 21,
+          "centerLatitude": 31.295389,
+          "centerLongitude": 121.533383
+        },
+        {
+          "name": "翔殷路",
+          "immutableCode": "SH-MS-XIANGYINLU",
+          "slug": "shanghai-metro-xiangyin-lu",
+          "sortOrder": 22,
+          "centerLatitude": 31.305002,
+          "centerLongitude": 121.531974
+        },
+        {
+          "name": "嫩江路",
+          "immutableCode": "SH-MS-NENJIANGLU",
+          "slug": "shanghai-metro-nenjiang-lu",
+          "sortOrder": 23,
+          "centerLatitude": 31.314804,
+          "centerLongitude": 121.531954
+        },
+        {
+          "name": "市光路",
+          "immutableCode": "SH-MS-SHIGUANGLU",
+          "slug": "shanghai-metro-shiguang-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.322724,
+          "centerLongitude": 121.531933
+        }
+      ]
+    },
+    {
+      "name": "地铁9号线",
+      "immutableCode": "SH-ML-9",
+      "slug": "shanghai-metro-9",
+      "sortOrder": 9,
+      "stations": [
+        {
+          "name": "松江南站",
+          "immutableCode": "SH-MS-SONGJIANGNANZHAN",
+          "slug": "shanghai-metro-songjiang-nanzhan",
+          "sortOrder": 1,
+          "centerLatitude": 31.030295,
+          "centerLongitude": 121.230739
+        },
+        {
+          "name": "醉白池",
+          "immutableCode": "SH-MS-ZUIBAICHI",
+          "slug": "shanghai-metro-zuibaichi",
+          "sortOrder": 2,
+          "centerLatitude": 31.001125,
+          "centerLongitude": 121.229361
+        },
+        {
+          "name": "松江体育中心",
+          "immutableCode": "SH-MS-SONGJIANGTIYUZHONGXIN",
+          "slug": "shanghai-metro-songjiang-tiyu-zhongxin",
+          "sortOrder": 3,
+          "centerLatitude": 31.016006,
+          "centerLongitude": 121.230546
+        },
+        {
+          "name": "松江新城",
+          "immutableCode": "SH-MS-SONGJIANGXINCHENG",
+          "slug": "shanghai-metro-songjiang-xincheng",
+          "sortOrder": 4,
+          "centerLatitude": 31.030295,
+          "centerLongitude": 121.230739
+        },
+        {
+          "name": "松江大学城",
+          "immutableCode": "SH-MS-SONGJIANGDAXUECHENG",
+          "slug": "shanghai-metro-songjiang-daxuecheng",
+          "sortOrder": 5,
+          "centerLatitude": 31.053984,
+          "centerLongitude": 121.232577
+        },
+        {
+          "name": "洞泾",
+          "immutableCode": "SH-MS-DONGJING",
+          "slug": "shanghai-metro-dongjing",
+          "sortOrder": 6,
+          "centerLatitude": 31.084492,
+          "centerLongitude": 121.230473
+        },
+        {
+          "name": "佘山",
+          "immutableCode": "SH-MS-SHESHAN",
+          "slug": "shanghai-metro-sheshan",
+          "sortOrder": 7,
+          "centerLatitude": 31.104097,
+          "centerLongitude": 121.229686
+        },
+        {
+          "name": "泗泾",
+          "immutableCode": "SH-MS-SIJING",
+          "slug": "shanghai-metro-sijing",
+          "sortOrder": 8,
+          "centerLatitude": 31.118272,
+          "centerLongitude": 121.260247
+        },
+        {
+          "name": "九亭",
+          "immutableCode": "SH-MS-JIUTING",
+          "slug": "shanghai-metro-jiuting",
+          "sortOrder": 9,
+          "centerLatitude": 31.137252,
+          "centerLongitude": 121.319423
+        },
+        {
+          "name": "中春路",
+          "immutableCode": "SH-MS-ZHONGCHUNLU",
+          "slug": "shanghai-metro-zhongchun-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.149766,
+          "centerLongitude": 121.334596
+        },
+        {
+          "name": "七宝",
+          "immutableCode": "SH-MS-QIBAO",
+          "slug": "shanghai-metro-qibao",
+          "sortOrder": 11,
+          "centerLatitude": 31.155287,
+          "centerLongitude": 121.349221
+        },
+        {
+          "name": "星中路",
+          "immutableCode": "SH-MS-XINGZHONGLU",
+          "slug": "shanghai-metro-xingzhong-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.158109,
+          "centerLongitude": 121.368903
+        },
+        {
+          "name": "合川路",
+          "immutableCode": "SH-MS-HECHUANLU",
+          "slug": "shanghai-metro-hechuan-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.166542,
+          "centerLongitude": 121.384772
+        },
+        {
+          "name": "漕河泾开发区",
+          "immutableCode": "SH-MS-CAOHEJINGKAIFAQU",
+          "slug": "shanghai-metro-caohejing-kaifaqu",
+          "sortOrder": 14,
+          "centerLatitude": 31.170644,
+          "centerLongitude": 121.397769
+        },
+        {
+          "name": "桂林路",
+          "immutableCode": "SH-MS-GUILINLU",
+          "slug": "shanghai-metro-guilin-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.174791,
+          "centerLongitude": 121.418064
+        },
+        {
+          "name": "嘉善路",
+          "immutableCode": "SH-MS-JIASHANLU",
+          "slug": "shanghai-metro-jiashan-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.20282,
+          "centerLongitude": 121.460704
+        },
+        {
+          "name": "打浦桥",
+          "immutableCode": "SH-MS-DAPUQIAO",
+          "slug": "shanghai-metro-dapuqiao",
+          "sortOrder": 17,
+          "centerLatitude": 31.206309,
+          "centerLongitude": 121.468681
+        },
+        {
+          "name": "马当路",
+          "immutableCode": "SH-MS-MADANGLU",
+          "slug": "shanghai-metro-madang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.20952,
+          "centerLongitude": 121.477256
+        },
+        {
+          "name": "小南门",
+          "immutableCode": "SH-MS-XIAONANMEN",
+          "slug": "shanghai-metro-xiaonanmen",
+          "sortOrder": 19,
+          "centerLatitude": 31.216866,
+          "centerLongitude": 121.498398
+        },
+        {
+          "name": "豫园",
+          "immutableCode": "SH-MS-YUYUAN",
+          "slug": "shanghai-metro-yuyuan",
+          "sortOrder": 20,
+          "centerLatitude": 31.228446,
+          "centerLongitude": 121.486964
+        },
+        {
+          "name": "淮海中路",
+          "immutableCode": "SH-MS-HUAIHAIZHONGLU",
+          "slug": "shanghai-metro-huaihai-zhonglu",
+          "sortOrder": 21,
+          "centerLatitude": 31.220056,
+          "centerLongitude": 121.464363
+        },
+        {
+          "name": "商城路",
+          "immutableCode": "SH-MS-SHANGCHENGLU",
+          "slug": "shanghai-metro-shangcheng-lu",
+          "sortOrder": 22,
+          "centerLatitude": 31.230258,
+          "centerLongitude": 121.516275
+        },
+        {
+          "name": "杨高中路",
+          "immutableCode": "SH-MS-YANGGAOZHONGLU",
+          "slug": "shanghai-metro-yanggao-zhonglu",
+          "sortOrder": 23,
+          "centerLatitude": 31.22751,
+          "centerLongitude": 121.548664
+        },
+        {
+          "name": "芳甸路",
+          "immutableCode": "SH-MS-FANGDIANLU",
+          "slug": "shanghai-metro-fangdian-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.231845,
+          "centerLongitude": 121.558431
+        },
+        {
+          "name": "蓝天路",
+          "immutableCode": "SH-MS-LANTIANLU",
+          "slug": "shanghai-metro-lantian-lu",
+          "sortOrder": 25,
+          "centerLatitude": 31.240466,
+          "centerLongitude": 121.579771
+        },
+        {
+          "name": "台儿庄路",
+          "immutableCode": "SH-MS-TAIERZHUANGLU",
+          "slug": "shanghai-metro-taierzhuang-lu",
+          "sortOrder": 26,
+          "centerLatitude": 31.252825,
+          "centerLongitude": 121.597458
+        },
+        {
+          "name": "金桥",
+          "immutableCode": "SH-MS-JINQIAO",
+          "slug": "shanghai-metro-jinqiao",
+          "sortOrder": 27,
+          "centerLatitude": 31.26085,
+          "centerLongitude": 121.611336
+        },
+        {
+          "name": "金海路",
+          "immutableCode": "SH-MS-JINHAILU",
+          "slug": "shanghai-metro-jinhai-lu",
+          "sortOrder": 28,
+          "centerLatitude": 31.263141,
+          "centerLongitude": 121.638629
+        },
+        {
+          "name": "民雷路",
+          "immutableCode": "SH-MS-MINLEILU",
+          "slug": "shanghai-metro-minlei-lu",
+          "sortOrder": 29,
+          "centerLatitude": 31.268335,
+          "centerLongitude": 121.668125
+        },
+        {
+          "name": "曹路",
+          "immutableCode": "SH-MS-CAOLU",
+          "slug": "shanghai-metro-caolu",
+          "sortOrder": 30,
+          "centerLatitude": 31.271297,
+          "centerLongitude": 121.683153
+        }
+      ]
+    },
+    {
+      "name": "地铁10号线",
+      "immutableCode": "SH-ML-10",
+      "slug": "shanghai-metro-10",
+      "sortOrder": 10,
+      "stations": [
+        {
+          "name": "上海动物园",
+          "immutableCode": "SH-MS-SHANGHAIDONGWUYUAN",
+          "slug": "shanghai-metro-shanghai-dongwuyuan",
+          "sortOrder": 1,
+          "centerLatitude": 31.19056,
+          "centerLongitude": 121.367666
+        },
+        {
+          "name": "龙溪路",
+          "immutableCode": "SH-MS-LONGXILU",
+          "slug": "shanghai-metro-longxi-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.1944,
+          "centerLongitude": 121.380034
+        },
+        {
+          "name": "水城路",
+          "immutableCode": "SH-MS-SHUICHENGLU",
+          "slug": "shanghai-metro-shuicheng-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.199482,
+          "centerLongitude": 121.392259
+        },
+        {
+          "name": "伊犁路",
+          "immutableCode": "SH-MS-YILILU",
+          "slug": "shanghai-metro-yili-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.19888,
+          "centerLongitude": 121.403899
+        },
+        {
+          "name": "宋园路",
+          "immutableCode": "SH-MS-SONGYUANLU",
+          "slug": "shanghai-metro-songyuan-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.19654,
+          "centerLongitude": 121.41208
+        },
+        {
+          "name": "交通大学",
+          "immutableCode": "SH-MS-JIAOTONGDAXUE",
+          "slug": "shanghai-metro-jiaotong-daxue",
+          "sortOrder": 6,
+          "centerLatitude": 31.202213,
+          "centerLongitude": 121.435253
+        },
+        {
+          "name": "上海图书馆",
+          "immutableCode": "SH-MS-SHANGHAITUSHUGUAN",
+          "slug": "shanghai-metro-shanghai-tushuguan",
+          "sortOrder": 7,
+          "centerLatitude": 31.20796,
+          "centerLongitude": 121.444363
+        },
+        {
+          "name": "新天地",
+          "immutableCode": "SH-MS-XINTIANDI",
+          "slug": "shanghai-metro-xintiandi",
+          "sortOrder": 8,
+          "centerLatitude": 31.216367,
+          "centerLongitude": 121.475182
+        },
+        {
+          "name": "天潼路",
+          "immutableCode": "SH-MS-TIANTONGLU",
+          "slug": "shanghai-metro-tiantong-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.243815,
+          "centerLongitude": 121.482321
+        },
+        {
+          "name": "四川北路",
+          "immutableCode": "SH-MS-SICHUANBEILU",
+          "slug": "shanghai-metro-sichuan-beilu",
+          "sortOrder": 10,
+          "centerLatitude": 31.252035,
+          "centerLongitude": 121.484208
+        },
+        {
+          "name": "邮电新村",
+          "immutableCode": "SH-MS-YOUDIANXINCUN",
+          "slug": "shanghai-metro-youdian-xincun",
+          "sortOrder": 11,
+          "centerLatitude": 31.268431,
+          "centerLongitude": 121.494247
+        },
+        {
+          "name": "同济大学",
+          "immutableCode": "SH-MS-TONGJIDAXUE",
+          "slug": "shanghai-metro-tongji-daxue",
+          "sortOrder": 12,
+          "centerLatitude": 31.281904,
+          "centerLongitude": 121.506269
+        },
+        {
+          "name": "国权路",
+          "immutableCode": "SH-MS-GUOQUANLU",
+          "slug": "shanghai-metro-guoquan-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.289276,
+          "centerLongitude": 121.510024
+        },
+        {
+          "name": "五角场",
+          "immutableCode": "SH-MS-WUJIAOCHANG",
+          "slug": "shanghai-metro-wujiaochang",
+          "sortOrder": 14,
+          "centerLatitude": 31.298043,
+          "centerLongitude": 121.514632
+        },
+        {
+          "name": "江湾体育场",
+          "immutableCode": "SH-MS-JIANGWANTIYUCHANG",
+          "slug": "shanghai-metro-jiangwan-tiyuchang",
+          "sortOrder": 15,
+          "centerLatitude": 31.304293,
+          "centerLongitude": 121.513314
+        },
+        {
+          "name": "三门路",
+          "immutableCode": "SH-MS-SANMENLU",
+          "slug": "shanghai-metro-sanmen-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.313214,
+          "centerLongitude": 121.50834
+        },
+        {
+          "name": "殷高东路",
+          "immutableCode": "SH-MS-YINGAODONGLU",
+          "slug": "shanghai-metro-yingao-donglu",
+          "sortOrder": 17,
+          "centerLatitude": 31.321768,
+          "centerLongitude": 121.506797
+        },
+        {
+          "name": "新江湾城",
+          "immutableCode": "SH-MS-XINJIANGWANCHENG",
+          "slug": "shanghai-metro-xinjiangwancheng",
+          "sortOrder": 18,
+          "centerLatitude": 31.328496,
+          "centerLongitude": 121.506951
+        },
+        {
+          "name": "国帆路",
+          "immutableCode": "SH-MS-GUOFANLU",
+          "slug": "shanghai-metro-guofan-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.339548,
+          "centerLongitude": 121.513168
+        },
+        {
+          "name": "双江路",
+          "immutableCode": "SH-MS-SHUANGJIANGLU",
+          "slug": "shanghai-metro-shuangjiang-lu",
+          "sortOrder": 20,
+          "centerLatitude": 31.353601,
+          "centerLongitude": 121.539425
+        },
+        {
+          "name": "高桥西",
+          "immutableCode": "SH-MS-GAOQIAOXI",
+          "slug": "shanghai-metro-gaoqiao-xi",
+          "sortOrder": 21,
+          "centerLatitude": 31.351489,
+          "centerLongitude": 121.54928
+        },
+        {
+          "name": "高桥",
+          "immutableCode": "SH-MS-GAOQIAO",
+          "slug": "shanghai-metro-gaoqiao",
+          "sortOrder": 22,
+          "centerLatitude": 31.342052,
+          "centerLongitude": 121.577522
+        },
+        {
+          "name": "基隆路",
+          "immutableCode": "SH-MS-JILONGLU",
+          "slug": "shanghai-metro-jilong-lu",
+          "sortOrder": 23,
+          "centerLatitude": 31.351311,
+          "centerLongitude": 121.590411
+        },
+        {
+          "name": "龙柏新村",
+          "immutableCode": "SH-MS-LONGBAIXINCUN",
+          "slug": "shanghai-metro-longbai-xincun",
+          "sortOrder": 24,
+          "centerLatitude": 31.176882,
+          "centerLongitude": 121.37048
+        },
+        {
+          "name": "紫藤路",
+          "immutableCode": "SH-MS-ZITENGLU",
+          "slug": "shanghai-metro-ziteng-lu",
+          "sortOrder": 25,
+          "centerLatitude": 31.169674,
+          "centerLongitude": 121.364831
+        },
+        {
+          "name": "航中路",
+          "immutableCode": "SH-MS-HANGZHONGLU",
+          "slug": "shanghai-metro-hangzhong-lu",
+          "sortOrder": 26,
+          "centerLatitude": 31.165417,
+          "centerLongitude": 121.355336
+        }
+      ]
+    },
+    {
+      "name": "地铁11号线",
+      "immutableCode": "SH-ML-11",
+      "slug": "shanghai-metro-11",
+      "sortOrder": 11,
+      "stations": [
+        {
+          "name": "嘉定北",
+          "immutableCode": "SH-MS-JIADINGBEI",
+          "slug": "shanghai-metro-jiading-bei",
+          "sortOrder": 1,
+          "centerLatitude": 31.391549,
+          "centerLongitude": 121.23735
+        },
+        {
+          "name": "嘉定西",
+          "immutableCode": "SH-MS-JIADINGXI",
+          "slug": "shanghai-metro-jiading-xi",
+          "sortOrder": 2,
+          "centerLatitude": 31.377107,
+          "centerLongitude": 121.227855
+        },
+        {
+          "name": "白银路",
+          "immutableCode": "SH-MS-BAIYINLU",
+          "slug": "shanghai-metro-baiyin-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.345359,
+          "centerLongitude": 121.24535
+        },
+        {
+          "name": "嘉定新城",
+          "immutableCode": "SH-MS-JIADINGXINCHENG",
+          "slug": "shanghai-metro-jiading-xincheng",
+          "sortOrder": 4,
+          "centerLatitude": 31.330062,
+          "centerLongitude": 121.254294
+        },
+        {
+          "name": "马陆",
+          "immutableCode": "SH-MS-MALU",
+          "slug": "shanghai-metro-malu",
+          "sortOrder": 5,
+          "centerLatitude": 31.319675,
+          "centerLongitude": 121.276906
+        },
+        {
+          "name": "陈翔公路",
+          "immutableCode": "SH-MS-CHENXIANGGONGLU",
+          "slug": "shanghai-metro-chenxiang-gonglu",
+          "sortOrder": 6,
+          "centerLatitude": 31.306484,
+          "centerLongitude": 121.306787
+        },
+        {
+          "name": "南翔",
+          "immutableCode": "SH-MS-NANXIANG",
+          "slug": "shanghai-metro-nanxiang",
+          "sortOrder": 7,
+          "centerLatitude": 31.296952,
+          "centerLongitude": 121.323141
+        },
+        {
+          "name": "桃浦新村",
+          "immutableCode": "SH-MS-TAOPUXINCUN",
+          "slug": "shanghai-metro-taopu-xincun",
+          "sortOrder": 8,
+          "centerLatitude": 31.281603,
+          "centerLongitude": 121.349623
+        },
+        {
+          "name": "武威路",
+          "immutableCode": "SH-MS-WUWEILU",
+          "slug": "shanghai-metro-wuwei-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.276646,
+          "centerLongitude": 121.364678
+        },
+        {
+          "name": "祁连山路",
+          "immutableCode": "SH-MS-QILIANSHANLU",
+          "slug": "shanghai-metro-qilianshan-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.27165,
+          "centerLongitude": 121.376035
+        },
+        {
+          "name": "李子园",
+          "immutableCode": "SH-MS-LIZIYUAN",
+          "slug": "shanghai-metro-liziyuan",
+          "sortOrder": 11,
+          "centerLatitude": 31.26902,
+          "centerLongitude": 121.389969
+        },
+        {
+          "name": "上海西站",
+          "immutableCode": "SH-MS-SHANGHAIXIZHAN",
+          "slug": "shanghai-metro-shanghai-xizhan",
+          "sortOrder": 12,
+          "centerLatitude": 31.262976,
+          "centerLongitude": 121.401407
+        },
+        {
+          "name": "真如",
+          "immutableCode": "SH-MS-ZHENRU",
+          "slug": "shanghai-metro-zhenru",
+          "sortOrder": 13,
+          "centerLatitude": 31.250767,
+          "centerLongitude": 121.407219
+        },
+        {
+          "name": "枫桥路",
+          "immutableCode": "SH-MS-FENGQIAOLU",
+          "slug": "shanghai-metro-fengqiao-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.24185,
+          "centerLongitude": 121.411402
+        },
+        {
+          "name": "隆德路",
+          "immutableCode": "SH-MS-LONGDELU",
+          "slug": "shanghai-metro-longde-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.230509,
+          "centerLongitude": 121.423576
+        },
+        {
+          "name": "上海游泳馆",
+          "immutableCode": "SH-MS-SHANGHAIYOUYONGGUAN",
+          "slug": "shanghai-metro-shanghai-youyongguan",
+          "sortOrder": 16,
+          "centerLatitude": 31.179123,
+          "centerLongitude": 121.441424
+        },
+        {
+          "name": "龙华",
+          "immutableCode": "SH-MS-LONGHUA",
+          "slug": "shanghai-metro-longhua",
+          "sortOrder": 17,
+          "centerLatitude": 31.172672,
+          "centerLongitude": 121.452958
+        },
+        {
+          "name": "龙耀路",
+          "immutableCode": "SH-MS-LONGYAOLU",
+          "slug": "shanghai-metro-longyao-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.15972,
+          "centerLongitude": 121.459702
+        },
+        {
+          "name": "三林",
+          "immutableCode": "SH-MS-SANLIN",
+          "slug": "shanghai-metro-sanlin",
+          "sortOrder": 19,
+          "centerLatitude": 31.143224,
+          "centerLongitude": 121.511796
+        },
+        {
+          "name": "三林东",
+          "immutableCode": "SH-MS-SANLINDONG",
+          "slug": "shanghai-metro-sanlin-dong",
+          "sortOrder": 20,
+          "centerLatitude": 31.146459,
+          "centerLongitude": 121.522999
+        },
+        {
+          "name": "浦三路",
+          "immutableCode": "SH-MS-PUSANLU",
+          "slug": "shanghai-metro-pusan-lu",
+          "sortOrder": 21,
+          "centerLatitude": 31.150861,
+          "centerLongitude": 121.539005
+        },
+        {
+          "name": "御桥",
+          "immutableCode": "SH-MS-YUQIAO",
+          "slug": "shanghai-metro-yuqiao",
+          "sortOrder": 22,
+          "centerLatitude": 31.158131,
+          "centerLongitude": 121.570914
+        },
+        {
+          "name": "罗山路",
+          "immutableCode": "SH-MS-LUOSHANLU",
+          "slug": "shanghai-metro-luoshan-lu",
+          "sortOrder": 23,
+          "centerLatitude": 31.153259,
+          "centerLongitude": 121.593152
+        },
+        {
+          "name": "秀沿路",
+          "immutableCode": "SH-MS-XIUYANLU",
+          "slug": "shanghai-metro-xiuyan-lu",
+          "sortOrder": 24,
+          "centerLatitude": 31.138128,
+          "centerLongitude": 121.59839
+        },
+        {
+          "name": "康新公路",
+          "immutableCode": "SH-MS-KANGXINGONGLU",
+          "slug": "shanghai-metro-kangxin-gonglu",
+          "sortOrder": 25,
+          "centerLatitude": 31.130441,
+          "centerLongitude": 121.617199
+        },
+        {
+          "name": "迪士尼",
+          "immutableCode": "SH-MS-DISHINI",
+          "slug": "shanghai-metro-dishini",
+          "sortOrder": 26,
+          "centerLatitude": 31.141263,
+          "centerLongitude": 121.667959
+        },
+        {
+          "name": "上海赛车场",
+          "immutableCode": "SH-MS-SHANGHAISAICHECHANG",
+          "slug": "shanghai-metro-shanghai-saichechang",
+          "sortOrder": 27,
+          "centerLatitude": 31.332294,
+          "centerLongitude": 121.225487
+        },
+        {
+          "name": "昌吉东路",
+          "immutableCode": "SH-MS-CHANGJIDONGLU",
+          "slug": "shanghai-metro-changji-donglu",
+          "sortOrder": 28,
+          "centerLatitude": 31.29362,
+          "centerLongitude": 121.200384
+        },
+        {
+          "name": "上海汽车城",
+          "immutableCode": "SH-MS-SHANGHAIQICHECHENG",
+          "slug": "shanghai-metro-shanghai-qichecheng",
+          "sortOrder": 29,
+          "centerLatitude": 31.285403,
+          "centerLongitude": 121.180742
+        },
+        {
+          "name": "安亭",
+          "immutableCode": "SH-MS-ANTING",
+          "slug": "shanghai-metro-anting",
+          "sortOrder": 30,
+          "centerLatitude": 31.28849,
+          "centerLongitude": 121.161985
+        },
+        {
+          "name": "兆丰路",
+          "immutableCode": "SH-MS-ZHAOFENGLU",
+          "slug": "shanghai-metro-zhaofeng-lu",
+          "sortOrder": 31,
+          "centerLatitude": 31.191402,
+          "centerLongitude": 121.468239
+        },
+        {
+          "name": "光明路",
+          "immutableCode": "SH-MS-GUANGMINGLU",
+          "slug": "shanghai-metro-guangming-lu",
+          "sortOrder": 32,
+          "centerLatitude": 30.814495,
+          "centerLongitude": 121.233663
+        },
+        {
+          "name": "花桥",
+          "immutableCode": "SH-MS-HUAQIAO",
+          "slug": "shanghai-metro-huaqiao",
+          "sortOrder": 33,
+          "centerLatitude": 31.749058,
+          "centerLongitude": 121.257865
+        }
+      ]
+    },
+    {
+      "name": "地铁12号线",
+      "immutableCode": "SH-ML-12",
+      "slug": "shanghai-metro-12",
+      "sortOrder": 12,
+      "stations": [
+        {
+          "name": "七莘路",
+          "immutableCode": "SH-MS-QISINLU",
+          "slug": "shanghai-metro-qisin-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.131634,
+          "centerLongitude": 121.362461
+        },
+        {
+          "name": "虹莘路",
+          "immutableCode": "SH-MS-HONGSINLU",
+          "slug": "shanghai-metro-hongsin-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.137452,
+          "centerLongitude": 121.380349
+        },
+        {
+          "name": "顾戴路",
+          "immutableCode": "SH-MS-GUDAILU",
+          "slug": "shanghai-metro-gudai-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.140888,
+          "centerLongitude": 121.39185
+        },
+        {
+          "name": "东兰路",
+          "immutableCode": "SH-MS-DONGLANLU",
+          "slug": "shanghai-metro-donglan-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.155826,
+          "centerLongitude": 121.391919
+        },
+        {
+          "name": "虹梅路",
+          "immutableCode": "SH-MS-HONGMEILU",
+          "slug": "shanghai-metro-hongmei-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.16035,
+          "centerLongitude": 121.39725
+        },
+        {
+          "name": "桂林公园",
+          "immutableCode": "SH-MS-GUILINGONGYUAN",
+          "slug": "shanghai-metro-guilin-gongyuan",
+          "sortOrder": 6,
+          "centerLatitude": 31.168661,
+          "centerLongitude": 121.41808
+        },
+        {
+          "name": "大渡河路",
+          "immutableCode": "SH-MS-DADUHELU",
+          "slug": "shanghai-metro-daduhe-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.231752,
+          "centerLongitude": 121.394431
+        },
+        {
+          "name": "长风公园",
+          "immutableCode": "SH-MS-CHANGFENGGONGYUAN",
+          "slug": "shanghai-metro-changfeng-gongyuan",
+          "sortOrder": 8,
+          "centerLatitude": 31.226733,
+          "centerLongitude": 121.395921
+        },
+        {
+          "name": "国际客运中心",
+          "immutableCode": "SH-MS-GUOJICHAYUNZHONGXIN",
+          "slug": "shanghai-metro-guoji-chayun-zhongxin",
+          "sortOrder": 9,
+          "centerLatitude": 31.25016,
+          "centerLongitude": 121.498158
+        },
+        {
+          "name": "提篮桥",
+          "immutableCode": "SH-MS-TILANQIAO",
+          "slug": "shanghai-metro-tilanqiao",
+          "sortOrder": 10,
+          "centerLatitude": 31.253518,
+          "centerLongitude": 121.506801
+        },
+        {
+          "name": "江浦公园",
+          "immutableCode": "SH-MS-JIANGPUGONGYUAN",
+          "slug": "shanghai-metro-jiangpu-gongyuan",
+          "sortOrder": 11,
+          "centerLatitude": 31.265803,
+          "centerLongitude": 121.523109
+        },
+        {
+          "name": "宁国路",
+          "immutableCode": "SH-MS-NINGGUOLU",
+          "slug": "shanghai-metro-ningguo-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.268574,
+          "centerLongitude": 121.532352
+        },
+        {
+          "name": "隆昌路",
+          "immutableCode": "SH-MS-LONGCHANGLU",
+          "slug": "shanghai-metro-longchang-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.275213,
+          "centerLongitude": 121.544692
+        },
+        {
+          "name": "爱国路",
+          "immutableCode": "SH-MS-AIGUOLU",
+          "slug": "shanghai-metro-aiguo-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.279788,
+          "centerLongitude": 121.552655
+        },
+        {
+          "name": "复兴岛",
+          "immutableCode": "SH-MS-FUXINGDAO",
+          "slug": "shanghai-metro-fuxingdao",
+          "sortOrder": 15,
+          "centerLatitude": 31.280779,
+          "centerLongitude": 121.561315
+        },
+        {
+          "name": "东陆路",
+          "immutableCode": "SH-MS-DONGLULU",
+          "slug": "shanghai-metro-donglu-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.282533,
+          "centerLongitude": 121.579124
+        },
+        {
+          "name": "杨高北路",
+          "immutableCode": "SH-MS-YANGGAOBEILU",
+          "slug": "shanghai-metro-yanggao-beilu",
+          "sortOrder": 17,
+          "centerLatitude": 31.280092,
+          "centerLongitude": 121.60296
+        },
+        {
+          "name": "金京路",
+          "immutableCode": "SH-MS-JINJINGLU",
+          "slug": "shanghai-metro-jinjing-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.279823,
+          "centerLongitude": 121.615477
+        },
+        {
+          "name": "申江路",
+          "immutableCode": "SH-MS-SHENJIANGLU",
+          "slug": "shanghai-metro-shenjiang-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.280231,
+          "centerLongitude": 121.626863
+        }
+      ]
+    },
+    {
+      "name": "地铁13号线",
+      "immutableCode": "SH-ML-13",
+      "slug": "shanghai-metro-13",
+      "sortOrder": 13,
+      "stations": [
+        {
+          "name": "金运路",
+          "immutableCode": "SH-MS-JINYUNLU",
+          "slug": "shanghai-metro-jinyun-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.240986,
+          "centerLongitude": 121.319308
+        },
+        {
+          "name": "金沙江西路",
+          "immutableCode": "SH-MS-JINSHAJIANGXILU",
+          "slug": "shanghai-metro-jinshajiang-xilu",
+          "sortOrder": 2,
+          "centerLatitude": 31.241152,
+          "centerLongitude": 121.335156
+        },
+        {
+          "name": "丰庄",
+          "immutableCode": "SH-MS-FENGZHUANG",
+          "slug": "shanghai-metro-fengzhuang",
+          "sortOrder": 3,
+          "centerLatitude": 31.242553,
+          "centerLongitude": 121.355141
+        },
+        {
+          "name": "祁连山南路",
+          "immutableCode": "SH-MS-QILIANSHANNANLU",
+          "slug": "shanghai-metro-qilianshan-nanlu",
+          "sortOrder": 4,
+          "centerLatitude": 31.237625,
+          "centerLongitude": 121.367275
+        },
+        {
+          "name": "真北路",
+          "immutableCode": "SH-MS-ZHENBEILU",
+          "slug": "shanghai-metro-zhenbei-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.232235,
+          "centerLongitude": 121.381948
+        },
+        {
+          "name": "武宁路",
+          "immutableCode": "SH-MS-WUNINGLU",
+          "slug": "shanghai-metro-wuning-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.234346,
+          "centerLongitude": 121.430504
+        },
+        {
+          "name": "江宁路",
+          "immutableCode": "SH-MS-JIANGNINGLU",
+          "slug": "shanghai-metro-jiangning-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.244282,
+          "centerLongitude": 121.44483
+        },
+        {
+          "name": "世博会博物馆",
+          "immutableCode": "SH-MS-SHIBOHUIBOWUGUAN",
+          "slug": "shanghai-metro-shibohui-bowuguan",
+          "sortOrder": 8,
+          "centerLatitude": 31.197572,
+          "centerLongitude": 121.481592
+        },
+        {
+          "name": "世博大道",
+          "immutableCode": "SH-MS-SHIBODADAO",
+          "slug": "shanghai-metro-shibo-dadao",
+          "sortOrder": 9,
+          "centerLatitude": 31.182789,
+          "centerLongitude": 121.484313
+        },
+        {
+          "name": "华鹏路",
+          "immutableCode": "SH-MS-HUAPENGLU",
+          "slug": "shanghai-metro-huapeng-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.176276,
+          "centerLongitude": 121.526567
+        },
+        {
+          "name": "下南路",
+          "immutableCode": "SH-MS-XIANANLU",
+          "slug": "shanghai-metro-xianan-lu",
+          "sortOrder": 11,
+          "centerLatitude": 31.179295,
+          "centerLongitude": 121.540189
+        },
+        {
+          "name": "北蔡",
+          "immutableCode": "SH-MS-BEICAI",
+          "slug": "shanghai-metro-beicai",
+          "sortOrder": 12,
+          "centerLatitude": 31.180131,
+          "centerLongitude": 121.552017
+        },
+        {
+          "name": "陈春路",
+          "immutableCode": "SH-MS-CHENCHUNLU",
+          "slug": "shanghai-metro-chenchun-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.175095,
+          "centerLongitude": 121.558194
+        },
+        {
+          "name": "莲溪路",
+          "immutableCode": "SH-MS-LIANXILU",
+          "slug": "shanghai-metro-lianxi-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.16911,
+          "centerLongitude": 121.566414
+        },
+        {
+          "name": "华夏中路",
+          "immutableCode": "SH-MS-HUAXIAZHONGLU",
+          "slug": "shanghai-metro-huaxia-zhonglu",
+          "sortOrder": 15,
+          "centerLatitude": 31.175759,
+          "centerLongitude": 121.583109
+        },
+        {
+          "name": "中科路",
+          "immutableCode": "SH-MS-ZHONGKELU",
+          "slug": "shanghai-metro-zhongke-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.178862,
+          "centerLongitude": 121.602465
+        },
+        {
+          "name": "学林路",
+          "immutableCode": "SH-MS-XUELINLU",
+          "slug": "shanghai-metro-xuelin-lu",
+          "sortOrder": 17,
+          "centerLatitude": 31.183476,
+          "centerLongitude": 121.614363
+        },
+        {
+          "name": "张江路",
+          "immutableCode": "SH-MS-ZHANGJIANGLU",
+          "slug": "shanghai-metro-zhangjiang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.18913,
+          "centerLongitude": 121.629182
+        }
+      ]
+    },
+    {
+      "name": "地铁14号线",
+      "immutableCode": "SH-ML-14",
+      "slug": "shanghai-metro-14",
+      "sortOrder": 14,
+      "stations": [
+        {
+          "name": "封浜",
+          "immutableCode": "SH-MS-FENGBANG",
+          "slug": "shanghai-metro-fengbang",
+          "sortOrder": 1,
+          "centerLatitude": 31.267488,
+          "centerLongitude": 121.297006
+        },
+        {
+          "name": "乐秀路",
+          "immutableCode": "SH-MS-LEXIULU",
+          "slug": "shanghai-metro-lexiu-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.265363,
+          "centerLongitude": 121.314103
+        },
+        {
+          "name": "临洮路",
+          "immutableCode": "SH-MS-LINTAOLU",
+          "slug": "shanghai-metro-lintao-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.263059,
+          "centerLongitude": 121.33086
+        },
+        {
+          "name": "嘉怡路",
+          "immutableCode": "SH-MS-JIAYILU",
+          "slug": "shanghai-metro-jiayi-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.259195,
+          "centerLongitude": 121.345697
+        },
+        {
+          "name": "定边路",
+          "immutableCode": "SH-MS-DINGBIANLU",
+          "slug": "shanghai-metro-dingbian-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.256392,
+          "centerLongitude": 121.362396
+        },
+        {
+          "name": "真新新村",
+          "immutableCode": "SH-MS-ZHENXINXINCUN",
+          "slug": "shanghai-metro-zhenxin-xincun",
+          "sortOrder": 6,
+          "centerLatitude": 31.255566,
+          "centerLongitude": 121.371949
+        },
+        {
+          "name": "真光路",
+          "immutableCode": "SH-MS-ZHENGUANGLU",
+          "slug": "shanghai-metro-zhenguang-lu",
+          "sortOrder": 7,
+          "centerLatitude": 31.253278,
+          "centerLongitude": 121.384162
+        },
+        {
+          "name": "铜川路",
+          "immutableCode": "SH-MS-TONGCHUANLU",
+          "slug": "shanghai-metro-tongchuan-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.250733,
+          "centerLongitude": 121.397036
+        },
+        {
+          "name": "中宁路",
+          "immutableCode": "SH-MS-ZHONGNINGLU",
+          "slug": "shanghai-metro-zhongning-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.245049,
+          "centerLongitude": 121.414536
+        },
+        {
+          "name": "东新路",
+          "immutableCode": "SH-MS-DONGXINLU",
+          "slug": "shanghai-metro-dongxin-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.239296,
+          "centerLongitude": 121.423265
+        },
+        {
+          "name": "一大会址·黄陂南路",
+          "immutableCode": "SH-MS-YIDAHUIZHIHUANGPINANLU",
+          "slug": "shanghai-metro-yidahuizhi-huangpi-nanlu",
+          "sortOrder": 11,
+          "centerLatitude": 31.223653,
+          "centerLongitude": 121.472339
+        },
+        {
+          "name": "浦东南路",
+          "immutableCode": "SH-MS-PUDONGNANLU",
+          "slug": "shanghai-metro-pudong-nanlu",
+          "sortOrder": 12,
+          "centerLatitude": 31.238532,
+          "centerLongitude": 121.512412
+        },
+        {
+          "name": "源深路",
+          "immutableCode": "SH-MS-YUANSHENLU",
+          "slug": "shanghai-metro-yuanshen-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.241318,
+          "centerLongitude": 121.531016
+        },
+        {
+          "name": "昌邑路",
+          "immutableCode": "SH-MS-CHANGYILU",
+          "slug": "shanghai-metro-changyi-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.24394,
+          "centerLongitude": 121.540104
+        },
+        {
+          "name": "歇浦路",
+          "immutableCode": "SH-MS-XIEPULU",
+          "slug": "shanghai-metro-xiepu-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.250728,
+          "centerLongitude": 121.551506
+        },
+        {
+          "name": "丹阳路",
+          "immutableCode": "SH-MS-DANYANGLU",
+          "slug": "shanghai-metro-danyang-lu",
+          "sortOrder": 16,
+          "centerLatitude": 31.253815,
+          "centerLongitude": 121.53116
+        },
+        {
+          "name": "平凉路",
+          "immutableCode": "SH-MS-PINGLIANGLU",
+          "slug": "shanghai-metro-pingliang-lu",
+          "sortOrder": 17,
+          "centerLatitude": 31.259038,
+          "centerLongitude": 121.526701
+        },
+        {
+          "name": "黄杨路",
+          "immutableCode": "SH-MS-HUANGYANGLU",
+          "slug": "shanghai-metro-huangyang-lu",
+          "sortOrder": 18,
+          "centerLatitude": 31.233998,
+          "centerLongitude": 121.591014
+        },
+        {
+          "name": "桂桥路",
+          "immutableCode": "SH-MS-GUIQIAOLU",
+          "slug": "shanghai-metro-guiqiao-lu",
+          "sortOrder": 19,
+          "centerLatitude": 31.249419,
+          "centerLongitude": 121.635087
+        }
+      ]
+    },
+    {
+      "name": "地铁15号线",
+      "immutableCode": "SH-ML-15",
+      "slug": "shanghai-metro-15",
+      "sortOrder": 15,
+      "stations": [
+        {
+          "name": "锦秋路",
+          "immutableCode": "SH-MS-JINQIULU",
+          "slug": "shanghai-metro-jinqiu-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.320184,
+          "centerLongitude": 121.381765
+        },
+        {
+          "name": "丰翔路",
+          "immutableCode": "SH-MS-FENGXIANGLU",
+          "slug": "shanghai-metro-fengxiang-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.308218,
+          "centerLongitude": 121.380872
+        },
+        {
+          "name": "南大路",
+          "immutableCode": "SH-MS-NANDALU",
+          "slug": "shanghai-metro-nanda-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.299263,
+          "centerLongitude": 121.380346
+        },
+        {
+          "name": "祁安路",
+          "immutableCode": "SH-MS-QIANLU",
+          "slug": "shanghai-metro-qian-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.291558,
+          "centerLongitude": 121.384813
+        },
+        {
+          "name": "古浪路",
+          "immutableCode": "SH-MS-GULANGLU",
+          "slug": "shanghai-metro-gulang-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.284509,
+          "centerLongitude": 121.392217
+        },
+        {
+          "name": "武威东路",
+          "immutableCode": "SH-MS-WUWEIDONGLU",
+          "slug": "shanghai-metro-wuwei-donglu",
+          "sortOrder": 6,
+          "centerLatitude": 31.275647,
+          "centerLongitude": 121.392094
+        },
+        {
+          "name": "梅岭北路",
+          "immutableCode": "SH-MS-MEILINGBEILU",
+          "slug": "shanghai-metro-meiling-beilu",
+          "sortOrder": 7,
+          "centerLatitude": 31.243301,
+          "centerLongitude": 121.396997
+        },
+        {
+          "name": "红宝石路",
+          "immutableCode": "SH-MS-HONGBAOSHILU",
+          "slug": "shanghai-metro-hongbaoshi-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.198863,
+          "centerLongitude": 121.398372
+        },
+        {
+          "name": "姚虹路",
+          "immutableCode": "SH-MS-YAOHONGLU",
+          "slug": "shanghai-metro-yaohong-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.19155,
+          "centerLongitude": 121.406405
+        },
+        {
+          "name": "吴中路",
+          "immutableCode": "SH-MS-WUZHONGLU",
+          "slug": "shanghai-metro-wuzhong-lu",
+          "sortOrder": 10,
+          "centerLatitude": 31.184345,
+          "centerLongitude": 121.413905
+        },
+        {
+          "name": "华东理工大学",
+          "immutableCode": "SH-MS-HUADONGLIGONGDAXUE",
+          "slug": "shanghai-metro-huadong-ligong-daxue",
+          "sortOrder": 11,
+          "centerLatitude": 31.144257,
+          "centerLongitude": 121.42899
+        },
+        {
+          "name": "百色路",
+          "immutableCode": "SH-MS-BAISELU",
+          "slug": "shanghai-metro-baise-lu",
+          "sortOrder": 12,
+          "centerLatitude": 31.142519,
+          "centerLongitude": 121.439672
+        },
+        {
+          "name": "罗秀路",
+          "immutableCode": "SH-MS-LUOXIULU",
+          "slug": "shanghai-metro-luoxiu-lu",
+          "sortOrder": 13,
+          "centerLatitude": 31.131552,
+          "centerLongitude": 121.435806
+        },
+        {
+          "name": "朱梅路",
+          "immutableCode": "SH-MS-ZHUIMEILU",
+          "slug": "shanghai-metro-zhumei-lu",
+          "sortOrder": 14,
+          "centerLatitude": 31.124364,
+          "centerLongitude": 121.437804
+        },
+        {
+          "name": "景洪路",
+          "immutableCode": "SH-MS-JINGHONGLU",
+          "slug": "shanghai-metro-jinghong-lu",
+          "sortOrder": 15,
+          "centerLatitude": 31.109817,
+          "centerLongitude": 121.44431
+        },
+        {
+          "name": "华泾西",
+          "immutableCode": "SH-MS-HUAJINGXI",
+          "slug": "shanghai-metro-huajing-xi",
+          "sortOrder": 16,
+          "centerLatitude": 31.11998,
+          "centerLongitude": 121.456878
+        },
+        {
+          "name": "紫竹高新区",
+          "immutableCode": "SH-MS-ZIZHUGAOXINQU",
+          "slug": "shanghai-metro-zizhu-gaoxinqu",
+          "sortOrder": 17,
+          "centerLatitude": 31.02319,
+          "centerLongitude": 121.451221
+        }
+      ]
+    },
+    {
+      "name": "地铁16号线",
+      "immutableCode": "SH-ML-16",
+      "slug": "shanghai-metro-16",
+      "sortOrder": 16,
+      "stations": [
+        {
+          "name": "周浦东",
+          "immutableCode": "SH-MS-ZHOUPUDONG",
+          "slug": "shanghai-metro-zhoupu-dong",
+          "sortOrder": 1,
+          "centerLatitude": 31.110038,
+          "centerLongitude": 121.606895
+        },
+        {
+          "name": "鹤沙航城",
+          "immutableCode": "SH-MS-HESHIHANGCHENG",
+          "slug": "shanghai-metro-heshi-hangcheng",
+          "sortOrder": 2,
+          "centerLatitude": 31.077797,
+          "centerLongitude": 121.611239
+        },
+        {
+          "name": "航头东",
+          "immutableCode": "SH-MS-HANGTOUDONG",
+          "slug": "shanghai-metro-hangtou-dong",
+          "sortOrder": 3,
+          "centerLatitude": 31.054919,
+          "centerLongitude": 121.617494
+        },
+        {
+          "name": "新场",
+          "immutableCode": "SH-MS-XINCHANG",
+          "slug": "shanghai-metro-xinchang",
+          "sortOrder": 4,
+          "centerLatitude": 31.045561,
+          "centerLongitude": 121.64898
+        },
+        {
+          "name": "野生动物园",
+          "immutableCode": "SH-MS-YESHENGDONGWUYUAN",
+          "slug": "shanghai-metro-yesheng-dongwuyuan",
+          "sortOrder": 5,
+          "centerLatitude": 31.050325,
+          "centerLongitude": 121.699218
+        },
+        {
+          "name": "惠南",
+          "immutableCode": "SH-MS-HUINAN",
+          "slug": "shanghai-metro-huinan",
+          "sortOrder": 6,
+          "centerLatitude": 31.053828,
+          "centerLongitude": 121.761677
+        },
+        {
+          "name": "惠南东",
+          "immutableCode": "SH-MS-HUINANDONG",
+          "slug": "shanghai-metro-huinan-dong",
+          "sortOrder": 7,
+          "centerLatitude": 31.026448,
+          "centerLongitude": 121.7938
+        },
+        {
+          "name": "书院",
+          "immutableCode": "SH-MS-SHUYUAN",
+          "slug": "shanghai-metro-shuyuan",
+          "sortOrder": 8,
+          "centerLatitude": 30.959264,
+          "centerLongitude": 121.85052
+        },
+        {
+          "name": "临港大道",
+          "immutableCode": "SH-MS-LINGANGDADAO",
+          "slug": "shanghai-metro-lingang-dadao",
+          "sortOrder": 9,
+          "centerLatitude": 30.923519,
+          "centerLongitude": 121.910851
+        },
+        {
+          "name": "滴水湖",
+          "immutableCode": "SH-MS-DISHUIHU",
+          "slug": "shanghai-metro-dishuihu",
+          "sortOrder": 10,
+          "centerLatitude": 30.907245,
+          "centerLongitude": 121.929583
+        },
+        {
+          "name": "泥城",
+          "immutableCode": "SH-MS-NICHENG",
+          "slug": "shanghai-metro-nicheng",
+          "sortOrder": 11,
+          "centerLatitude": 30.892825,
+          "centerLongitude": 121.814154
+        },
+        {
+          "name": "临港新城",
+          "immutableCode": "SH-MS-LINGANGXINCHENG",
+          "slug": "shanghai-metro-lingang-xincheng",
+          "sortOrder": 12,
+          "centerLatitude": 30.923519,
+          "centerLongitude": 121.910851
+        }
+      ]
+    },
+    {
+      "name": "地铁17号线",
+      "immutableCode": "SH-ML-17",
+      "slug": "shanghai-metro-17",
+      "sortOrder": 17,
+      "stations": [
+        {
+          "name": "诸光路",
+          "immutableCode": "SH-MS-ZHUGUANGLU",
+          "slug": "shanghai-metro-zhuguang-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.204527,
+          "centerLongitude": 121.283138
+        },
+        {
+          "name": "蟠龙路",
+          "immutableCode": "SH-MS-PANLONGLU",
+          "slug": "shanghai-metro-panlong-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.186328,
+          "centerLongitude": 121.278645
+        },
+        {
+          "name": "徐盈路",
+          "immutableCode": "SH-MS-XUYINGLU",
+          "slug": "shanghai-metro-xuying-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.178101,
+          "centerLongitude": 121.253976
+        },
+        {
+          "name": "徐泾北城",
+          "immutableCode": "SH-MS-XUJINGBEICHENG",
+          "slug": "shanghai-metro-xujing-beicheng",
+          "sortOrder": 4,
+          "centerLatitude": 31.175518,
+          "centerLongitude": 121.241668
+        },
+        {
+          "name": "嘉松中路",
+          "immutableCode": "SH-MS-JIASONGZHONGLU",
+          "slug": "shanghai-metro-jiasong-zhonglu",
+          "sortOrder": 5,
+          "centerLatitude": 31.164099,
+          "centerLongitude": 121.223916
+        },
+        {
+          "name": "汇金路",
+          "immutableCode": "SH-MS-HUIJINLU",
+          "slug": "shanghai-metro-huijin-lu",
+          "sortOrder": 6,
+          "centerLatitude": 31.161221,
+          "centerLongitude": 121.151665
+        },
+        {
+          "name": "青浦新城",
+          "immutableCode": "SH-MS-QINGPUXINCHENG",
+          "slug": "shanghai-metro-qingpu-xincheng",
+          "sortOrder": 7,
+          "centerLatitude": 31.158925,
+          "centerLongitude": 121.12567
+        },
+        {
+          "name": "漕盈路",
+          "immutableCode": "SH-MS-CAOYINGLU",
+          "slug": "shanghai-metro-caoying-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.160467,
+          "centerLongitude": 121.096889
+        },
+        {
+          "name": "淀山湖大道",
+          "immutableCode": "SH-MS-DIANSHANHUDADAO",
+          "slug": "shanghai-metro-dianshanhu-dadao",
+          "sortOrder": 9,
+          "centerLatitude": 31.13446,
+          "centerLongitude": 121.082134
+        },
+        {
+          "name": "朱家角",
+          "immutableCode": "SH-MS-ZHUJIAJIAO",
+          "slug": "shanghai-metro-zhujiajiao",
+          "sortOrder": 10,
+          "centerLatitude": 31.100594,
+          "centerLongitude": 121.048989
+        },
+        {
+          "name": "东方绿舟",
+          "immutableCode": "SH-MS-DONGFANGLVZHOU",
+          "slug": "shanghai-metro-dongfang-lvzhou",
+          "sortOrder": 11,
+          "centerLatitude": 31.098544,
+          "centerLongitude": 121.019534
+        }
+      ]
+    },
+    {
+      "name": "地铁18号线",
+      "immutableCode": "SH-ML-18",
+      "slug": "shanghai-metro-18",
+      "sortOrder": 18,
+      "stations": [
+        {
+          "name": "殷高路",
+          "immutableCode": "SH-MS-YINGAOLU",
+          "slug": "shanghai-metro-yingao-lu",
+          "sortOrder": 1,
+          "centerLatitude": 31.321705,
+          "centerLongitude": 121.49556
+        },
+        {
+          "name": "上海财经大学",
+          "immutableCode": "SH-MS-SHANGHAICAIJINGDAXUE",
+          "slug": "shanghai-metro-shanghai-caijing-daxue",
+          "sortOrder": 2,
+          "centerLatitude": 31.307672,
+          "centerLongitude": 121.496332
+        },
+        {
+          "name": "复旦大学",
+          "immutableCode": "SH-MS-FUDANDAXUE",
+          "slug": "shanghai-metro-fudan-daxue",
+          "sortOrder": 3,
+          "centerLatitude": 31.296349,
+          "centerLongitude": 121.499529
+        },
+        {
+          "name": "抚顺路",
+          "immutableCode": "SH-MS-FUSHUNLU",
+          "slug": "shanghai-metro-fushun-lu",
+          "sortOrder": 4,
+          "centerLatitude": 31.283664,
+          "centerLongitude": 121.515793
+        },
+        {
+          "name": "迎春路",
+          "immutableCode": "SH-MS-YINGCHUNLU",
+          "slug": "shanghai-metro-yingchun-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.221002,
+          "centerLongitude": 121.550998
+        },
+        {
+          "name": "康桥",
+          "immutableCode": "SH-MS-KANGQIAO",
+          "slug": "shanghai-metro-kangqiao",
+          "sortOrder": 6,
+          "centerLatitude": 31.134239,
+          "centerLongitude": 121.567306
+        },
+        {
+          "name": "周浦",
+          "immutableCode": "SH-MS-ZHOUPU",
+          "slug": "shanghai-metro-zhoupu",
+          "sortOrder": 7,
+          "centerLatitude": 31.114129,
+          "centerLongitude": 121.567613
+        },
+        {
+          "name": "繁荣路",
+          "immutableCode": "SH-MS-FANRONGLU",
+          "slug": "shanghai-metro-fanrong-lu",
+          "sortOrder": 8,
+          "centerLatitude": 31.102554,
+          "centerLongitude": 121.570547
+        },
+        {
+          "name": "沈梅路",
+          "immutableCode": "SH-MS-SHENMEILU",
+          "slug": "shanghai-metro-shenmei-lu",
+          "sortOrder": 9,
+          "centerLatitude": 31.091115,
+          "centerLongitude": 121.580589
+        },
+        {
+          "name": "下沙",
+          "immutableCode": "SH-MS-XIASHA",
+          "slug": "shanghai-metro-xiasha",
+          "sortOrder": 10,
+          "centerLatitude": 31.054396,
+          "centerLongitude": 121.588988
+        },
+        {
+          "name": "鹤涛路",
+          "immutableCode": "SH-MS-HETAOLU",
+          "slug": "shanghai-metro-hetao-lu",
+          "sortOrder": 11,
+          "centerLatitude": 31.07186,
+          "centerLongitude": 121.58596
+        },
+        {
+          "name": "航头",
+          "immutableCode": "SH-MS-HANGTOU",
+          "slug": "shanghai-metro-hangtou",
+          "sortOrder": 12,
+          "centerLatitude": 31.037305,
+          "centerLongitude": 121.596083
+        }
+      ]
+    },
+    {
+      "name": "地铁浦江线",
+      "immutableCode": "SH-ML-PJ",
+      "slug": "shanghai-metro-pujiang",
+      "sortOrder": 19,
+      "stations": [
+        {
+          "name": "三鲁公路",
+          "immutableCode": "SH-MS-SANLUGONGLU",
+          "slug": "shanghai-metro-sanlu-gonglu",
+          "sortOrder": 1,
+          "centerLatitude": 31.056108,
+          "centerLongitude": 121.527389
+        },
+        {
+          "name": "闵瑞路",
+          "immutableCode": "SH-MS-MINRUILU",
+          "slug": "shanghai-metro-minrui-lu",
+          "sortOrder": 2,
+          "centerLatitude": 31.047956,
+          "centerLongitude": 121.530323
+        },
+        {
+          "name": "浦航路",
+          "immutableCode": "SH-MS-PUHANGLU",
+          "slug": "shanghai-metro-puhang-lu",
+          "sortOrder": 3,
+          "centerLatitude": 31.040993,
+          "centerLongitude": 121.530591
+        },
+        {
+          "name": "东城一路",
+          "immutableCode": "SH-MS-DONGCHENGYILU",
+          "slug": "shanghai-metro-dongcheng-yilu",
+          "sortOrder": 4,
+          "centerLatitude": 31.03039,
+          "centerLongitude": 121.532093
+        },
+        {
+          "name": "汇臻路",
+          "immutableCode": "SH-MS-HUIZHENLU",
+          "slug": "shanghai-metro-huizhen-lu",
+          "sortOrder": 5,
+          "centerLatitude": 31.025245,
+          "centerLongitude": 121.524558
+        }
+      ]
+    },
+    {
+      "name": "磁悬浮线",
+      "immutableCode": "SH-ML-CX",
+      "slug": "shanghai-metro-maglev",
+      "sortOrder": 20,
+      "stations": []
+    },
+    {
+      "name": "机场联络线",
+      "immutableCode": "SH-ML-JC",
+      "slug": "shanghai-metro-airport-link",
+      "sortOrder": 21,
+      "stations": [
+        {
+          "name": "三林南",
+          "immutableCode": "SH-MS-SANLINNAN",
+          "slug": "shanghai-metro-sanlin-nan",
+          "sortOrder": 1,
+          "centerLatitude": 31.126039,
+          "centerLongitude": 121.486854
+        },
+        {
+          "name": "张江",
+          "immutableCode": "SH-MS-ZHANGJIANG",
+          "slug": "shanghai-metro-zhangjiang",
+          "sortOrder": 2,
+          "centerLatitude": 31.201872,
+          "centerLongitude": 121.58749
+        },
+        {
+          "name": "度假区",
+          "immutableCode": "SH-MS-DUJIAQU",
+          "slug": "shanghai-metro-dujiaqu",
+          "sortOrder": 3,
+          "centerLatitude": 31.156182,
+          "centerLongitude": 121.67973
+        },
+        {
+          "name": "浦东1号2号航站楼",
+          "immutableCode": "SH-MS-PUDONGYIHAOERHAOHANGZHANLOU",
+          "slug": "shanghai-metro-pudong-yihao-erhao-hangzhanlou",
+          "sortOrder": 4,
+          "centerLatitude": 31.150958,
+          "centerLongitude": 121.805591
+        }
+      ]
+    }
+  ]
+}

@@ -36,8 +36,10 @@ import * as migration_20260809_183327_supply_submission_notification_unique from
 import * as migration_20260809_203911_supply_submission_notification_jobs from './20260809_203911_supply_submission_notification_jobs';
 import * as migration_20260810_003111_align_listings_data_source_with_production from './20260810_003111_align_listings_data_source_with_production';
 import * as migration_20260810_090000_supply_submission_role_permissions from './20260810_090000_supply_submission_role_permissions';
+import * as migration_20260810_114857_locations_city_field from './20260810_114857_locations_city_field';
 import * as migration_20260810_153500_landing_hero_media_assets from './20260810_153500_landing_hero_media_assets';
 import * as migration_20260810_170000_public_page_performance_indexes from './20260810_170000_public_page_performance_indexes';
+import * as migration_20260810_200000_backfill_location_city from './20260810_200000_backfill_location_city';
 
 export const migrations = [
   {
@@ -228,7 +230,12 @@ export const migrations = [
   {
     up: migration_20260810_090000_supply_submission_role_permissions.up,
     down: migration_20260810_090000_supply_submission_role_permissions.down,
-    name: '20260810_090000_supply_submission_role_permissions'
+    name: '20260810_090000_supply_submission_role_permissions',
+  },
+  {
+    up: migration_20260810_114857_locations_city_field.up,
+    down: migration_20260810_114857_locations_city_field.down,
+    name: '20260810_114857_locations_city_field',
   },
   {
     up: migration_20260810_153500_landing_hero_media_assets.up,
@@ -238,6 +245,11 @@ export const migrations = [
   {
     up: migration_20260810_170000_public_page_performance_indexes.up,
     down: migration_20260810_170000_public_page_performance_indexes.down,
-    name: '20260810_170000_public_page_performance_indexes',
+    name: '20260810_170000_public_page_performance_indexes'
+  },
+  {
+    up: migration_20260810_200000_backfill_location_city.up,
+    down: migration_20260810_200000_backfill_location_city.down,
+    name: '20260810_200000_backfill_location_city'
   },
 ];

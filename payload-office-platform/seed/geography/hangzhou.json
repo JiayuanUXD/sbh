@@ -1,0 +1,2411 @@
+// ============================================================
+// 杭州地理种子骨架（坐标由脚本 collect-geography.ts 经高德回填）
+// 来源：国家统计局行政区划代码、杭州地铁官方线网图、核心办公商圈人工盘点
+// 采集日期：2026-08-11（坐标经高德地图 API 回填，见 seed/geography/_collect/）
+// 核对人：未经人工核对 —— 本文件由实现代理生成，行政区划码/线网/商圈口径尚待业务方逐条复核后在此回填姓名与日期
+// 行政区划核对截止：2025-06-30
+// 说明：坐标回填后由本骨架生成 seed/geography/hangzhou.json
+// ============================================================
+{
+  "city": {
+    "name": "杭州市",
+    "immutableCode": "CITY-HZ",
+    "legacyCodes": ["HZ"],
+    "slug": "hangzhou",
+    "sortOrder": 3,
+    "centerLatitude": 30.246566,
+    "centerLongitude": 120.209903
+  },
+  "districts": [
+    {
+      "name": "上城区",
+      "immutableCode": "HZ-D-330102",
+      "slug": "hangzhou-shangcheng",
+      "sortOrder": 1,
+      "centerLatitude": 30.226543,
+      "centerLongitude": 120.19732
+    },
+    {
+      "name": "拱墅区",
+      "immutableCode": "HZ-D-330105",
+      "slug": "hangzhou-gongshu",
+      "sortOrder": 2,
+      "centerLatitude": 30.319126,
+      "centerLongitude": 120.141503
+    },
+    {
+      "name": "西湖区",
+      "immutableCode": "HZ-D-330106",
+      "legacyCodes": ["HZ-XH"],
+      "slug": "hangzhou-xihu",
+      "sortOrder": 3,
+      "centerLatitude": 30.259242,
+      "centerLongitude": 120.130396
+    },
+    {
+      "name": "滨江区",
+      "immutableCode": "HZ-D-330108",
+      "slug": "hangzhou-binjiang",
+      "sortOrder": 4,
+      "centerLatitude": 30.208332,
+      "centerLongitude": 120.211981
+    },
+    {
+      "name": "萧山区",
+      "immutableCode": "HZ-D-330109",
+      "slug": "hangzhou-xiaoshan",
+      "sortOrder": 5,
+      "centerLatitude": 30.184119,
+      "centerLongitude": 120.264263
+    },
+    {
+      "name": "余杭区",
+      "immutableCode": "HZ-D-330110",
+      "slug": "hangzhou-yuhang",
+      "sortOrder": 6,
+      "centerLatitude": 30.273705,
+      "centerLongitude": 119.978742
+    },
+    {
+      "name": "富阳区",
+      "immutableCode": "HZ-D-330111",
+      "slug": "hangzhou-fuyang",
+      "sortOrder": 7,
+      "centerLatitude": 30.048803,
+      "centerLongitude": 119.96022
+    },
+    {
+      "name": "临安区",
+      "immutableCode": "HZ-D-330112",
+      "slug": "hangzhou-linan",
+      "sortOrder": 8,
+      "centerLatitude": 30.234375,
+      "centerLongitude": 119.724457
+    },
+    {
+      "name": "临平区",
+      "immutableCode": "HZ-D-330113",
+      "slug": "hangzhou-linping",
+      "sortOrder": 9,
+      "centerLatitude": 30.419154,
+      "centerLongitude": 120.299222
+    },
+    {
+      "name": "钱塘区",
+      "immutableCode": "HZ-D-330114",
+      "slug": "hangzhou-qiantang",
+      "sortOrder": 10,
+      "centerLatitude": 30.32304,
+      "centerLongitude": 120.493941
+    },
+    {
+      "name": "桐庐县",
+      "immutableCode": "HZ-D-330122",
+      "slug": "hangzhou-tonglu",
+      "sortOrder": 11,
+      "centerLatitude": 29.79418,
+      "centerLongitude": 119.691755
+    },
+    {
+      "name": "淳安县",
+      "immutableCode": "HZ-D-330127",
+      "slug": "hangzhou-chunan",
+      "sortOrder": 12,
+      "centerLatitude": 29.609678,
+      "centerLongitude": 119.042015
+    },
+    {
+      "name": "建德市",
+      "immutableCode": "HZ-D-330182",
+      "slug": "hangzhou-jiande",
+      "sortOrder": 13,
+      "centerLatitude": 29.474964,
+      "centerLongitude": 119.281195
+    }
+  ],
+  "businessAreas": [
+    {
+      "name": "武林广场",
+      "districtCode": "HZ-D-330102",
+      "slug": "hangzhou-wulin",
+      "immutableCode": "HZ-BA-WULIN",
+      "centerLatitude": 30.271001,
+      "centerLongitude": 120.163325
+    },
+    {
+      "name": "钱江新城",
+      "districtCode": "HZ-D-330102",
+      "slug": "hangzhou-qianjiang-xincheng",
+      "immutableCode": "HZ-BA-QIANJIANGXINCHENG",
+      "legacyCodes": ["HZ-QJ"],
+      "centerLatitude": 30.250328,
+      "centerLongitude": 120.214223
+    },
+    {
+      "name": "黄龙",
+      "districtCode": "HZ-D-330106",
+      "slug": "hangzhou-huanglong",
+      "immutableCode": "HZ-BA-HUANGLONG",
+      "centerLatitude": 30.266481,
+      "centerLongitude": 120.135818
+    },
+    {
+      "name": "滨江高新区",
+      "districtCode": "HZ-D-330108",
+      "slug": "hangzhou-binjiang-gaoxin",
+      "immutableCode": "HZ-BA-BINJIANGGAOXIN",
+      "centerLatitude": 30.179175,
+      "centerLongitude": 120.147325
+    },
+    {
+      "name": "未来科技城",
+      "districtCode": "HZ-D-330110",
+      "slug": "hangzhou-weilai-kejicheng",
+      "immutableCode": "HZ-BA-WEILAIKEJICHENG",
+      "centerLatitude": 30.230816,
+      "centerLongitude": 120.254802
+    },
+    {
+      "name": "文三路",
+      "districtCode": "HZ-D-330106",
+      "slug": "hangzhou-wensanlu",
+      "immutableCode": "HZ-BA-WENSANLU",
+      "centerLatitude": 30.276449,
+      "centerLongitude": 120.123832
+    },
+    {
+      "name": "西湖文化广场",
+      "districtCode": "HZ-D-330105",
+      "slug": "hangzhou-xihu-wenhua-guangchang",
+      "immutableCode": "HZ-BA-XIHUWENHUA",
+      "centerLatitude": 30.276652,
+      "centerLongitude": 120.163755
+    },
+    {
+      "name": "钱江世纪城",
+      "districtCode": "HZ-D-330109",
+      "slug": "hangzhou-qianjiang-shijicheng",
+      "immutableCode": "HZ-BA-QIANJIANGSHIJICHENG",
+      "centerLatitude": 30.231242,
+      "centerLongitude": 120.254158
+    },
+    {
+      "name": "萧山经济技术开发区",
+      "districtCode": "HZ-D-330109",
+      "slug": "hangzhou-xiaoshan-jingji-kaifaqu",
+      "immutableCode": "HZ-BA-XIAOSHANJINGJIKAIFAQU",
+      "centerLatitude": 30.200738,
+      "centerLongitude": 120.266564
+    },
+    {
+      "name": "临平新城",
+      "districtCode": "HZ-D-330113",
+      "slug": "hangzhou-linping-xincheng",
+      "immutableCode": "HZ-BA-LINPINGXINCHENG",
+      "centerLatitude": 30.406764,
+      "centerLongitude": 120.307435
+    },
+    {
+      "name": "下沙",
+      "districtCode": "HZ-D-330114",
+      "slug": "hangzhou-xiasha",
+      "immutableCode": "HZ-BA-XIASHA",
+      "centerLatitude": 30.316076,
+      "centerLongitude": 120.338026
+    },
+    {
+      "name": "运河商务区",
+      "districtCode": "HZ-D-330105",
+      "slug": "hangzhou-yunhe-shangwuqu",
+      "immutableCode": "HZ-BA-YUNHESHANGWUQU",
+      "centerLatitude": 30.30335,
+      "centerLongitude": 120.144524
+    },
+    {
+      "name": "城东新城",
+      "districtCode": "HZ-D-330102",
+      "slug": "hangzhou-chengdong-xincheng",
+      "immutableCode": "HZ-BA-CHENGDONGXINCHENG",
+      "centerLatitude": 30.300796,
+      "centerLongitude": 120.206193
+    },
+    {
+      "name": "青山湖科技城",
+      "districtCode": "HZ-D-330112",
+      "slug": "hangzhou-qingshanhu-kejicheng",
+      "immutableCode": "HZ-BA-QINGSHANHUKEJICHENG",
+      "centerLatitude": 30.271846,
+      "centerLongitude": 119.825226
+    },
+    {
+      "name": "蒋村",
+      "districtCode": "HZ-D-330106",
+      "slug": "hangzhou-jiangcun",
+      "immutableCode": "HZ-BA-JIANGCUN",
+      "centerLatitude": 30.29484,
+      "centerLongitude": 120.067353
+    }
+  ],
+  "metroLines": [
+    {
+      "name": "地铁1号线",
+      "immutableCode": "HZ-ML-1",
+      "slug": "hangzhou-metro-1",
+      "sortOrder": 1,
+      "stations": [
+        {
+          "name": "湘湖",
+          "immutableCode": "HZ-MS-XIANGHU",
+          "slug": "hangzhou-metro-xianghu",
+          "sortOrder": 1,
+          "centerLatitude": 30.167585,
+          "centerLongitude": 120.234391
+        },
+        {
+          "name": "滨康路",
+          "immutableCode": "HZ-MS-BINKANGLU",
+          "slug": "hangzhou-metro-binkanglu",
+          "sortOrder": 2,
+          "centerLatitude": 30.183864,
+          "centerLongitude": 120.231003
+        },
+        {
+          "name": "西兴",
+          "immutableCode": "HZ-MS-XIXING",
+          "slug": "hangzhou-metro-xixing",
+          "sortOrder": 3,
+          "centerLatitude": 30.187295,
+          "centerLongitude": 120.220429
+        },
+        {
+          "name": "滨和路",
+          "immutableCode": "HZ-MS-BINHELU",
+          "slug": "hangzhou-metro-binhelu",
+          "sortOrder": 4,
+          "centerLatitude": 30.19955,
+          "centerLongitude": 120.217552
+        },
+        {
+          "name": "江陵路",
+          "immutableCode": "HZ-MS-JIANGLINGLU",
+          "slug": "hangzhou-metro-jianglinglu",
+          "sortOrder": 5,
+          "centerLatitude": 30.209102,
+          "centerLongitude": 120.216594
+        },
+        {
+          "name": "近江",
+          "immutableCode": "HZ-MS-JINJIANG",
+          "slug": "hangzhou-metro-jinjiang",
+          "sortOrder": 6,
+          "centerLatitude": 30.231125,
+          "centerLongitude": 120.197458
+        },
+        {
+          "name": "吴江路",
+          "immutableCode": "HZ-MS-WUJIANGLU",
+          "slug": "hangzhou-metro-wujianglu",
+          "sortOrder": 7,
+          "centerLatitude": 30.23682,
+          "centerLongitude": 120.191101
+        },
+        {
+          "name": "城站",
+          "immutableCode": "HZ-MS-CHENGZHAN",
+          "slug": "hangzhou-metro-chengzhan",
+          "sortOrder": 8,
+          "centerLatitude": 30.244717,
+          "centerLongitude": 120.180768
+        },
+        {
+          "name": "定安路",
+          "immutableCode": "HZ-MS-DINGANLU",
+          "slug": "hangzhou-metro-dinganlu",
+          "sortOrder": 9,
+          "centerLatitude": 30.245954,
+          "centerLongitude": 120.167751
+        },
+        {
+          "name": "龙翔桥",
+          "immutableCode": "HZ-MS-LONGXIANGQIAO",
+          "slug": "hangzhou-metro-longxiangqiao",
+          "sortOrder": 10,
+          "centerLatitude": 30.254642,
+          "centerLongitude": 120.164052
+        },
+        {
+          "name": "凤起路",
+          "immutableCode": "HZ-MS-FENGQILU",
+          "slug": "hangzhou-metro-fengqilu",
+          "sortOrder": 11,
+          "centerLatitude": 30.263779,
+          "centerLongitude": 120.162887
+        },
+        {
+          "name": "武林广场",
+          "immutableCode": "HZ-MS-WULINGUANGCHANG",
+          "slug": "hangzhou-metro-wulin-guangchang",
+          "sortOrder": 12,
+          "centerLatitude": 30.272368,
+          "centerLongitude": 120.164324
+        },
+        {
+          "name": "西湖文化广场",
+          "immutableCode": "HZ-MS-XIHUWENHUAGUANGCHANG",
+          "slug": "hangzhou-metro-xihu-wenhua-guangchang",
+          "sortOrder": 13,
+          "centerLatitude": 30.279585,
+          "centerLongitude": 120.165639
+        },
+        {
+          "name": "打铁关",
+          "immutableCode": "HZ-MS-DATIEGUAN",
+          "slug": "hangzhou-metro-datieguan",
+          "sortOrder": 14,
+          "centerLatitude": 30.285425,
+          "centerLongitude": 120.176739
+        },
+        {
+          "name": "闸弄口",
+          "immutableCode": "HZ-MS-ZHANONGKOU",
+          "slug": "hangzhou-metro-zhanongkou",
+          "sortOrder": 15,
+          "centerLatitude": 30.284463,
+          "centerLongitude": 120.19235
+        },
+        {
+          "name": "火车东站",
+          "immutableCode": "HZ-MS-HUOCHEDONGZHAN",
+          "slug": "hangzhou-metro-huoche-dongzhan",
+          "sortOrder": 16,
+          "centerLatitude": 30.291459,
+          "centerLongitude": 120.213229
+        },
+        {
+          "name": "彭埠",
+          "immutableCode": "HZ-MS-PENGBU",
+          "slug": "hangzhou-metro-pengbu",
+          "sortOrder": 17,
+          "centerLatitude": 30.294065,
+          "centerLongitude": 120.223661
+        },
+        {
+          "name": "七堡",
+          "immutableCode": "HZ-MS-QIBAO",
+          "slug": "hangzhou-metro-qibao",
+          "sortOrder": 18,
+          "centerLatitude": 30.300002,
+          "centerLongitude": 120.241065
+        },
+        {
+          "name": "九和路",
+          "immutableCode": "HZ-MS-JIUHELU",
+          "slug": "hangzhou-metro-jiuhelu",
+          "sortOrder": 19,
+          "centerLatitude": 30.305799,
+          "centerLongitude": 120.252784
+        },
+        {
+          "name": "九堡",
+          "immutableCode": "HZ-MS-JIUBAO",
+          "slug": "hangzhou-metro-jiubao",
+          "sortOrder": 20,
+          "centerLatitude": 30.307735,
+          "centerLongitude": 120.266432
+        },
+        {
+          "name": "客运中心",
+          "immutableCode": "HZ-MS-KEYUNZHONGXIN",
+          "slug": "hangzhou-metro-keyun-zhongxin",
+          "sortOrder": 21,
+          "centerLatitude": 30.313094,
+          "centerLongitude": 120.279064
+        },
+        {
+          "name": "下沙西",
+          "immutableCode": "HZ-MS-XIASHAXI",
+          "slug": "hangzhou-metro-xiasha-xi",
+          "sortOrder": 22,
+          "centerLatitude": 30.309918,
+          "centerLongitude": 120.312534
+        },
+        {
+          "name": "金沙湖",
+          "immutableCode": "HZ-MS-JINSHAHU",
+          "slug": "hangzhou-metro-jinshahu",
+          "sortOrder": 23,
+          "centerLatitude": 30.309246,
+          "centerLongitude": 120.32572
+        },
+        {
+          "name": "高沙路",
+          "immutableCode": "HZ-MS-GAOSHALU",
+          "slug": "hangzhou-metro-gaoshalu",
+          "sortOrder": 24,
+          "centerLatitude": 30.30942,
+          "centerLongitude": 120.335408
+        },
+        {
+          "name": "文泽路",
+          "immutableCode": "HZ-MS-WENZELU",
+          "slug": "hangzhou-metro-wenzelu",
+          "sortOrder": 25,
+          "centerLatitude": 30.310059,
+          "centerLongitude": 120.350055
+        },
+        {
+          "name": "文海南路",
+          "immutableCode": "HZ-MS-WENHAINANLU",
+          "slug": "hangzhou-metro-wenhai-nanlu",
+          "sortOrder": 26,
+          "centerLatitude": 30.310983,
+          "centerLongitude": 120.375052
+        },
+        {
+          "name": "云水",
+          "immutableCode": "HZ-MS-YUNSHUI",
+          "slug": "hangzhou-metro-yunshui",
+          "sortOrder": 27,
+          "centerLatitude": 30.302893,
+          "centerLongitude": 120.381787
+        },
+        {
+          "name": "下沙江滨",
+          "immutableCode": "HZ-MS-XIASHAJIANGBIN",
+          "slug": "hangzhou-metro-xiasha-jiangbin",
+          "sortOrder": 28,
+          "centerLatitude": 30.286768,
+          "centerLongitude": 120.381725
+        },
+        {
+          "name": "杭州大会展中心",
+          "immutableCode": "HZ-MS-HANGZHOUDAHUIZHANZHONGXIN",
+          "slug": "hangzhou-metro-hangzhou-dahuizhan-zhongxin",
+          "sortOrder": 29,
+          "centerLatitude": 30.271186,
+          "centerLongitude": 120.411964
+        },
+        {
+          "name": "港城大道",
+          "immutableCode": "HZ-MS-GANGCHENGDADAO",
+          "slug": "hangzhou-metro-gangcheng-dadao",
+          "sortOrder": 30,
+          "centerLatitude": 30.270676,
+          "centerLongitude": 120.426089
+        },
+        {
+          "name": "南阳",
+          "immutableCode": "HZ-MS-NANYANG",
+          "slug": "hangzhou-metro-nanyang",
+          "sortOrder": 31,
+          "centerLatitude": 30.270107,
+          "centerLongitude": 120.436287
+        },
+        {
+          "name": "向阳路",
+          "immutableCode": "HZ-MS-XIANGYANGLU",
+          "slug": "hangzhou-metro-xiangyanglu",
+          "sortOrder": 32,
+          "centerLatitude": 30.260143,
+          "centerLongitude": 120.442496
+        },
+        {
+          "name": "萧山国际机场",
+          "immutableCode": "HZ-MS-XIAOSHANGUOJIJICHANG",
+          "slug": "hangzhou-metro-xiaoshan-guoji-jichang",
+          "sortOrder": 33,
+          "centerLatitude": 30.235568,
+          "centerLongitude": 120.433114
+        }
+      ]
+    },
+    {
+      "name": "地铁2号线",
+      "immutableCode": "HZ-ML-2",
+      "slug": "hangzhou-metro-2",
+      "sortOrder": 2,
+      "stations": [
+        {
+          "name": "朝阳",
+          "immutableCode": "HZ-MS-CHAOYANG",
+          "slug": "hangzhou-metro-chaoyang",
+          "sortOrder": 1,
+          "centerLatitude": 30.122219,
+          "centerLongitude": 120.268228
+        },
+        {
+          "name": "曹家桥",
+          "immutableCode": "HZ-MS-CAOJIAQIAO",
+          "slug": "hangzhou-metro-caojiaqiao",
+          "sortOrder": 2,
+          "centerLatitude": 30.134524,
+          "centerLongitude": 120.267867
+        },
+        {
+          "name": "潘水",
+          "immutableCode": "HZ-MS-PANSHUI",
+          "slug": "hangzhou-metro-panshui",
+          "sortOrder": 3,
+          "centerLatitude": 30.148186,
+          "centerLongitude": 120.267644
+        },
+        {
+          "name": "人民路",
+          "immutableCode": "HZ-MS-RENMINLU",
+          "slug": "hangzhou-metro-renminlu",
+          "sortOrder": 4,
+          "centerLatitude": 30.159176,
+          "centerLongitude": 120.267502
+        },
+        {
+          "name": "杭发厂",
+          "immutableCode": "HZ-MS-HANGFACHANG",
+          "slug": "hangzhou-metro-hangfachang",
+          "sortOrder": 5,
+          "centerLatitude": 30.170619,
+          "centerLongitude": 120.267205
+        },
+        {
+          "name": "人民广场",
+          "immutableCode": "HZ-MS-RENMINGUANGCHANG",
+          "slug": "hangzhou-metro-renmin-guangchang",
+          "sortOrder": 6,
+          "centerLatitude": 30.181086,
+          "centerLongitude": 120.266803
+        },
+        {
+          "name": "建设一路",
+          "immutableCode": "HZ-MS-JIANSHEYILU",
+          "slug": "hangzhou-metro-jianshe-yilu",
+          "sortOrder": 7,
+          "centerLatitude": 30.181573,
+          "centerLongitude": 120.220867
+        },
+        {
+          "name": "建设三路",
+          "immutableCode": "HZ-MS-JIANSHESANLU",
+          "slug": "hangzhou-metro-jianshe-sanlu",
+          "sortOrder": 8,
+          "centerLatitude": 30.204512,
+          "centerLongitude": 120.268252
+        },
+        {
+          "name": "振宁路",
+          "immutableCode": "HZ-MS-ZHENNINGLU",
+          "slug": "hangzhou-metro-zhenninglu",
+          "sortOrder": 9,
+          "centerLatitude": 30.217695,
+          "centerLongitude": 120.269215
+        },
+        {
+          "name": "飞虹路",
+          "immutableCode": "HZ-MS-FEIHONGLU",
+          "slug": "hangzhou-metro-feihonglu",
+          "sortOrder": 10,
+          "centerLatitude": 30.230955,
+          "centerLongitude": 120.263328
+        },
+        {
+          "name": "盈丰路",
+          "immutableCode": "HZ-MS-YINGFENGLU",
+          "slug": "hangzhou-metro-yingfenglu",
+          "sortOrder": 11,
+          "centerLatitude": 30.236997,
+          "centerLongitude": 120.252501
+        },
+        {
+          "name": "钱江世纪城",
+          "immutableCode": "HZ-MS-QIANJIANGSHIJICHENG",
+          "slug": "hangzhou-metro-qianjiang-shijicheng",
+          "sortOrder": 12,
+          "centerLatitude": 30.240379,
+          "centerLongitude": 120.244477
+        },
+        {
+          "name": "钱江路",
+          "immutableCode": "HZ-MS-QIANJIANGLU",
+          "slug": "hangzhou-metro-qianjianglu",
+          "sortOrder": 13,
+          "centerLatitude": 30.255978,
+          "centerLongitude": 120.213387
+        },
+        {
+          "name": "庆春广场",
+          "immutableCode": "HZ-MS-QINGCHUNGUANGCHANG",
+          "slug": "hangzhou-metro-qingchun-guangchang",
+          "sortOrder": 14,
+          "centerLatitude": 30.257602,
+          "centerLongitude": 120.204748
+        },
+        {
+          "name": "庆菱路",
+          "immutableCode": "HZ-MS-QINGLINGLU",
+          "slug": "hangzhou-metro-qinglinglu",
+          "sortOrder": 15,
+          "centerLatitude": 30.257613,
+          "centerLongitude": 120.193077
+        },
+        {
+          "name": "建国北路",
+          "immutableCode": "HZ-MS-JIANGUOBEILU",
+          "slug": "hangzhou-metro-jianguo-beilu",
+          "sortOrder": 16,
+          "centerLatitude": 30.264552,
+          "centerLongitude": 120.180761
+        },
+        {
+          "name": "中河北路",
+          "immutableCode": "HZ-MS-ZHONGHEBEILU",
+          "slug": "hangzhou-metro-zhonghe-beilu",
+          "sortOrder": 17,
+          "centerLatitude": 30.264596,
+          "centerLongitude": 120.172436
+        },
+        {
+          "name": "武林门",
+          "immutableCode": "HZ-MS-WULINMEN",
+          "slug": "hangzhou-metro-wulinmen",
+          "sortOrder": 18,
+          "centerLatitude": 30.269668,
+          "centerLongitude": 120.155365
+        },
+        {
+          "name": "沈塘桥",
+          "immutableCode": "HZ-MS-SHENTANGQIAO",
+          "slug": "hangzhou-metro-shentangqiao",
+          "sortOrder": 19,
+          "centerLatitude": 30.280146,
+          "centerLongitude": 120.150223
+        },
+        {
+          "name": "下宁桥",
+          "immutableCode": "HZ-MS-XIANINGQIAO",
+          "slug": "hangzhou-metro-xianingqiao",
+          "sortOrder": 20,
+          "centerLatitude": 30.283325,
+          "centerLongitude": 120.140128
+        },
+        {
+          "name": "学院路",
+          "immutableCode": "HZ-MS-XUEYUANLU",
+          "slug": "hangzhou-metro-xueyuanlu",
+          "sortOrder": 21,
+          "centerLatitude": 30.282745,
+          "centerLongitude": 120.129577
+        },
+        {
+          "name": "古翠路",
+          "immutableCode": "HZ-MS-GUCUILU",
+          "slug": "hangzhou-metro-gucuilu",
+          "sortOrder": 22,
+          "centerLatitude": 30.282192,
+          "centerLongitude": 120.117918
+        },
+        {
+          "name": "丰潭路",
+          "immutableCode": "HZ-MS-FENGTANLU",
+          "slug": "hangzhou-metro-fengtanlu",
+          "sortOrder": 23,
+          "centerLatitude": 30.281911,
+          "centerLongitude": 120.109629
+        },
+        {
+          "name": "文新",
+          "immutableCode": "HZ-MS-WENXIN",
+          "slug": "hangzhou-metro-wenxin",
+          "sortOrder": 24,
+          "centerLatitude": 30.289251,
+          "centerLongitude": 120.098193
+        },
+        {
+          "name": "三坝",
+          "immutableCode": "HZ-MS-SANBA",
+          "slug": "hangzhou-metro-sanba",
+          "sortOrder": 25,
+          "centerLatitude": 30.30002,
+          "centerLongitude": 120.0979
+        },
+        {
+          "name": "虾龙圩",
+          "immutableCode": "HZ-MS-XIALONGWEI",
+          "slug": "hangzhou-metro-xialongwei",
+          "sortOrder": 26,
+          "centerLatitude": 30.309587,
+          "centerLongitude": 120.096383
+        },
+        {
+          "name": "三墩",
+          "immutableCode": "HZ-MS-SANDUN",
+          "slug": "hangzhou-metro-sandun",
+          "sortOrder": 27,
+          "centerLatitude": 30.320033,
+          "centerLongitude": 120.093014
+        },
+        {
+          "name": "墩祥街",
+          "immutableCode": "HZ-MS-DUNXIANGJIE",
+          "slug": "hangzhou-metro-dunxiangjie",
+          "sortOrder": 28,
+          "centerLatitude": 30.331667,
+          "centerLongitude": 120.087615
+        },
+        {
+          "name": "金家渡",
+          "immutableCode": "HZ-MS-JINJIADU",
+          "slug": "hangzhou-metro-jinjiadu",
+          "sortOrder": 29,
+          "centerLatitude": 30.339103,
+          "centerLongitude": 120.083937
+        },
+        {
+          "name": "白洋",
+          "immutableCode": "HZ-MS-BAIYANG",
+          "slug": "hangzhou-metro-baiyang",
+          "sortOrder": 30,
+          "centerLatitude": 30.351155,
+          "centerLongitude": 120.072905
+        },
+        {
+          "name": "杜甫村",
+          "immutableCode": "HZ-MS-DUFUCUN",
+          "slug": "hangzhou-metro-dufucun",
+          "sortOrder": 31,
+          "centerLatitude": 30.359033,
+          "centerLongitude": 120.056549
+        },
+        {
+          "name": "良渚",
+          "immutableCode": "HZ-MS-LIANGZHU",
+          "slug": "hangzhou-metro-liangzhu",
+          "sortOrder": 32,
+          "centerLatitude": 30.358992,
+          "centerLongitude": 120.041654
+        }
+      ]
+    },
+    {
+      "name": "地铁3号线",
+      "immutableCode": "HZ-ML-3",
+      "slug": "hangzhou-metro-3",
+      "sortOrder": 3,
+      "stations": [
+        {
+          "name": "吴山前村",
+          "immutableCode": "HZ-MS-WUSHANQIANCUN",
+          "slug": "hangzhou-metro-wushanqiancun",
+          "sortOrder": 1,
+          "centerLatitude": 30.311359,
+          "centerLongitude": 119.980178
+        },
+        {
+          "name": "火车西站",
+          "immutableCode": "HZ-MS-HUOCHEXIZHAN",
+          "slug": "hangzhou-metro-huoche-xizhan",
+          "sortOrder": 2,
+          "centerLatitude": 30.297877,
+          "centerLongitude": 119.986523
+        },
+        {
+          "name": "龙舟北路",
+          "immutableCode": "HZ-MS-LONGZHOUBEILU",
+          "slug": "hangzhou-metro-longzhou-beilu",
+          "sortOrder": 3,
+          "centerLatitude": 30.287954,
+          "centerLongitude": 119.983173
+        },
+        {
+          "name": "文一西路",
+          "immutableCode": "HZ-MS-WENYIXILU",
+          "slug": "hangzhou-metro-wenyi-xilu",
+          "sortOrder": 4,
+          "centerLatitude": 30.27499,
+          "centerLongitude": 119.98065
+        },
+        {
+          "name": "全丰",
+          "immutableCode": "HZ-MS-QUANFENG",
+          "slug": "hangzhou-metro-quanfeng",
+          "sortOrder": 5,
+          "centerLatitude": 30.247409,
+          "centerLongitude": 120.007922
+        },
+        {
+          "name": "高教路",
+          "immutableCode": "HZ-MS-GAOJIAOLU",
+          "slug": "hangzhou-metro-gaojiaolu",
+          "sortOrder": 6,
+          "centerLatitude": 30.242871,
+          "centerLongitude": 120.019406
+        },
+        {
+          "name": "联胜路",
+          "immutableCode": "HZ-MS-LIANSHENGLU",
+          "slug": "hangzhou-metro-lianshenglu",
+          "sortOrder": 7,
+          "centerLatitude": 30.244061,
+          "centerLongitude": 120.032497
+        },
+        {
+          "name": "洪园",
+          "immutableCode": "HZ-MS-HONGYUAN",
+          "slug": "hangzhou-metro-hongyuan",
+          "sortOrder": 8,
+          "centerLatitude": 30.24829,
+          "centerLongitude": 120.050372
+        },
+        {
+          "name": "西溪湿地南",
+          "immutableCode": "HZ-MS-XIXISHIDINAN",
+          "slug": "hangzhou-metro-xixi-shidi-nan",
+          "sortOrder": 9,
+          "centerLatitude": 30.253858,
+          "centerLongitude": 120.061779
+        },
+        {
+          "name": "花坞",
+          "immutableCode": "HZ-MS-HUAWU",
+          "slug": "hangzhou-metro-huawu",
+          "sortOrder": 10,
+          "centerLatitude": 30.26075,
+          "centerLongitude": 120.076724
+        },
+        {
+          "name": "东岳",
+          "immutableCode": "HZ-MS-DONGYUE",
+          "slug": "hangzhou-metro-dongyue",
+          "sortOrder": 11,
+          "centerLatitude": 30.262171,
+          "centerLongitude": 120.089527
+        },
+        {
+          "name": "古墩路",
+          "immutableCode": "HZ-MS-GUDUNLU",
+          "slug": "hangzhou-metro-gudunlu",
+          "sortOrder": 12,
+          "centerLatitude": 30.265363,
+          "centerLongitude": 120.101975
+        },
+        {
+          "name": "古荡新村",
+          "immutableCode": "HZ-MS-GUDANGXINCUN",
+          "slug": "hangzhou-metro-gudang-xincun",
+          "sortOrder": 13,
+          "centerLatitude": 30.269789,
+          "centerLongitude": 120.111229
+        },
+        {
+          "name": "古荡",
+          "immutableCode": "HZ-MS-GUDANG",
+          "slug": "hangzhou-metro-gudang",
+          "sortOrder": 14,
+          "centerLatitude": 30.270848,
+          "centerLongitude": 120.122457
+        },
+        {
+          "name": "黄龙体育中心",
+          "immutableCode": "HZ-MS-HUANGLONGTIYUZHONGXIN",
+          "slug": "hangzhou-metro-huanglong-tiyu-zhongxin",
+          "sortOrder": 15,
+          "centerLatitude": 30.26819,
+          "centerLongitude": 120.129899
+        },
+        {
+          "name": "黄龙洞",
+          "immutableCode": "HZ-MS-HUANGLONGDONG",
+          "slug": "hangzhou-metro-huanglongdong",
+          "sortOrder": 16,
+          "centerLatitude": 30.265387,
+          "centerLongitude": 120.140449
+        },
+        {
+          "name": "潮王路",
+          "immutableCode": "HZ-MS-CHAOWANGLU",
+          "slug": "hangzhou-metro-chaowanglu",
+          "sortOrder": 17,
+          "centerLatitude": 30.290314,
+          "centerLongitude": 120.158795
+        },
+        {
+          "name": "香积寺",
+          "immutableCode": "HZ-MS-XIANGJISI",
+          "slug": "hangzhou-metro-xiangjisi",
+          "sortOrder": 18,
+          "centerLatitude": 30.299974,
+          "centerLongitude": 120.148795
+        },
+        {
+          "name": "大关",
+          "immutableCode": "HZ-MS-DAGUAN",
+          "slug": "hangzhou-metro-daguan",
+          "sortOrder": 19,
+          "centerLatitude": 30.307815,
+          "centerLongitude": 120.149143
+        },
+        {
+          "name": "汽轮广场",
+          "immutableCode": "HZ-MS-QILUNGUANGCHANG",
+          "slug": "hangzhou-metro-qilun-guangchang",
+          "sortOrder": 20,
+          "centerLatitude": 30.334899,
+          "centerLongitude": 120.188317
+        },
+        {
+          "name": "华丰路",
+          "immutableCode": "HZ-MS-HUAFENGLU",
+          "slug": "hangzhou-metro-huafenglu",
+          "sortOrder": 21,
+          "centerLatitude": 30.34005,
+          "centerLongitude": 120.204384
+        },
+        {
+          "name": "同协路",
+          "immutableCode": "HZ-MS-TONGXIELU",
+          "slug": "hangzhou-metro-tongxielu",
+          "sortOrder": 22,
+          "centerLatitude": 30.344386,
+          "centerLongitude": 120.211873
+        },
+        {
+          "name": "桃花湖公园",
+          "immutableCode": "HZ-MS-TAOHUAHUGONGYUAN",
+          "slug": "hangzhou-metro-taohuahu-gongyuan",
+          "sortOrder": 23,
+          "centerLatitude": 30.351453,
+          "centerLongitude": 120.220382
+        },
+        {
+          "name": "丁桥",
+          "immutableCode": "HZ-MS-DINGQIAO",
+          "slug": "hangzhou-metro-dingqiao",
+          "sortOrder": 24,
+          "centerLatitude": 30.355786,
+          "centerLongitude": 120.234606
+        },
+        {
+          "name": "华鹤街",
+          "immutableCode": "HZ-MS-HUAHEJIE",
+          "slug": "hangzhou-metro-huahejie",
+          "sortOrder": 25,
+          "centerLatitude": 30.370397,
+          "centerLongitude": 120.237758
+        },
+        {
+          "name": "黄鹤山",
+          "immutableCode": "HZ-MS-HUANGHESHAN",
+          "slug": "hangzhou-metro-huangheshan",
+          "sortOrder": 26,
+          "centerLatitude": 30.380952,
+          "centerLongitude": 120.246438
+        },
+        {
+          "name": "星桥",
+          "immutableCode": "HZ-MS-XINGQIAO",
+          "slug": "hangzhou-metro-xingqiao",
+          "sortOrder": 27,
+          "centerLatitude": 30.389241,
+          "centerLongitude": 120.263582
+        },
+        {
+          "name": "石马",
+          "immutableCode": "HZ-MS-SHIMA",
+          "slug": "hangzhou-metro-shima",
+          "sortOrder": 28,
+          "centerLatitude": 30.206719,
+          "centerLongitude": 120.010966
+        },
+        {
+          "name": "小和山",
+          "immutableCode": "HZ-MS-XIAOHESHAN",
+          "slug": "hangzhou-metro-xiaoheshan",
+          "sortOrder": 29,
+          "centerLatitude": 30.212018,
+          "centerLongitude": 120.021176
+        },
+        {
+          "name": "屏峰",
+          "immutableCode": "HZ-MS-PINGFENG",
+          "slug": "hangzhou-metro-pingfeng",
+          "sortOrder": 30,
+          "centerLatitude": 30.222908,
+          "centerLongitude": 120.037251
+        },
+        {
+          "name": "留下",
+          "immutableCode": "HZ-MS-LIUXIA",
+          "slug": "hangzhou-metro-liuxia",
+          "sortOrder": 31,
+          "centerLatitude": 30.241056,
+          "centerLongitude": 120.052093
+        }
+      ]
+    },
+    {
+      "name": "地铁4号线",
+      "immutableCode": "HZ-ML-4",
+      "slug": "hangzhou-metro-4",
+      "sortOrder": 4,
+      "stations": [
+        {
+          "name": "池华街",
+          "immutableCode": "HZ-MS-CHIHUAJIE",
+          "slug": "hangzhou-metro-chihuajie",
+          "sortOrder": 1,
+          "centerLatitude": 30.327626,
+          "centerLongitude": 120.068507
+        },
+        {
+          "name": "好运街",
+          "immutableCode": "HZ-MS-HAOYUNJIE",
+          "slug": "hangzhou-metro-haoyunjie",
+          "sortOrder": 2,
+          "centerLatitude": 30.350198,
+          "centerLongitude": 120.100048
+        },
+        {
+          "name": "杭行路",
+          "immutableCode": "HZ-MS-HANGXINGLU",
+          "slug": "hangzhou-metro-hangxinglu",
+          "sortOrder": 3,
+          "centerLatitude": 30.353535,
+          "centerLongitude": 120.114455
+        },
+        {
+          "name": "储运路",
+          "immutableCode": "HZ-MS-CHUYUNLU",
+          "slug": "hangzhou-metro-chuyunlu",
+          "sortOrder": 4,
+          "centerLatitude": 30.353879,
+          "centerLongitude": 120.128247
+        },
+        {
+          "name": "平安桥",
+          "immutableCode": "HZ-MS-PINGANQIAO",
+          "slug": "hangzhou-metro-pinganqiao",
+          "sortOrder": 5,
+          "centerLatitude": 30.357189,
+          "centerLongitude": 120.143808
+        },
+        {
+          "name": "独城生态公园",
+          "immutableCode": "HZ-MS-DUCHENGSHENGTAIGONGYUAN",
+          "slug": "hangzhou-metro-ducheng-shengtai-gongyuan",
+          "sortOrder": 6,
+          "centerLatitude": 30.357109,
+          "centerLongitude": 120.161388
+        },
+        {
+          "name": "吴家角港",
+          "immutableCode": "HZ-MS-WUJIAJIAOGANG",
+          "slug": "hangzhou-metro-wujiajiagang",
+          "sortOrder": 7,
+          "centerLatitude": 30.351086,
+          "centerLongitude": 120.169305
+        },
+        {
+          "name": "桃源街",
+          "immutableCode": "HZ-MS-TAOYUANJIE",
+          "slug": "hangzhou-metro-taoyuanjie",
+          "sortOrder": 8,
+          "centerLatitude": 30.341489,
+          "centerLongitude": 120.178545
+        },
+        {
+          "name": "皋亭坝",
+          "immutableCode": "HZ-MS-GAOTINGBA",
+          "slug": "hangzhou-metro-gaotingba",
+          "sortOrder": 9,
+          "centerLatitude": 30.330407,
+          "centerLongitude": 120.172197
+        },
+        {
+          "name": "新天地街",
+          "immutableCode": "HZ-MS-XINTIANDIJIE",
+          "slug": "hangzhou-metro-xintiandijie",
+          "sortOrder": 10,
+          "centerLatitude": 30.321168,
+          "centerLongitude": 120.179584
+        },
+        {
+          "name": "华中南路",
+          "immutableCode": "HZ-MS-HUAZHONGNANLU",
+          "slug": "hangzhou-metro-huazhong-nanlu",
+          "sortOrder": 11,
+          "centerLatitude": 30.323978,
+          "centerLongitude": 120.200064
+        },
+        {
+          "name": "笕桥老街",
+          "immutableCode": "HZ-MS-JIANQIAOLAOJIE",
+          "slug": "hangzhou-metro-jianqiao-laojie",
+          "sortOrder": 12,
+          "centerLatitude": 30.323009,
+          "centerLongitude": 120.219652
+        },
+        {
+          "name": "黎明",
+          "immutableCode": "HZ-MS-LIMING",
+          "slug": "hangzhou-metro-liming",
+          "sortOrder": 13,
+          "centerLatitude": 30.315246,
+          "centerLongitude": 120.223611
+        },
+        {
+          "name": "明石路",
+          "immutableCode": "HZ-MS-MINGSHILU",
+          "slug": "hangzhou-metro-mingshilu",
+          "sortOrder": 14,
+          "centerLatitude": 30.303573,
+          "centerLongitude": 120.22742
+        },
+        {
+          "name": "新风",
+          "immutableCode": "HZ-MS-XINFENG",
+          "slug": "hangzhou-metro-xinfeng",
+          "sortOrder": 15,
+          "centerLatitude": 30.287244,
+          "centerLongitude": 120.20808
+        },
+        {
+          "name": "新塘",
+          "immutableCode": "HZ-MS-XINTANG",
+          "slug": "hangzhou-metro-xintang",
+          "sortOrder": 16,
+          "centerLatitude": 30.276012,
+          "centerLongitude": 120.207388
+        },
+        {
+          "name": "景芳",
+          "immutableCode": "HZ-MS-JINGFANG",
+          "slug": "hangzhou-metro-jingfang",
+          "sortOrder": 17,
+          "centerLatitude": 30.264903,
+          "centerLongitude": 120.207708
+        },
+        {
+          "name": "江锦路",
+          "immutableCode": "HZ-MS-JIANGJINLU",
+          "slug": "hangzhou-metro-jiangjinlu",
+          "sortOrder": 18,
+          "centerLatitude": 30.249727,
+          "centerLongitude": 120.215568
+        },
+        {
+          "name": "市民中心",
+          "immutableCode": "HZ-MS-SHIMINZHONGXIN",
+          "slug": "hangzhou-metro-shimin-zhongxin",
+          "sortOrder": 19,
+          "centerLatitude": 30.244809,
+          "centerLongitude": 120.211213
+        },
+        {
+          "name": "城星路",
+          "immutableCode": "HZ-MS-CHENGXINGLU",
+          "slug": "hangzhou-metro-chengxinglu",
+          "sortOrder": 20,
+          "centerLatitude": 30.239643,
+          "centerLongitude": 120.206954
+        },
+        {
+          "name": "甬江路",
+          "immutableCode": "HZ-MS-YONGJIANGLU",
+          "slug": "hangzhou-metro-yongjianglu",
+          "sortOrder": 21,
+          "centerLatitude": 30.223287,
+          "centerLongitude": 120.189451
+        },
+        {
+          "name": "南星桥",
+          "immutableCode": "HZ-MS-NANXINGQIAO",
+          "slug": "hangzhou-metro-nanxingqiao",
+          "sortOrder": 22,
+          "centerLatitude": 30.217295,
+          "centerLongitude": 120.177384
+        },
+        {
+          "name": "复兴路",
+          "immutableCode": "HZ-MS-FUXINGLU",
+          "slug": "hangzhou-metro-fuxinglu",
+          "sortOrder": 23,
+          "centerLatitude": 30.210287,
+          "centerLongitude": 120.163407
+        },
+        {
+          "name": "水澄桥",
+          "immutableCode": "HZ-MS-SHUICHENGQIAO",
+          "slug": "hangzhou-metro-shuichengqiao",
+          "sortOrder": 24,
+          "centerLatitude": 30.204075,
+          "centerLongitude": 120.151946
+        },
+        {
+          "name": "联庄",
+          "immutableCode": "HZ-MS-LIANZHUANG",
+          "slug": "hangzhou-metro-lianzhuang",
+          "sortOrder": 25,
+          "centerLatitude": 30.186648,
+          "centerLongitude": 120.152024
+        },
+        {
+          "name": "中医药大学",
+          "immutableCode": "HZ-MS-ZHONGYIYAODAXUE",
+          "slug": "hangzhou-metro-zhongyiyao-daxue",
+          "sortOrder": 26,
+          "centerLatitude": 30.175802,
+          "centerLongitude": 120.146432
+        },
+        {
+          "name": "杨家墩",
+          "immutableCode": "HZ-MS-YANGJIADUN",
+          "slug": "hangzhou-metro-yangjiadun",
+          "sortOrder": 27,
+          "centerLatitude": 30.16782,
+          "centerLongitude": 120.14886
+        },
+        {
+          "name": "浦沿",
+          "immutableCode": "HZ-MS-PUYAN",
+          "slug": "hangzhou-metro-puyan",
+          "sortOrder": 28,
+          "centerLatitude": 30.158657,
+          "centerLongitude": 120.153951
+        }
+      ]
+    },
+    {
+      "name": "地铁5号线",
+      "immutableCode": "HZ-ML-5",
+      "slug": "hangzhou-metro-5",
+      "sortOrder": 5,
+      "stations": [
+        {
+          "name": "南湖东",
+          "immutableCode": "HZ-MS-NANHUDONG",
+          "slug": "hangzhou-metro-nanhu-dong",
+          "sortOrder": 1,
+          "centerLatitude": 30.260024,
+          "centerLongitude": 119.946993
+        },
+        {
+          "name": "金星",
+          "immutableCode": "HZ-MS-JINXING",
+          "slug": "hangzhou-metro-jinxing",
+          "sortOrder": 2,
+          "centerLatitude": 30.265041,
+          "centerLongitude": 119.966536
+        },
+        {
+          "name": "绿汀路",
+          "immutableCode": "HZ-MS-LVTINGLU",
+          "slug": "hangzhou-metro-lvtinglu",
+          "sortOrder": 3,
+          "centerLatitude": 30.26014,
+          "centerLongitude": 119.992062
+        },
+        {
+          "name": "葛巷",
+          "immutableCode": "HZ-MS-GEXIANG",
+          "slug": "hangzhou-metro-gexiang",
+          "sortOrder": 4,
+          "centerLatitude": 30.270354,
+          "centerLongitude": 119.99882
+        },
+        {
+          "name": "创景路",
+          "immutableCode": "HZ-MS-CHUANGJINGLU",
+          "slug": "hangzhou-metro-chuangjinglu",
+          "sortOrder": 5,
+          "centerLatitude": 30.278112,
+          "centerLongitude": 119.998033
+        },
+        {
+          "name": "良睦路",
+          "immutableCode": "HZ-MS-LIANGMULU",
+          "slug": "hangzhou-metro-liangmulu",
+          "sortOrder": 6,
+          "centerLatitude": 30.285682,
+          "centerLongitude": 120.007357
+        },
+        {
+          "name": "杭师大仓前",
+          "immutableCode": "HZ-MS-HANGSHIDACANGQIAN",
+          "slug": "hangzhou-metro-hangshida-cangqian",
+          "sortOrder": 7,
+          "centerLatitude": 30.288592,
+          "centerLongitude": 120.01721
+        },
+        {
+          "name": "永福",
+          "immutableCode": "HZ-MS-YONGFU",
+          "slug": "hangzhou-metro-yongfu",
+          "sortOrder": 8,
+          "centerLatitude": 30.291577,
+          "centerLongitude": 120.027057
+        },
+        {
+          "name": "五常",
+          "immutableCode": "HZ-MS-WUCHANG",
+          "slug": "hangzhou-metro-wuchang",
+          "sortOrder": 9,
+          "centerLatitude": 30.296279,
+          "centerLongitude": 120.044889
+        },
+        {
+          "name": "蒋村",
+          "immutableCode": "HZ-MS-JIANGCUN",
+          "slug": "hangzhou-metro-jiangcun",
+          "sortOrder": 10,
+          "centerLatitude": 30.29484,
+          "centerLongitude": 120.067353
+        },
+        {
+          "name": "浙大紫金港",
+          "immutableCode": "HZ-MS-ZHEDAZIJINGANG",
+          "slug": "hangzhou-metro-zheda-zijingang",
+          "sortOrder": 11,
+          "centerLatitude": 30.294167,
+          "centerLongitude": 120.07671
+        },
+        {
+          "name": "萍水街",
+          "immutableCode": "HZ-MS-PINGSHUIJIE",
+          "slug": "hangzhou-metro-pingshuijie",
+          "sortOrder": 12,
+          "centerLatitude": 30.302806,
+          "centerLongitude": 120.112745
+        },
+        {
+          "name": "和睦",
+          "immutableCode": "HZ-MS-HEMU",
+          "slug": "hangzhou-metro-hemu",
+          "sortOrder": 13,
+          "centerLatitude": 30.308544,
+          "centerLongitude": 120.119367
+        },
+        {
+          "name": "大运河",
+          "immutableCode": "HZ-MS-DAYUNHE",
+          "slug": "hangzhou-metro-dayunhe",
+          "sortOrder": 14,
+          "centerLatitude": 30.319279,
+          "centerLongitude": 120.131341
+        },
+        {
+          "name": "拱宸桥东",
+          "immutableCode": "HZ-MS-GONGCHENQIAODONG",
+          "slug": "hangzhou-metro-gongchenqiao-dong",
+          "sortOrder": 15,
+          "centerLatitude": 30.317061,
+          "centerLongitude": 120.147977
+        },
+        {
+          "name": "善贤",
+          "immutableCode": "HZ-MS-SHANXIAN",
+          "slug": "hangzhou-metro-shanxian",
+          "sortOrder": 16,
+          "centerLatitude": 30.317478,
+          "centerLongitude": 120.160651
+        },
+        {
+          "name": "西文街",
+          "immutableCode": "HZ-MS-XIWENJIE",
+          "slug": "hangzhou-metro-xiwenjie",
+          "sortOrder": 17,
+          "centerLatitude": 30.31603,
+          "centerLongitude": 120.169934
+        },
+        {
+          "name": "东新园",
+          "immutableCode": "HZ-MS-DONGXINYUAN",
+          "slug": "hangzhou-metro-dongxinyuan",
+          "sortOrder": 18,
+          "centerLatitude": 30.308325,
+          "centerLongitude": 120.175849
+        },
+        {
+          "name": "杭氧",
+          "immutableCode": "HZ-MS-HANGYANG",
+          "slug": "hangzhou-metro-hangyang",
+          "sortOrder": 19,
+          "centerLatitude": 30.295539,
+          "centerLongitude": 120.178913
+        },
+        {
+          "name": "宝善桥",
+          "immutableCode": "HZ-MS-BAOSHANQIAO",
+          "slug": "hangzhou-metro-baoshanqiao",
+          "sortOrder": 20,
+          "centerLatitude": 30.271799,
+          "centerLongitude": 120.179868
+        },
+        {
+          "name": "万安桥",
+          "immutableCode": "HZ-MS-WANANQIAO",
+          "slug": "hangzhou-metro-wananqiao",
+          "sortOrder": 21,
+          "centerLatitude": 30.252901,
+          "centerLongitude": 120.180417
+        },
+        {
+          "name": "江城路",
+          "immutableCode": "HZ-MS-JIANGCHENGLU",
+          "slug": "hangzhou-metro-jiangchenglu",
+          "sortOrder": 22,
+          "centerLatitude": 30.238561,
+          "centerLongitude": 120.178205
+        },
+        {
+          "name": "候潮门",
+          "immutableCode": "HZ-MS-HOUCHAOMEN",
+          "slug": "hangzhou-metro-houchaomen",
+          "sortOrder": 23,
+          "centerLatitude": 30.226059,
+          "centerLongitude": 120.173153
+        },
+        {
+          "name": "长河",
+          "immutableCode": "HZ-MS-CHANGHE",
+          "slug": "hangzhou-metro-changhe",
+          "sortOrder": 24,
+          "centerLatitude": 30.197248,
+          "centerLongitude": 120.193941
+        },
+        {
+          "name": "聚才路",
+          "immutableCode": "HZ-MS-JUCAILU",
+          "slug": "hangzhou-metro-jucailu",
+          "sortOrder": 25,
+          "centerLatitude": 30.182426,
+          "centerLongitude": 120.198803
+        },
+        {
+          "name": "江晖路",
+          "immutableCode": "HZ-MS-JIANGHUILU",
+          "slug": "hangzhou-metro-jianghuilu",
+          "sortOrder": 26,
+          "centerLatitude": 30.181579,
+          "centerLongitude": 120.212417
+        },
+        {
+          "name": "博奥路",
+          "immutableCode": "HZ-MS-BOAOLU",
+          "slug": "hangzhou-metro-boaolu",
+          "sortOrder": 27,
+          "centerLatitude": 30.182338,
+          "centerLongitude": 120.244164
+        },
+        {
+          "name": "金鸡路",
+          "immutableCode": "HZ-MS-JINJILU",
+          "slug": "hangzhou-metro-jinjilu",
+          "sortOrder": 28,
+          "centerLatitude": 30.181697,
+          "centerLongitude": 120.253402
+        },
+        {
+          "name": "育才北路",
+          "immutableCode": "HZ-MS-YUCAIBEILU",
+          "slug": "hangzhou-metro-yucai-beilu",
+          "sortOrder": 29,
+          "centerLatitude": 30.180797,
+          "centerLongitude": 120.275911
+        },
+        {
+          "name": "通惠中路",
+          "immutableCode": "HZ-MS-TONGHUIZHONGLU",
+          "slug": "hangzhou-metro-tonghui-zhonglu",
+          "sortOrder": 30,
+          "centerLatitude": 30.180485,
+          "centerLongitude": 120.285183
+        },
+        {
+          "name": "火车南站",
+          "immutableCode": "HZ-MS-HUOCHENANZHAN",
+          "slug": "hangzhou-metro-huoche-nanzhan",
+          "sortOrder": 31,
+          "centerLatitude": 30.17267,
+          "centerLongitude": 120.297331
+        },
+        {
+          "name": "双桥",
+          "immutableCode": "HZ-MS-SHUANGQIAO",
+          "slug": "hangzhou-metro-shuangqiao",
+          "sortOrder": 32,
+          "centerLatitude": 30.173139,
+          "centerLongitude": 120.30877
+        },
+        {
+          "name": "姑娘桥",
+          "immutableCode": "HZ-MS-GUNIANGQIAO",
+          "slug": "hangzhou-metro-guniangqiao",
+          "sortOrder": 33,
+          "centerLatitude": 30.176001,
+          "centerLongitude": 120.330313
+        }
+      ]
+    },
+    {
+      "name": "地铁6号线",
+      "immutableCode": "HZ-ML-6",
+      "slug": "hangzhou-metro-6",
+      "sortOrder": 6,
+      "stations": [
+        {
+          "name": "枸桔弄",
+          "immutableCode": "HZ-MS-GOUJULONG",
+          "slug": "hangzhou-metro-goujulong",
+          "sortOrder": 1,
+          "centerLatitude": 30.301238,
+          "centerLongitude": 120.206547
+        },
+        {
+          "name": "元宝塘",
+          "immutableCode": "HZ-MS-YUANBAOTANG",
+          "slug": "hangzhou-metro-yuanbaotang",
+          "sortOrder": 2,
+          "centerLatitude": 30.284007,
+          "centerLongitude": 120.220572
+        },
+        {
+          "name": "昙花庵路",
+          "immutableCode": "HZ-MS-TANHUAANLU",
+          "slug": "hangzhou-metro-tanhuaanlu",
+          "sortOrder": 3,
+          "centerLatitude": 30.276397,
+          "centerLongitude": 120.222845
+        },
+        {
+          "name": "三堡",
+          "immutableCode": "HZ-MS-SANBAO",
+          "slug": "hangzhou-metro-sanbao",
+          "sortOrder": 4,
+          "centerLatitude": 30.266822,
+          "centerLongitude": 120.227958
+        },
+        {
+          "name": "亚运村",
+          "immutableCode": "HZ-MS-YAYUNCUN",
+          "slug": "hangzhou-metro-yayuncun",
+          "sortOrder": 5,
+          "centerLatitude": 30.257688,
+          "centerLongitude": 120.247398
+        },
+        {
+          "name": "丰北",
+          "immutableCode": "HZ-MS-FENGBEI",
+          "slug": "hangzhou-metro-fengbei",
+          "sortOrder": 6,
+          "centerLatitude": 30.250049,
+          "centerLongitude": 120.250235
+        },
+        {
+          "name": "博览中心",
+          "immutableCode": "HZ-MS-BOLANZHONGXIN",
+          "slug": "hangzhou-metro-bolan-zhongxin",
+          "sortOrder": 7,
+          "centerLatitude": 30.232448,
+          "centerLongitude": 120.236506
+        },
+        {
+          "name": "奥体中心",
+          "immutableCode": "HZ-MS-AOTIZHONGXIN",
+          "slug": "hangzhou-metro-aoti-zhongxin",
+          "sortOrder": 8,
+          "centerLatitude": 30.224071,
+          "centerLongitude": 120.232974
+        },
+        {
+          "name": "星民",
+          "immutableCode": "HZ-MS-XINGMIN",
+          "slug": "hangzhou-metro-xingmin",
+          "sortOrder": 9,
+          "centerLatitude": 30.213218,
+          "centerLongitude": 120.22386
+        },
+        {
+          "name": "江汉路",
+          "immutableCode": "HZ-MS-JIANGHANLU",
+          "slug": "hangzhou-metro-jianghanlu",
+          "sortOrder": 10,
+          "centerLatitude": 30.202836,
+          "centerLongitude": 120.204943
+        },
+        {
+          "name": "建业路",
+          "immutableCode": "HZ-MS-JIANYELU",
+          "slug": "hangzhou-metro-jianyelu",
+          "sortOrder": 11,
+          "centerLatitude": 30.190474,
+          "centerLongitude": 120.178743
+        },
+        {
+          "name": "诚业路",
+          "immutableCode": "HZ-MS-CHENGYELU",
+          "slug": "hangzhou-metro-chengyelu",
+          "sortOrder": 12,
+          "centerLatitude": 30.186693,
+          "centerLongitude": 120.170027
+        },
+        {
+          "name": "伟业路",
+          "immutableCode": "HZ-MS-WEIYELU",
+          "slug": "hangzhou-metro-weiyelu",
+          "sortOrder": 13,
+          "centerLatitude": 30.182364,
+          "centerLongitude": 120.159056
+        },
+        {
+          "name": "西浦路",
+          "immutableCode": "HZ-MS-XIPULU",
+          "slug": "hangzhou-metro-xipulu",
+          "sortOrder": 14,
+          "centerLatitude": 30.168709,
+          "centerLongitude": 120.137629
+        },
+        {
+          "name": "之江文化中心",
+          "immutableCode": "HZ-MS-ZHIJIANGWENHUAZHONGXIN",
+          "slug": "hangzhou-metro-zhijiang-wenhua-zhongxin",
+          "sortOrder": 15,
+          "centerLatitude": 30.157966,
+          "centerLongitude": 120.107708
+        },
+        {
+          "name": "枫桦西路",
+          "immutableCode": "HZ-MS-FENGHUAXILU",
+          "slug": "hangzhou-metro-fenghua-xilu",
+          "sortOrder": 16,
+          "centerLatitude": 30.155261,
+          "centerLongitude": 120.098965
+        },
+        {
+          "name": "中国美术学院象山",
+          "immutableCode": "HZ-MS-ZHONGGUOMEISHUYUANXIANGSHAN",
+          "slug": "hangzhou-metro-zhongguo-meishuyuan-xiangshan",
+          "sortOrder": 17,
+          "centerLatitude": 30.152558,
+          "centerLongitude": 120.077559
+        },
+        {
+          "name": "浙江音乐学院",
+          "immutableCode": "HZ-MS-ZHEJIANGYINYUEXUEYUAN",
+          "slug": "hangzhou-metro-zhejiang-yinyue-xueyuan",
+          "sortOrder": 18,
+          "centerLatitude": 30.147798,
+          "centerLongitude": 120.056645
+        },
+        {
+          "name": "中村",
+          "immutableCode": "HZ-MS-ZHONGCUN",
+          "slug": "hangzhou-metro-zhongcun",
+          "sortOrder": 19,
+          "centerLatitude": 30.147274,
+          "centerLongitude": 120.038732
+        },
+        {
+          "name": "野生动物园东",
+          "immutableCode": "HZ-MS-YESHENGDONGWUYUANDONG",
+          "slug": "hangzhou-metro-yesheng-dongwuyuan-dong",
+          "sortOrder": 20,
+          "centerLatitude": 30.146091,
+          "centerLongitude": 120.000566
+        },
+        {
+          "name": "银湖",
+          "immutableCode": "HZ-MS-YINHU",
+          "slug": "hangzhou-metro-yinhu",
+          "sortOrder": 21,
+          "centerLatitude": 30.13963,
+          "centerLongitude": 119.988607
+        },
+        {
+          "name": "虎啸杏",
+          "immutableCode": "HZ-MS-HUXIAOXING",
+          "slug": "hangzhou-metro-huxiaoxing",
+          "sortOrder": 22,
+          "centerLatitude": 30.131,
+          "centerLongitude": 119.97128
+        },
+        {
+          "name": "受降",
+          "immutableCode": "HZ-MS-SHOUXIANG",
+          "slug": "hangzhou-metro-shouxiang",
+          "sortOrder": 23,
+          "centerLatitude": 30.122422,
+          "centerLongitude": 119.960747
+        },
+        {
+          "name": "富阳客运中心",
+          "immutableCode": "HZ-MS-FUYANGKEYUNZHONGXIN",
+          "slug": "hangzhou-metro-fuyang-keyun-zhongxin",
+          "sortOrder": 24,
+          "centerLatitude": 30.111226,
+          "centerLongitude": 119.936634
+        },
+        {
+          "name": "高桥",
+          "immutableCode": "HZ-MS-GAOQIAO",
+          "slug": "hangzhou-metro-gaoqiao",
+          "sortOrder": 25,
+          "centerLatitude": 30.094749,
+          "centerLongitude": 119.931419
+        },
+        {
+          "name": "阳陂湖",
+          "immutableCode": "HZ-MS-YANGBEIHU",
+          "slug": "hangzhou-metro-yangbeihu",
+          "sortOrder": 26,
+          "centerLatitude": 30.082163,
+          "centerLongitude": 119.93216
+        },
+        {
+          "name": "公望街",
+          "immutableCode": "HZ-MS-GONGWANGJIE",
+          "slug": "hangzhou-metro-gongwangjie",
+          "sortOrder": 27,
+          "centerLatitude": 30.065493,
+          "centerLongitude": 119.93339
+        },
+        {
+          "name": "桂花西路",
+          "immutableCode": "HZ-MS-GUIHUAXILU",
+          "slug": "hangzhou-metro-guihua-xilu",
+          "sortOrder": 28,
+          "centerLatitude": 30.047426,
+          "centerLongitude": 119.934268
+        },
+        {
+          "name": "霞鸣街",
+          "immutableCode": "HZ-MS-XIAMINGJIE",
+          "slug": "hangzhou-metro-xiamingjie",
+          "sortOrder": 29,
+          "centerLatitude": 30.14323,
+          "centerLongitude": 120.073174
+        },
+        {
+          "name": "科海路",
+          "immutableCode": "HZ-MS-KEHAILU",
+          "slug": "hangzhou-metro-kehaolu",
+          "sortOrder": 30,
+          "centerLatitude": 30.129544,
+          "centerLongitude": 120.08702
+        },
+        {
+          "name": "双浦",
+          "immutableCode": "HZ-MS-SHUANGPU",
+          "slug": "hangzhou-metro-shuangpu",
+          "sortOrder": 31,
+          "centerLatitude": 30.115971,
+          "centerLongitude": 120.08378
+        }
+      ]
+    },
+    {
+      "name": "地铁7号线",
+      "immutableCode": "HZ-ML-7",
+      "slug": "hangzhou-metro-7",
+      "sortOrder": 7,
+      "stations": [
+        {
+          "name": "吴山广场",
+          "immutableCode": "HZ-MS-WUSHANGUANGCHANG",
+          "slug": "hangzhou-metro-wushan-guangchang",
+          "sortOrder": 1,
+          "centerLatitude": 30.23985,
+          "centerLongitude": 120.163854
+        },
+        {
+          "name": "莫邪塘",
+          "immutableCode": "HZ-MS-MOYETANG",
+          "slug": "hangzhou-metro-moyetang",
+          "sortOrder": 2,
+          "centerLatitude": 30.243319,
+          "centerLongitude": 120.187043
+        },
+        {
+          "name": "观音塘",
+          "immutableCode": "HZ-MS-GUANYINTANG",
+          "slug": "hangzhou-metro-guanyintang",
+          "sortOrder": 3,
+          "centerLatitude": 30.247079,
+          "centerLongitude": 120.201609
+        },
+        {
+          "name": "兴业街",
+          "immutableCode": "HZ-MS-XINGYIJIE",
+          "slug": "hangzhou-metro-xingyijie",
+          "sortOrder": 4,
+          "centerLatitude": 30.323978,
+          "centerLongitude": 120.200064
+        },
+        {
+          "name": "明星路",
+          "immutableCode": "HZ-MS-MINGXINGLU",
+          "slug": "hangzhou-metro-mingxinglu",
+          "sortOrder": 5,
+          "centerLatitude": 30.204718,
+          "centerLongitude": 120.248729
+        },
+        {
+          "name": "新兴路",
+          "immutableCode": "HZ-MS-XINXINGLU",
+          "slug": "hangzhou-metro-xinxinglu",
+          "sortOrder": 6,
+          "centerLatitude": 30.204808,
+          "centerLongitude": 120.295186
+        },
+        {
+          "name": "新汉路",
+          "immutableCode": "HZ-MS-XINHANLU",
+          "slug": "hangzhou-metro-xinhanlu",
+          "sortOrder": 7,
+          "centerLatitude": 30.202985,
+          "centerLongitude": 120.306507
+        },
+        {
+          "name": "新街",
+          "immutableCode": "HZ-MS-XINJIE",
+          "slug": "hangzhou-metro-xinjie",
+          "sortOrder": 8,
+          "centerLatitude": 30.199369,
+          "centerLongitude": 120.330917
+        },
+        {
+          "name": "合欢路",
+          "immutableCode": "HZ-MS-HEHUANLU",
+          "slug": "hangzhou-metro-hehuanlu",
+          "sortOrder": 9,
+          "centerLatitude": 30.198105,
+          "centerLongitude": 120.343647
+        },
+        {
+          "name": "盈中",
+          "immutableCode": "HZ-MS-YINGZHONG",
+          "slug": "hangzhou-metro-yingzhong",
+          "sortOrder": 10,
+          "centerLatitude": 30.197715,
+          "centerLongitude": 120.363029
+        },
+        {
+          "name": "坎山",
+          "immutableCode": "HZ-MS-KANSHAN",
+          "slug": "hangzhou-metro-kanshan",
+          "sortOrder": 11,
+          "centerLatitude": 30.197785,
+          "centerLongitude": 120.395099
+        },
+        {
+          "name": "新港",
+          "immutableCode": "HZ-MS-XINGANG",
+          "slug": "hangzhou-metro-xingang",
+          "sortOrder": 12,
+          "centerLatitude": 30.219239,
+          "centerLongitude": 120.408416
+        },
+        {
+          "name": "永盛路",
+          "immutableCode": "HZ-MS-YONGSHENGLU",
+          "slug": "hangzhou-metro-yongshenglu",
+          "sortOrder": 13,
+          "centerLatitude": 30.236479,
+          "centerLongitude": 120.473016
+        },
+        {
+          "name": "新镇路",
+          "immutableCode": "HZ-MS-XINZHENLU",
+          "slug": "hangzhou-metro-xinzhenlu",
+          "sortOrder": 14,
+          "centerLatitude": 30.258395,
+          "centerLongitude": 120.484197
+        },
+        {
+          "name": "义蓬",
+          "immutableCode": "HZ-MS-YIPENG",
+          "slug": "hangzhou-metro-yipeng",
+          "sortOrder": 15,
+          "centerLatitude": 30.273879,
+          "centerLongitude": 120.487218
+        },
+        {
+          "name": "塘新线",
+          "immutableCode": "HZ-MS-TANGXINXIAN",
+          "slug": "hangzhou-metro-tangxinxian",
+          "sortOrder": 16,
+          "centerLatitude": 30.328421,
+          "centerLongitude": 120.494331
+        },
+        {
+          "name": "青六中路",
+          "immutableCode": "HZ-MS-QINGLIUZHONGLU",
+          "slug": "hangzhou-metro-qingliu-zhonglu",
+          "sortOrder": 17,
+          "centerLatitude": 30.297734,
+          "centerLongitude": 120.49121
+        },
+        {
+          "name": "启成路",
+          "immutableCode": "HZ-MS-QICHENGLU",
+          "slug": "hangzhou-metro-qichenglu",
+          "sortOrder": 18,
+          "centerLatitude": 30.311968,
+          "centerLongitude": 120.494397
+        },
+        {
+          "name": "江东二路",
+          "immutableCode": "HZ-MS-JIANGDONGERLU",
+          "slug": "hangzhou-metro-jiangdong-erlu",
+          "sortOrder": 19,
+          "centerLatitude": 30.32362,
+          "centerLongitude": 120.494724
+        }
+      ]
+    },
+    {
+      "name": "地铁8号线",
+      "immutableCode": "HZ-ML-8",
+      "slug": "hangzhou-metro-8",
+      "sortOrder": 8,
+      "stations": [
+        {
+          "name": "工商大学云滨",
+          "immutableCode": "HZ-MS-GONGSHANGDAXUEYUNBIN",
+          "slug": "hangzhou-metro-gongshang-daxue-yunbin",
+          "sortOrder": 1,
+          "centerLatitude": 30.310979,
+          "centerLongitude": 120.393007
+        },
+        {
+          "name": "桥头堡",
+          "immutableCode": "HZ-MS-QIAOTOUBAO",
+          "slug": "hangzhou-metro-qiaotoubao",
+          "sortOrder": 2,
+          "centerLatitude": 30.303126,
+          "centerLongitude": 120.432445
+        },
+        {
+          "name": "河庄路",
+          "immutableCode": "HZ-MS-HEZHUANGLU",
+          "slug": "hangzhou-metro-hezhuanglu",
+          "sortOrder": 3,
+          "centerLatitude": 30.298731,
+          "centerLongitude": 120.457946
+        },
+        {
+          "name": "青西三路",
+          "immutableCode": "HZ-MS-QINGXISANLU",
+          "slug": "hangzhou-metro-qingxi-sanlu",
+          "sortOrder": 4,
+          "centerLatitude": 30.298257,
+          "centerLongitude": 120.477728
+        },
+        {
+          "name": "仓北村",
+          "immutableCode": "HZ-MS-CANGBEICUN",
+          "slug": "hangzhou-metro-cangbeicun",
+          "sortOrder": 5,
+          "centerLatitude": 30.293839,
+          "centerLongitude": 120.507671
+        },
+        {
+          "name": "冯娄村",
+          "immutableCode": "HZ-MS-FENGLOUCUN",
+          "slug": "hangzhou-metro-fengloucun",
+          "sortOrder": 6,
+          "centerLatitude": 30.294148,
+          "centerLongitude": 120.521327
+        },
+        {
+          "name": "新湾路",
+          "immutableCode": "HZ-MS-XINWANLU",
+          "slug": "hangzhou-metro-xinwanlu",
+          "sortOrder": 7,
+          "centerLatitude": 30.294648,
+          "centerLongitude": 120.541879
+        }
+      ]
+    },
+    {
+      "name": "地铁9号线",
+      "immutableCode": "HZ-ML-9",
+      "slug": "hangzhou-metro-9",
+      "sortOrder": 9,
+      "stations": [
+        {
+          "name": "新业路",
+          "immutableCode": "HZ-MS-XINYELU",
+          "slug": "hangzhou-metro-xinyelu",
+          "sortOrder": 1,
+          "centerLatitude": 30.24912,
+          "centerLongitude": 120.208875
+        },
+        {
+          "name": "江河汇",
+          "immutableCode": "HZ-MS-JIANGHEHUI",
+          "slug": "hangzhou-metro-jianghehui",
+          "sortOrder": 2,
+          "centerLatitude": 30.261374,
+          "centerLongitude": 120.221398
+        },
+        {
+          "name": "御道",
+          "immutableCode": "HZ-MS-YUDAO",
+          "slug": "hangzhou-metro-yudao",
+          "sortOrder": 3,
+          "centerLatitude": 30.27391,
+          "centerLongitude": 120.236213
+        },
+        {
+          "name": "五堡",
+          "immutableCode": "HZ-MS-WUBAO",
+          "slug": "hangzhou-metro-wubao",
+          "sortOrder": 4,
+          "centerLatitude": 30.280647,
+          "centerLongitude": 120.242115
+        },
+        {
+          "name": "六堡",
+          "immutableCode": "HZ-MS-LIUBAO",
+          "slug": "hangzhou-metro-liubao",
+          "sortOrder": 5,
+          "centerLatitude": 30.286241,
+          "centerLongitude": 120.251166
+        },
+        {
+          "name": "红普南路",
+          "immutableCode": "HZ-MS-HONGPUNANLU",
+          "slug": "hangzhou-metro-hongpu-nanlu",
+          "sortOrder": 6,
+          "centerLatitude": 30.292956,
+          "centerLongitude": 120.263187
+        },
+        {
+          "name": "九睦路",
+          "immutableCode": "HZ-MS-JIUMULU",
+          "slug": "hangzhou-metro-jiumulu",
+          "sortOrder": 7,
+          "centerLatitude": 30.305715,
+          "centerLongitude": 120.271195
+        },
+        {
+          "name": "乔司南",
+          "immutableCode": "HZ-MS-QIAOSINAN",
+          "slug": "hangzhou-metro-qiaosi-nan",
+          "sortOrder": 8,
+          "centerLatitude": 30.327319,
+          "centerLongitude": 120.290691
+        },
+        {
+          "name": "乔司",
+          "immutableCode": "HZ-MS-QIAOSI",
+          "slug": "hangzhou-metro-qiaosi",
+          "sortOrder": 9,
+          "centerLatitude": 30.346865,
+          "centerLongitude": 120.285261
+        },
+        {
+          "name": "翁梅",
+          "immutableCode": "HZ-MS-WENGMEI",
+          "slug": "hangzhou-metro-wengmei",
+          "sortOrder": 10,
+          "centerLatitude": 30.364832,
+          "centerLongitude": 120.295006
+        },
+        {
+          "name": "临平南站",
+          "immutableCode": "HZ-MS-LINPINGNANZHAN",
+          "slug": "hangzhou-metro-linping-nanzhan",
+          "sortOrder": 11,
+          "centerLatitude": 30.380793,
+          "centerLongitude": 120.296665
+        },
+        {
+          "name": "南苑",
+          "immutableCode": "HZ-MS-NANYUAN",
+          "slug": "hangzhou-metro-nanyuan",
+          "sortOrder": 12,
+          "centerLatitude": 30.394918,
+          "centerLongitude": 120.302396
+        },
+        {
+          "name": "临平",
+          "immutableCode": "HZ-MS-LINPING",
+          "slug": "hangzhou-metro-linping",
+          "sortOrder": 13,
+          "centerLatitude": 30.406793,
+          "centerLongitude": 120.304068
+        },
+        {
+          "name": "邱山大街",
+          "immutableCode": "HZ-MS-QIUSHANDAJIE",
+          "slug": "hangzhou-metro-qiushan-dajie",
+          "sortOrder": 14,
+          "centerLatitude": 30.420768,
+          "centerLongitude": 120.295189
+        },
+        {
+          "name": "荷禹路",
+          "immutableCode": "HZ-MS-HEYULU",
+          "slug": "hangzhou-metro-heyulu",
+          "sortOrder": 15,
+          "centerLatitude": 30.469545,
+          "centerLongitude": 120.270103
+        },
+        {
+          "name": "五洲路",
+          "immutableCode": "HZ-MS-WUZHOULU",
+          "slug": "hangzhou-metro-wuzhoulu",
+          "sortOrder": 16,
+          "centerLatitude": 30.444745,
+          "centerLongitude": 120.278916
+        },
+        {
+          "name": "龙安",
+          "immutableCode": "HZ-MS-LONGAN",
+          "slug": "hangzhou-metro-longan",
+          "sortOrder": 17,
+          "centerLatitude": 30.455958,
+          "centerLongitude": 120.273183
+        }
+      ]
+    },
+    {
+      "name": "地铁10号线",
+      "immutableCode": "HZ-ML-10",
+      "slug": "hangzhou-metro-10",
+      "sortOrder": 10,
+      "stations": [
+        {
+          "name": "文三路",
+          "immutableCode": "HZ-MS-WENSANLU",
+          "slug": "hangzhou-metro-wensanlu",
+          "sortOrder": 1,
+          "centerLatitude": 30.276862,
+          "centerLongitude": 120.129964
+        },
+        {
+          "name": "翠柏路",
+          "immutableCode": "HZ-MS-CUIBAILU",
+          "slug": "hangzhou-metro-cuibailu",
+          "sortOrder": 2,
+          "centerLatitude": 30.290239,
+          "centerLongitude": 120.128892
+        },
+        {
+          "name": "北大桥",
+          "immutableCode": "HZ-MS-BEIDAQIAO",
+          "slug": "hangzhou-metro-beidaqiao",
+          "sortOrder": 3,
+          "centerLatitude": 30.303355,
+          "centerLongitude": 120.12985
+        },
+        {
+          "name": "花园岗",
+          "immutableCode": "HZ-MS-HUAYUANGANG",
+          "slug": "hangzhou-metro-huayuangang",
+          "sortOrder": 4,
+          "centerLatitude": 30.315717,
+          "centerLongitude": 120.112958
+        },
+        {
+          "name": "渡驾桥",
+          "immutableCode": "HZ-MS-DUJIAQIAO",
+          "slug": "hangzhou-metro-dujiaqiao",
+          "sortOrder": 5,
+          "centerLatitude": 30.324957,
+          "centerLongitude": 120.115365
+        },
+        {
+          "name": "祥园路",
+          "immutableCode": "HZ-MS-XIANGYUANLU",
+          "slug": "hangzhou-metro-xiangyuanlu",
+          "sortOrder": 6,
+          "centerLatitude": 30.336761,
+          "centerLongitude": 120.11645
+        },
+        {
+          "name": "金德路",
+          "immutableCode": "HZ-MS-JINDELU",
+          "slug": "hangzhou-metro-jindelu",
+          "sortOrder": 7,
+          "centerLatitude": 30.364386,
+          "centerLongitude": 120.114259
+        },
+        {
+          "name": "逸盛路",
+          "immutableCode": "HZ-MS-YISHENGLU",
+          "slug": "hangzhou-metro-yishenglu",
+          "sortOrder": 8,
+          "centerLatitude": 30.378893,
+          "centerLongitude": 120.113559
+        }
+      ]
+    },
+    {
+      "name": "地铁16号线",
+      "immutableCode": "HZ-ML-16",
+      "slug": "hangzhou-metro-16",
+      "sortOrder": 11,
+      "stations": [
+        {
+          "name": "九州街",
+          "immutableCode": "HZ-MS-JIUZHOUJIE",
+          "slug": "hangzhou-metro-jiuzhoujie",
+          "sortOrder": 1,
+          "centerLatitude": 30.202096,
+          "centerLongitude": 119.696123
+        },
+        {
+          "name": "临安广场",
+          "immutableCode": "HZ-MS-LINANGUANGCHANG",
+          "slug": "hangzhou-metro-linan-guangchang",
+          "sortOrder": 2,
+          "centerLatitude": 30.227833,
+          "centerLongitude": 119.70637
+        },
+        {
+          "name": "浙江农林大学",
+          "immutableCode": "HZ-MS-ZHEJIANGNONGLINDAXUE",
+          "slug": "hangzhou-metro-zhejiang-nonglin-daxue",
+          "sortOrder": 3,
+          "centerLatitude": 30.244551,
+          "centerLongitude": 119.738327
+        },
+        {
+          "name": "青山湖",
+          "immutableCode": "HZ-MS-QINGSHANHU",
+          "slug": "hangzhou-metro-qingshanhu",
+          "sortOrder": 4,
+          "centerLatitude": 30.238552,
+          "centerLongitude": 119.799667
+        },
+        {
+          "name": "八百里",
+          "immutableCode": "HZ-MS-BABAILI",
+          "slug": "hangzhou-metro-babaili",
+          "sortOrder": 5,
+          "centerLatitude": 30.260992,
+          "centerLongitude": 119.776595
+        },
+        {
+          "name": "青山湖科技城",
+          "immutableCode": "HZ-MS-QINGSHANHUKEJICHENG",
+          "slug": "hangzhou-metro-qingshanhu-kejicheng",
+          "sortOrder": 6,
+          "centerLatitude": 30.257621,
+          "centerLongitude": 119.824774
+        },
+        {
+          "name": "南峰",
+          "immutableCode": "HZ-MS-NANFENG",
+          "slug": "hangzhou-metro-nanfeng",
+          "sortOrder": 7,
+          "centerLatitude": 30.249779,
+          "centerLongitude": 119.878316
+        },
+        {
+          "name": "南湖",
+          "immutableCode": "HZ-MS-NANHU",
+          "slug": "hangzhou-metro-nanhu",
+          "sortOrder": 8,
+          "centerLatitude": 30.246777,
+          "centerLongitude": 119.899603
+        },
+        {
+          "name": "中泰",
+          "immutableCode": "HZ-MS-ZHONGTAI",
+          "slug": "hangzhou-metro-zhongtai",
+          "sortOrder": 9,
+          "centerLatitude": 30.243033,
+          "centerLongitude": 119.929447
+        },
+        {
+          "name": "余杭路",
+          "immutableCode": "HZ-MS-YUHANGLU",
+          "slug": "hangzhou-metro-yuhanglu",
+          "sortOrder": 10,
+          "centerLatitude": 30.248755,
+          "centerLongitude": 119.955554
+        },
+        {
+          "name": "凤新路",
+          "immutableCode": "HZ-MS-FENGXINLU",
+          "slug": "hangzhou-metro-fengxinlu",
+          "sortOrder": 11,
+          "centerLatitude": 30.260134,
+          "centerLongitude": 119.968843
+        }
+      ]
+    },
+    {
+      "name": "地铁19号线",
+      "immutableCode": "HZ-ML-19",
+      "slug": "hangzhou-metro-19",
+      "sortOrder": 12,
+      "stations": [
+        {
+          "name": "苕溪",
+          "immutableCode": "HZ-MS-TIAOXI",
+          "slug": "hangzhou-metro-tiaoxi",
+          "sortOrder": 1,
+          "centerLatitude": 30.322395,
+          "centerLongitude": 119.95922
+        },
+        {
+          "name": "海创园",
+          "immutableCode": "HZ-MS-HAICHUANGYUAN",
+          "slug": "hangzhou-metro-haichuangyuan",
+          "sortOrder": 2,
+          "centerLatitude": 30.280071,
+          "centerLongitude": 120.020641
+        },
+        {
+          "name": "西溪湿地北",
+          "immutableCode": "HZ-MS-XIXISHIDIBEI",
+          "slug": "hangzhou-metro-xixi-shidi-bei",
+          "sortOrder": 3,
+          "centerLatitude": 30.281847,
+          "centerLongitude": 120.069922
+        },
+        {
+          "name": "五联",
+          "immutableCode": "HZ-MS-WULIAN",
+          "slug": "hangzhou-metro-wulian",
+          "sortOrder": 4,
+          "centerLatitude": 30.275803,
+          "centerLongitude": 120.099107
+        },
+        {
+          "name": "驿城路",
+          "immutableCode": "HZ-MS-YICHENGLU",
+          "slug": "hangzhou-metro-yichenglu",
+          "sortOrder": 5,
+          "centerLatitude": 30.298381,
+          "centerLongitude": 120.199177
+        },
+        {
+          "name": "平澜路",
+          "immutableCode": "HZ-MS-PINGLANLU",
+          "slug": "hangzhou-metro-pinglanlu",
+          "sortOrder": 6,
+          "centerLatitude": 30.25997,
+          "centerLongitude": 120.258554
+        },
+        {
+          "name": "耕文路",
+          "immutableCode": "HZ-MS-GENGWENLU",
+          "slug": "hangzhou-metro-gengwenlu",
+          "sortOrder": 7,
+          "centerLatitude": 30.239989,
+          "centerLongitude": 120.301767
+        },
+        {
+          "name": "知行路",
+          "immutableCode": "HZ-MS-ZHIXINGLU",
+          "slug": "hangzhou-metro-zhixinglu",
+          "sortOrder": 8,
+          "centerLatitude": 30.228366,
+          "centerLongitude": 120.335746
+        }
+      ]
+    }
+  ]
+}

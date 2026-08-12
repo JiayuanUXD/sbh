@@ -18,11 +18,13 @@ export const BusinessAreaExtensions: CollectionConfig = {
     plural: '商圈管理',
   },
   admin: {
+    // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板。
+    // collection 与 protect hook 全部保留，直接 URL 仍可访问用于排障。
+    hidden: true,
     group: false,
     useAsTitle: 'businessArea',
-    defaultColumns: ['businessArea', 'extendedCenterLatitude', 'extendedCenterLongitude', 'version'],
-    description:
-      '仅维护已启用商圈的边界、扩展中心点、别名与同城站点关联；基础字段在「城市区域」页维护。',
+    defaultColumns: ['businessArea', 'boundary', 'aliases', 'updatedAt'],
+    description: '本页仅供排障；日常配置请在「商圈管理」中打开对应商圈',
   },
   access: {
     read: () => true,
