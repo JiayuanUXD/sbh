@@ -7,6 +7,7 @@ const { revalidateTag } = vi.hoisted(() => ({
 vi.mock('next/cache', () => ({ revalidateTag }))
 
 import { CitySiteProfiles } from '@/collections/CitySiteProfiles'
+import { Locations } from '@/collections/Locations'
 import {
   cityProfileTag,
   tagsForLocationVisibilityChange,
@@ -65,5 +66,27 @@ describe('city profile cache invalidator', () => {
     expect(revalidateTag).toHaveBeenCalledWith('public:home:hangzhou', 'max')
     expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:suzhou', 'max')
     expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', 'max')
+  })
+
+  it('invalidates the owning city caches after a Location is deleted', async () => {
+    revalidateTag.mockClear()
+    const hook = Locations.hooks?.afterDelete?.[0]
+    if (!hook) throw new Error('location_after_delete_hook_missing')
+
+    await Reflect.apply(hook, undefined, [{
+      doc: {
+        id: 505,
+        city: { id: 1, slug: 'hangzhou' },
+        frontendVisible: true,
+        slug: 'west-lake',
+        status: 'active',
+        type: 'district',
+      },
+      req: {},
+    }])
+
+    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:hangzhou', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('public:facets:hangzhou', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', 'max')
   })
 })

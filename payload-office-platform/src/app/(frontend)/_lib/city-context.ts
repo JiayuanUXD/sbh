@@ -9,6 +9,14 @@ import {
   type CityContext,
 } from '@/domain/city-site-profile/resolver'
 import type { PublicCitySiteProfile } from '@/domain/city-site-profile/public-contract'
+import {
+  CITY_PROFILES_TAG,
+  cityProfileTag,
+} from '@/domain/city-site-profile/cache-invalidator'
+import {
+  isValidCityProfileSeoText,
+  normalizeCityDisplayName,
+} from '@/domain/city-site-profile/schema'
 
 export type PublicCityOption = Readonly<{
   slug: string
@@ -20,6 +28,7 @@ export type PublicCityOption = Readonly<{
 type CachedResolver = () => Promise<CityContext | null>
 
 const cityResolvers = new Map<string, CachedResolver>()
+const CITY_PROFILE_REVALIDATE_SECONDS = 300
 
 type MappingResult<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false }>
 
@@ -40,6 +49,12 @@ function isIdentifier(value: unknown): value is number | string {
     (typeof value === 'number' && Number.isSafeInteger(value) && value > 0) ||
     (typeof value === 'string' && value.trim().length > 0)
   )
+}
+
+function relationshipId(value: unknown): number | string | null {
+  if (isIdentifier(value)) return value
+  if (!isRecord(value)) return null
+  return isIdentifier(value.id) ? value.id : null
 }
 
 function isRequiredString(value: unknown): value is string {
@@ -77,17 +92,25 @@ function mapHeroMedia(value: unknown): MappingResult<PublicCitySiteProfile['hero
 
 function mapFeaturedRegions(
   value: unknown,
+  cityId: number | string,
 ): MappingResult<PublicCitySiteProfile['featuredRegions']> {
   if (value === null || value === undefined) return valid([])
   if (!Array.isArray(value)) return invalid()
   const regions: PublicCitySiteProfile['featuredRegions'][number][] = []
   for (const relation of value) {
-    const slug = isRecord(relation) ? normalizeCitySlug(relation.slug) : null
+    const rawSlug = isRecord(relation) ? relation.slug : null
+    const slug = normalizeCitySlug(rawSlug)
+    const owningCityId = isRecord(relation) ? relationshipId(relation.city) : null
     if (
       !isRecord(relation) ||
       !isIdentifier(relation.id) ||
       !slug ||
+      rawSlug !== slug ||
       (relation.type !== 'district' && relation.type !== 'business_area') ||
+      relation.status !== 'active' ||
+      relation.frontendVisible !== true ||
+      owningCityId === null ||
+      String(owningCityId) !== String(cityId) ||
       !isRequiredString(relation.name)
     ) {
       return invalid()
@@ -100,7 +123,9 @@ function mapFeaturedRegions(
 function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
   if (!isRecord(value) || !isRecord(value.city)) return null
   const city = value.city
-  const citySlug = normalizeCitySlug(city.slug)
+  const rawCitySlug = city.slug
+  const citySlug = normalizeCitySlug(rawCitySlug)
+  const cityName = normalizeCityDisplayName(city.name)
   const eyebrow = mapOptionalString(value.heroEyebrow)
   const heading = mapOptionalString(value.heroHeading)
   const heroBody = mapOptionalString(value.heroBody)
@@ -109,20 +134,23 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
   const contactHeading = mapOptionalString(value.contactHeading)
   const contactBody = mapOptionalString(value.contactBody)
   const media = mapHeroMedia(value.heroMedia)
-  const featuredRegions = mapFeaturedRegions(value.featuredRegions)
+  const featuredRegions = isIdentifier(city.id)
+    ? mapFeaturedRegions(value.featuredRegions, city.id)
+    : invalid()
   if (
     !isIdentifier(city.id) ||
     !citySlug ||
+    rawCitySlug !== citySlug ||
     city.type !== 'city' ||
     city.status !== 'active' ||
-    !isRequiredString(city.name) ||
+    !cityName ||
     (value.serviceStatus !== 'live' && value.serviceStatus !== 'coming-soon') ||
     typeof value.switcherVisible !== 'boolean' ||
     typeof value.sortOrder !== 'number' ||
     !Number.isFinite(value.sortOrder) ||
     value.sortOrder < 0 ||
-    !isRequiredString(value.seoTitle) ||
-    !isRequiredString(value.seoDescription) ||
+    !isValidCityProfileSeoText(value.seoTitle, 'title', cityName) ||
+    !isValidCityProfileSeoText(value.seoDescription, 'description', cityName) ||
     !eyebrow.ok ||
     !heading.ok ||
     !heroBody.ok ||
@@ -139,7 +167,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
   return {
     cityId: city.id,
     citySlug,
-    cityName: city.name,
+    cityName,
     serviceStatus: value.serviceStatus,
     switcherVisible: value.switcherVisible,
     sortOrder: value.sortOrder,
@@ -182,10 +210,6 @@ async function findPublicCityProfiles(): Promise<readonly PublicCitySiteProfile[
     .filter((profile): profile is PublicCitySiteProfile => profile !== null)
 }
 
-function cityProfileTag(citySlug: string): string {
-  return `public:city-profile:${citySlug}`
-}
-
 function getCachedResolver(citySlug: string): CachedResolver {
   const existing = cityResolvers.get(citySlug)
   if (existing) return existing
@@ -194,7 +218,10 @@ function getCachedResolver(citySlug: string): CachedResolver {
   const cachedResolver = unstable_cache(
     async () => resolver(citySlug),
     ['public-city-profile', citySlug],
-    { tags: [cityProfileTag(citySlug)] },
+    {
+      revalidate: CITY_PROFILE_REVALIDATE_SECONDS,
+      tags: [cityProfileTag(citySlug), CITY_PROFILES_TAG],
+    },
   )
   cityResolvers.set(citySlug, cachedResolver)
   return cachedResolver
@@ -203,13 +230,19 @@ function getCachedResolver(citySlug: string): CachedResolver {
 export const resolveCityContext = cache(async (slug: unknown): Promise<CityContext | null> => {
   const normalizedSlug = normalizeCitySlug(slug)
   if (!normalizedSlug) return null
+  try {
+    const publicProfiles = await listPublicCityProfiles()
+    if (!publicProfiles.some((profile) => profile.citySlug === normalizedSlug)) return null
+  } catch {
+    return null
+  }
   return getCachedResolver(normalizedSlug)()
 })
 
 export const listPublicCityProfiles = unstable_cache(
   async (): Promise<readonly PublicCitySiteProfile[]> => findPublicCityProfiles(),
   ['public-city-profiles'],
-  { tags: ['public:city-profiles'] },
+  { revalidate: CITY_PROFILE_REVALIDATE_SECONDS, tags: [CITY_PROFILES_TAG] },
 )
 
 export async function listPublicCityOptions(): Promise<readonly PublicCityOption[]> {

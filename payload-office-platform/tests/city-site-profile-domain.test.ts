@@ -20,6 +20,8 @@ const LOCATIONS: readonly LocationNode[] = [
   { id: 5, name: '北京', type: 'city', status: 'active', frontendVisible: true },
   { id: 6, name: '朝阳区', type: 'district', status: 'active', frontendVisible: true, city: 5 },
   { id: 7, name: '1号线', type: 'metro_line', status: 'active', frontendVisible: true, city: 1 },
+  { id: 8, name: '杭州市', type: 'city', status: 'active', frontendVisible: true },
+  { id: 9, name: '拱墅区', type: 'district', status: 'active', frontendVisible: true, city: 8 },
 ]
 
 function makeHookArgs(
@@ -63,6 +65,18 @@ describe('city-site-profile contract', () => {
   it('accepts a valid coming-soon profile', async () => {
     const profile = await protectCitySiteProfile(makeHookArgs(validInput('杭州')))
     expect(profile).toMatchObject({ serviceStatus: 'coming-soon' })
+  })
+
+  it('uses the deterministic short display name for a city name ending in 市', async () => {
+    const profile = await protectCitySiteProfile(
+      makeHookArgs({
+        ...validInput('杭州'),
+        city: 8,
+        featuredRegions: [9],
+      }),
+    )
+
+    expect(profile).toMatchObject({ city: 8, serviceStatus: 'coming-soon' })
   })
 
   it('accepts a partial update using the persisted profile for validation', async () => {

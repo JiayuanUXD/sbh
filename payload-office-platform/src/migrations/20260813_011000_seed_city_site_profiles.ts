@@ -1,8 +1,14 @@
 import { sql, type MigrateDownArgs } from '@payloadcms/db-postgres'
 import type { SQL } from 'drizzle-orm'
 
+import {
+  isValidCityProfileSeoText,
+  normalizeCityDisplayName,
+} from '../domain/city-site-profile/schema'
+
 type CitySiteProfileSeed = {
   cityCodes: readonly string[]
+  displayName: string
   serviceStatus: 'live' | 'coming-soon'
   sortOrder: number
   seoTitle: string
@@ -20,6 +26,13 @@ type CitySiteProfileSeed = {
 
 type ResolvedCity = {
   id: number
+}
+
+type CityCandidate = {
+  id: unknown
+  immutable_code: unknown
+  name: unknown
+  status: unknown
 }
 
 type SeedDb = {
@@ -42,7 +55,8 @@ const comingSoonCopy = (cityName: string) => ({
 
 export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   {
-    cityCodes: ['LEGACY_LOC_1', 'CITY-SH', 'SH'],
+    cityCodes: ['CITY-SH', 'LEGACY_LOC_1', 'SH'],
+    displayName: '上海',
     serviceStatus: 'live',
     sortOrder: 10,
     ...shanghaiCopy,
@@ -55,6 +69,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-HZ'],
+    displayName: '杭州',
     serviceStatus: 'coming-soon',
     sortOrder: 20,
     ...comingSoonCopy('杭州'),
@@ -70,6 +85,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-NB'],
+    displayName: '宁波',
     serviceStatus: 'coming-soon',
     sortOrder: 30,
     ...comingSoonCopy('宁波'),
@@ -85,6 +101,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-SZ'],
+    displayName: '苏州',
     serviceStatus: 'coming-soon',
     sortOrder: 40,
     ...comingSoonCopy('苏州'),
@@ -100,6 +117,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-NJ'],
+    displayName: '南京',
     serviceStatus: 'coming-soon',
     sortOrder: 50,
     ...comingSoonCopy('南京'),
@@ -115,6 +133,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-JX'],
+    displayName: '嘉兴',
     serviceStatus: 'coming-soon',
     sortOrder: 60,
     ...comingSoonCopy('嘉兴'),
@@ -130,6 +149,7 @@ export const CITY_SITE_PROFILE_SEEDS: readonly CitySiteProfileSeed[] = [
   },
   {
     cityCodes: ['CITY-WX'],
+    displayName: '无锡',
     serviceStatus: 'coming-soon',
     sortOrder: 70,
     ...comingSoonCopy('无锡'),
@@ -178,22 +198,42 @@ async function applyCitySiteProfileSeed(db: SeedDb): Promise<void> {
       (cityCode) => sql`"immutable_code" = ${cityCode}`,
     )
     const cityCodeLabel = seed.cityCodes.join(', ')
-    const cityResult = await db.execute(sql<ResolvedCity>`
-        SELECT "id"
+    const cityResult = await db.execute(sql<CityCandidate>`
+        SELECT "id", "immutable_code", "name", "status"
         FROM "locations"
         WHERE (${sql.join(cityCodePredicates, sql` OR `)})
           AND "type" = 'city';
     `)
 
-    if (cityResult.rows.length !== 1) {
+    const activeCities = cityResult.rows
+      .filter((candidate) => candidate.status === 'active')
+      .sort((left, right) => {
+        const leftRank = seed.cityCodes.indexOf(String(left.immutable_code))
+        const rightRank = seed.cityCodes.indexOf(String(right.immutable_code))
+        return leftRank - rightRank
+      })
+    if (activeCities.length !== 1) {
       throw new Error(
-        `city_site_profile_seed_conflict: immutable city codes ${cityCodeLabel} matched ${cityResult.rows.length} city rows`,
+        `city_site_profile_seed_conflict: immutable city codes ${cityCodeLabel} matched ${activeCities.length} active city rows`,
       )
     }
 
-    const cityRow = cityResult.rows[0]
-    if (!cityRow || typeof cityRow.id !== 'number') {
+    const cityRow = activeCities[0]
+    if (
+      !cityRow ||
+      typeof cityRow.id !== 'number' ||
+      typeof cityRow.immutable_code !== 'string' ||
+      !seed.cityCodes.includes(cityRow.immutable_code)
+    ) {
       throw new Error(`city_site_profile_seed_conflict: immutable city codes ${cityCodeLabel} did not resolve`)
+    }
+    const displayName = normalizeCityDisplayName(cityRow.name)
+    if (
+      displayName !== seed.displayName ||
+      !isValidCityProfileSeoText(seed.seoTitle, 'title', displayName) ||
+      !isValidCityProfileSeoText(seed.seoDescription, 'description', displayName)
+    ) {
+      throw new Error(`city_site_profile_seed_conflict: display-name mismatch for ${cityCodeLabel}`)
     }
     const city: ResolvedCity = { id: cityRow.id }
 

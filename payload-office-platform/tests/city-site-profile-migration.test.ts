@@ -49,7 +49,7 @@ describe('city site profile migrations', () => {
 
     expect(seedMigrationText).toMatch(/transaction|BEGIN/i)
     expect(seedMigrationText).toContain('city_site_profile_seed_conflict')
-    expect(seedMigrationText).toContain('cityResult.rows.length !== 1')
+    expect(seedMigrationText).toContain('activeCities.length !== 1')
     expect(seedMigrationText).toContain("'live'")
     expect(seedMigrationText).toContain("'coming-soon'")
     expect(seedMigrationText).toContain('shanghaiCopy')
@@ -59,10 +59,24 @@ describe('city site profile migrations', () => {
   it('resolves Shanghai only through ordered immutable-code compatibility aliases', () => {
     const seedMigrationText = migrationText(seedMigrationPath)
 
-    expect(seedMigrationText).toContain("cityCodes: ['LEGACY_LOC_1', 'CITY-SH', 'SH']")
+    expect(seedMigrationText).toContain("cityCodes: ['CITY-SH', 'LEGACY_LOC_1', 'SH']")
     expect(seedMigrationText).toContain('sql.join(cityCodePredicates')
-    expect(seedMigrationText).toContain('cityResult.rows.length !== 1')
     expect(seedMigrationText).not.toMatch(/WHERE\s+"?name"?\s*=/i)
+  })
+
+  it('uses the one active Shanghai candidate when SH is a disabled compatibility alias', async () => {
+    const db = createSeedDb({ mode: 'active-shanghai-with-disabled-alias' })
+
+    await seedCitySiteProfiles({ db })
+
+    expect(db.insertedProfiles[0]).toMatchObject({ cityId: 101, serviceStatus: 'live' })
+    expect(db.insertCount).toBe(7)
+  })
+
+  it('rejects a city whose normalized display name does not match its deterministic seed copy', async () => {
+    const db = createSeedDb({ mode: 'invalid-city-display-name' })
+
+    await expect(seedCitySiteProfiles({ db })).rejects.toThrow('city_site_profile_seed_conflict')
   })
 
   it('inserts seven deterministic profiles with one live and six coming-soon statuses', async () => {
@@ -147,7 +161,24 @@ const INSERT_EXPECTATIONS = [
   { cityId: 107, serviceStatus: 'coming-soon', sortOrder: 70, switcherVisible: true },
 ] as const
 
-type SeedDbMode = 'matching' | 'missing' | 'multiple-city-match' | 'optional-mismatch' | 'zero-city-match'
+const CITY_LOOKUP_EXPECTATIONS = [
+  { immutableCode: 'LEGACY_LOC_1', locationName: '上海' },
+  { immutableCode: 'CITY-HZ', locationName: '杭州市' },
+  { immutableCode: 'CITY-NB', locationName: '宁波市' },
+  { immutableCode: 'CITY-SZ', locationName: '苏州市' },
+  { immutableCode: 'CITY-NJ', locationName: '南京市' },
+  { immutableCode: 'CITY-JX', locationName: '嘉兴市' },
+  { immutableCode: 'CITY-WX', locationName: '无锡市' },
+] as const
+
+type SeedDbMode =
+  | 'active-shanghai-with-disabled-alias'
+  | 'invalid-city-display-name'
+  | 'matching'
+  | 'missing'
+  | 'multiple-city-match'
+  | 'optional-mismatch'
+  | 'zero-city-match'
 type MismatchField =
   | 'city'
   | 'contactBody'
@@ -193,14 +224,49 @@ function createSeedDb({
       const compiled = dialect.sqlToQuery(query)
       if (compiled.sql.includes('FROM "locations"')) {
         if (mode === 'zero-city-match') return { rows: [] }
-        if (mode === 'multiple-city-match') return { rows: [{ id: 1 }, { id: 2 }] }
         const expected = INSERT_EXPECTATIONS[cityLookupCount]
+        const expectedCity = CITY_LOOKUP_EXPECTATIONS[cityLookupCount]
         cityLookupCount++
-        if (!expected) throw new Error('unexpected immutable city lookup')
-        return { rows: [{ id: expected.cityId }] }
+        if (!expected || !expectedCity) throw new Error('unexpected immutable city lookup')
+        for (const selectedColumn of ['"immutable_code"', '"name"', '"status"']) {
+          if (!compiled.sql.includes(selectedColumn)) {
+            throw new Error(`city lookup must select ${selectedColumn}`)
+          }
+        }
+        if (mode === 'multiple-city-match') {
+          return {
+            rows: [
+              { id: 1, immutable_code: 'CITY-SH', name: '上海', status: 'active' },
+              { id: 2, immutable_code: 'LEGACY_LOC_1', name: '上海', status: 'active' },
+            ],
+          }
+        }
+        if (mode === 'active-shanghai-with-disabled-alias' && cityLookupCount === 1) {
+          return {
+            rows: [
+              { id: 900, immutable_code: 'SH', name: '上海', status: 'disabled' },
+              { id: expected.cityId, immutable_code: expectedCity.immutableCode, name: expectedCity.locationName, status: 'active' },
+            ],
+          }
+        }
+        return {
+          rows: [{
+            id: expected.cityId,
+            immutable_code: expectedCity.immutableCode,
+            name:
+              mode === 'invalid-city-display-name' && cityLookupCount === 2
+                ? '宁波市'
+                : expectedCity.locationName,
+            status: 'active',
+          }],
+        }
       }
       if (compiled.sql.includes('FROM "city_site_profiles"')) {
-        if (mode === 'missing') return { rows: [] }
+        if (
+          mode === 'active-shanghai-with-disabled-alias' ||
+          mode === 'invalid-city-display-name' ||
+          mode === 'missing'
+        ) return { rows: [] }
         const cityId = compiled.params[0]
         if (typeof cityId !== 'number') throw new Error('profile lookup must use a numeric city ID')
         const profile = profiles.find((candidate) => candidate.cityId === cityId)

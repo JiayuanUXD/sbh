@@ -1,11 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 
-const { findCityProfiles } = vi.hoisted(() => ({
+const { findCityProfiles, unstableCache } = vi.hoisted(() => ({
   findCityProfiles: vi.fn(),
+  unstableCache: vi.fn((
+    fn: (...args: unknown[]) => unknown,
+    _keyParts: readonly string[],
+    _options: Readonly<{ revalidate?: number; tags?: readonly string[] }>,
+  ) => fn),
 }))
 
 vi.mock('next/cache', () => ({
-  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+  unstable_cache: unstableCache,
 }))
 vi.mock('react', () => ({
   cache: (fn: (...args: unknown[]) => unknown) => fn,
@@ -16,7 +21,11 @@ vi.mock('payload', () => ({
 vi.mock('@/payload.config', () => ({ default: {} }))
 
 import type { PublicCitySiteProfile } from '@/domain/city-site-profile/public-contract'
-import { listPublicCityOptions } from '@/app/(frontend)/_lib/city-context'
+import {
+  listPublicCityOptions,
+  listPublicCityProfiles,
+  resolveCityContext,
+} from '@/app/(frontend)/_lib/city-context'
 import {
   createCityContextResolver,
   normalizeCitySlug,
@@ -31,7 +40,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     switcherVisible: true,
     sortOrder: 20,
     seoTitle: 'Hangzhou office leasing',
-    seoDescription: 'A public city profile for Hangzhou office leasing and site selection.',
+    seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
     hero: { eyebrow: '', heading: '', body: '', media: null },
     intro: { heading: '', body: '' },
     contact: { heading: '', body: '' },
@@ -48,7 +57,7 @@ function cityProfileDocument(overrides: Record<string, unknown> = {}): Record<st
     switcherVisible: true,
     sortOrder: 10,
     seoTitle: 'Shanghai office leasing',
-    seoDescription: 'A public city profile for Shanghai office leasing and site selection.',
+    seoDescription: 'A public city profile for Shanghai office leasing and site selection now.',
     featuredRegions: [],
     ...overrides,
   }
@@ -60,6 +69,18 @@ describe('city context resolver', () => {
     expect(normalizeCitySlug('../news')).toBeNull()
     expect(normalizeCitySlug('hangzhou/news')).toBeNull()
     expect(normalizeCitySlug('')).toBeNull()
+    expect(normalizeCitySlug('a'.repeat(65))).toBeNull()
+  })
+
+  it('configures list cache expiry and the city-profile category tag', () => {
+    const listCacheCall = unstableCache.mock.calls.find((call) =>
+      Array.isArray(call[1]) && call[1][0] === 'public-city-profiles',
+    )
+
+    expect(listCacheCall?.[2]).toEqual({
+      revalidate: 300,
+      tags: ['public:city-profiles'],
+    })
   })
 
   it('fails closed for absent and disabled profiles', async () => {
@@ -99,6 +120,8 @@ describe('city context resolver', () => {
           city: { id: 1, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
           serviceStatus: 'coming-soon',
           sortOrder: 20,
+          seoTitle: 'Hangzhou office leasing',
+          seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
         }),
         cityProfileDocument(),
         cityProfileDocument({
@@ -115,6 +138,115 @@ describe('city context resolver', () => {
       { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
       { slug: 'hangzhou', name: 'Hangzhou', serviceStatus: 'coming-soon', sortOrder: 20 },
     ])
+  })
+
+  it('uses the short Chinese city display name while preserving approved SEO copy', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          city: { id: 2, slug: 'hangzhou', name: '杭州市', type: 'city', status: 'active' },
+          serviceStatus: 'coming-soon',
+          sortOrder: 20,
+          seoTitle: '杭州办公室租赁与写字楼选址',
+          seoDescription: `商办租赁为您提供杭州办公室租赁、写字楼与共享办公选址服务，${'覆盖重点商务区域与楼宇信息并提供企业选址支持。'.repeat(2)}`,
+        }),
+      ],
+    })
+
+    await expect(listPublicCityOptions()).resolves.toEqual([
+      { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon', sortOrder: 20 },
+    ])
+  })
+
+  it('fails closed on non-canonical raw slugs and invalid city-aware SEO', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument(),
+        cityProfileDocument({
+          id: 2,
+          city: { id: 2, slug: ' Hangzhou ', name: 'Hangzhou', type: 'city', status: 'active' },
+          serviceStatus: 'coming-soon',
+          sortOrder: 20,
+          seoTitle: 'Hangzhou office leasing',
+          seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+        }),
+        cityProfileDocument({
+          id: 3,
+          city: { id: 3, slug: 'nanjing', name: 'Nanjing', type: 'city', status: 'active' },
+          serviceStatus: 'coming-soon',
+          sortOrder: 30,
+          seoTitle: 'Office leasing without the display city',
+          seoDescription: 'A public city profile for office leasing without its current display city name.',
+        }),
+        cityProfileDocument({
+          id: 4,
+          city: { id: 4, slug: 'suzhou', name: 'Suzhou', type: 'city', status: 'active' },
+          serviceStatus: 'coming-soon',
+          sortOrder: 40,
+          seoTitle: `Suzhou${'x'.repeat(60)}`,
+          seoDescription: 'Suzhou is too short.',
+        }),
+      ],
+    })
+
+    await expect(listPublicCityOptions()).resolves.toEqual([
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+    ])
+  })
+
+  it('requires populated featured regions to be canonical, active, visible, and owned by the profile city', async () => {
+    const validRegion = {
+      id: 11,
+      slug: 'pudong',
+      name: 'Pudong',
+      type: 'district',
+      status: 'active',
+      frontendVisible: true,
+      city: { id: 1, slug: 'shanghai' },
+    }
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({ featuredRegions: [validRegion] }),
+        cityProfileDocument({
+          id: 2,
+          city: { id: 2, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
+          seoTitle: 'Hangzhou office leasing',
+          seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+          featuredRegions: [{ ...validRegion, id: 12, city: { id: 2 }, status: 'disabled' }],
+        }),
+        cityProfileDocument({
+          id: 3,
+          city: { id: 3, slug: 'nanjing', name: 'Nanjing', type: 'city', status: 'active' },
+          seoTitle: 'Nanjing office leasing',
+          seoDescription: 'A public city profile for Nanjing office leasing and site selection now.',
+          featuredRegions: [{ ...validRegion, id: 13, city: { id: 3 }, frontendVisible: false }],
+        }),
+        cityProfileDocument({
+          id: 4,
+          city: { id: 4, slug: 'suzhou', name: 'Suzhou', type: 'city', status: 'active' },
+          seoTitle: 'Suzhou office leasing',
+          seoDescription: 'A public city profile for Suzhou office leasing and site selection now.',
+          featuredRegions: [{ ...validRegion, id: 14, city: { id: 99 } }],
+        }),
+        cityProfileDocument({
+          id: 5,
+          city: { id: 5, slug: 'ningbo', name: 'Ningbo', type: 'city', status: 'active' },
+          seoTitle: 'Ningbo office leasing',
+          seoDescription: 'A public city profile for Ningbo office leasing and site selection now.',
+          featuredRegions: [{ ...validRegion, id: 15, slug: ' Pudong ', city: { id: 5 } }],
+        }),
+      ],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0]?.featuredRegions).toEqual([
+      { id: 11, slug: 'pudong', name: 'Pudong', type: 'district' },
+    ])
+    expect(findCityProfiles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ collection: 'city-site-profiles', depth: 2 }),
+    )
   })
 
   it('excludes a profile whose populated city is disabled', async () => {
@@ -154,5 +286,38 @@ describe('city context resolver', () => {
     await expect(listPublicCityOptions()).resolves.toEqual([
       { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
     ])
+  })
+
+  it('does not allocate a per-slug cache wrapper for an unknown valid slug', async () => {
+    findCityProfiles.mockResolvedValue({ docs: [] })
+
+    await expect(resolveCityContext('unknown-city')).resolves.toBeNull()
+
+    expect(
+      unstableCache.mock.calls.some((call) =>
+        Array.isArray(call[1]) && call[1][0] === 'public-city-profile' && call[1][1] === 'unknown-city',
+      ),
+    ).toBe(false)
+  })
+
+  it('configures a known per-city cache with expiry and both specific and category tags', async () => {
+    const hangzhou = cityProfileDocument({
+      city: { id: 2, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
+      serviceStatus: 'coming-soon',
+      sortOrder: 20,
+      seoTitle: 'Hangzhou office leasing',
+      seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+    })
+    findCityProfiles.mockResolvedValue({ docs: [hangzhou] })
+
+    await expect(resolveCityContext('hangzhou')).resolves.toMatchObject({ slug: 'hangzhou' })
+
+    const cityCacheCall = unstableCache.mock.calls.find((call) =>
+      Array.isArray(call[1]) && call[1][0] === 'public-city-profile' && call[1][1] === 'hangzhou',
+    )
+    expect(cityCacheCall?.[2]).toEqual({
+      revalidate: 300,
+      tags: ['public:city-profile:hangzhou', 'public:city-profiles'],
+    })
   })
 })

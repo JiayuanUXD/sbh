@@ -1,5 +1,6 @@
 import type {
   CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   CollectionConfig,
   Field,
   PayloadRequest,
@@ -142,6 +143,25 @@ const invalidateLocationCityCache: CollectionAfterChangeHook = async ({
   return doc
 }
 
+const invalidateDeletedLocationCityCache: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  const deleted = toLocationCacheRecord(doc)
+  if (!deleted) return doc
+
+  const citySlug = await resolveOwningCitySlug(req, deleted)
+  if (!citySlug) {
+    console.error('[city-profile-cache-invalidation] city_unresolved', {
+      objectId: deleted.id,
+      errorCode: 'city_slug_unresolved',
+    })
+  }
+
+  invalidateCitySiteProfilePublicCache(
+    tagsForLocationVisibilityChange(citySlug ? { ...deleted, citySlug } : deleted),
+    'location',
+  )
+  return doc
+}
+
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
   label: LOCATION_TYPE_LABELS[value],
@@ -174,6 +194,7 @@ export const Locations: CollectionConfig = {
   hooks: {
     beforeChange: [protectLocation],
     afterChange: [invalidateLocationCityCache],
+    afterDelete: [invalidateDeletedLocationCityCache],
     // M2.2 被引用节点保护：有下级或业务引用时禁止物理删除（PRD L114/L125）
     beforeDelete: [protectLocationDelete],
   },

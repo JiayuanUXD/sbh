@@ -2,7 +2,11 @@ import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 
 import { InvalidOperationError } from '@/domain/shared/errors'
 
-import { isCityServiceStatus } from './schema'
+import {
+  hasValidCityProfileSeoLength,
+  isCityServiceStatus,
+  normalizeCityDisplayName,
+} from './schema'
 
 type Identifier = number | string
 
@@ -49,13 +53,12 @@ async function loadLocation(req: PayloadRequest, id: Identifier): Promise<Locati
 function assertTextIncludesCity(params: {
   value: unknown
   cityName: string
-  minimum: number
-  maximum: number
+  field: 'description' | 'title'
   lengthErrorCode: string
   cityErrorCode: string
 }): void {
-  const { value, cityName, minimum, maximum, lengthErrorCode, cityErrorCode } = params
-  if (typeof value !== 'string' || value.length < minimum || value.length > maximum) {
+  const { value, cityName, field, lengthErrorCode, cityErrorCode } = params
+  if (!hasValidCityProfileSeoLength(value, field)) {
     throw cityProfileError(lengthErrorCode, '城市站点 SEO 文案长度不符合要求')
   }
   if (!value.includes(cityName)) {
@@ -112,24 +115,22 @@ export const protectCitySiteProfile: CollectionBeforeChangeHook = async ({
     throw cityProfileError('city_profile_service_status_invalid', '城市服务状态不合法')
   }
 
-  const cityName = city.name
-  if (typeof cityName !== 'string' || cityName.length === 0) {
+  const cityName = normalizeCityDisplayName(city.name)
+  if (!cityName) {
     throw cityProfileError('city_profile_city_invalid', '城市节点缺少有效名称')
   }
 
   assertTextIncludesCity({
     value: validationData.seoTitle,
     cityName,
-    minimum: 1,
-    maximum: 60,
+    field: 'title',
     lengthErrorCode: 'seo_title_length_invalid',
     cityErrorCode: 'seo_title_city_required',
   })
   assertTextIncludesCity({
     value: validationData.seoDescription,
     cityName,
-    minimum: 70,
-    maximum: 160,
+    field: 'description',
     lengthErrorCode: 'seo_description_length_invalid',
     cityErrorCode: 'seo_description_city_required',
   })

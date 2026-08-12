@@ -11,11 +11,14 @@ export type CityContext = Readonly<{
 export type CityProfileLookup = (slug: string) => Promise<PublicCitySiteProfile | null>
 
 const CITY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const MAX_CITY_SLUG_LENGTH = 64
 
 export function normalizeCitySlug(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const normalized = value.trim().toLowerCase()
-  return CITY_SLUG_PATTERN.test(normalized) ? normalized : null
+  return normalized.length <= MAX_CITY_SLUG_LENGTH && CITY_SLUG_PATTERN.test(normalized)
+    ? normalized
+    : null
 }
 
 function isCityProfile(value: PublicCitySiteProfile): boolean {
