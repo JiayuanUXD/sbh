@@ -69,6 +69,10 @@ export const ADMIN_NAV_GROUPS = [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
       collectionSlug: 'locations',
     }),
+    leaf('city-site-profiles', '城市站点配置', '/admin/collections/city-site-profiles', ['locations'], {
+      collectionSlug: 'city-site-profiles',
+      requiredOperationCode: 'location:manage',
+    }),
     leaf('districts', '行政区域', '/admin/geography/districts', ['locations'], {
       collectionSlug: 'locations',
     }),

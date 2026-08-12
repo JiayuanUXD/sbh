@@ -96,6 +96,12 @@ describe('admin navigation config', () => {
       ]),
       expectedGroup('region-management', '区域管理', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
+        expectedLeaf(
+          'city-site-profiles',
+          '城市站点配置',
+          '/admin/collections/city-site-profiles',
+          ['locations'],
+        ),
         expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
         expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
           'business-areas',
@@ -197,6 +203,7 @@ describe('admin navigation config', () => {
       'roles',
       'media',
       'locations',
+      'city-site-profiles',
       'business-area-extensions',
       'merchants',
       'teams',

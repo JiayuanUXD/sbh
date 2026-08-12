@@ -31,6 +31,7 @@ import { LeadOwnershipHistory } from './collections/LeadOwnershipHistory'
 import { Listings } from './collections/Listings'
 import { Locations } from './collections/Locations'
 import { BusinessAreaExtensions } from './collections/BusinessAreaExtensions'
+import { CitySiteProfiles } from './collections/CitySiteProfiles'
 import { Merchants } from './collections/Merchants'
 import { BuildingMerchantRelations } from './collections/BuildingMerchantRelations'
 import { ListingMerchantRelations } from './collections/ListingMerchantRelations'
@@ -228,6 +229,7 @@ export default buildConfig({
     Media,
     Locations,
     BusinessAreaExtensions,
+    CitySiteProfiles,
     Merchants,
     Teams,
     Brokers,
