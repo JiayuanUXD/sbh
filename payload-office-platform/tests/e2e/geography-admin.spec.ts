@@ -63,15 +63,19 @@ async function ensureDesktopNavigationOpen(page: Page): Promise<void> {
 }
 
 async function openTopGroup(page: Page, name: string): Promise<void> {
-  const button = page
-    .getByRole('button', { name, exact: true })
-    .and(page.locator('.admin-navigation__group-toggle'))
+  const button = topGroupButton(page, name)
   await expect(button).toBeVisible()
   if ((await button.getAttribute('aria-expanded')) !== 'true') {
     // 桌面端 template-default 容器覆盖在 nav 上拦截坐标点击，改用 dispatchEvent 派发
     await button.dispatchEvent('click')
   }
   await expect(button).toHaveAttribute('aria-expanded', 'true')
+}
+
+function topGroupButton(page: Page, name: string): Locator {
+  return page
+    .getByRole('button', { name, exact: true })
+    .and(page.locator('.admin-navigation__group-toggle'))
 }
 
 /** dev 模式下 Next.js dev-overlay portal 会拦截按钮坐标点击，改派发 click 事件绕过。 */
@@ -196,24 +200,47 @@ test.describe.serial('地理管理后台 E2E', () => {
     }
   })
 
-  test('flow1 基础配置含 5 项且不暴露商圈扩展独立页', async ({ page }) => {
+  test('flow1 区域管理含四个地理入口，系统基础配置只保留配套字典', async ({ page }) => {
     await loginAs(page)
     await page.goto('/admin')
     await ensureDesktopNavigationOpen(page)
-    await openTopGroup(page, '房源运营')
+    await openTopGroup(page, '区域管理')
+    const regionGroup = topGroupButton(page, '区域管理').locator('..')
+    await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(4)
+    await expect(regionGroup).toContainText('城市管理')
+    await expect(regionGroup).toContainText('行政区域')
+    await expect(regionGroup).toContainText('商圈管理')
+    await expect(regionGroup).toContainText('地铁管理')
 
-    const supplyConfig = page.locator('.admin-navigation__subgroup').filter({ hasText: '基础配置' })
-    const subToggle = supplyConfig.locator('.admin-navigation__subgroup-toggle')
-    await expect(subToggle).toBeVisible()
-    if ((await subToggle.getAttribute('aria-expanded')) !== 'true') {
-      await subToggle.dispatchEvent('click')
+    await openTopGroup(page, '系统管理')
+    const systemConfig = page.locator('.admin-navigation__subgroup').filter({ hasText: '基础配置' })
+    await expect(systemConfig.locator('.admin-navigation__subgroup-item')).toHaveCount(1)
+    await expect(systemConfig).toContainText('配套字典')
+  })
+
+  test('六条地理路由保留后台框架，区域管理为激活展开组', async ({ page }) => {
+    expect(cityId).not.toBeNull()
+    await loginAs(page)
+
+    const routes = [
+      '/admin/geography/cities',
+      '/admin/geography/districts',
+      '/admin/geography/business-areas',
+      '/admin/geography/metro-lines',
+      `/admin/geography/cities/${cityId}`,
+      '/admin/geography/districts/new',
+    ]
+
+    for (const route of routes) {
+      await page.goto(route)
+      await expect(page.locator('.admin-navigation')).toBeVisible()
+      await expect(page.locator('.app-header')).toBeVisible()
+
+      const regionButton = topGroupButton(page, '区域管理')
+      await expect(regionButton).toHaveClass(/admin-navigation__group-toggle--active/)
+      await expect(regionButton).toHaveAttribute('aria-expanded', 'true')
+      await expect(regionButton.locator('..')).toHaveClass(/admin-navigation__group--open/)
     }
-    await expect(subToggle).toHaveAttribute('aria-expanded', 'true')
-
-    await expect(supplyConfig.locator('.admin-navigation__subgroup-item')).toHaveCount(5)
-    await expect(
-      page.locator('a.admin-navigation__link[href="/admin/collections/business-area-extensions"]'),
-    ).toHaveCount(0)
   })
 
   test('flow2 城市管理完备度计数与灌入数据一致', async ({ page }) => {
