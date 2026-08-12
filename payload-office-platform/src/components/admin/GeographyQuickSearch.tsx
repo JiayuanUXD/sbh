@@ -23,15 +23,22 @@ export default function GeographyQuickSearch() {
   const [results, setResults] = useState<LocationSearchResult[]>([])
   const [error, setError] = useState<string | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  // 记录上一次 open 值，仅在「关闭→打开」这次转换时清空上一次的搜索结果。
+  // 用 useState 记忆上次 open（React 文档 reset-on-change 推荐写法：渲染期比较 prev 值
+  // 并 setPrev，避免在 effect 里同步 setState；此处不可用 useRef——react-hooks 禁读渲染期 ref）。
+  const [prevOpen, setPrevOpen] = useState(false)
 
   // 打开时清空搜索结果：在渲染期调整状态（React 官方「You Might Not Need an Effect」
-  // 推荐的 reset-on-open 模式），避免在 effect 里同步 setState 触发级联渲染。
-  // 守卫条件保证重置一次后即满足，不会无限循环。
-  if (open && (q !== '' || results.length > 0 || error !== null || activeIndex !== 0)) {
-    setQ('')
-    setResults([])
-    setError(null)
-    setActiveIndex(0)
+  // 推荐的 reset-on-open 模式）。守卫条件是「open 从 false 变 true」这一次转换，
+  // 而非 q !== ''——否则用户每次键入都会被清空。
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) {
+      setQ('')
+      setResults([])
+      setError(null)
+      setActiveIndex(0)
+    }
   }
 
   // Cmd/Ctrl+K 全局唤起
