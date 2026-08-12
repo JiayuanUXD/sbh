@@ -24,15 +24,133 @@ import {
   createSearchContext,
   createPayloadSupplyAdapter,
   getHomepage,
+  getArticleBySlug,
   getListingBySlug,
+  getPageBySlug,
   getRelatedListings,
   getSearchFacets,
+  listPublishedArticles,
+  listPublishedPages,
   parseSearchInput,
   searchListings,
+  type ListingSearchInput,
   type SearchContext,
+  type SupplyAdapter,
 } from '@/domain/public-catalog'
 
 const AS_OF = '2026-08-13T00:00:00.000Z'
+
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends
+  (<Value>() => Value extends Right ? 1 : 2)
+    ? true
+    : false
+type Assert<Condition extends true> = Condition
+
+type CityScopedSupplyContract = readonly [
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveListings']>,
+    [input: ListingSearchInput, ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveListingBySlug']>,
+    [slug: string, ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveBuildingBySlug']>,
+    [slug: string, ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveListingsByBuilding']>,
+    [
+      buildingId: number | string,
+      ctx: SearchContext,
+      excludeListingId?: number | string,
+    ]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['sumEffectiveLeasableAreaByBuildings']>,
+    [buildingIds: readonly (number | string)[], ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveBuildingsNear']>,
+    [buildingId: number | string, ctx: SearchContext, limit: number]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveBuildings']>,
+    [ctx: SearchContext, limit?: number]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findFeaturedListings']>,
+    [ctx: SearchContext, limit?: number]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findFeaturedBuildings']>,
+    [ctx: SearchContext, limit?: number]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveDistricts']>,
+    [ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findEffectiveBusinessAreas']>,
+    [ctx: SearchContext]
+  >>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['assertEffectiveListingBySlug']>,
+    [slug: string, ctx: SearchContext]
+  >>,
+]
+
+type GlobalContentContract = readonly [
+  Assert<Equal<Parameters<SupplyAdapter['findLatestArticles']>, [limit?: number]>>,
+  Assert<Equal<
+    Parameters<SupplyAdapter['findPublishedArticles']>,
+    [options: Readonly<{ page?: number; pageSize?: number }>]
+  >>,
+  Assert<Equal<Parameters<SupplyAdapter['findPublishedArticleBySlug']>, [slug: string]>>,
+  Assert<Equal<Parameters<SupplyAdapter['findPublishedPageBySlug']>, [slug: string]>>,
+  Assert<Equal<Parameters<SupplyAdapter['findPublishedPages']>, [limit?: number]>>,
+  Assert<Equal<Parameters<typeof getPageBySlug>, [slug: string, adapter?: SupplyAdapter]>>,
+  Assert<Equal<
+    Parameters<typeof listPublishedPages>,
+    [options?: Readonly<{ limit?: number }>, adapter?: SupplyAdapter]
+  >>,
+  Assert<Equal<Parameters<typeof getArticleBySlug>, [slug: string, adapter?: SupplyAdapter]>>,
+  Assert<Equal<
+    Parameters<typeof listPublishedArticles>,
+    [
+      options?: Readonly<{ page?: number; pageSize?: number }>,
+      adapter?: SupplyAdapter,
+    ]
+  >>,
+]
+
+const cityScopedSupplyContract: CityScopedSupplyContract = [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+]
+const globalContentContract: GlobalContentContract = [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+]
 
 function effectiveListing(
   id: number,
@@ -92,7 +210,16 @@ describe('required city in public catalog context', () => {
   const shanghai = effectiveListing(101, { id: 1, slug: 'shanghai' })
   const hangzhou = effectiveListing(202, { id: 2, slug: 'hangzhou' })
   const listings = [shanghai, hangzhou]
-  const buildings = listings.map((listing) => listing.building as Record<string, unknown>)
+  const hangzhouNeighbor: Record<string, unknown> = {
+    ...(hangzhou.building as Record<string, unknown>),
+    id: 2030,
+    slug: 'hangzhou-neighbor-building',
+    name: 'hangzhou neighbor building',
+  }
+  const buildings: readonly Record<string, unknown>[] = [
+    ...listings.map((listing) => listing.building as Record<string, unknown>),
+    hangzhouNeighbor,
+  ]
   const context = createSearchContext('hangzhou', new Date(AS_OF))
 
   beforeEach(() => {
@@ -198,6 +325,24 @@ describe('required city in public catalog context', () => {
     )
   })
 
+  it('keeps supply methods city-scoped and global content methods context-free', () => {
+    expect(cityScopedSupplyContract).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+    ])
+    expect(globalContentContract).toEqual([true, true, true, true, true, true, true, true, true])
+  })
+
   it('keeps list and direct detail results inside the requested city', async () => {
     const adapter = createPayloadSupplyAdapter()
 
@@ -266,7 +411,7 @@ describe('required city in public catalog context', () => {
     await adapter.findEffectiveBusinessAreas(context)
 
     expect(crossCityBuilding).toBeNull()
-    expect(buildingsInCity.map((building) => building.id)).toEqual([2020])
+    expect(buildingsInCity.map((building) => building.id)).toEqual([2020, 2030])
     expect(recommendations).toEqual([])
     expect([...areaSums.entries()]).toEqual([['2020', 202]])
     expect(payloadState.query.mock.calls).toEqual(expect.arrayContaining([
@@ -283,6 +428,21 @@ describe('required city in public catalog context', () => {
     }))
     expect(wheres).toContainEqual(expect.objectContaining({
       'parent.parent.slug': { equals: 'hangzhou' },
+    }))
+  })
+
+  it('keeps nearby buildings inside Hangzhou and emits a city-scoped where', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    const nearby = await adapter.findEffectiveBuildingsNear(2020, context, 6)
+
+    expect(nearby.map((building) => building.id)).toEqual([2030])
+    const buildingWheres = payloadState.find.mock.calls
+      .map(([params]) => params)
+      .filter((params) => params.collection === 'buildings')
+      .map((params) => params.where as Record<string, unknown>)
+    expect(buildingWheres).toContainEqual(expect.objectContaining({
+      'city.slug': { equals: 'hangzhou' },
     }))
   })
 })

@@ -109,20 +109,20 @@ export interface SupplyAdapter {
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
 
   /**
-   * 按 slug 返回已发布的公开页面；草稿、删除或不存在返回 null
+   * 按 slug 返回全站已发布公开页面；草稿、删除或不存在返回 null
    *
    * F6.1：只读取 status=published 的页面，草稿/删除/不存在返回 null。
    * 用于内容页路由 /pages/[slug] 与首页 slug='home' 渲染。
    */
-  findPublishedPageBySlug(slug: string, ctx: SearchContext): Promise<Page | null>
+  findPublishedPageBySlug(slug: string): Promise<Page | null>
 
   /**
-   * 返回所有已发布的公开页面（用于 sitemap）
+   * 返回全站所有已发布公开页面（用于 sitemap）
    *
    * F6.4：仅返回 status=published 且未逻辑删除的页面，按 updatedAt 倒序。
    * limit 用于规模拆分；MVP 单文件 sitemap，默认 1000。
    */
-  findPublishedPages(ctx: SearchContext, limit?: number): Promise<readonly Page[]>
+  findPublishedPages(limit?: number): Promise<readonly Page[]>
 
   /**
    * 首页精选楼盘（用于「精选楼盘」分区）
@@ -135,31 +135,30 @@ export interface SupplyAdapter {
   findFeaturedBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
 
   /**
-   * 首页资讯（用于「资讯中心」分区）
+   * 全站首页资讯（用于「资讯中心」分区）
    *
    * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
    * depth=2 以便 coverImage 填充为 Media。草稿、未来发布、删除均不返回。
    */
-  findLatestArticles(ctx: SearchContext, limit?: number): Promise<readonly Article[]>
+  findLatestArticles(limit?: number): Promise<readonly Article[]>
 
   /**
-   * 资讯列表（用于 /news 列表页，分页）
+   * 全站资讯列表（用于 /news 列表页，分页）
    *
    * 仅返回 status=published 且未逻辑删除的资讯，按 publishedAt 倒序。
    * page 从 1 起，pageSize 控制每页条数；depth=2 填充 coverImage。
    */
   findPublishedArticles(
-    ctx: SearchContext,
     options: Readonly<{ page?: number; pageSize?: number }>,
   ): Promise<{ docs: readonly Article[]; totalDocs: number }>
 
   /**
-   * 按 slug 返回已发布资讯（用于 /news/[slug] 详情页）
+   * 按 slug 返回全站已发布资讯（用于 /news/[slug] 详情页）
    *
    * 仅 status=published 且未逻辑删除；depth=3 以便关联楼盘/区域填充。
    * 草稿、删除、不存在返回 null。
    */
-  findPublishedArticleBySlug(slug: string, ctx: SearchContext): Promise<Article | null>
+  findPublishedArticleBySlug(slug: string): Promise<Article | null>
 }
 
 /**
@@ -771,7 +770,7 @@ GROUP BY l.building_id
       return result.docs as readonly Location[]
     },
 
-    async findLatestArticles(_ctx, limit = 5) {
+    async findLatestArticles(limit = 5) {
       const payload = await getPayload()
       const result = await payload.find({
         collection: 'articles',
@@ -786,7 +785,7 @@ GROUP BY l.building_id
       return result.docs as readonly Article[]
     },
 
-    async findPublishedArticles(_ctx, options = {}) {
+    async findPublishedArticles(options = {}) {
       const payload = await getPayload()
       const page = Math.max(options.page ?? 1, 1)
       const pageSize = Math.min(Math.max(options.pageSize ?? 12, 1), 48)
@@ -852,7 +851,7 @@ GROUP BY l.building_id
       return (result.docs[0] as Page | undefined) ?? null
     },
 
-    async findPublishedPages(_ctx, limit) {
+    async findPublishedPages(limit) {
       // F6.4：sitemap 用，仅返回已发布且未删除的页面
       const payload = await getPayload()
       const requestedLimit = limit ?? Number.POSITIVE_INFINITY

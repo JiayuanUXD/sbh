@@ -355,7 +355,7 @@ export const getCachedSearchFacets = unstable_cache(
  */
 export const getCachedPageBySlug = unstable_cache(
   async (slug: string) => {
-    return getPageBySlug(slug, defaultCtx())
+    return getPageBySlug(slug)
   },
   ['page-by-slug'],
   {
@@ -374,7 +374,7 @@ export const getCachedPageBySlug = unstable_cache(
  */
 export const getCachedPublishedPages = unstable_cache(
   async (limit: number = 500) => {
-    return listPublishedPages(defaultCtx(), { limit })
+    return listPublishedPages({ limit })
   },
   ['published-pages'],
   {
@@ -393,7 +393,7 @@ export const getCachedPublishedPages = unstable_cache(
  */
 export const getCachedPublishedArticles = unstable_cache(
   async (page: number = 1, pageSize: number = 12) => {
-    return listPublishedArticles(defaultCtx(), { page, pageSize })
+    return listPublishedArticles({ page, pageSize })
   },
   ['published-articles'],
   {
@@ -414,7 +414,7 @@ export const getCachedPublishedArticles = unstable_cache(
  */
 export const getCachedArticleBySlug = unstable_cache(
   async (slug: string) => {
-    return getArticleBySlug(slug, defaultCtx())
+    return getArticleBySlug(slug)
   },
   ['article-by-slug'],
   {

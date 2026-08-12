@@ -68,7 +68,7 @@ const getCachedSitemapEntries = unstable_cache(
         return docs
       })(),
       // F6.4：内容页通过 Public Catalog Facade 查询，与 /pages/[slug] 路由可见性一致
-      listPublishedPages(ctx, { limit: SITEMAP_ENTITY_LIMIT }),
+      listPublishedPages({ limit: SITEMAP_ENTITY_LIMIT }),
     ])
 
     return { listings, buildings, pages }
