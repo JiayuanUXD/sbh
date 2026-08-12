@@ -1,9 +1,97 @@
-import type { CollectionConfig } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionConfig,
+  PayloadRequest,
+} from 'payload'
 
 import { createCollectionAccess } from '@/domain/auth/access'
+import {
+  tagsForProfileChange,
+  type CityCacheInvalidationRecord,
+} from '@/domain/city-site-profile/cache-invalidator'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import { protectCitySiteProfile } from '@/domain/city-site-profile/profile-protect'
 import { CITY_SERVICE_STATUSES } from '@/domain/city-site-profile/schema'
+import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
+import { invalidateCitySiteProfilePublicCache } from '@/lib/frontend/public-cache-revalidation'
+
+type Identifier = number | string
+
+function relationshipId(value: unknown): Identifier | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    (typeof value.id === 'number' || typeof value.id === 'string')
+  ) {
+    return value.id
+  }
+  return null
+}
+
+function toCacheRecord(value: unknown): CityCacheInvalidationRecord | null {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('id' in value) ||
+    (typeof value.id !== 'number' && typeof value.id !== 'string')
+  ) {
+    return null
+  }
+  return {
+    id: value.id,
+    city: 'city' in value ? value.city : undefined,
+  }
+}
+
+async function resolveCitySlug(
+  req: PayloadRequest,
+  record: CityCacheInvalidationRecord,
+): Promise<string | null> {
+  if (typeof record.city === 'object' && record.city !== null && 'slug' in record.city) {
+    const populatedSlug = normalizeCitySlug(record.city.slug)
+    if (populatedSlug) return populatedSlug
+  }
+
+  const cityId = relationshipId(record.city)
+  if (cityId === null) return null
+
+  try {
+    const city = await req.payload.findByID({
+      collection: 'locations',
+      id: cityId,
+      depth: 0,
+      req,
+    })
+    return city.type === 'city' ? normalizeCitySlug(city.slug) : null
+  } catch {
+    return null
+  }
+}
+
+const invalidateCitySiteProfileCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async ({
+  doc,
+  req,
+}) => {
+  const record = toCacheRecord(doc)
+  if (!record) return doc
+
+  const citySlug = await resolveCitySlug(req, record)
+  if (!citySlug) {
+    console.error('[city-profile-cache-invalidation] city_unresolved', {
+      objectId: record.id,
+      errorCode: 'city_slug_unresolved',
+    })
+  }
+
+  invalidateCitySiteProfilePublicCache(
+    tagsForProfileChange(citySlug ? { ...record, citySlug } : record),
+    'city_site_profile',
+  )
+  return doc
+}
 
 export const CitySiteProfiles: CollectionConfig = {
   slug: 'city-site-profiles',
@@ -26,6 +114,8 @@ export const CitySiteProfiles: CollectionConfig = {
   },
   hooks: {
     beforeChange: [protectCitySiteProfile],
+    afterChange: [invalidateCitySiteProfileCache],
+    afterDelete: [invalidateCitySiteProfileCache],
   },
   fields: [
     {

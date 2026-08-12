@@ -55,3 +55,10 @@ export function invalidateArticlePublicCache(): void {
     'article',
   )
 }
+
+export function invalidateCitySiteProfilePublicCache(
+  tags: readonly string[],
+  reason: 'city_site_profile' | 'location',
+): void {
+  revalidatePublicCacheTags(tags, reason)
+}

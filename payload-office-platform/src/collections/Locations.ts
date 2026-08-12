@@ -1,4 +1,14 @@
-import type { CollectionConfig, Field } from 'payload'
+import type {
+  CollectionAfterChangeHook,
+  CollectionConfig,
+  Field,
+  PayloadRequest,
+} from 'payload'
+import {
+  tagsForLocationVisibilityChange,
+  type CityCacheInvalidationRecord,
+} from '@/domain/city-site-profile/cache-invalidator'
+import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import {
   LOCATION_TYPES,
   LOCATION_TYPE_LABELS,
@@ -7,6 +17,130 @@ import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
 import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
 import { createLocationSearchEndpoint } from '@/endpoints/location-search-endpoint'
+import { invalidateCitySiteProfilePublicCache } from '@/lib/frontend/public-cache-revalidation'
+
+type Identifier = number | string
+
+type LocationCacheRecord = CityCacheInvalidationRecord & Readonly<{
+  name?: unknown
+  parent?: unknown
+  status?: unknown
+  frontendVisible?: unknown
+}>
+
+const PUBLIC_LOCATION_FIELDS = [
+  'name',
+  'slug',
+  'type',
+  'status',
+  'frontendVisible',
+  'city',
+  'parent',
+] as const
+
+function relationshipId(value: unknown): Identifier | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    (typeof value.id === 'number' || typeof value.id === 'string')
+  ) {
+    return value.id
+  }
+  return null
+}
+
+function toLocationCacheRecord(value: unknown): LocationCacheRecord | null {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('id' in value) ||
+    (typeof value.id !== 'number' && typeof value.id !== 'string')
+  ) {
+    return null
+  }
+  return {
+    id: value.id,
+    city: 'city' in value ? value.city : undefined,
+    frontendVisible: 'frontendVisible' in value ? value.frontendVisible : undefined,
+    name: 'name' in value ? value.name : undefined,
+    parent: 'parent' in value ? value.parent : undefined,
+    slug: 'slug' in value ? value.slug : undefined,
+    status: 'status' in value ? value.status : undefined,
+    type: 'type' in value ? value.type : undefined,
+  }
+}
+
+function fieldChanged(
+  field: (typeof PUBLIC_LOCATION_FIELDS)[number],
+  current: LocationCacheRecord,
+  previous: LocationCacheRecord,
+): boolean {
+  if (field === 'city' || field === 'parent') {
+    return String(relationshipId(current[field]) ?? '') !== String(relationshipId(previous[field]) ?? '')
+  }
+  return !Object.is(current[field], previous[field])
+}
+
+function affectsPublicCityCache(
+  current: LocationCacheRecord,
+  previous: LocationCacheRecord | null,
+): boolean {
+  if (!previous) return true
+  return PUBLIC_LOCATION_FIELDS.some((field) => fieldChanged(field, current, previous))
+}
+
+async function resolveOwningCitySlug(
+  req: PayloadRequest,
+  record: LocationCacheRecord,
+): Promise<string | null> {
+  if (record.type === 'city') return normalizeCitySlug(record.slug)
+
+  if (typeof record.city === 'object' && record.city !== null && 'slug' in record.city) {
+    const populatedSlug = normalizeCitySlug(record.city.slug)
+    if (populatedSlug) return populatedSlug
+  }
+
+  const cityId = relationshipId(record.city)
+  if (cityId === null) return null
+
+  try {
+    const city = await req.payload.findByID({
+      collection: 'locations',
+      id: cityId,
+      depth: 0,
+      req,
+    })
+    return city.type === 'city' ? normalizeCitySlug(city.slug) : null
+  } catch {
+    return null
+  }
+}
+
+const invalidateLocationCityCache: CollectionAfterChangeHook = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  const current = toLocationCacheRecord(doc)
+  const previous = toLocationCacheRecord(previousDoc)
+  if (!current || !affectsPublicCityCache(current, previous)) return doc
+
+  const citySlug = await resolveOwningCitySlug(req, current)
+  if (!citySlug) {
+    console.error('[city-profile-cache-invalidation] city_unresolved', {
+      objectId: current.id,
+      errorCode: 'city_slug_unresolved',
+    })
+  }
+
+  invalidateCitySiteProfilePublicCache(
+    tagsForLocationVisibilityChange(citySlug ? { ...current, citySlug } : current),
+    'location',
+  )
+  return doc
+}
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
@@ -39,6 +173,7 @@ export const Locations: CollectionConfig = {
   },
   hooks: {
     beforeChange: [protectLocation],
+    afterChange: [invalidateLocationCityCache],
     // M2.2 被引用节点保护：有下级或业务引用时禁止物理删除（PRD L114/L125）
     beforeDelete: [protectLocationDelete],
   },
