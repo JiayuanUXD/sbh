@@ -281,7 +281,7 @@ git commit -m "feat: notify city partner applications"
 - Consumes: validated public city list/resolver and Task 2 APIs.
 - Produces: `/city-partner?city={citySlug}` with canonical `/city-partner` and two-stage accessible form.
 
-- [ ] **Step 1: Write failing form coordinator tests**
+- [x] **Step 1: Write failing form coordinator tests**
 
 ```ts
 expect(getStageOneErrors(validValues)).toEqual({})
@@ -293,25 +293,25 @@ expect(requester).toHaveBeenCalledTimes(2)
 
 Test invalid phone/name/identity/city, preserving values on network/rate-limit error, duplicate click coalescing, “other” conditional fields, stage-two skip, and no PII analytics payload.
 
-- [ ] **Step 2: Write failing metadata/page tests**
+- [x] **Step 2: Write failing metadata/page tests**
 
 Assert query city preselects the city, missing city selects default, explicit invalid city renders a visible validation error and disables submission, canonical is `/city-partner`, one H1 exists, and copy contains no guaranteed revenue/exclusivity/opening date claim.
 
-- [ ] **Step 3: Run tests and verify RED**
+- [x] **Step 3: Run tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-partner-form.test.ts tests/city-partner-page-seo.test.ts tests/landing-analytics.test.ts`
 
 Expected: FAIL because page/form do not exist.
 
-- [ ] **Step 4: Implement coordinator and accessible UI**
+- [x] **Step 4: Implement coordinator and accessible UI**
 
 Follow `EntrustForm`'s coordinator pattern: stable request ID per mounted intent, pending Promise coalescing, stage-one success persisted before stage two, and values preserved after errors. Use existing `Button`, `Field`, `Input`, and `Select`; add checkbox/multiselect with explicit labels. Announce status via `role=status`, focus first invalid field, and keep all touch targets ≥44px.
 
-- [ ] **Step 5: Implement metadata and anonymous events**
+- [x] **Step 5: Implement metadata and anonymous events**
 
 Emit only `city_partner_application_started/submitted/completed` with city slug and stage. `city_partner_cta_clicked` is wired in Plan 4 routing integration. Build metadata with canonical `/city-partner`; include the page once in sitemap from Plan 2.
 
-- [ ] **Step 6: Run unit and E2E tests**
+- [x] **Step 6: Run unit and E2E tests**
 
 Run:
 
@@ -322,7 +322,7 @@ pnpm exec playwright test tests/e2e/city-partner-flow.spec.ts --project=chromium
 
 Expected: stage one, stage two, retry, invalid city, skip, keyboard flow, canonical, and console assertions PASS.
 
-- [ ] **Step 7: Commit Task 4 and record Gate C evidence**
+- [x] **Step 7: Commit Task 4 and record Gate C evidence**
 
 ```bash
 git add payload-office-platform/src/app/\(frontend\)/city-partner/page.tsx payload-office-platform/src/components/frontend/city-partner/CityPartnerApplicationForm.tsx payload-office-platform/src/lib/frontend/city-partner-config.ts payload-office-platform/src/app/\(frontend\)/styles.css payload-office-platform/src/lib/frontend/analytics/landing.ts payload-office-platform/tests/city-partner-form.test.ts payload-office-platform/tests/city-partner-page-seo.test.ts payload-office-platform/tests/landing-analytics.test.ts payload-office-platform/tests/e2e/city-partner-flow.spec.ts
