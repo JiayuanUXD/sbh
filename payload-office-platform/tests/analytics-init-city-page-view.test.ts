@@ -17,7 +17,8 @@ vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
   initWebVitals: async () => () => undefined,
 }))
 
-import { AnalyticsInit } from '@/lib/frontend/analytics/init'
+import { AnalyticsInit, createDefaultCollector } from '@/lib/frontend/analytics/init'
+import type { AnalyticsAdapter, TrackedEvent } from '@/lib/frontend/analytics/adapter'
 import type { CityAnalyticsTrack } from '@/lib/frontend/analytics/landing'
 
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
@@ -56,6 +57,33 @@ afterEach(async () => {
 })
 
 describe('AnalyticsInit city page visibility', () => {
+  it('delivers A to B to A through the real collector while suppressing a same-route rerender', async () => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility })
+    const sent: TrackedEvent[] = []
+    const adapter: AnalyticsAdapter = {
+      name: 'capture',
+      send(events) { sent.push(...events) },
+    }
+    const collector = createDefaultCollector(adapter, () => 100)
+    const tracker: CityAnalyticsTrack = (name, props) => collector.track(name, props)
+
+    navigationState.pathname = '/shanghai/listings'
+    navigationState.search = ''
+    await render(tracker)
+    await render(tracker)
+    navigationState.pathname = '/hangzhou/listings'
+    await render(tracker)
+    navigationState.pathname = '/shanghai/listings'
+    await render(tracker)
+    await collector.flush()
+
+    expect(sent.map((event) => [event.eventName, event.props.city])).toEqual([
+      ['city_page_view', 'shanghai'],
+      ['city_page_view', 'hangzhou'],
+      ['city_page_view', 'shanghai'],
+    ])
+  })
+
   it('waits for visibility, emits the latest navigation once, and dedupes rerenders', async () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility })
     const tracker = vi.fn()

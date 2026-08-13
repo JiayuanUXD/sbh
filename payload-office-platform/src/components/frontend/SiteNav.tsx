@@ -89,7 +89,7 @@ export default function SiteNav({
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
-  const currentCity = resolveTrustedCity(pathname, cities, defaultCity)
+  const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const citySlug = currentCity?.slug
   const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname

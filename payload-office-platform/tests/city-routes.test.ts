@@ -6,6 +6,7 @@ import {
   getCityPageType,
   legacyCanonicalPath,
   prefixedCanonicalPath,
+  resolveTrustedRouteCity,
   switchCityUrl,
 } from '@/lib/frontend/city-routes'
 
@@ -271,5 +272,27 @@ describe('city route URL contract', () => {
       '/shanghai/listings?areaMin=100',
       '/hangzhou/listings?areaMin=200',
     )).toBe(false)
+  })
+
+  it('resolves a lead query only from one trusted canonical city and marks hostile fallback unattributable', () => {
+    const cities = [
+      { slug: 'shanghai', status: 'live' as const },
+      { slug: 'hangzhou', status: 'coming-soon' as const },
+      { slug: 'news', status: 'live' as const },
+    ]
+    expect(resolveTrustedRouteCity('/entrust', new URLSearchParams('city=hangzhou'), cities, 'shanghai')).toEqual({
+      city: cities[1], source: 'query', attributable: true,
+    })
+    expect(resolveTrustedRouteCity('/publish', new URLSearchParams(), cities, 'shanghai')).toEqual({
+      city: cities[0], source: 'default', attributable: true,
+    })
+    for (const query of ['city=', 'city=HangZhou', 'city=news', 'city=unknown', 'city=hangzhou&city=shanghai']) {
+      expect(resolveTrustedRouteCity('/city-partner', new URLSearchParams(query), cities, 'shanghai')).toEqual({
+        city: cities[0], source: 'default', attributable: false,
+      })
+    }
+    expect(resolveTrustedRouteCity('/hangzhou/listings', new URLSearchParams('city=shanghai'), cities, 'shanghai')).toEqual({
+      city: cities[1], source: 'pathname', attributable: true,
+    })
   })
 })

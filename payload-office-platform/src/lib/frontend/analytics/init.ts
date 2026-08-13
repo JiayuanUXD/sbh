@@ -37,7 +37,7 @@ export function createDefaultCollector(
 ): Collector {
   return createCollector(adapter, {
     now,
-    dedupe: { windows: { inquiry_open: 2000, landing_view: 2000, city_page_view: 2000 } },
+    dedupe: { windows: { inquiry_open: 2000, landing_view: 2000 } },
   })
 }
 

@@ -10,6 +10,7 @@ import {
   citySwitchPreservedFilters,
   getCityPageType,
   isPublicCitySlug,
+  resolveTrustedRouteCity,
   switchCityUrl,
 } from '@/lib/frontend/city-routes'
 
@@ -29,12 +30,9 @@ export function resolveTrustedCity(
   pathname: string,
   cities: readonly PublicCityOption[],
   defaultCity: string,
+  searchParams: Pick<URLSearchParams, 'getAll'> = new URLSearchParams(),
 ): PublicCityOption | null {
-  const trustedCities = filterPublicCityOptions(cities)
-  const firstSegment = pathname.split('/').filter(Boolean)[0]
-  const pathnameCity = firstSegment ? trustedCities.find((city) => city.slug === firstSegment) : undefined
-  if (pathnameCity) return pathnameCity
-  return trustedCities.find((city) => city.slug === defaultCity) ?? trustedCities[0] ?? null
+  return resolveTrustedRouteCity(pathname, searchParams, cities, defaultCity)?.city ?? null
 }
 
 export function cityAwareHref(href: string, citySlug: string): string {
@@ -59,7 +57,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const activeCity = resolveTrustedCity(pathname, cities, defaultCity)
+  const activeCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
   const pageType = getCityPageType(pathname)

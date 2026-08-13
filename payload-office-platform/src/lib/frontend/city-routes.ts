@@ -94,6 +94,43 @@ export function isPublicCitySlug(value: unknown): value is string {
   return isCanonicalCitySlug(value) && !RESERVED_CITY_ROOT_SEGMENTS.has(value)
 }
 
+export type TrustedRouteCityResolution<T extends Readonly<{ slug: string }>> = Readonly<{
+  city: T
+  source: 'pathname' | 'query' | 'default'
+  attributable: boolean
+}>
+
+/** Resolves shell city identity without ever returning an untrusted query value. */
+export function resolveTrustedRouteCity<T extends Readonly<{ slug: string }>>(
+  pathname: string,
+  searchParams: Pick<URLSearchParams, 'getAll'>,
+  cities: readonly T[],
+  defaultCity: string,
+): TrustedRouteCityResolution<T> | null {
+  const trustedCities = cities.filter((city) => isPublicCitySlug(city.slug))
+  const safeDefault = trustedCities.find((city) => city.slug === defaultCity) ?? trustedCities[0]
+  if (!safeDefault) return null
+
+  const firstSegment = pathname.split('/').filter(Boolean)[0]
+  const pathnameCity = firstSegment
+    ? trustedCities.find((city) => city.slug === firstSegment)
+    : undefined
+  if (pathnameCity) return { city: pathnameCity, source: 'pathname', attributable: true }
+
+  const pageType = getCityPageType(pathname)
+  if (pageType !== 'entrust' && pageType !== 'publish' && pageType !== 'city-partner') {
+    return { city: safeDefault, source: 'default', attributable: true }
+  }
+
+  const values = searchParams.getAll('city')
+  if (values.length === 0) return { city: safeDefault, source: 'default', attributable: true }
+  if (values.length === 1) {
+    const queryCity = trustedCities.find((city) => city.slug === values[0])
+    if (queryCity) return { city: queryCity, source: 'query', attributable: true }
+  }
+  return { city: safeDefault, source: 'default', attributable: false }
+}
+
 function rawPathFromSource(value: string): string | null {
   const queryIndex = value.indexOf('?')
   const fragmentIndex = value.indexOf('#')

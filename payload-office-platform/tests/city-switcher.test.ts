@@ -202,6 +202,42 @@ describe('CitySwitcher', () => {
     })
   })
 
+  it('uses the one trusted lead-query city for desktop and mobile opened/from-city attribution', async () => {
+    navigationState.pathname = '/city-partner'
+    navigationState.search = 'city=hangzhou'
+    await renderShell()
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    expect(trigger.textContent).toContain('\u676d\u5dde')
+    await click(trigger)
+    expect(trackSpy).toHaveBeenCalledWith('city_switcher_opened', {
+      city: 'hangzhou', status: 'coming-soon', page_type: 'city-partner',
+    })
+    const desktopShanghai = document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href="/city-partner?city=shanghai"]')
+    if (!desktopShanghai) throw new Error('missing desktop Shanghai partner option')
+    await click(desktopShanghai)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'hangzhou', to_city: 'shanghai', status: 'live',
+      page_type: 'city-partner', filters_preserved: false,
+    })
+
+    trackSpy.mockClear()
+    const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!toggle) throw new Error('missing mobile menu toggle')
+    await click(toggle)
+    expect(trackSpy).toHaveBeenCalledWith('city_switcher_opened', {
+      city: 'hangzhou', status: 'coming-soon', page_type: 'city-partner',
+    })
+    const mobileShanghai = document.querySelector<HTMLAnchorElement>('.mobile-drawer__cities a[href="/city-partner?city=shanghai"]')
+    if (!mobileShanghai) throw new Error('missing mobile Shanghai partner option')
+    await click(mobileShanghai)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'hangzhou', to_city: 'shanghai', status: 'live',
+      page_type: 'city-partner', filters_preserved: false,
+    })
+  })
+
   it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {
     await renderSwitcher()
     const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')

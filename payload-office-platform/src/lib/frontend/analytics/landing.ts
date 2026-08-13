@@ -1,5 +1,5 @@
 import { assertSafeAnalyticsProps, type AnalyticsEventName } from './events'
-import { getCityPageType, isPublicCitySlug, type CityPageType } from '../city-routes'
+import { getCityPageType, isPublicCitySlug, resolveTrustedRouteCity, type CityPageType } from '../city-routes'
 
 export type LandingPageType = 'entrust' | 'publish'
 export type LandingAnalyticsEventName = Extract<AnalyticsEventName, `landing_${string}`>
@@ -114,27 +114,19 @@ export function resolveCityPageObservation(
     multiCityRoutingEnabled: true,
   },
 ): CityAnalyticsProps | null {
-  const firstSegment = pathname.split('/').filter(Boolean)[0]
   const pageType = getCityPageType(pathname)
   if (pageType === 'unknown') return null
-  let city = firstSegment ? cities.find((candidate) => candidate.slug === firstSegment) : undefined
-
-  if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
-    const values = searchParams.getAll('city')
-    if (values.length > 1) return null
-    const selectedSlug = values.length === 0 ? config.defaultCity : values[0]
-    city = cities.find((candidate) => candidate.slug === selectedSlug)
-  } else if (
-    !config.multiCityRoutingEnabled
+  const resolution = resolveTrustedRouteCity(pathname, searchParams, cities, config.defaultCity)
+  if (!resolution) return null
+  const leadPage = pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner'
+  if (leadPage && !resolution.attributable) return null
+  const observesPrefixedCity = resolution.source === 'pathname'
+  const observesLegacyOwner = !config.multiCityRoutingEnabled
     && (pathname === '/' || pathname === '/listings' || pathname === '/buildings')
-  ) {
-    city = cities.find((candidate) => candidate.slug === config.defaultCity)
-  }
-
-  if (!city) return null
+  if (!leadPage && !observesPrefixedCity && !observesLegacyOwner) return null
   return buildCityAnalyticsPayload('city_page_view', {
-    city: city.slug,
-    status: city.serviceStatus,
+    city: resolution.city.slug,
+    status: resolution.city.serviceStatus,
     page_type: pageType,
   })
 }
