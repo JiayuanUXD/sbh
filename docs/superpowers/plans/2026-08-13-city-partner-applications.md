@@ -144,7 +144,7 @@ git commit -m "feat: add city partner application pool"
 **Interfaces:**
 - Produces stage-one request/response and stage-two completion contracts.
 
-- [ ] **Step 1: Write failing request guard tests**
+- [x] **Step 1: Write failing request guard tests**
 
 Stage one contract:
 
@@ -177,7 +177,7 @@ type CityPartnerDetailsBody = Readonly<{
 
 Assert strict Content-Type, same origin, valid request ID, canonical active city, phone/name lengths, enum closure, “other” dependency, consent version, text limits, and unknown-key rejection.
 
-- [ ] **Step 2: Write failing idempotency and two-stage behavior tests**
+- [x] **Step 2: Write failing idempotency and two-stage behavior tests**
 
 ```ts
 expect(await postCreate(body)).toMatchObject({ status: 201, body: { ok: true, idempotent: false } })
@@ -188,23 +188,23 @@ expect(await postDetails(changedDetailsAgain)).toMatchObject({ status: 409 })
 
 Also assert explicit invalid city returns 422, rate limit returns 429, second-stage wrong requestId/phone returns 404, responses contain no internal ID/status/assignee, and logs contain no PII.
 
-- [ ] **Step 3: Run API tests and verify RED**
+- [x] **Step 3: Run API tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-partner-api-guards.test.ts tests/city-partner-api-route.test.ts tests/city-partner-details-route.test.ts`
 
 Expected: FAIL because routes do not exist.
 
-- [ ] **Step 4: Implement stage-one service and route**
+- [x] **Step 4: Implement stage-one service and route**
 
 Resolve city through Plan 1's validated profile/canonical city path. Compute `sha256(requestId | phoneNormalized | cityId)`. Check existing record, then create with `overrideAccess:true` only after all guards and rate limiting pass; set a server-owned request context flag so the Collection hook permits stage one.
 
 Return only `{ ok:true, idempotent:boolean }`. On unique race, re-read by idempotency key and return idempotent success.
 
-- [ ] **Step 5: Implement stage-two one-time completion**
+- [x] **Step 5: Implement stage-two one-time completion**
 
 Find by `requestId + phoneNormalized` with `overrideAccess:true`; compute a canonical hash of normalized detail fields; require `detailsCompletedAt=null`; update optional detail fields, `detailsFingerprint`, and timestamp in one transaction/context. An exact retry whose hash equals the stored fingerprint returns idempotent success; different content returns 409 `details_already_completed`.
 
-- [ ] **Step 6: Run API tests and commit Task 2**
+- [x] **Step 6: Run API tests and commit Task 2**
 
 Run: `pnpm exec vitest run tests/city-partner-api-guards.test.ts tests/city-partner-api-route.test.ts tests/city-partner-details-route.test.ts`
 
