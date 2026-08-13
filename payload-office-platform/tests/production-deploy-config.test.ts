@@ -8,6 +8,17 @@ const here = fileURLToPath(new URL('.', import.meta.url))
 const appRoot = resolve(here, '..')
 const repositoryRoot = resolve(appRoot, '..')
 
+describe('production build database boundary', () => {
+  it('keeps the Payload-backed frontend shell out of database-less prerendering', () => {
+    const frontendLayout = readFileSync(
+      resolve(appRoot, 'src/app/(frontend)/layout.tsx'),
+      'utf8',
+    )
+
+    expect(frontendLayout).toContain("export const dynamic = 'force-dynamic'")
+  })
+})
+
 describe('生产部署配置', () => {
   it('Git Archive 排除验证产物与测试目录', () => {
     const attributes = readFileSync(resolve(appRoot, '.gitattributes'), 'utf8')

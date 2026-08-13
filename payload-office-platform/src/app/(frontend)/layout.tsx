@@ -7,6 +7,12 @@ import { AnalyticsInit } from '@/lib/frontend/analytics'
 import { listPublicCityOptions, listPublicCityProfiles } from './_lib/city-context'
 import './styles.css'
 
+// The shared shell resolves its trusted city options and analytics profiles
+// from Payload. CloudBase builds the image without the runtime PostgreSQL
+// service, so all routes under this layout must resolve that shell at request
+// time instead of during image-build prerendering.
+export const dynamic = 'force-dynamic'
+
 // F0.5：metadataBase 由类型化环境配置提供，禁止硬编码生产域名。
 // 见 specs/frontend-mvp/tasks.md 与 design.md §11。
 // 所有页面 canonical / OG 默认基于此 URL 解析相对路径。
