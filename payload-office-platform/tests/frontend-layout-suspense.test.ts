@@ -27,14 +27,19 @@ vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
 import RootLayout from '@/app/(frontend)/layout'
 
 describe('frontend static prerender Suspense boundaries', () => {
-  it('keeps the prefixed shell renderable when every Task 5 search-param consumer suspends', async () => {
+  it('keeps complete deterministic shell links in SSR when query-dependent enhancement suspends', async () => {
     const element = await RootLayout({ children: React.createElement('section', null, 'city content') })
 
     expect(() => renderToStaticMarkup(element)).not.toThrow()
     const markup = renderToStaticMarkup(element)
     expect(markup).toContain('city content')
-    expect(markup).toContain('class="site-nav"')
-    expect(markup).toContain('aria-label=')
+    expect(markup).toContain('aria-label="商办租赁首页"')
+    expect(markup).toContain('href="/"')
+    expect(markup).toContain('class="site-nav__link"')
+    expect(markup).toContain('href="/listings"')
+    expect(markup).toContain('data-event-name="inquiry_open_trigger"')
     expect(markup).toContain('class="site-footer"')
+    expect(markup).toContain('class="site-footer__logo"')
+    expect(markup).toContain('href="/buildings"')
   })
 })

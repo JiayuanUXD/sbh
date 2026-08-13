@@ -53,13 +53,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <React.Suspense fallback={<header className="site-header"><nav className="site-nav" aria-label="主导航" /></header>}>
-          <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
-        </React.Suspense>
+        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
         <main id="main-content" className="site-main">{children}</main>
-        <React.Suspense fallback={<footer className="site-footer" />}>
-          <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
-        </React.Suspense>
+        <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
         <React.Suspense fallback={null}>
           <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} cities={profiles.map((profile) => ({

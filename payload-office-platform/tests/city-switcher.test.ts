@@ -272,7 +272,7 @@ describe('CitySwitcher', () => {
     },
   )
 
-  it('keeps every flag-off shell owner on legacy routes while retaining trusted lead query context', async () => {
+  it('keeps flag-off shell owners on legacy routes without offering misleading city choices', async () => {
     navigationState.pathname = '/hangzhou/listings'
     navigationState.search = 'areaMin=100'
     await renderShell(cities, false)
@@ -284,11 +284,14 @@ describe('CitySwitcher', () => {
     expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/news"]')).not.toBeNull()
     expect(document.querySelector<HTMLAnchorElement>('.site-footer a[href="/listings?type=traditional-office"]')).not.toBeNull()
 
-    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
-    if (!trigger) throw new Error('missing city switcher trigger')
-    await click(trigger)
-    expect(document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href="/listings?areaMin=100"]')).not.toBeNull()
-    expect(document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href^="/hangzhou/"]')).toBeNull()
+    expect(document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')).toBeNull()
+    expect(trackSpy).not.toHaveBeenCalledWith('city_switcher_opened', expect.anything())
+
+    const menuToggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!menuToggle) throw new Error('missing mobile menu toggle')
+    await click(menuToggle)
+    expect(document.querySelector('.mobile-drawer__cities')).toBeNull()
+    expect(trackSpy).not.toHaveBeenCalledWith('city_switcher_opened', expect.anything())
   })
 
   it('submits the global header inquiry with the same trusted lead-query city as the shell', async () => {

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
-import React, { useEffect, useRef, useState } from 'react'
+import type { ReadonlyURLSearchParams } from 'next/navigation'
+import React, { Suspense, useEffect, useRef, useState } from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import {
   createBrowserFocusEnvironment,
@@ -59,7 +59,7 @@ function isDesktopNavigationViewport(): boolean {
  */
 function isCurrent(
   pathname: string,
-  searchParams: ReadonlyURLSearchParams,
+  searchParams: Pick<ReadonlyURLSearchParams, 'get' | 'has'>,
   href: string,
 ): boolean {
   const [path, query = ''] = href.split('?')
@@ -82,13 +82,15 @@ export default function SiteNav({
   cities,
   defaultCity,
   multiCityRoutingEnabled,
+  pathname,
+  searchParams,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
+  pathname: string
+  searchParams: Pick<ReadonlyURLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
 }>) {
-  const pathname = usePathname() || '/'
-  const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
@@ -194,7 +196,15 @@ export default function SiteNav({
           避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
           包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
       <div className="site-header__actions">
-        <CitySwitcher cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
+        {multiCityRoutingEnabled ? (
+          <Suspense fallback={currentCity ? (
+            <span className="city-switcher__trigger" aria-label={`当前城市：${currentCity.name}`}>
+              <span>{currentCity.name}</span>
+            </span>
+          ) : null}>
+            <CitySwitcher cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled />
+          </Suspense>
+        ) : null}
         {ctaPageType === 'entrust' ? (
           <button
             type="button"
@@ -228,7 +238,7 @@ export default function SiteNav({
           aria-controls="mobile-drawer"
           onClick={() => {
             const nextOpen = isDesktopNavigationViewport() ? false : !open
-            if (nextOpen && currentCity) {
+            if (nextOpen && multiCityRoutingEnabled && currentCity) {
               safeTrackCityEvent(track, 'city_switcher_opened', {
                 city: currentCity.slug,
                 status: currentCity.serviceStatus,
@@ -303,7 +313,7 @@ export default function SiteNav({
                 )
               })}
             </nav>
-            {citySlug ? (
+            {multiCityRoutingEnabled && citySlug ? (
               <div className="mobile-drawer__cities" aria-label="切换城市">
                 <p className="mobile-drawer__cities-title">切换城市</p>
                 {trustedCities.map((city) => {

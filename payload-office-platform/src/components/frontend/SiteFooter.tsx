@@ -2,32 +2,27 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import React from 'react'
+import React, { Suspense } from 'react'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
 
-/**
- * 公开站点页脚
- *
- * 设计依据：plans/temporal-imagining-sonnet.md §9（编辑式页脚）
- * 守护不变量：
- *   - 服务端组件，纯展示；
- *   - 延续 paper 底 + ink 文字的既有品牌基调，不引入新色值；
- *   - 链接对齐既有路由（/news 由 T6 落地，此前为预留入口）；
- *   - 语义化 <footer> 内分栏，移动端折叠为单列。
- */
-export default function SiteFooter({
-  cities,
-  defaultCity,
-  multiCityRoutingEnabled,
-}: Readonly<{
+type FooterShellProps = Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
+  pathname: string
+}>
+
+function FooterContents({
+  cities,
+  defaultCity,
+  multiCityRoutingEnabled,
+  pathname,
+  searchParams,
+}: FooterShellProps & Readonly<{
+  searchParams: Pick<URLSearchParams, 'getAll'>
 }>) {
-  const pathname = usePathname() || '/'
-  const searchParams = useSearchParams()
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const citySlug = currentCity?.slug
   const year = new Date().getFullYear()
@@ -45,12 +40,12 @@ export default function SiteFooter({
             <div key={col.title} className="site-footer__col">
               <h3 className="site-footer__col-title">{col.title}</h3>
               <ul className="site-footer__links" role="list">
-                {col.links.map((l) => {
-                  const href = citySlug ? cityAwareHref(l.href, citySlug, multiCityRoutingEnabled) : l.href
+                {col.links.map((link) => {
+                  const href = citySlug ? cityAwareHref(link.href, citySlug, multiCityRoutingEnabled) : link.href
                   return (
-                  <li key={l.href}>
-                    <Link href={href} className="site-footer__link">{l.label}</Link>
-                  </li>
+                    <li key={link.href}>
+                      <Link href={href} className="site-footer__link">{link.label}</Link>
+                    </li>
                   )
                 })}
               </ul>
@@ -65,5 +60,38 @@ export default function SiteFooter({
         </div>
       </div>
     </footer>
+  )
+}
+
+function QueryAwareFooterContents(props: FooterShellProps) {
+  const searchParams = useSearchParams()
+  return <FooterContents {...props} searchParams={searchParams} />
+}
+
+/**
+ * 公开站点页脚
+ *
+ * 设计依据：plans/temporal-imagining-sonnet.md §9（编辑式页脚）
+ * 守护不变量：
+ *   - SSR fallback 始终输出完整确定性链接；query 城市只在内部边界增强；
+ *   - 延续 paper 底 + ink 文字的既有品牌基调，不引入新色值；
+ *   - 链接对齐既有路由（/news 由 T6 落地，此前为预留入口）；
+ *   - 语义化 <footer> 内分栏，移动端折叠为单列。
+ */
+export default function SiteFooter({
+  cities,
+  defaultCity,
+  multiCityRoutingEnabled,
+}: Readonly<{
+  cities: readonly PublicCityOption[]
+  defaultCity: string
+  multiCityRoutingEnabled: boolean
+}>) {
+  const pathname = usePathname() || '/'
+  const fallbackSearchParams = new URLSearchParams()
+  return (
+    <Suspense fallback={<FooterContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} searchParams={fallbackSearchParams} />}>
+      <QueryAwareFooterContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} />
+    </Suspense>
   )
 }

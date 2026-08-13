@@ -7,6 +7,42 @@ import SiteNav from '@/components/frontend/SiteNav'
 import { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
+type HeaderShellProps = Readonly<{
+  cities: readonly PublicCityOption[]
+  defaultCity: string
+  multiCityRoutingEnabled: boolean
+  pathname: string
+}>
+
+function HeaderContents({
+  cities,
+  defaultCity,
+  multiCityRoutingEnabled,
+  pathname,
+  searchParams,
+}: HeaderShellProps & Readonly<{
+  searchParams: Pick<URLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
+}>) {
+  const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
+  return (
+    <>
+      <Link href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+      <SiteNav
+        cities={cities}
+        defaultCity={defaultCity}
+        multiCityRoutingEnabled={multiCityRoutingEnabled}
+        pathname={pathname}
+        searchParams={searchParams}
+      />
+    </>
+  )
+}
+
+function QueryAwareHeaderContents(props: HeaderShellProps) {
+  const searchParams = useSearchParams()
+  return <HeaderContents {...props} searchParams={searchParams} />
+}
+
 /**
  * 公开站点页头外壳（client）：首页首屏透明压视频，下滑后切回奶油实底。
  *
@@ -27,10 +63,10 @@ export default function SiteHeader({
   defaultCity: string
   multiCityRoutingEnabled: boolean
 }>) {
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const currentCity = resolveTrustedCity(pathname || '/', cities, defaultCity, searchParams)
-  const isTrustedCityHome = currentCity !== null && pathname === `/${currentCity.slug}`
+  const pathname = usePathname() || '/'
+  const fallbackSearchParams = new URLSearchParams()
+  const fallbackCity = resolveTrustedCity(pathname, cities, defaultCity, fallbackSearchParams)
+  const isTrustedCityHome = fallbackCity !== null && pathname === `/${fallbackCity.slug}`
   const isHome = pathname === '/' || isTrustedCityHome
   const [scrolled, setScrolled] = useState(false)
 
@@ -52,9 +88,8 @@ export default function SiteHeader({
   return (
     <header className={className}>
       <div className="site-header__inner">
-        <Link href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
-        <Suspense fallback={<nav className="site-nav" aria-label="主导航" />}>
-          <SiteNav cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
+        <Suspense fallback={<HeaderContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} searchParams={fallbackSearchParams} />}>
+          <QueryAwareHeaderContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} />
         </Suspense>
       </div>
     </header>
