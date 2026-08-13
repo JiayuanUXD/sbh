@@ -246,7 +246,7 @@ git commit -m "feat: isolate public caches by city"
 - Consumes: profile list resolver from Plan 1 and city-scoped cached catalog functions from Task 3.
 - Produces: a sitemap source that enumerates only live profiles and effective city-scoped supply.
 
-- [ ] **Step 1: Write failing sitemap/parity tests**
+- [x] **Step 1: Write failing sitemap/parity tests**
 
 ```ts
 expect(urls).toContain('/shanghai')
@@ -257,17 +257,17 @@ expect(urls).not.toContain('/shanghai/listings/hangzhou-listing')
 
 Create a parity table asserting homepage/list/search/detail/recommendation/facet/sitemap consumers resolve the same effective listing ID set for each city.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm exec vitest run tests/sitemap-static-routes.test.ts tests/public-catalog-city-parity.test.ts`
 
 Expected: FAIL on old global paths/default city.
 
-- [ ] **Step 3: Implement live-profile sitemap enumeration**
+- [x] **Step 3: Implement live-profile sitemap enumeration**
 
 Fetch public profiles once, filter `serviceStatus==='live'`, and call catalog functions with each profile slug. Keep global `/news`, published articles, and `/pages/privacy`; include `/city-partner` once; exclude coming-soon city paths and query variants.
 
-- [ ] **Step 4: Run Plan 2 gate verification**
+- [x] **Step 4: Run Plan 2 gate verification**
 
 Run:
 
@@ -279,7 +279,7 @@ git diff --check
 
 Expected: all focused tests/typecheck pass and diff check is clean.
 
-- [ ] **Step 5: Commit Task 4 and record Gate B evidence**
+- [x] **Step 5: Commit Task 4 and record Gate B evidence**
 
 ```bash
 git add payload-office-platform/src/app/\(frontend\)/sitemap.ts payload-office-platform/tests/sitemap-static-routes.test.ts payload-office-platform/tests/fp-06-content-seo-cache-acceptance.test.ts payload-office-platform/tests/public-catalog-city-parity.test.ts
