@@ -124,8 +124,9 @@ describe('SupplySubmissionForm validation and request boundary', () => {
   })
 
   it('builds the exact normalized body required by the supply endpoint', () => {
-    expect(buildSupplySubmissionBody(VALID_VALUES, 'publish-fixed-request')).toEqual({
+    expect(buildSupplySubmissionBody(VALID_VALUES, 'publish-fixed-request', 'hangzhou')).toEqual({
       requestId: 'publish-fixed-request',
+      city: 'hangzhou',
       buildingName: '世纪商贸广场',
       address: '长宁区延安西路 2299 号',
       areaSqm: 268.5,

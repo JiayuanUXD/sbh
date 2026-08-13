@@ -10,7 +10,7 @@
  *   - 幂等键 = sha256(requestId | phoneNormalized | buildingName)；命中 → 返回首次成功语义；
  *   - 限流：每 IP 每分钟 3 次，429 + Retry-After，不记录完整 IP；
  *   - 日志：buildSupplyLogEntry，不含手机号/楼盘名/地址/原始 IP；
- *   - 城市固定写入默认城市（MVP 单城，前台不采集）；
+ *   - 城市 slug 在服务端通过公开城市档案重新解析，仅写入可信 relationship ID；
  *   - 不暴露记录 ID、内部错误。
  */
 
@@ -28,11 +28,11 @@ import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps } from '@/lib/rate-limit-pg'
 import { SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { ratePruneRef } from './rate-limit-state'
 import {
   extractPgPool,
   isStrictJsonContentType,
-  resolveDefaultCityId,
 } from './request-guards'
 
 export const dynamic = 'force-dynamic'
@@ -160,6 +160,14 @@ export async function POST(req: Request): Promise<Response> {
   }
   const submission: SupplySubmissionRequest = result.data
 
+  const submittedCity = submission.city ?? (
+    submission.source.path === '/publish' ? siteConfig.defaultCity : null
+  )
+  const trustedCity = submittedCity ? await resolveCityContext(submittedCity) : null
+  if (!trustedCity || trustedCity.slug !== submittedCity || typeof trustedCity.id !== 'number') {
+    return NextResponse.json({ ok: false, errors: ['city_invalid'] }, { status: 422 })
+  }
+
   // ----- 5. 幂等键 -----
   const idempotencyKey = await computeSupplyIdempotencyKey(
     submission.requestId,
@@ -189,18 +197,6 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ----- 7. 创建申请 -----
-  // 城市是可空的元数据字段（collection 未设 required，DB 里 city_id 允许 NULL）。
-  // 解析失败只告警并留空，绝不因此拒绝一条有效的公开提交——否则生产库里那条
-  // slug='shanghai' 的 location 被改名/停用就会让整个投放入口 500、线索全丢。
-  // 城市可由审单顾问在后台补录。
-  const cityId = await resolveDefaultCityId(payload, siteConfig.defaultCity)
-  if (cityId === null) {
-    payload.logger.warn(
-      { errorCode: 'default_city_unavailable' },
-      'supply_submission_default_city_unavailable',
-    )
-  }
-
   try {
     await payload.create({
       collection: 'supply-submissions',
@@ -213,7 +209,7 @@ export async function POST(req: Request): Promise<Response> {
         commissionMonths: submission.commissionMonths,
         contactPhone: submission.contactPhone,
         status: 'pending',
-        city: cityId ?? undefined,
+        city: trustedCity.id,
         requestId: submission.requestId,
         idempotencyKey,
         sourcePath: submission.source.path,

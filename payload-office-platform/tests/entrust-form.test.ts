@@ -22,9 +22,10 @@ describe('EntrustForm submission boundary', () => {
   })
 
   it('builds the exact entrust inquiry body with the normalized phone', () => {
-    expect(buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request')).toEqual({
+    expect(buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request', 'hangzhou')).toEqual({
       phone: '13800001111',
       requestId: 'entrust-fixed-request',
+      city: 'hangzhou',
       targetType: 'none',
       consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
       source: { pageType: 'entrust', path: '/entrust' },
@@ -39,7 +40,7 @@ describe('EntrustForm submission boundary', () => {
     }
 
     const result = await submitEntrustInquiry(
-      buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request'),
+      buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request', 'hangzhou'),
       requester,
     )
 
@@ -53,6 +54,7 @@ describe('EntrustForm submission boundary', () => {
         body: JSON.stringify({
           phone: '13800001111',
           requestId: 'entrust-fixed-request',
+          city: 'hangzhou',
           targetType: 'none',
           consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
           source: { pageType: 'entrust', path: '/entrust' },
@@ -269,6 +271,11 @@ describe('EntrustForm submission boundary', () => {
 })
 
 describe('EntrustForm two-step demand update', () => {
+  it('never includes city in the stage-two demand body', () => {
+    expect(buildEntrustDemandBody('entrust-req', '13800001111', { budget: '3万/月' }))
+      .not.toHaveProperty('city')
+  })
+
   it('builds demand body with trimmed non-empty fields only', () => {
     expect(
       buildEntrustDemandBody('entrust-req', '13800001111', {

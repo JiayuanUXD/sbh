@@ -36,6 +36,23 @@ function validBody(overrides: Record<string, unknown> = {}): Record<string, unkn
   }
 }
 
+describe('validateSupplySubmission - city attribution', () => {
+  it('preserves a canonical public city slug for server-side resolution', () => {
+    const r = validateSupplySubmission(validBody({ city: 'hangzhou' }))
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.data.city).toBe('hangzhou')
+  })
+
+  it.each([' HangZhou ', 'publish', 'unknown/path', 42, null])(
+    'rejects an explicit noncanonical or reserved city: %s',
+    (city) => {
+      const r = validateSupplySubmission(validBody({ city }))
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.errors).toContain('city_invalid')
+    },
+  )
+})
+
 describe('validateSupplySubmission - 成功路径', () => {
   it('最小合法请求体通过，佣金缺省为 none', () => {
     const r = validateSupplySubmission(validBody())

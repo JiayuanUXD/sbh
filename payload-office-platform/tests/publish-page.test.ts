@@ -1,6 +1,18 @@
-import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/app/(frontend)/_lib/city-context', () => ({
+  listPublicCityOptions: async () => [
+    { slug: 'shanghai', name: '上海市', serviceStatus: 'live', sortOrder: 1 },
+  ],
+  resolveCityContext: async () => ({
+    id: 1,
+    slug: 'shanghai',
+    name: '上海市',
+    serviceStatus: 'live',
+    profile: { sortOrder: 1 },
+  }),
+}))
 import EntrustPage from '@/app/(frontend)/entrust/page'
 import PublishPage, { metadata } from '@/app/(frontend)/publish/page'
 
@@ -11,8 +23,8 @@ describe('/publish page', () => {
     expect(metadata.robots).toEqual({ index: true, follow: true })
   })
 
-  it('renders one h1, one submission form, four process steps, and Service JSON-LD', () => {
-    const markup = renderToStaticMarkup(React.createElement(PublishPage))
+  it('renders one h1, one submission form, four process steps, and Service JSON-LD', async () => {
+    const markup = renderToStaticMarkup(await PublishPage({ searchParams: Promise.resolve({}) }))
 
     expect(markup.match(/<h1\b/g)).toHaveLength(1)
     expect(markup.match(/class="process-steps__item"/g)).toHaveLength(4)
@@ -22,9 +34,9 @@ describe('/publish page', () => {
     expect(markup).not.toContain('"@type":"FAQPage"')
   })
 
-  it('uses a publish-specific COS hero background that is separate from entrust', () => {
-    const publishMarkup = renderToStaticMarkup(React.createElement(PublishPage))
-    const entrustMarkup = renderToStaticMarkup(React.createElement(EntrustPage))
+  it('uses a publish-specific COS hero background that is separate from entrust', async () => {
+    const publishMarkup = renderToStaticMarkup(await PublishPage({ searchParams: Promise.resolve({}) }))
+    const entrustMarkup = renderToStaticMarkup(await EntrustPage({ searchParams: Promise.resolve({}) }))
 
     const publishBackground = '/api/media/file/landing-hero-publish-20260810.jpg?prefix=media'
     const entrustBackground = '/api/media/file/landing-hero-entrust-20260810.jpg?prefix=media'

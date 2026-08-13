@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   extractPgPool,
   isStrictJsonContentType,
-  resolveDefaultCityId,
 } from '@/app/api/supply-submissions/request-guards'
 import {
   __resetRateStoreForTests,
@@ -43,30 +42,4 @@ describe('supply-submissions request guards', () => {
     expect(ratePruneRef.value).toBe(0)
   })
 
-  it('returns no city when the default city lookup has no match', async () => {
-    const cityId = await resolveDefaultCityId(
-      { find: async () => ({ docs: [] }) },
-      'shanghai',
-    )
-
-    expect(cityId).toBeNull()
-  })
-
-  it('returns no city when the default city ID is not a number', async () => {
-    const cityId = await resolveDefaultCityId(
-      { find: async () => ({ docs: [{ id: 'shanghai' }] }) },
-      'shanghai',
-    )
-
-    expect(cityId).toBeNull()
-  })
-
-  it('returns no city when the default city lookup fails', async () => {
-    const cityId = await resolveDefaultCityId(
-      { find: async () => Promise.reject(new Error('database unavailable')) },
-      'shanghai',
-    )
-
-    expect(cityId).toBeNull()
-  })
 })
