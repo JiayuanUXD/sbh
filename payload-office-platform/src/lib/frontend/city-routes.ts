@@ -4,6 +4,11 @@
  * canonical slugs and whitelists every path/query fragment it emits.
  */
 
+import {
+  parseListingSearchInput,
+  type ListingSearchInput,
+} from '@/domain/public-catalog'
+
 export type CityPageType =
   | 'home'
   | 'listings'
@@ -39,16 +44,8 @@ const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   'sitemap',
 ])
 
-const LISTING_TYPE_VALUES = new Set([
-  'traditional-office',
-  'serviced-office',
-  'coworking',
-  'full-floor',
-])
-const RENT_UNIT_VALUES = new Set(['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'])
 const PRICE_PERIOD_VALUES = new Set(['day', 'month'])
 const PRICE_BASIS_VALUES = new Set(['sqm', 'seat', 'total'])
-const LISTING_SORT_VALUES = new Set(['recommended', 'rent-asc', 'rent-desc', 'newest'])
 const BUILDING_GRADE_VALUES = new Set([
   'grade-a',
   'super-grade-a',
@@ -57,7 +54,7 @@ const BUILDING_GRADE_VALUES = new Set([
 ])
 
 const LISTING_QUERY_KEYS = [
-  'q',
+  'type',
   'areaMin',
   'areaMax',
   'rentMin',
@@ -65,8 +62,8 @@ const LISTING_QUERY_KEYS = [
   'rentUnit',
   'pricePeriod',
   'priceBasis',
-  'listingType',
   'availableBefore',
+  'q',
   'sort',
 ] as const
 
@@ -77,6 +74,11 @@ type Route = Readonly<{
   detailSlug: string | null
   pageType: CityPageType
   params: URLSearchParams
+}>
+
+type ParsedSourceUrl = Readonly<{
+  params: URLSearchParams
+  pathname: string
 }>
 
 function isCanonicalCitySlug(value: unknown): value is string {
@@ -103,39 +105,41 @@ function rawPathFromSource(value: string): string | null {
   return rawPath
 }
 
-function hasSafeRawPathSegments(rawPath: string): boolean {
-  if (rawPath === '/') return true
-  if (rawPath.includes('\\') || /[\u0000-\u001f\u007f]/.test(rawPath)) return false
-  const segments = rawPath.slice(1).split('/')
-  if (segments.some((segment) => segment.length === 0)) return false
-
-  for (const segment of segments) {
-    let decoded: string
-    try {
-      decoded = decodeURIComponent(segment)
-    } catch {
-      return false
+function decodePathSegmentToStable(segment: string): string | null {
+  let decoded = segment
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (decoded === '.' || decoded === '..' || decoded.includes('/') || decoded.includes('\\') || /[\u0000-\u001f\u007f]/.test(decoded)) {
+      return null
     }
-    if (
-      decoded === '.' ||
-      decoded === '..' ||
-      decoded.includes('/') ||
-      decoded.includes('\\') ||
-      /[\u0000-\u001f\u007f]/.test(decoded)
-    ) {
-      return false
+    if (!decoded.includes('%')) return decoded
+    try {
+      decoded = decodeURIComponent(decoded)
+    } catch {
+      return null
     }
   }
-  return true
+  return decoded.includes('%') ? null : decoded
 }
 
-function parseSourceUrl(value: unknown): URL | null {
+function stablePathname(rawPath: string): string | null {
+  if (rawPath === '/') return '/'
+  if (rawPath.includes('\\') || /[\u0000-\u001f\u007f]/.test(rawPath)) return null
+  const segments = rawPath.slice(1).split('/')
+  if (segments.some((segment) => segment.length === 0)) return null
+  const decoded = segments.map(decodePathSegmentToStable)
+  return decoded.every((segment): segment is string => segment !== null)
+    ? `/${decoded.join('/')}`
+    : null
+}
+
+function parseSourceUrl(value: unknown): ParsedSourceUrl | null {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null
   const rawPath = rawPathFromSource(value)
-  if (!rawPath || !hasSafeRawPathSegments(rawPath)) return null
+  const pathname = rawPath ? stablePathname(rawPath) : null
+  if (!pathname) return null
   try {
     const parsed = new URL(value, URL_BASE)
-    return parsed.origin === URL_BASE ? parsed : null
+    return parsed.origin === URL_BASE ? { pathname, params: parsed.searchParams } : null
   } catch {
     return null
   }
@@ -212,18 +216,12 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
 
 function parseRoute(value: unknown): Route | null {
   const parsed = parseSourceUrl(value)
-  return parsed ? classifyPath(parsed.pathname, parsed.searchParams) : null
+  return parsed ? classifyPath(parsed.pathname, parsed.params) : null
 }
 
 function readSingle(params: URLSearchParams, key: string): string | null {
   const values = params.getAll(key)
   return values.length === 1 ? values[0] ?? null : null
-}
-
-function isCanonicalInteger(value: string, max: number): boolean {
-  if (!/^(?:0|[1-9]\d*)$/.test(value)) return false
-  const parsed = Number(value)
-  return Number.isSafeInteger(parsed) && parsed >= 0 && parsed <= max
 }
 
 function isCanonicalDate(value: string): boolean {
@@ -242,37 +240,56 @@ function isCanonicalDate(value: string): boolean {
   )
 }
 
-function validListingValue(key: (typeof LISTING_QUERY_KEYS)[number], value: string): boolean {
-  switch (key) {
-    case 'q':
-      return value.length > 0 && value.length <= 100 && value.trim() === value && !/[\u0000-\u001f\u007f]/.test(value)
-    case 'areaMin':
-    case 'areaMax':
-      return isCanonicalInteger(value, 1_000_000)
-    case 'rentMin':
-    case 'rentMax':
-      return isCanonicalInteger(value, Number.MAX_SAFE_INTEGER)
-    case 'rentUnit':
-      return RENT_UNIT_VALUES.has(value)
-    case 'pricePeriod':
-      return PRICE_PERIOD_VALUES.has(value)
-    case 'priceBasis':
-      return PRICE_BASIS_VALUES.has(value)
-    case 'listingType':
-      return LISTING_TYPE_VALUES.has(value)
-    case 'availableBefore':
-      return isCanonicalDate(value)
-    case 'sort':
-      return LISTING_SORT_VALUES.has(value)
+function selectFuturePriceValue(
+  params: URLSearchParams,
+  key: 'pricePeriod' | 'priceBasis',
+): string | null {
+  const value = readSingle(params, key)
+  if (value === null) return null
+  return key === 'pricePeriod'
+    ? PRICE_PERIOD_VALUES.has(value) ? value : null
+    : PRICE_BASIS_VALUES.has(value) ? value : null
+}
+
+function singleListingParams(params: URLSearchParams): URLSearchParams {
+  const selected = new URLSearchParams()
+  for (const key of LISTING_QUERY_KEYS) {
+    if (key === 'pricePeriod' || key === 'priceBasis') continue
+    const value = readSingle(params, key)
+    if (value !== null) selected.set(key, value)
   }
+  return selected
+}
+
+function appendCanonicalListingQuery(
+  selected: URLSearchParams,
+  input: ListingSearchInput,
+  pricePeriod: string | null,
+  priceBasis: string | null,
+): void {
+  const listingType = input.listingType?.[0]
+  if (listingType) selected.set('type', listingType)
+  if (input.areaMin !== undefined) selected.set('areaMin', String(input.areaMin))
+  if (input.areaMax !== undefined) selected.set('areaMax', String(input.areaMax))
+  if (input.rentMin !== undefined) selected.set('rentMin', String(input.rentMin))
+  if (input.rentMax !== undefined) selected.set('rentMax', String(input.rentMax))
+  if (input.rentUnit) selected.set('rentUnit', input.rentUnit)
+  if (pricePeriod) selected.set('pricePeriod', pricePeriod)
+  if (priceBasis) selected.set('priceBasis', priceBasis)
+  if (input.availableBefore) selected.set('availableBefore', input.availableBefore)
+  if (input.q) selected.set('q', input.q)
+  if (input.sort && input.sort !== 'recommended') selected.set('sort', input.sort)
 }
 
 function selectListingQuery(params: URLSearchParams): URLSearchParams {
+  const input = parseListingSearchInput(singleListingParams(params))
   const selected = new URLSearchParams()
-  for (const key of LISTING_QUERY_KEYS) {
-    const value = readSingle(params, key)
-    if (value !== null && validListingValue(key, value)) selected.set(key, value)
-  }
+  appendCanonicalListingQuery(
+    selected,
+    input,
+    selectFuturePriceValue(params, 'pricePeriod'),
+    selectFuturePriceValue(params, 'priceBasis'),
+  )
   const areaMin = selected.get('areaMin')
   const areaMax = selected.get('areaMax')
   if (areaMin !== null && areaMax !== null && Number(areaMin) > Number(areaMax)) {

@@ -75,34 +75,37 @@ describe('city route URL contract', () => {
   it('switches a listing list with only portable filters in stable order', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?sort=rent-desc&district=pudong&q=river&page=3&areaMin=100&rentUnit=rmb-sqm-day&extra=drop',
+        '/shanghai/listings?sort=rent-desc&district=pudong&q= river &page=3&areaMin=1e2&rentUnit=rmb-sqm-day&type=coworking&extra=drop',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?q=river&areaMin=100&rentUnit=rmb-sqm-day&sort=rent-desc')
+    ).toBe('/hangzhou/listings?type=coworking&areaMin=100&rentUnit=rmb-sqm-day&q=river&sort=rent-desc')
   })
 
-  it('preserves only single canonical listing values in stable order', () => {
+  it('uses the current type query key and retains future structured price keys only when valid', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
+        '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&type=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?q=first&areaMin=10&areaMax=200&rentMin=100&rentMax=999&pricePeriod=month&priceBasis=total&listingType=traditional-office&availableBefore=2026-12-31')
+    ).toBe('/hangzhou/listings?type=traditional-office&areaMin=10&areaMax=200&rentMin=100&rentMax=999&pricePeriod=month&priceBasis=total&availableBefore=2026-12-31&q=first')
   })
 
-  it('drops duplicate, malformed, noncanonical, and semantically invalid filter values independently', () => {
+  it('drops duplicate scalar values while normalizing current parser number and q forms', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?q=one&q=two&areaMin=001&areaMax=10&rentMin=30&rentMax=20&rentUnit=usd&pricePeriod=year&priceBasis=unit&listingType=unknown&availableBefore=2026-02-30&sort=price-desc',
+        '/shanghai/listings?q=one&q=two&areaMin=001&areaMax=100.9&rentMin=30&rentMax=20&rentUnit=usd&pricePeriod=year&priceBasis=unit&listingType=unknown&type=unknown&availableBefore=2026-02-30&sort=price-desc',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?areaMax=10')
+    ).toBe('/hangzhou/listings?areaMin=1&areaMax=100')
     expect(
       switchCityUrl(
-        `/shanghai/listings?q=${'a'.repeat(101)}&availableBefore=2026-08-31&rentUnit=rmb-month&sort=rent-desc`,
+        `/shanghai/listings?q=%20${'a'.repeat(101)}%20&availableBefore=2026-08-31&rentUnit=rmb-month&sort=rent-desc`,
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?rentUnit=rmb-month&availableBefore=2026-08-31&sort=rent-desc')
+    ).toBe(`/hangzhou/listings?rentUnit=rmb-month&availableBefore=2026-08-31&q=${'a'.repeat(100)}&sort=rent-desc`)
+    expect(switchCityUrl('/shanghai/listings?type=coworking&type=full-floor', 'hangzhou')).toBe(
+      '/hangzhou/listings',
+    )
     expect(switchCityUrl('/shanghai/buildings?grade=grade-a&grade=super-grade-a', 'hangzhou')).toBe(
       '/hangzhou/buildings',
     )
@@ -163,11 +166,23 @@ describe('city route URL contract', () => {
     ['/shanghai/%2f/listings', 'encoded slash'],
     ['/shanghai/%5c/listings', 'encoded backslash'],
     ['/shanghai/%00/listings', 'encoded control'],
+    ['/shanghai/%252e%252e/listings', 'double encoded dot segment'],
+    ['/shanghai/%25252e%25252e/listings', 'triple encoded dot segment'],
+    ['/shanghai/%255c/listings', 'double encoded backslash'],
+    ['/shanghai/%252f/listings', 'double encoded slash'],
+    ['/shanghai/%2525252525252e/listings', 'over-depth encoded percent'],
   ])('fails closed before WHATWG URL normalization for %s (%s)', (source) => {
     expect(getCityPageType(source)).toBe('unknown')
     expect(legacyCanonicalPath(source)).toBeNull()
     expect(prefixedCanonicalPath(source, 'hangzhou')).toBeNull()
     expect(switchCityUrl(source, 'hangzhou')).toBe('/hangzhou')
+  })
+
+  it('stably decodes benign UTF-8 detail segments and encodes output exactly once', () => {
+    expect(getCityPageType('/news/%E5%8A%9E%E5%85%AC%E6%8C%87%E5%8D%97')).toBe('news-detail')
+    expect(legacyCanonicalPath('/news/%E5%8A%9E%E5%85%AC%E6%8C%87%E5%8D%97')).toBe(
+      '/news/%E5%8A%9E%E5%85%AC%E6%8C%87%E5%8D%97',
+    )
   })
 
   it('derives legacy and prefixed canonical paths without retaining unapproved query data', () => {
