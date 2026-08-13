@@ -4,10 +4,8 @@
  * canonical slugs and whitelists every path/query fragment it emits.
  */
 
-import {
-  parseListingSearchInput,
-  type ListingSearchInput,
-} from '@/domain/public-catalog'
+import { parseListingSearchInput } from '@/domain/public-catalog/search-params'
+import type { ListingSearchInput } from '@/domain/public-catalog/types'
 
 export type CityPageType =
   | 'home'
@@ -105,41 +103,44 @@ function rawPathFromSource(value: string): string | null {
   return rawPath
 }
 
-function decodePathSegmentToStable(segment: string): string | null {
+function hasSafeDecodedLayers(segment: string): boolean {
   let decoded = segment
   for (let depth = 0; depth < 4; depth += 1) {
     if (decoded === '.' || decoded === '..' || decoded.includes('/') || decoded.includes('\\') || /[\u0000-\u001f\u007f]/.test(decoded)) {
-      return null
+      return false
     }
-    if (!decoded.includes('%')) return decoded
+    if (!decoded.includes('%')) return true
     try {
       decoded = decodeURIComponent(decoded)
     } catch {
-      return null
+      // A literal percent is a legal stable segment representation. It will
+      // be encoded once only by canonicalPathSegment when emitted.
+      return true
     }
   }
-  return decoded.includes('%') ? null : decoded
+  // More decodable layers may conceal a dangerous token beyond the bounded
+  // scan, so fail closed rather than treating it as a literal percent.
+  return !decoded.includes('%')
 }
 
-function stablePathname(rawPath: string): string | null {
-  if (rawPath === '/') return '/'
-  if (rawPath.includes('\\') || /[\u0000-\u001f\u007f]/.test(rawPath)) return null
+function hasSafeRawPathSegments(rawPath: string): boolean {
+  if (rawPath === '/') return true
+  if (rawPath.includes('\\') || /[\u0000-\u001f\u007f]/.test(rawPath)) return false
   const segments = rawPath.slice(1).split('/')
-  if (segments.some((segment) => segment.length === 0)) return null
-  const decoded = segments.map(decodePathSegmentToStable)
-  return decoded.every((segment): segment is string => segment !== null)
-    ? `/${decoded.join('/')}`
-    : null
+  if (segments.some((segment) => segment.length === 0)) return false
+  return segments.every(hasSafeDecodedLayers)
 }
 
 function parseSourceUrl(value: unknown): ParsedSourceUrl | null {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return null
   const rawPath = rawPathFromSource(value)
-  const pathname = rawPath ? stablePathname(rawPath) : null
-  if (!pathname) return null
+  if (!rawPath || !hasSafeRawPathSegments(rawPath)) return null
   try {
     const parsed = new URL(value, URL_BASE)
-    return parsed.origin === URL_BASE ? { pathname, params: parsed.searchParams } : null
+    // Classification deliberately uses the URL pathname token as serialized,
+    // not the recursively decoded guard input. Encoded aliases must never be
+    // able to claim city or static route ownership.
+    return parsed.origin === URL_BASE ? { pathname: parsed.pathname, params: parsed.searchParams } : null
   } catch {
     return null
   }
@@ -147,22 +148,23 @@ function parseSourceUrl(value: unknown): ParsedSourceUrl | null {
 
 function canonicalPathSegment(value: string | undefined): string | null {
   if (!value) return null
+  let decoded: string
   try {
-    const decoded = decodeURIComponent(value)
-    if (
-      decoded.length === 0 ||
-      decoded === '.' ||
-      decoded === '..' ||
-      decoded.includes('/') ||
-      decoded.includes('\\') ||
-      /[\u0000-\u001f\u007f]/.test(decoded)
-    ) {
-      return null
-    }
-    return encodeURIComponent(decoded)
+    decoded = decodeURIComponent(value)
   } catch {
+    decoded = value
+  }
+  if (
+    decoded.length === 0 ||
+    decoded === '.' ||
+    decoded === '..' ||
+    decoded.includes('/') ||
+    decoded.includes('\\') ||
+    /[\u0000-\u001f\u007f]/.test(decoded)
+  ) {
     return null
   }
+  return encodeURIComponent(decoded)
 }
 
 function classifyPath(pathname: string, params: URLSearchParams): Route {

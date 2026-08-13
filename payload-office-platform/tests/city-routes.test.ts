@@ -72,6 +72,18 @@ describe('city route URL contract', () => {
     expect(getCityPageType(pathname)).toBe(expected)
   })
 
+  it.each([
+    '/%6eews',
+    '/%6cistings',
+    '/%73hanghai',
+    '/shang%68ai/listings',
+    '/shanghai/%6cistings',
+  ])('rejects encoded aliases for static and city route tokens: %s', (source) => {
+    expect(getCityPageType(source)).toBe('unknown')
+    expect(legacyCanonicalPath(source)).toBeNull()
+    expect(prefixedCanonicalPath(source, 'hangzhou')).toBeNull()
+  })
+
   it('switches a listing list with only portable filters in stable order', () => {
     expect(
       switchCityUrl(
@@ -183,6 +195,22 @@ describe('city route URL contract', () => {
     expect(legacyCanonicalPath('/news/%E5%8A%9E%E5%85%AC%E6%8C%87%E5%8D%97')).toBe(
       '/news/%E5%8A%9E%E5%85%AC%E6%8C%87%E5%8D%97',
     )
+  })
+
+  it.each([
+    ['/news/100%25', 'news-detail', '/news/100%25', '/hangzhou'],
+    ['/shanghai/listings/100%25', 'listing-detail', '/listings/100%25', '/hangzhou/listings'],
+    ['/shanghai/buildings/100%25', 'building-detail', '/buildings/100%25', '/hangzhou/buildings'],
+    ['/news/100%2525', 'news-detail', '/news/100%2525', '/hangzhou'],
+  ] as const)('keeps one-layer percent detail encoding canonical for %s', (
+    source,
+    pageType,
+    legacy,
+    switched,
+  ) => {
+    expect(getCityPageType(source)).toBe(pageType)
+    expect(legacyCanonicalPath(source)).toBe(legacy)
+    expect(switchCityUrl(source, 'hangzhou')).toBe(switched)
   })
 
   it('derives legacy and prefixed canonical paths without retaining unapproved query data', () => {
