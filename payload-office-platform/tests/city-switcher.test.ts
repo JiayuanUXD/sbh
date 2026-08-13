@@ -44,9 +44,10 @@ afterEach(async () => {
   trackSpy.mockClear()
   navigationState.pathname = '/shanghai/listings'
   navigationState.search = 'areaMin=100&district=pudong&page=3'
+  window.history.replaceState({}, '', '/')
 })
 
-async function renderSwitcher() {
+async function renderSwitcher(multiCityRoutingEnabled = true) {
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -54,28 +55,36 @@ async function renderSwitcher() {
     root?.render(React.createElement(CitySwitcher, {
       cities,
       defaultCity: 'shanghai',
+      multiCityRoutingEnabled,
     }))
   })
   return container
 }
 
-async function rerenderSwitcher(options: ReadonlyArray<(typeof cities)[number]> = cities) {
+async function rerenderSwitcher(
+  options: ReadonlyArray<(typeof cities)[number]> = cities,
+  multiCityRoutingEnabled = true,
+) {
   await act(async () => {
     root?.render(React.createElement(CitySwitcher, {
       cities: options,
       defaultCity: 'shanghai',
+      multiCityRoutingEnabled,
     }))
   })
 }
 
-async function renderShell(options: ReadonlyArray<(typeof cities)[number]> = cities) {
+async function renderShell(
+  options: ReadonlyArray<(typeof cities)[number]> = cities,
+  multiCityRoutingEnabled = true,
+) {
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
   await act(async () => {
     root?.render(React.createElement(React.Fragment, null,
-      React.createElement(SiteHeader, { cities: options, defaultCity: 'shanghai' }),
-      React.createElement(SiteFooter, { cities: options, defaultCity: 'shanghai' }),
+      React.createElement(SiteHeader, { cities: options, defaultCity: 'shanghai', multiCityRoutingEnabled }),
+      React.createElement(SiteFooter, { cities: options, defaultCity: 'shanghai', multiCityRoutingEnabled }),
     ))
   })
   return container
@@ -83,6 +92,14 @@ async function renderShell(options: ReadonlyArray<(typeof cities)[number]> = cit
 
 async function click(element: HTMLElement): Promise<void> {
   await act(async () => element.click())
+}
+
+async function changeInput(element: HTMLInputElement, value: string): Promise<void> {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(element, value)
+    element.dispatchEvent(new InputEvent('input', { bubbles: true, data: value }))
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+  })
 }
 
 describe('CitySwitcher', () => {
@@ -210,6 +227,9 @@ describe('CitySwitcher', () => {
     const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
     if (!trigger) throw new Error('missing city switcher trigger')
     expect(trigger.textContent).toContain('\u676d\u5dde')
+    expect(document.querySelector<HTMLAnchorElement>('a[aria-label]')?.getAttribute('href')).toBe('/hangzhou')
+    expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/hangzhou/listings"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('.site-footer a[href="/hangzhou/buildings"]')).not.toBeNull()
     await click(trigger)
     expect(trackSpy).toHaveBeenCalledWith('city_switcher_opened', {
       city: 'hangzhou', status: 'coming-soon', page_type: 'city-partner',
@@ -236,6 +256,76 @@ describe('CitySwitcher', () => {
       from_city: 'hangzhou', to_city: 'shanghai', status: 'live',
       page_type: 'city-partner', filters_preserved: false,
     })
+  })
+
+  it.each(['city=unknown', 'city=news', 'city=hangzhou&city=shanghai'])(
+    'falls back consistently across the whole lead shell for unsafe query %s',
+    async (search) => {
+      navigationState.pathname = '/publish'
+      navigationState.search = search
+      await renderShell()
+
+      expect(document.querySelector<HTMLAnchorElement>('a[aria-label]')?.getAttribute('href')).toBe('/shanghai')
+      expect(document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')?.textContent).toContain('\u4e0a\u6d77')
+      expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/shanghai/listings"]')).not.toBeNull()
+      expect(document.querySelector<HTMLAnchorElement>('.site-footer a[href="/shanghai/buildings"]')).not.toBeNull()
+    },
+  )
+
+  it('keeps every flag-off shell owner on legacy routes while retaining trusted lead query context', async () => {
+    navigationState.pathname = '/hangzhou/listings'
+    navigationState.search = 'areaMin=100'
+    await renderShell(cities, false)
+
+    expect(document.querySelector<HTMLAnchorElement>('a[aria-label]')?.getAttribute('href')).toBe('/')
+    expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/listings"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/buildings"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/entrust?city=hangzhou"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('.site-nav a[href="/news"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('.site-footer a[href="/listings?type=traditional-office"]')).not.toBeNull()
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+    expect(document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href="/listings?areaMin=100"]')).not.toBeNull()
+    expect(document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href^="/hangzhou/"]')).toBeNull()
+  })
+
+  it('submits the global header inquiry with the same trusted lead-query city as the shell', async () => {
+    navigationState.pathname = '/publish'
+    navigationState.search = 'city=hangzhou'
+    window.history.replaceState({}, '', '/publish?city=hangzhou')
+    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({
+      ok: true,
+      json: async () => ({ targetResolution: 'general' }),
+    }))
+    vi.stubGlobal('fetch', fetchSpy)
+    await renderShell()
+
+    const inquiryTrigger = document.querySelector<HTMLButtonElement>('[data-event-name="inquiry_open_trigger"]')
+    if (!inquiryTrigger) throw new Error('missing header inquiry trigger')
+    await click(inquiryTrigger)
+
+    const contactForm = document.querySelector<HTMLFormElement>('.modal__form')
+    const contactInputs = [...document.querySelectorAll<HTMLInputElement>('.modal__form input')]
+    const [name, phone, teamSize] = contactInputs.filter((input) => input.type !== 'checkbox')
+    const consent = contactInputs.find((input) => input.type === 'checkbox')
+    if (!contactForm || !name || !phone || !teamSize || !consent) throw new Error('missing inquiry contact fields')
+    await changeInput(name, '\u5f20\u4e09')
+    await changeInput(phone, '13800001111')
+    await changeInput(teamSize, '10')
+    await act(async () => consent.click())
+    await act(async () => contactForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+
+    const requirementsForm = document.querySelector<HTMLFormElement>('.modal__form')
+    if (!requirementsForm) throw new Error('missing inquiry requirements form')
+    await act(async () => requirementsForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>
+    expect(body.city).toBe('hangzhou')
+    expect(body.source).toMatchObject({ pageType: 'home', path: '/publish' })
   })
 
   it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {

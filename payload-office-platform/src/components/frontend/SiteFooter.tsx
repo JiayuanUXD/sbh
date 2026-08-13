@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import React from 'react'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
@@ -20,19 +20,22 @@ import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
 export default function SiteFooter({
   cities,
   defaultCity,
+  multiCityRoutingEnabled,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
+  multiCityRoutingEnabled: boolean
 }>) {
   const pathname = usePathname() || '/'
-  const currentCity = resolveTrustedCity(pathname, cities, defaultCity)
+  const searchParams = useSearchParams()
+  const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const citySlug = currentCity?.slug
   const year = new Date().getFullYear()
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <Link href={citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">商办租赁</Link>
+          <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">商办租赁</Link>
           <p className="site-footer__tagline">
             聚合上海甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
           </p>
@@ -43,7 +46,7 @@ export default function SiteFooter({
               <h3 className="site-footer__col-title">{col.title}</h3>
               <ul className="site-footer__links" role="list">
                 {col.links.map((l) => {
-                  const href = citySlug ? cityAwareHref(l.href, citySlug) : l.href
+                  const href = citySlug ? cityAwareHref(l.href, citySlug, multiCityRoutingEnabled) : l.href
                   return (
                   <li key={l.href}>
                     <Link href={href} className="site-footer__link">{l.label}</Link>

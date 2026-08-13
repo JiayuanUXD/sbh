@@ -10,6 +10,7 @@ import {
   citySwitchPreservedFilters,
   getCityPageType,
   isPublicCitySlug,
+  legacyCanonicalPath,
   resolveTrustedRouteCity,
   switchCityUrl,
 } from '@/lib/frontend/city-routes'
@@ -17,6 +18,7 @@ import {
 export type CitySwitcherProps = Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
+  multiCityRoutingEnabled: boolean
 }>
 
 /** Keeps all client city controls on the same Task 1 route trust boundary. */
@@ -35,21 +37,32 @@ export function resolveTrustedCity(
   return resolveTrustedRouteCity(pathname, searchParams, cities, defaultCity)?.city ?? null
 }
 
-export function cityAwareHref(href: string, citySlug: string): string {
+export function cityAwareHref(href: string, citySlug: string, multiCityRoutingEnabled = true): string {
   const pageType = getCityPageType(href)
-  if (pageType === 'home') return buildCityPath(citySlug, 'home') ?? href
-  if (pageType === 'listings' || pageType === 'buildings') return switchCityUrl(href, citySlug) ?? href
+  let cityHref = href
+  if (pageType === 'home') cityHref = buildCityPath(citySlug, 'home') ?? href
+  if (pageType === 'listings' || pageType === 'buildings') cityHref = switchCityUrl(href, citySlug) ?? href
   if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
-    return buildCityPath(citySlug, pageType) ?? href
+    cityHref = buildCityPath(citySlug, pageType) ?? href
   }
-  return href
+  return multiCityRoutingEnabled ? cityHref : legacyCanonicalPath(cityHref) ?? href
+}
+
+export function citySwitchHref(
+  sourceUrl: string,
+  destinationCitySlug: string,
+  multiCityRoutingEnabled: boolean,
+): string | null {
+  const switched = switchCityUrl(sourceUrl, destinationCitySlug)
+  if (!switched || multiCityRoutingEnabled) return switched
+  return legacyCanonicalPath(switched)
 }
 
 function serviceStatusLabel(status: PublicCityOption['serviceStatus']): string {
   return status === 'live' ? '已开通' : '正在开通'
 }
 
-export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps) {
+export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnabled }: CitySwitcherProps) {
   const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
@@ -144,7 +157,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
       {open ? (
         <div ref={menuRef} id="city-switcher-menu" className="city-switcher__menu" role="menu" aria-label="切换城市">
           {trustedCities.map((city) => {
-            const href = switchCityUrl(sourceUrl, city.slug)
+            const href = citySwitchHref(sourceUrl, city.slug, multiCityRoutingEnabled)
             if (!href) return null
             const current = city.slug === activeCity.slug
             return (

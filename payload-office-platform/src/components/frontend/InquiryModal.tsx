@@ -39,6 +39,8 @@ type PageType = 'home' | 'search' | 'listing' | 'building' | 'content' | 'entrus
 type TargetType = 'listing' | 'building' | 'none'
 
 type Props = {
+  /** Canonical city resolved from server-provided public city options. */
+  city?: string
   /** 入口页面类型（FP-05 §2） */
   pageType: PageType
   /** 目标房源 slug（pageType=listing 时必填） */
@@ -236,6 +238,7 @@ function getTargetSummary(props: Props): string | undefined {
 
 export default function InquiryModal(props: Props) {
   const {
+    city,
     pageType,
     targetListingSlug,
     targetBuildingSlug,
@@ -419,6 +422,7 @@ export default function InquiryModal(props: Props) {
 
     // 构造 InquiryRequest（与 domain/inquiry/schema.ts 对齐）
     const requestBody = {
+      city,
       requestId,
       name: name.trim(),
       phone: phoneNormalized,

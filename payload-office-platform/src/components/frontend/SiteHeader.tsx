@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import React, { Suspense, useEffect, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
 import { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
@@ -21,12 +21,15 @@ import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 export default function SiteHeader({
   cities,
   defaultCity,
+  multiCityRoutingEnabled,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
+  multiCityRoutingEnabled: boolean
 }>) {
   const pathname = usePathname()
-  const currentCity = resolveTrustedCity(pathname || '/', cities, defaultCity)
+  const searchParams = useSearchParams()
+  const currentCity = resolveTrustedCity(pathname || '/', cities, defaultCity, searchParams)
   const isTrustedCityHome = currentCity !== null && pathname === `/${currentCity.slug}`
   const isHome = pathname === '/' || isTrustedCityHome
   const [scrolled, setScrolled] = useState(false)
@@ -49,9 +52,9 @@ export default function SiteHeader({
   return (
     <header className={className}>
       <div className="site-header__inner">
-        <Link href={currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+        <Link href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
         <Suspense fallback={<nav className="site-nav" aria-label="主导航" />}>
-          <SiteNav cities={cities} defaultCity={defaultCity} />
+          <SiteNav cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
         </Suspense>
       </div>
     </header>

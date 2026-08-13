@@ -13,11 +13,12 @@ import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 import CitySwitcher, {
   cityAwareHref,
+  citySwitchHref,
   filterPublicCityOptions,
   resolveTrustedCity,
 } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
-import { citySwitchPreservedFilters, getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
+import { citySwitchPreservedFilters, getCityPageType } from '@/lib/frontend/city-routes'
 
 export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
 
@@ -80,9 +81,11 @@ function isCurrent(
 export default function SiteNav({
   cities,
   defaultCity,
+  multiCityRoutingEnabled,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
+  multiCityRoutingEnabled: boolean
 }>) {
   const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
@@ -170,7 +173,7 @@ export default function SiteNav({
       {/* 桌面端导航 */}
       <nav className="site-nav" aria-label="主导航">
         {MAIN_NAV_ITEMS.map((item) => {
-          const href = citySlug ? cityAwareHref(item.href, citySlug) : item.href
+          const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
           const current = isCurrent(pathname, searchParams, href)
           return (
             <Link
@@ -191,7 +194,7 @@ export default function SiteNav({
           避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
           包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
       <div className="site-header__actions">
-        <CitySwitcher cities={cities} defaultCity={defaultCity} />
+        <CitySwitcher cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
         {ctaPageType === 'entrust' ? (
           <button
             type="button"
@@ -207,6 +210,7 @@ export default function SiteNav({
         ) : (
           <InquiryModal
             pageType={ctaPageType}
+            city={citySlug}
             triggerLabel="获取选址方案"
             triggerVariant="primary"
             triggerClassName="btn--sm"
@@ -280,7 +284,7 @@ export default function SiteNav({
           >
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
               {MAIN_NAV_ITEMS.map((item) => {
-                const href = citySlug ? cityAwareHref(item.href, citySlug) : item.href
+                const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
                 const current = isCurrent(pathname, searchParams, href)
                 return (
                   <Link
@@ -303,7 +307,7 @@ export default function SiteNav({
               <div className="mobile-drawer__cities" aria-label="切换城市">
                 <p className="mobile-drawer__cities-title">切换城市</p>
                 {trustedCities.map((city) => {
-                  const href = switchCityUrl(sourceUrl, city.slug)
+                  const href = citySwitchHref(sourceUrl, city.slug, multiCityRoutingEnabled)
                   if (!href) return null
                   return (
                     <Link
