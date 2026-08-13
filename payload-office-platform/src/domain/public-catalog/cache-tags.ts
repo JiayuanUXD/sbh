@@ -21,7 +21,7 @@
  *   - public:page:{slug}
  *   - public:sitemap
  *
- * 注意：city 可能为 'all'（全城市）或具体城市 slug。
+ * Supply cache tags always use a concrete canonical city slug.
  */
 
 /** Tag 前缀：所有公开目录 tag 共用，避免与后台 tag 冲突 */
@@ -33,11 +33,15 @@ export const SITEMAP_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:sitemap` as const
 /** 资讯列表/详情类别 tag */
 export const ARTICLES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:articles` as const
 
+/** Conservative supply categories used when an owning city cannot be resolved. */
+export const LISTINGS_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:listings` as const
+export const BUILDINGS_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:buildings` as const
+
 /**
  * 首页 tag：按城市区分
- * @param city 城市 slug；'all' 或缺省表示全城市首页
+ * @param city Canonical city slug
  */
-export function homeTag(city: string = 'all'): string {
+export function homeTag(city: string): string {
   return `${PUBLIC_CACHE_TAG_PREFIX}:home:${city}`
 }
 
@@ -66,10 +70,20 @@ export function listingsTag(queryHash: string): string {
   return `${PUBLIC_CACHE_TAG_PREFIX}:listings:${queryHash}`
 }
 
+/** City-scoped listing category for per-city cache invalidation. */
+export function listingsCityTag(city: string): string {
+  return `${LISTINGS_CATEGORY_TAG}:city:${city}`
+}
+
+/** City-scoped building category for per-city cache invalidation. */
+export function buildingsCityTag(city: string): string {
+  return `${BUILDINGS_CATEGORY_TAG}:city:${city}`
+}
+
 /**
  * 搜索 facet tag：按城市区分
  */
-export function facetsTag(city: string = 'all'): string {
+export function facetsTag(city: string): string {
   return `${PUBLIC_CACHE_TAG_PREFIX}:facets:${city}`
 }
 
@@ -86,16 +100,18 @@ export function pageTag(slug: string): string {
  * 当无法安全计算局部影响时（如商户关系/资格/服务城市变化），
  * 失效城市级列表、facet、首页与 sitemap，不延长陈旧窗口。
  *
- * @param city 受影响城市 slug；'all' 或缺省表示全城市
+ * @param city Canonical affected city slug, or null for category-wide fallback
  */
-export function cityLevelSafeInvalidationTags(city: string = 'all'): readonly string[] {
+export function cityLevelSafeInvalidationTags(city: string | null): readonly string[] {
+  if (!city) {
+    return [LISTINGS_CATEGORY_TAG, BUILDINGS_CATEGORY_TAG, SITEMAP_TAG]
+  }
   return [
     homeTag(city),
     facetsTag(city),
+    listingsCityTag(city),
+    buildingsCityTag(city),
     SITEMAP_TAG,
-    // 列表查询无法按城市精确失效（queryHash 不可逆向计算），全量失效
-    // 使用通配前缀由 revalidateTag 匹配（Next.js revalidateTag 支持前缀匹配）
-    `${PUBLIC_CACHE_TAG_PREFIX}:listings`,
   ]
 }
 

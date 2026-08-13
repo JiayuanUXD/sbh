@@ -37,6 +37,8 @@ describe('city profile cache invalidator', () => {
       'public:city-profile:hangzhou',
       'public:city-profiles',
       'public:home:hangzhou',
+      'public:listings:city:hangzhou',
+      'public:buildings:city:hangzhou',
       'public:facets:hangzhou',
       'public:sitemap',
     ])
@@ -45,8 +47,8 @@ describe('city profile cache invalidator', () => {
   it('uses conservative category tags when a location has no resolvable owning city', () => {
     expect(tagsForLocationVisibilityChange({ id: 303, city: 1 })).toEqual([
       'public:city-profiles',
-      'public:home:all',
-      'public:facets:all',
+      'public:listings',
+      'public:buildings',
       'public:sitemap',
     ])
   })

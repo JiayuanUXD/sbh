@@ -11,6 +11,7 @@ import {
   parseListingSearchInput,
 } from '@/domain/public-catalog'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { siteConfig } from '@/lib/frontend/site-config'
 import {
   getCachedListingDistrictOptions,
   getCachedSearchListings,
@@ -64,8 +65,8 @@ export default async function ListingsPage({
   const canonical = buildCanonicalSearchParams(input).toString()
 
   const [result, districts] = await Promise.all([
-    getCachedSearchListings(canonical, input),
-    getCachedListingDistrictOptions(),
+    getCachedSearchListings(siteConfig.defaultCity, canonical, input),
+    getCachedListingDistrictOptions(siteConfig.defaultCity),
   ])
 
   const { docs, pagination, filteredByRentUnit } = result

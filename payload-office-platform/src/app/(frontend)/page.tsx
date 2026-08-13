@@ -11,6 +11,7 @@ import ValueProps from '@/components/frontend/ValueProps'
 import NewsSection from '@/components/frontend/NewsSection'
 import { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { siteConfig } from '@/lib/frontend/site-config'
 import './styles.css'
 
 export const dynamic = 'force-dynamic'
@@ -29,7 +30,7 @@ export default async function HomePage() {
     featuredBuildings,
     districtCards,
     latestArticles,
-  } = await getCachedHomepage()
+  } = await getCachedHomepage(siteConfig.defaultCity)
 
   return (
     <div className="home">

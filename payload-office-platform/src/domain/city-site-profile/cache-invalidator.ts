@@ -1,4 +1,12 @@
-import { SITEMAP_TAG, facetsTag, homeTag } from '@/domain/public-catalog/cache-tags'
+import {
+  BUILDINGS_CATEGORY_TAG,
+  LISTINGS_CATEGORY_TAG,
+  SITEMAP_TAG,
+  buildingsCityTag,
+  facetsTag,
+  homeTag,
+  listingsCityTag,
+} from '@/domain/public-catalog/cache-tags'
 
 import { normalizeCitySlug } from './resolver'
 
@@ -33,7 +41,7 @@ function citySlugFromRecord(record: CityCacheInvalidationRecord): string | null 
 }
 
 function cityProfileCategoryTags(): readonly string[] {
-  return [CITY_PROFILES_TAG, homeTag('all'), facetsTag('all'), SITEMAP_TAG]
+  return [CITY_PROFILES_TAG, LISTINGS_CATEGORY_TAG, BUILDINGS_CATEGORY_TAG, SITEMAP_TAG]
 }
 
 export function tagsForProfileChange(record: CityCacheInvalidationRecord): readonly string[] {
@@ -58,6 +66,8 @@ export function tagsForLocationVisibilityChange(
     cityProfileTag(citySlug),
     CITY_PROFILES_TAG,
     homeTag(citySlug),
+    listingsCityTag(citySlug),
+    buildingsCityTag(citySlug),
     facetsTag(citySlug),
     SITEMAP_TAG,
   ]

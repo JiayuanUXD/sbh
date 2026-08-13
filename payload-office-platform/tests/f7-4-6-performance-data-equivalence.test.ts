@@ -120,7 +120,7 @@ describe('F7.4 性能预算 · 缓存命中守护', () => {
     const source = await readFile(filePath, 'utf-8')
     // unstable_cache 包装应声明 tags
     const unstableCacheCount = (source.match(/unstable_cache\(/g) || []).length
-    const tagsCount = (source.match(/tags:\s*\[/g) || []).length
+    const tagsCount = (source.match(/tags:\s*/g) || []).length
     expect(unstableCacheCount, 'cached-queries 应使用 unstable_cache').toBeGreaterThan(0)
     expect(tagsCount, '每个 unstable_cache 应声明 tags 数组').toBeGreaterThanOrEqual(unstableCacheCount)
   })

@@ -37,7 +37,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const listing = await getCachedListingBySlug(slug)
+  const listing = await getCachedListingBySlug(siteConfig.defaultCity, slug)
   if (!listing) {
     return {
       title: '房源未找到',
@@ -53,13 +53,15 @@ export default async function ListingDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const listing = await getCachedListingBySlug(slug)
+  const listing = await getCachedListingBySlug(siteConfig.defaultCity, slug)
   if (!listing) notFound()
 
   const building = listing.building
   const [buildingDetail, recommendations, pois, serviceSchedule] = await Promise.all([
-    building ? getCachedBuildingBySlug(building.slug) : Promise.resolve(null),
-    getCachedDetailRecommendations(slug, 6),
+    building
+      ? getCachedBuildingBySlug(siteConfig.defaultCity, building.slug)
+      : Promise.resolve(null),
+    getCachedDetailRecommendations(siteConfig.defaultCity, slug, 6),
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])

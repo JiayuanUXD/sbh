@@ -73,10 +73,10 @@ describe('OPT-026 route cache and prefetch contracts', () => {
       readFile(resolve(ROOT, 'src/lib/frontend/cached-queries.ts'), 'utf8'),
     ])
 
-    expect(page).toContain('getCachedSearchListings(canonical, input)')
-    expect(page).toContain('getCachedListingDistrictOptions()')
+    expect(page).toContain('getCachedSearchListings(siteConfig.defaultCity, canonical, input)')
+    expect(page).toContain('getCachedListingDistrictOptions(siteConfig.defaultCity)')
     expect(page).not.toContain('getHomepage(')
-    expect(cachedQueries).toContain('getCachedListingSearchSource = unstable_cache(')
+    expect(cachedQueries).toContain('getCachedListingSearchSourceByCity = memoizeByCity(')
     expect(cachedQueries).toContain('revalidate: 300')
   })
 

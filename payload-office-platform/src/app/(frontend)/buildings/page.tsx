@@ -8,6 +8,7 @@ import InquiryModal from '@/components/frontend/InquiryModal'
 import Pagination from '@/components/frontend/Pagination'
 import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +35,7 @@ export default async function BuildingsPage({
       ? (resolved.grade as BuildingGrade)
       : undefined
 
-  const result = await getCachedSearchBuildings()
+  const result = await getCachedSearchBuildings(siteConfig.defaultCity)
   const { docs: allDocs } = result
 
   // 筛选候选值取自全量结果，这样切换筛选时 chip 组不会自己消失。

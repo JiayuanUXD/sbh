@@ -11,12 +11,11 @@ describe('OPT-027 homepage and sitemap cache contracts', () => {
       readFile(resolve(ROOT, 'src/lib/frontend/cached-queries.ts'), 'utf8'),
     ])
 
-    expect(homePage).toContain('getCachedHomepage()')
+    expect(homePage).toContain('getCachedHomepage(siteConfig.defaultCity)')
     expect(homePage).not.toContain('getHomepage(')
     expect(homePage).not.toContain('defaultSearchContext(')
-    expect(cachedQueries).toMatch(
-      /export const getCachedHomepage = unstable_cache\([\s\S]*?revalidate:\s*300[\s\S]*?\n\)/,
-    )
+    expect(cachedQueries).toContain('const getCachedHomepageByCity = memoizeByCity')
+    expect(cachedQueries).toMatch(/getCachedHomepageByCity[\s\S]*?revalidate:\s*300/)
   })
 
   it('wraps sitemap entity loading in a tagged 300 second cache', async () => {

@@ -820,12 +820,12 @@ describe('F7.6 缓存失效等价性', () => {
     }
     // sitemap 永远在失效集合
     expect(tags).toContain('public:sitemap')
-    // listing + 类别级 tag 都在
+    // listing + 城市类别 tag 都在
     expect(tags).toContain('public:listing:8001')
-    expect(tags).toContain('public:listings')
-    // building + 类别级 tag
+    expect(tags).toContain('public:listings:city:shanghai')
+    // building + 城市类别 tag
     expect(tags).toContain('public:building:200')
-    expect(tags).toContain('public:buildings')
+    expect(tags).toContain('public:buildings:city:shanghai')
     // 城市 home + facets
     expect(tags).toContain('public:home:shanghai')
     expect(tags).toContain('public:facets:shanghai')
@@ -840,11 +840,11 @@ describe('F7.6 缓存失效等价性', () => {
       },
     })
     const tags = computeAffectedTags(event)
-    // 全城市安全失效应包含 home:all / facets:all / sitemap / 类别级 listings
-    expect(tags).toContain('public:home:all')
-    expect(tags).toContain('public:facets:all')
+    // 无法解析城市时使用供给类别 fallback，不猜测具体城市。
     expect(tags).toContain('public:sitemap')
     expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:buildings')
+    expect(tags).not.toContain('public:home:shanghai')
   })
 
   it('举报暂停事件失效集合包含 listing + 类别 + sitemap', () => {
@@ -859,7 +859,7 @@ describe('F7.6 缓存失效等价性', () => {
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:listing:8003')
-    expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:listings:city:shanghai')
     expect(tags).toContain('public:home:shanghai')
     expect(tags).toContain('public:facets:shanghai')
     expect(tags).toContain('public:sitemap')

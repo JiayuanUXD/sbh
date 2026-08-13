@@ -165,14 +165,14 @@ describe('F6.6 缓存失效覆盖完整性', () => {
     }
   })
 
-  it('listing.* 事件失效 listing + 类别级 listings + home + facets + sitemap', () => {
+  it('listing.* 事件失效 listing + 城市 listings + home + facets + sitemap', () => {
     const event = makeEvent('listing.published', {
       listingId: 'listing-fp06-1',
       city: 'shanghai',
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:listing:listing-fp06-1')
-    expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:listings:city:shanghai')
     expect(tags).toContain('public:home:shanghai')
     expect(tags).toContain('public:facets:shanghai')
     expect(tags).toContain(SITEMAP_TAG)
@@ -196,10 +196,10 @@ describe('F6.6 缓存失效覆盖完整性', () => {
       // 无 city
     })
     const tags = computeAffectedTags(event)
-    expect(tags).toContain('public:home:all')
-    expect(tags).toContain('public:facets:all')
     expect(tags).toContain(SITEMAP_TAG)
     expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:buildings')
+    expect(tags).not.toContain('public:home:shanghai')
   })
 
   it('事件含 buildingId 时失效 building + 类别 buildings', () => {
@@ -210,7 +210,7 @@ describe('F6.6 缓存失效覆盖完整性', () => {
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:building:building-fp06-1')
-    expect(tags).toContain('public:buildings')
+    expect(tags).toContain('public:buildings:city:shanghai')
   })
 
   it('sitemap tag 永远在失效集合中（任何供给变化都影响 sitemap）', () => {

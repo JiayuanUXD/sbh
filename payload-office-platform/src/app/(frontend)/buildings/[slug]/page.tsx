@@ -26,7 +26,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const { building } = await getCachedBuildingDetail(slug)
+  const { building } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
   if (!building) {
     return {
       title: '楼盘未找到',
@@ -48,7 +48,7 @@ export default async function BuildingDetailPage({
   const ctx = createSearchContext(siteConfig.defaultCity)
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
     getBuildingDetail(slug, ctx, supplyInput),
-    getCachedRelatedBuildings(slug),
+    getCachedRelatedBuildings(siteConfig.defaultCity, slug),
     getServiceSchedule(),
   ])
   if (!building) notFound()

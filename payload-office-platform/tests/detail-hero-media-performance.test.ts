@@ -11,23 +11,23 @@ describe('OPT-028 detail caching and hero media contracts', () => {
     expect(cachedQueries).toContain('getCachedDetailRecommendations')
     expect(cachedQueries).toContain('getCachedRelatedBuildings')
     expect(cachedQueries).toMatch(
-      /export const getCachedDetailRecommendations = unstable_cache\([\s\S]*?revalidate:\s*300[\s\S]*?\n\)/,
+      /const getCachedDetailRecommendationsByCity = memoizeByCity\([\s\S]*?revalidate:\s*300[\s\S]*?\n\)/,
     )
   })
 
   it('uses cached slug data and parallel detail secondary work on listing detail pages', async () => {
     const page = await readFile(resolve(ROOT, 'src/app/(frontend)/listings/[slug]/page.tsx'), 'utf8')
 
-    expect(page).toContain('getCachedListingBySlug(slug)')
-    expect(page).toContain('getCachedBuildingBySlug(building.slug)')
-    expect(page).toContain('getCachedDetailRecommendations(slug, 6)')
-    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedBuildingBySlug\(building\.slug\)[\s\S]*getCachedDetailRecommendations\(slug, 6\)[\s\S]*fetchNearbyPois/)
+    expect(page).toContain('getCachedListingBySlug(siteConfig.defaultCity, slug)')
+    expect(page).toContain('getCachedBuildingBySlug(siteConfig.defaultCity, building.slug)')
+    expect(page).toContain('getCachedDetailRecommendations(siteConfig.defaultCity, slug, 6)')
+    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedBuildingBySlug\(siteConfig\.defaultCity, building\.slug\)[\s\S]*getCachedDetailRecommendations\(siteConfig\.defaultCity, slug, 6\)[\s\S]*fetchNearbyPois/)
   })
 
   it('uses cached related buildings on building detail pages', async () => {
     const page = await readFile(resolve(ROOT, 'src/app/(frontend)/buildings/[slug]/page.tsx'), 'utf8')
 
-    expect(page).toContain('getCachedRelatedBuildings(slug)')
+    expect(page).toContain('getCachedRelatedBuildings(siteConfig.defaultCity, slug)')
     expect(page).not.toContain('getRelatedBuildings(slug, ctx)')
   })
 
