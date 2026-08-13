@@ -4023,6 +4023,8 @@ export interface TaskReconcileCityPartnerNotificationOutbox {
   output: {
     scanned: number;
     queued: number;
+    failures: number;
+    quarantined: number;
   };
 }
 /**
