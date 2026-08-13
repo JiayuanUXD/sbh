@@ -111,7 +111,7 @@ git commit -m "refactor: require city in public catalog context"
 - Produces required `citySlug: string` and `cityName: string` on `ListingCardViewModel`, `ListingDetailViewModel`, `BuildingSummaryViewModel`, and `BuildingDetailViewModel`.
 - Produces route-only `resolveListingRouteIdentity(slug)` and `resolveBuildingRouteIdentity(slug)` returning `{ slug, citySlug } | null` after the same public/effective checks; legacy redirect pages consume these without rendering raw data.
 
-- [ ] **Step 1: Write failing mapper tests**
+- [x] **Step 1: Write failing mapper tests**
 
 ```ts
 expect(mapListingCard(shanghaiListing)).toMatchObject({ citySlug: 'shanghai', cityName: '上海市' })
@@ -123,13 +123,13 @@ expect(await resolveListingRouteIdentity('visible-listing')).toEqual({ slug: 'vi
 
 Assert recommendation DTOs preserve city and JSON-LD uses `cityName` from the DTO rather than a hard-coded label.
 
-- [ ] **Step 2: Run mapper tests and verify RED**
+- [x] **Step 2: Run mapper tests and verify RED**
 
 Run: `pnpm exec vitest run tests/frontend-mappers.test.ts tests/detail-pages-seo.test.ts tests/detail-recommendations.test.ts`
 
 Expected: FAIL because DTO fields are absent.
 
-- [ ] **Step 3: Add required DTO fields and strict mapper helper**
+- [x] **Step 3: Add required DTO fields and strict mapper helper**
 
 ```ts
 export type PublicCityIdentity = Readonly<{ citySlug: string; cityName: string }>
@@ -145,11 +145,11 @@ Spread this identity into all four DTOs. If identity is null, the mapper returns
 
 Add route-identity services that reuse the existing Public Catalog/effective-supply service and select only slug plus canonical city. They are the sole cityless lookup exception and exist only for legacy/correction redirects; they must not return title, inventory, price, or other display data.
 
-- [ ] **Step 4: Ensure adapter population depth includes city**
+- [x] **Step 4: Ensure adapter population depth includes city**
 
 Adjust select/populate/depth settings so `building.city.slug/name` are available in one catalog query. Add an adapter assertion that no N+1 city lookup occurs.
 
-- [ ] **Step 5: Run tests and commit Task 2**
+- [x] **Step 5: Run tests and commit Task 2**
 
 Run: `pnpm exec vitest run tests/frontend-mappers.test.ts tests/detail-pages-seo.test.ts tests/detail-recommendations.test.ts tests/public-catalog-city-context.test.ts`
 
