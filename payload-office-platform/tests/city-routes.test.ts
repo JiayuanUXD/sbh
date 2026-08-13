@@ -213,6 +213,31 @@ describe('city route URL contract', () => {
     expect(switchCityUrl(source, 'hangzhou')).toBe(switched)
   })
 
+  it.each([
+    '/news/100%',
+    '/news/100%2',
+    '/news/100%GG',
+    '/news/%2f%',
+    '/news/%252e%252e%',
+    '/news/%252f%',
+    '/news/%255c%',
+    '/news/%2500%',
+  ])('rejects malformed percent text that could conceal dangerous encodings: %s', (source) => {
+    expect(getCityPageType(source)).toBe('unknown')
+    expect(legacyCanonicalPath(source)).toBeNull()
+    expect(prefixedCanonicalPath(source, 'hangzhou')).toBeNull()
+    expect(switchCityUrl(source, 'hangzhou')).toBe('/hangzhou')
+  })
+
+  it.each([
+    '/news/%25',
+    '/news/%2525',
+    '/news/100%25-done',
+  ])('accepts a literal percent only after a complete safe encoding: %s', (source) => {
+    expect(getCityPageType(source)).toBe('news-detail')
+    expect(legacyCanonicalPath(source)).toBe(source)
+  })
+
   it('derives legacy and prefixed canonical paths without retaining unapproved query data', () => {
     expect(
       legacyCanonicalPath('/hangzhou/listings?district=pudong&areaMin=100&page=3&unknown=drop'),

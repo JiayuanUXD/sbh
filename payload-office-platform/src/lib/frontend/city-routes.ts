@@ -25,6 +25,7 @@ export type CityPageType =
 const CITY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const MAX_CITY_SLUG_LENGTH = 64
 const URL_BASE = 'https://city-route.invalid'
+const PERCENT_ENCODED_OCTET = /%[0-9A-Fa-f]{2}/
 const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   '_next',
   'admin',
@@ -113,9 +114,12 @@ function hasSafeDecodedLayers(segment: string): boolean {
     try {
       decoded = decodeURIComponent(decoded)
     } catch {
-      // A literal percent is a legal stable segment representation. It will
-      // be encoded once only by canonicalPathSegment when emitted.
-      return true
+      // The original request must be valid percent-encoding. A literal percent
+      // becomes acceptable only after one complete, safe decoding layer.
+      if (depth === 0) return false
+      // A malformed suffix must not hide another complete escape which may
+      // still decode to a traversal/control token on a later layer.
+      return !PERCENT_ENCODED_OCTET.test(decoded)
     }
   }
   // More decodable layers may conceal a dangerous token beyond the bounded
