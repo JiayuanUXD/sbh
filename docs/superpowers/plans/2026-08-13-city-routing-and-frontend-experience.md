@@ -335,7 +335,7 @@ git commit -m "feat: add city seo and observation controls"
 - Consumes the completed application.
 - Produces Gates D and E evidence; no new business behavior.
 
-- [ ] **Step 1: Write the complete E2E matrices**
+- [x] **Step 1: Write the complete E2E matrices**
 
 Automate direct status and page assertions such as:
 
@@ -360,7 +360,7 @@ Add equally explicit tests for: flag-off legacy canonical plus prefixed noindex;
 
 Cover all seven city homes, unknown/profile-less city, five global reserved routes, old list/building paths, old and wrong-city details, query canonical, and browser console errors.
 
-- [ ] **Step 2: Run generated/static/full unit verification**
+- [x] **Step 2: Run generated/static/full unit verification**
 
 Run under Node 22:
 
@@ -376,13 +376,13 @@ pnpm migrate:verify
 
 Expected: generated files contain only intentional changes; typecheck, all Vitest files, build, migration status, and migration verification pass with zero failures.
 
-- [ ] **Step 3: Run Playwright E2E with the routing flag both ways**
+- [x] **Step 3: Run Playwright E2E with the routing flag both ways**
 
 Start the correct Node 22 webpack dev server on an unused verification port. Run the new specs plus landing/detail regressions once with `MULTI_CITY_ROUTING_ENABLED=false` and once with `true`.
 
 Expected: all route/status/canonical/isolation/form/console assertions PASS.
 
-- [ ] **Step 4: Perform four-viewport visual review**
+- [x] **Step 4: Perform four-viewport visual review**
 
 At 375×812, 768×1024, 1440×900, and 1920×1080 verify:
 
@@ -395,11 +395,11 @@ At 375×812, 768×1024, 1440×900, and 1920×1080 verify:
 
 Save screenshots/logs to the evidence directory, not git.
 
-- [ ] **Step 5: Verify process identity and requested URLs**
+- [x] **Step 5: Verify process identity and requested URLs**
 
 Record listener PID, command line, Node version, working directory/worktree, and HTTP status/Location/canonical/robots for `/`, `/shanghai`, `/hangzhou`, `/hangzhou/listings`, `/city-partner?city=hangzhou`, `/entrust?city=hangzhou`, `/publish?city=hangzhou`, `/news`, and `/admin`.
 
-- [ ] **Step 6: Review generated diffs and commit E2E task**
+- [x] **Step 6: Review generated diffs and commit E2E task**
 
 Restore unrelated `next-env.d.ts` or generated churn; keep intentional `payload-types.ts`/import map changes only. Run `git diff --check` and confirm no secrets/media/test data are staged.
 
@@ -408,6 +408,17 @@ git add payload-office-platform/tests/e2e/multi-city-routing.spec.ts payload-off
 git commit -m "test: verify multi city frontend journeys"
 ```
 
-- [ ] **Step 7: Record Gates D/E and stop before production actions**
+- [x] **Step 7: Record Gates D/E and stop before production actions**
 
 Write exact pass counts, migration counts, build time delta, browser matrix, PID/worktree/URL proof, risks, and unverified items into this plan. Do not apply production migrations, deploy, push, change live profile status, promote 307 to 308, or remove the kill switch without a new user approval.
+
+**Completion evidence (2026-08-14):**
+
+- Node 22 generated types/import map, TypeScript, final full Vitest (`213` passed files, `2` skipped; `3073` passed tests, `4` skipped), and webpack production build (`16/16` static pages) passed.
+- Local PostgreSQL migration status was `48/48` applied with `0` pending; verifier completed `186` checks with `0` failures and `19` historical/manual-JSON warnings.
+- Playwright routing flag matrices passed `55/55` with the flag disabled and `55/55` with it enabled; all expected console/page-error collectors were clean.
+- Four viewport evidence contains `112` PNG screenshots and `10` JSON records under `payload-office-platform/test-results/multi-city/MCF-04/` (ignored by git).
+- Task-owned port `3722` was stopped and the pre-existing `3717` process was not touched.
+- The local empty-building fixture drift was corrected for the three exact `eb-*` seed rows and locked by conjunctive policy tests. One retained-provenance leaked local test Lead was deleted exactly; four unproven candidates remain untouched for manual provenance review.
+- No production migration, deployment, push, live-profile change, permanent redirect promotion, or kill-switch removal was performed.
+- Final independent review fixes `aa870e8` and `c9d6bb1` aligned flag-off shell links, trusted query-city identity, inquiry modal city persistence, non-misleading flag-off switcher behavior, and complete deterministic SSR shell fallbacks. The final scoped review found no remaining Critical or Important issue.
