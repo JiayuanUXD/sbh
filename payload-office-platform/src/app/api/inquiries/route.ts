@@ -293,7 +293,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const submittedCity = inquiry.city ?? approvedLegacyInquiryCity(inquiry.source)
   const trustedCity = submittedCity ? await resolveCityContext(submittedCity) : null
-  if (!trustedCity || trustedCity.slug !== submittedCity || typeof trustedCity.id !== 'number') {
+  if (!trustedCity || trustedCity.slug !== submittedCity) {
     return NextResponse.json({ ok: false, errors: ['city_invalid'] }, { status: 422 })
   }
 

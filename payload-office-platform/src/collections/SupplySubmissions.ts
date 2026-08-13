@@ -242,6 +242,9 @@ export const SupplySubmissions: CollectionConfig = {
                   label: '城市',
                   type: 'relationship',
                   relationTo: 'locations',
+                  typescriptSchema: [({ jsonSchema }) => ({
+                    anyOf: [jsonSchema, { type: 'string' }],
+                  })],
                   filterOptions: () => activeLocationFilter(['city']),
                 },
                 {

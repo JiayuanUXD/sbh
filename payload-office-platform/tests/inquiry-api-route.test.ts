@@ -235,6 +235,26 @@ describe('POST /api/inquiries / 正常提交', () => {
     expect(createSearchContextMock).toHaveBeenCalledWith('hangzhou')
   })
 
+  it('persists a trusted string relationship ID resolved from the submitted slug', async () => {
+    resolveCityContextMock.mockResolvedValueOnce({
+      id: 'city-hangzhou',
+      slug: 'hangzhou',
+      name: '杭州市',
+      serviceStatus: 'live',
+      profile: {},
+    })
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody({ city: 'hangzhou' }) }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe('city-hangzhou')
+    expect(createSearchContextMock).toHaveBeenCalledWith('hangzhou')
+  })
+
   it('rejects an unknown explicit city before persistence', async () => {
     const r = await run(makeReq({ body: makeValidBody({ city: 'unknown-city' }) }))
 

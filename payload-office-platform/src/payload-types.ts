@@ -1009,7 +1009,7 @@ export interface Lead {
    */
   ownershipStatus?: ('unassigned' | 'assigned' | 'public_pool') | null;
   team?: (number | null) | Team;
-  city?: (number | null) | Location;
+  city?: ((number | null) | Location) | string;
   areaMin?: number | null;
   areaMax?: number | null;
   budgetMin?: number | null;
@@ -1567,7 +1567,7 @@ export interface SupplySubmission {
   leaseMode?: ('whole-floor' | 'office' | 'seat' | 'sale') | null;
   fitoutStatus?: ('bare' | 'simple' | 'full' | 'furnished') | null;
   availableFrom?: string | null;
-  city?: (number | null) | Location;
+  city?: ((number | null) | Location) | string;
   district?: (number | null) | Location;
   description?: string | null;
   reviewNote?: string | null;

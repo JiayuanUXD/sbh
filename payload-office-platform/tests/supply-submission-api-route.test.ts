@@ -109,6 +109,24 @@ describe('POST /api/supply-submissions safety boundaries', () => {
     expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(17)
   })
 
+  it('persists a trusted string relationship ID resolved from the submitted slug', async () => {
+    resolveCityContextMock.mockResolvedValueOnce({
+      id: 'city-hangzhou',
+      slug: 'hangzhou',
+      name: '杭州市',
+      serviceStatus: 'live',
+      profile: {},
+    })
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe('city-hangzhou')
+  })
+
   it('stores source URL as a pathname without query PII', async () => {
     const pii = '13900009999'
     payloadFindMock.mockResolvedValueOnce({ docs: [] })
