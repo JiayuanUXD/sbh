@@ -29,7 +29,7 @@
 **Interfaces:**
 - Produces: `getCityPageType`, `buildCityPath`, `switchCityUrl`, `legacyCanonicalPath`, `prefixedCanonicalPath`.
 
-- [ ] **Step 1: Write failing URL matrix tests**
+- [x] **Step 1: Write failing URL matrix tests**
 
 ```ts
 expect(buildCityPath('hangzhou', 'home')).toBe('/hangzhou')
@@ -44,19 +44,19 @@ expect(switchCityUrl('/entrust?city=shanghai', 'hangzhou')).toBe('/entrust?city=
 
 Cover home, listing/building list/detail, news/privacy/global pages, Entrust, Publish, City Partner, malformed query values, stable query ordering, and page reset.
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-routes.test.ts`
 
 Expected: FAIL because helper does not exist.
 
-- [ ] **Step 3: Implement allow-list URL transformation**
+- [x] **Step 3: Implement allow-list URL transformation**
 
 For listing pages preserve only `q, areaMin, areaMax, rentMin, rentMax, rentUnit, pricePeriod, priceBasis, listingType, availableBefore, sort`; clear `district, businessArea, metro, page`. For building pages preserve only `grade`; clear `district,page`. For detail paths target the destination city list. For global pages target destination city home except Entrust/Publish/City Partner, which replace only `city`.
 
 Never copy unknown query keys or raw source URL fragments.
 
-- [ ] **Step 4: Run test and commit Task 1**
+- [x] **Step 4: Run test and commit Task 1**
 
 Run: `pnpm exec vitest run tests/city-routes.test.ts`
 
