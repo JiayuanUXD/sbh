@@ -1,7 +1,9 @@
 import { createLocalReq, type CollectionAfterChangeHook, type Payload, type PayloadRequest, type TaskConfig } from 'payload'
+import type { DomainEvent } from '@/payload-types'
 
 export const CITY_PARTNER_NOTIFICATION_TASK = 'notify-city-partner-application-created'
 export const CITY_PARTNER_NOTIFICATION_QUEUE = 'city-partner-application-notifications'
+export const CITY_PARTNER_NOTIFICATION_RECONCILE_TASK = 'reconcile-city-partner-notification-outbox'
 
 const EVENT_TYPE = 'city-partner-application.created'
 const AGGREGATE_TYPE = 'city-partner-application'
@@ -17,6 +19,10 @@ type ApplicationDoc = Readonly<{
 type NotificationTask = {
   input: { eventId: string }
   output: { delivered: number }
+}
+type ReconcileTask = {
+  input: Record<string, never>
+  output: { queued: number; scanned: number }
 }
 
 function relationId(value: unknown): Identifier | null {
@@ -53,6 +59,92 @@ function eventId(applicationId: Identifier): string {
   return `city-partner-application-created:${String(applicationId)}`
 }
 
+async function confirmNotificationJob(payload: Payload, stableEventId: string): Promise<boolean> {
+  const jobs = await payload.find({
+    collection: 'payload-jobs',
+    where: { and: [
+      { taskSlug: { equals: CITY_PARTNER_NOTIFICATION_TASK } },
+      { queue: { equals: CITY_PARTNER_NOTIFICATION_QUEUE } },
+      { 'input.eventId': { equals: stableEventId } },
+      { completedAt: { exists: false } },
+      { hasError: { not_equals: true } },
+    ] },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  return jobs.docs.length === 1
+}
+
+async function queueNotificationJob(payload: Payload, stableEventId: string): Promise<boolean> {
+  if (await confirmNotificationJob(payload, stableEventId)) return false
+  try {
+    await payload.jobs.queue({
+      task: CITY_PARTNER_NOTIFICATION_TASK,
+      queue: CITY_PARTNER_NOTIFICATION_QUEUE,
+      input: { eventId: stableEventId },
+      overrideAccess: true,
+    })
+    return true
+  } catch (error) {
+    if (isUniqueViolation(error) && await confirmNotificationJob(payload, stableEventId)) return false
+    throw error
+  }
+}
+
+/**
+ * Durable outbox recovery. The event remains unprocessed until delivery succeeds;
+ * therefore queue and consumer failures are both discoverable on the next scan.
+ */
+export async function reconcileCityPartnerNotificationOutbox(
+  payload: Payload,
+): Promise<{ queued: number; scanned: number }> {
+  const eventDocs: DomainEvent[] = []
+  let page = 1
+  while (eventDocs.length < 200) {
+    const result = await payload.find({
+      collection: 'domain-events',
+      where: { and: [
+        { eventType: { equals: EVENT_TYPE } },
+        { aggregateType: { equals: AGGREGATE_TYPE } },
+        { processedAt: { exists: false } },
+      ] },
+      sort: ['occurredAt', 'id'],
+      page,
+      limit: 50,
+      depth: 0,
+      overrideAccess: true,
+    })
+    eventDocs.push(...result.docs.slice(0, 200 - eventDocs.length))
+    if (!result.hasNextPage) break
+    if (result.page !== page || result.nextPage !== page + 1) {
+      throw new Error('city_partner_notification_reconcile_pagination_invalid')
+    }
+    page += 1
+  }
+  let queued = 0
+  try {
+    for (const event of eventDocs) {
+      if (event.eventType !== EVENT_TYPE || event.aggregateType !== AGGREGATE_TYPE || event.processedAt) {
+        throw new Error('city_partner_notification_event_invalid')
+      }
+      const application = await payload.find({
+        collection: 'city-partner-applications',
+        where: { id: { equals: event.aggregateId } },
+        select: { requestId: true },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (application.docs.length !== 1) throw new Error('city_partner_notification_application_missing')
+      if (await queueNotificationJob(payload, event.eventId)) queued += 1
+    }
+  } catch {
+    throw new Error('city_partner_notification_reconcile_failed')
+  }
+  return { scanned: eventDocs.length, queued }
+}
+
 function scheduleAfterCommit(args: {
   applicationId: Identifier
   eventId: string
@@ -70,12 +162,7 @@ function scheduleAfterCommit(args: {
           overrideAccess: true,
         })
         if (committed.docs.length !== 1) return
-        await args.payload.jobs.queue({
-          task: CITY_PARTNER_NOTIFICATION_TASK,
-          queue: CITY_PARTNER_NOTIFICATION_QUEUE,
-          input: { eventId: args.eventId },
-          overrideAccess: true,
-        })
+        await queueNotificationJob(args.payload, args.eventId)
       } catch {
         args.payload.logger.error(
           { errorCode: 'city_partner_notification_enqueue_failed' },
@@ -366,5 +453,23 @@ export const cityPartnerApplicationNotificationTask: TaskConfig<NotificationTask
       payload: req.payload,
       req,
     }),
+  }),
+}
+
+export const cityPartnerNotificationOutboxTask: TaskConfig<ReconcileTask> = {
+  slug: CITY_PARTNER_NOTIFICATION_RECONCILE_TASK,
+  label: '城市合伙人通知发件箱恢复',
+  inputSchema: [],
+  outputSchema: [
+    { name: 'scanned', type: 'number', required: true },
+    { name: 'queued', type: 'number', required: true },
+  ],
+  retries: {
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 5_000 },
+  },
+  schedule: [{ cron: '*/30 * * * * *', queue: CITY_PARTNER_NOTIFICATION_QUEUE }],
+  handler: async ({ req }) => ({
+    output: await reconcileCityPartnerNotificationOutbox(req.payload),
   }),
 }

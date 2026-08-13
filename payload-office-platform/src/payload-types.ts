@@ -157,9 +157,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'advisor-service-hours': AdvisorServiceHour;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'advisor-service-hours': AdvisorServiceHoursSelect<false> | AdvisorServiceHoursSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -171,6 +173,7 @@ export interface Config {
     tasks: {
       'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
       'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
+      'reconcile-city-partner-notification-outbox': TaskReconcileCityPartnerNotificationOutbox;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -2447,6 +2450,7 @@ export interface PayloadJob {
           | 'inline'
           | 'notify-supply-submission-created'
           | 'notify-city-partner-application-created'
+          | 'reconcile-city-partner-notification-outbox'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -2486,6 +2490,7 @@ export interface PayloadJob {
         | 'inline'
         | 'notify-supply-submission-created'
         | 'notify-city-partner-application-created'
+        | 'reconcile-city-partner-notification-outbox'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -2493,6 +2498,15 @@ export interface PayloadJob {
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3805,6 +3819,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3894,6 +3909,24 @@ export interface AdvisorServiceHour {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "advisor-service-hours_select".
  */
 export interface AdvisorServiceHoursSelect<T extends boolean = true> {
@@ -3923,6 +3956,16 @@ export interface AdvisorServiceHoursSelect<T extends boolean = true> {
   closedMessage?: T;
   createdBy?: T;
   lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -3969,6 +4012,17 @@ export interface TaskNotifyCityPartnerApplicationCreated {
   };
   output: {
     delivered: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskReconcile-city-partner-notification-outbox".
+ */
+export interface TaskReconcileCityPartnerNotificationOutbox {
+  input?: unknown;
+  output: {
+    scanned: number;
+    queued: number;
   };
 }
 /**

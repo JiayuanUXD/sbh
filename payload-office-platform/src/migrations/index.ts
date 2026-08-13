@@ -45,6 +45,7 @@ import * as migration_20260813_011000_seed_city_site_profiles from './20260813_0
 import * as migration_20260813_020000_city_partner_applications from './20260813_020000_city_partner_applications';
 import * as migration_20260813_021000_city_partner_permissions from './20260813_021000_city_partner_permissions';
 import * as migration_20260813_022000_city_partner_notification_jobs from './20260813_022000_city_partner_notification_jobs';
+import * as migration_20260813_060037_city_partner_notification_outbox_reconciler from './20260813_060037_city_partner_notification_outbox_reconciler';
 
 export const migrations = [
   {
@@ -275,11 +276,16 @@ export const migrations = [
   {
     up: migration_20260813_021000_city_partner_permissions.up,
     down: migration_20260813_021000_city_partner_permissions.down,
-    name: '20260813_021000_city_partner_permissions'
+    name: '20260813_021000_city_partner_permissions',
   },
   {
     up: migration_20260813_022000_city_partner_notification_jobs.up,
     down: migration_20260813_022000_city_partner_notification_jobs.down,
     name: '20260813_022000_city_partner_notification_jobs',
+  },
+  {
+    up: migration_20260813_060037_city_partner_notification_outbox_reconciler.up,
+    down: migration_20260813_060037_city_partner_notification_outbox_reconciler.down,
+    name: '20260813_060037_city_partner_notification_outbox_reconciler',
   },
 ];

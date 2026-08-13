@@ -55,3 +55,33 @@ A later boundary RED proved that a fixed one-page role query missed readable rol
 - The producer intentionally defers queue creation because Payload 3.86 Collection post-hooks still execute before the outer Local API transaction commits. The independent read prevents pre-commit enqueue, and both enqueue and delivery failures are isolated from the committed public response. A process terminating in the narrow interval between commit and the deferred callback leaves the durable domain event for operational reconciliation but cannot roll back or corrupt the application.
 - Recipient fan-out remains capped at 50 and sorted by user ID, consistent with the existing notification safety cap. Role discovery itself is fully paginated so the fallback decision cannot be made from a truncated role set.
 - No plan/ledger edits, deployment, push, production action, or schema changes beyond the required enum/task registration were performed.
+
+## Fix Round 1 (2026-08-13): Durable Outbox Recovery
+
+### Review fix
+
+- Added the scheduled `reconcile-city-partner-notification-outbox` Payload task. Every 30 seconds the existing city-partner queue's `autoRun` scheduler creates/runs this durable task; restart recovery therefore comes from persisted task scheduling and durable domain events, not the producer's one-time best-effort callback.
+- The reconciler performs one deterministic, capped scan of at most 50 unprocessed `city-partner-application.created` events, sorted by `occurredAt,id`. It validates event/application existence, then idempotently ensures an active `notify-city-partner-application-created` job exists.
+- A PostgreSQL partial unique index on `payload_jobs(task_slug, input->>'eventId')`, limited to non-completed/non-terminal-error notify jobs, makes concurrent scans persist exactly one active job. A `23505` is accepted only after an independent exact active-job read proves the winner.
+- The reconciler never marks the domain event processed. Only successful notification delivery does so. Queue failure and consumer failure therefore leave the durable event eligible for later scans; terminal failed jobs no longer suppress recovery.
+- The original deferred callback remains a latency optimization, but now calls the same idempotent queue helper. Correctness and restart recovery no longer depend on that callback running.
+
+### TDD evidence
+
+- RED: 4 new outbox tests failed because `reconcileCityPartnerNotificationOutbox` did not exist. They covered post-commit recovery after an initial invisible read, repeated/concurrent scans, transient queue failure, PII-free job input, and one capped/stable scan.
+- A migration behavior test then failed against the generated artifact because it repeated the already-applied 022000 enum additions and lacked active-event uniqueness. The corrected migration test proves only reconciler schema/task additions remain and down preserves all 022000 enums.
+- Focused city-partner plus supply notification suite: 2 files, 32/32 passed.
+- Relevant Task 1/2/3 and migration suite: 10 files, 162/162 passed.
+- Full unit suite: 196 files passed, 2 database files skipped; 2856 tests passed, 3 skipped.
+- Real PostgreSQL outbox integration: 1/1 passed. It created an isolated application/event, removed the hook's opportunistic job, ran two independent reconciler scans concurrently, and proved exactly one active identifier-only notification job persisted while the event remained unprocessed. Cleanup post-query showed 0 matching applications, events, and notify jobs.
+- Node 22 TypeScript passed. Targeted ESLint reported 0 errors and one expected generated-types ignore warning. `git diff --check` passed.
+
+### Generated migration correction and database evidence
+
+- Payload 3.86 generated `20260813_060037_city_partner_notification_outbox_reconciler.ts` plus its schema JSON. The generated snapshot predated the applied 022000 enum-only migration, so its raw SQL incorrectly attempted to add the city-partner event/notification/notify-task enums again and its down would remove them.
+- The TypeScript migration was minimally corrected: delete only those duplicate 022000 additions/removals; retain generated `payload_jobs_stats`, `payload_jobs.meta`, and reconcile task enum changes; add the verified partial unique index. Down first drops the index, then generated schema, and recreates task enums while retaining `notify-city-partner-application-created`.
+- Dry-run: 48 migrations, 0 blocking findings, 2 historical Location warnings.
+- Initial up succeeded in 14 ms. Real down removed only job-stats/meta/index/reconcile enum and post-query proved 022000 event, notification, and notify-task enums remained. Real re-up succeeded in 14 ms.
+- Final status: 48 code, 48 applied, 0 pending. Verify: 186 checks, 0 failures, 19 repository warnings. Post-query proved job-stats, meta, partial index, and reconcile enum exist; business event/job counts remained 0.
+
+No plan/ledger edit, deployment, push, production action, or persistent test data was performed.

@@ -81,6 +81,7 @@ import {
 import {
   CITY_PARTNER_NOTIFICATION_QUEUE,
   cityPartnerApplicationNotificationTask,
+  cityPartnerNotificationOutboxTask,
 } from './domain/city-partner-application/application-notify'
 
 const filename = fileURLToPath(import.meta.url)
@@ -112,7 +113,11 @@ export default buildConfig({
       // calls with access enabled are also limited to Local API requests.
       run: ({ req }) => req.payloadAPI === 'local',
     },
-    tasks: [supplySubmissionNotificationTask, cityPartnerApplicationNotificationTask],
+    tasks: [
+      supplySubmissionNotificationTask,
+      cityPartnerApplicationNotificationTask,
+      cityPartnerNotificationOutboxTask,
+    ],
     shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
     autoRun: [
       {
@@ -127,7 +132,6 @@ export default buildConfig({
       {
         cron: '*/30 * * * * *',
         queue: CITY_PARTNER_NOTIFICATION_QUEUE,
-        disableScheduling: true,
         limit: 10,
         silent: true,
       },

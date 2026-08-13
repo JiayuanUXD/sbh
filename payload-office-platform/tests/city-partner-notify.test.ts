@@ -6,14 +6,20 @@ import {
   CITY_PARTNER_NOTIFICATION_QUEUE,
   CITY_PARTNER_NOTIFICATION_TASK,
   cityPartnerApplicationNotificationTask,
+  cityPartnerNotificationOutboxTask,
   consumeCityPartnerApplicationCreated,
   enqueueCityPartnerApplicationCreated,
+  reconcileCityPartnerNotificationOutbox,
 } from '@/domain/city-partner-application/application-notify'
 import {
   NOTIFICATION_SOURCE_TYPES,
   NOTIFICATION_TYPES,
 } from '@/domain/workflow/notification-types'
 import { up as notificationMigrationUp } from '@/migrations/20260813_022000_city_partner_notification_jobs'
+import {
+  down as outboxMigrationDown,
+  up as outboxMigrationUp,
+} from '@/migrations/20260813_060037_city_partner_notification_outbox_reconciler'
 
 const { default: payloadConfigPromise } = await import('@/payload.config')
 
@@ -124,6 +130,149 @@ describe('city partner application notification producer', () => {
       'city_partner_notification_enqueue_failed',
     )
     expect(JSON.stringify(failed.loggerError.mock.calls)).not.toContain('sensitive enqueue failure')
+  })
+})
+
+describe('city partner notification durable outbox reconciliation', () => {
+  function outboxHarness(options: { failQueueOnce?: boolean; existingJob?: boolean } = {}) {
+    const queued: Array<Record<string, unknown>> = []
+    let queueFailed = false
+    let jobExists = options.existingJob ?? false
+    const event = {
+      id: 41,
+      eventId: 'city-partner-application-created:321',
+      eventType: 'city-partner-application.created',
+      aggregateType: 'city-partner-application',
+      aggregateId: '321',
+      payload: { applicationId: '321' },
+      processedAt: null,
+      occurredAt: '2026-08-13T00:00:00.000Z',
+    }
+    const payload = {
+      async find(args: Record<string, unknown>): Promise<{
+        docs: Array<Record<string, unknown>>
+        page?: number
+        totalPages?: number
+        hasNextPage?: boolean
+        nextPage?: number | null
+      }> {
+        if (args.collection === 'domain-events') return {
+          docs: [event], page: 1, totalPages: 1, hasNextPage: false, nextPage: null,
+        }
+        if (args.collection === 'city-partner-applications') return { docs: [applicationDoc()] }
+        if (args.collection === 'payload-jobs') return {
+          docs: jobExists ? [{ id: 77, input: { eventId: event.eventId } }] : [],
+        }
+        return { docs: [] }
+      },
+      jobs: {
+        async queue(args: Record<string, unknown>) {
+          queued.push(args)
+          if (options.failQueueOnce && !queueFailed) {
+            queueFailed = true
+            throw new Error('temporary sensitive queue failure')
+          }
+          if (jobExists) {
+            const error = new Error('duplicate') as Error & { code: string }
+            error.code = '23505'
+            throw error
+          }
+          jobExists = true
+          return { id: 77 }
+        },
+      },
+      logger: { error: vi.fn() },
+    }
+    return { payload, queued, event, get jobExists() { return jobExists } }
+  }
+
+  it('recovers a committed event after the initial pre-commit read saw no application', async () => {
+    vi.useFakeTimers()
+    const producer = producerHarness()
+    producer.payload.find = async (args: Record<string, unknown>) => {
+      producer.finds.push(args)
+      return { docs: [] }
+    }
+    await runProducer(producer)
+    await vi.runAllTimersAsync()
+    expect(producer.queues).toEqual([])
+
+    const recovered = outboxHarness()
+    await expect(reconcileCityPartnerNotificationOutbox(recovered.payload as never))
+      .resolves.toEqual({ scanned: 1, queued: 1 })
+    expect(recovered.queued).toHaveLength(1)
+    expect(recovered.event.processedAt).toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('is idempotent across repeated and concurrent scans', async () => {
+    const repeated = outboxHarness()
+    await reconcileCityPartnerNotificationOutbox(repeated.payload as never)
+    await reconcileCityPartnerNotificationOutbox(repeated.payload as never)
+    expect(repeated.queued).toHaveLength(1)
+
+    const concurrent = outboxHarness()
+    await Promise.all([
+      reconcileCityPartnerNotificationOutbox(concurrent.payload as never),
+      reconcileCityPartnerNotificationOutbox(concurrent.payload as never),
+    ])
+    expect(concurrent.jobExists).toBe(true)
+  })
+
+  it('leaves the event unprocessed after a temporary queue failure so the next scan recovers it', async () => {
+    const harness = outboxHarness({ failQueueOnce: true })
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never))
+      .rejects.toThrow('city_partner_notification_reconcile_failed')
+    expect(harness.event.processedAt).toBeNull()
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never))
+      .resolves.toEqual({ scanned: 1, queued: 1 })
+  })
+
+  it('uses bounded stable pagination and identifier-only job inputs', async () => {
+    const harness = outboxHarness()
+    const finds: Array<Record<string, unknown>> = []
+    const originalFind = harness.payload.find.bind(harness.payload)
+    harness.payload.find = async (args: Record<string, unknown>) => {
+      finds.push(args)
+      if (args.collection === 'domain-events' && args.page === 1) return {
+        docs: Array.from({ length: 50 }, (_, index) => ({
+          ...harness.event,
+          id: 1000 + index,
+          eventId: `city-partner-application-created:${1000 + index}`,
+        })),
+        page: 1,
+        totalPages: 2,
+        hasNextPage: true,
+        nextPage: 2,
+      }
+      if (args.collection === 'domain-events' && args.page === 2) return {
+        docs: [harness.event],
+        page: 2,
+        totalPages: 2,
+        hasNextPage: false,
+        nextPage: null,
+      }
+      return originalFind(args)
+    }
+    await reconcileCityPartnerNotificationOutbox(harness.payload as never)
+    expect(finds[0]).toMatchObject({
+      collection: 'domain-events',
+      where: { and: [
+        { eventType: { equals: 'city-partner-application.created' } },
+        { aggregateType: { equals: 'city-partner-application' } },
+        { processedAt: { exists: false } },
+      ] },
+      sort: ['occurredAt', 'id'],
+      page: 1,
+      limit: 50,
+      depth: 0,
+    })
+    expect(finds.filter((call) => call.collection === 'domain-events').map((call) => call.page))
+      .toEqual([1, 2])
+    expect(harness.queued).not.toHaveLength(0)
+    expect(JSON.stringify(harness.queued)).not.toMatch(
+      /sensitive-name|13800003333|sensitive-company|sensitive-free-text/,
+    )
   })
 })
 
@@ -336,11 +485,21 @@ describe('city partner notification registration', () => {
       slug: 'notify-city-partner-application-created',
       retries: { attempts: 5, backoff: { type: 'exponential', delay: 5_000 } },
     })
+    expect(cityPartnerNotificationOutboxTask).toMatchObject({
+      slug: 'reconcile-city-partner-notification-outbox',
+      schedule: [{ cron: '*/30 * * * * *', queue: CITY_PARTNER_NOTIFICATION_QUEUE }],
+      retries: { attempts: 5 },
+    })
     const payloadConfig = await payloadConfigPromise
     expect(payloadConfig.jobs?.tasks).toContain(cityPartnerApplicationNotificationTask)
+    expect(payloadConfig.jobs?.tasks).toContain(cityPartnerNotificationOutboxTask)
     expect(payloadConfig.jobs?.autoRun).toEqual(expect.arrayContaining([
       expect.objectContaining({ queue: CITY_PARTNER_NOTIFICATION_QUEUE }),
     ]))
+    const cityAutoRun = Array.isArray(payloadConfig.jobs?.autoRun)
+      ? payloadConfig.jobs.autoRun.find((entry) => entry.queue === CITY_PARTNER_NOTIFICATION_QUEUE)
+      : undefined
+    expect(cityAutoRun).not.toHaveProperty('disableScheduling')
 
     const statements: unknown[] = []
     await notificationMigrationUp({
@@ -352,5 +511,36 @@ describe('city partner notification registration', () => {
     expect(sqlText).toContain('city-partner-application.created')
     expect(sqlText).toContain('city-partner-application-created')
     expect(sqlText).toContain('notify-city-partner-application-created')
+  })
+
+  it('adds only reconciler schema and active-event job uniqueness without undoing Task 3 enums', async () => {
+    const statements: unknown[] = []
+    await outboxMigrationUp({
+      db: { execute: async (statement: unknown) => { statements.push(statement) } },
+    } as never)
+    const upSql = statements.map((statement) =>
+      new PgDialect().sqlToQuery(statement as Parameters<PgDialect['sqlToQuery']>[0]).sql,
+    ).join('\n')
+    expect(upSql).toContain("ADD VALUE 'reconcile-city-partner-notification-outbox'")
+    expect(upSql).toContain('CREATE TABLE "payload_jobs_stats"')
+    expect(upSql).toContain('ALTER TABLE "payload_jobs" ADD COLUMN "meta" jsonb')
+    expect(upSql).toContain('CREATE UNIQUE INDEX "payload_jobs_city_partner_notify_event_active_uq"')
+    expect(upSql).toContain("(input ->> 'eventId')")
+    expect(upSql).toMatch(/completed_at IS NULL\s+AND has_error IS NOT TRUE/)
+    expect(upSql).not.toContain("ADD VALUE 'city-partner-application.created'")
+    expect(upSql).not.toContain("ADD VALUE 'notify-city-partner-application-created'")
+
+    statements.length = 0
+    await outboxMigrationDown({
+      db: { execute: async (statement: unknown) => { statements.push(statement) } },
+    } as never)
+    const downSql = statements.map((statement) =>
+      new PgDialect().sqlToQuery(statement as Parameters<PgDialect['sqlToQuery']>[0]).sql,
+    ).join('\n')
+    expect(downSql.indexOf('DROP INDEX "payload_jobs_city_partner_notify_event_active_uq"'))
+      .toBeLessThan(downSql.indexOf('DROP TABLE "payload_jobs_stats"'))
+    expect(downSql).toContain("'notify-city-partner-application-created'")
+    expect(downSql).not.toContain('ALTER TABLE "domain_events"')
+    expect(downSql).not.toContain('ALTER TABLE "notifications"')
   })
 })
