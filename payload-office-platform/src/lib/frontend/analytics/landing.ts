@@ -12,6 +12,33 @@ export type LandingAnalyticsRecord = Readonly<{
   props: LandingAnalyticsProps
 }>
 
+export type CityPartnerAnalyticsEventName = Extract<
+  AnalyticsEventName,
+  `city_partner_application_${string}`
+>
+export type CityPartnerAnalyticsProps = Readonly<{
+  city_slug: string
+  stage: 'stage-one' | 'stage-two'
+}>
+export type CityPartnerAnalyticsTrack = (
+  name: CityPartnerAnalyticsEventName,
+  props: CityPartnerAnalyticsProps,
+) => void
+
+export function safeTrackCityPartnerEvent(
+  tracker: CityPartnerAnalyticsTrack,
+  name: CityPartnerAnalyticsEventName,
+  props: CityPartnerAnalyticsProps,
+): void {
+  try {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(props.city_slug)) return
+    assertSafeAnalyticsProps(props)
+    tracker(name, props)
+  } catch {
+    // Anonymous analytics is best-effort and cannot interrupt the form.
+  }
+}
+
 export function safeTrackLandingEvent(
   tracker: LandingAnalyticsTrack,
   name: LandingAnalyticsEventName,
