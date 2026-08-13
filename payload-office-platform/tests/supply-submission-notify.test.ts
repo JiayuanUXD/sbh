@@ -258,14 +258,14 @@ describe('supply submission notification job consumer', () => {
     expect(config.jobs?.tasks?.map((task) => task.slug)).toContain(
       SUPPLY_SUBMISSION_NOTIFICATION_TASK,
     )
-    expect(config.jobs?.autoRun).toEqual([
+    expect(config.jobs?.autoRun).toEqual(expect.arrayContaining([
       expect.objectContaining({
         // 30 秒：投放申请是低频事件，而每个实例都各自轮询同一个共享生产库。
         cron: '*/30 * * * * *',
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
         disableScheduling: true,
       }),
-    ])
+    ]))
     await expect(
       Promise.resolve(config.jobs?.access?.queue?.({ req: {} as never })),
     ).resolves.toBe(false)

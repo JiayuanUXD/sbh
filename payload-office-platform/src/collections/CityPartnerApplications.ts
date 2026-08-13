@@ -8,6 +8,7 @@ import {
   cityPartnerApplicationReadAccess,
 } from '@/domain/city-partner-application/access'
 import { protectCityPartnerApplication } from '@/domain/city-partner-application/application-protect'
+import { enqueueCityPartnerApplicationCreated } from '@/domain/city-partner-application/application-notify'
 import {
   CITY_PARTNER_IDENTITIES,
   CITY_PARTNER_IDENTITY_LABELS,
@@ -36,6 +37,7 @@ export const CityPartnerApplications: CollectionConfig = {
   },
   hooks: {
     beforeChange: [protectCityPartnerApplication],
+    afterChange: [enqueueCityPartnerApplicationCreated],
     afterRead: createFieldMaskHooks(getCityPartnerApplicationMaskRules()),
   },
   versions: { drafts: false, maxPerDoc: 50 },

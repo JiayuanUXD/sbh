@@ -78,6 +78,10 @@ import {
   SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
   supplySubmissionNotificationTask,
 } from './domain/supply-submission/submission-notify'
+import {
+  CITY_PARTNER_NOTIFICATION_QUEUE,
+  cityPartnerApplicationNotificationTask,
+} from './domain/city-partner-application/application-notify'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -108,7 +112,7 @@ export default buildConfig({
       // calls with access enabled are also limited to Local API requests.
       run: ({ req }) => req.payloadAPI === 'local',
     },
-    tasks: [supplySubmissionNotificationTask],
+    tasks: [supplySubmissionNotificationTask, cityPartnerApplicationNotificationTask],
     shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
     autoRun: [
       {
@@ -116,6 +120,13 @@ export default buildConfig({
         // 各自轮询同一个共享生产库。5 秒一次是纯粹的常态负载浪费。
         cron: '*/30 * * * * *',
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
+        disableScheduling: true,
+        limit: 10,
+        silent: true,
+      },
+      {
+        cron: '*/30 * * * * *',
+        queue: CITY_PARTNER_NOTIFICATION_QUEUE,
         disableScheduling: true,
         limit: 10,
         silent: true,

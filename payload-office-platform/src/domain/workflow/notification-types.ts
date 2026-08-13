@@ -31,12 +31,14 @@ export const NOTIFICATION_TYPES = [
   'task-completed',
   'task-cancelled',
   'supply-submission-created',
+  'city-partner-application-created',
 ] as const
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 
 /** 通知类型中文标签（用于后台展示） */
 export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
+  'city-partner-application-created': '新的城市合伙人申请',
   'review-rejected': '审核驳回',
   'lead-assigned': '线索分配',
   'lead-transferred': '线索转派',
@@ -65,6 +67,7 @@ export const NOTIFICATION_SOURCE_TYPES = [
   'followup',
   'task',
   'supply-submission',
+  'city-partner-application',
 ] as const
 
 export type NotificationSourceType =
@@ -75,6 +78,7 @@ export const NOTIFICATION_SOURCE_TYPE_LABELS: Record<
   NotificationSourceType,
   string
 > = {
+  'city-partner-application': '城市合伙人申请',
   'listing-review': '审核',
   lead: '线索',
   followup: '跟进',

@@ -67,6 +67,10 @@ export const SUPPLY_SUBMISSION_EVENT_TYPES = [
   'supply-submission.created',
 ] as const
 
+export const CITY_PARTNER_APPLICATION_EVENT_TYPES = [
+  'city-partner-application.created',
+] as const
+
 /** 全部领域事件类型 */
 export const EVENT_TYPES = [
   ...LISTING_EVENT_TYPES,
@@ -77,12 +81,14 @@ export const EVENT_TYPES = [
   ...TASK_EVENT_TYPES,
   ...CORRECTION_EVENT_TYPES,
   ...SUPPLY_SUBMISSION_EVENT_TYPES,
+  ...CITY_PARTNER_APPLICATION_EVENT_TYPES,
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
 
 /** 事件类型中文标签（用于后台展示和审计） */
 export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  'city-partner-application.created': '城市合伙人申请已创建',
   'listing.published': '房源已上架',
   'listing.unpublished': '房源已下架',
   'listing.review_submitted': '审核已提交',
@@ -133,6 +139,7 @@ export const AGGREGATE_TYPES = [
   'task',
   'correction',
   'supply-submission',
+  'city-partner-application',
 ] as const
 
 export type AggregateType = (typeof AGGREGATE_TYPES)[number]

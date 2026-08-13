@@ -131,6 +131,7 @@ describe('event-types — 枚举与守卫', () => {
       'task',
       'correction',
       'supply-submission',
+      'city-partner-application',
     ])
   })
 })

@@ -170,6 +170,7 @@ export interface Config {
   jobs: {
     tasks: {
       'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
+      'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -1678,11 +1679,21 @@ export interface DomainEvent {
     | 'task.completed'
     | 'task.cancelled'
     | 'correction.created'
-    | 'supply-submission.created';
+    | 'supply-submission.created'
+    | 'city-partner-application.created';
   /**
    * 聚合根类型（listing / report / lead / followup / sla）。
    */
-  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction' | 'supply-submission';
+  aggregateType:
+    | 'listing'
+    | 'report'
+    | 'lead'
+    | 'followup'
+    | 'sla'
+    | 'task'
+    | 'correction'
+    | 'supply-submission'
+    | 'city-partner-application';
   /**
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
@@ -2041,7 +2052,8 @@ export interface Notification {
     | 'sla-breached'
     | 'task-completed'
     | 'task-cancelled'
-    | 'supply-submission-created';
+    | 'supply-submission-created'
+    | 'city-partner-application-created';
   /**
    * 通知标题（简洁中文文案）。
    */
@@ -2053,7 +2065,7 @@ export interface Notification {
   /**
    * 来源业务对象类型（listing-review / lead / followup / task）。
    */
-  sourceType: 'listing-review' | 'lead' | 'followup' | 'task' | 'supply-submission';
+  sourceType: 'listing-review' | 'lead' | 'followup' | 'task' | 'supply-submission' | 'city-partner-application';
   /**
    * 来源业务对象 ID，用于点击通知跳转到详情页。
    */
@@ -2431,7 +2443,12 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport';
+        taskSlug:
+          | 'inline'
+          | 'notify-supply-submission-created'
+          | 'notify-city-partner-application-created'
+          | 'createCollectionExport'
+          | 'createCollectionImport';
         taskID: string;
         input?:
           | {
@@ -2465,7 +2482,14 @@ export interface PayloadJob {
       }[]
     | null;
   taskSlug?:
-    ('inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport') | null;
+    | (
+        | 'inline'
+        | 'notify-supply-submission-created'
+        | 'notify-city-partner-application-created'
+        | 'createCollectionExport'
+        | 'createCollectionImport'
+      )
+    | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -3928,6 +3952,18 @@ export interface CollectionsWidget {
  * via the `definition` "TaskNotify-supply-submission-created".
  */
 export interface TaskNotifySupplySubmissionCreated {
+  input: {
+    eventId: string;
+  };
+  output: {
+    delivered: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskNotify-city-partner-application-created".
+ */
+export interface TaskNotifyCityPartnerApplicationCreated {
   input: {
     eventId: string;
   };
