@@ -70,6 +70,75 @@ describe('city profile cache invalidator', () => {
     expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', 'max')
   })
 
+  it('revalidates both old and new city supply caches when a Location is reassigned', async () => {
+    revalidateTag.mockClear()
+    const hook = Locations.hooks?.afterChange?.[0]
+    if (!hook) throw new Error('location_after_change_hook_missing')
+
+    await Reflect.apply(hook, undefined, [{
+      doc: {
+        id: 505,
+        city: { id: 2, slug: 'suzhou' },
+        frontendVisible: true,
+        slug: 'industrial-park',
+        status: 'active',
+        type: 'district',
+      },
+      previousDoc: {
+        id: 505,
+        city: { id: 1, slug: 'hangzhou' },
+        frontendVisible: true,
+        slug: 'industrial-park',
+        status: 'active',
+        type: 'district',
+      },
+      req: {},
+    }])
+
+    for (const city of ['hangzhou', 'suzhou']) {
+      expect(revalidateTag).toHaveBeenCalledWith(`public:home:${city}`, 'max')
+      expect(revalidateTag).toHaveBeenCalledWith(`public:listings:city:${city}`, 'max')
+      expect(revalidateTag).toHaveBeenCalledWith(`public:buildings:city:${city}`, 'max')
+      expect(revalidateTag).toHaveBeenCalledWith(`public:facets:${city}`, 'max')
+    }
+  })
+
+  it('adds category fallbacks when either side of a Location change has no resolvable city', async () => {
+    revalidateTag.mockClear()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const hook = Locations.hooks?.afterChange?.[0]
+    if (!hook) throw new Error('location_after_change_hook_missing')
+
+    try {
+      await Reflect.apply(hook, undefined, [{
+        doc: {
+          id: 506,
+          city: { id: 2, slug: 'suzhou' },
+          frontendVisible: true,
+          slug: 'industrial-park',
+          status: 'active',
+          type: 'district',
+        },
+        previousDoc: {
+          id: 506,
+          city: 999,
+          frontendVisible: true,
+          slug: 'industrial-park',
+          status: 'active',
+          type: 'district',
+        },
+        req: {},
+      }])
+
+      expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', 'max')
+      expect(revalidateTag).toHaveBeenCalledWith('public:listings', 'max')
+      expect(revalidateTag).toHaveBeenCalledWith('public:buildings', 'max')
+      expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', 'max')
+    } finally {
+      consoleError.mockRestore()
+    }
+  })
+
   it('invalidates the owning city caches after a Location is deleted', async () => {
     revalidateTag.mockClear()
     const hook = Locations.hooks?.afterDelete?.[0]

@@ -128,18 +128,25 @@ const invalidateLocationCityCache: CollectionAfterChangeHook = async ({
   const previous = toLocationCacheRecord(previousDoc)
   if (!current || !affectsPublicCityCache(current, previous)) return doc
 
-  const citySlug = await resolveOwningCitySlug(req, current)
-  if (!citySlug) {
-    console.error('[city-profile-cache-invalidation] city_unresolved', {
-      objectId: current.id,
-      errorCode: 'city_slug_unresolved',
-    })
+  const tags = new Set<string>()
+  for (const record of [current, previous]) {
+    if (!record) continue
+
+    const citySlug = await resolveOwningCitySlug(req, record)
+    if (!citySlug) {
+      console.error('[city-profile-cache-invalidation] city_unresolved', {
+        objectId: record.id,
+        errorCode: 'city_slug_unresolved',
+      })
+    }
+    for (const tag of tagsForLocationVisibilityChange(
+      citySlug ? { ...record, citySlug } : record,
+    )) {
+      tags.add(tag)
+    }
   }
 
-  invalidateCitySiteProfilePublicCache(
-    tagsForLocationVisibilityChange(citySlug ? { ...current, citySlug } : current),
-    'location',
-  )
+  invalidateCitySiteProfilePublicCache([...tags], 'location')
   return doc
 }
 

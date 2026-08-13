@@ -46,3 +46,28 @@ After the minimal implementation: 5 files, 34/34 tests passed. The new cache tes
 - The unresolved-city path deliberately invalidates broad listing/building category tags. This is more expensive than city invalidation but prevents stale cross-city supply when event identity is incomplete.
 - Explicit route consumers temporarily use `siteConfig.defaultCity`; the later route-boundary task is responsible for passing the URL-resolved city.
 - Articles and pages intentionally remain global. Homepage entries depend on the global article category tag so article mutations invalidate all city homepages without making article queries city-scoped.
+
+## Fix Round 1 (2026-08-13)
+
+### Changes
+
+- Corrected the Location `afterChange` hook to resolve both the current and previous owning city rather than only the current record.
+- Unioned and de-duplicated the two records' Location visibility tags before the single revalidation call. Cross-city reassignment and city-node slug changes therefore invalidate both old and new city profile, homepage, listing/building city category, facet, and sitemap tags.
+- If either record cannot resolve an owning city, that side contributes the conservative city-profile, global listing/building category, and sitemap fallback tags. The resolved side still contributes its precise city tags; no default city is guessed.
+
+### TDD and Verification Evidence
+
+All commands used the Node 22 / pnpm 8.6.1 wrapper.
+
+- RED: `tests/city-profile-cache-invalidator.test.ts` ran 8 tests, with 6 passed and 2 intended failures. The hook emitted only the new Suzhou tags, omitting old Hangzhou tags and the unresolved-old-side global listing/building fallbacks.
+- GREEN: the same focused test passed 8/8.
+- Focused Task 3 cache/invalidation suite: 5 files, 36/36 passed.
+- Broader cache/performance/acceptance regressions: 12 files, 95/95 passed.
+- `pnpm exec tsc --noEmit --pretty false`: exit 0, no diagnostics.
+- Targeted ESLint for `Locations.ts` and its cache invalidator test: exit 0.
+- `git diff --check`: exit 0.
+
+### Fix-Round Concerns
+
+- An unresolved previous or current relationship intentionally broadens invalidation to both supply categories. This is fail-closed cache safety and may invalidate more entries than a fully populated event.
+- No plan, ledger, schema, generated type, database, migration, production, deployment, or push action was performed.
