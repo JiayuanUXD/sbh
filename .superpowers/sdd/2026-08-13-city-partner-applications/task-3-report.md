@@ -106,3 +106,21 @@ No plan/ledger edit, deployment, push, production action, or persistent test dat
 - Node 22 TypeScript, targeted ESLint, and `git diff --check`: exit 0.
 
 No schema or migration change was needed. No plan/ledger edit, deployment, push, production action, or persistent test data was performed.
+
+## Fix Round 3 (2026-08-13): Complete Job Autorun Kill Switch
+
+### Review fix
+
+- Payload 3.86 initializes each cron by calling `jobs.handleSchedules` before it evaluates `jobs.shouldAutoRun`. A false `shouldAutoRun` alone therefore stopped execution and stale-job recovery, but could still create a scheduled city-partner reconciler job.
+- Converted `jobs.autoRun` to Payload's supported startup factory form. When `PAYLOAD_DISABLE_JOB_AUTORUN=1`, the city-partner queue entry now has `disableScheduling: true`; the existing `shouldAutoRun` guard still returns false before the lease reaper. Together these prevent schedule writes, recovery writes, and job execution.
+- When enabled, the city-partner entry omits `disableScheduling`, so normal reconciler scheduling and the existing lease-recovery preflight continue. The supply queue retains its unconditional `disableScheduling: true` behavior.
+
+### TDD and verification evidence
+
+- RED: the new kill-switch behavior test expected a startup `autoRun` factory but received the existing array (`expected type function, received object`; 1 failed, 15 skipped). The test also requires city `disableScheduling: true`, `shouldAutoRun=false`, and zero recovery queries under the kill switch.
+- Focused city-partner plus supply notification suite: 2 files, 35/35 passed.
+- Node 22 relevant Task 1/2/3 and supply notification/migration suite: 10 files, 116/116 passed.
+- Node 22 full unit suite: 196 files passed, 2 database files skipped; 2859 tests passed, 4 skipped.
+- Node 22 TypeScript, targeted ESLint, and `git diff --check`: exit 0.
+
+No schema, migration, or database mutation was needed. No plan/ledger edit, deployment, push, production action, or persistent test data was performed.

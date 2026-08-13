@@ -314,6 +314,38 @@ describe('city partner notification stale processing leases', () => {
     await expect(shouldAutoRun!(payload as never)).resolves.toBe(true)
     expect(queries).toHaveLength(1)
   })
+
+  it('disables city scheduling and recovery writes when job autorun is killed', async () => {
+    const previous = process.env.PAYLOAD_DISABLE_JOB_AUTORUN
+    process.env.PAYLOAD_DISABLE_JOB_AUTORUN = '1'
+    try {
+      const payloadConfig = await payloadConfigPromise
+      const autoRun = payloadConfig.jobs?.autoRun
+      expect(autoRun).toBeTypeOf('function')
+      if (typeof autoRun !== 'function') throw new Error('expected functional job autoRun config')
+
+      const schedules = await autoRun({} as never)
+      expect(schedules).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          queue: CITY_PARTNER_NOTIFICATION_QUEUE,
+          disableScheduling: true,
+        }),
+      ]))
+      const queries: string[] = []
+      const shouldAutoRun = payloadConfig.jobs?.shouldAutoRun
+      expect(shouldAutoRun).toBeTypeOf('function')
+      await expect(shouldAutoRun!({
+        db: { pool: { async query(text: string) {
+          queries.push(text)
+          return { rowCount: 0, rows: [] }
+        } } },
+      } as never)).resolves.toBe(false)
+      expect(queries).toEqual([])
+    } finally {
+      if (previous === undefined) delete process.env.PAYLOAD_DISABLE_JOB_AUTORUN
+      else process.env.PAYLOAD_DISABLE_JOB_AUTORUN = previous
+    }
+  })
 })
 
 type ConsumerOptions = {
@@ -533,12 +565,14 @@ describe('city partner notification registration', () => {
     const payloadConfig = await payloadConfigPromise
     expect(payloadConfig.jobs?.tasks).toContain(cityPartnerApplicationNotificationTask)
     expect(payloadConfig.jobs?.tasks).toContain(cityPartnerNotificationOutboxTask)
-    expect(payloadConfig.jobs?.autoRun).toEqual(expect.arrayContaining([
+    const autoRun = payloadConfig.jobs?.autoRun
+    expect(autoRun).toBeTypeOf('function')
+    if (typeof autoRun !== 'function') throw new Error('expected functional job autoRun config')
+    const schedules = await autoRun({} as never)
+    expect(schedules).toEqual(expect.arrayContaining([
       expect.objectContaining({ queue: CITY_PARTNER_NOTIFICATION_QUEUE }),
     ]))
-    const cityAutoRun = Array.isArray(payloadConfig.jobs?.autoRun)
-      ? payloadConfig.jobs.autoRun.find((entry) => entry.queue === CITY_PARTNER_NOTIFICATION_QUEUE)
-      : undefined
+    const cityAutoRun = schedules.find((entry) => entry.queue === CITY_PARTNER_NOTIFICATION_QUEUE)
     expect(cityAutoRun).not.toHaveProperty('disableScheduling')
 
     const statements: unknown[] = []

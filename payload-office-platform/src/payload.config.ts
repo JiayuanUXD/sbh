@@ -124,7 +124,7 @@ export default buildConfig({
       await recoverStaleCityPartnerNotificationJobs(payload)
       return true
     },
-    autoRun: [
+    autoRun: () => [
       {
         // 30 秒一次：投放申请是低频事件（日均个位数），而每个 CloudRun 实例都会
         // 各自轮询同一个共享生产库。5 秒一次是纯粹的常态负载浪费。
@@ -137,6 +137,9 @@ export default buildConfig({
       {
         cron: '*/30 * * * * *',
         queue: CITY_PARTNER_NOTIFICATION_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1'
+          ? { disableScheduling: true }
+          : {}),
         limit: 10,
         silent: true,
       },
