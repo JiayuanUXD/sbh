@@ -41,6 +41,16 @@ describe('city partner API request guards', () => {
     }))).toBe(false)
   })
 
+  it.each([
+    ['missing Origin', { host: 'sbh.example.com' }],
+    ['missing Host', { origin: 'https://sbh.example.com' }],
+    ['scheme mismatch', { host: 'sbh.example.com', origin: 'http://sbh.example.com' }],
+    ['port mismatch', { host: 'sbh.example.com', origin: 'https://sbh.example.com:444' }],
+    ['request host mismatch', { host: 'internal.example.com', origin: 'https://sbh.example.com' }],
+  ])('fails closed for %s', (_case, headers) => {
+    expect(isSameOrigin(new Request('https://sbh.example.com/api', { headers }))).toBe(false)
+  })
+
   it('normalizes a strict stage-one body', () => {
     expect(validateCityPartnerCreateBody(validCreate())).toEqual({
       ok: true,

@@ -97,7 +97,7 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
     ) throw new Error('city_partner_details_completion_markers_required')
     const accepted: Record<string, unknown> = {}
     for (const field of STAGE_TWO_FIELDS) if (field in next) accepted[field] = next[field]
-    return accepted
+    return { ...previous, ...accepted }
   }
 
   assertFieldsUnchanged(next, previous, STAGE_TWO_FIELDS, 'city_partner_details_immutable')

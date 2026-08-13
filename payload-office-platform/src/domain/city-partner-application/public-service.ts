@@ -44,6 +44,7 @@ export type CompleteCityPartnerResult =
   | Readonly<{ kind: 'completed' }>
   | Readonly<{ kind: 'idempotent' }>
   | Readonly<{ kind: 'conflict' }>
+  | Readonly<{ kind: 'identity_ambiguous' }>
   | Readonly<{ kind: 'not_found' }>
 
 type StageOneArgs = Readonly<{
@@ -222,15 +223,22 @@ export async function completePublicCityPartnerDetails({
       FROM city_partner_applications
       WHERE request_id = ${input.requestId}
         AND contact_phone = ${input.phoneNormalized}
-      LIMIT 1
+      ORDER BY id
       FOR UPDATE
     `)
-    const row = lockedRow(rowsFromQuery(result)[0])
-    if (!row) {
+    const matchedRows = rowsFromQuery(result)
+    if (matchedRows.length === 0) {
       await payload.db.commitTransaction(transactionID)
       settled = true
       return { kind: 'not_found' }
     }
+    if (matchedRows.length !== 1) {
+      await payload.db.commitTransaction(transactionID)
+      settled = true
+      return { kind: 'identity_ambiguous' }
+    }
+    const row = lockedRow(matchedRows[0])
+    if (!row) throw new Error('city_partner_locked_row_malformed')
     if (row.detailsCompletedAt) {
       await payload.db.commitTransaction(transactionID)
       settled = true

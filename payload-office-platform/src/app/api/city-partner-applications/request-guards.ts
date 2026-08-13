@@ -82,9 +82,11 @@ export function isStrictJsonContentType(contentType: string | null): boolean {
 export function isSameOrigin(req: Request): boolean {
   const origin = req.headers.get('origin')
   const host = req.headers.get('host')
-  if (!origin || !host) return true
+  if (!origin || !host) return false
   try {
-    return new URL(origin).host === host
+    const suppliedOrigin = new URL(origin)
+    const requestUrl = new URL(req.url)
+    return suppliedOrigin.origin === requestUrl.origin && host === requestUrl.host
   } catch {
     return false
   }

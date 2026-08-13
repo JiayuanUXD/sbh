@@ -26,8 +26,8 @@ function input(organizationName: string): CityPartnerDetailsInput {
   }
 }
 
-function createTransactionalPayload(initial?: StoredDetails) {
-  let stored = initial
+function createTransactionalPayload(initial?: StoredDetails | readonly StoredDetails[]) {
+  let stored = initial === undefined ? [] : Array.isArray(initial) ? [...initial] : [initial]
   let nextTransaction = 0
   let tail = Promise.resolve()
   const releases = new Map<string, () => void>()
@@ -48,11 +48,11 @@ function createTransactionalPayload(initial?: StoredDetails) {
               statements.push(statement)
               await prior
               releases.set(id, release)
-              return { rows: stored ? [{
-                id: stored.id,
-                detailsCompletedAt: stored.detailsCompletedAt,
-                detailsFingerprint: stored.detailsFingerprint,
-              }] : [] }
+              return { rows: stored.map((row) => ({
+                id: row.id,
+                detailsCompletedAt: row.detailsCompletedAt,
+                detailsFingerprint: row.detailsFingerprint,
+              })) }
             },
           },
           resolve: async () => {},
@@ -64,16 +64,17 @@ function createTransactionalPayload(initial?: StoredDetails) {
       rollbackTransaction: vi.fn(async (id: string) => { releases.get(id)?.() }),
     },
     update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
-      if (!stored) throw new Error('not found')
-      stored = { ...stored, ...data } as StoredDetails
-      return stored
+      const current = stored[0]
+      if (!current) throw new Error('not found')
+      stored[0] = { ...current, ...data } as StoredDetails
+      return stored[0]
     }),
   }
 
   return {
     payload: payload as unknown as Payload,
     statements,
-    getStored: () => stored,
+    getStored: () => stored[0],
   }
 }
 
@@ -126,6 +127,8 @@ describe('atomic city partner details completion', () => {
     const query = new PgDialect().sqlToQuery(fixture.statements[0] as Parameters<PgDialect['sqlToQuery']>[0])
     expect(query.sql.toLowerCase()).toContain('for update')
     expect(query.sql.toLowerCase()).toContain('request_id')
+    expect(query.sql.toLowerCase()).not.toContain('limit 1')
+    expect(query.sql.toLowerCase()).toContain('order by id')
     expect(fixture.payload.update).toHaveBeenCalledWith(expect.objectContaining({
       overrideAccess: true,
       req: expect.objectContaining({
@@ -141,6 +144,24 @@ describe('atomic city partner details completion', () => {
     await expect(completePublicCityPartnerDetails({ payload: fixture.payload, input: input('甲公司') }))
       .resolves.toEqual({ kind: 'not_found' })
     expect(fixture.payload.update).not.toHaveBeenCalled()
+  })
+
+  it('locks every cross-city identity match and fails closed without updating any row', async () => {
+    const shared = {
+      requestId: 'partner-req-001',
+      contactPhone: '13800001111',
+      detailsCompletedAt: null,
+      detailsFingerprint: null,
+    }
+    const fixture = createTransactionalPayload([
+      { ...shared, id: 7 },
+      { ...shared, id: 8 },
+    ])
+
+    await expect(completePublicCityPartnerDetails({ payload: fixture.payload, input: input('甲公司') }))
+      .resolves.toEqual({ kind: 'identity_ambiguous' })
+    expect(fixture.payload.update).not.toHaveBeenCalled()
+    expect(fixture.payload.db.commitTransaction).toHaveBeenCalledWith('tx-1')
   })
 })
 
@@ -213,6 +234,7 @@ describe('POST /api/city-partner-applications/details', () => {
   it.each([
     ['not_found', 404, 'not_found'],
     ['conflict', 409, 'details_already_completed'],
+    ['identity_ambiguous', 409, 'identity_ambiguous'],
   ] as const)('maps %s to a PII-safe public error', async (kind, status, error) => {
     detailsService.mockResolvedValue({ kind })
     const response = await POST(detailsRequest())

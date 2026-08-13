@@ -52,3 +52,30 @@ Focused GREEN after implementation: 3 files, 37/37 tests passed.
 - No collection/schema/migration, database, plan/ledger, deployment, push, or production action was performed.
 - Stage two deliberately matches the normalized phone stored by stage one. Pre-Task-2/manual rows with non-normalized phone data fail closed as 404 and require controlled repair rather than fuzzy identity matching.
 - The API accepts both `live` and `coming-soon` profiles when their canonical city relationship is active, matching the city-partner entry-point design; malformed, missing, disabled, or noncanonical profile/city relationships fail closed through the Plan 1 resolver.
+
+## Fix Round 1 (2026-08-13)
+
+### Review fixes
+
+- Stage-two identity lookup no longer uses `LIMIT 1`. The transaction locks every row matching `request_id + contact_phone`; zero matches return 404, exactly one continues, and more than one returns the safe 409 `identity_ambiguous` response. The ambiguous path commits its read-only transaction and updates no matching record, without exposing city, count, or IDs.
+- Same-origin checks now fail closed when either `Origin` or `Host` is missing. A request is accepted only when the parsed Origin exactly equals the request URL origin (scheme, hostname, and effective port) and the Host header exactly equals the request URL host.
+- Added a real local PostgreSQL concurrency integration test. The previous in-memory lock test remains useful for deterministic branch coverage and query-contract assertions, but it did not by itself prove database serialization. The real test supplies that missing evidence.
+- The first real PostgreSQL run exposed a Payload update integration defect: the Task 1 stage-two hook returned only accepted stage-two fields, and Payload 3.86 then validated a document missing required stage-one/workflow fields. A new hook regression test captured that RED. The hook now returns the immutable previous document merged with only the accepted stage-two fields; its trusted context, marker checks, accepted-field allowlist, and unsealed-fact protection remain unchanged.
+
+### RED evidence
+
+- Origin/multi-match RED: 2 files, 38 tests; 6 intended failures showed missing Origin/Host and scheme mismatch were accepted, SQL still contained `LIMIT 1`, two matches incorrectly completed/updated, and the route lacked an ambiguous mapping.
+- Real PostgreSQL first run reached the actual row-lock/update path and failed with Payload `ValidationError` for missing required stage-one/workflow fields. The temporary application was deleted by `afterAll`.
+- Hook merge RED: 1 file, 10 tests; the new preservation assertion failed because only stage-two fields were returned.
+
+### GREEN and real database evidence
+
+- Focused unit suite: 4 files, 54/54 passed.
+- Real PostgreSQL integration, loaded from local `.env.local` without printing configuration: 1 file, 1/1 passed. It created a uniquely named temporary application, issued two concurrent different stage-two completions using independent Payload transactions, and proved exactly one `completed` plus one `conflict`; the winning facts, completion timestamp, SHA-256 fingerprint, and a completed document version were persisted; no Payload transaction sessions remained. `afterAll` deleted the temporary application and a read-back asserted that no fixture row remained.
+- Relevant Task 1/security/route/rate-limit suite: 16 files, 295/295 passed.
+- Full unit suite without database environment: 195 files passed, 1 database integration file skipped; 2841 tests passed, 1 skipped. The skipped test is the same integration test executed separately against real PostgreSQL above.
+- Node 22 TypeScript: exit 0, no diagnostics.
+- Targeted ESLint: exit 0, no diagnostics.
+- `git diff --check`: exit 0.
+
+No schema, migration, plan/ledger, deployment, push, or production action was performed. The only local database mutations were the isolated integration fixture and its verified cleanup.

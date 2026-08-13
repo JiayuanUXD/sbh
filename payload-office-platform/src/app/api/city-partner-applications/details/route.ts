@@ -89,6 +89,9 @@ export async function POST(req: Request): Promise<Response> {
     if (result.kind === 'conflict') {
       return NextResponse.json({ ok: false, error: 'details_already_completed' }, { status: 409 })
     }
+    if (result.kind === 'identity_ambiguous') {
+      return NextResponse.json({ ok: false, error: 'identity_ambiguous' }, { status: 409 })
+    }
     const idempotent = result.kind === 'idempotent'
     payload.logger.info({ idempotent }, 'city_partner_details_success')
     return NextResponse.json({ ok: true, idempotent })

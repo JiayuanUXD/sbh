@@ -116,6 +116,31 @@ describe('city partner application domain', () => {
     )
   })
 
+  it('preserves required stage-one and workflow facts during a trusted stage-two update', async () => {
+    const original = {
+      city: 11,
+      applicantName: 'integration-applicant',
+      contactPhone: '13800001111',
+      applicantIdentity: 'owner-property',
+      detailsCompletedAt: null,
+      status: 'pending',
+    }
+    await expect(update(
+      {
+        organizationName: 'integration-organization',
+        detailsFingerprint: 'abc',
+        detailsCompletedAt: '2026-08-13T00:00:00.000Z',
+      },
+      original,
+      { [CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY]: 'stage-two' },
+    )).resolves.toMatchObject({
+      ...original,
+      organizationName: 'integration-organization',
+      detailsCompletedAt: '2026-08-13T00:00:00.000Z',
+      detailsFingerprint: 'abc',
+    })
+  })
+
   it('requires both server-owned completion markers for trusted stage two', async () => {
     const original = { city: 11, detailsCompletedAt: null, status: 'pending' }
     const context = { [CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY]: 'stage-two' }
