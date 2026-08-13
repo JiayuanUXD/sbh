@@ -135,6 +135,9 @@ export function getStageOneErrors(
   if (values.applicantIdentity === 'other' && !trimmedOptional(values.otherIdentity)) {
     errors.otherIdentity = '请补充您的合作身份'
   }
+  if ((values.otherIdentity.trim().length ?? 0) > 100) {
+    errors.otherIdentity = '其他身份最多 100 个字符'
+  }
   if (!values.consentAccepted) errors.consentAccepted = '请阅读并同意隐私政策'
   return errors
 }
@@ -146,7 +149,7 @@ export function getStageTwoErrors(values: CityPartnerStageTwoValues): StageTwoEr
     errors.otherResource = '请补充其他资源类型'
   }
   if ((values.organizationName?.trim().length ?? 0) > 100) errors.organizationName = '机构名称最多 100 个字符'
-  if ((values.otherResource?.trim().length ?? 0) > 200) errors.otherResource = '其他资源最多 200 个字符'
+  if ((values.otherResource?.trim().length ?? 0) > 100) errors.otherResource = '其他资源最多 100 个字符'
   if ((values.experienceSummary?.trim().length ?? 0) > 2_000) errors.experienceSummary = '经验说明最多 2000 个字符'
   if ((values.cooperationPlan?.trim().length ?? 0) > 2_000) errors.cooperationPlan = '合作设想最多 2000 个字符'
   return errors
@@ -281,7 +284,10 @@ export function createCityPartnerApplicationCoordinator(
     return pendingStageTwo
   }
 
-  const skipStageTwo = () => update({ status: 'complete' })
+  const skipStageTwo = () => {
+    if (pendingStageTwo || state.status === 'completing') return state
+    return update({ status: 'complete' })
+  }
   return {
     getState: () => state,
     hasSavedStageOne: () => submitted !== null,
@@ -364,6 +370,8 @@ export default function CityPartnerApplicationForm({
     await coordinator.submitStageTwo(stageTwo)
   }
 
+  const startFromCurrentCity = () => coordinator.start(stageOne.city)
+
   if (state.status === 'complete') {
     return <div className="city-partner-form__success" role="status" aria-live="polite"><h2>申请已收到</h2><p>我们会根据城市服务规划与双方资源情况进行沟通。</p></div>
   }
@@ -378,29 +386,38 @@ export default function CityPartnerApplicationForm({
         <fieldset className="city-partner-form__fieldset"><legend>可提供的资源（可多选）</legend><div className="city-partner-form__checks">
           {CITY_PARTNER_RESOURCE_OPTIONS.map((option) => <label key={option.value}><input type="checkbox" value={option.value} checked={stageTwo.resourceTypes?.includes(option.value) ?? false} onChange={(event) => setStageTwo((prev) => ({ ...prev, resourceTypes: event.target.checked ? [...(prev.resourceTypes ?? []), option.value] : (prev.resourceTypes ?? []).filter((value) => value !== option.value) }))} /> <span>{option.label}</span></label>)}
         </div></fieldset>
-        {stageTwo.resourceTypes?.includes('other') ? <Field label="其他资源" id="partner-other-resource" error={stageTwoErrors.otherResource} required><Input ref={(node) => { refs.current.otherResource = node }} value={stageTwo.otherResource ?? ''} maxLength={200} onChange={(event) => setStageTwo((prev) => ({ ...prev, otherResource: event.target.value }))} /></Field> : null}
+        {stageTwo.resourceTypes?.includes('other') ? <Field label="其他资源" id="partner-other-resource" error={stageTwoErrors.otherResource} required><Input ref={(node) => { refs.current.otherResource = node }} value={stageTwo.otherResource ?? ''} maxLength={100} onChange={(event) => setStageTwo((prev) => ({ ...prev, otherResource: event.target.value }))} /></Field> : null}
         <Field label="相关经验" id="partner-experience"><Textarea rows={4} maxLength={2000} value={stageTwo.experienceSummary ?? ''} onChange={(event) => setStageTwo((prev) => ({ ...prev, experienceSummary: event.target.value }))} /></Field>
         <Field label="合作设想" id="partner-plan"><Textarea rows={4} maxLength={2000} value={stageTwo.cooperationPlan ?? ''} onChange={(event) => setStageTwo((prev) => ({ ...prev, cooperationPlan: event.target.value }))} /></Field>
         {state.errorCode && state.errorCode !== 'validation_failed' ? <p role="alert">{ERROR_MESSAGES[state.errorCode]}</p> : null}
-        <div className="city-partner-form__actions"><Button type="submit" loading={state.status === 'completing'}>提交补充信息</Button><button type="button" className="city-partner-form__skip" onClick={() => coordinator.skipStageTwo()}>暂不补充，完成申请</button></div>
+        <p className="city-partner-form__status" role="status" aria-live="polite">
+          {state.status === 'completing' ? '正在提交补充信息…' : ''}
+        </p>
+        <div className="city-partner-form__actions"><Button type="submit" loading={state.status === 'completing'} aria-label={state.status === 'completing' ? '正在提交补充信息' : undefined}>提交补充信息</Button><button type="button" className="city-partner-form__skip" disabled={state.status === 'completing'} onClick={() => coordinator.skipStageTwo()}>暂不补充，完成申请</button></div>
       </form>
     )
   }
 
   return (
-    <form className="city-partner-form" onSubmit={submitStageOne} noValidate>
+    <form
+      className="city-partner-form"
+      onSubmit={submitStageOne}
+      onFocusCapture={startFromCurrentCity}
+      onChangeCapture={startFromCurrentCity}
+      noValidate
+    >
       <header><span className="city-partner-form__step">第一步 · 必填</span><h2>{CITY_PARTNER_COPY.stageOneTitle}</h2><p>{CITY_PARTNER_COPY.stageOneHint}</p></header>
       <Field label="申请城市" id="partner-city" error={stageOneErrors.city} required>
-        <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} onChange={(event) => { setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
+        <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} onChange={(event) => { coordinator.start(event.target.value); setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
           <option value="">请选择城市</option>{cities.map((city) => <option key={city.slug} value={city.slug}>{city.name}{city.serviceStatus === 'coming-soon' ? '（筹备中）' : ''}</option>)}
         </Select>
       </Field>
-      <Field label="姓名" id="partner-name" error={stageOneErrors.applicantName} required><Input ref={(node) => { refs.current.applicantName = node }} name="applicantName" autoComplete="name" maxLength={50} value={stageOne.applicantName} onFocus={() => coordinator.start(stageOne.city)} onChange={(event) => setStageOne((prev) => ({ ...prev, applicantName: event.target.value }))} /></Field>
+      <Field label="姓名" id="partner-name" error={stageOneErrors.applicantName} required><Input ref={(node) => { refs.current.applicantName = node }} name="applicantName" autoComplete="name" maxLength={50} value={stageOne.applicantName} onChange={(event) => setStageOne((prev) => ({ ...prev, applicantName: event.target.value }))} /></Field>
       <Field label="手机号" id="partner-phone" error={stageOneErrors.contactPhone} required><Input ref={(node) => { refs.current.contactPhone = node }} type="tel" name="contactPhone" autoComplete="tel" inputMode="numeric" maxLength={20} value={stageOne.contactPhone} onChange={(event) => setStageOne((prev) => ({ ...prev, contactPhone: event.target.value }))} /></Field>
       <Field label="合作身份" id="partner-identity" error={stageOneErrors.applicantIdentity} required><Select ref={(node) => { refs.current.applicantIdentity = node }} name="applicantIdentity" value={stageOne.applicantIdentity} onChange={(event) => setStageOne((prev) => ({ ...prev, applicantIdentity: event.target.value as CityPartnerIdentity | '' }))}><option value="">请选择</option>{CITY_PARTNER_IDENTITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></Field>
       {stageOne.applicantIdentity === 'other' ? <Field label="其他身份" id="partner-other-identity" error={stageOneErrors.otherIdentity} required><Input ref={(node) => { refs.current.otherIdentity = node }} maxLength={100} value={stageOne.otherIdentity} onChange={(event) => setStageOne((prev) => ({ ...prev, otherIdentity: event.target.value }))} /></Field> : null}
-      <label className="city-partner-form__consent"><input ref={(node) => { refs.current.consentAccepted = node }} type="checkbox" checked={stageOne.consentAccepted} onChange={(event) => setStageOne((prev) => ({ ...prev, consentAccepted: event.target.checked }))} /><span>我已阅读并同意 <Link href="/pages/privacy" target="_blank">隐私政策</Link>，并授权工作人员联系我。</span></label>
-      {stageOneErrors.consentAccepted ? <p className="field__error" role="alert">{stageOneErrors.consentAccepted}</p> : null}
+      <label className="city-partner-form__consent"><input id="partner-consent" ref={(node) => { refs.current.consentAccepted = node }} type="checkbox" checked={stageOne.consentAccepted} aria-invalid={stageOneErrors.consentAccepted ? true : undefined} aria-describedby={stageOneErrors.consentAccepted ? 'partner-consent-error' : undefined} onChange={(event) => { setStageOne((prev) => ({ ...prev, consentAccepted: event.target.checked })); setStageOneErrors((prev) => ({ ...prev, consentAccepted: undefined })) }} /><span>我已阅读并同意 <Link href="/pages/privacy" target="_blank">隐私政策</Link>，并授权工作人员联系我。</span></label>
+      {stageOneErrors.consentAccepted ? <p id="partner-consent-error" className="field__error" role="alert">{stageOneErrors.consentAccepted}</p> : null}
       {state.errorCode && state.errorCode !== 'validation_failed' ? <p role="alert">{ERROR_MESSAGES[state.errorCode]}</p> : null}
       <Button type="submit" block loading={state.status === 'submitting'} disabled={cityBlocked}>保存并继续</Button>
       <p className="city-partner-form__status" role="status" aria-live="polite">{state.status === 'submitting' ? '正在安全保存申请…' : ''}</p>

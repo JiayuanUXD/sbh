@@ -116,3 +116,28 @@ test('shows invalid query visibly, supports keyboard recovery, and skips details
   await page.setViewportSize({ width: 375, height: 812 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
+
+test('keeps skip disabled and announces progress while stage two is pending', async ({ page }) => {
+  let resolveDetails: () => void = () => undefined
+  await page.route('**/api/city-partner-applications', (route) => route.fulfill({
+    status: 201, contentType: 'application/json', body: JSON.stringify({ ok: true }),
+  }))
+  await page.route('**/api/city-partner-applications/details', async (route) => {
+    await new Promise<void>((resolve) => { resolveDetails = resolve })
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+  })
+
+  await page.goto('/city-partner?city=shanghai')
+  await page.getByLabel('姓名').fill('pending applicant')
+  await page.getByLabel('手机号').fill('13600001111')
+  await page.getByLabel('合作身份').selectOption('local-operations')
+  await page.getByLabel(/我已阅读并同意/).check()
+  await page.getByRole('button', { name: '保存并继续' }).click()
+  await page.getByRole('button', { name: '提交补充信息' }).click()
+
+  await expect(page.getByRole('status')).toContainText('正在提交补充信息')
+  await expect(page.getByRole('button', { name: '正在提交补充信息' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '暂不补充，完成申请' })).toBeDisabled()
+  resolveDetails()
+  await expect(page.getByRole('status')).toContainText('申请已收到')
+})

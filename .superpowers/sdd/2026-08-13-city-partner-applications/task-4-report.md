@@ -28,3 +28,15 @@ Complete. Added the global `/city-partner` page with fixed canonical metadata, v
 - The local server was stopped and port 3721 had zero listeners after verification.
 
 No database/schema/migration, plan/ledger, deployment, push, or production action was performed.
+
+## Fix Round 1 (2026-08-13): Pending State and Accessibility Boundaries
+
+- Stage-two skip is now guarded in both the coordinator and DOM. While a details request is pending it returns the unchanged `completing` state, the skip control is disabled, and only the eventual request result may transition state. A late error cannot be hidden by a premature complete state.
+- The once-only started event now listens at the stage-one form interaction boundary (`focus`/`change` capture), so phone, identity, consent, or city can be the first interaction. It waits until the selected city is canonical and emits only city/stage metadata.
+- Consent has a stable control/error ID pair and exposes `aria-invalid`/`aria-describedby` only while invalid; the shared ordered-ref focus path moves focus to it when it is the first invalid field.
+- Stage-two submission exposes an assertive-free polite status region, preserves the accessible submit name while the visible button uses its loading spinner, and disables skip until completion.
+- Client validation now matches Task 2 limits: other identity/resource 100 characters, organization 100, and experience/cooperation 2000. Existing name and phone contracts remain unchanged.
+
+TDD RED proved the original pending skip returned `complete`, 101-character other text passed, arbitrary first-field interactions emitted no started event, consent lacked a stable ARIA contract, and pending details lacked status/name/disabled-skip behavior. GREEN evidence: focused pure+happy-dom 2 files/15 tests; relevant 11 files/117 tests; Chromium 4/4; full 199 files passed and 2 skipped with 2880 tests passed and 4 skipped; Node 22 TypeScript, targeted ESLint, and diff check passed. The verified webpack server was stopped and port 3721 had zero listeners.
+
+No database/schema/migration, plan/ledger, deployment, push, or production action was performed.

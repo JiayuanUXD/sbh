@@ -198,6 +198,46 @@ describe('city partner form contract', () => {
     expect(skippedEvents).not.toContain('city_partner_application_completed')
   })
 
+  it('keeps skip inert while stage two is pending and lets the real result own the state', async () => {
+    let resolveDetails: (response: Response) => void = () => undefined
+    const detailsResponse = new Promise<Response>((resolve) => { resolveDetails = resolve })
+    const events: string[] = []
+    const coordinator = createCityPartnerApplicationCoordinator(
+      () => 'partner-pending-skip',
+      async (url) => url.endsWith('/details')
+        ? detailsResponse
+        : new Response(JSON.stringify({ ok: true }), { status: 201 }),
+      undefined,
+      (name) => events.push(name),
+    )
+    await coordinator.submitStageOne(validStageOne, cities)
+    const pending = coordinator.submitStageTwo({ organizationName: '机构' })
+    expect(coordinator.skipStageTwo()).toEqual({ status: 'completing' })
+    expect(events).not.toContain('city_partner_application_completed')
+    resolveDetails(new Response('{}', { status: 500 }))
+    await expect(pending).resolves.toEqual({ status: 'error', errorCode: 'submit_failed' })
+    expect(events).not.toContain('city_partner_application_completed')
+  })
+
+  it('matches every free-text client limit to the Task 2 server contract', () => {
+    expect(getStageOneErrors({ ...validStageOne, otherIdentity: 'x'.repeat(100) }, cities))
+      .toEqual({})
+    expect(getStageOneErrors({ ...validStageOne, otherIdentity: 'x'.repeat(101) }, cities))
+      .toMatchObject({ otherIdentity: expect.any(String) })
+    expect(getStageTwoErrors({
+      organizationName: 'x'.repeat(101),
+      resourceTypes: ['other'],
+      otherResource: 'x'.repeat(101),
+      experienceSummary: 'x'.repeat(2_001),
+      cooperationPlan: 'x'.repeat(2_001),
+    })).toEqual({
+      organizationName: expect.any(String),
+      otherResource: expect.any(String),
+      experienceSummary: expect.any(String),
+      cooperationPlan: expect.any(String),
+    })
+  })
+
   it('does not consume the once-only started event until a canonical city is available', () => {
     const events: string[] = []
     const coordinator = createCityPartnerApplicationCoordinator(
