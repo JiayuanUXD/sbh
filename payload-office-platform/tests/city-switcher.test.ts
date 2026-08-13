@@ -48,14 +48,23 @@ async function renderSwitcher() {
   return container
 }
 
-async function renderShell() {
+async function rerenderSwitcher(options: ReadonlyArray<(typeof cities)[number]> = cities) {
+  await act(async () => {
+    root?.render(React.createElement(CitySwitcher, {
+      cities: options,
+      defaultCity: 'shanghai',
+    }))
+  })
+}
+
+async function renderShell(options: ReadonlyArray<(typeof cities)[number]> = cities) {
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
   await act(async () => {
     root?.render(React.createElement(React.Fragment, null,
-      React.createElement(SiteHeader, { cities, defaultCity: 'shanghai' }),
-      React.createElement(SiteFooter, { cities, defaultCity: 'shanghai' }),
+      React.createElement(SiteHeader, { cities: options, defaultCity: 'shanghai' }),
+      React.createElement(SiteFooter, { cities: options, defaultCity: 'shanghai' }),
     ))
   })
   return container
@@ -92,6 +101,76 @@ describe('CitySwitcher', () => {
     await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(document.querySelector('#city-switcher-menu')).toBeNull()
     expect(document.activeElement).toBe(trigger)
+  })
+
+  it('filters invalid and reserved city options so a global news path cannot become an active city home', async () => {
+    navigationState.pathname = '/news'
+    navigationState.search = ''
+    const unsafeCities = [
+      ...cities,
+      { slug: 'news', name: '资讯', serviceStatus: 'live' as const, sortOrder: 30 },
+      { slug: '../admin', name: '非法', serviceStatus: 'live' as const, sortOrder: 40 },
+    ]
+    const container = document.createElement('div')
+    document.body.append(container)
+    root = createRoot(container)
+    await rerenderSwitcher(unsafeCities)
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    expect(trigger.textContent).toContain('上海')
+    await click(trigger)
+    expect(document.querySelector('#city-switcher-menu')?.textContent).not.toContain('资讯')
+    expect(document.querySelector('#city-switcher-menu')?.textContent).not.toContain('非法')
+    expect(document.querySelector('#city-switcher-menu [aria-current="page"]')?.textContent).not.toContain('资讯')
+  })
+
+  it('keeps reserved and invalid city options out of the mobile drawer when an adversarial shell prop contains them', async () => {
+    const unsafeCities = [
+      ...cities,
+      { slug: 'news', name: '资讯城市', serviceStatus: 'live' as const, sortOrder: 30 },
+      { slug: '../admin', name: '非法城市', serviceStatus: 'live' as const, sortOrder: 40 },
+    ]
+    await renderShell(unsafeCities)
+    const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!toggle) throw new Error('missing mobile menu toggle')
+    await click(toggle)
+
+    const cityDrawer = document.querySelector('.mobile-drawer__cities')
+    expect(cityDrawer?.textContent).toContain('上海')
+    expect(cityDrawer?.textContent).not.toContain('资讯城市')
+    expect(cityDrawer?.textContent).not.toContain('非法城市')
+  })
+
+  it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {
+    await renderSwitcher()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+
+    const options = [...document.querySelectorAll<HTMLAnchorElement>('#city-switcher-menu a')]
+    expect(document.activeElement).toBe(options[0])
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })))
+    expect(document.activeElement).toBe(options.at(-1))
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })))
+    expect(document.activeElement).toBe(options.at(-2))
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })))
+    expect(document.activeElement).toBe(options[0])
+    await act(async () => document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+    expect(document.querySelector('#city-switcher-menu')).toBeNull()
+  })
+
+  it('closes its popover when the trusted pathname changes', async () => {
+    await renderSwitcher()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+    expect(document.querySelector('#city-switcher-menu')).not.toBeNull()
+
+    navigationState.pathname = '/hangzhou/listings'
+    navigationState.search = ''
+    await rerenderSwitcher()
+    expect(document.querySelector('#city-switcher-menu')).toBeNull()
   })
 
   it('makes the shell city-aware only from a trusted city pathname', async () => {
@@ -158,5 +237,34 @@ describe('CitySwitcher', () => {
     const container = await renderShell()
 
     expect(container.querySelector('header')?.className).toContain('site-header--transparent')
+  })
+
+  it('closes the mobile drawer, restores scroll, and releases the focus trap when the desktop breakpoint activates', async () => {
+    const listeners = new Set<(event: MediaQueryListEvent) => void>()
+    vi.stubGlobal('matchMedia', () => ({
+      matches: false,
+      media: '(min-width: 1280px)',
+      addEventListener: (type: string, listener: (event: MediaQueryListEvent) => void) => {
+        if (type === 'change') listeners.add(listener)
+      },
+      removeEventListener: (type: string, listener: (event: MediaQueryListEvent) => void) => {
+        if (type === 'change') listeners.delete(listener)
+      },
+    }))
+    await renderShell()
+    const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!toggle) throw new Error('missing mobile menu toggle')
+    await click(toggle)
+    expect(document.body.style.overflow).toBe('hidden')
+
+    await act(async () => {
+      for (const listener of listeners) listener({ matches: true } as MediaQueryListEvent)
+    })
+    expect(document.querySelector('#mobile-drawer')).toBeNull()
+    expect(document.body.style.overflow).toBe('')
+
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    await act(async () => document.dispatchEvent(tab))
+    expect(tab.defaultPrevented).toBe(false)
   })
 })

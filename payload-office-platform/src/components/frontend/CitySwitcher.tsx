@@ -4,22 +4,35 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
-import { buildCityPath, getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
+import {
+  buildCityPath,
+  getCityPageType,
+  isPublicCitySlug,
+  switchCityUrl,
+} from '@/lib/frontend/city-routes'
 
 export type CitySwitcherProps = Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
 }>
 
+/** Keeps all client city controls on the same Task 1 route trust boundary. */
+export function filterPublicCityOptions(
+  cities: readonly PublicCityOption[],
+): readonly PublicCityOption[] {
+  return cities.filter((city) => isPublicCitySlug(city.slug))
+}
+
 export function resolveTrustedCity(
   pathname: string,
   cities: readonly PublicCityOption[],
   defaultCity: string,
 ): PublicCityOption | null {
+  const trustedCities = filterPublicCityOptions(cities)
   const firstSegment = pathname.split('/').filter(Boolean)[0]
-  const pathnameCity = firstSegment ? cities.find((city) => city.slug === firstSegment) : undefined
+  const pathnameCity = firstSegment ? trustedCities.find((city) => city.slug === firstSegment) : undefined
   if (pathnameCity) return pathnameCity
-  return cities.find((city) => city.slug === defaultCity) ?? cities[0] ?? null
+  return trustedCities.find((city) => city.slug === defaultCity) ?? trustedCities[0] ?? null
 }
 
 export function cityAwareHref(href: string, citySlug: string): string {
@@ -39,27 +52,60 @@ function serviceStatusLabel(status: PublicCityOption['serviceStatus']): string {
 export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps) {
   const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
-  const [open, setOpen] = useState(false)
+  const [openSourceUrl, setOpenSourceUrl] = useState<string | null>(null)
+  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const activeCity = resolveTrustedCity(pathname, cities, defaultCity)
+  const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
+  const open = openSourceUrl === sourceUrl
 
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setOpenSourceUrl(null)
+        triggerRef.current?.focus()
+        return
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
+      const options = Array.from(menuRef.current?.querySelectorAll<HTMLAnchorElement>('a[role="menuitem"]') ?? [])
+      if (options.length === 0) return
+      const focusedIndex = options.indexOf(document.activeElement as HTMLAnchorElement)
+      const currentIndex = focusedIndex >= 0 ? focusedIndex : 0
+      const nextIndex = event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? options.length - 1
+          : event.key === 'ArrowDown'
+            ? (currentIndex + 1) % options.length
+            : (currentIndex - 1 + options.length) % options.length
       event.preventDefault()
-      setOpen(false)
-      triggerRef.current?.focus()
+      options[nextIndex]?.focus()
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (wrapperRef.current?.contains(event.target as Node)) return
+      setOpenSourceUrl(null)
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('pointerdown', onPointerDown)
+    }
   }, [open])
 
-  if (!activeCity) return null
+  useEffect(() => {
+    if (!open) return
+    menuRef.current?.querySelector<HTMLAnchorElement>('a[role="menuitem"]')?.focus()
+  }, [open])
+
+  if (!activeCity || trustedCities.length === 0) return null
 
   return (
-    <div className="city-switcher">
+    <div ref={wrapperRef} className="city-switcher">
       <button
         ref={triggerRef}
         type="button"
@@ -67,14 +113,14 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
         aria-controls="city-switcher-menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setOpenSourceUrl(open ? null : sourceUrl)}
       >
         <span>{activeCity.name}</span>
         <span className="city-switcher__trigger-label">切换城市</span>
       </button>
       {open ? (
-        <div id="city-switcher-menu" className="city-switcher__menu" role="menu" aria-label="切换城市">
-          {cities.map((city) => {
+        <div ref={menuRef} id="city-switcher-menu" className="city-switcher__menu" role="menu" aria-label="切换城市">
+          {trustedCities.map((city) => {
             const href = switchCityUrl(sourceUrl, city.slug)
             if (!href) return null
             const current = city.slug === activeCity.slug
@@ -85,6 +131,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
                 role="menuitem"
                 className="city-switcher__option"
                 aria-current={current ? 'page' : undefined}
+                onClick={() => setOpenSourceUrl(null)}
               >
                 <span>{city.name}</span>
                 <span className="city-switcher__status">{serviceStatusLabel(city.serviceStatus)}</span>

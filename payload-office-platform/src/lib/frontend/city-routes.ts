@@ -89,7 +89,8 @@ function isCanonicalCitySlug(value: unknown): value is string {
   )
 }
 
-function isCitySlug(value: unknown): value is string {
+/** Shared city-route trust boundary for public callers that receive a city slug. */
+export function isPublicCitySlug(value: unknown): value is string {
   return isCanonicalCitySlug(value) && !RESERVED_CITY_ROOT_SEGMENTS.has(value)
 }
 
@@ -205,7 +206,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   }
 
   const [citySlug, resource, slug, extra] = segments
-  if (!isCitySlug(citySlug) || extra) return route('unknown', null)
+  if (!isPublicCitySlug(citySlug) || extra) return route('unknown', null)
   if (!resource) return route('home', citySlug)
   if (resource === 'listings' && !slug) return route('listings', citySlug)
   if (resource === 'buildings' && !slug) return route('buildings', citySlug)
@@ -339,7 +340,7 @@ export function getCityPageType(pathname: unknown): CityPageType {
 
 /** Builds the safe city-aware destination for navigation and switching controls. */
 export function buildCityPath(citySlug: string, pageType: CityPageType): string | null {
-  if (!isCitySlug(citySlug)) return null
+  if (!isPublicCitySlug(citySlug)) return null
   switch (pageType) {
     case 'home':
       return `/${citySlug}`
@@ -432,7 +433,7 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
     case 'publish':
     case 'city-partner': {
       const city = readSingle(route.params, 'city')
-      return isCitySlug(city) ? leadPath(route.pageType, city) : `/${route.pageType}`
+      return isPublicCitySlug(city) ? leadPath(route.pageType, city) : `/${route.pageType}`
     }
     case 'unknown':
       return null
@@ -441,7 +442,7 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
 
 /** Adds a trusted city prefix where the route is city-scoped. */
 export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): string | null {
-  if (!isCitySlug(citySlug)) return null
+  if (!isPublicCitySlug(citySlug)) return null
   const route = parseRoute(sourceUrl)
   if (!route) return null
   switch (route.pageType) {

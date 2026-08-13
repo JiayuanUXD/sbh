@@ -168,6 +168,14 @@ describe('city context resolver', () => {
           switcherVisible: false,
           sortOrder: 5,
         }),
+        cityProfileDocument({
+          id: 4,
+          city: { id: 4, slug: 'news', name: 'News', type: 'city', status: 'active' },
+          serviceStatus: 'coming-soon',
+          sortOrder: 30,
+          seoTitle: 'News office leasing',
+          seoDescription: 'A public city profile for News office leasing and site selection with verified local service details.',
+        }),
       ],
     })
 

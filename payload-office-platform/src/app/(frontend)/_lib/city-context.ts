@@ -17,6 +17,7 @@ import {
   isValidCityProfileSeoText,
   normalizeCityDisplayName,
 } from '@/domain/city-site-profile/schema'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 export type PublicCityOption = Readonly<{
   slug: string
@@ -251,7 +252,7 @@ export const listPublicCityProfiles = unstable_cache(
 export async function listPublicCityOptions(): Promise<readonly PublicCityOption[]> {
   const profiles = await listPublicCityProfiles()
   return profiles
-    .filter((profile) => profile.switcherVisible)
+    .filter((profile) => profile.switcherVisible && isPublicCitySlug(profile.citySlug))
     .map((profile) => ({
       slug: profile.citySlug,
       name: profile.cityName,

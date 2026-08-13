@@ -11,7 +11,11 @@ import {
 import { track } from '@/lib/frontend/analytics'
 import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
-import CitySwitcher, { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import CitySwitcher, {
+  cityAwareHref,
+  filterPublicCityOptions,
+  resolveTrustedCity,
+} from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
 
@@ -81,6 +85,7 @@ export default function SiteNav({
   const drawerRef = useRef<HTMLDivElement | null>(null)
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity)
   const citySlug = currentCity?.slug
+  const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
 
   // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
@@ -131,6 +136,18 @@ export default function SiteNav({
     return () => {
       document.body.style.overflow = prev
     }
+  }, [open])
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+    const desktopMedia = window.matchMedia('(min-width: 1280px)')
+    const closeAtDesktopBreakpoint = (event: MediaQueryListEvent) => {
+      if (!event.matches) return
+      setOpen(false)
+      toggleRef.current?.focus()
+    }
+    desktopMedia.addEventListener('change', closeAtDesktopBreakpoint)
+    return () => desktopMedia.removeEventListener('change', closeAtDesktopBreakpoint)
   }, [open])
 
   // 打开时把焦点移入抽屉首个可聚焦元素
@@ -267,7 +284,7 @@ export default function SiteNav({
             {citySlug ? (
               <div className="mobile-drawer__cities" aria-label="切换城市">
                 <p className="mobile-drawer__cities-title">切换城市</p>
-                {cities.map((city) => {
+                {trustedCities.map((city) => {
                   const href = switchCityUrl(sourceUrl, city.slug)
                   if (!href) return null
                   return (
