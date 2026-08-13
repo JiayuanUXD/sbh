@@ -135,7 +135,7 @@ export function getStageOneErrors(
   if (values.applicantIdentity === 'other' && !trimmedOptional(values.otherIdentity)) {
     errors.otherIdentity = '请补充您的合作身份'
   }
-  if ((values.otherIdentity.trim().length ?? 0) > 100) {
+  if (values.applicantIdentity === 'other' && values.otherIdentity.trim().length > 100) {
     errors.otherIdentity = '其他身份最多 100 个字符'
   }
   if (!values.consentAccepted) errors.consentAccepted = '请阅读并同意隐私政策'
@@ -149,7 +149,9 @@ export function getStageTwoErrors(values: CityPartnerStageTwoValues): StageTwoEr
     errors.otherResource = '请补充其他资源类型'
   }
   if ((values.organizationName?.trim().length ?? 0) > 100) errors.organizationName = '机构名称最多 100 个字符'
-  if ((values.otherResource?.trim().length ?? 0) > 100) errors.otherResource = '其他资源最多 100 个字符'
+  if (resourceTypes.includes('other') && (values.otherResource?.trim().length ?? 0) > 200) {
+    errors.otherResource = '其他资源最多 200 个字符'
+  }
   if ((values.experienceSummary?.trim().length ?? 0) > 2_000) errors.experienceSummary = '经验说明最多 2000 个字符'
   if ((values.cooperationPlan?.trim().length ?? 0) > 2_000) errors.cooperationPlan = '合作设想最多 2000 个字符'
   return errors
@@ -370,7 +372,13 @@ export default function CityPartnerApplicationForm({
     await coordinator.submitStageTwo(stageTwo)
   }
 
-  const startFromCurrentCity = () => coordinator.start(stageOne.city)
+  const isCityTarget = (target: EventTarget | null) => (
+    target instanceof HTMLSelectElement && target.name === 'city'
+  )
+  const startFromCurrentCity = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    if (isCityTarget(event.target)) return
+    coordinator.start(stageOne.city)
+  }
 
   if (state.status === 'complete') {
     return <div className="city-partner-form__success" role="status" aria-live="polite"><h2>申请已收到</h2><p>我们会根据城市服务规划与双方资源情况进行沟通。</p></div>
@@ -386,7 +394,7 @@ export default function CityPartnerApplicationForm({
         <fieldset className="city-partner-form__fieldset"><legend>可提供的资源（可多选）</legend><div className="city-partner-form__checks">
           {CITY_PARTNER_RESOURCE_OPTIONS.map((option) => <label key={option.value}><input type="checkbox" value={option.value} checked={stageTwo.resourceTypes?.includes(option.value) ?? false} onChange={(event) => setStageTwo((prev) => ({ ...prev, resourceTypes: event.target.checked ? [...(prev.resourceTypes ?? []), option.value] : (prev.resourceTypes ?? []).filter((value) => value !== option.value) }))} /> <span>{option.label}</span></label>)}
         </div></fieldset>
-        {stageTwo.resourceTypes?.includes('other') ? <Field label="其他资源" id="partner-other-resource" error={stageTwoErrors.otherResource} required><Input ref={(node) => { refs.current.otherResource = node }} value={stageTwo.otherResource ?? ''} maxLength={100} onChange={(event) => setStageTwo((prev) => ({ ...prev, otherResource: event.target.value }))} /></Field> : null}
+        {stageTwo.resourceTypes?.includes('other') ? <Field label="其他资源" id="partner-other-resource" error={stageTwoErrors.otherResource} required><Input ref={(node) => { refs.current.otherResource = node }} value={stageTwo.otherResource ?? ''} maxLength={200} onChange={(event) => setStageTwo((prev) => ({ ...prev, otherResource: event.target.value }))} /></Field> : null}
         <Field label="相关经验" id="partner-experience"><Textarea rows={4} maxLength={2000} value={stageTwo.experienceSummary ?? ''} onChange={(event) => setStageTwo((prev) => ({ ...prev, experienceSummary: event.target.value }))} /></Field>
         <Field label="合作设想" id="partner-plan"><Textarea rows={4} maxLength={2000} value={stageTwo.cooperationPlan ?? ''} onChange={(event) => setStageTwo((prev) => ({ ...prev, cooperationPlan: event.target.value }))} /></Field>
         {state.errorCode && state.errorCode !== 'validation_failed' ? <p role="alert">{ERROR_MESSAGES[state.errorCode]}</p> : null}

@@ -96,6 +96,20 @@ describe('city partner form DOM accessibility', () => {
     })
   })
 
+  it('attributes a default-to-different city first interaction to the newly selected city once', async () => {
+    await renderForm({ initialCity: 'shanghai' })
+    const city = document.querySelector('#partner-city')
+    if (!(city instanceof HTMLSelectElement)) throw new Error('missing city select')
+    city.dispatchEvent(new Event('focusin', { bubbles: true }))
+    expect(trackSpy).not.toHaveBeenCalled()
+    await change(city, 'hangzhou')
+    city.dispatchEvent(new Event('focusin', { bubbles: true }))
+    expect(trackSpy).toHaveBeenCalledTimes(1)
+    expect(trackSpy).toHaveBeenCalledWith('city_partner_application_started', {
+      city_slug: 'hangzhou', stage: 'stage-one',
+    })
+  })
+
   it('focuses consent and exposes a stable error description only while invalid', async () => {
     await renderForm()
     await change(input('partner-name'), '申请人')

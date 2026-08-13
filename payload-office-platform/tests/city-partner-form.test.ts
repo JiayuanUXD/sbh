@@ -219,15 +219,30 @@ describe('city partner form contract', () => {
     expect(events).not.toContain('city_partner_application_completed')
   })
 
-  it('matches every free-text client limit to the Task 2 server contract', () => {
+  it('matches conditional other-field client limits to the Task 2 server contract', () => {
     expect(getStageOneErrors({ ...validStageOne, otherIdentity: 'x'.repeat(100) }, cities))
       .toEqual({})
     expect(getStageOneErrors({ ...validStageOne, otherIdentity: 'x'.repeat(101) }, cities))
       .toMatchObject({ otherIdentity: expect.any(String) })
+    expect(getStageOneErrors({
+      ...validStageOne,
+      applicantIdentity: 'local-operations',
+      otherIdentity: 'x'.repeat(101),
+    }, cities)).toEqual({})
+    expect(buildStageOneBody({
+      ...validStageOne,
+      applicantIdentity: 'local-operations',
+      otherIdentity: 'x'.repeat(101),
+    }, 'conditional-other')).not.toHaveProperty('otherIdentity')
+
+    expect(getStageTwoErrors({
+      resourceTypes: ['other'],
+      otherResource: 'x'.repeat(200),
+    })).toEqual({})
     expect(getStageTwoErrors({
       organizationName: 'x'.repeat(101),
       resourceTypes: ['other'],
-      otherResource: 'x'.repeat(101),
+      otherResource: 'x'.repeat(201),
       experienceSummary: 'x'.repeat(2_001),
       cooperationPlan: 'x'.repeat(2_001),
     })).toEqual({
@@ -236,6 +251,14 @@ describe('city partner form contract', () => {
       experienceSummary: expect.any(String),
       cooperationPlan: expect.any(String),
     })
+    expect(getStageTwoErrors({
+      resourceTypes: ['local-team'],
+      otherResource: 'x'.repeat(201),
+    })).toEqual({})
+    expect(buildStageTwoBody({
+      resourceTypes: ['local-team'],
+      otherResource: 'x'.repeat(201),
+    }, 'conditional-resource', '13800001111')).not.toHaveProperty('otherResource')
   })
 
   it('does not consume the once-only started event until a canonical city is available', () => {

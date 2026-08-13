@@ -29,6 +29,13 @@ Complete. Added the global `/city-partner` page with fixed canonical metadata, v
 
 No database/schema/migration, plan/ledger, deployment, push, or production action was performed.
 
+## Fix Round 2 (2026-08-13): City Interaction Attribution and Conditional Limits
+
+- Form-level interaction capture now ignores the city select itself. If city selection is the first action, focus does not consume the once-only event with the old default; the select change handler starts analytics with the newly selected canonical city before React state changes. Subsequent focus/change remains deduplicated, and the submitted event uses the same city.
+- Conditional validation now mirrors Task 2 precisely. Other identity is limited to 100 only while identity is `other`; other resource is limited to 200 only while selected resources include `other`. Hidden stale values cannot block submission and are omitted from request bodies. Active boundaries prove identity 100 accepted/101 rejected and resource 200 accepted/201 rejected; the resource input UI again exposes `maxLength=200`.
+
+TDD RED proved a Shanghai-default city select emitted started=Shanghai before choosing Hangzhou and a hidden 101-character identity value blocked a non-other submission. GREEN evidence: focused pure+happy-dom 2 files/16 tests; relevant 11 files/118 tests; full 199 files passed and 2 skipped with 2881 tests passed and 4 skipped; Node 22 TypeScript, targeted ESLint, and diff check passed. No database/schema/migration, plan/ledger, deployment, push, or production action was performed.
+
 ## Fix Round 1 (2026-08-13): Pending State and Accessibility Boundaries
 
 - Stage-two skip is now guarded in both the coordinator and DOM. While a details request is pending it returns the unchanged `completing` state, the skip control is disabled, and only the eventual request result may transition state. A late error cannot be hidden by a premature complete state.
