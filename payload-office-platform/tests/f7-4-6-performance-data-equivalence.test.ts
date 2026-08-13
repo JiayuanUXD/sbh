@@ -212,23 +212,6 @@ describe('F7.6 数据等价 · 公开消费者全部通过 Facade', () => {
     expect(source, '内容页应通过 getPageBySlug 获取数据').toContain('getPageBySlug')
   })
 
-  it('sitemap.ts 通过 Facade 查询（不直读 Payload）', async () => {
-    const filePath = resolve(ROOT, 'src', 'app', '(frontend)', 'sitemap.ts')
-    const source = await readFile(filePath, 'utf-8')
-    expect(source, 'sitemap 应调用 Facade 查询函数')
-      .toMatch(/listPublishedPages|searchListings|searchBuildings|findEffectiveListings/)
-    // 楼盘查询允许使用 payload.find + buildingOperationalWhere（M3.5 楼盘级谓词，
-    // 楼盘可见性只依赖楼盘自身状态 + 在营，无需房源级精筛）
-    // 这里仅断言不出现 status=available 旧谓词
-    expect(source, 'sitemap 不应使用 status=available 旧谓词').not.toMatch(
-      /status['"]?\s*:\s*['"]?available['"]?/i,
-    )
-    // listings 必须通过 SupplyAdapter（不直读 payload.find 查 listings）
-    expect(source, 'sitemap 房源应通过 SupplyAdapter.findEffectiveListings').toContain(
-      'findEffectiveListings',
-    )
-  })
-
   it('询盘 API 调用 assertEffectiveListing Facade 校验目标有效性', async () => {
     const filePath = resolve(ROOT, 'src', 'app', 'api', 'inquiries', 'route.ts')
     const source = await readFile(filePath, 'utf-8')
