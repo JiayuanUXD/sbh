@@ -58,6 +58,7 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
       'listingReports',
       'leads',
       'formSubmissions',
+      'cityPartnerApplications',
     ])
     expect(queryByKey(queries, 'tasks')).toMatchObject({
       collection: 'tasks',
@@ -97,6 +98,30 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
     expect(queryByKey(queries, 'formSubmissions')).toMatchObject({
       collection: 'form-submissions',
       where: { processingStatus: { equals: 'new' } },
+    })
+    expect(queryByKey(queries, 'cityPartnerApplications')).toMatchObject({
+      collection: 'city-partner-applications',
+      where: { status: { equals: 'pending' } },
+    })
+  })
+
+  it('uses the same operation and city boundary for the city partner badge', () => {
+    const queries = buildAdminNavigationBadgeQueries(permission({
+      roleCodes: ['OPS'],
+      cityIds: new Set([11, 12]),
+      operationPermissions: new Set(['city_partner_application:read']),
+      menuPermissions: new Set(['city-partner-applications']),
+      dataScope: 'city',
+    }), AS_OF)
+
+    expect(queryByKey(queries, 'cityPartnerApplications')).toMatchObject({
+      collection: 'city-partner-applications',
+      where: {
+        and: [
+          { status: { equals: 'pending' } },
+          { city: { in: [11, 12] } },
+        ],
+      },
     })
   })
 

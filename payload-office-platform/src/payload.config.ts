@@ -44,6 +44,7 @@ import { ListingReviews } from './collections/ListingReviews'
 import { ListingReports } from './collections/ListingReports'
 import { InformationCorrections } from './collections/InformationCorrections'
 import { SupplySubmissions } from './collections/SupplySubmissions'
+import { CityPartnerApplications } from './collections/CityPartnerApplications'
 import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
@@ -249,6 +250,7 @@ export default buildConfig({
     ListingReports,
     InformationCorrections,
     SupplySubmissions,
+    CityPartnerApplications,
     DomainEvents,
     AuditLogs,
     Tasks,

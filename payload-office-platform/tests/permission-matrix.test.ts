@@ -557,6 +557,21 @@ describe('permission-matrix/data-scope-and-city-cross', () => {
 // ────────────────────────────────────────────────────────────
 
 describe('permission-matrix/builtin-roles-invariant', () => {
+  it('grants city partner work only to ADM, OPS, and MGR', async () => {
+    for (const code of ['OPS', 'MGR'] as const) {
+      const ctx = await buildCtxForRole(code)
+      expect(hasMenuPermission(ctx, 'city-partner-applications')).toBe(true)
+      expect(hasOperationPermission(ctx, 'city_partner_application:read')).toBe(true)
+      expect(hasOperationPermission(ctx, 'city_partner_application:manage')).toBe(true)
+    }
+    for (const code of ['BRK', 'CSR'] as const) {
+      const ctx = await buildCtxForRole(code)
+      expect(hasMenuPermission(ctx, 'city-partner-applications')).toBe(false)
+      expect(hasOperationPermission(ctx, 'city_partner_application:read')).toBe(false)
+      expect(hasOperationPermission(ctx, 'city_partner_application:manage')).toBe(false)
+    }
+  })
+
   it('5 个内置角色编码齐备且唯一', () => {
     const codes = Object.keys(BUILTIN_ROLES)
     expect(codes).toHaveLength(5)

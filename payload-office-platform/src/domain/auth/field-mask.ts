@@ -176,6 +176,14 @@ export function getSupplySubmissionMaskRules(): readonly FieldMaskRule[] {
   return [SUPPLY_CONTACT_PHONE_MASK_RULE]
 }
 
+export function getCityPartnerApplicationMaskRules(): readonly FieldMaskRule[] {
+  return [{
+    field: 'contactPhone',
+    requiredPermission: 'phone:full',
+    mask: (value) => typeof value === 'string' ? maskPhone(value) : value,
+  }]
+}
+
 /**
  * 楼盘文档脱敏规则（坐标）。
  *

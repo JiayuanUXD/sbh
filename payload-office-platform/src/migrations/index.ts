@@ -42,6 +42,8 @@ import * as migration_20260810_170000_public_page_performance_indexes from './20
 import * as migration_20260810_200000_backfill_location_city from './20260810_200000_backfill_location_city';
 import * as migration_20260813_010000_city_site_profiles from './20260813_010000_city_site_profiles';
 import * as migration_20260813_011000_seed_city_site_profiles from './20260813_011000_seed_city_site_profiles';
+import * as migration_20260813_020000_city_partner_applications from './20260813_020000_city_partner_applications';
+import * as migration_20260813_021000_city_partner_permissions from './20260813_021000_city_partner_permissions';
 
 export const migrations = [
   {
@@ -257,11 +259,21 @@ export const migrations = [
   {
     up: migration_20260813_010000_city_site_profiles.up,
     down: migration_20260813_010000_city_site_profiles.down,
-    name: '20260813_010000_city_site_profiles'
+    name: '20260813_010000_city_site_profiles',
   },
   {
     up: migration_20260813_011000_seed_city_site_profiles.up,
     down: migration_20260813_011000_seed_city_site_profiles.down,
-    name: '20260813_011000_seed_city_site_profiles'
+    name: '20260813_011000_seed_city_site_profiles',
+  },
+  {
+    up: migration_20260813_020000_city_partner_applications.up,
+    down: migration_20260813_020000_city_partner_applications.down,
+    name: '20260813_020000_city_partner_applications',
+  },
+  {
+    up: migration_20260813_021000_city_partner_permissions.up,
+    down: migration_20260813_021000_city_partner_permissions.down,
+    name: '20260813_021000_city_partner_permissions'
   },
 ];

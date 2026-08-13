@@ -102,6 +102,12 @@ describe('permission-codes/isRegisteredMenuCode', () => {
     }
   })
 
+  it('registers city partner menu and operation codes', () => {
+    expect(isRegisteredMenuCode('city-partner-applications')).toBe(true)
+    expect(isRegisteredOperationCode('city_partner_application:read')).toBe(true)
+    expect(isRegisteredOperationCode('city_partner_application:manage')).toBe(true)
+  })
+
   it('未注册菜单编码 → false', () => {
     expect(isRegisteredMenuCode('unknown-menu')).toBe(false)
     expect(isRegisteredMenuCode('Dashboard')).toBe(false) // 大小写敏感

@@ -21,6 +21,7 @@ export type AdminNavigationBadgeQuery = {
     | 'listing-reports'
     | 'leads'
     | 'form-submissions'
+    | 'city-partner-applications'
   where: Where
 }
 
@@ -126,6 +127,15 @@ export function buildAdminNavigationBadgeQueries(
     })
   }
 
+  if (canReadCityPartnerApplications(permission)) {
+    const scopeWhere = buildBadgeDataScopeWhere(permission, { city: 'city' })
+    queries.push({
+      key: 'cityPartnerApplications',
+      collection: 'city-partner-applications',
+      where: combineWhere({ status: { equals: 'pending' } }, ...scopeWhere),
+    })
+  }
+
   return queries
 }
 
@@ -201,6 +211,11 @@ function canReadLeads(permission: PermissionContext): boolean {
 
 function canReadFormSubmissions(permission: PermissionContext): boolean {
   return hasMenuPermission(permission, 'form-submissions')
+}
+
+function canReadCityPartnerApplications(permission: PermissionContext): boolean {
+  return hasMenuPermission(permission, 'city-partner-applications') &&
+    hasOperationPermission(permission, 'city_partner_application:read')
 }
 
 /**

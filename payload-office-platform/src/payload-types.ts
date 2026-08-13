@@ -92,6 +92,7 @@ export interface Config {
     'listing-reports': ListingReport;
     'information-corrections': InformationCorrection;
     'supply-submissions': SupplySubmission;
+    'city-partner-applications': CityPartnerApplication;
     'domain-events': DomainEvent;
     'audit-logs': AuditLog;
     tasks: Task;
@@ -134,6 +135,7 @@ export interface Config {
     'listing-reports': ListingReportsSelect<false> | ListingReportsSelect<true>;
     'information-corrections': InformationCorrectionsSelect<false> | InformationCorrectionsSelect<true>;
     'supply-submissions': SupplySubmissionsSelect<false> | SupplySubmissionsSelect<true>;
+    'city-partner-applications': CityPartnerApplicationsSelect<false> | CityPartnerApplicationsSelect<true>;
     'domain-events': DomainEventsSelect<false> | DomainEventsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     tasks: TasksSelect<false> | TasksSelect<true>;
@@ -1599,6 +1601,48 @@ export interface SupplySubmission {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-partner-applications".
+ */
+export interface CityPartnerApplication {
+  id: number;
+  city: number | Location;
+  applicantName: string;
+  contactPhone: string;
+  applicantIdentity: 'owner-property' | 'broker-channel' | 'enterprise-service' | 'local-operations' | 'other';
+  otherIdentity?: string | null;
+  organizationName?: string | null;
+  resourceTypes?:
+    | ('building-owner' | 'tenant-demand' | 'broker-network' | 'local-team' | 'government-association' | 'other')[]
+    | null;
+  otherResource?: string | null;
+  experienceSummary?: string | null;
+  cooperationPlan?: string | null;
+  detailsCompletedAt?: string | null;
+  detailsFingerprint?: string | null;
+  status: 'pending' | 'contacted' | 'evaluating' | 'qualified' | 'not-fit' | 'withdrawn';
+  assignee?: (number | null) | User;
+  internalNote?: string | null;
+  handledAt?: string | null;
+  requestId: string;
+  idempotencyKey: string;
+  sourcePath: string;
+  sourceUrl?: string | null;
+  consentAccepted: boolean;
+  consentPolicyVersion: string;
+  submitterIpHash?: string | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * 事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2536,6 +2580,10 @@ export interface PayloadLockedDocument {
         value: number | SupplySubmission;
       } | null)
     | ({
+        relationTo: 'city-partner-applications';
+        value: number | CityPartnerApplication;
+      } | null)
+    | ({
         relationTo: 'domain-events';
         value: number | DomainEvent;
       } | null)
@@ -3349,6 +3397,39 @@ export interface SupplySubmissionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-partner-applications_select".
+ */
+export interface CityPartnerApplicationsSelect<T extends boolean = true> {
+  city?: T;
+  applicantName?: T;
+  contactPhone?: T;
+  applicantIdentity?: T;
+  otherIdentity?: T;
+  organizationName?: T;
+  resourceTypes?: T;
+  otherResource?: T;
+  experienceSummary?: T;
+  cooperationPlan?: T;
+  detailsCompletedAt?: T;
+  detailsFingerprint?: T;
+  status?: T;
+  assignee?: T;
+  internalNote?: T;
+  handledAt?: T;
+  requestId?: T;
+  idempotencyKey?: T;
+  sourcePath?: T;
+  sourceUrl?: T;
+  consentAccepted?: T;
+  consentPolicyVersion?: T;
+  submitterIpHash?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domain-events_select".
  */
 export interface DomainEventsSelect<T extends boolean = true> {
@@ -3889,6 +3970,7 @@ export interface TaskCreateCollectionExport {
       | 'listing-reports'
       | 'information-corrections'
       | 'supply-submissions'
+      | 'city-partner-applications'
       | 'domain-events'
       | 'audit-logs'
       | 'tasks'

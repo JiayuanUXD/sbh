@@ -124,6 +124,12 @@ describe('admin navigation config', () => {
       ]),
       expectedGroup('partners', '商户合作', [
         expectedLeaf('merchants', '商户管理', '/admin/collections/merchants', ['merchants']),
+        expectedLeaf(
+          'city-partner-applications',
+          '城市合伙人申请',
+          '/admin/collections/city-partner-applications',
+          ['city-partner-applications'],
+        ),
       ]),
       expectedGroup('team-management', '团队管理', [
         expectedLeaf('teams', '团队管理', '/admin/collections/teams', ['teams']),
@@ -204,6 +210,7 @@ describe('admin navigation config', () => {
       'media',
       'locations',
       'city-site-profiles',
+      'city-partner-applications',
       'business-area-extensions',
       'merchants',
       'teams',
