@@ -4,6 +4,7 @@ import { siteConfig } from '@/lib/frontend/site-config'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
+import { listPublicCityOptions } from './_lib/city-context'
 import './styles.css'
 
 // F0.5：metadataBase 由类型化环境配置提供，禁止硬编码生产域名。
@@ -42,14 +43,15 @@ export const viewport: Viewport = {
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
+  const cities = await listPublicCityOptions()
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <SiteHeader />
+        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} />
         <main id="main-content" className="site-main">{children}</main>
-        <SiteFooter />
+        <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
         <AnalyticsInit />
       </body>

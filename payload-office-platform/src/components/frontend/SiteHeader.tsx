@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { Suspense, useEffect, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
+import { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
 /**
  * 公开站点页头外壳（client）：首页首屏透明压视频，下滑后切回奶油实底。
@@ -16,9 +18,17 @@ import SiteNav from '@/components/frontend/SiteNav'
  *   - 滚动阈值 40px（约导航高度），过阈即切回实底；
  *   - skip link 仍由 layout 渲染，焦点顺序不变。
  */
-export default function SiteHeader() {
+export default function SiteHeader({
+  cities,
+  defaultCity,
+}: Readonly<{
+  cities: readonly PublicCityOption[]
+  defaultCity: string
+}>) {
   const pathname = usePathname()
-  const isHome = pathname === '/'
+  const currentCity = resolveTrustedCity(pathname || '/', cities, defaultCity)
+  const isTrustedCityHome = currentCity !== null && pathname === `/${currentCity.slug}`
+  const isHome = pathname === '/' || isTrustedCityHome
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -39,9 +49,9 @@ export default function SiteHeader() {
   return (
     <header className={className}>
       <div className="site-header__inner">
-        <Link href="/" className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+        <Link href={currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
         <Suspense fallback={<nav className="site-nav" aria-label="主导航" />}>
-          <SiteNav />
+          <SiteNav cities={cities} defaultCity={defaultCity} />
         </Suspense>
       </div>
     </header>

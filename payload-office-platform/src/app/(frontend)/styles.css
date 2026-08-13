@@ -307,7 +307,8 @@ ol {
 }
 
 .site-header--transparent .site-logo,
-.site-header--transparent .site-nav__link {
+.site-header--transparent .site-nav__link,
+.site-header--transparent .city-switcher__trigger {
   color: #fff;
 }
 
@@ -325,6 +326,72 @@ ol {
 
 .site-header--transparent .site-menu-toggle {
   color: #fff;
+}
+
+.city-switcher {
+  display: none;
+  position: relative;
+}
+
+.city-switcher__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--touch-target);
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--fs-14);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.city-switcher__trigger-label,
+.city-switcher__status,
+.mobile-drawer__city-status {
+  color: var(--color-muted);
+  font-size: var(--fs-12);
+}
+
+.city-switcher__menu {
+  position: absolute;
+  top: calc(100% + var(--sp-2));
+  right: 0;
+  z-index: var(--z-floating);
+  min-width: 196px;
+  padding: var(--sp-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.city-switcher__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  min-height: var(--touch-target);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.city-switcher__option:hover,
+.city-switcher__option[aria-current="page"] {
+  background: var(--color-copper-soft);
+  text-decoration: none;
+}
+
+@media (min-width: 1280px) {
+  .city-switcher {
+    display: block;
+  }
 }
 
 .site-header__inner {
@@ -3098,6 +3165,25 @@ ol {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+}
+
+.mobile-drawer__cities {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--color-line);
+}
+
+.mobile-drawer__cities-title {
+  padding: 0 var(--sp-4) var(--sp-2);
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+}
+
+.mobile-drawer__cities .mobile-drawer__link {
+  justify-content: space-between;
 }
 
 .mobile-drawer__link {

@@ -11,14 +11,19 @@ import {
 import { track } from '@/lib/frontend/analytics'
 import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
+import CitySwitcher, { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
+import { getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
 
 export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
 
 export function resolveCtaPageType(pathname: string): CtaPageType {
-  if (pathname.startsWith('/entrust')) return 'entrust'
-  if (pathname.startsWith('/buildings')) return 'building'
-  if (pathname.startsWith('/news')) return 'content'
-  if (pathname.startsWith('/listings')) return 'search'
+  const canonicalPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
+  const pageType = getCityPageType(canonicalPathname)
+  if (pageType === 'entrust') return 'entrust'
+  if (pageType === 'buildings' || pageType === 'building-detail') return 'building'
+  if (pageType === 'news' || pageType === 'news-detail' || pageType === 'page-detail') return 'content'
+  if (pageType === 'listings' || pageType === 'listing-detail') return 'search'
   return 'home'
 }
 
@@ -62,12 +67,21 @@ function isCurrent(
   return !searchParams.has('type')
 }
 
-export default function SiteNav() {
+export default function SiteNav({
+  cities,
+  defaultCity,
+}: Readonly<{
+  cities: readonly PublicCityOption[]
+  defaultCity: string
+}>) {
   const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
   const drawerRef = useRef<HTMLDivElement | null>(null)
+  const currentCity = resolveTrustedCity(pathname, cities, defaultCity)
+  const citySlug = currentCity?.slug
+  const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
 
   // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
   // pageType 仅记录入口上下文，按当前路径粗分类以便分析。
@@ -89,7 +103,7 @@ export default function SiteNav() {
           drawer.querySelectorAll<HTMLElement>(
             'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
           ),
-        ).filter((el) => el.offsetParent !== null)
+        ).filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true')
         if (focusable.length === 0) {
           e.preventDefault()
           return
@@ -131,11 +145,12 @@ export default function SiteNav() {
       {/* 桌面端导航 */}
       <nav className="site-nav" aria-label="主导航">
         {MAIN_NAV_ITEMS.map((item) => {
-          const current = isCurrent(pathname, searchParams, item.href)
+          const href = citySlug ? cityAwareHref(item.href, citySlug) : item.href
+          const current = isCurrent(pathname, searchParams, href)
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               prefetch={item.href.startsWith('/listings') ? false : undefined}
               className="site-nav__link"
               aria-current={current ? 'page' : undefined}
@@ -151,6 +166,7 @@ export default function SiteNav() {
           避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
           包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
       <div className="site-header__actions">
+        <CitySwitcher cities={cities} defaultCity={defaultCity} />
         {ctaPageType === 'entrust' ? (
           <button
             type="button"
@@ -229,11 +245,12 @@ export default function SiteNav() {
           >
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
               {MAIN_NAV_ITEMS.map((item) => {
-                const current = isCurrent(pathname, searchParams, item.href)
+                const href = citySlug ? cityAwareHref(item.href, citySlug) : item.href
+                const current = isCurrent(pathname, searchParams, href)
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={href}
                     prefetch={item.href.startsWith('/listings') ? false : undefined}
                     className="mobile-drawer__link"
                     aria-current={current ? 'page' : undefined}
@@ -247,6 +264,32 @@ export default function SiteNav() {
                 )
               })}
             </nav>
+            {citySlug ? (
+              <div className="mobile-drawer__cities" aria-label="切换城市">
+                <p className="mobile-drawer__cities-title">切换城市</p>
+                {cities.map((city) => {
+                  const href = switchCityUrl(sourceUrl, city.slug)
+                  if (!href) return null
+                  return (
+                    <Link
+                      key={city.slug}
+                      href={href}
+                      className="mobile-drawer__link"
+                      aria-current={city.slug === citySlug ? 'page' : undefined}
+                      onClick={() => {
+                        setOpen(false)
+                        toggleRef.current?.focus()
+                      }}
+                    >
+                      <span>{city.name}</span>
+                      <span className="mobile-drawer__city-status">
+                        {city.serviceStatus === 'live' ? '已开通' : '正在开通'}
+                      </span>
+                    </Link>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         </div>
       )}
