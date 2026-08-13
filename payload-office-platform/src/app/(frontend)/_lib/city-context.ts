@@ -239,7 +239,7 @@ function getCachedResolver(citySlug: string): CachedResolver {
 
 export const resolveCityContext = cache(async (slug: unknown): Promise<CityContext | null> => {
   const normalizedSlug = normalizeCitySlug(slug)
-  if (!normalizedSlug) return null
+  if (!normalizedSlug || !isPublicCitySlug(normalizedSlug)) return null
   return getCachedResolver(normalizedSlug)()
 })
 

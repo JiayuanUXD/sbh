@@ -18,6 +18,7 @@ type District = { id: string | number; slug: string; name: string }
 
 type Props = {
   districts: readonly District[]
+  basePath?: string
 }
 
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -48,7 +49,7 @@ function toIntOrNull(v: string): number | null {
 }
 
 /** 基于当前 searchParams 构造新 URL（切换筛选时重置页码） */
-function buildHref(sp: URLSearchParams, updates: Record<string, string | null>): string {
+function buildHref(sp: URLSearchParams, updates: Record<string, string | null>, basePath: string): string {
   const next = new URLSearchParams(sp)
   for (const [k, v] of Object.entries(updates)) {
     if (v === null || v === '') next.delete(k)
@@ -56,11 +57,11 @@ function buildHref(sp: URLSearchParams, updates: Record<string, string | null>):
   }
   next.delete('page')
   const qs = next.toString()
-  return qs ? `/listings?${qs}` : '/listings'
+  return qs ? `${basePath}?${qs}` : basePath
 }
 
 /** toggle：全部参数已匹配则清除，否则设置 */
-function toggleHref(sp: URLSearchParams, updates: Record<string, string>): string {
+function toggleHref(sp: URLSearchParams, updates: Record<string, string>, basePath: string): string {
   const allMatch = Object.entries(updates).every(([k, v]) => sp.get(k) === v)
   const next = new URLSearchParams(sp)
   for (const [k] of Object.entries(updates)) {
@@ -71,10 +72,10 @@ function toggleHref(sp: URLSearchParams, updates: Record<string, string>): strin
   }
   next.delete('page')
   const qs = next.toString()
-  return qs ? `/listings?${qs}` : '/listings'
+  return qs ? `${basePath}?${qs}` : basePath
 }
 
-export default function FilterBar({ districts }: Props) {
+export default function FilterBar({ districts, basePath = '/listings' }: Props) {
   const sp = useSearchParams()
   const router = useRouter()
 
@@ -137,7 +138,7 @@ export default function FilterBar({ districts }: Props) {
     params.delete('page')
 
     const qs = params.toString()
-    router.push(qs ? `/listings?${qs}` : '/listings')
+    router.push(qs ? `${basePath}?${qs}` : basePath)
   }
 
   return (
@@ -150,7 +151,7 @@ export default function FilterBar({ districts }: Props) {
             <Link
               key={s.value}
               className={`filter-chip${sort === s.value ? ' is-active' : ''}`}
-              href={buildHref(sp, { sort: s.value === 'recommended' ? null : s.value })}
+              href={buildHref(sp, { sort: s.value === 'recommended' ? null : s.value }, basePath)}
               prefetch={false}
             >
               {s.label}
@@ -161,7 +162,7 @@ export default function FilterBar({ districts }: Props) {
         <div className="filter-bar__chips">
           <Link
             className={`filter-chip${!rentUnit ? ' is-active' : ''}`}
-            href={buildHref(sp, { rentUnit: null })}
+            href={buildHref(sp, { rentUnit: null }, basePath)}
             prefetch={false}
           >
             不限
@@ -170,7 +171,7 @@ export default function FilterBar({ districts }: Props) {
             <Link
               key={u.value}
               className={`filter-chip${rentUnit === u.value ? ' is-active' : ''}`}
-              href={buildHref(sp, { rentUnit: u.value })}
+              href={buildHref(sp, { rentUnit: u.value }, basePath)}
               prefetch={false}
             >
               {u.label}
@@ -188,7 +189,7 @@ export default function FilterBar({ districts }: Props) {
         <div className="filter-bar__chips">
           <Link
             className={`filter-chip${!district ? ' is-active' : ''}`}
-            href={buildHref(sp, { district: null })}
+            href={buildHref(sp, { district: null }, basePath)}
             prefetch={false}
           >
             全部
@@ -197,7 +198,7 @@ export default function FilterBar({ districts }: Props) {
             <Link
               key={d.id}
               className={`filter-chip${district === d.slug ? ' is-active' : ''}`}
-              href={buildHref(sp, { district: d.slug })}
+              href={buildHref(sp, { district: d.slug }, basePath)}
               prefetch={false}
             >
               {d.name}
@@ -212,7 +213,7 @@ export default function FilterBar({ districts }: Props) {
         <div className="filter-bar__chips">
           <Link
             className={`filter-chip${!type ? ' is-active' : ''}`}
-            href={buildHref(sp, { type: null })}
+            href={buildHref(sp, { type: null }, basePath)}
             prefetch={false}
           >
             全部
@@ -221,7 +222,7 @@ export default function FilterBar({ districts }: Props) {
             <Link
               key={t.value}
               className={`filter-chip${type === t.value ? ' is-active' : ''}`}
-              href={buildHref(sp, { type: t.value })}
+              href={buildHref(sp, { type: t.value }, basePath)}
               prefetch={false}
             >
               {t.label}
@@ -256,28 +257,28 @@ export default function FilterBar({ districts }: Props) {
         <div className="filter-bar__chips">
           <Link
             className={`filter-chip${qMatches('地铁') ? ' is-active' : ''}`}
-            href={toggleHref(sp, { q: '地铁' })}
+            href={toggleHref(sp, { q: '地铁' }, basePath)}
             prefetch={false}
           >
             近地铁
           </Link>
           <Link
             className={`filter-chip${qMatches('精装修') ? ' is-active' : ''}`}
-            href={toggleHref(sp, { q: '精装修' })}
+            href={toggleHref(sp, { q: '精装修' }, basePath)}
             prefetch={false}
           >
             精装修
           </Link>
           <Link
             className={`filter-chip${sp.get('rentMax') === '3' && sp.get('rentUnit') === 'rmb-sqm-day' ? ' is-active' : ''}`}
-            href={toggleHref(sp, { rentMax: '3', rentUnit: 'rmb-sqm-day' })}
+            href={toggleHref(sp, { rentMax: '3', rentUnit: 'rmb-sqm-day' }, basePath)}
             prefetch={false}
           >
             ≤3元/㎡/天
           </Link>
           <Link
             className={`filter-chip${sp.get('areaMax') === '100' ? ' is-active' : ''}`}
-            href={toggleHref(sp, { areaMax: '100' })}
+            href={toggleHref(sp, { areaMax: '100' }, basePath)}
             prefetch={false}
           >
             ≤100㎡
@@ -357,7 +358,7 @@ export default function FilterBar({ districts }: Props) {
           <p className="filter-bar__error" role="alert">{error}</p>
         )}
         <button type="submit" className="btn btn--primary">筛选</button>
-        <Link href="/listings" prefetch={false} className="btn btn--ghost">重置</Link>
+        <Link href={basePath} prefetch={false} className="btn btn--ghost">重置</Link>
       </form>
       </div>
     </div>

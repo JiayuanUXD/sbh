@@ -6706,3 +6706,77 @@ ol {
     box-shadow: var(--shadow-md);
   }
 }
+/* City profiles use this only for the coming-soon public shell; page layouts own the outer main landmark. */
+.city-coming-soon {
+  display: grid;
+  gap: var(--sp-6);
+  padding-block: var(--sp-6);
+}
+
+.city-coming-soon__hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(2rem, 6vw, 5rem);
+  color: var(--color-paper);
+  background: var(--color-ink);
+}
+
+.city-coming-soon__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .32;
+}
+
+.city-coming-soon__hero > :not(.city-coming-soon__media) {
+  position: relative;
+  max-width: 46rem;
+}
+
+.city-coming-soon__hero h1,
+.city-coming-soon__hero p { color: inherit; }
+
+.city-coming-soon__status {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  padding-inline: .75rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.city-coming-soon__regions ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: 0;
+  list-style: none;
+}
+
+.city-coming-soon__regions li {
+  padding: .5rem .75rem;
+  color: var(--color-ink);
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+}
+
+.city-coming-soon__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+.city-coming-soon__actions > .btn,
+.city-coming-soon__actions button {
+  min-height: 44px;
+}
+
+@media (max-width: 767px) {
+  .city-coming-soon { gap: var(--sp-4); }
+  .city-coming-soon__actions > .btn,
+  .city-coming-soon__actions button { flex: 1 1 100%; }
+}

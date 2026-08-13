@@ -220,6 +220,32 @@ describe('detail metadata and JSON-LD', () => {
     expect(buildingMetadata.alternates?.canonical).toBe('/buildings/jingan-center')
   })
 
+  it('scopes prefixed-city canonical, OpenGraph and JSON-LD URLs to the supplied city', () => {
+    const options = { citySlug: 'shanghai' }
+    const listing = makeListing()
+    const building = makeBuilding()
+    const listingMetadata = buildListingMetadata(listing, ORIGIN, options)
+    const listingJsonLd = buildListingJsonLd(listing, ORIGIN, options)
+    const buildingMetadata = buildBuildingMetadata(building, ORIGIN, options)
+    const buildingJsonLd = buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN, options)
+    expect(listingMetadata.alternates?.canonical).toBe('/shanghai/listings/jingan-center-101')
+    expect(listingMetadata.openGraph?.url).toBe(`${ORIGIN}/shanghai/listings/jingan-center-101`)
+    expect(listingJsonLd.url).toBe(`${ORIGIN}/shanghai/listings/jingan-center-101`)
+    expect(listingJsonLd.breadcrumb.itemListElement[0]?.item).toBe(`${ORIGIN}/shanghai`)
+    expect(listingJsonLd.breadcrumb.itemListElement.at(-2)?.item).toBe(`${ORIGIN}/shanghai/buildings/jingan-center`)
+    expect(buildingMetadata.alternates?.canonical).toBe('/shanghai/buildings/jingan-center')
+    expect(buildingJsonLd.url).toBe(`${ORIGIN}/shanghai/buildings/jingan-center`)
+  })
+
+  it('rejects reserved or DTO-mismatched city metadata prefixes', () => {
+    const listing = makeListing()
+    const building = makeBuilding()
+    expect(() => buildListingMetadata(listing, ORIGIN, { citySlug: 'news' })).toThrow('matching public city slug')
+    expect(() => buildListingJsonLd(listing, ORIGIN, { citySlug: 'hangzhou' })).toThrow('matching public city slug')
+    expect(() => buildBuildingMetadata(building, ORIGIN, { citySlug: '..' })).toThrow('matching public city slug')
+    expect(() => buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN, { citySlug: 'hangzhou' })).toThrow('matching public city slug')
+  })
+
   it('空供给楼盘不输出 offers，且 JSON-LD 序列化转义注入字符串', () => {
     const building = makeBuilding({ name: '</script><script>window.pwned=1</script>' })
     const jsonLd = buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN)

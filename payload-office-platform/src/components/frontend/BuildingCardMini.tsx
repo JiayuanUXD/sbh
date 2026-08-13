@@ -18,14 +18,15 @@ type BuildingCardMiniProps = Readonly<{
   /** 父楼盘 ID，仅用于匿名点击埋点 */
   parentId?: number
   rank?: number
+  citySlug?: string
 }>
 
-export default function BuildingCardMini({ building, parentId, rank }: BuildingCardMiniProps) {
+export default function BuildingCardMini({ building, parentId, rank, citySlug }: BuildingCardMiniProps) {
   const coverSrc = building.coverImage ? normalizePublicMediaUrl(building.coverImage.src) : null
 
   return (
     <Link
-      href={`/buildings/${building.slug}`}
+      href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(building.slug)}`}
       className="building-card-mini"
       data-detail-analytics-event="related_building_click"
       data-analytics-parent-id={parentId}

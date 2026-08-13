@@ -34,7 +34,8 @@ function readServerView(): 'grid' | 'list' {
 
 export default function ListingGrid({
   docs,
-}: Readonly<{ docs: readonly ListingCardViewModel[] }>) {
+  citySlug,
+}: Readonly<{ docs: readonly ListingCardViewModel[]; citySlug?: string }>) {
   const storedView = useSyncExternalStore(subscribeView, readClientView, readServerView)
   const [override, setOverride] = useState<'grid' | 'list' | null>(null)
   const view = override ?? storedView
@@ -91,7 +92,7 @@ export default function ListingGrid({
 
       <div className={`card-grid card-grid--${view}`}>
         {docs.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} view={view} showFeaturedTag={featuredBadgeIds.has(listing.id)} />
+          <ListingCard key={listing.id} listing={listing} view={view} showFeaturedTag={featuredBadgeIds.has(listing.id)} citySlug={citySlug} />
         ))}
       </div>
     </div>

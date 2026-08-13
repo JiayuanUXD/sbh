@@ -20,6 +20,7 @@ type Props = Readonly<{
   building: BuildingSummaryViewModel
   /** 视图模式：grid 竖卡 / list 横卡 */
   view?: 'grid' | 'list'
+  citySlug?: string
 }>
 
 /** 标签分类着色：地铁类→forest，等级/品质类→copper */
@@ -29,7 +30,7 @@ function tagVariantFor(text: string): 'default' | 'forest' | 'copper' {
   return 'default'
 }
 
-export default function BuildingListCard({ building, view = 'grid' }: Props) {
+export default function BuildingListCard({ building, view = 'grid', citySlug }: Props) {
   const { coverImage, name, slug, grade, district, nearestMetro, leasableArea } = building
   const fallbackAlt = `${name} 楼盘`
 
@@ -51,7 +52,7 @@ export default function BuildingListCard({ building, view = 'grid' }: Props) {
 
   return (
     <Link
-      href={`/buildings/${slug}`}
+      href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
       className={`listing-card${viewClass} building-card${vacantClass}`}
       aria-label={`${name}楼盘`}
     >

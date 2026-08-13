@@ -19,9 +19,9 @@ describe('OPT-028 detail caching and hero media contracts', () => {
     const page = await readFile(resolve(ROOT, 'src/app/(frontend)/listings/[slug]/page.tsx'), 'utf8')
 
     expect(page).toContain('getCachedListingBySlug(siteConfig.defaultCity, slug)')
-    expect(page).toContain('getCachedBuildingBySlug(siteConfig.defaultCity, building.slug)')
-    expect(page).toContain('getCachedDetailRecommendations(siteConfig.defaultCity, slug, 6)')
-    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedBuildingBySlug\(siteConfig\.defaultCity, building\.slug\)[\s\S]*getCachedDetailRecommendations\(siteConfig\.defaultCity, slug, 6\)[\s\S]*fetchNearbyPois/)
+    expect(page).toContain('getCachedBuildingBySlug(city.slug, building.slug)')
+    expect(page).toContain('getCachedDetailRecommendations(city.slug, slug, 6)')
+    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedBuildingBySlug\(city\.slug, building\.slug\)[\s\S]*getCachedDetailRecommendations\(city\.slug, slug, 6\)[\s\S]*fetchNearbyPois/)
   })
 
   it('uses cached related buildings on building detail pages', async () => {
@@ -32,12 +32,14 @@ describe('OPT-028 detail caching and hero media contracts', () => {
   })
 
   it('loads the homepage hero video only after client-side capability checks', async () => {
-    const [homePage, heroVideo] = await Promise.all([
+    const [homePage, homeView, heroVideo] = await Promise.all([
       readFile(resolve(ROOT, 'src/app/(frontend)/page.tsx'), 'utf8'),
+      readFile(resolve(ROOT, 'src/components/frontend/city/CityHomeView.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/HomeHeroMedia.tsx'), 'utf8'),
     ])
 
-    expect(homePage).toContain('<HomeHeroMedia />')
+    expect(homePage).toContain('<CityHomeView')
+    expect(homeView).toContain('<HomeHeroMedia poster={routeMode === \'prefixed\' ? city.profile.hero.media : null} />')
     expect(homePage).not.toContain('<video autoPlay')
     // poster 走 next 构建产物而非 public/（平台在线构建曾剥离 public 二进制致 404）
     expect(heroVideo).toContain("from '@/lib/frontend/hero-poster'")

@@ -14,6 +14,7 @@ type BuildingSupplyBrowserProps = Readonly<{
   snapshot: BuildingSupplySnapshot
   /** Immutable public DTO ID used for anonymous analytics only. */
   buildingId?: number
+  citySlug?: string
 }>
 
 /** 特色标签着色：地铁/交通类→forest，装修/配套类→copper，其他→default */
@@ -79,7 +80,7 @@ function listingMatchesPriceBucket(listing: ListingCardViewModel, bucket: (typeo
  * segmented bucket buttons (面积 / 价格); the active bucket is plain component
  * state so the listing list stays in sync without a URL round-trip.
  */
-export default function BuildingSupplyBrowser({ snapshot, buildingId }: BuildingSupplyBrowserProps) {
+export default function BuildingSupplyBrowser({ snapshot, buildingId, citySlug }: BuildingSupplyBrowserProps) {
   const groups = snapshot.groups.filter((group) => group.listings.length > 0)
   const availableGroups = snapshot.availableGroups.filter((group) => group.totalEffectiveListings > 0)
   const [isMobile, setIsMobile] = useState(false)
@@ -222,7 +223,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId }: Building
                         </td>
                         <td>
                           <a
-                            href={`/listings/${listing.slug}`}
+                            href={`${citySlug ? `/${citySlug}` : ''}/listings/${encodeURIComponent(listing.slug)}`}
                             className="building-supply-browser__table-link"
                             data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
                             data-analytics-parent-id={buildingId}
@@ -255,6 +256,7 @@ export default function BuildingSupplyBrowser({ snapshot, buildingId }: Building
                 <ListingCard
                   key={`${groupKey}:${listing.id}`}
                   listing={listing}
+                  citySlug={citySlug}
                   variant="building-supply"
                   detailAnalytics={
                     buildingId

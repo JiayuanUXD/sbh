@@ -8,6 +8,7 @@ import type {
 } from '@/domain/public-catalog'
 import { formatArea } from '@/lib/frontend/format'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 type BreadcrumbJsonLd = Readonly<{
   '@type': 'BreadcrumbList'
@@ -99,24 +100,35 @@ function safePublicMedia(src: unknown): string | undefined {
   return normalizePublicMediaUrl(src) ?? undefined
 }
 
-function listingPath(listing: ListingDetailViewModel): string {
-  return `/listings/${encodeURIComponent(listing.slug)}`
+type DetailRouteOptions = Readonly<{ citySlug?: string }>
+
+function routePrefix(dtoCitySlug: string, options?: DetailRouteOptions): string {
+  if (!options?.citySlug) return ''
+  if (options.citySlug !== dtoCitySlug || !isPublicCitySlug(options.citySlug)) {
+    throw new Error('detail metadata requires a matching public city slug')
+  }
+  return `/${options.citySlug}`
 }
 
-function buildingPath(building: BuildingDetailViewModel): string {
-  return `/buildings/${encodeURIComponent(building.slug)}`
+function listingPath(listing: ListingDetailViewModel, options?: DetailRouteOptions): string {
+  return `${routePrefix(listing.citySlug, options)}/listings/${encodeURIComponent(listing.slug)}`
+}
+
+function buildingPath(building: BuildingDetailViewModel, options?: DetailRouteOptions): string {
+  return `${routePrefix(building.citySlug, options)}/buildings/${encodeURIComponent(building.slug)}`
 }
 
 function breadcrumbs(
   origin: string,
   terminal: Readonly<{ name: string; path: string }>,
   building?: Readonly<{ name: string; slug: string }>,
+  cityPrefix = '',
 ): BreadcrumbJsonLd {
   const values: Array<Readonly<{ name: string; path: string }>> = [
-    { name: '首页', path: '/' },
-    { name: '办公选址', path: '/listings' },
+    { name: '首页', path: cityPrefix || '/' },
+    { name: '办公选址', path: `${cityPrefix}/listings` },
   ]
-  if (building) values.push({ name: building.name, path: `/buildings/${encodeURIComponent(building.slug)}` })
+  if (building) values.push({ name: building.name, path: `${cityPrefix}/buildings/${encodeURIComponent(building.slug)}` })
   values.push(terminal)
 
   return {
@@ -148,8 +160,8 @@ function listingDescription(listing: ListingDetailViewModel): string {
 }
 
 /** Builds canonical and sharing metadata from the public listing DTO only. */
-export function buildListingMetadata(listing: ListingDetailViewModel, origin: string): Metadata {
-  const canonicalPath = listingPath(listing)
+export function buildListingMetadata(listing: ListingDetailViewModel, origin: string, options?: DetailRouteOptions): Metadata {
+  const canonicalPath = listingPath(listing, options)
   const description = listingDescription(listing)
   const image = safePublicMedia(listing.coverImage?.src)
 
@@ -169,8 +181,9 @@ export function buildListingMetadata(listing: ListingDetailViewModel, origin: st
 }
 
 /** Builds a Product JSON-LD document without speculative availability or reviews. */
-export function buildListingJsonLd(listing: ListingDetailViewModel, origin: string): ListingJsonLd {
-  const canonicalPath = listingPath(listing)
+export function buildListingJsonLd(listing: ListingDetailViewModel, origin: string, options?: DetailRouteOptions): ListingJsonLd {
+  const canonicalPath = listingPath(listing, options)
+  const cityPrefix = routePrefix(listing.citySlug, options)
   const canonical = canonicalUrl(origin, canonicalPath)
   const image = safePublicMedia(listing.coverImage?.src)
   const building = listing.building
@@ -202,13 +215,13 @@ export function buildListingJsonLd(listing: ListingDetailViewModel, origin: stri
         url: canonical,
       },
     } : {}),
-    breadcrumb: breadcrumbs(origin, { name: listing.title, path: canonicalPath }, building ?? undefined),
+    breadcrumb: breadcrumbs(origin, { name: listing.title, path: canonicalPath }, building ?? undefined, cityPrefix),
   }
 }
 
 /** Builds canonical and sharing metadata from the public building DTO only. */
-export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string): Metadata {
-  const canonicalPath = buildingPath(building)
+export function buildBuildingMetadata(building: BuildingDetailViewModel, origin: string, options?: DetailRouteOptions): Metadata {
+  const canonicalPath = buildingPath(building, options)
   const description = building.summary || [building.name, building.address, building.district?.name].filter(Boolean).join('，')
   const image = safePublicMedia(building.coverImage?.src)
 
@@ -269,8 +282,10 @@ export function buildBuildingJsonLd(
   building: BuildingDetailViewModel,
   supply: BuildingSupplySnapshot,
   origin: string,
+  options?: DetailRouteOptions,
 ): BuildingJsonLd {
-  const canonicalPath = buildingPath(building)
+  const canonicalPath = buildingPath(building, options)
+  const cityPrefix = routePrefix(building.citySlug, options)
   const image = safePublicMedia(building.coverImage?.src)
   const offers = aggregateOffers(supply)
 
@@ -287,7 +302,7 @@ export function buildBuildingJsonLd(
     ...(building.summary ? { description: building.summary } : {}),
     ...(image ? { image } : {}),
     ...(offers.length > 0 ? { offers } : {}),
-    breadcrumb: breadcrumbs(origin, { name: building.name, path: canonicalPath }),
+    breadcrumb: breadcrumbs(origin, { name: building.name, path: canonicalPath }, undefined, cityPrefix),
   }
 }
 

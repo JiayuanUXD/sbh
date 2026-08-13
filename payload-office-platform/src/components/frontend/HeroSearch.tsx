@@ -28,7 +28,7 @@ type Props = {
   /** 精选楼盘前 5 个，用于搜索框下方快速搜索词 */
   featuredBuildings?: readonly BuildingOption[]
   /** 当前城市 slug；MVP 单城市默认 shanghai */
-  city?: string
+  citySlug?: string
 }
 
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -48,12 +48,13 @@ const AREA_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '500-', label: '500㎡ 以上' },
 ]
 
-export default function HeroSearch({ districts, featuredBuildings = [], city = 'shanghai' }: Props) {
+export default function HeroSearch({ districts, featuredBuildings = [], citySlug }: Props) {
   const router = useRouter()
   const [district, setDistrict] = useState('')
   const [type, setType] = useState('')
   const [area, setArea] = useState('')
   const [keyword, setKeyword] = useState('')
+  const listingsPath = citySlug ? `/${encodeURIComponent(citySlug)}/listings` : '/listings'
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,7 +69,7 @@ export default function HeroSearch({ districts, featuredBuildings = [], city = '
       if (max) params.set('areaMax', max)
     }
     const qs = params.toString()
-    router.push(qs ? `/listings?${qs}` : '/listings')
+    router.push(qs ? `${listingsPath}?${qs}` : listingsPath)
   }
 
   return (
@@ -138,7 +139,7 @@ export default function HeroSearch({ districts, featuredBuildings = [], city = '
               return (
                 <Link
                   key={b.slug}
-                  href={`/listings?${params.toString()}`}
+                  href={`${listingsPath}?${params.toString()}`}
                   className="hero-search__quick-item"
                   title={b.name}
                   data-event-name="home_hero_quick_search"
@@ -152,7 +153,7 @@ export default function HeroSearch({ districts, featuredBuildings = [], city = '
       )}
 
       {/* city 作为隐藏上下文锚点，便于未来多城市扩展；当前不渲染选择器 */}
-      <input type="hidden" name="city" value={city} />
+      <input type="hidden" name="city" value={citySlug ?? 'shanghai'} />
     </div>
   )
 }

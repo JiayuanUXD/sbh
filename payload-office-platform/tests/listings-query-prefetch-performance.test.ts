@@ -73,8 +73,8 @@ describe('OPT-026 route cache and prefetch contracts', () => {
       readFile(resolve(ROOT, 'src/lib/frontend/cached-queries.ts'), 'utf8'),
     ])
 
-    expect(page).toContain('getCachedSearchListings(siteConfig.defaultCity, canonical, input)')
-    expect(page).toContain('getCachedListingDistrictOptions(siteConfig.defaultCity)')
+    expect(page).toContain('getCachedSearchListings(city.slug, canonical, input)')
+    expect(page).toContain('getCachedListingDistrictOptions(city.slug)')
     expect(page).not.toContain('getHomepage(')
     expect(cachedQueries).toContain('getCachedListingSearchSourceByCity = memoizeByCity(')
     expect(cachedQueries).toContain('revalidate: 300')
@@ -91,9 +91,8 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(categoryTiles).toContain(
       "prefetch={t.href.startsWith('/listings') ? false : undefined}",
     )
-    expect(districtCards).toMatch(
-      /href=\{`\/listings\?businessArea=\$\{district\.slug\}`\}[\s\S]*?prefetch=\{false\}/,
-    )
+    expect(districtCards).toContain('/listings?businessArea=${district.slug}')
+    expect(districtCards).toContain('prefetch={false}')
     expect(siteNav).toContain(
       "prefetch={item.href.startsWith('/listings') ? false : undefined}",
     )

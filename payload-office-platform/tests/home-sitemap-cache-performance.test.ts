@@ -11,7 +11,7 @@ describe('OPT-027 homepage and sitemap cache contracts', () => {
       readFile(resolve(ROOT, 'src/lib/frontend/cached-queries.ts'), 'utf8'),
     ])
 
-    expect(homePage).toContain('getCachedHomepage(siteConfig.defaultCity)')
+    expect(homePage).toContain('getCachedHomepage(city.slug)')
     expect(homePage).not.toContain('getHomepage(')
     expect(homePage).not.toContain('defaultSearchContext(')
     expect(cachedQueries).toContain('const getCachedHomepageByCity = memoizeByCity')

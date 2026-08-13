@@ -20,9 +20,10 @@ import type { DistrictCardViewModel } from '@/domain/public-catalog'
  */
 type Props = Readonly<{
   districts: readonly DistrictCardViewModel[]
+  citySlug?: string
 }>
 
-export default function DistrictCards({ districts }: Props) {
+export default function DistrictCards({ districts, citySlug }: Props) {
   if (districts.length === 0) return null
   const [first, ...rest] = districts
 
@@ -30,12 +31,12 @@ export default function DistrictCards({ districts }: Props) {
     <section className="section district-section" aria-labelledby="district-title">
       <div className="section__header">
         <h2 className="section__title" id="district-title">热门商圈</h2>
-        <Link href="/listings" prefetch={false} className="text-copper" data-event-name="home_district_view_all">全部商圈 →</Link>
+        <Link href={citySlug ? `/${citySlug}/listings` : '/listings'} prefetch={false} className="text-copper" data-event-name="home_district_view_all">全部商圈 →</Link>
       </div>
       <div className="district-cards">
-        <DistrictCard district={first} variant="lg" />
+        <DistrictCard district={first} variant="lg" citySlug={citySlug} />
         {rest.map((d) => (
-          <DistrictCard key={d.id} district={d} variant="sm" />
+          <DistrictCard key={d.id} district={d} variant="sm" citySlug={citySlug} />
         ))}
       </div>
     </section>
@@ -45,11 +46,12 @@ export default function DistrictCards({ districts }: Props) {
 function DistrictCard({
   district,
   variant,
-}: Readonly<{ district: DistrictCardViewModel; variant: 'lg' | 'sm' }>) {
+  citySlug,
+}: Readonly<{ district: DistrictCardViewModel; variant: 'lg' | 'sm'; citySlug?: string }>) {
   const cover = district.coverImage
   return (
     <Link
-      href={`/listings?businessArea=${district.slug}`}
+      href={`${citySlug ? `/${citySlug}` : ''}/listings?businessArea=${district.slug}`}
       prefetch={false}
       className={`district-card district-card--${variant}`}
       data-event-name="home_district_card_click"

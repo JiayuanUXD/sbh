@@ -15,21 +15,23 @@ import BuildingListCard from '@/components/frontend/BuildingListCard'
  */
 type Props = Readonly<{
   buildings: readonly BuildingSummaryViewModel[]
+  citySlug?: string
 }>
 
-export default function FeaturedBuildings({ buildings }: Props) {
+export default function FeaturedBuildings({ buildings, citySlug }: Props) {
+  const basePath = citySlug ? `/${citySlug}` : ''
   return (
     <section className="section" aria-labelledby="featured-buildings-title">
       <div className="section__header">
         <h2 className="section__title" id="featured-buildings-title">精选楼盘</h2>
-        <Link href="/buildings" className="text-copper" data-event-name="home_buildings_view_all">全部楼盘 →</Link>
+        <Link href={`${basePath}/buildings`} className="text-copper" data-event-name="home_buildings_view_all">全部楼盘 →</Link>
       </div>
       {buildings.length === 0 ? (
         <p className="empty-state empty-state--inline">暂无精选楼盘。</p>
       ) : (
         <div className="card-grid">
           {buildings.map((b) => (
-            <BuildingListCard key={b.id} building={b} view="grid" />
+            <BuildingListCard key={b.id} building={b} view="grid" citySlug={citySlug} />
           ))}
         </div>
       )}

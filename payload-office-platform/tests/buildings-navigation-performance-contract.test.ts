@@ -28,7 +28,7 @@ describe('OPT-025 楼盘列表导航性能合同', () => {
     )
 
     expect(source).toContain("import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'")
-    expect(source).toContain('await getCachedSearchBuildings(siteConfig.defaultCity)')
+    expect(source).toContain('await getCachedSearchBuildings(city.slug)')
     expect(source).not.toContain('defaultSearchContext')
     expect(source).not.toMatch(/\bsearchBuildings\s*\(/)
   })
