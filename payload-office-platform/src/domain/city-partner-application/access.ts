@@ -21,6 +21,18 @@ export function buildCityPartnerCityScopeWhere(permission: PermissionContext): b
   return { city: { in: [...permission.cityIds] } }
 }
 
+export function isCityPartnerCityInScope(
+  permission: PermissionContext,
+  cityId: number | string | null,
+): boolean {
+  if (permission.roleCodes.includes('ADM') && permission.dataScope === 'global') return true
+  if (!(permission.cityIds instanceof Set) || permission.cityIds.size === 0 || cityId === null) {
+    return false
+  }
+  const normalizedCityId = String(cityId)
+  return [...permission.cityIds].some((allowedCityId) => String(allowedCityId) === normalizedCityId)
+}
+
 export const cityPartnerApplicationReadAccess = createCityPartnerAccess(
   'city_partner_application:read',
 )

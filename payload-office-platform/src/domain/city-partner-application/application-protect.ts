@@ -2,7 +2,7 @@ import type { CollectionBeforeChangeHook } from 'payload'
 
 import { derivePermissionContextFromRequest, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
-import { isCityInScope } from '@/domain/auth/permission-context'
+import { isCityPartnerCityInScope } from './access'
 import { canTransitionCityPartner, isCityPartnerStatus } from './schema'
 
 export const CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY = 'cityPartnerApplicationWriteStage'
@@ -48,6 +48,18 @@ function assertFieldsUnchanged(
   }
 }
 
+function hasFact(value: unknown): boolean {
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  return value !== null && value !== undefined
+}
+
+function hasUnsealedStageTwoFacts(previous: Record<string, unknown>): boolean {
+  return STAGE_TWO_FIELDS
+    .filter((field) => field !== 'detailsCompletedAt' && field !== 'detailsFingerprint')
+    .some((field) => hasFact(previous[field]))
+}
+
 function writeStage(req: { context?: unknown }): CityPartnerWriteStage | null {
   const context = record(req.context)
   const value = context[CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY]
@@ -75,6 +87,9 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
 
   if (stage === 'stage-two') {
     if (previous.detailsCompletedAt) throw new Error('city_partner_details_already_completed')
+    if (hasUnsealedStageTwoFacts(previous)) {
+      throw new Error('city_partner_unsealed_details_require_manual_repair')
+    }
     if (
       !next.detailsCompletedAt ||
       typeof next.detailsFingerprint !== 'string' ||
@@ -99,8 +114,7 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
   if (!permission || !hasOperationPermission(permission, 'city_partner_application:manage')) {
     throw new Error('city_partner_manage_permission_required')
   }
-  const isGlobalAdmin = permission.roleCodes.includes('ADM') && permission.dataScope === 'global'
-  if (!isGlobalAdmin && !isCityInScope(permission, scopedCityId(previous.city))) {
+  if (!isCityPartnerCityInScope(permission, scopedCityId(previous.city))) {
     throw new Error('city_partner_city_scope_required')
   }
 

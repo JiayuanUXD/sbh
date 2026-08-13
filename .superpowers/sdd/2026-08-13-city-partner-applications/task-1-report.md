@@ -93,3 +93,24 @@ No production database, migration, deployment, or push action was performed.
 - Final status: 46 applied, 0 pending.
 - Final verifier: 180 checks, 0 failures, 18 historical/manual-migration snapshot warnings.
 - Final post-query invariants: application table exists with 0 rows; city/status/created-at/unique-idempotency indexes exist; built-in role count remains 5; ADM remains wildcard; OPS/MGR retain the exact new grants; BRK/CSR retain none.
+
+## Fix Round 2 (2026-08-13)
+
+### Changes
+
+- Closed the residual workflow fail-open caused by the generic permission model representing an empty user `cityScope` as `all`. Workflow writes now reuse city-partner-specific membership semantics: only global ADM accepts `all`; every OPS/MGR request requires a non-empty trusted city ID set containing `originalDoc.city`, including when Local API uses `overrideAccess: true`.
+- Normalized both authorized and document city IDs through `String(...)` for membership, so Payload relationship IDs compare consistently across numeric/string representations. Tests cover `scope 11 / doc '11'` and `scope '11' / doc 11` in addition to normal numeric matching, empty-scope denial, and global ADM.
+- Protected previously written but unsealed stage-two facts. If any stage-two applicant fact is actually non-empty while `detailsCompletedAt` is missing, the trusted stage-two hook rejects replacement and requires manual repair. Whitespace-only strings and empty arrays count as empty, so a genuinely blank record can still be sealed once.
+- Public stage-one/stage-two context branching, normal Collection access, and the Task 1 schema remain otherwise unchanged. Task 2 still owns transactional/conditional protection against concurrent first-completion races.
+
+### TDD and Verification Evidence
+
+- First RED: 3 files, 28 tests; 26 passed and 2 failed for empty-scope workflow fail-open and unsealed fact overwrite.
+- Number/string RED: the cross-representation case failed under strict `Set.has`, proving normalization was absent.
+- GREEN focused suite after both fixes: 3 files, 28/28 passed.
+- Broader access/navigation/migration regression suite: 13 files, 202/202 passed.
+- Full unit suite after final ID normalization: 192 files, 2796/2796 passed.
+- `pnpm typecheck`: exit 0, no diagnostics.
+- Targeted ESLint: exit 0, no diagnostics.
+- `git diff --check`: exit 0.
+- No database mutation, migration execution, plan/ledger edit, production, deployment, or push was performed in Fix Round 2.

@@ -11,7 +11,7 @@ import {
   protectCityPartnerApplication,
 } from '@/domain/city-partner-application/application-protect'
 
-function adminReq(options: { code?: 'ADM' | 'MGR'; cityIds?: number[] } = {}) {
+function adminReq(options: { code?: 'ADM' | 'MGR'; cityIds?: Array<number | string> } = {}) {
   const code = options.code ?? 'MGR'
   return {
     context: {},
@@ -130,6 +130,37 @@ describe('city partner application domain', () => {
     }, original, context)).rejects.toThrow('city_partner_details_completion_markers_required')
   })
 
+  it('rejects overwriting unsealed stage-two facts but treats blanks as empty', async () => {
+    const context = { [CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY]: 'stage-two' }
+    const markers = {
+      detailsCompletedAt: '2026-08-13T00:00:00.000Z',
+      detailsFingerprint: 'fingerprint',
+    }
+
+    for (const previous of [
+      { organizationName: '旧公司' },
+      { resourceTypes: ['building-owner'] },
+    ]) {
+      await expect(update(
+        { organizationName: '新公司', ...markers },
+        { city: 11, status: 'pending', detailsCompletedAt: null, ...previous },
+        context,
+      )).rejects.toThrow('city_partner_unsealed_details_require_manual_repair')
+    }
+
+    await expect(update(
+      { organizationName: '新公司', ...markers },
+      {
+        city: 11,
+        status: 'pending',
+        detailsCompletedAt: null,
+        organizationName: '   ',
+        resourceTypes: [],
+      },
+      context,
+    )).resolves.toMatchObject({ organizationName: '新公司' })
+  })
+
   it('enforces fresh manage permission and original city membership for workflow writes', async () => {
     const original = { city: { id: 11 }, status: 'pending', detailsCompletedAt: null }
 
@@ -151,6 +182,44 @@ describe('city partner application domain', () => {
     await expect(update(
       { status: 'contacted' },
       { ...original, city: { id: 99 } },
+      {},
+      adminReq({ code: 'ADM', cityIds: [] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
+  })
+
+  it('fails closed for empty MGR city scope and matches numeric or string relation IDs', async () => {
+    await expect(protectCityPartnerApplication({
+      operation: 'update',
+      data: { status: 'contacted' },
+      originalDoc: { city: 11, status: 'pending', detailsCompletedAt: null },
+      overrideAccess: true,
+      req: adminReq({ code: 'MGR', cityIds: [] }),
+    } as never)).rejects.toThrow('city_partner_city_scope_required')
+
+    await expect(update(
+      { status: 'contacted' },
+      { city: 11, status: 'pending', detailsCompletedAt: null },
+      {},
+      adminReq({ code: 'MGR', cityIds: [11] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
+
+    await expect(update(
+      { status: 'contacted' },
+      { city: { id: '11' }, status: 'pending', detailsCompletedAt: null },
+      {},
+      adminReq({ code: 'MGR', cityIds: [11] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
+
+    await expect(update(
+      { status: 'contacted' },
+      { city: 11, status: 'pending', detailsCompletedAt: null },
+      {},
+      adminReq({ code: 'MGR', cityIds: ['11'] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
+
+    await expect(update(
+      { status: 'contacted' },
+      { city: { id: 99 }, status: 'pending', detailsCompletedAt: null },
       {},
       adminReq({ code: 'ADM', cityIds: [] }),
     )).resolves.toMatchObject({ status: 'contacted' })
