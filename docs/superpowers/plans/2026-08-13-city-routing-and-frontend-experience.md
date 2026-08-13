@@ -230,7 +230,7 @@ git commit -m "feat: add reversible city frontend routes"
 - Consumes: validated city resolver.
 - Produces: required city slug in both public request bodies and server-persisted city relationship.
 
-- [ ] **Step 1: Write failing request/body and persistence tests**
+- [x] **Step 1: Write failing request/body and persistence tests**
 
 ```ts
 expect(buildEntrustInquiryBody(phone, requestId, 'hangzhou')).toMatchObject({ city: 'hangzhou' })
@@ -242,21 +242,21 @@ expect(await submitWithCity('tampered')).toMatchObject({ status: 422 })
 
 Assert missing query uses default Shanghai, explicit invalid query renders visible error and disables submit, stage-two Entrust cannot change first-stage city, and source URL stores pathname without query PII.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/inquiry-domain.test.ts tests/inquiry-api-route.test.ts tests/inquiry-demand-update.test.ts tests/supply-submission-domain.test.ts tests/supply-submission-api-route.test.ts`
 
 Expected: FAIL because request bodies and APIs ignore selected city.
 
-- [ ] **Step 3: Add city to client contracts and page props**
+- [x] **Step 3: Add city to client contracts and page props**
 
 Resolve query city on the Server Component page. Pass `{ citySlug, cityName, cityId }` into forms. Display a city selector/locked summary and keep URL synchronized. Include `city` in both stage-one request bodies; stage-two Entrust body omits city and the server preserves original relationship.
 
-- [ ] **Step 4: Resolve city again at the API boundary**
+- [x] **Step 4: Resolve city again at the API boundary**
 
 Treat body city as unknown. Resolve canonical active profile/city server-side; store relationship ID. Missing body is rejected because pages always send explicit city; backward-compatible direct API behavior may default only when the field is truly absent and source path is the approved legacy path. Explicit invalid values always return 422.
 
-- [ ] **Step 5: Run tests and commit Task 4**
+- [x] **Step 5: Run tests and commit Task 4**
 
 Run: `pnpm exec vitest run tests/inquiry-domain.test.ts tests/inquiry-api-route.test.ts tests/inquiry-demand-update.test.ts tests/supply-submission-domain.test.ts tests/supply-submission-api-route.test.ts tests/supply-submission-form.test.ts`
 
