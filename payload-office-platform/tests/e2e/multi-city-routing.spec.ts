@@ -12,19 +12,38 @@ const CITY_HOMES = [
   ['jiaxing', '嘉兴', 'coming-soon'],
   ['wuxi', '无锡', 'coming-soon'],
 ] as const
+const KNOWN_UNAVAILABLE_SEED_MEDIA = [
+  'cover-changning-hongqiao-3.jpg',
+  'cover-empty-building.jpg',
+  'cover-huangpu-bund-3.jpg',
+  'cover-lujiazui-grade-a-river-view-3.jpg',
+  'cover-west-nanjing-premium-center-3.jpg',
+  'cover-xuhui-xujiahui-3.jpg',
+  'hero-bg.mp4',
+] as const
 
-function collectRuntimeErrors(page: Page): string[] {
+const browserErrors = new WeakMap<Page, string[]>()
+
+async function stubKnownUnavailableSeedMedia(page: Page): Promise<void> {
+  for (const filename of KNOWN_UNAVAILABLE_SEED_MEDIA) {
+    await page.route(`**/api/media/file/${filename}?*`, (route) =>
+      route.fulfill({ status: 204, body: '' }))
+  }
+}
+
+test.beforeEach(async ({ page }) => {
   const errors: string[] = []
+  browserErrors.set(page, errors)
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`)
   })
   page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
-  return errors
-}
+  await stubKnownUnavailableSeedMedia(page)
+})
 
-async function stubUnavailableLocalMedia(page: Page): Promise<void> {
-  await page.route('**/api/media/file/**', (route) => route.fulfill({ status: 204 }))
-}
+test.afterEach(async ({ page }) => {
+  expect(browserErrors.get(page) ?? []).toEqual([])
+})
 
 async function expectCanonical(page: Page, expected: string): Promise<void> {
   const href = await page.locator('link[rel="canonical"]').getAttribute('href')
@@ -46,8 +65,6 @@ async function expectRedirect(
 test.describe('multi-city route ownership', () => {
   for (const [slug, name, status] of CITY_HOMES) {
     test(`${slug} home is public with exact canonical ownership`, async ({ page }) => {
-      const errors = collectRuntimeErrors(page)
-      await stubUnavailableLocalMedia(page)
       const response = await page.goto(`/${slug}`)
 
       expect(response?.status()).toBe(200)
@@ -61,7 +78,6 @@ test.describe('multi-city route ownership', () => {
         await expect(robots).toHaveAttribute('content', /index/i)
         await expect(robots).not.toHaveAttribute('content', /noindex/i)
       }
-      expect(errors).toEqual([])
     })
   }
 
@@ -108,6 +124,11 @@ test.describe('multi-city route ownership', () => {
       const building = await request.get(`/buildings/${BUILDING_SLUG}`, { maxRedirects: 0 })
       expect(listing.status()).toBe(200)
       expect(building.status()).toBe(200)
+      await expectRedirect(
+        request,
+        `/hangzhou/buildings/${BUILDING_SLUG}`,
+        `/shanghai/buildings/${BUILDING_SLUG}`,
+      )
       return
     }
 

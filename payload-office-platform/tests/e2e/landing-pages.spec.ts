@@ -7,6 +7,27 @@ const publishPhone = `138${runSuffix}`
 const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 
 const browserErrors = new WeakMap<Page, string[]>()
+const expectedBrowserErrors = new WeakMap<Page, RegExp[]>()
+const KNOWN_UNAVAILABLE_SEED_MEDIA = [
+  'cover-changning-hongqiao-3.jpg',
+  'cover-empty-building.jpg',
+  'cover-huangpu-bund-3.jpg',
+  'cover-lujiazui-grade-a-river-view-3.jpg',
+  'cover-west-nanjing-premium-center-3.jpg',
+  'cover-xuhui-xujiahui-3.jpg',
+  'hero-bg.mp4',
+] as const
+
+async function stubKnownUnavailableSeedMedia(page: Page): Promise<void> {
+  for (const filename of KNOWN_UNAVAILABLE_SEED_MEDIA) {
+    await page.route(`**/api/media/file/${filename}?*`, (route) =>
+      route.fulfill({ status: 204, body: '' }))
+  }
+}
+
+function expectSyntheticBrowserError(page: Page, pattern: RegExp): void {
+  expectedBrowserErrors.set(page, [...(expectedBrowserErrors.get(page) ?? []), pattern])
+}
 
 async function flushAnalytics(page: Page): Promise<void> {
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
@@ -35,9 +56,10 @@ test.beforeAll(async ({ request }) => {
 })
 
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/media/file/**', (route) => route.fulfill({ status: 204, body: '' }))
+  await stubKnownUnavailableSeedMedia(page)
   const errors: string[] = []
   browserErrors.set(page, errors)
+  expectedBrowserErrors.set(page, [])
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`)
   })
@@ -45,7 +67,12 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.afterEach(async ({ page }) => {
-  expect(browserErrors.get(page) ?? []).toEqual([])
+  const errors = browserErrors.get(page) ?? []
+  const expected = expectedBrowserErrors.get(page) ?? []
+  for (const pattern of expected) {
+    expect(errors.some((error) => pattern.test(error)), `expected browser error ${pattern}`).toBe(true)
+  }
+  expect(errors.filter((error) => !expected.some((pattern) => pattern.test(error)))).toEqual([])
 })
 
 test.describe('主导航入口调整', () => {
@@ -82,10 +109,15 @@ test.describe('/entrust 委托找房', () => {
   test('合法提交后就地成功且埋点不含 PII', async ({ page }) => {
     const submittedBodies: unknown[] = []
     const analyticsCapture = await captureAnalytics(page)
-    page.on('request', (request) => {
-      if (request.method() === 'POST' && request.url().endsWith('/api/inquiries')) {
-        submittedBodies.push(request.postDataJSON())
-      }
+    await page.route('**/api/inquiries', async (route) => {
+      const request = route.request()
+      if (request.method() !== 'POST') return route.continue()
+      submittedBodies.push(request.postDataJSON())
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: true }),
+      })
     })
 
     await page.goto('/entrust')
@@ -231,6 +263,7 @@ test.describe('/publish 投放房源', () => {
   })
 
   test('服务暂时不可用时保留内容并允许重新提交', async ({ page }) => {
+    expectSyntheticBrowserError(page, /Failed to load resource: the server responded with a status of 500/)
     await page.route('**/api/supply-submissions', (route) =>
       route.fulfill({
         status: 500,
@@ -250,10 +283,10 @@ test.describe('/publish 投放房源', () => {
     await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 失败楼盘')
     await expect(page.getByLabel('详细地址')).toHaveValue('上海市静安区测试路 1 号')
     await expect(page.getByRole('button', { name: '重新提交' })).toBeVisible()
-    browserErrors.set(page, [])
   })
 
   test('提交过于频繁时提示稍后重试且不清空表单', async ({ page }) => {
+    expectSyntheticBrowserError(page, /Failed to load resource: the server responded with a status of 429/)
     await page.route('**/api/supply-submissions', (route) =>
       route.fulfill({
         status: 429,
@@ -272,7 +305,6 @@ test.describe('/publish 投放房源', () => {
     await expect(page.locator('.publish-card__status')).toContainText('刚才提交得有点频繁')
     await expect(page.getByLabel('楼盘名称')).toHaveValue('E2E 限流楼盘')
     await expect(page.getByRole('button', { name: '稍后重试' })).toBeVisible()
-    browserErrors.set(page, [])
   })
 
   test('375px 视口无横向滚动', async ({ page }) => {

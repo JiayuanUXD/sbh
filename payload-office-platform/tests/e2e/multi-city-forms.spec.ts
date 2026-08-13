@@ -41,6 +41,21 @@ const phones = {
   supply: `1380000000${flagSuffix}`,
   partner: `1370000000${flagSuffix}`,
 } as const
+const fixtureRequestIds = ['1', '2'].flatMap((suffix) => {
+  const fixtureUuid = `00000000-0000-4000-8000-00000000000${suffix}`
+  return [
+    `entrust-${fixtureUuid}`,
+    `publish-${fixtureUuid}`,
+    `city-partner-${fixtureUuid}`,
+  ]
+})
+const fixturePhones = ['1', '2'].flatMap((suffix) => [
+  `1390000000${suffix}`,
+  `1380000000${suffix}`,
+  `1370000000${suffix}`,
+])
+const partnerApplicationIds = new Set<string>()
+const browserErrors = new WeakMap<Page, string[]>()
 
 let pool: QueryPool | undefined
 
@@ -53,18 +68,65 @@ async function rows(sql: string, values: readonly unknown[] = []) {
 async function cleanupFixtures(): Promise<void> {
   if (!pool) return
   const partner = await rows(
-    'SELECT id FROM city_partner_applications WHERE request_id = $1',
-    [requestIds.partner],
+    `SELECT id FROM city_partner_applications
+     WHERE request_id = ANY($1::text[]) OR contact_phone = ANY($2::text[])`,
+    [fixtureRequestIds, fixturePhones],
   )
-  for (const row of partner) {
-    const applicationId = String(row.id)
-    const eventId = `city-partner-application-created:${applicationId}`
-    await pool.query("DELETE FROM payload_jobs WHERE input ->> 'eventId' = $1", [eventId])
-    await pool.query('DELETE FROM domain_events WHERE event_id = $1', [eventId])
+  const applicationIds = partner.map((row) => String(row.id))
+  for (const applicationId of applicationIds) partnerApplicationIds.add(applicationId)
+  const eventIds = applicationIds.map((id) => `city-partner-application-created:${id}`)
+  if (applicationIds.length > 0) {
+    const notificationRows = await rows(`
+      SELECT id FROM notifications
+      WHERE event_id = ANY($1::text[])
+        OR (source_type = 'city-partner-application' AND source_id = ANY($2::text[]))
+    `, [eventIds, applicationIds])
+    const notificationIds = notificationRows.map((row) => Number(row.id))
+    if (notificationIds.length > 0) {
+      await pool.query('DELETE FROM notifications_rels WHERE parent_id = ANY($1::int[])', [notificationIds])
+      await pool.query('DELETE FROM notifications WHERE id = ANY($1::int[])', [notificationIds])
+    }
+
+    await pool.query("DELETE FROM payload_jobs WHERE input ->> 'eventId' = ANY($1::text[])", [eventIds])
+    const eventRows = await rows('SELECT id FROM domain_events WHERE event_id = ANY($1::text[])', [eventIds])
+    const eventDatabaseIds = eventRows.map((row) => Number(row.id))
+    if (eventDatabaseIds.length > 0) {
+      await pool.query('DELETE FROM domain_events_rels WHERE parent_id = ANY($1::int[])', [eventDatabaseIds])
+      await pool.query('DELETE FROM domain_events WHERE id = ANY($1::int[])', [eventDatabaseIds])
+    }
+    await pool.query('DELETE FROM city_partner_applications WHERE id = ANY($1::int[])', [
+      applicationIds.map(Number),
+    ])
   }
-  await pool.query('DELETE FROM city_partner_applications WHERE request_id = $1', [requestIds.partner])
-  await pool.query('DELETE FROM supply_submissions WHERE request_id = $1', [requestIds.supply])
-  await pool.query('DELETE FROM leads WHERE request_id = $1', [requestIds.demand])
+  await pool.query(
+    'DELETE FROM supply_submissions WHERE request_id = ANY($1::text[]) OR contact_phone = ANY($2::text[])',
+    [fixtureRequestIds, fixturePhones],
+  )
+  await pool.query(
+    'DELETE FROM leads WHERE request_id = ANY($1::text[]) OR phone = ANY($2::text[])',
+    [fixtureRequestIds, fixturePhones],
+  )
+}
+
+async function fixtureCounts(): Promise<Record<string, unknown>> {
+  const applicationIds = [...partnerApplicationIds]
+  const eventIds = applicationIds.map((id) => `city-partner-application-created:${id}`)
+  const result = await rows(`
+    SELECT
+      (SELECT count(*)::int FROM leads
+        WHERE request_id = ANY($1::text[]) OR phone = ANY($2::text[])) AS demand,
+      (SELECT count(*)::int FROM supply_submissions
+        WHERE request_id = ANY($1::text[]) OR contact_phone = ANY($2::text[])) AS supply,
+      (SELECT count(*)::int FROM city_partner_applications
+        WHERE request_id = ANY($1::text[]) OR contact_phone = ANY($2::text[])) AS partner,
+      (SELECT count(*)::int FROM notifications
+        WHERE event_id = ANY($3::text[])
+          OR (source_type = 'city-partner-application' AND source_id = ANY($4::text[]))) AS notifications,
+      (SELECT count(*)::int FROM domain_events WHERE event_id = ANY($3::text[])) AS events,
+      (SELECT count(*)::int FROM payload_jobs
+        WHERE input ->> 'eventId' = ANY($3::text[])) AS jobs
+  `, [fixtureRequestIds, fixturePhones, eventIds, applicationIds])
+  return result[0] ?? {}
 }
 
 async function installFixtureIdentity(page: Page, phone: string): Promise<void> {
@@ -86,11 +148,43 @@ test.beforeAll(async () => {
   expect(databaseUrl, 'DATABASE_URL must be loaded from .env.local for relationship assertions').toMatch(/^postgres/)
   pool = new Pool({ connectionString: databaseUrl! })
   await cleanupFixtures()
+  expect(await fixtureCounts()).toEqual({
+    demand: 0,
+    supply: 0,
+    partner: 0,
+    notifications: 0,
+    events: 0,
+    jobs: 0,
+  })
 })
 
 test.afterAll(async () => {
-  await cleanupFixtures()
-  await pool?.end()
+  try {
+    await cleanupFixtures()
+    expect(await fixtureCounts()).toEqual({
+      demand: 0,
+      supply: 0,
+      partner: 0,
+      notifications: 0,
+      events: 0,
+      jobs: 0,
+    })
+  } finally {
+    await pool?.end()
+  }
+})
+
+test.beforeEach(async ({ page }) => {
+  const errors: string[] = []
+  browserErrors.set(page, errors)
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(`console: ${message.text()}`)
+  })
+  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
+})
+
+test.afterEach(async ({ page }) => {
+  expect(browserErrors.get(page) ?? []).toEqual([])
 })
 
 test('Entrust stage one persists the Hangzhou city relationship', async ({ page }) => {

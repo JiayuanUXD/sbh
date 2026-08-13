@@ -1,18 +1,36 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
+const KNOWN_UNAVAILABLE_SEED_MEDIA = [
+  'cover-changning-hongqiao-3.jpg',
+  'cover-empty-building.jpg',
+  'cover-huangpu-bund-3.jpg',
+  'cover-lujiazui-grade-a-river-view-3.jpg',
+  'cover-west-nanjing-premium-center-3.jpg',
+  'cover-xuhui-xujiahui-3.jpg',
+  'hero-bg.mp4',
+] as const
 
-function watchErrors(page: Page): string[] {
+const browserErrors = new WeakMap<Page, string[]>()
+
+test.beforeEach(async ({ page }) => {
   const errors: string[] = []
+  browserErrors.set(page, errors)
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text())
+    if (message.type() === 'error') errors.push(`console: ${message.text()}`)
   })
-  page.on('pageerror', (error) => errors.push(error.message))
-  return errors
-}
+  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
+  for (const filename of KNOWN_UNAVAILABLE_SEED_MEDIA) {
+    await page.route(`**/api/media/file/${filename}?*`, (route) =>
+      route.fulfill({ status: 204, body: '' }))
+  }
+})
+
+test.afterEach(async ({ page }) => {
+  expect(browserErrors.get(page) ?? []).toEqual([])
+})
 
 test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory UI', async ({ page }) => {
-  const errors = watchErrors(page)
   const response = await page.goto('/hangzhou/listings')
 
   expect(response?.status()).toBe(200)
@@ -25,7 +43,6 @@ test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory U
   await expect(page.locator('[data-listing-city="shanghai"]')).toHaveCount(0)
   await expect(page.locator('.listing-card')).toHaveCount(0)
   await expect(page.locator('.filter-bar')).toHaveCount(0)
-  expect(errors).toEqual([])
 })
 
 test('city switch preserves universal filters and clears geography and page', async ({ page }) => {
