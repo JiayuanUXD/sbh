@@ -158,7 +158,7 @@ git commit -m "feat: add frontend city switcher"
 - Consumes: `resolveCityContext`, city-scoped cached queries, route-identity resolvers, runtime flag.
 - Produces: all approved canonical/legacy page behaviors and reusable DTO-only views.
 
-- [ ] **Step 1: Write failing server route matrix tests**
+- [x] **Step 1: Write failing server route matrix tests**
 
 ```ts
 expect(await request('/unknown')).toHaveStatus(404)
@@ -171,19 +171,19 @@ expect(await request('/listings/shanghai-slug')).toRedirect(307, '/shanghai/list
 
 Run the static/global route collision matrix for `news,pages,entrust,publish,city-partner`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-route-pages.test.ts tests/detail-pages-seo.test.ts tests/landing-hero-layout.test.ts`
 
 Expected: FAIL because prefixed pages are absent.
 
-- [ ] **Step 3: Extract DTO-only shared views**
+- [x] **Step 3: Extract DTO-only shared views**
 
 Move presentation from existing root/list/building pages into views whose props contain `CityContext` plus Public Catalog DTOs. Views generate all links with city prefixes. `HeroSearch` submits to `/${city}/listings` and never drops city.
 
 `ComingSoonCityView` renders city name/status, optional Hero/intro, visible `featuredRegions`, and four CTAs: Entrust, Publish, City Partner, and existing “获取选址方案”. It omits inventory counts and empty geographic filters.
 
-- [ ] **Step 4: Implement prefixed route boundaries**
+- [x] **Step 4: Implement prefixed route boundaries**
 
 Each page awaits params, calls `resolveCityContext`, and `notFound()` on null. Live pages call city-scoped data functions. Coming-soon home/list/building pages all return the appropriate view with `noindex,follow`; list/building paths keep their URL and status 200.
 
@@ -191,11 +191,11 @@ Each page awaits params, calls `resolveCityContext`, and `notFound()` on null. L
 
 Detail routes compare DTO `citySlug` with route city. Mismatch uses `redirect(actualPath)` (307). Missing/ineffective detail returns 404 without revealing other fields.
 
-- [ ] **Step 5: Implement reversible legacy pages**
+- [x] **Step 5: Implement reversible legacy pages**
 
 With `MULTI_CITY_ROUTING_ENABLED=true`, `/`, `/listings`, and `/buildings` use page-level `redirect()` to default-city prefixed paths. Legacy detail routes use route-identity services and 307. With flag false, legacy pages render default-city shared views and own canonical; prefixed routes remain 200 but metadata is `noindex`.
 
-- [ ] **Step 6: Run route tests and commit Task 3**
+- [x] **Step 6: Run route tests and commit Task 3**
 
 Run: `pnpm exec vitest run tests/city-route-pages.test.ts tests/detail-pages-seo.test.ts tests/landing-hero-layout.test.ts tests/public-catalog-city-parity.test.ts`
 
