@@ -52,22 +52,34 @@ function serviceStatusLabel(status: PublicCityOption['serviceStatus']): string {
 export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps) {
   const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
-  const [openSourceUrl, setOpenSourceUrl] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const previousSourceUrlRef = useRef<string | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const activeCity = resolveTrustedCity(pathname, cities, defaultCity)
   const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
-  const open = openSourceUrl === sourceUrl
+
+  useEffect(() => {
+    const sourceChanged = previousSourceUrlRef.current !== null && previousSourceUrlRef.current !== sourceUrl
+    previousSourceUrlRef.current = sourceUrl
+    if (!sourceChanged) return
+    const closeAfterNavigation = () => setOpen(false)
+    closeAfterNavigation()
+  }, [sourceUrl])
 
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        setOpenSourceUrl(null)
+        setOpen(false)
         triggerRef.current?.focus()
+        return
+      }
+      if (event.key === 'Tab') {
+        setOpen(false)
         return
       }
       if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
@@ -87,7 +99,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
     }
     const onPointerDown = (event: PointerEvent) => {
       if (wrapperRef.current?.contains(event.target as Node)) return
-      setOpenSourceUrl(null)
+      setOpen(false)
     }
     document.addEventListener('keydown', onKeyDown)
     document.addEventListener('pointerdown', onPointerDown)
@@ -113,7 +125,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
         aria-controls="city-switcher-menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpenSourceUrl(open ? null : sourceUrl)}
+        onClick={() => setOpen((value) => !value)}
       >
         <span>{activeCity.name}</span>
         <span className="city-switcher__trigger-label">切换城市</span>
@@ -129,9 +141,10 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
                 key={city.slug}
                 href={href}
                 role="menuitem"
+                tabIndex={-1}
                 className="city-switcher__option"
                 aria-current={current ? 'page' : undefined}
-                onClick={() => setOpenSourceUrl(null)}
+                onClick={() => setOpen(false)}
               >
                 <span>{city.name}</span>
                 <span className="city-switcher__status">{serviceStatusLabel(city.serviceStatus)}</span>

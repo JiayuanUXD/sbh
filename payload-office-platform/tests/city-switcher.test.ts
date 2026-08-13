@@ -31,6 +31,7 @@ afterEach(async () => {
   if (root) await act(async () => root?.unmount())
   root = null
   document.body.replaceChildren()
+  vi.unstubAllGlobals()
   navigationState.pathname = '/shanghai/listings'
   navigationState.search = 'areaMin=100&district=pudong&page=3'
 })
@@ -173,6 +174,42 @@ describe('CitySwitcher', () => {
     expect(document.querySelector('#city-switcher-menu')).toBeNull()
   })
 
+  it('does not reopen when navigation returns to the source URL after the menu was closed', async () => {
+    await renderSwitcher()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+    expect(document.querySelector('#city-switcher-menu')).not.toBeNull()
+
+    navigationState.pathname = '/hangzhou/listings'
+    navigationState.search = ''
+    await rerenderSwitcher()
+    expect(document.querySelector('#city-switcher-menu')).toBeNull()
+
+    navigationState.pathname = '/shanghai/listings'
+    navigationState.search = 'areaMin=100&district=pudong&page=3'
+    await rerenderSwitcher()
+    expect(document.querySelector('#city-switcher-menu')).toBeNull()
+  })
+
+  it('closes the composite menu on Tab or Shift+Tab without cancelling the browser focus move', async () => {
+    await renderSwitcher()
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+    const menuItem = document.querySelector<HTMLAnchorElement>('#city-switcher-menu [role="menuitem"]')
+    if (!menuItem) throw new Error('missing city menu item')
+    expect(menuItem.tabIndex).toBe(-1)
+
+    for (const shiftKey of [false, true]) {
+      const tab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true })
+      await act(async () => document.dispatchEvent(tab))
+      expect(tab.defaultPrevented).toBe(false)
+      expect(document.querySelector('#city-switcher-menu')).toBeNull()
+      if (!shiftKey) await click(trigger)
+    }
+  })
+
   it('makes the shell city-aware only from a trusted city pathname', async () => {
     navigationState.pathname = '/hangzhou/buildings'
     navigationState.search = ''
@@ -266,5 +303,23 @@ describe('CitySwitcher', () => {
     const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
     await act(async () => document.dispatchEvent(tab))
     expect(tab.defaultPrevented).toBe(false)
+  })
+
+  it('closes an open mobile drawer immediately when the desktop media query already matches', async () => {
+    let matchMediaCalls = 0
+    vi.stubGlobal('matchMedia', () => ({
+      matches: (matchMediaCalls += 1) > 1,
+      media: '(min-width: 1280px)',
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }))
+    await renderShell()
+    const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!toggle) throw new Error('missing mobile menu toggle')
+    await click(toggle)
+
+    expect(document.querySelector('#mobile-drawer')).toBeNull()
+    expect(document.body.style.overflow).toBe('')
+    expect(document.activeElement).toBe(toggle)
   })
 })

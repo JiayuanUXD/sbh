@@ -31,6 +31,12 @@ export function resolveCtaPageType(pathname: string): CtaPageType {
   return 'home'
 }
 
+function isDesktopNavigationViewport(): boolean {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 1280px)').matches
+}
+
 /**
  * 公开站点主导航
  *
@@ -138,6 +144,13 @@ export default function SiteNav({
     }
   }, [open])
 
+  // 打开时把焦点移入抽屉首个可聚焦元素
+  useEffect(() => {
+    if (!open) return
+    const first = drawerRef.current?.querySelector<HTMLAnchorElement>('a, button')
+    first?.focus()
+  }, [open])
+
   useEffect(() => {
     if (!open || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
     const desktopMedia = window.matchMedia('(min-width: 1280px)')
@@ -147,14 +160,8 @@ export default function SiteNav({
       toggleRef.current?.focus()
     }
     desktopMedia.addEventListener('change', closeAtDesktopBreakpoint)
+    if (desktopMedia.matches) closeAtDesktopBreakpoint({ matches: true } as MediaQueryListEvent)
     return () => desktopMedia.removeEventListener('change', closeAtDesktopBreakpoint)
-  }, [open])
-
-  // 打开时把焦点移入抽屉首个可聚焦元素
-  useEffect(() => {
-    if (!open) return
-    const first = drawerRef.current?.querySelector<HTMLAnchorElement>('a, button')
-    first?.focus()
   }, [open])
 
   return (
@@ -214,7 +221,7 @@ export default function SiteNav({
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-controls="mobile-drawer"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => setOpen((value) => (isDesktopNavigationViewport() ? false : !value))}
         >
           <svg
             width="24"
