@@ -82,6 +82,7 @@ import {
   CITY_PARTNER_NOTIFICATION_QUEUE,
   cityPartnerApplicationNotificationTask,
   cityPartnerNotificationOutboxTask,
+  recoverStaleCityPartnerNotificationJobs,
 } from './domain/city-partner-application/application-notify'
 
 const filename = fileURLToPath(import.meta.url)
@@ -118,7 +119,11 @@ export default buildConfig({
       cityPartnerApplicationNotificationTask,
       cityPartnerNotificationOutboxTask,
     ],
-    shouldAutoRun: () => process.env.PAYLOAD_DISABLE_JOB_AUTORUN !== '1',
+    shouldAutoRun: async (payload) => {
+      if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
+      await recoverStaleCityPartnerNotificationJobs(payload)
+      return true
+    },
     autoRun: [
       {
         // 30 秒一次：投放申请是低频事件（日均个位数），而每个 CloudRun 实例都会

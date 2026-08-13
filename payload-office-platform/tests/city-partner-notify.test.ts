@@ -10,6 +10,7 @@ import {
   consumeCityPartnerApplicationCreated,
   enqueueCityPartnerApplicationCreated,
   reconcileCityPartnerNotificationOutbox,
+  recoverStaleCityPartnerNotificationJobs,
 } from '@/domain/city-partner-application/application-notify'
 import {
   NOTIFICATION_SOURCE_TYPES,
@@ -273,6 +274,45 @@ describe('city partner notification durable outbox reconciliation', () => {
     expect(JSON.stringify(harness.queued)).not.toMatch(
       /sensitive-name|13800003333|sensitive-company|sensitive-free-text/,
     )
+  })
+})
+
+describe('city partner notification stale processing leases', () => {
+  it('atomically releases only stale nonterminal notify and reconcile jobs', async () => {
+    const queries: Array<{ text: string; values?: unknown[] }> = []
+    const payload = {
+      db: { pool: { async query(text: string, values?: unknown[]) {
+        queries.push({ text, values })
+        return { rowCount: 2, rows: [{ id: 91 }, { id: 92 }] }
+      } } },
+    }
+    await expect(recoverStaleCityPartnerNotificationJobs(
+      payload as never,
+      new Date('2026-08-13T06:30:00.000Z'),
+    )).resolves.toEqual({ recovered: 2 })
+    expect(queries).toHaveLength(1)
+    expect(queries[0]?.text).toMatch(/UPDATE payload_jobs[\s\S]+processing = false[\s\S]+updated_at <= \$2[\s\S]+RETURNING id/)
+    expect(queries[0]?.values).toEqual([
+      CITY_PARTNER_NOTIFICATION_QUEUE,
+      '2026-08-13T06:15:00.000Z',
+      'notify-city-partner-application-created',
+      'reconcile-city-partner-notification-outbox',
+    ])
+  })
+
+  it('runs lease recovery from cron preflight even when no reconciler job can start', async () => {
+    const payloadConfig = await payloadConfigPromise
+    const shouldAutoRun = payloadConfig.jobs?.shouldAutoRun
+    expect(shouldAutoRun).toBeTypeOf('function')
+    const queries: string[] = []
+    const payload = {
+      db: { pool: { async query(text: string) {
+        queries.push(text)
+        return { rowCount: 0, rows: [] }
+      } } },
+    }
+    await expect(shouldAutoRun!(payload as never)).resolves.toBe(true)
+    expect(queries).toHaveLength(1)
   })
 })
 

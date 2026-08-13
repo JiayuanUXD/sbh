@@ -85,3 +85,24 @@ A later boundary RED proved that a fixed one-page role query missed readable rol
 - Final status: 48 code, 48 applied, 0 pending. Verify: 186 checks, 0 failures, 19 repository warnings. Post-query proved job-stats, meta, partial index, and reconcile enum exist; business event/job counts remained 0.
 
 No plan/ledger edit, deployment, push, production action, or persistent test data was performed.
+
+## Fix Round 2 (2026-08-13): Stale Processing Lease Recovery
+
+### Review fix and runtime mechanism
+
+- Added an explicit 15-minute processing lease for the two city-partner jobs. The threshold is substantially longer than the notification task's five-attempt exponential retry window and avoids taking a legitimately long but fresh worker.
+- Payload 3.86 source inspection established the correct independent recovery entry: `jobs.autoRun(payload)` is evaluated only when crons initialize, while `jobs.shouldAutoRun(payload)` is evaluated in every cron callback after scheduling and before `jobs.run`. The lease reaper therefore runs from `shouldAutoRun`; it does not require a stuck notify/reconcile job to start, and it still runs when there are no new applications. `PAYLOAD_DISABLE_JOB_AUTORUN=1` remains fail-closed and performs no recovery write.
+- The reaper uses one parameterized PostgreSQL `UPDATE payload_jobs ... WHERE ... RETURNING id`. Its predicates restrict recovery to this queue, notify/reconcile task slugs, `processing=true`, incomplete/nonterminal jobs, and `updated_at <= cutoff`. The condition and update are atomic, so a fresh worker cannot be claimed and concurrent reapers cannot both claim the same lease.
+- Recovery changes only `processing=false` and refreshes `updated_at`; task input, retry count, error state, wait time, and the Fix Round 1 partial unique-index identity are preserved. Payload autoRun can immediately run the released notify job or schedule/run a replacement reconciler.
+
+### TDD and PostgreSQL evidence
+
+- Initial RED: 2 tests failed because the lease recovery function did not exist and cron preflight still returned synchronous `true` without a recovery query.
+- An initial Local API bulk-update implementation passed unit tests but failed real PostgreSQL concurrency: two concurrent reapers both reported the same stale job, total recovered 2 instead of 1. A new raw-SQL contract RED replaced it; the atomic parameterized update then passed.
+- Focused city-partner plus supply notification suite: 2 files, 34/34 passed.
+- Relevant Task 1/2/3 and migration suite: 10 files, 164/164 passed.
+- Full unit suite: 196 files passed, 2 database files skipped; 2858 tests passed, 4 skipped.
+- Real PostgreSQL suite: 2/2 passed. It proves two concurrent reapers recover one stale notify job exactly once, preserve a fresh processing reconciler, and retains the previous concurrent outbox recovery proof. Cleanup post-query found 0 lease/outbox jobs.
+- Node 22 TypeScript, targeted ESLint, and `git diff --check`: exit 0.
+
+No schema or migration change was needed. No plan/ledger edit, deployment, push, production action, or persistent test data was performed.

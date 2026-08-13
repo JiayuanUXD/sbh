@@ -10,6 +10,7 @@ const AGGREGATE_TYPE = 'city-partner-application'
 const NOTIFICATION_TYPE = 'city-partner-application-created'
 const MAX_RECIPIENTS = 50
 const QUERY_LIMIT = 100
+export const CITY_PARTNER_JOB_LEASE_MS = 15 * 60 * 1_000
 
 type Identifier = number | string
 type ApplicationDoc = Readonly<{
@@ -23,6 +24,35 @@ type NotificationTask = {
 type ReconcileTask = {
   input: Record<string, never>
   output: { queued: number; scanned: number }
+}
+
+/**
+ * Releases only expired processing leases. The where clause is part of the
+ * update itself, so concurrent reapers are idempotent and a fresh worker whose
+ * updatedAt is newer than the cutoff cannot be claimed.
+ */
+export async function recoverStaleCityPartnerNotificationJobs(
+  payload: Payload,
+  now = new Date(),
+): Promise<{ recovered: number }> {
+  const cutoff = new Date(now.getTime() - CITY_PARTNER_JOB_LEASE_MS).toISOString()
+  const result = await payload.db.pool.query<{ id: number }>(`
+    UPDATE payload_jobs
+    SET processing = false, updated_at = NOW()
+    WHERE queue = $1
+      AND updated_at <= $2
+      AND task_slug IN ($3, $4)
+      AND processing = true
+      AND completed_at IS NULL
+      AND has_error IS NOT TRUE
+    RETURNING id
+  `, [
+    CITY_PARTNER_NOTIFICATION_QUEUE,
+    cutoff,
+    CITY_PARTNER_NOTIFICATION_TASK,
+    CITY_PARTNER_NOTIFICATION_RECONCILE_TASK,
+  ])
+  return { recovered: result.rowCount ?? result.rows.length }
 }
 
 function relationId(value: unknown): Identifier | null {

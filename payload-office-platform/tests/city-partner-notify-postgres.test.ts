@@ -7,6 +7,9 @@ import config from '@/payload.config'
 import { CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY } from '@/domain/city-partner-application/application-protect'
 import {
   CITY_PARTNER_NOTIFICATION_TASK,
+  CITY_PARTNER_NOTIFICATION_QUEUE,
+  CITY_PARTNER_NOTIFICATION_RECONCILE_TASK,
+  recoverStaleCityPartnerNotificationJobs,
   reconcileCityPartnerNotificationOutbox,
 } from '@/domain/city-partner-application/application-notify'
 
@@ -17,6 +20,7 @@ describe.skipIf(!databaseAvailable)('city partner notification PostgreSQL outbox
   let payload: Payload
   let applicationId: number | null = null
   let stableEventId = ''
+  const leaseJobIds: Array<number | string> = []
 
   beforeAll(async () => {
     payload = await getPayload({ config })
@@ -34,6 +38,18 @@ describe.skipIf(!databaseAvailable)('city partner notification PostgreSQL outbox
       : { docs: [] }
     for (const job of jobs.docs) {
       await payload.delete({ collection: 'payload-jobs', id: job.id, overrideAccess: true })
+    }
+    for (const id of leaseJobIds) {
+      const remaining = await payload.find({
+        collection: 'payload-jobs',
+        where: { id: { equals: id } },
+        limit: 1,
+        depth: 0,
+        overrideAccess: true,
+      })
+      if (remaining.docs.length === 1) {
+        await payload.delete({ collection: 'payload-jobs', id, overrideAccess: true })
+      }
     }
     const events = stableEventId
       ? await payload.find({
@@ -127,5 +143,59 @@ describe.skipIf(!databaseAvailable)('city partner notification PostgreSQL outbox
       overrideAccess: true,
     })
     expect(event.docs[0]?.processedAt).toBeFalsy()
+  })
+
+  it('atomically releases stale leases without taking fresh processing jobs', async () => {
+    const now = new Date('2026-08-13T06:30:00.000Z')
+    const stale = await payload.jobs.queue({
+      task: CITY_PARTNER_NOTIFICATION_TASK,
+      queue: CITY_PARTNER_NOTIFICATION_QUEUE,
+      input: { eventId: `lease-stale-${randomUUID()}` },
+      overrideAccess: true,
+    })
+    const fresh = await payload.jobs.queue({
+      task: CITY_PARTNER_NOTIFICATION_RECONCILE_TASK,
+      queue: CITY_PARTNER_NOTIFICATION_QUEUE,
+      input: {},
+      overrideAccess: true,
+    })
+    leaseJobIds.push(stale.id, fresh.id)
+    await payload.update({
+      collection: 'payload-jobs',
+      id: stale.id,
+      data: { processing: true },
+      overrideAccess: true,
+    })
+    await payload.update({
+      collection: 'payload-jobs',
+      id: fresh.id,
+      data: { processing: true },
+      overrideAccess: true,
+    })
+    const pgClient = payload.db.pool
+    await pgClient.query(
+      `UPDATE payload_jobs SET updated_at = $1 WHERE id = $2`,
+      [new Date(now.getTime() - 16 * 60 * 1_000).toISOString(), stale.id],
+    )
+    await pgClient.query(
+      `UPDATE payload_jobs SET updated_at = $1 WHERE id = $2`,
+      [new Date(now.getTime() - 14 * 60 * 1_000).toISOString(), fresh.id],
+    )
+
+    const results = await Promise.all([
+      recoverStaleCityPartnerNotificationJobs(payload, now),
+      recoverStaleCityPartnerNotificationJobs(payload, now),
+    ])
+    expect(results.reduce((sum, result) => sum + result.recovered, 0)).toBe(1)
+    const persistedStale = await payload.findByID({
+      collection: 'payload-jobs', id: stale.id, depth: 0, overrideAccess: true,
+    })
+    const persistedFresh = await payload.findByID({
+      collection: 'payload-jobs', id: fresh.id, depth: 0, overrideAccess: true,
+    })
+    expect(persistedStale.processing).toBe(false)
+    expect(persistedFresh.processing).toBe(true)
+    await payload.delete({ collection: 'payload-jobs', id: stale.id, overrideAccess: true })
+    await payload.delete({ collection: 'payload-jobs', id: fresh.id, overrideAccess: true })
   })
 })
