@@ -45,7 +45,7 @@ vi.mock('@/lib/rate-limit-pg', () => ({
   }),
 }))
 
-import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
 import { POST } from '@/app/api/city-partner-applications/route'
 
 function body(overrides: Record<string, unknown> = {}) {
@@ -62,12 +62,12 @@ function body(overrides: Record<string, unknown> = {}) {
 }
 
 function request(input = body(), headers: Record<string, string> = {}) {
-  return new Request('https://sbh.example.com/api/city-partner-applications', {
+  return new Request(`${siteConfig.siteOrigin}/api/city-partner-applications`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      host: 'sbh.example.com',
-      origin: 'https://sbh.example.com',
+      host: siteConfig.siteUrl.host,
+      origin: siteConfig.siteOrigin,
       'x-forwarded-for': '198.51.100.10',
       ...headers,
     },

@@ -79,3 +79,23 @@ Focused GREEN after implementation: 3 files, 37/37 tests passed.
 - `git diff --check`: exit 0.
 
 No schema, migration, plan/ledger, deployment, push, or production action was performed. The only local database mutations were the isolated integration fixture and its verified cleanup.
+
+## Fix Round 2 (2026-08-13)
+
+### Review fixes
+
+- Admin workflow updates now use the same complete-document merge semantics as trusted stage two: the hook returns `{...previous, ...workflowAccepted}`. The incoming document can still override only `status`, `assignee`, and `internalNote`, plus the server-owned terminal `handledAt`; fresh manage permission, exact city membership, immutable applicant/details facts, and the transition graph are unchanged.
+- Same-origin authority now comes from `siteConfig.siteOrigin`, not `req.url`. `isSameOrigin(req, expectedOrigin = siteConfig.siteOrigin)` requires both Origin and Host, canonicalizes configured/default ports through `URL`, requires the parsed Origin to equal the configured origin exactly, and requires the canonical Host to equal the configured URL host. A self-consistent attacker-controlled request URL, Host, and Origin therefore cannot authorize itself.
+- Route tests now construct valid requests from the same configured site authority; focused guard tests inject explicit expected origins to cover HTTPS/HTTP default ports, missing headers, scheme/port/host mismatch, valid requests, and the self-consistent attacker case.
+
+### TDD and database evidence
+
+- RED: 2 files, 38 tests; 3 intended failures showed workflow returned only `{status}`, a self-consistent attacker authority was accepted, and explicit default ports were not canonicalized.
+- Focused GREEN: 4 files, 56/56 passed.
+- Real local PostgreSQL integration: 1 file, 2/2 passed. In addition to the stage-two concurrency case, the new workflow test created an isolated application, loaded a real local ADM account without logging its data, performed a Payload Local API `pending -> contacted` update, proved every required applicant/source/consent fact remained intact, and proved a contacted document version was written. Cleanup deleted both isolated fixtures and read-back confirmed none remained.
+- The workflow integration's first actor attempt used a fabricated ADM ID; the audit-fields plugin correctly tried to persist it as `lastModifiedBy`, and PostgreSQL rejected the nonexistent user FK. That fixture was cleaned. The final passing test deliberately uses a real local ADM so authorization, audit relation integrity, hook merge behavior, and version persistence are exercised together.
+- Relevant Task 1/security/route/rate-limit suite: 16 files, 297/297 passed.
+- Full unit suite without database environment: 195 files passed, 1 integration file skipped; 2843 tests passed, 2 database tests skipped. Both skipped tests were executed separately against real PostgreSQL above.
+- Node 22 TypeScript, targeted ESLint, and `git diff --check`: exit 0.
+
+No schema, migration, plan/ledger, deployment, push, production action, or persistent test data remains.

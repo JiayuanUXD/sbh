@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import type { Payload } from 'payload'
+import { siteConfig } from '@/lib/frontend/site-config'
 
 import type { CityPartnerDetailsInput } from '@/domain/city-partner-application/public-service'
 
@@ -203,12 +204,12 @@ vi.mock('@/lib/rate-limit-pg', () => ({
 import { POST } from '@/app/api/city-partner-applications/details/route'
 
 function detailsRequest() {
-  return new Request('https://sbh.example.com/api/city-partner-applications/details', {
+  return new Request(`${siteConfig.siteOrigin}/api/city-partner-applications/details`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      host: 'sbh.example.com',
-      origin: 'https://sbh.example.com',
+      host: siteConfig.siteUrl.host,
+      origin: siteConfig.siteOrigin,
       'x-forwarded-for': '198.51.100.10',
     },
     body: JSON.stringify({

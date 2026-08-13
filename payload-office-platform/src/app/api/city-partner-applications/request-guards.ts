@@ -79,14 +79,15 @@ export function isStrictJsonContentType(contentType: string | null): boolean {
   return contentType !== null && JSON_MEDIA_TYPE.test(contentType)
 }
 
-export function isSameOrigin(req: Request): boolean {
+export function isSameOrigin(req: Request, expectedOrigin = siteConfig.siteOrigin): boolean {
   const origin = req.headers.get('origin')
   const host = req.headers.get('host')
   if (!origin || !host) return false
   try {
     const suppliedOrigin = new URL(origin)
-    const requestUrl = new URL(req.url)
-    return suppliedOrigin.origin === requestUrl.origin && host === requestUrl.host
+    const expected = new URL(expectedOrigin)
+    const suppliedHost = new URL(`${expected.protocol}//${host}`)
+    return suppliedOrigin.origin === expected.origin && suppliedHost.host === expected.host
   } catch {
     return false
   }

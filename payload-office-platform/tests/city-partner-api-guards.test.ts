@@ -35,10 +35,10 @@ describe('city partner API request guards', () => {
     expect(isStrictJsonContentType('text/json')).toBe(false)
     expect(isSameOrigin(new Request('https://sbh.example.com/api', {
       headers: { host: 'sbh.example.com', origin: 'https://sbh.example.com' },
-    }))).toBe(true)
+    }), 'https://sbh.example.com')).toBe(true)
     expect(isSameOrigin(new Request('https://sbh.example.com/api', {
       headers: { host: 'sbh.example.com', origin: 'https://attacker.example' },
-    }))).toBe(false)
+    }), 'https://sbh.example.com')).toBe(false)
   })
 
   it.each([
@@ -48,7 +48,25 @@ describe('city partner API request guards', () => {
     ['port mismatch', { host: 'sbh.example.com', origin: 'https://sbh.example.com:444' }],
     ['request host mismatch', { host: 'internal.example.com', origin: 'https://sbh.example.com' }],
   ])('fails closed for %s', (_case, headers) => {
-    expect(isSameOrigin(new Request('https://sbh.example.com/api', { headers }))).toBe(false)
+    expect(isSameOrigin(
+      new Request('https://sbh.example.com/api', { headers }),
+      'https://sbh.example.com',
+    )).toBe(false)
+  })
+
+  it('uses configured server authority rather than a self-consistent attacker request URL', () => {
+    expect(isSameOrigin(new Request('https://attacker.example/api', {
+      headers: { host: 'attacker.example', origin: 'https://attacker.example' },
+    }), 'https://sbh.example.com')).toBe(false)
+  })
+
+  it('canonicalizes explicit default ports against the configured authority', () => {
+    expect(isSameOrigin(new Request('https://internal.invalid/api', {
+      headers: { host: 'sbh.example.com:443', origin: 'https://sbh.example.com:443' },
+    }), 'https://sbh.example.com')).toBe(true)
+    expect(isSameOrigin(new Request('http://internal.invalid/api', {
+      headers: { host: 'sbh.example.com:80', origin: 'http://sbh.example.com:80' },
+    }), 'http://sbh.example.com')).toBe(true)
   })
 
   it('normalizes a strict stage-one body', () => {

@@ -125,5 +125,5 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
   if (to !== from && (to === 'qualified' || to === 'not-fit' || to === 'withdrawn')) {
     workflow.handledAt = new Date().toISOString()
   }
-  return workflow
+  return { ...previous, ...workflow }
 }

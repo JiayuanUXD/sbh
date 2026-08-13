@@ -194,7 +194,11 @@ describe('city partner application domain', () => {
       original,
       {},
       adminReq({ code: 'MGR', cityIds: [11] }),
-    )).resolves.toMatchObject({ status: 'contacted' })
+    )).resolves.toMatchObject({
+      city: { id: 11 },
+      detailsCompletedAt: null,
+      status: 'contacted',
+    })
 
     await expect(protectCityPartnerApplication({
       operation: 'update',
