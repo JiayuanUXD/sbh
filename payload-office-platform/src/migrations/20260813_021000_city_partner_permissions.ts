@@ -1,4 +1,8 @@
 import { sql, type MigrateDownArgs, type MigrateUpArgs } from '@payloadcms/db-postgres'
+import {
+  BUILTIN_ROLES,
+  type RoleFixture,
+} from '@/test/factory/roles'
 
 const TARGET_ROLE_CODES = ['OPS', 'MGR'] as const
 type TargetRoleCode = (typeof TARGET_ROLE_CODES)[number]
@@ -65,27 +69,72 @@ type RoleRow = {
   operation_permissions?: unknown
 }
 
-export async function up({ db }: MigrateUpArgs): Promise<void> {
-  const result = await db.execute(sql`
-    SELECT "id", "code", "is_builtin", "menu_permissions", "operation_permissions"
-    FROM "roles"
-    WHERE "is_builtin" = true;
-  `)
-  const rows = result.rows as RoleRow[]
-  const codes = rows.map((row) => row.code).filter((code): code is string => typeof code === 'string')
-  const expected = ['ADM', 'OPS', 'MGR', 'BRK', 'CSR']
-  if (codes.length !== expected.length || expected.some((code) => !codes.includes(code))) {
-    throw new Error(`city_partner_builtin_role_invariant:${codes.sort().join(',')}`)
-  }
+const EXPECTED_ROLE_CODES = ['ADM', 'OPS', 'MGR', 'BRK', 'CSR'] as const
+
+export function planMissingCityPartnerBuiltinRoles(
+  rows: readonly CityPartnerMigrationRole[],
+): RoleFixture[] {
+  const byCode = new Map(rows.map((row) => [row.code, row]))
 
   for (const row of rows) {
-    const update = planCityPartnerRoleUpdate({
-      id: row.id,
-      code: row.code,
-      isBuiltin: row.is_builtin,
-      menuPermissions: row.menu_permissions,
-      operationPermissions: row.operation_permissions,
-    })
+    if (row.isBuiltin === true && !EXPECTED_ROLE_CODES.includes(row.code as never)) {
+      throw new Error(`city_partner_builtin_role_unexpected:${String(row.code)}`)
+    }
+  }
+
+  return EXPECTED_ROLE_CODES.flatMap((code) => {
+    const existing = byCode.get(code)
+    if (!existing) return [BUILTIN_ROLES[code]]
+    if (existing.isBuiltin !== true) {
+      throw new Error(`city_partner_builtin_role_code_occupied:${code}`)
+    }
+    return []
+  })
+}
+
+function rowToMigrationRole(row: RoleRow): CityPartnerMigrationRole {
+  return {
+    id: row.id,
+    code: row.code,
+    isBuiltin: row.is_builtin,
+    menuPermissions: row.menu_permissions,
+    operationPermissions: row.operation_permissions,
+  }
+}
+
+export async function up({ db }: MigrateUpArgs): Promise<void> {
+  const existingResult = await db.execute(sql`
+    SELECT "id", "code", "is_builtin", "menu_permissions", "operation_permissions"
+    FROM "roles";
+  `)
+  const existingRows = existingResult.rows.map((row) => rowToMigrationRole(row as RoleRow))
+  const missingRoles = planMissingCityPartnerBuiltinRoles(existingRows)
+
+  for (const role of missingRoles) {
+    await db.execute(sql`
+      INSERT INTO "roles" (
+        "code", "name", "description", "is_builtin", "status", "data_scope",
+        "menu_permissions", "operation_permissions", "field_permissions",
+        "updated_at", "created_at"
+      ) VALUES (
+        ${role.code}, ${role.name}, ${role.description}, true, 'active', ${role.dataScope},
+        ${JSON.stringify(role.menuPermissions)}::jsonb,
+        ${JSON.stringify(role.operationPermissions)}::jsonb,
+        ${JSON.stringify(role.fieldPermissions)}::jsonb,
+        now(), now()
+      );
+    `)
+  }
+
+  const targetResult = await db.execute(sql`
+    SELECT "id", "code", "is_builtin", "menu_permissions", "operation_permissions"
+    FROM "roles"
+    WHERE "is_builtin" = true
+      AND "code" IN ('OPS', 'MGR');
+  `)
+
+  for (const rawRow of targetResult.rows) {
+    const update = planCityPartnerRoleUpdate(rowToMigrationRole(rawRow as RoleRow))
     if (!update) continue
     await db.execute(sql`
       UPDATE "roles"

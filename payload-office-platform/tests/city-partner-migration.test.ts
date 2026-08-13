@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { planCityPartnerRoleUpdate } from '@/migrations/20260813_021000_city_partner_permissions'
+import {
+  planCityPartnerRoleUpdate,
+  planMissingCityPartnerBuiltinRoles,
+} from '@/migrations/20260813_021000_city_partner_permissions'
 
 describe('city partner migrations', () => {
   it('contains generated schema constraints and required indexes', () => {
@@ -48,5 +51,26 @@ describe('city partner migrations', () => {
       ],
     })).toBeNull()
     expect(planCityPartnerRoleUpdate({ ...ops, code: 'BRK' })).toBeNull()
+  })
+
+  it('plans the four missing built-in roles when production only has ADM', () => {
+    const missing = planMissingCityPartnerBuiltinRoles([
+      { id: 1, code: 'ADM', isBuiltin: true },
+    ])
+
+    expect(missing.map((role) => role.code)).toEqual(['OPS', 'MGR', 'BRK', 'CSR'])
+    expect(missing).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'OPS', builtin: true, dataScope: 'global' }),
+      expect.objectContaining({ code: 'MGR', builtin: true, dataScope: 'team' }),
+      expect.objectContaining({ code: 'BRK', builtin: true, dataScope: 'self' }),
+      expect.objectContaining({ code: 'CSR', builtin: true, dataScope: 'global' }),
+    ]))
+  })
+
+  it('fails closed when a built-in code is occupied by a custom role', () => {
+    expect(() => planMissingCityPartnerBuiltinRoles([
+      { id: 1, code: 'ADM', isBuiltin: true },
+      { id: 2, code: 'OPS', isBuiltin: false },
+    ])).toThrow('city_partner_builtin_role_code_occupied:OPS')
   })
 })
