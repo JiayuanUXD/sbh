@@ -79,7 +79,7 @@ Record five concrete lines: commit SHA/subject; exact test commands/pass counts;
 
 - [x] **Gate A — foundation:** PostgreSQL has exactly seven valid City Site Profiles, one per canonical city; resolver and slug freeze tests pass.
 - [x] **Gate B — isolation:** all catalog consumers compile with required city; cross-city cache-hit tests prove no Shanghai records appear in another city.
-- [ ] **Gate C — application safety:** all three application flows persist server-resolved city; partner permissions, idempotency, notification fallback, and no-auto-conversion tests pass.
+- [x] **Gate C — application safety:** all three application flows persist server-resolved city; partner permissions, idempotency, notification fallback, and no-auto-conversion tests pass.
 - [ ] **Gate D — reversible routing:** `MULTI_CITY_ROUTING_ENABLED=false` preserves old canonical URLs; `true` uses page-level 307s and prefixed canonical URLs.
 - [ ] **Gate E — release candidate:** generated types, typecheck, full Vitest, webpack production build, PostgreSQL migration verification, E2E matrix, four-viewpoint browser review, and clean git status all pass.
 - [ ] **Gate F — separate approval:** only after an observation cycle may `/`, `/listings`, and `/buildings` static mappings be promoted from 307 to 308 and the kill switch removed.
