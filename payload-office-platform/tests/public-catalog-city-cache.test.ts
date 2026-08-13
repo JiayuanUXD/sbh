@@ -52,6 +52,12 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
     getSearchFacets: vi.fn(async (_input, ctx) => ({ citySlug: ctx.city })),
     paginateListingSearchSource: vi.fn((source) => source),
     searchBuildings: vi.fn(async (ctx) => [{ citySlug: ctx.city }]),
+    searchBuildingsPage: vi.fn(async (ctx, options) => ({
+      docs: [{ citySlug: ctx.city }],
+      hasNextPage: false,
+      nextPage: null,
+      page: options.page,
+    })),
   }
 })
 
@@ -69,6 +75,7 @@ import {
   getCachedRelatedBuildings,
   getCachedRelatedListings,
   getCachedSearchBuildings,
+  getCachedSitemapBuildingsPage,
   getCachedSearchFacets,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
@@ -114,6 +121,7 @@ describe('per-city public catalog caches', () => {
       Parameters<typeof getCachedDetailRecommendations>,
       Parameters<typeof getCachedRelatedBuildings>,
       Parameters<typeof getCachedSearchBuildings>,
+      Parameters<typeof getCachedSitemapBuildingsPage>,
       Parameters<typeof getCachedBuildingDetail>,
       Parameters<typeof getCachedBuildingBySlug>,
       Parameters<typeof getCachedSearchListings>,
@@ -127,6 +135,7 @@ describe('per-city public catalog caches', () => {
       [citySlug: string, listingSlug: string, limit?: number],
       [citySlug: string, buildingSlug: string, limit?: number],
       [citySlug: string],
+      [citySlug: string, page: number, limit: number],
       [citySlug: string, slug: string],
       [citySlug: string, slug: string],
       [citySlug: string, canonicalQuery: string, input: ReturnType<typeof parseSearchInput>],
@@ -142,6 +151,7 @@ describe('per-city public catalog caches', () => {
       getCachedDetailRecommendations('suzhou', 'listing', 3),
       getCachedRelatedBuildings('suzhou', 'building', 3),
       getCachedSearchBuildings('suzhou'),
+      getCachedSitemapBuildingsPage('suzhou', 2, 200),
       getCachedBuildingDetail('suzhou', 'building'),
       getCachedBuildingBySlug('suzhou', 'building'),
       getCachedSearchListings('suzhou', '', input),
@@ -156,6 +166,7 @@ describe('per-city public catalog caches', () => {
       'detail-recommendations',
       'related-buildings',
       'search-buildings',
+      'sitemap-buildings-page',
       'building-detail',
       'building-by-slug',
       'listing-search-source',
@@ -170,6 +181,18 @@ describe('per-city public catalog caches', () => {
       expect(registration?.tags.some((tag) => tag.endsWith(':suzhou')), resource).toBe(true)
       expect(registration?.revalidate, resource).toBe(300)
     }
+
+    const buildingPage = cacheState.registrations.find(
+      ({ keyParts }) => keyParts[0] === 'sitemap-buildings-page' && keyParts[1] === 'suzhou',
+    )
+    expect(buildingPage).toMatchObject({
+      keyParts: ['sitemap-buildings-page', 'suzhou', 'page:2', 'limit:200'],
+      revalidate: 300,
+    })
+    expect(buildingPage?.tags).toEqual(expect.arrayContaining([
+      'public:buildings:city:suzhou',
+      'public:buildings:city:suzhou:page:2:limit:200',
+    ]))
   })
 
   it('keeps page and article cache contracts global', () => {

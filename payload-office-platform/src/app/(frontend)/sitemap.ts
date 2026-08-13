@@ -6,13 +6,14 @@ import {
   SITEMAP_TAG,
   parseSearchInput,
   type ArticleCardViewModel,
+  type BuildingSummaryViewModel,
   type ListingCardViewModel,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
 import {
   getCachedPublishedArticles,
   getCachedPublishedPages,
-  getCachedSearchBuildings,
+  getCachedSitemapBuildingsPage,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
 import { siteConfig } from '@/lib/frontend/site-config'
@@ -24,6 +25,7 @@ const HOME_SLUG = 'home'
 const PRIVACY_SLUG = 'privacy'
 const SITEMAP_ENTITY_LIMIT = 5_000
 const ARTICLE_PAGE_SIZE = 48
+const BUILDING_PAGE_SIZE = 200
 
 function listingInput(page: number): ListingSearchInput {
   return { ...parseSearchInput(new URLSearchParams()), page }
@@ -54,17 +56,31 @@ async function getPublishedArticles() {
   return docs
 }
 
+async function getCityBuildings(citySlug: string) {
+  const docs: BuildingSummaryViewModel[] = []
+  const visitedPages = new Set<number>()
+  let page = 1
+  while (docs.length < SITEMAP_ENTITY_LIMIT && !visitedPages.has(page)) {
+    visitedPages.add(page)
+    const result = await getCachedSitemapBuildingsPage(citySlug, page, BUILDING_PAGE_SIZE)
+    docs.push(...result.docs.slice(0, SITEMAP_ENTITY_LIMIT - docs.length))
+    if (!result.hasNextPage || result.nextPage == null || result.nextPage <= page) break
+    page = result.nextPage
+  }
+  return docs
+}
+
 const getCachedSitemapEntries = unstable_cache(
   async () => {
     const profiles = await listPublicCityProfiles()
     const liveProfiles = profiles.filter((profile) => profile.serviceStatus === 'live')
     const [cities, pages, articles] = await Promise.all([
       Promise.all(liveProfiles.map(async (profile) => {
-        const [listings, buildingResult] = await Promise.all([
+        const [listings, buildings] = await Promise.all([
           getCityListings(profile.citySlug),
-          getCachedSearchBuildings(profile.citySlug),
+          getCityBuildings(profile.citySlug),
         ])
-        return { citySlug: profile.citySlug, listings, buildings: buildingResult.docs }
+        return { citySlug: profile.citySlug, listings, buildings }
       })),
       getCachedPublishedPages(SITEMAP_ENTITY_LIMIT),
       getPublishedArticles(),

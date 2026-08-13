@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const sitemapIo = vi.hoisted(() => ({
   getCachedPublishedArticles: vi.fn(),
   getCachedPublishedPages: vi.fn(),
+  getCachedSitemapBuildingsPage: vi.fn(),
   getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
   listPublicCityProfiles: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('@/app/(frontend)/_lib/city-context', () => ({
 vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedPublishedArticles: sitemapIo.getCachedPublishedArticles,
   getCachedPublishedPages: sitemapIo.getCachedPublishedPages,
+  getCachedSitemapBuildingsPage: sitemapIo.getCachedSitemapBuildingsPage,
   getCachedSearchBuildings: sitemapIo.getCachedSearchBuildings,
   getCachedSearchListings: sitemapIo.getCachedSearchListings,
 }))
@@ -93,17 +95,21 @@ function listing(
   id: number,
   slug: string,
   parent: Building,
-  mediaCount = 3,
+  options: Readonly<{
+    listingType?: Listing['listingType']
+    mediaCount?: number
+    rentUnit?: Listing['rentUnit']
+  }> = {},
 ): ParityListing {
   const owningCity = typeof parent.city === 'object' ? parent.city : null
   return {
     id,
     title: `${slug} listing`,
     slug,
-    listingType: 'traditional-office',
+    listingType: options.listingType ?? 'traditional-office',
     building: parent,
     rent: id,
-    rentUnit: 'rmb-month',
+    rentUnit: options.rentUnit ?? 'rmb-month',
     area: 100,
     isFeatured: true,
     publicationStatus: 'published',
@@ -120,7 +126,7 @@ function listing(
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
-    gallery: Array.from({ length: mediaCount }, (_, index) => ({ image: index + 1 })),
+    gallery: Array.from({ length: options.mediaCount ?? 3 }, (_, index) => ({ image: index + 1 })),
     _relationPeriod: { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null },
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
@@ -137,9 +143,12 @@ const listings = [
   listing(1001, 'shanghai-one', shanghaiBuilding),
   listing(1002, 'shanghai-two', shanghaiBuilding),
   listing(2001, 'suzhou-one', suzhouBuilding),
-  listing(2002, 'suzhou-two', suzhouBuilding),
-  listing(3001, 'shanghai-ineligible', shanghaiBuilding, 2),
-  listing(3002, 'suzhou-ineligible', suzhouBuilding, 2),
+  listing(2002, 'suzhou-two', suzhouBuilding, {
+    listingType: 'coworking',
+    rentUnit: 'rmb-seat-month',
+  }),
+  listing(3001, 'shanghai-ineligible', shanghaiBuilding, { mediaCount: 2 }),
+  listing(3002, 'suzhou-ineligible', suzhouBuilding, { mediaCount: 2 }),
 ] as const
 const buildings = [shanghaiBuilding, suzhouBuilding] as const
 const districts = [shanghaiDistrict, suzhouDistrict] as const
@@ -191,6 +200,18 @@ function createParityAdapter(): SupplyAdapter {
     async findEffectiveBuildings(ctx) {
       return buildings.filter((item) => typeof item.city === 'object' && item.city?.slug === ctx.city)
     },
+    async findEffectiveBuildingsPage(ctx, { page, limit }) {
+      const all = buildings.filter(
+        (item) => typeof item.city === 'object' && item.city?.slug === ctx.city,
+      )
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
+    },
     async findFeaturedListings(ctx) { return cityListings(ctx).filter((item) => item.isFeatured) },
     async findFeaturedBuildings() { return [] },
     async findLatestArticles() { return [] },
@@ -224,14 +245,38 @@ describe('per-city effective listing parity matrix', () => {
     sitemapIo.getCachedSearchBuildings.mockImplementation(async (citySlug: string) =>
       searchBuildings(createSearchContext(citySlug, AS_OF), adapter),
     )
+    sitemapIo.getCachedSitemapBuildingsPage.mockResolvedValue({
+      docs: [],
+      hasNextPage: false,
+      nextPage: null,
+      page: 1,
+    })
     sitemapIo.getCachedPublishedPages.mockResolvedValue([])
     sitemapIo.getCachedPublishedArticles.mockResolvedValue({ docs: [], page: 1, totalPages: 1 })
   })
 
   it.each([
-    ['shanghai', [1001, 1002]],
-    ['suzhou', [2001, 2002]],
-  ] as const)('%s consumers agree on the effective listing set', async (citySlug, expectedIds) => {
+    ['shanghai', [1001, 1002], {
+      districts: [{ count: 2, slug: 'jingan' }],
+      listingTypes: [{ count: 2, value: 'traditional-office' }],
+      rentUnits: [{ count: 2, value: 'rmb-month' }],
+    }],
+    ['suzhou', [2001, 2002], {
+      districts: [{ count: 2, slug: 'gusu' }],
+      listingTypes: [
+        { count: 1, value: 'traditional-office' },
+        { count: 1, value: 'coworking' },
+      ],
+      rentUnits: [
+        { count: 1, value: 'rmb-month' },
+        { count: 1, value: 'rmb-seat-month' },
+      ],
+    }],
+  ] as const)('%s consumers agree on the effective listing set', async (
+    citySlug,
+    expectedIds,
+    expectedFacets,
+  ) => {
     const ctx = createSearchContext(citySlug, AS_OF)
     const [home, list, facets, sitemapEntries] = await Promise.all([
       getHomepage(ctx, { featuredLimit: 8 }, adapter),
@@ -258,6 +303,11 @@ describe('per-city effective listing parity matrix', () => {
     expect(detailIds.sort()).toEqual([...expectedIds])
     expect([...recommendationIds].sort()).toEqual([...expectedIds])
     expect(facets.totalDocs).toBe(expectedIds.length)
+    expect(facets.districts.map(({ count, slug }) => ({ count, slug }))).toEqual(
+      expectedFacets.districts,
+    )
+    expect(facets.listingTypes).toEqual(expectedFacets.listingTypes)
+    expect(facets.rentUnits).toEqual(expectedFacets.rentUnits)
     expect(sitemapIds.sort()).toEqual([...expectedIds])
   })
 })

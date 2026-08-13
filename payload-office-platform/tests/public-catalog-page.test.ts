@@ -67,6 +67,9 @@ function createFakePageAdapter(options: {
     async findEffectiveBuildings() {
       return []
     },
+    async findEffectiveBuildingsPage(_ctx, { page }) {
+      return { docs: [], page, hasNextPage: false, nextPage: null }
+    },
     async findFeaturedListings() {
       return []
     },

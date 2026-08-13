@@ -127,6 +127,14 @@ export type BuildingSearchResult = Readonly<{
   totalDocs: number
 }>
 
+/** One public building page for bounded catalog enumeration. */
+export type BuildingSearchPageResult = Readonly<{
+  docs: readonly BuildingSummaryViewModel[]
+  page: number
+  hasNextPage: boolean
+  nextPage: number | null
+}>
+
 /** 楼盘详情页（不含房源聚合）：仅楼盘 DTO */
 export type BuildingDetailPageResult = Readonly<{
   building: BuildingDetailViewModel | null
@@ -372,6 +380,25 @@ export async function searchBuildings(
   }
   const docs = await attachLeasableArea(summaries, ctx, adapter)
   return { docs, totalDocs: docs.length }
+}
+
+export async function searchBuildingsPage(
+  ctx: SearchContext,
+  options: Readonly<{ page: number; limit: number }>,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingSearchPageResult> {
+  const result = await adapter.findEffectiveBuildingsPage(ctx, options)
+  const docs: BuildingSummaryViewModel[] = []
+  for (const raw of result.docs) {
+    const summary = mapBuildingSummary(raw)
+    if (summary) docs.push(summary)
+  }
+  return {
+    docs,
+    page: result.page,
+    hasNextPage: result.hasNextPage,
+    nextPage: result.nextPage,
+  }
 }
 
 /**

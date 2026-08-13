@@ -97,6 +97,12 @@ export interface SupplyAdapter {
   /** 返回所有有效公开楼盘（用于楼盘列表页，按 updatedAt 倒序） */
   findEffectiveBuildings(ctx: SearchContext, limit?: number): Promise<readonly Building[]>
 
+  /** 返回一页有效公开楼盘（用于 sitemap 等有界全量枚举）。 */
+  findEffectiveBuildingsPage(
+    ctx: SearchContext,
+    options: Readonly<{ page: number; limit: number }>,
+  ): Promise<EffectiveBuildingPage>
+
   /** 首页精选有效房源（按 isFeatured + updatedAt desc） */
   findFeaturedListings(ctx: SearchContext, limit?: number): Promise<readonly Listing[]>
 
@@ -168,6 +174,13 @@ export interface SupplyAdapter {
    */
   findPublishedArticleBySlug(slug: string): Promise<Article | null>
 }
+
+export type EffectiveBuildingPage = Readonly<{
+  docs: readonly Building[]
+  page: number
+  hasNextPage: boolean
+  nextPage: number | null
+}>
 
 /**
  * 适配器调用上下文：包含 search 输入与 SearchContext
@@ -359,6 +372,32 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   function normalizeNearbyBuildingLimit(limit: number): number {
     if (!Number.isFinite(limit)) return 0
     return Math.max(0, Math.floor(limit))
+  }
+
+  async function findPublicBuildingsPage(
+    ctx: SearchContext,
+    options: Readonly<{ page: number; limit: number }>,
+  ): Promise<EffectiveBuildingPage> {
+    const payload = await getPayload()
+    const page = Math.max(1, Math.floor(options.page))
+    const limit = Math.min(500, Math.max(1, Math.floor(options.limit)))
+    const result = await payload.find({
+      collection: 'buildings',
+      where: {
+        ...getPublicBuildingWhere(),
+        'city.slug': { equals: ctx.city },
+      } as unknown as Where,
+      depth: 2,
+      limit,
+      page,
+      sort: '-updatedAt',
+    })
+    return {
+      docs: (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
+      page,
+      hasNextPage: result.hasNextPage,
+      nextPage: result.nextPage ?? null,
+    }
   }
 
   async function resolveBuildingIdsByDistrict(
@@ -774,18 +813,11 @@ GROUP BY l.building_id
     },
 
     async findEffectiveBuildings(ctx, limit = 200) {
-      const payload = await getPayload()
-      const result = await payload.find({
-        collection: 'buildings',
-        where: {
-          ...getPublicBuildingWhere(),
-          'city.slug': { equals: ctx.city },
-        } as unknown as Where,
-        depth: 2,
-        limit: Math.min(limit, 500),
-        sort: '-updatedAt',
-      })
-      return (result.docs as Building[]).filter((building) => isPublicBuilding(building))
+      return (await findPublicBuildingsPage(ctx, { page: 1, limit })).docs
+    },
+
+    async findEffectiveBuildingsPage(ctx, options) {
+      return findPublicBuildingsPage(ctx, options)
     },
 
     async findFeaturedBuildings(ctx, limit = 8) {

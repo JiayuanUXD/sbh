@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const sitemapState = vi.hoisted(() => ({
   getCachedPublishedArticles: vi.fn(),
   getCachedPublishedPages: vi.fn(),
+  getCachedSitemapBuildingsPage: vi.fn(),
   getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
   listPublicCityProfiles: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('@/app/(frontend)/_lib/city-context', () => ({
 vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedPublishedArticles: sitemapState.getCachedPublishedArticles,
   getCachedPublishedPages: sitemapState.getCachedPublishedPages,
+  getCachedSitemapBuildingsPage: sitemapState.getCachedSitemapBuildingsPage,
   getCachedSearchBuildings: sitemapState.getCachedSearchBuildings,
   getCachedSearchListings: sitemapState.getCachedSearchListings,
 }))
@@ -56,6 +58,12 @@ describe('city-aware public sitemap', () => {
         slug: `${city}-building`,
         updatedAt: '2026-08-12T00:00:00.000Z',
       }],
+    }))
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(async (city: string) => ({
+      docs: [{ id: city === 'shanghai' ? 301 : 401, slug: `${city}-building` }],
+      hasNextPage: false,
+      nextPage: null,
+      page: 1,
     }))
     sitemapState.getCachedPublishedPages.mockResolvedValue([
       { id: 1, slug: 'home', updatedAt: '2026-08-10T00:00:00.000Z' },
@@ -92,6 +100,56 @@ describe('city-aware public sitemap', () => {
     expect(urls).toContain('https://example.com/pages/privacy')
     expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
     expect(new Set(urls).size).toBe(urls.length)
+  })
+
+  it('follows live-city building pages without querying coming-soon cities', async () => {
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
+      async (city: string, page: number) => ({
+        docs: [{ id: page, slug: `${city}-building-${page}` }],
+        hasNextPage: page === 1,
+        nextPage: page === 1 ? 2 : null,
+        page,
+      }),
+    )
+
+    const urls = (await sitemap()).map(({ url }) => url)
+
+    expect(urls).toContain('https://example.com/shanghai/buildings/shanghai-building-2')
+    expect(urls).toContain('https://example.com/suzhou/buildings/suzhou-building-2')
+    expect(sitemapState.getCachedSitemapBuildingsPage.mock.calls).toEqual([
+      ['shanghai', 1, 200],
+      ['suzhou', 1, 200],
+      ['shanghai', 2, 200],
+      ['suzhou', 2, 200],
+    ])
+    expect(sitemapState.getCachedSitemapBuildingsPage).not.toHaveBeenCalledWith(
+      'hangzhou',
+      expect.anything(),
+      expect.anything(),
+    )
+  })
+
+  it('caps building sitemap entries at 5000 even if a page is oversized', async () => {
+    sitemapState.listPublicCityProfiles.mockResolvedValue([
+      { citySlug: 'shanghai', serviceStatus: 'live' },
+    ])
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
+      async (_city: string, page: number) => ({
+        docs: Array.from({ length: 3_000 }, (_, index) => ({
+          id: page * 10_000 + index,
+          slug: `building-${page}-${index}`,
+        })),
+        hasNextPage: true,
+        nextPage: page + 1,
+        page,
+      }),
+    )
+
+    const urls = (await sitemap()).map(({ url }) => url)
+    const buildingDetails = urls.filter((url) => /\/shanghai\/buildings\/building-/.test(url))
+
+    expect(buildingDetails).toHaveLength(5_000)
+    expect(sitemapState.getCachedSitemapBuildingsPage).toHaveBeenCalledTimes(2)
   })
 
   it('keeps static global routes when loading dynamic entries fails without logging secrets', async () => {

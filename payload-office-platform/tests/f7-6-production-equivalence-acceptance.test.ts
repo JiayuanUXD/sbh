@@ -322,6 +322,17 @@ function createFullPredicateAdapter(options: {
         .filter((building) => building.operationalStatus === 'active')
         .slice(0, limit)
     },
+    async findEffectiveBuildingsPage(ctx, { page, limit }) {
+      syncAsOf(ctx)
+      const all = buildings.filter((building) => building.operationalStatus === 'active')
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
+    },
     async findFeaturedListings(ctx, limit = 6) {
       syncAsOf(ctx)
       return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)

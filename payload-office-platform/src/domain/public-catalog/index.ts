@@ -64,6 +64,7 @@ export type {
   SupplyAdapter,
   SupplyAdapterFactory,
   AdapterCallContext,
+  EffectiveBuildingPage,
 } from './supply-adapter'
 export {
   createPayloadSupplyAdapter,
@@ -80,6 +81,7 @@ export {
   type BuildingDetailResult,
   type BuildingDetailPageResult,
   type BuildingSearchResult,
+  type BuildingSearchPageResult,
   // 函数
   parseSearchInput,
   buildCanonical,
@@ -87,6 +89,7 @@ export {
   buildListingSearchSource,
   paginateListingSearchSource,
   searchBuildings,
+  searchBuildingsPage,
   getListingBySlug,
   getBuildingBySlug,
   resolveListingRouteIdentity,

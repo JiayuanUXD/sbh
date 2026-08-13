@@ -182,6 +182,16 @@ function createFakeAdapter(options: {
         .filter((building) => building.operationalStatus === 'active')
         .slice(0, limit)
     },
+    async findEffectiveBuildingsPage(_ctx, { page, limit }) {
+      const all = options.buildings.filter((building) => building.operationalStatus === 'active')
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
+    },
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings
         .filter((l) => isListingEffective(l) && l.isFeatured)
