@@ -24,10 +24,14 @@ export async function resolveLeadCityPageSelection(
       : siteConfig.defaultCity
   const context = isPublicCitySlug(candidate) ? await resolveCityContext(candidate) : null
   const extraOption = context && !publicOptions.some((option) => option.slug === context.slug)
-    ? { slug: context.slug, name: context.name }
+    ? { slug: context.slug, name: context.name, serviceStatus: context.serviceStatus }
     : null
   const cities = [
-    ...publicOptions.map((option) => ({ slug: option.slug, name: option.name })),
+    ...publicOptions.map((option) => ({
+      slug: option.slug,
+      name: option.name,
+      serviceStatus: option.serviceStatus,
+    })),
     ...(extraOption ? [extraOption] : []),
   ]
 

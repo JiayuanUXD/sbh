@@ -53,6 +53,8 @@ type Props = {
   triggerVariant?: 'primary' | 'ghost' | 'ink'
   /** 触发按钮附加 className */
   triggerClassName?: string
+  /** Optional anonymous observation hook for the trigger action. */
+  onTriggerClick?: () => void
   /** 可分析的产品入口区块（与询盘 schema 的枚举保持一致） */
   sourceSection?: SourceSection
   /** 由公开 DTO 派生的非权威价格快照。 */
@@ -298,6 +300,7 @@ export default function InquiryModal(props: Props) {
   const targetSummary = getTargetSummary(props)
 
   function openModal() {
+    props.onTriggerClick?.()
     setErrors([])
     setServerError(null)
     setListingFallback(false)

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
+import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import {
   buildCityPath,
@@ -60,6 +61,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
   const activeCity = resolveTrustedCity(pathname, cities, defaultCity)
   const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
+  const pageType = getCityPageType(pathname)
 
   useEffect(() => {
     const sourceChanged = previousSourceUrlRef.current !== null && previousSourceUrlRef.current !== sourceUrl
@@ -125,7 +127,17 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
         aria-controls="city-switcher-menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          const nextOpen = !open
+          if (nextOpen) {
+            safeTrackCityEvent(track, 'city_switcher_opened', {
+              city: activeCity.slug,
+              status: activeCity.serviceStatus,
+              page_type: pageType,
+            })
+          }
+          setOpen(nextOpen)
+        }}
       >
         <span>{activeCity.name}</span>
         <span className="city-switcher__trigger-label">切换城市</span>
@@ -144,7 +156,18 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
                 tabIndex={-1}
                 className="city-switcher__option"
                 aria-current={current ? 'page' : undefined}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  if (!current) {
+                    safeTrackCityEvent(track, 'city_switched', {
+                      from_city: activeCity.slug,
+                      to_city: city.slug,
+                      status: city.serviceStatus,
+                      page_type: pageType,
+                      filters_preserved: href.includes('?'),
+                    })
+                  }
+                  setOpen(false)
+                }}
               >
                 <span>{city.name}</span>
                 <span className="city-switcher__status">{serviceStatusLabel(city.serviceStatus)}</span>

@@ -8,7 +8,7 @@ import {
   createBrowserFocusEnvironment,
   focusLandingTarget,
 } from '@/components/frontend/landing/BottomCtaBar'
-import { track } from '@/lib/frontend/analytics'
+import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
 import CitySwitcher, {
@@ -93,6 +93,7 @@ export default function SiteNav({
   const citySlug = currentCity?.slug
   const trustedCities = filterPublicCityOptions(cities)
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
+  const cityPageType = getCityPageType(pathname)
 
   // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
   // pageType 仅记录入口上下文，按当前路径粗分类以便分析。
@@ -221,7 +222,17 @@ export default function SiteNav({
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-controls="mobile-drawer"
-          onClick={() => setOpen((value) => (isDesktopNavigationViewport() ? false : !value))}
+          onClick={() => {
+            const nextOpen = isDesktopNavigationViewport() ? false : !open
+            if (nextOpen && currentCity) {
+              safeTrackCityEvent(track, 'city_switcher_opened', {
+                city: currentCity.slug,
+                status: currentCity.serviceStatus,
+                page_type: cityPageType,
+              })
+            }
+            setOpen(nextOpen)
+          }}
         >
           <svg
             width="24"
@@ -301,6 +312,15 @@ export default function SiteNav({
                       className="mobile-drawer__link"
                       aria-current={city.slug === citySlug ? 'page' : undefined}
                       onClick={() => {
+                        if (currentCity && city.slug !== currentCity.slug) {
+                          safeTrackCityEvent(track, 'city_switched', {
+                            from_city: currentCity.slug,
+                            to_city: city.slug,
+                            status: city.serviceStatus,
+                            page_type: cityPageType,
+                            filters_preserved: href.includes('?'),
+                          })
+                        }
                         setOpen(false)
                         toggleRef.current?.focus()
                       }}

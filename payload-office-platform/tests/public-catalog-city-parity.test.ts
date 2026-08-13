@@ -14,6 +14,7 @@ vi.mock('next/cache', () => ({
 }))
 vi.mock('@/lib/frontend/site-config', () => ({
   siteConfig: { siteOrigin: 'https://example.com', defaultCity: 'shanghai' },
+  getMultiCityRoutingEnabled: () => true,
 }))
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({
   listPublicCityProfiles: sitemapIo.listPublicCityProfiles,

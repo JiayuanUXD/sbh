@@ -25,7 +25,7 @@ describe('OPT-027 homepage and sitemap cache contracts', () => {
     expect(sitemap).toContain("['public-sitemap-entries']")
     expect(sitemap).toContain('SITEMAP_TAG')
     expect(sitemap).toMatch(/revalidate:\s*300/)
-    expect(sitemap).toContain('getCachedSitemapEntries()')
+    expect(sitemap).toContain('getCachedSitemapEntries(multiCityRoutingEnabled)')
   })
 
   it('invalidates content-dependent public caches from page and article collection hooks', async () => {

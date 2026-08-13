@@ -6,7 +6,7 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
-import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
@@ -29,10 +29,11 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
   const input = parseListingSearchInput(toUrlSearchParams(raw))
   const query = buildCanonicalSearchParams(input).toString()
-  const canonicalPath = query ? `/${city.slug}/listings?${query}` : `/${city.slug}/listings`
-  return buildPageMetadata({
-    title: `${city.name}在租房源`, canonicalPath,
-    robots: city.serviceStatus === 'coming-soon' || !getMultiCityRoutingEnabled() ? 'noindex' : 'index',
+  return buildCityPageMetadata({
+    city,
+    pageType: 'listings',
+    canonicalQuery: query || undefined,
+    multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
 }
 

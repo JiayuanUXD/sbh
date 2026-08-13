@@ -9,13 +9,13 @@ import {
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import CityPartnerApplicationForm from '@/components/frontend/city-partner/CityPartnerApplicationForm'
 import { CITY_PARTNER_COPY } from '@/lib/frontend/city-partner-config'
-import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { buildPageMetadata, cityPartnerCanonical } from '@/lib/frontend/metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 
 export const metadata: Metadata = buildPageMetadata({
   title: '城市合作伙伴申请',
   description: '提交城市合作伙伴申请，与我们沟通本地商业办公服务资源与合作方向。',
-  canonicalPath: '/city-partner',
+  canonicalPath: cityPartnerCanonical(),
 })
 
 export default async function CityPartnerPage({

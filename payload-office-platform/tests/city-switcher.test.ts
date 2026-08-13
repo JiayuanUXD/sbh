@@ -9,6 +9,15 @@ const navigationState = vi.hoisted(() => ({
   search: 'areaMin=100&district=pudong&page=3',
 }))
 
+const trackSpy = vi.hoisted(() => vi.fn())
+
+vi.mock('@/lib/frontend/analytics', () => ({
+  track: trackSpy,
+  safeTrackCityEvent: (tracker: typeof trackSpy, name: string, props: Record<string, unknown>) => {
+    tracker(name, props)
+  },
+}))
+
 vi.mock('next/navigation', () => ({
   usePathname: () => navigationState.pathname,
   useSearchParams: () => new URLSearchParams(navigationState.search),
@@ -32,6 +41,7 @@ afterEach(async () => {
   root = null
   document.body.replaceChildren()
   vi.unstubAllGlobals()
+  trackSpy.mockClear()
   navigationState.pathname = '/shanghai/listings'
   navigationState.search = 'areaMin=100&district=pudong&page=3'
 })
@@ -90,6 +100,16 @@ describe('CitySwitcher', () => {
     expect(shanghai?.getAttribute('aria-current')).toBe('page')
     expect(hangzhou?.textContent).toContain('杭州')
     expect(hangzhou?.textContent).toContain('正在开通')
+    expect(trackSpy).toHaveBeenCalledWith('city_switcher_opened', {
+      city: 'shanghai', status: 'live', page_type: 'listings',
+    })
+    if (!hangzhou) throw new Error('missing Hangzhou option')
+    await click(hangzhou)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'listings', filters_preserved: true,
+    })
+    expect(JSON.stringify(trackSpy.mock.calls)).not.toMatch(/district|page=|\?/)
   })
 
   it('closes on Escape and restores focus to the trigger', async () => {
@@ -141,6 +161,16 @@ describe('CitySwitcher', () => {
     expect(cityDrawer?.textContent).toContain('上海')
     expect(cityDrawer?.textContent).not.toContain('资讯城市')
     expect(cityDrawer?.textContent).not.toContain('非法城市')
+    expect(trackSpy).toHaveBeenCalledWith('city_switcher_opened', {
+      city: 'shanghai', status: 'live', page_type: 'listings',
+    })
+    const hangzhou = cityDrawer?.querySelector<HTMLAnchorElement>('a[href="/hangzhou/listings?areaMin=100"]')
+    if (!hangzhou) throw new Error('missing mobile Hangzhou option')
+    await click(hangzhou)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'listings', filters_preserved: true,
+    })
   })
 
   it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {

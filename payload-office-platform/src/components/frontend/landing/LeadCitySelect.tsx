@@ -5,7 +5,11 @@ import React from 'react'
 import { Field, Select } from '@/components/frontend/ui'
 import { buildCityPath } from '@/lib/frontend/city-routes'
 
-export type LeadCityOption = Readonly<{ slug: string; name: string }>
+export type LeadCityOption = Readonly<{
+  slug: string
+  name: string
+  serviceStatus: 'live' | 'coming-soon'
+}>
 
 export default function LeadCitySelect({
   pageType,

@@ -12,6 +12,7 @@
  */
 
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   createConsoleAdapter,
   createDataLayerAdapter,
@@ -20,6 +21,11 @@ import {
 } from './adapter'
 import { createCollector, type Collector } from './collector'
 import { initWebVitals } from './web-vitals'
+import {
+  resolveCityPageObservation,
+  safeTrackCityEvent,
+  type CityPageObservationOption,
+} from './landing'
 
 let collectorSingleton: Collector | null = null
 
@@ -30,7 +36,7 @@ export function createDefaultCollector(
 ): Collector {
   return createCollector(adapter, {
     now,
-    dedupe: { windows: { inquiry_open: 2000, landing_view: 2000 } },
+    dedupe: { windows: { inquiry_open: 2000, landing_view: 2000, city_page_view: 2000 } },
   })
 }
 
@@ -62,7 +68,10 @@ export function flushAnalytics(): Promise<void> {
  * 埋点初始化组件：在根 layout 渲染一次，负责 flush 时机订阅。
  * 不渲染任何 UI。
  */
-export function AnalyticsInit(): null {
+export function AnalyticsInit({ cities = [] }: Readonly<{
+  cities?: readonly CityPageObservationOption[]
+}>): null {
+  const pathname = usePathname() || '/'
   useEffect(() => {
     const collector = getCollector()
     const onVisibility = () => {
@@ -87,5 +96,10 @@ export function AnalyticsInit(): null {
       window.removeEventListener('pagehide', onHide)
     }
   }, [])
+
+  useEffect(() => {
+    const observation = resolveCityPageObservation(pathname, cities)
+    if (observation) safeTrackCityEvent(track, 'city_page_view', observation)
+  }, [cities, pathname])
   return null
 }

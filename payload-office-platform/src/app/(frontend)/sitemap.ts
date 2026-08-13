@@ -16,7 +16,7 @@ import {
   getCachedSitemapBuildingsPage,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import { siteConfig } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,9 +71,12 @@ async function getCityBuildings(citySlug: string) {
 }
 
 const getCachedSitemapEntries = unstable_cache(
-  async () => {
+  async (multiCityRoutingEnabled: boolean) => {
     const profiles = await listPublicCityProfiles()
-    const liveProfiles = profiles.filter((profile) => profile.serviceStatus === 'live')
+    const liveProfiles = profiles.filter((profile) => (
+      profile.serviceStatus === 'live'
+      && (multiCityRoutingEnabled || profile.citySlug === siteConfig.defaultCity)
+    ))
     const [cities, pages, articles] = await Promise.all([
       Promise.all(liveProfiles.map(async (profile) => {
         const [listings, buildings] = await Promise.all([
@@ -104,10 +107,11 @@ function globalStaticUrls(now: Date): MetadataRoute.Sitemap {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const staticUrls = globalStaticUrls(now)
+  const multiCityRoutingEnabled = getMultiCityRoutingEnabled()
 
   let entities: Awaited<ReturnType<typeof getCachedSitemapEntries>>
   try {
-    entities = await getCachedSitemapEntries()
+    entities = await getCachedSitemapEntries(multiCityRoutingEnabled)
   } catch {
     console.error('[sitemap] dynamic_entries_unavailable')
     return staticUrls
@@ -115,7 +119,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const dynamicUrls: MetadataRoute.Sitemap = []
   for (const city of entities.cities) {
-    const prefix = `${base}/${city.citySlug}`
+    const prefix = multiCityRoutingEnabled ? `${base}/${city.citySlug}` : base
     dynamicUrls.push(
       { url: prefix, lastModified: now, changeFrequency: 'daily', priority: 1 },
       { url: `${prefix}/listings`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },

@@ -5,7 +5,7 @@ import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'
-import { buildPageMetadata } from '@/lib/frontend/metadata'
+import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
@@ -19,9 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { city: slug } = await params
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
-  return buildPageMetadata({
-    title: `${city.name}写字楼`, canonicalPath: `/${city.slug}/buildings`,
-    robots: city.serviceStatus === 'coming-soon' || !getMultiCityRoutingEnabled() ? 'noindex' : 'index',
+  return buildCityPageMetadata({
+    city,
+    pageType: 'buildings',
+    multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
   })
 }
 

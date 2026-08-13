@@ -15,7 +15,9 @@ import { PUBLISH_COPY, PUBLISH_STEPS } from '@/lib/frontend/landing-config'
 import { track } from '@/lib/frontend/analytics'
 import {
   createLandingOnceTracker,
+  safeTrackCityEvent,
   safeTrackLandingEvent,
+  type CityServiceStatus,
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
@@ -86,7 +88,11 @@ export type SupplyFormState = Readonly<{
 
 export type SupplySubmissionCoordinator = Readonly<{
   getState: () => SupplyFormState
-  submit: (values: SupplyFormValues, city?: string) => Promise<SupplyFormState>
+  submit: (
+    values: SupplyFormValues,
+    city?: string,
+    cityStatus?: CityServiceStatus,
+  ) => Promise<SupplyFormState>
 }>
 
 type SupplySubmissionCoordinatorOptions = Readonly<{
@@ -286,6 +292,7 @@ export function createSupplySubmissionCoordinator(
   const submit = (
     values: SupplyFormValues,
     city: string = siteConfig.defaultCity,
+    cityStatus: CityServiceStatus = 'live',
   ): Promise<SupplyFormState> => {
     if (pendingSubmission) return pendingSubmission
 
@@ -353,6 +360,11 @@ export function createSupplySubmissionCoordinator(
           updateState({ status: 'success', fieldErrors: {}, formError: null, errorReason: null })
           safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
             page_type: 'publish',
+          })
+          safeTrackCityEvent(analyticsTrack, 'city_lead_submitted', {
+            city,
+            status: cityStatus,
+            form_type: 'publish',
           })
           return state
         }
@@ -437,7 +449,7 @@ export const SupplySubmissionSuccessCard = React.forwardRef<HTMLDivElement>(
 /** 房源投放卡片；一次挂载内的失败重试沿用同一幂等 requestId。 */
 export default function SupplySubmissionForm({
   citySlug = siteConfig.defaultCity,
-  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity }],
+  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity, serviceStatus: 'live' }],
   cityError,
 }: Readonly<{
   citySlug?: string
@@ -490,7 +502,9 @@ export default function SupplySubmissionForm({
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await coordinator.submit(values, selectedCity)
+    const selectedOption = cities.find((city) => city.slug === selectedCity)
+    if (!selectedOption) return
+    await coordinator.submit(values, selectedOption.slug, selectedOption.serviceStatus)
   }
   const statusMessage = getSupplyStatusMessage(formState)
 

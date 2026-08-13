@@ -8,7 +8,9 @@ import { track } from '@/lib/frontend/analytics'
 import {
   createLandingOnceTracker,
   dispatchLandingConverted,
+  safeTrackCityEvent,
   safeTrackLandingEvent,
+  type CityServiceStatus,
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
@@ -44,7 +46,7 @@ export type EntrustFormState = Readonly<{
 
 export type EntrustSubmissionCoordinator = Readonly<{
   getState: () => EntrustFormState
-  submit: (phone: string, city?: string) => Promise<EntrustFormState>
+  submit: (phone: string, city?: string, cityStatus?: CityServiceStatus) => Promise<EntrustFormState>
   /** 两步留电第二步：成功建 Lead 后补充可选需求；复用首步的 requestId 与已留电手机号。 */
   submitDemand: (demand: EntrustDemandInput) => Promise<EntrustDemandResult>
 }>
@@ -169,7 +171,11 @@ export function createEntrustSubmissionCoordinator(
     onStateChange(state)
   }
 
-  const submit = (phone: string, city: string = siteConfig.defaultCity): Promise<EntrustFormState> => {
+  const submit = (
+    phone: string,
+    city: string = siteConfig.defaultCity,
+    cityStatus: CityServiceStatus = 'live',
+  ): Promise<EntrustFormState> => {
     if (pendingSubmission) return pendingSubmission
     safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
       page_type: 'entrust',
@@ -195,6 +201,11 @@ export function createEntrustSubmissionCoordinator(
           updateState({ status: 'success', error: null })
           safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
             page_type: 'entrust',
+          })
+          safeTrackCityEvent(analyticsTrack, 'city_lead_submitted', {
+            city,
+            status: cityStatus,
+            form_type: 'entrust',
           })
         }
         else {
@@ -244,7 +255,7 @@ function newRequestId(): string {
 /** /entrust 首屏仅采集手机号；一次挂载内重试沿用同一幂等 requestId。 */
 export default function EntrustForm({
   citySlug = siteConfig.defaultCity,
-  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity }],
+  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity, serviceStatus: 'live' }],
   cityError,
 }: Readonly<{
   citySlug?: string
@@ -284,7 +295,9 @@ export default function EntrustForm({
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await coordinator.submit(phone, selectedCity)
+    const selectedOption = cities.find((city) => city.slug === selectedCity)
+    if (!selectedOption) return
+    await coordinator.submit(phone, selectedOption.slug, selectedOption.serviceStatus)
   }
 
   return (

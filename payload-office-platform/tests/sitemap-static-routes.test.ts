@@ -15,6 +15,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/lib/frontend/site-config', () => ({
   siteConfig: { siteOrigin: 'https://example.com', defaultCity: 'shanghai' },
+  getMultiCityRoutingEnabled: () => process.env.MULTI_CITY_ROUTING_ENABLED === 'true',
 }))
 
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({
@@ -39,6 +40,7 @@ import sitemap from '@/app/(frontend)/sitemap'
 describe('city-aware public sitemap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
     sitemapState.listPublicCityProfiles.mockResolvedValue([
       { citySlug: 'shanghai', serviceStatus: 'live' },
       { citySlug: 'suzhou', serviceStatus: 'live' },
@@ -100,6 +102,20 @@ describe('city-aware public sitemap', () => {
     expect(urls).toContain('https://example.com/pages/privacy')
     expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
     expect(new Set(urls).size).toBe(urls.length)
+  })
+
+  it('emits only default-city legacy canonical paths while the routing flag is off', async () => {
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'false'
+
+    const urls = (await sitemap()).map(({ url }) => url)
+
+    expect(urls).toContain('https://example.com/listings/shanghai-listing')
+    expect(urls).toContain('https://example.com/buildings/shanghai-building')
+    expect(urls).not.toContain('https://example.com/shanghai')
+    expect(urls).not.toContain('https://example.com/suzhou')
+    expect(urls.some((url) => url.includes('suzhou-listing'))).toBe(false)
+    expect(urls.every((url) => !url.includes('?'))).toBe(true)
+    expect(urls.filter((url) => url === 'https://example.com/city-partner')).toHaveLength(1)
   })
 
   it('follows live-city building pages without querying coming-soon cities', async () => {

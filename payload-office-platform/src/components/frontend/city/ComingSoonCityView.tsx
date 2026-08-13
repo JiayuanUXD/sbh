@@ -1,11 +1,27 @@
+'use client'
+
 import Link from 'next/link'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
+import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 
 export default function ComingSoonCityView({ city }: Readonly<{ city: CityContext }>) {
   const basePath = `/${city.slug}`
   const profile = city.profile
+  const trackCta = (ctaType: 'entrust' | 'publish' | 'inquiry' | 'city-partner') => {
+    safeTrackCityEvent(track, 'coming_soon_cta_clicked', {
+      city: city.slug,
+      status: city.serviceStatus,
+      cta_type: ctaType,
+    })
+    if (ctaType === 'city-partner') {
+      safeTrackCityEvent(track, 'city_partner_cta_clicked', {
+        city: city.slug,
+        status: city.serviceStatus,
+      })
+    }
+  }
 
   return (
     <div className="city-coming-soon">
@@ -31,10 +47,10 @@ export default function ComingSoonCityView({ city }: Readonly<{ city: CityContex
         </section>
       ) : null}
       <section className="section city-coming-soon__actions" aria-label="城市服务入口">
-        <Link className="btn btn--ghost" href={`/entrust?city=${encodeURIComponent(city.slug)}`}>委托找房</Link>
-        <Link className="btn btn--ghost" href={`/publish?city=${encodeURIComponent(city.slug)}`}>投放房源</Link>
-        <Link className="btn btn--ghost" href={`/city-partner?city=${encodeURIComponent(city.slug)}`}>城市合伙人</Link>
-        <InquiryModal pageType="home" triggerLabel="获取选址方案" triggerVariant="primary" />
+        <Link className="btn btn--ghost" href={`/entrust?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('entrust')}>委托找房</Link>
+        <Link className="btn btn--ghost" href={`/publish?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('publish')}>投放房源</Link>
+        <Link className="btn btn--ghost" href={`/city-partner?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('city-partner')}>城市合伙人</Link>
+        <InquiryModal pageType="home" triggerLabel="获取选址方案" triggerVariant="primary" onTriggerClick={() => trackCta('inquiry')} />
         <Link className="visually-hidden" href={basePath}>返回城市首页</Link>
       </section>
     </div>

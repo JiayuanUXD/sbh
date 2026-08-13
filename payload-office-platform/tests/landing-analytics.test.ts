@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildCityAnalyticsPayload,
+  resolveCityPageObservation,
   safeTrackCityPartnerEvent,
+  safeTrackCityEvent,
   createLandingOnceTracker,
   safeTrackLandingEvent,
   type LandingAnalyticsRecord,
@@ -8,6 +11,74 @@ import {
 import { validateEvent } from '@/lib/frontend/analytics/events'
 
 describe('landing analytics safety boundary', () => {
+  it('builds every city observation event from closed enum fields only', () => {
+    expect(buildCityAnalyticsPayload('city_partner_cta_clicked', {
+      city: 'hangzhou',
+      status: 'coming-soon',
+      query: '?city=hangzhou&phone=13800001111',
+      phone: '13800001111',
+    })).toEqual({ city: 'hangzhou', status: 'coming-soon' })
+    expect(buildCityAnalyticsPayload('city_switcher_opened', {
+      city: 'shanghai', status: 'live', page_type: 'listings',
+    })).toEqual({ city: 'shanghai', status: 'live', page_type: 'listings' })
+    expect(buildCityAnalyticsPayload('city_switched', {
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'listings', filters_preserved: true,
+    })).toEqual({
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'listings', filters_preserved: true,
+    })
+    expect(buildCityAnalyticsPayload('coming_soon_cta_clicked', {
+      city: 'hangzhou', status: 'coming-soon', cta_type: 'entrust',
+    })).toEqual({ city: 'hangzhou', status: 'coming-soon', cta_type: 'entrust' })
+    expect(buildCityAnalyticsPayload('city_page_view', {
+      city: 'hangzhou', status: 'coming-soon', page_type: 'home',
+    })).toEqual({ city: 'hangzhou', status: 'coming-soon', page_type: 'home' })
+    expect(buildCityAnalyticsPayload('city_lead_submitted', {
+      city: 'hangzhou', status: 'coming-soon', form_type: 'entrust',
+    })).toEqual({ city: 'hangzhou', status: 'coming-soon', form_type: 'entrust' })
+    expect(validateEvent('city_page_view', {
+      city: 'hangzhou', status: 'coming-soon', page_type: 'home',
+      phone: '13800001111', query: '?city=hangzhou',
+    })).toEqual({
+      ok: true,
+      eventName: 'city_page_view',
+      sanitized: { city: 'hangzhou', status: 'coming-soon', page_type: 'home' },
+    })
+    expect(validateEvent('city_page_view', {
+      city: 'hangzhou', status: 'secret-status', page_type: 'home',
+    })).toEqual({ ok: false, reason: 'invalid_city_event_props' })
+    expect(validateEvent('city_page_view', {
+      city: 'news', status: 'live', page_type: 'home',
+    })).toEqual({ ok: false, reason: 'invalid_city_event_props' })
+  })
+
+  it('rejects noncanonical slugs and unknown enum values before invoking the adapter', () => {
+    const calls: unknown[] = []
+    const tracker = (name: string, props: Readonly<Record<string, string | number | boolean>>) => {
+      calls.push({ name, props })
+    }
+    safeTrackCityEvent(tracker, 'city_page_view', {
+      city: ' HangZhou ', status: 'coming-soon', page_type: 'home',
+    })
+    safeTrackCityEvent(tracker, 'coming_soon_cta_clicked', {
+      city: 'hangzhou', status: 'coming-soon', cta_type: 'phone-number',
+    })
+    expect(calls).toEqual([])
+  })
+
+  it('derives page-view enums only from a trusted city option and canonical pathname', () => {
+    const cities = [
+      { slug: 'shanghai', name: '上海', serviceStatus: 'live' as const, sortOrder: 10 },
+      { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon' as const, sortOrder: 20 },
+    ]
+    expect(resolveCityPageObservation('/hangzhou/listings', cities)).toEqual({
+      city: 'hangzhou', status: 'coming-soon', page_type: 'listings',
+    })
+    expect(resolveCityPageObservation('/news', cities)).toBeNull()
+    expect(resolveCityPageObservation('/unknown', cities)).toBeNull()
+  })
+
   it('allows only anonymous city partner events with canonical city and stage metadata', () => {
     const calls: Array<Readonly<{ name: string; props: Record<string, string> }>> = []
     safeTrackCityPartnerEvent(

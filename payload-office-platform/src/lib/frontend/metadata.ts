@@ -18,6 +18,7 @@
  */
 
 import type { Metadata } from 'next'
+import type { CityContext } from '@/domain/city-site-profile/resolver'
 import { siteConfig } from './site-config'
 
 // ---------------------------------------------------------------------------
@@ -42,6 +43,16 @@ export type BuildPageMetadataInput = Readonly<{
    *   - 'noindex'：noindex, follow（404 / 草稿 / 越界页）
    */
   robots?: 'index' | 'noindex'
+}>
+
+export type CityMetadataPageType = 'home' | 'listings' | 'buildings'
+
+export type BuildCityPageMetadataInput = Readonly<{
+  city: CityContext
+  pageType: CityMetadataPageType
+  multiCityRoutingEnabled: boolean
+  routeMode?: 'legacy' | 'prefixed'
+  canonicalQuery?: string
 }>
 
 // ---------------------------------------------------------------------------
@@ -102,6 +113,47 @@ export function buildPageMetadata(input: BuildPageMetadataInput): Metadata {
     openGraph,
     robots: robotsPolicy,
   }
+}
+
+const CITY_PAGE_COPY: Readonly<Record<Exclude<CityMetadataPageType, 'home'>, Readonly<{
+  title: (cityName: string) => string
+  description: (cityName: string) => string
+}>>> = {
+  listings: {
+    title: (cityName) => `${cityName}在租房源`,
+    description: (cityName) => `${cityName}写字楼、服务式办公室与共享办公在租房源。`,
+  },
+  buildings: {
+    title: (cityName) => `${cityName}写字楼`,
+    description: (cityName) => `${cityName}写字楼与办公楼盘信息。`,
+  },
+}
+
+/** Builds city SEO from the already-resolved public CityContext only. */
+export function buildCityPageMetadata(input: BuildCityPageMetadataInput): Metadata {
+  const { city, pageType, multiCityRoutingEnabled, routeMode = 'prefixed', canonicalQuery } = input
+  const suffix = pageType === 'home' ? '' : `/${pageType}`
+  const canonicalBase = multiCityRoutingEnabled ? `/${city.slug}${suffix}` : suffix || '/'
+  const canonicalPath = canonicalQuery ? `${canonicalBase}?${canonicalQuery}` : canonicalBase
+  const copy = pageType === 'home'
+    ? { title: city.profile.seoTitle, description: city.profile.seoDescription }
+    : {
+        title: CITY_PAGE_COPY[pageType].title(city.name),
+        description: CITY_PAGE_COPY[pageType].description(city.name),
+      }
+  const noindex = city.serviceStatus === 'coming-soon'
+    || (!multiCityRoutingEnabled && routeMode === 'prefixed')
+
+  return buildPageMetadata({
+    ...copy,
+    canonicalPath,
+    robots: noindex ? 'noindex' : 'index',
+  })
+}
+
+/** All city query variants are selection state for one global partner page. */
+export function cityPartnerCanonical(_query?: unknown): '/city-partner' {
+  return '/city-partner'
 }
 
 /**
