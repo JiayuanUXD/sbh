@@ -4,6 +4,7 @@ import { captureAnalytics } from './support/landing-analytics-capture'
 const runSuffix = Date.now().toString().slice(-8).padStart(8, '0')
 const entrustPhone = `139${runSuffix}`
 const publishPhone = `138${runSuffix}`
+const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 
 const browserErrors = new WeakMap<Page, string[]>()
 
@@ -34,6 +35,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/media/file/**', (route) => route.fulfill({ status: 204, body: '' }))
   const errors: string[] = []
   browserErrors.set(page, errors)
   page.on('console', (message) => {
@@ -59,6 +61,13 @@ test.describe('主导航入口调整', () => {
 })
 
 test.describe('/entrust 委托找房', () => {
+  test('城市查询显示可信城市且切换只保留城市选择', async ({ page }) => {
+    await page.goto('/entrust?city=hangzhou&phone=private&page=3')
+    await expect(page.getByLabel('服务城市')).toHaveValue('hangzhou')
+    await page.getByLabel('服务城市').selectOption('shanghai')
+    await expect(page).toHaveURL(/\/entrust\?city=shanghai$/)
+  })
+
   test('非法手机号内联报错', async ({ page }) => {
     await page.goto('/entrust')
     await page.getByLabel('手机号').fill('123')
@@ -134,6 +143,13 @@ test.describe('/entrust 委托找房', () => {
 })
 
 test.describe('/publish 投放房源', () => {
+  test('城市查询在投放入口可见且使用全局 canonical', async ({ page }) => {
+    await page.goto('/publish?city=hangzhou')
+    await expect(page.getByLabel('服务城市')).toHaveValue('hangzhou')
+    const href = await page.locator('link[rel="canonical"]').getAttribute('href')
+    expect(new URL(href!, page.url()).pathname).toBe('/publish')
+  })
+
   test('空提交报必填错误且保留已填内容', async ({ page }) => {
     await page.goto('/publish')
     await page.getByLabel('楼盘名称').fill('E2E 测试楼盘')
@@ -211,7 +227,7 @@ test.describe('/publish 投放房源', () => {
     expect(serializedEvents).not.toContain(address)
 
     await page.getByRole('link', { name: '返回首页' }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expect(page).toHaveURL(routingEnabled ? /\/shanghai$/ : /\/$/)
   })
 
   test('服务暂时不可用时保留内容并允许重新提交', async ({ page }) => {
