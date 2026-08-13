@@ -16,7 +16,7 @@ vi.mock('@/payload.config', () => ({ default: {} }))
 
 import {
   createPayloadSupplyAdapter,
-  defaultSearchContext,
+  createSearchContext,
   parseSearchInput,
 } from '@/domain/public-catalog'
 
@@ -54,6 +54,19 @@ function activeRelation(listingId: number): Record<string, unknown> {
   }
 }
 
+function building(id: number): Record<string, unknown> {
+  return {
+    id,
+    slug: `building-${id}`,
+    name: `Building ${id}`,
+    status: 'published',
+    operationalStatus: 'active',
+    updatedAt: '2026-08-13T00:00:00.000Z',
+    city: { id: 100, slug: 'shanghai', name: '上海市', status: 'active' },
+    district: { id: 101, slug: 'jing-an', name: '静安区', status: 'active' },
+  }
+}
+
 describe('Payload public catalog supply adapter', () => {
   beforeEach(() => {
     payloadState.find.mockReset()
@@ -87,7 +100,7 @@ describe('Payload public catalog supply adapter', () => {
     const adapter = createPayloadSupplyAdapter()
     const docs = await adapter.findEffectiveListings(
       parseSearchInput(new URLSearchParams()),
-      defaultSearchContext(new Date('2026-07-30T00:00:00.000Z')),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
     )
 
     expect(docs.map((doc) => doc.id)).toEqual([1, 2])
@@ -119,11 +132,41 @@ describe('Payload public catalog supply adapter', () => {
     const adapter = createPayloadSupplyAdapter()
     await adapter.findEffectiveListings(
       parseSearchInput(new URLSearchParams()),
-      defaultSearchContext(new Date('2026-07-30T00:00:00.000Z')),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
     )
 
     expect(
       payloadState.find.mock.calls.filter(([params]) => params.collection === 'listings'),
     ).toHaveLength(5)
+  })
+
+  it('uses a unique compound sort so equal timestamps stay stable across building pages', async () => {
+    const fixtures = [building(1), building(2), building(3), building(4)]
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection !== 'buildings') {
+        throw new Error(`unexpected collection ${String(params.collection)}`)
+      }
+      const page = typeof params.page === 'number' ? params.page : 1
+      const stable = Array.isArray(params.sort) && params.sort.join(',') === '-updatedAt,id'
+      const docs = stable
+        ? fixtures.slice((page - 1) * 2, page * 2)
+        : page === 1 ? [fixtures[0], fixtures[1]] : [fixtures[1], fixtures[2]]
+      return {
+        docs,
+        hasNextPage: page === 1,
+        nextPage: page === 1 ? 2 : null,
+      }
+    })
+
+    const adapter = createPayloadSupplyAdapter()
+    const context = createSearchContext('shanghai')
+    const first = await adapter.findEffectiveBuildingsPage(context, { page: 1, limit: 2 })
+    const second = await adapter.findEffectiveBuildingsPage(context, { page: 2, limit: 2 })
+
+    expect([...first.docs, ...second.docs].map(({ id }) => id)).toEqual([1, 2, 3, 4])
+    expect(payloadState.find.mock.calls.map(([params]) => params.sort)).toEqual([
+      ['-updatedAt', 'id'],
+      ['-updatedAt', 'id'],
+    ])
   })
 })

@@ -12,6 +12,8 @@
  * 不含字段值，符合隐私白名单要求。
  */
 
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
+
 /** 已知事件名与其允许的属性 key 白名单 */
 export const ANALYTICS_EVENTS = {
   /** 用户打开咨询弹窗（曝光类，需去重） */
@@ -50,6 +52,15 @@ export const ANALYTICS_EVENTS = {
   landing_bottom_cta_click: ['page_type'],
   /** Site-header CTA click on a landing page (scrolls to the page form). */
   landing_header_cta_click: ['page_type'],
+  city_partner_application_started: ['city_slug', 'stage'],
+  city_partner_application_submitted: ['city_slug', 'stage'],
+  city_partner_application_completed: ['city_slug', 'stage'],
+  city_switcher_opened: ['city', 'status', 'page_type'],
+  city_switched: ['from_city', 'to_city', 'status', 'page_type', 'filters_preserved'],
+  coming_soon_cta_clicked: ['city', 'status', 'cta_type'],
+  city_page_view: ['city', 'status', 'page_type'],
+  city_lead_submitted: ['city', 'status', 'form_type'],
+  city_partner_cta_clicked: ['city', 'status'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS
@@ -59,6 +70,43 @@ const MAX_VALUE_LENGTH = 100
 
 /** 允许的属性值类型 */
 type AllowedValue = string | number | boolean
+
+const CITY_EVENT_NAMES = new Set<string>([
+  'city_switcher_opened',
+  'city_switched',
+  'coming_soon_cta_clicked',
+  'city_page_view',
+  'city_lead_submitted',
+  'city_partner_cta_clicked',
+])
+const CITY_SERVICE_STATUSES = new Set<AllowedValue>(['live', 'coming-soon'])
+const CITY_PAGE_TYPES = new Set<AllowedValue>([
+  'home', 'listings', 'listing-detail', 'buildings', 'building-detail',
+  'news', 'news-detail', 'privacy', 'page-detail', 'entrust', 'publish', 'city-partner',
+])
+const CITY_CTA_TYPES = new Set<AllowedValue>(['entrust', 'publish', 'inquiry', 'city-partner'])
+const CITY_FORM_TYPES = new Set<AllowedValue>(['entrust', 'publish', 'city-partner'])
+function validCitySlug(value: AllowedValue | undefined): value is string {
+  return isPublicCitySlug(value)
+}
+
+function validCityEventProps(name: string, props: Record<string, AllowedValue>): boolean {
+  if (!CITY_EVENT_NAMES.has(name)) return true
+  if (name === 'city_switched') {
+    return validCitySlug(props.from_city)
+      && validCitySlug(props.to_city)
+      && CITY_SERVICE_STATUSES.has(props.status ?? '')
+      && CITY_PAGE_TYPES.has(props.page_type ?? '')
+      && typeof props.filters_preserved === 'boolean'
+  }
+  if (!validCitySlug(props.city) || !CITY_SERVICE_STATUSES.has(props.status ?? '')) return false
+  if (name === 'city_partner_cta_clicked') return true
+  if (name === 'coming_soon_cta_clicked') {
+    return props.status === 'coming-soon' && CITY_CTA_TYPES.has(props.cta_type ?? '')
+  }
+  if (name === 'city_lead_submitted') return CITY_FORM_TYPES.has(props.form_type ?? '')
+  return CITY_PAGE_TYPES.has(props.page_type ?? '')
+}
 
 const PII_PROP_KEY = /(?:^|_)(?:phone|mobile|email|name|note|message|path|url|query|location|latitude|longitude|address|ip)(?:$|_)/i
 
@@ -101,6 +149,9 @@ export function validateEvent(
       sanitized[key] = v
     }
     // 对象/数组/函数等非法类型直接丢弃
+  }
+  if (!validCityEventProps(name, sanitized)) {
+    return { ok: false, reason: 'invalid_city_event_props' }
   }
   return { ok: true, eventName: name as AnalyticsEventName, sanitized }
 }

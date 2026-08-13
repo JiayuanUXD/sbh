@@ -44,6 +44,15 @@ describe('location-delete-guard/protectLocationDelete', () => {
     await expect(invoke(9, { payload })).rejects.toBeInstanceOf(DomainError)
   })
 
+  it('被城市站点配置引用 → 同样禁止删除', async () => {
+    const { payload } = makeReq({ 'city-site-profiles.city': 1 })
+
+    await expect(invoke(100, { payload })).rejects.toMatchObject({
+      code: 'LOCATION_REFERENCED',
+      domain: 'geography',
+    })
+  })
+
   it('错误 details 含 total 与分来源明细', async () => {
     const { payload } = makeReq({ 'buildings.district': 2, 'leads.district': 1 })
     try {

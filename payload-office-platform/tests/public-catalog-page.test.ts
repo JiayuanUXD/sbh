@@ -21,7 +21,6 @@ import {
   mapPageSummary,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import { defaultSearchContext } from '@/domain/public-catalog'
 import type { Page } from '@/payload-types'
 import {
   PAGE_DELETED,
@@ -29,8 +28,6 @@ import {
   PAGE_PUBLISHED_GUIDE,
   PAGE_PUBLISHED_HOME,
 } from '@/test/frontend/payload-documents'
-
-const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
 
 // ---------------------------------------------------------------------------
 // 内存版 SupplyAdapter（仅覆盖 Page 方法）
@@ -46,7 +43,13 @@ function createFakePageAdapter(options: {
     async findEffectiveListingBySlug() {
       return null
     },
+    async findListingRouteIdentity() {
+      return null
+    },
     async findEffectiveBuildingBySlug() {
+      return null
+    },
+    async findBuildingRouteIdentity() {
       return null
     },
     async findEffectiveListingsByBuilding() {
@@ -63,6 +66,9 @@ function createFakePageAdapter(options: {
     },
     async findEffectiveBuildings() {
       return []
+    },
+    async findEffectiveBuildingsPage(_ctx, { page }) {
+      return { docs: [], page, hasNextPage: false, nextPage: null }
     },
     async findFeaturedListings() {
       return []
@@ -204,7 +210,7 @@ describe('getPageBySlug', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_PUBLISHED_GUIDE, PAGE_PUBLISHED_HOME],
     })
-    const vm = await getPageBySlug('office-guide', ctx, adapter)
+    const vm = await getPageBySlug('office-guide', adapter)
     expect(vm).not.toBeNull()
     if (!vm) return
     expect(vm.slug).toBe('office-guide')
@@ -215,7 +221,7 @@ describe('getPageBySlug', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_PUBLISHED_GUIDE],
     })
-    const vm = await getPageBySlug('not-exist', ctx, adapter)
+    const vm = await getPageBySlug('not-exist', adapter)
     expect(vm).toBeNull()
   })
 
@@ -223,7 +229,7 @@ describe('getPageBySlug', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_DRAFT],
     })
-    const vm = await getPageBySlug('draft-page', ctx, adapter)
+    const vm = await getPageBySlug('draft-page', adapter)
     expect(vm).toBeNull()
   })
 
@@ -231,7 +237,7 @@ describe('getPageBySlug', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_DELETED],
     })
-    const vm = await getPageBySlug('deleted-page', ctx, adapter)
+    const vm = await getPageBySlug('deleted-page', adapter)
     expect(vm).toBeNull()
   })
 
@@ -239,7 +245,7 @@ describe('getPageBySlug', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_PUBLISHED_HOME],
     })
-    const vm = await getPageBySlug('home', ctx, adapter)
+    const vm = await getPageBySlug('home', adapter)
     expect(vm).not.toBeNull()
     if (!vm) return
     expect(vm.slug).toBe('home')
@@ -255,7 +261,7 @@ describe('listPublishedPages', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_PUBLISHED_GUIDE, PAGE_PUBLISHED_HOME, PAGE_DRAFT, PAGE_DELETED],
     })
-    const list = await listPublishedPages(ctx, {}, adapter)
+    const list = await listPublishedPages({}, adapter)
     expect(list).toHaveLength(2)
     const slugs = list.map((p) => p.slug).sort()
     expect(slugs).toEqual(['home', 'office-guide'])
@@ -263,7 +269,7 @@ describe('listPublishedPages', () => {
 
   it('空数据集返回空数组', async () => {
     const adapter = createFakePageAdapter({ pages: [] })
-    const list = await listPublishedPages(ctx, {}, adapter)
+    const list = await listPublishedPages({}, adapter)
     expect(list).toEqual([])
   })
 
@@ -271,7 +277,7 @@ describe('listPublishedPages', () => {
     const adapter = createFakePageAdapter({
       pages: [PAGE_PUBLISHED_GUIDE],
     })
-    const list = await listPublishedPages(ctx, {}, adapter)
+    const list = await listPublishedPages({}, adapter)
     expect(list).toHaveLength(1)
     const keys = Object.keys(list[0])
     expect(keys).toEqual(['id', 'slug', 'updatedAt'])
@@ -281,12 +287,12 @@ describe('listPublishedPages', () => {
     let capturedLimit: number | undefined
     const adapter: SupplyAdapter = {
       ...createFakePageAdapter({ pages: [PAGE_PUBLISHED_GUIDE] }),
-      async findPublishedPages(_ctx, limit) {
+      async findPublishedPages(limit) {
         capturedLimit = limit
         return [PAGE_PUBLISHED_GUIDE]
       },
     }
-    await listPublishedPages(ctx, { limit: 50 }, adapter)
+    await listPublishedPages({ limit: 50 }, adapter)
     expect(capturedLimit).toBe(50)
   })
 })

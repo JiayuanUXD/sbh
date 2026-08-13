@@ -15,6 +15,7 @@ import {
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { heroPosterAbsoluteUrl } from '@/lib/frontend/hero-poster'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { resolveLeadCityPageSelection } from '../_lib/lead-city-page'
 
 export const metadata: Metadata = buildPageMetadata({
   title: '委托找房｜免费定制选址方案',
@@ -33,7 +34,10 @@ const SERVICE_JSON_LD = {
   url: `${siteConfig.siteOrigin}/entrust`,
 } as const
 
-export default function EntrustPage() {
+export default async function EntrustPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ city?: string | string[] }> }>) {
+  const city = await resolveLeadCityPageSelection(searchParams)
   return (
     <>
       <script
@@ -48,7 +52,7 @@ export default function EntrustPage() {
         title={ENTRUST_COPY.title}
         subtitle={ENTRUST_COPY.subtitle}
       >
-        <EntrustForm />
+        <EntrustForm {...city} />
       </LandingHero>
 
       <section className="section">

@@ -18,6 +18,7 @@
 import { isValidCnMobile, normalizePhone } from '@/domain/shared/phone'
 import { PRICE_UNITS, type InquiryPriceUnit } from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 /** 佣金悬赏（单位：月租金）。存枚举而非浮点数，避免"0 与未填"歧义。 */
 export const COMMISSION_MONTHS = ['none', '0.5', '1', '1.5', '2'] as const
@@ -96,6 +97,7 @@ export const SUPPLY_LIMITS = {
 
 /** 校验通过后的投放房源请求 */
 export type SupplySubmissionRequest = Readonly<{
+  city: string | null
   requestId: string
   buildingName: string
   address: string
@@ -134,6 +136,12 @@ export function validateSupplySubmission(input: unknown): SupplyValidationResult
   }
 
   const errors: string[] = []
+
+  const hasCity = Object.prototype.hasOwnProperty.call(input, 'city')
+  const city = typeof input.city === 'string' && isPublicCitySlug(input.city)
+    ? input.city
+    : null
+  if (hasCity && city === null) errors.push('city_invalid')
 
   const requestId = trimString(input.requestId)
   if (!requestId) errors.push('request_id_required')
@@ -225,6 +233,7 @@ export function validateSupplySubmission(input: unknown): SupplyValidationResult
   return {
     ok: true,
     data: {
+      city,
       requestId,
       buildingName,
       address,
@@ -276,7 +285,6 @@ function isCommissionMonths(v: string): v is CommissionMonths {
 function normalizeSamePath(raw: string): string | null {
   if (!raw.startsWith('/')) return null
   if (raw.startsWith('//')) return null
-  // eslint-disable-next-line no-control-regex
   if (/[\x00-\x1F\x7F]/.test(raw)) return null
   const withoutHash = raw.split('#')[0] ?? ''
   const pathname = withoutHash.split('?')[0] ?? ''

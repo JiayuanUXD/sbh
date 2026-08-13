@@ -82,6 +82,23 @@ function buildValidInput(overrides: Record<string, unknown> = {}): unknown {
   }
 }
 
+describe('validateInquiry: city attribution', () => {
+  it('preserves a canonical public city slug for server-side resolution', () => {
+    const r = validateInquiry(buildValidInput({ city: 'hangzhou' }))
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.data.city).toBe('hangzhou')
+  })
+
+  it.each([' HangZhou ', 'entrust', 'unknown/path', 42, null])(
+    'rejects an explicit noncanonical or reserved city: %s',
+    (city) => {
+      const r = validateInquiry(buildValidInput({ city }))
+      expect(r.ok).toBe(false)
+      if (!r.ok) expect(r.errors).toContain('city_invalid')
+    },
+  )
+})
+
 // ---------------------------------------------------------------------------
 // validateInquiry: 合法输入
 // ---------------------------------------------------------------------------
@@ -705,6 +722,7 @@ describe('deriveFieldCompleteness', () => {
     moveInTime?: string | null
   }): InquiryRequest {
     return {
+      city: null,
       requestId: VALID_REQUEST_ID,
       name: 'test',
       phone: VALID_PHONE,
@@ -793,6 +811,7 @@ describe('buildInquiryLogEntry', () => {
       activeSupplyGroup: null,
       viewingPreference: null,
       ...overrides,
+      city: overrides.city ?? null,
     }
   }
 

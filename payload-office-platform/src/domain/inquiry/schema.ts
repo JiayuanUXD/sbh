@@ -16,6 +16,7 @@
 
 import { normalizePhone, isValidCnMobile } from '@/domain/shared/phone'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 import { sanitizeCampaign, type CampaignAttribution } from './campaign'
 
 /** 入口页面类型（与 Leads Collection INQUIRY_SOURCE_PAGE_TYPES 对齐） */
@@ -89,6 +90,7 @@ export const LIMITS = {
  * 所有字段在 schema 校验通过后保证类型与长度。
  */
 export type InquiryRequest = Readonly<{
+  city: string | null
   requestId: string
   name: string
   phone: string
@@ -156,6 +158,12 @@ export function validateInquiry(input: unknown): ValidationResult {
   }
 
   const errors: string[] = []
+
+  const hasCity = Object.prototype.hasOwnProperty.call(input, 'city')
+  const city = typeof input.city === 'string' && isPublicCitySlug(input.city)
+    ? input.city
+    : null
+  if (hasCity && city === null) errors.push('city_invalid')
 
   // ----- 必填字段 -----
   // 委托找房落地页（source.pageType='entrust'）首屏只采集手机号，没有姓名输入框；
@@ -289,6 +297,7 @@ export function validateInquiry(input: unknown): ValidationResult {
   return {
     ok: true,
     data: {
+      city,
       requestId,
       name,
       phone: phoneNormalized,
@@ -364,6 +373,14 @@ export function validateDemandUpdate(input: unknown): DemandUpdateResult {
   }
 
   const errors: string[] = []
+  const allowedKeys = new Set(['requestId', 'phone', 'demand'])
+  const allowedDemandKeys = new Set(['district', 'budget', 'area', 'moveInTime'])
+  if (
+    Object.keys(input).some((key) => !allowedKeys.has(key)) ||
+    (isObject(input.demand) && Object.keys(input.demand).some((key) => !allowedDemandKeys.has(key)))
+  ) {
+    errors.push('invalid_body_fields')
+  }
 
   const requestId = trimString(input.requestId)
   if (!requestId) errors.push('request_id_required')

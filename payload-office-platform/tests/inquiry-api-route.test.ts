@@ -34,6 +34,11 @@ const payloadFindGlobalMock = vi.fn()
 const payloadLoggerInfo = vi.fn()
 const payloadLoggerError = vi.fn()
 const payloadLoggerWarn = vi.fn()
+const resolveCityContextMock = vi.fn()
+
+vi.mock('@/app/(frontend)/_lib/city-context', () => ({
+  resolveCityContext: (slug: unknown) => resolveCityContextMock(slug),
+}))
 
 vi.mock('payload', async (importOriginal) => {
   const actual = await importOriginal<typeof import('payload')>()
@@ -58,13 +63,19 @@ vi.mock('payload', async (importOriginal) => {
 
 const assertEffectiveListingMock = vi.fn()
 const assertEffectiveBuildingMock = vi.fn()
+const createSearchContextMock = vi.fn((city: string) => ({
+  asOf: new Date('2026-07-25T00:00:00Z').toISOString(),
+  timezone: 'Asia/Shanghai' as const,
+  channel: 'public-web' as const,
+  city,
+}))
 vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
     assertEffectiveListing: (...args: unknown[]) => assertEffectiveListingMock(...args),
     assertEffectiveBuilding: (...args: unknown[]) => assertEffectiveBuildingMock(...args),
-    defaultSearchContext: () => ({ asOf: new Date('2026-07-25T00:00:00Z') }),
+    createSearchContext: (city: string) => createSearchContextMock(city),
   }
 })
 
@@ -115,7 +126,7 @@ import {
   __resetRateStoreForTests,
   ratePruneRef,
 } from '@/app/api/inquiries/rate-limit-state'
-import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
 
 // ---------------------------------------------------------------------------
 // 辅助构造器
@@ -124,6 +135,7 @@ import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 function makeValidBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     requestId: 'req-001',
+    city: siteConfig.defaultCity,
     name: '张三',
     phone: '13800001111',
     company: 'ACME',
@@ -182,8 +194,17 @@ beforeEach(() => {
   payloadLoggerInfo.mockReset()
   payloadLoggerError.mockReset()
   payloadLoggerWarn.mockReset()
+  resolveCityContextMock.mockReset()
+  resolveCityContextMock.mockImplementation(async (slug: unknown) =>
+    slug === 'hangzhou'
+      ? { id: 17, slug: 'hangzhou', name: '杭州市', serviceStatus: 'live', profile: {} }
+      : slug === siteConfig.defaultCity
+        ? { id: 1, slug: siteConfig.defaultCity, name: '上海市', serviceStatus: 'live', profile: {} }
+        : null,
+  )
   assertEffectiveListingMock.mockReset()
   assertEffectiveBuildingMock.mockReset()
+  createSearchContextMock.mockClear()
   inMemoryRateStore.clear()
   __resetRateStoreForTests()
 })
@@ -201,6 +222,81 @@ it('测试重置会清空询盘限流的跨请求清理时间戳', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/inquiries / 正常提交', () => {
+  it('persists the trusted city relationship ID resolved from the submitted slug', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody({ city: 'hangzhou' }) }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(17)
+    expect(createSearchContextMock).toHaveBeenCalledWith('hangzhou')
+  })
+
+  it('persists a trusted string relationship ID resolved from the submitted slug', async () => {
+    resolveCityContextMock.mockResolvedValueOnce({
+      id: 'city-hangzhou',
+      slug: 'hangzhou',
+      name: '杭州市',
+      serviceStatus: 'live',
+      profile: {},
+    })
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody({ city: 'hangzhou' }) }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe('city-hangzhou')
+    expect(createSearchContextMock).toHaveBeenCalledWith('hangzhou')
+  })
+
+  it('rejects an unknown explicit city before persistence', async () => {
+    const r = await run(makeReq({ body: makeValidBody({ city: 'unknown-city' }) }))
+
+    expect(r.status).toBe(422)
+    expect(r.body).toEqual({ ok: false, errors: ['city_invalid'] })
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
+  it('defaults a missing city only for the approved legacy entrust source path', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    const body = makeValidBody({
+      source: { pageType: 'entrust', path: '/entrust' },
+    })
+    delete body.city
+    delete body.listingSlug
+
+    const r = await run(makeReq({ body }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith(siteConfig.defaultCity)
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(1)
+  })
+
+  it('derives a trusted city from an existing prefixed inquiry source path when the old modal omits city', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    const body = makeValidBody({
+      source: { pageType: 'search', path: '/hangzhou/listings' },
+    })
+    delete body.city
+    delete body.listingSlug
+
+    const r = await run(makeReq({ body }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(17)
+  })
+
+
+
   it('合法 body → 200 { ok: true }', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     payloadCreateMock.mockResolvedValue({ id: 1 })
@@ -218,6 +314,20 @@ describe('POST /api/inquiries / 正常提交', () => {
 
     await run(makeReq({ body: makeValidBody() }))
     expect(payloadCreateMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('用显式默认城市上下文复核询盘目标有效供给', async () => {
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    await run(makeReq({ body: makeValidBody() }))
+
+    expect(createSearchContextMock).toHaveBeenCalledWith(siteConfig.defaultCity)
+    expect(assertEffectiveListingMock).toHaveBeenCalledWith(
+      'jingan-center-100-monthly',
+      expect.objectContaining({ city: siteConfig.defaultCity }),
+    )
   })
 
   it('Lead 数据包含完整询盘上下文', async () => {
@@ -396,6 +506,16 @@ describe('POST /api/inquiries / 字段错误', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/inquiries / 幂等', () => {
+  it('does not change the persisted city when an idempotent replay submits another valid city', async () => {
+    payloadFindMock.mockResolvedValueOnce({ docs: [{ id: 1, targetType: 'listing', city: 1 }] })
+
+    const r = await run(makeReq({ body: makeValidBody({ city: 'hangzhou' }) }))
+
+    expect(r.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
   it('第二次同 requestId + 同手机号 + 同目标 → 200，不调用 payload.create', async () => {
     // 第一次：找不到既有 Lead，创建新 Lead
     payloadFindMock.mockResolvedValueOnce({ docs: [] })

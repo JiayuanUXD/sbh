@@ -22,15 +22,16 @@ type BuildingFilterBarProps = Readonly<{
   grades: readonly BuildingGrade[]
   activeDistrict?: string
   activeGrade?: string
+  basePath?: string
 }>
 
-function buildHref(updates: Readonly<Record<string, string | null>>, current: Readonly<Record<string, string | undefined>>): string {
+function buildHref(updates: Readonly<Record<string, string | null>>, current: Readonly<Record<string, string | undefined>>, basePath: string): string {
   const next = new URLSearchParams()
   for (const [key, value] of Object.entries({ ...current, ...updates })) {
     if (value) next.set(key, value)
   }
   const qs = next.toString()
-  return qs ? `/buildings?${qs}` : '/buildings'
+  return qs ? `${basePath}?${qs}` : basePath
 }
 
 export default function BuildingFilterBar({
@@ -38,6 +39,7 @@ export default function BuildingFilterBar({
   grades,
   activeDistrict,
   activeGrade,
+  basePath = '/buildings',
 }: BuildingFilterBarProps) {
   const current = { district: activeDistrict, grade: activeGrade }
   const hasDistricts = districts.length > 0
@@ -52,7 +54,7 @@ export default function BuildingFilterBar({
           <div className="filter-bar__chips">
             <Link
               className={`filter-chip${!activeDistrict ? ' is-active' : ''}`}
-              href={buildHref({ district: null }, current)}
+              href={buildHref({ district: null }, current, basePath)}
               aria-current={!activeDistrict ? 'true' : undefined}
             >
               全部
@@ -61,7 +63,7 @@ export default function BuildingFilterBar({
               <Link
                 key={d.slug}
                 className={`filter-chip${activeDistrict === d.slug ? ' is-active' : ''}`}
-                href={buildHref({ district: d.slug }, current)}
+                href={buildHref({ district: d.slug }, current, basePath)}
                 aria-current={activeDistrict === d.slug ? 'true' : undefined}
               >
                 {d.name}
@@ -77,7 +79,7 @@ export default function BuildingFilterBar({
           <div className="filter-bar__chips">
             <Link
               className={`filter-chip${!activeGrade ? ' is-active' : ''}`}
-              href={buildHref({ grade: null }, current)}
+              href={buildHref({ grade: null }, current, basePath)}
               aria-current={!activeGrade ? 'true' : undefined}
             >
               全部
@@ -86,7 +88,7 @@ export default function BuildingFilterBar({
               <Link
                 key={grade}
                 className={`filter-chip${activeGrade === grade ? ' is-active' : ''}`}
-                href={buildHref({ grade }, current)}
+                href={buildHref({ grade }, current, basePath)}
                 aria-current={activeGrade === grade ? 'true' : undefined}
               >
                 {BUILDING_GRADE_LABELS[grade]}

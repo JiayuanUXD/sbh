@@ -35,7 +35,7 @@ export type LocationReferenceReport = {
 }
 
 type CountSpec = {
-  collection: 'buildings' | 'leads' | 'users' | 'locations'
+  collection: 'buildings' | 'city-site-profiles' | 'leads' | 'users' | 'locations'
   label: string
   where: (id: number | string) => Where
 }
@@ -73,6 +73,16 @@ const REFERENCE_SPECS: CountSpec[] = [
     collection: 'locations',
     label: '下级节点',
     where: (id) => ({ parent: { equals: id } }),
+  },
+  {
+    collection: 'city-site-profiles',
+    label: '城市站点配置（城市）',
+    where: (id) => ({ city: { equals: id } }),
+  },
+  {
+    collection: 'city-site-profiles',
+    label: '城市站点配置（精选区域）',
+    where: (id) => ({ featuredRegions: { in: [id] } }),
   },
 ]
 

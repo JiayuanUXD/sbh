@@ -4,7 +4,6 @@ import {
   ARTICLES_CATEGORY_TAG,
   PUBLIC_CACHE_TAG_PREFIX,
   SITEMAP_TAG,
-  homeTag,
 } from '@/domain/public-catalog'
 
 const PAGES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:pages`
@@ -39,7 +38,6 @@ export function invalidatePagePublicCache(): void {
     [
       PAGES_CATEGORY_TAG,
       SITEMAP_TAG,
-      homeTag('shanghai'),
     ],
     'page',
   )
@@ -49,9 +47,15 @@ export function invalidateArticlePublicCache(): void {
   revalidatePublicCacheTags(
     [
       ARTICLES_CATEGORY_TAG,
-      homeTag('shanghai'),
       SITEMAP_TAG,
     ],
     'article',
   )
+}
+
+export function invalidateCitySiteProfilePublicCache(
+  tags: readonly string[],
+  reason: 'city_site_profile' | 'location',
+): void {
+  revalidatePublicCacheTags(tags, reason)
 }

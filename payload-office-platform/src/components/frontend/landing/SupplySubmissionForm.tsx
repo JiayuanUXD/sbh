@@ -15,10 +15,13 @@ import { PUBLISH_COPY, PUBLISH_STEPS } from '@/lib/frontend/landing-config'
 import { track } from '@/lib/frontend/analytics'
 import {
   createLandingOnceTracker,
+  safeTrackCityEvent,
   safeTrackLandingEvent,
+  type CityServiceStatus,
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
-import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
+import LeadCitySelect, { type LeadCityOption } from './LeadCitySelect'
 import {
   createBrowserSupplyPendingRequestStore,
   createSupplyIntentFingerprint,
@@ -48,6 +51,7 @@ export type SupplyFieldErrors = Partial<
 >
 
 export type SupplySubmissionBody = Readonly<{
+  city: string
   requestId: string
   buildingName: string
   address: string
@@ -84,7 +88,11 @@ export type SupplyFormState = Readonly<{
 
 export type SupplySubmissionCoordinator = Readonly<{
   getState: () => SupplyFormState
-  submit: (values: SupplyFormValues) => Promise<SupplyFormState>
+  submit: (
+    values: SupplyFormValues,
+    city?: string,
+    cityStatus?: CityServiceStatus,
+  ) => Promise<SupplyFormState>
 }>
 
 type SupplySubmissionCoordinatorOptions = Readonly<{
@@ -145,10 +153,12 @@ export function getSupplyFieldErrors(values: SupplyFormValues): SupplyFieldError
 export function buildSupplySubmissionBody(
   values: SupplyFormValues,
   requestId: string,
+  city: string = siteConfig.defaultCity,
 ): SupplySubmissionBody {
   const hasRentAmount = values.rentAmount.trim().length > 0
   return {
     requestId,
+    city,
     buildingName: values.buildingName.trim(),
     address: values.address.trim(),
     areaSqm: Number(values.areaSqm),
@@ -279,7 +289,11 @@ export function createSupplySubmissionCoordinator(
     onStateChange(state)
   }
 
-  const submit = (values: SupplyFormValues): Promise<SupplyFormState> => {
+  const submit = (
+    values: SupplyFormValues,
+    city: string = siteConfig.defaultCity,
+    cityStatus: CityServiceStatus = 'live',
+  ): Promise<SupplyFormState> => {
     if (pendingSubmission) return pendingSubmission
 
     const filledCount = [
@@ -316,7 +330,10 @@ export function createSupplySubmissionCoordinator(
     const submitWithRequestId = (requestId: string) => {
       activeIntentIdentity = intentIdentity
       activeRequestId = requestId
-      return submitSupplySubmission(buildSupplySubmissionBody(values, requestId), requester)
+      return submitSupplySubmission(
+        buildSupplySubmissionBody(values, requestId, city),
+        requester,
+      )
     }
     const submissionResult = pendingRequestStore
       ? (async () => {
@@ -343,6 +360,11 @@ export function createSupplySubmissionCoordinator(
           updateState({ status: 'success', fieldErrors: {}, formError: null, errorReason: null })
           safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
             page_type: 'publish',
+          })
+          safeTrackCityEvent(analyticsTrack, 'city_lead_submitted', {
+            city,
+            status: cityStatus,
+            form_type: 'publish',
           })
           return state
         }
@@ -425,7 +447,15 @@ export const SupplySubmissionSuccessCard = React.forwardRef<HTMLDivElement>(
 )
 
 /** 房源投放卡片；一次挂载内的失败重试沿用同一幂等 requestId。 */
-export default function SupplySubmissionForm() {
+export default function SupplySubmissionForm({
+  citySlug = siteConfig.defaultCity,
+  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity, serviceStatus: 'live' }],
+  cityError,
+}: Readonly<{
+  citySlug?: string
+  cities?: readonly LeadCityOption[]
+  cityError?: string
+}>) {
   const commissionId = useId()
   const contactNoteId = 'publish-contact-note'
   const successRef = useRef<HTMLDivElement>(null)
@@ -435,6 +465,8 @@ export default function SupplySubmissionForm() {
   const rentAmountRef = useRef<HTMLInputElement>(null)
   const contactPhoneRef = useRef<HTMLInputElement>(null)
   const [values, setValues] = useState<SupplyFormValues>(INITIAL_VALUES)
+  const [selectedCity, setSelectedCity] = useState(citySlug)
+  const [activeCityError, setActiveCityError] = useState(cityError)
   const [formState, setFormState] = useState<SupplyFormState>(INITIAL_STATE)
   const [coordinator] = useState(() =>
     createSupplySubmissionCoordinator(newRequestId, fetch, setFormState, track, {
@@ -470,13 +502,25 @@ export default function SupplySubmissionForm() {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await coordinator.submit(values)
+    const selectedOption = cities.find((city) => city.slug === selectedCity)
+    if (!selectedOption) return
+    await coordinator.submit(values, selectedOption.slug, selectedOption.serviceStatus)
   }
   const statusMessage = getSupplyStatusMessage(formState)
 
   return (
     <form className="publish-card" onSubmit={onSubmit} noValidate>
       <h2 className="publish-card__title">{PUBLISH_COPY.cardTitle}</h2>
+      <LeadCitySelect
+        pageType="publish"
+        cities={cities}
+        selectedCity={selectedCity}
+        error={activeCityError}
+        onChange={(nextCity) => {
+          setSelectedCity(nextCity)
+          setActiveCityError(undefined)
+        }}
+      />
       <ProcessSteps steps={PUBLISH_STEPS} size="compact" />
 
       <div className="publish-card__group">
@@ -633,7 +677,12 @@ export default function SupplySubmissionForm() {
       ) : null}
 
       <div className="publish-card__actions">
-        <Button type="submit" variant="primary" loading={formState.status === 'submitting'}>
+        <Button
+          type="submit"
+          variant="primary"
+          loading={formState.status === 'submitting'}
+          disabled={Boolean(activeCityError) || !selectedCity}
+        >
           {getSupplySubmitLabel(formState)}
         </Button>
         <p className="publish-card__footer">{PUBLISH_COPY.cardFooter}</p>

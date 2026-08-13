@@ -60,8 +60,20 @@ export type DistrictViewModel = Readonly<{
   name: string
 }>
 
+/** Canonical city identity carried by every public listing/building DTO. */
+export type PublicCityIdentity = Readonly<{
+  citySlug: string
+  cityName: string
+}>
+
+/** Minimal identity exposed only to legacy/correction redirect routes. */
+export type PublicRouteIdentity = Readonly<{
+  slug: string
+  citySlug: string
+}>
+
 /** 公开楼盘摘要：用于卡片和详情中的楼盘信息 */
-export type BuildingSummaryViewModel = Readonly<{
+export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
   id: number
   slug: string
   name: string
@@ -102,7 +114,7 @@ export type CoordinatesViewModel = Readonly<{ latitude: number; longitude: numbe
  *   楼盘名、行政区、商圈、一张公开封面、最多三个公开亮点、
  *   推荐标识及稳定排序键
  */
-export type ListingCardViewModel = Readonly<{
+export type ListingCardViewModel = Readonly<PublicCityIdentity & {
   id: number
   slug: string
   title: string
@@ -225,7 +237,7 @@ export type ListingDetailViewModel = Readonly<ListingCardViewModel & {
 }>
 
 /** 楼盘详情视图模型 */
-export type BuildingDetailViewModel = Readonly<{
+export type BuildingDetailViewModel = Readonly<PublicCityIdentity & {
   id: number
   slug: string
   name: string

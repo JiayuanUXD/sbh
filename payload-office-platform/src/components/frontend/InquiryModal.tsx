@@ -39,6 +39,8 @@ type PageType = 'home' | 'search' | 'listing' | 'building' | 'content' | 'entrus
 type TargetType = 'listing' | 'building' | 'none'
 
 type Props = {
+  /** Canonical city resolved from server-provided public city options. */
+  city?: string
   /** 入口页面类型（FP-05 §2） */
   pageType: PageType
   /** 目标房源 slug（pageType=listing 时必填） */
@@ -53,6 +55,8 @@ type Props = {
   triggerVariant?: 'primary' | 'ghost' | 'ink'
   /** 触发按钮附加 className */
   triggerClassName?: string
+  /** Optional anonymous observation hook for the trigger action. */
+  onTriggerClick?: () => void
   /** 可分析的产品入口区块（与询盘 schema 的枚举保持一致） */
   sourceSection?: SourceSection
   /** 由公开 DTO 派生的非权威价格快照。 */
@@ -234,6 +238,7 @@ function getTargetSummary(props: Props): string | undefined {
 
 export default function InquiryModal(props: Props) {
   const {
+    city,
     pageType,
     targetListingSlug,
     targetBuildingSlug,
@@ -298,6 +303,7 @@ export default function InquiryModal(props: Props) {
   const targetSummary = getTargetSummary(props)
 
   function openModal() {
+    props.onTriggerClick?.()
     setErrors([])
     setServerError(null)
     setListingFallback(false)
@@ -416,6 +422,7 @@ export default function InquiryModal(props: Props) {
 
     // 构造 InquiryRequest（与 domain/inquiry/schema.ts 对齐）
     const requestBody = {
+      city,
       requestId,
       name: name.trim(),
       phone: phoneNormalized,

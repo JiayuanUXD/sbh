@@ -69,6 +69,10 @@ export const ADMIN_NAV_GROUPS = [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
       collectionSlug: 'locations',
     }),
+    leaf('city-site-profiles', '城市站点配置', '/admin/collections/city-site-profiles', ['locations'], {
+      collectionSlug: 'city-site-profiles',
+      requiredOperationCode: 'location:manage',
+    }),
     leaf('districts', '行政区域', '/admin/geography/districts', ['locations'], {
       collectionSlug: 'locations',
     }),
@@ -96,6 +100,17 @@ export const ADMIN_NAV_GROUPS = [
   ]),
   group('partners', '商户合作', 'shop', [
     leaf('merchants', '商户管理', '/admin/collections/merchants', ['merchants']),
+    leaf(
+      'city-partner-applications',
+      '城市合伙人申请',
+      '/admin/collections/city-partner-applications',
+      ['city-partner-applications'],
+      {
+        collectionSlug: 'city-partner-applications',
+        requiredOperationCode: 'city_partner_application:read',
+        badgeKey: 'cityPartnerApplications',
+      },
+    ),
   ]),
   group('team-management', '团队管理', 'team', [
     leaf('teams', '团队管理', '/admin/collections/teams', ['teams']),

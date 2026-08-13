@@ -28,6 +28,7 @@ type Props = Readonly<{
    * 首页"推荐房源"section 传 false（标题已表达推荐）。
    */
   showFeaturedTag?: boolean
+  citySlug?: string
   /** Public IDs and fixed enums for a page-scoped delegated analytics listener. */
   detailAnalytics?: Readonly<{
     event: 'recommendation_click' | 'building_listing_click'
@@ -67,7 +68,7 @@ function tagVariantFor(text: string): 'default' | 'forest' | 'copper' {
   return 'default'
 }
 
-export default function ListingCard({ listing, variant = 'default', view = 'grid', showFeaturedTag, detailAnalytics }: Props) {
+export default function ListingCard({ listing, variant = 'default', view = 'grid', showFeaturedTag, detailAnalytics, citySlug }: Props) {
   const { coverImage, price, area, building, highlights, listingType, title, slug, decorationStatus, isFeatured } = listing
   const featuredTagOn = showFeaturedTag ?? isFeatured
   const areaText = area != null ? formatArea(area) : null
@@ -95,7 +96,7 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
 
   return (
     <Link
-      href={`/listings/${slug}`}
+      href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
       className={`listing-card${viewClass}${variantClass}`}
       data-listing-card-variant={variant}
       data-listing-card-view={view}

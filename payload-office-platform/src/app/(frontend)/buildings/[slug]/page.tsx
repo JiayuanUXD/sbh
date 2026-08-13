@@ -1,21 +1,22 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 import BuildingDetailLayout from '@/components/frontend/building-detail/BuildingDetailLayout'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { buildBuildingJsonLd, buildBuildingMetadata, serializeJsonLd } from '@/lib/frontend/detail-metadata'
-import { siteConfig } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import {
   getCachedBuildingDetail,
   getCachedRelatedBuildings,
 } from '@/lib/frontend/cached-queries'
 import {
-  defaultSearchContext,
+  createSearchContext,
   getBuildingDetail,
   parseBuildingSupplySearchParams,
   type BuildingSupplyInput,
+  resolveBuildingRouteIdentity,
 } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +27,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const { building } = await getCachedBuildingDetail(slug)
+  if (getMultiCityRoutingEnabled()) {
+    const identity = await resolveBuildingRouteIdentity(slug)
+    if (!identity) notFound()
+    redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
+  }
+  const { building } = await getCachedBuildingDetail(siteConfig.defaultCity, slug)
   if (!building) {
     return {
       title: '楼盘未找到',
@@ -44,11 +50,16 @@ export default async function BuildingDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { slug } = await params
+  if (getMultiCityRoutingEnabled()) {
+    const identity = await resolveBuildingRouteIdentity(slug)
+    if (!identity) notFound()
+    redirect(`/${identity.citySlug}/buildings/${encodeURIComponent(identity.slug)}`)
+  }
   const supplyInput: BuildingSupplyInput = parseBuildingSupplySearchParams(await searchParams)
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(siteConfig.defaultCity)
   const [{ building, supply }, relatedBuildings, serviceSchedule] = await Promise.all([
     getBuildingDetail(slug, ctx, supplyInput),
-    getCachedRelatedBuildings(slug),
+    getCachedRelatedBuildings(siteConfig.defaultCity, slug),
     getServiceSchedule(),
   ])
   if (!building) notFound()

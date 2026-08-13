@@ -80,4 +80,15 @@ describe('validateDemandUpdate', () => {
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.errors).toContain('invalid_body')
   })
+
+  it('rejects city in stage two so the persisted stage-one relationship cannot be overwritten', () => {
+    const result = validateDemandUpdate({
+      requestId: 'r',
+      phone: '13800001111',
+      city: 'shanghai',
+      demand: { budget: 'x' },
+    })
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors).toContain('invalid_body_fields')
+  })
 })

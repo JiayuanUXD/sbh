@@ -11,7 +11,8 @@
  * 业务代码：`import { track } from '@/lib/frontend/analytics'` 后调 track(name, props)
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   createConsoleAdapter,
   createDataLayerAdapter,
@@ -20,6 +21,12 @@ import {
 } from './adapter'
 import { createCollector, type Collector } from './collector'
 import { initWebVitals } from './web-vitals'
+import {
+  resolveCityPageObservation,
+  safeTrackCityEvent,
+  type CityPageObservationOption,
+  type CityAnalyticsTrack,
+} from './landing'
 
 let collectorSingleton: Collector | null = null
 
@@ -62,7 +69,21 @@ export function flushAnalytics(): Promise<void> {
  * 埋点初始化组件：在根 layout 渲染一次，负责 flush 时机订阅。
  * 不渲染任何 UI。
  */
-export function AnalyticsInit(): null {
+export function AnalyticsInit({
+  cities = [],
+  defaultCity = '',
+  multiCityRoutingEnabled = true,
+  tracker = track,
+}: Readonly<{
+  cities?: readonly CityPageObservationOption[]
+  defaultCity?: string
+  multiCityRoutingEnabled?: boolean
+  tracker?: CityAnalyticsTrack
+}>): null {
+  const pathname = usePathname() || '/'
+  const searchParams = useSearchParams()
+  const lastObservationKeyRef = useRef<string | null>(null)
+  const currentNavigationKeyRef = useRef<string | null>(null)
   useEffect(() => {
     const collector = getCollector()
     const onVisibility = () => {
@@ -87,5 +108,29 @@ export function AnalyticsInit(): null {
       window.removeEventListener('pagehide', onHide)
     }
   }, [])
+
+  useEffect(() => {
+    const emitWhenVisible = () => {
+      const observation = resolveCityPageObservation(pathname, cities, searchParams, {
+        defaultCity,
+        multiCityRoutingEnabled,
+      })
+      const navigationKey = observation
+        ? `${pathname}|${observation.city}|${observation.page_type}`
+        : `${pathname}|unobserved`
+      if (currentNavigationKeyRef.current !== navigationKey) {
+        currentNavigationKeyRef.current = navigationKey
+        lastObservationKeyRef.current = null
+      }
+      if (document.visibilityState !== 'visible' || !observation) return
+      const key = `${navigationKey}|${observation.status}`
+      if (lastObservationKeyRef.current === key) return
+      lastObservationKeyRef.current = key
+      safeTrackCityEvent(tracker, 'city_page_view', observation)
+    }
+    emitWhenVisible()
+    document.addEventListener('visibilitychange', emitWhenVisible)
+    return () => document.removeEventListener('visibilitychange', emitWhenVisible)
+  }, [cities, defaultCity, multiCityRoutingEnabled, pathname, searchParams, tracker])
   return null
 }

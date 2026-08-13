@@ -41,6 +41,7 @@ export const MENU_CODES = [
   'reports',
   // 供给投放（委托找房/投放房源 PRD §5.6）
   'supply-submissions',
+  'city-partner-applications',
   'todos',
   // 站内通知（M6.7）
   'notifications',
@@ -106,6 +107,8 @@ export const OPERATION_CODES = [
   'supply_submission:read', // 读取投放申请列表 / 详情
   'supply_submission:manage', // 流转状态 / 补录字段
   'supply_submission:convert', // 转为房源草稿
+  'city_partner_application:read',
+  'city_partner_application:manage',
   // 领域事件 / 事务 Outbox（tasks.md M6.3）
   'events:read', // 读取领域事件列表 / 详情
   'events:write', // 业务操作同事务写入 Outbox（已认证用户即可）

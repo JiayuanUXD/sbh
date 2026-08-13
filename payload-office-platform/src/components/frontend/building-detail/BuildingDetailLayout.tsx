@@ -41,6 +41,7 @@ type BuildingDetailLayoutProps = Readonly<{
   serviceSchedule?: ServiceSchedule
   pois: PoiByCategory
   mapEnabled: boolean
+  citySlug?: string
 }>
 
 function SupplySectionSummary({
@@ -85,6 +86,7 @@ export default function BuildingDetailLayout({
   serviceSchedule,
   pois,
   mapEnabled,
+  citySlug,
 }: BuildingDetailLayoutProps) {
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasDescription = Boolean(building.description)
@@ -93,14 +95,15 @@ export default function BuildingDetailLayout({
   const hasAmenities = building.amenities.length > 0
   const hasParams = hasFacts || hasAmenities || hasDescription
 
-  const canonicalUrl = `${siteConfig.siteOrigin}/buildings/${building.slug}`
+  const basePath = citySlug ? `/${citySlug}` : ''
+  const canonicalUrl = `${siteConfig.siteOrigin}${basePath}/buildings/${encodeURIComponent(building.slug)}`
 
   return (
     <div className="detail detail--v2">
       <Breadcrumb
         items={[
-          { label: '首页', href: '/' },
-          { label: '办公选址', href: '/listings' },
+          { label: '首页', href: basePath || '/' },
+          { label: '办公选址', href: `${basePath}/listings` },
           ...(building.district ? [{ label: building.district.name }] : []),
           { label: building.name },
         ]}
@@ -141,13 +144,14 @@ export default function BuildingDetailLayout({
               availableGroups={supply.availableGroups}
             />
           </div>
-          <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} />
+          <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} citySlug={citySlug} />
         </div>
         <DetailSideRail
           building={building}
           supply={supply}
           relatedBuildings={relatedBuildings}
           serviceSchedule={serviceSchedule}
+          citySlug={citySlug}
         />
       </section>
 
@@ -181,7 +185,7 @@ export default function BuildingDetailLayout({
           pois={pois}
           mapEnabled={mapEnabled}
         />
-        <NearbyBuildingsStrip buildings={visibleRelatedBuildings} />
+        <NearbyBuildingsStrip buildings={visibleRelatedBuildings} citySlug={citySlug} />
       </section>
 
       {hasRelated && (
@@ -194,6 +198,7 @@ export default function BuildingDetailLayout({
                 building={item}
                 parentId={building.id}
                 rank={index + 1}
+                citySlug={citySlug}
               />
             ))}
           </div>

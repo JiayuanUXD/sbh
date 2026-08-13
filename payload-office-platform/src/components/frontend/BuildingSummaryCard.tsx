@@ -20,9 +20,11 @@ type BuildingSummaryCardProps = Readonly<{
   building: BuildingSummaryViewModel
   /** 父房源 ID，仅用于匿名点击埋点 */
   listingId?: number
+  /** Prefixed city routes keep this cross-link inside their city boundary. */
+  citySlug?: string
 }>
 
-export default function BuildingSummaryCard({ building, listingId }: BuildingSummaryCardProps) {
+export default function BuildingSummaryCard({ building, listingId, citySlug }: BuildingSummaryCardProps) {
   const coverSrc = building.coverImage ? normalizePublicMediaUrl(building.coverImage.src) : null
   const gradeLabel = getBuildingGradeLabel(building.grade)
 
@@ -62,7 +64,7 @@ export default function BuildingSummaryCard({ building, listingId }: BuildingSum
           </p>
         )}
         <Link
-          href={`/buildings/${building.slug}`}
+          href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(building.slug)}`}
           className="btn btn--ghost building-summary-card__cta"
           data-detail-analytics-event="listing_building_click"
           data-analytics-listing-id={listingId}

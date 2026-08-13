@@ -34,7 +34,7 @@ import {
   searchListings,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import { defaultSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
+import { createSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
 import {
   BUILDING_DISABLED,
   BUILDING_JINGAN_CENTER,
@@ -123,10 +123,24 @@ function createFakeAdapter(options: {
       if (!l || !isListingEffective(l)) return null
       return l
     },
+    async findListingRouteIdentity(slug) {
+      const listing = options.listings.find((candidate) => candidate.slug === slug)
+      if (!listing || !isListingEffective(listing)) return null
+      const building = resolveBuilding(listing.building)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return city ? { slug: listing.slug, citySlug: city.slug } : null
+    },
     async findEffectiveBuildingBySlug(slug) {
       const b = options.buildings.find((x) => x.slug === slug)
       if (!b || b.operationalStatus !== 'active') return null
       return b
+    },
+    async findBuildingRouteIdentity(slug) {
+      const building = options.buildings.find((candidate) => candidate.slug === slug)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return building?.operationalStatus === 'active' && city
+        ? { slug: building.slug, citySlug: city.slug }
+        : null
     },
     async findEffectiveListingsByBuilding(buildingId, _ctx, excludeListingId) {
       return options.listings.filter(
@@ -167,6 +181,16 @@ function createFakeAdapter(options: {
       return options.buildings
         .filter((building) => building.operationalStatus === 'active')
         .slice(0, limit)
+    },
+    async findEffectiveBuildingsPage(_ctx, { page, limit }) {
+      const all = options.buildings.filter((building) => building.operationalStatus === 'active')
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
     },
     async findFeaturedListings(_ctx, limit = 6) {
       return options.listings
@@ -209,7 +233,7 @@ function createFakeAdapter(options: {
 // 共享 fixture
 // ---------------------------------------------------------------------------
 
-const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
 /** 全量有效 fixture：3 条有效房源 + 1 条停用楼盘房源 + 失效房源集合 */
 function fullFixture(overrides: { districts?: readonly Location[]; businessAreas?: readonly Location[] } = {}) {

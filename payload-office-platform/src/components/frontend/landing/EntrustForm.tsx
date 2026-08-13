@@ -8,12 +8,16 @@ import { track } from '@/lib/frontend/analytics'
 import {
   createLandingOnceTracker,
   dispatchLandingConverted,
+  safeTrackCityEvent,
   safeTrackLandingEvent,
+  type CityServiceStatus,
   type LandingAnalyticsTrack,
 } from '@/lib/frontend/analytics/landing'
-import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
+import LeadCitySelect, { type LeadCityOption } from './LeadCitySelect'
 
 export type EntrustInquiryBody = Readonly<{
+  city: string
   phone: string
   requestId: string
   targetType: 'none'
@@ -42,7 +46,7 @@ export type EntrustFormState = Readonly<{
 
 export type EntrustSubmissionCoordinator = Readonly<{
   getState: () => EntrustFormState
-  submit: (phone: string) => Promise<EntrustFormState>
+  submit: (phone: string, city?: string, cityStatus?: CityServiceStatus) => Promise<EntrustFormState>
   /** 两步留电第二步：成功建 Lead 后补充可选需求；复用首步的 requestId 与已留电手机号。 */
   submitDemand: (demand: EntrustDemandInput) => Promise<EntrustDemandResult>
 }>
@@ -58,10 +62,15 @@ export function isValidEntrustPhone(raw: string): boolean {
   return /^1[3-9]\d{9}$/.test(normalizeEntrustPhone(raw))
 }
 
-export function buildEntrustInquiryBody(phone: string, requestId: string): EntrustInquiryBody {
+export function buildEntrustInquiryBody(
+  phone: string,
+  requestId: string,
+  city: string = siteConfig.defaultCity,
+): EntrustInquiryBody {
   return {
     phone: normalizeEntrustPhone(phone),
     requestId,
+    city,
     targetType: 'none',
     consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
     source: { pageType: 'entrust', path: '/entrust' },
@@ -162,7 +171,11 @@ export function createEntrustSubmissionCoordinator(
     onStateChange(state)
   }
 
-  const submit = (phone: string): Promise<EntrustFormState> => {
+  const submit = (
+    phone: string,
+    city: string = siteConfig.defaultCity,
+    cityStatus: CityServiceStatus = 'live',
+  ): Promise<EntrustFormState> => {
     if (pendingSubmission) return pendingSubmission
     safeTrackLandingEvent(analyticsTrack, 'landing_form_submit', {
       page_type: 'entrust',
@@ -178,13 +191,21 @@ export function createEntrustSubmissionCoordinator(
     }
 
     updateState({ status: 'submitting', error: null })
-    pendingSubmission = submitEntrustInquiry(buildEntrustInquiryBody(phone, requestId), requester)
+    pendingSubmission = submitEntrustInquiry(
+      buildEntrustInquiryBody(phone, requestId, city),
+      requester,
+    )
       .then((result) => {
         if (result.ok) {
           submittedPhone = normalizeEntrustPhone(phone)
           updateState({ status: 'success', error: null })
           safeTrackLandingEvent(analyticsTrack, 'landing_form_success', {
             page_type: 'entrust',
+          })
+          safeTrackCityEvent(analyticsTrack, 'city_lead_submitted', {
+            city,
+            status: cityStatus,
+            form_type: 'entrust',
           })
         }
         else {
@@ -232,12 +253,27 @@ function newRequestId(): string {
 }
 
 /** /entrust 首屏仅采集手机号；一次挂载内重试沿用同一幂等 requestId。 */
-export default function EntrustForm() {
+export default function EntrustForm({
+  citySlug = siteConfig.defaultCity,
+  cities = [{ slug: siteConfig.defaultCity, name: siteConfig.defaultCity, serviceStatus: 'live' }],
+  cityError,
+}: Readonly<{
+  citySlug?: string
+  cities?: readonly LeadCityOption[]
+  cityError?: string
+}>) {
   const inputId = 'entrust-phone'
   const noteId = useId()
   const [phone, setPhone] = useState('')
+  const [selectedCity, setSelectedCity] = useState(citySlug)
+  const [activeCityError, setActiveCityError] = useState(cityError)
   const [formState, setFormState] = useState<EntrustFormState>({ status: 'idle', error: null })
-  const [coordinator] = useState(() => createEntrustSubmissionCoordinator(newRequestId, fetch, setFormState))
+  const [coordinator] = useState(() => createEntrustSubmissionCoordinator(
+    newRequestId,
+    fetch,
+    setFormState,
+    track,
+  ))
   const [trackFormStart] = useState(() =>
     createLandingOnceTracker('landing_form_start', 'entrust', track),
   )
@@ -259,11 +295,23 @@ export default function EntrustForm() {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    await coordinator.submit(phone)
+    const selectedOption = cities.find((city) => city.slug === selectedCity)
+    if (!selectedOption) return
+    await coordinator.submit(phone, selectedOption.slug, selectedOption.serviceStatus)
   }
 
   return (
     <form className="entrust-form" onSubmit={onSubmit} noValidate>
+      <LeadCitySelect
+        pageType="entrust"
+        cities={cities}
+        selectedCity={selectedCity}
+        error={activeCityError}
+        onChange={(nextCity) => {
+          setSelectedCity(nextCity)
+          setActiveCityError(undefined)
+        }}
+      />
       <Field label="手机号" id={inputId} error={formState.error} required className="entrust-form__field">
         <Input
           type="tel"
@@ -278,7 +326,12 @@ export default function EntrustForm() {
           aria-describedby={noteId}
         />
       </Field>
-      <Button type="submit" variant="primary" loading={formState.status === 'submitting'}>
+      <Button
+        type="submit"
+        variant="primary"
+        loading={formState.status === 'submitting'}
+        disabled={Boolean(activeCityError) || !selectedCity}
+      >
         {ENTRUST_COPY.formSubmit}
       </Button>
       <p className="entrust-form__note" id={noteId}>

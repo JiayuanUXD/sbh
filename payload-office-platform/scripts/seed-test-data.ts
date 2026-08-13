@@ -15,6 +15,7 @@ import { getPayload } from 'payload'
 import sharp from 'sharp'
 
 import config from '../src/payload.config'
+import { applySeedTestListingVisibilityPolicy } from './seed-test-data-policy'
 
 type AnyDoc = { id: number }
 
@@ -381,7 +382,8 @@ const LISTINGS: ListingFill[] = [
 
 // ---------------------------------------------------------------------------
 // 为每个楼盘新增多个可租面积（小 / 中 / 大面积段，混合房源类型）
-// 每个新房源建恰好 1 条有效 merchant 关系，满足"有效供给"谓词以在前台展示。
+// 每个新房源建恰好 1 条有效 merchant 关系；empty-building 的三个夹具另由
+// supplyVisibilityHold 保持为非有效供给，以保留楼盘空状态验收契约。
 // ---------------------------------------------------------------------------
 type NewListing = {
   buildingSlug: string
@@ -703,7 +705,7 @@ async function main() {
   const relEffectiveFrom = new Date(now - DAY).toISOString()
   let newCount = 0
   for (let i = 0; i < NEW_LISTINGS.length; i++) {
-    const n = NEW_LISTINGS[i]
+    const n = applySeedTestListingVisibilityPolicy(NEW_LISTINGS[i])
     const b = buildingCache[n.buildingSlug]
     if (!b) {
       payload.logger.warn(`未找到楼盘 ${n.buildingSlug}，跳过 ${n.slug}`)
@@ -732,7 +734,7 @@ async function main() {
       mediaItems: listingMediaItems,
       reviewStatus: 'approved',
       publicationStatus: 'published',
-      supplyVisibilityHold: 'normal',
+      supplyVisibilityHold: n.supplyVisibilityHold,
     }
     if (price) data.price = price
     if (brokers.length > 0) data.contactBroker = brokers[(i + listingCount) % brokers.length].id

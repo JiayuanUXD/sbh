@@ -26,7 +26,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   assertEffectiveListing,
-  defaultSearchContext,
+  createSearchContext,
   getBuildingDetail,
   getHomepage,
   getListingBySlug,
@@ -36,7 +36,7 @@ import {
   searchListings,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
-import type { ListingSearchInput } from '@/domain/public-catalog'
+import type { ListingSearchInput, SearchContext } from '@/domain/public-catalog'
 import {
   isListingEffectivelySupplied,
   type EffectiveSupplySnapshot,
@@ -48,7 +48,7 @@ import type { Building, Listing, Location, Media, Page } from '@/payload-types'
 // 共享常量与基线 fixture
 // ---------------------------------------------------------------------------
 
-const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
 /** 有效媒体（gallery ≥ 3 张） */
 const MEDIA_1: Media = {
@@ -90,6 +90,14 @@ const CITY_SHANGHAI: Location = {
   createdAt: '2026-07-01T00:00:00.000Z',
 }
 
+const CITY_HANGZHOU: Location = {
+  ...CITY_SHANGHAI,
+  id: 110,
+  name: '杭州',
+  slug: 'hangzhou',
+  immutableCode: 'CITY-HZ',
+}
+
 const DISTRICT_JINGAN: Location = {
   id: 1,
   name: '静安',
@@ -100,6 +108,15 @@ const DISTRICT_JINGAN: Location = {
   parent: 100,
   updatedAt: '2026-07-01T00:00:00.000Z',
   createdAt: '2026-07-01T00:00:00.000Z',
+}
+
+const DISTRICT_GONGSHU: Location = {
+  ...DISTRICT_JINGAN,
+  id: 11,
+  name: '拱墅',
+  slug: 'gongshu',
+  immutableCode: 'TEST-11',
+  parent: 110,
 }
 
 /** 有效楼盘 */
@@ -122,6 +139,16 @@ const BUILDING_VALID: Building = {
   description: null,
   updatedAt: '2026-07-10T00:00:00.000Z',
   createdAt: '2026-01-01T00:00:00.000Z',
+}
+
+const BUILDING_HANGZHOU: Building = {
+  ...BUILDING_VALID,
+  id: 210,
+  name: '杭州中心',
+  slug: 'hangzhou-center',
+  city: CITY_HANGZHOU,
+  district: DISTRICT_GONGSHU,
+  address: '杭州市拱墅区延安路 1 号',
 }
 
 /** 有效关系区间：覆盖 asOf */
@@ -180,6 +207,20 @@ function makeSecondValidListing(): Listing {
   } as unknown as Listing
 }
 
+function makeHangzhouValidListing(): Listing {
+  return makeValidListing({
+    id: 1101,
+    title: '杭州有效房源',
+    slug: 'hangzhou-valid-listing',
+    building: BUILDING_HANGZHOU,
+    merchant: {
+      ...MERCHANT_VALID,
+      id: 7101,
+      serviceCities: [110],
+    } as unknown as Listing['merchant'],
+  })
+}
+
 // ---------------------------------------------------------------------------
 // FullPredicateFakeAdapter
 // ---------------------------------------------------------------------------
@@ -227,7 +268,7 @@ function createFullPredicateAdapter(options: {
    * 与生产 baseEffectiveWhere + fineFilter 等价：先查 §1-§4、§7，再过 §5 举报，
    * 最后 isListingEffectivelySupplied 精筛 §6/§8/§9/§10。
    */
-  function isListingEffective(l: Listing): boolean {
+  function isListingEffective(l: Listing, queryCtx: SearchContext): boolean {
     // §1 未逻辑删除
     if (l.deletedAt) return false
     // §2 已发布
@@ -241,6 +282,7 @@ function createFullPredicateAdapter(options: {
     if (!b || b.operationalStatus !== 'active') return false
     if (typeof b.city === 'object' && b.city && b.city.status !== 'active') return false
     if (typeof b.district === 'object' && b.district && b.district.status !== 'active') return false
+    if (typeof b.city !== 'object' || !b.city || b.city.slug !== queryCtx.city) return false
     // §5 未被有效举报暂停
     if (pausedIds.some((id) => String(id) === String(l.id))) return false
 
@@ -275,12 +317,12 @@ function createFullPredicateAdapter(options: {
       buildingCityId: typeof b.city === 'object' && b.city ? b.city.id : null,
       relationPeriod: withRel._relationPeriod === undefined ? RELATION_VALID : withRel._relationPeriod,
     }
-    const result = isListingEffectivelySupplied(snapshot, new Date(ctx.asOf))
+    const result = isListingEffectivelySupplied(snapshot, new Date(queryCtx.asOf))
     return result.eligible
   }
 
-  function matchInput(l: Listing, input: ListingSearchInput): boolean {
-    if (!isListingEffective(l)) return false
+  function matchInput(l: Listing, input: ListingSearchInput, queryCtx: SearchContext): boolean {
+    if (!isListingEffective(l, queryCtx)) return false
     if (input.listingType && input.listingType.length > 0) {
       if (!input.listingType.includes(l.listingType)) return false
     }
@@ -294,31 +336,47 @@ function createFullPredicateAdapter(options: {
   }
 
   return {
-    async findEffectiveListings(input) {
-      return options.listings.filter((l) => matchInput(l, input))
+    async findEffectiveListings(input, queryCtx) {
+      return options.listings.filter((l) => matchInput(l, input, queryCtx))
     },
-    async findEffectiveListingBySlug(slug) {
+    async findEffectiveListingBySlug(slug, queryCtx) {
       const l = options.listings.find((x) => x.slug === slug)
-      if (!l || !isListingEffective(l)) return null
+      if (!l || !isListingEffective(l, queryCtx)) return null
       return l
     },
-    async findEffectiveBuildingBySlug(slug) {
+    async findListingRouteIdentity(slug) {
+      const listing = options.listings.find((candidate) => candidate.slug === slug)
+      if (!listing) return null
+      const building = typeof listing.building === 'object' ? listing.building : null
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      if (!city || !isListingEffective(listing, createSearchContext(city.slug, new Date(ctx.asOf)))) return null
+      return { slug: listing.slug, citySlug: city.slug }
+    },
+    async findEffectiveBuildingBySlug(slug, queryCtx) {
       const b = buildings.find((x) => x.slug === slug)
       if (!b || b.operationalStatus !== 'active') return null
+      if (typeof b.city !== 'object' || !b.city || b.city.slug !== queryCtx.city) return null
       return b
     },
-    async findEffectiveListingsByBuilding(buildingId, _ctx, excludeListingId) {
+    async findBuildingRouteIdentity(slug) {
+      const building = buildings.find((candidate) => candidate.slug === slug)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return building?.operationalStatus === 'active' && city
+        ? { slug: building.slug, citySlug: city.slug }
+        : null
+    },
+    async findEffectiveListingsByBuilding(buildingId, queryCtx, excludeListingId) {
       return options.listings.filter(
         (l) =>
-          isListingEffective(l) &&
+          isListingEffective(l, queryCtx) &&
           (typeof l.building === 'object' ? l.building.id : l.building) === buildingId &&
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
-    async sumEffectiveLeasableAreaByBuildings(buildingIds) {
+    async sumEffectiveLeasableAreaByBuildings(buildingIds, queryCtx) {
       const sums = new Map<string, number>()
       for (const l of options.listings) {
-        if (!isListingEffective(l)) continue
+        if (!isListingEffective(l, queryCtx)) continue
         const bid = typeof l.building === 'object' ? l.building.id : l.building
         if (!buildingIds.some((id) => id === bid)) continue
         const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
@@ -330,16 +388,41 @@ function createFullPredicateAdapter(options: {
     async findEffectiveBusinessAreas() {
       return []
     },
-    async findEffectiveBuildingsNear(buildingId) {
-      return buildings.filter((building) => building.id !== buildingId && building.operationalStatus === 'active')
+    async findEffectiveBuildingsNear(buildingId, queryCtx) {
+      return buildings.filter((building) =>
+        building.id !== buildingId &&
+        building.operationalStatus === 'active' &&
+        typeof building.city === 'object' &&
+        building.city?.slug === queryCtx.city,
+      )
     },
-    async findEffectiveBuildings(_ctx, limit = 200) {
+    async findEffectiveBuildings(queryCtx, limit = 200) {
       return buildings
-        .filter((building) => building.operationalStatus === 'active')
+        .filter((building) =>
+          building.operationalStatus === 'active' &&
+          typeof building.city === 'object' &&
+          building.city?.slug === queryCtx.city,
+        )
         .slice(0, limit)
     },
-    async findFeaturedListings(_ctx, limit = 6) {
-      return options.listings.filter((l) => isListingEffective(l) && l.isFeatured).slice(0, limit)
+    async findEffectiveBuildingsPage(queryCtx, { page, limit }) {
+      const all = buildings.filter((building) =>
+        building.operationalStatus === 'active' &&
+        typeof building.city === 'object' &&
+        building.city?.slug === queryCtx.city,
+      )
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
+    },
+    async findFeaturedListings(queryCtx, limit = 6) {
+      return options.listings
+        .filter((l) => isListingEffective(l, queryCtx) && l.isFeatured)
+        .slice(0, limit)
     },
     async findFeaturedBuildings() {
       return []
@@ -353,12 +436,17 @@ function createFullPredicateAdapter(options: {
     async findPublishedArticleBySlug() {
       return null
     },
-    async findEffectiveDistricts() {
-      return districts
+    async findEffectiveDistricts(queryCtx) {
+      return districts.filter((district) => {
+        const parent = district.parent
+        if (typeof parent === 'object' && parent) return parent.slug === queryCtx.city
+        const city = queryCtx.city === 'hangzhou' ? CITY_HANGZHOU : CITY_SHANGHAI
+        return String(parent) === String(city.id)
+      })
     },
-    async assertEffectiveListingBySlug(slug) {
+    async assertEffectiveListingBySlug(slug, queryCtx) {
       const l = options.listings.find((x) => x.slug === slug)
-      if (!l || !isListingEffective(l)) return null
+      if (!l || !isListingEffective(l, queryCtx)) return null
       return l
     },
     async findPublishedPageBySlug() {
@@ -482,6 +570,39 @@ describe('F1.2 基线：全有效房源在所有路径可见', () => {
     expect(facets.totalDocs).toBe(2)
     expect(facets.listingTypes.find((f) => f.value === 'traditional-office')?.count).toBe(2)
     expect(facets.rentUnits.find((f) => f.value === 'rmb-month')?.count).toBe(2)
+  })
+})
+
+describe('F1.2 跨城市有效供给隔离', () => {
+  it('杭州上下文的列表、详情、推荐、首页、facet 和询盘候选均不返回上海供给', async () => {
+    const shanghaiListing = makeValidListing()
+    const hangzhouListing = makeHangzhouValidListing()
+    const adapter = createFullPredicateAdapter({
+      listings: [shanghaiListing, hangzhouListing],
+      buildings: [BUILDING_VALID, BUILDING_HANGZHOU],
+      districts: [DISTRICT_JINGAN, DISTRICT_GONGSHU],
+    })
+    const hangzhouCtx = createSearchContext('hangzhou', new Date('2026-07-25T00:00:00Z'))
+
+    const [list, detail, related, homepage, facets, inquiry, buildingDetail] = await Promise.all([
+      searchListings(defaultInput(), hangzhouCtx, adapter),
+      getListingBySlug(shanghaiListing.slug, hangzhouCtx, adapter),
+      getRelatedListings(shanghaiListing.slug, hangzhouCtx, { limit: 6 }, adapter),
+      getHomepage(hangzhouCtx, { featuredLimit: 6 }, adapter),
+      getSearchFacets(defaultInput(), hangzhouCtx, adapter),
+      assertEffectiveListing(shanghaiListing.slug, hangzhouCtx, adapter),
+      getBuildingDetail(BUILDING_VALID.slug, hangzhouCtx, adapter),
+    ])
+
+    expect(list.docs.map((listing) => listing.id)).toEqual([hangzhouListing.id])
+    expect(detail).toBeNull()
+    expect(related).toEqual([])
+    expect(homepage.featuredListings.map((listing) => listing.id)).toEqual([hangzhouListing.id])
+    expect(facets.totalDocs).toBe(1)
+    expect(facets.districts.map((district) => district.slug)).toEqual(['gongshu'])
+    expect(inquiry).toBeNull()
+    expect(buildingDetail.building).toBeNull()
+    expect(buildingDetail.supply.groups).toEqual([])
   })
 })
 

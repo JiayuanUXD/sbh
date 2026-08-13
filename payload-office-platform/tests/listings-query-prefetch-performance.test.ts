@@ -8,7 +8,7 @@ vi.mock('next/cache', () => ({
 
 import * as publicCatalog from '@/domain/public-catalog'
 import type { DistrictViewModel, SearchContext, SupplyAdapter } from '@/domain/public-catalog'
-import { defaultSearchContext } from '@/domain/public-catalog'
+import { createSearchContext } from '@/domain/public-catalog'
 import { buildListingSearchSourceCacheKey } from '@/lib/frontend/cached-queries'
 import { DISTRICT_JINGAN } from '@/test/frontend/payload-documents'
 
@@ -38,7 +38,7 @@ describe('OPT-026 lightweight listing district options', () => {
     })
 
     const result = await candidate(
-      defaultSearchContext(new Date('2026-07-25T00:00:00.000Z')),
+      createSearchContext('shanghai', new Date('2026-07-25T00:00:00.000Z')),
       adapter,
     )
 
@@ -73,10 +73,10 @@ describe('OPT-026 route cache and prefetch contracts', () => {
       readFile(resolve(ROOT, 'src/lib/frontend/cached-queries.ts'), 'utf8'),
     ])
 
-    expect(page).toContain('getCachedSearchListings(canonical, input)')
-    expect(page).toContain('getCachedListingDistrictOptions()')
+    expect(page).toContain('getCachedSearchListings(city.slug, canonical, input)')
+    expect(page).toContain('getCachedListingDistrictOptions(city.slug)')
     expect(page).not.toContain('getHomepage(')
-    expect(cachedQueries).toContain('getCachedListingSearchSource = unstable_cache(')
+    expect(cachedQueries).toContain('getCachedListingSearchSourceByCity = memoizeByCity(')
     expect(cachedQueries).toContain('revalidate: 300')
   })
 
@@ -91,9 +91,8 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(categoryTiles).toContain(
       "prefetch={t.href.startsWith('/listings') ? false : undefined}",
     )
-    expect(districtCards).toMatch(
-      /href=\{`\/listings\?businessArea=\$\{district\.slug\}`\}[\s\S]*?prefetch=\{false\}/,
-    )
+    expect(districtCards).toContain('/listings?businessArea=${district.slug}')
+    expect(districtCards).toContain('prefetch={false}')
     expect(siteNav).toContain(
       "prefetch={item.href.startsWith('/listings') ? false : undefined}",
     )

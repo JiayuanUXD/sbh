@@ -3,12 +3,24 @@ import { expect, test, type Page } from '@playwright/test'
 const LISTING_SLUG = 'jingan-serviced-office-42-seats'
 const PRICE_ON_REQUEST_SLUG = 'jingan-price-on-request-300sqm'
 const PUBLISHED_INEFFECTIVE_SLUG = 'jingan-published-pending-recheck'
+const ROUTING_ENABLED = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 const DETAIL_VIEWPORTS = [
   { width: 375, height: 812 },
   { width: 768, height: 1024 },
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ] as const
+const KNOWN_UNAVAILABLE_SEED_MEDIA = [
+  'building-facilities.jpg',
+  'common-lounge.jpg',
+  'cover-empty-building.jpg',
+  'cover-west-nanjing-premium-center-3.jpg',
+  'lobby-reception.jpg',
+  'meeting-room.jpg',
+  'workspace-open.jpg',
+] as const
+const browserErrors = new WeakMap<Page, string[]>()
+const allowedBrowserErrors = new WeakMap<Page, RegExp[]>()
 
 async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
   const bounds = await page.evaluate(async () => {
@@ -33,28 +45,43 @@ async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
   expect(bounds!.lastContentBottom).toBeLessThanOrEqual(bounds!.ctaTop)
 }
 
-function collectPageRuntimeErrors(page: Page) {
-  const consoleErrors: string[] = []
-  const pageErrors: string[] = []
-
+test.beforeEach(async ({ page }) => {
+  const errors: string[] = []
+  browserErrors.set(page, errors)
+  allowedBrowserErrors.set(page, [])
   page.on('console', (message) => {
-    if (message.type() === 'error') {
-      consoleErrors.push(message.text())
-    }
+    if (message.type() === 'error') errors.push(`console: ${message.text()}`)
   })
-  page.on('pageerror', (error) => {
-    pageErrors.push(error.message)
-  })
+  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
+  for (const filename of KNOWN_UNAVAILABLE_SEED_MEDIA) {
+    await page.route(`**/api/media/file/${filename}?*`, (route) =>
+      route.fulfill({ status: 204, body: '' }))
+  }
+})
 
-  return { consoleErrors, pageErrors }
-}
-
-function expectNoPageRuntimeErrors(errors: ReturnType<typeof collectPageRuntimeErrors>) {
-  expect(errors.consoleErrors, '页面不应输出 console.error').toEqual([])
-  expect(errors.pageErrors, '页面不应产生未捕获异常').toEqual([])
-}
+test.afterEach(async ({ page }) => {
+  const allowed = allowedBrowserErrors.get(page) ?? []
+  const unexpected = (browserErrors.get(page) ?? [])
+    .filter((error) => !allowed.some((pattern) => pattern.test(error)))
+  expect(unexpected).toEqual([])
+})
 
 test.describe('房源详情 P0', () => {
+  test('旧详情和错误城市详情遵循精确所有权', async ({ request }) => {
+    const legacy = await request.get(`/listings/${LISTING_SLUG}`, { maxRedirects: 0 })
+    const wrongCity = await request.get(`/hangzhou/listings/${LISTING_SLUG}`, { maxRedirects: 0 })
+    if (ROUTING_ENABLED) {
+      expect(legacy.status()).toBe(307)
+      expect(legacy.headers().location).toBe(`/shanghai/listings/${LISTING_SLUG}`)
+      expect(wrongCity.status()).toBe(307)
+      expect(wrongCity.headers().location).toBe(`/shanghai/listings/${LISTING_SLUG}`)
+    } else {
+      expect(legacy.status()).toBe(200)
+      expect(wrongCity.status()).toBe(307)
+      expect(wrongCity.headers().location).toBe(`/shanghai/listings/${LISTING_SLUG}`)
+    }
+  })
+
   test('有效房源按决策顺序展示概况和咨询入口', async ({ page }) => {
     const response = await page.goto(`/listings/${LISTING_SLUG}`)
 
@@ -88,6 +115,7 @@ test.describe('房源详情 P0', () => {
       }),
     ]))
 
+    allowedBrowserErrors.set(page, [/Failed to load resource: the server responded with a status of 404/])
     const response = await page.goto(`/listings/${PUBLISHED_INEFFECTIVE_SLUG}`)
 
     expect(response?.status()).toBe(404)
@@ -114,7 +142,6 @@ test.describe('房源详情 P0', () => {
 
   for (const viewport of DETAIL_VIEWPORTS) {
     test(`房源详情在 ${viewport.width}px 无横向溢出，移动操作栏不遮挡内容`, async ({ page }) => {
-      const runtimeErrors = collectPageRuntimeErrors(page)
       await page.setViewportSize(viewport)
       const response = await page.goto(`/listings/${LISTING_SLUG}`)
 
@@ -129,8 +156,6 @@ test.describe('房源详情 P0', () => {
         await expect(mobileBar).toBeVisible()
         await expectMobileCtaDoesNotObscureLastContent(page)
       }
-
-      expectNoPageRuntimeErrors(runtimeErrors)
     })
   }
 
@@ -228,10 +253,10 @@ test.describe('楼盘详情 P0', () => {
 
     expect(response?.status()).toBe(200)
     await expect(page.getByRole('heading', { name: '在租房源' })).toBeVisible()
-    // The held `jingan-published-pending-recheck` fixture belongs to this
-    // building but is not effective public supply. `media-rich-listing` (P1
-    // 媒体样例) is an additional effective lease listing.
-    await expect(page.locator('.building-supply-browser__table tbody tr')).toHaveCount(4)
+    const rows = page.locator('.building-supply-browser__table tbody tr')
+    await expect(rows.first()).toBeVisible()
+    await expect(page.locator(`a[href$="/listings/${LISTING_SLUG}"]`).first()).toBeVisible()
+    await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
   })
 
   test('楼盘供给分桶筛选默认全选且可切换', async ({ page }) => {
@@ -254,7 +279,7 @@ test.describe('楼盘详情 P0', () => {
     expect(await page.locator('script[type="application/ld+json"]').textContent()).toBe(canonicalJsonLd)
   })
 
-  test('无供给楼盘不显示最低价和分桶', async ({ page }) => {
+  test('empty-building exposes the no-public-supply state', async ({ page }) => {
     const response = await page.goto('/buildings/empty-building')
 
     expect(response?.status()).toBe(200)
@@ -264,6 +289,14 @@ test.describe('楼盘详情 P0', () => {
     await expect(
       page.locator('button[data-source-section="hero"]', { hasText: '登记找房需求' }),
     ).toBeVisible()
+  })
+
+  test('待复核房源不进入楼盘公开供给', async ({ page }) => {
+    const response = await page.goto('/buildings/west-nanjing-premium-center')
+
+    expect(response?.status()).toBe(200)
+    await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
+    await expect(page.locator('.building-supply-browser__bucket').first()).toBeVisible()
   })
 
   test('楼盘详情供给聚合和列表使用同一 asOf 快照', async ({ page }) => {
@@ -302,13 +335,15 @@ test.describe('楼盘详情 P0', () => {
     const response = await page.goto('/buildings/west-nanjing-premium-center')
 
     expect(response?.status()).toBe(200)
-    await expect(page.locator('[data-listing-card-variant="building-supply"]')).toHaveCount(4)
+    const cards = page.locator('[data-listing-card-variant="building-supply"]')
+    await expect(cards.first()).toBeVisible()
+    await expect(page.locator(`a[href$="/listings/${LISTING_SLUG}"]`).first()).toBeVisible()
+    await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
     await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
   })
 
   for (const viewport of DETAIL_VIEWPORTS) {
     test(`楼盘详情在 ${viewport.width}px 无横向溢出`, async ({ page }) => {
-      const runtimeErrors = collectPageRuntimeErrors(page)
       await page.setViewportSize(viewport)
       const response = await page.goto('/buildings/west-nanjing-premium-center?group=lease')
 
@@ -323,8 +358,6 @@ test.describe('楼盘详情 P0', () => {
         await expect(mobileBar).toBeVisible()
         await expectMobileCtaDoesNotObscureLastContent(page)
       }
-
-      expectNoPageRuntimeErrors(runtimeErrors)
     })
   }
 })

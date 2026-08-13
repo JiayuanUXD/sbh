@@ -235,6 +235,9 @@ export const Leads: CollectionConfig = {
                   label: '归属城市',
                   type: 'relationship',
                   relationTo: 'locations',
+                  typescriptSchema: [({ jsonSchema }) => ({
+                    anyOf: [jsonSchema, { type: 'string' }],
+                  })],
                   filterOptions: () => activeLocationFilter(['city']),
                 },
               ],

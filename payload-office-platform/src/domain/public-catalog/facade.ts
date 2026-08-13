@@ -35,6 +35,7 @@ import type {
   MediaViewModel,
   PageDetailViewModel,
   PageSummaryViewModel,
+  PublicRouteIdentity,
 } from './contracts'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
@@ -124,6 +125,14 @@ export type BuildingDetailResult = Readonly<{
 export type BuildingSearchResult = Readonly<{
   docs: readonly BuildingSummaryViewModel[]
   totalDocs: number
+}>
+
+/** One public building page for bounded catalog enumeration. */
+export type BuildingSearchPageResult = Readonly<{
+  docs: readonly BuildingSummaryViewModel[]
+  page: number
+  hasNextPage: boolean
+  nextPage: number | null
 }>
 
 /** 楼盘详情页（不含房源聚合）：仅楼盘 DTO */
@@ -373,6 +382,25 @@ export async function searchBuildings(
   return { docs, totalDocs: docs.length }
 }
 
+export async function searchBuildingsPage(
+  ctx: SearchContext,
+  options: Readonly<{ page: number; limit: number }>,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingSearchPageResult> {
+  const result = await adapter.findEffectiveBuildingsPage(ctx, options)
+  const docs: BuildingSummaryViewModel[] = []
+  for (const raw of result.docs) {
+    const summary = mapBuildingSummary(raw)
+    if (summary) docs.push(summary)
+  }
+  return {
+    docs,
+    page: result.page,
+    hasNextPage: result.hasNextPage,
+    nextPage: result.nextPage,
+  }
+}
+
 /**
  * 按 slug 获取房源详情；不存在或失效返回 null
  *
@@ -401,6 +429,24 @@ export async function getBuildingBySlug(
   const raw = await adapter.findEffectiveBuildingBySlug(slug, ctx)
   if (!raw) return null
   return mapBuildingDetail(raw, ctx.asOf)
+}
+
+/** Minimal cityless lookup used only by legacy/correction listing redirects. */
+export async function resolveListingRouteIdentity(
+  slug: string,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<PublicRouteIdentity | null> {
+  const identity = await adapter.findListingRouteIdentity(slug)
+  return identity ? { slug: identity.slug, citySlug: identity.citySlug } : null
+}
+
+/** Minimal cityless lookup used only by legacy/correction building redirects. */
+export async function resolveBuildingRouteIdentity(
+  slug: string,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<PublicRouteIdentity | null> {
+  const identity = await adapter.findBuildingRouteIdentity(slug)
+  return identity ? { slug: identity.slug, citySlug: identity.citySlug } : null
 }
 
 /**
@@ -605,7 +651,7 @@ export async function getHomepage(
     adapter.findEffectiveDistricts(ctx),
     adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
-    adapter.findLatestArticles(ctx, articlesLimit),
+    adapter.findLatestArticles(articlesLimit),
   ])
 
   const cards = mapListingsToCards(featuredListings)
@@ -743,7 +789,7 @@ export async function getSearchFacets(
 }
 
 /**
- * 按 slug 获取已发布的内容页详情；草稿/删除/不存在返回 null
+ * 按 slug 获取全站已发布内容页详情；草稿/删除/不存在返回 null
  *
  * F6.1：内容页路由 /pages/[slug] 与首页 slug='home' 渲染入口。
  * SupplyAdapter 已过滤 status=published + 未逻辑删除；mapper 进一步投影字段白名单。
@@ -751,26 +797,24 @@ export async function getSearchFacets(
  */
 export async function getPageBySlug(
   slug: string,
-  ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<PageDetailViewModel | null> {
-  const raw = await adapter.findPublishedPageBySlug(slug, ctx)
+  const raw = await adapter.findPublishedPageBySlug(slug)
   if (!raw) return null
   return mapPageDetail(raw)
 }
 
 /**
- * 列出所有已发布的公开页面（用于 sitemap）
+ * 列出全站所有已发布公开页面（用于 sitemap）
  *
  * F6.4：sitemap 调用此方法生成 /pages/<slug> URL。
  * home slug 由调用方转换为 /（不重复 /pages/home）。
  */
 export async function listPublishedPages(
-  ctx: SearchContext,
   options: Readonly<{ limit?: number }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly PageSummaryViewModel[]> {
-  const pages = await adapter.findPublishedPages(ctx, options.limit)
+  const pages = await adapter.findPublishedPages(options.limit)
   const summaries: PageSummaryViewModel[] = []
   for (const p of pages) {
     const s = mapPageSummary(p)
@@ -780,31 +824,29 @@ export async function listPublishedPages(
 }
 
 /**
- * 资讯详情：/news/[slug]
+ * 全站资讯详情：/news/[slug]
  *
  * 仅返回已发布资讯；草稿、删除、不存在返回 null。
  */
 export async function getArticleBySlug(
   slug: string,
-  ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ArticleDetailViewModel | null> {
-  const raw = await adapter.findPublishedArticleBySlug(slug, ctx)
+  const raw = await adapter.findPublishedArticleBySlug(slug)
   if (!raw) return null
   return mapArticleDetail(raw)
 }
 
 /**
- * 资讯列表：/news 列表页（分页）
+ * 全站资讯列表：/news 列表页（分页）
  *
  * 仅返回已发布资讯，按 publishedAt 倒序。page 从 1 起。
  */
 export async function listPublishedArticles(
-  ctx: SearchContext,
   options: Readonly<{ page?: number; pageSize?: number }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ArticleListResult> {
-  const { docs, totalDocs } = await adapter.findPublishedArticles(ctx, options)
+  const { docs, totalDocs } = await adapter.findPublishedArticles(options)
   const cards: ArticleCardViewModel[] = []
   for (const a of docs) {
     const vm = mapArticleCard(a)

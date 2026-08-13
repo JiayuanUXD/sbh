@@ -144,10 +144,25 @@ describe('F6.5 computeAffectedTags', () => {
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:listing:listing-1003')
-    expect(tags).toContain('public:home:all')
-    expect(tags).toContain('public:facets:all')
+    expect(tags).not.toContain('public:home:shanghai')
+    expect(tags).not.toContain('public:facets:shanghai')
     expect(tags).toContain(SITEMAP_TAG)
     expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:buildings')
+  })
+
+  it('derives the actual city from a public listing identity instead of a legacy city hint', () => {
+    const event = makeEvent('listing.published', {
+      listingId: 'listing-hangzhou',
+      city: 'shanghai',
+      listing: { citySlug: 'hangzhou', slug: 'hangzhou-office' },
+    })
+    const tags = computeAffectedTags(event)
+
+    expect(tags).toContain('public:home:hangzhou')
+    expect(tags).toContain('public:facets:hangzhou')
+    expect(tags).toContain('public:listings:city:hangzhou')
+    expect(tags).not.toContain('public:home:shanghai')
   })
 
   it('事件 payload 含 buildingId 时：失效对应 building tag', () => {
@@ -186,7 +201,7 @@ describe('F6.5 computeAffectedTags', () => {
     expect(listingTags).toHaveLength(1)
   })
 
-  it('listing 事件同时失效具体 tag 和类别级 tag（public:listings）', () => {
+  it('listing 事件同时失效具体 tag 和实际城市类别 tag', () => {
     const event = makeEvent('listing.published', {
       listingId: 'listing-cat-1',
       city: 'shanghai',
@@ -194,11 +209,11 @@ describe('F6.5 computeAffectedTags', () => {
     const tags = computeAffectedTags(event)
     // 具体 tag（供未来 Cache Components 使用）
     expect(tags).toContain('public:listing:listing-cat-1')
-    // 类别级 tag（lib/frontend/cached-queries.ts 用此 tag 标记 cached function）
-    expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:listings:city:shanghai')
+    expect(tags).not.toContain('public:listings')
   })
 
-  it('building 事件同时失效具体 tag 和类别级 tag（public:buildings）', () => {
+  it('building 事件同时失效具体 tag 和实际城市类别 tag', () => {
     const event = makeEvent('listing.published', {
       listingId: 'listing-b-1',
       buildingId: 'building-cat-1',
@@ -206,7 +221,8 @@ describe('F6.5 computeAffectedTags', () => {
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:building:building-cat-1')
-    expect(tags).toContain('public:buildings')
+    expect(tags).toContain('public:buildings:city:shanghai')
+    expect(tags).not.toContain('public:buildings')
   })
 
   it('无 listingId 的事件不失效 public:listings 类别 tag', () => {

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { HERO_POSTER_SRC } from '@/lib/frontend/hero-poster'
+import type { MediaViewModel } from '@/domain/public-catalog/contracts'
 
 type NetworkInformation = Readonly<{
   saveData?: boolean
@@ -11,7 +12,7 @@ type NavigatorWithConnection = Navigator & Readonly<{
   connection?: NetworkInformation
 }>
 
-export default function HomeHeroMedia() {
+export default function HomeHeroMedia({ poster }: Readonly<{ poster?: MediaViewModel | null }> = {}) {
   const [loadVideo, setLoadVideo] = useState(false)
 
   useEffect(() => {
@@ -33,13 +34,13 @@ export default function HomeHeroMedia() {
   return (
     <div className="hero__bg" aria-hidden="true">
       <img
-        src={HERO_POSTER_SRC}
-        alt=""
+        src={poster?.src ?? HERO_POSTER_SRC}
+        alt={poster?.alt ?? ''}
         loading="eager"
         decoding="async"
         className="hero__poster"
       />
-      {loadVideo && (
+      {!poster && loadVideo && (
         <video autoPlay muted loop playsInline preload="none" poster={HERO_POSTER_SRC}>
           <source src="/api/media/file/hero-bg.mp4?prefix=media" type="video/mp4" />
         </video>

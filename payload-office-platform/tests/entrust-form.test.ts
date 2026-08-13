@@ -22,9 +22,10 @@ describe('EntrustForm submission boundary', () => {
   })
 
   it('builds the exact entrust inquiry body with the normalized phone', () => {
-    expect(buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request')).toEqual({
+    expect(buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request', 'hangzhou')).toEqual({
       phone: '13800001111',
       requestId: 'entrust-fixed-request',
+      city: 'hangzhou',
       targetType: 'none',
       consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
       source: { pageType: 'entrust', path: '/entrust' },
@@ -39,7 +40,7 @@ describe('EntrustForm submission boundary', () => {
     }
 
     const result = await submitEntrustInquiry(
-      buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request'),
+      buildEntrustInquiryBody('138 0000-1111', 'entrust-fixed-request', 'hangzhou'),
       requester,
     )
 
@@ -53,6 +54,7 @@ describe('EntrustForm submission boundary', () => {
         body: JSON.stringify({
           phone: '13800001111',
           requestId: 'entrust-fixed-request',
+          city: 'hangzhou',
           targetType: 'none',
           consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
           source: { pageType: 'entrust', path: '/entrust' },
@@ -96,8 +98,8 @@ describe('EntrustForm submission boundary', () => {
       states.push(state.status)
     }, (name, props) => events.push({ name, props }))
 
-    const firstSubmit = coordinator.submit('13800001111')
-    const secondSubmit = coordinator.submit('13800001111')
+    const firstSubmit = coordinator.submit('13800001111', 'hangzhou', 'coming-soon')
+    const secondSubmit = coordinator.submit('13800001111', 'hangzhou', 'coming-soon')
 
     expect(requestIdFactory).toHaveBeenCalledTimes(1)
     expect(calls).toBe(1)
@@ -115,6 +117,10 @@ describe('EntrustForm submission boundary', () => {
         props: { page_type: 'entrust', field_completeness: 1 },
       },
       { name: 'landing_form_success', props: { page_type: 'entrust' } },
+      {
+        name: 'city_lead_submitted',
+        props: { city: 'hangzhou', status: 'coming-soon', form_type: 'entrust' },
+      },
     ])
     expect(JSON.stringify(events)).not.toContain('13800001111')
   })
@@ -248,6 +254,7 @@ describe('EntrustForm submission boundary', () => {
       'landing_form_error',
       'landing_form_submit',
       'landing_form_success',
+      'city_lead_submitted',
     ])
     expect(events[1].props).toEqual({ page_type: 'entrust', error_code: 'rate_limited' })
   })
@@ -269,6 +276,11 @@ describe('EntrustForm submission boundary', () => {
 })
 
 describe('EntrustForm two-step demand update', () => {
+  it('never includes city in the stage-two demand body', () => {
+    expect(buildEntrustDemandBody('entrust-req', '13800001111', { budget: '3万/月' }))
+      .not.toHaveProperty('city')
+  })
+
   it('builds demand body with trimmed non-empty fields only', () => {
     expect(
       buildEntrustDemandBody('entrust-req', '13800001111', {

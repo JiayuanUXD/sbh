@@ -18,6 +18,7 @@ type DetailSideRailProps = Readonly<{
   supply: BuildingSupplySnapshot
   relatedBuildings: readonly BuildingSummaryViewModel[]
   serviceSchedule?: ServiceSchedule
+  citySlug?: string
 }>
 
 export default function DetailSideRail({
@@ -25,6 +26,7 @@ export default function DetailSideRail({
   supply,
   relatedBuildings,
   serviceSchedule,
+  citySlug,
 }: DetailSideRailProps) {
   const lowest = findLowestPrice(supply.availableGroups)
   const popular = relatedBuildings.filter((item) => item.id !== building.id).slice(0, 3)
@@ -84,7 +86,7 @@ export default function DetailSideRail({
           <ul className="detail-side-rail__popular">
             {popular.map((item) => (
               <li key={item.id}>
-                <a href={`/buildings/${item.slug}`}>
+                <a href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
                   {item.coverImage ? (
                     <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
                   ) : (

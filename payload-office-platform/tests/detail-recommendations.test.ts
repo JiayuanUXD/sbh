@@ -9,12 +9,20 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  createPayloadSupplyAdapter,
+  createSearchContext,
+  getDetailRecommendations,
+} from '@/domain/public-catalog'
+import {
   rankDetailRecommendations,
   parseRecommendationContext,
   type RecommendationCandidate,
   type RecommendationContext,
   type RecommendationResult,
 } from '@/domain/recommendation/detail-recommendations'
+import {
+  LISTING_MONTHLY_STANDARD,
+} from '@/test/frontend/payload-documents'
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -64,6 +72,36 @@ const CANDIDATES: RecommendationCandidate[] = [
 // ---------------------------------------------------------------------------
 
 describe('rankDetailRecommendations', () => {
+  it('preserves canonical city identity on recommendation DTO cards', async () => {
+    const candidateListing = {
+      ...LISTING_MONTHLY_STANDARD,
+      id: 1010,
+      slug: 'recommended-office',
+      title: '推荐办公室',
+    }
+    const adapter = {
+      ...createPayloadSupplyAdapter(),
+      async findEffectiveListingBySlug() {
+        return LISTING_MONTHLY_STANDARD
+      },
+      async findEffectiveListings() {
+        return [candidateListing]
+      },
+    }
+
+    const recommendations = await getDetailRecommendations(
+      LISTING_MONTHLY_STANDARD.slug,
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
+      {},
+      adapter,
+    )
+
+    expect(recommendations[0]?.card).toMatchObject({
+      citySlug: 'shanghai',
+      cityName: '上海市',
+    })
+  })
+
   it('同商圈、同单位、相近面积按稳定 ID 收束', () => {
     const results = rankDetailRecommendations(CANDIDATES, CONTEXT)
     // 第一名应该是 id=12（同商圈40 + 同类型25 + 同单位20 + 相近面积10 + 相近价格5 = 100）

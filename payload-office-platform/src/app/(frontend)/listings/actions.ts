@@ -1,10 +1,13 @@
 'use server'
 
 import {
-  defaultSearchContext,
+  createSearchContext,
   getSearchFacets,
   parseListingSearchInput,
 } from '@/domain/public-catalog'
+import { siteConfig } from '@/lib/frontend/site-config'
+import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
 /**
  * 估算给定筛选条件下的房源数（OPT-009）
@@ -20,14 +23,19 @@ import {
  */
 export async function estimateListingCount(
   filters: Record<string, string>,
+  requestedCitySlug?: string,
 ): Promise<number | null> {
   try {
+    const candidateCitySlug = requestedCitySlug ?? siteConfig.defaultCity
+    if (!isPublicCitySlug(candidateCitySlug)) return null
+    const city = await resolveCityContext(candidateCitySlug)
+    if (!city || city.serviceStatus !== 'live') return null
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries(filters)) {
       if (v) params.set(k, v)
     }
     const input = parseListingSearchInput(params)
-    const ctx = defaultSearchContext()
+    const ctx = createSearchContext(city.slug)
     const facets = await getSearchFacets(input, ctx)
     return facets.totalDocs
   } catch {

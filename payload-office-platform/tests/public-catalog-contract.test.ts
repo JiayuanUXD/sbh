@@ -68,6 +68,8 @@ function price(
 
 function card(id: number, overrides: Partial<ListingCardViewModel> = {}): ListingCardViewModel {
   const base: ListingCardViewModel = {
+    citySlug: 'shanghai',
+    cityName: '上海市',
     id,
     slug: `listing-${id}`,
     title: `房源 ${id}`,
@@ -502,6 +504,8 @@ describe('Public Catalog DTO 字段白名单契约', () => {
         'price',
         'area',
         'businessType',
+        'citySlug',
+        'cityName',
         'decorationStatus',
         'listingType',
         'availableFrom',

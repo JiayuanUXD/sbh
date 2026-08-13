@@ -40,6 +40,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
     highlights: [],
     stableSortKey: 'listing-1',
     ...overrides,
+    citySlug: overrides.citySlug ?? 'shanghai',
+    cityName: overrides.cityName ?? '上海市',
   }
 }
 

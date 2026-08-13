@@ -26,7 +26,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   assertEffectiveListing,
-  defaultSearchContext,
+  createSearchContext,
   getBuildingDetail,
   getHomepage,
   getListingBySlug,
@@ -267,11 +267,25 @@ function createFullPredicateAdapter(options: {
       if (!l || !isListingEffective(l)) return null
       return l
     },
+    async findListingRouteIdentity(slug) {
+      const listing = options.listings.find((candidate) => candidate.slug === slug)
+      if (!listing || !isListingEffective(listing)) return null
+      const building = resolveBuilding(listing.building)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return city ? { slug: listing.slug, citySlug: city.slug } : null
+    },
     async findEffectiveBuildingBySlug(slug, ctx) {
       syncAsOf(ctx)
       const b = buildings.find((x) => x.slug === slug)
       if (!b || b.operationalStatus !== 'active') return null
       return b
+    },
+    async findBuildingRouteIdentity(slug) {
+      const building = buildings.find((candidate) => candidate.slug === slug)
+      const city = typeof building?.city === 'object' && building.city ? building.city : null
+      return building?.operationalStatus === 'active' && city
+        ? { slug: building.slug, citySlug: city.slug }
+        : null
     },
     async findEffectiveListingsByBuilding(buildingId, ctx, excludeListingId) {
       syncAsOf(ctx)
@@ -307,6 +321,17 @@ function createFullPredicateAdapter(options: {
       return buildings
         .filter((building) => building.operationalStatus === 'active')
         .slice(0, limit)
+    },
+    async findEffectiveBuildingsPage(ctx, { page, limit }) {
+      syncAsOf(ctx)
+      const all = buildings.filter((building) => building.operationalStatus === 'active')
+      const docs = all.slice((page - 1) * limit, page * limit)
+      return {
+        docs,
+        page,
+        hasNextPage: page * limit < all.length,
+        nextPage: page * limit < all.length ? page + 1 : null,
+      }
     },
     async findFeaturedListings(ctx, limit = 6) {
       syncAsOf(ctx)
@@ -368,11 +393,13 @@ describe('F7.6 时区边界：Asia/Shanghai 自然日切换', () => {
     ;(listing as ListingWithRelation)._relationPeriod = relationStart
 
     // 上海时间 2026-07-25 23:59:59（关系未生效）→ 不可见
-    const beforeMidnight = defaultSearchContext(
+    const beforeMidnight = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T15:59:59.000Z'), // 上海 2026-07-25 23:59:59
     )
     // 上海时间 2026-07-26 00:00:00（关系生效）→ 可见
-    const atMidnight = defaultSearchContext(
+    const atMidnight = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T16:00:00.000Z'), // 上海 2026-07-26 00:00:00
     )
 
@@ -399,10 +426,12 @@ describe('F7.6 时区边界：Asia/Shanghai 自然日切换', () => {
     const listing = makeValidListing()
     ;(listing as ListingWithRelation)._relationPeriod = expiredRelation
 
-    const beforeMidnight = defaultSearchContext(
+    const beforeMidnight = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T15:59:59.000Z'), // 上海 2026-07-25 23:59:59（关系有效）
     )
-    const atMidnight = defaultSearchContext(
+    const atMidnight = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T16:00:00.000Z'), // 上海 2026-07-26 00:00:00（关系过期）
     )
 
@@ -427,13 +456,16 @@ describe('F7.6 时区边界：Asia/Shanghai 自然日切换', () => {
       merchant: expiringMerchant as unknown as Listing['merchant'],
     })
 
-    const beforeExpiry = defaultSearchContext(
+    const beforeExpiry = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T15:59:59.000Z'), // 上海 23:59:59（资质仍有效）
     )
-    const atExpiry = defaultSearchContext(
+    const atExpiry = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T16:00:00.000Z'), // 上海 00:00:00（= exp，仍有效）
     )
-    const afterExpiry = defaultSearchContext(
+    const afterExpiry = createSearchContext(
+      'shanghai',
       new Date('2026-07-25T16:00:01.000Z'), // 上海 00:00:01（> exp，已失效）
     )
 
@@ -469,7 +501,7 @@ describe('F7.6 陈旧数据边界：陈旧规则不剔除公开供给', () => {
     const adapter = createFullPredicateAdapter({ listings: [listing] })
 
     // 列表/详情/楼内/精选/facet 全部应可见
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
     const search = await searchListings(parseSearchInput(new URLSearchParams('')), ctx, adapter)
     const detail = await getListingBySlug(listing.slug, ctx, adapter)
     const building = await getBuildingDetail('jingan-center', ctx, adapter)
@@ -491,7 +523,7 @@ describe('F7.6 陈旧数据边界：陈旧规则不剔除公开供给', () => {
       publicationStatus: 'draft',
     })
     const adapter = createFullPredicateAdapter({ listings: [staleButFailed] })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const search = await searchListings(parseSearchInput(new URLSearchParams('')), ctx, adapter)
     const detail = await getListingBySlug(staleButFailed.slug, ctx, adapter)
@@ -529,7 +561,7 @@ describe('F7.6 稳定分页：跨页排序稳定', () => {
   it('推荐排序：跨页 listing_id 严格升序', async () => {
     const listings = makeListings(60)
     const adapter = createFullPredicateAdapter({ listings: listings })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     // pageSize 固定 24，60 条共 3 页
     const page1 = await searchListings(
@@ -567,7 +599,7 @@ describe('F7.6 稳定分页：跨页排序稳定', () => {
   it('最新排序：updatedAt 同值时仍以 listing_id 升序收束', async () => {
     const listings = makeListings(50)
     const adapter = createFullPredicateAdapter({ listings: listings })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const page1 = await searchListings(
       { ...parseSearchInput(new URLSearchParams('sort=newest')), page: 1 },
@@ -599,7 +631,7 @@ describe('F7.6 稳定分页：跨页排序稳定', () => {
   it('页码越界（page > totalPages）返回空文档但保留 totalDocs/totalPages', async () => {
     const listings = makeListings(10)
     const adapter = createFullPredicateAdapter({ listings: listings })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const outOfRange = await searchListings(
       { ...parseSearchInput(new URLSearchParams('')), page: 100 },
@@ -615,7 +647,7 @@ describe('F7.6 稳定分页：跨页排序稳定', () => {
   it('page < 1 自动回退为 1', async () => {
     const listings = makeListings(5)
     const adapter = createFullPredicateAdapter({ listings: listings })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const search = await searchListings(
       { ...parseSearchInput(new URLSearchParams('')), page: -1 },
@@ -640,7 +672,7 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
   it('1 条有效房源：7 个消费者路径全部返回相同集合', async () => {
     const listing = makeValidListing()
     const adapter = createFullPredicateAdapter({ listings: [listing] })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const search = await searchListings(parseSearchInput(new URLSearchParams('')), ctx, adapter)
     const detail = await getListingBySlug(listing.slug, ctx, adapter)
@@ -672,7 +704,7 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
       }),
     )
     const adapter = createFullPredicateAdapter({ listings: listings })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const search = await searchListings(parseSearchInput(new URLSearchParams('')), ctx, adapter)
     const building = await getBuildingDetail('jingan-center', ctx, adapter)
@@ -709,7 +741,7 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
     const adapter = createFullPredicateAdapter({
       listings: [valid1, valid2, failDraft, failReview, failMedia],
     })
-    const ctx = defaultSearchContext(new Date('2026-07-25T00:00:00Z'))
+    const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 
     const search = await searchListings(parseSearchInput(new URLSearchParams('')), ctx, adapter)
     const building = await getBuildingDetail('jingan-center', ctx, adapter)
@@ -799,12 +831,12 @@ describe('F7.6 缓存失效等价性', () => {
     }
     // sitemap 永远在失效集合
     expect(tags).toContain('public:sitemap')
-    // listing + 类别级 tag 都在
+    // listing + 城市类别 tag 都在
     expect(tags).toContain('public:listing:8001')
-    expect(tags).toContain('public:listings')
-    // building + 类别级 tag
+    expect(tags).toContain('public:listings:city:shanghai')
+    // building + 城市类别 tag
     expect(tags).toContain('public:building:200')
-    expect(tags).toContain('public:buildings')
+    expect(tags).toContain('public:buildings:city:shanghai')
     // 城市 home + facets
     expect(tags).toContain('public:home:shanghai')
     expect(tags).toContain('public:facets:shanghai')
@@ -819,11 +851,11 @@ describe('F7.6 缓存失效等价性', () => {
       },
     })
     const tags = computeAffectedTags(event)
-    // 全城市安全失效应包含 home:all / facets:all / sitemap / 类别级 listings
-    expect(tags).toContain('public:home:all')
-    expect(tags).toContain('public:facets:all')
+    // 无法解析城市时使用供给类别 fallback，不猜测具体城市。
     expect(tags).toContain('public:sitemap')
     expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:buildings')
+    expect(tags).not.toContain('public:home:shanghai')
   })
 
   it('举报暂停事件失效集合包含 listing + 类别 + sitemap', () => {
@@ -838,7 +870,7 @@ describe('F7.6 缓存失效等价性', () => {
     })
     const tags = computeAffectedTags(event)
     expect(tags).toContain('public:listing:8003')
-    expect(tags).toContain('public:listings')
+    expect(tags).toContain('public:listings:city:shanghai')
     expect(tags).toContain('public:home:shanghai')
     expect(tags).toContain('public:facets:shanghai')
     expect(tags).toContain('public:sitemap')

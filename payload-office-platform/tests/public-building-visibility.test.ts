@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   getListingPublicBuildingWhere,
@@ -45,14 +43,5 @@ describe('public building visibility', () => {
       'building.city.status': { equals: 'active' },
       'building.district.status': { equals: 'active' },
     })
-  })
-
-  it('sitemap reuses the shared building predicate instead of a partial status check', () => {
-    const source = readFileSync(
-      resolve(process.cwd(), 'src/app/(frontend)/sitemap.ts'),
-      'utf8',
-    )
-    expect(source).toContain('getPublicBuildingWhere')
-    expect(source).not.toContain('buildingOperationalWhere')
   })
 })

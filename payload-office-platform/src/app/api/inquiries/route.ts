@@ -25,7 +25,7 @@ import config from '@/payload.config'
 import {
   assertEffectiveBuilding,
   assertEffectiveListing,
-  defaultSearchContext,
+  createSearchContext,
 } from '@/domain/public-catalog'
 import {
   buildInquiryLogEntry,
@@ -41,7 +41,9 @@ import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 import { ratePruneRef } from './rate-limit-state'
+import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -95,6 +97,34 @@ function isSameOrigin(req: Request): boolean {
 function isJsonContentType(req: Request): boolean {
   const ct = req.headers.get('content-type') ?? ''
   return ct.toLowerCase().startsWith('application/json')
+}
+
+function approvedLegacyInquiryCity(source: InquiryRequest['source']): string | null {
+  const segments = source.path.split('/').filter(Boolean)
+  const prefixedCity = isPublicCitySlug(segments[0]) ? segments[0] : null
+  if (source.pageType === 'entrust') {
+    return source.path === '/entrust' ? siteConfig.defaultCity : null
+  }
+  if (source.pageType === 'home') {
+    if (source.path === '/') return siteConfig.defaultCity
+    return segments.length === 1 ? prefixedCity : null
+  }
+  if (source.pageType === 'search') {
+    if (segments.length === 1 && (segments[0] === 'listings' || segments[0] === 'buildings')) {
+      return siteConfig.defaultCity
+    }
+    return segments.length === 2 && (segments[1] === 'listings' || segments[1] === 'buildings')
+      ? prefixedCity
+      : null
+  }
+  if (source.pageType === 'listing' || source.pageType === 'building') {
+    const resource = source.pageType === 'listing' ? 'listings' : 'buildings'
+    if (segments.length === 2 && segments[0] === resource) return siteConfig.defaultCity
+    return segments.length === 3 && segments[1] === resource ? prefixedCity : null
+  }
+  return source.pageType === 'content' && /^\/(?:news|pages)\/[^/]+$/.test(source.path)
+    ? siteConfig.defaultCity
+    : null
 }
 
 type TargetResolution = 'listing' | 'building' | 'general'
@@ -261,6 +291,12 @@ export async function POST(req: Request): Promise<Response> {
   }
   const inquiry: InquiryRequest = result.data
 
+  const submittedCity = inquiry.city ?? approvedLegacyInquiryCity(inquiry.source)
+  const trustedCity = submittedCity ? await resolveCityContext(submittedCity) : null
+  if (!trustedCity || trustedCity.slug !== submittedCity) {
+    return NextResponse.json({ ok: false, errors: ['city_invalid'] }, { status: 422 })
+  }
+
   // ----- 4b. 偏好看房时段服务端复核（P2 Task 4） -----
   // 用户可选时段；若提交了时段，用平台服务时间在提交瞬间复核有效性
   //（过期/非服务时段/非 30 分边界/非 2 小时 -> 422），防止前端陈旧时段绕过。
@@ -321,7 +357,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // ----- 7. 目标有效性复核（同一 ctx；listing → building → general） -----
-  const ctx = defaultSearchContext()
+  const ctx = createSearchContext(trustedCity.slug)
   const listing = inquiry.listingSlug
     ? await assertEffectiveListing(inquiry.listingSlug, ctx)
     : null
@@ -357,6 +393,7 @@ export async function POST(req: Request): Promise<Response> {
         company: inquiry.company ?? undefined,
         status: 'new',
         source: 'frontend-form',
+        city: trustedCity.id,
         // 租赁需求（demand）
         budget: inquiry.demand.budget ?? undefined,
         area: inquiry.demand.area ?? undefined,

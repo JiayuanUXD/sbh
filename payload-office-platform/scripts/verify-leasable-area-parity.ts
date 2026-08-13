@@ -15,11 +15,12 @@
 import { getPayload } from 'payload'
 import config from '@/payload.config'
 import { getDefaultSupplyAdapter } from '@/domain/public-catalog/supply-adapter'
-import { defaultSearchContext } from '@/domain/public-catalog'
+import { createSearchContext } from '@/domain/public-catalog'
+import { siteConfig } from '@/lib/frontend/site-config'
 
 const payload = await getPayload({ config })
 const adapter = getDefaultSupplyAdapter()
-const ctx = defaultSearchContext()
+const ctx = createSearchContext(siteConfig.defaultCity)
 
 const allBuildings = await payload.find({ collection: 'buildings', limit: 500, depth: 0 })
 const ids = allBuildings.docs.map((b) => b.id)

@@ -259,6 +259,8 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
         'price',
         'area',
         'businessType',
+        'citySlug',
+        'cityName',
         'decorationStatus',
         'listingType',
         'availableFrom',
@@ -300,7 +302,7 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     // description 是受控字段（PageContent 白名单渲染），允许暴露
     expect(detail).toHaveProperty('description')
     // 但不应有未在 DTO 契约声明的字段
-    const allowed = ['id', 'slug', 'title', 'price', 'area', 'seats', 'businessType',
+    const allowed = ['id', 'slug', 'title', 'citySlug', 'cityName', 'price', 'area', 'seats', 'businessType',
       'decorationStatus', 'listingType', 'availableFrom', 'isFeatured', 'building',
       'coverImage', 'gallery', 'mediaItems', 'factGroups', 'amenityGroups',
       'verification', 'highlights', 'description', 'stableSortKey']
@@ -776,6 +778,7 @@ describe('F7.5 询盘完整链路守护不变量汇总', () => {
     const req = buildValidInquiryRequest()
     expect(Object.keys(req).sort()).toEqual(
       [
+        'city',
         'requestId',
         'name',
         'phone',

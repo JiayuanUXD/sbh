@@ -21,11 +21,7 @@
 export const PRIVACY_POLICY_VERSION = 'MVP-R1'
 
 /** 默认运营城市（MVP 单城市） */
-export const DEFAULT_CITY = 'shanghai' as const
-
-/** 受支持的城市代码白名单 */
-export const SUPPORTED_CITIES = ['shanghai'] as const
-export type SupportedCity = (typeof SUPPORTED_CITIES)[number]
+export const DEFAULT_CITY = 'shanghai'
 
 /**
  * 站点配置：以只读对象暴露，禁止运行时修改。
@@ -35,7 +31,7 @@ export type SupportedCity = (typeof SUPPORTED_CITIES)[number]
  *   2. 生产环境（NODE_ENV=production）缺失 → 抛错；
  *   3. 开发环境缺失 → 使用 http://localhost:3717 并 warn；
  *   4. NEXT_PUBLIC_ANALYTICS_ENABLED 接受 'true' / '1'（区分大小写）；
- *   5. 默认城市仅在 SUPPORTED_CITIES 白名单内。
+ *   5. 默认城市只在配置边界读取；运行时由城市站点配置解析其可用性。
  */
 export type SiteConfig = Readonly<{
   /** 站点根 URL（不含尾斜杠），如 'https://example.com' */
@@ -45,7 +41,7 @@ export type SiteConfig = Readonly<{
   /** 是否启用分析埋点（仅生产推荐启用） */
   analyticsEnabled: boolean
   /** 默认运营城市代码 */
-  defaultCity: SupportedCity
+  defaultCity: string
   /** 隐私政策版本 */
   privacyPolicyVersion: string
   /** 当前环境标识 */
@@ -139,17 +135,15 @@ function resolveSiteOrigin(env: SiteConfig['env']): { origin: string; url: URL }
   return { origin: raw.trim(), url }
 }
 
-/** 解析默认城市（必须在白名单内） */
-function resolveDefaultCity(): SupportedCity {
+/** 解析默认城市（运行时由城市站点配置验证其可用性） */
+function resolveDefaultCity(): string {
   const raw = process.env.NEXT_PUBLIC_DEFAULT_CITY
   if (!raw || raw.trim() === '') return DEFAULT_CITY
-  const trimmed = raw.trim()
-  if (!SUPPORTED_CITIES.includes(trimmed as SupportedCity)) {
-    throw new Error(
-      `[site-config] NEXT_PUBLIC_DEFAULT_CITY 不在受支持城市白名单内：${trimmed}（受支持：${SUPPORTED_CITIES.join(', ')}）`,
-    )
-  }
-  return trimmed as SupportedCity
+  return raw.trim()
+}
+
+export function getMultiCityRoutingEnabled(): boolean {
+  return process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 }
 
 /** 构建站点配置（懒加载缓存） */

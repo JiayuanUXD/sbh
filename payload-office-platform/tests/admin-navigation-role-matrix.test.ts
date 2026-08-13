@@ -83,6 +83,7 @@ describe('admin navigation role matrix', () => {
       '工作台',
       '房源运营',
       '客户运营',
+      '商户合作',
       '团队管理',
     ])
   })

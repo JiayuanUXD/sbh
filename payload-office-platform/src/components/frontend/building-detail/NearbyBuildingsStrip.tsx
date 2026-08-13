@@ -7,9 +7,10 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
  */
 type NearbyBuildingsStripProps = Readonly<{
   buildings: readonly BuildingSummaryViewModel[]
+  citySlug?: string
 }>
 
-export default function NearbyBuildingsStrip({ buildings }: NearbyBuildingsStripProps) {
+export default function NearbyBuildingsStrip({ buildings, citySlug }: NearbyBuildingsStripProps) {
   if (buildings.length === 0) return null
 
   return (
@@ -20,7 +21,7 @@ export default function NearbyBuildingsStrip({ buildings }: NearbyBuildingsStrip
           const gradeLabel = getBuildingGradeLabel(item.grade)
           return (
             <li key={item.id} className="nearby-strip__item">
-              <a className="nearby-strip__card" href={`/buildings/${item.slug}`}>
+              <a className="nearby-strip__card" href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
                 {item.coverImage ? (
                   <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
                 ) : (

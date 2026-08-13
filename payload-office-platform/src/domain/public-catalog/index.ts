@@ -27,6 +27,8 @@
  *   - contracts/mappers 新增 PageDetailViewModel / PageSummaryViewModel（F6.1）
  *   - facade 新增 getPageBySlug / listPublishedPages（F6.1 + F6.4）
  *   - supply-adapter 新增 findPublishedPageBySlug / findPublishedPages（F6.1 + F6.4）
+ *   - SearchContext 由 createSearchContext(city, now?) 构造，公开查询不允许缺省城市
+ *   - /news 与 /pages 内容为全站内容，adapter/facade 方法不接收 SearchContext
  */
 
 export * from './contracts'
@@ -62,6 +64,7 @@ export type {
   SupplyAdapter,
   SupplyAdapterFactory,
   AdapterCallContext,
+  EffectiveBuildingPage,
 } from './supply-adapter'
 export {
   createPayloadSupplyAdapter,
@@ -78,6 +81,7 @@ export {
   type BuildingDetailResult,
   type BuildingDetailPageResult,
   type BuildingSearchResult,
+  type BuildingSearchPageResult,
   // 函数
   parseSearchInput,
   buildCanonical,
@@ -85,8 +89,11 @@ export {
   buildListingSearchSource,
   paginateListingSearchSource,
   searchBuildings,
+  searchBuildingsPage,
   getListingBySlug,
   getBuildingBySlug,
+  resolveListingRouteIdentity,
+  resolveBuildingRouteIdentity,
   getBuildingDetail,
   getRelatedBuildings,
   getListingsByBuilding,
@@ -109,11 +116,15 @@ export {
   PUBLIC_CACHE_TAG_PREFIX,
   SITEMAP_TAG,
   ARTICLES_CATEGORY_TAG,
+  LISTINGS_CATEGORY_TAG,
+  BUILDINGS_CATEGORY_TAG,
   ALL_PUBLIC_CACHE_TAG_GROUPS,
   homeTag,
   listingTag,
   buildingTag,
   listingsTag,
+  listingsCityTag,
+  buildingsCityTag,
   facetsTag,
   pageTag,
   cityLevelSafeInvalidationTags,

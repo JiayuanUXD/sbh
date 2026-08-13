@@ -6,6 +6,7 @@ import SupplySubmissionForm from '@/components/frontend/landing/SupplySubmission
 import { PUBLISH_COPY } from '@/lib/frontend/landing-config'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
+import { resolveLeadCityPageSelection } from '../_lib/lead-city-page'
 
 export const metadata: Metadata = buildPageMetadata({
   title: '投放房源｜免费委托出租',
@@ -25,7 +26,10 @@ const SERVICE_JSON_LD = {
 } as const
 
 /** 全静态房源投放页；数据仅在用户提交时通过公开 API 写入。 */
-export default function PublishPage() {
+export default async function PublishPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ city?: string | string[] }> }>) {
+  const city = await resolveLeadCityPageSelection(searchParams)
   return (
     <>
       <script
@@ -39,7 +43,7 @@ export default function PublishPage() {
         title={PUBLISH_COPY.title}
         subtitle={PUBLISH_COPY.subtitle}
       />
-      <SupplySubmissionForm />
+      <SupplySubmissionForm {...city} />
     </>
   )
 }

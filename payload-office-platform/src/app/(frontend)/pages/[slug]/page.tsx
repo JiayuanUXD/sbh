@@ -7,10 +7,7 @@ import PageContent from '@/components/frontend/PageContent'
 import { serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { buildNotFoundMetadata, buildPageMetadata } from '@/lib/frontend/metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
-import {
-  defaultSearchContext,
-  getPageBySlug,
-} from '@/domain/public-catalog'
+import { getPageBySlug } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const page = await getPageBySlug(slug, ctx)
+  const page = await getPageBySlug(slug)
   if (!page) {
     // 草稿、删除或不存在 → noindex（F6.3 noindex 策略）
     return buildNotFoundMetadata('页面未找到')
@@ -55,8 +51,7 @@ export default async function PageDetailPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const ctx = defaultSearchContext()
-  const page = await getPageBySlug(slug, ctx)
+  const page = await getPageBySlug(slug)
   if (!page) notFound()
 
   const canonicalUrl = `${siteConfig.siteOrigin}/pages/${encodeURIComponent(slug)}`

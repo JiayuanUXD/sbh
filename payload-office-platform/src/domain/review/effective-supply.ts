@@ -56,7 +56,9 @@ export type EffectiveSupplyExclusionCode =
  * 查询层可表达的有效供给正向谓词（fail-closed）。
  * @param _asOf 判定基准时刻（当前查询层条件与时刻无关，保留参数以便未来接入时间敏感条件）。
  */
-export function getEffectiveSupplyWhere(_asOf: Date): Record<string, unknown> {
+export function getEffectiveSupplyWhere(
+  _asOf: Date,
+): Record<string, Readonly<{ equals: string }> | Readonly<{ exists: false }>> {
   return {
     deletedAt: { exists: false },
     publicationStatus: { equals: 'published' },

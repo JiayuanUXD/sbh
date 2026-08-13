@@ -32,6 +32,8 @@ type Props = {
   districts: readonly District[]
   /** 当前已应用条件下的房源总数（服务端传入） */
   totalDocs: number
+  basePath?: string
+  citySlug?: string
 }
 
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
@@ -126,7 +128,7 @@ function buildStagedParams(s: StagedFilters): URLSearchParams {
   return params
 }
 
-export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
+export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/listings', citySlug }: Props) {
   const router = useRouter()
   const sp = useSearchParams()
   const [open, setOpen] = useState(false)
@@ -232,14 +234,14 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
     const filters = Object.fromEntries(buildStagedParams(staging))
     const reqId = ++estimateReqIdRef.current
     const timer = setTimeout(async () => {
-      const count = await estimateListingCount(filters)
+      const count = await estimateListingCount(filters, citySlug)
       // 仅采纳最新请求结果
       if (reqId === estimateReqIdRef.current) {
         setEstimateCount(count)
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [open, q, district, type, rentMin, rentMax, rentUnit, areaMin, areaMax, availableBefore, sort])
+  }, [open, q, district, type, rentMin, rentMax, rentUnit, areaMin, areaMax, availableBefore, sort, citySlug])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -255,7 +257,7 @@ export default function MobileFilterDrawer({ districts, totalDocs }: Props) {
     setError(null)
 
     const qs = buildStagedParams(staging).toString()
-    router.push(qs ? `/listings?${qs}` : '/listings')
+    router.push(qs ? `${basePath}?${qs}` : basePath)
     setOpen(false)
   }
 

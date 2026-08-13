@@ -100,6 +100,17 @@ async function resolveCityId(
   return toId(node.city)
 }
 
+async function hasCitySiteProfile(req: PayloadRequest, cityId: number | string): Promise<boolean> {
+  const result = await req.payload.find({
+    collection: 'city-site-profiles',
+    where: { city: { equals: cityId } },
+    limit: 1,
+    depth: 0,
+    req,
+  })
+  return result.docs.length > 0
+}
+
 export const protectLocation: CollectionBeforeChangeHook = async ({
   data,
   originalDoc,
@@ -117,6 +128,21 @@ export const protectLocation: CollectionBeforeChangeHook = async ({
   const childType: LocationType = nextType
   const parentId = toId(data?.parent)
   const hasParent = parentId !== null
+
+  if (
+    operation === 'update' &&
+    originalDoc?.type === 'city' &&
+    typeof originalDoc.slug === 'string' &&
+    typeof data?.slug === 'string' &&
+    originalDoc.slug !== data.slug &&
+    await hasCitySiteProfile(req, originalDoc.id)
+  ) {
+    throw new InvalidOperationError({
+      domain: 'geography',
+      code: 'city_slug_frozen',
+      message: '已配置城市站点的城市 URL 标识不可修改',
+    })
+  }
 
   // —— 不可变字段（仅 update）——
   if (operation === 'update' && originalDoc) {

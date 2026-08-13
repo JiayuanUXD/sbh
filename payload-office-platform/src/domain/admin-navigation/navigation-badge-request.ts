@@ -31,6 +31,7 @@ const BADGE_KEYS = [
   'listingReports',
   'leads',
   'formSubmissions',
+  'cityPartnerApplications',
 ] as const satisfies readonly AdminNavigationBadgeKey[]
 
 export async function loadAdminNavigationBadges({

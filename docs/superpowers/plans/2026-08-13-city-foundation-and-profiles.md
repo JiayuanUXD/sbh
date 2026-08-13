@@ -36,7 +36,7 @@
 - Produces: `CITY_SERVICE_STATUSES`, `CityServiceStatus`, `PublicCitySiteProfile`, `protectCitySiteProfile`, Collection slug `city-site-profiles`.
 - `PublicCitySiteProfile` is the only profile shape frontend routes may consume.
 
-- [ ] **Step 1: Write failing schema and protection tests**
+- [x] **Step 1: Write failing schema and protection tests**
 
 ```ts
 expect(CITY_SERVICE_STATUSES).toEqual(['live', 'coming-soon'])
@@ -48,13 +48,13 @@ await expect(protectCitySiteProfile(inputWithTitleWithoutCityName)).rejects.toTh
 
 Also assert title ≤60 characters, description 70–160 characters and contains city name, `featuredRegions` ≤12, featured regions are active/frontend-visible district or business area in the same city, and duplicate city profiles are rejected.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-site-profile-domain.test.ts tests/city-site-profile-access.test.ts tests/admin-navigation-config.test.ts`
 
 Expected: FAIL because the domain module, Collection, and navigation leaf do not exist.
 
-- [ ] **Step 3: Implement the closed enums and public DTO**
+- [x] **Step 3: Implement the closed enums and public DTO**
 
 ```ts
 export const CITY_SERVICE_STATUSES = ['live', 'coming-soon'] as const
@@ -88,7 +88,7 @@ export type PublicCitySiteProfile = Readonly<{
 
 Use explicit DTO media/region subsets; do not expose raw Payload documents or internal status fields.
 
-- [ ] **Step 4: Implement server-side protection and Collection fields**
+- [x] **Step 4: Implement server-side protection and Collection fields**
 
 Create fields exactly matching spec §5.1: `city`, `serviceStatus`, `switcherVisible`, `sortOrder`, SEO fields, optional Hero/intro/contact fields, and `featuredRegions`. Configure:
 
@@ -106,7 +106,7 @@ hooks: { beforeChange: [protectCitySiteProfile] }
 
 Register `CitySiteProfiles` in `payload.config.ts`. Add “城市站点配置” under “区域管理”, using menu `locations`, Collection slug `city-site-profiles`, and required operation `location:manage`.
 
-- [ ] **Step 5: Run focused tests and typecheck**
+- [x] **Step 5: Run focused tests and typecheck**
 
 Run: `pnpm exec vitest run tests/city-site-profile-domain.test.ts tests/city-site-profile-access.test.ts tests/admin-navigation-config.test.ts`
 
@@ -116,7 +116,7 @@ Run: `pnpm exec tsc --noEmit --pretty false`
 
 Expected: PASS with no type errors.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add payload-office-platform/src/domain/city-site-profile/schema.ts payload-office-platform/src/domain/city-site-profile/profile-protect.ts payload-office-platform/src/domain/city-site-profile/public-contract.ts payload-office-platform/src/collections/CitySiteProfiles.ts payload-office-platform/src/payload.config.ts payload-office-platform/src/domain/admin-navigation/navigation-config.ts payload-office-platform/tests/city-site-profile-domain.test.ts payload-office-platform/tests/city-site-profile-access.test.ts payload-office-platform/tests/admin-navigation-config.test.ts
@@ -137,7 +137,7 @@ git commit -m "feat: add city site profile model"
 - Consumes: Collection slug and fields from Task 1.
 - Produces: PostgreSQL table/relationships/unique city constraint and exactly seven initial profiles.
 
-- [ ] **Step 1: Write failing migration safety tests**
+- [x] **Step 1: Write failing migration safety tests**
 
 ```ts
 expect(schemaMigrationText).toContain('city_site_profiles')
@@ -149,13 +149,13 @@ expect(seedMigrationText).not.toMatch(/UPDATE\s+locations\s+SET\s+frontend_visib
 
 Assert the seed is idempotent, aborts on zero/multiple city matches, sets Shanghai `live`, sets the six other cities `coming-soon`, and does not guess by city name.
 
-- [ ] **Step 2: Run migration test and verify RED**
+- [x] **Step 2: Run migration test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-site-profile-migration.test.ts`
 
 Expected: FAIL because migrations do not exist.
 
-- [ ] **Step 3: Generate schema migration and types**
+- [x] **Step 3: Generate schema migration and types**
 
 Run: `pnpm exec payload migrate:create --name city_site_profiles`
 
@@ -163,7 +163,7 @@ Rename the generated `.ts` and `.json` to the exact Task 2 paths and update only
 
 Run: `pnpm exec payload generate:types`
 
-- [ ] **Step 4: Add the idempotent data migration**
+- [x] **Step 4: Add the idempotent data migration**
 
 Implement `up` as a transaction that resolves the exact immutable codes and inserts missing profiles. On existing rows, verify city/status/content identity and skip; on mismatch, throw `city_site_profile_seed_conflict`. Make this data migration's `down` an explicit no-op with a comment: deleting profiles after operations may have edited them is unsafe; a full rollback immediately continues to the preceding generated schema migration, which drops the new table. Do not add a hidden ownership marker solely for rollback.
 
@@ -188,7 +188,7 @@ For the six coming-soon cities, leave optional Hero/intro/contact/media/featured
 
 Expected counts after `up`: `live=1`, `coming-soon=6`, total `7`, duplicate city groups `0`.
 
-- [ ] **Step 5: Run dry-run, apply locally, and verify PostgreSQL data**
+- [x] **Step 5: Run dry-run, apply locally, and verify PostgreSQL data**
 
 Run in the local PostgreSQL test database:
 
@@ -203,7 +203,7 @@ Expected: dry-run has zero blocking errors; both new migrations apply; pending c
 
 Run a read-only query/assertion script and record: profile total 7, per-status counts 1/6, duplicate city 0, invalid city relation 0, and no Location `frontendVisible` change from the pre-migration baseline.
 
-- [ ] **Step 6: Run migration tests and commit Task 2**
+- [x] **Step 6: Run migration tests and commit Task 2**
 
 Run: `pnpm exec vitest run tests/city-site-profile-migration.test.ts tests/preflight-migrations.test.ts`
 
@@ -228,7 +228,7 @@ git commit -m "feat: migrate seven city site profiles"
 **Interfaces:**
 - Produces: `CityContext`, `normalizeCitySlug`, `createCityContextResolver`, request-cached `resolveCityContext`, cached `listPublicCityProfiles`, compact `listPublicCityOptions`, and `getMultiCityRoutingEnabled`.
 
-- [ ] **Step 1: Write failing resolver/config tests**
+- [x] **Step 1: Write failing resolver/config tests**
 
 ```ts
 expect(normalizeCitySlug(' Hangzhou ')).toBe('hangzhou')
@@ -245,13 +245,13 @@ expect(await listPublicCityOptions()).toEqual([
 
 Also assert `SUPPORTED_CITIES` is removed, missing default profile does not crash build-time config parsing, `MULTI_CITY_ROUTING_ENABLED` accepts only `'true'`/`'false'`, and updating a Location city slug with an existing profile throws `city_slug_frozen`.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-context-resolver.test.ts tests/site-config.test.ts tests/location-protect.test.ts`
 
 Expected: FAIL on missing resolver and old compile-time whitelist behavior.
 
-- [ ] **Step 3: Implement pure resolver interfaces**
+- [x] **Step 3: Implement pure resolver interfaces**
 
 ```ts
 export type CityContext = Readonly<{
@@ -269,7 +269,7 @@ export function createCityContextResolver(lookup: CityProfileLookup): (slug: unk
 
 Reject malformed slugs and fail closed on absent/invalid profiles. Do not default to Shanghai inside this resolver.
 
-- [ ] **Step 4: Add request and cross-request cache wrappers**
+- [x] **Step 4: Add request and cross-request cache wrappers**
 
 Use a module `Map<string, CachedResolver>` whose `unstable_cache` key parts and tag both include the normalized city slug, then wrap the exported route resolver in `React.cache()`:
 
@@ -283,7 +283,7 @@ export const resolveCityContext = cache(async (slug: unknown) => {
 
 Tag format: `public:city-profile:{citySlug}`. Return mapped DTO only. Add a separate cached profile-list query tagged `public:city-profiles` for `generateStaticParams`, sitemap, and the header; `listPublicCityOptions` filters `switcherVisible=true` and returns only slug/name/status/sortOrder sorted deterministically.
 
-- [ ] **Step 5: Replace compile-time city whitelist and freeze city slug**
+- [x] **Step 5: Replace compile-time city whitelist and freeze city slug**
 
 Remove `SUPPORTED_CITIES` and `SupportedCity`. Keep `DEFAULT_CITY='shanghai'`; `siteConfig.defaultCity` becomes `string`. Implement server-only:
 
@@ -295,7 +295,7 @@ export function getMultiCityRoutingEnabled(): boolean {
 
 Extend `protectLocation` so a city slug change queries `city-site-profiles`; if a profile exists, reject before write. Keep city names editable and do not add aliases.
 
-- [ ] **Step 6: Run tests, typecheck, and commit Task 3**
+- [x] **Step 6: Run tests, typecheck, and commit Task 3**
 
 Run: `pnpm exec vitest run tests/city-context-resolver.test.ts tests/site-config.test.ts tests/location-protect.test.ts`
 
@@ -320,7 +320,7 @@ git commit -m "feat: resolve frontend city context"
 **Interfaces:**
 - Produces: `cityProfileTag(slug)`, deterministic affected-tag computation for profile and Location events.
 
-- [ ] **Step 1: Write failing tag tests**
+- [x] **Step 1: Write failing tag tests**
 
 ```ts
 expect(cityProfileTag('hangzhou')).toBe('public:city-profile:hangzhou')
@@ -333,17 +333,17 @@ expect(tagsForProfileChange(profile)).toEqual(expect.arrayContaining([
 expect(tagsForLocationVisibilityChange(location)).toContain('public:facets:hangzhou')
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-profile-cache-invalidator.test.ts`
 
 Expected: FAIL because invalidator does not exist.
 
-- [ ] **Step 3: Implement and wire invalidation hooks**
+- [x] **Step 3: Implement and wire invalidation hooks**
 
 After profile changes/deletes, invalidate city profile, city home, and sitemap. After Location status/frontendVisible/featured-region-relevant changes, invalidate the owning city's profile/home/facets plus sitemap. If city cannot be resolved, use category-level conservative tags and log only object ID/error code.
 
-- [ ] **Step 4: Run foundation verification**
+- [x] **Step 4: Run foundation verification**
 
 Run:
 
@@ -356,7 +356,7 @@ git diff --check
 
 Inspect generated diffs and retain only intentional `payload-types.ts` changes. Expected: all tests/typecheck pass and diff check is clean.
 
-- [ ] **Step 5: Commit Task 4 and record Gate A evidence**
+- [x] **Step 5: Commit Task 4 and record Gate A evidence**
 
 ```bash
 git add payload-office-platform/src/domain/city-site-profile/cache-invalidator.ts payload-office-platform/src/collections/CitySiteProfiles.ts payload-office-platform/src/collections/Locations.ts payload-office-platform/src/lib/frontend/public-cache-revalidation.ts payload-office-platform/tests/city-profile-cache-invalidator.test.ts payload-office-platform/src/payload-types.ts
@@ -364,3 +364,12 @@ git commit -m "feat: invalidate city profile caches"
 ```
 
 Record migration counts, focused test counts, typecheck result, and commit SHA in this plan before starting Plan 2.
+
+## Completion Evidence
+
+- Commits: `9790a4a`/`0dbb988` model and partial-update protection; `2a44957`/`ed6fa90`/`b23c4e6` migrations and rollback/identity hardening; `6d1b223`/`792db11` resolver and DTO fail-closed validation; `3e9b291`/`1592c3a` cache invalidation.
+- Tests: foundation verification passed 7 files / 84 tests; final task-specific rechecks passed 45 resolver tests and 7 invalidation/access tests; TypeScript passed.
+- Migrations: local PostgreSQL 44/44 applied, 0 pending; verifier 173 checks / 0 failures / 17 historical missing-snapshot warnings; profiles total 7, live 1, coming-soon 6, duplicate city groups 0.
+- Browser: not applicable to Plan 1; no user-visible route was introduced.
+- Final hardening: `b2fb4c9` closed production alias, city-display-name, DTO drift, cache expiry, Location deletion, and bounded-slug findings; `54d2321` replaced the stale-list correctness gate with a capacity-64 LRU exact resolver. Foundation verification passed 10 files / 124 tests and the residual review approved Plan 2 readiness.
+- Remaining review items: generated schema `down` required one reviewed statement-order correction to make rollback executable; local geography prerequisite created 1,483 frontend-hidden test nodes; generated forward-SQL whitespace has an explicit waiver. These items are nonblocking and must remain in the final user review report.

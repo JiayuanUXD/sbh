@@ -29,18 +29,19 @@ const TILES: readonly CategoryTile[] = [
   { no: '05', label: '创意园区', sublabel: '园区生态 · 低密度', href: '/buildings', event: 'home_cat_creative_park' },
 ]
 
-export default function CategoryTiles() {
+export default function CategoryTiles({ citySlug }: Readonly<{ citySlug?: string }> = {}) {
+  const prefix = citySlug ? `/${citySlug}` : ''
   return (
     <section className="section cat-tiles-section" aria-labelledby="cat-tiles-title">
       <div className="section__header">
         <h2 className="section__title" id="cat-tiles-title">按类型浏览</h2>
-        <Link href="/listings" prefetch={false} className="text-copper" data-event-name="home_cat_view_all">查看全部房源 →</Link>
+        <Link href={`${prefix}/listings`} prefetch={false} className="text-copper" data-event-name="home_cat_view_all">查看全部房源 →</Link>
       </div>
       <ul className="cat-tiles" role="list">
         {TILES.map((t) => (
           <li key={t.no} className="cat-tiles__item">
             <Link
-              href={t.href}
+              href={`${prefix}${t.href}`}
               prefetch={t.href.startsWith('/listings') ? false : undefined}
               className="cat-tile"
               data-event-name={t.event}

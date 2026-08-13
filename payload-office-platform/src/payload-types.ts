@@ -72,6 +72,7 @@ export interface Config {
     media: Media;
     locations: Location;
     'business-area-extensions': BusinessAreaExtension;
+    'city-site-profiles': CitySiteProfile;
     merchants: Merchant;
     teams: Team;
     brokers: Broker;
@@ -91,6 +92,7 @@ export interface Config {
     'listing-reports': ListingReport;
     'information-corrections': InformationCorrection;
     'supply-submissions': SupplySubmission;
+    'city-partner-applications': CityPartnerApplication;
     'domain-events': DomainEvent;
     'audit-logs': AuditLog;
     tasks: Task;
@@ -113,6 +115,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     locations: LocationsSelect<false> | LocationsSelect<true>;
     'business-area-extensions': BusinessAreaExtensionsSelect<false> | BusinessAreaExtensionsSelect<true>;
+    'city-site-profiles': CitySiteProfilesSelect<false> | CitySiteProfilesSelect<true>;
     merchants: MerchantsSelect<false> | MerchantsSelect<true>;
     teams: TeamsSelect<false> | TeamsSelect<true>;
     brokers: BrokersSelect<false> | BrokersSelect<true>;
@@ -132,6 +135,7 @@ export interface Config {
     'listing-reports': ListingReportsSelect<false> | ListingReportsSelect<true>;
     'information-corrections': InformationCorrectionsSelect<false> | InformationCorrectionsSelect<true>;
     'supply-submissions': SupplySubmissionsSelect<false> | SupplySubmissionsSelect<true>;
+    'city-partner-applications': CityPartnerApplicationsSelect<false> | CityPartnerApplicationsSelect<true>;
     'domain-events': DomainEventsSelect<false> | DomainEventsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     tasks: TasksSelect<false> | TasksSelect<true>;
@@ -153,9 +157,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'advisor-service-hours': AdvisorServiceHour;
+    'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'advisor-service-hours': AdvisorServiceHoursSelect<false> | AdvisorServiceHoursSelect<true>;
+    'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -166,6 +172,8 @@ export interface Config {
   jobs: {
     tasks: {
       'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
+      'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
+      'reconcile-city-partner-notification-outbox': TaskReconcileCityPartnerNotificationOutbox;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -492,6 +500,38 @@ export interface BusinessAreaExtension {
    * 乐观锁版本，由系统维护
    */
   version?: number | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-site-profiles".
+ */
+export interface CitySiteProfile {
+  id: number;
+  city: number | Location;
+  serviceStatus: 'live' | 'coming-soon';
+  switcherVisible: boolean;
+  sortOrder: number;
+  seoTitle: string;
+  seoDescription: string;
+  heroEyebrow?: string | null;
+  heroHeading?: string | null;
+  heroBody?: string | null;
+  heroMedia?: (number | null) | Media;
+  introHeading?: string | null;
+  introBody?: string | null;
+  contactHeading?: string | null;
+  contactBody?: string | null;
+  featuredRegions?: (number | Location)[] | null;
   createdBy?: {
     relationTo: 'users';
     value: number | User;
@@ -969,7 +1009,7 @@ export interface Lead {
    */
   ownershipStatus?: ('unassigned' | 'assigned' | 'public_pool') | null;
   team?: (number | null) | Team;
-  city?: (number | null) | Location;
+  city?: ((number | null) | Location) | string;
   areaMin?: number | null;
   areaMax?: number | null;
   budgetMin?: number | null;
@@ -1527,7 +1567,7 @@ export interface SupplySubmission {
   leaseMode?: ('whole-floor' | 'office' | 'seat' | 'sale') | null;
   fitoutStatus?: ('bare' | 'simple' | 'full' | 'furnished') | null;
   availableFrom?: string | null;
-  city?: (number | null) | Location;
+  city?: ((number | null) | Location) | string;
   district?: (number | null) | Location;
   description?: string | null;
   reviewNote?: string | null;
@@ -1552,6 +1592,48 @@ export interface SupplySubmission {
   /**
    * 反垃圾用，不存原始 IP。
    */
+  submitterIpHash?: string | null;
+  createdBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  lastModifiedBy?: {
+    relationTo: 'users';
+    value: number | User;
+  } | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-partner-applications".
+ */
+export interface CityPartnerApplication {
+  id: number;
+  city: number | Location;
+  applicantName: string;
+  contactPhone: string;
+  applicantIdentity: 'owner-property' | 'broker-channel' | 'enterprise-service' | 'local-operations' | 'other';
+  otherIdentity?: string | null;
+  organizationName?: string | null;
+  resourceTypes?:
+    | ('building-owner' | 'tenant-demand' | 'broker-network' | 'local-team' | 'government-association' | 'other')[]
+    | null;
+  otherResource?: string | null;
+  experienceSummary?: string | null;
+  cooperationPlan?: string | null;
+  detailsCompletedAt?: string | null;
+  detailsFingerprint?: string | null;
+  status: 'pending' | 'contacted' | 'evaluating' | 'qualified' | 'not-fit' | 'withdrawn';
+  assignee?: (number | null) | User;
+  internalNote?: string | null;
+  handledAt?: string | null;
+  requestId: string;
+  idempotencyKey: string;
+  sourcePath: string;
+  sourceUrl?: string | null;
+  consentAccepted: boolean;
+  consentPolicyVersion: string;
   submitterIpHash?: string | null;
   createdBy?: {
     relationTo: 'users';
@@ -1600,11 +1682,21 @@ export interface DomainEvent {
     | 'task.completed'
     | 'task.cancelled'
     | 'correction.created'
-    | 'supply-submission.created';
+    | 'supply-submission.created'
+    | 'city-partner-application.created';
   /**
    * 聚合根类型（listing / report / lead / followup / sla）。
    */
-  aggregateType: 'listing' | 'report' | 'lead' | 'followup' | 'sla' | 'task' | 'correction' | 'supply-submission';
+  aggregateType:
+    | 'listing'
+    | 'report'
+    | 'lead'
+    | 'followup'
+    | 'sla'
+    | 'task'
+    | 'correction'
+    | 'supply-submission'
+    | 'city-partner-application';
   /**
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
@@ -1963,7 +2055,8 @@ export interface Notification {
     | 'sla-breached'
     | 'task-completed'
     | 'task-cancelled'
-    | 'supply-submission-created';
+    | 'supply-submission-created'
+    | 'city-partner-application-created';
   /**
    * 通知标题（简洁中文文案）。
    */
@@ -1975,7 +2068,7 @@ export interface Notification {
   /**
    * 来源业务对象类型（listing-review / lead / followup / task）。
    */
-  sourceType: 'listing-review' | 'lead' | 'followup' | 'task' | 'supply-submission';
+  sourceType: 'listing-review' | 'lead' | 'followup' | 'task' | 'supply-submission' | 'city-partner-application';
   /**
    * 来源业务对象 ID，用于点击通知跳转到详情页。
    */
@@ -2353,7 +2446,13 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport';
+        taskSlug:
+          | 'inline'
+          | 'notify-supply-submission-created'
+          | 'notify-city-partner-application-created'
+          | 'reconcile-city-partner-notification-outbox'
+          | 'createCollectionExport'
+          | 'createCollectionImport';
         taskID: string;
         input?:
           | {
@@ -2387,10 +2486,27 @@ export interface PayloadJob {
       }[]
     | null;
   taskSlug?:
-    ('inline' | 'notify-supply-submission-created' | 'createCollectionExport' | 'createCollectionImport') | null;
+    | (
+        | 'inline'
+        | 'notify-supply-submission-created'
+        | 'notify-city-partner-application-created'
+        | 'reconcile-city-partner-notification-outbox'
+        | 'createCollectionExport'
+        | 'createCollectionImport'
+      )
+    | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2420,6 +2536,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'business-area-extensions';
         value: number | BusinessAreaExtension;
+      } | null)
+    | ({
+        relationTo: 'city-site-profiles';
+        value: number | CitySiteProfile;
       } | null)
     | ({
         relationTo: 'merchants';
@@ -2496,6 +2616,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'supply-submissions';
         value: number | SupplySubmission;
+      } | null)
+    | ({
+        relationTo: 'city-partner-applications';
+        value: number | CityPartnerApplication;
       } | null)
     | ({
         relationTo: 'domain-events';
@@ -2680,6 +2804,31 @@ export interface BusinessAreaExtensionsSelect<T extends boolean = true> {
       };
   metroStations?: T;
   version?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-site-profiles_select".
+ */
+export interface CitySiteProfilesSelect<T extends boolean = true> {
+  city?: T;
+  serviceStatus?: T;
+  switcherVisible?: T;
+  sortOrder?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  heroEyebrow?: T;
+  heroHeading?: T;
+  heroBody?: T;
+  heroMedia?: T;
+  introHeading?: T;
+  introBody?: T;
+  contactHeading?: T;
+  contactBody?: T;
+  featuredRegions?: T;
   createdBy?: T;
   lastModifiedBy?: T;
   updatedAt?: T;
@@ -3286,6 +3435,39 @@ export interface SupplySubmissionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "city-partner-applications_select".
+ */
+export interface CityPartnerApplicationsSelect<T extends boolean = true> {
+  city?: T;
+  applicantName?: T;
+  contactPhone?: T;
+  applicantIdentity?: T;
+  otherIdentity?: T;
+  organizationName?: T;
+  resourceTypes?: T;
+  otherResource?: T;
+  experienceSummary?: T;
+  cooperationPlan?: T;
+  detailsCompletedAt?: T;
+  detailsFingerprint?: T;
+  status?: T;
+  assignee?: T;
+  internalNote?: T;
+  handledAt?: T;
+  requestId?: T;
+  idempotencyKey?: T;
+  sourcePath?: T;
+  sourceUrl?: T;
+  consentAccepted?: T;
+  consentPolicyVersion?: T;
+  submitterIpHash?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domain-events_select".
  */
 export interface DomainEventsSelect<T extends boolean = true> {
@@ -3637,6 +3819,7 @@ export interface PayloadJobsSelect<T extends boolean = true> {
   queue?: T;
   waitUntil?: T;
   processing?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3726,6 +3909,24 @@ export interface AdvisorServiceHour {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats".
+ */
+export interface PayloadJobsStat {
+  id: number;
+  stats?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "advisor-service-hours_select".
  */
 export interface AdvisorServiceHoursSelect<T extends boolean = true> {
@@ -3755,6 +3956,16 @@ export interface AdvisorServiceHoursSelect<T extends boolean = true> {
   closedMessage?: T;
   createdBy?: T;
   lastModifiedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs-stats_select".
+ */
+export interface PayloadJobsStatsSelect<T extends boolean = true> {
+  stats?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -3793,6 +4004,31 @@ export interface TaskNotifySupplySubmissionCreated {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskNotify-city-partner-application-created".
+ */
+export interface TaskNotifyCityPartnerApplicationCreated {
+  input: {
+    eventId: string;
+  };
+  output: {
+    delivered: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskReconcile-city-partner-notification-outbox".
+ */
+export interface TaskReconcileCityPartnerNotificationOutbox {
+  input?: unknown;
+  output: {
+    scanned: number;
+    queued: number;
+    failures: number;
+    quarantined: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -3806,6 +4042,7 @@ export interface TaskCreateCollectionExport {
       | 'media'
       | 'locations'
       | 'business-area-extensions'
+      | 'city-site-profiles'
       | 'merchants'
       | 'teams'
       | 'brokers'
@@ -3825,6 +4062,7 @@ export interface TaskCreateCollectionExport {
       | 'listing-reports'
       | 'information-corrections'
       | 'supply-submissions'
+      | 'city-partner-applications'
       | 'domain-events'
       | 'audit-logs'
       | 'tasks'

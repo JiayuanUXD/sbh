@@ -21,7 +21,7 @@ describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
     // 目录实际有 42 份迁移（新增 backfill_location_city 后核对）
-    expect(names.length).toBe(42)
+    expect(names.length).toBe(48)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -43,12 +43,16 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260810_153500_landing_hero_media_assets')
     expect(names).toContain('20260810_170000_public_page_performance_indexes')
     expect(names).toContain('20260810_200000_backfill_location_city')
+    expect(names).toContain('20260813_010000_city_site_profiles')
+    expect(names).toContain('20260813_011000_seed_city_site_profiles')
+    expect(names).toContain('20260813_020000_city_partner_applications')
+    expect(names).toContain('20260813_021000_city_partner_permissions')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(42)
+    expect(names.length).toBe(48)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
@@ -65,6 +69,10 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260810_153500_landing_hero_media_assets')
     expect(names).toContain('20260810_170000_public_page_performance_indexes')
     expect(names).toContain('20260810_200000_backfill_location_city')
+    expect(names).toContain('20260813_010000_city_site_profiles')
+    expect(names).toContain('20260813_011000_seed_city_site_profiles')
+    expect(names).toContain('20260813_020000_city_partner_applications')
+    expect(names).toContain('20260813_021000_city_partner_permissions')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })

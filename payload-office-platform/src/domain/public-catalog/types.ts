@@ -64,7 +64,7 @@ export type ListingSearchInput = Readonly<{
 /**
  * 公开查询上下文
  *
- * design.md §3.1：context 必须包含 asOf、时区 Asia/Shanghai、公开渠道标识和可选城市。
+ * design.md §3.1：context 必须包含 asOf、时区 Asia/Shanghai、公开渠道标识和城市。
  * 所有子查询在同一逻辑时点解析，避免列表隐藏但直链可见的差异。
  */
 export type SearchContext = Readonly<{
@@ -74,17 +74,19 @@ export type SearchContext = Readonly<{
   timezone: 'Asia/Shanghai'
   /** 公开渠道标识，M4.7 服务据此应用完整谓词 */
   channel: 'public-web'
-  /** 当前城市 slug；MVP 单城市默认 shanghai */
-  city?: string
+  /** 当前城市 slug；所有公开查询必须显式绑定城市 */
+  city: string
 }>
 
-/** 默认搜索上下文（当前时点 / 上海时区 / 公开渠道） */
-export function defaultSearchContext(now: Date = new Date()): SearchContext {
+/** 创建显式城市搜索上下文（当前时点 / 上海时区 / 公开渠道） */
+export function createSearchContext(city: string, now: Date = new Date()): SearchContext {
+  const normalized = city.trim().toLowerCase()
+  if (!normalized) throw new Error('search_context_city_required')
   return {
     asOf: now.toISOString(),
     timezone: 'Asia/Shanghai',
     channel: 'public-web',
-    city: 'shanghai',
+    city: normalized,
   }
 }
 

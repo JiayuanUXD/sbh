@@ -124,8 +124,9 @@ describe('SupplySubmissionForm validation and request boundary', () => {
   })
 
   it('builds the exact normalized body required by the supply endpoint', () => {
-    expect(buildSupplySubmissionBody(VALID_VALUES, 'publish-fixed-request')).toEqual({
+    expect(buildSupplySubmissionBody(VALID_VALUES, 'publish-fixed-request', 'hangzhou')).toEqual({
       requestId: 'publish-fixed-request',
+      city: 'hangzhou',
       buildingName: '世纪商贸广场',
       address: '长宁区延安西路 2299 号',
       areaSqm: 268.5,
@@ -209,8 +210,8 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       },
     )
 
-    const first = coordinator.submit(VALID_VALUES)
-    const second = coordinator.submit(VALID_VALUES)
+    const first = coordinator.submit(VALID_VALUES, 'hangzhou', 'coming-soon')
+    const second = coordinator.submit(VALID_VALUES, 'hangzhou', 'coming-soon')
 
     expect(first).toBe(second)
     expect(requestIdFactory).not.toHaveBeenCalled()
@@ -241,6 +242,10 @@ describe('SupplySubmissionForm validation and request boundary', () => {
         },
       },
       { name: 'landing_form_success', props: { page_type: 'publish' } },
+      {
+        name: 'city_lead_submitted',
+        props: { city: 'hangzhou', status: 'coming-soon', form_type: 'publish' },
+      },
     ])
     expect(JSON.stringify(events)).not.toMatch(/涓栫邯|13800001111|2299|\/publish/)
   })
@@ -541,6 +546,7 @@ describe('SupplySubmissionForm validation and request boundary', () => {
       'landing_form_error',
       'landing_form_submit',
       'landing_form_success',
+      'city_lead_submitted',
     ])
     expect(events[1].props).toEqual({ page_type: 'publish', error_code: 'validation_failed' })
   })

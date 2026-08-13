@@ -88,10 +88,18 @@ export const DISTRICT_PUDONG: Location = makeLocation({
 
 export const CITY_SHANGHAI: Location = makeLocation({
   id: 100,
-  name: '上海',
+  name: '上海市',
   slug: 'shanghai',
   type: 'city',
   immutableCode: 'CITY-SH',
+})
+
+export const CITY_HANGZHOU: Location = makeLocation({
+  id: 101,
+  name: '杭州市',
+  slug: 'hangzhou',
+  type: 'city',
+  immutableCode: 'CITY-HZ',
 })
 
 // ---------------------------------------------------------------------------
@@ -209,6 +217,12 @@ export const BUILDING_PUDONG_FLAT: Building = {
   createdAt: '2026-01-01T00:00:00.000Z',
 }
 
+/** Listing depth can populate city while leaving other building relationships flat. */
+export const BUILDING_PUDONG_WITH_CITY: Building = {
+  ...BUILDING_PUDONG_FLAT,
+  city: CITY_SHANGHAI,
+}
+
 /** 已停用楼盘：不应在公开页面展示 */
 export const BUILDING_DISABLED: Building = {
   id: 202,
@@ -264,7 +278,7 @@ export const LISTING_DAILY_PER_SQM: Listing = {
   slug: 'pudong-80-serviced-daily',
   publicationStatus: 'published',
   listingType: 'serviced-office',
-  building: BUILDING_PUDONG_FLAT,
+  building: BUILDING_PUDONG_WITH_CITY,
   rent: 8.5,
   rentUnit: 'rmb-sqm-day',
   area: 80,

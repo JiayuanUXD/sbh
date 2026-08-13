@@ -5,6 +5,7 @@ const payloadCreateMock = vi.fn()
 const payloadLoggerError = vi.fn()
 const payloadLoggerInfo = vi.fn()
 const payloadLoggerWarn = vi.fn()
+const resolveCityContextMock = vi.fn()
 const getPayloadMock = vi.fn(async (_options: unknown) => ({
   db: payloadState.db,
   find: payloadFindMock,
@@ -27,6 +28,10 @@ vi.mock('payload', async (importOriginal) => {
   }
 })
 
+vi.mock('@/app/(frontend)/_lib/city-context', () => ({
+  resolveCityContext: (slug: unknown) => resolveCityContextMock(slug),
+}))
+
 vi.mock('@/lib/rate-limit-pg', () => ({
   createPgRateLimitDeps: () => ({
     acquire: async (_key: string, windowStart: number) => ({ count: 1, windowStart }),
@@ -42,6 +47,7 @@ import { POST } from '@/app/api/supply-submissions/route'
 function validBody(): Record<string, unknown> {
   return {
     requestId: 'city-guard-1',
+    city: 'hangzhou',
     buildingName: '测试楼盘',
     address: '测试地址',
     areaSqm: 180,
@@ -69,11 +75,100 @@ beforeEach(() => {
   payloadLoggerError.mockReset()
   payloadLoggerInfo.mockReset()
   payloadLoggerWarn.mockReset()
+  resolveCityContextMock.mockReset()
+  resolveCityContextMock.mockImplementation(async (slug: unknown) =>
+    slug === 'hangzhou'
+      ? { id: 17, slug: 'hangzhou', name: '杭州市', serviceStatus: 'live', profile: {} }
+      : slug === 'shanghai'
+        ? { id: 1, slug: 'shanghai', name: '上海市', serviceStatus: 'live', profile: {} }
+        : null,
+  )
   getPayloadMock.mockClear()
   payloadState.db = { pool: { query: vi.fn() } }
 })
 
 describe('POST /api/supply-submissions safety boundaries', () => {
+  it('does not change the persisted city when an idempotent replay submits another valid city', async () => {
+    payloadFindMock.mockResolvedValueOnce({ docs: [{ id: 88, city: 1 }] })
+
+    const response = await POST(request({ ...validBody(), city: 'hangzhou' }))
+
+    expect(response.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
+  it('persists the trusted city relationship ID resolved from the submitted slug', async () => {
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(17)
+  })
+
+  it('persists a trusted string relationship ID resolved from the submitted slug', async () => {
+    resolveCityContextMock.mockResolvedValueOnce({
+      id: 'city-hangzhou',
+      slug: 'hangzhou',
+      name: '杭州市',
+      serviceStatus: 'live',
+      profile: {},
+    })
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request())
+
+    expect(response.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('hangzhou')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe('city-hangzhou')
+  })
+
+  it('stores source URL as a pathname without query PII', async () => {
+    const pii = '13900009999'
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request({
+      ...validBody(),
+      source: { path: `/publish?phone=${pii}#contact=${pii}` },
+    }))
+
+    expect(response.status).toBe(200)
+    expect(payloadCreateMock.mock.calls[0][0].data).toEqual(expect.objectContaining({
+      sourcePath: '/publish',
+      sourceUrl: expect.stringMatching(/\/publish$/),
+    }))
+    expect(JSON.stringify(payloadCreateMock.mock.calls)).not.toContain(pii)
+  })
+
+  it('rejects an unknown explicit city before persistence', async () => {
+    resolveCityContextMock.mockResolvedValueOnce(null)
+
+    const response = await POST(request({ ...validBody(), city: 'unknown-city' }))
+
+    expect(response.status).toBe(422)
+    await expect(response.json()).resolves.toEqual({ ok: false, errors: ['city_invalid'] })
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
+  it('defaults a missing city only for the approved legacy publish source path', async () => {
+    const body = validBody()
+    delete body.city
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+    payloadCreateMock.mockResolvedValueOnce({ id: 88 })
+
+    const response = await POST(request(body))
+
+    expect(response.status).toBe(200)
+    expect(resolveCityContextMock).toHaveBeenCalledWith('shanghai')
+    expect(payloadCreateMock.mock.calls[0][0].data.city).toBe(1)
+  })
+
+
   it('creates only through the dedicated route with Local API overrideAccess', async () => {
     payloadFindMock
       .mockResolvedValueOnce({ docs: [] })
@@ -99,21 +194,16 @@ describe('POST /api/supply-submissions safety boundaries', () => {
    * 解析失败必须降级留空并继续落库：否则生产库里那条 slug='shanghai' 的 location
    * 一旦被改名 / 停用，整个投放入口就会 500、房东线索全部丢失。
    */
-  it('still creates the submission with city omitted when the default city cannot be found', async () => {
-    payloadFindMock
-      .mockResolvedValueOnce({ docs: [] })
-      .mockResolvedValueOnce({ docs: [] })
+  it('fails closed when an approved legacy request omits city and the default cannot be resolved', async () => {
+    const body = validBody()
+    delete body.city
+    resolveCityContextMock.mockResolvedValueOnce(null)
 
-    const response = await POST(request())
+    const response = await POST(request(body))
 
-    expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toEqual({ ok: true })
-    expect(payloadCreateMock).toHaveBeenCalledTimes(1)
-    expect(payloadCreateMock.mock.calls[0][0].data.city).toBeUndefined()
-    expect(payloadLoggerWarn).toHaveBeenCalledWith(
-      { errorCode: 'default_city_unavailable' },
-      'supply_submission_default_city_unavailable',
-    )
+    expect(response.status).toBe(422)
+    await expect(response.json()).resolves.toEqual({ ok: false, errors: ['city_invalid'] })
+    expect(payloadCreateMock).not.toHaveBeenCalled()
   })
 
   it('rejects a Payload adapter without a PostgreSQL pool before creating a submission', async () => {

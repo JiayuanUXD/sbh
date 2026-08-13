@@ -75,6 +75,24 @@ export const LISTINGS: Record<string, ListingFixture> = {
     supplyHold: 'normal',
     merchantRelationId: 'merchant-relation-active',
   },
+  // 1b. 杭州正常上架（跨城市公开目录隔离 fixture）
+  'listing-published-clean-hangzhou': {
+    id: 'listing-published-clean-hangzhou',
+    slug: 'hangzhou-center-published',
+    title: '杭州中心 120 平精装办公室',
+    buildingId: 'building-hangzhou-center',
+    city: 'hangzhou',
+    district: 'gongshu',
+    price: { amount: 9200, currency: 'CNY', period: 'month', unit: 'suite' },
+    areaSqm: 120,
+    mediaCount: 5,
+    version: 1,
+    deletedAt: null,
+    publication: 'published',
+    review: 'approved',
+    supplyHold: 'normal',
+    merchantRelationId: 'merchant-relation-active-hangzhou',
+  },
   // 2. 草稿（未提交审核）
   'listing-draft': {
     id: 'listing-draft',

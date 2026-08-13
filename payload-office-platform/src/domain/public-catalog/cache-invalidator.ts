@@ -34,17 +34,15 @@
 import { revalidateTag } from 'next/cache'
 
 import { ok, type OperationResult } from '@/domain/shared/result'
+import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 
 import type { EventConsumer, ConsumerContext } from '@/domain/workflow/event-consumer'
 import type { DomainEvent } from '@/domain/workflow/event-publisher'
 import type { EventType } from '@/domain/workflow/event-types'
 import {
   PUBLIC_CACHE_TAG_PREFIX,
-  SITEMAP_TAG,
   buildingTag,
   cityLevelSafeInvalidationTags,
-  facetsTag,
-  homeTag,
   listingTag,
 } from './cache-tags'
 
@@ -64,11 +62,11 @@ export interface TagInvalidator {
  */
 interface AffectedEntities {
   /** 受影响的房源 ID（如有） */
-  listingId?: string | number | null
+  listingId: string | number | null
   /** 受影响的楼盘 ID（如有） */
-  buildingId?: string | number | null
+  buildingId: string | number | null
   /** 受影响的城市 slug（如有；缺省视为全城市） */
-  city?: string | null
+  city: string | null
 }
 
 /**
@@ -94,8 +92,34 @@ function extractAffectedEntities(event: DomainEvent): AffectedEntities {
     typeof rawBuildingId === 'string' || typeof rawBuildingId === 'number'
       ? rawBuildingId
       : null
-  const city = typeof payload.city === 'string' ? payload.city : null
+  const city = extractActualCitySlug(payload)
   return { listingId, buildingId, city }
+}
+
+function citySlugFromRecord(value: unknown): string | null {
+  if (typeof value !== 'object' || value === null) return null
+  if ('citySlug' in value) {
+    const explicit = normalizeCitySlug(value.citySlug)
+    if (explicit) return explicit
+  }
+  if ('city' in value && typeof value.city === 'object' && value.city !== null) {
+    if ('slug' in value.city) {
+      const relationship = normalizeCitySlug(value.city.slug)
+      if (relationship) return relationship
+    }
+  }
+  if ('building' in value) return citySlugFromRecord(value.building)
+  return null
+}
+
+function extractActualCitySlug(payload: Record<string, unknown>): string | null {
+  for (const candidate of [payload.listing, payload.building, payload.doc, payload.document]) {
+    const resolved = citySlugFromRecord(candidate)
+    if (resolved) return resolved
+  }
+  const explicit = normalizeCitySlug(payload.citySlug)
+  if (explicit) return explicit
+  return normalizeCitySlug(payload.city)
 }
 
 /**
@@ -118,30 +142,18 @@ export function computeAffectedTags(event: DomainEvent): readonly string[] {
   const { listingId, buildingId, city } = extractAffectedEntities(event)
   const tags = new Set<string>()
 
-  // 永远失效 sitemap（任何供给变化都影响 sitemap）
-  tags.add(SITEMAP_TAG)
-
-  // 失效首页与 facet
-  if (city) {
-    tags.add(homeTag(city))
-    tags.add(facetsTag(city))
-  } else {
-    // 无法确定城市 → 全城市安全失效
-    for (const tag of cityLevelSafeInvalidationTags('all')) {
-      tags.add(tag)
-    }
+  for (const tag of cityLevelSafeInvalidationTags(city)) {
+    tags.add(tag)
   }
 
   // 失效具体房源 + 类别级 tag
   if (listingId != null) {
     tags.add(listingTag(listingId))
-    tags.add(`${PUBLIC_CACHE_TAG_PREFIX}:listings`)
   }
 
   // 失效具体楼盘 + 类别级 tag
   if (buildingId != null) {
     tags.add(buildingTag(buildingId))
-    tags.add(`${PUBLIC_CACHE_TAG_PREFIX}:buildings`)
   }
 
   // 内容页事件失效 pages 类别 tag

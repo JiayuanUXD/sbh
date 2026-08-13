@@ -19,6 +19,8 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
     id: 101,
     slug: 'jingan-center-101',
     title: '静安中心 101 室',
+    citySlug: 'shanghai',
+    cityName: '上海市',
     price: {
       amount: 8.5,
       currency: 'CNY',
@@ -38,6 +40,8 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
       id: 88,
       slug: 'jingan-center',
       name: '静安中心',
+      citySlug: 'shanghai',
+      cityName: '上海市',
       address: '南京西路 100 号',
       district: { id: 8, slug: 'jingan', name: '静安区' },
     },
@@ -60,6 +64,8 @@ function makeBuilding(overrides: Partial<BuildingDetailViewModel> = {}): Buildin
     id: 88,
     slug: 'jingan-center',
     name: '静安中心',
+    citySlug: 'shanghai',
+    cityName: '上海市',
     address: '南京西路 100 号',
     district: { id: 8, slug: 'jingan', name: '静安区' },
     coverImage: { src: 'https://cdn.example.com/building-cover.jpg', alt: '楼盘外立面' },
@@ -85,6 +91,18 @@ const EMPTY_SUPPLY: BuildingSupplySnapshot = {
 }
 
 describe('detail metadata and JSON-LD', () => {
+  it('uses DTO cityName as JSON-LD address locality', () => {
+    const listing = makeListing({ citySlug: 'hangzhou', cityName: '杭州市' })
+    const building = makeBuilding({ citySlug: 'hangzhou', cityName: '杭州市' })
+
+    expect(buildListingJsonLd(listing, ORIGIN).brand?.address).toMatchObject({
+      addressLocality: '杭州市',
+    })
+    expect(buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN).address).toMatchObject({
+      addressLocality: '杭州市',
+    })
+  })
+
   it('无可信价格时 Product 不输出 offers', () => {
     const jsonLd = buildListingJsonLd(makeListing({ price: null }), ORIGIN)
 
@@ -202,6 +220,32 @@ describe('detail metadata and JSON-LD', () => {
     expect(buildingMetadata.alternates?.canonical).toBe('/buildings/jingan-center')
   })
 
+  it('scopes prefixed-city canonical, OpenGraph and JSON-LD URLs to the supplied city', () => {
+    const options = { citySlug: 'shanghai' }
+    const listing = makeListing()
+    const building = makeBuilding()
+    const listingMetadata = buildListingMetadata(listing, ORIGIN, options)
+    const listingJsonLd = buildListingJsonLd(listing, ORIGIN, options)
+    const buildingMetadata = buildBuildingMetadata(building, ORIGIN, options)
+    const buildingJsonLd = buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN, options)
+    expect(listingMetadata.alternates?.canonical).toBe('/shanghai/listings/jingan-center-101')
+    expect(listingMetadata.openGraph?.url).toBe(`${ORIGIN}/shanghai/listings/jingan-center-101`)
+    expect(listingJsonLd.url).toBe(`${ORIGIN}/shanghai/listings/jingan-center-101`)
+    expect(listingJsonLd.breadcrumb.itemListElement[0]?.item).toBe(`${ORIGIN}/shanghai`)
+    expect(listingJsonLd.breadcrumb.itemListElement.at(-2)?.item).toBe(`${ORIGIN}/shanghai/buildings/jingan-center`)
+    expect(buildingMetadata.alternates?.canonical).toBe('/shanghai/buildings/jingan-center')
+    expect(buildingJsonLd.url).toBe(`${ORIGIN}/shanghai/buildings/jingan-center`)
+  })
+
+  it('rejects reserved or DTO-mismatched city metadata prefixes', () => {
+    const listing = makeListing()
+    const building = makeBuilding()
+    expect(() => buildListingMetadata(listing, ORIGIN, { citySlug: 'news' })).toThrow('matching public city slug')
+    expect(() => buildListingJsonLd(listing, ORIGIN, { citySlug: 'hangzhou' })).toThrow('matching public city slug')
+    expect(() => buildBuildingMetadata(building, ORIGIN, { citySlug: '..' })).toThrow('matching public city slug')
+    expect(() => buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN, { citySlug: 'hangzhou' })).toThrow('matching public city slug')
+  })
+
   it('空供给楼盘不输出 offers，且 JSON-LD 序列化转义注入字符串', () => {
     const building = makeBuilding({ name: '</script><script>window.pwned=1</script>' })
     const jsonLd = buildBuildingJsonLd(building, EMPTY_SUPPLY, ORIGIN)
@@ -220,6 +264,8 @@ describe('detail metadata and JSON-LD', () => {
         id: unsafeBuilding.id,
         slug: unsafeBuilding.slug,
         name: unsafeBuilding.name,
+        citySlug: unsafeBuilding.citySlug,
+        cityName: unsafeBuilding.cityName,
         address: unsafeBuilding.address,
         ...(unsafeBuilding.district ? { district: unsafeBuilding.district } : {}),
         ...(unsafeBuilding.coverImage ? { coverImage: unsafeBuilding.coverImage } : {}),

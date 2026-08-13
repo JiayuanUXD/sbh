@@ -11,14 +11,13 @@ describe('OPT-025 楼盘列表导航性能合同', () => {
       'utf8',
     )
     const wrapper = source.match(
-      /export const getCachedSearchBuildings = unstable_cache\([\s\S]*?\n\)/,
+      /const getCachedSearchBuildingsByCity = memoizeByCity\([\s\S]*?\n\)/,
     )?.[0]
 
     expect(wrapper).toBeDefined()
-    expect(wrapper).toContain('searchBuildings(defaultCtx())')
-    expect(wrapper).toMatch(/\[\s*['"]search-buildings['"]\s*\]/)
-    expect(wrapper).toContain('BUILDINGS_CATEGORY_TAG')
-    expect(wrapper).toContain('LISTINGS_CATEGORY_TAG')
+    expect(wrapper).toContain('searchBuildings(createSearchContext(citySlug))')
+    expect(wrapper).toContain("['search-buildings', citySlug]")
+    expect(wrapper).toContain('mixedSupplyCacheTags(citySlug)')
     expect(wrapper).toMatch(/revalidate:\s*300/)
   })
 
@@ -29,7 +28,7 @@ describe('OPT-025 楼盘列表导航性能合同', () => {
     )
 
     expect(source).toContain("import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'")
-    expect(source).toContain('await getCachedSearchBuildings()')
+    expect(source).toContain('await getCachedSearchBuildings(city.slug)')
     expect(source).not.toContain('defaultSearchContext')
     expect(source).not.toMatch(/\bsearchBuildings\s*\(/)
   })
