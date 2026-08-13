@@ -9,6 +9,34 @@ import {
 } from '@/lib/frontend/city-routes'
 
 describe('city route URL contract', () => {
+  it('treats root as global home and derives both canonical ownership variants', () => {
+    expect(getCityPageType('/')).toBe('home')
+    expect(legacyCanonicalPath('/')).toBe('/')
+    expect(prefixedCanonicalPath('/', 'hangzhou')).toBe('/hangzhou')
+    expect(switchCityUrl('/', 'hangzhou')).toBe('/hangzhou')
+  })
+
+  it.each([
+    'news',
+    'pages',
+    'entrust',
+    'publish',
+    'city-partner',
+    'admin',
+    'api',
+    '_next',
+    'media',
+    'listings',
+    'buildings',
+    'dev-story',
+    'sitemap',
+    'robots',
+  ])('refuses reserved root segment %s as a city slug', (reserved) => {
+    expect(buildCityPath(reserved, 'home')).toBeNull()
+    expect(getCityPageType(`/${reserved}/listings`)).not.toBe('listings')
+    expect(prefixedCanonicalPath('/listings', reserved)).toBeNull()
+  })
+
   it.each([
     ['home', '/hangzhou'],
     ['listings', '/hangzhou/listings'],
@@ -47,25 +75,44 @@ describe('city route URL contract', () => {
   it('switches a listing list with only portable filters in stable order', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?sort=price-desc&district=pudong&q=river&page=3&areaMin=100&rentUnit=rmb-day&extra=drop',
+        '/shanghai/listings?sort=rent-desc&district=pudong&q=river&page=3&areaMin=100&rentUnit=rmb-sqm-day&extra=drop',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?q=river&areaMin=100&rentUnit=rmb-day&sort=price-desc')
+    ).toBe('/hangzhou/listings?q=river&areaMin=100&rentUnit=rmb-sqm-day&sort=rent-desc')
   })
 
-  it('preserves every listing portable filter and discards duplicate, malformed, geography, and page values', () => {
+  it('preserves only single canonical listing values in stable order', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?priceBasis=unit&availableBefore=2026-12-31&listingType=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&q=second&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
+        '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?q=first&areaMin=10&areaMax=200&rentMin=100&rentMax=999&pricePeriod=month&priceBasis=unit&listingType=traditional-office&availableBefore=2026-12-31')
+    ).toBe('/hangzhou/listings?q=first&areaMin=10&areaMax=200&rentMin=100&rentMax=999&pricePeriod=month&priceBasis=total&listingType=traditional-office&availableBefore=2026-12-31')
+  })
+
+  it('drops duplicate, malformed, noncanonical, and semantically invalid filter values independently', () => {
+    expect(
+      switchCityUrl(
+        '/shanghai/listings?q=one&q=two&areaMin=001&areaMax=10&rentMin=30&rentMax=20&rentUnit=usd&pricePeriod=year&priceBasis=unit&listingType=unknown&availableBefore=2026-02-30&sort=price-desc',
+        'hangzhou',
+      ),
+    ).toBe('/hangzhou/listings?areaMax=10')
+    expect(
+      switchCityUrl(
+        `/shanghai/listings?q=${'a'.repeat(101)}&availableBefore=2026-08-31&rentUnit=rmb-month&sort=rent-desc`,
+        'hangzhou',
+      ),
+    ).toBe('/hangzhou/listings?rentUnit=rmb-month&availableBefore=2026-08-31&sort=rent-desc')
+    expect(switchCityUrl('/shanghai/buildings?grade=grade-a&grade=super-grade-a', 'hangzhou')).toBe(
+      '/hangzhou/buildings',
+    )
+    expect(switchCityUrl('/shanghai/buildings?grade=unknown', 'hangzhou')).toBe('/hangzhou/buildings')
   })
 
   it('switches a building list with only grade and clears geography and page', () => {
     expect(
-      switchCityUrl('/shanghai/buildings?district=pudong&grade=A&page=2&sort=name', 'hangzhou'),
-    ).toBe('/hangzhou/buildings?grade=A')
+      switchCityUrl('/shanghai/buildings?district=pudong&grade=grade-a&page=2&sort=name', 'hangzhou'),
+    ).toBe('/hangzhou/buildings?grade=grade-a')
   })
 
   it.each([
@@ -107,6 +154,22 @@ describe('city route URL contract', () => {
     expect(buildCityPath(' Hangzhou ', 'home')).toBeNull()
   })
 
+  it.each([
+    ['/shanghai//listings', 'double segment'],
+    ['/shanghai/listings/', 'trailing segment'],
+    ['/shanghai\\listings', 'backslash'],
+    ['/shanghai/%2e%2e/listings', 'encoded dot segment'],
+    ['/shanghai/%2E/listings', 'encoded current segment'],
+    ['/shanghai/%2f/listings', 'encoded slash'],
+    ['/shanghai/%5c/listings', 'encoded backslash'],
+    ['/shanghai/%00/listings', 'encoded control'],
+  ])('fails closed before WHATWG URL normalization for %s (%s)', (source) => {
+    expect(getCityPageType(source)).toBe('unknown')
+    expect(legacyCanonicalPath(source)).toBeNull()
+    expect(prefixedCanonicalPath(source, 'hangzhou')).toBeNull()
+    expect(switchCityUrl(source, 'hangzhou')).toBe('/hangzhou')
+  })
+
   it('derives legacy and prefixed canonical paths without retaining unapproved query data', () => {
     expect(
       legacyCanonicalPath('/hangzhou/listings?district=pudong&areaMin=100&page=3&unknown=drop'),
@@ -115,8 +178,8 @@ describe('city route URL contract', () => {
       legacyCanonicalPath('/hangzhou/buildings/central-tower?grade=A&district=pudong'),
     ).toBe('/buildings/central-tower')
     expect(
-      prefixedCanonicalPath('/listings?sort=price-desc&district=pudong&page=3', 'hangzhou'),
-    ).toBe('/hangzhou/listings?sort=price-desc')
+      prefixedCanonicalPath('/listings?sort=rent-desc&rentUnit=rmb-month&district=pudong&page=3', 'hangzhou'),
+    ).toBe('/hangzhou/listings?rentUnit=rmb-month&sort=rent-desc')
     expect(prefixedCanonicalPath('/news/market-report?page=2', 'hangzhou')).toBe('/news/market-report')
     expect(prefixedCanonicalPath('/entrust?city=shanghai&email=private', 'hangzhou')).toBe(
       '/entrust?city=hangzhou',
