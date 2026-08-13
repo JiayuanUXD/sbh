@@ -229,7 +229,7 @@ git commit -m "feat: add city partner public application api"
 **Interfaces:**
 - Produces retryable job `notify-city-partner-application-created`, notification source type `city-partner-application`.
 
-- [ ] **Step 1: Write failing recipient/fallback/retry tests**
+- [x] **Step 1: Write failing recipient/fallback/retry tests**
 
 ```ts
 expect(await resolveRecipients(hangzhouApplication)).toEqual(hangzhouOpsIds)
@@ -241,23 +241,23 @@ expect(jobState).toMatchObject({ hasError: true, retries: expect.any(Number) })
 
 Assert notification title/body contain city and application ID only, never name/phone/company/free text.
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `pnpm exec vitest run tests/city-partner-notify.test.ts`
 
 Expected: FAIL because notification task is absent.
 
-- [ ] **Step 3: Implement afterChange enqueue and job handler**
+- [x] **Step 3: Implement afterChange enqueue and job handler**
 
 Enqueue only on initial create. Resolve active users whose roles include `city_partner_application:read` and whose trusted `cityScope` includes the application city. If none, resolve active ADM users. Create notifications idempotently using event/application/recipient composite identity. Let job retries handle delivery failure; never throw back into the already-committed public application response.
 
-- [ ] **Step 4: Add explicit migration/config and run tests**
+- [x] **Step 4: Add explicit migration/config and run tests**
 
 Register the job/task in Payload config and add migration metadata required by the project's job schema convention. Run: `pnpm exec vitest run tests/city-partner-notify.test.ts tests/supply-submission-notify.test.ts`.
 
 Expected: PASS and no regression to supply notifications.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```bash
 git add payload-office-platform/src/domain/city-partner-application/application-notify.ts payload-office-platform/src/collections/CityPartnerApplications.ts payload-office-platform/src/domain/workflow/notification-types.ts payload-office-platform/src/payload.config.ts payload-office-platform/src/migrations/20260813_022000_city_partner_notification_jobs.ts payload-office-platform/src/migrations/index.ts payload-office-platform/tests/city-partner-notify.test.ts
