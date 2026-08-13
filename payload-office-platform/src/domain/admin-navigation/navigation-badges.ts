@@ -11,6 +11,7 @@ import {
 } from '@/domain/review/listing-review-access'
 import { mergeWhere } from '@/domain/analytics/queries/scope-where'
 import type { AdminNavigationBadgeKey } from './navigation-types'
+import { buildCityPartnerCityScopeWhere } from '@/domain/city-partner-application/access'
 
 export type AdminNavigationBadgeQuery = {
   key: AdminNavigationBadgeKey
@@ -128,11 +129,15 @@ export function buildAdminNavigationBadgeQueries(
   }
 
   if (canReadCityPartnerApplications(permission)) {
-    const scopeWhere = buildBadgeDataScopeWhere(permission, { city: 'city' })
+    const scopeWhere = buildCityPartnerCityScopeWhere(permission)
+    if (scopeWhere === false) return queries
     queries.push({
       key: 'cityPartnerApplications',
       collection: 'city-partner-applications',
-      where: combineWhere({ status: { equals: 'pending' } }, ...scopeWhere),
+      where: combineWhere(
+        { status: { equals: 'pending' } },
+        scopeWhere === true ? null : scopeWhere,
+      ),
     })
   }
 

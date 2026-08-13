@@ -2,6 +2,7 @@ import type { CollectionBeforeChangeHook } from 'payload'
 
 import { derivePermissionContextFromRequest, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
+import { isCityInScope } from '@/domain/auth/permission-context'
 import { canTransitionCityPartner, isCityPartnerStatus } from './schema'
 
 export const CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY = 'cityPartnerApplicationWriteStage'
@@ -25,6 +26,11 @@ function record(value: unknown): Record<string, unknown> {
 function relationId(value: unknown): unknown {
   if (value && typeof value === 'object' && 'id' in value) return (value as { id?: unknown }).id
   return value
+}
+
+function scopedCityId(value: unknown): number | string | null {
+  const id = relationId(value)
+  return typeof id === 'number' || typeof id === 'string' ? id : null
 }
 
 function changed(next: unknown, previous: unknown): boolean {
@@ -69,6 +75,11 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
 
   if (stage === 'stage-two') {
     if (previous.detailsCompletedAt) throw new Error('city_partner_details_already_completed')
+    if (
+      !next.detailsCompletedAt ||
+      typeof next.detailsFingerprint !== 'string' ||
+      next.detailsFingerprint.trim().length === 0
+    ) throw new Error('city_partner_details_completion_markers_required')
     const accepted: Record<string, unknown> = {}
     for (const field of STAGE_TWO_FIELDS) if (field in next) accepted[field] = next[field]
     return accepted
@@ -87,6 +98,10 @@ export const protectCityPartnerApplication: CollectionBeforeChangeHook = async (
   const permission = await derivePermissionContextFromRequest(req as RequestContext)
   if (!permission || !hasOperationPermission(permission, 'city_partner_application:manage')) {
     throw new Error('city_partner_manage_permission_required')
+  }
+  const isGlobalAdmin = permission.roleCodes.includes('ADM') && permission.dataScope === 'global'
+  if (!isGlobalAdmin && !isCityInScope(permission, scopedCityId(previous.city))) {
+    throw new Error('city_partner_city_scope_required')
   }
 
   const workflow: Record<string, unknown> = {}

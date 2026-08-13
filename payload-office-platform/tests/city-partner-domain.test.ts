@@ -11,10 +11,37 @@ import {
   protectCityPartnerApplication,
 } from '@/domain/city-partner-application/application-protect'
 
-function update(data: Record<string, unknown>, originalDoc: Record<string, unknown>, context = {}) {
+function adminReq(options: { code?: 'ADM' | 'MGR'; cityIds?: number[] } = {}) {
+  const code = options.code ?? 'MGR'
+  return {
+    context: {},
+    user: {
+      id: 7,
+      status: 'active',
+      sessionVersion: 1,
+      cityScope: (options.cityIds ?? [11]).map((id) => ({ id })),
+      roles: [{
+        id: 70,
+        code,
+        status: 'active',
+        builtin: true,
+        operationPermissions: code === 'ADM' ? ['*'] : ['city_partner_application:manage'],
+        dataScope: code === 'ADM' ? 'global' : 'team',
+      }],
+    },
+    payload: {},
+  }
+}
+
+function update(
+  data: Record<string, unknown>,
+  originalDoc: Record<string, unknown>,
+  context = {},
+  req: Record<string, unknown> = { context, payload: {}, user: null },
+) {
   return protectCityPartnerApplication({
     operation: 'update', data, originalDoc,
-    req: { context, payload: {}, user: null },
+    req: { ...req, context },
   } as never)
 }
 
@@ -87,5 +114,45 @@ describe('city partner application domain', () => {
     await expect(update({ status: 'qualified' }, original)).rejects.toThrow(
       'city_partner_status_transition_invalid',
     )
+  })
+
+  it('requires both server-owned completion markers for trusted stage two', async () => {
+    const original = { city: 11, detailsCompletedAt: null, status: 'pending' }
+    const context = { [CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY]: 'stage-two' }
+
+    await expect(update({ organizationName: '甲公司' }, original, context)).rejects.toThrow(
+      'city_partner_details_completion_markers_required',
+    )
+    await expect(update({
+      organizationName: '甲公司',
+      detailsCompletedAt: '2026-08-13T00:00:00.000Z',
+      detailsFingerprint: '   ',
+    }, original, context)).rejects.toThrow('city_partner_details_completion_markers_required')
+  })
+
+  it('enforces fresh manage permission and original city membership for workflow writes', async () => {
+    const original = { city: { id: 11 }, status: 'pending', detailsCompletedAt: null }
+
+    await expect(update(
+      { status: 'contacted' },
+      original,
+      {},
+      adminReq({ code: 'MGR', cityIds: [11] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
+
+    await expect(protectCityPartnerApplication({
+      operation: 'update',
+      data: { status: 'contacted' },
+      originalDoc: { ...original, city: { id: 12 } },
+      overrideAccess: true,
+      req: adminReq({ code: 'MGR', cityIds: [11] }),
+    } as never)).rejects.toThrow('city_partner_city_scope_required')
+
+    await expect(update(
+      { status: 'contacted' },
+      { ...original, city: { id: 99 } },
+      {},
+      adminReq({ code: 'ADM', cityIds: [] }),
+    )).resolves.toMatchObject({ status: 'contacted' })
   })
 })

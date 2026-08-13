@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PermissionContext } from '@/domain/auth/permission-context'
+import { CityPartnerApplications } from '@/collections/CityPartnerApplications'
 import {
   buildAdminNavigationBadgeQueries,
   collectAdminNavigationBadges,
@@ -122,6 +123,53 @@ describe('buildAdminNavigationBadgeQueries / 业务口径', () => {
           { city: { in: [11, 12] } },
         ],
       },
+    })
+  })
+
+  it('keeps MGR team-scope collection access and badge on the same city-only predicate', async () => {
+    const manager = permission({
+      roleCodes: ['MGR'],
+      cityIds: new Set([11]),
+      teamIds: new Set([7]),
+      operationPermissions: new Set([
+        'city_partner_application:read',
+        'city_partner_application:manage',
+      ]),
+      menuPermissions: new Set(['city-partner-applications']),
+      dataScope: 'team',
+    })
+
+    const readAccess = CityPartnerApplications.access?.read
+    if (typeof readAccess !== 'function') throw new Error('missing city partner read access')
+    const collectionScope = await readAccess({
+      req: {
+        user: {
+          id: 42,
+          status: 'active',
+          sessionVersion: 1,
+          cityScope: [{ id: 11 }],
+          roles: [{
+            id: 70,
+            code: 'MGR',
+            status: 'active',
+            builtin: true,
+            operationPermissions: ['city_partner_application:read'],
+            menuPermissions: ['city-partner-applications'],
+            dataScope: 'team',
+          }],
+        },
+        payload: {},
+      },
+    } as never)
+    expect(collectionScope).toEqual({ city: { in: [11] } })
+    expect(queryByKey(
+      buildAdminNavigationBadgeQueries(manager, AS_OF),
+      'cityPartnerApplications',
+    ).where).toEqual({
+      and: [
+        { status: { equals: 'pending' } },
+        collectionScope,
+      ],
     })
   })
 

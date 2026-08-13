@@ -14,6 +14,20 @@ describe('city partner migrations', () => {
     for (const column of ['city_id', 'status', 'created_at']) expect(source).toContain(column)
   })
 
+  it('drops the locked-document FK before the application table can cascade it', () => {
+    const file = resolve(process.cwd(), 'src/migrations/20260813_020000_city_partner_applications.ts')
+    const source = readFileSync(file, 'utf8')
+    const down = source.slice(source.indexOf('export async function down'))
+    const foreignKeyDrop = down.indexOf(
+      'DROP CONSTRAINT "payload_locked_documents_rels_city_partner_applications_fk"',
+    )
+    const applicationTableDrop = down.indexOf('DROP TABLE "city_partner_applications" CASCADE')
+
+    expect(foreignKeyDrop).toBeGreaterThan(-1)
+    expect(applicationTableDrop).toBeGreaterThan(-1)
+    expect(foreignKeyDrop).toBeLessThan(applicationTableDrop)
+  })
+
   it('adds exact grants idempotently without creating or changing role codes', () => {
     const ops = {
       id: 2, code: 'OPS', isBuiltin: true,
