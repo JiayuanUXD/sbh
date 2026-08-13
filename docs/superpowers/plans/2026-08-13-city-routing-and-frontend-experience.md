@@ -282,7 +282,7 @@ git commit -m "feat: persist city on demand and supply submissions"
 **Interfaces:**
 - Produces deterministic metadata/robots/canonical per flag and profile status; anonymous city events.
 
-- [ ] **Step 1: Write failing metadata/analytics tests**
+- [x] **Step 1: Write failing metadata/analytics tests**
 
 ```ts
 expect(metadataFor(liveShanghai)).toMatchObject({ alternates: { canonical: '/shanghai' } })
@@ -294,17 +294,17 @@ expect(eventPayload('city_partner_cta_clicked')).toEqual({ city: 'hangzhou', sta
 
 Assert unique titles/descriptions include canonical city name, live-only sitemap paths, one `/city-partner`, and no raw query or PII in events.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `pnpm exec vitest run tests/city-metadata.test.ts tests/sitemap-static-routes.test.ts tests/landing-analytics.test.ts`
 
 Expected: FAIL on old root canonical and missing city events.
 
-- [ ] **Step 3: Implement metadata and events from trusted DTOs**
+- [x] **Step 3: Implement metadata and events from trusted DTOs**
 
 Generate page metadata from City Profile/Public DTO only. The flag decides legacy versus prefixed canonical during observation. Coming-soon always noindex/follow and is excluded from sitemap. Add `city_switcher_opened`, `city_switched`, `coming_soon_cta_clicked`, `city_page_view`, `city_lead_submitted`, and partner CTA event using enum payloads only.
 
-- [ ] **Step 4: Capture build baseline and commit Task 5**
+- [x] **Step 4: Capture build baseline and commit Task 5**
 
 Run webpack build under Node 22 and record elapsed time:
 
