@@ -24,7 +24,7 @@
  *   与前台 / 详情完全一致；超过 500 的极端场景会封顶，属后续优化点。
  */
 
-import type { Where } from 'payload'
+import type { PopulateType, Where } from 'payload'
 import type { Building, Listing, Location, Page, Article } from '@/payload-types'
 import {
   getEffectiveSupplyWhere,
@@ -224,6 +224,43 @@ const QUERY_PAGE_SIZE = 200
 export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
 const RELATED_BUILDING_CANDIDATE_LIMIT = 500
 
+const ROUTE_CITY_POPULATE = {
+  locations: { name: true, slug: true, type: true, status: true },
+} satisfies PopulateType
+
+const LISTING_ROUTE_IDENTITY_POPULATE = {
+  buildings: { city: true },
+  ...ROUTE_CITY_POPULATE,
+} satisfies PopulateType
+
+type ListingRouteProjection = Readonly<{
+  slug: string
+  building: Record<string, unknown>
+}>
+
+type BuildingRouteProjection = Readonly<{
+  slug: string
+  city: Record<string, unknown>
+}>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readListingRouteProjection(value: unknown): ListingRouteProjection | null {
+  if (!isRecord(value) || typeof value.slug !== 'string' || !isRecord(value.building)) {
+    return null
+  }
+  return { slug: value.slug, building: value.building }
+}
+
+function readBuildingRouteProjection(value: unknown): BuildingRouteProjection | null {
+  if (!isRecord(value) || typeof value.slug !== 'string' || !isRecord(value.city)) {
+    return null
+  }
+  return { slug: value.slug, city: value.city }
+}
+
 function proximitySquared(a: Building, b: Building): number | null {
   if (
     typeof a.latitude !== 'number' ||
@@ -345,9 +382,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    * 有效供给 where 片段（查询层粗筛）+ 举报暂停排除。
    * 与 method-specific 约束合并后作为 payload.find 的 where。
    */
-  async function baseEffectiveWhereWithoutCity(asOf: Date): Promise<Record<string, unknown>> {
+  async function baseEffectiveWhereWithoutCity(asOf: Date): Promise<Where> {
     const payload = await getPayloadQueryPort()
-    const where: Record<string, unknown> = {
+    const where: Where = {
       ...getEffectiveSupplyWhere(asOf),
     }
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
@@ -358,7 +395,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return where
   }
 
-  async function baseEffectiveWhere(ctx: SearchContext): Promise<Record<string, unknown>> {
+  async function baseEffectiveWhere(ctx: SearchContext): Promise<Where> {
     return {
       ...await baseEffectiveWhereWithoutCity(new Date(ctx.asOf)),
       'building.city.slug': { equals: ctx.city },
@@ -394,7 +431,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     where.slug = { equals: slug }
     const result = await payload.find({
       collection: 'listings',
-      where: where as Where,
+      where,
       limit: 1,
       depth: 3,
     })
@@ -457,7 +494,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
       // Read every coarse candidate in stable ID order. The Facade performs the
       // requested global sort and pagination only after the fine filter.
-      const docs = await findAllListings(where as Where, 2)
+      const docs = await findAllListings(where, 2)
       return fineFilter(docs as unknown as Record<string, unknown>[], asOf)
     },
 
@@ -472,13 +509,14 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       where.slug = { equals: slug }
       const result = await payload.find({
         collection: 'listings',
-        where: where as Where,
+        where,
         limit: 1,
         depth: 2,
         select: { slug: true, building: true },
+        populate: LISTING_ROUTE_IDENTITY_POPULATE,
       })
-      const candidate = result.docs[0] as Listing | undefined
-      if (!candidate || typeof candidate.slug !== 'string') return null
+      const candidate = readListingRouteProjection(result.docs[0])
+      if (!candidate) return null
       const candidateCity = mapBuildingCity(candidate.building)
       if (!candidateCity) return null
 
@@ -509,18 +547,20 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
 
     async findBuildingRouteIdentity(slug) {
       const payload = await getPayload()
+      const where: Where = {
+        ...getPublicBuildingWhere(),
+        slug: { equals: slug },
+      }
       const result = await payload.find({
         collection: 'buildings',
-        where: {
-          ...getPublicBuildingWhere(),
-          slug: { equals: slug },
-        } as unknown as Where,
+        where,
         limit: 1,
         depth: 1,
         select: { slug: true, city: true },
+        populate: ROUTE_CITY_POPULATE,
       })
-      const building = result.docs[0] as Building | undefined
-      if (!building || typeof building.slug !== 'string') return null
+      const building = readBuildingRouteProjection(result.docs[0])
+      if (!building) return null
       const city = mapBuildingCity(building)
       return city ? { slug: building.slug, citySlug: city.citySlug } : null
     },

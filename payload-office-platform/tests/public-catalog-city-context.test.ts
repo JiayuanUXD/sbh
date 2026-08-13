@@ -217,6 +217,13 @@ describe('required city in public catalog context', () => {
   const shanghai = effectiveListing(101, { id: 1, slug: 'shanghai' })
   const hangzhou = effectiveListing(202, { id: 2, slug: 'hangzhou' })
   const listings = [shanghai, hangzhou]
+  const fineIneligible: Record<string, unknown> = {
+    ...effectiveListing(303, { id: 2, slug: 'hangzhou' }),
+    slug: 'hangzhou-fine-ineligible',
+    building: hangzhou.building,
+    gallery: [{ image: 1 }, { image: 2 }],
+  }
+  const routeListings = [...listings, fineIneligible]
   const hangzhouNeighbor: Record<string, unknown> = {
     ...(hangzhou.building as Record<string, unknown>),
     id: 2030,
@@ -226,6 +233,12 @@ describe('required city in public catalog context', () => {
   const buildings: readonly Record<string, unknown>[] = [
     ...listings.map((listing) => listing.building as Record<string, unknown>),
     hangzhouNeighbor,
+    {
+      ...(hangzhou.building as Record<string, unknown>),
+      id: 2040,
+      slug: 'hangzhou-archived-building',
+      status: 'archived',
+    },
   ]
   const context = createSearchContext('hangzhou', new Date(AS_OF))
 
@@ -265,7 +278,7 @@ describe('required city in public catalog context', () => {
         const cityFilter = where['building.city.slug'] as { equals?: string } | undefined
         const slugFilter = where.slug as { equals?: string } | undefined
         const idFilter = where.id as { in?: number[]; not_in?: number[] } | undefined
-        const docs = listings.filter((listing) => {
+        const docs = routeListings.filter((listing) => {
           const building = listing.building as { city: { slug: string } }
           return (
             (!cityFilter?.equals || building.city.slug === cityFilter.equals) &&
@@ -280,11 +293,16 @@ describe('required city in public catalog context', () => {
         const where = params.where as Record<string, unknown>
         const cityFilter = where['city.slug'] as { equals?: string } | undefined
         const slugFilter = where.slug as { equals?: string } | undefined
+        const statusFilter = where.status as { equals?: string } | undefined
+        const operationalStatusFilter = where.operationalStatus as { equals?: string } | undefined
         const docs = buildings.filter((building) => {
           const city = building.city as { slug: string }
           return (
             (!cityFilter?.equals || city.slug === cityFilter.equals) &&
-            (!slugFilter?.equals || building.slug === slugFilter.equals)
+            (!slugFilter?.equals || building.slug === slugFilter.equals) &&
+            (!statusFilter?.equals || building.status === statusFilter.equals) &&
+            (!operationalStatusFilter?.equals ||
+              building.operationalStatus === operationalStatusFilter.equals)
           )
         })
         return { docs, totalDocs: docs.length, hasNextPage: false, nextPage: null }
@@ -471,6 +489,68 @@ describe('required city in public catalog context', () => {
       adapter,
     )
     expect(identity && Object.keys(identity).sort()).toEqual(['citySlug', 'slug'])
+  })
+
+  it('uses collection-scoped minimal population for route identity reads', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    await adapter.findListingRouteIdentity('hangzhou-effective-office')
+    await adapter.findBuildingRouteIdentity('hangzhou-building')
+
+    const listingIdentityCall = payloadState.find.mock.calls
+      .map(([params]) => params)
+      .find((params) =>
+        params.collection === 'listings' &&
+        (params.select as Record<string, unknown> | undefined)?.building === true
+      )
+    expect(listingIdentityCall?.depth).toBe(2)
+    expect(listingIdentityCall?.select).toEqual({ slug: true, building: true })
+    expect(listingIdentityCall?.populate).toEqual({
+      buildings: { city: true },
+      locations: { name: true, slug: true, type: true, status: true },
+    })
+
+    const buildingIdentityCall = payloadState.find.mock.calls
+      .map(([params]) => params)
+      .find((params) =>
+        params.collection === 'buildings' &&
+        (params.select as Record<string, unknown> | undefined)?.city === true
+      )
+    expect(buildingIdentityCall?.depth).toBe(1)
+    expect(buildingIdentityCall?.select).toEqual({ slug: true, city: true })
+    expect(buildingIdentityCall?.populate).toEqual({
+      locations: { name: true, slug: true, type: true, status: true },
+    })
+  })
+
+  it('rejects a coarse-visible listing that fails the fine effective check', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    await expect(
+      adapter.findListingRouteIdentity('hangzhou-fine-ineligible'),
+    ).resolves.toBeNull()
+
+    const listingCalls = payloadState.find.mock.calls
+      .map(([params]) => params)
+      .filter((params) =>
+        params.collection === 'listings' &&
+        ((params.where as Record<string, unknown>).slug as { equals?: string } | undefined)
+          ?.equals === 'hangzhou-fine-ineligible'
+      )
+    expect(listingCalls).toHaveLength(2)
+    expect(listingCalls[0]?.where).not.toHaveProperty('building.city.slug')
+    expect(listingCalls[1]?.where).toEqual(expect.objectContaining({
+      'building.city.slug': { equals: 'hangzhou' },
+      slug: { equals: 'hangzhou-fine-ineligible' },
+    }))
+  })
+
+  it('rejects a nonpublic building route identity', async () => {
+    const adapter = createPayloadSupplyAdapter()
+
+    await expect(
+      adapter.findBuildingRouteIdentity('hangzhou-archived-building'),
+    ).resolves.toBeNull()
   })
 
   it('populates building.city in the catalog query without a location lookup', async () => {
