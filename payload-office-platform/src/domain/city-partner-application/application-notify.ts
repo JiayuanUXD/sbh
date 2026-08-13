@@ -128,7 +128,7 @@ async function queueNotificationJob(payload: Payload, stableEventId: string): Pr
  */
 export async function reconcileCityPartnerNotificationOutbox(
   payload: Payload,
-): Promise<{ queued: number; scanned: number }> {
+): Promise<{ queued: number; scanned: number; failures: number; quarantined: number }> {
   const eventDocs: DomainEvent[] = []
   let page = 1
   while (eventDocs.length < 200) {
@@ -153,26 +153,71 @@ export async function reconcileCityPartnerNotificationOutbox(
     page += 1
   }
   let queued = 0
-  try {
-    for (const event of eventDocs) {
-      if (event.eventType !== EVENT_TYPE || event.aggregateType !== AGGREGATE_TYPE || event.processedAt) {
-        throw new Error('city_partner_notification_event_invalid')
-      }
+  let failures = 0
+  let quarantined = 0
+  for (const event of eventDocs) {
+    if (event.eventType !== EVENT_TYPE || event.aggregateType !== AGGREGATE_TYPE || event.processedAt) {
+      failures += 1
+      payload.logger.error(
+        { errorCode: 'city_partner_notification_event_invalid' },
+        'city_partner_notification_event_invalid',
+      )
+      continue
+    }
+    try {
       const application = await payload.find({
         collection: 'city-partner-applications',
         where: { id: { equals: event.aggregateId } },
         select: { requestId: true },
-        limit: 1,
+        limit: 2,
         depth: 0,
         overrideAccess: true,
       })
-      if (application.docs.length !== 1) throw new Error('city_partner_notification_application_missing')
+      if (application.docs.length !== 1) {
+        const errorCode = application.docs.length === 0
+          ? 'notification_application_missing_permanent'
+          : 'notification_application_ambiguous_permanent'
+        await payload.update({
+          collection: 'domain-events',
+          id: event.id,
+          data: {
+            processedAt: new Date().toISOString(),
+            attemptCount: (event.attemptCount ?? 0) + 1,
+            lastError: errorCode,
+          },
+          overrideAccess: true,
+        })
+        quarantined += 1
+        payload.logger.error(
+          { errorCode: `city_partner_${errorCode}` },
+          `city_partner_${errorCode}`,
+        )
+        continue
+      }
       if (await queueNotificationJob(payload, event.eventId)) queued += 1
+    } catch {
+      failures += 1
+      try {
+        await payload.update({
+          collection: 'domain-events',
+          id: event.id,
+          data: {
+            processedAt: null,
+            attemptCount: (event.attemptCount ?? 0) + 1,
+            lastError: 'notification_job_enqueue_failed',
+          },
+          overrideAccess: true,
+        })
+      } catch {
+        // The durable event stays pending even if fixed retry metadata cannot be recorded.
+      }
+      payload.logger.error(
+        { errorCode: 'city_partner_notification_enqueue_failed' },
+        'city_partner_notification_enqueue_failed',
+      )
     }
-  } catch {
-    throw new Error('city_partner_notification_reconcile_failed')
   }
-  return { scanned: eventDocs.length, queued }
+  return { scanned: eventDocs.length, queued, failures, quarantined }
 }
 
 function scheduleAfterCommit(args: {
@@ -493,6 +538,8 @@ export const cityPartnerNotificationOutboxTask: TaskConfig<ReconcileTask> = {
   outputSchema: [
     { name: 'scanned', type: 'number', required: true },
     { name: 'queued', type: 'number', required: true },
+    { name: 'failures', type: 'number', required: true },
+    { name: 'quarantined', type: 'number', required: true },
   ],
   retries: {
     attempts: 5,

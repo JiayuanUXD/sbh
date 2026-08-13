@@ -200,7 +200,7 @@ describe('city partner notification durable outbox reconciliation', () => {
 
     const recovered = outboxHarness()
     await expect(reconcileCityPartnerNotificationOutbox(recovered.payload as never))
-      .resolves.toEqual({ scanned: 1, queued: 1 })
+      .resolves.toEqual({ scanned: 1, queued: 1, failures: 0, quarantined: 0 })
     expect(recovered.queued).toHaveLength(1)
     expect(recovered.event.processedAt).toBeNull()
     vi.useRealTimers()
@@ -223,10 +223,164 @@ describe('city partner notification durable outbox reconciliation', () => {
   it('leaves the event unprocessed after a temporary queue failure so the next scan recovers it', async () => {
     const harness = outboxHarness({ failQueueOnce: true })
     await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never))
-      .rejects.toThrow('city_partner_notification_reconcile_failed')
+      .resolves.toEqual({ scanned: 1, queued: 0, failures: 1, quarantined: 0 })
     expect(harness.event.processedAt).toBeNull()
     await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never))
-      .resolves.toEqual({ scanned: 1, queued: 1 })
+      .resolves.toEqual({ scanned: 1, queued: 1, failures: 0, quarantined: 0 })
+  })
+
+  function isolatedBatchHarness(options: { transientEventId?: string } = {}) {
+    const events = [
+      {
+        id: 40,
+        eventId: 'city-partner-application-created:320',
+        eventType: 'city-partner-application.created',
+        aggregateType: 'city-partner-application',
+        aggregateId: '320',
+        payload: { applicationId: '320' },
+        processedAt: null as string | null,
+        attemptCount: 0,
+        lastError: null as string | null,
+        occurredAt: '2026-08-13T00:00:00.000Z',
+      },
+      {
+        id: 41,
+        eventId: 'city-partner-application-created:321',
+        eventType: 'city-partner-application.created',
+        aggregateType: 'city-partner-application',
+        aggregateId: '321',
+        payload: { applicationId: '321' },
+        processedAt: null as string | null,
+        attemptCount: 0,
+        lastError: null as string | null,
+        occurredAt: '2026-08-13T00:00:01.000Z',
+      },
+    ]
+    const applications = new Set(['320', '321'])
+    const jobs = new Set<string>()
+    const queueCalls: string[] = []
+    const updates: Array<Record<string, unknown>> = []
+    const finds: Array<Record<string, unknown>> = []
+    const loggerError = vi.fn()
+    let transientFailed = false
+    const payload = {
+      async find(args: Record<string, unknown>) {
+        finds.push(args)
+        if (args.collection === 'domain-events') return {
+          docs: events.filter((event) => event.processedAt === null),
+          page: 1, totalPages: 1, hasNextPage: false, nextPage: null,
+        }
+        if (args.collection === 'city-partner-applications') {
+          const where = args.where as { id?: { equals?: unknown } }
+          const id = String(where.id?.equals ?? '')
+          return { docs: applications.has(id) ? [{ requestId: `safe-${id}` }] : [] }
+        }
+        if (args.collection === 'payload-jobs') {
+          const serialized = JSON.stringify(args.where)
+          const stableEventId = [...jobs].find((id) => serialized.includes(id))
+          return { docs: stableEventId ? [{ id: stableEventId }] : [] }
+        }
+        return { docs: [] }
+      },
+      async update(args: Record<string, unknown>) {
+        updates.push(args)
+        const event = events.find((candidate) => candidate.id === args.id)
+        if (!event) throw new Error('missing event update target')
+        Object.assign(event, args.data)
+        return event
+      },
+      jobs: {
+        async queue(args: Record<string, unknown>) {
+          const input = args.input as { eventId: string }
+          queueCalls.push(input.eventId)
+          if (
+            input.eventId === options.transientEventId &&
+            !transientFailed
+          ) {
+            transientFailed = true
+            throw new Error('sensitive transient queue detail')
+          }
+          jobs.add(input.eventId)
+          return { id: jobs.size }
+        },
+      },
+      logger: { error: loggerError },
+    }
+    return { payload, events, applications, jobs, queueCalls, updates, finds, loggerError }
+  }
+
+  it('quarantines an orphan and still queues the following valid event without starvation', async () => {
+    const harness = isolatedBatchHarness()
+    harness.applications.delete('320')
+
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never)).resolves.toEqual({
+      scanned: 2, queued: 1, failures: 0, quarantined: 1,
+    })
+    expect(harness.jobs).toEqual(new Set(['city-partner-application-created:321']))
+    expect(harness.events[0]).toMatchObject({
+      processedAt: expect.any(String),
+      attemptCount: 1,
+      lastError: 'notification_application_missing_permanent',
+    })
+
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never)).resolves.toEqual({
+      scanned: 1, queued: 0, failures: 0, quarantined: 0,
+    })
+    expect(harness.queueCalls).toEqual(['city-partner-application-created:321'])
+  })
+
+  it('isolates a transient queue failure, queues later events, and retries only the failed event', async () => {
+    const harness = isolatedBatchHarness({
+      transientEventId: 'city-partner-application-created:320',
+    })
+
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never)).resolves.toEqual({
+      scanned: 2, queued: 1, failures: 1, quarantined: 0,
+    })
+    expect(harness.jobs).toEqual(new Set(['city-partner-application-created:321']))
+    expect(harness.events[0]).toMatchObject({
+      processedAt: null,
+      attemptCount: 1,
+      lastError: 'notification_job_enqueue_failed',
+    })
+
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never)).resolves.toEqual({
+      scanned: 2, queued: 1, failures: 0, quarantined: 0,
+    })
+    expect(harness.jobs).toEqual(new Set([
+      'city-partner-application-created:320',
+      'city-partner-application-created:321',
+    ]))
+    expect(harness.queueCalls).toEqual([
+      'city-partner-application-created:320',
+      'city-partner-application-created:321',
+      'city-partner-application-created:320',
+    ])
+    expect(harness.loggerError).toHaveBeenCalledWith(
+      { errorCode: 'city_partner_notification_enqueue_failed' },
+      'city_partner_notification_enqueue_failed',
+    )
+    expect(JSON.stringify(harness.loggerError.mock.calls)).not.toContain('sensitive transient queue detail')
+  })
+
+  it('reads up to two applications so an ambiguous identifier is quarantined fail-closed', async () => {
+    const harness = isolatedBatchHarness()
+    const originalFind = harness.payload.find.bind(harness.payload)
+    harness.payload.find = async (args: Record<string, unknown>) => {
+      if (args.collection === 'city-partner-applications') {
+        harness.finds.push(args)
+        const id = String((args.where as { id: { equals: unknown } }).id.equals)
+        if (id === '320') return { docs: [{ requestId: 'one' }, { requestId: 'two' }] }
+      }
+      return originalFind(args)
+    }
+
+    await expect(reconcileCityPartnerNotificationOutbox(harness.payload as never)).resolves.toEqual({
+      scanned: 2, queued: 1, failures: 0, quarantined: 1,
+    })
+    expect(harness.finds.find((call) => call.collection === 'city-partner-applications'))
+      .toMatchObject({ limit: 2, select: { requestId: true } })
+    expect(harness.events[0].lastError).toBe('notification_application_ambiguous_permanent')
   })
 
   it('uses bounded stable pagination and identifier-only job inputs', async () => {

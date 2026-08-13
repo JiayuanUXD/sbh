@@ -124,3 +124,24 @@ No schema or migration change was needed. No plan/ledger edit, deployment, push,
 - Node 22 TypeScript, targeted ESLint, and `git diff --check`: exit 0.
 
 No schema, migration, or database mutation was needed. No plan/ledger edit, deployment, push, production action, or persistent test data was performed.
+
+## Final Review Fix (2026-08-13): Per-Event Outbox Isolation
+
+### Review fix and failure policy
+
+- Replaced the reconciler's batch-wide failure boundary with per-event isolation. A transient application lookup, queue, or retry-metadata failure now records the fixed `notification_job_enqueue_failed` code when possible, leaves the durable event unprocessed, increments the returned failure count, and continues with later events in the same bounded scan.
+- Missing and ambiguous identifier-only application lookups are permanent identity failures. The reconciler now queries at most two matching applications, then quarantines zero- or multi-match events by setting `processedAt`, incrementing `attemptCount`, and recording the fixed PII-free `notification_application_missing_permanent` or `notification_application_ambiguous_permanent` code. This is explicitly quarantine/dead-letter state, not notification-delivery success; these events exit the pending scan without inventing a recipient or exposing row counts/identifiers.
+- Successful jobs retain the existing active-job confirmation and partial unique-index idempotency. Repeated scans therefore do not duplicate a previously queued valid event, while transiently failed events are retried by the next 30-second scheduled reconciliation.
+- Task output now reports `failures` and `quarantined` alongside `scanned` and `queued`, so an isolated failure remains operationally visible without starving the rest of the batch. Fixed-code logger calls contain no event payload, applicant identity, contact data, or caught exception text.
+- The existing stable `occurredAt,id` pagination, 50-row pages, and 200-event cap are unchanged. Existing `processedAt`, `attemptCount`, and `lastError` DomainEvents fields were sufficient, so no schema or migration change was required.
+
+### TDD and verification evidence
+
+- RED: the temporary queue-failure contract and new `[orphan, valid]` / `[transient failure, valid]` tests all failed against the previous batch-wide `city_partner_notification_reconcile_failed` exception. A separate ambiguity/query-contract RED showed the application lookup used `limit: 1` instead of the required two-row discriminator.
+- GREEN focused city-partner and supply notification regression: 2 files, 38/38 tests passed. Coverage proves an orphan does not starve a later valid event, quarantined events leave subsequent pending scans, a transient failure does not block a valid event, only the failed event queues on the next run, ambiguous identity is fail-closed, and logs omit the injected sensitive exception text.
+- Relevant Task 1-4 city-partner and supply notification/migration suite: 13 files, 140/140 tests passed.
+- Full Node 22 unit suite: 199 files passed, 2 database-gated files skipped; 2884 tests passed, 4 skipped.
+- Node 22 TypeScript and targeted ESLint: exit 0. `git diff --check`: exit 0.
+- The current shell had no PostgreSQL `DATABASE_URL`, so the existing real-PostgreSQL notification suite remained environment-gated; no database mutation was attempted in this fix.
+
+No plan/ledger edit, schema/migration change, database mutation, deployment, push, production action, or persistent test data was performed.
