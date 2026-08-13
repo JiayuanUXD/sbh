@@ -75,3 +75,29 @@ All commands used the Node 22 / pnpm 8.6.1 wrapper.
 
 - The sitemap-specific building page cache retains one private function per requested canonical city/page/limit combination for the process lifetime. Sitemap uses a fixed page size and 5,000 cap, so the reachable key count is bounded.
 - No plan, ledger, route-tree, schema, generated type, database, migration, browser UI, production, deployment, or push action was performed.
+
+## Fix Round 2 (2026-08-13)
+
+### Changes
+
+- Made only the paginated public-building adapter query use the unique compound sort `['-updatedAt', 'id']`. Equal `updatedAt` values now have an explicit, deterministic ID tie-breaker across offset pages.
+- Preserved the existing non-pagination `findEffectiveBuildings` ordering as `'-updatedAt'`; the compound tie-breaker is scoped to `findEffectiveBuildingsPage` and therefore does not alter normal building-search consumers.
+- Confirmed the installed Payload 3.86.0 contract from local package types and runtime implementation: `Sort` is `string | string[]`, Local API documentation gives multi-field array examples, `sanitizeSortQuery` preserves arrays, and the Drizzle adapter emits the fields in array order. Payload's implicit `-createdAt` fallback is not a unique key, so an explicit `id` tie-breaker remains necessary.
+- Added an adapter behavior/query-contract fixture in which four buildings share the same `updatedAt`. It simulates duplicate/omitted offset results unless the exact compound sort is supplied. Added sitemap coverage proving adjacent pages of equal-timestamp buildings emit each building ID exactly once.
+
+### TDD and Verification Evidence
+
+All commands used the Node 22 / pnpm 8.6.1 wrapper.
+
+- RED focused suite: 2 files ran 9 tests; 8 passed and 1 failed as intended. The two pages produced IDs `[1, 2, 2, 3]` instead of `[1, 2, 3, 4]` under the former single-field sort.
+- GREEN focused suite: 2 files, 9/9 passed.
+- Exact Plan 2 Gate B suite: 7 files, 143/143 passed.
+- Broader sitemap/cache/adapter/effective-supply regressions: 14 files, 301/301 passed.
+- Full unit suite: 189 files, 2776/2776 passed.
+- `pnpm exec tsc --noEmit`: exit 0, no diagnostics.
+- Targeted ESLint for the changed adapter and tests: exit 0.
+
+### Fix-Round Concerns
+
+- Offset pagination cannot provide snapshot isolation against concurrent writes between page requests. The explicit unique compound order fixes the reviewed equal-timestamp instability for a stable dataset; eliminating concurrent-write drift would require cursor pagination or a snapshot boundary and is outside this scoped fix.
+- No plan, ledger, route-tree, schema, generated type, database, migration, browser UI, production, deployment, or push action was performed.

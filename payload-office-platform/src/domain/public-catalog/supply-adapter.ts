@@ -377,6 +377,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   async function findPublicBuildingsPage(
     ctx: SearchContext,
     options: Readonly<{ page: number; limit: number }>,
+    stablePagination: boolean,
   ): Promise<EffectiveBuildingPage> {
     const payload = await getPayload()
     const page = Math.max(1, Math.floor(options.page))
@@ -390,7 +391,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       depth: 2,
       limit,
       page,
-      sort: '-updatedAt',
+      sort: stablePagination ? ['-updatedAt', 'id'] : '-updatedAt',
     })
     return {
       docs: (result.docs as Building[]).filter((building) => isPublicBuilding(building)),
@@ -813,11 +814,11 @@ GROUP BY l.building_id
     },
 
     async findEffectiveBuildings(ctx, limit = 200) {
-      return (await findPublicBuildingsPage(ctx, { page: 1, limit })).docs
+      return (await findPublicBuildingsPage(ctx, { page: 1, limit }, false)).docs
     },
 
     async findEffectiveBuildingsPage(ctx, options) {
-      return findPublicBuildingsPage(ctx, options)
+      return findPublicBuildingsPage(ctx, options, true)
     },
 
     async findFeaturedBuildings(ctx, limit = 8) {

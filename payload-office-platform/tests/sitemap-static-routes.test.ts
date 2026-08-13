@@ -129,6 +129,30 @@ describe('city-aware public sitemap', () => {
     )
   })
 
+  it('emits equal-timestamp buildings from adjacent pages exactly once by ID', async () => {
+    sitemapState.listPublicCityProfiles.mockResolvedValue([
+      { citySlug: 'shanghai', serviceStatus: 'live' },
+    ])
+    sitemapState.getCachedSitemapBuildingsPage.mockImplementation(
+      async (_city: string, page: number) => ({
+        docs: (page === 1 ? [1, 2] : [3, 4]).map((id) => ({
+          id,
+          slug: `same-time-building-${id}`,
+          updatedAt: '2026-08-13T00:00:00.000Z',
+        })),
+        hasNextPage: page === 1,
+        nextPage: page === 1 ? 2 : null,
+        page,
+      }),
+    )
+
+    const urls = (await sitemap()).map(({ url }) => url)
+
+    for (const id of [1, 2, 3, 4]) {
+      expect(urls.filter((url) => url.endsWith(`/buildings/same-time-building-${id}`))).toHaveLength(1)
+    }
+  })
+
   it('caps building sitemap entries at 5000 even if a page is oversized', async () => {
     sitemapState.listPublicCityProfiles.mockResolvedValue([
       { citySlug: 'shanghai', serviceStatus: 'live' },
