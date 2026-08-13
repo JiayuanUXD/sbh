@@ -406,6 +406,26 @@ export function switchCityUrl(sourceUrl: unknown, destinationCitySlug: string): 
   }
 }
 
+/** Reports whether a switch retained at least one Task 1-approved filter unchanged. */
+export function citySwitchPreservedFilters(sourceUrl: unknown, destinationUrl: unknown): boolean {
+  const source = parseRoute(sourceUrl)
+  const destination = parseRoute(destinationUrl)
+  if (!source || !destination || source.pageType !== destination.pageType) return false
+
+  const selected = source.pageType === 'listings'
+    ? [selectListingQuery(source.params), selectListingQuery(destination.params)] as const
+    : source.pageType === 'buildings'
+      ? [selectBuildingQuery(source.params), selectBuildingQuery(destination.params)] as const
+      : null
+  if (!selected) return false
+
+  const [sourceFilters, destinationFilters] = selected
+  for (const [key, value] of sourceFilters) {
+    if (destinationFilters.getAll(key).length === 1 && destinationFilters.get(key) === value) return true
+  }
+  return false
+}
+
 /** Removes a valid city prefix while retaining only canonical route state. */
 export function legacyCanonicalPath(sourceUrl: unknown): string | null {
   const route = parseRoute(sourceUrl)

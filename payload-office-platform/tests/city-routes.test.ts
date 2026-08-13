@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildCityPath,
+  citySwitchPreservedFilters,
   getCityPageType,
   legacyCanonicalPath,
   prefixedCanonicalPath,
@@ -252,5 +253,23 @@ describe('city route URL contract', () => {
     expect(prefixedCanonicalPath('/entrust?city=shanghai&email=private', 'hangzhou')).toBe(
       '/entrust?city=hangzhou',
     )
+  })
+
+  it('reports preservation only when an allowed source filter survives in the switched target', () => {
+    expect(citySwitchPreservedFilters(
+      '/shanghai/listings?district=pudong&areaMin=100&page=3',
+      '/hangzhou/listings?areaMin=100',
+    )).toBe(true)
+    expect(citySwitchPreservedFilters(
+      '/shanghai/buildings?grade=grade-a&district=pudong',
+      '/hangzhou/buildings?grade=grade-a',
+    )).toBe(true)
+    expect(citySwitchPreservedFilters('/entrust?city=shanghai', '/entrust?city=hangzhou')).toBe(false)
+    expect(citySwitchPreservedFilters('/publish', '/publish?city=hangzhou')).toBe(false)
+    expect(citySwitchPreservedFilters('/shanghai/listings', '/hangzhou/listings?city=hangzhou')).toBe(false)
+    expect(citySwitchPreservedFilters(
+      '/shanghai/listings?areaMin=100',
+      '/hangzhou/listings?areaMin=200',
+    )).toBe(false)
   })
 })

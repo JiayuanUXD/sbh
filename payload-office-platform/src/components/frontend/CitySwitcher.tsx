@@ -7,6 +7,7 @@ import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import {
   buildCityPath,
+  citySwitchPreservedFilters,
   getCityPageType,
   isPublicCitySlug,
   switchCityUrl,
@@ -163,7 +164,7 @@ export default function CitySwitcher({ cities, defaultCity }: CitySwitcherProps)
                       to_city: city.slug,
                       status: city.serviceStatus,
                       page_type: pageType,
-                      filters_preserved: href.includes('?'),
+                      filters_preserved: citySwitchPreservedFilters(sourceUrl, href),
                     })
                   }
                   setOpen(false)

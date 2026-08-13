@@ -30,8 +30,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!loaded.city || !loaded.identity) return { title: '楼盘未找到', robots: { index: false, follow: false } }
   const { building } = await getCachedBuildingDetail(loaded.city.slug, resolved.slug)
   if (!building) return { title: '楼盘未找到', robots: { index: false, follow: false } }
-  const metadata = buildBuildingMetadata(building, siteConfig.siteOrigin, { citySlug: loaded.city.slug })
-  return getMultiCityRoutingEnabled() ? metadata : { ...metadata, robots: { index: false, follow: true } }
+  const routingEnabled = getMultiCityRoutingEnabled()
+  const metadata = buildBuildingMetadata(
+    building,
+    siteConfig.siteOrigin,
+    routingEnabled ? { citySlug: loaded.city.slug } : undefined,
+  )
+  return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
 }
 
 export default async function CityBuildingDetailPage({ params, searchParams }: Props) {
@@ -46,6 +51,7 @@ export default async function CityBuildingDetailPage({ params, searchParams }: P
   ])
   if (!building) notFound()
   const pois = await fetchNearbyPois(building.id, building.coordinates)
-  const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin, { citySlug: loaded.city.slug })
-  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={loaded.city.slug} /></>
+  const citySlug = getMultiCityRoutingEnabled() ? loaded.city.slug : undefined
+  const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin, { citySlug })
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} /></>
 }

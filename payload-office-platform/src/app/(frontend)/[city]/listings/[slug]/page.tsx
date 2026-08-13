@@ -29,8 +29,13 @@ async function loadCityDetail({ city: routeCity, slug }: Awaited<Props['params']
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const loaded = await loadCityDetail(await params)
   if (!loaded.city || !loaded.listing) return { title: '房源未找到', robots: { index: false, follow: false } }
-  const metadata = buildListingMetadata(loaded.listing, siteConfig.siteOrigin, { citySlug: loaded.city.slug })
-  return getMultiCityRoutingEnabled() ? metadata : { ...metadata, robots: { index: false, follow: true } }
+  const routingEnabled = getMultiCityRoutingEnabled()
+  const metadata = buildListingMetadata(
+    loaded.listing,
+    siteConfig.siteOrigin,
+    routingEnabled ? { citySlug: loaded.city.slug } : undefined,
+  )
+  return routingEnabled ? metadata : { ...metadata, robots: { index: false, follow: true } }
 }
 
 export default async function CityListingDetailPage({ params }: Props) {
@@ -45,5 +50,6 @@ export default async function CityListingDetailPage({ params }: Props) {
   ])
   return <CityListingDetailView city={loaded.city} listing={loaded.listing} buildingDetail={buildingDetail}
     recommendations={recommendations} pois={pois} serviceSchedule={serviceSchedule}
-    mapEnabled={building?.coordinates != null && hasAmapJsKey()} routeMode="prefixed" />
+    mapEnabled={building?.coordinates != null && hasAmapJsKey()}
+    routeMode={getMultiCityRoutingEnabled() ? 'prefixed' : 'legacy'} />
 }

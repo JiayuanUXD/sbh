@@ -27,6 +27,10 @@ export type CityPageObservationOption = Readonly<{
   slug: string
   serviceStatus: CityServiceStatus
 }>
+export type CityPageObservationConfig = Readonly<{
+  defaultCity: string
+  multiCityRoutingEnabled: boolean
+}>
 export type CityAnalyticsProps = Readonly<Record<string, string | number | boolean>>
 export type CityAnalyticsTrack = (
   name: CityAnalyticsEventName,
@@ -104,12 +108,30 @@ export function safeTrackCityEvent(
 export function resolveCityPageObservation(
   pathname: string,
   cities: readonly CityPageObservationOption[],
+  searchParams: Pick<URLSearchParams, 'getAll'> = new URLSearchParams(),
+  config: CityPageObservationConfig = {
+    defaultCity: cities[0]?.slug ?? '',
+    multiCityRoutingEnabled: true,
+  },
 ): CityAnalyticsProps | null {
   const firstSegment = pathname.split('/').filter(Boolean)[0]
-  if (!firstSegment) return null
-  const city = cities.find((candidate) => candidate.slug === firstSegment)
   const pageType = getCityPageType(pathname)
-  if (!city || pageType === 'unknown') return null
+  if (pageType === 'unknown') return null
+  let city = firstSegment ? cities.find((candidate) => candidate.slug === firstSegment) : undefined
+
+  if (pageType === 'entrust' || pageType === 'publish' || pageType === 'city-partner') {
+    const values = searchParams.getAll('city')
+    if (values.length > 1) return null
+    const selectedSlug = values.length === 0 ? config.defaultCity : values[0]
+    city = cities.find((candidate) => candidate.slug === selectedSlug)
+  } else if (
+    !config.multiCityRoutingEnabled
+    && (pathname === '/' || pathname === '/listings' || pathname === '/buildings')
+  ) {
+    city = cities.find((candidate) => candidate.slug === config.defaultCity)
+  }
+
+  if (!city) return null
   return buildCityAnalyticsPayload('city_page_view', {
     city: city.slug,
     status: city.serviceStatus,

@@ -79,6 +79,39 @@ describe('landing analytics safety boundary', () => {
     expect(resolveCityPageObservation('/unknown', cities)).toBeNull()
   })
 
+  it('observes only trusted global lead and flag-off legacy owner routes', () => {
+    const cities = [
+      { slug: 'shanghai', serviceStatus: 'live' as const },
+      { slug: 'hangzhou', serviceStatus: 'coming-soon' as const },
+    ]
+    const enabled = { defaultCity: 'shanghai', multiCityRoutingEnabled: true }
+    const disabled = { defaultCity: 'shanghai', multiCityRoutingEnabled: false }
+
+    for (const pageType of ['entrust', 'publish', 'city-partner'] as const) {
+      expect(resolveCityPageObservation(`/${pageType}`, cities, new URLSearchParams('city=hangzhou'), enabled)).toEqual({
+        city: 'hangzhou', status: 'coming-soon', page_type: pageType,
+      })
+      expect(resolveCityPageObservation(`/${pageType}`, cities, new URLSearchParams(), enabled)).toEqual({
+        city: 'shanghai', status: 'live', page_type: pageType,
+      })
+      expect(resolveCityPageObservation(`/${pageType}`, cities, new URLSearchParams('city=hangzhou&city=shanghai'), enabled)).toBeNull()
+      expect(resolveCityPageObservation(`/${pageType}`, cities, new URLSearchParams('city=HangZhou'), enabled)).toBeNull()
+    }
+
+    expect(resolveCityPageObservation('/', cities, new URLSearchParams(), disabled)).toEqual({
+      city: 'shanghai', status: 'live', page_type: 'home',
+    })
+    expect(resolveCityPageObservation('/listings', cities, new URLSearchParams('phone=13800001111'), disabled)).toEqual({
+      city: 'shanghai', status: 'live', page_type: 'listings',
+    })
+    expect(resolveCityPageObservation('/buildings', cities, new URLSearchParams(), disabled)).toEqual({
+      city: 'shanghai', status: 'live', page_type: 'buildings',
+    })
+    expect(resolveCityPageObservation('/', cities, new URLSearchParams(), enabled)).toBeNull()
+    expect(resolveCityPageObservation('/news', cities, new URLSearchParams('city=hangzhou'), disabled)).toBeNull()
+    expect(resolveCityPageObservation('/pages/privacy', cities, new URLSearchParams('city=hangzhou'), disabled)).toBeNull()
+  })
+
   it('allows only anonymous city partner events with canonical city and stage metadata', () => {
     const calls: Array<Readonly<{ name: string; props: Record<string, string> }>> = []
     safeTrackCityPartnerEvent(

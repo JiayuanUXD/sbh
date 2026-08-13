@@ -9,6 +9,8 @@ const io = vi.hoisted(() => ({
   getCachedSearchBuildings: vi.fn(),
   getCachedListingBySlug: vi.fn(),
   getCachedBuildingBySlug: vi.fn(),
+  getCachedBuildingDetail: vi.fn(),
+  getCachedRelatedBuildings: vi.fn(),
   getCachedDetailRecommendations: vi.fn(),
   fetchNearbyPois: vi.fn(),
   getServiceSchedule: vi.fn(),
@@ -17,6 +19,9 @@ const io = vi.hoisted(() => ({
   resolveListingRouteIdentity: vi.fn(),
   resolveBuildingRouteIdentity: vi.fn(),
   parseListingSearchInput: vi.fn(),
+  parseBuildingSupplySearchParams: vi.fn(),
+  createSearchContext: vi.fn(),
+  getBuildingDetail: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`redirect:${path}`)
   }),
@@ -40,6 +45,8 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchBuildings: io.getCachedSearchBuildings,
   getCachedListingBySlug: io.getCachedListingBySlug,
   getCachedBuildingBySlug: io.getCachedBuildingBySlug,
+  getCachedBuildingDetail: io.getCachedBuildingDetail,
+  getCachedRelatedBuildings: io.getCachedRelatedBuildings,
   getCachedDetailRecommendations: io.getCachedDetailRecommendations,
 }))
 vi.mock('@/lib/frontend/location-pois', () => ({ fetchNearbyPois: io.fetchNearbyPois }))
@@ -57,6 +64,10 @@ vi.mock('@/domain/public-catalog', () => ({
   PUBLIC_CACHE_TAG_PREFIX: 'public',
   buildCanonicalSearchParams: () => new URLSearchParams(),
   parseListingSearchInput: io.parseListingSearchInput,
+  parseBuildingSupplySearchParams: io.parseBuildingSupplySearchParams,
+  createSearchContext: io.createSearchContext,
+  getBuildingDetail: io.getBuildingDetail,
+  normalizePublicMediaUrl: (value: unknown) => typeof value === 'string' ? value : null,
 }))
 vi.mock('@/lib/frontend/site-config', () => ({
   siteConfig: { defaultCity: 'shanghai', siteOrigin: 'https://example.test', siteUrl: new URL('https://example.test') },
@@ -69,7 +80,7 @@ import CityHomePage, {
   generateStaticParams,
   revalidate,
 } from '@/app/(frontend)/[city]/page'
-import CityListingDetailPage from '@/app/(frontend)/[city]/listings/[slug]/page'
+import CityListingDetailPage, { generateMetadata as generateCityListingDetailMetadata } from '@/app/(frontend)/[city]/listings/[slug]/page'
 import CityListingsPage, { generateMetadata as generateListingsMetadata } from '@/app/(frontend)/[city]/listings/page'
 import CityBuildingsPage, { dynamic as buildingsDynamic, generateMetadata as generateBuildingsMetadata } from '@/app/(frontend)/[city]/buildings/page'
 import LegacyHomePage from '@/app/(frontend)/page'
@@ -77,7 +88,8 @@ import LegacyListingsPage from '@/app/(frontend)/listings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
 import LegacyListingDetailPage from '@/app/(frontend)/listings/[slug]/page'
 import LegacyBuildingDetailPage from '@/app/(frontend)/buildings/[slug]/page'
-import CityBuildingDetailPage from '@/app/(frontend)/[city]/buildings/[slug]/page'
+import CityBuildingDetailPage, { generateMetadata as generateCityBuildingDetailMetadata } from '@/app/(frontend)/[city]/buildings/[slug]/page'
+import { buildListingJsonLd } from '@/lib/frontend/detail-metadata'
 import { siteConfig } from '@/lib/frontend/site-config'
 
 const liveCity = {
@@ -121,6 +133,9 @@ describe('city route boundaries', () => {
     io.getServiceSchedule.mockResolvedValue(undefined)
     io.hasAmapJsKey.mockReturnValue(true)
     io.parseListingSearchInput.mockReturnValue({ page: 1 })
+    io.parseBuildingSupplySearchParams.mockReturnValue({})
+    io.createSearchContext.mockReturnValue({ citySlug: 'shanghai' })
+    io.getCachedRelatedBuildings.mockResolvedValue([])
   })
 
   it('enumerates all valid profiles for ISR with runtime fallback enabled', async () => {
@@ -160,6 +175,7 @@ describe('city route boundaries', () => {
   })
 
   it('loads complete city-scoped detail enrichments before rendering the shared listing view', async () => {
+    process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
     io.resolveListingRouteIdentity.mockResolvedValue({ slug: 'shanghai-office', citySlug: 'shanghai' })
     const listing = {
       id: 101,
@@ -180,6 +196,68 @@ describe('city route boundaries', () => {
       routeMode: 'prefixed',
       mapEnabled: true,
     }) })
+  })
+
+  it('returns prefixed listing detail ownership to the exact legacy canonical while the flag is off', async () => {
+    const listing = {
+      id: 101, slug: 'shanghai-office', title: 'Shanghai Office', citySlug: 'shanghai', cityName: 'Shanghai',
+      price: null, area: 100, businessType: 'lease' as const, decorationStatus: null,
+      listingType: 'traditional-office' as const, availableFrom: null, isFeatured: false,
+      building: { id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road' },
+      coverImage: null, highlights: [], stableSortKey: '101', seats: null, gallery: [], mediaItems: [],
+      factGroups: [], amenityGroups: [], verification: { verifiedAt: null, priceVerifiedAt: null }, description: null,
+    }
+    io.resolveListingRouteIdentity.mockResolvedValue({ slug: listing.slug, citySlug: 'shanghai' })
+    io.getCachedListingBySlug.mockResolvedValue(listing)
+
+    const metadata = await generateCityListingDetailMetadata({
+      params: Promise.resolve({ city: 'shanghai', slug: listing.slug }),
+    })
+    expect(metadata).toMatchObject({
+      alternates: { canonical: '/listings/shanghai-office' },
+      openGraph: { url: 'https://example.test/listings/shanghai-office' },
+      robots: { index: false, follow: true },
+    })
+    const page = await CityListingDetailPage({ params: Promise.resolve({ city: 'shanghai', slug: listing.slug }) })
+    expect(page).toMatchObject({ props: expect.objectContaining({ routeMode: 'legacy' }) })
+    const jsonLd = buildListingJsonLd(listing, siteConfig.siteOrigin)
+    expect(jsonLd.url).toBe('https://example.test/listings/shanghai-office')
+    expect(jsonLd.breadcrumb.itemListElement.map((item) => item.item)).toEqual([
+      'https://example.test/',
+      'https://example.test/listings',
+      'https://example.test/buildings/tower',
+      'https://example.test/listings/shanghai-office',
+    ])
+  })
+
+  it('returns prefixed building detail metadata and structured data to exact legacy ownership while the flag is off', async () => {
+    const building = {
+      id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road',
+      district: null, coverImage: null, gallery: [], mediaItems: [], factGroups: [], amenityGroups: [], amenities: [],
+      verification: { verifiedAt: null, priceVerifiedAt: null }, summary: 'Summary', description: null, coordinates: null,
+    }
+    const supply = { asOf: '2026-08-13T00:00:00.000Z', totalEffectiveListings: 0, resultCount: 0,
+      validationErrors: [], groups: [], availableGroups: [] }
+    io.resolveBuildingRouteIdentity.mockResolvedValue({ slug: building.slug, citySlug: 'shanghai' })
+    io.getCachedBuildingDetail.mockResolvedValue({ building, supply })
+    io.getBuildingDetail.mockResolvedValue({ building, supply })
+
+    const props = { params: Promise.resolve({ city: 'shanghai', slug: building.slug }), searchParams: Promise.resolve({}) }
+    const metadata = await generateCityBuildingDetailMetadata(props)
+    expect(metadata).toMatchObject({
+      alternates: { canonical: '/buildings/tower' },
+      openGraph: { url: 'https://example.test/buildings/tower' },
+      robots: { index: false, follow: true },
+    })
+    const page = await CityBuildingDetailPage(props)
+    const script = Array.isArray(page.props.children) ? page.props.children[0] : null
+    const jsonLd = JSON.parse(script.props.dangerouslySetInnerHTML.__html)
+    expect(jsonLd.url).toBe('https://example.test/buildings/tower')
+    expect(jsonLd.breadcrumb.itemListElement.map((item: { item: string }) => item.item)).toEqual([
+      'https://example.test/',
+      'https://example.test/listings',
+      'https://example.test/buildings/tower',
+    ])
   })
 
   it('serves a coming-soon listings URL as noindex without listing or facet queries', async () => {

@@ -17,7 +17,7 @@ import CitySwitcher, {
   resolveTrustedCity,
 } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
-import { getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
+import { citySwitchPreservedFilters, getCityPageType, switchCityUrl } from '@/lib/frontend/city-routes'
 
 export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
 
@@ -318,7 +318,7 @@ export default function SiteNav({
                             to_city: city.slug,
                             status: city.serviceStatus,
                             page_type: cityPageType,
-                            filters_preserved: href.includes('?'),
+                            filters_preserved: citySwitchPreservedFilters(sourceUrl, href),
                           })
                         }
                         setOpen(false)

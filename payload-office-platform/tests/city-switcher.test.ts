@@ -173,6 +173,35 @@ describe('CitySwitcher', () => {
     })
   })
 
+  it('reports city-only lead switches as preserving no filters on desktop and mobile', async () => {
+    navigationState.pathname = '/entrust'
+    navigationState.search = 'city=shanghai'
+    await renderShell()
+
+    const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')
+    if (!trigger) throw new Error('missing city switcher trigger')
+    await click(trigger)
+    const desktopHangzhou = document.querySelector<HTMLAnchorElement>('#city-switcher-menu a[href="/entrust?city=hangzhou"]')
+    if (!desktopHangzhou) throw new Error('missing desktop Hangzhou lead option')
+    await click(desktopHangzhou)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'entrust', filters_preserved: false,
+    })
+
+    trackSpy.mockClear()
+    const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
+    if (!toggle) throw new Error('missing mobile menu toggle')
+    await click(toggle)
+    const mobileHangzhou = document.querySelector<HTMLAnchorElement>('.mobile-drawer__cities a[href="/entrust?city=hangzhou"]')
+    if (!mobileHangzhou) throw new Error('missing mobile Hangzhou lead option')
+    await click(mobileHangzhou)
+    expect(trackSpy).toHaveBeenCalledWith('city_switched', {
+      from_city: 'shanghai', to_city: 'hangzhou', status: 'coming-soon',
+      page_type: 'entrust', filters_preserved: false,
+    })
+  })
+
   it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {
     await renderSwitcher()
     const trigger = document.querySelector<HTMLButtonElement>('[aria-controls="city-switcher-menu"]')

@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Metadata, Viewport } from 'next'
-import { siteConfig } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
@@ -56,7 +56,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <main id="main-content" className="site-main">{children}</main>
         <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
-        <AnalyticsInit cities={profiles.map((profile) => ({
+        <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={getMultiCityRoutingEnabled()} cities={profiles.map((profile) => ({
           slug: profile.citySlug,
           serviceStatus: profile.serviceStatus,
         }))} />
