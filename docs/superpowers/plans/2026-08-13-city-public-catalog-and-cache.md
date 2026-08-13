@@ -175,7 +175,7 @@ git commit -m "feat: expose canonical city in public dto"
 **Interfaces:**
 - Produces cached functions whose first argument is `citySlug`: `getCachedHomepage(citySlug)`, `getCachedSearchListings(citySlug, canonical, input)`, `getCachedListingBySlug(citySlug, slug)`, `getCachedSearchBuildings(citySlug)`, and all related/facet variants.
 
-- [ ] **Step 1: Write failing key/tag isolation tests**
+- [x] **Step 1: Write failing key/tag isolation tests**
 
 ```ts
 await getCachedHomepage('shanghai')
@@ -189,13 +189,13 @@ expect(shanghaiResult.featuredListings).not.toEqual(hangzhouResult.featuredListi
 
 Add a warm-cache regression: call Shanghai, then Hangzhou, then Shanghai again; assert adapters receive correct city and results never cross.
 
-- [ ] **Step 2: Run cache tests and verify RED**
+- [x] **Step 2: Run cache tests and verify RED**
 
 Run: `pnpm exec vitest run tests/public-catalog-city-cache.test.ts tests/cache-next-adapter-integration.test.ts tests/public-catalog-cache-invalidator.test.ts`
 
 Expected: FAIL because current wrappers and tags are Shanghai singletons.
 
-- [ ] **Step 3: Implement a typed memoized factory**
+- [x] **Step 3: Implement a typed memoized factory**
 
 ```ts
 function memoizeByCity<T>(create: (citySlug: string) => T): (citySlug: string) => T {
@@ -212,11 +212,11 @@ function memoizeByCity<T>(create: (citySlug: string) => T): (citySlug: string) =
 
 For every resource, construct `unstable_cache` with both key parts and tags containing city. Export simple typed wrappers; do not expose the Map or raw cached function.
 
-- [ ] **Step 4: Make event invalidation derive actual city**
+- [x] **Step 4: Make event invalidation derive actual city**
 
 Update listing/building/profile/Location invalidators to use DTO/document city. If city resolution fails, invalidate category-level tags plus `public:sitemap`; never guess Shanghai.
 
-- [ ] **Step 5: Prove no hard-coded city tags remain**
+- [x] **Step 5: Prove no hard-coded city tags remain**
 
 Run:
 
@@ -227,7 +227,7 @@ pnpm exec vitest run tests/public-catalog-city-cache.test.ts tests/cache-next-ad
 
 Expected: `rg` has no matches; all tests PASS.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```bash
 git add payload-office-platform/src/lib/frontend/cached-queries.ts payload-office-platform/src/domain/public-catalog/cache-tags.ts payload-office-platform/src/domain/public-catalog/cache-invalidator.ts payload-office-platform/src/lib/frontend/public-cache-revalidation.ts payload-office-platform/tests/public-catalog-city-cache.test.ts payload-office-platform/tests/cache-next-adapter-integration.test.ts payload-office-platform/tests/home-sitemap-cache-performance.test.ts payload-office-platform/tests/public-catalog-cache-invalidator.test.ts
