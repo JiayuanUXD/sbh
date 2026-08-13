@@ -56,10 +56,12 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <main id="main-content" className="site-main">{children}</main>
         <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
-        <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={getMultiCityRoutingEnabled()} cities={profiles.map((profile) => ({
-          slug: profile.citySlug,
-          serviceStatus: profile.serviceStatus,
-        }))} />
+        <React.Suspense fallback={null}>
+          <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={getMultiCityRoutingEnabled()} cities={profiles.map((profile) => ({
+            slug: profile.citySlug,
+            serviceStatus: profile.serviceStatus,
+          }))} />
+        </React.Suspense>
       </body>
     </html>
   )
