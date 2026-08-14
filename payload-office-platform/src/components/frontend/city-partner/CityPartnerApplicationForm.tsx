@@ -335,11 +335,15 @@ export default function CityPartnerApplicationForm({
   initialCity,
   invalidExplicitCity,
   cityUnavailableMessage,
+  lockCity,
+  className,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   initialCity: string
   invalidExplicitCity: boolean
   cityUnavailableMessage?: string
+  lockCity?: boolean
+  className?: string
 }>) {
   const [stageOne, setStageOne] = useState<CityPartnerStageOneValues>({
     city: initialCity,
@@ -404,12 +408,12 @@ export default function CityPartnerApplicationForm({
   }
 
   if (state.status === 'complete') {
-    return <div className="city-partner-form__success" role="status" aria-live="polite"><h2>申请已收到</h2><p>我们会根据城市服务规划与双方资源情况进行沟通。</p></div>
+    return <div className={['city-partner-form__success', className].filter(Boolean).join(' ')} role="status" aria-live="polite"><h2>申请已收到</h2><p>我们会根据城市服务规划与双方资源情况进行沟通。</p></div>
   }
 
   if (state.status === 'stage-two' || state.status === 'completing' || (state.status === 'error' && coordinator.hasSavedStageOne())) {
     return (
-      <form className="city-partner-form" onSubmit={submitStageTwo} noValidate>
+      <form className={['city-partner-form', className].filter(Boolean).join(' ')} onSubmit={submitStageTwo} noValidate>
         <header><span className="city-partner-form__step">第二步 · 可选</span><h2>{CITY_PARTNER_COPY.stageTwoTitle}</h2><p>{CITY_PARTNER_COPY.stageTwoHint}</p></header>
         <Field label="机构名称" id="partner-organization" error={stageTwoErrors.organizationName}>
           <Input ref={(node) => { refs.current.organizationName = node }} value={stageTwo.organizationName ?? ''} maxLength={100} onChange={(event) => setStageTwo((prev) => ({ ...prev, organizationName: event.target.value }))} />
@@ -431,7 +435,7 @@ export default function CityPartnerApplicationForm({
 
   return (
     <form
-      className="city-partner-form"
+      className={['city-partner-form', className].filter(Boolean).join(' ')}
       onSubmit={submitStageOne}
       onFocusCapture={startFromCurrentCity}
       onChangeCapture={startFromCurrentCity}
@@ -439,7 +443,7 @@ export default function CityPartnerApplicationForm({
     >
       <header><span className="city-partner-form__step">第一步 · 必填</span><h2>{CITY_PARTNER_COPY.stageOneTitle}</h2><p>{CITY_PARTNER_COPY.stageOneHint}</p></header>
       <Field label="申请城市" id="partner-city" error={stageOneErrors.city} required>
-        <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} onChange={(event) => { coordinator.start(event.target.value); setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
+        <Select ref={(node) => { refs.current.city = node }} name="city" value={stageOne.city} disabled={lockCity} onChange={(event) => { coordinator.start(event.target.value); setStageOne((prev) => ({ ...prev, city: event.target.value })); setStageOneErrors((prev) => ({ ...prev, city: undefined })); setCityBlocked(false) }}>
           <option value="">请选择城市</option>{cities.map((city) => <option key={city.slug} value={city.slug}>{city.name}{city.serviceStatus === 'coming-soon' ? '（筹备中）' : ''}</option>)}
         </Select>
       </Field>

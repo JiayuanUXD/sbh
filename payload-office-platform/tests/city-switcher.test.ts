@@ -474,12 +474,16 @@ describe('CitySwitcher', () => {
     expect(document.activeElement).toBe(toggle)
   })
 
-  it('keeps the trusted prefixed city home transparent before scroll', async () => {
-    navigationState.pathname = '/hangzhou'
+  it('keeps the trusted live prefixed city home transparent before scroll and keeps coming-soon solid', async () => {
+    navigationState.pathname = '/shanghai'
     navigationState.search = ''
     const container = await renderShell()
 
     expect(container.querySelector('header')?.className).toContain('site-header--transparent')
+
+    navigationState.pathname = '/hangzhou'
+    const containerHangzhou = await renderShell()
+    expect(containerHangzhou.querySelector('header')?.className).not.toContain('site-header--transparent')
   })
 
   it('closes the mobile drawer, restores scroll, and releases the focus trap when the desktop breakpoint activates', async () => {

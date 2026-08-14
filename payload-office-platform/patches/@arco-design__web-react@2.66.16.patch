@@ -1,0 +1,128 @@
+diff --git a/es/AutoComplete/index.js b/es/AutoComplete/index.js
+index f05bd161d844af3c566050fcb9a76d58ef62068a..ae61eb5f3c7b03777e66f3eff5860827a87c566f 100644
+--- a/es/AutoComplete/index.js
++++ b/es/AutoComplete/index.js
+@@ -88,7 +88,7 @@ function AutoComplete(baseProps, ref) {
+     var usedTriggerElement = typeof triggerElement === 'function' ? triggerElement({ value: value }) : triggerElement;
+     var TriggerElement = React.cloneElement(usedTriggerElement, __assign(__assign(__assign({ ref: function (node) {
+             refInput.current = node;
+-            var originRef = usedTriggerElement.ref;
++            var originRef = usedTriggerElement.props && usedTriggerElement.props.ref;
+             if (typeof originRef === 'function') {
+                 originRef(node);
+             }
+diff --git a/es/Trigger/index.js b/es/Trigger/index.js
+index dfe146d2d1d96be89fc9b90f098dfc6ad6e23d71..ab77acce010e96fdbad489090f191fd92facbea1 100644
+--- a/es/Trigger/index.js
++++ b/es/Trigger/index.js
+@@ -918,7 +918,7 @@ var Trigger = /** @class */ (function (_super) {
+                 React.createElement("span", __assign({ ref: this.triggerRef, "trigger-placement": this.realPosition, style: __assign(__assign(__assign({ width: autoAlignPopupWidth && (style === null || style === void 0 ? void 0 : style.width) === undefined
+                             ? (_d = this.childrenDomSize) === null || _d === void 0 ? void 0 : _d.width
+                             : '' }, popupStyle), { position: 'absolute', zIndex: zIndex || '' }), style) }, popupEventProps, { className: popupClassName }, pickDataAttributes(this.props)),
+-                    React.createElement(popupChildren.type, __assign({ ref: popupChildren.ref }, popupChildren.props, { style: __assign(__assign({}, popupChildren.props.style), dropdownPopupStyle) })),
++                    React.createElement(popupChildren.type, __assign({ ref: popupChildren.props && popupChildren.props.ref }, popupChildren.props, { style: __assign(__assign({}, popupChildren.props.style), dropdownPopupStyle) })),
+                     (showArrow || arrowProps) && (React.createElement("div", { className: cs(prefixCls + "-arrow-container", (_b = {},
+                             _b[childrenPrefix + "-arrow-container"] = childrenPrefix,
+                             _b)) },
+diff --git a/es/_class/VirtualList/index.js b/es/_class/VirtualList/index.js
+index 01ab76a5add3a6328ae909618763723e66034da9..19885ffe45757463cc565eb386ae75d334f395a7 100644
+--- a/es/_class/VirtualList/index.js
++++ b/es/_class/VirtualList/index.js
+@@ -463,8 +463,8 @@ var VirtualList = React.forwardRef(function (props, ref) {
+                             heightMap[key] = getNodeHeight(ele, true);
+                         }
+                     }
+-                    if (isFunction((_a = node) === null || _a === void 0 ? void 0 : _a.ref)) {
+-                        (_b = node) === null || _b === void 0 ? void 0 : _b.ref(ele);
++                    if (isFunction((_a = node) === null || _a === void 0 ? void 0 : _a.props.ref)) {
++                        (_b = node) === null || _b === void 0 ? void 0 : _b.props.ref(ele);
+                     }
+                 },
+             });
+diff --git a/es/_util/react-dom.js b/es/_util/react-dom.js
+index 8155d849d04f167f1ba559884aa9b474def1fe73..dcee932300c956172e521654ba670734b468c645 100644
+--- a/es/_util/react-dom.js
++++ b/es/_util/react-dom.js
+@@ -95,12 +95,13 @@ export var findDOMNode = function (element, instance) {
+ };
+ // 回调children的原始 ref ，适配函数 ref or ref.current 场景
+ export var callbackOriginRef = function (children, node) {
+-    if (children && children.ref) {
+-        if (isFunction(children.ref)) {
+-            children === null || children === void 0 ? void 0 : children.ref(node);
++    var childrenRef = children && children.props && children.props.ref;
++    if (childrenRef) {
++        if (isFunction(childrenRef)) {
++            childrenRef(node);
+         }
+-        if ('current' in children.ref) {
+-            children.ref.current = node;
++        if ('current' in childrenRef) {
++            childrenRef.current = node;
+         }
+     }
+ };
+diff --git a/lib/AutoComplete/index.js b/lib/AutoComplete/index.js
+index b4bdbf027505d2d5a2ab5d738615db764f99c2dd..1cdc37e63da4d9c5b2b3ebabc5b353a7e31b34f0 100644
+--- a/lib/AutoComplete/index.js
++++ b/lib/AutoComplete/index.js
+@@ -112,7 +112,7 @@ function AutoComplete(baseProps, ref) {
+     var usedTriggerElement = typeof triggerElement === 'function' ? triggerElement({ value: value }) : triggerElement;
+     var TriggerElement = react_1.default.cloneElement(usedTriggerElement, __assign(__assign(__assign({ ref: function (node) {
+             refInput.current = node;
+-            var originRef = usedTriggerElement.ref;
++            var originRef = usedTriggerElement.props && usedTriggerElement.props.ref;
+             if (typeof originRef === 'function') {
+                 originRef(node);
+             }
+diff --git a/lib/Trigger/index.js b/lib/Trigger/index.js
+index f8c9257ff9bce7bf0aa7ff8ab2f9f611d93d1750..69f4d0b5f1720908fe7d3b1b8ad90369d18d2031 100644
+--- a/lib/Trigger/index.js
++++ b/lib/Trigger/index.js
+@@ -943,7 +943,7 @@ var Trigger = /** @class */ (function (_super) {
+                 react_1.default.createElement("span", __assign({ ref: this.triggerRef, "trigger-placement": this.realPosition, style: __assign(__assign(__assign({ width: autoAlignPopupWidth && (style === null || style === void 0 ? void 0 : style.width) === undefined
+                             ? (_d = this.childrenDomSize) === null || _d === void 0 ? void 0 : _d.width
+                             : '' }, popupStyle), { position: 'absolute', zIndex: zIndex || '' }), style) }, popupEventProps, { className: popupClassName }, (0, pick_1.pickDataAttributes)(this.props)),
+-                    react_1.default.createElement(popupChildren.type, __assign({ ref: popupChildren.ref }, popupChildren.props, { style: __assign(__assign({}, popupChildren.props.style), dropdownPopupStyle) })),
++                    react_1.default.createElement(popupChildren.type, __assign({ ref: popupChildren.props && popupChildren.props.ref }, popupChildren.props, { style: __assign(__assign({}, popupChildren.props.style), dropdownPopupStyle) })),
+                     (showArrow || arrowProps) && (react_1.default.createElement("div", { className: (0, classNames_1.default)(prefixCls + "-arrow-container", (_b = {},
+                             _b[childrenPrefix + "-arrow-container"] = childrenPrefix,
+                             _b)) },
+diff --git a/lib/_class/VirtualList/index.js b/lib/_class/VirtualList/index.js
+index dc52ac9161e6b3f0d4ade30443cc7e7686b8ca1e..5b2edc2b3f12a4fae8ea37b9bf884128930ec361 100644
+--- a/lib/_class/VirtualList/index.js
++++ b/lib/_class/VirtualList/index.js
+@@ -487,8 +487,8 @@ var VirtualList = react_1.default.forwardRef(function (props, ref) {
+                             heightMap[key] = (0, itemUtil_1.getNodeHeight)(ele, true);
+                         }
+                     }
+-                    if ((0, is_1.isFunction)((_a = node) === null || _a === void 0 ? void 0 : _a.ref)) {
+-                        (_b = node) === null || _b === void 0 ? void 0 : _b.ref(ele);
++                    if ((0, is_1.isFunction)((_a = node) === null || _a === void 0 ? void 0 : _a.props.ref)) {
++                        (_b = node) === null || _b === void 0 ? void 0 : _b.props.ref(ele);
+                     }
+                 },
+             });
+diff --git a/lib/_util/react-dom.js b/lib/_util/react-dom.js
+index 994deffb8f90ef071501488ec60d14e953b2999f..80b2b061dd136766c0fcba9db2266fc3cea6e335 100644
+--- a/lib/_util/react-dom.js
++++ b/lib/_util/react-dom.js
+@@ -102,12 +102,13 @@ var findDOMNode = function (element, instance) {
+ exports.findDOMNode = findDOMNode;
+ // 回调children的原始 ref ，适配函数 ref or ref.current 场景
+ var callbackOriginRef = function (children, node) {
+-    if (children && children.ref) {
+-        if ((0, is_1.isFunction)(children.ref)) {
+-            children === null || children === void 0 ? void 0 : children.ref(node);
++    var childrenRef = children && children.props && children.props.ref;
++    if (childrenRef) {
++        if ((0, is_1.isFunction)(childrenRef)) {
++            childrenRef(node);
+         }
+-        if ('current' in children.ref) {
+-            children.ref.current = node;
++        if ('current' in childrenRef) {
++            childrenRef.current = node;
+         }
+     }
+ };

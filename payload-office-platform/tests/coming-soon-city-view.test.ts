@@ -37,11 +37,14 @@ describe('ComingSoonCityView shell', () => {
     expect(view).toContain('<div className="city-coming-soon">')
     expect(view).not.toContain('<main className="city-coming-soon">')
     expect(view).toContain('profile.hero.media ? <img className="city-coming-soon__media"')
+    expect(view).toContain('<CityPartnerApplicationForm')
   })
 
   it('styles readable responsive city sections and 44px action targets', () => {
     expect(css).toContain('.city-coming-soon__hero')
-    expect(css).toContain('.city-coming-soon__regions ul')
+    expect(css).toContain('.city-coming-soon__district-grid')
+    expect(css).toContain('.city-coming-soon__stats')
+    expect(css).toContain('.city-coming-soon__benefits')
     expect(css).toContain('min-height: 44px')
     expect(css).toContain('@media (max-width: 767px)')
     expect(comingSoonStyles).not.toContain('var(--paper)')
