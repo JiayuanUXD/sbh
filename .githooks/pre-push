@@ -1,0 +1,42 @@
+#!/bin/sh
+# 推送前的快速闸门：跑 quality.yml 里最便宜的两道（typecheck + test）。
+# build / migrate / E2E 留给 CI，避免每次 push 等好几分钟。
+#
+# 跳过：SKIP_PREPUSH=1 git push
+# 禁止用 --no-verify 绕过（Agent 尤其禁止，见 AGENTS.md 四条红线）。
+
+set -u
+
+APP=payload-office-platform
+ZERO=0000000000000000000000000000000000000000
+
+[ "${SKIP_PREPUSH:-0}" = "1" ] && exit 0
+
+root=$(git rev-parse --show-toplevel) || exit 1
+
+# 汇总本次推送真正新增的提交所涉及的文件；不碰应用目录就直接放行
+#（纯文档分支不必等类型检查）。用 --not --remotes=origin 而不是与 master 比，
+# 否则从已推送分支切出的新分支会把上游旧提交一起算进来。
+touched=''
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue                     # 删除远端分支
+  files=$(git log --name-only --pretty=format: "$local_sha" --not --remotes=origin 2>/dev/null) || continue
+  touched="$touched
+$files"
+done
+
+printf '%s\n' "$touched" | grep -q "^$APP/" || exit 0
+
+cd "$root/$APP" || exit 1
+if [ ! -d node_modules ]; then
+  printf '\033[33m! node_modules 缺失，跳过 pre-push 检查（先 pnpm install）\033[0m\n'
+  exit 0
+fi
+
+printf '\033[36m→ pre-push: pnpm typecheck\033[0m\n'
+pnpm typecheck || { printf '\033[31m✗ typecheck 失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
+
+printf '\033[36m→ pre-push: pnpm test\033[0m\n'
+pnpm test || { printf '\033[31m✗ 单测失败，推送中止（跳过：SKIP_PREPUSH=1）\033[0m\n'; exit 1; }
+
+exit 0

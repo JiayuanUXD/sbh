@@ -19,7 +19,7 @@
 9. Merchant 启用、资质有效且未过期。
 10. 已启用服务城市覆盖 Building 城市。
 11. 租赁还需可租、可用日期未结束。
-12. `last_effective_maintained_at` 不命中 PRD 的陈旧排除规则。
+12. `last_effective_maintained_at` 不命中 `src/domain/supply` 中实现的陈旧排除规则。
 
 任一条件失效即从全部消费者撤销，但不得因此改写审核状态、发布状态或历史快照。
 

@@ -1,12 +1,16 @@
 # Payload 平台 Agent 入口
 
-本文件适用于 `payload-office-platform/` 全部目录。它只负责上下文路由；具体规则按任务读取 `.agent/` 中的专项文件，禁止每次加载全部规则和全部 PRD。
+本文件适用于 `payload-office-platform/` 全部目录。它只负责上下文路由；具体规则按任务读取 `.agent/` 中的专项文件，禁止每次加载全部规则。
+
+> **常驻约束在两份 `CLAUDE.md` 里**：仓库根 `../CLAUDE.md`（部署、分支、CI 坑、工作树纪律）与 `./CLAUDE.md`（技术栈、命令、生成物纪律、数据库、并行 worktree）。文件名是历史原因，内容对所有 agent 同等生效——Claude Code 会自动加载它们，**Antigravity / Gemini CLI / Codex 等必须显式读取**（通用入口见仓库根 `../AGENTS.md`）。
+>
+> 本文件与 `.agent/` 任何 agent 都不会自动加载，需按下表显式读取。
 
 ## 1. 每个任务都要读取
 
 1. 本文件。
 2. [`.agent/core.md`](./.agent/core.md)。
-3. 当前任务包；若尚未建立，先在本会话概述任务目标与范围。
+3. 当前工作项（Task Packet）：`../specs/work-items/<编号>-*.md`；若尚未建立，先在本会话概述任务目标与范围。
 4. 与任务直接相关的代码与测试。
 
 ## 2. 按任务增量读取
@@ -14,7 +18,7 @@
 | 任务类型 | 额外读取 |
 |---|---|
 | Payload 后台页面、Collection、Hook、Custom View | [`.agent/backend.md`](./.agent/backend.md) |
-| C 端页面、组件、公开查询、SEO、咨询 | [`FRONTEND_AGENT.md`](./FRONTEND_AGENT.md) |
+| C 端页面、组件、公开查询、SEO、咨询 | [`.agent/frontend.md`](./.agent/frontend.md) |
 | 有效供给、楼盘、房源、商户关系 | [`.agent/supply.md`](./.agent/supply.md) |
 | 登录、角色、菜单、操作、数据或字段权限 | [`.agent/permissions.md`](./.agent/permissions.md) |
 | Collection、字段、索引、约束或生产数据变化 | [`.agent/migrations.md`](./.agent/migrations.md) |
@@ -24,7 +28,9 @@
 
 ## 3. 权威来源
 
-历史 PRD / 实施计划 / 规格已移除，**以代码为唯一事实源**：collection 配置、`src/domain`、`src/lib/frontend`、`src/migrations`、测试。跨面业务规则见 `.agent/` 专项文件。需要时用 `rg` 在 `src/` 定位章节，不要整份读取大文件。
+历史 PRD / 实施计划 / 规格已移除，**以代码为唯一事实源**：collection 配置、`src/domain`、`src/lib/frontend`、`src/migrations`、测试。跨面业务规则见 `.agent/` 专项文件；地理数据命名见 `../docs/geography-code-convention.md`。需要时用 `rg` 在 `src/` 定位章节，不要整份读取大文件。
+
+任何仍指向 PRD 的表述一律读作"对应工作项的验收标准 + 代码事实"，不要去找已删除的 PRD 文件。
 
 ## 4. 不可协商的总规则
 
@@ -42,13 +48,13 @@
 
 ## 5. 标准工作流
 
-1. 选择唯一任务编号并建立/读取 Task Packet。
+1. 选择唯一任务编号并在 `../specs/work-items/` 建立/读取 Task Packet。
 2. 读取与任务相关的 `.agent/` 规则、代码和测试。
 3. 记录修改前行为、影响范围、数据/权限风险及明确非目标。
 4. 为复杂数据、权限、API、路由或视觉变化取得确认。
 5. 先建立可复现失败或测试，再完成最小闭环。
 6. 执行 Task Packet 中的静态、测试、构建、数据库和浏览器验证。
-7. 将详细证据写入任务包或 PR 描述，字段只保留短摘要和链接。
+7. 将详细证据写入 `../artifacts/verification/<编号>/` 或 PR 描述，字段只保留短摘要和链接。
 8. 只更新实际完成的复选框，交付剩余风险和未验证项。
 
 ## 6. 上下文预算

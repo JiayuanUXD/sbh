@@ -20,7 +20,7 @@
 - BRK：本人负责的 Lead/Customer/Follow-up；授权范围内有效房源。
 - CSR：授权城市咨询 Lead，不具审核/团队管理权限。
 
-以页面 PRD 的更严格定义为准。
+与 `src/domain` / collection `access` 中的实现不一致时，以更严格的一方为准，并在工作项中记录差异。
 
 ## 字段与导出
 

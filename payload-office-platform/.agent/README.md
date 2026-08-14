@@ -6,7 +6,7 @@
 |---|---|
 | `core.md` | 每个任务 |
 | `backend.md` | Payload 后台页面、Collection、Hook、Custom View |
-| `frontend.md` | C 端页面、组件、SEO、咨询和公开查询 |
+| `frontend.md` | C 端页面、组件、SEO、咨询和公开查询（原 `FRONTEND_AGENT.md` 已并入此处） |
 | `supply.md` | 楼盘、房源、商户关系和有效供给 |
 | `permissions.md` | 登录、角色、权限、字段脱敏、导出 |
 | `migrations.md` | 数据模型、索引、约束、生产数据 |

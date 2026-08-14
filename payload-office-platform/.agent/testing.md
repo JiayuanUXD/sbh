@@ -5,15 +5,19 @@
 按影响范围执行：
 
 ```bash
-pnpm exec payload generate:types
-pnpm exec payload generate:importmap
-pnpm exec tsc --noEmit --pretty false
+pnpm generate:types
+pnpm payload generate:importmap
+pnpm typecheck
 pnpm test
+pnpm migrate:dry-run
 pnpm build
 ```
 
-- 未改 Collection/Global 可省略类型生成。
-- 未改后台组件注册可省略 import map。
+顺序与 `.github/workflows/quality.yml` 一致，本地按此自检可避免只在 PR 才暴露的失败。
+
+- 未改 Collection/Global 可省略类型生成；但生成前确认 `.env.local` 有占位 `COS_*`，否则会静默删掉 `Media.prefix`。
+- 未改后台组件注册可省略 import map；改了没重生成 → `/admin` 整站 hydration 白屏（资源全 200）。
+- 未改 `src/migrations/` 可省略 `migrate:dry-run`。
 - 不删除、跳过失败测试或新增 suppress。
 - PostgreSQL 专属约束必须在 PostgreSQL 验证。
 
@@ -35,13 +39,13 @@ pnpm build
 
 ## 证据
 
-详细输出（长日志、截图等）存入任务包或 PR 描述或临时验证目录，禁止粘贴长日志到 Tasks。
+详细输出（长日志、截图等）存入 `../artifacts/verification/<工作项编号>/` 或 PR 描述，禁止粘贴长日志到 Tasks。
 
 ## 完成定义
 
 只有以下全部成立才能勾选：
 
-- 用户结果符合对应 PRD。
+- 用户结果符合工作项（`../specs/work-items/`）声明的验收标准；无工作项时符合本会话确认的目标。
 - 服务端权限、状态机和数据范围正确。
 - 关键正常、异常、越权、并发路径有测试。
 - 类型、相关测试、构建通过。

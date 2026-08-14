@@ -3,7 +3,7 @@
 ## 项目
 
 - Next.js 16 App Router、React 19、Payload CMS 3.86。
-- pnpm；本地 SQLite，生产 PostgreSQL。
+- pnpm；本地 / CI / 生产统一 PostgreSQL（`push: false`，只走显式迁移）。SQLite 回退已移除，`DATABASE_URL` 非 `postgres://` 会 fail-fast。
 - Payload Lexical；媒体生产走腾讯云 COS（`@payloadcms/storage-s3`，prefix `media`）。
 - 默认产品与文档语言为简体中文，产品时间为 `Asia/Shanghai`。
 
@@ -33,7 +33,7 @@
 - 金额保存数值、币种、计价周期和单位；租赁/出售分开。
 - 面积以平方米为基础，支持一位小数。
 - 数据库存 UTC，展示和自然日按 `Asia/Shanghai`。
-- 价格计算和陈旧规则只使用 PRD 指定源字段、舍入和时点，不以 `updated_at` 代替业务时间。
+- 价格计算和陈旧规则只使用领域函数中显式声明的源字段、舍入和时点，不以 `updated_at` 代替业务时间。
 
 ## 代码质量
 

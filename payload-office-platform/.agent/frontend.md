@@ -1,10 +1,13 @@
 # C 端前台专项规则
 
+适用于 `app/(frontend)`、`components/frontend`、`domain/public-catalog`、公开 SEO/sitemap、缓存与 `/api/inquiries`。配合 `core.md` 与 `testing.md` 读；涉及房源/楼盘/facet/推荐再读 `supply.md`，涉及咨询转 Lead 或脱敏再读 `permissions.md`。
+
 ## 架构
 
 - `app/(frontend)` 负责路由、Metadata、页面编排和错误边界。
 - `domain/public-catalog` 负责公开查询门面、DTO 和 mapper。
-- `domain/supply` 是公开房源资格唯一来源。
+- `domain/supply` 是公开房源资格唯一来源：所有公开消费者（列表、详情、推荐、sitemap、咨询候选）复用同一有效供给服务，禁止用旧 `status=available` 或简化谓词降级。
+- 页面和组件只消费 Public Catalog DTO，不接收原始 Payload 文档。
 - `components/frontend` 只消费只读 DTO。
 - `lib/frontend` 只保存纯解析、格式化和前台工具。
 - 路由不拼 Payload `where`，组件不调用 Payload。
@@ -16,9 +19,11 @@
 - 外部输入 `unknown` + schema/guard；DTO 默认 `Readonly`。
 - effect 只用于外部同步，不派生普通渲染数据。
 - 列表 key 使用不可变业务 ID。
+- 价格必须携带币种、租售类型、周期和单位；不可跨单位聚合或排序。
 
 ## 视觉
 
+- 遵循已确认 Design 与 `(frontend)/styles.css` 的 CSS 变量，不临时发明第二套配色、字体或布局系统。
 - 方向：克制、专业、温暖、数据可信、编辑感。
 - 主色：`#171A1D`、`#F5F1E8`、`#FCFBF8`、`#D5D0C7`、`#A46F3F`、`#1F5A50`。
 - 中文展示/正文：思源宋体 SC / 思源黑体 SC；数字英文：IBM Plex Sans；必须有系统回退。

@@ -1,0 +1,94 @@
+#!/bin/sh
+# 本地提交闸门：拦截本仓库已经发生过的五类事故。
+# 规则解释见 CLAUDE.md / AGENTS.md；本文件只负责强制执行。
+#
+# 启用：  pnpm setup:hooks   （等价于 git config core.hooksPath .githooks）
+# 逃生舱：每条检查各有一个环境变量，仅在你确知自己在做什么时使用。
+# 禁止用 --no-verify 整体绕过（Agent 尤其禁止，见 AGENTS.md 四条红线）。
+
+set -u
+
+APP=payload-office-platform
+fail=0
+
+red()  { printf '\033[31m✗ %s\033[0m\n' "$1"; }
+warn() { printf '\033[33m! %s\033[0m\n' "$1"; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+deleted=$(git diff --cached --name-only --diff-filter=D)
+added=$(git diff --cached --name-only --diff-filter=A)
+
+# ── 1. 不在 master 上直接写代码（push master 直接触发生产部署） ──────────────
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo '')
+if [ "$branch" = "master" ] && [ "${ALLOW_MASTER_COMMIT:-0}" != "1" ]; then
+  red "当前在 master 上提交。push master 会直接触发 CloudRun 生产部署。"
+  echo "  先开分支：  git switch -c feat/<任务>"
+  echo "  确需直提：  ALLOW_MASTER_COMMIT=1 git commit ..."
+  fail=1
+fi
+
+# ── 2. 别把用户有意搁置的 PRD 删除卷进提交（典型 git add -A 事故） ───────────
+prd=$(printf '%s\n' "$deleted" | grep -E "^$APP/public/prd/.*\.md$" || true)
+if [ -n "$prd" ] && [ "${ALLOW_PRD_DELETION:-0}" != "1" ]; then
+  red "暂存区含 public/prd/*.md 的删除，这是用户有意搁置的，不要提交："
+  printf '    %s\n' $prd
+  echo "  撤出暂存：  git restore --staged $APP/public/prd/"
+  echo "  提交只用显式 git add <具体路径>，禁用 git add -A / git add . / git commit -am。"
+  fail=1
+fi
+
+# ── 3. payload-types.ts 不能丢 Media.prefix（缺 COS 配置重生成会静默删掉） ──
+if printf '%s\n' "$staged" | grep -qx "$APP/src/payload-types.ts"; then
+  n=$(git show ":$APP/src/payload-types.ts" 2>/dev/null | grep -c 'prefix' || true)
+  if [ "$n" != "2" ]; then
+    red "暂存的 payload-types.ts 里 prefix 出现 $n 次（应为 2），Media.prefix 很可能被删掉了。"
+    echo "  原因：本地 .env.local 缺 COS_* 配置时 generate:types 会静默移除该字段。"
+    echo "  修复：补齐占位 COS_*（格式见 $APP/CLAUDE.md 生成物纪律）后重新 pnpm generate:types。"
+    fail=1
+  fi
+fi
+
+# ── 4. 改了数据模型就必须带迁移（push:false，只走显式迁移） ─────────────────
+cfg=$(printf '%s\n' "$staged" | grep -E "^$APP/src/(collections/|globals/|payload\.config\.ts)" || true)
+mig=$(printf '%s\n' "$added" | grep -E "^$APP/src/migrations/[0-9][^/]*\.ts$" || true)
+if [ -n "$cfg" ] && [ -z "$mig" ] && [ "${SKIP_MIGRATION_CHECK:-0}" != "1" ]; then
+  red "改了 collection / global / payload.config，但没有新增迁移文件。"
+  printf '    %s\n' $cfg
+  echo "  生成：      pnpm exec payload migrate:create   （迁移正文绝不可手改）"
+  echo "  纯 UI 改动：SKIP_MIGRATION_CHECK=1 git commit ...（仅当确实不涉及表结构）"
+  fail=1
+fi
+
+# ── 5. 分支命名规范：<类型或agent>/<kebab 描述>-<4~8位随机 hex> ───────────────
+# 新分支（尚未领先 origin/master）直接拦，此时改名成本最低；已有提交的老分支只警告。
+BRANCH_RE='^(feat|fix|refactor|perf|docs|chore|ci|data|claude|antigravity|codex|cursor)/[a-z0-9]+(-[a-z0-9]+)*-[0-9a-f]{4,8}$'
+if [ -n "$branch" ] && [ "$branch" != "master" ] && [ "${ALLOW_BRANCH_NAME:-0}" != "1" ]; then
+  if ! printf '%s' "$branch" | grep -Eq "$BRANCH_RE"; then
+    ahead=$(git rev-list --count origin/master..HEAD 2>/dev/null || echo 1)
+    if [ "$ahead" = "0" ]; then
+      red "分支名 '$branch' 不符合命名规范。"
+      echo "  格式：      <类型>/<kebab 描述>-<4~8位随机 hex>"
+      echo "  类型：      feat fix refactor perf docs chore ci data（agent 自建可用 claude/antigravity/codex/cursor）"
+      echo "  例子：      feat/opt-022-dashboard-perf-a3f1、fix/header-cta-portal-7b2c"
+      echo "  改名：      git branch -m <新名>"
+      echo "  自动生成：  cd $APP && pnpm branch:new feat <短描述>"
+      fail=1
+    else
+      warn "分支名 '$branch' 不符合命名规范（已有提交，仅提示）。"
+      echo "  合入前建议改名：git branch -m <类型>/<描述>-<随机hex>"
+    fi
+  fi
+fi
+
+# ── 6. payload.config 变了但 importMap 没变 → /admin 可能整站白屏（警告） ───
+if printf '%s\n' "$staged" | grep -qx "$APP/src/payload.config.ts"; then
+  if ! printf '%s\n' "$staged" | grep -q 'importMap\.js$'; then
+    warn "payload.config.ts 变了但 importMap.js 没变。"
+    echo "  若新增了 client 组件（富文本 feature / 存储适配器 / 自定义字段 UI），"
+    echo "  漏重生成会让 /admin 整站 hydration 白屏（含 login 页，且资源全部 200）。"
+    echo "  重生成：    pnpm payload generate:importmap"
+  fi
+fi
+
+[ "$fail" -eq 0 ] || { echo ""; red "提交被拦截。"; exit 1; }
+exit 0
