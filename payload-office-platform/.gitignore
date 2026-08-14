@@ -18,6 +18,10 @@ public/images/
 test-results
 playwright-report
 
+# Agent 过程产物（计划/设计/验证证据）不入库；仍在生效的规则请写进 .agent/ 或 docs/
+docs/superpowers/
+tests/evidence/
+
 # 本地临时产物与抓取的原始数据（不入库）
 tmp/
 .tmp/
