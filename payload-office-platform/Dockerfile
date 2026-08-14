@@ -5,6 +5,7 @@ FROM node:22-slim AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 COPY package.json pnpm-lock.yaml ./
+COPY patches/ ./patches/
 # 含 devDeps（tsx）：payload CLI 需要 tsx 加载 ts 配置才能在容器内跑迁移
 RUN pnpm install --frozen-lockfile
 
