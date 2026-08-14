@@ -1,8 +1,6 @@
 /**
  * P1 Task 6 信息纠错领域模块入口
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *
  * 模块组成：
  *   - schema：纠错请求白名单校验（类别 7 类、targetType listing/building、description ≤500）
  *   - idempotency：幂等键 sha256(requestId | targetType | targetSlug | category)

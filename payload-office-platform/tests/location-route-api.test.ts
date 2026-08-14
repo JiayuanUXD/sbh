@@ -1,8 +1,6 @@
 /**
  * P2 Task 2 验收：/api/routes 路由集成测（mock Payload + fetch）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 2
- *
  * 守护不变量：
  *   - 合法请求 -> 200 { ok: true, summary: RouteSummary }，只回摘要不回起点
  *   - 日志绝不含请求 body、完整 URL、原始起点坐标；只记 mode/成功失败/耗时区间

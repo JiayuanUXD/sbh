@@ -1,8 +1,6 @@
 /**
  * P2 Task 2：用户主动触发的路线建议
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 2
- *
  * 守护不变量：
  *   - 页面加载/进入视口前不请求定位；仅在点击"查看到这里的路线"后读取一次
  *   - getCurrentPosition 只保存坐标在组件内存，卸载后释放；不写 localStorage/日志

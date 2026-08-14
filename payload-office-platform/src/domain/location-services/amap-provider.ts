@@ -1,8 +1,6 @@
 /**
  * P1 Task 2：高德 WebService POI provider
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 2
- *
  * 守护不变量：
  *   - 请求高德 place/around 接口，location=经度,纬度（高德规范：经度在前）
  *   - 2500ms AbortController 超时，映射为 provider_timeout

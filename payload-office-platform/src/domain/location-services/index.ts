@@ -1,8 +1,6 @@
 /**
  * P1 位置服务领域入口
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 1-2
- *
  * 导出契约类型/纯函数（Task 1）、高德 provider（Task 2）、POI 缓存（Task 2）。
  */
 

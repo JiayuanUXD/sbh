@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 纠错记录保护 hook
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7（纠错只追加、可审计）
- *
  * 守护不变量：
  *   - create：强制 status='new'，忽略外部传入（防止绕过 schema 直接指定处理状态）
  *   - update：append-only，事实字段（targetType/targetSlug/category/description/

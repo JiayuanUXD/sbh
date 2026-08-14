@@ -1,8 +1,6 @@
 /**
  * P1 Task 2：POI 内存缓存
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 2
- *
  * 守护不变量：
  *   - cache key: `poi:${buildingId}:${category}:${lat5}:${lng5}`
  *     坐标仅保留小数点后 5 位（约 1.1m 精度），微差合并避免缓存击穿

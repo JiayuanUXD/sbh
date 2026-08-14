@@ -1,8 +1,6 @@
 /**
  * P1 位置服务契约测试
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 1
- *
  * 守护不变量：
  *   - POI 类别固定四类（transport/restaurant/bank/hotel），非白名单拒绝
  *   - 坐标范围为有效经纬度（纬度 [-90,90]、经度 [-180,180]），超界/非数字拒绝

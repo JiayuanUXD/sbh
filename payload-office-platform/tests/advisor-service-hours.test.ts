@@ -1,8 +1,6 @@
 /**
  * P2 Task 3 单测：平台服务时间状态解析
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 3
- *
  * 守护不变量：
  *   - 时区固定 Asia/Shanghai（UTC+8）解析当前星期/时刻
  *   - 服务中/非服务时段按周时段判定；边界（开始时刻含、结束时刻不含）

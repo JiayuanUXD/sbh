@@ -1,8 +1,6 @@
 /**
  * P1 Task 3 E2E：楼盘详情位置交通面板
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 3
- *
  * 守护不变量：
  *   - 地图改为进入视口自动加载（IntersectionObserver），用户未滚动到位置区前不请求 webapi.amap.com
  *   - 地图 SDK 加载失败时降级为静态卡片提示

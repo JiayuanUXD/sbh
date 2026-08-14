@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 纠错 schema 校验与白名单收窄
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 守护不变量：
  *   - 输入视为 unknown，schema 白名单收窄后才落库
  *   - 类别仅 7 类公开枚举（price/area/availability/media/location/building-fact/other）

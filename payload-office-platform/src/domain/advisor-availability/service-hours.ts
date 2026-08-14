@@ -1,8 +1,6 @@
 /**
  * P2 Task 3：平台服务时间状态解析（纯函数）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 3
- *
  * 守护不变量：
  *   - 时区固定 Asia/Shanghai，用 Intl 解析当前星期/时刻（无外部依赖）
  *   - 时段边界：start 含、end 不含（[start, end)）

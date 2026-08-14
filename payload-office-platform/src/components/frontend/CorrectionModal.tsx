@@ -13,9 +13,6 @@ import { track } from '@/lib/frontend/analytics'
 /**
  * P1 Task 6 信息纠错 Modal
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 守护不变量：
  *   - 仅收类别（7 类公开枚举）+ 说明（≤500 字），不收手机号/姓名等 PII；
  *   - 提交 POST /api/corrections，同源 + schema + 限流 + 幂等由路由兜底；

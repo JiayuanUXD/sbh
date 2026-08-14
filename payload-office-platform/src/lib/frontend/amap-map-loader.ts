@@ -3,8 +3,6 @@ import { getAmapJsKey } from '@/lib/frontend/amap-public-config'
 /**
  * P1 Task 3：高德 JS API 地图加载器
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 3
- *
  * 守护不变量：
  *   - 单例 Promise：多次调用返回同一 Promise，避免重复注入 script
  *   - 缺 Key / SSR / 脚本失败 / 超时 / 非法响应 返回稳定错误，由调用方降级

@@ -1,8 +1,6 @@
 /**
  * P1 位置服务契约
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 1
- *
  * 守护不变量：
  *   - POI 类别固定四类（transport/restaurant/bank/hotel），不可扩展
  *   - 交通子分类固定两类（subway/bus），仅 transport 类别有效

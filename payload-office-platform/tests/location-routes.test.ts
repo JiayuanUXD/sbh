@@ -1,8 +1,6 @@
 /**
  * P2 Task 1 单测：隐私安全的路线摘要 provider
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 1
- *
  * 守护不变量：
  *   - 路线摘要响应白名单：只含 mode/时长/距离/换乘/来源，绝不含原始起点坐标
  *   - provider 超时/HTTP/业务/解析错误映射为稳定 LocationServiceError.code

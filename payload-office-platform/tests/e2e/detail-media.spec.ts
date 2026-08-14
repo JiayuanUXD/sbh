@@ -1,8 +1,6 @@
 /**
  * P1 Task 4 E2E：详情媒体分类体验（视频延迟加载 + 平面图示意声明）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 4
- *
  * 守护不变量：
  *   - 视频仅在用户切换到「视频」分类后才挂载（不进入首屏关键链路）
  *   - 视频不自动播放、preload="none"

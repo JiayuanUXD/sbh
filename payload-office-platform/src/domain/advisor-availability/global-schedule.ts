@@ -1,8 +1,6 @@
 /**
  * P2 Task 3/4：把 AdvisorServiceHours global doc 映射为 ServiceSchedule
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 3/4
- *
  * 守护不变量：
  *   - 纯映射，类型安全收窄；非法行静默跳过，缺省回退安全默认
  *   - 被 AdvisorAvailability 组件与 /api/inquiries 路由复用，避免逻辑漂移

@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 纠错隐私安全日志
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 守护不变量：
  *   - 服务日志不记录 description 正文（可能含用户输入的敏感信息）
  *   - 服务日志不记录原始 IP（限流键 + reporterIpHash 用哈希）

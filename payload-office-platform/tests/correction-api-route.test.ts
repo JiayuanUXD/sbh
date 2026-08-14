@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 验收：/api/corrections 路由集成测（mock Payload）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 守护不变量：
  *   - 正常提交 -> 200 { ok: true }，调用 payload.create 一次
  *   - 响应形状固定 { ok: true }，不暴露记录 ID

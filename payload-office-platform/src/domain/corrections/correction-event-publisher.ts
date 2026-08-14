@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 纠错领域事件发布器
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           tasks.md M6.3 / design §3 domain_events / R8
- *
  * 职责：
  *   - 纠错记录创建后生成 'correction.created' 领域事件
  *   - 调用 M6.3 publishEvent 生成完整 DomainEvent 对象

@@ -1,8 +1,6 @@
 /**
  * P1 Task 6 纠错幂等键计算
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *
  * 守护不变量：
  *   - 幂等键 = sha256(requestId | targetType | targetSlug | category)
  *   - 同 requestId + 同目标 + 同类别 -> 同键 -> 同纠错记录

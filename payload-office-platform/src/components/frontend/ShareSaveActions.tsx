@@ -3,8 +3,6 @@
 /**
  * P1 Task 5：canonical 分享与本地收藏操作
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 5
- *
  * - 分享：优先 navigator.share({ url: canonical })，不支持时复制 canonical 到剪贴板
  *   canonical 经 canonicalShareUrl 净化（移除 query/hash，utm/锚点不外泄）
  * - 收藏：仅保存不可识别 ID（type/id/slug/savedAt），localStorage key 固定

@@ -1,8 +1,6 @@
 /**
  * P1 Task 5：canonical 分享 URL 与本地收藏
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 5
- *
  * 约束：
  *   - 分享只使用 canonical URL（移除 query 和 hash，utm/锚点不进入剪贴板/分享面板）
  *   - 收藏只保存不可识别 ID（type/id/slug/savedAt），不含标题、价格或 PII

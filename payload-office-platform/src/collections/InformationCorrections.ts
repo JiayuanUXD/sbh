@@ -92,9 +92,6 @@ export const CORRECTION_STATUS_LABELS: Record<CorrectionStatus, string> = {
 /**
  * 公开信息纠错记录（FPD-P1 Task 6）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 业务不变量：
  *   - 只追加：记录创建后事实字段不可改（protect hook 兜底）、不可删除（access.delete=false）
  *   - 可审计：status 流转由后台 correction:manage 操作，事实字段审计轨迹完整

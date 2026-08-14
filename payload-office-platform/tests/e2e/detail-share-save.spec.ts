@@ -1,8 +1,6 @@
 /**
  * P1 Task 5 E2E：canonical 分享与本地收藏
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 5
- *
  * 守护不变量：
  *   - 分享复制 canonical URL，query/hash 不进入剪贴板
  *   - 收藏刷新后保留（localStorage 持久化）

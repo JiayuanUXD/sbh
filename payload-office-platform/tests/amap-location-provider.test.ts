@@ -1,8 +1,6 @@
 /**
  * P1 Task 2 单测：高德 POI provider 与缓存
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 2
- *
  * 守护不变量：
  *   - provider 只映射合法 POI（过滤非法 location/缺字段）并限制为 limit 条
  *   - provider 超时/HTTP/业务/解析错误映射为稳定 LocationServiceError.code

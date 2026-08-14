@@ -3,8 +3,6 @@ import type { GlobalConfig } from 'payload'
 /**
  * P2 Task 3：平台顾问服务时间（Global）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 3
- *
  * 守护不变量：
  *   - 时区固定 Asia/Shanghai（只读展示，不可改）
  *   - 表达平台级工作日/时段/节假日，不含任何个人顾问排班或联系方式

@@ -1,8 +1,6 @@
 /**
  * P2 Task 1：隐私安全的路线摘要契约与高德路线 provider
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 1
- *
  * 守护不变量：
  *   - RouteSummary 为响应白名单：只含 mode/时长/距离/换乘/来源，绝不回传原始起点
  *   - 请求高德 direction WebService；请求只在当前交互内存在，不缓存起点

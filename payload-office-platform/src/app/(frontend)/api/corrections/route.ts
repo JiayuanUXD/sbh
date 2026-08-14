@@ -1,9 +1,6 @@
 /**
  * P1 Task 6 纠错提交 API 路由（/api/corrections）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 6
- *           specs/work-items/FPD-P1-detail-enhancements.md §7
- *
  * 守护不变量：
  *   - 仅接受 POST + application/json + 同源请求；
  *   - 请求体视为 unknown，由 domain/corrections/schema 白名单收窄；

@@ -1,9 +1,6 @@
 /**
  * P2 Task 2 路线摘要 API 路由（/api/routes）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 2
- *           specs/work-items/FPD-P2-detail-guidance.md §4
- *
  * 守护不变量：
  *   - 仅接受 POST + application/json + 同源请求；
  *   - 请求体视为 unknown，由 validateRouteRequest 白名单收窄（origin/destination/mode/requestId）；

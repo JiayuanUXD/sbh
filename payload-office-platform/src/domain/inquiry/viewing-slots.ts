@@ -1,8 +1,6 @@
 /**
  * P2 Task 4：待确认看房时段生成与校验（纯函数）
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p2-guidance.md Task 4
- *
  * 守护不变量：
  *   - 只生成未来 14 天内、落在服务时间内、30 分钟边界、持续 2 小时的时段
  *   - status 恒 'pending-confirmation'；P2 不产生已确认预约

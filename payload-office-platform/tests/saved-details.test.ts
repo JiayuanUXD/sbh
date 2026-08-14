@@ -1,8 +1,6 @@
 /**
  * P1 Task 5 单测：canonical 分享 URL 与本地收藏序列化
  *
- * 设计依据：docs/superpowers/plans/2026-07-30-detail-pages-p1-enhancements.md Task 5
- *
  * 守护不变量：
  *   - 分享 URL 移除 query 和 hash（utm/锚点不进入剪贴板/分享面板）
  *   - 收藏对象只含 type/id/slug/savedAt，不允许标题、价格或 PII
