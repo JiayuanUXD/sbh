@@ -300,11 +300,34 @@ export function createCityPartnerApplicationCoordinator(
   }
 }
 
-function newRequestId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `city-partner-${crypto.randomUUID()}`
+/**
+ * 生成第二阶段的写入凭据。
+ *
+ * requestId 不只是幂等键：第二阶段按 `request_id AND contact_phone` 定位申请
+ * （见 domain/city-partner-application/public-service.ts），所以它实际承担
+ * 能力凭据（capability token）的作用。知道对方手机号的人若能猜中 requestId，
+ * 就能补写/覆盖他人申请的补充信息，因此必须使用密码学随机源。
+ *
+ * 降级顺序：
+ *   1. crypto.randomUUID —— 需要安全上下文（https / localhost）
+ *   2. crypto.getRandomValues —— 128 bit，不要求安全上下文，覆盖 http:// 场景
+ *   3. 抛错 —— fail-closed，宁可让表单报错也不发放弱凭据
+ *
+ * 第 3 条在任何带 WebCrypto 的浏览器上都不可达（getRandomValues 自 IE11 起可用），
+ * 保留它是为了杜绝「静默降级成可猜测 ID」这条路径。
+ */
+export function newRequestId(): string {
+  const webCrypto = typeof crypto !== 'undefined' ? crypto : undefined
+  if (webCrypto && typeof webCrypto.randomUUID === 'function') {
+    return `city-partner-${webCrypto.randomUUID()}`
   }
-  return `city-partner-${Date.now()}-${Math.floor(Math.random() * 1e6)}`
+  if (webCrypto && typeof webCrypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16)
+    webCrypto.getRandomValues(bytes)
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+    return `city-partner-${hex}`
+  }
+  throw new Error('city_partner_secure_request_id_unavailable')
 }
 
 export default function CityPartnerApplicationForm({
