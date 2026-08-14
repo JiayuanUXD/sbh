@@ -47,7 +47,19 @@ afterEach(async () => {
   window.history.replaceState({}, '', '/')
 })
 
+/**
+ * 外壳不再经 next/navigation 的 useSearchParams 读 query，而是挂载后读
+ * window.location.search（见 lib/frontend/use-client-search-params.ts）。
+ * 因此渲染前必须把 navigationState 落到真实 URL 上——这也比 mock 更贴近实际，
+ * 断言本身未作任何改动。
+ */
+function syncWindowUrl(): void {
+  const query = navigationState.search ? `?${navigationState.search}` : ''
+  window.history.replaceState({}, '', `${navigationState.pathname}${query}`)
+}
+
 async function renderSwitcher(multiCityRoutingEnabled = true) {
+  syncWindowUrl()
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -65,6 +77,7 @@ async function rerenderSwitcher(
   options: ReadonlyArray<(typeof cities)[number]> = cities,
   multiCityRoutingEnabled = true,
 ) {
+  syncWindowUrl()
   await act(async () => {
     root?.render(React.createElement(CitySwitcher, {
       cities: options,
@@ -78,6 +91,7 @@ async function renderShell(
   options: ReadonlyArray<(typeof cities)[number]> = cities,
   multiCityRoutingEnabled = true,
 ) {
+  syncWindowUrl()
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -207,6 +221,8 @@ describe('CitySwitcher', () => {
     })
 
     trackSpy.mockClear()
+    // 上面的桌面端点击会真实导航 URL；移动端半段是独立场景，重置回该用例的前提。
+    syncWindowUrl()
     const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
     if (!toggle) throw new Error('missing mobile menu toggle')
     await click(toggle)
@@ -243,6 +259,8 @@ describe('CitySwitcher', () => {
     })
 
     trackSpy.mockClear()
+    // 上面的桌面端点击会真实导航 URL；移动端半段是独立场景，重置回该用例的前提。
+    syncWindowUrl()
     const toggle = document.querySelector<HTMLButtonElement>('[aria-controls="mobile-drawer"]')
     if (!toggle) throw new Error('missing mobile menu toggle')
     await click(toggle)

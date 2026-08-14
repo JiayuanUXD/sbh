@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
+import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import {
   buildCityPath,
@@ -64,7 +65,7 @@ function serviceStatusLabel(status: PublicCityOption['serviceStatus']): string {
 
 export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnabled }: CitySwitcherProps) {
   const pathname = usePathname() || '/'
-  const searchParams = useSearchParams()
+  const [searchParams, refreshSearchParams] = useClientSearchParams()
   const [open, setOpen] = useState(false)
   const previousSourceUrlRef = useRef<string | null>(null)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -142,6 +143,9 @@ export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnab
         onClick={() => {
           const nextOpen = !open
           if (nextOpen) {
+            // 筛选栏做客户端导航时只改 query 不改 pathname，effect 不会触发；
+            // 展开前显式取最新 query，保证切换链接保留用户当前筛选（设计 §7.2）。
+            refreshSearchParams()
             safeTrackCityEvent(track, 'city_switcher_opened', {
               city: activeCity.slug,
               status: activeCity.serviceStatus,
