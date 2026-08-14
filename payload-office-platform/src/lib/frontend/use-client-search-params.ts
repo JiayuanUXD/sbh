@@ -39,7 +39,19 @@ export function useClientSearchParams(): readonly [URLSearchParams, () => void] 
     setParams((prev) => (prev.toString() === next ? prev : new URLSearchParams(next)))
   }, [])
 
+  // 这里正是该规则文档认可的「从外部系统同步状态到 React」：外部系统是
+  // window.location.search。规则推荐的写法是 useSyncExternalStore，但它在
+  // Next App Router 下不成立——客户端导航走 history.pushState，**不触发
+  // popstate**，store 拿不到通知，query 会读到陈旧值；要补这一点仍得回到
+  // effect，绕一圈回到原点，却要重写一个刚修好、故障形态极隐蔽的文件
+  // （整个页头页脚静默不水合，页面看起来完全正常、控制台无报错）。
+  //
+  // 首次渲染必须返回空参数以与 SSR 输出一致，因此不能在渲染期读 window，
+  // 也不能用惰性 useState 初始化——那会立刻引入水合不匹配。
+  //
+  // 抑制范围只有这一行；结构不变量由 tests/frontend-shell-hydration.test.ts 守护。
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 理由见上方注释块
     refresh()
   }, [pathname, refresh])
 
