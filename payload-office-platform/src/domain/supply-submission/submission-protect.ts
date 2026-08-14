@@ -1,7 +1,7 @@
 /**
  * 投放房源申请保护 hook
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §5.3 / §5.5
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——字段四组分级与外部写入白名单
  *
  * 守护不变量：
  *   - create：强制 status='pending'、handledAt=null，忽略外部传入；

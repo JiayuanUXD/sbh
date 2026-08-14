@@ -1,7 +1,7 @@
 /**
  * 投放房源隐私安全日志
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §5.5
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——D 组溯源合规字段
  *
  * 守护不变量：
  *   - 日志不含手机号（原文或标准化）、楼盘名、详细地址；

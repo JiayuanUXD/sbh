@@ -15,6 +15,11 @@ dist
 .agents/
 skills-lock.json
 
+# Agent 过程产物：计划/设计/任务报告一律不入库，只保留说明文件
+# 仍在生效的规则请提炼进 .agent/、docs/ 或代码注释（判据见 docs/superpowers/README.md）
+docs/superpowers/*
+!docs/superpowers/README.md
+
 # Subagent-driven development scratch
 /.superpowers/
 /.worktrees/

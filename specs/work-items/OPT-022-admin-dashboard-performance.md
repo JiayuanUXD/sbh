@@ -16,7 +16,6 @@
 ## 3. 权威上下文
 
 - 页面 PRD：`docs/prd/后台管理系统_MVP_页面PRD/README.md` 的工作台入口。
-- Design：`docs/superpowers/specs/2026-08-07-admin-dashboard-performance-design.md`。
 - Agent：`payload-office-platform/.agent/core.md`、`backend.md`、`permissions.md`、`testing.md`。
 
 ## 4. 当前行为与证据

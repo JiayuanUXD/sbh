@@ -1,7 +1,7 @@
 /**
  * 投放房源提交 API 路由（/api/supply-submissions）
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §5.5
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——提交链路与 /api/inquiries 同构
  *
  * 守护不变量（与 /api/corrections、/api/inquiries 同构）：
  *   - 仅接受 POST + application/json + 同源请求；

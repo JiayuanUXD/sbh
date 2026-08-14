@@ -1,7 +1,7 @@
 /**
  * 投放房源提交 schema 校验与白名单收窄
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §5.2 / §5.3 / §5.5
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——A 组前台可写字段白名单
  *
  * 守护不变量：
  *   - 输入视为 unknown，白名单收窄后才落库；

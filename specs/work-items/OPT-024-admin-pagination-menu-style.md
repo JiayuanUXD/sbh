@@ -15,8 +15,6 @@
 
 ## 3. 权威上下文
 
-- Design：`docs/superpowers/specs/2026-08-07-admin-pagination-menu-style-fix-design.md`
-- Plan：`docs/superpowers/plans/2026-08-07-admin-pagination-menu-style-fix.md`
 - Agent：`payload-office-platform/.agent/core.md`、`backend.md`、`testing.md`
 
 ## 4. 当前行为与证据

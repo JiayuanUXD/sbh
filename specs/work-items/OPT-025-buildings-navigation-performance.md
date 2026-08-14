@@ -16,8 +16,6 @@
 
 ## 3. 权威上下文
 
-- Design：`docs/superpowers/specs/2026-08-07-buildings-navigation-performance-design.md`
-- Plan：`docs/superpowers/plans/2026-08-07-buildings-navigation-performance.md`
 - Agent：`payload-office-platform/FRONTEND_AGENT.md`、`.agent/frontend.md`、`.agent/supply.md`、`.agent/testing.md`
 
 ## 4. 当前行为与证据

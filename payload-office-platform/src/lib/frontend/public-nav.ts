@@ -1,7 +1,7 @@
 /**
  * C 端公开站导航数据（主导航 + 页脚）
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §2.1
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——删导航入口不动 serviced-office 数据
  *
  * 守护不变量：
  *   - 导航数据只有这一处定义；SiteNav 与 SiteFooter 都从此读取，

@@ -20,8 +20,6 @@
 - Task：`specs/frontend-mvp/task-details/F3-home-list.md`
 - 页面 PRD：`docs/prd/前台网站_MVP_页面PRD/02-房源列表_PRD.md`
 - Design：`specs/frontend-mvp/design.md` §9、§14
-- 本轮设计：`docs/superpowers/specs/2026-08-07-public-site-performance-quick-wins-design.md` §6
-- 实施计划：`docs/superpowers/plans/2026-08-07-opt-026-listings-query-prefetch.md`
 - Agent：`core.md` + `frontend.md` + `supply.md` + `testing.md`
 
 ## 4. 当前行为与证据

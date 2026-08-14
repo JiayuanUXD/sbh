@@ -1,7 +1,7 @@
 /**
  * 投放房源幂等键计算
  *
- * 设计依据：docs/superpowers/specs/2026-08-09-entrust-supply-pages-prd.md §5.5
+ * 设计依据：.agent/supply.md「房源投放申请（SupplySubmissions）」——幂等键构成
  *
  * 守护不变量：
  *   - 幂等键 = sha256(requestId | phoneNormalized | buildingName | address)；
