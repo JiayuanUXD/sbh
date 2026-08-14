@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
-import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
@@ -41,7 +41,9 @@ export default async function CityListingsPage({ params, searchParams }: Props) 
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) notFound()
-  if (city.serviceStatus === 'coming-soon') return <ComingSoonCityView city={city} />
+  if (city.serviceStatus === 'coming-soon') {
+    return <ComingSoonCityView city={city} />
+  }
   const input = parseListingSearchInput(toUrlSearchParams(raw))
   const canonical = buildCanonicalSearchParams(input).toString()
   const [result, districts] = await Promise.all([

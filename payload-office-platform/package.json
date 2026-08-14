@@ -80,5 +80,10 @@
   "engines": {
     "node": "22.x",
     "pnpm": "8.6.1"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "@arco-design/web-react@2.66.16": "patches/@arco-design__web-react@2.66.16.patch"
+    }
   }
 }

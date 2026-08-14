@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import CityHomeView from '@/components/frontend/city/CityHomeView'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
-import { listPublicCityProfiles, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { listPublicCityOptions, listPublicCityProfiles, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
@@ -40,7 +40,9 @@ export default async function CityHomePage({ params }: Readonly<{ params: Promis
   const { city: slug } = await params
   const city = await resolveCityContext(slug)
   if (!city) notFound()
-  if (city.serviceStatus === 'coming-soon') return <ComingSoonCityView city={city} />
+  if (city.serviceStatus === 'coming-soon') {
+    return <ComingSoonCityView city={city} />
+  }
   const homepage = await getCachedHomepage(city.slug)
   return <CityHomeView city={city} homepage={homepage} routeMode="prefixed" />
 }

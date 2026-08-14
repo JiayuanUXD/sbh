@@ -4,10 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@arco-design/web-react@2.66.16':
+    hash: qyqxq6idatwtgyu5dyaegcwfuu
+    path: patches/@arco-design__web-react@2.66.16.patch
+
 dependencies:
   '@arco-design/web-react':
     specifier: ^2.66.16
-    version: 2.66.16(@types/react@19.2.2)(react-dom@19.2.0)(react@19.2.0)
+    version: 2.66.16(patch_hash=qyqxq6idatwtgyu5dyaegcwfuu)(@types/react@19.2.2)(react-dom@19.2.0)(react@19.2.0)
   '@aws-sdk/client-s3':
     specifier: 3.1102.0
     version: 3.1102.0
@@ -130,7 +135,7 @@ packages:
       color: 3.2.1
     dev: false
 
-  /@arco-design/web-react@2.66.16(@types/react@19.2.2)(react-dom@19.2.0)(react@19.2.0):
+  /@arco-design/web-react@2.66.16(patch_hash=qyqxq6idatwtgyu5dyaegcwfuu)(@types/react@19.2.2)(react-dom@19.2.0)(react@19.2.0):
     resolution: {integrity: sha512-Ke6Do2GWPqWfbB7eounEdIjxocCSxxZT/TplQPtEZeeuavFWjdPDNyvHeBX6OGb7ZgZPl7NlcJbrTyTlhl56qQ==}
     peerDependencies:
       react: '>=16'
@@ -155,6 +160,7 @@ packages:
     transitivePeerDependencies:
       - '@types/react'
     dev: false
+    patched: true
 
   /@aws-sdk/checksums@3.1000.26:
     resolution: {integrity: sha512-CGznePoL+1oWCSzqmkvlYMpWQEZohPR3LntjKXXfVH+oh6Kd8d+yHLkjpiAGwPIHAxFe4OAq3aKfRnv/wqWIyA==}

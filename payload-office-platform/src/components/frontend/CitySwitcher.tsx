@@ -140,6 +140,7 @@ export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnab
         aria-controls="city-switcher-menu"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label="切换城市"
         onClick={() => {
           const nextOpen = !open
           if (nextOpen) {
@@ -155,8 +156,23 @@ export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnab
           setOpen(nextOpen)
         }}
       >
-        <span>{activeCity.name}</span>
-        <span className="city-switcher__trigger-label">切换城市</span>
+        <span className="city-switcher__trigger-city">{activeCity.name}</span>
+        <svg
+          className="city-switcher__chevron"
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          aria-hidden="true"
+        >
+          <path
+            d="M2 4l4 4 4-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
       {open ? (
         <div ref={menuRef} id="city-switcher-menu" className="city-switcher__menu" role="menu" aria-label="切换城市">
@@ -185,8 +201,30 @@ export default function CitySwitcher({ cities, defaultCity, multiCityRoutingEnab
                   setOpen(false)
                 }}
               >
-                <span>{city.name}</span>
-                <span className="city-switcher__status">{serviceStatusLabel(city.serviceStatus)}</span>
+                <span className="city-switcher__option-name">
+                  {city.name}
+                  {current ? (
+                    <svg
+                      className="city-switcher__check"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M2 7l3 3 6-6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : null}
+                </span>
+                <span className={`city-switcher__status city-switcher__status--${city.serviceStatus}`}>
+                  {serviceStatusLabel(city.serviceStatus)}
+                </span>
               </Link>
             )
           })}

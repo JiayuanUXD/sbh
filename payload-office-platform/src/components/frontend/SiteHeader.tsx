@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
-import { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
@@ -30,6 +30,13 @@ function HeaderContents({
   return (
     <>
       <Link href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+      {multiCityRoutingEnabled ? (
+        <CitySwitcher
+          cities={cities}
+          defaultCity={defaultCity}
+          multiCityRoutingEnabled={multiCityRoutingEnabled}
+        />
+      ) : null}
       <SiteNav
         cities={cities}
         defaultCity={defaultCity}
@@ -67,7 +74,7 @@ export default function SiteHeader({
   const pathname = usePathname() || '/'
   const [searchParams, refreshSearchParams] = useClientSearchParams()
   const fallbackCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
-  const isTrustedCityHome = fallbackCity !== null && pathname === `/${fallbackCity.slug}`
+  const isTrustedCityHome = fallbackCity !== null && pathname === `/${fallbackCity.slug}` && fallbackCity.serviceStatus !== 'coming-soon'
   const isHome = pathname === '/' || isTrustedCityHome
   const [scrolled, setScrolled] = useState(false)
 

@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>杭州服务筹备中 · 诚招城市合伙人 · 商办租赁</title>
+  <style>
+    :root {
+      --color-ink: #171a1d;
+      --color-ink-2: #3a3f46;
+      --color-muted: #6b7079;
+      --color-paper: #f5f1e8;
+      --color-canvas: #fcfbf8;
+      --color-line: #d5d0c7;
+      --color-line-strong: #b8b1a3;
+      --color-line-subtle: #e8e3da;
+      --color-copper: #a46f3f;
+      --color-copper-hover: #8d5d30;
+      --color-copper-soft: #f4ede3;
+      --color-copper-border: #d4b89b;
+      --color-forest: #1f5a50;
+      --color-forest-soft: #e5ede9;
+      --color-surface-white: #ffffff;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 3px rgba(23, 26, 29, 0.05);
+      --shadow-md: 0 4px 16px rgba(23, 26, 29, 0.07);
+      --shadow-lg: 0 12px 32px rgba(23, 26, 29, 0.1);
+      --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--color-canvas);
+      color: var(--color-ink);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 顶部导航 (正常深色文字，避免透明白字冲突) */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(252, 251, 248, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-line-subtle);
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-ink);
+      text-decoration: none;
+      letter-spacing: -0.3px;
+    }
+
+    .city-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--color-paper);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      color: var(--color-ink-2);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .city-badge:hover {
+      border-color: var(--color-copper);
+      color: var(--color-copper);
+    }
+
+    .city-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-copper);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-link {
+      font-size: 14px;
+      color: var(--color-ink-2);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .nav-link:hover {
+      color: var(--color-copper);
+    }
+
+    .nav-btn {
+      padding: 8px 18px;
+      background: var(--color-copper);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      text-decoration: none;
+    }
+
+    .nav-btn:hover {
+      background: var(--color-copper-hover);
+    }
+
+    /* 主容器 */
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 72px;
+    }
+
+    /* 模块 1: Hero 双栏开城落地区 */
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* Hero 左侧：价值与文案 */
+    .hero-intro {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .eyebrow-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-copper);
+      background: var(--color-copper-soft);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      width: fit-content;
+      border: 1px solid var(--color-copper-border);
+    }
+
+    .hero-title {
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--color-ink);
+      letter-spacing: -0.5px;
+    }
+
+    .hero-title span {
+      color: var(--color-copper);
+    }
+
+    .hero-subtitle {
+      font-size: 16px;
+      color: var(--color-ink-2);
+      line-height: 1.65;
+    }
+
+    /* 赋能卡片列表 */
+    .benefits-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .benefit-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--color-surface-white);
+      border: 1px solid var(--color-line-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .benefit-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--color-copper-border);
+    }
+
+    .benefit-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--color-paper);
+      color: var(--color-copper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .benefit-content h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 4px;
+    }
+
+    .benefit-content p {
+      font-size: 13px;
+      color: var(--color-muted);
+      line-height: 1.5;
+    }
+
+    .tenant-quick-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--color-forest-soft);
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--color-forest);
+      border-left: 3px solid var(--color-forest);
+    }
+
+    .tenant-quick-link {
+      color: var(--color-forest);
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* Hero 右侧：内嵌合伙人申请表单 */
+    .form-card {
+      background: var(--color-surface-white);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    .form-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-line-subtle);
+    }
+
+    .form-step-pill {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-copper);
+      background: var(--color-copper-soft);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .form-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 4px;
+    }
+
+    .form-header p {
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-ink-2);
+      margin-bottom: 6px;
+    }
+
+    .form-label .req {
+      color: #b0443c;
+      margin-left: 2px;
+    }
+
+    .form-control {
+      width: 100%;
+      height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      color: var(--color-ink);
+      background: var(--color-canvas);
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--color-copper);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(164, 111, 63, 0.12);
+    }
+
+    .form-control[disabled] {
+      background: var(--color-paper);
+      color: var(--color-ink-2);
+      cursor: not-allowed;
+      border-color: var(--color-line-strong);
+    }
+
+    .form-consent {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--color-muted);
+      margin: 18px 0 24px;
+      line-height: 1.4;
+    }
+
+    .form-consent input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: var(--color-copper);
+    }
+
+    .form-consent a {
+      color: var(--color-copper);
+      text-decoration: underline;
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 46px;
+      background: var(--color-copper);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: var(--color-copper-hover);
+    }
+
+    .btn-submit:active {
+      transform: scale(0.99);
+    }
+
+    .form-security-note {
+      text-align: center;
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--color-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* 模块 2: 重点规划区域 */
+    .section-block {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-line-subtle);
+      padding-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+    }
+
+    .district-tags-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+
+    .district-card {
+      background: var(--color-surface-white);
+      border: 1px solid var(--color-line-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .district-card:hover {
+      border-color: var(--color-copper);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-2px);
+    }
+
+    .district-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .district-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-ink);
+    }
+
+    .district-status {
+      font-size: 11px;
+      color: var(--color-copper);
+      background: var(--color-copper-soft);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .district-sub {
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+
+    /* 模块 3: 平台实力背书 (数据指标) */
+    .stats-card {
+      background: linear-gradient(135deg, #1f2428 0%, #121417 100%);
+      color: #fff;
+      border-radius: var(--radius-lg);
+      padding: 48px 40px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 2px solid rgba(164, 111, 63, 0.4);
+      padding-left: 20px;
+    }
+
+    .stat-number {
+      font-size: 38px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+      font-family: var(--font-sans);
+    }
+
+    .stat-number span {
+      color: var(--color-copper);
+      font-size: 26px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #a0a6b1;
+    }
+
+    /* 模块 4: 底部双通道转化区 */
+    .dual-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+
+    .action-panel {
+      background: var(--color-surface-white);
+      border: 1px solid var(--color-line);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-panel::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--color-line);
+    }
+
+    .action-panel--tenant::before {
+      background: var(--color-copper);
+    }
+
+    .action-panel--landlord::before {
+      background: var(--color-forest);
+    }
+
+    .action-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      width: fit-content;
+      margin-bottom: 12px;
+    }
+
+    .action-panel--tenant .action-badge {
+      background: var(--color-copper-soft);
+      color: var(--color-copper);
+    }
+
+    .action-panel--landlord .action-badge {
+      background: var(--color-forest-soft);
+      color: var(--color-forest);
+    }
+
+    .action-panel h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-ink);
+      margin-bottom: 8px;
+    }
+
+    .action-panel p {
+      font-size: 14px;
+      color: var(--color-muted);
+      line-height: 1.6;
+    }
+
+    .action-panel-btn {
+      height: 44px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn-tenant {
+      background: var(--color-copper);
+      color: #fff;
+      border: none;
+    }
+
+    .btn-tenant:hover {
+      background: var(--color-copper-hover);
+    }
+
+    .btn-landlord {
+      background: var(--color-paper);
+      color: var(--color-ink);
+      border: 1px solid var(--color-line);
+    }
+
+    .btn-landlord:hover {
+      background: #eae4d7;
+      border-color: var(--color-line-strong);
+    }
+
+    /* 页脚 */
+    .site-footer {
+      background: var(--color-paper);
+      border-top: 1px solid var(--color-line);
+      padding: 48px 24px;
+      margin-top: 40px;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--color-muted);
+    }
+
+    /* 响应式断点 */
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+      }
+      .stats-card {
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        padding: 32px 24px;
+      }
+      .dual-actions-grid {
+        grid-template-columns: 1fr;
+      }
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title {
+        font-size: 28px;
+      }
+      .page-container {
+        padding: 24px 16px 48px;
+        gap: 48px;
+      }
+      .stats-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 模拟交互态 */
+    .stage-two-view, .success-view {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-wrap">
+        <a href="#" class="brand-logo">商办租赁</a>
+        <div class="city-badge" title="点击切换城市">
+          <span class="city-badge-dot"></span>
+          <span>杭州 · 筹备中</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#" class="nav-link">找办公室</a></li>
+        <li><a href="#" class="nav-link">找楼盘</a></li>
+        <li><a href="#" class="nav-link">共享办公</a></li>
+        <li><a href="#" class="nav-link">委托找房</a></li>
+        <li><a href="#" class="nav-link">投放房源</a></li>
+      </ul>
+      <button class="nav-btn" onclick="document.getElementById('partner-name').focus()">加入合伙人</button>
+    </div>
+  </header>
+
+  <main class="page-container">
+
+    <!-- 模块 1: Hero 双栏开城落地页 (左文案赋能，右原地表单) -->
+    <section class="hero-grid">
+      
+      <!-- 左侧：城市开城说明与合伙人价值 -->
+      <div class="hero-intro">
+        <div class="eyebrow-tag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          杭州拓展 · 城市先锋招募
+        </div>
+
+        <h1 class="hero-title">
+          商办租赁即将登陆<span>杭州</span><br>诚邀本地城市合伙人
+        </h1>
+
+        <p class="hero-subtitle">
+          我们正在筹备杭州全域的商业办公选址数字化服务。无论您是资深经纪人、本地商办代理机构，还是园区与楼宇运营方，欢迎加入我们，共同开拓杭州千亿级商办市场。
+        </p>
+
+        <!-- 赋能优势清单 -->
+        <div class="benefits-list">
+          <div class="benefit-card">
+            <div class="benefit-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="benefit-content">
+              <h3>全国跨城企业客源精准导入</h3>
+              <p>承接来自上海及全国总部的外溢选址需求，为杭州合伙人输送高质量企业租客。</p>
+            </div>
+          </div>
+
+          <div class="benefit-card">
+            <div class="benefit-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            </div>
+            <div class="benefit-content">
+              <h3>全流程数字化商办 SaaS 赋能</h3>
+              <p>提供专业楼盘字典、房源可视化营销工具与线索流转系统，提升经纪转化效率。</p>
+            </div>
+          </div>
+
+          <div class="benefit-card">
+            <div class="benefit-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4-4-4 4M12 16V8"/></svg>
+            </div>
+            <div class="benefit-content">
+              <h3>高佣金分成与区域独占支持</h3>
+              <p>开放的利润分成机制与核心商圈独家/优先合作席位，保障合伙人长期收益。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 租客快速提示条 -->
+        <div class="tenant-quick-note">
+          <span>🏢 您是急需在杭州寻租办公室的企业？</span>
+          <span class="tenant-quick-link" onclick="alert('即将打开杭州急寻选址弹窗，专属顾问将在开城前一对一提供楼盘清单！')">登记找房需求 ›</span>
+        </div>
+      </div>
+
+      <!-- 右侧：内嵌合伙人申请表单 -->
+      <div class="form-card">
+        
+        <!-- 表单第一步 -->
+        <div id="stage-one-box">
+          <div class="form-header">
+            <span class="form-step-pill">第一步 · 必填</span>
+            <h2>合伙人申请意向</h2>
+            <p>留下基本信息，平台拓展总监将在 1 个工作日内与您接洽。</p>
+          </div>
+
+          <form id="partner-demo-form" onsubmit="handleStageOneSubmit(event)">
+            <div class="form-group">
+              <label class="form-label">申请城市 <span class="req">*</span></label>
+              <select class="form-control" disabled>
+                <option value="hangzhou" selected>杭州市（筹备开城中）</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">您的姓名 <span class="req">*</span></label>
+              <input type="text" id="partner-name" class="form-control" placeholder="如：李经理" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">手机号码 <span class="req">*</span></label>
+              <input type="tel" id="partner-phone" class="form-control" placeholder="请输入 11 位有效手机号" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">合作身份类型 <span class="req">*</span></label>
+              <select class="form-control" required>
+                <option value="" disabled selected>请选择您的当前身份</option>
+                <option value="broker">商办经纪人 / 中介团队</option>
+                <option value="agency">商办代理机构 / 经纪公司</option>
+                <option value="landlord">楼宇业主 / 二房东运营方</option>
+                <option value="space">联合办公 / 众创空间品牌</option>
+                <option value="individual">独立商务顾问 / 资源方</option>
+              </select>
+            </div>
+
+            <div class="form-consent">
+              <input type="checkbox" id="consent-check" checked required>
+              <label for="consent-check">我已阅读并同意 <a href="#">隐私政策</a>，授权工作人员在商业合作范围内联系我。</label>
+            </div>
+
+            <button type="submit" class="btn-submit">
+              <span>立即提交合伙意向</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+
+            <div class="form-security-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              信息全程加密传输 · 严格保障商业隐私
+            </div>
+          </form>
+        </div>
+
+        <!-- 表单提交成功态模拟 -->
+        <div id="success-box" class="success-view" style="text-align: center; padding: 24px 0;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--color-forest-soft); color: var(--color-forest); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">意向申请已成功提交！</h3>
+          <p style="font-size: 14px; color: var(--color-muted); line-height: 1.6; margin-bottom: 20px;">
+            感谢您关注商办租赁杭州站拓展计划。<br>城市拓展负责人将在 24 小时内致电与您详谈合作方案。
+          </p>
+          <button class="action-panel-btn btn-landlord" style="width: 100%;" onclick="resetDemoForm()">返回重新填写</button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 模块 2: 杭州重点规划区域 -->
+    <section class="section-block">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">杭州重点服务商圈布局</h2>
+          <p class="section-desc">即将覆盖杭州 6 大核心商务区与高新产业高地</p>
+        </div>
+      </div>
+
+      <div class="district-tags-grid">
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">钱江新城 CBD</span>
+            <span class="district-status">首批上线</span>
+          </div>
+          <span class="district-sub">上城区 · 金融总部核心区</span>
+        </div>
+
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">未来科技城</span>
+            <span class="district-status">首批上线</span>
+          </div>
+          <span class="district-sub">余杭区 · 数字经济高地</span>
+        </div>
+
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">滨江物联网小镇</span>
+            <span class="district-status">首批上线</span>
+          </div>
+          <span class="district-sub">滨江区 · 科技研发产业聚集</span>
+        </div>
+
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">武林 / 黄龙商圈</span>
+            <span class="district-status">筹备中</span>
+          </div>
+          <span class="district-sub">拱墅区/西湖区 · 传统中心 CBD</span>
+        </div>
+
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">奥体博览城 / 钱江世纪城</span>
+            <span class="district-status">筹备中</span>
+          </div>
+          <span class="district-sub">萧山区 · 亚运新兴总部区</span>
+        </div>
+
+        <div class="district-card">
+          <div class="district-card-header">
+            <span class="district-name">城东新城 / 彭埠</span>
+            <span class="district-status">筹备中</span>
+          </div>
+          <span class="district-sub">上城区 · 高铁枢纽商务区</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 3: 平台实力背书 -->
+    <section class="stats-card">
+      <div class="stat-item">
+        <div class="stat-number">30,000<span>+</span></div>
+        <div class="stat-label">已服务成长型及跨城企业</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">1,500<span>+</span></div>
+        <div class="stat-label">深度合作标杆甲级写字楼</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">98.5<span>%</span></div>
+        <div class="stat-label">客户选址全流程满意度</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">12<span>城</span></div>
+        <div class="stat-label">全国直营与合作布局网络</div>
+      </div>
+    </section>
+
+    <!-- 模块 4: 底部双通道转化区 (租客 / 业主分流) -->
+    <section class="dual-actions-grid">
+      
+      <div class="action-panel action-panel--tenant">
+        <div>
+          <span class="action-badge">企业找房先锋</span>
+          <h3>在杭州寻找优质办公室？</h3>
+          <p>
+            虽然杭州站仍在筹备阶段，但我们的资深商办顾问已建立本地优质楼盘库。提交选址预算与面积需求，开城第一时间获取专属免佣方案。
+          </p>
+        </div>
+        <button class="action-panel-btn btn-tenant" onclick="alert('打开企业杭州选址预约窗口！')">
+          <span>预约杭州专属选址方案</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <div class="action-panel action-panel--landlord">
+        <div>
+          <span class="action-badge">杭州业主 / 空间方</span>
+          <h3>手里有杭州空置房源需要出租？</h3>
+          <p>
+            商办租赁平台提前开放杭州房源入库通道。优先入驻的楼宇、精装办公室与工位将获得首页头条曝光及长三角外溢企业精准推荐。
+          </p>
+        </div>
+        <button class="action-panel-btn btn-landlord" onclick="alert('跳转至杭州房源先锋入库表单！')">
+          <span>抢先登记合作房源</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <span>© 2026 商办租赁平台</span>
+        <span style="margin-left: 16px;">杭州 · 商务办公拓展服务中心</span>
+      </div>
+      <div>
+        <a href="#" style="color: inherit; text-decoration: none; margin-left: 20px;">关于平台</a>
+        <a href="#" style="color: inherit; text-decoration: none; margin-left: 20px;">隐私政策</a>
+        <a href="#" style="color: inherit; text-decoration: none; margin-left: 20px;">联系我们</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function handleStageOneSubmit(event) {
+      event.preventDefault();
+      document.getElementById('stage-one-box').style.display = 'none';
+      document.getElementById('success-box').style.display = 'block';
+    }
+
+    function resetDemoForm() {
+      document.getElementById('partner-demo-form').reset();
+      document.getElementById('stage-one-box').style.display = 'block';
+      document.getElementById('success-box').style.display = 'none';
+    }
+  </script>
+</body>
+</html>

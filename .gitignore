@@ -19,3 +19,5 @@ skills-lock.json
 /.superpowers/
 /.worktrees/
 .gstack/
+.tmp/
+.workbuddy/

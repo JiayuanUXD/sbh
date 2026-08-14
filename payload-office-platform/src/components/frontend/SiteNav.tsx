@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
-import React, { Suspense, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import {
   createBrowserFocusEnvironment,
@@ -11,7 +11,7 @@ import {
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
-import CitySwitcher, {
+import {
   cityAwareHref,
   citySwitchHref,
   filterPublicCityOptions,
@@ -199,15 +199,6 @@ export default function SiteNav({
           避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
           包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
       <div className="site-header__actions">
-        {multiCityRoutingEnabled ? (
-          <Suspense fallback={currentCity ? (
-            <span className="city-switcher__trigger" aria-label={`当前城市：${currentCity.name}`}>
-              <span>{currentCity.name}</span>
-            </span>
-          ) : null}>
-            <CitySwitcher cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled />
-          </Suspense>
-        ) : null}
         {ctaPageType === 'entrust' ? (
           <button
             type="button"

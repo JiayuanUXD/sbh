@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
-import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildings } from '@/lib/frontend/cached-queries'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
@@ -30,7 +30,9 @@ export default async function CityBuildingsPage({ params, searchParams }: Props)
   const { city: slug } = await params
   const city = await resolveCityContext(slug)
   if (!city) notFound()
-  if (city.serviceStatus === 'coming-soon') return <ComingSoonCityView city={city} />
+  if (city.serviceStatus === 'coming-soon') {
+    return <ComingSoonCityView city={city} />
+  }
   const result = await getCachedSearchBuildings(city.slug)
   return <CityBuildingsView city={city} result={result} searchParams={await searchParams} basePath={`/${city.slug}/buildings`} routeMode="prefixed" />
 }
