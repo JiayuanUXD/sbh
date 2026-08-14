@@ -84,12 +84,15 @@ export default function SiteNav({
   multiCityRoutingEnabled,
   pathname,
   searchParams,
+  onRefreshSearchParams,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
   pathname: string
   searchParams: Pick<ReadonlyURLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
+  /** 展开抽屉前取最新 query，保证城市切换链接保留当前筛选（设计 §7.2）。 */
+  onRefreshSearchParams?: () => void
 }>) {
   const [open, setOpen] = useState(false)
   const toggleRef = useRef<HTMLButtonElement | null>(null)
@@ -238,6 +241,7 @@ export default function SiteNav({
           aria-controls="mobile-drawer"
           onClick={() => {
             const nextOpen = isDesktopNavigationViewport() ? false : !open
+            if (nextOpen) onRefreshSearchParams?.()
             if (nextOpen && multiCityRoutingEnabled && currentCity) {
               safeTrackCityEvent(track, 'city_switcher_opened', {
                 city: currentCity.slug,

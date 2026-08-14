@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import React, { Suspense, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import SiteNav from '@/components/frontend/SiteNav'
 import { resolveTrustedCity } from '@/components/frontend/CitySwitcher'
+import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
 type HeaderShellProps = Readonly<{
@@ -20,8 +21,10 @@ function HeaderContents({
   multiCityRoutingEnabled,
   pathname,
   searchParams,
+  onRefreshSearchParams,
 }: HeaderShellProps & Readonly<{
   searchParams: Pick<URLSearchParams, 'get' | 'getAll' | 'has' | 'size' | 'toString'>
+  onRefreshSearchParams?: () => void
 }>) {
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   return (
@@ -33,14 +36,10 @@ function HeaderContents({
         multiCityRoutingEnabled={multiCityRoutingEnabled}
         pathname={pathname}
         searchParams={searchParams}
+        onRefreshSearchParams={onRefreshSearchParams}
       />
     </>
   )
-}
-
-function QueryAwareHeaderContents(props: HeaderShellProps) {
-  const searchParams = useSearchParams()
-  return <HeaderContents {...props} searchParams={searchParams} />
 }
 
 /**
@@ -50,6 +49,8 @@ function QueryAwareHeaderContents(props: HeaderShellProps) {
  * 与 scroll 监听切透明/实底；logo / SiteNav / InquiryModal 全部收敛到此处。
  *
  * 守护不变量：
+ *   - 外壳不得引入流式 Suspense 边界，query 一律经 useClientSearchParams
+ *     在挂载后读取（原因见该 hook 的注释）；
  *   - 仅首页（pathname === '/'）且未滚动时透明；非首页始终实底，不受污染；
  *   - 滚动阈值 40px（约导航高度），过阈即切回实底；
  *   - skip link 仍由 layout 渲染，焦点顺序不变。
@@ -64,8 +65,8 @@ export default function SiteHeader({
   multiCityRoutingEnabled: boolean
 }>) {
   const pathname = usePathname() || '/'
-  const fallbackSearchParams = new URLSearchParams()
-  const fallbackCity = resolveTrustedCity(pathname, cities, defaultCity, fallbackSearchParams)
+  const [searchParams, refreshSearchParams] = useClientSearchParams()
+  const fallbackCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const isTrustedCityHome = fallbackCity !== null && pathname === `/${fallbackCity.slug}`
   const isHome = pathname === '/' || isTrustedCityHome
   const [scrolled, setScrolled] = useState(false)
@@ -88,9 +89,14 @@ export default function SiteHeader({
   return (
     <header className={className}>
       <div className="site-header__inner">
-        <Suspense fallback={<HeaderContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} searchParams={fallbackSearchParams} />}>
-          <QueryAwareHeaderContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} />
-        </Suspense>
+        <HeaderContents
+          cities={cities}
+          defaultCity={defaultCity}
+          multiCityRoutingEnabled={multiCityRoutingEnabled}
+          pathname={pathname}
+          searchParams={searchParams}
+          onRefreshSearchParams={refreshSearchParams}
+        />
       </div>
     </header>
   )

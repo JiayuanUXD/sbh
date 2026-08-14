@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import React, { Suspense } from 'react'
+import { usePathname } from 'next/navigation'
+import React from 'react'
+import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
@@ -63,17 +64,14 @@ function FooterContents({
   )
 }
 
-function QueryAwareFooterContents(props: FooterShellProps) {
-  const searchParams = useSearchParams()
-  return <FooterContents {...props} searchParams={searchParams} />
-}
-
 /**
  * 公开站点页脚
  *
  * 设计依据：plans/temporal-imagining-sonnet.md §9（编辑式页脚）
  * 守护不变量：
- *   - SSR fallback 始终输出完整确定性链接；query 城市只在内部边界增强；
+ *   - 外壳不得引入流式 Suspense 边界，query 一律经 useClientSearchParams
+ *     在挂载后读取（原因见该 hook 的注释）；
+ *   - SSR 输出始终是完整确定性链接；query 城市在挂载后增强；
  *   - 延续 paper 底 + ink 文字的既有品牌基调，不引入新色值；
  *   - 链接对齐既有路由（/news 由 T6 落地，此前为预留入口）；
  *   - 语义化 <footer> 内分栏，移动端折叠为单列。
@@ -88,10 +86,14 @@ export default function SiteFooter({
   multiCityRoutingEnabled: boolean
 }>) {
   const pathname = usePathname() || '/'
-  const fallbackSearchParams = new URLSearchParams()
+  const [searchParams] = useClientSearchParams()
   return (
-    <Suspense fallback={<FooterContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} searchParams={fallbackSearchParams} />}>
-      <QueryAwareFooterContents cities={cities} defaultCity={defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} pathname={pathname} />
-    </Suspense>
+    <FooterContents
+      cities={cities}
+      defaultCity={defaultCity}
+      multiCityRoutingEnabled={multiCityRoutingEnabled}
+      pathname={pathname}
+      searchParams={searchParams}
+    />
   )
 }
