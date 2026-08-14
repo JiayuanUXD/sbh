@@ -359,8 +359,8 @@ jobs:
             echo "::notice::不阻断发布；是否真正上线由 promote 之后的版本校验判定"
           fi
           echo "命中灰度版本 $canary_ok/50 次"
-          # 首页可达（SSR 不崩）
-          home=$(curl -s -o /dev/null -w "%{http_code}" "$URL/")
+          # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）
+          home=$(curl -sSL -o /dev/null -w "%{http_code}" "$URL/")
           echo "GET / -> HTTP $home"
           if [ "$home" != "200" ]; then fail=1; fi
           if [ "$fail" = "1" ]; then
@@ -410,8 +410,8 @@ jobs:
           fi
           echo "✅ 全量流量已是本次版本 $expected"
 
-          for path in / /admin; do
-            code=$(curl -sS --max-time 15 -o /dev/null -w "%{http_code}" "$URL$path")
+          for path in / /shanghai /admin; do
+            code=$(curl -sSL --max-time 15 -o /dev/null -w "%{http_code}" "$URL$path")
             echo "GET $path -> HTTP $code"
             test "$code" = "200"
           done
