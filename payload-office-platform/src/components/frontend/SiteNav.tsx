@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import {
   createBrowserFocusEnvironment,
@@ -270,10 +271,11 @@ export default function SiteNav({
       </div>
 
       {/* 移动端抽屉 */}
-      {open && (
-        <div
-          className="mobile-drawer__overlay"
-          onClick={() => {
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="mobile-drawer__overlay"
+              onClick={() => {
             setOpen(false)
             toggleRef.current?.focus()
           }}
@@ -344,8 +346,9 @@ export default function SiteNav({
               </div>
             ) : null}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </>
   )
 }

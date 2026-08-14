@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type {
   InquiryCurrentFilters,
   InquiryPriceSnapshot,
@@ -603,11 +604,12 @@ export default function InquiryModal(props: Props) {
         {triggerLabel}
       </button>
 
-      {open && (
-        <div
-          className="modal__overlay"
-          onClick={closeModal}
-        >
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="modal__overlay"
+              onClick={closeModal}
+            >
           <div
             ref={dialogRef}
             id={modalId}
@@ -840,8 +842,9 @@ export default function InquiryModal(props: Props) {
               </form>
             )}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </>
   )
 }

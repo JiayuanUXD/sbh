@@ -2827,6 +2827,7 @@ ol {
   position: relative;
   box-shadow: var(--shadow-lg);
   max-height: 92vh;
+  max-height: 92dvh;
   overflow-y: auto;
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * 可访问弹层原语
@@ -105,9 +106,9 @@ export function Modal({
     triggerRef?.current?.focus()
   }, [open, triggerRef])
 
-  if (!open) return null
+  if (!open || typeof document === 'undefined') return null
 
-  return (
+  return createPortal(
     <div
       className="modal__overlay"
       onClick={onClose}
@@ -134,6 +135,7 @@ export function Modal({
         {subtitle && <p className="modal__subtitle">{subtitle}</p>}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

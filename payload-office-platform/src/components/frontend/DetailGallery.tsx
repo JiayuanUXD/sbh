@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
@@ -336,9 +337,10 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
         </div>
       )}
 
-      {isOpen && activeMedia && (
-        <div
-          ref={dialogRef}
+      {isOpen && activeMedia && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={dialogRef}
           className="detail-gallery__dialog"
           role="dialog"
           aria-modal="true"
@@ -364,8 +366,9 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
             <p className="detail-gallery__dialog-caption">{activeMedia.alt}</p>
             <p className="detail-gallery__counter" role="status" aria-live="polite">第 {safeActiveIndex + 1} 个，共 {currentList.length} 个 · {activeMedia.item.category}</p>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </section>
   )
 }

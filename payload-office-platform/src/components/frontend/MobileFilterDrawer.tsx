@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { estimateListingCount } from '@/app/(frontend)/listings/actions'
 
@@ -291,9 +292,10 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
         筛选
       </button>
 
-      {open && (
-        <div
-          ref={dialogRef}
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={dialogRef}
           className="filter-drawer"
           role="dialog"
           aria-modal="true"
@@ -463,8 +465,9 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </div>,
+        document.body,
+      ) : null}
     </>
   )
 }
