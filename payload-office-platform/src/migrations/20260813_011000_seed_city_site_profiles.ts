@@ -189,10 +189,34 @@ function profileMatchesSeed(
 }
 
 /**
+ * 空库探针：整库一条 city 记录都没有，说明这是全新环境（CI / 新开发库 / 灾难恢复），
+ * 迁移链此时先于 seed 脚本运行，本就没有任何可挂载的城市。
+ *
+ * 必须与「库里有城市、但别名对不上或命中多条」区分开：后者是真实歧义，
+ * 继续 fail closed 抛错（见下方 activeCities 守卫），绝不静默跳过。
+ */
+async function hasAnyCityRow(db: SeedDb): Promise<boolean> {
+  const result = await db.execute(sql`
+      SELECT 1 AS "city_present"
+      FROM "locations"
+      WHERE "type" = 'city'
+      LIMIT 1;
+  `)
+  return result.rows.length > 0
+}
+
+/**
  * Payload invokes each migration inside a PostgreSQL transaction. Each city is resolved
  * by immutable code, then either inserted once or checked byte-for-byte before being skipped.
  */
 async function applyCitySiteProfileSeed(db: SeedDb): Promise<void> {
+  if (!(await hasAnyCityRow(db))) {
+    console.warn(
+      '[city_site_profile_seed] locations 表中没有任何 city 记录，判定为全新环境，跳过站点档案播种；城市数据由 seed 脚本在迁移之后写入。',
+    )
+    return
+  }
+
   for (const seed of CITY_SITE_PROFILE_SEEDS) {
     const cityCodePredicates = seed.cityCodes.map(
       (cityCode) => sql`"immutable_code" = ${cityCode}`,

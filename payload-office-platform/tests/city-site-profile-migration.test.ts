@@ -138,6 +138,15 @@ describe('city site profile migrations', () => {
     },
   )
 
+  it('skips seeding on a brand-new database that has no city rows at all', async () => {
+    // 迁移链必须能打到全新空库（CI / 新开发库 / 灾难恢复）。此时城市尚未由 seed 脚本写入，
+    // 没有任何可挂载对象，跳过播种；这与「有城市但对不上」是两回事，后者仍须 fail closed。
+    const db = createSeedDb({ mode: 'empty-database' })
+
+    await expect(seedCitySiteProfiles({ db })).resolves.toBeUndefined()
+    expect(db.insertCount).toBe(0)
+  })
+
   it.each(['zero-city-match', 'multiple-city-match'] as const)(
     'aborts when immutable aliases have %s',
     async (mode) => {
@@ -175,6 +184,7 @@ type SeedDbMode =
   | 'active-shanghai-with-disabled-alias'
   | 'invalid-city-display-name'
   | 'matching'
+  | 'empty-database'
   | 'missing'
   | 'multiple-city-match'
   | 'optional-mismatch'
@@ -223,6 +233,11 @@ function createSeedDb({
     async execute(query: Parameters<PgDialect['sqlToQuery']>[0]) {
       const compiled = dialect.sqlToQuery(query)
       if (compiled.sql.includes('FROM "locations"')) {
+        // 空库探针：整库有没有 city 记录。empty-database 模拟全新环境（迁移先于 seed 跑）。
+        if (compiled.sql.includes('"city_present"')) {
+          return { rows: mode === 'empty-database' ? [] : [{ city_present: 1 }] }
+        }
+        // zero-city-match：库里有城市，但别名一条都对不上 —— 真实歧义，必须继续抛错。
         if (mode === 'zero-city-match') return { rows: [] }
         const expected = INSERT_EXPECTATIONS[cityLookupCount]
         const expectedCity = CITY_LOOKUP_EXPECTATIONS[cityLookupCount]
