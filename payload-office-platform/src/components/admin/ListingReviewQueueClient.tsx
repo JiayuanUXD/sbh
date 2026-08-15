@@ -68,8 +68,9 @@ interface Props {
 /** 房源类型中文标签（与 Listings collection options 一致）。 */
 const LISTING_TYPE_LABELS: Record<string, string> = {
   'traditional-office': '传统办公室',
-  'serviced-office': '服务式办公室',
   coworking: '共享办公',
+  'full-floor': '整层办公',
+  'serviced-office': '独栋办公',
 }
 
 /** 审核动作中文标签（与 review-status.ts 一致，客户端内联避免引入 node:crypto）。 */

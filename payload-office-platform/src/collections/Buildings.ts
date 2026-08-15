@@ -1,4 +1,4 @@
-import type { CollectionConfig, Field } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
 import { DETAIL_MEDIA_KINDS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
@@ -21,6 +21,38 @@ import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-d
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
 
 const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
+
+type MediaItemInput = { kind?: unknown; resource?: unknown }
+
+const toMediaId = (resource: unknown): number | string | null => {
+  if (resource === null || resource === undefined) return null
+  if (typeof resource === 'object') {
+    const id = (resource as { id?: unknown }).id
+    return typeof id === 'number' || typeof id === 'string' ? id : null
+  }
+  return typeof resource === 'number' || typeof resource === 'string' ? resource : null
+}
+
+const syncBuildingMedia: CollectionBeforeChangeHook = async ({ data, originalDoc }) => {
+  if (Array.isArray(data?.mediaItems)) {
+    // 1. 同步 gallery 数组（向后兼容）
+    const imageIds = (data.mediaItems as MediaItemInput[])
+      .filter((m) => m && m.kind === 'image' && m.resource)
+      .map((m) => toMediaId(m.resource))
+      .filter((id): id is number | string => id !== null)
+
+    data.gallery = imageIds.map((image) => ({ image }))
+
+    // 2. 仅在文档此前也没有封面时才自动取第一张图片。
+    //    coverImage 字段是 admin.hidden，不随表单提交，data.coverImage 恒为 undefined；
+    //    必须回退看 originalDoc，否则每次保存都会把运营手动选定的封面重置为第一张。
+    const existingCover = data.coverImage ?? originalDoc?.coverImage
+    if (!existingCover && imageIds.length > 0) {
+      data.coverImage = imageIds[0]
+    }
+  }
+  return data
+}
 
 export const Buildings: CollectionConfig = {
   slug: 'buildings',
@@ -62,7 +94,9 @@ export const Buildings: CollectionConfig = {
   },
   hooks: {
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
-    beforeChange: [protectBuilding],
+    // syncBuildingMedia 必须排在 protectBuilding 之前：gallery 由 mediaItems 派生，
+    // 只有先派生再校验，protectBuilding 的 BUILDING_GALLERY_MAX 兜底才拦得住 API 直传。
+    beforeChange: [syncBuildingMedia, protectBuilding],
     // 字段脱敏（tasks.md M1.4）：缺 building:coordinate 权限 → 坐标清空
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
   },
@@ -361,15 +395,18 @@ export const Buildings: CollectionConfig = {
               label: '封面图',
               type: 'upload',
               relationTo: 'media',
+              admin: {
+                hidden: true,
+              },
             },
             {
               name: 'gallery',
               label: '空间图集',
               type: 'array',
-              // M3.1：图集上限 20 张；array 顺序即展示顺序（后台可拖拽排序）。
-              // protect hook 二次兜底上限（防 API 直传绕过 UI 限制）。
               maxRows: BUILDING_GALLERY_MAX,
-              admin: { description: `最多 ${BUILDING_GALLERY_MAX} 张，可拖拽调整顺序` },
+              admin: {
+                hidden: true,
+              },
               fields: [
                 {
                   name: 'image',
@@ -380,17 +417,15 @@ export const Buildings: CollectionConfig = {
               ],
             },
             {
-              name: 'amenities',
-              label: '楼宇配套',
-              type: 'relationship',
-              relationTo: 'amenities',
-              hasMany: true,
-            },
-            {
               name: 'mediaItems',
-              label: '详情页媒体',
+              label: '楼盘媒体资源',
               type: 'array',
               maxRows: 40,
+              admin: {
+                components: {
+                  Field: '/components/admin/BuildingMediaManager',
+                },
+              },
               fields: [
                 { name: 'resource', label: '资源', type: 'upload', relationTo: 'media', required: true },
                 {
@@ -411,6 +446,18 @@ export const Buildings: CollectionConfig = {
                 { name: 'capturedAt', label: '拍摄时间', type: 'date' },
                 { name: 'isSchematic', label: '示意图', type: 'checkbox', defaultValue: false },
               ],
+            },
+            {
+              name: 'amenities',
+              label: '楼宇配套',
+              type: 'relationship',
+              relationTo: 'amenities',
+              hasMany: true,
+              admin: {
+                components: {
+                  Field: '/components/admin/AmenitiesChipSelector',
+                },
+              },
             },
           ],
         },

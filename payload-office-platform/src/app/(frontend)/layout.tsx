@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     default: '商办租赁 · 上海中高端办公租赁平台',
     template: '%s · 商办租赁',
   },
-  description: '上海甲级写字楼、服务式办公室、共享办公与整层办公租赁平台。',
+  description: '上海甲级写字楼、独栋办公、共享办公与整层办公租赁平台。',
   applicationName: '商办租赁',
   authors: [{ name: '商办租赁平台' }],
   alternates: {

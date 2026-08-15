@@ -556,6 +556,12 @@ ol {
   flex-shrink: 0;
 }
 
+@media (min-width: 1280px) {
+  .site-header__actions {
+    margin-left: var(--sp-6);
+  }
+}
+
 /* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
 .site-header__actions .btn--sm {
   white-space: nowrap;

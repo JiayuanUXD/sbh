@@ -1954,6 +1954,88 @@ html[data-theme='dark'] {
     background-color: var(--theme-text, #86909c);
   }
 
+  // Arco Radio Button Group 深色适配（单选标签组）
+  .arco-radio-group-button {
+    background-color: var(--theme-elevation-100, #26262a) !important;
+    border: 1px solid var(--theme-elevation-150, #3a3a3e) !important;
+    padding: 2px !important;
+    border-radius: 6px !important;
+
+    .arco-radio-button {
+      background-color: transparent !important;
+      color: var(--theme-text-muted, #86909c) !important;
+      border: none !important;
+      border-radius: 4px !important;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: var(--theme-text, #f2f3f5) !important;
+        background-color: var(--theme-elevation-150, #333338) !important;
+      }
+
+      &.arco-radio-checked {
+        background-color: var(--theme-elevation-200, #404046) !important;
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      &.arco-radio-disabled {
+        color: var(--theme-elevation-400, #5c5c60) !important;
+        background-color: transparent !important;
+      }
+    }
+  }
+
+  // Arco Select 下拉选框深色适配
+  .arco-select-view,
+  .arco-select-view-single,
+  .arco-select .arco-select-view {
+    background-color: var(--theme-elevation-100, #26262a) !important;
+    border: 1px solid var(--theme-elevation-150, #3a3a3e) !important;
+    color: var(--theme-text, #f2f3f5) !important;
+
+    .arco-select-view-value,
+    .arco-select-view-input,
+    .arco-select-view-placeholder {
+      color: var(--theme-text, #f2f3f5) !important;
+    }
+
+    .arco-select-view-suffix {
+      color: var(--theme-text-muted, #86909c) !important;
+    }
+
+    &:hover,
+    &.arco-select-view-focus {
+      border-color: var(--theme-primary-500, #4080ff) !important;
+      background-color: var(--theme-elevation-150, #303036) !important;
+    }
+  }
+
+  // Arco Select / Dropdown Popup 浮层深色适配
+  .arco-select-popup,
+  .arco-trigger-popup {
+    background-color: var(--theme-elevation-50, #1e1e22) !important;
+    border: 1px solid var(--theme-elevation-150, #3a3a3e) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+
+    .arco-select-option {
+      color: var(--theme-text, #f2f3f5) !important;
+      background-color: transparent !important;
+
+      &:hover,
+      &.arco-select-option-hover {
+        background-color: var(--theme-elevation-100, #2b2b30) !important;
+      }
+
+      &.arco-select-option-selected {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        background-color: var(--theme-primary-500, #165dff) !important;
+      }
+    }
+  }
+
   // ─── Payload 原生组件深色适配 ───
   // Payload 3.x 使用 react-select（rs__ 前缀）、自定义关系字段、Checkbox 等，
   // 部分控件未通过 --theme-* 变量响应深色模式，此处手动覆盖。
@@ -2127,3 +2209,35 @@ html[data-theme='dark'] {
     }
   }
 }
+
+// ─── 楼盘媒体工作台 - 移动端 App 图标级流体网格拖拽系统 ───
+.media-card-spring-wrapper {
+  position: relative;
+  user-select: none;
+  touch-action: none;
+  will-change: transform;
+
+  &:hover:not(.is-active-dragging):not(.is-settling) {
+    .media-card-inner-box {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+      border-color: var(--theme-elevation-300, #c9cdd4);
+    }
+  }
+
+  &.is-active-dragging {
+    z-index: 99 !important;
+    cursor: grabbing !important;
+
+    .media-card-inner-box {
+      border: 2px solid var(--theme-primary-500, #165dff) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22), 0 0 0 2px rgba(22, 93, 255, 0.3) !important;
+    }
+  }
+}
+
+.media-card-inner-box {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+

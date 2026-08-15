@@ -79,9 +79,11 @@ export const Listings: CollectionConfig = {
                   defaultValue: 'traditional-office',
                   options: [
                     { label: '传统办公室', value: 'traditional-office' },
-                    { label: '服务式办公室', value: 'serviced-office' },
                     { label: '共享办公', value: 'coworking' },
                     { label: '整层办公', value: 'full-floor' },
+                    // 该枚举值当初保留是为「只删导航入口、不动数据」，不可改标签作它用：
+                    // 改标签会把存量「服务式办公室」房源静默重标注为另一种业态。
+                    { label: '服务式办公室', value: 'serviced-office' },
                   ],
                 },
                 {

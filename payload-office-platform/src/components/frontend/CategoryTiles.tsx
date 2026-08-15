@@ -23,9 +23,9 @@ type CategoryTile = Readonly<{
 
 const TILES: readonly CategoryTile[] = [
   { no: '01', label: '传统办公', sublabel: '独立空间 · 灵活面积', href: '/listings?type=traditional-office', event: 'home_cat_traditional' },
-  { no: '02', label: '服务式办公', sublabel: '全配齐 · 即租即用', href: '/listings?type=serviced-office', event: 'home_cat_serviced' },
-  { no: '03', label: '联合办公', sublabel: '工位起 · 共享配套', href: '/listings?type=coworking', event: 'home_cat_coworking' },
-  { no: '04', label: '整层办公', sublabel: '整层起租 · 定制形象', href: '/listings?type=full-floor', event: 'home_cat_full_floor' },
+  { no: '02', label: '联合办公', sublabel: '工位起 · 共享配套', href: '/listings?type=coworking', event: 'home_cat_coworking' },
+  { no: '03', label: '整层办公', sublabel: '整层起租 · 定制形象', href: '/listings?type=full-floor', event: 'home_cat_full_floor' },
+  { no: '04', label: '独栋办公', sublabel: '企业独栋 · 专属形象', href: '/listings?type=serviced-office', event: 'home_cat_standalone' },
   { no: '05', label: '创意园区', sublabel: '园区生态 · 低密度', href: '/buildings', event: 'home_cat_creative_park' },
 ]
 

@@ -23,9 +23,9 @@ type Props = {
 
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'traditional-office', label: '传统办公' },
-  { value: 'serviced-office', label: '服务式办公' },
   { value: 'coworking', label: '共享办公' },
   { value: 'full-floor', label: '整层办公' },
+  { value: 'serviced-office', label: '独栋办公' },
 ]
 
 const RENT_UNIT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [

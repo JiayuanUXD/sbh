@@ -71,8 +71,14 @@ C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不�
 
 `(frontend)/styles.css` 是奶油+金色设计系统，CSS 变量：`--ink --muted --line --paper --cream --gold --deep --green`。C 端组件复用这些变量与现有 class，**不引新 UI 库**（后台的 Arco 不外溢到 C 端）。
 
-## 测试
+## 测试与验收铁律（血泪教训，必须严格执行）
 
-- 纯逻辑（`filters`/`format`/`validation`）用 Vitest，严格 TDD（先写失败测试→跑红→实现→跑绿→提交）。
-- 页面/路由用 `pnpm build`（类型检查）+ `curl` 烟测。端到端用 Playwright（见 `tests/e2e/`）。
-- 完成判据与浏览器验收清单见 `.agent/testing.md`。
+- **纯逻辑严格 TDD**（`filters`/`format`/`validation`）：Vitest 先红后绿。
+- **UI 与深色模式：严禁全局盲视**：必须在 Playwright 中截取全屏像素图；严禁仅看“大背景是否变黑”，必须逐个对账微观控件（Select/Radio/Tab/Popup/Modal），严禁在 Dark Mode 下残留 `#FFFFFF` 白底；必须主动点击展开下拉浮层并截取展开态。
+- **表单保存与持久化：三步铁证**：
+  1. 抓包核验：拦截并打印实际发出的 `POST/PATCH` 请求体（Request Payload），确保行级数据完整序列化；
+  2. 响应核验：确认 HTTP `200/201` 且响应文档结构正确；
+  3. 强刷重载核验：执行 `page.reload` / `page.goto` 重新进入目标区域，核验 DOM 回显与数量 100% 保持，杜绝删图残留或调序瞬态复原。
+- **复杂拖拽交互**：外层 `draggable` 容器必须隔离子控件事件（`stopPropagation`）。
+- **自定义 array 字段组件**：本地 state 只作展示投影，增删改序一律走 Payload 行级 action（`addFieldRow` / `removeFieldRow` / `moveFieldRow` / 针对 `<path>.<行号>.<子字段>` 的 `UPDATE`）。**严禁用 `setValue` 往 array 父路径写整个数组**——有行的 array 会被标记 `disableFormData`，该路径提交时整体跳过，内容不会落库。
+- 完成判据与详细浏览器验收清单见 `.agent/testing.md`。无真实证据严禁宣布完成。

@@ -33,7 +33,7 @@ function FooterContents({
         <div className="site-footer__brand">
           <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">商办租赁</Link>
           <p className="site-footer__tagline">
-            聚合上海甲级写字楼、服务式办公室、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
+            聚合上海甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
           </p>
         </div>
         <nav className="site-footer__nav" aria-label="页脚导航">
