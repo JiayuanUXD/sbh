@@ -64,10 +64,14 @@ async function upsertBySlug<T extends AnyDoc>(
   })
 
   if (existing.docs[0]) {
+    // immutableCode 由 protectLocation hook 保证不可变，update 时带上它会被直接拒绝
+    // （IMMUTABLE_CODE）。存量库里上海的码是历史遗留的 'SH'，若把它塞进 update，
+    // seed 会在所有已有开发库上失败。更新只写可变字段，建码只在 create 时生效。
+    const { immutableCode: _immutableCode, ...mutableData } = data
     return (await payload.update({
       collection,
       id: existing.docs[0].id,
-      data,
+      data: mutableData,
     })) as T
   }
 
@@ -233,7 +237,10 @@ async function seed() {
   console.log('Upserting locations...');
   const shanghai = await upsertBySlug<AnyDoc>(payload, 'locations', 'shanghai', {
     name: '上海',
-    immutableCode: 'SH',
+    // 规范码（docs/geography-code-convention.md），与其余六城一致。
+    // 存量开发库里已有的 'SH' 不会被改（immutableCode 不可变，见 upsertBySlug），
+    // 收敛迁移也只在存在 LEGACY_LOC_1 时才动手，故老库继续用 'SH' 亦可正常工作。
+    immutableCode: 'CITY-SH',
     type: 'city',
     status: 'active',
     frontendVisible: true,

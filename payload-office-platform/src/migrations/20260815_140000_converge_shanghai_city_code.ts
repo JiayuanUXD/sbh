@@ -90,8 +90,10 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
   const duplicate = await resolveCityByCode(seedDb, DUPLICATE)
 
   // 全新空库或已收敛过：无事可做。迁移链必须能打到新环境。
-  if (!legacy && !duplicate) {
-    console.warn('[converge_shanghai_city_code] 未发现 LEGACY_LOC_1 / SH，判定为全新或已收敛环境，跳过。')
+  // 没有 LEGACY_LOC_1 就没有可收敛的对象：可能是全新空库、已收敛的环境，
+  // 也可能是开发库（那里的 SH 是 seed 建的上海本体，绝不能碰）。一律跳过。
+  if (!legacy) {
+    console.warn('[converge_shanghai_city_code] 未发现 LEGACY_LOC_1，无可收敛对象，跳过。')
     return
   }
 
@@ -111,7 +113,11 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     console.warn(`[converge_shanghai_city_code] 已将 id=${legacy.id} 的 ${LEGACY} 收敛为 ${CANONICAL}。`)
   }
 
-  if (duplicate) {
+  // 只有「确实执行了收敛」才删除 SH。判据是 LEGACY_LOC_1 曾经存在：
+  //   生产：LEGACY_LOC_1 是真正的上海、SH 是零引用孤儿 → 改码 + 删孤儿
+  //   开发/CI：没有 LEGACY_LOC_1，SH 就是 seed 建的上海本体（scripts/seed.ts）→ 什么都不该做
+  // 早期版本无条件删 SH，会让任何已 seed 过的开发库在 migrate 时抛错卡死。
+  if (duplicate && legacy) {
     const references = await countReferences(seedDb, duplicate.id)
     if (references > 0) {
       throw new Error(
