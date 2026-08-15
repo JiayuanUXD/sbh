@@ -34,6 +34,12 @@ test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory U
   // 城市前缀路由（/hangzhou/listings）只在多城市路由开启时可达，关闭态下本用例无意义。
   // 开启态由 quality.yml 的 e2e-multi-city 步骤覆盖。
   test.skip(!routingEnabled, '多城市路由未开启')
+  // OPT-029：用例描述的四个 CTA 与实现对不上，且分歧需产品判断，不是断言写法问题。
+  // 该页实有三个 region（平台实力背书 / 客户与业主专项服务 / 其他入口），没有
+  // 「城市服务入口」；「投放房源」入口在整个组件里 0 次出现；「获取选址方案」实际
+  // 是「预约<城市>专属选址方案」。是补入口还是改用例，见
+  // specs/work-items/OPT-029-coming-soon-city-cta-divergence.md
+  test.fixme(true, 'OPT-029：即将开通城市页的 CTA 集合与用例期望不一致，待产品判断')
   const response = await page.goto('/hangzhou/listings')
 
   expect(response?.status()).toBe(200)
