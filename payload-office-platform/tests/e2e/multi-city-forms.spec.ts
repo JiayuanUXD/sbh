@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 type QueryResult = Readonly<{ rows: unknown[] }>
@@ -26,7 +27,11 @@ function resolvePoolConstructor(moduleValue: unknown): PoolConstructor {
 
 const Pool = resolvePoolConstructor(pgModule)
 
-process.loadEnvFile('.env.local')
+// 本地开发从 .env.local 取 DATABASE_URL；CI 直接由 job env 注入，没有该文件。
+// 无条件 loadEnvFile 会让整个 spec 在 CI 上加载即 ENOENT，连带整个 e2e 作业失败。
+if (existsSync('.env.local')) {
+  process.loadEnvFile('.env.local')
+}
 
 const databaseUrl = process.env.DATABASE_URL
 const flagSuffix = process.env.MULTI_CITY_ROUTING_ENABLED === 'true' ? '2' : '1'
