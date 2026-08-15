@@ -46,6 +46,7 @@ import * as migration_20260813_020000_city_partner_applications from './20260813
 import * as migration_20260813_021000_city_partner_permissions from './20260813_021000_city_partner_permissions';
 import * as migration_20260813_022000_city_partner_notification_jobs from './20260813_022000_city_partner_notification_jobs';
 import * as migration_20260813_060037_city_partner_notification_outbox_reconciler from './20260813_060037_city_partner_notification_outbox_reconciler';
+import * as migration_20260815_140000_converge_shanghai_city_code from './20260815_140000_converge_shanghai_city_code';
 
 export const migrations = [
   {
@@ -287,5 +288,10 @@ export const migrations = [
     up: migration_20260813_060037_city_partner_notification_outbox_reconciler.up,
     down: migration_20260813_060037_city_partner_notification_outbox_reconciler.down,
     name: '20260813_060037_city_partner_notification_outbox_reconciler',
+  },
+  {
+    up: migration_20260815_140000_converge_shanghai_city_code.up,
+    down: migration_20260815_140000_converge_shanghai_city_code.down,
+    name: '20260815_140000_converge_shanghai_city_code',
   },
 ];
