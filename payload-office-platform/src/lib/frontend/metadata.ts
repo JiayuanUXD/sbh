@@ -121,7 +121,7 @@ const CITY_PAGE_COPY: Readonly<Record<Exclude<CityMetadataPageType, 'home'>, Rea
 }>>> = {
   listings: {
     title: (cityName) => `${cityName}在租房源`,
-    description: (cityName) => `${cityName}写字楼、服务式办公室与共享办公在租房源。`,
+    description: (cityName) => `${cityName}写字楼、独栋办公与共享办公在租房源。`,
   },
   buildings: {
     title: (cityName) => `${cityName}写字楼`,

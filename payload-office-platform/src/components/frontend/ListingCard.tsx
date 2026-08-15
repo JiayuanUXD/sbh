@@ -42,9 +42,9 @@ type Props = Readonly<{
 
 const TYPE_LABEL: Record<ListingCardViewModel['listingType'], string> = {
   'traditional-office': '传统办公',
-  'serviced-office': '服务式办公',
-  'coworking': '共享办公',
+  coworking: '共享办公',
   'full-floor': '整层办公',
+  'serviced-office': '独栋办公',
 }
 
 const DECORATION_LABEL: Record<NonNullable<ListingCardViewModel['decorationStatus']>, string> = {

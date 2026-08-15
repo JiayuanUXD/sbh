@@ -72,9 +72,9 @@ export type BuildingJsonLd = Readonly<{
 
 const LISTING_TYPE_LABEL: Record<ListingDetailViewModel['listingType'], string> = {
   'traditional-office': '传统办公',
-  'serviced-office': '服务式办公',
   coworking: '共享办公',
   'full-floor': '整层办公',
+  'serviced-office': '独栋办公',
 }
 
 function validateSiteOrigin(origin: string): string {

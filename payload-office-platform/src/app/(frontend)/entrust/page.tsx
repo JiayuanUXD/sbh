@@ -19,7 +19,7 @@ import { resolveLeadCityPageSelection } from '../_lib/lead-city-page'
 
 export const metadata: Metadata = buildPageMetadata({
   title: '委托找房｜免费定制选址方案',
-  description: '留下手机号，专属顾问 1 对 1 分析选址需求，免费定制上海写字楼、服务式办公与共享办公的选址方案。',
+  description: '留下手机号，专属顾问 1 对 1 分析选址需求，免费定制上海写字楼、独栋办公与共享办公的选址方案。',
   canonicalPath: '/entrust',
   ogImage: heroPosterAbsoluteUrl(siteConfig.siteOrigin),
 })

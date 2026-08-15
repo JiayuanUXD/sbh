@@ -483,8 +483,9 @@ export default function DevStoryPage() {
                 请选择…
               </option>
               <option value="traditional-office">传统办公</option>
-              <option value="serviced-office">服务式办公</option>
               <option value="coworking">共享办公</option>
+              <option value="full-floor">整层办公</option>
+              <option value="serviced-office">独栋办公</option>
             </Select>
           </Field>
           <Field id="f-textarea" label="留言">

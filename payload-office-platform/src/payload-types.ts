@@ -704,16 +704,12 @@ export interface Building {
     priceVerifiedAt?: string | null;
   };
   coverImage?: (number | null) | Media;
-  /**
-   * 最多 20 张，可拖拽调整顺序
-   */
   gallery?:
     | {
         image?: (number | null) | Media;
         id?: string | null;
       }[]
     | null;
-  amenities?: (number | Amenity)[] | null;
   mediaItems?:
     | {
         resource: number | Media;
@@ -725,6 +721,7 @@ export interface Building {
         id?: string | null;
       }[]
     | null;
+  amenities?: (number | Amenity)[] | null;
   summary?: string | null;
   description?: {
     root: {
@@ -835,7 +832,7 @@ export interface Listing {
    * 留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。
    */
   slug: string;
-  listingType: 'traditional-office' | 'serviced-office' | 'coworking' | 'full-floor';
+  listingType: 'traditional-office' | 'coworking' | 'full-floor' | 'serviced-office';
   building: number | Building;
   businessType?: ('lease' | 'sale') | null;
   decorationStatus?: ('rough' | 'simple' | 'furnished' | 'fully_fitted') | null;
@@ -2972,7 +2969,6 @@ export interface BuildingsSelect<T extends boolean = true> {
         image?: T;
         id?: T;
       };
-  amenities?: T;
   mediaItems?:
     | T
     | {
@@ -2984,6 +2980,7 @@ export interface BuildingsSelect<T extends boolean = true> {
         isSchematic?: T;
         id?: T;
       };
+  amenities?: T;
   summary?: T;
   description?: T;
   seo?:

@@ -34,9 +34,9 @@ type Props = {
 const TYPE_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '', label: '全部类型' },
   { value: 'traditional-office', label: '传统办公' },
-  { value: 'serviced-office', label: '服务式办公' },
   { value: 'coworking', label: '共享办公' },
   { value: 'full-floor', label: '整层办公' },
+  { value: 'serviced-office', label: '独栋办公' },
 ]
 
 /** 面积区间；value 编码为 "<min>-<max>"，空段表示不限。 */
