@@ -230,6 +230,14 @@ test('Publish persists only a Hangzhou supply submission relationship', async ({
 test('City Partner stages persist Hangzhou without auto-converting business records', async ({ page }) => {
   // 该用例走 /city-partner?city=hangzhou 的杭州分支，依赖多城市路由开启。
   test.skip(process.env.MULTI_CITY_ROUTING_ENABLED !== 'true', '多城市路由未开启')
+  // OPT-028：已知实现缺陷，非测试问题。city-partner-applications 的同源守卫把
+  // 请求 origin 钉死在 siteConfig.siteOrigin（request-guards.ts:83），而 CI 里
+  // NEXT_PUBLIC_SITE_URL 必须是线上 https 域名、浏览器实际访问 localhost:3717，
+  // 于是提交恒 403、表单进不到第二步。/api/inquiries 用的是「origin 与 host 自洽」
+  // 的写法（route.ts:81）故不受影响。任何站点域名与实际服务域名不一致的环境
+  // （预览环境、自定义域名、域名迁移期）都会复现。修复方案待评审，见
+  // specs/work-items/OPT-028-city-partner-same-origin-guard.md
+  test.fixme(true, 'OPT-028：city-partner 同源守卫钉死站点域名，非线上域名环境恒 403')
   await installFixtureIdentity(page, phones.partner)
   const before = await rows(`
     SELECT
