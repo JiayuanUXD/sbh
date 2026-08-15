@@ -88,7 +88,8 @@ export default function AmenitiesChipSelector(props?: { path?: string }) {
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
+    // loading 初值即 true，此处无需再同步 setState（effect 依赖为空只跑一次）；
+    // 在 effect 里同步调用 setState 会触发级联渲染（react-hooks/set-state-in-effect）。
 
     fetch('/api/amenities?limit=200&depth=0')
       .then((res) => res.json())

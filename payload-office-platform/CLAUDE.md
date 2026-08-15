@@ -18,6 +18,7 @@
 ```bash
 pnpm generate:types && pnpm payload generate:importmap
 pnpm typecheck
+pnpm lint              # deploy.yml 会卡在这里，PR 闸门也跑，别漏
 pnpm test              # vitest run
 pnpm migrate:dry-run   # 迁移源码静态校验，不连库
 pnpm build

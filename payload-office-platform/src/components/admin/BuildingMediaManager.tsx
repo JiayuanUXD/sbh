@@ -115,26 +115,33 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
     path: 'coverImage',
   })
 
-  // 本地常驻数据源，彻底杜绝 Payload 表单重构时的瞬态复原
-  const [items, setItems] = useState<BuildingMediaItem[]>([])
-  const initializedRef = useRef(false)
-
-  // 仅在首次挂载时从表单初始值或后端文档加载数据。
-  // 这里只填充本地展示状态，绝不回写表单：回写会把文档立刻标记为已修改，
-  // 用户什么都没改就会触发「未保存的更改」拦截。
-  useEffect(() => {
-    if (initializedRef.current) return
-    if (!data) return
-    const initialList =
-      Array.isArray(value) && value.length > 0
-        ? value
-        : Array.isArray(data?.mediaItems) && data.mediaItems.length > 0
-          ? (data.mediaItems as BuildingMediaItem[])
-          : []
-
-    initializedRef.current = true
-    if (initialList.length > 0) setItems(initialList)
+  // 文档侧的媒体列表：直接派生，不进 state。
+  // 早期版本用 useEffect + setItems 做初始化，既在 effect 里同步 setState
+  //（react-hooks/set-state-in-effect，会触发级联渲染），又在 data 晚到时可能漏初始化。
+  // 注意不回写表单：回写会立刻把文档标记为已修改，用户什么都没改就触发「未保存的更改」拦截。
+  const docItems = useMemo<BuildingMediaItem[]>(() => {
+    if (Array.isArray(value) && value.length > 0) return value
+    if (Array.isArray(data?.mediaItems) && data.mediaItems.length > 0) {
+      return data.mediaItems as BuildingMediaItem[]
+    }
+    return []
   }, [data, value])
+
+  // 本地改动（增删改序）只累积在这里；尚无改动时回落到文档基线。
+  const [localItems, setLocalItems] = useState<BuildingMediaItem[] | null>(null)
+  const items = localItems ?? docItems
+  const setItems = useCallback(
+    (
+      updater:
+        | BuildingMediaItem[]
+        | ((prev: BuildingMediaItem[]) => BuildingMediaItem[]),
+    ) => {
+      setLocalItems((prev) =>
+        typeof updater === 'function' ? updater(prev ?? docItems) : updater,
+      )
+    },
+    [docItems],
+  )
 
   const currentCoverId = useMemo(() => {
     if (coverValue) {
@@ -153,7 +160,7 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
     useState<BuildingMediaItem['category']>('exterior')
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
-  const [previewMediaMap, setPreviewMediaMap] = useState<
+  const [fetchedPreviews, setFetchedPreviews] = useState<
     Record<number, { url: string; filename: string; mimeType?: string }>
   >({})
   // 记录是否为视频由 item.kind 决定，不能靠 URL 后缀猜：
@@ -181,28 +188,40 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
     }
   }, [])
 
-  // 补全已有 mediaItems 中 resource 为 ID 的缩略图与 URL
-  useEffect(() => {
-    const missingIds: number[] = []
+  // resource 已是完整对象时，url 直接从 items 派生，不必进 state。
+  // 早期版本在 effect 里对这类条目同步 setPreviewMediaMap，既触发级联渲染
+  //（react-hooks/set-state-in-effect），又因把 previewMediaMap 列为依赖而反复重跑。
+  const embeddedPreviews = useMemo(() => {
+    const map: Record<number, { url: string; filename: string; mimeType?: string }> = {}
     for (const item of items) {
       const rid = getResourceId(item.resource)
-      if (rid && !previewMediaMap[rid]) {
-        const resObj =
-          typeof item.resource === 'object' && item.resource !== null ? item.resource : null
-        if (resObj && resObj.url) {
-          setPreviewMediaMap((prev) => ({
-            ...prev,
-            [rid]: {
-              url: resObj.url || '',
-              filename: resObj.filename || '',
-              mimeType: resObj.mimeType,
-            },
-          }))
-        } else {
-          missingIds.push(rid)
+      const resObj =
+        typeof item.resource === 'object' && item.resource !== null ? item.resource : null
+      if (rid && resObj?.url) {
+        map[rid] = {
+          url: resObj.url,
+          filename: resObj.filename || '',
+          mimeType: resObj.mimeType,
         }
       }
     }
+    return map
+  }, [items])
+
+  // 只有需要异步补全的条目才进 state（在 .then/.catch 里设置，非同步 setState）
+  const previewMediaMap = useMemo(
+    () => ({ ...embeddedPreviews, ...fetchedPreviews }),
+    [embeddedPreviews, fetchedPreviews],
+  )
+
+  // 补全 resource 仅为 ID 的缩略图与 URL
+  useEffect(() => {
+    const missingIds = items
+      .map((item) => getResourceId(item.resource))
+      .filter(
+        (rid): rid is number =>
+          rid !== null && !embeddedPreviews[rid] && !fetchedPreviews[rid],
+      )
 
     if (missingIds.length > 0) {
       let cancelled = false
@@ -224,20 +243,20 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
           for (const id of uniqueMissing) {
             if (!newMap[id]) newMap[id] = { url: '', filename: '' }
           }
-          setPreviewMediaMap((prev) => ({ ...prev, ...newMap }))
+          setFetchedPreviews((prev) => ({ ...prev, ...newMap }))
         })
         .catch(() => {
           if (cancelled) return
           const failedMap: Record<number, { url: string; filename: string }> = {}
           for (const id of uniqueMissing) failedMap[id] = { url: '', filename: '' }
-          setPreviewMediaMap((prev) => ({ ...prev, ...failedMap }))
+          setFetchedPreviews((prev) => ({ ...prev, ...failedMap }))
         })
 
       return () => {
         cancelled = true
       }
     }
-  }, [items, previewMediaMap])
+  }, [items, embeddedPreviews, fetchedPreviews])
 
   // 批量上传核心处理
   const handleBatchUpload = useCallback(
@@ -322,7 +341,7 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
         setUploadProgress({ current: i + 1, total: fileArray.length })
       }
 
-      setPreviewMediaMap((prev) => ({ ...prev, ...newPreviews }))
+      setFetchedPreviews((prev) => ({ ...prev, ...newPreviews }))
 
       if (newUploadedItems.length > 0) {
         // 逐条 ADD_ROW：只有行级 action 才会生成 `<path>.<行号>.<子字段>` 扁平状态，
