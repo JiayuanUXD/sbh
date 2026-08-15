@@ -44,6 +44,10 @@ jobs:
         #（与 Dockerfile 一致）。generate:types 只读 payload.config、不连库。
         run: pnpm generate:types && pnpm payload generate:importmap
       - run: pnpm typecheck
+      # deploy.yml 的 quality 作业跑 lint，而本闸门此前不跑 —— 于是 lint 错误在 PR 上
+      # 完全隐身，直到合入 master 才让部署卡在 Lint 步（真实教训：#43 合并后
+      # 三个 react-hooks/set-state-in-effect 错误挡住部署，PR 三闸门却全绿）。
+      - run: pnpm lint
       - run: pnpm test
       - run: pnpm migrate:dry-run
       - name: Build
