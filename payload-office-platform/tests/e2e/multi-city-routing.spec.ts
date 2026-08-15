@@ -69,7 +69,11 @@ test.describe('multi-city route ownership', () => {
 
       expect(response?.status()).toBe(200)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await expect(page.locator('.city-switcher__trigger')).toContainText(name)
+      // 城市切换器只在多城市路由开启时渲染（SiteHeader.tsx 的 multiCityRoutingEnabled 分支）。
+      // 关闭态是当前生产形态，此处不该断言它存在。
+      if (routingEnabled) {
+        await expect(page.locator('.city-switcher__trigger')).toContainText(name)
+      }
       await expectCanonical(page, routingEnabled ? `/${slug}` : '/')
       const robots = page.locator('meta[name="robots"]')
       if (status === 'coming-soon' || !routingEnabled) {

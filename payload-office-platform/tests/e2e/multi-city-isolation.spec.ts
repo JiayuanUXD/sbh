@@ -31,6 +31,9 @@ test.afterEach(async ({ page }) => {
 })
 
 test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory UI', async ({ page }) => {
+  // 城市前缀路由（/hangzhou/listings）只在多城市路由开启时可达，关闭态下本用例无意义。
+  // 开启态由 quality.yml 的 e2e-multi-city 步骤覆盖。
+  test.skip(!routingEnabled, '多城市路由未开启')
   const response = await page.goto('/hangzhou/listings')
 
   expect(response?.status()).toBe(200)
@@ -46,6 +49,8 @@ test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory U
 })
 
 test('city switch preserves universal filters and clears geography and page', async ({ page }) => {
+  // 依赖城市切换器与城市前缀路由，二者均以多城市路由开启为前提。
+  test.skip(!routingEnabled, '多城市路由未开启')
   await page.goto('/shanghai/listings?areaMin=100&rentMax=10&district=pudong&page=3')
   const switcher = page.locator('.city-switcher')
   const trigger = switcher.getByRole('button', { name: /上海.*切换城市/ })

@@ -403,14 +403,14 @@ async function seed() {
       overrideAccess: true,
     })
     if (existing.docs[0]) {
-      await (payload as any).update({
+      await payload.update({
         collection: 'city-site-profiles',
         id: existing.docs[0].id,
         data: profileData,
         overrideAccess: true,
       })
     } else {
-      await (payload as any).create({
+      await payload.create({
         collection: 'city-site-profiles',
         data: profileData,
         overrideAccess: true,
