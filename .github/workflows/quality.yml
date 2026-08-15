@@ -125,7 +125,18 @@ jobs:
         run: pnpm build
       - name: Run E2E against next start (production server)
         # playwright.config 的 webServer 自动拉起 `next start -p 3717`（E2E_PROD_SERVER=1）。
+        # 本步不设 MULTI_CITY_ROUTING_ENABLED，与当前生产形态一致（多城市路由关闭）。
+        # 依赖开启态的用例会 test.skip 跳过，由下一步覆盖。
         run: pnpm test:e2e
+
+      - name: Run multi-city E2E (routing enabled)
+        # 多城市能力短期不在生产开启，但要保持随时可测：复用同一份构建产物与同一个库，
+        # 仅以 MULTI_CITY_ROUTING_ENABLED=true 重启 server 跑多城市那三个 spec。
+        # 该 flag 由服务端运行时读取（site-config.ts 的 getMultiCityRoutingEnabled，非
+        # NEXT_PUBLIC_），不参与 next build 内联，所以无需重新构建。
+        env:
+          MULTI_CITY_ROUTING_ENABLED: 'true'
+        run: pnpm exec playwright test tests/e2e/multi-city-routing.spec.ts tests/e2e/multi-city-isolation.spec.ts tests/e2e/multi-city-forms.spec.ts
 
   postgres-migrations:
     runs-on: ubuntu-latest
