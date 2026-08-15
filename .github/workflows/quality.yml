@@ -5,6 +5,14 @@ on:
     paths:
       - 'payload-office-platform/**'
       - '.github/workflows/quality.yml'
+  # master 直推也跑质量闸门。此前只在 PR 触发，导致 2026-08-13~08-15 期间三个缺陷
+  # 同时潜伏两周无人发现（种子迁移打不到空库、multi-city-forms 无条件读 .env.local、
+  # 一批 e2e 用例失败积压）——它们都只在 PR 上才会暴露，而那段时间没有 PR。
+  push:
+    branches: [master]
+    paths:
+      - 'payload-office-platform/**'
+      - '.github/workflows/quality.yml'
   workflow_dispatch:
 
 concurrency:
@@ -14,6 +22,7 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: payload-office-platform
@@ -50,6 +59,10 @@ jobs:
   # 故配 PostgreSQL service + 强密钥 + 合法 https 站点 URL（三者见下方 env 注释）。
   e2e:
     runs-on: ubuntu-latest
+    # 165 个用例串行（workers:1），CI 下每个失败用例重试 2 次 ×60s ≈ 3 分钟。
+    # 坏掉的套件会一路空烧到 GitHub 默认的 360 分钟（2026-08-15 实测单次跑了 47 分钟仍未结束）。
+    # 30 分钟足够一次健康的全量运行，失败则快速止损。
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16.6
@@ -116,6 +129,7 @@ jobs:
 
   postgres-migrations:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16.6
