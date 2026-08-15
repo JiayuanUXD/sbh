@@ -4,6 +4,7 @@ import config from '../src/payload.config'
 import type { Lead } from '../src/payload-types'
 import { BUILTIN_ROLES } from '../src/test/factory/roles'
 import { syncBuiltinRoles } from '../src/domain/auth/sync-builtin-roles'
+import { CITY_SITE_PROFILE_SEEDS } from '../src/migrations/20260813_011000_seed_city_site_profiles'
 
 type AnyDoc = {
   id: number
@@ -317,6 +318,106 @@ async function seed() {
     description: '虹桥、古北等国际化商务办公区域。',
     sortOrder: 10,
   })
+
+  // === OPT-027：六城城市节点（仅 city 层级，不带区县/商圈/地铁）===
+  // CI 全新库里只有上面的上海，多城市 e2e（七城首页等）需要六城节点存在。
+  // 名称/坐标/sortOrder 与 seed/geography/*.json 的城市头一致、字段口径对齐
+  // scripts/import-geography.ts 的城市写入（frontendVisible: false），规范见
+  // docs/geography-code-convention.md；后续真跑生产地理导入时按 immutableCode 幂等不冲突。
+  const expansionCities = [
+    { slug: 'nanjing', name: '南京市', immutableCode: 'CITY-NJ', sortOrder: 2, centerLatitude: 32.059344, centerLongitude: 118.796624 },
+    { slug: 'hangzhou', name: '杭州市', immutableCode: 'CITY-HZ', sortOrder: 3, centerLatitude: 30.246566, centerLongitude: 120.209903 },
+    { slug: 'suzhou', name: '苏州市', immutableCode: 'CITY-SZ', sortOrder: 4, centerLatitude: 31.299758, centerLongitude: 120.585294 },
+    { slug: 'wuxi', name: '无锡市', immutableCode: 'CITY-WX', sortOrder: 5, centerLatitude: 31.491064, centerLongitude: 120.311889 },
+    { slug: 'ningbo', name: '宁波市', immutableCode: 'CITY-NB', sortOrder: 6, centerLatitude: 29.860258, centerLongitude: 121.62454 },
+    { slug: 'jiaxing', name: '嘉兴市', immutableCode: 'CITY-JX', sortOrder: 7, centerLatitude: 30.746814, centerLongitude: 120.755623 },
+  ]
+  for (const city of expansionCities) {
+    await upsertBySlug<AnyDoc>(payload, 'locations', city.slug, {
+      name: city.name,
+      immutableCode: city.immutableCode,
+      type: 'city',
+      status: 'active',
+      frontendVisible: false,
+      sortOrder: city.sortOrder,
+      centerLatitude: city.centerLatitude,
+      centerLongitude: city.centerLongitude,
+    })
+  }
+
+  // === OPT-027：七城站点档案（city-site-profiles）===
+  // 迁移 20260813_011000 在全新空库会刻意跳过播种（城市晚于迁移由本脚本写入），
+  // 因此这里复用该迁移导出的 CITY_SITE_PROFILE_SEEDS 补齐档案，文案零重复。
+  // 上海档案的 cityCodes 别名含 'SH'，可直接挂上本脚本创建的上海节点（immutableCode 'SH'）。
+  console.log('Upserting city site profiles...')
+  for (const profileSeed of CITY_SITE_PROFILE_SEEDS) {
+    // 与迁移同语义：按别名解析唯一启用城市，多个命中按别名优先级排序、数量异常则 fail fast
+    const candidates = await payload.find({
+      collection: 'locations',
+      where: {
+        and: [
+          { immutableCode: { in: [...profileSeed.cityCodes] } },
+          { type: { equals: 'city' } },
+          { status: { equals: 'active' } },
+        ],
+      },
+      limit: profileSeed.cityCodes.length,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const ranked = (candidates.docs as Array<AnyDoc & { immutableCode: string }>)
+      .filter((doc) => profileSeed.cityCodes.includes(doc.immutableCode))
+      .sort(
+        (left, right) =>
+          profileSeed.cityCodes.indexOf(left.immutableCode) -
+          profileSeed.cityCodes.indexOf(right.immutableCode),
+      )
+    if (ranked.length !== 1) {
+      throw new Error(
+        `city_site_profile_seed_conflict: immutable city codes ${profileSeed.cityCodes.join(', ')} matched ${ranked.length} active city rows`,
+      )
+    }
+
+    const profileData = {
+      city: ranked[0].id,
+      serviceStatus: profileSeed.serviceStatus,
+      switcherVisible: true,
+      sortOrder: profileSeed.sortOrder,
+      seoTitle: profileSeed.seoTitle,
+      seoDescription: profileSeed.seoDescription,
+      heroEyebrow: profileSeed.heroEyebrow,
+      heroHeading: profileSeed.heroHeading,
+      heroBody: profileSeed.heroBody,
+      heroMedia: profileSeed.heroMediaId,
+      introHeading: profileSeed.introHeading,
+      introBody: profileSeed.introBody,
+      contactHeading: profileSeed.contactHeading,
+      contactBody: profileSeed.contactBody,
+      featuredRegions: [],
+    }
+    const existing = await payload.find({
+      collection: 'city-site-profiles',
+      where: { city: { equals: ranked[0].id } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs[0]) {
+      await payload.update({
+        collection: 'city-site-profiles',
+        id: existing.docs[0].id,
+        data: profileData,
+        overrideAccess: true,
+      })
+    } else {
+      await payload.create({
+        collection: 'city-site-profiles',
+        data: profileData,
+        overrideAccess: true,
+      })
+    }
+  }
+  console.log('City site profiles seeded!')
 
   const readyToMove = await upsertAmenity(payload, '可即刻入驻', 'office-service')
   const furnished = await upsertAmenity(payload, '精装带家具', 'space')

@@ -228,6 +228,8 @@ test('Publish persists only a Hangzhou supply submission relationship', async ({
 })
 
 test('City Partner stages persist Hangzhou without auto-converting business records', async ({ page }) => {
+  // 该用例走 /city-partner?city=hangzhou 的杭州分支，依赖多城市路由开启。
+  test.skip(process.env.MULTI_CITY_ROUTING_ENABLED !== 'true', '多城市路由未开启')
   await installFixtureIdentity(page, phones.partner)
   const before = await rows(`
     SELECT

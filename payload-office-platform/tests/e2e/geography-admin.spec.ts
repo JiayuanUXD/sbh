@@ -206,8 +206,11 @@ test.describe.serial('地理管理后台 E2E', () => {
     await ensureDesktopNavigationOpen(page)
     await openTopGroup(page, '区域管理')
     const regionGroup = topGroupButton(page, '区域管理').locator('..')
-    await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(4)
+    // 5 项：城市管理 / 城市站点配置 / 行政区域 / 商圈管理 / 地铁管理
+    //（见 src/domain/admin-navigation/navigation-config.ts 的 region-management 组）
+    await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(5)
     await expect(regionGroup).toContainText('城市管理')
+    await expect(regionGroup).toContainText('城市站点配置')
     await expect(regionGroup).toContainText('行政区域')
     await expect(regionGroup).toContainText('商圈管理')
     await expect(regionGroup).toContainText('地铁管理')
