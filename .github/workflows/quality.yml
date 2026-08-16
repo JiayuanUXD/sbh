@@ -1,10 +1,16 @@
 name: Quality and migration baseline
 
 on:
+  # paths 里的 '!' 负向模式在后覆盖前：纯文档改动（CLAUDE.md / AGENTS.md / .agent/*.md）
+  # 不再触发整套闸门。它们进不了运行时产物，却曾让一行 markdown 烧掉 ~14 分钟额度。
   pull_request:
     paths:
       - 'payload-office-platform/**'
+      - '!payload-office-platform/**/*.md'
       - '.github/workflows/quality.yml'
+      # deploy.yml 现在由本工作流的 workflow_run 触发；只改 deploy.yml 时也必须让
+      # 本工作流跑起来，否则部署链路永远不会被触发（见 deploy.yml 顶部说明）。
+      - '.github/workflows/deploy.yml'
   # master 直推也跑质量闸门。此前只在 PR 触发，导致 2026-08-13~08-15 期间三个缺陷
   # 同时潜伏两周无人发现（种子迁移打不到空库、multi-city-forms 无条件读 .env.local、
   # 一批 e2e 用例失败积压）——它们都只在 PR 上才会暴露，而那段时间没有 PR。
@@ -12,7 +18,9 @@ on:
     branches: [master]
     paths:
       - 'payload-office-platform/**'
+      - '!payload-office-platform/**/*.md'
       - '.github/workflows/quality.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 concurrency:
@@ -50,13 +58,14 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm migrate:dry-run
-      - name: Build
-        run: pnpm build
-        env:
-          # 仅 build 需要：生产构建收集 /sitemap.xml page data 时前端 site-config
-          # fail-closed 需此值（与 deploy.yml 一致）。本作业不连库；DB 相关校验
-          #（迁移 / seed / verify / baseline / 全量 E2E）由 postgres-migrations 与 e2e 作业在 PG 上覆盖。
-          NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
+      - name: 迁移预检（目录与索引一致性 + 危险项扫描）
+        # 从 deploy.yml 的质量门搬来：该门已删（与本工作流重复），但这条检查此前
+        # 只在这里有，不搬会静默丢失。绕过 npm script 的 --env-file=.env.local
+        #（CI 无该文件）；migrations 子命令纯扫描文件，不读 env。
+        run: pnpm exec tsx scripts/preflight.ts migrations
+      # 本作业不再跑 build：同一个 commit 的 `next build` 已由下面的 e2e 作业跑过
+      #（它必须构建才能起 next start），两处并行各跑一次纯属重复烧额度（各约 80s）。
+      # 构建失败依然会红——由 e2e 作业报出，而 deploy.yml 依赖本工作流整体成功。
 
   # 全链路 E2E：用生产 server（next build + next start）跑 Playwright，消除 next dev
   # 逐路由 JIT 编译慢导致的导航 10s poll 超时。next start 触发生产 fail-closed 守卫，
@@ -65,8 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     # 165 个用例串行（workers:1），CI 下每个失败用例重试 2 次 ×60s ≈ 3 分钟。
     # 坏掉的套件会一路空烧到 GitHub 默认的 360 分钟（2026-08-15 实测单次跑了 47 分钟仍未结束）。
-    # 30 分钟足够一次健康的全量运行，失败则快速止损。
-    timeout-minutes: 30
+    # 健康的全量运行实测约 6m40s（含构建与 seed），15 分钟留足两倍余量，
+    # 同时把坏套件的空烧封顶砍半——私有仓库的分钟数是真金白银。
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16.6
@@ -117,6 +127,11 @@ jobs:
       - name: Generate Payload types & importmap
         # payload-types.ts 被 gitignore；typecheck/build 前必须先生成（与 Dockerfile 一致）。
         run: pnpm generate:types && pnpm payload generate:importmap
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('payload-office-platform/pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium
       - name: Apply migrations to fresh PostgreSQL
         run: pnpm exec payload migrate
