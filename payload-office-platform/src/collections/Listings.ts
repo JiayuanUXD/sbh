@@ -1,5 +1,5 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
@@ -23,6 +23,93 @@ import { protectListing } from '@/domain/review/listing-protect'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 
+type MediaResourceInput = number | string | { id?: number | string } | null | undefined
+
+interface ListingMediaItemInput {
+  kind?: string | null
+  resource?: MediaResourceInput
+  category?: string | null
+  alt?: string | null
+}
+
+function toMediaId(resource: MediaResourceInput): number | string | null {
+  if (resource === null || resource === undefined) return null
+  if (typeof resource === 'object') {
+    const id = (resource as { id?: unknown }).id
+    return typeof id === 'number' || typeof id === 'string' ? id : null
+  }
+  return typeof resource === 'number' || typeof resource === 'string' ? resource : null
+}
+
+/**
+ * 房源媒体工作台的派生 hook（对齐楼盘 syncBuildingMedia 设计，另加存量兼容）：
+ *
+ *   1. gallery / coverImage 在表单中 hidden，统一由 mediaItems 派生：
+ *      gallery = mediaItems 中 kind=image 的 resource 列表；
+ *      coverImage 仅在无封面时自动取第一张图（回退看 originalDoc，防止每次保存重置运营手选封面）。
+ *   2. 存量兼容：外部抓取的老房源只有 gallery 没有 mediaItems。
+ *      首次经工作台保存（originalDoc.mediaItems 为空、本次非空）时，把 legacy gallery
+ *      图片回填进 mediaItems 头部（kind=image / category=workspace / alt 自动生成），
+ *      存量图不丢；此后删除、调序都按工作台链路走。
+ *   3. 双方都无 mediaItems（纯存量、未动媒体）→ 不派生，legacy gallery 原样保留。
+ *
+ * 排在 protectListing 之前执行（派生先于校验，与楼盘 hook 顺序一致）。
+ */
+export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  const nextItems = Array.isArray(data?.mediaItems)
+    ? (data.mediaItems as ListingMediaItemInput[])
+    : null
+  const prevItemCount = Array.isArray(originalDoc?.mediaItems)
+    ? (originalDoc.mediaItems as ListingMediaItemInput[]).length
+    : 0
+
+  // 未走过工作台链路：nextItems 为空数组且文档原本也没有 mediaItems → 保持 legacy 现状
+  const viaWorkbench = nextItems !== null && (nextItems.length > 0 || prevItemCount > 0)
+  if (!viaWorkbench) return data
+
+  let items = nextItems
+
+  // 首次切换到工作台链路：回填 legacy gallery（去重）
+  const legacyGallery = Array.isArray(originalDoc?.gallery)
+    ? (originalDoc.gallery as { image?: MediaResourceInput }[])
+    : []
+  if (prevItemCount === 0 && items.length > 0 && legacyGallery.length > 0) {
+    const existingIds = new Set(
+      items.map((m) => toMediaId(m?.resource)).filter((id): id is number | string => id !== null),
+    )
+    const docTitle = typeof data?.title === 'string' && data.title ? data.title : '房源'
+    const backfilled: ListingMediaItemInput[] = []
+    for (const g of legacyGallery) {
+      const id = toMediaId(g?.image)
+      if (id === null || existingIds.has(id)) continue
+      existingIds.add(id)
+      backfilled.push({
+        kind: 'image',
+        resource: id,
+        category: LISTING_MEDIA_CATEGORIES[0],
+        alt: `${docTitle} 图集 ${backfilled.length + 1}`,
+      })
+    }
+    if (backfilled.length > 0) items = [...backfilled, ...items]
+  }
+
+  // 1. 派生 gallery（审核提交校验 galleryCount>=3 与前台画廊都消费它，链路不变）
+  const imageIds = items
+    .filter((m) => m && m.kind === 'image' && m.resource)
+    .map((m) => toMediaId(m.resource))
+    .filter((id): id is number | string => id !== null)
+  data.gallery = imageIds.map((image) => ({ image }))
+  data.mediaItems = items
+
+  // 2. 无封面时自动取第一张图
+  const existingCover = data.coverImage ?? originalDoc?.coverImage
+  if (!existingCover && imageIds.length > 0) {
+    data.coverImage = imageIds[0]
+  }
+
+  return data
+}
+
 export const Listings: CollectionConfig = {
   slug: 'listings',
   labels: {
@@ -42,7 +129,9 @@ export const Listings: CollectionConfig = {
   // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
   endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
   hooks: {
-    beforeChange: [protectListing],
+    // syncListingMedia 必须排在 protectListing 之前：gallery/coverImage 由 mediaItems 派生，
+    // 只有先派生再校验，保护逻辑与审核快照读到的才是最终数据（与楼盘 hook 顺序一致）。
+    beforeChange: [syncListingMedia, protectListing],
   },
   fields: [
     {
@@ -422,18 +511,21 @@ export const Listings: CollectionConfig = {
           description: '维护前台卡片和详情页使用的图片、亮点与介绍。',
           fields: [
             {
+              // hidden：由房源媒体工作台（ListingMediaManager）操作，
+              // 保存时 syncListingMedia 从 mediaItems 派生（对齐楼盘媒体链路设计）。
               name: 'coverImage',
               label: '封面图',
               type: 'upload',
               relationTo: 'media',
+              admin: { hidden: true },
             },
             {
+              // hidden：同上，gallery = mediaItems 中 kind=image 的派生列表，
+              // 审核提交校验（galleryCount>=3）与前台画廊继续消费 gallery，链路不变。
               name: 'gallery',
               label: '图片相册',
               type: 'array',
-              admin: {
-                description: '提交审核要求至少 3 张有效图片。',
-              },
+              admin: { hidden: true },
               fields: [
                 {
                   name: 'image',
@@ -446,9 +538,15 @@ export const Listings: CollectionConfig = {
             },
             {
               name: 'mediaItems',
-              label: '详情页媒体',
+              label: '房源媒体工作台',
               type: 'array',
               maxRows: 40,
+              admin: {
+                description: '提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。',
+                components: {
+                  Field: '/components/admin/ListingMediaManager',
+                },
+              },
               fields: [
                 { name: 'resource', label: '资源', type: 'upload', relationTo: 'media', required: true },
                 {

@@ -900,15 +900,15 @@ export interface Listing {
     priceVerifiedAt?: string | null;
   };
   coverImage?: (number | null) | Media;
-  /**
-   * 提交审核要求至少 3 张有效图片。
-   */
   gallery?:
     | {
         image: number | Media;
         id?: string | null;
       }[]
     | null;
+  /**
+   * 提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。
+   */
   mediaItems?:
     | {
         resource: number | Media;
