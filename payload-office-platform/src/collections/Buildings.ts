@@ -84,6 +84,8 @@ export const Buildings: CollectionConfig = {
         // 权限门与状态翻转全在对应 endpoint 服务端强制，组件仅展示与触发。
         beforeDocumentControls: [
           '/components/admin/BuildingOperationalToggle',
+          // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
+          '/components/admin/unsaved-changes/FormModifiedBridge',
         ],
       },
     },

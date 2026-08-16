@@ -701,8 +701,11 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
         </Space>
       </div>
 
-      {/* 拖拽上传区 */}
+      {/* 拖拽上传区（OPT-030 P2：键盘可达--role=button + Enter/Space 触发文件选择） */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="上传媒体：点击或按 Enter 选择文件，也可将图片视频拖拽到此处"
         onDragOver={(e) => {
           e.preventDefault()
           setIsDragOver(true)
@@ -714,6 +717,12 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
           if (e.dataTransfer.files) handleBatchUpload(e.dataTransfer.files)
         }}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            fileInputRef.current?.click()
+          }
+        }}
         style={{
           border: `2px dashed ${isDragOver ? 'var(--theme-primary-500, #165dff)' : 'var(--theme-elevation-200, #c9cdd4)'}`,
           background: isDragOver
@@ -1001,6 +1010,10 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
                   <Popconfirm
                     title="确定移除该媒体？"
                     onOk={() => handleDeleteItem(originalIndex)}
+                    // OPT-030 P1-3：确认弹窗接管焦点（focusLock 含 returnFocus，
+                    // 关闭后焦点归还触发按钮），读屏用户可获知弹窗内容。
+                    autoFocus
+                    focusLock
                   >
                     <Button
                       size="mini"
@@ -1008,6 +1021,7 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
                       status="danger"
                       shape="circle"
                       icon={<IconDelete />}
+                      aria-label={`删除第 ${originalIndex + 1} 个媒体`}
                       style={{
                         height: 22,
                         width: 22,
@@ -1172,6 +1186,7 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
                         disabled={originalIndex === 0}
                         icon={<IconArrowLeft />}
                         onClick={() => handleMoveLeft(originalIndex)}
+                        aria-label={`第 ${originalIndex + 1} 个媒体向前移动`}
                         style={{ padding: '0 4px', height: 20 }}
                       />
                     </Tooltip>
@@ -1182,6 +1197,7 @@ export default function BuildingMediaManager(props?: { path?: string; schemaPath
                         disabled={originalIndex === items.length - 1}
                         icon={<IconArrowRight />}
                         onClick={() => handleMoveRight(originalIndex)}
+                        aria-label={`第 ${originalIndex + 1} 个媒体向后移动`}
                         style={{ padding: '0 4px', height: 20 }}
                       />
                     </Tooltip>
