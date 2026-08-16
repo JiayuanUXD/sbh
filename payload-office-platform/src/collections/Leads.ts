@@ -684,15 +684,20 @@ export const Leads: CollectionConfig = {
                       '用户在询盘时选择的偏好看房时段，服务端已复核落在平台服务时间内。始终为“待顾问确认”，不代表已确认预约。',
                   },
                   fields: [
-                    { name: 'startsAt', label: '开始时间', type: 'date', admin: { readOnly: true } },
-                    { name: 'endsAt', label: '结束时间', type: 'date', admin: { readOnly: true } },
-                    { name: 'timezone', label: '时区', type: 'text', admin: { readOnly: true } },
                     {
-                      name: 'status',
-                      label: '状态',
-                      type: 'select',
-                      options: [{ label: '待顾问确认', value: 'pending-confirmation' }],
-                      admin: { readOnly: true },
+                      type: 'row',
+                      fields: [
+                        { name: 'startsAt', label: '开始时间', type: 'date', admin: { readOnly: true } },
+                        { name: 'endsAt', label: '结束时间', type: 'date', admin: { readOnly: true } },
+                        { name: 'timezone', label: '时区', type: 'text', admin: { readOnly: true } },
+                        {
+                          name: 'status',
+                          label: '状态',
+                          type: 'select',
+                          options: [{ label: '待顾问确认', value: 'pending-confirmation' }],
+                          admin: { readOnly: true },
+                        },
+                      ],
                     },
                   ],
                 },

@@ -213,13 +213,13 @@ export interface User {
    */
   name: string;
   /**
-   * 可选登录账号；留空时使用邮箱登录。一旦设置不可修改，且必须唯一。
-   */
-  loginName?: string | null;
-  /**
    * 原始手机号输入。系统自动规范化存入 phone_normalized；查询用 phone_normalized。
    */
   phone?: string | null;
+  /**
+   * 可选登录账号；留空时使用邮箱登录。一旦设置不可修改，且必须唯一。
+   */
+  loginName?: string | null;
   /**
    * 用于查重和登录；自动从 phone 字段生成，不允许手动编辑。
    */
@@ -859,10 +859,10 @@ export interface Listing {
   availableFrom?: string | null;
   spaceDetails?: {
     efficiencyRate?: number | null;
-    seatMin?: number | null;
-    seatMax?: number | null;
     orientation?: string | null;
     netCeilingHeight?: number | null;
+    seatMin?: number | null;
+    seatMax?: number | null;
     isDivisible?: boolean | null;
     furnitureStatus?: ('included' | 'optional' | 'none' | 'confirm') | null;
   };
@@ -951,13 +951,13 @@ export interface Listing {
      */
     externalId?: string | null;
     /**
-     * 详情页原始 URL
-     */
-    sourceUrl?: string | null;
-    /**
      * 最后一次从源平台同步的时间
      */
     syncedAt?: string | null;
+    /**
+     * 详情页原始 URL
+     */
+    sourceUrl?: string | null;
   };
   createdBy?: {
     relationTo: 'users';
@@ -1608,23 +1608,23 @@ export interface SupplySubmission {
 export interface CityPartnerApplication {
   id: number;
   city: number | Location;
+  applicantIdentity: 'owner-property' | 'broker-channel' | 'enterprise-service' | 'local-operations' | 'other';
   applicantName: string;
   contactPhone: string;
-  applicantIdentity: 'owner-property' | 'broker-channel' | 'enterprise-service' | 'local-operations' | 'other';
   otherIdentity?: string | null;
-  organizationName?: string | null;
   resourceTypes?:
     | ('building-owner' | 'tenant-demand' | 'broker-network' | 'local-team' | 'government-association' | 'other')[]
     | null;
+  organizationName?: string | null;
   otherResource?: string | null;
+  detailsCompletedAt?: string | null;
   experienceSummary?: string | null;
   cooperationPlan?: string | null;
-  detailsCompletedAt?: string | null;
   detailsFingerprint?: string | null;
   status: 'pending' | 'contacted' | 'evaluating' | 'qualified' | 'not-fit' | 'withdrawn';
   assignee?: (number | null) | User;
-  internalNote?: string | null;
   handledAt?: string | null;
+  internalNote?: string | null;
   requestId: string;
   idempotencyKey: string;
   sourcePath: string;
@@ -2694,8 +2694,8 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
-  loginName?: T;
   phone?: T;
+  loginName?: T;
   phoneNormalized?: T;
   status?: T;
   roles?: T;
@@ -3059,10 +3059,10 @@ export interface ListingsSelect<T extends boolean = true> {
     | T
     | {
         efficiencyRate?: T;
-        seatMin?: T;
-        seatMax?: T;
         orientation?: T;
         netCeilingHeight?: T;
+        seatMin?: T;
+        seatMax?: T;
         isDivisible?: T;
         furnitureStatus?: T;
       };
@@ -3118,8 +3118,8 @@ export interface ListingsSelect<T extends boolean = true> {
     | {
         source?: T;
         externalId?: T;
-        sourceUrl?: T;
         syncedAt?: T;
+        sourceUrl?: T;
       };
   createdBy?: T;
   lastModifiedBy?: T;
@@ -3436,21 +3436,21 @@ export interface SupplySubmissionsSelect<T extends boolean = true> {
  */
 export interface CityPartnerApplicationsSelect<T extends boolean = true> {
   city?: T;
+  applicantIdentity?: T;
   applicantName?: T;
   contactPhone?: T;
-  applicantIdentity?: T;
   otherIdentity?: T;
-  organizationName?: T;
   resourceTypes?: T;
+  organizationName?: T;
   otherResource?: T;
+  detailsCompletedAt?: T;
   experienceSummary?: T;
   cooperationPlan?: T;
-  detailsCompletedAt?: T;
   detailsFingerprint?: T;
   status?: T;
   assignee?: T;
-  internalNote?: T;
   handledAt?: T;
+  internalNote?: T;
   requestId?: T;
   idempotencyKey?: T;
   sourcePath?: T;

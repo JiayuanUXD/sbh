@@ -63,87 +63,97 @@ export const Users: CollectionConfig = {
     } as unknown as Field,
     // Email added by default by auth: true
     {
-      name: 'name',
-      label: '姓名',
-      type: 'text',
-      required: true,
-      admin: { description: '用户真实姓名；后台展示用。' },
-    },
-    {
-      name: 'loginName',
-      label: '登录账号',
-      type: 'text',
-      unique: true,
-      // 登录账号一旦设置不可修改（避免引用断裂）
-      admin: {
-        description:
-          '可选登录账号；留空时使用邮箱登录。一旦设置不可修改，且必须唯一。',
-        readOnly: true,
-        condition: (data) => Boolean(data?.loginName),
-      },
-      validate: (val: unknown) => {
-        if (!val) return true // 可选
-        if (typeof val !== 'string') return '登录账号必须是字符串'
-        if (!/^[a-zA-Z0-9._-]{3,32}$/.test(val)) {
-          return '登录账号仅允许字母/数字/./-/_,长度 3-32'
-        }
-        return true
-      },
-    },
-    {
-      name: 'phone',
-      label: '手机号',
-      type: 'text',
-      admin: {
-        description:
-          '原始手机号输入。系统自动规范化存入 phone_normalized；查询用 phone_normalized。',
-      },
-      // 入库前规范化原值（不影响 phone_normalized）
-      hooks: {
-        beforeChange: [
-          ({ value }) => {
-            if (typeof value !== 'string' || !value) return value
-            return normalizePhone(value)
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          label: '姓名',
+          type: 'text',
+          required: true,
+          admin: { description: '用户真实姓名；后台展示用。' },
+        },
+        {
+          name: 'phone',
+          label: '手机号',
+          type: 'text',
+          admin: {
+            description:
+              '原始手机号输入。系统自动规范化存入 phone_normalized；查询用 phone_normalized。',
           },
-        ],
-      },
-    },
-    {
-      name: 'phoneNormalized',
-      label: '规范化手机号',
-      type: 'text',
-      unique: true,
-      admin: {
-        description: '用于查重和登录；自动从 phone 字段生成，不允许手动编辑。',
-        readOnly: true,
-      },
-      hooks: {
-        beforeChange: [
-          ({ data }) => {
-            // 同步从 phone 字段派生。无手机号时返回 null（而非 ''）：
-            // phoneNormalized 是 unique，空串会占用唯一槽导致第二个无手机号账号冲突；
-            // null 在唯一索引下可多行并存。
-            const raw = (data?.phone as string | undefined) ?? ''
-            return normalizePhone(raw) || null
+          // 入库前规范化原值（不影响 phone_normalized）
+          hooks: {
+            beforeChange: [
+              ({ value }) => {
+                if (typeof value !== 'string' || !value) return value
+                return normalizePhone(value)
+              },
+            ],
           },
-        ],
-      },
-    },
-    {
-      name: 'status',
-      label: '账号状态',
-      type: 'select',
-      defaultValue: 'active',
-      required: true,
-      options: [
-        { label: '启用', value: 'active' },
-        { label: '停用', value: 'disabled' },
-        { label: '锁定', value: 'locked' },
+        },
       ],
-      admin: {
-        description:
-          '停用账号无法登录且旧会话失效；锁定账号在 locked_until 之前无法登录。',
-      },
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'loginName',
+          label: '登录账号',
+          type: 'text',
+          unique: true,
+          // 登录账号一旦设置不可修改（避免引用断裂）
+          admin: {
+            description:
+              '可选登录账号；留空时使用邮箱登录。一旦设置不可修改，且必须唯一。',
+            readOnly: true,
+            condition: (data) => Boolean(data?.loginName),
+          },
+          validate: (val: unknown) => {
+            if (!val) return true // 可选
+            if (typeof val !== 'string') return '登录账号必须是字符串'
+            if (!/^[a-zA-Z0-9._-]{3,32}$/.test(val)) {
+              return '登录账号仅允许字母/数字/./-/_,长度 3-32'
+            }
+            return true
+          },
+        },
+        {
+          name: 'phoneNormalized',
+          label: '规范化手机号',
+          type: 'text',
+          unique: true,
+          admin: {
+            description: '用于查重和登录；自动从 phone 字段生成，不允许手动编辑。',
+            readOnly: true,
+          },
+          hooks: {
+            beforeChange: [
+              ({ data }) => {
+                // 同步从 phone 字段派生。无手机号时返回 null（而非 ''）：
+                // phoneNormalized 是 unique，空串会占用唯一槽导致第二个无手机号账号冲突；
+                // null 在唯一索引下可多行并存。
+                const raw = (data?.phone as string | undefined) ?? ''
+                return normalizePhone(raw) || null
+              },
+            ],
+          },
+        },
+        {
+          name: 'status',
+          label: '账号状态',
+          type: 'select',
+          defaultValue: 'active',
+          required: true,
+          options: [
+            { label: '启用', value: 'active' },
+            { label: '停用', value: 'disabled' },
+            { label: '锁定', value: 'locked' },
+          ],
+          admin: {
+            description:
+              '停用账号无法登录且旧会话失效；锁定账号在 locked_until 之前无法登录。',
+          },
+        },
+      ],
     },
     {
       name: 'roles',
@@ -179,34 +189,39 @@ export const Users: CollectionConfig = {
       },
     },
     {
-      name: 'sessionVersion',
-      label: '会话版本',
-      type: 'number',
-      defaultValue: 1,
-      required: true,
-      admin: {
-        readOnly: true,
-        description: '停用账号时递增；旧会话 token 与版本不匹配即失效。',
-      },
-    },
-    {
-      name: 'failedLoginCount',
-      label: '连续登录失败次数',
-      type: 'number',
-      defaultValue: 0,
-      admin: {
-        readOnly: true,
-        description: '连续 5 次失败自动锁定 30 分钟。',
-      },
-    },
-    {
-      name: 'lockedUntil',
-      label: '锁定截止时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        description: '到达此时间后自动解锁。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'sessionVersion',
+          label: '会话版本',
+          type: 'number',
+          defaultValue: 1,
+          required: true,
+          admin: {
+            readOnly: true,
+            description: '停用账号时递增；旧会话 token 与版本不匹配即失效。',
+          },
+        },
+        {
+          name: 'failedLoginCount',
+          label: '连续登录失败次数',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            readOnly: true,
+            description: '连续 5 次失败自动锁定 30 分钟。',
+          },
+        },
+        {
+          name: 'lockedUntil',
+          label: '锁定截止时间',
+          type: 'date',
+          admin: {
+            readOnly: true,
+            description: '到达此时间后自动解锁。',
+          },
+        },
+      ],
     },
   ],
   // M1.5 收紧 access：

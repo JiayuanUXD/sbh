@@ -71,40 +71,45 @@ export const Notifications: CollectionConfig = {
   },
   fields: [
     {
-      name: 'recipient',
-      label: '收件人',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
-      index: true,
-      admin: {
-        description: '通知收件人（仅本人可读取 / 标记已读）。',
-      },
-    },
-    {
-      name: 'type',
-      label: '通知类型',
-      type: 'select',
-      required: true,
-      options: NOTIFICATION_TYPES.map((value) => ({
-        value,
-        label: NOTIFICATION_TYPE_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '通知类型枚举，由触发事件派生。',
-      },
-    },
-    {
-      name: 'title',
-      label: '标题',
-      type: 'text',
-      required: true,
-      admin: {
-        readOnly: true,
-        description: '通知标题（简洁中文文案）。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'recipient',
+          label: '收件人',
+          type: 'relationship',
+          relationTo: 'users',
+          required: true,
+          index: true,
+          admin: {
+            description: '通知收件人（仅本人可读取 / 标记已读）。',
+          },
+        },
+        {
+          name: 'type',
+          label: '通知类型',
+          type: 'select',
+          required: true,
+          options: NOTIFICATION_TYPES.map((value) => ({
+            value,
+            label: NOTIFICATION_TYPE_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '通知类型枚举，由触发事件派生。',
+          },
+        },
+        {
+          name: 'title',
+          label: '标题',
+          type: 'text',
+          required: true,
+          admin: {
+            readOnly: true,
+            description: '通知标题（简洁中文文案）。',
+          },
+        },
+      ],
     },
     {
       name: 'body',
@@ -116,64 +121,74 @@ export const Notifications: CollectionConfig = {
       },
     },
     {
-      name: 'sourceType',
-      label: '来源类型',
-      type: 'select',
-      required: true,
-      options: NOTIFICATION_SOURCE_TYPES.map((value) => ({
-        value,
-        label: NOTIFICATION_SOURCE_TYPE_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '来源业务对象类型（listing-review / lead / followup / task）。',
-      },
-    },
-    {
-      name: 'sourceId',
-      label: '来源 ID',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '来源业务对象 ID，用于点击通知跳转到详情页。',
-      },
-    },
-    {
-      name: 'eventId',
-      label: '事件 ID',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        description:
-          '触发通知的 Outbox event_id。与 recipient + type 共同构成幂等键。',
-      },
-    },
-    {
-      name: 'read',
-      label: '已读',
-      type: 'checkbox',
-      defaultValue: false,
-      index: true,
-      admin: {
-        description: '通知是否已读。已读后不允许回退为未读。',
-      },
-    },
-    {
-      name: 'readAt',
-      label: '已读时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        date: {
-          displayFormat: 'yyyy-MM-dd HH:mm:ss',
+      type: 'row',
+      fields: [
+        {
+          name: 'sourceType',
+          label: '来源类型',
+          type: 'select',
+          required: true,
+          options: NOTIFICATION_SOURCE_TYPES.map((value) => ({
+            value,
+            label: NOTIFICATION_SOURCE_TYPE_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '来源业务对象类型（listing-review / lead / followup / task）。',
+          },
         },
-        description: '通知已读时间（UTC 存储，Asia/Shanghai 显示）。',
-      },
+        {
+          name: 'sourceId',
+          label: '来源 ID',
+          type: 'text',
+          required: true,
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '来源业务对象 ID，用于点击通知跳转到详情页。',
+          },
+        },
+        {
+          name: 'eventId',
+          label: '事件 ID',
+          type: 'text',
+          required: true,
+          index: true,
+          admin: {
+            readOnly: true,
+            description:
+              '触发通知的 Outbox event_id。与 recipient + type 共同构成幂等键。',
+          },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'read',
+          label: '已读',
+          type: 'checkbox',
+          defaultValue: false,
+          index: true,
+          admin: {
+            description: '通知是否已读。已读后不允许回退为未读。',
+          },
+        },
+        {
+          name: 'readAt',
+          label: '已读时间',
+          type: 'date',
+          admin: {
+            readOnly: true,
+            date: {
+              displayFormat: 'yyyy-MM-dd HH:mm:ss',
+            },
+            description: '通知已读时间（UTC 存储，Asia/Shanghai 显示）。',
+          },
+        },
+      ],
     },
   ],
 }
