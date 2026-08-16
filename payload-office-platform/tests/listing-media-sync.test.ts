@@ -107,3 +107,66 @@ describe('syncListingMedia（房源媒体工作台派生 hook）', () => {
     expect(data.coverImage).toBeUndefined()
   })
 })
+
+describe('syncListingMedia：已上架媒体地板（拦截静默下架）', () => {
+  it('已上架房源经工作台保存后图片不足 3 张 → 抛错拦截，不落库', () => {
+    expect(() =>
+      run(
+        {
+          title: '陆家嘴甲级 780㎡',
+          publicationStatus: 'published',
+          // 4 个媒体但只有 2 张图片：视频 / 平面图不计入有效供给 §6
+          mediaItems: [
+            imageItem(101),
+            imageItem(102),
+            imageItem(103, { kind: 'video' }),
+            imageItem(104, { kind: 'floor-plan' }),
+          ],
+        },
+        { publicationStatus: 'published', mediaItems: [imageItem(101)] },
+      ),
+    ).toThrow(/至少需要 3 张/)
+  })
+
+  it('发布状态只在 originalDoc 上时同样拦截（表单未提交该 hidden 字段）', () => {
+    expect(() =>
+      run(
+        { title: '静安寺 42 工位', mediaItems: [imageItem(111), imageItem(112)] },
+        { publicationStatus: 'published', mediaItems: [imageItem(111)] },
+      ),
+    ).toThrow(/至少需要 3 张/)
+  })
+
+  it('图片达标 → 放行', () => {
+    const data = run(
+      {
+        title: '合规房源',
+        publicationStatus: 'published',
+        mediaItems: [imageItem(121), imageItem(122), imageItem(123), imageItem(124, { kind: 'video' })],
+      },
+      { publicationStatus: 'published', mediaItems: [imageItem(121)] },
+    )
+
+    expect(data.gallery).toEqual([{ image: 121 }, { image: 122 }, { image: 123 }])
+  })
+
+  it('草稿 / 已下架不拦截——草稿期允许边攒边存', () => {
+    for (const status of ['draft', 'unpublished', 'leased']) {
+      const data = run(
+        { title: '草稿房源', publicationStatus: status, mediaItems: [imageItem(131)] },
+        { publicationStatus: status, mediaItems: [imageItem(131), imageItem(132)] },
+      )
+      expect(data.gallery).toEqual([{ image: 131 }])
+    }
+  })
+
+  it('纯存量链路（未走工作台）不受地板约束——本次改动不改写既有数据', () => {
+    const legacyGallery = [{ image: 141 }]
+    const data = run(
+      { title: '存量已上架房源', publicationStatus: 'published', gallery: legacyGallery },
+      { publicationStatus: 'published', gallery: legacyGallery },
+    )
+
+    expect(data.gallery).toBe(legacyGallery)
+  })
+})
