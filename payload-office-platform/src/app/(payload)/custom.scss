@@ -1116,6 +1116,31 @@ html[data-theme='dark'] .arco-admin-dashboard {
     padding: 0;
   }
 
+  // ── row 内 checkbox 对齐修复 ──
+  // Payload 的 checkbox 默认把「勾选框 + label」内联渲染在格子顶部，
+  // 与 row 内相邻字段「label 在上、输入框在下」的节奏错位（顶部错行、下方留空）。
+  // 这里把 label 提到顶部、勾选框落到输入行，与其他字段完全对齐。
+  // DOM 顺序是 [勾选框][label]，用 column-reverse 视觉上交换为 label 在上。
+  .row__fields > .field-type.checkbox {
+    .checkbox-input {
+      align-items: flex-start;
+      display: flex;
+      flex-direction: column-reverse;
+
+      // 内联布局时 label 的 margin-bottom 会把勾选框往下推，
+      // 复用上面 .field-label 的 8px 规则即可，保持与相邻字段同样的 label→输入间距
+      .field-label {
+        margin-bottom: 8px;
+      }
+
+      // 勾选框与输入框顶部对齐（Payload 勾选框 20px，比 40px 输入框矮，
+      // 加 10px 顶部补偿使其视觉居中在输入行）
+      .checkbox-input__input {
+        margin-top: 10px;
+      }
+    }
+  }
+
   // ── 字段描述/帮助文字 ──
   .field-description,
   .admin-description {
