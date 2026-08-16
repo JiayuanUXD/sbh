@@ -18,6 +18,29 @@ import { isBusinessType, isDecorationStatus } from '@/domain/review/listing-fiel
 /** 提交审核要求的最少有效图片数（与 effective-supply §6 MIN_EFFECTIVE_MEDIA 对齐）。 */
 export const MIN_SUBMIT_MEDIA = 3
 
+/** 已上架媒体地板校验入参（调用方解析 gallery / 发布状态后传入，本函数不读库）。 */
+export interface PublishedMediaFloorSnapshot {
+  /** 本次写入后的发布状态（data ?? originalDoc，非法值按未上架处理）。 */
+  publicationStatus?: unknown
+  /** 本次写入后的有效图片数。 */
+  galleryCount: number
+}
+
+/**
+ * 已上架房源是否跌破媒体地板。
+ *
+ * 存在意义：提交审核门（checkListingCompleteness 的 gallery 分支）只在提交那一刻跑一次，
+ * 此后运营在媒体工作台删图不会复跑它；而有效供给精筛 §6 按 gallery 图片数实时判定，
+ * 跌破 MIN_SUBMIT_MEDIA 会把已上架房源从前台全量撤下，且不改写发布状态
+ * ——后台看着仍是「已发布」，前台已经 404。调用方据此显式拦截，替代这种静默下架。
+ *
+ * 草稿 / 已下架 / 已出租不受约束：这些状态本就不在前台，允许边攒素材边存。
+ */
+export function violatesPublishedMediaFloor(snapshot: PublishedMediaFloorSnapshot): boolean {
+  if (snapshot.publicationStatus !== 'published') return false
+  return snapshot.galleryCount < MIN_SUBMIT_MEDIA
+}
+
 /** 计价周期 / 单位合法值(与 money.ts PricingPeriod / PricingUnit 对齐,守卫用)。 */
 const PRICING_PERIODS = ['month', 'day', 'year'] as const
 const PRICING_UNITS = ['sqm', 'suite', 'seat'] as const

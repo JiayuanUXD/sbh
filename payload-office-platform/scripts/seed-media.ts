@@ -195,6 +195,17 @@ async function seedMedia() {
     galleryMedia.push(media)
   }
   const detailGalleryVideo = await uploadDetailGalleryVideoFixture(payload)
+  // 平面图单独一张：mediaItems 里 kind='floor-plan' 不计入 gallery（有效供给 §6 只数图片），
+  // 复用室内细节图会让同一张图同时出现在「图片」和「平面图」两个分类里。
+  payload.logger.info('平面图: 楼层平面示意图')
+  const floorPlanMedia = await uploadMedia(
+    payload,
+    '楼层平面示意图',
+    'office-floor-plan-schematic',
+    GALLERY_W,
+    GALLERY_H,
+    'floor-plan-1',
+  )
 
   // 4) 挂载到 buildings
   payload.logger.info('将图片挂载到楼盘...')
@@ -259,19 +270,26 @@ async function seedMedia() {
     update.gallery = galleryMedia.map((m) => ({ image: m.id }))
     // 详情页焦点循环 E2E 需要一个真实的原生 video[controls]；仅稳定基准房源
     // 使用结构化媒体，其他房源仍沿用 legacy gallery。
+    //
+    // ⚠️ 结构化链路的 mediaItems 必须含 ≥3 条 kind='image'：syncListingMedia 会用
+    // mediaItems 里的图片覆盖上面写入的 gallery，而视频与平面图不计入有效供给 §6
+    // （supply-adapter 的 listings_gallery COUNT >= 3）。少于 3 张 → 房源被精筛剔除
+    // → 详情页 404 → 全部 detail-* E2E 连带失败。
     if (listing.slug === 'jingan-serviced-office-42-seats') {
       update.mediaItems = [
         { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
         { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
         { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+        { resource: galleryMedia[2].id, kind: 'image', category: 'common-area', alt: '共享休闲区' },
       ]
     } else if (listing.slug === 'media-rich-listing') {
       // P1 Task 4：图片 + 视频 + 平面图（示意图）三类媒体，供 detail-media E2E 验证。
       update.mediaItems = [
         { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
         { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+        { resource: galleryMedia[2].id, kind: 'image', category: 'common-area', alt: '共享休闲区' },
         { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
-        { resource: galleryMedia[2].id, kind: 'floor-plan', category: 'workspace', alt: '平面图示意图', isSchematic: true },
+        { resource: floorPlanMedia.id, kind: 'floor-plan', category: 'workspace', alt: '平面图示意图', isSchematic: true },
       ]
     } else {
       update.mediaItems = []

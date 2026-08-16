@@ -27,7 +27,12 @@ import {
   REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
+import {
+  MIN_SUBMIT_MEDIA,
+  violatesPublishedMediaFloor,
+} from '@/domain/review/listing-completeness'
 import { protectListing } from '@/domain/review/listing-protect'
+import { InvalidOperationError } from '@/domain/shared/errors'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 
@@ -108,6 +113,22 @@ export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc
     .filter((id): id is number | string => id !== null)
   data.gallery = imageIds.map((image) => ({ image }))
   data.mediaItems = items
+
+  // 1.1 已上架媒体地板：视频/平面图不计入 §6，删图跌破 3 张会让房源从前台静默消失
+  //     （发布状态不变，后台仍显示「已发布」）。这里显式拦截，把静默下架变成可见错误。
+  //     只约束工作台链路；纯存量房源（未走工作台）在上面已 return，不受影响。
+  if (
+    violatesPublishedMediaFloor({
+      publicationStatus: data?.publicationStatus ?? originalDoc?.publicationStatus,
+      galleryCount: imageIds.length,
+    })
+  ) {
+    throw new InvalidOperationError({
+      domain: 'review',
+      code: 'PUBLISHED_MEDIA_FLOOR',
+      message: `已上架房源至少需要 ${MIN_SUBMIT_MEDIA} 张图片（当前 ${imageIds.length} 张）；视频与平面图不计入。请先补图，或先将房源下架再清理媒体。`,
+    })
+  }
 
   // 2. 无封面时自动取第一张图
   const existingCover = data.coverImage ?? originalDoc?.coverImage
