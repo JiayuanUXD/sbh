@@ -207,39 +207,49 @@ export const Locations: CollectionConfig = {
   },
   fields: [
     {
-      name: 'name',
-      label: '名称',
-      type: 'text',
-      required: true,
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          label: '名称',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'immutableCode',
+          label: '区域代码',
+          type: 'text',
+          required: true,
+          unique: true,
+          admin: {
+            readOnly: true,
+            description: '全局唯一，创建后不可修改（大写字母/数字开头，2–64 位）',
+          },
+        },
+      ],
     },
     {
-      name: 'immutableCode',
-      label: '区域代码',
-      type: 'text',
-      required: true,
-      unique: true,
-      admin: {
-        readOnly: true,
-        description: '全局唯一，创建后不可修改（大写字母/数字开头，2–64 位）',
-      },
-    },
-    {
-      name: 'slug',
-      label: 'URL 标识',
-      type: 'text',
-      required: true,
-      unique: true,
-    },
-    {
-      name: 'type',
-      label: '类型',
-      type: 'select',
-      required: true,
-      options: TYPE_OPTIONS,
-      admin: {
-        readOnly: true,
-        description: '固定层级：城市>行政区>商圈；城市>地铁线路>地铁站。创建后不可修改。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'slug',
+          label: 'URL 标识',
+          type: 'text',
+          required: true,
+          unique: true,
+        },
+        {
+          name: 'type',
+          label: '类型',
+          type: 'select',
+          required: true,
+          options: TYPE_OPTIONS,
+          admin: {
+            readOnly: true,
+            description: '固定层级：城市>行政区>商圈；城市>地铁线路>地铁站。创建后不可修改。',
+          },
+        },
+      ],
     },
     {
       name: 'parent',
@@ -273,43 +283,53 @@ export const Locations: CollectionConfig = {
       },
     },
     {
-      name: 'status',
-      label: '状态',
-      type: 'select',
-      required: true,
-      defaultValue: 'active',
-      options: [
-        { label: '启用', value: 'active' },
-        { label: '停用', value: 'disabled' },
+      type: 'row',
+      fields: [
+        {
+          name: 'status',
+          label: '状态',
+          type: 'select',
+          required: true,
+          defaultValue: 'active',
+          options: [
+            { label: '启用', value: 'active' },
+            { label: '停用', value: 'disabled' },
+          ],
+          admin: {
+            description: '停用后不出现在新业务候选，但历史引用仍展示。',
+          },
+        },
+        {
+          name: 'frontendVisible',
+          label: '前台可见',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: '仅启用节点可设为可见；停用时强制不可见。',
+          },
+        },
       ],
-      admin: {
-        description: '停用后不出现在新业务候选，但历史引用仍展示。',
-      },
     },
     {
-      name: 'frontendVisible',
-      label: '前台可见',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: '仅启用节点可设为可见；停用时强制不可见。',
-      },
-    },
-    {
-      name: 'centerLatitude',
-      label: '中心纬度',
-      type: 'number',
-      admin: {
-        description: '-90 ~ 90，需与经度成对填写',
-      },
-    },
-    {
-      name: 'centerLongitude',
-      label: '中心经度',
-      type: 'number',
-      admin: {
-        description: '-180 ~ 180，需与纬度成对填写',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'centerLatitude',
+          label: '中心纬度',
+          type: 'number',
+          admin: {
+            description: '-90 ~ 90，需与经度成对填写',
+          },
+        },
+        {
+          name: 'centerLongitude',
+          label: '中心经度',
+          type: 'number',
+          admin: {
+            description: '-180 ~ 180，需与纬度成对填写',
+          },
+        },
+      ],
     },
     {
       name: 'description',
@@ -334,27 +354,32 @@ export const Locations: CollectionConfig = {
       },
     },
     {
-      name: 'sortOrder',
-      label: '排序',
-      type: 'number',
-      defaultValue: 100,
-      validate: (val: unknown) => {
-        if (val === null || val === undefined) return true
-        if (typeof val !== 'number' || !Number.isInteger(val) || val < 0) {
-          return '排序必须为非负整数'
-        }
-        return true
-      },
-    },
-    {
-      name: 'version',
-      label: '版本号',
-      type: 'number',
-      defaultValue: 1,
-      admin: {
-        readOnly: true,
-        description: '乐观锁版本，由系统维护',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'sortOrder',
+          label: '排序',
+          type: 'number',
+          defaultValue: 100,
+          validate: (val: unknown) => {
+            if (val === null || val === undefined) return true
+            if (typeof val !== 'number' || !Number.isInteger(val) || val < 0) {
+              return '排序必须为非负整数'
+            }
+            return true
+          },
+        },
+        {
+          name: 'version',
+          label: '版本号',
+          type: 'number',
+          defaultValue: 1,
+          admin: {
+            readOnly: true,
+            description: '乐观锁版本，由系统维护',
+          },
+        },
+      ],
     },
     {
       // 商圈空间扩展面板（Task 11）：内嵌进商圈编辑页，替代「商圈管理」独立页。

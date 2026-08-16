@@ -1106,6 +1106,32 @@ html[data-theme='dark'] .arco-admin-dashboard {
     margin-top: 6px;
     margin-bottom: 0;
   }
+
+  // ── 只读字段弱化（详情化样式）──
+  // Payload 对 readOnly 的 text/number/textarea 字段渲染为 input[readonly] / textarea[readonly]，
+  // select / relationship 渲染为禁用态 react-select。统一改成灰底虚线边框，
+  // 与可编辑输入一眼区分，降低「看着像表单实际改不了」的误导。
+  // 主题变量在浅色/深色模式自动切换，fallback 仅作保底。
+  input[readonly],
+  textarea[readonly] {
+    background: var(--theme-elevation-50, #f5f5f5);
+    border-color: var(--theme-elevation-150, #dcdcdc);
+    border-style: dashed;
+    color: var(--theme-elevation-600, #6e6e6e);
+    cursor: default;
+  }
+
+  .react-select--is-disabled {
+    .react-select__control {
+      background: var(--theme-elevation-50, #f5f5f5);
+      border-color: var(--theme-elevation-150, #dcdcdc);
+      border-style: dashed;
+    }
+
+    .react-select__single-value {
+      color: var(--theme-elevation-600, #6e6e6e);
+    }
+  }
 }
 
 // 深色模式适配
@@ -1136,6 +1162,28 @@ html[data-theme='dark'] {
     &--active {
       border-bottom-color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
       color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
+    }
+  }
+
+  // 只读字段弱化样式的深色覆盖：--theme-elevation-* 未随主题重定义，
+  // 浅色段的 fallback 值在暗色下会形成亮块，这里显式给深色值。
+  .collection-edit {
+    input[readonly],
+    textarea[readonly] {
+      background: #2b2b2b;
+      border-color: #454545;
+      color: #a6a6a6;
+    }
+
+    .react-select--is-disabled {
+      .react-select__control {
+        background: #2b2b2b;
+        border-color: #454545;
+      }
+
+      .react-select__single-value {
+        color: #a6a6a6;
+      }
     }
   }
 }

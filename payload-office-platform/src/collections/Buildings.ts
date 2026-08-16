@@ -332,12 +332,27 @@ export const Buildings: CollectionConfig = {
               label: '开发商与规模',
               type: 'group',
               fields: [
-                { name: 'developer', label: '开发商', type: 'text', maxLength: 100 },
-                { name: 'grossFloorArea', label: '总建筑面积（㎡）', type: 'number', min: 0 },
-                { name: 'typicalFloorArea', label: '标准层面积（㎡）', type: 'number', min: 0 },
-                { name: 'standardFloorHeight', label: '标准层高（m）', type: 'number', min: 0 },
-                { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
-                { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'developer', label: '开发商', type: 'text', maxLength: 100 },
+                    { name: 'grossFloorArea', label: '总建筑面积（㎡）', type: 'number', min: 0 },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'typicalFloorArea', label: '标准层面积（㎡）', type: 'number', min: 0 },
+                    { name: 'standardFloorHeight', label: '标准层高（m）', type: 'number', min: 0 },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
+                    { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+                  ],
+                },
               ],
             },
             {
@@ -345,8 +360,13 @@ export const Buildings: CollectionConfig = {
               label: '垂直交通',
               type: 'group',
               fields: [
-                { name: 'passengerElevators', label: '客梯数量', type: 'number', min: 0 },
-                { name: 'freightElevators', label: '货梯数量', type: 'number', min: 0 },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'passengerElevators', label: '客梯数量', type: 'number', min: 0 },
+                    { name: 'freightElevators', label: '货梯数量', type: 'number', min: 0 },
+                  ],
+                },
                 { name: 'zoningNote', label: '分区说明', type: 'textarea', maxLength: 300 },
               ],
             },
@@ -355,12 +375,27 @@ export const Buildings: CollectionConfig = {
               label: '楼宇服务',
               type: 'group',
               fields: [
-                { name: 'airConditioning', label: '空调', type: 'text', maxLength: 100 },
-                { name: 'network', label: '网络', type: 'text', maxLength: 100 },
-                { name: 'powerSupply', label: '供电', type: 'text', maxLength: 100 },
-                { name: 'accessControl', label: '门禁', type: 'text', maxLength: 100 },
-                { name: 'parkingFee', label: '停车费', type: 'text', maxLength: 100 },
-                { name: 'serviceHours', label: '服务时间', type: 'text', maxLength: 100 },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'airConditioning', label: '空调', type: 'text', maxLength: 100 },
+                    { name: 'network', label: '网络', type: 'text', maxLength: 100 },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'powerSupply', label: '供电', type: 'text', maxLength: 100 },
+                    { name: 'accessControl', label: '门禁', type: 'text', maxLength: 100 },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'parkingFee', label: '停车费', type: 'text', maxLength: 100 },
+                    { name: 'serviceHours', label: '服务时间', type: 'text', maxLength: 100 },
+                  ],
+                },
               ],
             },
             {
@@ -380,8 +415,13 @@ export const Buildings: CollectionConfig = {
               label: '核验信息',
               type: 'group',
               fields: [
-                { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
-                { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
+                    { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+                  ],
+                },
               ],
             },
           ],

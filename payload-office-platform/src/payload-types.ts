@@ -599,12 +599,12 @@ export interface Broker {
    */
   user: number | User;
   team?: (number | null) | Team;
-  serviceCities?: (number | Location)[] | null;
-  serviceBusinessAreas?: (number | Location)[] | null;
   /**
    * 停用前若仍有未完成线索将被拦截，需先完成转派
    */
   employmentStatus: 'active' | 'disabled';
+  serviceCities?: (number | Location)[] | null;
+  serviceBusinessAreas?: (number | Location)[] | null;
   /**
    * 乐观锁版本，保存时自动递增
    */
@@ -1811,6 +1811,10 @@ export interface AuditLog {
    */
   result: 'success' | 'failed';
   /**
+   * 操作发生时间（UTC 存储，Asia/Shanghai 显示）。
+   */
+  occurredAt: string;
+  /**
    * 被操作对象所属 Collection（listings / buildings / leads ...）。
    */
   objectCollection: string;
@@ -1822,6 +1826,10 @@ export interface AuditLog {
    * 操作时对象的版本号（乐观锁）。
    */
   objectVersion: number;
+  /**
+   * 关联的领域事件 ID（如已写入 Outbox）。
+   */
+  eventId?: string | null;
   /**
    * 变更前对象快照（update / delete 时有值）。需 audit:before_after 权限可见。
    */
@@ -1863,6 +1871,10 @@ export interface AuditLog {
    */
   subjectUserId?: string | null;
   /**
+   * 操作时的所属团队 ID（如有）。
+   */
+  subjectTeamId?: string | null;
+  /**
    * 操作时的角色编码列表（写入时锁定，不随后续权限变更漂移）。
    */
   subjectRoleCodes?:
@@ -1874,10 +1886,6 @@ export interface AuditLog {
     | number
     | boolean
     | null;
-  /**
-   * 操作时的所属团队 ID（如有）。
-   */
-  subjectTeamId?: string | null;
   /**
    * 操作时的城市范围快照（"all" 或城市 ID 数组）。
    */
@@ -1895,21 +1903,21 @@ export interface AuditLog {
    */
   requestId?: string | null;
   /**
-   * 客户端 IP（x-forwarded-for 第一跳）。
-   */
-  ip?: string | null;
-  /**
-   * 客户端 User-Agent。
-   */
-  userAgent?: string | null;
-  /**
    * HTTP 请求方法（GET / POST / PUT / DELETE）。
    */
   method?: string | null;
   /**
+   * 客户端 IP（x-forwarded-for 第一跳）。
+   */
+  ip?: string | null;
+  /**
    * 请求 URL 路径（不含 query）。
    */
   path?: string | null;
+  /**
+   * 客户端 User-Agent。
+   */
+  userAgent?: string | null;
   /**
    * 操作失败时的错误码（result=failed 时有值）。
    */
@@ -1918,14 +1926,6 @@ export interface AuditLog {
    * 操作失败时的错误信息（result=failed 时有值）。
    */
   errorMessage?: string | null;
-  /**
-   * 关联的领域事件 ID（如已写入 Outbox）。
-   */
-  eventId?: string | null;
-  /**
-   * 操作发生时间（UTC 存储，Asia/Shanghai 显示）。
-   */
-  occurredAt: string;
   /**
    * 审计日志版本（append-only，恒为 1）。
    */
@@ -2873,9 +2873,9 @@ export interface BrokersSelect<T extends boolean = true> {
   displayName?: T;
   user?: T;
   team?: T;
+  employmentStatus?: T;
   serviceCities?: T;
   serviceBusinessAreas?: T;
-  employmentStatus?: T;
   version?: T;
   createdBy?: T;
   lastModifiedBy?: T;
@@ -3491,25 +3491,25 @@ export interface AuditLogsSelect<T extends boolean = true> {
   auditId?: T;
   action?: T;
   result?: T;
+  occurredAt?: T;
   objectCollection?: T;
   objectId?: T;
   objectVersion?: T;
+  eventId?: T;
   before?: T;
   after?: T;
   changedFields?: T;
   subjectUserId?: T;
-  subjectRoleCodes?: T;
   subjectTeamId?: T;
+  subjectRoleCodes?: T;
   subjectCityScope?: T;
   requestId?: T;
-  ip?: T;
-  userAgent?: T;
   method?: T;
+  ip?: T;
   path?: T;
+  userAgent?: T;
   errorCode?: T;
   errorMessage?: T;
-  eventId?: T;
-  occurredAt?: T;
   version?: T;
   createdBy?: T;
   lastModifiedBy?: T;
