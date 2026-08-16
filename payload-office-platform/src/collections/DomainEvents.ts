@@ -4,6 +4,7 @@ import { createCollectionAccess } from '@/domain/auth/access'
 import { protectDomainEvent } from '@/domain/workflow/workflow-protect'
 import {
   AGGREGATE_TYPES,
+  AGGREGATE_TYPE_LABELS,
   EVENT_TYPES,
   EVENT_TYPE_LABELS,
 } from '@/domain/workflow/event-types'
@@ -102,7 +103,10 @@ export const DomainEvents: CollectionConfig = {
       label: '聚合类型',
       type: 'select',
       required: true,
-      options: AGGREGATE_TYPES.map((value) => ({ value, label: value })),
+      options: AGGREGATE_TYPES.map((value) => ({
+        value,
+        label: AGGREGATE_TYPE_LABELS[value],
+      })),
       index: true,
       admin: {
         readOnly: true,

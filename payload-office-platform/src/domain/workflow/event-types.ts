@@ -144,6 +144,19 @@ export const AGGREGATE_TYPES = [
 
 export type AggregateType = (typeof AGGREGATE_TYPES)[number]
 
+/** 聚合类型中文标签（用于后台展示） */
+export const AGGREGATE_TYPE_LABELS: Record<AggregateType, string> = {
+  listing: '房源',
+  report: '举报',
+  lead: '线索',
+  followup: '跟进',
+  sla: 'SLA',
+  task: '待办',
+  correction: '信息纠错',
+  'supply-submission': '投放申请',
+  'city-partner-application': '城市合伙人申请',
+}
+
 /** 是否为已注册的聚合类型 */
 export function isAggregateType(value: unknown): value is AggregateType {
   return typeof value === 'string' && (AGGREGATE_TYPES as readonly string[]).includes(value)

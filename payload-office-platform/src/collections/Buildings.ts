@@ -1,5 +1,5 @@
 import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
-import { DETAIL_MEDIA_KINDS } from '@/domain/review/listing-fields'
+import { DETAIL_MEDIA_KINDS, DETAIL_MEDIA_KIND_LABELS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
@@ -21,6 +21,14 @@ import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-d
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
 
 const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
+
+/** 楼盘媒体分类中文标签，与 BuildingMediaManager 的 categoryLabels 保持一致。 */
+const BUILDING_MEDIA_CATEGORY_LABELS: Record<(typeof BUILDING_MEDIA_CATEGORIES)[number], string> = {
+  exterior: '外立面/建筑外观',
+  lobby: '大堂/前台',
+  'common-area': '公区/电梯厅',
+  facilities: '配套设施/周边',
+}
 
 type MediaItemInput = { kind?: unknown; resource?: unknown }
 
@@ -473,14 +481,20 @@ export const Buildings: CollectionConfig = {
                   label: '类型',
                   type: 'select',
                   required: true,
-                  options: DETAIL_MEDIA_KINDS.map((value) => ({ label: value, value })),
+                  options: DETAIL_MEDIA_KINDS.map((value) => ({
+                    label: DETAIL_MEDIA_KIND_LABELS[value],
+                    value,
+                  })),
                 },
                 {
                   name: 'category',
                   label: '分类',
                   type: 'select',
                   required: true,
-                  options: BUILDING_MEDIA_CATEGORIES.map((value) => ({ label: value, value })),
+                  options: BUILDING_MEDIA_CATEGORIES.map((value) => ({
+                    label: BUILDING_MEDIA_CATEGORY_LABELS[value],
+                    value,
+                  })),
                 },
                 { name: 'alt', label: '替代文本', type: 'text', required: true, maxLength: 160 },
                 { name: 'capturedAt', label: '拍摄时间', type: 'date' },

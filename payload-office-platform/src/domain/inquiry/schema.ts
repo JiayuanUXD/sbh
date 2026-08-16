@@ -35,9 +35,27 @@ export const SOURCE_SECTIONS = [
 ] as const
 export type SourceSection = (typeof SOURCE_SECTIONS)[number]
 
+/** 入口区块中文标签（用于后台展示） */
+export const SOURCE_SECTION_LABELS: Record<SourceSection, string> = {
+  hero: '首屏主区',
+  'sticky-card': '侧边悬浮卡',
+  'mobile-bar': '移动端底栏',
+  'supply-lease': '租赁供给区',
+  'supply-sale': '出售供给区',
+  'supply-coworking': '共享办公供给区',
+  recommendation: '推荐区',
+}
+
 /** 楼盘详情供给分组，与 Public Catalog DTO 保持一致。 */
 export const SUPPLY_GROUPS = ['lease', 'sale', 'coworking'] as const
 export type InquirySupplyGroup = (typeof SUPPLY_GROUPS)[number]
+
+/** 供给分组中文标签（用于后台展示） */
+export const SUPPLY_GROUP_LABELS: Record<InquirySupplyGroup, string> = {
+  lease: '租赁',
+  sale: '出售',
+  coworking: '共享办公',
+}
 
 /** 公开价格展示单位；询盘只接受该有限枚举，绝不接收自由文本。 */
 export const PRICE_UNITS = [

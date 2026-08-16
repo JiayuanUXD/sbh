@@ -330,14 +330,6 @@ export interface Role {
     | number
     | boolean
     | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -402,14 +394,6 @@ export interface Media {
   id: number;
   alt: string;
   prefix?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   blurDataUrl?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -440,14 +424,6 @@ export interface Team {
    * 乐观锁版本，保存时自动递增
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -500,14 +476,6 @@ export interface BusinessAreaExtension {
    * 乐观锁版本，由系统维护
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -532,14 +500,6 @@ export interface CitySiteProfile {
   contactHeading?: string | null;
   contactBody?: string | null;
   featuredRegions?: (number | Location)[] | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -573,14 +533,6 @@ export interface Merchant {
    * 乐观锁版本，保存时自动递增
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -609,14 +561,6 @@ export interface Broker {
    * 乐观锁版本，保存时自动递增
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -742,14 +686,6 @@ export interface Building {
     title?: string | null;
     description?: string | null;
   };
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -778,14 +714,6 @@ export interface BuildingMerchantRelation {
    * 乐观锁版本，保存时自动递增
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -810,14 +738,6 @@ export interface ListingMerchantRelation {
    * 乐观锁版本号,系统维护。
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -959,14 +879,6 @@ export interface Listing {
      */
     sourceUrl?: string | null;
   };
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1142,14 +1054,6 @@ export interface Lead {
     timezone?: string | null;
     status?: 'pending-confirmation' | null;
   };
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1173,14 +1077,6 @@ export interface Customer {
    */
   phoneMaskedSnapshot?: string | null;
   status?: ('active' | 'converted' | 'lost') | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1275,14 +1171,6 @@ export interface Page {
     title?: string | null;
     description?: string | null;
   };
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1331,14 +1219,6 @@ export interface Article {
     title?: string | null;
     description?: string | null;
   };
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -1367,14 +1247,6 @@ export interface DisplayTag {
    * 乐观锁版本号,系统维护
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1424,14 +1296,6 @@ export interface ListingReview {
    * 记录自身版本（append-only，恒为 1）。
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1502,14 +1366,6 @@ export interface ListingReport {
   supplyPaused?: boolean | null;
   supplyPausedAt?: string | null;
   supplyResumedAt?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1590,14 +1446,6 @@ export interface SupplySubmission {
    * 反垃圾用，不存原始 IP。
    */
   submitterIpHash?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1632,14 +1480,6 @@ export interface CityPartnerApplication {
   consentAccepted: boolean;
   consentPolicyVersion: string;
   submitterIpHash?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1730,14 +1570,6 @@ export interface DomainEvent {
    * 消费器最后处理错误。成功后清空。
    */
   lastError?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1930,14 +1762,6 @@ export interface AuditLog {
    * 审计日志版本（append-only，恒为 1）。
    */
   version?: number | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2019,14 +1843,6 @@ export interface Task {
     | number
     | boolean
     | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2082,14 +1898,6 @@ export interface Notification {
    * 通知已读时间（UTC 存储，Asia/Shanghai 显示）。
    */
   readAt?: string | null;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2735,8 +2543,6 @@ export interface RolesSelect<T extends boolean = true> {
   menuPermissions?: T;
   operationPermissions?: T;
   fieldPermissions?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2747,8 +2553,6 @@ export interface RolesSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   prefix?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   blurDataUrl?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2801,8 +2605,6 @@ export interface BusinessAreaExtensionsSelect<T extends boolean = true> {
       };
   metroStations?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2826,8 +2628,6 @@ export interface CitySiteProfilesSelect<T extends boolean = true> {
   contactHeading?: T;
   contactBody?: T;
   featuredRegions?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2845,8 +2645,6 @@ export interface MerchantsSelect<T extends boolean = true> {
   qualificationStatus?: T;
   qualificationExpiresAt?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2860,8 +2658,6 @@ export interface TeamsSelect<T extends boolean = true> {
   cityScope?: T;
   status?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2877,8 +2673,6 @@ export interface BrokersSelect<T extends boolean = true> {
   serviceCities?: T;
   serviceBusinessAreas?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2989,8 +2783,6 @@ export interface BuildingsSelect<T extends boolean = true> {
         title?: T;
         description?: T;
       };
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3006,8 +2798,6 @@ export interface BuildingMerchantRelationsSelect<T extends boolean = true> {
   effectiveTo?: T;
   createdReason?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3022,8 +2812,6 @@ export interface ListingMerchantRelationsSelect<T extends boolean = true> {
   effectiveTo?: T;
   createdReason?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3121,8 +2909,6 @@ export interface ListingsSelect<T extends boolean = true> {
         syncedAt?: T;
         sourceUrl?: T;
       };
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3196,8 +2982,6 @@ export interface LeadsSelect<T extends boolean = true> {
         timezone?: T;
         status?: T;
       };
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3212,8 +2996,6 @@ export interface CustomersSelect<T extends boolean = true> {
   phoneNormalized?: T;
   phoneMaskedSnapshot?: T;
   status?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3273,8 +3055,6 @@ export interface PagesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
       };
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3301,8 +3081,6 @@ export interface ArticlesSelect<T extends boolean = true> {
         title?: T;
         description?: T;
       };
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -3318,8 +3096,6 @@ export interface DisplayTagsSelect<T extends boolean = true> {
   visible?: T;
   status?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3340,8 +3116,6 @@ export interface ListingReviewsSelect<T extends boolean = true> {
   reviewedAt?: T;
   listingVersion?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3370,8 +3144,6 @@ export interface ListingReportsSelect<T extends boolean = true> {
   supplyPaused?: T;
   supplyPausedAt?: T;
   supplyResumedAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3425,8 +3197,6 @@ export interface SupplySubmissionsSelect<T extends boolean = true> {
   consentAccepted?: T;
   consentPolicyVersion?: T;
   submitterIpHash?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3458,8 +3228,6 @@ export interface CityPartnerApplicationsSelect<T extends boolean = true> {
   consentAccepted?: T;
   consentPolicyVersion?: T;
   submitterIpHash?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3478,8 +3246,6 @@ export interface DomainEventsSelect<T extends boolean = true> {
   processedAt?: T;
   attemptCount?: T;
   lastError?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3511,8 +3277,6 @@ export interface AuditLogsSelect<T extends boolean = true> {
   before?: T;
   after?: T;
   version?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3535,8 +3299,6 @@ export interface TasksSelect<T extends boolean = true> {
   cancellationReason?: T;
   completionEventId?: T;
   metadata?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3554,8 +3316,6 @@ export interface NotificationsSelect<T extends boolean = true> {
   eventId?: T;
   read?: T;
   readAt?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3893,14 +3653,6 @@ export interface AdvisorServiceHour {
     | null;
   openMessage: string;
   closedMessage: string;
-  createdBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
-  lastModifiedBy?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3951,8 +3703,6 @@ export interface AdvisorServiceHoursSelect<T extends boolean = true> {
       };
   openMessage?: T;
   closedMessage?: T;
-  createdBy?: T;
-  lastModifiedBy?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

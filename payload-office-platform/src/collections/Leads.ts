@@ -6,7 +6,12 @@ import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
 import { leadReadAccess } from '@/domain/crm/lead-read-access'
 import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
-import { SOURCE_SECTIONS, SUPPLY_GROUPS } from '@/domain/inquiry/schema'
+import {
+  SOURCE_SECTIONS,
+  SOURCE_SECTION_LABELS,
+  SUPPLY_GROUPS,
+  SUPPLY_GROUP_LABELS,
+} from '@/domain/inquiry/schema'
 
 /**
  * F5 前台咨询表单来源页面类型（FP-05 §2 入口）
@@ -28,6 +33,16 @@ export const INQUIRY_SOURCE_PAGE_TYPES = [
 ] as const
 export type InquirySourcePageType = (typeof INQUIRY_SOURCE_PAGE_TYPES)[number]
 
+/** 入口页面类型中文标签（用于后台展示） */
+export const INQUIRY_SOURCE_PAGE_TYPE_LABELS: Record<InquirySourcePageType, string> = {
+  home: '首页',
+  search: '搜索页',
+  listing: '房源详情页',
+  building: '楼盘详情页',
+  content: '内容页',
+  entrust: '委托找房页',
+}
+
 /**
  * F5 询盘目标对象类型（FP-05 §2 入口必须携带目标房源/楼盘）
  *
@@ -37,6 +52,13 @@ export type InquirySourcePageType = (typeof INQUIRY_SOURCE_PAGE_TYPES)[number]
  */
 export const INQUIRY_TARGET_TYPES = ['listing', 'building', 'none'] as const
 export type InquiryTargetType = (typeof INQUIRY_TARGET_TYPES)[number]
+
+/** 目标对象类型中文标签（用于后台展示） */
+export const INQUIRY_TARGET_TYPE_LABELS: Record<InquiryTargetType, string> = {
+  listing: '房源',
+  building: '楼盘',
+  none: '无目标',
+}
 
 export const Leads: CollectionConfig = {
   slug: 'leads',
@@ -492,7 +514,10 @@ export const Leads: CollectionConfig = {
                       name: 'sourcePageType',
                       label: '入口页面类型',
                       type: 'select',
-                      options: INQUIRY_SOURCE_PAGE_TYPES.map((value) => ({ value, label: value })),
+                      options: INQUIRY_SOURCE_PAGE_TYPES.map((value) => ({
+                        value,
+                        label: INQUIRY_SOURCE_PAGE_TYPE_LABELS[value],
+                      })),
                       admin: {
                         readOnly: true,
                         description: '前台入口页面类型：home / search / listing / building / content。',
@@ -530,7 +555,10 @@ export const Leads: CollectionConfig = {
                       name: 'targetType',
                       label: '目标对象类型',
                       type: 'select',
-                      options: INQUIRY_TARGET_TYPES.map((value) => ({ value, label: value })),
+                      options: INQUIRY_TARGET_TYPES.map((value) => ({
+                        value,
+                        label: INQUIRY_TARGET_TYPE_LABELS[value],
+                      })),
                       admin: {
                         readOnly: true,
                         description: 'listing / building / none（通用需求）。',
@@ -563,7 +591,10 @@ export const Leads: CollectionConfig = {
                       name: 'sourceSection',
                       label: '详情页入口区块',
                       type: 'select',
-                      options: SOURCE_SECTIONS.map((value) => ({ value, label: value })),
+                      options: SOURCE_SECTIONS.map((value) => ({
+                        value,
+                        label: SOURCE_SECTION_LABELS[value],
+                      })),
                       admin: {
                         readOnly: true,
                         description: '仅保存白名单化的详情页入口区块；不保存任意前台文案。',
@@ -573,7 +604,10 @@ export const Leads: CollectionConfig = {
                       name: 'activeSupplyGroup',
                       label: '当前供给分组',
                       type: 'select',
-                      options: SUPPLY_GROUPS.map((value) => ({ value, label: value })),
+                      options: SUPPLY_GROUPS.map((value) => ({
+                        value,
+                        label: SUPPLY_GROUP_LABELS[value],
+                      })),
                       admin: {
                         readOnly: true,
                         description: '提交时页面当前的供给分组，仅接受 lease / sale / coworking。',

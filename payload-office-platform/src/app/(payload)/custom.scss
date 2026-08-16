@@ -1090,23 +1090,47 @@ html[data-theme='dark'] .arco-admin-dashboard {
     }
   }
 
-  // ── Row 多列容器 ──
-  // row__fields 是 flex 容器，内部子字段等宽分布
+  // ── Row 多列容器：响应式列数（容器查询） ──
+  // 列数由 row 自身可用宽度决定（不受侧边栏折叠、嵌套 group/tab 缩进影响）：
+  //   < 480px → 1 列；≥480px → 2 列；≥720px → 3 列；≥960px → 4 列（上限）
+  // 每个子字段的 flex-basis = 1/列数 - gap 份额，配合 flex-grow:1：
+  //   字段数少于列数 → 整行均分（2 字段在 4 列宽度下仍各占 50%）；
+  //   字段数超过列数 → 自动换行成多行（如 7 字段在 4 列宽度下排 4+3）。
   .row__fields {
     column-gap: 16px !important;
+    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     row-gap: 20px;
 
-    // 每个子字段：flex:1 均分宽度，min-width:0 防止内容撑破
-    // 清除水平 margin-right（Payload 默认 5px 做间距，已用 gap 替代），
-    // 清除垂直 margin-bottom（由 row-gap 和外层 row 的 margin-bottom 控制，避免不同字段类型 margin 不一致导致对齐问题）
+    // 清除 Payload 默认水平 margin（左右各 5px，已用 gap 替代）与垂直 margin
+    // （由 row-gap 与外层 row 的 margin-bottom 控制，避免不同字段类型对齐错位）
     > .field-type {
-      flex: 1 1 0% !important;
-      flex-basis: 0% !important;
+      flex: 1 1 100% !important;
       margin-bottom: 0 !important;
+      margin-left: 0 !important;
       margin-right: 0 !important;
       min-width: 0;
+    }
+  }
+
+  // 注意：basis 比理论值（1/列数 - gap 份额）多减了几像素，给亚像素舍入留余量，
+  // 否则恰好在断点附近会出现「差 1px 溢出 → 提前换行」；缺口由 flex-grow 补齐，视觉等宽。
+  @container (min-width: 480px) {
+    .row__fields > .field-type {
+      flex-basis: calc(50% - 12px) !important;
+    }
+  }
+
+  @container (min-width: 720px) {
+    .row__fields > .field-type {
+      flex-basis: calc(33.333% - 16px) !important;
+    }
+  }
+
+  @container (min-width: 960px) {
+    .row__fields > .field-type {
+      flex-basis: calc(25% - 16px) !important;
     }
   }
 
@@ -1116,28 +1140,20 @@ html[data-theme='dark'] .arco-admin-dashboard {
     padding: 0;
   }
 
-  // ── row 内 checkbox 对齐修复 ──
-  // Payload 的 checkbox 默认把「勾选框 + label」内联渲染在格子顶部，
-  // 与 row 内相邻字段「label 在上、输入框在下」的节奏错位（顶部错行、下方留空）。
-  // 这里把 label 提到顶部、勾选框落到输入行，与其他字段完全对齐。
-  // DOM 顺序是 [勾选框][label]，用 column-reverse 视觉上交换为 label 在上。
+  // ── row 内 checkbox 对齐 ──
+  // Payload 的 checkbox 原生形态是「勾选框+文字」内联块（高约 20px），直接放进
+  // row 会吊在格子顶部，与相邻字段「label 上、40px 输入框下」的节奏错位。
+  // 这里保持原生内联形态（框和文字是一体的，不拆开），整体下沉到输入行区域：
+  //   margin-top 28px = label 行高 20 + label 底距 8，再占满 40px 输入行高度，
+  //   内联块在其中垂直居中，勾选框中心与相邻输入框中心（48px 处）重合。
+  // 同时清掉 Payload 给 .checkbox-input 的底色（浅色 #fff / 深色 #222），
+  // 避免在深色模式下与页面背景形成突兀的色块。
   .row__fields > .field-type.checkbox {
     .checkbox-input {
-      align-items: flex-start;
-      display: flex;
-      flex-direction: column-reverse;
-
-      // 内联布局时 label 的 margin-bottom 会把勾选框往下推，
-      // 复用上面 .field-label 的 8px 规则即可，保持与相邻字段同样的 label→输入间距
-      .field-label {
-        margin-bottom: 8px;
-      }
-
-      // 勾选框与输入框顶部对齐（Payload 勾选框 20px，比 40px 输入框矮，
-      // 加 10px 顶部补偿使其视觉居中在输入行）
-      .checkbox-input__input {
-        margin-top: 10px;
-      }
+      align-items: center;
+      background: transparent;
+      height: 40px;
+      margin-top: 28px;
     }
   }
 
