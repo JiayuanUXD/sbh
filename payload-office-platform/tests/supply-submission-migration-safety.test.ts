@@ -19,11 +19,18 @@ describe('notification unique-index duplicate preflight', () => {
     await duplicatePreflight({ db: { execute } } as never)
     const query = JSON.stringify(execute.mock.calls)
     expect(query).toContain('IS NOT NULL')
+    // 布局 row 收口后具名字段嵌套在 row.fields 下，需递归查找
+    const collectFieldNames = (fields: readonly unknown[]): unknown[] =>
+      fields.flatMap((f) => {
+        const field = f as { name?: string; required?: boolean; fields?: readonly unknown[] }
+        const nested = field.fields ? collectFieldNames(field.fields) : []
+        return field.name ? [{ name: field.name, required: field.required }, ...nested] : nested
+      })
+    const flattened = collectFieldNames(Notifications.fields)
     for (const fieldName of ['eventId', 'recipient', 'type']) {
-      expect(Notifications.fields).toContainEqual(expect.objectContaining({
-        name: fieldName,
-        required: true,
-      }))
+      expect(flattened).toContainEqual(
+        expect.objectContaining({ name: fieldName, required: true }),
+      )
     }
   })
 

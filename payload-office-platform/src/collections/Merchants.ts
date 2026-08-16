@@ -86,33 +86,43 @@ export const Merchants: CollectionConfig = {
   },
   fields: [
     {
-      name: 'name',
-      label: '商户名称',
-      type: 'text',
-      required: true,
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          label: '商户名称',
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'type',
+          label: '商户类型',
+          type: 'select',
+          required: true,
+          options: TYPE_OPTIONS,
+          admin: {
+            description: '业主 / 中介 / 灵活办公品牌 / 渠道，创建后可改但属固定枚举',
+          },
+        },
+      ],
     },
     {
-      name: 'type',
-      label: '商户类型',
-      type: 'select',
-      required: true,
-      options: TYPE_OPTIONS,
-      admin: {
-        description: '业主 / 中介 / 灵活办公品牌 / 渠道，创建后可改但属固定枚举',
-      },
-    },
-    {
-      name: 'contactName',
-      label: '联系人',
-      type: 'text',
-    },
-    {
-      name: 'contactPhone',
-      label: '联系电话',
-      type: 'text',
-      admin: {
-        description: '中国大陆手机号，保存时自动规范化（去空格/横线/+86）',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'contactName',
+          label: '联系人',
+          type: 'text',
+        },
+        {
+          name: 'contactPhone',
+          label: '联系电话',
+          type: 'text',
+          admin: {
+            description: '中国大陆手机号，保存时自动规范化（去空格/横线/+86）',
+          },
+        },
+      ],
     },
     {
       name: 'serviceCities',
@@ -124,23 +134,28 @@ export const Merchants: CollectionConfig = {
       filterOptions: () => activeLocationFilter(['city']),
     },
     {
-      name: 'status',
-      label: '状态',
-      type: 'select',
-      required: true,
-      defaultValue: 'active',
-      options: STATUS_OPTIONS,
-      admin: {
-        description: '停用前若仍有有效供给关系将被拦截，需先完成影响确认与转派',
-      },
-    },
-    {
-      name: 'qualificationStatus',
-      label: '资质状态',
-      type: 'select',
-      required: true,
-      defaultValue: 'pending',
-      options: QUALIFICATION_OPTIONS,
+      type: 'row',
+      fields: [
+        {
+          name: 'status',
+          label: '状态',
+          type: 'select',
+          required: true,
+          defaultValue: 'active',
+          options: STATUS_OPTIONS,
+          admin: {
+            description: '停用前若仍有有效供给关系将被拦截，需先完成影响确认与转派',
+          },
+        },
+        {
+          name: 'qualificationStatus',
+          label: '资质状态',
+          type: 'select',
+          required: true,
+          defaultValue: 'pending',
+          options: QUALIFICATION_OPTIONS,
+        },
+      ],
     },
     {
       name: 'qualificationExpiresAt',

@@ -223,73 +223,83 @@ export const ListingReports: CollectionConfig = {
       ],
     },
     {
-      name: 'reporterName',
-      label: '举报人姓名',
-      type: 'text',
-      admin: {
-        description: '匿名举报可留空。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'reporterName',
+          label: '举报人姓名',
+          type: 'text',
+          admin: {
+            description: '匿名举报可留空。',
+          },
+        },
+        {
+          name: 'reporterPhone',
+          label: '举报人电话',
+          type: 'text',
+          admin: {
+            description: '匿名举报可留空；非匿名时用于回访。',
+          },
+        },
+        {
+          name: 'reporterIpHash',
+          label: '举报人 IP 哈希',
+          type: 'text',
+          admin: {
+            readOnly: true,
+            description: '存储 IP 哈希用于反垃圾，不存原始 IP。',
+          },
+        },
+      ],
     },
     {
-      name: 'reporterPhone',
-      label: '举报人电话',
-      type: 'text',
-      admin: {
-        description: '匿名举报可留空；非匿名时用于回访。',
-      },
-    },
-    {
-      name: 'reporterIpHash',
-      label: '举报人 IP 哈希',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '存储 IP 哈希用于反垃圾，不存原始 IP。',
-      },
-    },
-    {
-      name: 'status',
-      label: '处理状态',
-      type: 'select',
-      options: REPORT_STATUSES.map((value) => ({
-        value,
-        label: REPORT_STATUS_LABELS[value],
-      })),
-      admin: {
-        readOnly: true,
-        description: '由状态转换服务推导，不接受外部直接指定。',
-      },
-    },
-    {
-      name: 'statusVersion',
-      label: '状态版本号',
-      type: 'number',
-      defaultValue: 1,
-      admin: {
-        readOnly: true,
-        description: '每次状态变更 +1，用于乐观锁和审计。',
-      },
-    },
-    {
-      name: 'assignee',
-      label: '负责人',
-      type: 'relationship',
-      relationTo: 'users',
-      admin: {
-        description: '分诊或领取后指派的处理人。',
-      },
-    },
-    {
-      name: 'conclusion',
-      label: '结论',
-      type: 'select',
-      options: REPORT_CONCLUSIONS.map((value) => ({
-        value,
-        label: REPORT_CONCLUSION_LABELS[value],
-      })),
-      admin: {
-        description: '仅在关闭时填写：举报成立 / 不成立 / 部分成立。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'status',
+          label: '处理状态',
+          type: 'select',
+          options: REPORT_STATUSES.map((value) => ({
+            value,
+            label: REPORT_STATUS_LABELS[value],
+          })),
+          admin: {
+            readOnly: true,
+            description: '由状态转换服务推导，不接受外部直接指定。',
+          },
+        },
+        {
+          name: 'statusVersion',
+          label: '状态版本号',
+          type: 'number',
+          defaultValue: 1,
+          admin: {
+            readOnly: true,
+            description: '每次状态变更 +1，用于乐观锁和审计。',
+          },
+        },
+        {
+          name: 'assignee',
+          label: '负责人',
+          type: 'relationship',
+          relationTo: 'users',
+          admin: {
+            description: '分诊或领取后指派的处理人。',
+          },
+        },
+        {
+          name: 'conclusion',
+          label: '结论',
+          type: 'select',
+          options: REPORT_CONCLUSIONS.map((value) => ({
+            value,
+            label: REPORT_CONCLUSION_LABELS[value],
+          })),
+          admin: {
+            description: '仅在关闭时填写：举报成立 / 不成立 / 部分成立。',
+          },
+        },
+      ],
     },
     {
       name: 'conclusionReason',
@@ -300,30 +310,35 @@ export const ListingReports: CollectionConfig = {
       },
     },
     {
-      name: 'supplyPaused',
-      label: '供给已暂停',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        readOnly: true,
-        description: '有效举报成立时为 true，影响统一有效供给谓词。',
-      },
-    },
-    {
-      name: 'supplyPausedAt',
-      label: '供给暂停时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-      },
-    },
-    {
-      name: 'supplyResumedAt',
-      label: '供给恢复时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'supplyPaused',
+          label: '供给已暂停',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            readOnly: true,
+            description: '有效举报成立时为 true，影响统一有效供给谓词。',
+          },
+        },
+        {
+          name: 'supplyPausedAt',
+          label: '供给暂停时间',
+          type: 'date',
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'supplyResumedAt',
+          label: '供给恢复时间',
+          type: 'date',
+          admin: {
+            readOnly: true,
+          },
+        },
+      ],
     },
   ],
 }

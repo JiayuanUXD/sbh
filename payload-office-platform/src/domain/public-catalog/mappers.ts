@@ -47,7 +47,12 @@ import {
   BUILDING_TYPE_LABELS,
   REGISTRATION_CAPABILITY_LABELS,
 } from '@/domain/supply/building'
-import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
+import {
+  COST_INCLUSION_STATUS_LABELS,
+  DECORATION_STATUS_LABELS,
+  FURNITURE_STATUS_LABELS,
+  INVOICE_STATUS_LABELS,
+} from '@/domain/review/listing-fields'
 import { formatAvailableDate } from '@/lib/frontend/format'
 
 // ---------------------------------------------------------------------------
@@ -557,7 +562,12 @@ function mapListingFactGroups(listing: PopulatedListing): readonly FactGroupView
           '装修',
           listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
         ),
-        fact('家具', details.furnitureStatus),
+        fact(
+          '家具',
+          details.furnitureStatus && details.furnitureStatus in FURNITURE_STATUS_LABELS
+            ? FURNITURE_STATUS_LABELS[details.furnitureStatus as keyof typeof FURNITURE_STATUS_LABELS]
+            : null,
+        ),
         fact('可入驻日期', listing.availableFrom),
       ],
     },
@@ -580,9 +590,21 @@ function mapListingFactGroups(listing: PopulatedListing): readonly FactGroupView
         fact('最短租期', listing.minimumLeaseMonths, { suffix: ' 个月' }),
         fact('付款方式', listing.paymentTerms),
         fact('押金月数', costs.depositMonths, { suffix: ' 个月' }),
-        fact('物业费', costs.propertyFeeInclusion),
+        fact(
+          '物业费',
+          costs.propertyFeeInclusion && costs.propertyFeeInclusion in COST_INCLUSION_STATUS_LABELS
+            ? COST_INCLUSION_STATUS_LABELS[
+                costs.propertyFeeInclusion as keyof typeof COST_INCLUSION_STATUS_LABELS
+              ]
+            : null,
+        ),
         fact('物业费金额', costs.propertyFeeAmount, { suffix: ' 元/㎡/月' }),
-        fact('发票', costs.invoiceStatus),
+        fact(
+          '发票',
+          costs.invoiceStatus && costs.invoiceStatus in INVOICE_STATUS_LABELS
+            ? INVOICE_STATUS_LABELS[costs.invoiceStatus as keyof typeof INVOICE_STATUS_LABELS]
+            : null,
+        ),
         fact('其他固定费用', costs.otherFixedCosts),
       ],
     },

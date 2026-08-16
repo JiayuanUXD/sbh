@@ -59,34 +59,39 @@ export const ListingReviews: CollectionConfig = {
   },
   fields: [
     {
-      name: 'listing',
-      label: '房源',
-      type: 'relationship',
-      relationTo: 'listings',
-      required: true,
-    },
-    {
-      name: 'decision',
-      label: '审核动作',
-      type: 'select',
-      required: true,
-      options: REVIEW_DECISIONS.map((value) => ({
-        value,
-        label: REVIEW_DECISION_LABELS[value],
-      })),
-    },
-    {
-      name: 'taskStatus',
-      label: '处理状态',
-      type: 'select',
-      options: REVIEW_TASK_STATUSES.map((value) => ({
-        value,
-        label: REVIEW_TASK_STATUS_LABELS[value],
-      })),
-      admin: {
-        readOnly: true,
-        description: '由审核动作单一推导，不可外部指定。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'listing',
+          label: '房源',
+          type: 'relationship',
+          relationTo: 'listings',
+          required: true,
+        },
+        {
+          name: 'decision',
+          label: '审核动作',
+          type: 'select',
+          required: true,
+          options: REVIEW_DECISIONS.map((value) => ({
+            value,
+            label: REVIEW_DECISION_LABELS[value],
+          })),
+        },
+        {
+          name: 'taskStatus',
+          label: '处理状态',
+          type: 'select',
+          options: REVIEW_TASK_STATUSES.map((value) => ({
+            value,
+            label: REVIEW_TASK_STATUS_LABELS[value],
+          })),
+          admin: {
+            readOnly: true,
+            description: '由审核动作单一推导，不可外部指定。',
+          },
+        },
+      ],
     },
     {
       name: 'reason',
@@ -106,54 +111,64 @@ export const ListingReviews: CollectionConfig = {
       },
     },
     {
-      name: 'snapshotHash',
-      label: '快照哈希',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '服务端对快照重算的 SHA-256，用于校验一致性。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'snapshotHash',
+          label: '快照哈希',
+          type: 'text',
+          admin: {
+            readOnly: true,
+            description: '服务端对快照重算的 SHA-256，用于校验一致性。',
+          },
+        },
+        {
+          name: 'submittedBy',
+          label: '提交人',
+          type: 'relationship',
+          relationTo: 'users',
+        },
+        {
+          name: 'reviewedBy',
+          label: '审核人',
+          type: 'relationship',
+          relationTo: 'users',
+        },
+      ],
     },
     {
-      name: 'submittedBy',
-      label: '提交人',
-      type: 'relationship',
-      relationTo: 'users',
-    },
-    {
-      name: 'reviewedBy',
-      label: '审核人',
-      type: 'relationship',
-      relationTo: 'users',
-    },
-    {
-      name: 'submittedAt',
-      label: '提交时间',
-      type: 'date',
-    },
-    {
-      name: 'reviewedAt',
-      label: '审核时间',
-      type: 'date',
-    },
-    {
-      name: 'listingVersion',
-      label: '房源版本',
-      type: 'number',
-      admin: {
-        readOnly: true,
-        description: '提交时锁定的房源工作版本号。',
-      },
-    },
-    {
-      name: 'version',
-      label: '版本号',
-      type: 'number',
-      defaultValue: 1,
-      admin: {
-        readOnly: true,
-        description: '记录自身版本（append-only，恒为 1）。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'submittedAt',
+          label: '提交时间',
+          type: 'date',
+        },
+        {
+          name: 'reviewedAt',
+          label: '审核时间',
+          type: 'date',
+        },
+        {
+          name: 'listingVersion',
+          label: '房源版本',
+          type: 'number',
+          admin: {
+            readOnly: true,
+            description: '提交时锁定的房源工作版本号。',
+          },
+        },
+        {
+          name: 'version',
+          label: '版本号',
+          type: 'number',
+          defaultValue: 1,
+          admin: {
+            readOnly: true,
+            description: '记录自身版本（append-only，恒为 1）。',
+          },
+        },
+      ],
     },
   ],
 }

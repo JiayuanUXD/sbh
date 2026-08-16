@@ -1,5 +1,5 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
 
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
@@ -12,16 +12,111 @@ import {
   BUSINESS_TYPES,
   BUSINESS_TYPE_LABELS,
   COST_INCLUSION_STATUSES,
+  COST_INCLUSION_STATUS_LABELS,
   DECORATION_STATUSES,
   DECORATION_STATUS_LABELS,
   DETAIL_MEDIA_KINDS,
+  DETAIL_MEDIA_KIND_LABELS,
+  FURNITURE_STATUSES,
+  FURNITURE_STATUS_LABELS,
+  INVOICE_STATUSES,
+  INVOICE_STATUS_LABELS,
   LISTING_MEDIA_CATEGORIES,
+  LISTING_MEDIA_CATEGORY_LABELS,
   REGISTRATION_STATUSES,
+  REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
 import { protectListing } from '@/domain/review/listing-protect'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
+
+type MediaResourceInput = number | string | { id?: number | string } | null | undefined
+
+interface ListingMediaItemInput {
+  kind?: string | null
+  resource?: MediaResourceInput
+  category?: string | null
+  alt?: string | null
+}
+
+function toMediaId(resource: MediaResourceInput): number | string | null {
+  if (resource === null || resource === undefined) return null
+  if (typeof resource === 'object') {
+    const id = (resource as { id?: unknown }).id
+    return typeof id === 'number' || typeof id === 'string' ? id : null
+  }
+  return typeof resource === 'number' || typeof resource === 'string' ? resource : null
+}
+
+/**
+ * 房源媒体工作台的派生 hook（对齐楼盘 syncBuildingMedia 设计，另加存量兼容）：
+ *
+ *   1. gallery / coverImage 在表单中 hidden，统一由 mediaItems 派生：
+ *      gallery = mediaItems 中 kind=image 的 resource 列表；
+ *      coverImage 仅在无封面时自动取第一张图（回退看 originalDoc，防止每次保存重置运营手选封面）。
+ *   2. 存量兼容：外部抓取的老房源只有 gallery 没有 mediaItems。
+ *      首次经工作台保存（originalDoc.mediaItems 为空、本次非空）时，把 legacy gallery
+ *      图片回填进 mediaItems 头部（kind=image / category=workspace / alt 自动生成），
+ *      存量图不丢；此后删除、调序都按工作台链路走。
+ *   3. 双方都无 mediaItems（纯存量、未动媒体）→ 不派生，legacy gallery 原样保留。
+ *
+ * 排在 protectListing 之前执行（派生先于校验，与楼盘 hook 顺序一致）。
+ */
+export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  const nextItems = Array.isArray(data?.mediaItems)
+    ? (data.mediaItems as ListingMediaItemInput[])
+    : null
+  const prevItemCount = Array.isArray(originalDoc?.mediaItems)
+    ? (originalDoc.mediaItems as ListingMediaItemInput[]).length
+    : 0
+
+  // 未走过工作台链路：nextItems 为空数组且文档原本也没有 mediaItems → 保持 legacy 现状
+  const viaWorkbench = nextItems !== null && (nextItems.length > 0 || prevItemCount > 0)
+  if (!viaWorkbench) return data
+
+  let items = nextItems
+
+  // 首次切换到工作台链路：回填 legacy gallery（去重）
+  const legacyGallery = Array.isArray(originalDoc?.gallery)
+    ? (originalDoc.gallery as { image?: MediaResourceInput }[])
+    : []
+  if (prevItemCount === 0 && items.length > 0 && legacyGallery.length > 0) {
+    const existingIds = new Set(
+      items.map((m) => toMediaId(m?.resource)).filter((id): id is number | string => id !== null),
+    )
+    const docTitle = typeof data?.title === 'string' && data.title ? data.title : '房源'
+    const backfilled: ListingMediaItemInput[] = []
+    for (const g of legacyGallery) {
+      const id = toMediaId(g?.image)
+      if (id === null || existingIds.has(id)) continue
+      existingIds.add(id)
+      backfilled.push({
+        kind: 'image',
+        resource: id,
+        category: LISTING_MEDIA_CATEGORIES[0],
+        alt: `${docTitle} 图集 ${backfilled.length + 1}`,
+      })
+    }
+    if (backfilled.length > 0) items = [...backfilled, ...items]
+  }
+
+  // 1. 派生 gallery（审核提交校验 galleryCount>=3 与前台画廊都消费它，链路不变）
+  const imageIds = items
+    .filter((m) => m && m.kind === 'image' && m.resource)
+    .map((m) => toMediaId(m.resource))
+    .filter((id): id is number | string => id !== null)
+  data.gallery = imageIds.map((image) => ({ image }))
+  data.mediaItems = items
+
+  // 2. 无封面时自动取第一张图
+  const existingCover = data.coverImage ?? originalDoc?.coverImage
+  if (!existingCover && imageIds.length > 0) {
+    data.coverImage = imageIds[0]
+  }
+
+  return data
+}
 
 export const Listings: CollectionConfig = {
   slug: 'listings',
@@ -42,7 +137,9 @@ export const Listings: CollectionConfig = {
   // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
   endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
   hooks: {
-    beforeChange: [protectListing],
+    // syncListingMedia 必须排在 protectListing 之前：gallery/coverImage 由 mediaItems 派生，
+    // 只有先派生再校验，保护逻辑与审核快照读到的才是最终数据（与楼盘 hook 顺序一致）。
+    beforeChange: [syncListingMedia, protectListing],
   },
   fields: [
     {
@@ -123,7 +220,10 @@ export const Listings: CollectionConfig = {
               name: 'registrationStatus',
               label: '工商注册状态',
               type: 'select',
-              options: REGISTRATION_STATUSES.map((value) => ({ label: value, value })),
+              options: REGISTRATION_STATUSES.map((value) => ({
+                label: REGISTRATION_STATUS_LABELS[value],
+                value,
+              })),
             },
           ],
         },
@@ -146,7 +246,6 @@ export const Listings: CollectionConfig = {
                       {
                         name: 'amount',
                         label: '金额',
-                        admin: { width: '50%' },
                       },
                       {
                         thousandSeparator: ',',
@@ -158,7 +257,6 @@ export const Listings: CollectionConfig = {
                       label: '币种',
                       type: 'select',
                       defaultValue: 'CNY',
-                      admin: { width: '50%' },
                       options: [{ label: '人民币', value: 'CNY' }],
                     },
                   ],
@@ -171,7 +269,6 @@ export const Listings: CollectionConfig = {
                       label: '计价周期',
                       type: 'select',
                       defaultValue: 'month',
-                      admin: { width: '50%' },
                       options: PRICING_PERIODS_UI.map(({ label, value }) => ({ label, value })),
                     },
                     {
@@ -179,7 +276,6 @@ export const Listings: CollectionConfig = {
                       label: '计价单位',
                       type: 'select',
                       defaultValue: 'sqm',
-                      admin: { width: '50%' },
                       options: PRICING_UNITS_UI.map(({ label, value }) => ({ label, value })),
                     },
                   ],
@@ -187,6 +283,7 @@ export const Listings: CollectionConfig = {
               ],
             },
             {
+              // 过渡期旧字段：仅存量数据已有值时显示（新数据一律走结构化价格）
               type: 'row',
               fields: [
                 ...NumberField(
@@ -194,7 +291,7 @@ export const Listings: CollectionConfig = {
                     name: 'rent',
                     label: '租金（旧字段,过渡期保留）',
                     admin: {
-                      width: '50%',
+                      condition: (data) => data?.rent != null,
                       description: '价格已迁移至上方结构化价格,此字段仅供过渡期兼容。',
                     },
                   },
@@ -208,7 +305,9 @@ export const Listings: CollectionConfig = {
                   label: '租金单位（旧字段）',
                   type: 'select',
                   defaultValue: 'rmb-sqm-day',
-                  admin: { width: '50%' },
+                  admin: {
+                    condition: (data) => data?.rent != null,
+                  },
                   options: [
                     { label: '元/㎡/天', value: 'rmb-sqm-day' },
                     { label: '元/月', value: 'rmb-month' },
@@ -224,7 +323,6 @@ export const Listings: CollectionConfig = {
                   {
                     name: 'area',
                     label: '面积（㎡）',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -235,7 +333,6 @@ export const Listings: CollectionConfig = {
                   {
                     name: 'seats',
                     label: '建议工位数',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -251,13 +348,11 @@ export const Listings: CollectionConfig = {
                   name: 'floor',
                   label: '楼层',
                   type: 'text',
-                  admin: { width: '50%' },
                 },
                 ...NumberField(
                   {
                     name: 'minimumLeaseMonths',
                     label: '最短租期（月）',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -273,13 +368,11 @@ export const Listings: CollectionConfig = {
                   name: 'paymentTerms',
                   label: '付款条件',
                   type: 'text',
-                  admin: { width: '50%' },
                 },
                 {
                   name: 'availableFrom',
                   label: '可入驻日期',
                   type: 'date',
-                  admin: { width: '50%' },
                 },
               ],
             },
@@ -288,17 +381,30 @@ export const Listings: CollectionConfig = {
               label: '空间明细',
               type: 'group',
               fields: [
-                { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
-                { name: 'seatMin', label: '最少工位数', type: 'number', min: 0 },
-                { name: 'seatMax', label: '最多工位数', type: 'number', min: 0 },
-                { name: 'orientation', label: '朝向', type: 'text', maxLength: 30 },
-                { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
-                { name: 'isDivisible', label: '可分割', type: 'checkbox', defaultValue: false },
                 {
-                  name: 'furnitureStatus',
-                  label: '家具状态',
-                  type: 'select',
-                  options: ['included', 'optional', 'none', 'confirm'],
+                  type: 'row',
+                  fields: [
+                    { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
+                    { name: 'orientation', label: '朝向', type: 'text', maxLength: 30 },
+                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'seatMin', label: '最少工位数', type: 'number', min: 0 },
+                    { name: 'seatMax', label: '最多工位数', type: 'number', min: 0 },
+                    { name: 'isDivisible', label: '可分割', type: 'checkbox', defaultValue: false },
+                    {
+                      name: 'furnitureStatus',
+                      label: '家具状态',
+                      type: 'select',
+                      options: FURNITURE_STATUSES.map((value) => ({
+                        label: FURNITURE_STATUS_LABELS[value],
+                        value,
+                      })),
+                    },
+                  ],
                 },
               ],
             },
@@ -307,19 +413,30 @@ export const Listings: CollectionConfig = {
               label: '费用条款',
               type: 'group',
               fields: [
-                { name: 'depositMonths', label: '押金月数', type: 'number', min: 0 },
                 {
-                  name: 'propertyFeeInclusion',
-                  label: '物业费包含情况',
-                  type: 'select',
-                  options: COST_INCLUSION_STATUSES.map((value) => ({ label: value, value })),
-                },
-                { name: 'propertyFeeAmount', label: '物业费金额', type: 'number', min: 0 },
-                {
-                  name: 'invoiceStatus',
-                  label: '发票情况',
-                  type: 'select',
-                  options: ['included', 'extra-tax', 'unavailable', 'confirm'],
+                  type: 'row',
+                  fields: [
+                    { name: 'depositMonths', label: '押金月数', type: 'number', min: 0 },
+                    {
+                      name: 'propertyFeeInclusion',
+                      label: '物业费包含情况',
+                      type: 'select',
+                      options: COST_INCLUSION_STATUSES.map((value) => ({
+                        label: COST_INCLUSION_STATUS_LABELS[value],
+                        value,
+                      })),
+                    },
+                    { name: 'propertyFeeAmount', label: '物业费金额', type: 'number', min: 0 },
+                    {
+                      name: 'invoiceStatus',
+                      label: '发票情况',
+                      type: 'select',
+                      options: INVOICE_STATUSES.map((value) => ({
+                        label: INVOICE_STATUS_LABELS[value],
+                        value,
+                      })),
+                    },
+                  ],
                 },
                 { name: 'otherFixedCosts', label: '其他固定费用', type: 'textarea', maxLength: 500 },
               ],
@@ -345,7 +462,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'not_submitted',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '由提交/审核流程驱动。',
                   },
@@ -360,7 +476,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'draft',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '由显式发布/下架动作驱动,审核通过不自动上架。',
                   },
@@ -380,7 +495,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'normal',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '商户停用等场景批量置为待复核,不改动审核/发布状态。',
                   },
@@ -395,7 +509,6 @@ export const Listings: CollectionConfig = {
                   type: 'number',
                   defaultValue: 1,
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '乐观锁版本号,系统维护。',
                   },
@@ -433,18 +546,21 @@ export const Listings: CollectionConfig = {
           description: '维护前台卡片和详情页使用的图片、亮点与介绍。',
           fields: [
             {
+              // hidden：由房源媒体工作台（ListingMediaManager）操作，
+              // 保存时 syncListingMedia 从 mediaItems 派生（对齐楼盘媒体链路设计）。
               name: 'coverImage',
               label: '封面图',
               type: 'upload',
               relationTo: 'media',
+              admin: { hidden: true },
             },
             {
+              // hidden：同上，gallery = mediaItems 中 kind=image 的派生列表，
+              // 审核提交校验（galleryCount>=3）与前台画廊继续消费 gallery，链路不变。
               name: 'gallery',
               label: '图片相册',
               type: 'array',
-              admin: {
-                description: '提交审核要求至少 3 张有效图片。',
-              },
+              admin: { hidden: true },
               fields: [
                 {
                   name: 'image',
@@ -457,9 +573,15 @@ export const Listings: CollectionConfig = {
             },
             {
               name: 'mediaItems',
-              label: '详情页媒体',
+              label: '房源媒体工作台',
               type: 'array',
               maxRows: 40,
+              admin: {
+                description: '提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。',
+                components: {
+                  Field: '/components/admin/ListingMediaManager',
+                },
+              },
               fields: [
                 { name: 'resource', label: '资源', type: 'upload', relationTo: 'media', required: true },
                 {
@@ -467,14 +589,20 @@ export const Listings: CollectionConfig = {
                   label: '类型',
                   type: 'select',
                   required: true,
-                  options: DETAIL_MEDIA_KINDS.map((value) => ({ label: value, value })),
+                  options: DETAIL_MEDIA_KINDS.map((value) => ({
+                    label: DETAIL_MEDIA_KIND_LABELS[value],
+                    value,
+                  })),
                 },
                 {
                   name: 'category',
                   label: '分类',
                   type: 'select',
                   required: true,
-                  options: LISTING_MEDIA_CATEGORIES.map((value) => ({ label: value, value })),
+                  options: LISTING_MEDIA_CATEGORIES.map((value) => ({
+                    label: LISTING_MEDIA_CATEGORY_LABELS[value],
+                    value,
+                  })),
                 },
                 { name: 'alt', label: '替代文本', type: 'text', required: true, maxLength: 160 },
                 { name: 'capturedAt', label: '拍摄时间', type: 'date' },
@@ -508,32 +636,47 @@ export const Listings: CollectionConfig = {
               name: 'dataSource',
               label: '数据来源',
               type: 'group',
-              admin: { hideGutter: true },
+              admin: {
+                hideGutter: true,
+                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
+                condition: (data) => {
+                  const ds = data?.dataSource as
+                    | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
+                    | null
+                    | undefined
+                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
+                },
+              },
               fields: [
                 {
-                  name: 'source',
-                  label: '来源平台',
-                  type: 'select',
-                  options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
-                  admin: { description: '外部抓取来源标识' },
-                },
-                {
-                  name: 'externalId',
-                  label: '外部 ID',
-                  type: 'text',
-                  admin: { description: '源平台原始房源编号' },
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'source',
+                      label: '来源平台',
+                      type: 'select',
+                      options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
+                      admin: { description: '外部抓取来源标识' },
+                    },
+                    {
+                      name: 'externalId',
+                      label: '外部 ID',
+                      type: 'text',
+                      admin: { description: '源平台原始房源编号' },
+                    },
+                    {
+                      name: 'syncedAt',
+                      label: '同步时间',
+                      type: 'date',
+                      admin: { readOnly: true, description: '最后一次从源平台同步的时间' },
+                    },
+                  ],
                 },
                 {
                   name: 'sourceUrl',
                   label: '源地址',
                   type: 'text',
                   admin: { description: '详情页原始 URL' },
-                },
-                {
-                  name: 'syncedAt',
-                  label: '同步时间',
-                  type: 'date',
-                  admin: { readOnly: true, description: '最后一次从源平台同步的时间' },
                 },
               ],
             },

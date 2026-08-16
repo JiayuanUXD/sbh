@@ -34,58 +34,68 @@ export const DisplayTags: CollectionConfig = {
   },
   fields: [
     {
-      name: 'code',
-      label: '标签编码',
-      type: 'text',
-      required: true,
-      unique: true,
-      admin: {
-        description: '稳定引用键，创建后不可更改；字母开头，仅含字母/数字/下划线/连字符',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'code',
+          label: '标签编码',
+          type: 'text',
+          required: true,
+          unique: true,
+          admin: {
+            description: '稳定引用键，创建后不可更改；字母开头，仅含字母/数字/下划线/连字符',
+          },
+        },
+        {
+          name: 'name',
+          label: '显示名',
+          type: 'text',
+          required: true,
+          admin: {
+            description: '可改名，历史记录展示由业务对象快照冻结，不受改名影响',
+          },
+        },
+      ],
     },
     {
-      name: 'name',
-      label: '显示名',
-      type: 'text',
-      required: true,
-      admin: {
-        description: '可改名，历史记录展示由业务对象快照冻结，不受改名影响',
-      },
-    },
-    {
-      name: 'sortOrder',
-      label: '排序',
-      type: 'number',
-      defaultValue: 0,
-      admin: {
-        description: '数值越小越靠前',
-      },
-    },
-    {
-      name: 'visible',
-      label: '可见',
-      type: 'checkbox',
-      defaultValue: true,
-    },
-    {
-      name: 'status',
-      label: '状态',
-      type: 'select',
-      defaultValue: 'active',
-      options: DISPLAY_TAG_STATUSES.map((value) => ({
-        value,
-        label: DISPLAY_TAG_STATUS_LABELS[value],
-      })),
-    },
-    {
-      name: 'version',
-      label: '版本',
-      type: 'number',
-      defaultValue: 1,
-      admin: {
-        readOnly: true,
-        description: '乐观锁版本号,系统维护',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'sortOrder',
+          label: '排序',
+          type: 'number',
+          defaultValue: 0,
+          admin: {
+            description: '数值越小越靠前',
+          },
+        },
+        {
+          name: 'visible',
+          label: '可见',
+          type: 'checkbox',
+          defaultValue: true,
+        },
+        {
+          name: 'status',
+          label: '状态',
+          type: 'select',
+          defaultValue: 'active',
+          options: DISPLAY_TAG_STATUSES.map((value) => ({
+            value,
+            label: DISPLAY_TAG_STATUS_LABELS[value],
+          })),
+        },
+        {
+          name: 'version',
+          label: '版本',
+          type: 'number',
+          defaultValue: 1,
+          admin: {
+            readOnly: true,
+            description: '乐观锁版本号,系统维护',
+          },
+        },
+      ],
     },
   ],
 }
