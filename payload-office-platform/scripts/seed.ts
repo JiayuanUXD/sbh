@@ -1,6 +1,7 @@
 import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
+import { assertSeedTargetFromProcessEnv } from '../src/lib/runtime/seed-target-guard'
 import type { Lead } from '../src/payload-types'
 import { BUILTIN_ROLES } from '../src/test/factory/roles'
 import { syncBuiltinRoles } from '../src/domain/auth/sync-builtin-roles'
@@ -114,6 +115,9 @@ async function upsertAmenity(
 }
 
 async function seed() {
+  // 目标环境守卫：seed 会大规模改写业务数据，指向生产库/生产桶一律 fail-fast。
+  assertSeedTargetFromProcessEnv()
+
   console.log('--- Starting seed ---');
   console.log('Initializing payload...');
   const payload = await getPayload({ config })
