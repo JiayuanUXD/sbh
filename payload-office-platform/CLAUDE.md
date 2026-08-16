@@ -50,6 +50,7 @@ pnpm build
 - **短命分支 + 勤 rebase**：分支活 1–3 天，常 `git rebase origin/master`，把大冲突拆成每天的小冲突。
 - **早开 draft PR**：让 `quality.yml` 尽早在小改动上跑，别攒到最后一起爆（CI 坑常只在 PR 才触发）。
 - **真正"在写"的任务 ≤ 2 件**；有依赖关系的任务串行做，别并行。
+- **worktree 路径要短，别嵌太深**：`next build` / `next dev` 报几十条 `Module not found`（而包在 `node_modules` 里明明存在）时，先量路径长度，不要去查依赖。Windows 260 字符上限 + pnpm `.pnpm/` 里带 peer 哈希的超长目录名，很容易把 `<worktree>/payload-office-platform/node_modules/.pnpm/<长包名>/node_modules/<pkg>/dist/...` 顶爆；Node（tsc / vitest / tsx / seed）走长路径 API 不受影响，**Rust 写的 Turbopack 会直接解析失败**——所以"测试和 typecheck 全绿、只有构建炸"就是这个坑的典型指纹。真实教训：`.claude/worktrees/<长分支名>/` 下构建全挂，把同一份改动复制到 `E:\wtmf` 后 build 与 E2E 一次通过。**建议 worktree 建在 `E:\wt-<短名>` 这类根级短路径**（`git worktree add` 的路径可以随便挑，不必放仓库里）。
 
 ## 数据库（关键，别踩）
 
