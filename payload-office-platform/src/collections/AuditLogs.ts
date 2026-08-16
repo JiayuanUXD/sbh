@@ -58,6 +58,16 @@ export const AuditLogs: CollectionConfig = {
     ],
     description:
       '追加式审计日志：记录所有高风险业务动作。只允许查看和追加，禁止修改或删除。查看详情和导出本身也会被审计。',
+    components: {
+      // 整页替换默认列表视图（后台表单优化 · 抽屉交互第一批）：
+      // 23 字段全只读的详情改为「列表 + 抽屉分组展示」，避免点进整页编辑视图的长滚动。
+      // before/after 脱敏与查看审计仍由服务端 hook 强制（见 AuditLogList 注释）。
+      views: {
+        list: {
+          Component: '/components/admin/AuditLogList',
+        },
+      },
+    },
   },
   access: {
     ...createCollectionAccess({

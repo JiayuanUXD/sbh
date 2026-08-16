@@ -938,8 +938,9 @@ html[data-theme='dark'] .arco-admin-dashboard {
   }
 }
 
-// 房源审核队列 - Arco Table/Drawer/Modal 在 Payload admin 中的样式微调
-.listing-review-queue {
+// 房源审核队列 / 审计日志列表 - Arco Table/Drawer 在 Payload admin 中的样式微调
+.listing-review-queue,
+.audit-log-list {
   // Arco 表格使用自身字体，确保在 Payload 后台中继承合理字体
   .arco-table {
     font-size: 14px;
@@ -958,6 +959,21 @@ html[data-theme='dark'] .arco-admin-dashboard {
   .arco-space .arco-btn {
     margin-right: 0;
   }
+}
+
+// 审计日志详情抽屉 - JSON 块（before/after/角色/城市范围快照）
+.audit-log-detail__json {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--theme-elevation-100, #efefef);
+  border: 1px solid var(--theme-elevation-150, #dcdcdc);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 // ─── Payload 内置 Tabs 修复（Arco 全局 CSS 覆盖了 Payload 默认样式） ───
@@ -1185,6 +1201,12 @@ html[data-theme='dark'] {
         color: #a6a6a6;
       }
     }
+  }
+
+  // 审计日志详情抽屉 JSON 块的深色覆盖（同上，主题变量不随主题切换）
+  .audit-log-detail__json {
+    background: #2b2b2b;
+    border-color: #454545;
   }
 }
 

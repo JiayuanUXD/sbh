@@ -8,7 +8,7 @@
  *
  * 设计原则：
  *   - 不信任客户端参数：subject 只从 req.user + PermissionContext 派生
- *   - cityScope 快照为 'all' 或数字数组（避免 Set 在 JSON 中序列化为 {} ）
+ *   - cityScope 快照为数组（['all'] 或城市 ID 数组；json 字段不接受裸字符串）
  *   - IP 取 x-forwarded-for 第一跳（CloudRun / 代理场景），fallback socket.remoteAddress
  *
  * 业务不变量：
@@ -25,11 +25,12 @@ import type { SubjectSnapshot, RequestContextSnapshot } from './audit-types'
 /**
  * 把 PermissionContext 的 CityScope 转为审计快照可序列化形态。
  *
- *   - 'all' → 'all'
+ *   - 'all' → ['all']
  *   - Set → 升序数字数组（保留原顺序在 JSON 中可能不稳定，故显式排序）
  */
-export function snapshotCityScope(scope: CityScope): 'all' | Array<number | string> {
-  if (scope === 'all') return 'all'
+export function snapshotCityScope(scope: CityScope): Array<number | string> {
+  // 'all' 也数组化：json 字段不接受裸字符串值（全城管理员审计写入曾因此被校验拒绝）
+  if (scope === 'all') return ['all']
   return Array.from(scope).sort((a, b) => {
     const an = typeof a === 'number' ? a : Number(a)
     const bn = typeof b === 'number' ? b : Number(b)
@@ -56,7 +57,7 @@ export async function deriveSubjectSnapshot(
       userId: null,
       roleCodes: [],
       teamId: null,
-      cityScope: 'all',
+      cityScope: ['all'],
     }
   }
   return {
@@ -142,11 +143,11 @@ export const SYSTEM_REQUEST_CONTEXT: RequestContextSnapshot = {
  *   - userId=null
  *   - roleCodes=['SYSTEM']
  *   - teamId=null
- *   - cityScope='all'
+ *   - cityScope=['all']
  */
 export const SYSTEM_SUBJECT: SubjectSnapshot = {
   userId: null,
   roleCodes: ['SYSTEM'],
   teamId: null,
-  cityScope: 'all',
+  cityScope: ['all'],
 }
