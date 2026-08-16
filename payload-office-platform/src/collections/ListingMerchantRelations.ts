@@ -57,7 +57,6 @@ export const ListingMerchantRelations: CollectionConfig = {
           type: 'date',
           required: true,
           admin: {
-            width: '50%',
             date: { pickerAppearance: 'dayAndTime' },
           },
         },
@@ -66,7 +65,6 @@ export const ListingMerchantRelations: CollectionConfig = {
           label: '生效结束',
           type: 'date',
           admin: {
-            width: '50%',
             date: { pickerAppearance: 'dayAndTime' },
             description: '留空表示无限期。',
           },

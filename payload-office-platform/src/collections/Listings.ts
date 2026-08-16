@@ -146,7 +146,6 @@ export const Listings: CollectionConfig = {
                       {
                         name: 'amount',
                         label: '金额',
-                        admin: { width: '50%' },
                       },
                       {
                         thousandSeparator: ',',
@@ -158,7 +157,6 @@ export const Listings: CollectionConfig = {
                       label: '币种',
                       type: 'select',
                       defaultValue: 'CNY',
-                      admin: { width: '50%' },
                       options: [{ label: '人民币', value: 'CNY' }],
                     },
                   ],
@@ -171,7 +169,6 @@ export const Listings: CollectionConfig = {
                       label: '计价周期',
                       type: 'select',
                       defaultValue: 'month',
-                      admin: { width: '50%' },
                       options: PRICING_PERIODS_UI.map(({ label, value }) => ({ label, value })),
                     },
                     {
@@ -179,7 +176,6 @@ export const Listings: CollectionConfig = {
                       label: '计价单位',
                       type: 'select',
                       defaultValue: 'sqm',
-                      admin: { width: '50%' },
                       options: PRICING_UNITS_UI.map(({ label, value }) => ({ label, value })),
                     },
                   ],
@@ -187,6 +183,7 @@ export const Listings: CollectionConfig = {
               ],
             },
             {
+              // 过渡期旧字段：仅存量数据已有值时显示（新数据一律走结构化价格）
               type: 'row',
               fields: [
                 ...NumberField(
@@ -194,7 +191,7 @@ export const Listings: CollectionConfig = {
                     name: 'rent',
                     label: '租金（旧字段,过渡期保留）',
                     admin: {
-                      width: '50%',
+                      condition: (data) => data?.rent != null,
                       description: '价格已迁移至上方结构化价格,此字段仅供过渡期兼容。',
                     },
                   },
@@ -208,7 +205,9 @@ export const Listings: CollectionConfig = {
                   label: '租金单位（旧字段）',
                   type: 'select',
                   defaultValue: 'rmb-sqm-day',
-                  admin: { width: '50%' },
+                  admin: {
+                    condition: (data) => data?.rent != null,
+                  },
                   options: [
                     { label: '元/㎡/天', value: 'rmb-sqm-day' },
                     { label: '元/月', value: 'rmb-month' },
@@ -224,7 +223,6 @@ export const Listings: CollectionConfig = {
                   {
                     name: 'area',
                     label: '面积（㎡）',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -235,7 +233,6 @@ export const Listings: CollectionConfig = {
                   {
                     name: 'seats',
                     label: '建议工位数',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -251,13 +248,11 @@ export const Listings: CollectionConfig = {
                   name: 'floor',
                   label: '楼层',
                   type: 'text',
-                  admin: { width: '50%' },
                 },
                 ...NumberField(
                   {
                     name: 'minimumLeaseMonths',
                     label: '最短租期（月）',
-                    admin: { width: '50%' },
                   },
                   {
                     thousandSeparator: ',',
@@ -273,13 +268,11 @@ export const Listings: CollectionConfig = {
                   name: 'paymentTerms',
                   label: '付款条件',
                   type: 'text',
-                  admin: { width: '50%' },
                 },
                 {
                   name: 'availableFrom',
                   label: '可入驻日期',
                   type: 'date',
-                  admin: { width: '50%' },
                 },
               ],
             },
@@ -345,7 +338,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'not_submitted',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '由提交/审核流程驱动。',
                   },
@@ -360,7 +352,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'draft',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '由显式发布/下架动作驱动,审核通过不自动上架。',
                   },
@@ -380,7 +371,6 @@ export const Listings: CollectionConfig = {
                   type: 'select',
                   defaultValue: 'normal',
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '商户停用等场景批量置为待复核,不改动审核/发布状态。',
                   },
@@ -395,7 +385,6 @@ export const Listings: CollectionConfig = {
                   type: 'number',
                   defaultValue: 1,
                   admin: {
-                    width: '50%',
                     readOnly: true,
                     description: '乐观锁版本号,系统维护。',
                   },
@@ -508,7 +497,17 @@ export const Listings: CollectionConfig = {
               name: 'dataSource',
               label: '数据来源',
               type: 'group',
-              admin: { hideGutter: true },
+              admin: {
+                hideGutter: true,
+                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
+                condition: (data) => {
+                  const ds = data?.dataSource as
+                    | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
+                    | null
+                    | undefined
+                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
+                },
+              },
               fields: [
                 {
                   name: 'source',

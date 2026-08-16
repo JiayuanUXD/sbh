@@ -136,83 +136,108 @@ export const CitySiteProfiles: CollectionConfig = {
     afterDelete: [invalidateCitySiteProfileAfterDelete],
   },
   fields: [
+    // 分 tab 收口（后台表单优化第二批）：状态类一眼可见，SEO 与首页文案按需切换。
+    // 全部 unnamed tab，纯 admin 布局，不影响数据库 schema。
     {
-      type: 'row',
-      fields: [
+      type: 'tabs',
+      tabs: [
         {
-          name: 'city',
-          label: '城市',
-          type: 'relationship',
-          relationTo: 'locations',
-          required: true,
-          unique: true,
-          filterOptions: () => activeLocationFilter(['city']),
+          label: '基础与状态',
+          description: '城市绑定、服务状态与前台可见性。',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'city',
+                  label: '城市',
+                  type: 'relationship',
+                  relationTo: 'locations',
+                  required: true,
+                  unique: true,
+                  filterOptions: () => activeLocationFilter(['city']),
+                },
+                {
+                  name: 'serviceStatus',
+                  label: '服务状态',
+                  type: 'select',
+                  required: true,
+                  options: CITY_SERVICE_STATUSES.map((value) => ({ value, label: value === 'live' ? '已开通' : '筹备中' })),
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'switcherVisible',
+                  label: '在城市切换器中显示',
+                  type: 'checkbox',
+                  required: true,
+                  defaultValue: true,
+                },
+                {
+                  name: 'sortOrder',
+                  label: '排序',
+                  type: 'number',
+                  required: true,
+                  defaultValue: 100,
+                  min: 0,
+                },
+              ],
+            },
+          ],
         },
         {
-          name: 'serviceStatus',
-          label: '服务状态',
-          type: 'select',
-          required: true,
-          options: CITY_SERVICE_STATUSES.map((value) => ({ value, label: value === 'live' ? '已开通' : '筹备中' })),
+          label: 'SEO',
+          description: '站点级标题与描述，影响搜索收录与分享卡片。',
+          fields: [
+            {
+              name: 'seoTitle',
+              label: 'SEO 标题',
+              type: 'text',
+              required: true,
+              maxLength: 60,
+            },
+            {
+              name: 'seoDescription',
+              label: 'SEO 描述',
+              type: 'textarea',
+              required: true,
+              minLength: 70,
+              maxLength: 160,
+            },
+          ],
+        },
+        {
+          label: '首页内容',
+          description: '城市站首页 Hero、简介、委托卡片与精选区域。',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                { name: 'heroEyebrow', label: 'Hero 眉题', type: 'text' },
+                { name: 'heroHeading', label: 'Hero 标题', type: 'text' },
+              ],
+            },
+            { name: 'heroBody', label: 'Hero 正文', type: 'textarea' },
+            { name: 'heroMedia', label: 'Hero 媒体', type: 'relationship', relationTo: 'media' },
+            { name: 'introHeading', label: '简介标题', type: 'text' },
+            { name: 'introBody', label: '简介正文', type: 'textarea' },
+            { name: 'contactHeading', label: '委托卡片标题', type: 'text' },
+            { name: 'contactBody', label: '委托卡片说明', type: 'textarea' },
+            {
+              name: 'featuredRegions',
+              label: '精选区域',
+              type: 'relationship',
+              relationTo: 'locations',
+              hasMany: true,
+              maxRows: 12,
+              filterOptions: () => activeLocationFilter(['district', 'business_area']),
+            },
+          ],
         },
       ],
-    },
-    {
-      type: 'row',
-      fields: [
-        {
-          name: 'switcherVisible',
-          label: '在城市切换器中显示',
-          type: 'checkbox',
-          required: true,
-          defaultValue: true,
-        },
-        {
-          name: 'sortOrder',
-          label: '排序',
-          type: 'number',
-          required: true,
-          defaultValue: 100,
-          min: 0,
-        },
-      ],
-    },
-    {
-      name: 'seoTitle',
-      label: 'SEO 标题',
-      type: 'text',
-      required: true,
-      maxLength: 60,
-    },
-    {
-      name: 'seoDescription',
-      label: 'SEO 描述',
-      type: 'textarea',
-      required: true,
-      minLength: 70,
-      maxLength: 160,
-    },
-    {
-      type: 'row',
-      fields: [
-        { name: 'heroEyebrow', label: 'Hero 眉题', type: 'text' },
-        { name: 'heroHeading', label: 'Hero 标题', type: 'text' },
-      ],
-    },
-    { name: 'heroBody', label: 'Hero 正文', type: 'textarea' },
-    { name: 'heroMedia', label: 'Hero 媒体', type: 'relationship', relationTo: 'media' },
-    { name: 'introHeading', label: '简介标题', type: 'text' },
-    { name: 'introBody', label: '简介正文', type: 'textarea' },
-    { name: 'contactHeading', label: '委托卡片标题', type: 'text' },
-    { name: 'contactBody', label: '委托卡片说明', type: 'textarea' },
-    {
-      name: 'featuredRegions',
-      label: '精选区域',
-      type: 'relationship',
-      relationTo: 'locations',
-      hasMany: true,
-      maxRows: 12,
-      filterOptions: () => activeLocationFilter(['district', 'business_area']),
     },
   ],
 }

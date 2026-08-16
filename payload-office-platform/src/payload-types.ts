@@ -1831,30 +1831,6 @@ export interface AuditLog {
    */
   eventId?: string | null;
   /**
-   * 变更前对象快照（update / delete 时有值）。需 audit:before_after 权限可见。
-   */
-  before?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * 变更后对象快照（create / update 时有值）。需 audit:before_after 权限可见。
-   */
-  after?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
    * 本次变更的字段路径列表（如 ["stage", "assigneeId"]）。
    */
   changedFields?:
@@ -1887,7 +1863,7 @@ export interface AuditLog {
     | boolean
     | null;
   /**
-   * 操作时的城市范围快照（"all" 或城市 ID 数组）。
+   * 操作时的城市范围快照（["all"] 或城市 ID 数组）。
    */
   subjectCityScope?:
     | {
@@ -1926,6 +1902,30 @@ export interface AuditLog {
    * 操作失败时的错误信息（result=failed 时有值）。
    */
   errorMessage?: string | null;
+  /**
+   * 变更前对象快照（update / delete 时有值）。需 audit:before_after 权限可见。
+   */
+  before?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * 变更后对象快照（create / update 时有值）。需 audit:before_after 权限可见。
+   */
+  after?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   /**
    * 审计日志版本（append-only，恒为 1）。
    */
@@ -3496,8 +3496,6 @@ export interface AuditLogsSelect<T extends boolean = true> {
   objectId?: T;
   objectVersion?: T;
   eventId?: T;
-  before?: T;
-  after?: T;
   changedFields?: T;
   subjectUserId?: T;
   subjectTeamId?: T;
@@ -3510,6 +3508,8 @@ export interface AuditLogsSelect<T extends boolean = true> {
   userAgent?: T;
   errorCode?: T;
   errorMessage?: T;
+  before?: T;
+  after?: T;
   version?: T;
   createdBy?: T;
   lastModifiedBy?: T;
