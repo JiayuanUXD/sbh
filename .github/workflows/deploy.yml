@@ -31,12 +31,22 @@
 
 name: Deploy to CloudBase CloudRun
 
+# 触发方式：由 quality.yml 跑完且**整体成功**后接力，不再自己监听 push。
+#
+# 两个目的：
+#   1. 省额度：原先本文件的 quality 作业把 quality.yml 刚做过的 lint / typecheck /
+#      test / build 在同一个 commit 上又跑一遍（实测 4m39s），纯重复。
+#   2. 堵洞：原先部署只被本文件内的质量门挡住，**挡不住 e2e**（e2e 在 quality.yml 里）。
+#      真实教训：PR #50 合入后 19 条 e2e 全红，部署照样绿灯上线。改为依赖 quality.yml
+#      整体结论后，e2e 红 → 不部署。
+#
+# 注意：quality.yml 的 paths 里必须包含本文件，否则只改 deploy.yml 时上游不触发、
+# 部署链路会静默失联。
 on:
-  push:
+  workflow_run:
+    workflows: ['Quality and migration baseline']
+    types: [completed]
     branches: [master]
-    paths:
-      - 'payload-office-platform/**'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 # 部署互相排队，不中途取消（避免并发发布互相覆盖版本）
@@ -45,61 +55,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ---------- 质量门：发布前必须通过 ----------
-  quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      # next build 收集 /sitemap.xml page data 时 site-config fail-closed 需此值；
-      # 与 Dockerfile 构建阶段 ENV 一致。
-      NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
-    defaults:
-      run:
-        working-directory: payload-office-platform
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.6.1
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Payload types & importmap
-        # payload-types.ts 被 gitignore，CI checkout 后不存在；typecheck/build 前必须
-        # 先生成（与 Dockerfile 构建阶段一致）。generate:types 只读 payload.config、
-        # 不连库，无 DB/secret 也安全。漏掉会让 typecheck 报 TS2307 Cannot find module
-        # '@/payload-types'，preflight 失败 -> deploy 不跑 -> 生产滞后。
-        run: pnpm generate:types && pnpm payload generate:importmap
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit tests
-        run: pnpm test
-
-      - name: 迁移预检（目录与索引一致性 + 危险项扫描）
-        # 绕过 npm script 的 --env-file=.env.local（CI 无该文件）；
-        # migrations 子命令纯扫描文件，不读 env。
-        run: pnpm exec tsx scripts/preflight.ts migrations
-
-      - name: Build（质量门：验证能构建通过，产物不上传）
-        run: pnpm build
-
   # ---------- 部署：灰度 -> 冒烟 -> 全量/回滚 ----------
+  # 质量门不在本文件里：lint / typecheck / test / build / 迁移预检 / e2e 全部由
+  # quality.yml 覆盖，本工作流只在它整体成功后才被触发（见顶部 on.workflow_run）。
   deploy:
-    needs: quality
+    # workflow_run 在上游失败/取消时同样会触发（types: [completed]），必须自行判定结论；
+    # 手动 workflow_dispatch 走人工确认，不受此限。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -109,6 +73,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # workflow_run 触发时 checkout 默认取默认分支最新提交，而不是触发它的那个
+          # commit —— 若期间又推了一次 master，部署的就不是刚过闸门的代码。下面的
+          # `git archive HEAD` 直接决定发布内容，因此必须显式钉到上游 run 的 head_sha。
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
