@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import sharp from 'sharp'
 
 import config from '../src/payload.config'
+import { assertSeedTargetFromProcessEnv } from '../src/lib/runtime/seed-target-guard'
 
 // CI / 离线：不走外部网络（picsum.photos 慢且不稳），改用 sharp 本地合成纯色 JPEG。
 // 有效供给精筛只看 gallery.length（≥3），不校验图片内容，占位纯色图完全够用。
@@ -158,6 +159,10 @@ async function deleteAllMedia(payload: any): Promise<void> {
 }
 
 async function seedMedia() {
+  // 0) 目标环境守卫：必须排在 getPayload 之前。本脚本的每次上传都按同名 key 写对象存储，
+  //    指向生产桶就会静默覆盖线上素材（真实事故：生产 hero-bg.mp4 被 15KB 占位 fixture 顶掉）。
+  assertSeedTargetFromProcessEnv()
+
   const payload = await getPayload({ config })
 
   // 1) 清理旧占位图,避免媒体库堆积
