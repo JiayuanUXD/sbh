@@ -19,6 +19,7 @@ import {
   getPausedListingIds,
   type PayloadQueryPort,
 } from '@/domain/review/effective-supply'
+import { PUBLICATION_STATUSES } from '@/domain/review/publication-status'
 
 import type {
   MetricBucket,
@@ -106,9 +107,19 @@ export const countListingsOffline: MetricQueryAdapter = makeListingCount({
   publicationStatus: { equals: 'unpublished' },
 })
 
-/** listings.rented：publicationStatus=leased */
+/**
+ * listings.rented：publicationStatus=leased
+ *
+ * 只算租赁成交。售出走 `countListingsSold`，两者刻意不合并——合并后无法回答
+ * 「这个月租出去几套、卖出去几套」，而这正是运营最常问的问题。
+ */
 export const countListingsRented: MetricQueryAdapter = makeListingCount({
   publicationStatus: { equals: 'leased' },
+})
+
+/** listings.sold：publicationStatus=sold */
+export const countListingsSold: MetricQueryAdapter = makeListingCount({
+  publicationStatus: { equals: 'sold' },
 })
 
 /**
@@ -284,7 +295,9 @@ export const distributionListingsByCity: MetricQueryAdapter = async (
 export const distributionListingsByStatus: MetricQueryAdapter = async (
   ctx,
 ): Promise<MetricSeriesResult> => {
-  const statuses = ['draft', 'published', 'unpublished', 'leased'] as const
+  // 从 PUBLICATION_STATUSES 派生而非硬编码：这里曾写死 4 个状态，新增 sold 后
+  // 已售房源会从分布图里整类消失，而图表不会报错，只是少一根柱子。
+  const statuses = PUBLICATION_STATUSES
   const counts = await Promise.all(
     statuses.map(async (status) => {
       const where = mergeWhere(
