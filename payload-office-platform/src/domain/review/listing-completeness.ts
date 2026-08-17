@@ -18,7 +18,11 @@ import {
   isValidMoney,
   isValidSqmArea,
 } from '@/domain/shared/money'
-import { isBusinessType, isDecorationStatus } from '@/domain/review/listing-fields'
+import {
+  isBusinessType,
+  isDecorationStatus,
+  isPropertyRightYears,
+} from '@/domain/review/listing-fields'
 
 /** 提交审核要求的最少有效图片数（与 effective-supply §6 MIN_EFFECTIVE_MEDIA 对齐）。 */
 export const MIN_SUBMIT_MEDIA = 3
@@ -78,6 +82,8 @@ export interface ListingCompletenessSnapshot {
   minimumLeaseMonths?: unknown
   paymentTerms?: unknown
   availableFrom?: unknown
+  /** 产权年限（出售专属，纯展示，不做折损计算）。 */
+  propertyRightYears?: unknown
   description?: unknown
   contactBroker?: unknown
   /** 有效图集图片数(调用方解析 gallery 后传入)。 */
@@ -109,8 +115,8 @@ export interface CompletenessResult {
 /** 草稿最小必填字段键。 */
 export const DRAFT_REQUIRED_FIELDS = ['title', 'building', 'listingType'] as const
 
-/** 提交审核完整必填字段键(草稿超集)。 */
-export const SUBMIT_REQUIRED_FIELDS = [
+/** 租售共有的提交审核必填字段键。 */
+const SUBMIT_REQUIRED_COMMON = [
   'title',
   'building',
   'listingType',
@@ -119,14 +125,45 @@ export const SUBMIT_REQUIRED_FIELDS = [
   'price',
   'area',
   'floor',
-  'minimumLeaseMonths',
-  'paymentTerms',
-  'availableFrom',
   'description',
   'contactBroker',
   'gallery',
   'merchant',
 ] as const
+
+/**
+ * 租赁专属必填。
+ *
+ * 出售房源天然不满足这三条：买卖没有租期概念、付款方式在合同阶段谈、交割日不是
+ * 入驻日。此前它们混在统一清单里，会让每一套出售房源都卡在「提交审核」按钮上，
+ * 报错说缺最短租期——功能看似做完了，实际一套都上不了架。
+ */
+const SUBMIT_REQUIRED_LEASE_ONLY = [
+  'minimumLeaseMonths',
+  'paymentTerms',
+  'availableFrom',
+] as const
+
+/** 出售专属必填。产权年限为纯展示字段，但买家必看，故进硬校验。 */
+const SUBMIT_REQUIRED_SALE_ONLY = ['propertyRightYears'] as const
+
+/**
+ * 提交审核完整必填字段键(草稿超集)。
+ *
+ * @deprecated 保留以兼容既有引用，等价于租赁口径。新代码用
+ *   `getSubmitRequiredFields(businessType)`，否则出售房源会被租赁专属字段拦住。
+ */
+export const SUBMIT_REQUIRED_FIELDS = [
+  ...SUBMIT_REQUIRED_COMMON,
+  ...SUBMIT_REQUIRED_LEASE_ONLY,
+] as const
+
+/** 按租售类型返回提交审核必填字段。businessType 非法或缺失时按租赁口径（保守）。 */
+export function getSubmitRequiredFields(businessType: unknown): readonly string[] {
+  return businessType === 'sale'
+    ? [...SUBMIT_REQUIRED_COMMON, ...SUBMIT_REQUIRED_SALE_ONLY]
+    : [...SUBMIT_REQUIRED_COMMON, ...SUBMIT_REQUIRED_LEASE_ONLY]
+}
 
 const FIELD_LABELS: Record<string, string> = {
   title: '房源标题',
@@ -140,6 +177,7 @@ const FIELD_LABELS: Record<string, string> = {
   minimumLeaseMonths: '最短租期',
   paymentTerms: '付款方式',
   availableFrom: '可入驻时间',
+  propertyRightYears: '产权年限',
   description: '房源描述',
   contactBroker: '联系经纪人',
   gallery: '房源图集',
@@ -184,7 +222,8 @@ export function checkListingCompleteness(
   snapshot: ListingCompletenessSnapshot,
   mode: CompletenessMode,
 ): CompletenessResult {
-  const required = mode === 'draft' ? DRAFT_REQUIRED_FIELDS : SUBMIT_REQUIRED_FIELDS
+  const required: readonly string[] =
+    mode === 'draft' ? DRAFT_REQUIRED_FIELDS : getSubmitRequiredFields(snapshot.businessType)
   const missing: MissingItem[] = []
 
   const fail = (field: string, reason: string) => {
@@ -229,6 +268,10 @@ export function checkListingCompleteness(
         break
       case 'availableFrom':
         if (!isNonEmptyString(snapshot.availableFrom)) fail('availableFrom', '请选择可入驻时间')
+        break
+      case 'propertyRightYears':
+        if (!isPropertyRightYears(snapshot.propertyRightYears))
+          fail('propertyRightYears', '请选择产权年限')
         break
       case 'description':
         if (snapshot.description === undefined || snapshot.description === null)
