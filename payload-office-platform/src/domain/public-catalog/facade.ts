@@ -240,9 +240,12 @@ async function attachLeasableArea(
   adapter: SupplyAdapter,
 ): Promise<BuildingSummaryViewModel[]> {
   if (summaries.length === 0) return []
+  // 强制 lease 而非跟随 ctx：这个字段叫「在租面积」，语义上只算租赁供给，与调用方
+  // 当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁的在租面积，一套
+  // 3800 万的待售整层不能被算进去。
   const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
     summaries.map((s) => s.id),
-    ctx,
+    { ...ctx, businessType: 'lease' },
   )
   return summaries.map((s) => {
     const leasableArea = areaByBuilding.get(String(s.id))

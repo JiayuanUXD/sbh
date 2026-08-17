@@ -52,12 +52,31 @@ export const EFFECTIVE_SUPPLY_EXCLUSION_CODES = {
 export type EffectiveSupplyExclusionCode =
   (typeof EFFECTIVE_SUPPLY_EXCLUSION_CODES)[keyof typeof EFFECTIVE_SUPPLY_EXCLUSION_CODES]
 
+/** 有效供给谓词的可选收窄条件。 */
+export interface EffectiveSupplyScope {
+  /**
+   * 只保留指定租售类型。**不传则不过滤**（保持改造前行为）。
+   *
+   * 刻意不设默认值：谓词回答的是「这套房源合不合格」，租售是另一个维度。给它一个
+   * 隐式默认（比如默认排除 sale）会让出售频道的开发者踩坑——查不到数据但看不出
+   * 原因。显式参数在类型层可见，每个调用点必须自己声明意图：
+   *
+   *   - 租赁列表 / 首页精选 / 在租面积聚合  → 'lease'
+   *   - 出售频道列表                        → 'sale'
+   *   - 楼盘详情页供给分组 / sitemap        → 不传（需要全集，自己分组）
+   *   - 相关推荐                            → 跟随当前房源的 businessType
+   */
+  businessType?: 'lease' | 'sale'
+}
+
 /**
  * 查询层可表达的有效供给正向谓词（fail-closed）。
  * @param _asOf 判定基准时刻（当前查询层条件与时刻无关，保留参数以便未来接入时间敏感条件）。
+ * @param scope 可选收窄条件；不传时行为与改造前一致。
  */
 export function getEffectiveSupplyWhere(
   _asOf: Date,
+  scope?: Readonly<EffectiveSupplyScope>,
 ): Record<string, Readonly<{ equals: string }> | Readonly<{ exists: false }>> {
   return {
     deletedAt: { exists: false },
@@ -65,6 +84,10 @@ export function getEffectiveSupplyWhere(
     reviewStatus: { equals: 'approved' },
     supplyVisibilityHold: { equals: 'normal' },
     ...getListingPublicBuildingWhere(),
+    // 正向 equals 而非 not_equals：后者遇到 NULL 会返回 NULL 而非 true，历史行会
+    // 静默漏网。业务上 business_type 加列时带 DEFAULT 'lease' 已回填既有行，批次 2
+    // 的迁移再补一次残留 NULL 回填，批次 3 改必填后彻底闭环。
+    ...(scope?.businessType ? { businessType: { equals: scope.businessType } } : {}),
   }
 }
 

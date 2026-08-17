@@ -74,7 +74,9 @@ function mixedSupplyCacheTags(citySlug: string): string[] {
 
 const getCachedHomepageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
-    async () => getHomepage(createSearchContext(citySlug)),
+    // 首页是租赁语境（精选房源、热门商圈、按类型浏览都按租金展示），
+    // 出售供给不参与首页曝光，等出售频道上线后单独规划入口。
+    async () => getHomepage(createSearchContext(citySlug, undefined, 'lease')),
     ['homepage', citySlug],
     {
       tags: [
@@ -247,7 +249,10 @@ const getCachedListingSearchSourceByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (sourceCacheKey: string, input: ListingSearchInput) => {
       void sourceCacheKey
-      return buildListingSearchSource(input, createSearchContext(citySlug))
+      // 租赁列表只查租赁供给。写死而非跟随参数是批次 2 的「堵泄漏」要求：
+      // 谓词支持了但没人传，出售房源照样会混进租金列表。批次 4 加出售频道时
+      // 把它提为参数（届时缓存 key 也要带上 businessType）。
+      return buildListingSearchSource(input, createSearchContext(citySlug, undefined, 'lease'))
     },
     ['listing-search-source', citySlug],
     {
@@ -290,7 +295,9 @@ const getCachedSearchFacetsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (canonicalQuery: string, input: ListingSearchInput) => {
       void canonicalQuery
-      return getSearchFacets(input, createSearchContext(citySlug))
+      // facets 必须与列表同口径，否则筛选器会显示出售房源贡献的计数，
+      // 用户点进去却什么都没有。
+      return getSearchFacets(input, createSearchContext(citySlug, undefined, 'lease'))
     },
     ['search-facets', citySlug],
     {

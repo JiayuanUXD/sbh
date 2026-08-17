@@ -48,6 +48,7 @@ import * as migration_20260813_022000_city_partner_notification_jobs from './202
 import * as migration_20260813_060037_city_partner_notification_outbox_reconciler from './20260813_060037_city_partner_notification_outbox_reconciler';
 import * as migration_20260815_140000_converge_shanghai_city_code from './20260815_140000_converge_shanghai_city_code';
 import * as migration_20260817_172754_sale_price_one_time from './20260817_172754_sale_price_one_time';
+import * as migration_20260817_174500_sale_business_type_index from './20260817_174500_sale_business_type_index';
 
 export const migrations = [
   {
@@ -299,5 +300,10 @@ export const migrations = [
     up: migration_20260817_172754_sale_price_one_time.up,
     down: migration_20260817_172754_sale_price_one_time.down,
     name: '20260817_172754_sale_price_one_time'
+  },
+  {
+    up: migration_20260817_174500_sale_business_type_index.up,
+    down: migration_20260817_174500_sale_business_type_index.down,
+    name: '20260817_174500_sale_business_type_index'
   },
 ];
