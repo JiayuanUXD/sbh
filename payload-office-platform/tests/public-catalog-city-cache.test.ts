@@ -138,9 +138,21 @@ describe('per-city public catalog caches', () => {
       [citySlug: string, page: number, limit: number],
       [citySlug: string, slug: string],
       [citySlug: string, slug: string],
-      [citySlug: string, canonicalQuery: string, input: ReturnType<typeof parseSearchInput>],
+      // 出售频道（批次 4）：末位可选 businessType，缺省 lease，
+      // 既有调用点无需改动，故仍以 citySlug 开头的契约不变。
+      [
+        citySlug: string,
+        canonicalQuery: string,
+        input: ReturnType<typeof parseSearchInput>,
+        businessType?: 'lease' | 'sale',
+      ],
       [citySlug: string],
-      [citySlug: string, canonicalQuery: string, input: ReturnType<typeof parseSearchInput>],
+      [
+        citySlug: string,
+        canonicalQuery: string,
+        input: ReturnType<typeof parseSearchInput>,
+        businessType?: 'lease' | 'sale',
+      ],
     ]>()
 
     const input = parseSearchInput(new URLSearchParams())
