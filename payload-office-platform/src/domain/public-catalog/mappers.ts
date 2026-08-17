@@ -34,7 +34,10 @@ import type {
   PageHeroViewModel,
   PageSeoViewModel,
   PageSummaryViewModel,
+  PriceDisplayUnit,
+  PriceViewBasis,
   PriceViewModel,
+  PriceViewPeriod,
   PopulatedBuilding,
   PopulatedListing,
   PopulatedPage,
@@ -162,14 +165,103 @@ function isPopulatedBuilding(v: unknown): v is PopulatedBuilding {
 // 基础值对象 mapper
 // ---------------------------------------------------------------------------
 
-const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>> = {
-  'rmb-sqm-day': { currency: 'CNY', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day' },
-  'rmb-month': { currency: 'CNY', period: 'month', basis: 'total', displayUnit: 'rmb-month' },
-  'rmb-seat-month': { currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month' },
+/**
+ * (period, basis) → displayUnit 的穷举映射。
+ *
+ * 必须是全映射，不允许 fallback。Record 类型让 TypeScript 在 period 或 basis
+ * 新增取值时强制补齐这张表——历史上这里是一条 `? :` 链加一个 `'rmb-total'`
+ * 兜底，导致 9 个组合里 6 个共用同一个 displayUnit，楼盘页按它分组筛选时会把
+ * 月单价和年租金混作一类。
+ */
+const DISPLAY_UNIT_BY_PERIOD_BASIS: Record<
+  PriceViewPeriod,
+  Record<PriceViewBasis, PriceDisplayUnit>
+> = {
+  day: { sqm: 'rmb-sqm-day', seat: 'rmb-seat-day', total: 'rmb-day' },
+  month: { sqm: 'rmb-sqm-month', seat: 'rmb-seat-month', total: 'rmb-month' },
+  year: { sqm: 'rmb-sqm-year', seat: 'rmb-seat-year', total: 'rmb-year' },
+  'one-time': { sqm: 'rmb-sqm-total', seat: 'rmb-seat-total', total: 'rmb-total' },
 }
 
+function priceKeyOf(
+  period: PriceViewPeriod,
+  basis: PriceViewBasis,
+): Omit<PriceViewModel, 'amount' | 'businessType' | 'text'> {
+  return {
+    currency: 'CNY',
+    period,
+    basis,
+    displayUnit: DISPLAY_UNIT_BY_PERIOD_BASIS[period][basis],
+  }
+}
+
+const LEGACY_PRICE: Record<NonNullable<Listing['rentUnit']>, Omit<PriceViewModel, 'amount' | 'businessType' | 'text'>> = {
+  'rmb-sqm-day': priceKeyOf('day', 'sqm'),
+  'rmb-month': priceKeyOf('month', 'total'),
+  'rmb-seat-month': priceKeyOf('month', 'seat'),
+}
+
+type BusinessTypeWarnHandler = (message: string) => void
+
+const defaultBusinessTypeWarnHandler: BusinessTypeWarnHandler = (message) => {
+  console.warn(message)
+}
+
+let businessTypeWarnHandler: BusinessTypeWarnHandler = defaultBusinessTypeWarnHandler
+
+/**
+ * 进程内已告警过的未知取值。
+ *
+ * 去重是必需的，不是优化：`publicBusinessType` 在每张卡片上会被调用两次（价格
+ * 映射一次、卡片 businessType 字段一次），一个 24 条的列表页就是 48 行同样的日志。
+ * 未知取值的**种类**是有限的（新增交易类型没接线），所以按值去重既保住信号又不刷屏。
+ */
+const warnedBusinessTypes = new Set<string>()
+
+/**
+ * 替换未知 businessType 的告警出口，返回还原函数（测试用）。
+ *
+ * mapper 是无 payload 依赖的纯函数模块，不能直接拿 payload.logger；用可替换的
+ * handler 保持纯度，同时让「未知交易类型」这件事在测试里可断言。
+ *
+ * 换 handler 会清空去重集合：新 handler 是一个新的观察窗口，否则前一个用例触发过
+ * 的取值会让后一个用例静默收不到告警。
+ */
+export function setBusinessTypeWarnHandler(handler: BusinessTypeWarnHandler): () => void {
+  const previous = businessTypeWarnHandler
+  businessTypeWarnHandler = handler
+  warnedBusinessTypes.clear()
+  return () => {
+    businessTypeWarnHandler = previous
+    warnedBusinessTypes.clear()
+  }
+}
+
+/**
+ * 把原始 businessType 收窄为公开枚举。
+ *
+ * 三种情况分开处理，不能一律静默降级：
+ *   - 'lease' / 'sale'：正常透传
+ *   - null / undefined：历史数据缺该字段，按 lease 兼容，属预期，不告警
+ *   - 其余值：枚举外的取值。可能是新增交易类型（转让、代管）没接线，也可能是
+ *     脏数据。必须留下信号——静默当作 lease 会让新类型排进租赁列表、按租金聚合，
+ *     全程零报错，只能靠用户投诉发现。
+ *
+ * 取值需与 `@/domain/review/listing-fields` 的 BUSINESS_TYPES 保持一致；此处不
+ * 直接导入，避免 public-catalog 反向依赖 review 层。
+ */
 function publicBusinessType(value: unknown): PriceViewModel['businessType'] {
-  return value === 'sale' ? 'sale' : 'lease'
+  if (value === 'sale' || value === 'lease') return value
+  if (value == null) return 'lease'
+  const key = String(value)
+  if (!warnedBusinessTypes.has(key)) {
+    warnedBusinessTypes.add(key)
+    businessTypeWarnHandler(
+      `[public-catalog] 未知 businessType=${key}，已降级为 lease。` +
+        `若这是新增的交易类型，需同步 BUSINESS_TYPES、PriceViewModel 与筛选白名单。`,
+    )
+  }
+  return 'lease'
 }
 
 function createPrice(
@@ -216,21 +308,15 @@ function mapStructuredPrice(
     return null
   }
   if (raw.currency !== 'CNY') return null
-  const basis = raw.unit === 'sqm' || raw.unit === 'seat' ? raw.unit : raw.unit === 'suite' ? 'total' : null
+  const basis: PriceViewBasis | null =
+    raw.unit === 'sqm' || raw.unit === 'seat' ? raw.unit : raw.unit === 'suite' ? 'total' : null
+  if (!basis) return null
   const period = raw.period
-  if (!basis || (period !== 'day' && period !== 'month' && period !== 'year')) return null
+  if (period !== 'day' && period !== 'month' && period !== 'year' && period !== 'one-time') {
+    return null
+  }
 
-  const displayUnit =
-    basis === 'sqm' && period === 'day' ? 'rmb-sqm-day' :
-    basis === 'seat' && period === 'month' ? 'rmb-seat-month' :
-    basis === 'total' && period === 'month' ? 'rmb-month' :
-    'rmb-total'
-  return createPrice(raw.amount, publicBusinessType(businessType), {
-    currency: 'CNY',
-    period,
-    basis,
-    displayUnit,
-  })
+  return createPrice(raw.amount, publicBusinessType(businessType), priceKeyOf(period, basis))
 }
 
 /** 把 Media 投影为 MediaViewModel；非媒体或无 url 返回 null */

@@ -15,6 +15,7 @@
  * 兼容：保留对旧 `district`（string）的解析以兼容现网 URL，但内部统一存数组。
  */
 
+import type { PriceDisplayUnit } from './contracts'
 import type {
   ListingSearchInput,
   ListingSort,
@@ -50,7 +51,41 @@ const SORT_WHITELIST = new Set<string>([
 
 const BUILDING_SUPPLY_GROUPS = new Set(['lease', 'sale', 'coworking'])
 const BUILDING_SUPPLY_DECORATION_STATUSES = new Set(['rough', 'simple', 'furnished', 'fully_fitted'])
-const BUILDING_SUPPLY_PRICE_UNITS = new Set(['rmb-sqm-day', 'rmb-month', 'rmb-seat-month', 'rmb-total'])
+/**
+ * 楼盘详情页价格单位筛选白名单。
+ *
+ * 必须覆盖 `PriceDisplayUnit` 全集：楼盘页按 displayUnit 分组展示供给，白名单漏掉
+ * 某个单位就意味着那组价格「看得见但筛不着」。此前只有 4 个值，因为当时 mapper 把
+ * 12 种 (period, basis) 组合压进 4 个 displayUnit（`rmb-total` 是兜底桶）；兜底桶
+ * 消除后，白名单必须跟着补齐。下方断言保证两侧不会再漂移。
+ */
+const BUILDING_SUPPLY_PRICE_UNIT_VALUES = [
+  'rmb-sqm-day',
+  'rmb-sqm-month',
+  'rmb-sqm-year',
+  'rmb-sqm-total',
+  'rmb-seat-day',
+  'rmb-seat-month',
+  'rmb-seat-year',
+  'rmb-seat-total',
+  'rmb-day',
+  'rmb-month',
+  'rmb-year',
+  'rmb-total',
+] as const
+
+/** 编译期断言：T 必须为 never，差集会显示在错误信息里。 */
+type AssertNever<T extends never> = T
+/** 白名单漏了 PriceDisplayUnit 有的取值 → 此处报错 */
+type _NoMissingSupplyPriceUnit = AssertNever<
+  Exclude<PriceDisplayUnit, (typeof BUILDING_SUPPLY_PRICE_UNIT_VALUES)[number]>
+>
+/** 白名单多了 PriceDisplayUnit 没有的取值 → 此处报错 */
+type _NoExtraSupplyPriceUnit = AssertNever<
+  Exclude<(typeof BUILDING_SUPPLY_PRICE_UNIT_VALUES)[number], PriceDisplayUnit>
+>
+
+const BUILDING_SUPPLY_PRICE_UNITS = new Set<string>(BUILDING_SUPPLY_PRICE_UNIT_VALUES)
 const BUILDING_SUPPLY_SORTS = new Set(['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'])
 
 const LEGACY_RENT_UNIT_PRICE_KEY: Readonly<Record<RentUnit, Readonly<{

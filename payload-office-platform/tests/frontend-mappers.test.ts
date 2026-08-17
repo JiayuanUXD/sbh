@@ -21,6 +21,7 @@ import {
   mapListingDetail,
   mapMedia,
   mapPrice,
+  setBusinessTypeWarnHandler,
 } from '@/domain/public-catalog'
 import {
   BUILDING_DISABLED,
@@ -56,16 +57,22 @@ const BUILDING_HANGZHOU = {
 // ---------------------------------------------------------------------------
 
 describe('mapPrice', () => {
+  // period × basis 全组合（4 × 3 = 12）。每个组合必须有唯一的 displayUnit：
+  // 楼盘详情页按 displayUnit 分组筛选，任何两个语义不同的组合共用一个 displayUnit
+  // 都会让「筛某个单位」同时命中不可比的价格（如月单价与一次性总价并列）。
   it.each([
     ['day', 'sqm', 'sqm', 'rmb-sqm-day', '12 元/㎡/天'],
-    ['day', 'suite', 'total', 'rmb-total', '12 元/天'],
-    ['day', 'seat', 'seat', 'rmb-total', '12 元/工位/天'],
-    ['month', 'sqm', 'sqm', 'rmb-total', '12 元/㎡/月'],
+    ['day', 'suite', 'total', 'rmb-day', '12 元/天'],
+    ['day', 'seat', 'seat', 'rmb-seat-day', '12 元/工位/天'],
+    ['month', 'sqm', 'sqm', 'rmb-sqm-month', '12 元/㎡/月'],
     ['month', 'suite', 'total', 'rmb-month', '12 元/月'],
     ['month', 'seat', 'seat', 'rmb-seat-month', '12 元/工位/月'],
-    ['year', 'sqm', 'sqm', 'rmb-total', '12 元/㎡/年'],
-    ['year', 'suite', 'total', 'rmb-total', '12 元/年'],
-    ['year', 'seat', 'seat', 'rmb-total', '12 元/工位/年'],
+    ['year', 'sqm', 'sqm', 'rmb-sqm-year', '12 元/㎡/年'],
+    ['year', 'suite', 'total', 'rmb-year', '12 元/年'],
+    ['year', 'seat', 'seat', 'rmb-seat-year', '12 元/工位/年'],
+    ['one-time', 'sqm', 'sqm', 'rmb-sqm-total', '12 元/㎡'],
+    ['one-time', 'suite', 'total', 'rmb-total', '12 元'],
+    ['one-time', 'seat', 'seat', 'rmb-seat-total', '12 元/工位'],
   ] as const)('结构化价格 %s/%s 不被丢弃且保留语义', (period, unit, basis, displayUnit, text) => {
     const card = mapListingCard({
       ...LISTING_MONTHLY_STANDARD,
@@ -82,6 +89,129 @@ describe('mapPrice', () => {
       displayUnit,
       text,
     })
+  })
+
+  it('displayUnit 在 12 个组合上两两互异（防兜底桶回归）', () => {
+    const periods = ['day', 'month', 'year', 'one-time'] as const
+    const units = ['sqm', 'suite', 'seat'] as const
+    const seen = new Map<string, string>()
+    for (const period of periods) {
+      for (const unit of units) {
+        const card = mapListingCard({
+          ...LISTING_MONTHLY_STANDARD,
+          rent: undefined,
+          rentUnit: null,
+          price: { amount: 12, currency: 'CNY', period, unit },
+        })
+        const displayUnit = card?.price?.displayUnit
+        expect(displayUnit, `${period}/${unit} 应产出价格`).toBeTruthy()
+        const combo = `${period}/${unit}`
+        const clash = seen.get(displayUnit as string)
+        expect(
+          clash,
+          `${combo} 与 ${clash} 共用 displayUnit=${displayUnit}，会让楼盘页筛选混合不可比的价格`,
+        ).toBeUndefined()
+        seen.set(displayUnit as string, combo)
+      }
+    }
+    expect(seen.size).toBe(12)
+  })
+
+  it('出售总价：one-time + suite → rmb-total，文本不带周期后缀', () => {
+    const card = mapListingCard({
+      ...LISTING_MONTHLY_STANDARD,
+      rent: undefined,
+      rentUnit: null,
+      businessType: 'sale',
+      price: { amount: 38000000, currency: 'CNY', period: 'one-time', unit: 'suite' },
+    })
+    expect(card?.price).toMatchObject({
+      amount: 38000000,
+      businessType: 'sale',
+      period: 'one-time',
+      basis: 'total',
+      displayUnit: 'rmb-total',
+      text: '38000000 元',
+    })
+  })
+
+  it('出售单价：one-time + sqm → rmb-sqm-total，不落回 rmb-total', () => {
+    const card = mapListingCard({
+      ...LISTING_MONTHLY_STANDARD,
+      rent: undefined,
+      rentUnit: null,
+      businessType: 'sale',
+      price: { amount: 52000, currency: 'CNY', period: 'one-time', unit: 'sqm' },
+    })
+    expect(card?.price?.displayUnit).toBe('rmb-sqm-total')
+    expect(card?.price?.text).toBe('52000 元/㎡')
+  })
+
+  it('未知 businessType 记告警后降级 lease（未来的交易类型不能被静默吞掉）', () => {
+    const warned: string[] = []
+    const restore = setBusinessTypeWarnHandler((message) => warned.push(message))
+    try {
+      const card = mapListingCard({
+        ...LISTING_MONTHLY_STANDARD,
+        businessType: 'transfer' as never,
+      })
+      expect(card?.businessType).toBe('lease')
+      expect(warned).toHaveLength(1)
+      expect(warned[0]).toContain('transfer')
+    } finally {
+      restore()
+    }
+  })
+
+  it('同一未知取值只告警一次（一个列表页会调用两次/张，不能刷屏）', () => {
+    const warned: string[] = []
+    const restore = setBusinessTypeWarnHandler((message) => warned.push(message))
+    try {
+      for (let i = 0; i < 5; i++) {
+        mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: 'transfer' as never })
+      }
+      expect(warned).toHaveLength(1)
+    } finally {
+      restore()
+    }
+  })
+
+  it('不同未知取值各告警一次（去重不能吞掉新出现的类型）', () => {
+    const warned: string[] = []
+    const restore = setBusinessTypeWarnHandler((message) => warned.push(message))
+    try {
+      mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: 'transfer' as never })
+      mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: 'custody' as never })
+      expect(warned).toHaveLength(2)
+      expect(warned.join('|')).toContain('transfer')
+      expect(warned.join('|')).toContain('custody')
+    } finally {
+      restore()
+    }
+  })
+
+  it('已知 businessType 不触发告警', () => {
+    const warned: string[] = []
+    const restore = setBusinessTypeWarnHandler((message) => warned.push(message))
+    try {
+      mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: 'sale' })
+      mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: 'lease' })
+      expect(warned).toHaveLength(0)
+    } finally {
+      restore()
+    }
+  })
+
+  it('businessType 缺失按 lease 处理且不告警（历史数据兼容）', () => {
+    const warned: string[] = []
+    const restore = setBusinessTypeWarnHandler((message) => warned.push(message))
+    try {
+      const card = mapListingCard({ ...LISTING_MONTHLY_STANDARD, businessType: null })
+      expect(card?.businessType).toBe('lease')
+      expect(warned).toHaveLength(0)
+    } finally {
+      restore()
+    }
   })
 
   it('rmb-month: 保留数值、币种、单位并产出可读文本', () => {

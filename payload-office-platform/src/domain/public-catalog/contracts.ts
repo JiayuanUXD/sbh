@@ -37,6 +37,48 @@ export type MediaViewModel = Readonly<{
 }>
 
 /**
+ * 公开价格计价周期。`one-time` 为一次性计价（出售），无周期含义。
+ *
+ * 注意与 `./types` 的 `PricePeriod` 区分：那个是**搜索输入**侧的类型，取值只有
+ * `'day' | 'month'`，因为旧 `rentUnit` URL 参数只能表达这两种。此处是价格**视图
+ * 模型**侧的完整取值域。两者不可互换，故不共用名字。
+ */
+export type PriceViewPeriod = 'day' | 'month' | 'year' | 'one-time'
+
+/** 公开价格计价基础：按面积 / 按工位 / 按整体。 */
+export type PriceViewBasis = 'sqm' | 'seat' | 'total'
+
+/**
+ * 公开价格展示单位：period × basis 的完整笛卡尔积（4 × 3 = 12）。
+ *
+ * 每个 (period, basis) 组合必须映射到**唯一**的 displayUnit，不允许兜底桶。
+ * 楼盘详情页按 displayUnit 分组筛选（`BUILDING_SUPPLY_PRICE_UNITS`），一旦两个
+ * 语义不同的组合共用同一个值，「筛某个单位」就会同时命中不可比的价格——例如
+ * 月单价与一次性总价并排出现。历史上 `rmb-total` 曾是「其余全归这里」的兜底
+ * 桶（9 个组合里有 6 个落进去），出售总价接入前已收窄为专指 one-time + total。
+ *
+ * 命名规则：`rmb-{basis}-{period}`，其中 basis=total 时省略 basis 段，
+ * period=one-time 时写作 `total`。保持四个历史值不变以兼容既有 URL 与
+ * `enum_supply_submissions_rent_unit`。
+ */
+export type PriceDisplayUnit =
+  // basis = sqm
+  | 'rmb-sqm-day'
+  | 'rmb-sqm-month'
+  | 'rmb-sqm-year'
+  | 'rmb-sqm-total'
+  // basis = seat
+  | 'rmb-seat-day'
+  | 'rmb-seat-month'
+  | 'rmb-seat-year'
+  | 'rmb-seat-total'
+  // basis = total（省略 basis 段）
+  | 'rmb-day'
+  | 'rmb-month'
+  | 'rmb-year'
+  | 'rmb-total'
+
+/**
  * 公开价格视图
  *
  * 始终保留数值、币种、计价周期和单位，禁止跨币种、跨单位直接聚合或排序
@@ -46,10 +88,10 @@ export type PriceViewModel = Readonly<{
   amount: number
   currency: 'CNY'
   businessType: 'lease' | 'sale'
-  period: 'day' | 'month' | 'year' | 'one-time'
-  basis: 'sqm' | 'seat' | 'total'
-  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month' | 'rmb-total'
-  /** 可读文本，如 "8.5 元/㎡/天" */
+  period: PriceViewPeriod
+  basis: PriceViewBasis
+  displayUnit: PriceDisplayUnit
+  /** 可读文本，如 "8.5 元/㎡/天"；one-time 不带周期后缀，如 "38000000 元" */
   text: string
 }>
 

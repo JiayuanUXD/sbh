@@ -763,7 +763,7 @@ export interface Listing {
   price?: {
     amount?: number | null;
     currency?: 'CNY' | null;
-    period?: ('month' | 'day' | 'year') | null;
+    period?: ('month' | 'day' | 'year' | 'one-time') | null;
     unit?: ('sqm' | 'suite' | 'seat') | null;
   };
   /**

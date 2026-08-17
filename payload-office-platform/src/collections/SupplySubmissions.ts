@@ -4,7 +4,10 @@ import { createCollectionAccess } from '@/domain/auth/access'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getSupplySubmissionMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
-import { PRICE_UNITS } from '@/domain/inquiry/schema'
+import {
+  SUBMISSION_PRICE_UNIT_LABELS,
+  SUBMISSION_PRICE_UNITS,
+} from '@/domain/supply-submission/schema'
 import { enqueueSupplySubmissionCreated } from '@/domain/supply-submission/submission-notify'
 import { protectSupplySubmission } from '@/domain/supply-submission/submission-protect'
 import {
@@ -21,13 +24,14 @@ import {
   SUPPLY_SUBMISSION_STATUSES,
 } from '@/domain/supply-submission/schema'
 
-/** 价格单位中文标签（与 C 端展示口径一致） */
-const PRICE_UNIT_LABELS: Record<(typeof PRICE_UNITS)[number], string> = {
-  'rmb-sqm-day': '元/㎡/天',
-  'rmb-month': '元/月',
-  'rmb-seat-month': '元/工位/月',
-  'rmb-total': '元/总价',
-}
+/**
+ * 价格单位中文标签。
+ *
+ * 用业主提交专用的 `SUBMISSION_PRICE_UNITS`（4 值）而非前台展示单位全集（12 值）：
+ * 本字段入库到 `enum_supply_submissions_rent_unit`，下拉里多一个 ENUM 外的选项就是
+ * 一条保存必失败的路径。
+ */
+const PRICE_UNIT_LABELS = SUBMISSION_PRICE_UNIT_LABELS
 
 /**
  * 房源投放申请（委托找房/投放房源 PRD §5.3）
@@ -141,7 +145,7 @@ export const SupplySubmissions: CollectionConfig = {
                   name: 'rentUnit',
                   label: '租金单位',
                   type: 'select',
-                  options: PRICE_UNITS.map((value) => ({
+                  options: SUBMISSION_PRICE_UNITS.map((value) => ({
                     value,
                     label: PRICE_UNIT_LABELS[value],
                   })),

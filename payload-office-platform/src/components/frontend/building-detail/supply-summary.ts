@@ -7,9 +7,20 @@ import type {
 type PriceDisplayUnit = BuildingSupplyPriceRange['displayUnit']
 
 export const DISPLAY_UNIT_LABELS: Readonly<Record<PriceDisplayUnit, string>> = {
+  // 按面积
   'rmb-sqm-day': '元/㎡/天',
-  'rmb-month': '元/月',
+  'rmb-sqm-month': '元/㎡/月',
+  'rmb-sqm-year': '元/㎡/年',
+  'rmb-sqm-total': '元/㎡',
+  // 按工位
+  'rmb-seat-day': '元/工位/天',
   'rmb-seat-month': '元/工位/月',
+  'rmb-seat-year': '元/工位/年',
+  'rmb-seat-total': '元/工位',
+  // 按整体
+  'rmb-day': '元/天',
+  'rmb-month': '元/月',
+  'rmb-year': '元/年',
   'rmb-total': '元',
 }
 

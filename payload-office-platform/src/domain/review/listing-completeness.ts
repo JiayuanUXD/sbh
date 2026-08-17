@@ -12,7 +12,12 @@
  * 由调用方(protect hook / endpoint)解析关联后以快照传入,本模块不读库。
  */
 
-import { isValidMoney, isValidSqmArea } from '@/domain/shared/money'
+import {
+  PRICING_PERIODS,
+  PRICING_UNITS,
+  isValidMoney,
+  isValidSqmArea,
+} from '@/domain/shared/money'
 import { isBusinessType, isDecorationStatus } from '@/domain/review/listing-fields'
 
 /** 提交审核要求的最少有效图片数（与 effective-supply §6 MIN_EFFECTIVE_MEDIA 对齐）。 */
@@ -41,9 +46,9 @@ export function violatesPublishedMediaFloor(snapshot: PublishedMediaFloorSnapsho
   return snapshot.galleryCount < MIN_SUBMIT_MEDIA
 }
 
-/** 计价周期 / 单位合法值(与 money.ts PricingPeriod / PricingUnit 对齐,守卫用)。 */
-const PRICING_PERIODS = ['month', 'day', 'year'] as const
-const PRICING_UNITS = ['sqm', 'suite', 'seat'] as const
+// 计价周期 / 单位的合法值从 money.ts 引入（见顶部 import），不在此重写副本：
+// 这里曾是一份手抄的 ['month','day','year']，缺 'one-time'，会让出售价格即使录进
+// 库也被判为无效价格、卡在上架校验门口。
 
 /** 校验模式。 */
 export type CompletenessMode = 'draft' | 'submit'
