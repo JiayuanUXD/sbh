@@ -749,7 +749,9 @@ WHERE l.building_id = ANY($2)
   AND dist.status = 'active'
   -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。
   -- 楼盘卡片的「在租 X ㎡」必须传 'lease'，否则一套待售整层会被算进在租面积。
-  AND ($4::text IS NULL OR l.business_type = $4::text)
+  -- business_type 是 ENUM，与 text 参数比较必须显式转型：PG 不做
+  -- enum = text 的隐式转换，否则报「操作符不存在」。
+  AND ($4::text IS NULL OR l.business_type::text = $4::text)
   AND m.status = 'active'
   AND m.qualification_status = 'valid'
   AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)

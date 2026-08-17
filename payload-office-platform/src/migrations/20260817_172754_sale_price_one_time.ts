@@ -19,7 +19,7 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
  */
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
-   ALTER TYPE "public"."enum_listings_price_period" ADD VALUE 'one-time';`)
+   ALTER TYPE "public"."enum_listings_price_period" ADD VALUE IF NOT EXISTS 'one-time';`)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
