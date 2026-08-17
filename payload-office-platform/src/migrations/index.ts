@@ -49,6 +49,7 @@ import * as migration_20260813_060037_city_partner_notification_outbox_reconcile
 import * as migration_20260815_140000_converge_shanghai_city_code from './20260815_140000_converge_shanghai_city_code';
 import * as migration_20260817_172754_sale_price_one_time from './20260817_172754_sale_price_one_time';
 import * as migration_20260817_174500_sale_business_type_index from './20260817_174500_sale_business_type_index';
+import * as migration_20260817_175801_sale_terms_fields from './20260817_175801_sale_terms_fields';
 import * as migration_20260817_180000_sale_publication_status_sold from './20260817_180000_sale_publication_status_sold';
 
 export const migrations = [
@@ -300,12 +301,17 @@ export const migrations = [
   {
     up: migration_20260817_172754_sale_price_one_time.up,
     down: migration_20260817_172754_sale_price_one_time.down,
-    name: '20260817_172754_sale_price_one_time'
+    name: '20260817_172754_sale_price_one_time',
   },
   {
     up: migration_20260817_174500_sale_business_type_index.up,
     down: migration_20260817_174500_sale_business_type_index.down,
-    name: '20260817_174500_sale_business_type_index'
+    name: '20260817_174500_sale_business_type_index',
+  },
+  {
+    up: migration_20260817_175801_sale_terms_fields.up,
+    down: migration_20260817_175801_sale_terms_fields.down,
+    name: '20260817_175801_sale_terms_fields',
   },
   {
     up: migration_20260817_180000_sale_publication_status_sold.up,
