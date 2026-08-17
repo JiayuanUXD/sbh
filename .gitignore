@@ -10,6 +10,10 @@ dist
 *.db
 *.db-journal
 
+# E2E 临时登录态（含明文测试口令），任何目录下都不入库
+.tmp-login.json
+**/.tmp-login.json
+
 # 本地开发工具产物（不入库）
 .claude/
 .agents/
