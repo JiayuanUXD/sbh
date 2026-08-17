@@ -203,14 +203,14 @@ function prepareCardsForPriceSort(
   cards: readonly ListingCardViewModel[],
   input: ListingSearchInput,
 ): { cards: ListingCardViewModel[]; filteredByRentUnit: boolean } {
-  if (input.sort !== 'rent-asc' && input.sort !== 'rent-desc') {
+  if (input.sort !== 'price-asc' && input.sort !== 'price-desc') {
     return { cards: cards.slice(), filteredByRentUnit: false }
   }
   // 已显式选定 rentUnit：直接按该单位过滤
-  if (input.rentUnit) {
+  if (input.priceUnit) {
     return {
-      cards: filterByRentUnit(cards, input.rentUnit),
-      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.rentUnit),
+      cards: filterByRentUnit(cards, input.priceUnit),
+      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.priceUnit),
     }
   }
   // 未指定 rentUnit 但请求价格排序：取首个非空单位
@@ -904,6 +904,8 @@ function extractPriceUnit(listing: Listing): string | null {
   if (!price) return null
   const unit = price.unit
   const period = price.period
+  // listing.rentUnit 是 Payload 文档的旧字段（数据库列），与 URL 参数 priceUnit
+  // 同名不同义，改名重构不涉及它。
   if (!unit || !period) return listing.rentUnit ?? null
   // 映射到 displayUnit 格式
   if (unit === 'sqm' && period === 'day') return 'rmb-sqm-day'

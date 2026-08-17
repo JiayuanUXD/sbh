@@ -10,8 +10,8 @@ import React, { useState } from 'react'
  * 守护不变量：
  *   - 区域/类型/排序/单位/快速筛选：点击即导航（Link），URL 可复现条件；
  *   - 数值字段（关键词/租金/面积/可入驻）：表单提交，提交后页码重置为 1；
- *   - 租金排序选定 rent-asc/rent-desc 时提示选定单位（后端缺 rentUnit 回退 recommended）；
- *   - 数值字段做最小校验（rentMin ≤ rentMax、areaMin ≤ areaMax）。
+ *   - 租金排序选定 rent-asc/rent-desc 时提示选定单位（后端缺 priceUnit 回退 recommended）；
+ *   - 数值字段做最小校验（priceMin ≤ rentMax、areaMin ≤ areaMax）。
  */
 
 type District = { id: string | number; slug: string; name: string }
@@ -37,8 +37,8 @@ const RENT_UNIT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
 const SORT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'recommended', label: '推荐' },
   { value: 'newest', label: '最新' },
-  { value: 'rent-asc', label: '价格升序' },
-  { value: 'rent-desc', label: '价格降序' },
+  { value: 'price-asc', label: '价格升序' },
+  { value: 'price-desc', label: '价格降序' },
 ]
 
 /** 数值字段规范化：去除非数字、范围夹逼 */
@@ -61,14 +61,27 @@ function buildHref(sp: URLSearchParams, updates: Record<string, string | null>, 
 }
 
 /** toggle：全部参数已匹配则清除，否则设置 */
-function toggleHref(sp: URLSearchParams, updates: Record<string, string>, basePath: string): string {
-  const allMatch = Object.entries(updates).every(([k, v]) => sp.get(k) === v)
+/**
+ * @param updates 值为 null 表示清除该参数——快捷筛选设置新参数名时，必须同时清掉
+ *   同义的旧参数名，否则 URL 里会新旧同存，canonical 收敛不干净。
+ */
+function toggleHref(
+  sp: URLSearchParams,
+  updates: Record<string, string | null>,
+  basePath: string,
+): string {
+  const allMatch = Object.entries(updates)
+    .filter(([, v]) => v !== null)
+    .every(([k, v]) => sp.get(k) === v)
   const next = new URLSearchParams(sp)
   for (const [k] of Object.entries(updates)) {
     if (allMatch) next.delete(k)
   }
   if (!allMatch) {
-    for (const [k, v] of Object.entries(updates)) next.set(k, v)
+    for (const [k, v] of Object.entries(updates)) {
+      if (v === null) next.delete(k)
+      else next.set(k, v)
+    }
   }
   next.delete('page')
   const qs = next.toString()
@@ -82,29 +95,29 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
   const district = sp.get('district') || ''
   const type = sp.get('type') || ''
   const sort = sp.get('sort') || 'recommended'
-  const rentUnit = sp.get('rentUnit') || ''
+  const priceUnit = sp.get('priceUnit') || sp.get('rentUnit') || ''
 
   const [q, setQ] = useState(sp.get('q') || '')
-  const [rentMin, setRentMin] = useState(sp.get('rentMin') || '')
-  const [rentMax, setRentMax] = useState(sp.get('rentMax') || '')
+  const [priceMin, setRentMin] = useState(sp.get('priceMin') || '')
+  const [priceMax, setRentMax] = useState(sp.get('priceMax') || '')
   const [areaMin, setAreaMin] = useState(sp.get('areaMin') || '')
   const [areaMax, setAreaMax] = useState(sp.get('areaMax') || '')
   const [availableBefore, setAvailableBefore] = useState(sp.get('availableBefore') || '')
   const [error, setError] = useState<string | null>(null)
 
-  const isPriceSort = sort === 'rent-asc' || sort === 'rent-desc'
+  const isPriceSort = sort === 'price-asc' || sort === 'price-desc'
   const qMatches = (val: string) => sp.get('q') === val
 
   // 高级筛选（快速筛选 + 数值字段）默认收起，结果优先；
   // 有任一高级条件生效时默认展开，并显示生效数量徽标
-  const ADVANCED_KEYS = ['q', 'rentMin', 'rentMax', 'areaMin', 'areaMax', 'availableBefore'] as const
+  const ADVANCED_KEYS = ['q', 'priceMin', 'priceMax', 'areaMin', 'areaMax', 'availableBefore'] as const
   const activeAdvancedCount = ADVANCED_KEYS.filter((k) => sp.get(k)).length
   const [showAdvanced, setShowAdvanced] = useState(activeAdvancedCount > 0)
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    const rentMinN = toIntOrNull(rentMin)
-    const rentMaxN = toIntOrNull(rentMax)
+    const rentMinN = toIntOrNull(priceMin)
+    const rentMaxN = toIntOrNull(priceMax)
     const areaMinN = toIntOrNull(areaMin)
     const areaMaxN = toIntOrNull(areaMax)
 
@@ -121,16 +134,16 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
 
     const params = new URLSearchParams(sp)
     params.delete('q')
-    params.delete('rentMin')
-    params.delete('rentMax')
+    params.delete('priceMin')
+    params.delete('priceMax')
     params.delete('areaMin')
     params.delete('areaMax')
     params.delete('availableBefore')
 
     const qNormalized = q.trim().slice(0, 60)
     if (qNormalized) params.set('q', qNormalized)
-    if (rentMinN != null) params.set('rentMin', String(rentMinN))
-    if (rentMaxN != null) params.set('rentMax', String(rentMaxN))
+    if (rentMinN != null) params.set('priceMin', String(rentMinN))
+    if (rentMaxN != null) params.set('priceMax', String(rentMaxN))
     if (areaMinN != null) params.set('areaMin', String(areaMinN))
     if (areaMaxN != null) params.set('areaMax', String(areaMaxN))
     if (availableBefore) params.set('availableBefore', availableBefore)
@@ -161,8 +174,8 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
         <span className="filter-bar__row-label filter-bar__row-label--unit">单位</span>
         <div className="filter-bar__chips">
           <Link
-            className={`filter-chip${!rentUnit ? ' is-active' : ''}`}
-            href={buildHref(sp, { rentUnit: null }, basePath)}
+            className={`filter-chip${!priceUnit ? ' is-active' : ''}`}
+            href={buildHref(sp, { priceUnit: null, rentUnit: null }, basePath)}
             prefetch={false}
           >
             不限
@@ -170,15 +183,15 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
           {RENT_UNIT_OPTIONS.map((u) => (
             <Link
               key={u.value}
-              className={`filter-chip${rentUnit === u.value ? ' is-active' : ''}`}
-              href={buildHref(sp, { rentUnit: u.value }, basePath)}
+              className={`filter-chip${priceUnit === u.value ? ' is-active' : ''}`}
+              href={buildHref(sp, { priceUnit: u.value, rentUnit: null }, basePath)}
               prefetch={false}
             >
               {u.label}
             </Link>
           ))}
         </div>
-        {isPriceSort && !rentUnit && (
+        {isPriceSort && !priceUnit && (
           <span className="filter-bar__hint filter-bar__hint--warn">价格排序需选定单位</span>
         )}
       </div>
@@ -270,8 +283,8 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
             精装修
           </Link>
           <Link
-            className={`filter-chip${sp.get('rentMax') === '3' && sp.get('rentUnit') === 'rmb-sqm-day' ? ' is-active' : ''}`}
-            href={toggleHref(sp, { rentMax: '3', rentUnit: 'rmb-sqm-day' }, basePath)}
+            className={`filter-chip${sp.get('priceMax') === '3' && (sp.get('priceUnit') || sp.get('rentUnit')) === 'rmb-sqm-day' ? ' is-active' : ''}`}
+            href={toggleHref(sp, { priceMax: '3', priceUnit: 'rmb-sqm-day', rentUnit: null }, basePath)}
             prefetch={false}
           >
             ≤3元/㎡/天
@@ -304,7 +317,7 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
           <div className="filter-bar__range">
             <input
               className="filter-bar__input"
-              value={rentMin}
+              value={priceMin}
               onChange={(e) => setRentMin(e.target.value)}
               placeholder="最低"
               inputMode="numeric"
@@ -313,7 +326,7 @@ export default function FilterBar({ districts, basePath = '/listings' }: Props) 
             <span aria-hidden="true">–</span>
             <input
               className="filter-bar__input"
-              value={rentMax}
+              value={priceMax}
               onChange={(e) => setRentMax(e.target.value)}
               placeholder="最高"
               inputMode="numeric"

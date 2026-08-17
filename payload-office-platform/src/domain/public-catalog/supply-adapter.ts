@@ -233,6 +233,9 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 // 生产实现：统一有效供给谓词 + 逐条精筛
 // ---------------------------------------------------------------------------
 
+/** 旧 listings.rentUnit 字段的合法取值，用于判断 priceUnit 能否下推到该列。 */
+const LEGACY_RENT_UNIT_VALUES = new Set(['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'])
+
 const QUERY_PAGE_SIZE = 200
 export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
 const RELATED_BUILDING_CANDIDATE_LIMIT = 500
@@ -515,14 +518,21 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
         where.area = areaWhere
       }
-      if (input.rentMin != null || input.rentMax != null) {
+      if (input.priceMin != null || input.priceMax != null) {
         const rentWhere: Record<string, number> = {}
-        if (input.rentMin != null) rentWhere.greater_than_equal = input.rentMin
-        if (input.rentMax != null) rentWhere.less_than_equal = input.rentMax
+        if (input.priceMin != null) rentWhere.greater_than_equal = input.priceMin
+        if (input.priceMax != null) rentWhere.less_than_equal = input.priceMax
         where.rent = rentWhere
       }
-      if (input.rentUnit) {
-        where.rentUnit = { equals: input.rentUnit }
+      if (input.priceUnit) {
+        // where 的 key 是 **Payload 集合字段名**（listings.rentUnit），不是 URL 参数名。
+        // 两者同名不同义：URL 侧已改名为 priceUnit，数据库列仍叫 rent_unit。
+        //
+        // 只有三个租赁单位能落到这个旧字段上；出售的 rmb-total / rmb-sqm-total 等
+        // 取值在旧字段里不存在，此处跳过，由后续内存精筛按结构化价格过滤。
+        if (LEGACY_RENT_UNIT_VALUES.has(input.priceUnit)) {
+          where.rentUnit = { equals: input.priceUnit }
+        }
       }
       if (input.availableBefore) {
         // availableFrom 为空或早于等于 availableBefore

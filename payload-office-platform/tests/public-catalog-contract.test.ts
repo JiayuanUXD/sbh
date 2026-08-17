@@ -95,16 +95,16 @@ function card(id: number, overrides: Partial<ListingCardViewModel> = {}): Listin
 describe('parseListingSearchInput', () => {
   it('解析合法复合参数', () => {
     const sp = new URLSearchParams(
-      'district=jingan&district=xuhui&type=serviced-office&rentMin=2000&rentMax=5000&rentUnit=rmb-month&q=江景&sort=rent-asc&page=2&availableBefore=2026-08-01&areaMin=50&areaMax=200',
+      'district=jingan&district=xuhui&type=serviced-office&priceMin=2000&priceMax=5000&priceUnit=rmb-month&q=江景&sort=price-asc&page=2&availableBefore=2026-08-01&areaMin=50&areaMax=200',
     )
     const input = parseListingSearchInput(sp)
     expect(input.district).toEqual(['jingan', 'xuhui'])
     expect(input.listingType).toEqual(['serviced-office'])
-    expect(input.rentMin).toBe(2000)
-    expect(input.rentMax).toBe(5000)
-    expect(input.rentUnit).toBe('rmb-month')
+    expect(input.priceMin).toBe(2000)
+    expect(input.priceMax).toBe(5000)
+    expect(input.priceUnit).toBe('rmb-month')
     expect(input.q).toBe('江景')
-    expect(input.sort).toBe('rent-asc')
+    expect(input.sort).toBe('price-asc')
     expect(input.page).toBe(2)
     expect(input.availableBefore).toBe('2026-08-01')
     expect(input.areaMin).toBe(50)
@@ -116,7 +116,7 @@ describe('parseListingSearchInput', () => {
     const input = parseListingSearchInput(new URLSearchParams())
     expect(input.district).toBeUndefined()
     expect(input.listingType).toBeUndefined()
-    expect(input.rentMin).toBeUndefined()
+    expect(input.priceMin).toBeUndefined()
     expect(input.sort).toBe('recommended')
     expect(input.page).toBe(1)
     expect(input.pageSize).toBe(24)
@@ -131,7 +131,7 @@ describe('parseListingSearchInput', () => {
   it('非法 rentUnit 值被丢弃', () => {
     const sp = new URLSearchParams('rentUnit=usd-month')
     const input = parseListingSearchInput(sp)
-    expect(input.rentUnit).toBeUndefined()
+    expect(input.priceUnit).toBeUndefined()
   })
 
   it('非法 sort 值被丢弃，降级为 recommended', () => {
@@ -141,17 +141,17 @@ describe('parseListingSearchInput', () => {
   })
 
   it('价格排序缺少 rentUnit 时降级为 recommended（禁跨单位排序）', () => {
-    const sp = new URLSearchParams('sort=rent-asc')
+    const sp = new URLSearchParams('sort=price-asc')
     const input = parseListingSearchInput(sp)
     expect(input.sort).toBe('recommended')
-    expect(input.rentUnit).toBeUndefined()
+    expect(input.priceUnit).toBeUndefined()
   })
 
   it('价格排序配合 rentUnit 时保留', () => {
-    const sp = new URLSearchParams('sort=rent-desc&rentUnit=rmb-sqm-day')
+    const sp = new URLSearchParams('sort=price-desc&priceUnit=rmb-sqm-day')
     const input = parseListingSearchInput(sp)
-    expect(input.sort).toBe('rent-desc')
-    expect(input.rentUnit).toBe('rmb-sqm-day')
+    expect(input.sort).toBe('price-desc')
+    expect(input.priceUnit).toBe('rmb-sqm-day')
     expect(input.pricePeriod).toBe('day')
     expect(input.priceBasis).toBe('sqm')
   })
@@ -172,10 +172,10 @@ describe('parseListingSearchInput', () => {
   })
 
   it('负数 / 非数字 rentMin 被丢弃', () => {
-    const sp = new URLSearchParams('rentMin=-100&rentMax=abc')
+    const sp = new URLSearchParams('rentMin=-100&priceMax=abc')
     const input = parseListingSearchInput(sp)
-    expect(input.rentMin).toBeUndefined()
-    expect(input.rentMax).toBeUndefined()
+    expect(input.priceMin).toBeUndefined()
+    expect(input.priceMax).toBeUndefined()
   })
 
   it('page 越界回退为 1', () => {
@@ -215,7 +215,7 @@ describe('parseListingSearchInput', () => {
 describe('buildCanonicalSearchParams', () => {
   it('合法参数 round-trip 等价', () => {
     const original = new URLSearchParams(
-      'district=jingan&type=serviced-office&rentMin=2000&rentMax=5000&rentUnit=rmb-month&q=江景&sort=rent-asc&page=2',
+      'district=jingan&type=serviced-office&priceMin=2000&priceMax=5000&priceUnit=rmb-month&q=江景&sort=price-asc&page=2',
     )
     const input = parseListingSearchInput(original)
     const canonical = buildCanonicalSearchParams(input)
@@ -237,7 +237,7 @@ describe('buildCanonicalSearchParams', () => {
   })
 
   it('非法参数经 round-trip 后被规范化丢弃', () => {
-    const dirty = new URLSearchParams('type=fake&sort=random&rentUnit=usd&availableBefore=2026-13-01')
+    const dirty = new URLSearchParams('type=fake&sort=random&priceUnit=usd&availableBefore=2026-13-01')
     const input = parseListingSearchInput(dirty)
     const canonical = buildCanonicalSearchParams(input)
     expect(canonical.has('type')).toBe(false)
@@ -293,7 +293,7 @@ describe('stableSortCards', () => {
       card(2, { price: price(200, 'rmb-month') }),
       card(1, { price: price(200, 'rmb-month') }),
     ]
-    const sorted = stableSortCards(cards, 'rent-asc', updatedAtOf)
+    const sorted = stableSortCards(cards, 'price-asc', updatedAtOf)
     // 200 元并列，按 id 升序：1 → 2 → 3
     expect(sorted.map((c) => c.id)).toEqual([1, 2, 3])
   })
@@ -304,7 +304,7 @@ describe('stableSortCards', () => {
       card(2, { price: price(300, 'rmb-month') }),
       card(3, { price: price(300, 'rmb-month') }),
     ]
-    const sorted = stableSortCards(cards, 'rent-desc', updatedAtOf)
+    const sorted = stableSortCards(cards, 'price-desc', updatedAtOf)
     // 300 元并列，按 id 升序：2 → 3 → 1
     expect(sorted.map((c) => c.id)).toEqual([2, 3, 1])
   })
@@ -336,7 +336,7 @@ describe('stableSortCards', () => {
         },
       }),
     ]
-    expect(stableSortCards(cards, 'rent-asc', updatedAtOf).map((item) => item.id)).toEqual([1, 2])
+    expect(stableSortCards(cards, 'price-asc', updatedAtOf).map((item) => item.id)).toEqual([1, 2])
   })
 
   it('rent-asc: price=null 卡片始终末尾', () => {
@@ -345,7 +345,7 @@ describe('stableSortCards', () => {
       card(2, { price: price(200, 'rmb-month') }),
       card(3, { price: null }),
     ]
-    const sorted = stableSortCards(cards, 'rent-asc', updatedAtOf)
+    const sorted = stableSortCards(cards, 'price-asc', updatedAtOf)
     expect(sorted.map((c) => c.id)).toEqual([2, 1, 3])
   })
 
