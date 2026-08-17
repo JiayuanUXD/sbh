@@ -560,6 +560,13 @@ export default function MediaWorkbench({
         return
       }
 
+      // Arco 下拉/气泡渲染在 body 的 portal 里，DOM 上不在卡片内，
+      // 但 React 合成事件仍沿组件树冒泡到这里；一旦误判为拖拽并 setPointerCapture，
+      // 选项的 click 就永远收不到（表现：点分类选项选不中，反而拖起了图片卡）。
+      if (!(e.currentTarget as HTMLElement).contains(target)) {
+        return
+      }
+
       if (!gridContainerRef.current) return
       const children = Array.from(gridContainerRef.current.children) as HTMLElement[]
       if (children.length === 0) return
