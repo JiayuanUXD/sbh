@@ -28,6 +28,7 @@ import {
   paginateListingSearchSource,
   searchBuildings,
   searchBuildingsPage,
+  searchListingsSitemapPage,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
 
@@ -213,6 +214,44 @@ export function getCachedSitemapBuildingsPage(
   const normalizedPage = Math.max(1, Math.floor(page))
   const normalizedLimit = Math.min(500, Math.max(1, Math.floor(limit)))
   return getCachedSitemapBuildingsPageByCity(city)(normalizedPage, normalizedLimit)
+}
+
+type SitemapListingPageLoader = () => ReturnType<typeof searchListingsSitemapPage>
+
+const getCachedSitemapListingsPageByCity = memoizeByCity((citySlug) => {
+  const pages = new Map<string, SitemapListingPageLoader>()
+  return (page: number, limit: number) => {
+    const cacheKey = `${page}:${limit}`
+    const existing = pages.get(cacheKey)
+    if (existing) return existing()
+    const load = unstable_cache(
+      async () => searchListingsSitemapPage(
+        createSearchContext(citySlug),
+        { page, limit },
+      ),
+      ['sitemap-listings-page', citySlug, `page:${page}`, `limit:${limit}`],
+      {
+        tags: [
+          ...listingCacheTags(citySlug),
+          `${listingsCityTag(citySlug)}:sitemap:page:${page}:limit:${limit}`,
+        ],
+        revalidate: 300,
+      },
+    )
+    pages.set(cacheKey, load)
+    return load()
+  }
+})
+
+export function getCachedSitemapListingsPage(
+  citySlug: string,
+  page: number,
+  limit: number,
+) {
+  const city = canonicalCitySlug(citySlug)
+  const normalizedPage = Math.max(1, Math.floor(page))
+  const normalizedLimit = Math.min(500, Math.max(1, Math.floor(limit)))
+  return getCachedSitemapListingsPageByCity(city)(normalizedPage, normalizedLimit)
 }
 
 const getCachedBuildingDetailByCity = memoizeByCity((citySlug) =>

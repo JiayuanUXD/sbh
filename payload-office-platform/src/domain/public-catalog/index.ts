@@ -61,6 +61,8 @@ export {
 } from './detail-values'
 export type { EstimatedNumber } from './detail-values'
 export type {
+  EffectiveListingSitemapEntry,
+  EffectiveListingSitemapPage,
   SupplyAdapter,
   SupplyAdapterFactory,
   AdapterCallContext,
@@ -90,6 +92,7 @@ export {
   paginateListingSearchSource,
   searchBuildings,
   searchBuildingsPage,
+  searchListingsSitemapPage,
   getListingBySlug,
   getBuildingBySlug,
   resolveListingRouteIdentity,

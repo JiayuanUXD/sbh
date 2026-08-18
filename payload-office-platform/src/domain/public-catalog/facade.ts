@@ -65,7 +65,10 @@ import {
   stableSortCards,
 } from './stable-sort'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
-import type { SupplyAdapter } from './supply-adapter'
+import type {
+  EffectiveListingSitemapPage,
+  SupplyAdapter,
+} from './supply-adapter'
 import { getDefaultSupplyAdapter } from './supply-adapter'
 import {
   rankDetailRecommendations,
@@ -383,6 +386,20 @@ export async function searchBuildings(
   }
   const docs = await attachLeasableArea(summaries, ctx, adapter)
   return { docs, totalDocs: docs.length }
+}
+
+/**
+ * sitemap 房源页：不做展示映射，直接透传适配器的轻量条目。
+ *
+ * 与 searchBuildingsPage 的差别是这里**没有** mapXxx 一步——sitemap 只要 URL 和
+ * lastmod，映射成展示模型正是 /sitemap.xml 线上超时的成本来源（见 OPT-031）。
+ */
+export async function searchListingsSitemapPage(
+  ctx: SearchContext,
+  options: Readonly<{ page: number; limit: number }>,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<EffectiveListingSitemapPage> {
+  return adapter.findEffectiveListingsSitemapPage(ctx, options)
 }
 
 export async function searchBuildingsPage(
