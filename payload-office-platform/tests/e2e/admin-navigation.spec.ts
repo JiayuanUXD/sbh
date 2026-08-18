@@ -280,6 +280,25 @@ async function expectUncovered(
     .toBe(true)
 }
 
+/**
+ * 展开所有子分组。
+ *
+ * 导航是两层可折叠：顶层分组（openGroup）之下还有 subgroup，各自独立的
+ * aria-expanded。只展开顶层的话，「高级工具」这类子分组里的叶子仍然不可见——
+ * 第一版全叶子用例就是这么误报了四个「缺失入口」的。
+ */
+async function openAllSubgroups(page: Page): Promise<void> {
+  const collapsed = page.locator(
+    '.admin-navigation__subgroup-toggle[aria-expanded="false"]',
+  )
+  // 每次点开一个后 DOM 变化，重新求值；给个上界防止意外死循环
+  for (let guard = 0; guard < 20; guard += 1) {
+    if ((await collapsed.count()) === 0) break
+    await collapsed.first().dispatchEvent('click')
+  }
+  await expect(collapsed).toHaveCount(0)
+}
+
 test.describe('后台导航 / 五角色桌面矩阵', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
@@ -651,6 +670,8 @@ test.describe('后台导航 / 全叶子可达', () => {
     for (const group of ALL_TOP_GROUPS) {
       await openGroup(page, group)
     }
+    // 导航是两层折叠，顶层展开不等于子分组展开
+    await openAllSubgroups(page)
 
     const missing: string[] = []
     for (const label of ALL_LEAF_LABELS) {
