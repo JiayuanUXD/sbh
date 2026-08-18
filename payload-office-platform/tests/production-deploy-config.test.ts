@@ -110,7 +110,10 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('UpdateCloudRunServer')
     expect(workflow).toContain(`ReleaseType: "GRAY"`)
     expect(workflow).toContain('上传代码包并提交灰度版本')
-    expect(workflow).toContain('等待新版本就绪 + 切 10% 灰度')
+    // 该步骤已拆成两个：等构建结果（始终执行）+ 切流量（受 SHOULD_PROMOTE 控制），
+    // 原因见下方「构建失败必须让 job 变红」。
+    expect(workflow).toContain('等待新版本构建就绪')
+    expect(workflow).toContain('切 10% 灰度')
     expect(workflow).toContain('git archive --format=zip HEAD:payload-office-platform')
     expect(workflow).toContain('3145728')
     expect(workflow).toContain('--http1.1')
@@ -177,5 +180,50 @@ describe('生产部署配置', () => {
     expect(workflow).toContain('canary_ok=0')
     // 灰度期间请求可能命中尚无该路由的稳定旧版本，404 不算失败。
     expect(workflow).toContain(`if [ "$code" = "404" ]; then`)
+  })
+})
+
+describe('部署流水线 / 构建失败必须让 job 变红', () => {
+  /**
+   * 病根（CloudRun sbh-096 / GitHub run 32119795967）：GitHub 报 success，CloudBase
+   * 侧却是 build_failed。提交步骤只用 `jq -e '.data.TaskId'` 确认接口受理，而真正判
+   * 构建结果的轮询挂着 `if: env.SHOULD_PROMOTE == 'true'`——push 触发的部署整步跳过，
+   * 构建后来挂了没有任何信号。没人会去复查一次"成功"的部署。
+   *
+   * 守护不变量：等构建结果的步骤**不带** SHOULD_PROMOTE 门；切流量才带。
+   */
+  const workflow = () =>
+    readFileSync(resolve(repositoryRoot, '.github/workflows/deploy.yml'), 'utf8')
+
+  /** 取某个 step 从 `- name:` 到下一个 `- name:` 之间的正文 */
+  function stepBlock(yaml: string, nameFragment: string): string {
+    const lines = yaml.split('\n')
+    const start = lines.findIndex((l) => l.includes('- name:') && l.includes(nameFragment))
+    expect(start, `未找到步骤：${nameFragment}`).toBeGreaterThan(-1)
+    const rest = lines.slice(start + 1)
+    const end = rest.findIndex((l) => l.includes('- name:'))
+    return (end === -1 ? rest : rest.slice(0, end)).join('\n')
+  }
+
+  it('等待构建就绪的步骤始终执行，不受 SHOULD_PROMOTE 控制', () => {
+    const block = stepBlock(workflow(), '等待新版本构建就绪')
+    // 判的是 `if:` 门而不是字面出现——步骤注释里就解释了「为什么没有这个门」，
+    // 用 not.toContain 会把注释里的提及也当成门（第一版就是这么误报的）。
+    expect(block).not.toMatch(/^\s*if:.*SHOULD_PROMOTE/m)
+  })
+
+  it('该步骤确实会在构建失败时退出非零', () => {
+    const block = stepBlock(workflow(), '等待新版本构建就绪')
+    expect(block).toContain('build_failed|deploy_failed')
+    expect(block).toContain('exit 1')
+  })
+
+  it('切流量仍然受 SHOULD_PROMOTE 控制（不能顺手把流量门也拆了）', () => {
+    const yaml = workflow()
+    for (const step of ['切 10% 灰度', 'Promote 全量发布']) {
+      expect(stepBlock(yaml, step), `${step} 应保留流量门`).toMatch(
+        /^\s*if:.*SHOULD_PROMOTE/m,
+      )
+    }
   })
 })

@@ -223,8 +223,15 @@ jobs:
             sed -n '/^{/,$p' > "$deploy_info"
           jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
-      - name: 等待新版本就绪 + 切 10% 灰度
-        if: env.SHOULD_PROMOTE == 'true'
+      - name: 等待新版本构建就绪（始终执行，不切流量）
+        # 刻意**没有** SHOULD_PROMOTE 门：不切流量的部署同样要知道构建成没成。
+        #
+        # 病根（sbh-096 / run 32119795967）：提交步骤只用 jq -e '.data.TaskId' 确认接口
+        # 受理，而真正判构建结果的轮询挂在 SHOULD_PROMOTE 上——push 触发时整步跳过，于是
+        # CloudBase 侧 build_failed、GitHub 侧却报 success。没人会去复查一次「成功」的
+        # 部署，失败就这么静默了。
+        #
+        # 现在轮询无条件执行：构建失败 / 超时一律让 job 红。切流量是可选动作，拆到下一步。
         # 轮询部署记录，只有镜像构建、迁移、容器探针全部正常后才切流。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -288,6 +295,10 @@ jobs:
             exit 1
           fi
 
+      - name: 切 10% 灰度
+        if: env.SHOULD_PROMOTE == 'true'
+        run: |
+          set -euo pipefail
           tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic \
             -s sbh \
             --stable 90 \
