@@ -39,6 +39,7 @@ import { InvalidOperationError } from '@/domain/shared/errors'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
+import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -218,7 +219,12 @@ export const Listings: CollectionConfig = {
   hooks: {
     // syncListingMedia 必须排在 protectListing 之前：gallery/coverImage 由 mediaItems 派生，
     // 只有先派生再校验，保护逻辑与审核快照读到的才是最终数据（与楼盘 hook 顺序一致）。
-    beforeChange: [syncListingMedia, protectListing],
+    //
+    // adminAutoPublish 排最后（OPT-033）：它要读派生完的 gallery 与初始化过的三轴，
+    // 早于前两者会判在半成品数据上。
+    beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
+    // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
+    afterChange: [recordAdminAutoPublish],
   },
   fields: [
     {
