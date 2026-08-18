@@ -639,17 +639,6 @@ export const Listings: CollectionConfig = {
               },
             } as unknown as Field,
             {
-              // 免审直发入口。放在这里而不是审核台：直发的起点是「未提交 / 已驳回」，
-              // 这些房源根本不在 pending 队列里。可见性（权限 + 状态）全由服务端组件
-              // 判定，客户端只负责触发；完整度由 endpoint 强制。
-              type: 'ui',
-              admin: {
-                components: {
-                  Field: '/components/admin/ListingFastTrackAction',
-                },
-              },
-            } as unknown as Field,
-            {
               // OPT-032 §3.3-A4：可编辑字段在前、只读状态在后。运营进这一节是来填
               // 商户 / 经纪人的，四个只读状态是「看一眼」的结论，放末尾更贴合动线。
               // 字段顺序即显示顺序，不涉及 schema。

@@ -73,7 +73,6 @@ export const OPERATION_CODES = [
   'listing:update',
   'listing:delete',
   'listing:review', // 提交审核 / 通过 / 驳回
-  'listing:fast_track_review', // 免审直发（跳过人工审核，仍受完整度校验约束）
   'listing:publish', // 显式发布
   'listing:unpublish', // 下架
   // 楼盘管理
