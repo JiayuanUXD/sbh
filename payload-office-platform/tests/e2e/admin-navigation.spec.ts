@@ -28,6 +28,54 @@ const ALL_TOP_GROUPS = [
   '系统管理',
 ] as const
 
+/**
+ * 导航配置里的**全部**叶子标签。
+ *
+ * 为什么要有这份清单：五角色矩阵每个角色只点**一个**代表性叶子（ROLE_NAVIGATION
+ * 的 allowed），分组层面也只验分组在不在。结果是「审核队列」整条入口在线上消失了
+ * 两天没人发现——页面能打开、数据查得出、URL 直达可用，只是侧边栏里没有它，而
+ * 3200 个单测、typecheck、lint、既有 e2e 全绿。
+ *
+ * 真正漏掉的一类是「功能是通的，人碰不到」。这里对平台管理员断言**每一个**叶子
+ * 都在，就是补这一类。
+ *
+ * 与配置的一致性由 tests/admin-nav-leaf-coverage.test.ts 守着，不会漂。
+ */
+const ALL_LEAF_LABELS = [
+  '运营概览',
+  '我的待办',
+  '消息通知',
+  '房源列表',
+  '楼盘库',
+  '房源投放申请',
+  '城市管理',
+  '城市站点配置',
+  '行政区域',
+  '商圈管理',
+  '地铁管理',
+  '审核队列',
+  '举报处理',
+  '咨询线索',
+  '客户档案',
+  '跟进记录',
+  '商户管理',
+  '城市合伙人申请',
+  '团队管理',
+  '经纪人管理',
+  '顾问服务时间',
+  '页面内容',
+  '资讯中心',
+  '素材库',
+  '表单管理',
+  '提交数据',
+  '用户管理',
+  '角色管理',
+  '配套字典',
+  '搜索索引',
+  '领域事件',
+  '审计日志',
+] as const
+
 const ROLE_NAVIGATION = {
   ADM: {
     groups: [
@@ -230,6 +278,25 @@ async function expectUncovered(
       }),
     )
     .toBe(true)
+}
+
+/**
+ * 展开所有子分组。
+ *
+ * 导航是两层可折叠：顶层分组（openGroup）之下还有 subgroup，各自独立的
+ * aria-expanded。只展开顶层的话，「高级工具」这类子分组里的叶子仍然不可见——
+ * 第一版全叶子用例就是这么误报了四个「缺失入口」的。
+ */
+async function openAllSubgroups(page: Page): Promise<void> {
+  const collapsed = page.locator(
+    '.admin-navigation__subgroup-toggle[aria-expanded="false"]',
+  )
+  // 每次点开一个后 DOM 变化，重新求值；给个上界防止意外死循环
+  for (let guard = 0; guard < 20; guard += 1) {
+    if ((await collapsed.count()) === 0) break
+    await collapsed.first().dispatchEvent('click')
+  }
+  await expect(collapsed).toHaveCount(0)
 }
 
 test.describe('后台导航 / 五角色桌面矩阵', () => {
@@ -588,5 +655,34 @@ test.describe('后台导航 / 移动交互', () => {
     await expect(
       page.getByRole('link', { name: '查看提交数据' }),
     ).toHaveCount(0)
+  })
+})
+
+test.describe('后台导航 / 全叶子可达', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('ADM 能看到导航配置里的每一个叶子，而不是抽查一个代表', async ({ page }) => {
+    await loginAs(page, 'ADM')
+    await page.goto('/admin')
+    await ensureDesktopNavigationOpen(page)
+    await expect(page.locator('.admin-navigation')).toBeVisible()
+
+    for (const group of ALL_TOP_GROUPS) {
+      await openGroup(page, group)
+    }
+    // 导航是两层折叠，顶层展开不等于子分组展开
+    await openAllSubgroups(page)
+
+    const missing: string[] = []
+    for (const label of ALL_LEAF_LABELS) {
+      const link = page.getByRole('link', { name: label, exact: true }).first()
+      if ((await link.count()) === 0 || !(await link.isVisible())) {
+        missing.push(label)
+      }
+    }
+
+    // 一次报全部缺失项而不是撞到第一个就停：入口批量消失时（比如某个 access
+    // 判定写错），一条条修比一次看全清单慢得多。
+    expect(missing, `平台管理员看不到这些入口：${missing.join('、')}`).toEqual([])
   })
 })
