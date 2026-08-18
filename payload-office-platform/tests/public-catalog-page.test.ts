@@ -40,6 +40,13 @@ function createFakePageAdapter(options: {
     async findEffectiveListings() {
       return []
     },
+    // sitemap 专用查询：这些假适配器只验其它路径，给个空页即可
+    findEffectiveListingsSitemapPage: async () => ({
+      docs: [],
+      page: 1,
+      hasNextPage: false,
+      nextPage: null,
+    }),
     async findEffectiveListingBySlug() {
       return null
     },

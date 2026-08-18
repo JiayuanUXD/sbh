@@ -6,6 +6,7 @@ const sitemapIo = vi.hoisted(() => ({
   getCachedSitemapBuildingsPage: vi.fn(),
   getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
+  getCachedSitemapListingsPage: vi.fn(),
   listPublicCityProfiles: vi.fn(),
 }))
 
@@ -28,6 +29,7 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSitemapBuildingsPage: sitemapIo.getCachedSitemapBuildingsPage,
   getCachedSearchBuildings: sitemapIo.getCachedSearchBuildings,
   getCachedSearchListings: sitemapIo.getCachedSearchListings,
+  getCachedSitemapListingsPage: sitemapIo.getCachedSitemapListingsPage,
 }))
 
 import sitemap from '@/app/(frontend)/sitemap'
@@ -40,6 +42,7 @@ import {
   parseSearchInput,
   searchBuildings,
   searchListings,
+  searchListingsSitemapPage,
   type SearchContext,
   type SupplyAdapter,
 } from '@/domain/public-catalog'
@@ -185,6 +188,27 @@ function createParityAdapter(): SupplyAdapter {
   })
   return {
     async findEffectiveListings(_input, ctx) { return cityListings(ctx) },
+    // sitemap 专用查询必须走同一个 cityListings：这组用例的意义就是「两条不同的
+    // 代码路径得出同一个有效集合」，桩若返回空集，parity 断言直接退化成永真。
+    async findEffectiveListingsSitemapPage(ctx, options) {
+      const all = cityListings(ctx)
+      const page = Math.max(1, Math.floor(options.page))
+      const limit = Math.min(500, Math.max(1, Math.floor(options.limit)))
+      const from = (page - 1) * limit
+      const slice = all.slice(from, from + limit)
+      const more = from + limit < all.length
+      return {
+        docs: slice.map((item) => ({
+          slug: item.slug,
+          updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : null,
+          businessType:
+            typeof item.businessType === 'string' ? item.businessType : null,
+        })),
+        page,
+        hasNextPage: more,
+        nextPage: more ? page + 1 : null,
+      }
+    },
     async findEffectiveListingBySlug(slug, ctx) {
       return cityListings(ctx).find((item) => item.slug === slug) ?? null
     },
@@ -245,6 +269,10 @@ describe('per-city effective listing parity matrix', () => {
     ])
     sitemapIo.getCachedSearchListings.mockImplementation(async (citySlug: string) =>
       searchListings(input, createSearchContext(citySlug, AS_OF), adapter),
+    )
+    sitemapIo.getCachedSitemapListingsPage.mockImplementation(
+      async (citySlug: string, page: number, limit: number) =>
+        searchListingsSitemapPage(createSearchContext(citySlug, AS_OF), { page, limit }, adapter),
     )
     sitemapIo.getCachedSearchBuildings.mockImplementation(async (citySlug: string) =>
       searchBuildings(createSearchContext(citySlug, AS_OF), adapter),

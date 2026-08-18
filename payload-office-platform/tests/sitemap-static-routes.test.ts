@@ -6,6 +6,7 @@ const sitemapState = vi.hoisted(() => ({
   getCachedSitemapBuildingsPage: vi.fn(),
   getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
+  getCachedSitemapListingsPage: vi.fn(),
   listPublicCityProfiles: vi.fn(),
 }))
 
@@ -31,6 +32,7 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSitemapBuildingsPage: sitemapState.getCachedSitemapBuildingsPage,
   getCachedSearchBuildings: sitemapState.getCachedSearchBuildings,
   getCachedSearchListings: sitemapState.getCachedSearchListings,
+  getCachedSitemapListingsPage: sitemapState.getCachedSitemapListingsPage,
 }))
 
 vi.mock('@/domain/public-catalog', () => ({
@@ -56,6 +58,18 @@ describe('city-aware public sitemap', () => {
         updatedAt: '2026-08-13T00:00:00.000Z',
       }],
       pagination: { page: 1, totalPages: 1 },
+    }))
+    // sitemap 现在走专用轻量查询（只有 slug/updatedAt/businessType），
+    // 不再经过搜索管线——见 OPT-031。
+    sitemapState.getCachedSitemapListingsPage.mockImplementation(async (city: string) => ({
+      docs: [{
+        slug: `${city}-listing`,
+        updatedAt: '2026-08-13T00:00:00.000Z',
+        businessType: 'lease',
+      }],
+      page: 1,
+      hasNextPage: false,
+      nextPage: null,
     }))
     sitemapState.getCachedSearchBuildings.mockImplementation(async (city: string) => ({
       docs: [{

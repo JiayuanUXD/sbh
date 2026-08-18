@@ -339,6 +339,13 @@ function createFullPredicateAdapter(options: {
     async findEffectiveListings(input, queryCtx) {
       return options.listings.filter((l) => matchInput(l, input, queryCtx))
     },
+    // sitemap 专用查询：这些假适配器只验其它路径，给个空页即可
+    findEffectiveListingsSitemapPage: async () => ({
+      docs: [],
+      page: 1,
+      hasNextPage: false,
+      nextPage: null,
+    }),
     async findEffectiveListingBySlug(slug, queryCtx) {
       const l = options.listings.find((x) => x.slug === slug)
       if (!l || !isListingEffective(l, queryCtx)) return null

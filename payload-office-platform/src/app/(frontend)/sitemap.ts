@@ -4,17 +4,15 @@ import { unstable_cache } from 'next/cache'
 import { listPublicCityProfiles } from '@/app/(frontend)/_lib/city-context'
 import {
   SITEMAP_TAG,
-  parseSearchInput,
   type ArticleCardViewModel,
   type BuildingSummaryViewModel,
-  type ListingCardViewModel,
-  type ListingSearchInput,
+  type EffectiveListingSitemapEntry,
 } from '@/domain/public-catalog'
 import {
   getCachedPublishedArticles,
   getCachedPublishedPages,
   getCachedSitemapBuildingsPage,
-  getCachedSearchListings,
+  getCachedSitemapListingsPage,
 } from '@/lib/frontend/cached-queries'
 import { shouldListSaleChannelInSitemap } from '@/lib/frontend/sale-channel'
 import { getMultiCityRoutingEnabled, getSaleChannelEnabled, siteConfig } from '@/lib/frontend/site-config'
@@ -27,33 +25,33 @@ const PRIVACY_SLUG = 'privacy'
 const SITEMAP_ENTITY_LIMIT = 5_000
 const ARTICLE_PAGE_SIZE = 48
 const BUILDING_PAGE_SIZE = 200
-
-function listingInput(page: number): ListingSearchInput {
-  return { ...parseSearchInput(new URLSearchParams()), page }
-}
+const LISTING_PAGE_SIZE = 200
 
 /**
- * 拉取该城市的全部有效房源（**不按租售过滤**）。
+ * 拉取该城市的全部有效房源 URL（**不按租售过滤**）。
  *
- * 刻意拉全集而不是按 businessType 各查一次：每次查询都要构建一份 search source，
- * 即全量有效供给查询 + 逐条精筛（媒体数、商户关系有效期、资质、举报暂停）。这是
- * 整个 sitemap 里最贵的一步。
+ * 走 sitemap 专用查询而不是搜索管线：sitemap 只要 slug 和 lastmod，而
+ * getCachedSearchListings 会把每套房源的楼盘、城市、行政区、商圈、地铁、媒体、
+ * 经纪人全部水合（depth 2），再映射成完整展示卡片。7 个城市各付一遍这个代价，
+ * 直接把 /sitemap.xml 拖到 70 秒无响应；超时又导致 unstable_cache 写不进去，
+ * 下一次请求仍然是冷的——死循环，所以它表现为 100% 坏而不是偶尔慢（OPT-031）。
  *
- * 按频道各查一次会让这个代价乘以频道数——而且为了确认「这个城市没有出售房源」，
- * 要付出和查全部租赁房源一样的开销，再乘以城市数。生产上这样做直接把 /sitemap.xml
- * 拖到超时；超时又导致 unstable_cache 写不进去，下一次请求仍然是冷的，形成死循环。
+ * 精筛口径没有打折：专用查询走的是同一个 fineFilter，媒体数 / 商户关系 / 资质 /
+ * 举报暂停与前台一致，所以这里输出的 URL 逐条可达。
  *
- * 租售分组是纯内存操作（ListingCardViewModel 自带 businessType），放在调用方做。
+ * 仍然一次拉全集、租售在内存里分组：按频道各查一次会让开销乘以频道数，而且为了
+ * 确认「这个城市没有出售房源」要付出和查全部租赁房源一样的代价。
  */
 async function getCityListings(citySlug: string) {
-  const docs: ListingCardViewModel[] = []
+  const docs: EffectiveListingSitemapEntry[] = []
+  const visitedPages = new Set<number>()
   let page = 1
-  while (docs.length < SITEMAP_ENTITY_LIMIT) {
-    const input = listingInput(page)
-    const result = await getCachedSearchListings(citySlug, `page=${page}`, input)
+  while (docs.length < SITEMAP_ENTITY_LIMIT && !visitedPages.has(page)) {
+    visitedPages.add(page)
+    const result = await getCachedSitemapListingsPage(citySlug, page, LISTING_PAGE_SIZE)
     docs.push(...result.docs.slice(0, SITEMAP_ENTITY_LIMIT - docs.length))
-    if (page >= result.pagination.totalPages) break
-    page += 1
+    if (!result.hasNextPage || result.nextPage == null || result.nextPage <= page) break
+    page = result.nextPage
   }
   return docs
 }
@@ -157,7 +155,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const listing of city.listings) {
       dynamicUrls.push({
         url: `${prefix}/listings/${listing.slug}`,
-        lastModified: now,
+        // 专用查询顺带取到了真实 updatedAt，不再统一填 now——每条 URL 都写「刚刚
+        // 更新」等于没给爬虫任何信息。
+        lastModified: listing.updatedAt ? new Date(listing.updatedAt) : now,
         changeFrequency: 'weekly',
         priority: 0.8,
       })

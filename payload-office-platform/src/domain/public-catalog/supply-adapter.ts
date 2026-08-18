@@ -53,6 +53,25 @@ export interface SupplyAdapter {
   /** 按搜索条件返回有效房源文档（已过谓词，未排序、未分页） */
   findEffectiveListings(input: ListingSearchInput, ctx: SearchContext): Promise<readonly Listing[]>
 
+  /**
+   * sitemap 专用：一页有效房源，只取 slug / updatedAt / businessType。
+   *
+   * 与 findEffectiveListings 的区别和 sumEffectiveLeasableAreaByBuildings 一样——
+   * 后者「只求一个数」，这里「只求一组 URL」，都不需要把展示模型拼出来。
+   *
+   * 成本差异是数量级的：findEffectiveListings 走 depth 2，把每套房源的楼盘、城市、
+   * 行政区、商圈、地铁、媒体、经纪人全部水合，再映射成完整卡片；sitemap 一个字段
+   * 都用不上。真实后果：/sitemap.xml 线上 70 秒无响应，而超时又导致 unstable_cache
+   * 写不进去、下次仍然是冷的，形成死循环（见 specs/work-items/OPT-031）。
+   *
+   * 精筛口径不打折：仍然走同一个 fineFilter，媒体数 / 商户关系 / 资质 / 举报暂停
+   * 与前台完全一致——sitemap 输出的 URL 必须逐条可达，否则是另一种 SEO 伤害。
+   */
+  findEffectiveListingsSitemapPage(
+    ctx: SearchContext,
+    options: Readonly<{ page: number; limit: number }>,
+  ): Promise<EffectiveListingSitemapPage>
+
   /** 按 slug 返回单个有效房源；不存在或失效返回 null */
   findEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
 
@@ -174,6 +193,25 @@ export interface SupplyAdapter {
    */
   findPublishedArticleBySlug(slug: string): Promise<Article | null>
 }
+
+/**
+ * sitemap 专用的房源条目：只有生成 URL 与 lastmod 所需的三个字段。
+ *
+ * 刻意不是 Listing：sitemap 不需要展示模型，把完整 Listing 传出去会诱使调用方
+ * 顺手多读字段，下一次「只加一个字段」就把成本又加回来了。
+ */
+export type EffectiveListingSitemapEntry = Readonly<{
+  slug: string
+  updatedAt: string | null
+  businessType: string | null
+}>
+
+export type EffectiveListingSitemapPage = Readonly<{
+  docs: readonly EffectiveListingSitemapEntry[]
+  page: number
+  hasNextPage: boolean
+  nextPage: number | null
+}>
 
 export type EffectiveBuildingPage = Readonly<{
   docs: readonly Building[]
@@ -552,6 +590,54 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // requested global sort and pagination only after the fine filter.
       const docs = await findAllListings(where, 2)
       return fineFilter(docs as unknown as Record<string, unknown>[], asOf)
+    },
+
+    async findEffectiveListingsSitemapPage(ctx, options) {
+      const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
+      const where = await baseEffectiveWhere(ctx)
+      const page = Math.max(1, Math.floor(options.page))
+      const limit = Math.min(500, Math.max(1, Math.floor(options.limit)))
+
+      const result = await payload.find({
+        collection: 'listings',
+        where: where as Where,
+        // depth 1 而不是 2：精筛只需要 building.city 的 id，toId() 同时接受 id 与对象，
+        // 所以一层足够。depth 2 会把城市、行政区、商圈、地铁整棵关系树拉出来。
+        depth: 1,
+        // 只取三类字段：输出用的 slug/updatedAt/businessType，以及精筛要读的
+        // gallery（只用长度）与 building（只用 city id）。少一个字段精筛口径就会变，
+        // 多一个字段就是白付钱——这份清单必须和 buildEffectiveSnapshot 对齐。
+        select: {
+          slug: true,
+          updatedAt: true,
+          businessType: true,
+          gallery: true,
+          building: true,
+        },
+        sort: 'id',
+        limit,
+        page,
+      })
+
+      const kept = await fineFilter(
+        result.docs as unknown as Record<string, unknown>[],
+        asOf,
+      )
+
+      return {
+        docs: kept.map((doc) => {
+          const raw = doc as unknown as Record<string, unknown>
+          return {
+            slug: typeof raw.slug === 'string' ? raw.slug : '',
+            updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : null,
+            businessType: typeof raw.businessType === 'string' ? raw.businessType : null,
+          }
+        }).filter((entry) => entry.slug !== ''),
+        page,
+        hasNextPage: Boolean(result.hasNextPage),
+        nextPage: result.nextPage ?? null,
+      }
     },
 
     async findEffectiveListingBySlug(slug, ctx) {
