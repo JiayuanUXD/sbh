@@ -16,7 +16,6 @@ import {
   getCachedSitemapBuildingsPage,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import type { SearchChannel } from '@/lib/frontend/cached-queries'
 import { shouldListSaleChannelInSitemap } from '@/lib/frontend/sale-channel'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 
@@ -34,15 +33,24 @@ function listingInput(page: number): ListingSearchInput {
 }
 
 /**
- * @param businessType 频道。出售房源的详情页 URL 与租赁共用 /listings/{slug}，
- *   两边都要收录，否则出售房源对搜索引擎完全不可见。
+ * 拉取该城市的全部有效房源（**不按租售过滤**）。
+ *
+ * 刻意拉全集而不是按 businessType 各查一次：每次查询都要构建一份 search source，
+ * 即全量有效供给查询 + 逐条精筛（媒体数、商户关系有效期、资质、举报暂停）。这是
+ * 整个 sitemap 里最贵的一步。
+ *
+ * 按频道各查一次会让这个代价乘以频道数——而且为了确认「这个城市没有出售房源」，
+ * 要付出和查全部租赁房源一样的开销，再乘以城市数。生产上这样做直接把 /sitemap.xml
+ * 拖到超时；超时又导致 unstable_cache 写不进去，下一次请求仍然是冷的，形成死循环。
+ *
+ * 租售分组是纯内存操作（ListingCardViewModel 自带 businessType），放在调用方做。
  */
-async function getCityListings(citySlug: string, businessType: SearchChannel = 'lease') {
+async function getCityListings(citySlug: string) {
   const docs: ListingCardViewModel[] = []
   let page = 1
   while (docs.length < SITEMAP_ENTITY_LIMIT) {
     const input = listingInput(page)
-    const result = await getCachedSearchListings(citySlug, `page=${page}`, input, businessType)
+    const result = await getCachedSearchListings(citySlug, `page=${page}`, input)
     docs.push(...result.docs.slice(0, SITEMAP_ENTITY_LIMIT - docs.length))
     if (page >= result.pagination.totalPages) break
     page += 1
@@ -85,12 +93,13 @@ const getCachedSitemapEntries = unstable_cache(
     ))
     const [cities, pages, articles] = await Promise.all([
       Promise.all(liveProfiles.map(async (profile) => {
-        const [listings, saleListings, buildings] = await Promise.all([
-          getCityListings(profile.citySlug, 'lease'),
-          getCityListings(profile.citySlug, 'sale'),
+        const [allListings, buildings] = await Promise.all([
+          getCityListings(profile.citySlug),
           getCityBuildings(profile.citySlug),
         ])
-        return { citySlug: profile.citySlug, listings, saleListings, buildings }
+        // 一次查询、内存分组：租售各查一次会让最贵的那步开销翻倍
+        const saleListings = allListings.filter((l) => l.businessType === 'sale')
+        return { citySlug: profile.citySlug, listings: allListings, saleListings, buildings }
       })),
       getCachedPublishedPages(SITEMAP_ENTITY_LIMIT),
       getPublishedArticles(),
@@ -143,8 +152,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
       })
     }
-    // 租售房源的详情页共用 /listings/{slug} 路由，合并收录。
-    for (const listing of [...city.listings, ...city.saleListings]) {
+    // city.listings 已是租售全集（详情页共用 /listings/{slug} 路由）。
+    for (const listing of city.listings) {
       dynamicUrls.push({
         url: `${prefix}/listings/${listing.slug}`,
         lastModified: now,
