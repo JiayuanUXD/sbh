@@ -23,6 +23,9 @@ export const LISTING_AUDIT_ACTIONS = [
   'listing.review_submit',
   'listing.review_approve',
   'listing.review_reject',
+  // OPT-033：平台管理员保存房源时自动上架。与 review_approve 分开记，
+  // 否则审计流里「有人审过」和「管理员直发、没人审」长得一模一样。
+  'listing.review_fast_track',
   'listing.publish',
   'listing.unpublish',
 ] as const
@@ -114,6 +117,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   'listing.review_submit': '房源审核已提交',
   'listing.review_approve': '房源审核已通过',
   'listing.review_reject': '房源审核已驳回',
+  'listing.review_fast_track': '房源由管理员直发上架',
   'listing.publish': '房源已发布',
   'listing.unpublish': '房源已下架',
   'building.create': '楼盘已创建',
