@@ -20,7 +20,7 @@ import { InvalidOperationError } from '@/domain/shared/errors'
  * 房源审核决策 endpoint（tasks.md M4.6 / M4.4 / design §3.5 / R4, R8）
  *
  * POST /api/listings/:id/review  body { decision, reason?, expectedVersion? }
- *   decision ∈ submit | withdraw | approve | reject
+ *   decision ∈ submit | withdraw | approve | reject | fast_track
  *
  * 语义（design §3.5 listing_reviews 事件溯源）：
  *   - 审核轴独立于发布轴。本端点**只改 reviewStatus**，绝不写 publicationStatus

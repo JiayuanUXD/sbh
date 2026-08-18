@@ -1,5 +1,5 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
 
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
@@ -162,6 +162,17 @@ const businessTypeCondition = saleChannelEnabled
     // 「这条为什么不在租赁列表里」，那是比少一个字段更难查的问题。
     (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
 
+/**
+ * 「价格与交易参数」这个 tab 的文案本身也是功能信号：开关关闭时若仍叫这个名字、
+ * 描述里还写着「产权信息只在出售房源显示」，等于在告诉运营「出售功能存在，只是你
+ * 看不到」——字段藏干净了，标题却把它供出来。所以文案跟着开关一起回退到出售模式
+ * 之前的原样。
+ */
+const priceTabLabel = saleChannelEnabled ? '价格与交易参数' : '租赁参数'
+const priceTabDescription = saleChannelEnabled
+  ? '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。'
+  : '集中维护结构化价格、面积、工位、楼层、租期和付款条件。'
+
 /** 出售信息字段组的显隐：开关关闭时一律不显示。 */
 const saleTermsCondition = saleChannelEnabled
   ? (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
@@ -278,9 +289,8 @@ export const Listings: CollectionConfig = {
           ],
         },
         {
-          label: '价格与交易参数',
-          description:
-            '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。',
+          label: priceTabLabel,
+          description: priceTabDescription,
           fields: [
             {
               name: 'price',
@@ -573,6 +583,17 @@ export const Listings: CollectionConfig = {
           label: '审核与发布',
           description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。',
           fields: [
+            {
+              // 免审直发入口。放在这里而不是审核台：直发的起点是「未提交 / 已驳回」，
+              // 这些房源根本不在 pending 队列里。可见性（权限 + 状态）全由服务端组件
+              // 判定，客户端只负责触发；完整度由 endpoint 强制。
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: '/components/admin/ListingFastTrackAction',
+                },
+              },
+            } as unknown as Field,
             {
               type: 'row',
               fields: [
