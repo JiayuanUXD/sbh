@@ -16,6 +16,8 @@ import {
   getCachedSitemapBuildingsPage,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
+import type { SearchChannel } from '@/lib/frontend/cached-queries'
+import { shouldListSaleChannelInSitemap } from '@/lib/frontend/sale-channel'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
@@ -31,12 +33,16 @@ function listingInput(page: number): ListingSearchInput {
   return { ...parseSearchInput(new URLSearchParams()), page }
 }
 
-async function getCityListings(citySlug: string) {
+/**
+ * @param businessType 频道。出售房源的详情页 URL 与租赁共用 /listings/{slug}，
+ *   两边都要收录，否则出售房源对搜索引擎完全不可见。
+ */
+async function getCityListings(citySlug: string, businessType: SearchChannel = 'lease') {
   const docs: ListingCardViewModel[] = []
   let page = 1
   while (docs.length < SITEMAP_ENTITY_LIMIT) {
     const input = listingInput(page)
-    const result = await getCachedSearchListings(citySlug, `page=${page}`, input)
+    const result = await getCachedSearchListings(citySlug, `page=${page}`, input, businessType)
     docs.push(...result.docs.slice(0, SITEMAP_ENTITY_LIMIT - docs.length))
     if (page >= result.pagination.totalPages) break
     page += 1
@@ -79,11 +85,12 @@ const getCachedSitemapEntries = unstable_cache(
     ))
     const [cities, pages, articles] = await Promise.all([
       Promise.all(liveProfiles.map(async (profile) => {
-        const [listings, buildings] = await Promise.all([
-          getCityListings(profile.citySlug),
+        const [listings, saleListings, buildings] = await Promise.all([
+          getCityListings(profile.citySlug, 'lease'),
+          getCityListings(profile.citySlug, 'sale'),
           getCityBuildings(profile.citySlug),
         ])
-        return { citySlug: profile.citySlug, listings, buildings }
+        return { citySlug: profile.citySlug, listings, saleListings, buildings }
       })),
       getCachedPublishedPages(SITEMAP_ENTITY_LIMIT),
       getPublishedArticles(),
@@ -125,7 +132,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${prefix}/listings`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
       { url: `${prefix}/buildings`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     )
-    for (const listing of city.listings) {
+    // 出售频道页与 noindex 判定同口径：房源数为 0 时既不进索引也不进 sitemap。
+    // 两者不一致就是自相矛盾的信号（「别收录」+「快来收录」），noindex 的降噪
+    // 作用会被抵消，还白耗抓取预算。
+    if (shouldListSaleChannelInSitemap(city.saleListings.length)) {
+      dynamicUrls.push({
+        url: `${prefix}/sale`,
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 0.9,
+      })
+    }
+    // 租售房源的详情页共用 /listings/{slug} 路由，合并收录。
+    for (const listing of [...city.listings, ...city.saleListings]) {
       dynamicUrls.push({
         url: `${prefix}/listings/${listing.slug}`,
         lastModified: now,

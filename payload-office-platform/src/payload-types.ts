@@ -763,7 +763,7 @@ export interface Listing {
   price?: {
     amount?: number | null;
     currency?: 'CNY' | null;
-    period?: ('month' | 'day' | 'year') | null;
+    period?: ('month' | 'day' | 'year' | 'one-time') | null;
     unit?: ('sqm' | 'suite' | 'seat') | null;
   };
   /**
@@ -786,6 +786,21 @@ export interface Listing {
     isDivisible?: boolean | null;
     furnitureStatus?: ('included' | 'optional' | 'none' | 'confirm') | null;
   };
+  /**
+   * 仅出售房源填写。产权年限为纯展示信息，平台不做年限折损计算——剩余年限依赖产权起始日准确性，算错会影响买方的投资回报测算。
+   */
+  saleTerms?: {
+    /**
+     * 出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。
+     */
+    propertyRightYears?: ('40' | '50' | '70') | null;
+    saleTaxBearer?: ('buyer' | 'seller' | 'split' | 'negotiable') | null;
+    /**
+     * 影响税费，买方常问。
+     */
+    saleFiveYearsUnique?: boolean | null;
+    saleParkingSpaces?: number | null;
+  };
   costTerms?: {
     depositMonths?: number | null;
     propertyFeeInclusion?: ('included' | 'excluded' | 'confirm') | null;
@@ -801,7 +816,7 @@ export interface Listing {
   /**
    * 由显式发布/下架动作驱动,审核通过不自动上架。
    */
-  publicationStatus?: ('draft' | 'published' | 'unpublished' | 'leased') | null;
+  publicationStatus?: ('draft' | 'published' | 'unpublished' | 'leased' | 'sold') | null;
   /**
    * 商户停用等场景批量置为待复核,不改动审核/发布状态。
    */
@@ -2853,6 +2868,14 @@ export interface ListingsSelect<T extends boolean = true> {
         seatMax?: T;
         isDivisible?: T;
         furnitureStatus?: T;
+      };
+  saleTerms?:
+    | T
+    | {
+        propertyRightYears?: T;
+        saleTaxBearer?: T;
+        saleFiveYearsUnique?: T;
+        saleParkingSpaces?: T;
       };
   costTerms?:
     | T

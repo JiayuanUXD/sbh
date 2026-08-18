@@ -36,6 +36,46 @@ describe('effective-supply/getEffectiveSupplyWhere', () => {
     const json = JSON.stringify(getEffectiveSupplyWhere(asOf))
     expect(json).not.toContain('not_equals')
   })
+
+  // --- businessType 维度（出售模式批次 2）---------------------------------
+  //
+  // 谓词回答的是「这套房源合不合格」，租售是另一个问题。参数化而非写死默认，
+  // 让每个调用点显式声明意图：租赁列表传 lease、出售频道传 sale、楼盘详情页
+  // 不传（自己分组需要全集）、在租面积聚合传 lease。
+
+  it('不传 businessType 时不引入该键，且空对象 / undefined 等价（回归锁定）', () => {
+    // 谓词本身的内容由上面「包含查询层可表达的 fail-closed 正向谓词」覆盖；
+    // 这里只锁住一件事：新增可选参数没有改变默认行为。20 多处既有调用依赖它。
+    const base = getEffectiveSupplyWhere(asOf)
+    expect(base).not.toHaveProperty('businessType')
+    expect(getEffectiveSupplyWhere(asOf, {})).toEqual(base)
+    expect(getEffectiveSupplyWhere(asOf, { businessType: undefined })).toEqual(base)
+  })
+
+  it("businessType='lease' 只留租赁", () => {
+    const where = getEffectiveSupplyWhere(asOf, { businessType: 'lease' })
+    expect(where.businessType).toEqual({ equals: 'lease' })
+  })
+
+  it("businessType='sale' 只留出售", () => {
+    const where = getEffectiveSupplyWhere(asOf, { businessType: 'sale' })
+    expect(where.businessType).toEqual({ equals: 'sale' })
+  })
+
+  it('加了 businessType 也不引入 not_equals（fail-closed 不被破坏）', () => {
+    for (const businessType of ['lease', 'sale'] as const) {
+      const json = JSON.stringify(getEffectiveSupplyWhere(asOf, { businessType }))
+      expect(json).not.toContain('not_equals')
+    }
+  })
+
+  it('businessType 不影响其余谓词', () => {
+    const base = getEffectiveSupplyWhere(asOf)
+    const scoped = getEffectiveSupplyWhere(asOf, { businessType: 'sale' })
+    for (const key of Object.keys(base)) {
+      expect(scoped[key]).toEqual(base[key])
+    }
+  })
 })
 
 describe('effective-supply/常量', () => {

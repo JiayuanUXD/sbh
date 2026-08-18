@@ -169,11 +169,39 @@ describe('租赁参数', () => {
     expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.area, 3)
   })
 
-  it('minimumLeaseMonths 缺失 → 损失 0.05', () => {
+  it('租赁房源缺 minimumLeaseMonths → 损失租售专属项 0.05', () => {
     const doc = makeFullDoc()
     delete doc.minimumLeaseMonths
     const result = computeListingCompleteness(doc)
-    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.minimumLeaseMonths, 3)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.businessTypeSpecific, 3)
+  })
+
+  // --- 出售口径（批次 3 / eng review T13）---------------------------------
+
+  it('出售房源用产权年限顶替租期，满分仍是 1.0', () => {
+    const doc = makeFullDoc()
+    doc.businessType = 'sale'
+    delete doc.minimumLeaseMonths
+    doc.propertyRightYears = '50'
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1, 3)
+    expect(result.belowThreshold).toBe(false)
+  })
+
+  it('出售房源缺产权年限 → 损失租售专属项 0.05（不因缺租期被双重扣分）', () => {
+    const doc = makeFullDoc()
+    doc.businessType = 'sale'
+    delete doc.minimumLeaseMonths
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.businessTypeSpecific, 3)
+  })
+
+  it('出售房源填了 minimumLeaseMonths 也不计分（口径不串）', () => {
+    const doc = makeFullDoc()
+    doc.businessType = 'sale'
+    doc.minimumLeaseMonths = 12
+    const result = computeListingCompleteness(doc)
+    expect(result.score).toBeCloseTo(1 - COMPLETENESS_WEIGHTS.businessTypeSpecific, 3)
   })
 })
 

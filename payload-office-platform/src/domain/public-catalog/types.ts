@@ -76,10 +76,31 @@ export type SearchContext = Readonly<{
   channel: 'public-web'
   /** 当前城市 slug；所有公开查询必须显式绑定城市 */
   city: string
+  /**
+   * 当前租售频道；**不传表示不按租售过滤**。
+   *
+   * 与 city 同级的查询作用域：city 圈定「哪个城市」，businessType 圈定「租还是售」。
+   * 刻意可选而非必填带默认，因为有几类查询确实需要全集：楼盘详情页要把 lease /
+   * sale / coworking 分组展示、sitemap 两类都要收录、详情页直链要能访问任何有效
+   * 房源。给它隐式默认会让出售频道查不到数据且看不出原因。
+   *
+   * 取值指引：租赁列表 / 首页精选 / 在租面积聚合传 'lease'；出售频道传 'sale'；
+   * 楼盘详情页与 sitemap 不传。
+   */
+  businessType?: 'lease' | 'sale'
 }>
 
-/** 创建显式城市搜索上下文（当前时点 / 上海时区 / 公开渠道） */
-export function createSearchContext(city: string, now: Date = new Date()): SearchContext {
+/**
+ * 创建显式城市搜索上下文（当前时点 / 上海时区 / 公开渠道）
+ *
+ * @param businessType 可选租售频道；不传表示不按租售过滤（楼盘详情页、sitemap 等
+ *   需要全集的场景）。
+ */
+export function createSearchContext(
+  city: string,
+  now: Date = new Date(),
+  businessType?: SearchContext['businessType'],
+): SearchContext {
   const normalized = city.trim().toLowerCase()
   if (!normalized) throw new Error('search_context_city_required')
   return {
@@ -87,6 +108,7 @@ export function createSearchContext(city: string, now: Date = new Date()): Searc
     timezone: 'Asia/Shanghai',
     channel: 'public-web',
     city: normalized,
+    ...(businessType ? { businessType } : {}),
   }
 }
 

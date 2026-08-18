@@ -13,6 +13,8 @@ import {
   SUPPLY_VISIBILITY_HOLD_LABELS,
   isSupplyVisibilityHold,
   mapLegacyStatusToPublication,
+  SETTLED_PUBLICATION_STATUSES,
+  isSettledPublicationStatus,
 } from '@/domain/review/publication-status'
 
 /**
@@ -23,8 +25,8 @@ import {
  */
 
 describe('publication-status/枚举', () => {
-  it('四个状态', () => {
-    expect(PUBLICATION_STATUSES).toEqual(['draft', 'published', 'unpublished', 'leased'])
+  it('五个状态（含出售终态 sold）', () => {
+    expect(PUBLICATION_STATUSES).toEqual(['draft', 'published', 'unpublished', 'leased', 'sold'])
   })
 
   it('每个状态都有非空中文 label', () => {
@@ -42,8 +44,8 @@ describe('publication-status/枚举', () => {
 })
 
 describe('publication-status/发布动作', () => {
-  it('三个动作:发布/下架/成交', () => {
-    expect(PUBLISH_ACTIONS).toEqual(['publish', 'unpublish', 'mark_leased'])
+  it('四个动作:发布/下架/标记已租/标记已售', () => {
+    expect(PUBLISH_ACTIONS).toEqual(['publish', 'unpublish', 'mark_leased', 'mark_sold'])
   })
 
   it('每个动作都有非空中文 label', () => {
@@ -72,6 +74,37 @@ describe('publication-status/状态机', () => {
   it('已下架 -publish-> 已发布(重新上架)', () => {
     expect(canTransitionPublication('unpublished', 'publish')).toBe(true)
     expect(nextPublicationStatus('unpublished', 'publish')).toBe('published')
+  })
+
+  // --- 出售成交态（批次 3）-------------------------------------------------
+
+  it.each(['draft', 'published', 'unpublished'] as const)(
+    '%s -mark_sold-> 已售',
+    (from) => {
+      expect(canTransitionPublication(from, 'mark_sold')).toBe(true)
+      expect(nextPublicationStatus(from, 'mark_sold')).toBe('sold')
+    },
+  )
+
+  it('已售是终态：任何动作都不合法', () => {
+    for (const action of PUBLISH_ACTIONS) {
+      expect(canTransitionPublication('sold', action)).toBe(false)
+      expect(nextPublicationStatus('sold', action)).toBeNull()
+    }
+  })
+
+  it('已租不能转已售、已售不能转已租（两个终态互不相通）', () => {
+    expect(canTransitionPublication('leased', 'mark_sold')).toBe(false)
+    expect(canTransitionPublication('sold', 'mark_leased')).toBe(false)
+  })
+
+  it('SETTLED_PUBLICATION_STATUSES 恰好是两个成交终态', () => {
+    expect(SETTLED_PUBLICATION_STATUSES).toEqual(['leased', 'sold'])
+    for (const s of PUBLICATION_STATUSES) {
+      // 终态的定义：没有任何合法出边
+      const hasOutEdge = PUBLISH_ACTIONS.some((a) => canTransitionPublication(s, a))
+      expect(isSettledPublicationStatus(s)).toBe(!hasOutEdge)
+    }
   })
 
   it('草稿/已发布/已下架 -mark_leased-> 已租', () => {

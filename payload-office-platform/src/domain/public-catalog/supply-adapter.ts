@@ -422,10 +422,13 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    * 有效供给 where 片段（查询层粗筛）+ 举报暂停排除。
    * 与 method-specific 约束合并后作为 payload.find 的 where。
    */
-  async function baseEffectiveWhereWithoutCity(asOf: Date): Promise<Where> {
+  async function baseEffectiveWhereWithoutCity(
+    asOf: Date,
+    businessType?: SearchContext['businessType'],
+  ): Promise<Where> {
     const payload = await getPayloadQueryPort()
     const where: Where = {
-      ...getEffectiveSupplyWhere(asOf),
+      ...getEffectiveSupplyWhere(asOf, businessType ? { businessType } : undefined),
     }
     // §5 举报暂停：查 listing-reports 拿到被暂停的 listing IDs，not_in 排除
     const pausedIds = await getPausedListingIds(payload)
@@ -435,9 +438,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return where
   }
 
+  // ctx.businessType 在此生效：所有绑定城市的公开查询（列表、精选、推荐、在租面积
+  // 聚合）都经过这里。不经过它的只有 findListingRouteIdentity —— 详情页直链必须能
+  // 访问任何有效房源，租售都要，故那里刻意不过滤。
   async function baseEffectiveWhere(ctx: SearchContext): Promise<Where> {
     return {
-      ...await baseEffectiveWhereWithoutCity(new Date(ctx.asOf)),
+      ...await baseEffectiveWhereWithoutCity(new Date(ctx.asOf), ctx.businessType),
       'building.city.slug': { equals: ctx.city },
     }
   }
@@ -741,6 +747,11 @@ WHERE l.building_id = ANY($2)
   AND city.status = 'active'
   AND city.slug = $3
   AND dist.status = 'active'
+  -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。
+  -- 楼盘卡片的「在租 X ㎡」必须传 'lease'，否则一套待售整层会被算进在租面积。
+  -- business_type 是 ENUM，与 text 参数比较必须显式转型：PG 不做
+  -- enum = text 的隐式转换，否则报「操作符不存在」。
+  AND ($4::text IS NULL OR l.business_type::text = $4::text)
   AND m.status = 'active'
   AND m.qualification_status = 'valid'
   AND (m.qualification_expires_at IS NULL OR m.qualification_expires_at >= $1)
@@ -761,6 +772,7 @@ GROUP BY l.building_id
         asOf,
         buildingIds.map((id) => Number(id)),
         ctx.city,
+        ctx.businessType ?? null,
       ])
 
       for (const row of result.rows) {

@@ -11,6 +11,8 @@ export type CityPageType =
   | 'home'
   | 'listings'
   | 'listing-detail'
+  // 出售频道：与 listings 同构的另一个频道，共用组件与查询，只是作用域不同。
+  | 'sale'
   | 'buildings'
   | 'building-detail'
   | 'news'
@@ -36,6 +38,7 @@ const RESERVED_CITY_ROOT_SEGMENTS = new Set([
   'entrust',
   'listings',
   'media',
+  'sale',
   'news',
   'pages',
   'publish',
@@ -234,6 +237,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   if (segments.length === 1 && segments[0] === 'city-partner') return route('city-partner', null)
 
   if (segments.length === 1 && segments[0] === 'listings') return route('listings', null)
+  if (segments.length === 1 && segments[0] === 'sale') return route('sale', null)
   if (segments.length === 2 && segments[0] === 'listings') {
     return canonicalPathSegment(segments[1]) ? route('listing-detail', null, canonicalPathSegment(segments[1])) : route('unknown', null)
   }
@@ -246,6 +250,7 @@ function classifyPath(pathname: string, params: URLSearchParams): Route {
   if (!isPublicCitySlug(citySlug) || extra) return route('unknown', null)
   if (!resource) return route('home', citySlug)
   if (resource === 'listings' && !slug) return route('listings', citySlug)
+  if (resource === 'sale' && !slug) return route('sale', citySlug)
   if (resource === 'buildings' && !slug) return route('buildings', citySlug)
   if (resource === 'listings' && slug) {
     const detailSlug = canonicalPathSegment(slug)
@@ -384,6 +389,8 @@ export function buildCityPath(citySlug: string, pageType: CityPageType): string 
     case 'listings':
     case 'listing-detail':
       return `/${citySlug}/listings`
+    case 'sale':
+      return `/${citySlug}/sale`
     case 'buildings':
     case 'building-detail':
       return `/${citySlug}/buildings`
@@ -425,6 +432,12 @@ export function switchCityUrl(sourceUrl: unknown, destinationCitySlug: string): 
     case 'listings':
       return withQuery(
         `/${destinationCitySlug}/listings`,
+        selectListingQuery(route.params),
+      )
+    case 'sale':
+      // 与 listings 共用筛选参数白名单：出售频道复用同一套筛选器。
+      return withQuery(
+        `/${destinationCitySlug}/sale`,
         selectListingQuery(route.params),
       )
     case 'buildings':
@@ -472,6 +485,8 @@ export function legacyCanonicalPath(sourceUrl: unknown): string | null {
       return '/'
     case 'listings':
       return withQuery('/listings', selectListingQuery(route.params))
+    case 'sale':
+      return withQuery('/sale', selectListingQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/listings/${route.detailSlug}` : null
     case 'buildings':
@@ -507,6 +522,8 @@ export function prefixedCanonicalPath(sourceUrl: unknown, citySlug: string): str
       return `/${citySlug}`
     case 'listings':
       return withQuery(`/${citySlug}/listings`, selectListingQuery(route.params))
+    case 'sale':
+      return withQuery(`/${citySlug}/sale`, selectListingQuery(route.params))
     case 'listing-detail':
       return route.detailSlug ? `/${citySlug}/listings/${route.detailSlug}` : null
     case 'buildings':

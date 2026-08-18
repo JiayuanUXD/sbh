@@ -34,6 +34,9 @@ import {
 const PAGES_CATEGORY_TAG = 'public:pages'
 export const ARTICLES_CATEGORY_TAG = PUBLIC_ARTICLES_CATEGORY_TAG
 
+/** 前台频道：租赁或出售。两者共用查询与组件，只是作用域不同。 */
+export type SearchChannel = 'lease' | 'sale'
+
 function canonicalCitySlug(citySlug: string): string {
   return createSearchContext(citySlug).city
 }
@@ -74,7 +77,9 @@ function mixedSupplyCacheTags(citySlug: string): string[] {
 
 const getCachedHomepageByCity = memoizeByCity((citySlug) =>
   unstable_cache(
-    async () => getHomepage(createSearchContext(citySlug)),
+    // 首页是租赁语境（精选房源、热门商圈、按类型浏览都按租金展示），
+    // 出售供给不参与首页曝光，等出售频道上线后单独规划入口。
+    async () => getHomepage(createSearchContext(citySlug, undefined, 'lease')),
     ['homepage', citySlug],
     {
       tags: [
@@ -245,9 +250,15 @@ export function buildListingSearchSourceCacheKey(input: ListingSearchInput): str
 
 const getCachedListingSearchSourceByCity = memoizeByCity((citySlug) =>
   unstable_cache(
-    async (sourceCacheKey: string, input: ListingSearchInput) => {
+    // businessType 作为函数参数而非 keyParts：unstable_cache 会把参数序列化进
+    // 缓存键，租售两个频道天然分开，不会互相串数据。
+    async (
+      sourceCacheKey: string,
+      input: ListingSearchInput,
+      businessType: SearchChannel,
+    ) => {
       void sourceCacheKey
-      return buildListingSearchSource(input, createSearchContext(citySlug))
+      return buildListingSearchSource(input, createSearchContext(citySlug, undefined, businessType))
     },
     ['listing-search-source', citySlug],
     {
@@ -257,16 +268,27 @@ const getCachedListingSearchSourceByCity = memoizeByCity((citySlug) =>
   ),
 )
 
+/**
+ * 房源列表查询。
+ *
+ * @param businessType 频道；缺省 lease 保持既有调用不变。出售频道传 sale——
+ *   两者共用同一套查询与组件，只是作用域不同。
+ */
 export async function getCachedSearchListings(
   citySlug: string,
   canonicalQuery: string,
   input: ListingSearchInput,
+  businessType: SearchChannel = 'lease',
 ) {
   void canonicalQuery
   const city = canonicalCitySlug(citySlug)
   const sourceInput = { ...input, page: 1 }
   const sourceCacheKey = buildListingSearchSourceCacheKey(input)
-  const source = await getCachedListingSearchSourceByCity(city)(sourceCacheKey, sourceInput)
+  const source = await getCachedListingSearchSourceByCity(city)(
+    sourceCacheKey,
+    sourceInput,
+    businessType,
+  )
   return paginateListingSearchSource(source, input)
 }
 
@@ -288,9 +310,11 @@ export function getCachedListingDistrictOptions(citySlug: string) {
 
 const getCachedSearchFacetsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
-    async (canonicalQuery: string, input: ListingSearchInput) => {
+    async (canonicalQuery: string, input: ListingSearchInput, businessType: SearchChannel) => {
       void canonicalQuery
-      return getSearchFacets(input, createSearchContext(citySlug))
+      // facets 必须与列表同口径，否则筛选器会显示另一个频道贡献的计数，
+      // 用户点进去却什么都没有。
+      return getSearchFacets(input, createSearchContext(citySlug, undefined, businessType))
     },
     ['search-facets', citySlug],
     {
@@ -304,9 +328,10 @@ export function getCachedSearchFacets(
   citySlug: string,
   canonicalQuery: string,
   input: ListingSearchInput,
+  businessType: SearchChannel = 'lease',
 ) {
   const city = canonicalCitySlug(citySlug)
-  return getCachedSearchFacetsByCity(city)(canonicalQuery, input)
+  return getCachedSearchFacetsByCity(city)(canonicalQuery, input, businessType)
 }
 
 // Articles and pages intentionally remain global in Plan 2.

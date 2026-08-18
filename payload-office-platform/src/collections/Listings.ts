@@ -14,6 +14,8 @@ import {
   COST_INCLUSION_STATUSES,
   COST_INCLUSION_STATUS_LABELS,
   DECORATION_STATUSES,
+  PROPERTY_RIGHT_YEARS,
+  PROPERTY_RIGHT_YEARS_LABELS,
   DECORATION_STATUS_LABELS,
   DETAIL_MEDIA_KINDS,
   DETAIL_MEDIA_KIND_LABELS,
@@ -249,8 +251,9 @@ export const Listings: CollectionConfig = {
           ],
         },
         {
-          label: '租赁参数',
-          description: '集中维护结构化价格、面积、工位、楼层、租期和付款条件。',
+          label: '价格与交易参数',
+          description:
+            '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。',
           fields: [
             {
               name: 'price',
@@ -374,6 +377,10 @@ export const Listings: CollectionConfig = {
                   {
                     name: 'minimumLeaseMonths',
                     label: '最短租期（月）',
+                    admin: {
+                      // 出售没有租期概念。隐藏而非删除：存量租赁房源的值要留着。
+                      condition: (data) => data?.businessType !== 'sale',
+                    },
                   },
                   {
                     thousandSeparator: ',',
@@ -389,11 +396,19 @@ export const Listings: CollectionConfig = {
                   name: 'paymentTerms',
                   label: '付款条件',
                   type: 'text',
+                  admin: {
+                    // 买卖的付款方式在合同阶段谈，不在房源页承诺。
+                    condition: (data) => data?.businessType !== 'sale',
+                  },
                 },
                 {
                   name: 'availableFrom',
                   label: '可入驻日期',
                   type: 'date',
+                  admin: {
+                    // 买卖是交割日不是入驻日，语义不同，不复用该字段。
+                    condition: (data) => data?.businessType !== 'sale',
+                  },
                 },
               ],
             },
@@ -424,6 +439,63 @@ export const Listings: CollectionConfig = {
                         label: FURNITURE_STATUS_LABELS[value],
                         value,
                       })),
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'saleTerms',
+              label: '出售信息',
+              type: 'group',
+              admin: {
+                condition: (data) => data?.businessType === 'sale',
+                description:
+                  '仅出售房源填写。产权年限为纯展示信息，平台不做年限折损计算——剩余年限依赖产权起始日准确性，算错会影响买方的投资回报测算。',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'propertyRightYears',
+                      label: '产权年限',
+                      type: 'select',
+                      options: PROPERTY_RIGHT_YEARS.map((value) => ({
+                        label: PROPERTY_RIGHT_YEARS_LABELS[value],
+                        value,
+                      })),
+                      admin: {
+                        description: '出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。',
+                      },
+                    },
+                    {
+                      name: 'saleTaxBearer',
+                      label: '税费承担方',
+                      type: 'select',
+                      options: [
+                        { label: '买方承担', value: 'buyer' },
+                        { label: '卖方承担', value: 'seller' },
+                        { label: '双方各半', value: 'split' },
+                        { label: '面议', value: 'negotiable' },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'saleFiveYearsUnique',
+                      label: '是否满五唯一',
+                      type: 'checkbox',
+                      admin: { description: '影响税费，买方常问。' },
+                    },
+                    {
+                      name: 'saleParkingSpaces',
+                      label: '车位配置（个）',
+                      type: 'number',
+                      min: 0,
                     },
                   ],
                 },

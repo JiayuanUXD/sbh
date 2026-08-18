@@ -107,3 +107,28 @@ export const LISTING_MEDIA_CATEGORY_LABELS: Record<ListingMediaCategory, string>
   'common-area': '公区/电梯厅',
   exterior: '外立面/建筑外观',
 }
+
+/**
+ * 产权年限（出售专属，纯展示）。
+ *
+ * 商办常见三档。**平台不做年限折损计算**（用户决策）：不设产权到期日、不派生
+ * 剩余年限，详情页只展示「50 年产权」这类原始信息。
+ *
+ * 这不是省事，是降风险：剩余年限要算准，前提是产权起始日准确，而业主提供的日期
+ * 未必可靠；「剩余 31.4 年」这种精确数字一旦算错，客户拿它算过投资回报，平台要担
+ * 二次计算的责任。展示原始年限把口径交回产权证本身。
+ *
+ * 用枚举而非自由输入，避免「四十年」「40年产权」「40」混存。
+ */
+export const PROPERTY_RIGHT_YEARS = ['40', '50', '70'] as const
+export type PropertyRightYears = (typeof PROPERTY_RIGHT_YEARS)[number]
+
+export const PROPERTY_RIGHT_YEARS_LABELS: Record<PropertyRightYears, string> = {
+  '40': '40 年',
+  '50': '50 年',
+  '70': '70 年',
+}
+
+export function isPropertyRightYears(value: unknown): value is PropertyRightYears {
+  return typeof value === 'string' && (PROPERTY_RIGHT_YEARS as readonly string[]).includes(value)
+}
