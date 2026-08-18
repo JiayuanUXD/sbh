@@ -1,14 +1,16 @@
 # Task Packet：OPT-032 房源编辑页填写引导 + 免审直发产品口径
 
-> 状态：**讨论中，未拍板，未动代码**
+> 状态：**第一、二部分讨论中；第三部分（表单布局）已定稿，实施中**
 > 创建日期：2026-08-18
-> 分支：`docs/fast-track-form-guidance-024171`（本地，未推送）
+> 分支：`feat/opt-032-listing-form-guidance-12ea`
 > 基线：`master @ 8487934`，线上 CloudRun `sbh-097`
-> 来源：2026-08-18 会话记录（用户 + Claude Code），非最终规格
+> 来源：2026-08-18 会话记录（用户 + Claude Code）
 
-本文件是一次讨论的完整记录，包含**已核实的代码事实**、**发现的缺陷**、**给出的建议**
-与**尚未拍板的问题**。里面的建议都还没有获得用户确认，不要当作既定方案实施。
-落成方案前需要先答完文末「待决问题清单」。
+第一、二部分是讨论记录：**已核实的代码事实**、**发现的缺陷**、**建议**与**未拍板的问题**，
+不要当作既定方案实施。
+
+**第三部分是用户已确认的表单布局方案**，含实施清单，照着做即可。
+交互式对照 demo：`artifacts/OPT-032/listing-form-demo.html`（纯静态，双击可开）。
 
 ---
 
@@ -227,7 +229,7 @@ Arco 现在的用法是对的——审核队列表格、`MediaWorkbench`、`Amen
 | 3 | pending 是否放开（推荐：不放开，补「撤回并直发」） | 挂起 |
 | 4 | 真实验收顺序（推荐：先补审计操作人再验收） | 挂起 |
 | 5 | C（完整度清单）做不做 | 未表态 |
-| 6 | tab 改锚点的最终形态（全展开 / 默认折叠） | 待实测渲染性能后定 |
+| 6 | ~~tab 改锚点的最终形态~~ | **已定，见第三部分**：不整体通铺，收成 2 tab，展示内容单独留 |
 
 ## 建议落地顺序
 
@@ -243,3 +245,166 @@ Arco 那条不是工作项，是一条取舍规则，写进 `.agent/backend.md` 
 - 未修改任何代码。
 - 未验证 Payload tabs 的懒渲染行为（worktree 无 `node_modules`）。
 - 未在真实数据上点过免审直发按钮（问题 4 的原始风险仍在）。
+
+---
+
+# 第三部分：表单布局方案（已定稿，实施中）
+
+用户已确认。对照 demo：`artifacts/OPT-032/listing-form-demo.html`，可切「现状 / 语义重排」
+「租赁 / 出售」「媒体数量」等开关，左上角实时显示表单高度（离屏克隆实测，非估算）。
+
+## 3.1 本轮核实的代码事实（都查过源码，别再重新推测）
+
+### Payload 渲染机制
+
+| 事实 | 出处 |
+|---|---|
+| 客户端**只渲染激活 tab** | `TabsFieldComponent` 的 return 里只有 `activeTabConfig && <TabContent/>` |
+| 服务端 `iterateFields` 对 tabs **无条件全展开**，`renderFieldFn` 不按激活态过滤 | `addFieldStatePromise.js` tabs 分支是 `field.tabs.map(...)` |
+| 折叠的数组行**不省**——`Collapsible` 无条件渲染 children，只是套 `height: 0` | `elements/Collapsible/index.js` |
+
+**推论**：通铺**不增加服务端与 RSC 成本**（今天就已全付），只增加客户端 mount。
+
+### 字段分布（Listings.ts 是 **5 个** tab，不是 4 个——有一个 label 是变量 `priceTabLabel`）
+
+| tab | 叶子输入 | 备注 |
+|---|---|---|
+| 基本信息 | 7 | 今天的默认首屏 |
+| 价格与交易参数 / 租赁参数 | 24 | 最大的一个 |
+| 审核与发布 | 8 + 1 个 `ui` | |
+| 展示内容 | **245 输入当量** | 媒体工作台 40 行 × 6 子字段 + 亮点 4 + 富文本 1 |
+| 数据来源 | 4 | 整组挂 condition，手工建的房源不显示 |
+
+**展示内容 = 87% 的首屏渲染量**，且含两个重组件：
+- `mediaItems`（`maxRows: 40`，自定义 `MediaWorkbench` 1314 行）——mount 即发 `/api/media`
+  批量请求，再渲染最多 40 张缩略图，每张一个 COS 图片请求
+- `description`（`richText`）——mount 时实例化 Lexical 编辑器
+
+→ **这就是「展示内容」必须单独留一个 tab 的原因**：一次 tab 点击挡掉 87% 首屏渲染量。
+
+### 短行对不齐的根因
+
+`mergeFieldStyles.js`：字段**没设** `admin.width` 时内联样式是 `flex: 1 1 auto`（grow=1，
+**拉伸填满**）；设了才走 SCSS 的 `flex: 0 1 calc(var(--field-width) - ...)`（grow=0，不拉伸）。
+
+→ **固定列轴是纯配置**：给字段加 `admin.width` 即可，不用写 CSS。
+
+### slug 隐藏方案的三种写法（选错就踩坑）
+
+| 写法 | 表单状态 | 渲染 | 校验 | API 输出 | 结论 |
+|---|---|---|---|---|---|
+| `admin.hidden: true` | **在** | 走 `HiddenField` | **参与** | 保留 | ❌ 新建时被**看不见的必填错误**拦住保存 |
+| `admin.disabled: true` | 不在 | 不渲染 | 不参与 | 保留 | ⚠️ 可用，但图标读不到值（得退回 `useDocumentInfo`） |
+| **`admin.condition: () => false`** | **在（带值）** | 不渲染 | 不参与 | 保留 | ✅ **采用** |
+| 顶层 `hidden: true` | — | — | — | **被删** | ❌ 前台 `mappers.ts` 读不到 slug，详情页崩 |
+
+关键源码：
+- `fieldIsHiddenOrDisabled` 只认**顶层** `hidden` 和 `admin.disabled`，**不认 `admin.hidden`**
+- `addFieldStatePromise.js:80-88`：`passesCondition === false` → 写入 `state[path]`（含 value）
+  后 return，早于校验块与 `renderFieldFn`
+- `Form/index.js` `validateForm`：`if (field.passesCondition !== false)` 跳过
+- `beforeChange/promise.js`：`skipValidationFromHere = skipValidation || !passesCondition`，
+  且**没有任何 `delete siblingData[...]`** → 值照常提交
+- `afterRead/promise.js:31`：顶层 `hidden` 才会把字段从响应里删掉
+
+**采用 `admin.condition: () => false` 的收益**：`required: true` 与 `NOT NULL` 都不用动
+（**无迁移**），hook 的 `ensureUniqueSlug` 去重照常跑（新建时提交的 slug 为空），
+图标可用正常的 `useField({ path: 'slug' })` 读值。服务端行为**零变化**。
+
+### 其他
+
+- 集合级 `beforeChange` 跑在**字段级 `required` 校验之前**（`create.js`：先 collection
+  beforeChange，再 `beforeChange - Fields`）→「留空自动生成」本来就是通的。
+- 发布必填是 **租赁 15 项 / 出售 13 项**（`SUBMIT_REQUIRED_COMMON` 12 + 租售专属），
+  第二部分写的「12 项」只是 common 的数量。
+- **真正标不了的只有 `gallery` 一项**（`admin.hidden` 的派生数组，界面上没有 label 可挂，
+  且条件是「≥3 张」）。`price` 可标在 group label 上，`merchant` 有真实 relationship 字段
+  可标（近似——实际门槛判的是 `listing-merchant-relations` 的关系记录）。
+- 编辑页现在是 **4 个 `*`** 不是 3 个，多出来的 `slug` 既不在草稿门槛也不在提交必填里
+  → 做映射时**不能拿现有星号当基准**。
+- slug 字段值是**裸 kebab**（`chuangke-plaza-3f`），`/listings/` 是拼 URL 时的前缀；
+  且规范前台路径**带城市段** `/{citySlug}/listings/{slug}`，裸路径只是会 302 的中转。
+
+## 3.2 高度实测
+
+| | 高度 | 累计省 |
+|---|---|---|
+| 现状（Payload 原样） | 2350 px | — |
+| ① 语义重排 + 去组框 + 固定列轴 | 1904 px | 446 px（19%） |
+| ② + 只读四项文本化并后置 | 1845 px | 505 px（21%） |
+| ③ + URL 收进标题框图标 | **1735 px** | **615 px（26%）** |
+
+对照：统一 2 列 **2416 px（比现状更高）**，统一 3 列 2120 px（省 10.5%，但拆散语义配对、
+产生孤儿行）。**结论：省高的关键不是统一列数，而是按语义分行。**
+
+## 3.3 实施清单
+
+### A. 纯配置层（Listings.ts）
+
+1. **5 tab 收 2 tab**：`房源信息`（基本信息 + 价格 + 审核发布 + 数据来源）、`展示内容`。
+2. **row 按语义重排**（行内字段是语义兄弟，行宽随可见字段数自适应）：
+   - 基本信息：`[标题, 类型, 所属楼盘]`、`[租售类型, 装修状态, 工商注册状态]`
+   - 价格：`[金额, 币种, 计价周期, 计价单位]`、`[面积, 工位数, 楼层, 最短租期]`、
+     `[付款条件, 可入驻日期]`
+   - 空间明细：`[得房率, 朝向, 净层高, 家具状态]`、`[最少工位, 最多工位, 可分割]`
+   - 出售信息：`[产权年限, 税费承担方, 满五唯一, 车位配置]`
+   - 费用条款：`[押金月数, 物业费包含, 物业费金额, 发票情况]`、`[其他固定费用]`
+   - 审核发布：`[供给商户, 联系经纪人]`、`[审核状态, 发布状态, 冻结, 版本号]`
+   - 数据来源：`[来源平台, 外部 ID, 同步时间, 源地址]`
+3. **`admin.width` 固定列轴**：基本信息 `33.33%`，其余节 `25%`；textarea / richText 用 `100%`。
+4. **字段顺序**：只读四项移到供给商户 / 联系经纪人 / 核验信息**之后**（字段顺序即显示顺序，
+   不涉及 schema）。
+
+> ⚠️ **`row` 上的 `admin.condition` 必须跟着字段走**。重排时把 row 拆开重组，如果只搬字段
+> 不搬条件，旧租金字段会在不该出现时冒出来。做 demo 时踩过这个坑。
+
+### B. 样式（`src/app/(payload)/custom.scss`）
+
+5. 覆盖 `.group-field` 去掉上下边框与内边距，只留标题——外框的内边距**正是组内字段与组外
+   对不齐的根因**。只作用于 listings 编辑页，别全局改。
+6. row 内的复选框改成「标签在上 + 方框落控件行」。原来的 inline 写法没有标签行，
+   方框会浮到相邻输入框的中间高度（`可分割` 就是这个现象）。
+
+### C. 两个自定义组件
+
+7. **只读状态展示**：四个状态字段改「字段名 + 值 + ⓘ（hover 显示原说明）」，不再是禁用输入框。
+8. **标题框 slug 图标**：slug 设 `admin.condition: () => false`，图标挂在 title 的自定义
+   Field 上，`useField({ path: 'slug' })` 读值，hover 显示 `URL 标识: chuangke-plaza-3f`。
+   **字段上必须写注释说明为什么不用 `admin.hidden`**，否则后人会顺手改回去，然后踩进
+   看不见的必填错误。
+
+### D. 两条兜底（用户确认要一起做）
+
+9. **`slugify` 空值兜底**：`admin.condition: () => false` 会让 `required` 在**所有写入路径**
+   （含 REST/Local API）都不再拦。正常情况无所谓（hook 保证有值），但标题若全是符号或
+   emoji（如 `###`），`slugify` 返回空 → `listing-protect.ts` 里 `if (base)` 不成立 →
+   **slug 根本不被赋值** → 撞 `NOT NULL` 报原始 Postgres 错。
+   → 在 hook 里加确定性兜底（`base` 为空时退到可预测的值），三行代码。
+
+10. **`ensureUniqueSlug` 测试覆盖**：`tests/listing-protect.test.ts` 每个用例都显式传了
+    slug，**自动生成分支零覆盖**。而改完之后**每次新建都走它**——从「几乎不走」变成热路径。
+    要覆盖：留空生成、冲突追加 `-2`/`-3`、update 保留原 slug、空 base 兜底。
+
+### E. 方案 B（发布必填标记）
+
+11. 从 `getSubmitRequiredFields(businessType)` 派生「字段键 → 表单路径」映射，构建 collection
+    时给 label 追加标记。**禁止改成 `required: true`**——会打死「草稿随写随存」的两级门槛
+    （见 `listing-completeness.ts` 头注释）。标记必须是纯视觉的。
+12. 单测断言每个必填键要么在映射表里、要么在显式豁免清单里（`gallery` 进豁免）。
+    这条测试才是方案 B 的真正价值：以后加发布条件时，漏标会红。
+13. 用 `getSubmitRequiredFields(businessType)`，**不要用 `@deprecated` 的
+    `SUBMIT_REQUIRED_FIELDS`**（租赁口径，出售房源会被「最短租期」平白卡住）。
+
+## 3.4 拆 PR 建议
+
+- **PR 1**（A + B + E）：纯配置 + 样式 + 发布必填标记，不含自定义组件。
+- **PR 2**（C + D）：两个组件 + 两条兜底 + 测试。D 的两条必须和 C-8 同一个 PR
+  ——slug 的 condition 一改，兜底和测试就是前置条件，不能后补。
+
+## 3.5 第二部分中被本轮修正的结论
+
+- 「Payload 是否懒渲染非激活 tab」——**已确认：是**（原文标记为未能确认）。
+- 「发布必填 12 项」——实为租赁 15 / 出售 13。
+- 「3 项没有可标的单一字段」——实为 **1 项**（只有 `gallery`）。
+- 「编辑页只有 3 个 `*`」——实为 4 个（多一个 `slug`）。
+- 「tab 改锚点需先实测渲染性能」——已测，见 3.2；结论是**不整体通铺**，展示内容单独留一个 tab。
