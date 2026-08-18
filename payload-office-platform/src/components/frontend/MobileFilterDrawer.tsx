@@ -53,8 +53,8 @@ const RENT_UNIT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
 const SORT_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: 'recommended', label: '推荐' },
   { value: 'newest', label: '最新' },
-  { value: 'rent-asc', label: '价格升序' },
-  { value: 'rent-desc', label: '价格降序' },
+  { value: 'price-asc', label: '价格升序' },
+  { value: 'price-desc', label: '价格降序' },
 ]
 
 function toIntOrNull(v: string): number | null {
@@ -68,9 +68,9 @@ type StagedFilters = {
   q: string
   district: string
   type: string
-  rentMin: string
-  rentMax: string
-  rentUnit: string
+  priceMin: string
+  priceMax: string
+  priceUnit: string
   areaMin: string
   areaMax: string
   availableBefore: string
@@ -83,8 +83,8 @@ type StagedFilters = {
  * submit 与估算 effect 共用，保证估算与提交口径一致（OPT-009）。
  */
 function validateStaging(s: StagedFilters): string | null {
-  const rentMinN = toIntOrNull(s.rentMin)
-  const rentMaxN = toIntOrNull(s.rentMax)
+  const rentMinN = toIntOrNull(s.priceMin)
+  const rentMaxN = toIntOrNull(s.priceMax)
   const areaMinN = toIntOrNull(s.areaMin)
   const areaMaxN = toIntOrNull(s.areaMax)
   if (rentMinN != null && rentMaxN != null && rentMinN > rentMaxN) {
@@ -99,18 +99,18 @@ function validateStaging(s: StagedFilters): string | null {
 /**
  * 构造与 submit 同口径的 URLSearchParams（OPT-009）
  *
- * 含 finalSort 回退（价格排序无 rentUnit -> recommended），
+ * 含 finalSort 回退（价格排序无 priceUnit -> recommended），
  * 保证估算 N 与提交后列表页 totalDocs 使用同一查询口径。
  */
 function buildStagedParams(s: StagedFilters): URLSearchParams {
   const params = new URLSearchParams()
-  const rentMinN = toIntOrNull(s.rentMin)
-  const rentMaxN = toIntOrNull(s.rentMax)
+  const rentMinN = toIntOrNull(s.priceMin)
+  const rentMaxN = toIntOrNull(s.priceMax)
   const areaMinN = toIntOrNull(s.areaMin)
   const areaMaxN = toIntOrNull(s.areaMax)
 
   let finalSort = s.sort
-  if ((s.sort === 'rent-asc' || s.sort === 'rent-desc') && !s.rentUnit) {
+  if ((s.sort === 'price-asc' || s.sort === 'price-desc') && !s.priceUnit) {
     finalSort = 'recommended'
   }
 
@@ -118,9 +118,9 @@ function buildStagedParams(s: StagedFilters): URLSearchParams {
   if (qNormalized) params.set('q', qNormalized)
   if (s.district) params.set('district', s.district)
   if (s.type) params.set('type', s.type)
-  if (rentMinN != null) params.set('rentMin', String(rentMinN))
-  if (rentMaxN != null) params.set('rentMax', String(rentMaxN))
-  if (s.rentUnit) params.set('rentUnit', s.rentUnit)
+  if (rentMinN != null) params.set('priceMin', String(rentMinN))
+  if (rentMaxN != null) params.set('priceMax', String(rentMaxN))
+  if (s.priceUnit) params.set('priceUnit', s.priceUnit)
   if (areaMinN != null) params.set('areaMin', String(areaMinN))
   if (areaMaxN != null) params.set('areaMax', String(areaMaxN))
   if (s.availableBefore) params.set('availableBefore', s.availableBefore)
@@ -139,9 +139,9 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
   const [q, setQ] = useState('')
   const [district, setDistrict] = useState('')
   const [type, setType] = useState('')
-  const [rentMin, setRentMin] = useState('')
-  const [rentMax, setRentMax] = useState('')
-  const [rentUnit, setRentUnit] = useState('')
+  const [priceMin, setRentMin] = useState('')
+  const [priceMax, setRentMax] = useState('')
+  const [priceUnit, setRentUnit] = useState('')
   const [areaMin, setAreaMin] = useState('')
   const [areaMax, setAreaMax] = useState('')
   const [availableBefore, setAvailableBefore] = useState('')
@@ -161,9 +161,9 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
     setQ(sp.get('q') || '')
     setDistrict(sp.get('district') || '')
     setType(sp.get('type') || '')
-    setRentMin(sp.get('rentMin') || '')
-    setRentMax(sp.get('rentMax') || '')
-    setRentUnit(sp.get('rentUnit') || '')
+    setRentMin(sp.get('priceMin') || '')
+    setRentMax(sp.get('priceMax') || '')
+    setRentUnit(sp.get('priceUnit') || sp.get('rentUnit') || '')
     setAreaMin(sp.get('areaMin') || '')
     setAreaMax(sp.get('areaMax') || '')
     setAvailableBefore(sp.get('availableBefore') || '')
@@ -228,7 +228,7 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
   useEffect(() => {
     if (!open) return
     const staging: StagedFilters = {
-      q, district, type, rentMin, rentMax, rentUnit,
+      q, district, type, priceMin, priceMax, priceUnit,
       areaMin, areaMax, availableBefore, sort,
     }
     if (validateStaging(staging)) return
@@ -242,12 +242,12 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [open, q, district, type, rentMin, rentMax, rentUnit, areaMin, areaMax, availableBefore, sort, citySlug])
+  }, [open, q, district, type, priceMin, priceMax, priceUnit, areaMin, areaMax, availableBefore, sort, citySlug])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
     const staging: StagedFilters = {
-      q, district, type, rentMin, rentMax, rentUnit,
+      q, district, type, priceMin, priceMax, priceUnit,
       areaMin, areaMax, availableBefore, sort,
     }
     const validationError = validateStaging(staging)
@@ -276,7 +276,7 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
     setError(null)
   }
 
-  const isPriceSort = sort === 'rent-asc' || sort === 'rent-desc'
+  const isPriceSort = sort === 'price-asc' || sort === 'price-desc'
 
   return (
     <>
@@ -364,16 +364,16 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
               <select
                 id="mf-rent-unit"
                 className="filter-bar__select"
-                value={rentUnit}
+                value={priceUnit}
                 onChange={(e) => setRentUnit(e.target.value)}
-                aria-describedby={isPriceSort && !rentUnit ? 'mf-rent-unit-hint' : undefined}
+                aria-describedby={isPriceSort && !priceUnit ? 'mf-rent-unit-hint' : undefined}
               >
                 <option value="">不限</option>
                 {RENT_UNIT_OPTIONS.map((u) => (
                   <option key={u.value} value={u.value}>{u.label}</option>
                 ))}
               </select>
-              {isPriceSort && !rentUnit && (
+              {isPriceSort && !priceUnit && (
                 <span id="mf-rent-unit-hint" className="filter-bar__hint filter-bar__hint--warn">
                   价格排序需选定单位
                 </span>
@@ -385,7 +385,7 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
               <div className="filter-bar__rent-group">
                 <input
                   className="filter-bar__input"
-                  value={rentMin}
+                  value={priceMin}
                   onChange={(e) => setRentMin(e.target.value)}
                   placeholder="最低"
                   inputMode="numeric"
@@ -394,7 +394,7 @@ export default function MobileFilterDrawer({ districts, totalDocs, basePath = '/
                 <span aria-hidden="true">–</span>
                 <input
                   className="filter-bar__input"
-                  value={rentMax}
+                  value={priceMax}
                   onChange={(e) => setRentMax(e.target.value)}
                   placeholder="最高"
                   inputMode="numeric"

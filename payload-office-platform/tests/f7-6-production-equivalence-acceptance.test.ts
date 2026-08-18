@@ -239,9 +239,9 @@ function createFullPredicateAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.rentMin != null && (l.rent == null || l.rent < input.rentMin)) return false
-    if (input.rentMax != null && (l.rent == null || l.rent > input.rentMax)) return false
-    if (input.rentUnit && l.rentUnit !== input.rentUnit) return false
+    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
+    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
+    if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
     if (input.q && !l.title.includes(input.q)) return false
     return true
   }

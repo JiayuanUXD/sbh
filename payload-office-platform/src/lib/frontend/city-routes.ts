@@ -59,6 +59,12 @@ const LISTING_QUERY_KEYS = [
   'type',
   'areaMin',
   'areaMax',
+  // 新旧两套名字都要进白名单：新名是 canonical 输出的形态，旧名是已收录 URL 的
+  // 形态。缺任一个都会让对应形态的参数在城市切换 / 前缀转换时被静默丢弃——用户
+  // 换个城市，筛选条件就没了。
+  'priceMin',
+  'priceMax',
+  'priceUnit',
   'rentMin',
   'rentMax',
   'rentUnit',
@@ -320,9 +326,10 @@ function appendCanonicalListingQuery(
   if (listingType) selected.set('type', listingType)
   if (input.areaMin !== undefined) selected.set('areaMin', String(input.areaMin))
   if (input.areaMax !== undefined) selected.set('areaMax', String(input.areaMax))
-  if (input.rentMin !== undefined) selected.set('rentMin', String(input.rentMin))
-  if (input.rentMax !== undefined) selected.set('rentMax', String(input.rentMax))
-  if (input.rentUnit) selected.set('rentUnit', input.rentUnit)
+  if (input.priceMin !== undefined) selected.set('priceMin', String(input.priceMin))
+  if (input.priceMax !== undefined) selected.set('priceMax', String(input.priceMax))
+  // canonical 只输出新名，与 buildCanonicalSearchParams 保持一致
+  if (input.priceUnit) selected.set('priceUnit', input.priceUnit)
   if (pricePeriod) selected.set('pricePeriod', pricePeriod)
   if (priceBasis) selected.set('priceBasis', priceBasis)
   if (input.availableBefore) selected.set('availableBefore', input.availableBefore)
@@ -345,14 +352,14 @@ function selectListingQuery(params: URLSearchParams): URLSearchParams {
     selected.delete('areaMin')
     selected.delete('areaMax')
   }
-  const rentMin = selected.get('rentMin')
-  const rentMax = selected.get('rentMax')
-  if (rentMin !== null && rentMax !== null && Number(rentMin) > Number(rentMax)) {
-    selected.delete('rentMin')
-    selected.delete('rentMax')
+  const priceMin = selected.get('priceMin')
+  const priceMax = selected.get('priceMax')
+  if (priceMin !== null && priceMax !== null && Number(priceMin) > Number(priceMax)) {
+    selected.delete('priceMin')
+    selected.delete('priceMax')
   }
   const sort = selected.get('sort')
-  if ((sort === 'rent-asc' || sort === 'rent-desc') && !selected.has('rentUnit')) {
+  if ((sort === 'price-asc' || sort === 'price-desc') && !selected.has('priceUnit')) {
     selected.delete('sort')
   }
   return selected

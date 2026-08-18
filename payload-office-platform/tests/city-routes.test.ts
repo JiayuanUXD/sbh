@@ -89,10 +89,10 @@ describe('city route URL contract', () => {
   it('switches a listing list with only portable filters in stable order', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?sort=rent-desc&district=pudong&q= river &page=3&areaMin=1e2&rentUnit=rmb-sqm-day&type=coworking&extra=drop',
+        '/shanghai/listings?sort=price-desc&district=pudong&q= river &page=3&areaMin=1e2&priceUnit=rmb-sqm-day&type=coworking&extra=drop',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?type=coworking&areaMin=100&rentUnit=rmb-sqm-day&q=river&sort=rent-desc')
+    ).toBe('/hangzhou/listings?type=coworking&areaMin=100&priceUnit=rmb-sqm-day&q=river&sort=price-desc')
   })
 
   it('uses the current type query key and retains future structured price keys only when valid', () => {
@@ -101,7 +101,7 @@ describe('city route URL contract', () => {
         '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&type=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?type=traditional-office&areaMin=10&areaMax=200&rentMin=100&rentMax=999&pricePeriod=month&priceBasis=total&availableBefore=2026-12-31&q=first')
+    ).toBe('/hangzhou/listings?type=traditional-office&areaMin=10&areaMax=200&priceMin=100&priceMax=999&pricePeriod=month&priceBasis=total&availableBefore=2026-12-31&q=first')
   })
 
   it('drops duplicate scalar values while normalizing current parser number and q forms', () => {
@@ -113,10 +113,10 @@ describe('city route URL contract', () => {
     ).toBe('/hangzhou/listings?areaMin=1&areaMax=100')
     expect(
       switchCityUrl(
-        `/shanghai/listings?q=%20${'a'.repeat(101)}%20&availableBefore=2026-08-31&rentUnit=rmb-month&sort=rent-desc`,
+        `/shanghai/listings?q=%20${'a'.repeat(101)}%20&availableBefore=2026-08-31&priceUnit=rmb-month&sort=price-desc`,
         'hangzhou',
       ),
-    ).toBe(`/hangzhou/listings?rentUnit=rmb-month&availableBefore=2026-08-31&q=${'a'.repeat(100)}&sort=rent-desc`)
+    ).toBe(`/hangzhou/listings?priceUnit=rmb-month&availableBefore=2026-08-31&q=${'a'.repeat(100)}&sort=price-desc`)
     expect(switchCityUrl('/shanghai/listings?type=coworking&type=full-floor', 'hangzhou')).toBe(
       '/hangzhou/listings',
     )
@@ -248,8 +248,8 @@ describe('city route URL contract', () => {
       legacyCanonicalPath('/hangzhou/buildings/central-tower?grade=A&district=pudong'),
     ).toBe('/buildings/central-tower')
     expect(
-      prefixedCanonicalPath('/listings?sort=rent-desc&rentUnit=rmb-month&district=pudong&page=3', 'hangzhou'),
-    ).toBe('/hangzhou/listings?rentUnit=rmb-month&sort=rent-desc')
+      prefixedCanonicalPath('/listings?sort=price-desc&priceUnit=rmb-month&district=pudong&page=3', 'hangzhou'),
+    ).toBe('/hangzhou/listings?priceUnit=rmb-month&sort=price-desc')
     expect(prefixedCanonicalPath('/news/market-report?page=2', 'hangzhou')).toBe('/news/market-report')
     expect(prefixedCanonicalPath('/entrust?city=shanghai&email=private', 'hangzhou')).toBe(
       '/entrust?city=hangzhou',

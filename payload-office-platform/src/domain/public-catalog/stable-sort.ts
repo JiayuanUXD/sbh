@@ -131,9 +131,9 @@ export function stableSortCards(
         return compareRecommended(a, b, lastEffAt)
       case 'newest':
         return compareNewest(a, b, lastEffAt)
-      case 'rent-asc':
+      case 'price-asc':
         return canSortByPrice ? comparePrice(a, b, 'asc') : ascNumber(a.id, b.id)
-      case 'rent-desc':
+      case 'price-desc':
         return canSortByPrice ? comparePrice(a, b, 'desc') : ascNumber(a.id, b.id)
     }
   })

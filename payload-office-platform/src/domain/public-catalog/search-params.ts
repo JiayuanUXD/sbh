@@ -36,18 +36,37 @@ const LISTING_TYPE_WHITELIST = new Set<string>([
   'full-floor',
 ])
 
+/**
+ * 旧 URL 的 rentUnit 白名单（3 个租赁单位）。
+ *
+ * 保留只为兼容已收录的链接。新参数 priceUnit 用下方 12 值全集。
+ */
 const RENT_UNIT_WHITELIST = new Set<string>([
   'rmb-sqm-day',
   'rmb-month',
   'rmb-seat-month',
 ])
 
+/**
+ * 排序白名单。
+ *
+ * 同时接受新旧两套价格排序值：rent-asc / rent-desc 是已被收录的旧值，
+ * 解析后统一归一到 price-asc / price-desc，canonical 只输出新值。
+ */
 const SORT_WHITELIST = new Set<string>([
   'recommended',
+  'price-asc',
+  'price-desc',
   'rent-asc',
   'rent-desc',
   'newest',
 ])
+
+/** 旧排序值 → 新排序值。解析层归一，让下游只认一套。 */
+const LEGACY_SORT_ALIASES: Readonly<Record<string, ListingSort>> = {
+  'rent-asc': 'price-asc',
+  'rent-desc': 'price-desc',
+}
 
 const BUILDING_SUPPLY_GROUPS = new Set(['lease', 'sale', 'coworking'])
 const BUILDING_SUPPLY_DECORATION_STATUSES = new Set(['rough', 'simple', 'furnished', 'fully_fitted'])
@@ -86,22 +105,53 @@ type _NoExtraSupplyPriceUnit = AssertNever<
 >
 
 const BUILDING_SUPPLY_PRICE_UNITS = new Set<string>(BUILDING_SUPPLY_PRICE_UNIT_VALUES)
-const BUILDING_SUPPLY_SORTS = new Set(['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'])
 
-const LEGACY_RENT_UNIT_PRICE_KEY: Readonly<Record<RentUnit, Readonly<{
+/** priceUnit 白名单：与楼盘页共用同一份 PriceDisplayUnit 全集。 */
+const PRICE_UNIT_WHITELIST = BUILDING_SUPPLY_PRICE_UNITS
+
+/**
+ * priceUnit → 结构化价格键。
+ *
+ * 是 mapper 里 (period, basis) → displayUnit 的逆映射。写成显式表而非解析字符串，
+ * 因为命名规则有例外（basis=total 时省略 basis 段），字符串拆分会在 rmb-month
+ * 这类值上出错。Record 类型保证 12 个值一个不漏。
+ */
+const PRICE_UNIT_KEY: Readonly<Record<PriceDisplayUnit, Readonly<{
   period: PricePeriod
   basis: PriceBasis
 }>>> = {
   'rmb-sqm-day': { period: 'day', basis: 'sqm' },
-  'rmb-month': { period: 'month', basis: 'total' },
+  'rmb-sqm-month': { period: 'month', basis: 'sqm' },
+  'rmb-sqm-year': { period: 'year', basis: 'sqm' },
+  'rmb-sqm-total': { period: 'one-time', basis: 'sqm' },
+  'rmb-seat-day': { period: 'day', basis: 'seat' },
   'rmb-seat-month': { period: 'month', basis: 'seat' },
+  'rmb-seat-year': { period: 'year', basis: 'seat' },
+  'rmb-seat-total': { period: 'one-time', basis: 'seat' },
+  'rmb-day': { period: 'day', basis: 'total' },
+  'rmb-month': { period: 'month', basis: 'total' },
+  'rmb-year': { period: 'year', basis: 'total' },
+  'rmb-total': { period: 'one-time', basis: 'total' },
 }
 
-/** 将旧 URL rentUnit 转换为结构化价格周期和计价基础。 */
+/** 将 priceUnit 转换为结构化价格周期和计价基础。 */
+export function priceUnitToPriceKey(
+  priceUnit: PriceDisplayUnit | undefined,
+): Readonly<{ period: PricePeriod; basis: PriceBasis }> | undefined {
+  return priceUnit ? PRICE_UNIT_KEY[priceUnit] : undefined
+}
+const BUILDING_SUPPLY_SORTS = new Set(['recommended', 'area-asc', 'area-desc', 'price-asc', 'price-desc'])
+
+/**
+ * 将旧 URL rentUnit 转换为结构化价格周期和计价基础。
+ *
+ * @deprecated 用 `priceUnitToPriceKey`。旧 rentUnit 的三个取值都是合法的
+ *   PriceDisplayUnit，直接复用同一张表，不再维护第二份映射。
+ */
 export function legacyRentUnitToPriceKey(
   rentUnit: RentUnit | undefined,
 ): Readonly<{ period: PricePeriod; basis: PriceBasis }> | undefined {
-  return rentUnit ? LEGACY_RENT_UNIT_PRICE_KEY[rentUnit] : undefined
+  return priceUnitToPriceKey(rentUnit)
 }
 
 /**
@@ -191,13 +241,18 @@ function parsePage(sp: URLSearchParams): number {
   return n ?? 1
 }
 
+/**
+ * 归一排序值并做安全降级。
+ *
+ * 价格排序必须配合计价单位：「元/㎡/天」与「元/月」不可比，出售的总价与单价同样
+ * 不可比。没有单位就降级为 recommended，而不是给出一个跨单位的错误排序。
+ */
 function normalizeSort(
   sort: ListingSort | undefined,
-  rentUnit: RentUnit | undefined,
+  priceUnit: PriceDisplayUnit | undefined,
 ): ListingSort {
-  // 价格排序必须配合 rentUnit，否则降级为 recommended
-  if (sort === 'rent-asc' || sort === 'rent-desc') {
-    if (!rentUnit) return 'recommended'
+  if (sort === 'price-asc' || sort === 'price-desc') {
+    if (!priceUnit) return 'recommended'
   }
   return sort ?? 'recommended'
 }
@@ -297,14 +352,27 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
   const district = parseStringArray(sp, 'district')
   const businessArea = parseStringArray(sp, 'businessArea')
   const metro = parseStringArray(sp, 'metro')
-  const rentUnit = parseEnum<RentUnit>(sp, 'rentUnit', RENT_UNIT_WHITELIST)
-  const priceKey = legacyRentUnitToPriceKey(rentUnit)
-  const sortRaw = parseEnum<ListingSort>(sp, 'sort', SORT_WHITELIST)
-  const sort = normalizeSort(sortRaw, rentUnit)
+  // 价格单位：新名优先，旧名兜底。旧 rentUnit 只能表达 3 个租赁单位，
+  // 新 priceUnit 覆盖 12 值全集（含出售）。
+  const priceUnit =
+    parseEnum<PriceDisplayUnit>(sp, 'priceUnit', PRICE_UNIT_WHITELIST)
+    ?? parseEnum<PriceDisplayUnit>(sp, 'rentUnit', RENT_UNIT_WHITELIST)
+  const priceKey = priceUnitToPriceKey(priceUnit)
+  // 排序：白名单同时收新旧值，解析后归一到新值，下游只认一套。
+  const sortRaw = parseEnum<string>(sp, 'sort', SORT_WHITELIST)
+  const sortNormalized = sortRaw
+    ? ((LEGACY_SORT_ALIASES[sortRaw] ?? sortRaw) as ListingSort)
+    : undefined
+  const sort = normalizeSort(sortNormalized, priceUnit)
   const areaMin = parseIntInRange(sp, 'areaMin', 0, 1_000_000)
   const areaMax = parseIntInRange(sp, 'areaMax', 0, 1_000_000)
-  const rentMin = parseIntInRange(sp, 'rentMin', 0, Number.MAX_SAFE_INTEGER)
-  const rentMax = parseIntInRange(sp, 'rentMax', 0, Number.MAX_SAFE_INTEGER)
+  // 价格区间：同样新名优先、旧名兜底。
+  const priceMin =
+    parseIntInRange(sp, 'priceMin', 0, Number.MAX_SAFE_INTEGER)
+    ?? parseIntInRange(sp, 'rentMin', 0, Number.MAX_SAFE_INTEGER)
+  const priceMax =
+    parseIntInRange(sp, 'priceMax', 0, Number.MAX_SAFE_INTEGER)
+    ?? parseIntInRange(sp, 'rentMax', 0, Number.MAX_SAFE_INTEGER)
   const availableBefore = parseDate(sp, 'availableBefore')
   const q = parseQ(sp)
   const city = sp.get('city') || undefined
@@ -318,9 +386,9 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
     listingType,
     areaMin,
     areaMax,
-    rentMin,
-    rentMax,
-    rentUnit,
+    priceMin,
+    priceMax,
+    priceUnit,
     pricePeriod: priceKey?.period,
     priceBasis: priceKey?.basis,
     availableBefore,
@@ -350,9 +418,11 @@ export function buildCanonicalSearchParams(input: ListingSearchInput): URLSearch
   if (input.listingType) for (const v of input.listingType) sp.append('type', v)
   if (input.areaMin != null) sp.set('areaMin', String(input.areaMin))
   if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
-  if (input.rentMin != null) sp.set('rentMin', String(input.rentMin))
-  if (input.rentMax != null) sp.set('rentMax', String(input.rentMax))
-  if (input.rentUnit) sp.set('rentUnit', input.rentUnit)
+  // 只输出新名：旧参数仅在解析层被接受，canonical 负责把索引收敛到一套 URL。
+  // 两边都输出会产生同义重复的 canonical，索引归并不了。
+  if (input.priceMin != null) sp.set('priceMin', String(input.priceMin))
+  if (input.priceMax != null) sp.set('priceMax', String(input.priceMax))
+  if (input.priceUnit) sp.set('priceUnit', input.priceUnit)
   if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
   if (input.q) sp.set('q', input.q)
   if (input.sort && input.sort !== 'recommended') sp.set('sort', input.sort)
