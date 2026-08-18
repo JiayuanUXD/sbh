@@ -218,6 +218,19 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     expect(block).toContain('exit 1')
   })
 
+  it('部署只能手动触发，不再由 quality 的 workflow_run 自动拉起', () => {
+    // 自动触发一律 promote=false，于是每次合并 master 都构建一个 0% 流量、没人用的
+    // GRAY 版本——白烧约 8 分钟平台构建 + 一个版本号，真发布时还要再构建一遍。
+    // sbh-096 就是这么一个「为没人用而构建」的版本，且它在镜像推送阶段挂掉。
+    // 判 YAML 键与表达式引用，而不是字面出现：文件顶部注释本身就要讲清「为什么不再
+    // 自动触发」，直接 not.toContain 会被自己的注释绊倒（这一条已经踩中两次）。
+    const yaml = workflow()
+    expect(yaml).toContain('workflow_dispatch')
+    expect(yaml).not.toMatch(/^\s*workflow_run:/m)
+    // job 的 if 条件与 checkout 的 ref 也曾引用它，只查触发块会漏掉这两处。
+    expect(yaml).not.toContain('github.event.workflow_run')
+  })
+
   it('切流量仍然受 SHOULD_PROMOTE 控制（不能顺手把流量门也拆了）', () => {
     const yaml = workflow()
     for (const step of ['切 10% 灰度', 'Promote 全量发布']) {

@@ -45,11 +45,16 @@ name: Deploy to CloudBase CloudRun
 #
 # 注意：quality.yml 的 paths 里必须包含本文件，否则只改 deploy.yml 时上游不触发、
 # 部署链路会静默失联。
+# 只能手动触发。
+#
+# 曾经由 quality.yml 的 workflow_run 自动触发，但自动触发一律 promote=false，于是每次
+# 合并 master 都构建一个 GRAY 版本、0% 流量、**然后永远没人用**——白烧约 8 分钟平台构建，
+# 还消耗一个 CloudRun 版本号。真要发布时还得再手动触发一次，同一个 commit 构建两遍。
+# sbh-096 就是这么来的：一个为了没人用而构建的版本，在镜像推送阶段挂掉。
+#
+# 现在合并 master 只跑 quality.yml；发布是显式动作，来这里手动触发并勾选 promote。
+# 代价：失去「master 上能不能构建成功」的常态信号，改由真正发布那次给出。
 on:
-  workflow_run:
-    workflows: ['Quality and migration baseline']
-    types: [completed]
-    branches: [master]
   workflow_dispatch:
     inputs:
       promote:
@@ -66,13 +71,8 @@ concurrency:
 jobs:
   # ---------- 部署：灰度 -> 冒烟 -> 全量/回滚 ----------
   # 质量门不在本文件里：lint / typecheck / test / build / 迁移预检 / e2e 全部由
-  # quality.yml 覆盖，本工作流只在它整体成功后才被触发（见顶部 on.workflow_run）。
+  # quality.yml 覆盖。本工作流手动触发，触发前请确认目标提交已过闸门。
   deploy:
-    # workflow_run 在上游失败/取消时同样会触发（types: [completed]），必须自行判定结论；
-    # 手动 workflow_dispatch 走人工确认，不受此限。
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -81,20 +81,18 @@ jobs:
       CLOUDBASE_CI: '1'
       # 是否把流量切到新版本。
       #
-      # 默认 false，且**自动触发（workflow_run）一律为 false**：合并到 master 只会
-      # 构建并提交 GRAY 版本（0% 流量），线上继续由当前稳定版本承接。放量是显式动作，
-      # 需要在 Actions 页面手动触发本工作流并勾选 promote。
+      # 默认 false：不勾选就只构建并提交 GRAY 版本（0% 流量），线上继续由当前稳定版本
+      # 承接，可以单独验证新版本而不影响任何用户。勾选后才走灰度 -> 冒烟 -> 全量。
       #
-      # 这样默认路径是安全的：新版本进了环境、可以单独验证，但不影响线上流量。
+      # 不勾选仍然会构建一个版本，所以别拿它当「空跑」——只在确实要预置版本时用。
       SHOULD_PROMOTE: ${{ github.event_name == 'workflow_dispatch' && inputs.promote }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # workflow_run 触发时 checkout 默认取默认分支最新提交，而不是触发它的那个
-          # commit —— 若期间又推了一次 master，部署的就不是刚过闸门的代码。下面的
-          # `git archive HEAD` 直接决定发布内容，因此必须显式钉到上游 run 的 head_sha。
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # 显式钉到触发时选定的 ref：下面的 `git archive HEAD` 直接决定发布内容，
+          # 不能依赖 checkout 的隐式默认。
+          ref: ${{ github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
