@@ -37,6 +37,8 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../components/admin/BuildingOperationalToggle'
+import { default as default_e2334a3ded7dbfed3d718a8b27260221 } from '../../../components/admin/unsaved-changes/FormModifiedBridge'
+import { default as default_0b8faaaab4eb657e1e6d583eda93d27d } from '../../../components/admin/ListingVisibilityCard'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
 import { default as default_8fd596cf587f41fe58cb974db05d3972 } from '../../../components/admin/ListingFastTrackAction'
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
@@ -64,6 +66,7 @@ import { default as default_ac23024ecc4af7b353c926fc0aafc2f3 } from '../../../co
 import { default as default_7623765cb892464d588afef4e6aed6bd } from '../../../components/admin/EnvBadge'
 import { default as default_58e4bdc8b962b7bf92f13fdc929c1e63 } from '../../../components/admin/AdminNavigation'
 import { default as default_dfd2727dd25d331b5764d036ddfaa58a } from '../../../components/admin/ArcoReact19Provider'
+import { default as default_e06d8d2640b2e43fea3163b573771d61 } from '../../../components/admin/unsaved-changes/UnsavedChangesGuardProvider'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_fe003e590f4f23a58ea1c1c973022f22 } from '../../../components/admin/geography/GeographyListView'
@@ -113,6 +116,8 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/BuildingOperationalToggle#default": default_48ef1091d596d4c5cbcd8ac69d53a12a,
+  "/components/admin/unsaved-changes/FormModifiedBridge#default": default_e2334a3ded7dbfed3d718a8b27260221,
+  "/components/admin/ListingVisibilityCard#default": default_0b8faaaab4eb657e1e6d583eda93d27d,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
   "/components/admin/ListingFastTrackAction#default": default_8fd596cf587f41fe58cb974db05d3972,
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
@@ -140,6 +145,7 @@ export const importMap = {
   "/components/admin/EnvBadge#default": default_7623765cb892464d588afef4e6aed6bd,
   "/components/admin/AdminNavigation#default": default_58e4bdc8b962b7bf92f13fdc929c1e63,
   "/components/admin/ArcoReact19Provider#default": default_dfd2727dd25d331b5764d036ddfaa58a,
+  "/components/admin/unsaved-changes/UnsavedChangesGuardProvider#default": default_e06d8d2640b2e43fea3163b573771d61,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "/components/admin/geography/GeographyListView#default": default_fe003e590f4f23a58ea1c1c973022f22,

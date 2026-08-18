@@ -189,6 +189,12 @@ export const Listings: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'building', 'reviewStatus', 'publicationStatus', 'isFeatured'],
     preview: (doc) => (doc?.slug ? `/listings/${doc.slug}` : null),
+    components: {
+      edit: {
+        // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
+        beforeDocumentControls: ['/components/admin/unsaved-changes/FormModifiedBridge'],
+      },
+    },
   },
   trash: true,
   access: {
@@ -202,6 +208,17 @@ export const Listings: CollectionConfig = {
     beforeChange: [syncListingMedia, protectListing],
   },
   fields: [
+    {
+      // OPT-030 §4 第一层：「前台可见性」常驻卡片，渲染在表单顶部，占满主内容区宽度。
+      // 判定走 deriveListingSelfVisibility（与统一有效供给查询层谓词同口径），
+      // 举报暂停由服务端组件复用 getPausedListingIds，不自拼查询。
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/admin/ListingVisibilityCard',
+        },
+      },
+    } as unknown as Field,
     {
       type: 'tabs',
       tabs: [

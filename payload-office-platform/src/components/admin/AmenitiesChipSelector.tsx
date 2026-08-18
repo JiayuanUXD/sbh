@@ -6,6 +6,7 @@ import {
   Button,
   Empty,
   Input,
+  Popconfirm,
   Radio,
   Space,
   Spin,
@@ -189,9 +190,22 @@ export default function AmenitiesChipSelector(props?: { path?: string }) {
             allowClear
           />
           {selectedIds.size > 0 && (
-            <Button size="small" type="text" status="danger" onClick={clearAll}>
-              清空已选 ({selectedIds.size})
-            </Button>
+            // OPT-030 P0-1：「清空已选」与逐个点选的成本完全不对称，误点一次要
+            // 手工重选 N 次，必须二次确认并写明数量（Popconfirm 自带焦点管理）。
+            <Popconfirm
+              title={`确定清空已选的 ${selectedIds.size} 项配套？`}
+              content="清空后需要逐个重新点选，且需保存后才会生效。"
+              okText="清空"
+              cancelText="取消"
+              okButtonProps={{ status: 'danger' }}
+              autoFocus
+              focusLock
+              onOk={clearAll}
+            >
+              <Button size="small" type="text" status="danger">
+                清空已选 ({selectedIds.size})
+              </Button>
+            </Popconfirm>
           )}
         </Space>
       </div>

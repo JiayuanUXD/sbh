@@ -755,8 +755,11 @@ export default function MediaWorkbench({
         </Space>
       </div>
 
-      {/* 拖拽上传区 */}
+      {/* 拖拽上传区（OPT-030 P2：键盘可达——role=button + Enter/Space 触发文件选择） */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="上传媒体：点击或按 Enter 选择文件，也可将图片视频拖拽到此处"
         onDragOver={(e) => {
           e.preventDefault()
           setIsDragOver(true)
@@ -768,6 +771,12 @@ export default function MediaWorkbench({
           if (e.dataTransfer.files) handleBatchUpload(e.dataTransfer.files)
         }}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            fileInputRef.current?.click()
+          }
+        }}
         style={{
           border: `2px dashed ${isDragOver ? 'var(--theme-primary-500, #165dff)' : 'var(--theme-elevation-200, #c9cdd4)'}`,
           background: isDragOver

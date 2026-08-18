@@ -194,7 +194,11 @@ export default buildConfig({
       beforeNavLinks: ['/components/admin/EnvBadge', '/components/admin/AdminNavigation'],
       // Arco × React 19 兼容补丁：setCreateRoot 注入 createRoot，修复
       // Message/Modal 等 portal 组件在 React 19 下静默不渲染（见组件内注释）。
-      providers: ['/components/admin/ArcoReact19Provider'],
+      providers: [
+        '/components/admin/ArcoReact19Provider',
+        // OPT-030 P0-2：表单有未保存改动时拦截站内 <a> 跳转（beforeunload 管不到站内路由）。
+        '/components/admin/unsaved-changes/UnsavedChangesGuardProvider',
+      ],
       // 地理四模块自定义 admin 视图（Task 6）：共享同一列表组件，按 pathname 解析模块。
       // 注册键 + path 写法以安装版本 3.86 的 AdminViewConfig 为准。
       // 列表视图 exact: true，否则前缀匹配会吞掉 /geography/cities/:id（Task 7 详情页）。
