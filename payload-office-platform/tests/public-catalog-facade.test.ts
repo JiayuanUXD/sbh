@@ -95,9 +95,9 @@ function createFakeAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.rentMin != null && (l.rent == null || l.rent < input.rentMin)) return false
-    if (input.rentMax != null && (l.rent == null || l.rent > input.rentMax)) return false
-    if (input.rentUnit && l.rentUnit !== input.rentUnit) return false
+    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
+    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
+    if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
     if (input.q && !l.title.includes(input.q)) return false
     if (input.district && input.district.length > 0) {
       if (!b || typeof b.district !== 'object' || !b.district) return false
@@ -301,7 +301,7 @@ describe('searchListings', () => {
     // 未指定 rentUnit 时取首个非空单位 → rmb-month（1001）
     // 过滤后仅保留 rmb-month 的 1001
     const r = await searchListings(
-      defaultInput({ sort: 'rent-asc' }),
+      defaultInput({ sort: 'price-asc' }),
       ctx,
       fullFixture(),
     )
@@ -309,9 +309,9 @@ describe('searchListings', () => {
     expect(r.docs.map((c) => c.id)).toEqual([1001])
   })
 
-  it('rent-asc 排序：显式指定 rentUnit=rmb-month 时仅返回该单位房源', async () => {
+  it('rent-asc 排序：显式指定 priceUnit=rmb-month 时仅返回该单位房源', async () => {
     const r = await searchListings(
-      defaultInput({ sort: 'rent-asc', rentUnit: 'rmb-month' }),
+      defaultInput({ sort: 'price-asc', priceUnit: 'rmb-month' }),
       ctx,
       fullFixture(),
     )
@@ -344,7 +344,7 @@ describe('searchListings', () => {
 
   it('canonical URL round-trip 等价', async () => {
     const sp = new URLSearchParams(
-      'district=jingan&type=serviced-office&rentMin=2000&rentMax=5000&rentUnit=rmb-month&q=江景&sort=rent-asc&page=2',
+      'district=jingan&type=serviced-office&priceMin=2000&priceMax=5000&priceUnit=rmb-month&q=江景&sort=rent-asc&page=2',
     )
     const input = parseSearchInput(sp)
     const r = await searchListings(input, ctx, fullFixture())
@@ -355,7 +355,7 @@ describe('searchListings', () => {
 
   it('空结果时 docs 为空数组，totalDocs=0，filteredByRentUnit=false', async () => {
     const r = await searchListings(
-      defaultInput({ rentMin: 99999999 }),
+      defaultInput({ priceMin: 99999999 }),
       ctx,
       fullFixture(),
     )
@@ -644,10 +644,11 @@ describe('buildCanonical', () => {
     expect(canonical).not.toContain('page=')
   })
 
-  it('rent-asc + rentUnit 保留', () => {
-    const input = parseSearchInput(new URLSearchParams('sort=rent-asc&rentUnit=rmb-month'))
+  it('旧 sort=rent-asc + rentUnit 归一为新名后保留', () => {
+    const input = parseSearchInput(new URLSearchParams('sort=rent-asc&priceUnit=rmb-month'))
     const canonical = buildCanonical(input)
-    expect(canonical).toContain('sort=rent-asc')
-    expect(canonical).toContain('rentUnit=rmb-month')
+    // canonical 只输出新名：旧值在解析层归一，索引据此收敛到一套 URL
+    expect(canonical).toContain('sort=price-asc')
+    expect(canonical).toContain('priceUnit=rmb-month')
   })
 })

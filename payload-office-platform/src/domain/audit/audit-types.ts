@@ -227,13 +227,13 @@ export function auditDomainFromAction(action: string): string {
  *   - userId：操作人账号 ID（必填，匿名系统动作留空）
  *   - roleCodes：操作时的角色编码列表（允许并集快照）
  *   - teamId：操作时的所属团队（如有；用于团队数据范围审计）
- *   - cityScope：操作时的城市范围快照（'all' 或城市 ID 列表）
+ *   - cityScope：操作时的城市范围快照（['all'] 或城市 ID 列表；json 字段不接受裸字符串）
  */
 export interface SubjectSnapshot {
   userId: string | number | null
   roleCodes: string[]
   teamId: string | number | null
-  cityScope: 'all' | Array<number | string>
+  cityScope: Array<number | string>
 }
 
 /**

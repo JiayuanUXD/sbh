@@ -92,44 +92,49 @@ export const Roles: CollectionConfig = {
       admin: { rows: 3 },
     },
     {
-      name: 'isBuiltin',
-      label: '是否内置角色',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: '内置角色不可删除、改码或改变 builtin 标记。',
-        // 内置标记在编辑页只读，避免误改
-        readOnly: true,
-        condition: (data) => data?.isBuiltin === true,
-      },
-    },
-    {
-      name: 'status',
-      label: '状态',
-      type: 'select',
-      defaultValue: 'active',
-      required: true,
-      options: [
-        { label: '启用', value: 'active' },
-        { label: '停用', value: 'inactive' },
+      type: 'row',
+      fields: [
+        {
+          name: 'isBuiltin',
+          label: '是否内置角色',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description: '内置角色不可删除、改码或改变 builtin 标记。',
+            // 内置标记在编辑页只读，避免误改
+            readOnly: true,
+            condition: (data) => data?.isBuiltin === true,
+          },
+        },
+        {
+          name: 'status',
+          label: '状态',
+          type: 'select',
+          defaultValue: 'active',
+          required: true,
+          options: [
+            { label: '启用', value: 'active' },
+            { label: '停用', value: 'inactive' },
+          ],
+        },
+        {
+          name: 'dataScope',
+          label: '数据范围',
+          type: 'select',
+          defaultValue: 'self',
+          required: true,
+          options: [
+            { label: '全局', value: 'global' },
+            { label: '按城市', value: 'city' },
+            { label: '按团队', value: 'team' },
+            { label: '仅本人', value: 'self' },
+            { label: '无权限', value: 'none' },
+          ],
+          admin: {
+            description: '数据范围上限；账号城市绑定作为最终上限，不允许角色扩大。',
+          },
+        },
       ],
-    },
-    {
-      name: 'dataScope',
-      label: '数据范围',
-      type: 'select',
-      defaultValue: 'self',
-      required: true,
-      options: [
-        { label: '全局', value: 'global' },
-        { label: '按城市', value: 'city' },
-        { label: '按团队', value: 'team' },
-        { label: '仅本人', value: 'self' },
-        { label: '无权限', value: 'none' },
-      ],
-      admin: {
-        description: '数据范围上限；账号城市绑定作为最终上限，不允许角色扩大。',
-      },
     },
     {
       name: 'menuPermissions',

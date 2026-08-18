@@ -29,29 +29,50 @@ export const Brokers: CollectionConfig = {
   },
   fields: [
     {
-      name: 'displayName',
-      label: '姓名',
-      type: 'text',
-      required: true,
-      admin: {
-        description: '经纪人展示名，可与账号姓名不同（对外昵称）',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'displayName',
+          label: '姓名',
+          type: 'text',
+          required: true,
+          admin: {
+            description: '经纪人展示名，可与账号姓名不同（对外昵称）',
+          },
+        },
+        {
+          name: 'user',
+          label: '关联账号',
+          type: 'relationship',
+          relationTo: 'users',
+          required: true,
+          admin: {
+            description: '一名用户至多绑定一个经纪人档案',
+          },
+        },
+      ],
     },
     {
-      name: 'user',
-      label: '关联账号',
-      type: 'relationship',
-      relationTo: 'users',
-      required: true,
-      admin: {
-        description: '一名用户至多绑定一个经纪人档案',
-      },
-    },
-    {
-      name: 'team',
-      label: '所属团队',
-      type: 'relationship',
-      relationTo: 'teams',
+      type: 'row',
+      fields: [
+        {
+          name: 'team',
+          label: '所属团队',
+          type: 'relationship',
+          relationTo: 'teams',
+        },
+        {
+          name: 'employmentStatus',
+          label: '在职状态',
+          type: 'select',
+          required: true,
+          defaultValue: 'active',
+          options: STATUS_OPTIONS,
+          admin: {
+            description: '停用前若仍有未完成线索将被拦截，需先完成转派',
+          },
+        },
+      ],
     },
     {
       name: 'serviceCities',
@@ -68,17 +89,6 @@ export const Brokers: CollectionConfig = {
       relationTo: 'locations',
       hasMany: true,
       filterOptions: () => activeLocationFilter(['business_area']),
-    },
-    {
-      name: 'employmentStatus',
-      label: '在职状态',
-      type: 'select',
-      required: true,
-      defaultValue: 'active',
-      options: STATUS_OPTIONS,
-      admin: {
-        description: '停用前若仍有未完成线索将被拦截，需先完成转派',
-      },
     },
     {
       name: 'version',

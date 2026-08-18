@@ -7,7 +7,7 @@
  *   - 输入视为 unknown，白名单收窄后才落库；
  *   - 必填：buildingName (1-100)、address (1-200)、areaSqm (>0)、contactPhone (中国大陆 11 位)、
  *     consent.accepted=true、consent.policyVersion 与当前版本一致、source.path、requestId；
- *   - 选填：rentAmount (≥0) / rentUnit (PRICE_UNITS 枚举) / commissionMonths（缺省 none）；
+ *   - 选填：rentAmount (≥0) / rentUnit (SUBMISSION_PRICE_UNITS 枚举) / commissionMonths（缺省 none）；
  *   - 后台字段与流程字段（status/assignee/matchedBuilding/reviewNote/...）一律不接收；
  *   - source.path 只接受同源 pathname；query/hash 剥离，绝对 URL、协议相对 URL、控制字符被拒；
  *   - 错误返回稳定安全错误码字符串数组（不抛异常、不泄露内部对象）。
@@ -16,7 +16,7 @@
  */
 
 import { isValidCnMobile, normalizePhone } from '@/domain/shared/phone'
-import { PRICE_UNITS, type InquiryPriceUnit } from '@/domain/inquiry/schema'
+import type { PriceDisplayUnit } from '@/domain/public-catalog/contracts'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 
@@ -42,6 +42,34 @@ export const SUBMITTER_ROLE_LABELS: Record<SubmitterRole, string> = {
   agency: '中介',
   operator: '联合办公运营方',
 }
+
+/**
+ * 业主自助委托可选的报价单位。
+ *
+ * **必须与 DB ENUM `enum_supply_submissions_rent_unit` 逐字一致**——这是入库值，
+ * 多一个选项就是一条保存时被 PG 拒绝的路径。
+ *
+ * 它是 `PriceDisplayUnit`（前台展示单位全集，12 个）的**真子集**：前台要能展示
+ * 年付、按套日付这些历史组合，但业主提交表单只需要覆盖常见的四种报价方式。两者
+ * 语义不同，不可互相替代。下方断言保证这里的每个值在前台都有对应展示单位。
+ */
+export const SUBMISSION_PRICE_UNITS = [
+  'rmb-sqm-day',
+  'rmb-month',
+  'rmb-seat-month',
+  'rmb-total',
+] as const
+export type SubmissionPriceUnit = (typeof SUBMISSION_PRICE_UNITS)[number]
+
+export const SUBMISSION_PRICE_UNIT_LABELS: Record<SubmissionPriceUnit, string> = {
+  'rmb-sqm-day': '元/㎡/天',
+  'rmb-month': '元/月',
+  'rmb-seat-month': '元/工位/月',
+  'rmb-total': '元/总价',
+}
+
+/** 编译期断言：业主可选单位必须都是合法的前台展示单位 */
+type _SubmissionUnitsAreDisplayUnits = SubmissionPriceUnit extends PriceDisplayUnit ? true : never
 
 /** 出租方式（后台补录，前台不采集） */
 export const LEASE_MODES = ['whole-floor', 'office', 'seat', 'sale'] as const
@@ -103,7 +131,7 @@ export type SupplySubmissionRequest = Readonly<{
   address: string
   areaSqm: number
   rentAmount: number | null
-  rentUnit: InquiryPriceUnit | null
+  rentUnit: SubmissionPriceUnit | null
   commissionMonths: CommissionMonths
   contactPhone: string
   phoneNormalized: string
@@ -167,7 +195,7 @@ export function validateSupplySubmission(input: unknown): SupplyValidationResult
 
   // 租金：选填，给了金额就必须给合法单位
   let rentAmount: number | null = null
-  let rentUnit: InquiryPriceUnit | null = null
+  let rentUnit: SubmissionPriceUnit | null = null
   const hasRentAmount =
     input.rentAmount !== undefined && input.rentAmount !== null && input.rentAmount !== ''
   if (hasRentAmount) {
@@ -270,8 +298,15 @@ function toFiniteNumber(v: unknown): number | null {
   return null
 }
 
-function isPriceUnit(v: string): v is InquiryPriceUnit {
-  return (PRICE_UNITS as readonly string[]).includes(v)
+/**
+ * 业主提交的报价单位守卫。
+ *
+ * 必须用 `SUBMISSION_PRICE_UNITS`（4 值）而不是询盘的 `PRICE_UNITS`（12 值）：
+ * 本字段写入 `enum_supply_submissions_rent_unit`，用宽枚举校验会放行 8 个 DB 不
+ * 接受的取值——表单校验通过、写库时被 PG 拒绝，用户看到的是提交失败但说不出哪错了。
+ */
+function isPriceUnit(v: string): v is SubmissionPriceUnit {
+  return (SUBMISSION_PRICE_UNITS as readonly string[]).includes(v)
 }
 
 function isCommissionMonths(v: string): v is CommissionMonths {

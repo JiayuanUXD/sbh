@@ -40,8 +40,11 @@ import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../co
 import { default as default_e2334a3ded7dbfed3d718a8b27260221 } from '../../../components/admin/unsaved-changes/FormModifiedBridge'
 import { default as default_0b8faaaab4eb657e1e6d583eda93d27d } from '../../../components/admin/ListingVisibilityCard'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
+import { default as default_8fd596cf587f41fe58cb974db05d3972 } from '../../../components/admin/ListingFastTrackAction'
+import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
 import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
+import { default as default_b50888e2500c4c0fea379b72eee5b053 } from '../../../components/admin/AuditLogList'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { default as default_4ee5b9c3c360697fc0897e721e7c2c8e } from '../../../components/admin/FormSubmissionsLink'
@@ -116,8 +119,11 @@ export const importMap = {
   "/components/admin/unsaved-changes/FormModifiedBridge#default": default_e2334a3ded7dbfed3d718a8b27260221,
   "/components/admin/ListingVisibilityCard#default": default_0b8faaaab4eb657e1e6d583eda93d27d,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
+  "/components/admin/ListingFastTrackAction#default": default_8fd596cf587f41fe58cb974db05d3972,
+  "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
   "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,
+  "/components/admin/AuditLogList#default": default_b50888e2500c4c0fea379b72eee5b053,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "/components/admin/FormSubmissionsLink#default": default_4ee5b9c3c360697fc0897e721e7c2c8e,

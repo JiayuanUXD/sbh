@@ -4,11 +4,11 @@ import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Button,
+  Checkbox,
   Descriptions,
   Drawer,
   Input,
   Message,
-  Modal,
   Space,
   Table,
   Tag,
@@ -114,12 +114,24 @@ function scoreColor(score: number): string {
 export default function ListingReviewQueueClient({ rows, canReview, canPublish }: Props) {
   const router = useRouter()
   const [detail, setDetail] = useState<QueueRow | null>(null)
-  const [rejectTarget, setRejectTarget] = useState<QueueRow | null>(null)
-  const [rejectReason, setRejectReason] = useState('')
+  // 动作抽屉：通过（可选上架）/ 驳回（强制原因）统一在这里确认执行，
+  // 替代原来的"行内一键通过 + 驳回小弹窗"，避免误触并提供完整上下文。
+  const [actionTarget, setActionTarget] = useState<{
+    row: QueueRow
+    type: 'approve' | 'reject'
+  } | null>(null)
+  const [actionReason, setActionReason] = useState('')
   const [publishAfterApprove, setPublishAfterApprove] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const dualPermission = canReview && canPublish
+
+  /** 打开动作抽屉（重置表单状态）。 */
+  const openAction = useCallback((row: QueueRow, type: 'approve' | 'reject') => {
+    setActionTarget({ row, type })
+    setActionReason('')
+    if (type === 'approve') setPublishAfterApprove(false)
+  }, [])
 
   /** 调用 review 端点（通过/驳回/撤回)。返回是否成功。 */
   const callReview = useCallback(
@@ -196,6 +208,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
           Message.success('已通过')
         }
         setDetail(null)
+        setActionTarget(null)
         setPublishAfterApprove(false)
         router.refresh()
       } finally {
@@ -222,18 +235,18 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
 
   /** 确认驳回（强制原因，服务端 422 兜底）。 */
   async function handleConfirmReject() {
-    if (!rejectTarget) return
-    if (rejectReason.trim().length === 0) {
+    if (!actionTarget) return
+    if (actionReason.trim().length === 0) {
       Message.warning('驳回必须填写原因')
       return
     }
     setSubmitting(true)
     try {
-      const ok = await callReview(rejectTarget, 'reject', rejectReason.trim())
+      const ok = await callReview(actionTarget.row, 'reject', actionReason.trim())
       if (ok) {
         Message.success('已驳回')
-        setRejectTarget(null)
-        setRejectReason('')
+        setActionTarget(null)
+        setActionReason('')
         setDetail(null)
         router.refresh()
       }
@@ -285,18 +298,14 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
                   size="mini"
                   type="primary"
                   status="success"
-                  onClick={() => handleApprove(row)}
-                  loading={submitting}
+                  onClick={() => openAction(row, 'approve')}
                 >
                   通过
                 </Button>
                 <Button
                   size="mini"
                   status="danger"
-                  onClick={() => {
-                    setRejectTarget(row)
-                    setRejectReason('')
-                  }}
+                  onClick={() => openAction(row, 'reject')}
                 >
                   驳回
                 </Button>
@@ -306,7 +315,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         ),
       },
     ],
-    [canReview, submitting, handleApprove],
+    [canReview, openAction],
   )
 
   return (
@@ -328,7 +337,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         noDataElement="暂无待审核房源"
       />
 
-      {/* 详情抽屉：完整度缺失项定位 + 审核历史时间线 + 动作 */}
+      {/* 详情抽屉：完整度缺失项定位 + 审核历史时间线 + 动作入口 */}
       <Drawer
         width={560}
         title={detail?.title ?? '房源详情'}
@@ -337,33 +346,16 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         footer={
           detail && canReview ? (
             <Space>
-              {dualPermission && (
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <input
-                    type="checkbox"
-                    checked={publishAfterApprove}
-                    onChange={(e) => setPublishAfterApprove(e.target.checked)}
-                  />
-                  通过后上架
-                </label>
-              )}
               <Button onClick={() => handleWithdraw(detail)} loading={submitting}>
                 撤回
               </Button>
-              <Button
-                status="danger"
-                onClick={() => {
-                  setRejectTarget(detail)
-                  setRejectReason('')
-                }}
-              >
+              <Button status="danger" onClick={() => openAction(detail, 'reject')}>
                 驳回
               </Button>
               <Button
                 type="primary"
                 status="success"
-                onClick={() => handleApprove(detail)}
-                loading={submitting}
+                onClick={() => openAction(detail, 'approve')}
               >
                 通过
               </Button>
@@ -443,31 +435,122 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         )}
       </Drawer>
 
-      {/* 驳回 Modal:强制原因 */}
-      <Modal
-        title="驳回房源"
-        visible={!!rejectTarget}
-        onCancel={() => {
-          setRejectTarget(null)
-          setRejectReason('')
-        }}
-        onOk={handleConfirmReject}
-        confirmLoading={submitting}
-        okButtonProps={{ status: 'danger' }}
-        okText="确认驳回"
+      {/* 动作抽屉：通过（可选上架）/ 驳回（强制原因）的确认与执行 */}
+      <Drawer
+        width={480}
+        title={actionTarget?.type === 'approve' ? '确认通过' : '驳回房源'}
+        visible={!!actionTarget}
+        onCancel={() => setActionTarget(null)}
+        footer={
+          actionTarget ? (
+            <Space>
+              <Button onClick={() => setActionTarget(null)}>取消</Button>
+              {actionTarget.type === 'approve' ? (
+                <Button
+                  type="primary"
+                  status="success"
+                  loading={submitting}
+                  onClick={() => handleApprove(actionTarget.row)}
+                >
+                  确认通过
+                </Button>
+              ) : (
+                <Button
+                  status="danger"
+                  loading={submitting}
+                  disabled={actionReason.trim().length === 0}
+                  onClick={handleConfirmReject}
+                >
+                  确认驳回
+                </Button>
+              )}
+            </Space>
+          ) : null
+        }
       >
-        <Typography.Paragraph>
-          驳回房源 <strong>{rejectTarget?.title}</strong>,请填写驳回原因(必填,将写入审核历史)。
-        </Typography.Paragraph>
-        <Input.TextArea
-          value={rejectReason}
-          onChange={setRejectReason}
-          placeholder="例如:图片不足 3 张 / 价格信息缺失 / 联系人无效……"
-          autoSize={{ minRows: 3, maxRows: 6 }}
-          maxLength={500}
-          showWordLimit
-        />
-      </Modal>
+        {actionTarget && (
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <Descriptions
+              column={1}
+              size="small"
+              data={[
+                { label: '房源', value: <strong>{actionTarget.row.title}</strong> },
+                { label: '所属楼盘', value: actionTarget.row.buildingName },
+                {
+                  label: '租售类型',
+                  value:
+                    LISTING_TYPE_LABELS[actionTarget.row.listingType] ??
+                    (actionTarget.row.listingType || '—'),
+                },
+                { label: '工作版本', value: `v${actionTarget.row.version}` },
+                {
+                  label: '提交完整度',
+                  value: (
+                    <Tag color={scoreColor(actionTarget.row.completenessScore)}>
+                      {actionTarget.row.completenessScore}
+                      {actionTarget.row.missing.length > 0
+                        ? ` · 缺 ${actionTarget.row.missing.length} 项`
+                        : ''}
+                    </Tag>
+                  ),
+                },
+              ]}
+            />
+
+            {actionTarget.type === 'approve' ? (
+              <>
+                {actionTarget.row.missing.length > 0 && (
+                  <div>
+                    <Typography.Text type="warning">
+                      仍有 {actionTarget.row.missing.length} 项缺失（通过后可继续补全）：
+                    </Typography.Text>
+                    <div style={{ marginTop: 4 }}>
+                      {actionTarget.row.missing.slice(0, 5).map((m) => (
+                        <Tag key={m.label} color="orange" style={{ marginBottom: 4 }}>
+                          {m.label}
+                        </Tag>
+                      ))}
+                      {actionTarget.row.missing.length > 5 && (
+                        <Tag color="orange">+{actionTarget.row.missing.length - 5}</Tag>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {dualPermission && (
+                  <div>
+                    <Checkbox
+                      checked={publishAfterApprove}
+                      onChange={(checked) => setPublishAfterApprove(!!checked)}
+                    >
+                      通过后立即上架
+                    </Checkbox>
+                    <Typography.Paragraph
+                      type="secondary"
+                      style={{ fontSize: 12, marginBottom: 0, marginTop: 4 }}
+                    >
+                      勾选后审核通过与发布上架一步完成；上架失败时需到房源列表手动上架。
+                    </Typography.Paragraph>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <Typography.Paragraph>
+                  驳回后房源退回「未提交」状态，原因将写入审核历史（必填）。
+                </Typography.Paragraph>
+                <Input.TextArea
+                  value={actionReason}
+                  onChange={setActionReason}
+                  placeholder="例如:图片不足 3 张 / 价格信息缺失 / 联系人无效……"
+                  autoSize={{ minRows: 4, maxRows: 8 }}
+                  maxLength={500}
+                  showWordLimit
+                />
+              </>
+            )}
+          </Space>
+        )}
+      </Drawer>
     </div>
   )
 }

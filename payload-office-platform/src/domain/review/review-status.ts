@@ -31,7 +31,7 @@ export function isReviewStatus(value: unknown): value is ReviewStatus {
 }
 
 /** 审核动作（驱动状态转移的事件）。 */
-export const REVIEW_DECISIONS = ['submit', 'withdraw', 'approve', 'reject'] as const
+export const REVIEW_DECISIONS = ['submit', 'withdraw', 'approve', 'reject', 'fast_track'] as const
 export type ReviewDecision = (typeof REVIEW_DECISIONS)[number]
 
 export const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
@@ -39,6 +39,7 @@ export const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
   withdraw: '撤回',
   approve: '审核通过',
   reject: '驳回',
+  fast_track: '免审直发',
 }
 
 export function isReviewDecision(value: unknown): value is ReviewDecision {
@@ -46,11 +47,23 @@ export function isReviewDecision(value: unknown): value is ReviewDecision {
 }
 
 /** 合法转移表：from → 允许的动作 → to。缺项即非法。 */
+/**
+ * 合法转移表：from → 允许的动作 → to。缺项即非法。
+ *
+ * `fast_track`（免审直发）是一条**显式**的状态转移，而不是绕过状态机：
+ *   - 状态图上看得见这条路径，不用去读 endpoint 才知道还能这么走
+ *   - 审计能区分「走完审核流程通过」与「管理员直发」，事后追责有依据
+ *   - 权限可以单独授予（listing:fast_track_review），不必给全套审核权
+ *
+ * 刻意不允许 pending --fast_track--> approved：已经进了审核队列的房源应该由审核人
+ * 裁决，否则同一条房源会出现「审核中却已通过」这种自相矛盾的轨迹。要直发就从未提交
+ * 状态走。
+ */
 const TRANSITIONS: Record<ReviewStatus, Partial<Record<ReviewDecision, ReviewStatus>>> = {
-  not_submitted: { submit: 'pending' },
+  not_submitted: { submit: 'pending', fast_track: 'approved' },
   pending: { withdraw: 'not_submitted', approve: 'approved', reject: 'rejected' },
   approved: {},
-  rejected: { submit: 'pending' },
+  rejected: { submit: 'pending', fast_track: 'approved' },
 }
 
 /** 当前审核态下能否执行该动作。 */

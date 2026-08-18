@@ -16,7 +16,8 @@ import {
   getCachedSitemapBuildingsPage,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
+import { shouldListSaleChannelInSitemap } from '@/lib/frontend/sale-channel'
+import { getMultiCityRoutingEnabled, getSaleChannelEnabled, siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,19 @@ function listingInput(page: number): ListingSearchInput {
   return { ...parseSearchInput(new URLSearchParams()), page }
 }
 
+/**
+ * 拉取该城市的全部有效房源（**不按租售过滤**）。
+ *
+ * 刻意拉全集而不是按 businessType 各查一次：每次查询都要构建一份 search source，
+ * 即全量有效供给查询 + 逐条精筛（媒体数、商户关系有效期、资质、举报暂停）。这是
+ * 整个 sitemap 里最贵的一步。
+ *
+ * 按频道各查一次会让这个代价乘以频道数——而且为了确认「这个城市没有出售房源」，
+ * 要付出和查全部租赁房源一样的开销，再乘以城市数。生产上这样做直接把 /sitemap.xml
+ * 拖到超时；超时又导致 unstable_cache 写不进去，下一次请求仍然是冷的，形成死循环。
+ *
+ * 租售分组是纯内存操作（ListingCardViewModel 自带 businessType），放在调用方做。
+ */
 async function getCityListings(citySlug: string) {
   const docs: ListingCardViewModel[] = []
   let page = 1
@@ -79,11 +93,13 @@ const getCachedSitemapEntries = unstable_cache(
     ))
     const [cities, pages, articles] = await Promise.all([
       Promise.all(liveProfiles.map(async (profile) => {
-        const [listings, buildings] = await Promise.all([
+        const [allListings, buildings] = await Promise.all([
           getCityListings(profile.citySlug),
           getCityBuildings(profile.citySlug),
         ])
-        return { citySlug: profile.citySlug, listings, buildings }
+        // 一次查询、内存分组：租售各查一次会让最贵的那步开销翻倍
+        const saleListings = allListings.filter((l) => l.businessType === 'sale')
+        return { citySlug: profile.citySlug, listings: allListings, saleListings, buildings }
       })),
       getCachedPublishedPages(SITEMAP_ENTITY_LIMIT),
       getPublishedArticles(),
@@ -125,6 +141,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       { url: `${prefix}/listings`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
       { url: `${prefix}/buildings`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     )
+    // 出售频道页与 noindex 判定同口径：房源数为 0 时既不进索引也不进 sitemap。
+    // 两者不一致就是自相矛盾的信号（「别收录」+「快来收录」），noindex 的降噪
+    // 作用会被抵消，还白耗抓取预算。
+    // 开关关闭时频道页返回 404，出现在 sitemap 里就是让爬虫去撞死链
+    if (getSaleChannelEnabled() && shouldListSaleChannelInSitemap(city.saleListings.length)) {
+      dynamicUrls.push({
+        url: `${prefix}/sale`,
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 0.9,
+      })
+    }
+    // city.listings 已是租售全集（详情页共用 /listings/{slug} 路由）。
     for (const listing of city.listings) {
       dynamicUrls.push({
         url: `${prefix}/listings/${listing.slug}`,

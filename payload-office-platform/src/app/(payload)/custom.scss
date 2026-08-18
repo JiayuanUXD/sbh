@@ -938,8 +938,9 @@ html[data-theme='dark'] .arco-admin-dashboard {
   }
 }
 
-// 房源审核队列 - Arco Table/Drawer/Modal 在 Payload admin 中的样式微调
-.listing-review-queue {
+// 房源审核队列 / 审计日志列表 - Arco Table/Drawer 在 Payload admin 中的样式微调
+.listing-review-queue,
+.audit-log-list {
   // Arco 表格使用自身字体，确保在 Payload 后台中继承合理字体
   .arco-table {
     font-size: 14px;
@@ -958,6 +959,21 @@ html[data-theme='dark'] .arco-admin-dashboard {
   .arco-space .arco-btn {
     margin-right: 0;
   }
+}
+
+// 审计日志详情抽屉 - JSON 块（before/after/角色/城市范围快照）
+.audit-log-detail__json {
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  background: var(--theme-elevation-100, #efefef);
+  border: 1px solid var(--theme-elevation-150, #dcdcdc);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 // ─── Payload 内置 Tabs 修复（Arco 全局 CSS 覆盖了 Payload 默认样式） ───
@@ -1074,23 +1090,47 @@ html[data-theme='dark'] .arco-admin-dashboard {
     }
   }
 
-  // ── Row 多列容器 ──
-  // row__fields 是 flex 容器，内部子字段等宽分布
+  // ── Row 多列容器：响应式列数（容器查询） ──
+  // 列数由 row 自身可用宽度决定（不受侧边栏折叠、嵌套 group/tab 缩进影响）：
+  //   < 480px → 1 列；≥480px → 2 列；≥720px → 3 列；≥960px → 4 列（上限）
+  // 每个子字段的 flex-basis = 1/列数 - gap 份额，配合 flex-grow:1：
+  //   字段数少于列数 → 整行均分（2 字段在 4 列宽度下仍各占 50%）；
+  //   字段数超过列数 → 自动换行成多行（如 7 字段在 4 列宽度下排 4+3）。
   .row__fields {
     column-gap: 16px !important;
+    container-type: inline-size;
     display: flex;
     flex-wrap: wrap;
     row-gap: 20px;
 
-    // 每个子字段：flex:1 均分宽度，min-width:0 防止内容撑破
-    // 清除水平 margin-right（Payload 默认 5px 做间距，已用 gap 替代），
-    // 清除垂直 margin-bottom（由 row-gap 和外层 row 的 margin-bottom 控制，避免不同字段类型 margin 不一致导致对齐问题）
+    // 清除 Payload 默认水平 margin（左右各 5px，已用 gap 替代）与垂直 margin
+    // （由 row-gap 与外层 row 的 margin-bottom 控制，避免不同字段类型对齐错位）
     > .field-type {
-      flex: 1 1 0% !important;
-      flex-basis: 0% !important;
+      flex: 1 1 100% !important;
       margin-bottom: 0 !important;
+      margin-left: 0 !important;
       margin-right: 0 !important;
       min-width: 0;
+    }
+  }
+
+  // 注意：basis 比理论值（1/列数 - gap 份额）多减了几像素，给亚像素舍入留余量，
+  // 否则恰好在断点附近会出现「差 1px 溢出 → 提前换行」；缺口由 flex-grow 补齐，视觉等宽。
+  @container (min-width: 480px) {
+    .row__fields > .field-type {
+      flex-basis: calc(50% - 12px) !important;
+    }
+  }
+
+  @container (min-width: 720px) {
+    .row__fields > .field-type {
+      flex-basis: calc(33.333% - 16px) !important;
+    }
+  }
+
+  @container (min-width: 960px) {
+    .row__fields > .field-type {
+      flex-basis: calc(25% - 16px) !important;
     }
   }
 
@@ -1100,11 +1140,54 @@ html[data-theme='dark'] .arco-admin-dashboard {
     padding: 0;
   }
 
+  // ── row 内 checkbox 对齐 ──
+  // Payload 的 checkbox 原生形态是「勾选框+文字」内联块（高约 20px），直接放进
+  // row 会吊在格子顶部，与相邻字段「label 上、40px 输入框下」的节奏错位。
+  // 这里保持原生内联形态（框和文字是一体的，不拆开），整体下沉到输入行区域：
+  //   margin-top 28px = label 行高 20 + label 底距 8，再占满 40px 输入行高度，
+  //   内联块在其中垂直居中，勾选框中心与相邻输入框中心（48px 处）重合。
+  // 同时清掉 Payload 给 .checkbox-input 的底色（浅色 #fff / 深色 #222），
+  // 避免在深色模式下与页面背景形成突兀的色块。
+  .row__fields > .field-type.checkbox {
+    .checkbox-input {
+      align-items: center;
+      background: transparent;
+      height: 40px;
+      margin-top: 28px;
+    }
+  }
+
   // ── 字段描述/帮助文字 ──
   .field-description,
   .admin-description {
     margin-top: 6px;
     margin-bottom: 0;
+  }
+
+  // ── 只读字段弱化（详情化样式）──
+  // Payload 对 readOnly 的 text/number/textarea 字段渲染为 input[readonly] / textarea[readonly]，
+  // select / relationship 渲染为禁用态 react-select。统一改成灰底虚线边框，
+  // 与可编辑输入一眼区分，降低「看着像表单实际改不了」的误导。
+  // 主题变量在浅色/深色模式自动切换，fallback 仅作保底。
+  input[readonly],
+  textarea[readonly] {
+    background: var(--theme-elevation-50, #f5f5f5);
+    border-color: var(--theme-elevation-150, #dcdcdc);
+    border-style: dashed;
+    color: var(--theme-elevation-600, #6e6e6e);
+    cursor: default;
+  }
+
+  .react-select--is-disabled {
+    .react-select__control {
+      background: var(--theme-elevation-50, #f5f5f5);
+      border-color: var(--theme-elevation-150, #dcdcdc);
+      border-style: dashed;
+    }
+
+    .react-select__single-value {
+      color: var(--theme-elevation-600, #6e6e6e);
+    }
   }
 }
 
@@ -1137,6 +1220,34 @@ html[data-theme='dark'] {
       border-bottom-color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
       color: var(--vscode-icube-colorStatusRegularHover, #4c88ff);
     }
+  }
+
+  // 只读字段弱化样式的深色覆盖：--theme-elevation-* 未随主题重定义，
+  // 浅色段的 fallback 值在暗色下会形成亮块，这里显式给深色值。
+  .collection-edit {
+    input[readonly],
+    textarea[readonly] {
+      background: #2b2b2b;
+      border-color: #454545;
+      color: #a6a6a6;
+    }
+
+    .react-select--is-disabled {
+      .react-select__control {
+        background: #2b2b2b;
+        border-color: #454545;
+      }
+
+      .react-select__single-value {
+        color: #a6a6a6;
+      }
+    }
+  }
+
+  // 审计日志详情抽屉 JSON 块的深色覆盖（同上，主题变量不随主题切换）
+  .audit-log-detail__json {
+    background: #2b2b2b;
+    border-color: #454545;
   }
 }
 

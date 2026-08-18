@@ -2,8 +2,33 @@ import { describe, expect, it } from 'vitest'
 
 import { CitySiteProfiles } from '@/collections/CitySiteProfiles'
 
-function field(name: string) {
-  const matched = CitySiteProfiles.fields.find((candidate) => 'name' in candidate && candidate.name === name)
+// 递归查找字段（row / collapsible / group 布局收口后字段可能嵌套一层）
+function field(name: string): Record<string, unknown> {
+  const walk = (fields: readonly unknown[]): Record<string, unknown> | undefined => {
+    for (const candidate of fields) {
+      if (!candidate || typeof candidate !== 'object') continue
+      const c = candidate as Record<string, unknown> & {
+        fields?: readonly unknown[]
+        tabs?: readonly { fields?: readonly unknown[] }[]
+      }
+      if (c.name === name) return c
+      if (Array.isArray(c.fields)) {
+        const nested = walk(c.fields)
+        if (nested) return nested
+      }
+      // unnamed/named tabs：字段在 tabs[].fields 下
+      if (Array.isArray(c.tabs)) {
+        for (const tab of c.tabs) {
+          if (Array.isArray(tab?.fields)) {
+            const nested = walk(tab.fields)
+            if (nested) return nested
+          }
+        }
+      }
+    }
+    return undefined
+  }
+  const matched = walk(CitySiteProfiles.fields)
   if (!matched) throw new Error(`missing field: ${name}`)
   return matched
 }

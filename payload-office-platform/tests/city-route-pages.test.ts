@@ -72,6 +72,9 @@ vi.mock('@/domain/public-catalog', () => ({
 vi.mock('@/lib/frontend/site-config', () => ({
   siteConfig: { defaultCity: 'shanghai', siteOrigin: 'https://example.test', siteUrl: new URL('https://example.test') },
   getMultiCityRoutingEnabled: () => process.env.MULTI_CITY_ROUTING_ENABLED === 'true',
+  // 出售功能开关：默认关闭，让既有断言在「功能不可见」这个默认态下验证。
+  // 需要验证开启态的用例请在自己的文件里单独 mock 为 true。
+  getSaleChannelEnabled: () => process.env.NEXT_PUBLIC_SALE_CHANNEL_ENABLED === 'true',
 }))
 
 import CityHomePage, {
@@ -299,7 +302,7 @@ describe('city route boundaries', () => {
     process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
     await expect(LegacyListingsPage({ searchParams: Promise.resolve({
       type: 'coworking', rentUnit: 'rmb-sqm-day', sort: 'rent-asc', q: 'near metro', page: '3', unknown: 'drop',
-    }) })).rejects.toThrow('redirect:/shanghai/listings?type=coworking&rentUnit=rmb-sqm-day&q=near+metro&sort=rent-asc')
+    }) })).rejects.toThrow('redirect:/shanghai/listings?type=coworking&priceUnit=rmb-sqm-day&q=near+metro&sort=price-asc')
     await expect(LegacyBuildingsPage({ searchParams: Promise.resolve({ grade: 'grade-a', page: '2', unknown: 'drop' }) }))
       .rejects.toThrow('redirect:/shanghai/buildings?grade=grade-a')
   })

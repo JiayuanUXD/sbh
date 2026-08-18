@@ -203,14 +203,14 @@ function prepareCardsForPriceSort(
   cards: readonly ListingCardViewModel[],
   input: ListingSearchInput,
 ): { cards: ListingCardViewModel[]; filteredByRentUnit: boolean } {
-  if (input.sort !== 'rent-asc' && input.sort !== 'rent-desc') {
+  if (input.sort !== 'price-asc' && input.sort !== 'price-desc') {
     return { cards: cards.slice(), filteredByRentUnit: false }
   }
   // 已显式选定 rentUnit：直接按该单位过滤
-  if (input.rentUnit) {
+  if (input.priceUnit) {
     return {
-      cards: filterByRentUnit(cards, input.rentUnit),
-      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.rentUnit),
+      cards: filterByRentUnit(cards, input.priceUnit),
+      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.priceUnit),
     }
   }
   // 未指定 rentUnit 但请求价格排序：取首个非空单位
@@ -240,9 +240,12 @@ async function attachLeasableArea(
   adapter: SupplyAdapter,
 ): Promise<BuildingSummaryViewModel[]> {
   if (summaries.length === 0) return []
+  // 强制 lease 而非跟随 ctx：这个字段叫「在租面积」，语义上只算租赁供给，与调用方
+  // 当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁的在租面积，一套
+  // 3800 万的待售整层不能被算进去。
   const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
     summaries.map((s) => s.id),
-    ctx,
+    { ...ctx, businessType: 'lease' },
   )
   return summaries.map((s) => {
     const leasableArea = areaByBuilding.get(String(s.id))
@@ -901,6 +904,8 @@ function extractPriceUnit(listing: Listing): string | null {
   if (!price) return null
   const unit = price.unit
   const period = price.period
+  // listing.rentUnit 是 Payload 文档的旧字段（数据库列），与 URL 参数 priceUnit
+  // 同名不同义，改名重构不涉及它。
   if (!unit || !period) return listing.rentUnit ?? null
   // 映射到 displayUnit 格式
   if (unit === 'sqm' && period === 'day') return 'rmb-sqm-day'

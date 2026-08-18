@@ -16,8 +16,14 @@
  * 不改写 publication_status / review_status（R3 不隐式改写关联房源状态）。
  */
 
-/** 发布状态。 */
-export const PUBLICATION_STATUSES = ['draft', 'published', 'unpublished', 'leased'] as const
+/**
+ * 发布状态。
+ *
+ * `leased` 与 `sold` 都是成交终态，但必须分开：出售房源标成「已租」会让运营看板的
+ * 成交口径、通知文案和后台筛选全部串味，而且不可逆——一旦记成 leased 就无从分辨
+ * 那笔到底是租还是卖。
+ */
+export const PUBLICATION_STATUSES = ['draft', 'published', 'unpublished', 'leased', 'sold'] as const
 export type PublicationStatus = (typeof PUBLICATION_STATUSES)[number]
 
 export const PUBLICATION_STATUS_LABELS: Record<PublicationStatus, string> = {
@@ -25,6 +31,23 @@ export const PUBLICATION_STATUS_LABELS: Record<PublicationStatus, string> = {
   published: '已发布',
   unpublished: '已下架',
   leased: '已租',
+  sold: '已售',
+}
+
+/**
+ * 成交终态集合。
+ *
+ * 供查询与统计使用：既有代码里散落着把 `leased` 当「非活跃/已成交」全集的判断，
+ * 加入 `sold` 后必须改用这个集合，否则已售房源会继续留在公开列表或被算作在租。
+ */
+export const SETTLED_PUBLICATION_STATUSES = ['leased', 'sold'] as const
+export type SettledPublicationStatus = (typeof SETTLED_PUBLICATION_STATUSES)[number]
+
+export function isSettledPublicationStatus(value: unknown): value is SettledPublicationStatus {
+  return (
+    typeof value === 'string' &&
+    (SETTLED_PUBLICATION_STATUSES as readonly string[]).includes(value)
+  )
 }
 
 export function isPublicationStatus(value: unknown): value is PublicationStatus {
@@ -32,25 +55,34 @@ export function isPublicationStatus(value: unknown): value is PublicationStatus 
 }
 
 /** 发布动作。 */
-export const PUBLISH_ACTIONS = ['publish', 'unpublish', 'mark_leased'] as const
+export const PUBLISH_ACTIONS = ['publish', 'unpublish', 'mark_leased', 'mark_sold'] as const
 export type PublishAction = (typeof PUBLISH_ACTIONS)[number]
 
 export const PUBLISH_ACTION_LABELS: Record<PublishAction, string> = {
   publish: '发布',
   unpublish: '下架',
-  mark_leased: '标记成交',
+  // 原文案是「标记成交」。加入售出后这个词有歧义（租也是成交、卖也是成交），
+  // 改为明确指向租赁。
+  mark_leased: '标记已租',
+  mark_sold: '标记已售',
 }
 
 export function isPublishAction(value: unknown): value is PublishAction {
   return typeof value === 'string' && (PUBLISH_ACTIONS as readonly string[]).includes(value)
 }
 
-/** 合法转移表：from → 动作 → to。缺项即非法。 */
+/**
+ * 合法转移表：from → 动作 → to。缺项即非法。
+ *
+ * `sold` 与 `leased` 同构：任何未成交态都可直接标记，成交后是终态（空对象），
+ * 不允许从 sold 回到 published——房子卖了就不该再挂出来，要重新上架得走新房源。
+ */
 const TRANSITIONS: Record<PublicationStatus, Partial<Record<PublishAction, PublicationStatus>>> = {
-  draft: { publish: 'published', mark_leased: 'leased' },
-  published: { unpublish: 'unpublished', mark_leased: 'leased' },
-  unpublished: { publish: 'published', mark_leased: 'leased' },
+  draft: { publish: 'published', mark_leased: 'leased', mark_sold: 'sold' },
+  published: { unpublish: 'unpublished', mark_leased: 'leased', mark_sold: 'sold' },
+  unpublished: { publish: 'published', mark_leased: 'leased', mark_sold: 'sold' },
   leased: {},
+  sold: {},
 }
 
 export function canTransitionPublication(from: PublicationStatus, action: PublishAction): boolean {

@@ -204,15 +204,15 @@ describe('resolveOverviewDashboard', () => {
     }
   })
 
-  it('分布 by_status 返回 4 个状态桶', async () => {
+  it('分布 by_status 覆盖全部发布状态桶', async () => {
     const base = makeBase()
     const result = await resolveOverviewDashboard(base, registry)
     const byStatus = result.distributions.find((d) => d.code === 'listings.by_status')
     expect(byStatus).toBeDefined()
     expect(byStatus?.status).toBe('success')
-    expect(byStatus?.buckets?.length).toBe(4)
+    expect(byStatus?.buckets?.length).toBe(5)
     const labels = byStatus?.buckets?.map((b) => b.label)
-    expect(labels).toEqual(['draft', 'published', 'unpublished', 'leased'])
+    expect(labels).toEqual(['draft', 'published', 'unpublished', 'leased', 'sold'])
   })
 
   it('分布 by_city 在未传 cityIds 时返回空 buckets', async () => {

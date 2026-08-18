@@ -37,7 +37,14 @@ export const COMPLETENESS_WEIGHTS = {
   pricePeriod: 0.02,
   priceUnit: 0.02,
   area: 0.07,
-  minimumLeaseMonths: 0.05,
+  /**
+   * 租售专属项权重：租赁计最短租期，出售计产权年限。
+   *
+   * 原先是写死的 minimumLeaseMonths。出售房源没有租期，会结构性丢掉这 5%，
+   * 阈值 0.8 之下直接被误标「待维护」。改为按 businessType 各计各的，两侧
+   * 总权重都是 1.0。
+   */
+  businessTypeSpecific: 0.05,
   // 媒体展示（30%）
   coverImage: 0.1,
   galleryCount: 0.2, // gallery ≥ 3 张才计满
@@ -93,8 +100,17 @@ export function computeListingCompleteness(
     }
   }
   if (isPositiveNumber(doc.area)) score += COMPLETENESS_WEIGHTS.area
-  if (isPositiveNumber(doc.minimumLeaseMonths)) {
-    score += COMPLETENESS_WEIGHTS.minimumLeaseMonths
+
+  // 租售专属项：各占 0.05，两侧各计各的，总权重仍为 1.0。
+  //
+  // 不能统一按 minimumLeaseMonths 计分：出售房源没有租期概念，会结构性地白丢 5%，
+  // 阈值 0.8 之下就被误标成「待维护」，运营看板上凭空多出一批假的待办。
+  if (doc.businessType === 'sale') {
+    if (isNonEmptyString(doc.propertyRightYears)) {
+      score += COMPLETENESS_WEIGHTS.businessTypeSpecific
+    }
+  } else if (isPositiveNumber(doc.minimumLeaseMonths)) {
+    score += COMPLETENESS_WEIGHTS.businessTypeSpecific
   }
 
   // 媒体展示

@@ -1,5 +1,7 @@
 import type { SanitizedPermissions } from 'payload'
 
+import { canReadCollection } from './collection-read-access'
+
 type DocumentID = number | string
 export type ContextCollection = 'lead-ownership-history' | 'form-submissions'
 
@@ -36,5 +38,5 @@ export function canReadContextCollection(
   permissions: SanitizedPermissions | undefined,
   collection: ContextCollection,
 ): boolean {
-  return permissions?.collections?.[collection]?.read === true
+  return canReadCollection(permissions, collection)
 }

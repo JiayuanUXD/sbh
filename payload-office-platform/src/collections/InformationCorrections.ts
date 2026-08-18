@@ -134,28 +134,33 @@ export const InformationCorrections: CollectionConfig = {
   },
   fields: [
     {
-      name: 'targetType',
-      type: 'select',
-      required: true,
-      options: [
-        { label: '房源', value: 'listing' },
-        { label: '楼盘', value: 'building' },
+      type: 'row',
+      fields: [
+        {
+          name: 'targetType',
+          type: 'select',
+          required: true,
+          options: [
+            { label: '房源', value: 'listing' },
+            { label: '楼盘', value: 'building' },
+          ],
+        },
+        {
+          name: 'targetSlug',
+          type: 'text',
+          required: true,
+          maxLength: 200,
+        },
+        {
+          name: 'category',
+          type: 'select',
+          required: true,
+          options: CORRECTION_CATEGORIES.map((c) => ({
+            label: CORRECTION_CATEGORY_LABELS[c],
+            value: c,
+          })),
+        },
       ],
-    },
-    {
-      name: 'targetSlug',
-      type: 'text',
-      required: true,
-      maxLength: 200,
-    },
-    {
-      name: 'category',
-      type: 'select',
-      required: true,
-      options: CORRECTION_CATEGORIES.map((c) => ({
-        label: CORRECTION_CATEGORY_LABELS[c],
-        value: c,
-      })),
     },
     {
       name: 'description',
@@ -164,34 +169,39 @@ export const InformationCorrections: CollectionConfig = {
       maxLength: 500,
     },
     {
-      name: 'status',
-      type: 'select',
-      required: true,
-      defaultValue: 'new',
-      admin: { readOnly: true },
-      options: CORRECTION_STATUSES.map((s) => ({
-        label: CORRECTION_STATUS_LABELS[s],
-        value: s,
-      })),
-    },
-    {
-      name: 'requestId',
-      type: 'text',
-      required: true,
-      maxLength: 100,
-    },
-    {
-      name: 'idempotencyKey',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: { readOnly: true },
-    },
-    {
-      name: 'reporterIpHash',
-      type: 'text',
-      admin: { readOnly: true, description: '提交 IP 哈希（反垃圾），不存原始 IP' },
+      type: 'row',
+      fields: [
+        {
+          name: 'status',
+          type: 'select',
+          required: true,
+          defaultValue: 'new',
+          admin: { readOnly: true },
+          options: CORRECTION_STATUSES.map((s) => ({
+            label: CORRECTION_STATUS_LABELS[s],
+            value: s,
+          })),
+        },
+        {
+          name: 'requestId',
+          type: 'text',
+          required: true,
+          maxLength: 100,
+        },
+        {
+          name: 'idempotencyKey',
+          type: 'text',
+          required: true,
+          unique: true,
+          index: true,
+          admin: { readOnly: true },
+        },
+        {
+          name: 'reporterIpHash',
+          type: 'text',
+          admin: { readOnly: true, description: '提交 IP 哈希（反垃圾），不存原始 IP' },
+        },
+      ],
     },
   ],
 }

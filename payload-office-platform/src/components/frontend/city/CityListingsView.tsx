@@ -12,16 +12,38 @@ import type { getCachedListingDistrictOptions, getCachedSearchListings } from '@
 type ListingResult = Awaited<ReturnType<typeof getCachedSearchListings>>
 type Districts = Awaited<ReturnType<typeof getCachedListingDistrictOptions>>
 
+/**
+ * 租售频道共用的文案。
+ *
+ * 组件复用不等于文案复用：同一套栅格里,「在租房源」「统一租金单位」「扩大价格范围」
+ * 放到出售页就是错的语境。集中成表而不是散在 JSX 里,新增交易类型时只补一行。
+ */
+const CHANNEL_COPY = {
+  lease: {
+    noun: '在租房源',
+    unitNote: '已按统一租金单位显示',
+    emptyDesc: '试试调整筛选条件或扩大价格范围。',
+  },
+  sale: {
+    noun: '出售房源',
+    unitNote: '已按统一计价单位显示',
+    emptyDesc: '试试调整筛选条件或扩大总价范围。',
+  },
+} as const satisfies Record<'lease' | 'sale', Readonly<Record<string, string>>>
+
 /** Full legacy listing presentation, parameterized only by trusted city DTO/context. */
-export default function CityListingsView({ city, result, districts, input, basePath, routeMode }: Readonly<{
+export default function CityListingsView({ city, result, districts, input, basePath, routeMode, businessType = 'lease' }: Readonly<{
   city: CityContext
   result: ListingResult
   districts: Districts
   input: ListingSearchInput
   basePath: string
   routeMode: 'legacy' | 'prefixed'
+  /** 当前频道；决定文案语境。缺省为租赁,保持既有调用零改动。 */
+  businessType?: 'lease' | 'sale'
 }>) {
-  const heading = routeMode === 'legacy' ? '在租房源' : `${city.name}在租房源`
+  const copy = CHANNEL_COPY[businessType]
+  const heading = routeMode === 'legacy' ? copy.noun : `${city.name}${copy.noun}`
   const { docs, pagination, filteredByRentUnit } = result
   const { page, totalPages, totalDocs, hasNextPage, hasPrevPage } = pagination
   const isOutOfBounds = page > totalPages && totalDocs > 0
@@ -38,11 +60,11 @@ export default function CityListingsView({ city, result, districts, input, baseP
 
   return (
     <div className="listings-page">
-      <header className="listings-page__header"><h1 className="page-title">{heading}</h1><p className="page-subtitle">共 {totalDocs} 套在租房源 {filteredByRentUnit ? <span className="text-muted">· 已按统一租金单位显示</span> : null}</p></header>
+      <header className="listings-page__header"><h1 className="page-title">{heading}</h1><p className="page-subtitle">共 {totalDocs} 套{copy.noun} {filteredByRentUnit ? <span className="text-muted">· {copy.unitNote}</span> : null}</p></header>
       <div className="filter-bar__desktop"><FilterBar districts={districts} basePath={basePath} /></div>
       <div className="filter-bar__mobile"><MobileFilterDrawer districts={districts} totalDocs={totalDocs} basePath={basePath} citySlug={routeMode === 'prefixed' ? city.slug : undefined} /></div>
       {isOutOfBounds ? <div className="empty-state" role="status"><p className="empty-state__title">第 {page} 页超出范围</p><p className="empty-state__desc">当前共 {totalPages} 页，已显示最后一页结果。</p><div className="empty-state__action"><Link href={buildPageHref(totalPages)} className="btn btn--ghost" data-event-name="listings_goto_last_page">查看第 {totalPages} 页</Link></div></div> : null}
-      {!isOutOfBounds && isEmpty ? <div className="empty-state" role="status"><p className="empty-state__title">没有符合条件的房源</p><p className="empty-state__desc">试试调整筛选条件或扩大价格范围。</p><div className="empty-state__action"><Link href={basePath} className="btn btn--ghost" data-event-name="listings_clear_filters">清除筛选</Link><InquiryModal pageType="search" triggerLabel="提交需求" triggerVariant="primary" /></div></div> : null}
+      {!isOutOfBounds && isEmpty ? <div className="empty-state" role="status"><p className="empty-state__title">没有符合条件的房源</p><p className="empty-state__desc">{copy.emptyDesc}</p><div className="empty-state__action"><Link href={basePath} className="btn btn--ghost" data-event-name="listings_clear_filters">清除筛选</Link><InquiryModal pageType="search" triggerLabel="提交需求" triggerVariant="primary" /></div></div> : null}
       {!isOutOfBounds && !isEmpty ? <><ListingGrid docs={docs} citySlug={routeMode === 'prefixed' ? city.slug : undefined} /><p className="listings-page__count" aria-live="polite">显示第 {rangeStart}–{rangeEnd} 套，共 {totalDocs} 套</p><Pagination page={page} totalPages={totalPages} totalDocs={totalDocs} buildPageHref={buildPageHref} /></> : null}
       <span className="visually-hidden" aria-hidden="true">{hasNextPage ? 'next' : ''}{hasPrevPage ? 'prev' : ''}</span>
     </div>

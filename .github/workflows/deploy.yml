@@ -6,8 +6,11 @@
 # 两段式（OPT-016）：
 #   quality  - 在 CI runner 上跑 lint/typecheck/test/build/迁移预检，作为发布质量门。
 #              失败则 deploy 不跑。产物不传递（deploy 重新 checkout 干净源码）。
-#   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）-> 切 10% 灰度 ->
-#              冒烟（/api/health + /）-> 通过则 traffic promote 全量，失败则 traffic rollback。
+#   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）。
+#              **默认到此为止**：自动触发（master 合并）只提交 GRAY 版本，不碰线上流量。
+#              放量需在 Actions 页面手动触发本工作流并勾选 promote，届时才走
+#              切 10% 灰度 -> 冒烟（/api/health + /）-> traffic promote 全量，
+#              失败则 traffic rollback。
 #
 # 机制：用 CloudBase 官方 API 分配上传地址，带重试上传 ZIP，再显式提交 GRAY 版本。
 #       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败。
@@ -31,13 +34,29 @@
 
 name: Deploy to CloudBase CloudRun
 
+# 触发方式：由 quality.yml 跑完且**整体成功**后接力，不再自己监听 push。
+#
+# 两个目的：
+#   1. 省额度：原先本文件的 quality 作业把 quality.yml 刚做过的 lint / typecheck /
+#      test / build 在同一个 commit 上又跑一遍（实测 4m39s），纯重复。
+#   2. 堵洞：原先部署只被本文件内的质量门挡住，**挡不住 e2e**（e2e 在 quality.yml 里）。
+#      真实教训：PR #50 合入后 19 条 e2e 全红，部署照样绿灯上线。改为依赖 quality.yml
+#      整体结论后，e2e 红 → 不部署。
+#
+# 注意：quality.yml 的 paths 里必须包含本文件，否则只改 deploy.yml 时上游不触发、
+# 部署链路会静默失联。
 on:
-  push:
+  workflow_run:
+    workflows: ['Quality and migration baseline']
+    types: [completed]
     branches: [master]
-    paths:
-      - 'payload-office-platform/**'
-      - '.github/workflows/deploy.yml'
   workflow_dispatch:
+    inputs:
+      promote:
+        description: '切流量到新版本（不勾选＝只部署 GRAY 版本、0% 流量，线上保持当前版本）'
+        type: boolean
+        required: false
+        default: false
 
 # 部署互相排队，不中途取消（避免并发发布互相覆盖版本）
 concurrency:
@@ -45,70 +64,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ---------- 质量门：发布前必须通过 ----------
-  quality:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      # next build 收集 /sitemap.xml page data 时 site-config fail-closed 需此值；
-      # 与 Dockerfile 构建阶段 ENV 一致。
-      NEXT_PUBLIC_SITE_URL: https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
-    defaults:
-      run:
-        working-directory: payload-office-platform
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8.6.1
-
-      - name: Install deps
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Payload types & importmap
-        # payload-types.ts 被 gitignore，CI checkout 后不存在；typecheck/build 前必须
-        # 先生成（与 Dockerfile 构建阶段一致）。generate:types 只读 payload.config、
-        # 不连库，无 DB/secret 也安全。漏掉会让 typecheck 报 TS2307 Cannot find module
-        # '@/payload-types'，preflight 失败 -> deploy 不跑 -> 生产滞后。
-        run: pnpm generate:types && pnpm payload generate:importmap
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Unit tests
-        run: pnpm test
-
-      - name: 迁移预检（目录与索引一致性 + 危险项扫描）
-        # 绕过 npm script 的 --env-file=.env.local（CI 无该文件）；
-        # migrations 子命令纯扫描文件，不读 env。
-        run: pnpm exec tsx scripts/preflight.ts migrations
-
-      - name: Build（质量门：验证能构建通过，产物不上传）
-        run: pnpm build
-
   # ---------- 部署：灰度 -> 冒烟 -> 全量/回滚 ----------
+  # 质量门不在本文件里：lint / typecheck / test / build / 迁移预检 / e2e 全部由
+  # quality.yml 覆盖，本工作流只在它整体成功后才被触发（见顶部 on.workflow_run）。
   deploy:
-    needs: quality
+    # workflow_run 在上游失败/取消时同样会触发（types: [completed]），必须自行判定结论；
+    # 手动 workflow_dispatch 走人工确认，不受此限。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
       # 非交互模式：所有确认提示（telemetry 询问、--force 确认）自动按默认值走。
       # 否则 CI 无 tty，提示库收到 EOF 会以 exit 130 中断。
       CLOUDBASE_CI: '1'
+      # 是否把流量切到新版本。
+      #
+      # 默认 false，且**自动触发（workflow_run）一律为 false**：合并到 master 只会
+      # 构建并提交 GRAY 版本（0% 流量），线上继续由当前稳定版本承接。放量是显式动作，
+      # 需要在 Actions 页面手动触发本工作流并勾选 promote。
+      #
+      # 这样默认路径是安全的：新版本进了环境、可以单独验证，但不影响线上流量。
+      SHOULD_PROMOTE: ${{ github.event_name == 'workflow_dispatch' && inputs.promote }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # workflow_run 触发时 checkout 默认取默认分支最新提交，而不是触发它的那个
+          # commit —— 若期间又推了一次 master，部署的就不是刚过闸门的代码。下面的
+          # `git archive HEAD` 直接决定发布内容，因此必须显式钉到上游 run 的 head_sha。
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -238,6 +224,7 @@ jobs:
           jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
       - name: 等待新版本就绪 + 切 10% 灰度
+        if: env.SHOULD_PROMOTE == 'true'
         # 轮询部署记录，只有镜像构建、迁移、容器探针全部正常后才切流。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -307,6 +294,7 @@ jobs:
             --canary 10
 
       - name: Smoke test（灰度版本健康检查）
+        if: env.SHOULD_PROMOTE == 'true'
         id: smoke
         run: |
           # 灰度 10% 期间多次请求，提高命中新版本概率；
@@ -370,13 +358,13 @@ jobs:
           echo "✅ 冒烟通过"
 
       - name: Promote 全量发布
-        if: success()
+        if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic promote -s sbh
           echo "✅ 全量发布完成"
 
       - name: 全量发布后验证
-        if: success()
+        if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
           health=$(curl -sS --max-time 15 "$URL/api/health")
@@ -417,7 +405,8 @@ jobs:
           done
 
       - name: Rollback（冒烟或 promote 失败时切回稳定版本）
-        if: failure()
+        # 未放量时无需回滚：流量从未离开稳定版本，GRAY 版本自身失败不影响线上
+        if: failure() && env.SHOULD_PROMOTE == 'true'
         run: |
           echo "::error::发布失败，回滚流量到稳定版本"
           tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic rollback -s sbh || true

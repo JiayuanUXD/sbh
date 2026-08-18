@@ -1,6 +1,7 @@
 import type { ServerProps } from 'payload'
 
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
+import { canReadCollection } from '@/domain/admin-navigation/collection-read-access'
 import {
   resolveAdminNavigation,
   type ResolvedAdminNavGroup,
@@ -45,8 +46,7 @@ export default async function AdminNavigation({
     groups = resolveAdminNavigation({
       groups: ADMIN_NAV_GROUPS,
       permission,
-      canReadCollection: (slug) =>
-        permissions.collections?.[slug]?.read === true,
+      canReadCollection: (slug) => canReadCollection(permissions, slug),
     })
   } catch (caught) {
     const error = caught instanceof Error ? caught : new Error(String(caught))

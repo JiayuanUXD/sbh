@@ -72,7 +72,8 @@ test('city switch preserves universal filters and clears geography and page', as
   const menu = page.getByRole('menu', { name: '切换城市' })
   await expect(menu.getByRole('menuitem').first()).toBeFocused()
   await menu.getByRole('menuitem', { name: /杭州.*正在开通/ }).click()
-  await expect(page).toHaveURL(/\/hangzhou\/listings\?areaMin=100&rentMax=10$/)
+  // 输入用旧名 rentMax（已收录 URL 的形态），canonical 输出新名 priceMax
+  await expect(page).toHaveURL(/\/hangzhou\/listings\?areaMin=100&priceMax=10$/)
 
   await page.goBack()
   await trigger.click()

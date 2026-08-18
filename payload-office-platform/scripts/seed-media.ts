@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 import sharp from 'sharp'
 
 import config from '../src/payload.config'
+import { assertSeedTargetFromProcessEnv } from '../src/lib/runtime/seed-target-guard'
 
 // CI / 离线：不走外部网络（picsum.photos 慢且不稳），改用 sharp 本地合成纯色 JPEG。
 // 有效供给精筛只看 gallery.length（≥3），不校验图片内容，占位纯色图完全够用。
@@ -158,6 +159,10 @@ async function deleteAllMedia(payload: any): Promise<void> {
 }
 
 async function seedMedia() {
+  // 0) 目标环境守卫：必须排在 getPayload 之前。本脚本的每次上传都按同名 key 写对象存储，
+  //    指向生产桶就会静默覆盖线上素材（真实事故：生产 hero-bg.mp4 被 15KB 占位 fixture 顶掉）。
+  assertSeedTargetFromProcessEnv()
+
   const payload = await getPayload({ config })
 
   // 1) 清理旧占位图,避免媒体库堆积
@@ -195,6 +200,17 @@ async function seedMedia() {
     galleryMedia.push(media)
   }
   const detailGalleryVideo = await uploadDetailGalleryVideoFixture(payload)
+  // 平面图单独一张：mediaItems 里 kind='floor-plan' 不计入 gallery（有效供给 §6 只数图片），
+  // 复用室内细节图会让同一张图同时出现在「图片」和「平面图」两个分类里。
+  payload.logger.info('平面图: 楼层平面示意图')
+  const floorPlanMedia = await uploadMedia(
+    payload,
+    '楼层平面示意图',
+    'office-floor-plan-schematic',
+    GALLERY_W,
+    GALLERY_H,
+    'floor-plan-1',
+  )
 
   // 4) 挂载到 buildings
   payload.logger.info('将图片挂载到楼盘...')
@@ -259,19 +275,26 @@ async function seedMedia() {
     update.gallery = galleryMedia.map((m) => ({ image: m.id }))
     // 详情页焦点循环 E2E 需要一个真实的原生 video[controls]；仅稳定基准房源
     // 使用结构化媒体，其他房源仍沿用 legacy gallery。
+    //
+    // ⚠️ 结构化链路的 mediaItems 必须含 ≥3 条 kind='image'：syncListingMedia 会用
+    // mediaItems 里的图片覆盖上面写入的 gallery，而视频与平面图不计入有效供给 §6
+    // （supply-adapter 的 listings_gallery COUNT >= 3）。少于 3 张 → 房源被精筛剔除
+    // → 详情页 404 → 全部 detail-* E2E 连带失败。
     if (listing.slug === 'jingan-serviced-office-42-seats') {
       update.mediaItems = [
         { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
         { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
         { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+        { resource: galleryMedia[2].id, kind: 'image', category: 'common-area', alt: '共享休闲区' },
       ]
     } else if (listing.slug === 'media-rich-listing') {
       // P1 Task 4：图片 + 视频 + 平面图（示意图）三类媒体，供 detail-media E2E 验证。
       update.mediaItems = [
         { resource: galleryMedia[0].id, kind: 'image', category: 'workspace', alt: '现代办公区' },
         { resource: galleryMedia[1].id, kind: 'image', category: 'meeting-room', alt: '精装会议室' },
+        { resource: galleryMedia[2].id, kind: 'image', category: 'common-area', alt: '共享休闲区' },
         { resource: detailGalleryVideo.id, kind: 'video', category: 'common-area', alt: '媒体画廊视频样本' },
-        { resource: galleryMedia[2].id, kind: 'floor-plan', category: 'workspace', alt: '平面图示意图', isSchematic: true },
+        { resource: floorPlanMedia.id, kind: 'floor-plan', category: 'workspace', alt: '平面图示意图', isSchematic: true },
       ]
     } else {
       update.mediaItems = []

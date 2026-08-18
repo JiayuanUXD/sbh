@@ -90,105 +90,125 @@ export const Tasks: CollectionConfig = {
   },
   fields: [
     {
-      name: 'taskType',
-      label: '任务类型',
-      type: 'select',
-      required: true,
-      options: TASK_TYPES.map((value) => ({
-        value,
-        label: TASK_TYPE_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        description: '6 种任务类型：审核 / 举报分诊 / 未分配线索 / 首次跟进 / 下次跟进 / 房源维护。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'taskType',
+          label: '任务类型',
+          type: 'select',
+          required: true,
+          options: TASK_TYPES.map((value) => ({
+            value,
+            label: TASK_TYPE_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            description: '6 种任务类型：审核 / 举报分诊 / 未分配线索 / 首次跟进 / 下次跟进 / 房源维护。',
+          },
+        },
+        {
+          name: 'sourceId',
+          label: '来源 ID',
+          type: 'text',
+          required: true,
+          index: true,
+          admin: {
+            description: '来源业务对象 ID（如审核记录 ID / 举报 ID / 线索 ID / 跟进 ID / 房源 ID）。',
+          },
+        },
+      ],
     },
     {
-      name: 'sourceId',
-      label: '来源 ID',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        description: '来源业务对象 ID（如审核记录 ID / 举报 ID / 线索 ID / 跟进 ID / 房源 ID）。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'sourceVersion',
+          label: '来源版本',
+          type: 'number',
+          required: true,
+          defaultValue: 1,
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '来源版本号（与 taskType / sourceId 共同构成幂等键）。',
+          },
+        },
+        {
+          name: 'sourceType',
+          label: '来源类型',
+          type: 'select',
+          required: true,
+          options: TASK_SOURCE_TYPES.map((value) => ({
+            value,
+            label: TASK_SOURCE_TYPE_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '来源业务对象类型，由 taskType 派生（protect hook 自动填充）。',
+          },
+        },
+      ],
     },
     {
-      name: 'sourceVersion',
-      label: '来源版本',
-      type: 'number',
-      required: true,
-      defaultValue: 1,
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '来源版本号（与 taskType / sourceId 共同构成幂等键）。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'assignee',
+          label: '负责人',
+          type: 'relationship',
+          relationTo: 'users',
+          index: true,
+          admin: {
+            description: '任务负责人（领取 / 转派后指派）。',
+          },
+        },
+        {
+          name: 'team',
+          label: '团队',
+          type: 'relationship',
+          relationTo: 'teams',
+          index: true,
+          admin: {
+            description: '任务所属团队（用于团队数据范围收窄）。',
+          },
+        },
+      ],
     },
     {
-      name: 'sourceType',
-      label: '来源类型',
-      type: 'select',
-      required: true,
-      options: TASK_SOURCE_TYPES.map((value) => ({
-        value,
-        label: TASK_SOURCE_TYPE_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '来源业务对象类型，由 taskType 派生（protect hook 自动填充）。',
-      },
-    },
-    {
-      name: 'assignee',
-      label: '负责人',
-      type: 'relationship',
-      relationTo: 'users',
-      index: true,
-      admin: {
-        description: '任务负责人（领取 / 转派后指派）。',
-      },
-    },
-    {
-      name: 'team',
-      label: '团队',
-      type: 'relationship',
-      relationTo: 'teams',
-      index: true,
-      admin: {
-        description: '任务所属团队（用于团队数据范围收窄）。',
-      },
-    },
-    {
-      name: 'priority',
-      label: '优先级',
-      type: 'select',
-      required: true,
-      defaultValue: 'normal',
-      options: TASK_PRIORITIES.map((value) => ({
-        value,
-        label: TASK_PRIORITY_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        description: 'urgent > high > normal > low，决定排序和处理紧急度。',
-      },
-    },
-    {
-      name: 'status',
-      label: '状态',
-      type: 'select',
-      defaultValue: 'pending',
-      options: TASK_STATUSES.map((value) => ({
-        value,
-        label: TASK_STATUS_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '由 task-service 推导，不接受外部直接指定。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'priority',
+          label: '优先级',
+          type: 'select',
+          required: true,
+          defaultValue: 'normal',
+          options: TASK_PRIORITIES.map((value) => ({
+            value,
+            label: TASK_PRIORITY_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            description: 'urgent > high > normal > low，决定排序和处理紧急度。',
+          },
+        },
+        {
+          name: 'status',
+          label: '状态',
+          type: 'select',
+          defaultValue: 'pending',
+          options: TASK_STATUSES.map((value) => ({
+            value,
+            label: TASK_STATUS_LABELS[value],
+          })),
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '由 task-service 推导，不接受外部直接指定。',
+          },
+        },
+      ],
     },
     {
       name: 'dueAt',
@@ -204,56 +224,77 @@ export const Tasks: CollectionConfig = {
       },
     },
     {
-      name: 'completedAt',
-      label: '完成时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        date: {
-          displayFormat: 'yyyy-MM-dd HH:mm:ss',
+      // 只读闭环信息默认折叠：日常处理任务不需要看，排查时展开
+      type: 'collapsible',
+      label: '完成与取消记录（只读）',
+      admin: { initCollapsed: true },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'completedAt',
+              label: '完成时间',
+              type: 'date',
+              admin: {
+                readOnly: true,
+                date: {
+                  displayFormat: 'yyyy-MM-dd HH:mm:ss',
+                },
+                description: '任务完成时间（completed 状态时填写）。',
+              },
+            },
+            {
+              name: 'cancelledAt',
+              label: '取消时间',
+              type: 'date',
+              admin: {
+                readOnly: true,
+                date: {
+                  displayFormat: 'yyyy-MM-dd HH:mm:ss',
+                },
+                description: '任务取消时间（cancelled 状态时填写）。',
+              },
+            },
+          ],
         },
-        description: '任务完成时间（completed 状态时填写）。',
-      },
-    },
-    {
-      name: 'cancelledAt',
-      label: '取消时间',
-      type: 'date',
-      admin: {
-        readOnly: true,
-        date: {
-          displayFormat: 'yyyy-MM-dd HH:mm:ss',
+        {
+          name: 'cancellationReason',
+          label: '取消原因',
+          type: 'textarea',
+          admin: {
+            readOnly: true,
+            description: '取消任务时必填，记录来源取消事件或人工取消原因。',
+          },
         },
-        description: '任务取消时间（cancelled 状态时填写）。',
-      },
+        {
+          name: 'completionEventId',
+          label: '完成事件 ID',
+          type: 'text',
+          index: true,
+          admin: {
+            readOnly: true,
+            description: '完成时关联的来源 domain event ID（Outbox event_id），用于审计回溯。',
+          },
+        },
+      ],
     },
     {
-      name: 'cancellationReason',
-      label: '取消原因',
-      type: 'textarea',
-      admin: {
-        readOnly: true,
-        description: '取消任务时必填，记录来源取消事件或人工取消原因。',
-      },
-    },
-    {
-      name: 'completionEventId',
-      label: '完成事件 ID',
-      type: 'text',
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '完成时关联的来源 domain event ID（Outbox event_id），用于审计回溯。',
-      },
-    },
-    {
-      name: 'metadata',
-      label: '扩展元数据',
-      type: 'json',
-      admin: {
-        readOnly: true,
-        description: 'buildTask 产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。',
-      },
+      // 只读扩展元数据默认折叠：仅审计与下钻时需要
+      type: 'collapsible',
+      label: '扩展元数据（只读）',
+      admin: { initCollapsed: true },
+      fields: [
+        {
+          name: 'metadata',
+          label: '扩展元数据',
+          type: 'json',
+          admin: {
+            readOnly: true,
+            description: 'buildTask 产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。',
+          },
+        },
+      ],
     },
   ],
 }

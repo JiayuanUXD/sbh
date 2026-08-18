@@ -28,33 +28,38 @@ export const Customers: CollectionConfig = {
       ],
     },
     {
-      name: 'phoneNormalized',
-      label: '规范化手机号',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        description: '规范化后的手机号，用于 30 天窗口查重（不作为业务主键）。',
-      },
-    },
-    {
-      name: 'phoneMaskedSnapshot',
-      label: '脱敏手机号',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '脱敏快照（如 138****1111），供列表展示，不含完整号码。',
-      },
-    },
-    {
-      name: 'status',
-      label: '客户状态',
-      type: 'select',
-      defaultValue: 'active',
-      options: [
-        { label: '活跃', value: 'active' },
-        { label: '已成交', value: 'converted' },
-        { label: '流失', value: 'lost' },
+      type: 'row',
+      fields: [
+        {
+          name: 'phoneNormalized',
+          label: '规范化手机号',
+          type: 'text',
+          required: true,
+          index: true,
+          admin: {
+            description: '规范化后的手机号，用于 30 天窗口查重（不作为业务主键）。',
+          },
+        },
+        {
+          name: 'phoneMaskedSnapshot',
+          label: '脱敏手机号',
+          type: 'text',
+          admin: {
+            readOnly: true,
+            description: '脱敏快照（如 138****1111），供列表展示，不含完整号码。',
+          },
+        },
+        {
+          name: 'status',
+          label: '客户状态',
+          type: 'select',
+          defaultValue: 'active',
+          options: [
+            { label: '活跃', value: 'active' },
+            { label: '已成交', value: 'converted' },
+            { label: '流失', value: 'lost' },
+          ],
+        },
       ],
     },
   ],

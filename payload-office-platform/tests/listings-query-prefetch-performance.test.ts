@@ -55,7 +55,7 @@ describe('OPT-026 route cache and prefetch contracts', () => {
 
     const firstPageKey = buildListingSearchSourceCacheKey(base)
     const secondPageKey = buildListingSearchSourceCacheKey({ ...base, page: 2 })
-    const differentSortKey = buildListingSearchSourceCacheKey({ ...base, sort: 'rent-asc' })
+    const differentSortKey = buildListingSearchSourceCacheKey({ ...base, sort: 'price-asc' })
     const differentFilterKey = buildListingSearchSourceCacheKey({
       ...base,
       listingType: ['serviced-office'],

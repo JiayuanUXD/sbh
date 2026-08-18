@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
 import { withAudit } from '@/domain/audit/with-audit'
+import { checkListingCompleteness } from '@/domain/review/listing-completeness'
 import {
   canTransitionReview,
   isReviewDecision,
@@ -19,7 +20,7 @@ import { InvalidOperationError } from '@/domain/shared/errors'
  * 房源审核决策 endpoint（tasks.md M4.6 / M4.4 / design §3.5 / R4, R8）
  *
  * POST /api/listings/:id/review  body { decision, reason?, expectedVersion? }
- *   decision ∈ submit | withdraw | approve | reject
+ *   decision ∈ submit | withdraw | approve | reject | fast_track
  *
  * 语义（design §3.5 listing_reviews 事件溯源）：
  *   - 审核轴独立于发布轴。本端点**只改 reviewStatus**，绝不写 publicationStatus
@@ -52,9 +53,17 @@ export function createListingReviewDecisionEndpoint(): Endpoint {
         return Response.json({ ok: false, error: '非法审核动作' }, { status: 400 })
       }
 
-      // 2. 鉴权：所有审核动作要 listing:review
+      // 2. 鉴权：所有审核动作要 listing:review；免审直发再加一道专属权限
       try {
         await requireOperationPermission(req as RequestContext, 'listing:review')
+        if (decision === 'fast_track') {
+          // 单独的权限码而不是复用 listing:review：直发绕过了「另一个人复核」这道
+          // 组织约束，应当只授予少数人，而不是所有能审核的人自动获得。
+          await requireOperationPermission(
+            req as RequestContext,
+            'listing:fast_track_review',
+          )
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : '权限不足'
         const status = message.includes('未登录') ? 401 : 403
@@ -125,6 +134,37 @@ export function createListingReviewDecisionEndpoint(): Endpoint {
       // 8. 服务端推导快照 / 哈希 / 任务状态（绝不信任外部传入）
       const snapshot = buildListingSnapshot(listing)
       const snapshotHash = computeSnapshotHash(snapshot)
+
+      // 8.1 免审直发仍要过质量底线。
+      //
+      // 直发省掉的是「人工点通过」，不是「可以上架残缺房源」。放行不达标的房源会
+      // 造出一批「后台显示已发布、前台 404」的幽灵——有效供给精筛按媒体数等条件
+      // 实时判定，不达标会被静默撤下，而发布状态不会跟着变，事后极难排查。
+      //
+      // 这里是目前唯一在服务端跑完整度校验的地方：常规 submit 流程的完整度拦截只在
+      // 后台 UI（ListingReviewQueue），服务端没有兜底。直发既然跳过了那层 UI，就必须
+      // 自己把关。
+      if (decision === 'fast_track') {
+        const completeness = checkListingCompleteness(
+          {
+            ...snapshot,
+            hasValidMerchantRelation: snapshot.merchant != null,
+          },
+          'submit',
+        )
+        if (!completeness.complete) {
+          return Response.json(
+            {
+              ok: false,
+              error: '房源信息不完整，无法免审直发',
+              code: 'INCOMPLETE_LISTING',
+              missing: completeness.missing,
+              score: completeness.score,
+            },
+            { status: 422 },
+          )
+        }
+      }
       const taskStatus = taskStatusForDecision(decision)
       const nowIso = new Date().toISOString()
       const rawUserId = (req.user as { id?: unknown } | null)?.id

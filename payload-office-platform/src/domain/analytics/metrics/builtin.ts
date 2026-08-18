@@ -24,6 +24,7 @@ import {
   countListingsPendingReview,
   countListingsPublished,
   countListingsRented,
+  countListingsSold,
   countListingsRejected,
   countListingsTotal,
   distributionListingsByCity,
@@ -203,6 +204,27 @@ const listingMetrics: MetricDefinition[] = [
       filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
     },
     query: countListingsRented,
+  },
+  {
+    // 与 listings.rented 并列而非合并：运营要分别回答「租出去几套」「卖出去几套」，
+    // 合成一个「已成交」会把这两个完全不同量级的业务揉在一起。
+    code: 'listings.sold',
+    label: '已售出房源',
+    description: 'publicationStatus=sold 的房源数量',
+    category: 'listing',
+    unit: 'count',
+    dedup: 'distinct:id',
+    timeRange: 'snapshot',
+    requiredPermissions: ['listing:read'],
+    allowedScopeDims: ['city', 'team', 'merchant'],
+    cacheTtlMs: 60_000,
+    drilldown: {
+      target: 'collection-list',
+      collection: 'listings',
+      pathTemplate: '/admin/collections/listings?publicationStatus=sold&{{filter_keys}}',
+      filterKeys: ['cityIds', 'teamIds', 'merchantIds'],
+    },
+    query: countListingsSold,
   },
   {
     code: 'listings.completeness_below_80',

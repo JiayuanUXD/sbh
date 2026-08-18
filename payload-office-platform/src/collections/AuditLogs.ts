@@ -58,6 +58,16 @@ export const AuditLogs: CollectionConfig = {
     ],
     description:
       '追加式审计日志：记录所有高风险业务动作。只允许查看和追加，禁止修改或删除。查看详情和导出本身也会被审计。',
+    components: {
+      // 整页替换默认列表视图（后台表单优化 · 抽屉交互第一批）：
+      // 23 字段全只读的详情改为「列表 + 抽屉分组展示」，避免点进整页编辑视图的长滚动。
+      // before/after 脱敏与查看审计仍由服务端 hook 强制（见 AuditLogList 注释）。
+      views: {
+        list: {
+          Component: '/components/admin/AuditLogList',
+        },
+      },
+    },
   },
   access: {
     ...createCollectionAccess({
@@ -75,79 +85,290 @@ export const AuditLogs: CollectionConfig = {
     afterRead: [...createFieldMaskHooks(getAuditMaskRules()), auditLogAfterRead],
   },
   fields: [
+    // 编辑视图分 tab（后台表单优化第二批）：常规排查只看核心信息；
+    // 快照 / 请求上下文 / 错误详情归入「诊断信息」， unnamed tab 纯布局不影响 schema。
     {
-      name: 'auditId',
-      label: '审计日志 ID',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '稳定唯一 ID（aud_ 前缀，nanoid 风格）。',
-      },
-    },
-    {
-      name: 'action',
-      label: '动作',
-      type: 'select',
-      required: true,
-      options: AUDIT_ACTIONS.map((value) => ({
-        value,
-        label: AUDIT_ACTION_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '审计动作类型枚举。',
-      },
-    },
-    {
-      name: 'result',
-      label: '结果',
-      type: 'select',
-      required: true,
-      options: AUDIT_RESULTS.map((value) => ({
-        value,
-        label: AUDIT_RESULT_LABELS[value],
-      })),
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '操作结果：success / failed。',
-      },
-    },
-    {
-      name: 'objectCollection',
-      label: '对象集合',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '被操作对象所属 Collection（listings / buildings / leads ...）。',
-      },
-    },
-    {
-      name: 'objectId',
-      label: '对象 ID',
-      type: 'text',
-      required: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '被操作对象 ID（字符串形式，兼容 number / uuid）。',
-      },
-    },
-    {
-      name: 'objectVersion',
-      label: '对象版本',
-      type: 'number',
-      required: true,
-      admin: {
-        readOnly: true,
-        description: '操作时对象的版本号（乐观锁）。',
-      },
+      type: 'tabs',
+      tabs: [
+        {
+          label: '核心信息',
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'auditId',
+                  label: '审计日志 ID',
+                  type: 'text',
+                  required: true,
+                  unique: true,
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '稳定唯一 ID（aud_ 前缀，nanoid 风格）。',
+                  },
+                },
+                {
+                  name: 'action',
+                  label: '动作',
+                  type: 'select',
+                  required: true,
+                  options: AUDIT_ACTIONS.map((value) => ({
+                    value,
+                    label: AUDIT_ACTION_LABELS[value],
+                  })),
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '审计动作类型枚举。',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'result',
+                  label: '结果',
+                  type: 'select',
+                  required: true,
+                  options: AUDIT_RESULTS.map((value) => ({
+                    value,
+                    label: AUDIT_RESULT_LABELS[value],
+                  })),
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '操作结果：success / failed。',
+                  },
+                },
+                {
+                  name: 'occurredAt',
+                  label: '发生时间',
+                  type: 'date',
+                  required: true,
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    date: {
+                      displayFormat: 'yyyy-MM-dd HH:mm:ss',
+                    },
+                    description: '操作发生时间（UTC 存储，Asia/Shanghai 显示）。',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'objectCollection',
+                  label: '对象集合',
+                  type: 'text',
+                  required: true,
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '被操作对象所属 Collection（listings / buildings / leads ...）。',
+                  },
+                },
+                {
+                  name: 'objectId',
+                  label: '对象 ID',
+                  type: 'text',
+                  required: true,
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '被操作对象 ID（字符串形式，兼容 number / uuid）。',
+                  },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'objectVersion',
+                  label: '对象版本',
+                  type: 'number',
+                  required: true,
+                  admin: {
+                    readOnly: true,
+                    description: '操作时对象的版本号（乐观锁）。',
+                  },
+                },
+                {
+                  name: 'eventId',
+                  label: '关联事件 ID',
+                  type: 'text',
+                  index: true,
+                  admin: {
+                    readOnly: true,
+                    description: '关联的领域事件 ID（如已写入 Outbox）。',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'changedFields',
+              label: '变更字段',
+              type: 'json',
+              admin: {
+                readOnly: true,
+                description: '本次变更的字段路径列表（如 ["stage", "assigneeId"]）。',
+              },
+            },
+          ],
+        },
+        {
+          label: '诊断信息',
+          description: '追责复核与跨日志排查时才需要的快照与请求上下文。',
+          fields: [
+            {
+              // 操作人快照：追责/复核时才看，默认折叠
+              type: 'collapsible',
+              label: '操作人快照（只读）',
+              admin: { initCollapsed: true },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'subjectUserId',
+                      label: '操作人 ID',
+                      type: 'text',
+                      index: true,
+                      admin: {
+                        readOnly: true,
+                        description: '操作人账号 ID。系统动作时为 null。',
+                      },
+                    },
+                    {
+                      name: 'subjectTeamId',
+                      label: '操作人团队',
+                      type: 'text',
+                      admin: {
+                        readOnly: true,
+                        description: '操作时的所属团队 ID（如有）。',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'subjectRoleCodes',
+                  label: '操作人角色',
+                  type: 'json',
+                  admin: {
+                    readOnly: true,
+                    description: '操作时的角色编码列表（写入时锁定，不随后续权限变更漂移）。',
+                  },
+                },
+                {
+                  name: 'subjectCityScope',
+                  label: '操作人城市范围',
+                  type: 'json',
+                  admin: {
+                    readOnly: true,
+                    description: '操作时的城市范围快照（["all"] 或城市 ID 数组）。',
+                  },
+                },
+              ],
+            },
+            {
+              // 请求上下文：跨日志关联排查时才看，默认折叠
+              type: 'collapsible',
+              label: '请求上下文（只读）',
+              admin: { initCollapsed: true },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'requestId',
+                      label: '请求 ID',
+                      type: 'text',
+                      index: true,
+                      admin: {
+                        readOnly: true,
+                        description: '请求追踪 ID（x-request-id），用于跨日志关联同一请求内的多次操作。',
+                      },
+                    },
+                    {
+                      name: 'method',
+                      label: 'HTTP 方法',
+                      type: 'text',
+                      admin: {
+                        readOnly: true,
+                        description: 'HTTP 请求方法（GET / POST / PUT / DELETE）。',
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'ip',
+                      label: '客户端 IP',
+                      type: 'text',
+                      admin: {
+                        readOnly: true,
+                        description: '客户端 IP（x-forwarded-for 第一跳）。',
+                      },
+                    },
+                    {
+                      name: 'path',
+                      label: '请求路径',
+                      type: 'text',
+                      admin: {
+                        readOnly: true,
+                        description: '请求 URL 路径（不含 query）。',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'userAgent',
+                  label: '客户端 UA',
+                  type: 'textarea',
+                  admin: {
+                    readOnly: true,
+                    description: '客户端 User-Agent。',
+                  },
+                },
+              ],
+            },
+            {
+              // 错误详情：result=failed 时才相关，默认折叠
+              type: 'collapsible',
+              label: '错误详情（只读）',
+              admin: { initCollapsed: true },
+              fields: [
+                {
+                  name: 'errorCode',
+                  label: '错误码',
+                  type: 'text',
+                  admin: {
+                    readOnly: true,
+                    description: '操作失败时的错误码（result=failed 时有值）。',
+                  },
+                },
+                {
+                  name: 'errorMessage',
+                  label: '错误信息',
+                  type: 'textarea',
+                  admin: {
+                    readOnly: true,
+                    description: '操作失败时的错误信息（result=failed 时有值）。',
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'before',
@@ -167,140 +388,6 @@ export const AuditLogs: CollectionConfig = {
         readOnly: true,
         description: '变更后对象快照（create / update 时有值）。需 audit:before_after 权限可见。',
         position: 'sidebar',
-      },
-    },
-    {
-      name: 'changedFields',
-      label: '变更字段',
-      type: 'json',
-      admin: {
-        readOnly: true,
-        description: '本次变更的字段路径列表（如 ["stage", "assigneeId"]）。',
-      },
-    },
-    {
-      name: 'subjectUserId',
-      label: '操作人 ID',
-      type: 'text',
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '操作人账号 ID。系统动作时为 null。',
-      },
-    },
-    {
-      name: 'subjectRoleCodes',
-      label: '操作人角色',
-      type: 'json',
-      admin: {
-        readOnly: true,
-        description: '操作时的角色编码列表（写入时锁定，不随后续权限变更漂移）。',
-      },
-    },
-    {
-      name: 'subjectTeamId',
-      label: '操作人团队',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '操作时的所属团队 ID（如有）。',
-      },
-    },
-    {
-      name: 'subjectCityScope',
-      label: '操作人城市范围',
-      type: 'json',
-      admin: {
-        readOnly: true,
-        description: '操作时的城市范围快照（"all" 或城市 ID 数组）。',
-      },
-    },
-    {
-      name: 'requestId',
-      label: '请求 ID',
-      type: 'text',
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '请求追踪 ID（x-request-id），用于跨日志关联同一请求内的多次操作。',
-      },
-    },
-    {
-      name: 'ip',
-      label: '客户端 IP',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '客户端 IP（x-forwarded-for 第一跳）。',
-      },
-    },
-    {
-      name: 'userAgent',
-      label: '客户端 UA',
-      type: 'textarea',
-      admin: {
-        readOnly: true,
-        description: '客户端 User-Agent。',
-      },
-    },
-    {
-      name: 'method',
-      label: 'HTTP 方法',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: 'HTTP 请求方法（GET / POST / PUT / DELETE）。',
-      },
-    },
-    {
-      name: 'path',
-      label: '请求路径',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '请求 URL 路径（不含 query）。',
-      },
-    },
-    {
-      name: 'errorCode',
-      label: '错误码',
-      type: 'text',
-      admin: {
-        readOnly: true,
-        description: '操作失败时的错误码（result=failed 时有值）。',
-      },
-    },
-    {
-      name: 'errorMessage',
-      label: '错误信息',
-      type: 'textarea',
-      admin: {
-        readOnly: true,
-        description: '操作失败时的错误信息（result=failed 时有值）。',
-      },
-    },
-    {
-      name: 'eventId',
-      label: '关联事件 ID',
-      type: 'text',
-      index: true,
-      admin: {
-        readOnly: true,
-        description: '关联的领域事件 ID（如已写入 Outbox）。',
-      },
-    },
-    {
-      name: 'occurredAt',
-      label: '发生时间',
-      type: 'date',
-      required: true,
-      index: true,
-      admin: {
-        readOnly: true,
-        date: {
-          displayFormat: 'yyyy-MM-dd HH:mm:ss',
-        },
-        description: '操作发生时间（UTC 存储，Asia/Shanghai 显示）。',
       },
     },
     {

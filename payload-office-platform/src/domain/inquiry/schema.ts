@@ -14,6 +14,7 @@
  * 不依赖 payload / React，纯函数可独立单测。
  */
 
+import type { PriceDisplayUnit } from '@/domain/public-catalog/contracts'
 import { normalizePhone, isValidCnMobile } from '@/domain/shared/phone'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
@@ -35,18 +36,57 @@ export const SOURCE_SECTIONS = [
 ] as const
 export type SourceSection = (typeof SOURCE_SECTIONS)[number]
 
+/** 入口区块中文标签（用于后台展示） */
+export const SOURCE_SECTION_LABELS: Record<SourceSection, string> = {
+  hero: '首屏主区',
+  'sticky-card': '侧边悬浮卡',
+  'mobile-bar': '移动端底栏',
+  'supply-lease': '租赁供给区',
+  'supply-sale': '出售供给区',
+  'supply-coworking': '共享办公供给区',
+  recommendation: '推荐区',
+}
+
 /** 楼盘详情供给分组，与 Public Catalog DTO 保持一致。 */
 export const SUPPLY_GROUPS = ['lease', 'sale', 'coworking'] as const
 export type InquirySupplyGroup = (typeof SUPPLY_GROUPS)[number]
 
-/** 公开价格展示单位；询盘只接受该有限枚举，绝不接收自由文本。 */
+/** 供给分组中文标签（用于后台展示） */
+export const SUPPLY_GROUP_LABELS: Record<InquirySupplyGroup, string> = {
+  lease: '租赁',
+  sale: '出售',
+  coworking: '共享办公',
+}
+
+/**
+ * 公开价格展示单位；询盘只接受该有限枚举，绝不接收自由文本。
+ *
+ * 必须与 `PriceDisplayUnit`（public-catalog 契约）完全一致——询盘快照记录的是
+ * 用户当时在页面上看到的价格，两侧不同步会让快照带上前台不存在的单位。下方的
+ * 编译期断言在任一侧增删取值时立刻报错。
+ */
 export const PRICE_UNITS = [
   'rmb-sqm-day',
-  'rmb-month',
+  'rmb-sqm-month',
+  'rmb-sqm-year',
+  'rmb-sqm-total',
+  'rmb-seat-day',
   'rmb-seat-month',
+  'rmb-seat-year',
+  'rmb-seat-total',
+  'rmb-day',
+  'rmb-month',
+  'rmb-year',
   'rmb-total',
 ] as const
 export type InquiryPriceUnit = (typeof PRICE_UNITS)[number]
+
+/** 编译期断言：T 必须为 never，否则报错并把差集显示在错误信息里。 */
+type AssertNever<T extends never> = T
+/** 询盘白名单漏了 public-catalog 有的单位 → 此处报错 */
+type _NoMissingPriceUnit = AssertNever<Exclude<PriceDisplayUnit, InquiryPriceUnit>>
+/** 询盘白名单多了 public-catalog 没有的单位 → 此处报错 */
+type _NoExtraPriceUnit = AssertNever<Exclude<InquiryPriceUnit, PriceDisplayUnit>>
 
 /**
  * 非权威询盘价格快照的绝对上限（CNY）。

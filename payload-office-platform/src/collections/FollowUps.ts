@@ -100,31 +100,36 @@ export const FollowUps: CollectionConfig = {
       },
     },
     {
-      name: 'nextFollowUpAt',
-      label: '下次跟进时间',
-      type: 'date',
-      admin: {
-        date: { pickerAppearance: 'dayAndTime' },
-      },
-    },
-    {
-      name: 'correctionOf',
-      label: '纠正的原记录',
-      type: 'relationship',
-      relationTo: 'follow-ups',
-      admin: {
-        description: '24 小时内纠错时指向被纠正的原跟进记录（追加式，原记录不改）。',
-      },
-    },
-    {
-      name: 'version',
-      label: '版本号',
-      type: 'number',
-      defaultValue: 1,
-      admin: {
-        readOnly: true,
-        description: '记录自身版本（append-only，恒为 1）。',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'nextFollowUpAt',
+          label: '下次跟进时间',
+          type: 'date',
+          admin: {
+            date: { pickerAppearance: 'dayAndTime' },
+          },
+        },
+        {
+          name: 'correctionOf',
+          label: '纠正的原记录',
+          type: 'relationship',
+          relationTo: 'follow-ups',
+          admin: {
+            description: '24 小时内纠错时指向被纠正的原跟进记录（追加式，原记录不改）。',
+          },
+        },
+        {
+          name: 'version',
+          label: '版本号',
+          type: 'number',
+          defaultValue: 1,
+          admin: {
+            readOnly: true,
+            description: '记录自身版本（append-only，恒为 1）。',
+          },
+        },
+      ],
     },
   ],
 }

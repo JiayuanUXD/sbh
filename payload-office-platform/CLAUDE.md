@@ -50,6 +50,12 @@ pnpm build
 - **短命分支 + 勤 rebase**：分支活 1–3 天，常 `git rebase origin/master`，把大冲突拆成每天的小冲突。
 - **早开 draft PR**：让 `quality.yml` 尽早在小改动上跑，别攒到最后一起爆（CI 坑常只在 PR 才触发）。
 - **真正"在写"的任务 ≤ 2 件**；有依赖关系的任务串行做，别并行。
+- **worktree 路径要短，别嵌太深**：`next build` / `next dev` 报几十条 `Module not found`（而包在 `node_modules` 里明明存在）时，先量路径长度，不要去查依赖。Windows 260 字符上限 + pnpm `.pnpm/` 里带 peer 哈希的超长目录名，很容易把 `<worktree>/payload-office-platform/node_modules/.pnpm/<长包名>/node_modules/<pkg>/dist/...` 顶爆；Node（tsc / vitest / tsx / seed）走长路径 API 不受影响，**Rust 写的 Turbopack 会直接解析失败**——所以"测试和 typecheck 全绿、只有构建炸"就是这个坑的典型指纹。**解法就一条：worktree 建在 `E:\wt-<短名>` 这类根级短路径**（`git worktree add` 的路径可以随便挑，不必放仓库里）。实测：79 字符的 worktree 路径 → 最深文件 272 字符 → 45 个 `Module not found`；主树 37 字符 → 正常。
+- **别试图用 `.npmrc` 绕过路径长度**（两条路都实测过，各有硬伤，别重复踩）：
+  - `virtual-store-dir=C:\pv`：45 个错降到 1 个，但包的真实路径全跑到项目根之外，Turbopack **拒绝编译项目目录外的文件**（`next.config.ts` 里 `turbopack.root` 早已设为 `import.meta.dirname`，救不了）。
+  - `node-linker=hoisted`：最深路径 272→234 落回 260 内，45 个错也降到 1 个，但 `--frozen-lockfile` 下**丢失传递依赖** `react-number-format`（默认布局有、hoisted 布局整个包不存在）。要修得重生成 lockfile，波及 CI 与 Dockerfile——为本地便利改全员依赖布局，不划算。
+  - 真要根治，正路是把 pnpm 升到 ≥9.1 用 `virtual-store-dir-max-length`（store 留在项目内、只缩短目录名，不触发上面两个问题）。仓库 `packageManager` 现钉 8.6.1，升级要连 lockfile 版本一起过 CI 与 Dockerfile，属单独工作项。
+- **`git` 的长路径要单独开**，和 Windows 内核那个开关是两回事：`LongPathsEnabled=1` 已在本机开启，但 git for Windows 走 MSYS 运行时不吃它，于是 `git worktree remove` / `rm -rf` 会报 `Filename too long`（真实教训：一个 955M 的残留 worktree 删不掉）。每台机器执行一次即可：`git config --global core.longpaths true`。注意它只影响 git 自己，**修不了上面 Turbopack 那类构建失败**。
 
 ## 数据库（关键，别踩）
 

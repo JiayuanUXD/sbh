@@ -427,8 +427,11 @@ export default buildConfig({
       overrideExportCollection: overrideExportsCollection,
       overrideImportCollection: overrideImportsCollection,
     }),
-    // Audit fields:给业务 collection 注入 createdBy / lastModifiedBy 追踪字段
+    // Audit fields:已关闭（enabled: false）——sidebar 的「最后修改人」占据约 1/3 表单宽度,
+    // 短期价值低;移除 enabled: false 即可恢复 createdBy / lastModifiedBy 注入与展示。
+    // 注意:关闭后新保存不再写入这两字段,DB 列与存量数据保留,重新启用即续写。
     auditFieldsPlugin({
+      enabled: false,
       excludedCollections: [
         'users',
         'locations',

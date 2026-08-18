@@ -112,7 +112,8 @@ test.describe('multi-city route ownership', () => {
       await expectRedirect(
         request,
         '/listings?district=pudong&areaMin=100&page=3&rentMax=10',
-        '/shanghai/listings?areaMin=100&rentMax=10',
+        // 输入 rentMax（旧名，仍被解析），canonical 收敛为 priceMax
+        '/shanghai/listings?areaMin=100&priceMax=10',
       )
       return
     }
@@ -166,8 +167,8 @@ test.describe('multi-city route ownership', () => {
     await expectCanonical(
       page,
       routingEnabled
-        ? '/shanghai/listings?district=pudong&areaMin=100&rentMax=10&page=3'
-        : '/listings?district=pudong&areaMin=100&rentMax=10&page=3',
+        ? '/shanghai/listings?district=pudong&areaMin=100&priceMax=10&page=3'
+        : '/listings?district=pudong&areaMin=100&priceMax=10&page=3',
     )
   })
 })
