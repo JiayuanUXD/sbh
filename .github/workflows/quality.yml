@@ -8,8 +8,8 @@ on:
       - 'payload-office-platform/**'
       - '!payload-office-platform/**/*.md'
       - '.github/workflows/quality.yml'
-      # deploy.yml 现在由本工作流的 workflow_run 触发；只改 deploy.yml 时也必须让
-      # 本工作流跑起来，否则部署链路永远不会被触发（见 deploy.yml 顶部说明）。
+      # deploy.yml 改动也要跑本工作流：production-deploy-config.test.ts 对它下了断言
+      # （流量门、构建失败判定、触发方式），只改 deploy.yml 时这些断言必须有机会跑。
       - '.github/workflows/deploy.yml'
   # master 直推也跑质量闸门。此前只在 PR 触发，导致 2026-08-13~08-15 期间三个缺陷
   # 同时潜伏两周无人发现（种子迁移打不到空库、multi-city-forms 无条件读 .env.local、
