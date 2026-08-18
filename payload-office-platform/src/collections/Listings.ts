@@ -29,6 +29,7 @@ import {
   REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
+import { getSaleChannelEnabled } from '@/lib/frontend/site-config'
 import {
   MIN_SUBMIT_MEDIA,
   violatesPublishedMediaFloor,
@@ -141,6 +142,31 @@ export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc
   return data
 }
 
+/**
+ * 出售相关字段在后台的显隐（受 NEXT_PUBLIC_SALE_CHANNEL_ENABLED 控制）。
+ *
+ * 关键设计：**开关在服务端求值，决定"用哪个 condition 函数"**，而不是让 condition
+ * 内部去读环境变量——Payload 的 admin.condition 在浏览器里执行，读不到服务端 env。
+ * collection config 本身是服务端构建的，所以在这里分支是可靠的。
+ *
+ * 这一层只改 admin UI，不碰字段定义，因此不产生任何 schema 变化、不触发迁移。
+ * 代价是它只挡入口不挡 API：直接调 Local/REST API 仍可写 businessType='sale'。
+ * 对功能开关而言够用；若要连写入都禁掉，那是 access control 的范畴。
+ */
+const saleChannelEnabled = getSaleChannelEnabled()
+
+/** 租售类型字段的显隐：开关关闭时只对「已经是出售」的记录显示。 */
+const businessTypeCondition = saleChannelEnabled
+  ? undefined
+  : // 不做成一律隐藏：库里已有的出售房源若看不出自己的类型，运营会困惑
+    // 「这条为什么不在租赁列表里」，那是比少一个字段更难查的问题。
+    (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
+
+/** 出售信息字段组的显隐：开关关闭时一律不显示。 */
+const saleTermsCondition = saleChannelEnabled
+  ? (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
+  : () => false
+
 export const Listings: CollectionConfig = {
   slug: 'listings',
   labels: {
@@ -223,6 +249,7 @@ export const Listings: CollectionConfig = {
                   label: '租售类型',
                   type: 'select',
                   defaultValue: 'lease',
+                  admin: { condition: businessTypeCondition },
                   options: BUSINESS_TYPES.map((value) => ({
                     label: BUSINESS_TYPE_LABELS[value],
                     value,
@@ -449,7 +476,7 @@ export const Listings: CollectionConfig = {
               label: '出售信息',
               type: 'group',
               admin: {
-                condition: (data) => data?.businessType === 'sale',
+                condition: saleTermsCondition,
                 description:
                   '仅出售房源填写。产权年限为纯展示信息，平台不做年限折损计算——剩余年限依赖产权起始日准确性，算错会影响买方的投资回报测算。',
               },

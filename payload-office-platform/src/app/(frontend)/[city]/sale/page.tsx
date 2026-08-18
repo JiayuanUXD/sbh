@@ -8,7 +8,7 @@ import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { saleChannelPath, shouldIndexSaleChannel } from '@/lib/frontend/sale-channel'
-import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, getSaleChannelEnabled } from '@/lib/frontend/site-config'
 
 /**
  * 城市出售频道。
@@ -31,6 +31,8 @@ function toUrlSearchParams(value: SearchParams): URLSearchParams {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  // 功能开关关闭时与「页面不存在」表现一致，不泄露频道的存在
+  if (!getSaleChannelEnabled()) return { title: '页面未找到', robots: { index: false, follow: false } }
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
@@ -56,6 +58,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 export default async function CitySalePage({ params, searchParams }: Props) {
+  // 开关关闭：与路由不存在完全一致（404），而不是空列表——空列表会暴露频道已存在
+  if (!getSaleChannelEnabled()) notFound()
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) notFound()

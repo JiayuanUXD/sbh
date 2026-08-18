@@ -146,6 +146,25 @@ export function getMultiCityRoutingEnabled(): boolean {
   return process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 }
 
+/**
+ * 出售频道功能开关。**不设即关闭。**
+ *
+ * 把「代码上线」和「功能可见」解耦：出售相关代码可以正常合并部署，但在开关打开前
+ * 用户看不到任何入口，其余迭代因此不必被出售功能的验证进度绑住。
+ *
+ * 为什么用 NEXT_PUBLIC_ 前缀：后台字段的显隐走 Payload 的 `admin.condition`，
+ * 那是**客户端**执行的，读不到纯服务端的 process.env。用这个前缀让服务端与浏览器
+ * 读到同一个变量。代价是它在构建时内联，改开关需要重新部署一次才全面生效——
+ * 考虑到 CloudRun 改服务级变量本来就会拉新容器，且功能上线是有计划的动作，可以接受。
+ *
+ * 开关**只管可见性，不管正确性**：租赁列表排除 sale、在租面积只算 lease、
+ * one-time 价格链路这些数据层逻辑一律不受它影响。关掉它反而会让出售房源混进
+ * 租金列表，那才是用户真会看到的事故。
+ */
+export function getSaleChannelEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_SALE_CHANNEL_ENABLED === 'true'
+}
+
 /** 构建站点配置（懒加载缓存） */
 let cachedConfig: SiteConfig | null = null
 
