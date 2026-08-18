@@ -38,6 +38,7 @@ import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../components/admin/BuildingOperationalToggle'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
+import { default as default_8fd596cf587f41fe58cb974db05d3972 } from '../../../components/admin/ListingFastTrackAction'
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
 import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
@@ -113,6 +114,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/BuildingOperationalToggle#default": default_48ef1091d596d4c5cbcd8ac69d53a12a,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
+  "/components/admin/ListingFastTrackAction#default": default_8fd596cf587f41fe58cb974db05d3972,
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
   "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,

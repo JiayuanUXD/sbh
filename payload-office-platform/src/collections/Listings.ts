@@ -1,5 +1,5 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
 
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
@@ -583,6 +583,17 @@ export const Listings: CollectionConfig = {
           label: '审核与发布',
           description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。',
           fields: [
+            {
+              // 免审直发入口。放在这里而不是审核台：直发的起点是「未提交 / 已驳回」，
+              // 这些房源根本不在 pending 队列里。可见性（权限 + 状态）全由服务端组件
+              // 判定，客户端只负责触发；完整度由 endpoint 强制。
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: '/components/admin/ListingFastTrackAction',
+                },
+              },
+            } as unknown as Field,
             {
               type: 'row',
               fields: [
