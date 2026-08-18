@@ -748,15 +748,15 @@ export interface ListingMerchantRelation {
 export interface Listing {
   id: number;
   title: string;
-  /**
-   * 留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。
-   */
-  slug: string;
   listingType: 'traditional-office' | 'coworking' | 'full-floor' | 'serviced-office';
   building: number | Building;
   businessType?: ('lease' | 'sale') | null;
   decorationStatus?: ('rough' | 'simple' | 'furnished' | 'fully_fitted') | null;
   registrationStatus?: ('available' | 'conditional' | 'unavailable' | 'confirm') | null;
+  /**
+   * 留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。
+   */
+  slug: string;
   /**
    * 价格必须保存金额、币种、周期和单位,禁止仅存展示文本。
    */
@@ -781,10 +781,10 @@ export interface Listing {
     efficiencyRate?: number | null;
     orientation?: string | null;
     netCeilingHeight?: number | null;
+    furnitureStatus?: ('included' | 'optional' | 'none' | 'confirm') | null;
     seatMin?: number | null;
     seatMax?: number | null;
     isDivisible?: boolean | null;
-    furnitureStatus?: ('included' | 'optional' | 'none' | 'confirm') | null;
   };
   /**
    * 仅出售房源填写。产权年限为纯展示信息，平台不做年限折损计算——剩余年限依赖产权起始日准确性，算错会影响买方的投资回报测算。
@@ -810,6 +810,15 @@ export interface Listing {
   };
   isFeatured?: boolean | null;
   /**
+   * 房源供给关系的当前商户;有效期与快照规则见供给关系。
+   */
+  merchant?: (number | null) | Merchant;
+  contactBroker?: (number | null) | Broker;
+  verificationInfo?: {
+    verifiedAt?: string | null;
+    priceVerifiedAt?: string | null;
+  };
+  /**
    * 由提交/审核流程驱动。
    */
   reviewStatus?: ('not_submitted' | 'pending' | 'approved' | 'rejected') | null;
@@ -825,14 +834,23 @@ export interface Listing {
    * 乐观锁版本号,系统维护。
    */
   version?: number | null;
-  /**
-   * 房源供给关系的当前商户;有效期与快照规则见供给关系。
-   */
-  merchant?: (number | null) | Merchant;
-  contactBroker?: (number | null) | Broker;
-  verificationInfo?: {
-    verifiedAt?: string | null;
-    priceVerifiedAt?: string | null;
+  dataSource?: {
+    /**
+     * 外部抓取来源标识
+     */
+    source?: 'huizuxuanzhi' | null;
+    /**
+     * 源平台原始房源编号
+     */
+    externalId?: string | null;
+    /**
+     * 最后一次从源平台同步的时间
+     */
+    syncedAt?: string | null;
+    /**
+     * 详情页原始 URL
+     */
+    sourceUrl?: string | null;
   };
   coverImage?: (number | null) | Media;
   gallery?:
@@ -876,24 +894,6 @@ export interface Listing {
     };
     [k: string]: unknown;
   } | null;
-  dataSource?: {
-    /**
-     * 外部抓取来源标识
-     */
-    source?: 'huizuxuanzhi' | null;
-    /**
-     * 源平台原始房源编号
-     */
-    externalId?: string | null;
-    /**
-     * 最后一次从源平台同步的时间
-     */
-    syncedAt?: string | null;
-    /**
-     * 详情页原始 URL
-     */
-    sourceUrl?: string | null;
-  };
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -2836,12 +2836,12 @@ export interface ListingMerchantRelationsSelect<T extends boolean = true> {
  */
 export interface ListingsSelect<T extends boolean = true> {
   title?: T;
-  slug?: T;
   listingType?: T;
   building?: T;
   businessType?: T;
   decorationStatus?: T;
   registrationStatus?: T;
+  slug?: T;
   price?:
     | T
     | {
@@ -2864,10 +2864,10 @@ export interface ListingsSelect<T extends boolean = true> {
         efficiencyRate?: T;
         orientation?: T;
         netCeilingHeight?: T;
+        furnitureStatus?: T;
         seatMin?: T;
         seatMax?: T;
         isDivisible?: T;
-        furnitureStatus?: T;
       };
   saleTerms?:
     | T
@@ -2887,10 +2887,6 @@ export interface ListingsSelect<T extends boolean = true> {
         otherFixedCosts?: T;
       };
   isFeatured?: T;
-  reviewStatus?: T;
-  publicationStatus?: T;
-  supplyVisibilityHold?: T;
-  version?: T;
   merchant?: T;
   contactBroker?: T;
   verificationInfo?:
@@ -2898,6 +2894,18 @@ export interface ListingsSelect<T extends boolean = true> {
     | {
         verifiedAt?: T;
         priceVerifiedAt?: T;
+      };
+  reviewStatus?: T;
+  publicationStatus?: T;
+  supplyVisibilityHold?: T;
+  version?: T;
+  dataSource?:
+    | T
+    | {
+        source?: T;
+        externalId?: T;
+        syncedAt?: T;
+        sourceUrl?: T;
       };
   coverImage?: T;
   gallery?:
@@ -2924,14 +2932,6 @@ export interface ListingsSelect<T extends boolean = true> {
         id?: T;
       };
   description?: T;
-  dataSource?:
-    | T
-    | {
-        source?: T;
-        externalId?: T;
-        syncedAt?: T;
-        sourceUrl?: T;
-      };
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

@@ -85,8 +85,13 @@ describe('deriveListingSelfVisibility', () => {
     expect(paused?.locateTab).toBeNull()
   })
 
-  it('状态类检查定位到「审核与发布」Tab，便于点击跳转修复', () => {
+  it('状态类检查定位到「房源信息」Tab，便于点击跳转修复', () => {
+    // OPT-032：5 个 tab 收成 2 个，「审核与发布」降级为 collapsible 分节，
+    // 状态类检查的定位目标随之变为「房源信息」，再由 locateFieldLabel 滚到具体字段。
+    // locateCheck 按 tab 按钮文字匹配，取值与 Listings.ts 的 tab label 必须逐字一致，
+    // 对不上会静默不动作——这条断言就是那道闸。
     const result = deriveListingSelfVisibility({ ...allPass, publicationStatus: 'draft' })
-    expect(result.primaryBlocker?.locateTab).toBe('审核与发布')
+    expect(result.primaryBlocker?.locateTab).toBe('房源信息')
+    expect(result.primaryBlocker?.locateFieldLabel).toBe('发布状态')
   })
 })

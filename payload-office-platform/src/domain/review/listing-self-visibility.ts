@@ -52,8 +52,13 @@ export interface SelfVisibilityCheck {
   /**
    * 前端定位目标：Payload 编辑表单的 Tab 标题（Listings.ts tabs.label）。
    * reportPaused 无表单落点，由卡片直接链到举报列表。
+   *
+   * ⚠️ 取值必须与 `Listings.ts` 里 **tab 的 label 逐字一致**——`locateCheck` 是按
+   * 按钮文字匹配的（`btn.textContent.trim() === locateTab`），对不上就静默不动作。
+   * OPT-032 把 5 个 tab 收成 2 个，「审核与发布」降级为 collapsible 分节，
+   * 状态类检查的定位目标随之改为「房源信息」，再由 locateFieldLabel 滚到具体字段。
    */
-  locateTab: '审核与发布' | '展示内容' | null
+  locateTab: '房源信息' | '展示内容' | null
   /**
    * 定位到 Tab 后进一步滚动高亮的字段标签（Listings.ts 字段 label）。
    * 与 locateTab 配套；locateTab 为 null 时无定位行为。
@@ -98,7 +103,7 @@ export function deriveListingSelfVisibility(
         input.publicationStatus === 'published'
           ? ''
           : '审核通过后需在「审核与发布」走显式发布动作，审核通过不会自动上架',
-      locateTab: '审核与发布',
+      locateTab: '房源信息',
       locateFieldLabel: '发布状态',
     },
     {
@@ -106,7 +111,7 @@ export function deriveListingSelfVisibility(
       ok: input.reviewStatus === 'approved',
       label: input.reviewStatus === 'approved' ? '审核通过' : `未通过审核（${reviewLabel(input.reviewStatus)}）`,
       hint: input.reviewStatus === 'approved' ? '' : '房源需提交审核并通过后才能上架',
-      locateTab: '审核与发布',
+      locateTab: '房源信息',
       locateFieldLabel: '审核状态',
     },
     {
@@ -114,7 +119,7 @@ export function deriveListingSelfVisibility(
       ok: input.supplyVisibilityHold === 'normal',
       label: input.supplyVisibilityHold === 'normal' ? '可见性正常' : '可见性待复核',
       hint: input.supplyVisibilityHold === 'normal' ? '' : '该房源被标记为待复核（如商户停用触发），复核清除前前台不展示',
-      locateTab: '审核与发布',
+      locateTab: '房源信息',
       locateFieldLabel: '供给可见性冻结',
     },
     {

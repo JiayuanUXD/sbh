@@ -70,8 +70,30 @@ function locateCheck(check: SelfVisibilityCheck) {
       if (attempt < 2) window.setTimeout(() => tryHighlight(attempt + 1), 300)
       return
     }
+    // OPT-032：tab 收成 2 个后，原来的 tab 降级成了 collapsible 分节。Payload 的
+    // Collapsible 折叠时**仍然渲染 children**（只是套 height: 0），所以 label 找得到、
+    // 却滚不到可视区——表现为「点了没反应」。这里把折叠着的祖先分节先展开。
+    //
+    // 折叠态持久化在用户 preferences 里，仅靠 initCollapsed 默认展开挡不住。
+    // 先收集再点击：click 会触发 React 重渲染，边走边点可能让向上的游标失效。
+    const collapsedAncestors: Element[] = []
+    let node: Element | null = label.closest('.collapsible--collapsed')
+    while (node) {
+      collapsedAncestors.push(node)
+      node = node.parentElement?.closest('.collapsible--collapsed') ?? null
+    }
+    for (const el of collapsedAncestors.reverse()) {
+      // toggle 按钮是 .collapsible 头部行的直接子元素；限定两层深度，
+      // 避免把嵌套分节（如「状态（只读）」）的按钮一起点了。
+      el.querySelector<HTMLButtonElement>(':scope > * > .collapsible__toggle')?.click()
+    }
+
     const container = label.closest('[class*="field"]') ?? label
-    container.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // 展开分节有 AnimateHeight 过渡，立刻滚会落在错的位置，等一拍再滚。
+    window.setTimeout(
+      () => container.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      collapsedAncestors.length > 0 ? 320 : 0,
+    )
     const previous = (container as HTMLElement).style.boxShadow
     ;(container as HTMLElement).style.transition = 'box-shadow 0.3s ease'
     ;(container as HTMLElement).style.boxShadow = '0 0 0 3px var(--theme-warning-500, #ff7d00)'

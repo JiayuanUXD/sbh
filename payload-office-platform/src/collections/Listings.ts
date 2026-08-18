@@ -38,6 +38,7 @@ import { protectListing } from '@/domain/review/listing-protect'
 import { InvalidOperationError } from '@/domain/shared/errors'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
+import { markPublishRequired } from './listing-publish-marks'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -178,6 +179,18 @@ const saleTermsCondition = saleChannelEnabled
   ? (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
   : () => false
 
+/**
+ * 固定列轴用的字段宽度（OPT-032 §3.3-A3）。
+ *
+ * 必须显式给 `admin.width`：Payload 的 `mergeFieldStyles` 在**没有** width 时下发的是
+ * `flex: 1 1 auto`（grow=1），行内字段会拉伸填满整行——这就是「付款条件/可入驻日期」
+ * 那种两字段行各占一半、跟上面四字段行对不齐的原因。给了 width 才走 Row 样式表里的
+ * `flex: 0 1 calc(var(--field-width) - ...)`（grow=0），短行靠左留空、列轴对齐。
+ */
+const COL_3 = '33.333%'
+const COL_4 = '25%'
+const COL_FULL = '100%'
+
 export const Listings: CollectionConfig = {
   slug: 'listings',
   labels: {
@@ -223,34 +236,51 @@ export const Listings: CollectionConfig = {
       type: 'tabs',
       tabs: [
         {
-          label: '基本信息',
-          description: '维护房源名称、URL 标识、类型和所属楼盘。',
+          // OPT-032 §3.3-A1：原「基本信息 / 价格 / 审核与发布 / 数据来源」四个 tab 合并成一个，
+          // 各自降级为 ui 分节标题（无 name，不进数据路径，零 schema 影响）。
+          //
+          // 不用 collapsible 做分节：它带折叠箭头、点标题会收起，且折叠态持久化到用户
+          // preferences——一旦被收起，可见性卡片的点击定位就滚不到目标字段（Collapsible
+          // 折叠时仍渲染 children，只是套 height: 0，label 找得到却不可见）。
+          //
+          // 「展示内容」坚决不并进来：它含媒体工作台（maxRows 40，mount 即发 /api/media
+          // 并渲染最多 40 张缩略图，每张一个 COS 请求）与 Lexical 富文本，占全表单 87% 的
+          // 首屏渲染量。Payload 客户端只渲染激活 tab，留它单独一个 tab 等于用一次点击挡掉这笔开销。
+          label: '房源信息',
+          description: '房源的全部录入项。图片与富文本在「展示内容」页签。',
           fields: [
             {
-              name: 'title',
-              label: '房源标题',
-              type: 'text',
-              required: true,
-            },
-            {
-              name: 'slug',
-              label: 'URL 标识',
-              type: 'text',
-              required: true,
-              unique: true,
+              type: 'ui',
               admin: {
-                description: '留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。',
+                components: {
+                  Field: {
+                    path: '/components/admin/ListingFormSectionHeading#default',
+                    clientProps: { title: '基本信息', description: '维护房源名称、URL 标识、类型和所属楼盘。' },
+                  },
+                },
               },
-            },
+            } as unknown as Field,
             {
               type: 'row',
               fields: [
-                {
+                markPublishRequired({
+                  name: 'title',
+                  label: '房源标题',
+                  type: 'text',
+                  required: true,
+                  admin: {
+                    width: COL_3,
+                    // URL 标识收进标题框右侧的图标（见 ListingSlugBadge 注释）
+                    components: { afterInput: ['/components/admin/ListingSlugBadge#default'] },
+                  },
+                }),
+                markPublishRequired({
                   name: 'listingType',
                   label: '类型',
                   type: 'select',
                   required: true,
                   defaultValue: 'traditional-office',
+                  admin: { width: COL_3 },
                   options: [
                     { label: '传统办公室', value: 'traditional-office' },
                     { label: '共享办公', value: 'coworking' },
@@ -259,57 +289,89 @@ export const Listings: CollectionConfig = {
                     // 改标签会把存量「服务式办公室」房源静默重标注为另一种业态。
                     { label: '服务式办公室', value: 'serviced-office' },
                   ],
-                },
-                {
+                }),
+                markPublishRequired({
                   name: 'building',
                   label: '所属楼盘',
                   type: 'relationship',
                   relationTo: 'buildings',
                   required: true,
-                },
+                  admin: { width: COL_3 },
+                }),
               ],
             },
             {
               type: 'row',
               fields: [
-                {
+                markPublishRequired({
                   name: 'businessType',
                   label: '租售类型',
                   type: 'select',
                   defaultValue: 'lease',
-                  admin: { condition: businessTypeCondition },
+                  admin: { condition: businessTypeCondition, width: COL_3 },
                   options: BUSINESS_TYPES.map((value) => ({
                     label: BUSINESS_TYPE_LABELS[value],
                     value,
                   })),
-                },
-                {
+                }),
+                markPublishRequired({
                   name: 'decorationStatus',
                   label: '装修状态',
                   type: 'select',
+                  admin: { width: COL_3 },
                   options: DECORATION_STATUSES.map((value) => ({
                     label: DECORATION_STATUS_LABELS[value],
+                    value,
+                  })),
+                }),
+                {
+                  name: 'registrationStatus',
+                  label: '工商注册状态',
+                  type: 'select',
+                  admin: { width: COL_3 },
+                  options: REGISTRATION_STATUSES.map((value) => ({
+                    label: REGISTRATION_STATUS_LABELS[value],
                     value,
                   })),
                 },
               ],
             },
             {
-              name: 'registrationStatus',
-              label: '工商注册状态',
-              type: 'select',
-              options: REGISTRATION_STATUSES.map((value) => ({
-                label: REGISTRATION_STATUS_LABELS[value],
-                value,
-              })),
+              name: 'slug',
+              label: 'URL 标识',
+              type: 'text',
+              required: true,
+              unique: true,
+              admin: {
+                // 从表单里撤下，但保留在 API 响应与库里（见 ListingSlugBadge 注释的四种写法对比）。
+                //
+                // 为什么是 disabled 而不是另外三种：
+                //   - admin.hidden：字段仍进表单状态并参与校验，新建时 slug 为空会被一个
+                //     **看不见的必填错误**拦住保存，屏幕上没有字段可修。
+                //   - 顶层 hidden：afterRead 会把 slug 从 API 响应删掉，前台详情页直接崩。
+                //   - admin.condition: () => false：表单行为没问题，但 configToJSONSchema 的
+                //     fieldIsRequired 对**任何带 condition 的字段一律判为非必填**（无视
+                //     required: true），生成类型会退化成 slug?: string | null，
+                //     连累 mappers / supply-adapter 等前台消费方——为一个后台布局改动
+                //     永久弱化前台类型契约，不划算。
+                //   - admin.disabled：不渲染、不进表单状态、不校验、不影响 API 与生成类型。
+                disabled: true,
+                description:
+                  '留空时根据房源标题自动生成拼音 slug；如手动填写则保留自定义值。用于前台 URL（/listings/xxx）。',
+              },
             },
-          ],
-        },
-        {
-          label: priceTabLabel,
-          description: priceTabDescription,
-          fields: [
             {
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/ListingFormSectionHeading#default',
+                    clientProps: { title: priceTabLabel, description: priceTabDescription },
+                  },
+                },
+              },
+            } as unknown as Field,
+            markPublishRequired({
               name: 'price',
               label: '结构化价格',
               type: 'group',
@@ -318,35 +380,27 @@ export const Listings: CollectionConfig = {
               },
               fields: [
                 {
+                  // 四件套排一行：amount + currency + period + unit 本来就是不可拆的整体。
                   type: 'row',
                   fields: [
                     ...NumberField(
-                      {
-                        name: 'amount',
-                        label: '金额',
-                      },
-                      {
-                        thousandSeparator: ',',
-                        decimalScale: 2,
-                      },
+                      { name: 'amount', label: '金额', admin: { width: COL_4 } },
+                      { thousandSeparator: ',', decimalScale: 2 },
                     ),
                     {
                       name: 'currency',
                       label: '币种',
                       type: 'select',
                       defaultValue: 'CNY',
+                      admin: { width: COL_4 },
                       options: [{ label: '人民币', value: 'CNY' }],
                     },
-                  ],
-                },
-                {
-                  type: 'row',
-                  fields: [
                     {
                       name: 'period',
                       label: '计价周期',
                       type: 'select',
                       defaultValue: 'month',
+                      admin: { width: COL_4 },
                       options: PRICING_PERIODS_UI.map(({ label, value }) => ({ label, value })),
                     },
                     {
@@ -354,12 +408,13 @@ export const Listings: CollectionConfig = {
                       label: '计价单位',
                       type: 'select',
                       defaultValue: 'sqm',
+                      admin: { width: COL_4 },
                       options: PRICING_UNITS_UI.map(({ label, value }) => ({ label, value })),
                     },
                   ],
                 },
               ],
-            },
+            }),
             {
               // 过渡期旧字段：仅存量数据已有值时显示（新数据一律走结构化价格）
               type: 'row',
@@ -371,21 +426,17 @@ export const Listings: CollectionConfig = {
                     admin: {
                       condition: (data) => data?.rent != null,
                       description: '价格已迁移至上方结构化价格,此字段仅供过渡期兼容。',
+                      width: COL_4,
                     },
                   },
-                  {
-                    thousandSeparator: ',',
-                    decimalScale: 2,
-                  },
+                  { thousandSeparator: ',', decimalScale: 2 },
                 ),
                 {
                   name: 'rentUnit',
                   label: '租金单位（旧字段）',
                   type: 'select',
                   defaultValue: 'rmb-sqm-day',
-                  admin: {
-                    condition: (data) => data?.rent != null,
-                  },
+                  admin: { condition: (data) => data?.rent != null, width: COL_4 },
                   options: [
                     { label: '元/㎡/天', value: 'rmb-sqm-day' },
                     { label: '元/月', value: 'rmb-month' },
@@ -398,35 +449,19 @@ export const Listings: CollectionConfig = {
               type: 'row',
               fields: [
                 ...NumberField(
-                  {
-                    name: 'area',
-                    label: '面积（㎡）',
-                  },
-                  {
-                    thousandSeparator: ',',
-                    decimalScale: 1,
-                  },
-                ),
+                  { name: 'area', label: '面积（㎡）', admin: { width: COL_4 } },
+                  { thousandSeparator: ',', decimalScale: 1 },
+                ).map(markPublishRequired),
                 ...NumberField(
-                  {
-                    name: 'seats',
-                    label: '建议工位数',
-                  },
-                  {
-                    thousandSeparator: ',',
-                    decimalScale: 0,
-                  },
+                  { name: 'seats', label: '建议工位数', admin: { width: COL_4 } },
+                  { thousandSeparator: ',', decimalScale: 0 },
                 ),
-              ],
-            },
-            {
-              type: 'row',
-              fields: [
-                {
+                markPublishRequired({
                   name: 'floor',
                   label: '楼层',
                   type: 'text',
-                },
+                  admin: { width: COL_4 },
+                }),
                 ...NumberField(
                   {
                     name: 'minimumLeaseMonths',
@@ -434,36 +469,37 @@ export const Listings: CollectionConfig = {
                     admin: {
                       // 出售没有租期概念。隐藏而非删除：存量租赁房源的值要留着。
                       condition: (data) => data?.businessType !== 'sale',
+                      width: COL_4,
                     },
                   },
-                  {
-                    thousandSeparator: ',',
-                    decimalScale: 0,
-                  },
-                ),
+                  { thousandSeparator: ',', decimalScale: 0 },
+                ).map(markPublishRequired),
               ],
             },
             {
+              // 与上一行的「最短租期」同为租赁专属：切到出售时这两个字段一起消失，整行干净收起。
               type: 'row',
               fields: [
-                {
+                markPublishRequired({
                   name: 'paymentTerms',
                   label: '付款条件',
                   type: 'text',
                   admin: {
                     // 买卖的付款方式在合同阶段谈，不在房源页承诺。
                     condition: (data) => data?.businessType !== 'sale',
+                    width: COL_4,
                   },
-                },
-                {
+                }),
+                markPublishRequired({
                   name: 'availableFrom',
                   label: '可入驻日期',
                   type: 'date',
                   admin: {
                     // 买卖是交割日不是入驻日，语义不同，不复用该字段。
                     condition: (data) => data?.businessType !== 'sale',
+                    width: COL_4,
                   },
-                },
+                }),
               ],
             },
             {
@@ -474,26 +510,34 @@ export const Listings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'efficiencyRate', label: '得房率（%）', type: 'number', min: 0, max: 100 },
-                    { name: 'orientation', label: '朝向', type: 'text', maxLength: 30 },
-                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0 },
-                  ],
-                },
-                {
-                  type: 'row',
-                  fields: [
-                    { name: 'seatMin', label: '最少工位数', type: 'number', min: 0 },
-                    { name: 'seatMax', label: '最多工位数', type: 'number', min: 0 },
-                    { name: 'isDivisible', label: '可分割', type: 'checkbox', defaultValue: false },
+                    {
+                      name: 'efficiencyRate',
+                      label: '得房率（%）',
+                      type: 'number',
+                      min: 0,
+                      max: 100,
+                      admin: { width: COL_4 },
+                    },
+                    { name: 'orientation', label: '朝向', type: 'text', maxLength: 30, admin: { width: COL_4 } },
+                    { name: 'netCeilingHeight', label: '净层高（m）', type: 'number', min: 0, admin: { width: COL_4 } },
                     {
                       name: 'furnitureStatus',
                       label: '家具状态',
                       type: 'select',
+                      admin: { width: COL_4 },
                       options: FURNITURE_STATUSES.map((value) => ({
                         label: FURNITURE_STATUS_LABELS[value],
                         value,
                       })),
                     },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'seatMin', label: '最少工位数', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'seatMax', label: '最多工位数', type: 'number', min: 0, admin: { width: COL_4 } },
+                    { name: 'isDivisible', label: '可分割', type: 'checkbox', defaultValue: false, admin: { width: COL_4 } },
                   ],
                 },
               ],
@@ -511,7 +555,7 @@ export const Listings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    {
+                    markPublishRequired({
                       name: 'propertyRightYears',
                       label: '产权年限',
                       type: 'select',
@@ -521,12 +565,14 @@ export const Listings: CollectionConfig = {
                       })),
                       admin: {
                         description: '出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。',
+                        width: COL_4,
                       },
-                    },
+                    }),
                     {
                       name: 'saleTaxBearer',
                       label: '税费承担方',
                       type: 'select',
+                      admin: { width: COL_4 },
                       options: [
                         { label: '买方承担', value: 'buyer' },
                         { label: '卖方承担', value: 'seller' },
@@ -534,23 +580,13 @@ export const Listings: CollectionConfig = {
                         { label: '面议', value: 'negotiable' },
                       ],
                     },
-                  ],
-                },
-                {
-                  type: 'row',
-                  fields: [
                     {
                       name: 'saleFiveYearsUnique',
                       label: '是否满五唯一',
                       type: 'checkbox',
-                      admin: { description: '影响税费，买方常问。' },
+                      admin: { description: '影响税费，买方常问。', width: COL_4 },
                     },
-                    {
-                      name: 'saleParkingSpaces',
-                      label: '车位配置（个）',
-                      type: 'number',
-                      min: 0,
-                    },
+                    { name: 'saleParkingSpaces', label: '车位配置（个）', type: 'number', min: 0, admin: { width: COL_4 } },
                   ],
                 },
               ],
@@ -563,21 +599,23 @@ export const Listings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'depositMonths', label: '押金月数', type: 'number', min: 0 },
+                    { name: 'depositMonths', label: '押金月数', type: 'number', min: 0, admin: { width: COL_4 } },
                     {
                       name: 'propertyFeeInclusion',
                       label: '物业费包含情况',
                       type: 'select',
+                      admin: { width: COL_4 },
                       options: COST_INCLUSION_STATUSES.map((value) => ({
                         label: COST_INCLUSION_STATUS_LABELS[value],
                         value,
                       })),
                     },
-                    { name: 'propertyFeeAmount', label: '物业费金额', type: 'number', min: 0 },
+                    { name: 'propertyFeeAmount', label: '物业费金额', type: 'number', min: 0, admin: { width: COL_4 } },
                     {
                       name: 'invoiceStatus',
                       label: '发票情况',
                       type: 'select',
+                      admin: { width: COL_4 },
                       options: INVOICE_STATUSES.map((value) => ({
                         label: INVOICE_STATUS_LABELS[value],
                         value,
@@ -585,21 +623,21 @@ export const Listings: CollectionConfig = {
                     },
                   ],
                 },
-                { name: 'otherFixedCosts', label: '其他固定费用', type: 'textarea', maxLength: 500 },
+                { name: 'otherFixedCosts', label: '其他固定费用', type: 'textarea', maxLength: 500, admin: { width: COL_FULL } },
               ],
             },
+            { name: 'isFeatured', label: '首页推荐', type: 'checkbox', defaultValue: false, admin: { width: COL_4 } },
             {
-              name: 'isFeatured',
-              label: '首页推荐',
-              type: 'checkbox',
-              defaultValue: false,
-            },
-          ],
-        },
-        {
-          label: '审核与发布',
-          description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。',
-          fields: [
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/ListingFormSectionHeading#default',
+                    clientProps: { title: '审核与发布', description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。' },
+                  },
+                },
+              },
+            } as unknown as Field,
             {
               // 免审直发入口。放在这里而不是审核台：直发的起点是「未提交 / 已驳回」，
               // 这些房源根本不在 pending 队列里。可见性（权限 + 状态）全由服务端组件
@@ -608,6 +646,56 @@ export const Listings: CollectionConfig = {
               admin: {
                 components: {
                   Field: '/components/admin/ListingFastTrackAction',
+                },
+              },
+            } as unknown as Field,
+            {
+              // OPT-032 §3.3-A4：可编辑字段在前、只读状态在后。运营进这一节是来填
+              // 商户 / 经纪人的，四个只读状态是「看一眼」的结论，放末尾更贴合动线。
+              // 字段顺序即显示顺序，不涉及 schema。
+              type: 'row',
+              fields: [
+                markPublishRequired({
+                  name: 'merchant',
+                  label: '供给商户',
+                  type: 'relationship',
+                  relationTo: 'merchants',
+                  admin: {
+                    description: '房源供给关系的当前商户;有效期与快照规则见供给关系。',
+                    width: COL_4,
+                  },
+                }),
+                markPublishRequired({
+                  name: 'contactBroker',
+                  label: '联系经纪人',
+                  type: 'relationship',
+                  relationTo: 'brokers',
+                  admin: { width: COL_4 },
+                }),
+              ],
+            },
+            {
+              name: 'verificationInfo',
+              label: '核验信息',
+              type: 'group',
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    { name: 'verifiedAt', label: '信息核验时间', type: 'date', admin: { width: COL_4 } },
+                    { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date', admin: { width: COL_4 } },
+                  ],
+                },
+              ],
+            },
+            {
+              type: 'ui',
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/ListingFormSectionHeading#default',
+                    clientProps: { title: '状态（只读）', description: undefined },
+                  },
                 },
               },
             } as unknown as Field,
@@ -622,6 +710,8 @@ export const Listings: CollectionConfig = {
                   admin: {
                     readOnly: true,
                     description: '由提交/审核流程驱动。',
+                    width: COL_4,
+                    components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
                   options: REVIEW_STATUSES.map((value) => ({
                     label: REVIEW_STATUS_LABELS[value],
@@ -636,17 +726,14 @@ export const Listings: CollectionConfig = {
                   admin: {
                     readOnly: true,
                     description: '由显式发布/下架动作驱动,审核通过不自动上架。',
+                    width: COL_4,
+                    components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
                   options: PUBLICATION_STATUSES.map((value) => ({
                     label: PUBLICATION_STATUS_LABELS[value],
                     value,
                   })),
                 },
-              ],
-            },
-            {
-              type: 'row',
-              fields: [
                 {
                   name: 'supplyVisibilityHold',
                   label: '供给可见性冻结',
@@ -655,6 +742,8 @@ export const Listings: CollectionConfig = {
                   admin: {
                     readOnly: true,
                     description: '商户停用等场景批量置为待复核,不改动审核/发布状态。',
+                    width: COL_4,
+                    components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
                   options: SUPPLY_VISIBILITY_HOLDS.map((value) => ({
                     label: SUPPLY_VISIBILITY_HOLD_LABELS[value],
@@ -669,32 +758,64 @@ export const Listings: CollectionConfig = {
                   admin: {
                     readOnly: true,
                     description: '乐观锁版本号,系统维护。',
+                    width: COL_4,
+                    components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
                 },
               ],
             },
             {
-              name: 'merchant',
-              label: '供给商户',
-              type: 'relationship',
-              relationTo: 'merchants',
+              type: 'ui',
               admin: {
-                description: '房源供给关系的当前商户;有效期与快照规则见供给关系。',
+                components: {
+                  Field: {
+                    path: '/components/admin/ListingFormSectionHeading#default',
+                    clientProps: { title: '数据来源', description: '标记外部抓取来源与同步信息，便于追溯、去重与增量更新。' },
+                  },
+                },
               },
-            },
+            } as unknown as Field,
             {
-              name: 'contactBroker',
-              label: '联系经纪人',
-              type: 'relationship',
-              relationTo: 'brokers',
-            },
-            {
-              name: 'verificationInfo',
-              label: '核验信息',
+              name: 'dataSource',
+              label: '数据来源',
               type: 'group',
+              admin: {
+                hideGutter: true,
+                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
+                condition: (data) => {
+                  const ds = data?.dataSource as
+                    | {
+                        source?: string | null
+                        externalId?: string | null
+                        sourceUrl?: string | null
+                        syncedAt?: string | null
+                      }
+                    | null
+                    | undefined
+                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
+                },
+              },
               fields: [
-                { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
-                { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'source',
+                      label: '来源平台',
+                      type: 'select',
+                      options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
+                      admin: { description: '外部抓取来源标识', width: COL_4 },
+                    },
+                    { name: 'externalId', label: '外部 ID', type: 'text', admin: { description: '源平台原始房源编号', width: COL_4 } },
+                    {
+                      name: 'syncedAt',
+                      label: '同步时间',
+                      type: 'date',
+                      admin: { readOnly: true, description: '最后一次从源平台同步的时间', width: COL_4 },
+                    },
+                    { name: 'sourceUrl', label: '源地址', type: 'text', admin: { description: '详情页原始 URL', width: COL_4 } },
+                  ],
+                },
               ],
             },
           ],
@@ -720,13 +841,7 @@ export const Listings: CollectionConfig = {
               type: 'array',
               admin: { hidden: true },
               fields: [
-                {
-                  name: 'image',
-                  label: '图片',
-                  type: 'upload',
-                  relationTo: 'media',
-                  required: true,
-                },
+                { name: 'image', label: '图片', type: 'upload', relationTo: 'media', required: true },
               ],
             },
             {
@@ -771,73 +886,13 @@ export const Listings: CollectionConfig = {
               name: 'highlights',
               label: '亮点',
               type: 'array',
-              fields: [
-                {
-                  name: 'text',
-                  label: '亮点文案',
-                  type: 'text',
-                },
-              ],
+              fields: [{ name: 'text', label: '亮点文案', type: 'text' }],
             },
-            {
+            markPublishRequired({
               name: 'description',
               label: '房源说明',
               type: 'richText',
-            },
-          ],
-        },
-        {
-          label: '数据来源',
-          description: '标记外部抓取来源与同步信息，便于追溯、去重与增量更新。',
-          fields: [
-            {
-              name: 'dataSource',
-              label: '数据来源',
-              type: 'group',
-              admin: {
-                hideGutter: true,
-                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
-                condition: (data) => {
-                  const ds = data?.dataSource as
-                    | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
-                    | null
-                    | undefined
-                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
-                },
-              },
-              fields: [
-                {
-                  type: 'row',
-                  fields: [
-                    {
-                      name: 'source',
-                      label: '来源平台',
-                      type: 'select',
-                      options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
-                      admin: { description: '外部抓取来源标识' },
-                    },
-                    {
-                      name: 'externalId',
-                      label: '外部 ID',
-                      type: 'text',
-                      admin: { description: '源平台原始房源编号' },
-                    },
-                    {
-                      name: 'syncedAt',
-                      label: '同步时间',
-                      type: 'date',
-                      admin: { readOnly: true, description: '最后一次从源平台同步的时间' },
-                    },
-                  ],
-                },
-                {
-                  name: 'sourceUrl',
-                  label: '源地址',
-                  type: 'text',
-                  admin: { description: '详情页原始 URL' },
-                },
-              ],
-            },
+            }),
           ],
         },
       ],

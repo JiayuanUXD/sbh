@@ -2352,3 +2352,163 @@ html[data-theme='dark'] {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+
+// ─── OPT-032 房源编辑表单：分节标题 / 去组框 / 固定列轴对齐 ───
+// 通用元素（.group-field、.checkbox）的覆盖一律限定在 .collection-edit--listings 内，
+// 不外溢到其它 collection 的编辑页。自定义组件用的是独有类名，无需再加作用域。
+
+// 分节标题：普通标题 + 说明 + 分隔线（不是可折叠控件，理由见 ListingFormSectionHeading）
+.listing-form-section {
+  margin: 28px 0 16px;
+
+  &:first-child {
+    margin-top: 4px;
+  }
+
+  &__title {
+    margin: 0 0 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--theme-elevation-100);
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  &__desc {
+    margin: 0 0 4px;
+    color: var(--theme-elevation-500);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+}
+
+.collection-edit--listings {
+  // 去掉 group 外框：只留小标题。外框的内边距正是「组内字段与组外对不齐」的根因，
+  // 去掉后组内组外共用同一条列轴。
+  .group-field {
+    border: 0;
+    padding: 0;
+    margin-bottom: 0;
+
+    > .group-field__wrap,
+    > .group-field__content {
+      padding: 0;
+      border: 0;
+    }
+
+    .group-field__title,
+    .group-field__header h3 {
+      margin: 12px 0 4px;
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--theme-elevation-700);
+      letter-spacing: 0.02em;
+    }
+  }
+
+  // 网格里的复选框：标签在上、方框落控件行，与相邻输入框同基线。
+  // Payload 默认是 inline 写法（方框和文字并排、无独立标签行），
+  // 放进定宽列后方框会浮到相邻输入框的中间高度——「可分割」就是这个现象。
+  .row__fields > .field-type.checkbox {
+    .checkbox__input {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+// 「房源标题」输入框右侧的 URL 标识图标
+.listing-slug-badge {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 4px;
+  border: 1px solid var(--theme-elevation-150);
+  background: var(--theme-input-bg, var(--theme-elevation-0));
+  color: var(--theme-elevation-400);
+  cursor: help;
+
+  &:hover {
+    color: var(--theme-success-500);
+    border-color: var(--theme-success-500);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+  }
+}
+
+// afterInput 默认是输入框后的兄弟节点；给它一个定位上下文，图标才能贴进框内右侧
+.collection-edit--listings .field-type.text:has(> .listing-slug-badge),
+.collection-edit--listings .field-type.text .input-wrapper:has(> .listing-slug-badge) {
+  position: relative;
+
+  input {
+    padding-right: 34px;
+  }
+}
+
+// 只读状态字段的展示态：字段名 + 值 + ⓘ，不是禁用输入框
+.listing-readonly {
+  min-width: 0;
+  margin-bottom: 12px;
+
+  &__key {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--theme-elevation-500);
+  }
+
+  &__value {
+    display: block;
+    margin-top: 2px;
+    font-size: 13.5px;
+    font-weight: 550;
+    color: var(--theme-elevation-800);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1px solid var(--theme-elevation-300);
+    color: var(--theme-elevation-400);
+    font-size: 9px;
+    font-style: normal;
+    line-height: 1;
+    cursor: help;
+
+    &:hover {
+      border-color: var(--theme-success-500);
+      color: var(--theme-success-500);
+    }
+  }
+}
+
+// 发布必填标记（方案 B）。刻意与 Payload 原生的红色 required 星号区分开：
+// 红 = 草稿保存必填，琥珀 = 提交审核必填。两级门槛第一次在表单上可见。
+.publish-required {
+  margin-left: 2px;
+  color: #d98600;
+  font-weight: 700;
+  cursor: help;
+}
+
+html[data-theme='dark'] .publish-required {
+  color: #e8a33d;
+}
