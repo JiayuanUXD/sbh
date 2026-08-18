@@ -1274,7 +1274,7 @@ export interface DisplayTag {
 export interface ListingReview {
   id: number;
   listing: number | Listing;
-  decision: 'submit' | 'withdraw' | 'approve' | 'reject';
+  decision: 'submit' | 'withdraw' | 'approve' | 'reject' | 'fast_track';
   /**
    * 由审核动作单一推导，不可外部指定。
    */

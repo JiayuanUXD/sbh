@@ -37,11 +37,15 @@ export function isReviewTaskStatus(value: unknown): value is ReviewTaskStatus {
 
 /**
  * 审核动作落到审核记录的任务状态：
- *   submit   → pending    新建待领取任务
- *   withdraw → cancelled  作者撤回，任务作废
- *   approve  → resolved   审核完成（通过）
- *   reject   → resolved   审核完成（驳回）
+ *   submit     → pending    新建待领取任务
+ *   withdraw   → cancelled  作者撤回，任务作废
+ *   approve    → resolved   审核完成（通过）
+ *   reject     → resolved   审核完成（驳回）
+ *   fast_track → resolved   免审直发：房源已进入 approved，没有待办留给审核台
  * 领取动作（pending → processing）不在此表，由审核台 claim 单独驱动。
+ *
+ * fast_track 记 resolved 而不是 pending，否则审核队列里会挂着一条永远等不到人处理
+ * 的任务——房源其实已经上架了。
  */
 export function taskStatusForDecision(decision: ReviewDecision): ReviewTaskStatus {
   switch (decision) {
@@ -51,6 +55,7 @@ export function taskStatusForDecision(decision: ReviewDecision): ReviewTaskStatu
       return 'cancelled'
     case 'approve':
     case 'reject':
+    case 'fast_track':
       return 'resolved'
   }
 }

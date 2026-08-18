@@ -16,6 +16,9 @@ vi.mock('next/cache', () => ({
 vi.mock('@/lib/frontend/site-config', () => ({
   siteConfig: { siteOrigin: 'https://example.com', defaultCity: 'shanghai' },
   getMultiCityRoutingEnabled: () => process.env.MULTI_CITY_ROUTING_ENABLED === 'true',
+  // 出售功能开关：默认关闭，让既有断言在「功能不可见」这个默认态下验证。
+  // 需要验证开启态的用例请在自己的文件里单独 mock 为 true。
+  getSaleChannelEnabled: () => process.env.NEXT_PUBLIC_SALE_CHANNEL_ENABLED === 'true',
 }))
 
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({

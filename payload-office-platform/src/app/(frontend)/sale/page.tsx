@@ -7,7 +7,7 @@ import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { saleChannelPath, shouldIndexSaleChannel } from '@/lib/frontend/sale-channel'
-import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, getSaleChannelEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
 
 /**
@@ -41,6 +41,7 @@ function sourceUrl(pathname: string, value: SearchParams): string {
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  if (!getSaleChannelEnabled()) return { title: '页面未找到', robots: { index: false, follow: false } }
   const input = parseListingSearchInput(toUrlSearchParams(await searchParams))
   const query = buildCanonicalSearchParams(input).toString()
   const base = buildPageMetadata({
@@ -57,6 +58,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function SalePage({ searchParams }: Props) {
+  if (!getSaleChannelEnabled()) notFound()
   const raw = await searchParams
   const city = await resolveCityContext(siteConfig.defaultCity)
   if (!city || city.serviceStatus !== 'live') notFound()

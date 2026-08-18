@@ -40,8 +40,8 @@ describe('review-status/枚举', () => {
 })
 
 describe('review-status/审核动作枚举', () => {
-  it('四个动作:提交/撤回/通过/驳回', () => {
-    expect(REVIEW_DECISIONS).toEqual(['submit', 'withdraw', 'approve', 'reject'])
+  it('五个动作:提交/撤回/通过/驳回/免审直发', () => {
+    expect(REVIEW_DECISIONS).toEqual(['submit', 'withdraw', 'approve', 'reject', 'fast_track'])
   })
 
   it('每个动作都有非空中文 label', () => {
@@ -116,5 +116,34 @@ describe('review-status/reviewDecisionToStatus', () => {
   it('approve -> approved, reject -> rejected', () => {
     expect(reviewDecisionToStatus('approve')).toBe('approved')
     expect(reviewDecisionToStatus('reject')).toBe('rejected')
+  })
+})
+
+describe('review-status/免审直发（fast_track）', () => {
+  it('未提交 / 已驳回 可直接到 approved', () => {
+    for (const from of ['not_submitted', 'rejected'] as const) {
+      expect(canTransitionReview(from, 'fast_track')).toBe(true)
+      expect(nextReviewStatus(from, 'fast_track')).toBe('approved')
+    }
+  })
+
+  it('审核中不允许直发（避免「审核中却已通过」的矛盾轨迹）', () => {
+    // 已经进了审核队列的房源应由审核人裁决；要直发就先撤回
+    expect(canTransitionReview('pending', 'fast_track')).toBe(false)
+    expect(nextReviewStatus('pending', 'fast_track')).toBeNull()
+  })
+
+  it('已通过不允许再直发（approved 是终态）', () => {
+    expect(canTransitionReview('approved', 'fast_track')).toBe(false)
+  })
+
+  it('fast_track 有独立的中文标签，不与「审核通过」混淆', () => {
+    expect(REVIEW_DECISION_LABELS.fast_track).toBe('免审直发')
+    expect(REVIEW_DECISION_LABELS.fast_track).not.toBe(REVIEW_DECISION_LABELS.approve)
+  })
+
+  it('是显式枚举成员，不是绕过状态机的旁路', () => {
+    expect(REVIEW_DECISIONS).toContain('fast_track')
+    expect(isReviewDecision('fast_track')).toBe(true)
   })
 })
