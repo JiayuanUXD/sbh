@@ -6,8 +6,11 @@
 # 两段式（OPT-016）：
 #   quality  - 在 CI runner 上跑 lint/typecheck/test/build/迁移预检，作为发布质量门。
 #              失败则 deploy 不跑。产物不传递（deploy 重新 checkout 干净源码）。
-#   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）-> 切 10% 灰度 ->
-#              冒烟（/api/health + /）-> 通过则 traffic promote 全量，失败则 traffic rollback。
+#   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）。
+#              **默认到此为止**：自动触发（master 合并）只提交 GRAY 版本，不碰线上流量。
+#              放量需在 Actions 页面手动触发本工作流并勾选 promote，届时才走
+#              切 10% 灰度 -> 冒烟（/api/health + /）-> traffic promote 全量，
+#              失败则 traffic rollback。
 #
 # 机制：用 CloudBase 官方 API 分配上传地址，带重试上传 ZIP，再显式提交 GRAY 版本。
 #       避免 CloudBase CLI 单次上传遇到 ECONNRESET 后直接失败。
@@ -48,6 +51,12 @@ on:
     types: [completed]
     branches: [master]
   workflow_dispatch:
+    inputs:
+      promote:
+        description: '切流量到新版本（不勾选＝只部署 GRAY 版本、0% 流量，线上保持当前版本）'
+        type: boolean
+        required: false
+        default: false
 
 # 部署互相排队，不中途取消（避免并发发布互相覆盖版本）
 concurrency:
@@ -70,6 +79,14 @@ jobs:
       # 非交互模式：所有确认提示（telemetry 询问、--force 确认）自动按默认值走。
       # 否则 CI 无 tty，提示库收到 EOF 会以 exit 130 中断。
       CLOUDBASE_CI: '1'
+      # 是否把流量切到新版本。
+      #
+      # 默认 false，且**自动触发（workflow_run）一律为 false**：合并到 master 只会
+      # 构建并提交 GRAY 版本（0% 流量），线上继续由当前稳定版本承接。放量是显式动作，
+      # 需要在 Actions 页面手动触发本工作流并勾选 promote。
+      #
+      # 这样默认路径是安全的：新版本进了环境、可以单独验证，但不影响线上流量。
+      SHOULD_PROMOTE: ${{ github.event_name == 'workflow_dispatch' && inputs.promote }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -207,6 +224,7 @@ jobs:
           jq -e '.data.TaskId | numbers' "$deploy_info" >/dev/null
 
       - name: 等待新版本就绪 + 切 10% 灰度
+        if: env.SHOULD_PROMOTE == 'true'
         # 轮询部署记录，只有镜像构建、迁移、容器探针全部正常后才切流。
         env:
           TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
@@ -276,6 +294,7 @@ jobs:
             --canary 10
 
       - name: Smoke test（灰度版本健康检查）
+        if: env.SHOULD_PROMOTE == 'true'
         id: smoke
         run: |
           # 灰度 10% 期间多次请求，提高命中新版本概率；
@@ -339,13 +358,13 @@ jobs:
           echo "✅ 冒烟通过"
 
       - name: Promote 全量发布
-        if: success()
+        if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic promote -s sbh
           echo "✅ 全量发布完成"
 
       - name: 全量发布后验证
-        if: success()
+        if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
           health=$(curl -sS --max-time 15 "$URL/api/health")
@@ -386,7 +405,8 @@ jobs:
           done
 
       - name: Rollback（冒烟或 promote 失败时切回稳定版本）
-        if: failure()
+        # 未放量时无需回滚：流量从未离开稳定版本，GRAY 版本自身失败不影响线上
+        if: failure() && env.SHOULD_PROMOTE == 'true'
         run: |
           echo "::error::发布失败，回滚流量到稳定版本"
           tcb -e "${{ secrets.TCB_ENV_ID }}" cloudrun traffic rollback -s sbh || true
