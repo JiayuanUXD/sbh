@@ -381,9 +381,12 @@ Arco 那条不是工作项，是一条取舍规则，写进 `.agent/backend.md` 
    **slug 根本不被赋值** → 撞 `NOT NULL` 报原始 Postgres 错。
    → 在 hook 里加确定性兜底（`base` 为空时退到可预测的值），三行代码。
 
-10. **`ensureUniqueSlug` 测试覆盖**：`tests/listing-protect.test.ts` 每个用例都显式传了
-    slug，**自动生成分支零覆盖**。而改完之后**每次新建都走它**——从「几乎不走」变成热路径。
-    要覆盖：留空生成、冲突追加 `-2`/`-3`、update 保留原 slug、空 base 兜底。
+10. **`ensureUniqueSlug` 测试覆盖**：说「零覆盖」不准确——原有用例（如
+    `create({ title: '房源A' })`）**会顺带执行到生成分支**，但从不断言结果；而 mock 的
+    `payload.find` 恒返回 0 冲突，所以 **`ensureUniqueSlug` 的去重分支一次都没跑过**。
+    改完之后**每次新建都走它**，从「几乎不走」变成热路径。
+    要覆盖：留空生成、冲突追加 `-2`/`-3`、手工覆盖、update 保留原 slug、
+    update 排除自身 id、空 base 兜底、兜底值参与去重。
 
 ### E. 方案 B（发布必填标记）
 
