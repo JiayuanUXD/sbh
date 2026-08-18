@@ -81,3 +81,28 @@ describe('sale-channel-gating/数据层不受开关影响', () => {
     expect(src).not.toContain('getSaleChannelEnabled')
   })
 })
+
+describe('sale-channel-gating/文案泄露', () => {
+  /**
+   * 线上实测发现：字段藏干净了，tab 标题却还叫「价格与交易参数」，描述里写着
+   * 「产权信息只在出售房源显示」——等于公告「出售功能存在，只是你看不到」。
+   * 隐藏一个功能要连它的名字一起隐藏。
+   */
+  it('价格 tab 的标题与描述受开关控制，不是写死的', async () => {
+    const src = await read('src/collections/Listings.ts')
+
+    expect(src).toContain("const priceTabLabel = saleChannelEnabled ? '价格与交易参数' : '租赁参数'")
+    expect(src).toContain('const priceTabDescription = saleChannelEnabled')
+    // tab 定义处必须引用变量，而不是再写一遍字面量
+    expect(src).toContain('label: priceTabLabel')
+    expect(src).toContain('description: priceTabDescription')
+  })
+
+  it('关闭态的描述里不出现「产权」「出售」字样', async () => {
+    const src = await read('src/collections/Listings.ts')
+    const offBranch = /: '(集中维护结构化价格[^']*)'/.exec(src)?.[1] ?? ''
+
+    expect(offBranch).not.toContain('产权')
+    expect(offBranch).not.toContain('出售')
+  })
+})
