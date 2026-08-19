@@ -174,13 +174,17 @@ export const ListingReports: CollectionConfig = {
   },
   fields: [
     {
+      /**
+       * 不设 required：房源被**永久删除**时，外键 `ON DELETE SET NULL` 会把这一列置空；
+       * 列若为 NOT NULL，PG 直接报 23502，表现为后台删不掉房源。
+       * 举报是审计性记录，房源删了也该留着，故选择脱钩而非级联删除。
+       */
       name: 'targetListing',
       label: '被举报房源',
       type: 'relationship',
       relationTo: 'listings',
-      required: true,
       admin: {
-        description: '举报指向的房源。',
+        description: '举报指向的房源。房源被永久删除后此处会置空，记录本身保留。',
       },
     },
     {

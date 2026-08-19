@@ -62,11 +62,19 @@ export const ListingReviews: CollectionConfig = {
       type: 'row',
       fields: [
         {
+          /**
+           * 不设 required：房源被**永久删除**时，外键 `ON DELETE SET NULL` 会把这一列置空；
+           * 列若为 NOT NULL，PG 直接报 23502，表现为后台删不掉房源（只显示
+           * "Something went wrong."）。审核记录本身应当存活下来，所以选择脱钩而非级联删除；
+           * 脱钩后仍可读 `snapshot` 看出当时审的是什么。
+           *
+           * 应用层写入路径（审核端点 / recordAdminAutoPublish）一律传 listing，
+           * 放宽的只是列约束，不是业务要求。
+           */
           name: 'listing',
           label: '房源',
           type: 'relationship',
           relationTo: 'listings',
-          required: true,
         },
         {
           name: 'decision',

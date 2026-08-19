@@ -35,6 +35,7 @@ import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoi
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
+import { cleanupListingRelations } from '@/domain/supply/listing-delete-cleanup'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -204,6 +205,10 @@ export const Listings: CollectionConfig = {
     beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
     // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
     afterChange: [recordAdminAutoPublish],
+    // 永久删除前先清掉商户供给关系，否则 PG 会因「SET NULL 碰 NOT NULL」
+    // 报 23502，后台只能看到一句 "Something went wrong."（见 listing-delete-cleanup.ts）。
+    // 软删除（trash）走 update 路径，不经过这里。
+    beforeDelete: [cleanupListingRelations],
   },
   fields: [
     {
