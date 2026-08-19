@@ -1273,7 +1273,7 @@ export interface DisplayTag {
  */
 export interface ListingReview {
   id: number;
-  listing: number | Listing;
+  listing?: (number | null) | Listing;
   decision: 'submit' | 'withdraw' | 'approve' | 'reject' | 'fast_track';
   /**
    * 由审核动作单一推导，不可外部指定。
@@ -1323,9 +1323,9 @@ export interface ListingReview {
 export interface ListingReport {
   id: number;
   /**
-   * 举报指向的房源。
+   * 举报指向的房源。房源被永久删除后此处会置空，记录本身保留。
    */
-  targetListing: number | Listing;
+  targetListing?: (number | null) | Listing;
   /**
    * 举报原因码，决定处理优先级和供给影响判定。
    */
