@@ -294,7 +294,6 @@ function createFullPredicateAdapter(options: {
         : {}
     const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
     const snapshot: EffectiveSupplySnapshot = {
-      mediaCount: Array.isArray(l.gallery) ? l.gallery.length : 0,
       merchant: {
         status: merchant.status,
         qualificationStatus: merchant.qualificationStatus,
@@ -738,19 +737,21 @@ describe('F1.2 失效供给一致性（design.md §3.6 十条规则）', () => {
     expect(search.docs.map((c) => c.id).sort()).toEqual([1002])
   })
 
-  // §6 有效媒体 ≥ 3
-  it('§6 gallery 为 null（0 张）在所有路径不可见', async () => {
+  // §6 媒体数量：2026-08-19 起**不再**是可见性条件（见 effective-supply.ts 头部）。
+  // 三个用例全部反转为「可见」而不是删掉：一致性断言本身（列表/facet/聚合/
+  // sitemap/详情全路径同口径）仍然有效，只是期望值反了。
+  it('§6 gallery 为 null（0 张）在所有路径仍可见', async () => {
     const listing = makeValidListing({ gallery: null })
     const adapter = createFullPredicateAdapter({ listings: [listing] })
     await assertConsistentVisibility({
       adapter,
       listing,
-      expectedVisible: false,
+      expectedVisible: true,
       scenario: '§6-media-null',
     })
   })
 
-  it('§6 gallery 仅 2 张（< 3）在所有路径不可见', async () => {
+  it('§6 gallery 仅 2 张在所有路径仍可见', async () => {
     const listing = makeValidListing({
       gallery: [
         { image: MEDIA_1, id: 'g1' },
@@ -761,12 +762,12 @@ describe('F1.2 失效供给一致性（design.md §3.6 十条规则）', () => {
     await assertConsistentVisibility({
       adapter,
       listing,
-      expectedVisible: false,
+      expectedVisible: true,
       scenario: '§6-media-2-items',
     })
   })
 
-  it('§6 gallery 正好 3 张（边界）在所有路径可见', async () => {
+  it('§6 gallery 正好 3 张在所有路径可见', async () => {
     const listing = makeValidListing({
       gallery: [
         { image: MEDIA_1, id: 'g1' },
@@ -975,10 +976,12 @@ describe('F1.2 混合场景：有效与失效共存', () => {
       slug: 'fail-review',
       reviewStatus: 'pending',
     })
-    const failMedia = makeValidListing({
+    // 2026-08-19 前这一条用的是「图片只有 1 张」；媒体数量移出可见性后
+    // 换成供给可见性冻结，保住「4 种不同失效条件」的覆盖度。
+    const failHold = makeValidListing({
       id: 2003,
-      slug: 'fail-media',
-      gallery: [{ image: MEDIA_1, id: 'g1' }],
+      slug: 'fail-hold',
+      supplyVisibilityHold: 'pending_recheck',
     })
     const failMerchant = makeValidListing({
       id: 2004,
@@ -987,7 +990,7 @@ describe('F1.2 混合场景：有效与失效共存', () => {
     })
 
     const adapter = createFullPredicateAdapter({
-      listings: [valid, failDraft, failReview, failMedia, failMerchant],
+      listings: [valid, failDraft, failReview, failHold, failMerchant],
     })
 
     const search = await searchListings(defaultInput(), ctx, adapter)
@@ -1032,14 +1035,13 @@ describe('F1.2 混合场景：有效与失效共存', () => {
 // ---------------------------------------------------------------------------
 
 describe('F1.2 交叉验证：FakeAdapter 谓词与生产 isListingEffectivelySupplied 同源', () => {
-  it('FakeAdapter 通过 isListingEffectivelySupplied 判定 §6/§8/§9/§10', () => {
+  it('FakeAdapter 通过 isListingEffectivelySupplied 判定 §8/§9/§10', () => {
     // 这个测试本身是元验证：FakeAdapter 直接调用生产谓词
     // 此处显式断言生产谓词对各类失效 snapshot 的判定结果
+    // （§6 媒体数量已于 2026-08-19 移出前台可见性，不再在此断言）
     const asOf = new Date(ctx.asOf)
 
-    // §6 媒体不足
-    const mediaFail: EffectiveSupplySnapshot = {
-      mediaCount: 2,
+    const baseline: EffectiveSupplySnapshot = {
       merchant: {
         status: 'active',
         qualificationStatus: 'valid',
@@ -1049,12 +1051,10 @@ describe('F1.2 交叉验证：FakeAdapter 谓词与生产 isListingEffectivelySu
       buildingCityId: 100,
       relationPeriod: RELATION_VALID,
     }
-    expect(isListingEffectivelySupplied(mediaFail, asOf).eligible).toBe(false)
 
     // §8 关系过期
     const relationFail: EffectiveSupplySnapshot = {
-      ...mediaFail,
-      mediaCount: 3,
+      ...baseline,
       relationPeriod: {
         startsAt: '2025-01-01T00:00:00.000Z',
         endsAt: '2026-06-30T00:00:00.000Z',
@@ -1064,23 +1064,20 @@ describe('F1.2 交叉验证：FakeAdapter 谓词与生产 isListingEffectivelySu
 
     // §9 商户停用
     const merchantDisabled: EffectiveSupplySnapshot = {
-      ...mediaFail,
-      mediaCount: 3,
-      merchant: { ...mediaFail.merchant, status: 'disabled' },
+      ...baseline,
+      merchant: { ...baseline.merchant, status: 'disabled' },
     }
     expect(isListingEffectivelySupplied(merchantDisabled, asOf).eligible).toBe(false)
 
     // §10 服务城市不覆盖
     const cityNotCovered: EffectiveSupplySnapshot = {
-      ...mediaFail,
-      mediaCount: 3,
-      merchant: { ...mediaFail.merchant, serviceCityIds: [999] },
+      ...baseline,
+      merchant: { ...baseline.merchant, serviceCityIds: [999] },
     }
     expect(isListingEffectivelySupplied(cityNotCovered, asOf).eligible).toBe(false)
 
     // 全有效
     const allValid: EffectiveSupplySnapshot = {
-      mediaCount: 3,
       merchant: {
         status: 'active',
         qualificationStatus: 'valid',

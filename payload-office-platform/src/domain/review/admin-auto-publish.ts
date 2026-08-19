@@ -4,11 +4,20 @@
  * 免审直发从「有人点一下」改成「平台管理员保存房源时自动发生」。这里只做**判定**，
  * 不碰 IO，便于单测；写库与审计由 hook 执行。
  *
- * 三条口径（用户已拍板）：
+ * 三条口径：
  *   1. 只有平台管理员（内置角色 ADM）触发，其它角色照常走人工审核；
- *   2. **不绕过完整度校验**——不达标就正常存草稿，不上架、也不报错。
- *      放行不达标房源会造出「后台显示已发布、前台 404」的幽灵：前台有效供给精筛
- *      按图片数等条件实时判定，不达标会被静默撤下，而发布状态不会跟着变；
+ *   2. **绕过完整度校验**——管理员哪怕只填了一个字段也照样上架。
+ *
+ *      这条是 2026-08-19 用户明确推翻先前决定后改的。原口径是「不绕过」，理由是
+ *      放行不达标房源会造出「后台显示已发布、前台看不到」的幽灵——前台有效供给
+ *      精筛（图片≥3、商户关系在有效期、商户合格）实时判定，不达标会被静默排除，
+ *      而发布状态不会跟着变。
+ *
+ *      推翻时这个代价已经摆在明面上并被接受：管理员要的是「我说发就发」，前台可见
+ *      与否是另一回事。**精筛没有一起绕过**，所以幽灵房源确实会存在——不是疏忽。
+ *
+ *      完整度仍然照算，只是不再拦截：`missing` 照常返回，供表单提示「已发布，但缺
+ *      少 X，前台暂不可见」。判定与提示因此共用同一份口径，不会各说各话。
  *   3. 走既有状态机（`fast_track`），不绕过它。所以 pending 状态下不会自动上架
  *      ——已经进了审核队列的房源应当由审核人裁决，否则会出现「审核中却已通过」
  *      这种自相矛盾的轨迹。
@@ -39,14 +48,18 @@ export interface AdminAutoPublishInput {
 export type AdminAutoPublishSkipReason =
   | 'not-admin'
   | 'illegal-transition'
-  | 'incomplete'
 
 export interface AdminAutoPublishDecision {
   /** 是否自动上架。false 时房源照常保存，只是不动两轴。 */
   publish: boolean
   /** 不上架的原因；publish 为 true 时是 null。 */
   skipReason: AdminAutoPublishSkipReason | null
-  /** incomplete 时的缺失项，供可见性卡片/提示复用；其余情形为空数组。 */
+  /**
+   * 完整度缺失项。**不再决定放不放行**，只用于提示。
+   *
+   * publish=true 时也可能非空——那正是「已发布但前台看不到」的场景，表单据此
+   * 提示管理员还差什么。skipReason 非 null 时为空数组。
+   */
   missing: MissingItem[]
 }
 
@@ -66,8 +79,8 @@ export function decideAdminAutoPublish(
     return SKIP('illegal-transition')
   }
 
+  // 照算不照拦：管理员一律放行，缺什么留给提示层说。
   const completeness = checkListingCompleteness(input.snapshot, 'submit')
-  if (!completeness.complete) return SKIP('incomplete', completeness.missing)
 
-  return { publish: true, skipReason: null, missing: [] }
+  return { publish: true, skipReason: null, missing: completeness.missing }
 }

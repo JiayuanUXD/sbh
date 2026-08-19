@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { MIN_EFFECTIVE_MEDIA } from '@/domain/review/effective-supply'
 import { deriveListingSelfVisibility } from '@/domain/review/listing-self-visibility'
 
 /**
@@ -9,7 +8,8 @@ import { deriveListingSelfVisibility } from '@/domain/review/listing-self-visibi
  * 关键口径：
  *   - 判值必须与 getEffectiveSupplyWhere 查询层谓词一致
  *     （published / approved / normal），这是「复用同一口径」的最小闭环；
- *   - 媒体下限复用 MIN_EFFECTIVE_MEDIA（与提交审核的 MIN_SUBMIT_MEDIA 同一条线）；
+ *   - **图片数量不在可见性条件里**（2026-08-19 起）；提交审核的 3 张门槛由
+ *     完整度引导负责，两者不能混为一谈；
  *   - 跨对象条件（商户 / 楼盘 / 服务城市 / 陈旧）不纳入，selfVisible 不冒充前台可见。
  */
 
@@ -17,7 +17,6 @@ const allPass = {
   publicationStatus: 'published',
   reviewStatus: 'approved',
   supplyVisibilityHold: 'normal',
-  galleryCount: 3,
   reportPaused: false,
 }
 
@@ -26,7 +25,7 @@ describe('deriveListingSelfVisibility', () => {
     const result = deriveListingSelfVisibility(allPass)
     expect(result.selfVisible).toBe(true)
     expect(result.primaryBlocker).toBeNull()
-    expect(result.checks).toHaveLength(5)
+    expect(result.checks).toHaveLength(4)
     expect(result.checks.every((c) => c.ok)).toBe(true)
   })
 
@@ -64,17 +63,12 @@ describe('deriveListingSelfVisibility', () => {
     }
   })
 
-  it('媒体条件复用 MIN_EFFECTIVE_MEDIA，差 1 张时给出差距与定位', () => {
-    const result = deriveListingSelfVisibility({
-      ...allPass,
-      galleryCount: MIN_EFFECTIVE_MEDIA - 1,
-    })
-    expect(result.selfVisible).toBe(false)
-    const gallery = result.checks.find((c) => c.key === 'gallery')
-    expect(gallery?.ok).toBe(false)
-    expect(gallery?.label).toBe(`有效图片 ${MIN_EFFECTIVE_MEDIA - 1}/${MIN_EFFECTIVE_MEDIA}`)
-    expect(gallery?.hint).toContain('还差 1 张')
-    expect(gallery?.locateTab).toBe('展示内容')
+  // 2026-08-19 反转：图片数量移出前台可见性。锁住「可见性卡片不再有 gallery 条」
+  // ——以后谁把提交审核的 3 张门槛混回可见性判定，这里会红。
+  it('无图仍判 selfVisible，且 checks 里没有 gallery 条', () => {
+    const result = deriveListingSelfVisibility(allPass)
+    expect(result.selfVisible).toBe(true)
+    expect(result.checks.map((c) => c.key)).not.toContain('gallery')
   })
 
   it('举报暂停单独判 false 并给出举报定位（无表单 Tab）', () => {

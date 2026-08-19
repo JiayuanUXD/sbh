@@ -80,13 +80,6 @@ export interface MediaWorkbenchConfig {
   coverSetMessage: string
   /** 封面字段在表单中的路径（默认 coverImage）。 */
   coverFieldPath?: string
-  /**
-   * 有效供给媒体地板：文档处于「已上架」时要求的最少图片数（kind='image'，视频与平面图不计入）。
-   * 跌破时前台会把该文档从有效供给中剔除、而发布状态不变（后台仍显示已发布），
-   * 因此这里必须显式警示；服务端由 syncListingMedia 的 PUBLISHED_MEDIA_FLOOR 兜底拦截。
-   * 不设该门槛的领域（如楼盘）留空即可。
-   */
-  publishedImageFloor?: number
 }
 
 function getResourceId(
@@ -536,13 +529,6 @@ export default function MediaWorkbench({
     return counts
   }, [categoryKeys, items])
 
-  // 已上架媒体地板：图片数（kind='image'）跌破门槛 → 前台静默下架，必须显式警示
-  const imageCount = useMemo(() => items.filter((it) => it.kind === 'image').length, [items])
-  const belowImageFloor =
-    typeof config.publishedImageFloor === 'number' &&
-    data?.publicationStatus === 'published' &&
-    imageCount < config.publishedImageFloor
-
   // 移动端 App 图标级流体网格拖拽核心处理
   const handlePointerDown = useCallback(
     (
@@ -828,33 +814,6 @@ export default function MediaWorkbench({
             }
             animation
           />
-        </div>
-      )}
-
-      {/* 已上架媒体地板告警：保存会被服务端 PUBLISHED_MEDIA_FLOOR 拦截 */}
-      {belowImageFloor && (
-        <div
-          role="alert"
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 8,
-            marginBottom: 16,
-            padding: '10px 12px',
-            borderRadius: 6,
-            border: '1px solid var(--theme-warning-250, #ff9a2e)',
-            background: 'var(--theme-warning-50, #fff7e8)',
-            color: 'var(--theme-warning-750, #7d4400)',
-            fontSize: 13,
-            lineHeight: 1.6,
-          }}
-        >
-          <IconFileImage style={{ marginTop: 2, flexShrink: 0 }} />
-          <span>
-            已上架房源至少需要 <strong>{config.publishedImageFloor}</strong> 张图片，当前只有{' '}
-            <strong>{imageCount}</strong> 张（视频与平面图不计入）。
-            现在保存会被拦截；房源也不会出现在前台。请先补图，或先将房源下架再清理媒体。
-          </span>
         </div>
       )}
 

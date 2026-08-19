@@ -9,13 +9,14 @@ import {
   deriveListingSelfVisibility,
   type SelfVisibilityCheck,
 } from '@/domain/review/listing-self-visibility'
+import { locateFormField } from './locate-form-field'
 
 const { Text } = Typography
 
 /**
  * 房源编辑页「前台可见性」卡片 - 客户端展示（OPT-030 §4 第一/二层）
  *
- *   第一层：逐条展示自身条件（发布/审核/冻结/举报/图集），点击定位到
+ *   第一层：逐条展示自身条件（发布/审核/冻结/举报），点击定位到
  *           对应 Tab 与字段，而不只是报错。
  *   第二层：保存成功但自身条件仍不满足时 Toast 主因，避免「保存成功」
  *           被误读为「已上线」。
@@ -33,84 +34,11 @@ type Props = {
   reportPaused: boolean
 }
 
-/** array 字段父路径在有行时存行数（number），无行时可能是 undefined 或数组。 */
-function galleryRowCount(formValue: unknown, docGallery: unknown): number {
-  if (typeof formValue === 'number' && Number.isFinite(formValue)) return formValue
-  if (Array.isArray(formValue)) return formValue.length
-  if (Array.isArray(docGallery)) return docGallery.length
-  return 0
-}
-
-/** 点击定位：切到目标 Tab，再滚动并短暂高亮目标字段的 label。 */
-function locateCheck(check: SelfVisibilityCheck) {
-  if (check.locateTab === null) return
-
-  const tabButtons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('.tabs-field__tabs button'),
-  )
-  const targetTab = tabButtons.find(
-    (btn) => (btn.textContent ?? '').trim() === check.locateTab,
-  )
-  if (!targetTab) return
-  // Payload 的 tab 激活态类名是 `tabs-field__tab-button--active`（不是裸 `active`）。
-  const isActive =
-    targetTab.classList.contains('tabs-field__tab-button--active') ||
-    targetTab.getAttribute('aria-selected') === 'true'
-  if (!isActive) {
-    targetTab.click()
-  }
-
-  const tryHighlight = (attempt: number): void => {
-    const label = Array.from(document.querySelectorAll<HTMLLabelElement>('label')).find((el) => {
-      const text = (el.textContent ?? '').trim()
-      return check.locateFieldLabel !== undefined && text.startsWith(check.locateFieldLabel)
-    })
-    if (!label) {
-      // Tab 切换是 React 渲染，字段晚于 click 出现；两轮重试仍找不到就停在 Tab 上。
-      if (attempt < 2) window.setTimeout(() => tryHighlight(attempt + 1), 300)
-      return
-    }
-    // OPT-032：tab 收成 2 个后，原来的 tab 降级成了 collapsible 分节。Payload 的
-    // Collapsible 折叠时**仍然渲染 children**（只是套 height: 0），所以 label 找得到、
-    // 却滚不到可视区——表现为「点了没反应」。这里把折叠着的祖先分节先展开。
-    //
-    // 折叠态持久化在用户 preferences 里，仅靠 initCollapsed 默认展开挡不住。
-    // 先收集再点击：click 会触发 React 重渲染，边走边点可能让向上的游标失效。
-    const collapsedAncestors: Element[] = []
-    let node: Element | null = label.closest('.collapsible--collapsed')
-    while (node) {
-      collapsedAncestors.push(node)
-      node = node.parentElement?.closest('.collapsible--collapsed') ?? null
-    }
-    for (const el of collapsedAncestors.reverse()) {
-      // toggle 按钮是 .collapsible 头部行的直接子元素；限定两层深度，
-      // 避免把嵌套分节（如「状态（只读）」）的按钮一起点了。
-      el.querySelector<HTMLButtonElement>(':scope > * > .collapsible__toggle')?.click()
-    }
-
-    const container = label.closest('[class*="field"]') ?? label
-    // 展开分节有 AnimateHeight 过渡，立刻滚会落在错的位置，等一拍再滚。
-    window.setTimeout(
-      () => container.scrollIntoView({ behavior: 'smooth', block: 'center' }),
-      collapsedAncestors.length > 0 ? 320 : 0,
-    )
-    const previous = (container as HTMLElement).style.boxShadow
-    ;(container as HTMLElement).style.transition = 'box-shadow 0.3s ease'
-    ;(container as HTMLElement).style.boxShadow = '0 0 0 3px var(--theme-warning-500, #ff7d00)'
-    window.setTimeout(() => {
-      ;(container as HTMLElement).style.boxShadow = previous
-    }, 1800)
-  }
-
-  window.setTimeout(() => tryHighlight(0), 150)
-}
-
 export default function ListingVisibilityCardClient({ listingId, reportPaused }: Props) {
   const { data } = useDocumentInfo()
   const { value: publicationStatus } = useField<unknown>({ path: 'publicationStatus' })
   const { value: reviewStatus } = useField<unknown>({ path: 'reviewStatus' })
   const { value: supplyVisibilityHold } = useField<unknown>({ path: 'supplyVisibilityHold' })
-  const { value: galleryValue } = useField<unknown>({ path: 'gallery' })
 
   const doc = (data ?? {}) as Record<string, unknown>
 
@@ -121,15 +49,12 @@ export default function ListingVisibilityCardClient({ listingId, reportPaused }:
         publicationStatus: publicationStatus ?? doc.publicationStatus,
         reviewStatus: reviewStatus ?? doc.reviewStatus,
         supplyVisibilityHold: supplyVisibilityHold ?? doc.supplyVisibilityHold,
-        galleryCount: galleryRowCount(galleryValue, doc.gallery),
         reportPaused,
       }),
     [
-      doc.gallery,
       doc.publicationStatus,
       doc.reviewStatus,
       doc.supplyVisibilityHold,
-      galleryValue,
       publicationStatus,
       reportPaused,
       reviewStatus,
@@ -176,7 +101,9 @@ export default function ListingVisibilityCardClient({ listingId, reportPaused }:
       )
       return
     }
-    locateCheck(check)
+    if (check.locateTab !== null) {
+      locateFormField(check.locateTab, check.locateFieldLabel, 'warning')
+    }
   }
 
   return (

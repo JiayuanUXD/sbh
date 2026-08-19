@@ -237,8 +237,9 @@ async function seedMedia() {
   }
 
   // 5) 同步到 featured listings：封面 + gallery
-  //    F7.1 E2E：所有 listings（不止 featured）都需要 gallery ≥ 3，否则
-  //    有效供给精筛层 §6 会以 INSUFFICIENT_MEDIA 排除，导致前台 0 套房源。
+  //    前台可见性已不再看图片数（见 domain/review/effective-supply.ts 头部），
+  //    这里仍给所有 listings 铺满 gallery：E2E 断言的是「有图的正常渲染」，
+  //    无图降级另有其用例，不该靠种子数据碰运气。
   payload.logger.info('将封面与 gallery 同步到所有 listings...')
   const allListings = await payload.find({
     collection: 'listings',

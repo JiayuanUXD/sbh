@@ -3,7 +3,9 @@
  *
  * 单一真源是 `getSubmitRequiredFields(businessType)`。这里只做两件事：
  *   1. 把「完整度字段键」映射到「表单里挂标记的字段名」；
- *   2. 生成 `admin.components.Label`，让被标记的字段多出一个琥珀色 `*`。
+ *   2. 生成 `admin.components.Label`，让被标记的字段带一颗红星。
+ *      （2026-08-19 前是琥珀星，与原生红星并列表达两级门槛；现已合并为一颗，
+ *      见 `PublishRequiredLabel`。）
  *
  * **禁止把这些字段改成 `required: true`**：房源是两级门槛（草稿随写随存 /
  * 提交审核才全量校验，见 `domain/review/listing-completeness.ts` 头注释），
@@ -104,9 +106,10 @@ export function markPublishRequired<T extends Field>(field: T): T {
         ...components,
         Label: {
           path: '/components/admin/PublishRequiredLabel#default',
+          // 只传 label：星号合并后不再区分「原生 required」与「提交必填」，
+          // 再传 required 只会让人以为它还影响渲染。
           clientProps: {
             label: typeof label === 'string' ? label : name,
-            required: (field as { required?: boolean }).required === true,
           },
         },
       },

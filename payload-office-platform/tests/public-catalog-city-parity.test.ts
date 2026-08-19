@@ -104,7 +104,14 @@ function listing(
   parent: Building,
   options: Readonly<{
     listingType?: Listing['listingType']
-    mediaCount?: number
+    /**
+     * 商户启停：本文件用它造「不合格房源」。
+     *
+     * 必须选一个**精筛层**条件：本文件的 fake adapter 只跑
+     * isListingEffectivelySupplied，并不模拟查询层谓词（发布/审核/冻结），
+     * 拿查询层字段当失效条件会静默失效、把对照组变成摆设。
+     */
+    merchantStatus?: 'active' | 'disabled'
     rentUnit?: Listing['rentUnit']
   }> = {},
 ): ParityListing {
@@ -127,13 +134,13 @@ function listing(
       name: `${slug} merchant`,
       type: 'OWNER',
       serviceCities: owningCity ? [owningCity] : [],
-      status: 'active',
+      status: options.merchantStatus ?? 'active',
       qualificationStatus: 'valid',
       qualificationExpiresAt: '2027-08-13T00:00:00.000Z',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
-    gallery: Array.from({ length: options.mediaCount ?? 3 }, (_, index) => ({ image: index + 1 })),
+    gallery: Array.from({ length: 3 }, (_, index) => ({ image: index + 1 })),
     _relationPeriod: { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null },
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
@@ -154,8 +161,10 @@ const listings = [
     listingType: 'coworking',
     rentUnit: 'rmb-seat-month',
   }),
-  listing(3001, 'shanghai-ineligible', shanghaiBuilding, { mediaCount: 2 }),
-  listing(3002, 'suzhou-ineligible', suzhouBuilding, { mediaCount: 2 }),
+  // 2026-08-19 前这两条靠「图片只有 2 张」不合格；媒体数量移出可见性后
+  // 改用供给可见性冻结，保持「每城都有一条不该出现的房源」这个对照组。
+  listing(3001, 'shanghai-ineligible', shanghaiBuilding, { merchantStatus: 'disabled' }),
+  listing(3002, 'suzhou-ineligible', suzhouBuilding, { merchantStatus: 'disabled' }),
 ] as const
 const buildings = [shanghaiBuilding, suzhouBuilding] as const
 const districts = [shanghaiDistrict, suzhouDistrict] as const
@@ -173,7 +182,6 @@ function createParityAdapter(): SupplyAdapter {
     const owningCity = parent && typeof parent.city === 'object' ? parent.city : null
     const merchant = typeof item.merchant === 'object' ? item.merchant : null
     return isListingEffectivelySupplied({
-      mediaCount: item.gallery?.length ?? 0,
       merchant: {
         status: merchant?.status,
         qualificationStatus: merchant?.qualificationStatus,

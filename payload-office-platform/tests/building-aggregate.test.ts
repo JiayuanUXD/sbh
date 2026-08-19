@@ -83,10 +83,11 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
       listings: [
         eligibleListing(10, { area: 100, rent: 5, rentUnit: 'rmb-sqm-day' }),
         eligibleListing(11, { area: 200, rent: 6, rentUnit: 'rmb-sqm-day' }),
-        // 媒体不足 → 精筛淘汰,不计入
-        eligibleListing(12, { area: 50, rent: 7, rentUnit: 'rmb-sqm-day', gallery: [{ id: 'x' }] }),
+        // 无有效商户关系 → 精筛淘汰,不计入
+        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成关系）
+        eligibleListing(12, { area: 50, rent: 7, rentUnit: 'rmb-sqm-day' }),
       ],
-      relationsByListing: relationsFor(10, 11, 12),
+      relationsByListing: relationsFor(10, 11),
     })
     const result = await computeBuildingSupplyAggregate(payload as never, 42)
 

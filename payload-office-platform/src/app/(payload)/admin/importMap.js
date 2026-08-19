@@ -38,6 +38,7 @@ import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../components/admin/BuildingOperationalToggle'
 import { default as default_e2334a3ded7dbfed3d718a8b27260221 } from '../../../components/admin/unsaved-changes/FormModifiedBridge'
+import { default as default_78df23b1d99d35811c4eaef06cc2eeed } from '../../../components/admin/ListingCompletenessCard'
 import { default as default_0b8faaaab4eb657e1e6d583eda93d27d } from '../../../components/admin/ListingVisibilityCard'
 import { default as default_b126e0b58866da4320d49e1bf76cea7c } from '../../../components/admin/ListingFormSectionHeading'
 import { default as default_af1391405ef33ef431edd52406e13adf } from '../../../components/admin/PublishRequiredLabel'
@@ -120,6 +121,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/BuildingOperationalToggle#default": default_48ef1091d596d4c5cbcd8ac69d53a12a,
   "/components/admin/unsaved-changes/FormModifiedBridge#default": default_e2334a3ded7dbfed3d718a8b27260221,
+  "/components/admin/ListingCompletenessCard#default": default_78df23b1d99d35811c4eaef06cc2eeed,
   "/components/admin/ListingVisibilityCard#default": default_0b8faaaab4eb657e1e6d583eda93d27d,
   "/components/admin/ListingFormSectionHeading#default": default_b126e0b58866da4320d49e1bf76cea7c,
   "/components/admin/PublishRequiredLabel#default": default_af1391405ef33ef431edd52406e13adf,

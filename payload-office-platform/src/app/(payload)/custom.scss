@@ -2568,17 +2568,25 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
   }
 }
 
-// 发布必填标记（方案 B）。刻意与 Payload 原生的红色 required 星号区分开：
-// 红 = 草稿保存必填，琥珀 = 提交审核必填。两级门槛第一次在表单上可见。
+// 发布必填标记（方案 B）。
+//
+// 2026-08-19：原本这里把它染成琥珀色，故意与 Payload 原生红星区分两级门槛；
+// 用户要求合并成一颗红星，所以这里不再改颜色——星号同时带 `.required`，
+// 直接继承 Payload 原生的红。保留 `.publish-required` 这个类名是为了下面
+// 那条列表页隐藏规则能抓到它。
 .publish-required {
   margin-left: 2px;
-  color: #d98600;
   font-weight: 700;
   cursor: help;
 }
 
-html[data-theme='dark'] .publish-required {
-  color: #e8a33d;
+// 列表页列头不该有星号：那里不填表，星号只是噪声。
+//
+// 漏到列表页是 Payload 的机制：`buildColumnState` 会把字段的
+// `admin.components.Label` 原样渲染进 `SortColumn`（包在 `.sort-column__label` 里）。
+// 因此只要给字段挂了自定义 Label，列头就会跟着长星号。
+.sort-column__label .publish-required {
+  display: none;
 }
 
 // 移动端：分节标题与字段的纵向节奏收紧一档，别让一屏只装得下两三个字段

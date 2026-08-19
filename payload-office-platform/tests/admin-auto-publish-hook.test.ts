@@ -96,12 +96,15 @@ describe('admin-auto-publish-hook/beforeChange', () => {
     expect(data.publicationStatus).toBeUndefined()
   })
 
-  it('图片不足 → 照常保存为草稿，不上架、不抛错', async () => {
+  // 2026-08-19 起完整度只提示不拦截：图片不足照样上架。前台可见与否由有效供给精筛
+  // 另行决定，这一层不代它做主。判定层的缺失项覆盖在 admin-auto-publish.test.ts。
+  it('图片不足 → 仍然上架（完整度不再拦截）', async () => {
     setActor(['ADM'])
     const req = makeReq()
     const data = await runBefore({ title: 'x' }, { ...completeListing, gallery: [{ image: 1 }] }, req)
-    expect(data.publicationStatus).toBeUndefined()
-    expect(req.context.__opt033AdminAutoPublish).toBeUndefined()
+    expect(data.publicationStatus).toBe('published')
+    expect(data.reviewStatus).toBe('approved')
+    expect(req.context.__opt033AdminAutoPublish).toBeDefined()
   })
 
   it('本次保存把审核态改成 pending 时不上架（data 覆盖 originalDoc）', async () => {

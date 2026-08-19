@@ -248,7 +248,10 @@ export function listListingsByState(state: ListingStateTuple): ListingFixture[] 
  *   - Listing 未逻辑删除
  *   - 已上架且审核通过
  *   - 未处于待复核冻结
- *   - 媒体完整（≥ 3 张）
+ *
+ * 媒体数量**不在列**：2026-08-19 起前台可见性不再看图片数
+ * （见 domain/review/effective-supply.ts 头部）。fixture 上的 mediaCount 保留，
+ * 供「提交审核至少 3 张」（MIN_SUBMIT_MEDIA）相关用例使用。
  *
  * 完整有效供给谓词还包含 Building / 城市 / 区域启用、商户关系有效等；
  * 此处只实现 Listing 自身维度，Building / Merchant 维度在 M3-M4 扩展。
@@ -262,7 +265,6 @@ export function isListingEligibleForSupply(listing: ListingFixture): {
   if (listing.publication !== 'published') reasons.push(`publication_${listing.publication}`)
   if (listing.review !== 'approved') reasons.push(`review_${listing.review}`)
   if (listing.supplyHold !== 'normal') reasons.push(`supply_hold_${listing.supplyHold}`)
-  if (listing.mediaCount < 3) reasons.push('media_incomplete')
   return { ok: reasons.length === 0, reasons }
 }
 

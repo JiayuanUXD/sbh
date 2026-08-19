@@ -90,10 +90,11 @@ describe('building-references/countBuildingDeactivationImpact', () => {
       listings: [
         eligibleListing(1),
         eligibleListing(2),
-        // 媒体不足 → 精筛淘汰,不计入
-        eligibleListing(3, { gallery: [{ id: 'x' }] }),
+        // 无有效商户关系 → 精筛淘汰,不计入
+        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成关系）
+        eligibleListing(3),
       ],
-      relationsByListing: relationsFor(1, 2, 3),
+      relationsByListing: relationsFor(1, 2),
     })
     const report = await countBuildingDeactivationImpact(payload, 7)
     expect(report.total).toBe(2)
