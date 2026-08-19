@@ -28,7 +28,7 @@ pnpm build
 - 开发：`pnpm dev`（固定 3717，多 worktree 必须换 `PORT`）。
 - E2E：`pnpm test:e2e`（Playwright；`E2E_PROD_SERVER=1` 走 `next start` 生产 server，避开 dev JIT 超时）。
 - 迁移：`pnpm exec payload migrate` / `migrate:status` / `migrate:verify`；上线前 `pnpm preflight`（环境变量 + 迁移完整性 + 风险扫描）。
-- 种子：`pnpm seed`；`pnpm seed:media`（**gallery < 3 张图会被有效供给精筛全部排除 → 前台 0 套房源**，别只跑 `seed`）。
+- 种子：`pnpm seed`；`pnpm seed:media`（前台可见性已不再要求图片数，但 E2E 断言的是「有图的正常渲染」，只跑 `seed` 会让那批用例空跑）。
 
 `next start`（NODE_ENV=production）首个请求会触发 `src/lib/runtime/config-guard.ts` 的 fail-closed 校验：缺 PG 连接串 / 弱或短于 32 位 `PAYLOAD_SECRET` / 非 https 或 localhost 的 `NEXT_PUBLIC_SITE_URL`，任一不满足直接拒绝启动。
 
