@@ -52,6 +52,7 @@ import * as migration_20260817_174500_sale_business_type_index from './20260817_
 import * as migration_20260817_175801_sale_terms_fields from './20260817_175801_sale_terms_fields';
 import * as migration_20260817_180000_sale_publication_status_sold from './20260817_180000_sale_publication_status_sold';
 import * as migration_20260818_072207_fast_track_review_decision from './20260818_072207_fast_track_review_decision';
+import * as migration_20260818_232656_opt033_admin_fast_track_audit from './20260818_232656_opt033_admin_fast_track_audit';
 
 export const migrations = [
   {
@@ -322,6 +323,11 @@ export const migrations = [
   {
     up: migration_20260818_072207_fast_track_review_decision.up,
     down: migration_20260818_072207_fast_track_review_decision.down,
-    name: '20260818_072207_fast_track_review_decision'
+    name: '20260818_072207_fast_track_review_decision',
+  },
+  {
+    up: migration_20260818_232656_opt033_admin_fast_track_audit.up,
+    down: migration_20260818_232656_opt033_admin_fast_track_audit.down,
+    name: '20260818_232656_opt033_admin_fast_track_audit'
   },
 ];

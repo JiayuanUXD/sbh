@@ -40,7 +40,7 @@ describe('review-status/枚举', () => {
 })
 
 describe('review-status/审核动作枚举', () => {
-  it('五个动作:提交/撤回/通过/驳回/免审直发', () => {
+  it('五个动作:提交/撤回/通过/驳回/管理员直发', () => {
     expect(REVIEW_DECISIONS).toEqual(['submit', 'withdraw', 'approve', 'reject', 'fast_track'])
   })
 
@@ -119,7 +119,7 @@ describe('review-status/reviewDecisionToStatus', () => {
   })
 })
 
-describe('review-status/免审直发（fast_track）', () => {
+describe('review-status/管理员直发（fast_track）', () => {
   it('未提交 / 已驳回 可直接到 approved', () => {
     for (const from of ['not_submitted', 'rejected'] as const) {
       expect(canTransitionReview(from, 'fast_track')).toBe(true)
@@ -138,7 +138,9 @@ describe('review-status/免审直发（fast_track）', () => {
   })
 
   it('fast_track 有独立的中文标签，不与「审核通过」混淆', () => {
-    expect(REVIEW_DECISION_LABELS.fast_track).toBe('免审直发')
+    // OPT-033：入口从「有人点一下」改成管理员保存自动触发，标签随之改口径。
+    // 枚举值本身保留——它是把「管理员直发」与「走完人工审核」在审计上分开的唯一凭据。
+    expect(REVIEW_DECISION_LABELS.fast_track).toBe('管理员直发')
     expect(REVIEW_DECISION_LABELS.fast_track).not.toBe(REVIEW_DECISION_LABELS.approve)
   })
 

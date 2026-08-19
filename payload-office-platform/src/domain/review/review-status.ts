@@ -39,7 +39,7 @@ export const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
   withdraw: '撤回',
   approve: '审核通过',
   reject: '驳回',
-  fast_track: '免审直发',
+  fast_track: '管理员直发',
 }
 
 export function isReviewDecision(value: unknown): value is ReviewDecision {

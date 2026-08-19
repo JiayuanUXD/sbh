@@ -39,6 +39,7 @@ import { InvalidOperationError } from '@/domain/shared/errors'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
+import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -218,7 +219,12 @@ export const Listings: CollectionConfig = {
   hooks: {
     // syncListingMedia 必须排在 protectListing 之前：gallery/coverImage 由 mediaItems 派生，
     // 只有先派生再校验，保护逻辑与审核快照读到的才是最终数据（与楼盘 hook 顺序一致）。
-    beforeChange: [syncListingMedia, protectListing],
+    //
+    // adminAutoPublish 排最后（OPT-033）：它要读派生完的 gallery 与初始化过的三轴，
+    // 早于前两者会判在半成品数据上。
+    beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
+    // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
+    afterChange: [recordAdminAutoPublish],
   },
   fields: [
     {
@@ -635,17 +641,6 @@ export const Listings: CollectionConfig = {
                     path: '/components/admin/ListingFormSectionHeading#default',
                     clientProps: { title: '审核与发布', description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。' },
                   },
-                },
-              },
-            } as unknown as Field,
-            {
-              // 免审直发入口。放在这里而不是审核台：直发的起点是「未提交 / 已驳回」，
-              // 这些房源根本不在 pending 队列里。可见性（权限 + 状态）全由服务端组件
-              // 判定，客户端只负责触发；完整度由 endpoint 强制。
-              type: 'ui',
-              admin: {
-                components: {
-                  Field: '/components/admin/ListingFastTrackAction',
                 },
               },
             } as unknown as Field,

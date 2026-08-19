@@ -2362,11 +2362,47 @@ html[data-theme='dark'] {
 // 所以这里在 .collection-edit--listings 作用域内改写，不动其它 collection。
 // 两条规则同特异度（都是 0,2,1 + !important），本块在文件末尾，后来居上。
 
+// 参与固定列轴的行内元素。`.listing-readonly` 是自定义 Field，Payload 不给它套
+// `.field-type` 包装；`.bfNumericFieldWrapper` 是 NumberField 插件自渲染的根节点。
+// 三者要走同一条列轴，否则会各缩各的。
+$listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-readonly, .row__fields > .bfNumericFieldWrapper';
+
 .collection-edit--listings {
-  // 固定列轴：宽度取字段自己的 --field-width（来自 admin.width），缺省按 4 列。
-  // grow 归零是关键——否则短行仍会被拉满。
-  .row__fields > .field-type {
-    flex: 0 1 calc(var(--field-width, 25%) - 16px) !important;
+  // 固定列轴 + 移动端降列（OPT-032）。
+  //
+  // grow 归零是关键——否则短行仍会被拉满，就回到「两字段行各占一半」的老样子。
+  // 但 grow:0 加固定 basis 在窄屏会把 4 列硬塞进手机，所以按容器宽度分档降列，
+  // 断点与本文件上方那套全局响应式列保持一致（`.row__fields` 已有
+  // `container-type: inline-size`，容器查询按**行自身宽度**判定，不受侧边栏折叠
+  // 或 group/tab 缩进影响）。
+  //
+  // 只有最宽档才读 `--field-width`：3 列节（基本信息 33.333%）与 4 列节（其余 25%）
+  // 的区分在窄屏没有意义——那时候本来就排不下三四列。
+  #{$listing-col-targets} {
+    flex: 0 1 100% !important; // < 480px：单列
+  }
+
+  // 只读状态是短文本不是控件，窄屏也塞得下两个；四个各占一整行纯属浪费。
+  .row__fields > .listing-readonly {
+    flex-basis: calc(50% - 12px) !important;
+  }
+
+  @container (min-width: 480px) {
+    #{$listing-col-targets} {
+      flex-basis: calc(50% - 12px) !important;
+    }
+  }
+
+  @container (min-width: 720px) {
+    #{$listing-col-targets} {
+      flex-basis: calc(33.333% - 16px) !important;
+    }
+  }
+
+  @container (min-width: 960px) {
+    #{$listing-col-targets} {
+      flex-basis: calc(var(--field-width, 25%) - 16px) !important;
+    }
   }
 
   // NumberField（@nouance/payload-better-fields-plugin）自渲染根节点、不走
@@ -2382,7 +2418,6 @@ html[data-theme='dark'] {
   // 单独列出来，走同一条列轴。
   .row__fields > .listing-readonly {
     --field-width: 25%;
-    flex: 0 1 calc(var(--field-width) - 16px) !important;
     // Payload 给 row 子元素加了 margin-inline: calc(--base / 4)（左右各 5px），
     // 全局那条清零规则只挑 `.field-type`，这里要自己清，否则整列偏 5px。
     margin-left: 0 !important;
@@ -2544,4 +2579,27 @@ html[data-theme='dark'] {
 
 html[data-theme='dark'] .publish-required {
   color: #e8a33d;
+}
+
+// 移动端：分节标题与字段的纵向节奏收紧一档，别让一屏只装得下两三个字段
+@media (max-width: 768px) {
+  .listing-form-section {
+    margin: 20px 0 12px;
+  }
+
+  .listing-form-section__title {
+    font-size: 14px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
+
+  .collection-edit--listings .group-field .group-field__title,
+  .collection-edit--listings .group-field .group-field__header h3 {
+    margin-top: 8px;
+  }
+
+  // 标题框里的 URL 图标：窄屏输入框更矮，右内边距同步收一点
+  .collection-edit--listings .field-type.text:has(.listing-slug-badge) input {
+    padding-right: 30px;
+  }
 }
