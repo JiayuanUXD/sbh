@@ -109,35 +109,45 @@ describe('admin-auto-publish/走状态机，不绕过', () => {
   })
 })
 
-describe('admin-auto-publish/不绕过完整度', () => {
-  it('图片不足 3 张 → 只存草稿，并摊开缺失项', () => {
+/**
+ * 完整度**不再拦截**（2026-08-19 用户明确推翻先前决定）。
+ *
+ * 原口径是「不达标就只存草稿」，理由是放行会造出「后台已发布、前台看不到」的幽灵。
+ * 推翻时这个代价已摆在明面上并被接受：管理员要的是「我说发就发」。有效供给精筛
+ * **没有**一起绕过，所以幽灵房源确实会存在，是刻意的。
+ *
+ * 这组用例因此从「拦不拦」改成「缺失项报得准不准」——完整度照算，只是结果给提示层
+ * 用而不再决定放行。missing 报错了，表单就会告诉管理员错误的原因。
+ */
+describe('admin-auto-publish/完整度只提示不拦截', () => {
+  it('图片不足 3 张 → 照样上架，但报出 gallery 缺失', () => {
     const d = decideAdminAutoPublish({
       roleCodes: admin,
       reviewStatus: 'not_submitted',
       snapshot: { ...completeLease, galleryCount: 2 },
     })
-    expect(d.publish).toBe(false)
-    expect(d.skipReason).toBe('incomplete')
+    expect(d.publish).toBe(true)
+    expect(d.skipReason).toBeNull()
     expect(d.missing.map((m) => m.field)).toContain('gallery')
   })
 
-  it('没有有效商户关系 → 不上架', () => {
+  it('没有有效商户关系 → 照样上架，但报出 merchant 缺失', () => {
     const d = decideAdminAutoPublish({
       roleCodes: admin,
       reviewStatus: 'not_submitted',
       snapshot: { ...completeLease, hasValidMerchantRelation: false },
     })
-    expect(d.publish).toBe(false)
+    expect(d.publish).toBe(true)
     expect(d.missing.map((m) => m.field)).toContain('merchant')
   })
 
-  it('价格四件套不全 → 不上架', () => {
+  it('价格四件套不全 → 照样上架，但报出 price 缺失', () => {
     const d = decideAdminAutoPublish({
       roleCodes: admin,
       reviewStatus: 'not_submitted',
       snapshot: { ...completeLease, price: { amount: 4.8 } },
     })
-    expect(d.publish).toBe(false)
+    expect(d.publish).toBe(true)
     expect(d.missing.map((m) => m.field)).toContain('price')
   })
 
@@ -159,7 +169,7 @@ describe('admin-auto-publish/不绕过完整度', () => {
     expect(d.publish).toBe(true)
   })
 
-  it('出售房源缺产权年限 → 不上架', () => {
+  it('出售房源缺产权年限 → 照样上架，但报出 propertyRightYears 缺失', () => {
     const d = decideAdminAutoPublish({
       roleCodes: admin,
       reviewStatus: 'not_submitted',
@@ -169,7 +179,7 @@ describe('admin-auto-publish/不绕过完整度', () => {
         price: { amount: 38000000, currency: 'CNY', period: 'one-time', unit: 'suite' },
       },
     })
-    expect(d.publish).toBe(false)
+    expect(d.publish).toBe(true)
     expect(d.missing.map((m) => m.field)).toContain('propertyRightYears')
   })
 })
