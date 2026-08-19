@@ -80,7 +80,8 @@ export function assertSeedTargetNotProduction(env: SeedTargetEnv): void {
       ...targets.map((t) => `  - ${t}`),
       '',
       'seed 会按同名 key 覆盖对象存储里的文件（真实事故：生产首页 hero 视频被 15KB 占位 fixture 覆盖）。',
-      '本地请改用独立的 PG 库与占位 COS 桶（见 payload-office-platform/CLAUDE.md）。',
+      '本地请改用独立的 PG 库，并把五项 COS_* 全部留空（走本地磁盘存储）。',
+      '不要填占位桶：那会让本地上传恒 500，且极易被随手改成真实生产凭据。',
       '确实要写生产请显式设置 ALLOW_PRODUCTION_SEED=1。',
     ].join('\n'),
   )

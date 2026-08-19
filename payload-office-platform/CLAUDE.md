@@ -35,7 +35,7 @@ pnpm build
 ## 生成物纪律（最贵的坑，动 payload.config 前先读）
 
 - **`src/payload-types.ts` 是生成物，但在 `master` 上仍被 git 跟踪**（`.gitignore:7` 列了它，对已跟踪文件无效；而 `quality.yml` / `Dockerfile` 的注释假设它不在仓库里）。开工前用 `git ls-files src/payload-types.ts` 确认当前分支真实状态，别凭记忆假设已忽略。
-- **本地 `.env.local` 缺 COS 配置时，重生成会静默删掉 `Media.prefix` 两行**（该字段只在 storage-s3 启用时存在，见迁移 `20260805_033418_cos_media_prefix`）；跑 `migrate:status` / `migrate:dry-run` 等加载 payload.config 的 tsx 脚本也会触发。规避：`.env.local` 里给**语法合法的占位 COS_\***（`COS_BUCKET` 形如 `local-dev-1250000000`、`COS_REGION` 为 `ap-*`、`COS_ENDPOINT` 为 `https://cos.<region>.myqcloud.com`，五个变量要么全给要么全不给）。提交前 `grep -c "prefix" src/payload-types.ts` **必须是 2**。
+- **本地不要配 COS**：五项 `COS_*` 全部留空即走本地磁盘存储（`parseCosStorageConfig` 判 `enabled:false`）。旧文档曾要求填**占位 COS_\***来防 `generate:types` 删掉 `Media.prefix`——**该规避已作废**：`Media.ts` 现在显式声明了 `prefix` 字段，各存储模式下都在（2026-08-19 实测：无 COS 时仍为 2）。占位配置反而有害：本地上传恒 500（打向不存在的桶），而一旦有人把占位换成真实生产凭据，就变成「本地库 + 生产桶」——正是 2026-08-15 覆盖掉生产首页 hero 视频那次事故的组合（复盘见 `src/lib/runtime/seed-target-guard.ts`）。提交前仍建议 `grep -c "prefix" src/payload-types.ts` **必须是 2**。
 - **`src/app/(payload)/admin/importMap.js` 是提交进仓库的源文件，不是构建产物**。payload.config 新增任何 client 组件（富文本 feature、存储适配器、自定义字段 UI）后没重生成，**整个 `/admin` SPA 会在 hydration 阶段白屏（含 login 页）**，而 HTML 与所有 JS/CSS 都返回 200。诊断口诀：白屏 + 资源全 200 = client hydration 失败，不是 404。修复：`pnpm payload generate:importmap`。
 
 ## 并行开发纪律（多 worktree / 多 IDE，别踩）
