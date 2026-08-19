@@ -810,7 +810,7 @@ export interface Listing {
   };
   isFeatured?: boolean | null;
   /**
-   * 房源供给关系的当前商户;有效期与快照规则见供给关系。
+   * 房源供给关系的当前商户;有效期与快照规则见供给关系。新建时默认已预选。
    */
   merchant?: (number | null) | Merchant;
   contactBroker?: (number | null) | Broker;
