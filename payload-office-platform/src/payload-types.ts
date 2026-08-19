@@ -1610,6 +1610,7 @@ export interface AuditLog {
     | 'listing.review_submit'
     | 'listing.review_approve'
     | 'listing.review_reject'
+    | 'listing.review_fast_track'
     | 'listing.publish'
     | 'listing.unpublish'
     | 'building.create'
