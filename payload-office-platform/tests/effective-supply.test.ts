@@ -4,7 +4,6 @@ import {
   getEffectiveSupplyWhere,
   isListingEffectivelySupplied,
   EFFECTIVE_SUPPLY_EXCLUSION_CODES,
-  MIN_EFFECTIVE_MEDIA,
   type EffectiveSupplySnapshot,
 } from '@/domain/review/effective-supply'
 
@@ -78,15 +77,8 @@ describe('effective-supply/getEffectiveSupplyWhere', () => {
   })
 })
 
-describe('effective-supply/常量', () => {
-  it('有效媒体下限为 3', () => {
-    expect(MIN_EFFECTIVE_MEDIA).toBe(3)
-  })
-})
-
 function fullyEligibleSnapshot(): EffectiveSupplySnapshot {
   return {
-    mediaCount: 3,
     merchant: {
       status: 'active',
       qualificationStatus: 'valid',
@@ -105,11 +97,13 @@ describe('effective-supply/isListingEffectivelySupplied', () => {
     expect(r.reasons).toEqual([])
   })
 
-  it('媒体不足 3 → INSUFFICIENT_MEDIA', () => {
-    const snap = { ...fullyEligibleSnapshot(), mediaCount: 2 }
-    const r = isListingEffectivelySupplied(snap, asOf)
-    expect(r.eligible).toBe(false)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.INSUFFICIENT_MEDIA)
+  // 2026-08-19 反转：媒体数量不再参与前台可见性。保留本用例而不是删掉，
+  // 是为了锁住「无图也 eligible」——以后谁再把图片条件加回精筛，这里会红。
+  it('无图（gallery 为空）仍然 eligible，不再产生媒体类排除码', () => {
+    const r = isListingEffectivelySupplied(fullyEligibleSnapshot(), asOf)
+    expect(r.eligible).toBe(true)
+    expect(r.reasons).toEqual([])
+    expect(Object.keys(EFFECTIVE_SUPPLY_EXCLUSION_CODES)).not.toContain('INSUFFICIENT_MEDIA')
   })
 
   it('商户停用 → MERCHANT_DISABLED', () => {
@@ -159,11 +153,10 @@ describe('effective-supply/isListingEffectivelySupplied', () => {
 
   it('多重不满足 → 收集全部原因', () => {
     const snap = fullyEligibleSnapshot()
-    snap.mediaCount = 0
     snap.merchant.status = 'disabled'
     snap.relationPeriod = null
     const r = isListingEffectivelySupplied(snap, asOf)
     expect(r.eligible).toBe(false)
-    expect(r.reasons.length).toBeGreaterThanOrEqual(3)
+    expect(r.reasons.length).toBeGreaterThanOrEqual(2)
   })
 })

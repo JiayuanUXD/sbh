@@ -150,7 +150,6 @@ describe('listing-form-layout/点击定位不会静默失效', () => {
       reviewStatus: 'not_submitted',
       supplyVisibilityHold: 'pending_recheck',
       reportPaused: true,
-      galleryCount: 0,
     })
     const targets = result.checks.flatMap((c) => (c.locateTab === null ? [] : [c.locateTab]))
     expect(targets.length).toBeGreaterThan(0)
@@ -167,7 +166,6 @@ describe('listing-form-layout/点击定位不会静默失效', () => {
       reviewStatus: 'not_submitted',
       supplyVisibilityHold: 'pending_recheck',
       reportPaused: true,
-      galleryCount: 0,
     })
     // locateCheck 用 startsWith 匹配 label 文本，字段改名而这里没跟上就滚不到目标
     for (const check of result.checks) {

@@ -9,7 +9,9 @@ import React, { useState } from 'react'
  * 守护不变量：
  *   - 显式 width/height 防 CLS（web-design-guidelines）；
  *   - 缺失 alt 时由调用方传入可读替代（楼盘名 + 空间类型）；
- *   - 图片失败展示固定比例占位和文字替代，不阻塞详情；
+ *   - 图片失败或**本就没有图**都展示固定比例缺省图，不阻塞详情。两种情形文案
+ *     不同：无图房源是常态（前台可见性已不再要求图片，见 domain/review/
+ *     effective-supply.ts），说「暂未加载」会让人以为是网络问题一直等下去；
  *   - below-fold 默认 lazy；首屏可设 priority。
  */
 
@@ -38,12 +40,14 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
   const ratioStyle = ratio !== 'auto' ? { aspectRatio: ratio.replace('/', ' / ') } : undefined
 
   if (!media?.src || errored) {
+    const missing = !media?.src
     return (
       <div
         className={['media-placeholder', className ?? ''].filter(Boolean).join(' ')}
         style={ratioStyle}
         role="img"
-        aria-label={alt || '图片加载失败'}
+        aria-label={alt || (missing ? '暂无图片' : '图片加载失败')}
+        data-media-state={missing ? 'missing' : 'errored'}
       >
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -51,8 +55,8 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
           <path d="m21 15-5-5L5 21" />
         </svg>
         <span className="media-placeholder__text">
-          <strong>图片暂未加载</strong>
-          <span>可先查看房源信息</span>
+          <strong>{missing ? '暂无图片' : '图片暂未加载'}</strong>
+          <span>{missing ? '可查看房源信息或联系顾问' : '可先查看房源信息'}</span>
         </span>
       </div>
     )

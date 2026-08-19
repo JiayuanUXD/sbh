@@ -102,6 +102,14 @@ export interface ListingReviewSnapshot {
   minimumLeaseMonths?: unknown
   paymentTerms?: unknown
   availableFrom?: unknown
+  /**
+   * 产权年限（出售专属提交必填）。
+   *
+   * 一直漏在快照外：`getSubmitRequiredFields('sale')` 把它列为必填，而快照不带，
+   * 于是每一套出售房源的完整度都恒报「请选择产权年限」——哪怕表单里已经选了。
+   * D 项的完整度引导直接展示这份 missing，漏字段会变成一条洗不掉的假提示，故补上。
+   */
+  propertyRightYears?: unknown
   description?: unknown
   contactBroker?: number | string | null
   merchant?: number | string | null
@@ -145,6 +153,7 @@ export function buildListingSnapshot(doc: Record<string, unknown>): ListingRevie
     minimumLeaseMonths: doc.minimumLeaseMonths,
     paymentTerms: doc.paymentTerms,
     availableFrom: doc.availableFrom,
+    propertyRightYears: doc.propertyRightYears,
     description: doc.description,
     contactBroker: toId(doc.contactBroker),
     merchant: toId(doc.merchant),

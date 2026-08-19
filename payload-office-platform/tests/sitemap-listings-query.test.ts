@@ -60,10 +60,11 @@ describe('sitemap-listings-query/成本约束', () => {
     const selectBlock = /select:\s*\{([\s\S]*?)\}/.exec(body)?.[1] ?? ''
     const fields = [...selectBlock.matchAll(/(\w+):\s*true/g)].map((m) => m[1]).sort()
 
-    // 输出用 slug/updatedAt/businessType；精筛用 gallery（取长度）与 building（取 city id）。
-    // 这份清单必须与 buildEffectiveSnapshot 读的字段一致——它读 listing.gallery 与
+    // 输出用 slug/updatedAt/businessType；精筛用 building（取 city id）。
+    // 这份清单必须与 buildEffectiveSnapshot 读的字段一致——它读
     // listing.building.city，少一个精筛口径就变了。
-    expect(fields).toEqual(['building', 'businessType', 'gallery', 'slug', 'updatedAt'])
+    // gallery 已于 2026-08-19 移出：媒体数量不再参与前台可见性判定。
+    expect(fields).toEqual(['building', 'businessType', 'slug', 'updatedAt'])
   })
 })
 
@@ -74,10 +75,13 @@ describe('sitemap-listings-query/口径不打折', () => {
     expect(body).toContain('fineFilter(')
   })
 
-  it('精筛快照读的字段确实是 gallery 与 building.city（select 清单的依据）', async () => {
+  it('精筛快照读的字段确实是 building.city（select 清单的依据）', async () => {
     const src = await read('src/domain/review/effective-supply-snapshot.ts')
-    expect(src).toContain('Array.isArray(listing.gallery)')
     expect(src).toContain('listing.building')
     expect(src).toContain('toId(building.city)')
+    // 2026-08-19：媒体数量移出前台可见性，快照不再读 gallery，
+    // sitemap 查询的 select 清单也该跟着去掉它（否则就是白付钱）。
+    expect(src).not.toContain('listing.gallery')
+    expect(await sitemapQueryBody()).not.toContain('gallery: true')
   })
 })

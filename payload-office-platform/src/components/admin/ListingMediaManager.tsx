@@ -16,8 +16,6 @@ const LISTING_MEDIA_CONFIG: MediaWorkbenchConfig = {
   docTitleField: 'title',
   docTitleFallback: '房源',
   coverSetMessage: '已设为房源封面图',
-  // 与 MIN_SUBMIT_MEDIA / 有效供给 §6（listings_gallery COUNT >= 3）对齐
-  publishedImageFloor: 3,
 }
 
 /**

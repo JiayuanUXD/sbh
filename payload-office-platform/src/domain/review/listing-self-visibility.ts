@@ -2,15 +2,17 @@
  * 房源编辑页「前台可见性」自身条件判定（OPT-030 §4）
  *
  * 运营的真实痛点是「填完、保存成功、审核通过，前台还是没有」——12 条有效供给
- * 判据（.agent/supply.md）在编辑时全部不可见。本模块把其中**房源自身**的 5 条
- * （发布状态 §2 / 审核状态 §3 / 供给可见性冻结 §4 / 举报暂停 §5 / 有效媒体 §6）
+ * 判据（.agent/supply.md）在编辑时全部不可见。本模块把其中**房源自身**的 4 条
+ * （发布状态 §2 / 审核状态 §3 / 供给可见性冻结 §4 / 举报暂停 §5）
  * 拆成逐条可展示、可定位的结果，供编辑页常驻可见性卡片使用。
  *
  * 口径约束：
  *   - 判值与 getEffectiveSupplyWhere 的查询层谓词严格一致（published / approved /
  *     normal），本模块只做展示拆解，不另立判定；
- *   - 媒体下限复用 MIN_EFFECTIVE_MEDIA（与 checkListingCompleteness 的
- *     MIN_SUBMIT_MEDIA 对齐，提交审核与前台可见同一条 3 张线）；
+ *   - **图片数量不在此列**（2026-08-19 起前台可见性不再看图片数，见
+ *     `effective-supply.ts` 头部）。「提交审核至少 3 张」是另一回事，由完整度
+ *     引导（`ListingCompletenessCardClient`）展示，不该混进可见性卡片——混进来就会
+ *     把「没图也能上前台」误报成「暂不可见」。
  *   - 跨对象条件（商户关系 §8 / 商户资质与服务城市 §9-§10 / 楼盘·城市·行政区 §7 /
  *     服务城市覆盖 / 陈旧 §12）**刻意不纳入**——任务包 §2 已决定：避免每次渲染
  *     多查商户关系与资质。因此 visible=true 只代表「自身条件已齐」，不等于前台
@@ -19,7 +21,6 @@
  * 无 payload / React 依赖，可独立单测。
  */
 
-import { MIN_EFFECTIVE_MEDIA } from '@/domain/review/effective-supply'
 import { PUBLICATION_STATUS_LABELS, type PublicationStatus } from '@/domain/review/publication-status'
 import { REVIEW_STATUS_LABELS, type ReviewStatus } from '@/domain/review/review-status'
 
@@ -28,8 +29,6 @@ export interface ListingSelfVisibilityInput {
   publicationStatus?: unknown
   reviewStatus?: unknown
   supplyVisibilityHold?: unknown
-  /** 有效图片数（编辑页取表单 gallery 数组长度）。 */
-  galleryCount?: number
   /** 是否被有效举报暂停供给（§5，需服务端查 listing-reports）。 */
   reportPaused: boolean
 }
@@ -42,10 +41,9 @@ export interface SelfVisibilityCheck {
     | 'reviewStatus'
     | 'supplyVisibilityHold'
     | 'reportPaused'
-    | 'gallery'
   /** 该条是否满足。 */
   ok: boolean
-  /** 简短结论（如「已上架」「有效图片 2/3」）。 */
+  /** 简短结论（如「已上架」「未被举报暂停」）。 */
   label: string
   /** 不满足时的修复指引；满足时为空串。 */
   hint: string
@@ -92,8 +90,6 @@ function reviewLabel(value: unknown): string {
 export function deriveListingSelfVisibility(
   input: ListingSelfVisibilityInput,
 ): ListingSelfVisibilityResult {
-  const galleryCount = input.galleryCount ?? 0
-
   const checks: SelfVisibilityCheck[] = [
     {
       key: 'publicationStatus',
@@ -128,17 +124,6 @@ export function deriveListingSelfVisibility(
       label: input.reportPaused ? '被举报暂停' : '未被举报暂停',
       hint: input.reportPaused ? '存在生效的举报暂停，处理举报后恢复展示' : '',
       locateTab: null,
-    },
-    {
-      key: 'gallery',
-      ok: galleryCount >= MIN_EFFECTIVE_MEDIA,
-      label: `有效图片 ${galleryCount}/${MIN_EFFECTIVE_MEDIA}`,
-      hint:
-        galleryCount >= MIN_EFFECTIVE_MEDIA
-          ? ''
-          : `还差 ${MIN_EFFECTIVE_MEDIA - galleryCount} 张，前台有效供给要求至少 ${MIN_EFFECTIVE_MEDIA} 张有效图片`,
-      locateTab: '展示内容',
-      locateFieldLabel: '图片相册',
     },
   ]
 

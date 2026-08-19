@@ -108,36 +108,38 @@ describe('syncListingMedia（房源媒体工作台派生 hook）', () => {
   })
 })
 
-describe('syncListingMedia：已上架媒体地板（拦截静默下架）', () => {
-  it('已上架房源经工作台保存后图片不足 3 张 → 抛错拦截，不落库', () => {
-    expect(() =>
-      run(
-        {
-          title: '陆家嘴甲级 780㎡',
-          publicationStatus: 'published',
-          // 4 个媒体但只有 2 张图片：视频 / 平面图不计入有效供给 §6
-          mediaItems: [
-            imageItem(101),
-            imageItem(102),
-            imageItem(103, { kind: 'video' }),
-            imageItem(104, { kind: 'floor-plan' }),
-          ],
-        },
-        { publicationStatus: 'published', mediaItems: [imageItem(101)] },
-      ),
-    ).toThrow(/至少需要 3 张/)
+describe('syncListingMedia：已上架无媒体地板（2026-08-19 反转）', () => {
+  // 原本这里拦「已上架但图片不足 3 张」，理由是前台会静默下架。
+  // 前台可见性不再看图片数后，这条拦截失去依据，连同
+  // violatesPublishedMediaFloor 一起删除。用例反转为「不拦」，锁住这一口径。
+  it('已上架房源经工作台保存后只剩 2 张图 → 正常落库，不再抛错', () => {
+    const data = run(
+      {
+        title: '陆家嘴甲级 780㎡',
+        publicationStatus: 'published',
+        mediaItems: [
+          imageItem(101),
+          imageItem(102),
+          imageItem(103, { kind: 'video' }),
+          imageItem(104, { kind: 'floor-plan' }),
+        ],
+      },
+      { publicationStatus: 'published', mediaItems: [imageItem(101)] },
+    )
+
+    expect(data.gallery).toEqual([{ image: 101 }, { image: 102 }])
   })
 
-  it('发布状态只在 originalDoc 上时同样拦截（表单未提交该 hidden 字段）', () => {
-    expect(() =>
-      run(
-        { title: '静安寺 42 工位', mediaItems: [imageItem(111), imageItem(112)] },
-        { publicationStatus: 'published', mediaItems: [imageItem(111)] },
-      ),
-    ).toThrow(/至少需要 3 张/)
+  it('已上架房源清空到 0 张图 → 仍然放行（前台走缺省图）', () => {
+    const data = run(
+      { title: '无图已上架房源', publicationStatus: 'published', mediaItems: [] },
+      { publicationStatus: 'published', mediaItems: [imageItem(111), imageItem(112)] },
+    )
+
+    expect(data.gallery).toEqual([])
   })
 
-  it('图片达标 → 放行', () => {
+  it('图片达标 → 照常派生 gallery（视频不计入）', () => {
     const data = run(
       {
         title: '合规房源',
@@ -150,17 +152,7 @@ describe('syncListingMedia：已上架媒体地板（拦截静默下架）', () 
     expect(data.gallery).toEqual([{ image: 121 }, { image: 122 }, { image: 123 }])
   })
 
-  it('草稿 / 已下架不拦截——草稿期允许边攒边存', () => {
-    for (const status of ['draft', 'unpublished', 'leased']) {
-      const data = run(
-        { title: '草稿房源', publicationStatus: status, mediaItems: [imageItem(131)] },
-        { publicationStatus: status, mediaItems: [imageItem(131), imageItem(132)] },
-      )
-      expect(data.gallery).toEqual([{ image: 131 }])
-    }
-  })
-
-  it('纯存量链路（未走工作台）不受地板约束——本次改动不改写既有数据', () => {
+  it('纯存量链路（未走工作台）不被改写——本改动不碰既有数据', () => {
     const legacyGallery = [{ image: 141 }]
     const data = run(
       { title: '存量已上架房源', publicationStatus: 'published', gallery: legacyGallery },

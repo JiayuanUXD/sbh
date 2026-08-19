@@ -17,7 +17,6 @@
  *
  *   2) isListingEffectivelySupplied(snapshot, asOf) —— 需已解析关联数据才能判定的条件，
  *      逐条给出排除原因（供实时预览 / 诊断 / 审计一次性回显）：
- *        §6  有效媒体 ≥ 3                          INSUFFICIENT_MEDIA
  *        §8  商户关系落在有效期 [start, end)        RELATION_NOT_EFFECTIVE
  *        §9  商户启用 + 资质通过且未过期            MERCHANT_INELIGIBLE
  *        §10 商户服务城市覆盖楼盘城市              MERCHANT_INELIGIBLE
@@ -36,13 +35,20 @@ import { isWithinValidity, type ValidityPeriod } from '@/domain/shared/validity'
 import { checkMerchantEligibility } from '@/domain/supply/building-merchant-relation'
 import { getListingPublicBuildingWhere } from '@/domain/supply/public-building'
 
-/** 有效媒体数量下限（design §6）。 */
-export const MIN_EFFECTIVE_MEDIA = 3
+/**
+ * 媒体数量**不再是**前台可见性条件（2026-08-19 用户决定）。
+ *
+ * 原 design §6「有效媒体 ≥ 3」曾同时是三道门：前台可见、提交审核必填、已上架地板。
+ * 现在只剩**提交审核必填**一道（`listing-completeness.ts` 的 `MIN_SUBMIT_MEDIA`）。
+ * 无图房源照常在 C 端曝光，卡片与详情页走缺省图降级（`ui/Media.tsx`、`DetailGallery`）。
+ *
+ * 因此本模块不再有 `MIN_EFFECTIVE_MEDIA` / `INSUFFICIENT_MEDIA`——它们一旦留着，
+ * 就会有人以为前台还在按图片数筛，把口径重新叉开。SQL 侧的对应条件
+ * （`supply-adapter.ts` 的 `media` CTE 与 `g.n >= 3`）已一并去掉。
+ */
 
 /** 精筛层排除原因码（前端展示 / 诊断 / 审计）。 */
 export const EFFECTIVE_SUPPLY_EXCLUSION_CODES = {
-  /** 有效媒体不足 3 */
-  INSUFFICIENT_MEDIA: 'INSUFFICIENT_MEDIA',
   /** 商户关系不在有效期内（尚未生效 / 已过期 / 无关系） */
   RELATION_NOT_EFFECTIVE: 'RELATION_NOT_EFFECTIVE',
   /** 商户不合格（停用 / 资质无效或过期 / 服务城市不覆盖楼盘城市） */
@@ -91,10 +97,8 @@ export function getEffectiveSupplyWhere(
   }
 }
 
-/** 精筛层入参：房源已解析的媒体 / 商户 / 关系快照。 */
+/** 精筛层入参：房源已解析的商户 / 关系快照。 */
 export interface EffectiveSupplySnapshot {
-  /** 有效媒体数量 */
-  mediaCount: number
   merchant: {
     /** 商户启停状态 */
     status: unknown
@@ -117,20 +121,17 @@ export interface EffectiveSupplyResult {
 }
 
 /**
- * 已解析候选是否满足查询层无法表达的有效供给条件（媒体 §6 / 关系 §8 / 商户 §9-§10）。
+ * 已解析候选是否满足查询层无法表达的有效供给条件（关系 §8 / 商户 §9-§10）。
  * 收集全部不满足原因，便于一次性提示。查询层条件（§1-§4、§7）由
  * getEffectiveSupplyWhere 在库侧保证，本函数不重复判定。
+ *
+ * 媒体数量已不在此列：见文件头部说明。
  */
 export function isListingEffectivelySupplied(
   snapshot: EffectiveSupplySnapshot,
   asOf: Date,
 ): EffectiveSupplyResult {
   const reasons: EffectiveSupplyExclusionCode[] = []
-
-  // §6 有效媒体 ≥ 3
-  if (snapshot.mediaCount < MIN_EFFECTIVE_MEDIA) {
-    reasons.push(EFFECTIVE_SUPPLY_EXCLUSION_CODES.INSUFFICIENT_MEDIA)
-  }
 
   // §8 商户关系落在有效期内 [start, end)
   if (snapshot.relationPeriod === null || !isWithinValidity(asOf, snapshot.relationPeriod)) {

@@ -30,12 +30,7 @@ import {
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
 import { getSaleChannelEnabled } from '@/lib/frontend/site-config'
-import {
-  MIN_SUBMIT_MEDIA,
-  violatesPublishedMediaFloor,
-} from '@/domain/review/listing-completeness'
 import { protectListing } from '@/domain/review/listing-protect'
-import { InvalidOperationError } from '@/domain/shared/errors'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
@@ -118,22 +113,6 @@ export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc
     .filter((id): id is number | string => id !== null)
   data.gallery = imageIds.map((image) => ({ image }))
   data.mediaItems = items
-
-  // 1.1 已上架媒体地板：视频/平面图不计入 §6，删图跌破 3 张会让房源从前台静默消失
-  //     （发布状态不变，后台仍显示「已发布」）。这里显式拦截，把静默下架变成可见错误。
-  //     只约束工作台链路；纯存量房源（未走工作台）在上面已 return，不受影响。
-  if (
-    violatesPublishedMediaFloor({
-      publicationStatus: data?.publicationStatus ?? originalDoc?.publicationStatus,
-      galleryCount: imageIds.length,
-    })
-  ) {
-    throw new InvalidOperationError({
-      domain: 'review',
-      code: 'PUBLISHED_MEDIA_FLOOR',
-      message: `已上架房源至少需要 ${MIN_SUBMIT_MEDIA} 张图片（当前 ${imageIds.length} 张）；视频与平面图不计入。请先补图，或先将房源下架再清理媒体。`,
-    })
-  }
 
   // 2. 无封面时自动取第一张图
   const existingCover = data.coverImage ?? originalDoc?.coverImage
@@ -227,6 +206,19 @@ export const Listings: CollectionConfig = {
     afterChange: [recordAdminAutoPublish],
   },
   fields: [
+    {
+      // D 项：「信息完整度」常驻卡片。答的是「还差什么才算填完」，逐项可点、
+      // 点了滚到字段并闪红。口径走 checkListingCompleteness(snapshot,'submit')，
+      // 与 decideAdminAutoPublish 同一个纯函数。
+      //
+      // 排在可见性卡片**之前**：填表的自然顺序是先填完、再问为什么前台看不到。
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/components/admin/ListingCompletenessCard',
+        },
+      },
+    } as unknown as Field,
     {
       // OPT-030 §4 第一层：「前台可见性」常驻卡片，渲染在表单顶部，占满主内容区宽度。
       // 判定走 deriveListingSelfVisibility（与统一有效供给查询层谓词同口径），
@@ -422,7 +414,25 @@ export const Listings: CollectionConfig = {
               ],
             }),
             {
-              // 过渡期旧字段：仅存量数据已有值时显示（新数据一律走结构化价格）
+              /**
+               * 过渡期旧价格字段：**表单上彻底不出现**，但列与查询路径原样保留。
+               *
+               * 不能直接删字段：`rentUnit` 仍是 C 端筛选的查询路径
+               * （`supply-adapter.ts` 的 `where.rentUnit = { equals: input.priceUnit }`，
+               * 走 LEGACY_RENT_UNIT_VALUES）。从 collection 删掉会让价格单位筛选直接抛
+               * `QueryError: path cannot be queried`——本仓库踩过这个坑。存量 `rent`
+               * 数据也还在被楼盘聚合的 rentRanges 消费。
+               *
+               * 隐藏手段是 `condition: () => false`，不是 `admin.hidden`：后者在 Payload 3
+               * 的渲染链路里找不到消费点（`RenderFields` 只看顶层 `hidden` 与
+               * `admin.disabled`，而顶层 `hidden` 会连 API 一起摘掉，正是不能做的）。
+               * 恒假 condition 是本文件原本就在用的机制，只是从「有值才显示」收成「永不显示」；
+               * 值仍留在 form state 里（`addFieldStatePromise` 对 passesCondition=false
+               * 显式保留 value），存量 rent/rentUnit 不会被这次改动洗掉。
+               *
+               * 另加 disableListColumn / disableListFilter：否则运营还能从列表页的
+               * 列选择器和筛选器把它们拉回来，等于没去掉。
+               */
               type: 'row',
               fields: [
                 ...NumberField(
@@ -430,7 +440,9 @@ export const Listings: CollectionConfig = {
                     name: 'rent',
                     label: '租金（旧字段,过渡期保留）',
                     admin: {
-                      condition: (data) => data?.rent != null,
+                      condition: () => false,
+                      disableListColumn: true,
+                      disableListFilter: true,
                       description: '价格已迁移至上方结构化价格,此字段仅供过渡期兼容。',
                       width: COL_4,
                     },
@@ -442,7 +454,12 @@ export const Listings: CollectionConfig = {
                   label: '租金单位（旧字段）',
                   type: 'select',
                   defaultValue: 'rmb-sqm-day',
-                  admin: { condition: (data) => data?.rent != null, width: COL_4 },
+                  admin: {
+                    condition: () => false,
+                    disableListColumn: true,
+                    disableListFilter: true,
+                    width: COL_4,
+                  },
                   options: [
                     { label: '元/㎡/天', value: 'rmb-sqm-day' },
                     { label: '元/月', value: 'rmb-month' },

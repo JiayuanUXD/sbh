@@ -605,14 +605,14 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         // depth 1 而不是 2：精筛只需要 building.city 的 id，toId() 同时接受 id 与对象，
         // 所以一层足够。depth 2 会把城市、行政区、商圈、地铁整棵关系树拉出来。
         depth: 1,
-        // 只取三类字段：输出用的 slug/updatedAt/businessType，以及精筛要读的
-        // gallery（只用长度）与 building（只用 city id）。少一个字段精筛口径就会变，
-        // 多一个字段就是白付钱——这份清单必须和 buildEffectiveSnapshot 对齐。
+        // 只取两类字段：输出用的 slug/updatedAt/businessType，以及精筛要读的
+        // building（只用 city id）。少一个字段精筛口径就会变，多一个字段就是白付钱
+        // ——这份清单必须和 buildEffectiveSnapshot 对齐。
+        // gallery 已移出：媒体数量不再参与前台可见性判定。
         select: {
           slug: true,
           updatedAt: true,
           businessType: true,
-          gallery: true,
           building: true,
         },
         sort: 'id',
@@ -725,10 +725,6 @@ WITH active_rel AS (
   FROM listing_merchant_relations r
   WHERE r.effective_from <= $1
     AND (r.effective_to IS NULL OR r.effective_to > $1)
-),
-media AS (
-  SELECT _parent_id AS listing_id, COUNT(*) AS n
-  FROM listings_gallery GROUP BY _parent_id
 )
 SELECT l.id
 FROM listings l
@@ -737,14 +733,12 @@ JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
 JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
 JOIN merchants  m    ON m.id = ar.merchant_id
-JOIN media      g    ON g.listing_id = l.id
 WHERE l.building_id = $2
   AND ($3::int IS NULL OR l.id <> $3::int)
   AND l.deleted_at IS NULL
   AND l.publication_status = 'published'
   AND l.review_status = 'approved'
   AND l.supply_visibility_hold = 'normal'
-  AND g.n >= 3
   AND b.status = 'published'
   AND b.operational_status = 'active'
   AND b.deleted_at IS NULL
@@ -804,7 +798,6 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       //   l.deleted_at / publication_status / review_status / supply_visibility_hold
       //                                            → getEffectiveSupplyWhere
       //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
-      //   g.n >= 3                                 → §6 有效媒体 ≥ 3
       //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
       //   m.status / qualification_*               → §9 商户启用 + 资质有效
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
@@ -818,10 +811,6 @@ WITH active_rel AS (
   FROM listing_merchant_relations r
   WHERE r.effective_from <= $1
     AND (r.effective_to IS NULL OR r.effective_to > $1)
-),
-media AS (
-  SELECT _parent_id AS listing_id, COUNT(*) AS n
-  FROM listings_gallery GROUP BY _parent_id
 )
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
 FROM listings l
@@ -830,13 +819,11 @@ JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
 JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
 JOIN merchants  m    ON m.id = ar.merchant_id
-JOIN media      g    ON g.listing_id = l.id
 WHERE l.building_id = ANY($2)
   AND l.deleted_at IS NULL
   AND l.publication_status = 'published'
   AND l.review_status = 'approved'
   AND l.supply_visibility_hold = 'normal'
-  AND g.n >= 3
   AND b.status = 'published'
   AND b.operational_status = 'active'
   AND b.deleted_at IS NULL

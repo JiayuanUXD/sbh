@@ -60,7 +60,9 @@ describe('dashboard-stats/resolveDashboardStats', () => {
         return {
           docs: [
             eligibleListing(1),
-            eligibleListing(2, { gallery: [{ id: '2-a' }] }),
+            // 无生效商户关系 → 精筛淘汰（下方 relations 只返回 listing 1 的）。
+            // 2026-08-19 前这里用的是「图片只有 1 张」，图片条件移出精筛后换成关系。
+            eligibleListing(2),
           ],
           hasNextPage: false,
           nextPage: null,
@@ -68,7 +70,7 @@ describe('dashboard-stats/resolveDashboardStats', () => {
       }
       if (collection === 'listing-merchant-relations') {
         return {
-          docs: [activeRelation(1), activeRelation(2)],
+          docs: [activeRelation(1)],
           hasNextPage: false,
           nextPage: null,
         }

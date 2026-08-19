@@ -40,12 +40,10 @@ export function buildEffectiveSnapshot(
   relationPeriod: ValidityPeriod | null,
   relationMerchant?: Record<string, unknown> | null,
 ): EffectiveSupplySnapshot {
-  const gallery = Array.isArray(listing.gallery) ? listing.gallery : []
   const building = (listing.building ?? null) as Record<string, unknown> | null
   const merchant = relationMerchant ?? ((listing.merchant ?? {}) as Record<string, unknown>)
   const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
   return {
-    mediaCount: gallery.length,
     merchant: {
       status: merchant.status,
       qualificationStatus: merchant.qualificationStatus,

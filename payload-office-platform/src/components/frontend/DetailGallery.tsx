@@ -172,10 +172,26 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
     }
   }, [close, goTo, isOpen, safeActiveIndex, activeKind])
 
+  // 无媒体是常态而非异常：前台可见性已不再要求图片数（见 domain/review/
+  // effective-supply.ts 头部），所以详情页必须能在 0 张图下正常渲染，
+  // 走与卡片一致的缺省图（.media-placeholder），而不是一行灰字或空白。
   if (renderableMedia.length === 0) {
     return (
-      <div className="detail-gallery detail-gallery--empty" role="img" aria-label={`${title} 暂无可展示媒体`}>
-        暂无可展示媒体
+      <div
+        className="detail-gallery detail-gallery--empty media-placeholder"
+        role="img"
+        aria-label={`${title} 暂无图片`}
+        data-media-state="missing"
+      >
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="m21 15-5-5L5 21" />
+        </svg>
+        <span className="media-placeholder__text">
+          <strong>暂无图片</strong>
+          <span>可先查看房源信息，实景可预约顾问确认</span>
+        </span>
       </div>
     )
   }

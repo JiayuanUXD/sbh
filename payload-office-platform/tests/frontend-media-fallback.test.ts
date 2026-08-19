@@ -9,7 +9,9 @@ import { Media } from '@/components/frontend/ui/Media'
 const css = readFileSync('src/app/(frontend)/styles.css', 'utf8')
 
 describe('frontend media fallback', () => {
-  it('renders a user-friendly card placeholder when media is missing', () => {
+  // 无图房源自 2026-08-19 起是常态（前台可见性不再要求图片），所以「本就没图」
+  // 与「图没加载出来」必须是两套文案：前者说「暂未加载」会让人一直等。
+  it('renders a "no image" placeholder when media is absent', () => {
     const html = renderToStaticMarkup(
       createElement(Media, {
         media: null,
@@ -17,20 +19,29 @@ describe('frontend media fallback', () => {
       }),
     )
 
-    expect(html).toContain('图片暂未加载')
-    expect(html).toContain('可先查看房源信息')
+    expect(html).toContain('暂无图片')
+    expect(html).toContain('data-media-state="missing"')
+    expect(html).not.toContain('图片暂未加载')
     expect(html).toContain('aria-label="外滩源 · 共享办公"')
   })
 
-  it('uses the same user-friendly placeholder copy for failed listing detail media', () => {
-    const source = readFileSync('src/components/frontend/DetailGallery.tsx', 'utf8')
+  it('keeps the "failed to load" copy for media that exists but errors', () => {
+    const source = readFileSync('src/components/frontend/ui/Media.tsx', 'utf8')
+    expect(source).toContain('图片暂未加载')
+    expect(source).toContain('可先查看房源信息')
+    expect(readFileSync('src/components/frontend/DetailGallery.tsx', 'utf8')).toContain(
+      '图片暂未加载',
+    )
+  })
+
+  it('detail page renders the shared placeholder surface with zero media', () => {
     const emptyHtml = renderToStaticMarkup(
       createElement(DetailGallery, { media: [], title: '外滩源 · 共享办公' }),
     )
 
-    expect(source).toContain('图片暂未加载')
-    expect(source).toContain('可先查看房源信息')
-    expect(emptyHtml).toContain('暂无可展示媒体')
+    expect(emptyHtml).toContain('暂无图片')
+    expect(emptyHtml).toContain('media-placeholder')
+    expect(emptyHtml).toContain('aria-label="外滩源 · 共享办公 暂无图片"')
   })
 
   it('styles media placeholders as a designed surface instead of a broken-image gap', () => {

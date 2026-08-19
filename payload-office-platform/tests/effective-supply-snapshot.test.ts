@@ -57,21 +57,15 @@ describe('effective-supply-snapshot/toId', () => {
 })
 
 describe('effective-supply-snapshot/buildEffectiveSnapshot', () => {
-  it('从已解析文档抽取媒体数/商户/楼盘城市', () => {
+  it('从已解析文档抽取商户/楼盘城市', () => {
     const snap = buildEffectiveSnapshot(makeListing(), {
       startsAt: '2000-01-01T00:00:00.000Z',
       endsAt: null,
     })
-    expect(snap.mediaCount).toBe(3)
     expect(snap.merchant.status).toBe('active')
     expect(snap.merchant.serviceCityIds).toEqual([100])
     expect(snap.buildingCityId).toBe(100)
     expect(snap.relationPeriod).toEqual({ startsAt: '2000-01-01T00:00:00.000Z', endsAt: null })
-  })
-
-  it('gallery 缺失 → mediaCount=0', () => {
-    const snap = buildEffectiveSnapshot(makeListing({ gallery: undefined }), null)
-    expect(snap.mediaCount).toBe(0)
   })
 
   it('building 缺失 → buildingCityId=null', () => {
@@ -134,7 +128,9 @@ describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
     expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
   })
 
-  it('媒体不足 → INSUFFICIENT_MEDIA', async () => {
+  // 2026-08-19 反转：媒体数量不再参与前台可见性（见 effective-supply.ts 头部）。
+  // 用例从「不足就排除」反转为「无图也放行」，而不是删掉。
+  it('gallery 为空（甚至字段缺失）仍 eligible', async () => {
     const find = vi.fn(async () => ({
       docs: [{
         id: 1,
@@ -144,9 +140,9 @@ describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
       }],
     }))
     const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-    const r = await resolveEffectiveSupply(payload, makeListing({ gallery: [{ id: 'a' }] }), asOf)
-    expect(r.eligible).toBe(false)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.INSUFFICIENT_MEDIA)
+    const r = await resolveEffectiveSupply(payload, makeListing({ gallery: [] }), asOf)
+    expect(r.eligible).toBe(true)
+    expect(r.reasons).toEqual([])
   })
 
   it('uses the merchant from the effective relation instead of stale listing data', async () => {

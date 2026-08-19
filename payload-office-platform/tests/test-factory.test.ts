@@ -216,10 +216,12 @@ describe('factory/listings', () => {
     expect(r.reasons).toContain('supply_hold_pending_recheck')
   })
 
-  it('isListingEligibleForSupply：媒体不足 3 张 → 拒绝', () => {
+  // 2026-08-19 反转：媒体数量不再是有效供给条件（见 effective-supply.ts 头部）
+  it('isListingEligibleForSupply：媒体不足不再产生排除理由', () => {
     const l = LISTINGS['listing-draft']
     const r = isListingEligibleForSupply(l)
-    expect(r.reasons).toContain('media_incomplete')
+    expect(l.mediaCount).toBeLessThan(3)
+    expect(r.reasons).not.toContain('media_incomplete')
   })
 
   it('isLegalStateTransition：审核 unsubmitted → pending 合法', () => {

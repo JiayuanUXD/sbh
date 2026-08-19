@@ -207,15 +207,17 @@ describe('listing-publish-endpoint/发布前置校验', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  it('图片不足 3 张不能发布 → 422', async () => {
+  // 2026-08-19 反转：图片数量不再是发布前置条件（前台可见性不再看它，
+  // 见 effective-supply.ts 头部）。无图房源可以发布，前台走缺省图降级。
+  it('无图也能发布 → 200，且真的写了发布轴', async () => {
     const { req, update } = makeReq({
-      listing: makeEffectiveListing({ gallery: [{ id: 'a' }] }),
+      listing: makeEffectiveListing({ gallery: [] }),
       body: { action: 'publish' },
     })
     const { status, body } = await run(req)
-    expect(status).toBe(422)
-    expect(body.reasons).toContain('INSUFFICIENT_MEDIA')
-    expect(update).not.toHaveBeenCalled()
+    expect(status).toBe(200)
+    expect(body.ok).toBe(true)
+    expect(update).toHaveBeenCalled()
   })
 
   it('无生效商户关系不能发布 → 422', async () => {

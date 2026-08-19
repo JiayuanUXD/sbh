@@ -205,7 +205,6 @@ function createFullPredicateAdapter(options: {
         : {}
     const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
     const snapshot: EffectiveSupplySnapshot = {
-      mediaCount: Array.isArray(l.gallery) ? l.gallery.length : 0,
       merchant: {
         status: merchant.status,
         qualificationStatus: merchant.qualificationStatus,
@@ -739,14 +738,16 @@ describe('F7.6 多消费者路径数据等价（差异必须为 0）', () => {
     const valid2 = makeValidListing({ id: 7002, slug: 'mix-valid-2', isFeatured: true })
     const failDraft = makeValidListing({ id: 7003, slug: 'mix-draft', publicationStatus: 'draft' })
     const failReview = makeValidListing({ id: 7004, slug: 'mix-review', reviewStatus: 'pending' })
-    const failMedia = makeValidListing({
+    // 2026-08-19 前这一条用的是「图片只有 1 张」；媒体数量移出可见性后
+    // 换成供给可见性冻结，保住混合场景的失效维度数量。
+    const failHold = makeValidListing({
       id: 7005,
-      slug: 'mix-media',
-      gallery: [{ image: MEDIA_1, id: 'g1' }],
+      slug: 'mix-hold',
+      supplyVisibilityHold: 'pending_recheck',
     })
 
     const adapter = createFullPredicateAdapter({
-      listings: [valid1, valid2, failDraft, failReview, failMedia],
+      listings: [valid1, valid2, failDraft, failReview, failHold],
     })
     const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 

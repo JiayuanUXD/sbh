@@ -119,7 +119,7 @@ describe('detail component contracts', () => {
     expect(imageHtml).toContain('<img')
     expect(videoHtml).toContain('<video')
     expect(videoHtml).toContain('controls=""')
-    expect(fallback).toContain('暂无可展示媒体')
+    expect(fallback).toContain('暂无图片')
     expect(fallback).toContain('role="img"')
   })
 
@@ -136,7 +136,7 @@ describe('detail component contracts', () => {
       }],
     }))
 
-    expect(html).toContain('暂无可展示媒体')
+    expect(html).toContain('暂无图片')
     expect(html).not.toContain('javascript:alert')
   })
 

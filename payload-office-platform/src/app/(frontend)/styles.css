@@ -2172,15 +2172,16 @@ ol {
   font-size: var(--fs-13);
 }
 
-.detail-gallery--empty {
+/* 无图详情页：与卡片同一套缺省图（.media-placeholder 提供底纹与文字排版），
+   这里只补详情页需要的高度与圆角。
+   必须写成双类选择器：.media-placeholder 在本文件里排在后面，同为单类时它会赢，
+   height:100% / display:grid 会盖掉这里的回落值。 */
+.detail-gallery.detail-gallery--empty {
   display: grid;
-  min-height: 15rem;
   place-items: center;
-  padding: var(--sp-4);
-  color: var(--color-muted);
-  background: var(--color-paper);
+  min-height: 15rem;
+  height: auto;
   border-radius: var(--radius-md);
-  text-align: center;
 }
 
 .detail-gallery__dialog {
