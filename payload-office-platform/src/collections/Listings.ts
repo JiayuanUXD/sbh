@@ -36,6 +36,10 @@ import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
 import { cleanupListingRelations } from '@/domain/supply/listing-delete-cleanup'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -677,8 +681,18 @@ export const Listings: CollectionConfig = {
                   label: '供给商户',
                   type: 'relationship',
                   relationTo: 'merchants',
+                  // 新建时预选默认商户（默认「官网」）。只在字段为 undefined 时生效，
+                  // 编辑既有房源不受影响。☠ 填上它不等于前台可见：
+                  // 有效供给判的是 listing-merchant-relations 里的关系记录，
+                  // 而完整度校验用本字段做近似——详见 domain/supply/default-merchant.ts 头部。
+                  defaultValue: async ({ req }) =>
+                    await resolveDefaultSupplyMerchant(
+                      req.payload as unknown as MerchantLookupPort,
+                      req,
+                    ),
                   admin: {
-                    description: '房源供给关系的当前商户;有效期与快照规则见供给关系。',
+                    description:
+                      '房源供给关系的当前商户;有效期与快照规则见供给关系。新建时默认已预选。',
                     width: COL_4,
                   },
                 }),
