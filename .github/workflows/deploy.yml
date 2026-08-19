@@ -317,9 +317,30 @@ jobs:
           echo "期望灰度版本 version=$expected"
           fail=0
           canary_ok=0
+          transient=0
+          # 单次请求的网络抖动不得中断整个发布。两道保险：
+          #   1. curl 自带重试（--retry-all-errors 让超时/连接失败也重试）；
+          #   2. `|| code=000` 兑掉非零退出码——本 step 跑在 `bash -e` 下，
+          #      `code=$(curl ...)` 赋值语句的退出码就是 curl 的，不兑会当场中断脚本。
+          # 真事故（run 32263798325）：第 3 次请求 15s 超时 → exit 28 → 整个 job 中止 →
+          # 触发回滚。而灰度容器冷启动时这种超时很常见。
+          # 注意：curl 的 -w '%{http_code}' 在连接失败/超时时**本身就输出 000**，
+          # 所以这里只需 `|| true` 吞掉非零退出码。再写一次 `|| echo 000`
+          # 会得到 "000000"，既不匹配 000 也不匹配 200，反而把抖动误判成硬失败。
+          curl_code() {
+            local out
+            out=$(curl -sS --connect-timeout 10 --max-time 20                        --retry 3 --retry-delay 2 --retry-all-errors                        "$@" 2>/dev/null) || true
+            printf '%s' "${out:-000}"
+          }
           for i in $(seq 1 50); do
             body_file="$RUNNER_TEMP/health-$i.json"
-            code=$(curl -sS --max-time 15 -o "$body_file" -w "%{http_code}" "$URL/api/health")
+            code=$(curl_code -o "$body_file" -w "%{http_code}" "$URL/api/health")
+            if [ "$code" = "000" ]; then
+              # 重试后仍无响应：计入抖动配额，不当场判死。
+              transient=$((transient + 1))
+              echo "[$i] 无响应（超时/连接失败，已重试）累计 $transient"
+              continue
+            fi
             if [ "$code" = "200" ]; then
               if jq -e '.status == "ok"' "$body_file" >/dev/null; then
                 version=$(jq -r '.version // ""' "$body_file")
@@ -355,10 +376,21 @@ jobs:
             echo "::notice::50 次请求未命中 version=$expected 的灰度版本（可能是路由未收敛或同 IP 粘连）"
             echo "::notice::不阻断发布；是否真正上线由 promote 之后的版本校验判定"
           fi
-          echo "命中灰度版本 $canary_ok/50 次"
-          # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）
-          home=$(curl -sSL -o /dev/null -w "%{http_code}" "$URL/")
-          echo "GET / -> HTTP $home"
+          echo "命中灰度版本 $canary_ok/50 次，无响应 $transient/50 次"
+          # 抖动配额：偶发超时容忍，但大面积无响应是真故障，不能放行。
+          if [ "$transient" -gt 10 ]; then
+            echo "::error::50 次健康检查中 $transient 次无响应（阀值 10），服务不稳定"
+            fail=1
+          fi
+          # 首页可达（跟随重定向后 200，支持单城市模式与多城市路由重定向）。
+          # 同样不能单次判死：连试 3 轮，任一轮 200 即通过。
+          home="000"
+          for attempt in 1 2 3; do
+            home=$(curl_code -L -o /dev/null -w "%{http_code}" "$URL/")
+            echo "GET / -> HTTP $home（第 $attempt 轮）"
+            if [ "$home" = "200" ]; then break; fi
+            sleep 5
+          done
           if [ "$home" != "200" ]; then fail=1; fi
           if [ "$fail" = "1" ]; then
             echo "::error::冒烟失败，将触发回滚"
@@ -376,7 +408,20 @@ jobs:
         if: success() && env.SHOULD_PROMOTE == 'true'
         run: |
           URL="https://sbh-286300-10-1253925058.sh.run.tcloudbase.com"
-          health=$(curl -sS --max-time 15 "$URL/api/health")
+          # 与冒烟步骤同因：本 step 也跑在 `bash -e` 下，赋值语句里 curl 非零退出
+          # 会当场中断脚本并触发回滚。curl 自带重试 + `|| echo 000` 兑掉退出码。
+          # 注意：curl 的 -w '%{http_code}' 在连接失败/超时时**本身就输出 000**，
+          # 所以这里只需 `|| true` 吞掉非零退出码。再写一次 `|| echo 000`
+          # 会得到 "000000"，既不匹配 000 也不匹配 200，反而把抖动误判成硬失败。
+          curl_code() {
+            local out
+            out=$(curl -sS --connect-timeout 10 --max-time 20                        --retry 3 --retry-delay 2 --retry-all-errors                        "$@" 2>/dev/null) || true
+            printf '%s' "${out:-000}"
+          }
+          curl_body() {
+            curl -sS --connect-timeout 10 --max-time 20                  --retry 3 --retry-delay 2 --retry-all-errors                  "$@" 2>/dev/null || true
+          }
+          health=$(curl_body "$URL/api/health")
           echo "$health" | jq -e '.status == "ok"' >/dev/null
 
           # 这是整条流水线唯一的硬门槛，也是堵死"假成功"的地方。
@@ -388,7 +433,7 @@ jobs:
           matched=0
           # 切流后允许收敛：最多等 100 秒，出现 3 次连续匹配才算数（防抖动误判）。
           for i in $(seq 1 20); do
-            version=$(curl -sS --max-time 15 "$URL/api/health" | jq -r '.version // ""')
+            version=$(curl_body "$URL/api/health" | jq -r '.version // ""')
             if [ "$version" = "$expected" ]; then
               matched=$((matched + 1))
               echo "[$i] version=$version ✓（连续匹配 $matched/3）"
@@ -407,10 +452,20 @@ jobs:
           fi
           echo "✅ 全量流量已是本次版本 $expected"
 
+          # 路径可达性：每条路径允许重试，避免单次抖动把已经成功的发布判死。
+          # 注意这里仍是硬门槛：重试耗尽仍非 200 就失败回滚。
           for path in / /shanghai /admin; do
-            code=$(curl -sSL --max-time 15 -o /dev/null -w "%{http_code}" "$URL$path")
-            echo "GET $path -> HTTP $code"
-            test "$code" = "200"
+            code="000"
+            for attempt in 1 2 3; do
+              code=$(curl_code -L -o /dev/null -w "%{http_code}" "$URL$path")
+              echo "GET $path -> HTTP $code（第 $attempt 轮）"
+              if [ "$code" = "200" ]; then break; fi
+              sleep 5
+            done
+            if [ "$code" != "200" ]; then
+              echo "::error::$path 重试 3 轮仍非 200（最后一次 $code）"
+              exit 1
+            fi
           done
 
       - name: Rollback（冒烟或 promote 失败时切回稳定版本）
