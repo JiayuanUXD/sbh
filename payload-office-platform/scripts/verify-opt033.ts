@@ -63,13 +63,29 @@ async function main() {
       listingType: 'full-floor' as const,
       businessType: 'lease' as const,
       decorationStatus: 'furnished' as const,
-      price: { amount: 4.8, currency: 'CNY', period: 'day', unit: 'sqm' },
+      price: { amount: 4.8, currency: 'CNY' as const, period: 'day' as const, unit: 'sqm' as const },
       area: 1280,
       floor: '3F',
       minimumLeaseMonths: 12,
       paymentTerms: '押二付三',
       availableFrom: new Date().toISOString(),
-      description: '验收用房源',
+      // description 是 Lexical 富文本；完整度只判「有没有值」，这里给最小合法结构。
+      description: {
+        root: {
+          type: 'root',
+          children: [
+            {
+              type: 'paragraph',
+              version: 1,
+              children: [{ type: 'text', version: 1, text: '验收用房源' }],
+            },
+          ],
+          direction: 'ltr' as const,
+          format: '' as const,
+          indent: 0,
+          version: 1,
+        },
+      },
       contactBroker: broker.id as number,
       merchant: merchant.id as number,
       mediaItems: media.slice(0, 3).map((m, i) => ({
@@ -84,7 +100,7 @@ async function main() {
     log('\n[1] ADM 保存完整房源')
     const l1 = await payload.create({
       collection: 'listings',
-      data: completeData(),
+      data: completeData() as never,
       user: admUser as never,
       overrideAccess: true,
     })
@@ -120,7 +136,7 @@ async function main() {
     partial.mediaItems = partial.mediaItems.slice(0, 1)
     const l2 = await payload.create({
       collection: 'listings',
-      data: partial,
+      data: partial as never,
       user: admUser as never,
       overrideAccess: true,
     })
@@ -140,7 +156,7 @@ async function main() {
       log('\n[3] 非 ADM（OPS）保存完整房源')
       const l3 = await payload.create({
         collection: 'listings',
-        data: completeData(),
+        data: completeData() as never,
         user: opsUser as never,
         overrideAccess: true,
       })
@@ -178,11 +194,19 @@ async function main() {
   } finally {
     for (const c of created.reverse()) {
       try {
-        await (await import('payload')).getPayload({ config: (await import('../src/payload.config')).default })
-        const p = await (await import('payload')).getPayload({
-          config: (await import('../src/payload.config')).default,
-        })
-        await p.delete({ collection: c.collection as never, id: c.id, overrideAccess: true })
+        // 先删审核记录：listing-reviews 对 listings 有外键，留着会挡住房源删除。
+        if (c.collection === 'listings') {
+          const revs = await payload.find({
+            collection: 'listing-reviews',
+            where: { listing: { equals: c.id } },
+            limit: 50,
+            overrideAccess: true,
+          })
+          for (const r of revs.docs) {
+            await payload.delete({ collection: 'listing-reviews', id: r.id, overrideAccess: true })
+          }
+        }
+        await payload.delete({ collection: c.collection as never, id: c.id, overrideAccess: true })
       } catch (e) {
         log(`  [清理失败] ${c.collection}#${c.id}: ${(e as Error).message}`)
       }
