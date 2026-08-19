@@ -2352,3 +2352,196 @@ html[data-theme='dark'] {
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
+
+// ─── OPT-032 房源编辑表单：分节标题 / 去组框 / 固定列轴对齐 ───
+//
+// 全局那套 `.collection-edit .row__fields`（本文件 ~1093 行）是**容器查询响应式列**：
+// 列数由行宽决定，且刻意 `flex-grow: 1` 让「字段数少于列数时整行均分」。
+// 房源表单要的是相反的东西——**按语义分行 + 固定列轴**，短行靠左留空而不是拉满，
+// 这样「付款条件/可入驻日期」才会和上一行的「面积/工位/楼层/租期」对齐。
+// 所以这里在 .collection-edit--listings 作用域内改写，不动其它 collection。
+// 两条规则同特异度（都是 0,2,1 + !important），本块在文件末尾，后来居上。
+
+.collection-edit--listings {
+  // 固定列轴：宽度取字段自己的 --field-width（来自 admin.width），缺省按 4 列。
+  // grow 归零是关键——否则短行仍会被拉满。
+  .row__fields > .field-type {
+    flex: 0 1 calc(var(--field-width, 25%) - 16px) !important;
+  }
+
+  // NumberField（@nouance/payload-better-fields-plugin）自渲染根节点、不走
+  // Payload 的 mergeFieldStyles，`admin.width` 拿不到，inline style 是空的。
+  // 本页所有 NumberField（金额/面积/工位数/最短租期/旧租金）都在 4 列行里，
+  // 这里把变量补上，别依赖上面的缺省值兜——缺省一改就会静默错位。
+  .row__fields > .bfNumericFieldWrapper {
+    --field-width: 25%;
+  }
+
+  // 自定义 Field 组件（只读展示态）直接替换了整个字段，Payload 不会给它套
+  // `.field-type` 包装，上面那条规则覆盖不到，它会缩成内容宽度（实测 66/102/54）。
+  // 单独列出来，走同一条列轴。
+  .row__fields > .listing-readonly {
+    --field-width: 25%;
+    flex: 0 1 calc(var(--field-width) - 16px) !important;
+    // Payload 给 row 子元素加了 margin-inline: calc(--base / 4)（左右各 5px），
+    // 全局那条清零规则只挑 `.field-type`，这里要自己清，否则整列偏 5px。
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    min-width: 0;
+  }
+
+  // 顶层 group 默认用 `margin-inline: -60px` 把自己拽出 tab 的 60px 内边距，
+  // 于是「组内行」和「组外行」落在两条不同的轴上（实测 270 vs 330）。
+  // 取消这个负边距，组内外共用同一条列轴——这才是「去组框」真正要解决的问题。
+  .group-field--top-level {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  // 去掉 group 外框：只留小标题
+  .group-field {
+    border: 0;
+    padding: 0;
+
+    > .group-field__wrap {
+      padding: 0;
+      border: 0;
+    }
+
+    .group-field__title,
+    .group-field__header h3 {
+      margin: 12px 0 4px;
+      font-size: 12.5px;
+      font-weight: 650;
+      color: var(--theme-elevation-700);
+      letter-spacing: 0.02em;
+    }
+  }
+
+  // 网格里的复选框：标签在上、方框落控件行，与相邻输入框同基线。
+  // Payload 默认是 inline 写法（方框和文字并排、无独立标签行），
+  // 放进定宽列后方框会浮到相邻输入框的中间高度——「可分割」就是这个现象。
+  .row__fields > .field-type.checkbox .checkbox__input {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+  }
+
+  // afterInput 是输入框后的兄弟节点；给容器一个定位上下文，图标才能贴进框内右侧
+  .field-type.text {
+    position: relative;
+
+    &:has(.listing-slug-badge) input {
+      padding-right: 34px;
+    }
+  }
+}
+
+// 分节标题：普通标题 + 说明 + 分隔线（不是可折叠控件，理由见 ListingFormSectionHeading）
+.listing-form-section {
+  margin: 28px 0 16px;
+
+  &:first-child {
+    margin-top: 4px;
+  }
+
+  &__title {
+    margin: 0 0 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--theme-elevation-100);
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  &__desc {
+    margin: 0 0 4px;
+    color: var(--theme-elevation-500);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+}
+
+// 「房源标题」输入框右侧的 URL 标识图标
+.listing-slug-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 4px;
+  border: 1px solid var(--theme-elevation-150);
+  background: var(--theme-elevation-0);
+  color: var(--theme-elevation-400);
+  cursor: help;
+
+  &:hover {
+    color: var(--theme-success-500);
+    border-color: var(--theme-success-500);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+  }
+}
+
+// 只读状态字段的展示态：字段名 + 值 + ⓘ，不是禁用输入框
+.listing-readonly {
+  min-width: 0;
+  margin-bottom: 12px;
+
+  &__key {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--theme-elevation-500);
+  }
+
+  &__value {
+    display: block;
+    margin-top: 2px;
+    font-size: 13.5px;
+    font-weight: 550;
+    color: var(--theme-elevation-800);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 1px solid var(--theme-elevation-300);
+    color: var(--theme-elevation-400);
+    font-size: 9px;
+    font-style: normal;
+    line-height: 1;
+    cursor: help;
+
+    &:hover {
+      border-color: var(--theme-success-500);
+      color: var(--theme-success-500);
+    }
+  }
+}
+
+// 发布必填标记（方案 B）。刻意与 Payload 原生的红色 required 星号区分开：
+// 红 = 草稿保存必填，琥珀 = 提交审核必填。两级门槛第一次在表单上可见。
+.publish-required {
+  margin-left: 2px;
+  color: #d98600;
+  font-weight: 700;
+  cursor: help;
+}
+
+html[data-theme='dark'] .publish-required {
+  color: #e8a33d;
+}

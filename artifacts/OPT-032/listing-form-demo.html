@@ -1,0 +1,1038 @@
+<title>房源表单通铺方案</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --panel: #ffffff;
+    --panel-2: #fafbfc;
+    --ink: #16181d;
+    --ink-2: #5a616e;
+    --ink-3: #8b929f;
+    --line: #e2e5ea;
+    --line-2: #eef0f3;
+    --accent: #2b5cff;
+    --accent-soft: #eaefff;
+    --danger: #d93025;
+    --danger-soft: #fdecea;
+    --warn: #b06000;
+    --warn-soft: #fff3e0;
+    --warn-line: #f0c187;
+    --ok: #1a7f52;
+    --ok-soft: #e7f5ee;
+    --heavy: #8b3fd6;
+    --heavy-soft: #f4ecfd;
+    --heavy-line: #d9bdf3;
+    --ro: #f0f1f4;
+    --radius: 8px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161a;
+      --panel: #1c1f25;
+      --panel-2: #21242b;
+      --ink: #e8eaee;
+      --ink-2: #a2a9b6;
+      --ink-3: #757c8a;
+      --line: #2e333c;
+      --line-2: #262a31;
+      --accent: #6d8fff;
+      --accent-soft: #1e2740;
+      --danger: #ff7b6e;
+      --danger-soft: #3a2220;
+      --warn: #e8a33d;
+      --warn-soft: #33270f;
+      --warn-line: #6b5220;
+      --ok: #4cc38a;
+      --ok-soft: #16301f;
+      --heavy: #c08cf0;
+      --heavy-soft: #2a1f3a;
+      --heavy-line: #4d3a66;
+      --ro: #262a31;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161a;
+    --panel: #1c1f25;
+    --panel-2: #21242b;
+    --ink: #e8eaee;
+    --ink-2: #a2a9b6;
+    --ink-3: #757c8a;
+    --line: #2e333c;
+    --line-2: #262a31;
+    --accent: #6d8fff;
+    --accent-soft: #1e2740;
+    --danger: #ff7b6e;
+    --danger-soft: #3a2220;
+    --warn: #e8a33d;
+    --warn-soft: #33270f;
+    --warn-line: #6b5220;
+    --ok: #4cc38a;
+    --ok-soft: #16301f;
+    --heavy: #c08cf0;
+    --heavy-soft: #2a1f3a;
+    --heavy-line: #4d3a66;
+    --ro: #262a31;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  /* ---------- 控制栏 ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .toolbar-row { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: center; }
+  .ctl { display: flex; align-items: center; gap: 8px; }
+  .ctl > .ctl-label { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button {
+    appearance: none; border: 0; background: transparent; color: var(--ink-2);
+    padding: 6px 13px; font-size: 13px; cursor: pointer; font-family: inherit;
+    border-right: 1px solid var(--line); white-space: nowrap;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  .switch { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; color: var(--ink-2); }
+  .switch input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+  /* ---------- 计量条 ---------- */
+  .metrics {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line);
+  }
+  .metric {
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 7px 12px; background: var(--panel-2); min-width: 128px;
+  }
+  .metric .k { font-size: 11px; color: var(--ink-3); display: block; }
+  .metric .v { font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .metric.hot { border-color: var(--heavy-line); background: var(--heavy-soft); }
+  .metric.hot .v { color: var(--heavy); }
+  .metric.cool { border-color: var(--line); }
+  .metric.good { border-color: var(--ok); background: var(--ok-soft); }
+  .metric.good .v { color: var(--ok); }
+
+  /* ---------- 文档骨架 ---------- */
+  .doc { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .doc-head { padding: 16px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px; }
+  .doc-head h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  .doc-head .crumb { font-size: 12px; color: var(--ink-3); }
+
+  /* 可见性卡片（ui field） */
+  .vis-card {
+    margin: 18px 22px; border: 1px solid var(--ok); background: var(--ok-soft);
+    border-radius: var(--radius); padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .vis-card .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-top: 8px; flex: none; }
+  .vis-card b { font-size: 13px; }
+  .vis-card p { margin: 2px 0 0; font-size: 12px; color: var(--ink-2); }
+
+  /* ---------- Tab 条 ---------- */
+  .tabs { display: flex; gap: 2px; padding: 0 22px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tabs button {
+    appearance: none; background: transparent; border: 0; border-bottom: 2px solid transparent;
+    padding: 11px 15px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; font-family: inherit;
+    margin-bottom: -1px; white-space: nowrap;
+  }
+  .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tabs button .cnt {
+    font-size: 11px; color: var(--ink-3); margin-left: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tabs button .flame { margin-left: 5px; font-size: 11px; }
+
+  /* 未渲染提示 */
+  .unrendered {
+    margin: 0 22px 18px; padding: 9px 14px; border-radius: 6px;
+    background: var(--panel-2); border: 1px dashed var(--line);
+    font-size: 12px; color: var(--ink-3);
+  }
+  .unrendered code { font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+
+  /* ---------- 主体：锚点 + 表单 ---------- */
+  .body { display: grid; grid-template-columns: 176px 1fr; gap: 0; }
+  .body.no-nav { grid-template-columns: 1fr; }
+  .anchors { border-right: 1px solid var(--line); padding: 20px 0 20px 22px; }
+  .anchors .ah { font-size: 11px; color: var(--ink-3); letter-spacing: .06em; margin-bottom: 8px; }
+  .anchors a {
+    display: block; padding: 6px 12px 6px 10px; font-size: 13px; color: var(--ink-2);
+    text-decoration: none; border-left: 2px solid transparent; border-radius: 0 4px 4px 0;
+  }
+  .anchors a:hover { background: var(--panel-2); color: var(--ink); }
+  .anchors a.on { border-left-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .anchors a .n { float: right; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .form { padding: 20px 22px 32px; min-width: 0; }
+
+  /* ---------- 分节 ---------- */
+  .sec { margin-bottom: 30px; scroll-margin-top: 130px; }
+  .sec:last-child { margin-bottom: 4px; }
+  .sec-h { display: flex; align-items: baseline; gap: 10px; padding-bottom: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--line-2); }
+  .sec-h h2 { font-size: 14.5px; margin: 0; font-weight: 650; }
+  .sec-h .sd { font-size: 12px; color: var(--ink-3); font-weight: 400; }
+  .sec-desc { font-size: 12px; color: var(--ink-2); margin: -8px 0 16px; }
+
+  /* ---------- 字段 ---------- */
+  .grid { display: grid; gap: 0 14px; align-items: start; }
+  .grid.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid > .f.wide, .grid > .ro-item.wide { grid-column: 1 / -1; }
+  @media (max-width: 980px) { .grid.c3, .grid.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .grid.c2, .grid.c3, .grid.c4 { grid-template-columns: minmax(0, 1fr); } }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > .f { flex: 1 1 180px; min-width: 0; }
+  .f { margin-bottom: 15px; }
+  .grid .f { margin-bottom: 12px; }
+  .grid .f .hint { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .f > label { display: block; font-size: 12.5px; color: var(--ink-2); margin-bottom: 5px; }
+  .f .inp {
+    width: 100%; border: 1px solid var(--line); background: var(--panel-2);
+    border-radius: 5px; padding: 7px 10px; font-size: 13px; color: var(--ink-3);
+    min-height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .f .inp.ta { min-height: 62px; align-items: flex-start; }
+  .f .inp.ro { background: var(--ro); color: var(--ink-3); }
+  .f .inp .caret { color: var(--ink-3); font-size: 10px; flex: none; }
+  .f .inp .slug-badge {
+    flex: none; display: inline-flex; align-items: center; gap: 3px;
+    color: var(--ink-3); cursor: help; padding: 1px 5px; border-radius: 4px;
+    border: 1px solid var(--line); background: var(--panel);
+  }
+  .f .inp .slug-badge:hover { color: var(--accent); border-color: var(--accent); }
+  .f .inp .slug-badge svg { width: 11px; height: 11px; display: block; }
+  .f .inp .ph { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .f .hint { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
+  .f.cb { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+  .f.cb .box { width: 15px; height: 15px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel-2); flex: none; }
+  .f.cb label { margin: 0; }
+  /* 网格里的复选框：改成「标签在上 + 方框在控件行」，才能和左边的输入框对齐。
+     原来的 inline 写法没有标签行，方框会浮到相邻输入框的中间高度。 */
+  .grid .f.cb { display: block; }
+  .grid .f.cb > label { display: block; margin-bottom: 5px; }
+  .grid .f.cb > .cb-row { display: flex; align-items: center; min-height: 34px; }
+
+  /* 星号 */
+  .req { color: var(--danger); margin-left: 2px; font-weight: 700; }
+  .sub {
+    color: var(--warn); margin-left: 2px; font-weight: 700;
+    cursor: help; border-bottom: 0;
+  }
+  .ro-tag {
+    font-size: 10px; color: var(--ink-3); border: 1px solid var(--line);
+    border-radius: 3px; padding: 0 4px; margin-left: 6px; vertical-align: 1px;
+  }
+
+  /* 只读展示态：不是表单控件，是「字段名 + 字段值」 */
+  .ro-item { margin-bottom: 12px; min-width: 0; }
+  .ro-item .rk { font-size: 11.5px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
+  .ro-item .rv { font-size: 13.5px; color: var(--ink); font-weight: 550; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ro-item .rv.muted { color: var(--ink-3); font-weight: 400; font-style: italic; }
+  .ro-item .rv code { font-family: var(--mono); font-size: 12.5px; font-weight: 400; }
+  .info {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--ink-3);
+    color: var(--ink-3); font-size: 9px; font-style: normal; cursor: help; flex: none; line-height: 1;
+  }
+  .info:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* group：无边框，靠小标题分隔。组内字段与组外共用同一条列轴 */
+  .grp { margin: 0 0 6px; }
+  .grp > .gh {
+    font-size: 12px; font-weight: 650; color: var(--ink-2); margin: 8px 0 3px;
+    letter-spacing: .02em;
+  }
+  .grp > .gd { font-size: 11.5px; color: var(--ink-3); margin-bottom: 10px; line-height: 1.5; }
+  /* 带框版本保留给「Payload 原样」布局，免得对比时看不出差别 */
+  .boxed .grp {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px 2px; margin-bottom: 18px; background: var(--panel-2);
+  }
+  .boxed .grp > .gh { font-size: 13px; color: var(--ink); margin: 0 0 4px; }
+
+  /* ui field */
+  .uif { border: 1px dashed var(--accent); background: var(--accent-soft); border-radius: var(--radius); padding: 11px 14px; margin-bottom: 18px; }
+  .uif b { font-size: 12.5px; }
+  .uif p { margin: 3px 0 0; font-size: 11.5px; color: var(--ink-2); }
+
+  /* 重组件 */
+  .heavy {
+    border: 1px solid var(--heavy-line); background: var(--heavy-soft);
+    border-radius: var(--radius); padding: 13px 15px; margin-bottom: 18px;
+  }
+  .heavy .hh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .heavy .hh b { font-size: 13px; }
+  .heavy .cost { font-size: 11px; color: var(--heavy); border: 1px solid var(--heavy-line); border-radius: 10px; padding: 1px 8px; }
+  .heavy p { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.6; }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; margin-top: 11px; }
+  .thumbs i {
+    aspect-ratio: 4/3; border-radius: 4px; border: 1px solid var(--heavy-line);
+    background: repeating-linear-gradient(45deg, transparent, transparent 4px, var(--heavy-line) 4px, var(--heavy-line) 5px);
+    opacity: .45;
+  }
+  .lex { margin-top: 11px; border: 1px solid var(--heavy-line); border-radius: 5px; overflow: hidden; }
+  .lex .bar { display: flex; gap: 4px; padding: 5px 7px; border-bottom: 1px solid var(--heavy-line); }
+  .lex .bar s { width: 20px; height: 18px; border-radius: 3px; background: var(--heavy-line); opacity: .5; display: block; }
+  .lex .area { height: 62px; }
+
+  /* 隐藏字段说明 */
+  .hidden-note {
+    border: 1px solid var(--warn-line); background: var(--warn-soft); border-radius: var(--radius);
+    padding: 11px 14px; margin-bottom: 18px; font-size: 12px; color: var(--ink-2); line-height: 1.6;
+  }
+  .hidden-note b { color: var(--warn); }
+
+  /* ---------- 底部说明 ---------- */
+  .notes { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 14px; }
+  .note { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 17px; }
+  .note h3 { margin: 0 0 9px; font-size: 13px; font-weight: 650; }
+  .note ul { margin: 0; padding-left: 17px; }
+  .note li { font-size: 12.5px; color: var(--ink-2); margin-bottom: 7px; line-height: 1.65; }
+  .note code { font-family: var(--mono); font-size: 11.5px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; }
+  .legend span { font-size: 12px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+
+  @media (max-width: 780px) {
+    .body { grid-template-columns: 1fr; }
+    .anchors { border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 18px; display: flex; gap: 6px; overflow-x: auto; }
+    .anchors .ah { display: none; }
+    .anchors a { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; }
+    .anchors a.on { border-left: 0; border-bottom-color: var(--accent); }
+    .anchors a .n { display: none; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <div class="toolbar-row">
+      <div class="ctl">
+        <span class="ctl-label">表单布局</span>
+        <div class="seg" id="segLayout">
+          <button data-v="now" aria-pressed="false">现状 · 5 Tab</button>
+          <button data-v="plan" aria-pressed="true">方案 · 2 Tab 通铺</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label">租售类型</span>
+        <div class="seg" id="segBiz">
+          <button data-v="lease" aria-pressed="true">出租</button>
+          <button data-v="sale" aria-pressed="false">出售</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label">排列</span>
+        <div class="seg" id="segCols">
+          <button data-v="0" aria-pressed="true">Payload 原样</button>
+          <button data-v="2" aria-pressed="false">2 列</button>
+          <button data-v="3" aria-pressed="false">3 列</button>
+          <button data-v="re" aria-pressed="false">语义重排</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label">媒体数量</span>
+        <div class="seg" id="segRows">
+          <button data-v="0" aria-pressed="false">0 张</button>
+          <button data-v="8" aria-pressed="false">8 张</button>
+          <button data-v="40" aria-pressed="true">40 张（上限）</button>
+        </div>
+      </div>
+      <label class="switch"><input type="checkbox" id="ckRo" checked>只读字段用文本展示</label>
+      <div class="ctl">
+        <span class="ctl-label">URL 标识</span>
+        <div class="seg" id="segSlug">
+          <button data-v="input" aria-pressed="false">独立输入框（现状）</button>
+          <button data-v="badge" aria-pressed="true">收进标题框图标</button>
+        </div>
+      </div>
+      <label class="switch"><input type="checkbox" id="ckSub" checked>方案 B：发布必填标记</label>
+      <label class="switch"><input type="checkbox" id="ckSrc">已有外部数据来源</label>
+      <label class="switch"><input type="checkbox" id="ckLegacy">存量旧租金字段</label>
+    </div>
+    <div class="metrics" id="metrics"></div>
+  </div>
+
+  <div class="doc">
+    <div class="doc-head">
+      <h1>创科大厦 3 层整层办公室</h1>
+      <span class="crumb">房源列表 / 编辑</span>
+    </div>
+
+    <div class="vis-card">
+      <span class="dot"></span>
+      <div>
+        <b>前台可见性：已发布 · 前台可见</b>
+        <p>常驻卡片（<code>ui</code> field，ListingVisibilityCard）。不在任何 tab 内，两种布局下都渲染。</p>
+      </div>
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+    <div class="unrendered" id="unrendered"></div>
+    <div class="body" id="body"></div>
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h3>图例</h3>
+      <div class="legend">
+        <span><b class="req">*</b> 草稿必填（Payload <code>required</code>，现状就有）</span>
+        <span><b class="sub">*</b> 发布必填（方案 B 新增，纯视觉）</span>
+      </div>
+      <div class="legend" style="margin-top:6px">
+        <span style="color:var(--heavy)">▨ 重组件（mount 成本高）</span>
+        <span style="color:var(--warn)">▨ 标不了的发布条件</span>
+      </div>
+    </div>
+    <div class="note">
+      <h3>这份 demo 在演示什么</h3>
+      <ul>
+        <li><b>布局切换</b>看首屏渲染量：Tab 条上的数字是该 tab 的输入数，🔥 表示含重组件。</li>
+        <li><b>排列切换</b>看省高。高度是离屏克隆<b>实测</b>——把同一份内容按 Payload 原样布局在等宽容器里重渲一遍再比，不是估算。</li>
+        <li><b>租售切换</b>看 <code>admin.condition</code>：出售时租期/付款/入驻日整行消失，出售信息组出现，发布必填清单跟着变。</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>五项优化（可逐项开关）</h3>
+      <ul>
+        <li><b>去掉组框</b>：结构化价格 / 空间明细 / 费用条款只留小标题。外框的内边距正是组内字段与组外
+          对不齐的原因，去掉后全表共用一条列轴。</li>
+        <li><b>固定列轴</b>：每节列数固定（基本信息 3 列、其余 4 列），行内字段不足时靠左留空而<b>不拉满</b>。
+          实测每行单元格都落在同样的 4 个左边界上、宽度一致。</li>
+        <li><b>复选框对齐</b>：网格里的复选框改成「标签在上 + 方框在控件行」。原来的 inline 写法没有标签行，
+          方框会浮到相邻输入框的中间高度。</li>
+        <li><b>只读四项文本化并后置</b>：不再是禁用输入框，说明收进 ⓘ；位置挪到供给商户 / 联系经纪人 /
+          核验信息之后——运营进这节是来填商户的，只读状态是「看一眼」的结论。字段顺序即显示顺序，不涉及 schema。</li>
+        <li><b>URL 标识收进标题框</b>：不再占独立格子，做成标题输入框右侧的链接图标，hover 显示
+          <code>/listings/xxx</code> 与生成规则。<b>比 <code>admin.hidden</code> 安全</b>——隐藏字段仍在表单状态里
+          参与校验（<code>fieldIsHiddenOrDisabled</code> 只认顶层 <code>hidden</code> 和 <code>admin.disabled</code>），
+          会被一个看不见的必填错误拦住保存；而顶层 <code>hidden: true</code> 会把 slug 从 API 响应里删掉，前台详情页直接崩。</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h3>为什么「展示内容」单独留一个 tab</h3>
+      <ul>
+        <li>Payload 3.86 客户端<b>只渲染激活 tab</b>（<code>TabsFieldComponent</code> 只给 <code>activeTabConfig</code> 渲一个 <code>TabContent</code>）。</li>
+        <li>服务端 <code>iterateFields</code> 对 tabs <b>无条件全展开</b>，所以通铺不增加服务端和 RSC 成本，只增加客户端 mount。</li>
+        <li>媒体工作台（<code>maxRows: 40</code>）mount 即发 <code>/api/media</code> 请求并渲染最多 40 张缩略图；Lexical 富文本要实例化编辑器。把它们留在第二个 tab，通铺的收益全拿到、成本一点不付。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 枚举（抄自 src/domain/review/*.ts、pricing-options.ts，标签保持一致）──
+  const OPT = {
+    listingType: ['传统办公室', '共享办公', '整层办公', '服务式办公室'],
+    businessType: ['出租', '出售'],
+    decoration: ['毛坯', '简装', '精装带家具', '拎包入住'],
+    registration: ['可注册', '有条件注册', '不可注册', '待确认'],
+    currency: ['人民币'],
+    period: ['每月', '每天', '每年', '一次性（出售）'],
+    unit: ['按平方米', '按套', '按工位'],
+    rentUnit: ['元/㎡/天', '元/月', '元/工位/月'],
+    furniture: ['含家具', '家具可选', '无家具', '待确认'],
+    propertyYears: ['40 年', '50 年', '70 年'],
+    taxBearer: ['买方承担', '卖方承担', '双方各半', '面议'],
+    costInclusion: ['包含', '不包含', '待确认'],
+    invoice: ['含发票', '需加税点', '无发票', '待确认'],
+    reviewStatus: ['未提交', '待审核', '审核通过', '已驳回'],
+    pubStatus: ['草稿', '已发布', '已下架', '已租', '已售'],
+    hold: ['正常', '待复核'],
+    source: ['汇租选址'],
+  };
+
+  const SLUG_VALUE = 'chuangke-plaza-3f';
+  const notSale = (s) => s.biz !== 'sale';
+  const isSale = (s) => s.biz === 'sale';
+
+  // ── 表单结构（镜像 src/collections/Listings.ts:210-846）──
+  const SECTIONS = [
+    {
+      id: 'basic', label: '基本信息',
+      desc: '维护房源名称、URL 标识、类型和所属楼盘。',
+      fields: [
+        { n: 'title', l: '房源标题', t: 'text', req: 1, sub: 'common', v: '创科大厦 3 层整层办公室' },
+        { n: 'slug', l: 'URL 标识', t: 'text', req: 1, v: 'chuangke-plaza-3f',
+          hint: '留空时根据房源标题自动生成拼音 slug。用于前台 URL（/listings/xxx）。' },
+        { t: 'row', fields: [
+          { n: 'listingType', l: '类型', t: 'select', req: 1, sub: 'common', o: OPT.listingType, v: '整层办公' },
+          { n: 'building', l: '所属楼盘', t: 'rel', req: 1, sub: 'common', v: '创科大厦' },
+        ]},
+        { t: 'row', fields: [
+          { n: 'businessType', l: '租售类型', t: 'select', sub: 'common', o: OPT.businessType, bind: 'biz' },
+          { n: 'decorationStatus', l: '装修状态', t: 'select', sub: 'common', o: OPT.decoration, v: '精装带家具' },
+        ]},
+        { n: 'registrationStatus', l: '工商注册状态', t: 'select', o: OPT.registration, v: '可注册' },
+      ],
+    },
+    {
+      id: 'price', label: '价格与交易参数',
+      desc: '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。',
+      fields: [
+        { t: 'group', n: 'price', l: '结构化价格', sub: 'common',
+          gd: '价格必须保存金额、币种、周期和单位，禁止仅存展示文本。',
+          fields: [
+            { t: 'row', fields: [
+              { n: 'amount', l: '金额', t: 'number', v: '4.80' },
+              { n: 'currency', l: '币种', t: 'select', o: OPT.currency, v: '人民币' },
+            ]},
+            { t: 'row', fields: [
+              { n: 'period', l: '计价周期', t: 'select', o: OPT.period, v: '每天' },
+              { n: 'unit', l: '计价单位', t: 'select', o: OPT.unit, v: '按平方米' },
+            ]},
+          ]},
+        { t: 'row', cond: (s) => s.legacy, fields: [
+          { n: 'rent', l: '租金（旧字段,过渡期保留）', t: 'number', v: '4.80',
+            hint: '价格已迁移至上方结构化价格，此字段仅供过渡期兼容。' },
+          { n: 'rentUnit', l: '租金单位（旧字段）', t: 'select', o: OPT.rentUnit, v: '元/㎡/天' },
+        ]},
+        { t: 'row', fields: [
+          { n: 'area', l: '面积（㎡）', t: 'number', sub: 'common', v: '1,280.0' },
+          { n: 'seats', l: '建议工位数', t: 'number', v: '120' },
+        ]},
+        { t: 'row', fields: [
+          { n: 'floor', l: '楼层', t: 'text', sub: 'common', v: '3F' },
+          { n: 'minimumLeaseMonths', l: '最短租期（月）', t: 'number', sub: 'lease', cond: notSale, v: '12' },
+        ]},
+        { t: 'row', fields: [
+          { n: 'paymentTerms', l: '付款条件', t: 'text', sub: 'lease', cond: notSale, v: '押二付三' },
+          { n: 'availableFrom', l: '可入驻日期', t: 'date', sub: 'lease', cond: notSale, v: '2026-09-01' },
+        ]},
+        { t: 'group', n: 'spaceDetails', l: '空间明细', fields: [
+          { t: 'row', fields: [
+            { n: 'efficiencyRate', l: '得房率（%）', t: 'number', v: '72' },
+            { n: 'orientation', l: '朝向', t: 'text', v: '南' },
+            { n: 'netCeilingHeight', l: '净层高（m）', t: 'number', v: '2.9' },
+          ]},
+          { t: 'row', fields: [
+            { n: 'seatMin', l: '最少工位数', t: 'number', v: '90' },
+            { n: 'seatMax', l: '最多工位数', t: 'number', v: '150' },
+            { n: 'isDivisible', l: '可分割', t: 'checkbox' },
+            { n: 'furnitureStatus', l: '家具状态', t: 'select', o: OPT.furniture, v: '含家具' },
+          ]},
+        ]},
+        { t: 'group', n: 'saleTerms', l: '出售信息', cond: isSale,
+          gd: '仅出售房源填写。产权年限为纯展示信息，平台不做年限折损计算。',
+          fields: [
+            { t: 'row', fields: [
+              { n: 'propertyRightYears', l: '产权年限', t: 'select', sub: 'sale', o: OPT.propertyYears, v: '50 年',
+                hint: '出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。' },
+              { n: 'saleTaxBearer', l: '税费承担方', t: 'select', o: OPT.taxBearer, v: '面议' },
+            ]},
+            { t: 'row', fields: [
+              { n: 'saleFiveYearsUnique', l: '是否满五唯一', t: 'checkbox' },
+              { n: 'saleParkingSpaces', l: '车位配置（个）', t: 'number', v: '4' },
+            ]},
+          ]},
+        { t: 'group', n: 'costTerms', l: '费用条款', fields: [
+          { t: 'row', fields: [
+            { n: 'depositMonths', l: '押金月数', t: 'number', v: '2' },
+            { n: 'propertyFeeInclusion', l: '物业费包含情况', t: 'select', o: OPT.costInclusion, v: '不包含' },
+            { n: 'propertyFeeAmount', l: '物业费金额', t: 'number', v: '28' },
+            { n: 'invoiceStatus', l: '发票情况', t: 'select', o: OPT.invoice, v: '含发票' },
+          ]},
+          { n: 'otherFixedCosts', l: '其他固定费用', t: 'textarea' },
+        ]},
+        { n: 'isFeatured', l: '首页推荐', t: 'checkbox' },
+      ],
+    },
+    {
+      id: 'review', label: '审核与发布',
+      desc: '三轴状态由审核/发布流程驱动，此处只读；版本号用于并发乐观锁。',
+      fields: [
+        { t: 'ui', l: '免审直发入口', gd: 'ListingFastTrackAction。可见性由服务端判定，完整度由 endpoint 强制。' },
+        // 可编辑字段在前，只读状态在后：运营进这一节是来填商户/经纪人的，
+        // 四个只读状态是「看一眼」的结论，放末尾更符合动线（字段顺序即显示顺序，不涉及 schema）。
+        { n: 'merchant', l: '供给商户', t: 'rel', sub: 'common', v: '创科资产管理',
+          hint: '房源供给关系的当前商户；有效期与快照规则见供给关系。' },
+        { n: 'contactBroker', l: '联系经纪人', t: 'rel', sub: 'common', v: '李文彬' },
+        { t: 'group', n: 'verificationInfo', l: '核验信息', fields: [
+          { t: 'row', fields: [
+            { n: 'verifiedAt', l: '信息核验时间', t: 'date', v: '2026-08-10' },
+            { n: 'priceVerifiedAt', l: '价格核验时间', t: 'date', v: '2026-08-10' },
+          ]},
+        ]},
+        { t: 'group', n: 'statusReadout', l: '状态（只读）', fields: [
+          { t: 'row', fields: [
+            { n: 'reviewStatus', l: '审核状态', t: 'select', ro: 1, o: OPT.reviewStatus, v: '审核通过', hint: '由提交/审核流程驱动。' },
+            { n: 'publicationStatus', l: '发布状态', t: 'select', ro: 1, o: OPT.pubStatus, v: '已发布', hint: '由显式发布/下架动作驱动，审核通过不自动上架。' },
+            { n: 'supplyVisibilityHold', l: '供给可见性冻结', t: 'select', ro: 1, o: OPT.hold, v: '正常', hint: '商户停用等场景批量置为待复核。' },
+            { n: 'version', l: '版本号', t: 'number', ro: 1, v: '7', hint: '乐观锁版本号，系统维护。' },
+          ]},
+        ]},
+      ],
+    },
+    {
+      id: 'source', label: '数据来源',
+      desc: '标记外部抓取来源与同步信息，便于追溯、去重与增量更新。',
+      cond: (s) => s.src,
+      emptyNote: '整组挂 <code>admin.condition</code>：只有外部抓取来源已有数据时才显示。手工新建的房源看不到这一节——打开工具栏的「已有外部数据来源」可预览。',
+      fields: [
+        { t: 'group', n: 'dataSource', l: '数据来源', fields: [
+          { t: 'row', fields: [
+            { n: 'source', l: '来源平台', t: 'select', o: OPT.source, v: '汇租选址' },
+            { n: 'externalId', l: '外部 ID', t: 'text', v: 'HZ-88213' },
+            { n: 'syncedAt', l: '同步时间', t: 'date', ro: 1, v: '2026-08-17' },
+          ]},
+          { n: 'sourceUrl', l: '源地址', t: 'text', v: 'https://…/listing/88213' },
+        ]},
+      ],
+    },
+    {
+      id: 'display', label: '展示内容', heavy: true,
+      desc: '维护前台卡片和详情页使用的图片、亮点与介绍。',
+      fields: [
+        { t: 'hidden-note', html:
+          '<b>gallery（图片相册）· 发布必填，但标不了。</b>该字段是 <code>admin.hidden: true</code> 的派生数组，' +
+          '由媒体工作台从 mediaItems 派生，界面上根本没有它的 label 可挂星号；' +
+          '而且条件是「≥3 张」——数量不是有无，星号本来也表达不了。这是方案 B 的天花板，要靠方案 C 的完整度清单兜。' },
+        { t: 'heavy', l: '房源媒体工作台', kind: 'media', cost: 'maxRows 40',
+          leaves: (s) => s.rows * 6, sublabel: '每行 6 个子字段：资源 / 类型 / 分类 / 替代文本 / 拍摄时间 / 示意图',
+          gd: 'mediaItems，自定义 Field（MediaWorkbench，1314 行）。mount 时发一次 <code>/api/media</code> 批量请求，再渲染最多 40 张缩略图，每张一个 COS 图片请求。' },
+        { t: 'heavy', l: '亮点', kind: 'array', cost: 'array', leaves: () => 4,
+          sublabel: '按 4 条亮点计',
+          gd: 'highlights，无上限数组。折叠行不省——Payload 的 Collapsible 无条件渲染 children，只是套了 height: 0。' },
+        { t: 'heavy', l: '房源说明', kind: 'lexical', cost: 'Lexical', sub: 'common', leaves: () => 1,
+          gd: 'description，richText。mount 时要实例化 Lexical 编辑器——单个字段里最贵的一个。' },
+      ],
+    },
+  ];
+
+  /**
+   * 语义重排计划。每个数组是一行，行内字段是语义兄弟；行宽随可见字段数自适应。
+   * 关键：不是统一列数，而是按「这些字段是不是该一起看」来分行——
+   * 所以租期/付款/入驻排一行（它们共用同一个 condition，出售时整行一起消失），
+   * 金额/币种/周期/单位排一行（结构化价格本来就是四件套）。
+   */
+  const REFLOW = {
+    basic: [['title', 'listingType', 'building'], ['businessType', 'decorationStatus', 'registrationStatus', 'slug']],
+    price: [['rent', 'rentUnit'], ['area', 'seats', 'floor', 'minimumLeaseMonths'], ['paymentTerms', 'availableFrom']],
+    review: [['merchant', 'contactBroker']],
+    'price.price': [['amount', 'currency', 'period', 'unit']],
+    'price.spaceDetails': [['efficiencyRate', 'orientation', 'netCeilingHeight', 'furnitureStatus'], ['seatMin', 'seatMax', 'isDivisible']],
+    'price.saleTerms': [['propertyRightYears', 'saleTaxBearer', 'saleFiveYearsUnique', 'saleParkingSpaces']],
+    'price.costTerms': [['depositMonths', 'propertyFeeInclusion', 'propertyFeeAmount', 'invoiceStatus'], ['otherFixedCosts']],
+    'review.verificationInfo': [['verifiedAt', 'priceVerifiedAt']],
+    'review.statusReadout': [['reviewStatus', 'publicationStatus', 'supplyVisibilityHold', 'version']],
+    'source.dataSource': [['source', 'externalId', 'syncedAt', 'sourceUrl']],
+  };
+
+  /**
+   * 每节的列数。整节共用一条列轴：短行靠左占前几格、右边留空，
+   * 而不是拉满宽度——这样「付款条件/可入驻日期」才会和上一行的「面积/工位」左对齐。
+   */
+  const SECTION_COLS = { basic: 3, price: 4, review: 4, source: 4 };
+
+  const PLAN_TAB1 = ['basic', 'price', 'review', 'source'];
+  const PLAN_TAB2 = ['display'];
+
+  let curSec = null;
+  const state = { roText: true, slugMode: 'badge', layout: 'plan', biz: 'lease', showSub: true, src: false, legacy: false, rows: 40, cols: 0, tab: 0 };
+
+  // ── 工具 ──
+  const el = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstElementChild; };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const visible = (node) => !node.cond || node.cond(state);
+
+  /** 该字段在当前租售口径下是否属于发布必填。 */
+  function isSubmitRequired(f) {
+    if (!f.sub) return false;
+    if (f.sub === 'common') return true;
+    if (f.sub === 'lease') return state.biz !== 'sale';
+    if (f.sub === 'sale') return state.biz === 'sale';
+    return false;
+  }
+
+  /** 统计一个节点子树里可见的叶子输入数。 */
+  function countLeaves(nodes) {
+    let n = 0;
+    for (const f of nodes) {
+      if (!visible(f)) continue;
+      if (f.t === 'row' || f.t === 'group') n += countLeaves(f.fields);
+      else if (f.t === 'heavy') n += f.leaves ? f.leaves(state) : 0;
+      else if (f.t === 'ui' || f.t === 'hidden-note') continue;
+      else n += 1;
+    }
+    return n;
+  }
+  function countHeavy(nodes) {
+    let n = 0;
+    for (const f of nodes) {
+      if (!visible(f)) continue;
+      if (f.t === 'row' || f.t === 'group') n += countHeavy(f.fields);
+      else if (f.t === 'heavy') n += 1;
+    }
+    return n;
+  }
+  const secOf = (id) => SECTIONS.find((s) => s.id === id);
+
+  // ── 渲染字段 ──
+  function marks(f) {
+    let h = '';
+    if (f.req) h += '<b class="req" title="草稿保存必填（Payload required）">*</b>';
+    if (state.showSub && isSubmitRequired(f)) h += '<b class="sub" title="提交审核必填（方案 B，来源 getSubmitRequiredFields）">*</b>';
+    return h;
+  }
+
+  function renderField(f) {
+    if (!visible(f)) return '';
+
+    if (f.t === 'row') {
+      const inner = f.fields.map(renderField).join('');
+      return inner ? '<div class="row">' + inner + '</div>' : '';
+    }
+
+    if (f.t === 'group') {
+      const inner = renderChildren(f.fields, (curSec ? curSec + '.' : '') + f.n);
+      if (!inner) return '';
+      return '<div class="grp"><div class="gh">' + esc(f.l) + marks(f) + '</div>' +
+        (f.gd ? '<div class="gd">' + f.gd + '</div>' : '') + inner + '</div>';
+    }
+
+    if (f.t === 'ui') {
+      return '<div class="uif"><b>' + esc(f.l) + '</b><p>' + f.gd + '</p></div>';
+    }
+
+    if (f.t === 'hidden-note') {
+      return '<div class="hidden-note">' + f.html + '</div>';
+    }
+
+    if (f.t === 'heavy') {
+      let vis = '';
+      if (f.kind === 'media') vis = state.rows ? '<div class="thumbs">' + '<i></i>'.repeat(state.rows) + '</div>' : '';
+      else if (f.kind === 'lexical') vis = '<div class="lex"><div class="bar">' + '<s></s>'.repeat(7) + '</div><div class="area"></div></div>';
+      else vis = '<div class="thumbs">' + '<i></i>'.repeat(4) + '</div>';
+      const eq = f.leaves ? f.leaves(state) : 0;
+      return '<div class="heavy"><div class="hh"><b>' + esc(f.l) + marks(f) + '</b>' +
+        '<span class="cost">重组件 · ' + esc(f.cost) + '</span>' +
+        '<span class="cost">' + eq + ' 个输入当量</span></div>' +
+        '<p>' + f.gd + (f.sublabel ? ' <em>（' + f.sublabel + '）</em>' : '') + '</p>' + vis + '</div>';
+    }
+
+    // 只读字段 → 展示态（字段名 + 值 + info icon），不再是表单控件
+    if (state.roText && f.ro) {
+      return '<div class="ro-item"><span class="rk">' + esc(f.l) +
+        (f.hint ? '<i class="info" title="' + esc(f.hint) + '">i</i>' : '') +
+        '</span><span class="rv">' + (f.v != null ? esc(f.v) : '—') + '</span></div>';
+    }
+
+    // slug 收进标题框：这里不单独出字段（图标挂在 title 的输入框里）
+    if (state.slugMode === 'badge' && f.n === 'slug') return '';
+
+    // 叶子输入
+    if (f.t === 'checkbox') {
+      return '<div class="f cb"><label>' + esc(f.l) + marks(f) + '</label>' +
+        '<div class="cb-row"><span class="box"></span></div></div>';
+    }
+    // ⑤ 标题框右侧的 URL 标识图标：hover 显示「字段名: 字段值」。
+    // 值是裸 slug，不加 /listings/ 前缀——那是拼 URL 时才有的，且真实前台路径还带城市段。
+    // 实现对应 admin.condition: () => false：字段仍在表单状态并照常提交，只是不渲染、不校验。
+    const slugBadge = (state.slugMode === 'badge' && f.n === 'title')
+      ? '<span class="slug-badge" title="URL 标识: ' + esc(SLUG_VALUE) + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">' +
+        '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/>' +
+        '<path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>'
+      : '';
+
+    const isSel = f.t === 'select' || f.t === 'rel';
+    const wide = f.t === 'textarea' ? ' wide' : '';
+    const cls = 'inp' + (f.t === 'textarea' ? ' ta' : '') + (f.ro ? ' ro' : '');
+    const val = f.bind === 'biz' ? (state.biz === 'sale' ? '出售' : '出租') : (f.v != null ? esc(f.v) : '');
+    return '<div class="f' + wide + '"><label>' + esc(f.l) + marks(f) +
+      (f.ro ? '<span class="ro-tag">只读</span>' : '') + '</label>' +
+      '<div class="' + cls + '"><span class="ph">' + val + '</span>' + slugBadge +
+      (isSel ? '<span class="caret">▼</span>' : '') + '</div>' +
+      (f.hint ? '<div class="hint">' + f.hint + '</div>' : '') + '</div>';
+  }
+
+  /** 渲染一组子节点：cols=0 走 Payload 原样的 row 布局，否则拍平成 N 列网格。 */
+  /**
+   * 摊平出容器里的叶子字段，按 name 建索引。
+   * row 上的 admin.condition 必须继承给子字段——否则重排后条件行（如旧租金）
+   * 会脱离原来的显隐控制，在不该出现的时候冒出来。
+   */
+  function leafIndex(nodes, map, inherited) {
+    for (const f of nodes) {
+      const cond = f.cond && inherited
+        ? (st) => f.cond(st) && inherited(st)
+        : (f.cond || inherited);
+      if (f.t === 'row') leafIndex(f.fields, map, cond);
+      else if (f.n && f.t !== 'group') map.set(f.n, cond === f.cond ? f : Object.assign({}, f, { cond }));
+    }
+    return map;
+  }
+
+  /**
+   * 按 REFLOW 计划渲染，且**保持原文档顺序**：
+   * 计划行在它第一个成员字段原本出现的位置就位，group / ui / 重组件留在原槽。
+   * 否则「结构化价格」这类 group 会被挤到重排行后面，阅读顺序被打乱。
+   */
+  function renderReflow(nodes, key) {
+    const plan = REFLOW[key];
+    if (!plan) return nodes.map(renderField).join('');
+    // 整节共用一条列轴：行内字段不足时靠左留空，而不是拉满
+    const cols = SECTION_COLS[String(key).split('.')[0]] || 4;
+    const idx = leafIndex(nodes, new Map());
+    const lineOf = new Map();
+    plan.forEach((line, i) => line.forEach((nm) => lineOf.set(nm, i)));
+    const done = new Set();
+    let html = '';
+
+    const emitLine = (i) => {
+      if (done.has(i)) return;
+      done.add(i);
+      const vis = plan[i].map((nm) => idx.get(nm)).filter((f) => f && visible(f));
+      if (!vis.length) return;
+      html += '<div class="grid c' + cols + '">' + vis.map(renderField).join('') + '</div>';
+    };
+
+    const walk = (list) => {
+      for (const f of list) {
+        if (f.t === 'row') { walk(f.fields); continue; }
+        if (f.t === 'group' || f.t === 'ui' || f.t === 'heavy' || f.t === 'hidden-note') {
+          if (visible(f)) html += renderField(f);
+          continue;
+        }
+        if (lineOf.has(f.n)) emitLine(lineOf.get(f.n));
+        else if (visible(f)) html += '<div class="grid c' + cols + '">' + renderField(f) + '</div>';
+      }
+    };
+    walk(nodes);
+    return html;
+  }
+
+  function renderChildren(nodes, key) {
+    if (state.cols === 're') return renderReflow(nodes, key);
+    if (!state.cols) return nodes.map(renderField).join('');
+    const out = [];
+    let buf = [];
+    const flush = () => {
+      if (!buf.length) return;
+      out.push('<div class="grid c' + state.cols + '">' + buf.join('') + '</div>');
+      buf = [];
+    };
+    for (const f of nodes) {
+      if (!visible(f)) continue;
+      if (f.t === 'row') {
+        for (const g of f.fields) if (visible(g)) buf.push(renderField(g));
+      } else if (f.t === 'group' || f.t === 'ui' || f.t === 'heavy' || f.t === 'hidden-note') {
+        flush(); out.push(renderField(f));
+      } else {
+        buf.push(renderField(f));
+      }
+    }
+    flush();
+    return out.join('');
+  }
+
+  function renderSection(sec, withHeader) {
+    if (!visible(sec)) {
+      if (!sec.emptyNote || state.layout !== 'plan') return '';
+      return '<section class="sec" id="sec-' + sec.id + '"><div class="sec-h"><h2>' + esc(sec.label) +
+        '</h2><span class="sd">当前条件下不显示</span></div>' +
+        '<div class="hidden-note">' + sec.emptyNote + '</div></section>';
+    }
+    curSec = sec.id;
+    const inner = renderChildren(sec.fields, sec.id);
+    curSec = null;
+    const head = withHeader
+      ? '<div class="sec-h"><h2>' + esc(sec.label) + '</h2><span class="sd">' + countLeaves(sec.fields) + ' 个输入</span></div>' +
+        '<div class="sec-desc">' + esc(sec.desc) + '</div>'
+      : '<div class="sec-desc">' + esc(sec.desc) + '</div>';
+    return '<section class="sec" id="sec-' + sec.id + '">' + head + inner + '</section>';
+  }
+
+  // ── 布局 ──
+  function tabsOf() {
+    if (state.layout === 'now') {
+      return SECTIONS.map((s) => ({ label: s.label, ids: [s.id] }));
+    }
+    return [
+      { label: '房源信息', ids: PLAN_TAB1 },
+      { label: '展示内容', ids: PLAN_TAB2 },
+    ];
+  }
+
+  function render() {
+    const tabs = tabsOf();
+    if (state.tab >= tabs.length) state.tab = 0;
+    const active = tabs[state.tab];
+
+    // Tab 条
+    document.getElementById('tabs').innerHTML = tabs.map((t, i) => {
+      const secs = t.ids.map(secOf).filter(visible);
+      const leaves = secs.reduce((a, s) => a + countLeaves(s.fields), 0);
+      const heavy = secs.reduce((a, s) => a + countHeavy(s.fields), 0);
+      return '<button data-i="' + i + '" aria-selected="' + (i === state.tab) + '">' + esc(t.label) +
+        '<span class="cnt">' + leaves + '</span>' + (heavy ? '<span class="flame">🔥</span>' : '') + '</button>';
+    }).join('');
+
+    // 未渲染提示
+    const otherLeaves = tabs.reduce((a, t, i) => i === state.tab ? a
+      : a + t.ids.map(secOf).filter(visible).reduce((b, s) => b + countLeaves(s.fields), 0), 0);
+    const otherHeavy = tabs.reduce((a, t, i) => i === state.tab ? a
+      : a + t.ids.map(secOf).filter(visible).reduce((b, s) => b + countHeavy(s.fields), 0), 0);
+    document.getElementById('unrendered').innerHTML =
+      '未激活 tab 共 <b>' + otherLeaves + '</b> 个输入' + (otherHeavy ? '、<b>' + otherHeavy + '</b> 个重组件' : '') +
+      '，客户端<b>不渲染</b> —— <code>TabsFieldComponent</code> 只给 <code>activeTabConfig</code> 渲一个 <code>TabContent</code>。' +
+      '但服务端 <code>iterateFields</code> 已把它们全展开进 RSC，通铺不增加服务端成本。';
+
+    // 主体
+    const secs = active.ids.map(secOf);
+    const multi = secs.length > 1;
+    const body = document.getElementById('body');
+    body.className = 'body' + (multi ? '' : ' no-nav');
+
+    let html = '';
+    if (multi) {
+      html += '<nav class="anchors"><div class="ah">本页分节</div>' +
+        secs.map((s) => visible(s)
+          ? '<a href="#sec-' + s.id + '" data-id="' + s.id + '">' + esc(s.label) +
+            '<span class="n">' + countLeaves(s.fields) + '</span></a>'
+          : '').join('') + '</nav>';
+    }
+    html += '<div class="form' + (state.cols === 're' ? '' : ' boxed') + '">' +
+      secs.map((s) => renderSection(s, multi)).join('') + '</div>';
+    body.innerHTML = html;
+
+    measureHeight();
+    renderMetrics(tabs);
+    wireAnchors();
+  }
+
+  /**
+   * 量当前布局的表单高度，并与 Payload 原样布局对比。
+   * 基线用离屏克隆实测，不靠估算：把 .form 复制一份、按 cols=0 重渲、同宽测量后丢弃。
+   */
+  function measureHeight() {
+    const form = document.querySelector('.form');
+    if (!form) { window.__docH = 0; window.__saveH = null; return; }
+    window.__docH = Math.round(form.getBoundingClientRect().height);
+
+    if (!state.cols) { window.__saveH = null; return; }
+
+
+    const saved = state.cols;
+    state.cols = 0;
+    const ghost = document.createElement('div');
+    ghost.className = 'form boxed'; // 基线是 Payload 原样，组框要在，否则省高被算少
+    ghost.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;left:-99999px;top:0;width:' +
+      form.getBoundingClientRect().width + 'px';
+    const tabs = tabsOf();
+    ghost.innerHTML = tabs[state.tab].ids.map(secOf)
+      .map((sec) => renderSection(sec, tabs[state.tab].ids.length > 1)).join('');
+    document.body.appendChild(ghost);
+    const base = Math.round(ghost.getBoundingClientRect().height);
+    ghost.remove();
+    state.cols = saved;
+    window.__saveH = base - window.__docH;
+  }
+
+  function renderMetrics(tabs) {
+    const activeSecs = tabs[state.tab].ids.map(secOf).filter(visible);
+    const firstLeaves = activeSecs.reduce((a, s) => a + countLeaves(s.fields), 0);
+    const firstHeavy = activeSecs.reduce((a, s) => a + countHeavy(s.fields), 0);
+
+    // 现状布局下的首屏 = 第一个 tab（基本信息）
+    const nowFirst = countLeaves(secOf('basic').fields);
+    const allLeaves = SECTIONS.filter(visible).reduce((a, s) => a + countLeaves(s.fields), 0);
+
+    // 发布必填清单
+    const req = [];
+    (function walk(nodes) {
+      for (const f of nodes) {
+        if (!visible(f)) continue;
+        if (f.t === 'row' || f.t === 'group') { if (isSubmitRequired(f)) req.push(f); walk(f.fields); }
+        else if (isSubmitRequired(f)) req.push(f);
+      }
+    })(SECTIONS.filter(visible).flatMap((s) => s.fields));
+    const galleryExtra = 1; // gallery：hidden 派生字段，标不了
+    const total = req.length + galleryExtra;
+
+    document.getElementById('metrics').innerHTML = [
+      ['本页高度', (window.__docH || 0) + ' px', 'cool'],
+      ['相对 Payload 原样', window.__saveH == null ? '—' : (window.__saveH > 0 ? '省 ' + window.__saveH + ' px' : '+' + (-window.__saveH) + ' px'), window.__saveH > 0 ? 'good' : 'cool'],
+      ['当前 tab 首屏输入', firstLeaves, firstHeavy ? 'hot' : 'cool'],
+      ['当前 tab 重组件', firstHeavy, firstHeavy ? 'hot' : 'cool'],
+      ['现状首屏（基本信息）', nowFirst, 'cool'],
+      ['发布必填（' + (state.biz === 'sale' ? '出售' : '出租') + '）', total, 'cool'],
+      ['其中标不了', galleryExtra, 'cool'],
+    ].map(([k, v, c]) => '<div class="metric ' + c + '"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>').join('');
+  }
+
+  function wireAnchors() {
+    const links = [...document.querySelectorAll('.anchors a')];
+    if (!links.length) return;
+    const secs = links.map((a) => document.getElementById('sec-' + a.dataset.id)).filter(Boolean);
+    const sync = () => {
+      let cur = secs[0];
+      for (const s of secs) if (s.getBoundingClientRect().top <= 150) cur = s;
+      links.forEach((a) => a.classList.toggle('on', cur && a.dataset.id === cur.id.replace('sec-', '')));
+    };
+    sync();
+    window.removeEventListener('scroll', window.__sync);
+    window.__sync = sync;
+    window.addEventListener('scroll', sync, { passive: true });
+  }
+
+  // ── 事件 ──
+  document.getElementById('segLayout').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.layout = b.dataset.v; state.tab = 0;
+    [...e.currentTarget.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+  document.getElementById('segBiz').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.biz = b.dataset.v;
+    [...e.currentTarget.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+  document.getElementById('segCols').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.cols = b.dataset.v === 're' ? 're' : Number(b.dataset.v);
+    [...e.currentTarget.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+  document.getElementById('segRows').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.rows = Number(b.dataset.v);
+    [...e.currentTarget.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+  document.getElementById('ckRo').addEventListener('change', (e) => { state.roText = e.target.checked; render(); });
+  document.getElementById('segSlug').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.slugMode = b.dataset.v;
+    [...e.currentTarget.children].forEach((x) => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+  document.getElementById('ckSub').addEventListener('change', (e) => { state.showSub = e.target.checked; render(); });
+  document.getElementById('ckSrc').addEventListener('change', (e) => { state.src = e.target.checked; render(); });
+  document.getElementById('ckLegacy').addEventListener('change', (e) => { state.legacy = e.target.checked; render(); });
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.tab = Number(b.dataset.i); render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  render();
+})();
+</script>

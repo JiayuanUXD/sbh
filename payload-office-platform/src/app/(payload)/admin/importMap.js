@@ -39,8 +39,12 @@ import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { default as default_48ef1091d596d4c5cbcd8ac69d53a12a } from '../../../components/admin/BuildingOperationalToggle'
 import { default as default_e2334a3ded7dbfed3d718a8b27260221 } from '../../../components/admin/unsaved-changes/FormModifiedBridge'
 import { default as default_0b8faaaab4eb657e1e6d583eda93d27d } from '../../../components/admin/ListingVisibilityCard'
+import { default as default_b126e0b58866da4320d49e1bf76cea7c } from '../../../components/admin/ListingFormSectionHeading'
+import { default as default_af1391405ef33ef431edd52406e13adf } from '../../../components/admin/PublishRequiredLabel'
+import { default as default_181346d2083e59b03eff0bedc3d20f68 } from '../../../components/admin/ListingSlugBadge'
 import { NumberComponent as NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139 } from '@nouance/payload-better-fields-plugin/Number/client'
 import { default as default_8fd596cf587f41fe58cb974db05d3972 } from '../../../components/admin/ListingFastTrackAction'
+import { default as default_e824639d01f5ca07b270b546b9ee9053 } from '../../../components/admin/ListingReadonlyValue'
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
 import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
@@ -118,8 +122,12 @@ export const importMap = {
   "/components/admin/BuildingOperationalToggle#default": default_48ef1091d596d4c5cbcd8ac69d53a12a,
   "/components/admin/unsaved-changes/FormModifiedBridge#default": default_e2334a3ded7dbfed3d718a8b27260221,
   "/components/admin/ListingVisibilityCard#default": default_0b8faaaab4eb657e1e6d583eda93d27d,
+  "/components/admin/ListingFormSectionHeading#default": default_b126e0b58866da4320d49e1bf76cea7c,
+  "/components/admin/PublishRequiredLabel#default": default_af1391405ef33ef431edd52406e13adf,
+  "/components/admin/ListingSlugBadge#default": default_181346d2083e59b03eff0bedc3d20f68,
   "@nouance/payload-better-fields-plugin/Number/client#NumberComponent": NumberComponent_cc8ffb4d72cccd0f4440f5702b1e4139,
   "/components/admin/ListingFastTrackAction#default": default_8fd596cf587f41fe58cb974db05d3972,
+  "/components/admin/ListingReadonlyValue#default": default_e824639d01f5ca07b270b546b9ee9053,
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
   "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,

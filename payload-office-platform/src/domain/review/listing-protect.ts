@@ -22,6 +22,22 @@ import { isReviewStatus } from './review-status'
 import { isPublicationStatus, isSupplyVisibilityHold } from './publication-status'
 import { isBusinessType, isDecorationStatus, isRegistrationStatus } from './listing-fields'
 
+/**
+ * 标题转写不出任何字符时的 slug 兜底基名（OPT-032）。
+ *
+ * `slugify` 对「###」「🏢🏢」这类纯符号/emoji 标题返回空串。不兜底的话 `data.slug`
+ * 根本不会被赋值，最后撞 `listings.slug` 的 NOT NULL 约束，抛的是原始 Postgres 错
+ * 而不是友好的字段校验错误。
+ *
+ * 这在以前不致命——「URL 标识」是可见的 required 字段，会先被表单拦下。但 OPT-032
+ * 把它撤出表单（`admin.condition: () => false`，条件不通过会连带跳过服务端字段校验），
+ * 这里就成了唯一防线。
+ *
+ * 用固定基名而不是时间戳/随机值：它照常走 `ensureUniqueSlug`，去重逻辑不分叉，
+ * 结果可预测（listing、listing-2、listing-3…），测试也能断言。
+ */
+const SLUG_FALLBACK_BASE = 'listing'
+
 /** 可选枚举字段：给了就必须合法，没给放行（可空）。 */
 function assertOptionalEnum(
   value: unknown,
@@ -118,24 +134,22 @@ export const protectListing: CollectionBeforeChangeHook = async ({
     if (operation === 'update' && originalSlug) {
       data.slug = originalSlug
     } else {
-      const base = slugify(title)
-      if (base) {
-        const selfId =
-          operation === 'update' && originalDoc?.id
-            ? String((originalDoc as { id: unknown }).id)
-            : undefined
-        data.slug = await ensureUniqueSlug(base, async (candidate) => {
-          const res = await req.payload.find({
-            collection: 'listings',
-            where: {
-              slug: { equals: candidate },
-              ...(selfId ? { id: { not_equals: selfId } } : {}),
-            },
-            limit: 1,
-          })
-          return res.totalDocs > 0
+      const base = slugify(title) || SLUG_FALLBACK_BASE
+      const selfId =
+        operation === 'update' && originalDoc?.id
+          ? String((originalDoc as { id: unknown }).id)
+          : undefined
+      data.slug = await ensureUniqueSlug(base, async (candidate) => {
+        const res = await req.payload.find({
+          collection: 'listings',
+          where: {
+            slug: { equals: candidate },
+            ...(selfId ? { id: { not_equals: selfId } } : {}),
+          },
+          limit: 1,
         })
-      }
+        return res.totalDocs > 0
+      })
     }
   }
 

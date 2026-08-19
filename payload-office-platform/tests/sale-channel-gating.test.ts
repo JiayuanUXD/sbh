@@ -50,7 +50,10 @@ describe('sale-channel-gating/后台', () => {
 
   it('租售类型与出售信息字段都接了开关', async () => {
     const src = await read('src/collections/Listings.ts')
-    expect(src).toContain('admin: { condition: businessTypeCondition }')
+    // 用锚定字段名的正则而不是整串字面量：admin 里还会有 width 等布局属性（OPT-032），
+    // 断言整串会让「加一个无关的 admin 属性」误报成「开关掉了」。要守的是
+    // 「businessType 接的是开关变量、不是写死的条件」。
+    expect(src).toMatch(/name: 'businessType'[\s\S]{0,300}condition: businessTypeCondition/)
     expect(src).toContain('condition: saleTermsCondition')
   })
 
@@ -93,8 +96,10 @@ describe('sale-channel-gating/文案泄露', () => {
 
     expect(src).toContain("const priceTabLabel = saleChannelEnabled ? '价格与交易参数' : '租赁参数'")
     expect(src).toContain('const priceTabDescription = saleChannelEnabled')
-    // tab 定义处必须引用变量，而不是再写一遍字面量
-    expect(src).toContain('label: priceTabLabel')
+    // 分节定义处必须引用变量，而不是再写一遍字面量。
+    // OPT-032 后价格不再是独立 tab，而是「房源信息」里的 ui 分节标题，
+    // 走 clientProps: { title, description }，所以键名从 label 变成 title。
+    expect(src).toContain('title: priceTabLabel')
     expect(src).toContain('description: priceTabDescription')
   })
 
