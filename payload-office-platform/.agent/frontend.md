@@ -48,6 +48,7 @@
 ## SEO / 缓存 / 分析
 
 - 每页唯一 title、description、canonical、OG；一个 H1。
+- **例外：首页 Hero 的 H1/副标全站共用一句**，由产品指定（不等于设计稿 `首页.dc.html` 的文案），既不按城市定制、也不读 `CitySiteProfiles.hero.heading/body`；城市差异全部由 title / description / OG 承担。别把它「修回」逐城可配，也别按设计稿改回去——见 `components/frontend/home/HomeHero.tsx` 顶部说明与 OPT-035 工作项 §8。
 - JSON-LD 与页面使用同一 DTO，不虚构库存、评级或价格。
 - sitemap 只包含已发布内容和有效供给，域名来自类型化配置。
 - 公共供给最长缓存 5 分钟，并由领域事件失效。

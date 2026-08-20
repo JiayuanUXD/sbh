@@ -175,7 +175,7 @@ CJK 铁律：中文 `letter-spacing:normal`；唯一例外 21px 引导副标 `+0
 |---|---|---|---|
 | 字体栈 | 含 `"Geist"` | 去掉 | Geist 需 webfont，本系统不引 webfont |
 | 数据带 | 进视口 1100ms 数字滚动 | 服务端真值直出，无滚动 | 任何「从 0 滚到真值」的写法在 SSR 首帧/禁用 JS/整页截图/观察器不触发下都会把真实库存渲染成 0，与「不显示 0」硬约束不可调和 |
-| Hero 文案 | `profile.hero` 优先 | 实现层固定设计稿文案 | `profile` 存的是旧营销文案，回退分支永远走不到；首屏是全站品牌陈述而非单城口径。`profile.hero` 仍驱动 `ComingSoonCityView` 与背景媒体 |
+| Hero 文案 | `profile.hero` 优先 | 实现层固定**产品指定文案**（非设计稿文案） | 见下方「已接受的取舍 · Hero slogan」。`profile.hero` 仍驱动 `ComingSoonCityView` 与背景媒体 |
 | 资讯日期 | 设计稿 `2026-08-14` | `2026.08.14` | 站内 `/news` 与详情已有唯一权威格式，同字段不引第二种分隔符；零引用的 `formatNewsListDate` 已删 |
 | 类型卡计数 / 价值点序号 | `--ink-3` | `--ink-2` | ink-3 在白底 3.62:1 不达 AA，且两者都是真实内容 |
 | bento 小卡尺寸 | 332×232 / 504×280 | 388×232 / 582×280 | 计划数值按 1024 容器算，容器定为 1180 后按设计稿 markup 的 `flex: 2/1` 得出 |
@@ -198,7 +198,7 @@ CJK 铁律：中文 `letter-spacing:normal`；唯一例外 21px 引导副标 `+0
 **代码清理（留给页面改版批次顺手做）**
 
 3. `.text-copper` 工具类（`styles.css:3056`）已零 tsx 引用，未删。
-4. `--color-canvas-subtle`（`styles.css:1975`）/ `--color-copper-border`（`:6186`）是孤儿变量，靠内联旧色兜底；改版对应内页时一并处理。
+4. ~~`--color-canvas-subtle` / `--color-copper-border` 是孤儿变量，靠内联旧色兜底~~ → **已在最终评审修复中处理**（两者已在 §1.1b 显式声明为中性 token，见下）。
 5. `LISTING_TYPE_LABEL` 与 `ListingCard` 等 5 处以上同型重复，存量模式，改版时收敛。
 6. 内页断点仍是历史散落值（767/1280/640/1024/1199/1023 等，含 `767`/`768`、`1023`/`1024` 并存的漏判），新体系统一用 767/1023，改版某页时整页收敛。
 
@@ -209,4 +209,25 @@ CJK 铁律：中文 `letter-spacing:normal`；唯一例外 21px 引导副标 `+0
 
 **性能小项**
 
-9. 根页 `getCachedHomepage` 与平台 stats 串行取（皆缓存读，`Promise.all` 可省一跳）。
+9. ~~根页 `getCachedHomepage` 与平台 stats 串行取~~ → **已在最终评审修复中改成 `Promise.all`**。
+
+## 9. 最终评审修复（2026-08-21）
+
+整分支终审提出 4 条 fix-before-merge，全部处理：
+
+| 编号 | 问题 | 处理 |
+|---|---|---|
+| F1 | 移动端 Hero 搜索面板被 `.hm-hero{overflow:hidden}` 裁掉约 44px，「面积」下拉够不到 | ≤767px 把 `.hm-search__panel` 从绝对定位浮层改回文档流内展开（`position: static` + `margin-top: 8px`），面板参与 Hero 高度计算；桌面仍是浮层，布局零变化 |
+| F2 | 根页把跨城汇总数字配上了城市域落点的 section 链接 | 三处 section 链接数字改取 `homepage.stats`（单城口径，与 `/listings` `/buildings` 的收敛口径一致），跨城汇总只留给无链接的数据带（prop 更名 `stats` → `bandStats`）；`liveSlugs` 过 `isPublicCitySlug`（新 `livePlatformStatsSlugs`）；根页两条独立取数改 `Promise.all` |
+| F3 | `.city-coming-soon__eyebrow` 蓝字压蓝底 4.16:1 且带退役棕褐边框 | 与 `.tag--copper` 同一零色相处理；同批修 `.tag--lg:hover`、`.filter-chip.is-active`、`.building-supply-browser__bucket[data-active]`（含 count）、`.location-panel__poi-line-tag`、`.share-save-actions__btn[aria-pressed]`；`--color-copper-border` / `--color-canvas-subtle` 在 §1.1b 显式声明为中性 token，杜绝内联 fallback 复活旧色板 |
+| F4 | Hero 文案（见下「已接受的取舍」） | 换成产品指定文案，仍全站共用一句 |
+
+同批带上的两个 Minor：`.detail__amenities li` / `.building-summary-card__district` / `.building-card-mini__district` 三处 paper-on-canvas 无边框贴片（`--color-paper` 与 `--color-canvas` 现在都别名到 `--bg`，实际完全不可见）改白底 + 中性描边；`HomeNewsList` 的空日期由 `''` 兜底成 `—`。
+
+### 已接受的取舍 · Hero slogan（产品裁定 2026-08-21）
+
+- **Hero 的 H1 与副标全站共用一句，不按城市定制**，也不读 `CitySiteProfiles.hero.heading/body`。所有城市路由（`/` 与 `/{city}`）渲染完全相同的首屏文案。
+- **文案由产品指定，与设计稿不同**：`汇聚高端商务空间，赋能企业卓越成长` / `覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策`，取代设计稿 `首页.dc.html` 的「把每一平米算清楚。」/「7 座城市 · 在租房源实时同步 · 面积与租金逐条核过」。设计稿定版式与视觉语言，文案归产品。
+- **已知并接受的 SEO 代价**（终审提出）：各城首页 H1 完全相同、既不含城市名也不含品类词，与逐城差异化的 `title` / `description` 口径不一致，多城市首页之间缺少页面内的区分信号。城市差异目前完全由 title / description / OG 承担。
+- **复查触发点**：`MULTI_CITY_ROUTING_ENABLED` 真正开启、多座城市首页同时对外可索引之前，必须重新评估这条取舍。
+- 防「改回去」的护栏：`HomeHero.tsx` 顶部说明、`payload-office-platform/.agent/frontend.md` §SEO、`tests/city-home-view.test.ts` 的共用文案用例。

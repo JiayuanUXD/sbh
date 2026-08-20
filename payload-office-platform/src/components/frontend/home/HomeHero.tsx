@@ -5,24 +5,27 @@ import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { DistrictViewModel } from '@/domain/public-catalog/contracts'
 
 /**
- * 首屏文案按设计稿（`docs/SBH设计任务讨论/首页.dc.html`）固定，不再读
- * `CitySiteProfiles.hero.heading/body`。
+ * 首屏文案在实现层固定，不读 `CitySiteProfiles.hero.heading/body`。
  *
- * 原因：profile 里存的是旧版营销文案（「汇聚高端商务空间，赋能企业卓越成长」），
- * 而 `profile.hero.x || 设计稿文案` 的写法让回退分支永远走不到，改版后的首屏
- * 仍然是旧口吻。三个选项里：
- *   - 改生产 profile 数据 → 属数据变更，不在本前端改版分支的范围内，且新旧
- *     两套文案会在灰度期并存；
- *   - 反转优先级（设计稿优先、profile 仅在「显式覆盖」时生效）→ 现有 schema
- *     没有「是否显式覆盖」的表达，只能靠猜字符串，脆弱；
- *   - 实现层固定 → 立即、确定地让所有已上线城市首页与设计稿一致。
- * 选第三个。首屏是全站品牌陈述（「7 座城市」是平台口径，不是单城口径），
- * 本就不该逐城改写；`profile.hero` 仍然服务未开城的 ComingSoonCityView，
- * `profile.hero.media` 也仍然是本组件的背景媒体来源，运营配置能力没有整体丢失。
- * 若日后要恢复逐城可配，正确做法是按新设计语言重写 profile 文案后再放开优先级。
+ * 两处**有意偏差**，都是产品裁定（2026-08-21），不是遗漏：
+ *
+ * 1. **与设计稿文案不同**。`docs/SBH设计任务讨论/首页.dc.html` 写的是
+ *    「把每一平米算清楚。」/「7 座城市 · 在租房源实时同步 · 面积与租金逐条核过」，
+ *    产品指定改回下面这两句（即改版前站上在用、目前仍存在上海 profile 的
+ *    heroHeading / heroBody 里的文案）。设计稿定的是版式与视觉语言，文案归产品。
+ * 2. **全站共用一句，不按城市定制**。所有城市路由（`/` 与 `/{city}`）渲染同一个
+ *    H1/副标；城市差异由 title / description / OG 承担（见 `metadata.ts`）。
+ *
+ * 因此**不要**把它接回 `city.profile.hero.*`——逐城 profile 值会直接破坏第 2 条。
+ * `profile.hero.media` 仍然是本组件的背景媒体来源，`ComingSoonCityView` 也仍然用
+ * `profile.hero` 的文案，运营配置能力没有整体丢失。
+ *
+ * SEO 代价已知并接受：各城首页 H1 完全相同、不含城市名与品类词，与逐城的
+ * title/description 口径不一致。多城市路由真正开启前应重新评估（见工作项
+ * `specs/work-items/OPT-035-homepage-apple-redesign.md` 遗留段）。
  */
-const HERO_HEADING = '把每一平米算清楚。'
-const HERO_BODY = '7 座城市 · 在租房源实时同步 · 面积与租金逐条核过'
+const HERO_HEADING = '汇聚高端商务空间，赋能企业卓越成长'
+const HERO_BODY = '覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策'
 
 /** OPT-035 Hero：视频/图片背景 + 三段遮罩 + 56px 白字标题 + 搜索 pill + 热门 chips。 */
 export default function HomeHero({ city, districts, routeMode }: Readonly<{
