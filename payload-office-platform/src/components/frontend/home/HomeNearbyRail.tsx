@@ -1,7 +1,7 @@
 import React from 'react'
 import HorizontalRail from './HorizontalRail'
 import HomeSupplyCard from './HomeSupplyCard'
-import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from './HomeListingsRail'
+import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
 import { formatArea } from '@/lib/frontend/format'
 import type { NearbyListingViewModel } from '@/domain/public-catalog/contracts'
 

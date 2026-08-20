@@ -2,10 +2,10 @@ import Link from 'next/link'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
-import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/components/frontend/home/HomeListingsRail'
+import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
 
 /**
- * OPT-036 房源结果卡（列表页 / 楼盘供给网格共用）
+ * OPT-036 房源结果卡（列表页网格）
  *
  * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html specRows（卡片信息六项排布 /
  * 卡片字号 / 价格对齐 / 元/月 报价的定宽盒）；卡片表面复用 styles/surface.css
@@ -17,6 +17,14 @@ import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/componen
  * 计价用两位小数，其余周期取整+千分位（月租六位数 316,200 不挤占小数位）。
  * 单位文本永远从 PriceViewModel.text 里切分取用，不新增第二份文案、不硬编码。
  *
+ * 已验证范围仅限**租赁**语境（day / month / seat-month 三种单位，fixture 见
+ * dev-story/opt036）。`priceBoxModifier` 把 period='year'/'one-time' 也归进
+ * --month 的 88px 盒，但 one-time 一次性总价（sale，见 contracts.ts 的
+ * "38000000 元" 示例）格式化后是 "38,000,000"，10 个字符装不进 88px——这条路径
+ * 零覆盖，是待办而非已验证行为。楼盘供给网格确实含 sale（building-supply.ts
+ * GROUP_ORDER），若未来把本卡复用到那里或出售频道，需要先给 one-time 单独定宽
+ * 并补 fixture，而不是假设现有 --month 盒够用。
+ *
  * 守护不变量：
  *   - Server Component，只消费 ListingCardViewModel DTO，不接收 Payload 文档；
  *   - 缺图：.sf-media 靠 aspect-ratio 撑住 4:3，不塌陷（不渲染 <img>，留灰底）；
@@ -24,7 +32,11 @@ import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/componen
  *   - 标题超长：单行省略号，不换行、不挤压价格行。
  */
 
-/** 价格定宽盒按计价周期二选一：day→58px（两位小数），其余周期→88px（整数+千分位）。 */
+/**
+ * 价格定宽盒按计价周期二选一：day→58px（两位小数），其余周期→88px（整数+千分位）。
+ * 仅 day/month/seat-month 三种周期在本任务验证过；'year'/'one-time' 落进 --month
+ * 只是当前唯一可选的宽盒，不代表 88px 对它们够用（见上方文档注释的显式待办）。
+ */
 function priceBoxModifier(period: PriceViewModel['period']): 'day' | 'month' {
   return period === 'day' ? 'day' : 'month'
 }
