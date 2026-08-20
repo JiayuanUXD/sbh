@@ -309,21 +309,22 @@ ol {
  * --------------------------------------------------------------------------- */
 
 .site-header {
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-canvas);
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  backdrop-filter: saturate(180%) blur(8px);
-  transition: background-color var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard);
+  height: var(--header-height);
+  background: var(--header-bg);
+  backdrop-filter: var(--header-blur);
+  -webkit-backdrop-filter: var(--header-blur);
+  border-bottom: none;
+  transition: background var(--duration-base) var(--ease);
 }
 
 /* 首页首屏透明压视频（仅 SiteHeader 在首页未滚动时加此类） */
 .site-header--transparent {
   background: transparent;
-  border-bottom-color: transparent;
   backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .site-header--transparent .site-logo,
@@ -365,7 +366,7 @@ ol {
   gap: var(--sp-1);
   min-height: var(--touch-target);
   padding: var(--sp-1) var(--sp-2);
-  color: var(--color-ink);
+  color: var(--ink);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -380,7 +381,7 @@ ol {
 
 .city-switcher__trigger:hover {
   background: var(--color-copper-soft);
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__trigger--static {
@@ -407,16 +408,16 @@ ol {
 
 .city-switcher__status,
 .mobile-drawer__city-status {
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
 .city-switcher__status--live {
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__status--coming-soon {
-  color: var(--color-muted);
+  color: var(--ink-3);
 }
 
 .city-switcher__menu {
@@ -426,9 +427,9 @@ ol {
   z-index: var(--z-floating);
   min-width: 196px;
   padding: var(--sp-2);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--bg-subtle);
   box-shadow: var(--shadow-md);
 }
 
@@ -440,7 +441,7 @@ ol {
   min-height: var(--touch-target);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-sm);
-  color: var(--color-ink);
+  color: var(--ink);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -453,7 +454,7 @@ ol {
 
 .city-switcher__check {
   flex-shrink: 0;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__option:hover,
@@ -469,21 +470,19 @@ ol {
 }
 
 .site-header__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-3) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4);
-  min-height: 56px;
 }
 
 .site-logo {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 700;
-  color: var(--color-ink);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
   letter-spacing: 0.04em;
   white-space: nowrap;
   touch-action: manipulation;
@@ -492,7 +491,7 @@ ol {
 
 .site-logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .site-nav {
@@ -512,7 +511,7 @@ ol {
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target);
-  color: var(--color-muted);
+  color: var(--ink);
   font-size: var(--fs-14);
   padding: var(--sp-2) 0;
   position: relative;
@@ -522,7 +521,7 @@ ol {
 }
 
 .site-nav__link:hover {
-  color: var(--color-ink);
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -533,7 +532,7 @@ ol {
   right: 0;
   bottom: -4px;
   height: 2px;
-  background: var(--color-copper);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--duration-base) var(--ease-standard);
@@ -545,7 +544,7 @@ ol {
 }
 
 .site-nav__link[aria-current="page"] {
-  color: var(--color-ink);
+  color: var(--ink);
 }
 
 /* 移动端菜单触发器（F2.2 移动菜单实现） */
@@ -555,7 +554,7 @@ ol {
   justify-content: center;
   width: var(--touch-target);
   height: var(--touch-target);
-  color: var(--color-ink);
+  color: var(--ink);
   border-radius: var(--radius-sm);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -582,10 +581,10 @@ ol {
   }
 }
 
-/* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
+/* 顶部 CTA 用 btn--sm，避免撑高 44px 头部 */
 .site-header__actions .btn--sm {
   white-space: nowrap;
-  /* 44px 触控目标，恰好不撑高 56px 头部 */
+  /* 44px 触控目标 = 头部高度，撑满而不溢出 */
   min-height: var(--touch-target);
 }
 
@@ -601,15 +600,18 @@ ol {
 }
 
 .site-footer {
-  border-top: 1px solid var(--color-line);
-  background: var(--color-paper);
+  border-top: 1px solid var(--line);
+  background: var(--bg);
   margin-top: var(--sp-8);
 }
 
+/* 设计稿（首页.dc.html）页脚是单行示意（logo + 版权 + 三条法务链接）。
+   真实页脚需要承担 SEO/法务导航职责，保留现有多列栏目结构（品牌 + 浏览/按类型/服务），
+   仅将视觉体系（底色/边线/字色/容器宽度）对齐设计稿，属有意偏差。 */
 .site-footer__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-7) var(--sp-5);
   display: grid;
   /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
@@ -624,21 +626,21 @@ ol {
 }
 
 .site-footer__logo {
-  font-family: var(--font-display);
+  font-family: var(--font);
   font-size: var(--fs-20);
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--ink);
   letter-spacing: 0.04em;
 }
 
 .site-footer__logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent-link);
 }
 
 .site-footer__tagline {
   font-size: var(--fs-13);
-  color: var(--color-muted);
+  color: var(--ink-3);
   line-height: var(--lh-relaxed);
   max-width: 360px;
 }
@@ -659,7 +661,7 @@ ol {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-copper);
+  color: var(--ink-3);
 }
 
 .site-footer__links {
@@ -673,27 +675,27 @@ ol {
 
 .site-footer__link {
   font-size: var(--fs-14);
-  color: var(--color-ink-2);
+  color: var(--ink-2);
 }
 
 .site-footer__link:hover {
-  color: var(--color-copper);
+  color: var(--accent-link);
   text-decoration: none;
 }
 
 .site-footer__bar {
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--line);
 }
 
 .site-footer__bar-inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-4) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-4);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--sp-2);
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
@@ -3219,7 +3221,7 @@ ol {
 }
 
 .mobile-drawer {
-  background: var(--color-canvas);
+  background: var(--bg-subtle);
   width: min(320px, 85vw);
   height: 100%;
   padding: var(--sp-5) var(--sp-4);
