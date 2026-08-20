@@ -106,7 +106,7 @@ export function getCachedHomepage(citySlug: string) {
 const platformStatsCache = new Map<string, () => Promise<HomepageStats>>()
 
 export function getCachedPlatformStats(citySlugs: readonly string[]): Promise<HomepageStats> {
-  const key = [...citySlugs].map(canonicalCitySlug).sort().join(',')
+  const key = [...new Set(citySlugs.map(canonicalCitySlug))].sort().join(',')
   let entry = platformStatsCache.get(key)
   if (!entry) {
     entry = unstable_cache(

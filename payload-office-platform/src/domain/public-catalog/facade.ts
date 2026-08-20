@@ -836,7 +836,7 @@ export async function getPlatformHomepageStats(
 ): Promise<HomepageStats> {
   const perCity = await Promise.all(
     citySlugs.map(async (slug) => {
-      const ctx = createSearchContext(slug)
+      const ctx = createSearchContext(slug, undefined, 'lease')
       const [listings, buildings, areas] = await Promise.all([
         adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
         adapter.findEffectiveBuildings(ctx),

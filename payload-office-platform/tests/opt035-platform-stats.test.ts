@@ -31,4 +31,16 @@ describe('getPlatformHomepageStats', () => {
     const stats = await getPlatformHomepageStats([], makeHomepageAdapter())
     expect(stats).toEqual({ listings: 0, buildings: 0, businessAreas: 0 })
   })
+
+  it('按 lease 频道请求各城数据，与城市首页缓存的口径一致（Task 9 补充断言）', async () => {
+    const seenBusinessTypes: Array<string | undefined> = []
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: async (_input, ctx) => {
+        seenBusinessTypes.push(ctx.businessType)
+        return []
+      },
+    })
+    await getPlatformHomepageStats(['shanghai', 'hangzhou'], adapter)
+    expect(seenBusinessTypes).toEqual(['lease', 'lease'])
+  })
 })

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 import CityHomeView from '@/components/frontend/city/CityHomeView'
-import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
-import { getCachedHomepage } from '@/lib/frontend/cached-queries'
+import { listPublicCityProfiles, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
+import { getCachedHomepage, getCachedPlatformStats } from '@/lib/frontend/cached-queries'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
@@ -27,5 +27,8 @@ export default async function HomePage() {
     redirect(destination)
   }
   const homepage = await getCachedHomepage(city.slug)
-  return <CityHomeView city={city} homepage={homepage} routeMode="legacy" />
+  const profiles = await listPublicCityProfiles()
+  const liveSlugs = profiles.filter((p) => p.serviceStatus === 'live').map((p) => p.citySlug)
+  const stats = await getCachedPlatformStats(liveSlugs)
+  return <CityHomeView city={city} homepage={homepage} routeMode="legacy" stats={stats} />
 }

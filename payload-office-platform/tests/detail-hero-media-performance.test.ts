@@ -32,14 +32,16 @@ describe('OPT-028 detail caching and hero media contracts', () => {
   })
 
   it('loads the homepage hero video only after client-side capability checks', async () => {
-    const [homePage, homeView, heroVideo] = await Promise.all([
+    const [homePage, homeHero, heroVideo] = await Promise.all([
       readFile(resolve(ROOT, 'src/app/(frontend)/page.tsx'), 'utf8'),
-      readFile(resolve(ROOT, 'src/components/frontend/city/CityHomeView.tsx'), 'utf8'),
+      // OPT-035 Task 9：CityHomeView 重组为编排层，<HomeHeroMedia> 的调用点
+      // 随首页改版下沉到 HomeHero.tsx（Task 5 产物），CityHomeView 自身不再直接引用。
+      readFile(resolve(ROOT, 'src/components/frontend/home/HomeHero.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/HomeHeroMedia.tsx'), 'utf8'),
     ])
 
     expect(homePage).toContain('<CityHomeView')
-    expect(homeView).toContain('<HomeHeroMedia poster={routeMode === \'prefixed\' ? city.profile.hero.media : null} />')
+    expect(homeHero).toContain('<HomeHeroMedia poster={routeMode === \'prefixed\' ? city.profile.hero.media : null} />')
     expect(homePage).not.toContain('<video autoPlay')
     // poster 走 next 构建产物而非 public/（平台在线构建曾剥离 public 二进制致 404）
     expect(heroVideo).toContain("from '@/lib/frontend/hero-poster'")

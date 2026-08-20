@@ -7,28 +7,133 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 import CityHomeView from '@/components/frontend/city/CityHomeView'
+import type {
+  ArticleCardViewModel,
+  BuildingSummaryViewModel,
+  DistrictCardViewModel,
+  DistrictViewModel,
+  ListingCardViewModel,
+  NearbyListingViewModel,
+} from '@/domain/public-catalog/contracts'
 
-const city = {
-  id: 1, slug: 'shanghai', name: '上海', serviceStatus: 'live' as const,
-  profile: {
-    citySlug: 'shanghai', cityName: '上海', serviceStatus: 'live' as const,
-    seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1, avgResponseHours: null,
-    hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null },
-    intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
-  },
-}
-const homepage = {
-  featuredListings: [], districts: [], featuredBuildings: [], districtCards: [], latestArticles: [],
-  stats: { listings: 0, buildings: 0, businessAreas: 0 }, typeSummaries: {}, nearbyListings: [],
+function buildCity(avgResponseHours: number | null) {
+  return {
+    id: 1, slug: 'shanghai', name: '上海', serviceStatus: 'live' as const,
+    profile: {
+      citySlug: 'shanghai', cityName: '上海', serviceStatus: 'live' as const,
+      seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1, avgResponseHours,
+      hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null },
+      intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
+    },
+  }
 }
 
-describe('CityHomeView legacy compatibility', () => {
-  it('preserves the exact legacy hero copy while prefixed pages may use the city profile copy', () => {
-    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy' }))
-    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed' }))
-    expect(legacy).toContain('汇聚高端商务空间，赋能企业卓越成长')
-    expect(legacy).toContain('覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策')
-    expect(legacy).not.toContain('覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策。')
+const districts: readonly DistrictViewModel[] = [{ id: 1, slug: 'jingan', name: '静安' }]
+
+const districtCards: readonly DistrictCardViewModel[] = [
+  { id: 1, slug: 'jingan', name: '静安', coverImage: null, buildings: ['环球港'] },
+  { id: 2, slug: 'huangpu', name: '黄浦', coverImage: null, buildings: [] },
+]
+
+const building: BuildingSummaryViewModel = {
+  citySlug: 'shanghai', cityName: '上海', id: 11, slug: 'global-harbor', name: '环球港',
+  address: '上海市普陀区中山北路 3300 号',
+} as unknown as BuildingSummaryViewModel
+
+const listing: ListingCardViewModel = {
+  citySlug: 'shanghai', cityName: '上海', id: 21, slug: 'listing-21', title: '精装办公室',
+  price: null, area: 200, businessType: 'lease', decorationStatus: null, listingType: 'traditional-office',
+  availableFrom: null, isFeatured: false, building, coverImage: null, highlights: [], stableSortKey: 'listing-21',
+} as unknown as ListingCardViewModel
+
+const nearbyListing: NearbyListingViewModel = { ...listing, id: 22, slug: 'listing-22', distanceKm: 1.2 } as unknown as NearbyListingViewModel
+
+const article: ArticleCardViewModel = {
+  id: 31, slug: 'news-31', title: '首页改版上线', category: null, excerpt: null, coverImage: null,
+  publishedAt: '2026-08-01T00:00:00.000Z', stableSortKey: 'article-31',
+}
+
+function buildHomepage() {
+  return {
+    featuredListings: [listing],
+    districts,
+    featuredBuildings: [building],
+    districtCards,
+    latestArticles: [article],
+    stats: { listings: 120, buildings: 45, businessAreas: 12 },
+    typeSummaries: {},
+    nearbyListings: [nearbyListing],
+  }
+}
+
+const stats = { listings: 120, buildings: 45, businessAreas: 12 }
+
+describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
+  it('legacy 与 prefixed 均使用 city.profile 的 hero 文案（不再按 routeMode 硬编码旧文案）', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage()
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', stats }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    expect(legacy).toContain('Custom heading')
+    expect(legacy).toContain('Custom summary')
     expect(prefixed).toContain('Custom heading')
+    expect(prefixed).toContain('Custom summary')
+  })
+
+  it('legacy 路由不带城市前缀，prefixed 路由带 /shanghai 前缀', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage()
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', stats }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    expect(legacy).toContain('href="/listings"')
+    expect(legacy).not.toContain('href="/shanghai/listings"')
+    expect(prefixed).toContain('href="/shanghai/listings"')
+  })
+
+  it('按设计顺序编排九个 section：Hero → 类型 → 商圈 → 楼盘 → 数据带 → 精选房源 → 选择我们 → 核心商圈 → 资讯', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage()
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    const markers = ['按类型浏览', '热门商圈', '热门楼盘', '在租房源', '精选房源', '为什么选择我们', '核心商圈房源', '资讯'].map((marker) => {
+      const index = html.indexOf(marker)
+      expect(index, marker).toBeGreaterThan(-1)
+      return index
+    })
+    for (let i = 1; i < markers.length; i += 1) {
+      expect(markers[i], `${['按类型浏览', '热门商圈', '热门楼盘', '在租房源', '精选房源', '为什么选择我们', '核心商圈房源', '资讯'][i]} 应晚于前一个 section`).toBeGreaterThan(markers[i - 1])
+    }
+  })
+
+  it('stats prop（而非 homepage.stats）驱动商圈/楼盘/房源三处汇总数字', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage()
+    const html = renderToStaticMarkup(createElement(CityHomeView, {
+      city,
+      homepage,
+      routeMode: 'prefixed',
+      stats: { listings: 999, buildings: 888, businessAreas: 777 },
+    }))
+    expect(html).toContain('777')
+    expect(html).toContain('个商圈')
+    expect(html).toContain('888')
+    expect(html).toContain('个楼盘')
+    expect(html).toContain('999')
+    expect(html).toContain('套在租')
+  })
+
+  it('avgResponseHours 存在时数据带展示「平均响应」，为 null 时不展示', () => {
+    const homepage = buildHomepage()
+    const withResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(3.5), homepage, routeMode: 'prefixed', stats }))
+    const withoutResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(null), homepage, routeMode: 'prefixed', stats }))
+    expect(withResponse).toContain('平均响应')
+    expect(withoutResponse).not.toContain('平均响应')
+  })
+
+  it('核心商圈房源以城市名起算，资讯展示传入的文章标题', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage()
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    expect(html).toContain('以上海市中心起算')
+    expect(html).toContain('首页改版上线')
   })
 })
