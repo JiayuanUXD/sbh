@@ -45,6 +45,12 @@ export {
   buildCanonicalSearchParams,
   legacyRentUnitToPriceKey,
 } from './search-params'
+export {
+  BUILDING_SORTS,
+  parseBuildingSearchInput,
+  buildBuildingCanonicalParams,
+} from './building-search'
+export type { BuildingSort, BuildingSearchInput } from './building-search'
 export { normalizePublicMediaUrl } from './media-url'
 export {
   stableSortCards,
