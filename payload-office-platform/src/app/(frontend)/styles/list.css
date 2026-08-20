@@ -327,4 +327,113 @@
   .ls-pager__edge, .ls-pager__item { transition: none; }
 }
 
+/* ── 三种空态（EmptyNoStock / EmptyFiltered / EmptyOutOfRange）──────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「三种空态」区块 + specRows
+ * 「空态 ①/②/③」。三者含义完全不同，**不共用一套外壳/文案样式**——只共用
+ * 白底卡片这一层最基础的容器语言（与 `.ls-filterc` 同色 `--bg-subtle` /
+ * 同圆角 `--r-card`），布局与语气各自独立，见三个组件文件顶部注释。
+ *
+ * `.ls-empty__btn` 是①③共用的按钮原语（brief 落地数值对两者的按钮规格描述
+ * 完全相同：40 高、主 accent、次 `#f5f5f7`），②的操作是逐条退路行，不是
+ * 独立按钮，因此不复用这两个类。 */
+.ls-empty__btn { height: 40px; padding: 0 20px; border-radius: var(--r-pill);
+  font-size: 14px; font-weight: 500; letter-spacing: normal;
+  display: inline-flex; align-items: center;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-empty__btn--primary { padding: 0 22px; background: var(--accent); color: #fff; }
+.ls-empty__btn--primary:hover { background: var(--accent-hover); }
+/* comp 字面值 #f5f5f7：此处刻意不用 --bg-subtle（白），因为空态卡片自身
+   已经是 --bg-subtle 白底——次按钮要在白底卡片内部再分一层，需要比卡片更
+   深一级的灰，唯一匹配的项目 token 是 --bg（页面级底色 #f5f5f7），语义与
+   comp 标注的字面值一致（见 ls-page 顶部 --bg 定义）。 */
+.ls-empty__btn--secondary { background: var(--bg); color: var(--ink); }
+.ls-empty__btn--secondary:hover { background: #ececf0; }
+
+@media (prefers-reduced-motion: reduce) { .ls-empty__btn { transition: none; } }
+
+/* ── 空态① 该条件本身无货（EmptyNoStock）──────────────────────────────────
+ * specRows「空态 ①」：标题 22/600 · 主按钮 40 高 accent · 次按钮 40 高 #f5f5f7。 */
+.ls-empty--nostock { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 48px 40px; display: flex; flex-direction: column; align-items: center;
+  gap: 14px; text-align: center; }
+
+.ls-empty__title { font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-empty__body { max-width: 520px; font-size: 14px; line-height: 1.6; color: var(--ink-2);
+  letter-spacing: normal; text-wrap: pretty; }
+
+.ls-empty__actions { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
+
+/* ── 空态② 筛选后无结果（EmptyFiltered）──────────────────────────────────
+ * specRows「空态 ②（筛选后）」：逐条退路行 56 高 · 命中数 15/600 tabular ·
+ * 点击只改一个参数。三态里最重要的一个——没有可放宽条件时页头「清除全部」
+ * 仍必须可点，见组件文件顶部「relaxations 为空仍必须可用」的注释。 */
+.ls-emptyfiltered { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 36px 40px 28px; }
+
+.ls-emptyfiltered__head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+
+.ls-emptyfiltered__intro { display: flex; flex-direction: column; gap: 8px; }
+
+.ls-emptyfiltered__title { font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-emptyfiltered__desc { font-size: 14px; line-height: 1.55; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-emptyfiltered__clear-all { flex: none; height: 40px; padding: 0 20px; border-radius: var(--r-pill);
+  background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; letter-spacing: normal;
+  display: inline-flex; align-items: center;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-emptyfiltered__clear-all:hover { background: #ececf0; }
+
+.ls-emptyfiltered__rows { margin-top: 24px; display: flex; flex-direction: column; }
+
+.ls-emptyfiltered__row { display: flex; align-items: center; gap: 20px; min-height: 56px;
+  padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); }
+.ls-emptyfiltered__row:hover .ls-emptyfiltered__row-hit { color: var(--accent-link); }
+
+.ls-emptyfiltered__row-label { flex: 1; min-width: 0; font-size: 15px; font-weight: 500;
+  letter-spacing: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ls-emptyfiltered__row-hit { flex: none; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 15px; font-weight: 600; color: var(--ink);
+  transition: color var(--duration-base) var(--ease-apple); }
+
+.ls-emptyfiltered__row-chevron { flex: none; color: var(--accent-link); }
+
+.ls-emptyfiltered__hint { margin-top: 16px; display: block; font-size: 12px; color: var(--ink-3);
+  letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-emptyfiltered__clear-all, .ls-emptyfiltered__row-hit { transition: none; }
+}
+
+/* ── 空态③ 页码越界（EmptyOutOfRange）────────────────────────────────────
+ * specRows「空态 ③（越界）」：不显示「没有结果」· 直接给最后一页与第 1 页
+ * 两个出口——它其实有结果，只是页码错了，通篇不出现「没有结果」类措辞，见
+ * 组件文件顶部注释。标题 19/600 是 comp 稿字面值（比①②的 22px 更轻——这一态
+ * 不需要"空态"级别的视觉重量，问题很小，一行说明 + 两个按钮就能解决）。 */
+.ls-emptyrange { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 32px 40px; display: flex; align-items: center; gap: 32px; }
+
+.ls-emptyrange__intro { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.ls-emptyrange__title { font-size: 19px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-emptyrange__desc { font-size: 14px; line-height: 1.55; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-emptyrange__badge { margin-top: 6px; align-self: flex-start; height: 26px; padding: 0 10px;
+  border-radius: 8px; background: var(--bg); font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 12px; color: var(--ink-3); letter-spacing: normal;
+  display: flex; align-items: center; }
+
+.ls-emptyrange__actions { flex: none; display: flex; align-items: center; gap: 12px; }
+
+@media (max-width: 767px) {
+  .ls-emptyrange { flex-direction: column; align-items: stretch; gap: 20px; }
+  .ls-emptyrange__actions { justify-content: flex-start; }
+}
+
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }

@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
+import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
+import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
+import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
 import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend/listing/ExcludedUnitsBar'
 import FilterFormC, { type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import FilterPill from '@/components/frontend/listing/FilterPill'
@@ -711,6 +714,22 @@ const RESULT_TOOLBAR_FIXTURES: readonly Readonly<{
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：EmptyNoStock / EmptyFiltered / EmptyOutOfRange（Task 9）—— 三种空态
+// 并排预览。②要覆盖三条退路 / 只一条退路 / 零条退路（验证不成死胡同）三种情形；
+// ③要确认全文没有出现「没有结果」一类措辞——它其实有结果，只是页码错了。
+// ---------------------------------------------------------------------------
+
+const RELAXATIONS_THREE: readonly Relaxation[] = [
+  { label: '租金上限放宽至 ≤ 8 元/㎡/天（原 ≤ 6）', hitCount: 34, href: '/shanghai/listings?priceMax=8' },
+  { label: '面积下限放宽至 ≥ 1,000 ㎡（原 ≥ 1,500）', hitCount: 52, href: '/shanghai/listings?areaMin=1000' },
+  { label: '区域放宽至 静安 + 黄浦（原仅静安）', hitCount: 19, href: '/shanghai/listings?district=jingan,huangpu' },
+]
+
+const RELAXATIONS_ONE: readonly Relaxation[] = [
+  { label: '可入驻时间放宽至 3 个月内（原 1 个月内）', hitCount: 41, href: '/shanghai/listings?availableWithin=3m' },
+]
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -1001,6 +1020,44 @@ export default function Opt036PreviewPage() {
                 totalPages=99，当前第 42 页（超阈值：首尾常驻 + 当前页邻域 + 两处省略号，实际只渲染 5 个数字）
               </span>
               <ListPager page={42} totalPages={99} buildPageHref={(p) => `/shanghai/listings?page=${p}`} />
+            </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="empty-states"
+          title="三种空态（EmptyNoStock / EmptyFiltered / EmptyOutOfRange）"
+          note="三者含义完全不同，不共用一套样式——①该类目前本身无货，给主/次两个出口；②用户自己把条件收得太紧（三态里最重要的一个），逐条给出放宽后的真实命中数，点击只改一个参数，零条退路时仍保留「清除全部条件」不成死胡同；③其实有结果，只是页码越界，通篇不出现「没有结果」一类措辞，直接给最后一页与第 1 页两个出口"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <div data-fixture="empty-nostock" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>① 该条件本身无货——标题 22/600，主按钮 accent，次按钮 #f5f5f7</span>
+              <EmptyNoStock noun="上海的共享工位房源" basePath="/shanghai/listings" />
+            </div>
+
+            <div data-fixture="empty-filtered-three" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 三条退路——每行给出放宽后的真实命中数（tabular-nums），点击只改那一个参数</span>
+              <EmptyFiltered relaxations={RELAXATIONS_THREE} clearAllHref="/shanghai/listings" />
+            </div>
+
+            <div data-fixture="empty-filtered-one" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 只有一条退路——不需要特殊分支，逐条渲染逻辑天然覆盖单条场景</span>
+              <EmptyFiltered relaxations={RELAXATIONS_ONE} clearAllHref="/shanghai/listings" />
+            </div>
+
+            <div data-fixture="empty-filtered-zero" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 零条退路——验证不成死胡同：不渲染逐条退路区块，但页头「清除全部条件」仍必须可点</span>
+              <EmptyFiltered relaxations={[]} clearAllHref="/shanghai/listings" />
+            </div>
+
+            <div data-fixture="empty-out-of-range" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>③ 页码越界——不显示「没有结果」，直接给最后一页（第 7 页）与第 1 页两个出口</span>
+              <EmptyOutOfRange
+                page={143}
+                totalPages={7}
+                lastPageHref="/shanghai/listings?page=7"
+                firstPageHref="/shanghai/listings?page=1"
+              />
             </div>
           </div>
         </PreviewSection>
