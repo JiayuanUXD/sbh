@@ -1,0 +1,42 @@
+/* ============================================================================
+ * 全站共享表面基元
+ * 依据：.superpowers/sdd/cross-batch-design-decisions.md（用户要求全站视觉一致）
+ * 首页 / 列表页 / 详情页 / 招募页一律复用，禁止各写一份卡片或渐变。
+ *
+ * 加载顺序硬约束：本文件必须在 home.css / list.css 之前 import——两者都靠
+ * 「同特异度、后来者胜」来覆写这里的基态（如 .hm-type-card 把 .sf-card 的
+ * display:block 改回 flex），顺序反了会静默失效。
+ * ========================================================================== */
+
+.sf-card {
+  display: block; color: inherit;
+  background: var(--bg-subtle);
+  border: 0; border-radius: var(--r-card);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 320ms var(--ease-apple), box-shadow 320ms var(--ease-apple);
+}
+/* 位移取 -2px（首页原 -6px 一并下调）：密集网格下几乎不可察觉的抖动，
+   稀疏展示下仍有反馈——见 cross-batch-design-decisions.md「卡片 hover」 */
+.sf-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+
+/* 图容器：display:block 必须显式声明——span 默认 inline 会让 aspect-ratio 失效、高度塌成 0 */
+.sf-media { position: relative; display: block; background: #8e8e93; }
+.sf-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sf-media--4x3 { aspect-ratio: 4 / 3; }
+.sf-media--16x10 { aspect-ratio: 16 / 10; }
+
+/* 图上白字压暗：全站一份，任何图上文字都必须配它 */
+.sf-scrim { position: absolute; inset: auto 0 0 0; height: 45%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0)); }
+
+/* 图上标签：零色相白底 pill */
+.sf-phototag { font-size: 12px; font-weight: 600; color: var(--ink);
+  background: rgba(255, 255, 255, 0.92); border-radius: var(--r-pill); padding: 3px 9px; }
+.sf-phototag--num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+.sf-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-card, .sf-card:hover { transition: none; transform: none; }
+}

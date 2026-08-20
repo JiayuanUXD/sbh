@@ -48,7 +48,7 @@ export default function HomeListingsRail({ listings, citySlug, totalCount }: Rea
       <div className="hm-container hm-section-head">
         <h2 className="hm-h2" id="hm-listings-title">精选房源</h2>
         <a className="hm-section-link" href={`${prefix}/listings`} data-event-name="home_browse_all_listings">
-          查看 <span className="hm-num">{totalCount.toLocaleString('en-US')}</span> 套在租
+          查看 <span className="sf-num">{totalCount.toLocaleString('en-US')}</span> 套在租
         </a>
       </div>
       <HorizontalRail ariaLabel="精选房源">

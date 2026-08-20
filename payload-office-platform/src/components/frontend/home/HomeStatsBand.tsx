@@ -39,7 +39,7 @@ export default function HomeStatsBand({ stats, avgResponseHours }: Readonly<{
         {items.map((item) => (
           <div className="hm-stat" key={item.label}>
             <span className="hm-stat__row">
-              <span className="hm-stat__value hm-num">
+              <span className="hm-stat__value sf-num">
                 {item.decimals ? item.value.toFixed(1) : item.value.toLocaleString('en-US')}
               </span>
               <span className="hm-stat__unit">{item.unit}</span>

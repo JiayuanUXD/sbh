@@ -45,7 +45,7 @@ export default function HomeNewsList({ articles, citySlug }: Readonly<{
                 <span className="hm-news__title">{a.title}</span>
                 {/* formatPublishedDate 对 null / 不可解析的值返回 ''，会渲染成一个
                     空日期格；设计系统硬约束是「数值缺失显示 —」，这里显式兜底。 */}
-                <span className="hm-news__date hm-num">{formatPublishedDate(a.publishedAt) || '—'}</span>
+                <span className="hm-news__date sf-num">{formatPublishedDate(a.publishedAt) || '—'}</span>
               </Link>
             </li>
           ))}

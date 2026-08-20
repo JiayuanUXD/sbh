@@ -25,7 +25,7 @@ export default function HomeNearbyRail({ listings, cityName, citySlug }: Readonl
       <div className="hm-container hm-section-head hm-section-head--stack">
         <h2 className="hm-h2" id="hm-nearby-title">核心商圈房源</h2>
         <p className="hm-section-sub">
-          以{cityName}市中心起算 · 最近 <span className="hm-num">{listings.length}</span> 套在租
+          以{cityName}市中心起算 · 最近 <span className="sf-num">{listings.length}</span> 套在租
         </p>
       </div>
       <HorizontalRail ariaLabel="核心商圈房源">

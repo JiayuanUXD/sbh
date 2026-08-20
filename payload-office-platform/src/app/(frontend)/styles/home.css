@@ -27,25 +27,10 @@
 .hm-section-link { font-size: 17px; color: var(--accent-link); }
 .hm-lead { font-size: 21px; font-weight: 400; line-height: 1.38; letter-spacing: 0.011em; color: var(--ink-2); text-wrap: pretty; }
 
-.hm-card {
-  background: var(--bg-subtle);
-  border-radius: var(--r-card);
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: transform 500ms var(--ease-apple), box-shadow 500ms var(--ease-apple);
-}
-.hm-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-hover); }
-
-/* 图上白字渐变压暗（硬约束：覆盖底部 45%） */
-.hm-scrim { position: absolute; inset: auto 0 0 0; height: 45%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0)); }
-
-/* 图上标签（白底 92% pill，零色相） */
-.hm-phototag { font-size: 12px; font-weight: 500; color: var(--ink);
-  background: rgba(255, 255, 255, 0.92); border-radius: var(--r-pill); padding: 4px 10px; }
-.hm-phototag--num { font-variant-numeric: tabular-nums; }
-
-.hm-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+/* 卡片表面 / 图上渐变 / 图上标签 / tabular 数字已上移到 styles/surface.css 的
+   .sf-* 共享基元（OPT-036）：首页、列表页、详情页、招募页共用同一套，
+   hover 位移 6px → 2px、过渡 500ms → 320ms 是全站统一的一部分，不是回退。
+   见 .superpowers/sdd/cross-batch-design-decisions.md。 */
 
 /* 滚动进场。
    两条硬约束高于「照抄设计稿」：内容在任何降级路径下都必须可见，且尊重
@@ -71,7 +56,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hm-rise { animation: none; }
-  .hm-card, .hm-card:hover { transition: none; transform: none; }
+  /* 卡片抬升的 reduced-motion 兜底在 surface.css（.sf-card） */
 }
 
 /* 移动稿（设计稿 375 栏）：section padding 72 / 左右 16、h2 32/600/1.10；
@@ -121,11 +106,10 @@
 .hm-section-sub { margin: 0; font-size: 17px; line-height: 1.47; color: var(--ink-2); }
 
 /* --- 供给卡（楼盘 / 房源 / 核心商圈共用） -------------------------------- */
-.hm-supply-card { display: block; color: inherit; }
-/* display: block 是 aspect-ratio 在 <span>（默认 inline）上生效的前提，
-   否则无图时容器高度塌陷为 0，产生 CLS */
-.hm-supply-card__media { position: relative; display: block; aspect-ratio: 4 / 3; background: #8e8e93; }
-.hm-supply-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 卡壳走 .sf-card；图区走 .sf-media + .sf-media--4x3（表面属性与 4:3 比例都在
+   surface.css，含「display:block 才能让 aspect-ratio 在 <span> 上生效」那条）。
+   元素上仍留 .hm-supply-card 作为 BEM 块名锚点（下面的 __ 子元素依它命名），
+   块本身已无声明——不是漏删。 */
 .hm-supply-card__tags { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 6px; }
 .hm-supply-card__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 6px; }
 .hm-supply-card__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
@@ -203,8 +187,8 @@
 /* --- 按类型浏览（五等分图卡 1fr×300 · 图高 168） -------------------------- */
 .hm-types { margin-top: 48px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; list-style: none; }
 .hm-type-card { display: flex; flex-direction: column; height: 300px; color: inherit; }
-.hm-type-card__media { position: relative; display: block; height: 168px; flex: none; background: #8e8e93; }
-.hm-type-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 图区表面属性走 .sf-media；这里只留类型图卡特有的定高（非比例）与不参与伸缩 */
+.hm-type-card__media { height: 168px; flex: none; }
 .hm-type-card__no { position: absolute; left: 14px; bottom: 12px; font-size: 12px; font-weight: 600;
   color: rgba(255, 255, 255, 0.86); }
 .hm-type-card__body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; }
@@ -223,7 +207,7 @@
   /* 图区退成 28px 宽的编号列（DOM 不变，编号本来就挂在图区里） */
   .hm-type-card__media { width: 28px; height: auto; align-self: stretch;
     background: transparent; display: flex; align-items: center; }
-  .hm-type-card__media img, .hm-type-card__media .hm-scrim { display: none; }
+  .hm-type-card__media img, .hm-type-card__media .sf-scrim { display: none; }
   .hm-type-card__no { position: static; color: var(--ink-2); }
   .hm-type-card__body { flex: 1; gap: 4px; padding: 0; }
   .hm-type-card__sub { font-size: 14px; line-height: 1.43; }

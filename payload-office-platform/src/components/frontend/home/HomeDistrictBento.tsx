@@ -27,7 +27,7 @@ function BentoCard({ card, prefix, sizeClass }: Readonly<{
       {card.coverImage ? (
         <img src={card.coverImage.src} alt="" loading="lazy" decoding="async" />
       ) : null}
-      <span className="hm-scrim" aria-hidden="true" />
+      <span className="sf-scrim" aria-hidden="true" />
       <span className="hm-bento-card__label">
         <span className="hm-bento-card__name">{card.name}</span>
         {card.buildings.length > 0
@@ -91,7 +91,7 @@ export default function HomeDistrictBento({ cards, totalAreas, citySlug }: Reado
         <div className="hm-section-head">
           <h2 className="hm-h2" id="hm-districts-title">热门商圈</h2>
           <Link href={`${prefix}/listings`} prefetch={false} className="hm-section-link" data-event-name="home_district_view_all">
-            全部 <span className="hm-num">{totalAreas.toLocaleString('en-US')}</span> 个商圈
+            全部 <span className="sf-num">{totalAreas.toLocaleString('en-US')}</span> 个商圈
           </Link>
         </div>
         <div className="hm-bento">{body}</div>
