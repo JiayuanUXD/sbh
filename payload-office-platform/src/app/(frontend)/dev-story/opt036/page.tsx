@@ -341,8 +341,34 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
 // ---------------------------------------------------------------------------
 // Fixture：FilterFormC + FilterPill（Task 6）—— 覆盖全未选 / 多行已选（含底栏
 // chip 与计数，且保留无关参数验证 href 只改一个参数）/ 单候选行 / 候选带
-// count / 楼盘版 5 行（4 字标签，验证列宽自动收敛到约 70px，不靠硬编码 prop）。
+// count / 楼盘版 5 行（4 字标签，验证列宽自动收敛到约 70px，不靠硬编码 prop）/
+// 多候选换行 / 隐藏行（0 候选）+ 清除全部彻底清空残留参数。
 // ---------------------------------------------------------------------------
+
+/**
+ * 与楼盘列表.dc.html FG.loc 同一份 16 区数据（上海全部行政区，已是完整列表，
+ * 不能再加「真实」候选项）。带上 count：验证换行不破版的同时，16 个纯 2 字
+ * label（无 count）在标准容器宽度下量出来其实正好不换行——加 count 数字段
+ * 才会稳定推过容器宽度触发换行，这本身也是「候选带 count」的另一个真实形态。
+ */
+const MANY_DISTRICT_OPTIONS: FilterRow['options'] = [
+  { value: 'jingan', label: '静安', count: 42 },
+  { value: 'huangpu', label: '黄浦', count: 28 },
+  { value: 'xuhui', label: '徐汇', count: 33 },
+  { value: 'changning', label: '长宁', count: 19 },
+  { value: 'pudong', label: '浦东', count: 61 },
+  { value: 'putuo', label: '普陀', count: 14 },
+  { value: 'hongkou', label: '虹口', count: 9 },
+  { value: 'yangpu', label: '杨浦', count: 22 },
+  { value: 'minhang', label: '闵行', count: 17 },
+  { value: 'baoshan', label: '宝山', count: 11 },
+  { value: 'jiading', label: '嘉定', count: 8 },
+  { value: 'songjiang', label: '松江', count: 13 },
+  { value: 'qingpu', label: '青浦', count: 6 },
+  { value: 'fengxian', label: '奉贤', count: 5 },
+  { value: 'jinshan', label: '金山', count: 3 },
+  { value: 'chongming', label: '崇明', count: 2 },
+]
 
 const LISTING_TYPE_ROW_OPTIONS: FilterRow['options'] = [
   { value: 'traditional-office', label: '传统办公', count: 86 },
@@ -443,7 +469,48 @@ const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
     currentParams: new URLSearchParams([['type', 'traditional-office']]),
     totalCount: 86,
   },
+  {
+    // 位置行候选换到真实规模（16 个区，与楼盘列表.dc.html FG.loc 同一份数据）：
+    // 验证 flex-wrap 换行不破版，也不需要单独的多行样式分支。
+    label: '位置行多候选换行（上海全部 16 个区，各带 count）',
+    rows: listingFilterRows({}).map((row) =>
+      row.key === 'district' ? { ...row, options: MANY_DISTRICT_OPTIONS } : row,
+    ),
+    currentParams: new URLSearchParams(),
+    totalCount: 168,
+  },
 ]
+
+/**
+ * 「隐藏行 + 清除全部彻底清空」夹具。
+ *
+ * metro 行 options 为空——按 visibleRows 过滤不会渲染，验证「无候选值的行不
+ * 渲染」这条不变量的边界情形。但 currentParams 仍带着 metro=jingansi（真实
+ * 场景：Task 11/12 按当前筛选算 facet，某维度当前 0 候选是正常结果，不代表
+ * 它没有残留选中值）。「清除全部」必须把这个隐藏行的参数也删掉——这正是
+ * code review 发现的 bug：buildClearAllHref 曾经传 visibleRows（过滤后的
+ * 列表）会漏删 metro，现在传完整 rows。
+ */
+const HIDDEN_ROW_FIXTURE: Readonly<{
+  rows: readonly FilterRow[]
+  currentParams: URLSearchParams
+  totalCount: number
+}> = {
+  rows: [
+    ...listingFilterRows({ district: 'jingan' }),
+    {
+      key: 'metro',
+      label: '地铁',
+      activeValue: 'jingansi',
+      options: [],
+    },
+  ],
+  currentParams: new URLSearchParams([
+    ['district', 'jingan'],
+    ['metro', 'jingansi'],
+  ]),
+  totalCount: 34,
+}
 
 const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
   rows: readonly FilterRow[]
@@ -634,6 +701,18 @@ export default function Opt036PreviewPage() {
                 />
               </div>
             ))}
+            <div data-fixture="hidden-row-clear-all" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                地铁行 0 候选（隐藏，不渲染）+ currentParams 残留 metro=jingansi——「清除全部」须一并删掉
+              </span>
+              <FilterFormC
+                rows={HIDDEN_ROW_FIXTURE.rows}
+                basePath="/shanghai/listings"
+                currentParams={HIDDEN_ROW_FIXTURE.currentParams}
+                totalCount={HIDDEN_ROW_FIXTURE.totalCount}
+                countNoun="套"
+              />
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
                 楼盘版 5 行（位置/等级/价格/在租面积/竣工——4 字「在租面积」验证标签列自动收敛到约 70px）

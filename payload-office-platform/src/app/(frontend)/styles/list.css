@@ -125,6 +125,10 @@
 }
 .ls-filterc__row { display: contents; }
 
+/* 顶部 15px 不是笔误：比 options 列（14px）多 1px 是刻意的光学微调——comp 原稿对
+   label span 本身另加了 padding-top:1px（房源列表.dc.html:218），让 14px/1.5 的
+   标签文字与 15px/1.5 的选项文字视觉基线对齐。整体行 padding 仍是 14 上下，只是
+   多出的 1px 记在 label 而非 options 头上。 */
 .ls-filterc__label { padding: 15px 0 14px; font-size: 14px; line-height: 1.5;
   color: var(--ink-2); letter-spacing: normal; white-space: nowrap; }
 

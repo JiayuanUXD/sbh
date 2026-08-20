@@ -152,7 +152,12 @@ export default function FilterFormC(props: Readonly<{
                 <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
               </Link>
             ))}
-            <Link href={buildClearAllHref(basePath, currentParams, visibleRows)} className="ls-filterc__clear-all">
+            {/* 传 rows（完整列表）而非 visibleRows：某行候选数当前恰好归零会被隐藏
+                （见下方渲染用的 visibleRows），但它的 key 仍可能残留在 currentParams
+                里（真实场景：Task 11/12 按当前筛选算 facet，某维度算出 0 候选是正常
+                结果，不代表这一维度没有选中值）。清除全部必须把 URL 彻底清空，用
+                visibleRows 会漏删这类隐藏行的参数，「清除全部」名不副实。 */}
+            <Link href={buildClearAllHref(basePath, currentParams, rows)} className="ls-filterc__clear-all">
               清除全部
             </Link>
           </>
