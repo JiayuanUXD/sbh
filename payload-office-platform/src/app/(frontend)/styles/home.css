@@ -1,0 +1,78 @@
+/* ============================================================================
+ * OPT-035 首页专属样式（Apple 中性极简）
+ * 设计依据：docs/SBH设计任务讨论/首页.dc.html 已锁定稿
+ * 规则：只准引用 styles.css §1 的 token；命名空间 .hm-*；
+ *       中文 letter-spacing normal（全局），唯一例外 .hm-lead 的 +0.011em
+ * ========================================================================== */
+
+.hm-container { width: min(var(--w), 100% - 32px); margin-inline: auto; }
+
+.hm-section { position: relative; background: var(--bg); padding-block: var(--pad); }
+.hm-band    { position: relative; background: var(--bg-subtle); }
+
+.hm-h2 { margin: 0; font-size: 40px; font-weight: 600; line-height: 1.1; color: var(--ink); }
+.hm-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; }
+.hm-section-link { font-size: 17px; color: var(--accent-link); }
+.hm-lead { font-size: 21px; font-weight: 400; line-height: 1.38; letter-spacing: 0.011em; color: var(--ink-2); text-wrap: pretty; }
+
+.hm-card {
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 500ms var(--ease-apple), box-shadow 500ms var(--ease-apple);
+}
+.hm-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-hover); }
+
+/* 图上白字渐变压暗（硬约束：覆盖底部 45%） */
+.hm-scrim { position: absolute; inset: auto 0 0 0; height: 45%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0)); }
+
+/* 图上标签（白底 92% pill，零色相） */
+.hm-phototag { font-size: 12px; font-weight: 500; color: var(--ink);
+  background: rgba(255, 255, 255, 0.92); border-radius: var(--r-pill); padding: 4px 10px; }
+.hm-phototag--num { font-variant-numeric: tabular-nums; }
+
+.hm-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* 滚动进场 */
+@keyframes hm-rise { from { opacity: 0.001; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.hm-rise { animation: hm-rise 400ms var(--ease) both;
+  animation-timeline: view(); animation-range: entry 0% cover 24%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-rise { animation: none; }
+  .hm-card, .hm-card:hover { transition: none; transform: none; }
+}
+
+@media (max-width: 767px) {
+  .hm-section { padding-block: 72px; }
+  .hm-h2 { font-size: 28px; line-height: 1.2; }
+}
+
+/* --- HorizontalRail ------------------------------------------------------- */
+.hm-rail { position: relative; margin-top: 48px; }
+.hm-rail__track {
+  display: flex; gap: 16px; overflow-x: auto;
+  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  scroll-padding-inline-start: calc((100% - min(var(--w), 100% - 32px)) / 2);
+  padding: 4px calc((100% - min(var(--w), 100% - 32px)) / 2) 12px;
+  scrollbar-width: none;
+}
+.hm-rail__track::-webkit-scrollbar { display: none; }
+.hm-rail__item { flex: 0 0 400px; scroll-snap-align: start; }
+.hm-rail__arrow {
+  position: absolute; top: 150px; width: 44px; height: 44px; border: none;
+  border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.hm-rail__arrow:hover { background: #fff; }
+.hm-rail__arrow--prev { left: 24px; }
+.hm-rail__arrow--next { right: 24px; }
+.hm-rail__arrow[hidden] { display: none; }
+@media (max-width: 767px) {
+  .hm-rail__item { flex-basis: 343px; }
+  .hm-rail__arrow { display: none; } /* 触屏直接滑 */
+}

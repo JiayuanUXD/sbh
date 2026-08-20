@@ -6,6 +6,7 @@ import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
 import { listPublicCityOptions, listPublicCityProfiles } from './_lib/city-context'
 import './styles.css'
+import './styles/home.css'
 
 // The shared shell resolves its trusted city options and analytics profiles
 // from Payload. CloudBase builds the image without the runtime PostgreSQL
