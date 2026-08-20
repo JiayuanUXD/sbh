@@ -15,6 +15,7 @@ import {
 } from '@/domain/city-site-profile/cache-invalidator'
 import {
   isValidCityProfileSeoText,
+  normalizeAvgResponseHours,
   normalizeCityDisplayName,
 } from '@/domain/city-site-profile/schema'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
@@ -173,6 +174,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
     serviceStatus: value.serviceStatus,
     switcherVisible: value.switcherVisible,
     sortOrder: value.sortOrder,
+    avgResponseHours: normalizeAvgResponseHours(value.avgResponseHours),
     seoTitle: value.seoTitle,
     seoDescription: value.seoDescription,
     hero: {

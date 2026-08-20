@@ -499,6 +499,10 @@ export interface CitySiteProfile {
   introBody?: string | null;
   contactHeading?: string | null;
   contactBody?: string | null;
+  /**
+   * 首页数据带「平均响应」展示值，运营承诺口径；留空则首页不展示该格。
+   */
+  avgResponseHours?: number | null;
   featuredRegions?: (number | Location)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -2643,6 +2647,7 @@ export interface CitySiteProfilesSelect<T extends boolean = true> {
   introBody?: T;
   contactHeading?: T;
   contactBody?: T;
+  avgResponseHours?: T;
   featuredRegions?: T;
   updatedAt?: T;
   createdAt?: T;

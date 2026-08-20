@@ -12,7 +12,7 @@ const city = {
   id: 1, slug: 'shanghai', name: '上海', serviceStatus: 'live' as const,
   profile: {
     citySlug: 'shanghai', cityName: '上海', serviceStatus: 'live' as const,
-    seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1,
+    seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1, avgResponseHours: null,
     hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null },
     intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
   },
