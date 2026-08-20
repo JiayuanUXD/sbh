@@ -13,9 +13,31 @@
 /* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
 .ls-price { display: flex; align-items: baseline; gap: 4px; }
 .ls-price__value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
-  font-weight: 600; text-align: right; }
-.ls-price__value--day { width: 58px; }    /* 元/㎡/天 */
-.ls-price__value--month { width: 88px; }  /* 元/月，六位数 316,200 需更宽 */
-.ls-price__unit { font-size: 13px; font-weight: 400; color: var(--ink-2); }
+  font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: normal; text-align: right; }
+.ls-price__value--day { width: 58px; }    /* 元/㎡/天，两位小数 */
+.ls-price__value--month { width: 88px; }  /* 元/月・元/工位/月，六位数 316,200 需更宽 */
+.ls-price__unit { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+/* 缺价格：整行省略定宽盒，纯文本代替，不渲染 0 或空盒（守护不变量见 ListingResultCard 文档注释） */
+.ls-price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+
+/* ── 房源结果卡（ListingResultCard）─────────────────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html specRows「卡片信息六项排布 /
+ * 卡片字号 / 卡片 padding·圆角」。卡面/图渐变/图上标签走 .sf-card / .sf-media /
+ * .sf-scrim / .sf-phototag，本节只补列表页专属的图上标签定位与卡体版式。 */
+.ls-card__type-tag { position: absolute; left: 12px; bottom: 10px; }
+
+.ls-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
+
+.ls-card__title { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-card__location { font-size: 13px; line-height: 1.4; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 价格与面积同一行（specRows「卡片信息六项排布」） */
+.ls-card__meta { margin-top: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+.ls-card__area { flex: none; font-size: 13px; color: var(--ink-2);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }
