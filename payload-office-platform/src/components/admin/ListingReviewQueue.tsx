@@ -14,6 +14,7 @@ import ListingReviewQueueClient, {
   type QueueRow,
   type ReviewHistoryEntry,
 } from './ListingReviewQueueClient'
+import { relationId, toCompletenessSnapshot } from './listing-review-queue-row'
 
 /**
  * 房源审核台 - 服务端入口（tasks.md M4.5 / PRD 04_房源审核 / R1, R4）
@@ -115,29 +116,7 @@ export default async function ListingReviewQueue({
 
   // 3. 组装队列行（完整度 + 缺失项 + 历史）
   const rows: QueueRow[] = listings.map((listing) => {
-    const completeness = checkListingCompleteness(
-      {
-        title: listing.title,
-        slug: listing.slug,
-        listingType: listing.listingType,
-        building: listing.building,
-        businessType: listing.businessType,
-        decorationStatus: listing.decorationStatus,
-        price: toPriceSnapshot(listing.price),
-        area: listing.area,
-        floor: listing.floor,
-        minimumLeaseMonths: listing.minimumLeaseMonths,
-        paymentTerms: listing.paymentTerms,
-        availableFrom: listing.availableFrom,
-        description: listing.description,
-        contactBroker: listing.contactBroker,
-        galleryCount: Array.isArray(listing.gallery) ? listing.gallery.length : 0,
-        // 商户关系有效性此处不在队列展开（避免 N 次关系查询），
-        // 提交时已由 M4.3 门槛校验；审核台以字段完整度为主视角。
-        hasValidMerchantRelation: true,
-      },
-      'submit',
-    )
+    const completeness = checkListingCompleteness(toCompletenessSnapshot(listing), 'submit')
 
     return {
       listingId: listing.id,
@@ -160,29 +139,6 @@ export default async function ListingReviewQueue({
       canPublish={canPublish}
     />
   )
-}
-
-/** 房源价格组归一为完整度校验用的 PriceSnapshot（null → undefined）。 */
-function toPriceSnapshot(
-  price: Listing['price'] | null | undefined,
-): { amount?: number; currency?: string; period?: string; unit?: string } | undefined {
-  if (!price) return undefined
-  return {
-    amount: price.amount ?? undefined,
-    currency: price.currency ?? undefined,
-    period: price.period ?? undefined,
-    unit: price.unit ?? undefined,
-  }
-}
-
-/** 关系值归一为数值 ID（number | populated 对象 | null）。 */
-function relationId(value: unknown): number | null {
-  if (typeof value === 'number') return value
-  if (value && typeof value === 'object') {
-    const id = (value as { id?: unknown }).id
-    if (typeof id === 'number') return id
-  }
-  return null
 }
 
 /** 关系值取可读标签（populated 对象的 name/title；否则 null）。 */
