@@ -54,7 +54,11 @@ describe('preflight migrations: 纯函数', () => {
     // 文本列，并建 (building_id, room_number) 的**唯一**索引。索引刻意覆盖软删行
     // （PG 唯一索引没法在 Payload 配置里带 WHERE deleted_at IS NULL 谓词），
     // 即「软删也占号」；人话报错由 listing-room-number.ts 的查重 hook 负责。
-    expect(names.length).toBe(71)
+    // 再加 1 份 merchant_stop_cascade_job：商户停用冻结改走 jobs 队列，把新任务
+    // slug 'cascade-merchant-stop-listings' 加进 payload_jobs(_log).task_slug 两个
+    // PG 枚举。又一次兑现上面那句「把 task 注册进 jobs.tasks 需要迁移」——
+    // 不加枚举值，enqueue 直接报 invalid input value。
+    expect(names.length).toBe(72)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -91,7 +95,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(71)
+    expect(names.length).toBe(72)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
