@@ -7,7 +7,9 @@ import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend
 import FilterFormC, { type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import FilterPill from '@/components/frontend/listing/FilterPill'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
+import ListPager from '@/components/frontend/listing/ListPager'
 import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
+import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
 import type { BuildingSummaryViewModel, ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
 import { rentUnitLabel } from '@/lib/frontend/format'
 
@@ -666,6 +668,49 @@ function excludedOptionsExcept(
     .map((value) => ({ value, label: UNIT_LABELS[value], count: counts[value] ?? UNIT_COUNTS[value] }))
 }
 
+// ---------------------------------------------------------------------------
+// Fixture：ResultToolbar（Task 8）—— 覆盖排序四项各自为当前态、有/无视图切换
+// 两态；currentParams 混入 district=jingan 与 page=3——验证切排序/切视图的
+// href 只改 sort/view 两个参数，district 原样透传，page 恒被删除。另加一组
+// 「无 priceUnit」夹具：调用方已从 sorts 里剔除价格排序两项，演示 Task 8
+// 顶部注释里那条决策——本组件不接收 priceUnit，无法自行判断，责任在调用方。
+// ---------------------------------------------------------------------------
+
+const ALL_SORTS: readonly ResultToolbarSort[] = [
+  { value: 'recommended', label: '推荐' },
+  { value: 'newest', label: '最新' },
+  { value: 'price-asc', label: '价格 ↑' },
+  { value: 'price-desc', label: '价格 ↓' },
+]
+
+const SORTS_WITHOUT_PRICE: readonly ResultToolbarSort[] = [
+  { value: 'recommended', label: '推荐' },
+  { value: 'newest', label: '最新' },
+]
+
+const RESULT_TOOLBAR_CURRENT_PARAMS = new URLSearchParams([
+  ['district', 'jingan'],
+  ['page', '3'],
+])
+
+const RESULT_TOOLBAR_FIXTURES: readonly Readonly<{
+  label: string
+  sorts: readonly ResultToolbarSort[]
+  activeSort: string
+  view?: 'grid' | 'row'
+}>[] = [
+  { label: '当前：推荐（不渲染视图切换——省略 view prop）', sorts: ALL_SORTS, activeSort: 'recommended' },
+  { label: '当前：最新（视图切换 = 网格选中）', sorts: ALL_SORTS, activeSort: 'newest', view: 'grid' },
+  { label: '当前：价格 ↑（视图切换 = 横向列表选中）', sorts: ALL_SORTS, activeSort: 'price-asc', view: 'row' },
+  { label: '当前：价格 ↓（视图切换 = 网格选中）', sorts: ALL_SORTS, activeSort: 'price-desc', view: 'grid' },
+  {
+    label: '无 priceUnit 场景：调用方已把「价格 ↑/↓」从 sorts 里剔除（只剩推荐/最新），不是本组件兜底过滤',
+    sorts: SORTS_WITHOUT_PRICE,
+    activeSort: 'recommended',
+    view: 'grid',
+  },
+]
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -904,6 +949,58 @@ export default function Opt036PreviewPage() {
                 basePath="/shanghai/listings"
                 currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
               />
+            </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="result-toolbar"
+          title="结果工具条（ResultToolbar）"
+          note="排序是 13px 纯文本，当前项 accent-link/500，无背景无边框——权重刻意低于筛选 36 高实体 pill；视图切换在排序末尾，分隔线 1×16 + 分段 28×24 图标；切排序/切视图都会删 page（见下方 href 断言用的 currentParams 混入 page=3）"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {RESULT_TOOLBAR_FIXTURES.map((fixture) => (
+              <div key={fixture.label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{fixture.label}</span>
+                <ResultToolbar
+                  rangeStart={1}
+                  rangeEnd={24}
+                  totalDocs={168}
+                  noun="套"
+                  sorts={fixture.sorts}
+                  activeSort={fixture.activeSort}
+                  basePath="/shanghai/listings"
+                  currentParams={RESULT_TOOLBAR_CURRENT_PARAMS}
+                  view={fixture.view}
+                />
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="list-pager"
+          title="分页（ListPager）"
+          note="页码 36×36 · 当前项底 --ink 文字白 · 每页 24 · 写入 ?page=——totalPages<=1 返回 null（下方第一个夹具应该完全不渲染任何东西）；totalPages<=7 全部展开；totalPages=99 时用首尾常驻+当前页邻域+省略号，页码数量恒定有界"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div data-fixture="pager-total-1" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, border: '1px dashed var(--line)', borderRadius: 14 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                totalPages=1（应返回 null——虚线框内应空无一物，不应看到分页控件）
+              </span>
+              <ListPager page={1} totalPages={1} buildPageHref={(p) => `/shanghai/listings?page=${p}`} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                totalPages=5，当前第 2 页（&lt;=7 阈值内，全部页码平铺展开，无省略号）
+              </span>
+              <ListPager page={2} totalPages={5} buildPageHref={(p) => `/shanghai/listings?page=${p}`} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                totalPages=99，当前第 42 页（超阈值：首尾常驻 + 当前页邻域 + 两处省略号，实际只渲染 5 个数字）
+              </span>
+              <ListPager page={42} totalPages={99} buildPageHref={(p) => `/shanghai/listings?page=${p}`} />
             </div>
           </div>
         </PreviewSection>

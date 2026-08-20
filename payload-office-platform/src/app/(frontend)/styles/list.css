@@ -248,4 +248,83 @@
 
 @media (prefers-reduced-motion: reduce) { .ls-pill { transition: none; } }
 
+/* ── 结果工具条（ResultToolbar：计数 + 排序 + 视图切换）─────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「计数 + 排序」区块 + specRows
+ * 「排序控件 / 视图切换 / 排序·筛选权重比」。排序是文本级控件，权重刻意低于
+ * 筛选 36 高实体 pill——13px 纯文本、当前项 accent-link/500、无背景无边框、
+ * 不占一行高度，见 ResultToolbar.tsx 顶部注释。 */
+.ls-toolbar { position: relative; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 24px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--line); }
+
+.ls-toolbar__range { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-toolbar__right { flex: none; display: flex; align-items: baseline; gap: 16px; }
+
+.ls-toolbar__sortlabel { font-size: 13px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-toolbar__sort { font-size: 13px; font-weight: 400; color: var(--ink-2); letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-toolbar__sort:hover { color: var(--accent-hover); }
+.ls-toolbar__sort--active { color: var(--accent-link); font-weight: 500; }
+.ls-toolbar__sort--active:hover { color: var(--accent-link); }
+
+.ls-toolbar__divider { align-self: center; flex: none; width: 1px; height: 16px; background: var(--line); }
+
+/* 外壳色 #e9e9ed 是 comp 字面值，与 .ls-unitseg 同一色、同一惯例（项目 token
+   里没有对应命名，见该处同类注释）——两个控件视觉上都是"分段切换"，共享同一
+   套灰壳配色是刻意的，不是各自随手取的近似值。 */
+.ls-toolbar__viewseg { align-self: center; flex: none; display: flex; align-items: center;
+  gap: 2px; padding: 2px; border-radius: 9px; background: #e9e9ed; }
+
+.ls-toolbar__viewbtn { width: 28px; height: 24px; border-radius: 7px; color: var(--ink-3);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple),
+    color var(--duration-base) var(--ease-apple),
+    box-shadow var(--duration-base) var(--ease-apple); }
+.ls-toolbar__viewbtn:hover { color: var(--ink); }
+
+/* 选中白底 + 阴影（specRows「视图切换」写「1px 3 阴影」）：用 --shadow-sm
+   （0 1px 2px）而非字面写死 0 1px 3px——按「只用 token」的批次约束，取项目里
+   语义最接近的既有阴影 token，不新增一个只服务这一处的字面值。 */
+.ls-toolbar__viewbtn--active { background: var(--bg-subtle); color: var(--ink); box-shadow: var(--shadow-sm); }
+.ls-toolbar__viewbtn--active:hover { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-toolbar__sort, .ls-toolbar__viewbtn { transition: none; }
+}
+
+/* ── 分页（ListPager）────────────────────────────────────────────────────
+ * 设计依据：specRows「分页」：页码 36×36 · 当前项底 --ink 文字白 · 每页 24 ·
+ * 写入 ?page=。窗口策略（首尾常驻 + 当前页邻域 + 省略号）见 ListPager.tsx
+ * 顶部注释。 */
+.ls-pager { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+.ls-pager__row { display: flex; align-items: center; gap: 6px; }
+
+.ls-pager__edge { height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  font-size: 13px; color: var(--ink-2); letter-spacing: normal;
+  display: flex; align-items: center; transition: background var(--duration-base) var(--ease-apple); }
+.ls-pager__edge:hover { background: var(--bg-subtle); }
+.ls-pager__edge--disabled { color: var(--ink-3); pointer-events: none; }
+
+.ls-pager__item { width: 36px; height: 36px; border-radius: var(--r-pill);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 13px; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-pager__item:hover { background: var(--bg-subtle); }
+.ls-pager__item--active { background: var(--ink); color: #fff; font-weight: 500; }
+.ls-pager__item--active:hover { background: var(--ink); }
+
+.ls-pager__ellipsis { width: 36px; height: 36px; font-size: 13px; color: var(--ink-3);
+  display: flex; align-items: center; justify-content: center; }
+
+.ls-pager__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-pager__edge, .ls-pager__item { transition: none; }
+}
+
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }
