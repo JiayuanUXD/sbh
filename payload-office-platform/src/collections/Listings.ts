@@ -55,6 +55,22 @@ function toMediaId(resource: MediaResourceInput): number | string | null {
 }
 
 /**
+ * 从 relationship 字段的表单值取出 id——值可能是裸 id（正常表单提交），
+ * 也可能是 populate 后的完整对象（例如 depth>0 的编程式调用）。供
+ * merchant 字段 filterOptions 判断「候选是否等于当前值」使用，逻辑与
+ * toMediaId 相同但类型更泛（merchants 关系值不是 MediaResourceInput）。
+ */
+function extractRelationId(value: unknown): number | string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (typeof value === 'object') {
+    const id = (value as { id?: unknown }).id
+    return typeof id === 'number' || typeof id === 'string' ? id : null
+  }
+  return null
+}
+
+/**
  * 房源媒体工作台的派生 hook（对齐楼盘 syncBuildingMedia 设计，另加存量兼容）：
  *
  *   1. gallery / coverImage 在表单中 hidden，统一由 mediaItems 派生：
@@ -679,12 +695,37 @@ export const Listings: CollectionConfig = {
                   // 前台因 MERCHANT_INELIGIBLE 精筛判 404）。服务城市覆盖这一条未覆盖
                   // ——filterOptions 拿不到房源所属楼盘的城市（跨对象上下文），强做
                   // 会引入复杂度和误拦，仍由前台精筛 §10 兜底。
-                  filterOptions: (): Where => ({
-                    and: [{ status: { equals: 'active' } }, { qualificationStatus: { equals: 'valid' } }],
-                  }),
+                  //
+                  // 为什么放行「当前值」（终审修复，见 final-fix-report.md）：
+                  // Payload 的 filterOptions 在服务端是无条件校验——只要提交 data 里
+                  // merchant 有值就查库比对，不区分该值是否本次改动；而后台表单保存是
+                  // 全量提交（表单里所有字段的当前值一起进 data）。这撞上了
+                  // merchant-stop-listings.ts 的设计：商户停用时把受影响房源转 pending，
+                  // 但**不清空** listings.merchant（该文件头注释「商户恢复不自动解除，
+                  // 运营需逐条显式重新发布」——就是要留着这个值等运营回来处理）。结果是：
+                  // 运营编辑这批「待复核」房源中的任意字段（哪怕不碰 merchant），data 里
+                  // 仍带着那个已停用商户 ID，若 filterOptions 只放行「启用+资质有效」，
+                  // 就会判「无效选择」→ 整单拒绝保存——待复核状态因此变成事实上的保存
+                  // 死锁，恰好打在这个模块设计的核心场景上。
+                  //
+                  // 取舍：条件改成「合格商户 或 等于当前值」，精确地只放弃「阻止**保留**
+                  // 一个已停用商户」这一点——而那本来就是当前的实际状态（房源已被转
+                  // pending、前台已被精筛 §9 排除，不会因为放行这个值而多曝光什么）。
+                  // 门禁真正要防的「**新选**一个不合格商户」完全保留：候选列表里永远不会
+                  // 出现启用/资质无效的商户，除非它已经是当前值。不要为了「简洁」删掉
+                  // 这个 or 分支——删掉就是重新引入这个死锁。
+                  filterOptions: ({ siblingData }): Where => {
+                    const eligible: Where = {
+                      and: [{ status: { equals: 'active' } }, { qualificationStatus: { equals: 'valid' } }],
+                    }
+                    const current = extractRelationId(
+                      (siblingData as { merchant?: unknown } | null | undefined)?.merchant,
+                    )
+                    return current === null ? eligible : { or: [eligible, { id: { equals: current } }] }
+                  },
                   admin: {
                     description:
-                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。候选已限制为启用+资质有效；服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
+                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
                     width: COL_4,
                   },
                 }),
