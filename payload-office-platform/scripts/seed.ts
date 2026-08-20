@@ -1147,11 +1147,13 @@ async function seed() {
   }
 
   // === (d2) 全量房源-商户关系：F7.1 E2E 验收要求所有种子房源通过有效供给精筛
-  //   精筛层 §8 要求 listing-merchant-relations 落在有效期；§9-§10 要求 listing.merchant
-  //   字段引用合格商户（覆盖服务城市）。给所有 8 条房源补齐关系记录 + merchant 字段：
+  //   OPT-034 起精筛层 §8 只看 listings.merchant 是否有值，§9-§10 要求该字段
+  //   引用的商户合格（启用 + 资质有效 + 服务城市覆盖）。给所有 8 条房源补齐
+  //   listing-merchant-relations 记录（表还在，Task 7 删表前种子仍写它保持
+  //   历史数据形态一致）+ merchant 字段（精筛真正读的字段）：
   //   - west-nanjing-premium-center 楼盘房源 → merchantOwner（业主直营）
   //   - 其他楼盘房源 → merchantAgency（独家代理）
-  //   避免任一种子房源因 RELATION_NOT_EFFECTIVE / MERCHANT_INELIGIBLE 被 0 套排除。
+  //   避免任一种子房源因 NO_SUPPLY_MERCHANT / MERCHANT_INELIGIBLE 被 0 套排除。
   const allListingSlugs = [
     'jingan-serviced-office-42-seats',
     'lujiazui-grade-a-780sqm',

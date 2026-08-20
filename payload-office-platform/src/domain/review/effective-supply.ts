@@ -32,7 +32,7 @@
  *        - extractPausedListingIds(reports) 从已查询的 reports 数组提取 listing IDs（便于测试）
  *
  * 无 payload / React 依赖，可独立单测。查询层用 where 片段先粗筛，
- * 已解析的候选再过 isListingEffectivelySupplied 精筛（媒体/关系/商户）。
+ * 已解析的候选再过 isListingEffectivelySupplied 精筛（商户）。
  */
 
 import { checkMerchantEligibility } from '@/domain/supply/building-merchant-relation'
@@ -130,9 +130,13 @@ export interface EffectiveSupplyResult {
 }
 
 /**
- * 已解析候选是否满足查询层无法表达的有效供给条件（关系 §8 / 商户 §9-§10）。
- * 收集全部不满足原因，便于一次性提示。查询层条件（§1-§4、§7）由
- * getEffectiveSupplyWhere 在库侧保证，本函数不重复判定。
+ * 已解析候选是否满足查询层无法表达的有效供给条件（商户 §8-§10：§8 是否设置、
+ * §9-§10 是否合格）。§8 与 §9-§10 互斥短路——merchant 为 null 时直接返回
+ * [NO_SUPPLY_MERCHANT]，不会再往下判 §9-§10，所以“收集全部不满足原因”只在
+ * §9-§10 内部成立（商户不合格的多个子原因仍会被 checkMerchantEligibility
+ * 合并成同一个 MERCHANT_INELIGIBLE），不代表 §8 能和 §9-§10 同时出现在
+ * reasons 里。查询层条件（§1-§4、§7）由 getEffectiveSupplyWhere 在库侧保证，
+ * 本函数不重复判定。
  *
  * 媒体数量已不在此列：见文件头部说明。
  */

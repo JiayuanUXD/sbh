@@ -138,18 +138,19 @@ describe('effective-supply/isListingEffectivelySupplied', () => {
   // OPT-034：半开区间关系（[effectiveFrom, effectiveTo) 判定生效商户）已删除，
   // 「关系尚未生效 / 已过期」这两种中间态不再存在——只剩「有没有设置供给商户」
   // 一个二元问题。原三条用例（未生效 / 已过期 / 无关系）收敛为下面这一条。
-  it('房源没有供给商户 → NO_SUPPLY_MERCHANT', () => {
+  //
+  // 用 toEqual（而不是 toContain）锁住短路不变量：merchant 为 null 时函数在
+  // 检查商户资格之前就返回，reasons 里只会有 NO_SUPPLY_MERCHANT 一个码，绝不会
+  // 同时冒出 MERCHANT_INELIGIBLE——这正是被删掉的旧「多重不满足」用例本来锁的
+  // 那条不变量，只是断言方式从「构造双重失效再看长度」换成「精确匹配单一结果」。
+  it('房源没有供给商户 → reasons 精确等于 [NO_SUPPLY_MERCHANT]（不会掺入 MERCHANT_INELIGIBLE）', () => {
     const snap = { ...fullyEligibleSnapshot(), merchant: null }
     const r = isListingEffectivelySupplied(snap, asOf)
     expect(r.eligible).toBe(false)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT)
+    expect(r.reasons).toEqual([EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT])
   })
 
   it('不再有 RELATION_NOT_EFFECTIVE 这个码', () => {
     expect(Object.keys(EFFECTIVE_SUPPLY_EXCLUSION_CODES)).not.toContain('RELATION_NOT_EFFECTIVE')
   })
-
-  // 旧版「多重不满足」用例已不成立并删除（未替换为等价用例）：merchant 字段收敛为
-  // 单个可空对象后，NO_SUPPLY_MERCHANT 与 MERCHANT_INELIGIBLE 互斥——merchant 为
-  // null 时直接短路返回，不可能同时命中两个排除码，reasons 长度恒为 0 或 1。
 })

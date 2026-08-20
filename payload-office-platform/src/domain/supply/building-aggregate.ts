@@ -4,11 +4,12 @@
  * M4.7 口径：统计口径与前台 / 详情 / 楼盘页完全一致（M4 验收门）——
  *   查询层 getEffectiveSupplyWhere（§1-4 状态 + §7 楼盘/城市/行政区在营）粗筛，
  *   叠加 building 约束 + §5 举报暂停 not_in 排除，取候选后逐条 resolveEffectiveSupply
- *   精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），在精筛结果上算 count/面积/租金。
+ *   精筛（商户 §8-§10，OPT-034 起直接读 listings.merchant），在精筛结果上算
+ *   count/面积/租金。
  *
  * 聚合三项：
- *   - 套数：精筛后有效房源数（不再走 payload.count；因关系精筛需逐条查
- *     listing-merchant-relations，无法用纯 count 表达）。
+ *   - 套数：精筛后有效房源数（不再走 payload.count；精筛现在是纯内存计算，
+ *     不查库，但仍需逐条判定才能拿到 eligible 子集，无法用纯 count 表达）。
  *   - 面积：按 ㎡ 直接 SUM（单位统一，可合并）。
  *   - 租金：按 rentUnit 分组求 min/max——三种单位语义不同,跨单位绝不合并
  *     （design §5.5，镜像 public-catalog/facade.ts buildPriceRangesByUnit）。
