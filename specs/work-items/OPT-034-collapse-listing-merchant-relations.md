@@ -235,7 +235,8 @@ SKIP_MIGRATION_CHECK=1 git commit -m "docs(review): 完整度的商户判定不�
 ### Task 5：删除 collection、hook 与 domain 模块
 
 **Files:**
-- Delete: `src/collections/ListingMerchantRelations.ts`、`src/domain/supply/listing-merchant-relation.ts`、`src/domain/supply/listing-merchant-relation-protect.ts`、`src/domain/supply/listing-delete-cleanup.ts` 及其测试
+- Delete: `src/collections/ListingMerchantRelations.ts`、`src/domain/supply/listing-merchant-relation.ts`、`src/domain/supply/listing-merchant-relation-protect.ts` 及其测试
+- ⚠️ **`listing-delete-cleanup.ts` 不在本任务删除**，移至 Task 6（删表之后）。表还在时删掉它，删房源会重新报 23502——正是 PR #71 刚修好的那个。
 - Modify: `src/payload.config.ts`（collections 数组）、`src/collections/Listings.ts`（去掉 `beforeDelete`）、`src/endpoints/dashboard-stats-endpoint.ts:17`
 
 - [ ] **Step 1: 删除文件与接线**
@@ -249,7 +250,7 @@ git rm src/collections/ListingMerchantRelations.ts \
        tests/listing-delete-cleanup.test.ts
 ```
 
-`payload.config.ts` 移除 `ListingMerchantRelations` import 与 collections 项；`Listings.ts` 移除 `beforeDelete: [cleanupListingRelations]` 及其 import；`dashboard-stats-endpoint.ts` 的 `FIND_COLLECTIONS` 去掉 `'listing-merchant-relations'`。
+`payload.config.ts` 移除 `ListingMerchantRelations` import 与 collections 项；`dashboard-stats-endpoint.ts` 的 `FIND_COLLECTIONS` 去掉 `'listing-merchant-relations'`。
 
 - [ ] **Step 2: 重生成生成物**
 
@@ -301,11 +302,23 @@ pnpm exec payload migrate
 
 然后建一条新房源（只填 title/building/listingType + merchant），确认 `resolveEffectiveSupply` 返回 `eligible=true`，且删除房源不再报 23502。
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 6: 表删完才能摸 delete-cleanup hook**
+
+表已不存在，清理 hook 失去意义；此前删它会让删房源重新报 23502。
 
 ```bash
-git add payload-office-platform/src/migrations/ payload-office-platform/tests/preflight-migrations.test.ts
-git commit -m "feat(migration): 删除 listing_merchant_relations 表"
+cd payload-office-platform
+git rm src/domain/supply/listing-delete-cleanup.ts tests/listing-delete-cleanup.test.ts
+```
+
+`Listings.ts` 移除 `beforeDelete: [cleanupListingRelations]` 及其 import。然后确认删房源仍正常（本地库实测）。
+
+- [ ] **Step 7: 提交**
+
+```bash
+pnpm typecheck && pnpm test
+cd .. && git add payload-office-platform/src/migrations/ payload-office-platform/tests/preflight-migrations.test.ts payload-office-platform/src/domain/supply/listing-delete-cleanup.ts payload-office-platform/tests/listing-delete-cleanup.test.ts payload-office-platform/src/collections/Listings.ts
+git commit -m "feat(migration): 删除 listing_merchant_relations 表与配套清理 hook"
 ```
 
 ---
