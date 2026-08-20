@@ -36,7 +36,6 @@ import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
 import { cleanupListingRelations } from '@/domain/supply/listing-delete-cleanup'
-import { autoCreateListingRelation } from '@/domain/supply/listing-relation-autocreate'
 import {
   resolveDefaultSupplyMerchant,
   type MerchantLookupPort,
@@ -209,12 +208,7 @@ export const Listings: CollectionConfig = {
     // 早于前两者会判在半成品数据上。
     beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
     // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
-    //
-    // autoCreateListingRelation 只在 create 触发：把「完整度用 merchant != null 近似
-    // 判断有无有效商户关系」这个近似变成真的，否则会出现「已发布 + 完整度全绿
-    // + 前台查无此房」的幽灵房源（真实案例：生产 #2464）。失败不阻断创建，
-    // 原因见 domain/supply/listing-relation-autocreate.ts 头部。
-    afterChange: [recordAdminAutoPublish, autoCreateListingRelation],
+    afterChange: [recordAdminAutoPublish],
     // 永久删除前先清掉商户供给关系，否则 PG 会因「SET NULL 碰 NOT NULL」
     // 报 23502，后台只能看到一句 "Something went wrong."（见 listing-delete-cleanup.ts）。
     // 软删除（trash）走 update 路径，不经过这里。
