@@ -64,7 +64,7 @@ export default function PriceUnitSegment(props: Readonly<{
     return (
       <div className="ls-unitrow">
         <span className="ls-unitrow__label">租金单位</span>
-        <span className="ls-unitseg__item ls-unitseg__item--active ls-unitseg__item--solo">
+        <span className="ls-unitseg__item ls-unitseg__item--active ls-unitseg__item--solo" aria-current="true">
           {active.label}
           {active.count > 0 ? <span className="ls-unitseg__count">{active.count}</span> : null}
         </span>
@@ -80,7 +80,7 @@ export default function PriceUnitSegment(props: Readonly<{
           const isActive = unit.value === activeUnit
           if (isActive) {
             return (
-              <span key={unit.value} className="ls-unitseg__item ls-unitseg__item--active">
+              <span key={unit.value} className="ls-unitseg__item ls-unitseg__item--active" aria-current="true">
                 {unit.label}
                 {unit.count > 0 ? <span className="ls-unitseg__count">{unit.count}</span> : null}
               </span>
