@@ -2,7 +2,6 @@ import type { Endpoint } from 'payload'
 
 import { requireOperationPermission, type RequestContext } from '@/domain/auth/access'
 import { withAudit } from '@/domain/audit/with-audit'
-import { checkListingCompleteness } from '@/domain/review/listing-completeness'
 import {
   canTransitionReview,
   isReviewDecision,
@@ -29,6 +28,10 @@ import { InvalidOperationError } from '@/domain/shared/errors'
  *   - 每个动作 append 一条不可变 listing-reviews 记录：decision + 服务端推导的
  *     taskStatus + 提交快照 + 确定性哈希（snapshot/hash 绝不信任外部传入）。
  *   - 驳回必须填写原因（assertReasonForDecision）。
+ *   - **不做完整度硬门槛**：submit/approve 都不跑 checkListingCompleteness。完整度是
+ *     引导而非拦截（房源编辑页「信息完整度」卡片、审核队列列表提示），别把本端点
+ *     读成「提交前已校验过完整度」。上架侧的硬门槛在发布端点（有效供给精筛，见
+ *     listing-publish-endpoint.ts）。
  *   - 非法状态转移（如 approved 再 approve）→ 409。
  *   - 版本乐观锁：expectedVersion 与当前工作版本不符 → 409，不写记录、不改房源。
  *
