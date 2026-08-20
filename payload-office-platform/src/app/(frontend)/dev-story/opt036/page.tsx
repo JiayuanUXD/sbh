@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow'
+import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
-import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
+import type { BuildingSummaryViewModel, ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
 
 /**
  * OPT-036 列表页组件预览（仅开发环境）
@@ -174,6 +176,150 @@ const CARD_FIXTURES: readonly Readonly<{ label: string; listing: ListingCardView
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：BuildingResultCard + BuildingCompactRow（Task 5）—— 覆盖有在租/无在租/
+// 缺封面/超长楼名/缺地铁/缺等级（卡）与超长楼名/缺资料（紧凑行）。
+// ---------------------------------------------------------------------------
+
+const BUILDING_COVER_IMAGE =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 250">
+      <rect width="400" height="250" fill="#b8b8bd"/>
+      <text x="50%" y="50%" font-family="sans-serif" font-size="20" fill="#3a3a3c" text-anchor="middle" dominant-baseline="middle">楼盘封面示例</text>
+    </svg>`,
+  )
+
+function makeBuildingFixture(
+  overrides: Partial<BuildingSummaryViewModel> & { id: number; slug: string; name: string },
+): BuildingSummaryViewModel {
+  return {
+    citySlug: 'shanghai',
+    cityName: '上海市',
+    address: '上海市静安区南京西路 1266 号',
+    grade: 'super-grade-a',
+    district: { id: 1, slug: 'jing-an', name: '静安区' },
+    nearestMetro: { id: 21, slug: 'jing-an-si', name: '静安寺站' },
+    coverImage: { src: BUILDING_COVER_IMAGE, alt: '楼盘封面示例', width: 400, height: 250 },
+    leasableArea: 18640,
+    completionDate: '2001-06-01',
+    ...overrides,
+  }
+}
+
+const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: BuildingSummaryViewModel }>[] = [
+  {
+    label: '有在租（超甲级 · 在租面积定宽右对齐）',
+    building: makeBuildingFixture({
+      id: 201,
+      slug: 'jing-an-kerry-centre',
+      name: '静安嘉里中心',
+      leasableArea: 18640,
+    }),
+  },
+  {
+    label: '无在租（防御性：卡底数据行整行省略）',
+    building: makeBuildingFixture({
+      id: 202,
+      slug: 'no-stock-building',
+      name: '暂无在租楼盘示例',
+      grade: 'grade-a',
+      leasableArea: undefined,
+    }),
+  },
+  {
+    label: '缺封面（16:10 撑住不塌陷）',
+    building: makeBuildingFixture({
+      id: 203,
+      slug: 'no-cover-building',
+      name: '无封面楼盘（占位灰底测试）',
+      coverImage: undefined,
+      leasableArea: 9720,
+    }),
+  },
+  {
+    label: '超长楼名（单行省略号，不撑宽同列）',
+    building: makeBuildingFixture({
+      id: 204,
+      slug: 'long-name-building',
+      name: '陆家嘴金融核心区超甲级综合体写字楼超长楼盘全称示例测试用例',
+      grade: 'super-grade-a',
+      leasableArea: 24180,
+    }),
+  },
+  {
+    label: '缺地铁（该行整行省略）',
+    building: makeBuildingFixture({
+      id: 205,
+      slug: 'no-metro-building',
+      name: '虹桥天地',
+      nearestMetro: undefined,
+      leasableArea: 21900,
+    }),
+  },
+  {
+    label: '缺等级（标签整个省略，不渲染空 pill）',
+    building: makeBuildingFixture({
+      id: 206,
+      slug: 'no-grade-building',
+      name: '西岸智慧谷',
+      grade: undefined,
+      leasableArea: 26410,
+    }),
+  },
+]
+
+const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: BuildingSummaryViewModel }>[] = [
+  {
+    label: '暂无在租 · 资料齐全',
+    building: makeBuildingFixture({
+      id: 301,
+      slug: 'vacant-hengrong-plaza',
+      name: '恒隆广场',
+      grade: 'super-grade-a',
+      leasableArea: undefined,
+      completionDate: '2001-01-01',
+    }),
+  },
+  {
+    label: '暂无在租 · 缺封面（占位色 #a1a1a6）',
+    building: makeBuildingFixture({
+      id: 302,
+      slug: 'vacant-no-cover',
+      name: '中信泰富广场',
+      coverImage: undefined,
+      grade: 'grade-a',
+      leasableArea: undefined,
+      completionDate: '1996-01-01',
+    }),
+  },
+  {
+    label: '暂无在租 · 超长楼名（单行省略号）',
+    building: makeBuildingFixture({
+      id: 303,
+      slug: 'vacant-long-name',
+      name: '浦东新区世纪大道超甲级综合体金融大厦超长楼盘全称示例测试用例',
+      grade: 'grade-a',
+      district: { id: 2, slug: 'pudong', name: '浦东新区' },
+      leasableArea: undefined,
+      completionDate: '1999-01-01',
+    }),
+  },
+  {
+    label: '暂无在租 · 缺资料（等级/区域/竣工全缺，资料行整行省略）',
+    building: makeBuildingFixture({
+      id: 304,
+      slug: 'vacant-no-meta',
+      name: '资料待补充楼盘示例',
+      grade: undefined,
+      district: undefined,
+      nearestMetro: undefined,
+      leasableArea: undefined,
+      completionDate: undefined,
+    }),
+  },
+]
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -248,6 +394,37 @@ export default function Opt036PreviewPage() {
               <div key={listing.slug} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{label}</span>
                 <ListingResultCard listing={listing} citySlug={listing.citySlug} />
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="building-card"
+          title="楼盘结果卡（BuildingResultCard）"
+          note="16:10 · 等级标签无色相 · 在租面积定宽右对齐——覆盖有在租/无在租/缺封面/超长楼名/缺地铁/缺等级"
+        >
+          {/* minmax(0, 1fr)：同 listing-card 区块，防超长楼名撑宽同列（Task 4 踩过的坑） */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>
+            {BUILDING_CARD_FIXTURES.map(({ label, building }) => (
+              <div key={building.slug} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{label}</span>
+                <BuildingResultCard building={building} citySlug={building.citySlug} />
+              </div>
+            ))}
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="building-compact-row"
+          title="暂无在租紧凑行（BuildingCompactRow）"
+          note="行高 64（在租卡约 182）——降权靠密度差不靠灰度，楼名保持满墨色不弱化"
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 16px' }}>
+            {BUILDING_COMPACT_FIXTURES.map(({ label, building }) => (
+              <div key={building.slug} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{label}</span>
+                <BuildingCompactRow building={building} citySlug={building.citySlug} />
               </div>
             ))}
           </div>
