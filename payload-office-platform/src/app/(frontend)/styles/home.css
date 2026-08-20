@@ -5,6 +5,18 @@
  *       中文 letter-spacing normal（全局），唯一例外 .hm-lead 的 +0.011em
  * ========================================================================== */
 
+/* 首页外壳出血：.site-main 有区块内边距（padding-block: var(--sp-6)）与容器上限，
+   会把 .hm-home 的所有子 section 挤成"两侧留灰边"的内嵌块。取消该内边距并把
+   .hm-home 撑满视口宽度，让每个 section 的背景带在所有断点保持满宽出血
+   （设计系统 §7）；Hero 额外上探 --header-height，使其延伸到吸顶头部下方，
+   透明态头部的白字才能压在 Hero 暗色遮罩上而不是页面浅灰底上。
+   body 已有 overflow-x: clip 配合裁掉 100vw 带来的横向滚动条溢出。 */
+.hm-home {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  margin-block: calc(-1 * var(--sp-6) - var(--header-height)) calc(-1 * var(--sp-6));
+}
+
 .hm-container { width: min(var(--w), 100% - 32px); margin-inline: auto; }
 
 .hm-section { position: relative; background: var(--bg); padding-block: var(--pad); }
@@ -64,7 +76,10 @@
 .hm-rail__arrow {
   position: absolute; top: 150px; width: 44px; height: 44px; border: none;
   border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  /* 手写 -webkit-backdrop-filter 兄弟声明会被构建管线（lightningcss）连同
+     unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
+     构建工具按 browserslist 目标自动补齐 */
+  backdrop-filter: blur(20px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
@@ -84,7 +99,9 @@
 
 /* --- 供给卡（楼盘 / 房源 / 核心商圈共用） -------------------------------- */
 .hm-supply-card { display: block; color: inherit; }
-.hm-supply-card__media { position: relative; aspect-ratio: 4 / 3; background: #8e8e93; }
+/* display: block 是 aspect-ratio 在 <span>（默认 inline）上生效的前提，
+   否则无图时容器高度塌陷为 0，产生 CLS */
+.hm-supply-card__media { position: relative; display: block; aspect-ratio: 4 / 3; background: #8e8e93; }
 .hm-supply-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .hm-supply-card__tags { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 6px; }
 .hm-supply-card__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 6px; }
@@ -96,7 +113,10 @@
 
 /* --- Hero（视频背景 · min-height 760 · 三段遮罩） -------------------------- */
 .hm-hero { position: relative; min-height: 760px; display: flex; align-items: center;
-  justify-content: center; overflow: hidden; background: #3a3a3c; padding-block: var(--pad); }
+  justify-content: center; overflow: hidden; background: #3a3a3c;
+  /* 顶部额外加 header-height：Hero 已延伸到吸顶头部下方（见 .hm-home），
+     内容需要多留一段顶部间距才不会被 44px 头部遮住 */
+  padding-block: calc(var(--pad) + var(--header-height)) var(--pad); }
 /* HomeHeroMedia（既有组件）的容器类名，样式随 §11 一并删除前先在此地重锚 */
 .hm-hero .hero__bg { position: absolute; inset: 0; z-index: 0; }
 .hm-hero .hero__poster, .hm-hero .hero__bg video { width: 100%; height: 100%; object-fit: cover; }
@@ -122,7 +142,7 @@
 .hm-search__pill { display: flex; align-items: center; gap: 12px; height: 52px;
   padding: 4px 4px 4px 18px; border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18); }
 .hm-search__input { flex: 1; min-width: 0; border: 0; background: transparent;
   font: inherit; font-size: 17px; color: var(--ink); }
@@ -156,7 +176,8 @@
 .hm-type-card__body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; }
 .hm-type-card__name { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
 .hm-type-card__sub { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
-.hm-type-card__count { margin-top: auto; font-size: 13px; color: var(--ink-3); }
+/* 在租套数是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+.hm-type-card__count { margin-top: auto; font-size: 13px; color: var(--ink-2); }
 @media (max-width: 1023px) { .hm-types { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 767px) { .hm-types { grid-template-columns: 1fr 1fr; }
   .hm-type-card { height: auto; } .hm-type-card__media { height: 120px; } }
@@ -215,4 +236,5 @@
 .hm-news__row { display: flex; align-items: center; justify-content: space-between; gap: 32px;
   min-height: 76px; color: inherit; }
 .hm-news__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
-.hm-news__date { font-size: 14px; color: var(--ink-3); flex: none; }
+/* 发布日期是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+.hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; }

@@ -314,8 +314,10 @@ ol {
   z-index: var(--z-header);
   height: var(--header-height);
   background: var(--header-bg);
+  /* 手写 -webkit-backdrop-filter 兄弟声明会被构建管线（lightningcss）连同
+     unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
+     构建工具按 browserslist 目标自动补齐 */
   backdrop-filter: var(--header-blur);
-  -webkit-backdrop-filter: var(--header-blur);
   border-bottom: none;
   transition: background var(--duration-base) var(--ease);
 }
@@ -324,7 +326,6 @@ ol {
 .site-header--transparent {
   background: transparent;
   backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 .site-header--transparent .site-logo,
@@ -661,7 +662,8 @@ ol {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  /* 栏目标题是真实导航内容，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+  color: var(--ink-2);
 }
 
 .site-footer__links {
@@ -941,10 +943,15 @@ ol {
   text-decoration: none;
 }
 
+/* Task 1 别名映射把旧铜色标签映射到蓝色（--color-copper-soft/-hover 现指向
+   #eaf2fb / #0077ed），蓝底蓝字只有 3.82:1，既不达 AA 也违反「标签不用彩色，
+   靠底色深浅和字重做层级」。改回零色相中性色：中灰底 + 二级墨色字，
+   与 .tag--forest（已是 ink/bg 中性组合）保持同一套零色相层级体系，
+   仅靠色深浅区分（forest 更深/copper 中等）。 */
 .tag--copper {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--ink-2);
 }
 
 .tag--forest {

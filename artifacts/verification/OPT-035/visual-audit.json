@@ -1,0 +1,288 @@
+{
+  "375-mobile": {
+    "headerTop": {
+      "cls": "site-header site-header--transparent",
+      "bg": "rgba(0, 0, 0, 0)",
+      "linkColor": "rgb(255, 255, 255)"
+    },
+    "headerScrolled": {
+      "cls": "site-header",
+      "bg": "rgba(255, 255, 255, 0.8)",
+      "backdrop": "none",
+      "h": 44,
+      "linkColor": "rgb(29, 29, 31)"
+    },
+    "layout": {
+      "sections": [
+        {
+          "name": "汇聚高端商务空间，赋",
+          "h": 560
+        },
+        {
+          "name": "按类型浏览",
+          "h": 1011
+        },
+        {
+          "name": "热门商圈",
+          "h": 706
+        },
+        {
+          "name": "热门楼盘",
+          "h": 336
+        },
+        {
+          "name": "hm-band hm-stats",
+          "h": 287
+        },
+        {
+          "name": "精选房源",
+          "h": 414
+        },
+        {
+          "name": "为什么选择我们",
+          "h": 742
+        },
+        {
+          "name": "核心商圈房源",
+          "h": 450
+        },
+        {
+          "name": "资讯",
+          "h": 618
+        }
+      ],
+      "docScrollW": 375,
+      "innerW": 375,
+      "heroTitleFs": "40px",
+      "typeCols": 2,
+      "statsCols": 2,
+      "valuesCols": 1,
+      "railItemW": 343,
+      "newsBorders": [
+        "1px",
+        "1px",
+        "1px",
+        "1px",
+        "0px"
+      ],
+      "containerW": 295
+    },
+    "consoleErrors": []
+  },
+  "768-tablet": {
+    "headerTop": {
+      "cls": "site-header site-header--transparent",
+      "bg": "rgba(0, 0, 0, 0)",
+      "linkColor": "rgb(255, 255, 255)"
+    },
+    "headerScrolled": {
+      "cls": "site-header",
+      "bg": "rgba(255, 255, 255, 0.8)",
+      "backdrop": "none",
+      "h": 44,
+      "linkColor": "rgb(29, 29, 31)"
+    },
+    "layout": {
+      "sections": [
+        {
+          "name": "汇聚高端商务空间，赋",
+          "h": 760
+        },
+        {
+          "name": "按类型浏览",
+          "h": 1160
+        },
+        {
+          "name": "热门商圈",
+          "h": 516
+        },
+        {
+          "name": "热门楼盘",
+          "h": 347
+        },
+        {
+          "name": "hm-band hm-stats",
+          "h": 192
+        },
+        {
+          "name": "精选房源",
+          "h": 424
+        },
+        {
+          "name": "为什么选择我们",
+          "h": 438
+        },
+        {
+          "name": "核心商圈房源",
+          "h": 461
+        },
+        {
+          "name": "资讯",
+          "h": 618
+        }
+      ],
+      "docScrollW": 768,
+      "innerW": 768,
+      "heroTitleFs": "56px",
+      "typeCols": 2,
+      "statsCols": 4,
+      "valuesCols": 3,
+      "railItemW": 400,
+      "newsBorders": [
+        "1px",
+        "1px",
+        "1px",
+        "1px",
+        "0px"
+      ],
+      "containerW": 688
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ]
+  },
+  "1440-desktop": {
+    "headerTop": {
+      "cls": "site-header site-header--transparent",
+      "bg": "rgba(0, 0, 0, 0)",
+      "linkColor": "rgb(255, 255, 255)"
+    },
+    "headerScrolled": {
+      "cls": "site-header",
+      "bg": "rgba(255, 255, 255, 0.8)",
+      "backdrop": "none",
+      "h": 44,
+      "linkColor": "rgb(29, 29, 31)"
+    },
+    "layout": {
+      "sections": [
+        {
+          "name": "汇聚高端商务空间，赋",
+          "h": 760
+        },
+        {
+          "name": "按类型浏览",
+          "h": 536
+        },
+        {
+          "name": "热门商圈",
+          "h": 516
+        },
+        {
+          "name": "热门楼盘",
+          "h": 347
+        },
+        {
+          "name": "hm-band hm-stats",
+          "h": 192
+        },
+        {
+          "name": "精选房源",
+          "h": 424
+        },
+        {
+          "name": "为什么选择我们",
+          "h": 413
+        },
+        {
+          "name": "核心商圈房源",
+          "h": 461
+        },
+        {
+          "name": "资讯",
+          "h": 618
+        }
+      ],
+      "docScrollW": 1440,
+      "innerW": 1440,
+      "heroTitleFs": "56px",
+      "typeCols": 5,
+      "statsCols": 4,
+      "valuesCols": 3,
+      "railItemW": 400,
+      "newsBorders": [
+        "1px",
+        "1px",
+        "1px",
+        "1px",
+        "0px"
+      ],
+      "containerW": 1180
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ]
+  },
+  "1920-wide": {
+    "headerTop": {
+      "cls": "site-header site-header--transparent",
+      "bg": "rgba(0, 0, 0, 0)",
+      "linkColor": "rgb(255, 255, 255)"
+    },
+    "headerScrolled": {
+      "cls": "site-header",
+      "bg": "rgba(255, 255, 255, 0.8)",
+      "backdrop": "none",
+      "h": 44,
+      "linkColor": "rgb(29, 29, 31)"
+    },
+    "layout": {
+      "sections": [
+        {
+          "name": "汇聚高端商务空间，赋",
+          "h": 760
+        },
+        {
+          "name": "按类型浏览",
+          "h": 536
+        },
+        {
+          "name": "热门商圈",
+          "h": 516
+        },
+        {
+          "name": "热门楼盘",
+          "h": 347
+        },
+        {
+          "name": "hm-band hm-stats",
+          "h": 192
+        },
+        {
+          "name": "精选房源",
+          "h": 424
+        },
+        {
+          "name": "为什么选择我们",
+          "h": 413
+        },
+        {
+          "name": "核心商圈房源",
+          "h": 461
+        },
+        {
+          "name": "资讯",
+          "h": 618
+        }
+      ],
+      "docScrollW": 1920,
+      "innerW": 1920,
+      "heroTitleFs": "56px",
+      "typeCols": 5,
+      "statsCols": 4,
+      "valuesCols": 3,
+      "railItemW": 400,
+      "newsBorders": [
+        "1px",
+        "1px",
+        "1px",
+        "1px",
+        "0px"
+      ],
+      "containerW": 1180
+    },
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+    ]
+  }
+}
