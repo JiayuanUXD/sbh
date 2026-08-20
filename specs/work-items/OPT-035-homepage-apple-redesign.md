@@ -1,7 +1,7 @@
 # Task Packet：OPT-035 首页 Apple 中性极简改版（打样批次）
 
-> 状态：**设计已确认，待实施**
-> 创建日期：2026-08-20
+> 状态：**打样完成，待验收决策后推其余 5 个页面族**（实施结果见文末 §8）
+> 创建日期：2026-08-20　实施完成：2026-08-20
 > 分支：`feat/frontend-apple-redesign-c4e5`
 > 设计依据：`docs/SBH设计任务讨论/首页.dc.html`（含桌面 1440 / 移动 375 / 落地数值表）
 > 全量改版共 6 个页面族；本工作项只覆盖 token 层 + 首页打样，其余 5 页视打样结论另开工作项。
@@ -146,10 +146,67 @@ CJK 铁律：中文 `letter-spacing:normal`；唯一例外 21px 引导副标 `+0
 - 状态走查：正常 / 空（无精选、无商圈卡、无资讯、无 stats）/ 图片失败 / 长楼盘名 / `prefers-reduced-motion`
 - 对比度逐条核（≥ 4.5:1）：蓝底按钮白字、图上渐变压暗白字、`--ink-3` 占位符、内页换色后的软底色落点
 - 内页抽查 `/listings`、`/entrust`、`/news`：换色后无不可读组合、无版式破裂
-- 证据存 `artifacts/verification/homepage-apple-redesign/`
+- 证据存 `artifacts/verification/OPT-035/`
 
 ## 7. 文档回写（实现完成后）
 
 - `docs/SBH设计任务讨论/uploads/sbh-design-tokens.css`：改成与实现一致（144 间距、1180 容器、底色反转、阴影）
 - `docs/SBH设计任务讨论/uploads/sbh-design-system.md`：§4 R2（零阴影→有阴影）、§7 布局数值、Hero 一节
 - `payload-office-platform/.agent/frontend.md` §视觉：换成新色板与新字体栈
+
+---
+
+## 8. 实施结果（2026-08-20）
+
+分支 `feat/frontend-apple-redesign-c4e5`，13 个任务串行落地。
+
+### 已交付
+
+- **token 层**：`styles.css` §1.1 整块换成锁定稿取值，§1.1b 为内页留兼容别名（`--color-*` → 新 token）。
+- **导航页脚**：44px 浅色玻璃 `SiteHeader` / `SiteFooter`；首页首屏未滚动时头部透明压视频。
+- **首页九个 section**：`components/frontend/home/` 新建全套组件，`CityHomeView` 退化为编排层，`/` 与 `/[city]` 共用；样式在 `styles/home.css`（`.hm-*`）；旧首页样式三段已删。
+- **数据层**：`getHomepage` 扩展 stats 与核心商圈房源；根页取全平台汇总（facade 已锁 `lease` 渠道 + slug 去重）。
+- **迁移**：`CitySiteProfiles.avgResponseHours` 纯加列。
+- **文档回写**：`.agent/frontend.md` §视觉、`sbh-design-tokens.css`、`sbh-design-system.md`（后两者在未跟踪目录 `docs/SBH设计任务讨论/`）。
+
+### 与本文档原计划的偏差（实施中确认，以代码为准）
+
+| 项 | 计划 | 实际 | 理由 |
+|---|---|---|---|
+| 字体栈 | 含 `"Geist"` | 去掉 | Geist 需 webfont，本系统不引 webfont |
+| 数据带 | 进视口 1100ms 数字滚动 | 服务端真值直出，无滚动 | 任何「从 0 滚到真值」的写法在 SSR 首帧/禁用 JS/整页截图/观察器不触发下都会把真实库存渲染成 0，与「不显示 0」硬约束不可调和 |
+| Hero 文案 | `profile.hero` 优先 | 实现层固定设计稿文案 | `profile` 存的是旧营销文案，回退分支永远走不到；首屏是全站品牌陈述而非单城口径。`profile.hero` 仍驱动 `ComingSoonCityView` 与背景媒体 |
+| 资讯日期 | 设计稿 `2026-08-14` | `2026.08.14` | 站内 `/news` 与详情已有唯一权威格式，同字段不引第二种分隔符；零引用的 `formatNewsListDate` 已删 |
+| 类型卡计数 / 价值点序号 | `--ink-3` | `--ink-2` | ink-3 在白底 3.62:1 不达 AA，且两者都是真实内容 |
+| bento 小卡尺寸 | 332×232 / 504×280 | 388×232 / 582×280 | 计划数值按 1024 容器算，容器定为 1180 后按设计稿 markup 的 `flex: 2/1` 得出 |
+| 楼盘卡价格行 | 「N 元/㎡/天起」 | 无价格行 | `BuildingSummaryViewModel` 无起价数据，省略优于编造 |
+
+### 验证证据
+
+`artifacts/verification/OPT-035/`（四断点截图、禁用 JS、reduced-motion、图片全失败、内页抽查、两份探针 JSON）。
+还原度攻坚详细报告：`.superpowers/sdd/2026-08-20-homepage-apple-redesign/fidelity-report.md`。
+
+要点：四断点无横向溢出；实底文本 20 条对比度最低 4.66；`prefers-reduced-motion` 下动画停用且内容可见；五条路由 200 且零 pageerror。质量闸门 `typecheck` 绿 / `test` 3300 全过 / `lint` 0 error。
+
+### 带出本批次的未决项（下一批次先看这里）
+
+**需产品/运营裁决**
+
+1. **类型卡第 5 张「创意园区」与数据模型错配**：没有对应 `listingType`，因此无封面无计数，在一排照片里是一块纯灰。要么新增 `listingType`，要么改成楼盘 `grade` 入口，要么运营为该类型配封面。
+2. **768 断点价值点偏挤**：仍是 3 列、每列正文约 230px。设计稿没有 768 稿，未擅自加断点；若处理，建议 768–1023 改 2 列。
+
+**代码清理（留给页面改版批次顺手做）**
+
+3. `.text-copper` 工具类（`styles.css:3056`）已零 tsx 引用，未删。
+4. `--color-canvas-subtle`（`styles.css:1975`）/ `--color-copper-border`（`:6186`）是孤儿变量，靠内联旧色兜底；改版对应内页时一并处理。
+5. `LISTING_TYPE_LABEL` 与 `ListingCard` 等 5 处以上同型重复，存量模式，改版时收敛。
+6. 内页断点仍是历史散落值（767/1280/640/1024/1199/1023 等，含 `767`/`768`、`1023`/`1024` 并存的漏判），新体系统一用 767/1023，改版某页时整页收敛。
+
+**测试覆盖缺口**
+
+7. `typeSummaries` 的 cover 选取无直接断言。
+8. nearby 的 tie-break（`stableSortKey`）分支无用例。
+
+**性能小项**
+
+9. 根页 `getCachedHomepage` 与平台 stats 串行取（皆缓存读，`Promise.all` 可省一跳）。
