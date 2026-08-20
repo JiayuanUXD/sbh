@@ -137,6 +137,8 @@ export default function MobileFilterSheet(props: Readonly<{
   const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef } = props
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const capturedFocusRef = useRef<HTMLElement | null>(null)
+  // 「归还焦点」只有在**真的开过一次**之后才成立，见下方该 effect 的注释。
+  const hasBeenOpenRef = useRef(false)
   const titleId = useId()
 
   // Esc 关闭 + 焦点锁定（照抄 Modal.tsx 的实现）
@@ -189,8 +191,20 @@ export default function MobileFilterSheet(props: Readonly<{
 
   // 关闭时归还焦点：优先用调用方传入的必填 triggerRef（触摸场景下唯一可靠的来源），
   // triggerRef.current 意外为空时（例如调用方 ref 还没挂载完成）退化到打开时捕获的元素。
+  //
+  // `hasBeenOpenRef` 门槛不是防御性冗余，是修一个真实缺陷（OPT-036 Task 11 审查发现）：
+  // 首次挂载时 `open` 本来就是 `false`，这个 effect 照样会跑，于是**每次进入列表页**
+  // 焦点都会被抢到那个 `position: fixed` 的底部悬浮「筛选」按钮上——移动端每次访问
+  // `/[city]/listings`、`/[city]/sale` 都会：Tab 从页面最后一个控件开始、整页内容被
+  // 跳过，读屏软件一进页面就念「筛选」。这在静态预览壳里看不出来（那里组件不是页面
+  // 挂载即存在的），也没有任何截图能显示焦点环，只有接进真实路由才会暴露。
+  // 「归还焦点」这个动作只有在真的开过一次之后才有意义，因此用 ref 记录开合历史。
   useEffect(() => {
-    if (open) return
+    if (open) {
+      hasBeenOpenRef.current = true
+      return
+    }
+    if (!hasBeenOpenRef.current) return
     ;(triggerRef.current ?? capturedFocusRef.current)?.focus()
   }, [open, triggerRef])
 

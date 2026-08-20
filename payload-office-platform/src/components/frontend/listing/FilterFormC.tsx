@@ -69,14 +69,6 @@ function buildClearRowHref(basePath: string, currentParams: URLSearchParams, row
   return buildHref(basePath, sp)
 }
 
-/** 底栏「清除全部」：一次性删掉所有可见行的参数。 */
-function buildClearAllHref(basePath: string, currentParams: URLSearchParams, rows: readonly FilterRow[]): string {
-  const sp = cloneSearchParams(currentParams)
-  sp.delete('page')
-  for (const row of rows) sp.delete(row.key)
-  return buildHref(basePath, sp)
-}
-
 /** 行的当前命中项：activeValue 必须能在 options 里找到才算数——防御性，避免陈旧参数误显示 chip。 */
 function findActiveOption(row: FilterRow): FilterRow['options'][number] | undefined {
   if (row.activeValue == null) return undefined
@@ -101,8 +93,24 @@ export default function FilterFormC(props: Readonly<{
    * `CHANNEL_COPY` 一类的集中文案表取值，不要在调用点写字面量。
    */
   countNoun: string
+  /**
+   * 底栏「清除全部」的目标地址，**由调用方给定，本组件不自行推导**。
+   *
+   * 曾经的实现是内部按 `rows` 逐个 `delete(row.key)`，即「清掉我渲染出来的这几行」。
+   * 那个口径在接线后是错的（OPT-036 Task 11 审查发现）：编排层只把 4 行交给本组件
+   * （位置 / 类型 / 价格上限 / 面积下限），而 URL 上真正生效的筛选维度有 8 个
+   * （还有 `priceMin`、`areaMax`、`q`、`businessArea`、`metro`、`availableBefore`）。
+   * 于是在空态②里，屏幕上会同时出现两个都叫「清除全部」的控件——筛选条底栏这个
+   * 只清 4 个键，空态里那个清 8 个键——**同名不同义**：用户点了前者，仍然停在
+   * 零结果页面上，且看不出为什么。
+   *
+   * 修法是把口径交给唯一知道完整维度清单的那一层（编排层），而不是让组件从它
+   * 恰好收到的 `rows` 去猜。本组件仍然自己构造**单行**的清除 href（底栏 chip 的
+   * `×` 与再点已选项），那是行级作用域，不存在歧义。
+   */
+  clearAllHref: string
 }>): React.JSX.Element {
-  const { rows, basePath, currentParams, totalCount, countNoun } = props
+  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)
   const picks: readonly ActivePick[] = visibleRows.reduce<ActivePick[]>((acc, row) => {
     const option = findActiveOption(row)
@@ -149,12 +157,10 @@ export default function FilterFormC(props: Readonly<{
                 <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
               </Link>
             ))}
-            {/* 传 rows（完整列表）而非 visibleRows：某行候选数当前恰好归零会被隐藏
-                （见下方渲染用的 visibleRows），但它的 key 仍可能残留在 currentParams
-                里（真实场景：Task 11/12 按当前筛选算 facet，某维度算出 0 候选是正常
-                结果，不代表这一维度没有选中值）。清除全部必须把 URL 彻底清空，用
-                visibleRows 会漏删这类隐藏行的参数，「清除全部」名不副实。 */}
-            <Link href={buildClearAllHref(basePath, currentParams, rows)} className="ls-filterc__clear-all">
+            {/* href 由调用方给定：本组件收到的 rows 只是被渲染出来的那几行，不等于
+                URL 上真正生效的全部筛选维度——理由与那次「同一屏两个清除全部、作用域
+                不同」的缺陷见 clearAllHref 的 prop 注释。 */}
+            <Link href={clearAllHref} className="ls-filterc__clear-all">
               清除全部
             </Link>
           </>

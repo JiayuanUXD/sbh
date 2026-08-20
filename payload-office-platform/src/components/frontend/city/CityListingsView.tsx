@@ -230,6 +230,9 @@ export default async function CityListingsView({
   const unitDimension: ListingFilterDimensionSpec = {
     dimension: 'priceUnit',
     label: copy.unitDimensionLabel,
+    // `rentUnit` 同 price 维度里的 rentMin/rentMax：解析层仍接受的旧名，但
+    // canonical 不输出，因此当前调用链下删不到东西。保留它描述的是「这个维度
+    // 占用哪些 URL 键」，理由见 listing-filter-rows.ts 里 price 维度的注释。
     paramKeys: ['priceUnit', 'rentUnit'],
     activeText: activeUnit ? priceUnitLabel(activeUnit) : null,
   }
@@ -274,6 +277,14 @@ export default async function CityListingsView({
     copy.noun,
   ].join('')
 
+  // 页头「共 N 套」与单位分段上的「元/㎡/天 M」可以合法地不相等（实测 4 vs 3）：
+  // 前者数的是命中的房源，后者数的是**有报价**的房源——价格面议的那几套属于这个
+  // 单位的结果集，却没有价格可计入单位计数。两个数字都诚实，但同屏摆着又不解释，
+  // 读者只会当成 bug。因此选定单位时把差额说出来，而不是把其中一个数悄悄改掉去
+  // 迁就另一个（那才是真的在撒谎）。
+  const pricedInActiveUnit = activeUnit ? (unitCounts.get(activeUnit) ?? 0) : 0
+  const unpricedCount = activeUnit ? Math.max(0, totalDocs - pricedInActiveUnit) : 0
+
   const rangeStart = totalDocs > 0 ? (page - 1) * input.pageSize + 1 : 0
   const rangeEnd = Math.min(page * input.pageSize, totalDocs)
 
@@ -310,6 +321,12 @@ export default async function CityListingsView({
       )).totalDocs
     : 0
 
+  // 「清除全部条件」只有一个口径，两个控件共用同一个 href：筛选条底栏那个与空态②
+  // 里那个在同一屏上同时可见、文案同样是「清除全部」，作用域一旦不同就是同名不同义
+  // （用户点了其中一个仍停在零结果页，还看不出为什么）。因此编排层——唯一知道完整
+  // 维度清单的那一层——算一次，两处都用它，`FilterFormC` 不再从它收到的 rows 去猜。
+  // 保留 priceUnit：comp 稿按钮字面「清除全部条件 · 1,893 套」，1,893 正是某一个
+  // 计价单位下的总数；换单位由分段控件与提示条负责，不归「清除条件」管。
   const clearAllHref = buildDropDimensionHref(
     basePath,
     currentParams,
@@ -328,8 +345,13 @@ export default async function CityListingsView({
           共 <span className="sf-num">{totalDocs}</span>{' '}
           {activeUnit ? (
             <>
-              {copy.countNoun}按 <span className="ls-head__sub-strong">{priceUnitLabel(activeUnit)}</span> 报价 ·{' '}
-              {copy.unitNote}
+              {copy.countNoun}按 <span className="ls-head__sub-strong">{priceUnitLabel(activeUnit)}</span> 报价
+              {unpricedCount > 0 ? (
+                <>
+                  ，其中 <span className="sf-num">{unpricedCount}</span> {copy.countNoun}价格面议、未计入上方单位计数
+                </>
+              ) : null}{' '}
+              · {copy.unitNote}
             </>
           ) : (
             <>{copy.countNoun}{copy.noun}</>
@@ -354,6 +376,7 @@ export default async function CityListingsView({
           currentParams={currentParams}
           totalCount={totalDocs}
           countNoun={copy.countNoun}
+          clearAllHref={clearAllHref}
         />
       </div>
 

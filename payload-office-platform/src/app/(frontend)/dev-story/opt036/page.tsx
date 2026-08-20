@@ -731,6 +731,26 @@ const RELAXATIONS_ONE: readonly Relaxation[] = [
   { label: '可入驻时间放宽至 3 个月内（原 1 个月内）', hitCount: 41, href: '/shanghai/listings?availableWithin=3m' },
 ]
 
+/**
+ * 预览用的「清除全部」href。
+ *
+ * `FilterFormC.clearAllHref` 是必填 prop：真实接线里这个口径必须由编排层给定，
+ * 因为组件收到的 rows 不等于 URL 上生效的全部筛选维度（见该 prop 注释里那次
+ * 「同一屏两个清除全部、作用域不同」的缺陷）。预览页没有编排层，这里按夹具
+ * 自己的 rows 全集算——注意这**只**在夹具场景下成立，不是可以照抄到页面里的写法。
+ */
+function previewClearAllHref(
+  basePath: string,
+  currentParams: URLSearchParams,
+  rows: readonly FilterRow[],
+): string {
+  const sp = new URLSearchParams(currentParams)
+  sp.delete('page')
+  for (const row of rows) sp.delete(row.key)
+  const qs = sp.toString()
+  return qs ? `${basePath}?${qs}` : basePath
+}
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -856,6 +876,7 @@ export default function Opt036PreviewPage() {
                   currentParams={fixture.currentParams}
                   totalCount={fixture.totalCount}
                   countNoun="套"
+                  clearAllHref={previewClearAllHref('/shanghai/listings', fixture.currentParams, fixture.rows)}
                 />
               </div>
             ))}
@@ -869,6 +890,7 @@ export default function Opt036PreviewPage() {
                 currentParams={HIDDEN_ROW_FIXTURE.currentParams}
                 totalCount={HIDDEN_ROW_FIXTURE.totalCount}
                 countNoun="套"
+                clearAllHref={previewClearAllHref('/shanghai/listings', HIDDEN_ROW_FIXTURE.currentParams, HIDDEN_ROW_FIXTURE.rows)}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -881,6 +903,7 @@ export default function Opt036PreviewPage() {
                 currentParams={BUILDING_FILTER_FORM_C_FIXTURE.currentParams}
                 totalCount={BUILDING_FILTER_FORM_C_FIXTURE.totalCount}
                 countNoun="个楼盘"
+                clearAllHref={previewClearAllHref('/shanghai/buildings', BUILDING_FILTER_FORM_C_FIXTURE.currentParams, BUILDING_FILTER_FORM_C_FIXTURE.rows)}
               />
             </div>
           </div>

@@ -20,8 +20,9 @@ import { priceUnitLabel } from './format'
  *     （楼盘详情页的供给筛选 `BuildingSupplyInput` 才有）。造一个写进 URL 却不参与
  *     查询的筛选行，就是「点了没反应的死控件」；给房源搜索加一个真实的装修维度
  *     要动解析层白名单 + canonical + SupplyAdapter 的 where + 域层测试，属于
- *     Task 1/2 那一类域层工作，不在接线任务范围内。因此本批次少一行，**并在任务
- *     报告里显式记为遗留**，而不是渲染一个假行。
+ *     Task 1/2 那一类域层工作，不在接线任务范围内。因此本批次少一行，而不是渲染
+ *     一个假行；已立独立工作项跟踪：`specs/work-items/OPT-039-listing-decoration-dimension.md`
+ *     （字段本身已存在于 `ListingCardViewModel.decorationStatus`，缺的是查询链路）。
  *   - **价格行是「上限」单选而不是 comp 的区间桶**：`FilterRow` 一行只写一个
  *     URL 参数（`buildOptionHref` 的契约），而区间要同时写 `priceMin`+`priceMax`。
  *     comp 自己的空态②退路也把这个维度叫做「租金上限」（`≤ 6 元/㎡/天 → ≤ 8`），
@@ -185,8 +186,13 @@ export function buildListingFilterRows(params: Readonly<{
     {
       dimension: 'price',
       label: priceDimensionLabel,
-      // 旧名 rentMin/rentMax 仍被解析层接受，构造「去掉这个条件」的 href 时
-      // 必须一并删掉，否则旧链接上的残留值会在放宽后立刻把条件加回来。
+      // `rentMin`/`rentMax` 是解析层仍接受的旧参数名。**当前调用链下它们删不到任何
+      // 东西**：编排层构造 href 用的 `currentParams` 来自 `buildCanonicalSearchParams`，
+      // 而 canonical 只输出新名（见 search-params.ts 里「只输出新名」那段注释）。
+      // 保留它们是为了让这张表描述的是「这个维度占用哪些 URL 键」这一事实本身——
+      // 哪天有人改成拿原始 searchParams 构造 href（旧链接直接带着 rentMax 进来），
+      // 漏删就会让「放宽租金」点完条件又原样长回来，且不报错。删这两个键要连同
+      // 解析层的旧名兼容一起删，不能只删这一半。
       paramKeys: ['priceMin', 'priceMax', 'rentMin', 'rentMax'],
       activeText:
         input.priceMin != null || input.priceMax != null
