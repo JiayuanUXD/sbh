@@ -269,57 +269,86 @@ SKIP_MIGRATION_CHECK=1 git commit -m "refactor(supply): 删除房源商户关系
 
 ---
 
-### Task 6：删表迁移
+### Task 6：删除 collection + 删表迁移
+
+> ⚠️ **本任务的步骤顺序在 Task 5 评审后被重写。**原顺序（先 `migrate:create`、最后摸 hook）**不可行**：
+> `migrate:create` 拿「当前 config 生成的 schema」与 `src/migrations/*.json` 快照做 diff，
+> collection 只要还注册着，diff 就是空的，产不出 `DROP TABLE`。必须先摘注册再生成迁移。
+>
+> Task 5 把以下工作推给了本任务（它们互相依赖，**必须在同一步一次做完**，任何一件单独做都会 typecheck 红）：
+> collection 本体、`payload.config` 注册、`listing-delete-cleanup.ts` 及其测试、
+> `Listings.ts` 的 `beforeDelete`、`scripts/seed-test-data.ts`、`tests/admin-navigation-payload-config.test.ts`。
 
 **Files:**
+- Delete: `src/collections/ListingMerchantRelations.ts`、`src/domain/supply/listing-delete-cleanup.ts`、`tests/listing-delete-cleanup.test.ts`
+- Modify: `src/payload.config.ts`、`src/collections/Listings.ts`、`scripts/seed-test-data.ts`、`tests/admin-navigation-payload-config.test.ts`、`tests/preflight-migrations.test.ts`
 - Create: `src/migrations/<timestamp>_drop_listing_merchant_relations.ts` + `.json`
 
-- [ ] **Step 1: 生成迁移**
+- [ ] **Step 1: 一次性完成全部删除与接线摘除**
+
+同一次编辑里做完：摘 `payload.config.ts` 的 import 与 collections 数组项；删 collection 文件；删 `listing-delete-cleanup.ts` 与其测试；`Listings.ts` 去掉 `beforeDelete` 与对应 import；`scripts/seed-test-data.ts:690,756,759` 去掉对该 collection 的 find/create（并补上 `listings.merchant` 的写入——该脚本建 listing 时不写 merchant，读侧改造后造出来的房源会被 `NO_SUPPLY_MERCHANT` 排除）；`tests/admin-navigation-payload-config.test.ts:24` 摘掉该 slug。
+
+中途不要跑 typecheck 期待它绿——这几件事之间互相依赖，全做完才会绿。
+
+- [ ] **Step 2: 重生成生成物**
 
 ```bash
-cd payload-office-platform && pnpm exec payload migrate:create drop_listing_merchant_relations
+pnpm payload generate:importmap && pnpm generate:types
+grep -c "prefix" src/payload-types.ts   # 必须是 2
 ```
 
-- [ ] **Step 2: 补写头注释与回滚说明**
+`payload.config` 这次真的变了，pre-commit 会校验 `importMap.js` 同步变更。
 
-说明：为何删（有效期机制从未使用，2208 条 1:1、0 条终止）、切换后可见房源 2169 → 2172、0 条消失。**回滚说明**：`down()` 重建表结构但**不恢复数据**——2208 条关系记录一旦删除不可逆。回滚前需先从备份恢复，或接受关系历史丢失（`listings.merchant` 仍在，供给关系本身不丢）。
-
-- [ ] **Step 3: 更新迁移计数守卫**
-
-`tests/preflight-migrations.test.ts` 里两处 `toBe(N)` 同步 +1。
-
-- [ ] **Step 4: dry-run + 全量测试**
+- [ ] **Step 3: 生成删表迁移（必须在 Step 1 之后）**
 
 ```bash
-pnpm migrate:dry-run && pnpm typecheck && pnpm test
+pnpm exec payload migrate:create drop_listing_merchant_relations
 ```
 
-- [ ] **Step 5: 本地库应用并端到端验证**
+打开生成的文件确认 `up()` 里确实有 `DROP TABLE`。**若是空迁移，说明 Step 1 的注册没摘干净**，回去查。
+
+- [ ] **Step 4: 补写头注释与回滚说明**
+
+说明：为何删（有效期机制从未使用，2208 条 1:1、0 条终止）、切换后可见房源 2169 → 2172、0 条消失。
+**回滚说明**：`down()` 重建表结构但**不恢复数据**——2208 条关系记录一旦删除不可逆。回滚前需从备份恢复，或接受关系历史丢失（`listings.merchant` 仍在，供给关系本身不丢）。
+
+- [ ] **Step 5: 更新迁移计数守卫**
+
+`tests/preflight-migrations.test.ts` 的两处 `toBe(56)` 改 57。
+
+- [ ] **Step 6: dry-run 会被拦，这是预期行为**
+
+```bash
+pnpm migrate:dry-run
+```
+
+`scripts/migrate-dry-run.ts:33-37` 把 `/DROP\s+TABLE/i` 定为 severity `block`，会 exit 1。
+**这是设计如此的人工确认闸门，按脚本约定放行；不要改脚本、不要用 `--no-verify` 绕过。**
+在报告里记录该拦截的原文输出。
+
+- [ ] **Step 7: 全量验收**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test
+```
+
+- [ ] **Step 8: 本地库应用并端到端验证（必须在迁移应用之后做）**
 
 ```bash
 pnpm exec payload migrate
 ```
 
-然后建一条新房源（只填 title/building/listingType + merchant），确认 `resolveEffectiveSupply` 返回 `eligible=true`，且删除房源不再报 23502。
+然后：建一条新房源（只填 title/building/listingType/merchant），确认 `resolveEffectiveSupply` 返回 `eligible=true`；再硬删该房源，确认不报错。
+⚠️ 迁移**应用之前**别试删房源——那时 collection 已摘注册，`payload.delete` 会抛 APIError。
 
-- [ ] **Step 6: 表删完才能摸 delete-cleanup hook**
-
-表已不存在，清理 hook 失去意义；此前删它会让删房源重新报 23502。
-
-```bash
-cd payload-office-platform
-git rm src/domain/supply/listing-delete-cleanup.ts tests/listing-delete-cleanup.test.ts
-```
-
-`Listings.ts` 移除 `beforeDelete: [cleanupListingRelations]` 及其 import。然后确认删房源仍正常（本地库实测）。
-
-- [ ] **Step 7: 提交**
+- [ ] **Step 9: 提交**
 
 ```bash
-pnpm typecheck && pnpm test
-cd .. && git add payload-office-platform/src/migrations/ payload-office-platform/tests/preflight-migrations.test.ts payload-office-platform/src/domain/supply/listing-delete-cleanup.ts payload-office-platform/tests/listing-delete-cleanup.test.ts payload-office-platform/src/collections/Listings.ts
-git commit -m "feat(migration): 删除 listing_merchant_relations 表与配套清理 hook"
+git add <上述所有路径>
+git commit -m "feat(migration): 删除 listing_merchant_relations 表与配套 collection"
 ```
+
+**部署时序备案**（写进 PR，不用改代码）：`Dockerfile:74` 是 `migrate-locked.ts && exec pnpm start`，迁移在服务起来前跑，新代码不会遇到「hook 已删但表还在」。反向的窄窗口存在——灰度期间旧容器仍挂着 `beforeDelete`，而新容器已 DROP 表，此时在旧容器上硬删房源会报 relation does not exist。属后台低频操作，可接受。
 
 ---
 
