@@ -92,7 +92,8 @@ export default function ListingCompletenessCardClient() {
       description: pick(description, doc.description),
       contactBroker: pick(contactBroker, doc.contactBroker),
       galleryCount: rowCount(galleryValue, doc.gallery),
-      // OPT-034 起 `listings.merchant` 即唯一真相，不再是近似。
+      // 非空判定已精确（OPT-034 起直接看 listings.merchant），但商户资格仍由
+      // 前台精筛 §9-§10 判定，此处不判。
       hasValidMerchantRelation: pick(merchant, doc.merchant) != null,
     }
     return checkListingCompleteness(snapshot, 'submit')

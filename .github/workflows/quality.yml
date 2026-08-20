@@ -137,7 +137,7 @@ jobs:
         run: pnpm exec payload migrate
       - name: Seed business data
         run: pnpm seed
-      - name: Seed media（gallery ≥3，否则有效供给精筛 §6 排除全部房源 → 前台 0 套）
+      - name: Seed media（gallery ≥3，否则完整度校验拦截自动发布，房源停在草稿态 → 前台 0 套；§6 媒体数量已于 2026-08-19 从有效供给精筛移除，不再是可见性条件）
         # CI 走 sharp 本地合成占位图（seed-media 里 OFFLINE 分支），不依赖外网 picsum。
         run: pnpm seed:media
       - name: Build production bundle

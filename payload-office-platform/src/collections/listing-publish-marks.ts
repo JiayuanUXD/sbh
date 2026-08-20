@@ -25,8 +25,10 @@ import { getSubmitRequiredFields } from '@/domain/review/listing-completeness'
  *
  * 多数是同名直连。两个例外：
  *   - `price` 标在 group 本身（金额/币种/周期/单位四件套缺一不可，标在任一子字段都不准）；
- *   - `merchant` 标在 Listings 上的字段本身。OPT-034 起 `listings.merchant` 即
- *     唯一真相，不再是近似；标它就是标真实门槛，真实校验仍由 endpoint 兜。
+ *   - `merchant` 标在 Listings 上的字段本身。非空判定已精确（OPT-034 起直接看
+ *     `listings.merchant` 是否有值），但商户资格（启用/资质有效/服务城市覆盖）
+ *     仍由前台精筛 §9-§10 判定，此处不判；标它只是标非空门槛，真实校验仍由
+ *     endpoint 兜。
  */
 const FIELD_FOR_KEY: Record<string, string> = {
   title: 'title',

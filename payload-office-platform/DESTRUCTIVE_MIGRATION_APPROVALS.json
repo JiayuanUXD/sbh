@@ -6,7 +6,7 @@
       "approvedIn": "OPT-034 Task 6",
       "approvedWhat": "删除 listing_merchant_relations 表本体（DROP TABLE，级联带走 payload_locked_documents_rels 上指向它的外键约束）及该多态关系表上对应的 listing_merchant_relations_id 列（DROP COLUMN）。后者是 Payload 多态关系机制的必然副产品：摘掉一个 collection 的注册，它在 payload_locked_documents_rels 上对应的那一列就要一并删除。",
       "impact": "生产环境涉及 2208 条 listing_merchant_relations 关系记录，随 DROP TABLE 一并删除，不可逆。有效期机制（effectiveFrom/effectiveTo）从未在业务上使用——2208 条记录全部是 1:1（每条房源恰好一条现行关系），0 条设置过 effectiveTo。读侧已在 OPT-034 Task 1-4 全部迁移到 listings.merchant 字段，此表切换后零消费者；切换前后可见房源数 2169→2172，0 条因切换而消失。",
-      "approvedFileSha256": "6ea57ddb32601773a38278e246c74ed35d83f896b83c6748719982fe9f6ecbae"
+      "approvedFileSha256": "a7005d1f0bdc075fd0aa6fb6e659db017bde4a968f06790f3461ff2453895097"
     }
   ]
 }

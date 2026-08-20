@@ -298,7 +298,7 @@ function main() {
     }
     for (const h of m.approvedHits) {
       console.log(`    [APPROVED] L${h.line}: ${h.pattern} —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json`)
-      console.log(`      reason:  ${h.reason}`)
+      console.log(`      note:    该模式默认禁止，已按批准清单人工核准放行`)
       console.log(`      snippet: ${h.snippet}`)
     }
   }

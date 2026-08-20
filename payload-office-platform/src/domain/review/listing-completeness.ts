@@ -75,7 +75,11 @@ export interface ListingCompletenessSnapshot {
   contactBroker?: unknown
   /** 有效图集图片数(调用方解析 gallery 后传入)。 */
   galleryCount?: number
-  /** 是否已选供给商户。OPT-034 起 `listings.merchant` 即唯一真相，不再是近似。 */
+  /**
+   * 是否已选供给商户。非空判定已精确（OPT-034 起直接看 `listings.merchant` 是否
+   * 有值），但商户资格（启用/资质有效/服务城市覆盖）仍由前台精筛 §9-§10 判定，
+   * 此处不判。
+   */
   hasValidMerchantRelation?: boolean
 }
 

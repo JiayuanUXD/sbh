@@ -51,7 +51,8 @@ export const adminAutoPublish: CollectionBeforeChangeHook = async ({ data, origi
     reviewStatus: merged.reviewStatus,
     snapshot: {
       ...snapshot,
-      // 与审核端点同口径：OPT-034 起 `listings.merchant` 即唯一真相，不再是近似。
+      // 与审核端点同口径：非空判定已精确（listings.merchant 是否有值），但商户
+      // 资格仍由前台精筛 §9-§10 判定，此处不判。
       hasValidMerchantRelation: snapshot.merchant != null,
     },
   })

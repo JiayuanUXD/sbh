@@ -1,5 +1,5 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
@@ -674,8 +674,17 @@ export const Listings: CollectionConfig = {
                   label: '供给商户',
                   type: 'relationship',
                   relationTo: 'merchants',
+                  // 候选限制到启用 + 资质已通过，拦掉「选中已停用/资质过期商户」这类
+                  // 写入即失配的操作（表现与事故案例 #2464 一致：后台三处信号全绿、
+                  // 前台因 MERCHANT_INELIGIBLE 精筛判 404）。服务城市覆盖这一条未覆盖
+                  // ——filterOptions 拿不到房源所属楼盘的城市（跨对象上下文），强做
+                  // 会引入复杂度和误拦，仍由前台精筛 §10 兜底。
+                  filterOptions: (): Where => ({
+                    and: [{ status: { equals: 'active' } }, { qualificationStatus: { equals: 'valid' } }],
+                  }),
                   admin: {
-                    description: '房源供给关系的当前商户;有效期与快照规则见供给关系。',
+                    description:
+                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。候选已限制为启用+资质有效；服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
                     width: COL_4,
                   },
                 }),
