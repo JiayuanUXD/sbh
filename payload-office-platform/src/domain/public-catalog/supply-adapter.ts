@@ -791,16 +791,21 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf).toISOString()
 
-      // 每个 WHERE 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
-      // isListingEffectivelySupplied 的逐条精筛一一对应：
+      // 每个 WHERE / JOIN 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
+      // isListingEffectivelySupplied 的业务口径一一对应（这条对应关系是设计
+      // 意图，不是本文件自动验证的——见下方 verify 脚本的能力边界说明）：
       //   l.deleted_at / publication_status / review_status / supply_visibility_hold
       //                                            → getEffectiveSupplyWhere
       //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
+      //   JOIN merchants ON l.merchant_id          → §8 房源已设置供给商户（INNER JOIN 排除 NULL）
       //   m.status / qualification_*               → §9 商户启用 + 资质有效
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
       //   listing_reports.supply_paused            → §5 举报暂停排除
-      // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
-      // 「SQL vs 逐条精筛」全量比对守护，改动规则时必须重跑。
+      // scripts/verify-leasable-area-parity.ts 对全部楼盘做的是本方法与
+      // findEffectiveListingsByBuilding（同样是纯 SQL 路径）互相校验，能抓住
+      // 「两处 SQL 只改了一处」这类漂移，但不比对、也不能证明与上面这张
+      // TypeScript 规则表的口径一致性；改动任一处规则后仍应重跑，但结果一致
+      // 不能替代对 TS 精筛层的人工核对。
       const sql = `
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
 FROM listings l
