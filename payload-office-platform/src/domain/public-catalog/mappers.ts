@@ -405,6 +405,10 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
     nearestMetro: mapDistrict(populated?.nearestMetro),
     completionDate: raw.completionDate ?? undefined,
+    typicalFloorArea:
+      typeof raw.developerAndScale?.typicalFloorArea === 'number'
+        ? raw.developerAndScale.typicalFloorArea
+        : undefined,
   }
 }
 

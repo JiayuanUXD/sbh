@@ -1,14 +1,22 @@
 /**
- * 在租面积/在租套数口径比对：SQL 聚合 vs 逐条精筛
+ * 在租面积/在租套数口径比对：两条独立维护的 SQL 实现之间是否漂移
  *
- * SupplyAdapter.aggregateEffectiveSupplyByBuildings 用一条 SQL 同时求楼盘在租面积
- * 与在租套数，把有效供给规则下推到了 WHERE 子句；而 findEffectiveListingsByBuilding
- * 走的是「粗筛 where + 逐条 isListingEffectivelySupplied 精筛」。两条路径必须永远
- * 同口径，否则楼盘卡上的「在租 xxx ㎡」「N 套在租」会与详情页、列表页的房源集合对不上。
+ * SupplyAdapter.aggregateEffectiveSupplyByBuildings 与 findEffectiveListingsByBuilding
+ * 各自是一段独立维护的原始 SQL 字符串，各自把同一批有效供给规则手写成一遍 WHERE 子句——
+ * **两者都不调用** `isListingEffectivelySupplied`，所以本脚本验证的不是「SQL 聚合 vs
+ * 逐条精筛」这种双路径互证，而是「改一条谓词时是否忘了同步改另一条」的字符串级漂移。
+ * 这仍然有真实价值（两处规则各改各的、悄悄对不上是真实会发生的疏漏），但不能替代
+ * 「与 isListingEffectivelySupplied 真正同口径」的证明——那是另一层目前未覆盖的风险。
  *
  * 本脚本对当前库中全部楼盘逐个比对两条路径的面积合计与套数，任一栋对不上即非零退出。
  * **改动任何有效供给规则后必须重跑**（新增字段、调整商户资质判定、改举报暂停
  * 语义等）。SQL 侧的规则对照见 supply-adapter.ts 中该方法的注释。
+ *
+ * 已知限制：findEffectiveListingsByBuilding 侧受 PUBLIC_CATALOG_CANDIDATE_LIMIT
+ * （1000）封顶，aggregateEffectiveSupplyByBuildings 侧的 SQL 聚合不封顶——若某栋楼
+ * 真实有效房源数超过 1000，doc 侧的 count/area 会被截断，产生假阳性不一致。当前
+ * 生产数据规模下不会触发，一旦真的报错先确认涉事楼盘是否触顶这个上限，而不是
+ * 直接当作有效供给规则分叉去排查。
  *
  *   pnpm verify:leasable-area
  */
@@ -42,8 +50,8 @@ for (const id of ids) {
 }
 const msDoc = Date.now() - tDoc
 
-console.log(`SQL 聚合  : ${msSql}ms, ${sqlMap.size} 栋有在租`)
-console.log(`逐条精筛  : ${msDoc}ms, ${docMap.size} 栋有在租`)
+console.log(`聚合 SQL（aggregateEffectiveSupplyByBuildings）: ${msSql}ms, ${sqlMap.size} 栋有在租`)
+console.log(`逐楼盘 SQL（findEffectiveListingsByBuilding）  : ${msDoc}ms, ${docMap.size} 栋有在租`)
 
 let bad = 0
 for (const id of ids) {

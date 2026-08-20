@@ -145,6 +145,14 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
   listingCount?: number
   /** 竣工日期（ISO 字符串）；楼盘列表页 completedAfter 筛选与 completion-desc 排序用 */
   completionDate?: string
+  /**
+   * 标准层面积（单位㎡），来自 Buildings.developerAndScale.typicalFloorArea——
+   * 楼盘固有属性，与在租状态无关（详情页「建筑信息」事实行已在用同一个字段，
+   * 见 mappers.ts getBuildingDetail 的 fact('标准层面积', scale.typicalFloorArea)）。
+   * 楼盘列表页「暂无在租」紧凑行用它替代 leasableArea——那是在租面积，对暂无
+   * 在租的楼盘恒为 undefined，语义上不能顶替标准层面积。
+   */
+  typicalFloorArea?: number
 }>
 
 /**

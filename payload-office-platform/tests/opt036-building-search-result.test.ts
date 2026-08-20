@@ -27,6 +27,14 @@ describe('applyBuildingFilters', () => {
   it('无条件时原样返回', () => {
     expect(applyBuildingFilters(docs, { sort: 'stock-desc', page: 1, pageSize: 24 })).toHaveLength(3)
   })
+  it('onlyWithStock：有 listingCount 但面积缺失的楼盘仍算有在租（OR 语义，不是只认 leasableArea）', () => {
+    const docsWithCount = [
+      b({ slug: 'count-only', listingCount: 3 }),
+      b({ slug: 'neither' }),
+    ]
+    expect(applyBuildingFilters(docsWithCount, { onlyWithStock: true, sort: 'stock-desc', page: 1, pageSize: 24 }).map(d => d.slug))
+      .toEqual(['count-only'])
+  })
 })
 
 describe('sortBuildings', () => {
@@ -37,6 +45,24 @@ describe('sortBuildings', () => {
   it('同值时按 slug 稳定收束', () => {
     const docs = [b({ slug: 'q', leasableArea: 100 }), b({ slug: 'p', leasableArea: 100 })]
     expect(sortBuildings(docs, 'area-desc').map(d => d.slug)).toEqual(['p', 'q'])
+  })
+  it('stock-desc 按 listingCount 排，不是 leasableArea 的别名——两种排序在这组数据上给出相反的顺序', () => {
+    // a 套数多但面积小；b 套数少但面积大：area-desc 与 stock-desc 必须给出相反顺序，
+    // 这才是真正证明 stock-desc 没有偷偷退化成 area-desc 的断言（同序的构造证明不了什么）。
+    const docs = [
+      b({ slug: 'a', listingCount: 50, leasableArea: 1000 }),
+      b({ slug: 'b', listingCount: 10, leasableArea: 9000 }),
+    ]
+    expect(sortBuildings(docs, 'stock-desc').map(d => d.slug)).toEqual(['a', 'b'])
+    expect(sortBuildings(docs, 'area-desc').map(d => d.slug)).toEqual(['b', 'a'])
+  })
+  it('stock-desc 把缺失 listingCount 排到末尾而不是当作 0 混在中间', () => {
+    const docs = [b({ slug: 'x' }), b({ slug: 'y', listingCount: 5 }), b({ slug: 'z', listingCount: 9 })]
+    expect(sortBuildings(docs, 'stock-desc').map(d => d.slug)).toEqual(['z', 'y', 'x'])
+  })
+  it('stock-desc 同值时按 slug 稳定收束', () => {
+    const docs = [b({ slug: 'q', listingCount: 7 }), b({ slug: 'p', listingCount: 7 })]
+    expect(sortBuildings(docs, 'stock-desc').map(d => d.slug)).toEqual(['p', 'q'])
   })
   it('grade 按声明序位排序：超甲级 > 甲级 > 创意园区 > 独栋办公', () => {
     const docs = [
@@ -71,6 +97,16 @@ describe('partitionByStock', () => {
     const { withStock, withoutStock } = partitionByStock(docs)
     expect(withStock.map(d => d.slug)).toEqual(['a', 'd'])
     expect(withoutStock.map(d => d.slug)).toEqual(['b', 'c'])
+  })
+  it('有 listingCount 但面积缺失的楼盘仍进 withStock（OR 语义）——否则会渲染成一句用户可见的假话', () => {
+    const docs = [
+      b({ slug: 'count-only', listingCount: 12 }),
+      b({ slug: 'area-only', leasableArea: 800 }),
+      b({ slug: 'neither' }),
+    ]
+    const { withStock, withoutStock } = partitionByStock(docs)
+    expect(withStock.map(d => d.slug)).toEqual(['count-only', 'area-only'])
+    expect(withoutStock.map(d => d.slug)).toEqual(['neither'])
   })
 })
 

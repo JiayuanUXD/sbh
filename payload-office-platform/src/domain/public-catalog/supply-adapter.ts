@@ -103,8 +103,12 @@ export interface SupplyAdapter {
    * 「暂无在租」——不会有某栋楼出现在 Map 里却是 count: 0 的情况。
    *
    * 与 findEffectiveListingsByBuilding 的区别：本方法只求两个数，不需要把房源
-   * 文档取出来。实现走 SQL 聚合，口径与逐条精筛一致（见实现处的规则对照与
-   * scripts/verify-leasable-area-parity.ts 的全量比对——该脚本同时比对面积与套数）。
+   * 文档取出来。两者是两条独立维护的原始 SQL 字符串——不是「SQL 聚合 vs 逐条
+   * isListingEffectivelySupplied 精筛」这种双路径互证，findEffectiveListingsByBuilding
+   * 内部同样是手写 SQL（见该方法实现处），从不调用 isListingEffectivelySupplied。
+   * scripts/verify-leasable-area-parity.ts 比对两条 SQL 的结果是否一致（面积与
+   * 套数都比对），能防住「改一条谓词忘了改另一条」的字符串漂移，但不能替代
+   * 「与 isListingEffectivelySupplied 真正同口径」的证明——那需要另一层测试。
    */
   aggregateEffectiveSupplyByBuildings(
     buildingIds: readonly (number | string)[],
@@ -805,17 +809,21 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf).toISOString()
 
-      // 每个 WHERE 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
-      // isListingEffectivelySupplied 的逐条精筛一一对应：
+      // 每个 WHERE 子句对应有效供给的哪条规则（意图对照，不是运行时对照）：
       //   l.deleted_at / publication_status / review_status / supply_visibility_hold
-      //                                            → getEffectiveSupplyWhere
-      //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
+      //                                            → getEffectiveSupplyWhere 覆盖的字段
+      //   b.* / city.status / dist.status          → getListingPublicBuildingWhere 覆盖的字段
       //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
       //   m.status / qualification_*               → §9 商户启用 + 资质有效
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
       //   listing_reports.supply_paused            → §5 举报暂停排除
-      // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
-      // 「SQL vs 逐条精筛」全量比对守护（面积与套数都比对），改动规则时必须重跑。
+      //
+      // 注意这不是「SQL vs isListingEffectivelySupplied 逐条精筛」的双路径互证——
+      // findEffectiveListingsByBuilding（对照方）自己也是一段独立维护的原始 SQL，
+      // 同样不调用 isListingEffectivelySupplied。scripts/verify-leasable-area-parity.ts
+      // 比对的是这两条 SQL 字符串的结果是否一致（面积与套数都比对），能防住
+      // 「改一条谓词忘了改另一条」的字符串漂移，改动任一条时都必须重跑；但它
+      // 不证明两者与 isListingEffectivelySupplied 真正同口径——那是另一层未覆盖的风险。
       //
       // COUNT(*) 与 SUM(l.area) 同一个 GROUP BY，天然同谓词同 asOf 同渠道——
       // 不会出现"面积聚合漏了某条件、套数聚合又漏了另一条"这种口径分叉。

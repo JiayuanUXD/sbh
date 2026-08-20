@@ -237,7 +237,10 @@ export function applyBuildingFilters(
     if (metroSet && (!doc.nearestMetro || !metroSet.has(doc.nearestMetro.slug))) return false
 
     if (input.onlyWithStock) {
-      if (doc.leasableArea == null || doc.leasableArea <= 0) return false
+      // 与 partitionByStock 同一 OR 语义：listingCount 是权威在租信号，
+      // leasableArea 是兜底（面积字段数据质量问题不该连累有真实套数的楼盘）。
+      const hasStock = (doc.listingCount ?? 0) > 0 || (doc.leasableArea ?? 0) > 0
+      if (!hasStock) return false
     }
 
     if (input.leasableAreaMin != null) {
@@ -260,8 +263,14 @@ export function applyBuildingFilters(
  * 稳定排序楼盘列表；一律以 `slug.localeCompare` 收束，保证同权重时
  * 重复请求不会重新洗牌（相同输入必须产出相同顺序）。
  *
- * `leasableArea` / `completionDate` 缺失恒排到末尾，不当 0——否则一个
- * 缺失面积的楼盘会在 area-desc 里排到「0㎡」楼盘前面，语义反了。
+ * `listingCount` / `leasableArea` / `completionDate` 缺失恒排到末尾，不当 0——
+ * 否则一个缺失数据的楼盘会在 desc 排序里排到「0」楼盘前面，语义反了。
+ *
+ * `stock-desc`（「在租最多」）与 `area-desc`（「在租面积」）曾经共用同一个 case、
+ * 都按 leasableArea 排——这会让「在租最多」在 Task 8 排序 UI 落地后变成一句
+ * 视觉谎言：套数与面积不是同一个数，两栋楼完全可能反着序。listingCount 是
+ * aggregateEffectiveSupplyByBuildings 与面积同一次聚合出的权威在租信号，
+ * stock-desc 必须按它排，不能再借道面积。
  */
 export function sortBuildings(
   docs: readonly BuildingSummaryViewModel[],
@@ -270,7 +279,15 @@ export function sortBuildings(
   const arr = docs.slice()
   arr.sort((a, b) => {
     switch (sort) {
-      case 'stock-desc':
+      case 'stock-desc': {
+        const av = a.listingCount
+        const bv = b.listingCount
+        if (av == null && bv == null) break
+        if (av == null) return 1
+        if (bv == null) return -1
+        if (av !== bv) return bv - av
+        break
+      }
       case 'area-desc': {
         const av = a.leasableArea
         const bv = b.leasableArea
@@ -302,10 +319,17 @@ export function sortBuildings(
 }
 
 /**
- * 分组：有在租面积（>0）的楼盘在前，暂无在租的降权到后面（楼盘列表方案 A）。
+ * 分组：有在租（套数或面积任一为正）的楼盘在前，暂无在租的降权到后面（楼盘列表方案 A）。
  *
- * 组内保持入参相对顺序（不重新排序），只做稳定分区。缺失面积与 0 都归入
- * withoutStock——两者对用户而言都是「现在看不到在租房源」。
+ * 组内保持入参相对顺序（不重新排序），只做稳定分区。
+ *
+ * OR 语义而非只看 leasableArea：listingCount 是权威在租信号，与 leasableArea
+ * 出自同一次 aggregateEffectiveSupplyByBuildings 聚合，但两者各自独立判空
+ * （面积数据质量问题不该连累套数）。只看 leasableArea 会让「有真实
+ * listingCount 但面积记录缺失」的楼盘被错误分进 withoutStock，渲染成
+ * 「暂无在租」+「上新通知我」——对一栋确实有在租房源的楼盘而言这是一句
+ * 用户可见的假话。缺失套数与面积、以及两者都为 0，仍然归入
+ * withoutStock——那才是「现在看不到在租房源」的真实语义。
  */
 export function partitionByStock(
   docs: readonly BuildingSummaryViewModel[],
@@ -313,7 +337,8 @@ export function partitionByStock(
   const withStock: BuildingSummaryViewModel[] = []
   const withoutStock: BuildingSummaryViewModel[] = []
   for (const doc of docs) {
-    if (doc.leasableArea != null && doc.leasableArea > 0) {
+    const hasStock = (doc.listingCount ?? 0) > 0 || (doc.leasableArea ?? 0) > 0
+    if (hasStock) {
       withStock.push(doc)
     } else {
       withoutStock.push(doc)
