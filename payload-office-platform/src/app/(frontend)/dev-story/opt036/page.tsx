@@ -3,10 +3,13 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
+import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend/listing/ExcludedUnitsBar'
 import FilterFormC, { type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import FilterPill from '@/components/frontend/listing/FilterPill'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
+import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
 import type { BuildingSummaryViewModel, ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
+import { rentUnitLabel } from '@/lib/frontend/format'
 
 /**
  * OPT-036 列表页组件预览（仅开发环境）
@@ -573,6 +576,59 @@ const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
   totalCount: 24,
 }
 
+// ---------------------------------------------------------------------------
+// Fixture：PriceUnitSegment + ExcludedUnitsBar（Task 7）—— 三种单位各为当前态
+// 一组（验证选中态白底 600、数字 tabular-nums、切换 href 只改 priceUnit 且删
+// page）；提示条覆盖「另有两种单位有货」「只有一种单位有货（另一单位计数 0
+// 被组件自身过滤掉）」「其余单位皆为 0（整条应返回 null，不留白底占位）」三种
+// 情形。currentParams 混入 district / sort=price-asc / page=3：验证切换单位
+// 时排序与其它筛选原样透传，只有 priceUnit 变、page 被删。
+// ---------------------------------------------------------------------------
+
+const UNIT_LABELS: Readonly<Record<'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month', string>> = {
+  'rmb-sqm-day': rentUnitLabel('rmb-sqm-day'),
+  'rmb-month': rentUnitLabel('rmb-month'),
+  'rmb-seat-month': rentUnitLabel('rmb-seat-month'),
+}
+
+const UNIT_COUNTS: Readonly<Record<'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month', number>> = {
+  'rmb-sqm-day': 1893,
+  'rmb-month': 536,
+  'rmb-seat-month': 418,
+}
+
+function priceUnitOptions(): readonly PriceUnitOption[] {
+  return (['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'] as const).map((value) => ({
+    value,
+    label: UNIT_LABELS[value],
+    count: UNIT_COUNTS[value],
+  }))
+}
+
+const PRICE_UNIT_SEGMENT_CURRENT_PARAMS = new URLSearchParams([
+  ['district', 'jingan'],
+  ['sort', 'price-asc'],
+  ['page', '3'],
+])
+
+const PRICE_UNIT_SEGMENT_FIXTURES: readonly Readonly<{
+  label: string
+  activeUnit: PriceUnitOption['value']
+}>[] = [
+  { label: '当前态：元/㎡/天', activeUnit: 'rmb-sqm-day' },
+  { label: '当前态：元/月', activeUnit: 'rmb-month' },
+  { label: '当前态：元/工位/月', activeUnit: 'rmb-seat-month' },
+]
+
+function excludedOptionsExcept(
+  active: PriceUnitOption['value'],
+  counts: Readonly<Partial<Record<PriceUnitOption['value'], number>>>,
+): readonly ExcludedUnitOption[] {
+  return (['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'] as const)
+    .filter((value) => value !== active)
+    .map((value) => ({ value, label: UNIT_LABELS[value], count: counts[value] ?? UNIT_COUNTS[value] }))
+}
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -737,6 +793,69 @@ export default function Opt036PreviewPage() {
             <FilterPill href="#" label="推荐" active={false} />
             <FilterPill href="#" label="元/㎡/天" active count={1893} />
             <FilterPill href="#" label="更多筛选" active={false} count={3} />
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="price-unit-segment"
+          title="租金单位分段（PriceUnitSegment）+ 被排除单位提示条（ExcludedUnitsBar）"
+          note="三种单位彼此不可换算，选一个单位就换整个结果集——分段控件是「现在看哪一类价格」的持续可见状态，提示条是「有多少库存因单位不同被换掉」；两者配合才不把比价机制做成藏库存。currentParams 混入 district=jingan / sort=price-asc / page=3：验证切换单位后 href 只改 priceUnit、删 page，district 与 sort 原样透传。"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {PRICE_UNIT_SEGMENT_FIXTURES.map((fixture) => (
+              <div key={fixture.label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{fixture.label}</span>
+                <PriceUnitSegment
+                  units={priceUnitOptions()}
+                  activeUnit={fixture.activeUnit}
+                  basePath="/shanghai/listings"
+                  currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+                />
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                提示条 · 另有两种单位有货（当前 元/㎡/天，另两种各 536 / 418 套）
+              </span>
+              <ExcludedUnitsBar
+                excluded={excludedOptionsExcept('rmb-sqm-day', {})}
+                basePath="/shanghai/listings"
+                currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                提示条 · 只有一种单位有货（当前 元/月，元/工位/月 计数 0——由组件自身过滤，不应出现「0 套」字样）
+              </span>
+              <ExcludedUnitsBar
+                excluded={excludedOptionsExcept('rmb-month', { 'rmb-seat-month': 0 })}
+                basePath="/shanghai/listings"
+                currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+              />
+            </div>
+
+            <div
+              data-fixture="excluded-units-bar-all-zero"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                padding: 16,
+                border: '1px dashed var(--line)',
+                borderRadius: 14,
+              }}
+            >
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                提示条 · 其余单位皆为 0（当前 元/工位/月，元/㎡/天与元/月计数均为 0）——组件应返回 null，虚线框内应空无一物，不应看到任何白底条
+              </span>
+              <ExcludedUnitsBar
+                excluded={excludedOptionsExcept('rmb-seat-month', { 'rmb-sqm-day': 0, 'rmb-month': 0 })}
+                basePath="/shanghai/listings"
+                currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+              />
+            </div>
           </div>
         </PreviewSection>
 

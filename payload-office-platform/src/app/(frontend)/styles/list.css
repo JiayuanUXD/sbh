@@ -177,6 +177,60 @@
   .ls-filterc__opt, .ls-filterc__chip, .ls-filterc__clear-all { transition: none; }
 }
 
+/* ── 租金单位分段（PriceUnitSegment）+ 被排除单位提示条（ExcludedUnitsBar）──
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「租金单位机制 · 方案 1：常驻
+ * 分段切换」+ specRows「单位分段 / 被排除的单位」。三种报价单位彼此不可换算
+ * （缺面积或工位数换不了），产品选择「先选单位、结果集只含该单位」——分段是
+ * 「现在看哪一类价格」的持续可见状态，提示条是「有多少被换掉的库存没显示」，
+ * 两者配合才不把「比价机制」做成「悄悄藏库存」，见两个组件文件顶部注释。 */
+.ls-unitrow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+/* ink-2 而非 comp 标注的 ink-3：这是识别控件用途的信息文本（与 FilterFormC 的
+   `.ls-filterc__label` 同一角色，那处已用 ink-2），不是占位符/禁用态——按
+   payload-office-platform/.agent/frontend.md「真实信息文本至少 ink-2，设计稿
+   标 ink-3 处对比度优先于照稿」改用 ink-2。下方 `.ls-unitrow__hint`（补充说明
+   句，非识别信息）与 `.ls-filterc__hint` 同角色，保持 ink-3。 */
+.ls-unitrow__label { font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: normal; }
+
+/* 外壳色 #e9e9ed 是 comp 稿字面值（房源列表.dc.html:112），与视图切换控件同一色，
+   项目 token 里没有对应命名，按既有惯例（bd-row 等处）直接写字面值。 */
+.ls-unitseg { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: #e9e9ed; }
+
+.ls-unitseg__item { height: 32px; padding: 0 16px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500;
+  color: var(--ink-2); letter-spacing: normal;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-unitseg__item:hover { background: rgba(255, 255, 255, 0.6); }
+
+/* 选中态白底 600（specRows「单位分段」）；当前单位渲染为 <span> 非链接，
+   本规则同时覆盖 span/a 两种标签。 */
+.ls-unitseg__item--active { background: var(--bg-subtle); color: var(--ink); font-weight: 600; }
+.ls-unitseg__item--active:hover { background: var(--bg-subtle); }
+
+.ls-unitseg__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-weight: 400; color: var(--ink-3); }
+.ls-unitseg__item--active .ls-unitseg__count { color: var(--ink-2); }
+
+.ls-unitrow__hint { max-width: 520px; font-size: 12px; line-height: 1.5; color: var(--ink-3);
+  letter-spacing: normal; text-wrap: pretty; }
+
+/* 结果区末尾白底条：radius 14 是 comp 字面值，比卡片 --r-card(18) 略收——与
+   FilterFormC 同容器不共用同一个圆角变量，属刻意的视觉层级区分。 */
+.ls-excludedbar { margin-top: 24px; padding: 16px 20px; background: var(--bg-subtle);
+  border-radius: 14px; display: flex; align-items: center; gap: 12px; }
+
+.ls-excludedbar__text { font-size: 13px; line-height: 1.5; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-excludedbar__link { color: var(--accent-link); font-weight: 500;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-excludedbar__link:hover { color: var(--accent-hover); }
+
+.ls-excludedbar__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-unitseg__item, .ls-excludedbar__link { transition: none; }
+}
+
 /* ── 筛选 pill（FilterPill）── 零色相原语，见 FilterPill.tsx 顶部注释 ──────── */
 .ls-pill { height: 36px; padding: 0 14px; border-radius: var(--r-pill);
   background: var(--bg-subtle); color: var(--ink-2); font-size: 13px; font-weight: 500;
