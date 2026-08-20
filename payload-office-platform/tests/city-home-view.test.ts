@@ -69,15 +69,20 @@ function buildHomepage() {
 const stats = { listings: 120, buildings: 45, businessAreas: 12 }
 
 describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
-  it('legacy 与 prefixed 均使用 city.profile 的 hero 文案（不再按 routeMode 硬编码旧文案）', () => {
+  // OPT-035 改版后 Hero 文案按设计稿固定（见 HomeHero.tsx 顶部说明）：
+  // profile 里存的是旧版营销文案，`profile.hero.x || 设计稿文案` 的写法让设计稿
+  // 分支永远走不到，首屏因此一直是旧口吻。两条路由都必须渲染设计稿文案。
+  it('legacy 与 prefixed 的 Hero 文案都按设计稿固定，不再读 city.profile.hero', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
     const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', stats }))
     const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
-    expect(legacy).toContain('Custom heading')
-    expect(legacy).toContain('Custom summary')
-    expect(prefixed).toContain('Custom heading')
-    expect(prefixed).toContain('Custom summary')
+    for (const html of [legacy, prefixed]) {
+      expect(html).toContain('把每一平米算清楚。')
+      expect(html).toContain('7 座城市 · 在租房源实时同步 · 面积与租金逐条核过')
+      expect(html).not.toContain('Custom heading')
+      expect(html).not.toContain('Custom summary')
+    }
   })
 
   it('legacy 路由不带城市前缀，prefixed 路由带 /shanghai 前缀', () => {
@@ -94,13 +99,16 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
     const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
-    const markers = ['按类型浏览', '热门商圈', '热门楼盘', '在租房源', '精选房源', '为什么选择我们', '核心商圈房源', '资讯'].map((marker) => {
+    // 数据带用「收录楼盘」而不是「在租房源」定位：后者也出现在 Hero 副标
+    // （「7 座城市 · 在租房源实时同步 · …」）里，会把 indexOf 拉到页面最前面。
+    const labels = ['按类型浏览', '热门商圈', '热门楼盘', '收录楼盘', '精选房源', '为什么选择我们', '核心商圈房源', '资讯']
+    const markers = labels.map((marker) => {
       const index = html.indexOf(marker)
       expect(index, marker).toBeGreaterThan(-1)
       return index
     })
     for (let i = 1; i < markers.length; i += 1) {
-      expect(markers[i], `${['按类型浏览', '热门商圈', '热门楼盘', '在租房源', '精选房源', '为什么选择我们', '核心商圈房源', '资讯'][i]} 应晚于前一个 section`).toBeGreaterThan(markers[i - 1])
+      expect(markers[i], `${labels[i]} 应晚于前一个 section`).toBeGreaterThan(markers[i - 1])
     }
   })
 

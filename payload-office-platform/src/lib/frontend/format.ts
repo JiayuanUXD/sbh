@@ -75,22 +75,3 @@ export function formatPublishedDate(iso: string | null | undefined): string {
   return `${y}.${String(m).padStart(2, '0')}.${String(day).padStart(2, '0')}`
 }
 
-/**
- * 首页「资讯中心」列表短日期（Asia/Shanghai 时区）。
- *
- * 守护不变量：
- *   - null / 空字符串 / 非法 ISO -> 空字符串（调用方自行决定是否渲染）；
- *   - 渲染为「MM/DD」（如 07/28），对齐 homepage-preview.html 资讯列表的 56px 日期列；
- *   - 与 formatPublishedDate（YYYY.MM.DD，用于 /news 列表与详情）区分：首页列表列宽窄，
- *     只显示月/日，年份由上下文（最新资讯）隐含；
- *   - 延续项目「原生 Intl，不引 date-fns/dayjs」约定，复用 domain/shared/time。
- */
-export function formatNewsListDate(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = parseUtcIso(iso)
-  if (!d) return ''
-  const parts = shanghaiDate(d).split('-').map(Number)
-  const [, m, day] = parts
-  if (!m || !day) return ''
-  return `${String(m).padStart(2, '0')}/${String(day).padStart(2, '0')}`
-}
