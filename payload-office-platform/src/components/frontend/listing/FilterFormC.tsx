@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 
 /**
  * OPT-036 分行文本条件区（筛选形态 C）—— Server Component。
@@ -25,6 +26,12 @@ import React from 'react'
  *     本行一个参数、并删除 `page`（切筛选必须回第一页，否则可能停在越界页码
  *     看到空结果）。再点已选项即取消——href 里不含该参数。
  *   - **无候选值的行不渲染**：一行只有标签没有选项，比不出现更让人困惑。
+ *   - **`cloneSearchParams` / `buildHref` 从 `lib/frontend/listing-url.ts` 导入**：
+ *     那两个是与本文件曾经私有的 `cloneParams` / `toHref` 逐行相同的原语，Task 7
+ *     code review 时收敛过去，避免同目录多个组件各自维护一份相同实现。本文件的
+ *     `buildOptionHref`（同一行内选项互斥、再点已选项即清除）与
+ *     `listing-url.ts` 的 `buildPriceUnitHref`（`priceUnit` 永远 `set`，没有
+ *     「清除」这个合法状态）语义不同，**刻意没有合并**——理由见该文件顶部注释。
  */
 
 export type FilterRow = Readonly<{
@@ -35,16 +42,6 @@ export type FilterRow = Readonly<{
 }>
 
 type ActivePick = Readonly<{ row: FilterRow; option: FilterRow['options'][number] }>
-
-/** 克隆 currentParams：统一入口，避免各处直接 new 出来时忘记带上已有参数。 */
-function cloneParams(currentParams: URLSearchParams): URLSearchParams {
-  return new URLSearchParams(currentParams)
-}
-
-function toHref(basePath: string, sp: URLSearchParams): string {
-  const qs = sp.toString()
-  return qs ? `${basePath}?${qs}` : basePath
-}
 
 /**
  * 单个选项的 href：只改本行一个参数，删除 page。
@@ -57,27 +54,27 @@ function buildOptionHref(
   optionValue: string,
   isActive: boolean,
 ): string {
-  const sp = cloneParams(currentParams)
+  const sp = cloneSearchParams(currentParams)
   sp.delete('page')
   sp.delete(rowKey)
   if (!isActive) sp.set(rowKey, optionValue)
-  return toHref(basePath, sp)
+  return buildHref(basePath, sp)
 }
 
 /** 底栏已选 chip 的 × ：清除这一行的参数（与再点已选项同一语义，独立导出便于复用）。 */
 function buildClearRowHref(basePath: string, currentParams: URLSearchParams, rowKey: string): string {
-  const sp = cloneParams(currentParams)
+  const sp = cloneSearchParams(currentParams)
   sp.delete('page')
   sp.delete(rowKey)
-  return toHref(basePath, sp)
+  return buildHref(basePath, sp)
 }
 
 /** 底栏「清除全部」：一次性删掉所有可见行的参数。 */
 function buildClearAllHref(basePath: string, currentParams: URLSearchParams, rows: readonly FilterRow[]): string {
-  const sp = cloneParams(currentParams)
+  const sp = cloneSearchParams(currentParams)
   sp.delete('page')
   for (const row of rows) sp.delete(row.key)
-  return toHref(basePath, sp)
+  return buildHref(basePath, sp)
 }
 
 /** 行的当前命中项：activeValue 必须能在 options 里找到才算数——防御性，避免陈旧参数误显示 chip。 */

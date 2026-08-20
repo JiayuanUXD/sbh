@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 import type { PriceDisplayUnit } from '@/domain/public-catalog'
+import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
 
 /**
  * 租金单位分段切换 —— Server Component。
@@ -18,35 +19,29 @@ import type { PriceDisplayUnit } from '@/domain/public-catalog'
  *   「还有多少被换算掉的库存没显示」。
  *
  * 交互与 URL：
- *   - 切换即导航，写入 `?priceUnit=<value>`；`priceUnit` 是域层已收敛的唯一
- *     单位参数（见 `domain/public-catalog/search-params.ts`），旧名 `rentUnit`
- *     仍被解析层接受但 canonical 只输出 `priceUnit`——本组件写 href 时一并
- *     删除残留的 `rentUnit`，不让非 canonical 参数组合流回地址栏。
- *   - 必须删除 `page`：换单位就是换结果集（`findEffectiveListings` 对
- *     `priceUnit` 做的是 `where.rentUnit = { equals }` 精确过滤，不是排序内
- *     重排），停在旧页码会看到空结果或跳过前面的房源。
- *   - 排序参数原样保留、不需要特殊处理：`normalizeSort` 只在 `priceUnit`
- *     缺失时把 `price-asc/desc` 降级为 `recommended`（见 search-params.ts
- *     `normalizeSort`）；本组件的 href 永远带着一个 `priceUnit` 值（只是换了
- *     取值，不会清空该参数），所以降级分支不会被触发，`sort=price-asc` 之类
- *     的参数原样透传到新单位下依然合法。
+ *   - 切换即导航，写入 `?priceUnit=<value>`，href 由 `lib/frontend/listing-url.ts`
+ *     的 `buildPriceUnitHref` 统一构造（与 `ExcludedUnitsBar` 共用同一份契约：
+ *     只 `set priceUnit`、删 `page`、清掉旧名 `rentUnit` 残留、排序参数原样
+ *     透传不需要特殊处理——理由见该函数顶部注释）。
  *   - 当前单位渲染为纯文本（非链接）——再点一次没有意义，且与 comp 稿一致
  *     （房源列表.dc.html:113 当前项是 `<span>`，其余是 `<a>`）。
+ *
+ * 计数为 0 的处理（Task 7 code review Minor 1）：
+ *   - **非当前单位**：计数为 0 时整项不渲染——不能让用户点开一个写着「0」的
+ *     可点击分段，这与批次统一的「数字缺失显示 —、不显示 0」规则同源，
+ *     `ExcludedUnitsBar` 已经这样处理零计数单位，本组件补齐同一口径。
+ *   - **当前单位（activeUnit）**：永远保留，不参与这次过滤——它代表「现在
+ *     正在看哪一类」，即使叠加了其它筛选后这个单位下恰好 0 套，用户仍需要
+ *     一个可见的落点去理解自己选中的是哪个分段；此时只隐藏它自己的数字（不
+ *     渲染「0」，也不伪造成「—」——分段标签本身已经是完整信息，数字只是
+ *     补充，缺了就不补）。
+ *   - **过滤后不足 2 项**（只剩当前单位一项，其余全为 0）：一个只有一个选项
+ *     的「分段切换控件」名不副实——没有第二个单位可切，继续渲染成看起来能点
+ *     的胶囊分段反而误导用户去点。这种情况下退化为一行非交互文本标签，只保留
+ *     「现在看的是哪一类价格」这条最基本的诚实义务；不渲染分段外壳
+ *     （`#e9e9ed` 胶囊）与横向说明句——说明句讲的是「三种单位如何互斥切换」，
+ *     此刻没有第二个单位可切，讲了也是噪音。
  */
-
-/** 克隆并归一 currentParams：统一改一个参数、删 page、清掉旧名 rentUnit 残留。 */
-function buildUnitHref(
-  basePath: string,
-  currentParams: URLSearchParams,
-  unit: PriceDisplayUnit,
-): string {
-  const sp = new URLSearchParams(currentParams)
-  sp.delete('page')
-  sp.delete('rentUnit')
-  sp.set('priceUnit', unit)
-  const qs = sp.toString()
-  return qs ? `${basePath}?${qs}` : basePath
-}
 
 export type PriceUnitOption = Readonly<{
   value: PriceDisplayUnit
@@ -62,27 +57,43 @@ export default function PriceUnitSegment(props: Readonly<{
 }>): React.JSX.Element {
   const { units, activeUnit, basePath, currentParams } = props
 
+  const visible = units.filter((unit) => unit.value === activeUnit || unit.count > 0)
+
+  if (visible.length < 2) {
+    const active = visible[0]
+    return (
+      <div className="ls-unitrow">
+        <span className="ls-unitrow__label">租金单位</span>
+        <span className="ls-unitseg__item ls-unitseg__item--active ls-unitseg__item--solo">
+          {active.label}
+          {active.count > 0 ? <span className="ls-unitseg__count">{active.count}</span> : null}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className="ls-unitrow">
       <span className="ls-unitrow__label">租金单位</span>
       <div className="ls-unitseg">
-        {units.map((unit) => {
+        {visible.map((unit) => {
           const isActive = unit.value === activeUnit
           if (isActive) {
             return (
               <span key={unit.value} className="ls-unitseg__item ls-unitseg__item--active">
                 {unit.label}
-                <span className="ls-unitseg__count">{unit.count}</span>
+                {unit.count > 0 ? <span className="ls-unitseg__count">{unit.count}</span> : null}
               </span>
             )
           }
           return (
             <Link
               key={unit.value}
-              href={buildUnitHref(basePath, currentParams, unit.value)}
+              href={buildPriceUnitHref(basePath, currentParams, unit.value)}
               className="ls-unitseg__item"
             >
               {unit.label}
+              {/* 非当前单位已被上方过滤为 count > 0，这里不需要再判空 */}
               <span className="ls-unitseg__count">{unit.count}</span>
             </Link>
           )

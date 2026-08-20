@@ -620,6 +620,43 @@ const PRICE_UNIT_SEGMENT_FIXTURES: readonly Readonly<{
   { label: '当前态：元/工位/月', activeUnit: 'rmb-seat-month' },
 ]
 
+function priceUnitOptionsWithCounts(
+  counts: Readonly<Partial<Record<PriceUnitOption['value'], number>>>,
+): readonly PriceUnitOption[] {
+  return (['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'] as const).map((value) => ({
+    value,
+    label: UNIT_LABELS[value],
+    count: counts[value] ?? UNIT_COUNTS[value],
+  }))
+}
+
+/**
+ * 零计数过滤 + 退化态夹具（Task 7 code review Minor 1）——PriceUnitSegment
+ * 不应能渲染出可点的「0」，过滤后不足 2 项时应退化为无外壳纯文本标签。
+ * 三种情形对应组件顶部注释里写的三条处置规则，逐条截图验收。
+ */
+const PRICE_UNIT_SEGMENT_ZERO_FIXTURES: readonly Readonly<{
+  label: string
+  activeUnit: PriceUnitOption['value']
+  units: readonly PriceUnitOption[]
+}>[] = [
+  {
+    label: '非当前单位计数为 0（元/月＝0，应整项消失，不出现「0」；分段仍是常规两项胶囊：元/㎡/天 + 元/工位/月）',
+    activeUnit: 'rmb-sqm-day',
+    units: priceUnitOptionsWithCounts({ 'rmb-sqm-day': 1893, 'rmb-month': 0, 'rmb-seat-month': 418 }),
+  },
+  {
+    label: '退化态 A：其余单位皆为 0，只剩当前单位一项且有数（应无 #e9e9ed 外壳，纯文本标签 + 数字，无横向说明句）',
+    activeUnit: 'rmb-month',
+    units: priceUnitOptionsWithCounts({ 'rmb-sqm-day': 0, 'rmb-month': 536, 'rmb-seat-month': 0 }),
+  },
+  {
+    label: '退化态 B：全部为 0（含当前单位自己）——纯文本标签，且不显示「0」这个数字本身',
+    activeUnit: 'rmb-seat-month',
+    units: priceUnitOptionsWithCounts({ 'rmb-sqm-day': 0, 'rmb-month': 0, 'rmb-seat-month': 0 }),
+  },
+]
+
 function excludedOptionsExcept(
   active: PriceUnitOption['value'],
   counts: Readonly<Partial<Record<PriceUnitOption['value'], number>>>,
@@ -807,6 +844,18 @@ export default function Opt036PreviewPage() {
                 <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{fixture.label}</span>
                 <PriceUnitSegment
                   units={priceUnitOptions()}
+                  activeUnit={fixture.activeUnit}
+                  basePath="/shanghai/listings"
+                  currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+                />
+              </div>
+            ))}
+
+            {PRICE_UNIT_SEGMENT_ZERO_FIXTURES.map((fixture) => (
+              <div key={fixture.label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{fixture.label}</span>
+                <PriceUnitSegment
+                  units={fixture.units}
                   activeUnit={fixture.activeUnit}
                   basePath="/shanghai/listings"
                   currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}

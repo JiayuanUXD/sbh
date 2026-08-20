@@ -211,6 +211,13 @@
   font-weight: 400; color: var(--ink-3); }
 .ls-unitseg__item--active .ls-unitseg__count { color: var(--ink-2); }
 
+/* 「只剩一个可见单位」的退化态（PriceUnitSegment.tsx 顶部注释）：不再是一个
+   「多选一」的分段控件，胶囊底色/内边距会误暗示这里还能点别的选项——去掉
+   背景与内边距，退化成纯文本标签，只保留「现在看的是哪一类」这条信息。
+   规则须写在 `.ls-unitseg__item--active` 之后才能覆盖它的 background。 */
+.ls-unitseg__item--solo { height: auto; padding: 0; border-radius: 0; background: none; }
+.ls-unitseg__item--solo:hover { background: none; }
+
 .ls-unitrow__hint { max-width: 520px; font-size: 12px; line-height: 1.5; color: var(--ink-3);
   letter-spacing: normal; text-wrap: pretty; }
 

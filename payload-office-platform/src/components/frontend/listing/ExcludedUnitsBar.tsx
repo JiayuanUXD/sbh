@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 import type { PriceDisplayUnit } from '@/domain/public-catalog'
+import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
 
 /**
  * 被排除单位提示条 —— Server Component。
@@ -19,22 +20,11 @@ import type { PriceDisplayUnit } from '@/domain/public-catalog'
  *   - 计数为 0 的单位不出现在提示条里——0 套「另有」毫无信息量，且与「缺失显示
  *     — 不显示 0」的项目数字规则同源（见 payload-office-platform/.agent/frontend.md）；
  *     调用方按理应已过滤好非零 excluded，这里再次防御性过滤，不假设调用方守规矩；
- *   - href 与 `PriceUnitSegment` 同一套规则：只写 `priceUnit`、删除 `page` 与
- *     残留的旧名 `rentUnit`，其余参数原样保留。
+ *   - href 由 `lib/frontend/listing-url.ts` 的 `buildPriceUnitHref` 统一构造：
+ *     与 `PriceUnitSegment` 共用同一份契约——只写 `priceUnit`、删除 `page` 与
+ *     残留的旧名 `rentUnit`，其余参数原样保留（该函数曾在两个组件里各自内联
+ *     一份逐字节相同的实现，Task 7 code review 时收敛过去，理由见其顶部注释）。
  */
-
-function buildUnitHref(
-  basePath: string,
-  currentParams: URLSearchParams,
-  unit: PriceDisplayUnit,
-): string {
-  const sp = new URLSearchParams(currentParams)
-  sp.delete('page')
-  sp.delete('rentUnit')
-  sp.set('priceUnit', unit)
-  const qs = sp.toString()
-  return qs ? `${basePath}?${qs}` : basePath
-}
 
 export type ExcludedUnitOption = Readonly<{
   value: PriceDisplayUnit
@@ -58,7 +48,7 @@ export default function ExcludedUnitsBar(props: Readonly<{
         {visible.map((unit, index) => (
           <React.Fragment key={unit.value}>
             {index > 0 ? '、' : ''}
-            <Link href={buildUnitHref(basePath, currentParams, unit.value)} className="ls-excludedbar__link">
+            <Link href={buildPriceUnitHref(basePath, currentParams, unit.value)} className="ls-excludedbar__link">
               <span className="ls-excludedbar__count">{unit.count}</span> 套按 {unit.label} 报价
             </Link>
           </React.Fragment>
