@@ -351,6 +351,28 @@
 
 @media (prefers-reduced-motion: reduce) { .ls-empty__btn { transition: none; } }
 
+/* 主按钮里的数字（comp 稿「看上海全部 1,893 套在租」）：批次统一的数字规则，
+   即使嵌在按钮文案中间也要 tabular-nums（见 EmptyNoStock.tsx `unfilteredTotalCount`）。 */
+.ls-empty__btn-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* 次要出口插槽（EmptyNoStock 的 `secondaryAction`）：调用方可能传入
+   `InquiryModal` 默认渲染的旧配色体系触发器（`.btn.btn--primary`，见
+   styles.css：44 高、8px 圆角、`--color-copper` 底色的别名 `--accent`），
+   与本页新体系的 40 高胶囊形状不同。这里用「包裹 + 高特异度重置」而非
+   「要求调用方自己传对 triggerVariant/triggerClassName」——插槽只负责给
+   "点了之后发生什么"，视觉规格仍然由本组件掌握，见 EmptyNoStock.tsx 顶部
+   「secondaryAction」注释。选择器特意用两层类名（`.ls-empty .ls-empty__btn-slot`）
+   把特异度顶到 (0,2,0)，可靠盖过 `.btn`/`.btn--primary` 各自的 (0,1,0)，
+   不依赖 styles.css 与 list.css 的加载顺序这种脆弱前提。 */
+.ls-empty .ls-empty__btn-slot { display: inline-flex; }
+.ls-empty .ls-empty__btn-slot > * {
+  height: 40px; min-height: 0; padding: 0 20px; border: none; border-radius: var(--r-pill);
+  background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; line-height: normal;
+  letter-spacing: normal; transition: background var(--duration-base) var(--ease-apple); }
+.ls-empty .ls-empty__btn-slot > *:hover { background: #ececf0; }
+
+@media (prefers-reduced-motion: reduce) { .ls-empty .ls-empty__btn-slot > * { transition: none; } }
+
 /* ── 空态① 该条件本身无货（EmptyNoStock）──────────────────────────────────
  * specRows「空态 ①」：标题 22/600 · 主按钮 40 高 accent · 次按钮 40 高 #f5f5f7。 */
 .ls-empty--nostock { background: var(--bg-subtle); border-radius: var(--r-card);

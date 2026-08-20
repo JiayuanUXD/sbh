@@ -1031,7 +1031,25 @@ export default function Opt036PreviewPage() {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div data-fixture="empty-nostock" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>① 该条件本身无货——标题 22/600，主按钮 accent，次按钮 #f5f5f7</span>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                ① 该条件本身无货——标题 22/600，主按钮 accent 带 unfilteredTotalCount 数字（tabular-nums），
+                次按钮为 secondaryAction 插槽（此处传一个 stub &lt;button&gt;，模拟接线层传入
+                &lt;InquiryModal pageType=&quot;search&quot; …/&gt;：插槽把任意子元素重置为 40 高·#f5f5f7·胶囊，
+                不依赖调用方自己拼视觉）
+              </span>
+              <EmptyNoStock
+                noun="上海的共享工位房源"
+                basePath="/shanghai/listings"
+                unfilteredTotalCount={1893}
+                secondaryAction={<button type="button">提交需求</button>}
+              />
+            </div>
+
+            <div data-fixture="empty-nostock-fallback" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                ① 极简回退——省略 unfilteredTotalCount 与 secondaryAction 时仍然可用：主按钮退化为不带数字的
+                通用文案，次按钮位整体不渲染（不伪造一个假交互占位符），不是死胡同
+              </span>
               <EmptyNoStock noun="上海的共享工位房源" basePath="/shanghai/listings" />
             </div>
 
