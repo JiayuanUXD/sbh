@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
-import type { FilterRow, FilterSwitch } from './FilterFormC'
+import { findActiveOption, type FilterRow, type FilterSwitch } from './FilterFormC'
 import FilterPill from './FilterPill'
 
 /**
@@ -96,11 +96,6 @@ function buildOptionHref(
   sp.delete(rowKey)
   if (!isActive) sp.set(rowKey, optionValue)
   return buildHref(basePath, sp)
-}
-
-function findActiveOption(row: FilterRow): FilterRow['options'][number] | undefined {
-  if (row.activeValue == null) return undefined
-  return row.options.find((option) => option.value === row.activeValue)
 }
 
 export default function MobileFilterSheet(props: Readonly<{

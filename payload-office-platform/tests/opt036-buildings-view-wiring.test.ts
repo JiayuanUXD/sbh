@@ -79,6 +79,7 @@ function buildResult(over: Partial<{
   unfilteredTotalDocs: number
   page: number
   totalPages: number
+  facets: { districts: { slug: string; name: string; count: number }[]; grades: { value: string; count: number }[]; metros: { slug: string; name: string; count: number }[] }
 }> = {}) {
   const withStock = over.withStock ?? []
   const withoutStock = over.withoutStock ?? []
@@ -92,7 +93,14 @@ function buildResult(over: Partial<{
     unfilteredTotalDocs: over.unfilteredTotalDocs ?? 99,
     page: over.page ?? 1,
     totalPages: over.totalPages ?? 1,
-    facets: { districts: [], grades: [], metros: [] },
+    // 默认给一份非空 facets：真实域层的候选**清单**取自全集，选中的区永远在里面
+    // （见 facade 的 overlay 注释）。空 facets 是域层给不出的状态，拿它当夹具会
+    // 让「行能显示这个条件」的分支测不到。
+    facets: over.facets ?? {
+      districts: [{ slug: 'jingan', name: '静安区', count: 2 }],
+      grades: [{ value: 'grade-a', count: 3 }],
+      metros: [],
+    },
     dimensionHits: {
       district: 7,
       grade: 7,
@@ -280,6 +288,46 @@ describe('CityBuildingsView 编排层守卫', () => {
       extraPicks?: readonly unknown[]
     }).extraPicks
     expect(covered).toEqual([])
+
+    // 反过来：候选清单里没有这个区（陈旧链接 / 别的城市的 slug）时行显示不出来，
+    // 补充 chip 必须顶上——否则又是一个看不见的生效条件。
+    const stale = (findByDisplayName(
+      renderView('?district=not-in-this-city', buildResult()),
+      'FilterFormC',
+    )!.node.props as { extraPicks?: readonly { key: string }[] }).extraPicks
+    expect(stale?.map((p) => p.key)).toEqual(['district'])
+  })
+
+  it('落在预设档位之外的数值条件同样可见（否则三处一起把它藏起来）', () => {
+    // `leasableAreaMin=750` 是解析层收下、真的收窄结果集、却不等于任何一个预设档位
+    // 的值（档位是 500/1000/2000/5000）。FilterFormC 只在 activeValue 命中某个 option
+    // 时才出 chip，所以行 chip 不会有；补 chip 的覆盖判据若只看 `activeValue != null`，
+    // 就会认为「这一行已经显示了」而跳过——于是筛选条、chip、底栏三处一起把一个
+    // 正在生效的条件藏起来，底栏还写着「未选的行保持『全部』」。
+    const props = (findByDisplayName(
+      renderView('?leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })),
+      'FilterFormC',
+    )!.node.props as {
+      rows: readonly { key: string; activeValue?: string; options: readonly { value: string }[] }[]
+      extraPicks?: readonly { key: string; label: string; href: string }[]
+    })
+    // 前提：这一行确实没有能显示它的选项（否则这条测试就没在测该测的东西）
+    const areaRow = props.rows.find((r) => r.key === 'leasableAreaMin')!
+    expect(areaRow.activeValue).toBe('750')
+    expect(areaRow.options.some((o) => o.value === '750')).toBe(false)
+    expect(props.extraPicks).toEqual([
+      { key: 'leasableAreaMin', label: '在租面积：750 ㎡以上', href: '/shanghai/buildings' },
+    ])
+  })
+
+  it('落在预设之外的竣工年代（单键维度）走整维度回退分支，同样可见', () => {
+    const picks = (findByDisplayName(
+      renderView('?completedAfter=2013', buildResult({ withStock: [doc('a', 2)] })),
+      'FilterFormC',
+    )!.node.props as { extraPicks?: readonly { key: string; label: string; href: string }[] }).extraPicks
+    expect(picks).toEqual([
+      { key: 'completedAfter', label: '竣工年代：2013 年后', href: '/shanghai/buildings' },
+    ])
   })
 
   it('分组标题成对出现：只有一组时不渲染，跨组边界的一页两个都在', () => {

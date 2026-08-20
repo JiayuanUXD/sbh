@@ -5,7 +5,7 @@ import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
-import FilterFormC, { type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import FilterFormC, { rowShowsActivePick, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
 import ListPager from '@/components/frontend/listing/ListPager'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
@@ -168,7 +168,11 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   // 逐**键**而不是逐维度：一个维度可能只有一半被行显示出来（在租面积行只建模
   // 下限），补 chip 时要只说也只清没被显示的那一半，否则会并排出现一个 chip
   // 和它的超集 chip。没有逐键文案时（单键维度）退回整个维度的文案与作用域。
-  const rowActiveKeys = new Set(rows.filter((row) => row.activeValue != null).map((row) => row.key))
+  // 判据必须与 FilterFormC 渲染 chip 时用的**同一个**：`activeValue != null` 不够
+  // ——数值型维度的解析层接受的取值域比预设档位宽（`?leasableAreaMin=750` 合法
+  // 但不等于任何一档），那种值不会渲染出行 chip，却会被 `activeValue != null`
+  // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
+  const rowActiveKeys = new Set(rows.filter(rowShowsActivePick).map((row) => row.key))
   if (switchRow.active) rowActiveKeys.add(switchRow.paramKey)
   const extraPicks = activeDimensions.flatMap((d) => {
     const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))

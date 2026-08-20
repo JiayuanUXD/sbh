@@ -4,7 +4,7 @@ import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/Em
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
 import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend/listing/ExcludedUnitsBar'
-import FilterFormC from '@/components/frontend/listing/FilterFormC'
+import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListingResultRow from '@/components/frontend/listing/ListingResultRow'
 import ListPager from '@/components/frontend/listing/ListPager'
@@ -343,7 +343,11 @@ export default async function CityListingsView({
   // 逐**键**而不是逐维度：价格/面积维度各占两个键而行只建模其中一个（上限 /
   // 下限），补 chip 要只说也只清没被显示的那一半，否则会并排出现一个 chip 和
   // 它的超集 chip。单键维度（q / metro / businessArea…）走 paramTexts 缺省分支。
-  const rowActiveKeys = new Set(rows.filter((row) => row.activeValue != null).map((row) => row.key))
+  // 判据必须与 FilterFormC 渲染 chip 时用的**同一个**：`activeValue != null` 不够
+  // ——数值型维度的解析层接受的取值域比预设档位宽（`?leasableAreaMin=750` 合法
+  // 但不等于任何一档），那种值不会渲染出行 chip，却会被 `activeValue != null`
+  // 误判成「已经显示了」而跳过补充 chip，三处一起把生效中的条件藏起来。
+  const rowActiveKeys = new Set(rows.filter(rowShowsActivePick).map((row) => row.key))
   const extraPicks = activeDimensions.flatMap((d) => {
     // 计价单位不补 chip：它已经被 PriceUnitSegment 完整地显示着，不属于「看不见的
     // 生效条件」。补一个「租金单位 ×」还会凭空造出一个「清除单位」的入口——那与

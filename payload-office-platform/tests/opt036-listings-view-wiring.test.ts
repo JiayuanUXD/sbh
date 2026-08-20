@@ -35,6 +35,7 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
 }))
 
 import CityListingsView from '@/components/frontend/city/CityListingsView'
+import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import { parseListingSearchInput } from '@/domain/public-catalog'
 import type { ListingSearchInput } from '@/domain/public-catalog'
 
@@ -65,12 +66,16 @@ function buildResult(totalDocs: number) {
   } as unknown as Parameters<typeof CityListingsView>[0]['result']
 }
 
-async function renderView(query: string, overrides: Partial<{ businessType: 'lease' | 'sale'; totalDocs: number }> = {}) {
+async function renderView(query: string, overrides: Partial<{
+  businessType: 'lease' | 'sale'
+  totalDocs: number
+  districts: readonly { slug: string; name: string }[]
+}> = {}) {
   const input: ListingSearchInput = parseListingSearchInput(new URLSearchParams(query))
   return (await CityListingsView({
     city: CITY,
     result: buildResult(overrides.totalDocs ?? 0),
-    districts: [],
+    districts: (overrides.districts ?? []) as Parameters<typeof CityListingsView>[0]['districts'],
     input,
     basePath: '/shanghai/listings',
     routeMode: 'prefixed',
@@ -99,6 +104,15 @@ function collect(tree: ReactElement): Visited[] {
   const out: Visited[] = []
   walk(tree, [], out)
   return out
+}
+
+/** 用编排层实际传下去的 props 把 EmptyNoStock 跑一遍，数主按钮个数（只看 props 证明不了「值可用」）。 */
+function countPrimaryButtons(empty: Visited): number {
+  const rendered = EmptyNoStock(empty.node.props as Parameters<typeof EmptyNoStock>[0]) as ReactElement
+  return collect(rendered).filter((v) => {
+    const cls = (v.node.props as { className?: string } | undefined)?.className
+    return typeof cls === 'string' && cls.includes('ls-empty__btn--primary')
+  }).length
 }
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
@@ -183,5 +197,76 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
       const file = path.join(appDir, route, 'loading.tsx')
       expect(existsSync(file), `${file} 存在会让抽屉每次导航都被重挂`).toBe(false)
     }
+  })
+
+  // ── Task 12 修复轮镜像过来的守卫（原先只落在楼盘页，房源页没有网）──────────
+  // 房源页与楼盘页共用 FilterFormC / MobileFilterShell / EmptyFiltered 这套组件，
+  // 同一类回归（三个「清除全部」漂移、生效条件看不见）在这一页同样会发生。
+
+  it('三个「清除全部 / 重置」出口共用同一个 href（抽屉不得自己推导作用域）', async () => {
+    // 本页的漂移空间更大：筛选条只有 4 行，而 URL 上真正生效的维度有 8 个。
+    const tree = await renderView('?district=jingan&q=整层&areaMin=2000', { totalDocs: 0 })
+    const fromFilterBar = (findByDisplayName(tree, 'FilterFormC')!.node.props as { clearAllHref: string }).clearAllHref
+    const fromEmptyState = (findByDisplayName(tree, 'EmptyFiltered')!.node.props as { clearAllHref: string }).clearAllHref
+    const fromSheet = (findByDisplayName(tree, 'MobileFilterShell')!.node.props as { resetHref: string }).resetHref
+    expect(fromEmptyState).toBe(fromFilterBar)
+    expect(fromSheet).toBe(fromFilterBar)
+    expect(fromFilterBar).toBe('/shanghai/listings')
+  })
+
+  it('没有筛选行能显示的条件补成可清除 chip（关键词 / 面积上限）', async () => {
+    const picks = async (query: string) =>
+      ((findByDisplayName(await renderView(query, { totalDocs: 3 }), 'FilterFormC')!.node.props as {
+        extraPicks?: readonly { key: string; label: string; href: string }[]
+      }).extraPicks ?? [])
+
+    // 关键词整个维度没有行，只能靠补充 chip 才看得见
+    expect(await picks('?q=整层')).toEqual([
+      { key: 'q', label: '关键词：整层', href: '/shanghai/listings' },
+    ])
+    // 面积维度占两个键、行只建模下限：补的 chip 只说也只清上限那一半
+    expect(await picks('?areaMin=100&areaMax=500')).toEqual([
+      { key: 'areaMax', label: '面积：500 ㎡以下', href: '/shanghai/listings?areaMin=100' },
+    ])
+  })
+
+  it('落在预设档位之外的数值条件同样可见（面积下限 750 不等于任何一档）', async () => {
+    const props = (findByDisplayName(await renderView('?areaMin=750', { totalDocs: 3 }), 'FilterFormC')!.node.props as {
+      rows: readonly { key: string; activeValue?: string; options: readonly { value: string }[] }[]
+      extraPicks?: readonly { key: string; label: string }[]
+    })
+    const areaRow = props.rows.find((r) => r.key === 'areaMin')!
+    expect(areaRow.activeValue).toBe('750')
+    expect(areaRow.options.some((o) => o.value === '750')).toBe(false)
+    expect(props.extraPicks?.map((p) => p.key)).toEqual(['areaMin'])
+  })
+
+  it('行能显示的条件不重复补 chip', async () => {
+    const picks = (findByDisplayName(
+      await renderView('?district=jingan', { totalDocs: 3, districts: [{ slug: 'jingan', name: '静安' }] }),
+      'FilterFormC',
+    )!.node.props as { extraPicks?: readonly unknown[] }).extraPicks
+    expect(picks).toEqual([])
+  })
+
+  it('计价单位不补 chip：它已被分段控件完整显示，补了等于凭空造「清除单位」入口', async () => {
+    const picks = (findByDisplayName(
+      await renderView('?priceUnit=rmb-sqm-day&priceMax=8', { totalDocs: 3 }),
+      'FilterFormC',
+    )!.node.props as { extraPicks?: readonly { key: string }[] }).extraPicks
+    expect(picks?.map((p) => p.key) ?? []).not.toContain('priceUnit')
+  })
+
+  it('空态①：总数为 0 时不摆指回本页的死按钮，总数 >0 时仍给主按钮', async () => {
+    // 本页的空态①可以由「类目型」条件造成（只挑了共享工位 → 0 套，全城仍有 1,893 套），
+    // 与楼盘页「结构性恒为 0」不同——两条分支都要有网。
+    getCachedSearchFacetsIgnoring.mockResolvedValue(emptyFacets(0))
+    const zero = findByDisplayName(await renderView('?type=coworking', { totalDocs: 0 }), 'EmptyNoStock')!
+    expect(countPrimaryButtons(zero)).toBe(0)
+
+    getCachedSearchFacetsIgnoring.mockResolvedValue(emptyFacets(1893))
+    const some = findByDisplayName(await renderView('?type=coworking', { totalDocs: 0 }), 'EmptyNoStock')!
+    expect((some.node.props as { unfilteredTotalCount?: number }).unfilteredTotalCount).toBe(1893)
+    expect(countPrimaryButtons(some)).toBe(1)
   })
 })
