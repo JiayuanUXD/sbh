@@ -108,7 +108,7 @@ export default function ResultToolbar(props: Readonly<{
                 href={buildViewHref(basePath, currentParams, 'grid')}
                 title="卡片网格"
                 aria-label="卡片网格"
-                aria-pressed={view === 'grid'}
+                aria-current={view === 'grid' ? 'true' : undefined}
                 className={
                   view === 'grid' ? 'ls-toolbar__viewbtn ls-toolbar__viewbtn--active' : 'ls-toolbar__viewbtn'
                 }
@@ -124,7 +124,7 @@ export default function ResultToolbar(props: Readonly<{
                 href={buildViewHref(basePath, currentParams, 'row')}
                 title="横向列表"
                 aria-label="横向列表"
-                aria-pressed={view === 'row'}
+                aria-current={view === 'row' ? 'true' : undefined}
                 className={
                   view === 'row' ? 'ls-toolbar__viewbtn ls-toolbar__viewbtn--active' : 'ls-toolbar__viewbtn'
                 }

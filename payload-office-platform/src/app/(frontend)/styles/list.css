@@ -409,6 +409,10 @@
   transition: background var(--duration-base) var(--ease-apple); }
 .ls-emptyfiltered__clear-all:hover { background: #ececf0; }
 
+/* 按钮里的数字（comp 稿「清除全部条件 · 1,893 套」）：与 .ls-empty__btn-count
+   同一规则，见 EmptyFiltered.tsx `clearAllCount` 注释。 */
+.ls-emptyfiltered__clear-all-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
 .ls-emptyfiltered__rows { margin-top: 24px; display: flex; flex-direction: column; }
 
 .ls-emptyfiltered__row { display: flex; align-items: center; gap: 20px; min-height: 56px;

@@ -25,7 +25,7 @@ export default function FilterPill({ href, label, active, count }: Readonly<{
   count?: number
 }>) {
   return (
-    <Link href={href} aria-pressed={active} className={active ? 'ls-pill ls-pill--active' : 'ls-pill'}>
+    <Link href={href} aria-current={active ? 'true' : undefined} className={active ? 'ls-pill ls-pill--active' : 'ls-pill'}>
       <span>{label}</span>
       {count != null ? <span className="ls-pill__count">{count}</span> : null}
     </Link>

@@ -1054,18 +1054,27 @@ export default function Opt036PreviewPage() {
             </div>
 
             <div data-fixture="empty-filtered-three" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 三条退路——每行给出放宽后的真实命中数（tabular-nums），点击只改那一个参数</span>
-              <EmptyFiltered relaxations={RELAXATIONS_THREE} clearAllHref="/shanghai/listings" />
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                ② 三条退路——每行给出放宽后的真实命中数（tabular-nums），点击只改那一个参数；页头「清除全部条件」
+                带 clearAllCount 数字（comp 稿字面「清除全部条件 · 1,893 套」）
+              </span>
+              <EmptyFiltered relaxations={RELAXATIONS_THREE} clearAllHref="/shanghai/listings" clearAllCount={1893} />
             </div>
 
             <div data-fixture="empty-filtered-one" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 只有一条退路——不需要特殊分支，逐条渲染逻辑天然覆盖单条场景</span>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                ② 只有一条退路——不需要特殊分支，逐条渲染逻辑天然覆盖单条场景；此处省略 clearAllCount，验证回退：
+                按钮退化为不带数字的纯文案「清除全部条件」，仍然可用
+              </span>
               <EmptyFiltered relaxations={RELAXATIONS_ONE} clearAllHref="/shanghai/listings" />
             </div>
 
             <div data-fixture="empty-filtered-zero" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>② 零条退路——验证不成死胡同：不渲染逐条退路区块，但页头「清除全部条件」仍必须可点</span>
-              <EmptyFiltered relaxations={[]} clearAllHref="/shanghai/listings" />
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                ② 零条退路——验证不成死胡同：不渲染逐条退路区块，但页头「清除全部条件」仍必须可点，且带
+                clearAllCount 数字，证明「清除」这一个出口本身就足够吸引人点
+              </span>
+              <EmptyFiltered relaxations={[]} clearAllHref="/shanghai/listings" clearAllCount={168} />
             </div>
 
             <div data-fixture="empty-out-of-range" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -21,10 +21,14 @@ import React from 'react'
  *     但生产环境现有空态（`CityListingsView.tsx`）用的是
  *     `<InquiryModal pageType="search" triggerLabel="提交需求" triggerVariant="primary" />`
  *     ——一个用户搜了半天扑空后仍能"告诉我们要什么"的真实出口，比把人赶回
- *     首页更有用。`EmptyNoStock` 是 Server Component，`InquiryModal` 是
- *     Client Component，本组件不 import 它——由接线层（Task 11/12）把已经
- *     实例化好的元素当插槽传进来，组件本身继续保持纯展示、不持有任何交互
- *     能力。省略该 prop 时次要按钮位整体不渲染，不伪造一个假交互占位符。
+ *     首页更有用。本组件不 import `InquiryModal`（Server Component 完全可以
+ *     直接渲染 Client Component，插槽不是为了绕过这个边界）——用插槽是为了
+ *     不让 `EmptyNoStock` 知道 `InquiryModal` 那一整串页面相关 props
+ *     （`pageType`/`triggerLabel`/`triggerVariant` 等）：这些参数因页面而异，
+ *     由接线层（Task 11/12）按当前语境实例化好整个元素传进来，本组件只负责
+ *     "这里有一个次要出口"这一个通用位置，不持有任何具体交互能力，也不需要
+ *     跟着 `InquiryModal` 的 props 变化同步改自己的签名。省略该 prop 时次要
+ *     按钮位整体不渲染，不伪造一个假交互占位符。
  *
  *     视觉处理选择「包裹 + 重置」而非「调用方自己按 40 高/#f5f5f7 拼样式」：
  *     `InquiryModal` 默认渲染的触发器是旧配色体系的 `.btn.btn--primary`

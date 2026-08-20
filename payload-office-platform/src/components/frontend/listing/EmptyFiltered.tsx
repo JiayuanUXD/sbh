@@ -25,16 +25,27 @@ import React from 'react'
  * 展示出来只会让用户再点一次空手而归。调用方理应只传命中数 >0 的退路，这里
  * 是防御性兜底，不是本组件预期的主路径。过滤后为空同样落入上面的空数组分支，
  * 不需要第二套「全部过滤完」的文案。
+ *
+ * `clearAllCount`（可选，加宽自 code review）：comp 稿页头按钮字面是「清除全部
+ * 条件 · 1,893 套」，不只是「清除全部条件」——这是全页最重要的空态上最强的一个
+ * 出口，告诉用户清除之后能拿回多少结果，是它大半的价值所在。与 `EmptyNoStock`
+ * 的 `unfilteredTotalCount` 同一处置：可选而非必填，缺省时退化为不带数字但仍
+ * 诚实的纯文案「清除全部条件」，数字 >0 时才渲染（批次统一的「不显示 0」规则），
+ * 且用 `tabular-nums`。**Task 11/12 接线时应实际传入这个数字**（不叠加任何筛选
+ * 时的结果总数），否则会退回不带数字的弱版本。
  */
 export type Relaxation = Readonly<{ label: string; hitCount: number; href: string }>
 
 export default function EmptyFiltered(props: Readonly<{
   relaxations: readonly Relaxation[]
   clearAllHref: string
+  /** 清除全部后的结果总数，用于按钮文案「清除全部条件 · N 套」；可选，见上方注释。 */
+  clearAllCount?: number
 }>): React.JSX.Element {
-  const { relaxations, clearAllHref } = props
+  const { relaxations, clearAllHref, clearAllCount } = props
   const visible = relaxations.filter((r) => r.hitCount > 0)
   const hasRelaxations = visible.length > 0
+  const hasClearAllCount = clearAllCount != null && clearAllCount > 0
 
   return (
     <div className="ls-emptyfiltered">
@@ -47,7 +58,20 @@ export default function EmptyFiltered(props: Readonly<{
               : '没有可单独放宽的条件，清除全部筛选，看看完整结果。'}
           </span>
         </span>
-        <Link href={clearAllHref} className="ls-emptyfiltered__clear-all">清除全部条件</Link>
+        {/* 文案包一层 <span>：`.ls-emptyfiltered__clear-all` 是 inline-flex，
+            文本直接摊平进去会被拆成独立 flex item、边界空格被折叠掉——同
+            EmptyNoStock.tsx 主按钮踩过的坑，见该文件顶部注释。 */}
+        <Link href={clearAllHref} className="ls-emptyfiltered__clear-all">
+          <span>
+            {hasClearAllCount ? (
+              <>
+                清除全部条件 · <span className="ls-emptyfiltered__clear-all-count">{clearAllCount}</span> 套
+              </>
+            ) : (
+              '清除全部条件'
+            )}
+          </span>
+        </Link>
       </div>
 
       {hasRelaxations ? (
