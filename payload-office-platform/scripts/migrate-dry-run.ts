@@ -20,7 +20,7 @@ import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  isDestructiveRiskApproved,
+  isDestructiveMigrationApproved,
   type DestructiveRiskKind,
 } from './destructive-migration-approvals'
 
@@ -157,24 +157,13 @@ function analyzeMigration(name: string): MigrationAnalysis {
     }
   }
 
-  // 批准清单按「迁移名 + 风险类别 + 出现次数」精确匹配（内容指纹）：先按 kind
-  // 数一遍这份迁移里 DROP TABLE/DROP COLUMN 各出现了几次，只有次数与批准记录
-  // 完全一致的 kind 才整体放行；之后如果同一份文件又新增了同类风险，次数对不上，
-  // 不会被静默放行。批准数据来自 DESTRUCTIVE_MIGRATION_APPROVALS.json，
-  // 这个函数本身不含任何具体迁移名。
-  const countsByKind = new Map<DestructiveRiskKind, number>()
-  for (const h of rawHits) {
-    if (h.severity === 'block' && h.kind) {
-      countsByKind.set(h.kind, (countsByKind.get(h.kind) ?? 0) + 1)
-    }
-  }
-  const approvedKinds = new Set<DestructiveRiskKind>()
-  for (const [kind, count] of countsByKind) {
-    if (isDestructiveRiskApproved(name, kind, count)) approvedKinds.add(kind)
-  }
-
-  const forbiddenHits = rawHits.filter((h) => !(h.kind && approvedKinds.has(h.kind)))
-  const approvedHits = rawHits.filter((h) => h.kind && approvedKinds.has(h.kind))
+  // 批准清单是整份迁移 .ts 文件内容的 SHA-256——真正的内容指纹，不是只认
+  // 迁移名、也不是只认出现次数：文件内容哪怕改一个字节（换掉 DROP TABLE 的
+  // 目标表名、调整 down()）都会让批准失效，不会被静默放行。批准数据来自
+  // DESTRUCTIVE_MIGRATION_APPROVALS.json，这个函数本身不含任何具体迁移名。
+  const approved = isDestructiveMigrationApproved(name, ts)
+  const forbiddenHits = rawHits.filter((h) => !(approved && h.kind))
+  const approvedHits = rawHits.filter((h) => approved && h.kind)
 
   return {
     name,

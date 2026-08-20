@@ -1,75 +1,87 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve, dirname as pathDirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import {
-  isDestructiveRiskApproved,
+  isDestructiveMigrationApproved,
   loadDestructiveMigrationApprovals,
+  sha256Hex,
   APPROVALS_FILE_PATH,
   type DestructiveMigrationApprovalEntry,
 } from '../scripts/destructive-migration-approvals'
 
+const here = pathDirname(fileURLToPath(import.meta.url))
+const migrationsDir = resolve(here, '..', 'src', 'migrations')
+
 /**
- * 批准清单的匹配逻辑必须绑「迁移名 + 风险类别 + 出现次数」三者，不能只认迁移名——
- * 否则被批准的那个迁移文件今后再加任何 DROP TABLE / DROP COLUMN 都会被静默放行。
- * 这些用例全部用构造好的 approvals 数组跑，不碰真实的
- * DESTRUCTIVE_MIGRATION_APPROVALS.json，纯函数、不依赖磁盘状态。
+ * 批准清单的匹配逻辑是整份迁移文件内容的 SHA-256——真正的内容指纹，不是只认
+ * 迁移名，也不是只认「出现次数」（出现次数指纹的漏洞：把 DROP TABLE 的目标表名
+ * 从 A 换成 B，次数不变，之前的实现会误放行）。这些用例全部用构造好的
+ * approvals 数组跑，不碰真实的 DESTRUCTIVE_MIGRATION_APPROVALS.json，纯函数、
+ * 不依赖磁盘状态。
  */
+const SAMPLE_CONTENT_A = 'export async function up() { /* DROP TABLE "a" */ }'
+const SAMPLE_CONTENT_B = 'export async function up() { /* DROP TABLE "b" */ }'
+
 const fixture: DestructiveMigrationApprovalEntry[] = [
   {
     migrationName: '20260101_000000_example_drop',
     approvedIn: 'TEST-000',
     approvedWhat: '测试用例',
     impact: '测试用例，无实际影响',
-    approvedRiskCounts: { DROP_TABLE: 1, DROP_COLUMN: 2 },
+    approvedFileSha256: sha256Hex(SAMPLE_CONTENT_A),
   },
 ]
 
-describe('isDestructiveRiskApproved：内容指纹匹配', () => {
-  it('迁移名 + 类别 + 次数三者都对上才放行', () => {
+describe('isDestructiveMigrationApproved：内容指纹（整份文件 SHA-256）匹配', () => {
+  it('迁移名对上、文件内容与批准时逐字节一致才放行', () => {
     expect(
-      isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_TABLE', 1, fixture),
-    ).toBe(true)
-    expect(
-      isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_COLUMN', 2, fixture),
+      isDestructiveMigrationApproved('20260101_000000_example_drop', SAMPLE_CONTENT_A, fixture),
     ).toBe(true)
   })
 
-  it('次数变多（新增了一条同类风险）不再放行——不是 >= 判定', () => {
+  it('文件内容变了（哪怕只是把 DROP TABLE 的目标表名从 a 换成 b）不再放行', () => {
+    // 这正是「出现次数」指纹的漏洞：换个表名，DROP TABLE 出现次数仍是 1，
+    // 旧实现会误放行。整份文件哈希能正确拒绝。
     expect(
-      isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_TABLE', 2, fixture),
+      isDestructiveMigrationApproved('20260101_000000_example_drop', SAMPLE_CONTENT_B, fixture),
     ).toBe(false)
   })
 
-  it('次数变少也不放行——批准记录的是当时的确切次数', () => {
+  it('文件内容只多了一个空白字符也不再放行——逐字节比较，不是语义比较', () => {
     expect(
-      isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_COLUMN', 1, fixture),
+      isDestructiveMigrationApproved(
+        '20260101_000000_example_drop',
+        SAMPLE_CONTENT_A + ' ',
+        fixture,
+      ),
     ).toBe(false)
   })
 
-  it('迁移名对不上不放行，即便类别与次数都对', () => {
-    expect(isDestructiveRiskApproved('some_other_migration', 'DROP_TABLE', 1, fixture)).toBe(
+  it('迁移名对不上不放行，即便文件内容逐字节相同', () => {
+    expect(isDestructiveMigrationApproved('some_other_migration', SAMPLE_CONTENT_A, fixture)).toBe(
       false,
     )
-  })
-
-  it('批准记录里没有这个类别（比如只批了 DROP_TABLE 没批 DROP_COLUMN）不放行', () => {
-    const onlyTable: DestructiveMigrationApprovalEntry[] = [
-      {
-        migrationName: '20260101_000000_example_drop',
-        approvedIn: 'TEST-000',
-        approvedWhat: '测试用例',
-        impact: '测试用例',
-        approvedRiskCounts: { DROP_TABLE: 1 },
-      },
-    ]
-    expect(
-      isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_COLUMN', 1, onlyTable),
-    ).toBe(false)
   })
 
   it('批准清单为空数组：任何迁移都不放行', () => {
-    expect(isDestructiveRiskApproved('20260101_000000_example_drop', 'DROP_TABLE', 1, [])).toBe(
+    expect(isDestructiveMigrationApproved('20260101_000000_example_drop', SAMPLE_CONTENT_A, [])).toBe(
       false,
     )
+  })
+})
+
+describe('sha256Hex', () => {
+  it('对相同内容返回相同摘要（十六进制，64 位）', () => {
+    const h1 = sha256Hex('hello')
+    const h2 = sha256Hex('hello')
+    expect(h1).toBe(h2)
+    expect(h1).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('对不同内容返回不同摘要', () => {
+    expect(sha256Hex('hello')).not.toBe(sha256Hex('hellp'))
   })
 })
 
@@ -89,6 +101,28 @@ describe('loadDestructiveMigrationApprovals：真实清单文件', () => {
     expect(entry?.approvedIn).toMatch(/OPT-034/)
     expect(entry?.approvedWhat.length).toBeGreaterThan(0)
     expect(entry?.impact.length).toBeGreaterThan(0)
-    expect(entry?.approvedRiskCounts).toEqual({ DROP_TABLE: 1, DROP_COLUMN: 1 })
+    expect(entry?.approvedFileSha256).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('真实清单里的哈希与该迁移文件当前的真实内容一致——批准没有过期', () => {
+    // 这条用例保证：只要仓库里那份迁移文件不变，批准就一直有效；
+    // 一旦有人改动了那份迁移文件（哪怕是笔误），这里会先于其它三道闸红。
+    const approvals = loadDestructiveMigrationApprovals()
+    const entry = approvals.find(
+      (a) => a.migrationName === '20260820_055534_drop_listing_merchant_relations',
+    )
+    const migrationPath = resolve(
+      migrationsDir,
+      '20260820_055534_drop_listing_merchant_relations.ts',
+    )
+    const realContent = readFileSync(migrationPath, 'utf-8')
+    expect(sha256Hex(realContent)).toBe(entry?.approvedFileSha256)
+    expect(
+      isDestructiveMigrationApproved(
+        '20260820_055534_drop_listing_merchant_relations',
+        realContent,
+        approvals,
+      ),
+    ).toBe(true)
   })
 })

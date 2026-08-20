@@ -1,15 +1,12 @@
 {
-  "purpose": "破坏性迁移（DROP TABLE / DROP COLUMN）批准清单。scripts/preflight.ts、scripts/migrate-dry-run.ts、tests/preflight-migrations.test.ts 这三处闸门共读同一份数据；三处代码本身都不写死任何具体迁移名，谁被批准、批准了什么，只在这一份文件里。批准按「迁移名 + 风险类别 + 出现次数」三者精确匹配（内容指纹）：approvedRiskCounts 记录的是批准当时 up() 里该类别风险出现的确切次数，之后如果同一份迁移文件又新增了同类风险（比如再加一条 DROP TABLE），次数对不上，新增的那条不会被静默放行，闸门照常拦——需要重新审查并更新这条记录。新增条目 = 一次独立的人工批准，必须包含下列全部字段，且这份文件的 diff 本身就是批准留痕，不要把批准散落到别处。",
+  "purpose": "破坏性迁移（DROP TABLE / DROP COLUMN）批准清单。scripts/preflight.ts、scripts/migrate-dry-run.ts、scripts/migrate-verify.ts、tests/preflight-migrations.test.ts 这四处闸门共读同一份数据；四处代码本身都不写死任何具体迁移名，谁被批准、批准了什么，只在这一份文件里。approvedFileSha256 是对该迁移 .ts 文件完整内容取的 SHA-256（十六进制小写）——真正的内容指纹：文件内容哪怕改一个字节（换掉 DROP TABLE 的目标表名、调整 down()、改一行注释）都会让摘要不匹配，批准立即失效，闸门照常拦，必须重新审查并更新这份记录。计算方式：Node crypto.createHash('sha256').update(fs.readFileSync(path,'utf8'),'utf8').digest('hex')。新增条目 = 一次独立的人工批准，必须包含下列全部字段，且这份文件的 diff 本身就是批准留痕，不要把批准散落到别处。",
   "approvals": [
     {
       "migrationName": "20260820_055534_drop_listing_merchant_relations",
       "approvedIn": "OPT-034 Task 6",
       "approvedWhat": "删除 listing_merchant_relations 表本体（DROP TABLE，级联带走 payload_locked_documents_rels 上指向它的外键约束）及该多态关系表上对应的 listing_merchant_relations_id 列（DROP COLUMN）。后者是 Payload 多态关系机制的必然副产品：摘掉一个 collection 的注册，它在 payload_locked_documents_rels 上对应的那一列就要一并删除。",
       "impact": "生产环境涉及 2208 条 listing_merchant_relations 关系记录，随 DROP TABLE 一并删除，不可逆。有效期机制（effectiveFrom/effectiveTo）从未在业务上使用——2208 条记录全部是 1:1（每条房源恰好一条现行关系），0 条设置过 effectiveTo。读侧已在 OPT-034 Task 1-4 全部迁移到 listings.merchant 字段，此表切换后零消费者；切换前后可见房源数 2169→2172，0 条因切换而消失。",
-      "approvedRiskCounts": {
-        "DROP_TABLE": 1,
-        "DROP_COLUMN": 1
-      }
+      "approvedFileSha256": "6ea57ddb32601773a38278e246c74ed35d83f896b83c6748719982fe9f6ecbae"
     }
   ]
 }

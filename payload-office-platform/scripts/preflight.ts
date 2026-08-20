@@ -30,7 +30,7 @@ import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  isDestructiveRiskApproved,
+  isDestructiveMigrationApproved,
   type DestructiveRiskKind,
 } from './destructive-migration-approvals'
 
@@ -243,29 +243,23 @@ export function scanMigrationUpRisks(_name: string, migrationContent: string): M
 }
 
 /**
- * 对一份迁移的风险应用批准清单：只压制「被精确批准」的 DROP_TABLE/DROP_COLUMN
- * fail 项，其它风险（含未带 kind 的、或 kind 命中次数与批准记录不一致的）原样
- * 保留、照常报 fail。
+ * 对一份迁移的风险应用批准清单：整份迁移 .ts 文件内容的 SHA-256 与批准记录
+ * 逐字节一致时，压制所有带 kind 的 DROP_TABLE/DROP_COLUMN fail 项；不一致（含
+ * 未获批准、或文件内容与批准时不同）则原样保留、照常报 fail。不带 kind 的风险
+ * （比如未来若加了 TRUNCATE 之类的 fail 规则）永远不受这份批准清单影响。
  *
- * 批准数据来自 DESTRUCTIVE_MIGRATION_APPROVALS.json（见
- * scripts/destructive-migration-approvals.ts），本文件不写死任何具体迁移名——
- * 谁被批准、批准了什么，只在那份 JSON 数据文件里，这里只有通用匹配逻辑。
+ * `migrationFileContent` 必须是调用方对该迁移 .ts 文件 readFileSync 得到的
+ * 原始内容，不是提取过的 up() 子串——真正的内容指纹以整份文件为准，见
+ * scripts/destructive-migration-approvals.ts 顶部注释。批准数据来自
+ * DESTRUCTIVE_MIGRATION_APPROVALS.json，本文件不写死任何具体迁移名。
  */
 export function applyDestructiveMigrationOverride(
   name: string,
   risks: MigrationRisk[],
+  migrationFileContent: string,
 ): MigrationRisk[] {
-  const countsByKind = new Map<DestructiveRiskKind, number>()
-  for (const r of risks) {
-    if (r.severity === 'fail' && r.kind) {
-      countsByKind.set(r.kind, (countsByKind.get(r.kind) ?? 0) + r.matches.length)
-    }
-  }
-  const approvedKinds = new Set<DestructiveRiskKind>()
-  for (const [kind, count] of countsByKind) {
-    if (isDestructiveRiskApproved(name, kind, count)) approvedKinds.add(kind)
-  }
-  return risks.filter((r) => !(r.severity === 'fail' && r.kind && approvedKinds.has(r.kind)))
+  if (!isDestructiveMigrationApproved(name, migrationFileContent)) return risks
+  return risks.filter((r) => !(r.severity === 'fail' && r.kind))
 }
 
 function checkMigrations() {
@@ -317,7 +311,7 @@ function checkMigrations() {
     // 不可回滚项确定性阻断：缺 down 升级为 fail
     if (!hasDown) fail(`migrations.${name}.down`, '缺少 export async function down（不可回滚）')
 
-    const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content))
+    const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content), content)
     for (const r of risks) {
       totalRisks += r.matches.length
       const fn = r.severity === 'fail' ? fail : warn

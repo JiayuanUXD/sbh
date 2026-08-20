@@ -203,14 +203,15 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
     // scripts/preflight.ts 的 applyDestructiveMigrationOverride，经
     // scripts/destructive-migration-approvals.ts 读取顶层
     // DESTRUCTIVE_MIGRATION_APPROVALS.json——是否放行由那份数据文件决定，且要求
-    // 「迁移名 + 风险类别 + 出现次数」三者精确匹配（内容指纹），不是只认迁移名。
-    // 新增/修改一条批准 = 那份 JSON 的一处 diff，就是对 PR 评审者可见的记录；
-    // 清单里没有的迁移、或次数对不上的迁移，本测试必须照样把它拦下来。
+    // 整份迁移文件内容的 SHA-256 与批准记录逐字节一致（真正的内容指纹，不是只认
+    // 迁移名、也不是只认出现次数）。新增/修改一条批准 = 那份 JSON 的一处 diff，
+    // 就是对 PR 评审者可见的记录；清单里没有的迁移、或内容对不上的迁移，
+    // 本测试必须照样把它拦下来。
     const names = listMigrationFiles(migrationsDir)
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content))
+      const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content), content)
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }
