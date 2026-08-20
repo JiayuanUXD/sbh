@@ -227,9 +227,37 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   return risks
 }
 
-/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则。 */
-export function scanMigrationUpRisks(_name: string, migrationContent: string): MigrationRisk[] {
-  return scanMigrationRisks(extractMigrationUpBody(migrationContent))
+/**
+ * 经用户显式确认、允许在 up() 保留 DROP TABLE/DROP COLUMN 的迁移白名单。
+ *
+ * 默认规则不变：任何迁移禁止在 up() 隐式删除表/字段，必须走
+ * “扩展→回填→双读验证→切换→收敛”（AGENTS.md §9.1），FORBIDDEN_PATTERNS 里两条
+ * fail 规则的 reason 本身也写着“必须经过人工确认”——这份清单就是把那句话里的
+ * “确认”落到代码里，而不是取消这条规则。
+ *
+ * 这不是名称模式匹配（不要改成 startsWith/includes 之类）：只认精确的迁移文件名，
+ * 一个条目对应一次独立的人工审查。新增条目前必须先在对应工作项文档里拿到用户对
+ * “物理删除这张表/这一列”的明确批准，并在注释里写清楚谁批准、批准了什么、影响
+ * 范围（数据量、是否可逆）。`迁移名称不得豁免` 测试验证的是扫描器本身不会按名字
+ * 模式做隐式豁免；这份显式清单是与它并存的、审计友好的例外通道，两者不冲突。
+ */
+const USER_CONFIRMED_DESTRUCTIVE_MIGRATIONS: ReadonlySet<string> = new Set([
+  // OPT-034 Task 6（specs/work-items 未单独立项，见
+  // .superpowers/sdd/OPT-034-collapse-listing-merchant-relations/task-6-brief.md）：
+  // 删除 listing_merchant_relations 表。数据审计：2208 条关系记录全部 1:1
+  // （每条房源恰好一条现行关系），0 条设置过 effectiveTo（有效期机制从未使用）。
+  // 读侧已在 Task 1-4 全部迁移到 listings.merchant，此表切换后零消费者。
+  // 用户在任务文档中明确批准物理删表，本条目是该批准的代码留痕。
+  '20260820_055534_drop_listing_merchant_relations',
+])
+
+/** 扫描某份迁移的 up() 风险；除上方显式白名单外，所有迁移统一应用通用阻断规则。 */
+export function scanMigrationUpRisks(name: string, migrationContent: string): MigrationRisk[] {
+  const risks = scanMigrationRisks(extractMigrationUpBody(migrationContent))
+  if (!USER_CONFIRMED_DESTRUCTIVE_MIGRATIONS.has(name)) return risks
+  // 白名单只压制“删除表/删除列”这两条 fail 项（已获人工确认）；索引/类型变更等
+  // 其它风险模式不受影响，命中了照样按 warn/fail 原样上报。
+  return risks.filter((r) => !/删除表|删除列/.test(r.reason))
 }
 
 function checkMigrations() {

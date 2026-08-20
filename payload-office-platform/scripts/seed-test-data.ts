@@ -683,14 +683,15 @@ async function main() {
   }
   console.log(`listings 补全 ${listingCount} 个`)
 
-  // ===== 5b. 为每个楼盘新增多个可租面积房源 + merchant 关系 =====
-  console.log('\n[5b] 为每个楼盘新增可租面积房源 + merchant 关系...')
+  // ===== 5b. 为每个楼盘新增多个可租面积房源 + merchant 字段 =====
+  console.log('\n[5b] 为每个楼盘新增可租面积房源 + merchant 字段...')
 
-  // 沿用现有有效房源的 merchant（确保准入与服务城市覆盖一致）
-  const sampleRelRes = await payload.find({ collection: 'listing-merchant-relations', limit: 1, depth: 1, sort: 'id', overrideAccess: true })
-  const sampleRel = sampleRelRes.docs[0] as any
-  const sharedMerchantId = sampleRel ? (typeof sampleRel.merchant === 'object' ? sampleRel.merchant?.id : sampleRel.merchant) : undefined
-  if (!sharedMerchantId) payload.logger.warn('未找到现有 merchant 关系，新房源将无法建立有效供给')
+  // OPT-034 起精筛只看 listings.merchant，不再有关系表可查——改为沿用现有
+  // 已设置 merchant 的房源（确保准入与服务城市覆盖一致）
+  const sampleListingRes = await payload.find({ collection: 'listings', where: { merchant: { exists: true } }, limit: 1, depth: 0, sort: 'id', overrideAccess: true })
+  const sampleListing = sampleListingRes.docs[0] as any
+  const sharedMerchantId = sampleListing ? sampleListing.merchant : undefined
+  if (!sharedMerchantId) payload.logger.warn('未找到已设置 merchant 的现有房源，新房源将无法建立有效供给')
 
   // 楼盘 slug -> {id, name, coverImage} 缓存
   const buildingCache: Record<string, { id: number; name: string; coverImage: number | null }> = {}
@@ -702,7 +703,6 @@ async function main() {
     }
   }
 
-  const relEffectiveFrom = new Date(now - DAY).toISOString()
   let newCount = 0
   for (let i = 0; i < NEW_LISTINGS.length; i++) {
     const n = applySeedTestListingVisibilityPolicy(NEW_LISTINGS[i])
@@ -738,33 +738,21 @@ async function main() {
     }
     if (price) data.price = price
     if (brokers.length > 0) data.contactBroker = brokers[(i + listingCount) % brokers.length].id
+    // OPT-034 起精筛只看 listings.merchant 是否有值（§8 NO_SUPPLY_MERCHANT），
+    // 不写这个字段新房源就进不了有效供给。
+    if (sharedMerchantId) data.merchant = sharedMerchantId
 
     // 幂等：按 slug 查，存在则 update，不存在则 create
     const existing = await findBySlug(payload, 'listings', n.slug)
-    let listingId: number
     if (existing) {
-      const updated = await payload.update({ collection: 'listings', id: existing.id, data: data as any, overrideAccess: true }) as any
-      listingId = updated.id
+      await payload.update({ collection: 'listings', id: existing.id, data: data as any, overrideAccess: true })
     } else {
-      const created = await payload.create({ collection: 'listings', data: { ...data, slug: n.slug } as any, overrideAccess: true }) as any
-      listingId = created.id
+      await payload.create({ collection: 'listings', data: { ...data, slug: n.slug } as any, overrideAccess: true })
       payload.logger.info(`新房源已创建: ${n.slug}`)
-    }
-
-    // 恰好 1 条有效 merchant 关系（幂等：已有则跳过，避免 unique 失效）
-    if (sharedMerchantId) {
-      const existingRel = await payload.find({ collection: 'listing-merchant-relations', where: { listing: { equals: listingId } }, limit: 1, depth: 0, overrideAccess: true })
-      if (existingRel.docs.length === 0) {
-        await payload.create({
-          collection: 'listing-merchant-relations',
-          data: { listing: listingId, merchant: sharedMerchantId, effectiveFrom: relEffectiveFrom, effectiveTo: null, createdReason: '测试数据种子' } as any,
-          overrideAccess: true,
-        })
-      }
     }
     newCount++
   }
-  console.log(`新增可租面积房源 ${newCount} 个（含 merchant 关系）`)
+  console.log(`新增可租面积房源 ${newCount} 个（含 merchant 字段）`)
 
   // ===== 6. AdvisorServiceHours global =====
   console.log('\n[6/7] 配置平台顾问服务时间 global...')
