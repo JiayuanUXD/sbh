@@ -27,6 +27,7 @@ import {
   listPublishedArticles,
   listPublishedPages,
   listingsCityTag,
+  omitListingSearchDimensions,
   paginateListingSearchSource,
   searchBuildings,
   searchBuildingsFiltered,
@@ -34,6 +35,7 @@ import {
   searchListingsSitemapPage,
   type BuildingSearchInput,
   type HomepageStats,
+  type ListingSearchDimension,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
 
@@ -424,6 +426,32 @@ export function getCachedSearchFacets(
 ) {
   const city = canonicalCitySlug(citySlug)
   return getCachedSearchFacetsByCity(city)(canonicalQuery, input, businessType)
+}
+
+/**
+ * 剥掉指定维度后的 facet 统计（OPT-036 Task 11）。
+ *
+ * 剥离语义与「为什么必须剥」见 `omitListingSearchDimensions` 的注释——一句话：
+ * `getSearchFacets` 的 facetInput 保留了 `priceUnit`，选中某个计价单位后其余
+ * 单位计数恒为 0，「另有 N 套按 X 报价」提示条会静默消失。列表页的单位计数、
+ * 筛选行候选计数、空态②的逐条退路命中数都必须走这一条。
+ *
+ * 缓存策略：**先剥离、再用剥离后的 input 拼 canonical 当缓存键**，直接复用
+ * `getCachedSearchFacets` 那一条缓存工厂。这样剥不同维度只要落到同一份 input
+ * 就命中同一条缓存——最常见的情形（用户只选了单位、没选区域时，剥 `priceUnit`
+ * 与剥 `district` 得到的是同一份输入）因此只查一次库，而不是每个维度各查一次。
+ * `page`/`sort` 一并归一，避免同一份筛选条件因为页码不同而分裂成多条缓存。
+ */
+export function getCachedSearchFacetsIgnoring(
+  citySlug: string,
+  input: ListingSearchInput,
+  dimensions: readonly ListingSearchDimension[],
+  businessType: SearchChannel = 'lease',
+) {
+  const stripped = omitListingSearchDimensions(input, dimensions)
+  const facetInput: ListingSearchInput = { ...stripped, page: 1, sort: 'recommended' }
+  const canonicalQuery = buildCanonicalSearchParams(facetInput).toString()
+  return getCachedSearchFacets(citySlug, canonicalQuery, facetInput, businessType)
 }
 
 // Articles and pages intentionally remain global in Plan 2.

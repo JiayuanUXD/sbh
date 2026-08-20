@@ -1,3 +1,4 @@
+import type { PriceDisplayUnit } from '@/domain/public-catalog/contracts'
 import { parseUtcIso, shanghaiDate } from '@/domain/shared/time'
 
 export function rentUnitLabel(unit?: string): string {
@@ -11,6 +12,41 @@ export function rentUnitLabel(unit?: string): string {
     default:
       return ''
   }
+}
+
+/**
+ * 计价单位中文名，覆盖 `PriceDisplayUnit` 全部 12 个取值。
+ *
+ * 与 `rentUnitLabel` 的关系：后者只认三个**租赁**单位（旧 `listings.rentUnit`
+ * 列的取值域），出售频道的 `rmb-total`／`rmb-sqm-total` 一律返回空串。列表页的
+ * 单位分段与被排除单位提示条对租、售两个频道复用同一套组件，只有 3 个单位的
+ * 表在出售频道会把标签渲成空——那是「接口没给这个信息就把文案降级」，本批次
+ * 已经三次否掉过同类处置，因此在这里补齐全集而不是让调用方在出售频道退化。
+ *
+ * 构造规则与域层 `mappers.ts` 的 `formatPriceText` 完全一致（basis 段 +
+ * period 段，一次性计价省略 period 段），但写成显式全表而非再实现一遍拼接：
+ * 12 个取值一个不漏由 `Record<PriceDisplayUnit, string>` 在编译期保证。
+ */
+const PRICE_UNIT_LABEL: Readonly<Record<PriceDisplayUnit, string>> = {
+  'rmb-sqm-day': '元/㎡/天',
+  'rmb-sqm-month': '元/㎡/月',
+  'rmb-sqm-year': '元/㎡/年',
+  'rmb-sqm-total': '元/㎡',
+  'rmb-seat-day': '元/工位/天',
+  'rmb-seat-month': '元/工位/月',
+  'rmb-seat-year': '元/工位/年',
+  'rmb-seat-total': '元/工位',
+  'rmb-day': '元/天',
+  'rmb-month': '元/月',
+  'rmb-year': '元/年',
+  'rmb-total': '元',
+}
+
+/** 计价单位中文名；未知取值返回空串（与 rentUnitLabel 同一处置）。 */
+export function priceUnitLabel(unit?: string): string {
+  return unit != null && unit in PRICE_UNIT_LABEL
+    ? PRICE_UNIT_LABEL[unit as PriceDisplayUnit]
+    : ''
 }
 
 export function formatRent(rent?: number | null, unit?: string): string {

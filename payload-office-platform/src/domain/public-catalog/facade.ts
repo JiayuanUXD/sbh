@@ -950,6 +950,104 @@ export async function getPlatformHomepageStats(
 }
 
 /**
+ * 可从 `ListingSearchInput` 上剥离的筛选维度。
+ *
+ * 一个维度对应「用户在界面上做的一次选择」，而不是一个字段名——价格是
+ * `priceMin`/`priceMax` 两个字段、单位是 `priceUnit` 连带派生的
+ * `pricePeriod`/`priceBasis` 三个字段。按维度而不是按字段剥离，调用方才不需要
+ * 知道哪些字段是同一次选择投影出来的（漏剥一个派生字段不会报错，只会算出一个
+ * 半剥离的错口径）。
+ */
+export type ListingSearchDimension =
+  | 'priceUnit'
+  | 'district'
+  | 'businessArea'
+  | 'metro'
+  | 'listingType'
+  | 'price'
+  | 'area'
+  | 'availableBefore'
+  | 'q'
+
+/**
+ * 从搜索输入里剥掉指定维度，其余条件原样保留。
+ *
+ * **为什么需要它（剥 `priceUnit` 这一条尤其关键）**：`getSearchFacets` 构造的
+ * `facetInput = { ...input, page: 1, sort: 'recommended' }` **保留了 `priceUnit`**。
+ * 于是用户一旦选中某个计价单位，`findEffectiveListings` 就只返回该单位的房源，
+ * 其余单位的计数恒为 0 —— 列表页的「另有 N 套按 X 报价，因单位不可换算未计入
+ * 本结果集」提示条会因为全部计数为 0 而 `return null`，那条诚实提示**永远不出现，
+ * 且不报任何错**。而结果集只含一种单位正是本页比价机制的代价，没有这条提示，
+ * 机制就从「帮用户比价」变成「悄悄藏起大部分库存」。
+ *
+ * 正确口径是：算各单位计数时剥掉 `priceUnit`，**其余筛选条件（区域/类型/价格
+ * 区间/面积/关键词/可入驻时间）全部保留**——用户要看到的是「另有 536 套按
+ * 元/月 报价（且符合他其余的条件）」，不是全库总数。这与 Task 2 的
+ * 「facets 必须算在筛选之前，否则选中一项后其余项自我擦除」是同一个病。
+ *
+ * 同理适用于筛选条各行的候选计数（算「黄浦有多少套」时必须先剥掉当前已选的
+ * 区域）和空态②的逐条退路命中数（算「放宽面积后有多少套」时剥掉面积）。
+ *
+ * 剥掉 `priceUnit` 时必须连带处理两件事，否则得到的是半剥离的错口径：
+ *   1. `pricePeriod` / `priceBasis` 是 `priceUnit` 的派生投影，一起删；
+ *   2. 价格排序（`price-asc`/`price-desc`）在缺 `priceUnit` 时不可比，
+ *      与解析层 `normalizeSort` 同一口径降级为 `recommended`。
+ */
+export function omitListingSearchDimensions(
+  input: ListingSearchInput,
+  dimensions: readonly ListingSearchDimension[],
+): ListingSearchInput {
+  const drop = new Set<ListingSearchDimension>(dimensions)
+  const next: Record<string, unknown> = { ...input }
+
+  if (drop.has('priceUnit')) {
+    delete next.priceUnit
+    delete next.pricePeriod
+    delete next.priceBasis
+  }
+  if (drop.has('district')) delete next.district
+  if (drop.has('businessArea')) delete next.businessArea
+  if (drop.has('metro')) delete next.metro
+  if (drop.has('listingType')) delete next.listingType
+  if (drop.has('price')) {
+    delete next.priceMin
+    delete next.priceMax
+  }
+  if (drop.has('area')) {
+    delete next.areaMin
+    delete next.areaMax
+  }
+  if (drop.has('availableBefore')) delete next.availableBefore
+  if (drop.has('q')) delete next.q
+
+  if (next.priceUnit == null && (next.sort === 'price-asc' || next.sort === 'price-desc')) {
+    next.sort = 'recommended'
+  }
+
+  return next as unknown as ListingSearchInput
+}
+
+/**
+ * 剥掉指定维度后的 facet 统计。
+ *
+ * 剥离理由与语义见 `omitListingSearchDimensions` 的注释——本函数只是把
+ * 「先剥离、再按同一口径统计」这两步固定在域层，避免调用方在编排层各自拼一份
+ * 剥离逻辑（漏剥 `pricePeriod` 之类的派生字段不会报错，只会静默算错）。
+ *
+ * 与 `getSearchFacets` 共用同一条查询路径与 asOf，因此这里算出来的 `totalDocs`
+ * 与「用户真的把那个条件去掉后打开列表页」看到的总数完全一致——空态②承诺的
+ * 「数字是放宽后的真实命中数，不是估算」靠的就是这一点。
+ */
+export async function getSearchFacetsIgnoring(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  dimensions: readonly ListingSearchDimension[],
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<SearchFacets> {
+  return getSearchFacets(omitListingSearchDimensions(input, dimensions), ctx, adapter)
+}
+
+/**
  * 搜索 facet：当前可见房源的分布统计
  *
  * design.md §5.3、§7：facet 必须复用同一 asOf 与谓词，不允许独立查询。
