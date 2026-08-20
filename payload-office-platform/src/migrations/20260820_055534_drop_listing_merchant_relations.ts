@@ -18,8 +18,10 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
  *
  * 注：`payload migrate:create` 生成的原始 diff 还包含一段与本次改动无关的
  * `media.prefix` 列 DEFAULT 漂移（本地 `.env.local` 未配置 COS_*，s3Storage 插件在
- * `enabled:false` 时不会声明该默认值，纯属本地环境差异，与生产配置下的实际 schema
- * 无关）。已手动从本迁移与快照 json 中剔除，避免误删 `media.prefix` 的生产默认值。
+ * `enabled:false` 时不会声明该默认值，纯属本地环境差异）。已手动从本迁移与快照 json
+ * 中剔除。经 CloudBase MCP 只读查询核实，生产库 `media.prefix` 列当前
+ * `column_default` 确为 `'media'::character varying`——若不剔除，这段无关 diff
+ * 会把生产这条真实存在的默认值删掉，与本次任务（删表）无关且高风险。
  *
  * 注 2：原始 diff 还生成了一条多余的
  * `ALTER TABLE payload_locked_documents_rels DROP CONSTRAINT ..._fk`——

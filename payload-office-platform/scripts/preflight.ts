@@ -227,37 +227,41 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   return risks
 }
 
-/**
- * 经用户显式确认、允许在 up() 保留 DROP TABLE/DROP COLUMN 的迁移白名单。
- *
- * 默认规则不变：任何迁移禁止在 up() 隐式删除表/字段，必须走
- * “扩展→回填→双读验证→切换→收敛”（AGENTS.md §9.1），FORBIDDEN_PATTERNS 里两条
- * fail 规则的 reason 本身也写着“必须经过人工确认”——这份清单就是把那句话里的
- * “确认”落到代码里，而不是取消这条规则。
- *
- * 这不是名称模式匹配（不要改成 startsWith/includes 之类）：只认精确的迁移文件名，
- * 一个条目对应一次独立的人工审查。新增条目前必须先在对应工作项文档里拿到用户对
- * “物理删除这张表/这一列”的明确批准，并在注释里写清楚谁批准、批准了什么、影响
- * 范围（数据量、是否可逆）。`迁移名称不得豁免` 测试验证的是扫描器本身不会按名字
- * 模式做隐式豁免；这份显式清单是与它并存的、审计友好的例外通道，两者不冲突。
- */
-const USER_CONFIRMED_DESTRUCTIVE_MIGRATIONS: ReadonlySet<string> = new Set([
-  // OPT-034 Task 6（specs/work-items 未单独立项，见
-  // .superpowers/sdd/OPT-034-collapse-listing-merchant-relations/task-6-brief.md）：
-  // 删除 listing_merchant_relations 表。数据审计：2208 条关系记录全部 1:1
-  // （每条房源恰好一条现行关系），0 条设置过 effectiveTo（有效期机制从未使用）。
-  // 读侧已在 Task 1-4 全部迁移到 listings.merchant，此表切换后零消费者。
-  // 用户在任务文档中明确批准物理删表，本条目是该批准的代码留痕。
-  '20260820_055534_drop_listing_merchant_relations',
-])
+/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则，不认迁移名。 */
+export function scanMigrationUpRisks(_name: string, migrationContent: string): MigrationRisk[] {
+  return scanMigrationRisks(extractMigrationUpBody(migrationContent))
+}
 
-/** 扫描某份迁移的 up() 风险；除上方显式白名单外，所有迁移统一应用通用阻断规则。 */
-export function scanMigrationUpRisks(name: string, migrationContent: string): MigrationRisk[] {
-  const risks = scanMigrationRisks(extractMigrationUpBody(migrationContent))
-  if (!USER_CONFIRMED_DESTRUCTIVE_MIGRATIONS.has(name)) return risks
-  // 白名单只压制“删除表/删除列”这两条 fail 项（已获人工确认）；索引/类型变更等
-  // 其它风险模式不受影响，命中了照样按 warn/fail 原样上报。
-  return risks.filter((r) => !/删除表|删除列/.test(r.reason))
+/**
+ * 运行时逃生舱：放行恰好一条已获人工确认的破坏性迁移（DROP TABLE/DROP COLUMN）。
+ *
+ * 默认规则不变、且不在这里改：任何迁移在 up() 里出现删表/删列，
+ * `scanMigrationUpRisks` 照样判 fail——本函数不修改扫描逻辑，只由调用方
+ * （`checkMigrations` 和 `tests/preflight-migrations.test.ts`）在扫描结果之上，
+ * 按需再套一层过滤。这里没有写死任何迁移名，单看这个文件看不出「谁被批准了」。
+ *
+ * 生效条件是环境变量 `ALLOW_DESTRUCTIVE_MIGRATION` 精确等于该迁移文件名（不含
+ * 扩展名），风格对齐 `.githooks/pre-commit` 的 `ALLOW_MASTER_COMMIT=1` /
+ * `SKIP_MIGRATION_CHECK=1`：不设就拦，且只精确匹配一个名字，不支持前缀/模式匹配，
+ * 因此天然不会误放行未来任何一条新的破坏性迁移。
+ *
+ * 「谁批准了、批准了什么」不记录在这个文件里，而是记录在**设置这个环境变量的地方
+ * ——`.github/workflows/quality.yml` 的 `quality` job env**：那条 diff 才是本次
+ * 批准在仓库里唯一、对 PR 评审者可见的证据。本地想复现同样的放行，手动
+ * `ALLOW_DESTRUCTIVE_MIGRATION=<迁移名> pnpm test` 即可；不设的话这条测试会如实
+ * 报红，这是预期行为，不是回归。
+ */
+export function isDestructiveMigrationApproved(migrationName: string): boolean {
+  return process.env.ALLOW_DESTRUCTIVE_MIGRATION === migrationName
+}
+
+/** 对一份迁移的风险应用运行时逃生舱：命中时只压制删表/删列这两条 fail，其它风险原样保留。 */
+export function applyDestructiveMigrationOverride(
+  name: string,
+  risks: MigrationRisk[],
+): MigrationRisk[] {
+  if (!isDestructiveMigrationApproved(name)) return risks
+  return risks.filter((r) => !(r.severity === 'fail' && /删除表|删除列/.test(r.reason)))
 }
 
 function checkMigrations() {
@@ -309,7 +313,7 @@ function checkMigrations() {
     // 不可回滚项确定性阻断：缺 down 升级为 fail
     if (!hasDown) fail(`migrations.${name}.down`, '缺少 export async function down（不可回滚）')
 
-    const risks = scanMigrationUpRisks(name, content)
+    const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content))
     for (const r of risks) {
       totalRisks += r.matches.length
       const fn = r.severity === 'fail' ? fail : warn

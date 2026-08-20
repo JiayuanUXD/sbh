@@ -11,6 +11,7 @@ import {
   extractMigrationUpBody,
   scanMigrationRisks,
   scanMigrationUpRisks,
+  applyDestructiveMigrationOverride,
 } from '../scripts/preflight'
 
 const here = pathDirname(fileURLToPath(import.meta.url))
@@ -197,11 +198,18 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
   })
 
   it('无迁移 up() 含 DROP TABLE / DROP COLUMN 高风险操作（生产删除类必须阻断）', () => {
+    // 这条断言默认对目录里的每份迁移都成立，包括已获批准的破坏性迁移——
+    // 批准不体现在这个测试文件里（那样就是把例外藏进测试），而是走
+    // scripts/preflight.ts 的 applyDestructiveMigrationOverride：只有当环境变量
+    // ALLOW_DESTRUCTIVE_MIGRATION 精确等于某条迁移名时才放行它，且这个变量的
+    // 唯一持久化位置是 .github/workflows/quality.yml 的 quality job env——那条
+    // workflow 配置 diff 才是「这次批准了哪条迁移」对 PR 评审者可见的记录。
+    // 本地不设这个变量时，本测试必须照样把它拦下来（见 CLAUDE.md 逃生舱纪律）。
     const names = listMigrationFiles(migrationsDir)
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const risks = scanMigrationUpRisks(name, content)
+      const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content))
       const blocking = risks.filter((r) => r.severity === 'fail')
       expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
     }
