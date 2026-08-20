@@ -17,7 +17,10 @@ const city = {
     intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
   },
 }
-const homepage = { featuredListings: [], districts: [], featuredBuildings: [], districtCards: [], latestArticles: [] }
+const homepage = {
+  featuredListings: [], districts: [], featuredBuildings: [], districtCards: [], latestArticles: [],
+  stats: { listings: 0, buildings: 0, businessAreas: 0 }, typeSummaries: {}, nearbyListings: [],
+}
 
 describe('CityHomeView legacy compatibility', () => {
   it('preserves the exact legacy hero copy while prefixed pages may use the city profile copy', () => {

@@ -138,6 +138,13 @@ export interface SupplyAdapter {
    */
   findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>
 
+  /**
+   * 城市中心坐标（locations 表 type=city 行的 centerLatitude/Longitude）。
+   * 未配置或不成对时返回 null——首页「核心商圈房源」整段不渲染。
+   * 可选方法：既有测试假适配器无需实现。
+   */
+  findCityCenter?(ctx: SearchContext): Promise<Readonly<{ latitude: number; longitude: number }> | null>
+
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
 
@@ -1001,6 +1008,26 @@ GROUP BY l.building_id
         depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
       })
       return result.docs as readonly Location[]
+    },
+
+    async findCityCenter(ctx) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'locations',
+        where: {
+          slug: { equals: ctx.city },
+          type: { equals: 'city' },
+          status: { equals: 'active' },
+        } as unknown as Where,
+        depth: 0,
+        limit: 1,
+      })
+      const doc = result.docs[0] as { centerLatitude?: unknown; centerLongitude?: unknown } | undefined
+      const lat = typeof doc?.centerLatitude === 'number' ? doc.centerLatitude : null
+      const lng = typeof doc?.centerLongitude === 'number' ? doc.centerLongitude : null
+      if (lat == null || lng == null) return null
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+      return { latitude: lat, longitude: lng }
     },
 
     async findLatestArticles(limit = 5) {
