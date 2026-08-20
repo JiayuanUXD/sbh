@@ -17,9 +17,13 @@
  *
  *   2) isListingEffectivelySupplied(snapshot, asOf) —— 需已解析关联数据才能判定的条件，
  *      逐条给出排除原因（供实时预览 / 诊断 / 审计一次性回显）：
- *        §8  商户关系落在有效期 [start, end)        RELATION_NOT_EFFECTIVE
+ *        §8  房源已设置供给商户（listings.merchant 非空）    NO_SUPPLY_MERCHANT
  *        §9  商户启用 + 资质通过且未过期            MERCHANT_INELIGIBLE
  *        §10 商户服务城市覆盖楼盘城市              MERCHANT_INELIGIBLE
+ *
+ *      OPT-034 起 §8 的半开区间关系（listing_merchant_relations，[effectiveFrom,
+ *      effectiveTo) 判定生效商户）已删除：供给商户直接取自 listings.merchant，
+ *      不再有"关系尚未生效 / 已过期"这层时间窗口——字段有值即视为已设置。
  *
  *   3) 举报暂停谓词（M6.2 新增，§5）：
  *        - listingReportPauseWhere()        返回 listing-reports 的 where 条件
@@ -31,7 +35,6 @@
  * 已解析的候选再过 isListingEffectivelySupplied 精筛（媒体/关系/商户）。
  */
 
-import { isWithinValidity, type ValidityPeriod } from '@/domain/shared/validity'
 import { checkMerchantEligibility } from '@/domain/supply/building-merchant-relation'
 import { getListingPublicBuildingWhere } from '@/domain/supply/public-building'
 
@@ -49,8 +52,8 @@ import { getListingPublicBuildingWhere } from '@/domain/supply/public-building'
 
 /** 精筛层排除原因码（前端展示 / 诊断 / 审计）。 */
 export const EFFECTIVE_SUPPLY_EXCLUSION_CODES = {
-  /** 商户关系不在有效期内（尚未生效 / 已过期 / 无关系） */
-  RELATION_NOT_EFFECTIVE: 'RELATION_NOT_EFFECTIVE',
+  /** 房源未设置供给商户（listings.merchant 为空） */
+  NO_SUPPLY_MERCHANT: 'NO_SUPPLY_MERCHANT',
   /** 商户不合格（停用 / 资质无效或过期 / 服务城市不覆盖楼盘城市） */
   MERCHANT_INELIGIBLE: 'MERCHANT_INELIGIBLE',
 } as const
@@ -97,9 +100,17 @@ export function getEffectiveSupplyWhere(
   }
 }
 
-/** 精筛层入参：房源已解析的商户 / 关系快照。 */
+/**
+ * 精筛层入参：房源已解析的供给商户快照。
+ *
+ * OPT-034 起商户直接取自 listings.merchant，不再经由 listing-merchant-relations
+ * 关系表解析——`merchant` 为 null 意味着房源未设置供给商户（§8 NO_SUPPLY_MERCHANT），
+ * 非 null 时进入 §9-§10 商户合格性判定。
+ */
 export interface EffectiveSupplySnapshot {
   merchant: {
+    /** 商户 id（用于诊断 / 审计回显；判定本身不依赖它） */
+    id: number | string | null
     /** 商户启停状态 */
     status: unknown
     /** 商户资质状态 */
@@ -108,11 +119,9 @@ export interface EffectiveSupplySnapshot {
     qualificationExpiresAt: string | Date | null | undefined
     /** 商户服务城市 id 列表 */
     serviceCityIds: ReadonlyArray<number | string>
-  }
+  } | null
   /** 楼盘所在城市 id */
   buildingCityId: number | string | null | undefined
-  /** 楼盘-商户关系有效期；null 表示无有效关系 */
-  relationPeriod: ValidityPeriod | null
 }
 
 export interface EffectiveSupplyResult {
@@ -133,9 +142,11 @@ export function isListingEffectivelySupplied(
 ): EffectiveSupplyResult {
   const reasons: EffectiveSupplyExclusionCode[] = []
 
-  // §8 商户关系落在有效期内 [start, end)
-  if (snapshot.relationPeriod === null || !isWithinValidity(asOf, snapshot.relationPeriod)) {
-    reasons.push(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
+  // §8 房源必须已设置供给商户（listings.merchant 非空）。没有商户就没有后续
+  // 资格数据可判，直接短路返回——不再有"关系尚未生效 / 已过期"的中间态。
+  if (snapshot.merchant === null) {
+    reasons.push(EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT)
+    return { eligible: false, reasons }
   }
 
   // §9-§10 商户启用 + 资质有效 + 服务城市覆盖楼盘城市
