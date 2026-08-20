@@ -187,7 +187,18 @@
   border-radius: var(--r-input); background: var(--bg-subtle); font: inherit; font-size: 14px;
   color: var(--ink); padding: 0 10px; }
 .hm-search__select:focus { border-color: var(--accent); box-shadow: var(--focus-ring); outline: none; }
-@media (max-width: 767px) { .hm-search__panel { grid-template-columns: 1fr; } }
+/* ≤767：面板改回文档流内展开（不是绝对定位浮层）。
+   .hm-hero 的 `overflow: hidden` 是背景视频/图片裁切的必要条件，不能去掉；
+   而移动 Hero 只有 min-height 560px，绝对定位的面板收在 Hero 盒子里、无法把
+   Hero 撑高，单列三段（20 + 3×44 + 2×12 + 20 ≈ 196px）的底部会被裁掉约 44px，
+   「面积」下拉整条够不到。改成 in-flow 后面板参与 Hero 的高度计算，Hero 随内容
+   增高，三个下拉全部可达；桌面（≥768）仍是浮层，布局零变化。 */
+@media (max-width: 767px) {
+  .hm-search__panel { position: static; grid-template-columns: 1fr; margin-top: 8px; }
+  /* 单列下 select 的内容宽度（约 98px）只占满行的三成，右边一大片空白像是坏了；
+     撑满栅格列，顺带把可点区域从 98px 拉到整行 */
+  .hm-search__select { width: 100%; }
+}
 
 /* --- 按类型浏览（五等分图卡 1fr×300 · 图高 168） -------------------------- */
 .hm-types { margin-top: 48px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; list-style: none; }
