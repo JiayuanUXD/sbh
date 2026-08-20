@@ -21,6 +21,20 @@ describe('parseBuildingSearchInput', () => {
     expect(parse('completedAfter=19').completedAfter).toBeUndefined()
     expect(parse('completedAfter=2010').completedAfter).toBe(2010)
   })
+  it('数值维度拒绝前后空白，与 parseBuildingSupplyNumber 口径一致', () => {
+    expect(parse('leasableAreaMin=%20500').leasableAreaMin).toBeUndefined()
+    expect(parse('leasableAreaMin=500%20').leasableAreaMin).toBeUndefined()
+    expect(parse('leasableAreaMin=500').leasableAreaMin).toBe(500)
+  })
+  it('completedAfter 上界为当前年份（含边界），拒绝当前年份+1', () => {
+    const currentYear = new Date().getFullYear()
+    expect(parse(`completedAfter=${currentYear}`).completedAfter).toBe(currentYear)
+    expect(parse(`completedAfter=${currentYear + 1}`).completedAfter).toBeUndefined()
+  })
+  it('completedAfter 下界为 1900（含边界），拒绝 1899', () => {
+    expect(parse('completedAfter=1900').completedAfter).toBe(1900)
+    expect(parse('completedAfter=1899').completedAfter).toBeUndefined()
+  })
   it('min 大于 max 时两者都丢弃，不产生空结果陷阱', () => {
     const input = parse('leasableAreaMin=900&leasableAreaMax=100')
     expect(input.leasableAreaMin).toBeUndefined()
@@ -33,6 +47,11 @@ describe('parseBuildingSearchInput', () => {
   it('page 下限为 1', () => {
     expect(parse('page=0').page).toBe(1)
     expect(parse('page=3').page).toBe(3)
+  })
+  it('page 上限为 10000（含边界），越界降级为默认页 1', () => {
+    expect(parse('page=10000').page).toBe(10000)
+    expect(parse('page=10001').page).toBe(1)
+    expect(parse('page=999999999').page).toBe(1)
   })
 })
 

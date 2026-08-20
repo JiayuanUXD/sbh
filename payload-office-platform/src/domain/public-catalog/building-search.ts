@@ -15,6 +15,7 @@
 const DEFAULT_PAGE_SIZE = 24 as const
 const MAX_ARRAY_LEN = 20
 const MIN_COMPLETED_YEAR = 1900
+const MAX_PAGE = 10000
 
 export type BuildingSort = 'stock-desc' | 'area-desc' | 'grade' | 'completion-desc'
 
@@ -68,7 +69,9 @@ function parseDedupedStringArray(sp: URLSearchParams, key: string): readonly str
 
 function parsePositiveNumber(sp: URLSearchParams, key: string): number | undefined {
   const raw = sp.get(key)
-  if (raw == null || raw === '') return undefined
+  // 与 search-params.ts 的 parseBuildingSupplyNumber 同一惯例：前后空白一律拒绝，
+  // 同一域内的两个数值解析器不该对同一个输入给出不同答案。
+  if (raw == null || raw === '' || raw.trim() !== raw) return undefined
   const n = Number(raw)
   if (!Number.isFinite(n) || n < 0) return undefined
   return n
@@ -81,7 +84,8 @@ function parseCompletedAfter(sp: URLSearchParams): number | undefined {
   if (!/^\d{4}$/.test(raw)) return undefined
   const year = Number(raw)
   const currentYear = new Date().getFullYear()
-  if (year < MIN_COMPLETED_YEAR || year >= currentYear) return undefined
+  // 上界为当前年份，含边界：今年竣工的楼盘也应能被 completedAfter=今年 筛出。
+  if (year < MIN_COMPLETED_YEAR || year > currentYear) return undefined
   return year
 }
 
@@ -91,7 +95,10 @@ function parsePage(sp: URLSearchParams): number {
   const n = Number(raw)
   if (!Number.isFinite(n)) return 1
   const i = Math.trunc(n)
-  return i >= 1 ? i : 1
+  // 与 search-params.ts 的 parseIntInRange(sp, 'page', 1, 10000) 同一口径：
+  // 越界（含上界）一律降级为默认页 1，而不是静默钳制到边界值。
+  if (i < 1 || i > MAX_PAGE) return 1
+  return i
 }
 
 function parseSort(sp: URLSearchParams): BuildingSort {
