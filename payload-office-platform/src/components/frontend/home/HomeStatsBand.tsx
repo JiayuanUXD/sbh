@@ -1,33 +1,24 @@
-'use client'
-
-import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import React from 'react'
 import type { HomepageStats } from '@/domain/public-catalog/contracts'
 
 type StatItem = Readonly<{ value: number; decimals: 0 | 1; unit: string; label: string }>
 
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
-
-function subscribeReducedMotion(onChange: () => void) {
-  const mql = window.matchMedia(REDUCED_MOTION_QUERY)
-  mql.addEventListener('change', onChange)
-  return () => mql.removeEventListener('change', onChange)
-}
-function getReducedMotionSnapshot() {
-  return window.matchMedia(REDUCED_MOTION_QUERY).matches
-}
-function getReducedMotionServerSnapshot() {
-  return false
-}
-
 /**
- * OPT-035 数据带：白底满宽 padding 56，进入视口 30% 触发 1100ms easeOutCubic 数字滚动。
+ * OPT-035 数据带：白底满宽 padding 56 · 数字 48/600/1.08 tabular-nums。
  * 值为 0 的格不渲染；可渲染格 < 2 时整段不渲染（不展示空货架）。
- * prefers-reduced-motion 时直接显示终值、不跑 rAF 循环。
  *
- * 用 useSyncExternalStore 读取 matchMedia，而不是在 useEffect 里同步 setState：
- * 后者会触发 react-hooks/set-state-in-effect（级联渲染），前者是 React 为订阅
- * 浏览器外部状态设计的正规写法，SSR 用 getServerSnapshot 兜底避免 hydration 不一致，
- * 客户端首次提交前就能拿到真实值——比原先"挂载后 effect 里再纠正"更早生效。
+ * **与设计稿的有意偏差：不做「数字滚动」。**
+ * 设计稿落地数值表列了「进入视口 30% 触发 · 1100ms · easeOutCubic」，但任何
+ * 「从 0 滚到真值」的实现都必然在某些路径下把真实库存渲染成 0：
+ *   - SSR / 首帧 / 禁用 JS：动画进度恒为初始值；
+ *   - IntersectionObserver 未触发（整页截图、爬虫、用户从不滚到该段）：永久停在起点；
+ *   - 动画进行中的任意一帧本身就是错的数值。
+ * 而设计系统硬约束是「数值缺失显示 —，**不显示 0**」，北极星是「这家的数据是真的」。
+ * 一次真实事故已经证明这条冲突会直接输出「0 套在租房源」。
+ * 因此这里让数字在任何路径下都是服务端算出的真值，动效让位于正确性——
+ * 设计稿是静态稿，它的数字是写死的文本，不承担这个矛盾。
+ *
+ * 纯展示、无状态，故为 Server Component（无 'use client'）。
  */
 export default function HomeStatsBand({ stats, avgResponseHours }: Readonly<{
   stats: HomepageStats
@@ -40,51 +31,16 @@ export default function HomeStatsBand({ stats, avgResponseHours }: Readonly<{
     ...(avgResponseHours != null ? [{ value: avgResponseHours, decimals: 1 as const, unit: '小时', label: '平均响应' }] : []),
   ].filter((item) => item.value > 0)
 
-  const ref = useRef<HTMLDivElement>(null)
-  const [progress, setProgress] = useState(0)
-  const prefersReducedMotion = useSyncExternalStore(
-    subscribeReducedMotion,
-    getReducedMotionSnapshot,
-    getReducedMotionServerSnapshot,
-  )
-  const displayProgress = prefersReducedMotion ? 1 : progress
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || prefersReducedMotion) return
-    let cancelled = false
-    let rafId = 0
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries.some((e) => e.isIntersecting)) return
-      observer.disconnect()
-      const start = performance.now()
-      const tick = (now: number) => {
-        if (cancelled) return
-        const t = Math.min(1, (now - start) / 1100)
-        setProgress(1 - (1 - t) ** 3) // easeOutCubic
-        if (t < 1) rafId = requestAnimationFrame(tick)
-      }
-      rafId = requestAnimationFrame(tick)
-    }, { threshold: 0.3 })
-    observer.observe(el)
-    return () => {
-      cancelled = true
-      observer.disconnect()
-      if (rafId) cancelAnimationFrame(rafId)
-    }
-  }, [prefersReducedMotion])
-
   if (items.length < 2) return null
   return (
     <div className="hm-band hm-stats">
-      <div className="hm-container hm-stats__grid" ref={ref}
+      <div className="hm-container hm-stats__grid"
         style={{ '--hm-stats-cols': items.length } as React.CSSProperties}>
         {items.map((item) => (
           <div className="hm-stat" key={item.label}>
             <span className="hm-stat__row">
               <span className="hm-stat__value hm-num">
-                {item.decimals ? (item.value * displayProgress).toFixed(1)
-                  : Math.round(item.value * displayProgress).toLocaleString('en-US')}
+                {item.decimals ? item.value.toFixed(1) : item.value.toLocaleString('en-US')}
               </span>
               <span className="hm-stat__unit">{item.unit}</span>
             </span>
