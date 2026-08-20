@@ -51,9 +51,8 @@ function makeRequest(user: User | null): {
     if (collection === 'roles') return { docs: [makeRole()] }
     if (collection === 'listing-reports') return { docs: [], hasNextPage: false, nextPage: null }
     if (collection === 'listings') return { docs: [], hasNextPage: false, nextPage: null }
-    if (collection === 'listing-merchant-relations') {
-      return { docs: [], hasNextPage: false, nextPage: null }
-    }
+    // OPT-034：FIND_COLLECTIONS 已移除 listing-merchant-relations（表已删），
+    // 端点不会再以该 collection 调用 find；保留该分支会是永远打不到的死代码。
     throw new Error(`Unexpected collection: ${collection}`)
   })
   const req: Partial<PayloadRequest> = {

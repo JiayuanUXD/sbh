@@ -112,7 +112,8 @@ export async function computeBuildingSupplyAggregate(
     if (typeof raw !== 'object' || raw === null) continue
     const doc = raw as Record<string, unknown>
 
-    // 逐条精筛（媒体 §6 / 关系 §8 / 商户 §9-§10）——不合格不计入任一聚合。
+    // 逐条精筛（商户 §8-§10：§8 listings.merchant 是否有值，§9-§10 商户资质与服务城市）
+    // ——不合格不计入任一聚合。
     const supply = await resolveEffectiveSupply(port, doc, asOf, req)
     if (!supply.eligible) continue
     count += 1

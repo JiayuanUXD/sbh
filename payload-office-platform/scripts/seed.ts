@@ -716,8 +716,9 @@ async function seed() {
 
   // Published and approved, but deliberately held for a supply recheck. This
   // remains a real REST-visible fixture while the public catalog must 404 it.
-  // Do not add it to `allListingSlugs`: it must also lack an effective listing
-  // merchant relation. Offline media seeding is safe because the hold alone is
+  // Do not add it to `allListingSlugs`: it must also lack a `listings.merchant`
+  // value (OPT-034 collapsed the listing-merchant relation table into that
+  // field). Offline media seeding is safe because the hold alone is
   // sufficient to make it ineligible.
   await upsertBySlug<AnyDoc>(payload, 'listings', 'jingan-published-pending-recheck', {
     title: '静安 · 待复核办公 260㎡',
@@ -1096,7 +1097,9 @@ async function seed() {
     },
   )
 
-  // === (d) 供给关系 ===（楼盘关系 merchant 必填；房源关系 merchant 可选）
+  // === (d) 楼盘供给关系 ===（building-merchant-relations，merchant 必填；
+  //   房源商户归属见下方 (d2)，OPT-034 起是 listings.merchant 直写字段，
+  //   不再是独立关系记录）
   // 楼盘已带 city，资格校验（building.city ∈ merchant.serviceCities）通过。
   await findOrCreate(
     'building-merchant-relations',
@@ -1119,38 +1122,14 @@ async function seed() {
     },
   )
 
+  // jinganListingId 供本函数后段 (g) follow-ups 关联房源使用，须保留声明。
   const jinganListingId = await listingBySlug('jingan-serviced-office-42-seats')
-  const lujiazuiListingId = await listingBySlug('lujiazui-grade-a-780sqm')
-  if (jinganListingId) {
-    await findOrCreate(
-      'listing-merchant-relations',
-      { and: [{ listing: { equals: jinganListingId } }, { merchant: { equals: merchantOwner.id } }] },
-      {
-        listing: jinganListingId,
-        merchant: merchantOwner.id,
-        effectiveFrom: '2026-01-01T00:00:00.000Z',
-        createdReason: '房源挂牌授权',
-      },
-    )
-  }
-  if (lujiazuiListingId) {
-    await findOrCreate(
-      'listing-merchant-relations',
-      { and: [{ listing: { equals: lujiazuiListingId } }, { merchant: { equals: merchantAgency.id } }] },
-      {
-        listing: lujiazuiListingId,
-        merchant: merchantAgency.id,
-        effectiveFrom: '2026-01-01T00:00:00.000Z',
-        createdReason: '房源挂牌授权',
-      },
-    )
-  }
 
-  // === (d2) 全量房源-商户关系：F7.1 E2E 验收要求所有种子房源通过有效供给精筛
-  //   OPT-034 起精筛层 §8 只看 listings.merchant 是否有值，§9-§10 要求该字段
-  //   引用的商户合格（启用 + 资质有效 + 服务城市覆盖）。给所有 8 条房源补齐
-  //   listing-merchant-relations 记录（表还在，Task 7 删表前种子仍写它保持
-  //   历史数据形态一致）+ merchant 字段（精筛真正读的字段）：
+  // === (d2) 全量房源商户归属：F7.1 E2E 验收要求所有种子房源通过有效供给精筛
+  //   OPT-034 Task 7 起 listing_merchant_relations 表已删，精筛层 §8 直接看
+  //   listings.merchant 是否有值，§9-§10 要求该字段引用的商户合格（启用 +
+  //   资质有效 + 服务城市覆盖）。给全部 10 条种子房源直接写 merchant 字段
+  //   （精筛真正读的字段，不再经由关系表）：
   //   - west-nanjing-premium-center 楼盘房源 → merchantOwner（业主直营）
   //   - 其他楼盘房源 → merchantAgency（独家代理）
   //   避免任一种子房源因 NO_SUPPLY_MERCHANT / MERCHANT_INELIGIBLE 被 0 套排除。
@@ -1191,17 +1170,7 @@ async function seed() {
     // 同楼盘同商户的关系：jingan/west-nanjing 用 merchantOwner；其他用 merchantAgency
     const targetMerchant =
       buildingSlug === 'west-nanjing-premium-center' ? merchantOwner.id : merchantAgency.id
-    await findOrCreate(
-      'listing-merchant-relations',
-      { and: [{ listing: { equals: lid } }, { merchant: { equals: targetMerchant } }] },
-      {
-        listing: lid,
-        merchant: targetMerchant,
-        effectiveFrom: '2026-01-01T00:00:00.000Z',
-        createdReason: '房源挂牌授权（种子补齐）',
-      },
-    )
-    // 同步 listings.merchant 字段，供 buildEffectiveSnapshot 精筛 §9-§10 使用
+    // 直接写 listings.merchant 字段，供 buildEffectiveSnapshot 精筛 §9-§10 使用
     await payload.update({
       collection: 'listings' as never,
       id: lid as never,

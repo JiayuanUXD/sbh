@@ -56,7 +56,9 @@ for (const id of ids) {
 const msDoc = Date.now() - tDoc
 
 console.log(`SQL 聚合  : ${msSql}ms, ${sqlMap.size} 栋有在租`)
-console.log(`逐条精筛  : ${msDoc}ms, ${docMap.size} 栋有在租`)
+// 与头注释一致：这条路径是纯 SQL 选 id + JS 求和，不是「逐条精筛」（不调用
+// isListingEffectivelySupplied），标签避免用「精筛」二字制造混淆。
+console.log(`JS 求和   : ${msDoc}ms, ${docMap.size} 栋有在租`)
 
 let bad = 0
 for (const id of ids) {

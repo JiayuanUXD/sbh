@@ -5,8 +5,8 @@
  *   已有数据字段不全的补全，图片取自免费图库 picsum.photos（离线 / CI 走 sharp 纯色回退）。
  *
  * 幂等：按 slug / alt 查到则更新或复用，找不到则创建；可重复运行。
- * 安全：不触碰 seed.ts 的核心种子、merchant_relations / teams / brokers / leads；
- *   不动 pending-recheck 房源的 merchant 关系；不删 about hero 等已有媒体；
+ * 安全：不触碰 seed.ts 的核心种子、building-merchant-relations / teams / brokers / leads；
+ *   不动 pending-recheck 房源的 merchant 字段（OPT-034 起是直写字段，非关系记录）；不删 about hero 等已有媒体；
  *   仅清理 3 张占位 dummy 图（替换 gallery 后已成孤儿）。
  *
  * 运行：node --env-file-if-exists=.env.local --import tsx scripts/seed-test-data.ts
@@ -382,8 +382,8 @@ const LISTINGS: ListingFill[] = [
 
 // ---------------------------------------------------------------------------
 // 为每个楼盘新增多个可租面积（小 / 中 / 大面积段，混合房源类型）
-// 每个新房源建恰好 1 条有效 merchant 关系；empty-building 的三个夹具另由
-// supplyVisibilityHold 保持为非有效供给，以保留楼盘空状态验收契约。
+// 每个新房源直接写 1 个有效 merchant 字段（OPT-034 起不再是关系记录）；
+// empty-building 的三个夹具另由 supplyVisibilityHold 保持为非有效供给，以保留楼盘空状态验收契约。
 // ---------------------------------------------------------------------------
 type NewListing = {
   buildingSlug: string
