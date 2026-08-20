@@ -14,43 +14,63 @@
  * --------------------------------------------------------------------------- */
 
 :root {
-  /* 1.1 颜色 token（design.md §6.2） */
-  --color-ink: #171a1d;        /* 主文字、深色区块 */
-  --color-ink-2: #3a3f46;      /* 次级文字 */
-  --color-muted: #6b7079;      /* 辅助文字 */
-  --color-paper: #f5f1e8;      /* 品牌浅底 */
-  --color-canvas: #fcfbf8;     /* 页面背景 */
-  --color-surface: #ffffff;    /* 提亮面：卡片/表单控件/弹层，纯白以区别于奶油画布 */
-  --color-line: #d5d0c7;       /* 分隔、输入边界 */
-  --color-line-strong: #b8b1a3;
-  --color-copper: #a46f3f;     /* 主强调、关键 CTA */
-  --color-copper-hover: #8d5d30;
-  --color-copper-soft: #e8d9c5;
-  --color-forest: #1f5a50;     /* 状态、辅助强调 */
-  --color-forest-soft: #d2e0db;
-  --color-danger: #b0443c;     /* 错误 */
-  --color-danger-soft: #f7e0dc; /* F7.3：调浅以保证 danger 文字对比度 ≥ 4.5:1（WCAG AA） */
-  --color-warn: #b88636;
-  --color-on-copper: #fff8ef;  /* 铜色背景上的文字 */
-  --color-on-forest: #f0f7f4;
-  --color-on-ink: #f7f5f0;
+  /* 1.1 新视觉系统（OPT-035，依据 docs/SBH设计任务讨论/首页.dc.html 已锁定稿） */
+  --bg: #f5f5f7;            /* 全局底色 */
+  --bg-subtle: #ffffff;     /* 白底带、卡片 */
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #86868b;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-link: #0066cc;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --on-accent: #ffffff;
+  --error: #bf4800;
+  --warning: #b25000;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --focus-ring: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  --pad: 72px;              /* section padding-block（每侧） */
+  --gap: 144px;             /* section 之间总留白 = 2×pad */
+  --w: 1180px;              /* 内容容器 */
+  --measure: 702px;         /* 正文栏宽上限 */
+  --r-card: 18px;
+  --r-ctrl: 12px;
+  --r-input: 8px;
+  --r-pill: 980px;
+  --header-height: 44px;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --header-blur: saturate(1.8) blur(20px);
+  --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+  --font: "SF Pro Text", -apple-system, "Helvetica Neue", var(--font-cn);
 
-  /* 1.2 字体 token（design.md §6.3）
-   *   --font-display: 中文展示（思源宋体 SC）
-   *   --font-sans:    中文正文/界面（思源黑体 SC）
-   *   --font-numeric: 数字与英文（IBM Plex Sans）
-   * 通过 next/font 在 layout 注入 CSS 变量；未注入时回退到系统字体栈。
-   */
-  /* next/font 目前未注入 --font-source-han-* / --font-ibm-plex，
-     var() 无兜底会让整条声明失效并落到 Times New Roman（中文站用西文
-     衬线渲染汉字）。给每个变量补同族兜底：变量将来注入时照常优先生效。 */
-  --font-display: var(--font-source-han-serif, "Songti SC"), "Songti SC", "STSong",
-    "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
-  --font-sans: var(--font-source-han-sans, "PingFang SC"), -apple-system, BlinkMacSystemFont,
-    "PingFang SC", "Microsoft YaHei", "Source Han Sans SC",
-    "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
-  --font-numeric: var(--font-ibm-plex, "IBM Plex Sans"), "IBM Plex Sans", ui-sans-serif, system-ui,
-    "SF Pro Text", "Segoe UI", sans-serif;
+  /* 1.1b 兼容别名：内页旧引用零改动继承新色板；后续页面改版逐步淘汰 */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--ink-3);
+  --color-paper: var(--bg);
+  --color-canvas: var(--bg);
+  --color-surface: var(--bg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-copper: var(--accent);
+  --color-copper-hover: var(--accent-hover);
+  --color-copper-soft: #eaf2fb;   /* 蓝的浅底版，替代铜色软底 */
+  --color-forest: var(--ink);     /* 新体系无第二彩色，降级为墨色 */
+  --color-forest-soft: var(--bg);
+  --color-danger: var(--error);
+  --color-danger-soft: #f7e3d8;
+  --color-warn: var(--warning);
+  --color-on-copper: #ffffff;     /* 原 #fff8ef 在 #0071e3 上 4.4:1 不到 AA */
+  --color-on-forest: #ffffff;
+  --color-on-ink: #f5f5f7;
+  --font-display: var(--font);    /* 宋体退场 */
+  --font-sans: var(--font);
+  --font-numeric: var(--font);
 
   /* 1.3 字号 token（design.md §6.3：H1 流体，正文最小 16px） */
   --fs-12: 0.75rem;   /* 12 */
