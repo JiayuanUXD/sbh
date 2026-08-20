@@ -45,6 +45,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
+import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import CityBuildingsPage from '@/app/(frontend)/[city]/buildings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
 import { parseBuildingSearchInput } from '@/domain/public-catalog'
@@ -149,6 +150,15 @@ function findByDisplayName(tree: ReactElement, name: string): Visited | undefine
   return findAllByDisplayName(tree, name)[0]
 }
 
+/** 用编排层实际传下去的 props 把 EmptyNoStock 跑一遍，数主按钮个数。 */
+function countPrimaryButtons(empty: Visited): number {
+  const rendered = EmptyNoStock(empty.node.props as Parameters<typeof EmptyNoStock>[0]) as ReactElement
+  return collect(rendered).filter((v) => {
+    const cls = (v.node.props as { className?: string } | undefined)?.className
+    return typeof cls === 'string' && cls.includes('ls-empty__btn--primary')
+  }).length
+}
+
 beforeEach(() => {
   getCachedSearchBuildingsFiltered.mockReset()
   getCachedSearchBuildings.mockReset()
@@ -234,6 +244,60 @@ describe('CityBuildingsView 编排层守卫', () => {
     expect(fromFilterBar).toBe('/shanghai/buildings')
   })
 
+  it('三个「清除全部 / 重置」出口共用同一个 href，且真的清得掉 leasableAreaMax', () => {
+    // 「在租面积」一个维度占两个 URL 键，而筛选行只建模下限——抽屉原先按 rows.key
+    // 自己推导，于是桌面清得掉 leasableAreaMax、抽屉清不掉（Task 12 审查 I1）。
+    const tree = renderView('?leasableAreaMin=500&leasableAreaMax=2000&onlyWithStock=1', buildResult({ totalDocs: 0 }))
+    const fromFilterBar = (findByDisplayName(tree, 'FilterFormC')!.node.props as { clearAllHref: string }).clearAllHref
+    const fromEmptyState = (findByDisplayName(tree, 'EmptyFiltered')!.node.props as { clearAllHref: string }).clearAllHref
+    const fromSheet = (findByDisplayName(tree, 'MobileFilterShell')!.node.props as { resetHref: string }).resetHref
+    expect(fromEmptyState).toBe(fromFilterBar)
+    expect(fromSheet).toBe(fromFilterBar)
+    expect(fromFilterBar).toBe('/shanghai/buildings')
+  })
+
+  it('没有筛选行能显示的条件（只写了 leasableAreaMax）仍然渲染成可清除 chip', () => {
+    // 这类条件会让底栏出现「清除全部」，用户却看不到清的是什么。
+    const tree = renderView('?leasableAreaMax=2000', buildResult({ withStock: [doc('a', 2)] }))
+    const picks = (findByDisplayName(tree, 'FilterFormC')!.node.props as {
+      extraPicks?: readonly { key: string; label: string; href: string }[]
+    }).extraPicks
+    expect(picks).toEqual([
+      { key: 'leasableAreaMax', label: '在租面积：2,000 ㎡以下', href: '/shanghai/buildings' },
+    ])
+
+    // 一半可见一半不可见时，补出来的 chip 只说也只清不可见的那一半——
+    // 不能拿整个维度的文案去补，否则会并排出现一个 chip 和它的超集 chip。
+    const halfHidden = (findByDisplayName(
+      renderView('?leasableAreaMin=500&leasableAreaMax=2000', buildResult({ withStock: [doc('a', 2)] })),
+      'FilterFormC',
+    )!.node.props as { extraPicks?: readonly { label: string; href: string }[] }).extraPicks
+    expect(halfHidden).toEqual([
+      { key: 'leasableAreaMax', label: '在租面积：2,000 ㎡以下', href: '/shanghai/buildings?leasableAreaMin=500' },
+    ])
+    // 有行能显示的条件不重复出 chip（那一行自己已经有 chip 了）
+    const covered = (findByDisplayName(renderView('?district=jingan', buildResult()), 'FilterFormC')!.node.props as {
+      extraPicks?: readonly unknown[]
+    }).extraPicks
+    expect(covered).toEqual([])
+  })
+
+  it('分组标题成对出现：只有一组时不渲染，跨组边界的一页两个都在', () => {
+    const titlesOf = (tree: ReactElement) =>
+      collect(tree)
+        .filter((v) => (v.node.props as { className?: string } | undefined)?.className === 'bd-group__title')
+        .map((v) => (v.node.props as { children?: unknown }).children)
+
+    // 只有有在租：不渲染「当前有在租」标题（只有一组时它是废话）
+    expect(titlesOf(renderView('', buildResult({ withStock: [doc('a', 2)] })))).toEqual([])
+    // 只有暂无在租（如翻到最后一页）：只有「暂无在租」那个标题
+    expect(titlesOf(renderView('', buildResult({ withoutStock: [doc('v')] })))).toEqual(['暂无在租'])
+    // 跨组边界的一页：两个标题都在，顺序是先有在租
+    expect(
+      titlesOf(renderView('', buildResult({ withStock: [doc('a', 2)], withoutStock: [doc('v')] }))),
+    ).toEqual(['当前有在租', '暂无在租'])
+  })
+
   it('空态②逐条退路的命中数来自域层 dimensionHits，且只删自己那一个维度的键', () => {
     const tree = renderView('?district=jingan&grade=grade-a', buildResult({ totalDocs: 0 }))
     const empty = findByDisplayName(tree, 'EmptyFiltered')!
@@ -250,17 +314,38 @@ describe('CityBuildingsView 编排层守卫', () => {
     expect(props.clearAllCount).toBe(99)
   })
 
-  it('空态①带上不叠加筛选时的总数与「提交需求」次要出口（省略会静默降级）', () => {
-    const tree = renderView('', buildResult({ totalDocs: 0 }))
+  it('空态①在域层真能产生的状态下不摆死按钮，只留「提交需求」这一个真出口', () => {
+    // 夹具必须是**域层产生得出来**的状态：空态①的触发条件是「零筛选却零结果」，
+    // 那时 unfilteredTotalDocs === totalDocs === 0 是结构性恒等。
+    // 原先这条用 totalDocs:0 + unfilteredTotalDocs:99 的组合，域层永远给不出，
+    // 于是「prop 传了」通过、而「传下去的值可用」从来没被验证（Task 11 I3 同型）。
+    const tree = renderView('', buildResult({ totalDocs: 0, unfilteredTotalDocs: 0 }))
     const empty = findByDisplayName(tree, 'EmptyNoStock')!
     const props = empty.node.props as {
       unfilteredTotalCount?: number
       secondaryAction?: unknown
       totalNoun: string
+      countNoun: string
     }
-    expect(props.unfilteredTotalCount).toBe(99)
+    expect(props.unfilteredTotalCount).toBe(0)
     expect(props.secondaryAction).toBeTruthy()
     expect(props.totalNoun).toBe('个楼盘')
+    // 正文量词也必须是楼盘语境（原先硬编码「还没有一套上架」）
+    expect(props.countNoun).toBe('个楼盘')
+    // 计数为 0 → 主按钮整个不渲染（渲染出来就是指回本页的死控件）。
+    // 必须真的把组件跑一遍：编排层的树里 <EmptyNoStock> 还没展开，
+    // 只断言 props 就又回到「传了 ≠ 可用」那个坑里。
+    expect(countPrimaryButtons(empty)).toBe(0)
+  })
+
+  it('空态①在总数 >0 的频道语境下仍然给主按钮（不要一刀切砍掉）', () => {
+    // 楼盘页到不了这个状态，但组件是两页共用的：房源页的空态①可以由「类目型」
+    // 条件造成（只挑了共享工位 → 0 套，而全城 1,893 套仍在）。这条锁住那条分支
+    // 没有被「楼盘页反正恒为 0」的修法误伤。
+    const tree = renderView('', buildResult({ totalDocs: 0, unfilteredTotalDocs: 1893 }))
+    const empty = findByDisplayName(tree, 'EmptyNoStock')!
+    expect((empty.node.props as { unfilteredTotalCount?: number }).unfilteredTotalCount).toBe(1893)
+    expect(countPrimaryButtons(empty)).toBe(1)
   })
 
   it('计数名词是楼盘语境，不是房源的「套」', () => {

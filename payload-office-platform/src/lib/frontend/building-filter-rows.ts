@@ -41,6 +41,17 @@ export type BuildingFilterDimensionSpec = Readonly<{
   paramKeys: readonly string[]
   /** 当前生效值的可读文案；未生效时为 null。 */
   activeText: string | null
+  /**
+   * 一个维度占多个 URL 键时，各键各自的可读文案（如
+   * `{ leasableAreaMin: '500 ㎡以上', leasableAreaMax: '2,000 ㎡以下' }`）。
+   *
+   * 用途是「只有一半条件被筛选行显示出来」时补 chip：在租面积行只建模下限，
+   * 上限没有任何控件能显示。有了逐键文案，补出来的 chip 才能**只说也只清那一半**
+   * ——否则只能拿整个维度的 activeText 去补，屏幕上会并排出现
+   * 「在租面积：500 ㎡以上」与「在租面积：500 ㎡以上 · 2,000 ㎡以下」两个 chip，
+   * 后者是前者的超集，用户无从判断该点哪个。单键维度不需要这个字段。
+   */
+  paramTexts?: Readonly<Record<string, string>>
 }>
 
 /** 在租面积下限门槛（㎡）：产品档位，不是从数据算出来的分位数，跨城市跨时间可比。 */
@@ -169,6 +180,14 @@ export function buildBuildingFilterRows(params: Readonly<{
               .filter(Boolean)
               .join(' · ')
           : null,
+      paramTexts: {
+        ...(input.leasableAreaMin != null
+          ? { leasableAreaMin: `${compactNumber(input.leasableAreaMin)} ㎡以上` }
+          : {}),
+        ...(input.leasableAreaMax != null
+          ? { leasableAreaMax: `${compactNumber(input.leasableAreaMax)} ㎡以下` }
+          : {}),
+      },
     },
     {
       dimension: 'completedAfter',

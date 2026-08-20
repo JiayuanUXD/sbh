@@ -45,16 +45,21 @@ import React from 'react'
  *
  *   - `unfilteredTotalCount`：主按钮文案里的具体数字（comp 稿「看上海全部
  *     1,893 套在租」）。这不是当前（0 条）结果数，是 `basePath` 不叠加这一
- *     类限制时的总量——调用方需要另外查一次。与 `countNoun` 不同，这个数字
- *     缺失时组件仍然诚实（退化成不带数字的通用文案），因此是可选的，不是
- *     必填的："缺了会撒谎" vs "缺了只是少一个加分数字"是两种不同的缺省
- *     处置，不能用同一个"必填"标准套。数字 >0 时才使用带数字的文案（批次
- *     统一的"不显示 0"规则），且用 `tabular-nums` 渲染。
+ *     类限制时的总量——调用方需要另外查一次。
  *
- * **Task 11/12 接线时必须实际传入这两个 prop**，否则会退回到本组件首版
- * 「次按钮回首页、主按钮不带数字」这个更弱的行为——两个 prop 的语义与命名
- * 已经在上面写清楚，接线 brief 应直接引用 `secondaryAction` / `unfilteredTotalCount`
- * 这两个名字。
+ *     **数字缺失或为 0 时整个主按钮不渲染**（OPT-036 Task 12 审查 I2 改）。
+ *     首版在这种情况下退化成「查看全部结果」+ `href={basePath}`，那在真实
+ *     状态下是个死控件：`basePath` 的总数为 0，恰恰意味着「不叠加任何条件的
+ *     那一页」就是用户此刻正在看的这一页——点下去只是把同一个空页面重新
+ *     加载一遍。楼盘列表页尤其如此：空态①的触发条件本就是「没有任何筛选
+ *     却零结果」，此时 `unfilteredTotalCount === totalDocs === 0` 是**结构
+ *     性恒等**，那个按钮永远不可能有意义。少一个按钮是诚实的；摆一个点了
+ *     回到同一空页的按钮不是。此时 `secondaryAction`（「提交需求」）就是这
+ *     一态唯一真实的出口。
+ *
+ * **Task 11/12 接线时必须实际传入这两个 prop**，否则这一态会只剩标题与
+ * 正文、一个出口都没有——两个 prop 的语义与命名已经在上面写清楚，接线
+ * brief 应直接引用 `secondaryAction` / `unfilteredTotalCount` 这两个名字。
  */
 export default function EmptyNoStock(props: Readonly<{
   noun: string
@@ -66,11 +71,19 @@ export default function EmptyNoStock(props: Readonly<{
    * 调用方应从 `CHANNEL_COPY` 一类的集中文案表取值，不要写字面量。
    */
   totalNoun: string
+  /**
+   * 正文里的量词，拼成「这一类目前确实还没有一{countNoun}上架」——房源页
+   * 「一套」、楼盘页「一个楼盘」。必填、无默认值：与 `totalNoun` 同一条约定，
+   * 原先硬编码「一套」，楼盘页复用时就会对着一屏楼盘说「还没有一套上架」
+   * （Task 12 审查发现，与 `EmptyFiltered.subjectNoun` 同型）。
+   */
+  countNoun: string
   basePath: string
   /**
-   * `basePath`（不叠加这一类限制的完整结果集）里的房源总数，用于主按钮文案
-   * 里的具体数字（comp 稿字面「看上海全部 1,893 套在租」）。可选：省略或
-   * 传 0 时按钮退化为不带数字的通用文案，仍然真实，不是必须补全的信息。
+   * `basePath`（不叠加这一类限制的完整结果集）里的总数，用于主按钮文案里的
+   * 具体数字（comp 稿字面「看上海全部 1,893 套在租」）。**省略或为 0 时整个
+   * 主按钮不渲染**——理由见文件顶部注释（那种情况下按钮只会指回用户已经在
+   * 的这一页）。
    */
   unfilteredTotalCount?: number
   /**
@@ -83,36 +96,34 @@ export default function EmptyNoStock(props: Readonly<{
    */
   secondaryAction?: React.ReactNode
 }>): React.JSX.Element {
-  const { noun, totalNoun, basePath, unfilteredTotalCount, secondaryAction } = props
+  const { noun, totalNoun, countNoun, basePath, unfilteredTotalCount, secondaryAction } = props
   const hasCount = unfilteredTotalCount != null && unfilteredTotalCount > 0
 
   return (
     <div className="ls-empty ls-empty--nostock">
       <span className="ls-empty__title">{noun}还在收录中</span>
       <span className="ls-empty__body">
-        这不是筛选收得太严——这一类目前确实还没有一套上架，不是被藏起来的空货架。
+        这不是筛选收得太严——这一类目前确实还没有一{countNoun}上架，不是被藏起来的空货架。
         我们持续核对新增供给，一上架就会显示在这里。
       </span>
-      <span className="ls-empty__actions">
-        {/* 文案整段包一层 <span>，不要把文本直接摊平进 flex 容器（`.ls-empty__btn`
-            是 inline-flex）：flex 容器会把每个连续文本片段各自拆成独立的匿名
-            flex item，item 边界处的空白会被当成"行首/行尾"折叠掉——"查看全部"
-            与数字、数字与"套在租房源"之间的空格会直接消失（实测过，Playwright
-            innerText 甚至把它们渲成三个换行分隔的块）。包一层 span 后整段文案
-            只是这一个 flex item 内部的正常行内流，空格按普通文本规则保留。 */}
-        <Link href={basePath} className="ls-empty__btn ls-empty__btn--primary">
-          <span>
-            {hasCount ? (
-              <>
+      {hasCount || secondaryAction ? (
+        <span className="ls-empty__actions">
+          {/* 文案整段包一层 <span>，不要把文本直接摊平进 flex 容器（`.ls-empty__btn`
+              是 inline-flex）：flex 容器会把每个连续文本片段各自拆成独立的匿名
+              flex item，item 边界处的空白会被当成"行首/行尾"折叠掉——"查看全部"
+              与数字、数字与"套在租房源"之间的空格会直接消失（实测过，Playwright
+              innerText 甚至把它们渲成三个换行分隔的块）。包一层 span 后整段文案
+              只是这一个 flex item 内部的正常行内流，空格按普通文本规则保留。 */}
+          {hasCount ? (
+            <Link href={basePath} className="ls-empty__btn ls-empty__btn--primary">
+              <span>
                 查看全部 <span className="ls-empty__btn-count">{unfilteredTotalCount}</span> {totalNoun}
-              </>
-            ) : (
-              '查看全部结果'
-            )}
-          </span>
-        </Link>
-        {secondaryAction ? <span className="ls-empty__btn-slot">{secondaryAction}</span> : null}
-      </span>
+              </span>
+            </Link>
+          ) : null}
+          {secondaryAction ? <span className="ls-empty__btn-slot">{secondaryAction}</span> : null}
+        </span>
+      ) : null}
     </div>
   )
 }

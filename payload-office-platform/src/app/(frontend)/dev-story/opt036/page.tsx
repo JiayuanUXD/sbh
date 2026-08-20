@@ -1064,6 +1064,7 @@ export default function Opt036PreviewPage() {
               <EmptyNoStock
                 noun="上海的共享工位房源"
                 totalNoun="套在租房源"
+                countNoun="套"
                 basePath="/shanghai/listings"
                 unfilteredTotalCount={1893}
                 secondaryAction={<button type="button">提交需求</button>}
@@ -1072,10 +1073,11 @@ export default function Opt036PreviewPage() {
 
             <div data-fixture="empty-nostock-fallback" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
-                ① 极简回退——省略 unfilteredTotalCount 与 secondaryAction 时仍然可用：主按钮退化为不带数字的
-                通用文案，次按钮位整体不渲染（不伪造一个假交互占位符），不是死胡同
+                ① 极简回退——省略 unfilteredTotalCount 与 secondaryAction 时：两个按钮位都不渲染。
+                主按钮在总数为 0 / 缺失时**刻意不出现**——那种状态下它只会指回用户已经在的这一空页
+                （Task 12 审查 I2）；此时唯一真实出口是 secondaryAction，调用方必须给
               </span>
-              <EmptyNoStock noun="上海的共享工位房源" totalNoun="套在租房源" basePath="/shanghai/listings" />
+              <EmptyNoStock noun="上海的共享工位房源" totalNoun="套在租房源" countNoun="套" basePath="/shanghai/listings" />
             </div>
 
             <div data-fixture="empty-filtered-three" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

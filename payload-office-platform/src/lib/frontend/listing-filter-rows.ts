@@ -47,6 +47,12 @@ export type ListingFilterDimensionSpec = Readonly<{
   paramKeys: readonly string[]
   /** 当前生效值的可读文案；未生效时为 null。 */
   activeText: string | null
+  /**
+   * 一个维度占多个 URL 键时，各键各自的可读文案（价格 `priceMin`/`priceMax`、
+   * 面积 `areaMin`/`areaMax`）。用途见 `building-filter-rows.ts` 同名字段注释：
+   * 「只有一半条件被筛选行显示出来」时补 chip，要只说也只清没被显示的那一半。
+   */
+  paramTexts?: Readonly<Record<string, string>>
 }>
 
 /** 面积下限门槛（㎡）。与计价单位无关，因此不分表。 */
@@ -203,6 +209,14 @@ export function buildListingFilterRows(params: Readonly<{
               .filter(Boolean)
               .join(' · ') + (unitText ? `（${unitText}）` : '')
           : null,
+      paramTexts: {
+        ...(input.priceMin != null
+          ? { priceMin: `${compactNumber(input.priceMin)} 元以上${unitText ? `（${unitText}）` : ''}` }
+          : {}),
+        ...(input.priceMax != null
+          ? { priceMax: `${compactNumber(input.priceMax)} 元以下${unitText ? `（${unitText}）` : ''}` }
+          : {}),
+      },
     },
     {
       dimension: 'area',
@@ -217,6 +231,10 @@ export function buildListingFilterRows(params: Readonly<{
               .filter(Boolean)
               .join(' · ')
           : null,
+      paramTexts: {
+        ...(input.areaMin != null ? { areaMin: `${compactNumber(input.areaMin)} ㎡以上` } : {}),
+        ...(input.areaMax != null ? { areaMax: `${compactNumber(input.areaMax)} ㎡以下` } : {}),
+      },
     },
     {
       dimension: 'businessArea',

@@ -50,8 +50,14 @@ export default function MobileFilterShell(props: Readonly<{
   countNoun: string
   /** 开关型筛选行（楼盘页「仅看有在租」），原样透传给抽屉；省略则抽屉不渲染这一段。 */
   switchRow?: FilterSwitch
+  /**
+   * 抽屉两个「重置」的目标地址，原样透传。**必须与编排层交给
+   * `FilterFormC.clearAllHref` / `EmptyFiltered.clearAllHref` 的是同一个值**
+   * ——三个出口同义就必须同址，理由见 `MobileFilterSheet.resetHref` 注释。
+   */
+  resetHref: string
 }>): React.JSX.Element {
-  const { rows, basePath, currentQuery, totalDocs, countNoun, switchRow } = props
+  const { rows, basePath, currentQuery, totalDocs, countNoun, switchRow, resetHref } = props
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const currentParams = useMemo(() => new URLSearchParams(currentQuery), [currentQuery])
@@ -78,6 +84,7 @@ export default function MobileFilterShell(props: Readonly<{
         totalDocs={totalDocs}
         countNoun={countNoun}
         triggerRef={triggerRef}
+        resetHref={resetHref}
         {...(switchRow ? { switchRow } : {})}
       />
     </div>

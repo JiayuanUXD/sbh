@@ -142,8 +142,20 @@ export default function FilterFormC(props: Readonly<{
   clearAllHref: string
   /** 开关型筛选行（楼盘页「仅看有在租」）；省略则不渲染这一行，见 `FilterSwitch`。 */
   switchRow?: FilterSwitch
+  /**
+   * 「生效了、但没有任何一行能显示出来」的条件，渲染成与行内 chip 同款的
+   * 可清除 chip。
+   *
+   * 为什么需要这个口子：筛选行是**每行一个 URL 参数**的单选控件，而 URL 上
+   * 合法的筛选状态不止这些——楼盘页的 `?leasableAreaMax=2000` 会被解析层收下、
+   * 进 canonical、真的收窄结果集，却没有对应的行（那一行建模的是下限）。结果是
+   * 底栏出现了「清除全部」（因为确实有条件生效），用户却看不到被清除的是什么。
+   * 这类条件由编排层——唯一知道完整维度清单的那一层——算出来交进来，本组件
+   * 只负责把它们摆成 chip，与 `clearAllHref` 的分工完全一致。
+   */
+  extraPicks?: ReadonlyArray<Readonly<{ key: string; label: string; href: string }>>
 }>): React.JSX.Element {
-  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref, switchRow } = props
+  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref, switchRow, extraPicks } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)
   const picks: readonly ActivePick[] = visibleRows.reduce<ActivePick[]>((acc, row) => {
     const option = findActiveOption(row)
@@ -153,7 +165,7 @@ export default function FilterFormC(props: Readonly<{
   // 开关打开时也算一个已选条件：否则「只开了开关」这种状态下底栏既不显示 chip
   // 也不显示「清除全部」，用户没有出口把它关掉（pill 本身可以再点一次关掉，但
   // 底栏说「每行单选，未选的行保持全部」就成了一句与屏幕不符的话）。
-  const hasPicks = picks.length > 0 || switchRow?.active === true
+  const hasPicks = picks.length > 0 || switchRow?.active === true || (extraPicks?.length ?? 0) > 0
 
   return (
     <div className="ls-filterc">
@@ -224,6 +236,12 @@ export default function FilterFormC(props: Readonly<{
                 className="ls-filterc__chip"
               >
                 {row.label}：{option.label}
+                <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
+              </Link>
+            ))}
+            {(extraPicks ?? []).map((pick) => (
+              <Link key={pick.key} href={pick.href} className="ls-filterc__chip">
+                {pick.label}
                 <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
               </Link>
             ))}

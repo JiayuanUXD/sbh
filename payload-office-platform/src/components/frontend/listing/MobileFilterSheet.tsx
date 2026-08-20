@@ -98,24 +98,6 @@ function buildOptionHref(
   return buildHref(basePath, sp)
 }
 
-/**
- * 重置：清空本组件渲染的所有 rows 对应的参数（不限于 visibleRows——理由同
- * FilterFormC 的 buildClearAllHref），**开关行的键也要一起删**：漏掉它会出现
- * 「点了重置，结果仍然只看有在租」这种同名不同义的出口。
- */
-function buildResetHref(
-  basePath: string,
-  currentParams: URLSearchParams,
-  rows: readonly FilterRow[],
-  switchRow: FilterSwitch | undefined,
-): string {
-  const sp = cloneSearchParams(currentParams)
-  sp.delete('page')
-  for (const row of rows) sp.delete(row.key)
-  if (switchRow) sp.delete(switchRow.paramKey)
-  return buildHref(basePath, sp)
-}
-
 function findActiveOption(row: FilterRow): FilterRow['options'][number] | undefined {
   if (row.activeValue == null) return undefined
   return row.options.find((option) => option.value === row.activeValue)
@@ -150,8 +132,23 @@ export default function MobileFilterSheet(props: Readonly<{
    * 少了它抽屉就少一个真实维度（而不是「移动端不支持这个筛选」）。
    */
   switchRow?: FilterSwitch
+  /**
+   * 头部与底栏两个「重置」的目标地址，**由编排层给定，本组件不自行推导**。
+   *
+   * 曾经的实现是内部按 `rows.key`（+ 后来补的 `switchRow.paramKey`）逐个删。
+   * 那是同一个缺陷的第三次出现（OPT-036 Task 12 审查 I1）：一行只对应一个
+   * URL 键，而一个**维度**可能占多个键——楼盘页的「在租面积」维度同时占
+   * `leasableAreaMin` 与 `leasableAreaMax`，行只建模下限，于是桌面「清除全部」
+   * 清得掉 `leasableAreaMax`、抽屉「重置」清不掉。房源页更悬殊：4 行 vs 8 个
+   * 维度。同一屏上两个语义相同的出口清出两个不同的结果，用户看不出为什么。
+   *
+   * 修法与 `FilterFormC.clearAllHref` 一致，也用同一个值：口径归唯一知道完整
+   * 维度清单的那一层（编排层）算**一次**，所有消费者共用。本组件仍然自己构造
+   * **单个选项**的 href（行级作用域，不存在歧义）。
+   */
+  resetHref: string
 }>): React.JSX.Element | null {
-  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, switchRow } = props
+  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, switchRow, resetHref } = props
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const capturedFocusRef = useRef<HTMLElement | null>(null)
   // 「归还焦点」只有在**真的开过一次**之后才成立，见下方该 effect 的注释。
@@ -231,7 +228,6 @@ export default function MobileFilterSheet(props: Readonly<{
   const pickCount =
     visibleRows.reduce((n, row) => (findActiveOption(row) ? n + 1 : n), 0) +
     (switchRow?.active ? 1 : 0)
-  const resetHref = buildResetHref(basePath, currentParams, rows, switchRow)
 
   return createPortal(
     <div className="ls-msheet__overlay" onClick={onClose}>

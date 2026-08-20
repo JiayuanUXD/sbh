@@ -335,6 +335,36 @@ export default async function CityListingsView({
       .flatMap((d) => d.paramKeys),
   )
 
+  // 生效了但没有任何一行能显示出来的条件——本页这类比楼盘页多得多：`q`、
+  // `businessArea`、`metro`、`availableBefore`、`priceMin`、`areaMax` 六个维度
+  // 都能进 URL、都真的收窄结果集，却都没有对应的筛选行（形态 C 只有 4 行）。
+  // 不补 chip 的话，用户从别处带着 `?q=整层` 进来，只看到「168 套符合条件」和
+  // 一个「清除全部」，看不到关键词正在生效（Task 12 审查 I1 的同类问题）。
+  // 逐**键**而不是逐维度：价格/面积维度各占两个键而行只建模其中一个（上限 /
+  // 下限），补 chip 要只说也只清没被显示的那一半，否则会并排出现一个 chip 和
+  // 它的超集 chip。单键维度（q / metro / businessArea…）走 paramTexts 缺省分支。
+  const rowActiveKeys = new Set(rows.filter((row) => row.activeValue != null).map((row) => row.key))
+  const extraPicks = activeDimensions.flatMap((d) => {
+    // 计价单位不补 chip：它已经被 PriceUnitSegment 完整地显示着，不属于「看不见的
+    // 生效条件」。补一个「租金单位 ×」还会凭空造出一个「清除单位」的入口——那与
+    // Task 7 的裁定相反（单位永远是 set，换单位归分段控件管，不归清除条件管）。
+    if (!LISTING_CLEARABLE_DIMENSIONS.includes(d.dimension)) return []
+    const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
+    if (hidden.length === 0) return []
+    if (d.paramTexts == null) {
+      return [{
+        key: d.dimension,
+        label: `${d.label}：${d.activeText}`,
+        href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
+      }]
+    }
+    return hidden.map((key) => ({
+      key,
+      label: `${d.label}：${d.paramTexts?.[key] ?? d.activeText}`,
+      href: buildDropDimensionHref(basePath, currentParams, [key]),
+    }))
+  })
+
   const citySlug = routeMode === 'prefixed' ? city.slug : undefined
 
   return (
@@ -377,6 +407,7 @@ export default async function CityListingsView({
           totalCount={totalDocs}
           countNoun={copy.countNoun}
           clearAllHref={clearAllHref}
+          extraPicks={extraPicks}
         />
       </div>
 
@@ -400,6 +431,7 @@ export default async function CityListingsView({
           <EmptyNoStock
             noun={noStockNoun}
             totalNoun={copy.totalNoun}
+            countNoun={copy.countNoun}
             basePath={basePath}
             unfilteredTotalCount={noStockTotal}
             secondaryAction={
@@ -456,6 +488,7 @@ export default async function CityListingsView({
         currentQuery={currentParams.toString()}
         totalDocs={totalDocs}
         countNoun={copy.countNoun}
+        resetHref={clearAllHref}
       />
     </div>
   )

@@ -285,8 +285,14 @@
  * **本批次唯一用 accent 底的筛选项**——它是「暂无在租降权分组」这条产品判断的
  * 正面出口（comp 判断 F）。其余筛选激活态一律零色相或 accent-link 文本，别照抄
  * 这一条给第二个筛选项上 accent 底。
- * 36 高与 .ls-pill / .ls-filterc chip 同一套 pill 度量（comp 字面值）；移动端
- * 的同一维度走抽屉里 52 高的 .ls-msheet__switch，触达尺寸在那里满足。 */
+ * 36 高是 comp 字面值，与 .ls-pill / .ls-filterc chip 同一套 pill 度量。
+ * **已知触达缺口（继承自房源页，不是本开关独有）**：`.ls-filterc` 没有
+ * `<768px` 隐藏规则，整块筛选条在 375 下照常渲染，因此这个 36 高的 pill 与
+ * 同容器里 28 高的 chip、行内纯文本选项一样，在移动端都低于 44px 触达下限。
+ * 抽屉里的 `.ls-msheet__switch`（52 高整行可点）是这个维度在移动端的主路径，
+ * 但它不会让筛选条里这些控件变得可触达。要真正修掉，得决定筛选条在窄屏下的
+ * 归属（隐藏 or 加大整块的触达尺寸），那是横跨两个列表页的一次性处置，
+ * 不该由本开关单独承担。 */
 .ls-filterc__switch { height: 36px; padding: 0 14px 0 10px; border-radius: var(--r-pill);
   background: var(--bg-subtle); font-size: 13px; font-weight: 500; color: var(--ink);
   letter-spacing: normal; display: inline-flex; align-items: center; gap: 8px;

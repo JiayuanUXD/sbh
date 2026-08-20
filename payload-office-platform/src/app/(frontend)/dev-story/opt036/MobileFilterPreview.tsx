@@ -123,6 +123,10 @@ export default function MobileFilterPreview(): React.JSX.Element {
         currentParams={currentParams}
         totalDocs={totalDocs}
         countNoun="套"
+        // 真实接线里这个值来自编排层的 clearAllHref（三个「清除全部/重置」出口共用
+        // 同一个口径，见 MobileFilterSheet.resetHref 注释）；预览壳没有编排层，
+        // 直接给裸路径即可。
+        resetHref="/shanghai/listings"
         triggerRef={triggerButtonRef}
       />
     </div>

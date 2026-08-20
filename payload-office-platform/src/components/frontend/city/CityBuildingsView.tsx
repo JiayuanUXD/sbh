@@ -143,13 +143,17 @@ export default function CityBuildingsView({ city, result, input, basePath, route
     active: input.onlyWithStock === true,
     paramKey: 'onlyWithStock',
     ...(withStockTotal > 0 ? { count: withStockTotal } : {}),
-    subLabel: `${withStockTotal} / ${totalDocs} 个`,
+    // 分母是「不看这个开关时有多少个」（comp 抽屉字面「26 / 68 个」），因此取
+    // dimensionHits.onlyWithStock 而不是 totalDocs——开关已经打开时 totalDocs
+    // 就是分子本身，会印出「5 / 5 个」这种自证的废话。
+    subLabel: `${withStockTotal} / ${dimensionHits.onlyWithStock} 个`,
   }
 
-  // 「清除全部」只有一个口径，本层算一次、多处共用：筛选条底栏那个与空态②里
-  // 那个在同一屏上可能同时可见，作用域一旦不同就是同名不同义（房源页 Task 11
-  // 的 I2 就栽在这里）。移动抽屉的「重置」按 rows + switchRow.paramKey 删，
-  // 覆盖的正是同一组六个维度的键。
+  // 「清除全部」只有一个口径，本层算一次、**三个出口共用**：筛选条底栏、空态②、
+  // 移动抽屉的「重置」。这三处在用户眼里是同一件事，作用域一旦不同就是同名不同义
+  // （房源页 Task 11 的 I2 是前两个，Task 12 审查的 I1 是第三个——抽屉原先按
+  // rows.key 自己推导，一行一个键，漏掉了「在租面积」维度的 leasableAreaMax）。
+  // 谁需要这个语义就传谁这个值，不要在消费者那一侧再推导一次。
   const clearAllHref = buildDropDimensionHref(
     basePath,
     currentParams,
@@ -157,6 +161,31 @@ export default function CityBuildingsView({ city, result, input, basePath, route
       .filter((d) => BUILDING_CLEARABLE_DIMENSIONS.includes(d.dimension))
       .flatMap((d) => d.paramKeys),
   )
+
+  // 生效了但没有任何一行能显示出来的条件（如只写了 `leasableAreaMax`——那一行
+  // 建模的是下限）。不补这些 chip 的话，底栏会出现「清除全部」却看不到清的是
+  // 什么；补上之后每一个生效条件都可见、可单独清除。
+  // 逐**键**而不是逐维度：一个维度可能只有一半被行显示出来（在租面积行只建模
+  // 下限），补 chip 时要只说也只清没被显示的那一半，否则会并排出现一个 chip
+  // 和它的超集 chip。没有逐键文案时（单键维度）退回整个维度的文案与作用域。
+  const rowActiveKeys = new Set(rows.filter((row) => row.activeValue != null).map((row) => row.key))
+  if (switchRow.active) rowActiveKeys.add(switchRow.paramKey)
+  const extraPicks = activeDimensions.flatMap((d) => {
+    const hidden = d.paramKeys.filter((key) => currentParams.has(key) && !rowActiveKeys.has(key))
+    if (hidden.length === 0) return []
+    if (d.paramTexts == null) {
+      return [{
+        key: d.dimension,
+        label: `${d.label}：${d.activeText}`,
+        href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
+      }]
+    }
+    return hidden.map((key) => ({
+      key,
+      label: `${d.label}：${d.paramTexts?.[key] ?? d.activeText}`,
+      href: buildDropDimensionHref(basePath, currentParams, [key]),
+    }))
+  })
 
   // ── 状态判定 ─────────────────────────────────────────────────────────────
   const isOutOfRange = page > totalPages && totalDocs > 0
@@ -204,6 +233,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
           countNoun={COPY.countNoun}
           clearAllHref={clearAllHref}
           switchRow={switchRow}
+          extraPicks={extraPicks}
         />
       </div>
 
@@ -227,7 +257,12 @@ export default function CityBuildingsView({ city, result, input, basePath, route
           <EmptyNoStock
             noun={routeMode === 'legacy' ? '写字楼' : `${city.name}写字楼`}
             totalNoun={COPY.totalNoun}
+            countNoun={COPY.countNoun}
             basePath={basePath}
+            // 这一态的触发条件是「没有任何筛选却零结果」，此时 unfilteredTotalDocs
+            // 必然也是 0，主按钮不会渲染（见 EmptyNoStock 顶部注释）——仍然把这个
+            // 数传下去：它是这一层唯一知道的事实，判断该不该渲染按钮是组件的事，
+            // 不是编排层按当前分支「反正是 0」把它省掉。
             unfilteredTotalCount={unfilteredTotalDocs}
             secondaryAction={
               <InquiryModal pageType="search" triggerLabel="提交需求" triggerVariant="primary" />
@@ -306,6 +341,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         totalDocs={totalDocs}
         countNoun={COPY.countNoun}
         switchRow={switchRow}
+        resetHref={clearAllHref}
       />
     </div>
   )
