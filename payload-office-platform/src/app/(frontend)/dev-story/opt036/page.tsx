@@ -619,7 +619,7 @@ export default function Opt036PreviewPage() {
         <PreviewSection
           id="filter-form-c"
           title="分行文本条件区（FilterFormC）"
-          note="标签列宽度按当前渲染行的最长 label 自动定宽（CSS Grid，不写死 52/70）；选中态 accent-link/500，未选 ink——与下方 FilterPill 的零色相是两套不同规则；再点已选项即取消；底栏计数 tabular-nums"
+          note="标签列宽度按当前渲染行的最长 label 自动定宽（CSS Grid，不写死 52/70）；选中态 accent-link/500，未选 ink——与下方 FilterPill 的零色相是两套不同规则；再点已选项即取消；底栏计数 tabular-nums，countNoun 必填（房源版「套」/ 楼盘版「个楼盘」），不给通用默认词"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {FILTER_FORM_C_LISTING_FIXTURES.map((fixture) => (
@@ -630,6 +630,7 @@ export default function Opt036PreviewPage() {
                   basePath="/shanghai/listings"
                   currentParams={fixture.currentParams}
                   totalCount={fixture.totalCount}
+                  countNoun="套"
                 />
               </div>
             ))}
@@ -642,6 +643,7 @@ export default function Opt036PreviewPage() {
                 basePath="/shanghai/buildings"
                 currentParams={BUILDING_FILTER_FORM_C_FIXTURE.currentParams}
                 totalCount={BUILDING_FILTER_FORM_C_FIXTURE.totalCount}
+                countNoun="个楼盘"
               />
             </div>
           </div>

@@ -14,9 +14,8 @@ import React from 'react'
  *   - **标签列宽度不硬编码 52/70**：容器用 CSS Grid 两列（`auto` + `minmax(0,1fr)`），
  *     每行外壳 `display:contents` 把 label/options 两个格子直接摊平进同一个网格，
  *     宽度由浏览器按当前 rows 里最长的 label 自动定宽——房源版 2 字标签自然收敛到
- *     约 52px，楼盘版 4 字标签自然收敛到约 70px，不需要新增 labelWidth 之类的 prop
- *     （interface 已在任务简报里锁定，只有 rows/basePath/currentParams/totalCount
- *     四个参数）。行内选项列显式 `minmax(0, 1fr)` 而非裸 `1fr`——本批次踩过的坑：
+ *     约 52px，楼盘版 4 字标签自然收敛到约 70px，不需要新增 labelWidth 之类的 prop。
+ *     行内选项列显式 `minmax(0, 1fr)` 而非裸 `1fr`——本批次踩过的坑：
  *     `1fr` 轨道默认 `min-width:auto`，某行选项一多会撑宽整列。
  *   - **行内选项是纯文本 `<a>`，不是 FilterPill**：选中 `--accent-link`/500，
  *     未选 `--ink`（specRows「形态 C 选项」）。FilterPill 零色相（黑底白字）
@@ -92,8 +91,21 @@ export default function FilterFormC(props: Readonly<{
   basePath: string
   currentParams: URLSearchParams
   totalCount: number
+  /**
+   * 底栏计数单位名词，拼成「N {countNoun}符合条件」——如 `套`（房源列表 →
+   * 「168 套符合条件」）、`个楼盘`（楼盘列表 → 「24 个楼盘符合条件」）。
+   *
+   * 必填、无默认值：组件复用不等于文案复用，见
+   * `src/components/frontend/city/CityListingsView.tsx` 的 `CHANNEL_COPY`
+   * 及其顶部注释——同一套栅格换到出售频道，「在租房源」就是错的语境。
+   * 房源列表.dc.html 写「N 套符合」，楼盘列表.dc.html 写「N 个楼盘」，两个
+   * 页面本就不共享同一个名词；给个默认值只会把两者悄悄磨成一个通用词，
+   * 且在未来接出售频道时继续读错语境。调用方（Task 11/12 接线）应从
+   * `CHANNEL_COPY` 一类的集中文案表取值，不要在调用点写字面量。
+   */
+  countNoun: string
 }>): React.JSX.Element {
-  const { rows, basePath, currentParams, totalCount } = props
+  const { rows, basePath, currentParams, totalCount, countNoun } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)
   const picks: readonly ActivePick[] = visibleRows.reduce<ActivePick[]>((acc, row) => {
     const option = findActiveOption(row)
@@ -126,7 +138,7 @@ export default function FilterFormC(props: Readonly<{
         </div>
       ))}
       <div className="ls-filterc__footer">
-        <span className="ls-filterc__count">{totalCount} 条符合条件</span>
+        <span className="ls-filterc__count">{totalCount} {countNoun}符合条件</span>
         {picks.length > 0 ? (
           <>
             <span className="ls-filterc__divider" aria-hidden="true" />
