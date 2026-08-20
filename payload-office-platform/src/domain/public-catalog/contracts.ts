@@ -134,6 +134,8 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
   nearestMetro?: DistrictViewModel
   /** 在租面积（楼内有效房源面积总和，单位㎡）；楼盘列表页卡片展示 */
   leasableArea?: number
+  /** 竣工日期（ISO 字符串）；楼盘列表页 completedAfter 筛选与 completion-desc 排序用 */
+  completionDate?: string
 }>
 
 /**

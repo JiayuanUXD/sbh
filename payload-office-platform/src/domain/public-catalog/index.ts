@@ -49,6 +49,9 @@ export {
   BUILDING_SORTS,
   parseBuildingSearchInput,
   buildBuildingCanonicalParams,
+  applyBuildingFilters,
+  sortBuildings,
+  partitionByStock,
 } from './building-search'
 export type { BuildingSort, BuildingSearchInput } from './building-search'
 export { normalizePublicMediaUrl } from './media-url'
@@ -90,6 +93,7 @@ export {
   type BuildingDetailPageResult,
   type BuildingSearchResult,
   type BuildingSearchPageResult,
+  type BuildingFilteredResult,
   // 函数
   parseSearchInput,
   buildCanonical,
@@ -97,6 +101,7 @@ export {
   buildListingSearchSource,
   paginateListingSearchSource,
   searchBuildings,
+  searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
   getListingBySlug,

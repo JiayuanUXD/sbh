@@ -43,6 +43,8 @@ import type {
 import { haversineKm } from './geo'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
+import type { BuildingSearchInput } from './building-search'
+import { applyBuildingFilters, sortBuildings } from './building-search'
 import {
   mapBuildingDetail,
   mapBuildingSummary,
@@ -139,6 +141,20 @@ export type BuildingDetailResult = Readonly<{
 export type BuildingSearchResult = Readonly<{
   docs: readonly BuildingSummaryViewModel[]
   totalDocs: number
+}>
+
+/** 楼盘列表页筛选/排序/分页结果（OPT-036 Task 2）。 */
+export type BuildingFilteredResult = Readonly<{
+  docs: readonly BuildingSummaryViewModel[]
+  totalDocs: number
+  page: number
+  totalPages: number
+  /** 各筛选维度的候选值与命中数，供筛选条渲染与空态退路使用 */
+  facets: Readonly<{
+    districts: ReadonlyArray<{ slug: string; name: string; count: number }>
+    grades: ReadonlyArray<{ value: string; count: number }>
+    metros: ReadonlyArray<{ slug: string; name: string; count: number }>
+  }>
 }>
 
 /** One public building page for bounded catalog enumeration. */
@@ -397,6 +413,71 @@ export async function searchBuildings(
   }
   const docs = await attachLeasableArea(summaries, ctx, adapter)
   return { docs, totalDocs: docs.length }
+}
+
+/**
+ * 在筛选前的全集上计算各筛选维度的候选值与命中数。
+ *
+ * 必须传入筛选前的全集：如果在 applyBuildingFilters 之后算 facets，选中一个
+ * 区域后其它区域会因为已被过滤掉而从筛选条里消失（自我擦除 bug）。
+ */
+function buildBuildingFacets(
+  docs: readonly BuildingSummaryViewModel[],
+): BuildingFilteredResult['facets'] {
+  const districts = new Map<string, { name: string; count: number }>()
+  const grades = new Map<string, number>()
+  const metros = new Map<string, { name: string; count: number }>()
+
+  for (const doc of docs) {
+    if (doc.district) {
+      const entry = districts.get(doc.district.slug)
+      districts.set(doc.district.slug, { name: doc.district.name, count: (entry?.count ?? 0) + 1 })
+    }
+    if (doc.grade) {
+      grades.set(doc.grade, (grades.get(doc.grade) ?? 0) + 1)
+    }
+    if (doc.nearestMetro) {
+      const entry = metros.get(doc.nearestMetro.slug)
+      metros.set(doc.nearestMetro.slug, { name: doc.nearestMetro.name, count: (entry?.count ?? 0) + 1 })
+    }
+  }
+
+  return {
+    districts: Array.from(districts.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+    grades: Array.from(grades.entries()).map(([value, count]) => ({ value, count })),
+    metros: Array.from(metros.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+  }
+}
+
+/**
+ * 楼盘列表筛选/排序/分页（OPT-036 Task 2）。
+ *
+ * 步骤：searchBuildings 取全集 → 在全集上算 facets（筛选前）→
+ * applyBuildingFilters → sortBuildings → 按 input.page/pageSize 切片。
+ *
+ * **200 条上限**：底层 `adapter.findEffectiveBuildings(ctx)` 默认 `limit = 200`
+ * （见 supply-adapter.ts），本函数继承这个上限、不在此处放宽。当一个城市的有效
+ * 公开楼盘超过 200 个时，筛选/排序/分页都只作用于前 200 条，结果会静默截断——
+ * 放宽上限需要先评估查询成本，届时应改走分页适配器（类似 findEffectiveBuildingsPage），
+ * 而不是简单调大这个数字。
+ */
+export async function searchBuildingsFiltered(
+  input: BuildingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingFilteredResult> {
+  const { docs: allDocs } = await searchBuildings(ctx, adapter)
+  const facets = buildBuildingFacets(allDocs)
+  const filtered = applyBuildingFilters(allDocs, input)
+  const sorted = sortBuildings(filtered, input.sort)
+  const { docs, totalDocs, totalPages } = paginate(sorted, input.page, input.pageSize)
+  return {
+    docs,
+    totalDocs,
+    page: Math.max(1, input.page),
+    totalPages,
+    facets,
+  }
 }
 
 /**

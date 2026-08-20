@@ -5,6 +5,7 @@ import {
   BUILDINGS_CATEGORY_TAG,
   LISTINGS_CATEGORY_TAG,
   SITEMAP_TAG,
+  buildBuildingCanonicalParams,
   buildCanonicalSearchParams,
   buildListingSearchSource,
   buildingsCityTag,
@@ -28,8 +29,10 @@ import {
   listingsCityTag,
   paginateListingSearchSource,
   searchBuildings,
+  searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
+  type BuildingSearchInput,
   type HomepageStats,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
@@ -200,6 +203,32 @@ const getCachedSearchBuildingsByCity = memoizeByCity((citySlug) =>
 export function getCachedSearchBuildings(citySlug: string) {
   const city = canonicalCitySlug(citySlug)
   return getCachedSearchBuildingsByCity(city)()
+}
+
+const getCachedSearchBuildingsFilteredByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    // canonicalQuery 只用于让不同筛选条件落进不同缓存条目（unstable_cache 按参数
+    // 序列化派生 key），函数体内不直接使用——真正的筛选逻辑吃 input 本身。
+    async (canonicalQuery: string, input: BuildingSearchInput) => {
+      void canonicalQuery
+      return searchBuildingsFiltered(input, createSearchContext(citySlug))
+    },
+    ['search-buildings-filtered', citySlug],
+    {
+      tags: [...buildingCacheTags(citySlug), facetsTag(citySlug)],
+      revalidate: 300,
+    },
+  ),
+)
+
+/** 楼盘列表页筛选/排序/分页查询（OPT-036 Task 2）。 */
+export function getCachedSearchBuildingsFiltered(
+  citySlug: string,
+  input: BuildingSearchInput,
+) {
+  const city = canonicalCitySlug(citySlug)
+  const canonicalQuery = buildBuildingCanonicalParams(input).toString()
+  return getCachedSearchBuildingsFilteredByCity(city)(canonicalQuery, input)
 }
 
 type SitemapBuildingPageLoader = () => ReturnType<typeof searchBuildingsPage>

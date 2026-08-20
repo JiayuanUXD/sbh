@@ -404,6 +404,7 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     summary: raw.summary ?? undefined,
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
     nearestMetro: mapDistrict(populated?.nearestMetro),
+    completionDate: raw.completionDate ?? undefined,
   }
 }
 

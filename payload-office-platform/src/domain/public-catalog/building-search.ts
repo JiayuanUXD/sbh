@@ -12,6 +12,8 @@
  * 悄悄返回空结果，比直接丢弃筛选条件更危险。
  */
 
+import type { BuildingSummaryViewModel } from './contracts'
+
 const DEFAULT_PAGE_SIZE = 24 as const
 const MAX_ARRAY_LEN = 20
 const MIN_COMPLETED_YEAR = 1900
@@ -164,4 +166,150 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   if (input.sort !== DEFAULT_SORT) sp.set('sort', input.sort)
   if (input.page > 1) sp.set('page', String(input.page))
   return sp
+}
+
+// ---------------------------------------------------------------------------
+// 筛选 / 排序 / 分组纯函数（OPT-036 Task 2）
+// ---------------------------------------------------------------------------
+
+/**
+ * 楼盘等级排序序位。
+ *
+ * 与 `src/components/frontend/building-grade.ts` 的 `BUILDING_GRADE_LABELS`
+ * 键顺序保持一致（该文件是组件层，domain 层不可导入——层次边界）。改动
+ * 那边的等级顺序/取值时必须同步这里，否则 `grade` 排序会与徽章展示的等级
+ * 高低顺序脱节。
+ */
+const BUILDING_GRADE_ORDER: readonly string[] = [
+  'super-grade-a',
+  'grade-a',
+  'creative-park',
+  'serviced-office',
+]
+
+/** 未识别的 grade 值排到末尾（既不在白名单里，也不能当作最高优先级）。 */
+const UNKNOWN_GRADE_RANK = BUILDING_GRADE_ORDER.length
+
+function gradeRank(grade: string | null | undefined): number {
+  if (grade == null) return UNKNOWN_GRADE_RANK
+  const idx = BUILDING_GRADE_ORDER.indexOf(grade)
+  return idx === -1 ? UNKNOWN_GRADE_RANK : idx
+}
+
+/** 提取竣工年份；`completionDate` 缺失或非法日期返回 undefined（不当 0）。 */
+function completionYearOf(doc: BuildingSummaryViewModel): number | undefined {
+  const raw = doc.completionDate
+  if (typeof raw !== 'string' || raw.length === 0) return undefined
+  const t = Date.parse(raw)
+  if (!Number.isFinite(t)) return undefined
+  return new Date(t).getFullYear()
+}
+
+/**
+ * 逐维度 AND、维度内多值 OR 的楼盘筛选。
+ *
+ * `leasableArea` 缺失（undefined）在任何面积条件（min/max/onlyWithStock）下
+ * 都视为不命中——绝不能当 0 处理：0 是「确认无在租」，undefined 是「未知」，
+ * 两者混淆会让「面积≥1000」筛选把未知楼盘错误地当作 0 排除（这一点恰好与预期
+ * 结果一致，但语义上必须显式判断，不能依赖 `0 >= 1000` 恰好为 false 的巧合）。
+ *
+ * `completedAfter` 比较 `completionDate` 的年份；该字段缺失或非法同样视为不命中。
+ */
+export function applyBuildingFilters(
+  docs: readonly BuildingSummaryViewModel[],
+  input: BuildingSearchInput,
+): readonly BuildingSummaryViewModel[] {
+  const districtSet = input.district ? new Set(input.district) : null
+  const gradeSet = input.grade ? new Set(input.grade) : null
+  const metroSet = input.metro ? new Set(input.metro) : null
+
+  return docs.filter((doc) => {
+    if (districtSet && (!doc.district || !districtSet.has(doc.district.slug))) return false
+    if (gradeSet && (!doc.grade || !gradeSet.has(doc.grade))) return false
+    if (metroSet && (!doc.nearestMetro || !metroSet.has(doc.nearestMetro.slug))) return false
+
+    if (input.onlyWithStock) {
+      if (doc.leasableArea == null || doc.leasableArea <= 0) return false
+    }
+
+    if (input.leasableAreaMin != null) {
+      if (doc.leasableArea == null || doc.leasableArea < input.leasableAreaMin) return false
+    }
+    if (input.leasableAreaMax != null) {
+      if (doc.leasableArea == null || doc.leasableArea > input.leasableAreaMax) return false
+    }
+
+    if (input.completedAfter != null) {
+      const year = completionYearOf(doc)
+      if (year == null || year < input.completedAfter) return false
+    }
+
+    return true
+  })
+}
+
+/**
+ * 稳定排序楼盘列表；一律以 `slug.localeCompare` 收束，保证同权重时
+ * 重复请求不会重新洗牌（相同输入必须产出相同顺序）。
+ *
+ * `leasableArea` / `completionDate` 缺失恒排到末尾，不当 0——否则一个
+ * 缺失面积的楼盘会在 area-desc 里排到「0㎡」楼盘前面，语义反了。
+ */
+export function sortBuildings(
+  docs: readonly BuildingSummaryViewModel[],
+  sort: BuildingSort,
+): readonly BuildingSummaryViewModel[] {
+  const arr = docs.slice()
+  arr.sort((a, b) => {
+    switch (sort) {
+      case 'stock-desc':
+      case 'area-desc': {
+        const av = a.leasableArea
+        const bv = b.leasableArea
+        if (av == null && bv == null) break
+        if (av == null) return 1
+        if (bv == null) return -1
+        if (av !== bv) return bv - av
+        break
+      }
+      case 'grade': {
+        const ar = gradeRank(a.grade)
+        const br = gradeRank(b.grade)
+        if (ar !== br) return ar - br
+        break
+      }
+      case 'completion-desc': {
+        const ay = completionYearOf(a)
+        const by = completionYearOf(b)
+        if (ay == null && by == null) break
+        if (ay == null) return 1
+        if (by == null) return -1
+        if (ay !== by) return by - ay
+        break
+      }
+    }
+    return a.slug.localeCompare(b.slug)
+  })
+  return arr
+}
+
+/**
+ * 分组：有在租面积（>0）的楼盘在前，暂无在租的降权到后面（楼盘列表方案 A）。
+ *
+ * 组内保持入参相对顺序（不重新排序），只做稳定分区。缺失面积与 0 都归入
+ * withoutStock——两者对用户而言都是「现在看不到在租房源」。
+ */
+export function partitionByStock(
+  docs: readonly BuildingSummaryViewModel[],
+): Readonly<{ withStock: readonly BuildingSummaryViewModel[]; withoutStock: readonly BuildingSummaryViewModel[] }> {
+  const withStock: BuildingSummaryViewModel[] = []
+  const withoutStock: BuildingSummaryViewModel[] = []
+  for (const doc of docs) {
+    if (doc.leasableArea != null && doc.leasableArea > 0) {
+      withStock.push(doc)
+    } else {
+      withoutStock.push(doc)
+    }
+  }
+  return { withStock, withoutStock }
 }
