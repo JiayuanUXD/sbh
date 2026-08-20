@@ -30,26 +30,18 @@ function listing(id: number): Record<string, unknown> {
     reviewStatus: 'approved',
     supplyVisibilityHold: 'normal',
     gallery: [{ image: 1 }, { image: 2 }, { image: 3 }],
-    building: {
-      id: 10,
-      city: { id: 100, status: 'active' },
-      district: { id: 101, status: 'active' },
-    },
-  }
-}
-
-function activeRelation(listingId: number): Record<string, unknown> {
-  return {
-    id: listingId + 10_000,
-    listing: listingId,
-    effectiveFrom: '2026-01-01T00:00:00.000Z',
-    effectiveTo: null,
+    // OPT-034 起供给商户直接读 listings.merchant，不再经关系表解析。
     merchant: {
       id: 50,
       status: 'active',
       qualificationStatus: 'valid',
       qualificationExpiresAt: '2027-01-01T00:00:00.000Z',
       serviceCities: [{ id: 100 }],
+    },
+    building: {
+      id: 10,
+      city: { id: 100, status: 'active' },
+      district: { id: 101, status: 'active' },
     },
   }
 }
@@ -73,26 +65,16 @@ describe('Payload public catalog supply adapter', () => {
     payloadState.findByID.mockReset()
   })
 
-  it('batch-loads active relations instead of issuing one query per listing', async () => {
+  // OPT-034：精筛不再批量查 listing-merchant-relations，商户直接读已展开的
+  // listing.merchant（depth 由粗筛查询保证）。用例改为断言这一点——mock 里干脆
+  // 不接 listing-merchant-relations 分支，一旦精筛又悄悄查关系表就会直接抛错。
+  it('fine-filters directly off listing.merchant, never queries the relation table', async () => {
     payloadState.find.mockImplementation(async (params) => {
       if (params.collection === 'listing-reports') {
         return { docs: [], hasNextPage: false, nextPage: null }
       }
       if (params.collection === 'listings') {
         return { docs: [listing(1), listing(2)], hasNextPage: false, nextPage: null }
-      }
-      if (params.collection === 'listing-merchant-relations') {
-        const where = params.where as {
-          and?: Array<{ listing?: { equals?: number } }>
-        }
-        const singleListingId = where.and?.[0]?.listing?.equals
-        return {
-          docs: singleListingId == null
-            ? [activeRelation(1), activeRelation(2)]
-            : [activeRelation(singleListingId)],
-          hasNextPage: false,
-          nextPage: null,
-        }
       }
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })
@@ -105,9 +87,9 @@ describe('Payload public catalog supply adapter', () => {
 
     expect(docs.map((doc) => doc.id)).toEqual([1, 2])
     expect(
-      payloadState.find.mock.calls.filter(([params]) =>
+      payloadState.find.mock.calls.some(([params]) =>
         params.collection === 'listing-merchant-relations'),
-    ).toHaveLength(1)
+    ).toBe(false)
   })
 
   it('caps a broad coarse candidate scan at an explicit production limit', async () => {
@@ -122,9 +104,6 @@ describe('Payload public catalog supply adapter', () => {
           hasNextPage: true,
           nextPage: page + 1,
         }
-      }
-      if (params.collection === 'listing-merchant-relations') {
-        return { docs: [], hasNextPage: false, nextPage: null }
       }
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })

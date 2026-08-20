@@ -54,6 +54,7 @@ import * as migration_20260817_180000_sale_publication_status_sold from './20260
 import * as migration_20260818_072207_fast_track_review_decision from './20260818_072207_fast_track_review_decision';
 import * as migration_20260818_232656_opt033_admin_fast_track_audit from './20260818_232656_opt033_admin_fast_track_audit';
 import * as migration_20260819_113218_listing_hard_delete_nullable_refs from './20260819_113218_listing_hard_delete_nullable_refs';
+import * as migration_20260820_055534_drop_listing_merchant_relations from './20260820_055534_drop_listing_merchant_relations';
 
 export const migrations = [
   {
@@ -334,6 +335,11 @@ export const migrations = [
   {
     up: migration_20260819_113218_listing_hard_delete_nullable_refs.up,
     down: migration_20260819_113218_listing_hard_delete_nullable_refs.down,
-    name: '20260819_113218_listing_hard_delete_nullable_refs'
+    name: '20260819_113218_listing_hard_delete_nullable_refs',
+  },
+  {
+    up: migration_20260820_055534_drop_listing_merchant_relations.up,
+    down: migration_20260820_055534_drop_listing_merchant_relations.down,
+    name: '20260820_055534_drop_listing_merchant_relations'
   },
 ];

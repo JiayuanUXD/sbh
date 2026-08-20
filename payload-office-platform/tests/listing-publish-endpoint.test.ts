@@ -85,7 +85,6 @@ function makeReq(params: {
   listing?: Record<string, unknown> | null
   findByIDThrows?: boolean
   body?: Record<string, unknown>
-  relationDocs?: Array<Record<string, unknown>>
 }): {
   req: PayloadRequest
   findByID: ReturnType<typeof vi.fn>
@@ -99,18 +98,14 @@ function makeReq(params: {
     listing = makeEffectiveListing(),
     findByIDThrows = false,
     body = { action: 'publish' },
-    // 当前生效的房源-商户关系（无限期，起始很早）
-    relationDocs = [{
-      id: 1,
-      effectiveFrom: '2000-01-01T00:00:00.000Z',
-      effectiveTo: null,
-      merchant: makeEffectiveListing().merchant,
-    }],
   } = params
 
-  // find 被两处调用：加载角色（collection: 'roles'）与查关系（collection: 'listing-merchant-relations'）
+  // OPT-034 起有效供给精筛直接读 listing.merchant（findByID 已 depth:2 展开），
+  // 不再查 listing-merchant-relations——find 只应被角色加载（collection: 'roles'）调用。
   const find = vi.fn(async (args: { collection?: string }) => {
-    if (args?.collection === 'listing-merchant-relations') return { docs: relationDocs }
+    if (args?.collection && args.collection !== 'roles') {
+      throw new Error(`Unexpected collection: ${args.collection}`)
+    }
     return { docs: userRoles }
   })
   const findByID = vi.fn(async () => {
@@ -220,14 +215,14 @@ describe('listing-publish-endpoint/发布前置校验', () => {
     expect(update).toHaveBeenCalled()
   })
 
-  it('无生效商户关系不能发布 → 422', async () => {
+  it('未设置供给商户不能发布 → 422', async () => {
     const { req, update } = makeReq({
+      listing: makeEffectiveListing({ merchant: null }),
       body: { action: 'publish' },
-      relationDocs: [],
     })
     const { status, body } = await run(req)
     expect(status).toBe(422)
-    expect(body.reasons).toContain('RELATION_NOT_EFFECTIVE')
+    expect(body.reasons).toContain('NO_SUPPLY_MERCHANT')
     expect(update).not.toHaveBeenCalled()
   })
 

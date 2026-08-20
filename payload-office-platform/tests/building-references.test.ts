@@ -6,10 +6,11 @@ import { countBuildingDeactivationImpact } from '@/domain/supply/building-refere
  *
  * M4.7 口径：停用某楼盘会从前台撤除该楼盘下「当前对外可见」的房源，度量的正是
  * 统一有效供给口径下的房源数——查询层 getEffectiveSupplyWhere 粗筛 + building 约束 +
- * 举报暂停 not_in（§5），取候选后逐条 resolveEffectiveSupply 精筛（媒体 §6 / 关系 §8 /
- * 商户 §9-§10）。count = 精筛后长度，与前台 / 详情 / 楼盘聚合完全一致。
+ * 举报暂停 not_in（§5），取候选后逐条 resolveEffectiveSupply 精筛（商户 §8-§10）。
+ * count = 精筛后长度，与前台 / 详情 / 楼盘聚合完全一致。
  *
- * 因需逐条精筛（关系走独立 collection），不再用 payload.count；改 find + 精筛 + length。
+ * OPT-034 起商户直接读 listing.merchant，不再经 listing-merchant-relations 关系表
+ * 解析；精筛因此是纯内存计算，仍不走 payload.count（改 find + 精筛 + length）。
  */
 
 /** 有效供给齐全的候选房源文档（depth≥1 已展开）。 */
@@ -31,22 +32,9 @@ function eligibleListing(
   }
 }
 
-/** 生效中的房源-商户关系（effectiveFrom 早、无 effectiveTo → 恒有效）。 */
-const EFFECTIVE_RELATION = {
-  effectiveFrom: '2000-01-01T00:00:00.000Z',
-  effectiveTo: null,
-  merchant: {
-    status: 'active',
-    qualificationStatus: 'valid',
-    qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
-    serviceCities: [{ id: 100 }],
-  },
-}
-
 function makePayload(opts: {
   listings?: Array<Record<string, unknown>>
   pausedReports?: Array<{ targetListing: unknown }>
-  relationsByListing?: Record<string, Array<Record<string, unknown>>>
 }) {
   const find = vi.fn(async (params: Record<string, unknown>) => {
     const collection = params.collection
@@ -56,28 +44,16 @@ function makePayload(opts: {
     if (collection === 'listings') {
       return { docs: opts.listings ?? [] }
     }
-    if (collection === 'listing-merchant-relations') {
-      const where = params.where as
-        | { listing?: { equals?: unknown }; and?: Array<{ listing?: { equals?: unknown } }> }
-        | undefined
-      const lid = String(where?.listing?.equals ?? where?.and?.[0]?.listing?.equals)
-      return { docs: opts.relationsByListing?.[lid] ?? [] }
-    }
-    return { docs: [] }
+    // OPT-034：精筛不再查 listing-merchant-relations——throw 而不是给空 docs，
+    // 免得关系表又被悄悄查起来时这里还是绿的。
+    throw new Error(`unexpected collection: ${String(collection)}`)
   })
   return { find } as never
 }
 
-/** 为一组 listing id 生成"全部生效"的关系映射。 */
-function relationsFor(...ids: number[]): Record<string, Array<Record<string, unknown>>> {
-  const map: Record<string, Array<Record<string, unknown>>> = {}
-  for (const id of ids) map[String(id)] = [{ ...EFFECTIVE_RELATION }]
-  return map
-}
-
 describe('building-references/countBuildingDeactivationImpact', () => {
   it('无受影响房源 → total 0, referenced false, sources 空', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     const report = await countBuildingDeactivationImpact(payload, 42)
     expect(report.total).toBe(0)
     expect(report.referenced).toBe(false)
@@ -90,11 +66,11 @@ describe('building-references/countBuildingDeactivationImpact', () => {
       listings: [
         eligibleListing(1),
         eligibleListing(2),
-        // 无有效商户关系 → 精筛淘汰,不计入
-        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成关系）
-        eligibleListing(3),
+        // 未设置供给商户 → 精筛淘汰,不计入
+        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成「无生效
+        // 关系」；OPT-034 删除关系表后再换成「listing.merchant 为空」）
+        eligibleListing(3, { merchant: null }),
       ],
-      relationsByListing: relationsFor(1, 2),
     })
     const report = await countBuildingDeactivationImpact(payload, 7)
     expect(report.total).toBe(2)
@@ -106,13 +82,13 @@ describe('building-references/countBuildingDeactivationImpact', () => {
   })
 
   it('不再调用 payload.count，走 find + 精筛', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     await countBuildingDeactivationImpact(payload, 1)
     expect('count' in payload).toBe(false)
   })
 
   it('listings 查询 where 携带有效供给谓词 + building', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     await countBuildingDeactivationImpact(payload, 99)
     const calls = (payload as { find: { mock: { calls: Array<[Record<string, unknown>]> } } }).find
       .mock.calls
@@ -130,7 +106,6 @@ describe('building-references/countBuildingDeactivationImpact', () => {
     const payload = makePayload({
       listings: [eligibleListing(1)],
       pausedReports: [{ targetListing: 77 }, { targetListing: { id: 88 } }],
-      relationsByListing: relationsFor(1),
     })
     await countBuildingDeactivationImpact(payload, 1)
     const calls = (payload as { find: { mock: { calls: Array<[Record<string, unknown>]> } } }).find
@@ -140,7 +115,7 @@ describe('building-references/countBuildingDeactivationImpact', () => {
   })
 
   it('默认 overrideAccess:false（随权限脱敏,用于「停用影响」展示）', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     await countBuildingDeactivationImpact(payload, 1)
     const calls = (payload as { find: { mock: { calls: Array<[Record<string, unknown>]> } } }).find
       .mock.calls
@@ -149,7 +124,7 @@ describe('building-references/countBuildingDeactivationImpact', () => {
   })
 
   it('overrideAccess:true 透传给 listings find（全量统计）', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     await countBuildingDeactivationImpact(payload, 1, undefined, { overrideAccess: true })
     const calls = (payload as { find: { mock: { calls: Array<[Record<string, unknown>]> } } }).find
       .mock.calls

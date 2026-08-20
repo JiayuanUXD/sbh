@@ -45,7 +45,8 @@ describe('detectProductionSeedTargets', () => {
   it('本地与 CI 的常见形态一律放行', () => {
     // 本地：无 COS（媒体落磁盘）
     expect(detectProductionSeedTargets({ databaseUrl: LOCAL_DB })).toEqual([])
-    // 本地：占位 COS 桶（CLAUDE.md 推荐写法，防止 generate:types 删掉 Media.prefix）
+    // 本地：非生产桶。（旧文档曾推荐填占位桶防 generate:types 删 Media.prefix，
+    //   该规避已作废——Media.ts 现在显式声明了该字段；本地应直接留空 COS_*。）
     expect(
       detectProductionSeedTargets({ cosBucket: 'local-dev-1250000000', databaseUrl: LOCAL_DB }),
     ).toEqual([])

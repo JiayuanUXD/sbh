@@ -108,8 +108,8 @@ describe('default-merchant/接线', () => {
     expect(typeof findField(BuildingMerchantRelations.fields, 'merchant')?.defaultValue).toBe('function')
   })
 
-  it('ListingMerchantRelations.merchant 刻意不挂——留空是「继承楼盘默认商户」的语义', async () => {
-    const { ListingMerchantRelations } = await import('@/collections/ListingMerchantRelations')
-    expect(findField(ListingMerchantRelations.fields, 'merchant')?.defaultValue).toBeUndefined()
-  })
+  // 原有一条断言 ListingMerchantRelations.merchant 刻意不挂 defaultValue
+  // （留空 = 继承楼盘默认商户）。OPT-034 已删除该 collection 与其整张关系表，
+  // 「继承」语义随之消失，该用例作废。房源侧的供给商户现在直接存在
+  // listings.merchant，已由上面第一条断言覆盖。
 })
