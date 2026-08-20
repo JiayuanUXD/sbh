@@ -17,7 +17,7 @@ export default function HomeValueProps() {
         <h2 className="hm-h2" id="hm-values-title">为什么选择我们</h2>
         <div className="hm-values__grid">
           {VALUES.map((v) => (
-            <div className="hm-value hm-rise" key={v.no}>
+            <div className="hm-value hm-rise hm-rise--slow" key={v.no}>
               <span className="hm-value__no hm-num">{v.no}</span>
               <h3 className="hm-value__name">{v.name}</h3>
               <p className="hm-value__body">{v.body}</p>

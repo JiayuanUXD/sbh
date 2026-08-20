@@ -47,19 +47,38 @@
 
 .hm-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
-/* 滚动进场 */
+/* 滚动进场。
+   两条硬约束高于「照抄设计稿」：内容在任何降级路径下都必须可见，且尊重
+   prefers-reduced-motion。设计稿写的是 `animation: rise ... both` + view()
+   时间线——`fill-mode: both` 会在时间线的 before phase（元素还没进入 range，
+   或时间线根本没被激活：不支持 view()、祖先不是滚动容器、整页截图/打印等）
+   把元素锁死在 `from { opacity: .001 }`，价值点三列因此整段隐形过一次。
+   所以这里：
+     1) 用 @supports 包住，不支持 view() 的浏览器完全不加动画（而不是退回
+        文档时间线在加载时闪一下）；
+     2) fill-mode 用 none（不写 both）——只在 range 内生效，before/after
+        phase 一律回落到元素本身的可见基态。 */
 @keyframes hm-rise { from { opacity: 0.001; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.hm-rise { animation: hm-rise 400ms var(--ease) both;
-  animation-timeline: view(); animation-range: entry 0% cover 24%; }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hm-rise { animation: hm-rise 400ms var(--ease);
+      animation-timeline: view(); animation-range: entry 0% cover 24%; }
+    /* 设计稿给「为什么选择我们」单独用了更慢的 800ms / cover 30% */
+    .hm-rise--slow { animation-duration: 800ms; animation-timing-function: var(--ease-apple);
+      animation-range: entry 0% cover 30%; }
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .hm-rise { animation: none; }
   .hm-card, .hm-card:hover { transition: none; transform: none; }
 }
 
+/* 移动稿（设计稿 375 栏）：section padding 72 / 左右 16、h2 32/600/1.10；
+   两条白底带各自收紧（数据带 48、选择我们 56，见设计稿移动栏） */
 @media (max-width: 767px) {
   .hm-section { padding-block: 72px; }
-  .hm-h2 { font-size: 28px; line-height: 1.2; }
+  .hm-h2 { font-size: 32px; line-height: 1.1; }
 }
 
 /* --- HorizontalRail ------------------------------------------------------- */
@@ -93,8 +112,12 @@
 }
 
 /* HomeNearbyRail：标题+副标竖排（无「查看全部」链接），与 hm-section-head 的
-   两端对齐布局区分 */
-.hm-section-head--stack { display: flex; flex-direction: column; gap: 12px; }
+   两端对齐布局区分。
+   必须显式写 align-items: flex-start——.hm-section-head 的 flex-end 是为了让
+   右侧「查看全部」链接与 h2 基线底对齐，一旦主轴转成纵向，同一条 flex-end
+   就变成「整段右对齐」，标题与副标会贴到容器右缘（设计稿里所有 section 标题
+   都是左对齐）。 */
+.hm-section-head--stack { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .hm-section-sub { margin: 0; font-size: 17px; line-height: 1.47; color: var(--ink-2); }
 
 /* --- 供给卡（楼盘 / 房源 / 核心商圈共用） -------------------------------- */
@@ -179,8 +202,22 @@
 /* 在租套数是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
 .hm-type-card__count { margin-top: auto; font-size: 13px; color: var(--ink-2); }
 @media (max-width: 1023px) { .hm-types { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 767px) { .hm-types { grid-template-columns: 1fr 1fr; }
-  .hm-type-card { height: auto; } .hm-type-card__media { height: 120px; } }
+/* 移动稿把类型换成单列紧凑行（设计稿 375 栏）：无图、行高 88、padding 20、
+   gap 8，编号与名称同一行——图卡在 375 宽下要么图太小失去信息量，要么整段
+   拉得过长把后面的 section 全推下去。 */
+@media (max-width: 767px) {
+  .hm-types { margin-top: 24px; grid-template-columns: 1fr; gap: 8px; }
+  .hm-type-card { flex-direction: row; align-items: center; gap: 16px;
+    height: auto; min-height: 88px; padding: 20px; }
+  /* 图区退成 28px 宽的编号列（DOM 不变，编号本来就挂在图区里） */
+  .hm-type-card__media { width: 28px; height: auto; align-self: stretch;
+    background: transparent; display: flex; align-items: center; }
+  .hm-type-card__media img, .hm-type-card__media .hm-scrim { display: none; }
+  .hm-type-card__no { position: static; color: var(--ink-2); }
+  .hm-type-card__body { flex: 1; gap: 4px; padding: 0; }
+  .hm-type-card__sub { font-size: 14px; line-height: 1.43; }
+  .hm-type-card__count { margin-top: 4px; font-size: 13px; }
+}
 
 /* --- 热门商圈 bento（方案 1：大卡 2fr×480 + 2×232 + 2×280） --------------- */
 .hm-bento { margin-top: 48px; display: flex; flex-direction: column; gap: 16px; }
@@ -192,8 +229,12 @@
 .hm-bento-card { position: relative; border-radius: var(--r-card); overflow: hidden;
   background: #8e8e93; display: block; color: inherit; }
 .hm-bento-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.hm-bento-card__label { position: absolute; left: 24px; bottom: 20px; display: flex;
+/* 三种卡的标签内缩与字号各不相同（设计稿：大卡 32/28/gap 6，小卡 20/18/gap 4，
+   宽卡 24/22/gap 4） */
+.hm-bento-card__label { position: absolute; left: 20px; bottom: 18px; display: flex;
   flex-direction: column; gap: 4px; }
+.hm-bento__main .hm-bento-card__label { left: 32px; bottom: 28px; gap: 6px; }
+.hm-bento__wide .hm-bento-card__label { left: 24px; bottom: 22px; }
 .hm-bento-card__name { font-weight: 600; color: #fff; }
 .hm-bento__main .hm-bento-card__name { font-size: 28px; line-height: 1.2; }
 .hm-bento__small .hm-bento-card__name { font-size: 19px; line-height: 1.3; }
@@ -212,22 +253,34 @@
 .hm-stat__value { font-size: 48px; font-weight: 600; line-height: 1.08; color: var(--ink); }
 .hm-stat__unit { font-size: 17px; color: var(--ink-2); }
 .hm-stat__label { font-size: 14px; line-height: 1.43; color: var(--ink-2); }
-@media (max-width: 767px) { .hm-stats__grid { grid-template-columns: 1fr 1fr; gap: 32px 24px; }
-  .hm-stat__value { font-size: 40px; } }
+@media (max-width: 767px) { .hm-stats { padding-block: 48px; }
+  .hm-stats__grid { grid-template-columns: 1fr 1fr; gap: 40px 24px; }
+  .hm-stat { gap: 6px; } .hm-stat__value { font-size: 40px; }
+  .hm-stat__unit { font-size: 14px; } }
 
 /* --- 为什么选择我们（白底带 padding 88 · 3 列 · 上边线卡） ----------------- */
 .hm-values { padding-block: 88px; }
 .hm-values__grid { margin-top: 48px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .hm-value { display: flex; flex-direction: column; gap: 12px; padding-top: 20px;
   border-top: 1px solid var(--line); }
-.hm-value__no { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+/* 序号 01–03 是真实内容（不是占位符/禁用态），--ink-3 在白底只有 3.62:1，
+   按 AA 下限提到 --ink-2（设计稿写的是 ink-3，此处对比度优先） */
+.hm-value__no { font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .hm-value__name { font-size: 24px; font-weight: 600; line-height: 1.2; color: var(--ink); }
 .hm-value__body { max-width: 300px; font-size: 17px; line-height: 1.47; color: var(--ink-2); text-wrap: pretty; }
-@media (max-width: 767px) { .hm-values__grid { grid-template-columns: 1fr; } }
+@media (max-width: 767px) {
+  .hm-values { padding-block: 56px; }
+  .hm-values__grid { margin-top: 24px; grid-template-columns: 1fr; gap: 32px; }
+  .hm-value { gap: 8px; padding-top: 16px; }
+  .hm-value__no { font-size: 12px; }
+  .hm-value__name { font-size: 19px; line-height: 1.3; }
+}
 
 /* --- 资讯（白底带 padding 88 · 行高 76 · 无图） --------------------------- */
 .hm-news { padding-block: 88px; }
 .hm-news .hm-h2 { font-size: 28px; line-height: 1.2; }
+/* 资讯是次级分区：设计稿把标题压到 28、右侧链接压到 14（其余 section 是 40 / 17） */
+.hm-news .hm-section-link { font-size: 14px; }
 .hm-news__list { margin-top: 24px; display: flex; flex-direction: column; list-style: none; }
 /* 行线挂在 <li>（真实 :last-child），.hm-news__row 只管行内 flex 布局，
    避免 border 挂在始终是自己父节点唯一子元素的 <a> 上导致 :last-child 恒真、行线全灭 */
@@ -237,4 +290,9 @@
   min-height: 76px; color: inherit; }
 .hm-news__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
 /* 发布日期是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
-.hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; }
+.hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; text-align: right; }
+@media (max-width: 767px) {
+  .hm-news { padding-block: 56px; }
+  .hm-news__row { gap: 16px; padding-block: 14px; }
+  .hm-news__title { font-size: 17px; }
+}
