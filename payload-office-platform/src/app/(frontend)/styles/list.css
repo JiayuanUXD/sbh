@@ -1,0 +1,21 @@
+/* ============================================================================
+ * OPT-036 列表页样式（密度优先）
+ * 设计依据：docs/SBH设计任务讨论/{房源列表,楼盘列表}.dc.html
+ * 卡片/渐变/标签/动效一律复用 surface.css 的 .sf-* 基元——列表页稿要求的
+ * 「零阴影 + hover 只变底色」按跨批次统一口径不采用（见 cross-batch-design-decisions.md）。
+ * 与首页仅存的差异：容器 1280（首页 1180）、section padding 32（首页 72）——皆为布局刚需。
+ * ========================================================================== */
+
+.ls-page { --ls-w: 1280px; --ls-sec: 32px; }
+.ls-container { width: min(var(--ls-w), 100% - 32px); margin-inline: auto; }
+.ls-section { padding-block: var(--ls-sec); }
+
+/* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
+.ls-price { display: flex; align-items: baseline; gap: 4px; }
+.ls-price__value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-weight: 600; text-align: right; }
+.ls-price__value--day { width: 58px; }    /* 元/㎡/天 */
+.ls-price__value--month { width: 88px; }  /* 元/月，六位数 316,200 需更宽 */
+.ls-price__unit { font-size: 13px; font-weight: 400; color: var(--ink-2); }
+
+@media (max-width: 767px) { .ls-section { padding-block: 20px; } }

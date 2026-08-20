@@ -6,7 +6,10 @@ import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
 import { listPublicCityOptions, listPublicCityProfiles } from './_lib/city-context'
 import './styles.css'
+// surface.css 必须在 home.css / list.css 之前：后两者依赖并覆写它的 .sf-* 基元
+import './styles/surface.css'
 import './styles/home.css'
+import './styles/list.css'
 
 // The shared shell resolves its trusted city options and analytics profiles
 // from Payload. CloudBase builds the image without the runtime PostgreSQL
