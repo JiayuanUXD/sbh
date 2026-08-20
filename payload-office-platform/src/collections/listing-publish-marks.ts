@@ -25,9 +25,8 @@ import { getSubmitRequiredFields } from '@/domain/review/listing-completeness'
  *
  * 多数是同名直连。两个例外：
  *   - `price` 标在 group 本身（金额/币种/周期/单位四件套缺一不可，标在任一子字段都不准）；
- *   - `merchant` 标在 Listings 上的关系字段。**这是近似**：实际门槛判的是
- *     `listing-merchant-relations` 里「当前有效」的关系记录，不是这个字段有没有值。
- *     标它是为了给运营一个落点，真实校验仍由 endpoint 兜。
+ *   - `merchant` 标在 Listings 上的字段本身。OPT-034 起 `listings.merchant` 即
+ *     唯一真相，不再是近似；标它就是标真实门槛，真实校验仍由 endpoint 兜。
  */
 const FIELD_FOR_KEY: Record<string, string> = {
   title: 'title',

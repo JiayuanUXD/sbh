@@ -75,7 +75,7 @@ export interface ListingCompletenessSnapshot {
   contactBroker?: unknown
   /** 有效图集图片数(调用方解析 gallery 后传入)。 */
   galleryCount?: number
-  /** 是否已有当前有效的商户供给关系(调用方解析 listing-merchant-relations 后传入)。 */
+  /** 是否已选供给商户。OPT-034 起 `listings.merchant` 即唯一真相，不再是近似。 */
   hasValidMerchantRelation?: boolean
 }
 
@@ -273,7 +273,7 @@ export function checkListingCompleteness(
         break
       case 'merchant':
         if (snapshot.hasValidMerchantRelation !== true)
-          fail('merchant', '请确保存在当前有效的商户供给关系')
+          fail('merchant', '请选择供给商户')
         break
     }
   }

@@ -51,8 +51,7 @@ export const adminAutoPublish: CollectionBeforeChangeHook = async ({ data, origi
     reviewStatus: merged.reviewStatus,
     snapshot: {
       ...snapshot,
-      // 与审核端点同口径：把「有没有关联商户」当作「有没有有效供给关系」的近似。
-      // 真正的有效期判定在 listing-merchant-relations，这里不读库。
+      // 与审核端点同口径：OPT-034 起 `listings.merchant` 即唯一真相，不再是近似。
       hasValidMerchantRelation: snapshot.merchant != null,
     },
   })
