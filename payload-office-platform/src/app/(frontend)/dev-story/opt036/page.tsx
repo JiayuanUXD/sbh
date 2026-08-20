@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
+import FilterFormC, { type FilterRow } from '@/components/frontend/listing/FilterFormC'
+import FilterPill from '@/components/frontend/listing/FilterPill'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import type { BuildingSummaryViewModel, ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
 
@@ -336,6 +338,174 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：FilterFormC + FilterPill（Task 6）—— 覆盖全未选 / 多行已选（含底栏
+// chip 与计数，且保留无关参数验证 href 只改一个参数）/ 单候选行 / 候选带
+// count / 楼盘版 5 行（4 字标签，验证列宽自动收敛到约 70px，不靠硬编码 prop）。
+// ---------------------------------------------------------------------------
+
+const LISTING_TYPE_ROW_OPTIONS: FilterRow['options'] = [
+  { value: 'traditional-office', label: '传统办公', count: 86 },
+  { value: 'full-floor', label: '整层办公', count: 24 },
+  { value: 'coworking', label: '共享办公', count: 41 },
+  { value: 'serviced-office', label: '独栋办公', count: 7 },
+]
+
+function listingFilterRows(overrides: Readonly<{
+  district?: string
+  type?: string
+  priceBucket?: string
+  areaBucket?: string
+  decoration?: string
+}>): readonly FilterRow[] {
+  return [
+    {
+      key: 'district',
+      label: '位置',
+      activeValue: overrides.district,
+      options: [
+        { value: 'jingan', label: '静安' },
+        { value: 'huangpu', label: '黄浦' },
+        { value: 'xuhui', label: '徐汇' },
+        { value: 'pudong', label: '浦东' },
+      ],
+    },
+    {
+      key: 'type',
+      label: '类型',
+      activeValue: overrides.type,
+      options: LISTING_TYPE_ROW_OPTIONS,
+    },
+    {
+      key: 'priceBucket',
+      label: '价格',
+      activeValue: overrides.priceBucket,
+      options: [
+        { value: 'lt-3', label: '3 元以下' },
+        { value: '3-5', label: '3-5 元' },
+        { value: '5-8', label: '5-8 元' },
+        { value: 'gt-8', label: '8 元以上' },
+      ],
+    },
+    {
+      key: 'areaBucket',
+      label: '面积',
+      activeValue: overrides.areaBucket,
+      options: [
+        { value: 'lt-500', label: '500 ㎡以下' },
+        { value: '500-2000', label: '500-2000 ㎡' },
+        { value: 'gt-2000', label: '2000 ㎡以上' },
+      ],
+    },
+    {
+      // 只给一个候选：验证「某行只有一个候选」不会破版，也不需要特殊分支
+      key: 'decoration',
+      label: '装修',
+      activeValue: overrides.decoration,
+      options: [{ value: 'furnished', label: '精装带家具' }],
+    },
+  ]
+}
+
+const FILTER_FORM_C_LISTING_FIXTURES: readonly Readonly<{
+  label: string
+  rows: readonly FilterRow[]
+  currentParams: URLSearchParams
+  totalCount: number
+}>[] = [
+  {
+    label: '全未选',
+    rows: listingFilterRows({}),
+    currentParams: new URLSearchParams(),
+    totalCount: 168,
+  },
+  {
+    label: '多行已选（底栏 chip + 计数；混入 sort=newest 与 page=3——验证选项 href 只改本行参数、且都删除 page）',
+    rows: listingFilterRows({ district: 'jingan', type: 'coworking', priceBucket: '3-5' }),
+    currentParams: new URLSearchParams([
+      ['district', 'jingan'],
+      ['type', 'coworking'],
+      ['priceBucket', '3-5'],
+      ['sort', 'newest'],
+      ['page', '3'],
+    ]),
+    totalCount: 12,
+  },
+  {
+    label: '装修行只有一个候选（精装带家具）',
+    rows: listingFilterRows({}),
+    currentParams: new URLSearchParams(),
+    totalCount: 168,
+  },
+  {
+    label: '类型行候选带 count（86 / 24 / 41 / 7）',
+    rows: listingFilterRows({ type: 'traditional-office' }),
+    currentParams: new URLSearchParams([['type', 'traditional-office']]),
+    totalCount: 86,
+  },
+]
+
+const BUILDING_FILTER_FORM_C_FIXTURE: Readonly<{
+  rows: readonly FilterRow[]
+  currentParams: URLSearchParams
+  totalCount: number
+}> = {
+  rows: [
+    {
+      key: 'district',
+      label: '位置',
+      activeValue: 'jingan',
+      options: [
+        { value: 'jingan', label: '静安' },
+        { value: 'huangpu', label: '黄浦' },
+        { value: 'xuhui', label: '徐汇' },
+      ],
+    },
+    {
+      key: 'grade',
+      label: '等级',
+      options: [
+        { value: 'super-grade-a', label: '超甲级' },
+        { value: 'grade-a', label: '甲级' },
+        { value: 'creative-park', label: '创意园区' },
+      ],
+    },
+    {
+      key: 'priceBucket',
+      label: '价格',
+      options: [
+        { value: 'lt-3', label: '3 元以下' },
+        { value: '3-5', label: '3-5 元' },
+        { value: 'gt-5', label: '5 元以上' },
+      ],
+    },
+    {
+      key: 'leasableAreaMin',
+      label: '在租面积',
+      activeValue: '2000',
+      options: [
+        { value: '500', label: '500 ㎡以上' },
+        { value: '2000', label: '2000 ㎡以上' },
+        { value: '5000', label: '5000 ㎡以上' },
+      ],
+    },
+    {
+      key: 'completedAfter',
+      label: '竣工',
+      options: [
+        { value: '2020', label: '2020 年后' },
+        { value: '2010', label: '2010-2019' },
+        { value: '2000', label: '2000-2009' },
+      ],
+    },
+  ],
+  currentParams: new URLSearchParams([
+    ['district', 'jingan'],
+    ['leasableAreaMin', '2000'],
+  ]),
+  totalCount: 24,
+}
+
 export default function Opt036PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -443,6 +613,49 @@ export default function Opt036PreviewPage() {
                 <BuildingCompactRow building={building} citySlug={building.citySlug} />
               </div>
             ))}
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="filter-form-c"
+          title="分行文本条件区（FilterFormC）"
+          note="标签列宽度按当前渲染行的最长 label 自动定宽（CSS Grid，不写死 52/70）；选中态 accent-link/500，未选 ink——与下方 FilterPill 的零色相是两套不同规则；再点已选项即取消；底栏计数 tabular-nums"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            {FILTER_FORM_C_LISTING_FIXTURES.map((fixture) => (
+              <div key={fixture.label} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>{fixture.label}</span>
+                <FilterFormC
+                  rows={fixture.rows}
+                  basePath="/shanghai/listings"
+                  currentParams={fixture.currentParams}
+                  totalCount={fixture.totalCount}
+                />
+              </div>
+            ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3, var(--ink-2))' }}>
+                楼盘版 5 行（位置/等级/价格/在租面积/竣工——4 字「在租面积」验证标签列自动收敛到约 70px）
+              </span>
+              <FilterFormC
+                rows={BUILDING_FILTER_FORM_C_FIXTURE.rows}
+                basePath="/shanghai/buildings"
+                currentParams={BUILDING_FILTER_FORM_C_FIXTURE.currentParams}
+                totalCount={BUILDING_FILTER_FORM_C_FIXTURE.totalCount}
+              />
+            </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="filter-pill"
+          title="筛选 pill（FilterPill）"
+          note="激活态零色相：底 #1d1d1f 文字 #fff，不借助任何有色相的强调色；未选底 #fff 文字 ink-2——与上方 FilterFormC 行内文本选项（accent-link）是两套独立规则"
+        >
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <FilterPill href="#" label="推荐" active={false} />
+            <FilterPill href="#" label="元/㎡/天" active count={1893} />
+            <FilterPill href="#" label="更多筛选" active={false} count={3} />
           </div>
         </PreviewSection>
 

@@ -103,4 +103,84 @@
   background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink-2);
   display: flex; align-items: center; }
 
+/* ── 分行文本条件区（FilterFormC，筛选形态 C）─────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「筛选形态 C」+ specRows
+ * 「形态 C 条件行/度量/选项/底栏」；楼盘列表.dc.html 标注「与房源列表同一套」。
+ * 不吸顶——随页面滚走，不占结果区视口（与形态 A/B 的 sticky 刻意不同）。
+ *
+ * 标签列宽度用 CSS Grid 自动定宽（不写死 52/70）：容器两列 `auto` +
+ * `minmax(0, 1fr)`，每行外壳 `display:contents` 把 label / options 两个格子
+ * 摊平进同一网格——浏览器按当前渲染的所有行里最长的 label 自动收敛列宽，
+ * 房源版 2 字标签落在约 52px、楼盘版 4 字标签落在约 70px，两版复用同一份
+ * CSS，组件不需要 labelWidth 之类的额外 prop（见 FilterFormC.tsx 顶部注释）。
+ * options 列显式 `minmax(0, 1fr)`：本批次踩过的坑，裸 `1fr` 轨道默认
+ * `min-width:auto`，某行候选一多会把整列撑宽。 */
+.ls-filterc {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 28px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  padding: 10px 32px 0;
+}
+.ls-filterc__row { display: contents; }
+
+.ls-filterc__label { padding: 15px 0 14px; font-size: 14px; line-height: 1.5;
+  color: var(--ink-2); letter-spacing: normal; white-space: nowrap; }
+
+.ls-filterc__options { padding: 14px 0; display: flex; flex-wrap: wrap;
+  align-content: flex-start; gap: 12px 28px; min-width: 0; }
+
+/* 选中态用 --accent-link（非零色相）：与 FilterPill 的黑底白字是两套不同规则，
+   分别服务「行内单选文本」与「实体 pill 筛选入口」两种语境，见组件文档注释。 */
+.ls-filterc__opt { font-size: 15px; line-height: 1.5; white-space: nowrap;
+  color: var(--ink); font-weight: 400; letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-filterc__opt:hover { color: var(--accent-hover); }
+.ls-filterc__opt--active { color: var(--accent-link); font-weight: 500; }
+.ls-filterc__opt--active:hover { color: var(--accent-link); }
+
+.ls-filterc__opt-count { margin-left: 4px; font-size: 13px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.ls-filterc__opt--active .ls-filterc__opt-count { color: var(--accent-link); }
+
+.ls-filterc__footer { grid-column: 1 / -1; margin-top: 6px; padding: 14px 0 16px;
+  border-top: 1px solid var(--line); display: flex; align-items: center;
+  gap: 12px; flex-wrap: wrap; }
+
+.ls-filterc__count { font-size: 13px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+.ls-filterc__divider { flex: none; width: 1px; height: 16px; background: var(--line); }
+
+.ls-filterc__chip { height: 28px; padding: 0 8px 0 12px; border-radius: var(--r-pill);
+  background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-filterc__chip:hover { background: #ececf0; }
+
+.ls-filterc__chip-x { flex: none; width: 16px; height: 16px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.06); color: var(--ink-3); font-size: 11px;
+  display: flex; align-items: center; justify-content: center; }
+
+.ls-filterc__clear-all { font-size: 13px; color: var(--ink-2); letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-filterc__clear-all:hover { color: var(--ink); }
+
+.ls-filterc__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-filterc__opt, .ls-filterc__chip, .ls-filterc__clear-all { transition: none; }
+}
+
+/* ── 筛选 pill（FilterPill）── 零色相原语，见 FilterPill.tsx 顶部注释 ──────── */
+.ls-pill { height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--ink-2); font-size: 13px; font-weight: 500;
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-pill--active { background: #1d1d1f; color: #fff; }
+.ls-pill__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; opacity: 0.66; }
+
+@media (prefers-reduced-motion: reduce) { .ls-pill { transition: none; } }
+
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }
