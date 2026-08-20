@@ -198,13 +198,14 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
   })
 
   it('无迁移 up() 含 DROP TABLE / DROP COLUMN 高风险操作（生产删除类必须阻断）', () => {
-    // 这条断言默认对目录里的每份迁移都成立，包括已获批准的破坏性迁移——
-    // 批准不体现在这个测试文件里（那样就是把例外藏进测试），而是走
-    // scripts/preflight.ts 的 applyDestructiveMigrationOverride：只有当环境变量
-    // ALLOW_DESTRUCTIVE_MIGRATION 精确等于某条迁移名时才放行它，且这个变量的
-    // 唯一持久化位置是 .github/workflows/quality.yml 的 quality job env——那条
-    // workflow 配置 diff 才是「这次批准了哪条迁移」对 PR 评审者可见的记录。
-    // 本地不设这个变量时，本测试必须照样把它拦下来（见 CLAUDE.md 逃生舱纪律）。
+    // 这条断言默认对目录里的每份迁移都成立，包括已获批准的破坏性迁移——批准不
+    // 体现在这个测试文件里（那样就是把例外藏进测试），而是走
+    // scripts/preflight.ts 的 applyDestructiveMigrationOverride，经
+    // scripts/destructive-migration-approvals.ts 读取顶层
+    // DESTRUCTIVE_MIGRATION_APPROVALS.json——是否放行由那份数据文件决定，且要求
+    // 「迁移名 + 风险类别 + 出现次数」三者精确匹配（内容指纹），不是只认迁移名。
+    // 新增/修改一条批准 = 那份 JSON 的一处 diff，就是对 PR 评审者可见的记录；
+    // 清单里没有的迁移、或次数对不上的迁移，本测试必须照样把它拦下来。
     const names = listMigrationFiles(migrationsDir)
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')

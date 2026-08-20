@@ -36,16 +36,6 @@ jobs:
         working-directory: payload-office-platform
     env:
       PAYLOAD_SECRET: ci-only-payload-secret
-      # OPT-034 Task 6：显式批准 20260820_055534_drop_listing_merchant_relations
-      # 这一条迁移在 up() 里的 DROP TABLE/DROP COLUMN。scripts/preflight.ts 的
-      # scanMigrationUpRisks 默认对任何迁移的删表/删列都判 fail（`pnpm test` 里的
-      # tests/preflight-migrations.test.ts 与下面的「迁移预检」步骤都吃这条规则），
-      # 这行是该批准在仓库里唯一的持久化记录——不写进 preflight.ts 的扫描逻辑，也不
-      # 写进测试文件本身；批准原因见对应迁移文件的头注释（有效期机制从未使用，
-      # 2208 条关系记录全部 1:1、0 条终止，读侧已在 OPT-034 Task 1-4 全部迁移）。
-      # 新增其它破坏性迁移时不要复用/扩展这一条：照此模式在这里再加一行，让下一次
-      # 批准同样出现在 PR diff 里。
-      ALLOW_DESTRUCTIVE_MIGRATION: 20260820_055534_drop_listing_merchant_relations
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

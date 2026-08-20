@@ -19,6 +19,11 @@ import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  isDestructiveRiskApproved,
+  type DestructiveRiskKind,
+} from './destructive-migration-approvals'
+
 const here = pathDirname(fileURLToPath(import.meta.url))
 const migrationsDir = resolve(here, '..', 'src', 'migrations')
 
@@ -26,6 +31,8 @@ type ForbiddenPattern = {
   pattern: RegExp
   severity: 'block' | 'warn'
   reason: string
+  /** 只有 DROP TABLE/DROP COLUMN 才带这个字段，才可能被批准清单放行；本文件不写死任何具体迁移名。 */
+  kind?: DestructiveRiskKind
 }
 
 // 禁止操作模式（block = 必须人工确认后才能放行；warn = 提醒）
@@ -34,11 +41,13 @@ const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
     pattern: /DROP\s+TABLE/i,
     severity: 'block',
     reason: '禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理',
+    kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'block',
     reason: '禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移',
+    kind: 'DROP_COLUMN',
   },
   {
     pattern: /DROP\s+INDEX/i,
@@ -78,18 +87,26 @@ const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
   },
 ]
 
+type ForbiddenHit = {
+  severity: 'block' | 'warn'
+  pattern: string
+  reason: string
+  line: number
+  snippet: string
+  kind?: DestructiveRiskKind
+}
+
 type MigrationAnalysis = {
   name: string
   hasUp: boolean
   hasDown: boolean
   hasJson: boolean
-  forbiddenHits: Array<{
-    severity: 'block' | 'warn'
-    pattern: string
-    reason: string
-    line: number
-    snippet: string
-  }>
+  /** 未获批准、仍然阻断的命中项。 */
+  forbiddenHits: ForbiddenHit[]
+  /** 命中了 DROP TABLE/DROP COLUMN 但经批准清单精确匹配放行的命中项——
+   * 不计入 blockingCount，但保留下来打印，方便审查者一眼看到"这里本来会拦，
+   * 因为批准了才放行"，而不是让它悄悄消失。 */
+  approvedHits: ForbiddenHit[]
 }
 
 type DryRunReport = {
@@ -114,10 +131,10 @@ function analyzeMigration(name: string): MigrationAnalysis {
   const jsonPath = resolve(migrationsDir, `${name}.json`)
   const ts = existsSync(tsPath) ? readFileSync(tsPath, 'utf8') : ''
 
-  const forbiddenHits: MigrationAnalysis['forbiddenHits'] = []
+  const rawHits: ForbiddenHit[] = []
 
   // 只检查 up() 函数体：forward 迁移禁止破坏性操作
-  // down() 是回滚入口，DROP 是合理操作；AGENTS.md §9.1 的禁令针对 forward 迁移
+  // down() 是回滚入口，DROP 是合法操作；AGENTS.md §9.1 的禁令针对 forward 迁移
   const upBody = extractFunctionBody(ts, 'up')
   const allLines = ts.split('\n')
   const upStartLine = allLines.findIndex((l) => /export\s+async\s+function\s+up/.test(l))
@@ -128,16 +145,36 @@ function analyzeMigration(name: string): MigrationAnalysis {
     for (const p of FORBIDDEN_PATTERNS) {
       const m = line.match(p.pattern)
       if (m) {
-        forbiddenHits.push({
+        rawHits.push({
           severity: p.severity,
           pattern: m[0],
           reason: p.reason,
           line: upStartLine >= 0 ? upStartLine + 1 + i : i + 1,
           snippet: line.trim().slice(0, 120),
+          kind: p.kind,
         })
       }
     }
   }
+
+  // 批准清单按「迁移名 + 风险类别 + 出现次数」精确匹配（内容指纹）：先按 kind
+  // 数一遍这份迁移里 DROP TABLE/DROP COLUMN 各出现了几次，只有次数与批准记录
+  // 完全一致的 kind 才整体放行；之后如果同一份文件又新增了同类风险，次数对不上，
+  // 不会被静默放行。批准数据来自 DESTRUCTIVE_MIGRATION_APPROVALS.json，
+  // 这个函数本身不含任何具体迁移名。
+  const countsByKind = new Map<DestructiveRiskKind, number>()
+  for (const h of rawHits) {
+    if (h.severity === 'block' && h.kind) {
+      countsByKind.set(h.kind, (countsByKind.get(h.kind) ?? 0) + 1)
+    }
+  }
+  const approvedKinds = new Set<DestructiveRiskKind>()
+  for (const [kind, count] of countsByKind) {
+    if (isDestructiveRiskApproved(name, kind, count)) approvedKinds.add(kind)
+  }
+
+  const forbiddenHits = rawHits.filter((h) => !(h.kind && approvedKinds.has(h.kind)))
+  const approvedHits = rawHits.filter((h) => h.kind && approvedKinds.has(h.kind))
 
   return {
     name,
@@ -145,6 +182,7 @@ function analyzeMigration(name: string): MigrationAnalysis {
     hasDown: /export\s+async\s+function\s+down/.test(ts),
     hasJson: existsSync(jsonPath),
     forbiddenHits,
+    approvedHits,
   }
 }
 
@@ -241,13 +279,18 @@ function main() {
   for (const m of report.migrations) {
     console.log(`- ${m.name}`)
     console.log(`    up: ${m.hasUp}, down: ${m.hasDown}, json: ${m.hasJson}`)
-    if (m.forbiddenHits.length === 0) {
+    if (m.forbiddenHits.length === 0 && m.approvedHits.length === 0) {
       console.log('    no forbidden patterns')
       continue
     }
     for (const h of m.forbiddenHits) {
       const tag = h.severity === 'block' ? 'BLOCK' : 'WARN'
       console.log(`    [${tag}] L${h.line}: ${h.pattern}`)
+      console.log(`      reason:  ${h.reason}`)
+      console.log(`      snippet: ${h.snippet}`)
+    }
+    for (const h of m.approvedHits) {
+      console.log(`    [APPROVED] L${h.line}: ${h.pattern} —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json`)
       console.log(`      reason:  ${h.reason}`)
       console.log(`      snippet: ${h.snippet}`)
     }

@@ -29,6 +29,11 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  isDestructiveRiskApproved,
+  type DestructiveRiskKind,
+} from './destructive-migration-approvals'
+
 const here = pathDirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(here, '..')
 
@@ -186,22 +191,27 @@ export type MigrationRisk = {
   severity: 'fail' | 'warn'
   reason: string
   matches: string[]
+  /** 只有落在 DROP_TABLE/DROP_COLUMN 的 fail 风险才带这个字段，才可能被批准清单放行。 */
+  kind?: DestructiveRiskKind
 }
 
 const FORBIDDEN_PATTERNS: Array<{
   pattern: RegExp
   severity: 'fail' | 'warn'
   reason: string
+  kind?: DestructiveRiskKind
 }> = [
   {
     pattern: /DROP\s+TABLE/i,
     severity: 'fail',
     reason: '删除表 - 必须经过扩展->回填->双读->切换->收敛流程',
+    kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'fail',
     reason: '删除列 - 必须经过双读验证和人工确认',
+    kind: 'DROP_COLUMN',
   },
   {
     pattern: /ALTER\s+TABLE\s+\w+\s+ADD\s+COLUMN\s+\w+\s+\w+\s+NOT\s+NULL(?!.*DEFAULT)/i,
@@ -221,7 +231,7 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   for (const p of FORBIDDEN_PATTERNS) {
     const matches = content.match(new RegExp(p.pattern.source, 'gi'))
     if (matches) {
-      risks.push({ severity: p.severity, reason: p.reason, matches })
+      risks.push({ severity: p.severity, reason: p.reason, matches, kind: p.kind })
     }
   }
   return risks
@@ -233,35 +243,29 @@ export function scanMigrationUpRisks(_name: string, migrationContent: string): M
 }
 
 /**
- * 运行时逃生舱：放行恰好一条已获人工确认的破坏性迁移（DROP TABLE/DROP COLUMN）。
+ * 对一份迁移的风险应用批准清单：只压制「被精确批准」的 DROP_TABLE/DROP_COLUMN
+ * fail 项，其它风险（含未带 kind 的、或 kind 命中次数与批准记录不一致的）原样
+ * 保留、照常报 fail。
  *
- * 默认规则不变、且不在这里改：任何迁移在 up() 里出现删表/删列，
- * `scanMigrationUpRisks` 照样判 fail——本函数不修改扫描逻辑，只由调用方
- * （`checkMigrations` 和 `tests/preflight-migrations.test.ts`）在扫描结果之上，
- * 按需再套一层过滤。这里没有写死任何迁移名，单看这个文件看不出「谁被批准了」。
- *
- * 生效条件是环境变量 `ALLOW_DESTRUCTIVE_MIGRATION` 精确等于该迁移文件名（不含
- * 扩展名），风格对齐 `.githooks/pre-commit` 的 `ALLOW_MASTER_COMMIT=1` /
- * `SKIP_MIGRATION_CHECK=1`：不设就拦，且只精确匹配一个名字，不支持前缀/模式匹配，
- * 因此天然不会误放行未来任何一条新的破坏性迁移。
- *
- * 「谁批准了、批准了什么」不记录在这个文件里，而是记录在**设置这个环境变量的地方
- * ——`.github/workflows/quality.yml` 的 `quality` job env**：那条 diff 才是本次
- * 批准在仓库里唯一、对 PR 评审者可见的证据。本地想复现同样的放行，手动
- * `ALLOW_DESTRUCTIVE_MIGRATION=<迁移名> pnpm test` 即可；不设的话这条测试会如实
- * 报红，这是预期行为，不是回归。
+ * 批准数据来自 DESTRUCTIVE_MIGRATION_APPROVALS.json（见
+ * scripts/destructive-migration-approvals.ts），本文件不写死任何具体迁移名——
+ * 谁被批准、批准了什么，只在那份 JSON 数据文件里，这里只有通用匹配逻辑。
  */
-export function isDestructiveMigrationApproved(migrationName: string): boolean {
-  return process.env.ALLOW_DESTRUCTIVE_MIGRATION === migrationName
-}
-
-/** 对一份迁移的风险应用运行时逃生舱：命中时只压制删表/删列这两条 fail，其它风险原样保留。 */
 export function applyDestructiveMigrationOverride(
   name: string,
   risks: MigrationRisk[],
 ): MigrationRisk[] {
-  if (!isDestructiveMigrationApproved(name)) return risks
-  return risks.filter((r) => !(r.severity === 'fail' && /删除表|删除列/.test(r.reason)))
+  const countsByKind = new Map<DestructiveRiskKind, number>()
+  for (const r of risks) {
+    if (r.severity === 'fail' && r.kind) {
+      countsByKind.set(r.kind, (countsByKind.get(r.kind) ?? 0) + r.matches.length)
+    }
+  }
+  const approvedKinds = new Set<DestructiveRiskKind>()
+  for (const [kind, count] of countsByKind) {
+    if (isDestructiveRiskApproved(name, kind, count)) approvedKinds.add(kind)
+  }
+  return risks.filter((r) => !(r.severity === 'fail' && r.kind && approvedKinds.has(r.kind)))
 }
 
 function checkMigrations() {
