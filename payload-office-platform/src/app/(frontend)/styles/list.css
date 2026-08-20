@@ -46,7 +46,10 @@
  * 36px：19px/600 tabular-nums 下"128"三位数的 scrollWidth 是 35px，26px 装不下，
  * 数字会和"套在租"单位文字粘在一起（截图 artifacts/verification/OPT-036/
  * card-building.png 实测过 26px 下的粘连）。36px 留 1px 余量，两位数（多数场景）
- * 只是在盒内多一点右侧留白，不影响右对齐——同列纵向对齐机制不变。 */
+ * 只是在盒内多一点右侧留白，不影响右对齐——同列纵向对齐机制不变。
+ * 用 min-width 而非 width（设计稿 .dc.html:249 本就是 min-width）：width 是硬
+ * 上限，四位数套数会重演"128"那次粘连；min-width 只兜底两位数场景的对齐留白，
+ * 万一出现四位数会自然撑开而不是重新收窄挤在一起。 */
 .bd-card__grade-tag { position: absolute; left: 12px; bottom: 10px; }
 
 .bd-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
@@ -62,7 +65,7 @@
 
 .bd-card__stock-group { display: flex; align-items: baseline; gap: 5px; }
 
-.bd-card__stock { width: 36px; text-align: right; font-size: 19px; font-weight: 600; line-height: 1.1;
+.bd-card__stock { min-width: 36px; text-align: right; font-size: 19px; font-weight: 600; line-height: 1.1;
   color: var(--ink); letter-spacing: normal; }
 
 .bd-card__stock-unit { font-size: 12px; color: var(--ink-2); }

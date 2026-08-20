@@ -15,18 +15,20 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts
  * 在租卡约 182 高，本行只有 64 高，182:64 的高度反差本身就完成了降权，因此本组件
  * **不弱化楼名**——楼名维持 15/600 满墨色，只有次要资料行是 --ink-3。
  *
- * 已验证偏差：设计稿资料行原文案是「等级 · 竣工年份 · 标准层 xxx ㎡」，但
- * BuildingSummaryViewModel 没有「标准层面积」字段（leasableArea 语义是「在租面积」，
- * 对这批暂无在租的楼盘恒为 undefined，用它顶替标准层面积等于编造）。改用
- * [等级, 所在区域, 竣工年份] 三段——都是 contracts.ts 里真实存在的字段。
+ * 历史注记：本组件早先版本曾因 BuildingSummaryViewModel 缺「标准层面积」字段，把
+ * 资料行换成 [等级, 所在区域, 竣工年份]。该判断查得不够远——字段其实一直存在，只是
+ * 在 Payload collection（Buildings.developerAndScale.typicalFloorArea）和详情页
+ * mapper（getBuildingDetail 的 fact('标准层面积', scale.typicalFloorArea)）里，
+ * 没进 BuildingSummaryViewModel 这一层 DTO。域层已把它加进 mapBuildingSummary，
+ * 资料行改回设计稿原版：「等级 · 竣工年份 · 标准层 xxx ㎡」。
  *
  * 守护不变量：
  *   - Server Component，只消费 BuildingSummaryViewModel DTO，不接收 Payload 文档；
  *   - 缺封面：48×48 缩略图占位色 #a1a1a6（比在租卡 .sf-media 的 #8e8e93 更浅——两个
  *     占位灰是设计稿既有例外，见 cross-batch-design-decisions.md「允许不一致的项」同类
  *     处置，浅灰用于「暂无在租」组，与在租卡区分但不抢视觉）；
- *   - 等级 / 区域 / 竣工年份任一缺失：该段跳过，不渲染空的「·」分隔；全部缺失时资料行
- *     整行省略，不留空行；
+ *   - 等级 / 竣工年份 / 标准层面积任一缺失：该段跳过，不渲染空的「·」分隔；全部缺失时
+ *     资料行整行省略，不留空行；
  *   - 楼名超长：单行省略号，不换行。
  *   - 「上新通知我」是纯展示 pill（本任务只做视觉，订阅能力另行接线），不是可独立聚焦的
  *     控件——避免链接内嵌套交互元素。
@@ -40,13 +42,19 @@ function completionYearLabel(iso: string | undefined): string | null {
   return `${new Date(t).getFullYear()}年竣工`
 }
 
+/** 标准层面积文案；与 BuildingResultCard 的 formatLeasableArea 同一惯例：取整 + 千分位。 */
+function typicalFloorAreaLabel(area: number | undefined): string | null {
+  if (area == null || area <= 0) return null
+  return `标准层 ${Math.round(area).toLocaleString('en-US')} ㎡`
+}
+
 export default function BuildingCompactRow({ building, citySlug }: Readonly<{
   building: BuildingSummaryViewModel
   citySlug?: string
 }>) {
-  const { coverImage, grade, district, completionDate, name, slug } = building
+  const { coverImage, grade, completionDate, typicalFloorArea, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
-  const metaText = [gradeLabel, district?.name, completionYearLabel(completionDate)]
+  const metaText = [gradeLabel, completionYearLabel(completionDate), typicalFloorAreaLabel(typicalFloorArea)]
     .filter((part): part is string => Boolean(part))
     .join(' · ')
 

@@ -204,6 +204,7 @@ function makeBuildingFixture(
     leasableArea: 18640,
     listingCount: 42,
     completionDate: '2001-06-01',
+    typicalFloorArea: 1800,
     ...overrides,
   }
 }
@@ -278,14 +279,16 @@ const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: Build
 
 const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: BuildingSummaryViewModel }>[] = [
   {
-    label: '暂无在租 · 资料齐全',
+    label: '暂无在租 · 资料齐全（等级 · 竣工年份 · 标准层面积）',
     building: makeBuildingFixture({
       id: 301,
       slug: 'vacant-hengrong-plaza',
       name: '恒隆广场',
       grade: 'super-grade-a',
       leasableArea: undefined,
+      listingCount: undefined,
       completionDate: '2001-01-01',
+      typicalFloorArea: 1800,
     }),
   },
   {
@@ -297,7 +300,9 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
       coverImage: undefined,
       grade: 'grade-a',
       leasableArea: undefined,
+      listingCount: undefined,
       completionDate: '1996-01-01',
+      typicalFloorArea: 1450,
     }),
   },
   {
@@ -309,11 +314,13 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
       grade: 'grade-a',
       district: { id: 2, slug: 'pudong', name: '浦东新区' },
       leasableArea: undefined,
+      listingCount: undefined,
       completionDate: '1999-01-01',
+      typicalFloorArea: 2000,
     }),
   },
   {
-    label: '暂无在租 · 缺资料（等级/区域/竣工全缺，资料行整行省略）',
+    label: '暂无在租 · 缺资料（等级/竣工/标准层面积全缺，资料行整行省略）',
     building: makeBuildingFixture({
       id: 304,
       slug: 'vacant-no-meta',
@@ -322,7 +329,9 @@ const BUILDING_COMPACT_FIXTURES: readonly Readonly<{ label: string; building: Bu
       district: undefined,
       nearestMetro: undefined,
       leasableArea: undefined,
+      listingCount: undefined,
       completionDate: undefined,
+      typicalFloorArea: undefined,
     }),
   },
 ]

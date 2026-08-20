@@ -49,13 +49,20 @@ export default function BuildingResultCard({ building, citySlug }: Readonly<{
   const { coverImage, grade, address, nearestMetro, leasableArea, listingCount, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
   const hasCount = listingCount != null && listingCount > 0
-  const hasArea = leasableArea != null && leasableArea > 0
+  // 用局部 const 承接窄化结果，而不是在 JSX 里对 leasableArea 做非空断言——
+  // areaText 本身就是「已判空」的字符串，读到它的地方不需要再相信调用方没传错。
+  const areaText = leasableArea != null && leasableArea > 0 ? formatLeasableArea(leasableArea) : null
+  // 与 ListingResultCard 的 aria-label（把价格带进可访问名）同一惯例：
+  // 「这栋楼现在有几套在租」是用户最想知道的数，可访问名不能把它漏掉。
+  const ariaLabel = hasCount ? `${name}，${listingCount} 套在租` : name
 
   return (
     <Link
       href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
+      // .bd-card 本身无样式声明，只作 BEM 块名锚点（下面的 __ 子元素依它命名）；
+      // 卡片表面属性全部来自 .sf-card，与 home.css 的 .hm-supply-card 同一惯例。
       className="sf-card bd-card"
-      aria-label={name}
+      aria-label={ariaLabel}
     >
       <span className="sf-media sf-media--16x10">
         {coverImage ? (
@@ -75,7 +82,7 @@ export default function BuildingResultCard({ building, citySlug }: Readonly<{
         <span className="bd-card__title">{name}</span>
         {address ? <span className="bd-card__line">{address}</span> : null}
         {nearestMetro?.name ? <span className="bd-card__line">近{nearestMetro.name}</span> : null}
-        {hasCount || hasArea ? (
+        {hasCount || areaText ? (
           <span className="bd-card__stats">
             {hasCount ? (
               <span className="bd-card__stock-group">
@@ -83,9 +90,7 @@ export default function BuildingResultCard({ building, citySlug }: Readonly<{
                 <span className="bd-card__stock-unit">套在租</span>
               </span>
             ) : null}
-            {hasArea ? (
-              <span className="bd-card__area-total sf-num">合计 {formatLeasableArea(leasableArea!)} ㎡</span>
-            ) : null}
+            {areaText ? <span className="bd-card__area-total sf-num">合计 {areaText} ㎡</span> : null}
           </span>
         ) : null}
       </span>
