@@ -725,7 +725,7 @@ export interface ListingMerchantRelation {
   id: number;
   listing: number | Listing;
   /**
-   * 留空则创建时继承所属楼盘当前默认商户的快照;准入门禁由 hook 校验。
+   * OPT-034 起已停用，字段与校验 hook 均不再生效，仅保留至 Task 6 删表。
    */
   merchant?: (number | null) | Merchant;
   effectiveFrom: string;

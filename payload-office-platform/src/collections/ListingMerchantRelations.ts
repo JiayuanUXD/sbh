@@ -1,18 +1,22 @@
 import type { CollectionConfig } from 'payload'
 
-import { protectListingMerchantRelation } from '@/domain/supply/listing-merchant-relation-protect'
-
 /**
- * 房源-商户有效期关系（tasks.md M4.2 / design §3.3 供给关系 / R2, R4）
+ * 房源-商户有效期关系（OPT-034 起已停用，仅为兼容删表前的过渡态而保留）
  *
- * 一条记录 = 某房源在某有效期内由某商户供给。与 building-merchant-relations 同构,
- * 但商户可在创建时“继承所属楼盘当前默认商户的快照”——故 merchant **非必填**,
- * 缺省时由 protect hook 解析并写回快照值（见 protectListingMerchantRelation）。
+ * OPT-034 Task 1-4 已把所有读侧代码改成看 `listings.merchant`，本 collection
+ * 不再有任何业务读写消费者——**唯一例外**是
+ * `src/domain/supply/listing-delete-cleanup.ts` 的 `beforeDelete` hook：硬删房源前
+ * 仍要 `payload.delete({ collection: 'listing-merchant-relations', ... })` 清关系行，
+ * 因为 `listing_merchant_relations.listing_id` 现在还是 NOT NULL 而外键
+ * `ON DELETE SET NULL`，删了这张 collection 的注册（哪怕只删 payload.config 里的
+ * 一行）硬删房源就会立刻重新报 PG 23502——这正是 PR #71 刚修好的问题。
  *
- * 不变量、准入门禁、区间合法、同房源不重叠、版本乐观锁全部在 beforeChange hook 守护。
- * 生产 PG 另有 EXCLUDE USING gist 兜底同房源区间不重叠;SQLite 只靠 hook 校验。
+ * 因此本任务只摘掉了写侧校验（原 beforeChange hook `protectListingMerchantRelation`
+ * 及其 domain 模块，随同的 `merchant` 字段准入门禁/区间重叠/乐观锁校验一并失效）——
+ * 反正这张表已经没人再新建/编辑关系行了。collection 本体、字段与 payload.config 里
+ * 的注册**留到 Task 6**（删表时）与 hook 一起摘掉。
  *
- * admin.group:false —— 供给关系通过房源侧维护，由自定义导航承载直接路由。
+ * admin.group:false —— 直接路由仍可访问，纯粹是为了排障，不代表功能仍在使用。
  */
 export const ListingMerchantRelations: CollectionConfig = {
   slug: 'listing-merchant-relations',
@@ -28,9 +32,6 @@ export const ListingMerchantRelations: CollectionConfig = {
   access: {
     read: () => true,
   },
-  hooks: {
-    beforeChange: [protectListingMerchantRelation],
-  },
   fields: [
     {
       name: 'listing',
@@ -45,7 +46,7 @@ export const ListingMerchantRelations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'merchants',
       admin: {
-        description: '留空则创建时继承所属楼盘当前默认商户的快照;准入门禁由 hook 校验。',
+        description: 'OPT-034 起已停用，字段与校验 hook 均不再生效，仅保留至 Task 6 删表。',
       },
     },
     {

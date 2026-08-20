@@ -5,10 +5,7 @@ import type {
   PayloadQueryPort,
 } from '@/domain/review/effective-supply'
 
-const EFFECTIVE_SUPPLY_COLLECTIONS = [
-  'listing-reports',
-  'listing-merchant-relations',
-] as const
+const EFFECTIVE_SUPPLY_COLLECTIONS = ['listing-reports'] as const
 
 type EffectiveSupplyCollection = (typeof EFFECTIVE_SUPPLY_COLLECTIONS)[number]
 type PayloadQueryDocument = Record<string, unknown> & PausedReportLike
