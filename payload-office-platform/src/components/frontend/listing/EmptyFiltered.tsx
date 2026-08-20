@@ -41,8 +41,17 @@ export default function EmptyFiltered(props: Readonly<{
   clearAllHref: string
   /** 清除全部后的结果总数，用于按钮文案「清除全部条件 · N 套」；可选，见上方注释。 */
   clearAllCount?: number
+  /**
+   * 标题里的主语，如「房源」/「楼盘」。必填、无默认值：与 `FilterFormC.countNoun`
+   * 同一约定——首版把「没有符合条件的房源」硬编码在 JSX 里，楼盘列表页复用同一个
+   * 组件时就会对着一屏楼盘说「没有符合条件的房源」（Task 12 接线时发现，与
+   * `EmptyNoStock.totalNoun` 同型）。调用方从集中文案表取值，不写字面量。
+   */
+  subjectNoun: string
+  /** 「清除全部条件 · N {countNoun}」里的量词，如「套」/「个楼盘」。同上，必填。 */
+  countNoun: string
 }>): React.JSX.Element {
-  const { relaxations, clearAllHref, clearAllCount } = props
+  const { relaxations, clearAllHref, clearAllCount, subjectNoun, countNoun } = props
   const visible = relaxations.filter((r) => r.hitCount > 0)
   const hasRelaxations = visible.length > 0
   const hasClearAllCount = clearAllCount != null && clearAllCount > 0
@@ -51,7 +60,7 @@ export default function EmptyFiltered(props: Readonly<{
     <div className="ls-emptyfiltered">
       <div className="ls-emptyfiltered__head">
         <span className="ls-emptyfiltered__intro">
-          <span className="ls-emptyfiltered__title">当前筛选组合下没有符合条件的房源</span>
+          <span className="ls-emptyfiltered__title">当前筛选组合下没有符合条件的{subjectNoun}</span>
           <span className="ls-emptyfiltered__desc">
             {hasRelaxations
               ? '放宽下面任一条件，就能立刻看到结果——数字是放宽后的真实命中数，不是估算。'
@@ -65,7 +74,7 @@ export default function EmptyFiltered(props: Readonly<{
           <span>
             {hasClearAllCount ? (
               <>
-                清除全部条件 · <span className="ls-emptyfiltered__clear-all-count">{clearAllCount}</span> 套
+                清除全部条件 · <span className="ls-emptyfiltered__clear-all-count">{clearAllCount}</span> {countNoun}
               </>
             ) : (
               '清除全部条件'

@@ -41,6 +41,37 @@ export type FilterRow = Readonly<{
   activeValue?: string
 }>
 
+/**
+ * 开关型筛选行（楼盘列表的「仅看有在租」）——最后一行，形态是 pill 内嵌开关。
+ *
+ * 设计依据：楼盘列表.dc.html specRows「开关 pill」：36 高 pill 内嵌 34×20 开关，
+ * **本批次唯一用 accent 底的筛选项**。为什么它配得上这个例外：暂无在租的楼盘被
+ * 降权分组到列表末尾（方案 A），这个开关是那条产品判断的正面出口——「不想看楼宇
+ * 字典的人一键关掉」（comp 判断 F 原话）。其余筛选项一律零色相，别照着它再给
+ * 第二个筛选项上 accent 底。
+ *
+ * 只支持「一个二元开关」，不是通用的多选行：href 由编排层算好（开→关 / 关→开
+ * 都是同一个 href，因为它就是「切到另一个状态」），组件不推导。
+ */
+export type FilterSwitch = Readonly<{
+  /** 左侧标签列文案，如「在租状态」。 */
+  label: string
+  /** 开关自身的文案，如「仅看有在租」。 */
+  optionLabel: string
+  /** 打开后的结果数；缺省或 <=0 不渲染数字（批次统一的「不显示 0」）。 */
+  count?: number
+  /** 切到另一个状态的目标地址，由编排层构造（与其它筛选项同一口径：删 page）。 */
+  href: string
+  active: boolean
+  /**
+   * 该开关占用的 URL 键。本组件不用它——它是给移动抽屉的「重置」用的：
+   * 重置按 rows 的 key 逐个删，漏掉开关就会出现「重置完仍然只看有在租」。
+   */
+  paramKey: string
+  /** 抽屉里的副行文案，如「26 / 68 个」；桌面 pill 不渲染它（那里只放计数）。 */
+  subLabel?: string
+}>
+
 type ActivePick = Readonly<{ row: FilterRow; option: FilterRow['options'][number] }>
 
 /**
@@ -109,14 +140,20 @@ export default function FilterFormC(props: Readonly<{
    * `×` 与再点已选项），那是行级作用域，不存在歧义。
    */
   clearAllHref: string
+  /** 开关型筛选行（楼盘页「仅看有在租」）；省略则不渲染这一行，见 `FilterSwitch`。 */
+  switchRow?: FilterSwitch
 }>): React.JSX.Element {
-  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref } = props
+  const { rows, basePath, currentParams, totalCount, countNoun, clearAllHref, switchRow } = props
   const visibleRows = rows.filter((row) => row.options.length > 0)
   const picks: readonly ActivePick[] = visibleRows.reduce<ActivePick[]>((acc, row) => {
     const option = findActiveOption(row)
     if (option) acc.push({ row, option })
     return acc
   }, [])
+  // 开关打开时也算一个已选条件：否则「只开了开关」这种状态下底栏既不显示 chip
+  // 也不显示「清除全部」，用户没有出口把它关掉（pill 本身可以再点一次关掉，但
+  // 底栏说「每行单选，未选的行保持全部」就成了一句与屏幕不符的话）。
+  const hasPicks = picks.length > 0 || switchRow?.active === true
 
   return (
     <div className="ls-filterc">
@@ -142,11 +179,44 @@ export default function FilterFormC(props: Readonly<{
           </div>
         </div>
       ))}
+      {switchRow ? (
+        <div className="ls-filterc__row">
+          <span className="ls-filterc__label">{switchRow.label}</span>
+          <div className="ls-filterc__options">
+            {/* 导航链接，不是 <button>：状态写进 URL（与本页其它筛选项同一口径），
+                因此当前态用 aria-current 而不是 aria-pressed——后者加在 role=link
+                上是无效属性（Task 9 已全站清零，别在这里重新引入）。 */}
+            <Link
+              href={switchRow.href}
+              aria-current={switchRow.active ? 'true' : undefined}
+              className={
+                switchRow.active
+                  ? 'ls-filterc__switch ls-filterc__switch--on'
+                  : 'ls-filterc__switch'
+              }
+            >
+              <span className="ls-filterc__switch-track" aria-hidden="true">
+                <span className="ls-filterc__switch-knob" />
+              </span>
+              {switchRow.optionLabel}
+              {switchRow.count != null && switchRow.count > 0 ? (
+                <span className="ls-filterc__switch-count sf-num">{switchRow.count}</span>
+              ) : null}
+            </Link>
+          </div>
+        </div>
+      ) : null}
       <div className="ls-filterc__footer">
         <span className="ls-filterc__count">{totalCount} {countNoun}符合条件</span>
-        {picks.length > 0 ? (
+        {hasPicks ? (
           <>
             <span className="ls-filterc__divider" aria-hidden="true" />
+            {switchRow?.active ? (
+              <Link href={switchRow.href} className="ls-filterc__chip">
+                {switchRow.label}：{switchRow.optionLabel}
+                <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
+              </Link>
+            ) : null}
             {picks.map(({ row, option }) => (
               <Link
                 key={row.key}

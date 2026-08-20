@@ -143,4 +143,77 @@ describe('searchBuildingsFiltered', () => {
     expect(districtFacets.get('jingan')).toBe(2)
     expect(districtFacets.get('huangpu')).toBe(1)
   })
+
+  it('分页作用于合并后的序列：有在租排完才排暂无在租，一页可以跨组边界', async () => {
+    // 20 个有在租 + 10 个暂无在租，每页 24：
+    //   第 1 页 = 20 个有在租 + 4 个暂无在租（跨组边界的那一页）
+    //   第 2 页 = 剩下 6 个暂无在租
+    // 如果哪天有人改成「每组各自分页」，第 1 页会变成 20 + 10 或 24 + 24，这条会红。
+    const raws = [
+      ...Array.from({ length: 20 }, (_, i) => makeBuilding({ id: i + 1, slug: `s${String(i).padStart(2, '0')}` })),
+      ...Array.from({ length: 10 }, (_, i) => makeBuilding({ id: 100 + i, slug: `v${String(i).padStart(2, '0')}` })),
+    ]
+    const adapter = makeHomepageAdapter({
+      findEffectiveBuildings: async () => raws,
+      // 只有 s* 那 20 个有在租供给；v* 完全不出现在聚合结果里（= 暂无在租）
+      aggregateEffectiveSupplyByBuildings: async (ids: readonly (number | string)[]) =>
+        new Map(
+          ids
+            .filter((id) => Number(id) <= 20)
+            .map((id) => [String(id), { area: 100 * Number(id), count: 21 - Number(id) }]),
+        ),
+    })
+    const ctx = createSearchContext('shanghai', new Date('2026-08-21T00:00:00Z'))
+    const input = { sort: 'stock-desc' as const, page: 1, pageSize: 24 as const }
+
+    const first = await searchBuildingsFiltered(input, ctx, adapter)
+    expect(first.totalDocs).toBe(30)
+    expect(first.totalPages).toBe(2)
+    expect(first.docs).toHaveLength(24)
+    expect(first.groups.withStock).toHaveLength(20)
+    expect(first.groups.withoutStock).toHaveLength(4)
+    // 合并序列的顺序：有在租全部排在前面
+    expect(first.docs.slice(0, 20).every((d) => d.slug.startsWith('s'))).toBe(true)
+    expect(first.docs.slice(20).every((d) => d.slug.startsWith('v'))).toBe(true)
+    // 分组标题的计数是跨页总量，不是当页条数
+    expect(first.withStockTotal).toBe(20)
+    expect(first.withoutStockTotal).toBe(10)
+    expect(first.unfilteredTotalDocs).toBe(30)
+
+    const second = await searchBuildingsFiltered({ ...input, page: 2 }, ctx, adapter)
+    expect(second.docs).toHaveLength(6)
+    expect(second.groups.withStock).toHaveLength(0)
+    expect(second.groups.withoutStock).toHaveLength(6)
+  })
+
+  it('各筛选维度的计数剥掉自己那一个维度、保留其余条件（选中一项后其余候选不归零）', async () => {
+    const DISTRICT_HUANGPU: Location = {
+      ...DISTRICT_JINGAN,
+      id: 2,
+      name: '黄浦',
+      slug: 'huangpu',
+      immutableCode: 'TEST-2',
+    }
+    const raws = [
+      makeBuilding({ id: 1, slug: 'b1', district: DISTRICT_JINGAN, grade: 'grade-a' }),
+      makeBuilding({ id: 2, slug: 'b2', district: DISTRICT_JINGAN, grade: 'super-grade-a' }),
+      makeBuilding({ id: 3, slug: 'b3', district: DISTRICT_HUANGPU, grade: 'grade-a' }),
+    ]
+    const adapter = makeHomepageAdapter({ findEffectiveBuildings: async () => raws })
+    const ctx = createSearchContext('shanghai', new Date('2026-08-21T00:00:00Z'))
+
+    const result = await searchBuildingsFiltered(
+      { district: ['jingan'], sort: 'stock-desc', page: 1, pageSize: 24 },
+      ctx,
+      adapter,
+    )
+    // 等级计数**保留**了「静安」这个条件（静安只有 1 个甲级、1 个超甲级），
+    // 不是全库分布（那样甲级会报 2，点进去只有 1 个）。
+    const grades = new Map(result.facets.grades.map((g) => [g.value, g.count]))
+    expect(grades.get('grade-a')).toBe(1)
+    expect(grades.get('super-grade-a')).toBe(1)
+    // 退路命中数同源：取消「位置」后回到 3 个
+    expect(result.dimensionHits.district).toBe(3)
+    expect(result.dimensionHits.grade).toBe(2)
+  })
 })

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
-import type { FilterRow } from './FilterFormC'
+import type { FilterRow, FilterSwitch } from './FilterFormC'
 import FilterPill from './FilterPill'
 
 /**
@@ -98,11 +98,21 @@ function buildOptionHref(
   return buildHref(basePath, sp)
 }
 
-/** 重置：清空本组件渲染的所有 rows 对应的参数（不限于 visibleRows——理由同 FilterFormC 的 buildClearAllHref）。 */
-function buildResetHref(basePath: string, currentParams: URLSearchParams, rows: readonly FilterRow[]): string {
+/**
+ * 重置：清空本组件渲染的所有 rows 对应的参数（不限于 visibleRows——理由同
+ * FilterFormC 的 buildClearAllHref），**开关行的键也要一起删**：漏掉它会出现
+ * 「点了重置，结果仍然只看有在租」这种同名不同义的出口。
+ */
+function buildResetHref(
+  basePath: string,
+  currentParams: URLSearchParams,
+  rows: readonly FilterRow[],
+  switchRow: FilterSwitch | undefined,
+): string {
   const sp = cloneSearchParams(currentParams)
   sp.delete('page')
   for (const row of rows) sp.delete(row.key)
+  if (switchRow) sp.delete(switchRow.paramKey)
   return buildHref(basePath, sp)
 }
 
@@ -133,8 +143,15 @@ export default function MobileFilterSheet(props: Readonly<{
    * 触摸场景。配合 `MobileFilterTrigger` 的 `forwardRef` 使用。
    */
   triggerRef: React.RefObject<HTMLElement | null>
+  /**
+   * 开关型筛选行（楼盘页「仅看有在租」），渲染在抽屉最上方——comp 楼盘列表
+   * 「移动 375 · 筛选抽屉」第一段就是它（52 高行 + 44×26 开关）。省略则不渲染。
+   * 桌面 `FilterFormC` 已经有同一个开关，但移动端筛选按 comp 全部收进抽屉，
+   * 少了它抽屉就少一个真实维度（而不是「移动端不支持这个筛选」）。
+   */
+  switchRow?: FilterSwitch
 }>): React.JSX.Element | null {
-  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef } = props
+  const { rows, open, onClose, basePath, currentParams, totalDocs, countNoun, triggerRef, switchRow } = props
   const sheetRef = useRef<HTMLDivElement | null>(null)
   const capturedFocusRef = useRef<HTMLElement | null>(null)
   // 「归还焦点」只有在**真的开过一次**之后才成立，见下方该 effect 的注释。
@@ -211,8 +228,10 @@ export default function MobileFilterSheet(props: Readonly<{
   if (!open || typeof document === 'undefined') return null
 
   const visibleRows = rows.filter((row) => row.options.length > 0)
-  const pickCount = visibleRows.reduce((n, row) => (findActiveOption(row) ? n + 1 : n), 0)
-  const resetHref = buildResetHref(basePath, currentParams, rows)
+  const pickCount =
+    visibleRows.reduce((n, row) => (findActiveOption(row) ? n + 1 : n), 0) +
+    (switchRow?.active ? 1 : 0)
+  const resetHref = buildResetHref(basePath, currentParams, rows, switchRow)
 
   return createPortal(
     <div className="ls-msheet__overlay" onClick={onClose}>
@@ -234,6 +253,27 @@ export default function MobileFilterSheet(props: Readonly<{
         </div>
 
         <div className="ls-msheet__body">
+          {switchRow ? (
+            <div className="ls-msheet__group">
+              <Link
+                href={switchRow.href}
+                aria-current={switchRow.active ? 'true' : undefined}
+                className={
+                  switchRow.active ? 'ls-msheet__switch ls-msheet__switch--on' : 'ls-msheet__switch'
+                }
+              >
+                <span className="ls-msheet__switch-text">
+                  <span className="ls-msheet__switch-label">{switchRow.optionLabel}</span>
+                  {switchRow.subLabel ? (
+                    <span className="ls-msheet__switch-sub sf-num">{switchRow.subLabel}</span>
+                  ) : null}
+                </span>
+                <span className="ls-msheet__switch-track" aria-hidden="true">
+                  <span className="ls-msheet__switch-knob" />
+                </span>
+              </Link>
+            </div>
+          ) : null}
           {visibleRows.map((row) => (
             <div className="ls-msheet__group" key={row.key}>
               <span className="ls-msheet__group-label">{row.label}</span>

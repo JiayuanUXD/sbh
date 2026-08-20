@@ -319,6 +319,79 @@ export function sortBuildings(
 }
 
 /**
+ * 楼盘筛选维度名（一个维度 = 用户看到的一行筛选条件，可能占用多个 URL 键）。
+ *
+ * 与 `ListingSearchDimension`（search-params.ts）同一角色：既是「剥掉这一个条件
+ * 再算一次」的入参，也是空态②逐条退路与「清除全部」的作用域清单。`leasableArea`
+ * 一个维度覆盖 min/max 两个字段——退路文案说的是「放宽在租面积」，不是「放宽
+ * 在租面积下限」，只删一半会让点完之后条件又原样长回来。
+ */
+export type BuildingSearchDimension =
+  | 'district'
+  | 'grade'
+  | 'metro'
+  | 'leasableArea'
+  | 'completedAfter'
+  | 'onlyWithStock'
+
+/**
+ * 「清除全部」的作用域：楼盘页六个维度全部可清。
+ *
+ * 与房源页 `LISTING_CLEARABLE_DIMENSIONS` 刻意不同——那边把 `priceUnit` 排除在外
+ * （换单位由分段控件负责，不归「清除条件」管），楼盘页没有这类「看哪一类价格」的
+ * 类目型状态，六个维度都是用户自己叠加的收窄条件。
+ */
+export const BUILDING_CLEARABLE_DIMENSIONS: readonly BuildingSearchDimension[] = [
+  'district',
+  'grade',
+  'metro',
+  'leasableArea',
+  'completedAfter',
+  'onlyWithStock',
+]
+
+/** 每个维度占用的 URL 参数键；供编排层构造「去掉这一个条件」的 href。 */
+export const BUILDING_DIMENSION_PARAM_KEYS: Readonly<
+  Record<BuildingSearchDimension, readonly string[]>
+> = {
+  district: ['district'],
+  grade: ['grade'],
+  metro: ['metro'],
+  leasableArea: ['leasableAreaMin', 'leasableAreaMax'],
+  completedAfter: ['completedAfter'],
+  onlyWithStock: ['onlyWithStock'],
+}
+
+/**
+ * 剥掉指定维度后的输入副本（其余条件、排序、分页原样保留）。
+ *
+ * 用途有二，两者都要求「只剥这一个、其余全留」：
+ *   1. 各筛选候选的计数——必须在**剥掉本维度之后**的集合上统计，否则选中静安以后
+ *      其余区计数全为 0（自我擦除），用户看到的是一排「0」而不是「换成黄浦有 12 个」。
+ *   2. 空态②的逐条退路命中数——「取消『等级：超甲级』这一个条件后有 8 个」。
+ *
+ * 与 `omitListingSearchDimensions` 同型；那边 `priceUnit` 还要连带剥派生字段，
+ * 楼盘这边六个维度彼此独立，只需按 `BUILDING_DIMENSION_PARAM_KEYS` 描述的字段删。
+ */
+export function omitBuildingSearchDimensions(
+  input: BuildingSearchInput,
+  dimensions: readonly BuildingSearchDimension[],
+): BuildingSearchInput {
+  const drop = new Set(dimensions)
+  const next: Record<string, unknown> = { ...input }
+  if (drop.has('district')) delete next.district
+  if (drop.has('grade')) delete next.grade
+  if (drop.has('metro')) delete next.metro
+  if (drop.has('leasableArea')) {
+    delete next.leasableAreaMin
+    delete next.leasableAreaMax
+  }
+  if (drop.has('completedAfter')) delete next.completedAfter
+  if (drop.has('onlyWithStock')) delete next.onlyWithStock
+  return next as unknown as BuildingSearchInput
+}
+
+/**
  * 分组：有在租（套数或面积任一为正）的楼盘在前，暂无在租的降权到后面（楼盘列表方案 A）。
  *
  * 组内保持入参相对顺序（不重新排序），只做稳定分区。

@@ -185,6 +185,31 @@
   background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink-2);
   display: flex; align-items: center; }
 
+/* ── 分组标题与「暂无在租」分组（Task 12 接线）──────────────────────────────
+ * specRows「分组标题」：15/600 + 计数 13 ink-2 + 说明 13 ink-3 · 上方 1px 分隔线
+ * + 24 间距。分隔线与 48 的上外边距只属于「暂无在租」那一组（comp:266
+ * `margin-top:48;padding-top:24;border-top`）——「当前有在租」那个标题紧跟在
+ * 工具条下面（comp:197 `margin-top:20`），两者不是同一套间距。 */
+.bd-group { margin-top: 20px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+.bd-group__title { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
+
+.bd-group__count { font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.bd-group__desc { flex: 1; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--ink-3);
+  letter-spacing: normal; text-wrap: pretty; }
+
+.bd-group--vacant { margin-top: 0; }
+
+.bd-vacant { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); }
+
+/* 两列 gap 12/16（specRows「紧凑行（方案 A）」）；窄屏落回单列——64 高的行再
+ * 挤成两列，楼名会被截到只剩两三个字，降权就变成了"看不清"。 */
+.bd-vacant__list { margin-top: 16px; display: grid; gap: 12px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 767px) { .bd-vacant__list { grid-template-columns: minmax(0, 1fr); } }
+
 /* ── 分行文本条件区（FilterFormC，筛选形态 C）─────────────────────────────
  * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「筛选形态 C」+ specRows
  * 「形态 C 条件行/度量/选项/底栏」；楼盘列表.dc.html 标注「与房源列表同一套」。
@@ -254,6 +279,36 @@
 .ls-filterc__clear-all:hover { color: var(--ink); }
 
 .ls-filterc__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+/* ── 开关型筛选项（FilterFormC.switchRow：楼盘页「仅看有在租」）──────────────
+ * 楼盘列表.dc.html specRows「开关 pill」：36 高 pill 内嵌 34×20 开关。
+ * **本批次唯一用 accent 底的筛选项**——它是「暂无在租降权分组」这条产品判断的
+ * 正面出口（comp 判断 F）。其余筛选激活态一律零色相或 accent-link 文本，别照抄
+ * 这一条给第二个筛选项上 accent 底。
+ * 36 高与 .ls-pill / .ls-filterc chip 同一套 pill 度量（comp 字面值）；移动端
+ * 的同一维度走抽屉里 52 高的 .ls-msheet__switch，触达尺寸在那里满足。 */
+.ls-filterc__switch { height: 36px; padding: 0 14px 0 10px; border-radius: var(--r-pill);
+  background: var(--bg-subtle); font-size: 13px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-filterc__switch:hover { background: #ececf0; color: var(--ink); }
+
+.ls-filterc__switch-track { flex: none; width: 34px; height: 20px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; padding: 0 2px;
+  justify-content: flex-start; transition: background var(--duration-base) var(--ease-apple); }
+
+.ls-filterc__switch-knob { width: 16px; height: 16px; border-radius: var(--r-pill); background: #fff;
+  box-shadow: var(--shadow-sm); }
+
+.ls-filterc__switch--on { background: var(--bg-subtle); box-shadow: inset 0 0 0 1px var(--line); }
+.ls-filterc__switch--on .ls-filterc__switch-track { background: var(--accent); justify-content: flex-end; }
+
+.ls-filterc__switch-count { font-weight: 400; color: var(--ink-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-filterc__switch, .ls-filterc__switch-track { transition: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ls-filterc__opt, .ls-filterc__chip, .ls-filterc__clear-all { transition: none; }
@@ -338,6 +393,15 @@
 .ls-toolbar { position: relative; display: flex; align-items: baseline;
   justify-content: space-between; gap: 24px; padding-bottom: 16px;
   border-bottom: 1px solid var(--line); }
+
+/* 窄屏：计数与排序各占一行。两者挤在同一行时，计数被压成 47px 宽、断成四行
+ * （楼盘页量词更长，实测 101px 高的一坨）——排序本就轻于结果，不该把结果计数
+ * 挤成这样。断点与本文件其它移动规则一致（max-width:767）。 */
+@media (max-width: 767px) {
+  .ls-toolbar { flex-wrap: wrap; row-gap: 10px; }
+  .ls-toolbar__range { flex: 1 0 100%; }
+  .ls-toolbar__right { flex-wrap: wrap; }
+}
 
 .ls-toolbar__range { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
@@ -628,6 +692,30 @@
 .ls-msheet__group:not(:first-child) { padding-top: 20px; border-top: 1px solid var(--line); }
 
 .ls-msheet__group-label { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
+
+/* 抽屉里的开关行（楼盘页「仅看有在租」）：comp 楼盘列表.dc.html:485-491——
+ * 52 高白底行 · 14/600 标题 + 12 ink-3 副行 · 44×26 开关。整行可点（52 ≥ 44
+ * 触达下限），开关本身只是状态指示。 */
+.ls-msheet__switch { min-height: 52px; padding: 8px 14px; border-radius: 12px;
+  background: var(--bg-subtle); color: var(--ink); display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; }
+
+.ls-msheet__switch-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.ls-msheet__switch-label { font-size: 14px; font-weight: 600; letter-spacing: normal; }
+
+.ls-msheet__switch-sub { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-msheet__switch-track { flex: none; width: 44px; height: 26px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; padding: 0 3px;
+  justify-content: flex-start; transition: background var(--duration-base) var(--ease-apple); }
+
+.ls-msheet__switch-knob { width: 20px; height: 20px; border-radius: var(--r-pill); background: #fff;
+  box-shadow: var(--shadow-sm); }
+
+.ls-msheet__switch--on .ls-msheet__switch-track { background: var(--accent); justify-content: flex-end; }
+
+@media (prefers-reduced-motion: reduce) { .ls-msheet__switch-track { transition: none; } }
 
 .ls-msheet__group-opts { display: flex; flex-wrap: wrap; gap: 8px; }
 

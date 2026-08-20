@@ -47,13 +47,16 @@ export {
 } from './search-params'
 export {
   BUILDING_SORTS,
+  BUILDING_CLEARABLE_DIMENSIONS,
+  BUILDING_DIMENSION_PARAM_KEYS,
   parseBuildingSearchInput,
   buildBuildingCanonicalParams,
   applyBuildingFilters,
   sortBuildings,
   partitionByStock,
+  omitBuildingSearchDimensions,
 } from './building-search'
-export type { BuildingSort, BuildingSearchInput } from './building-search'
+export type { BuildingSort, BuildingSearchInput, BuildingSearchDimension } from './building-search'
 export { normalizePublicMediaUrl } from './media-url'
 export {
   stableSortCards,

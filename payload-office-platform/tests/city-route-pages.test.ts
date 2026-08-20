@@ -7,6 +7,7 @@ const io = vi.hoisted(() => ({
   getCachedSearchListings: vi.fn(),
   getCachedListingDistrictOptions: vi.fn(),
   getCachedSearchBuildings: vi.fn(),
+  getCachedSearchBuildingsFiltered: vi.fn(),
   getCachedListingBySlug: vi.fn(),
   getCachedBuildingBySlug: vi.fn(),
   getCachedBuildingDetail: vi.fn(),
@@ -19,6 +20,7 @@ const io = vi.hoisted(() => ({
   resolveListingRouteIdentity: vi.fn(),
   resolveBuildingRouteIdentity: vi.fn(),
   parseListingSearchInput: vi.fn(),
+  parseBuildingSearchInput: vi.fn(),
   parseBuildingSupplySearchParams: vi.fn(),
   createSearchContext: vi.fn(),
   getBuildingDetail: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchListings: io.getCachedSearchListings,
   getCachedListingDistrictOptions: io.getCachedListingDistrictOptions,
   getCachedSearchBuildings: io.getCachedSearchBuildings,
+  getCachedSearchBuildingsFiltered: io.getCachedSearchBuildingsFiltered,
   getCachedListingBySlug: io.getCachedListingBySlug,
   getCachedBuildingBySlug: io.getCachedBuildingBySlug,
   getCachedBuildingDetail: io.getCachedBuildingDetail,
@@ -63,6 +66,8 @@ vi.mock('@/domain/public-catalog', () => ({
   resolveBuildingRouteIdentity: io.resolveBuildingRouteIdentity,
   PUBLIC_CACHE_TAG_PREFIX: 'public',
   buildCanonicalSearchParams: () => new URLSearchParams(),
+  buildBuildingCanonicalParams: () => new URLSearchParams(),
+  parseBuildingSearchInput: io.parseBuildingSearchInput,
   parseListingSearchInput: io.parseListingSearchInput,
   parseBuildingSupplySearchParams: io.parseBuildingSupplySearchParams,
   createSearchContext: io.createSearchContext,
@@ -276,6 +281,8 @@ describe('city route boundaries', () => {
     await expect(generateBuildingsMetadata(props)).resolves.toMatchObject({ robots: { index: false, follow: true } })
     await CityBuildingsPage(props)
     expect(buildingsDynamic).toBe('force-dynamic')
+    // 未开城不查库：Task 12 把楼盘列表改成走筛选版查询，断言跟着换成同一个入口
+    expect(io.getCachedSearchBuildingsFiltered).not.toHaveBeenCalled()
     expect(io.getCachedSearchBuildings).not.toHaveBeenCalled()
   })
 

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
-import type { FilterRow } from './FilterFormC'
+import type { FilterRow, FilterSwitch } from './FilterFormC'
 import MobileFilterSheet from './MobileFilterSheet'
 import MobileFilterTrigger from './MobileFilterTrigger'
 
@@ -48,12 +48,17 @@ export default function MobileFilterShell(props: Readonly<{
   totalDocs: number
   /** 计数名词，从调用方的 `CHANNEL_COPY` 取值（租「套」/售「套」/楼盘「个楼盘」）。 */
   countNoun: string
+  /** 开关型筛选行（楼盘页「仅看有在租」），原样透传给抽屉；省略则抽屉不渲染这一段。 */
+  switchRow?: FilterSwitch
 }>): React.JSX.Element {
-  const { rows, basePath, currentQuery, totalDocs, countNoun } = props
+  const { rows, basePath, currentQuery, totalDocs, countNoun, switchRow } = props
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const currentParams = useMemo(() => new URLSearchParams(currentQuery), [currentQuery])
-  const activeCount = rows.reduce((n, row) => (row.activeValue != null ? n + 1 : n), 0)
+  // 开关也是一个条件：悬浮 pill 上的徽标少算它，会出现「抽屉里显示已选 3 项、
+  // 底栏徽标写 2」这种自相矛盾。
+  const activeCount =
+    rows.reduce((n, row) => (row.activeValue != null ? n + 1 : n), 0) + (switchRow?.active ? 1 : 0)
 
   return (
     <div className="ls-mobilefilter" data-mobile-filter-shell data-open={open ? 'true' : 'false'}>
@@ -73,6 +78,7 @@ export default function MobileFilterShell(props: Readonly<{
         totalDocs={totalDocs}
         countNoun={countNoun}
         triggerRef={triggerRef}
+        {...(switchRow ? { switchRow } : {})}
       />
     </div>
   )

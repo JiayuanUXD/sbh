@@ -43,8 +43,14 @@ import type {
 import { haversineKm } from './geo'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
-import type { BuildingSearchInput } from './building-search'
-import { applyBuildingFilters, sortBuildings } from './building-search'
+import type { BuildingSearchDimension, BuildingSearchInput } from './building-search'
+import {
+  BUILDING_CLEARABLE_DIMENSIONS,
+  applyBuildingFilters,
+  omitBuildingSearchDimensions,
+  partitionByStock,
+  sortBuildings,
+} from './building-search'
 import {
   mapBuildingDetail,
   mapBuildingSummary,
@@ -143,10 +149,29 @@ export type BuildingSearchResult = Readonly<{
   totalDocs: number
 }>
 
-/** 楼盘列表页筛选/排序/分页结果（OPT-036 Task 2）。 */
+/** 楼盘列表页筛选/排序/分页结果（OPT-036 Task 2，Task 12 补分组与计数）。 */
 export type BuildingFilteredResult = Readonly<{
+  /**
+   * 当前页文档，顺序即**合并后的序列**：有在租的排完才排暂无在租
+   * （comp「分组不跨页拆分」）。视图层直接按顺序渲染，不再自己重排。
+   */
   docs: readonly BuildingSummaryViewModel[]
+  /**
+   * 当前页的两个分组。分组发生在域层而不是视图层——视图若拿 `docs` 自己
+   * `partitionByStock`，恰好也能得到同样的结果，但那等于把「先分组再分页」这条
+   * 规则复制成两份实现，其中一份（视图）随时可能被改成「每组各自分页」而不报错。
+   */
+  groups: Readonly<{
+    withStock: readonly BuildingSummaryViewModel[]
+    withoutStock: readonly BuildingSummaryViewModel[]
+  }>
   totalDocs: number
+  /** 筛选后**全部页**里有在租的楼盘数（分组标题计数 / 「仅看有在租」开关计数）。 */
+  withStockTotal: number
+  /** 筛选后**全部页**里暂无在租的楼盘数。 */
+  withoutStockTotal: number
+  /** 不叠加任何筛选时的楼盘总数（空态主按钮「查看全部 N 个楼盘」/「清除全部条件 · N」）。 */
+  unfilteredTotalDocs: number
   page: number
   totalPages: number
   /** 各筛选维度的候选值与命中数，供筛选条渲染与空态退路使用 */
@@ -155,6 +180,11 @@ export type BuildingFilteredResult = Readonly<{
     grades: ReadonlyArray<{ value: string; count: number }>
     metros: ReadonlyArray<{ slug: string; name: string; count: number }>
   }>
+  /**
+   * 单独放宽某一个维度后的命中数（空态②逐条退路：「取消『位置：静安』这一个条件 → 12」）。
+   * 六个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
+   */
+  dimensionHits: Readonly<Record<BuildingSearchDimension, number>>
 }>
 
 /** One public building page for bounded catalog enumeration. */
@@ -425,10 +455,11 @@ export async function searchBuildings(
 }
 
 /**
- * 在筛选前的全集上计算各筛选维度的候选值与命中数。
+ * 计算各筛选维度的候选值与命中数。
  *
- * 必须传入筛选前的全集：如果在 applyBuildingFilters 之后算 facets，选中一个
- * 区域后其它区域会因为已被过滤掉而从筛选条里消失（自我擦除 bug）。
+ * 调用方必须传入**剥掉本维度之后**的集合（见 searchBuildingsFiltered）：如果在
+ * 完整 applyBuildingFilters 之后算 facets，选中一个区域后其它区域会因为已被过滤掉
+ * 而从筛选条里消失（自我擦除 bug）。
  */
 function buildBuildingFacets(
   docs: readonly BuildingSummaryViewModel[],
@@ -459,10 +490,15 @@ function buildBuildingFacets(
 }
 
 /**
- * 楼盘列表筛选/排序/分页（OPT-036 Task 2）。
+ * 楼盘列表筛选/排序/分页/分组（OPT-036 Task 2 + Task 12）。
  *
- * 步骤：searchBuildings 取全集 → 在全集上算 facets（筛选前）→
- * applyBuildingFilters → sortBuildings → 按 input.page/pageSize 切片。
+ * 步骤：searchBuildings 取全集 → 逐维度剥离后算 facets 与退路命中数 →
+ * applyBuildingFilters → sortBuildings → partitionByStock → **合并成一条序列
+ * （有在租在前）后再分页** → 当前页再分一次组交给视图。
+ *
+ * 分页作用于合并后的序列，不是每组各自分页（comp「分组不跨页拆分：有在租的排完
+ * 才排暂无在租」）。两组各自分页会让第 2 页同时出现「有在租第 25–48 个」和
+ * 「暂无在租第 25–48 个」，翻页语义变成两条互不相干的游标。
  *
  * **200 条上限**：底层 `adapter.findEffectiveBuildings(ctx)` 默认 `limit = 200`
  * （见 supply-adapter.ts），本函数继承这个上限、不在此处放宽。当一个城市的有效
@@ -476,16 +512,64 @@ export async function searchBuildingsFiltered(
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingFilteredResult> {
   const { docs: allDocs } = await searchBuildings(ctx, adapter)
-  const facets = buildBuildingFacets(allDocs)
+
+  // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
+  // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
+  // 因此只做一趟，不是六次筛选 + 三次 facet。全部在内存里对 ≤200 条做过滤，
+  // 与「多发几次查询」不是一个量级的代价，所以无条件计算，不按空态与否分支。
+  const omitted = new Map<BuildingSearchDimension, readonly BuildingSummaryViewModel[]>()
+  for (const dimension of BUILDING_CLEARABLE_DIMENSIONS) {
+    omitted.set(dimension, applyBuildingFilters(allDocs, omitBuildingSearchDimensions(input, [dimension])))
+  }
+  const hitsOf = (dimension: BuildingSearchDimension) => omitted.get(dimension)?.length ?? 0
+
+  // 候选**清单**取自全集，计数取自剥离后的子集：两者分开是必要的。只用剥离后的
+  // 子集当清单，会在「其余条件已经把结果筛空」时让候选整个消失——包括用户此刻选中
+  // 的那一个（如 ?district=jingan&completedAfter=2020 一个都不剩时，筛选条里连
+  // 「静安」都不见了，选中状态只活在地址栏里，用户看不见也单独清不掉）。
+  // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
+  // 「不显示 0」丢弃，选中项保留。
+  const allFacets = buildBuildingFacets(allDocs)
+  const overlay = <T extends { count: number }>(
+    universe: readonly T[],
+    subset: readonly T[],
+    keyOf: (entry: T) => string,
+  ): T[] => {
+    const counts = new Map(subset.map((entry) => [keyOf(entry), entry.count]))
+    return universe.map((entry) => ({ ...entry, count: counts.get(keyOf(entry)) ?? 0 }))
+  }
+  const facetsOf = (dimension: 'district' | 'grade' | 'metro') =>
+    buildBuildingFacets(omitted.get(dimension) ?? allDocs)
+  const facets = {
+    districts: overlay(allFacets.districts, facetsOf('district').districts, (d) => d.slug),
+    grades: overlay(allFacets.grades, facetsOf('grade').grades, (g) => g.value),
+    metros: overlay(allFacets.metros, facetsOf('metro').metros, (m) => m.slug),
+  }
+  const dimensionHits = {
+    district: hitsOf('district'),
+    grade: hitsOf('grade'),
+    metro: hitsOf('metro'),
+    leasableArea: hitsOf('leasableArea'),
+    completedAfter: hitsOf('completedAfter'),
+    onlyWithStock: hitsOf('onlyWithStock'),
+  }
+
   const filtered = applyBuildingFilters(allDocs, input)
   const sorted = sortBuildings(filtered, input.sort)
-  const { docs, totalDocs, totalPages } = paginate(sorted, input.page, input.pageSize)
+  const { withStock, withoutStock } = partitionByStock(sorted)
+  const merged = [...withStock, ...withoutStock]
+  const { docs, totalDocs, totalPages } = paginate(merged, input.page, input.pageSize)
   return {
     docs,
+    groups: partitionByStock(docs),
     totalDocs,
+    withStockTotal: withStock.length,
+    withoutStockTotal: withoutStock.length,
+    unfilteredTotalDocs: allDocs.length,
     page: Math.max(1, input.page),
     totalPages,
     facets,
+    dimensionHits,
   }
 }
 

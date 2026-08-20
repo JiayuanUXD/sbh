@@ -393,6 +393,8 @@ export default async function CityListingsView({
             relaxations={relaxations}
             clearAllHref={clearAllHref}
             clearAllCount={clearAllCount}
+            subjectNoun={copy.noun}
+            countNoun={copy.countNoun}
           />
         ) : showEmptyNoStock ? (
           <EmptyNoStock

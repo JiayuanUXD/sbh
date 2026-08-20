@@ -71,6 +71,16 @@ export default function ResultToolbar(props: Readonly<{
    * `countNoun` 同一约定，组件复用不等于文案复用，见该组件顶部注释。
    */
   noun: string
+  /**
+   * 「共 N {totalNoun}」里的量词，缺省时与 `noun` 相同。
+   *
+   * 加这个 prop 是为了让楼盘页读成 comp 稿的字面「显示第 1–24 个，共 68 个楼盘」
+   * ——前半句的量词是「个」，后半句要把主语说全。房源页两处本来就是同一个「套」，
+   * 因此**默认等于 `noun`**：这不是 `countNoun` 那类「给了默认值就会让文案悄悄
+   * 磨成通用词」的情形（默认值不是一个通用词，而是调用方刚刚显式给过的那个词），
+   * 两者的缺省处置标准不同。
+   */
+  totalNoun?: string
   sorts: ReadonlyArray<ResultToolbarSort>
   activeSort: string
   basePath: string
@@ -78,12 +88,12 @@ export default function ResultToolbar(props: Readonly<{
   /** 省略则不渲染视图切换（如移动端固定单列，没有版式可切）。 */
   view?: 'grid' | 'row'
 }>): React.JSX.Element {
-  const { rangeStart, rangeEnd, totalDocs, noun, sorts, activeSort, basePath, currentParams, view } = props
+  const { rangeStart, rangeEnd, totalDocs, noun, totalNoun, sorts, activeSort, basePath, currentParams, view } = props
 
   return (
     <div className="ls-toolbar">
       <span className="ls-toolbar__range">
-        显示第 {rangeStart}–{rangeEnd} {noun}，共 {totalDocs} {noun}
+        显示第 {rangeStart}–{rangeEnd} {noun}，共 {totalDocs} {totalNoun ?? noun}
       </span>
       <span className="ls-toolbar__right">
         <span className="ls-toolbar__sortlabel">排序</span>
