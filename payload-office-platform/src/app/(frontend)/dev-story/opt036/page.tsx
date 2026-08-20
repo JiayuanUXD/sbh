@@ -202,6 +202,7 @@ function makeBuildingFixture(
     nearestMetro: { id: 21, slug: 'jing-an-si', name: '静安寺站' },
     coverImage: { src: BUILDING_COVER_IMAGE, alt: '楼盘封面示例', width: 400, height: 250 },
     leasableArea: 18640,
+    listingCount: 42,
     completionDate: '2001-06-01',
     ...overrides,
   }
@@ -209,32 +210,35 @@ function makeBuildingFixture(
 
 const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: BuildingSummaryViewModel }>[] = [
   {
-    label: '有在租（超甲级 · 在租面积定宽右对齐）',
+    label: '有在租（超甲级 · 套数两位数 42，定宽盒右对齐）',
     building: makeBuildingFixture({
       id: 201,
       slug: 'jing-an-kerry-centre',
       name: '静安嘉里中心',
       leasableArea: 18640,
+      listingCount: 42,
     }),
   },
   {
-    label: '无在租（防御性：卡底数据行整行省略）',
+    label: '无在租（防御性：套数与面积都缺，卡底数据行整行省略）',
     building: makeBuildingFixture({
       id: 202,
       slug: 'no-stock-building',
       name: '暂无在租楼盘示例',
       grade: 'grade-a',
       leasableArea: undefined,
+      listingCount: undefined,
     }),
   },
   {
-    label: '缺封面（16:10 撑住不塌陷）',
+    label: '缺封面（16:10 撑住不塌陷 · 套数三位数 128 测试 36px 定宽盒）',
     building: makeBuildingFixture({
       id: 203,
       slug: 'no-cover-building',
       name: '无封面楼盘（占位灰底测试）',
       coverImage: undefined,
       leasableArea: 9720,
+      listingCount: 128,
     }),
   },
   {
@@ -245,6 +249,7 @@ const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: Build
       name: '陆家嘴金融核心区超甲级综合体写字楼超长楼盘全称示例测试用例',
       grade: 'super-grade-a',
       leasableArea: 24180,
+      listingCount: 8,
     }),
   },
   {
@@ -255,6 +260,7 @@ const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: Build
       name: '虹桥天地',
       nearestMetro: undefined,
       leasableArea: 21900,
+      listingCount: 47,
     }),
   },
   {
@@ -265,6 +271,7 @@ const BUILDING_CARD_FIXTURES: readonly Readonly<{ label: string; building: Build
       name: '西岸智慧谷',
       grade: undefined,
       leasableArea: 26410,
+      listingCount: 51,
     }),
   },
 ]
@@ -402,7 +409,7 @@ export default function Opt036PreviewPage() {
         <PreviewSection
           id="building-card"
           title="楼盘结果卡（BuildingResultCard）"
-          note="16:10 · 等级标签无色相 · 在租面积定宽右对齐——覆盖有在租/无在租/缺封面/超长楼名/缺地铁/缺等级"
+          note="16:10 · 等级标签无色相 · 在租套数 36px 定宽右对齐（两位数/三位数）+ 合计面积——覆盖有在租/无在租/缺封面/超长楼名/缺地铁/缺等级"
         >
           {/* minmax(0, 1fr)：同 listing-card 区块，防超长楼名撑宽同列（Task 4 踩过的坑） */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16 }}>

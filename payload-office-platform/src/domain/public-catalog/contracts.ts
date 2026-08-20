@@ -134,6 +134,15 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
   nearestMetro?: DistrictViewModel
   /** 在租面积（楼内有效房源面积总和，单位㎡）；楼盘列表页卡片展示 */
   leasableArea?: number
+  /**
+   * 在租套数（楼内有效房源计数）；口径与 leasableArea 完全一致——同一次
+   * SupplyAdapter.aggregateEffectiveSupplyByBuildings 聚合、同一批有效供给谓词、
+   * 强制 businessType='lease'（与调用方当前频道无关，理由同 leasableArea：出售
+   * 频道页上的楼盘卡片同样只应统计在租套数，不能把待售房源计进去）。
+   * 缺失/0 语义与 leasableArea 相同：不出现在聚合结果里的楼盘视为「暂无在租」，
+   * 不渲染 0。楼盘列表页卡片展示。
+   */
+  listingCount?: number
   /** 竣工日期（ISO 字符串）；楼盘列表页 completedAfter 筛选与 completion-desc 排序用 */
   completionDate?: string
 }>

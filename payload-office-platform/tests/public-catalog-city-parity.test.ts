@@ -231,7 +231,7 @@ function createParityAdapter(): SupplyAdapter {
         return parentId === buildingId && item.id !== excludeListingId
       })
     },
-    async sumEffectiveLeasableAreaByBuildings() { return new Map() },
+    async aggregateEffectiveSupplyByBuildings() { return new Map() },
     async findEffectiveBuildingsNear() { return [] },
     async findEffectiveBuildings(ctx) {
       return buildings.filter((item) => typeof item.city === 'object' && item.city?.slug === ctx.city)

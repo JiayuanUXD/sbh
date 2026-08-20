@@ -302,18 +302,18 @@ function createFullPredicateAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
-    async sumEffectiveLeasableAreaByBuildings(buildingIds, ctx) {
+    async aggregateEffectiveSupplyByBuildings(buildingIds, ctx) {
       syncAsOf(ctx)
-      const sums = new Map<string, number>()
+      const aggregates = new Map<string, { area: number; count: number }>()
       for (const l of options.listings) {
         if (!isListingEffective(l)) continue
         const bid = typeof l.building === 'object' ? l.building.id : l.building
         if (!buildingIds.some((id) => id === bid)) continue
         const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
-        if (area <= 0) continue
-        sums.set(String(bid), (sums.get(String(bid)) ?? 0) + area)
+        const prev = aggregates.get(String(bid)) ?? { area: 0, count: 0 }
+        aggregates.set(String(bid), { area: prev.area + (area > 0 ? area : 0), count: prev.count + 1 })
       }
-      return sums
+      return aggregates
     },
     async findEffectiveBusinessAreas() {
       return []

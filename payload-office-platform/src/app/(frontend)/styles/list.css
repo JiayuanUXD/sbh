@@ -42,8 +42,11 @@
 
 /* ── 楼盘结果卡（BuildingResultCard）──────────────────────────────────────
  * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html specRows「楼盘卡图 16:10 /
- * 卡片字号 / 卡底数据行」。定宽数字盒从设计稿的 26px（两位数套数）放宽到 64px，
- * 因为本实现里放的是「在租面积」不是「在租套数」——理由见组件文件顶部注释。 */
+ * 卡片字号 / 卡底数据行」。定宽数字盒从设计稿的 26px（两位数套数）实测放宽到
+ * 36px：19px/600 tabular-nums 下"128"三位数的 scrollWidth 是 35px，26px 装不下，
+ * 数字会和"套在租"单位文字粘在一起（截图 artifacts/verification/OPT-036/
+ * card-building.png 实测过 26px 下的粘连）。36px 留 1px 余量，两位数（多数场景）
+ * 只是在盒内多一点右侧留白，不影响右对齐——同列纵向对齐机制不变。 */
 .bd-card__grade-tag { position: absolute; left: 12px; bottom: 10px; }
 
 .bd-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
@@ -55,12 +58,20 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .bd-card__stats { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line);
-  display: flex; align-items: baseline; gap: 5px; }
+  display: flex; align-items: baseline; gap: 10px; }
 
-.bd-card__stock { width: 64px; text-align: right; font-size: 19px; font-weight: 600; line-height: 1.1;
+.bd-card__stock-group { display: flex; align-items: baseline; gap: 5px; }
+
+.bd-card__stock { width: 36px; text-align: right; font-size: 19px; font-weight: 600; line-height: 1.1;
   color: var(--ink); letter-spacing: normal; }
 
 .bd-card__stock-unit { font-size: 12px; color: var(--ink-2); }
+
+/* margin-inline-start:auto 而非父级 justify-content:space-between：套数缺失时
+   （防御性场景，正常产品流程不会发生）面积仍应靠右显示，不依赖有另一个 flex
+   子项才能撑开两端。 */
+.bd-card__area-total { margin-inline-start: auto; font-size: 13px; color: var(--ink-2);
+  letter-spacing: normal; white-space: nowrap; }
 
 /* ── 暂无在租紧凑行（BuildingCompactRow）───────────────────────────────────
  * 不复用 .sf-card：这是密集清单行不是内容卡——64 高的行加阴影+抬升会和上方

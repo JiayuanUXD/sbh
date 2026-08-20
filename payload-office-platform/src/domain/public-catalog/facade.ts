@@ -258,28 +258,37 @@ function prepareCardsForPriceSort(
 }
 
 /**
- * 给楼盘 VM 批量补上在租面积（一次 SQL 聚合覆盖全部楼盘）。
+ * 给楼盘 VM 批量补上在租面积与在租套数（一次 SQL 聚合覆盖全部楼盘）。
  *
- * 缺这个字段的后果不只是少显示一个数字：BuildingListCard 会据此判定
+ * 曾用名 attachLeasableArea——只补面积时这个名字是准的，加了套数以后继续叫它
+ * 就是误导，改名同时改了行为（两个字段一起补，不是分两次查）。
+ *
+ * 缺这两个字段的后果不只是少显示数字：BuildingListCard 会据此判定
  * 「暂无在租」并给封面加 grayscale 降饱和，整片卡片发灰。首页与楼盘列表页
  * 必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
  */
-async function attachLeasableArea(
+async function attachSupplyAggregates(
   summaries: readonly BuildingSummaryViewModel[],
   ctx: SearchContext,
   adapter: SupplyAdapter,
 ): Promise<BuildingSummaryViewModel[]> {
   if (summaries.length === 0) return []
-  // 强制 lease 而非跟随 ctx：这个字段叫「在租面积」，语义上只算租赁供给，与调用方
-  // 当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁的在租面积，一套
-  // 3800 万的待售整层不能被算进去。
-  const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
+  // 强制 lease 而非跟随 ctx：这两个字段叫「在租面积」「在租套数」，语义上只算租赁
+  // 供给，与调用方当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁口径
+  // 的在租数据，一套 3800 万的待售整层不能被算进去。
+  const aggregateByBuilding = await adapter.aggregateEffectiveSupplyByBuildings(
     summaries.map((s) => s.id),
     { ...ctx, businessType: 'lease' },
   )
   return summaries.map((s) => {
-    const leasableArea = areaByBuilding.get(String(s.id))
-    return leasableArea != null && leasableArea > 0 ? { ...s, leasableArea } : s
+    const agg = aggregateByBuilding.get(String(s.id))
+    if (!agg) return s
+    const next = { ...s }
+    // area / count 各自独立判空：SQL 层已把非正面积归零，但套数来自同一批真实
+    // 存在的有效房源行，不因面积数据质量问题被连累——面积缺失不该让套数也消失。
+    if (agg.area > 0) next.leasableArea = agg.area
+    if (agg.count > 0) next.listingCount = agg.count
+    return next
   })
 }
 
@@ -399,7 +408,7 @@ export function paginateListingSearchSource(
  * 步骤：
  *   1. adapter.findEffectiveBuildings → 原始 Building[]
  *   2. mapBuildingSummary → BuildingSummaryViewModel[]
- *   3. attachLeasableArea 一次 SQL 聚合补齐在租面积（不再逐楼盘查房源）
+ *   3. attachSupplyAggregates 一次 SQL 聚合补齐在租面积与在租套数（不再逐楼盘查房源）
  */
 export async function searchBuildings(
   ctx: SearchContext,
@@ -411,7 +420,7 @@ export async function searchBuildings(
     const summary = mapBuildingSummary(raw)
     if (summary) summaries.push(summary)
   }
-  const docs = await attachLeasableArea(summaries, ctx, adapter)
+  const docs = await attachSupplyAggregates(summaries, ctx, adapter)
   return { docs, totalDocs: docs.length }
 }
 
@@ -810,7 +819,7 @@ export async function getHomepage(
     if (vm) buildingVMs.push(vm)
   }
   // 只对最终展示的切片聚合：楼盘是过取的（默认 30，供商圈封面挑选）
-  const featuredBuildingSlice = await attachLeasableArea(
+  const featuredBuildingSlice = await attachSupplyAggregates(
     buildingVMs.slice(0, featuredLimit),
     ctx,
     adapter,
