@@ -725,20 +725,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // Payload's nested relationship where can be very slow in local dev when
       // combined with a direct building filter; IDs first keeps rendering fast.
       const sql = `
-WITH active_rel AS (
-  SELECT r.listing_id, r.merchant_id,
-         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
-  FROM listing_merchant_relations r
-  WHERE r.effective_from <= $1
-    AND (r.effective_to IS NULL OR r.effective_to > $1)
-)
 SELECT l.id
 FROM listings l
 JOIN buildings  b    ON b.id = l.building_id
 JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
-JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
-JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN merchants  m    ON m.id = l.merchant_id
 WHERE l.building_id = $2
   AND ($3::int IS NULL OR l.id <> $3::int)
   AND l.deleted_at IS NULL
@@ -804,27 +796,18 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       //   l.deleted_at / publication_status / review_status / supply_visibility_hold
       //                                            → getEffectiveSupplyWhere
       //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
-      //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
       //   m.status / qualification_*               → §9 商户启用 + 资质有效
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
       //   listing_reports.supply_paused            → §5 举报暂停排除
       // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
       // 「SQL vs 逐条精筛」全量比对守护，改动规则时必须重跑。
       const sql = `
-WITH active_rel AS (
-  SELECT r.listing_id, r.merchant_id,
-         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
-  FROM listing_merchant_relations r
-  WHERE r.effective_from <= $1
-    AND (r.effective_to IS NULL OR r.effective_to > $1)
-)
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
 FROM listings l
 JOIN buildings  b    ON b.id = l.building_id
 JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
-JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
-JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN merchants  m    ON m.id = l.merchant_id
 WHERE l.building_id = ANY($2)
   AND l.deleted_at IS NULL
   AND l.publication_status = 'published'
