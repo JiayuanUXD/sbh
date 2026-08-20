@@ -1,14 +1,28 @@
 /**
- * 在租面积口径比对：SQL 聚合 vs 逐条精筛
+ * 在租面积口径比对：两条 SQL 聚合路径互相校验
  *
- * SupplyAdapter.sumEffectiveLeasableAreaByBuildings 用一条 SQL 求楼盘在租面积，
- * 把有效供给规则下推到了 WHERE 子句；而 findEffectiveListingsByBuilding 走的是
- * 「粗筛 where + 逐条 isListingEffectivelySupplied 精筛」。两者必须永远同口径，
- * 否则楼盘卡上的「在租 xxx ㎡」会与详情页、列表页的房源集合对不上。
+ * SupplyAdapter 有两个方法各自用原始 SQL 判定有效供给：
+ *   - sumEffectiveLeasableAreaByBuildings：一条 SQL 直接 GROUP BY 聚合面积；
+ *   - findEffectiveListingsByBuilding：SQL 选出符合条件的房源 id，再
+ *     payload.find 回填文档——**全程不调用 isListingEffectivelySupplied**，
+ *     不是「粗筛 + 逐条精筛」，两者都是纯 SQL 路径。
+ * 本脚本把 findEffectiveListingsByBuilding 的结果在 JS 里手动按面积求和，
+ * 与 sumEffectiveLeasableAreaByBuildings 的聚合值逐楼盘比对。
+ *
+ * 这两条 SQL 理应共享同一套有效供给规则、永远同口径，否则楼盘卡上的
+ * 「在租 xxx ㎡」会与详情页、列表页的房源集合对不上。
+ *
+ * **它能证明什么**：两处 SQL 的 WHERE/JOIN 条件有没有互相漂移——例如改
+ * 有效供给规则时只改了其中一处、漏改了另一处，这类问题会被立刻抓住。
+ * **它不能证明什么**：本脚本比对的两条路径都是 SQL，不涉及 TypeScript
+ * 精筛层（effective-supply.ts 的 isListingEffectivelySupplied，那是列表页
+ * /详情页用的独立判定路径）。SQL 的业务规则本身是否正确、SQL 与 TS 精筛层
+ * 是否口径一致，本脚本都无法验证——两条 SQL 共享同一个错误假设时，本脚本
+ * 依然会显示「一致」。
  *
  * 本脚本对当前库中全部楼盘逐个比对两条路径的合计值，任一栋对不上即非零退出。
- * **改动任何有效供给规则后必须重跑**（新增字段、调整商户资质判定、改举报暂停
- * 语义等）。SQL 侧的规则对照见 supply-adapter.ts 中该方法的注释。
+ * **改动任一处 SQL 的有效供给规则后必须重跑**（新增字段、调整商户资质判定、
+ * 改举报暂停语义等）。SQL 侧的规则对照见 supply-adapter.ts 中该方法的注释。
  *
  *   pnpm verify:leasable-area
  */
@@ -42,7 +56,9 @@ for (const id of ids) {
 const msDoc = Date.now() - tDoc
 
 console.log(`SQL 聚合  : ${msSql}ms, ${sqlMap.size} 栋有在租`)
-console.log(`逐条精筛  : ${msDoc}ms, ${docMap.size} 栋有在租`)
+// 与头注释一致：这条路径是纯 SQL 选 id + JS 求和，不是「逐条精筛」（不调用
+// isListingEffectivelySupplied），标签避免用「精筛」二字制造混淆。
+console.log(`JS 求和   : ${msDoc}ms, ${docMap.size} 栋有在租`)
 
 let bad = 0
 for (const id of ids) {

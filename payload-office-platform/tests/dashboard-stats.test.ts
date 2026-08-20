@@ -15,26 +15,21 @@ function eligibleListing(id: number, overrides: Record<string, unknown> = {}) {
     id,
     gallery: [{ id: `${id}-a` }, { id: `${id}-b` }, { id: `${id}-c` }],
     building: { id: 10, city: { id: 100 } },
+    merchant: {
+      id: 20,
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
+      serviceCities: [{ id: 100 }],
+    },
     ...overrides,
   }
 }
 
-const activeRelation = (listing: number) => ({
-  id: `relation-${listing}`,
-  listing,
-  effectiveFrom: asOf,
-  effectiveTo: null,
-  merchant: {
-    id: 20,
-    status: 'active',
-    qualificationStatus: 'valid',
-    qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
-    serviceCities: [{ id: 100 }],
-  },
-})
-
 describe('dashboard-stats/resolveDashboardStats', () => {
-  it('保留现有八项统计口径，并用一次批量关系查询统计有效供给', async () => {
+  // OPT-034：精筛不再批量查 listing-merchant-relations，商户直接读已展开的
+  // listing.merchant——标题从「批量关系查询」改为「不再查关系表」。
+  it('保留现有八项统计口径，且精筛不再查 listing-merchant-relations', async () => {
     const req = { requestId: 'dashboard-request' }
     const countCalls: CountInput[] = []
     const findCalls: FindInput[] = []
@@ -60,21 +55,17 @@ describe('dashboard-stats/resolveDashboardStats', () => {
         return {
           docs: [
             eligibleListing(1),
-            // 无生效商户关系 → 精筛淘汰（下方 relations 只返回 listing 1 的）。
-            // 2026-08-19 前这里用的是「图片只有 1 张」，图片条件移出精筛后换成关系。
-            eligibleListing(2),
+            // 未设置供给商户 → 精筛淘汰。2026-08-19 前这里用的是「图片只有 1
+            // 张」，图片条件移出精筛后换成「无生效关系」；OPT-034 删除关系表
+            // 后再换成「listing.merchant 为空」。
+            eligibleListing(2, { merchant: null }),
           ],
           hasNextPage: false,
           nextPage: null,
         }
       }
-      if (collection === 'listing-merchant-relations') {
-        return {
-          docs: [activeRelation(1)],
-          hasNextPage: false,
-          nextPage: null,
-        }
-      }
+      // OPT-034：精筛不再查 listing-merchant-relations——throw 而不是给空
+      // docs，免得关系表又被悄悄查起来时这里还是绿的。
       throw new Error(`Unexpected collection: ${collection}`)
     }
     const payload = { count, find } satisfies DashboardStatsPayloadPort
@@ -107,6 +98,6 @@ describe('dashboard-stats/resolveDashboardStats', () => {
       depth: 2,
       where: { id: { not_in: [3] } },
     })
-    expect(findCalls.filter((call) => call.collection === 'listing-merchant-relations')).toHaveLength(1)
+    expect(findCalls.some((call) => call.collection === 'listing-merchant-relations')).toBe(false)
   })
 })

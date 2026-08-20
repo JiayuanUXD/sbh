@@ -60,11 +60,14 @@ describe('sitemap-listings-query/成本约束', () => {
     const selectBlock = /select:\s*\{([\s\S]*?)\}/.exec(body)?.[1] ?? ''
     const fields = [...selectBlock.matchAll(/(\w+):\s*true/g)].map((m) => m[1]).sort()
 
-    // 输出用 slug/updatedAt/businessType；精筛用 building（取 city id）。
-    // 这份清单必须与 buildEffectiveSnapshot 读的字段一致——它读
-    // listing.building.city，少一个精筛口径就变了。
+    // 输出用 slug/updatedAt/businessType；精筛用 building（取 city id）与
+    // merchant（OPT-034 起 buildEffectiveSnapshot 直接读 listing.merchant，
+    // 不再经 listing-merchant-relations 关系表）。这份清单必须与
+    // buildEffectiveSnapshot 读的字段一致——它读 listing.building.city 与
+    // listing.merchant，少一个精筛口径就变了（漏选 merchant 的真实后果：
+    // merchant 恒为 undefined，精筛恒判 NO_SUPPLY_MERCHANT，sitemap 恒空）。
     // gallery 已于 2026-08-19 移出：媒体数量不再参与前台可见性判定。
-    expect(fields).toEqual(['building', 'businessType', 'slug', 'updatedAt'])
+    expect(fields).toEqual(['building', 'businessType', 'merchant', 'slug', 'updatedAt'])
   })
 })
 

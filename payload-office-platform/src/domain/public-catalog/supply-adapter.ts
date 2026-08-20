@@ -7,8 +7,8 @@
  *   - 定义 Facade 与"统一有效供给服务"之间的契约接口；
  *   - 提供生产实现 `createPayloadSupplyAdapter()`：查询层用 `getEffectiveSupplyWhere`
  *     粗筛 + `getPausedListingIds` 排除举报暂停，取候选后批量 `resolveEffectiveSupplies`
- *     精筛（媒体 §6 / 关系 §8 / 商户 §9-§10），保证前台、预览、楼盘聚合、Dashboard
- *     对同一房源可见性结论一致（M4 验收门）。
+ *     精筛（商户 §8-§10，OPT-034 起直接读 listings.merchant，不再经关系表），
+ *     保证前台、预览、楼盘聚合、Dashboard 对同一房源可见性结论一致（M4 验收门）。
  *
  * 守护不变量（FRONTEND_AGENT.md §6.1）：
  *   - 适配器是 Facade 唯一的数据入口，禁止在 Facade 内部直接拼 Payload where；
@@ -64,7 +64,7 @@ export interface SupplyAdapter {
    * 都用不上。真实后果：/sitemap.xml 线上 70 秒无响应，而超时又导致 unstable_cache
    * 写不进去、下次仍然是冷的，形成死循环（见 specs/work-items/OPT-031）。
    *
-   * 精筛口径不打折：仍然走同一个 fineFilter，媒体数 / 商户关系 / 资质 / 举报暂停
+   * 精筛口径不打折：仍然走同一个 fineFilter，供给商户 / 资质 / 举报暂停
    * 与前台完全一致——sitemap 输出的 URL 必须逐条可达，否则是另一种 SEO 伤害。
    */
   findEffectiveListingsSitemapPage(
@@ -490,8 +490,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   }
 
   /**
-   * 批量解析候选的关系与有效供给，保留 eligible 文档，避免关系查询 N+1。
-   * 文档需 depth≥1 已展开 building / merchant。
+   * 批量解析候选的有效供给，保留 eligible 文档。文档需 depth≥1 已展开
+   * building / merchant——OPT-034 起商户直接读 listing.merchant，精筛是纯
+   * 内存计算，不再查 listing-merchant-relations，也就不再有那层 N+1。
    */
   async function fineFilter(
     docs: readonly Record<string, unknown>[],
@@ -602,18 +603,23 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       const result = await payload.find({
         collection: 'listings',
         where: where as Where,
-        // depth 1 而不是 2：精筛只需要 building.city 的 id，toId() 同时接受 id 与对象，
-        // 所以一层足够。depth 2 会把城市、行政区、商圈、地铁整棵关系树拉出来。
+        // depth 1 而不是 2：精筛只需要 building.city 的 id 与 merchant 本身，
+        // toId() 同时接受 id 与对象，所以一层足够。depth 2 会把城市、行政区、
+        // 商圈、地铁整棵关系树拉出来，merchant 展开一层就够精筛用了。
         depth: 1,
-        // 只取两类字段：输出用的 slug/updatedAt/businessType，以及精筛要读的
-        // building（只用 city id）。少一个字段精筛口径就会变，多一个字段就是白付钱
-        // ——这份清单必须和 buildEffectiveSnapshot 对齐。
+        // 只取三类字段：输出用的 slug/updatedAt/businessType，以及精筛要读的
+        // building（只用 city id）与 merchant（OPT-034 起 buildEffectiveSnapshot
+        // 直接读 listing.merchant，不再查 listing-merchant-relations 关系表——
+        // 漏选这个字段会让 merchant 恒为 undefined，精筛恒判 NO_SUPPLY_MERCHANT，
+        // sitemap 恒空）。少一个字段精筛口径就会变，多一个字段就是白付钱——
+        // 这份清单必须和 buildEffectiveSnapshot 对齐。
         // gallery 已移出：媒体数量不再参与前台可见性判定。
         select: {
           slug: true,
           updatedAt: true,
           businessType: true,
           building: true,
+          merchant: true,
         },
         sort: 'id',
         limit,
@@ -719,20 +725,12 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // Payload's nested relationship where can be very slow in local dev when
       // combined with a direct building filter; IDs first keeps rendering fast.
       const sql = `
-WITH active_rel AS (
-  SELECT r.listing_id, r.merchant_id,
-         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
-  FROM listing_merchant_relations r
-  WHERE r.effective_from <= $1
-    AND (r.effective_to IS NULL OR r.effective_to > $1)
-)
 SELECT l.id
 FROM listings l
 JOIN buildings  b    ON b.id = l.building_id
 JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
-JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
-JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN merchants  m    ON m.id = l.merchant_id
 WHERE l.building_id = $2
   AND ($3::int IS NULL OR l.id <> $3::int)
   AND l.deleted_at IS NULL
@@ -793,32 +791,28 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf).toISOString()
 
-      // 每个 WHERE 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
-      // isListingEffectivelySupplied 的逐条精筛一一对应：
+      // 每个 WHERE / JOIN 子句对应一条有效供给规则，与 getEffectiveSupplyWhere +
+      // isListingEffectivelySupplied 的业务口径一一对应（这条对应关系是设计
+      // 意图，不是本文件自动验证的——见下方 verify 脚本的能力边界说明）：
       //   l.deleted_at / publication_status / review_status / supply_visibility_hold
       //                                            → getEffectiveSupplyWhere
       //   b.* / city.status / dist.status          → getListingPublicBuildingWhere
-      //   ar.rel_count = 1 + 区间覆盖 asOf         → §8 恰好一条生效商户关系
+      //   JOIN merchants ON l.merchant_id          → §8 房源已设置供给商户（INNER JOIN 排除 NULL）
       //   m.status / qualification_*               → §9 商户启用 + 资质有效
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
       //   listing_reports.supply_paused            → §5 举报暂停排除
-      // 口径一致性由 scripts/verify-leasable-area-parity.ts 对全部楼盘做
-      // 「SQL vs 逐条精筛」全量比对守护，改动规则时必须重跑。
+      // scripts/verify-leasable-area-parity.ts 对全部楼盘做的是本方法与
+      // findEffectiveListingsByBuilding（同样是纯 SQL 路径）互相校验，能抓住
+      // 「两处 SQL 只改了一处」这类漂移，但不比对、也不能证明与上面这张
+      // TypeScript 规则表的口径一致性；改动任一处规则后仍应重跑，但结果一致
+      // 不能替代对 TS 精筛层的人工核对。
       const sql = `
-WITH active_rel AS (
-  SELECT r.listing_id, r.merchant_id,
-         COUNT(*) OVER (PARTITION BY r.listing_id) AS rel_count
-  FROM listing_merchant_relations r
-  WHERE r.effective_from <= $1
-    AND (r.effective_to IS NULL OR r.effective_to > $1)
-)
 SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
 FROM listings l
 JOIN buildings  b    ON b.id = l.building_id
 JOIN locations  city ON city.id = b.city_id
 JOIN locations  dist ON dist.id = b.district_id
-JOIN active_rel ar   ON ar.listing_id = l.id AND ar.rel_count = 1
-JOIN merchants  m    ON m.id = ar.merchant_id
+JOIN merchants  m    ON m.id = l.merchant_id
 WHERE l.building_id = ANY($2)
   AND l.deleted_at IS NULL
   AND l.publication_status = 'published'
