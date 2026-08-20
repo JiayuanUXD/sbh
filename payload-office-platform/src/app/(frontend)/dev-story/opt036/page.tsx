@@ -15,6 +15,7 @@ import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/li
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
 import type { BuildingSummaryViewModel, ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
 import { rentUnitLabel } from '@/lib/frontend/format'
+import MobileFilterPreview from './MobileFilterPreview'
 
 /**
  * OPT-036 列表页组件预览（仅开发环境）
@@ -1087,6 +1088,14 @@ export default function Opt036PreviewPage() {
               />
             </div>
           </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="mobile-filter-sheet"
+          title="移动筛选抽屉与悬浮入口（MobileFilterSheet / MobileFilterTrigger）"
+          note="独立 UI，不是桌面形态 C 的等比缩小——桌面不吸顶随页面滚走，移动端默认完全不占视口，靠底部悬浮 pill 随时召唤；焦点锁定/Esc/焦点归还/背景滚动锁定照抄 Modal.tsx。两个组件用真实 position:fixed（相对视口），本页不做设备框 mock——截图验收请把 Playwright viewport 设为 375×812（与 task3 的 home-375-full.png 同一惯例）后滚动到本区块。交互态见下方 MobileFilterPreview（单独 client 组件，见其文件顶部注释）。"
+        >
+          <MobileFilterPreview />
         </PreviewSection>
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}

@@ -463,3 +463,105 @@
 }
 
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }
+
+/* ── 移动筛选悬浮入口（MobileFilterTrigger）──────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「移动 375 · 列表态」区块
+ * （房源列表.dc.html:604-610）+ specRows「移动筛选入口」：底部悬浮 pill 44
+ * 高，带条件数与实时结果数。渐变遮罩条 `--z-floating`（「固定浮动元素：回到
+ * 顶部等」）——与抽屉遮罩的 `--z-modal` 分属两层，抽屉打开时理应盖过它。
+ * 组件本身不写 @media 断点门槛，理由见 MobileFilterTrigger.tsx 顶部注释。 */
+.ls-mtrigger__dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-floating);
+  padding: 12px 16px 28px; display: flex; justify-content: center; pointer-events: none;
+  background: linear-gradient(to top, var(--bg) 40%, rgba(245, 245, 247, 0)); }
+
+.ls-mtrigger { pointer-events: auto; height: 44px; padding: 0 22px; border: none; cursor: pointer;
+  border-radius: var(--r-pill); background: var(--ink); color: #fff; font-size: 14px; font-weight: 500;
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); }
+
+.ls-mtrigger__badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.22); font-size: 11px; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; display: flex; align-items: center; justify-content: center; }
+
+.ls-mtrigger__divider { flex: none; width: 1px; height: 16px; background: rgba(255, 255, 255, 0.28); }
+
+.ls-mtrigger__total { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-weight: 400; color: rgba(255, 255, 255, 0.8); }
+
+/* ── 移动筛选抽屉（MobileFilterSheet）─────────────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「移动 375 · 筛选抽屉」区块
+ * （房源列表.dc.html:615-694）+ specRows「移动抽屉」：高 88% · 顶部圆角 24 ·
+ * 底栏 48 高按钮 · 分组间距 24 + 1px 分隔线。焦点/滚动锁定见组件文件顶部注释
+ * （照抄 Modal.tsx，唯一差异是焦点归还的来源）。
+ *
+ * 遮罩色 rgba(0,0,0,.28) 是 comp 字面值（房源列表.dc.html:624），与
+ * `.modal__overlay` 的 rgba(23,26,29,.55) 不同——两者分属不同批次的设计规格，
+ * 本组件按当前批次 comp 的字面值来，不借用旧 Modal 的遮罩深浅。 */
+.ls-msheet__overlay { position: fixed; inset: 0; z-index: var(--z-modal); background: rgba(0, 0, 0, 0.28);
+  display: flex; align-items: flex-end; justify-content: center; overscroll-behavior: contain; }
+
+.ls-msheet { width: 100%; max-width: 480px; height: 88%; background: var(--bg);
+  border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden;
+  animation: ls-msheet-slide-up var(--duration-base) var(--ease-apple); }
+
+@keyframes ls-msheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) { .ls-msheet { animation: none; } }
+
+.ls-msheet__head { flex: none; padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.ls-msheet__grabber { align-self: center; width: 36px; height: 4px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); }
+
+.ls-msheet__head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.ls-msheet__picked { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-msheet__title { flex: none; margin: 0; font-size: 17px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-msheet__reset { flex: 1; min-width: 0; text-align: right; font-size: 13px; color: var(--accent-link);
+  letter-spacing: normal; transition: color var(--duration-base) var(--ease-apple); }
+.ls-msheet__reset:hover { color: var(--accent-hover); }
+
+/* min-height:0 是 flex 子项内部出现 overflow:auto 的必需项——没有它子项会按内容撑高，
+   overflow:auto 形同虚设，抽屉高度会被内容撑破 88% 而不是在内部滚动。 */
+.ls-msheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 24px; }
+
+.ls-msheet__group { display: flex; flex-direction: column; gap: 10px; }
+
+/* 分组间距 24（来自父级 .ls-msheet__body 的 flex gap）+ 1px 分隔线：分隔线只加在
+   第二个及以后的分组上，第一个分组顶部不需要线（comp 房源列表.dc.html:635 vs 644）。 */
+.ls-msheet__group:not(:first-child) { padding-top: 20px; border-top: 1px solid var(--line); }
+
+.ls-msheet__group-label { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
+
+.ls-msheet__group-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* rgba(245,245,247,.94) 是 --bg(#f5f5f7) 的半透明版——需要配合 backdrop-filter
+   透出抽屉滚动内容，--bg 本身是不透明实色 token，没有对应的半透明变体，按既有
+   惯例（.ls-unitseg 等处）直接写字面值。 */
+.ls-msheet__footer { flex: none; padding: 12px 16px 28px; background: rgba(245, 245, 247, 0.94);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line); display: flex; gap: 10px; }
+
+.ls-msheet__footer-reset { flex: none; width: 96px; height: 48px; border: none; border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--ink-2); font-size: 15px; font-weight: 500; letter-spacing: normal;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-msheet__footer-reset:hover { background: #ececf0; }
+
+.ls-msheet__footer-apply { flex: 1; height: 48px; padding: 0; border: none; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 500; letter-spacing: normal;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-msheet__footer-apply:hover { background: var(--accent-hover); }
+
+.ls-msheet__footer-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-msheet__reset, .ls-msheet__footer-reset, .ls-msheet__footer-apply { transition: none; }
+}
