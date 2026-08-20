@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import type { FilterRow } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterSheet from '@/components/frontend/listing/MobileFilterSheet'
 import MobileFilterTrigger from '@/components/frontend/listing/MobileFilterTrigger'
@@ -78,6 +78,10 @@ const PARAMS_WITH_PICKS = new URLSearchParams([
 export default function MobileFilterPreview(): React.JSX.Element {
   const [hasPicks, setHasPicks] = useState(true)
   const [open, setOpen] = useState(false)
+  // MobileFilterSheet.triggerRef 必填：同一个 ref 分别交给 Trigger 的
+  // forwardRef（拿到真实按钮节点）和 Sheet（关闭后归还焦点用），示例见
+  // MobileFilterSheet.tsx 顶部「焦点管理」注释。
+  const triggerButtonRef = useRef<HTMLButtonElement>(null)
 
   const rows = hasPicks ? ROWS_WITH_PICKS : ROWS_EMPTY
   const activeCount = rows.reduce((n, row) => (row.activeValue != null ? n + 1 : n), 0)
@@ -104,6 +108,7 @@ export default function MobileFilterPreview(): React.JSX.Element {
       </div>
 
       <MobileFilterTrigger
+        ref={triggerButtonRef}
         activeCount={activeCount}
         totalDocs={totalDocs}
         countNoun="套"
@@ -118,6 +123,7 @@ export default function MobileFilterPreview(): React.JSX.Element {
         currentParams={currentParams}
         totalDocs={totalDocs}
         countNoun="套"
+        triggerRef={triggerButtonRef}
       />
     </div>
   )

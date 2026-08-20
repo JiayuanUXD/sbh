@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { forwardRef } from 'react'
 
 /**
  * 移动筛选悬浮入口（MobileFilterTrigger）—— OPT-036 Task 10，client component。
@@ -29,25 +29,39 @@ import React from 'react'
  * 见 `list.css` 里各处 `@media (max-width: 767px)` 块）——本组件自己写死
  * `min-width: 768px { display:none }` 会导致 dev-story 预览页在桌面视口下
  * 模拟 375 容器演示移动态时整个不可见,拿不到真实渲染效果。
+ *
+ * ## 为什么是 `forwardRef`（code review 后加）
+ *
+ * `MobileFilterSheet` 的 `triggerRef` 是**必填**项（见该组件顶部注释「焦点
+ * 管理」）：这个抽屉是移动专属组件，触摸是主要交互方式，而 iOS Safari 的
+ * `<button>` 触摸激活本来就不会自动把焦点移上去（这不是「鼠标点击的边角
+ * 情形」，是移动端主路径）,只靠组件内部 `document.activeElement` 捕获救不
+ * 回来。调用方必须能拿到这个按钮的真实 DOM 节点传给 `MobileFilterSheet`，
+ * 所以本组件用 `forwardRef` 暴露内部 `<button>`——不是可选的健壮性加固，是
+ * 移动端可访问性路径能不能工作的前提。
  */
-export default function MobileFilterTrigger(props: Readonly<{
+type MobileFilterTriggerProps = Readonly<{
   activeCount: number
   totalDocs: number
   countNoun: string
   onOpen: () => void
-}>): React.JSX.Element {
-  const { activeCount, totalDocs, countNoun, onOpen } = props
+}>
 
-  return (
-    <div className="ls-mtrigger__dock">
-      <button type="button" className="ls-mtrigger" onClick={onOpen}>
-        <span>筛选</span>
-        {activeCount > 0 ? <span className="ls-mtrigger__badge">{activeCount}</span> : null}
-        <span className="ls-mtrigger__divider" aria-hidden="true" />
-        <span className="ls-mtrigger__total">
-          {totalDocs} {countNoun}
-        </span>
-      </button>
-    </div>
-  )
-}
+const MobileFilterTrigger = forwardRef<HTMLButtonElement, MobileFilterTriggerProps>(
+  function MobileFilterTrigger({ activeCount, totalDocs, countNoun, onOpen }, ref) {
+    return (
+      <div className="ls-mtrigger__dock">
+        <button ref={ref} type="button" className="ls-mtrigger" onClick={onOpen}>
+          <span>筛选</span>
+          {activeCount > 0 ? <span className="ls-mtrigger__badge">{activeCount}</span> : null}
+          <span className="ls-mtrigger__divider" aria-hidden="true" />
+          <span className="ls-mtrigger__total">
+            {totalDocs} {countNoun}
+          </span>
+        </button>
+      </div>
+    )
+  },
+)
+
+export default MobileFilterTrigger
