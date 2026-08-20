@@ -35,6 +35,7 @@ import type { PublicCitySiteProfile } from '@/domain/city-site-profile/public-co
 import {
   listPublicCityOptions,
   listPublicCityProfiles,
+  livePlatformStatsSlugs,
   resolveCityContext,
 } from '@/app/(frontend)/_lib/city-context'
 import {
@@ -422,5 +423,46 @@ describe('city context resolver', () => {
       revalidate: 300,
       tags: ['public:city-profile:hangzhou', 'public:city-profiles'],
     })
+  })
+})
+
+/**
+ * 回归（最终评审 F2）：根页 `/` 数据带的跨城汇总只吃「已开通 + slug 可公开路由」
+ * 的城市。历史实现是 `profiles.filter((p) => p.serviceStatus === 'live')`，
+ * 没有过 `isPublicCitySlug` 这道路由信任边界。
+ */
+describe('livePlatformStatsSlugs（根页平台 stats 城市清单）', () => {
+  it('只保留 serviceStatus 为 live 的城市', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live' }),
+        profile({ citySlug: 'hangzhou', serviceStatus: 'coming-soon' }),
+        profile({ citySlug: 'shenzhen', serviceStatus: 'live' }),
+      ]),
+    ).toEqual(['shanghai', 'shenzhen'])
+  })
+
+  it('剔除不可公开路由的 slug（保留根段 / 非规范形态），不让它们触发跨城查询', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live' }),
+        // 撞上保留根段：前台没有 /listings 城市页，供给点不进去
+        profile({ citySlug: 'listings', serviceStatus: 'live' }),
+        // 非规范 slug：同样不可路由
+        profile({ citySlug: 'Bad_Slug', serviceStatus: 'live' }),
+      ]),
+    ).toEqual(['shanghai'])
+  })
+
+  it('不按 switcherVisible 过滤——那是切换器展示开关，不是开通状态', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live', switcherVisible: false }),
+      ]),
+    ).toEqual(['shanghai'])
+  })
+
+  it('无 live 城市时返回空清单（getPlatformHomepageStats 据此走全零且零查询）', () => {
+    expect(livePlatformStatsSlugs([profile({ serviceStatus: 'coming-soon' })])).toEqual([])
   })
 })

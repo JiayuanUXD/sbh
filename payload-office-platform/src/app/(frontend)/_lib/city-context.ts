@@ -251,6 +251,26 @@ export const listPublicCityProfiles = unstable_cache(
   { revalidate: CITY_PROFILE_REVALIDATE_SECONDS, tags: [CITY_PROFILES_TAG] },
 )
 
+/**
+ * 根页 `/` 数据带的跨城汇总口径：已开通（`live`）且 slug 在七城白名单内的城市。
+ *
+ * `isPublicCitySlug` 这道过滤不是冗余：profile 表是运营可写的，slug 可能不是
+ * 可路由的公开城市（非规范形态，或撞上 `listings` / `admin` 这类保留根段）。
+ * 这种 profile 在前台根本没有对应路由，却仍会被 `getPlatformHomepageStats`
+ * 拿去建 SearchContext 并发起三次全量查询——既是无意义的库读，也会把用户
+ * 点不进去的供给算进平台数字。与 `listPublicCityOptions` 用的是同一道边界。
+ *
+ * 不按 `switcherVisible` 过滤：那是「城市切换器里露不露脸」的展示开关，
+ * 与「这座城市是否已开通、供给是否该计入平台规模」是两回事。
+ */
+export function livePlatformStatsSlugs(
+  profiles: readonly PublicCitySiteProfile[],
+): readonly string[] {
+  return profiles
+    .filter((profile) => profile.serviceStatus === 'live' && isPublicCitySlug(profile.citySlug))
+    .map((profile) => profile.citySlug)
+}
+
 export async function listPublicCityOptions(): Promise<readonly PublicCityOption[]> {
   const profiles = await listPublicCityProfiles()
   return profiles

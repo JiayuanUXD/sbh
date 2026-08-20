@@ -53,33 +53,32 @@ const article: ArticleCardViewModel = {
   publishedAt: '2026-08-01T00:00:00.000Z', stableSortKey: 'article-31',
 }
 
-function buildHomepage() {
+function buildHomepage(stats = { listings: 120, buildings: 45, businessAreas: 12 }) {
   return {
     featuredListings: [listing],
     districts,
     featuredBuildings: [building],
     districtCards,
     latestArticles: [article],
-    stats: { listings: 120, buildings: 45, businessAreas: 12 },
+    stats,
     typeSummaries: {},
     nearbyListings: [nearbyListing],
   }
 }
 
-const stats = { listings: 120, buildings: 45, businessAreas: 12 }
+const bandStats = { listings: 120, buildings: 45, businessAreas: 12 }
 
 describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
-  // OPT-035 改版后 Hero 文案按设计稿固定（见 HomeHero.tsx 顶部说明）：
-  // profile 里存的是旧版营销文案，`profile.hero.x || 设计稿文案` 的写法让设计稿
-  // 分支永远走不到，首屏因此一直是旧口吻。两条路由都必须渲染设计稿文案。
-  it('legacy 与 prefixed 的 Hero 文案都按设计稿固定，不再读 city.profile.hero', () => {
+  // Hero 文案在实现层固定（见 HomeHero.tsx 顶部说明）：产品裁定「slogan 全站
+  // 共用一句」，两条路由渲染同一句，且不读 city.profile.hero.heading/body。
+  it('legacy 与 prefixed 的 Hero 文案共用同一句，不读 city.profile.hero', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', stats }))
-    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
     for (const html of [legacy, prefixed]) {
-      expect(html).toContain('把每一平米算清楚。')
-      expect(html).toContain('7 座城市 · 在租房源实时同步 · 面积与租金逐条核过')
+      expect(html).toContain('汇聚高端商务空间，赋能企业卓越成长')
+      expect(html).toContain('覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策')
       expect(html).not.toContain('Custom heading')
       expect(html).not.toContain('Custom summary')
     }
@@ -88,8 +87,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('legacy 路由不带城市前缀，prefixed 路由带 /shanghai 前缀', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', stats }))
-    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
     expect(legacy).toContain('href="/listings"')
     expect(legacy).not.toContain('href="/shanghai/listings"')
     expect(prefixed).toContain('href="/shanghai/listings"')
@@ -98,9 +97,10 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('按设计顺序编排九个 section：Hero → 类型 → 商圈 → 楼盘 → 数据带 → 精选房源 → 选择我们 → 核心商圈 → 资讯', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
-    // 数据带用「收录楼盘」而不是「在租房源」定位：后者也出现在 Hero 副标
-    // （「7 座城市 · 在租房源实时同步 · …」）里，会把 indexOf 拉到页面最前面。
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
+    // 数据带用「收录楼盘」而不是「在租房源」定位：Hero 副标随时可能被产品换掉，
+    // 一旦其中出现「在租房源」字样，indexOf 就会被拉到页面最前面（历史上的设计稿
+    // 文案「7 座城市 · 在租房源实时同步 · …」正是如此）。
     const labels = ['按类型浏览', '热门商圈', '热门楼盘', '收录楼盘', '精选房源', '为什么选择我们', '核心商圈房源', '资讯']
     const markers = labels.map((marker) => {
       const index = html.indexOf(marker)
@@ -112,27 +112,57 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     }
   })
 
-  it('stats prop（而非 homepage.stats）驱动商圈/楼盘/房源三处汇总数字', () => {
+  /**
+   * 回归（最终评审 F2）：三处 section 链接的数字必须与链接落点同口径。
+   *
+   * 「全部 N 个商圈」/「全部 N 个楼盘」/「查看 N 套在租」分别指向 `/listings`
+   * `/buildings`（legacy 下按 defaultCity 收敛，prefixed 下按路径城市收敛），
+   * 全是**城市域**路由；一旦第二座城市置为 live，根页把跨城汇总喂进来，
+   * 数字就会大于点进去能看到的量。因此它们只准取 homepage.stats（单城口径），
+   * 数据带（无链接的平台规模陈述）才允许用 bandStats。
+   */
+  it('三处 section 链接数字取单城 homepage.stats，数据带才取 bandStats', () => {
     const city = buildCity(2.5)
-    const homepage = buildHomepage()
+    // 单城 45 楼盘 / 12 商圈 / 120 房源；平台汇总（两城）翻倍
+    const homepage = buildHomepage({ listings: 120, buildings: 45, businessAreas: 12 })
     const html = renderToStaticMarkup(createElement(CityHomeView, {
       city,
       homepage,
-      routeMode: 'prefixed',
-      stats: { listings: 999, buildings: 888, businessAreas: 777 },
+      routeMode: 'legacy',
+      bandStats: { listings: 999, buildings: 888, businessAreas: 777 },
     }))
-    expect(html).toContain('777')
-    expect(html).toContain('个商圈')
-    expect(html).toContain('888')
-    expect(html).toContain('个楼盘')
+    expect(html).toContain('>12</span> 个商圈')
+    expect(html).toContain('>45</span> 个楼盘')
+    expect(html).toContain('>120</span> 套在租')
+    // 跨城汇总数字绝不出现在任何 section 链接上
+    for (const platformOnly of ['777', '888', '999']) {
+      expect(html).not.toContain(`>${platformOnly}</span> 个`)
+      expect(html).not.toContain(`>${platformOnly}</span> 套`)
+    }
+    // 数据带仍然是平台口径
     expect(html).toContain('999')
-    expect(html).toContain('套在租')
+    expect(html).toContain('收录楼盘')
+  })
+
+  it('bandStats 全零时（无 live 城市）section 链接仍展示单城真实数字，不出现字面 0', () => {
+    const city = buildCity(2.5)
+    const homepage = buildHomepage({ listings: 120, buildings: 45, businessAreas: 12 })
+    const html = renderToStaticMarkup(createElement(CityHomeView, {
+      city,
+      homepage,
+      routeMode: 'legacy',
+      bandStats: { listings: 0, buildings: 0, businessAreas: 0 },
+    }))
+    expect(html).toContain('>12</span> 个商圈')
+    expect(html).toContain('>45</span> 个楼盘')
+    expect(html).toContain('>120</span> 套在租')
+    expect(html).not.toContain('>0</span>')
   })
 
   it('avgResponseHours 存在时数据带展示「平均响应」，为 null 时不展示', () => {
     const homepage = buildHomepage()
-    const withResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(3.5), homepage, routeMode: 'prefixed', stats }))
-    const withoutResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(null), homepage, routeMode: 'prefixed', stats }))
+    const withResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(3.5), homepage, routeMode: 'prefixed', bandStats }))
+    const withoutResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(null), homepage, routeMode: 'prefixed', bandStats }))
     expect(withResponse).toContain('平均响应')
     expect(withoutResponse).not.toContain('平均响应')
   })
@@ -140,7 +170,7 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('核心商圈房源以城市名起算，资讯展示传入的文章标题', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', stats }))
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
     expect(html).toContain('以上海市中心起算')
     expect(html).toContain('首页改版上线')
   })
