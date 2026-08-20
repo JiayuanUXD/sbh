@@ -43,15 +43,30 @@ export async function listActiveListingIdsForMerchant(
   merchantId: number | string,
   req?: PayloadRequest,
 ): Promise<Array<number | string>> {
-  const res = await payload.find({
+  const LIMIT = 1000
+  const res = (await payload.find({
     collection: 'listings' as never,
     where: { merchant: { equals: merchantId }, deletedAt: { exists: false } },
-    limit: 1000,
+    limit: LIMIT,
     depth: 0,
     overrideAccess: true,
     req,
-  })
-  const ids = new Set<number | string>((res.docs ?? []).map((d) => (d as { id: number | string }).id))
+  })) as { docs?: Array<{ id: number | string }>; totalDocs?: number }
+  const docs = res.docs ?? []
+  const ids = new Set<number | string>(docs.map((d) => d.id))
+  // totalDocs 是查询命中总数（不受 limit 截断），docs.length 是实际返回条数。
+  // 二者不一致说明真实供给量超过 LIMIT，本函数会静默漏掉超出部分——这些房源
+  // 不会被转 pending review，商户恢复启用时会绕过人工复核直接重新曝光
+  // （见头注释「商户恢复不自动解除」这条不变量）。分页取全量或放开上限需要
+  // 单独设计（markListingsPendingReview 是逐条 findByID+update 的串行循环，
+  // 且与商户更新共享同一事务，简单放开会把单事务往返次数推到数千级，
+  // 容易超时回滚导致停用动作本身失败）——这里先把静默失败变成有日志线索。
+  if (typeof res.totalDocs === 'number' && res.totalDocs > LIMIT) {
+    payload.logger.warn(
+      { merchantId, totalDocs: res.totalDocs, limit: LIMIT, returned: docs.length },
+      'merchant_stop_listings_truncated',
+    )
+  }
   return Array.from(ids)
 }
 

@@ -30,16 +30,19 @@ interface UpdateCall {
 
 function makePayload(options: {
   findDocs?: Array<{ id: number | string }>
+  /** 模拟真实命中总数（不受 limit 截断）；不传则默认等于 findDocs.length（未截断） */
+  totalDocs?: number
   listingDocs?: Record<string | number, { reviewStatus?: string; version?: number }>
 } = {}) {
   const findCalls: FindCall[] = []
   const updateCalls: UpdateCall[] = []
-  const { findDocs = [], listingDocs = {} } = options
+  const { findDocs = [], totalDocs, listingDocs = {} } = options
+  const warnCalls: unknown[][] = []
 
   const payload = {
     find: vi.fn(async (params: { collection: string; where: Record<string, unknown> }) => {
       findCalls.push({ collection: params.collection, where: params.where })
-      return { docs: findDocs, totalDocs: findDocs.length, totalPages: 1, page: 1 }
+      return { docs: findDocs, totalDocs: totalDocs ?? findDocs.length, totalPages: 1, page: 1 }
     }),
     findByID: vi.fn(async (params: { collection: string; id: number | string }) => {
       return listingDocs[params.id] ?? null
@@ -56,8 +59,13 @@ function makePayload(options: {
       })
       return { ...listingDocs[params.id], ...params.data }
     }),
+    logger: {
+      warn: vi.fn((...args: unknown[]) => {
+        warnCalls.push(args)
+      }),
+    },
   }
-  return { payload, findCalls, updateCalls }
+  return { payload, findCalls, updateCalls, warnCalls }
 }
 
 describe('listActiveListingIdsForMerchant', () => {
@@ -81,18 +89,43 @@ describe('listActiveListingIdsForMerchant', () => {
     expect(ids).toEqual([101, 102, 103])
     expect(findCalls).toHaveLength(1)
     expect(findCalls[0].collection).toBe('listings')
-    // where 必须含 merchant + 排除已逻辑删除的房源；不再有有效期窗口
-    const whereJson = JSON.stringify(findCalls[0].where)
-    expect(whereJson).toContain('"equals":5')
-    expect(whereJson).toContain('deletedAt')
-    expect(whereJson).not.toContain('effectiveFrom')
-    expect(whereJson).not.toContain('effectiveTo')
+    expect(findCalls[0].where).toEqual({ merchant: { equals: 5 }, deletedAt: { exists: false } })
+  })
+
+  it('where 精确锁定 merchant.equals + deletedAt.exists:false（防止实现改成相反语义仍测试通过）', async () => {
+    // 若实现被误改成 deletedAt:{exists:true}（只冻结已删除房源，语义完全颠倒），
+    // 本测试必须失败——这是这条级联唯一的自动化保护，不能只锁键名不锁取值。
+    const { payload, findCalls } = makePayload({ findDocs: [{ id: 1 }] })
+    await listActiveListingIdsForMerchant(payload as never, 9)
+    expect(findCalls[0].where).toEqual({ merchant: { equals: 9 }, deletedAt: { exists: false } })
   })
 
   it('空结果返回空数组', async () => {
     const { payload } = makePayload({ findDocs: [] })
     const ids = await listActiveListingIdsForMerchant(payload as never, 5)
     expect(ids).toEqual([])
+  })
+
+  it('命中总数超过 limit(1000) 时记录截断告警（真实数据已越线的既有风险，见头注释）', async () => {
+    // 模拟：真实命中 1200 条，但 payload.find 受 limit 截断只返回 3 条（不构造 1200 条 fixture）
+    const { payload, warnCalls } = makePayload({
+      findDocs: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      totalDocs: 1200,
+    })
+    const ids = await listActiveListingIdsForMerchant(payload as never, 5)
+    expect(ids).toEqual([1, 2, 3])
+    expect(warnCalls).toHaveLength(1)
+    expect(warnCalls[0][0]).toEqual({ merchantId: 5, totalDocs: 1200, limit: 1000, returned: 3 })
+    expect(warnCalls[0][1]).toBe('merchant_stop_listings_truncated')
+  })
+
+  it('命中总数未超过 limit 时不记录告警', async () => {
+    const { payload, warnCalls } = makePayload({
+      findDocs: [{ id: 1 }, { id: 2 }],
+      totalDocs: 2,
+    })
+    await listActiveListingIdsForMerchant(payload as never, 5)
+    expect(warnCalls).toHaveLength(0)
   })
 })
 
