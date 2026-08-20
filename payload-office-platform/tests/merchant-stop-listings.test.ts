@@ -10,7 +10,7 @@ import {
  * M4.8 商户停用冻结：批量标记关联 Listing 为待复核（design §3.5 / R2 §56 / R4 / R8）
  *
  * 业务不变量：
- *   - 商户停用时把当前有效供给关系对应房源全部置 reviewStatus=pending
+ *   - 商户停用时把当前由该商户供给（listings.merchant = merchantId）的房源全部置 reviewStatus=pending
  *   - 已是 pending 的房源跳过（避免无谓写入 + version 递增）
  *   - publicationStatus 不改（保持 draft/published/offline 现值）
  *   - 透传 req 保持事务一致性
@@ -29,7 +29,7 @@ interface UpdateCall {
 }
 
 function makePayload(options: {
-  findDocs?: Array<{ listing?: number | string | { id: number | string } | null }>
+  findDocs?: Array<{ id: number | string }>
   listingDocs?: Record<string | number, { reviewStatus?: string; version?: number }>
 } = {}) {
   const findCalls: FindCall[] = []
@@ -61,42 +61,38 @@ function makePayload(options: {
 }
 
 describe('listActiveListingIdsForMerchant', () => {
-  it('从有效供给关系去重收集 listing id', async () => {
+  it('按 listings.merchant 找该商户供给的房源，不再查关系表', async () => {
+    const find = vi.fn(async () => ({ docs: [{ id: 11 }, { id: 12 }] }))
+    const ids = await listActiveListingIdsForMerchant({ find } as never, 7)
+    expect(ids).toEqual([11, 12])
+    expect(find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'listings',
+        where: expect.objectContaining({ merchant: { equals: 7 } }),
+      }),
+    )
+  })
+
+  it('去重收集 listing id', async () => {
     const { payload, findCalls } = makePayload({
-      findDocs: [
-        { listing: 101 },
-        { listing: 102 },
-        { listing: { id: 101 } }, // 重复
-        { listing: 103 },
-      ],
+      findDocs: [{ id: 101 }, { id: 102 }, { id: 101 }, { id: 103 }], // 101 重复
     })
     const ids = await listActiveListingIdsForMerchant(payload as never, 5)
     expect(ids).toEqual([101, 102, 103])
     expect(findCalls).toHaveLength(1)
-    expect(findCalls[0].collection).toBe('listing-merchant-relations')
-    // where 必须含 merchant + 有效期窗口
+    expect(findCalls[0].collection).toBe('listings')
+    // where 必须含 merchant + 排除已逻辑删除的房源；不再有有效期窗口
     const whereJson = JSON.stringify(findCalls[0].where)
     expect(whereJson).toContain('"equals":5')
-    expect(whereJson).toContain('effectiveFrom')
-    expect(whereJson).toContain('effectiveTo')
+    expect(whereJson).toContain('deletedAt')
+    expect(whereJson).not.toContain('effectiveFrom')
+    expect(whereJson).not.toContain('effectiveTo')
   })
 
-  it('空关系返回空数组', async () => {
+  it('空结果返回空数组', async () => {
     const { payload } = makePayload({ findDocs: [] })
     const ids = await listActiveListingIdsForMerchant(payload as never, 5)
     expect(ids).toEqual([])
-  })
-
-  it('跳过 listing 为 null/undefined 的项', async () => {
-    const { payload } = makePayload({
-      findDocs: [
-        { listing: null },
-        { listing: undefined },
-        { listing: 201 },
-      ],
-    })
-    const ids = await listActiveListingIdsForMerchant(payload as never, 5)
-    expect(ids).toEqual([201])
   })
 })
 
@@ -156,9 +152,9 @@ describe('markListingsPendingReviewOnMerchantStop', () => {
   it('一站式：查找 + 批量标记 + 汇总', async () => {
     const { payload, findCalls, updateCalls } = makePayload({
       findDocs: [
-        { listing: 1 },
-        { listing: 2 },
-        { listing: 3 },
+        { id: 1 },
+        { id: 2 },
+        { id: 3 },
       ],
       listingDocs: {
         1: { reviewStatus: 'approved', version: 1 },
@@ -177,7 +173,7 @@ describe('markListingsPendingReviewOnMerchantStop', () => {
     expect(report.failed).toBe(0)
     expect(report.failures).toEqual([])
 
-    // find 调用 1 次（查 listing-merchant-relations）
+    // find 调用 1 次（查 listings.merchant）
     expect(findCalls).toHaveLength(1)
     // update 调用 2 次（listing 1 + 3，listing 2 跳过）
     expect(updateCalls).toHaveLength(2)
@@ -196,7 +192,7 @@ describe('markListingsPendingReviewOnMerchantStop', () => {
   it('部分失败时汇总到 failures', async () => {
     const payload = {
       find: vi.fn(async () => ({
-        docs: [{ listing: 1 }, { listing: 2 }],
+        docs: [{ id: 1 }, { id: 2 }],
         totalDocs: 2,
         totalPages: 1,
         page: 1,
