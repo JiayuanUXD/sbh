@@ -60,6 +60,11 @@
   --color-copper: var(--accent);
   --color-copper-hover: var(--accent-hover);
   --color-copper-soft: #eaf2fb;   /* 蓝的浅底版，替代铜色软底 */
+  /* 下面两个别名过去只以「行内 fallback」形式出现（`var(--x, #d4b89b)` /
+     `var(--x, #f0ede6)`），:root 里从未声明 → fallback 恒生效，退役的棕褐/奶油
+     色板会从旧代码里复活。显式映射到中性 token，杜绝这条复活路径。 */
+  --color-copper-border: var(--line-strong);
+  --color-canvas-subtle: var(--bg);
   --color-forest: var(--ink);     /* 新体系无第二彩色，降级为墨色 */
   --color-forest-soft: var(--bg);
   --color-danger: var(--error);
@@ -936,10 +941,12 @@ ol {
   color: var(--color-ink);
 }
 
+/* 与 .tag--copper 同一处理（见下方注释）：蓝底蓝字 4.16:1 不达 AA，且标签徽章
+   不用彩色。改零色相——中灰底 + 主墨字，15.46:1。 */
 .tag--lg:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--bg);
   text-decoration: none;
 }
 
@@ -1738,11 +1745,13 @@ ol {
   text-decoration: none;
 }
 
+/* 选中态零色相：原蓝底 + --color-copper-hover 文字只有 3.82:1。改为「白底基态
+   → 中灰底 + 墨色描边 + 主墨字 + 加粗」，靠底色深浅与字重做层级（15.46:1）。 */
 .filter-chip.is-active {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
-  font-weight: 500;
+  background: var(--bg);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 /* 数值字段表单 */
@@ -2238,9 +2247,12 @@ ol {
   list-style: none;
 }
 
+/* --color-paper 与 --color-canvas 现在都别名到 --bg，无边框的 paper 贴片在
+   canvas 上完全不可见。改白底 + 中性描边，两种承载面（--bg 页底 / 白卡）下都成立。 */
 .detail__amenities li {
   padding: var(--sp-1) var(--sp-2);
-  background: var(--color-paper);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
 }
 
@@ -2293,11 +2305,12 @@ ol {
   border-color: var(--color-copper);
 }
 
+/* 选中态零色相，同 .filter-chip.is-active：原蓝底蓝字 3.82:1。 */
 .building-supply-browser__bucket[data-active='true'],
 .building-supply-browser__bucket[aria-current='true'] {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
+  background: var(--bg);
+  border-color: var(--ink);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -2314,7 +2327,8 @@ ol {
 
 .building-supply-browser__bucket[data-active='true'] .building-supply-browser__bucket-count,
 .building-supply-browser__bucket[aria-current='true'] .building-supply-browser__bucket-count {
-  color: var(--color-copper);
+  /* 随选中态一并零色相：--color-copper 在 --bg 上只有 4.31:1，--ink-2 是 4.66:1 */
+  color: var(--ink-2);
 }
 
 .building-supply-browser__table-wrap {
@@ -4068,13 +4082,16 @@ ol {
   gap: 4px;
 }
 
+/* 线路标签零色相：原蓝底蓝字 4.16:1。白底 + 描边而非 --bg 底——POI 行 hover /
+   highlighted 时行底本身就变成浅灰，同色填充会让标签整块消失。白底 5.07:1。 */
 .location-panel__poi-line-tag {
   display: inline-flex;
   align-items: center;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: var(--color-copper-soft);
-  color: var(--color-copper);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
   font-size: var(--fs-12);
   font-weight: 600;
   line-height: 1.4;
@@ -4258,10 +4275,11 @@ ol {
   cursor: not-allowed;
 }
 
+/* 已收藏/已复制态零色相：原蓝底蓝字 4.16:1。透明基态 → 中灰底 + 墨色描边 + 主墨字。 */
 .share-save-actions__btn[aria-pressed="true"] {
-  color: var(--color-copper);
-  border-color: var(--color-copper);
-  background: var(--color-copper-soft);
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--bg);
 }
 
 .share-save-actions__feedback,
@@ -4491,14 +4509,16 @@ ol {
   background: color-mix(in srgb, var(--color-copper) 12%, transparent);
 }
 
+/* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。 */
 .building-summary-card__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
 }
 
 .building-summary-card__address {
@@ -4671,14 +4691,16 @@ ol {
   white-space: nowrap;
 }
 
+/* 同 .building-summary-card__district：卡片底与 pill 底同为 --bg，需白底 + 描边。 */
 .building-card-mini__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
   align-self: flex-start;
 }
 
@@ -6172,18 +6194,24 @@ ol {
   gap: var(--sp-4, 20px);
 }
 
+/* 与 .tag--copper 同一处理：原本是 #0071e3 蓝字压 #eaf2fb 蓝底（4.16:1，不达
+   AA），外面还套着一圈 #d4b89b——`--color-copper-border` 从未在 :root 声明，
+   行内 fallback 恒生效，等于把退役的棕褐色板留在了一条活路由上
+   （七城里有六城走 ComingSoonCityView）。改零色相：白底 + 中性描边 + 主墨字，
+   16.83:1。`--color-copper-border` 也已在 §1.1b 显式声明为 --line-strong。
+   本段按 `tests/coming-soon-city-view.test.ts` 的约定只用 `--color-*` 别名名。 */
 .city-coming-soon__eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: var(--fs-13, 13px);
   font-weight: 600;
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
+  color: var(--color-ink);
+  background: var(--color-surface);
   padding: 5px 12px;
   border-radius: var(--radius-full);
   width: fit-content;
-  border: 1px solid var(--color-copper-border, #d4b89b);
+  border: 1px solid var(--color-copper-border);
 }
 
 .city-coming-soon__title {
