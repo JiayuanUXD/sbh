@@ -6,9 +6,91 @@
  * 与首页仅存的差异：容器 1280（首页 1180）、section padding 32（首页 72）——皆为布局刚需。
  * ========================================================================== */
 
-.ls-page { --ls-w: 1280px; --ls-sec: 32px; }
+/* `.site-main` 自带 `padding: var(--sp-6) var(--container-pad-x)`（32 / 24）。
+ * 不抵消它会有两个后果：页头上方变成 32+32=64（comp 要求 section padding 32），
+ * 移动端 375 下 1280 容器被再内缩 24px、左右留白变成 40（comp 要求 16）。
+ * 用负外边距抵消，纵向节奏与左右留白完全由本页自己的 --ls-sec / .ls-container 控制。
+ * 首页对同一层用的是 100vw 满宽出血（见 home.css 顶部注释），列表页不需要出血，
+ * 只需要退回到 `.site-main` 的边界。 */
+.ls-page { --ls-w: 1280px; --ls-sec: 32px;
+  margin: calc(var(--sp-6) * -1) calc(var(--container-pad-x) * -1); }
 .ls-container { width: min(var(--ls-w), 100% - 32px); margin-inline: auto; }
 .ls-section { padding-block: var(--ls-sec); }
+
+/* ── 页面骨架（Task 11 接线）────────────────────────────────────────────────
+ * 纵向节奏照 comp specRows「页头 → 单位段 → 筛选条」：页头 padding-top var(--ls-sec)
+ * / bottom 20，单位段 padding-bottom 20，结果区 padding-top 24、bottom var(--ls-sec)。
+ * 与首页仅存的差异是容器 1280 与 section padding 32（见文件头注释）。 */
+.ls-head { padding-top: var(--ls-sec); padding-bottom: 20px;
+  display: flex; flex-direction: column; gap: 10px; }
+
+.ls-head__title { margin: 0; font-size: 40px; font-weight: 600; line-height: 1.1;
+  color: var(--ink); letter-spacing: normal; }
+
+.ls-head__sub { margin: 0; font-size: 15px; line-height: 1.47; color: var(--ink-2);
+  letter-spacing: normal; }
+
+.ls-head__sub-strong { color: var(--ink); font-weight: 500; }
+
+.ls-unitband { padding-bottom: 20px; }
+
+.ls-results { padding-top: 24px; padding-bottom: var(--ls-sec); }
+
+/* 结果网格：4 列 · gap 16 · 工具条下 20（comp「布局 A：卡片网格」margin-top:20）。
+ * minmax(0, 1fr) 而非裸 1fr——超长标题的 nowrap 会把 min-content 撑到未截断宽度，
+ * 1fr 轨道默认 min-width:auto 会跟着被撑大（Task 4 踩过，dev-story 里有同款注释）。 */
+.ls-grid { margin-top: 20px; display: grid; gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1199px) { .ls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 899px) { .ls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 599px) { .ls-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 横向列表行（comp 布局 B）──────────────────────────────────────────────
+ * specRows：整宽 · 高 182 · padding 16 · 行间 gap 12 · radius 18；图 240×150
+ * （16:10）· radius 14；价格列定宽 176 右对齐 · 左侧 1px 分隔线 · 价格 26/600。
+ * 比价优势与网格不同：价格全部落在最右同一列上，可纵向扫读。 */
+.ls-rowlist { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.ls-rowcard { display: flex; align-items: stretch; gap: 24px; padding: 16px;
+  color: inherit; text-decoration: none; }
+
+.ls-rowcard__media { flex: none; width: 240px; height: 150px; border-radius: 14px;
+  overflow: hidden; aspect-ratio: auto; }
+
+.ls-rowcard__type-tag { position: absolute; left: 10px; bottom: 9px; }
+
+.ls-rowcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column;
+  gap: 7px; padding: 6px 0; }
+
+.ls-rowcard__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-rowcard__location { font-size: 14px; line-height: 1.45; color: var(--ink-2);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-rowcard__area { margin-top: auto; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+
+.ls-rowcard__pricecol { flex: none; width: 176px; display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center; gap: 6px; padding-right: 8px;
+  border-left: 1px solid var(--line); }
+
+.ls-rowcard__price { display: flex; align-items: baseline; gap: 5px; }
+
+.ls-rowcard__price-value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--ink); letter-spacing: normal; }
+
+.ls-rowcard__price-unit { font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-rowcard__price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+
+@media (max-width: 767px) {
+  .ls-rowcard { flex-direction: column; gap: 12px; }
+  .ls-rowcard__media { width: 100%; height: auto; aspect-ratio: 16 / 10; }
+  .ls-rowcard__pricecol { width: auto; align-items: flex-start; padding-right: 0;
+    border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+}
 
 /* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
 .ls-price { display: flex; align-items: baseline; gap: 4px; }
@@ -463,6 +545,14 @@
 }
 
 @media (max-width: 767px) { .ls-section { padding-block: 20px; } }
+
+/* 移动筛选容器：组件本身不写断点门槛（理由见 MobileFilterTrigger.tsx 顶部注释），
+ * 由接线层在这里决定「哪个视口下存在」。display:contents 让悬浮 dock 的
+ * position:fixed 相对视口而不是相对这一层。 */
+.ls-mobilefilter { display: contents; }
+@media (min-width: 768px) { .ls-mobilefilter { display: none; } }
+/* 给底部悬浮 pill 让出位置，否则最后一行卡片/分页被压在它下面 */
+@media (max-width: 767px) { .ls-page { padding-bottom: 84px; } }
 
 /* ── 移动筛选悬浮入口（MobileFilterTrigger）──────────────────────────────
  * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「移动 375 · 列表态」区块

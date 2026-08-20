@@ -24,6 +24,25 @@ import type { PriceDisplayUnit } from '@/domain/public-catalog'
  *     传一个「其实不能为 true」的 `isActive`，属于伪造出来的通用性。
  */
 
+/** 结果区版式：卡片网格（默认）或横向列表行。 */
+export type ListingViewMode = 'grid' | 'row'
+
+/**
+ * 解析 `?view=` 版式参数。
+ *
+ * **刻意不进 `ListingSearchInput`，也不进 canonical**（控制器裁定，OPT-036
+ * Task 8）：`view` 只改渲染方式、不改结果集，两个仅 `view` 不同的 URL 对搜索
+ * 引擎是同一个页面，canonical 必须相同；同时地址栏要保留它，分享出去的链接
+ * 才不丢版式态。因此它由路由层单独解析并作为 prop 传给视图层，
+ * `buildCanonicalSearchParams` 完全不认识这个键。
+ *
+ * 未知值一律回落 `grid`（与解析层「非法参数静默降级为安全默认值」同一约定）。
+ */
+export function parseListingViewMode(raw: unknown): ListingViewMode {
+  const value = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined
+  return value === 'row' ? 'row' : 'grid'
+}
+
 /** 克隆 currentParams：统一入口，避免各处直接 new 出来时忘记带上已有参数。 */
 export function cloneSearchParams(currentParams: URLSearchParams): URLSearchParams {
   return new URLSearchParams(currentParams)

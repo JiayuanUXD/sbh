@@ -1040,6 +1040,7 @@ export default function Opt036PreviewPage() {
               </span>
               <EmptyNoStock
                 noun="上海的共享工位房源"
+                totalNoun="套在租房源"
                 basePath="/shanghai/listings"
                 unfilteredTotalCount={1893}
                 secondaryAction={<button type="button">提交需求</button>}
@@ -1051,7 +1052,7 @@ export default function Opt036PreviewPage() {
                 ① 极简回退——省略 unfilteredTotalCount 与 secondaryAction 时仍然可用：主按钮退化为不带数字的
                 通用文案，次按钮位整体不渲染（不伪造一个假交互占位符），不是死胡同
               </span>
-              <EmptyNoStock noun="上海的共享工位房源" basePath="/shanghai/listings" />
+              <EmptyNoStock noun="上海的共享工位房源" totalNoun="套在租房源" basePath="/shanghai/listings" />
             </div>
 
             <div data-fixture="empty-filtered-three" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

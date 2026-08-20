@@ -35,6 +35,14 @@ import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
  *     一个可见的落点去理解自己选中的是哪个分段；此时只隐藏它自己的数字（不
  *     渲染「0」，也不伪造成「—」——分段标签本身已经是完整信息，数字只是
  *     补充，缺了就不补）。
+ *   - **尚未选定任何单位**（`activeUnit` 省略，Task 11 接线时加宽）：URL 上没有
+ *     `priceUnit` 时结果集里本来就混着多种单位，此时把任何一项画成「当前项」
+ *     都是在撒谎——那一项并没有过滤结果集。因此 `activeUnit` 可省略，省略时
+ *     全部有货单位都渲染成可点链接、无当前项，用户点任意一项即进入「选定单位」
+ *     状态。列表页默认不强制单位（不改变 `/[city]/listings` 既有的结果集口径），
+ *     这个「未选定」态因此是真实存在的主路径，不是边角情形。
+ *   - **一个有货单位都没有**：返回 `null`，不渲染空壳（仅在未选定单位且结果集
+ *     完全无价格时可能出现）。
  *   - **过滤后不足 2 项**（只剩当前单位一项，其余全为 0）：一个只有一个选项
  *     的「分段切换控件」名不副实——没有第二个单位可切，继续渲染成看起来能点
  *     的胶囊分段反而误导用户去点。这种情况下退化为一行非交互文本标签，只保留
@@ -51,22 +59,34 @@ export type PriceUnitOption = Readonly<{
 
 export default function PriceUnitSegment(props: Readonly<{
   units: ReadonlyArray<PriceUnitOption>
-  activeUnit: PriceDisplayUnit
+  /** 当前选定单位；省略表示「尚未选定」（URL 上没有 priceUnit），见上方注释。 */
+  activeUnit?: PriceDisplayUnit
   basePath: string
   currentParams: URLSearchParams
-}>): React.JSX.Element {
-  const { units, activeUnit, basePath, currentParams } = props
+  /** 行首标签，如「租金单位」（租）/「计价单位」（售）。 */
+  label?: string
+}>): React.JSX.Element | null {
+  const { units, activeUnit, basePath, currentParams, label = '租金单位' } = props
 
   const visible = units.filter((unit) => unit.value === activeUnit || unit.count > 0)
 
+  if (visible.length === 0) return null
+
   if (visible.length < 2) {
-    const active = visible[0]
+    const only = visible[0]
+    const isActive = only.value === activeUnit
+    // 只剩一项时不再是「分段切换」：没有第二个单位可切，渲染成可点胶囊只会
+    // 误导用户去点。未选定单位时同样退化为纯文本——点它得到的结果集与现在
+    // 完全相同（这一个单位本来就是全部有货的单位）。
     return (
       <div className="ls-unitrow">
-        <span className="ls-unitrow__label">租金单位</span>
-        <span className="ls-unitseg__item ls-unitseg__item--active ls-unitseg__item--solo" aria-current="true">
-          {active.label}
-          {active.count > 0 ? <span className="ls-unitseg__count">{active.count}</span> : null}
+        <span className="ls-unitrow__label">{label}</span>
+        <span
+          className="ls-unitseg__item ls-unitseg__item--active ls-unitseg__item--solo"
+          {...(isActive ? { 'aria-current': 'true' as const } : {})}
+        >
+          {only.label}
+          {only.count > 0 ? <span className="ls-unitseg__count">{only.count}</span> : null}
         </span>
       </div>
     )
@@ -74,7 +94,7 @@ export default function PriceUnitSegment(props: Readonly<{
 
   return (
     <div className="ls-unitrow">
-      <span className="ls-unitrow__label">租金单位</span>
+      <span className="ls-unitrow__label">{label}</span>
       <div className="ls-unitseg">
         {visible.map((unit) => {
           const isActive = unit.value === activeUnit

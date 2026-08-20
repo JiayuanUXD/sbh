@@ -58,6 +58,14 @@ import React from 'react'
  */
 export default function EmptyNoStock(props: Readonly<{
   noun: string
+  /**
+   * 主按钮里 `unfilteredTotalCount` 后面跟的量词短语，如「套在租房源」/
+   * 「套出售房源」。必填、无默认值：与 `FilterFormC.countNoun` 同一约定——
+   * 首版把「套在租房源」硬编码在 JSX 里，出售频道复用同一个组件时就会说出
+   * 「查看全部 128 套在租房源」这种错语境的话（Task 11 接线时发现）。
+   * 调用方应从 `CHANNEL_COPY` 一类的集中文案表取值，不要写字面量。
+   */
+  totalNoun: string
   basePath: string
   /**
    * `basePath`（不叠加这一类限制的完整结果集）里的房源总数，用于主按钮文案
@@ -75,7 +83,7 @@ export default function EmptyNoStock(props: Readonly<{
    */
   secondaryAction?: React.ReactNode
 }>): React.JSX.Element {
-  const { noun, basePath, unfilteredTotalCount, secondaryAction } = props
+  const { noun, totalNoun, basePath, unfilteredTotalCount, secondaryAction } = props
   const hasCount = unfilteredTotalCount != null && unfilteredTotalCount > 0
 
   return (
@@ -96,7 +104,7 @@ export default function EmptyNoStock(props: Readonly<{
           <span>
             {hasCount ? (
               <>
-                查看全部 <span className="ls-empty__btn-count">{unfilteredTotalCount}</span> 套在租房源
+                查看全部 <span className="ls-empty__btn-count">{unfilteredTotalCount}</span> {totalNoun}
               </>
             ) : (
               '查看全部结果'
