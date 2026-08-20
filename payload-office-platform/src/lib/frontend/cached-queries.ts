@@ -18,6 +18,7 @@ import {
   getListingBySlug,
   getListingDistrictOptions,
   getPageBySlug,
+  getPlatformHomepageStats,
   getRelatedBuildings,
   getRelatedListings,
   getSearchFacets,
@@ -29,6 +30,7 @@ import {
   searchBuildings,
   searchBuildingsPage,
   searchListingsSitemapPage,
+  type HomepageStats,
   type ListingSearchInput,
 } from '@/domain/public-catalog'
 
@@ -96,6 +98,28 @@ const getCachedHomepageByCity = memoizeByCity((citySlug) =>
 export function getCachedHomepage(citySlug: string) {
   const city = canonicalCitySlug(citySlug)
   return getCachedHomepageByCity(city)()
+}
+
+// 根页 `/`（平台入口）跨城汇总 stats：城市清单不固定（新城上线即变），不能像
+// 其余 getCached* 那样用 memoizeByCity 按单城预建缓存条目，改为按「排序后的城市
+// 清单」拼 key 直接缓存整份汇总结果——city 顺序不该影响缓存命中，故先排序再入 key。
+const platformStatsCache = new Map<string, () => Promise<HomepageStats>>()
+
+export function getCachedPlatformStats(citySlugs: readonly string[]): Promise<HomepageStats> {
+  const key = [...citySlugs].map(canonicalCitySlug).sort().join(',')
+  let entry = platformStatsCache.get(key)
+  if (!entry) {
+    entry = unstable_cache(
+      async () => getPlatformHomepageStats(key ? key.split(',') : []),
+      ['platform-stats', key],
+      {
+        tags: key ? key.split(',').flatMap((slug) => mixedSupplyCacheTags(slug)) : [],
+        revalidate: 300,
+      },
+    )
+    platformStatsCache.set(key, entry)
+  }
+  return entry()
 }
 
 const getCachedListingBySlugByCity = memoizeByCity((citySlug) =>

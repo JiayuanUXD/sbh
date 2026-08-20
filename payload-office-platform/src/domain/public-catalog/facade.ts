@@ -68,6 +68,7 @@ import {
   priceKeyOf,
   stableSortCards,
 } from './stable-sort'
+import { createSearchContext } from './types'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
 import type {
   EffectiveListingSitemapPage,
@@ -819,6 +820,43 @@ export async function getHomepage(
     typeSummaries,
     nearbyListings,
   }
+}
+
+/**
+ * 平台汇总 stats（根页 `/` 口径）：并发拉取各城 stats，按同一口径逐城计数后求和。
+ *
+ * 与 getHomepage 内 stats 字段同口径（findEffectiveListings + mapListingsToCards /
+ * findEffectiveBuildings + mapBuildingSummary 过滤 / findEffectiveBusinessAreas），
+ * 只是维度从单城换成跨城求和——根页是平台入口，不归属任何单一城市。
+ * 空城市清单直接返回全零，不触发任何 adapter 调用。
+ */
+export async function getPlatformHomepageStats(
+  citySlugs: readonly string[],
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<HomepageStats> {
+  const perCity = await Promise.all(
+    citySlugs.map(async (slug) => {
+      const ctx = createSearchContext(slug)
+      const [listings, buildings, areas] = await Promise.all([
+        adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
+        adapter.findEffectiveBuildings(ctx),
+        adapter.findEffectiveBusinessAreas(ctx),
+      ])
+      return {
+        listings: mapListingsToCards(listings).length,
+        buildings: buildings.filter((b) => mapBuildingSummary(b) !== null).length,
+        businessAreas: areas.length,
+      }
+    }),
+  )
+  return perCity.reduce(
+    (acc, s) => ({
+      listings: acc.listings + s.listings,
+      buildings: acc.buildings + s.buildings,
+      businessAreas: acc.businessAreas + s.businessAreas,
+    }),
+    { listings: 0, buildings: 0, businessAreas: 0 },
+  )
 }
 
 /**

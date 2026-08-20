@@ -12,8 +12,12 @@ import { describe, expect, it } from 'vitest'
 import { haversineKm } from '@/domain/public-catalog/geo'
 import { getHomepage } from '@/domain/public-catalog/facade'
 import { createSearchContext } from '@/domain/public-catalog/types'
-import type { SupplyAdapter } from '@/domain/public-catalog/supply-adapter'
-import type { Building, Listing, Location, Media } from '@/payload-types'
+import {
+  makeArea,
+  makeBuilding,
+  makeHomepageAdapter,
+  makeListing,
+} from './helpers/opt035-fixtures'
 
 describe('haversineKm', () => {
   it('人民广场→陆家嘴约 2.9km（GCJ-02 坐标，容差区间 2.4–3.4km）', () => {
@@ -28,152 +32,6 @@ describe('haversineKm', () => {
     expect(haversineKm(p, p)).toBe(0)
   })
 })
-
-// ---------------------------------------------------------------------------
-// getHomepage：stats / typeSummaries / nearbyListings（构造工具抄 f7-6 测试
-// 的 makeValidListing / 生产等价基线，仅保留能通过 mapListingCard 映射的最小字段）
-// ---------------------------------------------------------------------------
-
-const MEDIA_1: Media = {
-  id: 9001,
-  alt: '图1',
-  url: '/media/m1.jpg',
-  filename: 'm1.jpg',
-  mimeType: 'image/jpeg',
-  updatedAt: '2026-07-01T00:00:00.000Z',
-  createdAt: '2026-07-01T00:00:00.000Z',
-  width: 1280,
-  height: 960,
-}
-
-const CITY_SHANGHAI: Location = {
-  id: 100,
-  name: '上海',
-  slug: 'shanghai',
-  type: 'city',
-  immutableCode: 'CITY-SH',
-  status: 'active',
-  updatedAt: '2026-07-01T00:00:00.000Z',
-  createdAt: '2026-07-01T00:00:00.000Z',
-}
-
-const DISTRICT_JINGAN: Location = {
-  id: 1,
-  name: '静安',
-  slug: 'jingan',
-  type: 'district',
-  immutableCode: 'TEST-1',
-  status: 'active',
-  parent: 100,
-  updatedAt: '2026-07-01T00:00:00.000Z',
-  createdAt: '2026-07-01T00:00:00.000Z',
-}
-
-function makeBuilding(
-  overrides: Partial<Building> & { id: number },
-): Building {
-  return {
-    name: `楼盘${overrides.id}`,
-    slug: `building-${overrides.id}`,
-    status: 'published',
-    operationalStatus: 'active',
-    buildingType: 'office_building',
-    grade: 'grade-a',
-    verificationStatus: 'verified',
-    city: CITY_SHANGHAI,
-    district: DISTRICT_JINGAN,
-    address: '上海市静安区南京西路 1788 号',
-    coverImage: MEDIA_1,
-    gallery: null,
-    amenities: null,
-    summary: '',
-    description: null,
-    updatedAt: '2026-07-10T00:00:00.000Z',
-    createdAt: '2026-01-01T00:00:00.000Z',
-    ...overrides,
-  } as unknown as Building
-}
-
-function makeArea(overrides: Partial<Location> & { id: number }): Location {
-  return {
-    name: `商圈${overrides.id}`,
-    slug: `area-${overrides.id}`,
-    type: 'business_area',
-    immutableCode: `AREA-${overrides.id}`,
-    status: 'active',
-    parent: DISTRICT_JINGAN.id,
-    updatedAt: '2026-07-01T00:00:00.000Z',
-    createdAt: '2026-07-01T00:00:00.000Z',
-    ...overrides,
-  } as unknown as Location
-}
-
-type ListingOverrides = Partial<Listing> & {
-  id: number
-  buildingCoords?: Readonly<{ latitude: number; longitude: number }>
-}
-
-function makeListing(overrides: ListingOverrides): Listing {
-  const { buildingCoords, ...rest } = overrides
-  const building = makeBuilding({
-    id: 1000 + overrides.id,
-    ...(buildingCoords
-      ? { latitude: buildingCoords.latitude, longitude: buildingCoords.longitude }
-      : {}),
-  })
-  return {
-    title: `房源${overrides.id}`,
-    slug: `listing-${overrides.id}`,
-    status: 'available',
-    listingType: 'traditional-office',
-    building,
-    rent: 25000,
-    rentUnit: 'rmb-month',
-    area: 100,
-    seats: 12,
-    availableFrom: '2026-08-01',
-    isFeatured: false,
-    coverImage: MEDIA_1,
-    gallery: [{ image: MEDIA_1, id: 'g1' }],
-    highlights: [{ text: '亮点', id: 'h1' }],
-    description: null,
-    publicationStatus: 'published',
-    reviewStatus: 'approved',
-    supplyVisibilityHold: 'normal',
-    updatedAt: '2026-07-15T00:00:00.000Z',
-    createdAt: '2026-06-01T00:00:00.000Z',
-    ...rest,
-  } as unknown as Listing
-}
-
-function makeHomepageAdapter(over: Partial<SupplyAdapter> = {}): SupplyAdapter {
-  return {
-    findFeaturedListings: async () => [],
-    findEffectiveListings: async () => [],
-    findEffectiveDistricts: async () => [],
-    findEffectiveBusinessAreas: async () => [],
-    findFeaturedBuildings: async () => [],
-    findEffectiveBuildings: async () => [],
-    findLatestArticles: async () => [],
-    findCityCenter: async () => null,
-    // 其余接口方法 getHomepage 不使用，调用即失败，暴露未预期依赖
-    findEffectiveListingsSitemapPage: () => { throw new Error('not used by getHomepage') },
-    findEffectiveListingBySlug: () => { throw new Error('not used by getHomepage') },
-    findListingRouteIdentity: () => { throw new Error('not used by getHomepage') },
-    findEffectiveBuildingBySlug: () => { throw new Error('not used by getHomepage') },
-    findBuildingRouteIdentity: () => { throw new Error('not used by getHomepage') },
-    findEffectiveListingsByBuilding: () => { throw new Error('not used by getHomepage') },
-    sumEffectiveLeasableAreaByBuildings: async () => new Map(),
-    findEffectiveBuildingsNear: () => { throw new Error('not used by getHomepage') },
-    findEffectiveBuildingsPage: () => { throw new Error('not used by getHomepage') },
-    assertEffectiveListingBySlug: () => { throw new Error('not used by getHomepage') },
-    findPublishedPageBySlug: () => { throw new Error('not used by getHomepage') },
-    findPublishedPages: () => { throw new Error('not used by getHomepage') },
-    findPublishedArticles: () => { throw new Error('not used by getHomepage') },
-    findPublishedArticleBySlug: () => { throw new Error('not used by getHomepage') },
-    ...over,
-  } as SupplyAdapter
-}
 
 describe('getHomepage stats / typeSummaries / nearbyListings', () => {
   const ctx = createSearchContext('shanghai')
