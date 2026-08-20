@@ -116,7 +116,13 @@ describe('loadDestructiveMigrationApprovals：真实清单文件', () => {
       '20260820_055534_drop_listing_merchant_relations.ts',
     )
     const realContent = readFileSync(migrationPath, 'utf-8')
-    expect(sha256Hex(realContent)).toBe(entry?.approvedFileSha256)
+    expect(
+      sha256Hex(realContent),
+      '批准指纹已过期：迁移文件在批准之后被改动过（改一行注释、多一个空格都算）。' +
+        '这不是"你想删表被禁止"，四道闸此刻报的"必须经过扩展→回填→双读"文案与真实原因无关。' +
+        '下一步：跑 pnpm migrate:approval-hash 拿到新摘要，复核改动仍在用户批准范围内后，' +
+        '写回 DESTRUCTIVE_MIGRATION_APPROVALS.json 里该条目的 approvedFileSha256。',
+    ).toBe(entry?.approvedFileSha256)
     expect(
       isDestructiveMigrationApproved(
         '20260820_055534_drop_listing_merchant_relations',

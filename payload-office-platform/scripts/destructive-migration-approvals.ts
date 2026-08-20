@@ -85,3 +85,88 @@ export function isDestructiveMigrationApproved(
   if (!entry) return false
   return sha256Hex(fileContent) === entry.approvedFileSha256
 }
+
+/**
+ * 四道闸门拦下 DROP TABLE / DROP COLUMN 时，统一追加在 fail/block 文案后面的
+ * 「下一步做什么」。
+ *
+ * 为什么必须有这一段：闸门的原始文案只讲“禁止删除表 / 必须经过扩展→回填→双读”，
+ * 完全没提批准机制的存在。而由于批准指纹绑定的是整份迁移 .ts 文件的 SHA-256，
+ * **最常见的红灯原因根本不是“你想删表”，而是“批准还在、但迁移文件改过一个字节”**
+ * ——在迁移头注释里加一个空格就足以让四道闸同时变红，此时原文案指向的
+ * “扩展→回填→双读”流程与真实原因毫无关系。第一次撞上的人如果只看到原文案，
+ * 最省事的反应恰恰是 SKIP_PREPUSH=1、删掉迁移重新生成、或者再造一个绕过口。
+ */
+export const DESTRUCTIVE_APPROVAL_HINT =
+  '【下一步】这次删除若已获用户明确批准：登记进仓库顶层 DESTRUCTIVE_MIGRATION_APPROVALS.json' +
+  '（四道闸共读这一份，登记即放行，该文件的 diff 就是批准留痕）。' +
+  '若清单里已经有这条迁移却仍被拦，那是指纹过期而不是缺批准——批准绑定的是整份 .ts 文件的 SHA-256，' +
+  '连注释里多一个空格都会失效；跑 `pnpm migrate:approval-hash` 会逐条比对并打印新摘要，' +
+  '确认改动仍在批准范围内后把新摘要写回该条目的 approvedFileSha256 即可。' +
+  '不要用 SKIP_PREPUSH=1 / --no-verify 绕过，也不要删掉迁移重新生成（重新生成的文件指纹一样对不上，' +
+  '还会丢掉迁移头注释里的批准背景）。机制详见 .agent/migrations.md「破坏性迁移的批准机制」。'
+
+const migrationsDir = resolve(here, '..', 'src', 'migrations')
+
+function migrationFileSha256(migrationName: string): string | null {
+  const tsPath = resolve(migrationsDir, `${migrationName}.ts`)
+  if (!existsSync(tsPath)) return null
+  return sha256Hex(readFileSync(tsPath, 'utf-8'))
+}
+
+/**
+ * `pnpm migrate:approval-hash [迁移名]`
+ *
+ * 不带参数：逐条比对清单里每条批准记录的 approvedFileSha256 与该迁移文件的当前
+ * 内容，指纹过期的直接打印可粘贴的新摘要（这是撞上红灯后最常需要的那一步）。
+ * 带迁移名：只打印该迁移文件当前内容的 SHA-256。
+ */
+// biome-ignore lint/suspicious/noConsole: CLI script
+function main() {
+  const arg = process.argv[2]
+
+  if (arg) {
+    const name = arg.replace(/^.*[\\/]/, '').replace(/\.ts$/, '')
+    const actual = migrationFileSha256(name)
+    if (!actual) {
+      console.error(`找不到迁移文件：src/migrations/${name}.ts`)
+      process.exitCode = 1
+      return
+    }
+    console.log(actual)
+    return
+  }
+
+  const approvals = loadDestructiveMigrationApprovals()
+  console.log(`批准清单：${APPROVALS_FILE_PATH}`)
+  if (approvals.length === 0) {
+    console.log('（清单为空——当前没有任何破坏性迁移获批，四道闸对所有 DROP TABLE / DROP COLUMN 一律拦截）')
+    return
+  }
+
+  let stale = 0
+  for (const entry of approvals) {
+    const actual = migrationFileSha256(entry.migrationName)
+    if (!actual) {
+      console.log(`✗ ${entry.migrationName}：清单里有这条批准，但 src/migrations/ 下找不到对应 .ts 文件`)
+      stale++
+      continue
+    }
+    if (actual === entry.approvedFileSha256) {
+      console.log(`✓ ${entry.migrationName}：指纹一致，批准有效`)
+      continue
+    }
+    console.log(`✗ ${entry.migrationName}：指纹已过期——迁移文件在批准之后被改动过`)
+    console.log(`    清单记录: ${entry.approvedFileSha256}`)
+    console.log(`    当前实际: ${actual}`)
+    console.log('    → 先复核改动仍在用户批准的范围内，再把「当前实际」写回该条目的 approvedFileSha256')
+    stale++
+  }
+
+  if (stale > 0) process.exitCode = 1
+}
+
+// 仅在作为脚本直接运行时执行；被四道闸门与测试 import 时不产生任何输出。
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main()
+}

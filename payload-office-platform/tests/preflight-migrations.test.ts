@@ -213,7 +213,14 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
       // 只扫 up()：down() 的 DROP 是合法回滚
       const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content), content)
       const blocking = risks.filter((r) => r.severity === 'fail')
-      expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
+      expect(
+        blocking,
+        `${name} up() 含高风险删除操作。若这次删除已获用户批准，登记进仓库顶层 ` +
+          'DESTRUCTIVE_MIGRATION_APPROVALS.json；清单里已有这条迁移却仍在这里红，' +
+          '说明迁移文件在批准之后改过内容（指纹是整份 .ts 文件的 SHA-256），' +
+          '跑 pnpm migrate:approval-hash 重算后更新 approvedFileSha256。' +
+          '不要用 SKIP_PREPUSH=1 绕过。机制详见 .agent/migrations.md。',
+      ).toHaveLength(0)
     }
   })
 

@@ -19,6 +19,8 @@ import type { CollectionSlug } from 'payload'
 
 import {
   isDestructiveMigrationApproved,
+  DESTRUCTIVE_APPROVAL_HINT,
+  type DestructiveMigrationApprovalEntry,
   type DestructiveRiskKind,
 } from './destructive-migration-approvals'
 
@@ -64,7 +66,20 @@ function listMigrationNames(): string[] {
   )
 }
 
-function verifyStatic(): VerifyResult['checks'] {
+/**
+ * 静态校验：迁移形状（up/down/json）+ up() 禁止操作扫描 + 批准清单分流。
+ *
+ * 导出是为了让 tests/migrate-verify.test.ts 能对**闸门逻辑本身**下断言，而不是
+ * 只测 extractUpBody——这道闸此前零覆盖，而且它整整一段时间是死的（提取器 bug，
+ * 见 extractUpBody 头注释）。把下面的 `f.kind && approved` 写反、或让 approved
+ * 恒真，`pnpm test` 与 CI 都不会有任何反应，闸门会静默全放行。
+ *
+ * `approvals` 参数可选，默认读真实清单文件；测试传 `[]` 就能验证「没有批准时这道
+ * 闸真的会拦」，传默认值则验证「有批准时不会误拦」，两个方向都锁住。
+ */
+export function verifyStatic(
+  approvals?: DestructiveMigrationApprovalEntry[],
+): VerifyResult['checks'] {
   const checks: VerifyResult['checks'] = []
   const names = listMigrationNames()
 
@@ -130,7 +145,7 @@ function verifyStatic(): VerifyResult['checks'] {
     // 迁移名。批准数据来自 DESTRUCTIVE_MIGRATION_APPROVALS.json，与
     // scripts/preflight.ts、scripts/migrate-dry-run.ts 共读同一份，本文件
     // 不写死任何具体迁移名。
-    const approved = isDestructiveMigrationApproved(name, ts)
+    const approved = isDestructiveMigrationApproved(name, ts, approvals)
     for (const f of FORBIDDEN) {
       const m = upBody.match(f.pattern)
       if (m) {
@@ -144,7 +159,9 @@ function verifyStatic(): VerifyResult['checks'] {
           checks.push({
             name: `migration:${name}:forbidden:${m[0]}`,
             status: 'fail',
-            message: `迁移 ${name} 的 up() 包含禁止操作：${m[0]}`,
+            message: f.kind
+              ? `迁移 ${name} 的 up() 包含禁止操作：${m[0]}。${DESTRUCTIVE_APPROVAL_HINT}`
+              : `迁移 ${name} 的 up() 包含禁止操作：${m[0]}（这一类不在批准清单的覆盖范围内，没有放行通道）`,
           })
         }
       }

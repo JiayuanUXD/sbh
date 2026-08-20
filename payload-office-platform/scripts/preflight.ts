@@ -31,6 +31,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   isDestructiveMigrationApproved,
+  DESTRUCTIVE_APPROVAL_HINT,
   type DestructiveRiskKind,
 } from './destructive-migration-approvals'
 
@@ -204,13 +205,13 @@ const FORBIDDEN_PATTERNS: Array<{
   {
     pattern: /DROP\s+TABLE/i,
     severity: 'fail',
-    reason: '删除表 - 必须经过扩展->回填->双读->切换->收敛流程',
+    reason: `删除表 - 必须经过扩展->回填->双读->切换->收敛流程。${DESTRUCTIVE_APPROVAL_HINT}`,
     kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'fail',
-    reason: '删除列 - 必须经过双读验证和人工确认',
+    reason: `删除列 - 必须经过双读验证和人工确认。${DESTRUCTIVE_APPROVAL_HINT}`,
     kind: 'DROP_COLUMN',
   },
   {

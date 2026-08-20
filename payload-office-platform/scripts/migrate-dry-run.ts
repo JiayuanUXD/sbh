@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url'
 
 import {
   isDestructiveMigrationApproved,
+  DESTRUCTIVE_APPROVAL_HINT,
+  type DestructiveMigrationApprovalEntry,
   type DestructiveRiskKind,
 } from './destructive-migration-approvals'
 
@@ -40,13 +42,13 @@ const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
   {
     pattern: /DROP\s+TABLE/i,
     severity: 'block',
-    reason: '禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理',
+    reason: `禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理。${DESTRUCTIVE_APPROVAL_HINT}`,
     kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'block',
-    reason: '禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移',
+    reason: `禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移。${DESTRUCTIVE_APPROVAL_HINT}`,
     kind: 'DROP_COLUMN',
   },
   {
@@ -126,7 +128,20 @@ function getDatabaseMeta() {
   return { kind: 'postgres' as const, urlMasked: databaseUrl.replace(/:[^:@/]+@/, ':****@') }
 }
 
-function analyzeMigration(name: string): MigrationAnalysis {
+/**
+ * 分析单份迁移：提取 up() 正文、按 FORBIDDEN_PATTERNS 扫描、再按批准清单分流。
+ *
+ * 导出是为了让 tests/migrate-dry-run.test.ts 能对**闸门逻辑本身**下断言，而不是
+ * 只测提取器——这道闸此前零覆盖：把下面的批准分流条件写反、或让 approved 恒真，
+ * `pnpm test` 与 CI 都不会有任何反应，闸门会静默全放行。
+ *
+ * `approvals` 参数可选，默认读真实清单文件；测试传 `[]` 就能验证「没有批准时这道
+ * 闸真的会拦」，传默认值则验证「有批准时不会误拦」，两个方向都锁住。
+ */
+export function analyzeMigration(
+  name: string,
+  approvals?: DestructiveMigrationApprovalEntry[],
+): MigrationAnalysis {
   const tsPath = resolve(migrationsDir, `${name}.ts`)
   const jsonPath = resolve(migrationsDir, `${name}.json`)
   const ts = existsSync(tsPath) ? readFileSync(tsPath, 'utf8') : ''
@@ -161,7 +176,7 @@ function analyzeMigration(name: string): MigrationAnalysis {
   // 迁移名、也不是只认出现次数：文件内容哪怕改一个字节（换掉 DROP TABLE 的
   // 目标表名、调整 down()）都会让批准失效，不会被静默放行。批准数据来自
   // DESTRUCTIVE_MIGRATION_APPROVALS.json，这个函数本身不含任何具体迁移名。
-  const approved = isDestructiveMigrationApproved(name, ts)
+  const approved = isDestructiveMigrationApproved(name, ts, approvals)
   const forbiddenHits = rawHits.filter((h) => !(approved && h.kind))
   const approvedHits = rawHits.filter((h) => approved && h.kind)
 
@@ -218,7 +233,8 @@ export function extractFunctionBody(source: string, name: 'up' | 'down'): string
   return source.slice(openIdx + 1, endIdx)
 }
 
-function listMigrationNames(): string[] {
+/** 本闸门的扫描范围来源：index.ts 里注册的迁移名。导出供 blanket 测试遍历同一批。 */
+export function listMigrationNames(): string[] {
   const indexTsPath = resolve(migrationsDir, 'index.ts')
   if (!existsSync(indexTsPath)) return []
   const entries = readFileSync(indexTsPath, 'utf8')
@@ -229,7 +245,9 @@ function listMigrationNames(): string[] {
 
 function generateReport(): DryRunReport {
   const names = listMigrationNames()
-  const migrations = names.map(analyzeMigration)
+  // 显式单参调用：analyzeMigration 第二参是可选的 approvals，直接传给 map 会把
+  // 下标当成批准清单传进去。
+  const migrations = names.map((name) => analyzeMigration(name))
   const blockingCount = migrations.reduce(
     (acc, m) => acc + m.forbiddenHits.filter((h) => h.severity === 'block').length,
     0,
