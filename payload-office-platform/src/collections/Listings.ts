@@ -35,6 +35,10 @@ import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoi
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -690,6 +694,19 @@ export const Listings: CollectionConfig = {
                   label: '供给商户',
                   type: 'relationship',
                   relationTo: 'merchants',
+                  // 新建时预选默认商户（默认「官网」）。只在字段为 undefined 时生效，
+                  // 编辑既有房源不受影响。
+                  //
+                  // OPT-034 之后这个预选是**有实际效果**的：listings.merchant 已是供给
+                  // 商户的唯一真相，填上它房源就真的具备了可见性前提，不再像旧模型那样
+                  // 「填了字段但关系表为空、前台照样 404」（事故案例 #2464）。但仍不等于
+                  // 一定可见——商户还须启用、资质有效、服务城市覆盖楼盘城市（前台精筛
+                  // §9-§10）。下方 filterOptions 挡掉了前两条，第三条由前台兜底。
+                  defaultValue: async ({ req }) =>
+                    await resolveDefaultSupplyMerchant(
+                      req.payload as unknown as MerchantLookupPort,
+                      req,
+                    ),
                   // 候选限制到启用 + 资质已通过，拦掉「选中已停用/资质过期商户」这类
                   // 写入即失配的操作（表现与事故案例 #2464 一致：后台三处信号全绿、
                   // 前台因 MERCHANT_INELIGIBLE 精筛判 404）。服务城市覆盖这一条未覆盖
@@ -726,6 +743,7 @@ export const Listings: CollectionConfig = {
                   admin: {
                     description:
                       '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
+
                     width: COL_4,
                   },
                 }),
