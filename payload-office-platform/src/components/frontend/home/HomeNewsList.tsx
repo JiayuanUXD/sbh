@@ -24,11 +24,11 @@ export default function HomeNewsList({ articles, citySlug }: Readonly<{
         </div>
         <ul className="hm-news__list" role="list">
           {items.map((a) => (
-            <li key={a.id}>
+            <li className="hm-news__item" key={a.id}>
               <Link
                 href={`${prefix}/news/${a.slug}`}
                 prefetch={false}
-                className="hm-news__item"
+                className="hm-news__row"
                 data-event-name="home_news_click"
                 data-news-id={a.id}
               >

@@ -28,19 +28,26 @@ export default function HomeStatsBand({ stats, avgResponseHours }: Readonly<{
     const el = ref.current
     if (!el) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setProgress(1); return }
+    let cancelled = false
+    let rafId = 0
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return
       observer.disconnect()
       const start = performance.now()
       const tick = (now: number) => {
+        if (cancelled) return
         const t = Math.min(1, (now - start) / 1100)
         setProgress(1 - (1 - t) ** 3) // easeOutCubic
-        if (t < 1) requestAnimationFrame(tick)
+        if (t < 1) rafId = requestAnimationFrame(tick)
       }
-      requestAnimationFrame(tick)
+      rafId = requestAnimationFrame(tick)
     }, { threshold: 0.3 })
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      cancelled = true
+      observer.disconnect()
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [])
 
   if (items.length < 2) return null
