@@ -784,7 +784,7 @@ export interface Listing {
   };
   isFeatured?: boolean | null;
   /**
-   * 房源供给关系的当前商户;有效期与快照规则见供给关系。新建时默认已预选。
+   * 房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。
    */
   merchant?: (number | null) | Merchant;
   contactBroker?: (number | null) | Broker;
