@@ -11,9 +11,13 @@ import type {
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
 
 /**
- * 楼盘详情重构 Demo 页（58 式 V2 布局）
+ * 楼盘详情 Demo 页
  *
- * 用途：供产品/设计在不依赖真实楼盘数据的情况下预览新结构。
+ * 用途：供产品/设计在不依赖真实楼盘数据的情况下预览详情页结构。它渲染的是
+ * 生产同一个 `BuildingDetailLayout`（OPT-037 Task 10 接线后的 `.dt-page`
+ * 骨架，不再是旧的 58 式 V2 两栏），因此本页与真实楼盘页的差异只有数据。
+ * 本仓库里它还是唯一能产出「楼盘 + 有图画廊」的入口——本地库所有楼盘的
+ * mediaItems 都是 0 条（见 task-10b-report.md）。
  * 开发/生产均可见（生产用于远程评审），robots noindex，页顶带演示横幅。
  */
 

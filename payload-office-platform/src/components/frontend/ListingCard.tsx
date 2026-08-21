@@ -97,6 +97,12 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
   return (
     <Link
       href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
+      // prefetch={false}：高基数 + 内容驱动 + 常驻渲染的卡片链接。列表页一屏
+      // 就有十几到几十张房源卡，默认预取会在滚动进视口时对每一条房源发起一次
+      // RSC 预取——URL 各不相同，预取结果几乎不会被复用（用户最终只点开其中
+      // 一两条）。与 `Pagination` / `FilterPill` / `BuildingSupplyBrowser` /
+      // `home/*` 已有的同一条判据一致（OPT-037 Task 11 补齐）。
+      prefetch={false}
       className={`listing-card${viewClass}${variantClass}`}
       data-listing-card-variant={variant}
       data-listing-card-view={view}

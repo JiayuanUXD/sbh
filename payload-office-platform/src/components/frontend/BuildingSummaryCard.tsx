@@ -65,6 +65,9 @@ export default function BuildingSummaryCard({ building, listingId, citySlug }: B
         )}
         <Link
           href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(building.slug)}`}
+          // prefetch={false}：楼盘 URL 由房源内容决定（高基数），且这张卡在
+          // 每个房源详情页都常驻渲染——同 ListingCard 的判据。
+          prefetch={false}
           className="btn btn--ghost building-summary-card__cta"
           data-detail-analytics-event="listing_building_click"
           data-analytics-listing-id={listingId}

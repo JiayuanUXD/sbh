@@ -236,31 +236,31 @@ export default function BuildingDetailLayout({
           basePath={buildingPagePath}
           currentSearch={supplyCurrentSearch}
         />
-        {/* `DetailSideRail`（既有行为，必须保留）从「密度表右侧的粘性栏」改成
-            「密度表下方的通栏卡片带」。理由是量出来的，不是偏好：
-            comp 的供给行网格是 `1fr / 130 / 150 / 176 / 120 / 44`，首列约 496，
-            合计 1116 = 容器 1180 − 面板 padding 32×2；而本版页面容器已按 comp
-            收到 1180（全批次统一），再切走一条 300–372 的右栏，数值列只剩
-            79–103px，实测「2800 元/工位/月」「2026年10月15日」会在单元格里
-            **拦腰折行**（截图 task10-main-supply-1440.png 的初版）。改版前它没
-            暴露，是因为旧页面根本没有 1180 容器（`.site-main` 1392 − 右栏 300
-            = 1068，够用）。所以「1180 容器」与「300 右栏」二者不可兼得，
-            comp 选了前者。
-            改成通栏卡片带后**组件一行未动**：四张卡（楼盘摘要 / 免费咨询 /
-            找房需求登记 / 热门楼盘）、两处 InquiryModal（sourceSection
-            'sticky-card'）、AdvisorCard 全部原样渲染，只有 `position: sticky`
-            这个纯呈现属性失效（见 detail.css `.dt-page .detail-side-rail`）。
-            **遗留问题如实记在这里**：四张卡里有三张与本页其它模块重复
-            （摘要/咨询 ↔ 核心区信息面板，热门楼盘 ↔ 同商圈楼盘），真正独有的
-            只有「登记需求，顾问回电」。收敛的做法是把那一个入口并进
-            `HeroSummaryPanel` 后退役本组件——那是产品可见的删除，不该由接线
-            任务单方面做，见 task-10-report.md。 */}
+        {/* `DetailSideRail` 从「密度表右侧的粘性栏」改成「密度表下方的通栏
+            卡片带」。理由是量出来的，不是偏好：comp 的供给行网格是
+            `1fr / 130 / 150 / 176 / 120 / 44`，首列约 496，合计 1116 =
+            容器 1180 − 面板 padding 32×2；而本版页面容器已按 comp 收到 1180
+            （全批次统一），再切走一条 300–372 的右栏，数值列只剩 79–103px，
+            实测「2800 元/工位/月」「2026年10月15日」会在单元格里**拦腰折行**
+            （截图 task10-main-supply-1440.png 的初版）。改版前它没暴露，是
+            因为旧页面根本没有 1180 容器（`.site-main` 1392 − 右栏 300 = 1068，
+            够用）。所以「1180 容器」与「300 右栏」二者不可兼得，comp 选了前者。
+            只有 `position: sticky` 这个纯呈现属性因换位失效（见 detail.css
+            `.dt-page .detail-side-rail`）。
+            Task 11 又摘掉了其中的第四张卡「热门楼盘」：它与下方的
+            `NearbyBuildingsStrip`「周边楼盘」、`#related`「同商圈楼盘」同源
+            （都读 `relatedBuildings`），Task 10 实测同一个楼盘在一页里出现
+            三次。剩余三张卡（楼盘摘要 / 免费咨询 / 找房需求登记）与两处
+            InquiryModal（sourceSection 'sticky-card'）原样保留。
+            **遗留问题如实记在这里**：前两张卡仍与核心区 `HeroSummaryPanel`
+            重复（同一个起价 / 同一个供给套数 / 同一张 AdvisorCard），真正
+            独有的只有「登记需求，顾问回电」。把那一个入口并进
+            `HeroSummaryPanel` 后退役本组件是更彻底的收敛，但那是产品可见的
+            删除，需要控制方点名裁定，见 task-10-report.md / task-11-report.md。 */}
         <DetailSideRail
           building={building}
           supply={supply}
-          relatedBuildings={relatedBuildings}
           serviceSchedule={serviceSchedule}
-          citySlug={citySlug}
         />
       </section>
 

@@ -5,34 +5,35 @@ import { rentUnitLabel } from '@/lib/frontend/format'
 import { DISPLAY_UNIT_LABELS, findLowestPrice } from './supply-summary'
 import type {
   BuildingDetailViewModel,
-  BuildingSummaryViewModel,
   BuildingSupplySnapshot,
 } from '@/domain/public-catalog'
 import type { ServiceSchedule } from '@/domain/advisor-availability'
 
 /**
- * 58 式房源区右粘性栏：迷你摘要 + 免费咨询 + 需求登记 + 热门楼盘。
+ * 在租房源区下方的「咨询 / 需求登记」卡片带：迷你摘要 + 免费咨询 + 需求登记。
+ *
+ * OPT-037 Task 11 摘除了原本的第四张卡「热门楼盘」：它与本页 `#related`
+ * 「同商圈楼盘」、`NearbyBuildingsStrip`「周边楼盘」读的是同一份
+ * `relatedBuildings`，Task 10 在 `test0814` 实测到**同一个楼盘在一页里出现
+ * 三次**。三处里这一处信息量最小（64×44 缩略图 + 楼盘名 + 行政区），删它
+ * 消除三重重复而不丢任何一个产品面。随之不再需要 `relatedBuildings` /
+ * `citySlug` 两个入参——本组件已不产出任何跨楼盘链接。
  */
 type DetailSideRailProps = Readonly<{
   building: BuildingDetailViewModel
   supply: BuildingSupplySnapshot
-  relatedBuildings: readonly BuildingSummaryViewModel[]
   serviceSchedule?: ServiceSchedule
-  citySlug?: string
 }>
 
 export default function DetailSideRail({
   building,
   supply,
-  relatedBuildings,
   serviceSchedule,
-  citySlug,
 }: DetailSideRailProps) {
   const lowest = findLowestPrice(supply.availableGroups)
-  const popular = relatedBuildings.filter((item) => item.id !== building.id).slice(0, 3)
 
   return (
-    <aside className="detail-side-rail" aria-label="咨询与推荐">
+    <aside className="detail-side-rail" aria-label="咨询与需求登记">
       <section className="detail-side-rail__card">
         <h3>{building.name}</h3>
         {lowest && (
@@ -79,31 +80,6 @@ export default function DetailSideRail({
           serviceSchedule={serviceSchedule}
         />
       </section>
-
-      {popular.length > 0 && (
-        <section className="detail-side-rail__card">
-          <h3>热门楼盘</h3>
-          <ul className="detail-side-rail__popular">
-            {popular.map((item) => (
-              <li key={item.id}>
-                <a href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
-                  {item.coverImage ? (
-                    <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
-                  ) : (
-                    <span className="detail-side-rail__popular-placeholder" aria-hidden="true" />
-                  )}
-                  <span className="detail-side-rail__popular-body">
-                    <span className="detail-side-rail__popular-name">{item.name}</span>
-                    <span className="detail-side-rail__popular-meta">
-                      {item.district?.name ?? ''}
-                    </span>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </aside>
   )
 }

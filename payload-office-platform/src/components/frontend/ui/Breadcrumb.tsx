@@ -8,7 +8,10 @@ import React from 'react'
  * 守护不变量：
  *   - 语义化 <nav aria-label="面包屑"> + <ol>；
  *   - 当前页用 aria-current="page"；
- *   - 分隔符对屏幕阅读器隐藏。
+ *   - 分隔符对屏幕阅读器隐藏；
+ *   - 链接一律 prefetch={false}（OPT-037 Task 11）：本原语在每个详情页
+ *     常驻渲染，`items` 完全由页面内容拼装（城市前缀 / 行政区 / 楼盘名都是
+ *     内容驱动），与 ListingCard / BuildingSummaryCard 走同一条判据。
  */
 
 export type BreadcrumbItem = {
@@ -31,7 +34,7 @@ export function Breadcrumb({ items, className }: Props) {
           return (
             <li key={i} className="breadcrumb__item">
               {item.href && !isLast ? (
-                <Link href={item.href} className="breadcrumb__link">
+                <Link href={item.href} prefetch={false} className="breadcrumb__link">
                   {item.label}
                 </Link>
               ) : (

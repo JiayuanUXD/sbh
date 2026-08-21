@@ -936,7 +936,7 @@ export default async function Opt037PreviewPage({
         <PreviewSection
           id="detail-gallery-no-media"
           title="详情画廊 · 无图替代构图（NoImageHeroGrid）"
-          note="mediaItems 为 0，画廊整段不渲染，关键规格 3×2 宫格 + 地址交通条接管首屏；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
+          note="mediaItems 为 0，画廊整段不渲染，关键规格宫格 + 地址交通条接管首屏；宫格 ≥768 为 3 列（6 格排成 3×2）、≤767 收成 2 列且数值降到 24（Task 10b：375 下三列每格只有 72px，32px 的大字排不下）；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
         >
           <div style={{ maxWidth: 776 }}>
             <DetailGallery
@@ -1147,10 +1147,11 @@ export default async function Opt037PreviewPage({
           title="供给密度表（BuildingSupplyBrowser，方案 A：分组切换 + 密度表）"
           note="组聚合（3 列 gap 24）→ 筛选 + 排序 → 表头 → 行，网格 1fr/130/150/176/120/44。组切换/筛选/排序状态在 URL 上（本页真的会因为点击而跳转 querystring，刷新后视图复现）；三态：三组齐全 / 出售组为空（tab 整条不渲染）/ 全空（仅一行提示）"
         >
-          {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例（生产页
-             .detail-v2__supply-main 本就有 min-width:0，见 styles.css），这个
-             fixture 外壳自己也要显式声明，否则密度表所在的 flex item 会按内容
-             最小尺寸撑开，导致整页横向溢出——预览壳的责任，不是组件的缺陷。 */}
+          {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例。生产页
+             （BuildingDetailLayout）里密度表的父级是 `.dt-container .dt-section`
+             块级容器，天然不会被内容撑开；本预览壳是 flex 容器，flex item 的
+             min-width 默认 auto，不显式归零的话密度表会按内容最小尺寸撑开，
+             导致整页横向溢出——预览壳的责任，不是组件的缺陷。 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>三组齐全（租赁 / 出售 / 联合办公）</span>
