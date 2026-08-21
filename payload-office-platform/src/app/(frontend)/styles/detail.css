@@ -5,11 +5,14 @@
  * （白底零边框、无 hover、padding 更大），故单列 .dt-panel，不套 .sf-card。
  * ========================================================================== */
 
-.dt-page { --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px; }
+.dt-page { --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px; --dt-sticky-bar-h: 56px; }
 .dt-container { width: min(var(--dt-w), 100% - 32px); margin-inline: auto; }
 
+/* align-items:start（Task 4 新增）——两列各自按内容高度定盒，不拉伸到行高。
+ * 这不只是视觉选择：它是决策卡 sticky 粘附范围的地基，见下方「决策卡 +
+ * 吸附询价条」小节的机制说明。 */
 .dt-core { display: grid; grid-template-columns: var(--dt-main) var(--dt-side);
-  column-gap: 32px; row-gap: 0; }
+  column-gap: 32px; row-gap: 0; align-items: start; }
 
 .dt-panel { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
 .dt-panel--full { padding: 40px; }
@@ -158,4 +161,128 @@
   font-weight: 600;
   color: var(--ink-3);
   padding-bottom: 6px;
+}
+
+/* ============================================================================
+ * 决策卡 + 吸附询价条（Task 4）
+ * 设计依据：房源详情.dc.html specRows「决策卡 sticky」「决策区间范围」「吸附询价条」。
+ *
+ * 两段交接的实现机制分属两个世界，不要混着理解：
+ *
+ * 1) 决策卡的粘附区间（core 第 1 行，行末即释放）——纯 CSS，零 JS：
+ *    `.dt-core` 的两列子项在 align-items:start 下各自只按内容高度定盒
+ *    （不再拉伸到行高），但 CSS Grid 规范里 grid item 的 containing block
+ *    取的是它的「grid area」（该列在该行的完整框），不是它自己收缩后的盒子。
+ *    `.dt-decision` 显式钉在 grid-column:2 / grid-row:1，这一行的高度由
+ *    画廊列撑出来（画廊比决策卡内容高得多）——于是决策卡的 sticky 可移动
+ *    范围 = 整个第 1 行的高度，画廊滚完、第 1 行的 grid area 耗尽，
+ *    sticky 天然释放，滚去了第 2 行（.dt-overview）也不会被拽住。
+ *    这是 grid + sticky 的标准组合技，不是新发明的 hack；align-items:start
+ *    是让它生效的必要条件（缺了它两列会被拉伸到同一行高，决策卡自己的盒子
+ *    会撑到跟画廊一样高，肉眼看不出粘附与释放的边界）。
+ *
+ * 2) 吸附询价条的「决策卡离屏后接管」——做不到纯 CSS，必须 JS（见
+ *    StickyInquiryBar.tsx）：条本身在文档流里天然出现在页面很靠上的位置
+ *    （紧跟全局导航之后），如果无条件常驻 `position:sticky; top:44`，它在
+ *    页面刚加载、决策卡还完整可见时就已经贴住顶部——决策卡与吸附条会同屏
+ *    重叠，而不是接力。StickyInquiryBar 用 IntersectionObserver 观察
+ *    `.dt-decision`，只有决策卡与视口零相交（真正离屏）才渲染吸附条，
+ *    从根上避免两者同时可见。
+ * ========================================================================== */
+
+/* 复位泄漏的 `.detail-gallery { grid-column: span 7; }`（styles.css:1460，服务旧
+ * `.detail-hero` 7 列网格）——这条全局类选择器规则不认 grid 容器是谁，套进
+ * `.dt-core`（只有 2 条显式列轨）后画廊会被强行 span 7，逼出 5 条隐式 0 宽列，
+ * 且因为 7 列宽度会跟 .dt-decision（col2/row1）撞格，auto-placement 把画廊
+ * 挤到了第 3 行——用真实 Playwright 量出来的 bug，不是猜的（见
+ * task-4-report.md 的 grid-template-columns/rows 诊断数据）。同类复位已有
+ * 先例：styles.css:4848 `.detail-v2__hero > .detail-gallery { grid-column:
+ * auto; }`，这里照抄同一手法，只是换成 `.dt-core` 这个新 grid 上下文。 */
+.dt-core > .detail-gallery {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.dt-decision {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  /* 44 导航 + 56 吸附条 + 16 间距 = 116；导航高度与吸附条高度都走 token，
+   * 不重复写字面量，两者任一改动这里自动跟着变。 */
+  top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 16px);
+}
+
+.dt-decision__label { display: block; font-size: 13px; color: var(--ink-3); }
+
+.dt-decision__price-row { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
+.dt-decision__price-num {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 40px; font-weight: 600; line-height: 1.06; color: var(--ink);
+}
+.dt-decision__price-unit { font-size: 17px; color: var(--ink-2); }
+
+.dt-decision__summary { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+
+.dt-decision__verify {
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.dt-decision__verify-row { display: flex; align-items: center; gap: 10px; }
+.dt-decision__verify-icon { flex: none; color: var(--ink-2); }
+.dt-decision__verify-label { flex: 1; font-size: 13px; color: var(--ink-2); }
+.dt-decision__verify-when {
+  font-size: 13px; font-weight: 500; color: var(--ink);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+
+.dt-decision__cta { margin-top: 24px; }
+
+/* 吸附询价条：sticky top 44（导航高度）· 高 56 · 决策卡离屏后由
+ * StickyInquiryBar.tsx 的 IntersectionObserver 挂载/卸载，不是靠 CSS 显隐。
+ * 桌面 1440 专属——移动端已有 `.detail__mobile-bar`（固定底栏）承担同一
+ * 「避免价格重复出现」的职责，两套机制分工不合并，见 StickyInquiryBar.tsx
+ * 文件头注释。 */
+.dt-sticky-bar {
+  /* 用 fixed 而非 comp 字面的 sticky——本条由 StickyInquiryBar.tsx 整体挂载
+   * /卸载（不是靠 CSS 显隐一个常驻元素），且只在"决策卡已完全离屏"时才
+   * 挂载，此时它必然已经越过自己的粘附阈值，视觉上与 sticky 的"已吸附"
+   * 状态完全一致——它不存在需要展示的"未吸附、随文档流内联"状态。
+   * 用 Playwright 实测发现：若用 sticky，挂载瞬间仍会在它自身的文档流
+   * 原位置吃掉 56px 高度，把下方所有内容（决策卡、核心区、正文）顺移
+   * 56px；Chromium 的 scroll anchoring 会自动补偿 scrollY 抵消这次位移，
+   * 现象上勉强不出错，但补偿依赖浏览器行为，不该把正确性建立在这上面。
+   * fixed 完全脱离文档流，挂载/卸载零布局影响，没有这个隐患。 */
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: var(--z-floating);
+  height: var(--dt-sticky-bar-h);
+  /* --bg (#f5f5f7) 的 86% 不透明度；项目未提供 rgba 版本的 --bg token，
+   * 沿用本文件其它位置（如 .detail-gallery__main-counter）字面量 rgba 的
+   * 既有先例，不新造 color-mix 写法。 */
+  background: rgba(245, 245, 247, 0.86);
+  backdrop-filter: var(--header-blur);
+  border-bottom: 1px solid var(--line);
+}
+.dt-sticky-bar__inner { height: 100%; display: flex; align-items: center; gap: 20px; }
+.dt-sticky-bar__title {
+  flex: none; font-size: 15px; font-weight: 600; color: var(--ink);
+  max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dt-sticky-bar__price { flex: none; display: flex; align-items: baseline; gap: 5px; }
+.dt-sticky-bar__price-num {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 17px; font-weight: 600; color: var(--ink);
+}
+.dt-sticky-bar__price-unit { font-size: 13px; color: var(--ink-2); }
+.dt-sticky-bar__summary {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dt-sticky-bar__cta { flex: none; margin-left: auto; }
+
+@media (max-width: 1023px) {
+  .dt-decision { position: static; }
+  .dt-sticky-bar { display: none; }
 }

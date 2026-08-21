@@ -5,13 +5,17 @@ import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
+import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
+import InquiryModal from '@/components/frontend/InquiryModal'
 import type {
   BuildingSummaryViewModel,
   DetailMediaViewModel,
   FactGroupViewModel,
   FactValue,
   PriceViewModel,
+  VerificationViewModel,
 } from '@/domain/public-catalog/contracts'
+import { formatPublishedDate } from '@/lib/frontend/format'
 
 /**
  * OPT-037 详情页组件预览（仅开发环境）
@@ -296,6 +300,41 @@ const OVERVIEW_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：决策卡 + 吸附询价条（Task 4）—— 与 ListingOverviewPanel 用同一套
+// 静安嘉里中心 fixture（OVERVIEW_PRICE_FULL / OVERVIEW_BUILDING_FULL /
+// OVERVIEW_FULL_GROUPS），保证这个滚动测试场景里"画廊 + 决策卡 + 概况"
+// 三块拼出的是同一套真实存在的房源，不是三份互不相关的占位数据。
+// ---------------------------------------------------------------------------
+
+const STICKY_LISTING_TITLE = '静安嘉里中心 · 12 层整层'
+
+// VerificationViewModel 是 ListingDetailViewModel.verification 的真实类型
+// （见 mappers.ts mapVerification），不是为本预览臆造的形状。
+const STICKY_VERIFICATION_FIXTURE: VerificationViewModel = {
+  verifiedAt: '2026-08-11T00:00:00.000Z',
+  priceVerifiedAt: '2026-08-15T00:00:00.000Z',
+}
+
+// 与 CityListingDetailView.tsx inquiryPriceSnapshot 同一套字段变换
+// （amount/currency/period/unit），复用既有价格 fixture 派生，不重新编数字。
+const STICKY_PRICE_SNAPSHOT = {
+  amount: OVERVIEW_PRICE_FULL.amount,
+  currency: OVERVIEW_PRICE_FULL.currency,
+  period: OVERVIEW_PRICE_FULL.period,
+  unit: OVERVIEW_PRICE_FULL.displayUnit,
+} as const
+
+/** 核验行前的勾选图标——单色 currentColor，不引入 comp 字面量的双色 hex。 */
+function VerifyCheckIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" className="dt-decision__verify-icon">
+      <circle cx="7.5" cy="7.5" r="6.75" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M4.4 7.7l2.1 2.1 4.1-4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -414,6 +453,113 @@ export default function Opt037PreviewPage() {
               />
             </div>
           </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="decision-sticky-bar"
+          title="决策卡 + 吸附询价条（StickyInquiryBar）"
+          note="决策卡 sticky top 116（.dt-decision），粘附区间限定在核心区第 1 行（画廊高度）——纯 CSS Grid 机制，行末即释放；吸附询价条 sticky top 44 · 高 56，由 StickyInquiryBar 的 IntersectionObserver 在决策卡（.dt-decision）与视口零相交时才挂载，两者不会同屏重叠。滚动验证见 artifacts/verification/OPT-037/sticky-*.png。CTA 复用同一个 InquiryModal（询价 / 预约看房），不存在第二套询价逻辑。"
+        >
+          {/* 吸附条放在 .dt-core 网格之前（而不是整页最顶部）：它只在决策卡
+              离屏后才挂载，而决策卡在下方的核心区网格里——挂载那一刻早已
+              滚过本条自身的静态流位置，天然满足 sticky 的"已滚过阈值"条件，
+              不需要把它挪到整页最顶端就能验证接管行为。 */}
+          <StickyInquiryBar
+            title={STICKY_LISTING_TITLE}
+            priceText={String(OVERVIEW_PRICE_FULL.amount.toFixed(2))}
+            priceUnit="元/㎡/天"
+            summaryText="1,240 ㎡ · 月租 316,200 元/月"
+            cta={
+              <InquiryModal
+                pageType="listing"
+                targetListingSlug="jing-an-kerry-centre-12f"
+                targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                targetSummary={STICKY_LISTING_TITLE}
+                triggerLabel="预约看房"
+                // 'sticky-card' 是 domain/inquiry/schema.ts SOURCE_SECTIONS 里
+                // 唯一贴合"吸附态询价入口"的枚举值（标签"侧边悬浮卡"）；schema
+                // 没有为"顶部吸附条"单开一个值。决策卡与吸附条本来就是同一个
+                // 询价入口在滚动过程中的两种呈现形态，不是两个产品位——沿用
+                // 同一枚举如实反映这一点，不为了区分而新造枚举（新增枚举要
+                // 连带改 Leads collection 校验，超出本任务范围）。
+                sourceSection="sticky-card"
+                priceSnapshot={STICKY_PRICE_SNAPSHOT}
+                activeSupplyGroup="lease"
+                currentFilters={{ group: 'lease', priceUnit: STICKY_PRICE_SNAPSHOT.unit }}
+              />
+            }
+          />
+
+          <div className="dt-container">
+            <div className="dt-core">
+              <DetailGallery media={MULTI_IMAGE_FIXTURE} title={STICKY_LISTING_TITLE} pageType="listing" />
+
+              <div className="dt-decision">
+                <DetailPanel variant="side">
+                  <span className="dt-decision__label">租金单价</span>
+                  <div className="dt-decision__price-row">
+                    <span className="dt-decision__price-num">{OVERVIEW_PRICE_FULL.amount.toFixed(2)}</span>
+                    <span className="dt-decision__price-unit">元/㎡/天</span>
+                  </div>
+                  <p className="dt-decision__summary">1,240 ㎡ · 月租 316,200 元/月</p>
+
+                  <div className="dt-decision__verify">
+                    {STICKY_VERIFICATION_FIXTURE.verifiedAt && (
+                      <div className="dt-decision__verify-row">
+                        <VerifyCheckIcon />
+                        <span className="dt-decision__verify-label">信息核验</span>
+                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.verifiedAt}>
+                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.verifiedAt)}
+                        </span>
+                      </div>
+                    )}
+                    {STICKY_VERIFICATION_FIXTURE.priceVerifiedAt && (
+                      <div className="dt-decision__verify-row">
+                        <VerifyCheckIcon />
+                        <span className="dt-decision__verify-label">价格核验</span>
+                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.priceVerifiedAt}>
+                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.priceVerifiedAt)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <InquiryModal
+                    pageType="listing"
+                    targetListingSlug="jing-an-kerry-centre-12f"
+                    targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                    targetSummary={STICKY_LISTING_TITLE}
+                    triggerLabel="预约看房"
+                    triggerClassName="btn--lg btn--block dt-decision__cta"
+                    sourceSection="sticky-card"
+                    priceSnapshot={STICKY_PRICE_SNAPSHOT}
+                    activeSupplyGroup="lease"
+                    currentFilters={{ group: 'lease', priceUnit: STICKY_PRICE_SNAPSHOT.unit }}
+                  />
+                  {/* 生产接线（非本任务范围）：这里应换成
+                      <AdvisorCard cta={<InquiryModal .../>} />，与
+                      CityListingDetailView.tsx 现有 .detail__decision 同款
+                      组合——AdvisorCard 内部会读 Payload global（服务时段），
+                      与本预览页"不读 Payload"的约定冲突，故预览页里只演示
+                      价格/核验/CTA 三块，不拉入 AdvisorCard。 */}
+                </DetailPanel>
+              </div>
+
+              <ListingOverviewPanel
+                listing={{
+                  factGroups: OVERVIEW_FULL_GROUPS,
+                  price: OVERVIEW_PRICE_FULL,
+                  availableFrom: '2026-09-01T00:00:00.000Z',
+                  building: OVERVIEW_BUILDING_FULL,
+                }}
+              />
+            </div>
+          </div>
+
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: 'var(--ink-2)' }}>
+            以下为滚动测试留白（模拟房源描述 / 周边与交通等后续区块），确保核心区完全离屏后仍有余量验证吸附询价条常驻。
+          </p>
+          <div style={{ height: 900 }} aria-hidden="true" />
         </PreviewSection>
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}
