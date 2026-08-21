@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useAnchorVisibility } from '@/lib/frontend/use-anchor-visibility'
 
 /**
  * 吸附询价条（OPT-037 Task 4）
@@ -65,23 +65,20 @@ export default function StickyInquiryBar({
   /** 决策卡容器选择器；决策卡离屏（零相交）时本条才渲染 */
   anchorSelector?: string
 }>) {
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const anchor = document.querySelector(anchorSelector)
-    if (!anchor) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(!entry.isIntersecting),
-      { threshold: 0 },
-    )
-    observer.observe(anchor)
-    return () => observer.disconnect()
-  }, [anchorSelector])
-
   // 默认隐藏（不同于 DetailMobileBarPrice 的默认显示）：决策卡本身已经用
   // 纯 CSS sticky 常驻可见，无 JS（SSR / JS 加载失败）时用户仍能从决策卡
   // 完成询价，不会因为本条缺席而彻底失去入口；反过来如果默认显示，无 JS
   // 时它会从页面顶部就贴住，与决策卡长期重叠，比"缺一个入口"更糟。
+  //
+  // 观察 + 翻转 + 断开的样板收敛进 useAnchorVisibility（与 DetailMobileBarPrice
+  // 共用同一个 hook，见 src/lib/frontend/use-anchor-visibility.ts 文件头注释）；
+  // defaultVisible/mapVisible/anchorSelector 三处仍各自决定，两个组件的渲染层、
+  // 断点、默认可见性完全独立，收敛的只是观察器样板本身。
+  const visible = useAnchorVisibility(anchorSelector, {
+    defaultVisible: false,
+    mapVisible: (isIntersecting) => !isIntersecting,
+  })
+
   if (!visible) return null
 
   return (

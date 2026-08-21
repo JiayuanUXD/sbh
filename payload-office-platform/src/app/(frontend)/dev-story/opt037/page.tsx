@@ -476,6 +476,12 @@ export default function Opt037PreviewPage() {
                 targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
                 targetSummary={STICKY_LISTING_TITLE}
                 triggerLabel="预约看房"
+                // btn--lg：56 高的吸附条放得下，且要和决策卡的 CTA（同样
+                // btn--lg）视觉分量一致——不传 triggerClassName 会退回
+                // InquiryModal 内部拼的默认 'btn btn--primary'（无尺寸修饰符），
+                // 比决策卡的按钮明显小一号，且没有显式核对过是否达到
+                // ≥44px 触控目标线，故不留隐式默认。
+                triggerClassName="btn--lg"
                 // 'sticky-card' 是 domain/inquiry/schema.ts SOURCE_SECTIONS 里
                 // 唯一贴合"吸附态询价入口"的枚举值（标签"侧边悬浮卡"）；schema
                 // 没有为"顶部吸附条"单开一个值。决策卡与吸附条本来就是同一个
@@ -542,6 +548,18 @@ export default function Opt037PreviewPage() {
                       组合——AdvisorCard 内部会读 Payload global（服务时段），
                       与本预览页"不读 Payload"的约定冲突，故预览页里只演示
                       价格/核验/CTA 三块，不拉入 AdvisorCard。 */}
+                  {/* comp 在决策卡与吸附条里都还有一个次要的"电话咨询"按钮，
+                      本组件只渲染了一个 CTA 槽——这不是漏做，是没有字段可填：
+                      仓库里没有任何"平台客服热线/门店座机"配置（搜过
+                      site-config.ts 与全部 *Phone* 字段，只有用户提交表单里
+                      的联系电话，没有一个能公开展示的号码），而
+                      AdvisorCard.tsx 文件头本就明令"不展示个人顾问手机号"——
+                      两条路都走不通。CityListingDetailView.tsx:165-169 现有
+                      的 .detail__decision 同样只有一个 InquiryModal CTA，
+                      从未渲染过 tel: 链接，这不是巧合，是同一个字段缺口。
+                      Task 9（或任何后续任务）如果想"补回"这个按钮，必须先
+                      有一个真实、可公开、非个人的号码字段落地，而不是照抄
+                      comp 的字面量。 */}
                 </DetailPanel>
               </div>
 

@@ -283,6 +283,22 @@
 .dt-sticky-bar__cta { flex: none; margin-left: auto; }
 
 @media (max-width: 1023px) {
-  .dt-decision { position: static; }
+  /* 移动端栅格回归修复：`.dt-decision` 的 grid-column:2/grid-row:1 是桌面
+   * 两列布局专属的显式钉位，这条媒体查询原先只复位了 position，没有复位
+   * grid-column/grid-row。`.dt-core` 在这个断点塌成单一显式列后，
+   * grid-column:2 会逼浏览器生成一条按内容定宽的隐式第 2 列——决策卡挤到
+   * 画廊右边（约 343px 容器宽），而不是像 `.dt-overview`（本来就用
+   * grid-column:1/-1）那样正常整行下沉。用真实 Playwright 在 375/768/1440
+   * 三个视口复测过，问题只出现在旧代码，修复后三个宽度都回归正常——见
+   * task-4-report.md 补充记录。
+   *
+   * 同时把 `.dt-overview` 的 grid-row 复位为 auto：它在桌面固定钉在
+   * grid-row:2，若决策卡改成 grid-row:auto 而 overview 仍钉着显式的 2，
+   * 两者会在单列布局里挤进同一行造成新的重叠。两者都改回 auto 后，三个
+   * 网格子项（画廊 / 决策卡 / 概况）没有任何显式行号，退回纯 DOM 顺序
+   * 逐行堆叠——图片、决策卡（价格+CTA）、概况规格表，顺序也更合理
+   * （先看图和价格，再看详细规格）。 */
+  .dt-decision { grid-column: 1 / -1; grid-row: auto; position: static; }
+  .dt-overview { grid-row: auto; }
   .dt-sticky-bar { display: none; }
 }
