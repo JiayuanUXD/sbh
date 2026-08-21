@@ -33,6 +33,18 @@ function selectBuildingQuery(params: URLSearchParams): URLSearchParams {
 | `prefixedCanonicalPath` | legacy `/buildings?...` → 307 → `/shanghai/buildings?...` | 除 `grade` 外全丢。实测：`/buildings?onlyWithStock=1` → `/shanghai/buildings`（开关没了） |
 | `buildCitySwitchPath` | 用户在页面上点「切换城市」 | 同上。上海页面上叠了「甲级 + 2010 年后 + 仅看有在租」，切到杭州只剩「甲级」 |
 
+**`buildCitySwitchPath` 才是这个工作项的分量所在**（OPT-036 全批次终审补记）。
+legacy 307 是一条历史兼容路径，而「切换城市」是产品内的常驻控件、用户主动点的按钮。
+把它说清楚：一个已经按**五个维度**收窄过的用户（区域 / 等级 / 地铁 / 在租面积 /
+竣工年代 / 仅看有在租，六选五），点一下「切换城市」，除 `grade` 外**全部静默丢失**
+——没有提示、没有回退入口，用户只会以为「杭州什么都没筛出来」或「筛选坏了」。
+
+其中 `onlyWithStock` 尤其不能丢：它是这一页的**招牌控件**（本批次唯一获准使用
+accent 底色的筛选项，理由见 `FilterFormC.FilterSwitch` 的注释——「暂无在租的楼盘
+被降权分组到列表末尾，这个开关是那条产品判断的正面出口」）。整页最醒目、最被鼓励
+去点的那个开关，一换城市就悄悄复位，这不是「少保留了一个参数」，是把一条明确的
+产品主张在跨城场景里撤销掉。裁定跨城维度取舍时，它应当排在 `grade` 之前考虑。
+
 OPT-036 Task 12 之后，楼盘列表页的六个维度是：
 `district` / `grade` / `metro` / `leasableAreaMin`+`leasableAreaMax` / `completedAfter` / `onlyWithStock`。
 其中 5 个是本轮新增的。
