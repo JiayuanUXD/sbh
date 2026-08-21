@@ -778,9 +778,16 @@ export function parseRent(value: unknown): { amount: number; unit: string } | nu
   const num = extractNumber(text)
   if (num === null || num < 0) return null
 
+  // 「万」是数量级修饰而非单位。出现"万"却不是纯总价写法（如 `1.5万/月`、`80万元/年`）时，
+  // 单位其实识别不出来，必须返回 null——不能落到下面的 `/\/月$/` 分支，
+  // 那会把「1.5 万元/月」读成「1.5 元/月」，差一万倍，而导入的房源是直接上架的。
+  if (text.includes('万')) {
+    if (/^[\d,]+(\.\d+)?万元?$/.test(text)) return { amount: num * 10000, unit: 'rmb-total' }
+    return null
+  }
+
   if (/\/㎡\/天|\/平米\/天|元\/平\/天/.test(text)) return { amount: num, unit: 'rmb-sqm-day' }
   if (/\/工位\/月|\/人\/月/.test(text)) return { amount: num, unit: 'rmb-seat-month' }
-  if (/万$|万元$/.test(text)) return { amount: num * 10000, unit: 'rmb-total' }
   if (/\/月$/.test(text)) return { amount: num, unit: 'rmb-month' }
   return null
 }
