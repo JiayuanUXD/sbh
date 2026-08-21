@@ -29,7 +29,6 @@ import {
   listingsCityTag,
   omitListingSearchDimensions,
   paginateListingSearchSource,
-  searchBuildings,
   searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
@@ -194,18 +193,9 @@ export function getCachedRelatedBuildings(
   return getCachedRelatedBuildingsByCity(city)(buildingSlug, limit)
 }
 
-const getCachedSearchBuildingsByCity = memoizeByCity((citySlug) =>
-  unstable_cache(
-    async () => searchBuildings(createSearchContext(citySlug)),
-    ['search-buildings', citySlug],
-    { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
-  ),
-)
-
-export function getCachedSearchBuildings(citySlug: string) {
-  const city = canonicalCitySlug(citySlug)
-  return getCachedSearchBuildingsByCity(city)()
-}
+// 未筛选版 getCachedSearchBuildings（曾包 domain searchBuildings）已在
+// OPT-036 Task 13 删除：楼盘列表页自 Task 12 起全部走 getCachedSearchBuildingsFiltered，
+// 保留这条无生产调用方的路径只会让「照着抄一个楼盘列表」的人重新绕回未筛选查询。
 
 const getCachedSearchBuildingsFilteredByCity = memoizeByCity((citySlug) =>
   unstable_cache(

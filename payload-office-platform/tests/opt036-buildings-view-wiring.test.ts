@@ -3,13 +3,16 @@
  *
  * 守卫落在**失效点那一层**（Task 11 的 I3 教训）：域层已经有
  * `opt036-building-search-result.test.ts` 锁住筛选/排序/分组/分页函数本身，但那些
- * 断言无法阻止有人把路由改回 `getCachedSearchBuildings()` 再在视图里 `.filter()`
- * ——那样域层测试照样全绿、typecheck 照样过、页面照样不报错，只是「分页作用于
- * 合并序列」「筛选下沉查询层」两条设计意图静默消失。因此本文件断言的是
+ * 断言无法阻止有人把路由改回未筛选查询再在视图里 `.filter()`——那样域层测试
+ * 照样全绿、typecheck 照样过、页面照样不报错，只是「分页作用于合并序列」
+ * 「筛选下沉查询层」两条设计意图静默消失。因此本文件断言的是
  * **路由与编排层的调用行为与结构**：
  *
- *   1. 两个路由都把 URL 解析成 `BuildingSearchInput` 并调筛选版查询，
- *      **从不**调用未筛选的 `getCachedSearchBuildings`；
+ *   1. 两个路由都把 URL 解析成 `BuildingSearchInput` 并调筛选版查询
+ *      `getCachedSearchBuildingsFiltered`（未筛选版 `getCachedSearchBuildings`
+ *      已在 OPT-036 Task 13 从 cached-queries.ts 删除——这一条现在由
+ *      「导入不存在的符号会编译失败」保证，比运行时 mock 断言更强，
+ *      故不再需要 `expect(...).not.toHaveBeenCalled()` 这道守卫）；
  *   2. 视图渲染的分组来自 `result.groups`（域层），不是自己对 `docs` 再分一次组；
  *   3. 视图不做分页：`docs`/`groups` 原样渲染，不切片；
  *   4. 筛选条底栏与空态②的「清除全部」是同一个 href；
@@ -25,12 +28,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import type { ReactElement } from 'react'
 
 const getCachedSearchBuildingsFiltered = vi.fn()
-const getCachedSearchBuildings = vi.fn()
 const resolveCityContext = vi.fn()
 
 vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchBuildingsFiltered: (...args: unknown[]) => getCachedSearchBuildingsFiltered(...args),
-  getCachedSearchBuildings: (...args: unknown[]) => getCachedSearchBuildings(...args),
 }))
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({
   resolveCityContext: (...args: unknown[]) => resolveCityContext(...args),
@@ -169,7 +170,6 @@ function countPrimaryButtons(empty: Visited): number {
 
 beforeEach(() => {
   getCachedSearchBuildingsFiltered.mockReset()
-  getCachedSearchBuildings.mockReset()
   resolveCityContext.mockReset()
   getCachedSearchBuildingsFiltered.mockResolvedValue(buildResult())
   resolveCityContext.mockResolvedValue(CITY)
@@ -182,7 +182,6 @@ describe('楼盘列表路由：解析成 BuildingSearchInput 并走筛选版查�
       params: Promise.resolve({ city: 'shanghai' }),
       searchParams: Promise.resolve({ grade: 'grade-a', page: '2', sort: 'grade', onlyWithStock: '1' }),
     })
-    expect(getCachedSearchBuildings).not.toHaveBeenCalled()
     expect(getCachedSearchBuildingsFiltered).toHaveBeenCalledTimes(1)
     const [citySlug, input] = getCachedSearchBuildingsFiltered.mock.calls[0]
     expect(citySlug).toBe('shanghai')
@@ -192,7 +191,6 @@ describe('楼盘列表路由：解析成 BuildingSearchInput 并走筛选版查�
 
   it('legacy /buildings 同一条链路（无城市前缀时不得退回旧的未筛选查询）', async () => {
     await LegacyBuildingsPage({ searchParams: Promise.resolve({ district: 'jingan' }) })
-    expect(getCachedSearchBuildings).not.toHaveBeenCalled()
     expect(getCachedSearchBuildingsFiltered).toHaveBeenCalledTimes(1)
     expect(getCachedSearchBuildingsFiltered.mock.calls[0][1]).toMatchObject({ district: ['jingan'] })
   })

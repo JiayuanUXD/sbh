@@ -5,21 +5,9 @@ import { describe, expect, it } from 'vitest'
 const ROOT = resolve(import.meta.dirname, '..')
 
 describe('OPT-025 楼盘列表导航性能合同', () => {
-  it('楼盘搜索缓存使用固定键、依赖楼盘与房源，并设置 300 秒重新验证阈值', async () => {
-    const source = await readFile(
-      resolve(ROOT, 'src/lib/frontend/cached-queries.ts'),
-      'utf8',
-    )
-    const wrapper = source.match(
-      /const getCachedSearchBuildingsByCity = memoizeByCity\([\s\S]*?\n\)/,
-    )?.[0]
-
-    expect(wrapper).toBeDefined()
-    expect(wrapper).toContain('searchBuildings(createSearchContext(citySlug))')
-    expect(wrapper).toContain("['search-buildings', citySlug]")
-    expect(wrapper).toContain('mixedSupplyCacheTags(citySlug)')
-    expect(wrapper).toMatch(/revalidate:\s*300/)
-  })
+  // 未筛选版 getCachedSearchBuildingsByCity/getCachedSearchBuildings 曾在此处
+  // 单独锁定缓存契约，已随该函数在 OPT-036 Task 13 从 cached-queries.ts 删除
+  // （无生产调用方，楼盘列表页自 Task 12 起全部走下面这条 Filtered 版本）。
 
   it('楼盘筛选缓存同样固定键、依赖楼盘与 facets，并设置 300 秒重新验证阈值', async () => {
     const source = await readFile(

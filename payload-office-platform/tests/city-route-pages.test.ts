@@ -6,7 +6,6 @@ const io = vi.hoisted(() => ({
   getCachedHomepage: vi.fn(),
   getCachedSearchListings: vi.fn(),
   getCachedListingDistrictOptions: vi.fn(),
-  getCachedSearchBuildings: vi.fn(),
   getCachedSearchBuildingsFiltered: vi.fn(),
   getCachedListingBySlug: vi.fn(),
   getCachedBuildingBySlug: vi.fn(),
@@ -44,7 +43,6 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedHomepage: io.getCachedHomepage,
   getCachedSearchListings: io.getCachedSearchListings,
   getCachedListingDistrictOptions: io.getCachedListingDistrictOptions,
-  getCachedSearchBuildings: io.getCachedSearchBuildings,
   getCachedSearchBuildingsFiltered: io.getCachedSearchBuildingsFiltered,
   getCachedListingBySlug: io.getCachedListingBySlug,
   getCachedBuildingBySlug: io.getCachedBuildingBySlug,
@@ -282,8 +280,8 @@ describe('city route boundaries', () => {
     await CityBuildingsPage(props)
     expect(buildingsDynamic).toBe('force-dynamic')
     // 未开城不查库：Task 12 把楼盘列表改成走筛选版查询，断言跟着换成同一个入口
+    // （未筛选版 getCachedSearchBuildings 已在 Task 13 删除，不再需要单独断言其未被调用）
     expect(io.getCachedSearchBuildingsFiltered).not.toHaveBeenCalled()
-    expect(io.getCachedSearchBuildings).not.toHaveBeenCalled()
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {

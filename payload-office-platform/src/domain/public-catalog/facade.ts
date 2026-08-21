@@ -293,9 +293,10 @@ function prepareCardsForPriceSort(
  * 曾用名 attachLeasableArea——只补面积时这个名字是准的，加了套数以后继续叫它
  * 就是误导，改名同时改了行为（两个字段一起补，不是分两次查）。
  *
- * 缺这两个字段的后果不只是少显示数字：BuildingListCard 会据此判定
- * 「暂无在租」并给封面加 grayscale 降饱和，整片卡片发灰。首页与楼盘列表页
- * 必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
+ * 缺这两个字段的后果不只是少显示数字：楼盘列表页的 BuildingCompactRow
+ * 会据此判定「暂无在租」并把该楼盘降权到紧凑行分组（OPT-036 Task 5/13；
+ * 曾用 BuildingListCard 的 grayscale 封面方案，随该文件在 Task 13 一并删除）。
+ * 首页与楼盘列表页必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
  */
 async function attachSupplyAggregates(
   summaries: readonly BuildingSummaryViewModel[],

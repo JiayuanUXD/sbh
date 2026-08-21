@@ -867,15 +867,9 @@ ol {
   transform: scale(1.03);
 }
 
-/* F-023: 暂无在租楼盘卡片降饱和、价格文字弱化，与在租卡片区分 */
-.building-card--vacant .listing-card__media img {
-  filter: grayscale(0.6);
-  opacity: 0.85;
-}
-
-.building-card--vacant .price {
-  color: var(--color-muted);
-}
+/* F-023 的 .building-card--vacant grayscale 方案已随 BuildingListCard.tsx
+   在 OPT-036 Task 13 删除——「暂无在租」楼盘现改走 BuildingCompactRow 的
+   独立紧凑行分组，不再对同一张卡片做降饱和处理，故规则一并移除。 */
 
 .listing-card__body {
   padding: var(--sp-4);
@@ -968,33 +962,14 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 9. 筛选条 FilterBar（design.md §6.4）
+ * 9. 表单输入原语（design.md §6.4 遗留类名）
+ *
+ * 曾用于旧筛选条 FilterBar/MobileFilterDrawer/BuildingFilterBar（均已在
+ * OPT-036 Task 13 删除）。.filter-bar__input / .filter-bar__select 现为
+ * `components/frontend/ui/Field.tsx` 的 Input/Select/Textarea 复用的基础
+ * 类名（city-partner 表单、dev-story 表单走查等仍在用），不可删——
+ * FilterBar 专属的外层容器/字段组/抽屉等结构类名已随文件一并移除。
  * --------------------------------------------------------------------------- */
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  align-items: flex-end;
-  margin-bottom: var(--sp-5);
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-}
-
-.filter-bar__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.filter-bar__label {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  font-weight: 500;
-}
 
 .filter-bar__input,
 .filter-bar__select {
@@ -1028,153 +1003,6 @@ ol {
   background-repeat: no-repeat;
   background-position: right var(--sp-3) center;
   padding-right: var(--sp-6);
-}
-
-.filter-bar__rent-group {
-  display: flex;
-  gap: var(--sp-2);
-  align-items: center;
-}
-
-.filter-bar__rent-group .filter-bar__input {
-  width: 88px;
-}
-
-.filter-bar__hint {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  margin-top: var(--sp-1);
-}
-
-.filter-bar__hint--warn {
-  color: var(--color-warn);
-}
-
-.filter-bar__error {
-  width: 100%;
-  margin-top: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-13);
-}
-
-/* 桌面/移动筛选切换 */
-.filter-bar__desktop {
-  display: block;
-}
-
-.filter-bar__mobile {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .filter-bar__desktop {
-    display: none;
-  }
-  .filter-bar__mobile {
-    display: block;
-    margin-bottom: var(--sp-4);
-  }
-}
-
-.filter-bar__mobile-trigger {
-  width: 100%;
-  justify-content: center;
-}
-
-/* 移动端筛选抽屉 */
-.filter-drawer {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  /* 软键盘适配：使用 dvh 单位，回退到 vh */
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.filter-drawer__handle {
-  width: 40px;
-  height: 4px;
-  background: var(--color-line-strong);
-  border-radius: 2px;
-  margin: var(--sp-2) auto var(--sp-1);
-}
-
-.filter-drawer__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--color-line);
-}
-
-.filter-drawer__title {
-  font-size: var(--fs-18);
-  font-weight: 600;
-  margin: 0;
-  outline: none;
-}
-
-.filter-drawer__close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  line-height: 1;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--radius-sm);
-}
-
-.filter-drawer__close:hover {
-  background: var(--color-paper);
-}
-
-.filter-drawer__close:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-
-.filter-drawer__form {
-  padding: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  flex: 1;
-  /* 软键盘弹出时让表单可滚动 */
-  min-height: 0;
-}
-
-.filter-drawer__form .filter-bar__field {
-  width: 100%;
-}
-
-.filter-drawer__form .filter-bar__rent-group .filter-bar__input {
-  flex: 1;
-  width: auto;
-}
-
-.filter-drawer__actions {
-  display: flex;
-  gap: var(--sp-3);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--color-line);
-  margin-top: auto;
-}
-
-.filter-drawer__submit {
-  flex: 1;
-}
-
-.listings-page__header {
-  margin-bottom: var(--sp-4);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1254,70 +1082,17 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 10.5 列表页优化（视图切换 + 横向卡片 + 标签筛选）
+ * 10.5 列表页优化（横向卡片 + 标签筛选）
+ *
+ * 视图切换器（.listings-grid / .view-switcher* / .card-grid--grid /
+ * .card-grid--list）随 ListingGrid.tsx / BuildingGrid.tsx 在 OPT-036 Task 13
+ * 一并删除——新列表页的视图切换改在 ResultToolbar/ListingResultRow 里做，
+ * 不复用这套旧类名。.listing-card--list 及其下方各条规则暂无当前调用方
+ * （旧 ListingGrid 是唯一传 view="list" 的调用点），但保留：ListingCard.tsx
+ * 本身仍声明并文档化 view 属性（楼盘详情页相关房源等场景可能复用），
+ * 删除 CSS 不会报错也不会被测试捕获，属于「静默破坏一个仍被保留文件的
+ * 公开能力」，故按任务说明「拿不准就留着」处理。
  * --------------------------------------------------------------------------- */
-
-/* 视图切换器 */
-.listings-grid {
-  margin-bottom: var(--sp-3);
-}
-
-.view-switcher {
-  display: flex;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-4);
-  padding: 3px;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  width: fit-content;
-}
-
-.view-switcher__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  min-height: var(--touch-target);
-  padding: var(--sp-1) var(--sp-3);
-  border: none;
-  background: transparent;
-  color: var(--color-muted);
-  font-size: var(--fs-13);
-  border-radius: calc(var(--radius-md) - 2px);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
-}
-
-.view-switcher__btn:hover {
-  color: var(--color-ink);
-}
-
-.view-switcher__btn.is-active {
-  background: var(--color-surface);
-  color: var(--color-ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-/* 网格视图 */
-.card-grid--grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--sp-5);
-}
-
-@media (min-width: 1024px) {
-  .card-grid--grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  }
-}
-
-/* 列表视图（横向卡片，单列） */
-.card-grid--list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
 
 .listing-card--list {
   flex-direction: row;
@@ -1634,194 +1409,13 @@ ol {
   transform: scale(1.05);
 }
 
-/* 筛选条：标签按钮式 */
-.filter-bar {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-}
-
-.filter-bar__row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
-
-.filter-bar__row-label {
-  flex: 0 0 auto;
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  min-width: 4em;
-}
-
-.filter-bar__row-label--unit {
-  margin-left: var(--sp-4);
-}
-
-.filter-bar__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-/* 更多筛选开关：默认收起快速筛选与数值字段，首屏结果优先 */
-.filter-bar__more {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  min-height: 44px;
-  padding: 0 var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-copper-hover);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
-}
-
-.filter-bar__more:hover {
-  border-color: var(--color-copper);
-  background: var(--color-copper-soft);
-}
-
-.filter-bar__more-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: var(--radius-pill);
-  background: var(--color-copper);
-  color: var(--color-on-copper);
-  font-size: var(--fs-12);
-  line-height: 1;
-}
-
-.filter-bar__more-chevron {
-  transition: transform var(--duration-fast) var(--ease-standard);
-}
-
-.filter-bar__more-chevron.is-open {
-  transform: rotate(180deg);
-}
-
-.filter-bar__advanced {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  width: 100%;
-}
-
-.filter-bar__advanced[hidden] {
-  display: none;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target);
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  font-size: var(--fs-13);
-  line-height: 1.4;
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
-}
-
-.filter-chip:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
-  text-decoration: none;
-}
-
-/* 选中态零色相：原蓝底 + --color-copper-hover 文字只有 3.82:1。改为「白底基态
-   → 中灰底 + 墨色描边 + 主墨字 + 加粗」，靠底色深浅与字重做层级（15.46:1）。 */
-.filter-chip.is-active {
-  background: var(--bg);
-  border-color: var(--ink);
-  color: var(--ink);
-  font-weight: 600;
-}
-
-/* 数值字段表单 */
-.filter-bar__form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  align-items: flex-end;
-  padding-top: var(--sp-2);
-  border-top: 1px solid var(--color-line);
-  margin-top: var(--sp-1);
-}
-
-.filter-bar__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.filter-bar__label {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.filter-bar__input {
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-13);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  min-width: 80px;
-}
-
-.filter-bar__input:focus {
-  outline: none;
-  border-color: var(--color-copper);
-  box-shadow: var(--shadow-focus);
-}
-
-.filter-bar__range {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
-
-.filter-bar__hint {
-  font-size: var(--fs-12);
-}
-
-.filter-bar__hint--warn {
-  color: var(--color-copper-hover);
-}
-
-.filter-bar__error {
-  font-size: var(--fs-12);
-  color: #c0392b;
-  margin: 0;
-}
-
-/* 分页计数 */
-.listings-page__count {
-  text-align: center;
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  margin: var(--sp-3) 0 0;
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-}
+/* 旧「筛选条：标签按钮式」（.filter-bar 重声明 / .filter-bar__row* /
+   .filter-bar__chips / .filter-bar__more* / .filter-bar__advanced /
+   .filter-chip* / .filter-bar__form / 第二套 .filter-bar__field|label|input|
+   range|hint|error）随 FilterBar.tsx / BuildingFilterBar.tsx 在 Task 13
+   一并删除——.filter-bar__input/.filter-bar__select 的通用输入框样式已上移
+   保留在本文件 §9，供 Field.tsx 的 Input/Select 复用，不在此重复定义。
+   .listings-page__count 已确认全仓库零引用（连旧组件都不再用），一并删除。 */
 
 /* ---------------------------------------------------------------------------
  * 11. 首页分区通用容器（.hero 及其子类已随旧首页组件删除，替代样式见 home.css .hm-hero；

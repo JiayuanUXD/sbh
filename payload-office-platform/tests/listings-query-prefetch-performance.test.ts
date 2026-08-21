@@ -81,11 +81,14 @@ describe('OPT-026 route cache and prefetch contracts', () => {
   })
 
   it('disables automatic prefetch for high-cardinality listing links', async () => {
-    const [homeTypeCards, homeDistrictBento, siteNav, filterBar] = await Promise.all([
+    // FilterBar.tsx（本用例原先读取的文件）已在 OPT-036 Task 13 删除；筛选条
+    // 高基数链接的职责现由 FilterFormC.tsx 的行内选项 <Link> 承接，断言跟着
+    // 换成同一个入口，保持「高基数房源筛选链接禁用自动预取」这条设计意图不丢。
+    const [homeTypeCards, homeDistrictBento, siteNav, filterFormC] = await Promise.all([
       readFile(resolve(ROOT, 'src/components/frontend/home/HomeTypeCards.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/home/HomeDistrictBento.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/SiteNav.tsx'), 'utf8'),
-      readFile(resolve(ROOT, 'src/components/frontend/FilterBar.tsx'), 'utf8'),
+      readFile(resolve(ROOT, 'src/components/frontend/listing/FilterFormC.tsx'), 'utf8'),
     ])
 
     expect(homeTypeCards).toContain("href={`${prefix}${t.href}`} prefetch={false}")
@@ -94,6 +97,6 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(siteNav).toContain(
       "prefetch={item.href.startsWith('/listings') ? false : undefined}",
     )
-    expect(filterBar).toContain('prefetch={false}')
+    expect(filterFormC).toContain('prefetch={false}')
   })
 })

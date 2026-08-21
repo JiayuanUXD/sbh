@@ -203,6 +203,11 @@ export default function FilterFormC(props: Readonly<{
                   key={option.value}
                   href={buildOptionHref(basePath, currentParams, row.key, option.value, isActive)}
                   className={isActive ? 'ls-filterc__opt ls-filterc__opt--active' : 'ls-filterc__opt'}
+                  // 高基数：一行内每个候选值都各自渲染一个 Link，Next 默认的 hover/
+                  // 进入视口自动预取会对每个候选值都打一次查询（OPT-026 定的规矩，
+                  // FilterBar.tsx 曾是唯一实现，随该文件在 Task 13 删除时一并转移到
+                  // 这里——见 tests/listings-query-prefetch-performance.test.ts）。
+                  prefetch={false}
                 >
                   {option.label}
                   {option.count != null ? (

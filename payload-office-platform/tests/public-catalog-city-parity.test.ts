@@ -4,7 +4,6 @@ const sitemapIo = vi.hoisted(() => ({
   getCachedPublishedArticles: vi.fn(),
   getCachedPublishedPages: vi.fn(),
   getCachedSitemapBuildingsPage: vi.fn(),
-  getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
   getCachedSitemapListingsPage: vi.fn(),
   listPublicCityProfiles: vi.fn(),
@@ -27,7 +26,6 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedPublishedArticles: sitemapIo.getCachedPublishedArticles,
   getCachedPublishedPages: sitemapIo.getCachedPublishedPages,
   getCachedSitemapBuildingsPage: sitemapIo.getCachedSitemapBuildingsPage,
-  getCachedSearchBuildings: sitemapIo.getCachedSearchBuildings,
   getCachedSearchListings: sitemapIo.getCachedSearchListings,
   getCachedSitemapListingsPage: sitemapIo.getCachedSitemapListingsPage,
 }))
@@ -40,7 +38,6 @@ import {
   getListingBySlug,
   getSearchFacets,
   parseSearchInput,
-  searchBuildings,
   searchListings,
   searchListingsSitemapPage,
   type SearchContext,
@@ -281,9 +278,6 @@ describe('per-city effective listing parity matrix', () => {
     sitemapIo.getCachedSitemapListingsPage.mockImplementation(
       async (citySlug: string, page: number, limit: number) =>
         searchListingsSitemapPage(createSearchContext(citySlug, AS_OF), { page, limit }, adapter),
-    )
-    sitemapIo.getCachedSearchBuildings.mockImplementation(async (citySlug: string) =>
-      searchBuildings(createSearchContext(citySlug, AS_OF), adapter),
     )
     sitemapIo.getCachedSitemapBuildingsPage.mockResolvedValue({
       docs: [],

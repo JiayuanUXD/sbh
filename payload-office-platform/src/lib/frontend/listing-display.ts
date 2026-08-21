@@ -7,9 +7,9 @@
  * import `home/` 页面编排目录属于方向错误的依赖边，且 Task 6（筛选条）与
  * Task 11/12（接线）都要用到同一套映射，边不收敛只会被继续加固。
  *
- * 仅收敛这三个曾经跨目录被 import 的导出；`ListingCard.tsx` / `detail-metadata.ts` /
- * `FilterBar.tsx` / `MobileFilterDrawer.tsx` 等处的同口径重复定义保持不动——
- * 那是另一个更大的合并任务，其中几处在 Task 13 会被直接删除文件，此时合并是白做。
+ * 仅收敛这三个曾经跨目录被 import 的导出；`ListingCard.tsx` / `detail-metadata.ts`
+ * 处的同口径重复定义保持不动——那是另一个更大的合并任务。`FilterBar.tsx` /
+ * `MobileFilterDrawer.tsx` 里原本的同款重复定义已随文件在 Task 13 一并删除。
  */
 
 import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog/contracts'
