@@ -48,6 +48,8 @@ function listingCard(overrides: Partial<ListingCardViewModel> & { id: number; sl
       text: '8.5 元/㎡/天',
     },
     area: overrides.area ?? 220,
+    floor: overrides.floor ?? null,
+    seats: overrides.seats ?? null,
     businessType: 'lease',
     decorationStatus: 'furnished',
     listingType: 'traditional-office',
@@ -250,6 +252,7 @@ export default function BuildingDetailDemoPage() {
         relatedBuildings={FIXTURE_RELATED}
         pois={FIXTURE_POIS}
         mapEnabled={true}
+        supplyCurrentSearch=""
       />
     </>
   )

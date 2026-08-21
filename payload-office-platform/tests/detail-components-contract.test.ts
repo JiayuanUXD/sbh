@@ -30,6 +30,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
     title: '静安中心 101 室',
     price: null,
     area: 101,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: 'fully_fitted',
     listingType: 'traditional-office',
@@ -199,17 +201,21 @@ describe('detail component contracts', () => {
     expect(html).toContain('估算')
   })
 
-  it('桌面服务端默认输出单一表格与面积/价格分桶，不使用 GET 表单或 tab 语义', () => {
+  it('桌面服务端默认输出单一密度表，按 URL 而非 GET 表单驱动组切换/筛选/排序', () => {
     const html = renderToStaticMarkup(
-      createElement(BuildingSupplyBrowser, { snapshot: LEASE_ONLY_SNAPSHOT }),
+      createElement(BuildingSupplyBrowser, {
+        snapshot: LEASE_ONLY_SNAPSHOT,
+        basePath: '/buildings/jingan-center',
+        currentSearch: '',
+      }),
     )
 
     expect(html).toContain('<table')
-    expect(html).toContain('在租房源列表')
+    expect(html).toContain('租赁房源列表')
     expect(html).toContain('面积')
-    expect(html).toContain('价格')
-    expect(html).toContain('aria-pressed="true"')
-    expect(html).toContain('价格面议')
+    expect(html).toContain('排序')
+    // 单一业务组时仍渲染组 tab（只有一个），但不使用 GET 表单/tab 部件语义
+    expect(html).toContain('aria-current="true"')
     expect(html).not.toContain('method="get"')
     expect(html).not.toContain('type="submit"')
     expect(html).not.toContain('role="tab"')
@@ -217,10 +223,51 @@ describe('detail component contracts', () => {
     expect(html).not.toContain('卡片视图')
     expect(html).not.toContain('表格视图')
     expect(html).not.toContain('供给展示方式')
-    expect(html).not.toContain('按供给类型筛选')
   })
 
-  it('价格分桶只统计元/㎡/天房源，空桶不渲染', () => {
+  it('组切换 href 只在非默认组时写入 group 参数，默认组省略', () => {
+    const snapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      groups: [
+        LEASE_ONLY_SNAPSHOT.groups[0]!,
+        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+      ],
+      availableGroups: [
+        LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
+        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, { snapshot, basePath: '/buildings/jingan-center', currentSearch: '' }),
+    )
+
+    // 默认组（数组第一个，lease）不带 group 参数；非默认组（sale）带
+    expect(html).toContain('href="/buildings/jingan-center"')
+    expect(html).toContain('href="/buildings/jingan-center?group=sale"')
+  })
+
+  it('组切换后读取 URL 上的 group 参数展示对应组，而非始终展示第一个', () => {
+    const snapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      groups: [
+        LEASE_ONLY_SNAPSHOT.groups[0]!,
+        { key: 'sale', listings: [makeCard({ id: 2, title: '出售样例房源', businessType: 'sale' })], priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+      ],
+      availableGroups: [
+        LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
+        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, { snapshot, basePath: '/buildings/jingan-center', currentSearch: 'group=sale' }),
+    )
+
+    expect(html).toContain('出售样例房源')
+    expect(html).toContain('总价 万元')
+    expect(html).not.toContain('静安中心 101 室')
+  })
+
+  it('空组（priceRanges 空）仍渲染表格，「—」代表价格缺失而非分桶控件', () => {
     const html = renderToStaticMarkup(
       createElement(BuildingSupplyBrowser, {
         snapshot: {
@@ -228,53 +275,22 @@ describe('detail component contracts', () => {
           groups: [{
             key: 'lease',
             listings: [
-              makeCard({ id: 1, price: { amount: 8.5, currency: 'CNY', businessType: 'lease', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', text: '8.5 元/㎡/天' } }),
-              makeCard({ id: 2, price: { amount: 100000, currency: 'CNY', businessType: 'lease', period: 'month', basis: 'total', displayUnit: 'rmb-total', text: '10 万元/月' } }),
+              makeCard({ id: 1, price: null }),
             ],
             priceRanges: [],
             areaRange: null,
-            immediateAvailabilityCount: 2,
+            immediateAvailabilityCount: 0,
           }],
         },
+        basePath: '/buildings/jingan-center',
+        currentSearch: '',
       }),
     )
 
-    // 8.5 落在「8–9 元」桶；总价单位不参与日租桶，仅计入「全部」
-    expect(html).toContain('8–9 元')
-    expect(html).toContain('8.5 元/㎡/天')
-    expect(html).toContain('10 万元/月')
+    expect(html).toContain('<table')
+    // 价格缺失渲染为 —，不渲染成 0 或伪造分桶控件
     expect(html).not.toContain('8 元以下')
     expect(html).not.toContain('9–10 元')
-    expect(html).not.toContain('10 元以上')
-  })
-
-  it('面积分桶计数正确，空桶与 null 面积房源不落入具体桶', () => {
-    const html = renderToStaticMarkup(
-      createElement(BuildingSupplyBrowser, {
-        snapshot: {
-          ...LEASE_ONLY_SNAPSHOT,
-          groups: [{
-            key: 'lease',
-            listings: [
-              makeCard({ id: 1, area: 50 }),
-              makeCard({ id: 2, area: 150 }),
-              makeCard({ id: 3, area: 500 }),
-              makeCard({ id: 4, area: null }),
-            ],
-            priceRanges: [],
-            areaRange: { min: 50, max: 500 },
-            immediateAvailabilityCount: 4,
-          }],
-        },
-      }),
-    )
-
-    expect(html).toContain('0–100 ㎡')
-    expect(html).toContain('100–300 ㎡')
-    expect(html).toContain('500–1000 ㎡')
-    // 500 落入 [500,1000)，300–500 桶为空；null 面积仅出现在「全部」
-    expect(html).not.toContain('300–500 ㎡')
-    expect(html).not.toContain('1000 ㎡ 以上')
   })
 
   it('推荐房源卡只写入匿名点击上下文', () => {

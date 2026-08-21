@@ -42,7 +42,7 @@ const building: BuildingSummaryViewModel = {
 
 const listing: ListingCardViewModel = {
   citySlug: 'shanghai', cityName: '上海', id: 21, slug: 'listing-21', title: '精装办公室',
-  price: null, area: 200, businessType: 'lease', decorationStatus: null, listingType: 'traditional-office',
+  price: null, area: 200, floor: null, seats: null, businessType: 'lease', decorationStatus: null, listingType: 'traditional-office',
   availableFrom: null, isFeatured: false, building, coverImage: null, highlights: [], stableSortKey: 'listing-21',
 } as unknown as ListingCardViewModel
 

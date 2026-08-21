@@ -43,6 +43,7 @@ export {
   LISTING_DEFAULT_SORT,
   parseListingSearchInput,
   parseBuildingSupplySearchParams,
+  buildBuildingSupplyCanonicalSearchParams,
   buildCanonicalSearchParams,
   legacyRentUnitToPriceKey,
 } from './search-params'

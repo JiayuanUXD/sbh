@@ -187,6 +187,12 @@ export type CoordinatesViewModel = Readonly<{ latitude: number; longitude: numbe
  *   id、slug、title、标准化价格、面积、类型、可入驻时间、
  *   楼盘名、行政区、商圈、一张公开封面、最多三个公开亮点、
  *   推荐标识及稳定排序键
+ *
+ * `floor` / `seats`（OPT-037 Task 7 补充）：楼盘详情供给密度表按业务组区分
+ * 列（租赁/出售显示「面积」、联合办公显示「工位数」），这两个字段在
+ * `Listings` collection 早已存在（`floor` 文本、`seats` 建议工位数），此前只是
+ * 未映射进本 DTO——按三层判定顺序，第 2 层（mapper 缺映射）即须补，不能因为
+ * 只有本任务这一个消费方就跳过。两者都可能为 null（历史房源未填写）。
  */
 export type ListingCardViewModel = Readonly<PublicCityIdentity & {
   id: number
@@ -194,6 +200,10 @@ export type ListingCardViewModel = Readonly<PublicCityIdentity & {
   title: string
   price: PriceViewModel | null
   area: number | null
+  /** 楼层（文本，如「9」「9-12」），历史房源可能未填写。 */
+  floor: string | null
+  /** 建议工位数，仅联合办公类房源常用；历史房源 / 非工位计价房源可能为 null。 */
+  seats: number | null
   /** 历史房源缺失该字段时兼容为 lease。 */
   businessType: 'lease' | 'sale'
   decorationStatus: NonNullable<Listing['decorationStatus']> | null

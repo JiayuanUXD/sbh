@@ -9,7 +9,7 @@ import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-conf
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
-import { resolveBuildingRouteIdentity, createSearchContext, getBuildingDetail, parseBuildingSupplySearchParams, type BuildingSupplyInput } from '@/domain/public-catalog'
+import { resolveBuildingRouteIdentity, createSearchContext, getBuildingDetail, parseBuildingSupplySearchParams, buildBuildingSupplyCanonicalSearchParams, type BuildingSupplyInput } from '@/domain/public-catalog'
 
 export const dynamic = 'force-dynamic'
 type Props = Readonly<{ params: Promise<{ city: string; slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }>
@@ -53,5 +53,5 @@ export default async function CityBuildingDetailPage({ params, searchParams }: P
   const pois = await fetchNearbyPois(building.id, building.coordinates)
   const citySlug = getMultiCityRoutingEnabled() ? loaded.city.slug : undefined
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin, { citySlug })
-  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} /></>
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()} /></>
 }

@@ -85,6 +85,8 @@ function makeListing(
   return {
     price: price(8.5, 'rmb-sqm-day', '8.5 元/㎡·天'),
     area: 120,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: null,
     listingType: 'traditional-office',

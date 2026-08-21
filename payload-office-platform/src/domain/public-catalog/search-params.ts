@@ -353,6 +353,29 @@ export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyI
 }
 
 /**
+ * BuildingSupplyInput → canonical URLSearchParams（供组切换 / 筛选 / 排序控件
+ * 构造 href 用）。
+ *
+ * 与 `buildCanonicalSearchParams`（ListingSearchInput 版）同一约定：只输出已
+ * 通过解析校验的规范键，不反射原始 query string——这样调用方（Server Component
+ * 页面）把 `parseBuildingSupplySearchParams` 解析后的 `input` 转回字符串传给
+ * 客户端组件时，非法/过期参数不会被带着走一遍「解析→再序列化」又混进 href。
+ *
+ * `sort` 省略默认值 'recommended'（与 canonical 惯例一致，默认态不占位）。
+ */
+export function buildBuildingSupplyCanonicalSearchParams(input: BuildingSupplyInput): URLSearchParams {
+  const sp = new URLSearchParams()
+  if (input.group) sp.set('group', input.group)
+  if (input.areaMin != null) sp.set('areaMin', String(input.areaMin))
+  if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
+  if (input.decorationStatus) sp.set('decorationStatus', input.decorationStatus)
+  if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
+  if (input.priceUnit) sp.set('priceUnit', input.priceUnit)
+  if (input.sort && input.sort !== 'recommended') sp.set('sort', input.sort)
+  return sp
+}
+
+/**
  * 把 URLSearchParams 解析为安全的 ListingSearchInput
  *
  * 非法参数静默丢弃；调用方应通过 buildCanonicalUrl 再生成规范化 URL。

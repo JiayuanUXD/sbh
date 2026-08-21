@@ -68,6 +68,7 @@ vi.mock('@/domain/public-catalog', () => ({
   parseBuildingSearchInput: io.parseBuildingSearchInput,
   parseListingSearchInput: io.parseListingSearchInput,
   parseBuildingSupplySearchParams: io.parseBuildingSupplySearchParams,
+  buildBuildingSupplyCanonicalSearchParams: () => new URLSearchParams(),
   createSearchContext: io.createSearchContext,
   getBuildingDetail: io.getBuildingDetail,
   normalizePublicMediaUrl: (value: unknown) => typeof value === 'string' ? value : null,
@@ -207,7 +208,7 @@ describe('city route boundaries', () => {
   it('returns prefixed listing detail ownership to the exact legacy canonical while the flag is off', async () => {
     const listing = {
       id: 101, slug: 'shanghai-office', title: 'Shanghai Office', citySlug: 'shanghai', cityName: 'Shanghai',
-      price: null, area: 100, businessType: 'lease' as const, decorationStatus: null,
+      price: null, area: 100, floor: null, businessType: 'lease' as const, decorationStatus: null,
       listingType: 'traditional-office' as const, availableFrom: null, isFeatured: false,
       building: { id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road' },
       coverImage: null, highlights: [], stableSortKey: '101', seats: null, gallery: [], mediaItems: [],

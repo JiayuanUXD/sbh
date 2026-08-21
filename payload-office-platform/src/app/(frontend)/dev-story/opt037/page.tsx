@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
 import HeroSummaryPanel from '@/components/frontend/building-detail/HeroSummaryPanel'
+import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
@@ -17,9 +18,11 @@ import type {
   DetailMediaViewModel,
   FactGroupViewModel,
   FactValue,
+  ListingCardViewModel,
   PriceViewModel,
   VerificationViewModel,
 } from '@/domain/public-catalog/contracts'
+import { buildBuildingSupplyCanonicalSearchParams, parseBuildingSupplySearchParams } from '@/domain/public-catalog'
 import type { NearbyPoi } from '@/domain/location-services'
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
 import { formatPublishedDate } from '@/lib/frontend/format'
@@ -631,11 +634,177 @@ const BUILDING_SPEC_GROUP_MISSING_AMENITIES = [
   { id: 'certifications', title: '认证', items: [] },
 ] as const
 
-export default function Opt037PreviewPage() {
+// ---------------------------------------------------------------------------
+// Fixture：供给密度表（BuildingSupplyBrowser，Task 7）——三组齐全 / 某组为空 /
+// 全空三态。listing 字段刻意留一条 price:null（验证「—」而非「面议」/「0」）
+// 与一条 availableFrom 落在 asOf 之后（验证「可入驻」列显示具体日期而非「可即刻」）。
+// ---------------------------------------------------------------------------
+
+function supplyListing(
+  overrides: Partial<ListingCardViewModel> & { id: number; slug: string; title: string },
+): ListingCardViewModel {
+  return {
+    citySlug: 'shanghai',
+    cityName: '上海市',
+    price: null,
+    area: null,
+    floor: null,
+    seats: null,
+    businessType: 'lease',
+    decorationStatus: null,
+    listingType: 'traditional-office',
+    availableFrom: null,
+    isFeatured: false,
+    building: null,
+    coverImage: null,
+    highlights: [],
+    stableSortKey: `listing-${overrides.id}`,
+    ...overrides,
+  }
+}
+
+function supplyPrice(overrides: Partial<PriceViewModel> = {}): PriceViewModel {
+  return {
+    amount: 8.2,
+    currency: 'CNY',
+    businessType: 'lease',
+    period: 'day',
+    basis: 'sqm',
+    displayUnit: 'rmb-sqm-day',
+    text: '8.20 元/㎡/天',
+    ...overrides,
+  }
+}
+
+const SUPPLY_ASOF = '2026-08-19T09:30:00.000Z'
+
+const SUPPLY_LEASE_LISTINGS: readonly ListingCardViewModel[] = [
+  supplyListing({
+    id: 901, slug: 'jingan-kerry-9f-full-floor', title: '9 层 · 整层',
+    floor: '9', decorationStatus: 'furnished', area: 860,
+    price: supplyPrice({ amount: 8.2, text: '8.20 元/㎡/天' }),
+    availableFrom: '2026-08-01',
+  }),
+  supplyListing({
+    id: 902, slug: 'jingan-kerry-18f-full-floor', title: '18 层 · 整层',
+    floor: '18', decorationStatus: 'rough', area: 1240,
+    price: supplyPrice({ amount: 7.2, text: '7.20 元/㎡/天' }),
+    availableFrom: '2026-11-01',
+  }),
+  // 价格面议：验证「—」而不是「面议」/「0」（表格数字缺失口径）
+  supplyListing({
+    id: 903, slug: 'jingan-kerry-22f-half', title: '22 层 · 半层 B 区',
+    floor: '22', decorationStatus: 'furnished', area: 580,
+    price: null,
+    availableFrom: '2026-08-01',
+  }),
+]
+
+const SUPPLY_SALE_LISTINGS: readonly ListingCardViewModel[] = [
+  supplyListing({
+    id: 911, slug: 'jingan-kerry-11f-sale', title: '11 层 · 整层',
+    floor: '11', decorationStatus: 'fully_fitted', area: 1240, businessType: 'sale',
+    price: supplyPrice({
+      amount: 114_080_000, businessType: 'sale', period: 'one-time', basis: 'total',
+      displayUnit: 'rmb-total', text: '11,408 万元',
+    }),
+  }),
+]
+
+const SUPPLY_COWORKING_LISTINGS: readonly ListingCardViewModel[] = [
+  supplyListing({
+    id: 921, slug: 'jingan-kerry-7f-private-office', title: '7 层 · 独立办公室',
+    floor: '7', seats: 12, listingType: 'coworking',
+    price: supplyPrice({
+      amount: 2880, period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month', text: '2,880 元/工位/月',
+    }),
+    availableFrom: '2026-08-01',
+  }),
+  supplyListing({
+    id: 922, slug: 'jingan-kerry-19f-suite', title: '19 层 · 整间套房',
+    floor: '19', seats: 48, listingType: 'coworking',
+    price: supplyPrice({
+      amount: 3600, period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month', text: '3,600 元/工位/月',
+    }),
+    availableFrom: '2026-08-01',
+  }),
+]
+
+const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
+  asOf: SUPPLY_ASOF,
+  groups: [
+    {
+      key: 'lease', listings: SUPPLY_LEASE_LISTINGS, areaRange: { min: 580, max: 1240 },
+      immediateAvailabilityCount: 2,
+      priceRanges: [{
+        key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day',
+        basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 8.2, count: 2,
+      }],
+    },
+    {
+      key: 'sale', listings: SUPPLY_SALE_LISTINGS, areaRange: { min: 1240, max: 1240 },
+      immediateAvailabilityCount: 1,
+      priceRanges: [{
+        key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time',
+        basis: 'total', displayUnit: 'rmb-total', min: 114_080_000, max: 114_080_000, count: 1,
+      }],
+    },
+    {
+      key: 'coworking', listings: SUPPLY_COWORKING_LISTINGS, areaRange: null,
+      immediateAvailabilityCount: 2,
+      priceRanges: [{
+        key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month',
+        basis: 'seat', displayUnit: 'rmb-seat-month', min: 2880, max: 3600, count: 2,
+      }],
+    },
+  ],
+  availableGroups: [
+    { key: 'lease', totalEffectiveListings: 42, areaRange: { min: 320, max: 1860 }, immediateAvailabilityCount: 19,
+      priceRanges: [{ key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 12, count: 42 }] },
+    { key: 'sale', totalEffectiveListings: 6, areaRange: { min: 620, max: 1860 }, immediateAvailabilityCount: 4,
+      priceRanges: [{ key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time', basis: 'total', displayUnit: 'rmb-total', min: 63_240_000, max: 219_480_000, count: 6 }] },
+    { key: 'coworking', totalEffectiveListings: 3, areaRange: null, immediateAvailabilityCount: 3,
+      priceRanges: [{ key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month', min: 1880, max: 3600, count: 3 }] },
+  ],
+  totalEffectiveListings: 51,
+  resultCount: 6,
+  validationErrors: [],
+}
+
+// 某组为空：楼盘目前没有出售供给——sale 既不出现在 groups 也不出现在
+// availableGroups（domain 的 buildBuildingSupplySnapshot 就是这样产出的，
+// 见 building-supply.ts `if (availableCards.length > 0)`），组 tab 应整条不渲染。
+const SUPPLY_SALE_EMPTY_SNAPSHOT: BuildingSupplySnapshot = {
+  ...SUPPLY_FULL_SNAPSHOT,
+  groups: SUPPLY_FULL_SNAPSHOT.groups.filter((g) => g.key !== 'sale'),
+  availableGroups: SUPPLY_FULL_SNAPSHOT.availableGroups.filter((g) => g.key !== 'sale'),
+  totalEffectiveListings: 45,
+  resultCount: 5,
+}
+
+// 全空：楼盘当前没有任何公开有效供给——整个供给区应只剩一行「当前暂无公开可选空间」。
+const SUPPLY_EMPTY_SNAPSHOT: BuildingSupplySnapshot = {
+  asOf: SUPPLY_ASOF,
+  groups: [],
+  availableGroups: [],
+  totalEffectiveListings: 0,
+  resultCount: 0,
+  validationErrors: [],
+}
+
+export default async function Opt037PreviewPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
     notFound()
   }
+  // 供给密度表预览（Task 7）需要真实的组切换/筛选/排序往返验证：与生产页
+  // 用同一套 parseBuildingSupplySearchParams / buildBuildingSupplyCanonicalSearchParams，
+  // 点击组 tab 会真的把本页 URL 换成 ?group=sale，刷新后仍是同一视图。
+  const supplyCurrentSearch = buildBuildingSupplyCanonicalSearchParams(
+    parseBuildingSupplySearchParams(await searchParams),
+  ).toString()
 
   return (
     <div className="dt-page">
@@ -939,6 +1108,49 @@ export default function Opt037PreviewPage() {
               <BuildingSpecPanel
                 building={{ factGroups: BUILDING_SPEC_GROUP_MISSING_GROUPS, amenityGroups: BUILDING_SPEC_GROUP_MISSING_AMENITIES }}
                 minLeasableArea={320}
+              />
+            </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="building-supply-browser"
+          title="供给密度表（BuildingSupplyBrowser，方案 A：分组切换 + 密度表）"
+          note="组聚合（3 列 gap 24）→ 筛选 + 排序 → 表头 → 行，网格 1fr/130/150/176/120/44。组切换/筛选/排序状态在 URL 上（本页真的会因为点击而跳转 querystring，刷新后视图复现）；三态：三组齐全 / 出售组为空（tab 整条不渲染）/ 全空（仅一行提示）"
+        >
+          {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例（生产页
+             .detail-v2__supply-main 本就有 min-width:0，见 styles.css），这个
+             fixture 外壳自己也要显式声明，否则密度表 920px min-width 会撑开
+             flex item 导致整页横向溢出——只是预览壳的责任，不是组件本身的缺陷。 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>三组齐全（租赁 / 出售 / 联合办公）</span>
+              <BuildingSupplyBrowser
+                snapshot={SUPPLY_FULL_SNAPSHOT}
+                buildingId={1}
+                citySlug="shanghai"
+                basePath="/dev-story/opt037"
+                currentSearch={supplyCurrentSearch}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>某组为空（出售）</span>
+              <BuildingSupplyBrowser
+                snapshot={SUPPLY_SALE_EMPTY_SNAPSHOT}
+                buildingId={2}
+                citySlug="shanghai"
+                basePath="/dev-story/opt037"
+                currentSearch=""
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>全空（当前暂无公开可选空间）</span>
+              <BuildingSupplyBrowser
+                snapshot={SUPPLY_EMPTY_SNAPSHOT}
+                buildingId={3}
+                citySlug="shanghai"
+                basePath="/dev-story/opt037"
+                currentSearch=""
               />
             </div>
           </div>

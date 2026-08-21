@@ -42,6 +42,15 @@ type BuildingDetailLayoutProps = Readonly<{
   pois: PoiByCategory
   mapEnabled: boolean
   citySlug?: string
+  /**
+   * 供给密度表的组切换 / 筛选 / 排序 canonical query string（不含 `?`），由页面层
+   * `parseBuildingSupplySearchParams` 解析后再经 `buildBuildingSupplyCanonicalSearchParams`
+   * 序列化而来——非法/过期参数不会被带着走一遍。`BuildingSupplyBrowser` 是
+   * 'use client'，URLSearchParams 实例不能安全跨 Server→Client 边界传递，
+   * 因此在这里降格为纯字符串（同 OPT-036 `FilterFormC` 系列的 basePath +
+   * currentParams 传参约定，只是 currentParams 换成了字符串形态）。
+   */
+  supplyCurrentSearch: string
 }>
 
 function SupplySectionSummary({
@@ -87,6 +96,7 @@ export default function BuildingDetailLayout({
   pois,
   mapEnabled,
   citySlug,
+  supplyCurrentSearch,
 }: BuildingDetailLayoutProps) {
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasDescription = Boolean(building.description)
@@ -96,7 +106,8 @@ export default function BuildingDetailLayout({
   const hasParams = hasFacts || hasAmenities || hasDescription
 
   const basePath = citySlug ? `/${citySlug}` : ''
-  const canonicalUrl = `${siteConfig.siteOrigin}${basePath}/buildings/${encodeURIComponent(building.slug)}`
+  const buildingPagePath = `${basePath}/buildings/${encodeURIComponent(building.slug)}`
+  const canonicalUrl = `${siteConfig.siteOrigin}${buildingPagePath}`
 
   return (
     <div className="detail detail--v2">
@@ -144,7 +155,13 @@ export default function BuildingDetailLayout({
               availableGroups={supply.availableGroups}
             />
           </div>
-          <BuildingSupplyBrowser snapshot={supply} buildingId={building.id} citySlug={citySlug} />
+          <BuildingSupplyBrowser
+            snapshot={supply}
+            buildingId={building.id}
+            citySlug={citySlug}
+            basePath={buildingPagePath}
+            currentSearch={supplyCurrentSearch}
+          />
         </div>
         <DetailSideRail
           building={building}

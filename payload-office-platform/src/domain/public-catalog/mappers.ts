@@ -546,6 +546,8 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
     title: listing.title,
     price: mapStructuredPrice(listing.price, listing.businessType) ?? mapPrice(listing.rent, listing.rentUnit, listing.businessType),
     area: listing.area ?? null,
+    floor: listing.floor ?? null,
+    seats: listing.seats ?? null,
     businessType: publicBusinessType(listing.businessType),
     decorationStatus: listing.decorationStatus ?? null,
     listingType: listing.listingType,

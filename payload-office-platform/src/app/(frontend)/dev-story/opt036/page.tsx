@@ -106,6 +106,8 @@ function makeCardFixture(
     cityName: '上海市',
     price: cardPrice(8.5, 'rmb-sqm-day', '8.5 元/㎡/天'),
     area: 320,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: null,
     listingType: 'traditional-office',

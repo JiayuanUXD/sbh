@@ -1857,72 +1857,161 @@ ol {
   align-items: start;
 }
 
-.building-supply-browser__filters {
+/*
+ * 供给密度表（OPT-037 Task 7，方案 A：分组切换 + 密度表）。
+ * 尺寸对照 docs/SBH设计任务讨论/楼盘详情.dc.html 的 specRows：
+ *   组切换 pill 36 高 padding 0 18；组聚合区 3 列 gap 24 值 22/600；
+ *   筛选 pill 32 高 padding 0 14；供给行网格 1fr/130/150/176/120/44，
+ *   数值列右对齐 padding-right 24、月租列 17/600；表头 12/600/ink-3。
+ * 旧版面积/价格「分桶」（客户端 state，刷新即丢）已被组切换 + URL 驱动的
+ * 面积筛选 + 排序取代，样式随之整块重写而非局部打补丁。
+ */
+.building-supply-browser {
+  /* 密度表内层 .table-wrap 靠 overflow-x:auto 横向滚动收纳 920px min-width，
+   * 但只要本组件自己或任一祖先是 flex/grid item 且没有显式 min-width:0，
+   * flex/grid 的「内容最小尺寸默认取 min-content」规则就会把这层滚动容器的
+   * 内容宽度顶给外层——不管本组件用在哪个页面的哪层容器里都成立，因此把
+   * min-width:0 钉在组件自己的根选择器上，不依赖调用方每层都记得声明。 */
+  min-width: 0;
+}
+
+.building-supply-browser__tabs {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  background: var(--bg-subtle);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.building-supply-browser__tab[data-active='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.building-supply-browser__tab-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.66;
+}
+
+.building-supply-browser__panel {
+  margin-top: 12px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  padding: 32px;
+}
+
+.building-supply-browser__agg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.building-supply-browser__agg-item {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-3);
+  gap: 6px;
 }
 
-.building-supply-browser__bucket-group {
+.building-supply-browser__agg-label {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.building-supply-browser__agg-value-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
+  align-items: baseline;
+  gap: 4px;
 }
 
-.building-supply-browser__bucket-label {
-  flex-shrink: 0;
-  font-size: var(--fs-13);
-  font-weight: 600;
-  color: var(--color-ink-2);
-}
-
-.building-supply-browser__bucket {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  min-height: var(--touch-target);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink-2);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.building-supply-browser__bucket:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
-}
-
-/* 选中态零色相，同 .filter-chip.is-active：原蓝底蓝字 3.82:1。 */
-.building-supply-browser__bucket[data-active='true'],
-.building-supply-browser__bucket[aria-current='true'] {
-  background: var(--bg);
-  border-color: var(--ink);
-  color: var(--ink);
+.building-supply-browser__agg-value {
+  font-size: 22px;
   font-weight: 600;
 }
 
-.building-supply-browser__bucket-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5em;
-  padding: 0 var(--sp-1);
-  font-size: var(--fs-12);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
-}
-
-.building-supply-browser__bucket[data-active='true'] .building-supply-browser__bucket-count,
-.building-supply-browser__bucket[aria-current='true'] .building-supply-browser__bucket-count {
-  /* 随选中态一并零色相：--color-copper 在 --bg 上只有 4.31:1，--ink-2 是 4.66:1 */
+.building-supply-browser__agg-unit {
+  font-size: 13px;
   color: var(--ink-2);
+}
+
+.building-supply-browser__controls {
+  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__filter-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* 32 高、无 44px 触控内边距——与站内同型分段控件（PriceUnitSegment 的
+   `.ls-unitseg__item`）同一惯例：段与段之间靠 gap 而非单段触控盒防误触，
+   一次性统一过，这里不额外造一个更高的变体制造跨页不一致。 */
+.building-supply-browser__filter {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.building-supply-browser__filter[data-active='true'] {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--ink);
+}
+
+.building-supply-browser__sort {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__sort-option {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.building-supply-browser__sort-option[data-active='true'] {
+  color: var(--accent-link);
+}
+
+.building-supply-browser__notice {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
 .building-supply-browser__table-wrap {
@@ -1931,62 +2020,93 @@ ol {
 
 .building-supply-browser__table {
   width: 100%;
+  /* 定宽列改百分比而非 px（见 colgroup，BuildingSupplyBrowser.tsx）：曾经试过
+   * `min-width:920px`（130/150/176/120/44 定宽列合计 620 + 首列可读最小宽
+   * 300）配合 `.table-wrap` 的 overflow-x:auto 横向滚动兜底 768 断点，视觉效果
+   * 正确，但实测 `document.documentElement.scrollWidth` 仍会被顶宽（Chromium
+   * 对 table-layout:fixed + 显式 min-width 的表格，intrinsic size 计算会绕过
+   * overflow:auto/hidden 祖先——连 wrap 改 overflow-x:hidden 都拦不住，真实
+   * 页面出现可横向滚动的空白），attempts 见 task-7-report.md。改用百分比列宽
+   * 后各列按比例伸缩，没有任何显式 min-width/width 字面量超出容器，
+   * 不再触发这个逃逸，且比例在 1180 容器下与 px 版数值等价（496/1116≈44.5%
+   * 等），窄于卡片切换阈值（768）时也保持同一比例，不会被压成逐字换行。 */
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
-.building-supply-browser__table th,
-.building-supply-browser__table td {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--color-line);
+.building-supply-browser__table thead th {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
   text-align: left;
+}
+
+.building-supply-browser__table-num-head {
+  text-align: right;
+  padding-right: 24px;
+}
+
+.building-supply-browser__table tbody td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
+  color: var(--ink);
 }
 
-/* 58 式表格：图 | 面积 | 单价 | 总价 | 特色 | 查看详情 */
-.building-supply-browser__table-thumb {
-  width: 88px;
+.building-supply-browser__table-primary {
+  display: block;
+  padding-right: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
-.building-supply-browser__table-thumb img,
-.building-supply-browser__table-thumb .media-placeholder {
-  width: 88px;
-  height: 66px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
+.building-supply-browser__table-sub {
+  display: block;
+  margin-top: 3px;
+  padding-right: 24px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
-.building-supply-browser__table-area,
-.building-supply-browser__table-price,
+.building-supply-browser__table-num {
+  text-align: right;
+  padding-right: 24px;
+  font-size: 15px;
+}
+
 .building-supply-browser__table-total {
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-price {
-  color: var(--color-copper);
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
+  font-size: 17px;
   font-weight: 600;
 }
 
-.building-supply-browser__table-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
+.building-supply-browser__table-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.building-supply-browser__table-status[data-emphasized='true'] {
+  background: var(--ink);
+  color: #fff;
 }
 
 .building-supply-browser__table-link {
-  display: inline-block;
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-copper);
-  border-radius: var(--radius-sm);
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-link:hover {
-  background: var(--color-copper-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  color: var(--accent-link);
 }
 
 .building-supply-browser__more {
@@ -2004,6 +2124,24 @@ ol {
 .building-supply-browser__more:hover {
   border-color: var(--color-copper);
   color: var(--color-copper);
+}
+
+.building-supply-browser__footer {
+  margin-top: 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.building-supply-browser__footer .building-supply-browser__more {
+  margin: 0;
+}
+
+.building-supply-browser__footnote {
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
 @media (max-width: 1199px) {
@@ -4030,15 +4168,46 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-browser__bucket-group {
-    overflow-x: auto;
+  /* 密度表在窄屏改用 ListingCard 卡片（见 BuildingSupplyBrowser.tsx 文件头
+   * 注释——既有行为，非本次新增），但组切换 tab 与筛选行在所有断点都渲染；
+   * tab 数超出一屏时横滑，而不是折行把整块面板顶高。 */
+  .building-supply-browser__tabs {
     flex-wrap: nowrap;
-    padding-bottom: var(--sp-1);
+    overflow-x: auto;
+    padding-bottom: 2px;
     -webkit-overflow-scrolling: touch;
   }
-  .building-supply-browser__bucket {
+  .building-supply-browser__tab {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+  .building-supply-browser__filter-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .building-supply-browser__filter {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .building-supply-browser__panel {
+    padding: 20px;
+  }
+  .building-supply-browser__agg {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+  }
+  /* 窄列下数值+单位改竖排：横排在两列窄格里会把单位挤到跟值同一行导致
+     换行断在单位文字中间（如「元/㎡/」与「天」分两行），竖排更可读。 */
+  .building-supply-browser__agg-value-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .building-supply-browser__sort {
+    margin-left: 0;
+    width: 100%;
   }
 }
 

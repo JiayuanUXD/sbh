@@ -23,6 +23,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
       text: '8.5 元/㎡/天',
     },
     area: 100,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: 'fully_fitted',
     listingType: 'traditional-office',

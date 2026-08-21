@@ -12,6 +12,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
     title: '测试房源',
     price: null,
     area: 100,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: 'fully_fitted',
     listingType: 'traditional-office',

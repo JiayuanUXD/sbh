@@ -31,6 +31,7 @@ function makeListing(overrides: Partial<ListingDetailViewModel> = {}): ListingDe
       text: '8.5 元/㎡/天',
     },
     area: 101,
+    floor: null,
     businessType: 'lease',
     decorationStatus: 'fully_fitted',
     listingType: 'traditional-office',
