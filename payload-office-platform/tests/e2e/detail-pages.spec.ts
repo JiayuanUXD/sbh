@@ -23,13 +23,35 @@ const browserErrors = new WeakMap<Page, string[]>()
 const allowedBrowserErrors = new WeakMap<Page, RegExp[]>()
 
 async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
+  // 前置条件：页面真的布局完了。少了这一步，下面的 scrollTo 可能在文档还不够高时
+  // 发出——此时它是空操作，而随后长出来的内容让 lastContentBottom 停在未滚动时的值，
+  // 断言假阳性（OPT-037 Task 8 之后 3~5 次偶发 1 次，失败值恒为同一个数）。
+  await page.waitForLoadState('networkidle')
   const bounds = await page.evaluate(async () => {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      // Chromium supports immediate scrolling; it avoids the site's smooth-scroll CSS.
-      behavior: 'instant' as ScrollBehavior,
-    })
-    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+    const nextFrame = () => new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()))
+    // 等文档高度不再增长（懒加载图片落位会把页面撑高）。
+    let previousHeight = -1
+    for (let i = 0; i < 30 && document.documentElement.scrollHeight !== previousHeight; i += 1) {
+      previousHeight = document.documentElement.scrollHeight
+      await nextFrame()
+    }
+    // 反复「滚到底 + 等一帧」直到 scrollY 稳定。单帧不够：页面在 hydration 与
+    // 懒加载图片落位期间还在长高，而 OPT-037 Task 8 的 sticky 锚点条挂载时
+    // Chromium 的 scroll anchoring 会再调一次 scrollY，可能把刚发出的 instant
+    // 滚动整个吃掉——实测 3 次里偶发 1 次 scrollY 停在 0，measure 到的
+    // lastContentBottom 就是未滚动时的值（5195 ≈ 最大滚动距离），假阳性。
+    // 稳定判据用「连续两帧 scrollY 不变」，而不是「等于某个预期值」——
+    // 后者要重新推导一遍页面高度，等于把被测逻辑抄进测试。
+    let previousScrollY = -1
+    for (let i = 0; i < 30 && window.scrollY !== previousScrollY; i += 1) {
+      previousScrollY = window.scrollY
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        // Chromium supports immediate scrolling; it avoids the site's smooth-scroll CSS.
+        behavior: 'instant' as ScrollBehavior,
+      })
+      await nextFrame()
+    }
 
     const mobileBar = document.querySelector<HTMLElement>('[role="region"][aria-label="询价操作栏"]')
     const content = Array.from(document.querySelectorAll<HTMLElement>('.detail > section'))
