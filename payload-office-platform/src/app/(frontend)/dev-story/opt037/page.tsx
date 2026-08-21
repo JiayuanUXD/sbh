@@ -221,6 +221,7 @@ const OVERVIEW_FULL_GROUPS: readonly FactGroupViewModel[] = [
     facts: [
       overviewFact('最短租期', '36 个月'),
       overviewFact('押金月数', '2 个月'),
+      overviewFact('付款方式', '按季度付款'),
       overviewFact('物业费金额', '28.00 元/㎡/月'),
       overviewFact('物业费', '包含'),
       overviewFact('发票', '含发票'),
@@ -254,6 +255,7 @@ const OVERVIEW_PARTIAL_GROUPS: readonly FactGroupViewModel[] = [
     facts: [
       overviewFact('最短租期', '12 个月'),
       overviewFact('押金月数', null),
+      overviewFact('付款方式', null),
       overviewFact('物业费金额', null),
       overviewFact('物业费', '不包含'),
       overviewFact('发票', null),
@@ -286,6 +288,7 @@ const OVERVIEW_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
     facts: [
       overviewFact('最短租期', '36 个月'),
       overviewFact('押金月数', '2 个月'),
+      overviewFact('付款方式', '按季度付款'),
       overviewFact('物业费金额', null),
       overviewFact('物业费', null),
       overviewFact('发票', null),
@@ -384,7 +387,7 @@ export default function Opt037PreviewPage() {
         <PreviewSection
           id="listing-overview"
           title="房源概况面板（ListingOverviewPanel）"
-          note="通栏 · 组间距 40 · 组区分只用间距 + 组标签（不用顶线不用色块）；含 review 补映射的空调/网络/停车费（取自 listing.building）；三态：字段齐全 / 组内部分缺失（含「可入驻」的既有「面议」兜底、「物业费」金额→类别的退回、「网络」缺失）/ 整组缺失（费用明细三行全 —，组仍渲染）"
+          note="通栏 · 组间距 40 · 组区分只用间距 + 组标签（不用顶线不用色块）；含 review 补映射的空调/网络/停车费（取自 listing.building）与漏查修正后的「付款方式」（取自既有 listing.factGroups「付款方式」事实，与「押金」并列两行）；三态：字段齐全 / 组内部分缺失（含「可入驻」的既有「面议」兜底、「物业费」金额→类别的退回、「网络」「付款方式」缺失）/ 整组缺失（费用明细三行全 —，组仍渲染）"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

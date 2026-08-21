@@ -32,10 +32,19 @@ import { formatAvailableDate } from '@/lib/frontend/format'
  *
  *   租赁条件：合同单价（listing.price.text）/ 起租期（复用既有「最短租期」，
  *     comp 用「年」我们只有「月」精度，同一概念不同粒度）/ 押金（复用既有
- *     「押金月数」）全部可达。comp 的「押付方式」是"押二付三"这类含支付
- *     周期的复合约定，付款周期字段不存在，只能呈现押金一半——**这是诚实降级
- *     不是编造**：字段改标签为「押金」而非硬凑成「押付方式」。「免租期」
- *     「年递增」「中介费」在 Listings collection 均无对应字段（域层没有），省略。
+ *     「押金月数」）/ 付款方式（复用既有「付款方式」，源自 `Listings.paymentTerms`，
+ *     `mappers.ts:687` 早已 `fact('付款方式', listing.paymentTerms)` 映射进
+ *     `listing.factGroups` 的 cost 组、与「押金月数」相邻）全部可达。
+ *
+ *     Review 修正：comp 的「押付方式」是"押二付三"这类"押金月数 + 付款周期"的
+ *     复合约定。首版审计止步于「没有付款周期字段」就把这行改标签成「押金」，
+ *     但 `paymentTerms` 就是那半个周期字段，本组件早就收着这个事实，只是
+ *     没有查——这不是诚实降级，是漏查。现按「押金」「付款方式」**两行独立
+ *     呈现**，不合并硬拼成 comp 的"押二付三"字面格式（`depositMonths` 是数字、
+ *     `paymentTerms` 是自由文本，格式不保证能拼出"押二付三"这种简写，拼错比
+ *     分两行说清楚更糟）。「免租期」「年递增」「中介费」在 Listings collection
+ *     均无对应字段（域层没有），省略——这三项已按「先查 listing.factGroups
+ *     现有事实清单，查不到再下探 collection」的顺序复核，确认不是第二次漏查。
  *
  *   交付与资质：装修状态 / 交付时间（复用 `formatAvailableDate`，缺失既有
  *     "面议" 语义，不改用本面板的 "—"——同一字段站内其它位置早已是这个
@@ -112,6 +121,7 @@ export function buildListingOverviewGroups(
         { label: '合同单价', value: listing.price?.text ?? null },
         { label: '起租期', value: fact('最短租期') },
         { label: '押金', value: fact('押金月数') },
+        { label: '付款方式', value: fact('付款方式') },
       ],
     },
     {
