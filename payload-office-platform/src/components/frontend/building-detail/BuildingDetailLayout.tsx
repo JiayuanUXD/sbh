@@ -171,7 +171,16 @@ export default function BuildingDetailLayout({
         </section>
       )}
 
-      <section id="location" className="detail-v2__location-band">
+      {/* 不在这层重复 id="location"——LocationPanel 自己的 <section> 已经带这个
+          id（CityListingDetailView 里 LocationPanel 是顶层用法，没有外层 section
+          包着，id 必须留在组件自身上）。两层都挂 id 会产生同页重复 id，
+          `#location` 选择器虽然仍能命中第一个（Playwright/CSS 的 .first()
+          语义），但是无效 HTML；这里去掉外层这份是唯一安全的修法——反过来
+          从组件里摘掉会破坏 CityListingDetailView 的顶层锚点。
+          Task 5 起 LocationPanel 无坐标时返回 null，本 section 仍可能只剩
+          NearbyBuildingsStrip（该组件不需要独立锚点，仓库内没有指向
+          #location 的其它导航引用）。 */}
+      <section className="detail-v2__location-band">
         <LocationPanel
           building={{
             id: building.id,

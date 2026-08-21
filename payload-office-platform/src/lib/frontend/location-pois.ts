@@ -17,6 +17,16 @@ import type { CoordinatesViewModel } from '@/domain/public-catalog'
 /** 按类别分组的 POI（传给 LocationPanel） */
 export type PoiByCategory = Readonly<Record<PoiCategory, readonly NearbyPoi[]>>
 
+/**
+ * 周边点位清单左侧字母锚点（最多 5 项，对应 A-E）。
+ *
+ * LocationPanel 的清单面板与 AmapMapCanvas 的地图图钉共用同一套字母——
+ * 两者呈现的是同一份「当前激活类别/子分类下的 POI 列表」，字母必须一一对应
+ * （清单第 N 项 = 地图上标着同一字母的图钉），不允许两处各自维护一份
+ * `['A','B','C','D','E']` 后走样成两套编号。
+ */
+export const POI_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const
+
 const POI_CATEGORIES: readonly PoiCategory[] = [
   'transport',
   'restaurant',

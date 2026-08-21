@@ -1,9 +1,21 @@
 /**
- * 位置交通面板
+ * 周边与交通面板
  *
  * 守护不变量：
- *   - POI 四类别语义 Tab，每类最多 5 项；点击 POI 高亮地图 marker
- *   - 地图懒加载由 AmapMapCanvas 负责；缺坐标/Key 时仅展示 POI 列表
+ *   - 无坐标时整段不渲染（不留空地图容器/空清单面板）——这是硬约束，
+ *     不是「缺省态展示占位」，与项目「不展示空货架」的既定立场一致
+ *   - 无坐标 ≠ 地图加载失败：前者是我们没有这份数据（整段不出现）；
+ *     后者是数据都在、只是高德脚本没起来（AmapMapCanvas 内部降级为
+ *     「地图暂时不可用」文案），此时清单面板的地址/地铁/POI 列表仍要展示
+ *   - POI 四类别语义 Tab，每类最多 5 项；点击 POI 高亮地图图钉
+ *   - 地图与清单面板并排两列（并排布局见 detail.css .location-panel__grid），
+ *     不用「清单浮层覆盖地图」的旧写法——mapEnabled=false 时地图区域没有
+ *     内容，若靠浮层绝对定位，清单会因地图区域高度塌陷而错位；两列网格
+ *     天然规避（两列各自按自身内容定高）
+ *   - 地图图钉只画「当前列表正在展示的」POI（mapPois = activePois），
+ *     字母与清单一一对应；不再是交通类地图恒画全量 subway+bus 而清单只筛
+ *     子分类的旧写法——旧写法在两者字母对不上时会让「点清单第 A 项」与
+ *     「地图上的 A 图钉」变成两个不同的点位，本次统一为同一份数据的两种呈现
  */
 
 'use client'
@@ -12,7 +24,7 @@ import { useState } from 'react'
 import AmapMapCanvas from '@/components/frontend/AmapMapCanvas'
 import type { CoordinatesViewModel } from '@/domain/public-catalog'
 import type { NearbyPoi, PoiCategory, TransportSubCategory } from '@/domain/location-services'
-import type { PoiByCategory } from '@/lib/frontend/location-pois'
+import { POI_LETTERS, type PoiByCategory } from '@/lib/frontend/location-pois'
 
 /** LocationPanel 需要的楼盘信息（从 BuildingDetail/SummaryViewModel 投影） */
 export interface LocationPanelBuilding {
@@ -41,9 +53,6 @@ const TRANSPORT_SUB_TABS: ReadonlyArray<{
   { key: 'subway', label: '地铁' },
   { key: 'bus', label: '公交' },
 ]
-
-/** POI 列表项左侧字母锚点（最多 5 项，对应 A-E） */
-const POI_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const
 
 type PoiIconKey = (typeof POI_CATEGORY_TABS)[number]['icon']
 
@@ -109,6 +118,13 @@ export default function LocationPanel({
   const [highlightedPoiId, setHighlightedPoiId] = useState<string | null>(null)
 
   const coordinates = building.coordinates
+
+  // 无坐标：整段不渲染，不留空地图容器或空清单面板。这是硬约束（见文件头
+  // 「无坐标 ≠ 地图加载失败」），不是可选的缺省态——调用方（CityListingDetailView /
+  // BuildingDetailLayout）都已经 `{building && <LocationPanel .../>}` 式接线，
+  // 这里再兜底一层，避免坐标缺失时渲染出只有标题没有内容的空区块。
+  if (!coordinates) return null
+
   const hasAnyPoi = POI_CATEGORY_TABS.some((tab) => pois[tab.key].length > 0)
 
   // 交通类按子分类（subway/bus）筛分；非交通类别整组透传
@@ -116,14 +132,12 @@ export default function LocationPanel({
   const transportSubPois = transportPois.filter(
     (poi) => poi.subCategory === activeSubCategory,
   )
-  // 地图 markers：交通类始终显示全部 transport POI（地铁+公交），
-  // 切换子 Tab 只筛选列表，不重建地图 markers。
-  // 非交通类则只展示该类别 POI。
-  const mapPois =
-    activeCategory === 'transport' ? transportPois : pois[activeCategory]
   // 列表：交通类按子分类筛选，非交通类整组
   const activePois =
     activeCategory === 'transport' ? transportSubPois : pois[activeCategory]
+  // 地图图钉 = 清单当前正在展示的同一份数据（见文件头说明）：地图上的字母
+  // 图钉与清单行的字母锚点一一对应，不再是交通类地图恒画全量 subway+bus。
+  const mapPois = activePois
 
   // 交通子 Tab 仅渲染有 POI 的子分类
   const visibleSubTabs = TRANSPORT_SUB_TABS.filter((tab) =>
@@ -133,16 +147,24 @@ export default function LocationPanel({
 
   return (
     <section id="location" className="location-panel detail__section" aria-labelledby="location-title">
-      <h2 id="location-title">位置交通</h2>
+      <h2 id="location-title">周边与交通</h2>
 
-      {/* 地图区 + POI 浮动面板：地图占满宽度，POI 面板绝对定位浮在右侧 */}
-      <div className="location-panel__map-area">
-        <AmapMapCanvas
-          coordinates={coordinates}
-          pois={mapPois}
-          mapEnabled={mapEnabled}
-          highlightedPoiId={highlightedPoiId}
-        />
+      <div
+        className={
+          hasAnyPoi
+            ? 'location-panel__grid'
+            : 'location-panel__grid location-panel__grid--map-only'
+        }
+      >
+        <div className="location-panel__map">
+          <AmapMapCanvas
+            coordinates={coordinates}
+            pois={mapPois}
+            mapEnabled={mapEnabled}
+            highlightedPoiId={highlightedPoiId}
+            buildingName={building.name}
+          />
+        </div>
 
         {hasAnyPoi && (
           <div className="location-panel__poi-panel" aria-label="周边配套">

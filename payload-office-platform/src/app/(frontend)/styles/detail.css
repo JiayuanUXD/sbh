@@ -302,3 +302,295 @@
   .dt-overview { grid-row: auto; }
   .dt-sticky-bar { display: none; }
 }
+
+/* ============================================================================
+ * 周边与交通（Task 5）
+ * 设计依据：docs/SBH设计任务讨论/房源详情.dc.html specRows「周边地图」
+ * 「本房源图钉」「周边点位图钉」「清单面板」「一级/二级 tab」「清单行」「清单距离」。
+ *
+ * 覆盖对象是 styles.css 里 P1/P4 就有的 .location-panel__* / .amap-map-canvas*
+ * 基础类——组件（LocationPanel.tsx / AmapMapCanvas.tsx）没有换皮，class 名不变，
+ * 这里只是这一版详情页的权威取值覆盖旧值（import 顺序 detail.css 在 styles.css
+ * 之后，同选择器特异度下本文件生效）。
+ *
+ * 已知与 comp 字面量不同的三处克制取舍：
+ *   1. 一级 tab 图标（.location-panel__poi-tab-icon）—— comp 没画，但这是
+ *      P4 评审已经上线的功能（辨识度），删掉是丢行为换像素对齐，不删，只调间距。
+ *   2. 二级 tab / 清单行 padding 撑到 44px 触控目标——comp 字面量 28px 高度
+ *      不满足 design.md §14.2 的 ≥44×44px 约束，token 约束优先于 comp 像素。
+ *   3. comp 页面文案「距离为高德步行路径，非直线距离」未搬——POI 距离取自
+ *      高德 place/around 的 distance 字段，那是直线距离，不是路径规划结果
+ *      （见 domain/location-services/amap-provider.ts）。照抄这句话等于给
+ *      真实数据编一个不成立的来源说明，故略去，不是漏做。
+ * ========================================================================== */
+
+/* 地图 + 清单面板并排两列，取代 P1 版本「清单浮层绝对定位盖在地图上」的写法：
+ * mapEnabled=false（无 Key）时地图区域没有实际内容，浮层写法下 .location-panel__map-area
+ * 因没有地图撑起高度而塌缩为 0，清单面板的 top/right 绝对定位就失去参照，
+ * 网格布局让两列各自按自身内容独立定高，天然规避这个问题。 */
+.location-panel__grid {
+  display: grid;
+  grid-template-columns: 776px 372px;
+  gap: 32px;
+  align-items: start;
+}
+
+.location-panel__grid--map-only {
+  grid-template-columns: 776px;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__grid,
+  .location-panel__grid--map-only {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.location-panel__map {
+  position: relative;
+  min-width: 0;
+}
+
+/* 地图容器：776×460 · 圆角 18 · 去饱和滤镜（覆盖 styles.css 里 P1 的 500px/8px 旧值） */
+.location-panel__map .amap-map-canvas,
+.location-panel__map .amap-map-canvas__container {
+  height: 460px;
+  border-radius: var(--r-card);
+}
+
+.location-panel__map .amap-map-canvas {
+  border: none;
+}
+
+/* 滤镜只加在高德内部的瓦片图层（.amap-layer/.amap-maps 是高德 JS API v2.0
+ * 渲染瓦片的容器类名），不能加在 .amap-map-canvas__container 整体上——
+ * CSS filter 会整体光栅化再处理，若加在容器上会连同我们自建的图钉 DOM
+ * （本房源 accent 圆点、深色字母圆）一起被拉灰，图钉就失去「显眼」的意义。
+ * 未在本机环境验证真实瓦片渲染（高德脚本在沙箱网络里大概率加载失败，见
+ * task-5-report.md）——选择器按高德公开 DOM 结构的通行约定给出，多写一个
+ * 不匹配也无副作用。 */
+.location-panel__map .amap-map-canvas__container .amap-layer,
+.location-panel__map .amap-map-canvas__container .amap-maps {
+  filter: saturate(.12) contrast(1.04);
+}
+
+@media (max-width: 1023px) {
+  .location-panel__map .amap-map-canvas,
+  .location-panel__map .amap-map-canvas__container {
+    height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .location-panel__map .amap-map-canvas,
+  .location-panel__map .amap-map-canvas__container {
+    height: 200px;
+  }
+}
+
+/* 本房源图钉 + 周边点位图钉：AmapMapCanvas 自建 DOM（createBuildingPinContent /
+ * createPoiPinContent），不是 AMap 默认图标也不是 marker.label——两者都需要
+ * 覆盖未公开保证的内部类名才能改色，自建 DOM 完全由这里的样式控制。
+ * .amap-map-canvas__pin 本身是 0 尺寸的定位锚点（AMap 用 anchor:'center' 把
+ * 它对准经纬度像素点），子元素用 position:absolute + 负 margin/transform
+ * 各自居中/上浮，不依赖 AMap 的 offset/Pixel API。 */
+.amap-map-canvas__pin {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+.amap-map-canvas__pin-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--color-copper);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-copper) 16%, transparent);
+}
+
+/* 168×34 是 comp 字面量给的最小尺寸，不是硬上限——真实楼盘/房源名长度不一，
+ * min-width + white-space:nowrap 让短名称贴合 168，长名称自然撑宽，不裁切。 */
+.amap-map-canvas__pin-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 14px));
+  min-width: 168px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.amap-map-canvas__pin-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  border: 3px solid var(--color-surface);
+  color: var(--color-on-ink);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 高亮态名称标签：默认隐藏，点击清单对应项后由 AmapMapCanvas 切换
+ * data-visible（见组件内 poiNameLabelsRef 高亮 effect），不经过 AMap
+ * marker.setLabel。 */
+.amap-map-canvas__pin-name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.amap-map-canvas__pin-name[data-visible='false'] {
+  display: none;
+}
+
+/* 清单面板：372（由网格列宽给定）· 与地图等高 460 · padding 0 24
+ * （覆盖 styles.css 里 P1 的浮层版：static 定位、白底零边框零阴影，
+ * 与本批 .dt-panel 同一种「白底卡片」处理，不再是浮层加边框加阴影）。 */
+.location-panel__poi-panel {
+  position: static;
+  top: auto;
+  right: auto;
+  width: auto;
+  max-height: none;
+  height: 460px;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--r-card);
+  box-shadow: none;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__poi-panel {
+    height: auto;
+  }
+}
+
+/* 一级 tab：内容宽（不再等分 flex:1）+ gap 24 + 下划线选中态 */
+.location-panel__pois {
+  flex-wrap: nowrap;
+  gap: 24px;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+
+.location-panel__poi-tab {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 17px 0;
+  border-bottom: 2px solid transparent;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.location-panel__poi-tab[data-active='true'] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.location-panel__poi-subtabs {
+  padding: 16px 24px 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+/* 二级 pill 视觉高度 comp 给 28px，撑到 44px 触控目标（见文件头「克制取舍」2） */
+.location-panel__poi-subtab {
+  min-height: var(--touch-target);
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-canvas);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.location-panel__poi-subtab[data-active='true'] {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+
+.location-panel__poi-list {
+  padding: 6px 24px 12px;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__poi-list {
+    overflow-y: visible;
+  }
+}
+
+.location-panel__poi-item {
+  padding: 14px 0;
+  gap: 12px;
+}
+
+.location-panel__poi-letter {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  background: var(--color-canvas);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.location-panel__poi-name {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: normal;
+}
+
+/* 清单距离：tabular-nums + ink（非 muted）——comp 清单行整行同色，
+ * 距离数字不降级为次要色 */
+.location-panel__poi-distance {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+@media (max-width: 480px) {
+  .location-panel__poi-tab {
+    font-size: 14px;
+    padding: 14px 0;
+  }
+
+  .location-panel__poi-item {
+    padding: 12px 0;
+  }
+}

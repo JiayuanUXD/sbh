@@ -4,6 +4,7 @@ import React from 'react'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
+import LocationPanel, { type LocationPanelBuilding } from '@/components/frontend/LocationPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import InquiryModal from '@/components/frontend/InquiryModal'
@@ -15,6 +16,8 @@ import type {
   PriceViewModel,
   VerificationViewModel,
 } from '@/domain/public-catalog/contracts'
+import type { NearbyPoi } from '@/domain/location-services'
+import type { PoiByCategory } from '@/lib/frontend/location-pois'
 import { formatPublishedDate } from '@/lib/frontend/format'
 
 /**
@@ -335,6 +338,73 @@ function VerifyCheckIcon() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Fixture：LocationPanel + AmapMapCanvas（Task 5）—— 三态：有坐标 / 无坐标 /
+// 有坐标但 mapEnabled=false（对应生产里「有坐标但高德 JS Key 未配置」的分支，
+// 与「有 Key 但脚本网络失败」是 AmapMapCanvas 内部的另一种降级，两者代码路径
+// 不同——前者 AmapMapCanvas 直接返回 null，后者渲染出「地图暂时不可用」。
+// 本预览页只能摆出前一种（不读 Payload、不能真的让网络失败一次性复现），
+// 后一种在 task-5-report.md 里用 Playwright 拦截 webapi.amap.com 验证）。
+// ---------------------------------------------------------------------------
+
+const LOCATION_BUILDING_FULL: LocationPanelBuilding = {
+  id: 1,
+  name: '静安嘉里中心 · 12 层整层',
+  address: '静安区南京西路 1515 号',
+  coordinates: { latitude: 31.2246, longitude: 121.4467 },
+  nearestMetro: { name: '南京西路站' },
+}
+
+const LOCATION_BUILDING_NO_COORDS: LocationPanelBuilding = {
+  id: 2,
+  name: '越洋国际广场',
+  address: '静安区威海路 511 号',
+  coordinates: undefined,
+  nearestMetro: undefined,
+}
+
+function fixturePoi(overrides: Partial<NearbyPoi> & Pick<NearbyPoi, 'id' | 'category' | 'name'>): NearbyPoi {
+  return {
+    coordinates: { latitude: 31.225, longitude: 121.447 },
+    distanceMeters: 340,
+    direction: null,
+    source: 'amap-location-service',
+    fetchedAt: '2026-08-11T00:00:00.000Z',
+    subCategory: null,
+    metroLines: [],
+    ...overrides,
+  }
+}
+
+// 交通类混合地铁/公交，验证二级 tab 与地图图钉字母对应「当前列表正在展示的」
+// 那一份数据（见 LocationPanel.tsx 文件头说明），不是恒画全量。
+const LOCATION_POIS_FULL: PoiByCategory = {
+  transport: [
+    fixturePoi({ id: 't1', category: 'transport', name: '南京西路站', distanceMeters: 340, subCategory: 'subway', metroLines: ['2号线', '12号线', '13号线'] }),
+    fixturePoi({ id: 't2', category: 'transport', name: '静安寺站', distanceMeters: 890, subCategory: 'subway', metroLines: ['2号线', '7号线', '14号线'] }),
+    fixturePoi({ id: 't3', category: 'transport', name: '南京西路石门一路', distanceMeters: 210, subCategory: 'bus' }),
+    fixturePoi({ id: 't4', category: 'transport', name: '成都北路延安中路', distanceMeters: 560, subCategory: 'bus' }),
+  ],
+  restaurant: [
+    fixturePoi({ id: 'r1', category: 'restaurant', name: '嘉里中心 B1 美食区', distanceMeters: 0, direction: '同楼' }),
+    fixturePoi({ id: 'r2', category: 'restaurant', name: '恒隆广场 5F', distanceMeters: 340 }),
+    fixturePoi({ id: 'r3', category: 'restaurant', name: '兴业太古汇', distanceMeters: 620 }),
+  ],
+  bank: [
+    fixturePoi({ id: 'b1', category: 'bank', name: '中国银行 南京西路支行', distanceMeters: 180 }),
+    fixturePoi({ id: 'b2', category: 'bank', name: '招商银行 静安支行', distanceMeters: 260 }),
+  ],
+  // 故意留空：验证「酒店」一级 tab 因 count===0 不渲染（既有行为，未因改版丢失）
+  hotel: [],
+}
+
+const LOCATION_POIS_EMPTY: PoiByCategory = {
+  transport: [],
+  restaurant: [],
+  bank: [],
+  hotel: [],
+}
+
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -578,6 +648,31 @@ export default function Opt037PreviewPage() {
             以下为滚动测试留白（模拟房源描述 / 周边与交通等后续区块），确保核心区完全离屏后仍有余量验证吸附询价条常驻。
           </p>
           <div style={{ height: 900 }} aria-hidden="true" />
+        </PreviewSection>
+
+        <PreviewSection
+          id="location-panel-full"
+          title="周边与交通 · 有坐标（LocationPanel）"
+          note="地图 776×460 · 圆角 18 · 本房源图钉常驻标签 · 交通类含地铁/公交二级 tab（图钉字母与清单一一对应）· 「酒店」因 count=0 不渲染一级 tab（既有行为）"
+        >
+          <LocationPanel building={LOCATION_BUILDING_FULL} pois={LOCATION_POIS_FULL} mapEnabled />
+        </PreviewSection>
+
+        <PreviewSection
+          id="location-panel-map-disabled"
+          title="周边与交通 · 有坐标但 mapEnabled=false"
+          note="对应生产「有坐标但高德 JS Key 未配置」——AmapMapCanvas 直接返回 null，地图区域不留空容器；清单面板（地址/地铁/POI）不受影响，照常展示"
+        >
+          <LocationPanel building={LOCATION_BUILDING_FULL} pois={LOCATION_POIS_FULL} mapEnabled={false} />
+        </PreviewSection>
+
+        <PreviewSection
+          id="location-panel-no-coords"
+          title="周边与交通 · 无坐标（整段不渲染）"
+          note="building.coordinates 为 undefined 时 LocationPanel 返回 null——本区块标题下方应该空白一片，data-testid=location-panel-no-coords-probe 之后没有任何 .location-panel 元素（Playwright 用 DOM 断言而非目视验证，见 task-5-report.md）"
+        >
+          <div data-testid="location-panel-no-coords-probe" />
+          <LocationPanel building={LOCATION_BUILDING_NO_COORDS} pois={LOCATION_POIS_EMPTY} mapEnabled={false} />
         </PreviewSection>
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}
