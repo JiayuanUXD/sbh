@@ -136,3 +136,26 @@
 .dt-nomedia__meta-item { display: flex; flex-direction: column; gap: 6px; }
 .dt-nomedia__meta-label { font-size: 13px; color: var(--ink-3); }
 .dt-nomedia__meta-value { font-size: 15px; line-height: 1.5; color: var(--ink); }
+
+/* ============================================================================
+ * 房源概况面板（Task 3 · ListingOverviewPanel）
+ * 设计依据：specRows「tab 区」——原稿双 tab（概况/租金账）已取消租金账，
+ * 通栏直接呈现概况，故这里只是 .dt-core 网格里的一个跨列子项，没有 tab 壳。
+ * 组区分只用间距（40）+ 组标签，不用顶线不用色块——`.dt-spec` 自身的行线
+ * 已经承担了"行与行"的区隔，组与组之间再加一条线是视觉噪音。
+ * ========================================================================== */
+.dt-overview {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.dt-overview__group-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  padding-bottom: 6px;
+}

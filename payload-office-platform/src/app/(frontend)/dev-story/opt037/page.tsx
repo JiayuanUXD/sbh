@@ -3,8 +3,14 @@ import { notFound } from 'next/navigation'
 import React from 'react'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
+import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
-import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
+import type {
+  DetailMediaViewModel,
+  FactGroupViewModel,
+  FactValue,
+  PriceViewModel,
+} from '@/domain/public-catalog/contracts'
 
 /**
  * OPT-037 详情页组件预览（仅开发环境）
@@ -121,6 +127,132 @@ const NO_IMAGE_KEY_SPECS: readonly SpecRow[] = [
   { label: '楼盘等级', value: '甲级' },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：ListingOverviewPanel（Task 3）—— 三态：字段齐全 / 部分缺失 / 整组缺失。
+// factGroups 直接仿 mapListingFactGroups 的既有事实标签（见 mappers.ts），
+// ListingOverviewPanel 按标签查值再重新分组，标签必须逐字匹配才查得到。
+// ---------------------------------------------------------------------------
+
+function overviewFact(label: string, value: string | null, estimated = false): FactValue {
+  return { label, value, estimated, critical: false }
+}
+
+const OVERVIEW_PRICE_FULL: PriceViewModel = {
+  amount: 8.5,
+  currency: 'CNY',
+  businessType: 'lease',
+  period: 'day',
+  basis: 'sqm',
+  displayUnit: 'rmb-sqm-day',
+  text: '8.50 元/㎡/天',
+}
+
+const OVERVIEW_PRICE_GROUP_MISSING: PriceViewModel = {
+  amount: 9.6,
+  currency: 'CNY',
+  businessType: 'lease',
+  period: 'day',
+  basis: 'sqm',
+  displayUnit: 'rmb-sqm-day',
+  text: '9.60 元/㎡/天',
+}
+
+// 字段齐全：四组全部字段都有值，验证正常展示不误伤。
+const OVERVIEW_FULL_GROUPS: readonly FactGroupViewModel[] = [
+  {
+    id: 'space',
+    title: '空间信息',
+    facts: [
+      overviewFact('建筑面积', '1,240 ㎡'),
+      overviewFact('套内参考面积', '892.8 ㎡'),
+      overviewFact('得房率', '72%'),
+      overviewFact('工位数', '112–124', true),
+      overviewFact('净层高', '4.20 m'),
+    ],
+  },
+  {
+    id: 'delivery',
+    title: '装修与交付',
+    facts: [overviewFact('装修', '精装带家具'), overviewFact('注册', '可注册')],
+  },
+  {
+    id: 'cost',
+    title: '费用条款',
+    facts: [
+      overviewFact('最短租期', '36 个月'),
+      overviewFact('押金月数', '2 个月'),
+      overviewFact('物业费金额', '28.00 元/㎡/月'),
+      overviewFact('物业费', '包含'),
+      overviewFact('发票', '含发票'),
+    ],
+  },
+]
+
+// 部分缺失：每组内都夹杂 null，验证行不因值缺失被隐藏——「可入驻」走
+// formatAvailableDate 既有「面议」兜底，不是本面板的「—」，两套文案在
+// 同一预览区块里刻意并存。「物业费」验证金额缺失时退回类别事实「不包含」。
+const OVERVIEW_PARTIAL_GROUPS: readonly FactGroupViewModel[] = [
+  {
+    id: 'space',
+    title: '空间信息',
+    facts: [
+      overviewFact('建筑面积', '860 ㎡'),
+      overviewFact('套内参考面积', null),
+      overviewFact('得房率', '68%'),
+      overviewFact('工位数', null),
+      overviewFact('净层高', '3.60 m'),
+    ],
+  },
+  {
+    id: 'delivery',
+    title: '装修与交付',
+    facts: [overviewFact('装修', '简装'), overviewFact('注册', null)],
+  },
+  {
+    id: 'cost',
+    title: '费用条款',
+    facts: [
+      overviewFact('最短租期', '12 个月'),
+      overviewFact('押金月数', null),
+      overviewFact('物业费金额', null),
+      overviewFact('物业费', '不包含'),
+      overviewFact('发票', null),
+    ],
+  },
+]
+
+// 整组缺失：「费用明细」两行（物业费金额/物业费、发票）全部为 null，
+// 其余三组正常——验证整组全缺时该组仍渲染（组标签 + 全 — 行），不整组隐藏。
+const OVERVIEW_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
+  {
+    id: 'space',
+    title: '空间信息',
+    facts: [
+      overviewFact('建筑面积', '1,050 ㎡'),
+      overviewFact('套内参考面积', '780 ㎡', true),
+      overviewFact('得房率', '74%'),
+      overviewFact('工位数', '95–105', true),
+      overviewFact('净层高', '4.00 m'),
+    ],
+  },
+  {
+    id: 'delivery',
+    title: '装修与交付',
+    facts: [overviewFact('装修', '拎包入住'), overviewFact('注册', '有条件注册')],
+  },
+  {
+    id: 'cost',
+    title: '费用条款',
+    facts: [
+      overviewFact('最短租期', '36 个月'),
+      overviewFact('押金月数', '2 个月'),
+      overviewFact('物业费金额', null),
+      overviewFact('物业费', null),
+      overviewFact('发票', null),
+    ],
+  },
+]
+
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -206,6 +338,37 @@ export default function Opt037PreviewPage() {
                 transit: '近静安寺站',
               }}
             />
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="listing-overview"
+          title="房源概况面板（ListingOverviewPanel）"
+          note="通栏 · 组间距 40 · 组区分只用间距 + 组标签（不用顶线不用色块）；三态：字段齐全 / 组内部分缺失（含「可入驻」的既有「面议」兜底与「物业费」金额→类别的退回）/ 整组缺失（费用明细两行全 —，组仍渲染）"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>字段齐全</span>
+              <ListingOverviewPanel
+                listing={{ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>部分缺失（组内夹杂 null）</span>
+              <ListingOverviewPanel
+                listing={{ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>整组缺失（费用明细）</span>
+              <ListingOverviewPanel
+                listing={{
+                  factGroups: OVERVIEW_GROUP_MISSING_GROUPS,
+                  price: OVERVIEW_PRICE_GROUP_MISSING,
+                  availableFrom: '2026-10-15T00:00:00.000Z',
+                }}
+              />
+            </div>
           </div>
         </PreviewSection>
 
