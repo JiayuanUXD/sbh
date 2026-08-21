@@ -34,6 +34,9 @@ export default function BuildingCardMini({ building, parentId, rank, citySlug }:
       // 6 条互不相同的楼盘 URL 同时进视口（本地 fixture 只有 1 条，量不出来，
       // 别拿它反推「基数不高」）；②href 由楼盘 slug 决定；③`hasRelated` 为真时
       // 是楼盘详情页正文的常驻区块。
+      // 注意上限是 **6 不是 12**：本组件与 `building-detail/NearbyBuildingsStrip`
+      // 读同一份数组、产出同一批 URL——按 URL 去重的机制见 `ui/Breadcrumb.tsx`
+      // 判据①的精确表述（本组件正是那里记的第二个误判案例），此处不再复述。
       prefetch={false}
       className="building-card-mini"
       data-detail-analytics-event="related_building_click"

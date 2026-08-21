@@ -1,0 +1,50 @@
+
+=== /news/jingan-temple-district-why-popular ===
+  链接数: newsRelated=11 article=0 mini=0 summaryCta=0 ls-card=0 bd-card=0
+  news 相关推荐 hrefs: ["/buildings/west-nanjing-premium-center","/buildings/empty-building","/buildings/lujiazui-grade-a-river-view","/buildings/huangpu-bund","/buildings/xuhui-xujiahui","/buildings/changning-hongqiao","/listings?district=jingan","/listings?district=pudong","/listings?district=huangpu","/listings?district=xuhui","/listings?district=changning"]
+  面包屑: ["/","/news"]
+  预取总数: 22
+  其中【相关推荐目标 URL】(11): ["/buildings/changning-hongqiao","/buildings/empty-building","/buildings/huangpu-bund","/buildings/lujiazui-grade-a-river-view","/buildings/west-nanjing-premium-center","/buildings/xuhui-xujiahui","/listings?district=changning","/listings?district=huangpu","/listings?district=jingan","/listings?district=pudong","/listings?district=xuhui"]
+  其中【详情页 URL】(6): ["/buildings/changning-hongqiao","/buildings/empty-building","/buildings/huangpu-bund","/buildings/lujiazui-grade-a-river-view","/buildings/west-nanjing-premium-center","/buildings/xuhui-xujiahui"]
+  其中【带 query 的 URL】(10): ["/entrust?city=shanghai","/listings?district=changning","/listings?district=huangpu","/listings?district=jingan","/listings?district=pudong","/listings?district=xuhui","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings/changning-hongqiao","/buildings/empty-building","/buildings/huangpu-bund","/buildings/lujiazui-grade-a-river-view","/buildings/west-nanjing-premium-center","/buildings/xuhui-xujiahui","/entrust","/entrust?city=shanghai","/listings","/listings?district=changning","/listings?district=huangpu","/listings?district=jingan","/listings?district=pudong","/listings?district=xuhui","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /news/2026-shanghai-office-market-h1 ===
+  链接数: newsRelated=0 article=0 mini=0 summaryCta=0 ls-card=0 bd-card=0
+  news 相关推荐 hrefs: []
+  面包屑: ["/","/news"]
+  预取总数: 11
+  其中【相关推荐目标 URL】(0): []
+  其中【详情页 URL】(0): []
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /news ===
+  链接数: newsRelated=0 article=5 mini=0 summaryCta=0 ls-card=0 bd-card=0
+  news 相关推荐 hrefs: []
+  面包屑: []
+  预取总数: 11
+  其中【相关推荐目标 URL】(0): []
+  其中【详情页 URL】(0): []
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /buildings/west-nanjing-premium-center ===
+  链接数: newsRelated=0 article=0 mini=1 summaryCta=0 ls-card=0 bd-card=0
+  news 相关推荐 hrefs: []
+  面包屑: ["/","/listings"]
+  预取总数: 11
+  其中【相关推荐目标 URL】(0): []
+  其中【详情页 URL】(0): []
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /listings/lujiazui-grade-a-780sqm ===
+  链接数: newsRelated=0 article=0 mini=0 summaryCta=1 ls-card=0 bd-card=0
+  news 相关推荐 hrefs: []
+  面包屑: ["/","/listings","/buildings/lujiazui-grade-a-river-view"]
+  预取总数: 12
+  其中【相关推荐目标 URL】(1): ["/buildings/lujiazui-grade-a-river-view"]
+  其中【详情页 URL】(1): ["/buildings/lujiazui-grade-a-river-view"]
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings/lujiazui-grade-a-river-view","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
