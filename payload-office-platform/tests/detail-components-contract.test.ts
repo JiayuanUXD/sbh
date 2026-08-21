@@ -3,7 +3,6 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
 import AnchorNavBar from '@/components/frontend/detail/AnchorNavBar'
@@ -12,15 +11,15 @@ import * as BuildingSupplyBrowserModule from '@/components/frontend/BuildingSupp
 import type {
   BuildingSupplySnapshot,
   DetailMediaViewModel,
-  FactGroupViewModel,
   ListingCardViewModel,
 } from '@/domain/public-catalog'
 
 const BuildingSupplyBrowser = BuildingSupplyBrowserModule.default
 
+// `DetailFacts.tsx` 随组件删除一并移出本清单（OPT-037 终审第 2 轮 D1：
+// 生产零引用，最后的引用者就是本测试自己）。
 const DETAIL_COMPONENT_FILES = [
   'DetailGallery.tsx',
-  'DetailFacts.tsx',
   'BuildingSupplyBrowser.tsx',
   'InquiryModal.tsx',
   'detail/AnchorNavBar.tsx',
@@ -252,26 +251,15 @@ describe('detail component contracts', () => {
     expect(html).toContain('aria-haspopup="dialog"')
   })
 
-  it('事实组件将关键缺失值标为咨询确认，并忽略普通缺失值', () => {
-    const groups: FactGroupViewModel[] = [
-      {
-        id: 'basic',
-        title: '基本信息',
-        facts: [
-          { label: '交付标准', value: null, estimated: false, critical: true },
-          { label: '层高', value: null, estimated: false, critical: false },
-          { label: '面积', value: '101 ㎡', estimated: true, critical: false },
-        ],
-      },
-    ]
-
-    const html = renderToStaticMarkup(createElement(DetailFacts, { groups }))
-
-    expect(html).toContain('交付标准')
-    expect(html).toContain('咨询确认')
-    expect(html).not.toContain('层高')
-    expect(html).toContain('估算')
-  })
+  /*
+   * 原「事实组件将关键缺失值标为咨询确认，并忽略普通缺失值」用例随
+   * `DetailFacts` 组件删除（终审第 2 轮 D1：生产零引用）。
+   * **被守护的行为没有丢**：`critical → 「咨询确认」/ 普通缺失 → 省略` 的判定
+   * 本来就在 `lib/frontend/format.ts` 的 `formatFact()` 里，由
+   * `tests/format.test.ts` 直接覆盖；`estimated → 「（估算）」` 的展示由
+   * `tests/building-spec-panel.test.ts` / `tests/listing-overview-panel.test.ts`
+   * 在现役组件上覆盖。这里删掉的只是「已下线组件的渲染快照」。
+   */
 
   it('桌面服务端默认输出单一密度表，按 URL 而非 GET 表单驱动组切换/筛选/排序', () => {
     const html = renderToStaticMarkup(

@@ -136,13 +136,13 @@ export default function ListingDecisionCard({
         <div className="dt-decision__price-row">
           {digest.value != null ? (
             <>
-              <span className="dt-decision__price-num">{digest.value}</span>
+              <span className="sf-num dt-decision__price-num">{digest.value}</span>
               {digest.unit && <span className="dt-decision__price-unit">{digest.unit}</span>}
             </>
           ) : (
             // 无价格不渲染 0、也不留空行：直接用既有的「价格面议」文案，字号降一档
             // （与 HeroSummaryPanel 的 .hero-summary__price--na 同一处理方式）。
-            <span className="dt-decision__price-num dt-decision__price-num--na">
+            <span className="sf-num dt-decision__price-num dt-decision__price-num--na">
               {digest.fallbackText}
             </span>
           )}
@@ -155,7 +155,7 @@ export default function ListingDecisionCard({
               <div key={row.key} className="dt-decision__verify-row">
                 <VerifyCheckIcon />
                 <span className="dt-decision__verify-label">{row.label}</span>
-                <span className="dt-decision__verify-when" title={row.iso}>
+                <span className="sf-num dt-decision__verify-when" title={row.iso}>
                   {formatPublishedDate(row.iso)}
                 </span>
               </div>

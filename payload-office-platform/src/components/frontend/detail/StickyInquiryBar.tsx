@@ -101,7 +101,7 @@ export default function StickyInquiryBar({
         <span className="dt-sticky-bar__title">{title}</span>
         {priceText != null && (
           <span className="dt-sticky-bar__price">
-            <span className="dt-sticky-bar__price-num">{priceText}</span>
+            <span className="sf-num dt-sticky-bar__price-num">{priceText}</span>
             {priceUnit && <span className="dt-sticky-bar__price-unit">{priceUnit}</span>}
           </span>
         )}

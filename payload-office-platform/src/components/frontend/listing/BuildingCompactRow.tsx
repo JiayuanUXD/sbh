@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
+import { completionYear } from '@/lib/frontend/format'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
 
 /**
@@ -34,12 +35,16 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts
  *     控件——避免链接内嵌套交互元素。
  */
 
-/** 竣工年份文案；非法/缺失 ISO 日期返回 null（同 building-search.ts completionYearOf 的口径）。 */
+/**
+ * 竣工年份文案；非法/缺失 ISO 日期返回 null。
+ * 解析与合法性判定走共享的 `completionYear()`（`lib/frontend/format.ts`）——
+ * 本处原先自带一份 `Date.parse` 实现，注释里已经写着「同 building-search.ts
+ * completionYearOf 的口径」，即**已知重复**；终审时又发现了第三份。现在三处
+ * 共用同一个解析器，只有展示后缀各自保留（本处是 "2013年竣工"）。
+ */
 function completionYearLabel(iso: string | undefined): string | null {
-  if (!iso) return null
-  const t = Date.parse(iso)
-  if (!Number.isFinite(t)) return null
-  return `${new Date(t).getFullYear()}年竣工`
+  const year = completionYear(iso)
+  return year == null ? null : `${year}年竣工`
 }
 
 /** 标准层面积文案；与 BuildingResultCard 的 formatLeasableArea 同一惯例：取整 + 千分位。 */

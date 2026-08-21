@@ -37,7 +37,17 @@
 .dt-core { display: grid; grid-template-columns: var(--dt-main) var(--dt-side);
   column-gap: 32px; row-gap: 0; align-items: start; }
 
-.dt-panel { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
+/* 白底面板表面（底 --bg-subtle · 零边框 · radius --r-card）的**唯一**声明处。
+ * 三个「组件类名写死、不换皮」的消费方并进本选择器组，而不是各写一份同样的
+ * 三行（终审 V3：同一个视觉决定曾有 4 个事实源）。选择器组里每一支各自保留
+ * 自己的特异度，`.dt-page .detail-side-rail__card` 仍是 (0,2,0)，不影响覆写。
+ *   - `.location-panel__poi-panel`：LocationPanel 的清单面板；
+ *   - `.dt-page .detail-side-rail__card`：密度表下方的留资带。
+ * 两者各自的**尺寸/布局**（高度、padding、flex）仍在下方各自的小节里，
+ * 只有「白底卡片表面」这一件事收敛到这里。 */
+.dt-panel,
+.location-panel__poi-panel,
+.dt-page .detail-side-rail__card { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
 .dt-panel--full { padding: 40px; }
 .dt-panel--side { padding: 32px; }
 
@@ -52,8 +62,11 @@
  * 版式语义。标签固定在自身内容宽度、把收缩空间让给右侧值列（值本来就允许
  * 换行），这是 `.dt-spec` 这个共享基元的通用加固，不是本任务专属样式。 */
 .dt-spec__label { flex-shrink: 0; white-space: nowrap; font-size: 15px; color: var(--ink-2); }
+/* tabular-nums 不写在这里：节点上挂 `.sf-num`（surface.css）。全站「数字一律
+ * tabular-nums」此前靠本文件 9 处内联复制守住，已漏过一次（`.hero-summary__price`
+ * 是实测才发现漏的），本批统一改用基元。以下各条同理，不再逐条重复此注释。 */
 .dt-spec__value { font-size: 15px; font-weight: 500; color: var(--ink);
-  text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  text-align: right; }
 /* 值与单位同格：unit 是行文说明，不参与数值对齐，故字重/字号/色阶单独降级 */
 .dt-spec__unit { margin-left: 4px; font-size: 13px; font-weight: 400; color: var(--ink-2); }
 
@@ -184,13 +197,15 @@
   height: 32px;
   padding: 0 14px;
   border-radius: var(--r-pill);
+  /* 与 `.sf-scrim` 同一个 rgba(0,0,0,0.42)，但**不能复用那个基元**：`.sf-scrim`
+   * 是「自下而上渐变到透明、高 45%、绝对定位铺满底部」的压暗层，本条要的是
+   * 一个 32px 高的实底 pill。同值不同形，共用类名会让任何一方改动误伤另一方。
+   * 取值刻意对齐是为了同一张图上两层暗色看起来是同一种黑。 */
   background: rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   color: #fff;
   font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -213,7 +228,8 @@
 /* 无图替代构图（NoImageHeroGrid）：关键规格 3×2 宫格 + 地址交通条。
  * 面板复用 .dt-panel--full（白底零边框 padding 40），不新起一套面板样式。 */
 .dt-nomedia__head { display: flex; align-items: baseline; justify-content: space-between; }
-.dt-nomedia__title { font-size: 19px; font-weight: 600; color: var(--ink); }
+.dt-nomedia__title { font-size: 19px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal; }
 
 /* minmax(0, 1fr)——`1fr` 的最小值默认是 min-content，CJK 值（"整层办公"）与
  * 长日期（"2026年9月1日"）会把自己那一列顶宽、把另外两列压到 35px，宫格
@@ -233,8 +249,8 @@
 .dt-keyspecs__label { font-size: 13px; color: var(--ink-3); }
 .dt-keyspecs__value-row { display: flex; align-items: baseline; gap: 5px; }
 .dt-keyspecs__value {
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 32px; font-weight: 600; line-height: 1.1; color: var(--ink);
+  letter-spacing: normal;
 }
 .dt-keyspecs__unit { font-size: 14px; color: var(--ink-2); }
 
@@ -338,7 +354,6 @@
 
 .dt-decision__price-row { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
 .dt-decision__price-num {
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 40px; font-weight: 600; line-height: 1.06; color: var(--ink);
 }
 .dt-decision__price-unit { font-size: 17px; color: var(--ink-2); }
@@ -357,7 +372,6 @@
 .dt-decision__verify-label { flex: 1; font-size: 13px; color: var(--ink-2); }
 .dt-decision__verify-when {
   font-size: 13px; font-weight: 500; color: var(--ink);
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
 }
 
 .dt-decision__cta { margin-top: 24px; }
@@ -435,7 +449,6 @@
 }
 .dt-sticky-bar__price { flex: none; display: flex; align-items: baseline; gap: 5px; }
 .dt-sticky-bar__price-num {
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 17px; font-weight: 600; color: var(--ink);
 }
 .dt-sticky-bar__price-unit { font-size: 13px; color: var(--ink-2); }
@@ -725,8 +738,8 @@
   height: 14px;
   margin: -7px 0 0 -7px;
   border-radius: 50%;
-  background: var(--color-copper);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-copper) 16%, transparent);
+  background: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 /* 168×34 是 comp 字面量给的最小尺寸，不是硬上限——真实楼盘/房源名长度不一，
@@ -740,7 +753,10 @@
   height: 34px;
   padding: 0 12px;
   border-radius: 10px;
-  background: var(--color-ink);
+  background: var(--ink);
+  /* `--color-on-ink` 保留：它在 styles.css:75 是一个**字面量**（#f5f5f7），
+   * 不是指向 1.1 体系的别名——新体系没有「墨底上的字色」这个 token，换成
+   * 字面量只会把一个已经单点化的取值散回三处。见本批报告 T1 的异议一条。 */
   color: var(--color-on-ink);
   font-size: 13px;
   font-weight: 500;
@@ -759,8 +775,8 @@
   height: 26px;
   margin: -13px 0 0 -13px;
   border-radius: 50%;
-  background: var(--color-ink);
-  border: 3px solid var(--color-surface);
+  background: var(--ink);
+  border: 3px solid var(--bg-subtle);
   color: var(--color-on-ink);
   font-size: 13px;
   font-weight: 600;
@@ -780,7 +796,7 @@
   transform: translate(-50%, calc(-100% - 10px));
   padding: 4px 10px;
   border-radius: 8px;
-  background: var(--color-ink);
+  background: var(--ink);
   color: var(--color-on-ink);
   font-size: 12px;
   font-weight: 500;
@@ -791,20 +807,14 @@
   display: none;
 }
 
-/* 清单面板：372（由网格列宽给定）· 与地图等高 460 · padding 0 24
- * （覆盖 styles.css 里 P1 的浮层版：static 定位、白底零边框零阴影，
- * 与本批 .dt-panel 同一种「白底卡片」处理，不再是浮层加边框加阴影）。 */
+/* 清单面板：372（由网格列宽给定）· 与地图等高 460 · padding 0 24。
+ * 白底零边框零阴影的**表面**已并进上方 `.dt-panel` 的选择器组，这里只剩本页
+ * 专属的高度。原先的 `position/top/right/width/max-height/border/box-shadow`
+ * 一整排「复位」声明也删了——它们复位的是 styles.css 里 P1 的浮层版基态，而
+ * 那份基态本身已按「覆写之后回头删基态」一并清理（组件只在 `.dt-page` 内使用，
+ * 浮层版永远不会生效，留着就是「哪天有人在别处用它就回到旧视觉」的埋雷）。 */
 .location-panel__poi-panel {
-  position: static;
-  top: auto;
-  right: auto;
-  width: auto;
-  max-height: none;
   height: 460px;
-  background: var(--color-surface);
-  border: none;
-  border-radius: var(--r-card);
-  box-shadow: none;
 }
 
 @media (max-width: 1023px) {
@@ -848,8 +858,10 @@
 .location-panel__poi-subtab {
   min-height: var(--touch-target);
   padding: 0 12px;
-  border-radius: var(--radius-pill);
-  background: var(--color-canvas);
+  /* --r-pill（980px）而不是 1.7 圆角家族的 --radius-pill（999px）：两个 pill
+   * token 同页并存过一版，取值还不同；本文件其余三处 pill 都是 --r-pill。 */
+  border-radius: var(--r-pill);
+  background: var(--bg);
   color: var(--ink-2);
   font-size: 13px;
   font-weight: 500;
@@ -879,7 +891,7 @@
   flex: 0 0 22px;
   width: 22px;
   height: 22px;
-  background: var(--color-canvas);
+  background: var(--bg);
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 600;
@@ -897,8 +909,6 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
 }
 
 @media (max-width: 480px) {
@@ -920,17 +930,29 @@
 
 /* 信息面板（HeroSummaryPanel）内容布局——外层白底/padding/圆角已由
  * `DetailPanel variant="side"`（.dt-panel--side）提供，这里只负责面板内部
- * 几块（起价/双统计/规格行/顾问 CTA）的纵向间距，不重复画一次面板本身。 */
+ * 几块（起价/双统计/规格行/顾问 CTA）的纵向间距，不重复画一次面板本身。
+ *
+ * **本小节的间距/字号写 px 字面量**，与 detail.css 其余部分一致（终审 T1：
+ * 这里原先混用 `--sp-4 / --sp-3 / --sp-2 / --fs-18 / --fs-12`，是文件里唯一
+ * 的例外）。选 px 而不是反过来把全文件改成 token，理由有三：
+ *   1. 本文件的取值全部来自 comp（`楼盘详情.dc.html` specRows）的字面像素，
+ *      token 家族 `--sp-*`/`--fs-*` 属于 1.3 旧体系，与 comp 只是**碰巧**对得上
+ *      （16/12/8、18/12），套一层 token 会让「这个数是从哪来的」多绕一层；
+ *   2. OPT-035 锁定的新体系（styles.css §1.1）根本没有 fs / sp token，只有
+ *      色板、圆角、阴影、缓动——继续用 1.3 的 fs/sp 就是在新文件里续用旧体系；
+ *   3. `--fs-*` 是 rem，px 是绝对值。三处 rem 混在四十几处 px 里，用户放大
+ *      浏览器默认字号时只有那三处跟着放大，字号层级会**反转**（免责声明比
+ *      正下方的统计数字还大）。要么全 rem 要么全 px，半套最糟。 */
 .hero-summary {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: 16px;
 }
 
 .hero-summary__price-row {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-2);
+  gap: 8px;
   margin: 0;
 }
 
@@ -940,10 +962,19 @@
  * `--fs-32 / 700` 且**缺 tabular-nums**——「数字一律 tabular-nums」是本批
  * 的硬约束，起价是全页最显眼的数字，漏掉它等于这条约束在楼盘页整个没落地。
  * 不抽公共类：两条规则的选择器分属两页的组件命名空间，抽第三个类只会让
- * 「这一页的价格长什么样」多绕一层，取值一致由本注释与 comp 共同担保。 */
+ * 「这一页的价格长什么样」多绕一层，取值一致由本注释与 comp 共同担保。
+ *
+ * **与本批 V1（`.building-card-mini` 收敛到 `.sf-card`）为何处置相反**：
+ * 判据是「这几条声明是不是同一个**决定**」，不是「取值是不是恰好相同」。
+ *   - `.sf-card` 是一个已经存在的、全站共享的**表面决定**（白底卡片长什么样），
+ *     `.building-card-mini` 那份是把它逐条抄了一遍——抄的一方没有任何自己的
+ *     决定，改一处必须记得改另一处，所以合并；
+ *   - 这里两条大字号规则分属「房源决策卡」与「楼盘信息面板」两页的版式决定，
+ *     只是 comp 恰好给了同一组数值。日后任一页把主价字号改掉是完全正常的
+ *     设计动作，绑在一起反而会逼出一个「除了 X 页」的例外分支。
+ * 换言之：抄来的合并，撞车的不合并。两者的共同前提是**必须写明理由**——
+ * 这正是 `cross-batch-design-decisions.md`「另起须写明理由」那条的落点。 */
 .hero-summary__price {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
   font-size: 40px;
   font-weight: 600;
   line-height: 1.06;
@@ -963,29 +994,27 @@
 }
 
 .hero-summary__disclaimer {
-  margin: calc(-1 * var(--sp-3)) 0 0;
-  font-size: var(--fs-12);
+  margin: -12px 0 0;
+  font-size: 12px;
   color: var(--ink-3);
 }
 
 .hero-summary__stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
-  padding-block: var(--sp-3);
+  gap: 12px;
+  padding-block: 12px;
   border-block: 1px solid var(--line);
 }
 
 .hero-summary__stat strong {
   display: block;
-  font-size: var(--fs-18);
+  font-size: 18px;
   color: var(--ink);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
 }
 
 .hero-summary__stat span {
-  font-size: var(--fs-12);
+  font-size: 12px;
   color: var(--ink-3);
 }
 
@@ -1084,8 +1113,7 @@
 .dt-page .detail-side-rail__card {
   display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: 16px 32px;
-  padding: 24px 28px; background: var(--bg-subtle); border: 0;
-  border-radius: var(--r-card);
+  padding: 24px 28px;
 }
 .dt-page .detail-side-rail__band-copy { flex: 1 1 260px; min-width: 0; }
 .dt-page .detail-side-rail__card h3 {
@@ -1122,28 +1150,19 @@
  * 不用全站 `.card-grid`（auto-fill minmax(320) 在 1180 容器下只排得下 3 列）。 */
 .dt-related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 
-/* `BuildingCardMini` 的表面同样按本版详情页覆写（同侧栏卡片的理由）：
- * 零边框、圆角 18、图 16:10（comp「同商圈楼盘 图 16:10」，旧值 16:9），
- * hover 走跨批次统一口径（-2px + 阴影加深，320ms），不再用 58 式的
- * 铜色描边 + 1px 位移。埋点属性挂在组件上，不受样式影响。 */
-.dt-page .building-card-mini {
-  background: var(--bg-subtle); border: 0; border-radius: var(--r-card);
-  box-shadow: var(--shadow);
-  transition: transform 320ms var(--ease-apple), box-shadow 320ms var(--ease-apple);
-}
-.dt-page .building-card-mini:hover {
-  border-color: transparent; transform: translateY(-2px); box-shadow: var(--shadow-hover);
-}
-.dt-page .building-card-mini__media { aspect-ratio: 16 / 10; background: #8e8e93; }
-.dt-page .building-card-mini:hover .building-card-mini__media img { transform: none; }
+/* `BuildingCardMini` 的表面**不在这里**：组件直接挂 `.sf-card` 与
+ * `.sf-media sf-media--16x10`（`styles/surface.css`），与列表页两张结果卡同一
+ * 写法。这里本来有一份把 `.sf-card` 每条声明（白底 / 零边框 / radius 18 /
+ * shadow / 320ms 位移，连 reduced-motion 块）与 `.sf-media--16x10` 的
+ * `aspect-ratio: 16/10; background:#8e8e93` 逐条抄下来的副本，终审 V1 点名删除。
+ * 剩下这三条是详情页真正的差异：卡内 padding/间距与两行文本的字号
+ * （comp「同商圈楼盘」比列表卡更紧凑），不是表面本身。
+ * 旧的 58 式基态（1px 边框 / radius 8 / hover 铜色描边 / 图 16:9 / scale(1.03)）
+ * 已从 styles.css 一并删除——组件只在本页使用，那份基态既是死规则，
+ * 又是「哪天有人在别处用它就回到旧视觉」的埋雷。 */
 .dt-page .building-card-mini__body { padding: 18px 20px 20px; gap: 5px; }
 .dt-page .building-card-mini__name { font-size: 16px; line-height: 1.35; letter-spacing: normal; }
 .dt-page .building-card-mini__address { font-size: 13px; color: var(--ink-2); }
-
-@media (prefers-reduced-motion: reduce) {
-  .dt-page .building-card-mini,
-  .dt-page .building-card-mini:hover { transition: none; transform: none; }
-}
 
 @media (max-width: 1023px) {
   /* 与 `.dt-core` / `.dt-building-spec` 用同一个塌栅格断点：几处不一致会出现

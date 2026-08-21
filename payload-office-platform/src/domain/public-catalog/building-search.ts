@@ -12,6 +12,7 @@
  * 悄悄返回空结果，比直接丢弃筛选条件更危险。
  */
 
+import { completionYear } from '@/lib/frontend/format'
 import type { BuildingSummaryViewModel } from './contracts'
 
 const DEFAULT_PAGE_SIZE = 24 as const
@@ -214,13 +215,16 @@ function gradeRank(grade: string | null | undefined): number {
   return idx === -1 ? UNKNOWN_GRADE_RANK : idx
 }
 
-/** 提取竣工年份；`completionDate` 缺失或非法日期返回 undefined（不当 0）。 */
-function completionYearOf(doc: BuildingSummaryViewModel): number | undefined {
-  const raw = doc.completionDate
-  if (typeof raw !== 'string' || raw.length === 0) return undefined
-  const t = Date.parse(raw)
-  if (!Number.isFinite(t)) return undefined
-  return new Date(t).getFullYear()
+/**
+ * 提取竣工年份；`completionDate` 缺失或非法日期返回 null（**不当 0**）。
+ * 解析与合法性判定走共享的 `completionYear()`（`lib/frontend/format.ts`，
+ * 与 `detail/fact-lookup` 和 `listing/BuildingCompactRow` 同一份）；本处不需要
+ * 任何展示文案，直接用 number 参与筛选与排序。
+ * 返回值由 `undefined` 改为 `null`：两个调用点都是 `== null` 判空，语义不变
+ * （域层惯例也是「缺失用 null，不用 undefined」）。
+ */
+function completionYearOf(doc: BuildingSummaryViewModel): number | null {
+  return completionYear(doc.completionDate)
 }
 
 /**

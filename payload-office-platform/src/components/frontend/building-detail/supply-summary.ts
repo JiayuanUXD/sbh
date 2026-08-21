@@ -7,23 +7,16 @@ import type {
 
 type PriceDisplayUnit = BuildingSupplyPriceRange['displayUnit']
 
-export const DISPLAY_UNIT_LABELS: Readonly<Record<PriceDisplayUnit, string>> = {
-  // 按面积
-  'rmb-sqm-day': '元/㎡/天',
-  'rmb-sqm-month': '元/㎡/月',
-  'rmb-sqm-year': '元/㎡/年',
-  'rmb-sqm-total': '元/㎡',
-  // 按工位
-  'rmb-seat-day': '元/工位/天',
-  'rmb-seat-month': '元/工位/月',
-  'rmb-seat-year': '元/工位/年',
-  'rmb-seat-total': '元/工位',
-  // 按整体
-  'rmb-day': '元/天',
-  'rmb-month': '元/月',
-  'rmb-year': '元/年',
-  'rmb-total': '元',
-}
+/*
+ * 计价单位 → 中文标签的表**不在本文件**：唯一事实源是
+ * `lib/frontend/format.ts` 的 `PRICE_UNIT_LABEL` / `priceUnitLabel()`
+ * （12 个取值全集，由 `Record<PriceDisplayUnit, string>` 在编译期保证不漏）。
+ * 这里曾有一份逐字节相同的 `DISPLAY_UNIT_LABELS` 副本，本页三个调用点
+ * （`HeroSummaryPanel` 起价单位、`BuildingSupplyBrowser` 聚合区单价单位与
+ * 排序区单位）已全部改调 `priceUnitLabel()`，副本删除。
+ * 判据是「职责是否相同」而不是「API 是否相同」：两处都是同一个
+ * `PriceDisplayUnit → 中文` 的映射，没有任何本页专属的口径差异。
+ */
 
 /**
  * 信息面板首屏「X 元/… 起」的起价。

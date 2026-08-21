@@ -276,7 +276,7 @@ export default function LocationPanel({
                                 ))}
                               </span>
                             )}
-                            <span className="location-panel__poi-distance">
+                            <span className="sf-num location-panel__poi-distance">
                               <span className="location-panel__poi-distance-icon" aria-hidden="true">{DistanceIcon}</span>
                               {Math.round(poi.distanceMeters)} 米{poi.direction ? ` · ${poi.direction}` : ''}
                             </span>

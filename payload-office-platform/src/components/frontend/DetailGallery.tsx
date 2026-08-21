@@ -327,7 +327,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
           )}
 
           {activeMedia.item.kind !== 'video' && currentList.length > 1 && !failedMediaIds.has(activeMedia.item.id) && (
-            <span className="detail-gallery__main-counter" aria-hidden="true">
+            <span className="sf-num detail-gallery__main-counter" aria-hidden="true">
               {safeActiveIndex + 1} / {currentList.length}
             </span>
           )}

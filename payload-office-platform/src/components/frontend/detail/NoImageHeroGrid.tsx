@@ -59,7 +59,7 @@ export default function NoImageHeroGrid({
           <div key={spec.label} className="dt-keyspecs__item">
             <span className="dt-keyspecs__label">{spec.label}</span>
             <span className="dt-keyspecs__value-row">
-              <span className="dt-keyspecs__value">{spec.value ?? '—'}</span>
+              <span className="sf-num dt-keyspecs__value">{spec.value ?? '—'}</span>
               {spec.value != null && spec.unit ? (
                 <span className="dt-keyspecs__unit">{spec.unit}</span>
               ) : null}

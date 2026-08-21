@@ -1,3 +1,4 @@
+import { completionYear } from '@/lib/frontend/format'
 import type { FactGroupViewModel, FactValue } from '@/domain/public-catalog'
 
 /**
@@ -69,10 +70,15 @@ export function factMagnitude(
  * 面板的「竣工年份」行与信息面板挑选出的「竣工时间」关键参数都要把它转成
  * "2013 年" 这样的年份，两处是同一个转换，收敛成一处，不各写一份
  * （顺手修复：这条转换缺失前，两处都会把原始 ISO 字符串直接展示给用户）。
+ *
+ * 「ISO 解析 + 合法性判定」那一半已下沉到 `lib/frontend/format.ts` 的
+ * `completionYear()`——全站第三份实现（本函数、`listing/BuildingCompactRow`、
+ * `domain/public-catalog/building-search`）在终审时被点名，且三份的校验分支
+ * 写法还各不相同。这里只保留本调用点专属的展示后缀（" 年" / " 年（估算）"）。
  */
 export function formatCompletionYear(value: string, estimated = false): string | null {
-  const year = new Date(value).getFullYear()
-  if (!Number.isFinite(year)) return null
+  const year = completionYear(value)
+  if (year == null) return null
   return estimated ? `${year} 年（估算）` : `${year} 年`
 }
 

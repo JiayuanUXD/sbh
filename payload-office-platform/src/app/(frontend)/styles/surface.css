@@ -14,7 +14,11 @@
   border: 0; border-radius: var(--r-card);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: transform 320ms var(--ease-apple), box-shadow 320ms var(--ease-apple);
+  /* 320ms 走 `--duration-slow`（styles.css:135）而不是字面量：这个时长在全站
+     卡片 hover 上是同一个决定，字面量抄第二遍就会分叉。缓动仍用新体系的
+     `--ease-apple`（1.9 动效家族只有 duration 有对应 token，缓动没有）。 */
+  transition: transform var(--duration-slow) var(--ease-apple),
+              box-shadow var(--duration-slow) var(--ease-apple);
 }
 /* 位移取 -2px（首页原 -6px 一并下调）：密集网格下几乎不可察觉的抖动，
    稀疏展示下仍有反馈——见 cross-batch-design-decisions.md「卡片 hover」 */

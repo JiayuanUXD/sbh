@@ -15,9 +15,9 @@ import type {
 import { availabilityDay, isImmediatelyAvailable } from '@/domain/public-catalog/building-supply'
 import ListingCard from '@/components/frontend/ListingCard'
 import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
-import { formatAvailableDate } from '@/lib/frontend/format'
+import { formatAvailableDate, priceUnitLabel } from '@/lib/frontend/format'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
-import { DISPLAY_UNIT_LABELS, estimateRowTotal, formatGroupTotal } from '@/components/frontend/building-detail/supply-summary'
+import { estimateRowTotal, formatGroupTotal } from '@/components/frontend/building-detail/supply-summary'
 
 /**
  * 楼盘详情供给密度表（OPT-037 Task 7，方案 A：分组切换 + 密度表）。
@@ -178,7 +178,7 @@ function buildAggregation(group: BuildingSupplyGroup, data: BuildingSupplyGroupA
         ? {
             label: labels.price,
             value: formatRange(priceRanges[0].min, priceRanges[0].max),
-            unit: DISPLAY_UNIT_LABELS[priceRanges[0].displayUnit],
+            unit: priceUnitLabel(priceRanges[0].displayUnit),
           }
         : { label: labels.price, value: '多种单位', unit: '' }
   const metricRange = group === 'coworking' ? data.seatRange : data.areaRange
@@ -402,7 +402,7 @@ export default function BuildingSupplyBrowser({
 
   const activeSort = currentParams.get('sort') ?? 'recommended'
   const priceUnits = Array.from(new Set(activeAvailability.priceRanges.map((r) => r.displayUnit)))
-  const singleUnitLabel = priceUnits.length === 1 ? DISPLAY_UNIT_LABELS[priceUnits[0]!] : null
+  const singleUnitLabel = priceUnits.length === 1 ? priceUnitLabel(priceUnits[0]!) : null
   // 单位唯一，或用户已经用价格桶把单位钉死——两种情况下按单价排序才是可比的。
   const canSortByPrice = priceUnits.length === 1 || activePriceUnit != null
 

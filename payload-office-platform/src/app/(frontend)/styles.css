@@ -601,9 +601,6 @@ ol {
   min-height: 60vh;
 }
 
-.site-main--narrow {
-  max-width: 960px;
-}
 
 .site-footer {
   border-top: 1px solid var(--line);
@@ -880,13 +877,6 @@ ol {
   min-width: 0;
 }
 
-.listing-card__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-18);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-}
 
 .listing-card__title {
   font-size: var(--fs-18);
@@ -1444,17 +1434,7 @@ ol {
   margin: var(--sp-5) 0;
 }
 
-.detail-hero {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: clamp(var(--sp-5), 3vw, var(--sp-7));
-  align-items: start;
-}
 
-.detail__overview {
-  grid-column: 1 / -1;
-  width: 100%;
-}
 
 .detail-gallery {
   grid-column: span 7;
@@ -1793,69 +1773,20 @@ ol {
 .detail-gallery__dialog-caption { font-size: var(--fs-14); }
 .detail-gallery__counter { font-size: var(--fs-13); }
 
-.detail-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-4);
-}
 
-.detail-facts__group h2,
 .detail__section h3 {
   margin: 0 0 var(--sp-2);
   color: var(--color-ink);
   font-size: var(--fs-16);
 }
 
-.detail-facts dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin: 0;
-}
 
-.detail-facts__item {
-  min-width: 0;
-}
 
-.detail-facts dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
 
-.detail-facts dd {
-  margin: var(--sp-1) 0 0;
-  overflow-wrap: anywhere;
-}
 
-.detail-facts__estimated {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
 
-.detail__amenities {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-/* --color-paper 与 --color-canvas 现在都别名到 --bg，无边框的 paper 贴片在
-   canvas 上完全不可见。改白底 + 中性描边，两种承载面（--bg 页底 / 白卡）下都成立。 */
-.detail__amenities li {
-  padding: var(--sp-1) var(--sp-2);
-  background: var(--bg-subtle);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-}
 
-.detail__top {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--sp-6);
-  align-items: start;
-}
 
 /*
  * 供给密度表（OPT-037 Task 7，方案 A：分组切换 + 密度表）。
@@ -2177,35 +2108,18 @@ ol {
 }
 
 @media (max-width: 1199px) {
-  .detail-hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-4);
-  }
 
   .detail-gallery,
-  .detail__summary,
-  .detail__overview {
+  .detail__summary {
     grid-column: 1;
   }
 }
 
 @media (max-width: 767px) {
 
-  .detail-gallery__panel {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
 
   .detail-gallery__dialog {
     padding: var(--sp-3);
@@ -2236,61 +2150,14 @@ ol {
   grid-column: span 5;
 }
 
-.building-supply-overview {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview > h2 {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-16);
-}
 
-.building-supply-overview__groups {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview__group {
-  padding: var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-paper);
-}
 
-.building-supply-overview__group h3 {
-  margin: 0 0 var(--sp-2);
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-}
 
-.building-supply-overview__group dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.building-supply-overview__group dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
 
-.building-supply-overview__group dd {
-  margin: var(--sp-1) 0 0;
-  color: var(--color-ink);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
 
-.detail__decision-title {
-  margin: 0;
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 @media (max-width: 1199px) {
   .detail__summary {
@@ -2298,12 +2165,6 @@ ol {
   }
 }
 
-.detail__type {
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
 
 .detail__title {
   font-size: var(--fs-26);
@@ -2311,54 +2172,13 @@ ol {
   margin: 0;
 }
 
-.detail__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-26);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-  margin-bottom: var(--sp-2);
-}
 
-.detail__specs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--sp-3);
-  margin: 0 0 var(--sp-4);
-}
 
-@media (min-width: 480px) {
-  .detail__specs {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 
-.detail__specs dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-  margin-bottom: 2px;
-}
 
-.detail__specs dd {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-  font-weight: 500;
-  /* F7.2：长地址/长楼盘名换行不溢出 */
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  min-width: 0;
-}
 
-.detail__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-4);
-}
 
 .detail__section,
-.detail__overview,
 .location-panel {
   margin-top: var(--sp-7);
   scroll-margin-top: 80px;
@@ -2370,10 +2190,6 @@ ol {
   margin-bottom: var(--sp-3);
 }
 
-.detail__building-summary {
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 .richtext {
   color: var(--color-ink-2);
@@ -2392,67 +2208,15 @@ ol {
   margin: var(--sp-3) 0 var(--sp-2);
 }
 
-/* 详情决策卡（F4.2：桌面粘性 + 移动底部固定） */
-.detail__decision {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-}
 
-@media (min-width: 1024px) {
-  .detail__decision {
-    position: sticky;
-    top: calc(var(--sp-7) + var(--site-header-height, 56px));
-    align-self: start;
-  }
-}
 
-.detail__decision-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
 
-.detail__decision-cta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin-top: var(--sp-2);
-}
 
-.detail__decision-cta .btn {
-  width: 100%;
-}
 
-.detail__decision-cta .btn--ghost {
-  border: 1px solid var(--color-line);
-  color: var(--color-ink-2);
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
 
-.detail__decision-cta .btn--ghost:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
-}
 
-.detail__decision-cta .btn:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-  border-color: var(--color-copper);
-}
 
 /* 移动端隐藏桌面粘性决策卡，由底部固定栏承担 CTA */
-@media (max-width: 767px) {
-  .detail__decision {
-    display: none;
-  }
-}
 
 /* 移动底部固定咨询栏：桌面隐藏 */
 .detail__mobile-bar {
@@ -2460,9 +2224,6 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-overview__group dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
   .detail__mobile-bar {
     position: fixed;
@@ -2513,11 +2274,6 @@ ol {
 }
 
 /* 详情页响应式调整：双栏 → 单栏 */
-@media (max-width: 767px) {
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ---------------------------------------------------------------------------
  * 15. 询价 Modal（design.md §14.2：焦点锁定、Esc、焦点归还）
@@ -2831,17 +2587,11 @@ ol {
   }
 }
 
-.text-copper {
-  color: var(--color-copper);
-}
 
 .text-muted {
   color: var(--color-muted);
 }
 
-.text-center {
-  text-align: center;
-}
 
 .visually-hidden {
   position: absolute;
@@ -3491,127 +3241,24 @@ ol {
   gap: var(--sp-4);
 }
 
-.location-panel__static {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
 
-.location-panel__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.location-panel__fact {
-  display: flex;
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
 
-.location-panel__fact dt {
-  color: var(--color-muted);
-  min-width: 4em;
-}
 
-.location-panel__fact dd {
-  margin: 0;
-  color: var(--color-ink);
-}
 
-.location-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
 
-/* P2 路线规划器 */
-.route-planner {
-  margin-top: var(--sp-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
 
-.route-planner__modes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-}
 
-.route-planner__mode {
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-paper);
-  color: var(--color-ink-2);
-  cursor: pointer;
-}
 
-.route-planner__mode[data-active='true'] {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  border-color: var(--color-ink);
-}
 
-.route-planner__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  margin: 0;
-  padding: var(--sp-2) 0 0;
-}
 
-.route-planner__summary dt {
-  font-size: var(--fs-14);
-  color: var(--color-ink-2);
-}
 
-.route-planner__summary dd {
-  margin: 0;
-  font-weight: 600;
-}
 
-.route-planner__fallback {
-  color: var(--color-ink-2);
-  font-size: var(--fs-14);
-}
 
-/* P2 平台顾问服务状态 */
-.advisor-availability {
-  font-size: var(--fs-14);
-  margin: var(--sp-1) 0;
-}
 
-.advisor-availability__status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
 
-.advisor-availability__status--open {
-  color: var(--color-forest);
-}
 
-.advisor-availability__status--open::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-forest);
-  display: inline-block;
-}
 
-.advisor-availability__status--closed {
-  color: var(--color-ink-2);
-}
 
 /* P2 看房时段选择器 */
 .viewing-slot-picker {
@@ -3672,19 +3319,16 @@ ol {
  * 淘汰（改为 detail.css 的 .location-panel__grid 两列网格），组件里已无引用，
  * 故整条规则一并删除，不留死代码。 */
 
+/* 清单面板：只留下**未被覆写**的内部布局。原先这里是 P1 的「浮层压在地图上」
+ * 版本（absolute + 320 定宽 + 1px 边框 + shadow-md），OPT-037 Task 5 起
+ * LocationPanel 只在 `.dt-page` 内使用，detail.css 已把它改成与地图并列的
+ * 白底面板（表面并进 `.dt-panel` 选择器组，高度 460）。按与 `.building-card-mini`
+ * 相同的判据删掉浮层基态，detail.css 那一排 `position:static / top:auto /
+ * right:auto / width:auto / max-height:none / border:none / box-shadow:none`
+ * 复位声明也随之取消——没有基态就不需要复位。 */
 .location-panel__poi-panel {
-  position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
-  z-index: var(--z-raised);
-  width: 320px;
-  max-height: calc(500px - var(--sp-6));
   display: flex;
   flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -3934,11 +3578,10 @@ ol {
     height: 320px;
   }
 
-  /* 移动端 POI 面板改为底部抽屉，避免遮挡地图 */
+  /* ≤767 时清单面板与地图上下堆叠，补一段间距。
+     原先这里还有 `position:static / width:100% / max-height:280px` 三条，是给
+     上面那份浮层基态做移动端复位的；基态删除后三条同时失效，只留间距。 */
   .location-panel__poi-panel {
-    position: static;
-    width: 100%;
-    max-height: 280px;
     margin-top: var(--sp-2);
   }
 }
@@ -3980,12 +3623,6 @@ ol {
   font-weight: 600;
 }
 
-.detail-gallery__panel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  width: 100%;
-}
 
 .detail-gallery__schematic-note {
   display: block;
@@ -4376,95 +4013,21 @@ ol {
   }
 }
 
-/* ===== P1 评审优化：AmenityList 配套设施图标化 ===== */
-.amenity-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
 
-.amenity-list__group-title {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-14);
-  font-weight: 600;
-  color: var(--color-ink-2);
-}
 
-.amenity-list__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.amenity-list__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-13);
-  color: var(--color-ink-2);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
 
-.amenity-list__item:hover {
-  border-color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 6%, var(--color-paper));
-}
 
-.amenity-list__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.amenity-list__label {
-  line-height: 1.4;
-}
 
-/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 ===== */
-.building-card-mini {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.building-card-mini:hover {
-  border-color: var(--color-copper);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.building-card-mini__media {
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--color-paper);
-}
-
-.building-card-mini__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.2s ease;
-}
-
-.building-card-mini:hover .building-card-mini__media img {
-  transform: scale(1.03);
-}
-
+/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 =====
+ * 卡片**表面**（底/边框/圆角/阴影/hover）与**图容器**（比例/底色/裁切）不在
+ * 这里：组件直接挂 `.sf-card` 与 `.sf-media sf-media--16x10`（styles/surface.css）。
+ * 这里原有一份 58 式基态（1px 边框 · radius 8 · hover 铜色描边 + translateY(-1px)
+ * · 图 16:9 · hover `scale(1.03)`），在 `.dt-page` 作用域内被 detail.css 全部
+ * 覆写，而本组件**只在楼盘详情页使用**——既是死规则，又是「哪天有人在别的页面
+ * 用它就立刻回到旧视觉」的埋雷，终审 V2 点名删除。
+ * 下面几条是卡片**内容**的排版，与表面无关，仍然有效。 */
 .building-card-mini__placeholder {
   display: flex;
   align-items: center;
@@ -4517,69 +4080,15 @@ ol {
   overflow: hidden;
 }
 
-/* ===== P2 评审优化：房源 specs 图标对齐 ===== */
-.detail__specs dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.detail__specs dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-/* ===== P3 评审优化：楼盘 header grade 徽章 ===== */
-.detail__header-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
 
-.detail__grade-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--sp-2);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
-}
 
-.detail__grade-badge[data-grade='super-grade-a'] {
-  color: #b45309;
-  background: color-mix(in srgb, #b45309 14%, transparent);
-}
 
-/* ===== P3 评审优化：供给概览图标对齐 + 数值强调 ===== */
-.building-supply-overview__group dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.building-supply-overview__group dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.building-supply-overview__group dd strong {
-  font-size: var(--fs-16);
-  font-weight: 700;
-  color: var(--color-ink);
-}
 
-/* ===== P3 评审优化：询价 CTA 视觉强化 ===== */
-.detail__decision-inquiry.btn--lg {
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-copper) 28%, transparent);
-}
 
-.detail__decision-inquiry.btn--lg:hover {
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-copper) 38%, transparent);
-  transform: translateY(-1px);
-}
 
 /* ===== P4 评审优化：LocationPanel POI 图标 ===== */
 .location-panel__poi-tab {
@@ -4998,26 +4507,11 @@ ol {
  * 独立样式。此处不再重复定义，全部移到 detail.css，避免同一批类名在两个
  * 文件里各有一份、只靠 import 顺序才不冲突。 */
 
-.detail-side-rail {
-  position: sticky;
-  top: calc(var(--site-header-height, 56px) + 52px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.detail-side-rail__card {
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.detail-side-rail__card h3 {
-  margin: 0 0 var(--sp-3);
-  font-size: var(--fs-16);
-}
-
+/* DetailSideRail：定位（原 sticky 右栏）、卡片表面（padding/底/边框/圆角）与
+ * 卡内标题都不在这里——组件只在楼盘详情页使用，三者已全部由 detail.css 的
+ * `.dt-page .detail-side-rail*` 覆写成「密度表下方的通栏留资带」。按与
+ * `.building-card-mini` 相同的判据（覆写之后回头删基态）清掉，只留下面这条
+ * 未被覆写的 margin。 */
 .detail-side-rail__muted {
   margin: var(--sp-2) 0 0;
   font-size: var(--fs-13);
@@ -5544,11 +5038,6 @@ ol {
   line-height: 1.7;
 }
 
-.publish-card__error {
-  margin-top: var(--sp-3);
-  color: var(--color-danger);
-  font-size: var(--fs-13);
-}
 
 .input-suffix {
   position: relative;
