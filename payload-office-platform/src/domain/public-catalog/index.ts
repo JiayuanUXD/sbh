@@ -40,6 +40,7 @@ export type { BuildingSupplyInput } from './building-supply'
 export * from './mappers'
 export * from './types'
 export {
+  LISTING_DEFAULT_SORT,
   parseListingSearchInput,
   parseBuildingSupplySearchParams,
   buildCanonicalSearchParams,
@@ -47,6 +48,7 @@ export {
 } from './search-params'
 export {
   BUILDING_SORTS,
+  BUILDING_DEFAULT_SORT,
   BUILDING_CLEARABLE_DIMENSIONS,
   BUILDING_DIMENSION_PARAM_KEYS,
   parseBuildingSearchInput,

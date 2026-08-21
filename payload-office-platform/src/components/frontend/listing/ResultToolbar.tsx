@@ -36,15 +36,25 @@ import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 
 export type ResultToolbarSort = Readonly<{ value: string; label: string }>
 
-/** 排序 href：与 buildCanonicalSearchParams 同一口径——recommended 是默认值，不写入 URL。 */
+/**
+ * 排序 href：与 canonical 同一口径——**默认排序不写入 URL**。
+ *
+ * 「默认值」由调用方给定（`defaultSort`），不在这里硬编码：本组件有两个消费者，
+ * 房源页默认 `recommended`（`LISTING_DEFAULT_SORT`），楼盘页默认 `stock-desc`
+ * （`BUILDING_DEFAULT_SORT`）。曾经写死 `recommended`，于是在楼盘页点已经选中的
+ * 「在租最多」会拼出 `?sort=stock-desc`——渲染结果一模一样、却不是
+ * `buildBuildingCanonicalParams` 会输出的那个 URL，无害但让这行注释成了假话
+ * （OPT-036 终审 M3）。两个默认值都从域层常量取，不在调用点写字面量。
+ */
 function buildSortHref(
   basePath: string,
   currentParams: URLSearchParams,
   sortValue: string,
+  defaultSort: string | undefined,
 ): string {
   const sp = cloneSearchParams(currentParams)
   sp.delete('page')
-  if (sortValue === 'recommended') sp.delete('sort')
+  if (sortValue === defaultSort) sp.delete('sort')
   else sp.set('sort', sortValue)
   return buildHref(basePath, sp)
 }
@@ -83,12 +93,19 @@ export default function ResultToolbar(props: Readonly<{
   totalNoun?: string
   sorts: ReadonlyArray<ResultToolbarSort>
   activeSort: string
+  /**
+   * 该页的默认排序值——canonical 不写入 URL 的那一个，见 `buildSortHref` 注释。
+   * 缺省时退回 `sorts[0].value`（两页的默认排序恰好都排在第一位），但调用方应当
+   * 显式传域层常量：靠「第一项就是默认」这条约定，重排选项顺序会静默改变 href 口径。
+   */
+  defaultSort?: string
   basePath: string
   currentParams: URLSearchParams
   /** 省略则不渲染视图切换（如移动端固定单列，没有版式可切）。 */
   view?: 'grid' | 'row'
 }>): React.JSX.Element {
-  const { rangeStart, rangeEnd, totalDocs, noun, totalNoun, sorts, activeSort, basePath, currentParams, view } = props
+  const { rangeStart, rangeEnd, totalDocs, noun, totalNoun, sorts, activeSort, defaultSort, basePath, currentParams, view } = props
+  const canonicalDefaultSort = defaultSort ?? sorts[0]?.value
 
   return (
     <div className="ls-toolbar">
@@ -102,7 +119,7 @@ export default function ResultToolbar(props: Readonly<{
           return (
             <Link
               key={sort.value}
-              href={buildSortHref(basePath, currentParams, sort.value)}
+              href={buildSortHref(basePath, currentParams, sort.value, canonicalDefaultSort)}
               aria-current={isActive ? 'true' : undefined}
               className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
             >

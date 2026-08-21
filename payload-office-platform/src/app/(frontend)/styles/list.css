@@ -96,8 +96,15 @@
 .ls-price { display: flex; align-items: baseline; gap: 4px; }
 .ls-price__value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: normal; text-align: right; }
-.ls-price__value--day { width: 58px; }    /* 元/㎡/天，两位小数 */
-.ls-price__value--month { width: 88px; }  /* 元/月・元/工位/月，六位数 316,200 需更宽 */
+/* 用 min-width 而非 width——与 .bd-card__stock（下方 60 行）同一条理由，本文件不该
+   两种写法并存：width 是硬上限，超出的数字会被 .sf-card 的 overflow:hidden 悄悄裁掉，
+   既看不见也不报错，而且恰好毁掉这一页存在的理由（跨卡小数点对齐）。min-width 只兜底
+   短数字的对齐留白，长数字自然撑开。
+   受影响的不止出售：priceBoxModifier 把 period='year' 也路由进 --month 这个盒，
+   一条元/年的租赁房源 1,200,000 在 22px/600 tabular 下约 104px，88px 装不下
+   （OPT-036 终审 M5；fixture 见 dev-story/opt036「元/年 · 七位数」）。 */
+.ls-price__value--day { min-width: 58px; }    /* 元/㎡/天，两位小数 */
+.ls-price__value--month { min-width: 88px; }  /* 元/月・元/工位/月，六位数 316,200 需更宽 */
 .ls-price__unit { font-size: 12px; font-weight: 400; color: var(--ink-2); }
 /* 缺价格：整行省略定宽盒，纯文本代替，不渲染 0 或空盒（守护不变量见 ListingResultCard 文档注释） */
 .ls-price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }

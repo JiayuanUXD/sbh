@@ -12,6 +12,7 @@ import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
 import {
+  LISTING_DEFAULT_SORT,
   buildCanonicalSearchParams,
   type ListingSearchDimension,
   type ListingSearchInput,
@@ -466,7 +467,8 @@ export default async function CityListingsView({
               totalDocs={totalDocs}
               noun={copy.countNoun}
               sorts={sorts}
-              activeSort={input.sort ?? 'recommended'}
+              activeSort={input.sort ?? LISTING_DEFAULT_SORT}
+              defaultSort={LISTING_DEFAULT_SORT}
               basePath={basePath}
               currentParams={currentParams}
               view={view}
@@ -488,7 +490,12 @@ export default async function CityListingsView({
         )}
 
         {excludedUnits.length > 0 ? (
-          <ExcludedUnitsBar excluded={excludedUnits} basePath={basePath} currentParams={currentParams} />
+          <ExcludedUnitsBar
+            excluded={excludedUnits}
+            basePath={basePath}
+            currentParams={currentParams}
+            countNoun={copy.countNoun}
+          />
         ) : null}
 
         {!isOutOfRange && !isEmpty ? (

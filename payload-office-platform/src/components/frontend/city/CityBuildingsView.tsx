@@ -12,6 +12,7 @@ import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/lis
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import {
   BUILDING_CLEARABLE_DIMENSIONS,
+  BUILDING_DEFAULT_SORT,
   buildBuildingCanonicalParams,
   type BuildingSearchInput,
 } from '@/domain/public-catalog'
@@ -282,6 +283,9 @@ export default function CityBuildingsView({ city, result, input, basePath, route
               totalNoun={COPY.countNoun}
               sorts={SORTS}
               activeSort={input.sort}
+              // 本页默认是「在租最多」，不是房源页的 recommended——组件据此决定
+              // 排序 href 要不要把 sort 写进 URL（终审 M3）。取域层常量而非字面量。
+              defaultSort={BUILDING_DEFAULT_SORT}
               basePath={basePath}
               currentParams={currentParams}
             />

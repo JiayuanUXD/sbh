@@ -31,7 +31,17 @@ export const BUILDING_SORTS: readonly BuildingSort[] = [
 
 const BUILDING_SORT_SET = new Set<string>(BUILDING_SORTS)
 
-const DEFAULT_SORT: BuildingSort = 'stock-desc'
+/**
+ * 楼盘列表默认排序：解析层缺省值，也是 `buildBuildingCanonicalParams`
+ * **不写入 URL** 的那一个值。
+ *
+ * 导出理由与 `LISTING_DEFAULT_SORT` 相同：视图层构造排序 href 时要与 canonical
+ * 同口径地把默认值从 URL 里删掉，硬编码 `recommended` 对这一页不成立
+ * （OPT-036 终审 M3）。
+ */
+export const BUILDING_DEFAULT_SORT: BuildingSort = 'stock-desc'
+
+const DEFAULT_SORT: BuildingSort = BUILDING_DEFAULT_SORT
 
 export type BuildingSearchInput = Readonly<{
   city?: string

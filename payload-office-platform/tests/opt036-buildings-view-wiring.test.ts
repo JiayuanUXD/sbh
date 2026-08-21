@@ -50,6 +50,7 @@ import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
+import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import CityBuildingsPage from '@/app/(frontend)/[city]/buildings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
 import { parseBuildingSearchInput } from '@/domain/public-catalog'
@@ -431,6 +432,19 @@ describe('CityBuildingsView 编排层守卫', () => {
     const props = toolbar.node.props as { sorts: readonly { value: string }[]; activeSort: string }
     expect(props.sorts.map((s) => s.value)).toEqual(['stock-desc', 'area-desc', 'grade', 'completion-desc'])
     expect(props.activeSort).toBe('grade')
+  })
+
+  it('默认排序是「在租最多」且不写进 URL（终审 M3：口径不能照抄房源页）', () => {
+    const toolbar = findByDisplayName(renderView('', buildResult({ withStock: [doc('a', 2)] })), 'ResultToolbar')!
+    const props = toolbar.node.props as Parameters<typeof ResultToolbar>[0]
+    // 本页默认不是 recommended：组件曾硬编码它，于是点已选中的「在租最多」
+    // 会拼出非 canonical 的 ?sort=stock-desc（渲染一样，但地址不是 canonical）。
+    expect(props.defaultSort).toBe('stock-desc')
+    const html = renderToStaticMarkup(createElement(ResultToolbar, props))
+    expect(html).toContain('href="/shanghai/buildings"')
+    expect(html).not.toContain('sort=stock-desc')
+    // 其余三项照旧写进 URL
+    expect(html).toContain('sort=area-desc')
   })
 
   it('「仅看有在租」开关：只切 onlyWithStock、删 page，并把 paramKey 交给抽屉重置', () => {

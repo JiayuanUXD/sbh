@@ -85,14 +85,16 @@ const CARD_COVER_IMAGE =
 
 function cardPrice(
   amount: number,
-  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month',
+  displayUnit: 'rmb-sqm-day' | 'rmb-month' | 'rmb-seat-month' | 'rmb-year',
   text: string,
 ): PriceViewModel {
   const key = displayUnit === 'rmb-sqm-day'
     ? { period: 'day' as const, basis: 'sqm' as const }
     : displayUnit === 'rmb-seat-month'
       ? { period: 'month' as const, basis: 'seat' as const }
-      : { period: 'month' as const, basis: 'total' as const }
+      : displayUnit === 'rmb-year'
+        ? { period: 'year' as const, basis: 'total' as const }
+        : { period: 'month' as const, basis: 'total' as const }
   return { amount, currency: 'CNY', businessType: 'lease', ...key, displayUnit, text }
 }
 
@@ -144,6 +146,20 @@ const CARD_FIXTURES: readonly Readonly<{ label: string; listing: ListingCardView
       slug: 'card-month-six-digit',
       title: '陆家嘴中心 8F 整层办公',
       price: cardPrice(316200, 'rmb-month', '316200 元/月'),
+      listingType: 'full-floor',
+    }),
+  },
+  {
+    // 终审 M5：`priceBoxModifier` 把 period='year' 也路由进 --month 那个盒，
+    // 而元/年的租赁报价天然是七位数——88px 的硬上限会被 .sf-card 的 overflow:hidden
+    // 静默裁掉，且刚好毁掉本页存在的理由（跨卡小数点对齐）。盒宽已改 min-width，
+    // 这条 fixture 是它的现场：数字应完整可见、右对齐，不与「元/年」单位文字粘连。
+    label: '元/年 · 七位数（1,200,000，验证盒宽不再硬上限）',
+    listing: makeCardFixture({
+      id: 107,
+      slug: 'card-year-seven-digit',
+      title: '陆家嘴中心 30F 整层（按年报价）',
+      price: cardPrice(1200000, 'rmb-year', '1200000 元/年'),
       listingType: 'full-floor',
     }),
   },
@@ -959,6 +975,7 @@ export default function Opt036PreviewPage() {
                 excluded={excludedOptionsExcept('rmb-sqm-day', {})}
                 basePath="/shanghai/listings"
                 currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+                countNoun="套"
               />
             </div>
 
@@ -970,6 +987,7 @@ export default function Opt036PreviewPage() {
                 excluded={excludedOptionsExcept('rmb-month', { 'rmb-seat-month': 0 })}
                 basePath="/shanghai/listings"
                 currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+                countNoun="套"
               />
             </div>
 
@@ -991,6 +1009,7 @@ export default function Opt036PreviewPage() {
                 excluded={excludedOptionsExcept('rmb-seat-month', { 'rmb-sqm-day': 0, 'rmb-month': 0 })}
                 basePath="/shanghai/listings"
                 currentParams={PRICE_UNIT_SEGMENT_CURRENT_PARAMS}
+                countNoun="套"
               />
             </div>
           </div>

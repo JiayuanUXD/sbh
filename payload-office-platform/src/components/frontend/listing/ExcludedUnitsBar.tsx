@@ -36,8 +36,19 @@ export default function ExcludedUnitsBar(props: Readonly<{
   excluded: ReadonlyArray<ExcludedUnitOption>
   basePath: string
   currentParams: URLSearchParams
+  /**
+   * 「另有 N {countNoun}按 X 报价」里的量词。必填、无默认值——与
+   * `FilterFormC.countNoun` / `ResultToolbar.noun` / `MobileFilterTrigger.countNoun`
+   * / `MobileFilterSheet.countNoun` / `EmptyNoStock.countNoun` /
+   * `EmptyFiltered.countNoun` 同一约定，调用方从 `CHANNEL_COPY` 取值，不写字面量。
+   *
+   * 本组件是那一轮 `countNoun` 扫尾唯一漏掉的共享组件：正文里硬编码着「套」，
+   * 今天渲染正确纯属巧合（`CHANNEL_COPY.sale.countNoun` 恰好也是「套」），
+   * 换一个量词不同的频道就会读错语境（OPT-036 终审 M4）。
+   */
+  countNoun: string
 }>): React.JSX.Element | null {
-  const { excluded, basePath, currentParams } = props
+  const { excluded, basePath, currentParams, countNoun } = props
   const visible = excluded.filter((unit) => unit.count > 0)
   if (visible.length === 0) return null
 
@@ -49,7 +60,7 @@ export default function ExcludedUnitsBar(props: Readonly<{
           <React.Fragment key={unit.value}>
             {index > 0 ? '、' : ''}
             <Link href={buildPriceUnitHref(basePath, currentParams, unit.value)} className="ls-excludedbar__link">
-              <span className="ls-excludedbar__count">{unit.count}</span> 套按 {unit.label} 报价
+              <span className="ls-excludedbar__count">{unit.count}</span> {countNoun}按 {unit.label} 报价
             </Link>
           </React.Fragment>
         ))}

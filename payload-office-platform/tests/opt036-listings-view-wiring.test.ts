@@ -39,6 +39,8 @@ import CityListingsView from '@/components/frontend/city/CityListingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
+import ExcludedUnitsBar from '@/components/frontend/listing/ExcludedUnitsBar'
+import ResultToolbar from '@/components/frontend/listing/ResultToolbar'
 import { parseListingSearchInput } from '@/domain/public-catalog'
 import type { ListingSearchInput } from '@/domain/public-catalog'
 
@@ -326,6 +328,34 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
       const { rows, switchRow } = shellRows(shell)
       expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
     }
+  })
+
+  it('默认排序不写进 URL：点已选中的「推荐」得到 canonical 地址（终审 M3）', async () => {
+    const toolbar = findByDisplayName(await renderView('', { totalDocs: 3 }), 'ResultToolbar')!
+    const props = toolbar.node.props as Parameters<typeof ResultToolbar>[0]
+    expect(props.defaultSort).toBe('recommended')
+    const html = renderToStaticMarkup(createElement(ResultToolbar, props))
+    expect(html).toContain('href="/shanghai/listings"')
+    expect(html).not.toContain('sort=recommended')
+  })
+
+  it('被排除单位提示条的量词来自 CHANNEL_COPY，不是硬编码「套」（终审 M4）', async () => {
+    getCachedSearchFacetsIgnoring.mockResolvedValue({
+      districts: [],
+      listingTypes: [],
+      rentUnits: [
+        { value: 'rmb-sqm-day', count: 3 },
+        { value: 'rmb-month', count: 536 },
+      ],
+      totalDocs: 3,
+    })
+    const bar = findByDisplayName(
+      await renderView('?priceUnit=rmb-sqm-day', { totalDocs: 3 }),
+      'ExcludedUnitsBar',
+    )!
+    const props = bar.node.props as Parameters<typeof ExcludedUnitsBar>[0]
+    expect(props.countNoun).toBe('套')
+    expect(renderToStaticMarkup(createElement(ExcludedUnitsBar, props))).toContain('536</span> 套按')
   })
 
   it('空态①：总数为 0 时不摆指回本页的死按钮，总数 >0 时仍给主按钮', async () => {
