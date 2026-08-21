@@ -51,6 +51,22 @@ describe('resolveLocation', () => {
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.code).toBe('LOCATION_PARENT_MISMATCH')
   })
+
+  it('商圈父级不匹配时，文案指向行政区而不是城市', () => {
+    // 错误消息要告诉运营去改哪一列；指错列比不报错更糟
+    const withBusinessArea: ResolveTables = {
+      ...tables,
+      locations: {
+        ...tables.locations,
+        business_area: [{ id: 21, name: '陆家嘴', kind: 'business_area', parentId: 11 }],
+      },
+    }
+    const r = resolveLocation({ kind: 'business_area', text: '陆家嘴', parentId: 999 }, withBusinessArea)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.code).toBe('LOCATION_PARENT_MISMATCH')
+    expect(r.ok === false && r.message).toContain('行政区')
+    expect(r.ok === false && r.message).not.toContain('城市')
+  })
 })
 
 const buildings: readonly BuildingCandidate[] = [

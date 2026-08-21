@@ -98,6 +98,23 @@ function formatSuggestion(names: string[]): string | undefined {
   return `是否指：${names.join('、')}？`
 }
 
+/**
+ * 各类地理对象的上级字段中文名，用于 LOCATION_PARENT_MISMATCH 的可操作文案。
+ * 项目地理层级是两条链：city → district → business_area、city → metro_line → metro_station
+ * （见 src/domain/geography/location-hierarchy.ts）。错误消息要告诉运营去改哪一列，
+ * 指错列比不报错还糟，所以不能对所有 kind 都写死"城市"。
+ */
+const PARENT_LABEL: Record<string, string> = {
+  district: '城市',
+  business_area: '行政区',
+  metro_station: '地铁线路',
+}
+
+/** kind 不在 PARENT_LABEL 里时的中性兜底措辞，不抛错、不输出 undefined。 */
+function parentLabel(kind: string): string {
+  return PARENT_LABEL[kind] ?? '上级区域'
+}
+
 export function resolveLocation(
   input: { kind: string; text: string; parentId?: number | string | null },
   tables: ResolveTables,
@@ -133,7 +150,7 @@ export function resolveLocation(
     return {
       ok: false,
       code: 'LOCATION_PARENT_MISMATCH',
-      message: `「${hit.name}」不属于所填城市`,
+      message: `「${hit.name}」不属于所填的${parentLabel(kind)}`,
     }
   }
 
