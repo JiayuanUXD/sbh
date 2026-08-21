@@ -33,7 +33,8 @@ import { useAnchorVisibility } from '@/lib/frontend/use-anchor-visibility'
  *   两者都是"避免同一价格信息重复出现在视口"的 IntersectionObserver 模式，
  *   但服务的是完全不同的两个物理机制——DetailMobileBarPrice 的宿主
  *   `.detail__mobile-bar` 是移动端固定在视口底部、贯穿全程常驻的操作栏，
- *   只是价格文字的显隐随 `.detail__rent` 滚出与否切换；本组件是桌面端
+ *   只是价格文字的显隐随页内价格元素（房源页现为决策卡 `.dt-decision`）滚出
+ *   与否切换；本组件是桌面端
  *   顶部吸附栏，栏本身的挂载/卸载（不是栏内某个文字的显隐）由决策卡的
  *   sticky 释放点决定，且只在桌面宽度渲染（`@media (max-width:1023px)`
  *   直接 `display:none`，移动端继续用 `.detail__mobile-bar`）。断点、锚点、
@@ -85,7 +86,12 @@ export default function StickyInquiryBar({
     // dt-bar / dt-bar__inner 是与 AnchorNavBar 共享的吸附栏外壳（高 56 · 毛玻璃
     // · 底线 · 居中容器），Task 8 抽出，见 detail.css「吸附栏共享外壳」；
     // dt-sticky-bar / dt-sticky-bar__inner 只保留本条独有的 fixed 定位与 gap。
-    <div className="dt-bar dt-sticky-bar" role="region" aria-label="询价操作栏">
+    // aria-label 与移动端底栏（`.detail__mobile-bar`，"询价操作栏"）必须不同名
+    // ——Task 9 接线后两者在同一份 DOM 里共存（本条 ≤1023 只是 CSS display:none，
+    // 元素仍在），同名会产生两个无法区分的 region 地标：无障碍树里读起来是
+    // 「询价操作栏」出现两次，自动化里 `getByRole('region', { name: '询价操作栏' })`
+    // 直接 strict-mode 撞车。两者本来就是不同断点下的两个入口，分开命名更准确。
+    <div className="dt-bar dt-sticky-bar" role="region" aria-label="吸附询价条">
       <div className="dt-container dt-bar__inner dt-sticky-bar__inner">
         <span className="dt-sticky-bar__title">{title}</span>
         {priceText != null && (

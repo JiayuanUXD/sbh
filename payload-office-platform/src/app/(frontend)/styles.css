@@ -4078,8 +4078,14 @@ ol {
 }
 
 /* ===== P0 评审优化：AdvisorCard 平台顾问卡片 ===== */
+/* flex-wrap: wrap 是基础行为而非窄栏特例（OPT-037 Task 9 按 detail.css
+ * `.hero-summary .advisor-card` 记下的升级阈值提升上来）：avatar 44 固定 +
+ * cta 内容定宽都不收缩，中间 body 被挤到 0 宽时中文会逐字竖排。宽栏下内容
+ * 装得下，wrap 不会触发，因此提升为默认没有视觉代价；窄栏各自只保留真正
+ * 差异化的那一行（`__cta { flex-basis: 100% }` 强制 CTA 独占一行）。 */
 .advisor-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--sp-3);
   padding: var(--sp-3);
@@ -5116,7 +5122,6 @@ ol {
  * 自身的默认行为，两处 scoped 覆盖再改回只负责各自的差异化部分
  * （如这里额外去掉的卡片外观）。 */
 .detail-side-rail .advisor-card {
-  flex-wrap: wrap;
   background: transparent;
   border: none;
   padding: 0;

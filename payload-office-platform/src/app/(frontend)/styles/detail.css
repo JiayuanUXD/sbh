@@ -24,7 +24,7 @@
  * 1440 下 `x:24 / width:1392`）。
  * 顺带把 375 下的左右留白从 24+16=40 修回稿子要求的 16（`.dt-container` 自己的
  * `100% - 32px`），与列表页 `.ls-page` 抵消同一份内边距的动机一致。
- * 只破左右、不动纵向：纵向节奏归 Task 10 接线时连同标题栏一起定，这里不顺手改。 */
+ * 只破左右、不动纵向：纵向节奏在下一小节（Task 9 接线）连同标题栏一起定。 */
 .dt-page {
   --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px;
   width: 100vw; margin-inline: calc(50% - 50vw);
@@ -59,6 +59,70 @@
 
 @media (max-width: 1023px) {
   .dt-core { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+ * 页面骨架与纵向节奏（Task 9 接线）
+ * 设计依据：specRows「section padding-block 56（72/56/48 可切，稿子默认 56）」
+ * 「标题栏 padding 32/24 · h1 32/600/1.15 · 面包屑 13/ink-3」「h2 段标题
+ * 24/600/1.2 · 到面板 20px」「描述 通栏 1180 单栏 · 17/1.70 · 段间 20」
+ * 「移动 section padding 40 · 左右 16」「移动 h1 24/600/1.25」。
+ *
+ * `.dt-page` 上方那条负 margin：`.site-main` 自带 `padding: var(--sp-6)`（32）
+ * 的纵向内边距（styles.css:597）。不抵消它，标题栏自己的 32 会叠成 64。
+ * 左右方向早已由文件顶部的 100vw 出血破掉，这里只补纵向——两处动机相同
+ * （页面自己的节奏归页面管），与列表页 `.ls-page` 的负 margin 同一手法。
+ * ========================================================================== */
+.dt-page { --dt-sec: 56px; margin-top: calc(var(--sp-6) * -1); }
+
+.dt-titlebar { padding: 32px 0 24px; }
+/* 面包屑基元自带 margin-bottom 16（styles.css:2865），comp 这里要 14 */
+.dt-titlebar .breadcrumb { margin-bottom: 14px; }
+.dt-titlebar__row { display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 32px; }
+.dt-titlebar__title { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.15;
+  color: var(--ink); letter-spacing: normal; }
+/* padding-top 4：comp 让操作 pill 组与 32px 行高的 h1 视觉基线对齐 */
+.dt-titlebar__actions { flex: none; display: flex; align-items: center; gap: 8px;
+  padding-top: 4px; }
+.dt-titlebar__tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 段落节奏：只给 padding-top，段与段之间因此恒为一份 --dt-sec，
+ * 不会出现「上一段 margin-bottom + 本段 margin-top」的双份间距。
+ * `.location-panel` 是 LocationPanel 自带的 <section>（组件里写死了
+ * `class="location-panel detail__section"`，无法从外部加类），所以直接把
+ * 容器宽度与节奏挂到它身上——**不要**在接线时给它套一层带 padding 的
+ * wrapper：无坐标时它整段返回 null，wrapper 会留下一段空白（本批硬约束
+ * 「空态整段不渲染」）。同时抵消 `.detail__section` 的 margin-top（48）。 */
+.dt-section,
+.dt-page .location-panel { padding-top: var(--dt-sec); }
+.dt-page .location-panel { width: min(var(--dt-w), 100% - 32px); margin-inline: auto;
+  margin-top: 0; }
+
+.dt-h2,
+.dt-page .location-panel > h2 { margin: 0 0 20px; font-size: 24px; font-weight: 600;
+  line-height: 1.2; color: var(--ink); letter-spacing: normal; }
+
+/* 概况面板所在的通栏格：grid 位置留在这层，`.dt-overview`（面板本体）在
+ * 它内部已不是 grid item，自身那份 margin-top 24 会与本格重复，就地清零。
+ * 面板直接作为 `.dt-core` 子项的用法（dev-story 预览页）不受影响。 */
+.dt-overview-block { grid-column: 1 / -1; grid-row: 2; margin-top: 24px; }
+.dt-overview-block > .dt-overview { margin-top: 0; }
+
+.dt-richtext { font-size: 17px; line-height: 1.7; color: var(--ink-2); }
+.dt-richtext :where(p, ul, ol) { margin-bottom: 20px; }
+.dt-richtext :where(p, ul, ol):last-child { margin-bottom: 0; }
+
+@media (max-width: 767px) {
+  /* 移动端底部固定询价栏（`.detail__mobile-bar`，高 68 + 安全区）会盖住页尾。
+   * styles.css:2510 给 `.detail` 留过同一份余量，本页根已不带 `.detail`
+   * （那条规则的 `max-width:100%` 会把 100vw 出血夹回容器宽），所以在这里
+   * 按 comp「页尾留白 128」重新给一份。 */
+  .dt-page { --dt-sec: 40px; padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  .dt-titlebar { padding: 20px 0 16px; }
+  .dt-titlebar__row { flex-direction: column; gap: 12px; }
+  .dt-titlebar__title { font-size: 24px; line-height: 1.25; }
+  .dt-titlebar__actions { padding-top: 0; }
 }
 
 /* ============================================================================
@@ -251,6 +315,9 @@
   font-size: 40px; font-weight: 600; line-height: 1.06; color: var(--ink);
 }
 .dt-decision__price-unit { font-size: 17px; color: var(--ink-2); }
+/* 无公开价格：不渲染 0、不留空行，用既有的「价格面议」文案并降一档字号
+ * ——与 `.hero-summary__price--na`（楼盘信息面板，Task 6）同一处理方式。 */
+.dt-decision__price-num--na { font-size: 24px; color: var(--ink-2); }
 
 .dt-decision__summary { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 
@@ -267,6 +334,14 @@
 }
 
 .dt-decision__cta { margin-top: 24px; }
+
+/* 顾问区（AdvisorCard）：comp 在 CTA 下方隔一条 hairline 放顾问行。
+ * AdvisorCard 自带卡片轮廓（底色 + 1px 边框），所以这里只给间距，不再叠一条
+ * 分隔线——与 `.hero-summary .advisor-card`（楼盘信息面板）保持同一取舍。
+ * 窄栏换行不在这里再写第三份：`flex-wrap: wrap` 已按 detail.css 早先记下的
+ * 升级阈值提升为 `.advisor-card` 自身的默认行为（styles.css §AdvisorCard）。 */
+.dt-decision .advisor-card { margin-top: 24px; }
+.dt-decision .advisor-card__cta { flex-basis: 100%; }
 
 /* ── 吸附栏共享外壳（Task 8 抽出） ────────────────────────────────────────
  * 两份详情稿把顶部吸附栏画成同一套 chrome：居中容器 · 高 56 · 底
@@ -473,7 +548,25 @@
    * 逐行堆叠——图片、决策卡（价格+CTA）、概况规格表，顺序也更合理
    * （先看图和价格，再看详细规格）。 */
   .dt-decision { grid-column: 1 / -1; grid-row: auto; position: static; }
-  .dt-overview { grid-row: auto; }
+  /* `.dt-overview` 是面板直接当 grid item 的用法（dev-story 预览页）；
+   * `.dt-overview-block` 是接线页里包着 h2 + 面板的那一格（见上方「页面骨架」）。
+   * 两者都钉在 grid-row:2，单列断点下必须一起复位 auto——**实测发现的回归**：
+   * 只复位其中一个时，决策卡（已改 grid-row:auto）会被仍钉在第 2 行的概况格
+   * 挤到第 3 行，移动端顺序变成「画廊 → 概况 → 决策卡」，与 comp 移动稿
+   * （画廊 → 标题 → 决策卡 → 概况）正好把最该先看到的价格与 CTA 推到了
+   * 1000px 以下。task9-verify 的 grid 量化数据记着这次修复前后的坐标。 */
+  .dt-overview,
+  .dt-overview-block { grid-row: auto; }
+}
+
+/* 吸附询价条的隐藏断点是 ≤767 而不是 ≤1023（Task 9 接线时修）：`.dt-decision`
+ * 在 ≤1023 只是回到普通文档流，并没有常驻入口顶上——而 `.detail__mobile-bar`
+ * （移动底栏）自己只在 ≤767 出现。两条各按各的断点收，768–1023 这一带就变成
+ * 「滚过决策卡之后页面上没有任何询价入口」的空档。实测确认过这个空档在接线前
+ * 就存在于 Task 4 的取值里，只是那时组件还只活在 dev-story 里没人看得见。
+ * 768 宽下条内元素都有 ellipsis 兜底（标题 max-width 40%、摘要 flex:1），
+ * 不会撑破。 */
+@media (max-width: 767px) {
   .dt-sticky-bar { display: none; }
 }
 
@@ -849,9 +942,6 @@
  * styles.css `.detail-side-rail .advisor-card`）。若再出现第三处窄栏场景，
  * 不要再加第三份——把 flex-wrap:wrap 提升为 `.advisor-card` 自身的默认
  * 行为，两处 scoped 覆盖再收窄成只负责各自的差异化部分。 */
-.hero-summary .advisor-card {
-  flex-wrap: wrap;
-}
 .hero-summary .advisor-card__cta {
   flex-basis: 100%;
 }

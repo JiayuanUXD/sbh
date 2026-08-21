@@ -193,7 +193,9 @@ describe('city route boundaries', () => {
 
     const page = await CityListingDetailPage({ params: Promise.resolve({ city: 'shanghai', slug: 'shanghai-office' }) })
 
-    expect(io.getCachedBuildingBySlug).toHaveBeenCalledWith('shanghai', 'tower')
+    // OPT-037 Task 9：楼盘详情文档随「配套设施」段一并移除（见
+    // CityListingDetailView 文件头），房源详情路由不再取它。
+    expect(io.getCachedBuildingBySlug).not.toHaveBeenCalled()
     expect(io.getCachedDetailRecommendations).toHaveBeenCalledWith('shanghai', 'shanghai-office', 6)
     expect(io.fetchNearbyPois).toHaveBeenCalledWith(9, listing.building.coordinates)
     expect(io.getServiceSchedule).toHaveBeenCalledTimes(1)

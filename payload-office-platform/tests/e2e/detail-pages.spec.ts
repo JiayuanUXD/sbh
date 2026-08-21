@@ -54,8 +54,12 @@ async function expectMobileCtaDoesNotObscureLastContent(page: Page) {
     }
 
     const mobileBar = document.querySelector<HTMLElement>('[role="region"][aria-label="询价操作栏"]')
-    const content = Array.from(document.querySelectorAll<HTMLElement>('.detail > section'))
-      .at(-1)
+    // 两个详情页的根类名不同：楼盘页仍是 `.detail`，房源页 OPT-037 Task 9 接线后
+    // 换成 `.dt-page`（`.detail` 的 max-width:100% 会把 100vw 出血夹回容器宽）。
+    // 取两者的直接子 section，末尾那个就是页尾最后一块内容。
+    const content = Array.from(
+      document.querySelectorAll<HTMLElement>('.detail > section, .dt-page > section'),
+    ).at(-1)
     if (!mobileBar || !content) return null
     return {
       ctaTop: mobileBar.getBoundingClientRect().top,
@@ -110,7 +114,9 @@ test.describe('房源详情 P0', () => {
     expect(response?.status()).toBe(200)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: '房源概况' })).toBeVisible()
-    await expect(page.locator('.detail-hero #overview')).toHaveCount(1)
+    // 概况面板通栏落在核心区（`.dt-core`）第 2 行，不是独立段落——
+    // 决策簇（画廊 + 决策卡 + 概况）必须留在同一个网格里
+    await expect(page.locator('.dt-core #overview')).toHaveCount(1)
     await expect(page.getByRole('link', { name: '查看楼盘' })).toBeVisible()
     await expect(
       page.locator('button[data-source-section="hero"]', { hasText: '询价 / 预约看房' }),
@@ -148,7 +154,7 @@ test.describe('房源详情 P0', () => {
     const response = await page.goto(`/listings/${PRICE_ON_REQUEST_SLUG}`)
 
     expect(response?.status()).toBe(200)
-    const heroPrice = page.locator('.detail-hero .detail__rent').first()
+    const heroPrice = page.locator('.dt-decision__price-num').first()
     const mobilePrice = page.locator('.detail__mobile-bar-rent')
     await expect(heroPrice).toBeVisible()
     await expect(heroPrice).toHaveText('价格面议')

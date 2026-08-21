@@ -24,6 +24,8 @@ const DETAIL_COMPONENT_FILES = [
   'BuildingSupplyBrowser.tsx',
   'InquiryModal.tsx',
   'detail/AnchorNavBar.tsx',
+  'detail/ListingDecisionCard.tsx',
+  'detail/ListingOverviewPanel.tsx',
 ] as const
 
 function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardViewModel {
@@ -530,8 +532,10 @@ describe('detail component contracts', () => {
       join(process.cwd(), 'src/app/(frontend)/styles/detail.css'),
       'utf8',
     )
-    const mobileBlock = css.match(/@media \(max-width: 767px\) \{[\s\S]*?\n\}/)?.[0] ?? ''
-    expect(mobileBlock).toMatch(/\.dt-anchor-bar--no-links\s*\{\s*display:\s*none/)
+    // detail.css 里有多个 ≤767 断点块（页面骨架、锚点导航……），只取第一个会在
+    // 新增块插到前面时静默失配——把所有块拼起来断言。
+    const mobileBlocks = (css.match(/@media \(max-width: 767px\) \{[\s\S]*?\n\}/g) ?? []).join('\n')
+    expect(mobileBlocks).toMatch(/\.dt-anchor-bar--no-links\s*\{\s*display:\s*none/)
   })
 
   it('锚点导航在既无锚点项也无 CTA 时整条不渲染', () => {

@@ -7,6 +7,7 @@ import DetailGallery from '@/components/frontend/DetailGallery'
 import AnchorNavBar, { type AnchorNavItem } from '@/components/frontend/detail/AnchorNavBar'
 import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
+import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import LocationPanel, { type LocationPanelBuilding } from '@/components/frontend/LocationPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
@@ -336,15 +337,17 @@ const STICKY_PRICE_SNAPSHOT = {
   unit: OVERVIEW_PRICE_FULL.displayUnit,
 } as const
 
-/** 核验行前的勾选图标——单色 currentColor，不引入 comp 字面量的双色 hex。 */
-function VerifyCheckIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" className="dt-decision__verify-icon">
-      <circle cx="7.5" cy="7.5" r="6.75" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M4.4 7.7l2.1 2.1 4.1-4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
+/**
+ * 决策卡的价格摘要（数值 / 单位 / 月租折算）与生产页共用同一个派生函数——
+ * 预览页不再自己拼 "8.50" / "1,240 ㎡ · 月租 316,200 元/月" 这类字面量，
+ * 否则组件改了口径，预览页还照着旧字面量"演示"，两边说的不是一件事。
+ */
+const STICKY_PRICE_DIGEST = buildListingPriceDigest({
+  price: OVERVIEW_PRICE_FULL,
+  area: 1240,
+  seats: null,
+  businessType: 'lease',
+})
 
 // ---------------------------------------------------------------------------
 // Fixture：LocationPanel + AmapMapCanvas（Task 5）—— 三态：有坐标 / 无坐标 /
@@ -992,9 +995,9 @@ export default async function Opt037PreviewPage({
               不需要把它挪到整页最顶端就能验证接管行为。 */}
           <StickyInquiryBar
             title={STICKY_LISTING_TITLE}
-            priceText={String(OVERVIEW_PRICE_FULL.amount.toFixed(2))}
-            priceUnit="元/㎡/天"
-            summaryText="1,240 ㎡ · 月租 316,200 元/月"
+            priceText={STICKY_PRICE_DIGEST.value}
+            priceUnit={STICKY_PRICE_DIGEST.unit ?? undefined}
+            summaryText={STICKY_PRICE_DIGEST.summaryText ?? undefined}
             cta={
               <InquiryModal
                 pageType="listing"
@@ -1026,36 +1029,17 @@ export default async function Opt037PreviewPage({
             <div className="dt-core">
               <DetailGallery media={MULTI_IMAGE_FIXTURE} title={STICKY_LISTING_TITLE} pageType="listing" />
 
-              <div className="dt-decision">
-                <DetailPanel variant="side">
-                  <span className="dt-decision__label">租金单价</span>
-                  <div className="dt-decision__price-row">
-                    <span className="dt-decision__price-num">{OVERVIEW_PRICE_FULL.amount.toFixed(2)}</span>
-                    <span className="dt-decision__price-unit">元/㎡/天</span>
-                  </div>
-                  <p className="dt-decision__summary">1,240 ㎡ · 月租 316,200 元/月</p>
-
-                  <div className="dt-decision__verify">
-                    {STICKY_VERIFICATION_FIXTURE.verifiedAt && (
-                      <div className="dt-decision__verify-row">
-                        <VerifyCheckIcon />
-                        <span className="dt-decision__verify-label">信息核验</span>
-                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.verifiedAt}>
-                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.verifiedAt)}
-                        </span>
-                      </div>
-                    )}
-                    {STICKY_VERIFICATION_FIXTURE.priceVerifiedAt && (
-                      <div className="dt-decision__verify-row">
-                        <VerifyCheckIcon />
-                        <span className="dt-decision__verify-label">价格核验</span>
-                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.priceVerifiedAt}>
-                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.priceVerifiedAt)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
+              {/* 生产页（CityListingDetailView）与本预览页共用同一个
+                  ListingDecisionCard——预览页此前手写了一份 `.dt-decision__*`
+                  markup，Task 9 接线时收敛掉，避免"组件改了、预览页还在演示旧
+                  结构"。`advisor` 不传：AdvisorCard 要读 Payload global，与本
+                  预览页"不读 Payload"的约定冲突；生产页传的就是它。
+                  comp 决策卡里那个次要的"电话咨询"按钮仍然不渲染，理由见
+                  ListingDecisionCard 文件头（仓库里没有可公开展示的号码字段）。 */}
+              <ListingDecisionCard
+                digest={STICKY_PRICE_DIGEST}
+                verification={STICKY_VERIFICATION_FIXTURE}
+                cta={
                   <InquiryModal
                     pageType="listing"
                     targetListingSlug="jing-an-kerry-centre-12f"
@@ -1068,26 +1052,8 @@ export default async function Opt037PreviewPage({
                     activeSupplyGroup="lease"
                     currentFilters={{ group: 'lease', priceUnit: STICKY_PRICE_SNAPSHOT.unit }}
                   />
-                  {/* 生产接线（非本任务范围）：这里应换成
-                      <AdvisorCard cta={<InquiryModal .../>} />，与
-                      CityListingDetailView.tsx 现有 .detail__decision 同款
-                      组合——AdvisorCard 内部会读 Payload global（服务时段），
-                      与本预览页"不读 Payload"的约定冲突，故预览页里只演示
-                      价格/核验/CTA 三块，不拉入 AdvisorCard。 */}
-                  {/* comp 在决策卡与吸附条里都还有一个次要的"电话咨询"按钮，
-                      本组件只渲染了一个 CTA 槽——这不是漏做，是没有字段可填：
-                      仓库里没有任何"平台客服热线/门店座机"配置（搜过
-                      site-config.ts 与全部 *Phone* 字段，只有用户提交表单里
-                      的联系电话，没有一个能公开展示的号码），而
-                      AdvisorCard.tsx 文件头本就明令"不展示个人顾问手机号"——
-                      两条路都走不通。CityListingDetailView.tsx:165-169 现有
-                      的 .detail__decision 同样只有一个 InquiryModal CTA，
-                      从未渲染过 tel: 链接，这不是巧合，是同一个字段缺口。
-                      Task 9（或任何后续任务）如果想"补回"这个按钮，必须先
-                      有一个真实、可公开、非个人的号码字段落地，而不是照抄
-                      comp 的字面量。 */}
-                </DetailPanel>
-              </div>
+                }
+              />
 
               <ListingOverviewPanel
                 listing={{

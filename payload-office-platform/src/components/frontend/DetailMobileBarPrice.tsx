@@ -23,8 +23,18 @@ import { useAnchorVisibility } from '@/lib/frontend/use-anchor-visibility'
  */
 export default function DetailMobileBarPrice({
   rentText,
-  anchorSelector = '.detail__rent',
-}: Readonly<{ rentText: string; anchorSelector?: string }>) {
+  anchorSelector,
+}: Readonly<{
+  rentText: string
+  /**
+   * 页内价格元素的选择器。**没有默认值**：OPT-037 Task 9 之前这里默认
+   * `.detail__rent`（旧首屏摘要行），该类随房源详情改版消失后，默认值就成了
+   * 一个恒定落空的选择器——`useAnchorVisibility` 找不到锚点时不订阅、直接
+   * 保持初始值（这里是"显示"），底栏价格会在首屏就与页内价格同时出现，
+   * 静默退化成"没有这个功能"。改成必填，让调用方各自指明自己的价格元素。
+   */
+  anchorSelector: string
+}>) {
   const visible = useAnchorVisibility(anchorSelector, {
     defaultVisible: true,
     mapVisible: (isIntersecting) => !isIntersecting,

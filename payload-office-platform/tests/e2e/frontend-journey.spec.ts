@@ -28,7 +28,10 @@ test.describe('F7.1 全链路 E2E', () => {
     // 1. 首页加载
     await page.goto('/')
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.hero')).toBeVisible()
+    // OPT-035 首页改版后首屏容器是 `.hm-hero`（`.hero` 早已不存在于任何组件），
+    // 这条断言从那时起就恒失败、卡在整条链路的第 2 步——本批 Task 9 跑 E2E 时
+    // 撞见并顺手订正，与房源详情接线无关。
+    await expect(page.locator('.hm-hero')).toBeVisible()
 
     // 2. 跳转到列表页
     await page.goto('/listings')
@@ -46,7 +49,8 @@ test.describe('F7.1 全链路 E2E', () => {
     expect(href).toBeTruthy()
     await page.goto(href!)
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.detail__rent').first()).toBeVisible()
+    // OPT-037 Task 9：首屏价格从 `.detail__rent`（旧摘要行）搬进决策卡。
+    await expect(page.locator('.dt-decision__price-num').first()).toBeVisible()
 
     // 4. 打开询价 Modal
     await page
