@@ -1,10 +1,11 @@
 # Task Packet：OPT-036 列表页 Apple 中性极简改版（房源列表 + 楼盘列表）
 
-> 状态：**设计已定，待实施**
-> 创建日期：2026-08-21
-> 分支：`feat/opt-036-listing-pages-redesign-8f2a`（叠在 `feat/frontend-apple-redesign-c4e5` 之上）
+> 状态：**实施完成，待合并**（实施结果见文末 §7，遗留见 §8）
+> 创建日期：2026-08-21　实施完成：2026-08-21
+> 分支：`feat/opt-036-listing-pages-redesign-8f2a`（叠在 `feat/frontend-apple-redesign-c4e5` 之上，base `d80232e`）
 > 设计依据：`docs/SBH设计任务讨论/房源列表.dc.html`、`楼盘列表.dc.html`
 > 前置：OPT-035 首页批次（token 层、导航页脚、`.agent/frontend.md` 视觉规则）
+> 验证证据：`artifacts/verification/OPT-036/`
 
 全量改版共 6 个页面族。OPT-035 完成首页；本工作项覆盖两个列表页；详情页另立 OPT-037。
 
@@ -32,6 +33,13 @@
 | 图上渐变 | `rgba(0,0,0,.42)` → 0，底部 45% | `rgba(0,0,0,.46)` → 0，底部 **44%** |
 | 卡图比例 | 供给卡 4:3 | 房源卡 4:3；**楼盘卡 16:10**（封面多为横向街景） |
 | 容器 | 1180 | **1280** |
+
+> **2026-08-21 实施期推翻（用户指示「样式上如果能一致最好一致」）**：本表前三行**不采用**。
+> 卡片阴影 / hover / 图上渐变 / 图上标签一律走全站共享基元 `styles/surface.css` 的 `.sf-*`
+> （详见 `.superpowers/sdd/cross-batch-design-decisions.md`）：`.sf-card` 保留静态 `--shadow`，
+> hover 位移由首页的 -6px 与列表页的「不位移」折中为 **-2px / 320ms**（首页一并下调），
+> 渐变统一 `rgba(0,0,0,.42)` / 45%。实际保留的刻意差异只剩后两行：**容器 1280 与 section
+> padding 32**（布局刚需），外加卡图比例（房源 4:3 / 楼盘 16:10）与价格定宽盒宽度。
 
 ## 2. 房源列表
 
@@ -127,3 +135,116 @@
 - 价格小数点跨卡对齐（同单位下）实测
 - 对比度全部 ≥4.5:1
 - 证据存 `artifacts/verification/OPT-036/`
+
+---
+
+## 7. 实施结果（2026-08-21）
+
+分支 `feat/opt-036-listing-pages-redesign-8f2a`，`d80232e..` 共 34 个提交，分 14 个任务四组推进
+（A 域层 → B 组件 → C 接线 → D 收尾）。
+
+### 7.1 交付内容
+
+**域层**（`src/domain/public-catalog`）
+
+- 新增 `BuildingSearchInput` / `BuildingSort` 与解析、canonical（`building-search.ts`）：楼盘筛选从视图层
+  内存过滤下沉到查询层，六个维度（区域 · 等级 · 地铁 · 在租面积 · 竣工年代 · 仅看有在租）全部有现成字段，
+  **本批次零数据库变更**。
+- `searchBuildingsFiltered`：筛选 → 排序 → `partitionByStock` → **合并成一条序列后再分页**（不是每组各自
+  分页），返回 `groups` / `withStockTotal` / `withoutStockTotal` / `unfilteredTotalDocs` / `dimensionHits`。
+- `sumEffectiveLeasableAreaByBuildings` → `aggregateEffectiveSupplyByBuildings`（同一条 SQL 加 `COUNT(*)`），
+  `BuildingSummaryViewModel` 增 `listingCount` / `typicalFloorArea` / `completionDate`。
+- 新增按维度剥离的 facet 查询 `omitListingSearchDimensions` / `getSearchFacetsIgnoring`，缓存层
+  `getCachedSearchFacetsIgnoring` **先剥离再用剥离后的 canonical 当缓存键**，三份 facet 常见情形只查一次库。
+
+**共享层**
+
+- 新建 `styles/surface.css`（`.sf-card` / `.sf-scrim` / `.sf-phototag` / `.sf-media` / `.sf-num`），
+  `home.css` 回改复用，`list.css` 直接复用。OPT-037 / 038 继续复用，不得再写第二份。
+- 新建 `lib/frontend/listing-url.ts`（`cloneSearchParams` / `buildHref` / `buildPriceUnitHref` /
+  `parseListingViewMode`）与 `lib/frontend/listing-display.ts`（跨目录展示映射收敛点）。
+
+**组件**（`components/frontend/listing/`，16 个）
+
+`FilterFormC` `FilterPill` `PriceUnitSegment` `ExcludedUnitsBar` `ResultToolbar` `ListPager`
+`ListingResultCard` `ListingResultRow` `BuildingResultCard` `BuildingCompactRow`
+`EmptyNoStock` `EmptyFiltered` `EmptyOutOfRange` `MobileFilterTrigger` `MobileFilterSheet` `MobileFilterShell`。
+
+**编排**：`CityListingsView` / `CityBuildingsView` 接线，`/[city]/listings`、`/[city]/sale`、
+`/[city]/buildings` 及各自 legacy 路由。
+
+**清理**：删除 6 个零引用组件（`FilterBar` / `MobileFilterDrawer` / `ListingGrid` /
+`BuildingFilterBar` / `BuildingGrid` / `BuildingListCard`）+ 其专测，删除无生产调用方的
+`getCachedSearchBuildings` / `getCachedSearchBuildingsByCity`。
+
+### 7.2 验证证据
+
+`artifacts/verification/OPT-036/`：
+
+| 路径 | 内容 |
+|---|---|
+| `task3/` | 首页回改 `.sf-*` 前后裁图对比（`crop-b1/b3-old/new`）+ 1440/375 全页 + dev-story 预览页 |
+| `task11/` | 房源列表四断点（375/768/1440/1920）+ 三种空态 + 单位切换 + 行版式 + 移动抽屉开/选后 + legacy 路由 |
+| `task12-*.png` | 楼盘列表四断点 + 开关开启态 + 筛选后空态 + 移动抽屉 |
+| `card-*.png` / `filter-*.png` / `price-unit.png` / `toolbar-pager.png` / `empty-states.png` / `mobile-*.png` | 各组件任务在 `/dev-story/opt036` 上的单件验收 |
+| `task12-fix-*.png` / `task12-fix2-offbucket-chip.png` | 修复轮的先红后绿实证 |
+
+守卫测试：`tests/opt036-listings-view-wiring.test.ts`（13 条）、`tests/opt036-buildings-view-wiring.test.ts`
+（12 条）断言**编排层的调用行为与结构**而非底层工具函数；`tests/opt036-building-search.test.ts` /
+`opt036-building-search-result.test.ts` 覆盖域层。所有新增守卫做过变异验证（故意改坏 → 确认变红 → 还原）。
+
+门禁：`pnpm typecheck` + `pnpm test`（3373 passed）+ `pnpm lint` 全绿，改动前后 warning 基线一致。
+
+### 7.3 实施期推翻的计划假设（下游勿再引用旧说法）
+
+1. **§1 前三行的「两套卡片系统」不采用**（见 §1 下方的推翻说明）。
+2. **楼盘卡在租套数盒 26px → `min-width: 36px`**：实测三位数 `128` 在 26px 下 `scrollWidth` 已 35px 会粘连；
+   且必须用 `min-width` 而非 `width`（后者是硬上限，四位数重演粘连）。
+3. **筛选条行数与设计稿不同**：房源页 4 行（无「装修」——`ListingSearchInput` 尚无该维度，造一行等于死控件，
+   见 §8 OPT-039）；楼盘页 5 行文本 + 1 行开关，**没有价格行**（楼盘本身无报价）。数值维度按「下限/上限
+   单选」建模而非区间桶（`FilterRow` 一行一参数）。
+4. **grade 排序按产品序「超甲级在前」**，不跟随 `BUILDING_GRADE_LABELS` 的键序（后者是声明顺序不是排名）。
+   计划里「照 label map 键序」那句是错误指令。
+5. **`?view=` 不进 canonical**，但地址栏保留（只改渲染不改结果集）。
+6. **窄屏 `.ls-toolbar` 顺手改版**：375 下计数被压成 47px 宽断成四行，两页均改为计数与排序各占一行。
+
+### 7.4 已回写的常驻规则
+
+`payload-office-platform/.agent/frontend.md`：§视觉（`.sf-*` 共享基元与加载顺序）、新增 §列表页（筛选页）、
+§React 与类型（URL 唯一事实源 + 必删 `page` + 判断逻辑单点化）、§状态（三种空态语义 + 开宽接口不降级）、
+新增 §工程纪律（`aria-current` / 逐类名清理 / 守卫落在失效点 / 子代理环境级告警须复验）。
+
+## 8. 遗留（交给下一批实施者）
+
+### 8.1 已立工作项
+
+| 编号 | 内容 |
+|---|---|
+| `OPT-039-listing-decoration-dimension.md` | 房源筛选补「装修」维度。字段在 `Listings` 上已存在，缺的是 `ListingSearchInput` 的维度与解析。两个坑：复用既有 `DECORATION_STATUSES` 白名单别写第二份；`omitListingSearchDimensions` 漏补不报错，只会让空态②少一条退路 |
+| `OPT-040-city-route-filter-whitelist.md` | `city-routes.ts` 的 `selectBuildingQuery` 只保留 `grade`，本批次新建的 5 个维度（district / metro / 在租面积 / 竣工 / onlyWithStock）在 legacy 307 跳转与**切换城市**两条路径上全部被丢弃。白名单口径属多城工作项，不该在接线任务里悄改 |
+
+### 8.2 未立工作项的已知缺口
+
+1. **`.ls-filterc` 在 375 下的触达缺口**：该容器没有 `<768px` 隐藏规则，整块筛选条在移动端照常渲染，
+   其中 36 高开关 pill、28 高 chip、行内纯文本选项均低于 44px 触达下限（缺口继承自房源页，不是楼盘开关独有）。
+   移动端主路径是抽屉里 52 高整行可点的 `.ls-msheet__switch`，但那不会让筛选条里的控件变可触达。
+   修法需先决定筛选条在窄屏下的归属（隐藏 or 整块加大触达尺寸），是横跨两个列表页的一次性处置。
+2. **`Modal.tsx` 与 `MobileFilterSheet` 的焦点陷阱 / Esc / 滚动锁逻辑重复**：两者 chrome 差异太大，
+   字面复用不现实，本批次接受了重复。**改任一处必须同时检查另一处**。若 OPT-037/038 再出现第三个浮层，
+   届时应抽一个 headless 的焦点陷阱 hook 而不是复制第三份。
+3. **`findEffectiveBuildings` 的 200 条硬上限**：`searchBuildingsFiltered` 继承 supply-adapter 的
+   `limit = 200` 并在 JSDoc 记明。某城有效公开楼盘超过 200 个时，筛选/排序/分页都只作用于前 200 条，
+   **静默截断无告警**。放宽需先评估查询成本，改走分页适配器（类似 `findEffectiveBuildingsPage`），
+   不是简单调大数字。当前七城种子数据远未触顶，属容量型风险不是缺陷。
+4. **需求 6「移动抽屉 open 状态不被重挂」只有间接守护**：「Suspense 不会因 `searchParams` 重新 suspend」
+   是运行时性质无法单测，现靠「列表路由链路上无 Suspense、**无 `loading.tsx`**」这条断言
+   （`opt036-listings-view-wiring.test.ts:193`）+ 一次端到端 probe（375 下给 shell 根节点打运行时标记 →
+   点筛选项 → URL 变、抽屉仍开、标记仍在）间接保证。**将来给列表路由加 `loading.tsx` 会让该断言变红：
+   那时必须重做端到端验证，不能只删断言。**
+5. **`ListingResultCard` 的出售（one-time）定宽盒未验证**：8 位数总价会溢出 88px。注释已写明复用到出售
+   语境前需重新定宽并补 fixture。
+6. **`.listing-card--list` 及其子规则当前无渲染调用方**（唯一曾传 `view="list"` 的 `ListingGrid.tsx` 已删），
+   但保留文件 `ListingCard.tsx` 仍声明 `view` 属性，删除属于静默削弱保留文件的公开能力，按「拿不准就留着」
+   处理，CSS 注释里写明了理由。
+7. **本地种子库只有 6 个楼盘**（5 有在租 + 1 暂无），真实路由上造不出第 2 页——「分页跨组边界」只有域层证据，
+   无路由层截图。
