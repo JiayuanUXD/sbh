@@ -107,6 +107,30 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
     })
   }, [])
 
+  /**
+   * 补挂载时的「已经失败了吗」判定——onError 单独不够用。
+   *
+   * SSR 出来的 <img> 一进 HTML 解析器就开始加载，而 React 的 onError 要等这个
+   * 客户端组件 hydration 完成才挂到 DOM 上。图片在这中间的窗口里 404 / 断流时：
+   * error 事件不冒泡（只走捕获阶段直达 target），React 也不会为 hydration 之前
+   * 错过的 load/error 补发事件——于是 onError 永远不触发，用户看到的是浏览器的
+   * 破图框，而不是 MediaFallback。这个窗口在生产构建下是几十到几百毫秒，在
+   * next dev 下可达数秒，绝非理论值。
+   *
+   * 判据用 complete && naturalWidth === 0：加载成功的位图必有 naturalWidth；
+   * 还没开始 / 正在加载（含 loading="lazy" 的缩略图）complete 为 false，会被跳过，
+   * 它们后续真失败时由已经挂好的 onError 接住。
+   *
+   * ref 回调本身保持稳定（id 从 data-media-id 读，而不是按 id 现造闭包），
+   * 否则每次 render 都会 detach/attach 一遍 ref。
+   */
+  const detectPreHydrationFailure = useCallback((node: HTMLImageElement | null) => {
+    if (!node) return
+    const id = node.dataset.mediaId
+    if (!id) return
+    if (node.complete && node.naturalWidth === 0) markFailed(id)
+  }, [markFailed])
+
   const close = useCallback(() => {
     setIsOpen(false)
     window.requestAnimationFrame(() => triggerRef.current?.focus())
@@ -282,6 +306,8 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
                 <MediaFallback />
               ) : (
                 <img
+                  ref={detectPreHydrationFailure}
+                  data-media-id={activeMedia.item.id}
                   src={activeMedia.src}
                   alt={activeMedia.alt}
                   loading="eager"
@@ -380,7 +406,14 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
                   {hasFailed ? (
                     <MediaFallback />
                   ) : (
-                    <img src={src} alt={alt} loading="lazy" onError={() => markFailed(item.id)} />
+                    <img
+                      ref={detectPreHydrationFailure}
+                      data-media-id={item.id}
+                      src={src}
+                      alt={alt}
+                      loading="lazy"
+                      onError={() => markFailed(item.id)}
+                    />
                   )}
                 </button>
               )

@@ -200,6 +200,24 @@ test.describe('房源详情 P0', () => {
     await expect(imageItem.locator('img')).toHaveCount(0)
   })
 
+  // 与上一条互补：上一条在页面已可交互后合成 error 事件，走的是 React onError；
+  // 这一条守护真实生产时序——SSR 出来的 <img> 一进 HTML 解析器就开始加载，可能
+  // 早于本客户端组件 hydration 完成就 404。error 事件不冒泡，React 也不会为
+  // hydration 之前错过的 load/error 补发事件，只挂 onError 会整段漏掉这个窗口，
+  // 用户看到的是浏览器破图框而不是兜底（回归见 DetailGallery 的挂载时判定）。
+  test('图片在 hydration 之前就加载失败时同样显示兜底', async ({ page }) => {
+    await page.route('**/api/media/file/**', (route) => route.fulfill({ status: 404, body: '' }))
+    allowedBrowserErrors.set(page, [
+      /Failed to load resource: the server responded with a status of 404/,
+    ])
+    const response = await page.goto(`/listings/${LISTING_SLUG}`)
+
+    expect(response?.status()).toBe(200)
+    const imageItem = page.locator('.detail-gallery__item').first()
+    await expect(imageItem.getByRole('img', { name: '图片暂未加载' })).toBeVisible()
+    await expect(imageItem.locator('img')).toHaveCount(0)
+  })
+
   test('媒体画廊支持全屏、左右键、Escape 和焦点归还', async ({ page }) => {
     await page.goto(`/listings/${LISTING_SLUG}`)
     const gallery = page.getByRole('region', { name: /详情媒体/ })
