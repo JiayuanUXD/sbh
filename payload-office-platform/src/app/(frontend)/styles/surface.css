@@ -26,8 +26,14 @@
 .sf-media--4x3 { aspect-ratio: 4 / 3; }
 .sf-media--16x10 { aspect-ratio: 16 / 10; }
 
-/* 图上白字压暗：全站一份，任何图上文字都必须配它 */
-.sf-scrim { position: absolute; inset: auto 0 0 0; height: 45%;
+/* 图上白字压暗：全站一份，任何图上文字都必须配它。
+ * pointer-events: none 是本次 review 补的——压暗层定义上就是纯装饰，绝不该挡在
+ * 可点击元素前面吞掉点击。这里用到的六处调用（HomeDistrictBento /
+ * HomeSupplyCard / HomeTypeCards / BuildingResultCard / ListingResultCard /
+ * ListingResultRow）都是整卡包在一个 <Link> 里，scrim 是 Link 的子元素，
+ * 加了 pointer-events:none 后点击直接穿透到 Link 本身或其内部图片，不影响
+ * 现有可点击行为（验证见 OPT-037 Task 2 报告）。 */
+.sf-scrim { position: absolute; inset: auto 0 0 0; height: 45%; pointer-events: none;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0)); }
 
 /* 图上标签：零色相白底 pill */

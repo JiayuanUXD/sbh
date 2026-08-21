@@ -66,7 +66,13 @@
 
 /* 新增：主图右下角计数 pill（如「3 / 14」），只在图片分类下、且当前媒体
  * 未加载失败时渲染——与 .detail-gallery__counter（全屏弹窗内的计数）是
- * 两个不同位置的计数，故意不共用类名，避免样式互相牵连。 */
+ * 两个不同位置的计数，故意不共用类名，避免样式互相牵连。
+ * pointer-events: none 是本次 review 补的 Critical 修复的一部分——这个 pill
+ * 和 .sf-scrim 一样叠在 <button class="detail-gallery__main-media"> 之上，
+ * 是同级元素而非其子元素，不设 pointer-events:none 会在 pill 覆盖的角落
+ * 吞掉点击、灯箱打不开。同一文件里 .detail-gallery__main-badge（styles.css）
+ * 与 .detail-gallery__main-nav 早就是这个模式：外层纯装饰/占位元素
+ * pointer-events:none，只让真正的内部按钮 pointer-events:auto。 */
 .detail-gallery__main-counter {
   position: absolute;
   right: 24px;
@@ -83,6 +89,7 @@
   font-feature-settings: "tnum" 1;
   display: flex;
   align-items: center;
+  pointer-events: none;
   z-index: 2;
 }
 

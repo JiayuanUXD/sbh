@@ -84,6 +84,10 @@ export default function CityListingDetailView({
       value: listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
     },
     { label: '房源类型', value: LISTING_TYPE_LABEL[listing.listingType] },
+    // 「可入驻」故意不走本组其余五项的 value ?? '—' 兜底：formatAvailableDate
+    // 对缺失统一返回「面议」，是该字段在页面其它位置（.detail__specs、
+    // ListingCard）已经在用的既有展示口径——两套兜底文案在同一个宫格里
+    // 并存是有意为之，不是遗漏统一。
     { label: '可入驻', value: formatAvailableDate(listing.availableFrom) },
     { label: '楼盘等级', value: getBuildingGradeLabel(building?.grade) ?? null },
   ]
