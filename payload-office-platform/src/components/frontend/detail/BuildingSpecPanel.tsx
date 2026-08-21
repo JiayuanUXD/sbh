@@ -19,11 +19,11 @@ import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-
  *     货梯——comp 原稿就是这么画的合并行，两个字段都是普通数字+单位，
  *     不是"押二付三"那种需要语义拼接的复合值，拼接风险与 Task 3 的
  *     押金/付款方式不是一回事）。
- *   - 「可推导，非编造」：LEED 来自 `amenityGroups` 的「认证」组（已在手，
- *     无需新映射）里按名称找含"LEED"的一项；「最小可租面积」来自调用方
- *     传入的 `minLeasableArea`（取自 `BuildingSupplySnapshot` 的
- *     `aggregateAreaRange`，与 `HeroSummaryPanel` 「可租面积」统计同一
- *     来源，不是另算一份）。
+ *   - 「可推导，非编造」：「最小可租面积」来自调用方传入的 `minLeasableArea`
+ *     （取自 `BuildingSupplySnapshot` 的 `aggregateAreaRange`，与
+ *     `HeroSummaryPanel` 「可租面积」统计同一来源，不是另算一份；无有效
+ *     供给时 `aggregateAreaRange` 返回 `null`，不是 `0` 也不是 `Infinity`，
+ *     该行照实渲染 —）。
  *   - 「域层没有，省略」：电梯速度、楼板承重、车位配比（与 Task 3 「需要
  *     额外计算的楼宇属性」同一结论，非重复踩坑）、空调加时费、出租率、
  *     主要租户行业——`Buildings` collection 逐项确认无对应字段。
@@ -36,6 +36,27 @@ import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-
  *     `minimumLeaseMonths`（只有 `ListingDetailViewModel.factGroups` 单套
  *     详情才有）——要在楼盘级聚合它需要新增跨房源的聚合管道，超出「一次
  *     低成本映射」的范围，与「车位配比」同一类省略理由，不是漏查。
+ *
+ * 「认证」行——review 修正（2026-08-21）：comp 字面是「LEED 认证 → 金级」，
+ * 假设域层有一个结构化的认证体系字段（如 `certificationScheme: 'LEED' |
+ * 'WELL' | ...` + `certificationGrade`）。但 `Buildings.certifications` 是
+ * 自由文本数组（仅 `name`/`certificateNumber`/有效期/`publicVisible`），没有
+ * 体系分类字段。首版实现按名称正则找一条含"LEED"的项——这个写法本身是
+ * 「域层没有就换一种方式硬凑」的静默误导：当楼盘持有认证但都不叫"LEED"
+ * （如"绿色建筑三星""WELL 铂金级"），该行会渲染 —，读起来像"这栋楼没有
+ * 认证"，而组件手里其实攥着认证数据只是没显示——与本项目反复重申的「越界
+ * 空态不许说没有结果」「规格表缺失显示 — 不隐藏行，因为隐藏=暗示不存在」
+ * 是同一类问题，只是换了张脸。
+ * 修正：不做特定认证名称的字符串匹配，直接展示这栋楼实际持有的公开在
+ * 有效期内的认证列表（`isCertificationPublicAt` / `publicVisible` 过滤已在
+ * `mapBuildingAmenityGroups` 做过，这里不重复判断，只做展示层的拼接）。
+ * 多条认证用" · "拼成一行（站内既有的列表转字符串约定，见
+ * `BuildingDetailLayout.tsx` `parts.join(' · ')`、`ListingCard.tsx`
+ * `locationParts.join(' · ')`），不设条数上限——`.dt-spec__value` 本就允许
+ * 换行（地址行已验证过长值换行不破版），认证条目现实中通常 1–3 条，没有
+ * 才渲染 —，此时 — 才真正意味着"这栋楼没有可公开的认证"。
+ * 这是刻意偏离 comp 字面的「LEED 认证」单项设计，Task 10 接线时不要
+ * "恢复"成按认证名称做字符串匹配的写法。
  */
 
 type BuildingSpecInput = Readonly<{
@@ -69,16 +90,14 @@ function completionYear(groups: readonly FactGroupViewModel[]): string | null {
 }
 
 /**
- * LEED 认证不是 Buildings 上的独立字段，而是「楼盘认证」自由文本数组里
- * 可能存在的一条（`mapBuildingAmenityGroups` 已产出、已过滤 publicVisible +
- * 有效期）。按名称找一条含"LEED"的认证——找到就如实展示认证原文（如
- * "LEED 金级"），找不到就是这栋楼确实没有可公开的 LEED 认证，渲染 —，
- * 不是「没查到就编一个」。
+ * 展示这栋楼实际持有的公开认证（已过滤 publicVisible + 有效期，见
+ * `mapBuildingAmenityGroups`），不按特定认证名称做字符串匹配——见文件头
+ * review 修正说明。没有认证时返回 null（渲染 —，此时确实是"没有"）。
  */
-function findLeedCertification(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
+function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
   const certifications = amenityGroups.find((group) => group.id === 'certifications')
-  const match = certifications?.items.find((name) => /leed/i.test(name))
-  return match ?? null
+  const items = certifications?.items ?? []
+  return items.length > 0 ? items.join(' · ') : null
 }
 
 export function buildBuildingSpecGroups(
@@ -134,7 +153,9 @@ export function buildBuildingSpecGroups(
       id: 'qualification',
       title: '资质与运营',
       rows: [
-        { label: 'LEED 认证', value: findLeedCertification(building.amenityGroups) },
+        // 「认证」——不按名称匹配特定认证体系（如"LEED"），展示这栋楼实际
+        // 持有的全部公开有效认证，见文件头 review 修正说明。
+        { label: '认证', value: publicCertificationsText(building.amenityGroups) },
         // 「可注册」comp 字面标签，取自既有「注册能力」事实（REGISTRATION_
         // CAPABILITY_LABELS 已产出"支持注册/有条件支持/不支持注册"）。
         { label: '可注册', value: fact('注册能力') },

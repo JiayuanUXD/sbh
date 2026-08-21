@@ -542,11 +542,13 @@ const HERO_SUPPLY_FULL: BuildingSupplySnapshot = {
   validationErrors: [],
 }
 
-// 字段齐全：BuildingSpecPanel 4 组全部字段都有值 + LEED 命中 + 最小可租面积可算。
+// 字段齐全：BuildingSpecPanel 4 组全部字段都有值 + 认证列表命中两条（拼接展示，非按名称匹配）+ 最小可租面积可算。
 const BUILDING_SPEC_FULL_AMENITIES = HERO_BUILDING_AMENITY_GROUPS
 
 // 部分缺失：组内夹杂 null（标准层高缺失 → 「层高 / 净高」显示「— / 2.85 m」；
-// 网络、停车费缺失），且认证列表里没有 LEED（验证「找不到就是没有」而非编造）。
+// 网络、停车费缺失），认证列表只有「绿色建筑三星」（不含"LEED"字样）——验证
+// review 修正后的行为：不做名称匹配，原样展示持有的认证，不因为不叫"LEED"
+// 就渲染 —（这正是本次修正要杜绝的静默误导）。
 const BUILDING_SPEC_PARTIAL_GROUPS: readonly FactGroupViewModel[] = [
   HERO_BUILDING_FACT_GROUPS[0],
   {
@@ -592,7 +594,9 @@ const BUILDING_SPEC_PARTIAL_AMENITIES = [
 ] as const
 
 // 整组缺失：「机电与设施」对应的原始事实（客梯/货梯/空调/供电/网络）全部为
-// null，其余三组正常——验证该组仍渲染组标签 + 全 — 行，不整组隐藏。
+// null，其余三组正常——验证该组仍渲染组标签 + 全 — 行，不整组隐藏；认证列表
+// 换成真正的空数组（这栋楼确实没有公开认证），验证「认证」行此时渲染 — 且
+// 这个 — 是真的"没有"，不是"没匹配到某个名字"。
 const BUILDING_SPEC_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
   HERO_BUILDING_FACT_GROUPS[0],
   HERO_BUILDING_FACT_GROUPS[1],
@@ -620,7 +624,12 @@ const BUILDING_SPEC_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
     ],
   },
 ]
-const BUILDING_SPEC_GROUP_MISSING_AMENITIES = HERO_BUILDING_AMENITY_GROUPS
+const BUILDING_SPEC_GROUP_MISSING_AMENITIES = [
+  { id: 'amenities', title: '配套', items: ['双首层大堂', '24 小时空调可申请'] },
+  // 真正没有认证（空数组），与「有认证但不叫 LEED」是两种不同状态，
+  // 分别由「整组缺失」态与「部分缺失」态覆盖。
+  { id: 'certifications', title: '认证', items: [] },
+] as const
 
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
@@ -908,7 +917,7 @@ export default function Opt037PreviewPage() {
         <PreviewSection
           id="building-spec-panel"
           title="楼盘参数面板（BuildingSpecPanel）"
-          note="通栏 · 4 组 2 列 gap 40/72，每列内部仍是 SpecTable 的行结构；三态：字段齐全（含 LEED 命中 + 最小可租面积）/ 部分缺失（组内夹杂 null，含「层高 / 净高」两值只缺一半的组合行）/ 整组缺失（「机电与设施」对应原始事实全 null，组标签仍渲染）"
+          note="通栏 · 4 组 2 列 gap 40/72，每列内部仍是 SpecTable 的行结构；三态：字段齐全（认证列表拼接展示两条 + 最小可租面积）/ 部分缺失（组内夹杂 null，含「层高 / 净高」两值只缺一半的组合行，认证列表只有非 LEED 命名的一条仍如实展示）/ 整组缺失（「机电与设施」对应原始事实全 null 且认证列表为空数组，两者组标签均仍渲染）"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

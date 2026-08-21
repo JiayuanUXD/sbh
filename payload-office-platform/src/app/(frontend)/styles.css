@@ -4906,7 +4906,12 @@ ol {
   color: var(--color-muted);
 }
 
-/* 窄栏里的顾问卡：去嵌套卡片外观，CTA 换行占满，避免正文被挤成竖排 */
+/* 窄栏里的顾问卡：去嵌套卡片外观，CTA 换行占满，避免正文被挤成竖排。
+ * 升级阈值：这是第二处需要 flex-wrap:wrap 的窄栏场景
+ * （第一处见 detail.css `.hero-summary .advisor-card`）。若再出现第三处，
+ * 不要再加第三份 scoped 覆盖——把 flex-wrap:wrap 提升为 `.advisor-card`
+ * 自身的默认行为，两处 scoped 覆盖再改回只负责各自的差异化部分
+ * （如这里额外去掉的卡片外观）。 */
 .detail-side-rail .advisor-card {
   flex-wrap: wrap;
   background: transparent;
