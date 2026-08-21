@@ -244,8 +244,15 @@ test.describe('楼盘详情 P0', () => {
   // CI 用假 Key（NEXT_PUBLIC_AMAP_JS_KEY=e2e-fake-amap-js-key-not-real），真实加载会
   // 触发 SDK 内部 error 污染 console.error 断言。route abort 让地图走 error 降级，
   // 不影响布局/供给/无横向溢出等断言（这些测试不断言地图本身）。
+  // route.abort() 本身会让 Chromium 记一条 `Failed to load resource: net::ERR_FAILED`
+  // 进 console.error。此前没暴露，是因为地图**滚入视口才加载**（IntersectionObserver）：
+  // 未筛选的楼盘页足够长，地图在折叠线以下，请求根本不发生。OPT-037 Task 7 把筛选从
+  // 内存态改成真实导航后，筛完表格收缩、页面变短，地图进了视口——于是 abort 真的发生，
+  // 守卫被这条我们自己制造的错误打红（本地与 CI 一致，非 flake）。
+  // 这里只豁免这一条：它是上面 route abort 的直接产物，不是被测代码的问题。
   test.beforeEach(async ({ page }) => {
     await page.route('**/webapi.amap.com/**', (route) => route.abort())
+    allowedBrowserErrors.set(page, [/Failed to load resource: net::ERR_FAILED/])
   })
 
   test('楼盘页按有效供给显示在租房源表格', async ({ page }) => {
