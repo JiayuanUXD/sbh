@@ -238,13 +238,18 @@ export const SupplyImportBatches: CollectionConfig = {
     useAsTitle: 'fileName',
     defaultColumns: ['fileName', 'type', 'status', 'createdAt'],
   },
-  access: createCollectionAccess({
-    read: 'data:import',
-    create: 'data:import',
-    update: 'data:import',
-    // 业务历史不可物理删除（AGENTS.md 第 4 条）。用一个永不存在的权限码彻底关死。
-    delete: '__never__',
-  }),
+  access: {
+    ...createCollectionAccess({
+      read: 'data:import',
+      create: 'data:import',
+      update: 'data:import',
+    }),
+    // 业务历史不可物理删除（AGENTS.md 第 4 条）。
+    // **必须写字面量 false，不能用 createCollectionAccess 传一个不存在的权限码**——
+    // hasOperationPermission 对持有通配符 `*` 的角色一律放行，假权限码根本关不死。
+    // 这与 AuditLogs.ts:79 / SupplySubmissions.ts:82 的既有写法一致。
+    delete: () => false,
+  },
   fields: [
     {
       name: 'type',
@@ -375,9 +380,91 @@ options: [
 ],
 ```
 
-`src/collections/Buildings.ts` 在「基础信息」tab 末尾加一个与 Listings **逐字同构**的
-`dataSource` group（含同样的 `admin.condition`：四个字段全空时不渲染）。
-把 `Listings.ts:794-834` 的 group 整段复制过去，只把 `admin.description` 里的"房源"改成"楼盘"。
+`dataSource` group **抽成共享字段工厂，不要把 Listings 的 40 行复制一份到 Buildings**
+（控制端与用户于 2026-08-22 裁定：逐字复制会被评审判为重复代码，且 dataSource 将来改动
+必然漏改一处——本仓库已吃过枚举双份定义的亏）。
+
+新建 `src/domain/supply-import/data-source-field.ts`：
+
+```ts
+import type { Field } from 'payload'
+
+// Listings.ts:172 里的 COL_4 是该文件的局部 const（值为 '25%'），没有导出。
+// 本工厂自带一份同值常量，不去改 Listings 的导出面——那超出本任务范围。
+const COL_4 = '25%'
+
+/**
+ * 「数据来源」字段组（Listings 与 Buildings 共用）。
+ *
+ * 抽成工厂而非各写一份：两处的字段结构必须逐字一致，否则
+ * (dataSource.source, dataSource.externalId) 的幂等语义会在两个集合间漂移。
+ * 只有 admin.description 里的主语不同。
+ */
+export function createDataSourceGroup(subject: '房源' | '楼盘'): Field {
+  return {
+    name: 'dataSource',
+    label: '数据来源',
+    type: 'group',
+    admin: {
+      hideGutter: true,
+      // 仅外部来源已有数据时显示；手工新建的对象不需要维护此组字段
+      condition: (data) => {
+        const ds = data?.dataSource as
+          | { source?: string | null; externalId?: string | null; sourceUrl?: string | null; syncedAt?: string | null }
+          | null
+          | undefined
+        return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
+      },
+    },
+    fields: [
+      {
+        type: 'row',
+        fields: [
+          {
+            name: 'source',
+            label: '来源平台',
+            type: 'select',
+            options: [
+              { label: '汇租选址', value: 'huizuxuanzhi' },
+              { label: '批量导入', value: 'manual-import' },
+            ],
+            admin: { description: '外部抓取或批量导入来源标识', width: COL_4 },
+          },
+          {
+            name: 'externalId',
+            label: '外部 ID',
+            type: 'text',
+            admin: { description: `源平台或导入表里的原始${subject}编号`, width: COL_4 },
+          },
+          {
+            name: 'syncedAt',
+            label: '同步时间',
+            type: 'date',
+            admin: { readOnly: true, description: '最后一次同步/导入的时间', width: COL_4 },
+          },
+          {
+            name: 'sourceUrl',
+            label: '源地址',
+            type: 'text',
+            admin: { description: '详情页原始 URL', width: COL_4 },
+          },
+        ],
+      },
+    ],
+  }
+}
+```
+
+然后：
+
+- `src/collections/Listings.ts:794-834` 的内联 group **整段替换**为 `createDataSourceGroup('房源')`
+  （连带 Step 5 开头那处 `source` options 的改动一并由工厂承担，不要再改两遍）。
+- `src/collections/Buildings.ts` 在「基础信息」tab 末尾加 `createDataSourceGroup('楼盘')`。
+
+**验证工厂输出与原定义等价**：Step 8 生成迁移后，确认 `listings` 表**只有**
+`enum_listings_data_source_source` 增加枚举值这一处变化，**没有**任何列的增删改。
+若出现多余的列变更，说明工厂写得与原定义不一致，回去对齐后重新生成迁移，
+**不要接受多余的迁移**。
 
 - [ ] **Step 6: 在 payload.config 注册集合**
 
