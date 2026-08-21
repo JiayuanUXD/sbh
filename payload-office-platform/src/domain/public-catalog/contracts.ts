@@ -153,6 +153,19 @@ export type BuildingSummaryViewModel = Readonly<PublicCityIdentity & {
    * 在租的楼盘恒为 undefined，语义上不能顶替标准层面积。
    */
   typicalFloorArea?: number
+  /**
+   * 楼宇级空调 / 网络 / 停车费说明（自由文本），来自
+   * `Buildings.buildingServices.{airConditioning,network,parkingFee}`——与楼盘
+   * 详情页「楼宇服务」事实行（mappers.ts mapBuildingFactGroups 的 services 组）
+   * 同一来源字段，不是另开一份数据。
+   *
+   * OPT-037 Task 3 review 补充：房源概况面板原判定这三项「DTO 未暴露」为
+   * 结构性省略，但字段本身在 Buildings collection 上存在，属于映射缺口而非
+   * 数据缺口——缺口能以一次低成本映射补齐时应该补，不应该设计成看不见。
+   */
+  airConditioning?: string
+  network?: string
+  parkingFee?: string
 }>
 
 /**

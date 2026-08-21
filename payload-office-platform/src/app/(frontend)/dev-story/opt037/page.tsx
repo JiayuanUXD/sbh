@@ -6,6 +6,7 @@ import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
 import type {
+  BuildingSummaryViewModel,
   DetailMediaViewModel,
   FactGroupViewModel,
   FactValue,
@@ -155,6 +156,45 @@ const OVERVIEW_PRICE_GROUP_MISSING: PriceViewModel = {
   basis: 'sqm',
   displayUnit: 'rmb-sqm-day',
   text: '9.60 元/㎡/天',
+}
+
+// building 补映射（review 修正）：空调/网络/停车费三项来自
+// BuildingSummaryViewModel，与 listing.building 同一 DTO 子对象。
+// 齐全态三项都有值；部分缺失态故意留「网络」为 undefined，验证行不因值
+// 缺失被隐藏；整组缺失态（费用明细）额外让「停车费」也缺失，与「物业费」
+// 「发票」一起验证整组全 — 仍渲染组标签。
+const OVERVIEW_BUILDING_FULL: BuildingSummaryViewModel = {
+  id: 1,
+  slug: 'jing-an-kerry-centre',
+  name: '静安嘉里中心',
+  address: '静安区南京西路 1515 号',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  airConditioning: 'VRV 分户计费',
+  network: '双线光纤入户',
+  parkingFee: '1,500 元/月/位',
+}
+
+const OVERVIEW_BUILDING_PARTIAL: BuildingSummaryViewModel = {
+  id: 2,
+  slug: 'yueyang-international-plaza',
+  name: '越洋国际广场',
+  address: '静安区威海路 511 号',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  airConditioning: '中央空调 · 工作日供应',
+  parkingFee: '1,200 元/月/位',
+}
+
+const OVERVIEW_BUILDING_GROUP_MISSING: BuildingSummaryViewModel = {
+  id: 3,
+  slug: 'huidefeng-international-plaza',
+  name: '会德丰国际广场',
+  address: '黄浦区西藏中路 168 号',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  airConditioning: 'VRV 分户计费',
+  network: '双线光纤入户',
 }
 
 // 字段齐全：四组全部字段都有值，验证正常展示不误伤。
@@ -344,19 +384,19 @@ export default function Opt037PreviewPage() {
         <PreviewSection
           id="listing-overview"
           title="房源概况面板（ListingOverviewPanel）"
-          note="通栏 · 组间距 40 · 组区分只用间距 + 组标签（不用顶线不用色块）；三态：字段齐全 / 组内部分缺失（含「可入驻」的既有「面议」兜底与「物业费」金额→类别的退回）/ 整组缺失（费用明细两行全 —，组仍渲染）"
+          note="通栏 · 组间距 40 · 组区分只用间距 + 组标签（不用顶线不用色块）；含 review 补映射的空调/网络/停车费（取自 listing.building）；三态：字段齐全 / 组内部分缺失（含「可入驻」的既有「面议」兜底、「物业费」金额→类别的退回、「网络」缺失）/ 整组缺失（费用明细三行全 —，组仍渲染）"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>字段齐全</span>
               <ListingOverviewPanel
-                listing={{ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z' }}
+                listing={{ factGroups: OVERVIEW_FULL_GROUPS, price: OVERVIEW_PRICE_FULL, availableFrom: '2026-09-01T00:00:00.000Z', building: OVERVIEW_BUILDING_FULL }}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>部分缺失（组内夹杂 null）</span>
               <ListingOverviewPanel
-                listing={{ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null }}
+                listing={{ factGroups: OVERVIEW_PARTIAL_GROUPS, price: null, availableFrom: null, building: OVERVIEW_BUILDING_PARTIAL }}
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -366,6 +406,7 @@ export default function Opt037PreviewPage() {
                   factGroups: OVERVIEW_GROUP_MISSING_GROUPS,
                   price: OVERVIEW_PRICE_GROUP_MISSING,
                   availableFrom: '2026-10-15T00:00:00.000Z',
+                  building: OVERVIEW_BUILDING_GROUP_MISSING,
                 }}
               />
             </div>

@@ -409,6 +409,11 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
       typeof raw.developerAndScale?.typicalFloorArea === 'number'
         ? raw.developerAndScale.typicalFloorArea
         : undefined,
+    // 与 mapBuildingFactGroups 的 services 组同一来源字段（buildingServices），
+    // 房源概况面板（OPT-037 Task 3）与楼盘详情页「楼宇服务」不能各读一份。
+    airConditioning: trimPublicText(raw.buildingServices?.airConditioning) ?? undefined,
+    network: trimPublicText(raw.buildingServices?.network) ?? undefined,
+    parkingFee: trimPublicText(raw.buildingServices?.parkingFee) ?? undefined,
   }
 }
 
