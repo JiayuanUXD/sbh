@@ -62,6 +62,15 @@ describe('parseRent', () => {
   it('单位缺失返回 null——不猜默认单位', () => {
     expect(parseRent('4.5')).toBeNull()
   })
+  it('含"万"但不是纯总价写法时返回 null——不把万当默认周期猜进去', () => {
+    // 猜错的后果是前台价格差一万倍，而导入的房源是直接上架的
+    expect(parseRent('1.5万/月')).toBeNull()
+    expect(parseRent('80万元/年')).toBeNull()
+  })
+  it('纯总价的万写法不受影响', () => {
+    expect(parseRent('80万')).toEqual({ amount: 800000, unit: 'rmb-total' })
+    expect(parseRent('1,280万元')).toEqual({ amount: 12800000, unit: 'rmb-total' })
+  })
 })
 
 describe('parseFloorNumber', () => {

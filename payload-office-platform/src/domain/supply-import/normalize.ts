@@ -67,6 +67,14 @@ export function parseRent(value: unknown): { amount: number; unit: string } | nu
   const num = extractNumber(text)
   if (num === null || num < 0) return null
 
+  // 拦截：含"万"但不是纯总价写法时返回 null（避免 1.5万/月 被识成 1.5元/月）
+  if (text.includes('万')) {
+    const withoutComma = text.replace(/,/g, '')
+    if (!/^-?\d+(\.\d+)?万元?$/.test(withoutComma)) {
+      return null
+    }
+  }
+
   if (/\/㎡\/天|\/平米\/天|元\/平\/天/.test(text)) return { amount: num, unit: 'rmb-sqm-day' }
   if (/\/工位\/月|\/人\/月/.test(text)) return { amount: num, unit: 'rmb-seat-month' }
   if (/万$|万元$/.test(text)) return { amount: num * 10000, unit: 'rmb-total' }
