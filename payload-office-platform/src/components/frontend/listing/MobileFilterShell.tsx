@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useRef, useState } from 'react'
-import type { FilterRow, FilterSwitch } from './FilterFormC'
+import { countActivePicks, type FilterRow, type FilterSwitch } from './FilterFormC'
 import MobileFilterSheet from './MobileFilterSheet'
 import MobileFilterTrigger from './MobileFilterTrigger'
 
@@ -61,10 +61,13 @@ export default function MobileFilterShell(props: Readonly<{
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const currentParams = useMemo(() => new URLSearchParams(currentQuery), [currentQuery])
-  // 开关也是一个条件：悬浮 pill 上的徽标少算它，会出现「抽屉里显示已选 3 项、
-  // 底栏徽标写 2」这种自相矛盾。
-  const activeCount =
-    rows.reduce((n, row) => (row.activeValue != null ? n + 1 : n), 0) + (switchRow?.active ? 1 : 0)
+  // 徽标数与抽屉头部的「已选 N 项」共用 `countActivePicks` 这一个口径，不在这里
+  // 自己数一遍。曾经这里写的是 `activeValue != null` 逐行累加，与抽屉的判据分叉在
+  // 两个方向上（少了 `visibleRows` 过滤、且用了更宽松的判据），于是 375 下
+  // `?areaMin=750`（楼盘页 `?leasableAreaMin=750`）会出现底栏徽标写 1、抽屉头部
+  // 的「已选 N 项」却是空的——正是本注释上一版警告过的那种自相矛盾，只不过发生在
+  // 行判据而不是开关上（OPT-036 终审 I1）。开关本身仍然算一个条件，由该函数负责。
+  const activeCount = countActivePicks(rows, switchRow)
 
   return (
     <div className="ls-mobilefilter" data-mobile-filter-shell data-open={open ? 'true' : 'false'}>

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
-import { findActiveOption, type FilterRow, type FilterSwitch } from './FilterFormC'
+import { countActivePicks, type FilterRow, type FilterSwitch } from './FilterFormC'
 import FilterPill from './FilterPill'
 
 /**
@@ -220,9 +220,9 @@ export default function MobileFilterSheet(props: Readonly<{
   if (!open || typeof document === 'undefined') return null
 
   const visibleRows = rows.filter((row) => row.options.length > 0)
-  const pickCount =
-    visibleRows.reduce((n, row) => (findActiveOption(row) ? n + 1 : n), 0) +
-    (switchRow?.active ? 1 : 0)
+  // 与 `MobileFilterShell` 交给悬浮 pill 的徽标数同一个函数——两处曾各写一份，
+  // 判据分叉后同屏出现「徽标 1 / 已选 N 项为空」（OPT-036 终审 I1）。
+  const pickCount = countActivePicks(rows, switchRow)
 
   return createPortal(
     <div className="ls-msheet__overlay" onClick={onClose}>

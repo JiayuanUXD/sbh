@@ -129,6 +129,32 @@ export function rowShowsActivePick(row: FilterRow): boolean {
   return findActiveOption(row) != null
 }
 
+/**
+ * 「已选 N 项」的唯一口径：**能被这套筛选控件显示出来的**已选行数 + 开关。
+ *
+ * 两个消费者必须逐字同口径，否则同一屏上两个数字互相矛盾：
+ * `MobileFilterSheet` 头部的「已选 N 项」与 `MobileFilterShell` 交给悬浮 pill 的
+ * 徽标数就并排出现在移动端同一个视口里（抽屉打开时徽标仍在底栏后面）。
+ *
+ * 两条判据缺一不可，各自对应一个真实可达的分叉（OPT-036 终审 I1）：
+ *   - `options.length > 0`：无候选值的行整行不渲染（`visibleRows`），因此它上面
+ *     的选中值一个字都显示不出来。`?priceMax=6` 而没有 `priceUnit` 就是这种情形
+ *     ——价格行零候选，不渲染，却仍是一个生效中的条件。
+ *   - `rowShowsActivePick`（而不是 `activeValue != null`）：数值维度解析层的取值域
+ *     比 UI 档位宽，`?leasableAreaMin=750` / `?areaMin=750` 合法且真的收窄结果集，
+ *     但 750 不等于任何一档，行内不会出现选中项。见 `findActiveOption` 的注释。
+ *
+ * 落在这两条之外的生效条件由 `FilterFormC.extraPicks` 在桌面筛选条里补 chip 显示，
+ * 不进这个计数——这个数说的是「抽屉里你能看见几个选中项」，不是「URL 上有几个参数」。
+ */
+export function countActivePicks(
+  rows: readonly FilterRow[],
+  switchRow?: FilterSwitch,
+): number {
+  const shown = rows.filter((row) => row.options.length > 0 && rowShowsActivePick(row)).length
+  return shown + (switchRow?.active ? 1 : 0)
+}
+
 export default function FilterFormC(props: Readonly<{
   rows: readonly FilterRow[]
   basePath: string

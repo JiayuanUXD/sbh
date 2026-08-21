@@ -24,7 +24,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import type { ReactElement } from 'react'
+import { createElement, type ReactElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 const getCachedSearchFacetsIgnoring = vi.fn()
 const getCachedSearchFacets = vi.fn()
@@ -36,6 +37,8 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
 
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
+import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import { parseListingSearchInput } from '@/domain/public-catalog'
 import type { ListingSearchInput } from '@/domain/public-catalog'
 
@@ -113,6 +116,27 @@ function countPrimaryButtons(empty: Visited): number {
     const cls = (v.node.props as { className?: string } | undefined)?.className
     return typeof cls === 'string' && cls.includes('ls-empty__btn--primary')
   }).length
+}
+
+/**
+ * 把编排层实际传给 `MobileFilterShell` 的 props 真的渲染一遍，读出悬浮 pill 上的徽标数。
+ *
+ * 不能只断言 props：`activeCount` 是 shell **内部**算出来的，正是它曾经与抽屉头部
+ * 「已选 N 项」分叉的地方（OPT-036 终审 I1）。只有把组件跑起来读渲染结果，才拿得到
+ * 那个数——这与「prop 传了 ≠ 传下去的值可用」是同一条教训（Task 11 I3 / Task 12 I2）。
+ * 徽标为 0 时按约定整个不渲染（MobileFilterTrigger：不显示 0），因此匹配不到即 0。
+ */
+function shellBadge(shell: Visited): number {
+  const html = renderToStaticMarkup(
+    createElement(MobileFilterShell, shell.node.props as Parameters<typeof MobileFilterShell>[0]),
+  )
+  const matched = /class="ls-mtrigger__badge">(\d+)</.exec(html)
+  return matched ? Number(matched[1]) : 0
+}
+
+/** shell 收到的 rows/switchRow，用于与抽屉共用的口径函数对账。 */
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }>
 }
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
@@ -255,6 +279,53 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
       'FilterFormC',
     )!.node.props as { extraPicks?: readonly { key: string }[] }).extraPicks
     expect(picks?.map((p) => p.key) ?? []).not.toContain('priceUnit')
+  })
+
+  // ── 终审 I1：悬浮 pill 徽标与抽屉「已选 N 项」必须同口径 ────────────────────
+  // shell 曾用 `rows.reduce(row.activeValue != null)` 自己数一遍，与抽屉的
+  // `visibleRows` + `findActiveOption` 双向分叉：判据更宽松、且不过滤零候选行。
+  // 两个数字在 375 下同屏可见（抽屉打开时徽标仍在底栏），矛盾无处可藏。
+
+  it('落在预设档位之外的数值条件不进徽标：抽屉里根本显示不出来（?areaMin=750）', async () => {
+    const tree = await renderView('?areaMin=750', { totalDocs: 3 })
+    const shell = findByDisplayName(tree, 'MobileFilterShell')!
+    const { rows } = shellRows(shell)
+    // 前提：这一行确实没有能显示它的选项（否则这条测试没在测该测的东西）
+    const areaRow = rows.find((row) => row.key === 'areaMin')!
+    expect(areaRow.activeValue).toBe('750')
+    expect(areaRow.options.some((option) => option.value === '750')).toBe(false)
+    // 旧实现在这里渲染徽标「1」，而抽屉头部的「已选 N 项」是空字符串
+    expect(shellBadge(shell)).toBe(0)
+  })
+
+  it('零候选行（无 priceUnit 时的价格行整行不渲染）不进徽标（?priceMax=6）', async () => {
+    const tree = await renderView('?priceMax=6', { totalDocs: 3 })
+    const shell = findByDisplayName(tree, 'MobileFilterShell')!
+    const { rows } = shellRows(shell)
+    const priceRow = rows.find((row) => row.key === 'priceMax')!
+    // 前提：没有 priceUnit 就没有价格档位，`FilterFormC`/抽屉都整行不渲染
+    expect(priceRow.activeValue).toBe('6')
+    expect(priceRow.options).toHaveLength(0)
+    expect(shellBadge(shell)).toBe(0)
+  })
+
+  it('抽屉真能显示出来的条件仍然计数（?district=jingan → 徽标 1）', async () => {
+    const tree = await renderView('?district=jingan', {
+      totalDocs: 3,
+      districts: [{ slug: 'jingan', name: '静安' }],
+    })
+    expect(shellBadge(findByDisplayName(tree, 'MobileFilterShell')!)).toBe(1)
+  })
+
+  it('徽标数恒等于抽屉头部所用的同一个口径函数（分叉即变红）', async () => {
+    for (const query of ['', '?areaMin=750', '?priceMax=6', '?district=jingan&areaMin=100']) {
+      const shell = findByDisplayName(
+        await renderView(query, { totalDocs: 3, districts: [{ slug: 'jingan', name: '静安' }] }),
+        'MobileFilterShell',
+      )!
+      const { rows, switchRow } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
+    }
   })
 
   it('空态①：总数为 0 时不摆指回本页的死按钮，总数 >0 时仍给主按钮', async () => {

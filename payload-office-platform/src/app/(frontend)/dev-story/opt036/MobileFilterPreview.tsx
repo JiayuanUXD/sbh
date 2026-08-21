@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef, useState } from 'react'
-import type { FilterRow } from '@/components/frontend/listing/FilterFormC'
+import { countActivePicks, type FilterRow } from '@/components/frontend/listing/FilterFormC'
 import MobileFilterSheet from '@/components/frontend/listing/MobileFilterSheet'
 import MobileFilterTrigger from '@/components/frontend/listing/MobileFilterTrigger'
 
@@ -84,7 +84,10 @@ export default function MobileFilterPreview(): React.JSX.Element {
   const triggerButtonRef = useRef<HTMLButtonElement>(null)
 
   const rows = hasPicks ? ROWS_WITH_PICKS : ROWS_EMPTY
-  const activeCount = rows.reduce((n, row) => (row.activeValue != null ? n + 1 : n), 0)
+  // 与生产接线层（MobileFilterShell）走同一个 `countActivePicks`：这个预览壳被
+  // MobileFilterSheet.tsx 的注释当作接线示例引用，自己写一份判据等于把已经收敛掉的
+  // 分叉留在示范代码里，下一个人照着抄就又抄回去了（OPT-036 终审 I1 的第 6 个实例）。
+  const activeCount = countActivePicks(rows)
   const totalDocs = hasPicks ? 168 : 1893
   const currentParams = hasPicks ? PARAMS_WITH_PICKS : new URLSearchParams()
 

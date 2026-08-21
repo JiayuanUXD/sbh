@@ -25,7 +25,8 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { ReactElement } from 'react'
+import { createElement, type ReactElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 const getCachedSearchBuildingsFiltered = vi.fn()
 const resolveCityContext = vi.fn()
@@ -47,6 +48,8 @@ vi.mock('next/navigation', () => ({
 
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
+import { countActivePicks, type FilterRow, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
+import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import CityBuildingsPage from '@/app/(frontend)/[city]/buildings/page'
 import LegacyBuildingsPage from '@/app/(frontend)/buildings/page'
 import { parseBuildingSearchInput } from '@/domain/public-catalog'
@@ -157,6 +160,23 @@ function findAllByDisplayName(tree: ReactElement, name: string): Visited[] {
 
 function findByDisplayName(tree: ReactElement, name: string): Visited | undefined {
   return findAllByDisplayName(tree, name)[0]
+}
+
+/**
+ * 把编排层实际传给 `MobileFilterShell` 的 props 真的渲染一遍，读出悬浮 pill 的徽标数。
+ * `activeCount` 是 shell 内部算的（曾与抽屉头部「已选 N 项」分叉，OPT-036 终审 I1），
+ * 只断言 props 拿不到它。徽标为 0 时整个不渲染，因此匹配不到即 0。
+ */
+function shellBadge(shell: Visited): number {
+  const html = renderToStaticMarkup(
+    createElement(MobileFilterShell, shell.node.props as Parameters<typeof MobileFilterShell>[0]),
+  )
+  const matched = /class="ls-mtrigger__badge">(\d+)</.exec(html)
+  return matched ? Number(matched[1]) : 0
+}
+
+function shellRows(shell: Visited): Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }> {
+  return shell.node.props as Readonly<{ rows: readonly FilterRow[]; switchRow?: FilterSwitch }>
 }
 
 /** 用编排层实际传下去的 props 把 EmptyNoStock 跑一遍，数主按钮个数。 */
@@ -428,6 +448,49 @@ describe('CityBuildingsView 编排层守卫', () => {
     // 抽屉拿到的是同一个开关（否则移动端少一个真实维度）
     const shell = findByDisplayName(renderView('', buildResult()), 'MobileFilterShell')!
     expect((shell.node.props as { switchRow?: unknown }).switchRow).toBeTruthy()
+  })
+
+  // ── 终审 I1：悬浮 pill 徽标与抽屉「已选 N 项」必须同口径 ────────────────────
+  // shell 曾用 `rows.reduce(row.activeValue != null)` 自己数一遍，比抽屉的
+  // `visibleRows` + `findActiveOption` 宽松。本页的可达触发形状是「偏离预设档位的
+  // 数值维度」：`?leasableAreaMin=750` 在 375 下会让底栏徽标写 1、抽屉头部空着。
+  // （「零候选行」那一种形状本页构造不出来——楼盘五行里，面积/竣工是静态档位，
+  //  区域/等级/地铁的选中项由 keepOption 保留——已在房源页守卫覆盖。）
+
+  it('落在预设档位之外的数值条件不进徽标（?leasableAreaMin=750）', () => {
+    const shell = findByDisplayName(
+      renderView('?leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })),
+      'MobileFilterShell',
+    )!
+    const areaRow = shellRows(shell).rows.find((row) => row.key === 'leasableAreaMin')!
+    expect(areaRow.activeValue).toBe('750')
+    expect(areaRow.options.some((option) => option.value === '750')).toBe(false)
+    expect(shellBadge(shell)).toBe(0)
+  })
+
+  it('开关与能显示的行照常计数（开关 1 项 + 偏离档位的面积仍是 0 项）', () => {
+    const onlySwitch = findByDisplayName(
+      renderView('?onlyWithStock=1&leasableAreaMin=750', buildResult({ withStock: [doc('a', 2)] })),
+      'MobileFilterShell',
+    )!
+    expect(shellBadge(onlySwitch)).toBe(1)
+
+    const rowAndSwitch = findByDisplayName(
+      renderView('?onlyWithStock=1&district=jingan', buildResult({ withStock: [doc('a', 2)] })),
+      'MobileFilterShell',
+    )!
+    expect(shellBadge(rowAndSwitch)).toBe(2)
+  })
+
+  it('徽标数恒等于抽屉头部所用的同一个口径函数（分叉即变红）', () => {
+    for (const query of ['', '?leasableAreaMin=750', '?district=jingan', '?onlyWithStock=1&grade=grade-a']) {
+      const shell = findByDisplayName(
+        renderView(query, buildResult({ withStock: [doc('a', 2)] })),
+        'MobileFilterShell',
+      )!
+      const { rows, switchRow } = shellRows(shell)
+      expect(shellBadge(shell), query).toBe(countActivePicks(rows, switchRow))
+    }
   })
 
   it('移动筛选状态容器挂在结果区之外且不带 key（「点选项抽屉仍开」的结构前提）', () => {
