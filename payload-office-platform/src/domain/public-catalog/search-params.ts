@@ -11,6 +11,7 @@
  *   - 枚举（listingType / rentUnit / sort）严格白名单；
  *   - 非法参数静默降级为安全默认值（不抛错），由 canonical URL 生成器对外规范化。
  *   - 价格排序（rent-asc/rent-desc）必须配合 rentUnit，否则降级为 recommended。
+ *   - 价格区间（priceMin/priceMax）必须配合 priceUnit，否则整段丢弃（跨单位比价无意义）。
  *
  * 兼容：保留对旧 `district`（string）的解析以兼容现网 URL，但内部统一存数组。
  */
@@ -400,12 +401,27 @@ export function parseListingSearchInput(sp: URLSearchParams): ListingSearchInput
   const areaMin = parseIntInRange(sp, 'areaMin', 0, 1_000_000)
   const areaMax = parseIntInRange(sp, 'areaMax', 0, 1_000_000)
   // 价格区间：同样新名优先、旧名兜底。
-  const priceMin =
+  let priceMin =
     parseIntInRange(sp, 'priceMin', 0, Number.MAX_SAFE_INTEGER)
     ?? parseIntInRange(sp, 'rentMin', 0, Number.MAX_SAFE_INTEGER)
-  const priceMax =
+  let priceMax =
     parseIntInRange(sp, 'priceMax', 0, Number.MAX_SAFE_INTEGER)
     ?? parseIntInRange(sp, 'rentMax', 0, Number.MAX_SAFE_INTEGER)
+  // 缺 priceUnit 的价格区间整段丢弃：不可通约的计价单位之间比 amount 没有意义
+  // （元/月 vs 元/㎡/天 vs 元/工位/月）。与 `parseBuildingSupplySearchParams` 同一裁定。
+  //
+  // 丢在解析层的收益不止是「少传一个字段」：`?priceMax=6` 而没有 `priceUnit` 曾经是
+  // 一个**看不见的生效条件**——价格筛选行的档位来自 `PRICE_MAX_BUCKETS[priceUnit]`，
+  // 没有单位就零候选、整行不渲染，用户看不到它、点不掉它，结果集却真的被收窄了
+  // （而且是按上面那种无意义的口径收窄）。丢在这里，canonical 也就不会继续把它带在
+  // 链接上，旧收录 URL 经一次解析即自愈。
+  //
+  // 真正的失效点守卫在 `supply-adapter.ts#filterByPriceRange`：绕过 URL 直接构造
+  // input 的调用方（facet 剥离、内部编排）不经过这里。
+  if (!priceUnit) {
+    priceMin = undefined
+    priceMax = undefined
+  }
   const availableBefore = parseDate(sp, 'availableBefore')
   const q = parseQ(sp)
   const city = sp.get('city') || undefined
@@ -453,8 +469,11 @@ export function buildCanonicalSearchParams(input: ListingSearchInput): URLSearch
   if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
   // 只输出新名：旧参数仅在解析层被接受，canonical 负责把索引收敛到一套 URL。
   // 两边都输出会产生同义重复的 canonical，索引归并不了。
-  if (input.priceMin != null) sp.set('priceMin', String(input.priceMin))
-  if (input.priceMax != null) sp.set('priceMax', String(input.priceMax))
+  // 价格区间只在有 priceUnit 时才是一个有效状态（见 parseListingSearchInput）。
+  // 解析层已经保证这一点，此处再挡一道是给直接构造 input 的调用方兜底——
+  // 少了这道，canonical 会输出一个自己再解析一次就消失的参数，往返不再幂等。
+  if (input.priceUnit && input.priceMin != null) sp.set('priceMin', String(input.priceMin))
+  if (input.priceUnit && input.priceMax != null) sp.set('priceMax', String(input.priceMax))
   if (input.priceUnit) sp.set('priceUnit', input.priceUnit)
   if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
   if (input.q) sp.set('q', input.q)

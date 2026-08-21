@@ -300,15 +300,25 @@ describe('CityListingsView 接线守卫（要求 2 / 3 / 6 + 清除全部同口�
     expect(shellBadge(shell)).toBe(0)
   })
 
-  it('零候选行（无 priceUnit 时的价格行整行不渲染）不进徽标（?priceMax=6）', async () => {
+  it('缺 priceUnit 的价格区间不进徽标，因为它压根不再是一个生效条件（?priceMax=6）', async () => {
+    // 这条用例原本锁的是「零候选行不计数」：`?priceMax=6` 没有 priceUnit → 价格行
+    // 零档位、整行不渲染，却仍在收窄结果集。那个「看不见的生效条件」已经在解析层
+    // 被堵掉（跨计价单位比 amount 无意义，见 search-params.ts 的闸门注释），所以
+    // 现在正确的断言是：这个参数根本进不了 input，行上不会出现 activeValue。
+    // `countActivePicks` 里 `options.length > 0` 那道结构性守卫改由
+    // `tests/listing-price-unit-gate.test.ts` 直接单测覆盖。
     const tree = await renderView('?priceMax=6', { totalDocs: 3 })
     const shell = findByDisplayName(tree, 'MobileFilterShell')!
     const { rows } = shellRows(shell)
     const priceRow = rows.find((row) => row.key === 'priceMax')!
-    // 前提：没有 priceUnit 就没有价格档位，`FilterFormC`/抽屉都整行不渲染
-    expect(priceRow.activeValue).toBe('6')
+    expect(priceRow.activeValue).toBeUndefined()
     expect(priceRow.options).toHaveLength(0)
     expect(shellBadge(shell)).toBe(0)
+    // 也不该从别的出口冒出来：既没有行 chip，也没有补充 chip
+    const picks = (findByDisplayName(tree, 'FilterFormC')!.node.props as {
+      extraPicks?: readonly { key: string }[]
+    }).extraPicks
+    expect(picks?.map((pick) => pick.key) ?? []).not.toContain('price')
   })
 
   it('抽屉真能显示出来的条件仍然计数（?district=jingan → 徽标 1）', async () => {

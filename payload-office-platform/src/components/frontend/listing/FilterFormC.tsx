@@ -136,10 +136,17 @@ export function rowShowsActivePick(row: FilterRow): boolean {
  * `MobileFilterSheet` 头部的「已选 N 项」与 `MobileFilterShell` 交给悬浮 pill 的
  * 徽标数就并排出现在移动端同一个视口里（抽屉打开时徽标仍在底栏后面）。
  *
- * 两条判据缺一不可，各自对应一个真实可达的分叉（OPT-036 终审 I1）：
+ * 两条判据缺一不可（OPT-036 终审 I1）：
  *   - `options.length > 0`：无候选值的行整行不渲染（`visibleRows`），因此它上面
- *     的选中值一个字都显示不出来。`?priceMax=6` 而没有 `priceUnit` 就是这种情形
- *     ——价格行零候选，不渲染，却仍是一个生效中的条件。
+ *     的选中值一个字都显示不出来，不能算进「你能看见几个选中项」。这一条是
+ *     结构性守卫，必须与 `visibleRows` 逐字同判据。
+ *
+ *     原先这里举的例子是 `?priceMax=6` 而没有 `priceUnit`（价格行的档位来自
+ *     `PRICE_MAX_BUCKETS[priceUnit]`，没有单位就零候选）。那个 URL **已经不再是
+ *     一个生效条件**：缺单位的价格区间在解析层就被整段丢弃了（见
+ *     `search-params.ts#parseListingSearchInput`），因为跨计价单位比 amount 无意义。
+ *     判据本身照留——它守的是「零候选行不计数」这条结构不变量，不是那一个 URL；
+ *     直接的回归测试见 `tests/listing-price-unit-gate.test.ts` 里对本函数的单测。
  *   - `rowShowsActivePick`（而不是 `activeValue != null`）：数值维度解析层的取值域
  *     比 UI 档位宽，`?leasableAreaMin=750` / `?areaMin=750` 合法且真的收窄结果集，
  *     但 750 不等于任何一档，行内不会出现选中项。见 `findActiveOption` 的注释。

@@ -98,10 +98,18 @@ describe('city route URL contract', () => {
   it('uses the current type query key and retains future structured price keys only when valid', () => {
     expect(
       switchCityUrl(
-        '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&type=traditional-office&pricePeriod=month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
+        '/shanghai/listings?priceBasis=total&availableBefore=2026-12-31&listingType=traditional-office&type=traditional-office&pricePeriod=month&rentUnit=rmb-month&rentMax=999&rentMin=100&areaMax=200&areaMin=10&q=first&district=x&businessArea=y&metro=z&page=0&unknown=keep-no',
         'hangzhou',
       ),
-    ).toBe('/hangzhou/listings?type=traditional-office&areaMin=10&areaMax=200&priceMin=100&priceMax=999&pricePeriod=month&priceBasis=total&availableBefore=2026-12-31&q=first')
+    ).toBe('/hangzhou/listings?type=traditional-office&areaMin=10&areaMax=200&priceMin=100&priceMax=999&priceUnit=rmb-month&pricePeriod=month&priceBasis=total&availableBefore=2026-12-31&q=first')
+  })
+
+  it('drops a price range that has no price unit（跨计价单位比价无意义，解析层已丢弃）', () => {
+    // 换城市走的是同一个 `parseListingSearchInput`，因此闸门在这条链路上自动生效：
+    // 一个缺单位的 `?rentMax=999` 不会换个名字（priceMax）继续跟着用户跨城市。
+    expect(
+      switchCityUrl('/shanghai/listings?rentMax=999&rentMin=100&areaMin=10', 'hangzhou'),
+    ).toBe('/hangzhou/listings?areaMin=10')
   })
 
   it('drops duplicate scalar values while normalizing current parser number and q forms', () => {

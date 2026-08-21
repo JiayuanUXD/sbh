@@ -238,8 +238,15 @@ function createFullPredicateAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
-    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
+    // 价格区间的单位闸门：缺 priceUnit 时整段不生效，与生产实现
+    // `supply-adapter.ts#filterByPriceRange` 同口径。跨计价单位比 amount 无意义
+    // （元/月 vs 元/㎡/天 vs 元/工位/月），假适配器不能比生产实现宽松，否则
+    // 「所有消费者结论一致」这条验收断言就是在拿一个不存在的口径自证。
+    if (input.priceUnit && (input.priceMin != null || input.priceMax != null)) {
+      if (l.rentUnit !== input.priceUnit || l.rent == null) return false
+      if (input.priceMin != null && l.rent < input.priceMin) return false
+      if (input.priceMax != null && l.rent > input.priceMax) return false
+    }
     if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
     if (input.q && !l.title.includes(input.q)) return false
     return true

@@ -97,8 +97,15 @@ function createFakeAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
-    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
+    // 价格区间的单位闸门：缺 priceUnit 时整段不生效，与生产实现
+    // `supply-adapter.ts#filterByPriceRange` 同口径。跨计价单位比 amount 无意义
+    // （元/月 vs 元/㎡/天 vs 元/工位/月），假适配器不能比生产实现宽松，否则
+    // 「所有消费者结论一致」这条验收断言就是在拿一个不存在的口径自证。
+    if (input.priceUnit && (input.priceMin != null || input.priceMax != null)) {
+      if (l.rentUnit !== input.priceUnit || l.rent == null) return false
+      if (input.priceMin != null && l.rent < input.priceMin) return false
+      if (input.priceMax != null && l.rent > input.priceMax) return false
+    }
     if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
     if (input.q && !l.title.includes(input.q)) return false
     if (input.district && input.district.length > 0) {
@@ -364,7 +371,9 @@ describe('searchListings', () => {
 
   it('空结果时 docs 为空数组，totalDocs=0，filteredByRentUnit=false', async () => {
     const r = await searchListings(
-      defaultInput({ priceMin: 99999999 }),
+      // 带上 priceUnit：缺单位的价格区间整段不生效（跨单位比价无意义），
+      // 拿它构造空结果集会把这条用例变成「什么都没测」。
+      defaultInput({ priceUnit: 'rmb-month', priceMin: 99999999 }),
       ctx,
       fullFixture(),
     )
@@ -650,12 +659,14 @@ describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
     expect(facets.districts.find((d) => d.slug === 'jingan')?.count).toBe(2)
   })
 
-  it('剥 priceUnit 连带剥派生字段并把价格排序降级为 recommended', () => {
+  it('剥 priceUnit 连带剥派生字段、价格区间，并把价格排序降级为 recommended', () => {
     const stripped = omitListingSearchDimensions(
       defaultInput({
         priceUnit: 'rmb-month',
         pricePeriod: 'month',
         priceBasis: 'total',
+        priceMin: 20000,
+        priceMax: 50000,
         sort: 'price-asc',
         district: ['jingan'],
       }),
@@ -664,10 +675,24 @@ describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
     expect(stripped.priceUnit).toBeUndefined()
     expect(stripped.pricePeriod).toBeUndefined()
     expect(stripped.priceBasis).toBeUndefined()
+    // 区间的量纲就是刚被剥掉的那个单位：留着它就是一个无单位区间的半成品输入
+    expect(stripped.priceMin).toBeUndefined()
+    expect(stripped.priceMax).toBeUndefined()
     // 跨单位价格不可比，与解析层 normalizeSort 同一口径
     expect(stripped.sort).toBe('recommended')
     // 未点名的维度原样保留
     expect(stripped.district).toEqual(['jingan'])
+  })
+
+  it('剥离结果永远满足「区间必带单位」：canonical 与 input 同构，缓存键不会错配', () => {
+    for (const dimensions of [['priceUnit'], ['price'], ['priceUnit', 'price'], ['district']] as const) {
+      const stripped = omitListingSearchDimensions(
+        defaultInput({ priceUnit: 'rmb-month', priceMin: 20000, priceMax: 50000, district: ['jingan'] }),
+        dimensions,
+      )
+      const hasRange = stripped.priceMin != null || stripped.priceMax != null
+      expect(hasRange && stripped.priceUnit == null, dimensions.join('+')).toBe(false)
+    }
   })
 
   it('price / area 是一个维度两个字段，必须整体剥离', () => {

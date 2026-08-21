@@ -63,12 +63,18 @@ export type ListingSearchInput = Readonly<{
   listingType?: readonly string[]
   areaMin?: number
   areaMax?: number
-  /** 价格下限。URL 上旧名 rentMin 仍被接受，canonical 只输出 priceMin。 */
+  /**
+   * 价格下限（含）。**必须与 `priceUnit` 同时给出**，否则整段被忽略——
+   * 元/月、元/㎡/天、元/工位/月不可通约，缺单位时比 amount 得不到任何有意义的
+   * 结果集。解析层直接丢弃，`supply-adapter#filterByPriceRange` 在失效点再挡一道。
+   *
+   * URL 上旧名 rentMin 仍被接受，canonical 只输出 priceMin。
+   */
   priceMin?: number
-  /** 价格上限。URL 上旧名 rentMax 仍被接受，canonical 只输出 priceMax。 */
+  /** 价格上限（含）。约束同 `priceMin`。URL 上旧名 rentMax 仍被接受。 */
   priceMax?: number
   /**
-   * 价格排序时必须指定单位，禁止跨单位直接排序。
+   * 价格排序与价格区间都必须指定单位，禁止跨单位直接比价。
    *
    * 取值为 PriceDisplayUnit 全集（12 值），含出售的 rmb-total / rmb-sqm-total。
    * URL 上旧名 rentUnit 仍被接受（只能表达 3 个租赁单位），canonical 只输出 priceUnit。

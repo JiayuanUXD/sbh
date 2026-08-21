@@ -41,7 +41,7 @@ import {
 } from '@/domain/supply/public-building'
 import { createSearchContext, type SearchContext, type ListingSearchInput } from './types'
 import type { PublicRouteIdentity } from './contracts'
-import { mapBuildingCity } from './mappers'
+import { mapBuildingCity, resolveListingPrice } from './mappers'
 
 /**
  * 公开目录供给适配器契约
@@ -317,6 +317,41 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/**
+ * 价格区间精筛：**单位闸门是硬前提**，缺 `priceUnit` 时整段不生效。
+ *
+ * 「不生效」是刻意的裁定，不是偷懒：元/月、元/㎡/天、元/工位/月三个量纲不可通约，
+ * 拿 `amount` 直接比大小得到的既不是「便宜的房源」也不是「贵的房源」，只是一个
+ * 随单位分布漂移的随机子集。与其给出一个看起来正常、实则无意义的结果集，不如
+ * 让这个条件明确地什么都不做——解析层（`parseListingSearchInput`）已经保证缺单位
+ * 的区间连 input 都进不来，这里是失效点上的第二道守卫，供绕过 URL 直接构造
+ * `ListingSearchInput` 的调用方（facet 剥离、测试、未来的内部编排）兜底。
+ *
+ * 与楼盘详情供给区的 `building-supply.ts#matchesInput` 是同一条不变量、同一套判据：
+ *   - 无价格的房源（「面议」）在给定区间时**不入选**——区间是一个数值断言，
+ *     面议既不满足也无法比较；
+ *   - 单位不等于 `priceUnit` 的房源不入选，即使金额落在区间内。
+ *
+ * 判 `displayUnit` 而不是判 `rentUnit` 列：`resolveListingPrice` 已经把结构化
+ * `price.*` 与过渡期旧列 `rent`/`rentUnit` 归一成同一个 `PriceViewModel`，
+ * 两种表示在这里没有分叉。
+ */
+function filterByPriceRange(
+  listings: readonly Listing[],
+  input: ListingSearchInput,
+): Listing[] {
+  const { priceMin, priceMax, priceUnit } = input
+  if (priceMin == null && priceMax == null) return [...listings]
+  if (!priceUnit) return [...listings]
+  return listings.filter((listing) => {
+    const price = resolveListingPrice(listing)
+    if (!price || price.displayUnit !== priceUnit) return false
+    if (priceMin != null && price.amount < priceMin) return false
+    if (priceMax != null && price.amount > priceMax) return false
+    return true
+  })
+}
+
 function readListingRouteProjection(value: unknown): ListingRouteProjection | null {
   if (!isRecord(value) || typeof value.slug !== 'string' || !isRecord(value.building)) {
     return null
@@ -572,12 +607,22 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
         where.area = areaWhere
       }
-      if (input.priceMin != null || input.priceMax != null) {
-        const rentWhere: Record<string, number> = {}
-        if (input.priceMin != null) rentWhere.greater_than_equal = input.priceMin
-        if (input.priceMax != null) rentWhere.less_than_equal = input.priceMax
-        where.rent = rentWhere
-      }
+      // 价格区间**故意不下推**到 where，整段交给 `filterByPriceRange` 在内存里做。
+      // 两条理由各自独立成立：
+      //
+      //   1. where 无法表达「同一计价单位内比大小」。缺 `priceUnit` 时，
+      //      `where.rent = { greater_than_equal: 3 }` 会把 3 元/㎡/天、3 元/月、
+      //      3 元/工位/月 放进同一次比较——三个不可通约的量纲，比出来的结果没有
+      //      任何含义，却是一个**看不见的生效条件**（URL 上 `?priceMax=6` 就够了）。
+      //      单位闸门现在由解析层与 `filterByPriceRange` 一起守，与楼盘详情供给区
+      //      的 `matchesInput` 同一裁定。
+      //   2. 即使给了 `priceUnit`，`rent` 也是错的列。它是过渡期保留的旧字段
+      //      （见 `Listings.ts` 里那段注释），现行房源的金额写在结构化 `price.*`
+      //      组里、`rent` 为空。对 `rent` 做区间会把这些房源整批判为不匹配——
+      //      不是「筛窄了」，是「新数据一条都筛不出来」。
+      //
+      // 代价是候选集不再被价格预先收窄，多出来的行由 `PUBLIC_CATALOG_CANDIDATE_LIMIT`
+      // 兜底。这与有效供给精筛、举报暂停排除本来就在内存里做是同一量级的取舍。
       if (input.priceUnit) {
         // where 的 key 是 **Payload 集合字段名**（listings.rentUnit），不是 URL 参数名。
         // 两者同名不同义：URL 侧已改名为 priceUnit，数据库列仍叫 rent_unit。
@@ -605,7 +650,8 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // Read every coarse candidate in stable ID order. The Facade performs the
       // requested global sort and pagination only after the fine filter.
       const docs = await findAllListings(where, 2)
-      return fineFilter(docs as unknown as Record<string, unknown>[], asOf)
+      const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
+      return filterByPriceRange(kept, input)
     },
 
     async findEffectiveListingsSitemapPage(ctx, options) {
