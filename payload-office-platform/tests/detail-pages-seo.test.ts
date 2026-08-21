@@ -135,6 +135,7 @@ describe('detail metadata and JSON-LD', () => {
           areaRange: null,
           seatRange: null,
           immediateAvailabilityCount: 0,
+          priceSortDegraded: false,
         },
       ],
       availableGroups: [

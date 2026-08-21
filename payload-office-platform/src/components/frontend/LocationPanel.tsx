@@ -132,8 +132,31 @@ export default function LocationPanel({
 
   // 交通类按子分类（subway/bus）筛分；非交通类别整组透传
   const transportPois = pois.transport
+
+  // 交通子 Tab 仅渲染有 POI 的子分类
+  const visibleSubTabs = TRANSPORT_SUB_TABS.filter((tab) =>
+    transportPois.some((poi) => poi.subCategory === tab.key),
+  )
+
+  /**
+   * 实际生效的交通子分类。
+   *
+   * `activeSubCategory` 的 state 初值写死 `'subway'`，但「有交通 POI」不等于
+   * 「有地铁 POI」：只有公交站没有地铁站的楼盘，交通 tab 显示「交通（5）」并
+   * 选中，按 subway 一过滤却是空——而子 tab 需要 `> 1` 种子分类才渲染，用户
+   * 连切过去的入口都没有，清单整块不渲染（计数说 5、列表空白）。Task 5 把
+   * `mapPois` 从「交通类恒画全量 subway+bus」改成 `mapPois = activePois` 之后，
+   * 地图图钉也跟着归零——改造前至少还画着那 5 个公交图钉。
+   * 用派生值而不是改 useState 初值：`pois` 是 prop，可能在组件存活期间变化
+   * （切换楼盘 / POI 迟到），初值只在首次渲染求一次，救不了后来的变化。
+   */
+  const effectiveSubCategory: TransportSubCategory =
+    visibleSubTabs.some((tab) => tab.key === activeSubCategory)
+      ? activeSubCategory
+      : visibleSubTabs[0]?.key ?? activeSubCategory
+
   const transportSubPois = transportPois.filter(
-    (poi) => poi.subCategory === activeSubCategory,
+    (poi) => poi.subCategory === effectiveSubCategory,
   )
   // 列表：交通类按子分类筛选，非交通类整组
   const activePois =
@@ -142,10 +165,6 @@ export default function LocationPanel({
   // 图钉与清单行的字母锚点一一对应，不再是交通类地图恒画全量 subway+bus。
   const mapPois = activePois
 
-  // 交通子 Tab 仅渲染有 POI 的子分类
-  const visibleSubTabs = TRANSPORT_SUB_TABS.filter((tab) =>
-    transportPois.some((poi) => poi.subCategory === tab.key),
-  )
   const hasSubTabs = activeCategory === 'transport' && visibleSubTabs.length > 1
 
   return (
@@ -209,7 +228,7 @@ export default function LocationPanel({
                   const count = transportPois.filter(
                     (poi) => poi.subCategory === tab.key,
                   ).length
-                  const isActive = activeSubCategory === tab.key
+                  const isActive = effectiveSubCategory === tab.key
                   return (
                     <button
                       key={tab.key}

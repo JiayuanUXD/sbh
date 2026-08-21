@@ -114,10 +114,19 @@
 .dt-richtext :where(p, ul, ol):last-child { margin-bottom: 0; }
 
 @media (max-width: 767px) {
-  /* 移动端底部固定询价栏（`.detail__mobile-bar`，高 68 + 安全区）会盖住页尾。
-   * styles.css:2510 给 `.detail` 留过同一份余量，本页根已不带 `.detail`
-   * （那条规则的 `max-width:100%` 会把 100vw 出血夹回容器宽），所以在这里
-   * 按 comp「页尾留白 128」重新给一份。 */
+  /* 移动端底部固定询价栏（`.detail__mobile-bar`）会盖住页尾，这里给页尾留余量。
+   *
+   * 三个数字各是各的来源，**别把它们当成一条算式互相「校正」**：
+   *   - 栏高：`styles.css` 的 `.detail__mobile-bar` 是 `min-height: 64px`
+   *     （+ `padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom))`），
+   *     实际渲染高度随内容浮动，不是一个定值。本注释曾写「高 68 + 安全区」——
+   *     那个 68 在代码里找不到对应，已订正为 64（2026-08-22 终审）。
+   *   - 128：comp 给的**页尾留白**定值，不是「栏高 + 间距」推出来的。
+   *     照 64 去「校正」这个 128（比如改成 64 + 一点间距）会让页尾被底栏压住。
+   *   - `env(safe-area-inset-bottom)`：iOS home indicator，与前两者正交。
+   * `styles.css` 里 `.detail` 有一份同性质的 112px 余量，但本页根已不带
+   * `.detail`（那条规则的 `max-width:100%` 会把 100vw 出血夹回容器宽），
+   * 所以在这里按 comp 重新给一份。 */
   .dt-page { --dt-sec: 40px; padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
   .dt-titlebar { padding: 20px 0 16px; }
   .dt-titlebar__row { flex-direction: column; gap: 12px; }
@@ -534,9 +543,14 @@
  *   1. 职责不同。`.detail__mobile-bar` 是询价 CTA，不是导航——它无法回答
  *      「跳到楼盘参数」。单列断点下区块纵向堆叠、页面比桌面长得多，锚点
  *      导航的价值反而更高，删掉是净损失。
- *   2. `.detail__mobile-bar` 只在 ≤767px 渲染（styles.css 的 media 就是 767），
- *      而 `.dt-sticky-bar` 的 display:none 断点是 1023——768–1023 这一段本来
- *      就没有任何替代品。照抄那条断点会在这段宽度留下空洞。
+ *   2. 断点不同。`.detail__mobile-bar` 只在 ≤767px 渲染（styles.css 的 media
+ *      就是 767），本条要覆盖的是**全部**宽度下的「跳到某个区块」需求，
+ *      ≤767 收掉的只是它的楼盘名与 CTA，导航本身必须留着。
+ *      （订正 2026-08-22：这里原写「`.dt-sticky-bar` 的 display:none 断点是
+ *      1023——768–1023 这一段本来就没有任何替代品」。那是 Task 4 的旧取值，
+ *      Task 9 已把 `.dt-sticky-bar` 收窄到 **767**（见本文件末「吸附询价条的
+ *      隐藏断点」一节），与本文件同处的两段注释直接互相矛盾。768–1023 现在
+ *      仍有 `.dt-sticky-bar`，那句论据已不成立，故换成上面这条真正的理由。）
  * 收掉 CTA 的理由：≤767 时 `.detail__mobile-bar` 已常驻同一个「预约看房」
  * 入口，同屏两个相同 CTA 违反 StickyInquiryBar / DetailMobileBarPrice 一直
  * 守护的「同一入口不在视口里重复出现」不变量。
@@ -548,12 +562,22 @@
 
   /* 上面两条把本断点下仅有的另外两个可见元素都藏了，所以「锚点组没渲染」在
    * ≤767 等价于「整条不含任何内容」——一条纯空白、却常驻吸附并遮住内容的
-   * 56px 玻璃条。真实可达：无坐标→无地图区、供给全空→无供给区、同商圈无
-   * 楼盘→无该区，只剩「楼盘参数」一项时组件就不渲染锚点组。
-   * 本批「空态整段不渲染」的硬约束必须落在**最终可见性**上，而不是组件的
+   * 56px 玻璃条。真实可达：无坐标→无地图区、同商圈无楼盘→无该区、参数与特色
+   * 全空→无参数区，只剩「在租房源」一项时组件就不渲染锚点组。
+   * （订正 2026-08-22：这里原本还列着「供给全空→无供给区」。**那是已撤回的
+   * 裁定**——`#supply` 恒渲染，供给三组全空时由 `BuildingSupplyBrowser` 的
+   * 「当前暂无公开可选空间」承担诚实空态，并被 `tests/e2e/detail-pages.spec.ts`
+   * 锁死。照那句话去给供给区加守卫会让 e2e 直接红。）
+   * 本批「结构性空壳不渲染」的硬约束必须落在**最终可见性**上，而不是组件的
    * props 上——组件看不到这条 media query，判断只能写在这里；反过来把断点
    * 搬进 JS 又会造出第二个事实源（断点值同时存在于 CSS 与 JS，必然漂移）。
-   * 组件那边只如实标注 `--no-links`。 */
+   * 组件那边只如实标注 `--no-links`。
+   *
+   * 这条规则的边界（同一页的 `BuildingSupplyBrowser.tsx:252` 确实在 JS 里读
+   * `matchMedia('(max-width: 767px)')`，那是**允许的例外**，不是违规）：
+   * 「同一份 DOM 显不显示」归 CSS；「渲染哪一份 DOM」（表格 vs 卡片，结构不同、
+   * 两份都渲染会重复进无障碍树与埋点）才归 JS，且此时断点值必须与 CSS 逐字
+   * 相同、两边互相注明。完整表述见 `AnchorNavBar.tsx` 同一处注释。 */
   .dt-anchor-bar--no-links { display: none; }
 }
 

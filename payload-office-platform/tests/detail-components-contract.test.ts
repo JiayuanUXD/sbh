@@ -65,6 +65,7 @@ const LEASE_ONLY_SNAPSHOT: BuildingSupplySnapshot = {
       areaRange: { min: 101, max: 101 },
       seatRange: null,
       immediateAvailabilityCount: 1,
+      priceSortDegraded: false,
     },
   ],
   availableGroups: [{
@@ -301,7 +302,7 @@ describe('detail component contracts', () => {
       ...LEASE_ONLY_SNAPSHOT,
       groups: [
         LEASE_ONLY_SNAPSHOT.groups[0]!,
-        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1, priceSortDegraded: false },
       ],
       availableGroups: [
         LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
@@ -322,7 +323,7 @@ describe('detail component contracts', () => {
       ...LEASE_ONLY_SNAPSHOT,
       groups: [
         LEASE_ONLY_SNAPSHOT.groups[0]!,
-        { key: 'sale', listings: [makeCard({ id: 2, title: '出售样例房源', businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', listings: [makeCard({ id: 2, title: '出售样例房源', businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1, priceSortDegraded: false },
       ],
       availableGroups: [
         LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
@@ -336,6 +337,85 @@ describe('detail component contracts', () => {
     expect(html).toContain('出售样例房源')
     expect(html).toContain('总价 万元')
     expect(html).not.toContain('静安中心 101 室')
+  })
+
+  /**
+   * 终审 C1：出售组不得渲染「可即时过户 N」聚合格，也不得渲染「可即刻入驻」pill。
+   *
+   * `immediateAvailabilityCount` 数的是 `isImmediatelyAvailable`，它对
+   * `availableFrom == null` 一律判真（「未填 = 现房」的租赁口径），而
+   * `collections/Listings.ts` 的 `availableFrom` admin condition 是
+   * `businessType !== 'sale'`——出售房源该字段**结构上恒为 null**。两者相乘的结果
+   * 是「可即时过户 N」恒等于该组全部套数：对每一套在售房源做了一次它没有依据的
+   * 产权承诺。同一根因还会渲染出一个租赁文案的「可即刻入驻」pill，点它结果集一条
+   * 不变、计数一条不减，`aria-current` 却亮起——正是本批自己禁的「点了没反应的
+   * 控件」。守卫落在渲染结果上，任何「把 immediate 格补回出售组」的改动会先撞到它。
+   */
+  it('出售组不渲染「可即时过户」聚合格与「可即刻入驻」pill（域层没有过户依据）', () => {
+    const saleSnapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      // asOf 之后才可入驻的租赁卡不影响本例；关键是出售组的 immediateAvailabilityCount
+      // 恒等于套数（域层就是这么算的），组件必须自己不去渲染它。
+      groups: [
+        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1, priceSortDegraded: false },
+      ],
+      availableGroups: [
+        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
+      ],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, { snapshot: saleSnapshot, basePath: '/buildings/jingan-center', currentSearch: '' }),
+    )
+
+    expect(html).not.toContain('可即时过户')
+    // 「可即刻入驻」是租赁文案，出售组连 pill 都不该有
+    expect(html).not.toContain('可即刻入驻')
+    // 聚合区其余两格照常渲染（不是整块消失）
+    expect(html).toContain('单价区间')
+    expect(html).toContain('面积区间')
+  })
+
+  it('租赁组仍渲染「可即刻入驻」聚合格与 pill（本条不是把这一维整体删掉）', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, { snapshot: LEASE_ONLY_SNAPSHOT, basePath: '/buildings/jingan-center', currentSearch: '' }),
+    )
+    expect(html).toContain('可即刻入驻')
+  })
+
+  /**
+   * 终审 C2：「该组内房源计价单位不唯一」这句提示必须读**当前组**的
+   * `priceSortDegraded`，不能读快照级 `validationErrors`（后者是「任一组降级」的
+   * 汇总信号）。否则「本组单位唯一、只是这栋楼另有一个出售组」时会说出假话。
+   */
+  it('当前组未降级时不渲染「计价单位不唯一」提示，哪怕快照级 validationErrors 已置位', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot: {
+          ...LEASE_ONLY_SNAPSHOT,
+          // 另一组降级 → 快照级信号置位；当前组（lease）没降级
+          validationErrors: ['price_unit_required'],
+        },
+        basePath: '/buildings/jingan-center',
+        currentSearch: 'sort=price-asc',
+      }),
+    )
+    expect(html).not.toContain('计价单位不唯一')
+  })
+
+  it('当前组确实降级时才渲染「计价单位不唯一」提示', () => {
+    const degraded: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      groups: [{ ...LEASE_ONLY_SNAPSHOT.groups[0]!, priceSortDegraded: true }],
+      validationErrors: ['price_unit_required'],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot: degraded,
+        basePath: '/buildings/jingan-center',
+        currentSearch: 'sort=price-asc',
+      }),
+    )
+    expect(html).toContain('计价单位不唯一')
   })
 
   it('空组（priceRanges 空）仍渲染表格，「—」代表价格缺失而非分桶控件', () => {
@@ -352,6 +432,7 @@ describe('detail component contracts', () => {
             areaRange: null,
             seatRange: null,
             immediateAvailabilityCount: 0,
+            priceSortDegraded: false,
           }],
         },
         basePath: '/buildings/jingan-center',

@@ -62,9 +62,20 @@ type Recommendations = Awaited<ReturnType<typeof getCachedDetailRecommendations>
  *      `getCachedBuildingBySlug` 取数一并摘除（少一次详情页查询）。
  *   2. **`DetailFacts`（全量事实清单）换成 `ListingOverviewPanel`（概况面板）**。
  *      这是 Task 3 的既定设计：概况面板是按 comp factGroups 逐字段核过可达性的
- *      固定行清单，不是「把 factGroups 全倒出来」。不在清单里的事实（如楼层、
- *      朝向这类 mapper 产出但 comp 未列的行）在本页不再出现——这是设计取舍，
- *      `DetailFacts` 组件本身仍被楼盘详情页使用，没有删。
+ *      固定行清单，不是「把 factGroups 全倒出来」。
+ *
+ *      **订正（2026-08-22 终审）**：这里原本写着「不在清单里的事实（如楼层、
+ *      朝向）在本页不再出现——这是设计取舍，`DetailFacts` 组件本身仍被楼盘详情
+ *      页使用，没有删」。两句都不成立：
+ *        - `DetailFacts` **生产零引用**（楼盘详情页 Task 10 起已改用
+ *          `BuildingSpecPanel`），全仓只剩 `tests/detail-components-contract.test.ts`
+ *          还引着它。这条不实的事实当时正被用来为上面那次删除做辩护；
+ *        - 「设计取舍」是个没有判据的说法。真正的判据是本项目的三层可达性判定
+ *          （已在手 / DTO 缺口 / 域层没有），而 `房源楼层 / 朝向 / 可分割 / 家具 /
+ *          其他固定费用` 这 5 条全部停在第 1 层「已在手」——已按楼盘页
+ *          （Task 10 补回 6 条）的同一先例补回概况面板，见
+ *          `ListingOverviewPanel.tsx` 文件头与 `tests/listing-overview-panel.test.ts`
+ *          的守卫用例。换句话说：换组件是设计决定，**丢事实不是**。
  */
 export default function CityListingDetailView({
   city,

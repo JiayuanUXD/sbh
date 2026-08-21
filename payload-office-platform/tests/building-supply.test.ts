@@ -158,7 +158,91 @@ describe('buildBuildingSupplySnapshot', () => {
     )
 
     expect(snapshot.validationErrors).toContain('price_unit_required')
+    expect(snapshot.groups[0]?.priceSortDegraded).toBe(true)
     expect(snapshot.groups[0]?.priceRanges).toHaveLength(2)
+  })
+
+  /**
+   * 终审 C2：「能不能按单价排序」必须**按组**算，不能拿跨组的结果集算。
+   *
+   * 页面把默认组的 href 写成不带 `group` 参数（canonical 惯例），于是默认组下
+   * `input.group === undefined`、`filtered` 是跨全部业务组的卡片；而 `priceKeyOf`
+   * 含 `businessType`，「这栋楼同时有租赁与出售」这一个事实就让跨组的
+   * `hasMixedPriceKeys` 恒真 → 每个组的价格排序统统退化成 id 序。视图层却按当前组
+   * 算「单位是否唯一」，照常渲染排序选项并高亮 `aria-current`，下面还补一句「该组内
+   * 房源计价单位不唯一」——该组内是唯一的，不唯一的是那个没按组过滤的全集。
+   * 用户按这句话做的任何补救都基于错误诊断。
+   */
+  it('组内单位唯一时按单价排序真的生效，不因为楼盘另有一个出售组而退化', () => {
+    const cheapLease = makeCard({
+      id: 3, slug: 'lease-cheap',
+      price: { amount: 6.5, businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm',
+        displayUnit: 'rmb-sqm-day', text: '6.5 元/㎡/天' },
+    })
+    const pricyLease = makeCard({
+      id: 1, slug: 'lease-pricy',
+      price: { amount: 9.5, businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm',
+        displayUnit: 'rmb-sqm-day', text: '9.5 元/㎡/天' },
+    })
+    // 出售组：单位（rmb-total）与租赁组不可通约。它的存在不该影响租赁组的排序。
+    const sale = makeCard({
+      id: 2, slug: 'sale', businessType: 'sale',
+      price: { amount: 38_000_000, businessType: 'sale', currency: 'CNY', period: 'one-time',
+        basis: 'total', displayUnit: 'rmb-total', text: '38000000 元' },
+    })
+
+    // 默认组不写 group 参数——这正是触发旧 bug 的那种输入
+    const snapshot = buildBuildingSupplySnapshot([pricyLease, sale, cheapLease], { sort: 'price-asc' }, AS_OF)
+
+    const lease = snapshot.groups.find((group) => group.key === 'lease')
+    expect(lease?.priceSortDegraded).toBe(false)
+    // 真的按价格升序，而不是退化成 id 序（id 序会是 1, 3）
+    expect(lease?.listings.map((listing) => listing.id)).toEqual([3, 1])
+    // 出售组只有一条，同样不算「单位不唯一」
+    expect(snapshot.groups.find((group) => group.key === 'sale')?.priceSortDegraded).toBe(false)
+    // 没有任何一组降级 → 快照级汇总信号也不置位
+    expect(snapshot.validationErrors).toEqual([])
+  })
+
+  it('只有真正单位不唯一的那一组被标记降级，同快照的其它组不受牵连', () => {
+    // 租赁组内两种不可通约单位 → 该组降级；联合办公组只有一种单位 → 不降级
+    const leaseSqmDay = makeCard({ id: 1, slug: 'lease-sqm-day' })
+    const leaseMonthly = makeCard({
+      id: 2, slug: 'lease-monthly',
+      price: { amount: 5000, businessType: 'lease', currency: 'CNY', period: 'month', basis: 'total',
+        displayUnit: 'rmb-month', text: '5000 元/月' },
+    })
+    const coworking = makeCard({
+      id: 3, slug: 'coworking', listingType: 'coworking', seats: 12,
+      price: { amount: 2880, businessType: 'lease', currency: 'CNY', period: 'month', basis: 'seat',
+        displayUnit: 'rmb-seat-month', text: '2880 元/工位/月' },
+    })
+
+    const snapshot = buildBuildingSupplySnapshot(
+      [leaseSqmDay, leaseMonthly, coworking],
+      { sort: 'price-asc' },
+      AS_OF,
+    )
+
+    expect(snapshot.groups.find((group) => group.key === 'lease')?.priceSortDegraded).toBe(true)
+    expect(snapshot.groups.find((group) => group.key === 'coworking')?.priceSortDegraded).toBe(false)
+    // 快照级信号是「任一组降级」的汇总，不是组级判据
+    expect(snapshot.validationErrors).toContain('price_unit_required')
+  })
+
+  it('非价格排序时任何组都不标记降级（降级只描述价格排序没生效这件事）', () => {
+    const snapshot = buildBuildingSupplySnapshot(
+      [
+        makeCard({ id: 1, slug: 'a' }),
+        makeCard({ id: 2, slug: 'b', price: {
+          amount: 5000, businessType: 'lease', currency: 'CNY', period: 'month', basis: 'total',
+          displayUnit: 'rmb-month', text: '5000 元/月' } }),
+      ],
+      { sort: 'area-asc' },
+      AS_OF,
+    )
+    expect(snapshot.groups.every((group) => group.priceSortDegraded === false)).toBe(true)
+    expect(snapshot.validationErrors).toEqual([])
   })
 
   /**

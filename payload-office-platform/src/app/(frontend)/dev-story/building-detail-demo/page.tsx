@@ -185,6 +185,7 @@ const FIXTURE_SUPPLY: BuildingSupplySnapshot = {
       areaRange: { min: DEMO_AREAS[0], max: DEMO_AREAS[DEMO_AREAS.length - 1] },
       seatRange: null,
       immediateAvailabilityCount: FIXTURE_LISTINGS.length,
+      priceSortDegraded: false,
     },
   ],
   availableGroups: [

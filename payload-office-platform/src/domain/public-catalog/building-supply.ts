@@ -239,9 +239,6 @@ export function buildBuildingSupplySnapshot(
 ): BuildingSupplySnapshot {
   const filtered = cards.filter((card) => matchesInput(card, input))
   const isPriceSort = input.sort === 'price-asc' || input.sort === 'price-desc'
-  const mixedPricesWithoutUnit = isPriceSort && !input.priceUnit && hasMixedPriceKeys(filtered)
-  const validationErrors = mixedPricesWithoutUnit ? (['price_unit_required'] as const) : []
-  const canComparePrices = !isPriceSort || Boolean(input.priceUnit) || !mixedPricesWithoutUnit
   const groups: BuildingSupplyGroupViewModel[] = []
   const availableGroups: BuildingSupplyGroupAvailability[] = []
 
@@ -256,12 +253,32 @@ export function buildBuildingSupplySnapshot(
 
     const groupCards = filtered.filter((card) => groupOf(card) === key)
     if (groupCards.length === 0) continue
-    const sorted = sortCards(groupCards, input, canComparePrices && !hasMixedPriceKeys(groupCards))
+    /**
+     * 「能不能比价」**按组算**，不用跨组的 `filtered`。
+     *
+     * 页面把默认组的 href 写成不带 `group` 参数（canonical 惯例），于是默认组下
+     * `input.group === undefined`、`filtered` 是跨全部业务组的卡片。`priceKeyOf`
+     * 含 `businessType`，所以「这栋楼同时有租赁与出售」这一个事实就让
+     * `hasMixedPriceKeys(filtered)` 恒真 → 每个组的价格排序统统退化成 `compareIds`，
+     * 而视图层按当前组算「单位是否唯一」照常渲染排序选项并高亮。排序本来就是
+     * 组内行为（`listings` 按组切、`sortCards` 按组各排各的），判据必须同粒度。
+     * 有 `priceUnit` 时 `matchesInput` 已经把结果收敛到单一单位，仍显式写出来，
+     * 让「单位闸门 = 可比价」的因果留在代码里而不是靠推。
+     */
+    const groupCanComparePrices = Boolean(input.priceUnit) || !hasMixedPriceKeys(groupCards)
+    const sorted = sortCards(groupCards, input, groupCanComparePrices)
     groups.push({
       ...aggregateGroup(key, sorted, asOf),
       listings: sorted,
+      priceSortDegraded: isPriceSort && !groupCanComparePrices,
     })
   }
+
+  // 快照级汇总信号（见 contracts.ts）：任一组降级即置位。组级提示读组自己的
+  // `priceSortDegraded`，不读这里。
+  const validationErrors = groups.some((group) => group.priceSortDegraded)
+    ? (['price_unit_required'] as const)
+    : []
 
   return {
     asOf,

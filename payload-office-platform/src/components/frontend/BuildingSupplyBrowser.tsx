@@ -54,6 +54,17 @@ import { DISPLAY_UNIT_LABELS, estimateRowTotal, formatGroupTotal } from '@/compo
  * 三处共用域层导出的 `isImmediatelyAvailable` + `availabilityDay`，组件内不重写
  * 日期比较——曾经组件用 `Date.parse`、域层过滤用字符串比较，于是「恰好当天可
  * 入驻」的房源被计入 N 却被 pill 过滤掉。
+ *
+ * **本区所有导航 Link 都带 `scroll={false}`（终审 I4，实测后加的）。**
+ * 改造成 URL 驱动之后，切组/筛选/排序都变成了真实导航，而 App Router 对「同
+ * pathname、仅 searchParams 变化」的导航**同样会重置滚动位置**——不是推断，是
+ * 1440×900 下量出来的：滚到供给区（`scrollY=968`、`#supply` 顶边距视口 45px）
+ * 点一个面积桶或一个排序项，`scrollY` 直接归 0、`#supply` 掉到视口下方 1013px。
+ * 用户每筛一次就被弹回页首、还得自己滚回来找结果，而改造前（纯客户端 state）
+ * 筛选完全不动滚动条。证据脚本：`tests/e2e/supply-filter-scroll.spec.ts`。
+ * 选 `scroll={false}` 而不是给 href 追加 `#supply`：前者原地不动，与改造前的
+ * 行为逐字一致；后者会跳到区块顶部（仍是一次位移），还把锚点写进了可分享 URL
+ * 与浏览历史，等于为了修滚动改变了 URL 契约。
  */
 
 type BuildingSupplyBrowserProps = Readonly<{
@@ -77,15 +88,31 @@ const GROUP_TAB_LABEL: Record<BuildingSupplyGroup, string> = {
   coworking: '联合办公',
 }
 
-/** 组聚合区文案口径：三组的「面积/工位」维度与「可入驻」量词各不相同。 */
+/**
+ * 组聚合区文案口径：三组的「面积/工位」维度与「可入驻」量词各不相同。
+ *
+ * **出售组没有「可即刻」这一维（`immediate: null`）——不是漏填，是域层没有依据。**
+ * `immediateAvailabilityCount` 数的是 `isImmediatelyAvailable`，而它对
+ * `availableFrom == null` 一律判真（「未填 = 现房」是租赁语境的既有口径）；
+ * `collections/Listings.ts` 的 `availableFrom` admin condition 是
+ * `businessType !== 'sale'`，**出售房源该字段结构上恒为 null**。两者相乘的结果是
+ * 「可即时过户 N」恒等于该组全部套数——对每一套在售房源做了一次它没有依据的产权
+ * 承诺（能不能过户取决于抵押/查封/满几年，仓库里根本没有这些字段）。
+ * 这与 `buildStatusCell` 对出售行状态列的诚实降级（改显装修状态）是同一条判据，
+ * 只是当时只修了行徽标、漏了聚合格与 pill。
+ * 本字段同时是「可即刻入驻」筛选 pill 的渲染开关（见下方 `immediateFilterLabel`）——
+ * 一个数不成立时，基于它的筛选控件也必然是点了没反应的死控件，两者必须同源开关。
+ * 将来若 `Listings` 真的补上产权/过户状态字段，这里换成那个维度，别把 availableFrom 接回来。
+ */
 const AGG_LABELS: Record<
   BuildingSupplyGroup,
   {
     price: string
     metric: string
     metricUnit: string
-    immediate: string
-    immediateUnit: string
+    /** 「可即刻」格与同名筛选 pill 的文案；null = 本组没有这一维，两者一起不渲染。 */
+    immediate: string | null
+    immediateUnit: string | null
     /** 「共 M ?」的量词——联合办公按空间数而非套数计。 */
     totalUnit: string
   }
@@ -96,7 +123,7 @@ const AGG_LABELS: Record<
   },
   sale: {
     price: '单价区间', metric: '面积区间', metricUnit: '㎡',
-    immediate: '可即时过户', immediateUnit: '套', totalUnit: '套',
+    immediate: null, immediateUnit: null, totalUnit: '套',
   },
   coworking: {
     price: '工位单价区间',
@@ -158,13 +185,18 @@ function buildAggregation(group: BuildingSupplyGroup, data: BuildingSupplyGroupA
   const metricCell: AggCell = metricRange
     ? { label: labels.metric, value: formatRange(metricRange.min, metricRange.max), unit: labels.metricUnit }
     : { label: labels.metric, value: '—', unit: '' }
+  // 出售组没有「可即刻」这一维（见 AGG_LABELS 注释），整格不渲染——渲染成
+  // 「—」是另一种撒谎（「有这个维度，只是这栋楼没有」），这里是压根没有维度。
+  // 聚合区网格保持 `repeat(3, 1fr)` 不变：少一格时前两格仍钉在同样的 x 位置，
+  // 切组时「单价区间 / 面积区间」不会横向跳动。
+  if (labels.immediate == null) return [priceCell, metricCell]
   // 0 显示为「—」：本批口径是「缺失/无量不显示 0」，聚合区是画像不是计数器。
   const immediateCell: AggCell =
     data.immediateAvailabilityCount > 0
       ? {
           label: labels.immediate,
           value: String(data.immediateAvailabilityCount),
-          unit: labels.immediateUnit,
+          unit: labels.immediateUnit ?? '',
         }
       : { label: labels.immediate, value: '—', unit: '' }
   return [priceCell, metricCell, immediateCell]
@@ -196,16 +228,20 @@ const PRICE_BUCKET_UNIT = 'rmb-sqm-day' as const
  * 价格筛选桶——边界值 8 / 9 / 10 沿用改造前的 `PRICE_BUCKETS`，不重新拍脑袋。
  *
  * 区间为闭区间（min/max 均含），与同一行的面积桶同构（域层 `areaMin`/`areaMax`
- * 也是闭区间）。代价是相邻桶在边界值上重叠一个点（8.00 同属「8 元以下」与
- * 「8–9 元」）——这与面积桶既有的行为完全一致；让价格与面积在同一排控件里用
- * 两套区间语义，比这一个点的重叠更容易出错。
+ * 也是闭区间）。代价是相邻桶在边界值上重叠一个点（8.00 同属首桶与「8–9 元」）
+ * ——这与面积桶既有的行为完全一致；让价格与面积在同一排控件里用两套区间语义，
+ * 比这一个点的重叠更容易出错。
+ *
+ * 首尾两桶的标签因此写成「及以下」/「及以上」而不是「以下」/「以上」：区间既然
+ * 是闭的，边界值就真的在桶里，标签得照实说。这是零成本消除口径不符，不是改行为
+ * （min/max 一个没动）。中间三桶的「8–9 元」本身就读作闭区间，无需改写。
  */
 const PRICE_BUCKETS = [
   { key: 'all', label: '全部', min: undefined, max: undefined },
-  { key: 'u-8', label: '8 元以下', min: undefined, max: 8 },
+  { key: 'u-8', label: '8 元及以下', min: undefined, max: 8 },
   { key: '8-9', label: '8–9 元', min: 8, max: 9 },
   { key: '9-10', label: '9–10 元', min: 9, max: 10 },
-  { key: '10+', label: '10 元以上', min: 10, max: undefined },
+  { key: '10+', label: '10 元及以上', min: 10, max: undefined },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; min?: number; max?: number }>
 
 const DEFAULT_VISIBLE_TABLE = 8
@@ -248,6 +284,22 @@ export default function BuildingSupplyBrowser({
     setExpanded(false)
   }
 
+  /**
+   * 断点为什么在 JS 里（`AnchorNavBar.tsx` / `detail.css` 立的规则是「断点只有
+   * CSS 知道，搬进 JS 会造第二个事实源」——本处是那条规则**明示的例外**，不是违规）：
+   *
+   * 判据是「同一份 DOM 显不显示」归 CSS，「渲染哪一份 DOM」才归 JS。窄屏卡片
+   * （`ListingCard`）与宽屏表格是**结构完全不同的两份 DOM**，不是同一份的显隐：
+   * 两份都渲染再用 media query 各藏一份，会让隐藏的那份仍进 DOM、进无障碍树、
+   * 进点击埋点（`data-detail-analytics-*` 会重复一遍），卡片那份还会多发一轮
+   * 图片请求。这类分叉 CSS 做不到，只能由 JS 选一份渲染。
+   *
+   * 代价与约束：767 这个值同时存在于本处与 CSS，**必须逐字保持一致**——改任一
+   * 处都要同时改另一处（CSS 侧见 `styles.css` `.building-supply-browser__table`
+   * 一带的 `@media (max-width: 767px)`）。首帧 `isMobile` 恒为 false（SSR 无
+   * window），窄屏会先渲染表格再切成卡片，这是既有行为（Task 7「改造而非重写」
+   * 刻意保留），不在本轮改动范围。
+   */
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)')
     const syncViewport = () => setIsMobile(mediaQuery.matches)
@@ -371,6 +423,8 @@ export default function BuildingSupplyBrowser({
   const visibleListings = expanded ? listings : listings.slice(0, defaultVisible)
   const hiddenCount = listings.length - visibleListings.length
   const totalUnit = AGG_LABELS[activeGroupKey].totalUnit
+  // 「可即刻入驻」pill 与聚合区那一格同源开关（见 AGG_LABELS 注释）。
+  const immediateFilterLabel = AGG_LABELS[activeGroupKey].immediate
 
   return (
     <section className="building-supply-browser" aria-label="楼盘房源" data-supply-as-of={snapshot.asOf}>
@@ -385,6 +439,7 @@ export default function BuildingSupplyBrowser({
               className="building-supply-browser__tab"
               data-active={isActive || undefined}
               prefetch={false}
+              scroll={false}
             >
               <span>{GROUP_TAB_LABEL[g.key]}</span>
               <span className="building-supply-browser__tab-count">{g.totalEffectiveListings}</span>
@@ -426,6 +481,7 @@ export default function BuildingSupplyBrowser({
                   data-active={isActive || undefined}
                   aria-current={isActive ? 'true' : undefined}
                   prefetch={false}
+                  scroll={false}
                 >
                   {bucket.label}
                 </Link>
@@ -456,6 +512,7 @@ export default function BuildingSupplyBrowser({
                     data-active={isActive || undefined}
                     aria-current={isActive ? 'true' : undefined}
                     prefetch={false}
+                    scroll={false}
                   >
                     {bucket.label}
                   </Link>
@@ -463,15 +520,21 @@ export default function BuildingSupplyBrowser({
               })}
             </div>
           )}
-          {asOfDay != null && activeAvailability.immediateAvailabilityCount > 0 && (
+          {/* pill 与聚合区那一格同一个开关（`AGG_LABELS[...].immediate`）：出售组
+              的「可即刻」数没有依据（见 AGG_LABELS 注释），基于它的筛选自然也是
+              点了没反应的死控件——`availableFrom` 对出售恒为 null，`matchesInput`
+              对全部出售卡片放行，结果集一条不变、计数一条不减，`aria-current`
+              却亮起。两处共用一个判据，不许再分叉成两套条件。 */}
+          {asOfDay != null && immediateFilterLabel != null && activeAvailability.immediateAvailabilityCount > 0 && (
             <Link
               href={hrefWithParam('availableBefore', immediateActive ? null : asOfDay)}
               className="building-supply-browser__filter"
               data-active={immediateActive || undefined}
               aria-current={immediateActive ? 'true' : undefined}
               prefetch={false}
+              scroll={false}
             >
-              可即刻入驻
+              {immediateFilterLabel}
             </Link>
           )}
           {/* 排序控件形态与房源列表页 `ResultToolbar` 完全一致（同一套
@@ -490,6 +553,7 @@ export default function BuildingSupplyBrowser({
                   className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
                   aria-current={isActive ? 'true' : undefined}
                   prefetch={false}
+                  scroll={false}
                 >
                   {option.label}
                 </Link>
@@ -497,7 +561,11 @@ export default function BuildingSupplyBrowser({
             })}
           </div>
         </div>
-        {snapshot.validationErrors.includes('price_unit_required') && (
+        {/* 读**当前组**的 `priceSortDegraded`，不读快照级 `validationErrors`：后者
+            是「任一组降级」的汇总信号，拿它当组级提示就会在「本组单位唯一、只是
+            这栋楼另有一个出售组」时说出「该组内房源计价单位不唯一」这句假话
+            （见 contracts.ts 该字段注释）。 */}
+        {activeGroupData?.priceSortDegraded && (
           <p className="building-supply-browser__notice">该组内房源计价单位不唯一，暂按推荐顺序排列</p>
         )}
 

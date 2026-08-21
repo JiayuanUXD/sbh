@@ -120,7 +120,14 @@ export default function BuildingDetailLayout({
   )
   const hasFeatures = building.amenities.length > 0
   const hasDescription = Boolean(building.description)
-  const hasParams = hasSpecValues || hasFeatures || hasDescription
+  // 参数面板与介绍段是两块内容，判据必须分开：`|| hasDescription` 曾一起挂在
+  // 面板的渲染条件上，于是「只填了富文本简介、参数与特色全空」的楼盘照样渲染
+  // 那 19 行「—」——正是上面这段注释自己定义的空货架。介绍段有内容不构成
+  // 「这栋楼有参数」。
+  const hasSpecPanel = hasSpecValues || hasFeatures
+  // `#params` 区段（及其锚点）只要两块里有一块有内容就渲染：只有简介时它承载
+  // 的是「楼盘介绍」这段真实内容，不是空壳。
+  const hasParams = hasSpecPanel || hasDescription
 
   const basePath = citySlug ? `/${citySlug}` : ''
   const buildingPagePath = `${basePath}/buildings/${encodeURIComponent(building.slug)}`
@@ -292,11 +299,13 @@ export default function BuildingDetailLayout({
       {hasParams && (
         <section id="params" className="dt-container dt-section dt-anchor-target">
           <h2 className="dt-h2">楼盘参数</h2>
-          <BuildingSpecPanel
-            building={specInput}
-            minLeasableArea={minLeasableArea}
-            features={building.amenities}
-          />
+          {hasSpecPanel && (
+            <BuildingSpecPanel
+              building={specInput}
+              minLeasableArea={minLeasableArea}
+              features={building.amenities}
+            />
+          )}
           {building.description && (
             <div className="dt-params__intro">
               {/* 稿子的楼盘参数区没有富文本介绍段，但站内这份数据是真实存在

@@ -319,6 +319,19 @@ export type BuildingSupplyGroupViewModel = Readonly<{
   areaRange: BuildingSupplyAreaRange | null
   seatRange: BuildingSupplyAreaRange | null
   immediateAvailabilityCount: number
+  /**
+   * 本组请求了按单价排序、但组内计价单位不唯一，因而**这一组**的排序被降级成
+   * 推荐顺序（`compareIds`）。
+   *
+   * 为什么是组级而不是快照级：`listings` 按组切分、`sortCards` 也按组各排各的，
+   * 「能不能比价」本来就是组内属性。快照级的 `validationErrors` 曾经拿**跨组**的
+   * 结果集算这件事，于是「楼盘同时有租赁与出售」这一个事实就足以让每个组的价格
+   * 排序全部退化，而视图层按当前组算「单位是否唯一」照常渲染排序选项并高亮
+   * `aria-current`，还在下面补一句「该组内房源计价单位不唯一」——该组内是唯一的，
+   * 不唯一的是那个没按组过滤的全集。视图层要判断「当前这一组的排序是不是没生效」
+   * 只能读本字段，不要回头去读 `validationErrors`。
+   */
+  priceSortDegraded: boolean
 }>
 
 /** 楼盘详情页在同一 asOf 时刻生成的供给快照。 */
@@ -332,6 +345,12 @@ export type BuildingSupplySnapshot = Readonly<{
   totalEffectiveListings: number
   /** 当前 query 对应的结果数。 */
   resultCount: number
+  /**
+   * 快照级汇总：`groups` 里**任一**组的价格排序被降级时出现 `price_unit_required`。
+   * 它是「这次请求里有排序没生效」的粗粒度信号（日志 / 调试），**不要**拿它去决定
+   * 某一个组要不要显示「计价单位不唯一」的提示——那是组级事实，读
+   * `BuildingSupplyGroupViewModel.priceSortDegraded`。
+   */
   validationErrors: readonly 'price_unit_required'[]
 }>
 

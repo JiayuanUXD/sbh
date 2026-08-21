@@ -742,6 +742,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
       key: 'lease', listings: SUPPLY_LEASE_LISTINGS, areaRange: { min: 580, max: 1240 },
       seatRange: null,
       immediateAvailabilityCount: 2,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day',
         basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 8.2, count: 2,
@@ -751,6 +752,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
       key: 'sale', listings: SUPPLY_SALE_LISTINGS, areaRange: { min: 1240, max: 1240 },
       seatRange: null,
       immediateAvailabilityCount: 1,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time',
         basis: 'total', displayUnit: 'rmb-total', min: 114_080_000, max: 114_080_000, count: 1,
@@ -760,6 +762,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
       key: 'coworking', listings: SUPPLY_COWORKING_LISTINGS, areaRange: null,
       seatRange: { min: 12, max: 48 },
       immediateAvailabilityCount: 2,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month',
         basis: 'seat', displayUnit: 'rmb-seat-month', min: 2880, max: 3600, count: 2,
