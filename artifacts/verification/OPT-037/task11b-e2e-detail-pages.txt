@@ -1,0 +1,6 @@
+  ok 26 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 375px 无横向溢出 (1.1s)
+  ok 27 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 768px 无横向溢出 (757ms)
+  ok 28 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 1440px 无横向溢出 (615ms)
+  ok 29 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 1920px 无横向溢出 (644ms)
+
+  29 passed (21.6s)

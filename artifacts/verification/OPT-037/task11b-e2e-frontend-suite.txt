@@ -1,0 +1,8 @@
+  ok 50 [chromium] › tests\e2e\landing-pages.spec.ts:185:3 › /publish 投放房源 › 空提交报必填错误且保留已填内容 (622ms)
+  ok 51 [chromium] › tests\e2e\landing-pages.spec.ts:198:3 › /publish 投放房源 › 佣金默认无且可切换 (523ms)
+  ok 52 [chromium] › tests\e2e\landing-pages.spec.ts:206:3 › /publish 投放房源 › 合法提交后卡片变为成功态且埋点不含 PII (1.2s)
+  ok 53 [chromium] › tests\e2e\landing-pages.spec.ts:265:3 › /publish 投放房源 › 服务暂时不可用时保留内容并允许重新提交 (772ms)
+  ok 54 [chromium] › tests\e2e\landing-pages.spec.ts:288:3 › /publish 投放房源 › 提交过于频繁时提示稍后重试且不清空表单 (634ms)
+  ok 55 [chromium] › tests\e2e\landing-pages.spec.ts:310:3 › /publish 投放房源 › 375px 视口无横向滚动 (417ms)
+  11 skipped
+  44 passed (36.3s)

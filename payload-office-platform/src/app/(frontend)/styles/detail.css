@@ -968,12 +968,12 @@
 /* 375 断口实测发现的既有缺陷：avatar(44 固定) + cta(按钮内容定宽，不收缩)
  * 挤压中间 body 到 0 宽，文字逐字换行。修法是让 CTA 独占一行
  * （`flex-basis: 100%`）。换行本身由 `.advisor-card { flex-wrap: wrap }`
- * 提供——Task 9 已把它提升为 AdvisorCard 的默认行为，所以本条和 styles.css
- * 的 `.detail-side-rail .advisor-card` 都只留各自差异化的那部分，不再重复
- * 声明 flex-wrap（Task 11 按实现校正注释）。
+ * 提供——Task 9 已把它提升为 AdvisorCard 的默认行为，所以本条只留差异化的
+ * 那部分，不再重复声明 flex-wrap（Task 11 按实现校正注释）。
  * 不去掉 AdvisorCard 自身的卡片底色/边框——信息面板是零边框白底大面板，
- * AdvisorCard 在其中保留一个小卡片轮廓是合理的嵌套层次，与 detail-side-rail
- * 那种"卡中卡"需要去嵌套的场景不同。 */
+ * AdvisorCard 在其中保留一个小卡片轮廓是合理的嵌套层次。
+ * 注：`.detail-side-rail .advisor-card` 那组去嵌套覆写随 Task 11b 摘掉侧栏
+ * 「免费咨询」卡一并删除——本页现在只剩这一处 AdvisorCard。 */
 .hero-summary .advisor-card__cta {
   flex-basis: 100%;
 }
@@ -1037,34 +1037,37 @@
  * 「1180 容器」与「300 右栏」不可兼得，comp 选了前者 —— 于是右栏改成表下的
  * 通栏卡片带。组件一行未动，失效的只有 `position: sticky` 这一个纯呈现属性
  * （它在文档流的横向卡片带里没有意义）。 */
-/* 列数 = 卡片数：Task 11 摘掉第四张「热门楼盘」后由 4 列改成 3 列。留着 4 列
- * 会在 ≥1024 的行尾挂一条 ~278px 的空轨（三张卡各自 1fr，不会拉伸补位）。 */
+/* 列数 = 卡片数：Task 11 摘掉第四张卡后曾由 4 列改 3 列；Task 11b 又摘掉两张
+ * 与 `HeroSummaryPanel` 重复的卡，只剩「找房需求登记」一张——**一张卡就不再
+ * 需要网格**。留着多列网格会让这唯一一张卡挂在行首、后面拖两条空轨；所以这里
+ * 退回块级，让它横贯容器整宽，多列的两个媒体查询断点也随之取消。 */
 .dt-page .detail-side-rail {
   position: static;
   margin-top: 32px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
-  gap: 16px;
+  display: block;
 }
 /* 侧栏卡片切到本版详情页的面板表面（底 #fff · 圆角 18 · 零边框零阴影）。
  * 与 `.location-panel__*` 同一手法：组件不换皮、类名不变，由本文件（import
  * 顺序在 styles.css 之后）覆写这一版的权威取值——不在组件里再写一份，也不
  * 新造 `.sf-card`（详情页面板本就是与列表卡刻意不同的表面，见 DetailPanel
  * 文件头）。 */
+/* 单卡横贯后的内部版式：文案左 / CTA 右的一条带。`flex-wrap` + 文案的
+ * `flex: 1 1 260px` 负责窄栏塌成两行——不另写媒体查询，因为塌行的真实触发
+ * 条件是「文案 + 按钮放不下」，与视口宽度只是相关而非等价（本组件在 375 与
+ * 768 的容器宽差 393px，写死断点两边都会不准）。
+ * `.detail-side-rail__price` 一族随 Task 11b 的摘卡失活，已连同 styles.css
+ * 里的基础规则一并删除（组件层保证：本组件不再渲染任何价格节点）。 */
 .dt-page .detail-side-rail__card {
-  padding: 24px; background: var(--bg-subtle); border: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px 32px;
+  padding: 24px 28px; background: var(--bg-subtle); border: 0;
   border-radius: var(--r-card);
 }
+.dt-page .detail-side-rail__band-copy { flex: 1 1 260px; min-width: 0; }
 .dt-page .detail-side-rail__card h3 {
-  margin: 0 0 12px; font-size: 17px; font-weight: 600; color: var(--ink);
+  margin: 0; font-size: 17px; font-weight: 600; color: var(--ink);
   letter-spacing: normal;
 }
-.dt-page .detail-side-rail__price {
-  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
-  font-size: 24px; font-weight: 600; color: var(--ink);
-}
-.dt-page .detail-side-rail__price span { font-size: 13px; font-weight: 400; color: var(--ink-2); }
 .dt-page .detail-side-rail__muted { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
 
 /* ── 楼盘参数：面板底部的「楼盘特色」标签行 ───────────────────────────────
@@ -1119,15 +1122,14 @@
 }
 
 @media (max-width: 1023px) {
-  /* 与 `.dt-core` / `.dt-building-spec` / `.dt-related-grid` 用同一个塌栅格
-     断点：几处不一致会出现「核心区已单列、别处还两列」的半塌状态。 */
-  .dt-page .detail-side-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 与 `.dt-core` / `.dt-building-spec` 用同一个塌栅格断点：几处不一致会出现
+     「核心区已单列、别处还两列」的半塌状态。（`.detail-side-rail` Task 11b 起
+     只有一张卡、不再是网格，所以不在这里列它。） */
   .dt-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 767px) {
   .dt-titlebar__subtitle { margin-top: 8px; font-size: 14px; }
-  .dt-page .detail-side-rail { grid-template-columns: minmax(0, 1fr); }
   .dt-building-spec__features { flex-direction: column; gap: 12px; }
   .dt-building-spec__features > .dt-group-title { width: auto; padding-top: 0; }
   .dt-related-grid { grid-template-columns: minmax(0, 1fr); }

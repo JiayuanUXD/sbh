@@ -247,21 +247,15 @@ export default function BuildingDetailLayout({
             够用）。所以「1180 容器」与「300 右栏」二者不可兼得，comp 选了前者。
             只有 `position: sticky` 这个纯呈现属性因换位失效（见 detail.css
             `.dt-page .detail-side-rail`）。
-            Task 11 又摘掉了其中的第四张卡「热门楼盘」：它与下方的
-            `NearbyBuildingsStrip`「周边楼盘」、`#related`「同商圈楼盘」同源
-            （都读 `relatedBuildings`），Task 10 实测同一个楼盘在一页里出现
-            三次。剩余三张卡（楼盘摘要 / 免费咨询 / 找房需求登记）与两处
-            InquiryModal（sourceSection 'sticky-card'）原样保留。
-            **遗留问题如实记在这里**：前两张卡仍与核心区 `HeroSummaryPanel`
-            重复（同一个起价 / 同一个供给套数 / 同一张 AdvisorCard），真正
-            独有的只有「登记需求，顾问回电」。把那一个入口并进
-            `HeroSummaryPanel` 后退役本组件是更彻底的收敛，但那是产品可见的
-            删除，需要控制方点名裁定，见 task-10-report.md / task-11-report.md。 */}
-        <DetailSideRail
-          building={building}
-          supply={supply}
-          serviceSchedule={serviceSchedule}
-        />
+            Task 11 / 11b 把这条带从四张卡收敛成**一张**（详见 DetailSideRail
+            文件头）：先摘「热门楼盘」（与 `NearbyBuildingsStrip` /`#related`
+            同源，实测同一楼盘一页出现三次），再摘「楼盘摘要」「免费咨询」
+            （与核心区 `HeroSummaryPanel` 是同一份内容的第二次呈现——同一个
+            起价、同一个供给套数、同一张 AdvisorCard）。剩下的「找房需求登记」
+            是本页唯一独有的产品面，改成横贯整宽的一条留资带。
+            埋点未丢：摘掉的实例用的 `sourceSection='sticky-card'` 在本页仍有
+            `AnchorNavBar` 与本组件两个承载元素。 */}
+        <DetailSideRail building={building} serviceSchedule={serviceSchedule} />
       </section>
 
       {/* 周边与交通：`LocationPanel` 自带 `<section id="location">` 与 h2，

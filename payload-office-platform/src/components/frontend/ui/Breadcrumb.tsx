@@ -9,9 +9,19 @@ import React from 'react'
  *   - 语义化 <nav aria-label="面包屑"> + <ol>；
  *   - 当前页用 aria-current="page"；
  *   - 分隔符对屏幕阅读器隐藏；
- *   - 链接一律 prefetch={false}（OPT-037 Task 11）：本原语在每个详情页
- *     常驻渲染，`items` 完全由页面内容拼装（城市前缀 / 行政区 / 楼盘名都是
- *     内容驱动），与 ListingCard / BuildingSummaryCard 走同一条判据。
+ *   - **链接保持默认预取（不加 `prefetch={false}`）**，见下方判据。
+ *
+ * 关于 `prefetch={false}`：本仓库的关停判据是**三个条件并列**——
+ * ①高基数（一次渲染出大量互不相同的 URL）②内容驱动 ③常驻渲染。
+ * 三条同时成立才关，缺一条就不关。面包屑②③成立，**①不成立**：
+ *   - 楼盘详情页只产出 2 个链接（`/` 与 `/listings`），全站每页同样这两个；
+ *   - 房源详情页产出 3 个，多出的那个是本房源所属楼盘（每页仅 1 条）；
+ *   - Next 的路由缓存按 URL 去重，所以全站面包屑的预取成本几乎不随页面数增长。
+ * 对照 `ListingCard`：列表页一屏就是几十个互不相同的 URL 同时进视口，那才是
+ * 高基数。而「从详情页退回列表页 / 退回所属楼盘」恰是最高频的导航路径——
+ * 给它加延迟换不来任何预取预算节省，是净损失。
+ * （OPT-037 Task 11 曾一刀切加上，Task 11b 按此判据回退。**不要「为了统一」
+ * 再加回来**——统一的是判据，不是取值。）
  */
 
 export type BreadcrumbItem = {
@@ -34,7 +44,7 @@ export function Breadcrumb({ items, className }: Props) {
           return (
             <li key={i} className="breadcrumb__item">
               {item.href && !isLast ? (
-                <Link href={item.href} prefetch={false} className="breadcrumb__link">
+                <Link href={item.href} className="breadcrumb__link">
                   {item.label}
                 </Link>
               ) : (

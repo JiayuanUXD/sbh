@@ -4972,6 +4972,11 @@ ol {
  * `NearbyBuildingsStrip`（两者的本版取值由 detail.css 的 `.dt-page` /
  * `.dt-nearby` 作用域覆写，本节保留的是不被覆写的那几条，如 <p> 的
  * margin 归零），外加 building-detail-demo 的 `.dev-story-banner`。
+ * Task 11b 又删掉了 `.detail-side-rail__price` 一族与
+ * `.detail-side-rail .advisor-card` 一族：`DetailSideRail` 收敛成单张留资带后
+ * 不再渲染价格节点、也不再嵌 AdvisorCard，这是**组件层的保证**（不是靠祖先
+ * 选择器覆盖），因此可删；而 `.detail-side-rail` / `__card` 的基础规则仍按
+ * 「靠祖先 `.dt-page` 才被覆盖 → 存疑保留」的口径留着（见 task-11-report §3.1）。
  * --------------------------------------------------------------------------- */
 
 /* demo 页横幅：生产可见的评审页，须明示虚拟数据 */
@@ -5013,39 +5018,10 @@ ol {
   font-size: var(--fs-16);
 }
 
-.detail-side-rail__price {
-  margin: 0;
-  font-size: var(--fs-22);
-  font-weight: 700;
-  color: var(--color-copper);
-}
-
-.detail-side-rail__price span {
-  font-size: var(--fs-12);
-  font-weight: 400;
-  color: var(--color-muted);
-}
-
 .detail-side-rail__muted {
   margin: var(--sp-2) 0 0;
   font-size: var(--fs-13);
   color: var(--color-muted);
-}
-
-/* 窄栏里的顾问卡：去嵌套卡片外观（卡片带里已经有一层卡了，不要卡中卡）。
- * 注：注释此前写着「若出现第三处窄栏场景就把 flex-wrap:wrap 提升为
- * `.advisor-card` 的默认行为」——那次升级已经在 Task 9 做掉了
- * （styles.css `.advisor-card { flex-wrap: wrap }`），所以本条与
- * detail.css 的 `.hero-summary .advisor-card__cta` 都不再声明 flex-wrap，
- * 各自只留差异化的那部分。Task 11 按实现校正注释。 */
-.detail-side-rail .advisor-card {
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.detail-side-rail .advisor-card__cta {
-  flex-basis: 100%;
 }
 
 /* 周边楼盘横滑 */
