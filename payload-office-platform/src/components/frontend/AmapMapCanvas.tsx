@@ -12,11 +12,21 @@
  * 覆盖未公开保证的内部类名才能改色。自建 DOM 由 detail.css 直接控制样式，
  * 不依赖 AMap 内部实现细节。
  *
+ * OPT-037 Task 5 审查修复：周边点位 marker 不再只在首次加载的 `.then()`
+ * 里建一次——改为一个独立 effect，只要 `pois` 在 `state==='ready'` 后发生
+ * 变化（用户切换类别/子分类）就调用 rebuildPoiMarkers 重建。首次加载本身
+ * 也复用同一条路径（`.then()` 只建地图 + 本房源图钉，POI marker 建立完全
+ * 交给这个 effect，在 state 变为 'ready' 时触发一次），避免「地图只建一次、
+ * 清单换了图钉却不换」导致清单字母与地图字母对不上的问题；也避免了两条
+ * 代码路径都建 POI marker 可能出现的重复创建。
+ *
  * 守护不变量：
  *   - 不调用 Geolocation（仅展示楼盘固定坐标）
  *   - 缺 Key / 加载失败 / 超时 -> 显示「地图暂时不可用」，不阻断静态地址与咨询
  *   - 点击 POI 高亮对应图钉——直接切换预建名称标签的 dataset.visible，
- *     不经过 AMap marker.setLabel，不重渲染地图、不重建 marker
+ *     不经过 AMap marker.setLabel，不重渲染地图
+ *   - 周边点位图钉字母与当前清单一一对应：清单变了，图钉必须跟着重建
+ *     （见上）；本房源图钉与地图实例本身不受这次重建影响
  *   - 卸载时销毁地图实例，避免泄漏
  *   - 尊重 prefers-reduced-motion：不自动滚动到地图区
  */
@@ -28,6 +38,7 @@ import {
   loadAmapMap,
   type AMapMap,
   type AMapMarker,
+  type AMapNamespace,
 } from '@/lib/frontend/amap-map-loader'
 import type { CoordinatesViewModel } from '@/domain/public-catalog'
 import type { NearbyPoi } from '@/domain/location-services'
@@ -90,15 +101,70 @@ export default function AmapMapCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<AMapMap | null>(null)
+  const amapNsRef = useRef<AMapNamespace | null>(null)
   const markersRef = useRef<Map<string, AMapMarker>>(new Map())
   // POI 名称标签 DOM 引用（与 markersRef 分开维护）：高亮态直接切换这个
   // span 的 dataset/文本，不经过 AMap marker.setLabel API。
   const poiNameLabelsRef = useRef<Map<string, HTMLSpanElement>>(new Map())
+  // 记录上一次已用来重建 marker 的 pois 引用——同一个 effect 里区分「pois
+  // 真的变了，要重建图钉」与「只是 highlightedPoiId 变了，只需要切标签」，
+  // 避免每次点击清单高亮都连带重建全部 marker（见下方合并后的 effect）。
+  const lastRebuiltPoisRef = useRef<readonly NearbyPoi[] | null>(null)
   const [state, setState] = useState<LoadState>('idle')
 
-  // 高亮 POI：切换预建名称标签的可见性（ready 后生效）
+  // 重建周边点位 marker：先摘掉旧的（本房源图钉 id 恒为 BUILDING_MARKER_ID，
+  // 不在这里动），再按当前 pois 顺序重新建。map/AMap 任一未就绪时直接跳过
+  // （effect 在地图还没加载完时也会跑一次，这是预期的空操作，不是 bug）。
+  // 字母与 LocationPanel 清单面板共用 POI_LETTERS，按 pois 数组顺序编号
+  // （调用方已只传入「当前列表正在展示的」POI，见 LocationPanel 的
+  // mapPois 取值说明）——这正是本函数存在的原因：pois 变了就必须重建，
+  // 否则清单字母和地图字母会对不上。
+  function rebuildPoiMarkers(nextPois: readonly NearbyPoi[]) {
+    const AMap = amapNsRef.current
+    const map = mapRef.current
+    if (!AMap || !map) return
+
+    for (const [id, marker] of markersRef.current) {
+      if (id === BUILDING_MARKER_ID) continue
+      marker.setMap(null)
+      markersRef.current.delete(id)
+      poiNameLabelsRef.current.delete(id)
+    }
+
+    for (const [index, poi] of nextPois.entries()) {
+      const { root, nameLabel } = createPoiPinContent(POI_LETTERS[index] ?? '')
+      const marker = new AMap.Marker({
+        position: [poi.coordinates.longitude, poi.coordinates.latitude],
+        anchor: 'center',
+        title: poi.name,
+        content: root,
+        map,
+      })
+      markersRef.current.set(poi.id, marker)
+      poiNameLabelsRef.current.set(poi.id, nameLabel)
+    }
+
+    if (nextPois.length > 0) {
+      map.setFitView()
+    }
+  }
+
+  // 合并成一个 effect（而非「重建 marker」「切高亮」各一个 effect）：两者
+  // 都读写同一个 poiNameLabelsRef，拆成两个 effect 会被 react-hooks/immutability
+  // 判定为「在一个 effect 里用过的值，在另一个 effect 里被修改」而报错——
+  // 这不是绕过检查，是把本来就耦合在同一份数据（周边点位 marker 及其名称
+  // 标签）上的两件事放回同一处，避免顺序/时机上的隐式依赖。
+  //
+  // 用 lastRebuiltPoisRef 区分两种触发原因：pois 引用变了（用户切换类别/
+  // 子分类）→ 重建全部 marker；只有 highlightedPoiId 变了（点击清单某一项）
+  // → 只切标签可见性，不重建 marker（否则每次点击清单都要销毁重建全部
+  // POI marker 并重新 setFitView，既浪费又会让地图跟着重新居中，体验很差）。
   useEffect(() => {
     if (state !== 'ready') return
+    if (lastRebuiltPoisRef.current !== pois) {
+      rebuildPoiMarkers(pois)
+      lastRebuiltPoisRef.current = pois
+    }
     for (const [id, nameLabel] of poiNameLabelsRef.current) {
       if (id === highlightedPoiId) {
         const poi = pois.find((p) => p.id === id)
@@ -108,7 +174,10 @@ export default function AmapMapCanvas({
         nameLabel.dataset.visible = 'false'
       }
     }
-  }, [highlightedPoiId, state, pois])
+    // rebuildPoiMarkers 引用每次渲染都重新创建，但函数体只读 ref 与参数，
+    // 逻辑本身幂等（先清后建）；exhaustive-deps 对「只读 ref 的函数」不要求
+    // 入 deps，故这里不需要 disable 注释（加了反而会被判定为多余 disable）。
+  }, [pois, state, highlightedPoiId])
 
   // 卸载时销毁地图。markers/poiNameLabels 在 effect 内先取一次 .current
   // （而非在 cleanup 里才读）——避免 react-hooks/exhaustive-deps 关于
@@ -144,7 +213,10 @@ export default function AmapMapCanvas({
           viewMode: '2D',
         })
         mapRef.current = map
-        // 楼盘中心 marker：自建 DOM（14px accent 圆点 + 6px 光环 + 常驻深色标签）
+        amapNsRef.current = AMap
+        // 楼盘中心 marker：自建 DOM（14px accent 圆点 + 6px 光环 + 常驻深色标签）。
+        // 周边点位 marker 不在这里建——交给上面那个 [pois, state] effect，
+        // 它会在 state 变为 'ready' 后立即跑一次，用的是当时最新的 pois。
         const centerMarker = new AMap.Marker({
           position: [coordinates.longitude, coordinates.latitude],
           anchor: 'center',
@@ -153,24 +225,6 @@ export default function AmapMapCanvas({
           map,
         })
         markersRef.current.set(BUILDING_MARKER_ID, centerMarker)
-        // POI markers：字母与 LocationPanel 清单面板共用 POI_LETTERS，
-        // 按 pois 数组顺序编号（调用方已只传入「当前列表正在展示的」POI，
-        // 见 LocationPanel 的 mapPois 取值说明）
-        for (const [index, poi] of pois.entries()) {
-          const { root, nameLabel } = createPoiPinContent(POI_LETTERS[index] ?? '')
-          const marker = new AMap.Marker({
-            position: [poi.coordinates.longitude, poi.coordinates.latitude],
-            anchor: 'center',
-            title: poi.name,
-            content: root,
-            map,
-          })
-          markersRef.current.set(poi.id, marker)
-          poiNameLabelsRef.current.set(poi.id, nameLabel)
-        }
-        if (pois.length > 0) {
-          map.setFitView()
-        }
         setState('ready')
         requestAnimationFrame(() => {
           map.resize()
@@ -207,7 +261,8 @@ export default function AmapMapCanvas({
     return () => observer.disconnect()
     // startLoad 引用不稳定但仅执行一次：只有 mapEnabled/coordinates/state
     // 变化才会重新订阅 observer，而 observer 一旦触发即 disconnect，不会
-    // 用到重新渲染后的新闭包；pois/buildingName 在此不入 deps 是有意为之。
+    // 用到重新渲染后的新闭包；buildingName 在此不入 deps 是有意为之
+    // （pois 已不在 startLoad 里使用，见上）。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapEnabled, coordinates, state])
 

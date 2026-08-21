@@ -3498,11 +3498,9 @@ ol {
   padding: 0;
 }
 
-/* 地图 + POI 浮动面板容器（参考 58 商办：地图占满宽度，POI 面板绝对定位浮在右侧） */
-.location-panel__map-area {
-  position: relative;
-  width: 100%;
-}
+/* .location-panel__map-area 已在 OPT-037 Task 5 随「浮层覆盖地图」旧写法一起
+ * 淘汰（改为 detail.css 的 .location-panel__grid 两列网格），组件里已无引用，
+ * 故整条规则一并删除，不留死代码。 */
 
 .location-panel__poi-panel {
   position: absolute;
