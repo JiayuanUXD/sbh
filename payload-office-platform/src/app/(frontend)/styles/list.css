@@ -94,7 +94,12 @@
 
 /* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
 .ls-price { display: flex; align-items: baseline; gap: 4px; }
-.ls-price__value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+/* flex: none —— 定宽盒是 .ls-price 这个 flex 容器的子项，默认 flex-shrink:1 会在容器
+   变窄时把它压回 min-width，min-width 就重新变成硬上限、数字照样被裁。实测（375 及
+   窄卡场景）：把 width 换成 min-width 后「1,200,000」从 88 长到 98.1px，仍不够 108px；
+   加上不可收缩才真的完整显示。同一条也修掉了一个一直存在的裁切：「12.80」需要 61px，
+   在 58px 的 --day 盒里被压掉了 3px（OPT-036 终审 M5 实测发现）。 */
+.ls-price__value { flex: none; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
   font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: normal; text-align: right; }
 /* 用 min-width 而非 width——与 .bd-card__stock（下方 60 行）同一条理由，本文件不该
    两种写法并存：width 是硬上限，超出的数字会被 .sf-card 的 overflow:hidden 悄悄裁掉，
