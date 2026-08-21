@@ -1,0 +1,688 @@
+{
+  "375": {
+    "overflowTop": {
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    "fullBleed": [
+      {
+        "scope": "a",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 375,
+        "clientWidth": 375,
+        "isFullBleed": true,
+        "innerW": 343,
+        "expectInner": 343,
+        "innerOk": true
+      },
+      {
+        "scope": "b",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 375,
+        "clientWidth": 375,
+        "isFullBleed": true,
+        "innerW": 343,
+        "expectInner": 343,
+        "innerOk": true
+      },
+      {
+        "scope": "c",
+        "present": true,
+        "display": "none",
+        "barX": 0,
+        "barW": 0,
+        "clientWidth": 375,
+        "isFullBleed": false,
+        "innerW": 0,
+        "expectInner": 343,
+        "innerOk": false
+      }
+    ],
+    "stuck": {
+      "x": 0,
+      "y": 44,
+      "width": 375,
+      "height": 56,
+      "position": "sticky",
+      "headerH": 44
+    },
+    "clicks": [
+      {
+        "id": "anchor-demo-a-supply",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-location",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-spec",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-nearby",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-a-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-a-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-a-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-a-nearby"
+      }
+    ],
+    "pastContainingBlock": {
+      "rawBarBottom": -810,
+      "barIsOffscreen": true,
+      "active": "#anchor-demo-a-nearby",
+      "firstItem": "#anchor-demo-a-supply",
+      "lastItem": "#anchor-demo-a-nearby"
+    },
+    "bottomNatural": {
+      "residual": 0,
+      "lastTop": -1250,
+      "line": -1104,
+      "active": "#anchor-demo-a-nearby"
+    },
+    "bottomIsolated": {
+      "residual": 0,
+      "barStillStuck": 44,
+      "line": 100,
+      "lastTop": 602,
+      "lastCrossedLine": false,
+      "active": "#anchor-demo-a-nearby",
+      "expected": "#anchor-demo-a-nearby"
+    },
+    "variants": [
+      {
+        "scope": "a",
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-a-supply",
+          "#anchor-demo-a-location",
+          "#anchor-demo-a-spec",
+          "#anchor-demo-a-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": false,
+        "ctaVisible": false,
+        "hasVisibleContent": true,
+        "ctaBtnH": 0,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 343,
+          "clientWidth": 343
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "b",
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-b-location",
+          "#anchor-demo-b-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": false,
+        "ctaVisible": false,
+        "hasVisibleContent": true,
+        "ctaBtnH": 0,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 343,
+          "clientWidth": 343
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "c",
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasNoLinksFlag": true,
+        "barVisible": false,
+        "occupiedHeight": 0,
+        "titleVisible": false,
+        "ctaVisible": false,
+        "hasVisibleContent": false,
+        "ctaBtnH": 0,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky"
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    "narrow320": {
+      "scrollWidth": 336,
+      "clientWidth": 288,
+      "overflows": true,
+      "scrollLeftBefore": 0,
+      "scrollLeftAfter": 48,
+      "pageOverflow": 5
+    }
+  },
+  "768": {
+    "overflowTop": {
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    "fullBleed": [
+      {
+        "scope": "a",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 768,
+        "clientWidth": 768,
+        "isFullBleed": true,
+        "innerW": 736,
+        "expectInner": 736,
+        "innerOk": true
+      },
+      {
+        "scope": "b",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 768,
+        "clientWidth": 768,
+        "isFullBleed": true,
+        "innerW": 736,
+        "expectInner": 736,
+        "innerOk": true
+      },
+      {
+        "scope": "c",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 768,
+        "clientWidth": 768,
+        "isFullBleed": true,
+        "innerW": 736,
+        "expectInner": 736,
+        "innerOk": true
+      }
+    ],
+    "stuck": {
+      "x": 0,
+      "y": 44,
+      "width": 768,
+      "height": 56,
+      "position": "sticky",
+      "headerH": 44
+    },
+    "clicks": [
+      {
+        "id": "anchor-demo-a-supply",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-location",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-spec",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-nearby",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-a-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-a-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-a-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-a-nearby"
+      }
+    ],
+    "pastContainingBlock": {
+      "rawBarBottom": -747,
+      "barIsOffscreen": true,
+      "active": "#anchor-demo-a-nearby",
+      "firstItem": "#anchor-demo-a-supply",
+      "lastItem": "#anchor-demo-a-nearby"
+    },
+    "bottomNatural": {
+      "residual": 0,
+      "lastTop": -872,
+      "line": -747,
+      "active": "#anchor-demo-a-nearby"
+    },
+    "bottomIsolated": {
+      "residual": 0,
+      "barStillStuck": 44,
+      "line": 100,
+      "lastTop": 835,
+      "lastCrossedLine": false,
+      "active": "#anchor-demo-a-nearby",
+      "expected": "#anchor-demo-a-nearby"
+    },
+    "variants": [
+      {
+        "scope": "a",
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-a-supply",
+          "#anchor-demo-a-location",
+          "#anchor-demo-a-spec",
+          "#anchor-demo-a-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 492,
+          "clientWidth": 492
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "b",
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-b-location",
+          "#anchor-demo-b-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 507,
+          "clientWidth": 507
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "c",
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasNoLinksFlag": true,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky"
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 768,
+      "clientWidth": 768
+    }
+  },
+  "1440": {
+    "overflowTop": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "fullBleed": [
+      {
+        "scope": "a",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 1440,
+        "clientWidth": 1440,
+        "isFullBleed": true,
+        "innerW": 1180,
+        "expectInner": 1180,
+        "innerOk": true
+      },
+      {
+        "scope": "b",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 1440,
+        "clientWidth": 1440,
+        "isFullBleed": true,
+        "innerW": 1180,
+        "expectInner": 1180,
+        "innerOk": true
+      },
+      {
+        "scope": "c",
+        "present": true,
+        "display": "block",
+        "barX": 0,
+        "barW": 1440,
+        "clientWidth": 1440,
+        "isFullBleed": true,
+        "innerW": 1180,
+        "expectInner": 1180,
+        "innerOk": true
+      }
+    ],
+    "stuck": {
+      "x": 0,
+      "y": 44,
+      "width": 1440,
+      "height": 56,
+      "position": "sticky",
+      "headerH": 44
+    },
+    "clicks": [
+      {
+        "id": "anchor-demo-a-supply",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-location",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-spec",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-a-nearby",
+        "secTop": 112,
+        "headingTop": 136,
+        "barBottom": 100,
+        "breathing": 12,
+        "headingClear": true,
+        "underBarTag": "DIV.dt-container",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-a-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-a-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-a-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-a-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-a-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-a-nearby"
+      }
+    ],
+    "pastContainingBlock": {
+      "rawBarBottom": -609,
+      "barIsOffscreen": true,
+      "active": "#anchor-demo-a-nearby",
+      "firstItem": "#anchor-demo-a-supply",
+      "lastItem": "#anchor-demo-a-nearby"
+    },
+    "bottomNatural": {
+      "residual": 0,
+      "lastTop": -729,
+      "line": -609,
+      "active": "#anchor-demo-a-nearby"
+    },
+    "bottomIsolated": {
+      "residual": 0,
+      "barStillStuck": 44,
+      "line": 100,
+      "lastTop": 716,
+      "lastCrossedLine": false,
+      "active": "#anchor-demo-a-nearby",
+      "expected": "#anchor-demo-a-nearby"
+    },
+    "variants": [
+      {
+        "scope": "a",
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-a-supply",
+          "#anchor-demo-a-location",
+          "#anchor-demo-a-spec",
+          "#anchor-demo-a-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 936,
+          "clientWidth": 936
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "b",
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-b-location",
+          "#anchor-demo-b-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasNoLinksFlag": false,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 951,
+          "clientWidth": 951
+        },
+        "position": "sticky"
+      },
+      {
+        "scope": "c",
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasNoLinksFlag": true,
+        "barVisible": true,
+        "occupiedHeight": 56,
+        "titleVisible": true,
+        "ctaVisible": true,
+        "hasVisibleContent": true,
+        "ctaBtnH": 44,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky"
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    }
+  }
+}

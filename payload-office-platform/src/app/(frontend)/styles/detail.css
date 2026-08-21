@@ -5,7 +5,30 @@
  * （白底零边框、无 hover、padding 更大），故单列 .dt-panel，不套 .sf-card。
  * ========================================================================== */
 
-.dt-page { --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px; --dt-sticky-bar-h: 56px; }
+/* --dt-sticky-bar-h 挂 :root 而不是 .dt-page：`.dt-bar` / `.dt-anchor-target`
+ * 都要读它，而这两个类的使用范围不限于 `.dt-page` 子树（dev-story 预览页、
+ * 以及任何把吸附条挂在页面根一级的接线都在 .dt-page 之外）。放在 .dt-page 里
+ * 会让那些位置静默走 `var(..., 56px)` 的字面兜底，「改一处高度全站跟着变」
+ * 只在 .dt-page 内成立——那正是两个事实源。挂 :root 之后所有 `, 56px`
+ * 兜底一并删掉，缺失即暴露，不再有静默回退。 */
+:root { --dt-sticky-bar-h: 56px; }
+
+/* `.dt-page` 出血到视口宽——**照 `.hm-home` 的既有做法，不新造机制**
+ * （home.css 第 15–19 行；`body { overflow-x: clip }`（styles.css:195）就是配套
+ * 用来裁掉 100vw 与滚动条宽度之差的，全站已经在这个组合上跑了一个版本）。
+ *
+ * 为什么必须出血：吸附条（`.dt-bar`）是全幅块，毛玻璃与底线要横贯视口、与正
+ * 上方的 `.site-header` 对齐；而它的祖先 `.site-main` 带
+ * `max-width: 1440 + padding-inline: 24`（styles.css:597），不破掉这层，条就被
+ * 按住在 `clientWidth - 48` 上，玻璃断在容器边界（Task 8 审查 Issue 1 实测
+ * 1440 下 `x:24 / width:1392`）。
+ * 顺带把 375 下的左右留白从 24+16=40 修回稿子要求的 16（`.dt-container` 自己的
+ * `100% - 32px`），与列表页 `.ls-page` 抵消同一份内边距的动机一致。
+ * 只破左右、不动纵向：纵向节奏归 Task 10 接线时连同标题栏一起定，这里不顺手改。 */
+.dt-page {
+  --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px;
+  width: 100vw; margin-inline: calc(50% - 50vw);
+}
 .dt-container { width: min(var(--dt-w), 100% - 32px); margin-inline: auto; }
 
 /* align-items:start（Task 4 新增）——两列各自按内容高度定盒，不拉伸到行高。
@@ -255,10 +278,21 @@
  * **只抽 chrome，不抽 position**：两条的 position 取值不同且各有理由
  * （fixed vs sticky，见各自下方注释），把定位也塞进共享类会逼出一个
  * "外壳类同时管两种定位"的修饰符，那是把差异藏起来而不是表达出来。
- * 同样不抽 `gap`（20 vs 28，两份稿各自的字面量）。 */
+ * 同样不抽 `gap`（20 vs 28，两份稿各自的字面量）。
+ *
+ * **外层全幅 + 内层容器居中**（稿子第 69–71 行就是这两层）：`.dt-bar` 只负责
+ * 毛玻璃与底线，必须横贯视口宽；把内容收回 `--dt-w` 是 `.dt-bar__inner`
+ * （与 `.dt-container` 同用）的事。`.dt-sticky-bar` 靠 `fixed + left:0/right:0`
+ * 自带全幅，`.dt-anchor-bar` 是 `sticky`、留在文档流里，**宽度完全由父元素
+ * 决定** → 接线契约：`.dt-bar` 必须挂在全幅块下，不能塞进 `.dt-container`
+ * 这类定宽容器（否则玻璃与底线会在容器边界断掉，与正上方全幅的站点 header
+ * 脱节，且 `.dt-bar__inner` 的容器宽会二次内缩 32px）。
+ * 「全幅块」由页面根 `.dt-page` 提供（见文件顶部：它自己先破掉 `.site-main`
+ * 的 max-width 与内边距）；`.dt-bar` 本身**不写任何破容器的负 margin**——
+ * 那会在它已经挂在全幅块下时反过来溢出视口。 */
 .dt-bar {
   z-index: var(--z-floating);
-  height: var(--dt-sticky-bar-h, 56px);
+  height: var(--dt-sticky-bar-h);
   /* --bg (#f5f5f7) 的 86% 不透明度；项目未提供 rgba 版本的 --bg token，
    * 沿用本文件其它位置（如 .detail-gallery__main-counter）字面量 rgba 的
    * 既有先例，不新造 color-mix 写法。 */
@@ -316,7 +350,16 @@
  * 用字面的 `position: sticky`（不是 `.dt-sticky-bar` 的 fixed）：本条常驻
  * 渲染、位于文档流固定位置（导航之后、标题栏之前），从首帧就占位，不存在
  * 「挂载瞬间把下方内容顶下去 56px」的问题；照抄 fixed 反而会脱离文档流、
- * 把标题栏顶部遮掉 56px。sticky 还天然获得「滚过才吸附」的行为。 */
+ * 把标题栏顶部遮掉 56px。sticky 还天然获得「滚过才吸附」的行为。
+ *
+ * **sticky 的两条接线契约**（Task 10 接线时唯一会踩的坑，AnchorNavBar.tsx
+ * 文件头也写了同一份）：
+ *   1. 本条的**包含块（= 父元素）必须覆盖全部被锚点指向的区块**。sticky 的
+ *      粘附范围就是包含块，包含块比区块集合短，条会在还有区块没读完时脱附，
+ *      吸附线随之离开视口（组件侧已把吸附线夹到 ≥0 兜住高亮，但视觉上条已
+ *      经不见了）。
+ *   2. 父元素必须是**全幅块**（见上面 `.dt-bar` 注释），否则玻璃与底线断在
+ *      容器边界。 */
 .dt-anchor-bar { position: sticky; top: var(--header-height); }
 .dt-anchor-bar__inner { gap: 28px; }
 .dt-anchor-bar__title {
@@ -373,11 +416,16 @@
 }
 .dt-anchor-bar__cta .btn:hover { background: var(--accent-hover); }
 
-/* 锚点落点补偿：全局导航 44 + 本条 56 = 100。目标区块必须带这个类，
- * 否则原生 `#id` 跳转会把区块标题送到吸附条底下。值全部走 token，
- * 导航高度或吸附条高度任一改动，这里自动跟着变。 */
+/* 锚点落点补偿：全局导航 44 + 本条 56 + 12 呼吸 = 112。目标区块必须带这个类，
+ * 否则原生 `#id` 跳转会把区块标题送到吸附条底下。前两项走 token，导航高度或
+ * 吸附条高度任一改动这里自动跟着变。
+ * 那 12px 不是凑数：只补到吸附总高时落点恰好等于条的底边，区块首行会**贴死**
+ * 在毛玻璃下沿（实测 secTop === barBottom === 100）。dev-story 的区块自带 24px
+ * padding 才显得有呼吸，生产区块若没有上 padding 就会贴住。12 取自本文件既有
+ * 的小间距档（.dt-spec__row 的 11px padding、.dt-decision 的 16px 偏移同量级），
+ * 不新造尺度。 */
 .dt-anchor-target {
-  scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h, 56px));
+  scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 12px);
 }
 
 /* ≤767：本条**保留**，只收掉楼盘名与 CTA。
@@ -396,6 +444,16 @@
 @media (max-width: 767px) {
   .dt-anchor-bar__title,
   .dt-anchor-bar__cta { display: none; }
+
+  /* 上面两条把本断点下仅有的另外两个可见元素都藏了，所以「锚点组没渲染」在
+   * ≤767 等价于「整条不含任何内容」——一条纯空白、却常驻吸附并遮住内容的
+   * 56px 玻璃条。真实可达：无坐标→无地图区、供给全空→无供给区、同商圈无
+   * 楼盘→无该区，只剩「楼盘参数」一项时组件就不渲染锚点组。
+   * 本批「空态整段不渲染」的硬约束必须落在**最终可见性**上，而不是组件的
+   * props 上——组件看不到这条 media query，判断只能写在这里；反过来把断点
+   * 搬进 JS 又会造出第二个事实源（断点值同时存在于 CSS 与 JS，必然漂移）。
+   * 组件那边只如实标注 `--no-links`。 */
+  .dt-anchor-bar--no-links { display: none; }
 }
 
 @media (max-width: 1023px) {

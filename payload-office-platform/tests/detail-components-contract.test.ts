@@ -504,6 +504,34 @@ describe('detail component contracts', () => {
     expect(html).toContain('预约看房')
     expect(html).not.toContain('href="#sec-spec"')
     expect(html).not.toContain('dt-anchor-bar__links')
+    // ≤767 断点下楼盘名与 CTA 都被 CSS 藏起来，没有锚点组 = 整条不含任何内容。
+    // 组件必须把「没渲染锚点组」这个只有它知道的事实标出来，CSS 才能在那个
+    // 断点上把整条收掉（否则就是一条纯空白、常驻吸附并遮住内容的 56px 条）。
+    expect(html).toContain('dt-anchor-bar--no-links')
+  })
+
+  it('锚点导航渲染了锚点组时不带 --no-links 标记', () => {
+    const html = renderToStaticMarkup(
+      createElement(AnchorNavBar, {
+        title: '静安嘉里中心',
+        items: [
+          { id: 'sec-supply', label: '在租房源' },
+          { id: 'sec-spec', label: '楼盘参数' },
+        ],
+      }),
+    )
+
+    expect(html).toContain('dt-anchor-bar__links')
+    expect(html).not.toContain('dt-anchor-bar--no-links')
+  })
+
+  it('detail.css 在 ≤767 断点把无锚点组的吸附条整条收掉', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/app/(frontend)/styles/detail.css'),
+      'utf8',
+    )
+    const mobileBlock = css.match(/@media \(max-width: 767px\) \{[\s\S]*?\n\}/)?.[0] ?? ''
+    expect(mobileBlock).toMatch(/\.dt-anchor-bar--no-links\s*\{\s*display:\s*none/)
   })
 
   it('锚点导航在既无锚点项也无 CTA 时整条不渲染', () => {
@@ -545,8 +573,20 @@ describe('detail component contracts', () => {
       'utf8',
     )
     expect(css).toMatch(
-      /\.dt-anchor-target\s*\{[^}]*scroll-margin-top:\s*calc\(var\(--header-height\)\s*\+\s*var\(--dt-sticky-bar-h[^)]*\)\)/,
+      /\.dt-anchor-target\s*\{[^}]*scroll-margin-top:\s*calc\(var\(--header-height\)\s*\+\s*var\(--dt-sticky-bar-h\)\s*\+\s*\d+px\)/,
     )
+  })
+
+  it('--dt-sticky-bar-h 定义在 :root，且没有任何 `, 56px` 字面兜底', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/app/(frontend)/styles/detail.css'),
+      'utf8',
+    )
+    // 挂 :root 而不是 .dt-page —— `.dt-bar` / `.dt-anchor-target` 的使用范围
+    // 不限于 .dt-page 子树（dev-story、以及把吸附条挂在页面根一级的接线）。
+    expect(css).toMatch(/:root\s*\{[^}]*--dt-sticky-bar-h:\s*56px/)
+    // 有了 :root 定义就不该再留静默回退：漏定义要直接暴露，不是走字面 56。
+    expect(css).not.toMatch(/var\(--dt-sticky-bar-h\s*,/)
   })
 
 })

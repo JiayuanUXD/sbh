@@ -798,23 +798,59 @@ const SUPPLY_EMPTY_SNAPSHOT: BuildingSupplySnapshot = {
 }
 
 /* 锚点导航 fixture（Task 8）。
- * id 前缀 `anchor-demo-` 是预览页专用，避免与本页其它区块 / 生产页真实区块 id
- * 撞车；生产接线（Task 10）用的是各区块自己的 id。
+ * id 前缀 `anchor-demo-<scope>-` 是预览页专用，避免与本页其它区块 / 生产页真实
+ * 区块 id 撞车；生产接线（Task 10）用的是各区块自己的 id。
+ *
+ * **三态各自独立一套 id、各自一个包含块**（Task 8 审查 Issue 10）：早先三条 bar
+ * 共用同一批目标区块、又都是 `sticky top:44`，滚动时三条会叠在一起互相压住，
+ * 预览态本身就是错的，还会误导后续任务照抄这个摆法。sticky 的粘附范围是包含块
+ * ——一条 bar 一个 scope、scope 内含它自己的全部目标区块，才是本组件真正的
+ * 接线形态（也正是 AnchorNavBar 文件头写的那条契约）。
+ *
  * 四项的顺序与内容照楼盘详情稿的 `anchors` 数组，但**必须由调用方按区块真实
  * 渲染与否装配**——下面两个降级 fixture 正是在演示这一点，组件内部没有任何
  * 「默认 4 项」的兜底。 */
-const ANCHOR_ITEMS_FULL: ReadonlyArray<AnchorNavItem> = [
-  { id: 'anchor-demo-supply', label: '在租房源' },
-  { id: 'anchor-demo-location', label: '周边与交通' },
-  { id: 'anchor-demo-spec', label: '楼盘参数' },
-  { id: 'anchor-demo-nearby', label: '同商圈楼盘' },
-]
-const ANCHOR_ITEMS_TWO: ReadonlyArray<AnchorNavItem> = [
-  { id: 'anchor-demo-location', label: '周边与交通' },
-  { id: 'anchor-demo-spec', label: '楼盘参数' },
-]
-const ANCHOR_ITEMS_ONE: ReadonlyArray<AnchorNavItem> = [
-  { id: 'anchor-demo-spec', label: '楼盘参数' },
+type AnchorDemo = Readonly<{
+  /** scope 标识，同时用作 id 前缀与 `data-anchor-demo`（验证脚本按它定位） */
+  scope: string
+  title: string
+  caption: string
+  items: ReadonlyArray<AnchorNavItem>
+  /** 每个目标区块的高度；末项故意很矮时用来复现「边界 2」 */
+  heights: readonly number[]
+}>
+
+const ANCHOR_DEMOS: readonly AnchorDemo[] = [
+  {
+    scope: 'a',
+    title: '静安嘉里中心',
+    caption: '4 项完整（末区块只有 120px —— 复现「边界 2」：它的 top 永远够不到吸附线）',
+    items: [
+      { id: 'anchor-demo-a-supply', label: '在租房源' },
+      { id: 'anchor-demo-a-location', label: '周边与交通' },
+      { id: 'anchor-demo-a-spec', label: '楼盘参数' },
+      { id: 'anchor-demo-a-nearby', label: '同商圈楼盘' },
+    ],
+    heights: [420, 420, 420, 120],
+  },
+  {
+    scope: 'b',
+    title: '陆家嘴中心',
+    caption: '只剩 2 项（供给区与同商圈楼盘为空态，未渲染 → 调用方不装配这两项）',
+    items: [
+      { id: 'anchor-demo-b-location', label: '周边与交通' },
+      { id: 'anchor-demo-b-spec', label: '楼盘参数' },
+    ],
+    heights: [320, 320],
+  },
+  {
+    scope: 'c',
+    title: '虹桥天地',
+    caption:
+      '只剩 1 项（锚点组整个不渲染，吸附条本体与「预约看房」仍在；≤767 断点下楼盘名与 CTA 也被藏起来 → 整条不含任何内容，由 .dt-anchor-bar--no-links 整条收掉，不占位）',
+    items: [{ id: 'anchor-demo-c-spec', label: '楼盘参数' }],
+    heights: [200],
+  },
 ]
 
 export default async function Opt037PreviewPage({
@@ -1181,98 +1217,92 @@ export default async function Opt037PreviewPage({
           </div>
         </PreviewSection>
 
-        <PreviewSection
-          id="anchor-nav-bar"
-          title="吸附锚点导航（AnchorNavBar）"
-          note="sticky top 44 · 高 56 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（平滑滚动与 reduced-motion 由全局 html{scroll-behavior} 负责），落点由 .dt-anchor-target 的 scroll-margin-top=44+56 补偿。三态：4 项完整 / 只剩 2 项 / 只剩 1 项（锚点组不渲染，吸附条与 CTA 仍在）。"
-        >
-          {/* 第一态：4 项完整 + 真实目标区块。目标区块必须与本条在同一个
-              PreviewSection 内——sticky 的粘附范围是其包含块，放到别的
-              section 里就没法在滚动中同时观察「吸附 + 高亮跟随」。 */}
-          <AnchorNavBar
-            title="静安嘉里中心"
-            items={ANCHOR_ITEMS_FULL}
-            cta={
-              <InquiryModal
-                pageType="building"
-                targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
-                targetSummary="静安嘉里中心"
-                triggerLabel="预约看房"
-                // 不传 triggerClassName：CTA 的尺寸/圆角/配色由
-                // `.dt-anchor-bar__cta .btn` 按稿定死，调用方无需（也不该）
-                // 再挑一个全局尺寸修饰符，否则两处会各说各话。
-                // 'sticky-card' 的选取理由同 StickyInquiryBar：schema 没有
-                // 「顶部吸附条」枚举，且它与页面其它询价入口本就是同一个
-                // 产品位的不同呈现形态，不为区分而新造枚举。
-                sourceSection="sticky-card"
-              />
-            }
-          />
-          {ANCHOR_ITEMS_FULL.map((item, index) => (
-            <section
-              key={item.id}
-              id={item.id}
-              // .dt-anchor-target：scroll-margin-top = 导航 44 + 吸附条 56。
-              // 生产接线（Task 10）必须给每个被锚点指向的区块加上这个类。
-              className="dt-anchor-target"
-              style={{
-                // 最后一个区块故意做得很矮（120px）：这正是文件头注释里
-                // 「边界 2」的复现场景——它的 top 永远到不了吸附线，只有
-                // 「滚到底 → 取最后一个」的兜底能让高亮落到它身上。
-                minHeight: index === ANCHOR_ITEMS_FULL.length - 1 ? 120 : 420,
-                background: 'var(--bg-subtle)',
-                borderRadius: 'var(--r-card)',
-                padding: 24,
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>{item.label}</h3>
-              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-2)' }}>
-                锚点落点验证块。点击吸附条上的「{item.label}」后，本行上方的标题必须完整可见、不被吸附条压住。
-              </p>
-            </section>
-          ))}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>
-              只剩 2 项（供给区与同商圈楼盘为空态，未渲染 → 调用方不装配这两项）
-            </span>
-            <AnchorNavBar
-              title="陆家嘴中心"
-              items={ANCHOR_ITEMS_TWO}
-              cta={
-                <InquiryModal
-                  pageType="building"
-                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
-                  targetSummary="陆家嘴中心"
-                  triggerLabel="预约看房"
-                  sourceSection="sticky-card"
-                />
-              }
-            />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>
-              只剩 1 项（锚点组整个不渲染，吸附条本体与「预约看房」仍在）
-            </span>
-            <AnchorNavBar
-              title="虹桥天地"
-              items={ANCHOR_ITEMS_ONE}
-              cta={
-                <InquiryModal
-                  pageType="building"
-                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
-                  targetSummary="虹桥天地"
-                  triggerLabel="预约看房"
-                  sourceSection="sticky-card"
-                />
-              }
-            />
-          </div>
-        </PreviewSection>
-
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}
       </div>
+
+      {/* ── 吸附锚点导航（AnchorNavBar，Task 8） ─────────────────────────────
+          **本节故意放在上面那个 `.dt-container` 之外**（因此不是 PreviewSection
+          的子节点，而是手写同款外壳）：`.dt-bar` 是全幅块，毛玻璃与底线必须横贯
+          视口宽；塞进定宽容器里会断在容器边界、与正上方全幅的站点 header 脱节，
+          内层 `.dt-bar__inner`（自己也带 .dt-container）还会二次内缩 32px
+          （Task 8 审查 Issue 1）。生产接线（Task 10）同理：本条是站点 header 的
+          邻居，不是页面内容的一部分。节内文字各自套一层 .dt-container，与其它
+          预览节同宽。 */}
+      <section
+        id="anchor-nav-bar"
+        data-preview="anchor-nav-bar"
+        aria-labelledby="anchor-nav-bar-title"
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 32,
+          marginTop: 48, paddingTop: 24, paddingBottom: 32,
+          borderTop: '1px solid var(--line)',
+        }}
+      >
+        <div className="dt-container" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h2 id="anchor-nav-bar-title" style={{ margin: 0, fontSize: 22, fontWeight: 600, color: 'var(--ink)' }}>
+            吸附锚点导航（AnchorNavBar）
+          </h2>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.43, color: 'var(--ink-2)' }}>
+            sticky top 44 · 高 56 · 全幅玻璃 + 内层容器居中 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（平滑滚动与 reduced-motion 由全局 html{'{'}scroll-behavior{'}'} 负责），落点由 .dt-anchor-target 的 scroll-margin-top=44+56+12 补偿。三态各自独立一个 scope（= sticky 的包含块）与一套 id，互不叠压。
+          </p>
+        </div>
+
+        {ANCHOR_DEMOS.map((demo) => (
+          // 一个 scope = 一条 bar + 它自己的全部目标区块。这个 div 就是 bar 的
+          // 包含块，也就是 sticky 的粘附范围——包含块必须覆盖全部被锚点指向的
+          // 区块，否则条会在还有区块没读完时脱附（AnchorNavBar 文件头的接线契约）。
+          <div key={demo.scope} data-anchor-demo={demo.scope}>
+            <div className="dt-container" style={{ paddingBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>{demo.caption}</span>
+            </div>
+            <AnchorNavBar
+              title={demo.title}
+              items={demo.items}
+              cta={
+                <InquiryModal
+                  pageType="building"
+                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                  targetSummary={demo.title}
+                  triggerLabel="预约看房"
+                  // 不传 triggerClassName：CTA 的尺寸/圆角/配色由
+                  // `.dt-anchor-bar__cta .btn` 按稿定死，调用方无需（也不该）
+                  // 再挑一个全局尺寸修饰符，否则两处会各说各话。
+                  // 'sticky-card' 的选取理由同 StickyInquiryBar：schema 没有
+                  // 「顶部吸附条」枚举，且它与页面其它询价入口本就是同一个
+                  // 产品位的不同呈现形态，不为区分而新造枚举。
+                  sourceSection="sticky-card"
+                />
+              }
+            />
+            <div
+              className="dt-container"
+              style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}
+            >
+              {demo.items.map((item, index) => (
+                <section
+                  key={item.id}
+                  id={item.id}
+                  // .dt-anchor-target：scroll-margin-top = 导航 44 + 吸附条 56 + 12 呼吸。
+                  // 生产接线（Task 10）必须给每个被锚点指向的区块加上这个类。
+                  className="dt-anchor-target"
+                  style={{
+                    minHeight: demo.heights[index] ?? 240,
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 'var(--r-card)',
+                    padding: 24,
+                  }}
+                >
+                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>{item.label}</h3>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-2)' }}>
+                    锚点落点验证块。点击吸附条上的「{item.label}」后，本行上方的标题必须完整可见、不被吸附条压住，且与条底留出呼吸。
+                  </p>
+                </section>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
     </div>
   )
 }
