@@ -210,4 +210,39 @@ describe('buildBuildingSpecGroups', () => {
     expect(mepGroup).toBeDefined()
     expect(mepGroup?.rows.every((r) => r.value === null)).toBe(true)
   })
+
+  /**
+   * 守卫落在失效点：这 6 条事实 **comp 的 24 格里没有**，但 `mapBuildingFactGroups`
+   * 一直在产出、改版前楼盘详情页的 `DetailFacts`（全量事实清单）一直在展示，
+   * 真实种子数据里也都有值。OPT-037 Task 10 用本面板替换 `DetailFacts` 时，
+   * 漏掉它们就是一次**接线造成的静默内容删除**——页面看不出少了东西，只有
+   * 拿改版前后的字段清单逐条对账才发现。
+   * 未来任何「按 comp 收敛参数表」的清理都会先撞到这条用例，而不是撞到用户。
+   */
+  it('保留 comp 未列、但域层与旧 DetailFacts 一直在展示的 6 条事实', () => {
+    const factGroups: readonly FactGroupViewModel[] = [
+      { id: 'identity', title: '身份与注册', facts: [fact('物业类型', '写字楼')] },
+      { id: 'building', title: '建筑信息', facts: [fact('得房率', '70%')] },
+      {
+        id: 'transport',
+        title: '电梯与停车',
+        facts: [fact('分区说明', '低区 1-14 层 / 高区 15-28 层')],
+      },
+      { id: 'property', title: '开发物业', facts: [fact('开发商', '静安商务开发')] },
+      {
+        id: 'services',
+        title: '楼宇服务',
+        facts: [fact('门禁', '7×24 智能门禁'), fact('服务时间', '7×24')],
+      },
+    ]
+    const rows = buildBuildingSpecGroups({ factGroups, amenityGroups: [] }, null)
+      .flatMap((group) => group.rows)
+    const byLabel = new Map(rows.map((row) => [row.label, row.value]))
+    expect(byLabel.get('物业类型')).toBe('写字楼')
+    expect(byLabel.get('得房率')).toBe('70%')
+    expect(byLabel.get('电梯分区')).toBe('低区 1-14 层 / 高区 15-28 层')
+    expect(byLabel.get('开发商')).toBe('静安商务开发')
+    expect(byLabel.get('门禁')).toBe('7×24 智能门禁')
+    expect(byLabel.get('服务时间')).toBe('7×24')
+  })
 })

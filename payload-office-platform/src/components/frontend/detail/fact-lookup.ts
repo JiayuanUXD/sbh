@@ -46,3 +46,17 @@ export function formatCompletionYear(value: string, estimated = false): string |
   if (!Number.isFinite(year)) return null
   return estimated ? `${year} 年（估算）` : `${year} 年`
 }
+
+/**
+ * 「从 factGroups 里取出格式化好的竣工年份」——`findFact('竣工时间')` +
+ * `formatCompletionYear` 的固定组合。原先只活在 `BuildingSpecPanel` 内部，
+ * Task 10 接线时楼盘标题栏副标（地址 · 等级 · 竣工年）成为第二个消费方，
+ * 按「同一判断逻辑不得存在多处」就地收敛，不在页面层再拼一遍这三行。
+ */
+export function completionYearFromGroups(
+  groups: readonly FactGroupViewModel[],
+): string | null {
+  const fact = findFact(groups, '竣工时间')
+  if (!fact || fact.value == null) return null
+  return formatCompletionYear(fact.value, fact.estimated)
+}

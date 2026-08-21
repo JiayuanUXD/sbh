@@ -499,7 +499,15 @@
  * padding 才显得有呼吸，生产区块若没有上 padding 就会贴住。12 取自本文件既有
  * 的小间距档（.dt-spec__row 的 11px padding、.dt-decision 的 16px 偏移同量级），
  * 不新造尺度。 */
-.dt-anchor-target {
+/* `.dt-page .location-panel` 一并挂在这条规则上（Task 10 接线）：`LocationPanel`
+ * 的 <section id="location"> 由组件写死 `class="location-panel detail__section"`，
+ * 外部加不上 `.dt-anchor-target`。它同时是被锚点指向的区块之一，落点必须与
+ * 其它区块同源——**不能**让它继续吃 styles.css 那条 `.location-panel
+ * { scroll-margin-top: 80px }`（80 < 44+56，标题会被吸附条压住），也不能在
+ * 这里再写一份 `calc(...)`（那就是第二个事实源）。`AnchorNavBar` 的择一规则
+ * 读的正是 `getComputedStyle(el).scrollMarginTop`，两者因此自动一致。 */
+.dt-anchor-target,
+.dt-page .location-panel {
   scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 12px);
 }
 
@@ -884,20 +892,31 @@
   margin: 0;
 }
 
+/* 与 `.dt-decision__price-num`（房源页决策卡的大数字）同一档：两页的 372
+ * 信息栏顶上都是"这一屏最大的那个数"，comp 也是同一组取值（40/600/1.06 +
+ * 单位 17/ink-2）。Task 10 接线时实测发现本处仍留着 58 式的
+ * `--fs-32 / 700` 且**缺 tabular-nums**——「数字一律 tabular-nums」是本批
+ * 的硬约束，起价是全页最显眼的数字，漏掉它等于这条约束在楼盘页整个没落地。
+ * 不抽公共类：两条规则的选择器分属两页的组件命名空间，抽第三个类只会让
+ * 「这一页的价格长什么样」多绕一层，取值一致由本注释与 comp 共同担保。 */
 .hero-summary__price {
-  font-size: var(--fs-32);
-  font-weight: 700;
-  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.06;
   color: var(--ink);
 }
 
+/* 无公开价格：降一档字号，同 `.dt-decision__price-num--na` */
 .hero-summary__price--na {
-  font-size: var(--fs-22);
+  font-size: 24px;
+  font-weight: 600;
   color: var(--ink-2);
 }
 
 .hero-summary__price-unit {
-  font-size: var(--fs-14);
+  font-size: 17px;
   color: var(--ink-2);
 }
 
@@ -964,4 +983,137 @@
   .dt-building-spec {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ============================================================================
+ * 楼盘详情页接线（Task 10）
+ * 设计依据：楼盘详情.dc.html 正文区块 + specRows「楼盘参数 2 列 gap 40/72」
+ * 「楼盘特色标签 标签列 104 + gap 32 · 13/500 底 #f5f5f7」「同商圈楼盘 4 列
+ * gap 16 · 图 16:10」「面板 底 #fff · 圆角 18 · 零边框零阴影」。
+ *
+ * 骨架类（.dt-page / .dt-container / .dt-core / .dt-section / .dt-h2 / .dt-titlebar）
+ * 与房源详情页共用，已在上方「页面骨架与纵向节奏」定义，本节只补楼盘页独有的块。
+ * ========================================================================== */
+
+/* 标题栏副标：comp「静安区南京西路 1515 号 · 甲级写字楼 · 2013 年竣工」。
+ * 挂在 `.dt-titlebar__row` 之后而不是 h1 旁边——右侧操作 pill 组与 h1 同行，
+ * 副标要占满整行宽度才不会被 pill 组挤成两行。 */
+.dt-titlebar__subtitle {
+  margin: 12px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink-2);
+  letter-spacing: normal;
+}
+
+/* 段标题 + 一句话说明：h2 自带 margin-bottom 20，进了本壳之后由壳统一给，
+ * 否则 h2 与说明之间会多出 20px。 */
+.dt-sectionhead { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.dt-sectionhead > .dt-h2 { margin-bottom: 0; }
+.dt-sectionhead__note { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+
+/* 三级标题（楼盘介绍）：comp 没有这一级，取 h2(24) 与正文(17) 之间的 19/600，
+ * 与 `.dt-nomedia__title` 同档，不新造字号。 */
+.dt-h3 { margin: 0 0 12px; font-size: 19px; font-weight: 600; line-height: 1.3;
+  color: var(--ink); letter-spacing: normal; }
+.dt-params__intro { margin-top: 32px; }
+
+/* ── 在租房源下方的「咨询/推荐」卡片带（既有 DetailSideRail 换位不换皮） ──
+ * comp 的供给行网格是 `1fr / 130 / 150 / 176 / 120 / 44`（首列约 496，合计
+ * 1116 = 容器 1180 − 面板 padding 32×2）。本版页面容器已按 comp 收到 1180，
+ * 再切走一条 300–372 的右栏，数值列只剩 79–103px，实测「2800 元/工位/月」
+ * 「2026年10月15日」在单元格里拦腰折行。旧页面没暴露这个问题是因为它根本
+ * 没有 1180 容器（`.site-main` 1392 − 右栏 300 = 1068 够用）。
+ * 「1180 容器」与「300 右栏」不可兼得，comp 选了前者 —— 于是右栏改成表下的
+ * 通栏卡片带。组件一行未动，失效的只有 `position: sticky` 这一个纯呈现属性
+ * （它在文档流的横向卡片带里没有意义）。 */
+.dt-page .detail-side-rail {
+  position: static;
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+/* 侧栏卡片切到本版详情页的面板表面（底 #fff · 圆角 18 · 零边框零阴影）。
+ * 与 `.location-panel__*` 同一手法：组件不换皮、类名不变，由本文件（import
+ * 顺序在 styles.css 之后）覆写这一版的权威取值——不在组件里再写一份，也不
+ * 新造 `.sf-card`（详情页面板本就是与列表卡刻意不同的表面，见 DetailPanel
+ * 文件头）。 */
+.dt-page .detail-side-rail__card {
+  padding: 24px; background: var(--bg-subtle); border: 0;
+  border-radius: var(--r-card);
+}
+.dt-page .detail-side-rail__card h3 {
+  margin: 0 0 12px; font-size: 17px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal;
+}
+.dt-page .detail-side-rail__price {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 24px; font-weight: 600; color: var(--ink);
+}
+.dt-page .detail-side-rail__price span { font-size: 13px; font-weight: 400; color: var(--ink-2); }
+.dt-page .detail-side-rail__muted { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+/* ── 楼盘参数：面板底部的「楼盘特色」标签行 ───────────────────────────────
+ * `grid-column: 1 / -1`：`.dt-building-spec` 本体就是那张 2 列网格（面板与
+ * 网格是同一个元素，见上方），本行要横跨两列，不另加一层 wrapper。 */
+.dt-building-spec__features {
+  grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 32px;
+  padding-top: 24px; border-top: 1px solid var(--line);
+}
+.dt-building-spec__features > .dt-group-title { flex: none; width: 104px; padding-top: 6px; }
+.dt-building-spec__feature-list {
+  flex: 1; min-width: 0; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.dt-building-spec__feature-list li {
+  padding: 6px 14px; border-radius: var(--r-pill); background: var(--bg);
+  font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: normal;
+}
+
+/* ── 周边楼盘横滑条带（既有组件，接线后跟在周边与交通之后） ─────────────── */
+.dt-nearby .nearby-strip-wrap { margin-top: 0; }
+.dt-nearby .nearby-strip-wrap__title {
+  margin: 0 0 16px; font-size: 19px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal;
+}
+
+/* ── 同商圈楼盘：comp 4 列 gap 16 ─────────────────────────────────────────
+ * 不用全站 `.card-grid`（auto-fill minmax(320) 在 1180 容器下只排得下 3 列）。 */
+.dt-related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+
+/* `BuildingCardMini` 的表面同样按本版详情页覆写（同侧栏卡片的理由）：
+ * 零边框、圆角 18、图 16:10（comp「同商圈楼盘 图 16:10」，旧值 16:9），
+ * hover 走跨批次统一口径（-2px + 阴影加深，320ms），不再用 58 式的
+ * 铜色描边 + 1px 位移。埋点属性挂在组件上，不受样式影响。 */
+.dt-page .building-card-mini {
+  background: var(--bg-subtle); border: 0; border-radius: var(--r-card);
+  box-shadow: var(--shadow);
+  transition: transform 320ms var(--ease-apple), box-shadow 320ms var(--ease-apple);
+}
+.dt-page .building-card-mini:hover {
+  border-color: transparent; transform: translateY(-2px); box-shadow: var(--shadow-hover);
+}
+.dt-page .building-card-mini__media { aspect-ratio: 16 / 10; background: #8e8e93; }
+.dt-page .building-card-mini:hover .building-card-mini__media img { transform: none; }
+.dt-page .building-card-mini__body { padding: 18px 20px 20px; gap: 5px; }
+.dt-page .building-card-mini__name { font-size: 16px; line-height: 1.35; letter-spacing: normal; }
+.dt-page .building-card-mini__address { font-size: 13px; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-page .building-card-mini,
+  .dt-page .building-card-mini:hover { transition: none; transform: none; }
+}
+
+@media (max-width: 1023px) {
+  /* 与 `.dt-core` / `.dt-building-spec` / `.dt-related-grid` 用同一个塌栅格
+     断点：几处不一致会出现「核心区已单列、别处还两列」的半塌状态。 */
+  .dt-page .detail-side-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dt-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .dt-titlebar__subtitle { margin-top: 8px; font-size: 14px; }
+  .dt-page .detail-side-rail { grid-template-columns: minmax(0, 1fr); }
+  .dt-building-spec__features { flex-direction: column; gap: 12px; }
+  .dt-building-spec__features > .dt-group-title { width: auto; padding-top: 0; }
+  .dt-related-grid { grid-template-columns: minmax(0, 1fr); }
 }

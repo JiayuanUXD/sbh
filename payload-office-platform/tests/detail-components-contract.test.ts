@@ -571,14 +571,32 @@ describe('detail component contracts', () => {
     expect(stickyHtml).toBe('')
   })
 
-  it('detail.css 的锚点落点补偿等于导航高度 + 吸附条高度，不写死 100', () => {
+  /**
+   * 命题有两条，都钉在同一条 CSS 规则上：
+   *   1. 落点补偿 = 导航高度 + 吸附条高度（+ 呼吸），不写死 100/112；
+   *   2. `LocationPanel` 的 `<section id="location">`（类名由组件写死，外部
+   *      加不上 `.dt-anchor-target`）与其它锚点目标**共用同一条声明**——它
+   *      也是被锚点指向的区块，落点分叉就会出现「点周边与交通落到吸附条底下」
+   *      以及「高亮比落点早/晚一格」（AnchorNavBar 的择一规则读的正是
+   *      getComputedStyle 的 scrollMarginTop）。
+   * 选择器写成列表还是两条独立规则不重要，重要的是两个选择器在同一条规则里，
+   * 所以断言的是「同一个 { } 块同时覆盖两者」。
+   */
+  it('detail.css 的锚点落点补偿等于导航高度 + 吸附条高度，且 location-panel 共用同一条声明', () => {
     const css = readFileSync(
       join(process.cwd(), 'src/app/(frontend)/styles/detail.css'),
       'utf8',
     )
-    expect(css).toMatch(
-      /\.dt-anchor-target\s*\{[^}]*scroll-margin-top:\s*calc\(var\(--header-height\)\s*\+\s*var\(--dt-sticky-bar-h\)\s*\+\s*\d+px\)/,
+    // 先剥注释：本文件的注释里会引用别处的 CSS 片段（如 styles.css 那条
+    // `.location-panel { scroll-margin-top: 80px }`），不剥会先匹配到注释。
+    const rule = css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .match(/(^|\})([^{}]*\.dt-anchor-target[^{}]*)\{([^}]*scroll-margin-top[^}]*)\}/m)
+    expect(rule).not.toBeNull()
+    expect(rule![3]).toMatch(
+      /scroll-margin-top:\s*calc\(var\(--header-height\)\s*\+\s*var\(--dt-sticky-bar-h\)\s*\+\s*\d+px\)/,
     )
+    expect(rule![2]).toMatch(/\.dt-page\s+\.location-panel/)
   })
 
   it('--dt-sticky-bar-h 定义在 :root，且没有任何 `, 56px` 字面兜底', () => {
