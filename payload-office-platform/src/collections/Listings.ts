@@ -35,6 +35,7 @@ import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoi
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
+import { createDataSourceGroup } from '@/domain/supply-import/data-source-field'
 import {
   resolveDefaultSupplyMerchant,
   type MerchantLookupPort,
@@ -857,49 +858,7 @@ export const Listings: CollectionConfig = {
                 },
               },
             } as unknown as Field,
-            {
-              name: 'dataSource',
-              label: '数据来源',
-              type: 'group',
-              admin: {
-                hideGutter: true,
-                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
-                condition: (data) => {
-                  const ds = data?.dataSource as
-                    | {
-                        source?: string | null
-                        externalId?: string | null
-                        sourceUrl?: string | null
-                        syncedAt?: string | null
-                      }
-                    | null
-                    | undefined
-                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
-                },
-              },
-              fields: [
-                {
-                  type: 'row',
-                  fields: [
-                    {
-                      name: 'source',
-                      label: '来源平台',
-                      type: 'select',
-                      options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
-                      admin: { description: '外部抓取来源标识', width: COL_4 },
-                    },
-                    { name: 'externalId', label: '外部 ID', type: 'text', admin: { description: '源平台原始房源编号', width: COL_4 } },
-                    {
-                      name: 'syncedAt',
-                      label: '同步时间',
-                      type: 'date',
-                      admin: { readOnly: true, description: '最后一次从源平台同步的时间', width: COL_4 },
-                    },
-                    { name: 'sourceUrl', label: '源地址', type: 'text', admin: { description: '详情页原始 URL', width: COL_4 } },
-                  ],
-                },
-              ],
-            },
+            createDataSourceGroup('房源'),
           ],
         },
         {

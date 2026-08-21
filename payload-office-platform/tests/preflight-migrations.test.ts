@@ -22,8 +22,9 @@ describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
     // 目录实际迁移份数。新增迁移时同步 +1（本行与下方 parseRegisteredMigrationNames 断言必须一致，
-    // 二者不等即说明有迁移文件漏注册进 index.ts）。最近一次：新增 drop_listing_merchant_relations（OPT-034）。
-    expect(names.length).toBe(57)
+    // 二者不等即说明有迁移文件漏注册进 index.ts）。最近一次：新增 OPT-041 导入批次/地理别名相关
+    // 三份迁移（supply_import_batches / supply_import_unique_indexes / supply_import_role_permissions）。
+    expect(names.length).toBe(60)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -49,12 +50,15 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260813_011000_seed_city_site_profiles')
     expect(names).toContain('20260813_020000_city_partner_applications')
     expect(names).toContain('20260813_021000_city_partner_permissions')
+    expect(names).toContain('20260821_161534_supply_import_batches')
+    expect(names).toContain('20260822_001600_supply_import_unique_indexes')
+    expect(names).toContain('20260822_001700_supply_import_role_permissions')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(57)
+    expect(names.length).toBe(60)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')

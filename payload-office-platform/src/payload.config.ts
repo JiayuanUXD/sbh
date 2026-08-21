@@ -48,6 +48,8 @@ import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
+import { SupplyImportBatches } from './collections/SupplyImportBatches'
+import { LocationAliases } from './collections/LocationAliases'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import {
   EXPORT_LIMIT,
@@ -280,6 +282,8 @@ export default buildConfig({
     AuditLogs,
     Tasks,
     Notifications,
+    SupplyImportBatches,
+    LocationAliases,
   ],
   globals: [AdvisorServiceHours],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）

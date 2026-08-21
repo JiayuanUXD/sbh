@@ -19,6 +19,7 @@ import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-che
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
 import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
+import { createDataSourceGroup } from '@/domain/supply-import/data-source-field'
 
 const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
 
@@ -235,6 +236,7 @@ export const Buildings: CollectionConfig = {
               defaultValue: 1,
               admin: { readOnly: true, description: '乐观锁版本号，系统维护' },
             },
+            createDataSourceGroup('楼盘'),
           ],
         },
         {
