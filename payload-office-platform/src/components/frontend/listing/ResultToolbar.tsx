@@ -32,6 +32,20 @@ import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
  * 与 FilterFormC / PriceUnitSegment 的既有约定一致。href 基元复用
  * `lib/frontend/listing-url.ts` 的 `cloneSearchParams`/`buildHref`，不再造
  * 第三份克隆-改参数-拼 href 的实现。
+ *
+ * 关于 `prefetch={false}`：**本组件刻意不加**（OPT-037 Task 11c 逐个判过）。三条件
+ * 并列判据（①高基数 ②内容驱动 ③常驻渲染，完整表述见 `ui/Breadcrumb.tsx`）里只有
+ * ③ 成立：排序项与视图项是**硬编码枚举**，条数不随内容增长，href 也不由任何 slug
+ * 决定。别因为隔壁 `FilterFormC` / `FilterPill` 有就顺手加——那两个的理由是
+ * 「筛选行 × 每行 5–10 个候选值 = 几十条」（OPT-026，见
+ * tests/listings-query-prefetch-performance.test.ts），本组件是个位数。
+ *
+ * 已实测记录（`artifacts/verification/OPT-037/task11c-prefetch-before.json`）：本组件
+ * 与 `PriceUnitSegment` 合计让 `/listings` 多出 4 条查询变体预取
+ * （`?sort=newest` `?view=row` `?priceUnit=` ×3 中的可切项），`/buildings` 多出 4 条
+ * （`?sort=` ×3 + `?onlyWithStock=1`）。**条数恒定**，且这些恰是用户下一步最可能点的
+ * 控件——预取命中率高，不是净损失。要改也该拿命中率数据另开工作项，别当成本任务的
+ * 顺手清理。
  */
 
 export type ResultToolbarSort = Readonly<{ value: string; label: string }>

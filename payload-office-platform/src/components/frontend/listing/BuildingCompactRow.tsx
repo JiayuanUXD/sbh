@@ -61,6 +61,12 @@ export default function BuildingCompactRow({ building, citySlug }: Readonly<{
   return (
     <Link
       href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
+      // prefetch={false}：与 `BuildingResultCard` 指向同一类 URL、同一个页面，三条件
+      // 同样并列成立。而且本行**比在租卡更该关**：行高只有 64（在租卡约 182），同一屏
+      // 能进视口的条数是在租卡的三倍左右，①高基数这一条在它身上只会更强。
+      // 「暂无在租」不等于「用户不会点」——设计上它就是可查的目录内容（见上方文档
+      // 注释），所以这里关的是**自动**预取，hover 触发的预取与点击导航都不受影响。
+      prefetch={false}
       className="bd-row"
       aria-label={name}
     >
