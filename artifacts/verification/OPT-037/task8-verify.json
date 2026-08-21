@@ -1,0 +1,461 @@
+{
+  "375": {
+    "overflowTop": {
+      "scrollWidth": 375,
+      "clientWidth": 375
+    },
+    "barBox": {
+      "x": 40,
+      "y": 44,
+      "width": 295,
+      "height": 56
+    },
+    "headerH": 44,
+    "clicks": [
+      {
+        "id": "anchor-demo-supply",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-location",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-spec",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-nearby",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-nearby"
+      }
+    ],
+    "nearbyActive": "#anchor-demo-spec",
+    "variants": [
+      {
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-supply",
+          "#anchor-demo-location",
+          "#anchor-demo-spec",
+          "#anchor-demo-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": false,
+        "titleVisible": false,
+        "ctaBtnH": 0,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 336,
+          "clientWidth": 263
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-location",
+          "#anchor-demo-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": false,
+        "titleVisible": false,
+        "ctaBtnH": 0,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 263,
+          "clientWidth": 263
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasCta": true,
+        "ctaVisible": false,
+        "titleVisible": false,
+        "ctaBtnH": 0,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky",
+        "height": 56
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 375,
+      "clientWidth": 375
+    }
+  },
+  "768": {
+    "overflowTop": {
+      "scrollWidth": 768,
+      "clientWidth": 768
+    },
+    "barBox": {
+      "x": 40,
+      "y": 44,
+      "width": 688,
+      "height": 56
+    },
+    "headerH": 44,
+    "clicks": [
+      {
+        "id": "anchor-demo-supply",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-location",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-spec",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-nearby",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-nearby"
+      }
+    ],
+    "nearbyActive": "#anchor-demo-spec",
+    "variants": [
+      {
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-supply",
+          "#anchor-demo-location",
+          "#anchor-demo-spec",
+          "#anchor-demo-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 412,
+          "clientWidth": 412
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-location",
+          "#anchor-demo-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 427,
+          "clientWidth": 427
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky",
+        "height": 56
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 768,
+      "clientWidth": 768
+    }
+  },
+  "1440": {
+    "overflowTop": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    },
+    "barBox": {
+      "x": 130,
+      "y": 44,
+      "width": 1180,
+      "height": 56
+    },
+    "headerH": 44,
+    "clicks": [
+      {
+        "id": "anchor-demo-supply",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-supply",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-location",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-location",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-spec",
+        "secTop": 100,
+        "headingTop": 124,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-spec",
+        "pageOverflow": 0
+      },
+      {
+        "id": "anchor-demo-nearby",
+        "secTop": 152,
+        "headingTop": 176,
+        "barBottom": 100,
+        "headingClear": true,
+        "underBarTag": "SECTION.dt-anchor-target",
+        "underBarInsideBar": false,
+        "barHitIsBar": true,
+        "activeHref": "#anchor-demo-nearby",
+        "pageOverflow": 0
+      }
+    ],
+    "spy": [
+      {
+        "delta": -200,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 0,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 300,
+        "active": "#anchor-demo-supply"
+      },
+      {
+        "delta": 500,
+        "active": "#anchor-demo-location"
+      },
+      {
+        "delta": 900,
+        "active": "#anchor-demo-spec"
+      },
+      {
+        "delta": 1400,
+        "active": "#anchor-demo-nearby"
+      },
+      {
+        "delta": 1800,
+        "active": "#anchor-demo-nearby"
+      }
+    ],
+    "nearbyActive": "#anchor-demo-nearby",
+    "variants": [
+      {
+        "title": "静安嘉里中心",
+        "links": [
+          "#anchor-demo-supply",
+          "#anchor-demo-location",
+          "#anchor-demo-spec",
+          "#anchor-demo-nearby"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 904,
+          "clientWidth": 904
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "陆家嘴中心",
+        "links": [
+          "#anchor-demo-location",
+          "#anchor-demo-spec"
+        ],
+        "hasLinksGroup": true,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": 44,
+        "linksScrollable": {
+          "scrollWidth": 919,
+          "clientWidth": 919
+        },
+        "position": "sticky",
+        "height": 56
+      },
+      {
+        "title": "虹桥天地",
+        "links": [],
+        "hasLinksGroup": false,
+        "hasCta": true,
+        "ctaVisible": true,
+        "titleVisible": true,
+        "ctaBtnH": 44,
+        "linkH": null,
+        "linksScrollable": null,
+        "position": "sticky",
+        "height": 56
+      }
+    ],
+    "overflowBottom": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440
+    }
+  }
+}

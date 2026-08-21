@@ -245,7 +245,33 @@
 
 .dt-decision__cta { margin-top: 24px; }
 
-/* 吸附询价条：sticky top 44（导航高度）· 高 56 · 决策卡离屏后由
+/* ── 吸附栏共享外壳（Task 8 抽出） ────────────────────────────────────────
+ * 两份详情稿把顶部吸附栏画成同一套 chrome：居中容器 · 高 56 · 底
+ * rgba(245,245,247,.86) + 毛玻璃 · 1px 底线。房源页放价格+询价
+ * （`.dt-sticky-bar`），楼盘页放锚点导航+预约（`.dt-anchor-bar`），
+ * 差的只有栏内内容与**定位取值**，chrome 一模一样，故抽出 `.dt-bar`
+ * 两处引用，不各写一份。
+ *
+ * **只抽 chrome，不抽 position**：两条的 position 取值不同且各有理由
+ * （fixed vs sticky，见各自下方注释），把定位也塞进共享类会逼出一个
+ * "外壳类同时管两种定位"的修饰符，那是把差异藏起来而不是表达出来。
+ * 同样不抽 `gap`（20 vs 28，两份稿各自的字面量）。 */
+.dt-bar {
+  z-index: var(--z-floating);
+  height: var(--dt-sticky-bar-h, 56px);
+  /* --bg (#f5f5f7) 的 86% 不透明度；项目未提供 rgba 版本的 --bg token，
+   * 沿用本文件其它位置（如 .detail-gallery__main-counter）字面量 rgba 的
+   * 既有先例，不新造 color-mix 写法。 */
+  background: rgba(245, 245, 247, 0.86);
+  /* 不手写 -webkit-backdrop-filter 兄弟声明——lightningcss 会把它连同
+   * unprefixed 属性一起丢弃，玻璃效果整体失效（styles.css:322 同款注释），
+   * 前缀交给构建工具按 browserslist 补。 */
+  backdrop-filter: var(--header-blur);
+  border-bottom: 1px solid var(--line);
+}
+.dt-bar__inner { height: 100%; display: flex; align-items: center; }
+
+/* 吸附询价条（Task 4，房源页）：top 44（导航高度）· 高 56 · 决策卡离屏后由
  * StickyInquiryBar.tsx 的 IntersectionObserver 挂载/卸载，不是靠 CSS 显隐。
  * 桌面 1440 专属——移动端已有 `.detail__mobile-bar`（固定底栏）承担同一
  * 「避免价格重复出现」的职责，两套机制分工不合并，见 StickyInquiryBar.tsx
@@ -259,21 +285,14 @@
    * 原位置吃掉 56px 高度，把下方所有内容（决策卡、核心区、正文）顺移
    * 56px；Chromium 的 scroll anchoring 会自动补偿 scrollY 抵消这次位移，
    * 现象上勉强不出错，但补偿依赖浏览器行为，不该把正确性建立在这上面。
-   * fixed 完全脱离文档流，挂载/卸载零布局影响，没有这个隐患。 */
+   * fixed 完全脱离文档流，挂载/卸载零布局影响，没有这个隐患。
+   * 注意这条理由**不适用于 `.dt-anchor-bar`**：那条常驻渲染、从首帧就占位。 */
   position: fixed;
   top: var(--header-height);
   left: 0;
   right: 0;
-  z-index: var(--z-floating);
-  height: var(--dt-sticky-bar-h);
-  /* --bg (#f5f5f7) 的 86% 不透明度；项目未提供 rgba 版本的 --bg token，
-   * 沿用本文件其它位置（如 .detail-gallery__main-counter）字面量 rgba 的
-   * 既有先例，不新造 color-mix 写法。 */
-  background: rgba(245, 245, 247, 0.86);
-  backdrop-filter: var(--header-blur);
-  border-bottom: 1px solid var(--line);
 }
-.dt-sticky-bar__inner { height: 100%; display: flex; align-items: center; gap: 20px; }
+.dt-sticky-bar__inner { gap: 20px; }
 .dt-sticky-bar__title {
   flex: none; font-size: 15px; font-weight: 600; color: var(--ink);
   max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -289,6 +308,95 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .dt-sticky-bar__cta { flex: none; margin-left: auto; }
+
+/* ── 吸附锚点导航条（Task 8，楼盘详情页） ──────────────────────────────────
+ * 设计依据：楼盘详情.dc.html 第 69–77 行 + specRows「吸附条 = sticky top 44 ·
+ * 高 56 · 锚点导航 + 预约（楼盘页不带价格）」。
+ *
+ * 用字面的 `position: sticky`（不是 `.dt-sticky-bar` 的 fixed）：本条常驻
+ * 渲染、位于文档流固定位置（导航之后、标题栏之前），从首帧就占位，不存在
+ * 「挂载瞬间把下方内容顶下去 56px」的问题；照抄 fixed 反而会脱离文档流、
+ * 把标题栏顶部遮掉 56px。sticky 还天然获得「滚过才吸附」的行为。 */
+.dt-anchor-bar { position: sticky; top: var(--header-height); }
+.dt-anchor-bar__inner { gap: 28px; }
+.dt-anchor-bar__title {
+  flex: none; font-size: 15px; font-weight: 600; color: var(--ink);
+  max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 锚点组内部横滚：375 下「楼盘名 + 4 个锚点 + CTA」放不下，必须由本容器
+ * 自己吃掉溢出，**不得让页面级出现横向滚动**。
+ * 两条与 Task 7 同源的加固：
+ *   - `min-width: 0`——flex 子项默认 min-width:auto，会按内容撑开而不是收缩，
+ *     没有这一行 overflow-x 永远触发不了，溢出会直接顶到页面级；
+ *   - 子项一律 `flex: none` + `white-space: nowrap`，且**绝不给子项写显式
+ *     min-width**：Task 7 实测过 Chromium 会让显式 min-width 穿透 overflow
+ *     祖先，重新把溢出推到页面级。 */
+.dt-anchor-bar__links {
+  flex: 1 1 auto; min-width: 0; height: 100%;
+  display: flex; align-items: center; gap: 28px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.dt-anchor-bar__links::-webkit-scrollbar { display: none; }
+
+.dt-anchor-bar__link {
+  flex: none; display: inline-flex; align-items: center;
+  /* 触控目标 ≥44px：56 高的条里链接自身只有一行 14px 文字，靠 min-height
+   * 把可点区域撑到 44（宽度方向由 3–5 个中文字符天然满足）。 */
+  min-height: 44px;
+  font-size: 14px; color: var(--ink-2); white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-apple);
+}
+/* text-decoration:none 不是可有可无：全局 `a:hover` 会加下划线（styles.css:211），
+ * 而 `.site-nav__link:hover` 早就显式关掉了它——顶部 chrome 里的导航链接在本站
+ * 一律用「色阶变化」而不是下划线表达 hover，本条是同一类导航，跟随既有口径，
+ * 否则同一条吸附栏里 hover 出下划线、旁边的全站导航不出，观感对不上。 */
+.dt-anchor-bar__link:hover { color: var(--ink); text-decoration: none; }
+/* 当前态：14/500/--ink。选择器挂在 aria-current 上而不是额外的 --active 类，
+ * 保证「可访问性属性」与「视觉高亮」不可能各说各话地漂移。 */
+.dt-anchor-bar__link[aria-current] { font-weight: 500; color: var(--ink); }
+
+/* margin-left:auto 不是冗余：锚点组存在时它被 `flex:1` 顶到右端，但
+ * items.length <= 1 时锚点组整个不渲染，靠这一行 CTA 才仍然贴右。 */
+.dt-anchor-bar__cta { flex: none; margin-left: auto; }
+/* 稿中 CTA：h36 · padding 0 20 · radius 980 · --accent · 14/500。
+ * 高度取 44 而非稿子的 36——与 Task 5「二级 tab / 清单行 padding 撑到 44」
+ * 同一条已确立的取舍：design.md §14.2 的 ≥44×44 触控目标是 token 级约束，
+ * 优先于 comp 像素；何况同族的 `.dt-sticky-bar` CTA（btn--lg）本来就比 44 更高，
+ * 取 36 反而让两条吸附栏的按钮分量对不上。其余字面量照稿。
+ * 定向覆写调用方传入的 `.btn`，不新增全局按钮尺寸档——那会把一处版式需求
+ * 升格成全站基元。 */
+.dt-anchor-bar__cta .btn {
+  min-height: 44px; padding: 0 20px; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 14px; font-weight: 500;
+}
+.dt-anchor-bar__cta .btn:hover { background: var(--accent-hover); }
+
+/* 锚点落点补偿：全局导航 44 + 本条 56 = 100。目标区块必须带这个类，
+ * 否则原生 `#id` 跳转会把区块标题送到吸附条底下。值全部走 token，
+ * 导航高度或吸附条高度任一改动，这里自动跟着变。 */
+.dt-anchor-target {
+  scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h, 56px));
+}
+
+/* ≤767：本条**保留**，只收掉楼盘名与 CTA。
+ * 为什么不像 `.dt-sticky-bar` 那样整条 display:none 交给 `.detail__mobile-bar`：
+ *   1. 职责不同。`.detail__mobile-bar` 是询价 CTA，不是导航——它无法回答
+ *      「跳到楼盘参数」。单列断点下区块纵向堆叠、页面比桌面长得多，锚点
+ *      导航的价值反而更高，删掉是净损失。
+ *   2. `.detail__mobile-bar` 只在 ≤767px 渲染（styles.css 的 media 就是 767），
+ *      而 `.dt-sticky-bar` 的 display:none 断点是 1023——768–1023 这一段本来
+ *      就没有任何替代品。照抄那条断点会在这段宽度留下空洞。
+ * 收掉 CTA 的理由：≤767 时 `.detail__mobile-bar` 已常驻同一个「预约看房」
+ * 入口，同屏两个相同 CTA 违反 StickyInquiryBar / DetailMobileBarPrice 一直
+ * 守护的「同一入口不在视口里重复出现」不变量。
+ * 收掉楼盘名的理由：375 下它要吃掉一半宽度，而楼盘名在标题栏与浏览器标签
+ * 里都拿得到，锚点组才是本条在窄屏上唯一不可替代的部分。 */
+@media (max-width: 767px) {
+  .dt-anchor-bar__title,
+  .dt-anchor-bar__cta { display: none; }
+}
 
 @media (max-width: 1023px) {
   /* 移动端栅格回归修复：`.dt-decision` 的 grid-column:2/grid-row:1 是桌面

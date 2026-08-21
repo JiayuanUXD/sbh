@@ -4,6 +4,7 @@ import React from 'react'
 import HeroSummaryPanel from '@/components/frontend/building-detail/HeroSummaryPanel'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import DetailGallery from '@/components/frontend/DetailGallery'
+import AnchorNavBar, { type AnchorNavItem } from '@/components/frontend/detail/AnchorNavBar'
 import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
@@ -796,6 +797,26 @@ const SUPPLY_EMPTY_SNAPSHOT: BuildingSupplySnapshot = {
   validationErrors: [],
 }
 
+/* 锚点导航 fixture（Task 8）。
+ * id 前缀 `anchor-demo-` 是预览页专用，避免与本页其它区块 / 生产页真实区块 id
+ * 撞车；生产接线（Task 10）用的是各区块自己的 id。
+ * 四项的顺序与内容照楼盘详情稿的 `anchors` 数组，但**必须由调用方按区块真实
+ * 渲染与否装配**——下面两个降级 fixture 正是在演示这一点，组件内部没有任何
+ * 「默认 4 项」的兜底。 */
+const ANCHOR_ITEMS_FULL: ReadonlyArray<AnchorNavItem> = [
+  { id: 'anchor-demo-supply', label: '在租房源' },
+  { id: 'anchor-demo-location', label: '周边与交通' },
+  { id: 'anchor-demo-spec', label: '楼盘参数' },
+  { id: 'anchor-demo-nearby', label: '同商圈楼盘' },
+]
+const ANCHOR_ITEMS_TWO: ReadonlyArray<AnchorNavItem> = [
+  { id: 'anchor-demo-location', label: '周边与交通' },
+  { id: 'anchor-demo-spec', label: '楼盘参数' },
+]
+const ANCHOR_ITEMS_ONE: ReadonlyArray<AnchorNavItem> = [
+  { id: 'anchor-demo-spec', label: '楼盘参数' },
+]
+
 export default async function Opt037PreviewPage({
   searchParams,
 }: Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>) {
@@ -1157,6 +1178,96 @@ export default async function Opt037PreviewPage({
                 currentSearch=""
               />
             </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="anchor-nav-bar"
+          title="吸附锚点导航（AnchorNavBar）"
+          note="sticky top 44 · 高 56 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（平滑滚动与 reduced-motion 由全局 html{scroll-behavior} 负责），落点由 .dt-anchor-target 的 scroll-margin-top=44+56 补偿。三态：4 项完整 / 只剩 2 项 / 只剩 1 项（锚点组不渲染，吸附条与 CTA 仍在）。"
+        >
+          {/* 第一态：4 项完整 + 真实目标区块。目标区块必须与本条在同一个
+              PreviewSection 内——sticky 的粘附范围是其包含块，放到别的
+              section 里就没法在滚动中同时观察「吸附 + 高亮跟随」。 */}
+          <AnchorNavBar
+            title="静安嘉里中心"
+            items={ANCHOR_ITEMS_FULL}
+            cta={
+              <InquiryModal
+                pageType="building"
+                targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                targetSummary="静安嘉里中心"
+                triggerLabel="预约看房"
+                // 不传 triggerClassName：CTA 的尺寸/圆角/配色由
+                // `.dt-anchor-bar__cta .btn` 按稿定死，调用方无需（也不该）
+                // 再挑一个全局尺寸修饰符，否则两处会各说各话。
+                // 'sticky-card' 的选取理由同 StickyInquiryBar：schema 没有
+                // 「顶部吸附条」枚举，且它与页面其它询价入口本就是同一个
+                // 产品位的不同呈现形态，不为区分而新造枚举。
+                sourceSection="sticky-card"
+              />
+            }
+          />
+          {ANCHOR_ITEMS_FULL.map((item, index) => (
+            <section
+              key={item.id}
+              id={item.id}
+              // .dt-anchor-target：scroll-margin-top = 导航 44 + 吸附条 56。
+              // 生产接线（Task 10）必须给每个被锚点指向的区块加上这个类。
+              className="dt-anchor-target"
+              style={{
+                // 最后一个区块故意做得很矮（120px）：这正是文件头注释里
+                // 「边界 2」的复现场景——它的 top 永远到不了吸附线，只有
+                // 「滚到底 → 取最后一个」的兜底能让高亮落到它身上。
+                minHeight: index === ANCHOR_ITEMS_FULL.length - 1 ? 120 : 420,
+                background: 'var(--bg-subtle)',
+                borderRadius: 'var(--r-card)',
+                padding: 24,
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>{item.label}</h3>
+              <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-2)' }}>
+                锚点落点验证块。点击吸附条上的「{item.label}」后，本行上方的标题必须完整可见、不被吸附条压住。
+              </p>
+            </section>
+          ))}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>
+              只剩 2 项（供给区与同商圈楼盘为空态，未渲染 → 调用方不装配这两项）
+            </span>
+            <AnchorNavBar
+              title="陆家嘴中心"
+              items={ANCHOR_ITEMS_TWO}
+              cta={
+                <InquiryModal
+                  pageType="building"
+                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                  targetSummary="陆家嘴中心"
+                  triggerLabel="预约看房"
+                  sourceSection="sticky-card"
+                />
+              }
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 24 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>
+              只剩 1 项（锚点组整个不渲染，吸附条本体与「预约看房」仍在）
+            </span>
+            <AnchorNavBar
+              title="虹桥天地"
+              items={ANCHOR_ITEMS_ONE}
+              cta={
+                <InquiryModal
+                  pageType="building"
+                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                  targetSummary="虹桥天地"
+                  triggerLabel="预约看房"
+                  sourceSection="sticky-card"
+                />
+              }
+            />
           </div>
         </PreviewSection>
 

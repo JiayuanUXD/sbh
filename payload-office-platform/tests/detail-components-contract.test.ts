@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import ListingCard from '@/components/frontend/ListingCard'
+import AnchorNavBar from '@/components/frontend/detail/AnchorNavBar'
+import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import * as BuildingSupplyBrowserModule from '@/components/frontend/BuildingSupplyBrowser'
 import type {
   BuildingSupplySnapshot,
@@ -21,6 +23,7 @@ const DETAIL_COMPONENT_FILES = [
   'DetailFacts.tsx',
   'BuildingSupplyBrowser.tsx',
   'InquiryModal.tsx',
+  'detail/AnchorNavBar.tsx',
 ] as const
 
 function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardViewModel {
@@ -452,6 +455,98 @@ describe('detail component contracts', () => {
     expect(html).toContain('data-analytics-parent-id="101"')
     expect(html).toContain('data-analytics-rank="1"')
     expect(html).not.toContain('data-analytics-title')
+  })
+
+  /* ── 吸附锚点导航（Task 8） ──────────────────────────────────────────────
+   * 钉住三件在接线时最容易被推翻的事：
+   *   1. 锚点项完全来自 `items`，组件内部没有「默认 4 项」的兜底——硬编码会
+   *      在空态整段不渲染的页面上产出死锚点；
+   *   2. `items.length <= 1` 时锚点组不渲染，但吸附条本体与 CTA 仍在；
+   *   3. 锚点是真实的 `<a href="#id">`，不带 role="button"（用 aria-current
+   *      表达当前态，不是 aria-pressed）。
+   * 用 SSR 静态标记断言：这三条都是首帧就必须成立的结构性事实，与
+   * IntersectionObserver / 滚动无关。 */
+  it('锚点导航只渲染调用方装配的项，且是原生 #id 链接', () => {
+    const html = renderToStaticMarkup(
+      createElement(AnchorNavBar, {
+        title: '静安嘉里中心',
+        items: [
+          { id: 'sec-supply', label: '在租房源' },
+          { id: 'sec-spec', label: '楼盘参数' },
+        ],
+      }),
+    )
+
+    expect(html).toContain('href="#sec-supply"')
+    expect(html).toContain('href="#sec-spec"')
+    // 稿子里的另外两项没有被装配 → 组件不得自己补出来
+    expect(html).not.toContain('周边与交通')
+    expect(html).not.toContain('同商圈楼盘')
+    // 真实导航链接：不许把 <a> 谎报成按钮，当前态用 aria-current 而非 aria-pressed
+    expect(html).not.toContain('role="button"')
+    expect(html).not.toContain('aria-pressed')
+    // 首帧（页面在顶部）默认高亮第一项，不留「全部不高亮」的空窗
+    expect(html).toMatch(/href="#sec-supply"[^>]*aria-current="true"/)
+    expect(html).not.toMatch(/href="#sec-spec"[^>]*aria-current/)
+  })
+
+  it('锚点导航在只剩 1 项时不渲染锚点组，但保留吸附条与 CTA', () => {
+    const html = renderToStaticMarkup(
+      createElement(AnchorNavBar, {
+        title: '虹桥天地',
+        items: [{ id: 'sec-spec', label: '楼盘参数' }],
+        cta: createElement('button', { type: 'button' }, '预约看房'),
+      }),
+    )
+
+    expect(html).toContain('dt-anchor-bar')
+    expect(html).toContain('虹桥天地')
+    expect(html).toContain('预约看房')
+    expect(html).not.toContain('href="#sec-spec"')
+    expect(html).not.toContain('dt-anchor-bar__links')
+  })
+
+  it('锚点导航在既无锚点项也无 CTA 时整条不渲染', () => {
+    const html = renderToStaticMarkup(
+      createElement(AnchorNavBar, { title: '静安嘉里中心', items: [] }),
+    )
+
+    expect(html).toBe('')
+  })
+
+  it('锚点导航复用共享吸附栏外壳类（.dt-bar），不各写一份 chrome', () => {
+    const anchorHtml = renderToStaticMarkup(
+      createElement(AnchorNavBar, {
+        title: '静安嘉里中心',
+        items: [
+          { id: 'sec-supply', label: '在租房源' },
+          { id: 'sec-spec', label: '楼盘参数' },
+        ],
+      }),
+    )
+    const stickyHtml = renderToStaticMarkup(
+      createElement(StickyInquiryBar, {
+        title: '静安嘉里中心 12F',
+        priceText: null,
+        cta: createElement('button', { type: 'button' }, '预约看房'),
+      }),
+    )
+
+    expect(anchorHtml).toContain('dt-bar dt-anchor-bar')
+    expect(anchorHtml).toContain('dt-bar__inner')
+    // StickyInquiryBar 默认隐藏（决策卡可见时不挂载），SSR 下为空串——
+    // 这里只需要它不抛错即可，外壳类的另一半由 detail.css 的选择器保证。
+    expect(stickyHtml).toBe('')
+  })
+
+  it('detail.css 的锚点落点补偿等于导航高度 + 吸附条高度，不写死 100', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/app/(frontend)/styles/detail.css'),
+      'utf8',
+    )
+    expect(css).toMatch(
+      /\.dt-anchor-target\s*\{[^}]*scroll-margin-top:\s*calc\(var\(--header-height\)\s*\+\s*var\(--dt-sticky-bar-h[^)]*\)\)/,
+    )
   })
 
 })

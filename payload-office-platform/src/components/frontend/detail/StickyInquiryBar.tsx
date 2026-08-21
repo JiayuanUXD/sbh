@@ -82,8 +82,11 @@ export default function StickyInquiryBar({
   if (!visible) return null
 
   return (
-    <div className="dt-sticky-bar" role="region" aria-label="询价操作栏">
-      <div className="dt-container dt-sticky-bar__inner">
+    // dt-bar / dt-bar__inner 是与 AnchorNavBar 共享的吸附栏外壳（高 56 · 毛玻璃
+    // · 底线 · 居中容器），Task 8 抽出，见 detail.css「吸附栏共享外壳」；
+    // dt-sticky-bar / dt-sticky-bar__inner 只保留本条独有的 fixed 定位与 gap。
+    <div className="dt-bar dt-sticky-bar" role="region" aria-label="询价操作栏">
+      <div className="dt-container dt-bar__inner dt-sticky-bar__inner">
         <span className="dt-sticky-bar__title">{title}</span>
         {priceText != null && (
           <span className="dt-sticky-bar__price">
