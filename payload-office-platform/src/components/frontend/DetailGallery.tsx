@@ -6,7 +6,7 @@ import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
 import { formatPublishedDate } from '@/lib/frontend/format'
-import NoImageHeroGrid from './detail/NoImageHeroGrid'
+import NoImageHeroGrid, { type NoImageMetaItem } from './detail/NoImageHeroGrid'
 import type { SpecRow } from './detail/SpecTable'
 import DetailVideo from './DetailVideo'
 
@@ -16,15 +16,16 @@ type DetailGalleryProps = Readonly<{
   /** The containing detail route; used only as an analytics enum. */
   pageType?: 'listing' | 'building'
   /**
-   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」）。调用方按自己
-   * 页面类型（listing/building）选定六项关键规格与地址交通信息传入；本组件
+   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」，Task 10b 起
+   * 楼盘详情页同用）。调用方按自己页面类型（listing/building）选定关键规格
+   * 与底部补充信息条（`meta`——放什么取决于该页旁边已经说了什么，见
+   * NoImageHeroGrid 文件头）传入；本组件
    * 不关心具体字段来源，只负责在 media 为空时用它替换灰底占位图。省略时
    * 回退到原有的通用「暂无图片」占位（保持对未接入调用方的向后兼容）。
    */
   noMediaFallback?: Readonly<{
     keySpecs: readonly SpecRow[]
-    address: string | null
-    transit: string | null
+    meta: readonly NoImageMetaItem[]
   }>
 }>
 
@@ -223,8 +224,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
         <NoImageHeroGrid
           title={title}
           keySpecs={noMediaFallback.keySpecs}
-          address={noMediaFallback.address}
-          transit={noMediaFallback.transit}
+          meta={noMediaFallback.meta}
         />
       )
     }

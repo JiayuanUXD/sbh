@@ -35,6 +35,35 @@ export function factValue(fact: FactValue | undefined): string | null {
 }
 
 /**
+ * `FactValue` → 「大数值 + 独立单位」两半（`SpecRow` 的 `value` / `unit`）。
+ *
+ * 与上面的 `factValue` 是**两种版式**而不是两套判断：`factValue` 服务键值行
+ * （`SpecTable` / `DetailFacts`，值与单位同字号同一串），本函数服务无图替代
+ * 构图的宫格（数值 32/600 + 单位 14）。拆分数据由 mapper 的 `fact()` 与
+ * `value` 同源产出，这里**不做任何字符串解析**（见 contracts.ts `FactValue`）。
+ *
+ * 两个刻意的取舍：
+ *   - `magnitude` 缺席（dev-story / 测试里手写的 `FactValue` 字面量没有这两个
+ *     新字段）时退回整串 `value`，不报错也不丢内容——新字段是追加的，老数据
+ *     照样能渲染，只是没有字号分级。
+ *   - `estimated` 的「（估算）」挂到 `unit` 而不是 `value`：挂进 `value` 会让
+ *     32px 的大字变成 "2200（估算）"，把版式撑坏；而整条丢掉估算标记等于把
+ *     "这是估的" 这个事实吞掉（`DetailFacts` 一直显式标它）。
+ */
+export function factMagnitude(
+  fact: FactValue | undefined,
+): Readonly<{ value: string | null; unit?: string }> | null {
+  if (!fact || fact.value == null) return null
+  const estimatedNote = fact.estimated ? '（估算）' : ''
+  const magnitude = fact.magnitude ?? null
+  if (magnitude == null) {
+    return { value: estimatedNote ? `${fact.value}${estimatedNote}` : fact.value }
+  }
+  const unit = `${fact.unit ?? ''}${estimatedNote}`
+  return unit ? { value: magnitude, unit } : { value: magnitude }
+}
+
+/**
  * 「竣工时间」事实的值是 ISO 日期字符串（`mapBuildingFactGroups` 直接
  * `fact('竣工时间', building.completionDate)`，未做展示格式化）——楼盘参数
  * 面板的「竣工年份」行与信息面板挑选出的「竣工时间」关键参数都要把它转成

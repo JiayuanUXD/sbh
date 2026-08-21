@@ -229,7 +229,29 @@ export type DetailMediaViewModel = Readonly<{
 
 export type FactValue = Readonly<{
   label: string
+  /**
+   * 展示串，**含**单位后缀（"42000 ㎡"、"28 层"）。既有消费方
+   * （`DetailFacts`、`SpecTable` 系列、`HeroSummaryPanel`）读的一直是它，
+   * 语义未变——下面两个字段是**新增的拆分形态**，不是它的替代品。
+   */
   value: string | null
+  /**
+   * 「大数值 + 独立单位」版式用的拆分形态：`value === magnitude + unit`
+   * （无后缀时 `unit` 为 null、`magnitude === value`）。
+   *
+   * 为什么要有它：`fact()` 在 mapper 里把数值与单位后缀拼成一个串，之后
+   * 谁也拆不回来——想把数值排 32px、单位排 14px（无图替代构图
+   * `NoImageHeroGrid` 的宫格）就只剩「对着 value 做字符串解析」这一条路，
+   * 而那正是 Task 2 明确拒绝的做法。所以在**唯一知道后缀是什么的地方**
+   * （`fact()` 自己）把两半一起产出，而不是让消费方去猜。
+   *
+   * 刻意做成**追加**而非改 `value` 的语义：`value` 被四处消费，把它改成
+   * 裸值会让另外三个面板的单位静默消失——正是本项目反复栽的那个坑。
+   * 键值行（`SpecTable` / `DetailFacts`）继续读 `value`，只有需要拆分版式
+   * 的调用方读这两个。
+   */
+  magnitude?: string | null
+  unit?: string | null
   estimated: boolean
   critical: boolean
 }>

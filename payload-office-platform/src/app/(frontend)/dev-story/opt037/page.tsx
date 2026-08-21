@@ -945,8 +945,10 @@ export default async function Opt037PreviewPage({
               pageType="listing"
               noMediaFallback={{
                 keySpecs: NO_IMAGE_KEY_SPECS,
-                address: '静安区南京西路 1515 号 · 嘉里中心南楼',
-                transit: '近静安寺站',
+                meta: [
+                  { label: '地址', value: '静安区南京西路 1515 号 · 嘉里中心南楼' },
+                  { label: '交通', value: '近静安寺站' },
+                ],
               }}
             />
           </div>

@@ -206,12 +206,17 @@
 .dt-nomedia__head { display: flex; align-items: baseline; justify-content: space-between; }
 .dt-nomedia__title { font-size: 19px; font-weight: 600; color: var(--ink); }
 
+/* minmax(0, 1fr)——`1fr` 的最小值默认是 min-content，CJK 值（"整层办公"）与
+ * 长日期（"2026年9月1日"）会把自己那一列顶宽、把另外两列压到 35px，宫格
+ * 变成三条宽窄不一的竖条。Task 2 只验了桌面，375 下实测到这一步：
+ * 日期在 32px 字号下被压成四行竖排。这是共享基元的加固，两个详情页同得。 */
 .dt-keyspecs {
   margin-top: 28px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 32px 24px;
 }
+
 .dt-keyspecs__item {
   display: flex; flex-direction: column; gap: 8px;
   padding-top: 16px; border-top: 1px solid var(--line);
@@ -223,6 +228,19 @@
   font-size: 32px; font-weight: 600; line-height: 1.1; color: var(--ink);
 }
 .dt-keyspecs__unit { font-size: 14px; color: var(--ink-2); }
+
+/* 移动端 2 列 + 值降到 24。375 的内容宽只有 375 − 容器 16×2 − 面板 40×2 =
+ * 263px：三列每格 72px 装不下 32px 的大字（哪怕列宽已均分），两列 124px 也
+ * 只有降到 24 才容得下 5 个汉字的值（"服务式办公" 5×32=160 会折行）。
+ * 降列数优先于降字号——宫格的信息层级靠"数值比标签大一截"成立，字号降太狠
+ * 就退化成普通键值行，那还不如直接用 SpecTable。
+ * 本块必须排在上面 `.dt-keyspecs__value` 之后：同特异度后来者胜，写在前面
+ * 会被基础规则的 32px 静默覆盖（本任务实测踩过）。768 不进这个断点——那里
+ * `.dt-core` 已是单列、宫格每格 203px，三列 32px 一行装得下。 */
+@media (max-width: 767px) {
+  .dt-keyspecs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; }
+  .dt-keyspecs__value { font-size: 24px; }
+}
 
 .dt-nomedia__meta {
   margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line);

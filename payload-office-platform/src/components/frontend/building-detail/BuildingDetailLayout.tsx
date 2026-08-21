@@ -19,6 +19,10 @@ import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import { siteConfig } from '@/lib/frontend/site-config'
 import DetailSideRail from './DetailSideRail'
 import HeroSummaryPanel from './HeroSummaryPanel'
+import {
+  buildBuildingNoMediaKeySpecs,
+  buildBuildingNoMediaMeta,
+} from './no-media-fallback'
 import NearbyBuildingsStrip from './NearbyBuildingsStrip'
 import { aggregateAreaRange } from './supply-summary'
 import type {
@@ -132,6 +136,13 @@ export default function BuildingDetailLayout({
     completionYear ? `竣工 ${completionYear}` : null,
   ].filter((part): part is string => Boolean(part))
 
+  // 无图替代构图（Task 10b）：本地库实测所有楼盘 mediaItems 都是 0 条，这条
+  // 分支才是常态而不是异常。选了哪六格、底条为什么不是「地址 / 交通」，以及
+  // 为什么不许"按稿子补回"总建筑面积/竣工年份/层高，全部写在
+  // `no-media-fallback.ts`（那份清单有测试锁着）。
+  const noMediaKeySpecs = buildBuildingNoMediaKeySpecs(building)
+  const noMediaMeta = buildBuildingNoMediaMeta(building)
+
   const anchorItems: AnchorNavItem[] = [
     { id: 'supply', label: '在租房源' },
     ...(hasLocation ? [{ id: 'location', label: '周边与交通' }] : []),
@@ -189,7 +200,12 @@ export default function BuildingDetailLayout({
 
       <div className="dt-container">
         <div className="dt-core">
-          <DetailGallery media={building.mediaItems} title={building.name} pageType="building" />
+          <DetailGallery
+            media={building.mediaItems}
+            title={building.name}
+            pageType="building"
+            noMediaFallback={{ keySpecs: noMediaKeySpecs, meta: noMediaMeta }}
+          />
           <HeroSummaryPanel
             building={building}
             supply={supply}

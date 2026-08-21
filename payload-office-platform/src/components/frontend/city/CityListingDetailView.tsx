@@ -8,6 +8,7 @@ import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
+import type { NoImageMetaItem } from '@/components/frontend/detail/NoImageHeroGrid'
 import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import DetailGallery from '@/components/frontend/DetailGallery'
@@ -118,8 +119,13 @@ export default function CityListingDetailView({
     { label: '可入驻', value: formatAvailableDate(listing.availableFrom) },
     { label: '楼盘等级', value: getBuildingGradeLabel(building?.grade) ?? null },
   ]
-  const noMediaAddress = building?.address ?? null
-  const noMediaTransit = building?.nearestMetro?.name ? `近${building.nearestMetro.name}` : null
+  // 底条两格（Task 10b 起由调用方装配，见 NoImageHeroGrid 文件头）：房源页
+  // 首屏除画廊外只有决策卡（价格/核验/顾问），地址与交通没有第二处出处，
+  // 所以照旧放这两格；渲染结果与 Task 2 首版逐字节一致。
+  const noMediaMeta: readonly NoImageMetaItem[] = [
+    { label: '地址', value: building?.address ?? null },
+    { label: '交通', value: building?.nearestMetro?.name ? `近${building.nearestMetro.name}` : null },
+  ]
 
   // 价格摘要只算一次，决策卡与吸附询价条共用（两者是同一个询价入口的两种
   // 呈现形态，文案分叉就是两个事实源）。
@@ -211,7 +217,7 @@ export default function CityListingDetailView({
             media={media}
             title={listing.title}
             pageType="listing"
-            noMediaFallback={{ keySpecs: noMediaKeySpecs, address: noMediaAddress, transit: noMediaTransit }}
+            noMediaFallback={{ keySpecs: noMediaKeySpecs, meta: noMediaMeta }}
           />
 
           <ListingDecisionCard

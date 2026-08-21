@@ -95,8 +95,13 @@ function combineFacts(
  * 展示这栋楼实际持有的公开认证（已过滤 publicVisible + 有效期，见
  * `mapBuildingAmenityGroups`），不按特定认证名称做字符串匹配——见文件头
  * review 修正说明。没有认证时返回 null（渲染 —，此时确实是"没有"）。
+ *
+ * Task 10b 起导出：楼盘详情页的无图替代构图（`BuildingDetailLayout` 装配的
+ * `NoImageHeroGrid` 底条）也要这一条，两处必须是同一份「取哪些认证、怎么拼」
+ * 的判断——照抄一份 `items.join(' · ')` 看着只有一行，却会在过滤口径变化时
+ * 静默分叉（本项目在「同一判断逻辑多处」上已栽 7 次）。
  */
-function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
+export function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
   const certifications = amenityGroups.find((group) => group.id === 'certifications')
   const items = certifications?.items ?? []
   return items.length > 0 ? items.join(' · ') : null

@@ -1,0 +1,194 @@
+{
+  "test0814-375": {
+    "status": 200,
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "—"
+      },
+      {
+        "label": "标准层面积",
+        "value": "—"
+      },
+      {
+        "label": "得房率",
+        "value": "—"
+      },
+      {
+        "label": "客梯",
+        "value": "—"
+      },
+      {
+        "label": "停车位",
+        "value": "—"
+      },
+      {
+        "label": "可注册",
+        "value": "—"
+      }
+    ],
+    "meta": [
+      "楼盘简介—",
+      "认证—"
+    ],
+    "greyPlaceholder": 0,
+    "noOverflow": true
+  },
+  "test0814-1440": {
+    "status": 200,
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "—"
+      },
+      {
+        "label": "标准层面积",
+        "value": "—"
+      },
+      {
+        "label": "得房率",
+        "value": "—"
+      },
+      {
+        "label": "客梯",
+        "value": "—"
+      },
+      {
+        "label": "停车位",
+        "value": "—"
+      },
+      {
+        "label": "可注册",
+        "value": "—"
+      }
+    ],
+    "meta": [
+      "楼盘简介—",
+      "认证—"
+    ],
+    "greyPlaceholder": 0,
+    "noOverflow": true
+  },
+  "empty-building-375": {
+    "status": 200,
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "写字楼"
+      },
+      {
+        "label": "标准层面积",
+        "value": "1200"
+      },
+      {
+        "label": "得房率",
+        "value": "72"
+      },
+      {
+        "label": "客梯",
+        "value": "5"
+      },
+      {
+        "label": "停车位",
+        "value": "80"
+      },
+      {
+        "label": "可注册",
+        "value": "有条件支持"
+      }
+    ],
+    "meta": [
+      "楼盘简介公开空间暂未释放，欢迎咨询后续供应计划。",
+      "认证消防验收合格"
+    ],
+    "greyPlaceholder": 0,
+    "noOverflow": true
+  },
+  "empty-building-1440": {
+    "status": 200,
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "写字楼"
+      },
+      {
+        "label": "标准层面积",
+        "value": "1200"
+      },
+      {
+        "label": "得房率",
+        "value": "72"
+      },
+      {
+        "label": "客梯",
+        "value": "5"
+      },
+      {
+        "label": "停车位",
+        "value": "80"
+      },
+      {
+        "label": "可注册",
+        "value": "有条件支持"
+      }
+    ],
+    "meta": [
+      "楼盘简介公开空间暂未释放，欢迎咨询后续供应计划。",
+      "认证消防验收合格"
+    ],
+    "greyPlaceholder": 0,
+    "noOverflow": true
+  },
+  "listing-nomedia-375": [
+    {
+      "text": "1,240",
+      "height": 26
+    },
+    {
+      "text": "86",
+      "height": 26
+    },
+    {
+      "text": "—",
+      "height": 26
+    },
+    {
+      "text": "整层办公",
+      "height": 26
+    },
+    {
+      "text": "2026年9月1日",
+      "height": 53
+    },
+    {
+      "text": "甲级",
+      "height": 26
+    }
+  ],
+  "listing-nomedia-768": [
+    {
+      "text": "1,240",
+      "height": 35
+    },
+    {
+      "text": "86",
+      "height": 35
+    },
+    {
+      "text": "—",
+      "height": 35
+    },
+    {
+      "text": "整层办公",
+      "height": 35
+    },
+    {
+      "text": "2026年9月1日",
+      "height": 70
+    },
+    {
+      "text": "甲级",
+      "height": 35
+    }
+  ]
+}
