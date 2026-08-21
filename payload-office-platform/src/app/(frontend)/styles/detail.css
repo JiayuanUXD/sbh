@@ -29,3 +29,103 @@
 @media (max-width: 1023px) {
   .dt-core { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ============================================================================
+ * 画廊方案 A（Task 2）
+ * 设计依据：specRows「主图比例」「缩略图条」「图上文字压暗」「无图替代构图」。
+ * 主图 16:10 cover 已由 styles.css .detail-gallery__main 满足，此处只覆写
+ * comp 新增/调整的部分：图上信息层、缩略图尺寸、无图替代构图。
+ * 覆写生效前提：本文件在 layout.tsx 里排在 styles.css 之后 import，同特异度
+ * 「后来者胜」——顺序反了这里会静默失效（同 surface.css 头部注释的机制）。
+ * ========================================================================== */
+
+/* 压暗判断（本任务被要求先问能不能统一，而不是照抄稿子数值）：
+ * comp 给主图渐变 rgba(0,0,0,.46) 底部 38%，全站共享基元 .sf-scrim 是
+ * rgba(0,0,0,.42) 底部 45%（cross-batch-design-decisions.md 已把「图上文字
+ * 压暗」列为全站统一项）。两者差 4% 透明度、7 个百分点高度，都发生在渐变
+ * 最浅的一端，肉眼不可辨；主图比列表卡片大不构成功能性差异——压暗要盖住
+ * 的是「底部文字所在区域」，这个目的与卡片大小无关，45% 在更大的图上盖住
+ * 的文字区域反而更从容。没有找到必须另立一份的理由，直接复用 .sf-scrim，
+ * 不新增修饰类。 */
+
+/* 图上说明文字：复用既有 .detail-gallery__main-badge（此前是一个深色实心
+ * pill），按新稿改为贴着 .sf-scrim 渐变直接显示的纯文字，不再需要自己的
+ * 背景块。 */
+.detail-gallery__main-badge {
+  left: 24px;
+  bottom: 20px;
+  right: auto;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 新增：主图右下角计数 pill（如「3 / 14」），只在图片分类下、且当前媒体
+ * 未加载失败时渲染——与 .detail-gallery__counter（全屏弹窗内的计数）是
+ * 两个不同位置的计数，故意不共用类名，避免样式互相牵连。 */
+.detail-gallery__main-counter {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #fff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+/* 缩略图条：5 格 1fr（每格 = (100% - 4 个 8px gap) / 5）· 16:10 · 圆角 10。
+ * 圆角 10 是 comp 字面值，与卡片 --r-card(18) 不同一套（同类先例见
+ * list.css 结果区白底条 radius 14 的注释），故不引入新 token，直接写字面量。
+ * 保留现有横向滚动容器与两侧箭头（.detail-gallery__arrow）不动——那是已经
+ * 在跑的真实翻页行为，稿子的静态 5 格截图不代表数量 >5 时不需要它。 */
+.detail-gallery__thumb {
+  width: auto;
+  height: auto;
+  flex: 0 0 calc((100% - 32px) / 5);
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+}
+
+/* 无图替代构图（NoImageHeroGrid）：关键规格 3×2 宫格 + 地址交通条。
+ * 面板复用 .dt-panel--full（白底零边框 padding 40），不新起一套面板样式。 */
+.dt-nomedia__head { display: flex; align-items: baseline; justify-content: space-between; }
+.dt-nomedia__title { font-size: 19px; font-weight: 600; color: var(--ink); }
+
+.dt-keyspecs {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px 24px;
+}
+.dt-keyspecs__item {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 16px; border-top: 1px solid var(--line);
+}
+.dt-keyspecs__label { font-size: 13px; color: var(--ink-3); }
+.dt-keyspecs__value-row { display: flex; align-items: baseline; gap: 5px; }
+.dt-keyspecs__value {
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 32px; font-weight: 600; line-height: 1.1; color: var(--ink);
+}
+.dt-keyspecs__unit { font-size: 14px; color: var(--ink-2); }
+
+.dt-nomedia__meta {
+  margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 40px;
+}
+.dt-nomedia__meta-item { display: flex; flex-direction: column; gap: 6px; }
+.dt-nomedia__meta-label { font-size: 13px; color: var(--ink-3); }
+.dt-nomedia__meta-value { font-size: 15px; line-height: 1.5; color: var(--ink); }

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
+import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 
 /**
  * OPT-037 详情页组件预览（仅开发环境）
@@ -71,6 +73,54 @@ const SPEC_FIXTURE_ROWS: readonly SpecRow[] = [
   { label: '可入驻时间', value: '2026-09-01' },
 ]
 
+// ---------------------------------------------------------------------------
+// Fixture：DetailGallery（Task 2）—— 画廊方案 A + 无图替代构图。
+// 覆盖多图 / 单图 / 无图三态：
+//   - 多图（7 张）：验证主图 16:10 cover、图上压暗 + 说明文字 + 计数 pill、
+//     缩略图条 5 格等宽（第 6/7 张需横向滚动才能看到——保留既有翻页箭头，
+//     稿子的静态 5 格截图不代表数量 >5 时不需要它）；capturedAt 故意只给
+//     部分项，验证「无拍摄日期时不显示 · 商户上传」的条件渲染。
+//   - 单图：验证缩略图条整段不渲染（既有行为，非本任务新增）——一张图不需要
+//     选择器，强行摆一条只有一格的缩略图条没有意义。
+//   - 无图：验证 NoImageHeroGrid 接管首屏；「装修状态」故意留 null，验证
+//     缺失渲染为 — 而不是空白或 0（与 SpecTable 同一约定）。
+// ---------------------------------------------------------------------------
+
+// DetailGallery 的媒体 URL 经 normalizePublicMediaUrl 校验，data: URI 会被
+// 判定为不安全来源直接拒收（这是刻意的防御行为，见
+// detail-components-contract.test.ts「画廊防御性拒绝…不安全媒体 URL」）。
+// 所以 fixture 必须是真实可达的站内路径——复用 building-detail-demo 预览页
+// 已有的 public/dev-story/*.svg（4 张通用示例图，循环使用凑够 7 张）。
+const DEMO_IMAGES = [
+  { src: '/dev-story/detail-demo-lobby.svg', alt: '大堂示例图' },
+  { src: '/dev-story/detail-demo-exterior.svg', alt: '外立面示例图' },
+  { src: '/dev-story/detail-demo-night.svg', alt: '夜景示例图' },
+  { src: '/dev-story/detail-demo-floorplan.svg', alt: '平面图示意' },
+] as const
+
+const MULTI_IMAGE_FIXTURE: readonly DetailMediaViewModel[] = [
+  { id: 'm1', kind: 'image', category: '大堂与电梯厅', resource: DEMO_IMAGES[0], capturedAt: '2026-08-11T00:00:00.000Z', isSchematic: false },
+  { id: 'm2', kind: 'image', category: '开放办公区', resource: DEMO_IMAGES[1], capturedAt: null, isSchematic: false },
+  { id: 'm3', kind: 'image', category: '会议室', resource: DEMO_IMAGES[2], capturedAt: null, isSchematic: false },
+  { id: 'm4', kind: 'image', category: '茶水间', resource: DEMO_IMAGES[3], capturedAt: '2026-07-02T00:00:00.000Z', isSchematic: false },
+  { id: 'm5', kind: 'image', category: '前台', resource: DEMO_IMAGES[0], capturedAt: null, isSchematic: false },
+  { id: 'm6', kind: 'image', category: '楼宇外观', resource: DEMO_IMAGES[1], capturedAt: null, isSchematic: false },
+  { id: 'm7', kind: 'image', category: '楼层平面', resource: DEMO_IMAGES[3], capturedAt: null, isSchematic: false },
+]
+
+const SINGLE_IMAGE_FIXTURE: readonly DetailMediaViewModel[] = [
+  { id: 's1', kind: 'image', category: '大堂与电梯厅', resource: DEMO_IMAGES[0], capturedAt: null, isSchematic: false },
+]
+
+const NO_IMAGE_KEY_SPECS: readonly SpecRow[] = [
+  { label: '建筑面积', value: '1,240', unit: '㎡' },
+  { label: '工位数', value: '86', unit: '个' },
+  { label: '装修状态', value: null },
+  { label: '房源类型', value: '整层办公' },
+  { label: '可入驻', value: '2026年9月1日' },
+  { label: '楼盘等级', value: '甲级' },
+]
+
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -118,6 +168,45 @@ export default function Opt037PreviewPage() {
           <DetailPanel variant="full">
             <SpecTable rows={SPEC_FIXTURE_ROWS} />
           </DetailPanel>
+        </PreviewSection>
+
+        <PreviewSection
+          id="detail-gallery-multi"
+          title="详情画廊 · 多图（DetailGallery）"
+          note="16:10 主图 · 图上压暗复用 .sf-scrim · 说明文字 + 计数 pill · 5 格等宽缩略图条（第 6/7 张需滚动）"
+        >
+          <div style={{ maxWidth: 776 }}>
+            <DetailGallery media={MULTI_IMAGE_FIXTURE} title="静安嘉里中心 · 12 层整层" pageType="listing" />
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="detail-gallery-single"
+          title="详情画廊 · 单图"
+          note="缩略图条整段不渲染（既有行为）——一张图没有可选项，摆一条只有一格的缩略图条没有意义"
+        >
+          <div style={{ maxWidth: 776 }}>
+            <DetailGallery media={SINGLE_IMAGE_FIXTURE} title="静安嘉里中心 · 12 层整层" pageType="listing" />
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="detail-gallery-no-media"
+          title="详情画廊 · 无图替代构图（NoImageHeroGrid）"
+          note="mediaItems 为 0，画廊整段不渲染，关键规格 3×2 宫格 + 地址交通条接管首屏；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
+        >
+          <div style={{ maxWidth: 776 }}>
+            <DetailGallery
+              media={[]}
+              title="静安嘉里中心 · 12 层整层"
+              pageType="listing"
+              noMediaFallback={{
+                keySpecs: NO_IMAGE_KEY_SPECS,
+                address: '静安区南京西路 1515 号 · 嘉里中心南楼',
+                transit: '近静安寺站',
+              }}
+            />
+          </div>
         </PreviewSection>
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}

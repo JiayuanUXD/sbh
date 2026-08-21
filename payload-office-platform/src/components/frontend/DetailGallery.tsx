@@ -5,6 +5,9 @@ import { createPortal } from 'react-dom'
 import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
+import { formatPublishedDate } from '@/lib/frontend/format'
+import NoImageHeroGrid from './detail/NoImageHeroGrid'
+import type { SpecRow } from './detail/SpecTable'
 import DetailVideo from './DetailVideo'
 
 type DetailGalleryProps = Readonly<{
@@ -12,6 +15,17 @@ type DetailGalleryProps = Readonly<{
   title: string
   /** The containing detail route; used only as an analytics enum. */
   pageType?: 'listing' | 'building'
+  /**
+   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」）。调用方按自己
+   * 页面类型（listing/building）选定六项关键规格与地址交通信息传入；本组件
+   * 不关心具体字段来源，只负责在 media 为空时用它替换灰底占位图。省略时
+   * 回退到原有的通用「暂无图片」占位（保持对未接入调用方的向后兼容）。
+   */
+  noMediaFallback?: Readonly<{
+    keySpecs: readonly SpecRow[]
+    address: string | null
+    transit: string | null
+  }>
 }>
 
 type RenderableMedia = Readonly<{
@@ -44,7 +58,7 @@ function toRenderableMedia(item: DetailMediaViewModel, title: string): Renderabl
  * switches to the 视频 tab (DetailVideo uses preload="none", no autoplay),
  * keeping third-party media off the first-paint critical path.
  */
-export default function DetailGallery({ media, title, pageType }: DetailGalleryProps) {
+export default function DetailGallery({ media, title, pageType, noMediaFallback }: DetailGalleryProps) {
   const renderableMedia = useMemo(
     () => media.flatMap((item) => {
       const renderable = toRenderableMedia(item, title)
@@ -173,9 +187,23 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
   }, [close, goTo, isOpen, safeActiveIndex, activeKind])
 
   // 无媒体是常态而非异常：前台可见性已不再要求图片数（见 domain/review/
-  // effective-supply.ts 头部），所以详情页必须能在 0 张图下正常渲染，
-  // 走与卡片一致的缺省图（.media-placeholder），而不是一行灰字或空白。
+  // effective-supply.ts 头部），所以详情页必须能在 0 张图下正常渲染。
+  // 图片质量本身也不可控（商户上传、尺寸色温水印不统一）——赌图片必输，
+  // 所以但凡调用方能提供关键规格数据，就换一种构图接管首屏（见
+  // NoImageHeroGrid），而不是退化成一块灰底占位图。调用方没提供时（尚未
+  // 接入或页面类型确无对应字段）才回退到与卡片一致的缺省图
+  // （.media-placeholder），保持原有向后兼容行为。
   if (renderableMedia.length === 0) {
+    if (noMediaFallback) {
+      return (
+        <NoImageHeroGrid
+          title={title}
+          keySpecs={noMediaFallback.keySpecs}
+          address={noMediaFallback.address}
+          transit={noMediaFallback.transit}
+        />
+      )
+    }
     return (
       <div
         className="detail-gallery detail-gallery--empty media-placeholder"
@@ -263,6 +291,21 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
             </button>
           )}
 
+          {/* 图上压暗 + 说明文字 + 计数 pill：只在图片/平面图分类、且当前媒体
+              未加载失败时渲染——视频有自己的全屏按钮覆盖层，压暗贴文字这套
+              视觉语言不适用；失败态下盖一层压暗只会挡住 MediaFallback 的
+              居中提示文字。压暗复用全站 .sf-scrim（见本文件顶部 detail.css
+              同名判断记录，不新增修饰类）。 */}
+          {activeMedia.item.kind !== 'video' && !failedMediaIds.has(activeMedia.item.id) && (
+            <span className="sf-scrim" aria-hidden="true" />
+          )}
+
+          {activeMedia.item.kind !== 'video' && currentList.length > 1 && !failedMediaIds.has(activeMedia.item.id) && (
+            <span className="detail-gallery__main-counter" aria-hidden="true">
+              {safeActiveIndex + 1} / {currentList.length}
+            </span>
+          )}
+
           {activeMedia.item.kind !== 'video' && currentList.length > 1 && (
             <div className="detail-gallery__main-nav" aria-label="主图切换">
               <button
@@ -287,6 +330,7 @@ export default function DetailGallery({ media, title, pageType }: DetailGalleryP
           <span className="detail-gallery__main-badge">
             {activeMedia.item.category}
             {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && ' (示意图)'}
+            {activeMedia.item.capturedAt && ` · 商户上传 ${formatPublishedDate(activeMedia.item.capturedAt)}`}
           </span>
           {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && (
             <figcaption className="detail-gallery__caption">

@@ -4,8 +4,10 @@ import AdvisorCard from '@/components/frontend/AdvisorCard'
 import AmenityList from '@/components/frontend/AmenityList'
 import BackToTop from '@/components/frontend/BackToTop'
 import BuildingSummaryCard from '@/components/frontend/BuildingSummaryCard'
+import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
+import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import DetailFacts from '@/components/frontend/DetailFacts'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailMobileBarPrice from '@/components/frontend/DetailMobileBarPrice'
@@ -17,8 +19,10 @@ import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { ListingDetailViewModel } from '@/domain/public-catalog/contracts'
+import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
 import { buildListingJsonLd, serializeJsonLd } from '@/lib/frontend/detail-metadata'
 import { formatArea, formatAvailableDate } from '@/lib/frontend/format'
+import { LISTING_TYPE_LABEL } from '@/lib/frontend/listing-display'
 import { siteConfig } from '@/lib/frontend/site-config'
 import type { PoiByCategory } from '@/lib/frontend/location-pois'
 import type { ServiceSchedule } from '@/domain/advisor-availability'
@@ -64,6 +68,28 @@ export default function CityListingDetailView({
         capturedAt: null,
         isSchematic: false,
       }))
+  // 无图替代构图（OPT-037 Task 2）：六项关键规格逐一核实可达——全部取自
+  // ListingDetailViewModel 顶层字段或其 building 子对象，不解析 factGroups
+  // 里已拼好 suffix 的字符串（那些是「值嵌单位的键值行」格式，不是这里
+  // 要的「大数值 + 独立单位」格式）。地址取 building.address；「交通」
+  // comp 原稿要的是「地铁站 + 距离 + 步行时间」，但距离/步行时间只有
+  // LocationPanel 消费的 pois（POI 检索结果）里才有，DetailGallery 这一层
+  // 拿不到，也不该为了六个字段把整个 POI 依赖搭进来——因此换成可达的
+  // 「近 {地铁站名}」，不编造距离与步行时间。
+  const noMediaKeySpecs: readonly SpecRow[] = [
+    { label: '建筑面积', value: listing.area != null ? String(listing.area) : null, unit: '㎡' },
+    { label: '工位数', value: listing.seats != null ? String(listing.seats) : null, unit: '个' },
+    {
+      label: '装修状态',
+      value: listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
+    },
+    { label: '房源类型', value: LISTING_TYPE_LABEL[listing.listingType] },
+    { label: '可入驻', value: formatAvailableDate(listing.availableFrom) },
+    { label: '楼盘等级', value: getBuildingGradeLabel(building?.grade) ?? null },
+  ]
+  const noMediaAddress = building?.address ?? null
+  const noMediaTransit = building?.nearestMetro?.name ? `近${building.nearestMetro.name}` : null
+
   const rentText = listing.price?.text ?? '价格面议'
   const inquirySupplyGroup: 'lease' | 'sale' | 'coworking' =
     listing.listingType === 'coworking' ? 'coworking' : listing.businessType
@@ -117,7 +143,12 @@ export default function CityListingDetailView({
         </div>}
       </header>
       <section className="detail-hero" aria-label="房源核心信息">
-        <DetailGallery media={media} title={listing.title} pageType="listing" />
+        <DetailGallery
+          media={media}
+          title={listing.title}
+          pageType="listing"
+          noMediaFallback={{ keySpecs: noMediaKeySpecs, address: noMediaAddress, transit: noMediaTransit }}
+        />
         <div className="detail__summary">
           <div className="detail__rent">{rentText}</div>
           <dl className="detail__specs">
