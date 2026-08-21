@@ -1,7 +1,8 @@
 import React from 'react'
 import DetailPanel from './DetailPanel'
+import { factValue, findFact } from './fact-lookup'
 import SpecTable, { type SpecRow } from './SpecTable'
-import type { FactGroupViewModel, FactValue, ListingDetailViewModel } from '@/domain/public-catalog'
+import type { ListingDetailViewModel } from '@/domain/public-catalog'
 import { formatAvailableDate } from '@/lib/frontend/format'
 
 /**
@@ -76,25 +77,6 @@ export type ListingOverviewGroup = Readonly<{
   rows: readonly SpecRow[]
 }>
 
-function findFact(groups: readonly FactGroupViewModel[], label: string): FactValue | undefined {
-  for (const group of groups) {
-    const found = group.facts.find((item) => item.label === label)
-    if (found) return found
-  }
-  return undefined
-}
-
-/**
- * `listing.factGroups` 的事实值已拼好单位后缀；`estimated` 时附加既有
- * "（估算）" 后缀（与 `DetailFacts.tsx` 的 `detail-facts__estimated` 同一
- * 约定，只是本面板把它折进字符串而非单独一个 span——`SpecTable.value` 是
- * 不透明字符串，两种呈现方式表达的是同一件事，不算另起一套判断）。
- */
-function factValue(fact: FactValue | undefined): string | null {
-  if (!fact || fact.value == null) return null
-  return fact.estimated ? `${fact.value}（估算）` : fact.value
-}
-
 export function buildListingOverviewGroups(
   listing: ListingOverviewInput,
 ): readonly ListingOverviewGroup[] {
@@ -162,7 +144,7 @@ export default function ListingOverviewPanel({
     <DetailPanel variant="full" className="dt-overview">
       {groups.map((group) => (
         <div key={group.id} className="dt-overview__group">
-          <span className="dt-overview__group-title">{group.title}</span>
+          <span className="dt-group-title">{group.title}</span>
           <SpecTable rows={group.rows} />
         </div>
       ))}

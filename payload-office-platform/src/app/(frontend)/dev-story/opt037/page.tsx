@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
+import HeroSummaryPanel from '@/components/frontend/building-detail/HeroSummaryPanel'
 import DetailGallery from '@/components/frontend/DetailGallery'
+import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import LocationPanel, { type LocationPanelBuilding } from '@/components/frontend/LocationPanel'
@@ -9,7 +11,9 @@ import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import type {
+  BuildingDetailViewModel,
   BuildingSummaryViewModel,
+  BuildingSupplySnapshot,
   DetailMediaViewModel,
   FactGroupViewModel,
   FactValue,
@@ -405,6 +409,219 @@ const LOCATION_POIS_EMPTY: PoiByCategory = {
   hotel: [],
 }
 
+// ---------------------------------------------------------------------------
+// Fixture：楼盘信息面板 + 规格参数表（Task 6）
+//
+// HeroSummaryPanel（信息面板）：核心区 776 画廊 + 372 面板，`factGroups` 沿用
+// `mapBuildingFactGroups` 真实产出的标签，供 `pickHeroFacts` 按既有优先级
+// 清单挑选——与 BuildingSpecPanel 复用同一份，两者读的是同一栋楼的同一批
+// 事实，不是两份互相矛盾的 fixture。
+//
+// BuildingSpecPanel（规格参数表）三态：字段齐全 / 部分缺失（组内夹杂 null）/
+// 整组缺失（「机电与设施」客梯·货梯·空调·供电·网络全 null，组标签仍渲染）。
+// ---------------------------------------------------------------------------
+
+function buildingFact(label: string, value: string | null, estimated = false): FactValue {
+  return overviewFact(label, value, estimated)
+}
+
+const HERO_BUILDING_FACT_GROUPS: readonly FactGroupViewModel[] = [
+  {
+    id: 'identity',
+    title: '身份与注册',
+    facts: [
+      buildingFact('物业类型', '写字楼'),
+      buildingFact('楼宇等级', '超甲级'),
+      buildingFact('注册能力', '支持注册'),
+    ],
+  },
+  {
+    id: 'building',
+    title: '建筑信息',
+    facts: [
+      buildingFact('竣工时间', '2013-01-01T00:00:00.000Z'),
+      buildingFact('总楼层', '46 层'),
+      buildingFact('总建筑面积', '108,000 ㎡'),
+      buildingFact('标准层面积', '2,400 ㎡'),
+      buildingFact('标准层高', '4.2 m'),
+      buildingFact('净层高', '2.85 m'),
+      buildingFact('得房率', '72%'),
+    ],
+  },
+  {
+    id: 'property',
+    title: '开发物业',
+    facts: [
+      buildingFact('开发商', '嘉里建设'),
+      buildingFact('物业公司', '嘉里物业'),
+      buildingFact('物业费', '28 元/㎡/月'),
+    ],
+  },
+  {
+    id: 'transport',
+    title: '电梯与停车',
+    facts: [
+      buildingFact('客梯', '18 部'),
+      buildingFact('货梯', '2 部'),
+      buildingFact('分区说明', '1–20 层 / 21–46 层分区运行'),
+      buildingFact('停车位', '620 个'),
+      buildingFact('停车费', '1,500 元/月/位'),
+    ],
+  },
+  {
+    id: 'services',
+    title: '楼宇服务',
+    facts: [
+      buildingFact('空调', 'VAV + VRV 分户'),
+      buildingFact('网络', '三网入楼 · 双路光纤'),
+      buildingFact('供电', '双路市电 + 柴发'),
+      buildingFact('门禁', '人脸识别门禁'),
+      buildingFact('服务时间', '工作日 8:00–22:00'),
+    ],
+  },
+]
+
+const HERO_BUILDING_AMENITY_GROUPS = [
+  { id: 'amenities', title: '配套', items: ['双首层大堂', '24 小时空调可申请'] },
+  { id: 'certifications', title: '认证', items: ['LEED 金级', '绿色建筑三星'] },
+] as const
+
+const HERO_BUILDING_FULL: BuildingDetailViewModel = {
+  citySlug: 'shanghai',
+  cityName: '上海',
+  id: 10,
+  slug: 'jing-an-kerry-centre',
+  name: '静安嘉里中心',
+  address: '静安区南京西路 1515 号',
+  buildingType: 'office_building',
+  grade: 'super-grade-a',
+  district: { id: 1, slug: 'jing-an', name: '静安区' },
+  businessDistrict: { id: 2, slug: 'nanjing-xi-lu', name: '南京西路' },
+  nearestMetro: { id: 3, slug: 'nanjing-xi-lu-station', name: '南京西路站' },
+  coverImage: null,
+  gallery: [],
+  // HeroSummaryPanel 不读 mediaItems（画廊由 DetailGallery 独立渲染），留空。
+  mediaItems: [],
+  factGroups: HERO_BUILDING_FACT_GROUPS,
+  amenityGroups: HERO_BUILDING_AMENITY_GROUPS,
+  verification: { verifiedAt: '2026-08-11T00:00:00.000Z', priceVerifiedAt: '2026-08-15T00:00:00.000Z' },
+  amenities: ['双首层大堂', '24 小时空调可申请'],
+  summary: '静安核心地标甲级写字楼',
+  description: null,
+  coordinates: { latitude: 31.2246, longitude: 121.4467 },
+}
+
+const HERO_SUPPLY_FULL: BuildingSupplySnapshot = {
+  asOf: '2026-08-20T00:00:00.000Z',
+  // HeroSummaryPanel 只读 availableGroups / totalEffectiveListings，groups
+  // 是当前 query 结果（供给密度表用），预览信息面板时留空不影响渲染。
+  groups: [],
+  availableGroups: [
+    {
+      key: 'lease',
+      totalEffectiveListings: 51,
+      areaRange: { min: 320, max: 1860 },
+      immediateAvailabilityCount: 19,
+      priceRanges: [
+        {
+          key: 'lease:CNY:day:sqm:rmb-sqm-day',
+          businessType: 'lease',
+          currency: 'CNY',
+          period: 'day',
+          basis: 'sqm',
+          displayUnit: 'rmb-sqm-day',
+          min: 7.2,
+          max: 12,
+          count: 51,
+        },
+      ],
+    },
+  ],
+  totalEffectiveListings: 51,
+  resultCount: 51,
+  validationErrors: [],
+}
+
+// 字段齐全：BuildingSpecPanel 4 组全部字段都有值 + LEED 命中 + 最小可租面积可算。
+const BUILDING_SPEC_FULL_AMENITIES = HERO_BUILDING_AMENITY_GROUPS
+
+// 部分缺失：组内夹杂 null（标准层高缺失 → 「层高 / 净高」显示「— / 2.85 m」；
+// 网络、停车费缺失），且认证列表里没有 LEED（验证「找不到就是没有」而非编造）。
+const BUILDING_SPEC_PARTIAL_GROUPS: readonly FactGroupViewModel[] = [
+  HERO_BUILDING_FACT_GROUPS[0],
+  {
+    id: 'building',
+    title: '建筑信息',
+    facts: [
+      buildingFact('竣工时间', '2013-01-01T00:00:00.000Z'),
+      buildingFact('总楼层', '46 层'),
+      buildingFact('总建筑面积', '108,000 ㎡'),
+      buildingFact('标准层面积', '2,400 ㎡'),
+      buildingFact('标准层高', null),
+      buildingFact('净层高', '2.85 m'),
+      buildingFact('得房率', '72%'),
+    ],
+  },
+  HERO_BUILDING_FACT_GROUPS[2],
+  {
+    id: 'transport',
+    title: '电梯与停车',
+    facts: [
+      buildingFact('客梯', '18 部'),
+      buildingFact('货梯', '2 部'),
+      buildingFact('分区说明', '1–20 层 / 21–46 层分区运行'),
+      buildingFact('停车位', '620 个'),
+      buildingFact('停车费', null),
+    ],
+  },
+  {
+    id: 'services',
+    title: '楼宇服务',
+    facts: [
+      buildingFact('空调', 'VAV + VRV 分户'),
+      buildingFact('网络', null),
+      buildingFact('供电', '双路市电 + 柴发'),
+      buildingFact('门禁', '人脸识别门禁'),
+      buildingFact('服务时间', '工作日 8:00–22:00'),
+    ],
+  },
+]
+const BUILDING_SPEC_PARTIAL_AMENITIES = [
+  { id: 'amenities', title: '配套', items: ['双首层大堂'] },
+  { id: 'certifications', title: '认证', items: ['绿色建筑三星'] },
+] as const
+
+// 整组缺失：「机电与设施」对应的原始事实（客梯/货梯/空调/供电/网络）全部为
+// null，其余三组正常——验证该组仍渲染组标签 + 全 — 行，不整组隐藏。
+const BUILDING_SPEC_GROUP_MISSING_GROUPS: readonly FactGroupViewModel[] = [
+  HERO_BUILDING_FACT_GROUPS[0],
+  HERO_BUILDING_FACT_GROUPS[1],
+  HERO_BUILDING_FACT_GROUPS[2],
+  {
+    id: 'transport',
+    title: '电梯与停车',
+    facts: [
+      buildingFact('客梯', null),
+      buildingFact('货梯', null),
+      buildingFact('分区说明', null),
+      buildingFact('停车位', '620 个'),
+      buildingFact('停车费', '1,500 元/月/位'),
+    ],
+  },
+  {
+    id: 'services',
+    title: '楼宇服务',
+    facts: [
+      buildingFact('空调', null),
+      buildingFact('网络', null),
+      buildingFact('供电', null),
+      buildingFact('门禁', null),
+      buildingFact('服务时间', null),
+    ],
+  },
+]
+const BUILDING_SPEC_GROUP_MISSING_AMENITIES = HERO_BUILDING_AMENITY_GROUPS
+
 export default function Opt037PreviewPage() {
   // 生产环境直接 404，保证该路由只在开发环境可见
   if (process.env.NODE_ENV === 'production') {
@@ -673,6 +890,49 @@ export default function Opt037PreviewPage() {
         >
           <div data-testid="location-panel-no-coords-probe" />
           <LocationPanel building={LOCATION_BUILDING_NO_COORDS} pois={LOCATION_POIS_EMPTY} mapEnabled={false} />
+        </PreviewSection>
+
+        <PreviewSection
+          id="hero-summary-panel"
+          title="楼盘信息面板（HeroSummaryPanel）"
+          note="核心区 776 画廊 + 372 信息面板（DetailPanel variant=side，padding 32）；关键参数行改用 SpecTable（原手写 dl）；单列断点下面板应随 .dt-core 满宽下沉，不得保留 372 定宽"
+        >
+          <div className="dt-container">
+            <div className="dt-core">
+              <DetailGallery media={MULTI_IMAGE_FIXTURE} title={HERO_BUILDING_FULL.name} pageType="building" />
+              <HeroSummaryPanel building={HERO_BUILDING_FULL} supply={HERO_SUPPLY_FULL} />
+            </div>
+          </div>
+        </PreviewSection>
+
+        <PreviewSection
+          id="building-spec-panel"
+          title="楼盘参数面板（BuildingSpecPanel）"
+          note="通栏 · 4 组 2 列 gap 40/72，每列内部仍是 SpecTable 的行结构；三态：字段齐全（含 LEED 命中 + 最小可租面积）/ 部分缺失（组内夹杂 null，含「层高 / 净高」两值只缺一半的组合行）/ 整组缺失（「机电与设施」对应原始事实全 null，组标签仍渲染）"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>字段齐全</span>
+              <BuildingSpecPanel
+                building={{ factGroups: HERO_BUILDING_FACT_GROUPS, amenityGroups: BUILDING_SPEC_FULL_AMENITIES }}
+                minLeasableArea={320}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>部分缺失（组内夹杂 null）</span>
+              <BuildingSpecPanel
+                building={{ factGroups: BUILDING_SPEC_PARTIAL_GROUPS, amenityGroups: BUILDING_SPEC_PARTIAL_AMENITIES }}
+                minLeasableArea={null}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>整组缺失（机电与设施）</span>
+              <BuildingSpecPanel
+                building={{ factGroups: BUILDING_SPEC_GROUP_MISSING_GROUPS, amenityGroups: BUILDING_SPEC_GROUP_MISSING_AMENITIES }}
+                minLeasableArea={320}
+              />
+            </div>
+          </div>
         </PreviewSection>
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}

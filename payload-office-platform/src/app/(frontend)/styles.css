@@ -4847,88 +4847,12 @@ ol {
   grid-column: auto;
 }
 
-/* 决策面板 */
-.hero-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.hero-summary__price-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__price {
-  font-size: var(--fs-32);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-copper);
-}
-
-.hero-summary__price--na {
-  font-size: var(--fs-22);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__price-unit {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-}
-
-.hero-summary__disclaimer {
-  margin: calc(-1 * var(--sp-3)) 0 0;
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
-  padding-block: var(--sp-3);
-  border-block: 1px solid var(--color-line);
-}
-
-.hero-summary__stat strong {
-  display: block;
-  font-size: var(--fs-18);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__stat span {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__facts > div {
-  display: grid;
-  grid-template-columns: 5.5em minmax(0, 1fr);
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
-
-.hero-summary__facts dt {
-  color: var(--color-muted);
-}
-
-.hero-summary__facts dd {
-  margin: 0;
-  color: var(--color-ink-2);
-}
+/* 决策面板（.hero-summary 及其内容子类）—— OPT-037 Task 6 已整体迁移到
+ * `styles/detail.css`：外层面板改用共享的 `DetailPanel variant="side"`
+ * （`.dt-panel--side`），`.hero-summary` 收窄为面板内容的纵向布局类；原
+ * `.hero-summary__facts`（手写 dl/dt/dd）已被 `SpecTable` 取代，不再需要
+ * 独立样式。此处不再重复定义，全部移到 detail.css，避免同一批类名在两个
+ * 文件里各有一份、只靠 import 顺序才不冲突。 */
 
 /* 房源区：主列 | 粘性右栏 */
 .detail-v2__supply {

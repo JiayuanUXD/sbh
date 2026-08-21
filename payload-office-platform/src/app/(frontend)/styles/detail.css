@@ -23,7 +23,12 @@
 .dt-spec__row { display: flex; align-items: baseline; justify-content: space-between;
   gap: 24px; min-height: 44px; padding: 11px 0; border-bottom: 1px solid var(--line); }
 .dt-spec__row:last-child { border-bottom: 0; }
-.dt-spec__label { font-size: 15px; color: var(--ink-2); }
+/* flex-shrink:0——375 断口下实测发现的既有缺陷（Task 6 新增「地址」这类
+ * 短标签 + 长值的行首次暴露）：flex 子项默认可收缩，CJK 文本没有空格可断，
+ * 挤压到极窄时会逐字换行，"地址" 会拆成"地"/"址"两行，破坏两列键值行的
+ * 版式语义。标签固定在自身内容宽度、把收缩空间让给右侧值列（值本来就允许
+ * 换行），这是 `.dt-spec` 这个共享基元的通用加固，不是本任务专属样式。 */
+.dt-spec__label { flex-shrink: 0; white-space: nowrap; font-size: 15px; color: var(--ink-2); }
 .dt-spec__value { font-size: 15px; font-weight: 500; color: var(--ink);
   text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 /* 值与单位同格：unit 是行文说明，不参与数值对齐，故字重/字号/色阶单独降级 */
@@ -155,7 +160,10 @@
   flex-direction: column;
   gap: 40px;
 }
-.dt-overview__group-title {
+/* 组标签——房源概况面板（.dt-overview）与楼盘参数面板（.dt-building-spec）
+ * 共用同一条规则（comp 两处字面量完全一致：13/600/--ink-3/padding-bottom 6），
+ * 收敛成一个类名，不为两个容器各写一份相同的声明。 */
+.dt-group-title {
   display: block;
   font-size: 13px;
   font-weight: 600;
@@ -592,5 +600,107 @@
 
   .location-panel__poi-item {
     padding: 12px 0;
+  }
+}
+
+/* ============================================================================
+ * 楼盘信息面板 + 规格参数表（Task 6）
+ * 设计依据：docs/SBH设计任务讨论/楼盘详情.dc.html 核心区信息面板（372 宽，
+ * padding 32）与「楼盘参数（完整）」（2 列 gap 40/72 · 值列 200 右对齐）。
+ * ========================================================================== */
+
+/* 信息面板（HeroSummaryPanel）内容布局——外层白底/padding/圆角已由
+ * `DetailPanel variant="side"`（.dt-panel--side）提供，这里只负责面板内部
+ * 几块（起价/双统计/规格行/顾问 CTA）的纵向间距，不重复画一次面板本身。 */
+.hero-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.hero-summary__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.hero-summary__price {
+  font-size: var(--fs-32);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.hero-summary__price--na {
+  font-size: var(--fs-22);
+  color: var(--ink-2);
+}
+
+.hero-summary__price-unit {
+  font-size: var(--fs-14);
+  color: var(--ink-2);
+}
+
+.hero-summary__disclaimer {
+  margin: calc(-1 * var(--sp-3)) 0 0;
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+.hero-summary__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  padding-block: var(--sp-3);
+  border-block: 1px solid var(--line);
+}
+
+.hero-summary__stat strong {
+  display: block;
+  font-size: var(--fs-18);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.hero-summary__stat span {
+  font-size: var(--fs-12);
+  color: var(--ink-3);
+}
+
+/* 375 断口实测发现的既有缺陷：.advisor-card 默认 display:flex 不换行，
+ * avatar(44 固定) + cta(按钮内容定宽，不收缩) 挤压中间 body 到 0 宽，
+ * 文字逐字换行——这不是新缺陷，是同一问题在窄栏的已知修法
+ * （见 styles.css `.detail-side-rail .advisor-card { flex-wrap: wrap }`，
+ * 注释写着"窄栏里的顾问卡：CTA 换行占满，避免正文被挤成竖排"）。信息面板
+ * 在 .dt-core 单列断点下收窄到与该注释同一量级的宽度，照抄同一个已验证
+ * 修法，不重新发明一套。不去掉 AdvisorCard 自身的卡片底色/边框——信息
+ * 面板是零边框白底大面板，AdvisorCard 在其中保留一个小卡片轮廓是合理的
+ * 嵌套层次，与 detail-side-rail 需要去嵌套的场景不同。 */
+.hero-summary .advisor-card {
+  flex-wrap: wrap;
+}
+.hero-summary .advisor-card__cta {
+  flex-basis: 100%;
+}
+
+/* 楼盘参数面板（BuildingSpecPanel）：4 组 2 列排布，每列内部仍是 .dt-spec
+ * 的行结构——「组标签 + SpecTable」的重复样式已收敛进 .dt-group-title
+ * （见上方 .dt-overview 小节），这里只声明 2 列网格本身。 */
+.dt-building-spec {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px 72px;
+}
+
+.dt-building-spec__group {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1023px) {
+  .dt-building-spec {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
