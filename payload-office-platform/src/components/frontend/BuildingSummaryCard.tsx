@@ -63,11 +63,18 @@ export default function BuildingSummaryCard({ building, listingId, citySlug }: B
             <span className="building-summary-card__metro-value">{building.nearestMetro.name}</span>
           </p>
         )}
+        {/* CTA **保持默认预取（不加 `prefetch={false}`）**，判据同 `ui/Breadcrumb.tsx`：
+            关停要求①高基数 ②内容驱动 ③常驻渲染**三条并列成立**，缺一不加。
+            这里②③成立，**①不成立**——`BuildingSummaryCard` 全站唯一消费方是
+            `city/CityListingDetailView.tsx`，一个房源详情页只渲染一张，
+            **每页恰好产出 1 条楼盘 URL**，与面包屑末段同型（实测那 1 条还与面包屑
+            末段是同一个 URL，被 Next 路由缓存按 URL 去重）。
+            而「从房源退回所属楼盘」正是本站最高频的导航路径之一，给它加延迟换不来
+            任何预取预算节省。
+            （OPT-037 Task 11 一刀切加过，Task 11d 按此判据撤回。**不要「为了和列表页
+            结果卡统一」再加回来**——统一的是判据，不是取值。） */}
         <Link
           href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(building.slug)}`}
-          // prefetch={false}：楼盘 URL 由房源内容决定（高基数），且这张卡在
-          // 每个房源详情页都常驻渲染——同 ListingCard 的判据。
-          prefetch={false}
           className="btn btn--ghost building-summary-card__cta"
           data-detail-analytics-event="listing_building_click"
           data-analytics-listing-id={listingId}
