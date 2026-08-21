@@ -17,6 +17,14 @@ import React from 'react'
  *
  * Server Component：点击即导航，href 由调用方按当前状态构造好传入
  * （是否切换、是否清除，均由 href 语义决定，本组件不持有筛选逻辑）。
+ *
+ * 高基数：本组件是 `MobileFilterSheet` 渲染每个筛选行选项（区域/类型/面积/
+ * 价格等，同一屏内可能是几行 × 每行 5–10 个候选值）的唯一实现，与桌面
+ * `FilterFormC` 行内选项同一类"高基数房源筛选链接"（OPT-026 定的规矩，
+ * 见 tests/listings-query-prefetch-performance.test.ts）。Next 默认的
+ * hover/进入视口自动预取会对每个候选值都打一次查询——这条曾经只在
+ * `FilterBar.tsx`（已删除）里实现，OPT-036 Task 13 迁移 `FilterFormC` 时
+ * 一并补上，却漏了移动端这份同款组件，直到控制器复核才发现。故禁用预取。
  */
 export default function FilterPill({ href, label, active, count }: Readonly<{
   href: string
@@ -25,7 +33,12 @@ export default function FilterPill({ href, label, active, count }: Readonly<{
   count?: number
 }>) {
   return (
-    <Link href={href} aria-current={active ? 'true' : undefined} className={active ? 'ls-pill ls-pill--active' : 'ls-pill'}>
+    <Link
+      href={href}
+      aria-current={active ? 'true' : undefined}
+      className={active ? 'ls-pill ls-pill--active' : 'ls-pill'}
+      prefetch={false}
+    >
       <span>{label}</span>
       {count != null ? <span className="ls-pill__count">{count}</span> : null}
     </Link>

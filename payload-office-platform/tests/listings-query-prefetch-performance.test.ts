@@ -82,13 +82,24 @@ describe('OPT-026 route cache and prefetch contracts', () => {
 
   it('disables automatic prefetch for high-cardinality listing links', async () => {
     // FilterBar.tsx（本用例原先读取的文件）已在 OPT-036 Task 13 删除；筛选条
-    // 高基数链接的职责现由 FilterFormC.tsx 的行内选项 <Link> 承接，断言跟着
-    // 换成同一个入口，保持「高基数房源筛选链接禁用自动预取」这条设计意图不丢。
-    const [homeTypeCards, homeDistrictBento, siteNav, filterFormC] = await Promise.all([
+    // 高基数链接的职责现分别由桌面 FilterFormC.tsx 的行内选项 <Link> 与移动端
+    // FilterPill.tsx（MobileFilterSheet 渲染每个筛选行选项时唯一使用的原语）
+    // 承接，断言跟着换成这两个入口，保持「高基数房源筛选链接禁用自动预取」
+    // 这条设计意图不丢。
+    //
+    // 只读 FilterPill.tsx、不额外读 MobileFilterSheet.tsx 是刻意的：抽屉里的
+    // 筛选行选项（区域/类型/面积/价格……）全部通过 <FilterPill> 渲染，没有
+    // 自己内联任何 <Link>；MobileFilterSheet.tsx 里另外两处 <Link>（头部/底栏
+    // 各一个「重置」）指向同一个固定 href，不是高基数场景，因此不需要也不
+    // 会出现 prefetch={false} 字样——若真去读该文件断言这个字符串，断言会
+    // 因为字符串根本不在那份源码里而失去意义。FilterPill.tsx 是唯一的真源，
+    // 守住它就守住了移动端这条链路（首次遗漏正是因为守卫当初没覆盖到它）。
+    const [homeTypeCards, homeDistrictBento, siteNav, filterFormC, filterPill] = await Promise.all([
       readFile(resolve(ROOT, 'src/components/frontend/home/HomeTypeCards.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/home/HomeDistrictBento.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/SiteNav.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/listing/FilterFormC.tsx'), 'utf8'),
+      readFile(resolve(ROOT, 'src/components/frontend/listing/FilterPill.tsx'), 'utf8'),
     ])
 
     expect(homeTypeCards).toContain("href={`${prefix}${t.href}`} prefetch={false}")
@@ -98,5 +109,6 @@ describe('OPT-026 route cache and prefetch contracts', () => {
       "prefetch={item.href.startsWith('/listings') ? false : undefined}",
     )
     expect(filterFormC).toContain('prefetch={false}')
+    expect(filterPill).toContain('prefetch={false}')
   })
 })
