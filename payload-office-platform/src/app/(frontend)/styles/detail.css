@@ -1,0 +1,31 @@
+/* ============================================================================
+ * OPT-037 详情页样式
+ * 设计依据：docs/SBH设计任务讨论/{房源详情,楼盘详情}.dc.html specRows
+ * 卡片/渐变/标签一律复用 surface.css 的 .sf-* —— 详情页的面板是另一种表面
+ * （白底零边框、无 hover、padding 更大），故单列 .dt-panel，不套 .sf-card。
+ * ========================================================================== */
+
+.dt-page { --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px; }
+.dt-container { width: min(var(--dt-w), 100% - 32px); margin-inline: auto; }
+
+.dt-core { display: grid; grid-template-columns: var(--dt-main) var(--dt-side);
+  column-gap: 32px; row-gap: 0; }
+
+.dt-panel { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
+.dt-panel--full { padding: 40px; }
+.dt-panel--side { padding: 32px; }
+
+/* 规格表（§R1）：右列右对齐 + tabular-nums + 500；行线 1px，末行无线 */
+.dt-spec { display: flex; flex-direction: column; }
+.dt-spec__row { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 24px; min-height: 44px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.dt-spec__row:last-child { border-bottom: 0; }
+.dt-spec__label { font-size: 15px; color: var(--ink-2); }
+.dt-spec__value { font-size: 15px; font-weight: 500; color: var(--ink);
+  text-align: right; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+/* 值与单位同格：unit 是行文说明，不参与数值对齐，故字重/字号/色阶单独降级 */
+.dt-spec__unit { margin-left: 4px; font-size: 13px; font-weight: 400; color: var(--ink-2); }
+
+@media (max-width: 1023px) {
+  .dt-core { grid-template-columns: minmax(0, 1fr); }
+}

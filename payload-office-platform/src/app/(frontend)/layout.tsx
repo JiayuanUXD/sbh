@@ -10,6 +10,7 @@ import './styles.css'
 import './styles/surface.css'
 import './styles/home.css'
 import './styles/list.css'
+import './styles/detail.css'
 
 // The shared shell resolves its trusted city options and analytics profiles
 // from Payload. CloudBase builds the image without the runtime PostgreSQL
