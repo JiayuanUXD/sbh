@@ -58,6 +58,7 @@ const LEASE_ONLY_SNAPSHOT: BuildingSupplySnapshot = {
       listings: [makeCard()],
       priceRanges: [],
       areaRange: { min: 101, max: 101 },
+      seatRange: null,
       immediateAvailabilityCount: 1,
     },
   ],
@@ -66,6 +67,7 @@ const LEASE_ONLY_SNAPSHOT: BuildingSupplySnapshot = {
     totalEffectiveListings: 1,
     priceRanges: [],
     areaRange: { min: 101, max: 101 },
+    seatRange: null,
     immediateAvailabilityCount: 1,
   }],
 }
@@ -79,6 +81,27 @@ describe('detail component contracts', () => {
       )
       expect(source).not.toMatch(/from ['"]payload['"]|from ['"]@\/payload-types['"]/)
       expect(source).not.toMatch(/payload-types/)
+    }
+  })
+
+  /**
+   * `'use client'` 组件的**值**导入不得走 `@/domain/public-catalog` 桶文件。
+   *
+   * 桶文件 `export * from './facade'`，facade 又 import `supply-adapter.ts`
+   * （里面 `import { getPayload } from 'payload'`）——于是一个看起来只是
+   * 「从 domain 拿个纯函数」的 import 会把 Payload 整个拖进客户端 bundle，
+   * Next 在 dev 直接编译报错。`import type` 不受影响（编译期擦除）。
+   * 上面那条「不导入 payload」的守卫抓不到它：源码里根本没有 'payload' 字样，
+   * 失效点在**传递依赖**上，所以守卫必须钉在「桶文件值导入」这个形态上。
+   */
+  it('客户端详情组件的值导入不走 domain 桶文件（只允许 import type）', () => {
+    for (const file of DETAIL_COMPONENT_FILES) {
+      const source = readFileSync(join(process.cwd(), 'src/components/frontend', file), 'utf8')
+      if (!/^['"]use client['"]/m.test(source)) continue
+      // (?!\bimport\b) 防止懒惰匹配跨过前一条 import 语句去够到桶文件路径
+      const barrelImports =
+        source.match(/^import\s+(?!type\b)(?:(?!\bimport\b)[\s\S])*?from ['"]@\/domain\/public-catalog['"]/gm) ?? []
+      expect(barrelImports).toEqual([])
     }
   })
 
@@ -230,11 +253,11 @@ describe('detail component contracts', () => {
       ...LEASE_ONLY_SNAPSHOT,
       groups: [
         LEASE_ONLY_SNAPSHOT.groups[0]!,
-        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', listings: [makeCard({ id: 2, businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
       ],
       availableGroups: [
         LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
-        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
       ],
     }
     const html = renderToStaticMarkup(
@@ -251,11 +274,11 @@ describe('detail component contracts', () => {
       ...LEASE_ONLY_SNAPSHOT,
       groups: [
         LEASE_ONLY_SNAPSHOT.groups[0]!,
-        { key: 'sale', listings: [makeCard({ id: 2, title: '出售样例房源', businessType: 'sale' })], priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', listings: [makeCard({ id: 2, title: '出售样例房源', businessType: 'sale' })], priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
       ],
       availableGroups: [
         LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
-        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, immediateAvailabilityCount: 1 },
+        { key: 'sale', totalEffectiveListings: 1, priceRanges: [], areaRange: null, seatRange: null, immediateAvailabilityCount: 1 },
       ],
     }
     const html = renderToStaticMarkup(
@@ -279,6 +302,7 @@ describe('detail component contracts', () => {
             ],
             priceRanges: [],
             areaRange: null,
+            seatRange: null,
             immediateAvailabilityCount: 0,
           }],
         },
@@ -291,6 +315,125 @@ describe('detail component contracts', () => {
     // 价格缺失渲染为 —，不渲染成 0 或伪造分桶控件
     expect(html).not.toContain('8 元以下')
     expect(html).not.toContain('9–10 元')
+  })
+
+  /**
+   * 「筛到空结果」不得变成死路：改造前筛选行常驻，一旦跟着结果集消失，用户没有
+   * 任何入口取消刚点下的筛选。聚合区同样保留（它取未过滤口径，描述的是这个组的
+   * 画像，不是当前结果集）。
+   */
+  it('筛到空结果时聚合区与筛选/排序控件仍渲染，只有结果行换成空态提示', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        // groups 为空 = 当前 query 下该组没有任何命中行（domain 的真实产出形态）
+        snapshot: { ...LEASE_ONLY_SNAPSHOT, groups: [], resultCount: 0 },
+        basePath: '/buildings/jingan-center',
+        currentSearch: 'areaMin=1000',
+      }),
+    )
+
+    expect(html).toContain('当前筛选下暂无匹配空间')
+    expect(html).toContain('按面积筛选')
+    expect(html).toContain('排序')
+    // 取消当前筛选的入口必须还在（回到「全部」的那条 href）
+    expect(html).toContain('href="/buildings/jingan-center"')
+    // 聚合区取未过滤口径，因此仍有内容
+    expect(html).toContain('面积区间')
+    expect(html).not.toContain('<table')
+  })
+
+  /**
+   * 「可即刻入驻」pill 的激活判据是「availableBefore 存在」，不是「它恰好等于
+   * 今天」——否则分享链接过一天再打开，pill 显示未激活、过滤却仍生效，且点它
+   * 只会换成新日期、永远取消不掉。
+   */
+  it('可即刻入驻 pill 在任意 availableBefore 值下都是激活态，点击即清除该参数', () => {
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot: LEASE_ONLY_SNAPSHOT,
+        basePath: '/buildings/jingan-center',
+        // 与 snapshot.asOf（2026-07-30）不同的一天：跨天分享链接的形态
+        currentSearch: 'availableBefore=2026-07-01',
+      }),
+    )
+
+    expect(html).toMatch(/可即刻入驻/)
+    // 激活态用 aria-current（真实导航链接，不许挂 role="button" + aria-pressed）
+    expect(html).not.toContain('aria-pressed')
+    const pill = /<a[^>]*aria-current="true"[^>]*>可即刻入驻<\/a>/.exec(html)
+      ?? /<a[^>]*>可即刻入驻<\/a>/.exec(html)
+    expect(pill?.[0]).toContain('aria-current="true"')
+    // 取消 = delete，不是换成新日期
+    expect(pill?.[0]).toContain('href="/buildings/jingan-center"')
+  })
+
+  /**
+   * 价格分桶迁移到 URL 后仍受单位闸门约束：href 必须把 priceUnit 与区间一起写入，
+   * 否则域层会（正确地）忽略这个区间，控件就变成点了没反应。
+   */
+  it('价格桶 href 同时写入 priceUnit 与区间，「全部」把三个键一起清除', () => {
+    const snapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      availableGroups: [{
+        ...LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
+        priceRanges: [{
+          key: 'lease:CNY:day:sqm:rmb-sqm-day',
+          businessType: 'lease',
+          currency: 'CNY',
+          period: 'day',
+          basis: 'sqm',
+          displayUnit: 'rmb-sqm-day',
+          min: 7.5,
+          max: 11,
+          count: 3,
+        }],
+      }],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot,
+        basePath: '/buildings/jingan-center',
+        currentSearch: 'priceUnit=rmb-sqm-day&priceMin=8&priceMax=9',
+      }),
+    )
+
+    expect(html).toContain('按价格筛选')
+    expect(html).toContain('priceUnit=rmb-sqm-day')
+    expect(html).toContain('priceMin=10')
+    // 「8–9 元」是当前桶
+    expect(/<a[^>]*aria-current="true"[^>]*>8–9 元<\/a>/.test(html)).toBe(true)
+    // 「全部」回到无 price* 参数的裸路径
+    expect(/<a[^>]*href="\/buildings\/jingan-center"[^>]*>全部<\/a>/.test(html)).toBe(true)
+  })
+
+  it('组内没有元/㎡/天 房源时整组价格桶不渲染（边界只对该单位有意义）', () => {
+    const snapshot: BuildingSupplySnapshot = {
+      ...LEASE_ONLY_SNAPSHOT,
+      availableGroups: [{
+        ...LEASE_ONLY_SNAPSHOT.availableGroups[0]!,
+        priceRanges: [{
+          key: 'lease:CNY:month:total:rmb-month',
+          businessType: 'lease',
+          currency: 'CNY',
+          period: 'month',
+          basis: 'total',
+          displayUnit: 'rmb-month',
+          min: 25_000,
+          max: 70_000,
+          count: 2,
+        }],
+      }],
+    }
+    const html = renderToStaticMarkup(
+      createElement(BuildingSupplyBrowser, {
+        snapshot,
+        basePath: '/buildings/jingan-center',
+        currentSearch: '',
+      }),
+    )
+
+    expect(html).not.toContain('按价格筛选')
+    expect(html).toContain('按面积筛选')
   })
 
   it('推荐房源卡只写入匿名点击上下文', () => {

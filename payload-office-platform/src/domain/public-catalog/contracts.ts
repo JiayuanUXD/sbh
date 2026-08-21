@@ -277,6 +277,14 @@ export type BuildingSupplyGroupAvailability = Readonly<{
   key: BuildingSupplyGroup
   totalEffectiveListings: number
   areaRange: BuildingSupplyAreaRange | null
+  /**
+   * 工位数区间（联合办公组的「可选工位」聚合口径）。
+   *
+   * 与 `areaRange` 并列而不是让视图层自己遍历 `listings` 现算：`availableGroups`
+   * 里根本没有 `listings`（它是未过滤口径的概览），视图层要展示未过滤的工位区间
+   * 就只能拿到过滤后的行去算，口径立刻和 `areaRange` 分叉。聚合归聚合层。
+   */
+  seatRange: BuildingSupplyAreaRange | null
   immediateAvailabilityCount: number
   priceRanges: readonly BuildingSupplyPriceRange[]
 }>
@@ -287,6 +295,7 @@ export type BuildingSupplyGroupViewModel = Readonly<{
   listings: readonly ListingCardViewModel[]
   priceRanges: readonly BuildingSupplyPriceRange[]
   areaRange: BuildingSupplyAreaRange | null
+  seatRange: BuildingSupplyAreaRange | null
   immediateAvailabilityCount: number
 }>
 

@@ -179,6 +179,7 @@ const FIXTURE_SUPPLY: BuildingSupplySnapshot = {
         },
       ],
       areaRange: { min: DEMO_AREAS[0], max: DEMO_AREAS[DEMO_AREAS.length - 1] },
+      seatRange: null,
       immediateAvailabilityCount: FIXTURE_LISTINGS.length,
     },
   ],
@@ -187,6 +188,7 @@ const FIXTURE_SUPPLY: BuildingSupplySnapshot = {
       key: 'lease',
       totalEffectiveListings: FIXTURE_LISTINGS.length,
       areaRange: { min: DEMO_AREAS[0], max: DEMO_AREAS[DEMO_AREAS.length - 1] },
+      seatRange: null,
       immediateAvailabilityCount: FIXTURE_LISTINGS.length,
       priceRanges: [
         {

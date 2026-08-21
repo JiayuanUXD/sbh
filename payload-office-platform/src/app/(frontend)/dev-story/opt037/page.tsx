@@ -524,6 +524,7 @@ const HERO_SUPPLY_FULL: BuildingSupplySnapshot = {
       key: 'lease',
       totalEffectiveListings: 51,
       areaRange: { min: 320, max: 1860 },
+      seatRange: null,
       immediateAvailabilityCount: 19,
       priceRanges: [
         {
@@ -735,6 +736,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
   groups: [
     {
       key: 'lease', listings: SUPPLY_LEASE_LISTINGS, areaRange: { min: 580, max: 1240 },
+      seatRange: null,
       immediateAvailabilityCount: 2,
       priceRanges: [{
         key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day',
@@ -743,6 +745,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
     {
       key: 'sale', listings: SUPPLY_SALE_LISTINGS, areaRange: { min: 1240, max: 1240 },
+      seatRange: null,
       immediateAvailabilityCount: 1,
       priceRanges: [{
         key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time',
@@ -751,6 +754,7 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
     {
       key: 'coworking', listings: SUPPLY_COWORKING_LISTINGS, areaRange: null,
+      seatRange: { min: 12, max: 48 },
       immediateAvailabilityCount: 2,
       priceRanges: [{
         key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month',
@@ -759,11 +763,11 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
   ],
   availableGroups: [
-    { key: 'lease', totalEffectiveListings: 42, areaRange: { min: 320, max: 1860 }, immediateAvailabilityCount: 19,
+    { key: 'lease', totalEffectiveListings: 42, areaRange: { min: 320, max: 1860 }, seatRange: null, immediateAvailabilityCount: 19,
       priceRanges: [{ key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 12, count: 42 }] },
-    { key: 'sale', totalEffectiveListings: 6, areaRange: { min: 620, max: 1860 }, immediateAvailabilityCount: 4,
+    { key: 'sale', totalEffectiveListings: 6, areaRange: { min: 620, max: 1860 }, seatRange: null, immediateAvailabilityCount: 4,
       priceRanges: [{ key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time', basis: 'total', displayUnit: 'rmb-total', min: 63_240_000, max: 219_480_000, count: 6 }] },
-    { key: 'coworking', totalEffectiveListings: 3, areaRange: null, immediateAvailabilityCount: 3,
+    { key: 'coworking', totalEffectiveListings: 3, areaRange: null, seatRange: { min: 6, max: 48 }, immediateAvailabilityCount: 3,
       priceRanges: [{ key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month', min: 1880, max: 3600, count: 3 }] },
   ],
   totalEffectiveListings: 51,
@@ -1120,8 +1124,8 @@ export default async function Opt037PreviewPage({
         >
           {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例（生产页
              .detail-v2__supply-main 本就有 min-width:0，见 styles.css），这个
-             fixture 外壳自己也要显式声明，否则密度表 920px min-width 会撑开
-             flex item 导致整页横向溢出——只是预览壳的责任，不是组件本身的缺陷。 */}
+             fixture 外壳自己也要显式声明，否则密度表所在的 flex item 会按内容
+             最小尺寸撑开，导致整页横向溢出——预览壳的责任，不是组件的缺陷。 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>三组齐全（租赁 / 出售 / 联合办公）</span>

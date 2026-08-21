@@ -319,6 +319,13 @@ export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyI
     areaMax = undefined
   }
 
+  let priceMin = parseBuildingSupplyNumber(value, 'priceMin')
+  let priceMax = parseBuildingSupplyNumber(value, 'priceMax')
+  if (priceMin != null && priceMax != null && priceMin > priceMax) {
+    priceMin = undefined
+    priceMax = undefined
+  }
+
   const group = parseBuildingSupplyEnum<NonNullable<BuildingSupplyInput['group']>>(
     value,
     'group',
@@ -341,10 +348,21 @@ export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyI
   )
   const availableBefore = parseBuildingSupplyDate(value, 'availableBefore')
 
+  // 缺 priceUnit 的价格区间整段丢弃：不可通约的计价单位之间比 amount 没有意义
+  // （元/月 vs 元/㎡/天 vs 元/工位/月）。域层 `matchesInput` 对同一条不变量另有
+  // 守卫——那才是失效点上的守卫；这里做的是 URL 卫生，让 canonical 不会把一个
+  // 注定不生效的参数继续带在链接上。
+  if (!priceUnit) {
+    priceMin = undefined
+    priceMax = undefined
+  }
+
   return {
     ...(group ? { group } : {}),
     ...(areaMin != null ? { areaMin } : {}),
     ...(areaMax != null ? { areaMax } : {}),
+    ...(priceMin != null ? { priceMin } : {}),
+    ...(priceMax != null ? { priceMax } : {}),
     ...(decorationStatus ? { decorationStatus } : {}),
     ...(availableBefore ? { availableBefore } : {}),
     ...(priceUnit ? { priceUnit } : {}),
@@ -368,6 +386,9 @@ export function buildBuildingSupplyCanonicalSearchParams(input: BuildingSupplyIn
   if (input.group) sp.set('group', input.group)
   if (input.areaMin != null) sp.set('areaMin', String(input.areaMin))
   if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
+  // 价格区间只在有 priceUnit 时才是有效状态（见 parseBuildingSupplySearchParams）。
+  if (input.priceUnit && input.priceMin != null) sp.set('priceMin', String(input.priceMin))
+  if (input.priceUnit && input.priceMax != null) sp.set('priceMax', String(input.priceMax))
   if (input.decorationStatus) sp.set('decorationStatus', input.decorationStatus)
   if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
   if (input.priceUnit) sp.set('priceUnit', input.priceUnit)

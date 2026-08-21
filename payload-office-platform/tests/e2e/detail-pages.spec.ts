@@ -259,24 +259,63 @@ test.describe('楼盘详情 P0', () => {
     await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
   })
 
-  test('楼盘供给分桶筛选默认全选且可切换', async ({ page }) => {
+  /**
+   * 面积/价格筛选在 OPT-037 Task 7 从客户端内存态迁移到 URL：控件从
+   * `button + aria-pressed` 变成真实导航链接 `Link + aria-current`
+   * （`aria-pressed` 只在 `role="button"` 下有效，这些是真实链接，不许挂
+   * `role="button"`）。价格分桶是**迁移**不是删除——`priceMin`/`priceMax`
+   * 现在与 `priceUnit` 一起进 URL，见 BuildingSupplyBrowser.tsx。
+   */
+  test('楼盘供给分桶筛选默认全选且切换后进 URL', async ({ page }) => {
     await page.goto('/buildings/west-nanjing-premium-center')
     const canonicalJsonLd = await page.locator('script[type="application/ld+json"]').textContent()
     const areaGroup = page.getByRole('group', { name: '按面积筛选' })
     const priceGroup = page.getByRole('group', { name: '按价格筛选' })
     await expect(areaGroup).toBeVisible()
     await expect(priceGroup).toBeVisible()
-    await expect(areaGroup.getByRole('button', { name: /全部/ })).toHaveAttribute('aria-pressed', 'true')
-    await expect(priceGroup.getByRole('button', { name: /全部/ })).toHaveAttribute('aria-pressed', 'true')
+    // 真实链接的当前态用 aria-current；全站不得再出现 aria-pressed 版本
+    await expect(areaGroup.getByRole('link', { name: '全部' })).toHaveAttribute('aria-current', 'true')
+    await expect(priceGroup.getByRole('link', { name: '全部' })).toHaveAttribute('aria-current', 'true')
+    await expect(page.locator('.building-supply-browser [aria-pressed]')).toHaveCount(0)
 
-    // 切换到任一非空面积桶后，antd list 仍可渲染且 canonical JSON-LD 不变
-    const firstAreaBucket = areaGroup.getByRole('button').nth(1)
-    if (await firstAreaBucket.isVisible()) {
-      await firstAreaBucket.click()
-      await expect(firstAreaBucket).toHaveAttribute('aria-pressed', 'true')
-      await expect(page.locator('.building-supply-browser__table')).toBeVisible()
-    }
+    // 切换到任一非「全部」面积桶：真实导航，参数进 URL，激活态跟着走
+    const areaBucket = areaGroup.getByRole('link').nth(1)
+    const areaBucketLabel = (await areaBucket.textContent())?.trim() ?? ''
+    await areaBucket.click()
+    await expect(page).toHaveURL(/[?&]area(Min|Max)=/)
+    await expect(areaGroup.getByRole('link', { name: areaBucketLabel })).toHaveAttribute('aria-current', 'true')
+
+    // 价格桶必须带上 priceUnit —— 单位闸门：不同计价单位之间不可比价
+    const priceBucket = priceGroup.getByRole('link').nth(1)
+    const priceBucketLabel = (await priceBucket.textContent())?.trim() ?? ''
+    await priceBucket.click()
+    await expect(page).toHaveURL(/[?&]priceUnit=rmb-sqm-day/)
+    await expect(page).toHaveURL(/[?&]price(Min|Max)=/)
+    await expect(priceGroup.getByRole('link', { name: priceBucketLabel })).toHaveAttribute('aria-current', 'true')
+
+    // 聚合 JSON-LD 走未过滤口径，筛选不得改变它
     expect(await page.locator('script[type="application/ld+json"]').textContent()).toBe(canonicalJsonLd)
+  })
+
+  /**
+   * 筛到空结果不得变成死路：控件区必须还在，用户才能取消刚点下的筛选。
+   */
+  test('楼盘供给筛到空结果时筛选控件仍在且可取消', async ({ page }) => {
+    // 先落到真实路由（多城路由开启时 /buildings/... 会 301 到 /<city>/buildings/...，
+    // 而 redirect() 不带 query），再在最终 URL 上加参数——否则筛选参数会被重定向吃掉。
+    await page.goto('/buildings/west-nanjing-premium-center')
+    // 面积区间刻意取一个楼内不可能命中的值
+    await page.goto(`${page.url()}?areaMin=999999`)
+
+    await expect(page.getByText('当前筛选下暂无匹配空间')).toBeVisible()
+    const areaGroup = page.getByRole('group', { name: '按面积筛选' })
+    await expect(areaGroup).toBeVisible()
+    await expect(page.getByRole('group', { name: '排序' })).toBeVisible()
+    // 聚合区取未过滤口径，因此空结果时仍有内容
+    await expect(page.getByText('面积区间')).toBeVisible()
+
+    await areaGroup.getByRole('link', { name: '全部' }).click()
+    await expect(page.locator('.building-supply-browser__table')).toBeVisible()
   })
 
   test('empty-building exposes the no-public-supply state', async ({ page }) => {
@@ -285,7 +324,7 @@ test.describe('楼盘详情 P0', () => {
     expect(response?.status()).toBe(200)
     await expect(page.getByText('当前暂无公开可选空间').first()).toBeVisible()
     await expect(page.getByText('最低价', { exact: false })).toHaveCount(0)
-    await expect(page.locator('.building-supply-browser__bucket')).toHaveCount(0)
+    await expect(page.locator('.building-supply-browser__filter')).toHaveCount(0)
     await expect(
       page.locator('button[data-source-section="hero"]', { hasText: '登记找房需求' }),
     ).toBeVisible()
@@ -296,7 +335,7 @@ test.describe('楼盘详情 P0', () => {
 
     expect(response?.status()).toBe(200)
     await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
-    await expect(page.locator('.building-supply-browser__bucket').first()).toBeVisible()
+    await expect(page.locator('.building-supply-browser__filter').first()).toBeVisible()
   })
 
   test('楼盘详情供给聚合和列表使用同一 asOf 快照', async ({ page }) => {
@@ -340,6 +379,58 @@ test.describe('楼盘详情 P0', () => {
     await expect(page.locator(`a[href$="/listings/${LISTING_SLUG}"]`).first()).toBeVisible()
     await expect(page.locator(`a[href$="/listings/${PUBLISHED_INEFFECTIVE_SLUG}"]`)).toHaveCount(0)
     await expect(page.locator('.building-supply-browser__table')).toHaveCount(0)
+  })
+
+  /**
+   * 稿子落地数值 + 触控规范：视觉高度按稿子（筛选 pill 32），命中盒补到 44。
+   * 二者不是二选一，所以两条都断言——只测其中一条会让另一条被静默改掉。
+   */
+  test('筛选 pill 视觉 32 / 命中盒 44 且不被横滑容器裁掉', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 })
+    await page.goto('/buildings/west-nanjing-premium-center')
+    const pill = page.locator('.building-supply-browser__filter').first()
+    const measured = await pill.evaluate((el) => {
+      const after = getComputedStyle(el, '::after')
+      const group = el.closest('.building-supply-browser__filter-group')!
+      const p = el.getBoundingClientRect()
+      const g = group.getBoundingClientRect()
+      return {
+        visualHeight: p.height,
+        afterTop: after.top,
+        afterBottom: after.bottom,
+        hitTop: p.top - 6,
+        hitBottom: p.bottom + 6,
+        groupTop: g.top,
+        groupBottom: g.bottom,
+      }
+    })
+    expect(Math.round(measured.visualHeight)).toBe(32)
+    expect(measured.afterTop).toBe('-6px')
+    expect(measured.afterBottom).toBe('-6px')
+    // 横滑容器 `overflow-x:auto` 会把另一轴一并算成 auto，纵向 padding 不够就会裁掉命中盒
+    expect(measured.hitTop).toBeGreaterThanOrEqual(measured.groupTop - 0.5)
+    expect(measured.hitBottom).toBeLessThanOrEqual(measured.groupBottom + 0.5)
+  })
+
+  test('供给行高不低于稿子的 56', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/buildings/west-nanjing-premium-center')
+    const row = page.locator('.building-supply-browser__table tbody tr').first()
+    expect(await row.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(56)
+  })
+
+  /**
+   * footer 三件事必须都真渲染：「共 M」是未过滤口径（与 tab 计数、聚合区同源）、
+   * 「当前筛选 N 条」是结果集口径、asOf 是数据诚实性元素（不能只活在 data- 属性里）。
+   */
+  test('供给区 footer 同时给出未过滤总数、当前筛选数与快照日期', async ({ page }) => {
+    await page.goto('/buildings/west-nanjing-premium-center')
+    const footnote = page.locator('.building-supply-browser__footnote')
+    await expect(footnote).toBeVisible()
+    const text = (await footnote.textContent()) ?? ''
+    expect(text).toMatch(/共 \d+ /)
+    expect(text).toMatch(/当前筛选 \d+ 条/)
+    expect(text).toMatch(/数据截至 \d{4}-\d{2}-\d{2}/)
   })
 
   for (const viewport of DETAIL_VIEWPORTS) {

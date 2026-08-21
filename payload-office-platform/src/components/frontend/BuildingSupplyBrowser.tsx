@@ -4,10 +4,15 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import type {
   BuildingSupplyGroup,
-  BuildingSupplyGroupViewModel,
+  BuildingSupplyGroupAvailability,
   BuildingSupplySnapshot,
   ListingCardViewModel,
 } from '@/domain/public-catalog'
+// 值导入必须走**叶子模块**，不能走 `@/domain/public-catalog` 桶文件：桶文件
+// `export * from './facade'` 会把 `supply-adapter.ts`（import payload）拖进
+// 客户端 bundle，Next 直接报 "You're importing a component that needs ..."。
+// 类型导入随便走桶（`import type` 编译期即擦除），值导入只走叶子。
+import { availabilityDay, isImmediatelyAvailable } from '@/domain/public-catalog/building-supply'
 import ListingCard from '@/components/frontend/ListingCard'
 import { DECORATION_STATUS_LABELS } from '@/domain/review/listing-fields'
 import { formatAvailableDate } from '@/lib/frontend/format'
@@ -32,10 +37,10 @@ import { DISPLAY_UNIT_LABELS, estimateRowTotal, formatGroupTotal } from '@/compo
  * URL 驱动：`domain/public-catalog/building-supply.ts` 的 `buildBuildingSupplySnapshot`
  * 早就支持 `group` / `areaMin` / `areaMax` / `decorationStatus` / `availableBefore`
  * / `priceUnit` / `sort`，页面层 `parseBuildingSupplySearchParams` 也早就在解析
- * 这些 query（连 e2e 都已经在用 `?group=lease` 跑无横向溢出测试），只是这个
- * 组件此前完全没读它们、自己另起一套内存态重新实现了一遍面积/价格分桶
- * ——两套判断逻辑并存但只有一套真正接到 URL。本次收敛为只用 URL 那一套，
- * 删掉客户端重复实现。
+ * 这些 query，只是这个组件此前完全没读它们、自己另起一套内存态重新实现了一遍
+ * 面积/价格分桶——两套判断逻辑并存但只有一套真正接到 URL。本次收敛为只用 URL
+ * 那一套，删掉客户端重复实现。价格分桶随之**迁移**（而不是删除）为域层的
+ * `priceMin` / `priceMax` + `priceUnit` 单位闸门，见下方 `PRICE_BUCKETS`。
  *
  * URL 参数与 `search-params.ts` 的 `parseBuildingSupplySearchParams` /
  * `buildBuildingSupplyCanonicalSearchParams` 同名，不新造第三套命名。
@@ -44,6 +49,11 @@ import { DISPLAY_UNIT_LABELS, estimateRowTotal, formatGroupTotal } from '@/compo
  * 不作为 prop 跨 Server→Client 边界传递（Next.js 只保证少数内置类型可安全
  * 序列化，自定义/内置的非 POJO 类不在保证范围内），改传字符串，组件内部
  * 自己 `new URLSearchParams(currentSearch)`。
+ *
+ * 「可入驻」判断（逐行徽标 / 「可即刻入驻 N」计数 / 「可即刻入驻」pill 过滤）
+ * 三处共用域层导出的 `isImmediatelyAvailable` + `availabilityDay`，组件内不重写
+ * 日期比较——曾经组件用 `Date.parse`、域层过滤用字符串比较，于是「恰好当天可
+ * 入驻」的房源被计入 N 却被 pill 过滤掉。
  */
 
 type BuildingSupplyBrowserProps = Readonly<{
@@ -56,8 +66,6 @@ type BuildingSupplyBrowserProps = Readonly<{
   /** canonical query string（不含 `?`），见文件头注释。 */
   currentSearch: string
 }>
-
-const GROUP_ORDER: readonly BuildingSupplyGroup[] = ['lease', 'sale', 'coworking']
 
 function isBuildingSupplyGroup(value: string | null): value is BuildingSupplyGroup {
   return value === 'lease' || value === 'sale' || value === 'coworking'
@@ -72,16 +80,31 @@ const GROUP_TAB_LABEL: Record<BuildingSupplyGroup, string> = {
 /** 组聚合区文案口径：三组的「面积/工位」维度与「可入驻」量词各不相同。 */
 const AGG_LABELS: Record<
   BuildingSupplyGroup,
-  { price: string; metric: string; metricUnit: string; immediate: string; immediateUnit: string }
+  {
+    price: string
+    metric: string
+    metricUnit: string
+    immediate: string
+    immediateUnit: string
+    /** 「共 M ?」的量词——联合办公按空间数而非套数计。 */
+    totalUnit: string
+  }
 > = {
-  lease: { price: '单价区间', metric: '面积区间', metricUnit: '㎡', immediate: '可即刻入驻', immediateUnit: '套' },
-  sale: { price: '单价区间', metric: '面积区间', metricUnit: '㎡', immediate: '可即时过户', immediateUnit: '套' },
+  lease: {
+    price: '单价区间', metric: '面积区间', metricUnit: '㎡',
+    immediate: '可即刻入驻', immediateUnit: '套', totalUnit: '套',
+  },
+  sale: {
+    price: '单价区间', metric: '面积区间', metricUnit: '㎡',
+    immediate: '可即时过户', immediateUnit: '套', totalUnit: '套',
+  },
   coworking: {
     price: '工位单价区间',
     metric: '可选工位',
     metricUnit: '个',
     immediate: '可即刻入驻',
     immediateUnit: '个空间',
+    totalUnit: '个空间',
   },
 }
 
@@ -108,20 +131,17 @@ function formatAmount(amount: number): string {
     : amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-/** 可选工位区间：domain 的 `areaRange` 只按 `card.area` 聚合，联合办公需要按
- * `card.seats` 单独算——两者聚合对象不同（面积 vs 工位数），不是同一份能收敛
- * 的判断逻辑，因此没有复用 `building-supply.ts` 里的 `buildAreaRange`。 */
-function seatRange(listings: readonly ListingCardViewModel[]): { min: number; max: number } | null {
-  const seats = listings
-    .map((l) => l.seats)
-    .filter((s): s is number => typeof s === 'number' && Number.isFinite(s) && s >= 0)
-  if (seats.length === 0) return null
-  return { min: Math.min(...seats), max: Math.max(...seats) }
-}
-
 type AggCell = { label: string; value: string; unit: string }
 
-function buildAggregation(group: BuildingSupplyGroup, data: BuildingSupplyGroupViewModel): readonly AggCell[] {
+/**
+ * 组聚合区取**未过滤**口径（`availableGroups` 而非当前结果集）。
+ *
+ * 它描述的是「这个组长什么样」——与组 tab 上的计数、footer 的「共 M 套」同源，
+ * 也与 OPT-036 的 `getSearchFacetsIgnoring` 惯例同源：facet 计数不该被它自己
+ * 那一维的筛选削掉，否则筛完之后聚合区会跟着结果集缩水，读起来像是楼盘突然
+ * 只剩这么多供给。同时这也让「筛到空结果」时聚合区仍有内容可渲染。
+ */
+function buildAggregation(group: BuildingSupplyGroup, data: BuildingSupplyGroupAvailability): readonly AggCell[] {
   const labels = AGG_LABELS[group]
   const priceRanges = data.priceRanges
   const priceCell: AggCell =
@@ -134,15 +154,19 @@ function buildAggregation(group: BuildingSupplyGroup, data: BuildingSupplyGroupV
             unit: DISPLAY_UNIT_LABELS[priceRanges[0].displayUnit],
           }
         : { label: labels.price, value: '多种单位', unit: '' }
-  const metricRange = group === 'coworking' ? seatRange(data.listings) : data.areaRange
+  const metricRange = group === 'coworking' ? data.seatRange : data.areaRange
   const metricCell: AggCell = metricRange
     ? { label: labels.metric, value: formatRange(metricRange.min, metricRange.max), unit: labels.metricUnit }
     : { label: labels.metric, value: '—', unit: '' }
-  const immediateCell: AggCell = {
-    label: labels.immediate,
-    value: String(data.immediateAvailabilityCount),
-    unit: labels.immediateUnit,
-  }
+  // 0 显示为「—」：本批口径是「缺失/无量不显示 0」，聚合区是画像不是计数器。
+  const immediateCell: AggCell =
+    data.immediateAvailabilityCount > 0
+      ? {
+          label: labels.immediate,
+          value: String(data.immediateAvailabilityCount),
+          unit: labels.immediateUnit,
+        }
+      : { label: labels.immediate, value: '—', unit: '' }
   return [priceCell, metricCell, immediateCell]
 }
 
@@ -157,13 +181,41 @@ const AREA_BUCKETS = [
   { key: '1000+', label: '1000 ㎡ 以上', min: 1000, max: undefined },
 ] as const satisfies ReadonlyArray<{ key: string; label: string; min?: number; max?: number }>
 
+/**
+ * 价格分桶的计价单位闸门。
+ *
+ * 8 / 9 / 10 这三个边界只对「元/㎡/天」有意义。元/月、元/㎡/天、元/工位/月
+ * 三者不可通约，跨单位比价是本项目的硬禁区，因此每个非「全部」桶的 href 都会
+ * 同时写入 `priceUnit=rmb-sqm-day`；域层 `matchesInput` 也只在有 priceUnit 时
+ * 才让价格区间生效——守卫落在真正做数值比较的那一行，不是只落在这里的 href 上。
+ * 其余单位的房源只在「全部」桶可见，与改造前一致。
+ */
+const PRICE_BUCKET_UNIT = 'rmb-sqm-day' as const
+
+/**
+ * 价格筛选桶——边界值 8 / 9 / 10 沿用改造前的 `PRICE_BUCKETS`，不重新拍脑袋。
+ *
+ * 区间为闭区间（min/max 均含），与同一行的面积桶同构（域层 `areaMin`/`areaMax`
+ * 也是闭区间）。代价是相邻桶在边界值上重叠一个点（8.00 同属「8 元以下」与
+ * 「8–9 元」）——这与面积桶既有的行为完全一致；让价格与面积在同一排控件里用
+ * 两套区间语义，比这一个点的重叠更容易出错。
+ */
+const PRICE_BUCKETS = [
+  { key: 'all', label: '全部', min: undefined, max: undefined },
+  { key: 'u-8', label: '8 元以下', min: undefined, max: 8 },
+  { key: '8-9', label: '8–9 元', min: 8, max: 9 },
+  { key: '9-10', label: '9–10 元', min: 9, max: 10 },
+  { key: '10+', label: '10 元以上', min: 10, max: undefined },
+] as const satisfies ReadonlyArray<{ key: string; label: string; min?: number; max?: number }>
+
 const DEFAULT_VISIBLE_TABLE = 8
 const DEFAULT_VISIBLE_CARDS = 5
 
 /** 供给行「可入驻/装修」列：出售没有真实的产权/租约状态字段（`Listings`
  * collection 只有「产权年限」，与 comp 的「可过户/带租约」不是一回事），
  * 诚实降级为展示装修状态；租赁/联合办公按 availableFrom 判断可即刻/具体日期。
- * 集中在这一个函数里，避免可入驻判断在多处分别实现。 */
+ * 集中在这一个函数里，避免可入驻判断在多处分别实现；「是否可即刻」本身进一步
+ * 下沉到域层的 `isImmediatelyAvailable`，与计数、pill 过滤同源。 */
 function buildStatusCell(
   group: BuildingSupplyGroup,
   listing: ListingCardViewModel,
@@ -173,11 +225,8 @@ function buildStatusCell(
     const label = listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null
     return { text: label ?? '—', emphasized: false }
   }
-  if (!listing.availableFrom) return { text: '可即刻', emphasized: true }
-  const availableAt = Date.parse(listing.availableFrom)
-  const snapshotAt = Date.parse(asOf)
-  const immediate = Number.isFinite(availableAt) && Number.isFinite(snapshotAt) && availableAt <= snapshotAt
-  return immediate ? { text: '可即刻', emphasized: true } : { text: formatAvailableDate(listing.availableFrom), emphasized: false }
+  if (isImmediatelyAvailable(listing, asOf)) return { text: '可即刻', emphasized: true }
+  return { text: formatAvailableDate(listing.availableFrom), emphasized: false }
 }
 
 export default function BuildingSupplyBrowser({
@@ -226,6 +275,16 @@ export default function BuildingSupplyBrowser({
       ? requestedGroup
       : defaultGroupKey
 
+  /**
+   * 切组 **清空全部筛选/排序**，而不是像 `hrefWithParam` 那样克隆当前参数。
+   *
+   * 两者语义不同不是笔误：面积桶 / 价格桶 / 排序都是「在当前组内挑」，跨组带过去
+   * 未必成立——价格桶的边界只对元/㎡/天有意义（出售组是总价，量级差六个数量级），
+   * 「面积区间」在联合办公组根本不是主维度（那里按工位数），`sort=price-asc` 在
+   * 新组里也可能因为单位不唯一而被降级。带着上一个组的筛选切过去，用户会看到一个
+   * 「点了组 tab 却几乎没有结果」的页面，而原因藏在两三个还亮着的 pill 里。
+   * 组是这一屏的顶层维度，切它就是重新开始。
+   */
   function hrefForGroup(key: BuildingSupplyGroup): string {
     const sp = new URLSearchParams()
     if (key !== defaultGroupKey) sp.set('group', key)
@@ -241,9 +300,15 @@ export default function BuildingSupplyBrowser({
 
   const activeAvailability = availableGroups.find((g) => g.key === activeGroupKey)!
   const activeGroupData = snapshot.groups.find((g) => g.key === activeGroupKey) ?? null
+  const listings = activeGroupData?.listings ?? []
 
-  const asOfDate = snapshot.asOf.slice(0, 10)
-  const immediateActive = currentParams.get('availableBefore') === asOfDate
+  /**
+   * 「可即刻入驻」pill 的激活判据是「`availableBefore` 存在」，不是「它恰好等于
+   * 今天」。曾经写成后者：分享出去的链接过一天再打开，pill 显示未激活、过滤却
+   * 仍然生效，而且点它只会换成新日期、永远取消不掉。取消一律走 `delete`。
+   */
+  const asOfDay = availabilityDay(snapshot.asOf)
+  const immediateActive = currentParams.has('availableBefore')
   const activeAreaMin = currentParams.get('areaMin')
   const activeAreaMax = currentParams.get('areaMax')
   const activeAreaBucketKey = AREA_BUCKETS.find((b) => {
@@ -252,10 +317,42 @@ export default function BuildingSupplyBrowser({
     return wantMin === activeAreaMin && wantMax === activeAreaMax
   })?.key ?? 'all'
 
+  const activePriceUnit = currentParams.get('priceUnit')
+  const activePriceMin = currentParams.get('priceMin')
+  const activePriceMax = currentParams.get('priceMax')
+  const activePriceBucketKey =
+    activePriceUnit === PRICE_BUCKET_UNIT
+      ? PRICE_BUCKETS.find((b) => {
+          const wantMin = b.min != null ? String(b.min) : null
+          const wantMax = b.max != null ? String(b.max) : null
+          return wantMin === activePriceMin && wantMax === activePriceMax
+        })?.key ?? 'all'
+      : 'all'
+
+  /**
+   * 价格桶只在「本组（未过滤口径）确实有元/㎡/天 房源」时才渲染整组；
+   * 单个桶与该组价格区间无交集时不渲染（沿用旧版「0 命中的桶不渲染」）。
+   *
+   * 与旧版的差别写在明处：旧版按逐条房源真实计数，本版按未过滤的 `priceRanges`
+   * （min/max）判交集——`availableGroups` 里没有 listings，而用**已过滤**的
+   * listings 去算桶计数会得到「筛完之后其它桶消失」的口径分叉。交集判据永远不会
+   * 藏起有命中的桶，最坏只是留下一个区间内恰好没有房源的空桶；而空桶现在也不再
+   * 是死路（筛到空结果时控件仍在，见下方 panel 结构）。
+   */
+  const bucketUnitRange = activeAvailability.priceRanges.find((r) => r.displayUnit === PRICE_BUCKET_UNIT) ?? null
+  const priceBuckets = bucketUnitRange
+    ? PRICE_BUCKETS.filter(
+        (b) =>
+          b.key === 'all'
+          || ((b.min ?? -Infinity) <= bucketUnitRange.max && (b.max ?? Infinity) >= bucketUnitRange.min),
+      )
+    : []
+
   const activeSort = currentParams.get('sort') ?? 'recommended'
   const priceUnits = Array.from(new Set(activeAvailability.priceRanges.map((r) => r.displayUnit)))
   const singleUnitLabel = priceUnits.length === 1 ? DISPLAY_UNIT_LABELS[priceUnits[0]!] : null
-  const canSortByPrice = priceUnits.length === 1
+  // 单位唯一，或用户已经用价格桶把单位钉死——两种情况下按单价排序才是可比的。
+  const canSortByPrice = priceUnits.length === 1 || activePriceUnit != null
 
   const sortOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'recommended', label: '推荐排序' },
@@ -268,6 +365,12 @@ export default function BuildingSupplyBrowser({
         ]
       : []),
   ]
+
+  const cols = columnLabels(activeGroupKey, singleUnitLabel)
+  const defaultVisible = isMobile ? DEFAULT_VISIBLE_CARDS : DEFAULT_VISIBLE_TABLE
+  const visibleListings = expanded ? listings : listings.slice(0, defaultVisible)
+  const hiddenCount = listings.length - visibleListings.length
+  const totalUnit = AGG_LABELS[activeGroupKey].totalUnit
 
   return (
     <section className="building-supply-browser" aria-label="楼盘房源" data-supply-as-of={snapshot.asOf}>
@@ -290,32 +393,61 @@ export default function BuildingSupplyBrowser({
         })}
       </div>
 
-      {activeGroupData === null ? (
-        <p className="building-supply-browser__empty">当前筛选下暂无匹配空间</p>
-      ) : (
-        <div className="building-supply-browser__panel">
-          <div className="building-supply-browser__agg">
-            {buildAggregation(activeGroupKey, activeGroupData).map((cell) => (
-              <div key={cell.label} className="building-supply-browser__agg-item">
-                <span className="building-supply-browser__agg-label">{cell.label}</span>
-                <span className="building-supply-browser__agg-value-row">
-                  <span className="building-supply-browser__agg-value tabular">{cell.value}</span>
-                  {cell.unit && <span className="building-supply-browser__agg-unit">{cell.unit}</span>}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className="building-supply-browser__panel">
+        <div className="building-supply-browser__agg">
+          {buildAggregation(activeGroupKey, activeAvailability).map((cell) => (
+            <div key={cell.label} className="building-supply-browser__agg-item">
+              <span className="building-supply-browser__agg-label">{cell.label}</span>
+              <span className="building-supply-browser__agg-value-row">
+                <span className="building-supply-browser__agg-value tabular">{cell.value}</span>
+                {cell.unit && <span className="building-supply-browser__agg-unit">{cell.unit}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
 
-          <div className="building-supply-browser__controls">
-            <div className="building-supply-browser__filter-group" role="group" aria-label="按面积筛选">
-              <span className="building-supply-browser__filter-label">面积</span>
-              {AREA_BUCKETS.map((bucket) => {
-                const isActive = bucket.key === activeAreaBucketKey
+        {/* 控件区在「筛到空结果」时同样渲染：改造前筛选行是常驻的，一旦跟着结果集
+            消失，用户就没有任何入口取消刚刚点下的那个筛选，只能退回浏览器后退键。 */}
+        <div className="building-supply-browser__controls">
+          <div className="building-supply-browser__filter-group" role="group" aria-label="按面积筛选">
+            <span className="building-supply-browser__filter-label">面积</span>
+            {AREA_BUCKETS.map((bucket) => {
+              const isActive = bucket.key === activeAreaBucketKey
+              const sp = cloneSearchParams(currentParams)
+              sp.delete('areaMin')
+              sp.delete('areaMax')
+              if (bucket.min != null) sp.set('areaMin', String(bucket.min))
+              if (bucket.max != null) sp.set('areaMax', String(bucket.max))
+              return (
+                <Link
+                  key={bucket.key}
+                  href={buildHref(basePath, sp)}
+                  className="building-supply-browser__filter"
+                  data-active={isActive || undefined}
+                  aria-current={isActive ? 'true' : undefined}
+                  prefetch={false}
+                >
+                  {bucket.label}
+                </Link>
+              )
+            })}
+          </div>
+          {priceBuckets.length > 0 && (
+            <div className="building-supply-browser__filter-group" role="group" aria-label="按价格筛选">
+              <span className="building-supply-browser__filter-label">单价</span>
+              {priceBuckets.map((bucket) => {
+                const isActive = bucket.key === activePriceBucketKey
                 const sp = cloneSearchParams(currentParams)
-                sp.delete('areaMin')
-                sp.delete('areaMax')
-                if (bucket.min != null) sp.set('areaMin', String(bucket.min))
-                if (bucket.max != null) sp.set('areaMax', String(bucket.max))
+                sp.delete('priceMin')
+                sp.delete('priceMax')
+                sp.delete('priceUnit')
+                if (bucket.key !== 'all') {
+                  // priceUnit 与区间同进同出：本页只有价格桶会写 priceUnit，
+                  // 「全部」把三个键一起删掉才是真正回到未筛选态。
+                  sp.set('priceUnit', PRICE_BUCKET_UNIT)
+                  if (bucket.min != null) sp.set('priceMin', String(bucket.min))
+                  if (bucket.max != null) sp.set('priceMax', String(bucket.max))
+                }
                 return (
                   <Link
                     key={bucket.key}
@@ -330,191 +462,193 @@ export default function BuildingSupplyBrowser({
                 )
               })}
             </div>
-            {activeAvailability.immediateAvailabilityCount > 0 && (
-              <Link
-                href={hrefWithParam('availableBefore', immediateActive ? null : asOfDate)}
-                className="building-supply-browser__filter"
-                data-active={immediateActive || undefined}
-                aria-current={immediateActive ? 'true' : undefined}
-                prefetch={false}
-              >
-                可即刻入驻
-              </Link>
-            )}
-            <div className="building-supply-browser__sort" role="group" aria-label="排序">
-              <span className="building-supply-browser__filter-label">排序</span>
-              {sortOptions.map((option) => {
-                const isActive = option.value === activeSort
-                return (
-                  <Link
-                    key={option.value}
-                    href={hrefWithParam('sort', option.value === 'recommended' ? null : option.value)}
-                    className="building-supply-browser__sort-option"
-                    aria-current={isActive ? 'true' : undefined}
-                    data-active={isActive || undefined}
-                    prefetch={false}
-                  >
-                    {option.label}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-          {snapshot.validationErrors.includes('price_unit_required') && (
-            <p className="building-supply-browser__notice">该组内房源计价单位不唯一，暂按推荐顺序排列</p>
           )}
-
-          {(() => {
-            const listings = activeGroupData.listings
-            if (listings.length === 0) {
-              return <p className="building-supply-browser__empty">当前筛选下暂无匹配空间</p>
-            }
-            const cols = columnLabels(activeGroupKey, singleUnitLabel)
-            const defaultVisible = isMobile ? DEFAULT_VISIBLE_CARDS : DEFAULT_VISIBLE_TABLE
-            const visibleListings = expanded ? listings : listings.slice(0, defaultVisible)
-            const hiddenCount = listings.length - visibleListings.length
-
-            return (
-              <>
-                {isMobile ? (
-                  <div className="building-supply-browser__cards">
-                    {visibleListings.map((listing, index) => (
-                      <ListingCard
-                        key={`${activeGroupKey}:${listing.id}`}
-                        listing={listing}
-                        citySlug={citySlug}
-                        variant="building-supply"
-                        detailAnalytics={
-                          buildingId
-                            ? {
-                                event: 'building_listing_click',
-                                parentId: buildingId,
-                                rank: index + 1,
-                                section: 'supply',
-                                supplyGroup: activeGroupKey,
-                              }
-                            : undefined
-                        }
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="building-supply-browser__table-wrap">
-                    <table className="building-supply-browser__table">
-                      <caption className="visually-hidden">{GROUP_TAB_LABEL[activeGroupKey]}房源列表</caption>
-                      {/* 百分比而非 px：comp 的 1fr/130/150/176/120/44 是 1180 容器
-                          （面板内可用宽 1116）下的字面量，换算成同比例的百分比列宽
-                          （styles.css .building-supply-browser__table 头部注释解释了
-                          为什么不能用 px min-width/width 兜底窄容器）。 */}
-                      <colgroup>
-                        <col />
-                        <col style={{ width: '11.65%' }} />
-                        <col style={{ width: '13.44%' }} />
-                        <col style={{ width: '15.77%' }} />
-                        <col style={{ width: '10.75%' }} />
-                        <col style={{ width: '3.94%' }} />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th scope="col">房源</th>
-                          <th scope="col" className="building-supply-browser__table-num-head">{cols.metric}</th>
-                          <th scope="col" className="building-supply-browser__table-num-head">{cols.price}</th>
-                          <th scope="col" className="building-supply-browser__table-num-head">{cols.total}</th>
-                          <th scope="col">{cols.status}</th>
-                          <th scope="col"><span className="visually-hidden">详情</span></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleListings.map((listing, index) => {
-                          const metricValue =
-                            activeGroupKey === 'coworking'
-                              ? listing.seats != null
-                                ? listing.seats.toLocaleString('zh-CN')
-                                : '—'
-                              : listing.area != null
-                                ? listing.area.toLocaleString('zh-CN')
-                                : '—'
-                          const singleUnit = singleUnitLabel != null
-                          const priceCell = listing.price
-                            ? singleUnit
-                              ? formatAmount(listing.price.amount)
-                              : listing.price.text
-                            : '—'
-                          const total = estimateRowTotal(listing.price, { area: listing.area, seats: listing.seats })
-                          const totalCell = total != null ? formatGroupTotal(total, activeGroupKey) : '—'
-                          const status = buildStatusCell(activeGroupKey, listing, snapshot.asOf)
-                          const sub = [
-                            listing.floor ? `${listing.floor} 层` : null,
-                            listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
-                          ]
-                            .filter((part): part is string => Boolean(part))
-                            .join(' · ')
-                          const detailHref = `${citySlug ? `/${citySlug}` : ''}/listings/${encodeURIComponent(listing.slug)}`
-                          return (
-                            <tr key={`${activeGroupKey}:${listing.id}`}>
-                              <td>
-                                <span className="building-supply-browser__table-primary">{listing.title}</span>
-                                {sub && <span className="building-supply-browser__table-sub">{sub}</span>}
-                              </td>
-                              <td className="tabular building-supply-browser__table-num">{metricValue}</td>
-                              <td className="tabular building-supply-browser__table-num">{priceCell}</td>
-                              <td className="tabular building-supply-browser__table-num building-supply-browser__table-total">
-                                {totalCell}
-                              </td>
-                              <td>
-                                <span
-                                  className="building-supply-browser__table-status"
-                                  data-emphasized={status.emphasized || undefined}
-                                >
-                                  {status.text}
-                                </span>
-                              </td>
-                              <td>
-                                <a
-                                  href={detailHref}
-                                  className="building-supply-browser__table-link"
-                                  aria-label={`查看${listing.title}详情`}
-                                  data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
-                                  data-analytics-parent-id={buildingId}
-                                  data-analytics-listing-id={buildingId ? listing.id : undefined}
-                                  data-analytics-supply-group={buildingId ? activeGroupKey : undefined}
-                                  data-analytics-rank={buildingId ? index + 1 : undefined}
-                                  data-analytics-section={buildingId ? 'supply' : undefined}
-                                >
-                                  <svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true">
-                                    <path
-                                      d="M2 1l6 7-6 7"
-                                      stroke="currentColor"
-                                      strokeWidth="1.8"
-                                      fill="none"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                </a>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                <div className="building-supply-browser__footer">
-                  {hiddenCount > 0 && (
-                    <button type="button" className="building-supply-browser__more" onClick={() => setExpanded(true)}>
-                      展开其余 {hiddenCount} 套
-                    </button>
-                  )}
-                  <span className="building-supply-browser__footnote">
-                    本组 {listings.length} / 共 {activeAvailability.totalEffectiveListings} 套已按当前筛选与排序生成
-                  </span>
-                </div>
-              </>
-            )
-          })()}
+          {asOfDay != null && activeAvailability.immediateAvailabilityCount > 0 && (
+            <Link
+              href={hrefWithParam('availableBefore', immediateActive ? null : asOfDay)}
+              className="building-supply-browser__filter"
+              data-active={immediateActive || undefined}
+              aria-current={immediateActive ? 'true' : undefined}
+              prefetch={false}
+            >
+              可即刻入驻
+            </Link>
+          )}
+          {/* 排序控件形态与房源列表页 `ResultToolbar` 完全一致（同一套
+              `.ls-toolbar__sort*` 类）：排序只改变同一结果集内的顺序，视觉权重
+              刻意低于会改变结果集的筛选 pill，见 ResultToolbar 顶部注释。这里
+              复用 CSS 外壳而不是复用组件——ResultToolbar 还承担「显示第 x–y，
+              共 N」的计数职责，本组件的计数在 footer 且量词按组不同。 */}
+          <div className="building-supply-browser__sort" role="group" aria-label="排序">
+            <span className="ls-toolbar__sortlabel">排序</span>
+            {sortOptions.map((option) => {
+              const isActive = option.value === activeSort
+              return (
+                <Link
+                  key={option.value}
+                  href={hrefWithParam('sort', option.value === 'recommended' ? null : option.value)}
+                  className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
+                  aria-current={isActive ? 'true' : undefined}
+                  prefetch={false}
+                >
+                  {option.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
-      )}
+        {snapshot.validationErrors.includes('price_unit_required') && (
+          <p className="building-supply-browser__notice">该组内房源计价单位不唯一，暂按推荐顺序排列</p>
+        )}
+
+        {listings.length === 0 ? (
+          <p className="building-supply-browser__empty">当前筛选下暂无匹配空间</p>
+        ) : isMobile ? (
+          <div className="building-supply-browser__cards">
+            {visibleListings.map((listing, index) => (
+              <ListingCard
+                key={`${activeGroupKey}:${listing.id}`}
+                listing={listing}
+                citySlug={citySlug}
+                variant="building-supply"
+                detailAnalytics={
+                  buildingId
+                    ? {
+                        event: 'building_listing_click',
+                        parentId: buildingId,
+                        rank: index + 1,
+                        section: 'supply',
+                        supplyGroup: activeGroupKey,
+                      }
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="building-supply-browser__table-wrap">
+            <table className="building-supply-browser__table">
+              <caption className="visually-hidden">{GROUP_TAB_LABEL[activeGroupKey]}房源列表</caption>
+              {/* 百分比而非 px：comp 的 1fr/130/150/176/120/44 是 1180 容器
+                  （面板内可用宽 1116）下的字面量，换算成同比例的百分比列宽
+                  （styles.css .building-supply-browser__table 头部注释解释了
+                  为什么不能用 px min-width/width 兜底窄容器）。 */}
+              <colgroup>
+                <col />
+                <col style={{ width: '11.65%' }} />
+                <col style={{ width: '13.44%' }} />
+                <col style={{ width: '15.77%' }} />
+                <col style={{ width: '10.75%' }} />
+                <col style={{ width: '3.94%' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">房源</th>
+                  <th scope="col" className="building-supply-browser__table-num-head">{cols.metric}</th>
+                  <th scope="col" className="building-supply-browser__table-num-head">{cols.price}</th>
+                  <th scope="col" className="building-supply-browser__table-num-head">{cols.total}</th>
+                  <th scope="col">{cols.status}</th>
+                  <th scope="col"><span className="visually-hidden">详情</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleListings.map((listing, index) => {
+                  const metricValue =
+                    activeGroupKey === 'coworking'
+                      ? listing.seats != null
+                        ? listing.seats.toLocaleString('zh-CN')
+                        : '—'
+                      : listing.area != null
+                        ? listing.area.toLocaleString('zh-CN')
+                        : '—'
+                  const singleUnit = singleUnitLabel != null
+                  const priceCell = listing.price
+                    ? singleUnit
+                      ? formatAmount(listing.price.amount)
+                      : listing.price.text
+                    : '—'
+                  const total = estimateRowTotal(listing.price, { area: listing.area, seats: listing.seats })
+                  const totalCell = total != null ? formatGroupTotal(total, activeGroupKey) : '—'
+                  const status = buildStatusCell(activeGroupKey, listing, snapshot.asOf)
+                  // 出售组的「状态」列本身就是装修状态（见 buildStatusCell），
+                  // 副行再写一遍就是同一事实占两个位置，副行只留楼层。
+                  const sub = [
+                    listing.floor ? `${listing.floor} 层` : null,
+                    activeGroupKey === 'sale'
+                      ? null
+                      : listing.decorationStatus
+                        ? DECORATION_STATUS_LABELS[listing.decorationStatus]
+                        : null,
+                  ]
+                    .filter((part): part is string => Boolean(part))
+                    .join(' · ')
+                  const detailHref = `${citySlug ? `/${citySlug}` : ''}/listings/${encodeURIComponent(listing.slug)}`
+                  return (
+                    <tr key={`${activeGroupKey}:${listing.id}`}>
+                      <td>
+                        <span className="building-supply-browser__table-primary">{listing.title}</span>
+                        {sub && <span className="building-supply-browser__table-sub">{sub}</span>}
+                      </td>
+                      <td className="tabular building-supply-browser__table-num">{metricValue}</td>
+                      <td className="tabular building-supply-browser__table-num">{priceCell}</td>
+                      <td className="tabular building-supply-browser__table-num building-supply-browser__table-total">
+                        {totalCell}
+                      </td>
+                      <td>
+                        <span
+                          className="building-supply-browser__table-status"
+                          data-emphasized={status.emphasized || undefined}
+                        >
+                          {status.text}
+                        </span>
+                      </td>
+                      <td>
+                        <a
+                          href={detailHref}
+                          className="building-supply-browser__table-link"
+                          aria-label={`查看${listing.title}详情`}
+                          data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
+                          data-analytics-parent-id={buildingId}
+                          data-analytics-listing-id={buildingId ? listing.id : undefined}
+                          data-analytics-supply-group={buildingId ? activeGroupKey : undefined}
+                          data-analytics-rank={buildingId ? index + 1 : undefined}
+                          data-analytics-section={buildingId ? 'supply' : undefined}
+                        >
+                          <svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true">
+                            <path
+                              d="M2 1l6 7-6 7"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </a>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="building-supply-browser__footer">
+          {hiddenCount > 0 && (
+            <button type="button" className="building-supply-browser__more" onClick={() => setExpanded(true)}>
+              展开其余 {hiddenCount} 套
+            </button>
+          )}
+          {/* 「共 M」取未过滤口径（与组 tab 计数、聚合区同源）；「当前筛选 N 条」
+              才是结果集口径，两者并列写清楚，不再混成一句。asOf 是数据诚实性
+              元素（这份供给是哪一刻的快照），真渲染出来而不是只活在 data- 属性里。 */}
+          <span className="building-supply-browser__footnote">
+            共 <span className="tabular">{activeAvailability.totalEffectiveListings}</span> {totalUnit}
+            {listings.length > 0 && <> · 当前筛选 <span className="tabular">{listings.length}</span> 条</>}
+            {asOfDay != null && <> · 数据截至 <span className="tabular">{asOfDay}</span></>}
+          </span>
+        </div>
+      </div>
     </section>
   )
 }

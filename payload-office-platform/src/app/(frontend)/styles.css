@@ -1884,6 +1884,7 @@ ol {
 }
 
 .building-supply-browser__tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1894,6 +1895,13 @@ ol {
   color: var(--ink-2);
   font-size: 14px;
   font-weight: 500;
+}
+
+/* 命中盒补到 44（36 + 4×2），理由同 .building-supply-browser__filter::after。 */
+.building-supply-browser__tab::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
 }
 
 .building-supply-browser__tab[data-active='true'] {
@@ -1970,10 +1978,13 @@ ol {
   color: var(--ink-2);
 }
 
-/* 32 高、无 44px 触控内边距——与站内同型分段控件（PriceUnitSegment 的
-   `.ls-unitseg__item`）同一惯例：段与段之间靠 gap 而非单段触控盒防误触，
-   一次性统一过，这里不额外造一个更高的变体制造跨页不一致。 */
+/* 视觉高度按稿子保持 32（组 tab 36），但**可点区域补到 44**：用 ::after 只在
+   纵向撑开命中盒（`inset: -6px 0`，32+12=44），不改任何可见尺寸，也不横向扩张
+   （左右为 0，相邻 pill 的命中盒因此不会互相覆盖）。二者不是二选一——照稿子给
+   视觉、按触控规范给命中区，比「为了 44 把 pill 撑高到不像稿子」或「为了像稿子
+   让触控目标停在 32」都好。 */
 .building-supply-browser__filter {
+  position: relative;
   display: inline-flex;
   align-items: center;
   height: 32px;
@@ -1985,33 +1996,42 @@ ol {
   font-weight: 500;
 }
 
+.building-supply-browser__filter::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
 .building-supply-browser__filter[data-active='true'] {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--line);
   color: var(--ink);
 }
 
+/* 排序控件本体复用房源列表页的 `.ls-toolbar__sort*`（见 BuildingSupplyBrowser.tsx
+   的注释），这里只负责它在筛选行里的定位；gap/对齐与 `.ls-toolbar__right` 一致，
+   不在两页之间造第二套间距。 */
 .building-supply-browser__sort {
   margin-left: auto;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 16px;
   flex-wrap: wrap;
-}
-
-.building-supply-browser__sort-option {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-.building-supply-browser__sort-option[data-active='true'] {
-  color: var(--accent-link);
 }
 
 .building-supply-browser__notice {
   margin: 0 0 12px;
   font-size: 12px;
   color: var(--ink-3);
+}
+
+/* 空态提示。「筛到空结果」时它位于聚合区 + 控件区之下（控件常驻，否则用户没有
+   入口取消刚点下的筛选）；「整段无供给」时它是 section 内唯一内容。 */
+.building-supply-browser__empty {
+  margin: 0;
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  letter-spacing: normal;
 }
 
 .building-supply-browser__table-wrap {
@@ -2047,6 +2067,13 @@ ol {
 .building-supply-browser__table-num-head {
   text-align: right;
   padding-right: 24px;
+}
+
+/* 稿子 specRows 的「供给行 min-height 56」。表格里 min-height 对 td 无效，
+   行高只能挂在 tr 上——CSS 表格模型下 tr 的 height 语义本来就是「最小高度」，
+   内容更高时照常撑开。 */
+.building-supply-browser__table tbody tr {
+  height: 56px;
 }
 
 .building-supply-browser__table tbody td {
@@ -2092,6 +2119,11 @@ ol {
   color: var(--ink-2);
   font-size: 12px;
   font-weight: 500;
+  /* **刻意不加 `white-space: nowrap`**：状态列窄时「2026年10月15日」会断成两行，
+     看着不好看，但试过一次 nowrap，375 下的「无横向溢出」e2e 立刻红——窄屏首帧
+     （hydration 前 isMobile 仍是 false）渲染的是密度表，不可断行的日期会把表格的
+     min-content 宽度顶上去，正是 Task 7 报告里那条「表格内在宽度绕过 overflow
+     祖先」的同一个坑。断两行只是难看，页面级横向滚动是真缺陷，不换。 */
 }
 
 .building-supply-browser__table-status[data-emphasized='true'] {
@@ -4171,10 +4203,12 @@ ol {
   /* 密度表在窄屏改用 ListingCard 卡片（见 BuildingSupplyBrowser.tsx 文件头
    * 注释——既有行为，非本次新增），但组切换 tab 与筛选行在所有断点都渲染；
    * tab 数超出一屏时横滑，而不是折行把整块面板顶高。 */
+  /* 纵向 padding 不是留白，是给 ::after 命中盒让位：`overflow-x:auto` 会把
+     另一轴一并算成 auto，不留出这几个像素，补到 44 的触控盒会被横滑容器裁掉。 */
   .building-supply-browser__tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding-bottom: 2px;
+    padding-block: 4px;
     -webkit-overflow-scrolling: touch;
   }
   .building-supply-browser__tab {
@@ -4184,7 +4218,7 @@ ol {
   .building-supply-browser__filter-group {
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 2px;
+    padding-block: 6px;
     -webkit-overflow-scrolling: touch;
   }
   .building-supply-browser__filter {
