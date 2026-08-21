@@ -1,0 +1,62 @@
+SAME  buildings.html
+SAME  buildings_empty-building.html
+DIFF  buildings_huangpu-bund.html
+< <button type="button" role="tab" aria-selected="true" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="true">
+< <span class="location-panel__poi-tab-icon" aria-hidden="true">
+< <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+< <rect x="4" y="3" width="16" height="14" rx="2">
+< </rect>
+< <path d="M4 11h16M7 17v2M17 17v2M8 7h.01M16 7h.01">
+< </path>
+< </svg>
+< </span>交通<!-- -->（<!-- -->7<!-- -->）</button>
+< <div class="location-panel__poi-subtabs" role="tablist" aria-label="交通子分类">
+< <button type="button" role="tab" aria-selected="true" aria-controls="location-panel-poi-list" class="location-panel__poi-subtab" data-active="true">地铁<!-- -->（<!-- -->2<!-- -->）</button>
+< <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-subtab" data-active="false">公交<!-- -->（<!-- -->5<!-- -->）</button>
+< </div>
+< <ul id="location-panel-poi-list" class="location-panel__poi-list" role="tabpanel">
+< <li>
+< <button type="button" class="location-panel__poi-item" data-highlighted="false">
+< <span class="location-panel__poi-letter" aria-hidden="true">A</span>
+< <span class="location-panel__poi-info">
+< <span class="location-panel__poi-name">南京东路(地铁站)</span>
+< <span class="location-panel__poi-meta">
+< <span class="location-panel__poi-lines" aria-label="地铁线路">
+< <span class="location-panel__poi-line-tag">10号线</span>
+< <span class="location-panel__poi-line-tag">2号线</span>
+< </span>
+< <span class="location-panel__poi-distance">
+< <span class="location-panel__poi-distance-icon" aria-hidden="true">
+< <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+< <path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z">
+< </path>
+< <circle cx="12" cy="9" r="2.5">
+< </circle>
+< </svg>
+< </span>586<!-- --> 米</span>
+< </span>
+< </span>
+< </button>
+< </li>
+< <li>
+< <button type="button" class="location-panel__poi-item" data-highlighted="false">
+< <span class="location-panel__poi-letter" aria-hidden="true">B</span>
+SAME  buildings_west-nanjing-premium-center.html
+SAME  city-partner.html
+SAME  dev-story.html
+SAME  dev-story_building-detail-demo.html
+SAME  dev-story_opt036.html
+SAME  dev-story_opt037.html
+SAME  entrust.html
+SAME  listings.html
+SAME  listings_jingan-price-on-request-300sqm.html
+SAME  listings_jingan-serviced-office-42-seats.html
+SAME  listings_lujiazui-grade-a-780sqm.html
+SAME  listings_media-rich-listing.html
+SAME  news.html
+SAME  pages_privacy.html
+SAME  publish.html
+SAME  root.html
+SAME  sale.html
+
+HTML DIFFERS — 见上

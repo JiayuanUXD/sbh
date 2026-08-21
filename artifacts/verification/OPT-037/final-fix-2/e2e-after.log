@@ -1,0 +1,92 @@
+
+Running 84 tests using 1 worker
+
+  ok  1 [chromium] › tests\e2e\detail-location.spec.ts:16:3 › 楼盘详情位置交通 P1 › 地图失败显示降级卡片 (819ms)
+  ok  2 [chromium] › tests\e2e\detail-location.spec.ts:26:3 › 楼盘详情位置交通 P1 › 进入视口前不加载地图 SDK (725ms)
+  ok  3 [chromium] › tests\e2e\detail-media.spec.ts:17:3 › 详情媒体分类 P1 › 默认展示图片分类，视频与平面图未挂载 (684ms)
+  ok  4 [chromium] › tests\e2e\detail-media.spec.ts:28:3 › 详情媒体分类 P1 › 视频仅在切换分类后挂载且不自动播放 (589ms)
+  ok  5 [chromium] › tests\e2e\detail-media.spec.ts:40:3 › 详情媒体分类 P1 › 平面图分类展示示意声明 (552ms)
+  ok  6 [chromium] › tests\e2e\detail-pages.spec.ts:96:3 › 房源详情 P0 › 旧详情和错误城市详情遵循精确所有权 (497ms)
+  ok  7 [chromium] › tests\e2e\detail-pages.spec.ts:111:3 › 房源详情 P0 › 有效房源按决策顺序展示概况和咨询入口 (652ms)
+  ok  8 [chromium] › tests\e2e\detail-pages.spec.ts:126:3 › 房源详情 P0 › 存在但待复核的已发布房源仍统一返回 404 (467ms)
+  ok  9 [chromium] › tests\e2e\detail-pages.spec.ts:152:3 › 房源详情 P0 › 价格面议房源不显示零元且窄屏没有水平溢出 (634ms)
+  ok 10 [chromium] › tests\e2e\detail-pages.spec.ts:172:5 › 房源详情 P0 › 房源详情在 375px 无横向溢出，移动操作栏不遮挡内容 (1.0s)
+  ok 11 [chromium] › tests\e2e\detail-pages.spec.ts:172:5 › 房源详情 P0 › 房源详情在 768px 无横向溢出，移动操作栏不遮挡内容 (569ms)
+  ok 12 [chromium] › tests\e2e\detail-pages.spec.ts:172:5 › 房源详情 P0 › 房源详情在 1440px 无横向溢出，移动操作栏不遮挡内容 (641ms)
+  ok 13 [chromium] › tests\e2e\detail-pages.spec.ts:172:5 › 房源详情 P0 › 房源详情在 1920px 无横向溢出，移动操作栏不遮挡内容 (657ms)
+  ok 14 [chromium] › tests\e2e\detail-pages.spec.ts:190:3 › 房源详情 P0 › 图片加载失败时在对应图库项显示稳定兜底 (581ms)
+  ok 15 [chromium] › tests\e2e\detail-pages.spec.ts:214:3 › 房源详情 P0 › 图片在 hydration 之前就加载失败时同样显示兜底 (535ms)
+  ok 16 [chromium] › tests\e2e\detail-pages.spec.ts:227:3 › 房源详情 P0 › 媒体画廊支持全屏、左右键、Escape 和焦点归还 (928ms)
+  ok 17 [chromium] › tests\e2e\detail-pages.spec.ts:252:3 › 房源详情 P0 › 视频对话框的原生控件参与双向焦点循环 (793ms)
+  ok 18 [chromium] › tests\e2e\detail-pages.spec.ts:279:3 › 房源详情 P0 › 详情画廊遵守减少动效偏好 (580ms)
+  ok 19 [chromium] › tests\e2e\detail-pages.spec.ts:304:3 › 楼盘详情 P0 › 楼盘页按有效供给显示在租房源表格 (643ms)
+  ok 20 [chromium] › tests\e2e\detail-pages.spec.ts:322:3 › 楼盘详情 P0 › 楼盘供给分桶筛选默认全选且切换后进 URL (928ms)
+  ok 21 [chromium] › tests\e2e\detail-pages.spec.ts:356:3 › 楼盘详情 P0 › 楼盘供给筛到空结果时筛选控件仍在且可取消 (923ms)
+  ok 22 [chromium] › tests\e2e\detail-pages.spec.ts:374:3 › 楼盘详情 P0 › empty-building exposes the no-public-supply state (560ms)
+  ok 23 [chromium] › tests\e2e\detail-pages.spec.ts:386:3 › 楼盘详情 P0 › 待复核房源不进入楼盘公开供给 (558ms)
+  ok 24 [chromium] › tests\e2e\detail-pages.spec.ts:394:3 › 楼盘详情 P0 › 楼盘详情供给聚合和列表使用同一 asOf 快照 (600ms)
+  ok 25 [chromium] › tests\e2e\detail-pages.spec.ts:406:3 › 楼盘详情 P0 › 桌面楼盘供给默认紧凑表格且无视图切换 (618ms)
+  ok 26 [chromium] › tests\e2e\detail-pages.spec.ts:415:3 › 楼盘详情 P0 › 桌面有供给楼盘首屏提供唯一可见咨询入口 (639ms)
+  ok 27 [chromium] › tests\e2e\detail-pages.spec.ts:425:3 › 楼盘详情 P0 › 窄屏楼盘供给始终使用卡片 (629ms)
+  ok 28 [chromium] › tests\e2e\detail-pages.spec.ts:441:3 › 楼盘详情 P0 › 筛选 pill 视觉 32 / 命中盒 44 且不被横滑容器裁掉 (565ms)
+  ok 29 [chromium] › tests\e2e\detail-pages.spec.ts:468:3 › 楼盘详情 P0 › 供给行高不低于稿子的 56 (610ms)
+  ok 30 [chromium] › tests\e2e\detail-pages.spec.ts:479:3 › 楼盘详情 P0 › 供给区 footer 同时给出未过滤总数、当前筛选数与快照日期 (579ms)
+  ok 31 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 375px 无横向溢出 (1.2s)
+  ok 32 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 768px 无横向溢出 (587ms)
+  ok 33 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 1440px 无横向溢出 (579ms)
+  ok 34 [chromium] › tests\e2e\detail-pages.spec.ts:490:5 › 楼盘详情 P0 › 楼盘详情在 1920px 无横向溢出 (610ms)
+  ok 35 [chromium] › tests\e2e\detail-share-save.spec.ts:17:3 › 详情页分享与本地收藏 P1 › 分享复制 canonical URL，不含 query 和 hash (647ms)
+  ok 36 [chromium] › tests\e2e\detail-share-save.spec.ts:32:3 › 详情页分享与本地收藏 P1 › 收藏刷新后保留 (769ms)
+  ok 37 [chromium] › tests\e2e\detail-share-save.spec.ts:47:3 › 详情页分享与本地收藏 P1 › 禁用 localStorage 时显示非阻断提示且分享仍可用 (575ms)
+  -  38 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:52:5 › F7.2 浏览器设计走查 › dev-story 在 mobile-375x812 视口下渲染正常
+  -  39 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:52:5 › F7.2 浏览器设计走查 › dev-story 在 tablet-768x1024 视口下渲染正常
+  -  40 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:52:5 › F7.2 浏览器设计走查 › dev-story 在 desktop-1440x900 视口下渲染正常
+  -  41 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:52:5 › F7.2 浏览器设计走查 › dev-story 在 wide-1920x1080 视口下渲染正常
+  -  42 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:79:3 › F7.2 浏览器设计走查 › dev-story 在生产环境不可访问
+  ok 43 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:85:3 › F7.2 浏览器设计走查 › 首页在四档视口下 hero 可见 (2.4s)
+  ok 44 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:97:3 › F7.2 浏览器设计走查 › 列表页在四档视口下渲染 (1.3s)
+  ok 45 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:109:3 › F7.2 浏览器设计走查 › 房源详情页在四档视口下渲染 (1.5s)
+  ok 46 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:121:3 › F7.2 浏览器设计走查 › 楼盘详情页在四档视口下渲染 (1.3s)
+  ok 47 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:133:3 › F7.2 浏览器设计走查 › 内容页在四档视口下渲染 (1.1s)
+  -  48 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:145:3 › F7.2 浏览器设计走查 › 加载状态（骨架）在 dev-story 可见
+  -  49 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:156:3 › F7.2 浏览器设计走查 › 空状态在 dev-story 可见
+  -  50 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:162:3 › F7.2 浏览器设计走查 › 错误状态在 dev-story 可见
+  -  51 [chromium] › tests\e2e\f7-2-visual-review.spec.ts:170:3 › F7.2 浏览器设计走查 › 极值价格不溢出卡片
+  ok 52 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:27:3 › F7.3 可访问性验收 › 首页有唯一 main landmark 与 h1 (690ms)
+  ok 53 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:35:3 › F7.3 可访问性验收 › 列表页有唯一 main landmark 与 h1 (480ms)
+  -  54 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:43:3 › F7.3 可访问性验收 › dev-story 标题层级连续
+  ok 55 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:54:3 › F7.3 可访问性验收 › 询盘 Modal 焦点锁定 + Esc 关闭 (793ms)
+  ok 56 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:89:3 › F7.3 可访问性验收 › 详情询盘关闭后将焦点归还给触发按钮 (626ms)
+  -  57 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:102:3 › F7.3 可访问性验收 › 图片有 alt 文本
+  ok 58 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:114:3 › F7.3 可访问性验收 › 表单字段有 label 关联 (997ms)
+  ok 59 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:153:3 › F7.3 可访问性验收 › 触控目标 ≥ 44×44px（CTA 按钮） (581ms)
+  ok 60 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:174:3 › F7.3 可访问性验收 › 404 页面 noindex (352ms)
+  ok 61 [chromium] › tests\e2e\f7-3-accessibility.spec.ts:180:3 › F7.3 可访问性验收 › 询盘成功状态有 live region（aria-live） (799ms)
+  ok 62 [chromium] › tests\e2e\frontend-journey.spec.ts:27:3 › F7.1 全链路 E2E › 首页 → 列表 → 详情 → 咨询成功 (1.3s)
+  ok 63 [chromium] › tests\e2e\frontend-journey.spec.ts:76:3 › F7.1 全链路 E2E › 楼盘详情 → 楼内房源 → 咨询 (1.1s)
+  ok 64 [chromium] › tests\e2e\frontend-journey.spec.ts:107:3 › F7.1 全链路 E2E › 内容页 → 通用咨询 (680ms)
+  ok 65 [chromium] › tests\e2e\frontend-journey.spec.ts:129:3 › F7.1 全链路 E2E › 404 页面 (383ms)
+  ok 66 [chromium] › tests\e2e\frontend-journey.spec.ts:135:3 › F7.1 全链路 E2E › 无结果状态 (395ms)
+  ok 67 [chromium] › tests\e2e\frontend-journey.spec.ts:148:3 › F7.1 全链路 E2E › 重复提交幂等：相同 requestId 不重复创建 Lead (39ms)
+  ok 68 [chromium] › tests\e2e\frontend-journey.spec.ts:177:3 › F7.1 全链路 E2E › 字段错误返回 422 + errors 数组 (9ms)
+  ok 69 [chromium] › tests\e2e\frontend-journey.spec.ts:198:3 › F7.1 全链路 E2E › 未同意隐私政策返回 422 (9ms)
+  ok 70 [chromium] › tests\e2e\frontend-journey.spec.ts:218:3 › F7.1 全链路 E2E › GET /api/inquiries 返回 405 (7ms)
+  ok 71 [chromium] › tests\e2e\landing-pages.spec.ts:79:3 › 主导航入口调整 › 主导航有 6 项且不含服务式办公 (568ms)
+  ok 72 [chromium] › tests\e2e\landing-pages.spec.ts:91:3 › /entrust 委托找房 › 城市查询显示可信城市且切换只保留城市选择 (605ms)
+  ok 73 [chromium] › tests\e2e\landing-pages.spec.ts:98:3 › /entrust 委托找房 › 非法手机号内联报错 (627ms)
+  ok 74 [chromium] › tests\e2e\landing-pages.spec.ts:109:3 › /entrust 委托找房 › 合法提交后就地成功且埋点不含 PII (631ms)
+  ok 75 [chromium] › tests\e2e\landing-pages.spec.ts:152:3 › /entrust 委托找房 › 页尾 CTA 聚焦首屏输入框并在移动端按锚点吸底 (513ms)
+  ok 76 [chromium] › tests\e2e\landing-pages.spec.ts:178:3 › /publish 投放房源 › 城市查询在投放入口可见且使用全局 canonical (556ms)
+  ok 77 [chromium] › tests\e2e\landing-pages.spec.ts:185:3 › /publish 投放房源 › 空提交报必填错误且保留已填内容 (572ms)
+  ok 78 [chromium] › tests\e2e\landing-pages.spec.ts:198:3 › /publish 投放房源 › 佣金默认无且可切换 (470ms)
+  ok 79 [chromium] › tests\e2e\landing-pages.spec.ts:206:3 › /publish 投放房源 › 合法提交后卡片变为成功态且埋点不含 PII (999ms)
+  ok 80 [chromium] › tests\e2e\landing-pages.spec.ts:265:3 › /publish 投放房源 › 服务暂时不可用时保留内容并允许重新提交 (545ms)
+  ok 81 [chromium] › tests\e2e\landing-pages.spec.ts:288:3 › /publish 投放房源 › 提交过于频繁时提示稍后重试且不清空表单 (616ms)
+  ok 82 [chromium] › tests\e2e\landing-pages.spec.ts:310:3 › /publish 投放房源 › 375px 视口无横向滚动 (421ms)
+[I4] before= {"scrollY":968,"supplyTop":45.3125} after= {"scrollY":968,"supplyTop":45.3125}
+  ok 83 [chromium] › tests\e2e\supply-filter-scroll.spec.ts:24:1 › 供给区筛选后滚动位置保持不变（I4 回归守卫） (3.4s)
+[I4] sort before= {"scrollY":968,"supplyTop":45.3125} after= {"scrollY":968,"supplyTop":45.3125}
+  ok 84 [chromium] › tests\e2e\supply-filter-scroll.spec.ts:60:1 › 供给区排序后滚动位置保持不变（I4 回归守卫） (3.5s)
+
+  11 skipped
+  73 passed (59.7s)

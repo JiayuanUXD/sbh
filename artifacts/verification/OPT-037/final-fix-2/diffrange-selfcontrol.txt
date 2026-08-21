@@ -1,0 +1,3 @@
+building-nomedia-1440.png: h=4502/4502 diffPx=12918 yRange=2109..2446
+buildings-index-375.png: h=3984/3984 diffPx=72269 yRange=2128..2342
+listing-so-375.png: h=6394/6394 diffPx=1219 yRange=3061..3096
