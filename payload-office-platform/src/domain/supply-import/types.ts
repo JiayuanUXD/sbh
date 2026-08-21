@@ -19,13 +19,14 @@ export interface PreflightReport {
   readonly rowErrors: readonly RowError[]
 }
 
-// RowContext 定义在这里（Task 3、Task 4 使用），现在不实现
-// 它依赖 Task 3 的类型，Task 4 实施时再补：
-//
-// import type { BuildingCandidate, ResolveTables } from './resolve-refs'
-//
-// export interface RowContext {
-//   readonly tables: ResolveTables
-//   readonly buildings: readonly BuildingCandidate[]
-//   readonly allowedCityIds: 'all' | ReadonlySet<number | string>
-// }
+import type { BuildingCandidate, ResolveTables } from './resolve-refs'
+
+/**
+ * 单行校验所需的只读上下文：地理解析表 + 候选楼盘 + 当前操作者的城市权限范围。
+ * building-row.ts / listing-row.ts 共用同一份定义，不各自重复。
+ */
+export interface RowContext {
+  readonly tables: ResolveTables
+  readonly buildings: readonly BuildingCandidate[]
+  readonly allowedCityIds: 'all' | ReadonlySet<number | string>
+}

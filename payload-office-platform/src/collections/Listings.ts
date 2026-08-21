@@ -25,6 +25,8 @@ import {
   INVOICE_STATUS_LABELS,
   LISTING_MEDIA_CATEGORIES,
   LISTING_MEDIA_CATEGORY_LABELS,
+  LISTING_TYPES,
+  LISTING_TYPE_LABELS,
   REGISTRATION_STATUSES,
   REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
@@ -302,14 +304,10 @@ export const Listings: CollectionConfig = {
                   required: true,
                   defaultValue: 'traditional-office',
                   admin: { width: COL_3 },
-                  options: [
-                    { label: '传统办公室', value: 'traditional-office' },
-                    { label: '共享办公', value: 'coworking' },
-                    { label: '整层办公', value: 'full-floor' },
-                    // 该枚举值当初保留是为「只删导航入口、不动数据」，不可改标签作它用：
-                    // 改标签会把存量「服务式办公室」房源静默重标注为另一种业态。
-                    { label: '服务式办公室', value: 'serviced-office' },
-                  ],
+                  options: LISTING_TYPES.map((value) => ({
+                    label: LISTING_TYPE_LABELS[value],
+                    value,
+                  })),
                 }),
                 markPublishRequired({
                   name: 'building',

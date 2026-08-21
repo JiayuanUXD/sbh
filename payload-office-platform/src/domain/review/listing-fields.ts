@@ -36,6 +36,23 @@ export function isDecorationStatus(value: unknown): value is DecorationStatus {
   return typeof value === 'string' && (DECORATION_STATUSES as readonly string[]).includes(value)
 }
 
+/** 房源类型。与 DB ENUM `enum_listings_listing_type` 逐字一致，顺序即后台下拉顺序。 */
+export const LISTING_TYPES = ['traditional-office', 'coworking', 'full-floor', 'serviced-office'] as const
+export type ListingType = (typeof LISTING_TYPES)[number]
+
+export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
+  'traditional-office': '传统办公室',
+  coworking: '共享办公',
+  'full-floor': '整层办公',
+  // 该枚举值当初保留是为「只删导航入口、不动数据」，不可改标签作它用：
+  // 改标签会把存量「服务式办公室」房源静默重标注为另一种业态。
+  'serviced-office': '服务式办公室',
+}
+
+export function isListingType(value: unknown): value is ListingType {
+  return typeof value === 'string' && (LISTING_TYPES as readonly string[]).includes(value)
+}
+
 /** 工商注册状态（详情页字段）。 */
 export const REGISTRATION_STATUSES = ['available', 'conditional', 'unavailable', 'confirm'] as const
 export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number]
