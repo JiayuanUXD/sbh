@@ -102,81 +102,32 @@ export type ListingFilterRowsResult = Readonly<{
 }>
 
 /**
- * 构造筛选行 + 维度清单。
+ * 维度清单——**只看 `input` 与区域名表，不需要任何 facet 计数**。
  *
- * @param districts 城市可见区域全集（`getCachedListingDistrictOptions`）。
- * @param districtCounts 剥掉「区域」维度后的各区计数——**必须是剥离后的**，
- *   否则选中静安以后其余区计数全为 0（Task 2 的「facets 算在筛选前」同型问题）。
- * @param typeCounts 剥掉「类型」维度后的各类型计数，同上。
+ * 单独导出的理由是取数顺序（OPT-036 终审 I2）：编排层要先知道「哪些维度正在生效」
+ * 才能判断这一页是不是空态②/空态①，进而知道要不要发退路 facet 查询。这份清单
+ * 与计数无关，所以可以在取数**之前**算出来，让整页的 facet 请求并成一次 fan-out
+ * ——同一波并发里同 key 的请求会被 `cached-queries` 合并成一次库查询，分两波发则
+ * 第二波已经不在飞行中，只能寄望缓存已经写回。顺带把空态页的库往返从 2 次降到 1 次。
+ *
+ * `buildListingFilterRows` 仍然返回同样的清单（内部就调这个函数），调用方两者取其一，
+ * 不存在第二份实现。
  */
-export function buildListingFilterRows(params: Readonly<{
+export function buildListingFilterDimensions(params: Readonly<{
   input: ListingSearchInput
   districts: readonly DistrictViewModel[]
-  districtCounts: ReadonlyMap<string, number>
-  typeCounts: ReadonlyMap<string, number>
-  /** 价格行标签，租售语境不同（「租金上限」/「总价上限」），从 CHANNEL_COPY 取。 */
-  priceRowLabel: string
-  /**
-   * 价格**维度**标签（「租金」/「总价」）。与 `priceRowLabel` 刻意分开：筛选行
-   * 只写上限，叫「租金上限」准确；但维度覆盖 priceMin+priceMax 两个字段，空态②
-   * 的退路文案若沿用「租金上限」，遇到同时有下限的 URL 会说出「租金上限：
-   * 3 元以上 · 8 元以下」这种自相矛盾的话。
-   */
+  /** 见 `buildListingFilterRows` 同名参数注释。 */
   priceDimensionLabel: string
-}>): ListingFilterRowsResult {
-  const { input, districts, districtCounts, typeCounts, priceRowLabel, priceDimensionLabel } = params
-
+}>): readonly ListingFilterDimensionSpec[] {
+  const { input, districts, priceDimensionLabel } = params
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
-  const activePriceMax = input.priceMax != null ? String(input.priceMax) : undefined
-  const activeAreaMin = input.areaMin != null ? String(input.areaMin) : undefined
-
-  // 计数为 0 的候选不渲染：点进去必然空手而归，比不出现更糟（与批次统一的
-  // 「不显示 0」同源）。当前已选项永远保留，否则用户会看不到自己选中的是什么。
-  const districtOptions = districts
-    .filter((district) => district.slug === activeDistrict || (districtCounts.get(district.slug) ?? 0) > 0)
-    .map((district) => ({
-      value: district.slug,
-      label: district.name,
-      ...(districtCounts.get(district.slug) != null && districtCounts.get(district.slug)! > 0
-        ? { count: districtCounts.get(district.slug)! }
-        : {}),
-    }))
-
-  const typeOptions = (Object.keys(LISTING_TYPE_LABEL) as (keyof typeof LISTING_TYPE_LABEL)[])
-    .filter((value) => value === activeType || (typeCounts.get(value) ?? 0) > 0)
-    .map((value) => ({
-      value,
-      label: LISTING_TYPE_LABEL[value],
-      ...(typeCounts.get(value) != null && typeCounts.get(value)! > 0
-        ? { count: typeCounts.get(value)! }
-        : {}),
-    }))
-
-  const priceBuckets = input.priceUnit ? PRICE_MAX_BUCKETS[input.priceUnit] : []
   const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
-  const priceOptions = priceBuckets.map((threshold) => ({
-    value: String(threshold),
-    label: `${compactNumber(threshold)} 元以下`,
-  }))
-
-  const areaOptions = AREA_MIN_BUCKETS.map((threshold) => ({
-    value: String(threshold),
-    label: `${compactNumber(threshold)} ㎡以上`,
-  }))
-
-  const rows: FilterRow[] = [
-    { key: 'district', label: '位置', options: districtOptions, ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
-    { key: 'type', label: '类型', options: typeOptions, ...(activeType ? { activeValue: activeType } : {}) },
-    { key: 'priceMax', label: priceRowLabel, options: priceOptions, ...(activePriceMax ? { activeValue: activePriceMax } : {}) },
-    { key: 'areaMin', label: '面积下限', options: areaOptions, ...(activeAreaMin ? { activeValue: activeAreaMin } : {}) },
-  ]
-
   const activeDistrictName = activeDistrict
     ? (districts.find((d) => d.slug === activeDistrict)?.name ?? activeDistrict)
     : null
 
-  const dimensions: ListingFilterDimensionSpec[] = [
+  return [
     {
       dimension: 'district',
       label: '位置',
@@ -261,8 +212,82 @@ export function buildListingFilterRows(params: Readonly<{
       activeText: input.q ?? null,
     },
   ]
+}
 
-  return { rows, dimensions }
+/**
+ * 构造筛选行 + 维度清单。
+ *
+ * @param districts 城市可见区域全集（`getCachedListingDistrictOptions`）。
+ * @param districtCounts 剥掉「区域」维度后的各区计数——**必须是剥离后的**，
+ *   否则选中静安以后其余区计数全为 0（Task 2 的「facets 算在筛选前」同型问题）。
+ * @param typeCounts 剥掉「类型」维度后的各类型计数，同上。
+ */
+export function buildListingFilterRows(params: Readonly<{
+  input: ListingSearchInput
+  districts: readonly DistrictViewModel[]
+  districtCounts: ReadonlyMap<string, number>
+  typeCounts: ReadonlyMap<string, number>
+  /** 价格行标签，租售语境不同（「租金上限」/「总价上限」），从 CHANNEL_COPY 取。 */
+  priceRowLabel: string
+  /**
+   * 价格**维度**标签（「租金」/「总价」）。与 `priceRowLabel` 刻意分开：筛选行
+   * 只写上限，叫「租金上限」准确；但维度覆盖 priceMin+priceMax 两个字段，空态②
+   * 的退路文案若沿用「租金上限」，遇到同时有下限的 URL 会说出「租金上限：
+   * 3 元以上 · 8 元以下」这种自相矛盾的话。
+   */
+  priceDimensionLabel: string
+}>): ListingFilterRowsResult {
+  const { input, districts, districtCounts, typeCounts, priceRowLabel, priceDimensionLabel } = params
+
+  const activeDistrict = firstOrUndefined(input.district)
+  const activeType = firstOrUndefined(input.listingType)
+  const activePriceMax = input.priceMax != null ? String(input.priceMax) : undefined
+  const activeAreaMin = input.areaMin != null ? String(input.areaMin) : undefined
+
+  // 计数为 0 的候选不渲染：点进去必然空手而归，比不出现更糟（与批次统一的
+  // 「不显示 0」同源）。当前已选项永远保留，否则用户会看不到自己选中的是什么。
+  const districtOptions = districts
+    .filter((district) => district.slug === activeDistrict || (districtCounts.get(district.slug) ?? 0) > 0)
+    .map((district) => ({
+      value: district.slug,
+      label: district.name,
+      ...(districtCounts.get(district.slug) != null && districtCounts.get(district.slug)! > 0
+        ? { count: districtCounts.get(district.slug)! }
+        : {}),
+    }))
+
+  const typeOptions = (Object.keys(LISTING_TYPE_LABEL) as (keyof typeof LISTING_TYPE_LABEL)[])
+    .filter((value) => value === activeType || (typeCounts.get(value) ?? 0) > 0)
+    .map((value) => ({
+      value,
+      label: LISTING_TYPE_LABEL[value],
+      ...(typeCounts.get(value) != null && typeCounts.get(value)! > 0
+        ? { count: typeCounts.get(value)! }
+        : {}),
+    }))
+
+  const priceBuckets = input.priceUnit ? PRICE_MAX_BUCKETS[input.priceUnit] : []
+  const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
+  const priceOptions = priceBuckets.map((threshold) => ({
+    value: String(threshold),
+    label: `${compactNumber(threshold)} 元以下`,
+  }))
+
+  const areaOptions = AREA_MIN_BUCKETS.map((threshold) => ({
+    value: String(threshold),
+    label: `${compactNumber(threshold)} ㎡以上`,
+  }))
+
+  const rows: FilterRow[] = [
+    { key: 'district', label: '位置', options: districtOptions, ...(activeDistrict ? { activeValue: activeDistrict } : {}) },
+    { key: 'type', label: '类型', options: typeOptions, ...(activeType ? { activeValue: activeType } : {}) },
+    { key: 'priceMax', label: priceRowLabel, options: priceOptions, ...(activePriceMax ? { activeValue: activePriceMax } : {}) },
+    { key: 'areaMin', label: '面积下限', options: areaOptions, ...(activeAreaMin ? { activeValue: activeAreaMin } : {}) },
+  ]
+
+  // 维度清单与计数无关，交给独立的 `buildListingFilterDimensions`——编排层需要在
+  // 取数之前就拿到它（见该函数注释）。这里仍然返回同一份，调用方两者取其一即可。
+  return { rows, dimensions: buildListingFilterDimensions({ input, districts, priceDimensionLabel }) }
 }
 
 /** 全部可被「清除全部条件」清掉的维度——不含 priceUnit，理由见 CityListingsView。 */

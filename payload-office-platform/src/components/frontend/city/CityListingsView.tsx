@@ -26,6 +26,7 @@ import {
 import { priceUnitLabel } from '@/lib/frontend/format'
 import {
   LISTING_CLEARABLE_DIMENSIONS,
+  buildListingFilterDimensions,
   buildListingFilterRows,
   type ListingFilterDimensionSpec,
 } from '@/lib/frontend/listing-filter-rows'
@@ -192,35 +193,16 @@ export default async function CityListingsView({
   const { page, totalPages, totalDocs } = pagination
   const activeUnit = input.priceUnit
 
-  // ── 取数 ────────────────────────────────────────────────────────────────
-  // 三份 facet 各自剥掉一个维度后再统计（见 omitListingSearchDimensions 注释）：
-  //   - 剥 priceUnit：算「另有多少套按别的单位报价」。用现成的 getSearchFacets
-  //     会因为它保留 priceUnit 而让其余单位计数恒为 0，提示条静默消失。
-  //   - 剥 district / listingType：算各候选自己的套数。不剥的话选中静安以后
-  //     其余区计数全为 0（Task 2「facets 算在筛选前」同型问题）。
-  // 三者剥离后若得到同一份 input（用户没叠加对应筛选时的常见情形），
-  // getCachedSearchFacetsIgnoring 会命中同一条缓存，不会各查一次库。
-  const [unitFacets, districtFacets, typeFacets] = await Promise.all([
-    getCachedSearchFacetsIgnoring(city.slug, input, ['priceUnit'], businessType),
-    getCachedSearchFacetsIgnoring(city.slug, input, ['district'], businessType),
-    getCachedSearchFacetsIgnoring(city.slug, input, ['listingType'], businessType),
-  ])
-
-  const unitCounts = toCountMap(unitFacets.rentUnits)
-  const units: readonly PriceUnitOption[] = PRICE_UNIT_ORDER.filter(
-    (unit) => unit === activeUnit || (unitCounts.get(unit) ?? 0) > 0,
-  ).map((unit) => ({ value: unit, label: priceUnitLabel(unit), count: unitCounts.get(unit) ?? 0 }))
-
-  const excludedUnits: readonly ExcludedUnitOption[] = activeUnit
-    ? units.filter((unit) => unit.value !== activeUnit)
-    : []
-
-  const { rows, dimensions } = buildListingFilterRows({
+  // ── 维度清单与状态判定（纯输入推导，必须排在取数之前）─────────────────────
+  // 这一段一个 facet 计数都不需要（`buildListingFilterDimensions` 只吃 input 与
+  // 区域名表），而「这一页是不是空态②/空态①」恰恰决定了要不要发退路 facet 查询。
+  // 先算完再取数，整页的 facet 请求才能并成**一次** fan-out——同一波并发里同 key
+  // 的请求由 cached-queries 的 coalesceInFlight 合并成一次库查询；分成两波发的话，
+  // 第二波开始时第一波已经落地、不在飞行中，只能寄望缓存恰好已经写回。
+  // 顺带把空态页的库往返从两次降到一次（终审 I2）。
+  const dimensions = buildListingFilterDimensions({
     input,
     districts,
-    districtCounts: toCountMap(districtFacets.districts),
-    typeCounts: toCountMap(typeFacets.listingTypes),
-    priceRowLabel: copy.priceRowLabel,
     priceDimensionLabel: copy.priceDimensionLabel,
   })
 
@@ -265,6 +247,58 @@ export default async function CityListingsView({
   const showEmptyFiltered = isEmpty && narrowingDimensions.length > 0
   const showEmptyNoStock = isEmpty && !showEmptyFiltered
 
+  // ── 取数：整页 facet 只发这一次 fan-out ──────────────────────────────────
+  // 每一份都先剥掉一个（或一组）维度再统计（见 omitListingSearchDimensions 注释）：
+  //   - 剥 priceUnit：算「另有多少套按别的单位报价」。用现成的 getSearchFacets
+  //     会因为它保留 priceUnit 而让其余单位计数恒为 0，提示条静默消失。
+  //   - 剥 district / listingType：算各候选自己的套数。不剥的话选中静安以后
+  //     其余区计数全为 0（Task 2「facets 算在筛选前」同型问题）。
+  //   - 空态②的逐条退路与「清除全部」、空态①的全量总数：只在对应分支才发，
+  //     正常路径零额外开销（与原实现一致，只是不再单独排一波）。
+  //
+  // 剥离后落到同一份 input 的请求（用户没叠加对应筛选时的常见情形）由
+  // `getCachedSearchFacetsIgnoring` → `coalesceInFlight` 合并成**一次**库查询。
+  // 这里刻意不再写「会命中同一条缓存」：`unstable_cache` 的未命中路径是无条件执行
+  // 回调的（读 Next 16.2.10 源码确认），冷路径上并发的同 key 请求各查一次库，
+  // 「靠缓存去重」那句话是错的——终审 I2 推翻的正是它。
+  const facetsOmitting = (omit: readonly ListingSearchDimension[]) =>
+    getCachedSearchFacetsIgnoring(city.slug, input, omit, businessType)
+
+  const [unitFacets, districtFacets, typeFacets, relaxationFacets, clearAllFacets, noStockFacets] =
+    await Promise.all([
+      facetsOmitting(['priceUnit']),
+      facetsOmitting(['district']),
+      facetsOmitting(['listingType']),
+      showEmptyFiltered
+        ? Promise.all(activeDimensions.map((d) => facetsOmitting([d.dimension])))
+        : Promise.resolve([]),
+      showEmptyFiltered ? facetsOmitting(LISTING_CLEARABLE_DIMENSIONS) : Promise.resolve(null),
+      // 空态①：主按钮要的是「不叠加这一类限制的完整结果集」总数，因此连计价单位
+      // 一起剥掉——这一态的出口就是「先看看这个城市/频道到底有什么」。
+      showEmptyNoStock
+        ? facetsOmitting([...LISTING_CLEARABLE_DIMENSIONS, 'priceUnit'] as readonly ListingSearchDimension[])
+        : Promise.resolve(null),
+    ])
+
+  const unitCounts = toCountMap(unitFacets.rentUnits)
+  const units: readonly PriceUnitOption[] = PRICE_UNIT_ORDER.filter(
+    (unit) => unit === activeUnit || (unitCounts.get(unit) ?? 0) > 0,
+  ).map((unit) => ({ value: unit, label: priceUnitLabel(unit), count: unitCounts.get(unit) ?? 0 }))
+
+  const excludedUnits: readonly ExcludedUnitOption[] = activeUnit
+    ? units.filter((unit) => unit.value !== activeUnit)
+    : []
+
+  // 筛选行需要计数，因此排在取数之后；维度清单上面已经算过，两者出自同一个函数。
+  const { rows } = buildListingFilterRows({
+    input,
+    districts,
+    districtCounts: toCountMap(districtFacets.districts),
+    typeCounts: toCountMap(typeFacets.listingTypes),
+    priceRowLabel: copy.priceRowLabel,
+    priceDimensionLabel: copy.priceDimensionLabel,
+  })
+
   // 空态①的标题名词必须说出「哪一类还没有」，否则「上海在租房源还在收录中」会在
   // 页面上其它地方明明写着共 10 套时自相矛盾（comp 稿字面：「上海的共享工位房源
   // 还在收录中」）。这一态只可能由类目型条件（类型 / 计价单位）造成，把它们拼进
@@ -290,36 +324,18 @@ export default async function CityListingsView({
 
   const sorts: readonly ResultToolbarSort[] = activeUnit ? [...BASE_SORTS, ...PRICE_SORTS] : BASE_SORTS
 
-  // 空态②：逐条退路（只在真的空且有收窄条件时才查，正常路径零额外开销）。
-  let relaxations: readonly Relaxation[] = []
-  let clearAllCount: number | undefined
-  if (showEmptyFiltered) {
-    const [hits, clearAll] = await Promise.all([
-      Promise.all(
-        activeDimensions.map((d) =>
-          getCachedSearchFacetsIgnoring(city.slug, input, [d.dimension], businessType),
-        ),
-      ),
-      getCachedSearchFacetsIgnoring(city.slug, input, LISTING_CLEARABLE_DIMENSIONS, businessType),
-    ])
-    relaxations = activeDimensions.map((d, index) => ({
-      label: `取消「${d.label}：${d.activeText}」这一个条件`,
-      hitCount: hits[index].totalDocs,
-      href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
-    }))
-    clearAllCount = clearAll.totalDocs
-  }
-
-  // 空态①：主按钮要的是「不叠加这一类限制的完整结果集」总数，因此连计价单位
-  // 一起剥掉——这一态的出口就是「先看看这个城市/频道到底有什么」。
-  const noStockTotal = showEmptyNoStock
-    ? (await getCachedSearchFacetsIgnoring(
-        city.slug,
-        input,
-        [...LISTING_CLEARABLE_DIMENSIONS, 'priceUnit'] as readonly ListingSearchDimension[],
-        businessType,
-      )).totalDocs
-    : 0
+  // 空态②：逐条退路（查询已在上方那一次 fan-out 里发出，这里只做投影）。
+  const relaxations: readonly Relaxation[] = showEmptyFiltered
+    ? activeDimensions.map((d, index) => ({
+        label: `取消「${d.label}：${d.activeText}」这一个条件`,
+        hitCount: relaxationFacets[index]?.totalDocs ?? 0,
+        href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
+      }))
+    : []
+  // 缺省为 undefined（不是 0）：`EmptyFiltered.clearAllCount` 省略时退回不带数字的
+  // 弱版本，而 0 会印出「清除全部条件 · 0 套」这种把用户推向死路的按钮。
+  const clearAllCount: number | undefined = clearAllFacets?.totalDocs
+  const noStockTotal = noStockFacets?.totalDocs ?? 0
 
   // 「清除全部条件」只有一个口径，两个控件共用同一个 href：筛选条底栏那个与空态②
   // 里那个在同一屏上同时可见、文案同样是「清除全部」，作用域一旦不同就是同名不同义

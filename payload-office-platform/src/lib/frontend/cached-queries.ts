@@ -48,6 +48,52 @@ function canonicalCitySlug(citySlug: string): string {
   return createSearchContext(citySlug).city
 }
 
+/**
+ * 同一时刻、同一缓存键的重查询合并成一个 promise（in-flight coalescing）。
+ *
+ * ## 为什么 `unstable_cache` 自己不做这件事（读源码确认，不是推测）
+ *
+ * `node_modules/next/dist/server/web/spec-extension/unstable-cache.js`：
+ * `workStore.pendingRevalidates` 只守住「命中但已过期→后台重算」与「未命中→写回」
+ * 两条路径；**未命中本身是无条件执行回调的**。于是 N 个并发的同 key miss 会各跑
+ * 一次回调。列表路由是 `force-dynamic`，`q` 又是自由文本（缓存键空间无上界），
+ * 冷未命中是常态而非罕见：编排层一次 fan-out 三份 facet，冷路径上就是三次
+ * `adapter.findEffectiveListings`（不分页、`depth: 2`、水合商户关系——OPT-031
+ * 认定的 sitemap 70 秒超时源头）打向共享 TencentDB。
+ *
+ * ## 为什么是这个形状，而不是 React `cache()`
+ *
+ * React `cache()` 也能做请求级去重，但它依赖渲染期的 async dispatcher：在本仓库
+ * 的 vitest（node 环境、非 `react-server` 条件）里 `cache()` 恒为「无缓存」直通，
+ * **去重行为无法被测试量到**，只能靠推理声称——而「靠推理声称缓存会命中」正是本次
+ * 被推翻的那句注释。这里改用与运行时无关的纯 JS 合并表，冷路径查询次数可以在
+ * `tests/opt036-facet-query-dedupe.test.ts` 里被数出来。
+ *
+ * ## 边界（都是刻意的）
+ *
+ *   - **结算即摘除**：不保留已完成的结果。留着等于在 `unstable_cache` 之外再造一层
+ *     不受 `revalidate` / tag 管辖、永不失效的进程内缓存，后台改了数据前台刷不出来。
+ *     因此这不是缓存，只是「别让同一个问题同时问 N 遍」。
+ *   - **跨请求共享**：键是「城市 + 频道 + canonical」，结果与用户无关，两个并发请求
+ *     共用同一次查询与 `unstable_cache` 给它们同一条缓存条目是同一件事，顺带挡住了
+ *     缓存击穿（同一秒涌入的同 URL 请求只打一次库）。
+ *   - **失败一起失败**：合并期间的错误对共享者一视同仁，与它们各自去查、各自撞上
+ *     同一个故障没有区别；失败同样摘除，不会把一次抖动固化成常驻错误。
+ */
+const inFlightQueries = new Map<string, Promise<unknown>>()
+
+function coalesceInFlight<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const existing = inFlightQueries.get(key) as Promise<T> | undefined
+  if (existing) return existing
+  const pending = run()
+  inFlightQueries.set(key, pending)
+  const forget = () => {
+    if (inFlightQueries.get(key) === pending) inFlightQueries.delete(key)
+  }
+  pending.then(forget, forget)
+  return pending
+}
+
 /** Private factory memoization; callers only receive typed public wrappers. */
 function memoizeByCity<T>(create: (citySlug: string) => T): (citySlug: string) => T {
   const cache = new Map<string, T>()
@@ -213,14 +259,25 @@ const getCachedSearchBuildingsFilteredByCity = memoizeByCity((citySlug) =>
   ),
 )
 
-/** 楼盘列表页筛选/排序/分页查询（OPT-036 Task 2）。 */
+/**
+ * 楼盘列表页筛选/排序/分页查询（OPT-036 Task 2）。
+ *
+ * 楼盘页整页只发这一次查询（没有 facet fan-out——候选清单与逐维度命中数由
+ * `searchBuildingsFiltered` 在同一趟里算出来），因此**不存在房源页那种同一次渲染
+ * 内的放大**。这里仍然过一层 `coalesceInFlight`，挡的是另一件事：同一秒涌入的同
+ * URL 并发请求在冷缓存下各跑一次 `searchBuildings`（同样是不分页、`depth: 2` 的
+ * 那条查询）。合并键与缓存键同构。
+ */
 export function getCachedSearchBuildingsFiltered(
   citySlug: string,
   input: BuildingSearchInput,
 ) {
   const city = canonicalCitySlug(citySlug)
   const canonicalQuery = buildBuildingCanonicalParams(input).toString()
-  return getCachedSearchBuildingsFilteredByCity(city)(canonicalQuery, input)
+  return coalesceInFlight(
+    ['search-buildings-filtered', city, canonicalQuery].join(' '),
+    () => getCachedSearchBuildingsFilteredByCity(city)(canonicalQuery, input),
+  )
 }
 
 type SitemapBuildingPageLoader = () => ReturnType<typeof searchBuildingsPage>
@@ -415,7 +472,12 @@ export function getCachedSearchFacets(
   businessType: SearchChannel = 'lease',
 ) {
   const city = canonicalCitySlug(citySlug)
-  return getCachedSearchFacetsByCity(city)(canonicalQuery, input, businessType)
+  // 合并键必须与 unstable_cache 的实际缓存键同构（城市 + 频道 + canonical），
+  // 少一项就会让两次本该分开的查询互相顶替结果，见 coalesceInFlight 注释。
+  return coalesceInFlight(
+    ['search-facets', city, businessType, canonicalQuery].join(' '),
+    () => getCachedSearchFacetsByCity(city)(canonicalQuery, input, businessType),
+  )
 }
 
 /**
