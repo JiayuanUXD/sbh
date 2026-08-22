@@ -192,3 +192,37 @@
 - 不做抓取式增量同步（那是另一条链路，`huizuxuanzhi` 来源保持不动）。
 - 不改 `SupplySubmissions` 投放申请链路。
 - 不给 MGR / BRK / CSR 开放导入。
+
+---
+
+## 11. 补充定稿（2026-08-22，实施中发现并裁定）
+
+### D10 房源商户：继承楼盘当前生效的商户
+
+**问题**：§2 的定稿漏了有效供给第 8 条谓词。`effective-supply.ts:20` 要求 `listings.merchant`
+非空（否则 `NO_SUPPLY_MERCHANT`，从**所有**对外查询排除），而本规格的房源模板九列里没有商户列、
+写入层也从不设置该字段。后果：导入的房源 `publicationStatus=published` 但前台 404——
+§3 红条承诺的「确认后 N 套房源将立即对外可见」是假的。Task 10 的 E2E 实测发现，手工补
+`merchant_id` 后即 200，确认是唯一变量。
+
+**裁定（用户 2026-08-22）**：**自动继承楼盘当前生效的商户**，运营零额外输入。
+
+- 商户来源：`building-merchant-relations` 中 building 匹配、且 `[effectiveFrom, effectiveTo)`
+  覆盖当前时点的那条关系。这与 `.agent/supply.md` 既有语义一致
+  （「Listing 在关系开始时继承当时的 Building 默认商户快照」）。
+- 复用既有域函数 `toRelationPeriod` / `isRelationPeriodValid` / `checkMerchantEligibility`
+  （`src/domain/supply/building-merchant-relation.ts`），**不得另写一份资质判定**。
+- **校验前移到预检层**：楼盘没有生效商户、或商户不合格（停用/资质过期）时判**错误行**，
+  message 要可操作（指出是楼盘缺商户，不是房源本身的问题）。理由与 `rmb-total` 那条一致——
+  失败必须发生在任何东西上架**之前**。
+- 写入层从同一来源取值设 `listings.merchant`，并保留兜底守卫。
+
+**已知连带影响（用户已知悉）**：新导入的楼盘本身没有商户关系，所以「先导楼盘、再导房源」
+第二步会全线报错，运营需在中间手工给楼盘配商户。本期接受该流程；若将来要免除，
+再考虑给房源模板加可选商户列（原方案 3）。
+
+### D11 导入与回滚必须使前台缓存失效
+
+导入链路与回滚链路**都不调用** `revalidatePublicCache`（`src/lib/frontend/public-cache-revalidation.ts`）。
+即便 D10 修好，「立即可见」与「立即不可见」都会滞后一个缓存 TTL——**止血按钮按下去前台还能看到**。
+写入 Job 完成后与回滚成功后各须触发一次公共缓存失效。
