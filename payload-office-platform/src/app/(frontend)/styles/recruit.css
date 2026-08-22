@@ -1,0 +1,139 @@
+/* ============================================================================
+ * OPT-038 城市招募页样式（骨架与容器层 · Task 1）
+ * 设计依据：docs/SBH设计任务讨论/城市招募页.dc.html 末尾 specRows（尺寸权威）
+ *          + specs/work-items/OPT-038-city-recruit-page-redesign.md（裁定权威）
+ *
+ * 命名空间 `.rc-*`（recruit）。只准引用 styles.css §1 的 token；
+ * 中文 letter-spacing 一律 normal（唯一例外是 21px 副标的 +0.011em，属 Task 2）。
+ *
+ * ── 为什么单开一个文件而不是往 styles.css 末尾追加 ─────────────────────────
+ * `tests/coming-soon-city-view.test.ts:25` 把 styles.css 从 `.city-coming-soon`
+ * 起切到**文件末尾**做内容断言，:50-52 禁止该切片出现 `var(--ink)` /
+ * `var(--line)` / `var(--paper)`。招募页用的正是新体系 token，追加即红。
+ * （已实测确认该测试当前就是这个形态。）
+ *
+ * ── 加载顺序 ─────────────────────────────────────────────────────────────
+ * layout.tsx 里排在 styles.css 之后：本页要用「同特异度、后来者胜」覆写
+ * `.filter-bar__input` / `.btn` 这类全局原语的本页作用域版本（Task 3）。
+ * 同理排在 surface.css 之后，才能覆写 `.sf-*` 基元的基态。
+ *
+ * ── 复用而非另起（本任务的复用清单） ──────────────────────────────────────
+ *   - 卡片表面 / 图上渐变 / 图上标签 / tabular 数字 → surface.css 的
+ *     `.sf-card` / `.sf-scrim` / `.sf-phototag` / `.sf-num`，本文件一律不重定义。
+ *     数字**不得内联 font-variant-numeric**，节点上挂 `.sf-num`。
+ *   - 正文栏宽上限 702 → 既有 token `var(--measure)`，不新造数值。
+ *   - section 节奏 72 / 144 → 既有 token `var(--pad)` / `var(--gap)`，见下。
+ *   - 圆角 18 → `var(--r-card)`；pill 圆角 → `var(--r-pill)`（980px）。
+ *     ⚠️ 不要用 1.1b 兼容别名（`--color-*` / `--radius-pill` 那批标了逐步淘汰）；
+ *     且 `--radius-pill` 是 999px、`--r-pill` 是 980px，是两个 token，别混。
+ *
+ * ── 一处必须换算的地方：稿子的 --bg / --bg-subtle 与本项目是**反的** ───────
+ * 稿子：`--bg:#ffffff`（白）、`--bg-subtle:#f5f5f7`（灰）。
+ * 本项目（styles.css:18-19）：`--bg:#f5f5f7`（页面底色）、`--bg-subtle:#ffffff`（白卡/白带）。
+ * 所以照抄稿子的 token 名会把白灰整个对调。本文件按**颜色**而非按名字映射：
+ * 稿子的白 → `var(--bg-subtle)`，稿子的灰 → `var(--bg)`。首页同一映射
+ * （home.css:23-24：`.hm-section` 用 --bg、白底带 `.hm-band` 用 --bg-subtle）。
+ * ========================================================================== */
+
+/* ── 页面外壳 ──────────────────────────────────────────────────────────────
+ * 出血到视口宽：本页有整幅背景带（价值点 + 表单卡那段是灰底带，其余是白底），
+ * 而祖先 `.site-main` 带 `max-width: 1440 + padding-inline: 24`（styles.css:597-601），
+ * 不破掉这层，背景带就断在容器边界上。照 `.hm-home`（home.css:16-19）与
+ * `.dt-page`（detail.css:29-32）的既有做法，不新造机制；`body { overflow-x: clip }`
+ * （styles.css:196）是配套用来裁掉 100vw 与滚动条宽度之差的。
+ * 纵向同时抵消 `.site-main` 的 `padding-block: var(--sp-6)`——不抵消的话第一段
+ * section 的 72 会叠成 104。不像 `.hm-home` 那样再上探 `--header-height`：
+ * 首页 Hero 是暗色满图、要压到透明态头部底下，本页 Hero 是白底常规段，
+ * 上探会让它钻进头部里。
+ *
+ * 局部 token 挂在 `.rc-page` 上（同 `.dt-page` 的 --dt-w/--dt-side）。下面所有
+ * `var(--rc-*)` **一律不写字面兜底**：漏套 `.rc-page` 时属性直接失效、版式明显
+ * 塌掉，而不是静默走一个第二事实源的字面值（detail.css:8-13 记的就是这个教训）。 */
+.rc-page {
+  /* 内容容器 1024 —— specRows「内容容器 1024px」。不拉到全站 --w(1180)：
+     稿子的「正文栏宽上限 702」是行长约束，且 552 + 400 + 72 = 1024 是**推导值**
+     （主栏 + 表单卡 + 列间），改容器就等于改两栏的推导前提。
+     属 cross-batch-design-decisions.md「允许不一致的项 · 内容容器」同类：
+     容器宽度是布局刚需而非风格选择（首页/详情 1180、列表 1280、本页 1024）。 */
+  --rc-w: 1024px;
+  /* 表单卡定宽 400 + 列间 72（specRows「方案 A 两栏 552 / 400 · 列间 72」）。
+     主栏 552 **不单独定义**：它恒等于 1024 − 400 − 72，在 `.rc-core` 里由
+     `minmax(0, 1fr)` 算出来。写成第三个常量就是把一个推导值抄成事实源，
+     且在 1024 与 1023 断点之间的窗口里会撑出横向溢出。 */
+  --rc-side: 400px;
+  --rc-colgap: 72px;
+
+  width: 100vw;
+  margin-block: calc(var(--sp-6) * -1);
+  margin-inline: calc(50% - 50vw);
+}
+
+.rc-container { width: min(var(--rc-w), 100% - 32px); margin-inline: auto; }
+
+/* ── section 节奏 ─────────────────────────────────────────────────────────
+ * specRows 的「section 之间总留白 / padding-block」随稿子自己的 `sectionGap`
+ * 开关变（选项 236 / 180 / 144，默认 236）。取 **144 → 每侧 72**：
+ *   1. 它是稿子自己给出的合法取值，不是另开一档；
+ *   2. 恰好等于全站既有 token `--gap`(144) / `--pad`(72)，与首页、详情页同一节奏。
+ * 抄默认的 118 会让全站出现第二种节奏，且要新造一个 118 的字面量。
+ *
+ * 背景：默认白底（`--bg-subtle`），灰底带用修饰类——**颜色映射见文件头**，
+ * 稿子的 `var(--bg)` 是白、`var(--bg-subtle)` 是灰，与本项目相反。 */
+.rc-section { position: relative; background: var(--bg-subtle); padding-block: var(--pad); }
+.rc-section--band { background: var(--bg); }
+
+/* 次要入口段：稿子明写「作为上一段的尾注：不设 padding-top，与商圈布局的间距
+   = var(--pad) 而非 2×var(--pad)」（城市招募页.dc.html:225-227）。
+   只给 padding-top:0，不动 padding-bottom——尾注仍要与页脚留满一份 --pad。 */
+.rc-section--tail { padding-top: 0; }
+
+/* 正文栏宽上限 702（specRows）。稿子里 Hero 副标与商圈引导语都受这条约束，
+   两处共用一个类而不是各写一遍 `max-width: var(--measure)`。 */
+.rc-measure { max-width: var(--measure); }
+
+/* ── 方案 A · 左右两栏 ────────────────────────────────────────────────────
+ * 方案 A（左右两栏 + sticky 表单卡）而非方案 B（纵向叙事 + 居中表单）的选择
+ * 理由，写在这里防止后来者「改回稿子的另一半」：本页唯一目标是留资转化，
+ * sticky 表单让用户读完价值点时表单就在手边；方案 B 的表单排在价值点之后、
+ * 需滚动才可见。且本页只有 3 条一句话价值点，撑不起 B 的纵向叙事排版。
+ *
+ * 主栏用 `minmax(0, 1fr)` 而不是定宽 552：552 是 1024 − 400 − 72 的推导结果，
+ * 容器满宽时自然落到 552；容器被 `100% - 32px` 收窄的中间窗口（视口
+ * 1024–1056）里则跟着收，不会撑出横向溢出。minmax 的下界取 0 而非默认 auto——
+ * 价值点标题是 CJK 无空格长串，auto 会把轨道最小宽顶到 min-content
+ * （list.css:44-46 踩过同款）。
+ *
+ * align-items: start 不是视觉选择，是表单卡 sticky 的地基：两列各自按内容
+ * 定高，右列才有「行高 − 卡高」这段可移动余量；拉伸到等高则 sticky 无位移
+ * 空间、完全失效（同 `.dt-core`，detail.css:33-36）。 */
+.rc-core {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--rc-side);
+  column-gap: var(--rc-colgap);
+  row-gap: 0;
+  align-items: start;
+}
+
+/* 表单卡所在列的粘附。
+ * top = 44 + 24 = 68（specRows「方案 A 表单卡 … sticky 68」）。
+ * **为什么是 68 而不是详情页的 116**：详情页决策卡上方除了 44 的全局导航，
+ * 还常驻一条 56 高的吸附条（`--dt-sticky-bar-h`），所以那边是
+ * 44 + 56 + 16 = 116（detail.css:347-350）。**本页没有任何吸附条**，
+ * 只需越过全局导航再留一口气，故 44 + 24。
+ * 写成 calc 而不是字面 68：导航高度是 token，改一处两页跟着变；
+ * 字面量会让 `--header-height` 与本行成为同一个高度的两个事实源。 */
+.rc-aside { position: sticky; top: calc(var(--header-height) + 24px); }
+
+/* ── 断点 ─────────────────────────────────────────────────────────────────
+ * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
+ * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成
+ * 逐字换行。
+ *
+ * 移动（≤767）**不需要**再改 section padding 或左右留白，这里不写空规则：
+ *   - 稿子「移动 section padding 72」与桌面选定的 --pad(72) 恰好相同；
+ *   - 稿子「左右 16」已由 `.rc-container` 的 `100% - 32px` 在所有断点满足。
+ * 写一条改不动任何值的媒体查询，只会让后来者以为这里有一档移动覆写。 */
+@media (max-width: 1023px) {
+  .rc-core { grid-template-columns: minmax(0, 1fr); row-gap: 48px; }
+  .rc-aside { position: static; }
+}
