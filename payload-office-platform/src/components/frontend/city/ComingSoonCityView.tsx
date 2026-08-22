@@ -22,7 +22,7 @@ import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
  * 差异由 props 承载（工作项 §3.5）：这边给城市专属语气 + 该城 `featuredRegions`。
  *
  * ── 根节点为什么是 `.city-coming-soon > .rc-page` 两层 ─────────────────────
- * `tests/coming-soon-city-view.test.ts:37` 对源码做文本断言，要求逐字出现
+ * `tests/coming-soon-city-view.test.ts:38` 对源码做文本断言，要求逐字出现
  * `<div className="city-coming-soon">`——根类名不能改、也不能追加第二个类名。
  * 于是 `.rc-page` 作为内层壳，Task 3 那整节 `.rc-page .city-partner-form*`
  * 的作用域在两个消费面上就是同一个选择器。外壳的旧盒模型在 recruit.css 里被复位。

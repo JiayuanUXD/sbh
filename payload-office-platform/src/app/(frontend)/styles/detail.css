@@ -343,14 +343,16 @@
  *    从根上避免两者同时可见。
  * ========================================================================== */
 
-/* 复位泄漏的 `.detail-gallery { grid-column: span 7; }`（styles.css:1460，服务旧
+/* 复位泄漏的 `.detail-gallery { grid-column: span 7; }`（styles.css:1387，服务旧
  * `.detail-hero` 7 列网格）——这条全局类选择器规则不认 grid 容器是谁，套进
  * `.dt-core`（只有 2 条显式列轨）后画廊会被强行 span 7，逼出 5 条隐式 0 宽列，
  * 且因为 7 列宽度会跟 .dt-decision（col2/row1）撞格，auto-placement 把画廊
- * 挤到了第 3 行——用真实 Playwright 量出来的 bug，不是猜的（见
- * task-4-report.md 的 grid-template-columns/rows 诊断数据）。同类复位已有
- * 先例：styles.css:4848 `.detail-v2__hero > .detail-gallery { grid-column:
- * auto; }`，这里照抄同一手法，只是换成 `.dt-core` 这个新 grid 上下文。 */
+ * 挤到了第 3 行——用真实 Playwright 量出来的 bug，不是猜的（见 OPT-037 的
+ * grid-template-columns/rows 诊断数据）。同类复位曾有先例
+ * `.detail-v2__hero > .detail-gallery { grid-column: auto; }`，
+ * **但那条已随 dev-story V2 演示页在 OPT-037 Task 11（73e9eaa）一并摘除**，
+ * 现在 styles.css 里查不到——本条是该手法在仓库里的唯一在世实例
+ * （2026-08-22 终审 M2 核对：原注释指的 styles.css:4848 现在是别的规则）。 */
 .dt-core > .detail-gallery {
   grid-column: auto;
   grid-row: auto;

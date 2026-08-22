@@ -80,9 +80,20 @@ build 与 `next start` 均带 `CI=1` +
 | `.city-partner-form__step` | 有 | 1 | **保留**，但从 `.city-partner-page__eyebrow, .city-partner-form__step` 这条分组规则里**摘掉了已死的那一支**，规则本身与取值一字未改 |
 | `@media (max-width: 640px)` 里的 `.city-partner-form(__success)` / `__checks` | 有 | 1 | **保留**。它们在 `.rc-page` 下被 `detail.css`/`recruit.css` 的 (0,2,0) 全部压过去、实际不生效，但类名活着，且该 @media 块里还混着 `.listing-card--list`——**不按块删** |
 
+> ⚠️ 2026-08-22 终审 I2 补记：上面这一行**看见了现象却没追到后果**。`__success` / `__checks` 那两条被压过去确实无害
+> （`__checks` 在 `.rc-page` 下本来就是单列），但 `padding: var(--sp-4)` 那条被压掉 = **移动端表单卡内边距
+> 从 16 静默变成 40**，是一处没有任何人决定过的渲染变更。当时把「实际不生效」当成了「无所谓」，
+> 而它真正的含义是「一条既有规则被本批打断了」。已在 `recruit.css` 用 (0,2,0) 重述修复，见工作项 §8.10。
+
+
 ### 2.4 实际删除
 
-`src/app/(frontend)/styles.css` **−385 行**（5579 → 5194）：
+`src/app/(frontend)/styles.css` **−383 行**（5579 → **5196**）：
+
+> 2026-08-22 终审 M1 订正：本节原写「−385 行（5579 → 5194）」，两个数都不对。
+> `git show --numstat 688a75f` 对该文件是 **41 增 / 424 删 = 净 −383**，行数 5579 → 5196。
+> 提交 688a75f 的提交信息里那句「-385 行」同样不准，历史提交不改写，以本节与工作项 §8.9 为准。
+
 
 - `.city-partner-page` / `__intro` / `__copy` / `__eyebrow` / `__lead` / `__note` / `.city-partner-page h1`
   + `@media (max-width: 1023px)` 整块（块内三条全是该族）+ `@media (max-width: 640px)` 里的那一条

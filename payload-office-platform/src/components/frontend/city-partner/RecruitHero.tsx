@@ -70,7 +70,7 @@ type RecruitHeroProps = Readonly<{
    * 触发条件没变，这里是真的会变。
    *
    * 做成通用插槽而不是 `media` prop：类名 `.city-coming-soon__media` 属城市路由的
-   * 既有命名空间（且被 `tests/coming-soon-city-view.test.ts:39` 的源码文本断言钉住），
+   * 既有命名空间（且被 `tests/coming-soon-city-view.test.ts:40` 的源码文本断言钉住），
    * 不应该被搬进 `.rc-*` 组件里。`/city-partner` 不传，整页零图（稿子自称「零房源依赖」）。
    */
   backdrop?: React.ReactNode

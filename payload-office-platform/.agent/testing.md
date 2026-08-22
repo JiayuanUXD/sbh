@@ -98,6 +98,15 @@ OPT-038 实地踩出来的，每条都差点导出一个错误结论：
 - ★ **pane 不合成帧时（`document.visibilityState === 'hidden'` / 后台标签页），CSS transition 会冻结在起始值。**
   这时读 `:focus` / `:hover` 这类过渡态，`getComputedStyle` 给的是**基态假象**，看起来像「选择器没生效」——
   曾差点据此去改特异度。量过渡态前先把元素 `transition: none`，或确保 pane 在前台。
+  ⚠️ **措辞订正（2026-08-22 终审 I3）**：本条最初是凭 OPT-038 Task 3 的一次**临时浏览器会话**写进来的，
+  那次会话的读数**从未落盘**——整个 `artifacts/verification/OPT-038/` 当时 `focus` 零命中，
+  随证据提交的 `task3-form-states-probe.mjs` 里既没有 `.focus()`、也没有 `Tab`、更没有 `transition: none`。
+  规则本身成立（终审时重跑真实测已复现：`artifacts/verification/OPT-038/final-fix-probe-*.json` 的 `focus` 段，
+  程序 `.focus()` 与真键盘 Tab 两条路径都读到 `matches(':focus-visible') === true` +
+  `rgb(0,113,227)` + `rgba(0,113,227,.18) 0 0 0 4px`，与当初报告里的数逐位相同），
+  **但当时没有任何人能验证它**。教训是两条，不是一条：过渡态要关 transition 再读；
+  **凡写进常驻规则的「实测」，读数必须落进 `artifacts/verification/` 且脚本随证据提交**，
+  否则下一个人只能选择相信或从头再做一遍。
 - **全站 `scroll-behavior: smooth` 会把 `window.scrollTo` 变成动画。** 只等两帧就读位置会得到
   「请求 2400、实际 235」，整段 sticky 采样作废。测滚动前先置 `scroll-behavior: auto`。
 - **同一份数据在两个断点上结论不同 ⇒ 先怀疑缓存的第一拍，不要怀疑断点。** `unstable_cache` 的条目落在

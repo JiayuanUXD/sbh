@@ -83,6 +83,17 @@ async function main() {
     ? original.map((v) => (typeof v === 'object' && v !== null ? (v as { id: unknown }).id : v))
     : []
   console.log(`\nprofile #${String(profile.id)} 原 featuredRegions = ${JSON.stringify(originalIds)}`)
+  // ⚠️ 起始状态守卫（与 opt038-task5-districts-probe.ts:115-124 同一判据）：
+  // 本脚本「还原成观察到的原值」。如果上一轮跑残留了脏值，这一轮会把脏值当成
+  // 原值再写回去，一路级联下去谁都看不出来。所以对预期的干净起点做**断言**而不是
+  // 只打印——本地库 7 个 profile 的 featuredRegions 本来就全是空数组
+  // （.agent/frontend.md「本地库夹具事实」）。
+  if (originalIds.length > 0) {
+    throw new Error(
+      `拒绝运行：profile #${String(profile.id)} 的 featuredRegions 不是干净起点（可能是上一轮没还原干净）：` +
+        `${JSON.stringify(originalIds)}。请先把它清空再跑。`,
+    )
+  }
 
   try {
     await payload.update({
@@ -136,9 +147,13 @@ async function main() {
       id: profile.id,
       depth: 0,
     })
-    console.log(
-      `\n已还原 featuredRegions = ${JSON.stringify((after as unknown as Record<string, unknown>).featuredRegions)}`,
-    )
+    const restored = (after as unknown as Record<string, unknown>).featuredRegions
+    console.log(`\n已还原 featuredRegions = ${JSON.stringify(restored)}`)
+    // 还原后**自查**：只打一句「已还原」而不核对，等于把还原当成了信仰
+    // （同 opt038-task5-districts-probe.ts:213-226）。
+    if (Array.isArray(restored) ? restored.length > 0 : restored != null) {
+      throw new Error('还原失败：本地库被留下了临时写入，请手工清空该 profile 的 featuredRegions 后再跑')
+    }
   }
   process.exit(0)
 }

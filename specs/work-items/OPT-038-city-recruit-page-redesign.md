@@ -30,7 +30,7 @@ sticky 表单让用户读完价值点时表单就在手边；方案 B 的表单�
 `/city-partner` 现在只有**一段文案 + 一个 461 行表单**。
 **设计稿的 Hero / 价值点 / 商圈布局 / 次要入口四段一个都不存在**——本工作项主要是「补齐四段 + 改造表单外观」。
 
-- 表单组件 `city-partner/CityPartnerApplicationForm.tsx`（461 行）被 `ComingSoonCityView.tsx:145` **共用**，
+- 表单组件 `city-partner/CityPartnerApplicationForm.tsx`（461 行）被 `ComingSoonCityView.tsx:116` **共用**，
   而后者挂在 4 条城市路由上——**改它会外溢，必须逐条核触发条件**。
 - `landing/` 下 8 个组件**本页一个都没用**（归 `/entrust`、`/publish`、`SiteNav`），不要误改。
 
@@ -109,7 +109,7 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
 ## 5. 测试雷区（**改版必踩，计划阶段就要绕开**）
 
 1. **新样式必须放 `styles/recruit.css`，不得追加到 `styles.css` 末尾。**
-   `tests/coming-soon-city-view.test.ts:25,50-55` 把 `styles.css` 从 `.city-coming-soon`（:5171）
+   `tests/coming-soon-city-view.test.ts:26,69-74` 把 `styles.css` 从 `.city-coming-soon`（:5118）
    切到**文件末尾**做内容断言，禁止出现 `var(--ink)/var(--line)/var(--paper)`——追加即红。
 2. `tests/city-partner-page-seo.test.ts:37-38` 锁死 **h1 恰好 1 个且含「城市合作伙伴申请」**，改 hero 文案即红。
 3. e2e `city-partner-flow.spec.ts` 用 label/按钮文案定位，且 `getByRole('status')` **当前唯一**——
@@ -139,6 +139,11 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
    select 在真实路由上和单行输入框长得一模一样；而 Task 3 报告写的是「保留了既有三角，只挪了位置」。
    前两种形态要交互才看得见，**这一种不需要任何交互就一直摆在屏上**，
    只是没人对着截图逐个控件对账，于是潜伏了一整个任务。改法：写 `background-color` 不写 `background`。
+   ★ **第四种形态（2026-08-22 终审 I2）：被打断的还可以是一条断点规则。**
+   `styles.css` 的 `@media (max-width: 640px) { .city-partner-form { padding: var(--sp-4) } }` 是 (0,1,0)，
+   而 `.rc-page .city-partner-form { padding: 40px }` 是 (0,2,0)——**媒体查询不加特异度**，
+   那条 16 从接线那天起永不生效。⚠️ 这一形态对判死 CSS 的两道判据（逐类名 grep +
+   运行时 `querySelectorAll`）**按构造隐形**：类名活在 DOM 里、grep 也有命中，死掉的只是那条声明。
 5. **全站 `scroll-behavior: smooth` 会把 `window.scrollTo` 变成动画**——只等两帧就读位置会得到
    「请求 2400、实际 235」，整段 sticky 采样作废。测滚动前先置 `auto`。
 6. **`unstable_cache` 的条目落在 `.next/cache`，换一个 server 进程也还在。** 临时写库后新起 server，
@@ -146,7 +151,8 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
    （section 渲不渲染是服务端决定的、与视口无关）。
 7. **「还原成观察到的原值」的临时写库探针必须先断言干净起点**，否则会把上一轮的残留当成原值写回去、一路级联。
 
-以上七条已在 Task 6 回写进 `.agent/frontend.md`（1、4）与 `.agent/testing.md`（2、3、5、6、7）。
+以上七条已在 Task 6 回写进 `.agent/frontend.md`（1、4）与 `.agent/testing.md`（2、3、5、6、7）；
+第 4 条的第四种形态由终审修复补写进 `.agent/frontend.md` 同一条。
 
 ## 6. 验收（Task 6 收尾时的实测结果）
 
@@ -222,8 +228,24 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
    ——那是跨页排版决定，应另开工作项，不在改版批次里半取。
 9. **Task 6 清理摘除的死 CSS**（不改任何渲染输出，四断点逐像素 0 差异）：
    `styles.css` 的 `.city-partner-page*` 整族与 `.city-coming-soon__*` 旧四模块，
-   共 −385 行。保留了仍在 DOM 里的 `.city-coming-soon` / `__media` / `__embedded-form`
+   共 **−383 行（5579 → 5196）**。（2026-08-22 终审 M1 订正：Task 6 报告与提交信息里那句
+   「−385 行（5579 → 5194）」两个数都不对；`git show --numstat 688a75f` 是 41 增 / 424 删。）
+   保留了仍在 DOM 里的 `.city-coming-soon` / `__media` / `__embedded-form`
    与 `.city-partner-form*` 全族。逐类名判据与存疑保留清单见 Task 6 报告与
    `artifacts/verification/OPT-038/task6-dead-css-probe-{before,after}.json`。
    `tests/coming-soon-city-view.test.ts` 里那条「四个旧模块的 CSS 规则必须存在」的断言
    **方向已反转**为「不得回来」，并把 44px 触控高度的断言改打 `recruit.css`（规则搬家了）。
+10. **表单卡 ≤640 的内边距回到 16**（2026-08-22 终审 I2，本批唯一一处**主动的渲染变更**）。
+    `styles.css` 有一条 `@media (max-width: 640px) { .city-partner-form(__success)
+    { padding: var(--sp-4) } }`，(0,1,0)；而卡表面并进 `.dt-panel` 选择器组时写的
+    `.rc-page .city-partner-form { padding: 40px }` 是 (0,2,0)——**媒体查询不加特异度**，
+    于是从 Task 5 接线那天起那条 16 就**永不生效**，移动端卡内边距被静默从 16 变成 40
+    （375 下卡宽 343 → 内容只剩 263）。**这不是任何人做过的决定**，证据侧当时已拍下
+    （`task5-acceptance.json` 八行 `form.padding` 全是 `"40px"`，含 375）只是没人读。
+    裁定：让那条断点规则真正生效，在 `recruit.css` 用 (0,2,0) 重述，取值仍是 `--sp-4`
+    （稿子对表单卡的移动端 padding 没有规定；稿子沉默时保留站点既有选择是保守默认），
+    断点仍取 640 而不是收敛到本页的 767（收敛会额外改掉 641–767，属另一个未裁定的变更）。
+    四断点 × 两个消费面前后对比：差异**只有** ≤640 档的卡内边距 40 → 16 与随之而来的卡高，
+    768 / 1440 / 1920 三档逐项零差异；证据
+    `artifacts/verification/OPT-038/final-fix-probe-{before,after}.json` 与
+    `final-fix-shots-{before,after}/`。

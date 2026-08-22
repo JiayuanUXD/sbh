@@ -87,6 +87,10 @@ describe('ComingSoonCityView shell', () => {
     expect(code).not.toContain('DEFAULT_DISTRICTS')
     expect(code).not.toMatch(/首批上线|筹备中|规划服务区/)
     expect(code).not.toMatch(/30,000|1,500|98\.5/)
+    // 第四个数「12 城」原先没被钉住——而它恰恰是与实际 7 座城市 profile 直接
+    // 矛盾的那一个（另外三个只是无取数，这个是**错的**）。裸 `12` 太泛（id、
+    // sortOrder、任何字面量都会误伤），改断它唯一的标签文案。
+    expect(code).not.toContain('全国直营与合作布局网络')
     // 反过来：四段新版式必须都在（漏接一段就等于半新半旧并存）
     expect(view).toContain('<RecruitHero')
     expect(view).toContain('<RecruitValueProps')

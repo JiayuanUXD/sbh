@@ -7,8 +7,8 @@
  * 中文 letter-spacing 一律 normal（唯一例外是 21px 副标的 +0.011em，属 Task 2）。
  *
  * ── 为什么单开一个文件而不是往 styles.css 末尾追加 ─────────────────────────
- * `tests/coming-soon-city-view.test.ts:25` 把 styles.css 从 `.city-coming-soon`
- * 起切到**文件末尾**做内容断言，:50-52 禁止该切片出现 `var(--ink)` /
+ * `tests/coming-soon-city-view.test.ts:26` 把 styles.css 从 `.city-coming-soon`
+ * 起切到**文件末尾**做内容断言，:69-71 禁止该切片出现 `var(--ink)` /
  * `var(--line)` / `var(--paper)`。招募页用的正是新体系 token，追加即红。
  * （已实测确认该测试当前就是这个形态。）
  *
@@ -71,7 +71,7 @@
 /* ── Task 5：城市路由的外壳 `.city-coming-soon` ────────────────────────────
  * 4 条城市路由（`/[city]`、`/[city]/{listings,buildings,sale}`）的招募页根节点
  * 类名是 `.city-coming-soon`，**不能改名、也不能追加第二个类名**：
- * `tests/coming-soon-city-view.test.ts:37` 做的是源码文本断言，要求逐字出现
+ * `tests/coming-soon-city-view.test.ts:38` 做的是源码文本断言，要求逐字出现
  * `<div className="city-coming-soon">`。
  *
  * 于是 `.rc-page` 作为**内层**壳套在它里面（`ComingSoonCityView` 的结构就是
@@ -81,7 +81,7 @@
  *
  * 本条只做一件事：把外壳复位成一个「透明」的块，让内层 `.rc-page` 的
  * `margin-inline: calc(50% - 50vw)` 相对 `.site-main` 的内容盒解析，
- * 出血结果与 `/city-partner` 逐像素一致。被复位的是 styles.css:5171 的旧盒模型
+ * 出血结果与 `/city-partner` 逐像素一致。被复位的是 styles.css:5118 的旧盒模型
  * （flex 纵向 + gap 48 + padding 24/16/64 + max-width 1200）——recruit.css 排在
  * styles.css 之后、两条规则同为 (0,1,0)，后来者胜；styles.css 里
  * `@media (max-width: 767px)` 的那份（gap 28 / padding-inline 12）同样被压掉：
@@ -121,7 +121,7 @@
  * 容器满宽时自然落到 552；容器被 `100% - 32px` 收窄的中间窗口（视口
  * 1024–1056）里则跟着收，不会撑出横向溢出。minmax 的下界取 0 而非默认 auto——
  * 价值点标题是 CJK 无空格长串，auto 会把轨道最小宽顶到 min-content
- * （list.css:44-46 踩过同款）。
+ * （list.css:41-44 踩过同款）。
  *
  * align-items: start 不是视觉选择，是表单卡 sticky 的地基：两列各自按内容
  * 定高，右列才有「行高 − 卡高」这段可移动余量；拉伸到等高则 sticky 无位移
@@ -138,7 +138,7 @@
  * top = 44 + 24 = 68（specRows「方案 A 表单卡 … sticky 68」）。
  * **为什么是 68 而不是详情页的 116**：详情页决策卡上方除了 44 的全局导航，
  * 还常驻一条 56 高的吸附条（`--dt-sticky-bar-h`），所以那边是
- * 44 + 56 + 16 = 116（detail.css:347-350）。**本页没有任何吸附条**，
+ * 44 + 56 + 16 = 116（detail.css:363-365）。**本页没有任何吸附条**，
  * 只需越过全局导航再留一口气，故 44 + 24。
  * 写成 calc 而不是字面 68：导航高度是 token，改一处两页跟着变；
  * 字面量会让 `--header-height` 与本行成为同一个高度的两个事实源。 */
@@ -163,7 +163,7 @@
    全段不含任何彩色 token。底色用 `--bg`——**这是稿子的 `--bg-subtle`(#f5f5f7)
    按颜色映射过来的**，即「白底带上的一块浅灰」，不是按名字抄的。
    圆角走 `--r-pill`(980px)，不是 1.7 圆角家族的 `--radius-pill`(999px)
-   （detail.css:861-863 记的就是这两个 token 同页并存那次）。
+   （detail.css:876-878 记的就是这两个 token 同页并存那次）。
    padding 4/10 与 specRows「状态标签」行同值——那行本批不落地
    （工作项 §3.3：商圈状态标签整条链路缺维度），所以不存在需要收敛的第二处。 */
 .rc-hero__eyebrow {
@@ -178,7 +178,7 @@
  * `text-wrap: balance` 替代稿子里那个手写 `<br>`：标题含城市名、由 DTO 驱动，
  * 「杭州」与「乌鲁木齐」长度差 3 个字，写死断点必有一边崩。balance 让两行长度
  * 自动配平，得到与稿子同样的两行观感，且短标题时自动退回一行。
- * styles.css:256/262/4664 已在用同一属性，不是本页新造的机制。 */
+ * styles.css:256/262/4611 已在用同一属性，不是本页新造的机制。 */
 .rc-hero__title {
   margin: 0; max-width: 900px;
   font-size: 56px; font-weight: 600; line-height: 1.07; letter-spacing: normal;
@@ -239,7 +239,7 @@
 
 /* ── sticky 表单卡（Task 3） ──────────────────────────────────────────────
  * 被改造的是既有组件 `CityPartnerApplicationForm`（类名写死、且被
- * `ComingSoonCityView.tsx:145` 共用、挂在 4 条城市路由上）。所以本节全部
+ * `ComingSoonCityView.tsx:116` 共用、挂在 4 条城市路由上）。所以本节全部
  * 选择器都以 `.rc-page` 起头：
  *   1. 特异度 (0,2,0)+ 压得住 styles.css 里 `.city-partner-form*` 的 (0,1,0) 基态；
  *   2. 作用域夹死在招募页外壳内——**在 Task 5 把某个消费面接进 `.rc-page`
@@ -281,7 +281,7 @@
   margin: 0; font-size: 14px; line-height: 1.43; color: var(--ink-2);
 }
 
-/* 「第一步 · 必填」步骤标记。styles.css:1151-1156 把它与页面眉标并成一组，
+/* 「第一步 · 必填」步骤标记。styles.css:1136-1141 把它与页面眉标并成一组，
    给了 `--color-copper-hover`（彩色）+ `letter-spacing: .12em`（中文加字距）
    ——本页两条都不成立：标签零色相、中文 letter-spacing 一律 normal。
    参数取 12/500，与 `.rc-hero__eyebrow` 同档但**不共用类**：那个是带底色的
@@ -333,13 +333,29 @@
 .rc-page .city-partner-form .filter-bar__input:hover,
 .rc-page .city-partner-form .filter-bar__select:hover { border-color: var(--ink-2); }
 /* focus：specRows「边框 accent + 0 0 0 4px rgba(0,113,227,.18)」——后者正是
-   既有 token `--focus-ring`（styles.css:35，逐位相同），不写字面量。 */
+   既有 token `--focus-ring`（styles.css:35，逐位相同），不写字面量。
+   ✅ 实测（终审 I3，非源码推断）：`/city-partner` 与 `/hangzhou` 两个消费面上，
+   程序 `.focus()` 与真键盘 Tab 两条路径都读到 `matches(':focus-visible') === true`、
+   border `rgb(0,113,227)`、box-shadow `rgba(0,113,227,.18) 0 0 0 4px`。
+   量之前先把整页 `transition: none`（否则读回基态假象，见 .agent/testing.md）。
+   证据 `artifacts/verification/OPT-038/final-fix-probe-{before,after}.json` 的 `focus` 段。 */
 .rc-page .city-partner-form .filter-bar__input:focus-visible,
 .rc-page .city-partner-form .filter-bar__select:focus-visible {
   outline: none; border-color: var(--accent); box-shadow: var(--focus-ring);
 }
 .rc-page .city-partner-form .filter-bar__input--invalid,
 .rc-page .city-partner-form .filter-bar__select--invalid { border-color: var(--error); }
+/* ⚠️ 上面那条 `--invalid` 是 (0,3,0)，被同作用域的 `:focus-visible`(0,4,0) 压过去：
+   校验失败 → `focusFirst()` 聚焦第一个错误字段 → 该字段边框会是 accent 蓝而不是
+   `--error`。补这一条 (0,4,0) 让 invalid 在被聚焦时仍然是错误色（focus 环保留）。
+   **当前是潜在修复，渲染输出零变化**：`ui/Field.tsx` 只往控件上传 `aria-invalid`，
+   全仓没有任何一处给 `Input`/`Select`/`Textarea` 传 `invalid` prop，所以
+   `--invalid` 修饰类在真实 DOM 里从不出现（实测 `invalidModifierCount === 0`，
+   见 final-fix-probe-*.json 的 `invalid` 段）。错误的可见反馈目前来自
+   `.field__error` 的 `--error` 文字（实测 `rgb(191,72,0)`）。
+   在这里修而不是去改 Field：接线 `invalid` 会改变已上线表单的渲染，属另一个决定。 */
+.rc-page .city-partner-form .filter-bar__input--invalid:focus-visible,
+.rc-page .city-partner-form .filter-bar__select--invalid:focus-visible { border-color: var(--error); }
 
 /* 下拉箭头：稿子只写了 `appearance:none`，等于**没有箭头**——那会让 select
    看起来和单行输入框一样、失去可展开的提示。保留 styles.css 那个既有的三角
@@ -352,8 +368,8 @@
 
 /* 同意行：稿子:118-121 是「裸复选框 18×18 + 12/1.33 --ink-3 说明」，
    styles.css 给的是带 1px 边框的可点区块。去掉边框与内边距，保留 44 的触控
-   高度（styles.css:1204-1209 那条 min-height 的意图）与 :focus-within 轮廓
-   （未在此重述，仍由 styles.css:1247-1250 生效）。 */
+   高度（styles.css:1167-1173 那条 min-height 的意图）与 :focus-within 轮廓
+   （未在此重述，仍由 styles.css:1210-1215 生效）。 */
 .rc-page .city-partner-form__consent {
   align-items: flex-start; gap: 10px; min-height: 44px;
   padding: 4px 0 0; border: 0; border-radius: 0;
@@ -527,7 +543,15 @@
   font-size: 17px; font-weight: 400; letter-spacing: normal;
 }
 .rc-page .rc-secondary-btn { background: none; color: var(--accent-link); }
-.rc-page .rc-secondary-btn:hover { border-color: var(--ink); background: var(--bg); }
+/* hover **只换 border-color**，不换底色。原先这里照 `.btn--ghost:hover`
+   （styles.css:782-785）重述了一条 `background: var(--color-paper)` = `var(--bg)`，
+   而本类的唯一落点是入口卡 `.rc-cta`，那张卡的底色恰好也是 `var(--bg)`
+   ——底色变化恒为 0（实测：base `rgba(0,0,0,0)` 透出卡底 `rgb(245,245,247)`，
+   hover 写成 `rgb(245,245,247)`，两个消费面上逐位相同，见 final-fix-probe-before.json
+   的 `hover` 段）。摘掉这条恒等声明而不是改成第二个颜色：**这是清理，不是改渲染**，
+   反馈本来就由 `--line-strong` → `--ink` 的描边承担，与 `.rc-quick-links a:hover`
+   只换文字色同一口径（终审 M10）。 */
+.rc-page .rc-secondary-btn:hover { border-color: var(--ink); }
 
 /* 辅助跳转链接（城市路由的「委托找房 / 城市合伙人政策」）。
    稿子没有这一行——它承载的是改版前 `.city-coming-soon__quick-links` 的既有入口，
@@ -548,8 +572,13 @@
 /* 合规声明（`CITY_PARTNER_COPY.note`：提交申请不代表合作确认……）。
    落在表单卡正下方而不是 Hero 里：它说的是「提交这张表意味着什么」，
    离表单越近越有效；稿子的隐私说明档位（12/400/1.33/--ink-3）正好是同一档。
-   ⚠️ 这条**必须渲染**，`tests/city-partner-page-seo.test.ts:39` 反向断言的
-   四个禁词（保证收益/独家代理/开城日期/年入百万）正是它在否认的东西。 */
+   ⚠️ **没有任何守卫钉着这条**（终审 M3 订正）。原注释说
+   `tests/city-partner-page-seo.test.ts` 的四个禁词断言「要求它必须渲染」，
+   这是把一条不存在的守卫说成存在：那条断言（现 `:45`）是纯
+   `expect(markup).not.toMatch(/保证收益|独家代理|开城日期|年入百万/)`，
+   只禁止出现那四个词，**不要求任何合规声明存在**——删掉 `.rc-aside__note`
+   三道闸门全绿。要保留它靠的是产品判断（两个消费面共用同一张申请表，
+   合规声明不该只在其中一面出现），不是测试。照原注释判断安全边界会误判。 */
 .rc-aside__note {
   margin: var(--sp-4) 0 0;
   font-size: 12px; font-weight: 400; line-height: 1.33;
@@ -563,7 +592,7 @@
 .rc-section > .city-coming-soon__media { border-radius: 0; }
 
 /* ── 断点 ─────────────────────────────────────────────────────────────────
- * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
+ * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:88-90）。
  * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成
  * 逐字换行。
  *
@@ -599,4 +628,32 @@
      同一口径（要取就整份取，那是跨段决定）。 */
   .rc-cta { flex-direction: column; align-items: stretch; gap: var(--sp-4); padding: var(--sp-5); }
   .rc-cta__action { align-self: flex-start; }
+}
+
+/* ── ≤640：让被压死的那条表单卡内边距真正生效（终审 I2） ────────────────────
+ * styles.css 有一条 `@media (max-width: 640px) { .city-partner-form,
+ * .city-partner-form__success { padding: var(--sp-4) } }`，它是 **(0,1,0)**；
+ * 而卡表面并进 `.dt-panel` 选择器组时写的 `.rc-page .city-partner-form` 是
+ * **(0,2,0)** 的 `padding: 40px`（detail.css）。**媒体查询不加特异度**，
+ * 于是从 Task 5 把两个消费面接进 `.rc-page` 那天起，那条 16 就**永不生效**。
+ * 证据侧早就拍下了没人读：`task5-acceptance.json` 八行 `form.padding` 全是 "40px"，
+ * 含 375（本轮 `final-fix-probe-before.json` 复现，375/640 同样是 40px）。
+ * 后果是移动端卡内边距从 16 变成 40（375 下卡宽 343 → 内容只剩 263），
+ * **没有任何人决定过这个变更**。这里在正确的特异度上把它重述一遍。
+ *
+ * 三条边界，别顺手扩大：
+ *   1. 取值仍是 `--sp-4`，不发明第三个数——稿子对表单卡的移动端 padding 没有规定，
+ *      稿子沉默时保留站点既有选择（收窄）是保守默认；
+ *   2. 断点仍取 **640**（styles.css 那条自己的取值），不收敛到本页的 767：
+ *      收敛会额外改掉 641–767 这一档，那是另一个没人裁定过的渲染变更；
+ *   3. `__checks` 那条同块规则不用重述——`.rc-page .city-partner-form__checks`
+ *      在所有断点上本来就是单列。
+ *
+ * ⚠️ 这是「窄作用域覆写基态打断既有声明」的**第四种形态**：被打断的不是 `:hover`、
+ * 不是 `--invalid` 修饰类、也不是同属性简写连坐的其余长写，而是**一条断点规则**。
+ * 而且它对判死 CSS 的两道判据（逐类名 grep + 运行时 `querySelectorAll`）**按构造隐形**：
+ * 类名活在 DOM 里、grep 也有命中，死掉的只是那条声明。已回写 `.agent/frontend.md`。 */
+@media (max-width: 640px) {
+  .rc-page .city-partner-form,
+  .rc-page .city-partner-form__success { padding: var(--sp-4); }
 }
