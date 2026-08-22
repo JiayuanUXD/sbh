@@ -50,6 +50,17 @@ describe('parseArea', () => {
     expect(parseArea('-5')).toBeNull()
     expect(parseArea('待定')).toBeNull()
   })
+  it('区间写法判为无法识别，不静默取第一个数（最终评审 Minor 8）', () => {
+    expect(parseArea('100-200㎡')).toBeNull()
+    expect(parseArea('100~200㎡')).toBeNull()
+    expect(parseArea('100～200㎡')).toBeNull()
+    expect(parseArea('100至200㎡')).toBeNull()
+    expect(parseArea('100 - 200㎡')).toBeNull()
+  })
+  it('负数与小数不被区间检测误伤', () => {
+    expect(parseArea('-5㎡')).toBeNull() // 已经因负数判 null，不是因为被误判成区间
+    expect(parseArea('280.5㎡')).toBe(280.5)
+  })
 })
 
 describe('parseRent', () => {
@@ -70,6 +81,15 @@ describe('parseRent', () => {
   it('纯总价的万写法不受影响', () => {
     expect(parseRent('80万')).toEqual({ amount: 800000, unit: 'rmb-total' })
     expect(parseRent('1,280万元')).toEqual({ amount: 12800000, unit: 'rmb-total' })
+  })
+  it('区间写法判为无法识别，不静默取第一个数（最终评审 Minor 8）', () => {
+    expect(parseRent('12-15元/㎡/天')).toBeNull()
+    expect(parseRent('8000~9000元/月')).toBeNull()
+    expect(parseRent('8000～9000元/月')).toBeNull()
+    expect(parseRent('8000至9000元/月')).toBeNull()
+  })
+  it('小数报价不被区间检测误伤', () => {
+    expect(parseRent('4.5元/㎡/天')).toEqual({ amount: 4.5, unit: 'rmb-sqm-day' })
   })
 })
 

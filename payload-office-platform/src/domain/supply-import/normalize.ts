@@ -49,8 +49,27 @@ function extractNumber(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-/** 面积：必须为正数，单位（㎡ / 平米 / 平方米）可有可无。 */
+/**
+ * 最终评审 Minor 8：区间写法（"12-15元/㎡/天"、"100-200㎡"）此前会被 extractNumber
+ * 静默取第一个数（12、100），不报错——与 Task 2 已确立的"识别不出必须返回 null，
+ * 绝不猜"原则冲突（parseRent('1.5万/月') 就是同一类缺陷修的）。手工表里区间写法
+ * 同样常见，必须升级为可修的错误行。
+ *
+ * 要求分隔符**两侧都紧邻数字**（`\d` 在前，紧跟空白与分隔符后再是 `\d`），
+ * 不误伤：
+ *   - 负数「-15」：分隔符前没有数字，不匹配。
+ *   - 小数「4.5」：小数点不在这个字符类里，不匹配。
+ *   - 单位里的连字符（本项目模板单位不含连字符，但留着这条注释防止未来误改）。
+ */
+const RANGE_SEPARATOR_PATTERN = /\d\s*[-~～至]\s*\d/
+
+function looksLikeRange(text: string): boolean {
+  return RANGE_SEPARATOR_PATTERN.test(toHalfWidth(text))
+}
+
+/** 面积：必须为正数，单位（㎡ / 平米 / 平方米）可有可无；区间写法（"100-200㎡"）判为无法识别。 */
 export function parseArea(value: unknown): number | null {
+  if (typeof value === 'string' && looksLikeRange(value)) return null
   const num = extractNumber(value)
   if (num === null || num <= 0) return null
   return num
@@ -64,6 +83,8 @@ export function parseArea(value: unknown): number | null {
 export function parseRent(value: unknown): { amount: number; unit: string } | null {
   if (typeof value !== 'string') return null
   const text = toHalfWidth(value).replace(/\s/g, '')
+  // 最终评审 Minor 8：区间写法（"12-15元/㎡/天"）判为无法识别，不静默取 12。
+  if (looksLikeRange(text)) return null
   const num = extractNumber(text)
   if (num === null || num < 0) return null
 

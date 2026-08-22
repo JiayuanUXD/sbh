@@ -20,11 +20,15 @@
  *   5. 唯一索引冲突（PG 23505）视为并发重复：重新按 externalId 查一次改走
  *      update，仍失败才计 failed。判定复用
  *      `domain/supply-submission/submission-notify.ts` 里 `isUniqueViolation`
- *      的写法（逐层看 cause.code，最多 5 层）——该函数未导出，这里按同一实现
- *      再写一份，不改变判定逻辑本身。
+ *      的写法（逐层看 cause.code，最多 5 层）打底，另加一条 `ValidationError`
+ *      识别分支——最终评审 Critical 4 排查发现，这套 Payload + drizzle/postgres
+ *      适配器会把 23505（含本项目自建的局部唯一索引）在离开 create()/update()
+ *      前就转换成 `ValidationError`，原始 pg 错误不再可从 `.cause` 链拿到，
+ *      只按 cause.code 找的写法对这个适配器版本恒为 false，见 isUniqueViolation
+ *      函数头注释。
  */
 
-import type { Payload, PayloadRequest, TaskConfig } from 'payload'
+import { ValidationError, type Payload, type PayloadRequest, type TaskConfig } from 'payload'
 
 import { isDecorationStatus, isListingType } from '@/domain/review/listing-fields'
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
@@ -55,12 +59,37 @@ export interface ImportRunResult {
 // 唯一索引冲突判定（逐字复用 submission-notify.ts:isUniqueViolation 的写法）
 // ────────────────────────────────────────────────────────────
 
+/** Payload 把唯一约束冲突的错误消息本地化后仍带的稳定英文短语 + 中文关键字，两者任一命中即可。 */
+const UNIQUE_VALUE_MESSAGE_PATTERN = /must be unique|唯一/i
+
 function isUniqueViolation(error: unknown): boolean {
   let candidate: unknown = error
   for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
     const record = candidate as Record<string, unknown>
     if (record.code === '23505') return true
     candidate = record.cause
+  }
+  // 最终评审 Critical 4 排查过程中发现：@payloadcms/drizzle 的
+  // upsertRow/handleUpsertError.js 会把**所有** 23505（含本项目迁移自建的
+  // (dataSource.source, externalId) 局部唯一索引，不限于 Payload 自己认识的
+  // `unique: true` 字段）在离开 create()/update() 之前就转换成 `ValidationError`——
+  // 那个错误对象的 `.cause`（= `error.data`）是 `{ id, collection, errors, global }`
+  // 这个 results 对象，不含 `code` 字段，原始 pg 错误已经被吞掉。上面按
+  // cause.code 逐层找 23505 的写法（复用自 submission-notify.ts）对这个真实在跑的
+  // postgres 适配器版本恒为 false——语义 5 的"唯一索引冲突视为并发重复"分支此前
+  // 从未真正被触发过。这里补一条识别分支：`error instanceof ValidationError` 且
+  // 内层某条 message 命中"must be unique / 唯一"。即使误判（比如撞的其实是
+  // 无关字段如 slug 的唯一约束），后续按 externalId 重新查一次找不到匹配行时会
+  // 原样 rethrow 原始错误（见 writeListingRow/writeBuildingRow 的 catch 分支），
+  // 不会把无关错误错误地吞成"并发重复"。
+  if (error instanceof ValidationError) {
+    const errors = (error as { data?: { errors?: Array<{ message?: unknown }> } }).data?.errors
+    if (
+      Array.isArray(errors) &&
+      errors.some((e) => typeof e.message === 'string' && UNIQUE_VALUE_MESSAGE_PATTERN.test(e.message))
+    ) {
+      return true
+    }
   }
   return false
 }
@@ -147,7 +176,14 @@ async function writeBuildingRow(
   row: ValidBuildingRow,
 ): Promise<{ id: number; created: boolean }> {
   const syncedAt = new Date().toISOString()
-  const sharedData = {
+
+  // 最终评审 Critical 3：createData / updateData 拆分（用户裁定方案 A）。此前
+  // sharedData 同时用于 create 与 update，导致重传（D6 鼓励的主路径）会把
+  // `status` / `operationalStatus` 强行改回导入时的写死值，抹掉运营用启停开关
+  // 设置的 `operationalStatus:'inactive'`。update 分支只更新业务字段，完全不传
+  // `status` / `operationalStatus`——谁下架的谁负责再上架。batch-rollback.ts:8-10
+  // 的注释刻意声明"只动 status 不动 operationalStatus，两条轴独立"，这里与它保持一致。
+  const commonData = {
     name: row.name,
     city: numericId(row.cityId),
     district: numericId(row.districtId),
@@ -155,23 +191,27 @@ async function writeBuildingRow(
     address: row.address,
     totalFloors: row.totalFloors,
     developerAndScale: { grossFloorArea: row.grossFloorArea },
-    // 语义 2：落地状态显式写死，不依赖 adminAutoPublish 的副作用。
-    status: 'published' as const,
-    operationalStatus: 'active' as const,
     dataSource: {
       source: 'manual-import' as const,
       externalId: row.externalId,
       syncedAt,
     },
   }
+  const createData = {
+    ...commonData,
+    // 语义 2：落地状态显式写死，不依赖 adminAutoPublish 的副作用。仅 create 分支写。
+    status: 'published' as const,
+    operationalStatus: 'active' as const,
+  }
+  const updateData = commonData
 
   const existingId = await findBuildingByExternalId(payload, req, row.externalId)
   if (existingId !== null) {
-    // 语义 3：update 绝不传 slug。
+    // 语义 3：update 绝不传 slug；Critical 3：update 绝不传 status/operationalStatus。
     const updated = await payload.update({
       collection: 'buildings',
       id: existingId,
-      data: sharedData,
+      data: updateData,
       overrideAccess: true,
       req,
     })
@@ -182,7 +222,7 @@ async function writeBuildingRow(
     const slug = await uniqueSlugFor(payload, req, 'buildings', row.name)
     const created = await payload.create({
       collection: 'buildings',
-      data: { ...sharedData, slug },
+      data: { ...createData, slug },
       overrideAccess: true,
       req,
     })
@@ -195,7 +235,7 @@ async function writeBuildingRow(
     const updated = await payload.update({
       collection: 'buildings',
       id: raceId,
-      data: sharedData,
+      data: updateData,
       overrideAccess: true,
       req,
     })
@@ -244,11 +284,24 @@ async function resolveListingMerchant(
 // 房源写入
 // ────────────────────────────────────────────────────────────
 
+interface FoundListing {
+  id: number
+  deletedAt: string | null
+}
+
+/**
+ * 最终评审 Critical 4：`includeTrash` 默认 false（不含回收站，与此前行为一致）。
+ * 补救分支（写入撞唯一索引冲突时）传 `includeTrash: true`——`Listings` 是
+ * `trash: true` 的软删集合，回收站里的行仍占着局部唯一索引；重传时默认查询
+ * 会漏过它、误判为"真的不存在"而走 create，撞 23505 后如果补救查询还是不含
+ * trash 的同一个 find，仍然查不到，只能把裸 Postgres 错误 rethrow 给运营。
+ */
 async function findListingByExternalId(
   payload: Payload,
   req: PayloadRequest | undefined,
   externalId: string,
-): Promise<number | null> {
+  options?: { includeTrash?: boolean },
+): Promise<FoundListing | null> {
   const result = await payload.find({
     collection: 'listings',
     where: {
@@ -261,8 +314,19 @@ async function findListingByExternalId(
     depth: 0,
     overrideAccess: true,
     req,
+    trash: options?.includeTrash ?? false,
   })
-  return result.docs[0]?.id ?? null
+  const doc = result.docs[0]
+  if (!doc) return null
+  return { id: doc.id, deletedAt: (doc as { deletedAt?: string | null }).deletedAt ?? null }
+}
+
+/** 命中回收站中的文档时，给运营一句可操作的话，而不是让裸 Postgres 唯一索引错误冒泡上去。 */
+class ListingInTrashError extends Error {
+  constructor(externalId: string) {
+    super(`编号「${externalId}」对应的房源在回收站中，请先还原或更换编号后再导入`)
+    this.name = 'ListingInTrashError'
+  }
 }
 
 async function writeListingRow(
@@ -292,7 +356,13 @@ async function writeListingRow(
   // 计入 failed 且带上可操作的原因，不阻断这一批的其它行。
   const merchantId = await resolveListingMerchant(payload, req, buildingId, row.cityId)
 
-  const sharedData = {
+  // 最终评审 Critical 3：createData / updateData 拆分（用户裁定方案 A）。此前
+  // sharedData 同时用于 create 与 update，导致重传会把 `publicationStatus` /
+  // `supplyVisibilityHold` / `reviewStatus` 强行改回导入时的写死值，抹掉
+  // leased/sold/人工下架、风控冻结、驳回等真实状态。update 分支只更新业务字段
+  // （标题/类型/面积/租金/楼层/装修/可租日期/商户/dataSource），完全不传这三个
+  // 状态字段——它们都不是导入表能表达的信息，谁下架的谁负责再上架。
+  const commonData = {
     title: row.title,
     listingType,
     building: buildingId,
@@ -303,24 +373,30 @@ async function writeListingRow(
     floor: row.floor === null ? null : String(row.floor),
     decorationStatus,
     availableFrom: row.availableFrom,
-    // 语义 2：落地状态显式写死，不依赖 adminAutoPublish 的副作用（规格 D4：导入的房源直接上架）。
-    reviewStatus: 'approved' as const,
-    publicationStatus: 'published' as const,
-    supplyVisibilityHold: 'normal' as const,
     dataSource: {
       source: 'manual-import' as const,
       externalId: row.externalId,
       syncedAt,
     },
   }
+  const createData = {
+    ...commonData,
+    // 语义 2：落地状态显式写死，不依赖 adminAutoPublish 的副作用（规格 D4：导入的房源直接上架）。
+    // 仅 create 分支写。
+    reviewStatus: 'approved' as const,
+    publicationStatus: 'published' as const,
+    supplyVisibilityHold: 'normal' as const,
+  }
+  const updateData = commonData
 
-  const existingId = await findListingByExternalId(payload, req, row.externalId)
-  if (existingId !== null) {
-    // 语义 3：update 绝不传 slug。
+  // 最终评审 Critical 4：默认查询不含回收站（includeTrash 缺省 false），行为与此前一致。
+  const existing = await findListingByExternalId(payload, req, row.externalId)
+  if (existing !== null) {
+    // 语义 3：update 绝不传 slug；Critical 3：update 绝不传三个状态字段。
     const updated = await payload.update({
       collection: 'listings',
-      id: existingId,
-      data: sharedData,
+      id: existing.id,
+      data: updateData,
       overrideAccess: true,
       req,
     })
@@ -331,7 +407,7 @@ async function writeListingRow(
     const slug = await uniqueSlugFor(payload, req, 'listings', row.title)
     const created = await payload.create({
       collection: 'listings',
-      data: { ...sharedData, slug },
+      data: { ...createData, slug },
       overrideAccess: true,
       req,
     })
@@ -339,12 +415,20 @@ async function writeListingRow(
   } catch (error) {
     // 语义 5：唯一索引冲突视为并发重复，重新按 externalId 查一次改走 update。
     if (!isUniqueViolation(error)) throw error
-    const raceId = await findListingByExternalId(payload, req, row.externalId)
-    if (raceId === null) throw error
+    // 最终评审 Critical 4：补救查询必须含回收站——默认查询（includeTrash:false）
+    // 找不到软删文档，才会走到这里撞 23505；补救查询若还是不含 trash 的同一个
+    // find，仍会查不到、把裸 Postgres 错误 rethrow 给运营。
+    const race = await findListingByExternalId(payload, req, row.externalId, { includeTrash: true })
+    if (race === null) throw error
+    if (race.deletedAt) {
+      // 命中的是回收站里的文档，不是真的并发写入——不静默改走 update（那会在软删
+      // 状态上产生一次奇怪的部分更新），给运营可操作的错误文案，计入 failed。
+      throw new ListingInTrashError(row.externalId)
+    }
     const updated = await payload.update({
       collection: 'listings',
-      id: raceId,
-      data: sharedData,
+      id: race.id,
+      data: updateData,
       overrideAccess: true,
       req,
     })

@@ -1927,7 +1927,7 @@ export interface SupplyImportBatch {
   fileName?: string | null;
   rowCount?: number | null;
   /**
-   * 完成 7 天后由清理任务置空
+   * 预检通过行的规范化快照。规格 D9 设想完成 7 天后由清理任务置空以省空间，但该清理任务本期未实现（已作为剩余风险记录），实际会随批次记录永久保留。
    */
   validRows?:
     | {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isBuildingCandidatePublic,
   resolveLocation,
   resolveBuilding,
   suggestClosest,
@@ -10,10 +11,10 @@ import {
 
 const tables: ResolveTables = {
   locations: {
-    city: [{ id: 1, name: '上海', kind: 'city', parentId: null }],
+    city: [{ id: 1, name: '上海', kind: 'city', parentId: null, status: 'active' }],
     district: [
-      { id: 11, name: '浦东新区', kind: 'district', parentId: 1 },
-      { id: 12, name: '黄浦区', kind: 'district', parentId: 1 },
+      { id: 11, name: '浦东新区', kind: 'district', parentId: 1, status: 'active' },
+      { id: 12, name: '黄浦区', kind: 'district', parentId: 1, status: 'active' },
     ],
     business_area: [],
     metro_station: [],
@@ -58,7 +59,7 @@ describe('resolveLocation', () => {
       ...tables,
       locations: {
         ...tables.locations,
-        business_area: [{ id: 21, name: '陆家嘴', kind: 'business_area', parentId: 11 }],
+        business_area: [{ id: 21, name: '陆家嘴', kind: 'business_area', parentId: 11, status: 'active' }],
       },
     }
     const r = resolveLocation({ kind: 'business_area', text: '陆家嘴', parentId: 999 }, withBusinessArea)
@@ -69,11 +70,19 @@ describe('resolveLocation', () => {
   })
 })
 
+const PUBLIC_FIELDS = {
+  status: 'published' as const,
+  operationalStatus: 'active' as const,
+  deletedAt: null,
+  cityStatus: 'active' as const,
+  districtStatus: 'active' as const,
+}
+
 const buildings: readonly BuildingCandidate[] = [
-  { id: 100, name: '星展银行大厦', slug: 'xing-zhan-yin-hang-da-sha', externalId: 'B-001', cityId: 1 },
-  { id: 101, name: '星展大厦', slug: 'xing-zhan-da-sha', externalId: 'B-002', cityId: 1 },
-  { id: 102, name: '环球金融中心', slug: 'huan-qiu-jin-rong-zhong-xin', externalId: null, cityId: 1 },
-  { id: 103, name: '环球金融中心', slug: 'huan-qiu-jin-rong-zhong-xin-2', externalId: null, cityId: 1 },
+  { id: 100, name: '星展银行大厦', slug: 'xing-zhan-yin-hang-da-sha', externalId: 'B-001', cityId: 1, ...PUBLIC_FIELDS },
+  { id: 101, name: '星展大厦', slug: 'xing-zhan-da-sha', externalId: 'B-002', cityId: 1, ...PUBLIC_FIELDS },
+  { id: 102, name: '环球金融中心', slug: 'huan-qiu-jin-rong-zhong-xin', externalId: null, cityId: 1, ...PUBLIC_FIELDS },
+  { id: 103, name: '环球金融中心', slug: 'huan-qiu-jin-rong-zhong-xin-2', externalId: null, cityId: 1, ...PUBLIC_FIELDS },
 ]
 
 describe('resolveBuilding', () => {
@@ -105,6 +114,35 @@ describe('resolveBuilding', () => {
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.code).toBe('BUILDING_NOT_FOUND')
     expect(r.ok === false && r.suggestion).toContain('星展银行大厦')
+  })
+})
+
+describe('isBuildingCandidatePublic（最终评审 Critical 2，复用 public-building.ts 的 §7 判定）', () => {
+  const publicBuilding: BuildingCandidate = { id: 1, name: 'x', slug: 'x', externalId: null, cityId: 1, ...PUBLIC_FIELDS }
+
+  it('五个条件全满足 → true', () => {
+    expect(isBuildingCandidatePublic(publicBuilding)).toBe(true)
+  })
+
+  it('status 不是 published → false', () => {
+    expect(isBuildingCandidatePublic({ ...publicBuilding, status: 'draft' })).toBe(false)
+    expect(isBuildingCandidatePublic({ ...publicBuilding, status: 'archived' })).toBe(false)
+  })
+
+  it('operationalStatus 不是 active → false', () => {
+    expect(isBuildingCandidatePublic({ ...publicBuilding, operationalStatus: 'disabled' })).toBe(false)
+  })
+
+  it('deletedAt 非空（软删）→ false', () => {
+    expect(isBuildingCandidatePublic({ ...publicBuilding, deletedAt: '2026-08-01T00:00:00.000Z' })).toBe(false)
+  })
+
+  it('所属城市 status 不是 active → false', () => {
+    expect(isBuildingCandidatePublic({ ...publicBuilding, cityStatus: 'disabled' })).toBe(false)
+  })
+
+  it('所属行政区 status 不是 active → false', () => {
+    expect(isBuildingCandidatePublic({ ...publicBuilding, districtStatus: 'disabled' })).toBe(false)
   })
 })
 

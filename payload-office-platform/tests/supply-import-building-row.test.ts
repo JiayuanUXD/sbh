@@ -4,15 +4,17 @@ import { validateBuildingRow, BUILDING_COLUMNS, type RowContext } from '@/domain
 import type { LocationCandidate } from '@/domain/supply-import/resolve-refs'
 
 const cities: LocationCandidate[] = [
-  { id: 1, name: '上海', kind: 'city', parentId: null },
-  { id: 9, name: '外地', kind: 'city', parentId: null },
+  { id: 1, name: '上海', kind: 'city', parentId: null, status: 'active' },
+  { id: 9, name: '外地', kind: 'city', parentId: null, status: 'active' },
+  { id: 99, name: '停用市', kind: 'city', parentId: null, status: 'disabled' },
 ]
 const districts: LocationCandidate[] = [
-  { id: 10, name: '黄浦区', kind: 'district', parentId: 1 },
-  { id: 11, name: '徐汇区', kind: 'district', parentId: 9 },
+  { id: 10, name: '黄浦区', kind: 'district', parentId: 1, status: 'active' },
+  { id: 11, name: '徐汇区', kind: 'district', parentId: 9, status: 'active' },
+  { id: 12, name: '停用区', kind: 'district', parentId: 1, status: 'disabled' },
 ]
 const businessAreas: LocationCandidate[] = [
-  { id: 100, name: '人民广场', kind: 'business_area', parentId: 10 },
+  { id: 100, name: '人民广场', kind: 'business_area', parentId: 10, status: 'active' },
 ]
 
 const ctx: RowContext = {
@@ -117,5 +119,24 @@ describe('validateBuildingRow', () => {
     const r = validateBuildingRow({ ...goodRow, 楼盘编号: '', 总楼层: '待定' }, 2, ctx)
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.errors.length).toBeGreaterThanOrEqual(2)
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // 最终评审 Critical 2：§7 要求城市/行政区 status=active
+  // ────────────────────────────────────────────────────────────
+
+  it('城市已停用即错误行 CITY_NOT_ACTIVE——导入的楼盘挂在停用城市下前台会 404', () => {
+    const r = validateBuildingRow({ ...goodRow, 城市: '停用市', 行政区: '', 商圈: '' }, 2, {
+      ...ctx,
+      allowedCityIds: 'all',
+    })
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.column === '城市' && e.code === 'CITY_NOT_ACTIVE')).toBe(true)
+  })
+
+  it('行政区已停用即错误行 DISTRICT_NOT_ACTIVE', () => {
+    const r = validateBuildingRow({ ...goodRow, 行政区: '停用区', 商圈: '' }, 2, ctx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.column === '行政区' && e.code === 'DISTRICT_NOT_ACTIVE')).toBe(true)
   })
 })

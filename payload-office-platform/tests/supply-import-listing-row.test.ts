@@ -35,8 +35,30 @@ const ctx: RowContext = {
     aliases: { city: new Map(), district: new Map(), business_area: new Map(), metro_station: new Map() },
   },
   buildings: [
-    { id: 100, name: '环球金融中心', slug: 'huan-qiu', externalId: 'B-001', cityId: 1 },
-    { id: 200, name: '外地大厦', slug: 'wai-di', externalId: 'B-999', cityId: 9 },
+    {
+      id: 100,
+      name: '环球金融中心',
+      slug: 'huan-qiu',
+      externalId: 'B-001',
+      cityId: 1,
+      status: 'published',
+      operationalStatus: 'active',
+      deletedAt: null,
+      cityStatus: 'active',
+      districtStatus: 'active',
+    },
+    {
+      id: 200,
+      name: '外地大厦',
+      slug: 'wai-di',
+      externalId: 'B-999',
+      cityId: 9,
+      status: 'published',
+      operationalStatus: 'active',
+      deletedAt: null,
+      cityStatus: 'active',
+      districtStatus: 'active',
+    },
   ],
   allowedCityIds: new Set([1]),
   buildingMerchantRelations: [ELIGIBLE_RELATION, ELIGIBLE_RELATION_999],
@@ -179,5 +201,71 @@ describe('validateListingRow', () => {
   it('楼盘商户合格 → 通过预检（商户本身不进 ValidListingRow，写入层从同一来源独立取值）', () => {
     const r = validateListingRow(goodRow, 2, ctx)
     expect(r.ok).toBe(true)
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // 最终评审 Critical 2：§7 有效供给未校验，导入会命中前台不可见的楼盘
+  // ────────────────────────────────────────────────────────────
+
+  it('楼盘是草稿（status !== published）→ 错误行，message 指明是楼盘/区域不可见', () => {
+    const draftCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], status: 'draft' }],
+    }
+    const r = validateListingRow(goodRow, 2, draftCtx)
+    expect(r.ok).toBe(false)
+    const err = r.ok === false && r.errors.find((e) => e.code === 'BUILDING_NOT_VISIBLE')
+    expect(err).toBeTruthy()
+    expect(err && err.message).toContain('不是房源本身的问题')
+  })
+
+  it('楼盘已归档（status=archived）→ 错误行', () => {
+    const archivedCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], status: 'archived' }],
+    }
+    const r = validateListingRow(goodRow, 2, archivedCtx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
+  })
+
+  it('楼盘运营状态已停用（operationalStatus=disabled）→ 错误行', () => {
+    const disabledCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], operationalStatus: 'disabled' }],
+    }
+    const r = validateListingRow(goodRow, 2, disabledCtx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
+  })
+
+  it('楼盘已软删（deletedAt 非空）→ 错误行', () => {
+    const trashedCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], deletedAt: '2026-08-01T00:00:00.000Z' }],
+    }
+    const r = validateListingRow(goodRow, 2, trashedCtx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
+  })
+
+  it('楼盘所属城市已停用（cityStatus=disabled）→ 错误行', () => {
+    const cityDisabledCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], cityStatus: 'disabled' }],
+    }
+    const r = validateListingRow(goodRow, 2, cityDisabledCtx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
+  })
+
+  it('楼盘所属行政区已停用（districtStatus=disabled）→ 错误行', () => {
+    const districtDisabledCtx: RowContext = {
+      ...ctx,
+      buildings: [{ ...ctx.buildings[0], districtStatus: 'disabled' }],
+    }
+    const r = validateListingRow(goodRow, 2, districtDisabledCtx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
   })
 })

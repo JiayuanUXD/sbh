@@ -14,12 +14,16 @@ import {
   normalizeCityName,
   normalizeDistrictName,
 } from '@/domain/supply-import/normalize'
+import { isPublicBuildingLike } from '@/domain/supply/public-building'
+import type { Building, Location } from '@/payload-types'
 
 export interface LocationCandidate {
   id: number | string
   name: string
   kind: string
   parentId: number | string | null
+  /** 最终评审 Critical 2：§7 要求城市/行政区 status=active，解析层要能判这一条。 */
+  status: Location['status']
 }
 
 export interface BuildingCandidate {
@@ -28,6 +32,32 @@ export interface BuildingCandidate {
   slug: string
   externalId: string | null
   cityId: number | string | null
+  /**
+   * 最终评审 Critical 2：楼盘匹配层此前只取 id/name/slug/externalId/cityId，
+   * 完全没有携带 §7（`public-building.ts`）判定所需的字段，导致导入能命中
+   * 草稿/已归档/已停用/所属城市或行政区已停用的楼盘——房源随后 published，
+   * 但前台按 §7 过滤后 404。这里补齐判定字段，供 `isBuildingCandidatePublic`
+   * 复用 `isPublicBuildingLike` 做同一份判定，不在导入层重写。
+   */
+  status: Building['status']
+  operationalStatus: Building['operationalStatus']
+  deletedAt: Building['deletedAt']
+  cityStatus: Location['status'] | null
+  districtStatus: Location['status'] | null
+}
+
+/**
+ * 楼盘候选是否满足 §7 有效供给的楼盘侧 5 个条件。直接复用
+ * `domain/supply/public-building.ts` 的 `isPublicBuildingLike`——不重写第 6 份 §7。
+ */
+export function isBuildingCandidatePublic(candidate: BuildingCandidate): boolean {
+  return isPublicBuildingLike({
+    status: candidate.status,
+    operationalStatus: candidate.operationalStatus,
+    deletedAt: candidate.deletedAt,
+    city: candidate.cityStatus ? { status: candidate.cityStatus } : null,
+    district: candidate.districtStatus ? { status: candidate.districtStatus } : null,
+  })
 }
 
 export interface ResolveTables {

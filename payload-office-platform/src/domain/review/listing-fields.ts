@@ -36,7 +36,11 @@ export function isDecorationStatus(value: unknown): value is DecorationStatus {
   return typeof value === 'string' && (DECORATION_STATUSES as readonly string[]).includes(value)
 }
 
-/** 房源类型。与 DB ENUM `enum_listings_listing_type` 逐字一致，顺序即后台下拉顺序。 */
+/**
+ * 房源类型。取值集合与 DB ENUM `enum_listings_listing_type` 一致，但顺序不同——
+ * DB ENUM 建表顺序是 traditional-office/serviced-office/coworking/full-floor，
+ * 这里的顺序才是后台下拉顺序。别假设两者顺序一致（最终评审 Minor 9）。
+ */
 export const LISTING_TYPES = ['traditional-office', 'coworking', 'full-floor', 'serviced-office'] as const
 export type ListingType = (typeof LISTING_TYPES)[number]
 

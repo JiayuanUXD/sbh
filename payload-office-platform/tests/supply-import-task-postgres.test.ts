@@ -93,7 +93,11 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
 
   afterAll(async () => {
     for (const id of createdListingIds) {
-      await payload.delete({ collection: 'listings', id, overrideAccess: true }).catch(() => null)
+      // trash:true——部分用例会把房源真正软删（data.deletedAt + trash:true 更新），
+      // 默认查询看不到已软删文档，不带 trash:true 这里会静默删不掉、在库里留下
+      // 孤儿测试数据，污染下次真库测试运行（曾经踩过：下次运行的"第一次全新建"
+      // 断言会因为遗留的软删行占着局部唯一索引而变成 failed）。
+      await payload.delete({ collection: 'listings', id, overrideAccess: true, trash: true }).catch(() => null)
     }
     for (const id of createdBuildingIds) {
       await payload.delete({ collection: 'buildings', id, overrideAccess: true }).catch(() => null)
@@ -221,6 +225,146 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     })
     expect(after.slug).toBe(before.slug)
     expect(after.title).toBe('改了标题')
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // 最终评审 Critical 3：createData / updateData 拆分——重传不撤销其它机制做出的决定
+  // ────────────────────────────────────────────────────────────
+
+  it('重传不撤销其它机制设置的房源状态（leased 不会被打回 published），但业务字段照常更新', async () => {
+    const first = await runSupplyImportBatch({
+      payload,
+      type: 'listings',
+      validRows: rows('E2E-STATE-PRESERVE'),
+    })
+    expect(first).toMatchObject({ created: 1, updated: 0, failed: 0 })
+    const listingId = first.affectedIds[0]
+    createdListingIds.push(listingId)
+
+    // 模拟"已被其它机制改成 leased"（成交流转），不是导入表能表达的信息，
+    // 重传绝不能把它打回 published。
+    await payload.update({
+      collection: 'listings',
+      id: listingId,
+      data: { publicationStatus: 'leased' },
+      overrideAccess: true,
+    })
+    const beforeReimport = await payload.findByID({
+      collection: 'listings',
+      id: listingId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(beforeReimport.publicationStatus).toBe('leased')
+
+    const second = await runSupplyImportBatch({
+      payload,
+      type: 'listings',
+      validRows: [{ ...rows('E2E-STATE-PRESERVE')[0], title: '重传后改了标题' }],
+    })
+    expect(second).toMatchObject({ created: 0, updated: 1, failed: 0 })
+
+    const after = await payload.findByID({
+      collection: 'listings',
+      id: listingId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    // 核心断言：状态字段没被重传打回 published——update 分支完全不传 publicationStatus。
+    expect(after.publicationStatus).toBe('leased')
+    // 业务字段确实照常更新，不是整个 update 变成空操作。
+    expect(after.title).toBe('重传后改了标题')
+  })
+
+  it('重传不撤销楼盘 operationalStatus 的运营启停开关，但业务字段照常更新', async () => {
+    const first = await runSupplyImportBatch({
+      payload,
+      type: 'buildings',
+      validRows: buildingRows('E2E-BLDG-STATE-PRESERVE'),
+    })
+    expect(first).toMatchObject({ created: 1, updated: 0, failed: 0 })
+    const buildingRowId = first.affectedIds[0]
+    createdBuildingIds.push(buildingRowId)
+
+    // 模拟运营用启停开关把楼盘设为 disabled，重传不该把它打回 active。
+    await payload.update({
+      collection: 'buildings',
+      id: buildingRowId,
+      data: { operationalStatus: 'disabled' },
+      overrideAccess: true,
+    })
+
+    const second = await runSupplyImportBatch({
+      payload,
+      type: 'buildings',
+      validRows: [{ ...buildingRows('E2E-BLDG-STATE-PRESERVE')[0], name: '重传后改了名字' }],
+    })
+    expect(second).toMatchObject({ created: 0, updated: 1, failed: 0 })
+
+    const after = await payload.findByID({
+      collection: 'buildings',
+      id: buildingRowId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(after.operationalStatus).toBe('disabled')
+    expect(after.name).toBe('重传后改了名字')
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // 最终评审 Critical 4：软删房源重传不能抛裸 Postgres 唯一索引错误
+  // ────────────────────────────────────────────────────────────
+
+  it('软删房源重传：计入 failed 且给可操作文案，不抛裸 23505 错误，也不复活软删文档', async () => {
+    // 动态编号：避免与之前失败运行遗留在库里的同编号软删数据碰撞——软删记录仍占着
+    // 局部唯一索引，如果沿用固定编号，一旦上次运行异常退出没清理干净，这里的
+    // "第一次全新建" 断言会被撞成 failed，掩盖本用例真正要测的场景。
+    const externalId = `E2E-TRASHED-REIMPORT-${Date.now()}`
+    const first = await runSupplyImportBatch({
+      payload,
+      type: 'listings',
+      validRows: rows(externalId),
+    })
+    expect(first).toMatchObject({ created: 1, updated: 0, failed: 0 })
+    const listingId = first.affectedIds[0]
+    createdListingIds.push(listingId)
+
+    // 真正的软删（与 supply-import-rollback-postgres.test.ts 同一套已验证过的手法）：
+    // payload.delete({trash:true}) 在这套 Payload 版本下实测仍是硬删除，必须用
+    // update + data.deletedAt + trash:true 才是真正的软删。
+    await payload.update({
+      collection: 'listings',
+      id: listingId,
+      data: { deletedAt: new Date().toISOString() },
+      trash: true,
+      overrideAccess: true,
+    })
+
+    // 标题故意与首次导入不同：这条用例要单独测「(dataSource.source, externalId)
+    // 局部唯一索引撞上软删文档」这一条路径。若标题不变，slug 也不变，会先撞上
+    // Listings.slug 自身的（非 trash-aware）唯一约束，那是另一条独立的、不在本项
+    // 范围内的潜在缺陷，会掩盖这里要验证的目标场景。
+    const second = await runSupplyImportBatch({
+      payload,
+      type: 'listings',
+      validRows: [{ ...rows(externalId)[0], title: '重传但房源已被软删' }],
+    })
+    // 不抛错、不崩批次：这一行计入 failed，其余行（这里没有其它行）不受影响。
+    expect(second).toMatchObject({ created: 0, updated: 0, failed: 1 })
+    expect(second.errors[0]).toMatchObject({ externalId })
+    // 可操作文案，不是裸 Postgres "duplicate key value violates unique constraint"。
+    expect(second.errors[0].message).toContain('回收站')
+    expect(second.errors[0].message).not.toMatch(/duplicate key|constraint/i)
+
+    // 软删文档本身没有被静默复活成正常状态。
+    const stillTrashed = await payload.findByID({
+      collection: 'listings',
+      id: listingId,
+      depth: 0,
+      overrideAccess: true,
+      trash: true,
+    })
+    expect(stillTrashed.deletedAt).toBeTruthy()
   })
 
   it('单行失败不阻断后续行，也不回滚已成功的行', async () => {

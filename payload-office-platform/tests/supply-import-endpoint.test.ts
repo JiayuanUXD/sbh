@@ -76,17 +76,27 @@ const ROLE_NO_IMPORT: Role = {
   createdAt: '',
 } as unknown as Role
 
-const CITY_SH = { id: 10, name: '上海', type: 'city', parent: null }
-const DISTRICT_PUDONG = { id: 20, name: '浦东新区', type: 'district', parent: 10 }
-const CITY_BJ = { id: 11, name: '北京', type: 'city', parent: null }
-const DISTRICT_CHAOYANG = { id: 21, name: '朝阳区', type: 'district', parent: 11 }
+// status: 'active'——最终评审 Critical 2：resolveLocation 命中后要能判 §7 的
+// 城市/行政区 active 校验，locations mock 必须带上这个字段。
+const CITY_SH = { id: 10, name: '上海', type: 'city', parent: null, status: 'active' }
+const DISTRICT_PUDONG = { id: 20, name: '浦东新区', type: 'district', parent: 10, status: 'active' }
+const CITY_BJ = { id: 11, name: '北京', type: 'city', parent: null, status: 'active' }
+const DISTRICT_CHAOYANG = { id: 21, name: '朝阳区', type: 'district', parent: 11, status: 'active' }
 const LOCATIONS = [CITY_SH, DISTRICT_PUDONG, CITY_BJ, DISTRICT_CHAOYANG]
 
+// city/district 用 depth:1 populate 后的对象形态（loadBuildingCandidates 现在按
+// depth:1 查询）——最终评审 Critical 2：§7 判定要靠 city.status / district.status，
+// status/operationalStatus/deletedAt 也要满足"有效供给"才能让既有 listings 分支
+// 测试（引用这栋楼）继续通过预检。
 const BUILDING_SH = {
   id: 100,
   name: '环球金融中心',
   slug: 'huanqiu',
-  city: 10,
+  city: { id: 10, status: 'active' },
+  district: { id: 20, status: 'active' },
+  status: 'published',
+  operationalStatus: 'active',
+  deletedAt: null,
   dataSource: { externalId: 'B-EXIST' },
 }
 const BUILDINGS = [BUILDING_SH]
@@ -234,7 +244,8 @@ function makeMockPayload(
       let docs = BUILDINGS
       const cityIn = where?.city?.in
       if (cityIn) {
-        docs = BUILDINGS.filter((b) => (cityIn as unknown[]).includes(b.city))
+        // b.city 现在是 depth:1 populate 后的对象形态（{ id, status }），不再是裸 id。
+        docs = BUILDINGS.filter((b) => (cityIn as unknown[]).includes(b.city.id))
       }
       return { docs }
     }

@@ -76,6 +76,18 @@ export function validateBuildingRow(row: RawRow, rowNumber: number, ctx: RowCont
           message: `城市「${resolved.value.name}」不在你的可导入范围内`,
         })
       }
+      // 最终评审 Critical 2：§7 要求城市 status=active，导入的楼盘挂在已停用城市下
+      // 会造成"楼盘 published 但前台按 §7 过滤后 404"——判定必须在预检层拦住，
+      // 不能等房源导入时才发现。
+      if (resolved.value.status !== 'active') {
+        errors.push({
+          rowNumber,
+          column: '城市',
+          rawValue: cityText,
+          code: 'CITY_NOT_ACTIVE',
+          message: `城市「${resolved.value.name}」已停用，其下楼盘不会出现在前台，请先启用该城市或改选其它城市`,
+        })
+      }
     }
   }
 
@@ -127,6 +139,16 @@ export function validateBuildingRow(row: RawRow, rowNumber: number, ctx: RowCont
       })
     } else {
       districtId = resolved.value.id
+      // 最终评审 Critical 2：§7 要求行政区 status=active，同城市校验同一理由。
+      if (resolved.value.status !== 'active') {
+        errors.push({
+          rowNumber,
+          column: '行政区',
+          rawValue: districtText,
+          code: 'DISTRICT_NOT_ACTIVE',
+          message: `行政区「${resolved.value.name}」已停用，其下楼盘不会出现在前台，请先启用该行政区或改选其它行政区`,
+        })
+      }
     }
   }
 

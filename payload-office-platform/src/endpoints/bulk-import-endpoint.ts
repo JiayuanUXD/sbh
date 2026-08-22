@@ -145,6 +145,9 @@ function createRefLookupPort(req: RequestContext): RefLookupPort {
         name: doc.name,
         kind: doc.type,
         parentId: relationId(doc.parent ?? null),
+        // 最终评审 Critical 2：§7 要求城市/行政区 status=active，供 building-row.ts
+        // 在 resolveLocation 命中后判定用。
+        status: doc.status,
       }))
     },
     async listAliases(kind) {
@@ -184,11 +187,19 @@ async function loadBuildingMerchantRelations(req: RequestContext): Promise<Build
   return mapBuildingMerchantRelationDocs(result.docs as unknown as RawBuildingMerchantRelationDoc[])
 }
 
-/** 楼盘候选一次性查全（供 resolveBuilding 匹配用）。不按城市收窄——收窄发生在逐行校验的 allowedCityIds。 */
+/**
+ * 楼盘候选一次性查全（供 resolveBuilding 匹配用）。不按城市收窄——收窄发生在逐行校验的
+ * allowedCityIds。
+ *
+ * 最终评审 Critical 2：depth 从 0 改为 1，把 city / district 一并展开取 status——
+ * §7（`public-building.ts`）判定楼盘是否为有效供给，需要楼盘自身 status /
+ * operationalStatus / deletedAt，以及所属城市与行政区的 status。此前 depth:0 只取到
+ * 裸 id，`isBuildingCandidatePublic` 拿不到这些字段就只能恒为 true，等于没校验。
+ */
 async function loadBuildingCandidates(req: RequestContext): Promise<BuildingCandidate[]> {
   const result = await req.payload.find({
     collection: 'buildings',
-    depth: 0,
+    depth: 1,
     limit: 0,
     overrideAccess: true,
     req,
@@ -199,6 +210,11 @@ async function loadBuildingCandidates(req: RequestContext): Promise<BuildingCand
     slug: doc.slug,
     externalId: doc.dataSource?.externalId ?? null,
     cityId: relationId(doc.city ?? null),
+    status: doc.status,
+    operationalStatus: doc.operationalStatus,
+    deletedAt: doc.deletedAt,
+    cityStatus: typeof doc.city === 'object' && doc.city !== null ? doc.city.status : null,
+    districtStatus: typeof doc.district === 'object' && doc.district !== null ? doc.district.status : null,
   }))
 }
 

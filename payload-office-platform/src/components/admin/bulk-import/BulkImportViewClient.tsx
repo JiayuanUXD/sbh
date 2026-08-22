@@ -16,6 +16,7 @@ import {
 import type { ColumnProps } from '@arco-design/web-react/es/Table'
 import { IconDownload, IconUpload } from '@arco-design/web-react/icon'
 
+import { isSupplyImportPollTimedOut } from '@/domain/supply-import/poll-timeout'
 import type { RowError } from '@/domain/supply-import/types'
 
 const { Title, Text, Paragraph } = Typography
@@ -44,8 +45,11 @@ type BatchStatus = {
   finishedAt: string | null
 }
 
-/** 四态机：idle → report → running → done，状态之间不能跳跃（规格硬性要求）。 */
-type Phase = 'idle' | 'report' | 'running' | 'done'
+/**
+ * 状态机：idle → report → running → done，running 可能因超时改道 interrupted
+ * （最终评审 Important 7）。状态之间不能跳跃（规格硬性要求）。
+ */
+type Phase = 'idle' | 'report' | 'running' | 'done' | 'interrupted'
 
 const MODE_LABEL: Record<ImportMode, string> = { buildings: '楼盘', listings: '房源' }
 /** 回滚确认/结果文案里的单位——与 ReportPanel 既有的「N 套房源 / N 个楼盘」口径保持一致。 */
@@ -185,9 +189,18 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
   // running 态：每 2 秒轮询批次状态；completed/failed 才进 done，不用百分比推断完成
   // （结构守卫失败的行只加 stats.failed、不进 processed，是 Task 7 的已知 Minor，
   // 这里不为它写任何 workaround——进度条到不了 100% 是预期行为）。
+  //
+  // 最终评审 Important 7：此前是无界轮询——Job 崩溃/实例回收后批次停在 running
+  // （`recoverStaleSupplyImportJobs` 释放的是 job 租约，不改批次 status），这里会
+  // 永远显示进度条，DonePanel（回滚按钮所在地）不出现，恰好在最需要回滚的失败态
+  // 下回滚不可达。超时判定委托给纯函数 isSupplyImportPollTimedOut（domain 层单测
+  // 覆盖，本文件不重复写判定逻辑）；超时则转 interrupted，显示已处理计数并让
+  // 回滚按钮可用（复用 rollbackBatch，回滚不看批次 status，只看 affectedIds，
+  // 中途中断也能回滚已经写入的部分）。
   useEffect(() => {
     if (phase !== 'running' || batchId === null) return
     let cancelled = false
+    const startedAt = Date.now()
 
     const poll = async () => {
       try {
@@ -198,6 +211,10 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
         setBatch(next)
         if (next.status === 'completed' || next.status === 'failed') {
           setPhase('done')
+          return
+        }
+        if (isSupplyImportPollTimedOut(next.status, Date.now() - startedAt)) {
+          setPhase('interrupted')
         }
       } catch {
         // 轮询瞬时失败不打断状态机，下一轮再试
@@ -255,6 +272,17 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
 
       {phase === 'done' && batch && (
         <DonePanel
+          batch={batch}
+          onRestart={resetToIdle}
+          onRollback={rollbackBatch}
+          rollingBack={rollingBack}
+          rollbackError={rollbackError}
+          rollbackResult={rollbackResult}
+        />
+      )}
+
+      {phase === 'interrupted' && batch && (
+        <InterruptedPanel
           batch={batch}
           onRestart={resetToIdle}
           onRollback={rollbackBatch}
@@ -433,22 +461,25 @@ function RunningPanel({ batch }: { batch: BatchStatus | null }) {
   )
 }
 
-function DonePanel({
+/**
+ * 回滚控制区：DonePanel 与 InterruptedPanel（最终评审 Important 7）共用同一套
+ * 确认弹窗 + 结果展示 + 按钮态逻辑，不重复一份。回滚 endpoint 本身不看批次
+ * status（只看 affectedIds），interrupted 态下已写入的部分同样可以回滚——
+ * 这正是新增 InterruptedPanel 要解决的问题：中断态之前回滚按钮根本不可达。
+ */
+function RollbackControls({
   batch,
-  onRestart,
   onRollback,
   rollingBack,
   rollbackError,
   rollbackResult,
 }: {
   batch: BatchStatus
-  onRestart: () => void
   onRollback: () => void
   rollingBack: boolean
   rollbackError: string | null
   rollbackResult: { unpublished: number; skipped: number; failed: number } | null
 }) {
-  const failed = batch.status === 'failed'
   const label = MODE_LABEL[batch.type]
   const unit = MODE_UNIT[batch.type]
   // 回滚锚点是批次的 affectedIds，前端拿不到那个数组，用 created+updated 近似
@@ -468,18 +499,7 @@ function DonePanel({
   }
 
   return (
-    <Card>
-      <Alert
-        type={failed ? 'error' : 'success'}
-        content={failed ? '本批导入执行失败，请查看统计后联系技术支持。' : '本批导入已完成。'}
-        style={{ marginBottom: 16 }}
-      />
-      <Space size="large" style={{ marginBottom: 20 }}>
-        <Statistic title="新建" value={batch.stats?.created ?? 0} />
-        <Statistic title="更新" value={batch.stats?.updated ?? 0} />
-        <Statistic title="失败" value={batch.stats?.failed ?? 0} />
-      </Space>
-
+    <>
       {rollbackError && (
         <Alert type="error" content={rollbackError} style={{ marginBottom: 16 }} closable onClose={() => {}} />
       )}
@@ -496,20 +516,111 @@ function DonePanel({
         />
       ) : null}
 
+      <Button
+        status="danger"
+        // 有失败条目时不锁死按钮——回滚是幂等的，已下架的会被计入 skipped 直接跳过，
+        // 留一条路让运营对同一批次重试，而不是逼着重新导一遍。
+        disabled={total <= 0 || (rolledBack && rollbackResult.failed === 0)}
+        loading={rollingBack}
+        onClick={openRollbackConfirm}
+      >
+        {rolledBack && rollbackResult.failed > 0 ? '重试失败条目' : `批量下架本批${label}`}
+      </Button>
+    </>
+  )
+}
+
+function DonePanel({
+  batch,
+  onRestart,
+  onRollback,
+  rollingBack,
+  rollbackError,
+  rollbackResult,
+}: {
+  batch: BatchStatus
+  onRestart: () => void
+  onRollback: () => void
+  rollingBack: boolean
+  rollbackError: string | null
+  rollbackResult: { unpublished: number; skipped: number; failed: number } | null
+}) {
+  const failed = batch.status === 'failed'
+
+  return (
+    <Card>
+      <Alert
+        type={failed ? 'error' : 'success'}
+        content={failed ? '本批导入执行失败，请查看统计后联系技术支持。' : '本批导入已完成。'}
+        style={{ marginBottom: 16 }}
+      />
+      <Space size="large" style={{ marginBottom: 20 }}>
+        <Statistic title="新建" value={batch.stats?.created ?? 0} />
+        <Statistic title="更新" value={batch.stats?.updated ?? 0} />
+        <Statistic title="失败" value={batch.stats?.failed ?? 0} />
+      </Space>
+
       <Space>
-        <Button
-          status="danger"
-          // 有失败条目时不锁死按钮——回滚是幂等的，已下架的会被计入 skipped 直接跳过，
-          // 留一条路让运营对同一批次重试，而不是逼着重新导一遍。
-          disabled={total <= 0 || (rolledBack && rollbackResult.failed === 0)}
-          loading={rollingBack}
-          onClick={openRollbackConfirm}
-        >
-          {rolledBack && rollbackResult.failed > 0 ? '重试失败条目' : `批量下架本批${label}`}
-        </Button>
+        <RollbackControls
+          batch={batch}
+          onRollback={onRollback}
+          rollingBack={rollingBack}
+          rollbackError={rollbackError}
+          rollbackResult={rollbackResult}
+        />
         <Button type="primary" onClick={onRestart}>
           再导一批
         </Button>
+      </Space>
+    </Card>
+  )
+}
+
+/**
+ * 最终评审 Important 7：规格 §8「已中断」态——轮询超过 isSupplyImportPollTimedOut 的阈值仍未到终态时
+ * 展示。恰是最需要止血的场景（Job 可能已经崩溃/被回收），回滚按钮必须在这里可达，
+ * 不能像此前那样卡死在无限进度条上、DonePanel 永远不出现。
+ */
+function InterruptedPanel({
+  batch,
+  onRestart,
+  onRollback,
+  rollingBack,
+  rollbackError,
+  rollbackResult,
+}: {
+  batch: BatchStatus
+  onRestart: () => void
+  onRollback: () => void
+  rollingBack: boolean
+  rollbackError: string | null
+  rollbackResult: { unpublished: number; skipped: number; failed: number } | null
+}) {
+  const processed = batch.stats?.processed ?? 0
+  const total = batch.rowCount
+
+  return (
+    <Card>
+      <Alert
+        type="warning"
+        content={`本批导入已中断（长时间未收到进度更新，写入任务可能已崩溃或所在实例被回收）。已处理 ${processed}/${total} 行，已写入的部分仍可回滚。`}
+        style={{ marginBottom: 16 }}
+      />
+      <Space size="large" style={{ marginBottom: 20 }}>
+        <Statistic title="新建" value={batch.stats?.created ?? 0} />
+        <Statistic title="更新" value={batch.stats?.updated ?? 0} />
+        <Statistic title="失败" value={batch.stats?.failed ?? 0} />
+      </Space>
+
+      <Space>
+        <RollbackControls
+          batch={batch}
+          onRollback={onRollback}
+          rollingBack={rollingBack}
+          rollbackError={rollbackError}
+          rollbackResult={rollbackResult}
+        />
+        <Button onClick={onRestart}>放弃本批，重新开始</Button>
       </Space>
     </Card>
   )

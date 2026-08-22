@@ -15,7 +15,7 @@ import {
   DECORATION_STATUSES,
 } from '@/domain/review/listing-fields'
 import { parseArea, parseFloorNumber, parseRent } from '@/domain/supply-import/normalize'
-import { resolveBuilding } from '@/domain/supply-import/resolve-refs'
+import { isBuildingCandidatePublic, resolveBuilding } from '@/domain/supply-import/resolve-refs'
 import { resolveBuildingMerchant } from '@/domain/supply-import/resolve-merchant'
 import type { RawRow, RowContext, RowError } from '@/domain/supply-import/types'
 
@@ -102,6 +102,22 @@ export function validateListingRow(row: RawRow, rowNumber: number, ctx: RowConte
           rawValue: buildingText,
           code: 'CITY_OUT_OF_SCOPE',
           message: `楼盘「${resolved.value.name}」所属城市不在你的可导入范围内`,
+        })
+      }
+
+      // 最终评审 Critical 2：§7 有效供给要求楼盘 status=published、operationalStatus=active、
+      // 未软删，且所属城市/行政区都是 active（domain/supply/public-building.ts）。导入链路此前
+      // 一条都没查，会命中草稿/已归档/已停用/回收站中的楼盘或所属区域已停用的楼盘——房源随后
+      // published，但前台按 §7 过滤后 404。判定复用 isBuildingCandidatePublic（= 复用
+      // isPublicBuildingLike，不在导入层重写第 6 份 §7）。message 要指明是楼盘/区域不可见，
+      // 不是房源本身的问题——口径对齐下面 D10 商户校验的写法。
+      if (!isBuildingCandidatePublic(resolved.value)) {
+        errors.push({
+          rowNumber,
+          column: '楼盘编号或标识',
+          rawValue: buildingText,
+          code: 'BUILDING_NOT_VISIBLE',
+          message: `楼盘「${resolved.value.name}」当前不是有效供给（已下架/停用/回收站中，或所属城市、行政区已停用），不是房源本身的问题；请先在楼盘管理中恢复其可见状态后再导入`,
         })
       }
 
