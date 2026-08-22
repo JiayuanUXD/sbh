@@ -767,12 +767,41 @@ function createRollbackEndpoint(): Endpoint {
         return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权操作该导入批次' }, { status: 403 })
       }
 
-      // 2. 状态迁移：下架而非删除、幂等、保留文档，全部在 rollbackImportBatch 里
-      const { unpublished, skipped } = await rollbackImportBatch({
-        payload: req.payload,
-        req,
-        batchId: batch.id,
-      })
+      // 2. 状态迁移：下架而非删除、幂等、保留文档，逐条容错全部在 rollbackImportBatch
+      //    里完成（单条 id 的异常已经在那一层兜住、计入 failed，不会冒泡到这里）。
+      //    这里仍包一层 try/catch 兜意料之外的异常（比如两次 findByID 之间批次被
+      //    并发改动的竞态）——评审 Important：不能让运营看到裸 500 却猜不出这次
+      //    回滚到底有没有部分生效，异常时要走结构化错误 + 审计留痕，而不是让框架
+      //    的默认 500 兜底把"已部分生效"这个事实吞掉。
+      let result
+      try {
+        result = await rollbackImportBatch({
+          payload: req.payload,
+          req,
+          batchId: batch.id,
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '回滚执行时发生未预期的异常'
+        await writeAuditFailed({
+          payload: req.payload,
+          req,
+          data: {
+            action: 'data.import',
+            object: { collection: 'supply-import-batches', objectId: batch.id, objectVersion: 1 },
+            errorCode: 'ROLLBACK_FAILED',
+            errorMessage: message,
+          },
+        })
+        return Response.json(
+          {
+            ok: false,
+            code: 'ROLLBACK_FAILED',
+            error: '回滚执行异常，本批可能只部分生效，请核对批次状态后再决定是否重试',
+          },
+          { status: 500 },
+        )
+      }
+      const { unpublished, skipped, failed } = result
 
       // 3. 审计
       await writeAuditSuccess({
@@ -785,7 +814,7 @@ function createRollbackEndpoint(): Endpoint {
         },
       })
 
-      return Response.json({ ok: true, batchId: batch.id, unpublished, skipped })
+      return Response.json({ ok: true, batchId: batch.id, unpublished, skipped, failed })
     },
   }
 }

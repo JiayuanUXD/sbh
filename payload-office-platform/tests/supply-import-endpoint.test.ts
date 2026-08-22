@@ -736,7 +736,7 @@ describe('POST /bulk-import/batches/:id/rollback', () => {
     )) as Response
     expect(res.status).toBe(200)
     const body = await readJson(res)
-    expect(body).toMatchObject({ ok: true, unpublished: 0, skipped: 0 })
+    expect(body).toMatchObject({ ok: true, unpublished: 0, skipped: 0, failed: 0 })
     expect(payload.create).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'audit-logs',
@@ -745,6 +745,57 @@ describe('POST /bulk-import/batches/:id/rollback', () => {
           result: 'success',
           after: { rollback: true, unpublished: 0 },
         }),
+      }),
+    )
+  })
+
+  it('评审 Important：rollbackImportBatch 抛出意料之外的异常时，返回结构化错误而不是裸 500，并写失败审计', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload } = makeMockPayload([ROLE_ADM])
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-001', '新楼盘', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const preflightRes = (await preflight.handler(
+      makeReq({
+        user: adminUser(),
+        payload,
+        url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+        file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+      }),
+    )) as Response
+    const batchId = (await readJson(preflightRes)).batchId as number
+
+    // 端点自己为归属校验做的第一次 findByID 必须成功（拿到真实批次）；
+    // rollbackImportBatch 内部紧接着做的第二次 findByID（同一批次）改为抛出，
+    // 模拟"两次查询之间发生了意料之外的问题"——验证端点这一层有兜底，
+    // 不是让异常冒成裸 500、把"这次回滚到底有没有部分生效"这个事实吞掉。
+    const originalFindByID = payload.findByID as (opts: {
+      collection: string
+      id: number | string
+    }) => Promise<unknown>
+    let batchLookupCount = 0
+    payload.findByID = vi.fn(async (opts: { collection: string; id: number | string }) => {
+      if (opts.collection === 'supply-import-batches' && Number(opts.id) === batchId) {
+        batchLookupCount += 1
+        if (batchLookupCount >= 2) throw new Error('模拟的数据库瞬时故障')
+      }
+      return originalFindByID(opts)
+    })
+
+    const res = (await rollback.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(500)
+    const body = await readJson(res)
+    expect(body.ok).toBe(false)
+    expect(body.code).toBe('ROLLBACK_FAILED')
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'ROLLBACK_FAILED' }),
       }),
     )
   })

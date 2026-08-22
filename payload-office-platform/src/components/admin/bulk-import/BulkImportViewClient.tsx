@@ -87,7 +87,11 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
   const [batch, setBatch] = useState<BatchStatus | null>(null)
   const [rollingBack, setRollingBack] = useState(false)
   const [rollbackError, setRollbackError] = useState<string | null>(null)
-  const [rollbackResult, setRollbackResult] = useState<{ unpublished: number; skipped: number } | null>(null)
+  const [rollbackResult, setRollbackResult] = useState<{
+    unpublished: number
+    skipped: number
+    failed: number
+  } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const label = MODE_LABEL[mode]
@@ -169,6 +173,7 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
       setRollbackResult({
         unpublished: data.unpublished as number,
         skipped: data.skipped as number,
+        failed: (data.failed as number | undefined) ?? 0,
       })
     } catch {
       setRollbackError('回滚请求失败，请检查网络后重试')
@@ -441,7 +446,7 @@ function DonePanel({
   onRollback: () => void
   rollingBack: boolean
   rollbackError: string | null
-  rollbackResult: { unpublished: number; skipped: number } | null
+  rollbackResult: { unpublished: number; skipped: number; failed: number } | null
 }) {
   const failed = batch.status === 'failed'
   const label = MODE_LABEL[batch.type]
@@ -481,10 +486,12 @@ function DonePanel({
 
       {rolledBack ? (
         <Alert
-          type="success"
+          // 评审 Important 前端同步：有失败条目时不能只显示"已下架 N 套"、把没处理成功
+          // 的几条藏起来——运营需要知道还有几条没生效，才能判断要不要重试或人工介入。
+          type={rollbackResult.failed > 0 ? 'warning' : 'success'}
           content={`已下架 ${rollbackResult.unpublished} ${unit}${
             rollbackResult.skipped > 0 ? `（另有 ${rollbackResult.skipped} ${unit}此前已不是上架状态，未重复处理）` : ''
-          }`}
+          }${rollbackResult.failed > 0 ? `；有 ${rollbackResult.failed} ${unit}回滚失败，请重试或联系技术支持` : ''}`}
           style={{ marginBottom: 16 }}
         />
       ) : null}
@@ -492,11 +499,13 @@ function DonePanel({
       <Space>
         <Button
           status="danger"
-          disabled={total <= 0 || rolledBack}
+          // 有失败条目时不锁死按钮——回滚是幂等的，已下架的会被计入 skipped 直接跳过，
+          // 留一条路让运营对同一批次重试，而不是逼着重新导一遍。
+          disabled={total <= 0 || (rolledBack && rollbackResult.failed === 0)}
           loading={rollingBack}
           onClick={openRollbackConfirm}
         >
-          批量下架本批{label}
+          {rolledBack && rollbackResult.failed > 0 ? '重试失败条目' : `批量下架本批${label}`}
         </Button>
         <Button type="primary" onClick={onRestart}>
           再导一批
