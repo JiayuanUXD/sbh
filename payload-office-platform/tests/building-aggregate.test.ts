@@ -10,7 +10,8 @@ import { computeBuildingSupplyAggregate } from '@/domain/supply/building-aggrega
  * （三种单位不可合并，镜像 facade.ts buildPriceRangesByUnit）。
  *
  * where 走 getEffectiveSupplyWhere（§1-4、§7）+ building 约束 + 举报暂停 not_in（§5），
- * 精筛（媒体 §6 / 关系 §8 / 商户 §9-10）经 resolveEffectiveSupply 逐条判定。
+ * 精筛（商户 §8-10）经 resolveEffectiveSupply 逐条判定。OPT-034 起商户直接读
+ * listing.merchant，不再经 listing-merchant-relations 关系表解析。
  */
 
 /** 有效供给齐全的候选房源文档（depth≥1 已展开）。 */
@@ -32,23 +33,9 @@ function eligibleListing(
   }
 }
 
-/** 生效中的房源-商户关系（effectiveFrom 早、无 effectiveTo → 恒有效）。 */
-const EFFECTIVE_RELATION = {
-  effectiveFrom: '2000-01-01T00:00:00.000Z',
-  effectiveTo: null,
-  merchant: {
-    status: 'active',
-    qualificationStatus: 'valid',
-    qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
-    serviceCities: [{ id: 100 }],
-  },
-}
-
 function makePayload(opts: {
   listings?: Array<Record<string, unknown>>
   pausedReports?: Array<{ targetListing: unknown }>
-  /** 按 listing id（字符串）映射生效关系；缺省视为该房源无有效关系。 */
-  relationsByListing?: Record<string, Array<Record<string, unknown>>>
 }) {
   const find = vi.fn(async (params: Record<string, unknown>) => {
     const collection = params.collection
@@ -58,23 +45,11 @@ function makePayload(opts: {
     if (collection === 'listings') {
       return { docs: opts.listings ?? [] }
     }
-    if (collection === 'listing-merchant-relations') {
-      const where = params.where as
-        | { listing?: { equals?: unknown }; and?: Array<{ listing?: { equals?: unknown } }> }
-        | undefined
-      const lid = String(where?.listing?.equals ?? where?.and?.[0]?.listing?.equals)
-      return { docs: opts.relationsByListing?.[lid] ?? [] }
-    }
-    return { docs: [] }
+    // OPT-034：精筛不再查 listing-merchant-relations——保留 throw 而不是给个
+    // 空 docs，免得关系表又被悄悄查起来时这里还是绿的。
+    throw new Error(`unexpected collection: ${String(collection)}`)
   })
   return { find }
-}
-
-/** 为一组 listing id 生成"全部生效"的关系映射。 */
-function relationsFor(...ids: number[]): Record<string, Array<Record<string, unknown>>> {
-  const map: Record<string, Array<Record<string, unknown>>> = {}
-  for (const id of ids) map[String(id)] = [{ ...EFFECTIVE_RELATION }]
-  return map
 }
 
 describe('building-aggregate/computeBuildingSupplyAggregate', () => {
@@ -83,11 +58,11 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
       listings: [
         eligibleListing(10, { area: 100, rent: 5, rentUnit: 'rmb-sqm-day' }),
         eligibleListing(11, { area: 200, rent: 6, rentUnit: 'rmb-sqm-day' }),
-        // 无有效商户关系 → 精筛淘汰,不计入
-        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成关系）
-        eligibleListing(12, { area: 50, rent: 7, rentUnit: 'rmb-sqm-day' }),
+        // 未设置供给商户 → 精筛淘汰,不计入
+        // （2026-08-19 前这里用的是「媒体不足」，图片条件移出精筛后换成「无生效
+        // 关系」；OPT-034 删除关系表后再换成「listing.merchant 为空」）
+        eligibleListing(12, { area: 50, rent: 7, rentUnit: 'rmb-sqm-day', merchant: null }),
       ],
-      relationsByListing: relationsFor(10, 11),
     })
     const result = await computeBuildingSupplyAggregate(payload as never, 42)
 
@@ -113,10 +88,9 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
       listings: [
         eligibleListing(1, { area: 100, rent: 5, rentUnit: 'rmb-sqm-day' }),
         eligibleListing(2, { area: 200.5, rent: 6, rentUnit: 'rmb-sqm-day' }),
-        // 无有效关系 → 淘汰,其面积不计入
-        eligibleListing(3, { area: 999, rent: 7, rentUnit: 'rmb-sqm-day' }),
+        // 未设置供给商户 → 淘汰,其面积不计入
+        eligibleListing(3, { area: 999, rent: 7, rentUnit: 'rmb-sqm-day', merchant: null }),
       ],
-      relationsByListing: relationsFor(1, 2), // 3 无关系
     })
     const result = await computeBuildingSupplyAggregate(payload as never, 1)
     expect(result.count).toBe(2)
@@ -131,7 +105,6 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
         eligibleListing(3, { rent: 20000, rentUnit: 'rmb-month', area: 300 }),
         eligibleListing(4, { rent: 1500, rentUnit: 'rmb-seat-month', area: 40 }),
       ],
-      relationsByListing: relationsFor(1, 2, 3, 4),
     })
     const result = await computeBuildingSupplyAggregate(payload as never, 1)
 
@@ -151,7 +124,6 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
     const payload = makePayload({
       listings: [eligibleListing(1, { area: 100, rent: 5, rentUnit: 'rmb-sqm-day' })],
       pausedReports: [{ targetListing: 77 }, { targetListing: { id: 88 } }],
-      relationsByListing: relationsFor(1),
     })
     await computeBuildingSupplyAggregate(payload as never, 1)
 
@@ -162,13 +134,13 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
   })
 
   it('overrideAccess 透传给 listings find,默认 false', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     await computeBuildingSupplyAggregate(payload as never, 1)
     let calls = (payload.find as unknown as { mock: { calls: Array<[Record<string, unknown>]> } })
       .mock.calls
     expect(calls.find((c) => c[0].collection === 'listings')![0].overrideAccess).toBe(false)
 
-    const payload2 = makePayload({ listings: [], relationsByListing: {} })
+    const payload2 = makePayload({ listings: [] })
     await computeBuildingSupplyAggregate(payload2 as never, 1, undefined, { overrideAccess: true })
     calls = (payload2.find as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock
       .calls
@@ -176,7 +148,7 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
   })
 
   it('空结果:count=0,totalArea=0,rentRanges 为空', async () => {
-    const payload = makePayload({ listings: [], relationsByListing: {} })
+    const payload = makePayload({ listings: [] })
     const result = await computeBuildingSupplyAggregate(payload as never, 99)
     expect(result.count).toBe(0)
     expect(result.totalArea).toBe(0)
@@ -190,10 +162,9 @@ describe('building-aggregate/computeBuildingSupplyAggregate', () => {
         eligibleListing(2, { rent: null, rentUnit: 'rmb-sqm-day', area: 'bad' }),
         eligibleListing(3, { rentUnit: 'rmb-sqm-day' }),
       ],
-      relationsByListing: relationsFor(1, 2, 3),
     })
     const result = await computeBuildingSupplyAggregate(payload as never, 1)
-    // 三条都精筛通过（媒体/关系/商户齐全）→ count=3；但 area/rent 非法项不进聚合
+    // 三条都精筛通过（供给商户齐全）→ count=3；但 area/rent 非法项不进聚合
     expect(result.count).toBe(3)
     expect(result.totalArea).toBe(100)
     expect(result.rentRanges).toEqual([{ unit: 'rmb-sqm-day', min: 5, max: 5, count: 1 }])

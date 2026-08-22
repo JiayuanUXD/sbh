@@ -7,6 +7,15 @@
  *
  * The command loads DATABASE_URL only from the local environment; it neither
  * prints environment values nor performs writes.
+ *
+ * OPT-034 note: this script originally counted `find` calls against the
+ * (now-deleted) `listing-merchant-relations` collection to prove OPT-022's
+ * batching eliminated the merchant-resolution N+1. That collection is gone —
+ * `resolveEffectiveSupplies` resolves the merchant purely from the already
+ * -loaded `listing.merchant` field and performs zero queries of its own. The
+ * counter below therefore tracks *any* `find` call made through the port
+ * during resolution, which should always be zero now; a nonzero reading
+ * would mean a regression reintroduced a query in the resolve path.
  */
 import { performance } from 'node:perf_hooks'
 
@@ -44,10 +53,10 @@ async function measure(): Promise<void> {
       overrideAccess: true,
     })
 
-    let relationFindCalls = 0
+    let queryPortFindCalls = 0
     const measuredQueryPort: PayloadQueryPort = {
       find: async (params) => {
-        if (params.collection === 'listing-merchant-relations') relationFindCalls += 1
+        queryPortFindCalls += 1
         return queryPort.find(params)
       },
     }
@@ -68,7 +77,7 @@ async function measure(): Promise<void> {
 
     console.log(JSON.stringify({
       candidates: candidates.docs.length,
-      relationFindCalls,
+      queryPortFindCalls,
       elapsedMs: Number(elapsedMs.toFixed(2)),
       eligible: [...results.values()].filter((result) => result.eligible).length,
     }))

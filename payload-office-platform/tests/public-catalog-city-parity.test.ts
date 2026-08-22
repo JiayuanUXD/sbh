@@ -91,9 +91,7 @@ function building(id: number, slug: string, owningCity: Location, area: Location
   }
 }
 
-type ParityListing = Listing & Readonly<{
-  _relationPeriod: Readonly<{ startsAt: string; endsAt: string | null }>
-}>
+type ParityListing = Listing
 
 function listing(
   id: number,
@@ -138,7 +136,6 @@ function listing(
       updatedAt: '2026-08-01T00:00:00.000Z',
     },
     gallery: Array.from({ length: 3 }, (_, index) => ({ image: index + 1 })),
-    _relationPeriod: { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null },
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-08-01T00:00:00.000Z',
   }
@@ -179,16 +176,18 @@ function createParityAdapter(): SupplyAdapter {
     const owningCity = parent && typeof parent.city === 'object' ? parent.city : null
     const merchant = typeof item.merchant === 'object' ? item.merchant : null
     return isListingEffectivelySupplied({
-      merchant: {
-        status: merchant?.status,
-        qualificationStatus: merchant?.qualificationStatus,
-        qualificationExpiresAt: merchant?.qualificationExpiresAt,
-        serviceCityIds: merchant?.serviceCities?.flatMap((candidate) =>
-          typeof candidate === 'object' ? [candidate.id] : [candidate],
-        ) ?? [],
-      },
+      merchant: merchant
+        ? {
+            id: merchant.id,
+            status: merchant.status,
+            qualificationStatus: merchant.qualificationStatus,
+            qualificationExpiresAt: merchant.qualificationExpiresAt,
+            serviceCityIds: merchant.serviceCities?.flatMap((candidate) =>
+              typeof candidate === 'object' ? [candidate.id] : [candidate],
+            ) ?? [],
+          }
+        : null,
       buildingCityId: owningCity?.id ?? null,
-      relationPeriod: item._relationPeriod,
     }, new Date(ctx.asOf)).eligible
   })
   return {

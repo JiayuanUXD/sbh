@@ -209,16 +209,23 @@ async function checkBuildingIntegrity(
   }
 }
 
+/**
+ * 商户与关系检查（OPT-034 Task 7 更新）。
+ *
+ * `listing_merchant_relations` 表已在 OPT-034 删除，房源商户归属改为
+ * `listings.merchant` 直写字段，不再有独立关系记录，也就不再有「关系过期」
+ * 这个概念（字段本身无 effectiveTo）。原「过期关系」人工处理项改为语义等价的
+ * 「房源引用的商户当前不合格」检查——直接核对被引用商户的 status /
+ * qualificationStatus / qualificationExpiresAt，覆盖同一类运营风险
+ * （挂牌商户后来被停用或资质过期，但房源仍挂着旧商户）。
+ * `building-merchant-relations` 表未受本次改造影响，照常查询。
+ */
 async function checkMerchantRelations(
   payload: Awaited<ReturnType<typeof getPayload>>,
   summary: AuditSummary,
   asOf: Date,
 ): Promise<void> {
   try {
-    const listingRels = await payload.count({
-      collection: 'listing-merchant-relations' as never,
-      overrideAccess: true,
-    })
     const buildingRels = await payload.count({
       collection: 'building-merchant-relations' as never,
       overrideAccess: true,
@@ -227,36 +234,57 @@ async function checkMerchantRelations(
       collection: 'merchants' as never,
       overrideAccess: true,
     })
+    const listingsWithMerchant = await payload.count({
+      collection: 'listings' as never,
+      where: { merchant: { exists: true } } as never,
+      overrideAccess: true,
+    })
+    const listingsWithoutMerchant = await payload.count({
+      collection: 'listings' as never,
+      where: { merchant: { exists: false } } as never,
+      overrideAccess: true,
+    })
 
-    summary.collections['listing-merchant-relations'] = { total: listingRels.totalDocs ?? 0 }
     summary.collections['building-merchant-relations'] = { total: buildingRels.totalDocs ?? 0 }
     summary.collections.merchants = { total: merchants.totalDocs ?? 0 }
 
     summary.consistencyChecks.push({
       name: 'merchant.relations',
       status: 'pass',
-      message: `商户 ${merchants.totalDocs} 家，房源关系 ${listingRels.totalDocs} 条，楼盘关系 ${buildingRels.totalDocs} 条`,
+      message:
+        `商户 ${merchants.totalDocs} 家，楼盘关系 ${buildingRels.totalDocs} 条；` +
+        `房源已绑定商户 ${listingsWithMerchant.totalDocs} 条，未绑定 ${listingsWithoutMerchant.totalDocs} 条` +
+        `（OPT-034 起 listings.merchant 直写字段，无独立关系表）`,
     })
 
-    // 检查：有效期异常的关系
-    const nowIso = asOf.toISOString()
-    const expiredListingRels = await payload.find({
-      collection: 'listing-merchant-relations' as never,
-      where: {
-        effectiveTo: { less_than: nowIso },
-      } as never,
-      limit: 20,
-      depth: 0,
+    // 检查：房源引用的商户当前已停用或资质过期
+    const nowMs = asOf.getTime()
+    const listingsResult = await payload.find({
+      collection: 'listings' as never,
+      where: { merchant: { exists: true } } as never,
+      limit: 100,
+      depth: 1,
       overrideAccess: true,
     })
 
-    for (const rel of expiredListingRels.docs as Array<Record<string, unknown>>) {
-      summary.manualReviewList.push({
-        collection: 'listing-merchant-relations',
-        id: String(rel.id ?? ''),
-        reason: '房源-商户关系已过期',
-        suggestion: '确认是否续签或移除关系',
-      })
+    for (const doc of listingsResult.docs as Array<Record<string, unknown>>) {
+      const merchant = doc.merchant
+      if (typeof merchant !== 'object' || merchant === null) continue // 未展开（depth 异常）跳过，不误报
+      const m = merchant as Record<string, unknown>
+      const status = String(m.status ?? '')
+      const qualificationStatus = String(m.qualificationStatus ?? '')
+      const qualificationExpiresAt = m.qualificationExpiresAt
+      const expired =
+        typeof qualificationExpiresAt === 'string' &&
+        new Date(qualificationExpiresAt).getTime() < nowMs
+      if (status !== 'active' || qualificationStatus !== 'valid' || expired) {
+        summary.manualReviewList.push({
+          collection: 'listings',
+          id: String(doc.id ?? ''),
+          reason: `房源引用的商户不合格（status=${status || '未知'}, qualification=${qualificationStatus || '未知'}${expired ? ', 资质已过期' : ''}）`,
+          suggestion: '确认商户资质或为房源更换供给商户',
+        })
+      }
     }
   } catch (err) {
     summary.consistencyChecks.push({

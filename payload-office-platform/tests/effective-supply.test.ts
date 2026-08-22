@@ -80,14 +80,22 @@ describe('effective-supply/getEffectiveSupplyWhere', () => {
 function fullyEligibleSnapshot(): EffectiveSupplySnapshot {
   return {
     merchant: {
+      id: 'merchant-1',
       status: 'active',
       qualificationStatus: 'valid',
       qualificationExpiresAt: null,
       serviceCityIds: ['city-1'],
     },
     buildingCityId: 'city-1',
-    relationPeriod: { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null },
   }
+}
+
+/** 在非 null 商户快照上覆盖字段，避免每处都写 `snap.merchant!`。 */
+function withMerchant(
+  snap: EffectiveSupplySnapshot,
+  overrides: Partial<NonNullable<EffectiveSupplySnapshot['merchant']>>,
+): EffectiveSupplySnapshot {
+  return { ...snap, merchant: { ...snap.merchant!, ...overrides } }
 }
 
 describe('effective-supply/isListingEffectivelySupplied', () => {
@@ -107,15 +115,15 @@ describe('effective-supply/isListingEffectivelySupplied', () => {
   })
 
   it('商户停用 → MERCHANT_DISABLED', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.merchant.status = 'disabled'
+    const snap = withMerchant(fullyEligibleSnapshot(), { status: 'disabled' })
     const r = isListingEffectivelySupplied(snap, asOf)
     expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
   })
 
   it('资质过期 → 商户不合格', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.merchant.qualificationExpiresAt = '2026-06-01T00:00:00.000Z'
+    const snap = withMerchant(fullyEligibleSnapshot(), {
+      qualificationExpiresAt: '2026-06-01T00:00:00.000Z',
+    })
     const r = isListingEffectivelySupplied(snap, asOf)
     expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
   })
@@ -127,36 +135,22 @@ describe('effective-supply/isListingEffectivelySupplied', () => {
     expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
   })
 
-  it('关系尚未生效(asOf 早于 startsAt) → RELATION_NOT_EFFECTIVE', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.relationPeriod = { startsAt: '2026-12-01T00:00:00.000Z', endsAt: null }
-    const r = isListingEffectivelySupplied(snap, asOf)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
-  })
-
-  it('关系已过期(asOf 晚于 endsAt) → RELATION_NOT_EFFECTIVE', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.relationPeriod = {
-      startsAt: '2026-01-01T00:00:00.000Z',
-      endsAt: '2026-06-01T00:00:00.000Z',
-    }
-    const r = isListingEffectivelySupplied(snap, asOf)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
-  })
-
-  it('无商户关系(缺关系期) → RELATION_NOT_EFFECTIVE', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.relationPeriod = null
-    const r = isListingEffectivelySupplied(snap, asOf)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
-  })
-
-  it('多重不满足 → 收集全部原因', () => {
-    const snap = fullyEligibleSnapshot()
-    snap.merchant.status = 'disabled'
-    snap.relationPeriod = null
+  // OPT-034：半开区间关系（[effectiveFrom, effectiveTo) 判定生效商户）已删除，
+  // 「关系尚未生效 / 已过期」这两种中间态不再存在——只剩「有没有设置供给商户」
+  // 一个二元问题。原三条用例（未生效 / 已过期 / 无关系）收敛为下面这一条。
+  //
+  // 用 toEqual（而不是 toContain）锁住短路不变量：merchant 为 null 时函数在
+  // 检查商户资格之前就返回，reasons 里只会有 NO_SUPPLY_MERCHANT 一个码，绝不会
+  // 同时冒出 MERCHANT_INELIGIBLE——这正是被删掉的旧「多重不满足」用例本来锁的
+  // 那条不变量，只是断言方式从「构造双重失效再看长度」换成「精确匹配单一结果」。
+  it('房源没有供给商户 → reasons 精确等于 [NO_SUPPLY_MERCHANT]（不会掺入 MERCHANT_INELIGIBLE）', () => {
+    const snap = { ...fullyEligibleSnapshot(), merchant: null }
     const r = isListingEffectivelySupplied(snap, asOf)
     expect(r.eligible).toBe(false)
-    expect(r.reasons.length).toBeGreaterThanOrEqual(2)
+    expect(r.reasons).toEqual([EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT])
+  })
+
+  it('不再有 RELATION_NOT_EFFECTIVE 这个码', () => {
+    expect(Object.keys(EFFECTIVE_SUPPLY_EXCLUSION_CODES)).not.toContain('RELATION_NOT_EFFECTIVE')
   })
 })
