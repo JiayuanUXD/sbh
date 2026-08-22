@@ -1,22 +1,23 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
   toId,
   buildEffectiveSnapshot,
-  loadRelationPeriod,
   resolveEffectiveSupply,
   resolveEffectiveSupplies,
 } from '@/domain/review/effective-supply-snapshot'
 import { EFFECTIVE_SUPPLY_EXCLUSION_CODES } from '@/domain/review/effective-supply'
 
 /**
- * M4.7 有效供给快照助手单测
- *
- * 这些助手从 listing-publish-endpoint.ts 提取,供发布 endpoint 与 C 端适配器共用:
+ * M4.7 有效供给快照助手单测（OPT-034 起商户直接读 listing.merchant，不再查
+ * listing-merchant-relations 关系表）：
  *   - toId：关系字段归一为 id
  *   - buildEffectiveSnapshot：已解析房源文档 → 精筛入参
- *   - loadRelationPeriod：查当前生效的房源-商户关系区间
- *   - resolveEffectiveSupply：一站式(载关系 + 建快照 + 精筛)
+ *   - resolveEffectiveSupply / resolveEffectiveSupplies：建快照 + 精筛
+ *
+ * `resolveEffectiveSupply(payload, listing, asOf, req?)` 仍保留 payload/req 形参
+ * （兼容既有调用方签名），但内部不再发起查询——测试里传入的 `payload.find`
+ * 因此永远不应被调用，用它来断言「真的不再查关系表」。
  */
 
 const asOf = new Date('2026-07-26T00:00:00.000Z')
@@ -35,6 +36,15 @@ function makeListing(overrides: Record<string, unknown> = {}): Record<string, un
       serviceCities: [{ id: 100 }],
     },
     ...overrides,
+  }
+}
+
+/** 未接线的 payload 端口：find 被调用即失败，证明精筛不再查库。 */
+function unusedPayloadPort() {
+  return {
+    find: async () => {
+      throw new Error('resolveEffectiveSupply(Supplies) 不应再调用 payload.find')
+    },
   }
 }
 
@@ -58,431 +68,102 @@ describe('effective-supply-snapshot/toId', () => {
 
 describe('effective-supply-snapshot/buildEffectiveSnapshot', () => {
   it('从已解析文档抽取商户/楼盘城市', () => {
-    const snap = buildEffectiveSnapshot(makeListing(), {
-      startsAt: '2000-01-01T00:00:00.000Z',
-      endsAt: null,
-    })
-    expect(snap.merchant.status).toBe('active')
-    expect(snap.merchant.serviceCityIds).toEqual([100])
+    const snap = buildEffectiveSnapshot(makeListing())
+    expect(snap.merchant?.id).toBe(20)
+    expect(snap.merchant?.status).toBe('active')
+    expect(snap.merchant?.serviceCityIds).toEqual([100])
     expect(snap.buildingCityId).toBe(100)
-    expect(snap.relationPeriod).toEqual({ startsAt: '2000-01-01T00:00:00.000Z', endsAt: null })
   })
 
   it('building 缺失 → buildingCityId=null', () => {
-    const snap = buildEffectiveSnapshot(makeListing({ building: null }), null)
+    const snap = buildEffectiveSnapshot(makeListing({ building: null }))
     expect(snap.buildingCityId).toBeNull()
   })
-})
 
-describe('effective-supply-snapshot/loadRelationPeriod', () => {
-  it('查到关系 → 转 ValidityPeriod(按 -effectiveFrom 取最近一条)', async () => {
-    const find = vi.fn(async () => ({
-      docs: [{ id: 1, effectiveFrom: '2026-01-01T00:00:00.000Z', effectiveTo: null }],
-    }))
-    const payload = { find } as unknown as Parameters<typeof loadRelationPeriod>[0]
-    const period = await loadRelationPeriod(payload, 1)
-    expect(period).toEqual({ startsAt: '2026-01-01T00:00:00.000Z', endsAt: null })
-    const calls = find.mock.calls as unknown as Array<Array<Record<string, unknown>>>
-    const arg = calls[0][0]
-    expect(arg.collection).toBe('listing-merchant-relations')
-    expect(arg.sort).toBe('-effectiveFrom')
-    expect(arg.limit).toBe(1)
+  it('merchant 缺失（未设置供给商户）→ merchant=null', () => {
+    const snap = buildEffectiveSnapshot(makeListing({ merchant: null }))
+    expect(snap.merchant).toBeNull()
   })
 
-  it('无关系记录 → null', async () => {
-    const find = vi.fn(async (_params: unknown) => ({ docs: [] }))
-    const payload = { find } as unknown as Parameters<typeof loadRelationPeriod>[0]
-    expect(await loadRelationPeriod(payload, 1)).toBeNull()
-  })
-
-  it('关系时刻非法 → null(不抛)', async () => {
-    const find = vi.fn(async () => ({
-      docs: [{ id: 1, effectiveFrom: 'not-a-date', effectiveTo: null }],
-    }))
-    const payload = { find } as unknown as Parameters<typeof loadRelationPeriod>[0]
-    expect(await loadRelationPeriod(payload, 1)).toBeNull()
+  it('merchant 未展开（仅裸 id，非 depth≥1 形态）→ merchant=null（fail closed）', () => {
+    const snap = buildEffectiveSnapshot(makeListing({ merchant: 20 }))
+    expect(snap.merchant).toBeNull()
   })
 })
 
 describe('effective-supply-snapshot/resolveEffectiveSupply', () => {
-  it('有效供给齐全 → eligible=true', async () => {
-    const find = vi.fn(async () => ({
-      docs: [{
-        id: 1,
-        effectiveFrom: '2000-01-01T00:00:00.000Z',
-        effectiveTo: null,
-        merchant: makeListing().merchant,
-      }],
-    }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-    const r = await resolveEffectiveSupply(payload, makeListing(), asOf)
+  it('有效供给齐全 → eligible=true，且不查 payload', async () => {
+    const r = await resolveEffectiveSupply(unusedPayloadPort(), makeListing(), asOf)
     expect(r.eligible).toBe(true)
     expect(r.reasons).toEqual([])
   })
 
-  it('无关系 → RELATION_NOT_EFFECTIVE', async () => {
-    const find = vi.fn(async () => ({ docs: [] }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-    const r = await resolveEffectiveSupply(payload, makeListing(), asOf)
+  it('房源未设置供给商户 → NO_SUPPLY_MERCHANT', async () => {
+    const r = await resolveEffectiveSupply(
+      unusedPayloadPort(),
+      makeListing({ merchant: null }),
+      asOf,
+    )
     expect(r.eligible).toBe(false)
-    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
+    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT)
   })
 
   // 2026-08-19 反转：媒体数量不再参与前台可见性（见 effective-supply.ts 头部）。
-  // 用例从「不足就排除」反转为「无图也放行」，而不是删掉。
   it('gallery 为空（甚至字段缺失）仍 eligible', async () => {
-    const find = vi.fn(async () => ({
-      docs: [{
-        id: 1,
-        effectiveFrom: '2000-01-01T00:00:00.000Z',
-        effectiveTo: null,
-        merchant: makeListing().merchant,
-      }],
-    }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-    const r = await resolveEffectiveSupply(payload, makeListing({ gallery: [] }), asOf)
+    const r = await resolveEffectiveSupply(
+      unusedPayloadPort(),
+      makeListing({ gallery: [] }),
+      asOf,
+    )
     expect(r.eligible).toBe(true)
     expect(r.reasons).toEqual([])
   })
 
-  it('uses the merchant from the effective relation instead of stale listing data', async () => {
-    const find = vi.fn(async () => ({
-      docs: [{
-        id: 1,
-        effectiveFrom: '2000-01-01T00:00:00.000Z',
-        effectiveTo: null,
-        merchant: {
-          status: 'disabled',
-          qualificationStatus: 'valid',
-          qualificationExpiresAt: '2999-01-01T00:00:00.000Z',
-          serviceCities: [{ id: 100 }],
-        },
-      }],
-    }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-
-    const result = await resolveEffectiveSupply(payload, makeListing(), asOf)
-    expect(result.eligible).toBe(false)
-    expect(result.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
-  })
-
-  it('fails closed when overlapping relations are returned', async () => {
-    const relation = {
-      effectiveFrom: '2000-01-01T00:00:00.000Z',
-      effectiveTo: null,
-      merchant: makeListing().merchant,
-    }
-    const find = vi.fn(async () => ({ docs: [{ id: 1, ...relation }, { id: 2, ...relation }] }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-
-    const result = await resolveEffectiveSupply(payload, makeListing(), asOf)
-    expect(result.eligible).toBe(false)
-    expect(result.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE)
-  })
-
-  it('queries the unique half-open relation at the requested asOf', async () => {
-    const find = vi.fn(async (_params: unknown) => ({ docs: [] }))
-    const payload = { find } as unknown as Parameters<typeof resolveEffectiveSupply>[0]
-    await resolveEffectiveSupply(payload, makeListing(), asOf)
-
-    const params = find.mock.calls[0][0] as Record<string, unknown>
-    expect(params.limit).toBe(2)
-    expect(params.depth).toBe(2)
-    expect(params.overrideAccess).toBe(true)
-    expect(params.where).toEqual({
-      and: [
-        { listing: { equals: 1 } },
-        { effectiveFrom: { less_than_equal: asOf.toISOString() } },
-        {
-          or: [
-            { effectiveTo: { exists: false } },
-            { effectiveTo: { greater_than: asOf.toISOString() } },
-          ],
-        },
-      ],
-    })
+  it('商户不合格（停用）→ MERCHANT_INELIGIBLE', async () => {
+    const r = await resolveEffectiveSupply(
+      unusedPayloadPort(),
+      makeListing({ merchant: { ...makeListing().merchant as object, status: 'disabled' } }),
+      asOf,
+    )
+    expect(r.eligible).toBe(false)
+    expect(r.reasons).toContain(EFFECTIVE_SUPPLY_EXCLUSION_CODES.MERCHANT_INELIGIBLE)
   })
 })
 
 describe('effective-supply-snapshot/resolveEffectiveSupplies', () => {
-  it('loads two listings with one relation query and fails closed for overlaps', async () => {
-    const merchant = makeListing().merchant
-    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
-      docs: Array<Record<string, unknown>>
-    }>>(async () => ({
-      docs: [
-        {
-          id: 11,
-          listing: 1,
-          effectiveFrom: '2000-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        },
-        {
-          id: 21,
-          listing: { id: 2 },
-          effectiveFrom: '2000-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        },
-        {
-          id: 22,
-          listing: { id: 2 },
-          effectiveFrom: '2020-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        },
-      ],
-      hasNextPage: false,
-      nextPage: null,
-    }))
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
+  it('逐条建快照精筛，不查 payload', async () => {
+    const eligible = makeListing({ id: 1 })
+    const noMerchant = makeListing({ id: 2, merchant: null })
 
     const results = await resolveEffectiveSupplies(
-      payload,
-      [makeListing(), makeListing({ id: 2 })],
+      unusedPayloadPort(),
+      [eligible, noMerchant],
       asOf,
     )
 
-    expect(find).toHaveBeenCalledTimes(1)
     expect(results.get('1')).toMatchObject({ eligible: true })
     expect(results.get('2')?.eligible).toBe(false)
     expect(results.get('2')?.reasons).toContain(
-      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
+      EFFECTIVE_SUPPLY_EXCLUSION_CODES.NO_SUPPLY_MERCHANT,
     )
-    expect(find.mock.calls[0][0]).toMatchObject({
-      collection: 'listing-merchant-relations',
-      depth: 1,
-      limit: 1_000,
-      page: 1,
-      overrideAccess: true,
-      where: {
-        and: [
-          { listing: { in: [1, 2] } },
-          { effectiveFrom: { less_than_equal: asOf.toISOString() } },
-          {
-            or: [
-              { effectiveTo: { exists: false } },
-              { effectiveTo: { greater_than: asOf.toISOString() } },
-            ],
-          },
-        ],
-      },
-    })
   })
 
-  it('paginates active relations so a later page overlap fails closed', async () => {
-    const merchant = makeListing().merchant
-    const firstPage = [
-      ...Array.from({ length: 999 }, (_, index) => ({
-        id: index + 21,
-        listing: 2,
-        effectiveFrom: '2025-01-02T00:00:00.000Z',
-        effectiveTo: null,
-        merchant,
-      })),
-      {
-        id: 1_020,
-        listing: 1,
-        effectiveFrom: '2025-01-01T00:00:00.000Z',
-        effectiveTo: null,
-        merchant,
-      },
-    ]
-    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
-      docs: Array<Record<string, unknown>>
-      hasNextPage: boolean
-      nextPage: number | null
-    }>>(async (params) => {
-      if (params.page === 2) {
-        return {
-          docs: [{
-            id: 12,
-            listing: 1,
-            effectiveFrom: '2024-01-01T00:00:00.000Z',
-            effectiveTo: null,
-            merchant,
-          }],
-          hasNextPage: false,
-          nextPage: null,
-        }
-      }
-      return { docs: firstPage, hasNextPage: true, nextPage: 2 }
-    })
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
+  it('listing.id 无法归一化时跳过该条（不产出结果）', async () => {
     const results = await resolveEffectiveSupplies(
-      payload,
-      [makeListing(), makeListing({ id: 2 })],
+      unusedPayloadPort(),
+      [{ ...makeListing(), id: undefined }],
       asOf,
     )
-
-    expect(results.get('1')?.eligible).toBe(false)
-    expect(results.get('1')?.reasons).toContain(
-      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
-    )
-    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
-    expect(find.mock.calls[0][0]).toMatchObject({ limit: 1_000, page: 1 })
-  })
-
-  it('continues when nextPage alone indicates forward progress', async () => {
-    const merchant = makeListing().merchant
-    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
-      docs: Array<Record<string, unknown>>
-      hasNextPage?: boolean
-      nextPage?: number | null
-    }>>(async (params) => {
-      if (params.page === 2) {
-        return {
-          docs: [{
-            id: 12,
-            listing: 1,
-            effectiveFrom: '2024-01-01T00:00:00.000Z',
-            effectiveTo: null,
-            merchant,
-          }],
-          hasNextPage: false,
-          nextPage: null,
-        }
-      }
-      return {
-        docs: [{
-          id: 11,
-          listing: 1,
-          effectiveFrom: '2025-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        }],
-        nextPage: 2,
-      }
-    })
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
-    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
-
-    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
-    expect(results.get('1')?.eligible).toBe(false)
-    expect(results.get('1')?.reasons).toContain(
-      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
-    )
-  })
-
-  it('continues to the following page when hasNextPage alone is true', async () => {
-    const merchant = makeListing().merchant
-    const find = vi.fn<(params: Record<string, unknown>) => Promise<{
-      docs: Array<Record<string, unknown>>
-      hasNextPage?: boolean
-      nextPage?: number | null
-    }>>(async (params) => {
-      if (params.page === 2) {
-        return {
-          docs: [{
-            id: 12,
-            listing: 1,
-            effectiveFrom: '2024-01-01T00:00:00.000Z',
-            effectiveTo: null,
-            merchant,
-          }],
-          hasNextPage: false,
-        }
-      }
-      return {
-        docs: [{
-          id: 11,
-          listing: 1,
-          effectiveFrom: '2025-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        }],
-        hasNextPage: true,
-      }
-    })
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
-    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
-
-    expect(find.mock.calls.map(([params]) => params.page)).toEqual([1, 2])
-    expect(results.get('1')?.eligible).toBe(false)
-    expect(results.get('1')?.reasons).toContain(
-      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
-    )
-  })
-
-  it.each([
-    ['missing pagination metadata', {}],
-    ['null next page', { hasNextPage: true, nextPage: null }],
-    ['non-advancing next page', { hasNextPage: true, nextPage: 1 }],
-  ])('rejects malformed pagination metadata: %s', async (_label, metadata) => {
-    let queryCount = 0
-    const find = vi.fn(async () => {
-      queryCount += 1
-      if (queryCount > 2) throw new Error('pagination regression test guard exceeded')
-      return { docs: [], ...metadata }
-    })
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
-    await expect(resolveEffectiveSupplies(payload, [makeListing()], asOf)).rejects.toThrow(
-      'invalid effective-relation pagination metadata',
-    )
-  })
-
-  it('rejects contradictory terminal and forward pagination metadata', async () => {
-    const find = vi.fn(async () => ({
-      docs: [],
-      hasNextPage: false,
-      nextPage: 2,
-    }))
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
-    await expect(resolveEffectiveSupplies(payload, [makeListing()], asOf)).rejects.toThrow(
-      'invalid effective-relation pagination metadata',
-    )
-    expect(find).toHaveBeenCalledTimes(1)
-  })
-
-  it('counts malformed active rows before parsing cardinality', async () => {
-    const merchant = makeListing().merchant
-    const find = vi.fn(async () => ({
-      docs: [
-        {
-          id: 11,
-          listing: 1,
-          effectiveFrom: '2025-01-01T00:00:00.000Z',
-          effectiveTo: null,
-          merchant,
-        },
-        {
-          id: 12,
-          listing: 1,
-          effectiveFrom: 'not-a-date',
-          effectiveTo: null,
-          merchant,
-        },
-      ],
-      hasNextPage: false,
-      nextPage: null,
-    }))
-    const payload: Parameters<typeof resolveEffectiveSupplies>[0] = { find }
-
-    const results = await resolveEffectiveSupplies(payload, [makeListing()], asOf)
-
-    expect(results.get('1')?.eligible).toBe(false)
-    expect(results.get('1')?.reasons).toContain(
-      EFFECTIVE_SUPPLY_EXCLUSION_CODES.RELATION_NOT_EFFECTIVE,
-    )
+    expect(results.size).toBe(0)
   })
 })
 
 /**
- * depth 归一化契约（供 loadEffectiveRelations 依赖）
+ * depth 归一化契约
  *
- * 批量载入商户关系时用 depth 1 而非 depth 2：关系上只需要 listing 的 id 与
- * merchant 对象，listing 保持 id 形态即可。depth 2 会把每条关系的 listing
- * 整个文档再展开一层，数千条关系时是楼盘列表页最大的一笔开销。
- *
- * 本用例锁住该前提：merchant 的 serviceCities 无论是 id 数组（depth 1）还是
- * 已展开对象数组（depth 2），派生出的快照必须完全相同。前提一旦被破坏，
- * 房源可见性口径会在前台/预览/聚合/Dashboard 之间分叉。
+ * merchant 的 serviceCities 无论是 id 数组（depth 1）还是已展开对象数组
+ * （depth 2），派生出的快照必须完全相同。前提一旦被破坏，房源可见性口径会在
+ * 前台/预览/聚合/Dashboard 之间分叉。
  */
 describe('buildEffectiveSnapshot: depth 1 与 depth 2 形态等价', () => {
   const merchantDepth2 = {
@@ -493,30 +174,32 @@ describe('buildEffectiveSnapshot: depth 1 与 depth 2 形态等价', () => {
     serviceCities: [{ id: 100, name: '上海' }, { id: 101, name: '北京' }],
   }
   const merchantDepth1 = { ...merchantDepth2, serviceCities: [100, 101] }
-  const period = { startsAt: '2026-01-01T00:00:00.000Z', endsAt: null }
   const gallery = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
 
   it('serviceCities 为 id 数组或对象数组，快照一致', () => {
-    const listing = { id: 1, gallery, building: { id: 5, city: 100 } }
+    const listingDepth2 = { id: 1, gallery, building: { id: 5, city: 100 }, merchant: merchantDepth2 }
+    const listingDepth1 = { id: 1, gallery, building: { id: 5, city: 100 }, merchant: merchantDepth1 }
 
-    const fromDepth2 = buildEffectiveSnapshot(listing, period, merchantDepth2)
-    const fromDepth1 = buildEffectiveSnapshot(listing, period, merchantDepth1)
+    const fromDepth2 = buildEffectiveSnapshot(listingDepth2)
+    const fromDepth1 = buildEffectiveSnapshot(listingDepth1)
 
     expect(fromDepth1).toEqual(fromDepth2)
-    expect(fromDepth1.merchant.serviceCityIds).toEqual([100, 101])
+    expect(fromDepth1.merchant?.serviceCityIds).toEqual([100, 101])
   })
 
   it('building.city 为 id 或已展开对象，buildingCityId 一致', () => {
-    const cityAsId = buildEffectiveSnapshot(
-      { id: 1, gallery, building: { id: 5, city: 100 } },
-      period,
-      merchantDepth1,
-    )
-    const cityAsObject = buildEffectiveSnapshot(
-      { id: 1, gallery, building: { id: 5, city: { id: 100, name: '上海' } } },
-      period,
-      merchantDepth1,
-    )
+    const cityAsId = buildEffectiveSnapshot({
+      id: 1,
+      gallery,
+      building: { id: 5, city: 100 },
+      merchant: merchantDepth1,
+    })
+    const cityAsObject = buildEffectiveSnapshot({
+      id: 1,
+      gallery,
+      building: { id: 5, city: { id: 100, name: '上海' } },
+      merchant: merchantDepth1,
+    })
 
     expect(cityAsId.buildingCityId).toBe(100)
     expect(cityAsObject.buildingCityId).toBe(100)

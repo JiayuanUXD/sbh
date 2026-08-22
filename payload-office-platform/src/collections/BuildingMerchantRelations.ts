@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 import { protectBuildingMerchantRelation } from '@/domain/supply/building-merchant-relation-protect'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 
 /**
  * 楼盘-商户有效期关系（tasks.md M3.3 / design §3.3 供给关系 / R2, R3）
@@ -43,6 +47,14 @@ export const BuildingMerchantRelations: CollectionConfig = {
       type: 'relationship',
       relationTo: 'merchants',
       required: true,
+      // 新建楼盘默认商户关系时预选「官网」，免去每次手点同一个值。
+      // 只挑合格商户（启用 + 资质有效）；解析不到就不给默认值，
+      // 仍由 required 与 protect hook 的准入门禁把关。
+      defaultValue: async ({ req }) =>
+        await resolveDefaultSupplyMerchant(
+          req.payload as unknown as MerchantLookupPort,
+          req,
+        ),
       // 仅启用城市对应候选由 protect hook 的准入门禁把关,此处不做 filterOptions
     },
     {

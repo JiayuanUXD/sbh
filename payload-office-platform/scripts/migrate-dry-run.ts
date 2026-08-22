@@ -19,6 +19,13 @@ import { readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  isDestructiveMigrationApproved,
+  DESTRUCTIVE_APPROVAL_HINT,
+  type DestructiveMigrationApprovalEntry,
+  type DestructiveRiskKind,
+} from './destructive-migration-approvals'
+
 const here = pathDirname(fileURLToPath(import.meta.url))
 const migrationsDir = resolve(here, '..', 'src', 'migrations')
 
@@ -26,6 +33,8 @@ type ForbiddenPattern = {
   pattern: RegExp
   severity: 'block' | 'warn'
   reason: string
+  /** 只有 DROP TABLE/DROP COLUMN 才带这个字段，才可能被批准清单放行；本文件不写死任何具体迁移名。 */
+  kind?: DestructiveRiskKind
 }
 
 // 禁止操作模式（block = 必须人工确认后才能放行；warn = 提醒）
@@ -33,12 +42,14 @@ const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
   {
     pattern: /DROP\s+TABLE/i,
     severity: 'block',
-    reason: '禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理',
+    reason: `禁止删除表；旧表应通过“扩展 → 回填 → 双读 → 切换 → 收敛”流程处理。${DESTRUCTIVE_APPROVAL_HINT}`,
+    kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'block',
-    reason: '禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移',
+    reason: `禁止删除字段（AGENTS.md §9.1）；旧字段保留双读，待用户明确确认后单独迁移。${DESTRUCTIVE_APPROVAL_HINT}`,
+    kind: 'DROP_COLUMN',
   },
   {
     pattern: /DROP\s+INDEX/i,
@@ -78,18 +89,26 @@ const FORBIDDEN_PATTERNS: ForbiddenPattern[] = [
   },
 ]
 
+type ForbiddenHit = {
+  severity: 'block' | 'warn'
+  pattern: string
+  reason: string
+  line: number
+  snippet: string
+  kind?: DestructiveRiskKind
+}
+
 type MigrationAnalysis = {
   name: string
   hasUp: boolean
   hasDown: boolean
   hasJson: boolean
-  forbiddenHits: Array<{
-    severity: 'block' | 'warn'
-    pattern: string
-    reason: string
-    line: number
-    snippet: string
-  }>
+  /** 未获批准、仍然阻断的命中项。 */
+  forbiddenHits: ForbiddenHit[]
+  /** 命中了 DROP TABLE/DROP COLUMN 但经批准清单精确匹配放行的命中项——
+   * 不计入 blockingCount，但保留下来打印，方便审查者一眼看到"这里本来会拦，
+   * 因为批准了才放行"，而不是让它悄悄消失。 */
+  approvedHits: ForbiddenHit[]
 }
 
 type DryRunReport = {
@@ -109,15 +128,28 @@ function getDatabaseMeta() {
   return { kind: 'postgres' as const, urlMasked: databaseUrl.replace(/:[^:@/]+@/, ':****@') }
 }
 
-function analyzeMigration(name: string): MigrationAnalysis {
+/**
+ * 分析单份迁移：提取 up() 正文、按 FORBIDDEN_PATTERNS 扫描、再按批准清单分流。
+ *
+ * 导出是为了让 tests/migrate-dry-run.test.ts 能对**闸门逻辑本身**下断言，而不是
+ * 只测提取器——这道闸此前零覆盖：把下面的批准分流条件写反、或让 approved 恒真，
+ * `pnpm test` 与 CI 都不会有任何反应，闸门会静默全放行。
+ *
+ * `approvals` 参数可选，默认读真实清单文件；测试传 `[]` 就能验证「没有批准时这道
+ * 闸真的会拦」，传默认值则验证「有批准时不会误拦」，两个方向都锁住。
+ */
+export function analyzeMigration(
+  name: string,
+  approvals?: DestructiveMigrationApprovalEntry[],
+): MigrationAnalysis {
   const tsPath = resolve(migrationsDir, `${name}.ts`)
   const jsonPath = resolve(migrationsDir, `${name}.json`)
   const ts = existsSync(tsPath) ? readFileSync(tsPath, 'utf8') : ''
 
-  const forbiddenHits: MigrationAnalysis['forbiddenHits'] = []
+  const rawHits: ForbiddenHit[] = []
 
   // 只检查 up() 函数体：forward 迁移禁止破坏性操作
-  // down() 是回滚入口，DROP 是合理操作；AGENTS.md §9.1 的禁令针对 forward 迁移
+  // down() 是回滚入口，DROP 是合法操作；AGENTS.md §9.1 的禁令针对 forward 迁移
   const upBody = extractFunctionBody(ts, 'up')
   const allLines = ts.split('\n')
   const upStartLine = allLines.findIndex((l) => /export\s+async\s+function\s+up/.test(l))
@@ -128,16 +160,25 @@ function analyzeMigration(name: string): MigrationAnalysis {
     for (const p of FORBIDDEN_PATTERNS) {
       const m = line.match(p.pattern)
       if (m) {
-        forbiddenHits.push({
+        rawHits.push({
           severity: p.severity,
           pattern: m[0],
           reason: p.reason,
           line: upStartLine >= 0 ? upStartLine + 1 + i : i + 1,
           snippet: line.trim().slice(0, 120),
+          kind: p.kind,
         })
       }
     }
   }
+
+  // 批准清单是整份迁移 .ts 文件内容的 SHA-256——真正的内容指纹，不是只认
+  // 迁移名、也不是只认出现次数：文件内容哪怕改一个字节（换掉 DROP TABLE 的
+  // 目标表名、调整 down()）都会让批准失效，不会被静默放行。批准数据来自
+  // DESTRUCTIVE_MIGRATION_APPROVALS.json，这个函数本身不含任何具体迁移名。
+  const approved = isDestructiveMigrationApproved(name, ts, approvals)
+  const forbiddenHits = rawHits.filter((h) => !(approved && h.kind))
+  const approvedHits = rawHits.filter((h) => approved && h.kind)
 
   return {
     name,
@@ -145,6 +186,7 @@ function analyzeMigration(name: string): MigrationAnalysis {
     hasDown: /export\s+async\s+function\s+down/.test(ts),
     hasJson: existsSync(jsonPath),
     forbiddenHits,
+    approvedHits,
   }
 }
 
@@ -191,7 +233,8 @@ export function extractFunctionBody(source: string, name: 'up' | 'down'): string
   return source.slice(openIdx + 1, endIdx)
 }
 
-function listMigrationNames(): string[] {
+/** 本闸门的扫描范围来源：index.ts 里注册的迁移名。导出供 blanket 测试遍历同一批。 */
+export function listMigrationNames(): string[] {
   const indexTsPath = resolve(migrationsDir, 'index.ts')
   if (!existsSync(indexTsPath)) return []
   const entries = readFileSync(indexTsPath, 'utf8')
@@ -202,7 +245,9 @@ function listMigrationNames(): string[] {
 
 function generateReport(): DryRunReport {
   const names = listMigrationNames()
-  const migrations = names.map(analyzeMigration)
+  // 显式单参调用：analyzeMigration 第二参是可选的 approvals，直接传给 map 会把
+  // 下标当成批准清单传进去。
+  const migrations = names.map((name) => analyzeMigration(name))
   const blockingCount = migrations.reduce(
     (acc, m) => acc + m.forbiddenHits.filter((h) => h.severity === 'block').length,
     0,
@@ -241,7 +286,7 @@ function main() {
   for (const m of report.migrations) {
     console.log(`- ${m.name}`)
     console.log(`    up: ${m.hasUp}, down: ${m.hasDown}, json: ${m.hasJson}`)
-    if (m.forbiddenHits.length === 0) {
+    if (m.forbiddenHits.length === 0 && m.approvedHits.length === 0) {
       console.log('    no forbidden patterns')
       continue
     }
@@ -249,6 +294,11 @@ function main() {
       const tag = h.severity === 'block' ? 'BLOCK' : 'WARN'
       console.log(`    [${tag}] L${h.line}: ${h.pattern}`)
       console.log(`      reason:  ${h.reason}`)
+      console.log(`      snippet: ${h.snippet}`)
+    }
+    for (const h of m.approvedHits) {
+      console.log(`    [APPROVED] L${h.line}: ${h.pattern} —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json`)
+      console.log(`      note:    该模式默认禁止，已按批准清单人工核准放行`)
       console.log(`      snippet: ${h.snippet}`)
     }
   }
