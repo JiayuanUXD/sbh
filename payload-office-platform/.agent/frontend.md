@@ -28,8 +28,8 @@
 
 - 两级底色：`--bg`（#f5f5f7，全局）/ `--bg-subtle`（#ffffff，白底带与卡片）；分区靠底色块交替，不靠分隔线。唯一彩色 `--accent`（#0071e3）只给可交互元素，正文内链接用更深的 `--accent-link`（#0066cc）；标签徽章零色相，靠底色深浅 + 字重分层。
 - `--ink-3` 在白底仅 3.62:1，只能做占位符/禁用态；真实信息文本至少 `--ink-2`（5.07:1）。设计稿多处标 ink-3，此处对比度优先于照稿。
-- 中文一律 `letter-spacing: normal`，**唯一例外**是 21px 引导副标 `+0.011em`（`.hm-lead`）；不给汉字套西文负字距。
-- 数字（租金/面积/统计/日期）一律 tabular-nums；缺失显示 `—`、**不显示 0**，也不做「从 0 滚到真值」的入场动画——任一降级路径（SSR 首帧、禁用 JS、整页截图、观察器不触发）都会把真实库存渲染成 0。
+- 中文一律 `letter-spacing: normal`，**无例外**；不给汉字套西文负字距。（原先记的唯一例外 `.hm-lead` `+0.011em` 已随该类零使用一并删除，见 OPT-037 终审第 2 轮 D2。）
+- 数字（租金/面积/统计/日期）一律 tabular-nums，实现走 `styles/surface.css` 的 `.sf-num` 基元（**不要在各页样式里再内联一遍 `font-variant-numeric`**——详情页曾内联复制 9 次，其中一处静默漏掉）；缺失显示 `—`、**不显示 0**，也不做「从 0 滚到真值」的入场动画——任一降级路径（SSR 首帧、禁用 JS、整页截图、观察器不触发）都会把真实库存渲染成 0。
 - 字体只用系统栈 `--font`（SF Pro Text → -apple-system → `--font-cn` PingFang SC），不引 webfont，不用 Inter / system-ui 作主字体。
 - 布局：容器 `--w` 1180px、正文栏宽 `--measure` 702px、section padding `--pad` 72px（相邻 section 总留白 `--gap` 144px）；底色带在所有断点满宽出血。
 - 容器**不按断点换挡**，是一条流体规则 `width: min(var(--w), 100% - 32px)`——别再给容器加媒体查询。新体系只用两个宽度断点：`max-width: 1023px`（只管类型卡五等分→2 列）与 `max-width: 767px`（移动稿主断点）。重点验证 375、768、1440、1920。
@@ -44,6 +44,11 @@
 - 滚动进场用原生 `animation-timeline: view()`，必须 `@supports (animation-timeline: view())` 包裹且**不写 `fill-mode: both`**——时间线未激活时 both 会把元素锁死在 `opacity: .001`，整段内容隐形。
 - 动效：常规交互用 token 三档 120/200/320ms（交互反馈 120、状态切换 200、卡片抬升 320），滚动进场 400–800ms；避免自动轮播、阻挡搜索的视频、大面积阴影；一律尊重 `prefers-reduced-motion`。
 - 旧 `--color-*` 名（`--color-copper`、`--color-paper` 等）现在只是新 token 的**别名**，只为未改版内页过渡而存在。新代码一律用新名；改版某页时顺手把该页引用换成新名。
+  - **例外：`--color-on-ink: #f5f5f7` 不是别名，是字面量。** `--color-canvas`/`--color-surface`/
+    `--color-copper`/`--color-ink` 各自 `var()` 指向 1.1 体系的 token，换掉它们是纯粹解引用；
+    但 1.1 体系里**根本没有「墨底上的字色」这个 token**（只有 `--on-accent`）。
+    把 `--color-on-ink` 也「顺手换掉」只有两条路：写死 `#f5f5f7`（把一个已单点化的取值散回各调用点），
+    或新造 `--on-ink`（设计系统层面的动作，不该塞进清理批次）。**保留，别随手换。**
 
 ## 列表页（筛选页）
 
@@ -63,6 +68,107 @@
 - `prefetch={false}` 的判据（不是无脑全加）：**高基数 + 内容驱动 + 常驻渲染**的链接要加（筛选选项 `FilterFormC` / `FilterPill`）；固定枚举（排序 4 项、视图 2 项、单位 3 项）、有硬上限的窗口（页码 ~7 个节点）、仅空态渲染的退路行不需要。桌面加了移动没加 = 同一缺陷漏了一半，不是「移动端风险较低」。
 - 已知缺口（尚未修）：`.ls-filterc` 没有 `<768px` 隐藏规则，整块筛选条在 375 下照常渲染，其中 36 高开关 pill、28 高 chip、行内纯文本选项都低于 44px 触达下限。要修得先决定筛选条在窄屏下的归属，是跨两个列表页的一次性处置。
 
+## 详情页
+
+房源详情 / 楼盘详情由 OPT-037 锁定，样式在 `styles/detail.css`（`.dt-*` 两页共用），组件在
+`components/frontend/detail/`（两页共用基元）与 `components/frontend/building-detail/`（楼盘页专属）。
+两页共用同一套骨架类（`.dt-page` / `.dt-container` / `.dt-core` / `.dt-section` / `.dt-h2` / `.dt-titlebar`），
+差异只在栏内内容。`detail.css` 在 `layout.tsx` 里排在 `styles.css` **之后** import，靠「同特异度、后来者胜」
+覆写旧详情页取值（`.location-panel__*` / `.detail-gallery__*` / `.building-card-mini` 全是这个机制），顺序反了静默失效。
+
+### 面板基元 `.dt-panel` 与卡片基元 `.sf-card` 是两回事，不要互相「统一」
+
+- `.dt-panel`：底 `--bg-subtle`（#fff）、圆角 `--r-card`（18）、**零边框零阴影、无 hover**；
+  `--full`（通栏面板）padding **40**、`--side`（决策卡 / 信息面板）padding **32**。由 `DetailPanel.tsx` 提供。
+- `.sf-card`：静态阴影 + hover `translateY(-2px)` + 阴影加深、320ms。
+- 差异是语义性的：`.sf-card` 整张卡是一个链接，hover 反馈是在说「这块能点」；详情页面板只是分组容器，
+  套上抬升等于给用户一个假的可点提示。padding 也不同向——列表卡 **14/16**（`list.css`：
+  `.ls-card__body` 14px 16px 16px、`.ls-rowcard` 16px；**首页卡才是 18–24**：
+  `.hm-type-card__body` 18/20、`.hm-supply-card__body` 20/24）服务浏览密度，详情面板 40/32
+  服务「已经决定看这一套、要从容读完」。**合并两头不讨好。**
+  （2026-08-22 终审订正：原文写「列表卡 16–20」，把首页卡的数字安到了列表卡头上。
+  结论不变——14–16 与 32–40 仍是两倍以上的差距——但引用时别再引那个数。）
+- 图上渐变 / 图上标签 / 图容器仍走 `.sf-*` 共享基元。详情主图的压暗**没有**照稿子的 `.46 / 38%`，
+  直接复用 `.sf-scrim`（`.42 / 45%`）——差异落在渐变最浅端不可辨，理由写在 `detail.css` 画廊小节。
+
+### 核心区栏宽与容器
+
+- `.dt-page` 上定义 `--dt-w: 1180px` / `--dt-main: 776px` / `--dt-side: 372px`；
+  `.dt-core` 是 `grid-template-columns: var(--dt-main) var(--dt-side)`、`column-gap: 32px`、`row-gap: 0`、
+  **`align-items: start`**。776 + 32 + 372 = 1180。
+- `align-items: start` 不是视觉偏好，是决策卡 sticky 粘附区间的地基（见下）。删它会让两列拉伸到同一行高。
+- `.location-panel__grid` 用同一组字面量 `776px 372px` / gap 32（组件写死 class，无法从外部传变量）。
+- 纵向节奏：`.dt-page { --dt-sec: 56px }`，`.dt-section` **只给 `padding-top`**——段与段之间恒为一份 56，
+  不会出现「上段 margin-bottom + 本段 margin-top」的双份。≤767 降到 40。
+  这与首页「`--pad` 72、相邻 section 总留白 144」是两套节奏，不要对齐。
+- 塌栅格断点统一 **1023**（`.dt-core` / `.dt-building-spec` / `.dt-related-grid` 同一个），
+  几处不一致会出现「核心区已单列、别处还两列」的半塌状态。
+
+### 页面根出血：`.dt-page` 用 `width:100vw; margin-inline: calc(50% - 50vw)`
+
+- 这是**照抄首页 `.hm-home`（`home.css`）的既有做法，不是每页发明一份**；全站 `body { overflow-x: clip }`
+  （`styles.css` body 规则内）就是为它配套用来裁掉 100vw 与滚动条宽度之差的。
+- 为什么必须出血：吸附条（`.dt-bar`）是全幅块，毛玻璃与底线要横贯视口、与正上方 `.site-header` 对齐；
+  而祖先 `.site-main` 带 `max-width: var(--container-max)`（1440）+ `padding: var(--sp-6) var(--container-pad-x)`
+  （32 / 24）。不破这层，条被按在 `clientWidth - 48` 上，玻璃断在容器边界。
+- 只破左右不够，纵向那份 `--sp-6` 由 `.dt-page { margin-top: calc(var(--sp-6) * -1) }` 抵消，
+  否则标题栏自己的 32 会叠成 64。同一手法见列表页 `.ls-page`。
+
+### sticky 交接：三个块，三种定位，各有理由，不要「统一」
+
+| 块 | 定位 | 取值 | 为什么 |
+|---|---|---|---|
+| 决策卡 `.dt-decision` | `sticky` | `top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 16px)` = 44+56+16 | 粘附区间 = `.dt-core` 第 1 行的 grid area（grid item 的包含块是它的 grid area，不是收缩后的盒子），画廊滚完即自然释放 |
+| 吸附询价条 `.dt-sticky-bar`（房源页） | **`fixed`** + `top: var(--header-height)` | 高 `--dt-sticky-bar-h` | 由 `StickyInquiryBar.tsx` 的 IntersectionObserver **整体挂载/卸载**，不是 CSS 显隐。用 sticky 会在挂载瞬间在原位吃掉 56px 高把下方内容顶下去，靠 Chromium scroll anchoring 补偿——正确性不该建在浏览器行为上。它从不展示「未吸附」态，fixed 与 sticky 已吸附态视觉等价 |
+| 锚点导航条 `.dt-anchor-bar`（楼盘页） | **字面 `sticky`** + `top: var(--header-height)` | 同上 | 常驻渲染、首帧就占位，没有上面那个问题；照抄 `fixed` 反而会把标题栏顶部遮掉 56px。sticky 还天然获得「滚过才吸附」 |
+
+- `--dt-sticky-bar-h: 56px` 挂 **`:root`** 不挂 `.dt-page`：`.dt-bar` / `.dt-anchor-target` 的使用范围不限于
+  `.dt-page` 子树，挂页面根会让子树外静默走字面兜底 = 两个事实源。所有 `, 56px` 兜底已一并删掉，缺失即暴露。
+- 锚点落点 `.dt-anchor-target { scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 12px) }`
+  （= 112）。那 12 不是凑数：只补到吸附总高时区块首行贴死在毛玻璃下沿。
+  `LocationPanel` 的 `<section>` class 写死、外部加不上该类，所以在 CSS 里与它并列挂同一条规则——
+  **不要**在 JS 里再写一份 `44 + 56 + 12`。
+- `.dt-sticky-bar` 的隐藏断点是 **≤767** 而不是 ≤1023：`.dt-decision` 在 ≤1023 只是回普通文档流、没有常驻入口顶上，
+  而 `.detail__mobile-bar` 自己只在 ≤767 出现，两条各按各的断点收会让 768–1023 出现「滚过决策卡后没有任何询价入口」的空档。
+- `.dt-anchor-bar` 在 ≤767 **保留**（只藏楼盘名与 CTA）：移动底栏是询价 CTA 不是导航，回答不了「跳到楼盘参数」。
+
+### `AnchorNavBar` 的两条接线契约（Task 10 唯一会踩的坑）
+
+1. **`items` 由调用方按区块真实渲染与否装配，不得硬编码。** 硬约束是「**结构性空壳**整段不渲染」
+   （无坐标不渲染地图区、同商圈无楼盘不渲染该区、参数与特色全空不渲染参数区），硬编码 4 项会在这些页面上
+   产出指向不存在元素的死锚点。id 还必须互不相同（既是 React key 也是择一规则主键，开发环境会 `console.error`）。
+   ⚠️ **「供给三组全空 → 不渲染供给区」是已撤回的裁定，别照着加守卫。** `#supply` 恒渲染，
+   空态由 `BuildingSupplyBrowser` 的「当前暂无公开可选空间」承担，`tests/e2e/detail-pages.spec.ts` 已锁死——
+   加守卫 e2e 直接红。**结构性空壳不渲染 ≠ 诚实空态不渲染**：前者是渲染出来一无所获的壳（无坐标的地图容器、
+   全是「—」的参数货架），后者是「查过了，答案是没有」这件本身就是信息的事，必须渲染。
+2. **sticky 的包含块必须覆盖全部被锚点指向的区块**，且必须是全幅块。包含块比区块集合短，条会在还有区块没读完时脱附。
+- 择一规则读的是各区块自己的 `getComputedStyle(el).scrollMarginTop`，**JS 里一个落点字面量都不写**；
+  规则只依赖几何不依赖数组顺序。已知残留缺口：到底兜底只救几何最靠下的**一个**区块，页尾连着两个短区块时
+  倒数第二个永不高亮（注释里已承认，未修）。
+
+### 规格表 / 概况面板的缺失口径
+
+- `SpecTable`（`.dt-spec`）行 `min-height 44` / `padding 11px 0` / 键 `15/400/--ink-2` / 值 `15/500/--ink` 右对齐 +
+  `tabular-nums`；行线 `1px solid --line`，`:last-child` 无线。行 `gap` 统一 **24**（两稿分叉 16/24，
+  `space-between` 下不可见，见 `cross-batch-design-decisions.md`）。
+- **`value: null` 渲染 `—` 且保留该行，不显示 0，不隐藏整行。** 「这个维度不在数据里」与「这套房源在该维度上没有值」
+  是两件事；隐藏会让用户误以为「没提所以是有的」。整组缺失同样渲染全 `—` 行而不是隐藏整组——行级与组级用同一条判断，
+  不搞两套规则。这与「空态整段不渲染」不冲突：后者针对**结构性空壳**（渲染出来一无所获，如无坐标的地图容器）。
+- 已知边界：`SpecTable` 用 `row.value ?? '—'`，**空字符串会渲染成空白而不是 `—`**，由调用方控数据。
+- 概况面板组间距 40、组标签 `.dt-group-title`（`13/600/--ink-3`）——该类由房源概况与楼盘参数两个面板共用。
+
+### 「租金账」tab 已取消（2026-08-21 产品裁定），别当疏漏补回来
+
+原稿在概况处给两个 tab（房源概况 / 租金账）。租金账整块移除，概况**不再套 tab 容器**——只剩一个选项的
+tab 是点了没反应的死控件。若将来要恢复，先重新评估这条量纲问题：租金三种单位（元/月 · 元/㎡/天 · 元/工位/月）
+与物业费（元/㎡/月）、停车费（元/月/位）量纲不同，**缺面积或车位数时无法通约，合计不可简单相加**。
+
+### `prefetch={false}` 的判据锚点在 `ui/Breadcrumb.tsx`
+
+三条件**并列**：①高基数 ②内容驱动 ③常驻渲染，缺一条就不关。①问的是**这一页渲染出几条互不相同的 URL**，
+不是同一批 URL 出现几次——Next 按 URL 去重。精确表述与两个真实误判案例写在 `ui/Breadcrumb.tsx` 文件头，
+**其余组件凡理由涉及「去重」的一律回指该处，不要各写一份措辞**（同义表述一多必然漂移）。
+
 ## 状态
 
 每页验证正常、加载、空、错误、404/失效、长文本、极值、图片失败、小视口和减少动效。失败不得伪装成 0 数据；无结果不得混入不匹配供给。
@@ -76,6 +182,14 @@
 
 - **`aria-pressed` 只在 `role="button"` 下有效**。导航链接（`<Link>`，`role=link`）的当前态用 `aria-current`。禁止用「给它加个 `role="button"` 让属性合法」的捷径：那些确实是导航链接，谎称按钮比缺属性更糟。已有的 `aria-pressed` 都在真 `<button>` 上，合法，别一并清掉。
 - **清理死代码一律逐类名 / 逐符号核查，禁止按注释标题整块删**。已两次险些误删：旧筛选条标题下的 `.filter-bar__input/.filter-bar__select` 实际被 `ui/Field.tsx` 复用（全站表单靠它），首页批次的 §11 也混着详情页样式。拿不准就留着并在注释里写明理由。
+- **判死一个 CSS 类要两道判据同时成立：grep（含模板串拼接）零命中 + 运行时扫描零命中。缺一不可，两边各有真实反例：**
+  - 只信运行时会误删：`.city-switcher__status--live` / `--coming-soon` 运行时扫 20 条路由 × 2 断点 **0 命中**，
+    但 `CitySwitcher.tsx` 用模板串 `` `city-switcher__status--${city.serviceStatus}` `` 拼类名，
+    取值域由 `domain/city-site-profile/schema.ts` 的 `CITY_SERVICE_STATUSES` 封闭。**是活的。**
+  - 只信 grep 也会误删：`detail.css` 的 `.amap-layer` / `.amap-maps` grep **0 命中**，
+    因为它们是高德 JS API v2.0 **运行时注入**的 DOM 类名，只有运行时扫描看得见。**也是活的。**
+  - 还要防子串陷阱：`.detail__summary` 的「唯一近似命中」是 `page-detail__summary`，两者无关。
+    grep 一律带边界，别用裸子串。
 - **守卫要落在失效点那一层，且 fixture 必须是域层真能产出的状态**。只锁底层工具函数，编排层改回旧调用照样全绿（提示条静默消失）；fixture 用一个结构上不可能出现的组合（如 `unfilteredTotal=0` 配 `total=99`），守卫证明的是「prop 传了」而不是「传下去的值可用」。新增守卫后做**变异验证**：故意改坏，确认如期变红，再还原。
 - 子代理报告的「环境级 / 生产级风险」必须在已知正确的环境上复验后才可采信——它们不掌握本会话的隔离库 / 端口上下文，容易把自身环境错配（连错库、切回默认库）归因成产品缺陷，且措辞会逐轮升级。
 

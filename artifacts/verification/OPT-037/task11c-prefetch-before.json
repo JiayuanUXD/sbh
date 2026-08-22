@@ -1,0 +1,330 @@
+[
+  {
+    "url": "/listings",
+    "links": {
+      "lsCard": [
+        "/listings/jingan-serviced-office-42-seats",
+        "/listings/lujiazui-grade-a-780sqm",
+        "/listings/huangpu-bund-coworking",
+        "/listings/media-rich-listing",
+        "/listings/pudong-lujiazui-fullfloor",
+        "/listings/xuhui-xujiahui-traditional",
+        "/listings/changning-hongqiao-serviced",
+        "/listings/jingan-center-fullfloor",
+        "/listings/jingan-price-on-request-300sqm",
+        "/listings/huangpu-bund-traditional"
+      ],
+      "lsRowCard": [],
+      "bdCard": [],
+      "bdRow": [],
+      "listingCard": [],
+      "breadcrumb": [],
+      "buildingSummaryCta": [],
+      "pager": [],
+      "toolbar": [
+        "/listings",
+        "/listings?sort=newest",
+        "/listings",
+        "/listings?view=row"
+      ]
+    },
+    "prefetchedTotal": 26,
+    "detailPrefetched": [
+      "/listings/changning-hongqiao-serviced",
+      "/listings/huangpu-bund-coworking",
+      "/listings/huangpu-bund-traditional",
+      "/listings/jingan-center-fullfloor",
+      "/listings/jingan-price-on-request-300sqm",
+      "/listings/jingan-serviced-office-42-seats",
+      "/listings/lujiazui-grade-a-780sqm",
+      "/listings/media-rich-listing",
+      "/listings/pudong-lujiazui-fullfloor",
+      "/listings/xuhui-xujiahui-traditional"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?priceUnit=rmb-month",
+      "/listings?priceUnit=rmb-seat-month",
+      "/listings?priceUnit=rmb-sqm-day",
+      "/listings?sort=newest",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/listings?view=row",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings/changning-hongqiao-serviced",
+      "/listings/huangpu-bund-coworking",
+      "/listings/huangpu-bund-traditional",
+      "/listings/jingan-center-fullfloor",
+      "/listings/jingan-price-on-request-300sqm",
+      "/listings/jingan-serviced-office-42-seats",
+      "/listings/lujiazui-grade-a-780sqm",
+      "/listings/media-rich-listing",
+      "/listings/pudong-lujiazui-fullfloor",
+      "/listings/xuhui-xujiahui-traditional",
+      "/listings?priceUnit=rmb-month",
+      "/listings?priceUnit=rmb-seat-month",
+      "/listings?priceUnit=rmb-sqm-day",
+      "/listings?sort=newest",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/listings?view=row",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/listings?view=row",
+    "links": {
+      "lsCard": [],
+      "lsRowCard": [
+        "/listings/jingan-serviced-office-42-seats",
+        "/listings/lujiazui-grade-a-780sqm",
+        "/listings/huangpu-bund-coworking",
+        "/listings/media-rich-listing",
+        "/listings/pudong-lujiazui-fullfloor",
+        "/listings/xuhui-xujiahui-traditional",
+        "/listings/changning-hongqiao-serviced",
+        "/listings/jingan-center-fullfloor",
+        "/listings/jingan-price-on-request-300sqm",
+        "/listings/huangpu-bund-traditional"
+      ],
+      "bdCard": [],
+      "bdRow": [],
+      "listingCard": [],
+      "breadcrumb": [],
+      "buildingSummaryCta": [],
+      "pager": [],
+      "toolbar": [
+        "/listings?view=row",
+        "/listings?view=row&sort=newest",
+        "/listings",
+        "/listings?view=row"
+      ]
+    },
+    "prefetchedTotal": 26,
+    "detailPrefetched": [
+      "/listings/changning-hongqiao-serviced",
+      "/listings/huangpu-bund-coworking",
+      "/listings/huangpu-bund-traditional",
+      "/listings/jingan-center-fullfloor",
+      "/listings/jingan-price-on-request-300sqm",
+      "/listings/jingan-serviced-office-42-seats",
+      "/listings/lujiazui-grade-a-780sqm",
+      "/listings/media-rich-listing",
+      "/listings/pudong-lujiazui-fullfloor",
+      "/listings/xuhui-xujiahui-traditional"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/listings?view=row",
+      "/listings?view=row&priceUnit=rmb-month",
+      "/listings?view=row&priceUnit=rmb-seat-month",
+      "/listings?view=row&priceUnit=rmb-sqm-day",
+      "/listings?view=row&sort=newest",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings/changning-hongqiao-serviced",
+      "/listings/huangpu-bund-coworking",
+      "/listings/huangpu-bund-traditional",
+      "/listings/jingan-center-fullfloor",
+      "/listings/jingan-price-on-request-300sqm",
+      "/listings/jingan-serviced-office-42-seats",
+      "/listings/lujiazui-grade-a-780sqm",
+      "/listings/media-rich-listing",
+      "/listings/pudong-lujiazui-fullfloor",
+      "/listings/xuhui-xujiahui-traditional",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/listings?view=row",
+      "/listings?view=row&priceUnit=rmb-month",
+      "/listings?view=row&priceUnit=rmb-seat-month",
+      "/listings?view=row&priceUnit=rmb-sqm-day",
+      "/listings?view=row&sort=newest",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/buildings",
+    "links": {
+      "lsCard": [],
+      "lsRowCard": [],
+      "bdCard": [
+        "/buildings/west-nanjing-premium-center",
+        "/buildings/huangpu-bund",
+        "/buildings/lujiazui-grade-a-river-view",
+        "/buildings/changning-hongqiao",
+        "/buildings/xuhui-xujiahui"
+      ],
+      "bdRow": [
+        "/buildings/empty-building",
+        "/buildings/test0814"
+      ],
+      "listingCard": [],
+      "breadcrumb": [],
+      "buildingSummaryCta": [],
+      "pager": [],
+      "toolbar": [
+        "/buildings",
+        "/buildings?sort=area-desc",
+        "/buildings?sort=grade",
+        "/buildings?sort=completion-desc"
+      ]
+    },
+    "prefetchedTotal": 22,
+    "detailPrefetched": [
+      "/buildings/changning-hongqiao",
+      "/buildings/empty-building",
+      "/buildings/huangpu-bund",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/buildings/test0814",
+      "/buildings/west-nanjing-premium-center",
+      "/buildings/xuhui-xujiahui"
+    ],
+    "queryPrefetched": [
+      "/buildings?onlyWithStock=1",
+      "/buildings?sort=area-desc",
+      "/buildings?sort=completion-desc",
+      "/buildings?sort=grade",
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/buildings/changning-hongqiao",
+      "/buildings/empty-building",
+      "/buildings/huangpu-bund",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/buildings/test0814",
+      "/buildings/west-nanjing-premium-center",
+      "/buildings/xuhui-xujiahui",
+      "/buildings?onlyWithStock=1",
+      "/buildings?sort=area-desc",
+      "/buildings?sort=completion-desc",
+      "/buildings?sort=grade",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/listings/lujiazui-grade-a-780sqm",
+    "links": {
+      "lsCard": [],
+      "lsRowCard": [],
+      "bdCard": [],
+      "bdRow": [],
+      "listingCard": [
+        "/listings/pudong-lujiazui-fullfloor"
+      ],
+      "breadcrumb": [
+        "/",
+        "/listings",
+        "/buildings/lujiazui-grade-a-river-view"
+      ],
+      "buildingSummaryCta": [
+        "/buildings/lujiazui-grade-a-river-view"
+      ],
+      "pager": [],
+      "toolbar": []
+    },
+    "prefetchedTotal": 12,
+    "detailPrefetched": [
+      "/buildings/lujiazui-grade-a-river-view"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/buildings/west-nanjing-premium-center",
+    "links": {
+      "lsCard": [],
+      "lsRowCard": [],
+      "bdCard": [],
+      "bdRow": [],
+      "listingCard": [],
+      "breadcrumb": [
+        "/",
+        "/listings"
+      ],
+      "buildingSummaryCta": [],
+      "pager": [],
+      "toolbar": []
+    },
+    "prefetchedTotal": 12,
+    "detailPrefetched": [
+      "/buildings/empty-building"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/buildings/empty-building",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  }
+]

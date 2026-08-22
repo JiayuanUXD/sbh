@@ -1,0 +1,370 @@
+{
+  "rows": [
+    {
+      "url": "/",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".hm-home": 1
+      }
+    },
+    {
+      "url": "/",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".hm-home": 1
+      }
+    },
+    {
+      "url": "/listings",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".ls-card": 10
+      }
+    },
+    {
+      "url": "/listings",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".ls-card": 10
+      }
+    },
+    {
+      "url": "/buildings",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/buildings",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".building-supply-browser__table": 1,
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 4
+      }
+    },
+    {
+      "url": "/buildings/huangpu-bund",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".building-supply-browser__table": 1,
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/buildings/huangpu-bund",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 1
+      }
+    },
+    {
+      "url": "/buildings/empty-building",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/buildings/empty-building",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 1
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 1
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".site-main": 1,
+        ".listing-card__title": 3
+      }
+    },
+    {
+      "url": "/news",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/news",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/entrust",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/entrust",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/publish",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".publish-card": 1
+      }
+    },
+    {
+      "url": "/publish",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1,
+        ".publish-card": 1
+      }
+    },
+    {
+      "url": "/city-partner",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/city-partner",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".building-supply-browser__table": 1,
+        ".site-main": 1
+      }
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail__section": 1,
+        ".detail__mobile-bar": 1,
+        ".location-panel": 1,
+        ".detail-gallery__tabs": 1,
+        ".site-main": 1,
+        ".listing-card__title": 5
+      }
+    }
+  ],
+  "totals": {
+    ".detail__decision-row": 0,
+    ".detail__decision-cta": 0,
+    ".detail__decision-title": 0,
+    ".amenity-list__group-title": 0,
+    ".amenity-list__items": 0,
+    ".route-planner__modes": 0,
+    ".route-planner__summary": 0,
+    ".route-planner__fallback": 0,
+    ".route-planner__trigger": 0,
+    ".advisor-availability__status--open": 0,
+    ".advisor-availability__status--closed": 0,
+    ".detail-facts__item": 0,
+    ".building-supply-overview__groups": 0,
+    ".building-supply-overview__group": 0,
+    ".detail__summary": 0,
+    ".ls-section": 0,
+    ".hm-lead": 0,
+    ".site-main--narrow": 0,
+    ".listing-card__rent": 0,
+    ".publish-card__error": 0,
+    ".text-copper": 0,
+    ".text-center": 0,
+    ".detail__section": 16,
+    ".detail__mobile-bar": 16,
+    ".location-panel": 16,
+    ".detail__header": 0,
+    ".detail-gallery__tabs": 6,
+    ".building-supply-browser__table": 3,
+    ".site-main": 32,
+    ".listing-card__title": 30,
+    ".publish-card": 2,
+    ".text-muted": 0,
+    ".ls-card": 20,
+    ".hm-home": 2
+  }
+}

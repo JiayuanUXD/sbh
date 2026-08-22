@@ -319,6 +319,13 @@ export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyI
     areaMax = undefined
   }
 
+  let priceMin = parseBuildingSupplyNumber(value, 'priceMin')
+  let priceMax = parseBuildingSupplyNumber(value, 'priceMax')
+  if (priceMin != null && priceMax != null && priceMin > priceMax) {
+    priceMin = undefined
+    priceMax = undefined
+  }
+
   const group = parseBuildingSupplyEnum<NonNullable<BuildingSupplyInput['group']>>(
     value,
     'group',
@@ -341,15 +348,52 @@ export function parseBuildingSupplySearchParams(value: unknown): BuildingSupplyI
   )
   const availableBefore = parseBuildingSupplyDate(value, 'availableBefore')
 
+  // 缺 priceUnit 的价格区间整段丢弃：不可通约的计价单位之间比 amount 没有意义
+  // （元/月 vs 元/㎡/天 vs 元/工位/月）。域层 `matchesInput` 对同一条不变量另有
+  // 守卫——那才是失效点上的守卫；这里做的是 URL 卫生，让 canonical 不会把一个
+  // 注定不生效的参数继续带在链接上。
+  if (!priceUnit) {
+    priceMin = undefined
+    priceMax = undefined
+  }
+
   return {
     ...(group ? { group } : {}),
     ...(areaMin != null ? { areaMin } : {}),
     ...(areaMax != null ? { areaMax } : {}),
+    ...(priceMin != null ? { priceMin } : {}),
+    ...(priceMax != null ? { priceMax } : {}),
     ...(decorationStatus ? { decorationStatus } : {}),
     ...(availableBefore ? { availableBefore } : {}),
     ...(priceUnit ? { priceUnit } : {}),
     ...(sort ? { sort } : {}),
   }
+}
+
+/**
+ * BuildingSupplyInput → canonical URLSearchParams（供组切换 / 筛选 / 排序控件
+ * 构造 href 用）。
+ *
+ * 与 `buildCanonicalSearchParams`（ListingSearchInput 版）同一约定：只输出已
+ * 通过解析校验的规范键，不反射原始 query string——这样调用方（Server Component
+ * 页面）把 `parseBuildingSupplySearchParams` 解析后的 `input` 转回字符串传给
+ * 客户端组件时，非法/过期参数不会被带着走一遍「解析→再序列化」又混进 href。
+ *
+ * `sort` 省略默认值 'recommended'（与 canonical 惯例一致，默认态不占位）。
+ */
+export function buildBuildingSupplyCanonicalSearchParams(input: BuildingSupplyInput): URLSearchParams {
+  const sp = new URLSearchParams()
+  if (input.group) sp.set('group', input.group)
+  if (input.areaMin != null) sp.set('areaMin', String(input.areaMin))
+  if (input.areaMax != null) sp.set('areaMax', String(input.areaMax))
+  // 价格区间只在有 priceUnit 时才是有效状态（见 parseBuildingSupplySearchParams）。
+  if (input.priceUnit && input.priceMin != null) sp.set('priceMin', String(input.priceMin))
+  if (input.priceUnit && input.priceMax != null) sp.set('priceMax', String(input.priceMax))
+  if (input.decorationStatus) sp.set('decorationStatus', input.decorationStatus)
+  if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
+  if (input.priceUnit) sp.set('priceUnit', input.priceUnit)
+  if (input.sort && input.sort !== 'recommended') sp.set('sort', input.sort)
+  return sp
 }
 
 /**

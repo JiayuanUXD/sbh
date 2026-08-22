@@ -1,0 +1,85 @@
+### 噪声本底对照组（同一构建连抓两次）
+=== Task 11c  r7c-after-html vs r7c-after-ctrl-html ===
+listings.html                  DOM 完全一致  len=15929  (before: HTTP 200 族=listings-index)
+listings-row.html              DOM 完全一致  len=16667  (before: HTTP 200 族=listings-index)
+buildings.html                 DOM 完全一致  len=13029  (before: HTTP 200 族=buildings-index)
+listing-detail.html            DOM 完全一致  len=21116  (before: HTTP 200 族=listing-detail)
+building-detail.html           DOM 完全一致  len=26992  (before: HTTP 200 族=building-detail)
+EXIT=0
+
+### Task 11c 改前(cc58023) vs 改后(5dd653e)
+=== Task 11c  r7c-before-html vs r7c-after-html ===
+listings.html                  DOM 完全一致  len=15929  (before: HTTP 200 族=listings-index)
+listings-row.html              DOM 完全一致  len=16667  (before: HTTP 200 族=listings-index)
+buildings.html                 DOM 完全一致  len=13029  (before: HTTP 200 族=buildings-index)
+listing-detail.html            DOM 完全一致  len=21116  (before: HTTP 200 族=listing-detail)
+building-detail.html           DOM 有差异  before=29348 after=26992  diff 行数=54
+    -</span>交通<!-- -->（<!-- -->7<!-- -->）</button>
+    +</span>交通<!-- -->（<!-- -->5<!-- -->）</button>
+    -<div class="location-panel__poi-subtabs" role="tablist" aria-label="交通子分类">
+    -<button type="button" role="tab" aria-selected="true" aria-controls="location-panel-poi-list" class="location-panel__poi-subtab" data-active="true">地铁<!-- -->（<!-- -->2<!-- -->）</button>
+    -<button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-subtab" data-active="false">公交<!-- -->（<!-- -->5<!-- -->）</button>
+    -</div>
+    -<ul id="location-panel-poi-list" class="location-panel__poi-list" role="tabpanel">
+    -<li>
+    -<button type="button" class="location-panel__poi-item" data-highlighted="false">
+    -<span class="location-panel__poi-letter" aria-hidden="true">A</span>
+    -<span class="location-panel__poi-info">
+    -<span class="location-panel__poi-name">南京西路(地铁站)</span>
+    -<span class="location-panel__poi-meta">
+    -<span class="location-panel__poi-lines" aria-label="地铁线路">
+    -<span class="location-panel__poi-line-tag">12号线</span>
+    -<span class="location-panel__poi-line-tag">13号线</span>
+    -<span class="location-panel__poi-line-tag">2号线</span>
+    -</span>
+    -<span class="location-panel__poi-distance">
+    -<span class="location-panel__poi-distance-icon" aria-hidden="true">
+    -<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    -<path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z">
+    -</path>
+    -<circle cx="12" cy="9" r="2.5">
+    -</circle>
+    -</svg>
+    -</span>132<!-- --> 米</span>
+    -</span>
+    -</span>
+    -</button>
+    -</li>
+    -<li>
+    -<button type="button" class="location-panel__poi-item" data-highlighted="false">
+    -<span class="location-panel__poi-letter" aria-hidden="true">B</span>
+    -<span class="location-panel__poi-info">
+    -<span class="location-panel__poi-name">自然博物馆(地铁站)</span>
+    -<span class="location-panel__poi-meta">
+    -<span class="location-panel__poi-lines" aria-label="地铁线路">
+    -<span class="location-panel__poi-line-tag">13号线</span>
+    -</span>
+EXIT=1
+
+### Task 11c 改前 vs 改后（遮罩 POI 面板 + 面板存在性对照）
+=== Task 11c  r7c-before-html vs r7c-after-html（已遮罩 POI 面板） ===
+                               POI 面板对照 before={'present': False, 'tabs': 0} after={'present': False, 'tabs': 0}
+listings.html                  遮罩模式但**某一侧根本没有 POI 面板** —— 遮罩会掩盖真回归，判不通过
+                               POI 面板对照 before={'present': False, 'tabs': 0} after={'present': False, 'tabs': 0}
+listings-row.html              遮罩模式但**某一侧根本没有 POI 面板** —— 遮罩会掩盖真回归，判不通过
+                               POI 面板对照 before={'present': False, 'tabs': 0} after={'present': False, 'tabs': 0}
+buildings.html                 遮罩模式但**某一侧根本没有 POI 面板** —— 遮罩会掩盖真回归，判不通过
+                               POI 面板对照 before={'present': True, 'tabs': 4} after={'present': True, 'tabs': 4}
+listing-detail.html            DOM 完全一致（已遮罩 POI 面板）  len=17486  (before: HTTP 200 族=listing-detail)
+                               POI 面板对照 before={'present': True, 'tabs': 4} after={'present': True, 'tabs': 4}
+building-detail.html           DOM 完全一致（已遮罩 POI 面板）  len=24809  (before: HTTP 200 族=building-detail)
+EXIT=1
+
+### Task 11c 改前 vs 改后（遮罩 POI 面板 + 面板存在性对照）
+=== Task 11c  r7c-before-html vs r7c-after-html（已遮罩 POI 面板） ===
+                               本页无 POI 面板，遮罩为空操作
+listings.html                  DOM 完全一致  len=15929  (before: HTTP 200 族=listings-index)
+                               本页无 POI 面板，遮罩为空操作
+listings-row.html              DOM 完全一致  len=16667  (before: HTTP 200 族=listings-index)
+                               本页无 POI 面板，遮罩为空操作
+buildings.html                 DOM 完全一致  len=13029  (before: HTTP 200 族=buildings-index)
+                               POI 面板对照 before={'present': True, 'tabs': 4} after={'present': True, 'tabs': 4}（两侧都在，遮罩只吃面板内部差异）
+listing-detail.html            DOM 完全一致（已遮罩 POI 面板）  len=17486  (before: HTTP 200 族=listing-detail)
+                               POI 面板对照 before={'present': True, 'tabs': 4} after={'present': True, 'tabs': 4}（两侧都在，遮罩只吃面板内部差异）
+building-detail.html           DOM 完全一致（已遮罩 POI 面板）  len=24809  (before: HTTP 200 族=building-detail)
+EXIT=0

@@ -1,0 +1,9 @@
+
+Running 2 tests using 1 worker
+
+[I4] before= {"scrollY":968,"supplyTop":45.3125} after= {"scrollY":968,"supplyTop":45.3125}
+  ok 1 [chromium] › tests\e2e\supply-filter-scroll.spec.ts:24:1 › 供给区筛选后滚动位置保持不变（I4 回归守卫） (3.8s)
+[I4] sort before= {"scrollY":968,"supplyTop":45.3125} after= {"scrollY":968,"supplyTop":45.3125}
+  ok 2 [chromium] › tests\e2e\supply-filter-scroll.spec.ts:61:1 › 供给区排序后滚动位置保持不变（I4 回归守卫） (3.5s)
+
+  2 passed (8.2s)

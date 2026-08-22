@@ -1,0 +1,982 @@
+{
+  "origin": "http://localhost:3810",
+  "sample": "jingan-serviced-office-42-seats",
+  "viewports": {
+    "375": {
+      "sentinel": {
+        "pathname": "/listings/jingan-serviced-office-42-seats",
+        "status": 200,
+        "statusOk": true,
+        "family": "listing-detail",
+        "missing": [],
+        "ok": true
+      },
+      "atTop": {
+        "bar": {
+          "present": true,
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 743,
+            "w": 375,
+            "h": 69
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": false,
+          "visible": false
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 16,
+            "y": 648.140625,
+            "w": 343,
+            "h": 494
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        }
+      },
+      "analyticsAtTop": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      },
+      "scroll": {
+        "startY": 0,
+        "endY": 5582,
+        "moved": true,
+        "docHeight": 6394,
+        "innerHeight": 812,
+        "rounds": 2,
+        "scrollable": true
+      },
+      "atBottom": {
+        "bar": {
+          "present": true,
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 741.609375,
+            "w": 375,
+            "h": 70.390625
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "2800 元/工位/月静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 24,
+            "y": 754.609375,
+            "w": 166.03125,
+            "h": 24.796875
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "2800 元/工位/月"
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 16,
+            "y": -4933.859375,
+            "w": 343,
+            "h": 494
+          },
+          "hiddenAncestor": null,
+          "inViewport": false,
+          "visible": false,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        },
+        "stickyBar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "dt-bar dt-sticky-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "静安南京西路 · 精装服务式办公室2800元/工位/月月租 117,600 元/"
+        }
+      },
+      "analyticsAtBottom": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      }
+    },
+    "768": {
+      "sentinel": {
+        "pathname": "/listings/jingan-serviced-office-42-seats",
+        "status": 200,
+        "statusOk": true,
+        "family": "listing-detail",
+        "missing": [],
+        "ok": true
+      },
+      "atTop": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": true,
+          "display": "inline",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月"
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 16,
+            "y": 865.203125,
+            "w": 736,
+            "h": 453.21875
+          },
+          "hiddenAncestor": null,
+          "inViewport": false,
+          "visible": false,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        }
+      },
+      "analyticsAtTop": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      },
+      "scroll": {
+        "startY": 0,
+        "endY": 4992,
+        "moved": true,
+        "docHeight": 5804,
+        "innerHeight": 812,
+        "rounds": 2,
+        "scrollable": true
+      },
+      "atBottom": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": true,
+          "display": "inline",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月"
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 16,
+            "y": -4126.796875,
+            "w": 736,
+            "h": 453.21875
+          },
+          "hiddenAncestor": null,
+          "inViewport": false,
+          "visible": false,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        },
+        "stickyBar": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 44,
+            "w": 768,
+            "h": 56
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "静安南京西路 · 精装服务式办公室2800元/工位/月月租 117,600 元/"
+        }
+      },
+      "analyticsAtBottom": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      }
+    },
+    "1440": {
+      "sentinel": {
+        "pathname": "/listings/jingan-serviced-office-42-seats",
+        "status": 200,
+        "statusOk": true,
+        "family": "listing-detail",
+        "missing": [],
+        "ok": true
+      },
+      "atTop": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": false,
+          "visible": false
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 938,
+            "y": 220.9375,
+            "w": 372,
+            "h": 473.609375
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        }
+      },
+      "analyticsAtTop": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      },
+      "scroll": {
+        "startY": 0,
+        "endY": 3563,
+        "moved": true,
+        "docHeight": 4375,
+        "innerHeight": 812,
+        "rounds": 2,
+        "scrollable": true
+      },
+      "atBottom": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": true,
+          "display": "inline",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月"
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 938,
+            "y": -1776.140625,
+            "w": 372,
+            "h": 473.609375
+          },
+          "hiddenAncestor": null,
+          "inViewport": false,
+          "visible": false,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        },
+        "stickyBar": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 44,
+            "w": 1440,
+            "h": 56
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "静安南京西路 · 精装服务式办公室2800元/工位/月月租 117,600 元/"
+        }
+      },
+      "analyticsAtBottom": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      }
+    },
+    "1920": {
+      "sentinel": {
+        "pathname": "/listings/jingan-serviced-office-42-seats",
+        "status": 200,
+        "statusOk": true,
+        "family": "listing-detail",
+        "missing": [],
+        "ok": true
+      },
+      "atTop": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": false,
+          "visible": false
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 1178,
+            "y": 220.9375,
+            "w": 372,
+            "h": 473.609375
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        }
+      },
+      "analyticsAtTop": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      },
+      "scroll": {
+        "startY": 0,
+        "endY": 3563,
+        "moved": true,
+        "docHeight": 4375,
+        "innerHeight": 812,
+        "rounds": 2,
+        "scrollable": true
+      },
+      "atBottom": {
+        "bar": {
+          "present": true,
+          "display": "none",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月静安南京西路 · 精装服务式办公室询价 / 预约看房"
+        },
+        "price": {
+          "present": true,
+          "display": "inline",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0
+          },
+          "hiddenAncestor": "detail__mobile-bar",
+          "inViewport": false,
+          "visible": false,
+          "text": "2800 元/工位/月"
+        },
+        "decision": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 1178,
+            "y": -1776.140625,
+            "w": 372,
+            "h": 473.609375
+          },
+          "hiddenAncestor": null,
+          "inViewport": false,
+          "visible": false,
+          "text": "租金单价2800元/工位/月月租 117,600 元/月 · 360 ㎡信息核验"
+        },
+        "stickyBar": {
+          "present": true,
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "rect": {
+            "x": 0,
+            "y": 44,
+            "w": 1920,
+            "h": 56
+          },
+          "hiddenAncestor": null,
+          "inViewport": true,
+          "visible": true,
+          "text": "静安南京西路 · 精装服务式办公室2800元/工位/月月租 117,600 元/"
+        }
+      },
+      "analyticsAtBottom": {
+        "total": 8,
+        "byEvent": {
+          "media_view": 4,
+          "listing_building_click": 1,
+          "recommendation_click": 3
+        },
+        "detail": [
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "figure",
+            "cls": "detail-gallery__main"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "media_view",
+            "section": null,
+            "tag": "button",
+            "cls": "detail-gallery__thumb"
+          },
+          {
+            "event": "listing_building_click",
+            "section": null,
+            "tag": "a",
+            "cls": "btn"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          },
+          {
+            "event": "recommendation_click",
+            "section": null,
+            "tag": "a",
+            "cls": "listing-card"
+          }
+        ],
+        "analyticsMountMarker": 0
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import {
   getCachedRelatedBuildings,
 } from '@/lib/frontend/cached-queries'
 import {
+  buildBuildingSupplyCanonicalSearchParams,
   createSearchContext,
   getBuildingDetail,
   parseBuildingSupplySearchParams,
@@ -82,6 +83,7 @@ export default async function BuildingDetailPage({
         serviceSchedule={serviceSchedule}
         pois={pois}
         mapEnabled={mapEnabled}
+        supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()}
       />
     </>
   )

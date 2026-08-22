@@ -4,7 +4,7 @@ import React from 'react'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import CityListingDetailView from '@/components/frontend/city/CityListingDetailView'
 import { resolveListingRouteIdentity } from '@/domain/public-catalog'
-import { getCachedBuildingBySlug, getCachedDetailRecommendations, getCachedListingBySlug } from '@/lib/frontend/cached-queries'
+import { getCachedDetailRecommendations, getCachedListingBySlug } from '@/lib/frontend/cached-queries'
 import { buildListingMetadata } from '@/lib/frontend/detail-metadata'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
@@ -39,14 +39,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const listing = await getCachedListingBySlug(city.slug, slug)
   if (!listing) notFound()
   const building = listing.building
-  const [buildingDetail, recommendations, pois, serviceSchedule] = await Promise.all([
-    building ? getCachedBuildingBySlug(city.slug, building.slug) : Promise.resolve(null),
+  // OPT-037 Task 9：楼盘详情文档（原本只为「配套设施」段取楼盘级配套）随该段
+  // 一并移除，这里少一次详情查询，合并层仍是同一个 Promise.all，没有另起 await 段。
+  const [recommendations, pois, serviceSchedule] = await Promise.all([
     getCachedDetailRecommendations(city.slug, slug, 6),
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])
 
-  return <CityListingDetailView city={city} listing={listing} buildingDetail={buildingDetail}
+  return <CityListingDetailView city={city} listing={listing}
     recommendations={recommendations} pois={pois} serviceSchedule={serviceSchedule}
     mapEnabled={building?.coordinates != null && hasAmapJsKey()} routeMode="legacy" />
 }

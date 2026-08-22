@@ -62,6 +62,17 @@ export default function ListingResultCard({ listing, citySlug }: Readonly<{
   return (
     <Link
       href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
+      // prefetch={false}：三条件并列成立（①高基数 ②内容驱动 ③常驻渲染），判据同
+      // `ListingCard` / `BuildingSummaryCard`，反例见 `ui/Breadcrumb.tsx`。
+      // ①：本组件是 `/listings` 默认网格视图的唯一卡片实现，一页 10 条起（实测
+      //    `artifacts/verification/OPT-037/task11c-prefetch-before.json`：一次加载
+      //    预取 10 条互不相同的房源 URL），翻页/放宽筛选只会更多；
+      // ②：URL 由房源 slug 决定，随内容增长而无上限；
+      // ③：列表页正文，进视口即预取，不需要任何交互。
+      // 预取结果几乎不会被复用（用户最终只点开一两条），是净成本。
+      // Task 11 曾以为改 `ListingCard` 就覆盖了列表页——`ListingCard` 不在 `/listings`
+      // 上，真正的高基数入口是这里；Task 11c 补齐。
+      prefetch={false}
       className="sf-card ls-card"
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >

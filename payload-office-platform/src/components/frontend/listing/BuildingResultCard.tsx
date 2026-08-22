@@ -59,6 +59,13 @@ export default function BuildingResultCard({ building, citySlug }: Readonly<{
   return (
     <Link
       href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
+      // prefetch={false}：三条件并列成立，判据同 `ListingResultCard`。
+      // ①高基数：本组件是 `/buildings`「当前有在租」分组的唯一卡片实现，一页 N 张
+      //    （实测 fixture 上 5 张 + 紧凑行 2 行 = 7 条楼盘 URL 被逐条预取，见
+      //    `artifacts/verification/OPT-037/task11c-prefetch-before.json`；生产楼盘量
+      //    远大于房源以外的任何目录）；②内容驱动：URL 由楼盘 slug 决定；
+      // ③常驻渲染：列表页正文，进视口即预取。
+      prefetch={false}
       // .bd-card 本身无样式声明，只作 BEM 块名锚点（下面的 __ 子元素依它命名）；
       // 卡片表面属性全部来自 .sf-card，与 home.css 的 .hm-supply-card 同一惯例。
       className="sf-card bd-card"

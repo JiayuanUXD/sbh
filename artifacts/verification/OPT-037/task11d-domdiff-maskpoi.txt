@@ -1,0 +1,6 @@
+news.html  遮掉 POI 面板后 DOM 完全一致  len=6673
+building-detail.html  遮掉 POI 面板后 DOM 完全一致  len=24922
+building-detail-empty.html  遮掉 POI 面板后 DOM 完全一致  len=16083
+listing-detail.html  遮掉 POI 面板后 DOM 完全一致  len=17599
+listings.html  遮掉 POI 面板后 DOM 完全一致  len=15999
+buildings.html  遮掉 POI 面板后 DOM 完全一致  len=13099

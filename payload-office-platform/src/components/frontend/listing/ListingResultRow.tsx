@@ -54,6 +54,14 @@ export default function ListingResultRow({ listing, citySlug }: Readonly<{
   return (
     <Link
       href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
+      // prefetch={false}：与 `ListingResultCard` 同一条判据、同一个页面、同一批 URL，
+      // 只是版式不同（`?view=row`）。①高基数：实测 `/listings?view=row` 同样渲染 10 条
+      // 互不相同的房源链接并逐条预取；②内容驱动：URL 由房源 slug 决定；③常驻渲染：
+      // 是该视图下的列表正文，不是交互后才出现的内容。
+      // 注意「③常驻」判的是「在本视图里是否常驻」，不是「本视图是否默认」——横向行
+      // 一旦被选中就是整页正文，若因为它不是默认版式而不关预取，等于让同一批 URL
+      // 的预取成本取决于用户选了哪个版式，那不是判据，是漏网。
+      prefetch={false}
       className="sf-card ls-rowcard"
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >

@@ -1,0 +1,1179 @@
+/* ============================================================================
+ * OPT-037 详情页样式
+ * 设计依据：docs/SBH设计任务讨论/{房源详情,楼盘详情}.dc.html specRows
+ * 卡片/渐变/标签一律复用 surface.css 的 .sf-* —— 详情页的面板是另一种表面
+ * （白底零边框、无 hover、padding 更大），故单列 .dt-panel，不套 .sf-card。
+ * ========================================================================== */
+
+/* --dt-sticky-bar-h 挂 :root 而不是 .dt-page：`.dt-bar` / `.dt-anchor-target`
+ * 都要读它，而这两个类的使用范围不限于 `.dt-page` 子树（dev-story 预览页、
+ * 以及任何把吸附条挂在页面根一级的接线都在 .dt-page 之外）。放在 .dt-page 里
+ * 会让那些位置静默走 `var(..., 56px)` 的字面兜底，「改一处高度全站跟着变」
+ * 只在 .dt-page 内成立——那正是两个事实源。挂 :root 之后所有 `, 56px`
+ * 兜底一并删掉，缺失即暴露，不再有静默回退。 */
+:root { --dt-sticky-bar-h: 56px; }
+
+/* `.dt-page` 出血到视口宽——**照 `.hm-home` 的既有做法，不新造机制**
+ * （home.css 第 15–19 行；`body { overflow-x: clip }`（styles.css:196，:195 是它的注释行）就是配套
+ * 用来裁掉 100vw 与滚动条宽度之差的，全站已经在这个组合上跑了一个版本）。
+ *
+ * 为什么必须出血：吸附条（`.dt-bar`）是全幅块，毛玻璃与底线要横贯视口、与正
+ * 上方的 `.site-header` 对齐；而它的祖先 `.site-main` 带
+ * `max-width: 1440 + padding-inline: 24`（styles.css:597），不破掉这层，条就被
+ * 按住在 `clientWidth - 48` 上，玻璃断在容器边界（Task 8 审查 Issue 1 实测
+ * 1440 下 `x:24 / width:1392`）。
+ * 顺带把 375 下的左右留白从 24+16=40 修回稿子要求的 16（`.dt-container` 自己的
+ * `100% - 32px`），与列表页 `.ls-page` 抵消同一份内边距的动机一致。
+ * 只破左右、不动纵向：纵向节奏在下一小节（Task 9 接线）连同标题栏一起定。 */
+.dt-page {
+  --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px;
+  width: 100vw; margin-inline: calc(50% - 50vw);
+}
+.dt-container { width: min(var(--dt-w), 100% - 32px); margin-inline: auto; }
+
+/* align-items:start（Task 4 新增）——两列各自按内容高度定盒，不拉伸到行高。
+ * 这不只是视觉选择：它是决策卡 sticky 粘附范围的地基，见下方「决策卡 +
+ * 吸附询价条」小节的机制说明。 */
+.dt-core { display: grid; grid-template-columns: var(--dt-main) var(--dt-side);
+  column-gap: 32px; row-gap: 0; align-items: start; }
+
+/* 白底面板表面（底 --bg-subtle · 零边框 · radius --r-card）的**唯一**声明处。
+ * 三个「组件类名写死、不换皮」的消费方并进本选择器组，而不是各写一份同样的
+ * 三行（终审 V3：同一个视觉决定曾有 4 个事实源）。选择器组里每一支各自保留
+ * 自己的特异度，`.dt-page .detail-side-rail__card` 仍是 (0,2,0)，不影响覆写。
+ *   - `.location-panel__poi-panel`：LocationPanel 的清单面板；
+ *   - `.dt-page .detail-side-rail__card`：密度表下方的留资带。
+ * 两者各自的**尺寸/布局**（高度、padding、flex）仍在下方各自的小节里，
+ * 只有「白底卡片表面」这一件事收敛到这里。 */
+.dt-panel,
+.location-panel__poi-panel,
+.dt-page .detail-side-rail__card { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
+.dt-panel--full { padding: 40px; }
+.dt-panel--side { padding: 32px; }
+
+/* 规格表（§R1）：右列右对齐 + tabular-nums + 500；行线 1px，末行无线 */
+.dt-spec { display: flex; flex-direction: column; }
+.dt-spec__row { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 24px; min-height: 44px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.dt-spec__row:last-child { border-bottom: 0; }
+/* flex-shrink:0——375 断口下实测发现的既有缺陷（Task 6 新增「地址」这类
+ * 短标签 + 长值的行首次暴露）：flex 子项默认可收缩，CJK 文本没有空格可断，
+ * 挤压到极窄时会逐字换行，"地址" 会拆成"地"/"址"两行，破坏两列键值行的
+ * 版式语义。标签固定在自身内容宽度、把收缩空间让给右侧值列（值本来就允许
+ * 换行），这是 `.dt-spec` 这个共享基元的通用加固，不是本任务专属样式。 */
+.dt-spec__label { flex-shrink: 0; white-space: nowrap; font-size: 15px; color: var(--ink-2); }
+/* tabular-nums 不写在这里：节点上挂 `.sf-num`（surface.css）。全站「数字一律
+ * tabular-nums」此前靠本文件 9 处内联复制守住，已漏过一次（`.hero-summary__price`
+ * 是实测才发现漏的），本批统一改用基元。以下各条同理，不再逐条重复此注释。 */
+.dt-spec__value { font-size: 15px; font-weight: 500; color: var(--ink);
+  text-align: right; }
+/* 值与单位同格：unit 是行文说明，不参与数值对齐，故字重/字号/色阶单独降级 */
+.dt-spec__unit { margin-left: 4px; font-size: 13px; font-weight: 400; color: var(--ink-2); }
+
+@media (max-width: 1023px) {
+  .dt-core { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+ * 页面骨架与纵向节奏（Task 9 接线）
+ * 设计依据：specRows「section padding-block 56（72/56/48 可切，稿子默认 56）」
+ * 「标题栏 padding 32/24 · h1 32/600/1.15 · 面包屑 13/ink-3」「h2 段标题
+ * 24/600/1.2 · 到面板 20px」「描述 通栏 1180 单栏 · 17/1.70 · 段间 20」
+ * 「移动 section padding 40 · 左右 16」「移动 h1 24/600/1.25」。
+ *
+ * `.dt-page` 上方那条负 margin：`.site-main` 自带 `padding: var(--sp-6)`（32）
+ * 的纵向内边距（styles.css:597）。不抵消它，标题栏自己的 32 会叠成 64。
+ * 左右方向早已由文件顶部的 100vw 出血破掉，这里只补纵向——两处动机相同
+ * （页面自己的节奏归页面管），与列表页 `.ls-page` 的负 margin 同一手法。
+ * ========================================================================== */
+.dt-page { --dt-sec: 56px; margin-top: calc(var(--sp-6) * -1); }
+
+.dt-titlebar { padding: 32px 0 24px; }
+/* 面包屑基元自带 margin-bottom 16（styles.css:2865），comp 这里要 14 */
+.dt-titlebar .breadcrumb { margin-bottom: 14px; }
+.dt-titlebar__row { display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 32px; }
+.dt-titlebar__title { margin: 0; font-size: 32px; font-weight: 600; line-height: 1.15;
+  color: var(--ink); letter-spacing: normal; }
+/* padding-top 4：comp 让操作 pill 组与 32px 行高的 h1 视觉基线对齐 */
+.dt-titlebar__actions { flex: none; display: flex; align-items: center; gap: 8px;
+  padding-top: 4px; }
+.dt-titlebar__tags { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 段落节奏：只给 padding-top，段与段之间因此恒为一份 --dt-sec，
+ * 不会出现「上一段 margin-bottom + 本段 margin-top」的双份间距。
+ * `.location-panel` 是 LocationPanel 自带的 <section>（组件里写死了
+ * `class="location-panel detail__section"`，无法从外部加类），所以直接把
+ * 容器宽度与节奏挂到它身上——**不要**在接线时给它套一层带 padding 的
+ * wrapper：无坐标时它整段返回 null，wrapper 会留下一段空白（本批硬约束
+ * 「空态整段不渲染」）。同时抵消 `.detail__section` 的 margin-top（48）。 */
+.dt-section,
+.dt-page .location-panel { padding-top: var(--dt-sec); }
+.dt-page .location-panel { width: min(var(--dt-w), 100% - 32px); margin-inline: auto;
+  margin-top: 0; }
+
+.dt-h2,
+.dt-page .location-panel > h2 { margin: 0 0 20px; font-size: 24px; font-weight: 600;
+  line-height: 1.2; color: var(--ink); letter-spacing: normal; }
+
+/* 概况面板所在的通栏格：grid 位置留在这层，`.dt-overview`（面板本体）在
+ * 它内部已不是 grid item，自身那份 margin-top 24 会与本格重复，就地清零。
+ * 面板直接作为 `.dt-core` 子项的用法（dev-story 预览页）不受影响。 */
+.dt-overview-block { grid-column: 1 / -1; grid-row: 2; margin-top: 24px; }
+.dt-overview-block > .dt-overview { margin-top: 0; }
+
+.dt-richtext { font-size: 17px; line-height: 1.7; color: var(--ink-2); }
+.dt-richtext :where(p, ul, ol) { margin-bottom: 20px; }
+.dt-richtext :where(p, ul, ol):last-child { margin-bottom: 0; }
+
+@media (max-width: 767px) {
+  /* 移动端底部固定询价栏（`.detail__mobile-bar`）会盖住页尾，这里给页尾留余量。
+   *
+   * 三个数字各是各的来源，**别把它们当成一条算式互相「校正」**：
+   *   - 栏高：`styles.css` 的 `.detail__mobile-bar` 是 `min-height: 64px`
+   *     （+ `padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom))`），
+   *     实际渲染高度随内容浮动，不是一个定值。本注释曾写「高 68 + 安全区」——
+   *     那个 68 在代码里找不到对应，已订正为 64（2026-08-22 终审）。
+   *   - 128：comp 给的**页尾留白**定值，不是「栏高 + 间距」推出来的。
+   *     照 64 去「校正」这个 128（比如改成 64 + 一点间距）会让页尾被底栏压住。
+   *   - `env(safe-area-inset-bottom)`：iOS home indicator，与前两者正交。
+   * `styles.css` 里 `.detail` 有一份同性质的 112px 余量，但本页根已不带
+   * `.detail`（那条规则的 `max-width:100%` 会把 100vw 出血夹回容器宽），
+   * 所以在这里按 comp 重新给一份。 */
+  .dt-page { --dt-sec: 40px; padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px)); }
+  .dt-titlebar { padding: 20px 0 16px; }
+  .dt-titlebar__row { flex-direction: column; gap: 12px; }
+  .dt-titlebar__title { font-size: 24px; line-height: 1.25; }
+  .dt-titlebar__actions { padding-top: 0; }
+}
+
+/* ============================================================================
+ * 画廊方案 A（Task 2）
+ * 设计依据：specRows「主图比例」「缩略图条」「图上文字压暗」「无图替代构图」。
+ * 主图 16:10 cover 已由 styles.css .detail-gallery__main 满足，此处只覆写
+ * comp 新增/调整的部分：图上信息层、缩略图尺寸、无图替代构图。
+ * 覆写生效前提：本文件在 layout.tsx 里排在 styles.css 之后 import，同特异度
+ * 「后来者胜」——顺序反了这里会静默失效（同 surface.css 头部注释的机制）。
+ * ========================================================================== */
+
+/* 压暗判断（本任务被要求先问能不能统一，而不是照抄稿子数值）：
+ * comp 给主图渐变 rgba(0,0,0,.46) 底部 38%，全站共享基元 .sf-scrim 是
+ * rgba(0,0,0,.42) 底部 45%（cross-batch-design-decisions.md 已把「图上文字
+ * 压暗」列为全站统一项）。两者差 4% 透明度、7 个百分点高度，都发生在渐变
+ * 最浅的一端，肉眼不可辨；主图比列表卡片大不构成功能性差异——压暗要盖住
+ * 的是「底部文字所在区域」，这个目的与卡片大小无关，45% 在更大的图上盖住
+ * 的文字区域反而更从容。没有找到必须另立一份的理由，直接复用 .sf-scrim，
+ * 不新增修饰类。 */
+
+/* 图上说明文字：复用既有 .detail-gallery__main-badge（此前是一个深色实心
+ * pill），按新稿改为贴着 .sf-scrim 渐变直接显示的纯文字，不再需要自己的
+ * 背景块。 */
+.detail-gallery__main-badge {
+  left: 24px;
+  bottom: 20px;
+  right: auto;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* 新增：主图右下角计数 pill（如「3 / 14」），只在图片分类下、且当前媒体
+ * 未加载失败时渲染——与 .detail-gallery__counter（全屏弹窗内的计数）是
+ * 两个不同位置的计数，故意不共用类名，避免样式互相牵连。
+ * pointer-events: none 是本次 review 补的 Critical 修复的一部分——这个 pill
+ * 和 .sf-scrim 一样叠在 <button class="detail-gallery__main-media"> 之上，
+ * 是同级元素而非其子元素，不设 pointer-events:none 会在 pill 覆盖的角落
+ * 吞掉点击、灯箱打不开。同一文件里 .detail-gallery__main-badge（styles.css）
+ * 与 .detail-gallery__main-nav 早就是这个模式：外层纯装饰/占位元素
+ * pointer-events:none，只让真正的内部按钮 pointer-events:auto。 */
+.detail-gallery__main-counter {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  /* 与 `.sf-scrim` 同一个 rgba(0,0,0,0.42)，但**不能复用那个基元**：`.sf-scrim`
+   * 是「自下而上渐变到透明、高 45%、绝对定位铺满底部」的压暗层，本条要的是
+   * 一个 32px 高的实底 pill。同值不同形，共用类名会让任何一方改动误伤另一方。
+   * 取值刻意对齐是为了同一张图上两层暗色看起来是同一种黑。 */
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #fff;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 缩略图条：5 格 1fr（每格 = (100% - 4 个 8px gap) / 5）· 16:10 · 圆角 10。
+ * 圆角 10 是 comp 字面值，与卡片 --r-card(18) 不同一套（同类先例见
+ * list.css 结果区白底条 radius 14 的注释），故不引入新 token，直接写字面量。
+ * 保留现有横向滚动容器与两侧箭头（.detail-gallery__arrow）不动——那是已经
+ * 在跑的真实翻页行为，稿子的静态 5 格截图不代表数量 >5 时不需要它。 */
+.detail-gallery__thumb {
+  width: auto;
+  height: auto;
+  flex: 0 0 calc((100% - 32px) / 5);
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+}
+
+/* 无图替代构图（NoImageHeroGrid）：关键规格 3×2 宫格 + 地址交通条。
+ * 面板复用 .dt-panel--full（白底零边框 padding 40），不新起一套面板样式。 */
+.dt-nomedia__head { display: flex; align-items: baseline; justify-content: space-between; }
+.dt-nomedia__title { font-size: 19px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal; }
+
+/* minmax(0, 1fr)——`1fr` 的最小值默认是 min-content，CJK 值（"整层办公"）与
+ * 长日期（"2026年9月1日"）会把自己那一列顶宽、把另外两列压到 35px，宫格
+ * 变成三条宽窄不一的竖条。Task 2 只验了桌面，375 下实测到这一步：
+ * 日期在 32px 字号下被压成四行竖排。这是共享基元的加固，两个详情页同得。 */
+.dt-keyspecs {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px 24px;
+}
+
+.dt-keyspecs__item {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 16px; border-top: 1px solid var(--line);
+}
+.dt-keyspecs__label { font-size: 13px; color: var(--ink-3); }
+.dt-keyspecs__value-row { display: flex; align-items: baseline; gap: 5px; }
+.dt-keyspecs__value {
+  font-size: 32px; font-weight: 600; line-height: 1.1; color: var(--ink);
+  letter-spacing: normal;
+}
+.dt-keyspecs__unit { font-size: 14px; color: var(--ink-2); }
+
+/* 移动端 2 列 + 值降到 24。375 的内容宽只有 375 − 容器 16×2 − 面板 40×2 =
+ * 263px：三列每格 72px 装不下 32px 的大字（哪怕列宽已均分），两列 124px 也
+ * 只有降到 24 才容得下 5 个汉字的值（"服务式办公" 5×32=160 会折行）。
+ * 降列数优先于降字号——宫格的信息层级靠"数值比标签大一截"成立，字号降太狠
+ * 就退化成普通键值行，那还不如直接用 SpecTable。
+ * 本块必须排在上面 `.dt-keyspecs__value` 之后：同特异度后来者胜，写在前面
+ * 会被基础规则的 32px 静默覆盖（本任务实测踩过）。768 不进这个断点——那里
+ * `.dt-core` 已是单列、宫格每格 203px，三列 32px 一行装得下。 */
+@media (max-width: 767px) {
+  .dt-keyspecs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; }
+  .dt-keyspecs__value { font-size: 24px; }
+}
+
+.dt-nomedia__meta {
+  margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 40px;
+}
+.dt-nomedia__meta-item { display: flex; flex-direction: column; gap: 6px; }
+.dt-nomedia__meta-label { font-size: 13px; color: var(--ink-3); }
+.dt-nomedia__meta-value { font-size: 15px; line-height: 1.5; color: var(--ink); }
+
+/* ============================================================================
+ * 房源概况面板（Task 3 · ListingOverviewPanel）
+ * 设计依据：specRows「tab 区」——原稿双 tab（概况/租金账）已取消租金账，
+ * 通栏直接呈现概况，故这里只是 .dt-core 网格里的一个跨列子项，没有 tab 壳。
+ * 组区分只用间距（40）+ 组标签，不用顶线不用色块——`.dt-spec` 自身的行线
+ * 已经承担了"行与行"的区隔，组与组之间再加一条线是视觉噪音。
+ * ========================================================================== */
+.dt-overview {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+/* 组标签——房源概况面板（.dt-overview）与楼盘参数面板（.dt-building-spec）
+ * 共用同一条规则（comp 两处字面量完全一致：13/600/--ink-3/padding-bottom 6），
+ * 收敛成一个类名，不为两个容器各写一份相同的声明。 */
+.dt-group-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  padding-bottom: 6px;
+}
+
+/* ============================================================================
+ * 决策卡 + 吸附询价条（Task 4）
+ * 设计依据：房源详情.dc.html specRows「决策卡 sticky」「决策区间范围」「吸附询价条」。
+ *
+ * 两段交接的实现机制分属两个世界，不要混着理解：
+ *
+ * 1) 决策卡的粘附区间（core 第 1 行，行末即释放）——纯 CSS，零 JS：
+ *    `.dt-core` 的两列子项在 align-items:start 下各自只按内容高度定盒
+ *    （不再拉伸到行高），但 CSS Grid 规范里 grid item 的 containing block
+ *    取的是它的「grid area」（该列在该行的完整框），不是它自己收缩后的盒子。
+ *    `.dt-decision` 显式钉在 grid-column:2 / grid-row:1，这一行的高度由
+ *    画廊列撑出来（画廊比决策卡内容高得多）——于是决策卡的 sticky 可移动
+ *    范围 = 整个第 1 行的高度，画廊滚完、第 1 行的 grid area 耗尽，
+ *    sticky 天然释放，滚去了第 2 行（.dt-overview）也不会被拽住。
+ *    这是 grid + sticky 的标准组合技，不是新发明的 hack；align-items:start
+ *    是让它生效的必要条件（缺了它两列会被拉伸到同一行高，决策卡自己的盒子
+ *    会撑到跟画廊一样高，肉眼看不出粘附与释放的边界）。
+ *
+ * 2) 吸附询价条的「决策卡离屏后接管」——做不到纯 CSS，必须 JS（见
+ *    StickyInquiryBar.tsx）：条本身在文档流里天然出现在页面很靠上的位置
+ *    （紧跟全局导航之后），如果无条件常驻 `position:sticky; top:44`，它在
+ *    页面刚加载、决策卡还完整可见时就已经贴住顶部——决策卡与吸附条会同屏
+ *    重叠，而不是接力。StickyInquiryBar 用 IntersectionObserver 观察
+ *    `.dt-decision`，只有决策卡与视口零相交（真正离屏）才渲染吸附条，
+ *    从根上避免两者同时可见。
+ * ========================================================================== */
+
+/* 复位泄漏的 `.detail-gallery { grid-column: span 7; }`（styles.css:1460，服务旧
+ * `.detail-hero` 7 列网格）——这条全局类选择器规则不认 grid 容器是谁，套进
+ * `.dt-core`（只有 2 条显式列轨）后画廊会被强行 span 7，逼出 5 条隐式 0 宽列，
+ * 且因为 7 列宽度会跟 .dt-decision（col2/row1）撞格，auto-placement 把画廊
+ * 挤到了第 3 行——用真实 Playwright 量出来的 bug，不是猜的（见
+ * task-4-report.md 的 grid-template-columns/rows 诊断数据）。同类复位已有
+ * 先例：styles.css:4848 `.detail-v2__hero > .detail-gallery { grid-column:
+ * auto; }`，这里照抄同一手法，只是换成 `.dt-core` 这个新 grid 上下文。 */
+.dt-core > .detail-gallery {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.dt-decision {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  /* 44 导航 + 56 吸附条 + 16 间距 = 116；导航高度与吸附条高度都走 token，
+   * 不重复写字面量，两者任一改动这里自动跟着变。 */
+  top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 16px);
+}
+
+.dt-decision__label { display: block; font-size: 13px; color: var(--ink-3); }
+
+.dt-decision__price-row { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
+.dt-decision__price-num {
+  font-size: 40px; font-weight: 600; line-height: 1.06; color: var(--ink);
+}
+.dt-decision__price-unit { font-size: 17px; color: var(--ink-2); }
+/* 无公开价格：不渲染 0、不留空行，用既有的「价格面议」文案并降一档字号
+ * ——与 `.hero-summary__price--na`（楼盘信息面板，Task 6）同一处理方式。 */
+.dt-decision__price-num--na { font-size: 24px; color: var(--ink-2); }
+
+.dt-decision__summary { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+
+.dt-decision__verify {
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.dt-decision__verify-row { display: flex; align-items: center; gap: 10px; }
+.dt-decision__verify-icon { flex: none; color: var(--ink-2); }
+.dt-decision__verify-label { flex: 1; font-size: 13px; color: var(--ink-2); }
+.dt-decision__verify-when {
+  font-size: 13px; font-weight: 500; color: var(--ink);
+}
+
+.dt-decision__cta { margin-top: 24px; }
+
+/* 顾问区（AdvisorCard）：comp 在 CTA 下方隔一条 hairline 放顾问行。
+ * AdvisorCard 自带卡片轮廓（底色 + 1px 边框），所以这里只给间距，不再叠一条
+ * 分隔线——与 `.hero-summary .advisor-card`（楼盘信息面板）保持同一取舍。
+ * 窄栏换行不在这里再写第三份：`flex-wrap: wrap` 已按 detail.css 早先记下的
+ * 升级阈值提升为 `.advisor-card` 自身的默认行为（styles.css §AdvisorCard）。 */
+.dt-decision .advisor-card { margin-top: 24px; }
+.dt-decision .advisor-card__cta { flex-basis: 100%; }
+
+/* ── 吸附栏共享外壳（Task 8 抽出） ────────────────────────────────────────
+ * 两份详情稿把顶部吸附栏画成同一套 chrome：居中容器 · 高 56 · 底
+ * rgba(245,245,247,.86) + 毛玻璃 · 1px 底线。房源页放价格+询价
+ * （`.dt-sticky-bar`），楼盘页放锚点导航+预约（`.dt-anchor-bar`），
+ * 差的只有栏内内容与**定位取值**，chrome 一模一样，故抽出 `.dt-bar`
+ * 两处引用，不各写一份。
+ *
+ * **只抽 chrome，不抽 position**：两条的 position 取值不同且各有理由
+ * （fixed vs sticky，见各自下方注释），把定位也塞进共享类会逼出一个
+ * "外壳类同时管两种定位"的修饰符，那是把差异藏起来而不是表达出来。
+ * 同样不抽 `gap`（20 vs 28，两份稿各自的字面量）。
+ *
+ * **外层全幅 + 内层容器居中**（稿子第 69–71 行就是这两层）：`.dt-bar` 只负责
+ * 毛玻璃与底线，必须横贯视口宽；把内容收回 `--dt-w` 是 `.dt-bar__inner`
+ * （与 `.dt-container` 同用）的事。`.dt-sticky-bar` 靠 `fixed + left:0/right:0`
+ * 自带全幅，`.dt-anchor-bar` 是 `sticky`、留在文档流里，**宽度完全由父元素
+ * 决定** → 接线契约：`.dt-bar` 必须挂在全幅块下，不能塞进 `.dt-container`
+ * 这类定宽容器（否则玻璃与底线会在容器边界断掉，与正上方全幅的站点 header
+ * 脱节，且 `.dt-bar__inner` 的容器宽会二次内缩 32px）。
+ * 「全幅块」由页面根 `.dt-page` 提供（见文件顶部：它自己先破掉 `.site-main`
+ * 的 max-width 与内边距）；`.dt-bar` 本身**不写任何破容器的负 margin**——
+ * 那会在它已经挂在全幅块下时反过来溢出视口。 */
+.dt-bar {
+  z-index: var(--z-floating);
+  height: var(--dt-sticky-bar-h);
+  /* --bg (#f5f5f7) 的 86% 不透明度；项目未提供 rgba 版本的 --bg token，
+   * 沿用本文件其它位置（如 .detail-gallery__main-counter）字面量 rgba 的
+   * 既有先例，不新造 color-mix 写法。 */
+  background: rgba(245, 245, 247, 0.86);
+  /* 不手写 -webkit-backdrop-filter 兄弟声明——lightningcss 会把它连同
+   * unprefixed 属性一起丢弃，玻璃效果整体失效（styles.css:322 同款注释），
+   * 前缀交给构建工具按 browserslist 补。 */
+  backdrop-filter: var(--header-blur);
+  border-bottom: 1px solid var(--line);
+}
+.dt-bar__inner { height: 100%; display: flex; align-items: center; }
+
+/* 吸附询价条（Task 4，房源页）：top 44（导航高度）· 高 56 · 决策卡离屏后由
+ * StickyInquiryBar.tsx 的 IntersectionObserver 挂载/卸载，不是靠 CSS 显隐。
+ * 桌面 1440 专属——移动端已有 `.detail__mobile-bar`（固定底栏）承担同一
+ * 「避免价格重复出现」的职责，两套机制分工不合并，见 StickyInquiryBar.tsx
+ * 文件头注释。 */
+.dt-sticky-bar {
+  /* 用 fixed 而非 comp 字面的 sticky——本条由 StickyInquiryBar.tsx 整体挂载
+   * /卸载（不是靠 CSS 显隐一个常驻元素），且只在"决策卡已完全离屏"时才
+   * 挂载，此时它必然已经越过自己的粘附阈值，视觉上与 sticky 的"已吸附"
+   * 状态完全一致——它不存在需要展示的"未吸附、随文档流内联"状态。
+   * 用 Playwright 实测发现：若用 sticky，挂载瞬间仍会在它自身的文档流
+   * 原位置吃掉 56px 高度，把下方所有内容（决策卡、核心区、正文）顺移
+   * 56px；Chromium 的 scroll anchoring 会自动补偿 scrollY 抵消这次位移，
+   * 现象上勉强不出错，但补偿依赖浏览器行为，不该把正确性建立在这上面。
+   * fixed 完全脱离文档流，挂载/卸载零布局影响，没有这个隐患。
+   * 注意这条理由**不适用于 `.dt-anchor-bar`**：那条常驻渲染、从首帧就占位。 */
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+}
+.dt-sticky-bar__inner { gap: 20px; }
+.dt-sticky-bar__title {
+  flex: none; font-size: 15px; font-weight: 600; color: var(--ink);
+  max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dt-sticky-bar__price { flex: none; display: flex; align-items: baseline; gap: 5px; }
+.dt-sticky-bar__price-num {
+  font-size: 17px; font-weight: 600; color: var(--ink);
+}
+.dt-sticky-bar__price-unit { font-size: 13px; color: var(--ink-2); }
+.dt-sticky-bar__summary {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dt-sticky-bar__cta { flex: none; margin-left: auto; }
+
+/* ── 吸附锚点导航条（Task 8，楼盘详情页） ──────────────────────────────────
+ * 设计依据：楼盘详情.dc.html 第 69–77 行 + specRows「吸附条 = sticky top 44 ·
+ * 高 56 · 锚点导航 + 预约（楼盘页不带价格）」。
+ *
+ * 用字面的 `position: sticky`（不是 `.dt-sticky-bar` 的 fixed）：本条常驻
+ * 渲染、位于文档流固定位置（导航之后、标题栏之前），从首帧就占位，不存在
+ * 「挂载瞬间把下方内容顶下去 56px」的问题；照抄 fixed 反而会脱离文档流、
+ * 把标题栏顶部遮掉 56px。sticky 还天然获得「滚过才吸附」的行为。
+ *
+ * **sticky 的两条接线契约**（Task 10 接线时唯一会踩的坑，AnchorNavBar.tsx
+ * 文件头也写了同一份）：
+ *   1. 本条的**包含块（= 父元素）必须覆盖全部被锚点指向的区块**。sticky 的
+ *      粘附范围就是包含块，包含块比区块集合短，条会在还有区块没读完时脱附，
+ *      吸附线随之离开视口（组件侧已把吸附线夹到 ≥0 兜住高亮，但视觉上条已
+ *      经不见了）。
+ *   2. 父元素必须是**全幅块**（见上面 `.dt-bar` 注释），否则玻璃与底线断在
+ *      容器边界。 */
+.dt-anchor-bar { position: sticky; top: var(--header-height); }
+.dt-anchor-bar__inner { gap: 28px; }
+.dt-anchor-bar__title {
+  flex: none; font-size: 15px; font-weight: 600; color: var(--ink);
+  max-width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 锚点组内部横滚：375 下「楼盘名 + 4 个锚点 + CTA」放不下，必须由本容器
+ * 自己吃掉溢出，**不得让页面级出现横向滚动**。
+ * 两条与 Task 7 同源的加固：
+ *   - `min-width: 0`——flex 子项默认 min-width:auto，会按内容撑开而不是收缩，
+ *     没有这一行 overflow-x 永远触发不了，溢出会直接顶到页面级；
+ *   - 子项一律 `flex: none` + `white-space: nowrap`，且**绝不给子项写显式
+ *     min-width**：Task 7 实测过 Chromium 会让显式 min-width 穿透 overflow
+ *     祖先，重新把溢出推到页面级。 */
+.dt-anchor-bar__links {
+  flex: 1 1 auto; min-width: 0; height: 100%;
+  display: flex; align-items: center; gap: 28px;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.dt-anchor-bar__links::-webkit-scrollbar { display: none; }
+
+.dt-anchor-bar__link {
+  flex: none; display: inline-flex; align-items: center;
+  /* 触控目标 ≥44px：56 高的条里链接自身只有一行 14px 文字，靠 min-height
+   * 把可点区域撑到 44（宽度方向由 3–5 个中文字符天然满足）。 */
+  min-height: 44px;
+  font-size: 14px; color: var(--ink-2); white-space: nowrap;
+  transition: color var(--duration-fast) var(--ease-apple);
+}
+/* text-decoration:none 不是可有可无：全局 `a:hover` 会加下划线（styles.css:211），
+ * 而 `.site-nav__link:hover` 早就显式关掉了它——顶部 chrome 里的导航链接在本站
+ * 一律用「色阶变化」而不是下划线表达 hover，本条是同一类导航，跟随既有口径，
+ * 否则同一条吸附栏里 hover 出下划线、旁边的全站导航不出，观感对不上。 */
+.dt-anchor-bar__link:hover { color: var(--ink); text-decoration: none; }
+/* 当前态：14/500/--ink。选择器挂在 aria-current 上而不是额外的 --active 类，
+ * 保证「可访问性属性」与「视觉高亮」不可能各说各话地漂移。 */
+.dt-anchor-bar__link[aria-current] { font-weight: 500; color: var(--ink); }
+
+/* margin-left:auto 不是冗余：锚点组存在时它被 `flex:1` 顶到右端，但
+ * items.length <= 1 时锚点组整个不渲染，靠这一行 CTA 才仍然贴右。 */
+.dt-anchor-bar__cta { flex: none; margin-left: auto; }
+/* 稿中 CTA：h36 · padding 0 20 · radius 980 · --accent · 14/500。
+ * 高度取 44 而非稿子的 36——与 Task 5「二级 tab / 清单行 padding 撑到 44」
+ * 同一条已确立的取舍：design.md §14.2 的 ≥44×44 触控目标是 token 级约束，
+ * 优先于 comp 像素；何况同族的 `.dt-sticky-bar` CTA（btn--lg）本来就比 44 更高，
+ * 取 36 反而让两条吸附栏的按钮分量对不上。其余字面量照稿。
+ * 定向覆写调用方传入的 `.btn`，不新增全局按钮尺寸档——那会把一处版式需求
+ * 升格成全站基元。 */
+.dt-anchor-bar__cta .btn {
+  min-height: 44px; padding: 0 20px; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 14px; font-weight: 500;
+}
+.dt-anchor-bar__cta .btn:hover { background: var(--accent-hover); }
+
+/* 锚点落点补偿：全局导航 44 + 本条 56 + 12 呼吸 = 112。目标区块必须带这个类，
+ * 否则原生 `#id` 跳转会把区块标题送到吸附条底下。前两项走 token，导航高度或
+ * 吸附条高度任一改动这里自动跟着变。
+ * 那 12px 不是凑数：只补到吸附总高时落点恰好等于条的底边，区块首行会**贴死**
+ * 在毛玻璃下沿（实测 secTop === barBottom === 100）。dev-story 的区块自带 24px
+ * padding 才显得有呼吸，生产区块若没有上 padding 就会贴住。12 取自本文件既有
+ * 的小间距档（.dt-spec__row 的 11px padding、.dt-decision 的 16px 偏移同量级），
+ * 不新造尺度。 */
+/* `.dt-page .location-panel` 一并挂在这条规则上（Task 10 接线）：`LocationPanel`
+ * 的 <section id="location"> 由组件写死 `class="location-panel detail__section"`，
+ * 外部加不上 `.dt-anchor-target`。它同时是被锚点指向的区块之一，落点必须与
+ * 其它区块同源——**不能**让它继续吃 styles.css 那条 `.location-panel
+ * { scroll-margin-top: 80px }`（80 < 44+56，标题会被吸附条压住），也不能在
+ * 这里再写一份 `calc(...)`（那就是第二个事实源）。`AnchorNavBar` 的择一规则
+ * 读的正是 `getComputedStyle(el).scrollMarginTop`，两者因此自动一致。 */
+.dt-anchor-target,
+.dt-page .location-panel {
+  scroll-margin-top: calc(var(--header-height) + var(--dt-sticky-bar-h) + 12px);
+}
+
+/* ≤767：本条**保留**，只收掉楼盘名与 CTA。
+ * 为什么不像 `.dt-sticky-bar` 那样整条 display:none 交给 `.detail__mobile-bar`：
+ *   1. 职责不同。`.detail__mobile-bar` 是询价 CTA，不是导航——它无法回答
+ *      「跳到楼盘参数」。单列断点下区块纵向堆叠、页面比桌面长得多，锚点
+ *      导航的价值反而更高，删掉是净损失。
+ *   2. 断点不同。`.detail__mobile-bar` 只在 ≤767px 渲染（styles.css 的 media
+ *      就是 767），本条要覆盖的是**全部**宽度下的「跳到某个区块」需求，
+ *      ≤767 收掉的只是它的楼盘名与 CTA，导航本身必须留着。
+ *      （订正 2026-08-22：这里原写「`.dt-sticky-bar` 的 display:none 断点是
+ *      1023——768–1023 这一段本来就没有任何替代品」。那是 Task 4 的旧取值，
+ *      Task 9 已把 `.dt-sticky-bar` 收窄到 **767**（见本文件末「吸附询价条的
+ *      隐藏断点」一节），与本文件同处的两段注释直接互相矛盾。768–1023 现在
+ *      仍有 `.dt-sticky-bar`，那句论据已不成立，故换成上面这条真正的理由。）
+ * 收掉 CTA 的理由：≤767 时 `.detail__mobile-bar` 已常驻同一个「预约看房」
+ * 入口，同屏两个相同 CTA 违反 StickyInquiryBar / DetailMobileBarPrice 一直
+ * 守护的「同一入口不在视口里重复出现」不变量。
+ * 收掉楼盘名的理由：375 下它要吃掉一半宽度，而楼盘名在标题栏与浏览器标签
+ * 里都拿得到，锚点组才是本条在窄屏上唯一不可替代的部分。 */
+@media (max-width: 767px) {
+  .dt-anchor-bar__title,
+  .dt-anchor-bar__cta { display: none; }
+
+  /* 上面两条把本断点下仅有的另外两个可见元素都藏了，所以「锚点组没渲染」在
+   * ≤767 等价于「整条不含任何内容」——一条纯空白、却常驻吸附并遮住内容的
+   * 56px 玻璃条。真实可达：无坐标→无地图区、同商圈无楼盘→无该区、参数与特色
+   * 全空→无参数区，只剩「在租房源」一项时组件就不渲染锚点组。
+   * （订正 2026-08-22：这里原本还列着「供给全空→无供给区」。**那是已撤回的
+   * 裁定**——`#supply` 恒渲染，供给三组全空时由 `BuildingSupplyBrowser` 的
+   * 「当前暂无公开可选空间」承担诚实空态，并被 `tests/e2e/detail-pages.spec.ts`
+   * 锁死。照那句话去给供给区加守卫会让 e2e 直接红。）
+   * 本批「结构性空壳不渲染」的硬约束必须落在**最终可见性**上，而不是组件的
+   * props 上——组件看不到这条 media query，判断只能写在这里；反过来把断点
+   * 搬进 JS 又会造出第二个事实源（断点值同时存在于 CSS 与 JS，必然漂移）。
+   * 组件那边只如实标注 `--no-links`。
+   *
+   * 这条规则的边界（同一页的 `BuildingSupplyBrowser.tsx:252` 确实在 JS 里读
+   * `matchMedia('(max-width: 767px)')`，那是**允许的例外**，不是违规）：
+   * 「同一份 DOM 显不显示」归 CSS；「渲染哪一份 DOM」（表格 vs 卡片，结构不同、
+   * 两份都渲染会重复进无障碍树与埋点）才归 JS，且此时断点值必须与 CSS 逐字
+   * 相同、两边互相注明。完整表述见 `AnchorNavBar.tsx` 同一处注释。 */
+  .dt-anchor-bar--no-links { display: none; }
+}
+
+@media (max-width: 1023px) {
+  /* 移动端栅格回归修复：`.dt-decision` 的 grid-column:2/grid-row:1 是桌面
+   * 两列布局专属的显式钉位，这条媒体查询原先只复位了 position，没有复位
+   * grid-column/grid-row。`.dt-core` 在这个断点塌成单一显式列后，
+   * grid-column:2 会逼浏览器生成一条按内容定宽的隐式第 2 列——决策卡挤到
+   * 画廊右边（约 343px 容器宽），而不是像 `.dt-overview`（本来就用
+   * grid-column:1/-1）那样正常整行下沉。用真实 Playwright 在 375/768/1440
+   * 三个视口复测过，问题只出现在旧代码，修复后三个宽度都回归正常——见
+   * task-4-report.md 补充记录。
+   *
+   * 同时把 `.dt-overview` 的 grid-row 复位为 auto：它在桌面固定钉在
+   * grid-row:2，若决策卡改成 grid-row:auto 而 overview 仍钉着显式的 2，
+   * 两者会在单列布局里挤进同一行造成新的重叠。两者都改回 auto 后，三个
+   * 网格子项（画廊 / 决策卡 / 概况）没有任何显式行号，退回纯 DOM 顺序
+   * 逐行堆叠——图片、决策卡（价格+CTA）、概况规格表，顺序也更合理
+   * （先看图和价格，再看详细规格）。 */
+  .dt-decision { grid-column: 1 / -1; grid-row: auto; position: static; }
+  /* `.dt-overview` 是面板直接当 grid item 的用法（dev-story 预览页）；
+   * `.dt-overview-block` 是接线页里包着 h2 + 面板的那一格（见上方「页面骨架」）。
+   * 两者都钉在 grid-row:2，单列断点下必须一起复位 auto——**实测发现的回归**：
+   * 只复位其中一个时，决策卡（已改 grid-row:auto）会被仍钉在第 2 行的概况格
+   * 挤到第 3 行，移动端顺序变成「画廊 → 概况 → 决策卡」，与 comp 移动稿
+   * （画廊 → 标题 → 决策卡 → 概况）正好把最该先看到的价格与 CTA 推到了
+   * 1000px 以下。task9-verify 的 grid 量化数据记着这次修复前后的坐标。 */
+  .dt-overview,
+  .dt-overview-block { grid-row: auto; }
+}
+
+/* 吸附询价条的隐藏断点是 ≤767 而不是 ≤1023（Task 9 接线时修）：`.dt-decision`
+ * 在 ≤1023 只是回到普通文档流，并没有常驻入口顶上——而 `.detail__mobile-bar`
+ * （移动底栏）自己只在 ≤767 出现。两条各按各的断点收，768–1023 这一带就变成
+ * 「滚过决策卡之后页面上没有任何询价入口」的空档。实测确认过这个空档在接线前
+ * 就存在于 Task 4 的取值里，只是那时组件还只活在 dev-story 里没人看得见。
+ * 768 宽下条内元素都有 ellipsis 兜底（标题 max-width 40%、摘要 flex:1），
+ * 不会撑破。 */
+@media (max-width: 767px) {
+  .dt-sticky-bar { display: none; }
+}
+
+/* ============================================================================
+ * 周边与交通（Task 5）
+ * 设计依据：docs/SBH设计任务讨论/房源详情.dc.html specRows「周边地图」
+ * 「本房源图钉」「周边点位图钉」「清单面板」「一级/二级 tab」「清单行」「清单距离」。
+ *
+ * 覆盖对象是 styles.css 里 P1/P4 就有的 .location-panel__* / .amap-map-canvas*
+ * 基础类——组件（LocationPanel.tsx / AmapMapCanvas.tsx）没有换皮，class 名不变，
+ * 这里只是这一版详情页的权威取值覆盖旧值（import 顺序 detail.css 在 styles.css
+ * 之后，同选择器特异度下本文件生效）。
+ *
+ * 已知与 comp 字面量不同的三处克制取舍：
+ *   1. 一级 tab 图标（.location-panel__poi-tab-icon）—— comp 没画，但这是
+ *      P4 评审已经上线的功能（辨识度），删掉是丢行为换像素对齐，不删，只调间距。
+ *   2. 二级 tab / 清单行 padding 撑到 44px 触控目标——comp 字面量 28px 高度
+ *      不满足 design.md §14.2 的 ≥44×44px 约束，token 约束优先于 comp 像素。
+ *   3. comp 页面文案「距离为高德步行路径，非直线距离」未搬——POI 距离取自
+ *      高德 place/around 的 distance 字段，那是直线距离，不是路径规划结果
+ *      （见 domain/location-services/amap-provider.ts）。照抄这句话等于给
+ *      真实数据编一个不成立的来源说明，故略去，不是漏做。
+ * ========================================================================== */
+
+/* 地图 + 清单面板并排两列，取代 P1 版本「清单浮层绝对定位盖在地图上」的写法：
+ * mapEnabled=false（无 Key）时地图区域没有实际内容，浮层写法下 .location-panel__map-area
+ * 因没有地图撑起高度而塌缩为 0，清单面板的 top/right 绝对定位就失去参照，
+ * 网格布局让两列各自按自身内容独立定高，天然规避这个问题。 */
+.location-panel__grid {
+  display: grid;
+  grid-template-columns: 776px 372px;
+  gap: 32px;
+  align-items: start;
+}
+
+.location-panel__grid--map-only {
+  grid-template-columns: 776px;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__grid,
+  .location-panel__grid--map-only {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.location-panel__map {
+  position: relative;
+  min-width: 0;
+}
+
+/* 地图容器：776×460 · 圆角 18 · 去饱和滤镜（覆盖 styles.css 里 P1 的 500px/8px 旧值） */
+.location-panel__map .amap-map-canvas,
+.location-panel__map .amap-map-canvas__container {
+  height: 460px;
+  border-radius: var(--r-card);
+}
+
+.location-panel__map .amap-map-canvas {
+  border: none;
+}
+
+/* 滤镜只加在高德内部的瓦片图层（.amap-layer/.amap-maps 是高德 JS API v2.0
+ * 渲染瓦片的容器类名），不能加在 .amap-map-canvas__container 整体上——
+ * CSS filter 会整体光栅化再处理，若加在容器上会连同我们自建的图钉 DOM
+ * （本房源 accent 圆点、深色字母圆）一起被拉灰，图钉就失去「显眼」的意义。
+ * 未在本机环境验证真实瓦片渲染（高德脚本在沙箱网络里大概率加载失败，见
+ * task-5-report.md）——选择器按高德公开 DOM 结构的通行约定给出，多写一个
+ * 不匹配也无副作用。 */
+.location-panel__map .amap-map-canvas__container .amap-layer,
+.location-panel__map .amap-map-canvas__container .amap-maps {
+  filter: saturate(.12) contrast(1.04);
+}
+
+@media (max-width: 1023px) {
+  .location-panel__map .amap-map-canvas,
+  .location-panel__map .amap-map-canvas__container {
+    height: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .location-panel__map .amap-map-canvas,
+  .location-panel__map .amap-map-canvas__container {
+    height: 200px;
+  }
+}
+
+/* 本房源图钉 + 周边点位图钉：AmapMapCanvas 自建 DOM（createBuildingPinContent /
+ * createPoiPinContent），不是 AMap 默认图标也不是 marker.label——两者都需要
+ * 覆盖未公开保证的内部类名才能改色，自建 DOM 完全由这里的样式控制。
+ * .amap-map-canvas__pin 本身是 0 尺寸的定位锚点（AMap 用 anchor:'center' 把
+ * 它对准经纬度像素点），子元素用 position:absolute + 负 margin/transform
+ * 各自居中/上浮，不依赖 AMap 的 offset/Pixel API。 */
+.amap-map-canvas__pin {
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+.amap-map-canvas__pin-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* 168×34 是 comp 字面量给的最小尺寸，不是硬上限——真实楼盘/房源名长度不一，
+ * min-width + white-space:nowrap 让短名称贴合 168，长名称自然撑宽，不裁切。 */
+.amap-map-canvas__pin-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 14px));
+  min-width: 168px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: var(--ink);
+  /* `--color-on-ink` 保留：它在 styles.css:75 是一个**字面量**（#f5f5f7），
+   * 不是指向 1.1 体系的别名——新体系没有「墨底上的字色」这个 token，换成
+   * 字面量只会把一个已经单点化的取值散回三处。见本批报告 T1 的异议一条。 */
+  color: var(--color-on-ink);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.amap-map-canvas__pin-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 3px solid var(--bg-subtle);
+  color: var(--color-on-ink);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 高亮态名称标签：默认隐藏，点击清单对应项后由 AmapMapCanvas 切换
+ * data-visible（见组件内 poiNameLabelsRef 高亮 effect），不经过 AMap
+ * marker.setLabel。 */
+.amap-map-canvas__pin-name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--color-on-ink);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.amap-map-canvas__pin-name[data-visible='false'] {
+  display: none;
+}
+
+/* 清单面板：372（由网格列宽给定）· 与地图等高 460 · padding 0 24。
+ * 白底零边框零阴影的**表面**已并进上方 `.dt-panel` 的选择器组，这里只剩本页
+ * 专属的高度。原先的 `position/top/right/width/max-height/border/box-shadow`
+ * 一整排「复位」声明也删了——它们复位的是 styles.css 里 P1 的浮层版基态，而
+ * 那份基态本身已按「覆写之后回头删基态」一并清理（组件只在 `.dt-page` 内使用，
+ * 浮层版永远不会生效，留着就是「哪天有人在别处用它就回到旧视觉」的埋雷）。 */
+.location-panel__poi-panel {
+  height: 460px;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__poi-panel {
+    height: auto;
+  }
+}
+
+/* 一级 tab：内容宽（不再等分 flex:1）+ gap 24 + 下划线选中态 */
+.location-panel__pois {
+  flex-wrap: nowrap;
+  gap: 24px;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+
+.location-panel__poi-tab {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: var(--touch-target);
+  padding: 17px 0;
+  border-bottom: 2px solid transparent;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.location-panel__poi-tab[data-active='true'] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.location-panel__poi-subtabs {
+  padding: 16px 24px 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+/* 二级 pill 视觉高度 comp 给 28px，撑到 44px 触控目标（见文件头「克制取舍」2） */
+.location-panel__poi-subtab {
+  min-height: var(--touch-target);
+  padding: 0 12px;
+  /* --r-pill（980px）而不是 1.7 圆角家族的 --radius-pill（999px）：两个 pill
+   * token 同页并存过一版，取值还不同；本文件其余三处 pill 都是 --r-pill。 */
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.location-panel__poi-subtab[data-active='true'] {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+
+.location-panel__poi-list {
+  padding: 6px 24px 12px;
+}
+
+@media (max-width: 1023px) {
+  .location-panel__poi-list {
+    overflow-y: visible;
+  }
+}
+
+.location-panel__poi-item {
+  padding: 14px 0;
+  gap: 12px;
+}
+
+.location-panel__poi-letter {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.location-panel__poi-name {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: normal;
+}
+
+/* 清单距离：tabular-nums + ink（非 muted）——comp 清单行整行同色，
+ * 距离数字不降级为次要色 */
+.location-panel__poi-distance {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+@media (max-width: 480px) {
+  .location-panel__poi-tab {
+    font-size: 14px;
+    padding: 14px 0;
+  }
+
+  .location-panel__poi-item {
+    padding: 12px 0;
+  }
+}
+
+/* ============================================================================
+ * 楼盘信息面板 + 规格参数表（Task 6）
+ * 设计依据：docs/SBH设计任务讨论/楼盘详情.dc.html 核心区信息面板（372 宽，
+ * padding 32）与「楼盘参数（完整）」（2 列 gap 40/72 · 值列 200 右对齐）。
+ * ========================================================================== */
+
+/* 信息面板（HeroSummaryPanel）内容布局——外层白底/padding/圆角已由
+ * `DetailPanel variant="side"`（.dt-panel--side）提供，这里只负责面板内部
+ * 几块（起价/双统计/规格行/顾问 CTA）的纵向间距，不重复画一次面板本身。
+ *
+ * **本小节的间距/字号写 px 字面量**，与 detail.css 其余部分一致（终审 T1：
+ * 这里原先混用 `--sp-4 / --sp-3 / --sp-2 / --fs-18 / --fs-12`，是文件里唯一
+ * 的例外）。选 px 而不是反过来把全文件改成 token，理由有三：
+ *   1. 本文件的取值全部来自 comp（`楼盘详情.dc.html` specRows）的字面像素，
+ *      token 家族 `--sp-*`/`--fs-*` 属于 1.3 旧体系，与 comp 只是**碰巧**对得上
+ *      （16/12/8、18/12），套一层 token 会让「这个数是从哪来的」多绕一层；
+ *   2. OPT-035 锁定的新体系（styles.css §1.1）根本没有 fs / sp token，只有
+ *      色板、圆角、阴影、缓动——继续用 1.3 的 fs/sp 就是在新文件里续用旧体系；
+ *   3. `--fs-*` 是 rem，px 是绝对值。三处 rem 混在四十几处 px 里，用户放大
+ *      浏览器默认字号时只有那三处跟着放大，字号层级会**反转**（免责声明比
+ *      正下方的统计数字还大）。要么全 rem 要么全 px，半套最糟。 */
+.hero-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero-summary__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+/* 与 `.dt-decision__price-num`（房源页决策卡的大数字）同一档：两页的 372
+ * 信息栏顶上都是"这一屏最大的那个数"，comp 也是同一组取值（40/600/1.06 +
+ * 单位 17/ink-2）。Task 10 接线时实测发现本处仍留着 58 式的
+ * `--fs-32 / 700` 且**缺 tabular-nums**——「数字一律 tabular-nums」是本批
+ * 的硬约束，起价是全页最显眼的数字，漏掉它等于这条约束在楼盘页整个没落地。
+ * 不抽公共类：两条规则的选择器分属两页的组件命名空间，抽第三个类只会让
+ * 「这一页的价格长什么样」多绕一层，取值一致由本注释与 comp 共同担保。
+ *
+ * **与本批 V1（`.building-card-mini` 收敛到 `.sf-card`）为何处置相反**：
+ * 判据是「这几条声明是不是同一个**决定**」，不是「取值是不是恰好相同」。
+ *   - `.sf-card` 是一个已经存在的、全站共享的**表面决定**（白底卡片长什么样），
+ *     `.building-card-mini` 那份是把它逐条抄了一遍——抄的一方没有任何自己的
+ *     决定，改一处必须记得改另一处，所以合并；
+ *   - 这里两条大字号规则分属「房源决策卡」与「楼盘信息面板」两页的版式决定，
+ *     只是 comp 恰好给了同一组数值。日后任一页把主价字号改掉是完全正常的
+ *     设计动作，绑在一起反而会逼出一个「除了 X 页」的例外分支。
+ * 换言之：抄来的合并，撞车的不合并。两者的共同前提是**必须写明理由**——
+ * 这正是 `cross-batch-design-decisions.md`「另起须写明理由」那条的落点。 */
+.hero-summary__price {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.06;
+  color: var(--ink);
+}
+
+/* 无公开价格：降一档字号，同 `.dt-decision__price-num--na` */
+.hero-summary__price--na {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.hero-summary__price-unit {
+  font-size: 17px;
+  color: var(--ink-2);
+}
+
+.hero-summary__disclaimer {
+  margin: -12px 0 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.hero-summary__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-block: 12px;
+  border-block: 1px solid var(--line);
+}
+
+.hero-summary__stat strong {
+  display: block;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.hero-summary__stat span {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* 375 断口实测发现的既有缺陷：avatar(44 固定) + cta(按钮内容定宽，不收缩)
+ * 挤压中间 body 到 0 宽，文字逐字换行。修法是让 CTA 独占一行
+ * （`flex-basis: 100%`）。换行本身由 `.advisor-card { flex-wrap: wrap }`
+ * 提供——Task 9 已把它提升为 AdvisorCard 的默认行为，所以本条只留差异化的
+ * 那部分，不再重复声明 flex-wrap（Task 11 按实现校正注释）。
+ * 不去掉 AdvisorCard 自身的卡片底色/边框——信息面板是零边框白底大面板，
+ * AdvisorCard 在其中保留一个小卡片轮廓是合理的嵌套层次。
+ * 注：`.detail-side-rail .advisor-card` 那组去嵌套覆写随 Task 11b 摘掉侧栏
+ * 「免费咨询」卡一并删除——本页现在只剩这一处 AdvisorCard。 */
+.hero-summary .advisor-card__cta {
+  flex-basis: 100%;
+}
+
+/* 楼盘参数面板（BuildingSpecPanel）：4 组 2 列排布，每列内部仍是 .dt-spec
+ * 的行结构——「组标签 + SpecTable」的重复样式已收敛进 .dt-group-title
+ * （见上方 .dt-overview 小节），这里只声明 2 列网格本身。 */
+.dt-building-spec {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px 72px;
+}
+
+.dt-building-spec__group {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1023px) {
+  .dt-building-spec {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============================================================================
+ * 楼盘详情页接线（Task 10）
+ * 设计依据：楼盘详情.dc.html 正文区块 + specRows「楼盘参数 2 列 gap 40/72」
+ * 「楼盘特色标签 标签列 104 + gap 32 · 13/500 底 #f5f5f7」「同商圈楼盘 4 列
+ * gap 16 · 图 16:10」「面板 底 #fff · 圆角 18 · 零边框零阴影」。
+ *
+ * 骨架类（.dt-page / .dt-container / .dt-core / .dt-section / .dt-h2 / .dt-titlebar）
+ * 与房源详情页共用，已在上方「页面骨架与纵向节奏」定义，本节只补楼盘页独有的块。
+ * ========================================================================== */
+
+/* 标题栏副标：comp「静安区南京西路 1515 号 · 甲级写字楼 · 2013 年竣工」。
+ * 挂在 `.dt-titlebar__row` 之后而不是 h1 旁边——右侧操作 pill 组与 h1 同行，
+ * 副标要占满整行宽度才不会被 pill 组挤成两行。 */
+.dt-titlebar__subtitle {
+  margin: 12px 0 0; font-size: 15px; line-height: 1.5; color: var(--ink-2);
+  letter-spacing: normal;
+}
+
+/* 段标题 + 一句话说明：h2 自带 margin-bottom 20，进了本壳之后由壳统一给，
+ * 否则 h2 与说明之间会多出 20px。 */
+.dt-sectionhead { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.dt-sectionhead > .dt-h2 { margin-bottom: 0; }
+.dt-sectionhead__note { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
+
+/* 三级标题（楼盘介绍）：comp 没有这一级，取 h2(24) 与正文(17) 之间的 19/600，
+ * 与 `.dt-nomedia__title` 同档，不新造字号。 */
+.dt-h3 { margin: 0 0 12px; font-size: 19px; font-weight: 600; line-height: 1.3;
+  color: var(--ink); letter-spacing: normal; }
+.dt-params__intro { margin-top: 32px; }
+
+/* ── 在租房源下方的「咨询/推荐」卡片带（既有 DetailSideRail 换位不换皮） ──
+ * comp 的供给行网格是 `1fr / 130 / 150 / 176 / 120 / 44`（首列约 496，合计
+ * 1116 = 容器 1180 − 面板 padding 32×2）。本版页面容器已按 comp 收到 1180，
+ * 再切走一条 300–372 的右栏，数值列只剩 79–103px，实测「2800 元/工位/月」
+ * 「2026年10月15日」在单元格里拦腰折行。旧页面没暴露这个问题是因为它根本
+ * 没有 1180 容器（`.site-main` 1392 − 右栏 300 = 1068 够用）。
+ * 「1180 容器」与「300 右栏」不可兼得，comp 选了前者 —— 于是右栏改成表下的
+ * 通栏卡片带。组件一行未动，失效的只有 `position: sticky` 这一个纯呈现属性
+ * （它在文档流的横向卡片带里没有意义）。 */
+/* 列数 = 卡片数：Task 11 摘掉第四张卡后曾由 4 列改 3 列；Task 11b 又摘掉两张
+ * 与 `HeroSummaryPanel` 重复的卡，只剩「找房需求登记」一张——**一张卡就不再
+ * 需要网格**。留着多列网格会让这唯一一张卡挂在行首、后面拖两条空轨；所以这里
+ * 退回块级，让它横贯容器整宽，多列的两个媒体查询断点也随之取消。 */
+.dt-page .detail-side-rail {
+  position: static;
+  margin-top: 32px;
+  display: block;
+}
+/* 侧栏卡片切到本版详情页的面板表面（底 #fff · 圆角 18 · 零边框零阴影）。
+ * 与 `.location-panel__*` 同一手法：组件不换皮、类名不变，由本文件（import
+ * 顺序在 styles.css 之后）覆写这一版的权威取值——不在组件里再写一份，也不
+ * 新造 `.sf-card`（详情页面板本就是与列表卡刻意不同的表面，见 DetailPanel
+ * 文件头）。 */
+/* 单卡横贯后的内部版式：文案左 / CTA 右的一条带。`flex-wrap` + 文案的
+ * `flex: 1 1 260px` 负责窄栏塌成两行——不另写媒体查询，因为塌行的真实触发
+ * 条件是「文案 + 按钮放不下」，与视口宽度只是相关而非等价（本组件在 375 与
+ * 768 的容器宽差 393px，写死断点两边都会不准）。
+ * `.detail-side-rail__price` 一族随 Task 11b 的摘卡失活，已连同 styles.css
+ * 里的基础规则一并删除（组件层保证：本组件不再渲染任何价格节点）。 */
+.dt-page .detail-side-rail__card {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px 32px;
+  padding: 24px 28px;
+}
+.dt-page .detail-side-rail__band-copy { flex: 1 1 260px; min-width: 0; }
+.dt-page .detail-side-rail__card h3 {
+  margin: 0; font-size: 17px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal;
+}
+.dt-page .detail-side-rail__muted { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+
+/* ── 楼盘参数：面板底部的「楼盘特色」标签行 ───────────────────────────────
+ * `grid-column: 1 / -1`：`.dt-building-spec` 本体就是那张 2 列网格（面板与
+ * 网格是同一个元素，见上方），本行要横跨两列，不另加一层 wrapper。 */
+.dt-building-spec__features {
+  grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 32px;
+  padding-top: 24px; border-top: 1px solid var(--line);
+}
+.dt-building-spec__features > .dt-group-title { flex: none; width: 104px; padding-top: 6px; }
+.dt-building-spec__feature-list {
+  flex: 1; min-width: 0; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.dt-building-spec__feature-list li {
+  padding: 6px 14px; border-radius: var(--r-pill); background: var(--bg);
+  font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: normal;
+}
+
+/* ── 周边楼盘横滑条带（既有组件，接线后跟在周边与交通之后） ─────────────── */
+.dt-nearby .nearby-strip-wrap { margin-top: 0; }
+.dt-nearby .nearby-strip-wrap__title {
+  margin: 0 0 16px; font-size: 19px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal;
+}
+
+/* ── 同商圈楼盘：comp 4 列 gap 16 ─────────────────────────────────────────
+ * 不用全站 `.card-grid`（auto-fill minmax(320) 在 1180 容器下只排得下 3 列）。 */
+.dt-related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+
+/* `BuildingCardMini` 的表面**不在这里**：组件直接挂 `.sf-card` 与
+ * `.sf-media sf-media--16x10`（`styles/surface.css`），与列表页两张结果卡同一
+ * 写法。这里本来有一份把 `.sf-card` 每条声明（白底 / 零边框 / radius 18 /
+ * shadow / 320ms 位移，连 reduced-motion 块）与 `.sf-media--16x10` 的
+ * `aspect-ratio: 16/10; background:#8e8e93` 逐条抄下来的副本，终审 V1 点名删除。
+ * 剩下这三条是详情页真正的差异：卡内 padding/间距与两行文本的字号
+ * （comp「同商圈楼盘」比列表卡更紧凑），不是表面本身。
+ * 旧的 58 式基态（1px 边框 / radius 8 / hover 铜色描边 / 图 16:9 / scale(1.03)）
+ * 已从 styles.css 一并删除——组件只在本页使用，那份基态既是死规则，
+ * 又是「哪天有人在别处用它就回到旧视觉」的埋雷。 */
+.dt-page .building-card-mini__body { padding: 18px 20px 20px; gap: 5px; }
+.dt-page .building-card-mini__name { font-size: 16px; line-height: 1.35; letter-spacing: normal; }
+.dt-page .building-card-mini__address { font-size: 13px; color: var(--ink-2); }
+
+@media (max-width: 1023px) {
+  /* 与 `.dt-core` / `.dt-building-spec` 用同一个塌栅格断点：几处不一致会出现
+     「核心区已单列、别处还两列」的半塌状态。（`.detail-side-rail` Task 11b 起
+     只有一张卡、不再是网格，所以不在这里列它。） */
+  .dt-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .dt-titlebar__subtitle { margin-top: 8px; font-size: 14px; }
+  .dt-building-spec__features { flex-direction: column; gap: 12px; }
+  .dt-building-spec__features > .dt-group-title { width: auto; padding-top: 0; }
+  .dt-related-grid { grid-template-columns: minmax(0, 1fr); }
+}

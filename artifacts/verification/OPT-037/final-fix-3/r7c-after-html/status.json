@@ -1,0 +1,37 @@
+{
+  "listings": {
+    "path": "/listings",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "listings-index",
+    "missing": []
+  },
+  "listings-row": {
+    "path": "/listings?view=row",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "listings-index",
+    "missing": []
+  },
+  "buildings": {
+    "path": "/buildings",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "buildings-index",
+    "missing": []
+  },
+  "listing-detail": {
+    "path": "/listings/lujiazui-grade-a-780sqm",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "listing-detail",
+    "missing": []
+  },
+  "building-detail": {
+    "path": "/buildings/west-nanjing-premium-center",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "building-detail",
+    "missing": []
+  }
+}

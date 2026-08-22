@@ -35,6 +35,8 @@ export * from './contracts'
 export {
   buildBuildingSupplySnapshot,
   emptyBuildingSupplySnapshot,
+  availabilityDay,
+  isImmediatelyAvailable,
 } from './building-supply'
 export type { BuildingSupplyInput } from './building-supply'
 export * from './mappers'
@@ -43,6 +45,7 @@ export {
   LISTING_DEFAULT_SORT,
   parseListingSearchInput,
   parseBuildingSupplySearchParams,
+  buildBuildingSupplyCanonicalSearchParams,
   buildCanonicalSearchParams,
   legacyRentUnitToPriceKey,
 } from './search-params'

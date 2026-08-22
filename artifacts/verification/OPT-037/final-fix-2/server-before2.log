@@ -1,0 +1,71 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3802
+- Network:       http://198.18.0.1:3802
+✓ Ready in 253ms
+[03:58:07] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[03:59:04] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[03:59:06] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[03:59:13] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__0uz6u5r._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }

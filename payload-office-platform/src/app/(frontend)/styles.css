@@ -601,9 +601,6 @@ ol {
   min-height: 60vh;
 }
 
-.site-main--narrow {
-  max-width: 960px;
-}
 
 .site-footer {
   border-top: 1px solid var(--line);
@@ -880,13 +877,6 @@ ol {
   min-width: 0;
 }
 
-.listing-card__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-18);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-}
 
 .listing-card__title {
   font-size: var(--fs-18);
@@ -1444,17 +1434,7 @@ ol {
   margin: var(--sp-5) 0;
 }
 
-.detail-hero {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: clamp(var(--sp-5), 3vw, var(--sp-7));
-  align-items: start;
-}
 
-.detail__overview {
-  grid-column: 1 / -1;
-  width: 100%;
-}
 
 .detail-gallery {
   grid-column: span 7;
@@ -1793,136 +1773,196 @@ ol {
 .detail-gallery__dialog-caption { font-size: var(--fs-14); }
 .detail-gallery__counter { font-size: var(--fs-13); }
 
-.detail-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-4);
-}
 
-.detail-facts__group h2,
 .detail__section h3 {
   margin: 0 0 var(--sp-2);
   color: var(--color-ink);
   font-size: var(--fs-16);
 }
 
-.detail-facts dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin: 0;
-}
 
-.detail-facts__item {
+
+
+
+
+
+
+
+/*
+ * 供给密度表（OPT-037 Task 7，方案 A：分组切换 + 密度表）。
+ * 尺寸对照 docs/SBH设计任务讨论/楼盘详情.dc.html 的 specRows：
+ *   组切换 pill 36 高 padding 0 18；组聚合区 3 列 gap 24 值 22/600；
+ *   筛选 pill 32 高 padding 0 14；供给行网格 1fr/130/150/176/120/44，
+ *   数值列右对齐 padding-right 24、月租列 17/600；表头 12/600/ink-3。
+ * 旧版面积/价格「分桶」（客户端 state，刷新即丢）已被组切换 + URL 驱动的
+ * 面积筛选 + 排序取代，样式随之整块重写而非局部打补丁。
+ */
+.building-supply-browser {
+  /* 密度表内层 .table-wrap 靠 overflow-x:auto 横向滚动收纳 920px min-width，
+   * 但只要本组件自己或任一祖先是 flex/grid item 且没有显式 min-width:0，
+   * flex/grid 的「内容最小尺寸默认取 min-content」规则就会把这层滚动容器的
+   * 内容宽度顶给外层——不管本组件用在哪个页面的哪层容器里都成立，因此把
+   * min-width:0 钉在组件自己的根选择器上，不依赖调用方每层都记得声明。 */
   min-width: 0;
 }
 
-.detail-facts dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
-
-.detail-facts dd {
-  margin: var(--sp-1) 0 0;
-  overflow-wrap: anywhere;
-}
-
-.detail-facts__estimated {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
-
-.detail__amenities {
+.building-supply-browser__tabs {
+  margin-top: 20px;
   display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-/* --color-paper 与 --color-canvas 现在都别名到 --bg，无边框的 paper 贴片在
-   canvas 上完全不可见。改白底 + 中性描边，两种承载面（--bg 页底 / 白卡）下都成立。 */
-.detail__amenities li {
-  padding: var(--sp-1) var(--sp-2);
+.building-supply-browser__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
   background: var(--bg-subtle);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.detail__top {
+/* 命中盒补到 44（36 + 4×2），理由同 .building-supply-browser__filter::after。 */
+.building-supply-browser__tab::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.building-supply-browser__tab[data-active='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.building-supply-browser__tab-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.66;
+}
+
+.building-supply-browser__panel {
+  margin-top: 12px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  padding: 32px;
+}
+
+.building-supply-browser__agg {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--sp-6);
-  align-items: start;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
 }
 
-.building-supply-browser__filters {
+.building-supply-browser__agg-item {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-3);
+  gap: 6px;
 }
 
-.building-supply-browser__bucket-group {
+.building-supply-browser__agg-label {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.building-supply-browser__agg-value-row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
+  align-items: baseline;
+  gap: 4px;
 }
 
-.building-supply-browser__bucket-label {
-  flex-shrink: 0;
-  font-size: var(--fs-13);
-  font-weight: 600;
-  color: var(--color-ink-2);
-}
-
-.building-supply-browser__bucket {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  min-height: var(--touch-target);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink-2);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.building-supply-browser__bucket:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
-}
-
-/* 选中态零色相，同 .filter-chip.is-active：原蓝底蓝字 3.82:1。 */
-.building-supply-browser__bucket[data-active='true'],
-.building-supply-browser__bucket[aria-current='true'] {
-  background: var(--bg);
-  border-color: var(--ink);
-  color: var(--ink);
+.building-supply-browser__agg-value {
+  font-size: 22px;
   font-weight: 600;
 }
 
-.building-supply-browser__bucket-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5em;
-  padding: 0 var(--sp-1);
-  font-size: var(--fs-12);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
-}
-
-.building-supply-browser__bucket[data-active='true'] .building-supply-browser__bucket-count,
-.building-supply-browser__bucket[aria-current='true'] .building-supply-browser__bucket-count {
-  /* 随选中态一并零色相：--color-copper 在 --bg 上只有 4.31:1，--ink-2 是 4.66:1 */
+.building-supply-browser__agg-unit {
+  font-size: 13px;
   color: var(--ink-2);
+}
+
+.building-supply-browser__controls {
+  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__filter-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* 视觉高度按稿子保持 32（组 tab 36），但**可点区域补到 44**：用 ::after 只在
+   纵向撑开命中盒（`inset: -6px 0`，32+12=44），不改任何可见尺寸，也不横向扩张
+   （左右为 0，相邻 pill 的命中盒因此不会互相覆盖）。二者不是二选一——照稿子给
+   视觉、按触控规范给命中区，比「为了 44 把 pill 撑高到不像稿子」或「为了像稿子
+   让触控目标停在 32」都好。 */
+.building-supply-browser__filter {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.building-supply-browser__filter::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.building-supply-browser__filter[data-active='true'] {
+  background: var(--line);
+  color: var(--ink);
+}
+
+/* 排序控件本体复用房源列表页的 `.ls-toolbar__sort*`（见 BuildingSupplyBrowser.tsx
+   的注释），这里只负责它在筛选行里的定位；gap/对齐与 `.ls-toolbar__right` 一致，
+   不在两页之间造第二套间距。 */
+.building-supply-browser__sort {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__notice {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* 空态提示。「筛到空结果」时它位于聚合区 + 控件区之下（控件常驻，否则用户没有
+   入口取消刚点下的筛选）；「整段无供给」时它是 section 内唯一内容。 */
+.building-supply-browser__empty {
+  margin: 0;
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  letter-spacing: normal;
 }
 
 .building-supply-browser__table-wrap {
@@ -1931,62 +1971,105 @@ ol {
 
 .building-supply-browser__table {
   width: 100%;
+  /* 定宽列改百分比而非 px（见 colgroup，BuildingSupplyBrowser.tsx）：曾经试过
+   * `min-width:920px`（130/150/176/120/44 定宽列合计 620 + 首列可读最小宽
+   * 300）配合 `.table-wrap` 的 overflow-x:auto 横向滚动兜底 768 断点，视觉效果
+   * 正确，但实测 `document.documentElement.scrollWidth` 仍会被顶宽（Chromium
+   * 对 table-layout:fixed + 显式 min-width 的表格，intrinsic size 计算会绕过
+   * overflow:auto/hidden 祖先——连 wrap 改 overflow-x:hidden 都拦不住，真实
+   * 页面出现可横向滚动的空白），attempts 见 task-7-report.md。改用百分比列宽
+   * 后各列按比例伸缩，没有任何显式 min-width/width 字面量超出容器，
+   * 不再触发这个逃逸，且比例在 1180 容器下与 px 版数值等价（496/1116≈44.5%
+   * 等），窄于卡片切换阈值（768）时也保持同一比例，不会被压成逐字换行。 */
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
-.building-supply-browser__table th,
-.building-supply-browser__table td {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--color-line);
+.building-supply-browser__table thead th {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
   text-align: left;
+}
+
+.building-supply-browser__table-num-head {
+  text-align: right;
+  padding-right: 24px;
+}
+
+/* 稿子 specRows 的「供给行 min-height 56」。表格里 min-height 对 td 无效，
+   行高只能挂在 tr 上——CSS 表格模型下 tr 的 height 语义本来就是「最小高度」，
+   内容更高时照常撑开。 */
+.building-supply-browser__table tbody tr {
+  height: 56px;
+}
+
+.building-supply-browser__table tbody td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
+  color: var(--ink);
 }
 
-/* 58 式表格：图 | 面积 | 单价 | 总价 | 特色 | 查看详情 */
-.building-supply-browser__table-thumb {
-  width: 88px;
+.building-supply-browser__table-primary {
+  display: block;
+  padding-right: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
-.building-supply-browser__table-thumb img,
-.building-supply-browser__table-thumb .media-placeholder {
-  width: 88px;
-  height: 66px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
+.building-supply-browser__table-sub {
+  display: block;
+  margin-top: 3px;
+  padding-right: 24px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
-.building-supply-browser__table-area,
-.building-supply-browser__table-price,
+.building-supply-browser__table-num {
+  text-align: right;
+  padding-right: 24px;
+  font-size: 15px;
+}
+
 .building-supply-browser__table-total {
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-price {
-  color: var(--color-copper);
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
+  font-size: 17px;
   font-weight: 600;
 }
 
-.building-supply-browser__table-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
+.building-supply-browser__table-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  /* **刻意不加 `white-space: nowrap`**：状态列窄时「2026年10月15日」会断成两行，
+     看着不好看，但试过一次 nowrap，375 下的「无横向溢出」e2e 立刻红——窄屏首帧
+     （hydration 前 isMobile 仍是 false）渲染的是密度表，不可断行的日期会把表格的
+     min-content 宽度顶上去，正是 Task 7 报告里那条「表格内在宽度绕过 overflow
+     祖先」的同一个坑。断两行只是难看，页面级横向滚动是真缺陷，不换。 */
+}
+
+.building-supply-browser__table-status[data-emphasized='true'] {
+  background: var(--ink);
+  color: #fff;
 }
 
 .building-supply-browser__table-link {
-  display: inline-block;
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-copper);
-  border-radius: var(--radius-sm);
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-link:hover {
-  background: var(--color-copper-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  color: var(--accent-link);
 }
 
 .building-supply-browser__more {
@@ -2006,36 +2089,37 @@ ol {
   color: var(--color-copper);
 }
 
+.building-supply-browser__footer {
+  margin-top: 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.building-supply-browser__footer .building-supply-browser__more {
+  margin: 0;
+}
+
+.building-supply-browser__footnote {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
 @media (max-width: 1199px) {
-  .detail-hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-4);
-  }
 
   .detail-gallery,
-  .detail__summary,
-  .detail__overview {
+  .detail__summary {
     grid-column: 1;
   }
 }
 
 @media (max-width: 767px) {
 
-  .detail-gallery__panel {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
 
   .detail-gallery__dialog {
     padding: var(--sp-3);
@@ -2066,61 +2150,14 @@ ol {
   grid-column: span 5;
 }
 
-.building-supply-overview {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview > h2 {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-16);
-}
 
-.building-supply-overview__groups {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview__group {
-  padding: var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-paper);
-}
 
-.building-supply-overview__group h3 {
-  margin: 0 0 var(--sp-2);
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-}
 
-.building-supply-overview__group dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.building-supply-overview__group dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
 
-.building-supply-overview__group dd {
-  margin: var(--sp-1) 0 0;
-  color: var(--color-ink);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
 
-.detail__decision-title {
-  margin: 0;
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 @media (max-width: 1199px) {
   .detail__summary {
@@ -2128,12 +2165,6 @@ ol {
   }
 }
 
-.detail__type {
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
 
 .detail__title {
   font-size: var(--fs-26);
@@ -2141,54 +2172,13 @@ ol {
   margin: 0;
 }
 
-.detail__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-26);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-  margin-bottom: var(--sp-2);
-}
 
-.detail__specs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--sp-3);
-  margin: 0 0 var(--sp-4);
-}
 
-@media (min-width: 480px) {
-  .detail__specs {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 
-.detail__specs dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-  margin-bottom: 2px;
-}
 
-.detail__specs dd {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-  font-weight: 500;
-  /* F7.2：长地址/长楼盘名换行不溢出 */
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  min-width: 0;
-}
 
-.detail__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-4);
-}
 
 .detail__section,
-.detail__overview,
 .location-panel {
   margin-top: var(--sp-7);
   scroll-margin-top: 80px;
@@ -2200,10 +2190,6 @@ ol {
   margin-bottom: var(--sp-3);
 }
 
-.detail__building-summary {
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 .richtext {
   color: var(--color-ink-2);
@@ -2222,67 +2208,15 @@ ol {
   margin: var(--sp-3) 0 var(--sp-2);
 }
 
-/* 详情决策卡（F4.2：桌面粘性 + 移动底部固定） */
-.detail__decision {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-}
 
-@media (min-width: 1024px) {
-  .detail__decision {
-    position: sticky;
-    top: calc(var(--sp-7) + var(--site-header-height, 56px));
-    align-self: start;
-  }
-}
 
-.detail__decision-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
 
-.detail__decision-cta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin-top: var(--sp-2);
-}
 
-.detail__decision-cta .btn {
-  width: 100%;
-}
 
-.detail__decision-cta .btn--ghost {
-  border: 1px solid var(--color-line);
-  color: var(--color-ink-2);
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
 
-.detail__decision-cta .btn--ghost:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
-}
 
-.detail__decision-cta .btn:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-  border-color: var(--color-copper);
-}
 
 /* 移动端隐藏桌面粘性决策卡，由底部固定栏承担 CTA */
-@media (max-width: 767px) {
-  .detail__decision {
-    display: none;
-  }
-}
 
 /* 移动底部固定咨询栏：桌面隐藏 */
 .detail__mobile-bar {
@@ -2290,9 +2224,6 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-overview__group dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
   .detail__mobile-bar {
     position: fixed;
@@ -2343,11 +2274,6 @@ ol {
 }
 
 /* 详情页响应式调整：双栏 → 单栏 */
-@media (max-width: 767px) {
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ---------------------------------------------------------------------------
  * 15. 询价 Modal（design.md §14.2：焦点锁定、Esc、焦点归还）
@@ -2661,17 +2587,11 @@ ol {
   }
 }
 
-.text-copper {
-  color: var(--color-copper);
-}
 
 .text-muted {
   color: var(--color-muted);
 }
 
-.text-center {
-  text-align: center;
-}
 
 .visually-hidden {
   position: absolute;
@@ -3321,127 +3241,24 @@ ol {
   gap: var(--sp-4);
 }
 
-.location-panel__static {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
 
-.location-panel__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.location-panel__fact {
-  display: flex;
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
 
-.location-panel__fact dt {
-  color: var(--color-muted);
-  min-width: 4em;
-}
 
-.location-panel__fact dd {
-  margin: 0;
-  color: var(--color-ink);
-}
 
-.location-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
 
-/* P2 路线规划器 */
-.route-planner {
-  margin-top: var(--sp-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
 
-.route-planner__modes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-}
 
-.route-planner__mode {
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-paper);
-  color: var(--color-ink-2);
-  cursor: pointer;
-}
 
-.route-planner__mode[data-active='true'] {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  border-color: var(--color-ink);
-}
 
-.route-planner__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  margin: 0;
-  padding: var(--sp-2) 0 0;
-}
 
-.route-planner__summary dt {
-  font-size: var(--fs-14);
-  color: var(--color-ink-2);
-}
 
-.route-planner__summary dd {
-  margin: 0;
-  font-weight: 600;
-}
 
-.route-planner__fallback {
-  color: var(--color-ink-2);
-  font-size: var(--fs-14);
-}
 
-/* P2 平台顾问服务状态 */
-.advisor-availability {
-  font-size: var(--fs-14);
-  margin: var(--sp-1) 0;
-}
 
-.advisor-availability__status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
 
-.advisor-availability__status--open {
-  color: var(--color-forest);
-}
 
-.advisor-availability__status--open::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-forest);
-  display: inline-block;
-}
 
-.advisor-availability__status--closed {
-  color: var(--color-ink-2);
-}
 
 /* P2 看房时段选择器 */
 .viewing-slot-picker {
@@ -3498,25 +3315,20 @@ ol {
   padding: 0;
 }
 
-/* 地图 + POI 浮动面板容器（参考 58 商办：地图占满宽度，POI 面板绝对定位浮在右侧） */
-.location-panel__map-area {
-  position: relative;
-  width: 100%;
-}
+/* .location-panel__map-area 已在 OPT-037 Task 5 随「浮层覆盖地图」旧写法一起
+ * 淘汰（改为 detail.css 的 .location-panel__grid 两列网格），组件里已无引用，
+ * 故整条规则一并删除，不留死代码。 */
 
+/* 清单面板：只留下**未被覆写**的内部布局。原先这里是 P1 的「浮层压在地图上」
+ * 版本（absolute + 320 定宽 + 1px 边框 + shadow-md），OPT-037 Task 5 起
+ * LocationPanel 只在 `.dt-page` 内使用，detail.css 已把它改成与地图并列的
+ * 白底面板（表面并进 `.dt-panel` 选择器组，高度 460）。按与 `.building-card-mini`
+ * 相同的判据删掉浮层基态，detail.css 那一排 `position:static / top:auto /
+ * right:auto / width:auto / max-height:none / border:none / box-shadow:none`
+ * 复位声明也随之取消——没有基态就不需要复位。 */
 .location-panel__poi-panel {
-  position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
-  z-index: var(--z-raised);
-  width: 320px;
-  max-height: calc(500px - var(--sp-6));
   display: flex;
   flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -3766,11 +3578,10 @@ ol {
     height: 320px;
   }
 
-  /* 移动端 POI 面板改为底部抽屉，避免遮挡地图 */
+  /* ≤767 时清单面板与地图上下堆叠，补一段间距。
+     原先这里还有 `position:static / width:100% / max-height:280px` 三条，是给
+     上面那份浮层基态做移动端复位的；基态删除后三条同时失效，只留间距。 */
   .location-panel__poi-panel {
-    position: static;
-    width: 100%;
-    max-height: 280px;
     margin-top: var(--sp-2);
   }
 }
@@ -3812,12 +3623,6 @@ ol {
   font-weight: 600;
 }
 
-.detail-gallery__panel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  width: 100%;
-}
 
 .detail-gallery__schematic-note {
   display: block;
@@ -3910,8 +3715,14 @@ ol {
 }
 
 /* ===== P0 评审优化：AdvisorCard 平台顾问卡片 ===== */
+/* flex-wrap: wrap 是基础行为而非窄栏特例（OPT-037 Task 9 按 detail.css
+ * `.hero-summary .advisor-card` 记下的升级阈值提升上来）：avatar 44 固定 +
+ * cta 内容定宽都不收缩，中间 body 被挤到 0 宽时中文会逐字竖排。宽栏下内容
+ * 装得下，wrap 不会触发，因此提升为默认没有视觉代价；窄栏各自只保留真正
+ * 差异化的那一行（`__cta { flex-basis: 100% }` 强制 CTA 独占一行）。 */
 .advisor-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--sp-3);
   padding: var(--sp-3);
@@ -4032,15 +3843,48 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-browser__bucket-group {
-    overflow-x: auto;
+  /* 密度表在窄屏改用 ListingCard 卡片（见 BuildingSupplyBrowser.tsx 文件头
+   * 注释——既有行为，非本次新增），但组切换 tab 与筛选行在所有断点都渲染；
+   * tab 数超出一屏时横滑，而不是折行把整块面板顶高。 */
+  /* 纵向 padding 不是留白，是给 ::after 命中盒让位：`overflow-x:auto` 会把
+     另一轴一并算成 auto，不留出这几个像素，补到 44 的触控盒会被横滑容器裁掉。 */
+  .building-supply-browser__tabs {
     flex-wrap: nowrap;
-    padding-bottom: var(--sp-1);
+    overflow-x: auto;
+    padding-block: 4px;
     -webkit-overflow-scrolling: touch;
   }
-  .building-supply-browser__bucket {
+  .building-supply-browser__tab {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+  .building-supply-browser__filter-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-block: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .building-supply-browser__filter {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .building-supply-browser__panel {
+    padding: 20px;
+  }
+  .building-supply-browser__agg {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+  }
+  /* 窄列下数值+单位改竖排：横排在两列窄格里会把单位挤到跟值同一行导致
+     换行断在单位文字中间（如「元/㎡/」与「天」分两行），竖排更可读。 */
+  .building-supply-browser__agg-value-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .building-supply-browser__sort {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
@@ -4169,95 +4013,21 @@ ol {
   }
 }
 
-/* ===== P1 评审优化：AmenityList 配套设施图标化 ===== */
-.amenity-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
 
-.amenity-list__group-title {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-14);
-  font-weight: 600;
-  color: var(--color-ink-2);
-}
 
-.amenity-list__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.amenity-list__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-13);
-  color: var(--color-ink-2);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
 
-.amenity-list__item:hover {
-  border-color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 6%, var(--color-paper));
-}
 
-.amenity-list__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.amenity-list__label {
-  line-height: 1.4;
-}
 
-/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 ===== */
-.building-card-mini {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.building-card-mini:hover {
-  border-color: var(--color-copper);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.building-card-mini__media {
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--color-paper);
-}
-
-.building-card-mini__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.2s ease;
-}
-
-.building-card-mini:hover .building-card-mini__media img {
-  transform: scale(1.03);
-}
-
+/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 =====
+ * 卡片**表面**（底/边框/圆角/阴影/hover）与**图容器**（比例/底色/裁切）不在
+ * 这里：组件直接挂 `.sf-card` 与 `.sf-media sf-media--16x10`（styles/surface.css）。
+ * 这里原有一份 58 式基态（1px 边框 · radius 8 · hover 铜色描边 + translateY(-1px)
+ * · 图 16:9 · hover `scale(1.03)`），在 `.dt-page` 作用域内被 detail.css 全部
+ * 覆写，而本组件**只在楼盘详情页使用**——既是死规则，又是「哪天有人在别的页面
+ * 用它就立刻回到旧视觉」的埋雷，终审 V2 点名删除。
+ * 下面几条是卡片**内容**的排版，与表面无关，仍然有效。 */
 .building-card-mini__placeholder {
   display: flex;
   align-items: center;
@@ -4310,69 +4080,15 @@ ol {
   overflow: hidden;
 }
 
-/* ===== P2 评审优化：房源 specs 图标对齐 ===== */
-.detail__specs dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.detail__specs dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-/* ===== P3 评审优化：楼盘 header grade 徽章 ===== */
-.detail__header-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
 
-.detail__grade-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--sp-2);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
-}
 
-.detail__grade-badge[data-grade='super-grade-a'] {
-  color: #b45309;
-  background: color-mix(in srgb, #b45309 14%, transparent);
-}
 
-/* ===== P3 评审优化：供给概览图标对齐 + 数值强调 ===== */
-.building-supply-overview__group dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.building-supply-overview__group dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.building-supply-overview__group dd strong {
-  font-size: var(--fs-16);
-  font-weight: 700;
-  color: var(--color-ink);
-}
 
-/* ===== P3 评审优化：询价 CTA 视觉强化 ===== */
-.detail__decision-inquiry.btn--lg {
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-copper) 28%, transparent);
-}
 
-.detail__decision-inquiry.btn--lg:hover {
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-copper) 38%, transparent);
-  transform: translateY(-1px);
-}
 
 /* ===== P4 评审优化：LocationPanel POI 图标 ===== */
 .location-panel__poi-tab {
@@ -4755,52 +4471,21 @@ ol {
 
 
 /* ---------------------------------------------------------------------------
- * 24. 详情页共享：Hero 决策卡定位与供给区头部摘要（楼盘/房源共用）
- * --------------------------------------------------------------------------- */
-
-/* Hero 两栏 already defined by .detail-hero; ensure the decision card aligns top */
-.detail__summary {
-  align-self: start;
-}
-
-/* 决策卡 sticky 偏移：站点 header + 小间距 */
-.detail__decision {
-  top: calc(var(--site-header-height, 56px) + var(--sp-3));
-}
-
-/* 供给区头部：标题 + 一句话摘要 */
-.detail-section__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-2) var(--sp-4);
-  margin-bottom: var(--sp-3);
-}
-
-.detail-section__header h2 {
-  margin-bottom: 0;
-}
-
-.detail-section__summary {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-}
-
-@media (max-width: 767px) {
-  .detail-section__header {
-    flex-direction: column;
-    gap: var(--sp-1);
-  }
-}
-
-
-/* ---------------------------------------------------------------------------
- * 25. 楼盘详情 V2（58 式结构，见 plans/2026-08-04-building-detail-58-style-refactor.md）
- *   - 标题行：名称+徽章 | 分享/纠错
- *   - Hero：左画廊 | 右决策面板（起价大字/双统计/关键参数/顾问 CTA）
- *   - 房源区：主列 | 300px 粘性右栏
- *   - 位置区灰底成带 + 周边楼盘横滑
+ * 25. 楼盘详情页残留基元（`.detail-side-rail` / `.nearby-strip` / demo 横幅）
+ *
+ * 本节原是「楼盘详情 V2（58 式结构）」的整套骨架（标题行 / Hero 两栏 /
+ * 主列 + 300px 粘性右栏 / 位置区灰底成带）。OPT-037 Task 10 接线后骨架整体
+ * 换成了 `.dt-page` / `.dt-container` / `.dt-core` / `.dt-section`（定义在
+ * `styles/detail.css`），`.detail-v2__*` 一族已无任何元素命中，Task 11 摘除。
+ * 这里只剩两个**组件仍在渲染**的类族：`DetailSideRail` 与
+ * `NearbyBuildingsStrip`（两者的本版取值由 detail.css 的 `.dt-page` /
+ * `.dt-nearby` 作用域覆写，本节保留的是不被覆写的那几条，如 <p> 的
+ * margin 归零），外加 building-detail-demo 的 `.dev-story-banner`。
+ * Task 11b 又删掉了 `.detail-side-rail__price` 一族与
+ * `.detail-side-rail .advisor-card` 一族：`DetailSideRail` 收敛成单张留资带后
+ * 不再渲染价格节点、也不再嵌 AdvisorCard，这是**组件层的保证**（不是靠祖先
+ * 选择器覆盖），因此可删；而 `.detail-side-rail` / `__card` 的基础规则仍按
+ * 「靠祖先 `.dt-page` 才被覆盖 → 存疑保留」的口径留着（见 task-11-report §3.1）。
  * --------------------------------------------------------------------------- */
 
 /* demo 页横幅：生产可见的评审页，须明示虚拟数据 */
@@ -4815,263 +4500,22 @@ ol {
   border-radius: var(--radius-md);
 }
 
-/* 标题行 */
-.detail-v2__titlebar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
-}
+/* 决策面板（.hero-summary 及其内容子类）—— OPT-037 Task 6 已整体迁移到
+ * `styles/detail.css`：外层面板改用共享的 `DetailPanel variant="side"`
+ * （`.dt-panel--side`），`.hero-summary` 收窄为面板内容的纵向布局类；原
+ * `.hero-summary__facts`（手写 dl/dt/dd）已被 `SpecTable` 取代，不再需要
+ * 独立样式。此处不再重复定义，全部移到 detail.css，避免同一批类名在两个
+ * 文件里各有一份、只靠 import 顺序才不冲突。 */
 
-.detail-v2__titlebar h1 {
-  margin: 0;
-}
-
-.detail-v2__titlebar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-shrink: 0;
-}
-
-/* Hero 两栏：画廊 | 决策面板 */
-.detail-v2__hero {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: var(--sp-5);
-  align-items: start;
-  margin-bottom: var(--sp-6);
-}
-
-/* 旧 .detail-hero 用 7 列网格，给画廊留了 span 7；V2 两栏需复位 */
-.detail-v2__hero > .detail-gallery {
-  grid-column: auto;
-}
-
-/* 决策面板 */
-.hero-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.hero-summary__price-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__price {
-  font-size: var(--fs-32);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-copper);
-}
-
-.hero-summary__price--na {
-  font-size: var(--fs-22);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__price-unit {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-}
-
-.hero-summary__disclaimer {
-  margin: calc(-1 * var(--sp-3)) 0 0;
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
-  padding-block: var(--sp-3);
-  border-block: 1px solid var(--color-line);
-}
-
-.hero-summary__stat strong {
-  display: block;
-  font-size: var(--fs-18);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__stat span {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__facts > div {
-  display: grid;
-  grid-template-columns: 5.5em minmax(0, 1fr);
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
-
-.hero-summary__facts dt {
-  color: var(--color-muted);
-}
-
-.hero-summary__facts dd {
-  margin: 0;
-  color: var(--color-ink-2);
-}
-
-/* 房源区：主列 | 粘性右栏 */
-.detail-v2__supply {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: var(--sp-5);
-  align-items: start;
-  margin-bottom: var(--sp-6);
-}
-
-.detail-v2__supply-main {
-  min-width: 0;
-}
-
-.detail-side-rail {
-  position: sticky;
-  top: calc(var(--site-header-height, 56px) + 52px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.detail-side-rail__card {
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.detail-side-rail__card h3 {
-  margin: 0 0 var(--sp-3);
-  font-size: var(--fs-16);
-}
-
-.detail-side-rail__price {
-  margin: 0;
-  font-size: var(--fs-22);
-  font-weight: 700;
-  color: var(--color-copper);
-}
-
-.detail-side-rail__price span {
-  font-size: var(--fs-12);
-  font-weight: 400;
-  color: var(--color-muted);
-}
-
+/* DetailSideRail：定位（原 sticky 右栏）、卡片表面（padding/底/边框/圆角）与
+ * 卡内标题都不在这里——组件只在楼盘详情页使用，三者已全部由 detail.css 的
+ * `.dt-page .detail-side-rail*` 覆写成「密度表下方的通栏留资带」。按与
+ * `.building-card-mini` 相同的判据（覆写之后回头删基态）清掉，只留下面这条
+ * 未被覆写的 margin。 */
 .detail-side-rail__muted {
   margin: var(--sp-2) 0 0;
   font-size: var(--fs-13);
   color: var(--color-muted);
-}
-
-/* 窄栏里的顾问卡：去嵌套卡片外观，CTA 换行占满，避免正文被挤成竖排 */
-.detail-side-rail .advisor-card {
-  flex-wrap: wrap;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.detail-side-rail .advisor-card__cta {
-  flex-basis: 100%;
-}
-
-.detail-side-rail__popular {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-
-.detail-side-rail__popular a {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: var(--sp-3);
-  align-items: center;
-  color: inherit;
-  text-decoration: none;
-}
-
-.detail-side-rail__popular a:hover {
-  color: var(--color-copper);
-}
-
-.detail-side-rail__popular img,
-.detail-side-rail__popular-placeholder {
-  width: 64px;
-  height: 44px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  background: var(--color-copper-soft);
-}
-
-.detail-side-rail__popular-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.detail-side-rail__popular-name {
-  font-size: var(--fs-14);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-side-rail__popular-meta {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-/* 参数区子标题 */
-.detail-v2__subsection-title {
-  margin: var(--sp-6) 0 var(--sp-3);
-  font-size: var(--fs-18);
-}
-
-.detail-v2__features-body {
-  line-height: 1.85;
-}
-
-.detail-v2__features-body :where(p, ul, ol) {
-  line-height: 1.85;
-}
-
-/* 位置区 */
-.detail-v2__location-band {
-  padding: 0;
-  margin-bottom: var(--sp-6);
-}
-
-.detail-v2__location-band .location-panel {
-  margin-top: 0;
-}
-
-.detail-v2__location-band .location-panel > h2 {
-  display: none;
 }
 
 /* 周边楼盘横滑 */
@@ -5134,30 +4578,8 @@ ol {
 }
 
 @media (max-width: 959px) {
-  .detail-v2__supply {
-    grid-template-columns: 1fr;
-  }
-
   .detail-side-rail {
     position: static;
-  }
-}
-
-@media (max-width: 767px) {
-  .detail-v2__titlebar {
-    flex-direction: column;
-  }
-
-  .detail-v2__hero {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-summary {
-    padding: var(--sp-4);
-  }
-
-  .detail-v2__location-band {
-    padding: 0;
   }
 }
 
@@ -5616,11 +5038,6 @@ ol {
   line-height: 1.7;
 }
 
-.publish-card__error {
-  margin-top: var(--sp-3);
-  color: var(--color-danger);
-  font-size: var(--fs-13);
-}
 
 .input-suffix {
   position: relative;

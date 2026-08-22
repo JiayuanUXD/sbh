@@ -1,0 +1,467 @@
+{
+  "origin": "http://localhost:3810",
+  "cases": {
+    "location-panel": {
+      "path": "/listings/jingan-serviced-office-42-seats",
+      "panelSelector": "#location.location-panel",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/listings/jingan-serviced-office-42-seats",
+            "status": 200,
+            "statusOk": true,
+            "family": "listing-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-location-panel-375.png",
+          "documentScrollWidth": 375,
+          "documentClientWidth": 375,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 375,
+          "bodyClientWidth": 375,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 343
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 343,
+            "clientWidth": 343,
+            "overflowX": "visible"
+          },
+          "offenders": [
+            {
+              "tag": "button",
+              "cls": "location-panel__poi-tab",
+              "left": 359,
+              "right": 441,
+              "scrollWidth": 82,
+              "clientWidth": 82,
+              "overflowX": "hidden"
+            }
+          ],
+          "offenderCount": 1
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/listings/jingan-serviced-office-42-seats",
+            "status": 200,
+            "statusOk": true,
+            "family": "listing-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-location-panel-768.png",
+          "documentScrollWidth": 768,
+          "documentClientWidth": 768,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 768,
+          "bodyClientWidth": 768,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 736
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 736,
+            "clientWidth": 736,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/listings/jingan-serviced-office-42-seats",
+            "status": 200,
+            "statusOk": true,
+            "family": "listing-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-location-panel-1440.png",
+          "documentScrollWidth": 1440,
+          "documentClientWidth": 1440,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1440,
+          "bodyClientWidth": 1440,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 130,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1920": {
+          "sentinel": {
+            "pathname": "/listings/jingan-serviced-office-42-seats",
+            "status": 200,
+            "statusOk": true,
+            "family": "listing-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-location-panel-1920.png",
+          "documentScrollWidth": 1920,
+          "documentClientWidth": 1920,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1920,
+          "bodyClientWidth": 1920,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 370,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        }
+      }
+    },
+    "supply": {
+      "path": "/buildings/west-nanjing-premium-center",
+      "panelSelector": "#supply .building-supply-browser, #supply.building-supply-browser",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-375.png",
+          "documentScrollWidth": 375,
+          "documentClientWidth": 375,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 375,
+          "bodyClientWidth": 375,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 343
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 343,
+            "clientWidth": 343,
+            "overflowX": "visible"
+          },
+          "offenders": [
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 328,
+              "right": 426,
+              "scrollWidth": 98,
+              "clientWidth": 98,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 434,
+              "right": 539,
+              "scrollWidth": 105,
+              "clientWidth": 105,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 547,
+              "right": 652,
+              "scrollWidth": 105,
+              "clientWidth": 105,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "button",
+              "cls": "location-panel__poi-tab",
+              "left": 359,
+              "right": 441,
+              "scrollWidth": 82,
+              "clientWidth": 82,
+              "overflowX": "hidden"
+            }
+          ],
+          "offenderCount": 4
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-768.png",
+          "documentScrollWidth": 768,
+          "documentClientWidth": 768,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 768,
+          "bodyClientWidth": 768,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 736
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 736,
+            "clientWidth": 736,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-1440.png",
+          "documentScrollWidth": 1440,
+          "documentClientWidth": 1440,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1440,
+          "bodyClientWidth": 1440,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 130,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1920": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-1920.png",
+          "documentScrollWidth": 1920,
+          "documentClientWidth": 1920,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1920,
+          "bodyClientWidth": 1920,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 370,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        }
+      }
+    },
+    "supply-multigroup": {
+      "path": "/buildings/huangpu-bund",
+      "panelSelector": "#supply .building-supply-browser, #supply.building-supply-browser",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-multigroup-375.png",
+          "documentScrollWidth": 375,
+          "documentClientWidth": 375,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 375,
+          "bodyClientWidth": 375,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 343
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 343,
+            "clientWidth": 343,
+            "overflowX": "visible"
+          },
+          "offenders": [
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 328,
+              "right": 426,
+              "scrollWidth": 98,
+              "clientWidth": 98,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 434,
+              "right": 539,
+              "scrollWidth": 105,
+              "clientWidth": 105,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "a",
+              "cls": "building-supply-browser__filter",
+              "left": 547,
+              "right": 652,
+              "scrollWidth": 105,
+              "clientWidth": 105,
+              "overflowX": "visible"
+            },
+            {
+              "tag": "button",
+              "cls": "location-panel__poi-tab",
+              "left": 359,
+              "right": 441,
+              "scrollWidth": 82,
+              "clientWidth": 82,
+              "overflowX": "hidden"
+            }
+          ],
+          "offenderCount": 4
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-multigroup-768.png",
+          "documentScrollWidth": 768,
+          "documentClientWidth": 768,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 768,
+          "bodyClientWidth": 768,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 16,
+            "w": 736
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 736,
+            "clientWidth": 736,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-multigroup-1440.png",
+          "documentScrollWidth": 1440,
+          "documentClientWidth": 1440,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1440,
+          "bodyClientWidth": 1440,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 130,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "1920": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r5-supply-multigroup-1920.png",
+          "documentScrollWidth": 1920,
+          "documentClientWidth": 1920,
+          "documentOverflowPx": 0,
+          "bodyScrollWidth": 1920,
+          "bodyClientWidth": 1920,
+          "bodyOverflowX": "clip",
+          "pageHasHorizontalScroll": false,
+          "panelPresent": true,
+          "panelRect": {
+            "x": 370,
+            "w": 1180
+          },
+          "panelInnerScroll": {
+            "scrollWidth": 1180,
+            "clientWidth": 1180,
+            "overflowX": "visible"
+          },
+          "offenders": [],
+          "offenderCount": 0
+        }
+      }
+    }
+  }
+}

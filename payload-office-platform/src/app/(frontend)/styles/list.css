@@ -15,7 +15,8 @@
 .ls-page { --ls-w: 1280px; --ls-sec: 32px;
   margin: calc(var(--sp-6) * -1) calc(var(--container-pad-x) * -1); }
 .ls-container { width: min(var(--ls-w), 100% - 32px); margin-inline: auto; }
-.ls-section { padding-block: var(--ls-sec); }
+/* `.ls-section` 已删：接线后每个区段（.ls-head / .ls-unitseg / .ls-results）都自带
+   padding，通用段落类零使用（运行时 querySelectorAll 全站 0 命中，见终审 D2）。 */
 
 /* ── 页面骨架（Task 11 接线）────────────────────────────────────────────────
  * 纵向节奏照 comp specRows「页头 → 单位段 → 筛选条」：页头 padding-top var(--ls-sec)
@@ -625,8 +626,6 @@
   .ls-emptyrange { flex-direction: column; align-items: stretch; gap: 20px; }
   .ls-emptyrange__actions { justify-content: flex-start; }
 }
-
-@media (max-width: 767px) { .ls-section { padding-block: 20px; } }
 
 /* 移动筛选容器：组件本身不写断点门槛（理由见 MobileFilterTrigger.tsx 顶部注释），
  * 由接线层在这里决定「哪个视口下存在」。display:contents 让悬浮 dock 的

@@ -19,9 +19,13 @@ describe('OPT-028 detail caching and hero media contracts', () => {
     const page = await readFile(resolve(ROOT, 'src/app/(frontend)/listings/[slug]/page.tsx'), 'utf8')
 
     expect(page).toContain('getCachedListingBySlug(siteConfig.defaultCity, slug)')
-    expect(page).toContain('getCachedBuildingBySlug(city.slug, building.slug)')
     expect(page).toContain('getCachedDetailRecommendations(city.slug, slug, 6)')
-    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedBuildingBySlug\(city\.slug, building\.slug\)[\s\S]*getCachedDetailRecommendations\(city\.slug, slug, 6\)[\s\S]*fetchNearbyPois/)
+    // 二级取数必须全部在同一个 Promise.all 里（本守卫的真正命题：不许出现
+    // 串行 await 段导致查询放大）。
+    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedDetailRecommendations\(city\.slug, slug, 6\)[\s\S]*fetchNearbyPois[\s\S]*getServiceSchedule/)
+    // OPT-037 Task 9：楼盘详情文档随「配套设施」段一起移除，房源详情页不再取它。
+    // 断言"不存在"而不是删掉这行——否则将来有人"顺手补回来"时没有任何声音。
+    expect(page).not.toContain('getCachedBuildingBySlug')
   })
 
   it('uses cached related buildings on building detail pages', async () => {

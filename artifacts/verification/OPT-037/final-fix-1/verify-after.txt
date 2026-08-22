@@ -1,0 +1,31 @@
+== 0. 环境自检：房源类与楼盘类路由都必须 200（全 404 = config-guard fail-closed）==
+PASS  200 http://localhost:3719/buildings
+PASS  200 http://localhost:3719/listings
+PASS  200 http://localhost:3719/buildings/west-nanjing-premium-center
+PASS  200 http://localhost:3719/listings/jingan-serviced-office-42-seats
+PASS  200 http://localhost:3719/buildings/huangpu-bund
+PASS  200 http://localhost:3719/buildings/empty-building
+
+== C2 多业务组楼盘：默认组按单价排序不再被跨组结果集拖成降级 ==
+PASS  无「计价单位不唯一」 http://localhost:3719/buildings/huangpu-bund?sort=price-asc
+PASS  含「单价从低到高」 http://localhost:3719/buildings/huangpu-bund?sort=price-asc
+
+== C1 出售组不渲染「可即时过户」聚合格与「可即刻入驻」pill ==
+PASS  无「可即时过户」 http://localhost:3719/buildings/west-nanjing-premium-center
+
+== M2 价格桶标签改为闭区间口径 ==
+PASS  无「>10 元以上<」 http://localhost:3719/buildings/west-nanjing-premium-center
+PASS  含「10 元及以上」 http://localhost:3719/buildings/west-nanjing-premium-center
+
+== I2 房源详情页补回 5 条事实（房源楼层 / 朝向 / 可分割 / 家具 / 其他固定费用）==
+PASS  含「>房源楼层<」 http://localhost:3719/listings/jingan-serviced-office-42-seats
+PASS  含「>朝向<」 http://localhost:3719/listings/jingan-serviced-office-42-seats
+PASS  含「>可分割<」 http://localhost:3719/listings/jingan-serviced-office-42-seats
+PASS  含「>家具<」 http://localhost:3719/listings/jingan-serviced-office-42-seats
+PASS  含「>其他固定费用<」 http://localhost:3719/listings/jingan-serviced-office-42-seats
+
+== NC2 供给区恒渲染：三组全空时是诚实空态，不是整段消失 ==
+PASS  含「id="supply"」 http://localhost:3719/buildings/empty-building
+PASS  含「当前暂无公开可选空间」 http://localhost:3719/buildings/empty-building
+
+ALL PASS
