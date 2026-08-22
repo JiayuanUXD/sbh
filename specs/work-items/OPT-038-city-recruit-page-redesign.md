@@ -104,6 +104,16 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
 **`pnpm test` 不含 E2E**：改了 class / role / aria / DOM 结构**必须本地实跑 e2e**
 （前一批两次「本地三闸门全绿、e2e 却红」，其中一次潜伏 6 个任务）。
 
+## 5.5 实施中查出的两个高危陷阱（Task 1/2 实测，务必写进 `.agent/`）
+
+1. **稿子与本项目的 token 名义相同、取值相反**：稿子 `--bg`=白 / `--bg-subtle`=灰，
+   本项目**正好反过来**。照抄 token 名会让每条背景带黑白颠倒，**且因名字一模一样，
+   code review 用肉眼扫不出来**。规则：**按颜色映射，不按名字映射。**
+   （另：`--radius-pill` 999px 与 `--r-pill` 980px 是两个 token，别混。）
+2. **改视口必须 reload 再测量**：只 `resize_window` 不刷新，`100vw` 出血层保持旧视口宽，
+   会读出「375 视口 / section 宽 1440 / scrollWidth 908」整套假数——
+   Task 2 第一次量 375 差点当成 533px 的真溢出 bug。
+
 ## 6. 验收
 
 - `pnpm typecheck` + `pnpm test` + `pnpm lint` 无新增（lint 基线 22 warnings）
@@ -123,3 +133,9 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
    先于本批存在，本批不改（改动会外溢到 4 条路由），另开工作项。
 3. 同源校验钉死站点域名（OPT-028 已知缺陷），未处理。
 4. 本页零埋点（无页面曝光事件）——若要补，需与 `DetailClickAnalytics` 的事件命名口径对齐，本批不做。
+5. **「第 N 城」序数**：Task 2 三层判定走到第③层后去掉。`CitySiteProfiles` 只有二值
+   `serviceStatus` 与允许并列的 `sortOrder`，**「第几城」维度不存在**；生产种子是
+   1 座 live + 6 座 coming-soon，硬算「已开通数+1」会让六座城市的招募页都自称「第 2 城」。
+   若产品要这个序数，需在城市 profile 上新增一个显式的开通序位字段（含迁移与后台可填）。
+6. **移动端 Hero 标题 40px 取自首页既有断点**（`home.css:143-145` 的 56→40），
+   **不是稿子权威**——specRows 未给移动标题字号。属跨页一致性决定，已显式确认。
