@@ -55,6 +55,35 @@ describe('ComingSoonCityView shell', () => {
     expect(comingSoonStyles).toContain('var(--color-line)')
   })
 
+  it('keeps the recruit composition free of the fabricated batch labels and platform stats', () => {
+    // OPT-038 Task 5：改版把三块「编出来的东西」摘掉了，这条守卫防的是它们被恢复。
+    //   1. `DEFAULT_DISTRICTS` 与「首批上线 / 筹备中 / 规划服务区」——
+    //      招募位批次这个维度在 Locations / CitySiteProfiles 上都不存在，
+    //      按列表位置挑前三个标成「首批」= 凭排序编造承诺（工作项 §3.3）；
+    //   2. 平台实力背书数据（30,000+ / 1,500+ / 98.5% / 12 城）——四个写死的字面量，
+    //      没有任何取数，且「12 城」与实际 7 座城市 profile 直接矛盾。
+    // 断的是**源码**而不是渲染结果：这两组东西一旦被写回来，不论渲染条件如何都算破例。
+    // 先剥注释——组件文件头就在解释「为什么删掉它们」，逐字提到了这些词。
+    const code = view.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(code).not.toContain('DEFAULT_DISTRICTS')
+    expect(code).not.toMatch(/首批上线|筹备中|规划服务区/)
+    expect(code).not.toMatch(/30,000|1,500|98\.5/)
+    // 反过来：四段新版式必须都在（漏接一段就等于半新半旧并存）
+    expect(view).toContain('<RecruitHero')
+    expect(view).toContain('<RecruitValueProps')
+    expect(view).toContain('<RecruitDistrictGrid')
+    expect(view).toContain('<RecruitSecondaryCta')
+  })
+
+  it('keeps both conversion entries and the auxiliary links after the redesign', () => {
+    // 稿子的次要入口只画了租客那一张卡。业主入口（/publish）与两条辅助跳转
+    // 是城市路由的既有功能，改版只换版式、不删功能——这条把它们钉住。
+    expect(view).toContain('/publish?city=')
+    expect(view).toContain('/entrust?city=')
+    expect(view).toContain('/city-partner?city=')
+    expect(view).toContain('返回城市首页')
+  })
+
   it('tracks each coming-soon action using only trusted city enums', async () => {
     const container = document.createElement('div')
     document.body.append(container)

@@ -8,6 +8,7 @@ import RecruitValueProps from '@/components/frontend/city-partner/RecruitValuePr
 import RecruitDistrictGrid, {
   type RecruitDistrict,
 } from '@/components/frontend/city-partner/RecruitDistrictGrid'
+import RecruitSecondaryCta from '@/components/frontend/city-partner/RecruitSecondaryCta'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
 /**
@@ -239,15 +240,45 @@ export default function Opt038PreviewPage() {
       </PreviewSection>
 
       <PreviewSection
-        id="rc-skeleton-tail"
-        title="骨架 · 次要入口段（.rc-section--tail）"
-        note="稿子明写「作为上一段的尾注」：padding-top 归零，与商圈段的间距 = 1×72 而非 2×72；padding-bottom 保留一份 72"
+        id="rc-cta"
+        title="次要入口（RecruitSecondaryCta）"
+        note="尾注段：padding-top 归零，与商圈段的间距 = 1×72 而非 2×72；padding-bottom 保留一份 72。卡 = 稿子的 --bg-subtle（灰 → 本项目 --bg）· radius 18 · padding 40/48 · 左右 space-between gap 48；标题 24/600/1.2、说明 17/1.47 --ink-2、卡内 gap 6。右侧次级按钮走共享的 .rc-secondary-btn（pill · padding 11/21 · 1px --line-strong），与表单第二步的「暂不补充，完成申请」同一个类。这里放两条（城市路由的形态：租客 / 业主）；/city-partner 只放第一条，与稿子逐项相同。≤767 塌纵向并把 padding 收到 24。"
       >
-        <div className="rc-section rc-section--tail">
-          <div className="rc-container">
-            <Slot label="Task 5 · 「您是需要在本市寻租办公室的企业？」+ 次级 pill 按钮（padding 11/21 · 1px --line-strong）" minHeight={120} />
-          </div>
-        </div>
+        <RecruitSecondaryCta
+          label="预览 · 次要入口"
+          entries={[
+            {
+              title: '您是需要在杭州寻租办公室的企业？',
+              body: '留下面积与预算，杭州开通后第一批推送匹配房源。',
+              action: <button type="button" className="btn btn--ghost rc-secondary-btn">登记找房需求</button>,
+            },
+            {
+              title: '手里有杭州空置房源需要出租？',
+              body: '杭州房源入库通道已提前开放，先入驻的楼宇与办公室在开城时优先获得曝光。',
+              action: <span className="btn btn--ghost rc-secondary-btn">抢先登记合作房源</span>,
+            },
+          ]}
+          footer={(
+            <div className="rc-quick-links">
+              <a href="#rc-cta">委托找房</a>
+              <a href="#rc-cta">城市合伙人政策</a>
+            </div>
+          )}
+        />
+      </PreviewSection>
+
+      <PreviewSection
+        id="rc-cta-long"
+        title="次要入口 · 超长城市名（单卡，与稿子同形）"
+        note="压最长城市名（乌鲁木齐）看 1440 下标题是否仍单行、按钮是否被挤压：.rc-cta__action 是 flex:none，压缩只发生在文案列。"
+      >
+        <RecruitSecondaryCta
+          entries={[{
+            title: '您是需要在乌鲁木齐寻租办公室的企业？',
+            body: '留下面积与预算，乌鲁木齐开通后第一批推送匹配房源。',
+            action: <span className="btn btn--ghost rc-secondary-btn">登记找房需求</span>,
+          }]}
+        />
       </PreviewSection>
     </div>
   )

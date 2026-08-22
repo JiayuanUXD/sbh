@@ -68,6 +68,26 @@
   margin-inline: calc(50% - 50vw);
 }
 
+/* ── Task 5：城市路由的外壳 `.city-coming-soon` ────────────────────────────
+ * 4 条城市路由（`/[city]`、`/[city]/{listings,buildings,sale}`）的招募页根节点
+ * 类名是 `.city-coming-soon`，**不能改名、也不能追加第二个类名**：
+ * `tests/coming-soon-city-view.test.ts:37` 做的是源码文本断言，要求逐字出现
+ * `<div className="city-coming-soon">`。
+ *
+ * 于是 `.rc-page` 作为**内层**壳套在它里面（`ComingSoonCityView` 的结构就是
+ * `.city-coming-soon > .rc-page`），这样 Task 3 那整节 `.rc-page .city-partner-form*`
+ * 的作用域在两个消费面上是同一个选择器，不必写成 `:is(.rc-page,.city-coming-soon)`
+ * 再把二十几条选择器各改一遍。
+ *
+ * 本条只做一件事：把外壳复位成一个「透明」的块，让内层 `.rc-page` 的
+ * `margin-inline: calc(50% - 50vw)` 相对 `.site-main` 的内容盒解析，
+ * 出血结果与 `/city-partner` 逐像素一致。被复位的是 styles.css:5171 的旧盒模型
+ * （flex 纵向 + gap 48 + padding 24/16/64 + max-width 1200）——recruit.css 排在
+ * styles.css 之后、两条规则同为 (0,1,0)，后来者胜；styles.css 里
+ * `@media (max-width: 767px)` 的那份（gap 28 / padding-inline 12）同样被压掉：
+ * 媒体查询不加特异度。旧规则本身的摘除属 Task 6（清理）范围，本任务不动 styles.css。 */
+.city-coming-soon { display: block; gap: 0; max-width: none; padding: 0; }
+
 .rc-container { width: min(var(--rc-w), 100% - 32px); margin-inline: auto; }
 
 /* ── section 节奏 ─────────────────────────────────────────────────────────
@@ -131,8 +151,13 @@
  *
  * Hero 段的底色由 `.rc-section` 给（白 = 本项目 `--bg-subtle`）。
  * ⚠️ 稿子那行写的是 `background: var(--bg)`——**别照抄 token 名**，
- * 稿子的 `--bg` 是白、本项目的 `--bg` 是灰，见文件头。 */
-.rc-hero { display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); }
+ * 稿子的 `--bg` 是白、本项目的 `--bg` 是灰，见文件头。
+ *
+ * `position: relative`（Task 5）：Hero 的 `backdrop` 插槽（城市 profile 的
+ * `hero.media`）是 `position:absolute; inset:0` 的图。绝对定位物在绘制顺序上
+ * 排在静态流内容**之后**，不给容器一个定位上下文，那张 18% 不透明度的图会盖在
+ * 标题上（旧版 `.city-coming-soon__hero` 就是这个形态）。这一行让文字回到图上层。 */
+.rc-hero { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); }
 
 /* 眉标 pill（稿子:68）。零色相：`--ink-2`(#6e6e73) 与 `--bg`(#f5f5f7) 都是中性灰，
    全段不含任何彩色 token。底色用 `--bg`——**这是稿子的 `--bg-subtle`(#f5f5f7)
@@ -283,16 +308,23 @@
 /* 输入框：specRows「高 44 · padding 0/14 · radius 8 · 1px --line-strong」。
    :not(.filter-bar__textarea) 把多行框排除在定高之外——第二步的两个
    textarea 与 Input 共用 `.filter-bar__input` 类名，定高会把它压成一行。 */
+/* ⚠️ `background-color` 而不是 `background` 简写（Task 5 实测修正）：
+   简写会把 `background-image` 一并复位成 none，而 `.filter-bar__select`
+   的下拉三角正是一张 background-image（styles.css:992，(0,1,0)）——
+   用简写等于在真实路由上**静默删掉了下拉箭头**，select 看起来和单行输入框
+   一模一样。Task 3 当时以为「只换了颜色」，四断点自读时才看出来。
+   这是「窄作用域覆写基态打断既有声明」的又一种形态：不只 :hover / --invalid
+   会被打断，同一属性的简写也会连坐它的其余长写。 */
 .rc-page .city-partner-form .filter-bar__input:not(.filter-bar__textarea),
 .rc-page .city-partner-form .filter-bar__select {
   height: 44px; min-height: 44px; padding: 0 14px;
   border: 1px solid var(--line-strong); border-radius: var(--r-input);
-  background: var(--bg-subtle); color: var(--ink);
+  background-color: var(--bg-subtle); color: var(--ink);
   font-size: 17px; font-weight: 400; letter-spacing: normal;
 }
 .rc-page .city-partner-form .filter-bar__textarea {
   padding: 12px 14px; border: 1px solid var(--line-strong);
-  border-radius: var(--r-input); background: var(--bg-subtle); color: var(--ink);
+  border-radius: var(--r-input); background-color: var(--bg-subtle); color: var(--ink);
   font-size: 17px; line-height: 1.47; letter-spacing: normal;
 }
 /* hover / focus / invalid 都要在本作用域重述一遍：styles.css 里它们是
@@ -348,16 +380,12 @@
 }
 
 /* 第二步的「暂不补充，完成申请」。specRows「次级按钮 pill · padding 11/21 ·
-   1px --line-strong」——参数照该行，但**不抽公共类**：第二个消费方
-   （Task 5 的次要入口按钮）现在还不存在，此刻抽就是为复用而制造一次使用
-   （同 `.rc-hero__eyebrow` 与「状态标签」那条的处理）。
-   Task 5 落地次要入口时应把两处收敛成一个类，并把本选择器并进去。 */
-.rc-page .city-partner-form__skip {
-  min-height: 44px; padding: 11px 21px;
-  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
-  background: none; color: var(--ink);
-  font-size: 17px; font-weight: 400; letter-spacing: normal;
-}
+   1px --line-strong」。
+   **Task 5 已把这条并进 `.rc-secondary-btn`**（见文件末「次要入口」一节）：
+   次要入口的动作按钮是同一档的第二个消费方，此时才够格抽公共类
+   （Task 3 当时只有一个消费方，抽了就是为复用而制造一次使用）。
+   这里只留 skip 自己的颜色——形状收敛、颜色不收敛，理由见那一节。 */
+.rc-page .city-partner-form__skip { background: none; color: var(--ink); }
 .rc-page .city-partner-form__actions { gap: 12px; }
 
 /* 第二步 · 可选（提交成功后才出现，见 CityPartnerApplicationForm 的 stage-two
@@ -437,6 +465,103 @@
   letter-spacing: normal; color: var(--ink-2); text-wrap: pretty;
 }
 
+/* ── 次要入口（Task 5） ───────────────────────────────────────────────────
+ * 稿子 城市招募页.dc.html:224-236。整段是上一段的**尾注**（`.rc-section--tail`
+ * 已在骨架里给了 padding-top:0）。
+ * 卡底色：稿子写 `var(--bg-subtle)` = 灰 → 本项目是 `var(--bg)`，
+ * **按颜色映射不按名字映射**（文件头）。 */
+
+/* 卡片列与卡片下方的辅助链接之间留一档 48。 */
+.rc-tail { display: flex; flex-direction: column; gap: var(--sp-7); }
+
+/* 一条时与稿子逐项相同；城市路由有两条（租客 / 业主），靠 row-gap 排列。 */
+.rc-cta-list {
+  margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: var(--sp-5);
+}
+
+/* 卡：稿子:230 `padding:40px 48px`、`gap:48`、radius 18。
+   48 = --sp-7、40 无对应 token（--sp-6 是 32、--sp-7 是 48），按字面写。 */
+.rc-cta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--sp-7);
+  padding: 40px var(--sp-7);
+  border-radius: var(--r-card);
+  background: var(--bg);
+}
+/* 卡内两行 gap 6（稿子:231）；6 无对应 token（--sp-1 是 4、--sp-2 是 8），按字面写。 */
+.rc-cta__copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+/* 稿子:232 是无语义的 span，这里是 h2——补语义不升视觉档位，字号仍是稿子的 24。 */
+.rc-cta__title {
+  margin: 0;
+  font-size: 24px; font-weight: 600; line-height: 1.2;
+  letter-spacing: normal; color: var(--ink);
+}
+.rc-cta__body {
+  margin: 0;
+  font-size: 17px; font-weight: 400; line-height: 1.47;
+  letter-spacing: normal; color: var(--ink-2); text-wrap: pretty;
+}
+/* 动作列不参与压缩：按钮文案不折行（稿子:234 `flex:none`）。 */
+.rc-cta__action { flex: none; }
+
+/* ── 次级按钮（specRows「次级按钮 pill · padding 11/21 · 1px line-strong」）──
+ * **形状收敛、颜色不收敛。** specRows 那一行只规定形状；稿子里两个实例的颜色
+ * 本来就不同（次要入口的链接是 `--accent-link`，表单第二步的「暂不补充」是墨色）。
+ * 把颜色也塞进公共类，等于让两个消费方之一必须再覆写一遍——那才是重复。
+ *
+ * 两个消费方：
+ *   1. `.city-partner-form__skip`（Task 3 起，表单第二步）
+ *   2. `.rc-secondary-btn`（本任务，次要入口的 InquiryModal 触发钮 / Link）
+ * Task 3 当时只有 1 个消费方，按本批口径未抽类；现在第二个真的出现了才抽。
+ *
+ * `.rc-secondary-btn` 挂在 `.btn.btn--ghost` 之上（InquiryModal 的触发钮与
+ * `next/link` 都走 `.btn`），拿它的 inline-flex / 居中 / cursor / text-decoration。
+ * ⚠️ 本条 (0,2,0) 覆写了 `.btn--ghost` 的 border-color 基态，而
+ * `.btn--ghost:hover`（同为 (0,2,0)、在 styles.css 里排在前面）会因此**静默失效**
+ * ——所以下面同作用域重述了 hover。这不是复制样式，是补齐被自己的覆写打断的状态链。 */
+.rc-page .city-partner-form__skip,
+.rc-page .rc-secondary-btn {
+  min-height: var(--touch-target); padding: 11px 21px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+  font-size: 17px; font-weight: 400; letter-spacing: normal;
+}
+.rc-page .rc-secondary-btn { background: none; color: var(--accent-link); }
+.rc-page .rc-secondary-btn:hover { border-color: var(--ink); background: var(--bg); }
+
+/* 辅助跳转链接（城市路由的「委托找房 / 城市合伙人政策」）。
+   稿子没有这一行——它承载的是改版前 `.city-coming-soon__quick-links` 的既有入口，
+   删掉就是删功能。降成 17px 文字链接而不是三个 ghost 按钮：本段已经有两张
+   入口卡各带一个次级按钮，再放三个同形按钮会让「主次」全平。
+
+   `:not(.visually-hidden)` 不是洁癖：`.visually-hidden`(0,1,0) 会被
+   `.rc-quick-links a`(0,2,0) 的 display / min-height 压掉，那条「返回城市首页」
+   的读屏专用链接就会重新占位。 */
+.rc-quick-links { display: flex; flex-wrap: wrap; gap: var(--sp-5); }
+.rc-quick-links a:not(.visually-hidden) {
+  min-height: var(--touch-target); display: inline-flex; align-items: center;
+  font-size: 17px; line-height: 1.47; letter-spacing: normal;
+  color: var(--accent-link); text-decoration: none;
+}
+.rc-quick-links a:not(.visually-hidden):hover { color: var(--accent-hover); }
+
+/* 合规声明（`CITY_PARTNER_COPY.note`：提交申请不代表合作确认……）。
+   落在表单卡正下方而不是 Hero 里：它说的是「提交这张表意味着什么」，
+   离表单越近越有效；稿子的隐私说明档位（12/400/1.33/--ink-3）正好是同一档。
+   ⚠️ 这条**必须渲染**，`tests/city-partner-page-seo.test.ts:39` 反向断言的
+   四个禁词（保证收益/独家代理/开城日期/年入百万）正是它在否认的东西。 */
+.rc-aside__note {
+  margin: var(--sp-4) 0 0;
+  font-size: 12px; font-weight: 400; line-height: 1.33;
+  letter-spacing: normal; color: var(--ink-3); text-wrap: pretty;
+}
+
+/* 城市 profile 的 `hero.media` 背景图（RecruitHero 的 backdrop 插槽）。
+   定位与透明度仍由 styles.css 的 `.city-coming-soon__media` 给（Task 6 清理时
+   连同其余旧规则一并裁定）；这里只抹掉它在满幅 Hero 上明显不对的圆角——
+   那个 `--radius-lg` 是给旧版 1200 宽卡片式 hero 用的。 */
+.rc-section > .city-coming-soon__media { border-radius: 0; }
+
 /* ── 断点 ─────────────────────────────────────────────────────────────────
  * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
  * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成
@@ -465,4 +590,13 @@
      19 / 17（`.rc-vp__name` 至今无移动档）。只取一半会让同一页出现两套移动字阶。
      要取就整份取、并回头对齐价值点那段——那是跨段决定，不在本任务范围。 */
   .rc-district-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /* 次要入口卡塌纵向（稿子的移动稿:343 也是纵向 + padding 24）。
+     这是**宽度逼出来的布局变更**：343 的容器减去 48×2 的左右内边距只剩 247，
+     标题「您是需要在乌鲁木齐寻租办公室的企业？」会逐字换行。
+     只取「塌纵向 + padding 收到 24」这两条布局项；稿子移动稿把标题降到 19、
+     说明降到 14 的那套字阶**不取**，与 `.rc-district-grid`、`.rc-vp__name`
+     同一口径（要取就整份取，那是跨段决定）。 */
+  .rc-cta { flex-direction: column; align-items: stretch; gap: var(--sp-4); padding: var(--sp-5); }
+  .rc-cta__action { align-self: flex-start; }
 }

@@ -60,6 +60,20 @@ type RecruitHeroProps = Readonly<{
   eyebrow?: string
   /** h1 的 id，供外层 `aria-labelledby` 指向；不传则不给 section 加 aria-labelledby。 */
   titleId?: string
+  /**
+   * Hero 段的背景插槽（绝对定位物，铺在 `.rc-section` 这个定位祖先里）。
+   *
+   * 存在理由只有一个：城市 profile 的 `hero.media` 是**运营在后台能填的既有能力**
+   * （`CitySiteProfiles.heroMedia` → DTO `profile.hero.media`），改版前由
+   * `ComingSoonCityView` 渲染成 `.city-coming-soon__media`。如果新 Hero 不留这个口，
+   * 一个已填了背景图的城市在改版后会**静默失去背景图**——「我没删那段代码」证明不了
+   * 触发条件没变，这里是真的会变。
+   *
+   * 做成通用插槽而不是 `media` prop：类名 `.city-coming-soon__media` 属城市路由的
+   * 既有命名空间（且被 `tests/coming-soon-city-view.test.ts:39` 的源码文本断言钉住），
+   * 不应该被搬进 `.rc-*` 组件里。`/city-partner` 不传，整页零图（稿子自称「零房源依赖」）。
+   */
+  backdrop?: React.ReactNode
 }>
 
 export default function RecruitHero({
@@ -67,9 +81,11 @@ export default function RecruitHero({
   subtitle,
   eyebrow = RECRUIT_HERO_EYEBROW,
   titleId,
+  backdrop,
 }: RecruitHeroProps) {
   return (
     <section className="rc-section" {...(titleId ? { 'aria-labelledby': titleId } : {})}>
+      {backdrop}
       <div className="rc-container rc-hero">
         {eyebrow ? <span className="rc-hero__eyebrow">{eyebrow}</span> : null}
         <h1 className="rc-hero__title" {...(titleId ? { id: titleId } : {})}>

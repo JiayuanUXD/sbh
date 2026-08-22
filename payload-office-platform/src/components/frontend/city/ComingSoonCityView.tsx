@@ -4,25 +4,63 @@ import Link from 'next/link'
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import CityPartnerApplicationForm from '@/components/frontend/city-partner/CityPartnerApplicationForm'
+import RecruitDistrictGrid from '@/components/frontend/city-partner/RecruitDistrictGrid'
+import RecruitHero from '@/components/frontend/city-partner/RecruitHero'
+import RecruitSecondaryCta from '@/components/frontend/city-partner/RecruitSecondaryCta'
+import RecruitValueProps from '@/components/frontend/city-partner/RecruitValueProps'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
+import { CITY_PARTNER_COPY } from '@/lib/frontend/city-partner-config'
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
+
+/**
+ * OPT-038 Task 5：城市路由接线（两个消费面之一 · **城市专属文案面**）。
+ *
+ * 挂在 4 条路由上：`/[city]`、`/[city]/listings`、`/[city]/buildings`、`/[city]/sale`
+ * （`serviceStatus === 'coming-soon'` 时渲染）。与 `/city-partner` 共用
+ * RecruitHero / RecruitValueProps / 表单卡 / RecruitSecondaryCta，
+ * 差异由 props 承载（工作项 §3.5）：这边给城市专属语气 + 该城 `featuredRegions`。
+ *
+ * ── 根节点为什么是 `.city-coming-soon > .rc-page` 两层 ─────────────────────
+ * `tests/coming-soon-city-view.test.ts:37` 对源码做文本断言，要求逐字出现
+ * `<div className="city-coming-soon">`——根类名不能改、也不能追加第二个类名。
+ * 于是 `.rc-page` 作为内层壳，Task 3 那整节 `.rc-page .city-partner-form*`
+ * 的作用域在两个消费面上就是同一个选择器。外壳的旧盒模型在 recruit.css 里被复位。
+ *
+ * ── 本次去掉了什么，为什么 ────────────────────────────────────────────────
+ *   - **3 张赋能卡**（旧 :87-129）→ `RecruitValueProps`。三条标题逐字相同，
+ *     正文换成 `RECRUIT_VALUE_POINTS` 的短句版（两个消费面共用一份文案，
+ *     不再各写一遍）。城市名插值随之消失——那是刻意的：同一段市场承诺
+ *     不应该有两个事实源（RecruitValueProps.tsx 的常量注释写了这条）。
+ *   - **硬编码的 `DEFAULT_DISTRICTS`**（旧 :16-25 / :54-58）与写死的
+ *     「规划服务区」标签（旧 :168）→ 整个删除，改由 `RecruitDistrictGrid`
+ *     消费真实的 `profile.featuredRegions`。这份兜底数据里的
+ *     「首批上线 / 筹备中」是**按列表位置编出来的批次**，域层根本没有这个维度
+ *     （判定过程见 RecruitDistrictGrid.tsx 文件头、工作项 §3.3）；
+ *     Task 4 刚把这个承诺从新组件里去掉，留着旧的一套会让两套商圈渲染并存，
+ *     而旧的那套编的正好是新的那套刚删掉的东西。
+ *     **后果要正视**：`featuredRegions` 为空的城市（本地库 7 个 profile 全空）
+ *     现在**整段不渲染**，而不是掉回一份编造的清单。空货架 < 假货架。
+ *   - **「平台实力背书数据」带**（旧 :186-203）→ 删除。四个数字
+ *     30,000+ / 1,500+ / 98.5% / 12 城全是**写死的字面量**，没有任何数据源；
+ *     其中「12 城」与平台实际的 7 座城市 profile 直接矛盾。本批的硬约束是
+ *     「数字一律有源、缺失显示 —、不显示 0」，一条写死的战绩数字迟早变成假话
+ *     （与 Task 2 去掉「第 8 城」同型）。要恢复，前置条件是这些数字有真实口径与取数。
+ *   - **双通道转化区**（旧 :206-243）→ 两条入口都保留，改由
+ *     `RecruitSecondaryCta` 按稿子的次要入口版式渲染（租客 / 业主各一张卡），
+ *     `trackCta('inquiry')` / `trackCta('publish')` 原样挂着。
+ *   - **辅助跳转链接**（旧 :246-250）→ 保留，改成 `.rc-quick-links` 文字链接行。
+ *     `/entrust?city=` 与 `/city-partner?city=` 两条 href 与埋点一字未动。
+ *
+ * ── 没有新增任何 live region ──────────────────────────────────────────────
+ * `role="status"` 在本页仍然只有表单那一个（`InquiryModal` 自带的那个在弹层里，
+ * 只有 open 时才 createPortal 渲染）。
+ */
 
 export type ComingSoonCityViewProps = Readonly<{
   city: CityContext
   cities?: readonly PublicCityOption[]
 }>
-
-const DEFAULT_DISTRICTS: Record<string, ReadonlyArray<{ name: string; tag: string; sub: string }>> = {
-  hangzhou: [
-    { name: '钱江新城 CBD', tag: '首批上线', sub: '上城区 · 金融总部核心区' },
-    { name: '未来科技城', tag: '首批上线', sub: '余杭区 · 数字经济高地' },
-    { name: '滨江物联网小镇', tag: '首批上线', sub: '滨江区 · 科技研发产业聚集' },
-    { name: '武林 / 黄龙商圈', tag: '筹备中', sub: '拱墅区/西湖区 · 传统中心 CBD' },
-    { name: '奥体博览城 / 世纪城', tag: '筹备中', sub: '萧山区 · 亚运新兴总部区' },
-    { name: '城东新城 / 彭埠', tag: '筹备中', sub: '上城区 · 高铁枢纽商务区' },
-  ],
-}
 
 export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewProps) {
   const basePath = `/${city.slug}`
@@ -50,204 +88,96 @@ export default function ComingSoonCityView({ city, cities }: ComingSoonCityViewP
     }
   }
 
-  const customRegions = profile.featuredRegions
-  const fallbackDistricts = DEFAULT_DISTRICTS[city.slug] ?? [
-    { name: `${city.name}核心商务区`, tag: '首批上线', sub: '核心总部与金融集聚区' },
-    { name: `${city.name}高新产业园区`, tag: '首批上线', sub: '科技创新与研发中心' },
-    { name: `${city.name}新兴商圈`, tag: '筹备中', sub: '轨道交通与现代服务业枢纽' },
-  ]
-
   return (
     <div className="city-coming-soon">
-      {/* 模块 1: Hero 双栏开城落地页 (左文案赋能，右原地表单) */}
-      <section className="city-coming-soon__hero city-coming-soon__hero-grid" aria-labelledby="city-launch-heading">
-        {/* 背景媒体（若配置） */}
-        {profile.hero.media ? <img className="city-coming-soon__media" src={profile.hero.media.src} alt={profile.hero.media.alt} /> : null}
+      <div className="rc-page">
+        {/* Hero。三个 `profile.hero.*` 覆写的**触发条件一字未变**：非空就用运营填的，
+            空就用兜底。变的只有兜底文案本身（对齐稿子），以及标题不再手写 `<br>`
+            与包住城市名的 `<span>`——断行改由 `text-wrap: balance` 自适应，
+            城市名长度不同也不会崩（RecruitHero 的注释里有 1440 下的行盒实测）。
+            背景媒体走 backdrop 插槽，`profile.hero.media` 的渲染条件同样未变。 */}
+        <RecruitHero
+          titleId="city-launch-heading"
+          eyebrow={profile.hero.eyebrow || undefined}
+          title={profile.hero.heading || `商办租赁即将登陆${city.name}，诚邀本地城市合伙人`}
+          subtitle={profile.hero.body || '面向资深经纪人、本地商办代理机构、园区与楼宇运营方开放合作席位。'}
+          backdrop={profile.hero.media ? <img className="city-coming-soon__media" src={profile.hero.media.src} alt={profile.hero.media.alt} /> : null}
+        />
 
-        {/* 左侧：价值传递与合作赋能 */}
-        <div className="city-coming-soon__intro">
-          <div className="city-coming-soon__eyebrow">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
-            <span>{profile.hero.eyebrow || `${city.name}拓展 · 城市先锋招募`}</span>
-          </div>
-
-          <h1 id="city-launch-heading" className="city-coming-soon__title">
-            {profile.hero.heading || (
-              <>商办租赁即将登陆<span>{city.name}</span><br />诚邀本地城市合伙人</>
-            )}
-          </h1>
-
-          <p className="city-coming-soon__lead">
-            {profile.hero.body || `我们正在筹备${city.name}全域的商业办公选址数字化服务。无论您是资深经纪人、本地商办代理机构，还是园区与楼宇运营方，欢迎加入我们，共同开拓${city.name}商办市场。`}
-          </p>
-
-          {/* 赋能卡片 */}
-          <div className="city-coming-soon__benefits">
-            <div className="city-coming-soon__benefit-card">
-              <div className="city-coming-soon__benefit-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </div>
-              <div className="city-coming-soon__benefit-content">
-                <h3>全国跨城企业客源精准导入</h3>
-                <p>承接来自上海及全国总部的外溢选址需求，为{city.name}合伙人持续输送高质量企业租客。</p>
-              </div>
-            </div>
-
-            <div className="city-coming-soon__benefit-card">
-              <div className="city-coming-soon__benefit-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                  <line x1="8" y1="21" x2="16" y2="21" />
-                  <line x1="12" y1="17" x2="12" y2="21" />
-                </svg>
-              </div>
-              <div className="city-coming-soon__benefit-content">
-                <h3>全流程数字化商办 SaaS 赋能</h3>
-                <p>提供专业楼盘字典、房源可视化营销工具与线索流转系统，全面提升经纪与房源转化效率。</p>
-              </div>
-            </div>
-
-            <div className="city-coming-soon__benefit-card">
-              <div className="city-coming-soon__benefit-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M16 12l-4-4-4 4M12 16V8" />
-                </svg>
-              </div>
-              <div className="city-coming-soon__benefit-content">
-                <h3>高佣金分成与区域独占支持</h3>
-                <p>开放的利润分成机制与核心商圈独家/优先合作席位，切实保障本地合伙人长期收益。</p>
-              </div>
+        {/* 方案 A：价值点主栏 + sticky 表单卡共用同一条灰底带。
+            表单的 4 个 prop（cities / initialCity / invalidExplicitCity / lockCity）
+            与那个 `city-coming-soon__embedded-form` 的 className 一字未改——
+            城市锁定、单选项兜底、提交链路全部保持原触发条件。 */}
+        <section className="rc-section rc-section--band" aria-labelledby="city-launch-value-props">
+          <div className="rc-container">
+            <div className="rc-core">
+              <RecruitValueProps titleId="city-launch-value-props" />
+              <aside className="rc-aside">
+                <CityPartnerApplicationForm
+                  cities={selectableCities}
+                  initialCity={city.slug}
+                  invalidExplicitCity={false}
+                  lockCity
+                  className="city-coming-soon__embedded-form"
+                />
+                {/* 合规声明。改版前只有 `/city-partner` 显示它，城市路由没有；
+                    而城市路由旧版恰恰是承诺最多的一版（「切实保障本地合伙人长期收益」
+                    「核心商圈独家/优先合作席位」）。两个消费面共用同一张申请表，
+                    「提交申请不代表合作确认」在两边同样成立，补上是收紧不是放松。 */}
+                <p className="rc-aside__note">{CITY_PARTNER_COPY.note}</p>
+              </aside>
             </div>
           </div>
+        </section>
 
-          {/* 租客快速提示入口 */}
-          <div className="city-coming-soon__tenant-note">
-            <span>🏢 您是急需在{city.name}寻租办公室的企业？</span>
-            <InquiryModal
-              pageType="home"
-              triggerLabel="登记找房需求 ›"
-              triggerVariant="ghost"
-              onTriggerClick={() => trackCta('inquiry')}
-            />
-          </div>
-        </div>
+        {/* 商圈布局：真实 `featuredRegions`，空数组则整段不渲染（组件内判定）。
+            heading 的 id 沿用旧的 `city-featured-regions`。 */}
+        <RecruitDistrictGrid
+          titleId="city-featured-regions"
+          cityName={city.name}
+          districts={profile.featuredRegions}
+        />
 
-        {/* 右侧：内嵌城市合伙人申请表单 */}
-        <div className="city-coming-soon__form-card">
-          <CityPartnerApplicationForm
-            cities={selectableCities}
-            initialCity={city.slug}
-            invalidExplicitCity={false}
-            lockCity
-            className="city-coming-soon__embedded-form"
-          />
-        </div>
-      </section>
-
-      {/* 模块 2: 重点规划服务商圈 */}
-      <section className="city-coming-soon__regions-section" aria-labelledby="city-featured-regions">
-        <div className="city-coming-soon__section-header">
-          <h2 id="city-featured-regions">{city.name}重点服务商圈布局</h2>
-          <p>即将覆盖{city.name}核心商务区与高新产业聚集地</p>
-        </div>
-
-        <div className="city-coming-soon__district-grid">
-          {customRegions.length > 0
-            ? customRegions.map((region) => (
-                <div key={region.id} className="city-coming-soon__district-card">
-                  <div className="city-coming-soon__district-header">
-                    <span className="city-coming-soon__district-name">{region.name}</span>
-                    <span className="city-coming-soon__district-status">规划服务区</span>
-                  </div>
-                  <span className="city-coming-soon__district-sub">{city.name}重点商务板块</span>
-                </div>
-              ))
-            : fallbackDistricts.map((item) => (
-                <div key={item.name} className="city-coming-soon__district-card">
-                  <div className="city-coming-soon__district-header">
-                    <span className="city-coming-soon__district-name">{item.name}</span>
-                    <span className="city-coming-soon__district-status">{item.tag}</span>
-                  </div>
-                  <span className="city-coming-soon__district-sub">{item.sub}</span>
-                </div>
-              ))}
-        </div>
-      </section>
-
-      {/* 模块 3: 平台实力背书数据 */}
-      <section className="city-coming-soon__stats" aria-label="平台实力背书">
-        <div className="city-coming-soon__stat-item">
-          <div className="city-coming-soon__stat-number">30,000<span>+</span></div>
-          <div className="city-coming-soon__stat-label">已服务成长型及跨城企业</div>
-        </div>
-        <div className="city-coming-soon__stat-item">
-          <div className="city-coming-soon__stat-number">1,500<span>+</span></div>
-          <div className="city-coming-soon__stat-label">深度合作标杆甲级写字楼</div>
-        </div>
-        <div className="city-coming-soon__stat-item">
-          <div className="city-coming-soon__stat-number">98.5<span>%</span></div>
-          <div className="city-coming-soon__stat-label">客户选址全流程满意度</div>
-        </div>
-        <div className="city-coming-soon__stat-item">
-          <div className="city-coming-soon__stat-number">12<span>城</span></div>
-          <div className="city-coming-soon__stat-label">全国直营与合作布局网络</div>
-        </div>
-      </section>
-
-      {/* 模块 4: 底部双通道转化区 (租客 / 业主分流) */}
-      <section className="city-coming-soon__dual-actions" aria-label="客户与业主专项服务">
-        <div className="city-coming-soon__action-panel city-coming-soon__action-panel--tenant">
-          <div>
-            <span className="city-coming-soon__action-badge">企业找房先锋</span>
-            <h3>在{city.name}寻找优质办公室？</h3>
-            <p>
-              虽然{city.name}站仍在筹备阶段，但我们的资深商办顾问已建立本地优质楼盘库。提交选址预算与面积需求，开城第一时间获取专属免佣方案。
-            </p>
-          </div>
-          <div className="city-coming-soon__action-btn-wrap">
-            <InquiryModal
-              pageType="home"
-              triggerLabel={`预约${city.name}专属选址方案`}
-              triggerVariant="primary"
-              onTriggerClick={() => trackCta('inquiry')}
-            />
-          </div>
-        </div>
-
-        <div className="city-coming-soon__action-panel city-coming-soon__action-panel--landlord">
-          <div>
-            <span className="city-coming-soon__action-badge">{city.name}业主 / 空间方</span>
-            <h3>手里有{city.name}空置房源需要出租？</h3>
-            <p>
-              商办租赁平台提前开放{city.name}房源入库通道。优先入驻的楼宇、精装办公室与工位将获得首页头条曝光及长三角外溢企业精准推荐。
-            </p>
-          </div>
-          <div className="city-coming-soon__action-btn-wrap">
-            <Link
-              className="btn btn--secondary"
-              href={`/publish?city=${encodeURIComponent(city.slug)}`}
-              onClick={() => trackCta('publish')}
-            >
-              抢先登记合作房源
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 辅助跳转链接 (无障碍与 SEO 完备性) */}
-      <section className="city-coming-soon__quick-links" aria-label="其他入口">
-        <Link className="btn btn--ghost" href={`/entrust?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('entrust')}>委托找房</Link>
-        <Link className="btn btn--ghost" href={`/city-partner?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('city-partner')}>城市合伙人政策</Link>
-        <Link className="visually-hidden" href={basePath}>返回城市首页</Link>
-      </section>
+        {/* 次要入口：租客 / 业主两条既有转化通道，版式换成稿子的尾注卡。 */}
+        <RecruitSecondaryCta
+          label="客户与业主专项服务"
+          entries={[
+            {
+              title: `您是需要在${city.name}寻租办公室的企业？`,
+              body: `留下面积与预算，${city.name}开通后第一批推送匹配房源。`,
+              action: (
+                <InquiryModal
+                  pageType="home"
+                  triggerLabel="登记找房需求"
+                  triggerVariant="ghost"
+                  triggerClassName="rc-secondary-btn"
+                  onTriggerClick={() => trackCta('inquiry')}
+                />
+              ),
+            },
+            {
+              title: `手里有${city.name}空置房源需要出租？`,
+              body: `${city.name}房源入库通道已提前开放，先入驻的楼宇与办公室在开城时优先获得曝光。`,
+              action: (
+                <Link
+                  className="btn btn--ghost rc-secondary-btn"
+                  href={`/publish?city=${encodeURIComponent(city.slug)}`}
+                  onClick={() => trackCta('publish')}
+                >
+                  抢先登记合作房源
+                </Link>
+              ),
+            },
+          ]}
+          footer={(
+            <div className="rc-quick-links">
+              <Link href={`/entrust?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('entrust')}>委托找房</Link>
+              <Link href={`/city-partner?city=${encodeURIComponent(city.slug)}`} onClick={() => trackCta('city-partner')}>城市合伙人政策</Link>
+              <Link className="visually-hidden" href={basePath}>返回城市首页</Link>
+            </div>
+          )}
+        />
+      </div>
     </div>
   )
 }
