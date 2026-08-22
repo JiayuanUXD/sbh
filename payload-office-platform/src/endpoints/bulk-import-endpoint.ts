@@ -5,10 +5,16 @@ import { canReadByCity, requireOperationPermission, type RequestContext } from '
 import type { PermissionContext } from '@/domain/auth/permission-context'
 import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer'
 import { rollbackImportBatch } from '@/domain/supply-import/batch-rollback'
+import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invalidation'
 import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
 import { SUPPLY_IMPORT_QUEUE, SUPPLY_IMPORT_TASK } from '@/domain/supply-import/import-task'
 import { LISTING_COLUMNS, validateListingRow, type ValidListingRow } from '@/domain/supply-import/listing-row'
+import {
+  mapBuildingMerchantRelationDocs,
+  type BuildingMerchantRelationInput,
+  type RawBuildingMerchantRelationDoc,
+} from '@/domain/supply-import/resolve-merchant'
 import {
   buildResolveTables,
   type BuildingCandidate,
@@ -161,6 +167,23 @@ function createRefLookupPort(req: RequestContext): RefLookupPort {
   }
 }
 
+/**
+ * 楼盘商户关系一次性查全（D10，只有房源导入需要）。depth:1 展开 merchant，
+ * 交给纯函数 mapBuildingMerchantRelationDocs 做字段搬运——不在这里重复那份映射。
+ * 不按楼盘收窄：candidate buildings 本就已经一次性查全（loadBuildingCandidates
+ * 同一套做法），量级不足以值得按行拆成 N+1 查询。
+ */
+async function loadBuildingMerchantRelations(req: RequestContext): Promise<BuildingMerchantRelationInput[]> {
+  const result = await req.payload.find({
+    collection: 'building-merchant-relations',
+    depth: 1,
+    limit: 0,
+    overrideAccess: true,
+    req,
+  })
+  return mapBuildingMerchantRelationDocs(result.docs as unknown as RawBuildingMerchantRelationDoc[])
+}
+
 /** 楼盘候选一次性查全（供 resolveBuilding 匹配用）。不按城市收窄——收窄发生在逐行校验的 allowedCityIds。 */
 async function loadBuildingCandidates(req: RequestContext): Promise<BuildingCandidate[]> {
   const result = await req.payload.find({
@@ -304,12 +327,20 @@ function createPreflightEndpoint(): Endpoint {
       }
       const { rows, rowNumbers } = parsed
 
-      // 6. 关系解析表 + 楼盘候选（不写业务表，只读）
-      const [tables, buildings] = await Promise.all([
+      // 6. 关系解析表 + 楼盘候选 + 楼盘商户关系（D10，只有房源导入需要；楼盘导入
+      //    传空数组——楼盘本身不需要商户，不该为它多打一次无谓的查询）（不写业务表，只读）
+      const [tables, buildings, buildingMerchantRelations] = await Promise.all([
         buildResolveTables(createRefLookupPort(req)),
         loadBuildingCandidates(req),
+        type === 'listings' ? loadBuildingMerchantRelations(req) : Promise.resolve([]),
       ])
-      const rowCtx: RowContext = { tables, buildings, allowedCityIds: ctx.cityIds }
+      const rowCtx: RowContext = {
+        tables,
+        buildings,
+        allowedCityIds: ctx.cityIds,
+        buildingMerchantRelations,
+        now: new Date(),
+      }
 
       // 7 + 8. 逐行校验 + 批内编号查重（不重写查重逻辑，调用 Task 4 的 markDuplicateExternalIds）
       let persistedValidRows: PersistedValidRow[]
@@ -802,6 +833,27 @@ function createRollbackEndpoint(): Endpoint {
         )
       }
       const { unpublished, skipped, failed } = result
+
+      // D11：回滚成功后触发一次公共缓存失效——「一键下架」的止血承诺不能只靠
+      // cached-queries.ts 的 5 分钟 TTL 兜底。只在真的有文档被下架时才失效
+      // （unpublished === 0 时这次回滚是纯粹的幂等空操作，缓存里没有需要刷新的内容）；
+      // 城市从 batch.validRows 取（预检时persist 的快照，完成 7 天后才会被清空，
+      // 回滚通常发生在这个窗口内）——取不到就传空数组，交给
+      // invalidateSupplyImportPublicCache 自己的"全城市兜底"降级语义处理，不在这里
+      // 另外发明。失败只记日志，不影响回滚本身已经成功的事实。
+      if (unpublished > 0) {
+        const cityIds = isPersistedValidRowArray(batch.validRows)
+          ? batch.validRows
+              .map((row) => row.cityId)
+              .filter((id): id is number | string => id !== null && id !== undefined)
+          : []
+        await invalidateSupplyImportCache(req.payload, req, cityIds, 'supply_import_rollback').catch((error) => {
+          console.error('[bulk-import] cache_invalidation_failed', {
+            batchId: batch.id,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        })
+      }
 
       // 3. 审计
       await writeAuditSuccess({

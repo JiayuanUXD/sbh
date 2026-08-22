@@ -33,20 +33,79 @@ const databaseAvailable =
 describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
   let payload: Payload
   let buildingId: number | string
+  let cityId: number | string
   let batchId: number | string
   let listingId: number | string
   const createdListingIds: Array<number | string> = []
   const createdBatchIds: Array<number | string> = []
+  const createdBuildingIds: Array<number | string> = []
+  const createdMerchantIds: Array<number | string> = []
+  const createdRelationIds: Array<number | string> = []
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const building = await payload.find({
-      collection: 'buildings',
+    const city = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'city' } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
-    buildingId = building.docs[0].id
+    cityId = city.docs[0].id
+    const district = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'district' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const districtId = district.docs[0].id
+
+    // D10：房源写入层要求楼盘有当前生效且合格的商户关系。用专属楼盘（而不是共享
+    // 的"数据库里第一栋楼"）+ 专用商户 + 关系——与 supply-import-task-postgres 同
+    // 一套做法，且是必须的：两个文件若都往同一栋"第一栋楼"上挂
+    // [2020-01-01, ∞) 的商户关系会撞 RELATION_OVERLAP（vitest 可能并行调度两个
+    // 文件跑同一个真库）。
+    const testBuilding = await payload.create({
+      collection: 'buildings',
+      data: {
+        name: `OPT-041-D10-回滚测试楼盘-${Date.now()}`,
+        slug: `opt-041-d10-rollback-test-building-${Date.now()}`,
+        city: Number(cityId),
+        district: Number(districtId),
+        status: 'published',
+        operationalStatus: 'active',
+      },
+      overrideAccess: true,
+    })
+    buildingId = testBuilding.id
+    createdBuildingIds.push(buildingId)
+
+    const merchant = await payload.create({
+      collection: 'merchants',
+      data: {
+        name: `OPT-041-D10-回滚测试商户-${Date.now()}`,
+        type: 'AGENCY',
+        status: 'active',
+        qualificationStatus: 'valid',
+        qualificationExpiresAt: '2099-01-01T00:00:00.000Z',
+        serviceCities: [Number(cityId)],
+      },
+      overrideAccess: true,
+    })
+    createdMerchantIds.push(merchant.id)
+
+    const relation = await payload.create({
+      collection: 'building-merchant-relations',
+      data: {
+        building: Number(buildingId),
+        merchant: Number(merchant.id),
+        effectiveFrom: '2020-01-01T00:00:00.000Z',
+        effectiveTo: null,
+      },
+      overrideAccess: true,
+    })
+    createdRelationIds.push(relation.id)
 
     // 先跑一次真实写入层，造出一个带 affectedIds 的房源。
     const runResult = await runSupplyImportBatch({
@@ -58,7 +117,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           title: '回滚测试房源',
           listingType: 'traditional-office',
           buildingId,
-          cityId: null,
+          cityId,
           area: 200,
           rentAmount: 5,
           rentUnit: 'rmb-sqm-day',
@@ -101,6 +160,15 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
     for (const id of createdBatchIds) {
       await payload.delete({ collection: 'supply-import-batches', id, overrideAccess: true }).catch(() => null)
     }
+    for (const id of createdRelationIds) {
+      await payload.delete({ collection: 'building-merchant-relations', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdMerchantIds) {
+      await payload.delete({ collection: 'merchants', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdBuildingIds) {
+      await payload.delete({ collection: 'buildings', id, overrideAccess: true }).catch(() => null)
+    }
   })
 
   it('把本批房源打回下架，而不是删除', async () => {
@@ -132,7 +200,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           title: '回滚混合场景-正常房源',
           listingType: 'traditional-office',
           buildingId,
-          cityId: null,
+          cityId,
           area: 180,
           rentAmount: 4,
           rentUnit: 'rmb-sqm-day',
@@ -145,7 +213,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           title: '回滚混合场景-将被软删的房源',
           listingType: 'traditional-office',
           buildingId,
-          cityId: null,
+          cityId,
           area: 150,
           rentAmount: 3.5,
           rentUnit: 'rmb-sqm-day',

@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import type { PayloadRequest } from 'payload'
 import ExcelJS from 'exceljs'
 
+// D11：createRollbackEndpoint 成功路径会触发 invalidateSupplyImportCache →
+// revalidateTag。mock 掉 next/cache，好在下面直接断言"回滚成功后确实调用了缓存
+// 失效"，而不必真的跑在 Next 请求上下文里。
+const { revalidateTag } = vi.hoisted(() => ({ revalidateTag: vi.fn() }))
+vi.mock('next/cache', () => ({ revalidateTag }))
+
 import { createBulkImportEndpoints, PREFLIGHT_ERROR_PREVIEW_LIMIT } from '@/endpoints/bulk-import-endpoint'
 import { BUILDING_COLUMNS } from '@/domain/supply-import/building-row'
 import { LISTING_COLUMNS } from '@/domain/supply-import/listing-row'
@@ -84,6 +90,24 @@ const BUILDING_SH = {
   dataSource: { externalId: 'B-EXIST' },
 }
 const BUILDINGS = [BUILDING_SH]
+
+// D10：房源导入要靠 building-merchant-relations 推出 listings.merchant。
+// BUILDING_SH 默认配一条当前生效且合格的关系，让既有 listings 分支测试不用逐个改。
+const MERCHANT_ACTIVE = {
+  id: 500,
+  name: '测试商户',
+  status: 'active',
+  qualificationStatus: 'valid',
+  qualificationExpiresAt: null,
+  serviceCities: [10],
+}
+const RELATION_ACTIVE = {
+  id: 1,
+  building: 100,
+  merchant: MERCHANT_ACTIVE,
+  effectiveFrom: '2020-01-01T00:00:00.000Z',
+  effectiveTo: null,
+}
 
 function adminUser(): User {
   return {
@@ -169,8 +193,19 @@ interface MockPayload {
   update: ReturnType<typeof vi.fn>
 }
 
-function makeMockPayload(roles: Role[]): { payload: MockPayload; batches: Map<number, Record<string, unknown>> } {
+function makeMockPayload(
+  roles: Role[],
+  buildingMerchantRelations: Array<Record<string, unknown>> = [RELATION_ACTIVE],
+): {
+  payload: MockPayload
+  batches: Map<number, Record<string, unknown>>
+  listings: Map<number, Record<string, unknown>>
+} {
   const batches = new Map<number, Record<string, unknown>>()
+  // D11 回滚测试用：让 findByID/update 能操作一个"房源"文档，验证
+  // createRollbackEndpoint 在 unpublished > 0 时真的触发了缓存失效。其余测试不碰
+  // listings，留空即可。
+  const listings = new Map<number, Record<string, unknown>>()
   let nextBatchId = 1
   let nextAuditId = 1
 
@@ -203,6 +238,9 @@ function makeMockPayload(roles: Role[]): { payload: MockPayload; batches: Map<nu
       }
       return { docs }
     }
+    if (opts.collection === 'building-merchant-relations') {
+      return { docs: buildingMerchantRelations }
+    }
     return { docs: [] }
   })
 
@@ -211,6 +249,11 @@ function makeMockPayload(roles: Role[]): { payload: MockPayload; batches: Map<nu
       const batch = batches.get(Number(opts.id))
       if (!batch) throw new Error('not found')
       return batch
+    }
+    if (opts.collection === 'listings') {
+      const doc = listings.get(Number(opts.id))
+      if (!doc) throw new Error('not found')
+      return doc
     }
     throw new Error(`unexpected findByID collection ${opts.collection}`)
   })
@@ -238,10 +281,18 @@ function makeMockPayload(roles: Role[]): { payload: MockPayload; batches: Map<nu
       batches.set(key, updated)
       return updated
     }
+    if (opts.collection === 'listings') {
+      const key = Number(opts.id)
+      const existing = listings.get(key)
+      if (!existing) throw new Error('not found')
+      const updated = { ...existing, ...opts.data }
+      listings.set(key, updated)
+      return updated
+    }
     throw new Error(`unexpected update on collection ${opts.collection}`)
   })
 
-  return { payload: { find, findByID, create, update }, batches }
+  return { payload: { find, findByID, create, update }, batches, listings }
 }
 
 function makeReq(params: {
@@ -518,6 +569,74 @@ describe('POST /bulk-import/preflight', () => {
     expect(report.errorCount).toBe(1)
     expect(report.rowErrors[0].code).toBe('DUPLICATE_EXTERNAL_ID')
     expect(report.rowErrors[0].column).toBe('房源编号')
+  })
+
+  it('D10：楼盘没有生效商户关系 → 预检阶段就判错误行，不是等写入才失败', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const { payload } = makeMockPayload([ROLE_ADM], [])
+
+    const buf = await makeXlsxBuffer(LISTING_COLUMNS, [
+      ['L-NOMERCHANT', '环球金融中心 280㎡ 精装办公室', '传统办公室', 'B-EXIST', '280㎡', '4.5元/㎡/天', '12层', '精装带家具', '2026-09-01'],
+    ])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=listings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'listings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    const body = await readJson(res)
+    const report = body.report as { validCount: number; errorCount: number; rowErrors: Array<{ code: string; message: string }> }
+    expect(report.validCount).toBe(0)
+    expect(report.errorCount).toBe(1)
+    expect(report.rowErrors[0].code).toBe('NO_SUPPLY_MERCHANT_RELATION')
+    expect(report.rowErrors[0].message).toContain('楼盘「环球金融中心」')
+  })
+
+  it('D10：楼盘当前生效商户已停用 → 预检阶段判错误行，message 点出商户不合格', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const disabledRelation = { ...RELATION_ACTIVE, merchant: { ...MERCHANT_ACTIVE, status: 'disabled' } }
+    const { payload } = makeMockPayload([ROLE_ADM], [disabledRelation])
+
+    const buf = await makeXlsxBuffer(LISTING_COLUMNS, [
+      ['L-DISABLED', '环球金融中心 280㎡ 精装办公室', '传统办公室', 'B-EXIST', '280㎡', '4.5元/㎡/天', '12层', '精装带家具', '2026-09-01'],
+    ])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=listings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'listings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    const body = await readJson(res)
+    const report = body.report as { validCount: number; errorCount: number; rowErrors: Array<{ code: string; message: string }> }
+    expect(report.validCount).toBe(0)
+    expect(report.errorCount).toBe(1)
+    expect(report.rowErrors[0].code).toBe('MERCHANT_INELIGIBLE')
+    expect(report.rowErrors[0].message).toContain('已停用')
+  })
+
+  it('楼盘导入不查商户关系——建候选表时不该为楼盘导入多打一次无谓查询', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const { payload } = makeMockPayload([ROLE_ADM], [])
+    payload.find.mockClear()
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-002', '新楼盘二', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    expect(res.status).toBe(200)
+    const calledCollections = payload.find.mock.calls.map((call) => (call[0] as { collection: string }).collection)
+    expect(calledCollections).not.toContain('building-merchant-relations')
   })
 })
 
@@ -798,6 +917,64 @@ describe('POST /bulk-import/batches/:id/rollback', () => {
         data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'ROLLBACK_FAILED' }),
       }),
     )
+  })
+
+  it('D11：真的下架了文档（unpublished > 0）→ 触发一次公共缓存失效', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload, batches, listings } = makeMockPayload([ROLE_ADM])
+
+    listings.set(123, { id: 123, publicationStatus: 'published' })
+    // 直接造批次记录（绕开 payload.create 这个宽松类型的 mock，避免和它的调用签名
+    // 纠缠）——本用例只关心 rollback handler 拿到这条批次后的行为。
+    const batchId = 501
+    batches.set(batchId, {
+      id: batchId,
+      type: 'listings',
+      status: 'completed',
+      operator: 900,
+      affectedIds: [123],
+      validRows: [{ rowNumber: 2, externalId: 'L-001', cityId: 10 }],
+      stats: { processed: 1, created: 1, updated: 0, failed: 0 },
+    })
+
+    const res = (await rollback.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    const body = await readJson(res)
+    expect(body).toMatchObject({ ok: true, unpublished: 1 })
+    expect(listings.get(123)?.publicationStatus).toBe('unpublished')
+
+    // 核心断言：revalidateTag 真的被调过——不是只把 unpublished 数字改对，
+    // 前台缓存也要被失效，止血承诺才成立。
+    expect(revalidateTag).toHaveBeenCalled()
+  })
+
+  it('D11：unpublished === 0（纯幂等空操作）→ 不触发缓存失效，没有可刷新的内容', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+
+    const batchId = 502
+    batches.set(batchId, {
+      id: batchId,
+      type: 'listings',
+      status: 'completed',
+      operator: 900,
+      affectedIds: [],
+      stats: { processed: 0, created: 0, updated: 0, failed: 0 },
+    })
+
+    const res = (await rollback.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    const body = await readJson(res)
+    expect(body).toMatchObject({ ok: true, unpublished: 0 })
+    expect(revalidateTag).not.toHaveBeenCalled()
   })
 })
 

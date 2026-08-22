@@ -20,13 +20,19 @@ export interface PreflightReport {
 }
 
 import type { BuildingCandidate, ResolveTables } from './resolve-refs'
+import type { BuildingMerchantRelationInput } from './resolve-merchant'
 
 /**
- * 单行校验所需的只读上下文：地理解析表 + 候选楼盘 + 当前操作者的城市权限范围。
- * building-row.ts / listing-row.ts 共用同一份定义，不各自重复。
+ * 单行校验所需的只读上下文：地理解析表 + 候选楼盘 + 当前操作者的城市权限范围 +
+ * 楼盘商户关系（D10：房源行要靠它推出 listings.merchant） + 判定基准时刻。
+ * building-row.ts / listing-row.ts 共用同一份定义，不各自重复。building-row.ts
+ * 不需要商户，但仍持有 buildingMerchantRelations / now 两个字段——两个校验函数
+ * 共用同一个 RowContext 类型，不为楼盘单独裁一份。
  */
 export interface RowContext {
   readonly tables: ResolveTables
   readonly buildings: readonly BuildingCandidate[]
   readonly allowedCityIds: 'all' | ReadonlySet<number | string>
+  readonly buildingMerchantRelations: readonly BuildingMerchantRelationInput[]
+  readonly now: Date
 }

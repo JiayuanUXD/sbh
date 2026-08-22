@@ -16,19 +16,23 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
   let buildingId: number | string
   let cityId: number | string
   let districtId: number | string
+  let merchantId: number | string
   const createdListingIds: Array<number | string> = []
   const createdBuildingIds: Array<number | string> = []
   const createdBatchIds: Array<number | string> = []
+  const createdMerchantIds: Array<number | string> = []
+  const createdRelationIds: Array<number | string> = []
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const building = await payload.find({
-      collection: 'buildings',
+    const city = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'city' } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
-    buildingId = building.docs[0].id
+    cityId = city.docs[0].id
 
     const district = await payload.find({
       collection: 'locations',
@@ -38,14 +42,53 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
       overrideAccess: true,
     })
     districtId = district.docs[0].id
-    const city = await payload.find({
-      collection: 'locations',
-      where: { type: { equals: 'city' } },
-      limit: 1,
-      depth: 0,
+
+    // D10 测试夹具：专用楼盘（而不是随便挑数据库里已存在的第一栋楼）+ 专用商户 +
+    // 当前生效关系。用专属楼盘而不是共享的"第一栋楼"，是因为本文件与
+    // supply-import-rollback-postgres.test.ts 可能被 vitest 并行调度到同一个真库，
+    // 两边若都往同一栋"第一栋楼"上挂 [2020-01-01, ∞) 的商户关系，会撞
+    // RELATION_OVERLAP——各自建一栋专属楼盘彻底消除这个交叉污染。
+    const testBuilding = await payload.create({
+      collection: 'buildings',
+      data: {
+        name: `OPT-041-D10-测试楼盘-${Date.now()}`,
+        slug: `opt-041-d10-test-building-${Date.now()}`,
+        city: Number(cityId),
+        district: Number(districtId),
+        status: 'published',
+        operationalStatus: 'active',
+      },
       overrideAccess: true,
     })
-    cityId = city.docs[0].id
+    buildingId = testBuilding.id
+    createdBuildingIds.push(buildingId)
+
+    const merchant = await payload.create({
+      collection: 'merchants',
+      data: {
+        name: `OPT-041-D10-测试商户-${Date.now()}`,
+        type: 'AGENCY',
+        status: 'active',
+        qualificationStatus: 'valid',
+        qualificationExpiresAt: '2099-01-01T00:00:00.000Z',
+        serviceCities: [Number(cityId)],
+      },
+      overrideAccess: true,
+    })
+    merchantId = merchant.id
+    createdMerchantIds.push(merchant.id)
+
+    const relation = await payload.create({
+      collection: 'building-merchant-relations',
+      data: {
+        building: Number(buildingId),
+        merchant: Number(merchantId),
+        effectiveFrom: '2020-01-01T00:00:00.000Z',
+        effectiveTo: null,
+      },
+      overrideAccess: true,
+    })
+    createdRelationIds.push(relation.id)
   })
 
   afterAll(async () => {
@@ -57,6 +100,12 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     }
     for (const id of createdBatchIds) {
       await payload.delete({ collection: 'supply-import-batches', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdRelationIds) {
+      await payload.delete({ collection: 'building-merchant-relations', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdMerchantIds) {
+      await payload.delete({ collection: 'merchants', id, overrideAccess: true }).catch(() => null)
     }
   })
 
@@ -71,7 +120,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
         // 否则本用例期望的 created:1 会被 Listings 的 select 字段校验真实拒绝成 failed:1。
         listingType: 'traditional-office',
         buildingId,
-        cityId: null,
+        cityId,
         area: 280,
         rentAmount: 4.5,
         rentUnit: 'rmb-sqm-day',
@@ -118,6 +167,38 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     expect(doc.reviewStatus).toBe('approved')
     expect(doc.dataSource?.source).toBe('manual-import')
     expect(doc.dataSource?.externalId).toBe('E2E-IDEMP-1')
+  })
+
+  it('D10：房源写入独立解析楼盘当前生效商户，listings.merchant 落库为该商户 id（有效供给 §8 的唯一来源）', async () => {
+    const doc = await payload.findByID({
+      collection: 'listings',
+      id: createdListingIds[0],
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(String(doc.merchant)).toBe(String(merchantId))
+  })
+
+  it('D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败（failed），不阻断同批其它行', async () => {
+    const orphanBuilding = await payload.create({
+      collection: 'buildings',
+      data: {
+        name: `D10-无商户楼盘-${Date.now()}`,
+        slug: `d10-no-merchant-building-${Date.now()}`,
+        city: Number(cityId),
+        district: Number(districtId),
+        status: 'published',
+        operationalStatus: 'active',
+      },
+      overrideAccess: true,
+    })
+    createdBuildingIds.push(orphanBuilding.id)
+
+    const badRow = { ...rows('E2E-D10-NOMERCHANT')[0], buildingId: orphanBuilding.id }
+    const result = await runSupplyImportBatch({ payload, type: 'listings', validRows: [badRow] })
+    expect(result).toMatchObject({ created: 0, updated: 0, failed: 1 })
+    expect(result.errors[0]).toMatchObject({ externalId: 'E2E-D10-NOMERCHANT' })
+    expect(result.errors[0].message).toContain('没有生效的供给商户')
   })
 
   it('更新时不改 slug——改 slug 会断掉已有前台 URL', async () => {

@@ -16,6 +16,7 @@ import {
 } from '@/domain/review/listing-fields'
 import { parseArea, parseFloorNumber, parseRent } from '@/domain/supply-import/normalize'
 import { resolveBuilding } from '@/domain/supply-import/resolve-refs'
+import { resolveBuildingMerchant } from '@/domain/supply-import/resolve-merchant'
 import type { RawRow, RowContext, RowError } from '@/domain/supply-import/types'
 
 export type { RowContext } from '@/domain/supply-import/types'
@@ -101,6 +102,26 @@ export function validateListingRow(row: RawRow, rowNumber: number, ctx: RowConte
           rawValue: buildingText,
           code: 'CITY_OUT_OF_SCOPE',
           message: `楼盘「${resolved.value.name}」所属城市不在你的可导入范围内`,
+        })
+      }
+
+      // D10：房源模板没有商户列，供给商户唯一来源是楼盘当前生效的商户关系。
+      // 校验前移到预检层——楼盘没有生效商户、或商户不合格，这里就判错误行，
+      // 不等写入层才失败（否则同批其它行都上架了才发现这行不行，是最坏的失败时机）。
+      const merchantResolution = resolveBuildingMerchant(
+        resolved.value.name,
+        resolved.value.id,
+        resolved.value.cityId,
+        ctx.buildingMerchantRelations,
+        ctx.now,
+      )
+      if (!merchantResolution.ok) {
+        errors.push({
+          rowNumber,
+          column: '楼盘编号或标识',
+          rawValue: buildingText,
+          code: merchantResolution.code,
+          message: merchantResolution.message,
         })
       }
     }

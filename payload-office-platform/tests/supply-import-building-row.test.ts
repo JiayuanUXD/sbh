@@ -22,6 +22,10 @@ const ctx: RowContext = {
   },
   buildings: [],
   allowedCityIds: new Set([1]),
+  // 楼盘导入不涉及商户（D10 只影响房源），这两个字段留空/占位即可——building-row.ts
+  // 与 listing-row.ts 共用同一个 RowContext 类型，不为楼盘单独裁一份。
+  buildingMerchantRelations: [],
+  now: new Date('2026-08-22T00:00:00.000Z'),
 }
 
 const goodRow = {

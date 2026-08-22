@@ -28,8 +28,14 @@ import type { Payload, PayloadRequest, TaskConfig } from 'payload'
 
 import { isDecorationStatus, isListingType } from '@/domain/review/listing-fields'
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
+import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invalidation'
 import type { ValidBuildingRow } from '@/domain/supply-import/building-row'
 import type { ValidListingRow } from '@/domain/supply-import/listing-row'
+import {
+  mapBuildingMerchantRelationDocs,
+  resolveBuildingMerchant,
+  type RawBuildingMerchantRelationDoc,
+} from '@/domain/supply-import/resolve-merchant'
 
 export const SUPPLY_IMPORT_TASK = 'run-supply-import'
 export const SUPPLY_IMPORT_QUEUE = 'supply-imports'
@@ -199,6 +205,43 @@ async function writeBuildingRow(
 }
 
 // ────────────────────────────────────────────────────────────
+// D10：房源商户——写入层从"同一来源"（building-merchant-relations）独立取值，
+// 不信任预检阶段的判断结果本身（预检只保证"当时"通过），这是规格要求的兜底守卫，
+// 防止预检与执行之间关系失效（比如运营在两次点击之间把商户停用了）。复用
+// resolve-merchant.ts 的 resolveBuildingMerchant，不另写一份资质判定。
+// ────────────────────────────────────────────────────────────
+
+async function resolveListingMerchant(
+  payload: Payload,
+  req: PayloadRequest | undefined,
+  buildingId: number,
+  buildingCityId: number | string | null,
+): Promise<number> {
+  const result = await payload.find({
+    collection: 'building-merchant-relations',
+    where: { building: { equals: buildingId } },
+    depth: 1,
+    limit: 0,
+    overrideAccess: true,
+    req,
+  })
+  const relations = mapBuildingMerchantRelationDocs(
+    result.docs as unknown as RawBuildingMerchantRelationDoc[],
+  )
+  const resolved = resolveBuildingMerchant(
+    `楼盘（编号 ${buildingId}）`,
+    buildingId,
+    buildingCityId,
+    relations,
+    new Date(),
+  )
+  if (!resolved.ok) {
+    throw new Error(resolved.message)
+  }
+  return numericId(resolved.merchantId)
+}
+
+// ────────────────────────────────────────────────────────────
 // 房源写入
 // ────────────────────────────────────────────────────────────
 
@@ -242,11 +285,19 @@ async function writeListingRow(
   const decorationStatus = row.decorationStatus
   const rentUnit = row.rentUnit
   const syncedAt = new Date().toISOString()
+  const buildingId = numericId(row.buildingId)
+
+  // D10：房源商户唯一来源是楼盘当前生效的供给商户关系，模板没有商户列。
+  // 这里独立重新解析（不信任预检时的判断，见 resolveListingMerchant 顶部注释）——
+  // 解析失败直接抛错，被下面 runSupplyImportBatch 的 per-row try/catch 接住，
+  // 计入 failed 且带上可操作的原因，不阻断这一批的其它行。
+  const merchantId = await resolveListingMerchant(payload, req, buildingId, row.cityId)
 
   const sharedData = {
     title: row.title,
     listingType,
-    building: numericId(row.buildingId),
+    building: buildingId,
+    merchant: merchantId,
     area: row.area,
     rent: row.rentAmount,
     rentUnit,
@@ -610,6 +661,9 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
           req,
         })
         .catch(() => null)
+      // D11：即使整体任务失败，已经并集合并进 affectedIds 的行也可能真实上架了，
+      // 同样要尽快让前台反映出来——不能因为批次状态是 failed 就不触发失效。
+      await invalidateAfterSupplyImportRun(payload, req, batchId, rows, affectedIds)
       throw error
     }
 
@@ -627,6 +681,10 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
       req,
     })
 
+    // D11：写入 Job 完成后触发一次公共缓存失效——止血承诺（红条「确认后 N 套房源
+    // 将立即对外可见」）不能只靠 cached-queries.ts 的 5 分钟 TTL 兜底。
+    await invalidateAfterSupplyImportRun(payload, req, batchId, rows, affectedIds)
+
     return { output: { created: stats.created, updated: stats.updated, failed: stats.failed } }
   },
 }
@@ -638,6 +696,47 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
 // recoverStaleCityPartnerNotificationJobs 一致：where 子句本身是原子的，
 // 并发多个 reaper 幂等，新鲜 job（updated_at 晚于 cutoff）不会被误抢。
 // ────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────
+// D11：写入 Job 完成后触发一次公共缓存失效（无论最终 completed 还是 failed——
+// 失败也可能已经有部分行真实写入并上架，见 Critical 1 的 affectedIds 并集合并；
+// 那些行同样需要尽快在前台可见，不能因为整批任务"失败"就不触发失效）。
+// ────────────────────────────────────────────────────────────
+
+/** 从本次处理的行里收集去重后的城市 id；ValidListingRow.cityId 可能为 null（楼盘解析失败的历史脏行），过滤掉。 */
+function collectRowCityIds(rows: ReadonlyArray<ValidBuildingRow | ValidListingRow>): Array<number | string> {
+  const seen = new Set<string>()
+  const cityIds: Array<number | string> = []
+  for (const row of rows) {
+    const cityId = row.cityId
+    if (cityId === null || cityId === undefined) continue
+    const key = String(cityId)
+    if (seen.has(key)) continue
+    seen.add(key)
+    cityIds.push(cityId)
+  }
+  return cityIds
+}
+
+/**
+ * 只在确实写入过东西时才失效（`affectedIds.length === 0` 说明这次运行一行都没
+ * 成功，缓存里本就没有需要刷新的内容）。缓存失效失败只记日志、不向上抛——它是
+ * 止血能力的锦上添花，不能让它的失败掩盖掉批次真正的写入结果。
+ */
+async function invalidateAfterSupplyImportRun(
+  payload: Payload,
+  req: PayloadRequest | undefined,
+  batchId: number,
+  rows: ReadonlyArray<ValidBuildingRow | ValidListingRow>,
+  affectedIds: ReadonlyArray<number | string>,
+): Promise<void> {
+  if (affectedIds.length === 0) return
+  try {
+    await invalidateSupplyImportCache(payload, req, collectRowCityIds(rows), 'supply_import')
+  } catch (error) {
+    console.error('[supply-import] cache_invalidation_failed', { batchId, error: errorMessage(error) })
+  }
+}
 
 export async function recoverStaleSupplyImportJobs(payload: Payload, now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - SUPPLY_IMPORT_JOB_LEASE_MS).toISOString()
