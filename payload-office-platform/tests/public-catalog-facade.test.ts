@@ -30,6 +30,8 @@ import {
   getListingBySlug,
   getRelatedListings,
   getSearchFacets,
+  getSearchFacetsIgnoring,
+  omitListingSearchDimensions,
   parseSearchInput,
   searchListings,
   type SupplyAdapter,
@@ -157,17 +159,17 @@ function createFakeAdapter(options: {
           (excludeListingId == null || l.id !== excludeListingId),
       )
     },
-    async sumEffectiveLeasableAreaByBuildings(buildingIds) {
-      const sums = new Map<string, number>()
+    async aggregateEffectiveSupplyByBuildings(buildingIds) {
+      const aggregates = new Map<string, { area: number; count: number }>()
       for (const l of options.listings) {
         if (!isListingEffective(l)) continue
         const bid = typeof l.building === 'object' ? l.building.id : l.building
         if (!buildingIds.some((id) => id === bid)) continue
         const area = typeof l.area === 'number' && Number.isFinite(l.area) ? l.area : 0
-        if (area <= 0) continue
-        sums.set(String(bid), (sums.get(String(bid)) ?? 0) + area)
+        const prev = aggregates.get(String(bid)) ?? { area: 0, count: 0 }
+        aggregates.set(String(bid), { area: prev.area + (area > 0 ? area : 0), count: prev.count + 1 })
       }
-      return sums
+      return aggregates
     },
     async findEffectiveBusinessAreas() {
       if (options.businessAreas) return options.businessAreas
@@ -579,6 +581,116 @@ describe('getSearchFacets', () => {
     const facets = await getSearchFacets(defaultInput(), ctx, fullFixture())
     const jingan = facets.districts.find((d) => d.slug === 'jingan')
     expect(jingan?.count).toBe(2) // 1001 + 1003 都在静安中心
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getSearchFacetsIgnoring / omitListingSearchDimensions（OPT-036 Task 11）
+//
+// 这一组锁的是一类**静默失效**：getSearchFacets 的 facetInput 保留 priceUnit，
+// 于是选中某个计价单位后其余单位计数恒为 0 —— 列表页「另有 N 套按 X 报价，因
+// 单位不可换算未计入本结果集」那条提示因全部计数为 0 而 return null，诚实机制
+// 消失且不报任何错。第一条测试刻意把「原函数确实会算出 0」写死下来，这样以后
+// 谁把剥离逻辑删掉，坏掉的是断言而不是线上那条谁也不会注意到的提示条。
+// ---------------------------------------------------------------------------
+
+describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
+  it('对照：getSearchFacets 保留 priceUnit，其余单位计数恒为 0', async () => {
+    const facets = await getSearchFacets(
+      defaultInput({ priceUnit: 'rmb-month', pricePeriod: 'month', priceBasis: 'total' }),
+      ctx,
+      fullFixture(),
+    )
+    const units = Object.fromEntries(facets.rentUnits.map((f) => [f.value, f.count]))
+    expect(units['rmb-month']).toBe(1)
+    expect(units['rmb-sqm-day']).toBeUndefined()
+    expect(units['rmb-seat-month']).toBeUndefined()
+  })
+
+  it('剥掉 priceUnit 后其余单位计数恢复真实值', async () => {
+    const facets = await getSearchFacetsIgnoring(
+      defaultInput({ priceUnit: 'rmb-month', pricePeriod: 'month', priceBasis: 'total' }),
+      ctx,
+      ['priceUnit'],
+      fullFixture(),
+    )
+    const units = Object.fromEntries(facets.rentUnits.map((f) => [f.value, f.count]))
+    expect(units['rmb-month']).toBe(1)
+    expect(units['rmb-sqm-day']).toBe(1)
+    expect(units['rmb-seat-month']).toBe(1)
+  })
+
+  it('剥单位不等于剥全部条件：其余筛选条件必须保留', async () => {
+    // 静安 2 套（rmb-month 的 1001 + rmb-seat-month 的 1003），全库 3 套。
+    // 「另有 N 套按别的单位报价」说的是「符合你其余条件的 N 套」，不是全库总数。
+    const facets = await getSearchFacetsIgnoring(
+      defaultInput({
+        priceUnit: 'rmb-month',
+        pricePeriod: 'month',
+        priceBasis: 'total',
+        district: ['jingan'],
+      }),
+      ctx,
+      ['priceUnit'],
+      fullFixture(),
+    )
+    expect(facets.totalDocs).toBe(2)
+    const units = Object.fromEntries(facets.rentUnits.map((f) => [f.value, f.count]))
+    expect(units['rmb-seat-month']).toBe(1)
+    expect(units['rmb-sqm-day']).toBeUndefined()
+  })
+
+  it('剥掉 district 后其余区域计数不被自我擦除', async () => {
+    const facets = await getSearchFacetsIgnoring(
+      defaultInput({ district: ['pudong'] }),
+      ctx,
+      ['district'],
+      fullFixture(),
+    )
+    expect(facets.districts.find((d) => d.slug === 'jingan')?.count).toBe(2)
+  })
+
+  it('剥 priceUnit 连带剥派生字段并把价格排序降级为 recommended', () => {
+    const stripped = omitListingSearchDimensions(
+      defaultInput({
+        priceUnit: 'rmb-month',
+        pricePeriod: 'month',
+        priceBasis: 'total',
+        sort: 'price-asc',
+        district: ['jingan'],
+      }),
+      ['priceUnit'],
+    )
+    expect(stripped.priceUnit).toBeUndefined()
+    expect(stripped.pricePeriod).toBeUndefined()
+    expect(stripped.priceBasis).toBeUndefined()
+    // 跨单位价格不可比，与解析层 normalizeSort 同一口径
+    expect(stripped.sort).toBe('recommended')
+    // 未点名的维度原样保留
+    expect(stripped.district).toEqual(['jingan'])
+  })
+
+  it('price / area 是一个维度两个字段，必须整体剥离', () => {
+    const stripped = omitListingSearchDimensions(
+      defaultInput({ priceMin: 100, priceMax: 900, areaMin: 50, areaMax: 500 }),
+      ['price', 'area'],
+    )
+    expect(stripped.priceMin).toBeUndefined()
+    expect(stripped.priceMax).toBeUndefined()
+    expect(stripped.areaMin).toBeUndefined()
+    expect(stripped.areaMax).toBeUndefined()
+  })
+
+  it('退路命中数与「真的把那个条件去掉后打开列表页」的总数一致', async () => {
+    const adapter = fullFixture()
+    const input = defaultInput({ district: ['jingan'], listingType: ['coworking'] })
+    const relaxed = await getSearchFacetsIgnoring(input, ctx, ['listingType'], adapter)
+    const actual = await searchListings(
+      omitListingSearchDimensions(input, ['listingType']),
+      ctx,
+      adapter,
+    )
+    expect(relaxed.totalDocs).toBe(actual.pagination.totalDocs)
   })
 })
 

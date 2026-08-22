@@ -6,7 +6,7 @@ const payloadState = vi.hoisted(() => ({
   query: vi.fn<(
     text: string,
     values: unknown[],
-  ) => Promise<{ rows: Array<{ id?: number; bid?: number; total?: number }> }>>(),
+  ) => Promise<{ rows: Array<{ id?: number; bid?: number; total?: number; cnt?: number }> }>>(),
 }))
 
 vi.mock('payload', () => ({
@@ -71,7 +71,7 @@ type CityScopedSupplyContract = readonly [
     ]
   >>,
   Assert<Equal<
-    Parameters<SupplyAdapter['sumEffectiveLeasableAreaByBuildings']>,
+    Parameters<SupplyAdapter['aggregateEffectiveSupplyByBuildings']>,
     [buildingIds: readonly (number | string)[], ctx: SearchContext]
   >>,
   Assert<Equal<
@@ -248,7 +248,7 @@ describe('required city in public catalog context', () => {
         const rows = listings.flatMap((candidate) => {
           const building = candidate.building as { id: number; city: { slug: string } }
           if (!requestedIds.includes(building.id) || building.city.slug !== requestedCity) return []
-          return [{ bid: building.id, total: Number(candidate.area) }]
+          return [{ bid: building.id, total: Number(candidate.area), cnt: 1 }]
         })
         return { rows }
       }
@@ -416,7 +416,7 @@ describe('required city in public catalog context', () => {
     )
     const buildingsInCity = await adapter.findEffectiveBuildings(context)
     const recommendations = await adapter.findEffectiveListingsByBuilding(1010, context)
-    const areaSums = await adapter.sumEffectiveLeasableAreaByBuildings([1010, 2020], context)
+    const aggregates = await adapter.aggregateEffectiveSupplyByBuildings([1010, 2020], context)
     await adapter.findFeaturedBuildings(context)
     await adapter.findEffectiveDistricts(context)
     await adapter.findEffectiveBusinessAreas(context)
@@ -424,7 +424,7 @@ describe('required city in public catalog context', () => {
     expect(crossCityBuilding).toBeNull()
     expect(buildingsInCity.map((building) => building.id)).toEqual([2020, 2030])
     expect(recommendations).toEqual([])
-    expect([...areaSums.entries()]).toEqual([['2020', 202]])
+    expect([...aggregates.entries()]).toEqual([['2020', { area: 202, count: 1 }]])
     expect(payloadState.query.mock.calls).toEqual(expect.arrayContaining([
       [expect.stringContaining('city.slug = $4'), expect.arrayContaining(['hangzhou'])],
       [expect.stringContaining('city.slug = $3'), expect.arrayContaining(['hangzhou'])],

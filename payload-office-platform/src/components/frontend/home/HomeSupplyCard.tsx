@@ -18,17 +18,17 @@ export default function HomeSupplyCard({ href, image, photoTags, title, whereLin
   price: Readonly<{ value: string; unit: string }> | null
 }>) {
   return (
-    <Link href={href} prefetch={false} className="hm-card hm-supply-card">
-      <span className="hm-supply-card__media">
+    <Link href={href} prefetch={false} className="sf-card hm-supply-card">
+      <span className="sf-media sf-media--4x3">
         {image ? (
           <img src={image.src} alt={image.alt ?? title} loading="lazy" decoding="async"
             width={image.width ?? 400} height={image.height ?? 300} />
         ) : null}
-        <span className="hm-scrim" aria-hidden="true" />
+        <span className="sf-scrim" aria-hidden="true" />
         {photoTags.length > 0 ? (
           <span className="hm-supply-card__tags">
             {photoTags.slice(0, 2).map((tag) => (
-              <span key={tag.text} className={tag.numeric ? 'hm-phototag hm-phototag--num' : 'hm-phototag'}>{tag.text}</span>
+              <span key={tag.text} className={tag.numeric ? 'sf-phototag sf-phototag--num' : 'sf-phototag'}>{tag.text}</span>
             ))}
           </span>
         ) : null}
@@ -36,10 +36,10 @@ export default function HomeSupplyCard({ href, image, photoTags, title, whereLin
       <span className="hm-supply-card__body">
         <span className="hm-supply-card__title">{title}</span>
         {whereLine ? <span className="hm-supply-card__where">{whereLine}</span> : null}
-        {metaLine ? <span className="hm-supply-card__meta hm-num">{metaLine}</span> : null}
+        {metaLine ? <span className="hm-supply-card__meta sf-num">{metaLine}</span> : null}
         {price ? (
           <span className="hm-supply-card__price">
-            <span className="hm-supply-card__price-value hm-num">{price.value}</span>
+            <span className="hm-supply-card__price-value sf-num">{price.value}</span>
             <span className="hm-supply-card__price-unit">{price.unit}</span>
           </span>
         ) : null}

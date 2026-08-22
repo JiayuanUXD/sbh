@@ -1,0 +1,763 @@
+/* ============================================================================
+ * OPT-036 列表页样式（密度优先）
+ * 设计依据：docs/SBH设计任务讨论/{房源列表,楼盘列表}.dc.html
+ * 卡片/渐变/标签/动效一律复用 surface.css 的 .sf-* 基元——列表页稿要求的
+ * 「零阴影 + hover 只变底色」按跨批次统一口径不采用（见 cross-batch-design-decisions.md）。
+ * 与首页仅存的差异：容器 1280（首页 1180）、section padding 32（首页 72）——皆为布局刚需。
+ * ========================================================================== */
+
+/* `.site-main` 自带 `padding: var(--sp-6) var(--container-pad-x)`（32 / 24）。
+ * 不抵消它会有两个后果：页头上方变成 32+32=64（comp 要求 section padding 32），
+ * 移动端 375 下 1280 容器被再内缩 24px、左右留白变成 40（comp 要求 16）。
+ * 用负外边距抵消，纵向节奏与左右留白完全由本页自己的 --ls-sec / .ls-container 控制。
+ * 首页对同一层用的是 100vw 满宽出血（见 home.css 顶部注释），列表页不需要出血，
+ * 只需要退回到 `.site-main` 的边界。 */
+.ls-page { --ls-w: 1280px; --ls-sec: 32px;
+  margin: calc(var(--sp-6) * -1) calc(var(--container-pad-x) * -1); }
+.ls-container { width: min(var(--ls-w), 100% - 32px); margin-inline: auto; }
+.ls-section { padding-block: var(--ls-sec); }
+
+/* ── 页面骨架（Task 11 接线）────────────────────────────────────────────────
+ * 纵向节奏照 comp specRows「页头 → 单位段 → 筛选条」：页头 padding-top var(--ls-sec)
+ * / bottom 20，单位段 padding-bottom 20，结果区 padding-top 24、bottom var(--ls-sec)。
+ * 与首页仅存的差异是容器 1280 与 section padding 32（见文件头注释）。 */
+.ls-head { padding-top: var(--ls-sec); padding-bottom: 20px;
+  display: flex; flex-direction: column; gap: 10px; }
+
+.ls-head__title { margin: 0; font-size: 40px; font-weight: 600; line-height: 1.1;
+  color: var(--ink); letter-spacing: normal; }
+
+.ls-head__sub { margin: 0; font-size: 15px; line-height: 1.47; color: var(--ink-2);
+  letter-spacing: normal; }
+
+.ls-head__sub-strong { color: var(--ink); font-weight: 500; }
+
+.ls-unitband { padding-bottom: 20px; }
+
+.ls-results { padding-top: 24px; padding-bottom: var(--ls-sec); }
+
+/* 结果网格：4 列 · gap 16 · 工具条下 20（comp「布局 A：卡片网格」margin-top:20）。
+ * minmax(0, 1fr) 而非裸 1fr——超长标题的 nowrap 会把 min-content 撑到未截断宽度，
+ * 1fr 轨道默认 min-width:auto 会跟着被撑大（Task 4 踩过，dev-story 里有同款注释）。 */
+.ls-grid { margin-top: 20px; display: grid; gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1199px) { .ls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 899px) { .ls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 599px) { .ls-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 横向列表行（comp 布局 B）──────────────────────────────────────────────
+ * specRows：整宽 · 高 182 · padding 16 · 行间 gap 12 · radius 18；图 240×150
+ * （16:10）· radius 14；价格列定宽 176 右对齐 · 左侧 1px 分隔线 · 价格 26/600。
+ * 比价优势与网格不同：价格全部落在最右同一列上，可纵向扫读。 */
+.ls-rowlist { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.ls-rowcard { display: flex; align-items: stretch; gap: 24px; padding: 16px;
+  color: inherit; text-decoration: none; }
+
+.ls-rowcard__media { flex: none; width: 240px; height: 150px; border-radius: 14px;
+  overflow: hidden; aspect-ratio: auto; }
+
+.ls-rowcard__type-tag { position: absolute; left: 10px; bottom: 9px; }
+
+.ls-rowcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column;
+  gap: 7px; padding: 6px 0; }
+
+.ls-rowcard__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-rowcard__location { font-size: 14px; line-height: 1.45; color: var(--ink-2);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-rowcard__area { margin-top: auto; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+
+.ls-rowcard__pricecol { flex: none; width: 176px; display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center; gap: 6px; padding-right: 8px;
+  border-left: 1px solid var(--line); }
+
+.ls-rowcard__price { display: flex; align-items: baseline; gap: 5px; }
+
+.ls-rowcard__price-value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--ink); letter-spacing: normal; }
+
+.ls-rowcard__price-unit { font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-rowcard__price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+
+@media (max-width: 767px) {
+  .ls-rowcard { flex-direction: column; gap: 12px; }
+  .ls-rowcard__media { width: 100%; height: auto; aspect-ratio: 16 / 10; }
+  .ls-rowcard__pricecol { width: auto; align-items: flex-start; padding-right: 0;
+    border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+}
+
+/* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
+.ls-price { display: flex; align-items: baseline; gap: 4px; }
+/* flex: none —— 定宽盒是 .ls-price 这个 flex 容器的子项，默认 flex-shrink:1 会在容器
+   变窄时把它压回 min-width，min-width 就重新变成硬上限、数字照样被裁。实测（375 及
+   窄卡场景）：把 width 换成 min-width 后「1,200,000」从 88 长到 98.1px，仍不够 108px；
+   加上不可收缩才真的完整显示。同一条也修掉了一个一直存在的裁切：「12.80」需要 61px，
+   在 58px 的 --day 盒里被压掉了 3px（OPT-036 终审 M5 实测发现）。 */
+.ls-price__value { flex: none; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 22px; font-weight: 600; line-height: 1.1; letter-spacing: normal; text-align: right; }
+/* 用 min-width 而非 width——与 .bd-card__stock（下方 60 行）同一条理由，本文件不该
+   两种写法并存：width 是硬上限，超出的数字会被 .sf-card 的 overflow:hidden 悄悄裁掉，
+   既看不见也不报错，而且恰好毁掉这一页存在的理由（跨卡小数点对齐）。min-width 只兜底
+   短数字的对齐留白，长数字自然撑开。
+   受影响的不止出售：priceBoxModifier 把 period='year' 也路由进 --month 这个盒，
+   一条元/年的租赁房源 1,200,000 在 22px/600 tabular 下约 104px，88px 装不下
+   （OPT-036 终审 M5；fixture 见 dev-story/opt036「元/年 · 七位数」）。 */
+.ls-price__value--day { min-width: 58px; }    /* 元/㎡/天，两位小数 */
+.ls-price__value--month { min-width: 88px; }  /* 元/月・元/工位/月，六位数 316,200 需更宽 */
+.ls-price__unit { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+/* 缺价格：整行省略定宽盒，纯文本代替，不渲染 0 或空盒（守护不变量见 ListingResultCard 文档注释） */
+.ls-price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+
+/* ── 房源结果卡（ListingResultCard）─────────────────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html specRows「卡片信息六项排布 /
+ * 卡片字号 / 卡片 padding·圆角」。卡面/图渐变/图上标签走 .sf-card / .sf-media /
+ * .sf-scrim / .sf-phototag，本节只补列表页专属的图上标签定位与卡体版式。 */
+.ls-card__type-tag { position: absolute; left: 12px; bottom: 10px; }
+
+.ls-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
+
+.ls-card__title { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ls-card__location { font-size: 13px; line-height: 1.4; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 价格与面积同一行（specRows「卡片信息六项排布」） */
+.ls-card__meta { margin-top: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+.ls-card__area { flex: none; font-size: 13px; color: var(--ink-2);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* ── 楼盘结果卡（BuildingResultCard）──────────────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/楼盘列表.dc.html specRows「楼盘卡图 16:10 /
+ * 卡片字号 / 卡底数据行」。定宽数字盒从设计稿的 26px（两位数套数）实测放宽到
+ * 36px：19px/600 tabular-nums 下"128"三位数的 scrollWidth 是 35px，26px 装不下，
+ * 数字会和"套在租"单位文字粘在一起（截图 artifacts/verification/OPT-036/
+ * card-building.png 实测过 26px 下的粘连）。36px 留 1px 余量，两位数（多数场景）
+ * 只是在盒内多一点右侧留白，不影响右对齐——同列纵向对齐机制不变。
+ * 用 min-width 而非 width（设计稿 .dc.html:249 本就是 min-width）：width 是硬
+ * 上限，四位数套数会重演"128"那次粘连；min-width 只兜底两位数场景的对齐留白，
+ * 万一出现四位数会自然撑开而不是重新收窄挤在一起。 */
+.bd-card__grade-tag { position: absolute; left: 12px; bottom: 10px; }
+
+.bd-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
+
+.bd-card__title { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-card__line { font-size: 13px; line-height: 1.4; color: var(--ink-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-card__stats { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line);
+  display: flex; align-items: baseline; gap: 10px; }
+
+.bd-card__stock-group { display: flex; align-items: baseline; gap: 5px; }
+
+.bd-card__stock { min-width: 36px; text-align: right; font-size: 19px; font-weight: 600; line-height: 1.1;
+  color: var(--ink); letter-spacing: normal; }
+
+.bd-card__stock-unit { font-size: 12px; color: var(--ink-2); }
+
+/* margin-inline-start:auto 而非父级 justify-content:space-between：套数缺失时
+   （防御性场景，正常产品流程不会发生）面积仍应靠右显示，不依赖有另一个 flex
+   子项才能撑开两端。 */
+.bd-card__area-total { margin-inline-start: auto; font-size: 13px; color: var(--ink-2);
+  letter-spacing: normal; white-space: nowrap; }
+
+/* ── 暂无在租紧凑行（BuildingCompactRow）───────────────────────────────────
+ * 不复用 .sf-card：这是密集清单行不是内容卡——64 高的行加阴影+抬升会和上方
+ * 182 高的在租卡打架，也会削弱「靠密度差降权」的效果（与 .hm-bento-card 的例外
+ * 同一类处置，见 cross-batch-design-decisions.md「补充裁定」）。 */
+.bd-row { display: flex; align-items: center; gap: 12px; background: var(--bg-subtle);
+  border-radius: 14px; padding: 12px 16px; min-height: 64px; color: inherit;
+  transition: background var(--duration-base) var(--ease-apple); }
+.bd-row:hover { background: #fbfbfd; }
+@media (prefers-reduced-motion: reduce) { .bd-row { transition: none; } }
+
+.bd-row__thumb { flex: none; display: block; width: 48px; height: 48px; border-radius: 10px;
+  background: #a1a1a6; overflow: hidden; }
+.bd-row__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.bd-row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+/* 楼名刻意不弱化：降权靠 182:64 的高度反差，不靠灰度——见组件文件顶部注释 */
+.bd-row__name { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-row__meta { font-size: 12px; line-height: 1.4; color: var(--ink-3); letter-spacing: normal;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-row__notify { flex: none; height: 32px; padding: 0 12px; border-radius: var(--r-pill);
+  background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink-2);
+  display: flex; align-items: center; }
+
+/* ── 分组标题与「暂无在租」分组（Task 12 接线）──────────────────────────────
+ * specRows「分组标题」：15/600 + 计数 13 ink-2 + 说明 13 ink-3 · 上方 1px 分隔线
+ * + 24 间距。分隔线与 48 的上外边距只属于「暂无在租」那一组（comp:266
+ * `margin-top:48;padding-top:24;border-top`）——「当前有在租」那个标题紧跟在
+ * 工具条下面（comp:197 `margin-top:20`），两者不是同一套间距。 */
+.bd-group { margin-top: 20px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+.bd-group__title { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
+
+.bd-group__count { font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.bd-group__desc { flex: 1; min-width: 0; font-size: 13px; line-height: 1.5; color: var(--ink-3);
+  letter-spacing: normal; text-wrap: pretty; }
+
+.bd-group--vacant { margin-top: 0; }
+
+.bd-vacant { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); }
+
+/* 两列 gap 12/16（specRows「紧凑行（方案 A）」）；窄屏落回单列——64 高的行再
+ * 挤成两列，楼名会被截到只剩两三个字，降权就变成了"看不清"。 */
+.bd-vacant__list { margin-top: 16px; display: grid; gap: 12px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 767px) { .bd-vacant__list { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 分行文本条件区（FilterFormC，筛选形态 C）─────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「筛选形态 C」+ specRows
+ * 「形态 C 条件行/度量/选项/底栏」；楼盘列表.dc.html 标注「与房源列表同一套」。
+ * 不吸顶——随页面滚走，不占结果区视口（与形态 A/B 的 sticky 刻意不同）。
+ *
+ * 标签列宽度用 CSS Grid 自动定宽（不写死 52/70）：容器两列 `auto` +
+ * `minmax(0, 1fr)`，每行外壳 `display:contents` 把 label / options 两个格子
+ * 摊平进同一网格——浏览器按当前渲染的所有行里最长的 label 自动收敛列宽，
+ * 房源版 2 字标签落在约 52px、楼盘版 4 字标签落在约 70px，两版复用同一份
+ * CSS，组件不需要 labelWidth 之类的额外 prop（见 FilterFormC.tsx 顶部注释）。
+ * options 列显式 `minmax(0, 1fr)`：本批次踩过的坑，裸 `1fr` 轨道默认
+ * `min-width:auto`，某行候选一多会把整列撑宽。 */
+.ls-filterc {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 28px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  padding: 10px 32px 0;
+}
+.ls-filterc__row { display: contents; }
+
+/* 顶部 15px 不是笔误：比 options 列（14px）多 1px 是刻意的光学微调——comp 原稿对
+   label span 本身另加了 padding-top:1px（房源列表.dc.html:218），让 14px/1.5 的
+   标签文字与 15px/1.5 的选项文字视觉基线对齐。整体行 padding 仍是 14 上下，只是
+   多出的 1px 记在 label 而非 options 头上。 */
+.ls-filterc__label { padding: 15px 0 14px; font-size: 14px; line-height: 1.5;
+  color: var(--ink-2); letter-spacing: normal; white-space: nowrap; }
+
+.ls-filterc__options { padding: 14px 0; display: flex; flex-wrap: wrap;
+  align-content: flex-start; gap: 12px 28px; min-width: 0; }
+
+/* 选中态用 --accent-link（非零色相）：与 FilterPill 的黑底白字是两套不同规则，
+   分别服务「行内单选文本」与「实体 pill 筛选入口」两种语境，见组件文档注释。 */
+.ls-filterc__opt { font-size: 15px; line-height: 1.5; white-space: nowrap;
+  color: var(--ink); font-weight: 400; letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-filterc__opt:hover { color: var(--accent-hover); }
+.ls-filterc__opt--active { color: var(--accent-link); font-weight: 500; }
+.ls-filterc__opt--active:hover { color: var(--accent-link); }
+
+.ls-filterc__opt-count { margin-left: 4px; font-size: 13px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+.ls-filterc__opt--active .ls-filterc__opt-count { color: var(--accent-link); }
+
+.ls-filterc__footer { grid-column: 1 / -1; margin-top: 6px; padding: 14px 0 16px;
+  border-top: 1px solid var(--line); display: flex; align-items: center;
+  gap: 12px; flex-wrap: wrap; }
+
+.ls-filterc__count { font-size: 13px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+.ls-filterc__divider { flex: none; width: 1px; height: 16px; background: var(--line); }
+
+.ls-filterc__chip { height: 28px; padding: 0 8px 0 12px; border-radius: var(--r-pill);
+  background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-filterc__chip:hover { background: #ececf0; }
+
+.ls-filterc__chip-x { flex: none; width: 16px; height: 16px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.06); color: var(--ink-3); font-size: 11px;
+  display: flex; align-items: center; justify-content: center; }
+
+.ls-filterc__clear-all { font-size: 13px; color: var(--ink-2); letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-filterc__clear-all:hover { color: var(--ink); }
+
+.ls-filterc__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+/* ── 开关型筛选项（FilterFormC.switchRow：楼盘页「仅看有在租」）──────────────
+ * 楼盘列表.dc.html specRows「开关 pill」：36 高 pill 内嵌 34×20 开关。
+ * **本批次唯一用 accent 底的筛选项**——它是「暂无在租降权分组」这条产品判断的
+ * 正面出口（comp 判断 F）。其余筛选激活态一律零色相或 accent-link 文本，别照抄
+ * 这一条给第二个筛选项上 accent 底。
+ * 36 高是 comp 字面值，与 .ls-pill / .ls-filterc chip 同一套 pill 度量。
+ * **已知触达缺口（继承自房源页，不是本开关独有）**：`.ls-filterc` 没有
+ * `<768px` 隐藏规则，整块筛选条在 375 下照常渲染，因此这个 36 高的 pill 与
+ * 同容器里 28 高的 chip、行内纯文本选项一样，在移动端都低于 44px 触达下限。
+ * 抽屉里的 `.ls-msheet__switch`（52 高整行可点）是这个维度在移动端的主路径，
+ * 但它不会让筛选条里这些控件变得可触达。要真正修掉，得决定筛选条在窄屏下的
+ * 归属（隐藏 or 加大整块的触达尺寸），那是横跨两个列表页的一次性处置，
+ * 不该由本开关单独承担。 */
+.ls-filterc__switch { height: 36px; padding: 0 14px 0 10px; border-radius: var(--r-pill);
+  background: var(--bg-subtle); font-size: 13px; font-weight: 500; color: var(--ink);
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-filterc__switch:hover { background: #ececf0; color: var(--ink); }
+
+.ls-filterc__switch-track { flex: none; width: 34px; height: 20px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; padding: 0 2px;
+  justify-content: flex-start; transition: background var(--duration-base) var(--ease-apple); }
+
+.ls-filterc__switch-knob { width: 16px; height: 16px; border-radius: var(--r-pill); background: #fff;
+  box-shadow: var(--shadow-sm); }
+
+.ls-filterc__switch--on { background: var(--bg-subtle); box-shadow: inset 0 0 0 1px var(--line); }
+.ls-filterc__switch--on .ls-filterc__switch-track { background: var(--accent); justify-content: flex-end; }
+
+.ls-filterc__switch-count { font-weight: 400; color: var(--ink-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-filterc__switch, .ls-filterc__switch-track { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-filterc__opt, .ls-filterc__chip, .ls-filterc__clear-all { transition: none; }
+}
+
+/* ── 租金单位分段（PriceUnitSegment）+ 被排除单位提示条（ExcludedUnitsBar）──
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「租金单位机制 · 方案 1：常驻
+ * 分段切换」+ specRows「单位分段 / 被排除的单位」。三种报价单位彼此不可换算
+ * （缺面积或工位数换不了），产品选择「先选单位、结果集只含该单位」——分段是
+ * 「现在看哪一类价格」的持续可见状态，提示条是「有多少被换掉的库存没显示」，
+ * 两者配合才不把「比价机制」做成「悄悄藏库存」，见两个组件文件顶部注释。 */
+.ls-unitrow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+/* ink-2 而非 comp 标注的 ink-3：这是识别控件用途的信息文本（与 FilterFormC 的
+   `.ls-filterc__label` 同一角色，那处已用 ink-2），不是占位符/禁用态——按
+   payload-office-platform/.agent/frontend.md「真实信息文本至少 ink-2，设计稿
+   标 ink-3 处对比度优先于照稿」改用 ink-2。下方 `.ls-unitrow__hint`（补充说明
+   句，非识别信息）与 `.ls-filterc__hint` 同角色，保持 ink-3。 */
+.ls-unitrow__label { font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: normal; }
+
+/* 外壳色 #e9e9ed 是 comp 稿字面值（房源列表.dc.html:112），与视图切换控件同一色，
+   项目 token 里没有对应命名，按既有惯例（bd-row 等处）直接写字面值。 */
+.ls-unitseg { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-pill); background: #e9e9ed; }
+
+.ls-unitseg__item { height: 32px; padding: 0 16px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500;
+  color: var(--ink-2); letter-spacing: normal;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-unitseg__item:hover { background: rgba(255, 255, 255, 0.6); }
+
+/* 选中态白底 600（specRows「单位分段」）；当前单位渲染为 <span> 非链接，
+   本规则同时覆盖 span/a 两种标签。 */
+.ls-unitseg__item--active { background: var(--bg-subtle); color: var(--ink); font-weight: 600; }
+.ls-unitseg__item--active:hover { background: var(--bg-subtle); }
+
+.ls-unitseg__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-weight: 400; color: var(--ink-3); }
+.ls-unitseg__item--active .ls-unitseg__count { color: var(--ink-2); }
+
+/* 「只剩一个可见单位」的退化态（PriceUnitSegment.tsx 顶部注释）：不再是一个
+   「多选一」的分段控件，胶囊底色/内边距会误暗示这里还能点别的选项——去掉
+   背景与内边距，退化成纯文本标签，只保留「现在看的是哪一类」这条信息。
+   规则须写在 `.ls-unitseg__item--active` 之后才能覆盖它的 background。 */
+.ls-unitseg__item--solo { height: auto; padding: 0; border-radius: 0; background: none; }
+.ls-unitseg__item--solo:hover { background: none; }
+
+.ls-unitrow__hint { max-width: 520px; font-size: 12px; line-height: 1.5; color: var(--ink-3);
+  letter-spacing: normal; text-wrap: pretty; }
+
+/* 结果区末尾白底条：radius 14 是 comp 字面值，比卡片 --r-card(18) 略收——与
+   FilterFormC 同容器不共用同一个圆角变量，属刻意的视觉层级区分。 */
+.ls-excludedbar { margin-top: 24px; padding: 16px 20px; background: var(--bg-subtle);
+  border-radius: 14px; display: flex; align-items: center; gap: 12px; }
+
+.ls-excludedbar__text { font-size: 13px; line-height: 1.5; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-excludedbar__link { color: var(--accent-link); font-weight: 500;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-excludedbar__link:hover { color: var(--accent-hover); }
+
+.ls-excludedbar__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-unitseg__item, .ls-excludedbar__link { transition: none; }
+}
+
+/* ── 筛选 pill（FilterPill）── 零色相原语，见 FilterPill.tsx 顶部注释 ──────── */
+.ls-pill { height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--ink-2); font-size: 13px; font-weight: 500;
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-pill--active { background: #1d1d1f; color: #fff; }
+.ls-pill__count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; opacity: 0.66; }
+
+@media (prefers-reduced-motion: reduce) { .ls-pill { transition: none; } }
+
+/* ── 结果工具条（ResultToolbar：计数 + 排序 + 视图切换）─────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「计数 + 排序」区块 + specRows
+ * 「排序控件 / 视图切换 / 排序·筛选权重比」。排序是文本级控件，权重刻意低于
+ * 筛选 36 高实体 pill——13px 纯文本、当前项 accent-link/500、无背景无边框、
+ * 不占一行高度，见 ResultToolbar.tsx 顶部注释。 */
+.ls-toolbar { position: relative; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 24px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--line); }
+
+/* 窄屏：计数与排序各占一行。两者挤在同一行时，计数被压成 47px 宽、断成四行
+ * （楼盘页量词更长，实测 101px 高的一坨）——排序本就轻于结果，不该把结果计数
+ * 挤成这样。断点与本文件其它移动规则一致（max-width:767）。 */
+@media (max-width: 767px) {
+  .ls-toolbar { flex-wrap: wrap; row-gap: 10px; }
+  .ls-toolbar__range { flex: 1 0 100%; }
+  .ls-toolbar__right { flex-wrap: wrap; }
+}
+
+.ls-toolbar__range { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-toolbar__right { flex: none; display: flex; align-items: baseline; gap: 16px; }
+
+.ls-toolbar__sortlabel { font-size: 13px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-toolbar__sort { font-size: 13px; font-weight: 400; color: var(--ink-2); letter-spacing: normal;
+  transition: color var(--duration-base) var(--ease-apple); }
+.ls-toolbar__sort:hover { color: var(--accent-hover); }
+.ls-toolbar__sort--active { color: var(--accent-link); font-weight: 500; }
+.ls-toolbar__sort--active:hover { color: var(--accent-link); }
+
+.ls-toolbar__divider { align-self: center; flex: none; width: 1px; height: 16px; background: var(--line); }
+
+/* 外壳色 #e9e9ed 是 comp 字面值，与 .ls-unitseg 同一色、同一惯例（项目 token
+   里没有对应命名，见该处同类注释）——两个控件视觉上都是"分段切换"，共享同一
+   套灰壳配色是刻意的，不是各自随手取的近似值。 */
+.ls-toolbar__viewseg { align-self: center; flex: none; display: flex; align-items: center;
+  gap: 2px; padding: 2px; border-radius: 9px; background: #e9e9ed; }
+
+.ls-toolbar__viewbtn { width: 28px; height: 24px; border-radius: 7px; color: var(--ink-3);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple),
+    color var(--duration-base) var(--ease-apple),
+    box-shadow var(--duration-base) var(--ease-apple); }
+.ls-toolbar__viewbtn:hover { color: var(--ink); }
+
+/* 选中白底 + 阴影（specRows「视图切换」写「1px 3 阴影」）：用 --shadow-sm
+   （0 1px 2px）而非字面写死 0 1px 3px——按「只用 token」的批次约束，取项目里
+   语义最接近的既有阴影 token，不新增一个只服务这一处的字面值。 */
+.ls-toolbar__viewbtn--active { background: var(--bg-subtle); color: var(--ink); box-shadow: var(--shadow-sm); }
+.ls-toolbar__viewbtn--active:hover { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-toolbar__sort, .ls-toolbar__viewbtn { transition: none; }
+}
+
+/* ── 分页（ListPager）────────────────────────────────────────────────────
+ * 设计依据：specRows「分页」：页码 36×36 · 当前项底 --ink 文字白 · 每页 24 ·
+ * 写入 ?page=。窗口策略（首尾常驻 + 当前页邻域 + 省略号）见 ListPager.tsx
+ * 顶部注释。 */
+.ls-pager { margin-top: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+.ls-pager__row { display: flex; align-items: center; gap: 6px; }
+
+.ls-pager__edge { height: 36px; padding: 0 14px; border-radius: var(--r-pill);
+  font-size: 13px; color: var(--ink-2); letter-spacing: normal;
+  display: flex; align-items: center; transition: background var(--duration-base) var(--ease-apple); }
+.ls-pager__edge:hover { background: var(--bg-subtle); }
+.ls-pager__edge--disabled { color: var(--ink-3); pointer-events: none; }
+
+.ls-pager__item { width: 36px; height: 36px; border-radius: var(--r-pill);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-size: 13px; color: var(--ink-2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-pager__item:hover { background: var(--bg-subtle); }
+.ls-pager__item--active { background: var(--ink); color: #fff; font-weight: 500; }
+.ls-pager__item--active:hover { background: var(--ink); }
+
+.ls-pager__ellipsis { width: 36px; height: 36px; font-size: 13px; color: var(--ink-3);
+  display: flex; align-items: center; justify-content: center; }
+
+.ls-pager__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-pager__edge, .ls-pager__item { transition: none; }
+}
+
+/* ── 三种空态（EmptyNoStock / EmptyFiltered / EmptyOutOfRange）──────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「三种空态」区块 + specRows
+ * 「空态 ①/②/③」。三者含义完全不同，**不共用一套外壳/文案样式**——只共用
+ * 白底卡片这一层最基础的容器语言（与 `.ls-filterc` 同色 `--bg-subtle` /
+ * 同圆角 `--r-card`），布局与语气各自独立，见三个组件文件顶部注释。
+ *
+ * `.ls-empty__btn` 是①③共用的按钮原语（brief 落地数值对两者的按钮规格描述
+ * 完全相同：40 高、主 accent、次 `#f5f5f7`），②的操作是逐条退路行，不是
+ * 独立按钮，因此不复用这两个类。 */
+.ls-empty__btn { height: 40px; padding: 0 20px; border-radius: var(--r-pill);
+  font-size: 14px; font-weight: 500; letter-spacing: normal;
+  display: inline-flex; align-items: center;
+  transition: background var(--duration-base) var(--ease-apple), color var(--duration-base) var(--ease-apple); }
+.ls-empty__btn--primary { padding: 0 22px; background: var(--accent); color: #fff; }
+.ls-empty__btn--primary:hover { background: var(--accent-hover); }
+/* comp 字面值 #f5f5f7：此处刻意不用 --bg-subtle（白），因为空态卡片自身
+   已经是 --bg-subtle 白底——次按钮要在白底卡片内部再分一层，需要比卡片更
+   深一级的灰，唯一匹配的项目 token 是 --bg（页面级底色 #f5f5f7），语义与
+   comp 标注的字面值一致（见 ls-page 顶部 --bg 定义）。 */
+.ls-empty__btn--secondary { background: var(--bg); color: var(--ink); }
+.ls-empty__btn--secondary:hover { background: #ececf0; }
+
+@media (prefers-reduced-motion: reduce) { .ls-empty__btn { transition: none; } }
+
+/* 主按钮里的数字（comp 稿「看上海全部 1,893 套在租」）：批次统一的数字规则，
+   即使嵌在按钮文案中间也要 tabular-nums（见 EmptyNoStock.tsx `unfilteredTotalCount`）。 */
+.ls-empty__btn-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* 次要出口插槽（EmptyNoStock 的 `secondaryAction`）：调用方可能传入
+   `InquiryModal` 默认渲染的旧配色体系触发器（`.btn.btn--primary`，见
+   styles.css：44 高、8px 圆角、`--color-copper` 底色的别名 `--accent`），
+   与本页新体系的 40 高胶囊形状不同。这里用「包裹 + 高特异度重置」而非
+   「要求调用方自己传对 triggerVariant/triggerClassName」——插槽只负责给
+   "点了之后发生什么"，视觉规格仍然由本组件掌握，见 EmptyNoStock.tsx 顶部
+   「secondaryAction」注释。选择器特意用两层类名（`.ls-empty .ls-empty__btn-slot`）
+   把特异度顶到 (0,2,0)，可靠盖过 `.btn`/`.btn--primary` 各自的 (0,1,0)，
+   不依赖 styles.css 与 list.css 的加载顺序这种脆弱前提。 */
+.ls-empty .ls-empty__btn-slot { display: inline-flex; }
+.ls-empty .ls-empty__btn-slot > * {
+  height: 40px; min-height: 0; padding: 0 20px; border: none; border-radius: var(--r-pill);
+  background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; line-height: normal;
+  letter-spacing: normal; transition: background var(--duration-base) var(--ease-apple); }
+.ls-empty .ls-empty__btn-slot > *:hover { background: #ececf0; }
+
+@media (prefers-reduced-motion: reduce) { .ls-empty .ls-empty__btn-slot > * { transition: none; } }
+
+/* ── 空态① 该条件本身无货（EmptyNoStock）──────────────────────────────────
+ * specRows「空态 ①」：标题 22/600 · 主按钮 40 高 accent · 次按钮 40 高 #f5f5f7。 */
+.ls-empty--nostock { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 48px 40px; display: flex; flex-direction: column; align-items: center;
+  gap: 14px; text-align: center; }
+
+.ls-empty__title { font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-empty__body { max-width: 520px; font-size: 14px; line-height: 1.6; color: var(--ink-2);
+  letter-spacing: normal; text-wrap: pretty; }
+
+.ls-empty__actions { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
+
+/* ── 空态② 筛选后无结果（EmptyFiltered）──────────────────────────────────
+ * specRows「空态 ②（筛选后）」：逐条退路行 56 高 · 命中数 15/600 tabular ·
+ * 点击只改一个参数。三态里最重要的一个——没有可放宽条件时页头「清除全部」
+ * 仍必须可点，见组件文件顶部「relaxations 为空仍必须可用」的注释。 */
+.ls-emptyfiltered { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 36px 40px 28px; }
+
+.ls-emptyfiltered__head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+
+.ls-emptyfiltered__intro { display: flex; flex-direction: column; gap: 8px; }
+
+.ls-emptyfiltered__title { font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-emptyfiltered__desc { font-size: 14px; line-height: 1.55; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-emptyfiltered__clear-all { flex: none; height: 40px; padding: 0 20px; border-radius: var(--r-pill);
+  background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; letter-spacing: normal;
+  display: inline-flex; align-items: center;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-emptyfiltered__clear-all:hover { background: #ececf0; }
+
+/* 按钮里的数字（comp 稿「清除全部条件 · 1,893 套」）：与 .ls-empty__btn-count
+   同一规则，见 EmptyFiltered.tsx `clearAllCount` 注释。 */
+.ls-emptyfiltered__clear-all-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+.ls-emptyfiltered__rows { margin-top: 24px; display: flex; flex-direction: column; }
+
+.ls-emptyfiltered__row { display: flex; align-items: center; gap: 20px; min-height: 56px;
+  padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); }
+.ls-emptyfiltered__row:hover .ls-emptyfiltered__row-hit { color: var(--accent-link); }
+
+.ls-emptyfiltered__row-label { flex: 1; min-width: 0; font-size: 15px; font-weight: 500;
+  letter-spacing: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ls-emptyfiltered__row-hit { flex: none; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 15px; font-weight: 600; color: var(--ink);
+  transition: color var(--duration-base) var(--ease-apple); }
+
+.ls-emptyfiltered__row-chevron { flex: none; color: var(--accent-link); }
+
+.ls-emptyfiltered__hint { margin-top: 16px; display: block; font-size: 12px; color: var(--ink-3);
+  letter-spacing: normal; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-emptyfiltered__clear-all, .ls-emptyfiltered__row-hit { transition: none; }
+}
+
+/* ── 空态③ 页码越界（EmptyOutOfRange）────────────────────────────────────
+ * specRows「空态 ③（越界）」：不显示「没有结果」· 直接给最后一页与第 1 页
+ * 两个出口——它其实有结果，只是页码错了，通篇不出现「没有结果」类措辞，见
+ * 组件文件顶部注释。标题 19/600 是 comp 稿字面值（比①②的 22px 更轻——这一态
+ * 不需要"空态"级别的视觉重量，问题很小，一行说明 + 两个按钮就能解决）。 */
+.ls-emptyrange { background: var(--bg-subtle); border-radius: var(--r-card);
+  padding: 32px 40px; display: flex; align-items: center; gap: 32px; }
+
+.ls-emptyrange__intro { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.ls-emptyrange__title { font-size: 19px; font-weight: 600; line-height: 1.35; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-emptyrange__desc { font-size: 14px; line-height: 1.55; color: var(--ink-2); letter-spacing: normal; }
+
+.ls-emptyrange__badge { margin-top: 6px; align-self: flex-start; height: 26px; padding: 0 10px;
+  border-radius: 8px; background: var(--bg); font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; font-size: 12px; color: var(--ink-3); letter-spacing: normal;
+  display: flex; align-items: center; }
+
+.ls-emptyrange__actions { flex: none; display: flex; align-items: center; gap: 12px; }
+
+@media (max-width: 767px) {
+  .ls-emptyrange { flex-direction: column; align-items: stretch; gap: 20px; }
+  .ls-emptyrange__actions { justify-content: flex-start; }
+}
+
+@media (max-width: 767px) { .ls-section { padding-block: 20px; } }
+
+/* 移动筛选容器：组件本身不写断点门槛（理由见 MobileFilterTrigger.tsx 顶部注释），
+ * 由接线层在这里决定「哪个视口下存在」。display:contents 让悬浮 dock 的
+ * position:fixed 相对视口而不是相对这一层。 */
+.ls-mobilefilter { display: contents; }
+@media (min-width: 768px) { .ls-mobilefilter { display: none; } }
+/* 给底部悬浮 pill 让出位置，否则最后一行卡片/分页被压在它下面 */
+@media (max-width: 767px) { .ls-page { padding-bottom: 84px; } }
+
+/* ── 移动筛选悬浮入口（MobileFilterTrigger）──────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「移动 375 · 列表态」区块
+ * （房源列表.dc.html:604-610）+ specRows「移动筛选入口」：底部悬浮 pill 44
+ * 高，带条件数与实时结果数。渐变遮罩条 `--z-floating`（「固定浮动元素：回到
+ * 顶部等」）——与抽屉遮罩的 `--z-modal` 分属两层，抽屉打开时理应盖过它。
+ * 组件本身不写 @media 断点门槛，理由见 MobileFilterTrigger.tsx 顶部注释。 */
+.ls-mtrigger__dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-floating);
+  padding: 12px 16px 28px; display: flex; justify-content: center; pointer-events: none;
+  background: linear-gradient(to top, var(--bg) 40%, rgba(245, 245, 247, 0)); }
+
+.ls-mtrigger { pointer-events: auto; height: 44px; padding: 0 22px; border: none; cursor: pointer;
+  border-radius: var(--r-pill); background: var(--ink); color: #fff; font-size: 14px; font-weight: 500;
+  letter-spacing: normal; display: inline-flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); }
+
+.ls-mtrigger__badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.22); font-size: 11px; font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1; display: flex; align-items: center; justify-content: center; }
+
+.ls-mtrigger__divider { flex: none; width: 1px; height: 16px; background: rgba(255, 255, 255, 0.28); }
+
+.ls-mtrigger__total { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  font-weight: 400; color: rgba(255, 255, 255, 0.8); }
+
+/* ── 移动筛选抽屉（MobileFilterSheet）─────────────────────────────────────
+ * 设计依据：docs/SBH设计任务讨论/房源列表.dc.html「移动 375 · 筛选抽屉」区块
+ * （房源列表.dc.html:615-694）+ specRows「移动抽屉」：高 88% · 顶部圆角 24 ·
+ * 底栏 48 高按钮 · 分组间距 24 + 1px 分隔线。焦点/滚动锁定见组件文件顶部注释
+ * （照抄 Modal.tsx，唯一差异是焦点归还的来源）。
+ *
+ * 遮罩色 rgba(0,0,0,.28) 是 comp 字面值（房源列表.dc.html:624），与
+ * `.modal__overlay` 的 rgba(23,26,29,.55) 不同——两者分属不同批次的设计规格，
+ * 本组件按当前批次 comp 的字面值来，不借用旧 Modal 的遮罩深浅。 */
+.ls-msheet__overlay { position: fixed; inset: 0; z-index: var(--z-modal); background: rgba(0, 0, 0, 0.28);
+  display: flex; align-items: flex-end; justify-content: center; overscroll-behavior: contain; }
+
+.ls-msheet { width: 100%; max-width: 480px; height: 88%; background: var(--bg);
+  border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden;
+  animation: ls-msheet-slide-up var(--duration-base) var(--ease-apple); }
+
+@keyframes ls-msheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) { .ls-msheet { animation: none; } }
+
+.ls-msheet__head { flex: none; padding: 10px 16px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.ls-msheet__grabber { align-self: center; width: 36px; height: 4px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); }
+
+.ls-msheet__head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.ls-msheet__picked { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-msheet__title { flex: none; margin: 0; font-size: 17px; font-weight: 600; color: var(--ink);
+  letter-spacing: normal; }
+
+.ls-msheet__reset { flex: 1; min-width: 0; text-align: right; font-size: 13px; color: var(--accent-link);
+  letter-spacing: normal; transition: color var(--duration-base) var(--ease-apple); }
+.ls-msheet__reset:hover { color: var(--accent-hover); }
+
+/* min-height:0 是 flex 子项内部出现 overflow:auto 的必需项——没有它子项会按内容撑高，
+   overflow:auto 形同虚设，抽屉高度会被内容撑破 88% 而不是在内部滚动。 */
+.ls-msheet__body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 24px; }
+
+.ls-msheet__group { display: flex; flex-direction: column; gap: 10px; }
+
+/* 分组间距 24（来自父级 .ls-msheet__body 的 flex gap）+ 1px 分隔线：分隔线只加在
+   第二个及以后的分组上，第一个分组顶部不需要线（comp 房源列表.dc.html:635 vs 644）。 */
+.ls-msheet__group:not(:first-child) { padding-top: 20px; border-top: 1px solid var(--line); }
+
+.ls-msheet__group-label { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: normal; }
+
+/* 抽屉里的开关行（楼盘页「仅看有在租」）：comp 楼盘列表.dc.html:485-491——
+ * 52 高白底行 · 14/600 标题 + 12 ink-3 副行 · 44×26 开关。整行可点（52 ≥ 44
+ * 触达下限），开关本身只是状态指示。 */
+.ls-msheet__switch { min-height: 52px; padding: 8px 14px; border-radius: 12px;
+  background: var(--bg-subtle); color: var(--ink); display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; }
+
+.ls-msheet__switch-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.ls-msheet__switch-label { font-size: 14px; font-weight: 600; letter-spacing: normal; }
+
+.ls-msheet__switch-sub { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
+
+.ls-msheet__switch-track { flex: none; width: 44px; height: 26px; border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; padding: 0 3px;
+  justify-content: flex-start; transition: background var(--duration-base) var(--ease-apple); }
+
+.ls-msheet__switch-knob { width: 20px; height: 20px; border-radius: var(--r-pill); background: #fff;
+  box-shadow: var(--shadow-sm); }
+
+.ls-msheet__switch--on .ls-msheet__switch-track { background: var(--accent); justify-content: flex-end; }
+
+@media (prefers-reduced-motion: reduce) { .ls-msheet__switch-track { transition: none; } }
+
+.ls-msheet__group-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* rgba(245,245,247,.94) 是 --bg(#f5f5f7) 的半透明版——需要配合 backdrop-filter
+   透出抽屉滚动内容，--bg 本身是不透明实色 token，没有对应的半透明变体，按既有
+   惯例（.ls-unitseg 等处）直接写字面值。 */
+.ls-msheet__footer { flex: none; padding: 12px 16px 28px; background: rgba(245, 245, 247, 0.94);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line); display: flex; gap: 10px; }
+
+.ls-msheet__footer-reset { flex: none; width: 96px; height: 48px; border: none; border-radius: var(--r-pill);
+  background: var(--bg-subtle); color: var(--ink-2); font-size: 15px; font-weight: 500; letter-spacing: normal;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-msheet__footer-reset:hover { background: #ececf0; }
+
+.ls-msheet__footer-apply { flex: 1; height: 48px; padding: 0; border: none; border-radius: var(--r-pill);
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 500; letter-spacing: normal;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background var(--duration-base) var(--ease-apple); }
+.ls-msheet__footer-apply:hover { background: var(--accent-hover); }
+
+.ls-msheet__footer-count { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-msheet__reset, .ls-msheet__footer-reset, .ls-msheet__footer-apply { transition: none; }
+}

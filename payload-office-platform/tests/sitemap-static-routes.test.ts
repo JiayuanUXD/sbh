@@ -4,7 +4,6 @@ const sitemapState = vi.hoisted(() => ({
   getCachedPublishedArticles: vi.fn(),
   getCachedPublishedPages: vi.fn(),
   getCachedSitemapBuildingsPage: vi.fn(),
-  getCachedSearchBuildings: vi.fn(),
   getCachedSearchListings: vi.fn(),
   getCachedSitemapListingsPage: vi.fn(),
   listPublicCityProfiles: vi.fn(),
@@ -30,7 +29,6 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedPublishedArticles: sitemapState.getCachedPublishedArticles,
   getCachedPublishedPages: sitemapState.getCachedPublishedPages,
   getCachedSitemapBuildingsPage: sitemapState.getCachedSitemapBuildingsPage,
-  getCachedSearchBuildings: sitemapState.getCachedSearchBuildings,
   getCachedSearchListings: sitemapState.getCachedSearchListings,
   getCachedSitemapListingsPage: sitemapState.getCachedSitemapListingsPage,
 }))
@@ -70,13 +68,6 @@ describe('city-aware public sitemap', () => {
       page: 1,
       hasNextPage: false,
       nextPage: null,
-    }))
-    sitemapState.getCachedSearchBuildings.mockImplementation(async (city: string) => ({
-      docs: [{
-        id: city === 'shanghai' ? 301 : 401,
-        slug: `${city}-building`,
-        updatedAt: '2026-08-12T00:00:00.000Z',
-      }],
     }))
     sitemapState.getCachedSitemapBuildingsPage.mockImplementation(async (city: string) => ({
       docs: [{ id: city === 'shanghai' ? 301 : 401, slug: `${city}-building` }],

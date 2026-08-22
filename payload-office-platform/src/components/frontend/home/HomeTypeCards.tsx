@@ -34,17 +34,17 @@ export default function HomeTypeCards({ typeSummaries, citySlug }: Readonly<{
             const summary = t.type ? typeSummaries[t.type] : undefined
             return (
               <li key={t.no}>
-                <Link href={`${prefix}${t.href}`} prefetch={false} className="hm-card hm-type-card" data-event-name={t.event}>
-                  <span className="hm-type-card__media">
+                <Link href={`${prefix}${t.href}`} prefetch={false} className="sf-card hm-type-card" data-event-name={t.event}>
+                  <span className="sf-media hm-type-card__media">
                     {summary?.cover ? <img src={summary.cover.src} alt="" loading="lazy" decoding="async" /> : null}
-                    <span className="hm-scrim" aria-hidden="true" />
-                    <span className="hm-type-card__no hm-num">{t.no}</span>
+                    <span className="sf-scrim" aria-hidden="true" />
+                    <span className="hm-type-card__no sf-num">{t.no}</span>
                   </span>
                   <span className="hm-type-card__body">
                     <span className="hm-type-card__name">{t.label}</span>
                     <span className="hm-type-card__sub">{t.sublabel}</span>
                     {summary && summary.count > 0
-                      ? <span className="hm-type-card__count hm-num">{summary.count.toLocaleString('en-US')} 套在租</span>
+                      ? <span className="hm-type-card__count sf-num">{summary.count.toLocaleString('en-US')} 套在租</span>
                       : null}
                   </span>
                 </Link>

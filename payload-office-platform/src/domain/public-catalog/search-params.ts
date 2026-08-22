@@ -62,6 +62,16 @@ const SORT_WHITELIST = new Set<string>([
   'newest',
 ])
 
+/**
+ * 房源列表的默认排序：解析层缺省值，也是 canonical **不写入 URL** 的那一个值。
+ *
+ * 导出而不是写成字面量，是给视图层用的：`ResultToolbar` 构造排序 href 时必须
+ * 知道「哪个值是默认」才能与 canonical 同口径地把它从 URL 里删掉。之前那里硬编码
+ * `recommended`，楼盘页默认是 `stock-desc`，于是点已经选中的「在租最多」会得到
+ * 一个非 canonical 的 `?sort=stock-desc`（OPT-036 终审 M3）。
+ */
+export const LISTING_DEFAULT_SORT: ListingSort = 'recommended'
+
 /** 旧排序值 → 新排序值。解析层归一，让下游只认一套。 */
 const LEGACY_SORT_ALIASES: Readonly<Record<string, ListingSort>> = {
   'rent-asc': 'price-asc',
@@ -252,9 +262,9 @@ function normalizeSort(
   priceUnit: PriceDisplayUnit | undefined,
 ): ListingSort {
   if (sort === 'price-asc' || sort === 'price-desc') {
-    if (!priceUnit) return 'recommended'
+    if (!priceUnit) return LISTING_DEFAULT_SORT
   }
-  return sort ?? 'recommended'
+  return sort ?? LISTING_DEFAULT_SORT
 }
 
 type SearchParamsRecord = Readonly<Record<string, string | readonly string[] | undefined>>
@@ -425,7 +435,7 @@ export function buildCanonicalSearchParams(input: ListingSearchInput): URLSearch
   if (input.priceUnit) sp.set('priceUnit', input.priceUnit)
   if (input.availableBefore) sp.set('availableBefore', input.availableBefore)
   if (input.q) sp.set('q', input.q)
-  if (input.sort && input.sort !== 'recommended') sp.set('sort', input.sort)
+  if (input.sort && input.sort !== LISTING_DEFAULT_SORT) sp.set('sort', input.sort)
   if (input.page > 1) sp.set('page', String(input.page))
   return sp
 }

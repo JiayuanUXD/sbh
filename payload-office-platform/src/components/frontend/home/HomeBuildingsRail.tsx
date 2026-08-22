@@ -22,7 +22,7 @@ export default function HomeBuildingsRail({ buildings, citySlug, totalCount }: R
       <div className="hm-container hm-section-head">
         <h2 className="hm-h2" id="hm-buildings-title">热门楼盘</h2>
         <a className="hm-section-link" href={`${prefix}/buildings`} data-event-name="home_browse_all_buildings">
-          全部 <span className="hm-num">{totalCount.toLocaleString('en-US')}</span> 个楼盘
+          全部 <span className="sf-num">{totalCount.toLocaleString('en-US')}</span> 个楼盘
         </a>
       </div>
       <HorizontalRail ariaLabel="热门楼盘">

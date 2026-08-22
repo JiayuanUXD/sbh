@@ -43,6 +43,14 @@ import type {
 import { haversineKm } from './geo'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
+import type { BuildingSearchDimension, BuildingSearchInput } from './building-search'
+import {
+  BUILDING_CLEARABLE_DIMENSIONS,
+  applyBuildingFilters,
+  omitBuildingSearchDimensions,
+  partitionByStock,
+  sortBuildings,
+} from './building-search'
 import {
   mapBuildingDetail,
   mapBuildingSummary,
@@ -139,6 +147,44 @@ export type BuildingDetailResult = Readonly<{
 export type BuildingSearchResult = Readonly<{
   docs: readonly BuildingSummaryViewModel[]
   totalDocs: number
+}>
+
+/** 楼盘列表页筛选/排序/分页结果（OPT-036 Task 2，Task 12 补分组与计数）。 */
+export type BuildingFilteredResult = Readonly<{
+  /**
+   * 当前页文档，顺序即**合并后的序列**：有在租的排完才排暂无在租
+   * （comp「分组不跨页拆分」）。视图层直接按顺序渲染，不再自己重排。
+   */
+  docs: readonly BuildingSummaryViewModel[]
+  /**
+   * 当前页的两个分组。分组发生在域层而不是视图层——视图若拿 `docs` 自己
+   * `partitionByStock`，恰好也能得到同样的结果，但那等于把「先分组再分页」这条
+   * 规则复制成两份实现，其中一份（视图）随时可能被改成「每组各自分页」而不报错。
+   */
+  groups: Readonly<{
+    withStock: readonly BuildingSummaryViewModel[]
+    withoutStock: readonly BuildingSummaryViewModel[]
+  }>
+  totalDocs: number
+  /** 筛选后**全部页**里有在租的楼盘数（分组标题计数 / 「仅看有在租」开关计数）。 */
+  withStockTotal: number
+  /** 筛选后**全部页**里暂无在租的楼盘数。 */
+  withoutStockTotal: number
+  /** 不叠加任何筛选时的楼盘总数（空态主按钮「查看全部 N 个楼盘」/「清除全部条件 · N」）。 */
+  unfilteredTotalDocs: number
+  page: number
+  totalPages: number
+  /** 各筛选维度的候选值与命中数，供筛选条渲染与空态退路使用 */
+  facets: Readonly<{
+    districts: ReadonlyArray<{ slug: string; name: string; count: number }>
+    grades: ReadonlyArray<{ value: string; count: number }>
+    metros: ReadonlyArray<{ slug: string; name: string; count: number }>
+  }>
+  /**
+   * 单独放宽某一个维度后的命中数（空态②逐条退路：「取消『位置：静安』这一个条件 → 12」）。
+   * 六个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
+   */
+  dimensionHits: Readonly<Record<BuildingSearchDimension, number>>
 }>
 
 /** One public building page for bounded catalog enumeration. */
@@ -242,28 +288,38 @@ function prepareCardsForPriceSort(
 }
 
 /**
- * 给楼盘 VM 批量补上在租面积（一次 SQL 聚合覆盖全部楼盘）。
+ * 给楼盘 VM 批量补上在租面积与在租套数（一次 SQL 聚合覆盖全部楼盘）。
  *
- * 缺这个字段的后果不只是少显示一个数字：BuildingListCard 会据此判定
- * 「暂无在租」并给封面加 grayscale 降饱和，整片卡片发灰。首页与楼盘列表页
- * 必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
+ * 曾用名 attachLeasableArea——只补面积时这个名字是准的，加了套数以后继续叫它
+ * 就是误导，改名同时改了行为（两个字段一起补，不是分两次查）。
+ *
+ * 缺这两个字段的后果不只是少显示数字：楼盘列表页的 BuildingCompactRow
+ * 会据此判定「暂无在租」并把该楼盘降权到紧凑行分组（OPT-036 Task 5/13；
+ * 曾用 BuildingListCard 的 grayscale 封面方案，随该文件在 Task 13 一并删除）。
+ * 首页与楼盘列表页必须走同一条聚合，否则同一楼盘在两个页面上结论相反。
  */
-async function attachLeasableArea(
+async function attachSupplyAggregates(
   summaries: readonly BuildingSummaryViewModel[],
   ctx: SearchContext,
   adapter: SupplyAdapter,
 ): Promise<BuildingSummaryViewModel[]> {
   if (summaries.length === 0) return []
-  // 强制 lease 而非跟随 ctx：这个字段叫「在租面积」，语义上只算租赁供给，与调用方
-  // 当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁的在租面积，一套
-  // 3800 万的待售整层不能被算进去。
-  const areaByBuilding = await adapter.sumEffectiveLeasableAreaByBuildings(
+  // 强制 lease 而非跟随 ctx：这两个字段叫「在租面积」「在租套数」，语义上只算租赁
+  // 供给，与调用方当前在哪个频道无关。出售频道页上的楼盘卡片同样应该显示租赁口径
+  // 的在租数据，一套 3800 万的待售整层不能被算进去。
+  const aggregateByBuilding = await adapter.aggregateEffectiveSupplyByBuildings(
     summaries.map((s) => s.id),
     { ...ctx, businessType: 'lease' },
   )
   return summaries.map((s) => {
-    const leasableArea = areaByBuilding.get(String(s.id))
-    return leasableArea != null && leasableArea > 0 ? { ...s, leasableArea } : s
+    const agg = aggregateByBuilding.get(String(s.id))
+    if (!agg) return s
+    const next = { ...s }
+    // area / count 各自独立判空：SQL 层已把非正面积归零，但套数来自同一批真实
+    // 存在的有效房源行，不因面积数据质量问题被连累——面积缺失不该让套数也消失。
+    if (agg.area > 0) next.leasableArea = agg.area
+    if (agg.count > 0) next.listingCount = agg.count
+    return next
   })
 }
 
@@ -383,7 +439,7 @@ export function paginateListingSearchSource(
  * 步骤：
  *   1. adapter.findEffectiveBuildings → 原始 Building[]
  *   2. mapBuildingSummary → BuildingSummaryViewModel[]
- *   3. attachLeasableArea 一次 SQL 聚合补齐在租面积（不再逐楼盘查房源）
+ *   3. attachSupplyAggregates 一次 SQL 聚合补齐在租面积与在租套数（不再逐楼盘查房源）
  */
 export async function searchBuildings(
   ctx: SearchContext,
@@ -395,8 +451,127 @@ export async function searchBuildings(
     const summary = mapBuildingSummary(raw)
     if (summary) summaries.push(summary)
   }
-  const docs = await attachLeasableArea(summaries, ctx, adapter)
+  const docs = await attachSupplyAggregates(summaries, ctx, adapter)
   return { docs, totalDocs: docs.length }
+}
+
+/**
+ * 计算各筛选维度的候选值与命中数。
+ *
+ * 调用方必须传入**剥掉本维度之后**的集合（见 searchBuildingsFiltered）：如果在
+ * 完整 applyBuildingFilters 之后算 facets，选中一个区域后其它区域会因为已被过滤掉
+ * 而从筛选条里消失（自我擦除 bug）。
+ */
+function buildBuildingFacets(
+  docs: readonly BuildingSummaryViewModel[],
+): BuildingFilteredResult['facets'] {
+  const districts = new Map<string, { name: string; count: number }>()
+  const grades = new Map<string, number>()
+  const metros = new Map<string, { name: string; count: number }>()
+
+  for (const doc of docs) {
+    if (doc.district) {
+      const entry = districts.get(doc.district.slug)
+      districts.set(doc.district.slug, { name: doc.district.name, count: (entry?.count ?? 0) + 1 })
+    }
+    if (doc.grade) {
+      grades.set(doc.grade, (grades.get(doc.grade) ?? 0) + 1)
+    }
+    if (doc.nearestMetro) {
+      const entry = metros.get(doc.nearestMetro.slug)
+      metros.set(doc.nearestMetro.slug, { name: doc.nearestMetro.name, count: (entry?.count ?? 0) + 1 })
+    }
+  }
+
+  return {
+    districts: Array.from(districts.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+    grades: Array.from(grades.entries()).map(([value, count]) => ({ value, count })),
+    metros: Array.from(metros.entries()).map(([slug, { name, count }]) => ({ slug, name, count })),
+  }
+}
+
+/**
+ * 楼盘列表筛选/排序/分页/分组（OPT-036 Task 2 + Task 12）。
+ *
+ * 步骤：searchBuildings 取全集 → 逐维度剥离后算 facets 与退路命中数 →
+ * applyBuildingFilters → sortBuildings → partitionByStock → **合并成一条序列
+ * （有在租在前）后再分页** → 当前页再分一次组交给视图。
+ *
+ * 分页作用于合并后的序列，不是每组各自分页（comp「分组不跨页拆分：有在租的排完
+ * 才排暂无在租」）。两组各自分页会让第 2 页同时出现「有在租第 25–48 个」和
+ * 「暂无在租第 25–48 个」，翻页语义变成两条互不相干的游标。
+ *
+ * **200 条上限**：底层 `adapter.findEffectiveBuildings(ctx)` 默认 `limit = 200`
+ * （见 supply-adapter.ts），本函数继承这个上限、不在此处放宽。当一个城市的有效
+ * 公开楼盘超过 200 个时，筛选/排序/分页都只作用于前 200 条，结果会静默截断——
+ * 放宽上限需要先评估查询成本，届时应改走分页适配器（类似 findEffectiveBuildingsPage），
+ * 而不是简单调大这个数字。
+ */
+export async function searchBuildingsFiltered(
+  input: BuildingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<BuildingFilteredResult> {
+  const { docs: allDocs } = await searchBuildings(ctx, adapter)
+
+  // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
+  // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
+  // 因此只做一趟，不是六次筛选 + 三次 facet。全部在内存里对 ≤200 条做过滤，
+  // 与「多发几次查询」不是一个量级的代价，所以无条件计算，不按空态与否分支。
+  const omitted = new Map<BuildingSearchDimension, readonly BuildingSummaryViewModel[]>()
+  for (const dimension of BUILDING_CLEARABLE_DIMENSIONS) {
+    omitted.set(dimension, applyBuildingFilters(allDocs, omitBuildingSearchDimensions(input, [dimension])))
+  }
+  const hitsOf = (dimension: BuildingSearchDimension) => omitted.get(dimension)?.length ?? 0
+
+  // 候选**清单**取自全集，计数取自剥离后的子集：两者分开是必要的。只用剥离后的
+  // 子集当清单，会在「其余条件已经把结果筛空」时让候选整个消失——包括用户此刻选中
+  // 的那一个（如 ?district=jingan&completedAfter=2020 一个都不剩时，筛选条里连
+  // 「静安」都不见了，选中状态只活在地址栏里，用户看不见也单独清不掉）。
+  // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
+  // 「不显示 0」丢弃，选中项保留。
+  const allFacets = buildBuildingFacets(allDocs)
+  const overlay = <T extends { count: number }>(
+    universe: readonly T[],
+    subset: readonly T[],
+    keyOf: (entry: T) => string,
+  ): T[] => {
+    const counts = new Map(subset.map((entry) => [keyOf(entry), entry.count]))
+    return universe.map((entry) => ({ ...entry, count: counts.get(keyOf(entry)) ?? 0 }))
+  }
+  const facetsOf = (dimension: 'district' | 'grade' | 'metro') =>
+    buildBuildingFacets(omitted.get(dimension) ?? allDocs)
+  const facets = {
+    districts: overlay(allFacets.districts, facetsOf('district').districts, (d) => d.slug),
+    grades: overlay(allFacets.grades, facetsOf('grade').grades, (g) => g.value),
+    metros: overlay(allFacets.metros, facetsOf('metro').metros, (m) => m.slug),
+  }
+  const dimensionHits = {
+    district: hitsOf('district'),
+    grade: hitsOf('grade'),
+    metro: hitsOf('metro'),
+    leasableArea: hitsOf('leasableArea'),
+    completedAfter: hitsOf('completedAfter'),
+    onlyWithStock: hitsOf('onlyWithStock'),
+  }
+
+  const filtered = applyBuildingFilters(allDocs, input)
+  const sorted = sortBuildings(filtered, input.sort)
+  const { withStock, withoutStock } = partitionByStock(sorted)
+  const merged = [...withStock, ...withoutStock]
+  const { docs, totalDocs, totalPages } = paginate(merged, input.page, input.pageSize)
+  return {
+    docs,
+    groups: partitionByStock(docs),
+    totalDocs,
+    withStockTotal: withStock.length,
+    withoutStockTotal: withoutStock.length,
+    unfilteredTotalDocs: allDocs.length,
+    page: Math.max(1, input.page),
+    totalPages,
+    facets,
+    dimensionHits,
+  }
 }
 
 /**
@@ -729,7 +904,7 @@ export async function getHomepage(
     if (vm) buildingVMs.push(vm)
   }
   // 只对最终展示的切片聚合：楼盘是过取的（默认 30，供商圈封面挑选）
-  const featuredBuildingSlice = await attachLeasableArea(
+  const featuredBuildingSlice = await attachSupplyAggregates(
     buildingVMs.slice(0, featuredLimit),
     ctx,
     adapter,
@@ -857,6 +1032,104 @@ export async function getPlatformHomepageStats(
     }),
     { listings: 0, buildings: 0, businessAreas: 0 },
   )
+}
+
+/**
+ * 可从 `ListingSearchInput` 上剥离的筛选维度。
+ *
+ * 一个维度对应「用户在界面上做的一次选择」，而不是一个字段名——价格是
+ * `priceMin`/`priceMax` 两个字段、单位是 `priceUnit` 连带派生的
+ * `pricePeriod`/`priceBasis` 三个字段。按维度而不是按字段剥离，调用方才不需要
+ * 知道哪些字段是同一次选择投影出来的（漏剥一个派生字段不会报错，只会算出一个
+ * 半剥离的错口径）。
+ */
+export type ListingSearchDimension =
+  | 'priceUnit'
+  | 'district'
+  | 'businessArea'
+  | 'metro'
+  | 'listingType'
+  | 'price'
+  | 'area'
+  | 'availableBefore'
+  | 'q'
+
+/**
+ * 从搜索输入里剥掉指定维度，其余条件原样保留。
+ *
+ * **为什么需要它（剥 `priceUnit` 这一条尤其关键）**：`getSearchFacets` 构造的
+ * `facetInput = { ...input, page: 1, sort: 'recommended' }` **保留了 `priceUnit`**。
+ * 于是用户一旦选中某个计价单位，`findEffectiveListings` 就只返回该单位的房源，
+ * 其余单位的计数恒为 0 —— 列表页的「另有 N 套按 X 报价，因单位不可换算未计入
+ * 本结果集」提示条会因为全部计数为 0 而 `return null`，那条诚实提示**永远不出现，
+ * 且不报任何错**。而结果集只含一种单位正是本页比价机制的代价，没有这条提示，
+ * 机制就从「帮用户比价」变成「悄悄藏起大部分库存」。
+ *
+ * 正确口径是：算各单位计数时剥掉 `priceUnit`，**其余筛选条件（区域/类型/价格
+ * 区间/面积/关键词/可入驻时间）全部保留**——用户要看到的是「另有 536 套按
+ * 元/月 报价（且符合他其余的条件）」，不是全库总数。这与 Task 2 的
+ * 「facets 必须算在筛选之前，否则选中一项后其余项自我擦除」是同一个病。
+ *
+ * 同理适用于筛选条各行的候选计数（算「黄浦有多少套」时必须先剥掉当前已选的
+ * 区域）和空态②的逐条退路命中数（算「放宽面积后有多少套」时剥掉面积）。
+ *
+ * 剥掉 `priceUnit` 时必须连带处理两件事，否则得到的是半剥离的错口径：
+ *   1. `pricePeriod` / `priceBasis` 是 `priceUnit` 的派生投影，一起删；
+ *   2. 价格排序（`price-asc`/`price-desc`）在缺 `priceUnit` 时不可比，
+ *      与解析层 `normalizeSort` 同一口径降级为 `recommended`。
+ */
+export function omitListingSearchDimensions(
+  input: ListingSearchInput,
+  dimensions: readonly ListingSearchDimension[],
+): ListingSearchInput {
+  const drop = new Set<ListingSearchDimension>(dimensions)
+  const next: Record<string, unknown> = { ...input }
+
+  if (drop.has('priceUnit')) {
+    delete next.priceUnit
+    delete next.pricePeriod
+    delete next.priceBasis
+  }
+  if (drop.has('district')) delete next.district
+  if (drop.has('businessArea')) delete next.businessArea
+  if (drop.has('metro')) delete next.metro
+  if (drop.has('listingType')) delete next.listingType
+  if (drop.has('price')) {
+    delete next.priceMin
+    delete next.priceMax
+  }
+  if (drop.has('area')) {
+    delete next.areaMin
+    delete next.areaMax
+  }
+  if (drop.has('availableBefore')) delete next.availableBefore
+  if (drop.has('q')) delete next.q
+
+  if (next.priceUnit == null && (next.sort === 'price-asc' || next.sort === 'price-desc')) {
+    next.sort = 'recommended'
+  }
+
+  return next as unknown as ListingSearchInput
+}
+
+/**
+ * 剥掉指定维度后的 facet 统计。
+ *
+ * 剥离理由与语义见 `omitListingSearchDimensions` 的注释——本函数只是把
+ * 「先剥离、再按同一口径统计」这两步固定在域层，避免调用方在编排层各自拼一份
+ * 剥离逻辑（漏剥 `pricePeriod` 之类的派生字段不会报错，只会静默算错）。
+ *
+ * 与 `getSearchFacets` 共用同一条查询路径与 asOf，因此这里算出来的 `totalDocs`
+ * 与「用户真的把那个条件去掉后打开列表页」看到的总数完全一致——空态②承诺的
+ * 「数字是放宽后的真实命中数，不是估算」靠的就是这一点。
+ */
+export async function getSearchFacetsIgnoring(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  dimensions: readonly ListingSearchDimension[],
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<SearchFacets> {
+  return getSearchFacets(omitListingSearchDimensions(input, dimensions), ctx, adapter)
 }
 
 /**
