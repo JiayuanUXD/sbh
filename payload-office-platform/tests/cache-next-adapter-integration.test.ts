@@ -13,7 +13,10 @@
  *   - revalidateTag 部分抛错时：handle 返回 ok（不阻断业务），
  *     且 console.error 上报 failedTags（部分失效可观测）
  *
- * 注：Next 16 起 revalidateTag 第二参数 profile 必填，生产适配器传 'max'。
+ * 注：Next 16 起 revalidateTag 第二参数 profile 必填。生产适配器传的是
+ *     IMMEDIATE_CACHE_EXPIRE_PROFILE（硬失效），不是 'max'——'max' 只标记 stale，
+ *     会让 unstable_cache 先返回一次陈旧值。语义守护见
+ *     tests/public-cache-immediate-expiry.test.ts。
  */
 
 import { describe, expect, it, vi, beforeEach } from 'vitest'
@@ -30,7 +33,7 @@ import {
   createNextTagInvalidator,
   computeAffectedTags,
 } from '@/domain/public-catalog/cache-invalidator'
-import { SITEMAP_TAG } from '@/domain/public-catalog/cache-tags'
+import { IMMEDIATE_CACHE_EXPIRE_PROFILE, SITEMAP_TAG } from '@/domain/public-catalog/cache-tags'
 import { ok } from '@/domain/shared/result'
 import type { DomainEvent } from '@/domain/workflow/event-publisher'
 import type { EventType } from '@/domain/workflow/event-types'
@@ -64,7 +67,7 @@ describe('OPT-012 createNextTagInvalidator 真实 Next 接线', () => {
     const invalidator = createNextTagInvalidator()
     invalidator.revalidateTag('public:listing:123')
     expect(mockedRevalidateTag).toHaveBeenCalledTimes(1)
-    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:listing:123', 'max')
+    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:listing:123', IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
 
   it('listing.published 事件使所有受影响 tag 经真实 revalidateTag 失效', async () => {
@@ -86,12 +89,12 @@ describe('OPT-012 createNextTagInvalidator 真实 Next 接线', () => {
     const expectedTags = computeAffectedTags(event)
     expect(mockedRevalidateTag).toHaveBeenCalledTimes(expectedTags.length)
     for (const tag of expectedTags) {
-      expect(mockedRevalidateTag).toHaveBeenCalledWith(tag, 'max')
+      expect(mockedRevalidateTag).toHaveBeenCalledWith(tag, IMMEDIATE_CACHE_EXPIRE_PROFILE)
     }
     // 关键类别 tag 兜底断言
-    expect(mockedRevalidateTag).toHaveBeenCalledWith(SITEMAP_TAG, 'max')
-    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:listing:listing-9001', 'max')
-    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:home:shanghai', 'max')
+    expect(mockedRevalidateTag).toHaveBeenCalledWith(SITEMAP_TAG, IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:listing:listing-9001', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(mockedRevalidateTag).toHaveBeenCalledWith('public:home:shanghai', IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
 
   it('revalidateTag 部分抛错时 handle 返回 ok 并上报 failedTags', async () => {
@@ -131,7 +134,7 @@ describe('OPT-012 createNextTagInvalidator 真实 Next 接线', () => {
     // 其他 tag 仍被调用（未被首个失败阻断）
     expect(mockedRevalidateTag).toHaveBeenCalledWith(
       'public:listing:listing-9002',
-      'max',
+      IMMEDIATE_CACHE_EXPIRE_PROFILE,
     )
     errorSpy.mockRestore()
   })

@@ -116,6 +116,33 @@ export function cityLevelSafeInvalidationTags(city: string | null): readonly str
 }
 
 /**
+ * `revalidateTag` 的失效档位：立即过期，不留 stale-while-revalidate 窗口。
+ *
+ * Next 16 起 `revalidateTag(tag, profile)` 第二参数必填。档位决定的不是
+ * "重新验证多久"，而是**这次失效有多硬**——两条路径在 Next 内部完全不同：
+ *
+ *   - 传 `'max'`（内置档位 `{stale:300, revalidate:2592000, expire:31536000}`）：
+ *     `revalidation-utils` 只取 `expire` 传给 cache handler，于是 tag 被写成
+ *     `{ stale: now, expired: now + 一年 }`。读取时 `areTagsExpired` 为 false、
+ *     `areTagsStale` 为 true → `incremental-cache` 返回 `isStale: true` →
+ *     `unstable_cache` 走 SWR 分支：**先把陈旧值返回给这一个请求**，同时后台刷新。
+ *     结果就是"下架后紧接着的一次读仍然看得到已下架内容，再下一次才正确"。
+ *   - 传 `{ expire: 0 }`：tag 被写成 `{ stale: now, expired: now }`，
+ *     `areTagsExpired` 为 true → `incremental-cache.get` 直接返回 null → 硬 miss →
+ *     当前请求就回源。零陈旧窗口。
+ *
+ * 公开目录的失效全部由"内容已不该再对外可见/已变化"驱动（下架、驳回、举报暂停、
+ * 批次回滚），**放行一次陈旧读等于放行一次错误的对外可见性**，所以这里统一用硬失效。
+ * 代价是失效瞬间该城市缓存被清空，并发请求会各自回源一次（`unstable_cache` 没有
+ * 跨请求 single-flight）；相对 300s 兜底 TTL 本来就会发生的回源，这个尖峰是可接受的。
+ *
+ * 不要为了消掉 `revalidateTag` 不传第二参数的 deprecation 警告而改回 `'max'`——
+ * 那个警告说的是"参数必填"，不是"必须用 max"。`tests/public-cache-immediate-expiry.test.ts`
+ * 直接跑 Next 自己的 tags-manifest 守护这条语义。
+ */
+export const IMMEDIATE_CACHE_EXPIRE_PROFILE = { expire: 0 } as const
+
+/**
  * 全量公开目录 tag（用于全量失效场景）
  *
  * 注意：Next.js revalidateTag 不支持通配符，但支持精确 tag。
