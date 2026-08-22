@@ -19,7 +19,13 @@
    `MIN_SUBMIT_MEDIA`），且管理员保存即发布不过完整度门，照样能发 0 图房源。
    条号保留不重排：下方「7~12」与代码注释里的 §7~§12 是同一套编号。
 7. Building、所属城市和区域启用。
-8. 当前 Listing—Merchant 半开区间关系有效且唯一。
+8. ~~当前 Listing—Merchant 半开区间关系有效且唯一。~~ **已于 2026-08-20 废除**：
+   OPT-034 删除了 `listing_merchant_relations` 表，房源商户归属改为
+   `listings.merchant` 直写字段——没有 `effectiveFrom`/`effectiveTo`，也就没有
+   「关系尚未生效 / 已过期」这层时间窗口，字段非空即视为已设置（`NO_SUPPLY_MERCHANT`
+   短路排除）。§9~§10（商户启用/资质/服务城市）判定不变，只是判定对象从「关系」
+   变成「字段引用的商户」。条号保留不重排：本条与代码注释、`effective-supply.ts`
+   里的 §8 是同一套编号，下方 §9~§12 不变——理由同 §6 先例。
 9. Merchant 启用、资质有效且未过期。
 10. 已启用服务城市覆盖 Building 城市。
 11. 租赁还需可租、可用日期未结束。
@@ -29,11 +35,14 @@
 
 ## 关系与边界
 
-- Building 默认商户和 Listing 商户关系使用 `[effective_from,effective_to)`。
+- Building 默认商户关系（`building-merchant-relations`）使用 `[effective_from,effective_to)`。
 - `effective_to` 空表示无穷；非空必须 start < end。
 - 数据库按对象使用排斥约束禁止重叠。
 - `t=effective_to` 属于从该时点开始的新关系，不属于旧关系。
-- Listing 在关系开始时继承当时的 Building 默认商户快照；后续 Building 关系变化不回写历史。
+- Listing 商户归属（`listings.merchant`）**已于 2026-08-20（OPT-034）由半开区间关系
+  改为直写字段**：管理员在房源表单里直接选商户，没有 `effective_from`/`effective_to`，
+  也不再「继承 Building 默认商户快照」——以上排斥约束/半开区间规则只对 Building
+  关系生效，不适用于 Listing。
 
 ## 房源投放申请（SupplySubmissions）
 

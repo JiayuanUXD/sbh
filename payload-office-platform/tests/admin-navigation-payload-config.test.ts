@@ -21,7 +21,6 @@ const customNavigationCollectionSlugs = [
   'follow-ups',
   'lead-ownership-history',
   'leads',
-  'listing-merchant-relations',
   'listing-reports',
   'listing-reviews',
   'listings',

@@ -171,6 +171,14 @@ function effectiveListing(
     reviewStatus: 'approved',
     supplyVisibilityHold: 'normal',
     gallery: [{ image: 1 }, { image: 2 }, { image: 3 }],
+    // OPT-034 起供给商户直接读 listings.merchant，不再经关系表解析。
+    merchant: {
+      id: id + 20_000,
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: '2027-01-01T00:00:00.000Z',
+      serviceCities: [{ id: city.id }],
+    },
     building: {
       id: id * 10,
       slug: `${city.slug}-building`,
@@ -194,34 +202,17 @@ function effectiveListing(
   }
 }
 
-function activeRelation(
-  listingId: number,
-  cityId: number,
-): Record<string, unknown> {
-  return {
-    id: listingId + 10_000,
-    listing: listingId,
-    effectiveFrom: '2026-01-01T00:00:00.000Z',
-    effectiveTo: null,
-    merchant: {
-      id: listingId + 20_000,
-      status: 'active',
-      qualificationStatus: 'valid',
-      qualificationExpiresAt: '2027-01-01T00:00:00.000Z',
-      serviceCities: [{ id: cityId }],
-    },
-  }
-}
-
 describe('required city in public catalog context', () => {
   const shanghai = effectiveListing(101, { id: 1, slug: 'shanghai' })
   const hangzhou = effectiveListing(202, { id: 2, slug: 'hangzhou' })
   const listings = [shanghai, hangzhou]
+  // 精筛淘汰：粗筛能查到（发布/审核/冻结/楼盘状态都合格），但没有供给商户
+  // （merchant: null）——OPT-034 前靠"无生效关系"制造同样的效果。
   const fineIneligible: Record<string, unknown> = {
     ...effectiveListing(303, { id: 2, slug: 'hangzhou' }),
     slug: 'hangzhou-fine-ineligible',
     building: hangzhou.building,
-    gallery: [{ image: 1 }, { image: 2 }],
+    merchant: null,
   }
   const routeListings = [...listings, fineIneligible]
   const hangzhouNeighbor: Record<string, unknown> = {
@@ -326,13 +317,8 @@ describe('required city in public catalog context', () => {
       if (params.collection === 'articles' || params.collection === 'pages') {
         return { docs: [], totalDocs: 0, hasNextPage: false, nextPage: null }
       }
-      if (params.collection === 'listing-merchant-relations') {
-        return {
-          docs: [activeRelation(101, 1), activeRelation(202, 2)],
-          hasNextPage: false,
-          nextPage: null,
-        }
-      }
+      // OPT-034：精筛不再查 listing-merchant-relations，falls through to throw
+      // below——留着这个分支反而会掩盖"又悄悄查关系表了"这类回归。
       throw new Error(`unexpected collection ${String(params.collection)}`)
     })
   })
