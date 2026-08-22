@@ -166,6 +166,29 @@ function topGroupButton(page: Page, name: string): Locator {
     .and(page.locator('.admin-navigation__group-toggle'))
 }
 
+/**
+ * 定位导航叶子链接。
+ *
+ * 不能用 `getByRole('link', { name: label, exact: true })`：带角标的叶子
+ * （navigation-config 的 badgeKey）在计数 > 0 时会多渲染一个
+ * `<span aria-label="{label}待处理 N 项">`，它会并入链接的 accessible name，
+ * 于是 accessible name 变成「消息通知消息通知待处理 1 项」，exact 匹配直接落空。
+ *
+ * 后果比匹配不到更坏：本用例会把它报成「平台管理员看不到这些入口」，把一个
+ * 纯数据条件误导成权限判定 bug。真实事故：本地库里残留了一条 e2e 造出来的未读
+ * 通知（recipient = e2e-adm），「消息通知」就被判成入口消失，而其余六个角标源
+ * 恰好都是 0，看起来像只有这一个叶子出了权限问题。
+ *
+ * 所以锚定叶子自己的 label 元素，让断言只回答「入口在不在」，与角标数量无关；
+ * 同时限定在自研导航内 —— Payload 默认导航也会渲染同名 collection 链接，不限定
+ * 的话「自研导航吞掉入口」这类真回归会被默认导航遮掉。
+ */
+function navLeafLink(page: Page, label: string): Locator {
+  return page
+    .locator('.admin-navigation__link')
+    .filter({ has: page.getByText(label, { exact: true }) })
+}
+
 async function expectRoleGroups(page: Page, role: RoleCode): Promise<void> {
   const allowed = ROLE_NAVIGATION[role].groups
   await expect(topGroupButtons(page)).toHaveCount(allowed.length)
@@ -314,9 +337,7 @@ test.describe('后台导航 / 五角色桌面矩阵', () => {
       const { group, leaf, slug } = ROLE_NAVIGATION[role].allowed
       await openGroup(page, group)
       // template-default 拦截坐标点击，用原生 click() 直接触发 next/link 路由导航
-      await page
-        .getByRole('link', { name: leaf, exact: true })
-        .evaluate((el: HTMLElement) => el.click())
+      await navLeafLink(page, leaf).evaluate((el: HTMLElement) => el.click())
 
       await expect(page).toHaveURL(
         new RegExp(`/admin/collections/${slug}(?:\\?.*)?$`),
@@ -636,7 +657,7 @@ test.describe('后台导航 / 移动交互', () => {
       path: testInfo.outputPath('admin-navigation-mobile-light.png'),
     })
 
-    await page.getByRole('link', { name: '客户档案', exact: true }).click()
+    await navLeafLink(page, '客户档案').click()
     await expect(page).toHaveURL(
       /\/admin\/collections\/customers(?:\?.*)?$/,
     )
@@ -675,7 +696,7 @@ test.describe('后台导航 / 全叶子可达', () => {
 
     const missing: string[] = []
     for (const label of ALL_LEAF_LABELS) {
-      const link = page.getByRole('link', { name: label, exact: true }).first()
+      const link = navLeafLink(page, label).first()
       if ((await link.count()) === 0 || !(await link.isVisible())) {
         missing.push(label)
       }
