@@ -28,7 +28,10 @@ test.describe('F7.1 全链路 E2E', () => {
     // 1. 首页加载
     await page.goto('/')
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.hero')).toBeVisible()
+    // 本批把首屏容器从 `.hero` 换成了 `.hm-hero`（见 `home/HomeHero.tsx`），
+    // 断言必须同步改名——否则它恒失败并卡在整条链路的第 2 步，
+    // 让后面「列表 → 详情 → 咨询」四步全都跑不到，看起来像整条链路坏了。
+    await expect(page.locator('.hm-hero')).toBeVisible()
 
     // 2. 跳转到列表页
     await page.goto('/listings')

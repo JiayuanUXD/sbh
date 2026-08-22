@@ -27,8 +27,8 @@ const { Text } = Typography
  * 拦截**（2026-08-19 决定），所以这张卡片是管理员唯一能看到「发出去了但还缺东西」
  * 的地方；它必须说「已保存但还缺 X」，而不是拦着不让保存。
  *
- * 关系型判定（有效商户关系）在客户端读不到，用「有没有选商户」近似——与
- * `admin-auto-publish-hook.ts` 的近似口径一致，真实校验仍由 endpoint 兜。
+ * 商户判定看「有没有选商户」——OPT-034 起 `listings.merchant` 即唯一真相，
+ * 不再是近似，与 `admin-auto-publish-hook.ts` 同口径，真实校验仍由 endpoint 兜。
  */
 
 /** array 字段父路径在有行时存行数（number），无行时可能是 undefined 或数组。 */
@@ -92,7 +92,8 @@ export default function ListingCompletenessCardClient() {
       description: pick(description, doc.description),
       contactBroker: pick(contactBroker, doc.contactBroker),
       galleryCount: rowCount(galleryValue, doc.gallery),
-      // 近似：真实门槛判的是 listing-merchant-relations 里「当前有效」的关系记录。
+      // 非空判定已精确（OPT-034 起直接看 listings.merchant），但商户资格仍由
+      // 前台精筛 §9-§10 判定，此处不判。
       hasValidMerchantRelation: pick(merchant, doc.merchant) != null,
     }
     return checkListingCompleteness(snapshot, 'submit')

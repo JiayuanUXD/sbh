@@ -7,8 +7,9 @@
  *
  * M4.7：度量口径与前台 / 详情 / 楼盘聚合完全一致——查询层 getEffectiveSupplyWhere
  * （§1-4 状态 + §7 楼盘/城市/行政区在营）粗筛 + building 约束 + §5 举报暂停 not_in
- * 排除，取候选后逐条 resolveEffectiveSupply 精筛（媒体 §6 / 关系 §8 / 商户 §9-§10）。
- * count = 精筛后长度（不再用 payload.count，因关系精筛需逐条查 listing-merchant-relations）。
+ * 排除，取候选后逐条 resolveEffectiveSupply 精筛（商户 §8-§10，OPT-034 起直接读
+ * listings.merchant）。count = 精筛后长度（精筛现在是纯内存计算，不再查
+ * listing-merchant-relations，但仍需逐条判定才能拿到 eligible 子集，不用 payload.count）。
  *
  * MVP 计数口径：取候选（limit LISTING_CANDIDATE_CAP=500）后精筛数长度；>500 会封顶
  * （后续优化点，与 supply-adapter / building-aggregate 一致）。关系型数据经 unknown +

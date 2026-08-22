@@ -79,7 +79,6 @@ export interface Config {
     amenities: Amenity;
     buildings: Building;
     'building-merchant-relations': BuildingMerchantRelation;
-    'listing-merchant-relations': ListingMerchantRelation;
     listings: Listing;
     leads: Lead;
     customers: Customer;
@@ -122,7 +121,6 @@ export interface Config {
     amenities: AmenitiesSelect<false> | AmenitiesSelect<true>;
     buildings: BuildingsSelect<false> | BuildingsSelect<true>;
     'building-merchant-relations': BuildingMerchantRelationsSelect<false> | BuildingMerchantRelationsSelect<true>;
-    'listing-merchant-relations': ListingMerchantRelationsSelect<false> | ListingMerchantRelationsSelect<true>;
     listings: ListingsSelect<false> | ListingsSelect<true>;
     leads: LeadsSelect<false> | LeadsSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
@@ -723,30 +721,6 @@ export interface BuildingMerchantRelation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "listing-merchant-relations".
- */
-export interface ListingMerchantRelation {
-  id: number;
-  listing: number | Listing;
-  /**
-   * 留空则创建时继承所属楼盘当前默认商户的快照;准入门禁由 hook 校验。
-   */
-  merchant?: (number | null) | Merchant;
-  effectiveFrom: string;
-  /**
-   * 留空表示无限期。
-   */
-  effectiveTo?: string | null;
-  createdReason?: string | null;
-  /**
-   * 乐观锁版本号,系统维护。
-   */
-  version?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "listings".
  */
 export interface Listing {
@@ -814,7 +788,7 @@ export interface Listing {
   };
   isFeatured?: boolean | null;
   /**
-   * 房源供给关系的当前商户;有效期与快照规则见供给关系。
+   * 房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。
    */
   merchant?: (number | null) | Merchant;
   contactBroker?: (number | null) | Broker;
@@ -2391,10 +2365,6 @@ export interface PayloadLockedDocument {
         value: number | BuildingMerchantRelation;
       } | null)
     | ({
-        relationTo: 'listing-merchant-relations';
-        value: number | ListingMerchantRelation;
-      } | null)
-    | ({
         relationTo: 'listings';
         value: number | Listing;
       } | null)
@@ -2814,20 +2784,6 @@ export interface BuildingsSelect<T extends boolean = true> {
  */
 export interface BuildingMerchantRelationsSelect<T extends boolean = true> {
   building?: T;
-  merchant?: T;
-  effectiveFrom?: T;
-  effectiveTo?: T;
-  createdReason?: T;
-  version?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "listing-merchant-relations_select".
- */
-export interface ListingMerchantRelationsSelect<T extends boolean = true> {
-  listing?: T;
   merchant?: T;
   effectiveFrom?: T;
   effectiveTo?: T;
@@ -3825,7 +3781,6 @@ export interface TaskCreateCollectionExport {
       | 'amenities'
       | 'buildings'
       | 'building-merchant-relations'
-      | 'listing-merchant-relations'
       | 'listings'
       | 'leads'
       | 'customers'

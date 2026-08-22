@@ -11,6 +11,7 @@ import {
   extractMigrationUpBody,
   scanMigrationRisks,
   scanMigrationUpRisks,
+  applyDestructiveMigrationOverride,
 } from '../scripts/preflight'
 
 const here = pathDirname(fileURLToPath(import.meta.url))
@@ -21,8 +22,9 @@ describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
     // 目录实际迁移份数。新增迁移时同步 +1（本行与下方 parseRegisteredMigrationNames 断言必须一致，
-    // 二者不等即说明有迁移文件漏注册进 index.ts）。最近一次：新增 opt035_city_profile_avg_response_hours。
-    expect(names.length).toBe(57)
+    // 二者不等即说明有迁移文件漏注册进 index.ts）。最近两次：drop_listing_merchant_relations（OPT-034）、
+    // opt035_city_profile_avg_response_hours（OPT-035，本分支合入 master 时按时间戳排在前者之后）。
+    expect(names.length).toBe(58)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -53,7 +55,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(57)
+    expect(names.length).toBe(58)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
@@ -197,13 +199,29 @@ describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心�
   })
 
   it('无迁移 up() 含 DROP TABLE / DROP COLUMN 高风险操作（生产删除类必须阻断）', () => {
+    // 这条断言默认对目录里的每份迁移都成立，包括已获批准的破坏性迁移——批准不
+    // 体现在这个测试文件里（那样就是把例外藏进测试），而是走
+    // scripts/preflight.ts 的 applyDestructiveMigrationOverride，经
+    // scripts/destructive-migration-approvals.ts 读取顶层
+    // DESTRUCTIVE_MIGRATION_APPROVALS.json——是否放行由那份数据文件决定，且要求
+    // 整份迁移文件内容的 SHA-256 与批准记录逐字节一致（真正的内容指纹，不是只认
+    // 迁移名、也不是只认出现次数）。新增/修改一条批准 = 那份 JSON 的一处 diff，
+    // 就是对 PR 评审者可见的记录；清单里没有的迁移、或内容对不上的迁移，
+    // 本测试必须照样把它拦下来。
     const names = listMigrationFiles(migrationsDir)
     for (const name of names) {
       const content = readFileSync(resolve(migrationsDir, `${name}.ts`), 'utf-8')
       // 只扫 up()：down() 的 DROP 是合法回滚
-      const risks = scanMigrationUpRisks(name, content)
+      const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content), content)
       const blocking = risks.filter((r) => r.severity === 'fail')
-      expect(blocking, `${name} up() 含高风险删除操作`).toHaveLength(0)
+      expect(
+        blocking,
+        `${name} up() 含高风险删除操作。若这次删除已获用户批准，登记进仓库顶层 ` +
+          'DESTRUCTIVE_MIGRATION_APPROVALS.json；清单里已有这条迁移却仍在这里红，' +
+          '说明迁移文件在批准之后改过内容（指纹是整份 .ts 文件的 SHA-256），' +
+          '跑 pnpm migrate:approval-hash 重算后更新 approvedFileSha256。' +
+          '不要用 SKIP_PREPUSH=1 绕过。机制详见 .agent/migrations.md。',
+      ).toHaveLength(0)
     }
   })
 
