@@ -36,6 +36,12 @@ describe('city partner recruitment page', () => {
     const markup = renderToStaticMarkup(await CityPartnerPage({ searchParams: Promise.resolve({}) }))
     expect(markup.match(/<h1\b/g)).toHaveLength(1)
     expect(markup).toContain('城市合作伙伴申请')
+    // OPT-038 Task 5 加强（**只加不减**）：原断言只要求整份 markup 里出现过这七个字，
+    // 于是「h1 说 A、把这七个字塞进某个 aria-label / 卡片标题」也能蒙混通过，
+    // 而用例名 truthful 要保护的恰恰是「正文与 metadata.title 同口径」。
+    // 这里把它落到 h1 自身的内容上，并对齐 metadata.title。
+    expect(markup).toMatch(/<h1\b[^>]*>[^<]*城市合作伙伴申请/)
+    expect(metadata.title).toBe('城市合作伙伴申请')
     expect(markup).not.toMatch(/保证收益|独家代理|开城日期|年入百万/)
   })
 

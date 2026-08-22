@@ -1,0 +1,825 @@
+{
+  "tag": "before",
+  "base": "http://127.0.0.1:3923",
+  "warmup": [
+    {
+      "path": "/city-partner",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/hangzhou",
+      "status": 200,
+      "expected": 200
+    }
+  ],
+  "breakpoints": [
+    {
+      "surface": "city-partner",
+      "width": 375,
+      "viewportWidth": 375,
+      "overflowX": 0,
+      "scrollHeight": 2889,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 343,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "city-partner",
+      "width": 640,
+      "viewportWidth": 640,
+      "overflowX": 0,
+      "scrollHeight": 2746,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 608,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "city-partner",
+      "width": 641,
+      "viewportWidth": 641,
+      "overflowX": 0,
+      "scrollHeight": 2746,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 609,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "city-partner",
+      "width": 768,
+      "viewportWidth": 768,
+      "overflowX": 0,
+      "scrollHeight": 2617,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 736,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "city-partner",
+      "width": 1440,
+      "viewportWidth": 1440,
+      "overflowX": 0,
+      "scrollHeight": 1818,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 400,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "city-partner",
+      "width": 1920,
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "scrollHeight": 1818,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 400,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 375,
+      "viewportWidth": 375,
+      "overflowX": 0,
+      "scrollHeight": 3338,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 343,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 640,
+      "viewportWidth": 640,
+      "overflowX": 0,
+      "scrollHeight": 3098,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 608,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 641,
+      "viewportWidth": 641,
+      "overflowX": 0,
+      "scrollHeight": 3098,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 609,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 768,
+      "viewportWidth": 768,
+      "overflowX": 0,
+      "scrollHeight": 2928,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 736,
+        "height": 715.02
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 1440,
+      "viewportWidth": 1440,
+      "overflowX": 0,
+      "scrollHeight": 2105,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 400,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    },
+    {
+      "surface": "hangzhou",
+      "width": 1920,
+      "viewportWidth": 1920,
+      "overflowX": 0,
+      "scrollHeight": 2105,
+      "form": {
+        "padding": "40px",
+        "paddingTop": "40px",
+        "width": 400,
+        "height": 735.03
+      },
+      "success": null,
+      "selects": [
+        {
+          "id": "partner-city",
+          "disabled": true,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        },
+        {
+          "id": "partner-identity",
+          "disabled": false,
+          "backgroundImage": "url(len=166)",
+          "backgroundImageIsNone": false,
+          "backgroundRepeat": "no-repeat",
+          "backgroundPosition": "calc(100% - 14px) 50%",
+          "backgroundColor": "rgb(255, 255, 255)",
+          "appearance": "none",
+          "paddingRight": "36px"
+        }
+      ],
+      "invalidClassCount": 0
+    }
+  ],
+  "focus": [
+    {
+      "surface": "city-partner",
+      "route": "programmatic",
+      "target": "partner-city",
+      "active": "select",
+      "id": "partner-city",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "city-partner",
+      "route": "programmatic",
+      "target": "partner-name",
+      "active": "input",
+      "id": "partner-name",
+      "className": "filter-bar__input",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "city-partner",
+      "route": "programmatic",
+      "target": "partner-phone",
+      "active": "input",
+      "id": "partner-phone",
+      "className": "filter-bar__input sf-num",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "city-partner",
+      "route": "programmatic",
+      "target": "partner-identity",
+      "active": "select",
+      "id": "partner-identity",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 1,
+      "active": "select",
+      "id": "partner-city",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 2,
+      "active": "input",
+      "id": "partner-name",
+      "className": "filter-bar__input",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 3,
+      "active": "input",
+      "id": "partner-phone",
+      "className": "filter-bar__input sf-num",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 4,
+      "active": "select",
+      "id": "partner-identity",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 5,
+      "active": "input",
+      "id": "partner-consent",
+      "className": null,
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(29, 29, 31)",
+      "boxShadow": "none",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "city-partner",
+      "route": "keyboard-tab",
+      "step": 6,
+      "active": "a",
+      "id": null,
+      "className": null,
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 102, 204)",
+      "boxShadow": "none",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "programmatic",
+      "target": "partner-city",
+      "active": null
+    },
+    {
+      "surface": "hangzhou",
+      "route": "programmatic",
+      "target": "partner-name",
+      "active": "input",
+      "id": "partner-name",
+      "className": "filter-bar__input",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "programmatic",
+      "target": "partner-phone",
+      "active": "input",
+      "id": "partner-phone",
+      "className": "filter-bar__input sf-num",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "programmatic",
+      "target": "partner-identity",
+      "active": "select",
+      "id": "partner-identity",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 1,
+      "active": "input",
+      "id": "partner-name",
+      "className": "filter-bar__input",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 2,
+      "active": "input",
+      "id": "partner-phone",
+      "className": "filter-bar__input sf-num",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 3,
+      "active": "select",
+      "id": "partner-identity",
+      "className": "filter-bar__select",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "outlineStyle": "none",
+      "outlineWidth": "3px",
+      "backgroundImage": "url(len=166)"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 4,
+      "active": "input",
+      "id": "partner-consent",
+      "className": null,
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(29, 29, 31)",
+      "boxShadow": "none",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 5,
+      "active": "a",
+      "id": null,
+      "className": null,
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 102, 204)",
+      "boxShadow": "none",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "backgroundImage": "none"
+    },
+    {
+      "surface": "hangzhou",
+      "route": "keyboard-tab",
+      "step": 6,
+      "active": "button",
+      "id": null,
+      "className": "btn btn--primary btn--block",
+      "matchesFocus": true,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(255, 255, 255)",
+      "boxShadow": "none",
+      "outlineStyle": "solid",
+      "outlineWidth": "2px",
+      "backgroundImage": "none"
+    }
+  ],
+  "hover": [
+    {
+      "surface": "city-partner",
+      "base": {
+        "background": "rgba(0, 0, 0, 0)",
+        "borderColor": "rgba(0, 0, 0, 0.16)",
+        "cardBackground": "rgb(245, 245, 247)"
+      },
+      "hover": {
+        "background": "rgb(245, 245, 247)",
+        "borderColor": "rgb(29, 29, 31)"
+      }
+    },
+    {
+      "surface": "hangzhou",
+      "base": {
+        "background": "rgba(0, 0, 0, 0)",
+        "borderColor": "rgba(0, 0, 0, 0.16)",
+        "cardBackground": "rgb(245, 245, 247)"
+      },
+      "hover": {
+        "background": "rgb(245, 245, 247)",
+        "borderColor": "rgb(29, 29, 31)"
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "activeId": "partner-name",
+      "activeClassName": "filter-bar__input",
+      "ariaInvalid": "true",
+      "hasInvalidModifier": false,
+      "matchesFocusVisible": true,
+      "borderColor": "rgb(0, 113, 227)",
+      "boxShadow": "rgba(0, 113, 227, 0.18) 0px 0px 0px 4px",
+      "errorTexts": [
+        "请输入 1–50 个字符的姓名",
+        "请输入正确的 11 位手机号",
+        "请选择您的合作身份",
+        "请阅读并同意隐私政策"
+      ],
+      "errorColor": "rgb(191, 72, 0)",
+      "invalidModifierCount": 0
+    }
+  ],
+  "consoleErrors": []
+}

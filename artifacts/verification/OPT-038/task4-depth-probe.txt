@@ -1,0 +1,133 @@
+[11:44:29] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+
+候选精选区域（上海 / active + frontendVisible）：
+  · #2 静安区 [district] parent=number(1) description="南京西路、苏河湾等高端商务办公聚集区。"
+  · #6 黄浦 [district] parent=number(1) description="外滩、人民广场等核心商务区。"
+  · #7 徐汇 [district] parent=number(1) description="徐家汇、漕河泾等商务办公聚集区。"
+  · #8 长宁 [district] parent=number(1) description="虹桥、古北等国际化商务办公区域。"
+  · #3 浦东新区 [district] parent=number(1) description="陆家嘴、前滩等总部型企业办公聚集区。"
+  · #4 南京西路 [business_area] parent=number(2) description="上海高端商务、零售与企业总部办公核心商圈。"
+
+profile #1 原 featuredRegions = []
+[public-cache-revalidation] failed {
+  reason: 'city_site_profile',
+  failedTags: [
+    {
+      tag: 'public:city-profile:shanghai',
+      error: 'Invariant: static generation store missing in revalidateTag public:city-profile:shanghai'
+    },
+    {
+      tag: 'public:city-profiles',
+      error: 'Invariant: static generation store missing in revalidateTag public:city-profiles'
+    },
+    {
+      tag: 'public:home:shanghai',
+      error: 'Invariant: static generation store missing in revalidateTag public:home:shanghai'
+    },
+    {
+      tag: 'public:sitemap',
+      error: 'Invariant: static generation store missing in revalidateTag public:sitemap'
+    }
+  ]
+}
+
+===== depth: 1 =====  featuredRegions array(6)
+    · 静安区 [district]
+        parent      = number(1)
+        city        = number(1)
+        description = "南京西路、苏河湾等高端商务办公聚集区。" (len=19)
+    · 黄浦 [district]
+        parent      = number(1)
+        city        = number(1)
+        description = "外滩、人民广场等核心商务区。" (len=14)
+    · 徐汇 [district]
+        parent      = number(1)
+        city        = number(1)
+        description = "徐家汇、漕河泾等商务办公聚集区。" (len=16)
+    · 长宁 [district]
+        parent      = number(1)
+        city        = number(1)
+        description = "虹桥、古北等国际化商务办公区域。" (len=16)
+    · 浦东新区 [district]
+        parent      = number(1)
+        city        = number(1)
+        description = "陆家嘴、前滩等总部型企业办公聚集区。" (len=18)
+    · 南京西路 [business_area]
+        parent      = number(2)
+        city        = number(1)
+        description = "上海高端商务、零售与企业总部办公核心商圈。" (len=21)
+
+===== depth: 2 =====  featuredRegions array(6)
+    · 静安区 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "南京西路、苏河湾等高端商务办公聚集区。" (len=19)
+    · 黄浦 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "外滩、人民广场等核心商务区。" (len=14)
+    · 徐汇 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "徐家汇、漕河泾等商务办公聚集区。" (len=16)
+    · 长宁 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "虹桥、古北等国际化商务办公区域。" (len=16)
+    · 浦东新区 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "陆家嘴、前滩等总部型企业办公聚集区。" (len=18)
+    · 南京西路 [business_area]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="静安区" parent.type=district parent.parent=number(1)
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "上海高端商务、零售与企业总部办公核心商圈。" (len=21)
+
+===== depth: 3 =====  featuredRegions array(6)
+    · 静安区 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "南京西路、苏河湾等高端商务办公聚集区。" (len=19)
+    · 黄浦 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "外滩、人民广场等核心商务区。" (len=14)
+    · 徐汇 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "徐家汇、漕河泾等商务办公聚集区。" (len=16)
+    · 长宁 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "虹桥、古北等国际化商务办公区域。" (len=16)
+    · 浦东新区 [district]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="上海" parent.type=city parent.parent=null
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "陆家嘴、前滩等总部型企业办公聚集区。" (len=18)
+    · 南京西路 [business_area]
+        parent      = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version} → parent.name="静安区" parent.type=district parent.parent=object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        city        = object{centerLatitude,centerLongitude,city,coverImage,createdAt,description,frontendVisible,id,immutableCode,name,parent,slug,sortOrder,status,type,updatedAt,version}
+        description = "上海高端商务、零售与企业总部办公核心商圈。" (len=21)
+[public-cache-revalidation] failed {
+  reason: 'city_site_profile',
+  failedTags: [
+    {
+      tag: 'public:city-profile:shanghai',
+      error: 'Invariant: static generation store missing in revalidateTag public:city-profile:shanghai'
+    },
+    {
+      tag: 'public:city-profiles',
+      error: 'Invariant: static generation store missing in revalidateTag public:city-profiles'
+    },
+    {
+      tag: 'public:home:shanghai',
+      error: 'Invariant: static generation store missing in revalidateTag public:home:shanghai'
+    },
+    {
+      tag: 'public:sitemap',
+      error: 'Invariant: static generation store missing in revalidateTag public:sitemap'
+    }
+  ]
+}
+
+已还原 featuredRegions = []

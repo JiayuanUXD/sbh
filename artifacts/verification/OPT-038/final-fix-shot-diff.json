@@ -1,0 +1,92 @@
+[
+  {
+    "file": "city-partner-1440.png",
+    "beforeSize": "1440x1818",
+    "afterSize": "1440x1818",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 2617920,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "city-partner-1920.png",
+    "beforeSize": "1920x1818",
+    "afterSize": "1920x1818",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 3490560,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "city-partner-375.png",
+    "beforeSize": "375x2889",
+    "afterSize": "375x2841",
+    "sameSize": false,
+    "overlapDiffPixels": 129537,
+    "overlapTotal": 1065375,
+    "maxChannelDelta": 676,
+    "onlyOneSidePixels": 18000
+  },
+  {
+    "file": "city-partner-768.png",
+    "beforeSize": "768x2617",
+    "afterSize": "768x2617",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 2009856,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "form-validation-failed-1440.png",
+    "beforeSize": "1440x1935",
+    "afterSize": "1440x1935",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 2786400,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "hangzhou-1440.png",
+    "beforeSize": "1440x2105",
+    "afterSize": "1440x2105",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 3031200,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "hangzhou-1920.png",
+    "beforeSize": "1920x2105",
+    "afterSize": "1920x2105",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 4041600,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  },
+  {
+    "file": "hangzhou-375.png",
+    "beforeSize": "375x3338",
+    "afterSize": "375x3290",
+    "sameSize": false,
+    "overlapDiffPixels": 170649,
+    "overlapTotal": 1233750,
+    "maxChannelDelta": 676,
+    "onlyOneSidePixels": 18000
+  },
+  {
+    "file": "hangzhou-768.png",
+    "beforeSize": "768x2928",
+    "afterSize": "768x2928",
+    "sameSize": true,
+    "overlapDiffPixels": 0,
+    "overlapTotal": 2248704,
+    "maxChannelDelta": 0,
+    "onlyOneSidePixels": 0
+  }
+]

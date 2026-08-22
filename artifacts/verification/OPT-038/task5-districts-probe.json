@@ -1,0 +1,166 @@
+{
+  "base": "http://127.0.0.1:3921",
+  "city": 19,
+  "picked": [
+    "上城区",
+    "西湖区",
+    "钱江新城",
+    "黄龙",
+    "滨江高新区",
+    "未来科技城"
+  ],
+  "breakpoints": [
+    {
+      "width": 375,
+      "overflowX": 0,
+      "sectionCount": 4,
+      "gridCols": "343px",
+      "cellCount": 6,
+      "cells": [
+        {
+          "name": "上城区",
+          "area": null
+        },
+        {
+          "name": "西湖区",
+          "area": null
+        },
+        {
+          "name": "钱江新城",
+          "area": "上城区 · 钱塘江北岸的城市新中心，金融与总部办公集聚。"
+        },
+        {
+          "name": "黄龙",
+          "area": "西湖区"
+        },
+        {
+          "name": "滨江高新区",
+          "area": "滨江区"
+        },
+        {
+          "name": "未来科技城",
+          "area": "余杭区 · 数字经济与研发办公高地，互联网企业密集。"
+        }
+      ],
+      "hasDash": false,
+      "heading": "杭州重点服务商圈布局",
+      "lead": "即将覆盖杭州核心商务区与高新产业聚集地。下列商圈均在规划范围内，暂不区分开放批次。",
+      "h1Count": 1,
+      "statusRoleCount": 1
+    },
+    {
+      "width": 768,
+      "overflowX": 0,
+      "sectionCount": 4,
+      "gridCols": "229.328px 229.328px 229.328px",
+      "cellCount": 6,
+      "cells": [
+        {
+          "name": "上城区",
+          "area": null
+        },
+        {
+          "name": "西湖区",
+          "area": null
+        },
+        {
+          "name": "钱江新城",
+          "area": "上城区 · 钱塘江北岸的城市新中心，金融与总部办公集聚。"
+        },
+        {
+          "name": "黄龙",
+          "area": "西湖区"
+        },
+        {
+          "name": "滨江高新区",
+          "area": "滨江区"
+        },
+        {
+          "name": "未来科技城",
+          "area": "余杭区 · 数字经济与研发办公高地，互联网企业密集。"
+        }
+      ],
+      "hasDash": false,
+      "heading": "杭州重点服务商圈布局",
+      "lead": "即将覆盖杭州核心商务区与高新产业聚集地。下列商圈均在规划范围内，暂不区分开放批次。",
+      "h1Count": 1,
+      "statusRoleCount": 1
+    },
+    {
+      "width": 1440,
+      "overflowX": 0,
+      "sectionCount": 4,
+      "gridCols": "325.328px 325.328px 325.344px",
+      "cellCount": 6,
+      "cells": [
+        {
+          "name": "上城区",
+          "area": null
+        },
+        {
+          "name": "西湖区",
+          "area": null
+        },
+        {
+          "name": "钱江新城",
+          "area": "上城区 · 钱塘江北岸的城市新中心，金融与总部办公集聚。"
+        },
+        {
+          "name": "黄龙",
+          "area": "西湖区"
+        },
+        {
+          "name": "滨江高新区",
+          "area": "滨江区"
+        },
+        {
+          "name": "未来科技城",
+          "area": "余杭区 · 数字经济与研发办公高地，互联网企业密集。"
+        }
+      ],
+      "hasDash": false,
+      "heading": "杭州重点服务商圈布局",
+      "lead": "即将覆盖杭州核心商务区与高新产业聚集地。下列商圈均在规划范围内，暂不区分开放批次。",
+      "h1Count": 1,
+      "statusRoleCount": 1
+    },
+    {
+      "width": 1920,
+      "overflowX": 0,
+      "sectionCount": 4,
+      "gridCols": "325.328px 325.328px 325.344px",
+      "cellCount": 6,
+      "cells": [
+        {
+          "name": "上城区",
+          "area": null
+        },
+        {
+          "name": "西湖区",
+          "area": null
+        },
+        {
+          "name": "钱江新城",
+          "area": "上城区 · 钱塘江北岸的城市新中心，金融与总部办公集聚。"
+        },
+        {
+          "name": "黄龙",
+          "area": "西湖区"
+        },
+        {
+          "name": "滨江高新区",
+          "area": "滨江区"
+        },
+        {
+          "name": "未来科技城",
+          "area": "余杭区 · 数字经济与研发办公高地，互联网企业密集。"
+        }
+      ],
+      "hasDash": false,
+      "heading": "杭州重点服务商圈布局",
+      "lead": "即将覆盖杭州核心商务区与高新产业聚集地。下列商圈均在规划范围内，暂不区分开放批次。",
+      "h1Count": 1,
+      "statusRoleCount": 1
+    }
+  ]
+}

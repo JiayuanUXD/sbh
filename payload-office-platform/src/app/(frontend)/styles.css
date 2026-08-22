@@ -1125,56 +1125,19 @@ ol {
   white-space: nowrap;
 }
 
-.city-partner-page {
-  min-height: calc(100vh - var(--touch-target));
-  padding: var(--sp-8) var(--container-pad-x);
-  background:
-    linear-gradient(110deg, var(--color-paper) 0 44%, var(--color-canvas) 44% 100%);
-}
-
-.city-partner-page__intro {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(28rem, 1.2fr);
-  gap: var(--sp-8);
-  align-items: start;
-  max-width: 1180px;
-  margin-inline: auto;
-}
-
-.city-partner-page__copy {
-  position: sticky;
-  top: calc(var(--touch-target) + var(--sp-5));
-  padding-top: var(--sp-5);
-}
-
-.city-partner-page__eyebrow,
+/* OPT-038 Task 6：`.city-partner-page*` 整族已摘除（外壳类名换成 `.rc-page`，
+   Hero / 引导语 / 合规声明改由 `styles/recruit.css` 的 `.rc-*` 承载）。
+   两道判据都过：带边界 grep 零消费方（`city-partner-page` 的 7 处「命中」全是
+   `tests/city-partner-page-seo.test.ts` 这个**文件名**，不是类名），
+   且生产 server 上 4 条路由的 `querySelectorAll` 恒 0。
+   证据 `artifacts/verification/OPT-038/task6-dead-css-probe-{before,after}.json`。
+   `.city-partner-form__step` 留下了——它仍在 DOM 里（表单「第一步 · 必填」），
+   只是不再与已删的 `.city-partner-page__eyebrow` 共用同一条规则。 */
 .city-partner-form__step {
   color: var(--color-copper-hover);
   font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.12em;
-}
-
-.city-partner-page h1 {
-  max-width: 8em;
-  margin: var(--sp-3) 0 var(--sp-5);
-  font-family: var(--font-display);
-  font-size: var(--fs-h1);
-  line-height: var(--lh-tight);
-}
-
-.city-partner-page__lead,
-.city-partner-page__note {
-  max-width: 34rem;
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
-
-.city-partner-page__note {
-  padding-left: var(--sp-4);
-  border-left: 3px solid var(--color-copper);
-  color: var(--color-muted);
-  font-size: var(--fs-14);
 }
 
 .city-partner-form,
@@ -1273,26 +1236,10 @@ ol {
   color: var(--color-muted);
 }
 
-@media (max-width: 1023px) {
-  .city-partner-page {
-    background: var(--color-canvas);
-  }
-
-  .city-partner-page__intro {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .city-partner-page__copy {
-    position: static;
-    padding: 0;
-  }
-}
+/* OPT-038 Task 6：原 `@media (max-width: 1023px)` 整块只含 `.city-partner-page*`
+   三条，随该族一并摘除（整块删是因为块内每一条都是死规则，不是按标题边界整块删）。 */
 
 @media (max-width: 640px) {
-  .city-partner-page {
-    padding: var(--sp-6) var(--sp-4);
-  }
-
   .city-partner-form,
   .city-partner-form__success {
     padding: var(--sp-4);
@@ -5178,15 +5125,33 @@ ol {
   min-width: 0;
 }
 
-/* 模块 1: Hero 双栏开城落地页 */
-.city-coming-soon__hero,
-.city-coming-soon__hero-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: var(--sp-6, 36px);
-  align-items: start;
-}
+/* ── OPT-038 Task 6：旧版四模块的规则已摘除 ────────────────────────────────
+ * `ComingSoonCityView` 改版后整页由 `styles/recruit.css` 的 `.rc-*` 承载，
+ * 下列类名在源码里已无任何消费方：
+ *   模块 1 Hero 双栏：`__hero` / `__hero-grid` / `__intro` / `__eyebrow` /
+ *                    `__title` / `__lead` / `__benefits` 及 benefit-* /
+ *                    `__tenant-note` / `__form-card`
+ *   模块 2 重点规划区域：`__regions-section` / `__section-header` /
+ *                    `__district-grid` / `__district-card` / `__district-header` /
+ *                    `__district-name` / `__district-status` / `__district-sub`
+ *   模块 3 平台实力背书数据：`__stats` / `__stat-item` / `__stat-number` / `__stat-label`
+ *   模块 4 底部双通道转化区：`__dual-actions` / `__action-panel(--tenant|--landlord)` /
+ *                    `__action-badge` / `__action-btn-wrap`
+ *   辅助入口：`__quick-links`
+ * 每一个都过了两道判据（**逐类名**，不是按标题边界整块删）：
+ *   ① 带边界的全仓 grep 零消费方（仅剩 recruit.css / RecruitHero 里几句解释旧形态的注释）；
+ *   ② 生产 server 上 `/city-partner`、`/hangzhou`、`/hangzhou/{listings,buildings}`
+ *      四条路由的 `querySelectorAll` 全为 0，且同轮对照选择器（`.rc-page` /
+ *      `.city-partner-form` / `.city-coming-soon`）> 0，证明扫描本身有效。
+ * 证据：`artifacts/verification/OPT-038/task6-dead-css-probe-{before,after}.json`。
+ *
+ * **没有删的三个**（判据未同时满足，一律保留）：
+ *   - `.city-coming-soon`（根节点仍在 DOM，只是被 recruit.css 复位成透明块）；
+ *   - `.city-coming-soon__media`（`ComingSoonCityView.tsx:104` 的 backdrop 插槽；
+ *     运行时命中数是 0，但那只是本地库里没有城市填了 `hero.media`——
+ *     grep 有源码消费方即保留，与 `.amap-layer` 那次正好互为镜像）；
+ *   - `.city-coming-soon__embedded-form`（城市路由那份表单的 className，仍在 DOM）。
+ * ========================================================================== */
 
 .city-coming-soon__media {
   position: absolute;
@@ -5197,136 +5162,6 @@ ol {
   opacity: .18;
   pointer-events: none;
   border-radius: var(--radius-lg);
-}
-
-.city-coming-soon__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4, 20px);
-}
-
-/* 与 .tag--copper 同一处理：原本是 #0071e3 蓝字压 #eaf2fb 蓝底（4.16:1，不达
-   AA），外面还套着一圈 #d4b89b——`--color-copper-border` 从未在 :root 声明，
-   行内 fallback 恒生效，等于把退役的棕褐色板留在了一条活路由上
-   （七城里有六城走 ComingSoonCityView）。改零色相：白底 + 中性描边 + 主墨字，
-   16.83:1。`--color-copper-border` 也已在 §1.1b 显式声明为 --line-strong。
-   本段按 `tests/coming-soon-city-view.test.ts` 的约定只用 `--color-*` 别名名。 */
-.city-coming-soon__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-13, 13px);
-  font-weight: 600;
-  color: var(--color-ink);
-  background: var(--color-surface);
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  width: fit-content;
-  border: 1px solid var(--color-copper-border);
-}
-
-.city-coming-soon__title {
-  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
-  font-weight: 800;
-  line-height: 1.25;
-  color: var(--color-ink);
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.city-coming-soon__title span {
-  color: var(--color-copper);
-}
-
-.city-coming-soon__lead {
-  font-size: var(--fs-15, 15px);
-  color: var(--color-ink-2);
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* 赋能卡片列表 */
-.city-coming-soon__benefits {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__benefit-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3, 14px);
-  padding: var(--sp-3, 14px) var(--sp-4, 16px);
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.city-coming-soon__benefit-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-copper);
-}
-
-.city-coming-soon__benefit-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  color: var(--color-copper);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.city-coming-soon__benefit-content h3 {
-  font-size: var(--fs-14, 14px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 3px 0;
-}
-
-.city-coming-soon__benefit-content p {
-  font-size: var(--fs-13, 13px);
-  color: var(--color-muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* 租客快速提示入口 */
-.city-coming-soon__tenant-note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-forest-soft);
-  padding: var(--sp-3, 12px) var(--sp-4, 16px);
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-13, 13px);
-  color: var(--color-forest);
-  border-left: 3px solid var(--color-forest);
-}
-
-.city-coming-soon__tenant-note button {
-  color: var(--color-forest);
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: inherit;
-}
-
-/* Hero 右侧：内嵌表单卡片 */
-.city-coming-soon__form-card {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-5, 24px) var(--sp-4, 20px);
-  box-shadow: var(--shadow-md);
 }
 
 .city-coming-soon__embedded-form {
@@ -5348,232 +5183,14 @@ ol {
   margin: 0;
 }
 
-/* 模块 2: 重点规划区域 */
-.city-coming-soon__regions-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4, 20px);
-}
-
-.city-coming-soon__section-header h2 {
-  font-size: var(--fs-22, 22px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 4px 0;
-}
-
-.city-coming-soon__section-header p {
-  font-size: var(--fs-14, 14px);
-  color: var(--color-muted);
-  margin: 0;
-}
-
-.city-coming-soon__district-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__district-card {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3, 14px) var(--sp-3, 14px);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.city-coming-soon__district-card:hover {
-  border-color: var(--color-copper);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
-}
-
-.city-coming-soon__district-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.city-coming-soon__district-name {
-  font-size: var(--fs-14, 14px);
-  font-weight: 700;
-  color: var(--color-ink);
-}
-
-.city-coming-soon__district-status {
-  font-size: 11px;
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.city-coming-soon__district-sub {
-  font-size: var(--fs-12, 12px);
-  color: var(--color-muted);
-}
-
-/* 模块 3: 平台实力背书数据 */
-.city-coming-soon__stats {
-  background: linear-gradient(135deg, #1f2428 0%, #121417 100%);
-  color: #ffffff;
-  border-radius: var(--radius-lg);
-  padding: var(--sp-6, 36px) var(--sp-5, 28px);
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-4, 20px);
-  box-shadow: var(--shadow-lg);
-}
-
-.city-coming-soon__stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-left: 2px solid rgba(164, 111, 63, 0.45);
-  padding-left: var(--sp-3, 14px);
-}
-
-.city-coming-soon__stat-number {
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 800;
-  color: #ffffff;
-  line-height: 1;
-}
-
-.city-coming-soon__stat-number span {
-  color: var(--color-copper);
-  font-size: 0.7em;
-  margin-left: 2px;
-}
-
-.city-coming-soon__stat-label {
-  font-size: var(--fs-13, 13px);
-  color: #a0a6b1;
-}
-
-/* 模块 4: 底部双通道转化区 */
-.city-coming-soon__dual-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-5, 24px);
-}
-
-.city-coming-soon__action-panel {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-5, 28px) var(--sp-4, 22px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--sp-4, 18px);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.city-coming-soon__action-panel::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-}
-
-.city-coming-soon__action-panel--tenant::before {
-  background: var(--color-copper);
-}
-
-.city-coming-soon__action-panel--landlord::before {
-  background: var(--color-forest);
-}
-
-.city-coming-soon__action-badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  width: fit-content;
-  margin-bottom: 8px;
-}
-
-.city-coming-soon__action-panel--tenant .city-coming-soon__action-badge {
-  background: var(--color-copper-soft);
-  color: var(--color-copper);
-}
-
-.city-coming-soon__action-panel--landlord .city-coming-soon__action-badge {
-  background: var(--color-forest-soft);
-  color: var(--color-forest);
-}
-
-.city-coming-soon__action-panel h3 {
-  font-size: var(--fs-18, 18px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 6px 0;
-}
-
-.city-coming-soon__action-panel p {
-  font-size: var(--fs-14, 14px);
-  color: var(--color-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.city-coming-soon__action-btn-wrap > .btn,
-.city-coming-soon__action-btn-wrap button {
-  min-height: 44px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 辅助入口 */
-.city-coming-soon__quick-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__quick-links > .btn {
-  min-height: 44px;
-}
-
-@media (max-width: 900px) {
-  .city-coming-soon__hero-grid {
-    grid-template-columns: 1fr;
-  }
-  .city-coming-soon__stats {
-    grid-template-columns: 1fr 1fr;
-    padding: var(--sp-5, 24px) var(--sp-4, 18px);
-  }
-  .city-coming-soon__dual-actions {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 767px) {
   .city-coming-soon {
     gap: var(--sp-5, 28px);
     padding-inline: var(--sp-3, 12px);
   }
-  .city-coming-soon__quick-links > .btn {
-    flex: 1 1 100%;
-  }
 }
-
-@media (max-width: 600px) {
-  .city-coming-soon__stats {
-    grid-template-columns: 1fr;
-  }
-}
+/* OPT-038 Task 6：原 `@media (max-width: 600px)` 整块只含模块 3 的 `__stats`
+   一条，随模块 3 一并摘除。（此处刻意只写后缀不写全类名：
+   `coming-soon-city-view.test.ts` 有一条 `not.toContain` 的回归守卫，
+   注释里写全名会把守卫变成永远命中自己。） */
 
