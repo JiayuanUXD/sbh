@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
+import RecruitHero from '@/components/frontend/city-partner/RecruitHero'
+
 /**
  * OPT-038 城市招募页组件预览（仅开发环境）
  *
@@ -101,26 +103,46 @@ export default function Opt038PreviewPage() {
           OPT-038 城市招募页组件预览
         </h1>
         <p style={{ margin: 0, fontSize: 15, lineHeight: 1.47, color: 'var(--ink-2)' }}>
-          仅开发环境可见。当前只有 Task 1 的骨架与容器层：容器 <code>1024</code>、正文栏宽上限{' '}
-          <code>702</code>、方案 A 两栏 <code>552 / 400</code> 列间 <code>72</code>、
-          section padding-block <code>72</code>（段间 <code>144</code>）、表单卡{' '}
-          <code>sticky top 68</code>。虚线框是留给 Task 2–5 的槽位。
+          仅开发环境可见。Task 1 骨架：容器 <code>1024</code>、正文栏宽上限 <code>702</code>、
+          方案 A 两栏 <code>552 / 400</code> 列间 <code>72</code>、section padding-block{' '}
+          <code>72</code>（段间 <code>144</code>）、表单卡 <code>sticky top 68</code>。
+          Task 2 起 Hero 已是真组件（三档文案并排）。虚线框是留给 Task 3–5 的槽位。
+          本页会出现多个 <code>h1</code>（外壳一个 + 每档 Hero 一个），
+          这是并排预览的必然结果，<strong>不是</strong>真实路由的形态——
+          真实页面每页只有一个 h1（<code>tests/city-partner-page-seo.test.ts:37</code> 锁着）。
         </p>
       </div>
 
       <PreviewSection
-        id="rc-skeleton-hero"
-        title="骨架 · Hero 段（.rc-section）"
-        note="白底（本项目 --bg-subtle）· padding-block var(--pad)=72 · 容器 .rc-container 宽 min(1024, 100% - 32px) · 副标受 .rc-measure(702) 约束"
+        id="rc-hero-city"
+        title="Hero · 城市面文案（RecruitHero）"
+        note="白底（本项目 --bg-subtle）· padding-block 72 · 眉标 pill 12/500 零色相 · h1 56/600/1.07/normal（≤767 收 40）· 副标 21/400/1.38/+0.011em 且受 .rc-measure(702) 约束。⚠️ 眉标没有「第 N 城」：序数在数据链路里不存在，理由见 RecruitHero.tsx 的 RECRUIT_HERO_EYEBROW 注释。"
       >
-        <div className="rc-section">
-          <div className="rc-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <Slot label="Task 2 · 眉标 pill + h1 56/600/1.07 + 副标 21/400/1.38/+0.011em" minHeight={140} />
-            <div className="rc-measure" style={{ width: '100%' }}>
-              <Slot label=".rc-measure · 正文栏宽上限 702（行长约束，与容器 1024 是两件事）" minHeight={56} />
-            </div>
-          </div>
-        </div>
+        <RecruitHero
+          titleId="rc-hero-city-title"
+          title="商办租赁即将登陆杭州，诚邀本地城市合伙人"
+          subtitle="面向资深经纪人、本地商办代理机构、园区与楼宇运营方开放合作席位。"
+        />
+      </PreviewSection>
+
+      <PreviewSection
+        id="rc-hero-neutral"
+        title="Hero · 全局面文案 + 超长城市名（RecruitHero）"
+        note="/city-partner 是全局 canonical，默认城市已开通，文案走中性口径。这里同时压一条最长城市名（乌鲁木齐）看标题折行：text-wrap: balance 自动配平，不依赖稿子里那个手写 <br>。"
+      >
+        <RecruitHero
+          titleId="rc-hero-neutral-title"
+          title="商办租赁诚邀乌鲁木齐本地城市合伙人"
+          subtitle="面向资深经纪人、本地商办代理机构、园区与楼宇运营方开放合作席位。"
+        />
+      </PreviewSection>
+
+      <PreviewSection
+        id="rc-hero-minimal"
+        title="Hero · 空态（无副标 / 无眉标）"
+        note="副标缺失整段不渲染、眉标传空串整体去掉 pill——不留空行占位，也不塞占位文案。"
+      >
+        <RecruitHero titleId="rc-hero-minimal-title" title="诚邀本地城市合伙人" eyebrow="" />
       </PreviewSection>
 
       <PreviewSection

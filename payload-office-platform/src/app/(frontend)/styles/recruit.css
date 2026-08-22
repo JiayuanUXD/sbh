@@ -124,16 +124,72 @@
  * 字面量会让 `--header-height` 与本行成为同一个高度的两个事实源。 */
 .rc-aside { position: sticky; top: calc(var(--header-height) + 24px); }
 
+/* ── Hero（Task 2） ───────────────────────────────────────────────────────
+ * 稿子 city招募页.dc.html:66-70：容器内 flex 纵向、居中，眉标→标题、标题→副标
+ * 的间距都是 24（稿子写成两条 `margin: 24px 0 0`）。两处同值 → 收成一条 `gap`，
+ * 不写两条 margin：同一个数字不该有两个落点。24 = 既有 token `--sp-5`。
+ *
+ * Hero 段的底色由 `.rc-section` 给（白 = 本项目 `--bg-subtle`）。
+ * ⚠️ 稿子那行写的是 `background: var(--bg)`——**别照抄 token 名**，
+ * 稿子的 `--bg` 是白、本项目的 `--bg` 是灰，见文件头。 */
+.rc-hero { display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); }
+
+/* 眉标 pill（稿子:68）。零色相：`--ink-2`(#6e6e73) 与 `--bg`(#f5f5f7) 都是中性灰，
+   全段不含任何彩色 token。底色用 `--bg`——**这是稿子的 `--bg-subtle`(#f5f5f7)
+   按颜色映射过来的**，即「白底带上的一块浅灰」，不是按名字抄的。
+   圆角走 `--r-pill`(980px)，不是 1.7 圆角家族的 `--radius-pill`(999px)
+   （detail.css:861-863 记的就是这两个 token 同页并存那次）。
+   padding 4/10 与 specRows「状态标签」行同值——那行本批不落地
+   （工作项 §3.3：商圈状态标签整条链路缺维度），所以不存在需要收敛的第二处。 */
+.rc-hero__eyebrow {
+  font-size: 12px; font-weight: 500; color: var(--ink-2);
+  background: var(--bg); border-radius: var(--r-pill); padding: 4px 10px;
+}
+
+/* 标题：56 / 600 / 1.07 / letter-spacing normal（specRows「Hero 标题」）。
+ * max-width 900 是稿子:69 的显式取值，介于 `--measure`(702) 与容器(1024) 之间，
+ * 全站没有对应 token，按字面写并在此标注来源。
+ *
+ * `text-wrap: balance` 替代稿子里那个手写 `<br>`：标题含城市名、由 DTO 驱动，
+ * 「杭州」与「乌鲁木齐」长度差 3 个字，写死断点必有一边崩。balance 让两行长度
+ * 自动配平，得到与稿子同样的两行观感，且短标题时自动退回一行。
+ * styles.css:256/262/4664 已在用同一属性，不是本页新造的机制。 */
+.rc-hero__title {
+  margin: 0; max-width: 900px;
+  font-size: 56px; font-weight: 600; line-height: 1.07; letter-spacing: normal;
+  text-align: center; text-wrap: balance; color: var(--ink);
+}
+
+/* 副标：21 / 400 / 1.38 / **+0.011em**（specRows「Hero 副标」）。
+ * 这是全站唯一允许非 normal 字距的档位——21px 拉丁/中文混排在这个字号上
+ * 需要一点额外字距才不糊；其余中文一律 `letter-spacing: normal`。
+ * 与首页 `.hm-hero__lead`（home.css:137-138）同参数，两页 Hero 副标是同一档。
+ * 宽度上限不写在这里：节点上挂 `.rc-measure`（702），与商圈段引导语共用同一条。 */
+.rc-hero__lead {
+  margin: 0;
+  font-size: 21px; font-weight: 400; line-height: 1.38; letter-spacing: 0.011em;
+  text-align: center; text-wrap: pretty; color: var(--ink-2);
+}
+
 /* ── 断点 ─────────────────────────────────────────────────────────────────
  * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
  * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成
  * 逐字换行。
  *
- * 移动（≤767）**不需要**再改 section padding 或左右留白，这里不写空规则：
+ * 移动（≤767）**不改** section padding 与左右留白（Task 1 结论，仍成立）：
  *   - 稿子「移动 section padding 72」与桌面选定的 --pad(72) 恰好相同；
  *   - 稿子「左右 16」已由 `.rc-container` 的 `100% - 32px` 在所有断点满足。
- * 写一条改不动任何值的媒体查询，只会让后来者以为这里有一档移动覆写。 */
+ * 下面这档 767 是 Task 2 起的，**只为标题字号一条**，别往里塞改不动值的规则。 */
 @media (max-width: 1023px) {
   .rc-core { grid-template-columns: minmax(0, 1fr); row-gap: 48px; }
   .rc-aside { position: static; }
+}
+
+/* 标题在移动端收到 40：稿子没给移动字号，但 56px 落在 343 宽的容器里，
+   最长的城市名（乌鲁木齐）会把首行顶成逐字换行。取 40 而不是自选一档，
+   是照首页 Hero 的既有断点（home.css:143-145 `.hm-hero__title` 56 → 40）——
+   两页 Hero 是同一档排版，移动端也该同步，否则同一个视觉层级出现两种缩法。
+   副标 21 不缩，同 `.hm-hero__lead`（首页移动端也保持 21）。 */
+@media (max-width: 767px) {
+  .rc-hero__title { font-size: 40px; }
 }
