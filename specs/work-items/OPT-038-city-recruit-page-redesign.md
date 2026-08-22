@@ -78,6 +78,13 @@ focus 为 accent 边框 + `0 0 0 4px rgba(0,113,227,.18)`；主 CTA pill 高 44 
 - **城市路由**（`ComingSoonCityView`，未开通城市）→ 城市专属语气「即将登陆{城市}」+ 该城 `featuredRegions`
 - **`/city-partner`**（全局，canonical 无 query，默认城市是**已开通的上海**）→ 中性文案 + 表单内城市选择器
 
+### 3.5.1 sticky 的实际生效条件（Task 3 实测）
+
+只有 3 条价值点时，1440 下**表单卡（735）高于左栏（533）**，可移动余量为负 ⇒ **sticky 不粘附**。
+**这不是 bug，是 sticky 的定义**——左栏比卡短时，表单本来就全程在视线里，方案 A 的目标已达成。
+**裁定：不得为了「让 sticky 生效」而编造左栏内容。** Task 5 四断点自读时评估这段留白是否读起来失衡；
+若失衡，修法是纵向对齐/间距，**不是加内容**。
+
 ### 3.6 移动
 section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
 
@@ -113,6 +120,12 @@ section padding 72 · 左右 16。两栏塌单栏，表单卡取消 sticky。
 2. **改视口必须 reload 再测量**：只 `resize_window` 不刷新，`100vw` 出血层保持旧视口宽，
    会读出「375 视口 / section 宽 1440 / scrollWidth 908」整套假数——
    Task 2 第一次量 375 差点当成 533px 的真溢出 bug。
+3. **pane 不合成帧时（`visibilityState === 'hidden'`）CSS transition 冻结在起始值**，
+   `getComputedStyle` 读 focus / hover 这类过渡态会读出**基态假象**——
+   Task 3 差点据此去改选择器特异度。测量过渡态前先置 `transition: none`。
+4. **在窄作用域覆写基态会静默打断既有状态链**：`.rc-page .city-partner-form input` 是 (0,3,0)，
+   而 `styles.css` 的 `:hover` 是 (0,2,0)、`--invalid` 是 (0,1,0) ——
+   覆写基态后这两个状态**静默失效**。凡在新作用域覆写基态，必须**同作用域重述整条状态链**。
 
 ## 6. 验收
 
