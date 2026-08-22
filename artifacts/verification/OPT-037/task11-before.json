@@ -1,0 +1,661 @@
+{
+  "tag": "before2",
+  "shots": [
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 332
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 219
+        },
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 121
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 106
+        },
+        {
+          "sel": "span.location-panel__poi-tab-icon",
+          "over": 53
+        },
+        {
+          "sel": "svg",
+          "over": 53
+        }
+      ],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": {
+        "w": 208,
+        "right": 264
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 277
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 164
+        },
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 66
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 51
+        }
+      ],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": {
+        "w": 263,
+        "right": 319
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": {
+        "w": 656,
+        "right": 712
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": {
+        "w": 696,
+        "right": 866
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 956
+        },
+        {
+          "sel": "a.nearby-strip__card",
+          "over": 956
+        },
+        {
+          "sel": "span.nearby-strip__placeholder",
+          "over": 956
+        },
+        {
+          "sel": "span.nearby-strip__name",
+          "over": 956
+        },
+        {
+          "sel": "span.nearby-strip__meta",
+          "over": 956
+        },
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 744
+        }
+      ],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 901
+        },
+        {
+          "sel": "a.nearby-strip__card",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__placeholder",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__name",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__meta",
+          "over": 901
+        },
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 689
+        }
+      ],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 508
+        },
+        {
+          "sel": "a.nearby-strip__card",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__placeholder",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__name",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__meta",
+          "over": 508
+        },
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 296
+        }
+      ],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": "32px",
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 121
+        },
+        {
+          "sel": "span.location-panel__poi-tab-icon",
+          "over": 53
+        },
+        {
+          "sel": "svg",
+          "over": 53
+        },
+        {
+          "sel": "path",
+          "over": 51
+        },
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 15
+        }
+      ],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 66
+        }
+      ],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "devstory-opt037",
+      "url": "/dev-story/opt037",
+      "width": 320,
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "case": "devstory-opt037",
+      "url": "/dev-story/opt037",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "case": "devstory-opt037",
+      "url": "/dev-story/opt037",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    },
+    {
+      "case": "devstory-opt037",
+      "url": "/dev-story/opt037",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "heroSummaryPadding": null,
+      "keyspecsBox": null,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ]
+    }
+  ],
+  "scan": [
+    {
+      "url": "/",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__popular": 1,
+        ".hero-summary": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 4,
+        ".nearby-strip-wrap": 1
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__popular": 1,
+        ".hero-summary": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 4,
+        ".nearby-strip-wrap": 1
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/news",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/news",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/entrust",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/entrust",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/publish",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/publish",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/sale",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/sale",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt036",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt036",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt037",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt037",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__popular": 1,
+        ".hero-summary": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 4,
+        ".nearby-strip-wrap": 1,
+        ".dev-story-banner": 1
+      }
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__popular": 1,
+        ".hero-summary": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 4,
+        ".nearby-strip-wrap": 1,
+        ".dev-story-banner": 1
+      }
+    }
+  ],
+  "selectorTotals": {
+    ".detail__summary": 0,
+    ".detail__decision": 0,
+    ".detail-section__header": 0,
+    ".detail-section__summary": 0,
+    ".detail-v2__titlebar": 0,
+    ".detail-v2__titlebar-actions": 0,
+    ".detail-v2__hero": 0,
+    ".detail-v2__supply": 0,
+    ".detail-v2__supply-main": 0,
+    ".detail-v2__subsection-title": 0,
+    ".detail-v2__features-body": 0,
+    ".detail-v2__location-band": 0,
+    ".hero-summary__facts": 0,
+    ".detail-side-rail__popular": 4,
+    ".hero-summary": 4,
+    ".detail-side-rail": 4,
+    ".detail-side-rail__card": 16,
+    ".nearby-strip-wrap": 4,
+    ".dev-story-banner": 2
+  }
+}

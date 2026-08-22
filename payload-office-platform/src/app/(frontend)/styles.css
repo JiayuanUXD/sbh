@@ -14,43 +14,68 @@
  * --------------------------------------------------------------------------- */
 
 :root {
-  /* 1.1 颜色 token（design.md §6.2） */
-  --color-ink: #171a1d;        /* 主文字、深色区块 */
-  --color-ink-2: #3a3f46;      /* 次级文字 */
-  --color-muted: #6b7079;      /* 辅助文字 */
-  --color-paper: #f5f1e8;      /* 品牌浅底 */
-  --color-canvas: #fcfbf8;     /* 页面背景 */
-  --color-surface: #ffffff;    /* 提亮面：卡片/表单控件/弹层，纯白以区别于奶油画布 */
-  --color-line: #d5d0c7;       /* 分隔、输入边界 */
-  --color-line-strong: #b8b1a3;
-  --color-copper: #a46f3f;     /* 主强调、关键 CTA */
-  --color-copper-hover: #8d5d30;
-  --color-copper-soft: #e8d9c5;
-  --color-forest: #1f5a50;     /* 状态、辅助强调 */
-  --color-forest-soft: #d2e0db;
-  --color-danger: #b0443c;     /* 错误 */
-  --color-danger-soft: #f7e0dc; /* F7.3：调浅以保证 danger 文字对比度 ≥ 4.5:1（WCAG AA） */
-  --color-warn: #b88636;
-  --color-on-copper: #fff8ef;  /* 铜色背景上的文字 */
-  --color-on-forest: #f0f7f4;
-  --color-on-ink: #f7f5f0;
+  /* 1.1 新视觉系统（OPT-035，依据 docs/SBH设计任务讨论/首页.dc.html 已锁定稿） */
+  --bg: #f5f5f7;            /* 全局底色 */
+  --bg-subtle: #ffffff;     /* 白底带、卡片 */
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #86868b;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-link: #0066cc;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --on-accent: #ffffff;
+  --error: #bf4800;
+  --warning: #b25000;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --focus-ring: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  --pad: 72px;              /* section padding-block（每侧） */
+  --gap: 144px;             /* section 之间总留白 = 2×pad */
+  --w: 1180px;              /* 内容容器 */
+  --measure: 702px;         /* 正文栏宽上限 */
+  --r-card: 18px;
+  --r-ctrl: 12px;
+  --r-input: 8px;
+  --r-pill: 980px;
+  --header-height: 44px;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --header-blur: saturate(1.8) blur(20px);
+  --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+  --font: "SF Pro Text", -apple-system, "Helvetica Neue", var(--font-cn);
 
-  /* 1.2 字体 token（design.md §6.3）
-   *   --font-display: 中文展示（思源宋体 SC）
-   *   --font-sans:    中文正文/界面（思源黑体 SC）
-   *   --font-numeric: 数字与英文（IBM Plex Sans）
-   * 通过 next/font 在 layout 注入 CSS 变量；未注入时回退到系统字体栈。
-   */
-  /* next/font 目前未注入 --font-source-han-* / --font-ibm-plex，
-     var() 无兜底会让整条声明失效并落到 Times New Roman（中文站用西文
-     衬线渲染汉字）。给每个变量补同族兜底：变量将来注入时照常优先生效。 */
-  --font-display: var(--font-source-han-serif, "Songti SC"), "Songti SC", "STSong",
-    "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
-  --font-sans: var(--font-source-han-sans, "PingFang SC"), -apple-system, BlinkMacSystemFont,
-    "PingFang SC", "Microsoft YaHei", "Source Han Sans SC",
-    "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
-  --font-numeric: var(--font-ibm-plex, "IBM Plex Sans"), "IBM Plex Sans", ui-sans-serif, system-ui,
-    "SF Pro Text", "Segoe UI", sans-serif;
+  /* 1.1b 兼容别名：内页旧引用零改动继承新色板；后续页面改版逐步淘汰 */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--ink-3);
+  --color-paper: var(--bg);
+  --color-canvas: var(--bg);
+  --color-surface: var(--bg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-copper: var(--accent);
+  --color-copper-hover: var(--accent-hover);
+  --color-copper-soft: #eaf2fb;   /* 蓝的浅底版，替代铜色软底 */
+  /* 下面两个别名过去只以「行内 fallback」形式出现（`var(--x, #d4b89b)` /
+     `var(--x, #f0ede6)`），:root 里从未声明 → fallback 恒生效，退役的棕褐/奶油
+     色板会从旧代码里复活。显式映射到中性 token，杜绝这条复活路径。 */
+  --color-copper-border: var(--line-strong);
+  --color-canvas-subtle: var(--bg);
+  --color-forest: var(--ink);     /* 新体系无第二彩色，降级为墨色 */
+  --color-forest-soft: var(--bg);
+  --color-danger: var(--error);
+  --color-danger-soft: #f7e3d8;
+  --color-warn: var(--warning);
+  --color-on-copper: #ffffff;     /* 原 #fff8ef 在 #0071e3 上 4.4:1 不到 AA */
+  --color-on-forest: #ffffff;
+  --color-on-ink: #f5f5f7;
+  --font-display: var(--font);    /* 宋体退场 */
+  --font-sans: var(--font);
+  --font-numeric: var(--font);
 
   /* 1.3 字号 token（design.md §6.3：H1 流体，正文最小 16px） */
   --fs-12: 0.75rem;   /* 12 */
@@ -289,20 +314,22 @@ ol {
  * --------------------------------------------------------------------------- */
 
 .site-header {
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-canvas);
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  backdrop-filter: saturate(180%) blur(8px);
-  transition: background-color var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard);
+  height: var(--header-height);
+  background: var(--header-bg);
+  /* 手写 -webkit-backdrop-filter 兄弟声明会被构建管线（lightningcss）连同
+     unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
+     构建工具按 browserslist 目标自动补齐 */
+  backdrop-filter: var(--header-blur);
+  border-bottom: none;
+  transition: background var(--duration-base) var(--ease);
 }
 
 /* 首页首屏透明压视频（仅 SiteHeader 在首页未滚动时加此类） */
 .site-header--transparent {
   background: transparent;
-  border-bottom-color: transparent;
   backdrop-filter: none;
 }
 
@@ -345,7 +372,7 @@ ol {
   gap: var(--sp-1);
   min-height: var(--touch-target);
   padding: var(--sp-1) var(--sp-2);
-  color: var(--color-ink);
+  color: var(--ink);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -360,7 +387,7 @@ ol {
 
 .city-switcher__trigger:hover {
   background: var(--color-copper-soft);
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__trigger--static {
@@ -387,16 +414,16 @@ ol {
 
 .city-switcher__status,
 .mobile-drawer__city-status {
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
 .city-switcher__status--live {
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__status--coming-soon {
-  color: var(--color-muted);
+  color: var(--ink-3);
 }
 
 .city-switcher__menu {
@@ -406,9 +433,9 @@ ol {
   z-index: var(--z-floating);
   min-width: 196px;
   padding: var(--sp-2);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--bg-subtle);
   box-shadow: var(--shadow-md);
 }
 
@@ -420,7 +447,7 @@ ol {
   min-height: var(--touch-target);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-sm);
-  color: var(--color-ink);
+  color: var(--ink);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -433,7 +460,7 @@ ol {
 
 .city-switcher__check {
   flex-shrink: 0;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__option:hover,
@@ -449,21 +476,19 @@ ol {
 }
 
 .site-header__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-3) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4);
-  min-height: 56px;
 }
 
 .site-logo {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 700;
-  color: var(--color-ink);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
   letter-spacing: 0.04em;
   white-space: nowrap;
   touch-action: manipulation;
@@ -472,7 +497,7 @@ ol {
 
 .site-logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .site-nav {
@@ -492,7 +517,7 @@ ol {
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target);
-  color: var(--color-muted);
+  color: var(--ink);
   font-size: var(--fs-14);
   padding: var(--sp-2) 0;
   position: relative;
@@ -502,7 +527,7 @@ ol {
 }
 
 .site-nav__link:hover {
-  color: var(--color-ink);
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -513,7 +538,7 @@ ol {
   right: 0;
   bottom: -4px;
   height: 2px;
-  background: var(--color-copper);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--duration-base) var(--ease-standard);
@@ -525,7 +550,7 @@ ol {
 }
 
 .site-nav__link[aria-current="page"] {
-  color: var(--color-ink);
+  color: var(--ink);
 }
 
 /* 移动端菜单触发器（F2.2 移动菜单实现） */
@@ -535,7 +560,7 @@ ol {
   justify-content: center;
   width: var(--touch-target);
   height: var(--touch-target);
-  color: var(--color-ink);
+  color: var(--ink);
   border-radius: var(--radius-sm);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -562,10 +587,10 @@ ol {
   }
 }
 
-/* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
+/* 顶部 CTA 用 btn--sm，避免撑高 44px 头部 */
 .site-header__actions .btn--sm {
   white-space: nowrap;
-  /* 44px 触控目标，恰好不撑高 56px 头部 */
+  /* 44px 触控目标 = 头部高度，撑满而不溢出 */
   min-height: var(--touch-target);
 }
 
@@ -576,20 +601,20 @@ ol {
   min-height: 60vh;
 }
 
-.site-main--narrow {
-  max-width: 960px;
-}
 
 .site-footer {
-  border-top: 1px solid var(--color-line);
-  background: var(--color-paper);
+  border-top: 1px solid var(--line);
+  background: var(--bg);
   margin-top: var(--sp-8);
 }
 
+/* 设计稿（首页.dc.html）页脚是单行示意（logo + 版权 + 三条法务链接）。
+   真实页脚需要承担 SEO/法务导航职责，保留现有多列栏目结构（品牌 + 浏览/按类型/服务），
+   仅将视觉体系（底色/边线/字色/容器宽度）对齐设计稿，属有意偏差。 */
 .site-footer__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-7) var(--sp-5);
   display: grid;
   /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
@@ -604,21 +629,21 @@ ol {
 }
 
 .site-footer__logo {
-  font-family: var(--font-display);
+  font-family: var(--font);
   font-size: var(--fs-20);
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--ink);
   letter-spacing: 0.04em;
 }
 
 .site-footer__logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent-link);
 }
 
 .site-footer__tagline {
   font-size: var(--fs-13);
-  color: var(--color-muted);
+  color: var(--ink-3);
   line-height: var(--lh-relaxed);
   max-width: 360px;
 }
@@ -639,7 +664,8 @@ ol {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-copper);
+  /* 栏目标题是真实导航内容，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+  color: var(--ink-2);
 }
 
 .site-footer__links {
@@ -653,27 +679,27 @@ ol {
 
 .site-footer__link {
   font-size: var(--fs-14);
-  color: var(--color-ink-2);
+  color: var(--ink-2);
 }
 
 .site-footer__link:hover {
-  color: var(--color-copper);
+  color: var(--accent-link);
   text-decoration: none;
 }
 
 .site-footer__bar {
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--line);
 }
 
 .site-footer__bar-inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-4) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-4);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--sp-2);
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
@@ -838,15 +864,9 @@ ol {
   transform: scale(1.03);
 }
 
-/* F-023: 暂无在租楼盘卡片降饱和、价格文字弱化，与在租卡片区分 */
-.building-card--vacant .listing-card__media img {
-  filter: grayscale(0.6);
-  opacity: 0.85;
-}
-
-.building-card--vacant .price {
-  color: var(--color-muted);
-}
+/* F-023 的 .building-card--vacant grayscale 方案已随 BuildingListCard.tsx
+   在 OPT-036 Task 13 删除——「暂无在租」楼盘现改走 BuildingCompactRow 的
+   独立紧凑行分组，不再对同一张卡片做降饱和处理，故规则一并移除。 */
 
 .listing-card__body {
   padding: var(--sp-4);
@@ -857,13 +877,6 @@ ol {
   min-width: 0;
 }
 
-.listing-card__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-18);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-}
 
 .listing-card__title {
   font-size: var(--fs-18);
@@ -912,17 +925,24 @@ ol {
   color: var(--color-ink);
 }
 
+/* 与 .tag--copper 同一处理（见下方注释）：蓝底蓝字 4.16:1 不达 AA，且标签徽章
+   不用彩色。改零色相——中灰底 + 主墨字，15.46:1。 */
 .tag--lg:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--bg);
   text-decoration: none;
 }
 
+/* Task 1 别名映射把旧铜色标签映射到蓝色（--color-copper-soft/-hover 现指向
+   #eaf2fb / #0077ed），蓝底蓝字只有 3.82:1，既不达 AA 也违反「标签不用彩色，
+   靠底色深浅和字重做层级」。改回零色相中性色：中灰底 + 二级墨色字，
+   与 .tag--forest（已是 ink/bg 中性组合）保持同一套零色相层级体系，
+   仅靠色深浅区分（forest 更深/copper 中等）。 */
 .tag--copper {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--ink-2);
 }
 
 .tag--forest {
@@ -932,33 +952,14 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 9. 筛选条 FilterBar（design.md §6.4）
+ * 9. 表单输入原语（design.md §6.4 遗留类名）
+ *
+ * 曾用于旧筛选条 FilterBar/MobileFilterDrawer/BuildingFilterBar（均已在
+ * OPT-036 Task 13 删除）。.filter-bar__input / .filter-bar__select 现为
+ * `components/frontend/ui/Field.tsx` 的 Input/Select/Textarea 复用的基础
+ * 类名（city-partner 表单、dev-story 表单走查等仍在用），不可删——
+ * FilterBar 专属的外层容器/字段组/抽屉等结构类名已随文件一并移除。
  * --------------------------------------------------------------------------- */
-
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  align-items: flex-end;
-  margin-bottom: var(--sp-5);
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-}
-
-.filter-bar__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.filter-bar__label {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  font-weight: 500;
-}
 
 .filter-bar__input,
 .filter-bar__select {
@@ -992,153 +993,6 @@ ol {
   background-repeat: no-repeat;
   background-position: right var(--sp-3) center;
   padding-right: var(--sp-6);
-}
-
-.filter-bar__rent-group {
-  display: flex;
-  gap: var(--sp-2);
-  align-items: center;
-}
-
-.filter-bar__rent-group .filter-bar__input {
-  width: 88px;
-}
-
-.filter-bar__hint {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  margin-top: var(--sp-1);
-}
-
-.filter-bar__hint--warn {
-  color: var(--color-warn);
-}
-
-.filter-bar__error {
-  width: 100%;
-  margin-top: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-13);
-}
-
-/* 桌面/移动筛选切换 */
-.filter-bar__desktop {
-  display: block;
-}
-
-.filter-bar__mobile {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .filter-bar__desktop {
-    display: none;
-  }
-  .filter-bar__mobile {
-    display: block;
-    margin-bottom: var(--sp-4);
-  }
-}
-
-.filter-bar__mobile-trigger {
-  width: 100%;
-  justify-content: center;
-}
-
-/* 移动端筛选抽屉 */
-.filter-drawer {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  /* 软键盘适配：使用 dvh 单位，回退到 vh */
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.filter-drawer__handle {
-  width: 40px;
-  height: 4px;
-  background: var(--color-line-strong);
-  border-radius: 2px;
-  margin: var(--sp-2) auto var(--sp-1);
-}
-
-.filter-drawer__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--color-line);
-}
-
-.filter-drawer__title {
-  font-size: var(--fs-18);
-  font-weight: 600;
-  margin: 0;
-  outline: none;
-}
-
-.filter-drawer__close {
-  background: none;
-  border: none;
-  font-size: 28px;
-  line-height: 1;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: var(--sp-1) var(--sp-2);
-  border-radius: var(--radius-sm);
-}
-
-.filter-drawer__close:hover {
-  background: var(--color-paper);
-}
-
-.filter-drawer__close:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-
-.filter-drawer__form {
-  padding: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  flex: 1;
-  /* 软键盘弹出时让表单可滚动 */
-  min-height: 0;
-}
-
-.filter-drawer__form .filter-bar__field {
-  width: 100%;
-}
-
-.filter-drawer__form .filter-bar__rent-group .filter-bar__input {
-  flex: 1;
-  width: auto;
-}
-
-.filter-drawer__actions {
-  display: flex;
-  gap: var(--sp-3);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--color-line);
-  margin-top: auto;
-}
-
-.filter-drawer__submit {
-  flex: 1;
-}
-
-.listings-page__header {
-  margin-bottom: var(--sp-4);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1218,70 +1072,17 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 10.5 列表页优化（视图切换 + 横向卡片 + 标签筛选）
+ * 10.5 列表页优化（横向卡片 + 标签筛选）
+ *
+ * 视图切换器（.listings-grid / .view-switcher* / .card-grid--grid /
+ * .card-grid--list）随 ListingGrid.tsx / BuildingGrid.tsx 在 OPT-036 Task 13
+ * 一并删除——新列表页的视图切换改在 ResultToolbar/ListingResultRow 里做，
+ * 不复用这套旧类名。.listing-card--list 及其下方各条规则暂无当前调用方
+ * （旧 ListingGrid 是唯一传 view="list" 的调用点），但保留：ListingCard.tsx
+ * 本身仍声明并文档化 view 属性（楼盘详情页相关房源等场景可能复用），
+ * 删除 CSS 不会报错也不会被测试捕获，属于「静默破坏一个仍被保留文件的
+ * 公开能力」，故按任务说明「拿不准就留着」处理。
  * --------------------------------------------------------------------------- */
-
-/* 视图切换器 */
-.listings-grid {
-  margin-bottom: var(--sp-3);
-}
-
-.view-switcher {
-  display: flex;
-  gap: var(--sp-1);
-  margin-bottom: var(--sp-4);
-  padding: 3px;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  width: fit-content;
-}
-
-.view-switcher__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  min-height: var(--touch-target);
-  padding: var(--sp-1) var(--sp-3);
-  border: none;
-  background: transparent;
-  color: var(--color-muted);
-  font-size: var(--fs-13);
-  border-radius: calc(var(--radius-md) - 2px);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
-}
-
-.view-switcher__btn:hover {
-  color: var(--color-ink);
-}
-
-.view-switcher__btn.is-active {
-  background: var(--color-surface);
-  color: var(--color-ink);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-/* 网格视图 */
-.card-grid--grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--sp-5);
-}
-
-@media (min-width: 1024px) {
-  .card-grid--grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  }
-}
-
-/* 列表视图（横向卡片，单列） */
-.card-grid--list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
 
 .listing-card--list {
   flex-direction: row;
@@ -1324,56 +1125,19 @@ ol {
   white-space: nowrap;
 }
 
-.city-partner-page {
-  min-height: calc(100vh - var(--touch-target));
-  padding: var(--sp-8) var(--container-pad-x);
-  background:
-    linear-gradient(110deg, var(--color-paper) 0 44%, var(--color-canvas) 44% 100%);
-}
-
-.city-partner-page__intro {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(28rem, 1.2fr);
-  gap: var(--sp-8);
-  align-items: start;
-  max-width: 1180px;
-  margin-inline: auto;
-}
-
-.city-partner-page__copy {
-  position: sticky;
-  top: calc(var(--touch-target) + var(--sp-5));
-  padding-top: var(--sp-5);
-}
-
-.city-partner-page__eyebrow,
+/* OPT-038 Task 6：`.city-partner-page*` 整族已摘除（外壳类名换成 `.rc-page`，
+   Hero / 引导语 / 合规声明改由 `styles/recruit.css` 的 `.rc-*` 承载）。
+   两道判据都过：带边界 grep 零消费方（`city-partner-page` 的 7 处「命中」全是
+   `tests/city-partner-page-seo.test.ts` 这个**文件名**，不是类名），
+   且生产 server 上 4 条路由的 `querySelectorAll` 恒 0。
+   证据 `artifacts/verification/OPT-038/task6-dead-css-probe-{before,after}.json`。
+   `.city-partner-form__step` 留下了——它仍在 DOM 里（表单「第一步 · 必填」），
+   只是不再与已删的 `.city-partner-page__eyebrow` 共用同一条规则。 */
 .city-partner-form__step {
   color: var(--color-copper-hover);
   font-size: var(--fs-13);
   font-weight: 700;
   letter-spacing: 0.12em;
-}
-
-.city-partner-page h1 {
-  max-width: 8em;
-  margin: var(--sp-3) 0 var(--sp-5);
-  font-family: var(--font-display);
-  font-size: var(--fs-h1);
-  line-height: var(--lh-tight);
-}
-
-.city-partner-page__lead,
-.city-partner-page__note {
-  max-width: 34rem;
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
-
-.city-partner-page__note {
-  padding-left: var(--sp-4);
-  border-left: 3px solid var(--color-copper);
-  color: var(--color-muted);
-  font-size: var(--fs-14);
 }
 
 .city-partner-form,
@@ -1472,26 +1236,10 @@ ol {
   color: var(--color-muted);
 }
 
-@media (max-width: 1023px) {
-  .city-partner-page {
-    background: var(--color-canvas);
-  }
-
-  .city-partner-page__intro {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .city-partner-page__copy {
-    position: static;
-    padding: 0;
-  }
-}
+/* OPT-038 Task 6：原 `@media (max-width: 1023px)` 整块只含 `.city-partner-page*`
+   三条，随该族一并摘除（整块删是因为块内每一条都是死规则，不是按标题边界整块删）。 */
 
 @media (max-width: 640px) {
-  .city-partner-page {
-    padding: var(--sp-6) var(--sp-4);
-  }
-
   .city-partner-form,
   .city-partner-form__success {
     padding: var(--sp-4);
@@ -1598,295 +1346,18 @@ ol {
   transform: scale(1.05);
 }
 
-/* 筛选条：标签按钮式 */
-.filter-bar {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-}
-
-.filter-bar__row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
-
-.filter-bar__row-label {
-  flex: 0 0 auto;
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  min-width: 4em;
-}
-
-.filter-bar__row-label--unit {
-  margin-left: var(--sp-4);
-}
-
-.filter-bar__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-/* 更多筛选开关：默认收起快速筛选与数值字段，首屏结果优先 */
-.filter-bar__more {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  min-height: 44px;
-  padding: 0 var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--color-copper-hover);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard);
-}
-
-.filter-bar__more:hover {
-  border-color: var(--color-copper);
-  background: var(--color-copper-soft);
-}
-
-.filter-bar__more-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: var(--radius-pill);
-  background: var(--color-copper);
-  color: var(--color-on-copper);
-  font-size: var(--fs-12);
-  line-height: 1;
-}
-
-.filter-bar__more-chevron {
-  transition: transform var(--duration-fast) var(--ease-standard);
-}
-
-.filter-bar__more-chevron.is-open {
-  transform: rotate(180deg);
-}
-
-.filter-bar__advanced {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  width: 100%;
-}
-
-.filter-bar__advanced[hidden] {
-  display: none;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target);
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  font-size: var(--fs-13);
-  line-height: 1.4;
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    background-color var(--duration-fast) var(--ease-standard),
-    color var(--duration-fast) var(--ease-standard);
-}
-
-.filter-chip:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
-  text-decoration: none;
-}
-
-.filter-chip.is-active {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
-  font-weight: 500;
-}
-
-/* 数值字段表单 */
-.filter-bar__form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  align-items: flex-end;
-  padding-top: var(--sp-2);
-  border-top: 1px solid var(--color-line);
-  margin-top: var(--sp-1);
-}
-
-.filter-bar__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  min-width: 0;
-}
-
-.filter-bar__label {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.filter-bar__input {
-  padding: var(--sp-1) var(--sp-2);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-13);
-  background: var(--color-surface);
-  color: var(--color-ink);
-  min-width: 80px;
-}
-
-.filter-bar__input:focus {
-  outline: none;
-  border-color: var(--color-copper);
-  box-shadow: var(--shadow-focus);
-}
-
-.filter-bar__range {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
-
-.filter-bar__hint {
-  font-size: var(--fs-12);
-}
-
-.filter-bar__hint--warn {
-  color: var(--color-copper-hover);
-}
-
-.filter-bar__error {
-  font-size: var(--fs-12);
-  color: #c0392b;
-  margin: 0;
-}
-
-/* 分页计数 */
-.listings-page__count {
-  text-align: center;
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  margin: var(--sp-3) 0 0;
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-}
+/* 旧「筛选条：标签按钮式」（.filter-bar 重声明 / .filter-bar__row* /
+   .filter-bar__chips / .filter-bar__more* / .filter-bar__advanced /
+   .filter-chip* / .filter-bar__form / 第二套 .filter-bar__field|label|input|
+   range|hint|error）随 FilterBar.tsx / BuildingFilterBar.tsx 在 Task 13
+   一并删除——.filter-bar__input/.filter-bar__select 的通用输入框样式已上移
+   保留在本文件 §9，供 Field.tsx 的 Input/Select 复用，不在此重复定义。
+   .listings-page__count 已确认全仓库零引用（连旧组件都不再用），一并删除。 */
 
 /* ---------------------------------------------------------------------------
- * 11. 首页 Hero 与 section
+ * 11. 首页分区通用容器（.hero 及其子类已随旧首页组件删除，替代样式见 home.css .hm-hero；
+ *     .section / .section__title 仍被 entrust、news 详情页复用，保留）
  * --------------------------------------------------------------------------- */
-
-/* 首页 hero：全幅背景视频 + scrim + 居中内容（industriousoffice 风格）。
-   负边距抵消 .site-main 内边距并压到 sticky 导航（81px 高）下方，
-   100vw 出血到视口边缘（body 已 overflow-x: clip 防横向滚动条）。 */
-.hero {
-  position: relative;
-  min-height: min(88vh, 720px);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  margin: calc(-81px - var(--sp-6)) calc(50% - 50vw) 0;
-  padding: calc(81px + var(--sp-5)) var(--container-pad-x) var(--sp-7);
-  width: 100vw;
-  color: #fff;
-}
-
-.hero__bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.hero__poster,
-.hero__bg video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero__poster {
-  display: block;
-}
-
-.hero__bg video {
-  position: absolute;
-  inset: 0;
-}
-
-/* 文字对比度遮罩：用 --color-ink 同色系 rgba */
-.hero__scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(23, 26, 29, 0.3) 0%,
-    rgba(23, 26, 29, 0.45) 60%,
-    rgba(23, 26, 29, 0.55) 100%
-  );
-}
-
-.hero__inner {
-  position: relative;
-  z-index: 2;
-  max-width: var(--container-max);
-  margin: 0 auto;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-3);
-  text-align: center;
-}
-
-.hero__eyebrow {
-  color: rgba(255, 255, 255, 0.85);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-13);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.hero__heading {
-  margin: var(--sp-3) 0;
-  color: #fff;
-  font-size: clamp(2.4rem, 6vw, 4rem);
-  font-weight: 800;
-  line-height: var(--lh-tight);
-}
-
-.hero__summary {
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 760px;
-  margin: 0 auto var(--sp-5);
-  font-size: var(--fs-16);
-  line-height: var(--lh-relaxed);
-  white-space: nowrap;
-}
-
-/* 减少动态效果：隐藏视频，回退到 --color-ink 深底 */
-@media (prefers-reduced-motion: reduce) {
-  .hero__bg video {
-    display: none;
-  }
-  .hero__scrim {
-    background: var(--color-ink);
-  }
-}
 
 .section {
   margin-top: var(--sp-7);
@@ -1910,17 +1381,7 @@ ol {
   margin: var(--sp-5) 0;
 }
 
-.detail-hero {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: clamp(var(--sp-5), 3vw, var(--sp-7));
-  align-items: start;
-}
 
-.detail__overview {
-  grid-column: 1 / -1;
-  width: 100%;
-}
 
 .detail-gallery {
   grid-column: span 7;
@@ -2259,131 +1720,196 @@ ol {
 .detail-gallery__dialog-caption { font-size: var(--fs-14); }
 .detail-gallery__counter { font-size: var(--fs-13); }
 
-.detail-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-4);
-}
 
-.detail-facts__group h2,
 .detail__section h3 {
   margin: 0 0 var(--sp-2);
   color: var(--color-ink);
   font-size: var(--fs-16);
 }
 
-.detail-facts dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin: 0;
-}
 
-.detail-facts__item {
+
+
+
+
+
+
+
+/*
+ * 供给密度表（OPT-037 Task 7，方案 A：分组切换 + 密度表）。
+ * 尺寸对照 docs/SBH设计任务讨论/楼盘详情.dc.html 的 specRows：
+ *   组切换 pill 36 高 padding 0 18；组聚合区 3 列 gap 24 值 22/600；
+ *   筛选 pill 32 高 padding 0 14；供给行网格 1fr/130/150/176/120/44，
+ *   数值列右对齐 padding-right 24、月租列 17/600；表头 12/600/ink-3。
+ * 旧版面积/价格「分桶」（客户端 state，刷新即丢）已被组切换 + URL 驱动的
+ * 面积筛选 + 排序取代，样式随之整块重写而非局部打补丁。
+ */
+.building-supply-browser {
+  /* 密度表内层 .table-wrap 靠 overflow-x:auto 横向滚动收纳 920px min-width，
+   * 但只要本组件自己或任一祖先是 flex/grid item 且没有显式 min-width:0，
+   * flex/grid 的「内容最小尺寸默认取 min-content」规则就会把这层滚动容器的
+   * 内容宽度顶给外层——不管本组件用在哪个页面的哪层容器里都成立，因此把
+   * min-width:0 钉在组件自己的根选择器上，不依赖调用方每层都记得声明。 */
   min-width: 0;
 }
 
-.detail-facts dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
-
-.detail-facts dd {
-  margin: var(--sp-1) 0 0;
-  overflow-wrap: anywhere;
-}
-
-.detail-facts__estimated {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
-
-.detail__amenities {
+.building-supply-browser__tabs {
+  margin-top: 20px;
   display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.detail__amenities li {
-  padding: var(--sp-1) var(--sp-2);
-  background: var(--color-paper);
-  border-radius: var(--radius-sm);
+.building-supply-browser__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  background: var(--bg-subtle);
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.detail__top {
+/* 命中盒补到 44（36 + 4×2），理由同 .building-supply-browser__filter::after。 */
+.building-supply-browser__tab::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+.building-supply-browser__tab[data-active='true'] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.building-supply-browser__tab-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.66;
+}
+
+.building-supply-browser__panel {
+  margin-top: 12px;
+  background: var(--bg-subtle);
+  border-radius: var(--r-card);
+  padding: 32px;
+}
+
+.building-supply-browser__agg {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--sp-6);
-  align-items: start;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
 }
 
-.building-supply-browser__filters {
+.building-supply-browser__agg-item {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-3);
+  gap: 6px;
 }
 
-.building-supply-browser__bucket-group {
+.building-supply-browser__agg-label {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.building-supply-browser__agg-value-row {
   display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.building-supply-browser__agg-value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.building-supply-browser__agg-unit {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.building-supply-browser__controls {
+  padding: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
 }
 
-.building-supply-browser__bucket-label {
+.building-supply-browser__filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.building-supply-browser__filter-label {
   flex-shrink: 0;
-  font-size: var(--fs-13);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--color-ink-2);
+  color: var(--ink-2);
 }
 
-.building-supply-browser__bucket {
-  appearance: none;
+/* 视觉高度按稿子保持 32（组 tab 36），但**可点区域补到 44**：用 ::after 只在
+   纵向撑开命中盒（`inset: -6px 0`，32+12=44），不改任何可见尺寸，也不横向扩张
+   （左右为 0，相邻 pill 的命中盒因此不会互相覆盖）。二者不是二选一——照稿子给
+   视觉、按触控规范给命中区，比「为了 44 把 pill 撑高到不像稿子」或「为了像稿子
+   让触控目标停在 32」都好。 */
+.building-supply-browser__filter {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  min-height: var(--touch-target);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink-2);
-  font-size: var(--fs-13);
-  cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.building-supply-browser__bucket:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
+.building-supply-browser__filter::after {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
 }
 
-.building-supply-browser__bucket[data-active='true'],
-.building-supply-browser__bucket[aria-current='true'] {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
-  font-weight: 600;
+.building-supply-browser__filter[data-active='true'] {
+  background: var(--line);
+  color: var(--ink);
 }
 
-.building-supply-browser__bucket-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5em;
-  padding: 0 var(--sp-1);
-  font-size: var(--fs-12);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-muted);
+/* 排序控件本体复用房源列表页的 `.ls-toolbar__sort*`（见 BuildingSupplyBrowser.tsx
+   的注释），这里只负责它在筛选行里的定位；gap/对齐与 `.ls-toolbar__right` 一致，
+   不在两页之间造第二套间距。 */
+.building-supply-browser__sort {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.building-supply-browser__bucket[data-active='true'] .building-supply-browser__bucket-count,
-.building-supply-browser__bucket[aria-current='true'] .building-supply-browser__bucket-count {
-  color: var(--color-copper);
+.building-supply-browser__notice {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* 空态提示。「筛到空结果」时它位于聚合区 + 控件区之下（控件常驻，否则用户没有
+   入口取消刚点下的筛选）；「整段无供给」时它是 section 内唯一内容。 */
+.building-supply-browser__empty {
+  margin: 0;
+  padding: 24px 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  letter-spacing: normal;
 }
 
 .building-supply-browser__table-wrap {
@@ -2392,62 +1918,105 @@ ol {
 
 .building-supply-browser__table {
   width: 100%;
+  /* 定宽列改百分比而非 px（见 colgroup，BuildingSupplyBrowser.tsx）：曾经试过
+   * `min-width:920px`（130/150/176/120/44 定宽列合计 620 + 首列可读最小宽
+   * 300）配合 `.table-wrap` 的 overflow-x:auto 横向滚动兜底 768 断点，视觉效果
+   * 正确，但实测 `document.documentElement.scrollWidth` 仍会被顶宽（Chromium
+   * 对 table-layout:fixed + 显式 min-width 的表格，intrinsic size 计算会绕过
+   * overflow:auto/hidden 祖先——连 wrap 改 overflow-x:hidden 都拦不住，真实
+   * 页面出现可横向滚动的空白），attempts 见 task-7-report.md。改用百分比列宽
+   * 后各列按比例伸缩，没有任何显式 min-width/width 字面量超出容器，
+   * 不再触发这个逃逸，且比例在 1180 容器下与 px 版数值等价（496/1116≈44.5%
+   * 等），窄于卡片切换阈值（768）时也保持同一比例，不会被压成逐字换行。 */
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
-.building-supply-browser__table th,
-.building-supply-browser__table td {
-  padding: var(--sp-2);
-  border-bottom: 1px solid var(--color-line);
+.building-supply-browser__table thead th {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-strong);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
   text-align: left;
+}
+
+.building-supply-browser__table-num-head {
+  text-align: right;
+  padding-right: 24px;
+}
+
+/* 稿子 specRows 的「供给行 min-height 56」。表格里 min-height 对 td 无效，
+   行高只能挂在 tr 上——CSS 表格模型下 tr 的 height 语义本来就是「最小高度」，
+   内容更高时照常撑开。 */
+.building-supply-browser__table tbody tr {
+  height: 56px;
+}
+
+.building-supply-browser__table tbody td {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
   vertical-align: middle;
+  color: var(--ink);
 }
 
-/* 58 式表格：图 | 面积 | 单价 | 总价 | 特色 | 查看详情 */
-.building-supply-browser__table-thumb {
-  width: 88px;
+.building-supply-browser__table-primary {
+  display: block;
+  padding-right: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
-.building-supply-browser__table-thumb img,
-.building-supply-browser__table-thumb .media-placeholder {
-  width: 88px;
-  height: 66px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
+.building-supply-browser__table-sub {
+  display: block;
+  margin-top: 3px;
+  padding-right: 24px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 
-.building-supply-browser__table-area,
-.building-supply-browser__table-price,
+.building-supply-browser__table-num {
+  text-align: right;
+  padding-right: 24px;
+  font-size: 15px;
+}
+
 .building-supply-browser__table-total {
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-price {
-  color: var(--color-copper);
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
+  font-size: 17px;
   font-weight: 600;
 }
 
-.building-supply-browser__table-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
+.building-supply-browser__table-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  /* **刻意不加 `white-space: nowrap`**：状态列窄时「2026年10月15日」会断成两行，
+     看着不好看，但试过一次 nowrap，375 下的「无横向溢出」e2e 立刻红——窄屏首帧
+     （hydration 前 isMobile 仍是 false）渲染的是密度表，不可断行的日期会把表格的
+     min-content 宽度顶上去，正是 Task 7 报告里那条「表格内在宽度绕过 overflow
+     祖先」的同一个坑。断两行只是难看，页面级横向滚动是真缺陷，不换。 */
+}
+
+.building-supply-browser__table-status[data-emphasized='true'] {
+  background: var(--ink);
+  color: #fff;
 }
 
 .building-supply-browser__table-link {
-  display: inline-block;
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-copper);
-  border-radius: var(--radius-sm);
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.building-supply-browser__table-link:hover {
-  background: var(--color-copper-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  color: var(--accent-link);
 }
 
 .building-supply-browser__more {
@@ -2467,36 +2036,37 @@ ol {
   color: var(--color-copper);
 }
 
+.building-supply-browser__footer {
+  margin-top: 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.building-supply-browser__footer .building-supply-browser__more {
+  margin: 0;
+}
+
+.building-supply-browser__footnote {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
 @media (max-width: 1199px) {
-  .detail-hero {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-4);
-  }
 
   .detail-gallery,
-  .detail__summary,
-  .detail__overview {
+  .detail__summary {
     grid-column: 1;
   }
 }
 
 @media (max-width: 767px) {
 
-  .detail-gallery__panel {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail-facts dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
 
   .detail-gallery__dialog {
     padding: var(--sp-3);
@@ -2527,61 +2097,14 @@ ol {
   grid-column: span 5;
 }
 
-.building-supply-overview {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview > h2 {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-16);
-}
 
-.building-supply-overview__groups {
-  display: grid;
-  gap: var(--sp-2);
-}
 
-.building-supply-overview__group {
-  padding: var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  background: var(--color-paper);
-}
 
-.building-supply-overview__group h3 {
-  margin: 0 0 var(--sp-2);
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-}
 
-.building-supply-overview__group dl {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.building-supply-overview__group dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-}
 
-.building-supply-overview__group dd {
-  margin: var(--sp-1) 0 0;
-  color: var(--color-ink);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
 
-.detail__decision-title {
-  margin: 0;
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 @media (max-width: 1199px) {
   .detail__summary {
@@ -2589,12 +2112,6 @@ ol {
   }
 }
 
-.detail__type {
-  color: var(--color-copper);
-  font-size: var(--fs-13);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
 
 .detail__title {
   font-size: var(--fs-26);
@@ -2602,54 +2119,13 @@ ol {
   margin: 0;
 }
 
-.detail__rent {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-26);
-  font-weight: 700;
-  color: var(--color-copper);
-  font-variant-numeric: tabular-nums;
-  margin-bottom: var(--sp-2);
-}
 
-.detail__specs {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--sp-3);
-  margin: 0 0 var(--sp-4);
-}
 
-@media (min-width: 480px) {
-  .detail__specs {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 
-.detail__specs dt {
-  color: var(--color-muted);
-  font-size: var(--fs-12);
-  margin-bottom: 2px;
-}
 
-.detail__specs dd {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: var(--fs-14);
-  font-weight: 500;
-  /* F7.2：长地址/长楼盘名换行不溢出 */
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  min-width: 0;
-}
 
-.detail__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-4);
-}
 
 .detail__section,
-.detail__overview,
 .location-panel {
   margin-top: var(--sp-7);
   scroll-margin-top: 80px;
@@ -2661,10 +2137,6 @@ ol {
   margin-bottom: var(--sp-3);
 }
 
-.detail__building-summary {
-  color: var(--color-ink-2);
-  line-height: var(--lh-relaxed);
-}
 
 .richtext {
   color: var(--color-ink-2);
@@ -2683,67 +2155,15 @@ ol {
   margin: var(--sp-3) 0 var(--sp-2);
 }
 
-/* 详情决策卡（F4.2：桌面粘性 + 移动底部固定） */
-.detail__decision {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-}
 
-@media (min-width: 1024px) {
-  .detail__decision {
-    position: sticky;
-    top: calc(var(--sp-7) + var(--site-header-height, 56px));
-    align-self: start;
-  }
-}
 
-.detail__decision-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
 
-.detail__decision-cta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin-top: var(--sp-2);
-}
 
-.detail__decision-cta .btn {
-  width: 100%;
-}
 
-.detail__decision-cta .btn--ghost {
-  border: 1px solid var(--color-line);
-  color: var(--color-ink-2);
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
 
-.detail__decision-cta .btn--ghost:hover {
-  color: var(--color-ink);
-  border-color: var(--color-copper);
-}
 
-.detail__decision-cta .btn:focus-visible {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-  border-color: var(--color-copper);
-}
 
 /* 移动端隐藏桌面粘性决策卡，由底部固定栏承担 CTA */
-@media (max-width: 767px) {
-  .detail__decision {
-    display: none;
-  }
-}
 
 /* 移动底部固定咨询栏：桌面隐藏 */
 .detail__mobile-bar {
@@ -2751,9 +2171,6 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-overview__group dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
   .detail__mobile-bar {
     position: fixed;
@@ -2804,11 +2221,6 @@ ol {
 }
 
 /* 详情页响应式调整：双栏 → 单栏 */
-@media (max-width: 767px) {
-  .detail__top {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ---------------------------------------------------------------------------
  * 15. 询价 Modal（design.md §14.2：焦点锁定、Esc、焦点归还）
@@ -3122,17 +2534,11 @@ ol {
   }
 }
 
-.text-copper {
-  color: var(--color-copper);
-}
 
 .text-muted {
   color: var(--color-muted);
 }
 
-.text-center {
-  text-align: center;
-}
 
 .visually-hidden {
   position: absolute;
@@ -3199,7 +2605,7 @@ ol {
 }
 
 .mobile-drawer {
-  background: var(--color-canvas);
+  background: var(--bg-subtle);
   width: min(320px, 85vw);
   height: 100%;
   padding: var(--sp-5) var(--sp-4);
@@ -3461,155 +2867,6 @@ ol {
 @media (prefers-reduced-motion: reduce) {
   .btn__spinner svg {
     animation: none;
-  }
-}
-
-/* ---------------------------------------------------------------------------
- * 16.5 首页 Hero 搜索（F3.1：HeroSearch）
- * --------------------------------------------------------------------------- */
-
-/* 首页 hero 搜索：半透明卡片浮于视频上（玻璃拟态）。
-   backdrop-filter 只写标准属性，由 LightningCSS 按 browserslist 自动补 -webkit 前缀。 */
-.hero-search {
-  margin-top: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-3);
-}
-
-.hero-search__form {
-  display: flex;
-  gap: var(--sp-2);
-  width: 100%;
-  max-width: 980px;
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-
-/* 下拉式筛选与关键词输入：视频上透明白玻璃态，chevron 颜色同步换白 */
-.hero-search__select,
-.hero-search__input {
-  flex: 1 1 140px;
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3) var(--sp-4);
-  font-size: var(--fs-16);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  min-height: 52px;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
-}
-
-.hero-search__input {
-  flex: 2 1 200px;
-}
-
-.hero-search__select {
-  appearance: none;
-  padding-right: var(--sp-6);
-  cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.7) 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.7) 50%, transparent 50%);
-  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-
-.hero-search__input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* 原生下拉弹层不可做透明玻璃态，选项用白底深字保证可读 */
-.hero-search__select option {
-  color: var(--color-ink);
-  background: var(--color-surface);
-}
-
-.hero-search__select:hover,
-.hero-search__input:hover {
-  border-color: rgba(255, 255, 255, 0.55);
-}
-
-.hero-search__select:focus-visible,
-.hero-search__input:focus-visible {
-  outline: none;
-  border-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
-}
-
-/* 搜索按钮与 select 等高（form 为 flex，align-items 默认 stretch） */
-.hero-search__form .btn {
-  flex: 0 0 112px;
-  min-height: 52px;
-}
-
-/* 快速搜索词：位于搜索框下方，单行，超出搜索框宽度时截断 */
-.hero-search__quick {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  width: 100%;
-  max-width: 980px;
-  overflow: hidden;
-  font-size: var(--fs-14);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.hero-search__quick-list {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.hero-search__quick-item {
-  display: inline-block;
-  max-width: 160px;
-  padding: var(--sp-1) 0;
-  color: #fff;
-  opacity: 0.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none;
-  transition: opacity var(--duration-fast) var(--ease-standard);
-}
-
-.hero-search__quick-item:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.hero-search__quick-item:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-sm);
-}
-
-@media (max-width: 760px) {
-  .hero-search__form {
-    flex-wrap: wrap;
-  }
-
-  .hero-search__form .btn {
-    flex: 1 1 140px;
-  }
-
-  .hero-search__quick {
-    flex-wrap: wrap;
-  }
-
-  .hero-search__quick-list {
-    flex-wrap: wrap;
   }
 }
 
@@ -3931,127 +3188,24 @@ ol {
   gap: var(--sp-4);
 }
 
-.location-panel__static {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
 
-.location-panel__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
 
-.location-panel__fact {
-  display: flex;
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
 
-.location-panel__fact dt {
-  color: var(--color-muted);
-  min-width: 4em;
-}
 
-.location-panel__fact dd {
-  margin: 0;
-  color: var(--color-ink);
-}
 
-.location-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
 
-/* P2 路线规划器 */
-.route-planner {
-  margin-top: var(--sp-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
 
-.route-planner__modes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-}
 
-.route-planner__mode {
-  padding: var(--sp-1) var(--sp-3);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  background: var(--color-paper);
-  color: var(--color-ink-2);
-  cursor: pointer;
-}
 
-.route-planner__mode[data-active='true'] {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  border-color: var(--color-ink);
-}
 
-.route-planner__summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  margin: 0;
-  padding: var(--sp-2) 0 0;
-}
 
-.route-planner__summary dt {
-  font-size: var(--fs-14);
-  color: var(--color-ink-2);
-}
 
-.route-planner__summary dd {
-  margin: 0;
-  font-weight: 600;
-}
 
-.route-planner__fallback {
-  color: var(--color-ink-2);
-  font-size: var(--fs-14);
-}
 
-/* P2 平台顾问服务状态 */
-.advisor-availability {
-  font-size: var(--fs-14);
-  margin: var(--sp-1) 0;
-}
 
-.advisor-availability__status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-}
 
-.advisor-availability__status--open {
-  color: var(--color-forest);
-}
 
-.advisor-availability__status--open::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-forest);
-  display: inline-block;
-}
 
-.advisor-availability__status--closed {
-  color: var(--color-ink-2);
-}
 
 /* P2 看房时段选择器 */
 .viewing-slot-picker {
@@ -4108,25 +3262,20 @@ ol {
   padding: 0;
 }
 
-/* 地图 + POI 浮动面板容器（参考 58 商办：地图占满宽度，POI 面板绝对定位浮在右侧） */
-.location-panel__map-area {
-  position: relative;
-  width: 100%;
-}
+/* .location-panel__map-area 已在 OPT-037 Task 5 随「浮层覆盖地图」旧写法一起
+ * 淘汰（改为 detail.css 的 .location-panel__grid 两列网格），组件里已无引用，
+ * 故整条规则一并删除，不留死代码。 */
 
+/* 清单面板：只留下**未被覆写**的内部布局。原先这里是 P1 的「浮层压在地图上」
+ * 版本（absolute + 320 定宽 + 1px 边框 + shadow-md），OPT-037 Task 5 起
+ * LocationPanel 只在 `.dt-page` 内使用，detail.css 已把它改成与地图并列的
+ * 白底面板（表面并进 `.dt-panel` 选择器组，高度 460）。按与 `.building-card-mini`
+ * 相同的判据删掉浮层基态，detail.css 那一排 `position:static / top:auto /
+ * right:auto / width:auto / max-height:none / border:none / box-shadow:none`
+ * 复位声明也随之取消——没有基态就不需要复位。 */
 .location-panel__poi-panel {
-  position: absolute;
-  top: var(--sp-3);
-  right: var(--sp-3);
-  z-index: var(--z-raised);
-  width: 320px;
-  max-height: calc(500px - var(--sp-6));
   display: flex;
   flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
@@ -4286,13 +3435,16 @@ ol {
   gap: 4px;
 }
 
+/* 线路标签零色相：原蓝底蓝字 4.16:1。白底 + 描边而非 --bg 底——POI 行 hover /
+   highlighted 时行底本身就变成浅灰，同色填充会让标签整块消失。白底 5.07:1。 */
 .location-panel__poi-line-tag {
   display: inline-flex;
   align-items: center;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: var(--color-copper-soft);
-  color: var(--color-copper);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
   font-size: var(--fs-12);
   font-weight: 600;
   line-height: 1.4;
@@ -4373,11 +3525,10 @@ ol {
     height: 320px;
   }
 
-  /* 移动端 POI 面板改为底部抽屉，避免遮挡地图 */
+  /* ≤767 时清单面板与地图上下堆叠，补一段间距。
+     原先这里还有 `position:static / width:100% / max-height:280px` 三条，是给
+     上面那份浮层基态做移动端复位的；基态删除后三条同时失效，只留间距。 */
   .location-panel__poi-panel {
-    position: static;
-    width: 100%;
-    max-height: 280px;
     margin-top: var(--sp-2);
   }
 }
@@ -4419,12 +3570,6 @@ ol {
   font-weight: 600;
 }
 
-.detail-gallery__panel {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  width: 100%;
-}
 
 .detail-gallery__schematic-note {
   display: block;
@@ -4476,10 +3621,11 @@ ol {
   cursor: not-allowed;
 }
 
+/* 已收藏/已复制态零色相：原蓝底蓝字 4.16:1。透明基态 → 中灰底 + 墨色描边 + 主墨字。 */
 .share-save-actions__btn[aria-pressed="true"] {
-  color: var(--color-copper);
-  border-color: var(--color-copper);
-  background: var(--color-copper-soft);
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--bg);
 }
 
 .share-save-actions__feedback,
@@ -4516,8 +3662,14 @@ ol {
 }
 
 /* ===== P0 评审优化：AdvisorCard 平台顾问卡片 ===== */
+/* flex-wrap: wrap 是基础行为而非窄栏特例（OPT-037 Task 9 按 detail.css
+ * `.hero-summary .advisor-card` 记下的升级阈值提升上来）：avatar 44 固定 +
+ * cta 内容定宽都不收缩，中间 body 被挤到 0 宽时中文会逐字竖排。宽栏下内容
+ * 装得下，wrap 不会触发，因此提升为默认没有视觉代价；窄栏各自只保留真正
+ * 差异化的那一行（`__cta { flex-basis: 100% }` 强制 CTA 独占一行）。 */
 .advisor-card {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--sp-3);
   padding: var(--sp-3);
@@ -4638,15 +3790,48 @@ ol {
 }
 
 @media (max-width: 767px) {
-  .building-supply-browser__bucket-group {
-    overflow-x: auto;
+  /* 密度表在窄屏改用 ListingCard 卡片（见 BuildingSupplyBrowser.tsx 文件头
+   * 注释——既有行为，非本次新增），但组切换 tab 与筛选行在所有断点都渲染；
+   * tab 数超出一屏时横滑，而不是折行把整块面板顶高。 */
+  /* 纵向 padding 不是留白，是给 ::after 命中盒让位：`overflow-x:auto` 会把
+     另一轴一并算成 auto，不留出这几个像素，补到 44 的触控盒会被横滑容器裁掉。 */
+  .building-supply-browser__tabs {
     flex-wrap: nowrap;
-    padding-bottom: var(--sp-1);
+    overflow-x: auto;
+    padding-block: 4px;
     -webkit-overflow-scrolling: touch;
   }
-  .building-supply-browser__bucket {
+  .building-supply-browser__tab {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+  .building-supply-browser__filter-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-block: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .building-supply-browser__filter {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .building-supply-browser__panel {
+    padding: 20px;
+  }
+  .building-supply-browser__agg {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+  }
+  /* 窄列下数值+单位改竖排：横排在两列窄格里会把单位挤到跟值同一行导致
+     换行断在单位文字中间（如「元/㎡/」与「天」分两行），竖排更可读。 */
+  .building-supply-browser__agg-value-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .building-supply-browser__sort {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
@@ -4709,14 +3894,16 @@ ol {
   background: color-mix(in srgb, var(--color-copper) 12%, transparent);
 }
 
+/* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。 */
 .building-summary-card__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
 }
 
 .building-summary-card__address {
@@ -4773,95 +3960,21 @@ ol {
   }
 }
 
-/* ===== P1 评审优化：AmenityList 配套设施图标化 ===== */
-.amenity-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
 
-.amenity-list__group-title {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-14);
-  font-weight: 600;
-  color: var(--color-ink-2);
-}
 
-.amenity-list__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.amenity-list__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-3);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-13);
-  color: var(--color-ink-2);
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
 
-.amenity-list__item:hover {
-  border-color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 6%, var(--color-paper));
-}
 
-.amenity-list__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.amenity-list__label {
-  line-height: 1.4;
-}
 
-/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 ===== */
-.building-card-mini {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.building-card-mini:hover {
-  border-color: var(--color-copper);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.building-card-mini__media {
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--color-paper);
-}
-
-.building-card-mini__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.2s ease;
-}
-
-.building-card-mini:hover .building-card-mini__media img {
-  transform: scale(1.03);
-}
-
+/* ===== P2 评审优化：BuildingCardMini 相关楼盘紧凑卡片 =====
+ * 卡片**表面**（底/边框/圆角/阴影/hover）与**图容器**（比例/底色/裁切）不在
+ * 这里：组件直接挂 `.sf-card` 与 `.sf-media sf-media--16x10`（styles/surface.css）。
+ * 这里原有一份 58 式基态（1px 边框 · radius 8 · hover 铜色描边 + translateY(-1px)
+ * · 图 16:9 · hover `scale(1.03)`），在 `.dt-page` 作用域内被 detail.css 全部
+ * 覆写，而本组件**只在楼盘详情页使用**——既是死规则，又是「哪天有人在别的页面
+ * 用它就立刻回到旧视觉」的埋雷，终审 V2 点名删除。
+ * 下面几条是卡片**内容**的排版，与表面无关，仍然有效。 */
 .building-card-mini__placeholder {
   display: flex;
   align-items: center;
@@ -4889,14 +4002,16 @@ ol {
   white-space: nowrap;
 }
 
+/* 同 .building-summary-card__district：卡片底与 pill 底同为 --bg，需白底 + 描边。 */
 .building-card-mini__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
   align-self: flex-start;
 }
 
@@ -4912,69 +4027,15 @@ ol {
   overflow: hidden;
 }
 
-/* ===== P2 评审优化：房源 specs 图标对齐 ===== */
-.detail__specs dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.detail__specs dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-/* ===== P3 评审优化：楼盘 header grade 徽章 ===== */
-.detail__header-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-}
 
-.detail__grade-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--sp-2);
-  border-radius: var(--radius-pill);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  color: var(--color-copper);
-  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
-}
 
-.detail__grade-badge[data-grade='super-grade-a'] {
-  color: #b45309;
-  background: color-mix(in srgb, #b45309 14%, transparent);
-}
 
-/* ===== P3 评审优化：供给概览图标对齐 + 数值强调 ===== */
-.building-supply-overview__group dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
-.building-supply-overview__group dt svg {
-  color: var(--color-copper);
-  flex-shrink: 0;
-}
 
-.building-supply-overview__group dd strong {
-  font-size: var(--fs-16);
-  font-weight: 700;
-  color: var(--color-ink);
-}
 
-/* ===== P3 评审优化：询价 CTA 视觉强化 ===== */
-.detail__decision-inquiry.btn--lg {
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-copper) 28%, transparent);
-}
 
-.detail__decision-inquiry.btn--lg:hover {
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-copper) 38%, transparent);
-  transform: translateY(-1px);
-}
 
 /* ===== P4 评审优化：LocationPanel POI 图标 ===== */
 .location-panel__poi-tab {
@@ -5080,13 +4141,9 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 22. 首页分区头 + 新分区组件（plans/temporal-imagining-sonnet.md §9）
- *   - .section__header：标题左 / 查看全部右，baseline 对齐（修正原未定义样式）
- *   - .cat-tiles：类型入口瓷砖
- *   - .district-cards：1 大 + N 小商圈拼贴
- *   - .value-band：价值主张深色带（01/02/03）
- *   - .news-list：资讯列表（日期 + 分类 + 标题垂直居中）
- *   守护：只用设计 token；遮罩/次要文字用 color-mix 由 token 派生，不引入新色值。
+ * 22. 首页分区头（.cat-tiles / .district-cards / .value-band / .news-grid 等
+ *     旧首页分区组件样式已随组件删除；.section__header 与 .empty-state--inline
+ *     仍被 entrust、/news 等页面复用，保留）
  * --------------------------------------------------------------------------- */
 
 .section__header {
@@ -5102,423 +4159,11 @@ ol {
   margin-bottom: 0;
 }
 
-.section__header .text-copper {
-  font-size: var(--fs-14);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.section__header .text-copper:hover {
-  text-decoration: none;
-}
-
-/* 22.1 类型瓷砖 ----------------------------------------------------------- */
-
-.cat-tiles {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--sp-4);
-}
-
-.cat-tile {
-  display: flex;
-  flex-direction: column;
-  padding: var(--sp-5) var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  color: var(--color-ink);
-  position: relative;
-  min-height: var(--touch-target);
-  transition: border-color var(--duration-base) var(--ease-standard),
-    background var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard),
-    box-shadow var(--duration-base) var(--ease-standard);
-}
-
-.cat-tile:hover {
-  border-color: var(--color-copper);
-  background: var(--color-canvas);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-  text-decoration: none;
-}
-
-.cat-tile__no {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-13);
-  color: var(--color-copper);
-  letter-spacing: 0.08em;
-}
-
-.cat-tile__label {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 600;
-  color: var(--color-ink);
-  margin-top: var(--sp-2);
-}
-
-.cat-tile__sublabel {
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  margin-top: var(--sp-1);
-}
-
-.cat-tile__arrow {
-  position: absolute;
-  top: var(--sp-4);
-  right: var(--sp-4);
-  color: var(--color-copper);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
-}
-
-.cat-tile:hover .cat-tile__arrow {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* 22.2 商圈拼贴卡 --------------------------------------------------------- */
-
-.district-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 180px;
-  gap: var(--sp-4);
-}
-
-.district-card {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--color-line);
-  min-height: var(--touch-target);
-  background: var(--color-paper);
-}
-
-.district-card--lg {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.district-card__media {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-  transition: transform var(--duration-slow) var(--ease-standard);
-}
-
-.district-card__placeholder {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-paper),
-    var(--color-paper) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 24px
-  );
-}
-
-.district-card__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--color-ink) 74%, transparent),
-    color-mix(in srgb, var(--color-ink) 20%, transparent) 55%,
-    transparent
-  );
-}
-
-.district-card__body {
-  position: relative;
-  z-index: 2;
-  padding: var(--sp-4) var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
-.district-card__name {
-  font-family: var(--font-display);
-  font-size: var(--fs-22);
-  font-weight: 600;
-  color: var(--color-on-ink);
-}
-
-.district-card--lg .district-card__name {
-  font-size: var(--fs-26);
-}
-
-.district-card__cta {
-  font-size: var(--fs-13);
-  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
-}
-
-/* 代表楼盘名：商圈名下一条细分隔线，再以「｜」分隔平铺 */
-.district-card__buildings {
-  position: relative;
-  margin-top: var(--sp-3);
-  padding-top: var(--sp-3);
-  font-size: var(--fs-13);
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
-}
-
-.district-card__buildings::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 40px;
-  height: 1px;
-  background: color-mix(in srgb, var(--color-on-ink) 55%, transparent);
-}
-
-.district-card:hover .district-card__media {
-  transform: scale(1.04);
-}
-
-@media (max-width: 1023px) {
-  .district-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 639px) {
-  .district-cards {
-    grid-template-columns: 1fr;
-    grid-auto-rows: 160px;
-  }
-
-  .district-card--lg {
-    grid-column: span 1;
-    grid-row: span 1;
-  }
-}
-
-/* 22.3 价值主张深色带 ----------------------------------------------------- */
-
-/* 价值主张带：浅色 paper 底（对齐 preview 7.7），非深色 ink —— 用户反馈黑底不契合。
-   编辑式 01/02/03 编号 + 铜色顶部标线，文字用 ink/muted。 */
-.value-band {
-  margin-top: var(--sp-8);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-7) var(--sp-5);
-}
-
-.value-band__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-h3);
-  color: var(--color-ink);
-  margin-bottom: var(--sp-6);
-}
-
-.value-band__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--sp-6);
-}
-
-.value-band__item {
-  display: flex;
-  gap: var(--sp-4);
-  align-items: flex-start;
-  padding-top: var(--sp-4);
-  border-top: 2px solid var(--color-copper);
-}
-
-.value-band__no {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-26);
-  color: var(--color-copper);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.value-band__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-
-.value-band__name {
-  font-family: var(--font-display);
-  font-size: var(--fs-18);
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.value-band__desc {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-  line-height: var(--lh-relaxed);
-}
-
-/* 22.4 资讯中心：1 头条 + 日期列表（对齐 homepage-preview.html 7.8） ----------- */
-
-.news-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--sp-6);
-}
-
-@media (max-width: 1023px) {
-  .news-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.news-feature {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  color: var(--color-ink);
-  transition: box-shadow var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard);
-}
-
-.news-feature:hover {
-  border-color: var(--color-line-strong);
-  box-shadow: var(--shadow-md);
-  text-decoration: none;
-}
-
-.news-feature__media {
-  aspect-ratio: 16 / 9;
-  background: var(--color-paper);
-  overflow: hidden;
-}
-
-.news-feature__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.news-feature__body {
-  padding: var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.news-feature__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 600;
-  color: var(--color-ink);
-  line-height: var(--lh-snug);
-}
-
-.news-feature__excerpt {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-  line-height: var(--lh-relaxed);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.news-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.news-item {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: var(--sp-4);
-  align-items: center;
-  padding: var(--sp-5) 0;
-  border-bottom: 1px solid var(--color-line);
-  color: var(--color-ink);
-}
-
-.news-item:hover {
-  text-decoration: none;
-}
-
-.news-item:hover .news-item__title {
-  color: var(--color-copper);
-}
-
-.news-item__date {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  color: var(--color-copper);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  line-height: 1.2;
-}
-
-.news-item__title {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  font-size: var(--fs-16);
-  color: var(--color-ink);
-  font-weight: 500;
-  line-height: var(--lh-snug);
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.news-item__cat {
-  flex-shrink: 0;
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  line-height: 1.6;
-}
-
-/* 22.5 行内空状态（替代原 .empty，与 empty-state 体系对齐） ---------------- */
-
 .empty-state--inline {
   padding: var(--sp-6) 0;
   text-align: center;
   color: var(--color-muted);
   font-size: var(--fs-14);
-}
-
-/* 22.6 首页推荐房源 / 精选楼盘：桌面端 4 列以呈现 2 行 × 8 卡（用户要求）
- *    仅作用域 .home 内的 .card-grid，不影响列表页等全局共享类。
- *    ≥1280px 强制 4 列；以下回退 auto-fill（平板 3 列、手机 1 列）。 */
-@media (min-width: 1280px) {
-  .home .card-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -5773,52 +4418,21 @@ ol {
 
 
 /* ---------------------------------------------------------------------------
- * 24. 详情页共享：Hero 决策卡定位与供给区头部摘要（楼盘/房源共用）
- * --------------------------------------------------------------------------- */
-
-/* Hero 两栏 already defined by .detail-hero; ensure the decision card aligns top */
-.detail__summary {
-  align-self: start;
-}
-
-/* 决策卡 sticky 偏移：站点 header + 小间距 */
-.detail__decision {
-  top: calc(var(--site-header-height, 56px) + var(--sp-3));
-}
-
-/* 供给区头部：标题 + 一句话摘要 */
-.detail-section__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-2) var(--sp-4);
-  margin-bottom: var(--sp-3);
-}
-
-.detail-section__header h2 {
-  margin-bottom: 0;
-}
-
-.detail-section__summary {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-}
-
-@media (max-width: 767px) {
-  .detail-section__header {
-    flex-direction: column;
-    gap: var(--sp-1);
-  }
-}
-
-
-/* ---------------------------------------------------------------------------
- * 25. 楼盘详情 V2（58 式结构，见 plans/2026-08-04-building-detail-58-style-refactor.md）
- *   - 标题行：名称+徽章 | 分享/纠错
- *   - Hero：左画廊 | 右决策面板（起价大字/双统计/关键参数/顾问 CTA）
- *   - 房源区：主列 | 300px 粘性右栏
- *   - 位置区灰底成带 + 周边楼盘横滑
+ * 25. 楼盘详情页残留基元（`.detail-side-rail` / `.nearby-strip` / demo 横幅）
+ *
+ * 本节原是「楼盘详情 V2（58 式结构）」的整套骨架（标题行 / Hero 两栏 /
+ * 主列 + 300px 粘性右栏 / 位置区灰底成带）。OPT-037 Task 10 接线后骨架整体
+ * 换成了 `.dt-page` / `.dt-container` / `.dt-core` / `.dt-section`（定义在
+ * `styles/detail.css`），`.detail-v2__*` 一族已无任何元素命中，Task 11 摘除。
+ * 这里只剩两个**组件仍在渲染**的类族：`DetailSideRail` 与
+ * `NearbyBuildingsStrip`（两者的本版取值由 detail.css 的 `.dt-page` /
+ * `.dt-nearby` 作用域覆写，本节保留的是不被覆写的那几条，如 <p> 的
+ * margin 归零），外加 building-detail-demo 的 `.dev-story-banner`。
+ * Task 11b 又删掉了 `.detail-side-rail__price` 一族与
+ * `.detail-side-rail .advisor-card` 一族：`DetailSideRail` 收敛成单张留资带后
+ * 不再渲染价格节点、也不再嵌 AdvisorCard，这是**组件层的保证**（不是靠祖先
+ * 选择器覆盖），因此可删；而 `.detail-side-rail` / `__card` 的基础规则仍按
+ * 「靠祖先 `.dt-page` 才被覆盖 → 存疑保留」的口径留着（见 task-11-report §3.1）。
  * --------------------------------------------------------------------------- */
 
 /* demo 页横幅：生产可见的评审页，须明示虚拟数据 */
@@ -5833,263 +4447,22 @@ ol {
   border-radius: var(--radius-md);
 }
 
-/* 标题行 */
-.detail-v2__titlebar {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
-}
+/* 决策面板（.hero-summary 及其内容子类）—— OPT-037 Task 6 已整体迁移到
+ * `styles/detail.css`：外层面板改用共享的 `DetailPanel variant="side"`
+ * （`.dt-panel--side`），`.hero-summary` 收窄为面板内容的纵向布局类；原
+ * `.hero-summary__facts`（手写 dl/dt/dd）已被 `SpecTable` 取代，不再需要
+ * 独立样式。此处不再重复定义，全部移到 detail.css，避免同一批类名在两个
+ * 文件里各有一份、只靠 import 顺序才不冲突。 */
 
-.detail-v2__titlebar h1 {
-  margin: 0;
-}
-
-.detail-v2__titlebar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex-shrink: 0;
-}
-
-/* Hero 两栏：画廊 | 决策面板 */
-.detail-v2__hero {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: var(--sp-5);
-  align-items: start;
-  margin-bottom: var(--sp-6);
-}
-
-/* 旧 .detail-hero 用 7 列网格，给画廊留了 span 7；V2 两栏需复位 */
-.detail-v2__hero > .detail-gallery {
-  grid-column: auto;
-}
-
-/* 决策面板 */
-.hero-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.hero-summary__price-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__price {
-  font-size: var(--fs-32);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--color-copper);
-}
-
-.hero-summary__price--na {
-  font-size: var(--fs-22);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__price-unit {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-}
-
-.hero-summary__disclaimer {
-  margin: calc(-1 * var(--sp-3)) 0 0;
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
-  padding-block: var(--sp-3);
-  border-block: 1px solid var(--color-line);
-}
-
-.hero-summary__stat strong {
-  display: block;
-  font-size: var(--fs-18);
-  color: var(--color-ink-2);
-}
-
-.hero-summary__stat span {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-.hero-summary__facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-.hero-summary__facts > div {
-  display: grid;
-  grid-template-columns: 5.5em minmax(0, 1fr);
-  gap: var(--sp-2);
-  font-size: var(--fs-14);
-}
-
-.hero-summary__facts dt {
-  color: var(--color-muted);
-}
-
-.hero-summary__facts dd {
-  margin: 0;
-  color: var(--color-ink-2);
-}
-
-/* 房源区：主列 | 粘性右栏 */
-.detail-v2__supply {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: var(--sp-5);
-  align-items: start;
-  margin-bottom: var(--sp-6);
-}
-
-.detail-v2__supply-main {
-  min-width: 0;
-}
-
-.detail-side-rail {
-  position: sticky;
-  top: calc(var(--site-header-height, 56px) + 52px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.detail-side-rail__card {
-  padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-}
-
-.detail-side-rail__card h3 {
-  margin: 0 0 var(--sp-3);
-  font-size: var(--fs-16);
-}
-
-.detail-side-rail__price {
-  margin: 0;
-  font-size: var(--fs-22);
-  font-weight: 700;
-  color: var(--color-copper);
-}
-
-.detail-side-rail__price span {
-  font-size: var(--fs-12);
-  font-weight: 400;
-  color: var(--color-muted);
-}
-
+/* DetailSideRail：定位（原 sticky 右栏）、卡片表面（padding/底/边框/圆角）与
+ * 卡内标题都不在这里——组件只在楼盘详情页使用，三者已全部由 detail.css 的
+ * `.dt-page .detail-side-rail*` 覆写成「密度表下方的通栏留资带」。按与
+ * `.building-card-mini` 相同的判据（覆写之后回头删基态）清掉，只留下面这条
+ * 未被覆写的 margin。 */
 .detail-side-rail__muted {
   margin: var(--sp-2) 0 0;
   font-size: var(--fs-13);
   color: var(--color-muted);
-}
-
-/* 窄栏里的顾问卡：去嵌套卡片外观，CTA 换行占满，避免正文被挤成竖排 */
-.detail-side-rail .advisor-card {
-  flex-wrap: wrap;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.detail-side-rail .advisor-card__cta {
-  flex-basis: 100%;
-}
-
-.detail-side-rail__popular {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-
-.detail-side-rail__popular a {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: var(--sp-3);
-  align-items: center;
-  color: inherit;
-  text-decoration: none;
-}
-
-.detail-side-rail__popular a:hover {
-  color: var(--color-copper);
-}
-
-.detail-side-rail__popular img,
-.detail-side-rail__popular-placeholder {
-  width: 64px;
-  height: 44px;
-  object-fit: cover;
-  border-radius: var(--radius-sm);
-  background: var(--color-copper-soft);
-}
-
-.detail-side-rail__popular-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.detail-side-rail__popular-name {
-  font-size: var(--fs-14);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-side-rail__popular-meta {
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-}
-
-/* 参数区子标题 */
-.detail-v2__subsection-title {
-  margin: var(--sp-6) 0 var(--sp-3);
-  font-size: var(--fs-18);
-}
-
-.detail-v2__features-body {
-  line-height: 1.85;
-}
-
-.detail-v2__features-body :where(p, ul, ol) {
-  line-height: 1.85;
-}
-
-/* 位置区 */
-.detail-v2__location-band {
-  padding: 0;
-  margin-bottom: var(--sp-6);
-}
-
-.detail-v2__location-band .location-panel {
-  margin-top: 0;
-}
-
-.detail-v2__location-band .location-panel > h2 {
-  display: none;
 }
 
 /* 周边楼盘横滑 */
@@ -6152,30 +4525,8 @@ ol {
 }
 
 @media (max-width: 959px) {
-  .detail-v2__supply {
-    grid-template-columns: 1fr;
-  }
-
   .detail-side-rail {
     position: static;
-  }
-}
-
-@media (max-width: 767px) {
-  .detail-v2__titlebar {
-    flex-direction: column;
-  }
-
-  .detail-v2__hero {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-summary {
-    padding: var(--sp-4);
-  }
-
-  .detail-v2__location-band {
-    padding: 0;
   }
 }
 
@@ -6634,11 +4985,6 @@ ol {
   line-height: 1.7;
 }
 
-.publish-card__error {
-  margin-top: var(--sp-3);
-  color: var(--color-danger);
-  font-size: var(--fs-13);
-}
 
 .input-suffix {
   position: relative;
@@ -6779,15 +5125,33 @@ ol {
   min-width: 0;
 }
 
-/* 模块 1: Hero 双栏开城落地页 */
-.city-coming-soon__hero,
-.city-coming-soon__hero-grid {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: var(--sp-6, 36px);
-  align-items: start;
-}
+/* ── OPT-038 Task 6：旧版四模块的规则已摘除 ────────────────────────────────
+ * `ComingSoonCityView` 改版后整页由 `styles/recruit.css` 的 `.rc-*` 承载，
+ * 下列类名在源码里已无任何消费方：
+ *   模块 1 Hero 双栏：`__hero` / `__hero-grid` / `__intro` / `__eyebrow` /
+ *                    `__title` / `__lead` / `__benefits` 及 benefit-* /
+ *                    `__tenant-note` / `__form-card`
+ *   模块 2 重点规划区域：`__regions-section` / `__section-header` /
+ *                    `__district-grid` / `__district-card` / `__district-header` /
+ *                    `__district-name` / `__district-status` / `__district-sub`
+ *   模块 3 平台实力背书数据：`__stats` / `__stat-item` / `__stat-number` / `__stat-label`
+ *   模块 4 底部双通道转化区：`__dual-actions` / `__action-panel(--tenant|--landlord)` /
+ *                    `__action-badge` / `__action-btn-wrap`
+ *   辅助入口：`__quick-links`
+ * 每一个都过了两道判据（**逐类名**，不是按标题边界整块删）：
+ *   ① 带边界的全仓 grep 零消费方（仅剩 recruit.css / RecruitHero 里几句解释旧形态的注释）；
+ *   ② 生产 server 上 `/city-partner`、`/hangzhou`、`/hangzhou/{listings,buildings}`
+ *      四条路由的 `querySelectorAll` 全为 0，且同轮对照选择器（`.rc-page` /
+ *      `.city-partner-form` / `.city-coming-soon`）> 0，证明扫描本身有效。
+ * 证据：`artifacts/verification/OPT-038/task6-dead-css-probe-{before,after}.json`。
+ *
+ * **没有删的三个**（判据未同时满足，一律保留）：
+ *   - `.city-coming-soon`（根节点仍在 DOM，只是被 recruit.css 复位成透明块）；
+ *   - `.city-coming-soon__media`（`ComingSoonCityView.tsx:104` 的 backdrop 插槽；
+ *     运行时命中数是 0，但那只是本地库里没有城市填了 `hero.media`——
+ *     grep 有源码消费方即保留，与 `.amap-layer` 那次正好互为镜像）；
+ *   - `.city-coming-soon__embedded-form`（城市路由那份表单的 className，仍在 DOM）。
+ * ========================================================================== */
 
 .city-coming-soon__media {
   position: absolute;
@@ -6798,130 +5162,6 @@ ol {
   opacity: .18;
   pointer-events: none;
   border-radius: var(--radius-lg);
-}
-
-.city-coming-soon__intro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4, 20px);
-}
-
-.city-coming-soon__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-13, 13px);
-  font-weight: 600;
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  width: fit-content;
-  border: 1px solid var(--color-copper-border, #d4b89b);
-}
-
-.city-coming-soon__title {
-  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
-  font-weight: 800;
-  line-height: 1.25;
-  color: var(--color-ink);
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-
-.city-coming-soon__title span {
-  color: var(--color-copper);
-}
-
-.city-coming-soon__lead {
-  font-size: var(--fs-15, 15px);
-  color: var(--color-ink-2);
-  line-height: 1.65;
-  margin: 0;
-}
-
-/* 赋能卡片列表 */
-.city-coming-soon__benefits {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__benefit-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3, 14px);
-  padding: var(--sp-3, 14px) var(--sp-4, 16px);
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.city-coming-soon__benefit-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-copper);
-}
-
-.city-coming-soon__benefit-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
-  color: var(--color-copper);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.city-coming-soon__benefit-content h3 {
-  font-size: var(--fs-14, 14px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 3px 0;
-}
-
-.city-coming-soon__benefit-content p {
-  font-size: var(--fs-13, 13px);
-  color: var(--color-muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
-/* 租客快速提示入口 */
-.city-coming-soon__tenant-note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--color-forest-soft);
-  padding: var(--sp-3, 12px) var(--sp-4, 16px);
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-13, 13px);
-  color: var(--color-forest);
-  border-left: 3px solid var(--color-forest);
-}
-
-.city-coming-soon__tenant-note button {
-  color: var(--color-forest);
-  font-weight: 700;
-  text-decoration: underline;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: inherit;
-}
-
-/* Hero 右侧：内嵌表单卡片 */
-.city-coming-soon__form-card {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-5, 24px) var(--sp-4, 20px);
-  box-shadow: var(--shadow-md);
 }
 
 .city-coming-soon__embedded-form {
@@ -6943,232 +5183,14 @@ ol {
   margin: 0;
 }
 
-/* 模块 2: 重点规划区域 */
-.city-coming-soon__regions-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4, 20px);
-}
-
-.city-coming-soon__section-header h2 {
-  font-size: var(--fs-22, 22px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 4px 0;
-}
-
-.city-coming-soon__section-header p {
-  font-size: var(--fs-14, 14px);
-  color: var(--color-muted);
-  margin: 0;
-}
-
-.city-coming-soon__district-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__district-card {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3, 14px) var(--sp-3, 14px);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.city-coming-soon__district-card:hover {
-  border-color: var(--color-copper);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-2px);
-}
-
-.city-coming-soon__district-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.city-coming-soon__district-name {
-  font-size: var(--fs-14, 14px);
-  font-weight: 700;
-  color: var(--color-ink);
-}
-
-.city-coming-soon__district-status {
-  font-size: 11px;
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.city-coming-soon__district-sub {
-  font-size: var(--fs-12, 12px);
-  color: var(--color-muted);
-}
-
-/* 模块 3: 平台实力背书数据 */
-.city-coming-soon__stats {
-  background: linear-gradient(135deg, #1f2428 0%, #121417 100%);
-  color: #ffffff;
-  border-radius: var(--radius-lg);
-  padding: var(--sp-6, 36px) var(--sp-5, 28px);
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-4, 20px);
-  box-shadow: var(--shadow-lg);
-}
-
-.city-coming-soon__stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border-left: 2px solid rgba(164, 111, 63, 0.45);
-  padding-left: var(--sp-3, 14px);
-}
-
-.city-coming-soon__stat-number {
-  font-size: clamp(1.75rem, 3vw, 2.25rem);
-  font-weight: 800;
-  color: #ffffff;
-  line-height: 1;
-}
-
-.city-coming-soon__stat-number span {
-  color: var(--color-copper);
-  font-size: 0.7em;
-  margin-left: 2px;
-}
-
-.city-coming-soon__stat-label {
-  font-size: var(--fs-13, 13px);
-  color: #a0a6b1;
-}
-
-/* 模块 4: 底部双通道转化区 */
-.city-coming-soon__dual-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-5, 24px);
-}
-
-.city-coming-soon__action-panel {
-  background: #ffffff;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-5, 28px) var(--sp-4, 22px);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--sp-4, 18px);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.city-coming-soon__action-panel::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-}
-
-.city-coming-soon__action-panel--tenant::before {
-  background: var(--color-copper);
-}
-
-.city-coming-soon__action-panel--landlord::before {
-  background: var(--color-forest);
-}
-
-.city-coming-soon__action-badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  width: fit-content;
-  margin-bottom: 8px;
-}
-
-.city-coming-soon__action-panel--tenant .city-coming-soon__action-badge {
-  background: var(--color-copper-soft);
-  color: var(--color-copper);
-}
-
-.city-coming-soon__action-panel--landlord .city-coming-soon__action-badge {
-  background: var(--color-forest-soft);
-  color: var(--color-forest);
-}
-
-.city-coming-soon__action-panel h3 {
-  font-size: var(--fs-18, 18px);
-  font-weight: 700;
-  color: var(--color-ink);
-  margin: 0 0 6px 0;
-}
-
-.city-coming-soon__action-panel p {
-  font-size: var(--fs-14, 14px);
-  color: var(--color-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.city-coming-soon__action-btn-wrap > .btn,
-.city-coming-soon__action-btn-wrap button {
-  min-height: 44px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 辅助入口 */
-.city-coming-soon__quick-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3, 12px);
-}
-
-.city-coming-soon__quick-links > .btn {
-  min-height: 44px;
-}
-
-@media (max-width: 900px) {
-  .city-coming-soon__hero-grid {
-    grid-template-columns: 1fr;
-  }
-  .city-coming-soon__stats {
-    grid-template-columns: 1fr 1fr;
-    padding: var(--sp-5, 24px) var(--sp-4, 18px);
-  }
-  .city-coming-soon__dual-actions {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 767px) {
   .city-coming-soon {
     gap: var(--sp-5, 28px);
     padding-inline: var(--sp-3, 12px);
   }
-  .city-coming-soon__quick-links > .btn {
-    flex: 1 1 100%;
-  }
 }
-
-@media (max-width: 600px) {
-  .city-coming-soon__stats {
-    grid-template-columns: 1fr;
-  }
-}
+/* OPT-038 Task 6：原 `@media (max-width: 600px)` 整块只含模块 3 的 `__stats`
+   一条，随模块 3 一并摘除。（此处刻意只写后缀不写全类名：
+   `coming-soon-city-view.test.ts` 有一条 `not.toContain` 的回归守卫，
+   注释里写全名会把守卫变成永远命中自己。） */
 

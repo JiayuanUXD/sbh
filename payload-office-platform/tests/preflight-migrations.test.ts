@@ -22,10 +22,12 @@ describe('preflight migrations: 纯函数', () => {
   it('listMigrationFiles 扫描目录 .ts 文件，排除 index.ts 与 .d.ts', () => {
     const names = listMigrationFiles(migrationsDir)
     // 目录实际迁移份数。新增迁移时同步 +1（本行与下方 parseRegisteredMigrationNames 断言必须一致，
-    // 二者不等即说明有迁移文件漏注册进 index.ts）。最近一次：新增 OPT-041 Task 7 迁移
-    // （supplyImportTask 注册进 jobs.tasks 后，payload_jobs(_log).task_slug 的 Postgres
-    // 枚举必须显式加值——这不是「纯 UI/config 改动」，registerd job 会撞真实枚举约束）。
-    expect(names.length).toBe(61)
+    // 二者不等即说明有迁移文件漏注册进 index.ts）。
+    // 最近一批：OPT-035 的 opt035_city_profile_avg_response_hours（1 份），
+    // 与 OPT-041 的 4 份（supply_import_batches / unique_indexes / role_permissions / job_task）。
+    // 其中 job_task 那份说明了一件容易误判的事：把 task 注册进 jobs.tasks **需要迁移**——
+    // payload_jobs(_log).task_slug 是真实 Postgres 枚举，不是「纯 config 改动」。
+    expect(names.length).toBe(62)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -60,7 +62,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(61)
+    expect(names.length).toBe(62)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')

@@ -1,0 +1,252 @@
+[
+  {
+    "url": "/news/jingan-temple-district-why-popular",
+    "links": {
+      "newsRelated": [
+        "/buildings/west-nanjing-premium-center",
+        "/buildings/empty-building",
+        "/buildings/lujiazui-grade-a-river-view",
+        "/buildings/huangpu-bund",
+        "/buildings/xuhui-xujiahui",
+        "/buildings/changning-hongqiao",
+        "/listings?district=jingan",
+        "/listings?district=pudong",
+        "/listings?district=huangpu",
+        "/listings?district=xuhui",
+        "/listings?district=changning"
+      ],
+      "articleCard": [],
+      "buildingCardMini": [],
+      "buildingSummaryCta": [],
+      "breadcrumb": [
+        "/",
+        "/news"
+      ],
+      "lsCard": [],
+      "bdCard": []
+    },
+    "prefetchedTotal": 22,
+    "relatedTargets": [
+      "/buildings/changning-hongqiao",
+      "/buildings/empty-building",
+      "/buildings/huangpu-bund",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/buildings/west-nanjing-premium-center",
+      "/buildings/xuhui-xujiahui",
+      "/listings?district=changning",
+      "/listings?district=huangpu",
+      "/listings?district=jingan",
+      "/listings?district=pudong",
+      "/listings?district=xuhui"
+    ],
+    "detailPrefetched": [
+      "/buildings/changning-hongqiao",
+      "/buildings/empty-building",
+      "/buildings/huangpu-bund",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/buildings/west-nanjing-premium-center",
+      "/buildings/xuhui-xujiahui"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?district=changning",
+      "/listings?district=huangpu",
+      "/listings?district=jingan",
+      "/listings?district=pudong",
+      "/listings?district=xuhui",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/buildings/changning-hongqiao",
+      "/buildings/empty-building",
+      "/buildings/huangpu-bund",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/buildings/west-nanjing-premium-center",
+      "/buildings/xuhui-xujiahui",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?district=changning",
+      "/listings?district=huangpu",
+      "/listings?district=jingan",
+      "/listings?district=pudong",
+      "/listings?district=xuhui",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/news/2026-shanghai-office-market-h1",
+    "links": {
+      "newsRelated": [],
+      "articleCard": [],
+      "buildingCardMini": [],
+      "buildingSummaryCta": [],
+      "breadcrumb": [
+        "/",
+        "/news"
+      ],
+      "lsCard": [],
+      "bdCard": []
+    },
+    "prefetchedTotal": 11,
+    "relatedTargets": [],
+    "detailPrefetched": [],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/news",
+    "links": {
+      "newsRelated": [],
+      "articleCard": [
+        "/news/2026-shanghai-office-market-h1",
+        "/news/how-to-choose-first-office-for-startup",
+        "/news/serviced-vs-traditional-office-cost-compare",
+        "/news/jingan-temple-district-why-popular",
+        "/news/six-lease-terms-to-read-before-signing"
+      ],
+      "buildingCardMini": [],
+      "buildingSummaryCta": [],
+      "breadcrumb": [],
+      "lsCard": [],
+      "bdCard": []
+    },
+    "prefetchedTotal": 11,
+    "relatedTargets": [],
+    "detailPrefetched": [],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/buildings/west-nanjing-premium-center",
+    "links": {
+      "newsRelated": [],
+      "articleCard": [],
+      "buildingCardMini": [
+        "/buildings/empty-building"
+      ],
+      "buildingSummaryCta": [],
+      "breadcrumb": [
+        "/",
+        "/listings"
+      ],
+      "lsCard": [],
+      "bdCard": []
+    },
+    "prefetchedTotal": 11,
+    "relatedTargets": [],
+    "detailPrefetched": [],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  },
+  {
+    "url": "/listings/lujiazui-grade-a-780sqm",
+    "links": {
+      "newsRelated": [],
+      "articleCard": [],
+      "buildingCardMini": [],
+      "buildingSummaryCta": [
+        "/buildings/lujiazui-grade-a-river-view"
+      ],
+      "breadcrumb": [
+        "/",
+        "/listings",
+        "/buildings/lujiazui-grade-a-river-view"
+      ],
+      "lsCard": [],
+      "bdCard": []
+    },
+    "prefetchedTotal": 12,
+    "relatedTargets": [
+      "/buildings/lujiazui-grade-a-river-view"
+    ],
+    "detailPrefetched": [
+      "/buildings/lujiazui-grade-a-river-view"
+    ],
+    "queryPrefetched": [
+      "/entrust?city=shanghai",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/publish?city=shanghai"
+    ],
+    "all": [
+      "/",
+      "/buildings",
+      "/buildings/lujiazui-grade-a-river-view",
+      "/entrust",
+      "/entrust?city=shanghai",
+      "/listings",
+      "/listings?type=coworking",
+      "/listings?type=full-floor",
+      "/listings?type=traditional-office",
+      "/news",
+      "/publish",
+      "/publish?city=shanghai"
+    ]
+  }
+]

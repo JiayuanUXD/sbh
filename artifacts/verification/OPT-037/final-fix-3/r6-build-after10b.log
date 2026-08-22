@@ -1,0 +1,95 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 build E:\wt10b\payload-office-platform
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ⨯ turbopackServerFastRefresh
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 19.9s
+  Running TypeScript ...
+  Finished TypeScript in 16.9s ...
+  Collecting page data using 7 workers ...
+[04:33:10] [31mERROR[39m: [36mError running onInit function[39m
+    err: {
+      "type": "Error",
+      "message": "[config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost",
+      "stack":
+          Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost
+              at f (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:237:109084)
+              at Object.onInit (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:238:2114)
+              at aS.init (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:12362)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async aW (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:14024)
+              at async v (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__1lvt-hg._.js:1:2682)
+              at async E:\wt10b\payload-office-platform\.next\server\chunks\ssr\_0wb55qb._.js:15:29012
+              at async n (E:\wt10b\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__1i66u3v._.js:1:9678)
+              at async generateRouteStaticParams (E:\wt10b\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\build\static-paths\app.js:504:28)
+              at async buildAppStaticPaths (E:\wt10b\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\build\static-paths\app.js:580:25)
+    }
+city_static_params_unavailable
+  Generating static pages using 7 workers (0/5) ...
+  Generating static pages using 7 workers (1/5) 
+  Generating static pages using 7 workers (2/5) 
+  Generating static pages using 7 workers (3/5) 
+✓ Generating static pages using 7 workers (5/5) in 335ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ● /[city]
+├ ƒ /[city]/buildings
+├ ƒ /[city]/buildings/[slug]
+├ ƒ /[city]/listings
+├ ƒ /[city]/listings/[slug]
+├ ƒ /[city]/sale
+├ ƒ /admin/[[...segments]]
+├ ƒ /api/[...slug]
+├ ƒ /api/city-partner-applications
+├ ƒ /api/city-partner-applications/details
+├ ƒ /api/corrections
+├ ƒ /api/graphql
+├ ƒ /api/graphql-playground
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ƒ /api/inquiries/demand
+├ ƒ /api/observability/sli
+├ ƒ /api/routes
+├ ƒ /api/supply-submissions
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /dev-story/opt036
+├ ƒ /dev-story/opt037
+├ ƒ /entrust
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+└ ƒ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT=0

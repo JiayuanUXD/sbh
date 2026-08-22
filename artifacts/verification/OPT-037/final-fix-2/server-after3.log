@@ -1,0 +1,231 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3802
+- Network:       http://198.18.0.1:3802
+✓ Ready in 232ms
+[04:02:38] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[04:05:00] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 0)
+    }
+[04:06:16] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[04:06:17] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[04:06:17] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[04:06:24] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[04:06:30] [31mERROR[39m: [36m您无权执行此操作。[39m
+    err: {
+      "type": "e",
+      "message": "您无权执行此操作。",
+      "stack":
+          e: 您无权执行此操作。
+              at F (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45206)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async O (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:155:45826)
+              at async h (E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_158swtm._.js:1:18439)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\node_modules__pnpm_0wwnffj._.js:1:8809
+              at async rJ.do (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:20930)
+              at async rJ.handle (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:5:25785)
+              at async u (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:17585)
+              at async rJ.handleResponse (E:\github\sbh\payload-office-platform\node_modules\.pnpm\next@16.2.10_@babel+core@7.29.7_@playwright+test@1.61.1_react-dom@19.2.0_react@19.2.0\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.prod.js:1:119701)
+              at async l (E:\github\sbh\payload-office-platform\.next\server\chunks\[root-of-the-server]__19bl5ek._.js:1:18626)
+      "data": null,
+      "isOperational": true,
+      "isPublic": true,
+      "status": 403,
+      "name": "e"
+    }
+[04:06:31] [32mINFO[39m: [36minquiry_success[39m
+    [35mrequestId[39m: "d938ad51-bbcd-4763-a679-f92e20599a1d"
+    [35mpageType[39m: "listing"
+    [35mpath[39m: "/listings/jingan-serviced-office-42-seats"
+    [35mtargetType[39m: "listing"
+    [35mtargetSlug[39m: "jingan-serviced-office-42-seats"
+    [35mphoneMasked[39m: "138****1111"
+    [35mconsentPolicyVersion[39m: "MVP-R1"
+    [35midempotent[39m: false
+    [35mfieldCompleteness[39m: "with_message"
+    [35mcampaignKeys[39m: []
+    [35merrorCode[39m: null
+    [35mdurationMs[39m: 104
+    [35mhasPriceSnapshot[39m: true
+    [35msection[39m: "hero"
+    [35mtargetResolution[39m: "listing"
+[04:06:34] [32mINFO[39m: [36minquiry_success[39m
+    [35mrequestId[39m: "e2e-idempotent-1787342794337-4ogd6g"
+    [35mpageType[39m: "home"
+    [35mpath[39m: "/"
+    [35mtargetType[39m: "none"
+    [35mtargetSlug[39m: null
+    [35mphoneMasked[39m: "138****2222"
+    [35mconsentPolicyVersion[39m: "MVP-R1"
+    [35midempotent[39m: false
+    [35mfieldCompleteness[39m: "required_only"
+    [35mcampaignKeys[39m: []
+    [35merrorCode[39m: null
+    [35mdurationMs[39m: 16
+    [35mhasPriceSnapshot[39m: false
+    [35msection[39m: null
+    [35mtargetResolution[39m: "general"
+[04:06:34] [32mINFO[39m: [36minquiry_idempotent_hit[39m
+    [35mrequestId[39m: "e2e-idempotent-1787342794337-4ogd6g"
+    [35mpageType[39m: "home"
+    [35mpath[39m: "/"
+    [35mtargetType[39m: "none"
+    [35mtargetSlug[39m: null
+    [35mphoneMasked[39m: "138****2222"
+    [35mconsentPolicyVersion[39m: "MVP-R1"
+    [35midempotent[39m: true
+    [35mfieldCompleteness[39m: "required_only"
+    [35mcampaignKeys[39m: []
+    [35merrorCode[39m: null
+    [35mdurationMs[39m: 3
+    [35mhasPriceSnapshot[39m: false
+    [35msection[39m: null
+    [35mtargetResolution[39m: "general"
+[04:10:30] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 0)
+    }
+[04:11:30] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 0)
+    }
+[04:13:30] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 0)
+    }

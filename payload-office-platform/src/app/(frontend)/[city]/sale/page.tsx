@@ -7,6 +7,7 @@ import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
+import { parseListingViewMode } from '@/lib/frontend/listing-url'
 import { saleChannelPath, shouldIndexSaleChannel } from '@/lib/frontend/sale-channel'
 import { getMultiCityRoutingEnabled, getSaleChannelEnabled } from '@/lib/frontend/site-config'
 
@@ -81,6 +82,7 @@ export default async function CitySalePage({ params, searchParams }: Props) {
       basePath={saleChannelPath(city.slug)}
       routeMode="prefixed"
       businessType="sale"
+      view={parseListingViewMode(raw.view)}
     />
   )
 }

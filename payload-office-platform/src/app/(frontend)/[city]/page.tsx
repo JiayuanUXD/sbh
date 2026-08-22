@@ -44,5 +44,5 @@ export default async function CityHomePage({ params }: Readonly<{ params: Promis
     return <ComingSoonCityView city={city} />
   }
   const homepage = await getCachedHomepage(city.slug)
-  return <CityHomeView city={city} homepage={homepage} routeMode="prefixed" />
+  return <CityHomeView city={city} homepage={homepage} routeMode="prefixed" bandStats={homepage.stats} />
 }

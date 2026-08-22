@@ -1,0 +1,1000 @@
+{
+  "375": {
+    "overflow": {
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "ok": true
+    },
+    "skeleton": {
+      "container": {
+        "width": 343
+      },
+      "core": {
+        "width": 343,
+        "cols": "343px",
+        "gap": "32px"
+      },
+      "supply": null,
+      "h1": {
+        "width": 240,
+        "size": "24px",
+        "weight": "600",
+        "ls": "normal"
+      },
+      "subtitle": {
+        "width": 343,
+        "size": "14px"
+      },
+      "anchorBar": {
+        "width": 375,
+        "pos": "sticky",
+        "top": "44px",
+        "height": "56px"
+      },
+      "relatedGrid": {
+        "width": 343,
+        "cols": "343px",
+        "gap": "16px"
+      },
+      "specPanel": {
+        "width": 343,
+        "cols": "263px",
+        "pad": "40px"
+      }
+    },
+    "stickyMid": {
+      "y": 44,
+      "h": 56,
+      "x": 0,
+      "w": 375
+    },
+    "stickyBottom": {
+      "barY": -83,
+      "barVisible": false,
+      "activeLabel": "同商圈楼盘",
+      "activeHref": "#related",
+      "lastAnchorHref": "#related"
+    },
+    "bars": {
+      "mobileBar": "flex",
+      "anchorTitle": "none",
+      "anchorCta": "none",
+      "anchorLinks": "flex"
+    },
+    "typography": {
+      "specValue": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "500"
+      },
+      "supplyNum": null,
+      "heroPrice": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "40px",
+        "weight": "600"
+      },
+      "h2": {
+        "fvn": "normal",
+        "ls": "normal",
+        "size": "24px",
+        "weight": "600"
+      }
+    },
+    "zeroScan": {
+      "zeroYuan": false,
+      "zeroTao": false,
+      "zeroSqm": false,
+      "dashCount": 0
+    }
+  },
+  "768": {
+    "overflow": {
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "ok": true
+    },
+    "skeleton": {
+      "container": {
+        "width": 736
+      },
+      "core": {
+        "width": 736,
+        "cols": "736px",
+        "gap": "32px"
+      },
+      "supply": null,
+      "h1": {
+        "width": 320,
+        "size": "32px",
+        "weight": "600",
+        "ls": "normal"
+      },
+      "subtitle": {
+        "width": 736,
+        "size": "15px"
+      },
+      "anchorBar": {
+        "width": 768,
+        "pos": "sticky",
+        "top": "44px",
+        "height": "56px"
+      },
+      "relatedGrid": {
+        "width": 736,
+        "cols": "360px 360px",
+        "gap": "16px"
+      },
+      "specPanel": {
+        "width": 736,
+        "cols": "656px",
+        "pad": "40px"
+      }
+    },
+    "stickyMid": {
+      "y": 44,
+      "h": 56,
+      "x": 0,
+      "w": 768
+    },
+    "stickyBottom": {
+      "barY": 44,
+      "barVisible": true,
+      "activeLabel": "同商圈楼盘",
+      "activeHref": "#related",
+      "lastAnchorHref": "#related"
+    },
+    "bars": {
+      "mobileBar": "none",
+      "anchorTitle": "block",
+      "anchorCta": "block",
+      "anchorLinks": "flex"
+    },
+    "typography": {
+      "specValue": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "500"
+      },
+      "supplyNum": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "400"
+      },
+      "heroPrice": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "40px",
+        "weight": "600"
+      },
+      "h2": {
+        "fvn": "normal",
+        "ls": "normal",
+        "size": "24px",
+        "weight": "600"
+      }
+    },
+    "zeroScan": {
+      "zeroYuan": false,
+      "zeroTao": false,
+      "zeroSqm": false,
+      "dashCount": 2
+    }
+  },
+  "1440": {
+    "overflow": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "ok": true
+    },
+    "skeleton": {
+      "container": {
+        "width": 1180
+      },
+      "core": {
+        "width": 1180,
+        "cols": "776px 372px",
+        "gap": "32px"
+      },
+      "supply": null,
+      "h1": {
+        "width": 320,
+        "size": "32px",
+        "weight": "600",
+        "ls": "normal"
+      },
+      "subtitle": {
+        "width": 1180,
+        "size": "15px"
+      },
+      "anchorBar": {
+        "width": 1440,
+        "pos": "sticky",
+        "top": "44px",
+        "height": "56px"
+      },
+      "relatedGrid": {
+        "width": 1180,
+        "cols": "283px 283px 283px 283px",
+        "gap": "16px"
+      },
+      "specPanel": {
+        "width": 1180,
+        "cols": "514px 514px",
+        "pad": "40px"
+      }
+    },
+    "stickyMid": {
+      "y": 44,
+      "h": 56,
+      "x": 0,
+      "w": 1440
+    },
+    "stickyBottom": {
+      "barY": 44,
+      "barVisible": true,
+      "activeLabel": "同商圈楼盘",
+      "activeHref": "#related",
+      "lastAnchorHref": "#related"
+    },
+    "bars": {
+      "mobileBar": "none",
+      "anchorTitle": "block",
+      "anchorCta": "block",
+      "anchorLinks": "flex"
+    },
+    "typography": {
+      "specValue": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "500"
+      },
+      "supplyNum": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "400"
+      },
+      "heroPrice": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "40px",
+        "weight": "600"
+      },
+      "h2": {
+        "fvn": "normal",
+        "ls": "normal",
+        "size": "24px",
+        "weight": "600"
+      }
+    },
+    "zeroScan": {
+      "zeroYuan": false,
+      "zeroTao": false,
+      "zeroSqm": false,
+      "dashCount": 2
+    }
+  },
+  "1920": {
+    "overflow": {
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "ok": true
+    },
+    "skeleton": {
+      "container": {
+        "width": 1180
+      },
+      "core": {
+        "width": 1180,
+        "cols": "776px 372px",
+        "gap": "32px"
+      },
+      "supply": null,
+      "h1": {
+        "width": 320,
+        "size": "32px",
+        "weight": "600",
+        "ls": "normal"
+      },
+      "subtitle": {
+        "width": 1180,
+        "size": "15px"
+      },
+      "anchorBar": {
+        "width": 1920,
+        "pos": "sticky",
+        "top": "44px",
+        "height": "56px"
+      },
+      "relatedGrid": {
+        "width": 1180,
+        "cols": "283px 283px 283px 283px",
+        "gap": "16px"
+      },
+      "specPanel": {
+        "width": 1180,
+        "cols": "514px 514px",
+        "pad": "40px"
+      }
+    },
+    "stickyMid": {
+      "y": 44,
+      "h": 56,
+      "x": 0,
+      "w": 1920
+    },
+    "stickyBottom": {
+      "barY": 44,
+      "barVisible": true,
+      "activeLabel": "同商圈楼盘",
+      "activeHref": "#related",
+      "lastAnchorHref": "#related"
+    },
+    "bars": {
+      "mobileBar": "none",
+      "anchorTitle": "block",
+      "anchorCta": "block",
+      "anchorLinks": "flex"
+    },
+    "typography": {
+      "specValue": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "500"
+      },
+      "supplyNum": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "15px",
+        "weight": "400"
+      },
+      "heroPrice": {
+        "fvn": "tabular-nums",
+        "ls": "normal",
+        "size": "40px",
+        "weight": "600"
+      },
+      "h2": {
+        "fvn": "normal",
+        "ls": "normal",
+        "size": "24px",
+        "weight": "600"
+      }
+    },
+    "zeroScan": {
+      "zeroYuan": false,
+      "zeroTao": false,
+      "zeroSqm": false,
+      "dashCount": 2
+    }
+  },
+  "anchorClicks": [
+    {
+      "href": "#supply",
+      "sectionTop": 112,
+      "headingTop": 168,
+      "barBottom": 100,
+      "headingClearOfBar": true,
+      "scrollMarginTop": "112px",
+      "activeHref": "#supply",
+      "highlightFollows": true
+    },
+    {
+      "href": "#location",
+      "sectionTop": 112,
+      "headingTop": 168,
+      "barBottom": 100,
+      "headingClearOfBar": true,
+      "scrollMarginTop": "112px",
+      "activeHref": "#location",
+      "highlightFollows": true
+    },
+    {
+      "href": "#params",
+      "sectionTop": 112,
+      "headingTop": 168,
+      "barBottom": 100,
+      "headingClearOfBar": true,
+      "scrollMarginTop": "112px",
+      "activeHref": "#params",
+      "highlightFollows": true
+    },
+    {
+      "href": "#related",
+      "sectionTop": 161,
+      "headingTop": 217,
+      "barBottom": 100,
+      "headingClearOfBar": true,
+      "scrollMarginTop": "112px",
+      "activeHref": "#related",
+      "highlightFollows": true
+    }
+  ],
+  "highlightTrace": [
+    {
+      "ratio": 0,
+      "active": "supply",
+      "expected": "supply",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.1,
+      "active": "supply",
+      "expected": "supply",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.2,
+      "active": "supply",
+      "expected": "supply",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.3,
+      "active": "supply",
+      "expected": "supply",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.4,
+      "active": "supply",
+      "expected": "supply",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.5,
+      "active": "location",
+      "expected": "location",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.6,
+      "active": "location",
+      "expected": "location",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.7,
+      "active": "params",
+      "expected": "params",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.8,
+      "active": "params",
+      "expected": "params",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 0.9,
+      "active": "related",
+      "expected": "related",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    },
+    {
+      "ratio": 1,
+      "active": "related",
+      "expected": "related",
+      "exactlyOneHighlighted": true,
+      "matchesGeometry": true
+    }
+  ],
+  "supplyGroups": {
+    "tabs": [
+      "租赁4"
+    ],
+    "tabCount": 1,
+    "emptyGroupPlaceholders": 0
+  },
+  "states": {
+    "empty-supply": {
+      "375": {
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "768": {
+        "overflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "1440": {
+        "overflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "1920": {
+        "overflow": {
+          "scrollWidth": 1920,
+          "clientWidth": 1920,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      }
+    },
+    "no-related": {
+      "375": {
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 0,
+        "emptySupplyText": false,
+        "sideRailRegistration": true
+      },
+      "768": {
+        "overflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 0,
+        "emptySupplyText": false,
+        "sideRailRegistration": true
+      },
+      "1440": {
+        "overflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 0,
+        "emptySupplyText": false,
+        "sideRailRegistration": true
+      },
+      "1920": {
+        "overflow": {
+          "scrollWidth": 1920,
+          "clientWidth": 1920,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#location",
+            "label": "周边与交通"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 2,
+        "locationSections": 1,
+        "nearbyStrips": 0,
+        "emptySupplyText": false,
+        "sideRailRegistration": true
+      }
+    },
+    "no-coord": {
+      "375": {
+        "overflow": {
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 0,
+        "locationSections": 0,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "768": {
+        "overflow": {
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 0,
+        "locationSections": 0,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "1440": {
+        "overflow": {
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 0,
+        "locationSections": 0,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      },
+      "1920": {
+        "overflow": {
+          "scrollWidth": 1920,
+          "clientWidth": 1920,
+          "ok": true
+        },
+        "anchors": [
+          {
+            "href": "#supply",
+            "label": "在租房源"
+          },
+          {
+            "href": "#params",
+            "label": "楼盘参数"
+          },
+          {
+            "href": "#related",
+            "label": "同商圈楼盘"
+          }
+        ],
+        "deadAnchors": [],
+        "unlinkedSections": [],
+        "mapContainers": 0,
+        "locationSections": 0,
+        "nearbyStrips": 1,
+        "emptySupplyText": true,
+        "sideRailRegistration": true
+      }
+    }
+  },
+  "longTitle": {
+    "375": {
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "ok": true
+      },
+      "h1": {
+        "x": 16,
+        "y": 154,
+        "w": 343,
+        "h": 90,
+        "display": "block",
+        "position": "static",
+        "top": "auto"
+      },
+      "barTitle": {
+        "w": 0,
+        "clipped": false,
+        "display": "none"
+      }
+    },
+    "768": {
+      "overflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "ok": true
+      },
+      "h1": {
+        "x": 16,
+        "y": 166,
+        "w": 474,
+        "h": 110,
+        "display": "block",
+        "position": "static",
+        "top": "auto"
+      },
+      "barTitle": {
+        "w": 221,
+        "clipped": true,
+        "display": "block"
+      }
+    },
+    "1440": {
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "ok": true
+      },
+      "h1": {
+        "x": 130,
+        "y": 166,
+        "w": 918,
+        "h": 74,
+        "display": "block",
+        "position": "static",
+        "top": "auto"
+      },
+      "barTitle": {
+        "w": 354,
+        "clipped": true,
+        "display": "block"
+      }
+    },
+    "1920": {
+      "overflow": {
+        "scrollWidth": 1920,
+        "clientWidth": 1920,
+        "ok": true
+      },
+      "h1": {
+        "x": 370,
+        "y": 166,
+        "w": 918,
+        "h": 74,
+        "display": "block",
+        "position": "static",
+        "top": "auto"
+      },
+      "barTitle": {
+        "w": 354,
+        "clipped": true,
+        "display": "block"
+      }
+    }
+  },
+  "routes": {
+    "legacyStatus": 200,
+    "prefixedStatus": 200
+  },
+  "preserved": {
+    "jsonLdCount": 1,
+    "jsonLdType": "Place",
+    "analyticsHooks": {
+      "building_listing_click": 4,
+      "related_building_click": 1
+    },
+    "sideRail": 1,
+    "sideRailCards": 4,
+    "nearbyStrip": 1,
+    "backToTop": 1,
+    "correctionModal": 1,
+    "shareSave": 2,
+    "inquiryBySection": {
+      "sticky-card": 3,
+      "hero": 1,
+      "mobile-bar": 1
+    }
+  },
+  "stickyContainingBlock": {
+    "375": {
+      "atLastSectionEnd": {
+        "barTop": 44,
+        "stuck": true
+      },
+      "atDocumentBottom": {
+        "barTop": -83,
+        "lastSectionBottom": -27,
+        "dtPageBottom": 101,
+        "footerHeight": 607
+      }
+    },
+    "1440": {
+      "atLastSectionEnd": {
+        "barTop": 44,
+        "stuck": true
+      },
+      "atDocumentBottom": {
+        "barTop": 44,
+        "lastSectionBottom": 553,
+        "dtPageBottom": 553,
+        "footerHeight": 243
+      }
+    }
+  }
+}

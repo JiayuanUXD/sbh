@@ -1,0 +1,38 @@
+DIFF  building-empty-1440.png        1440x3895                    diffPx=809 (0.0144%) firstY=1888
+OK    building-empty-320.png         320x5626                     diffPx=0 (0.0000%) firstY=-1
+OK    building-empty-375.png         375x5517                     diffPx=0 (0.0000%) firstY=-1
+OK    building-empty-768.png         768x5177                     diffPx=0 (0.0000%) firstY=-1
+DIFF  building-nomedia-1440.png      1440x4502                    diffPx=7301 (0.1126%) firstY=2128
+DIFF  building-nomedia-320.png       320x8103                     diffPx=46575 (1.7962%) firstY=4292
+DIFF  building-nomedia-375.png       375x7939                     diffPx=55681 (1.8703%) firstY=4186
+DIFF  building-nomedia-768.png       768x6179                     diffPx=10826 (0.2281%) firstY=2579
+OK    building-withmedia-1440.png    1440x5282                    diffPx=0 (0.0000%) firstY=-1
+OK    building-withmedia-320.png     320x9686                     diffPx=0 (0.0000%) firstY=-1
+OK    building-withmedia-375.png     375x9934                     diffPx=0 (0.0000%) firstY=-1
+OK    building-withmedia-768.png     768x7363                     diffPx=0 (0.0000%) firstY=-1
+OK    buildings-index-1440.png       1440x1903                    diffPx=0 (0.0000%) firstY=-1
+OK    buildings-index-320.png        320x4060                     diffPx=0 (0.0000%) firstY=-1
+DIFF  buildings-index-375.png        375x3984                     diffPx=48 (0.0032%) firstY=2128
+OK    buildings-index-768.png        768x2610                     diffPx=0 (0.0000%) firstY=-1
+OK    home-1440.png                  1440x5978                    diffPx=0 (0.0000%) firstY=-1
+OK    home-320.png                   320x7073                     diffPx=0 (0.0000%) firstY=-1
+OK    home-375.png                   375x6908                     diffPx=0 (0.0000%) firstY=-1
+OK    home-768.png                   768x6864                     diffPx=0 (0.0000%) firstY=-1
+DIFF  listing-1440.png               1440x4310                    diffPx=18948 (0.3053%) firstY=2612
+DIFF  listing-320.png                SIZE 320x5123 -> 320x5304    diffPx=308370 (18.8104%) firstY=3011
+DIFF  listing-375.png                SIZE 375x5045 -> 375x5226    diffPx=393371 (20.7927%) firstY=2898
+DIFF  listing-768.png                SIZE 768x4930 -> 768x5115    diffPx=440520 (11.6348%) firstY=3086
+DIFF  listing-so-1440.png            1440x4375                    diffPx=5232 (0.0830%) firstY=2728
+DIFF  listing-so-320.png             320x6437                     diffPx=3024 (0.1468%) firstY=3171
+DIFF  listing-so-375.png             375x6394                     diffPx=1577 (0.0658%) firstY=3059
+DIFF  listing-so-768.png             768x5804                     diffPx=5058 (0.1135%) firstY=3111
+OK    listings-index-1440.png        1440x1952                    diffPx=0 (0.0000%) firstY=-1
+OK    listings-index-320.png         320x5269                     diffPx=0 (0.0000%) firstY=-1
+OK    listings-index-375.png         375x5487                     diffPx=0 (0.0000%) firstY=-1
+OK    listings-index-768.png         768x3138                     diffPx=0 (0.0000%) firstY=-1
+OK    news-1440.png                  1440x1224                    diffPx=0 (0.0000%) firstY=-1
+OK    news-320.png                   324x2678                     diffPx=0 (0.0000%) firstY=-1
+OK    news-375.png                   375x2661                     diffPx=0 (0.0000%) firstY=-1
+OK    news-768.png                   768x1851                     diffPx=0 (0.0000%) firstY=-1
+
+worst diffPx = 440520

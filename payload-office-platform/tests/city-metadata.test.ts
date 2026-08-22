@@ -24,6 +24,7 @@ function city(
       serviceStatus,
       switcherVisible: true,
       sortOrder: 10,
+      avgResponseHours: null,
       seoTitle: `${name}办公租赁`,
       seoDescription: `${name}办公租赁与选址服务。`,
       hero: { eyebrow: '', heading: '', body: '', media: null },

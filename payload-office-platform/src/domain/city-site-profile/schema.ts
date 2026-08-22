@@ -42,3 +42,11 @@ export function isValidCityProfileSeoText(
 ): value is string {
   return hasValidCityProfileSeoLength(value, field) && value.includes(cityDisplayName)
 }
+
+/** 数据带「平均响应」运营承诺口径：0 < h ≤ 72，保留一位小数；其余一律 null（首页不渲染该格）。 */
+export function normalizeAvgResponseHours(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  const rounded = Math.round(value * 10) / 10
+  if (rounded <= 0 || rounded > 72) return null
+  return rounded
+}

@@ -1,0 +1,43 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3820
+- Network:       http://198.18.0.1:3820
+✓ Ready in 227ms
+[04:35:44] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:48] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:50] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:50] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:50] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:50] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:51] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:51] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:51] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:51] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:51] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:53] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:53] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:53] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:53] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:54] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:54] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:54] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:54] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:54] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-16.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-16.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-17.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-17.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile gallery-18.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\gallery-18.jpg[39m
+[04:35:56] [31mERROR[39m: [36mFile cover-west-nanjing-premium-center-3.jpg for collection media is missing on the disk. Expected path: E:\wt10b\payload-office-platform\media\cover-west-nanjing-premium-center-3.jpg[39m

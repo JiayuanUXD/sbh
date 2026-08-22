@@ -1,0 +1,261 @@
+{
+  "base": "http://localhost:3719",
+  "path": "/dev-story/opt038",
+  "httpStatus": 200,
+  "calls": [
+    {
+      "path": "/create",
+      "body": {
+        "requestId": "city-partner-cc607bbf-5d32-4026-b0cc-5237d461521c",
+        "city": "hangzhou",
+        "applicantName": "预览申请人",
+        "contactPhone": "13800001111",
+        "applicantIdentity": "local-operations",
+        "consent": {
+          "accepted": true,
+          "policyVersion": "MVP-R1"
+        },
+        "source": {
+          "path": "/city-partner"
+        }
+      }
+    },
+    {
+      "path": "/details",
+      "body": {
+        "requestId": "city-partner-cc607bbf-5d32-4026-b0cc-5237d461521c",
+        "contactPhone": "13800001111",
+        "resourceTypes": [
+          "local-team"
+        ]
+      }
+    }
+  ],
+  "states": {
+    "stageOne": {
+      "label": "第一步 · 必填",
+      "root": "city-partner-form",
+      "rect": {
+        "w": 400,
+        "h": 735
+      },
+      "surface": {
+        "backgroundColor": "rgb(255, 255, 255)",
+        "borderTopWidth": "0px",
+        "borderRadius": "18px",
+        "padding": "40px",
+        "boxShadow": "none",
+        "display": "flex",
+        "gap": "20px"
+      },
+      "heading": {
+        "text": "先留下联系信息",
+        "fontSize": "24px",
+        "fontWeight": "600",
+        "lineHeight": "28.8px",
+        "letterSpacing": "normal",
+        "color": "rgb(29, 29, 31)",
+        "margin": "0px"
+      },
+      "statusRoleCount": 1,
+      "h1Count": 4,
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      },
+      "asideRect": {
+        "w": 400,
+        "h": 735
+      },
+      "asidePosition": {
+        "position": "sticky",
+        "top": "68px"
+      },
+      "cta": {
+        "text": "保存并继续",
+        "height": "44px",
+        "borderRadius": "980px",
+        "backgroundColor": "rgb(0, 113, 227)",
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "17px",
+        "fontWeight": "400",
+        "padding": "0px 22px",
+        "width": "320px"
+      }
+    },
+    "stageTwo": {
+      "label": "第二步 · 可选",
+      "root": "city-partner-form",
+      "rect": {
+        "w": 400,
+        "h": 1137
+      },
+      "surface": {
+        "backgroundColor": "rgb(255, 255, 255)",
+        "borderTopWidth": "0px",
+        "borderRadius": "18px",
+        "padding": "40px",
+        "boxShadow": "none",
+        "display": "flex",
+        "gap": "20px"
+      },
+      "heading": {
+        "text": "补充合作信息（可选）",
+        "fontSize": "24px",
+        "fontWeight": "600",
+        "lineHeight": "28.8px",
+        "letterSpacing": "normal",
+        "color": "rgb(29, 29, 31)",
+        "margin": "0px"
+      },
+      "statusRoleCount": 1,
+      "h1Count": 4,
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      },
+      "asideRect": {
+        "w": 400,
+        "h": 1137
+      },
+      "asidePosition": {
+        "position": "sticky",
+        "top": "68px"
+      },
+      "checks": {
+        "grid": {
+          "gridTemplateColumns": "320px",
+          "gap": "8px"
+        },
+        "labels": [
+          {
+            "text": "楼宇/业主资源",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          },
+          {
+            "text": "企业选址需求",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          },
+          {
+            "text": "经纪渠道网络",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          },
+          {
+            "text": "本地运营团队",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          },
+          {
+            "text": "政府/商协会资源",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          },
+          {
+            "text": "其他",
+            "w": 320,
+            "h": 44,
+            "lines": 1,
+            "borderRadius": "8px",
+            "padding": "0px 14px",
+            "fontSize": "15px"
+          }
+        ]
+      },
+      "textarea": {
+        "height": "125.938px",
+        "padding": "12px 14px",
+        "borderRadius": "8px",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(0, 0, 0, 0.16)",
+        "fontSize": "17px",
+        "lineHeight": "24.99px"
+      },
+      "skip": {
+        "text": "暂不补充，完成申请",
+        "minHeight": "44px",
+        "padding": "11px 21px",
+        "borderRadius": "980px",
+        "borderTopWidth": "1px",
+        "borderTopColor": "rgba(0, 0, 0, 0.16)",
+        "fontSize": "17px",
+        "fontWeight": "400",
+        "color": "rgb(29, 29, 31)",
+        "backgroundColor": "rgba(0, 0, 0, 0)"
+      },
+      "cta": {
+        "text": "提交补充信息",
+        "height": "44px",
+        "borderRadius": "980px",
+        "backgroundColor": "rgb(0, 113, 227)",
+        "color": "rgb(255, 255, 255)",
+        "fontSize": "17px",
+        "fontWeight": "400",
+        "padding": "0px 22px",
+        "width": "146px"
+      }
+    },
+    "complete": {
+      "label": "提交成功",
+      "root": "city-partner-form__success",
+      "rect": {
+        "w": 400,
+        "h": 157
+      },
+      "surface": {
+        "backgroundColor": "rgb(255, 255, 255)",
+        "borderTopWidth": "0px",
+        "borderRadius": "18px",
+        "padding": "40px",
+        "boxShadow": "none",
+        "display": "flex",
+        "gap": "8px"
+      },
+      "heading": {
+        "text": "申请已收到",
+        "fontSize": "24px",
+        "fontWeight": "600",
+        "lineHeight": "28.8px",
+        "letterSpacing": "normal",
+        "color": "rgb(29, 29, 31)",
+        "margin": "0px"
+      },
+      "statusRoleCount": 1,
+      "h1Count": 4,
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440
+      },
+      "asideRect": {
+        "w": 400,
+        "h": 157
+      },
+      "asidePosition": {
+        "position": "sticky",
+        "top": "68px"
+      }
+    }
+  }
+}

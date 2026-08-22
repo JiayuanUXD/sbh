@@ -1,0 +1,293 @@
+/* ============================================================================
+ * OPT-035 首页专属样式（Apple 中性极简）
+ * 设计依据：docs/SBH设计任务讨论/首页.dc.html 已锁定稿
+ * 规则：只准引用 styles.css §1 的 token；命名空间 .hm-*；
+ *       中文 letter-spacing normal（**全局无例外**——原先给 21px 引导副标
+ *       `.hm-lead` 开的 +0.011em 例外，随该类零使用一并删除，见终审 D2）
+ * ========================================================================== */
+
+/* 首页外壳出血：.site-main 有区块内边距（padding-block: var(--sp-6)）与容器上限，
+   会把 .hm-home 的所有子 section 挤成"两侧留灰边"的内嵌块。取消该内边距并把
+   .hm-home 撑满视口宽度，让每个 section 的背景带在所有断点保持满宽出血
+   （设计系统 §7）；Hero 额外上探 --header-height，使其延伸到吸顶头部下方，
+   透明态头部的白字才能压在 Hero 暗色遮罩上而不是页面浅灰底上。
+   body 已有 overflow-x: clip 配合裁掉 100vw 带来的横向滚动条溢出。 */
+.hm-home {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  margin-block: calc(-1 * var(--sp-6) - var(--header-height)) calc(-1 * var(--sp-6));
+}
+
+.hm-container { width: min(var(--w), 100% - 32px); margin-inline: auto; }
+
+.hm-section { position: relative; background: var(--bg); padding-block: var(--pad); }
+.hm-band    { position: relative; background: var(--bg-subtle); }
+
+.hm-h2 { margin: 0; font-size: 40px; font-weight: 600; line-height: 1.1; color: var(--ink); }
+.hm-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; }
+.hm-section-link { font-size: 17px; color: var(--accent-link); }
+
+/* 卡片表面 / 图上渐变 / 图上标签 / tabular 数字已上移到 styles/surface.css 的
+   .sf-* 共享基元（OPT-036）：首页、列表页、详情页、招募页共用同一套，
+   hover 位移 6px → 2px、过渡 500ms → 320ms 是全站统一的一部分，不是回退。
+   见 .superpowers/sdd/cross-batch-design-decisions.md。 */
+
+/* 滚动进场。
+   两条硬约束高于「照抄设计稿」：内容在任何降级路径下都必须可见，且尊重
+   prefers-reduced-motion。设计稿写的是 `animation: rise ... both` + view()
+   时间线——`fill-mode: both` 会在时间线的 before phase（元素还没进入 range，
+   或时间线根本没被激活：不支持 view()、祖先不是滚动容器、整页截图/打印等）
+   把元素锁死在 `from { opacity: .001 }`，价值点三列因此整段隐形过一次。
+   所以这里：
+     1) 用 @supports 包住，不支持 view() 的浏览器完全不加动画（而不是退回
+        文档时间线在加载时闪一下）；
+     2) fill-mode 用 none（不写 both）——只在 range 内生效，before/after
+        phase 一律回落到元素本身的可见基态。 */
+@keyframes hm-rise { from { opacity: 0.001; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hm-rise { animation: hm-rise 400ms var(--ease);
+      animation-timeline: view(); animation-range: entry 0% cover 24%; }
+    /* 设计稿给「为什么选择我们」单独用了更慢的 800ms / cover 30% */
+    .hm-rise--slow { animation-duration: 800ms; animation-timing-function: var(--ease-apple);
+      animation-range: entry 0% cover 30%; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hm-rise { animation: none; }
+  /* 卡片抬升的 reduced-motion 兜底在 surface.css（.sf-card） */
+}
+
+/* 移动稿（设计稿 375 栏）：section padding 72 / 左右 16、h2 32/600/1.10；
+   两条白底带各自收紧（数据带 48、选择我们 56，见设计稿移动栏） */
+@media (max-width: 767px) {
+  .hm-section { padding-block: 72px; }
+  .hm-h2 { font-size: 32px; line-height: 1.1; }
+}
+
+/* --- HorizontalRail ------------------------------------------------------- */
+.hm-rail { position: relative; margin-top: 48px; }
+.hm-rail__track {
+  display: flex; gap: 16px; overflow-x: auto;
+  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  scroll-padding-inline-start: calc((100% - min(var(--w), 100% - 32px)) / 2);
+  padding: 4px calc((100% - min(var(--w), 100% - 32px)) / 2) 12px;
+  scrollbar-width: none;
+}
+.hm-rail__track::-webkit-scrollbar { display: none; }
+.hm-rail__item { flex: 0 0 400px; scroll-snap-align: start; }
+.hm-rail__arrow {
+  position: absolute; top: 150px; width: 44px; height: 44px; border: none;
+  border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.82);
+  /* 手写 -webkit-backdrop-filter 兄弟声明会被构建管线（lightningcss）连同
+     unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
+     构建工具按 browserslist 目标自动补齐 */
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.hm-rail__arrow:hover { background: #fff; }
+.hm-rail__arrow--prev { left: 24px; }
+.hm-rail__arrow--next { right: 24px; }
+.hm-rail__arrow[hidden] { display: none; }
+@media (max-width: 767px) {
+  .hm-rail__item { flex-basis: 343px; }
+  .hm-rail__arrow { display: none; } /* 触屏直接滑 */
+}
+
+/* HomeNearbyRail：标题+副标竖排（无「查看全部」链接），与 hm-section-head 的
+   两端对齐布局区分。
+   必须显式写 align-items: flex-start——.hm-section-head 的 flex-end 是为了让
+   右侧「查看全部」链接与 h2 基线底对齐，一旦主轴转成纵向，同一条 flex-end
+   就变成「整段右对齐」，标题与副标会贴到容器右缘（设计稿里所有 section 标题
+   都是左对齐）。 */
+.hm-section-head--stack { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.hm-section-sub { margin: 0; font-size: 17px; line-height: 1.47; color: var(--ink-2); }
+
+/* --- 供给卡（楼盘 / 房源 / 核心商圈共用） -------------------------------- */
+/* 卡壳走 .sf-card；图区走 .sf-media + .sf-media--4x3（表面属性与 4:3 比例都在
+   surface.css，含「display:block 才能让 aspect-ratio 在 <span> 上生效」那条）。
+   元素上仍留 .hm-supply-card 作为 BEM 块名锚点（下面的 __ 子元素依它命名），
+   块本身已无声明——不是漏删。 */
+.hm-supply-card__tags { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 6px; }
+.hm-supply-card__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 6px; }
+.hm-supply-card__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.hm-supply-card__where, .hm-supply-card__meta { font-size: 14px; line-height: 1.43; color: var(--ink-2); }
+.hm-supply-card__price { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
+.hm-supply-card__price-value { font-size: 24px; font-weight: 600; color: var(--ink); }
+.hm-supply-card__price-unit { font-size: 14px; font-weight: 400; color: var(--ink-2); }
+
+/* --- Hero（视频背景 · min-height 760 · 三段遮罩） -------------------------- */
+.hm-hero { position: relative; min-height: 760px; display: flex; align-items: center;
+  justify-content: center; overflow: hidden; background: #3a3a3c;
+  /* 顶部额外加 header-height：Hero 已延伸到吸顶头部下方（见 .hm-home），
+     内容需要多留一段顶部间距才不会被 44px 头部遮住 */
+  padding-block: calc(var(--pad) + var(--header-height)) var(--pad); }
+/* HomeHeroMedia（既有组件）的容器类名，样式随 §11 一并删除前先在此地重锚 */
+.hm-hero .hero__bg { position: absolute; inset: 0; z-index: 0; }
+.hm-hero .hero__poster, .hm-hero .hero__bg video { width: 100%; height: 100%; object-fit: cover; }
+.hm-hero .hero__poster { display: block; }
+.hm-hero .hero__bg video { position: absolute; inset: 0; }
+.hm-hero__scrim { position: absolute; inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.44), rgba(0, 0, 0, 0.24) 55%, rgba(0, 0, 0, 0.5)); }
+.hm-hero__inner { position: relative; display: flex; flex-direction: column; align-items: center; }
+.hm-hero__title { margin: 0; font-size: 56px; font-weight: 600; line-height: 1.07;
+  letter-spacing: normal; text-align: center; color: #fff; }
+.hm-hero__lead { margin: 20px 0 0; max-width: var(--measure); font-size: 21px; line-height: 1.38;
+  letter-spacing: 0.011em; color: rgba(255, 255, 255, 0.88); text-align: center; text-wrap: pretty; }
+.hm-hero__chips { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.hm-hero__chip { font-size: 12px; font-weight: 500; color: #fff;
+  background: rgba(255, 255, 255, 0.2); border-radius: var(--r-pill); padding: 5px 12px; }
+@media (max-width: 767px) {
+  .hm-hero { min-height: 560px; }
+  .hm-hero__title { font-size: 40px; }
+}
+
+/* --- 搜索 pill（560×52 · 下拉收进「筛选」） -------------------------------- */
+.hm-search { margin-top: 48px; position: relative; width: min(560px, 100%); }
+.hm-search__pill { display: flex; align-items: center; gap: 12px; height: 52px;
+  padding: 4px 4px 4px 18px; border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18); }
+.hm-search__input { flex: 1; min-width: 0; border: 0; background: transparent;
+  font: inherit; font-size: 17px; color: var(--ink); }
+.hm-search__input::placeholder { color: var(--ink-3); }
+.hm-search__input:focus { outline: none; }
+.hm-search__pill:focus-within { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), var(--focus-ring); }
+.hm-search__divider { width: 1px; height: 22px; background: var(--line); }
+.hm-search__filter-btn { height: 44px; min-width: 44px; padding: 0 12px; border: 0;
+  background: transparent; color: var(--accent-link); font-family: inherit; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.hm-search__submit { width: 44px; height: 44px; flex: none; border: 0;
+  border-radius: var(--r-pill); background: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; }
+.hm-search__submit:hover { background: var(--accent-hover); }
+.hm-search__panel { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 20;
+  background: var(--bg-subtle); border-radius: var(--r-card); box-shadow: var(--shadow-hover);
+  padding: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.hm-search__select { height: 44px; border: 1px solid var(--line-strong);
+  border-radius: var(--r-input); background: var(--bg-subtle); font: inherit; font-size: 14px;
+  color: var(--ink); padding: 0 10px; }
+.hm-search__select:focus { border-color: var(--accent); box-shadow: var(--focus-ring); outline: none; }
+/* ≤767：面板改回文档流内展开（不是绝对定位浮层）。
+   .hm-hero 的 `overflow: hidden` 是背景视频/图片裁切的必要条件，不能去掉；
+   而移动 Hero 只有 min-height 560px，绝对定位的面板收在 Hero 盒子里、无法把
+   Hero 撑高，单列三段（20 + 3×44 + 2×12 + 20 ≈ 196px）的底部会被裁掉约 44px，
+   「面积」下拉整条够不到。改成 in-flow 后面板参与 Hero 的高度计算，Hero 随内容
+   增高，三个下拉全部可达；桌面（≥768）仍是浮层，布局零变化。 */
+@media (max-width: 767px) {
+  .hm-search__panel { position: static; grid-template-columns: 1fr; margin-top: 8px; }
+  /* 单列下 select 的内容宽度（约 98px）只占满行的三成，右边一大片空白像是坏了；
+     撑满栅格列，顺带把可点区域从 98px 拉到整行 */
+  .hm-search__select { width: 100%; }
+}
+
+/* --- 按类型浏览（五等分图卡 1fr×300 · 图高 168） -------------------------- */
+.hm-types { margin-top: 48px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; list-style: none; }
+.hm-type-card { display: flex; flex-direction: column; height: 300px; color: inherit; }
+/* 图区表面属性走 .sf-media；这里只留类型图卡特有的定高（非比例）与不参与伸缩 */
+.hm-type-card__media { height: 168px; flex: none; }
+.hm-type-card__no { position: absolute; left: 14px; bottom: 12px; font-size: 12px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.86); }
+.hm-type-card__body { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 18px 20px 20px; }
+.hm-type-card__name { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.hm-type-card__sub { font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+/* 在租套数是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+.hm-type-card__count { margin-top: auto; font-size: 13px; color: var(--ink-2); }
+@media (max-width: 1023px) { .hm-types { grid-template-columns: repeat(2, 1fr); } }
+/* 移动稿把类型换成单列紧凑行（设计稿 375 栏）：无图、行高 88、padding 20、
+   gap 8，编号与名称同一行——图卡在 375 宽下要么图太小失去信息量，要么整段
+   拉得过长把后面的 section 全推下去。 */
+@media (max-width: 767px) {
+  .hm-types { margin-top: 24px; grid-template-columns: 1fr; gap: 8px; }
+  .hm-type-card { flex-direction: row; align-items: center; gap: 16px;
+    height: auto; min-height: 88px; padding: 20px; }
+  /* 图区退成 28px 宽的编号列（DOM 不变，编号本来就挂在图区里） */
+  .hm-type-card__media { width: 28px; height: auto; align-self: stretch;
+    background: transparent; display: flex; align-items: center; }
+  .hm-type-card__media img, .hm-type-card__media .sf-scrim { display: none; }
+  .hm-type-card__no { position: static; color: var(--ink-2); }
+  .hm-type-card__body { flex: 1; gap: 4px; padding: 0; }
+  .hm-type-card__sub { font-size: 14px; line-height: 1.43; }
+  .hm-type-card__count { margin-top: 4px; font-size: 13px; }
+}
+
+/* --- 热门商圈 bento（方案 1：大卡 2fr×480 + 2×232 + 2×280） --------------- */
+.hm-bento { margin-top: 48px; display: flex; flex-direction: column; gap: 16px; }
+.hm-bento__row { display: flex; gap: 16px; }
+.hm-bento__main { flex: 2; height: 480px; }
+.hm-bento__side { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.hm-bento__small { height: 232px; }
+.hm-bento__wide { flex: 1; height: 280px; }
+.hm-bento-card { position: relative; border-radius: var(--r-card); overflow: hidden;
+  background: #8e8e93; display: block; color: inherit; }
+.hm-bento-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 三种卡的标签内缩与字号各不相同（设计稿：大卡 32/28/gap 6，小卡 20/18/gap 4，
+   宽卡 24/22/gap 4） */
+.hm-bento-card__label { position: absolute; left: 20px; bottom: 18px; display: flex;
+  flex-direction: column; gap: 4px; }
+.hm-bento__main .hm-bento-card__label { left: 32px; bottom: 28px; gap: 6px; }
+.hm-bento__wide .hm-bento-card__label { left: 24px; bottom: 22px; }
+.hm-bento-card__name { font-weight: 600; color: #fff; }
+.hm-bento__main .hm-bento-card__name { font-size: 28px; line-height: 1.2; }
+.hm-bento__small .hm-bento-card__name { font-size: 19px; line-height: 1.3; }
+.hm-bento__wide .hm-bento-card__name { font-size: 24px; line-height: 1.2; }
+.hm-bento-card__buildings { font-size: 14px; color: rgba(255, 255, 255, 0.86); }
+@media (max-width: 767px) {
+  .hm-bento__row { flex-direction: column; }
+  .hm-bento__main, .hm-bento__small, .hm-bento__wide { height: 232px; flex: none; }
+}
+
+/* --- 数据带（白底满宽 padding 56 · 数字 48/600/1.08） --------------------- */
+.hm-stats { padding-block: 56px; }
+.hm-stats__grid { display: grid; grid-template-columns: repeat(var(--hm-stats-cols, 4), 1fr); gap: 24px; }
+.hm-stat { display: flex; flex-direction: column; gap: 8px; }
+.hm-stat__row { display: flex; align-items: baseline; gap: 6px; }
+.hm-stat__value { font-size: 48px; font-weight: 600; line-height: 1.08; color: var(--ink); }
+.hm-stat__unit { font-size: 17px; color: var(--ink-2); }
+.hm-stat__label { font-size: 14px; line-height: 1.43; color: var(--ink-2); }
+@media (max-width: 767px) { .hm-stats { padding-block: 48px; }
+  .hm-stats__grid { grid-template-columns: 1fr 1fr; gap: 40px 24px; }
+  .hm-stat { gap: 6px; } .hm-stat__value { font-size: 40px; }
+  .hm-stat__unit { font-size: 14px; } }
+
+/* --- 为什么选择我们（白底带 padding 88 · 3 列 · 上边线卡） ----------------- */
+.hm-values { padding-block: 88px; }
+.hm-values__grid { margin-top: 48px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.hm-value { display: flex; flex-direction: column; gap: 12px; padding-top: 20px;
+  border-top: 1px solid var(--line); }
+/* 序号 01–03 是真实内容（不是占位符/禁用态），--ink-3 在白底只有 3.62:1，
+   按 AA 下限提到 --ink-2（设计稿写的是 ink-3，此处对比度优先） */
+.hm-value__no { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.hm-value__name { font-size: 24px; font-weight: 600; line-height: 1.2; color: var(--ink); }
+.hm-value__body { max-width: 300px; font-size: 17px; line-height: 1.47; color: var(--ink-2); text-wrap: pretty; }
+@media (max-width: 767px) {
+  .hm-values { padding-block: 56px; }
+  .hm-values__grid { margin-top: 24px; grid-template-columns: 1fr; gap: 32px; }
+  .hm-value { gap: 8px; padding-top: 16px; }
+  .hm-value__no { font-size: 12px; }
+  .hm-value__name { font-size: 19px; line-height: 1.3; }
+}
+
+/* --- 资讯（白底带 padding 88 · 行高 76 · 无图） --------------------------- */
+.hm-news { padding-block: 88px; }
+.hm-news .hm-h2 { font-size: 28px; line-height: 1.2; }
+/* 资讯是次级分区：设计稿把标题压到 28、右侧链接压到 14（其余 section 是 40 / 17） */
+.hm-news .hm-section-link { font-size: 14px; }
+.hm-news__list { margin-top: 24px; display: flex; flex-direction: column; list-style: none; }
+/* 行线挂在 <li>（真实 :last-child），.hm-news__row 只管行内 flex 布局，
+   避免 border 挂在始终是自己父节点唯一子元素的 <a> 上导致 :last-child 恒真、行线全灭 */
+.hm-news__item { border-bottom: 1px solid var(--line); }
+.hm-news__item:last-child { border-bottom: 0; }
+.hm-news__row { display: flex; align-items: center; justify-content: space-between; gap: 32px;
+  min-height: 76px; color: inherit; }
+.hm-news__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+/* 发布日期是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+.hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; text-align: right; }
+@media (max-width: 767px) {
+  .hm-news { padding-block: 56px; }
+  .hm-news__row { gap: 16px; padding-block: 14px; }
+  .hm-news__title { font-size: 17px; }
+}

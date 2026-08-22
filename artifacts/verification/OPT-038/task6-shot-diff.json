@@ -1,0 +1,66 @@
+[
+  {
+    "file": "city-partner-1440.png",
+    "w": 1440,
+    "h": 1818,
+    "diffPixels": 0,
+    "total": 2617920,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "city-partner-1920.png",
+    "w": 1920,
+    "h": 1818,
+    "diffPixels": 0,
+    "total": 3490560,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "city-partner-375.png",
+    "w": 375,
+    "h": 2889,
+    "diffPixels": 0,
+    "total": 1083375,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "city-partner-768.png",
+    "w": 768,
+    "h": 2617,
+    "diffPixels": 0,
+    "total": 2009856,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "hangzhou-1440.png",
+    "w": 1440,
+    "h": 2105,
+    "diffPixels": 0,
+    "total": 3031200,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "hangzhou-1920.png",
+    "w": 1920,
+    "h": 2105,
+    "diffPixels": 0,
+    "total": 4041600,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "hangzhou-375.png",
+    "w": 375,
+    "h": 3338,
+    "diffPixels": 0,
+    "total": 1251750,
+    "maxChannelDelta": 0
+  },
+  {
+    "file": "hangzhou-768.png",
+    "w": 768,
+    "h": 2928,
+    "diffPixels": 0,
+    "total": 2248704,
+    "maxChannelDelta": 0
+  }
+]

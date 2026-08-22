@@ -841,6 +841,49 @@ describe('mapBuildingDetail', () => {
     ]))
   })
 
+  /**
+   * `FactValue.magnitude`/`unit`（OPT-037 Task 10b）——无图替代构图要把数值排
+   * 32px、单位排 14px，只能由 mapper 在**唯一知道后缀是什么的地方**把两半一起
+   * 产出。这条用例锁住的不是"新字段存在"，而是**它与 `value` 永不分叉**：
+   * `value === magnitude + unit`。分叉的后果是宫格显示的数字与规格表不一致，
+   * 而两边都不会报错。
+   */
+  it('数值事实同时给出 magnitude/unit，且与 value 恒一致', () => {
+    const b = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      totalFloors: 32,
+      parkingSpaces: 300,
+      developerAndScale: { typicalFloorArea: 1500, efficiencyRate: 70 },
+      verticalTransport: { passengerElevators: 6, freightElevators: 1 },
+    })
+    const facts = b?.factGroups.flatMap((group) => group.facts) ?? []
+    const byLabel = (label: string) => facts.find((item) => item.label === label)
+
+    expect(byLabel('总楼层')).toMatchObject({ value: '32 层', magnitude: '32', unit: '层' })
+    expect(byLabel('标准层面积')).toMatchObject({ value: '1500 ㎡', magnitude: '1500', unit: '㎡' })
+    expect(byLabel('得房率')).toMatchObject({ value: '70%', magnitude: '70', unit: '%' })
+    expect(byLabel('客梯')).toMatchObject({ value: '6 部', magnitude: '6', unit: '部' })
+    expect(byLabel('停车位')).toMatchObject({ value: '300 个', magnitude: '300', unit: '个' })
+
+    // 文本事实没有单位：unit 必须是 null，magnitude 与 value 相同——否则宫格会
+    // 把值的尾字当成单位排成小字。
+    expect(byLabel('物业类型')).toMatchObject({ value: '写字楼', magnitude: '写字楼', unit: null })
+    expect(byLabel('注册能力')?.unit).toBeNull()
+
+    // 恒等式对**每一条**事实成立，不只上面点名的那几条。
+    // 唯一允许的差异是数值与单位之间那个分隔空格：展示串里它是字面量
+    // （"32 层"），拆分形态里由 `.dt-keyspecs__value-row` 的 gap 承担，所以
+    // `unit` 是 trim 过的。除此之外两种形态必须一字不差。
+    for (const item of facts) {
+      if (item.value == null) {
+        expect(item.magnitude).toBeNull()
+        continue
+      }
+      const rejoined = `${item.magnitude ?? ''}${item.unit ?? ''}`
+      expect(rejoined.replace(/\s+/g, '')).toBe(item.value.replace(/\s+/g, ''))
+    }
+  })
+
   it('仅公开楼盘媒体的闭合分类', () => {
     const detail = mapBuildingDetail({
       ...BUILDING_JINGAN_CENTER,

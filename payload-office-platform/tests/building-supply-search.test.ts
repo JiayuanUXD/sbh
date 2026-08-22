@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildBuildingSupplyCanonicalSearchParams,
   buildBuildingSupplySnapshot,
   parseBuildingSupplySearchParams,
   type ListingCardViewModel,
@@ -12,6 +13,8 @@ function makeCard(overrides: Partial<ListingCardViewModel> = {}): ListingCardVie
     title: '测试房源',
     price: null,
     area: 100,
+    floor: null,
+    seats: null,
     businessType: 'lease',
     decorationStatus: 'fully_fitted',
     listingType: 'traditional-office',
@@ -62,6 +65,31 @@ describe('parseBuildingSupplySearchParams', () => {
     expect(parseBuildingSupplySearchParams({ areaMin: '121', areaMax: '120' })).toEqual({})
     expect(parseBuildingSupplySearchParams(new URLSearchParams('group=lease&group=sale'))).toEqual({})
     expect(parseBuildingSupplySearchParams(null)).toEqual({})
+  })
+
+  it('价格区间随 priceUnit 一起被接受', () => {
+    expect(parseBuildingSupplySearchParams({
+      priceMin: '8',
+      priceMax: '9',
+      priceUnit: 'rmb-sqm-day',
+    })).toEqual({ priceMin: 8, priceMax: 9, priceUnit: 'rmb-sqm-day' })
+  })
+
+  /**
+   * 缺 priceUnit 的价格区间在解析层就丢掉：不可通约的计价单位之间比 amount 没有
+   * 意义。域层 `matchesInput` 对同一条不变量另有守卫（那才是失效点上的守卫），
+   * 这里保证 canonical 不会把一个注定不生效的参数继续挂在链接上。
+   */
+  it('缺 priceUnit 的价格区间整段丢弃，canonical 也不输出', () => {
+    expect(parseBuildingSupplySearchParams({ priceMin: '8', priceMax: '9' })).toEqual({})
+    expect(parseBuildingSupplySearchParams({ priceMin: '9', priceMax: '8', priceUnit: 'rmb-sqm-day' }))
+      .toEqual({ priceUnit: 'rmb-sqm-day' })
+    expect(
+      buildBuildingSupplyCanonicalSearchParams({ priceMin: 8, priceMax: 9 }).toString(),
+    ).toBe('')
+    expect(
+      buildBuildingSupplyCanonicalSearchParams({ priceMin: 8, priceMax: 9, priceUnit: 'rmb-sqm-day' }).toString(),
+    ).toBe('priceMin=8&priceMax=9&priceUnit=rmb-sqm-day')
   })
 
   it('解析出的 URL 输入实际改变快照分组与面积排序，同时保留面议卡片', () => {

@@ -1,0 +1,67 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 build E:\github\sbh\payload-office-platform
+> next build
+
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ⨯ turbopackServerFastRefresh
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 18.8s
+  Running TypeScript ...
+  Finished TypeScript in 18.3s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/12) ...
+  Generating static pages using 7 workers (3/12) 
+  Generating static pages using 7 workers (6/12) 
+  Generating static pages using 7 workers (9/12) 
+✓ Generating static pages using 7 workers (12/12) in 330ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /[city]
+├ ƒ /[city]/buildings
+├ ƒ /[city]/buildings/[slug]
+├ ƒ /[city]/listings
+├ ƒ /[city]/listings/[slug]
+├ ƒ /[city]/sale
+├ ƒ /admin/[[...segments]]
+├ ƒ /api/[...slug]
+├ ƒ /api/city-partner-applications
+├ ƒ /api/city-partner-applications/details
+├ ƒ /api/corrections
+├ ƒ /api/graphql
+├ ƒ /api/graphql-playground
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ƒ /api/inquiries/demand
+├ ƒ /api/observability/sli
+├ ƒ /api/routes
+├ ƒ /api/supply-submissions
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /dev-story/opt036
+├ ƒ /dev-story/opt037
+├ ƒ /entrust
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+└ ƒ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

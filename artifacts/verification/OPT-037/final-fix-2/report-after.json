@@ -1,0 +1,3397 @@
+{
+  "tag": "after",
+  "origin": "http://localhost:3802",
+  "badStatus": [
+    {
+      "url": "/sale",
+      "status": 404
+    },
+    {
+      "url": "/dev-story",
+      "status": 404
+    },
+    {
+      "url": "/dev-story/opt036",
+      "status": 404
+    },
+    {
+      "url": "/dev-story/opt037",
+      "status": 404
+    }
+  ],
+  "shots": [
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "288x290"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "288x180"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "288x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "248x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "248x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "288px",
+        "height": "180px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "288x180"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "288x178"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "328.156px",
+        "_box": "288x328"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "170x47"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "24px",
+        "_box": "96x53"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "106x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "206x22"
+      },
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x290"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "343x325"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "343x214"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "343x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "303x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "303x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "343px",
+        "height": "214.375px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "343x214"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "343x158"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "328.156px",
+        "_box": "343x328"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "180x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "24px",
+        "_box": "120x26"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "134x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "261x22"
+      },
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x325"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "360x335"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "360x225"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "360x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "320x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "320x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "360px",
+        "height": "225px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "360x225"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "736x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "343.719px",
+        "_box": "736x344"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "180x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "32px",
+        "_box": "160x35"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "330x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "654x22"
+      },
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "360x335"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "283x287"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "283x177"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "283x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "243x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "243x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "283px",
+        "height": "176.875px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "283x177"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "1180x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "460px",
+        "_box": "372x460"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "180x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "32px",
+        "_box": "160x35"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "148x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "290x22"
+      },
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "283x287"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "288x290"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "288x180"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "288x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "248x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "42x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "248x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "288px",
+        "height": "180px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "288x180"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "288x178"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "233.422px",
+        "_box": "288x233"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "170x47"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "106x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "206x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x290"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "343x325"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "343x214"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "343x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "303x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "42x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "303x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "343px",
+        "height": "214.375px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "343x214"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "343x158"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "233.422px",
+        "_box": "343x233"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "224x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "134x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "261x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x325"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "360x335"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "360x225"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "360x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "320x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "42x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "320x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "360px",
+        "height": "225px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "360x225"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "736x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "244.984px",
+        "_box": "736x245"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "224x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "330x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "654x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "360x335"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "283x287"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "283x177"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "283x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "243x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "42x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "243x18"
+      },
+      "cardPlaceholder": {
+        "display": "flex",
+        "width": "283px",
+        "height": "176.875px",
+        "color": "rgb(134, 134, 139)",
+        "_box": "283x177"
+      },
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "1180x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "460px",
+        "_box": "372x460"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "224x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "148x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "290x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "283x287"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-empty",
+      "url": "/buildings/empty-building",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "288x290"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "288x180"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "288x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "248x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "248x18"
+      },
+      "cardPlaceholder": null,
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "288x178"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "52.6875px",
+        "_box": "288x53"
+      },
+      "poiSubtab": null,
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "170x47"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "24px",
+        "_box": "72x26"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "24px",
+        "_box": "96x25"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "106x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": null,
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x290"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-empty",
+      "url": "/buildings/empty-building",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "343x325"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "343x214"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "343x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "303x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "303x18"
+      },
+      "cardPlaceholder": null,
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "343x158"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "52.6875px",
+        "_box": "343x53"
+      },
+      "poiSubtab": null,
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "191x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "24px",
+        "_box": "72x26"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "24px",
+        "_box": "96x25"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "134x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": null,
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x325"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-empty",
+      "url": "/buildings/empty-building",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "360x335"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "360x225"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "360x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "320x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "320x18"
+      },
+      "cardPlaceholder": null,
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "736x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "60.25px",
+        "_box": "736x60"
+      },
+      "poiSubtab": null,
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "191x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "32px",
+        "_box": "96x35"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "24px",
+        "_box": "96x25"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "330x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": null,
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "360x335"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-empty",
+      "url": "/buildings/empty-building",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": {
+        "display": "block",
+        "flex-direction": "row",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "rgba(0, 0, 0, 0.06) 0px 4px 20px 0px",
+        "overflow": "hidden",
+        "text-decoration-line": "none",
+        "transition-duration": "0.32s, 0.32s",
+        "transition-property": "transform, box-shadow",
+        "_box": "283x287"
+      },
+      "cardMedia": {
+        "aspect-ratio": "16 / 10",
+        "background-color": "rgb(142, 142, 147)",
+        "position": "relative",
+        "display": "block",
+        "overflow": "visible",
+        "_box": "283x177"
+      },
+      "cardBody": {
+        "display": "flex",
+        "flex-direction": "column",
+        "padding": "18px 20px 20px",
+        "gap": "5px",
+        "_box": "283x110"
+      },
+      "cardName": {
+        "font-size": "16px",
+        "font-weight": "600",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "letter-spacing": "normal",
+        "line-height": "21.6px",
+        "margin-top": "0px",
+        "_box": "243x22"
+      },
+      "cardDistrict": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-radius": "999px",
+        "border-top-width": "1px",
+        "font-size": "12px",
+        "_box": "54x23"
+      },
+      "cardAddress": {
+        "font-size": "13px",
+        "color": "rgb(110, 110, 115)",
+        "margin-top": "0px",
+        "_box": "243x18"
+      },
+      "cardPlaceholder": null,
+      "railCard": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "padding": "24px 28px",
+        "display": "flex",
+        "_box": "1180x98"
+      },
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "460px",
+        "_box": "372x460"
+      },
+      "poiSubtab": null,
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "191x23"
+      },
+      "keyspecValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "letter-spacing": "normal",
+        "font-size": "32px",
+        "_box": "96x35"
+      },
+      "nomediaTitle": {
+        "letter-spacing": "normal",
+        "font-size": "19px",
+        "_box": "76x29"
+      },
+      "heroPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "24px",
+        "_box": "96x25"
+      },
+      "heroStat": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "18px",
+        "_box": "148x28"
+      },
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": null,
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "283x287"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "233.422px",
+        "_box": "288x233"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "206x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "233.422px",
+        "_box": "343x233"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "261x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "244.984px",
+        "_box": "736x245"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "654x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "460px",
+        "_box": "372x460"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "61x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "290x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing-so",
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "328.156px",
+        "_box": "288x328"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "206x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing-so",
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "328.156px",
+        "_box": "343x328"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "261x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing-so",
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "343.719px",
+        "_box": "736x344"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "654x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing-so",
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": {
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-radius": "18px",
+        "box-shadow": "none",
+        "position": "static",
+        "height": "460px",
+        "_box": "372x460"
+      },
+      "poiSubtab": {
+        "border-radius": "980px",
+        "background-color": "color(srgb 0.113725 0.113725 0.121569 / 0.08)",
+        "_box": "84x44"
+      },
+      "specValue": {
+        "font-variant-numeric": "tabular-nums",
+        "font-feature-settings": "\"tnum\"",
+        "text-align": "right",
+        "_box": "46x23"
+      },
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": {
+        "font-variant-numeric": "tabular-nums",
+        "font-size": "40px",
+        "_box": "99x42"
+      },
+      "verifyWhen": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "67x20"
+      },
+      "poiDistance": {
+        "font-variant-numeric": "tabular-nums",
+        "_box": "290x22"
+      },
+      "galleryCounter": {
+        "font-variant-numeric": "tabular-nums",
+        "background-color": "rgba(0, 0, 0, 0.42)",
+        "border-radius": "980px",
+        "_box": "57x32"
+      },
+      "stickyPrice": null,
+      "pinLabel": {
+        "background-color": "rgb(29, 29, 31)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "168x34"
+      },
+      "pinMarker": {
+        "background-color": "rgb(29, 29, 31)",
+        "border-top-color": "rgb(255, 255, 255)",
+        "color": "rgb(245, 245, 247)",
+        "_box": "26x26"
+      },
+      "pinDot": {
+        "background-color": "rgb(0, 113, 227)",
+        "_box": "14x14"
+      },
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x329"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x371"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "360x383"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "308x344"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "buildings-index",
+      "url": "/buildings",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x325"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "buildings-index",
+      "url": "/buildings",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x360"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "buildings-index",
+      "url": "/buildings",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "360x370"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "buildings-index",
+      "url": "/buildings",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "308x338"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "home",
+      "url": "/",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "288x117"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "home",
+      "url": "/",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "343x117"
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "home",
+      "url": "/",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "362x300"
+      },
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "case": "home",
+      "url": "/",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": {
+        "transition-duration": "0.32s, 0.32s",
+        "_box": "226x300"
+      },
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+      ]
+    },
+    {
+      "case": "news",
+      "url": "/news",
+      "width": 320,
+      "status": 200,
+      "overflowPx": 4,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "news",
+      "url": "/news",
+      "width": 375,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "news",
+      "url": "/news",
+      "width": 768,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "news",
+      "url": "/news",
+      "width": 1440,
+      "status": 200,
+      "overflowPx": 0,
+      "card": null,
+      "cardMedia": null,
+      "cardBody": null,
+      "cardName": null,
+      "cardDistrict": null,
+      "cardAddress": null,
+      "cardPlaceholder": null,
+      "railCard": null,
+      "poiPanel": null,
+      "poiSubtab": null,
+      "specValue": null,
+      "keyspecValue": null,
+      "nomediaTitle": null,
+      "heroPrice": null,
+      "heroStat": null,
+      "decisionPrice": null,
+      "verifyWhen": null,
+      "poiDistance": null,
+      "galleryCounter": null,
+      "stickyPrice": null,
+      "pinLabel": null,
+      "pinMarker": null,
+      "pinDot": null,
+      "sfCard": null,
+      "consoleErrors": []
+    }
+  ],
+  "scan": [
+    {
+      "url": "/",
+      "status": 200
+    },
+    {
+      "url": "/listings",
+      "status": 200
+    },
+    {
+      "url": "/buildings",
+      "status": 200
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "status": 200
+    },
+    {
+      "url": "/buildings/huangpu-bund",
+      "status": 200
+    },
+    {
+      "url": "/buildings/empty-building",
+      "status": 200
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "status": 200
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "status": 200
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "status": 200
+    },
+    {
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "status": 200
+    },
+    {
+      "url": "/news",
+      "status": 200
+    },
+    {
+      "url": "/pages/privacy",
+      "status": 200
+    },
+    {
+      "url": "/entrust",
+      "status": 200
+    },
+    {
+      "url": "/publish",
+      "status": 200
+    },
+    {
+      "url": "/sale",
+      "status": 404
+    },
+    {
+      "url": "/city-partner",
+      "status": 200
+    },
+    {
+      "url": "/dev-story",
+      "status": 404
+    },
+    {
+      "url": "/dev-story/opt036",
+      "status": 404
+    },
+    {
+      "url": "/dev-story/opt037",
+      "status": 404
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "status": 200
+    }
+  ],
+  "selectorTotals": {
+    ".amenity-list": 0,
+    ".amenity-list__item": 0,
+    ".amenity-list__icon": 0,
+    ".amenity-list__label": 0,
+    ".route-planner": 0,
+    ".route-planner__mode": 0,
+    ".route-planner__result": 0,
+    ".advisor-availability": 0,
+    ".advisor-availability__status": 0,
+    ".detail-facts": 0,
+    ".detail-facts__group": 0,
+    ".detail-facts__estimated": 0,
+    ".detail-hero": 0,
+    ".detail__overview": 0,
+    ".detail__rent": 0,
+    ".detail__specs": 0,
+    ".detail__decision": 0,
+    ".building-supply-overview": 0,
+    ".detail__amenities": 0,
+    ".detail__top": 0,
+    ".detail__type": 0,
+    ".detail__tags": 0,
+    ".detail__building-summary": 0,
+    ".detail__header-tags": 0,
+    ".detail__grade-badge": 0,
+    ".detail-gallery__panel": 0,
+    ".location-panel__static": 0,
+    ".location-panel__facts": 0,
+    ".location-panel__fact": 0,
+    ".location-panel__actions": 0,
+    ".text-copper": 0,
+    ".text-center": 0,
+    ".site-main--narrow": 0,
+    ".listing-card__rent": 0,
+    ".publish-card__error": 0,
+    ".ls-section": 0,
+    ".hm-lead": 0,
+    ".landing-hero--split": 2,
+    ".landing-hero--centered": 2,
+    ".process-steps--card": 2,
+    ".process-steps--compact": 2,
+    ".city-switcher__status--live": 0,
+    ".city-switcher__status--coming-soon": 0,
+    ".dt-page": 16,
+    ".dt-panel": 38,
+    ".hero-summary": 8,
+    ".building-card-mini": 16,
+    ".detail-side-rail__card": 8,
+    ".location-panel__poi-panel": 16,
+    ".sf-card": 90,
+    ".sf-media": 90,
+    ".dt-spec__value": 416,
+    ".dt-keyspecs__value": 36,
+    ".dt-decision__price-num": 8,
+    ".dt-sticky-bar__price-num": 6,
+    ".location-panel__poi-distance": 24,
+    ".hero-summary__price": 8,
+    ".detail-gallery__main-counter": 10,
+    ".dt-decision__verify-when": 14
+  },
+  "scanHits": [
+    {
+      "url": "/",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".sf-card": 22,
+        ".sf-media": 22
+      }
+    },
+    {
+      "url": "/",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".sf-card": 22,
+        ".sf-media": 22
+      }
+    },
+    {
+      "url": "/listings",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".sf-card": 10,
+        ".sf-media": 10
+      }
+    },
+    {
+      "url": "/listings",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".sf-card": 10,
+        ".sf-media": 10
+      }
+    },
+    {
+      "url": "/buildings",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".sf-card": 5,
+        ".sf-media": 5
+      }
+    },
+    {
+      "url": "/buildings",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".sf-card": 5,
+        ".sf-media": 5
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".building-card-mini": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 1,
+        ".sf-media": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".location-panel__poi-distance": 2,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".building-card-mini": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 1,
+        ".sf-media": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".location-panel__poi-distance": 2,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/buildings/huangpu-bund",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".location-panel__poi-distance": 2,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/buildings/huangpu-bund",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".location-panel__poi-distance": 2,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/buildings/empty-building",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".building-card-mini": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 1,
+        ".sf-media": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/buildings/empty-building",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 3,
+        ".hero-summary": 1,
+        ".building-card-mini": 1,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 1,
+        ".sf-media": 1,
+        ".dt-spec__value": 30,
+        ".dt-keyspecs__value": 6,
+        ".hero-summary__price": 1
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 1,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 1,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 1
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 1
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/listings/jingan-serviced-office-42-seats",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".location-panel__poi-panel": 1,
+        ".dt-spec__value": 22,
+        ".dt-decision__price-num": 1,
+        ".dt-sticky-bar__price-num": 1,
+        ".location-panel__poi-distance": 2,
+        ".detail-gallery__main-counter": 1,
+        ".dt-decision__verify-when": 2
+      }
+    },
+    {
+      "url": "/news",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/news",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/entrust",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".landing-hero--split": 1,
+        ".process-steps--card": 1
+      }
+    },
+    {
+      "url": "/entrust",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".landing-hero--split": 1,
+        ".process-steps--card": 1
+      }
+    },
+    {
+      "url": "/publish",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".landing-hero--centered": 1,
+        ".process-steps--compact": 1
+      }
+    },
+    {
+      "url": "/publish",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".landing-hero--centered": 1,
+        ".process-steps--compact": 1
+      }
+    },
+    {
+      "url": "/sale",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/sale",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt036",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt036",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt037",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/opt037",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".hero-summary": 1,
+        ".building-card-mini": 6,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 6,
+        ".sf-media": 6,
+        ".dt-spec__value": 30,
+        ".location-panel__poi-distance": 1,
+        ".hero-summary__price": 1,
+        ".detail-gallery__main-counter": 1
+      }
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".dt-page": 1,
+        ".dt-panel": 2,
+        ".hero-summary": 1,
+        ".building-card-mini": 6,
+        ".detail-side-rail__card": 1,
+        ".location-panel__poi-panel": 1,
+        ".sf-card": 6,
+        ".sf-media": 6,
+        ".dt-spec__value": 30,
+        ".location-panel__poi-distance": 1,
+        ".hero-summary__price": 1,
+        ".detail-gallery__main-counter": 1
+      }
+    }
+  ]
+}

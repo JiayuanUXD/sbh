@@ -1,0 +1,16 @@
+listings.html            DOM 完全一致  len=15999
+listings-row.html        DOM 完全一致  len=16737
+buildings.html           DOM 完全一致  len=13099
+listing-detail.html      DOM 完全一致  len=21215
+building-detail.html     DOM 完全一致  len=26553
+
+--- 附：改动落在 RSC flight payload 里的 "prefetch":false 计数（DOM 之外） ---
+listings.html          before=14  after=24  delta=+10
+listings-row.html      before=14  after=24  delta=+10
+buildings.html         before=20  after=27  delta=+7
+listing-detail.html    before=2   after=2   delta=+0
+building-detail.html   before=0   after=0   delta=+0
+
+--- 附：DOM 上带 prefetch 属性的 <a> 数量（Next 不把该 prop 透传到锚点） ---
+listings.html          0
+buildings.html         0
