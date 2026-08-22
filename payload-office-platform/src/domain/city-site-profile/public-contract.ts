@@ -7,6 +7,8 @@ export type PublicCitySiteProfile = Readonly<{
   serviceStatus: CityServiceStatus
   switcherVisible: boolean
   sortOrder: number
+  /** 数据带「平均响应 N 小时」，运营承诺口径；null = 首页不展示该格 */
+  avgResponseHours: number | null
   seoTitle: string
   seoDescription: string
   hero: Readonly<{

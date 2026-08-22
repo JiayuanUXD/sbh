@@ -107,6 +107,7 @@ export {
   assertEffectiveBuilding,
   getListingDistrictOptions,
   getHomepage,
+  getPlatformHomepageStats,
   getSearchFacets,
   getPageBySlug,
   listPublishedPages,

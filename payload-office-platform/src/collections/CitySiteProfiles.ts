@@ -227,6 +227,17 @@ export const CitySiteProfiles: CollectionConfig = {
             { name: 'contactHeading', label: '委托卡片标题', type: 'text' },
             { name: 'contactBody', label: '委托卡片说明', type: 'textarea' },
             {
+              name: 'avgResponseHours',
+              label: '平均响应时长（小时）',
+              type: 'number',
+              min: 0,
+              max: 72,
+              admin: {
+                description: '首页数据带「平均响应」展示值，运营承诺口径；留空则首页不展示该格。',
+                step: 0.1,
+              },
+            },
+            {
               name: 'featuredRegions',
               label: '精选区域',
               type: 'relationship',

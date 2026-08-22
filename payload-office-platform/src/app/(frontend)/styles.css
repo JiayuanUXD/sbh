@@ -14,43 +14,68 @@
  * --------------------------------------------------------------------------- */
 
 :root {
-  /* 1.1 颜色 token（design.md §6.2） */
-  --color-ink: #171a1d;        /* 主文字、深色区块 */
-  --color-ink-2: #3a3f46;      /* 次级文字 */
-  --color-muted: #6b7079;      /* 辅助文字 */
-  --color-paper: #f5f1e8;      /* 品牌浅底 */
-  --color-canvas: #fcfbf8;     /* 页面背景 */
-  --color-surface: #ffffff;    /* 提亮面：卡片/表单控件/弹层，纯白以区别于奶油画布 */
-  --color-line: #d5d0c7;       /* 分隔、输入边界 */
-  --color-line-strong: #b8b1a3;
-  --color-copper: #a46f3f;     /* 主强调、关键 CTA */
-  --color-copper-hover: #8d5d30;
-  --color-copper-soft: #e8d9c5;
-  --color-forest: #1f5a50;     /* 状态、辅助强调 */
-  --color-forest-soft: #d2e0db;
-  --color-danger: #b0443c;     /* 错误 */
-  --color-danger-soft: #f7e0dc; /* F7.3：调浅以保证 danger 文字对比度 ≥ 4.5:1（WCAG AA） */
-  --color-warn: #b88636;
-  --color-on-copper: #fff8ef;  /* 铜色背景上的文字 */
-  --color-on-forest: #f0f7f4;
-  --color-on-ink: #f7f5f0;
+  /* 1.1 新视觉系统（OPT-035，依据 docs/SBH设计任务讨论/首页.dc.html 已锁定稿） */
+  --bg: #f5f5f7;            /* 全局底色 */
+  --bg-subtle: #ffffff;     /* 白底带、卡片 */
+  --ink: #1d1d1f;
+  --ink-2: #6e6e73;
+  --ink-3: #86868b;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-link: #0066cc;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.16);
+  --on-accent: #ffffff;
+  --error: #bf4800;
+  --warning: #b25000;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.12);
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-apple: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --focus-ring: 0 0 0 4px rgba(0, 113, 227, 0.18);
+  --pad: 72px;              /* section padding-block（每侧） */
+  --gap: 144px;             /* section 之间总留白 = 2×pad */
+  --w: 1180px;              /* 内容容器 */
+  --measure: 702px;         /* 正文栏宽上限 */
+  --r-card: 18px;
+  --r-ctrl: 12px;
+  --r-input: 8px;
+  --r-pill: 980px;
+  --header-height: 44px;
+  --header-bg: rgba(255, 255, 255, 0.8);
+  --header-blur: saturate(1.8) blur(20px);
+  --font-cn: "PingFang SC", "Source Han Sans SC", "Noto Sans CJK SC",
+    "Microsoft YaHei", sans-serif;
+  --font: "SF Pro Text", -apple-system, "Helvetica Neue", var(--font-cn);
 
-  /* 1.2 字体 token（design.md §6.3）
-   *   --font-display: 中文展示（思源宋体 SC）
-   *   --font-sans:    中文正文/界面（思源黑体 SC）
-   *   --font-numeric: 数字与英文（IBM Plex Sans）
-   * 通过 next/font 在 layout 注入 CSS 变量；未注入时回退到系统字体栈。
-   */
-  /* next/font 目前未注入 --font-source-han-* / --font-ibm-plex，
-     var() 无兜底会让整条声明失效并落到 Times New Roman（中文站用西文
-     衬线渲染汉字）。给每个变量补同族兜底：变量将来注入时照常优先生效。 */
-  --font-display: var(--font-source-han-serif, "Songti SC"), "Songti SC", "STSong",
-    "SimSun", "Source Han Serif SC", "Noto Serif CJK SC", serif;
-  --font-sans: var(--font-source-han-sans, "PingFang SC"), -apple-system, BlinkMacSystemFont,
-    "PingFang SC", "Microsoft YaHei", "Source Han Sans SC",
-    "Noto Sans CJK SC", "Helvetica Neue", sans-serif;
-  --font-numeric: var(--font-ibm-plex, "IBM Plex Sans"), "IBM Plex Sans", ui-sans-serif, system-ui,
-    "SF Pro Text", "Segoe UI", sans-serif;
+  /* 1.1b 兼容别名：内页旧引用零改动继承新色板；后续页面改版逐步淘汰 */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--ink-3);
+  --color-paper: var(--bg);
+  --color-canvas: var(--bg);
+  --color-surface: var(--bg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-copper: var(--accent);
+  --color-copper-hover: var(--accent-hover);
+  --color-copper-soft: #eaf2fb;   /* 蓝的浅底版，替代铜色软底 */
+  /* 下面两个别名过去只以「行内 fallback」形式出现（`var(--x, #d4b89b)` /
+     `var(--x, #f0ede6)`），:root 里从未声明 → fallback 恒生效，退役的棕褐/奶油
+     色板会从旧代码里复活。显式映射到中性 token，杜绝这条复活路径。 */
+  --color-copper-border: var(--line-strong);
+  --color-canvas-subtle: var(--bg);
+  --color-forest: var(--ink);     /* 新体系无第二彩色，降级为墨色 */
+  --color-forest-soft: var(--bg);
+  --color-danger: var(--error);
+  --color-danger-soft: #f7e3d8;
+  --color-warn: var(--warning);
+  --color-on-copper: #ffffff;     /* 原 #fff8ef 在 #0071e3 上 4.4:1 不到 AA */
+  --color-on-forest: #ffffff;
+  --color-on-ink: #f5f5f7;
+  --font-display: var(--font);    /* 宋体退场 */
+  --font-sans: var(--font);
+  --font-numeric: var(--font);
 
   /* 1.3 字号 token（design.md §6.3：H1 流体，正文最小 16px） */
   --fs-12: 0.75rem;   /* 12 */
@@ -289,20 +314,22 @@ ol {
  * --------------------------------------------------------------------------- */
 
 .site-header {
-  border-bottom: 1px solid var(--color-line);
-  background: var(--color-canvas);
   position: sticky;
   top: 0;
   z-index: var(--z-header);
-  backdrop-filter: saturate(180%) blur(8px);
-  transition: background-color var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard);
+  height: var(--header-height);
+  background: var(--header-bg);
+  /* 手写 -webkit-backdrop-filter 兄弟声明会被构建管线（lightningcss）连同
+     unprefixed 属性一起丢弃，导致玻璃效果整体失效；只留 unprefixed，前缀由
+     构建工具按 browserslist 目标自动补齐 */
+  backdrop-filter: var(--header-blur);
+  border-bottom: none;
+  transition: background var(--duration-base) var(--ease);
 }
 
 /* 首页首屏透明压视频（仅 SiteHeader 在首页未滚动时加此类） */
 .site-header--transparent {
   background: transparent;
-  border-bottom-color: transparent;
   backdrop-filter: none;
 }
 
@@ -345,7 +372,7 @@ ol {
   gap: var(--sp-1);
   min-height: var(--touch-target);
   padding: var(--sp-1) var(--sp-2);
-  color: var(--color-ink);
+  color: var(--ink);
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -360,7 +387,7 @@ ol {
 
 .city-switcher__trigger:hover {
   background: var(--color-copper-soft);
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__trigger--static {
@@ -387,16 +414,16 @@ ol {
 
 .city-switcher__status,
 .mobile-drawer__city-status {
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
 .city-switcher__status--live {
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__status--coming-soon {
-  color: var(--color-muted);
+  color: var(--ink-3);
 }
 
 .city-switcher__menu {
@@ -406,9 +433,9 @@ ol {
   z-index: var(--z-floating);
   min-width: 196px;
   padding: var(--sp-2);
-  border: 1px solid var(--color-line);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
+  background: var(--bg-subtle);
   box-shadow: var(--shadow-md);
 }
 
@@ -420,7 +447,7 @@ ol {
   min-height: var(--touch-target);
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-sm);
-  color: var(--color-ink);
+  color: var(--ink);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -433,7 +460,7 @@ ol {
 
 .city-switcher__check {
   flex-shrink: 0;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .city-switcher__option:hover,
@@ -449,21 +476,19 @@ ol {
 }
 
 .site-header__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-3) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-4);
-  min-height: 56px;
 }
 
 .site-logo {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 700;
-  color: var(--color-ink);
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
   letter-spacing: 0.04em;
   white-space: nowrap;
   touch-action: manipulation;
@@ -472,7 +497,7 @@ ol {
 
 .site-logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent);
 }
 
 .site-nav {
@@ -492,7 +517,7 @@ ol {
   display: inline-flex;
   align-items: center;
   min-height: var(--touch-target);
-  color: var(--color-muted);
+  color: var(--ink);
   font-size: var(--fs-14);
   padding: var(--sp-2) 0;
   position: relative;
@@ -502,7 +527,7 @@ ol {
 }
 
 .site-nav__link:hover {
-  color: var(--color-ink);
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -513,7 +538,7 @@ ol {
   right: 0;
   bottom: -4px;
   height: 2px;
-  background: var(--color-copper);
+  background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform var(--duration-base) var(--ease-standard);
@@ -525,7 +550,7 @@ ol {
 }
 
 .site-nav__link[aria-current="page"] {
-  color: var(--color-ink);
+  color: var(--ink);
 }
 
 /* 移动端菜单触发器（F2.2 移动菜单实现） */
@@ -535,7 +560,7 @@ ol {
   justify-content: center;
   width: var(--touch-target);
   height: var(--touch-target);
-  color: var(--color-ink);
+  color: var(--ink);
   border-radius: var(--radius-sm);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -562,10 +587,10 @@ ol {
   }
 }
 
-/* 顶部 CTA 用 btn--sm，避免撑高 56px 头部 */
+/* 顶部 CTA 用 btn--sm，避免撑高 44px 头部 */
 .site-header__actions .btn--sm {
   white-space: nowrap;
-  /* 44px 触控目标，恰好不撑高 56px 头部 */
+  /* 44px 触控目标 = 头部高度，撑满而不溢出 */
   min-height: var(--touch-target);
 }
 
@@ -581,15 +606,18 @@ ol {
 }
 
 .site-footer {
-  border-top: 1px solid var(--color-line);
-  background: var(--color-paper);
+  border-top: 1px solid var(--line);
+  background: var(--bg);
   margin-top: var(--sp-8);
 }
 
+/* 设计稿（首页.dc.html）页脚是单行示意（logo + 版权 + 三条法务链接）。
+   真实页脚需要承担 SEO/法务导航职责，保留现有多列栏目结构（品牌 + 浏览/按类型/服务），
+   仅将视觉体系（底色/边线/字色/容器宽度）对齐设计稿，属有意偏差。 */
 .site-footer__inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-7) var(--container-pad-x) var(--sp-5);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-7) var(--sp-5);
   display: grid;
   /* 品牌栏 + 浏览/按类型/服务 三链接组同行成列，避免服务组掉行失衡 */
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
@@ -604,21 +632,21 @@ ol {
 }
 
 .site-footer__logo {
-  font-family: var(--font-display);
+  font-family: var(--font);
   font-size: var(--fs-20);
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--ink);
   letter-spacing: 0.04em;
 }
 
 .site-footer__logo:hover {
   text-decoration: none;
-  color: var(--color-copper);
+  color: var(--accent-link);
 }
 
 .site-footer__tagline {
   font-size: var(--fs-13);
-  color: var(--color-muted);
+  color: var(--ink-3);
   line-height: var(--lh-relaxed);
   max-width: 360px;
 }
@@ -639,7 +667,8 @@ ol {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-copper);
+  /* 栏目标题是真实导航内容，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
+  color: var(--ink-2);
 }
 
 .site-footer__links {
@@ -653,27 +682,27 @@ ol {
 
 .site-footer__link {
   font-size: var(--fs-14);
-  color: var(--color-ink-2);
+  color: var(--ink-2);
 }
 
 .site-footer__link:hover {
-  color: var(--color-copper);
+  color: var(--accent-link);
   text-decoration: none;
 }
 
 .site-footer__bar {
-  border-top: 1px solid var(--color-line);
+  border-top: 1px solid var(--line);
 }
 
 .site-footer__bar-inner {
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--sp-4) var(--container-pad-x);
+  width: min(var(--w), 100% - 32px);
+  margin-inline: auto;
+  padding-block: var(--sp-4);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--sp-2);
-  color: var(--color-muted);
+  color: var(--ink-3);
   font-size: var(--fs-12);
 }
 
@@ -912,17 +941,24 @@ ol {
   color: var(--color-ink);
 }
 
+/* 与 .tag--copper 同一处理（见下方注释）：蓝底蓝字 4.16:1 不达 AA，且标签徽章
+   不用彩色。改零色相——中灰底 + 主墨字，15.46:1。 */
 .tag--lg:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
+  border-color: var(--line-strong);
+  color: var(--ink);
+  background: var(--bg);
   text-decoration: none;
 }
 
+/* Task 1 别名映射把旧铜色标签映射到蓝色（--color-copper-soft/-hover 现指向
+   #eaf2fb / #0077ed），蓝底蓝字只有 3.82:1，既不达 AA 也违反「标签不用彩色，
+   靠底色深浅和字重做层级」。改回零色相中性色：中灰底 + 二级墨色字，
+   与 .tag--forest（已是 ink/bg 中性组合）保持同一套零色相层级体系，
+   仅靠色深浅区分（forest 更深/copper 中等）。 */
 .tag--copper {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--ink-2);
 }
 
 .tag--forest {
@@ -1709,11 +1745,13 @@ ol {
   text-decoration: none;
 }
 
+/* 选中态零色相：原蓝底 + --color-copper-hover 文字只有 3.82:1。改为「白底基态
+   → 中灰底 + 墨色描边 + 主墨字 + 加粗」，靠底色深浅与字重做层级（15.46:1）。 */
 .filter-chip.is-active {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
-  font-weight: 500;
+  background: var(--bg);
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 /* 数值字段表单 */
@@ -1786,107 +1824,9 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 11. 首页 Hero 与 section
+ * 11. 首页分区通用容器（.hero 及其子类已随旧首页组件删除，替代样式见 home.css .hm-hero；
+ *     .section / .section__title 仍被 entrust、news 详情页复用，保留）
  * --------------------------------------------------------------------------- */
-
-/* 首页 hero：全幅背景视频 + scrim + 居中内容（industriousoffice 风格）。
-   负边距抵消 .site-main 内边距并压到 sticky 导航（81px 高）下方，
-   100vw 出血到视口边缘（body 已 overflow-x: clip 防横向滚动条）。 */
-.hero {
-  position: relative;
-  min-height: min(88vh, 720px);
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  margin: calc(-81px - var(--sp-6)) calc(50% - 50vw) 0;
-  padding: calc(81px + var(--sp-5)) var(--container-pad-x) var(--sp-7);
-  width: 100vw;
-  color: #fff;
-}
-
-.hero__bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.hero__poster,
-.hero__bg video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero__poster {
-  display: block;
-}
-
-.hero__bg video {
-  position: absolute;
-  inset: 0;
-}
-
-/* 文字对比度遮罩：用 --color-ink 同色系 rgba */
-.hero__scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    180deg,
-    rgba(23, 26, 29, 0.3) 0%,
-    rgba(23, 26, 29, 0.45) 60%,
-    rgba(23, 26, 29, 0.55) 100%
-  );
-}
-
-.hero__inner {
-  position: relative;
-  z-index: 2;
-  max-width: var(--container-max);
-  margin: 0 auto;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-3);
-  text-align: center;
-}
-
-.hero__eyebrow {
-  color: rgba(255, 255, 255, 0.85);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-13);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-.hero__heading {
-  margin: var(--sp-3) 0;
-  color: #fff;
-  font-size: clamp(2.4rem, 6vw, 4rem);
-  font-weight: 800;
-  line-height: var(--lh-tight);
-}
-
-.hero__summary {
-  color: rgba(255, 255, 255, 0.9);
-  max-width: 760px;
-  margin: 0 auto var(--sp-5);
-  font-size: var(--fs-16);
-  line-height: var(--lh-relaxed);
-  white-space: nowrap;
-}
-
-/* 减少动态效果：隐藏视频，回退到 --color-ink 深底 */
-@media (prefers-reduced-motion: reduce) {
-  .hero__bg video {
-    display: none;
-  }
-  .hero__scrim {
-    background: var(--color-ink);
-  }
-}
 
 .section {
   margin-top: var(--sp-7);
@@ -2307,9 +2247,12 @@ ol {
   list-style: none;
 }
 
+/* --color-paper 与 --color-canvas 现在都别名到 --bg，无边框的 paper 贴片在
+   canvas 上完全不可见。改白底 + 中性描边，两种承载面（--bg 页底 / 白卡）下都成立。 */
 .detail__amenities li {
   padding: var(--sp-1) var(--sp-2);
-  background: var(--color-paper);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
 }
 
@@ -2362,11 +2305,12 @@ ol {
   border-color: var(--color-copper);
 }
 
+/* 选中态零色相，同 .filter-chip.is-active：原蓝底蓝字 3.82:1。 */
 .building-supply-browser__bucket[data-active='true'],
 .building-supply-browser__bucket[aria-current='true'] {
-  background: var(--color-copper-soft);
-  border-color: var(--color-copper);
-  color: var(--color-copper-hover);
+  background: var(--bg);
+  border-color: var(--ink);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -2383,7 +2327,8 @@ ol {
 
 .building-supply-browser__bucket[data-active='true'] .building-supply-browser__bucket-count,
 .building-supply-browser__bucket[aria-current='true'] .building-supply-browser__bucket-count {
-  color: var(--color-copper);
+  /* 随选中态一并零色相：--color-copper 在 --bg 上只有 4.31:1，--ink-2 是 4.66:1 */
+  color: var(--ink-2);
 }
 
 .building-supply-browser__table-wrap {
@@ -3199,7 +3144,7 @@ ol {
 }
 
 .mobile-drawer {
-  background: var(--color-canvas);
+  background: var(--bg-subtle);
   width: min(320px, 85vw);
   height: 100%;
   padding: var(--sp-5) var(--sp-4);
@@ -3461,155 +3406,6 @@ ol {
 @media (prefers-reduced-motion: reduce) {
   .btn__spinner svg {
     animation: none;
-  }
-}
-
-/* ---------------------------------------------------------------------------
- * 16.5 首页 Hero 搜索（F3.1：HeroSearch）
- * --------------------------------------------------------------------------- */
-
-/* 首页 hero 搜索：半透明卡片浮于视频上（玻璃拟态）。
-   backdrop-filter 只写标准属性，由 LightningCSS 按 browserslist 自动补 -webkit 前缀。 */
-.hero-search {
-  margin-top: var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-3);
-}
-
-.hero-search__form {
-  display: flex;
-  gap: var(--sp-2);
-  width: 100%;
-  max-width: 980px;
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-
-/* 下拉式筛选与关键词输入：视频上透明白玻璃态，chevron 颜色同步换白 */
-.hero-search__select,
-.hero-search__input {
-  flex: 1 1 140px;
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-md);
-  padding: var(--sp-3) var(--sp-4);
-  font-size: var(--fs-16);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  min-height: 52px;
-  transition: border-color var(--duration-fast) var(--ease-standard),
-    box-shadow var(--duration-fast) var(--ease-standard);
-}
-
-.hero-search__input {
-  flex: 2 1 200px;
-}
-
-.hero-search__select {
-  appearance: none;
-  padding-right: var(--sp-6);
-  cursor: pointer;
-  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.7) 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.7) 50%, transparent 50%);
-  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-}
-
-.hero-search__input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* 原生下拉弹层不可做透明玻璃态，选项用白底深字保证可读 */
-.hero-search__select option {
-  color: var(--color-ink);
-  background: var(--color-surface);
-}
-
-.hero-search__select:hover,
-.hero-search__input:hover {
-  border-color: rgba(255, 255, 255, 0.55);
-}
-
-.hero-search__select:focus-visible,
-.hero-search__input:focus-visible {
-  outline: none;
-  border-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
-}
-
-/* 搜索按钮与 select 等高（form 为 flex，align-items 默认 stretch） */
-.hero-search__form .btn {
-  flex: 0 0 112px;
-  min-height: 52px;
-}
-
-/* 快速搜索词：位于搜索框下方，单行，超出搜索框宽度时截断 */
-.hero-search__quick {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  width: 100%;
-  max-width: 980px;
-  overflow: hidden;
-  font-size: var(--fs-14);
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.hero-search__quick-list {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.hero-search__quick-item {
-  display: inline-block;
-  max-width: 160px;
-  padding: var(--sp-1) 0;
-  color: #fff;
-  opacity: 0.6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-decoration: none;
-  transition: opacity var(--duration-fast) var(--ease-standard);
-}
-
-.hero-search__quick-item:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.hero-search__quick-item:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
-  border-radius: var(--radius-sm);
-}
-
-@media (max-width: 760px) {
-  .hero-search__form {
-    flex-wrap: wrap;
-  }
-
-  .hero-search__form .btn {
-    flex: 1 1 140px;
-  }
-
-  .hero-search__quick {
-    flex-wrap: wrap;
-  }
-
-  .hero-search__quick-list {
-    flex-wrap: wrap;
   }
 }
 
@@ -4286,13 +4082,16 @@ ol {
   gap: 4px;
 }
 
+/* 线路标签零色相：原蓝底蓝字 4.16:1。白底 + 描边而非 --bg 底——POI 行 hover /
+   highlighted 时行底本身就变成浅灰，同色填充会让标签整块消失。白底 5.07:1。 */
 .location-panel__poi-line-tag {
   display: inline-flex;
   align-items: center;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: var(--color-copper-soft);
-  color: var(--color-copper);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
   font-size: var(--fs-12);
   font-weight: 600;
   line-height: 1.4;
@@ -4476,10 +4275,11 @@ ol {
   cursor: not-allowed;
 }
 
+/* 已收藏/已复制态零色相：原蓝底蓝字 4.16:1。透明基态 → 中灰底 + 墨色描边 + 主墨字。 */
 .share-save-actions__btn[aria-pressed="true"] {
-  color: var(--color-copper);
-  border-color: var(--color-copper);
-  background: var(--color-copper-soft);
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--bg);
 }
 
 .share-save-actions__feedback,
@@ -4709,14 +4509,16 @@ ol {
   background: color-mix(in srgb, var(--color-copper) 12%, transparent);
 }
 
+/* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。 */
 .building-summary-card__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
 }
 
 .building-summary-card__address {
@@ -4889,14 +4691,16 @@ ol {
   white-space: nowrap;
 }
 
+/* 同 .building-summary-card__district：卡片底与 pill 底同为 --bg，需白底 + 描边。 */
 .building-card-mini__district {
   display: inline-flex;
   align-items: center;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
-  color: var(--color-ink-2);
-  background: var(--color-paper);
+  color: var(--ink-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--line-strong);
   align-self: flex-start;
 }
 
@@ -5080,13 +4884,9 @@ ol {
 }
 
 /* ---------------------------------------------------------------------------
- * 22. 首页分区头 + 新分区组件（plans/temporal-imagining-sonnet.md §9）
- *   - .section__header：标题左 / 查看全部右，baseline 对齐（修正原未定义样式）
- *   - .cat-tiles：类型入口瓷砖
- *   - .district-cards：1 大 + N 小商圈拼贴
- *   - .value-band：价值主张深色带（01/02/03）
- *   - .news-list：资讯列表（日期 + 分类 + 标题垂直居中）
- *   守护：只用设计 token；遮罩/次要文字用 color-mix 由 token 派生，不引入新色值。
+ * 22. 首页分区头（.cat-tiles / .district-cards / .value-band / .news-grid 等
+ *     旧首页分区组件样式已随组件删除；.section__header 与 .empty-state--inline
+ *     仍被 entrust、/news 等页面复用，保留）
  * --------------------------------------------------------------------------- */
 
 .section__header {
@@ -5102,423 +4902,11 @@ ol {
   margin-bottom: 0;
 }
 
-.section__header .text-copper {
-  font-size: var(--fs-14);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.section__header .text-copper:hover {
-  text-decoration: none;
-}
-
-/* 22.1 类型瓷砖 ----------------------------------------------------------- */
-
-.cat-tiles {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--sp-4);
-}
-
-.cat-tile {
-  display: flex;
-  flex-direction: column;
-  padding: var(--sp-5) var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  color: var(--color-ink);
-  position: relative;
-  min-height: var(--touch-target);
-  transition: border-color var(--duration-base) var(--ease-standard),
-    background var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard),
-    box-shadow var(--duration-base) var(--ease-standard);
-}
-
-.cat-tile:hover {
-  border-color: var(--color-copper);
-  background: var(--color-canvas);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-  text-decoration: none;
-}
-
-.cat-tile__no {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-13);
-  color: var(--color-copper);
-  letter-spacing: 0.08em;
-}
-
-.cat-tile__label {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 600;
-  color: var(--color-ink);
-  margin-top: var(--sp-2);
-}
-
-.cat-tile__sublabel {
-  font-size: var(--fs-13);
-  color: var(--color-muted);
-  margin-top: var(--sp-1);
-}
-
-.cat-tile__arrow {
-  position: absolute;
-  top: var(--sp-4);
-  right: var(--sp-4);
-  color: var(--color-copper);
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
-}
-
-.cat-tile:hover .cat-tile__arrow {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* 22.2 商圈拼贴卡 --------------------------------------------------------- */
-
-.district-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 180px;
-  gap: var(--sp-4);
-}
-
-.district-card {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--color-line);
-  min-height: var(--touch-target);
-  background: var(--color-paper);
-}
-
-.district-card--lg {
-  grid-column: span 2;
-  grid-row: span 2;
-}
-
-.district-card__media {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
-  transition: transform var(--duration-slow) var(--ease-standard);
-}
-
-.district-card__placeholder {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-paper),
-    var(--color-paper) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 24px
-  );
-}
-
-.district-card__overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--color-ink) 74%, transparent),
-    color-mix(in srgb, var(--color-ink) 20%, transparent) 55%,
-    transparent
-  );
-}
-
-.district-card__body {
-  position: relative;
-  z-index: 2;
-  padding: var(--sp-4) var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-}
-
-.district-card__name {
-  font-family: var(--font-display);
-  font-size: var(--fs-22);
-  font-weight: 600;
-  color: var(--color-on-ink);
-}
-
-.district-card--lg .district-card__name {
-  font-size: var(--fs-26);
-}
-
-.district-card__cta {
-  font-size: var(--fs-13);
-  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
-}
-
-/* 代表楼盘名：商圈名下一条细分隔线，再以「｜」分隔平铺 */
-.district-card__buildings {
-  position: relative;
-  margin-top: var(--sp-3);
-  padding-top: var(--sp-3);
-  font-size: var(--fs-13);
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--color-on-ink) 82%, transparent);
-}
-
-.district-card__buildings::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 40px;
-  height: 1px;
-  background: color-mix(in srgb, var(--color-on-ink) 55%, transparent);
-}
-
-.district-card:hover .district-card__media {
-  transform: scale(1.04);
-}
-
-@media (max-width: 1023px) {
-  .district-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 639px) {
-  .district-cards {
-    grid-template-columns: 1fr;
-    grid-auto-rows: 160px;
-  }
-
-  .district-card--lg {
-    grid-column: span 1;
-    grid-row: span 1;
-  }
-}
-
-/* 22.3 价值主张深色带 ----------------------------------------------------- */
-
-/* 价值主张带：浅色 paper 底（对齐 preview 7.7），非深色 ink —— 用户反馈黑底不契合。
-   编辑式 01/02/03 编号 + 铜色顶部标线，文字用 ink/muted。 */
-.value-band {
-  margin-top: var(--sp-8);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-7) var(--sp-5);
-}
-
-.value-band__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-h3);
-  color: var(--color-ink);
-  margin-bottom: var(--sp-6);
-}
-
-.value-band__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--sp-6);
-}
-
-.value-band__item {
-  display: flex;
-  gap: var(--sp-4);
-  align-items: flex-start;
-  padding-top: var(--sp-4);
-  border-top: 2px solid var(--color-copper);
-}
-
-.value-band__no {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-26);
-  color: var(--color-copper);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.value-band__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  min-width: 0;
-}
-
-.value-band__name {
-  font-family: var(--font-display);
-  font-size: var(--fs-18);
-  font-weight: 600;
-  color: var(--color-ink);
-}
-
-.value-band__desc {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-  line-height: var(--lh-relaxed);
-}
-
-/* 22.4 资讯中心：1 头条 + 日期列表（对齐 homepage-preview.html 7.8） ----------- */
-
-.news-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--sp-6);
-}
-
-@media (max-width: 1023px) {
-  .news-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.news-feature {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  color: var(--color-ink);
-  transition: box-shadow var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard);
-}
-
-.news-feature:hover {
-  border-color: var(--color-line-strong);
-  box-shadow: var(--shadow-md);
-  text-decoration: none;
-}
-
-.news-feature__media {
-  aspect-ratio: 16 / 9;
-  background: var(--color-paper);
-  overflow: hidden;
-}
-
-.news-feature__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.news-feature__body {
-  padding: var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.news-feature__title {
-  font-family: var(--font-display);
-  font-size: var(--fs-20);
-  font-weight: 600;
-  color: var(--color-ink);
-  line-height: var(--lh-snug);
-}
-
-.news-feature__excerpt {
-  font-size: var(--fs-14);
-  color: var(--color-muted);
-  line-height: var(--lh-relaxed);
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.news-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.news-item {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: var(--sp-4);
-  align-items: center;
-  padding: var(--sp-5) 0;
-  border-bottom: 1px solid var(--color-line);
-  color: var(--color-ink);
-}
-
-.news-item:hover {
-  text-decoration: none;
-}
-
-.news-item:hover .news-item__title {
-  color: var(--color-copper);
-}
-
-.news-item__date {
-  font-family: var(--font-numeric);
-  font-size: var(--fs-14);
-  color: var(--color-copper);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  line-height: 1.2;
-}
-
-.news-item__title {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  font-size: var(--fs-16);
-  color: var(--color-ink);
-  font-weight: 500;
-  line-height: var(--lh-snug);
-  transition: color var(--duration-fast) var(--ease-standard);
-}
-
-.news-item__cat {
-  flex-shrink: 0;
-  font-size: var(--fs-12);
-  color: var(--color-muted);
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-pill);
-  line-height: 1.6;
-}
-
-/* 22.5 行内空状态（替代原 .empty，与 empty-state 体系对齐） ---------------- */
-
 .empty-state--inline {
   padding: var(--sp-6) 0;
   text-align: center;
   color: var(--color-muted);
   font-size: var(--fs-14);
-}
-
-/* 22.6 首页推荐房源 / 精选楼盘：桌面端 4 列以呈现 2 行 × 8 卡（用户要求）
- *    仅作用域 .home 内的 .card-grid，不影响列表页等全局共享类。
- *    ≥1280px 强制 4 列；以下回退 auto-fill（平板 3 列、手机 1 列）。 */
-@media (min-width: 1280px) {
-  .home .card-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -6806,18 +6194,24 @@ ol {
   gap: var(--sp-4, 20px);
 }
 
+/* 与 .tag--copper 同一处理：原本是 #0071e3 蓝字压 #eaf2fb 蓝底（4.16:1，不达
+   AA），外面还套着一圈 #d4b89b——`--color-copper-border` 从未在 :root 声明，
+   行内 fallback 恒生效，等于把退役的棕褐色板留在了一条活路由上
+   （七城里有六城走 ComingSoonCityView）。改零色相：白底 + 中性描边 + 主墨字，
+   16.83:1。`--color-copper-border` 也已在 §1.1b 显式声明为 --line-strong。
+   本段按 `tests/coming-soon-city-view.test.ts` 的约定只用 `--color-*` 别名名。 */
 .city-coming-soon__eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: var(--fs-13, 13px);
   font-weight: 600;
-  color: var(--color-copper);
-  background: var(--color-copper-soft);
+  color: var(--color-ink);
+  background: var(--color-surface);
   padding: 5px 12px;
   border-radius: var(--radius-full);
   width: fit-content;
-  border: 1px solid var(--color-copper-border, #d4b89b);
+  border: 1px solid var(--color-copper-border);
 }
 
 .city-coming-soon__title {

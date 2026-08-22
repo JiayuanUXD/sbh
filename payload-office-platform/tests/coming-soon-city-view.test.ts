@@ -66,7 +66,7 @@ describe('ComingSoonCityView shell', () => {
       serviceStatus: 'coming-soon',
       profile: {
         cityId: 2, citySlug: 'hangzhou', cityName: '杭州', serviceStatus: 'coming-soon',
-        switcherVisible: true, sortOrder: 20,
+        switcherVisible: true, sortOrder: 20, avgResponseHours: null,
         seoTitle: '杭州办公租赁', seoDescription: '杭州办公租赁与选址服务。',
         hero: { eyebrow: '', heading: '', body: '', media: null },
         intro: { heading: '', body: '' }, contact: { heading: '', body: '' },

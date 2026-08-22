@@ -81,18 +81,16 @@ describe('OPT-026 route cache and prefetch contracts', () => {
   })
 
   it('disables automatic prefetch for high-cardinality listing links', async () => {
-    const [categoryTiles, districtCards, siteNav, filterBar] = await Promise.all([
-      readFile(resolve(ROOT, 'src/components/frontend/CategoryTiles.tsx'), 'utf8'),
-      readFile(resolve(ROOT, 'src/components/frontend/DistrictCards.tsx'), 'utf8'),
+    const [homeTypeCards, homeDistrictBento, siteNav, filterBar] = await Promise.all([
+      readFile(resolve(ROOT, 'src/components/frontend/home/HomeTypeCards.tsx'), 'utf8'),
+      readFile(resolve(ROOT, 'src/components/frontend/home/HomeDistrictBento.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/SiteNav.tsx'), 'utf8'),
       readFile(resolve(ROOT, 'src/components/frontend/FilterBar.tsx'), 'utf8'),
     ])
 
-    expect(categoryTiles).toContain(
-      "prefetch={t.href.startsWith('/listings') ? false : undefined}",
-    )
-    expect(districtCards).toContain('/listings?businessArea=${district.slug}')
-    expect(districtCards).toContain('prefetch={false}')
+    expect(homeTypeCards).toContain("href={`${prefix}${t.href}`} prefetch={false}")
+    expect(homeDistrictBento).toContain('/listings?district=${encodeURIComponent(card.slug)}')
+    expect(homeDistrictBento).toContain('prefetch={false}')
     expect(siteNav).toContain(
       "prefetch={item.href.startsWith('/listings') ? false : undefined}",
     )

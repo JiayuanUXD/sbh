@@ -30,13 +30,17 @@ import type {
   ArticleCardViewModel,
   ArticleDetailViewModel,
   ArticleListResult,
+  HomepageStats,
+  HomepageTypeSummary,
   ListingCardViewModel,
   ListingDetailViewModel,
   MediaViewModel,
+  NearbyListingViewModel,
   PageDetailViewModel,
   PageSummaryViewModel,
   PublicRouteIdentity,
 } from './contracts'
+import { haversineKm } from './geo'
 import type { BuildingSupplyInput } from './building-supply'
 import { buildBuildingSupplySnapshot, emptyBuildingSupplySnapshot } from './building-supply'
 import {
@@ -64,6 +68,7 @@ import {
   priceKeyOf,
   stableSortCards,
 } from './stable-sort'
+import { createSearchContext } from './types'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
 import type {
   EffectiveListingSitemapPage,
@@ -108,6 +113,12 @@ export type HomepageData = Readonly<{
   districtCards: readonly DistrictCardViewModel[]
   /** 最新资讯（默认取 5 条，按 publishedAt 倒序） */
   latestArticles: readonly ArticleCardViewModel[]
+  /** 真实统计计数：有效房源 / 有效楼盘 / 前台可见商圈（与列表页、商圈链接同口径） */
+  stats: HomepageStats
+  /** 按 listingType 聚合的计数与代表封面 */
+  typeSummaries: Readonly<Record<string, HomepageTypeSummary>>
+  /** 核心商圈附近房源：按距城市中心升序，排除已在精选区展示的房源，上限 5 条 */
+  nearbyListings: readonly NearbyListingViewModel[]
 }>
 
 /** 搜索 facet：当前可见房源的分布统计 */
@@ -641,11 +652,23 @@ export async function getListingDistrictOptions(
 }
 
 /**
+ * 空搜索输入：解析空 URLSearchParams 得到的默认 ListingSearchInput。
+ *
+ * getHomepage 的全集房源查询（stats.listings / typeSummaries / nearbyListings 三个
+ * 特性共用同一次 findEffectiveListings 调用）需要一个不带任何筛选条件的 input，
+ * 提为模块级常量避免每次调用重复解析。
+ */
+const EMPTY_LISTING_INPUT = parseSearchInput(new URLSearchParams(''))
+
+/**
  * 首页数据：精选房源 + 热门区域 + 精选楼盘 + 商圈卡 + 最新资讯
  *
  * design.md §5.2：精选、热门区域数量使用同一 asOf 与谓词。
  * T2 扩展：在原有两路查询基础上，并行拉取精选楼盘与最新资讯，
  * 并由精选楼盘按商圈派生代表封面，组装商圈卡（避免对全量房源做计数聚合）。
+ * OPT-035 Task 3：追加一次全集 findEffectiveListings + findEffectiveBuildings
+ *   + findCityCenter 查询，喂给 stats 计数 / typeSummaries 聚合 / nearbyListings
+ *   三个特性——同一次查询喂三个特性，避免重复对全量房源做计数聚合。
  */
 export async function getHomepage(
   ctx: SearchContext,
@@ -666,12 +689,27 @@ export async function getHomepage(
   // 只截卡片区，不影响 districts（首页搜索框的区域下拉仍列出全部前台可见商圈）。
   const districtCardsLimit = options.districtCardsLimit ?? DEFAULT_DISTRICT_CARDS_LIMIT
 
-  const [featuredListings, districts, businessAreas, featuredBuildings, latestArticles] = await Promise.all([
+  const [
+    featuredListings,
+    districts,
+    businessAreas,
+    featuredBuildings,
+    latestArticles,
+    allEffectiveListings,
+    allEffectiveBuildings,
+    cityCenter,
+  ] = await Promise.all([
     adapter.findFeaturedListings(ctx, featuredLimit),
     adapter.findEffectiveDistricts(ctx),
     adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
     adapter.findLatestArticles(articlesLimit),
+    // 一次全集查询喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
+    // 口径与列表页 buildListingSearchSource 一致（同 findEffectiveListings + mapListingsToCards）。
+    adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
+    // 口径与楼盘列表页 searchBuildings 一致（findEffectiveBuildings 默认 limit 200）
+    adapter.findEffectiveBuildings(ctx),
+    adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
   ])
 
   const cards = mapListingsToCards(featuredListings)
@@ -733,13 +771,92 @@ export async function getHomepage(
     if (vm) latestArticleVMs.push(vm)
   }
 
+  // 全集卡片：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
+  // 与列表页 buildListingSearchSource 共用同一个 findEffectiveListings 口径。
+  const allCards = mapListingsToCards(allEffectiveListings)
+
+  const stats: HomepageStats = {
+    listings: allCards.length,
+    // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
+    // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
+    buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
+    // 与「全部 N 个商圈」链接口径一致：前台可见商圈总数，不受 districtCardsLimit 截断影响。
+    businessAreas: businessAreas.length,
+  }
+
+  const typeSummaries: Record<string, HomepageTypeSummary> = {}
+  for (const card of allCards) {
+    const key = card.listingType
+    if (!key) continue
+    const prev = typeSummaries[key]
+    typeSummaries[key] = {
+      count: (prev?.count ?? 0) + 1,
+      cover: prev?.cover ?? card.coverImage ?? null,
+    }
+  }
+
+  // 核心商圈附近房源：排除已在精选区展示的房源（避免首页同一张卡片重复出现），
+  // 按到城市中心的直线距离升序，tie-break 用 stableSortKey 保证跨请求稳定。
+  const featuredSlugs = new Set(sorted.map((c) => c.slug))
+  const nearbyListings: NearbyListingViewModel[] =
+    cityCenter == null
+      ? []
+      : allCards
+          .filter((c) => !featuredSlugs.has(c.slug) && c.building?.coordinates != null)
+          .map((c) => ({
+            ...c,
+            distanceKm: Math.round(haversineKm(cityCenter, c.building!.coordinates!) * 10) / 10,
+          }))
+          .sort((a, b) => a.distanceKm - b.distanceKm || a.stableSortKey.localeCompare(b.stableSortKey))
+          .slice(0, 5)
+
   return {
     featuredListings: sorted,
     districts: districtVMs,
     featuredBuildings: featuredBuildingSlice,
     districtCards,
     latestArticles: latestArticleVMs,
+    stats,
+    typeSummaries,
+    nearbyListings,
   }
+}
+
+/**
+ * 平台汇总 stats（根页 `/` 口径）：并发拉取各城 stats，按同一口径逐城计数后求和。
+ *
+ * 与 getHomepage 内 stats 字段同口径（findEffectiveListings + mapListingsToCards /
+ * findEffectiveBuildings + mapBuildingSummary 过滤 / findEffectiveBusinessAreas），
+ * 只是维度从单城换成跨城求和——根页是平台入口，不归属任何单一城市。
+ * 空城市清单直接返回全零，不触发任何 adapter 调用。
+ */
+export async function getPlatformHomepageStats(
+  citySlugs: readonly string[],
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<HomepageStats> {
+  const perCity = await Promise.all(
+    citySlugs.map(async (slug) => {
+      const ctx = createSearchContext(slug, undefined, 'lease')
+      const [listings, buildings, areas] = await Promise.all([
+        adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
+        adapter.findEffectiveBuildings(ctx),
+        adapter.findEffectiveBusinessAreas(ctx),
+      ])
+      return {
+        listings: mapListingsToCards(listings).length,
+        buildings: buildings.filter((b) => mapBuildingSummary(b) !== null).length,
+        businessAreas: areas.length,
+      }
+    }),
+  )
+  return perCity.reduce(
+    (acc, s) => ({
+      listings: acc.listings + s.listings,
+      buildings: acc.buildings + s.buildings,
+      businessAreas: acc.businessAreas + s.businessAreas,
+    }),
+    { listings: 0, buildings: 0, businessAreas: 0 },
+  )
 }
 
 /**

@@ -1,0 +1,103 @@
+{
+  "tokens": {
+    "bg": "#f5f5f7",
+    "bgSubtle": "#fff",
+    "ink": "#1d1d1f",
+    "ink2": "#6e6e73",
+    "accent": "#0071e3",
+    "copperSoft": "#eaf2fb",
+    "copperBorder": "#00000029",
+    "canvasSubtle": "#f5f5f7",
+    "colorPaper": "#f5f5f7",
+    "colorCanvas": "#f5f5f7"
+  },
+  "liveEyebrow": {
+    "text": "杭州拓展 · 城市先锋招募",
+    "color": "rgb(29, 29, 31)",
+    "background": "rgb(255, 255, 255)",
+    "borderColor": "rgba(0, 0, 0, 0.16)"
+  },
+  "pageErrors": [],
+  "measured": {
+    ".tag--lg:hover": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(245, 245, 247)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "15.46:1",
+      "passesAA": true
+    },
+    ".filter-chip.is-active": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(245, 245, 247)",
+      "borderColor": "rgb(29, 29, 31)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "15.46:1",
+      "passesAA": true
+    },
+    ".building-supply-browser__bucket[data-active]": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(245, 245, 247)",
+      "borderColor": "rgb(29, 29, 31)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "15.46:1",
+      "passesAA": true
+    },
+    ".building-supply-browser__bucket[data-active] .bucket-count": {
+      "color": "rgb(110, 110, 115)",
+      "background": "rgba(0, 0, 0, 0)",
+      "borderColor": "rgb(110, 110, 115)",
+      "borderWidth": "0px",
+      "contrastWorstCase": "4.66:1",
+      "passesAA": true
+    },
+    ".location-panel__poi-line-tag": {
+      "color": "rgb(110, 110, 115)",
+      "background": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "5.07:1",
+      "passesAA": true
+    },
+    ".share-save-actions__btn[aria-pressed=true]": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(245, 245, 247)",
+      "borderColor": "rgb(29, 29, 31)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "15.46:1",
+      "passesAA": true
+    },
+    ".city-coming-soon__eyebrow": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "16.83:1",
+      "passesAA": true
+    },
+    ".detail__amenities li": {
+      "color": "rgb(29, 29, 31)",
+      "background": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "16.83:1",
+      "passesAA": true
+    },
+    ".building-summary-card__district": {
+      "color": "rgb(110, 110, 115)",
+      "background": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "5.07:1",
+      "passesAA": true
+    },
+    ".building-card-mini__district": {
+      "color": "rgb(110, 110, 115)",
+      "background": "rgb(255, 255, 255)",
+      "borderColor": "rgba(0, 0, 0, 0.16)",
+      "borderWidth": "1px",
+      "contrastWorstCase": "5.07:1",
+      "passesAA": true
+    }
+  }
+}

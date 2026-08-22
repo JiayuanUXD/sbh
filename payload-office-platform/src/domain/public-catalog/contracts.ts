@@ -478,3 +478,33 @@ export type ArticleListResult = Readonly<{
   page: number
   totalPages: number
 }>
+
+// ---------------------------------------------------------------------------
+// 首页扩展 DTO（OPT-035 Task 3：stats / typeSummaries / nearbyListings）
+// ---------------------------------------------------------------------------
+
+/**
+ * 首页统计计数：三个数字与全站列表页/楼盘列表页/商圈链接同口径。
+ *
+ *   - listings：当前城市全部有效房源数（口径同 buildListingSearchSource 全集）
+ *   - buildings：当前城市全部有效公开楼盘数（口径同 searchBuildings 的 totalDocs）
+ *   - businessAreas：当前城市前台可见商圈数（口径同「全部 N 个商圈」链接）
+ */
+export type HomepageStats = Readonly<{
+  listings: number
+  buildings: number
+  businessAreas: number
+}>
+
+/** 首页按房源类型（listingType）聚合的计数与代表封面。 */
+export type HomepageTypeSummary = Readonly<{
+  count: number
+  cover: MediaViewModel | null
+}>
+
+/**
+ * 首页「核心商圈附近房源」卡片：标准房源卡片 + 到城市中心的直线距离（km，保留 1 位小数）。
+ */
+export type NearbyListingViewModel = Readonly<
+  ListingCardViewModel & { distanceKm: number }
+>
