@@ -251,6 +251,17 @@ export default buildConfig({
           Component: '/components/admin/geography/GeographyCreateView',
           path: '/geography/districts/new',
         },
+        // OPT-041 Task 8 批量导入两个视图：共享同一组件，按 pathname 解析模式。
+        BulkImportBuildings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/buildings',
+          exact: true,
+        },
+        BulkImportListings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/listings',
+          exact: true,
+        },
       },
     },
     dashboard: {

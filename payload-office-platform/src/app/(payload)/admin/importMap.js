@@ -76,6 +76,7 @@ import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d
 import { default as default_fe003e590f4f23a58ea1c1c973022f22 } from '../../../components/admin/geography/GeographyListView'
 import { default as default_149bcf953abd30d20a90498c0f5e7731 } from '../../../components/admin/geography/GeographyCityDetail'
 import { default as default_d7899e398b483fc6273e55af42972903 } from '../../../components/admin/geography/GeographyCreateView'
+import { default as default_952d0379668ced5933d0beb083ca332d } from '../../../components/admin/bulk-import/BulkImportView'
 import { default as default_018c8550c7c935ba02e37f496184ad52 } from '../../../components/admin/StatsWidget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -159,6 +160,7 @@ export const importMap = {
   "/components/admin/geography/GeographyListView#default": default_fe003e590f4f23a58ea1c1c973022f22,
   "/components/admin/geography/GeographyCityDetail#default": default_149bcf953abd30d20a90498c0f5e7731,
   "/components/admin/geography/GeographyCreateView#default": default_d7899e398b483fc6273e55af42972903,
+  "/components/admin/bulk-import/BulkImportView#default": default_952d0379668ced5933d0beb083ca332d,
   "/components/admin/StatsWidget#default": default_018c8550c7c935ba02e37f496184ad52,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

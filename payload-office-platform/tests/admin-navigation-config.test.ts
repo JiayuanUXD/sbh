@@ -93,6 +93,8 @@ describe('admin navigation config', () => {
           '/admin/collections/supply-submissions',
           ['supply-submissions'],
         ),
+        expectedLeaf('import-buildings', '楼盘批量导入', '/admin/import/buildings', ['buildings']),
+        expectedLeaf('import-listings', '房源批量导入', '/admin/import/listings', ['listings']),
       ]),
       expectedGroup('region-management', '区域管理', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
