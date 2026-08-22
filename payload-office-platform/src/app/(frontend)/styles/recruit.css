@@ -165,11 +165,20 @@
  * 需要一点额外字距才不糊；其余中文一律 `letter-spacing: normal`。
  * 与首页 `.hm-hero__lead`（home.css:137-138）同参数，两页 Hero 副标是同一档。
  * 宽度上限不写在这里：节点上挂 `.rc-measure`（702），与商圈段引导语共用同一条。 */
-.rc-hero__lead {
+/* Task 4 起多了第二个消费方：商圈段引导语（稿子:204）与本条逐项同参，
+ * 唯一差别是 Hero 这条居中。按「往既有选择器组里追加选择器」处理，
+ * 而不是在下面的商圈小节里把同一档字体参数再写一遍。
+ * ⚠️ 稿子的移动稿把**两条**引导语都降到 17/1.47，这里两条都保持 21：
+ * Task 2 已按跨页一致性裁定 Hero 副标移动端不缩（对齐首页 `.hm-hero__lead`），
+ * 只降商圈那条会让同一页上同一个排版角色出现两种缩法。要降得两条一起降
+ * 并同步首页——跨页决定，不在 Task 4 范围。 */
+.rc-hero__lead,
+.rc-districts__lead {
   margin: 0;
   font-size: 21px; font-weight: 400; line-height: 1.38; letter-spacing: 0.011em;
-  text-align: center; text-wrap: pretty; color: var(--ink-2);
+  text-wrap: pretty; color: var(--ink-2);
 }
+.rc-hero__lead { text-align: center; }
 
 /* ── 价值点主栏（Task 3） ─────────────────────────────────────────────────
  * 稿子 城市招募页.dc.html:80-91（方案 A 左栏）。
@@ -376,6 +385,58 @@
   font-size: 13px; line-height: 1.4; color: var(--ink-3);
 }
 
+/* ── 商圈布局（Task 4） ───────────────────────────────────────────────────
+ * 稿子 城市招募页.dc.html:197-222。整段独占一条**白底**带（稿子写的是
+ * `background: var(--bg)`——稿子的 --bg 是白，本项目相反，按颜色映射即
+ * `.rc-section` 的默认底色，别照抄 token 名，见文件头）。
+ *
+ * h2 同样挂 `.hm-h2`，不在本文件重定义（见「价值点主栏」小节的同一段说明）。
+ *
+ * ⚠️ 商圈状态标签（稿子的「首批上线 / 筹备中」pill）**本批不做**：
+ * 整条数据链路没有「招募位状态」这个维度（判定过程写在
+ * RecruitDistrictGrid.tsx 文件头）。所以这里也**没有**任何状态 pill 规则，
+ * `.rc-hero__eyebrow` 依然是 specRows 那行「状态标签」参数的唯一消费方，
+ * 不需要抽公共类——Task 2 注释里那句预防性说明在本任务里得到确认。 */
+
+/* 引导语的字体参数不在这里：它与 Hero 副标是同一档（稿子:204 与 :70 逐项相同），
+   已并进上面 `.rc-hero__lead, .rc-districts__lead` 那一组。本处只给它自己的间距：
+   h2 → 引导语 16（稿子:204 `margin:16px 0 0`）、引导语 → 网格 48（稿子:205
+   `margin-top:48px`）——两个相邻块之间的两个不同间距，收不成一条 gap。
+   宽度上限两处共用节点上的 `.rc-measure`(702)。 */
+.rc-districts__lead { margin-top: var(--sp-4); }
+
+/* 网格：3 列 · row-gap 48 / column-gap 24（稿子:205 `gap:48px 24px`）。
+   列宽 325.33 = (1024 − 2×24) / 3 —— specRows 那个 325.33 是**推导值**，
+   与主栏 552 同理不写成常量（见 `.rc-core`）。
+   minmax(0, 1fr) 而非 1fr：商圈名是 CJK 无空格长串，auto/1fr 的 min-content
+   下界会把轨道顶宽、撑出横向溢出（list.css:44-46 踩过同款）。 */
+.rc-district-grid {
+  margin: var(--sp-7) 0 0; padding: 0; list-style: none;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  row-gap: var(--sp-7); column-gap: var(--sp-5);
+}
+
+/* 每格：行顶 1px --line + padding-top 20（稿子:207，与标注行「行顶 1px var(--line)」）。
+   与 `.rc-vp__item` 取值相同但**不并成一组**：本批的收敛规则写的是
+   「职责相同才收敛，API 相似不算」。那边是纵向列表里的分条线（注释里还专门
+   交代了第一条的顶线兼作 h2 与列表的分隔），这边是三列网格里每格自己的顶线；
+   两者只是恰好共用了稿子的同一档节奏，改动理由不共享。
+   卡内 gap 10 是稿子:207 的取值，全站没有对应 token（8 / 12 是 --sp-2 / --sp-3），
+   按字面写。 */
+.rc-district {
+  display: flex; flex-direction: column; gap: 10px;
+  padding-top: 20px; border-top: 1px solid var(--line);
+}
+/* 商圈名 / 区位：specRows「24 / 600 · 17 / 400 ink-2」，行高取稿子:216/217。 */
+.rc-district__name {
+  font-size: 24px; font-weight: 600; line-height: 1.2;
+  letter-spacing: normal; color: var(--ink);
+}
+.rc-district__area {
+  font-size: 17px; font-weight: 400; line-height: 1.47;
+  letter-spacing: normal; color: var(--ink-2); text-wrap: pretty;
+}
+
 /* ── 断点 ─────────────────────────────────────────────────────────────────
  * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
  * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成
@@ -397,4 +458,11 @@
    副标 21 不缩，同 `.hm-hero__lead`（首页移动端也保持 21）。 */
 @media (max-width: 767px) {
   .rc-hero__title { font-size: 40px; }
+  /* 商圈网格塌单列：375 容器只有 343，三列各 ≈98px 连「浦东新区」都放不下。
+     这是**宽度逼出来的布局变更**，不是照抄稿子的移动排版。
+     稿子的移动稿还把商圈名降到 19、区位降到 14、格内 gap 收到 6、行距收到 20，
+     这里**一条都不取**：Task 3 面对同一份移动稿时也没有下调价值点的
+     19 / 17（`.rc-vp__name` 至今无移动档）。只取一半会让同一页出现两套移动字阶。
+     要取就整份取、并回头对齐价值点那段——那是跨段决定，不在本任务范围。 */
+  .rc-district-grid { grid-template-columns: minmax(0, 1fr); }
 }

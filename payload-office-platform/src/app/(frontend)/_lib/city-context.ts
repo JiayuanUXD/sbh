@@ -93,6 +93,56 @@ function mapHeroMedia(value: unknown): MappingResult<PublicCitySiteProfile['hero
   })
 }
 
+/**
+ * 区域介绍（`Locations.description`）→ DTO 的 `description`。
+ *
+ * 与 `mapOptionalString` 的两点差别，都是刻意的：
+ *   - 空串 / 纯空白折成 `null` 而不是 `''`。消费方要判「有没有区位信息」，
+ *     留一个空串等于把这个判断复制到每个消费方去做。
+ *   - 类型不对仍然 `invalid()`：与本 mapper 其余字段同一严格度，
+ *     持久化里出现非字符串说明写入路径坏了，不该悄悄放行。
+ */
+function mapRegionDescription(value: unknown): MappingResult<string | null> {
+  if (value === null || value === undefined) return valid(null)
+  if (typeof value !== 'string') return invalid()
+  const trimmed = value.trim()
+  return valid(trimmed.length > 0 ? trimmed : null)
+}
+
+/**
+ * 上级区域（`Locations.parent`）→ DTO 的 `parentName`（区位副标的前半段）。
+ *
+ * 层级事实（`Locations` 的 type 固定为 城市 > 行政区 > 商圈）：
+ *   - `business_area` 的 parent 是**行政区** → 这正是稿子「上城区 · 金融总部核心区」
+ *     里的「上城区」，要显示；
+ *   - `district` 的 parent 是**城市本身** → 在这座城市自己的招募页上再印一遍
+ *     城市名不是区位信息，是噪音，折成 null。
+ * 判据用「parent 的 id 是否等于本 profile 的 cityId」而不是 `parent.type === 'city'`：
+ * cityId 是调用方已经传进来的同一个事实源，且 `protectLocation` 保证节点不可跨城市移动，
+ * 不需要再依赖 parent 自己的 type 字段被展开。
+ *
+ * **裸 id 的处置**：走到这里说明取数 depth 不足以展开 parent（当前两处取数都是
+ * `depth: 2`，实测足够，见 scripts/verification/opt038-featured-regions-depth-probe.ts）。
+ * 不返回 `invalid()` —— 那会把整个 profile 判废、让这座城市从城市页 / 切换器 /
+ * 平台统计里整体消失，用「取数深度」这种查询侧问题去惩罚数据本身，代价完全不成比例。
+ * 但也**不静默吞掉**（区位副标无声消失、几个月无人发现，正是本批反复强调的失效形状）：
+ * 按 `Locations.ts` 既有口径打一条带 errorCode 的 error 日志，把守卫落在失效点上。
+ */
+function mapFeaturedRegionParentName(
+  parent: unknown,
+  regionId: number | string,
+  cityId: number | string,
+): string | null {
+  const parentId = relationshipId(parent)
+  if (parentId === null || String(parentId) === String(cityId)) return null
+  if (isRecord(parent) && isRequiredString(parent.name)) return parent.name
+  console.error('[city-profile-featured-regions] parent_unpopulated', {
+    objectId: regionId,
+    errorCode: 'featured_region_parent_unpopulated',
+  })
+  return null
+}
+
 function mapFeaturedRegions(
   value: unknown,
   cityId: number | string,
@@ -104,6 +154,7 @@ function mapFeaturedRegions(
     const rawSlug = isRecord(relation) ? relation.slug : null
     const slug = normalizeCitySlug(rawSlug)
     const owningCityId = isRecord(relation) ? relationshipId(relation.city) : null
+    const description = mapRegionDescription(isRecord(relation) ? relation.description : null)
     if (
       !isRecord(relation) ||
       !isIdentifier(relation.id) ||
@@ -114,11 +165,19 @@ function mapFeaturedRegions(
       relation.frontendVisible !== true ||
       owningCityId === null ||
       String(owningCityId) !== String(cityId) ||
-      !isRequiredString(relation.name)
+      !isRequiredString(relation.name) ||
+      !description.ok
     ) {
       return invalid()
     }
-    regions.push({ id: relation.id, slug, name: relation.name, type: relation.type })
+    regions.push({
+      id: relation.id,
+      slug,
+      name: relation.name,
+      type: relation.type,
+      parentName: mapFeaturedRegionParentName(relation.parent, relation.id, cityId),
+      description: description.value,
+    })
   }
   return valid(regions)
 }
@@ -189,6 +248,17 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
   }
 }
 
+/**
+ * `depth: 2` 不是可以顺手调小的常数（两处取数同此约束）。
+ *
+ * 实测（scripts/verification/opt038-featured-regions-depth-probe.ts，本地库上海 profile）：
+ *   - depth 1：`featuredRegions[i]` 是完整 Location，但 `.parent` 是裸 id（`number(2)`）；
+ *   - depth 2：`.parent` 展开成完整 Location（`name` / `type` 都在）→ 区位副标的
+ *     「上城区」这一段才拿得到；
+ *   - depth 3：只多展开 `parent.parent`，本页用不上。
+ * 即 **2 是刚好够用的最小值**。调到 1 不会报错，只会让 `parentName` 全变 null、
+ * 商圈卡的区位副标静默少半截（`mapFeaturedRegionParentName` 会打 error 日志兜住）。
+ */
 async function findPublicCityProfile(slug: string): Promise<PublicCitySiteProfile | null> {
   const payload = await getPayload({ config })
   const result = await payload.find({

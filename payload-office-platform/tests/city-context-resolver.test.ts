@@ -289,11 +289,147 @@ describe('city context resolver', () => {
 
     expect(profiles).toHaveLength(1)
     expect(profiles[0]?.featuredRegions).toEqual([
-      { id: 11, slug: 'pudong', name: 'Pudong', type: 'district' },
+      { id: 11, slug: 'pudong', name: 'Pudong', type: 'district', parentName: null, description: null },
     ])
     expect(findCityProfiles).toHaveBeenLastCalledWith(
       expect.objectContaining({ collection: 'city-site-profiles', depth: 2 }),
     )
+  })
+
+  it('maps the featured region locality from parent and description, dropping the owning city', async () => {
+    // 层级事实：business_area 的 parent 是行政区、district 的 parent 是城市本身。
+    // depth: 2 下 parent 被展开成完整 Location（实测见
+    // scripts/verification/opt038-featured-regions-depth-probe.ts）。
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          featuredRegions: [
+            {
+              id: 4,
+              slug: 'nanjing-west-road',
+              name: 'Nanjing West Road',
+              type: 'business_area',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 1, slug: 'shanghai' },
+              parent: { id: 2, name: "Jing'an", type: 'district' },
+              description: '  Prime HQ office cluster.  ',
+            },
+            {
+              id: 2,
+              slug: 'jingan',
+              name: "Jing'an",
+              type: 'district',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 1, slug: 'shanghai' },
+              // 行政区的上级就是本城 → parentName 折成 null，不把城市名当区位
+              parent: { id: 1, name: 'Shanghai', type: 'city' },
+              description: '   ',
+            },
+          ],
+        }),
+      ],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles[0]?.featuredRegions).toEqual([
+      {
+        id: 4,
+        slug: 'nanjing-west-road',
+        name: 'Nanjing West Road',
+        type: 'business_area',
+        parentName: "Jing'an",
+        description: 'Prime HQ office cluster.',
+      },
+      {
+        id: 2,
+        slug: 'jingan',
+        name: "Jing'an",
+        type: 'district',
+        parentName: null,
+        description: null,
+      },
+    ])
+  })
+
+  it('logs instead of silently dropping a featured region whose parent was not populated', async () => {
+    // 取数 depth 被调小的形状：parent 只剩裸 id。既不能判废整个 profile
+    // （整座城市会从城市页/切换器/平台统计里消失），也不能悄悄少半截区位——
+    // 守卫落在失效点上：打一条带 errorCode 的 error 日志。
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      findCityProfiles.mockResolvedValueOnce({
+        docs: [
+          cityProfileDocument({
+            featuredRegions: [
+              {
+                id: 4,
+                slug: 'nanjing-west-road',
+                name: 'Nanjing West Road',
+                type: 'business_area',
+                status: 'active',
+                frontendVisible: true,
+                city: 1,
+                parent: 2,
+                description: null,
+              },
+            ],
+          }),
+        ],
+      })
+
+      const profiles = await listPublicCityProfiles()
+
+      expect(profiles).toHaveLength(1)
+      expect(profiles[0]?.featuredRegions).toEqual([
+        {
+          id: 4,
+          slug: 'nanjing-west-road',
+          name: 'Nanjing West Road',
+          type: 'business_area',
+          parentName: null,
+          description: null,
+        },
+      ])
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[city-profile-featured-regions] parent_unpopulated',
+        { objectId: 4, errorCode: 'featured_region_parent_unpopulated' },
+      )
+    } finally {
+      errorSpy.mockRestore()
+    }
+  })
+
+  it('rejects a profile whose featured region description is not a string', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument(),
+        cityProfileDocument({
+          id: 2,
+          city: { id: 2, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
+          seoTitle: 'Hangzhou office leasing',
+          seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+          featuredRegions: [
+            {
+              id: 12,
+              slug: 'west-lake',
+              name: 'West Lake',
+              type: 'district',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 2 },
+              description: 42,
+            },
+          ],
+        }),
+      ],
+    })
+
+    await expect(listPublicCityOptions()).resolves.toEqual([
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+    ])
   })
 
   it('excludes a profile whose populated city is disabled', async () => {

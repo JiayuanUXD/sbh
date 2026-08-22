@@ -5,6 +5,9 @@ import React from 'react'
 import CityPartnerApplicationForm from '@/components/frontend/city-partner/CityPartnerApplicationForm'
 import RecruitHero from '@/components/frontend/city-partner/RecruitHero'
 import RecruitValueProps from '@/components/frontend/city-partner/RecruitValueProps'
+import RecruitDistrictGrid, {
+  type RecruitDistrict,
+} from '@/components/frontend/city-partner/RecruitDistrictGrid'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
 /**
@@ -15,6 +18,25 @@ import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 const PREVIEW_CITIES: readonly PublicCityOption[] = [
   { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon', sortOrder: 20 },
   { slug: 'shanghai', name: '上海', serviceStatus: 'live', sortOrder: 10 },
+]
+
+/**
+ * 商圈 fixture：**照本地库上海 profile 的真实 `featuredRegions` 形态构造**
+ * （名称与区域介绍取自 locations 表 #2–#11，见
+ * scripts/verification/opt038-featured-regions-depth-probe.ts 的实测输出）。
+ *
+ * 刻意混了三种区位副标形态，让「缺失怎么显示」在预览页上一眼可读：
+ *   - business_area：parentName（上级行政区）+ description 两段都在 → 「静安区 · ……」
+ *   - district：parent 就是城市本身 → parentName 恒为 null，只剩 description
+ *   - 最后一条两段都缺 → **整行不渲染**（不是一个「—」）
+ */
+const PREVIEW_DISTRICTS: readonly RecruitDistrict[] = [
+  { id: 4, slug: 'nanjing-west-road', name: '南京西路', type: 'business_area', parentName: '静安区', description: '上海高端商务、零售与企业总部办公核心商圈。' },
+  { id: 5, slug: 'lujiazui', name: '陆家嘴', type: 'business_area', parentName: '浦东新区', description: '金融、专业服务与跨国企业总部办公核心区域。' },
+  { id: 9, slug: 'the-bund', name: '外滩', type: 'business_area', parentName: '黄浦', description: '外滩金融集聚带，历史建筑与现代办公融合。' },
+  { id: 2, slug: 'jingan', name: '静安区', type: 'district', parentName: null, description: '南京西路、苏河湾等高端商务办公聚集区。' },
+  { id: 3, slug: 'pudong', name: '浦东新区', type: 'district', parentName: null, description: '陆家嘴、前滩等总部型企业办公聚集区。' },
+  { id: 11, slug: 'hongqiao', name: '虹桥', type: 'business_area', parentName: null, description: null },
 ]
 
 /**
@@ -119,7 +141,8 @@ export default function Opt038PreviewPage() {
           仅开发环境可见。Task 1 骨架：容器 <code>1024</code>、正文栏宽上限 <code>702</code>、
           方案 A 两栏 <code>552 / 400</code> 列间 <code>72</code>、section padding-block{' '}
           <code>72</code>（段间 <code>144</code>）、表单卡 <code>sticky top 68</code>。
-          Task 2 起 Hero、Task 3 起价值点与表单卡已是真组件。虚线框是留给 Task 4–5 的槽位。
+          Task 2 起 Hero、Task 3 起价值点与表单卡、Task 4 起商圈布局已是真组件。
+          虚线框是留给 Task 5 的槽位。
           本页会出现多个 <code>h1</code>（外壳一个 + 每档 Hero 一个），
           这是并排预览的必然结果，<strong>不是</strong>真实路由的形态——
           真实页面每页只有一个 h1（<code>tests/city-partner-page-seo.test.ts:37</code> 锁着）。
@@ -196,18 +219,23 @@ export default function Opt038PreviewPage() {
       </PreviewSection>
 
       <PreviewSection
-        id="rc-skeleton-districts"
-        title="骨架 · 商圈布局段（.rc-section）"
-        note="白底 · 引导语同样受 .rc-measure 约束 · 3 列 gap 48/24 的网格属 Task 4，本任务不铺"
+        id="rc-districts"
+        title="商圈布局（RecruitDistrictGrid）"
+        note="白底（本项目 --bg-subtle）· h2 挂 .hm-h2（40/600/1.10，≤767 收 32）· 引导语 21/400/1.38/+0.011em 且受 .rc-measure(702) 约束 · 网格 3 列 row-gap 48 / column-gap 24 → 列宽 (1024−48)/3 = 325.33 · 每格行顶 1px --line + padding-top 20 · 商圈名 24/600/1.2 · 区位 17/400/1.47 --ink-2。⚠️ 六个商圈统一渲染、没有「首批上线 / 筹备中」状态 pill：整条数据链路没有招募位状态这个维度，理由见 RecruitDistrictGrid.tsx 文件头。最后一条（虹桥）两段区位都缺 → 整行不渲染，不写「—」。"
       >
-        <div className="rc-section">
-          <div className="rc-container" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="rc-measure" style={{ width: '100%' }}>
-              <Slot label="Task 4 · h2 + 引导语（≤702）" minHeight={80} />
-            </div>
-            <Slot label="Task 4 · 商圈网格 3 列 · gap 48/24 → 列宽 325.33" minHeight={180} />
-          </div>
-        </div>
+        <RecruitDistrictGrid
+          titleId="rc-districts-title"
+          cityName="上海"
+          districts={PREVIEW_DISTRICTS}
+        />
+      </PreviewSection>
+
+      <PreviewSection
+        id="rc-districts-empty"
+        title="商圈布局 · 空态（districts 传空数组）"
+        note="无 featuredRegions 的城市：整段不渲染——连 h2 与引导语都不留，不摆空货架。下方除本外壳的标题与分隔线外应当空无一物。"
+      >
+        <RecruitDistrictGrid cityName="嘉兴" districts={[]} />
       </PreviewSection>
 
       <PreviewSection
