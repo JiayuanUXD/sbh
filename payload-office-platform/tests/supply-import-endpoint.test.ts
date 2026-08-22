@@ -4,6 +4,7 @@ import ExcelJS from 'exceljs'
 
 import { createBulkImportEndpoints, PREFLIGHT_ERROR_PREVIEW_LIMIT } from '@/endpoints/bulk-import-endpoint'
 import { BUILDING_COLUMNS } from '@/domain/supply-import/building-row'
+import { LISTING_COLUMNS } from '@/domain/supply-import/listing-row'
 import type { Role, User } from '@/payload-types'
 
 /**
@@ -11,11 +12,16 @@ import type { Role, User } from '@/payload-types'
  *
  * 用一个内存 mock payload 模拟：roles / users(仅取权限字段) / locations /
  * location-aliases / buildings / supply-import-batches / audit-logs。
- * 覆盖四条不可妥协语义：
+ * 覆盖四条不可妥协语义 + 第一轮评审补的 5 条 Important：
  *   1. 预检不写业务表（buildings/listings 的 create 恒不被调用）
  *   2. 未登录 / 无权限一律 403
- *   3. execute 复核城市范围（角色收窄后再执行 → 403）
+ *   3. execute 复核城市范围（同一操作者城市范围被收窄后再执行 → 403）
  *   4. status !== 'preflight' 执行请求 → 409
+ *   5. 横向越权：GET 状态/错误表/execute 三条路由都要挡非本人（全局范围除外）
+ *   6. isPersistedValidRowArray 是真结构守卫，损坏数据不当空数组放行
+ *   7. rowNumbers[i] 不变量回归测试（含空行跳过）
+ *   8. listings 分支覆盖（成功 + 批内查重用 '房源编号' 而不是 '楼盘编号'）
+ *   9. execute 的 409 / 403 分支写 writeAuditFailed 留痕
  */
 
 // ────────────────────────────────────────────────────────────
@@ -103,6 +109,22 @@ function opsUserShanghai(): User {
     sessionVersion: 1,
     roles: [2],
     cityScope: [10],
+    updatedAt: '',
+    createdAt: '',
+    collection: 'users',
+  } as unknown as User
+}
+
+/** 任意 id + cityScope 的 OPS 用户；用于「同一操作者的城市范围被收窄」与「非本人访问」两类场景。 */
+function opsUser(id: number, cityScope: number[]): User {
+  return {
+    id,
+    name: `ops-${id}`,
+    email: `ops-${id}@example.com`,
+    status: 'active',
+    sessionVersion: 1,
+    roles: [2],
+    cityScope,
     updatedAt: '',
     createdAt: '',
     collection: 'users',
@@ -423,6 +445,79 @@ describe('POST /bulk-import/preflight', () => {
     expect(report.validCount).toBe(0)
     expect(report.rowErrors[0].code).toBe('CITY_OUT_OF_SCOPE')
   })
+
+  it('rowNumbers[i] 不变量：跳过空行后错误行号仍是真实 Excel 行号，不退化成数组下标', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const { payload } = makeMockPayload([ROLE_ADM])
+
+    // 第 2 行有效；第 3、5 行全空被跳过；第 4、6 行各触发一条错误。
+    // 如果实现把 validate(row, rowNumbers[i], ctx) 误写成 validate(row, i, ctx)，
+    // 在有空行被跳过、数组下标与 Excel 行号不再线性对应时，这里会立刻暴露
+    // （下标序列是 0,1,2 而不是 2,4,6）。
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-100', '有效楼盘', '上海', '浦东新区', '', '', '', ''],
+      [],
+      ['', '缺编号楼盘A', '上海', '浦东新区', '', '', '', ''],
+      [],
+      ['', '缺编号楼盘B', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    const body = await readJson(res)
+    const report = body.report as { rowErrors: Array<{ rowNumber: number; column: string }> }
+    expect(report.rowErrors.map((e) => e.rowNumber)).toEqual([4, 6])
+    expect(report.rowErrors.every((e) => e.column === '楼盘编号')).toBe(true)
+  })
+
+  it('listings 分支：合法房源表 → 200，校验走的是 validateListingRow', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const { payload } = makeMockPayload([ROLE_ADM])
+
+    const buf = await makeXlsxBuffer(LISTING_COLUMNS, [
+      ['L-001', '环球金融中心 280㎡ 精装办公室', '传统办公室', 'B-EXIST', '280㎡', '4.5元/㎡/天', '12层', '精装带家具', '2026-09-01'],
+    ])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=listings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'listings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    expect(res.status).toBe(200)
+    const body = await readJson(res)
+    const report = body.report as { validCount: number; errorCount: number }
+    expect(report.validCount).toBe(1)
+    expect(report.errorCount).toBe(0)
+  })
+
+  it('listings 分支：批内房源编号重复 → 查重用列名 "房源编号"，不是 "楼盘编号"', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const { payload } = makeMockPayload([ROLE_ADM])
+
+    const row = ['L-DUP', '环球金融中心 280㎡ 精装办公室', '传统办公室', 'B-EXIST', '280㎡', '4.5元/㎡/天', '12层', '精装带家具', '2026-09-01']
+    const buf = await makeXlsxBuffer(LISTING_COLUMNS, [row, row])
+    const req = makeReq({
+      user: adminUser(),
+      payload,
+      url: 'http://localhost/api/bulk-import/preflight?type=listings',
+      file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'listings.xlsx', size: buf.length },
+    })
+    const res = (await preflight.handler(req)) as Response
+    const body = await readJson(res)
+    const report = body.report as { validCount: number; errorCount: number; rowErrors: Array<{ code: string; column: string }> }
+    expect(report.validCount).toBe(1)
+    expect(report.errorCount).toBe(1)
+    expect(report.rowErrors[0].code).toBe('DUPLICATE_EXTERNAL_ID')
+    expect(report.rowErrors[0].column).toBe('房源编号')
+  })
 })
 
 // ────────────────────────────────────────────────────────────
@@ -447,7 +542,7 @@ describe('POST /bulk-import/batches/:id/execute', () => {
     return body.batchId as number
   }
 
-  it('status !== preflight → 409，防止重复点击重复入队', async () => {
+  it('status !== preflight → 409，防止重复点击重复入队，并写 writeAuditFailed 留痕', async () => {
     const endpoints = createBulkImportEndpoints()
     const execute = endpoints.find((e) => e.path === '/bulk-import/batches/:id/execute')!
     const { payload, batches } = makeMockPayload([ROLE_ADM])
@@ -458,32 +553,75 @@ describe('POST /bulk-import/batches/:id/execute', () => {
     const res = (await execute.handler(req)) as Response
     expect(res.status).toBe(409)
     expect((await readJson(res)).code).toBe('BAD_STATE')
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'BAD_STATE' }),
+      }),
+    )
   })
 
-  it('预检后角色被收窄到别的城市 → execute 复核发现越权行 → 403，不入队', async () => {
+  it('同一操作者的城市范围被预检后收窄 → execute 复核发现越权行 → 403 CITY_OUT_OF_SCOPE，不入队，并写审计', async () => {
     const endpoints = createBulkImportEndpoints()
     const execute = endpoints.find((e) => e.path === '/bulk-import/batches/:id/execute')!
-    const { payload } = makeMockPayload([ROLE_ADM, ROLE_OPS_SHANGHAI])
-    // 用全城管理员预检出一条上海楼盘行（cityId=10）
-    const batchId = await preflightBuildingBatch(payload, adminUser())
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI])
+    // 同一个人（id 901）先以「上海范围」预检出一条上海楼盘行（cityId=10）
+    const opsBefore = opsUser(901, [10])
+    const batchId = await preflightBuildingBatch(payload, opsBefore)
 
-    // execute 时该用户已被换成"仅上海"角色之外的另一城市范围：模拟一个只对北京(11)开放的用户
-    const opsBeijingOnly = {
-      id: 903,
-      name: 'ops-bj',
-      email: 'ops-bj@example.com',
-      status: 'active',
-      sessionVersion: 1,
-      roles: [2],
-      cityScope: [11],
-      updatedAt: '',
-      createdAt: '',
-      collection: 'users',
-    } as unknown as User
+    // execute 时同一个人（id 901 不变，模拟操作者归属不变）的账号 cityScope 被
+    // 后台改成了北京——这是"预检与执行之间用户角色可能已变更"的真实场景，
+    // 不是换了另一个人（换人属于 Important 1 的归属越权，另有专门用例）。
+    const opsAfterNarrowed = opsUser(901, [11])
 
-    const req = makeReq({ user: opsBeijingOnly, payload, routeParams: { id: String(batchId) } })
+    const req = makeReq({ user: opsAfterNarrowed, payload, routeParams: { id: String(batchId) } })
     const res = (await execute.handler(req)) as Response
     expect(res.status).toBe(403)
+    const body = await readJson(res)
+    expect(body.code).toBe('CITY_OUT_OF_SCOPE')
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'CITY_OUT_OF_SCOPE' }),
+      }),
+    )
+  })
+
+  it('非本人创建的批次 → execute 返回 403 FORBIDDEN（不是 CITY_OUT_OF_SCOPE），并写审计', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const execute = endpoints.find((e) => e.path === '/bulk-import/batches/:id/execute')!
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI])
+    // 操作者 A（901）预检出一条上海行
+    const batchId = await preflightBuildingBatch(payload, opsUser(901, [10]))
+
+    // 操作者 B（905）同样持 data:import 且城市范围同为上海（不是城市越权），
+    // 但不是这条批次的创建者 → 应该被归属校验挡住，而不是被城市校验放行。
+    const otherOperator = opsUser(905, [10])
+    const req = makeReq({ user: otherOperator, payload, routeParams: { id: String(batchId) } })
+    const res = (await execute.handler(req)) as Response
+    expect(res.status).toBe(403)
+    const body = await readJson(res)
+    expect(body.code).toBe('FORBIDDEN')
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'FORBIDDEN' }),
+      }),
+    )
+  })
+
+  it('validRows 结构损坏（非法元素）→ 409 CORRUPTED_BATCH，不当空数组放行绕过城市复核', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const execute = endpoints.find((e) => e.path === '/bulk-import/batches/:id/execute')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+    const batchId = await preflightBuildingBatch(payload, adminUser())
+    // 直接把持久化的 validRows 改坏：裸数字 / 空对象都不满足 PersistedValidRow 结构
+    batches.set(batchId, { ...batches.get(batchId)!, validRows: [1, {}, 'x'] })
+
+    const req = makeReq({ user: adminUser(), payload, routeParams: { id: String(batchId) } })
+    const res = (await execute.handler(req)) as Response
+    expect(res.status).toBe(409)
+    expect((await readJson(res)).code).toBe('CORRUPTED_BATCH')
   })
 
   it('权限与城市范围都通过 → 200，status 变为 queued，写入审计，调用 queueImportJob 注入点', async () => {
@@ -501,7 +639,12 @@ describe('POST /bulk-import/batches/:id/execute', () => {
     expect(body.status).toBe('queued')
     expect(batches.get(batchId)!.status).toBe('queued')
     expect(queueImportJob).toHaveBeenCalledWith(batchId)
-    expect(payload.create).toHaveBeenCalledWith(expect.objectContaining({ collection: 'audit-logs' }))
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'success' }),
+      }),
+    )
   })
 
   it('批次不存在 → 404', async () => {
@@ -545,6 +688,33 @@ describe('GET /bulk-import/batches/:id', () => {
     const body = await readJson(res)
     expect((body.batch as { status: string }).status).toBe('preflight')
     expect((body.batch as { validCount: number }).validCount).toBe(1)
+  })
+
+  it('横向越权：非本人、非全局范围的用户读别人的批次状态 → 403 FORBIDDEN', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const status = endpoints.find((e) => e.path === '/bulk-import/batches/:id')!
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI])
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-001', '新楼盘', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const preflightRes = (await preflight.handler(
+      makeReq({
+        user: opsUser(901, [10]),
+        payload,
+        url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+        file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+      }),
+    )) as Response
+    const batchId = (await readJson(preflightRes)).batchId as number
+
+    // 另一个持 data:import 权限、同城市范围的用户，不是这条批次的创建者
+    const res = (await status.handler(
+      makeReq({ user: opsUser(905, [10]), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(403)
+    expect((await readJson(res)).code).toBe('FORBIDDEN')
   })
 })
 
@@ -612,6 +782,30 @@ describe('下载端点', () => {
     // 原表其它列（楼盘名称）要保留，供运营回填后重新上传
     const dataRow = ws.getRow(2).values as unknown[]
     expect(dataRow).toContain('缺编号的楼盘')
+  })
+
+  it('横向越权：非本人、非全局范围的用户下载别人的错误表 → 403 FORBIDDEN', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const errors = endpoints.find((e) => e.path === '/bulk-import/batches/:id/errors')!
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI])
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [['', '缺编号的楼盘', '上海', '浦东新区', '', '', '', '']])
+    const preflightRes = (await preflight.handler(
+      makeReq({
+        user: opsUser(901, [10]),
+        payload,
+        url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+        file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+      }),
+    )) as Response
+    const batchId = (await readJson(preflightRes)).batchId as number
+
+    const res = (await errors.handler(
+      makeReq({ user: opsUser(905, [10]), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(403)
+    expect((await readJson(res)).code).toBe('FORBIDDEN')
   })
 
   it('GET /bulk-import/building-reference 按 ctx.cityIds 收窄查询', async () => {

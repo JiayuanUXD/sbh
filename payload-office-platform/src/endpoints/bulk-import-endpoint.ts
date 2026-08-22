@@ -3,7 +3,7 @@ import { addDataAndFileToRequest } from 'payload'
 
 import { canReadByCity, requireOperationPermission, type RequestContext } from '@/domain/auth/access'
 import type { PermissionContext } from '@/domain/auth/permission-context'
-import { writeAuditSuccess } from '@/domain/audit/audit-writer'
+import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer'
 import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
 import { LISTING_COLUMNS, validateListingRow, type ValidListingRow } from '@/domain/supply-import/listing-row'
@@ -98,6 +98,22 @@ function numericId(id: number | string): number {
 function routeId(req: RequestContext): string | number | undefined {
   const raw = (req.routeParams as Record<string, unknown> | undefined)?.id
   return typeof raw === 'string' || typeof raw === 'number' ? raw : undefined
+}
+
+/**
+ * 批次可见性：全局范围（ADM，ctx.cityIds === 'all'）或本人创建的批次。
+ * 不用 validRows[].cityId 做判据——那是自由 json 字段，损坏时判据会失效；
+ * 用 batch.operator（create 时写入、只读字段）才是可信的归属锚点。
+ * 只做「本人 or 全局」最小口径；放宽到同城/同团队可见是另一个决定，不在本任务里做。
+ */
+function isBatchVisibleTo(ctx: PermissionContext, batch: { operator?: unknown }): boolean {
+  if (ctx.cityIds === 'all') return true
+  const operator = batch.operator
+  const operatorId =
+    typeof operator === 'object' && operator !== null && 'id' in operator
+      ? (operator as { id?: unknown }).id
+      : operator
+  return String(operatorId ?? '') === String(ctx.userId)
 }
 
 // ────────────────────────────────────────────────────────────
@@ -207,8 +223,19 @@ function toPersistedValidRows<T extends { cityId: number | string | null }>(
   return values.map((value, i) => ({ rowNumber: rowNumbers[i], ...value }))
 }
 
+/**
+ * 结构守卫，不是形式主义的 Array.isArray——validRows 是自由 json 字段，元素可能是
+ * `{}` 或裸数字。execute 的城市复核直接读这里返回值的 `.cityId` 做安全判断
+ * （见 createExecuteEndpoint），假装通过等于把越权检查关掉，等价于 `as`。
+ */
+function isPersistedValidRow(value: unknown): value is PersistedValidRow {
+  if (typeof value !== 'object' || value === null) return false
+  const row = value as Record<string, unknown>
+  return typeof row.rowNumber === 'number' && 'cityId' in row && 'externalId' in row
+}
+
 function isPersistedValidRowArray(value: unknown): value is PersistedValidRow[] {
-  return Array.isArray(value)
+  return Array.isArray(value) && value.every(isPersistedValidRow)
 }
 
 /**
@@ -385,18 +412,65 @@ function createExecuteEndpoint(deps: { queueImportJob?: (batchId: number | strin
         return Response.json({ ok: false, error: '批次不存在' }, { status: 404 })
       }
 
+      // 归属校验：全局范围（ADM）或本人创建的批次；放在状态判断之前，
+      // 不让非本人先从 409/403 的差异里探到"这批次存在且处于什么状态"。
+      if (!isBatchVisibleTo(ctx, batch)) {
+        await writeAuditFailed({
+          payload: req.payload,
+          req,
+          data: {
+            action: 'data.import',
+            object: { collection: 'supply-import-batches', objectId: id, objectVersion: 1 },
+            errorCode: 'FORBIDDEN',
+            errorMessage: '尝试执行非本人创建的导入批次',
+          },
+        })
+        return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权操作该导入批次' }, { status: 403 })
+      }
+
       // status !== 'preflight' → 409，防止重复点击重复入队
       if (batch.status !== 'preflight') {
+        await writeAuditFailed({
+          payload: req.payload,
+          req,
+          data: {
+            action: 'data.import',
+            object: { collection: 'supply-import-batches', objectId: id, objectVersion: 1 },
+            errorCode: 'BAD_STATE',
+            errorMessage: `批次状态为 ${String(batch.status)}，不处于可执行状态`,
+          },
+        })
         return Response.json({ ok: false, code: 'BAD_STATE', error: '批次不处于可执行状态' }, { status: 409 })
+      }
+
+      // validRows 结构守卫：json 字段理论上可能被外部直接写坏；损坏时不当空数组静默放行
+      // （那等于把下面的城市复核变成"空循环恒通过"），直接拒绝执行，要求重新预检。
+      if (!isPersistedValidRowArray(batch.validRows)) {
+        return Response.json(
+          { ok: false, code: 'CORRUPTED_BATCH', error: '批次数据结构异常，请重新预检' },
+          { status: 409 },
+        )
       }
 
       // 2. 复核城市范围：预检时校验过一次，这里对 validRows 逐行再校验一次——
       //    预检与执行之间用户角色可能已变更，有任一越权行 → 403。
-      const validRows = isPersistedValidRowArray(batch.validRows) ? batch.validRows : []
-      for (const row of validRows) {
-        if (!canReadByCity(ctx, row.cityId)) {
-          return Response.json({ ok: false, error: '存在超出当前城市范围的行，请重新预检' }, { status: 403 })
-        }
+      const validRows = batch.validRows
+      const outOfScopeRow = validRows.find((row) => !canReadByCity(ctx, row.cityId))
+      if (outOfScopeRow) {
+        await writeAuditFailed({
+          payload: req.payload,
+          req,
+          data: {
+            action: 'data.import',
+            object: { collection: 'supply-import-batches', objectId: id, objectVersion: 1 },
+            errorCode: 'CITY_OUT_OF_SCOPE',
+            errorMessage: `第 ${outOfScopeRow.rowNumber} 行的城市不在当前操作者的可导入范围内`,
+          },
+        })
+        return Response.json(
+          { ok: false, code: 'CITY_OUT_OF_SCOPE', error: '存在超出当前城市范围的行，请重新预检' },
+          { status: 403 },
+        )
       }
 
       // 3. status='queued' + startedAt
@@ -447,6 +521,7 @@ function createBatchStatusEndpoint(): Endpoint {
       const req = reqIn as RequestContext
       const guard = await guardImport(req)
       if (!guard.ok) return guard.response
+      const { ctx } = guard
 
       const id = routeId(req)
       if (id === undefined) {
@@ -464,6 +539,12 @@ function createBatchStatusEndpoint(): Endpoint {
         })
       } catch {
         return Response.json({ ok: false, error: '批次不存在' }, { status: 404 })
+      }
+
+      // 归属校验：全局范围（ADM）或本人创建的批次，不然任何持 data:import 的用户
+      // 都能读到别人的批次状态（其中可能含地址、联系方式等敏感原始数据）。
+      if (!isBatchVisibleTo(ctx, batch)) {
+        return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权查看该导入批次' }, { status: 403 })
       }
 
       const validRows = isPersistedValidRowArray(batch.validRows) ? batch.validRows : []
@@ -516,6 +597,7 @@ function createBatchErrorsEndpoint(): Endpoint {
       const req = reqIn as RequestContext
       const guard = await guardImport(req)
       if (!guard.ok) return guard.response
+      const { ctx } = guard
 
       const id = routeId(req)
       if (id === undefined) {
@@ -533,6 +615,12 @@ function createBatchErrorsEndpoint(): Endpoint {
         })
       } catch {
         return Response.json({ ok: false, error: '批次不存在' }, { status: 404 })
+      }
+
+      // 归属校验：错误表里含完整原始单元格文本（地址、联系方式都可能在里面），
+      // 不能让任何持 data:import 的用户下载别人的错误表。
+      if (!isBatchVisibleTo(ctx, batch)) {
+        return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权查看该导入批次' }, { status: 403 })
       }
 
       const persisted = isPersistedRowErrors(batch.rowErrors) ? batch.rowErrors : EMPTY_ROW_ERRORS
