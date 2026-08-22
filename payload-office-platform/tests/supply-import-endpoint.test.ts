@@ -1037,6 +1037,107 @@ describe('GET /bulk-import/batches/:id', () => {
     expect(res.status).toBe(403)
     expect((await readJson(res)).code).toBe('FORBIDDEN')
   })
+
+  // ────────────────────────────────────────────────────────────
+  // D11 评审第 1 轮 Important 1：import-task.ts 的 Job handler 跑在 Jobs Queue
+  // cron autoRun 上下文里、不在任何 Next 请求范围内，那里调 revalidateTag 在生产
+  // 上等于没修——缓存失效改放这个轮询端点（真实请求上下文），下面三条用例覆盖
+  // 触发 / 不触发的边界。
+  // ────────────────────────────────────────────────────────────
+
+  it('D11：批次进入 completed 且 affectedIds 非空 → 轮询时触发一次缓存失效', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const status = endpoints.find((e) => e.path === '/bulk-import/batches/:id')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+
+    batches.set(601, {
+      id: 601,
+      type: 'listings',
+      status: 'completed',
+      operator: 900,
+      affectedIds: [123],
+      validRows: [{ rowNumber: 2, externalId: 'L-001', cityId: 10 }],
+      rowErrors: { errors: [], rawRows: [], rawRowNumbers: [] },
+      stats: { processed: 1, created: 1, updated: 0, failed: 0 },
+    })
+
+    const res = (await status.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: '601' } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    expect(revalidateTag).toHaveBeenCalled()
+  })
+
+  it('D11：批次 failed 但 affectedIds 非空（部分行已上架）→ 同样触发失效', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const status = endpoints.find((e) => e.path === '/bulk-import/batches/:id')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+
+    batches.set(602, {
+      id: 602,
+      type: 'listings',
+      status: 'failed',
+      operator: 900,
+      affectedIds: [124],
+      validRows: [{ rowNumber: 2, externalId: 'L-002', cityId: 10 }],
+      rowErrors: { errors: [], rawRows: [], rawRowNumbers: [] },
+      stats: { processed: 1, created: 1, updated: 0, failed: 0 },
+    })
+
+    const res = (await status.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: '602' } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    expect(revalidateTag).toHaveBeenCalled()
+  })
+
+  it('D11：批次未到终态（queued/running）→ 轮询不触发失效', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const status = endpoints.find((e) => e.path === '/bulk-import/batches/:id')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+
+    batches.set(603, {
+      id: 603,
+      type: 'listings',
+      status: 'running',
+      operator: 900,
+      affectedIds: [125],
+      rowErrors: { errors: [], rawRows: [], rawRowNumbers: [] },
+      stats: { processed: 1, created: 1, updated: 0, failed: 0 },
+    })
+
+    const res = (await status.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: '603' } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    expect(revalidateTag).not.toHaveBeenCalled()
+  })
+
+  it('D11：批次 completed 但 affectedIds 为空（一行都没成功）→ 不触发失效', async () => {
+    revalidateTag.mockClear()
+    const endpoints = createBulkImportEndpoints()
+    const status = endpoints.find((e) => e.path === '/bulk-import/batches/:id')!
+    const { payload, batches } = makeMockPayload([ROLE_ADM])
+
+    batches.set(604, {
+      id: 604,
+      type: 'listings',
+      status: 'completed',
+      operator: 900,
+      affectedIds: [],
+      rowErrors: { errors: [], rawRows: [], rawRowNumbers: [] },
+      stats: { processed: 1, created: 0, updated: 0, failed: 1 },
+    })
+
+    const res = (await status.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: '604' } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    expect(revalidateTag).not.toHaveBeenCalled()
+  })
 })
 
 // ────────────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ import {
   RELATION_INELIGIBLE_CODES,
   type RelationIneligibleCode,
 } from '@/domain/supply/building-merchant-relation'
+import { isWithinValidity } from '@/domain/shared/validity'
 
 /** 一条楼盘-商户关系的最小读模型：判定所需字段的扁平化投影，不绑定 Payload 类型。 */
 export interface BuildingMerchantRelationInput {
@@ -67,14 +68,15 @@ function findCurrentRelation(
   relations: readonly BuildingMerchantRelationInput[],
   now: Date,
 ): BuildingMerchantRelationInput | null {
-  const t = now.getTime()
   for (const relation of relations) {
     if (String(relation.buildingId) !== String(buildingId)) continue
     const period = toRelationPeriod(relation.effectiveFrom, relation.effectiveTo)
     if (!isRelationPeriodValid(period)) continue
-    const start = new Date(period.startsAt).getTime()
-    const end = period.endsAt === null ? Number.POSITIVE_INFINITY : new Date(period.endsAt).getTime()
-    if (t >= start && t < end) return relation
+    // 评审第 1 轮 Important 2：半开区间"含起不含止"判定复用既有
+    // domain/shared/validity.ts 的 isWithinValidity，不再手写 start/end 比较——
+    // 与 building-merchant-relation-protect.ts 等既有调用点同一份实现，不搞
+    // 同义漂移。
+    if (isWithinValidity(now, period)) return relation
   }
   return null
 }

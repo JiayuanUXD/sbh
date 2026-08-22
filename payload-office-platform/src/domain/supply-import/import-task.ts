@@ -28,7 +28,6 @@ import type { Payload, PayloadRequest, TaskConfig } from 'payload'
 
 import { isDecorationStatus, isListingType } from '@/domain/review/listing-fields'
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
-import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invalidation'
 import type { ValidBuildingRow } from '@/domain/supply-import/building-row'
 import type { ValidListingRow } from '@/domain/supply-import/listing-row'
 import {
@@ -661,9 +660,6 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
           req,
         })
         .catch(() => null)
-      // D11：即使整体任务失败，已经并集合并进 affectedIds 的行也可能真实上架了，
-      // 同样要尽快让前台反映出来——不能因为批次状态是 failed 就不触发失效。
-      await invalidateAfterSupplyImportRun(payload, req, batchId, rows, affectedIds)
       throw error
     }
 
@@ -681,10 +677,6 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
       req,
     })
 
-    // D11：写入 Job 完成后触发一次公共缓存失效——止血承诺（红条「确认后 N 套房源
-    // 将立即对外可见」）不能只靠 cached-queries.ts 的 5 分钟 TTL 兜底。
-    await invalidateAfterSupplyImportRun(payload, req, batchId, rows, affectedIds)
-
     return { output: { created: stats.created, updated: stats.updated, failed: stats.failed } }
   },
 }
@@ -698,45 +690,18 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
 // ────────────────────────────────────────────────────────────
 
 // ────────────────────────────────────────────────────────────
-// D11：写入 Job 完成后触发一次公共缓存失效（无论最终 completed 还是 failed——
-// 失败也可能已经有部分行真实写入并上架，见 Critical 1 的 affectedIds 并集合并；
-// 那些行同样需要尽快在前台可见，不能因为整批任务"失败"就不触发失效）。
+// D11 评审第 1 轮 Important 1：缓存失效**不**放在这个 handler 里。
+// 这个 TaskConfig 由 payload.config.ts 的 Jobs Queue cron autoRun 驱动，运行在
+// cron/worker 上下文——不在任何 Next 请求/渲染范围内。`revalidateTag` 需要
+// work store，脱离请求上下文调用会抛错；`revalidatePublicCacheTags`
+// （lib/frontend/public-cache-revalidation.ts）又把这类异常逐个吞成
+// console.error，于是"导入后立即可见"会静默退化回 cached-queries.ts 的 5 分钟
+// TTL——正是 D11 要修的问题，放在这里等于没修。缓存失效改为放在
+// bulk-import-endpoint.ts 的 GET /bulk-import/batches/:id（轮询端点，运行在真实
+// 请求上下文里）：观察到批次进入终态（completed/failed）且 affectedIds 非空时
+// 触发。revalidateTag 幂等，重复轮询多触发几次不是问题，不为此加
+// "恰好一次" 的 schema 字段。
 // ────────────────────────────────────────────────────────────
-
-/** 从本次处理的行里收集去重后的城市 id；ValidListingRow.cityId 可能为 null（楼盘解析失败的历史脏行），过滤掉。 */
-function collectRowCityIds(rows: ReadonlyArray<ValidBuildingRow | ValidListingRow>): Array<number | string> {
-  const seen = new Set<string>()
-  const cityIds: Array<number | string> = []
-  for (const row of rows) {
-    const cityId = row.cityId
-    if (cityId === null || cityId === undefined) continue
-    const key = String(cityId)
-    if (seen.has(key)) continue
-    seen.add(key)
-    cityIds.push(cityId)
-  }
-  return cityIds
-}
-
-/**
- * 只在确实写入过东西时才失效（`affectedIds.length === 0` 说明这次运行一行都没
- * 成功，缓存里本就没有需要刷新的内容）。缓存失效失败只记日志、不向上抛——它是
- * 止血能力的锦上添花，不能让它的失败掩盖掉批次真正的写入结果。
- */
-async function invalidateAfterSupplyImportRun(
-  payload: Payload,
-  req: PayloadRequest | undefined,
-  batchId: number,
-  rows: ReadonlyArray<ValidBuildingRow | ValidListingRow>,
-  affectedIds: ReadonlyArray<number | string>,
-): Promise<void> {
-  if (affectedIds.length === 0) return
-  try {
-    await invalidateSupplyImportCache(payload, req, collectRowCityIds(rows), 'supply_import')
-  } catch (error) {
-    console.error('[supply-import] cache_invalidation_failed', { batchId, error: errorMessage(error) })
-  }
-}
 
 export async function recoverStaleSupplyImportJobs(payload: Payload, now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - SUPPLY_IMPORT_JOB_LEASE_MS).toISOString()

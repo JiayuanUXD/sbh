@@ -558,6 +558,48 @@ function createExecuteEndpoint(deps: { queueImportJob?: (batchId: number | strin
 // Step 6a: GET /bulk-import/batches/:id
 // ────────────────────────────────────────────────────────────
 
+/** 批次 affectedIds 是自由 json 字段，结构可能损坏；安全取出合法 id 列表。 */
+function toAffectedIdArray(value: unknown): Array<number | string> {
+  if (!Array.isArray(value)) return []
+  return value.filter((v): v is number | string => typeof v === 'number' || typeof v === 'string')
+}
+
+/**
+ * D11 评审第 1 轮 Important 1：缓存失效放在这里而不是 import-task.ts 的 Job
+ * handler——那个 handler 由 Jobs Queue cron autoRun 驱动，跑在请求/渲染上下文
+ * 之外，`revalidateTag` 在那种上下文调用会抛错，且
+ * `revalidatePublicCacheTags` 把这类异常逐个吞成 console.error，"导入后立即
+ * 可见" 会静默退化回 cached-queries.ts 的 5 分钟 TTL——等于没修。这个 GET
+ * 端点跑在真实请求上下文里，观察到批次进入终态（completed/failed）且
+ * affectedIds 非空时触发一次失效。revalidateTag 幂等，轮询多触发几次不是
+ * 问题，不为"恰好一次"专门加 schema 字段（会牵出迁移）。
+ * 失败只记日志，不影响本次状态查询本身的响应。
+ */
+async function invalidateSupplyImportCacheOnTerminalStatus(
+  req: RequestContext,
+  batch: { id: number | string; status?: unknown; affectedIds?: unknown; validRows?: unknown },
+): Promise<void> {
+  if (batch.status !== 'completed' && batch.status !== 'failed') return
+  const affectedIds = toAffectedIdArray(batch.affectedIds)
+  if (affectedIds.length === 0) return
+
+  const cityIds = isPersistedValidRowArray(batch.validRows)
+    ? batch.validRows
+        .map((row) => row.cityId)
+        .filter((id): id is number | string => id !== null && id !== undefined)
+    : []
+
+  try {
+    await invalidateSupplyImportCache(req.payload, req, cityIds, 'supply_import')
+  } catch (error) {
+    console.error('[bulk-import] cache_invalidation_failed', {
+      batchId: batch.id,
+      status: batch.status,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
 function createBatchStatusEndpoint(): Endpoint {
   return {
     path: '/bulk-import/batches/:id',
@@ -591,6 +633,9 @@ function createBatchStatusEndpoint(): Endpoint {
       if (!isBatchVisibleTo(ctx, batch)) {
         return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权查看该导入批次' }, { status: 403 })
       }
+
+      // D11：批次进入终态且确实写入过东西时触发一次公共缓存失效——见函数头注释。
+      await invalidateSupplyImportCacheOnTerminalStatus(req, batch)
 
       const validRows = isPersistedValidRowArray(batch.validRows) ? batch.validRows : []
       const rowErrors = isPersistedRowErrors(batch.rowErrors) ? batch.rowErrors : EMPTY_ROW_ERRORS
