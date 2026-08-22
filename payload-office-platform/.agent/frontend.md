@@ -26,15 +26,31 @@
 
 体系为 OPT-035 锁定的 Apple 中性极简（依据 `docs/SBH设计任务讨论/首页.dc.html`）。事实源是 `(frontend)/styles.css` §1.1 的 token，不发明第二套配色、字体或布局系统。
 
+> ⚠️ **设计稿 `docs/SBH设计任务讨论/*.dc.html` 存放在仓库外**（该目录是未跟踪目录，用户已决定不入库）。
+> 本文件、`specs/work-items/` 与各页 CSS 注释里凡引用 `.dc.html` 行号的地方，在克隆出来的仓库里**都找不到文件**
+> ——那不是路径写错，需要向仓库所有者索取稿子。凡是稿子里的取值，落地时都必须在 `src/` 里有对应实现，
+> 别把「稿子说了」当成可验证的事实源。
+
+- ★ **抄稿子的 token 必须按颜色映射，不按名字映射。** 稿子与本项目存在**名义相同、取值相反**的 token：
+  稿子 `--bg` = #ffffff（白）、`--bg-subtle` = #f5f5f7（灰）；本项目 `--bg` = #f5f5f7（页面底色）、
+  `--bg-subtle` = #ffffff（白卡/白带）。照抄名字会把每一条背景带的黑白整个对调，
+  **且因为名字一模一样，code review 用肉眼扫不出来**。同型陷阱：`--radius-pill`(999px) 与 `--r-pill`(980px)
+  是两个不同 token，`--radius-*` 那批是标了逐步淘汰的 1.1b 兼容别名，新代码用 `--r-*`。
+
 - 两级底色：`--bg`（#f5f5f7，全局）/ `--bg-subtle`（#ffffff，白底带与卡片）；分区靠底色块交替，不靠分隔线。唯一彩色 `--accent`（#0071e3）只给可交互元素，正文内链接用更深的 `--accent-link`（#0066cc）；标签徽章零色相，靠底色深浅 + 字重分层。
 - `--ink-3` 在白底仅 3.62:1，只能做占位符/禁用态；真实信息文本至少 `--ink-2`（5.07:1）。设计稿多处标 ink-3，此处对比度优先于照稿。
-- 中文一律 `letter-spacing: normal`，**无例外**；不给汉字套西文负字距。（原先记的唯一例外 `.hm-lead` `+0.011em` 已随该类零使用一并删除，见 OPT-037 终审第 2 轮 D2。）
+- 中文一律 `letter-spacing: normal`；不给汉字套西文负字距。**唯一例外是 21px Hero 副标那一档 `+0.011em`**，
+  当前有三个消费方：`home.css` 的 `.hm-hero__lead`、`recruit.css` 的 `.rc-hero__lead` 与 `.rc-districts__lead`。
+  （2026-08-22 订正：原文写「**无例外**」，并称该例外「已随类零使用一并删除」——被删的是另一个类 `.hm-lead`，
+  `.hm-hero__lead` 的 `letter-spacing: 0.011em` 自 OPT-035 起一直在 `home.css:137-138`。以源码为准。）
 - 数字（租金/面积/统计/日期）一律 tabular-nums，实现走 `styles/surface.css` 的 `.sf-num` 基元（**不要在各页样式里再内联一遍 `font-variant-numeric`**——详情页曾内联复制 9 次，其中一处静默漏掉）；缺失显示 `—`、**不显示 0**，也不做「从 0 滚到真值」的入场动画——任一降级路径（SSR 首帧、禁用 JS、整页截图、观察器不触发）都会把真实库存渲染成 0。
 - 字体只用系统栈 `--font`（SF Pro Text → -apple-system → `--font-cn` PingFang SC），不引 webfont，不用 Inter / system-ui 作主字体。
 - 布局：容器 `--w` 1180px、正文栏宽 `--measure` 702px、section padding `--pad` 72px（相邻 section 总留白 `--gap` 144px）；底色带在所有断点满宽出血。
 - 容器**不按断点换挡**，是一条流体规则 `width: min(var(--w), 100% - 32px)`——别再给容器加媒体查询。新体系只用两个宽度断点：`max-width: 1023px`（只管类型卡五等分→2 列）与 `max-width: 767px`（移动稿主断点）。重点验证 375、768、1440、1920。
 - 未改版内页仍散落历史断点（767/1280/640/1024/1199/1023/480/600/768/900/959），其中 `767` 与 `768`、`1023` 与 `1024` 并存会在正好 768px / 1024px 处漏判；改版某页时把该页一并收敛到 767/1023，不要单点改。
-- **卡片 / 图上渐变 / 图上标签 / 图容器一律用 `styles/surface.css` 的共享基元**（`.sf-card` `.sf-scrim` `.sf-phototag` `.sf-media--4x3|--16x10` `.sf-num`），禁止逐页再写一份。依据 `.superpowers/sdd/cross-batch-design-decisions.md`（用户要求全站一致），OPT-036 起生效。
+- **卡片 / 图上渐变 / 图上标签 / 图容器一律用 `styles/surface.css` 的共享基元**（`.sf-card` `.sf-scrim` `.sf-phototag` `.sf-media--4x3|--16x10` `.sf-num`），禁止逐页再写一份。用户要求全站一致，OPT-036 起生效；**仓库内的事实源是 `styles/surface.css` 本身**（基元声明 + 每条取值的行内理由注释）。
+  （2026-08-22 订正：原文把依据指向 `.superpowers/sdd/cross-batch-design-decisions.md`，而 `.superpowers/` 被 `.gitignore` 忽略、
+  合并后就不存在——常驻规则不得指向该目录里的任何文件，那是一个必然失效的引用。）
   - `.sf-card`：`--r-card` 18px、零边框、静态 `--shadow` + hover `translateY(-2px)` 换 `--shadow-hover`、过渡 320ms。此条**取代**旧的「零阴影 / 不做 hover 态」，也取代 OPT-035 期间的「上浮 6px / 500ms」。列表页设计稿要求的「零阴影、hover 只变底色」**不采用**——密集网格抖动的顾虑靠把位移降到 2px 解决，不靠两套卡片系统。
   - `surface.css` 必须在 `home.css` / `list.css` **之前** import：后两者靠「同特异度、后来者胜」覆写基态（如 `.hm-type-card` 把 `display:block` 改回 flex），顺序反了静默失效。
   - 唯一豁免 `.sf-card` 的是首页 `.hm-bento-card`（满幅图瓷砖非内容卡：加阴影显脏、抬升破坏 bento 咬合），它仍复用 `.sf-scrim` / `.sf-phototag`。
@@ -169,6 +185,122 @@ tab 是点了没反应的死控件。若将来要恢复，先重新评估这条�
 不是同一批 URL 出现几次——Next 按 URL 去重。精确表述与两个真实误判案例写在 `ui/Breadcrumb.tsx` 文件头，
 **其余组件凡理由涉及「去重」的一律回指该处，不要各写一份措辞**（同义表述一多必然漂移）。
 
+## 招募页（城市合伙人）
+
+OPT-038 锁定，样式在 `styles/recruit.css`（`.rc-*`），组件在 `components/frontend/city-partner/`
+（`RecruitHero` / `RecruitValueProps` / `RecruitDistrictGrid` / `RecruitSecondaryCta` + 既有
+`CityPartnerApplicationForm`）。`recruit.css` 在 `layout.tsx` 里排在 `styles.css` / `surface.css` /
+`home.css` / `list.css` / `detail.css` **之后** import——本页要用「同特异度、后来者胜」覆写
+`.filter-bar__input` / `.btn` 这类全局原语的本页作用域版本，顺序反了静默失效。
+
+**两个消费面共用同一套组件**，差异全部由 props 承载：
+`/city-partner`（全局，中性文案 + 表单内城市选择器，canonical 恒为 `/city-partner` 不带 query）与
+`ComingSoonCityView`（挂 `/[city]`、`/[city]/listings`、`/[city]/buildings`、`/[city]/sale` **四条**路由）。
+**改这套组件必然外溢到五条路由，逐条核触发条件，别只看 `/city-partner`。**
+
+### 容器 1024，且主栏 552 **不能**写成常量
+
+- `.rc-page` 上定义 `--rc-w: 1024px` / `--rc-side: 400px` / `--rc-colgap: 72px`；
+  `.rc-container { width: min(var(--rc-w), 100% - 32px) }`（与全站一样是**流体规则不换挡**，别加媒体查询）。
+- 1024 是**推导值**：552（主栏）+ 72（列间）+ 400（表单卡）。稿子的「正文栏宽上限 702」是**行长约束**
+  （= 既有 token `--measure`），不是容器宽度；拉到全站 `--w`(1180) 等于改掉两栏的推导前提。
+  容器宽属布局刚需不属风格选择，全站因此并存四个值：首页/详情 **1180**、列表 **1280**、招募 **1024**。
+- ★ **主栏 552 只活在 `.rc-core` 的 `minmax(0, 1fr)` 里，全仓不出现这个字面量。** 写死它两个后果：
+  ① 把推导值抄成第三个事实源；② 视口落在 **1024 ≤ vw < 1056** 时容器被 `100% - 32px` 夹到 992–1023，
+  而两栏塌单栏的断点是 1023、此时还没生效，`552 + 72 + 400 = 1024` 直接撑出横向溢出。
+  `minmax` 下界取 0 不取 auto——价值点标题是 CJK 无空格长串，auto 会把轨道最小宽顶到 min-content
+  （`list.css` 踩过同款）。同理商圈网格用 `repeat(3, minmax(0, 1fr))`，列宽 325.33 也是推导值不写常量。
+- 断点只有两档：**1023**（两栏塌单栏 + 取消 sticky，与 `.dt-core` 同口径）与 **767**（Hero 标题 56→40、
+  商圈网格塌单列、次要入口卡塌纵向）。不能等到 767 才塌两栏：768–1023 之间主栏只剩 ≈264，正文会碎成逐字换行。
+
+### sticky `top: 68` 与详情页决策卡 `116` 的差异是数据不是口味
+
+`.rc-aside { position: sticky; top: calc(var(--header-height) + 24px) }` = 44 + 24 = **68**。
+详情页 `.dt-decision` 是 44 + 56 + 16 = **116**，多出来的 56 是那边常驻的吸附条 `--dt-sticky-bar-h`。
+**本页没有任何吸附条**，照抄 116 会凭空多留 48。两处都写 `calc(var(--header-height) + …)` 而不是字面量，
+导航高度改一处两页跟着变。
+
+★ **sticky 在本页当前不粘附，这是 sticky 的定义使然，不是 bug。** 1440 实测左栏 533 / 表单卡 735，
+可移动余量为负——右列比左列高时本来就没有位移空间，而表单全程在视线里，方案 A 的目标已达成。
+**不得为了「让 sticky 生效」去编造左栏内容**（多凑几条价值点 = 编造市场承诺，与本页删掉的
+「首批上线」「第 N 城」「四个战绩数字」是同一条纪律）。若判为留白失衡，唯一可用的修法是纵向对齐/间距；
+`align-items: start` **不能**改成 center——它是 sticky 的地基，改掉会在价值点真的变多、产生余量时把 sticky 一并废掉。
+
+### 中段选**方案 A**（左右两栏 + sticky 表单卡），不要改回稿子的方案 B
+
+稿子给了两个中段方案，落地的是 A。理由（同时写在 `recruit.css` 的 `.rc-core` 注释里，此处复述以防
+后来者「改回稿子的另一半」）：本页唯一目标是留资转化，sticky 表单让用户读完价值点时表单就在手边；
+方案 B 的表单排在价值点之后、需滚动才可见。且本页只有 3 条一句话价值点，撑不起 B 的纵向叙事排版。
+
+### 表单卡复用 `.dt-panel`：把选择器**并进选择器组**，不是加 class
+
+`CityPartnerApplicationForm` 的根 class 写死（`.city-partner-form`）且被上述四条城市路由共用，改不了它的
+className。所以「白底 · 零边框 · radius `--r-card`(18) · padding 40」这件事的做法是把
+`.rc-page .city-partner-form(__success)` **并进 `detail.css` 里 `.dt-panel` 的选择器组**
+（与 `.location-panel__poi-panel`、`.dt-page .detail-side-rail__card` 同一手法），
+**不在 `recruit.css` 里另造第三种白面板**，也不去改组件加 class。
+`.rc-page` 前缀把作用域夹死在招募页：(0,2,0) 压得住 `styles.css` 里 `.city-partner-form` 的旧表面 (0,1,0)，
+又不外溢到还没接线的消费面。卡宽 400 是 `.rc-core` 的 `--rc-side` 轨道、sticky 68 在 `.rc-aside`，
+两者都不写进这条规则——表单只管填满给它的格子。
+
+### 根节点是 `.city-coming-soon > .rc-page` 两层壳
+
+`tests/coming-soon-city-view.test.ts` 对**源码**做文本断言，要求逐字出现 `<div className="city-coming-soon">`
+——根类名不能改、也不能追加第二个类名。于是 `.rc-page` 当**内层**壳，外层只在 `recruit.css` 里复位成
+透明块（`display:block; gap:0; max-width:none; padding:0`，压住 `styles.css` 里的旧盒模型；
+那边 `@media (max-width:767px)` 的那份同样被压掉——媒体查询不加特异度）。
+这样 `.rc-page .city-partner-form*` 那二十几条选择器在两个消费面上是同一个作用域，
+不必改写成 `:is(.rc-page, .city-coming-soon)` 再逐条核特异度。
+
+### 本页刻意**不做**的四件事（都不是疏漏，别当漏项补回来）
+
+- **商圈「首批上线 / 筹备中」状态标签**：`Locations.status` 是 active/disabled、`CITY_SERVICE_STATUSES`
+  是城市级，**整条链路没有「招募位状态」这个维度**；按列表位置挑前三个标成「首批」= 凭排序编造承诺。
+  六个商圈统一渲染，且上方引导语已同步改掉（文案不得承诺界面不做的区分）。
+- **「第 N 城」序数**：`CitySiteProfiles` 只有二值 `serviceStatus` 与允许并列的 `sortOrder`，没有开城序位。
+  硬算「已开通数 + 1」会让 6 座 coming-soon 城市的招募页都自称同一个「第 N 城」，
+  而 `/city-partner` 的默认城市上海已开通，N 取什么都不对。
+- **四个平台战绩数字**（30,000+ / 1,500+ / 98.5% / 12 城）：零取数的字面量，「12 城」与实际 7 座城市 profile
+  直接矛盾。已随旧版式一并删除，`tests/coming-soon-city-view.test.ts` 有回归守卫钉住这三组内容不得写回。
+- **`/city-partner` 不渲染商圈段**：该页 canonical 恒为 `/city-partner` 且不带 query，按 `?city=` 渲染整段
+  商圈就是**同一个被索引的 URL 有 N 份不同正文**；且默认城市上海已开通，而引导语是「即将覆盖{城市}」。
+  商圈段只属城市路由。
+- 前三条（状态标签 / 第 N 城 / 战绩数字）要恢复，前置条件都一样：**先在数据层落一个真字段**
+  （含迁移 + 后台可填 + mapper 映射），而不是在组件里编一个。作为对照，区位副标当初属**层②缺映射**
+  （`Locations.parent` / `.description` 本来就在，只是没被读出来），正解是补
+  `mapFeaturedRegions`（`src/app/(frontend)/_lib/city-context.ts`，**全仓唯一一份**）的映射而不是绕开。
+
+### 两处已知命名瑕疵（**认了，别顺手改**）
+
+- **`.dt-panel` 是跨页共享的白面板表面，却住在 `dt-` 命名空间里**，现在有四支消费方
+  （`.dt-panel` 本体 / `.location-panel__poi-panel` / `.dt-page .detail-side-rail__card` /
+  `.rc-page .city-partner-form`）。正解是连同 `--full` / `--side` 一起提升到 `surface.css` 并改名。
+- **`.hm-h2` 是事实上的「全站 section 标题」基元**（40/600/1.10，≤767 一档 32），住在 `home.css` 里带 `hm-` 前缀，
+  被首页 7 处 + 招募页 2 处（价值点 h2、商圈段 h2）复用。正解同样是提升到 `surface.css`。
+- 两条都要动已上线页面的渲染路径（详情页 / 首页），属**设计系统层面的一次性重构，不该塞进任何一个改版批次**。
+  在那之前：复用它们，别为了「命名干净」在招募页另造第三种白面板或第二个 section 标题类。
+
+### 本地库夹具事实：`featuredRegions` 全空
+
+本地 7 个 `CitySiteProfiles` 的 `featuredRegions` **全是空数组**，`Locations.description` 非空的只有上海的 11 个节点。
+所以「商圈段」在本地默认路由上**整段不渲染是正常的**，不是回归；要验它必须临时写库
+（写库探针的纪律见 `testing.md`：先断言干净起点、`finally` 原样还原、还原后自查）。
+
+### 埋点现状（别以为已有）
+
+本页**零 `data-analytics-*`、零 `sourceSection`、无页面曝光事件**，只有城市路由那边既有的
+`trackCta()`。次要入口的 `InquiryModal` 也没传 `sourceSection`——`SOURCE_SECTIONS` 是闭合枚举，
+没有能诚实表达「招募页次要入口」的取值，新增取值要动 `domain/inquiry/schema.ts` 与后台标签。
+另：`/city-partner` 的 `InquiryModal` 用 `pageType='content'`，城市路由那两处保持既有的 `'home'`
+——**两处不一致是刻意的**，改它会改动已有线索的归因口径。
+
+### `InquiryModal` 自带 `role="status"`，但不构成 e2e 的 strict violation
+
+e2e `city-partner-flow.spec.ts` 的 `getByRole('status')` 依赖「全页唯一」，所以本页新增任何 live region
+都要先数一遍。但**「凡带 status 的组件都不能用」是过度解读**：`InquiryModal` 那个成功态 `role="status"`
+在 `{open && createPortal(...)}` 里，弹层未打开时根本不在 DOM。四断点 × 表单四态实测计数恒为 1。
+按字面理解会把次要入口退化成一个死链接，而那里本来就该是询盘入口。
+
 ## 状态
 
 每页验证正常、加载、空、错误、404/失效、长文本、极值、图片失败、小视口和减少动效。失败不得伪装成 0 数据；无结果不得混入不匹配供给。
@@ -190,6 +322,18 @@ tab 是点了没反应的死控件。若将来要恢复，先重新评估这条�
     因为它们是高德 JS API v2.0 **运行时注入**的 DOM 类名，只有运行时扫描看得见。**也是活的。**
   - 还要防子串陷阱：`.detail__summary` 的「唯一近似命中」是 `page-detail__summary`，两者无关。
     grep 一律带边界，别用裸子串。
+- ★ **在窄作用域覆写基态，会静默打断既有声明——必须在同作用域把被打断的那些重述一遍。**
+  典型形态是给全局原语套页面作用域前缀：`.rc-page .city-partner-form input` 是 (0,3,0)，
+  而 `styles.css` 里那些**状态**规则只有 (0,2,0)（`:hover`）/ (0,1,0)（`--invalid` 修饰类）——
+  覆写基态后它们全部静默失效，页面不报错、只是没有反馈。三种形态都踩过：
+  1. **`:hover` 被压掉**（要交互才看得见，截图看不出来）；
+  2. **`--invalid` 之类的修饰类被压掉**（要构造错误态才看得见）；
+  3. ★ **同一属性的简写会连坐它的其余长写**——`background: var(--bg-subtle)` 把
+     `.filter-bar__select` 的下拉三角（一张 `background-image`）一并复位成 `none`，
+     select 在真实路由上和单行输入框长得一模一样。**这一条不需要任何交互就一直摆在屏上**，
+     却因为「没人对着截图逐个控件看」潜伏了一整个任务（当时的报告写的是「保留了三角」）。
+     改法：写 `background-color` 而不是 `background`；凡覆写基态，同作用域重述整条状态链。
+  这不是「复制样式」，是补齐被自己的覆写打断的链路；漏写等于删掉了那个状态。
 - **守卫要落在失效点那一层，且 fixture 必须是域层真能产出的状态**。只锁底层工具函数，编排层改回旧调用照样全绿（提示条静默消失）；fixture 用一个结构上不可能出现的组合（如 `unfilteredTotal=0` 配 `total=99`），守卫证明的是「prop 传了」而不是「传下去的值可用」。新增守卫后做**变异验证**：故意改坏，确认如期变红，再还原。
 - 子代理报告的「环境级 / 生产级风险」必须在已知正确的环境上复验后才可采信——它们不掌握本会话的隔离库 / 端口上下文，容易把自身环境错配（连错库、切回默认库）归因成产品缺陷，且措辞会逐轮升级。
 

@@ -88,6 +88,24 @@ OPT-037 把它抽成了一份共享哨兵：`../artifacts/verification/OPT-037/l
 新写验证脚本时**引用它，不要各写一份**——这批「同一逻辑多处」已经栽过八次，
 截图循环不记状态码正是「四档 0 差异像素」那条假结论的直接成因。
 
+### 用 `getComputedStyle` / `getBoundingClientRect` 量版式：四条会读出整套假数的陷阱
+
+OPT-038 实地踩出来的，每条都差点导出一个错误结论：
+
+- ★ **改视口后必须 `reload` 再量。** 只调 `resize_window` / `setViewportSize` 不刷新，`100vw` 出血层
+  （`.rc-page` / `.dt-page` / `.hm-home` 都是这个机制）会保持**旧视口宽**，读出「375 视口 / section 宽 1440 /
+  scrollWidth 908」这种自相矛盾的一整套数——曾差点被当成 533px 的真溢出 bug 去修。
+- ★ **pane 不合成帧时（`document.visibilityState === 'hidden'` / 后台标签页），CSS transition 会冻结在起始值。**
+  这时读 `:focus` / `:hover` 这类过渡态，`getComputedStyle` 给的是**基态假象**，看起来像「选择器没生效」——
+  曾差点据此去改特异度。量过渡态前先把元素 `transition: none`，或确保 pane 在前台。
+- **全站 `scroll-behavior: smooth` 会把 `window.scrollTo` 变成动画。** 只等两帧就读位置会得到
+  「请求 2400、实际 235」，整段 sticky 采样作废。测滚动前先置 `scroll-behavior: auto`。
+- **同一份数据在两个断点上结论不同 ⇒ 先怀疑缓存的第一拍，不要怀疑断点。** `unstable_cache` 的条目落在
+  `.next/cache`，**换一个 server 进程也还在**：临时写库后新起 server，第一次请求仍拿到旧数据，第二次才对。
+  而「某个 section 渲不渲染」是服务端决定的、与视口无关——出现这种矛盾时结论只有一个方向。
+- 配套：**「还原成观察到的原值」的临时写库探针必须先断言干净起点**，否则会把上一轮的残留当成原值写回去、
+  一路级联。加起始状态守卫 + 还原后自查，任一不满足直接抛。
+
 ### 本地 `next start` 的两条环境事实（照文档传参会白传）
 
 - **`CI=1` 是真开关**：`lib/storage/cos-config.ts:86` 用它豁免 COS 检查。不设就是
@@ -100,6 +118,15 @@ OPT-037 把它抽成了一份共享哨兵：`../artifacts/verification/OPT-037/l
   所以页面渲染出来的 canonical / JSON-LD `url` / OG 的 **origin 恒等于构建时的值**，
   **断言只能打在 path 上**。它在 `next start` 时唯一还起作用的地方是
   `lib/runtime/config-guard.ts`——那边把整个 `process.env` 当对象传进去，是运行时读。
+
+- ★ **`MULTI_CITY_ROUTING_ENABLED` 必须在 server 与 Playwright **两个进程**上取同一个值。**
+  7 个 spec（`multi-city-routing` / `multi-city-isolation` / `multi-city-forms` / `detail-pages` /
+  `landing-pages`）直接读**测试进程自己的** `process.env.MULTI_CITY_ROUTING_ENABLED` 来选期望值，
+  server 那边则决定实际行为。只给 `next build` / `next start` 传 `=false`、Playwright 侧不传，
+  测试进程会从工作树 `.env.local` 拿到 `true` → **14 条失败**（「期望 307 实际 200」、
+  「`.city-switcher__trigger` 找不到」），看起来完全像产品回归。
+  实测：同一个构建、同一台 server，只在 Playwright 侧补上 `MULTI_CITY_ROUTING_ENABLED=false`，
+  就从 `128 passed / 14 failed` 回到 `141 passed / 0 failed`。**这类失败先核两侧 flag，再怀疑代码。**
 
 补两条同源的采样纪律：
 
