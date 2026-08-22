@@ -176,6 +176,7 @@ export interface Config {
       'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
       'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
       'reconcile-city-partner-notification-outbox': TaskReconcileCityPartnerNotificationOutbox;
+      'run-supply-import': TaskRunSupplyImport;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -2340,6 +2341,7 @@ export interface PayloadJob {
           | 'notify-supply-submission-created'
           | 'notify-city-partner-application-created'
           | 'reconcile-city-partner-notification-outbox'
+          | 'run-supply-import'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -2380,6 +2382,7 @@ export interface PayloadJob {
         | 'notify-supply-submission-created'
         | 'notify-city-partner-application-created'
         | 'reconcile-city-partner-notification-outbox'
+        | 'run-supply-import'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -3901,6 +3904,20 @@ export interface TaskReconcileCityPartnerNotificationOutbox {
     queued: number;
     failures: number;
     quarantined: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRun-supply-import".
+ */
+export interface TaskRunSupplyImport {
+  input: {
+    batchId: number;
+  };
+  output: {
+    created: number;
+    updated: number;
+    failed: number;
   };
 }
 /**

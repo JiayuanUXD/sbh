@@ -6,6 +6,7 @@ import type { PermissionContext } from '@/domain/auth/permission-context'
 import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer'
 import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
+import { SUPPLY_IMPORT_QUEUE, SUPPLY_IMPORT_TASK } from '@/domain/supply-import/import-task'
 import { LISTING_COLUMNS, validateListingRow, type ValidListingRow } from '@/domain/supply-import/listing-row'
 import {
   buildResolveTables,
@@ -482,10 +483,21 @@ function createExecuteEndpoint(deps: { queueImportJob?: (batchId: number | strin
         req,
       })
 
-      // 4. 入队注入点：本任务只留口子，Task 7 接上真实 Jobs Queue 实现
-      if (deps.queueImportJob) {
-        await deps.queueImportJob(updated.id)
-      }
+      // 4. 入队：默认走真实 Jobs Queue（Task 7）。deps.queueImportJob 仍保留为可选注入点
+      //    ——单测（tests/supply-import-endpoint.test.ts）用它验证「execute 触发了入队」
+      //    而不必真的起 Jobs Queue；不传时才落到下面的真实实现，两者行为在生产环境等价。
+      const queueImportJob =
+        deps.queueImportJob ??
+        (async (batchId: number | string) => {
+          await req.payload.jobs.queue({
+            task: SUPPLY_IMPORT_TASK,
+            queue: SUPPLY_IMPORT_QUEUE,
+            input: { batchId: numericId(batchId) },
+            overrideAccess: true,
+            req,
+          })
+        })
+      await queueImportJob(updated.id)
 
       // 5. 审计
       await writeAuditSuccess({

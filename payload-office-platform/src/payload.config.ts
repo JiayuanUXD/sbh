@@ -86,6 +86,11 @@ import {
   cityPartnerNotificationOutboxTask,
   recoverStaleCityPartnerNotificationJobs,
 } from './domain/city-partner-application/application-notify'
+import {
+  SUPPLY_IMPORT_QUEUE,
+  recoverStaleSupplyImportJobs,
+  supplyImportTask,
+} from './domain/supply-import/import-task'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -120,10 +125,12 @@ export default buildConfig({
       supplySubmissionNotificationTask,
       cityPartnerApplicationNotificationTask,
       cityPartnerNotificationOutboxTask,
+      supplyImportTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
       await recoverStaleCityPartnerNotificationJobs(payload)
+      await recoverStaleSupplyImportJobs(payload)
       return true
     },
     autoRun: () => [
@@ -143,6 +150,14 @@ export default buildConfig({
           ? { disableScheduling: true }
           : {}),
         limit: 10,
+        silent: true,
+      },
+      {
+        // 导入是人触发的低频操作，但用户在页面上等结果，10 秒一轮兼顾响应与负载。
+        cron: '*/10 * * * * *',
+        queue: SUPPLY_IMPORT_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
+        limit: 5,
         silent: true,
       },
     ],
