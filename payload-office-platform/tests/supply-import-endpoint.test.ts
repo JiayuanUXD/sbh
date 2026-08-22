@@ -17,7 +17,7 @@ import type { Role, User } from '@/payload-types'
  *   2. 未登录 / 无权限一律 403
  *   3. execute 复核城市范围（同一操作者城市范围被收窄后再执行 → 403）
  *   4. status !== 'preflight' 执行请求 → 409
- *   5. 横向越权：GET 状态/错误表/execute 三条路由都要挡非本人（全局范围除外）
+ *   5. 横向越权：GET 状态/错误表/execute/rollback 四条路由都要挡非本人（全局范围除外）
  *   6. isPersistedValidRowArray 是真结构守卫，损坏数据不当空数组放行
  *   7. rowNumbers[i] 不变量回归测试（含空行跳过）
  *   8. listings 分支覆盖（成功 + 批内查重用 '房源编号' 而不是 '楼盘编号'）
@@ -274,13 +274,14 @@ async function readJson(res: Response): Promise<Record<string, unknown>> {
 describe('createBulkImportEndpoints 路由契约', () => {
   const endpoints = createBulkImportEndpoints()
 
-  it('注册六个路由，方法与路径固定', () => {
+  it('注册七个路由，方法与路径固定', () => {
     expect(endpoints.map((e) => `${String(e.method).toUpperCase()} ${e.path}`).sort()).toEqual([
       'GET /bulk-import/batches/:id',
       'GET /bulk-import/batches/:id/errors',
       'GET /bulk-import/building-reference',
       'GET /bulk-import/template',
       'POST /bulk-import/batches/:id/execute',
+      'POST /bulk-import/batches/:id/rollback',
       'POST /bulk-import/preflight',
     ])
   })
@@ -302,7 +303,7 @@ describe('createBulkImportEndpoints 路由契约', () => {
 // ────────────────────────────────────────────────────────────
 
 describe('guardImport：每条路由第一件事都是权限守卫', () => {
-  it('无 data:import 权限的登录用户在全部六条路由上都得到 403', async () => {
+  it('无 data:import 权限的登录用户在全部七条路由上都得到 403', async () => {
     const endpoints = createBulkImportEndpoints()
     const { payload } = makeMockPayload([ROLE_NO_IMPORT])
     for (const endpoint of endpoints) {
@@ -654,6 +655,98 @@ describe('POST /bulk-import/batches/:id/execute', () => {
     const req = makeReq({ user: adminUser(), payload, routeParams: { id: '9999' } })
     const res = (await execute.handler(req)) as Response
     expect(res.status).toBe(404)
+  })
+})
+
+// ────────────────────────────────────────────────────────────
+// POST /bulk-import/batches/:id/rollback（Task 9）
+//
+// 归属校验与 execute 复用同一道「本人 or 全局」判据（isBatchVisibleTo），
+// 下面只补两条 mock 层能覆盖到的场景；状态迁移本身（下架而非删除、幂等、
+// 文档仍然存在）由 tests/supply-import-rollback-postgres.test.ts 真库覆盖——
+// 这里的 mock payload 对 buildings/listings 的 findByID/update 没有实现，
+// 用 affectedIds 为空的批次（预检阶段就是这样）绕开，只验证权限守卫 + 审计。
+// ────────────────────────────────────────────────────────────
+
+describe('POST /bulk-import/batches/:id/rollback', () => {
+  it('非本人创建的批次 → rollback 返回 403 FORBIDDEN，并写审计', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI])
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-001', '新楼盘', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const preflightRes = (await preflight.handler(
+      makeReq({
+        user: opsUser(901, [10]),
+        payload,
+        url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+        file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+      }),
+    )) as Response
+    const batchId = (await readJson(preflightRes)).batchId as number
+
+    // 另一个持 data:import 权限、同城市范围的用户，不是这条批次的创建者
+    const res = (await rollback.handler(
+      makeReq({ user: opsUser(905, [10]), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(403)
+    const body = await readJson(res)
+    expect(body.code).toBe('FORBIDDEN')
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({ action: 'data.import', result: 'failed', errorCode: 'FORBIDDEN' }),
+      }),
+    )
+  })
+
+  it('批次不存在 → 404', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload } = makeMockPayload([ROLE_ADM])
+    const req = makeReq({ user: adminUser(), payload, routeParams: { id: '9999' } })
+    const res = (await rollback.handler(req)) as Response
+    expect(res.status).toBe(404)
+  })
+
+  it('全局范围操作者可回滚非本人批次；affectedIds 为空时 unpublished/skipped 都是 0，并写成功审计', async () => {
+    const endpoints = createBulkImportEndpoints()
+    const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
+    const rollback = endpoints.find((e) => e.path === '/bulk-import/batches/:id/rollback')!
+    const { payload } = makeMockPayload([ROLE_OPS_SHANGHAI, ROLE_ADM])
+
+    const buf = await makeXlsxBuffer(BUILDING_COLUMNS, [
+      ['BLD-001', '新楼盘', '上海', '浦东新区', '', '', '', ''],
+    ])
+    const preflightRes = (await preflight.handler(
+      makeReq({
+        user: opsUser(901, [10]),
+        payload,
+        url: 'http://localhost/api/bulk-import/preflight?type=buildings',
+        file: { data: buf, mimetype: 'application/vnd.ms-excel', name: 'buildings.xlsx', size: buf.length },
+      }),
+    )) as Response
+    const batchId = (await readJson(preflightRes)).batchId as number
+
+    const res = (await rollback.handler(
+      makeReq({ user: adminUser(), payload, routeParams: { id: String(batchId) } }),
+    )) as Response
+    expect(res.status).toBe(200)
+    const body = await readJson(res)
+    expect(body).toMatchObject({ ok: true, unpublished: 0, skipped: 0 })
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'audit-logs',
+        data: expect.objectContaining({
+          action: 'data.import',
+          result: 'success',
+          after: { rollback: true, unpublished: 0 },
+        }),
+      }),
+    )
   })
 })
 

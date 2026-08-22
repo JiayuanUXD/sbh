@@ -4,6 +4,7 @@ import { addDataAndFileToRequest } from 'payload'
 import { canReadByCity, requireOperationPermission, type RequestContext } from '@/domain/auth/access'
 import type { PermissionContext } from '@/domain/auth/permission-context'
 import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer'
+import { rollbackImportBatch } from '@/domain/supply-import/batch-rollback'
 import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
 import { SUPPLY_IMPORT_QUEUE, SUPPLY_IMPORT_TASK } from '@/domain/supply-import/import-task'
@@ -33,6 +34,7 @@ import type { Location } from '@/payload-types'
  *   - GET  /bulk-import/batches/:id/errors         下载错误表 xlsx
  *   - GET  /bulk-import/template                   下载空模板（?type=buildings|listings）
  *   - GET  /bulk-import/building-reference          下载楼盘对照表（按 ctx.cityIds 收窄）
+ *   - POST /bulk-import/batches/:id/rollback       按批次回滚（下架而非删除，Task 9）
  *
  * 四条不可妥协的语义：
  *   1. 预检绝不写业务表：整个 preflight handler 里不出现对 buildings / listings 的 create / update，
@@ -710,6 +712,85 @@ function createBuildingReferenceEndpoint(): Endpoint {
 }
 
 // ────────────────────────────────────────────────────────────
+// Task 9: POST /bulk-import/batches/:id/rollback
+//
+// 回滚是补偿"导入直接上架、绕过审核闸门"这个产品决定的唯一止血手段——出事时
+// 凭批次的 affectedIds 把整批撤下前台。三条不可妥协的语义（详见
+// domain/supply-import/batch-rollback.ts 顶部注释）：下架而非删除、幂等、
+// 文档仍然存在。这里只负责权限守卫（与 execute 同一道归属校验，回滚是更危险的
+// 写操作，不能漏）+ 审计，状态迁移逻辑全部委托给 rollbackImportBatch。
+// ────────────────────────────────────────────────────────────
+
+function createRollbackEndpoint(): Endpoint {
+  return {
+    path: '/bulk-import/batches/:id/rollback',
+    method: 'post',
+    handler: async (reqIn) => {
+      const req = reqIn as RequestContext
+
+      // 1. 权限守卫
+      const guard = await guardImport(req)
+      if (!guard.ok) return guard.response
+      const { ctx } = guard
+
+      const id = routeId(req)
+      if (id === undefined) {
+        return Response.json({ ok: false, error: '缺少批次 ID' }, { status: 400 })
+      }
+
+      let batch
+      try {
+        batch = await req.payload.findByID({
+          collection: 'supply-import-batches',
+          id,
+          depth: 0,
+          overrideAccess: true,
+          req,
+        })
+      } catch {
+        return Response.json({ ok: false, error: '批次不存在' }, { status: 404 })
+      }
+
+      // 归属校验：与 execute / 状态轮询 / 错误表下载同一道「本人 or 全局」判据——
+      // 回滚是更危险的写操作（批量下架），不能比只读接口松。
+      if (!isBatchVisibleTo(ctx, batch)) {
+        await writeAuditFailed({
+          payload: req.payload,
+          req,
+          data: {
+            action: 'data.import',
+            object: { collection: 'supply-import-batches', objectId: id, objectVersion: 1 },
+            errorCode: 'FORBIDDEN',
+            errorMessage: '尝试回滚非本人创建的导入批次',
+          },
+        })
+        return Response.json({ ok: false, code: 'FORBIDDEN', error: '无权操作该导入批次' }, { status: 403 })
+      }
+
+      // 2. 状态迁移：下架而非删除、幂等、保留文档，全部在 rollbackImportBatch 里
+      const { unpublished, skipped } = await rollbackImportBatch({
+        payload: req.payload,
+        req,
+        batchId: batch.id,
+      })
+
+      // 3. 审计
+      await writeAuditSuccess({
+        payload: req.payload,
+        req,
+        data: {
+          action: 'data.import',
+          object: { collection: 'supply-import-batches', objectId: batch.id, objectVersion: 1 },
+          after: { rollback: true, unpublished },
+        },
+      })
+
+      return Response.json({ ok: true, batchId: batch.id, unpublished, skipped })
+    },
+  }
+}
+
+// ────────────────────────────────────────────────────────────
 // 汇总注册
 // ────────────────────────────────────────────────────────────
 
@@ -723,5 +804,6 @@ export function createBulkImportEndpoints(deps?: {
     createBatchErrorsEndpoint(),
     createTemplateEndpoint(),
     createBuildingReferenceEndpoint(),
+    createRollbackEndpoint(),
   ]
 }

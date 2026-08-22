@@ -6,6 +6,7 @@ import {
   Alert,
   Button,
   Card,
+  Modal,
   Progress,
   Space,
   Statistic,
@@ -47,6 +48,8 @@ type BatchStatus = {
 type Phase = 'idle' | 'report' | 'running' | 'done'
 
 const MODE_LABEL: Record<ImportMode, string> = { buildings: '楼盘', listings: '房源' }
+/** 回滚确认/结果文案里的单位——与 ReportPanel 既有的「N 套房源 / N 个楼盘」口径保持一致。 */
+const MODE_UNIT: Record<ImportMode, string> = { buildings: '个', listings: '套' }
 
 const ERROR_COLUMNS: ColumnProps<RowError>[] = [
   { title: '行号', dataIndex: 'rowNumber', width: 80 },
@@ -82,6 +85,9 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
   const [report, setReport] = useState<PreflightReport | null>(null)
   const [executing, setExecuting] = useState(false)
   const [batch, setBatch] = useState<BatchStatus | null>(null)
+  const [rollingBack, setRollingBack] = useState(false)
+  const [rollbackError, setRollbackError] = useState<string | null>(null)
+  const [rollbackResult, setRollbackResult] = useState<{ unpublished: number; skipped: number } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const label = MODE_LABEL[mode]
@@ -94,6 +100,9 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
     setReport(null)
     setExecuting(false)
     setBatch(null)
+    setRollingBack(false)
+    setRollbackError(null)
+    setRollbackResult(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
@@ -141,6 +150,30 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
       setUploadError('执行请求失败，请检查网络后重试')
     } finally {
       setExecuting(false)
+    }
+  }, [batchId])
+
+  // Task 9：按批次回滚——下架而非删除，前台立即不可见。成功后就地显示
+  // 「已下架 N 套」，不重置到 idle（运营可能还要核对本批的其它信息）。
+  const rollbackBatch = useCallback(async () => {
+    if (batchId === null) return
+    setRollingBack(true)
+    setRollbackError(null)
+    try {
+      const res = await fetch(`/api/bulk-import/batches/${batchId}/rollback`, { method: 'POST' })
+      const data = await readJson(res)
+      if (!res.ok || !data.ok) {
+        setRollbackError((data.error as string | undefined) ?? '回滚失败，请重试')
+        return
+      }
+      setRollbackResult({
+        unpublished: data.unpublished as number,
+        skipped: data.skipped as number,
+      })
+    } catch {
+      setRollbackError('回滚请求失败，请检查网络后重试')
+    } finally {
+      setRollingBack(false)
     }
   }, [batchId])
 
@@ -215,7 +248,16 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
 
       {phase === 'running' && <RunningPanel batch={batch} />}
 
-      {phase === 'done' && batch && <DonePanel batch={batch} onRestart={resetToIdle} />}
+      {phase === 'done' && batch && (
+        <DonePanel
+          batch={batch}
+          onRestart={resetToIdle}
+          onRollback={rollbackBatch}
+          rollingBack={rollingBack}
+          rollbackError={rollbackError}
+          rollbackResult={rollbackResult}
+        />
+      )}
     </div>
   )
 }
@@ -386,8 +428,39 @@ function RunningPanel({ batch }: { batch: BatchStatus | null }) {
   )
 }
 
-function DonePanel({ batch, onRestart }: { batch: BatchStatus; onRestart: () => void }) {
+function DonePanel({
+  batch,
+  onRestart,
+  onRollback,
+  rollingBack,
+  rollbackError,
+  rollbackResult,
+}: {
+  batch: BatchStatus
+  onRestart: () => void
+  onRollback: () => void
+  rollingBack: boolean
+  rollbackError: string | null
+  rollbackResult: { unpublished: number; skipped: number } | null
+}) {
   const failed = batch.status === 'failed'
+  const label = MODE_LABEL[batch.type]
+  const unit = MODE_UNIT[batch.type]
+  // 回滚锚点是批次的 affectedIds，前端拿不到那个数组，用 created+updated 近似
+  // 「本批实际写入的条数」——预检失败的行本就不在 affectedIds 里，口径一致。
+  const total = (batch.stats?.created ?? 0) + (batch.stats?.updated ?? 0)
+  const rolledBack = rollbackResult !== null
+
+  const openRollbackConfirm = () => {
+    Modal.confirm({
+      title: `确认批量下架本批${label}？`,
+      content: `将把本批 ${total} ${unit}${label}全部下架，前台立即不可见。`,
+      okText: '确认下架',
+      cancelText: '取消',
+      okButtonProps: { status: 'danger' },
+      onOk: onRollback,
+    })
+  }
 
   return (
     <Card>
@@ -401,10 +474,29 @@ function DonePanel({ batch, onRestart }: { batch: BatchStatus; onRestart: () => 
         <Statistic title="更新" value={batch.stats?.updated ?? 0} />
         <Statistic title="失败" value={batch.stats?.failed ?? 0} />
       </Space>
+
+      {rollbackError && (
+        <Alert type="error" content={rollbackError} style={{ marginBottom: 16 }} closable onClose={() => {}} />
+      )}
+
+      {rolledBack ? (
+        <Alert
+          type="success"
+          content={`已下架 ${rollbackResult.unpublished} ${unit}${
+            rollbackResult.skipped > 0 ? `（另有 ${rollbackResult.skipped} ${unit}此前已不是上架状态，未重复处理）` : ''
+          }`}
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
+
       <Space>
-        {/* 回滚是 Task 9 的活，这里只留位——按钮禁用，避免运营点了以为已经生效 */}
-        <Button disabled title="批量下架将在 Task 9 上线">
-          批量下架本批{MODE_LABEL[batch.type]}
+        <Button
+          status="danger"
+          disabled={total <= 0 || rolledBack}
+          loading={rollingBack}
+          onClick={openRollbackConfirm}
+        >
+          批量下架本批{label}
         </Button>
         <Button type="primary" onClick={onRestart}>
           再导一批
