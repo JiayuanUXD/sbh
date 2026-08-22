@@ -66,6 +66,7 @@ import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
 import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
 import { createDashboardStatsEndpoint } from './endpoints/dashboard-stats-endpoint'
+import { createBulkImportEndpoints } from './endpoints/bulk-import-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -301,6 +302,8 @@ export default buildConfig({
     createDictionariesEndpoint(),
     // OPT-021 后台导航行动数量（按当前用户权限与数据范围安全聚合）
     createAdminNavigationEndpoint(),
+    // OPT-041 批量导入（预检 / 执行 / 轮询 / 下载）
+    ...createBulkImportEndpoints(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
