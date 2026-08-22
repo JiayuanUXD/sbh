@@ -1,0 +1,56 @@
+
+Running 2 tests using 1 worker
+
+  ok 1 [chromium] › tests\e2e\bulk-import.spec.ts:163:3 › OPT-041 批量导入房源全链路 › 权限前置：未登录打预检端点 403，无 data:import 权限账号看到 Forbidden (909ms)
+  x  2 [chromium] › tests\e2e\bulk-import.spec.ts:178:3 › OPT-041 批量导入房源全链路 › 预检 → 确认 → 上架 → 前台可见 → 幂等重传 → 回滚 → 前台不可见 (20.7s)
+
+
+  1) [chromium] › tests\e2e\bulk-import.spec.ts:178:3 › OPT-041 批量导入房源全链路 › 预检 → 确认 → 上架 → 前台可见 → 幂等重传 → 回滚 → 前台不可见 
+
+    Error: 回滚后 /listings/e2e-zi-dong-hua-ce-shi-fang-yuan-yi-hao-mt3x5i6r 应 404
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      236 |     // ── Step 6: 前台立即查不到，但文档仍在库里（只是下架，不是删除）──────
+      237 |     const after1 = await front.goto(`/listings/${doc1.slug}`)
+    > 238 |     expect(after1?.status(), `回滚后 /listings/${doc1.slug} 应 404`).toBe(404)
+          |                                                                  ^
+      239 |     const after2 = await front.goto(`/listings/${doc2.slug}`)
+      240 |     expect(after2?.status(), `回滚后 /listings/${doc2.slug} 应 404`).toBe(404)
+      241 |
+        at E:\wt-opt041\payload-office-platform\tests\e2e\bulk-import.spec.ts:238:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #3: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\video-1.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #4: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\error-context.md
+
+    Error Context: test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\error-context.md
+
+    attachment #7: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results\bulk-import-OPT-041-批量导入房源-9511b--→-前台可见-→-幂等重传-→-回滚-→-前台不可见-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests\e2e\bulk-import.spec.ts:178:3 › OPT-041 批量导入房源全链路 › 预检 → 确认 → 上架 → 前台可见 → 幂等重传 → 回滚 → 前台不可见 
+  1 passed (23.8s)

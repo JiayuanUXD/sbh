@@ -1,0 +1,7 @@
+
+Running 2 tests using 1 worker
+
+  ok 1 [chromium] › tests\e2e\bulk-import.spec.ts:168:3 › OPT-041 批量导入房源全链路 › 权限前置：未登录打预检端点 403，无 data:import 权限账号看到 Forbidden (1.3s)
+  ok 2 [chromium] › tests\e2e\bulk-import.spec.ts:183:3 › OPT-041 批量导入房源全链路 › 预检 → 确认 → 上架 → 前台可见 → 幂等重传 → 回滚 → 前台不可见 (18.0s)
+
+  2 passed (22.3s)
