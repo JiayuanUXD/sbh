@@ -1,0 +1,19 @@
+=== R2 埋点钩子（[data-detail-analytics-event] 分组计数）===
+   375 页首 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}  |  页尾 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}
+   768 页首 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}  |  页尾 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}
+  1440 页首 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}  |  页尾 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}
+  1920 页首 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}  |  页尾 total=8 {"media_view":4,"listing_building_click":1,"recommendation_click":3}
+
+=== R3 移动底栏 / 价格的真可见性（页首 vs 页尾）===
+   375 底栏: 页首 present=true visible=true display=flex / 页尾 visible=true
+       价格: 页首 present=false visible=false / 页尾 present=true visible=true 文案="2800 元/工位/月"
+       滚动: 0→5582 moved=true scrollable=true doc=6394/812
+   768 底栏: 页首 present=true visible=false display=none / 页尾 visible=false
+       价格: 页首 present=true visible=false / 页尾 present=true visible=false 文案="2800 元/工位/月"
+       滚动: 0→4992 moved=true scrollable=true doc=5804/812
+  1440 底栏: 页首 present=true visible=false display=none / 页尾 visible=false
+       价格: 页首 present=false visible=false / 页尾 present=true visible=false 文案="2800 元/工位/月"
+       滚动: 0→3563 moved=true scrollable=true doc=4375/812
+  1920 底栏: 页首 present=true visible=false display=none / 页尾 visible=false
+       价格: 页首 present=false visible=false / 页尾 present=true visible=false 文案="2800 元/工位/月"
+       滚动: 0→3563 moved=true scrollable=true doc=4375/812

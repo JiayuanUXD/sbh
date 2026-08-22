@@ -1,0 +1,21 @@
+
+=== location-panel  /listings/jingan-serviced-office-42-seats ===
+   375 doc=375/375 溢出=0px body=375/375 可横滑=false offenders=1 面板=true 面板内横滑=0px(visible)
+        offenders: [{"tag":"button","cls":"location-panel__poi-tab","left":359,"right":441,"scrollWidth":82,"clientWidth":82,"overflowX":"hidden"}]
+   768 doc=768/768 溢出=0px body=768/768 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1440 doc=1440/1440 溢出=0px body=1440/1440 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1920 doc=1920/1920 溢出=0px body=1920/1920 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+
+=== supply  /buildings/west-nanjing-premium-center ===
+   375 doc=375/375 溢出=0px body=375/375 可横滑=false offenders=4 面板=true 面板内横滑=0px(visible)
+        offenders: [{"tag":"a","cls":"building-supply-browser__filter","left":328,"right":426,"scrollWidth":98,"clientWidth":98,"overflowX":"visible"},{"tag":"a","cls":"building-supply-browser__filter","left":434,"right":539,"scrollWidth":105,"clientWidth":105,"overflowX":"visible"},{"tag":"a","cls":"building-supply-browser__filter","left":547,"right":652,"scrollWidth":105,"clientWidth":105,"overflowX":"visible"},{"tag":"button","cls":"location-panel__poi-tab","left":359,"right":441,"scrollWidth":82,"clientWidth":82,"overflowX":"hidden"}]
+   768 doc=768/768 溢出=0px body=768/768 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1440 doc=1440/1440 溢出=0px body=1440/1440 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1920 doc=1920/1920 溢出=0px body=1920/1920 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+
+=== supply-multigroup  /buildings/huangpu-bund ===
+   375 doc=375/375 溢出=0px body=375/375 可横滑=false offenders=4 面板=true 面板内横滑=0px(visible)
+        offenders: [{"tag":"a","cls":"building-supply-browser__filter","left":328,"right":426,"scrollWidth":98,"clientWidth":98,"overflowX":"visible"},{"tag":"a","cls":"building-supply-browser__filter","left":434,"right":539,"scrollWidth":105,"clientWidth":105,"overflowX":"visible"},{"tag":"a","cls":"building-supply-browser__filter","left":547,"right":652,"scrollWidth":105,"clientWidth":105,"overflowX":"visible"},{"tag":"button","cls":"location-panel__poi-tab","left":359,"right":441,"scrollWidth":82,"clientWidth":82,"overflowX":"hidden"}]
+   768 doc=768/768 溢出=0px body=768/768 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1440 doc=1440/1440 溢出=0px body=1440/1440 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)
+  1920 doc=1920/1920 溢出=0px body=1920/1920 可横滑=false offenders=0 面板=true 面板内横滑=0px(visible)

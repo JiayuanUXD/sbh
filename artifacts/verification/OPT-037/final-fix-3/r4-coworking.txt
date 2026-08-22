@@ -1,0 +1,20 @@
+
+=== coworking-real  /buildings/huangpu-bund?group=coworking ===
+   375 sentinel=200/true  scrollWidth=375/375 无溢出=true  activeTab="联合办公1" count=1 tabs=2  表行=0 卡片=1 空态=[] 可见筛选=["全部"]
+   768 sentinel=200/true  scrollWidth=768/768 无溢出=true  activeTab="联合办公1" count=1 tabs=2  表行=1 卡片=0 空态=[] 可见筛选=["全部"]
+  1440 sentinel=200/true  scrollWidth=1440/1440 无溢出=true  activeTab="联合办公1" count=1 tabs=2  表行=1 卡片=0 空态=[] 可见筛选=["全部"]
+
+=== lease-default  /buildings/huangpu-bund ===
+   375 sentinel=200/true  scrollWidth=375/375 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=0 卡片=1 空态=[] 可见筛选=[]
+   768 sentinel=200/true  scrollWidth=768/768 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=1 卡片=0 空态=[] 可见筛选=[]
+  1440 sentinel=200/true  scrollWidth=1440/1440 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=1 卡片=0 空态=[] 可见筛选=[]
+
+=== empty-result  /buildings/huangpu-bund?areaMin=0&areaMax=100 ===
+   375 sentinel=200/true  scrollWidth=375/375 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["0–100 ㎡"]
+   768 sentinel=200/true  scrollWidth=768/768 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["0–100 ㎡"]
+  1440 sentinel=200/true  scrollWidth=1440/1440 无溢出=true  activeTab="租赁1" count=1 tabs=2  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["0–100 ㎡"]
+
+=== coworking-absent  /buildings/west-nanjing-premium-center?group=coworking ===
+   375 sentinel=200/true  scrollWidth=375/375 无溢出=true  activeTab="租赁4" count=4 tabs=1  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["全部","全部"]
+   768 sentinel=200/true  scrollWidth=768/768 无溢出=true  activeTab="租赁4" count=4 tabs=1  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["全部","全部"]
+  1440 sentinel=200/true  scrollWidth=1440/1440 无溢出=true  activeTab="租赁4" count=4 tabs=1  表行=0 卡片=0 空态=["当前筛选下暂无匹配空间"] 可见筛选=["全部","全部"]

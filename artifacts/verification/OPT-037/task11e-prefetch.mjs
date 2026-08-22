@@ -77,7 +77,14 @@ for (const url of CASES) {
   const relatedTargets = all.filter(
     (p) => /^\/buildings\/[^/?]+$/.test(p) || /^\/listings\?district=/.test(p),
   )
-  const detailPrefetched = all.filter((p) => /^\/(listings|buildings|news)\/[^/?]+$/.test(p))
+  /**
+   * ⚠️ 2026-08-22 终审第 3 轮修：原正则是 `/^\/(listings|buildings|news)\/[^/?]+$/`，
+   * `$` 卡在 slug 后面 —— **任何带 query 的详情页都被排除在「详情页 URL」之外**
+   * （`/buildings/<slug>?group=coworking`、`/listings/<slug>?from=...` 全部隐形）。
+   * 这与 11b「把 URL 归一成 pathname」是同一族漏检：判据把一整类目标悄悄划出了统计。
+   * 现在只匹配路径段，query 保留在 `all` / `queryPrefetched` 里另算。
+   */
+  const detailPrefetched = all.filter((p) => /^\/(?:[a-z][a-z0-9-]*\/)?(listings|buildings|news)\/[^/?#]+(?:[?#]|$)/.test(p))
   const queryPrefetched = all.filter((p) => p.includes('?'))
 
   report.push({

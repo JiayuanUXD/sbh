@@ -44,6 +44,11 @@
 - 滚动进场用原生 `animation-timeline: view()`，必须 `@supports (animation-timeline: view())` 包裹且**不写 `fill-mode: both`**——时间线未激活时 both 会把元素锁死在 `opacity: .001`，整段内容隐形。
 - 动效：常规交互用 token 三档 120/200/320ms（交互反馈 120、状态切换 200、卡片抬升 320），滚动进场 400–800ms；避免自动轮播、阻挡搜索的视频、大面积阴影；一律尊重 `prefers-reduced-motion`。
 - 旧 `--color-*` 名（`--color-copper`、`--color-paper` 等）现在只是新 token 的**别名**，只为未改版内页过渡而存在。新代码一律用新名；改版某页时顺手把该页引用换成新名。
+  - **例外：`--color-on-ink: #f5f5f7` 不是别名，是字面量。** `--color-canvas`/`--color-surface`/
+    `--color-copper`/`--color-ink` 各自 `var()` 指向 1.1 体系的 token，换掉它们是纯粹解引用；
+    但 1.1 体系里**根本没有「墨底上的字色」这个 token**（只有 `--on-accent`）。
+    把 `--color-on-ink` 也「顺手换掉」只有两条路：写死 `#f5f5f7`（把一个已单点化的取值散回各调用点），
+    或新造 `--on-ink`（设计系统层面的动作，不该塞进清理批次）。**保留，别随手换。**
 
 ## 列表页（筛选页）
 
@@ -77,8 +82,12 @@
   `--full`（通栏面板）padding **40**、`--side`（决策卡 / 信息面板）padding **32**。由 `DetailPanel.tsx` 提供。
 - `.sf-card`：静态阴影 + hover `translateY(-2px)` + 阴影加深、320ms。
 - 差异是语义性的：`.sf-card` 整张卡是一个链接，hover 反馈是在说「这块能点」；详情页面板只是分组容器，
-  套上抬升等于给用户一个假的可点提示。padding 也不同向——列表卡 16–20 服务浏览密度，详情面板 40/32
+  套上抬升等于给用户一个假的可点提示。padding 也不同向——列表卡 **14/16**（`list.css`：
+  `.ls-card__body` 14px 16px 16px、`.ls-rowcard` 16px；**首页卡才是 18–24**：
+  `.hm-type-card__body` 18/20、`.hm-supply-card__body` 20/24）服务浏览密度，详情面板 40/32
   服务「已经决定看这一套、要从容读完」。**合并两头不讨好。**
+  （2026-08-22 终审订正：原文写「列表卡 16–20」，把首页卡的数字安到了列表卡头上。
+  结论不变——14–16 与 32–40 仍是两倍以上的差距——但引用时别再引那个数。）
 - 图上渐变 / 图上标签 / 图容器仍走 `.sf-*` 共享基元。详情主图的压暗**没有**照稿子的 `.46 / 38%`，
   直接复用 `.sf-scrim`（`.42 / 45%`）——差异落在渐变最浅端不可辨，理由写在 `detail.css` 画廊小节。
 
@@ -173,6 +182,14 @@ tab 是点了没反应的死控件。若将来要恢复，先重新评估这条�
 
 - **`aria-pressed` 只在 `role="button"` 下有效**。导航链接（`<Link>`，`role=link`）的当前态用 `aria-current`。禁止用「给它加个 `role="button"` 让属性合法」的捷径：那些确实是导航链接，谎称按钮比缺属性更糟。已有的 `aria-pressed` 都在真 `<button>` 上，合法，别一并清掉。
 - **清理死代码一律逐类名 / 逐符号核查，禁止按注释标题整块删**。已两次险些误删：旧筛选条标题下的 `.filter-bar__input/.filter-bar__select` 实际被 `ui/Field.tsx` 复用（全站表单靠它），首页批次的 §11 也混着详情页样式。拿不准就留着并在注释里写明理由。
+- **判死一个 CSS 类要两道判据同时成立：grep（含模板串拼接）零命中 + 运行时扫描零命中。缺一不可，两边各有真实反例：**
+  - 只信运行时会误删：`.city-switcher__status--live` / `--coming-soon` 运行时扫 20 条路由 × 2 断点 **0 命中**，
+    但 `CitySwitcher.tsx` 用模板串 `` `city-switcher__status--${city.serviceStatus}` `` 拼类名，
+    取值域由 `domain/city-site-profile/schema.ts` 的 `CITY_SERVICE_STATUSES` 封闭。**是活的。**
+  - 只信 grep 也会误删：`detail.css` 的 `.amap-layer` / `.amap-maps` grep **0 命中**，
+    因为它们是高德 JS API v2.0 **运行时注入**的 DOM 类名，只有运行时扫描看得见。**也是活的。**
+  - 还要防子串陷阱：`.detail__summary` 的「唯一近似命中」是 `page-detail__summary`，两者无关。
+    grep 一律带边界，别用裸子串。
 - **守卫要落在失效点那一层，且 fixture 必须是域层真能产出的状态**。只锁底层工具函数，编排层改回旧调用照样全绿（提示条静默消失）；fixture 用一个结构上不可能出现的组合（如 `unfilteredTotal=0` 配 `total=99`），守卫证明的是「prop 传了」而不是「传下去的值可用」。新增守卫后做**变异验证**：故意改坏，确认如期变红，再还原。
 - 子代理报告的「环境级 / 生产级风险」必须在已知正确的环境上复验后才可采信——它们不掌握本会话的隔离库 / 端口上下文，容易把自身环境错配（连错库、切回默认库）归因成产品缺陷，且措辞会逐轮升级。
 

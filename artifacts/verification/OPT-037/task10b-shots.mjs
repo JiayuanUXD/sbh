@@ -10,6 +10,7 @@
  * 用法：node task10b-shots.mjs <origin> <tag>
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
+import { gotoChecked } from './lib/sentinel.mjs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
 const ORIGIN = process.argv[2] ?? 'http://localhost:3717'
@@ -27,7 +28,9 @@ for (const { name, url } of CASES) {
     const page = await browser.newPage({ viewport: { width, height } })
     const errors = []
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
-    await page.goto(`${ORIGIN}${url}`, { waitUntil: 'networkidle' })
+    // ⚠️ 2026-08-22 终审第 3 轮补：截图循环原本不记状态码，两个 404 页也能拍出「一致」的对比图。
+    // 现在过共享哨兵（lib/sentinel.mjs：状态码 + 该路由族的关键选择器），产物里逐条记 sentinel。
+    const sentinel = await gotoChecked(page, `${ORIGIN}${url}`)
     // 触发懒加载（地图/图片）后回顶，保证首屏截图内容完整
     await page.evaluate(async () => {
       const step = window.innerHeight
@@ -62,7 +65,7 @@ for (const { name, url } of CASES) {
         zeroValues: cells.filter((c) => c.value.trim() === '0').map((c) => c.label),
       }
     })
-    report.push({ case: name, width, ...measured, consoleErrors: errors })
+    report.push({ case: name, width, sentinel, ...measured, consoleErrors: errors })
     await page.close()
   }
 }

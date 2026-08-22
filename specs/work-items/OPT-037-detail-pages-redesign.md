@@ -135,7 +135,8 @@
 `SpecTable`（`.dt-spec`，缺失渲染 `—` 不隐藏行）、`ListingOverviewPanel`（房源概况面板）、
 `BuildingSpecPanel`（楼盘参数 2 列）、`ListingDecisionCard`（决策卡）、
 `StickyInquiryBar`（吸附询价条）、`AnchorNavBar`（楼盘页吸附锚点导航）、
-`NoImageHeroGrid`（无图替代构图，两页共用 + `meta` 参数化）、`fact-lookup.ts`（`findFact` / `factValue` / `formatCompletionYear`）。
+`NoImageHeroGrid`（无图替代构图，两页共用 + `meta` 参数化）、`fact-lookup.ts`（**5 个导出**：
+`findFact` / `factValue` / `factMagnitude` / `formatCompletionYear` / `completionYearFromGroups`）。
 
 **新建样式**：`src/app/(frontend)/styles/detail.css`（1136 行，`.dt-*`，在 `layout.tsx` 里排在
 `styles.css` / `surface.css` / `home.css` / `list.css` **之后** import）。
@@ -166,7 +167,7 @@
 |---|---|
 | **SSR `<img>` 在 hydration 之前加载失败时兜底从不出现**（`error` 事件不冒泡，React 不补发 hydration 前错过的 load/error；窗口实测生产构建 0.6–0.9s）。商户图 404 时用户看到浏览器破图框——**master 上一直存在的真实生产缺陷** | 两处 SSR `<img>` 加 ref 回调，挂载时补判 `complete && naturalWidth === 0` → `markFailed` |
 | `.sf-scrim` / 计数 pill 是主图按钮的**同级**绝对定位层，无 `pointer-events:none`，吞掉底部 45% 的点击、灯箱打不开 | 加在共享基元 `.sf-scrim` 上（装饰层本就不该拦点击），并实测首页/列表页卡片点击仍穿透 |
-| 竣工时间直接渲染原始 ISO 字符串（生产今天就是这样） | `formatCompletionYear`，两处共用 |
+| 竣工时间直接渲染原始 ISO 字符串（生产今天就是这样） | `fact-lookup.ts` 的 `formatCompletionYear` / `completionYearFromGroups`，**共 3 个消费方**（`HeroSummaryPanel` 用前者；`BuildingSpecPanel` 与 `BuildingDetailLayout` 用后者）。终审第 2 轮又把「ISO 解析 + 合法性判定」下沉到 `lib/frontend/format.ts` 的 `completionYear()`，全站三份实现（本函数 / `listing/BuildingCompactRow` / `domain/public-catalog/building-search`）现在共用它，各自只留展示后缀 |
 | `.hero-summary__price`（全页最大的数字）缺 `tabular-nums`，且是 58 式 `--fs-32/700` | 对齐决策卡 40/600/1.06 + tabular-nums |
 | `BuildingDetailLayout` 外层 section 与 `LocationPanel` 自身 section **重复 `id="location"`**（无效 HTML，旧 e2e 靠 `.first()` 侥幸通过） | 去掉外层重复的一份 |
 | `LocationPanel` 的 h2「周边与交通」被旧包装层 `display:none`——该区段一直没有可见标题 | 恢复 |
@@ -176,7 +177,7 @@
 | 「可即刻入驻」聚合计数走 `Date.parse` 数值比较、pill 过滤走字符串比较 → 恰好当天可入驻的房源计入 N 却被 pill 滤掉 | 收敛为 `isImmediatelyAvailable` 一处实现 |
 | `.dt-spec__label` 极窄容器下 CJK 逐字换行（"地址" 拆成两行） | `flex-shrink: 0` 加固共享基元 |
 | `AdvisorCard` 在 279px 窄栏正文被挤成竖排 | `flex-wrap: wrap` 提升为组件默认行为 |
-| **Chromium 真实 bug**：`table-layout:fixed` + 显式 `min-width/width` 大于可用空间的 `<table>`，intrinsic size 会**绕过 `overflow:auto/hidden` 祖先**直接顶宽 `documentElement.scrollWidth`（改 `overflow-x:hidden` 都拦不住），768 断点密度表整页横向溢出 180px | 定宽列换算成百分比，表格自身不设任何显式 `min-width/width` |
+| **Chromium 真实 bug**：`table-layout:fixed` + 显式 `min-width/width` 大于可用空间的 `<table>`，intrinsic size 会**绕过 `overflow:auto/hidden` 祖先**直接顶宽 `documentElement.scrollWidth`（改 `overflow-x:hidden` 都拦不住），768 断点密度表整页横向溢出 180px | 定宽列换算成百分比。⚠️ **准确表述是「没有任何显式字面量**超出容器**」**——表格自身仍有 `width:100%; table-layout:fixed`（`styles.css`），组件也仍有显式 `<col style>`；CSS 原地注释才是准确版本，本文档此前抄漏了限定语 |
 | `.dt-keyspecs` 用 `repeat(3, 1fr)`（隐含 `min-content` 下限）把 375 的列压成 35/79/107px，"2026年9月1日" 排成四行 | 换 `minmax(0,1fr)`，≤767 改 2 列 |
 
 ### 7.3 实施期被推翻的计划假设（**下游勿再引用 §0–§4 的旧说法**）
@@ -187,9 +188,14 @@
    瞬间会在原位吃掉 56px 把下方内容顶下去，靠 Chromium scroll anchoring 补偿才勉强不出错。
    该条从不展示「未吸附」态，fixed 视觉等价且零布局影响。
    **注意这条理由不适用于楼盘页 `.dt-anchor-bar`**——它常驻、首帧就占位，用的是字面 sticky。
-3. **§3.3「设计稿列出的参数全部对应 `Buildings` 已有字段」→ 不成立。** 逐条核过 24 项：17 项第 1 层已在手，
+3. **§3.3「设计稿列出的参数全部对应 `Buildings` 已有字段」→ 不成立。** 逐条核过 **25 项**
+   （原文写「24 项」，但 17+1+7 = 25，加总与分项对不上；**以分项为准**）：17 项第 1 层已在手，
    1 项第 2 层换项（地上/地下 → 总楼层，域层无拆分字段），**7 项域层确实没有**并已省略
    （电梯速度 / 楼板承重 / 车位配比 / 空调加时费 / 出租率 / 主要租户行业 / 楼盘级最短租期）。
+   另注：`BuildingSpecPanel` 实际渲染的不止这批规格行——面板底部还有**「楼盘特色」标签集合**
+   与**楼盘简介**两桶（`hasParams = hasSpecValues || hasFeatures || hasDescription`），
+   它们不在这 25 项之内，且**空数组时整段不渲染**，与 `SpecTable`「缺失显示 `—` 不隐藏行」
+   的适用对象不同（那条只管固定 schema 的规格行）。
 4. **§3.3「LEED」→ 改为「认证」，展示实际持有的全部公开认证。** 域层没有「结构化认证体系」字段；
    照字面做只能按名称正则去猜，猜不中时显示 `—` = 替这栋楼**否认了它其实拥有的认证**。
    正确处置不是「加防护让匹配更鲁棒」（名称变体永远列不完），而是改成展示真实拥有的东西。
@@ -229,7 +235,7 @@
 
 ### 7.5 门禁
 
-`pnpm typecheck` 0 错误；`pnpm test` **3444 passed / 4 skipped**（基线 3373，新增 71）；
+`pnpm typecheck` 0 错误；`pnpm test` **3435 passed / 4 skipped**（基线 3373；Task 1–12 加到 3444，终审第 2 轮删掉 `lib/frontend/validation.ts` 及其 `tests/validation.test.ts` 后回到 3435。**本文档此前一直停在 3444**，2026-08-22 终审第 3 轮实跑订正）；
 `pnpm lint` **0 error / 22 warning**（基线 24，不升反降）；`pnpm build` exit 0。
 `tests/e2e/detail-pages.spec.ts` 在 CI 等价环境 **29 passed / 0 failed**；
 全量 e2e 138 passed / 14 skipped。四断点（375 / 768 / 1440 / 1920）逐屏截图人工确认。
@@ -304,6 +310,44 @@ comp 用「周边与交通」取代了原配套设施段，specRows 的页面顺
 
 凡是「为何不适用」的理由涉及去重的组件，**一律回指 `ui/Breadcrumb.tsx`，不要各写一份措辞**。
 
+### 8.6 终审三轮定下来的四条根因（**下一个改这块代码的人不知道就会踩**）
+
+这批的任务报告写在 `.superpowers/`，而该目录被 `.gitignore` 忽略——合并后只有本文件与
+`artifacts/verification/OPT-037/` 留在仓库里。以下四条是「读代码读不出来、但改代码一定会撞上」的部分。
+
+**① 出售组的 `availableFrom` 结构性为 `null`，所以「可即时过户 / 可即刻入驻」在出售组必须整格不渲染。**
+域层没有产权/租约状态字段，出售房源的 `availableFrom` 永远是 `null`。
+`AGG_LABELS.sale.immediate` 因此是 `null`，`buildAggregation` 在 `immediate == null` 时**整格不渲染**——
+不是渲染成 `—`。两者语义不同：`—` 说的是「有这个维度、这栋楼没有值」，而这里是**压根没有这个维度**。
+同一个字段兼作「可即刻入驻」pill 的开关（`immediateFilterLabel`），构造上不可能再分叉。
+聚合区 CSS 保持 `repeat(3, 1fr)` 不动：少一格时前两格仍钉在同一 x 位置，切组时不横向跳。
+守卫在 `tests/detail-components-contract.test.ts`（本地夹具没有出售组楼盘，HTTP 侧只能证否）。
+
+**② 默认组的 href 不带 `group` 参数（canonical 惯例），于是默认组下 `input.group === undefined`——
+「能不能比价」必须按组算，不能用跨组的 `filtered`。**
+`priceKeyOf` 含 `businessType`，所以「这栋楼同时有租赁与出售」这**一个事实**就让
+`hasMixedPriceKeys(filtered)` 恒真 → 每个组的价格排序统统退化成 `compareIds`，
+而视图层按当前组算「单位是否唯一」照常渲染排序选项并高亮——用户点了「单价从低到高」，
+页面还告诉他「该组内房源计价单位不唯一」，而该组内单位其实是唯一的。
+判据必须与行为同粒度：排序本来就是组内行为（`listings` 按组切、`sortCards` 按组各排各的）。
+现在是 `groupCanComparePrices = Boolean(input.priceUnit) || !hasMixedPriceKeys(groupCards)`，
+组级提示读组自己的 `priceSortDegraded`，**不许**读快照级 `validationErrors`（那是「任一组降级」的汇总信号）。
+
+**③ `estimateRowTotal` 的 `basis='total'` 分支：`one-time` 必须返回 `amount`，只有 `year` 返回 `null`。**
+终审第 1 轮的原始裁定是「`year`/`one-time` 都返回 null」，**那条按调用链是错的**：
+`rmb-total`（出售一口价）走的正是 `one-time`，返回 null 会让全部出售房源的「总价 万元」列变成 `—`,
+等于用一条新的内容丢失换掉旧缺陷。现行口径：`one-time → amount`、`day → amount × 30`、
+`month → amount`、`year → null`。
+（顺带：旧用例「basis=total 返回原值」的夹具自相矛盾——`displayUnit: 'rmb-total'` 配 `period: 'day'`，
+靠的正是被删掉的那条短路才「通过」。已改成 `period: 'one-time'` 并补齐 year/month/day 三条。）
+
+**④ Next 16 App Router 对「同 pathname、仅 `searchParams` 变化」的导航**同样重置滚动位置**。**
+供给区每筛一次用户就被弹回页首。实测（1440×900，`west-nanjing-premium-center`，先滚到供给区再点控件）：
+点面积桶 / 点排序都是 `scrollY 968 → 0`、`#supply` 顶边 `45.3 → 1013.3`；加 `scroll={false}` 后 `968 → 968`。
+**供给区的 5 处 `<Link>` 全部必须带 `scroll={false}`**，回归守卫是 `tests/e2e/supply-filter-scroll.spec.ts`。
+为什么不用「href 追加 `#supply`」：那仍是一次位移（跳到区块顶），且把锚点写进可分享 URL 与浏览历史，
+等于为了修滚动改了 URL 契约；`scroll={false}` 原地不动，与改造前的纯客户端 state 行为逐字一致。
+
 ---
 
 ## 9. 遗留（**未修，如实记录**，交给下一批 / 已另开任务）
@@ -334,9 +378,19 @@ comp 用「周边与交通」取代了原配套设施段，specRows 的页面顺
 
 ### 9.4 死代码未删
 
-- `components/frontend/AmenityList.tsx`：**全仓零引用**（连测试都没有）。
-- `components/frontend/DetailFacts.tsx`：**生产零引用**，只剩 `tests/detail-components-contract.test.ts` 在导入。
-- 两者都够格删，Task 11 的清理只做了 `styles.css`（−215 行），未动组件文件。
+- 组件层：终审第 2 轮已删 `AmenityList` / `AdvisorAvailability` / `RoutePlanner` / `DetailFacts` /
+  `lib/frontend/validation.ts` 及其孤立 CSS。
+- **两道判据都判死、但不在任何清单里，三轮都没删——留档给下一轮统一处置**（终审第 2 轮「保留 D」，
+  第 3 轮复核仍然成立，本轮只记录不删）：
+
+  | 类 | 位置 | 判据 |
+  |---|---|---|
+  | `.detail__summary` | `styles.css` 本体 + 两处 `@media(≤1199)` | 带边界 grep 0；运行时 0。⚠️ 唯一近似命中是 `page-detail__summary`（`pages/privacy`、`pages/[slug]`），**两者无关**——这正是 Task 11 栽过的子串陷阱 |
+  | `.detail__header` | `styles.css` | grep 0 / 运行时 0（`.detail__header-tags` 已随第 2 轮删除） |
+  | `.text-muted` | `styles.css`（`.text-copper` / `.text-center` 的兄弟） | grep 0 / 运行时 0 |
+
+  不在本轮删的理由：三条都在 `styles.css` 而不在详情页新文件里，删它属于扩大范围；
+  且本轮的硬约束是「不改产品代码」。
 
 ### 9.5 行为与展示口径
 
@@ -370,3 +424,60 @@ comp 用「周边与交通」取代了原配套设施段，specRows 的页面顺
 - 跑本地 e2e 必须显式 `MULTI_CITY_ROUTING_ENABLED=false`：工作树 `.env.local` 设成 `true` 时
   `next start` 读得到而 Playwright 进程读不到，**这个错配本身**就会让所有权那条用例 307-vs-200 失败。
 - 完整的 CI 等价 e2e 环境与「房源全红 / 楼盘全绿」症状归因，已写进 `.agent/testing.md`。
+- **`NEXT_PUBLIC_SITE_URL` 在 `next start` 时传是没用的**（终审第 3 轮实测）：`lib/frontend/site-config.ts`
+  读的是静态成员表达式，Next 在 `next build` 时把它**内联成字面量**（编译产物里是
+  `let b="http://localhost:3717"`，来自工作树 `.env.local`）。所以本地起的生产 server 渲染出来的
+  canonical / JSON-LD `url` / OG，**origin 恒等于构建时的值**，断言只能打在 path 上。
+  它在 `next start` 时唯一还生效的地方是 `lib/runtime/config-guard.ts`（那边把整个 `process.env`
+  当对象传，是运行时读）——所以「不传就 fail-closed」这句仍然成立，只是它管的不是页面里的 origin。
+- **长时间挂着的本地 `next start` 会把楼盘详情请求拖到超时**：实测跑了约 40 分钟后
+  `/buildings/<slug>` 从 60ms 变成 60s 不返回，server 日志里刷 `Error in job queue cron job handler：
+  Cannot use 'in' operator to search for '_rels' in undefined`。重启 server 即恢复。
+  取样跨度长时**先重启再取样**，别把它当成回归。
+
+### 9.8 终审第 3 轮新发现（**未修，本轮硬约束是不改产品代码**）
+
+**`?group=<该楼盘没有的业务组>` 会渲染出一个自相矛盾的状态。**
+`BuildingSupplyBrowser.tsx:325` 在 `requestedGroup` 不在 `availableGroups` 里时回落到默认组，
+但域层 `buildBuildingSupplySnapshot` 仍按 `input.group` 过滤 → `snapshot.groups` 为空 →
+`activeGroupData = null` → `listings = []`。结果：
+
+| 实测（`/buildings/west-nanjing-premium-center?group=coworking`，375/768/1440 三断点一致） | 值 |
+|---|---|
+| tab 数 | 1（只有「租赁」，联合办公 tab 不渲染） |
+| active tab 文案 | 「租赁 **4**」，且 `aria-current="true"` |
+| 表格 / 卡片行数 | 0 |
+| 正文 | 「当前筛选下暂无匹配空间」 |
+| 用户可见的已激活筛选 pill | 无（只有默认的「全部」） |
+
+**tab 说有 4 条，正文说一条都没有，而页面上没有任何东西解释为什么**——与本批第 1 轮修掉的
+「聚合数说 N、pill 滤掉」「计价单位不唯一说假话」是同一类「会撒谎的数字」。
+
+是不是死路：**不是硬死路，但出路是反直觉的**。三处 pill 的 href 都克隆了当前 query
+（实测两颗「全部」的 href 都是 `...?group=coworking`），点它们清不掉 `group`；
+唯一的出路是点那条**已经显示为 active** 的「租赁」tab——`hrefForGroup` 切组时清空全部参数，
+它的 href 正好是无 query 的 canonical URL。让用户去点一个「看起来已经选中」的 tab 才能脱困，
+不构成合理的可发现路径。
+
+证据：`artifacts/verification/OPT-037/final-fix-3/r4-coworking.{mjs,json,txt}` +
+`r4-coworking-absent-{375,768,1440}.png`（同一份脚本里还有 `coworking-real` / `lease-default` /
+`empty-result` 三态，四态两两可区分）。
+
+可能的修法（留给下一批裁定，别在证据轮里顺手改）：视图层回落到默认组时，把 `input.group`
+一并落到默认组再算快照（回落要落到底，不能一半回落一半不回落）；或者不回落，直接 404 / 重定向到 canonical URL。
+两条路的取舍涉及「无效 query 该不该 200」这个全站口径，不是本页局部决定。
+
+### 9.9 证据可复核性的现状（终审第 3 轮结算）
+
+- **Task 1–7 整段无机读证据**：只有 PNG，无 JSON、无脚本（Task 1/2/5 明说脚本已删，3/4/6/7 未交代）。
+  这一段的数字**按「不可复核」记**，不要在下游当硬数据引用。第 3 轮已补的两处例外见下。
+- 第 3 轮补测并入库的：Task 9 多城开启态路由（`r1-multicity.*`）、Task 9 埋点钩子与移动底栏可见性
+  （`r2r3-task9-recheck.*`）、Task 7-fixes 的联合办公组四态（`r4-coworking.*`）、
+  Task 5 / Task 7 的**页面级**横向溢出 fullPage + 数值（`r5-page-overflow.*`）、
+  Task 10b「有图时零字节变化」的改前/改后双构建 HTML 比对 + 噪声本底对照组（`r6-*`）、
+  Task 11c 丢失的 HTML 输入重建（`r7c-{before,after}-html/` + `r7-11c-domdiff.txt`）。
+- **11d / 11e 的 HTML dump 已入库**（`task11d-{before,after}/`、`task11e-{before,after}/` 共 22 个文件
+  + build/server 日志），但它们抓取时还没有「落盘状态码」这条纪律，复核需带
+  `--allow-missing-status`，**退出码恒为 2**（关键标记仍然全查，但状态码一栏按「不可复核」记）。
+- 三份任务报告已就地标注作废段落：`task-8-report.md`（§验收数字）、`task-11-report.md`（§四）；
+  `task8-verify.json` 已改名 `task8-verify-superseded.json` 并在文件头写明作废理由。

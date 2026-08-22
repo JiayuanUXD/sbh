@@ -1,0 +1,30 @@
+{
+  "listing-media-rich": {
+    "path": "/listings/media-rich-listing",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "listing-detail",
+    "missing": []
+  },
+  "listing-serviced": {
+    "path": "/listings/jingan-serviced-office-42-seats",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "listing-detail",
+    "missing": []
+  },
+  "building-demo-with-media": {
+    "path": "/dev-story/building-detail-demo",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "generic",
+    "missing": []
+  },
+  "building-no-media-control": {
+    "path": "/buildings/west-nanjing-premium-center",
+    "status": 200,
+    "sentinelOk": true,
+    "family": "building-detail",
+    "missing": []
+  }
+}

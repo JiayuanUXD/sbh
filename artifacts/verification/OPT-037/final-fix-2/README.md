@@ -27,7 +27,12 @@ node imgdiff.mjs   before2 after2
 node diffrange.mjs before2 after2
 ```
 
-## 已落盘的比对结果（原始 HTML / PNG 体积过大，未入库，用上面的脚本可重现）
+## 已落盘的比对结果
+
+**入库范围（2026-08-22 终审第 3 轮补齐）**：下表全部文件 + `report-*.json` / `deep-*.json` /
+`scan-extra-*.json` / `build-*.log` / `server-*.log` 均已入库。
+**未入库**：`*-html/` 六个目录与整页 PNG（体积原因），用上面的脚本可重现。
+（第 3 轮之前，本表列出的 JSON 与日志其实都还是未跟踪状态——「已落盘」与「已入库」是两件事。）
 
 | 文件 | 内容 |
 |---|---|

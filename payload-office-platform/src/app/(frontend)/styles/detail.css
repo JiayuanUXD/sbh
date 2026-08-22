@@ -14,7 +14,7 @@
 :root { --dt-sticky-bar-h: 56px; }
 
 /* `.dt-page` 出血到视口宽——**照 `.hm-home` 的既有做法，不新造机制**
- * （home.css 第 15–19 行；`body { overflow-x: clip }`（styles.css:195）就是配套
+ * （home.css 第 15–19 行；`body { overflow-x: clip }`（styles.css:196，:195 是它的注释行）就是配套
  * 用来裁掉 100vw 与滚动条宽度之差的，全站已经在这个组合上跑了一个版本）。
  *
  * 为什么必须出血：吸附条（`.dt-bar`）是全幅块，毛玻璃与底线要横贯视口、与正

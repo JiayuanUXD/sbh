@@ -12,6 +12,7 @@
  * 用法：node task11-shots.mjs <origin> <before|after>
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
+import { gotoChecked } from './lib/sentinel.mjs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
 const ORIGIN = process.argv[2] ?? 'http://localhost:3801'
@@ -82,7 +83,10 @@ for (const { name, url } of SHOT_CASES) {
     const page = await browser.newPage({ viewport: { width, height: 900 } })
     const errors = []
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
-    await page.goto(`${ORIGIN}${url}`, { waitUntil: 'networkidle' })
+    // ⚠️ 2026-08-22 终审第 3 轮补：截图循环原本**不记状态码**。
+    // 这正是「/dev-story/opt037 四档 0 差异像素」那条假结论的直接成因——两侧都是 404 页。
+    // 现在过共享哨兵（`lib/sentinel.mjs`），状态码与关键选择器缺失都写进产物。
+    const sentinel = await gotoChecked(page, `${ORIGIN}${url}`)
     await page.evaluate(async () => {
       const step = window.innerHeight
       for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
@@ -117,7 +121,7 @@ for (const { name, url } of SHOT_CASES) {
           : null,
       }
     })
-    report.shots.push({ case: name, url, width, ...measured, consoleErrors: errors })
+    report.shots.push({ case: name, url, width, sentinel, ...measured, consoleErrors: errors })
     await page.close()
   }
 }

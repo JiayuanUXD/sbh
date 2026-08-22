@@ -12,6 +12,7 @@
  *    origin 参数（默认 dev server 3717），前两项走生产 server。
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
+import { gotoChecked } from './lib/sentinel.mjs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
 const ORIGIN = process.argv[2] ?? 'http://localhost:3743'
@@ -22,10 +23,11 @@ const report = {}
 for (const slug of ['test0814', 'empty-building']) {
   for (const width of [375, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } })
-    const res = await page.goto(`${ORIGIN}/buildings/${slug}`, { waitUntil: 'networkidle' })
+    const sentinel = await gotoChecked(page, `${ORIGIN}/buildings/${slug}`)
     await page.screenshot({ path: `${OUT}/task10b-${slug}-${width}.png`, fullPage: true })
     report[`${slug}-${width}`] = {
-      status: res.status(),
+      sentinel,
+      status: sentinel.status,
       cells: await page.$$eval('.dt-keyspecs__item', (els) => els.map((el) => ({
         label: el.querySelector('.dt-keyspecs__label')?.textContent,
         value: el.querySelector('.dt-keyspecs__value')?.textContent,
@@ -42,7 +44,15 @@ for (const slug of ['test0814', 'empty-building']) {
 
 for (const width of [375, 768]) {
   const page = await browser.newPage({ viewport: { width, height: 900 } })
-  await page.goto(`${DEV_ORIGIN}/dev-story/opt037#detail-gallery-no-media`, { waitUntil: 'networkidle' })
+  // ⚠️ 2026-08-22 终审第 3 轮补：这一段原本不记状态码，而 `/dev-story/opt037`
+  // **在 `next start` 下恒 404**（页面显式 notFound()），只有 `next dev` 才 200。
+  // 不记状态码时，跑错 origin 就会静默产出一份空结论（本批已因此出过一次
+  // 「四档 0 差异像素」的假结论）。哨兵不通过直接抛，不往下量。
+  const devSentinel = await gotoChecked(page, `${DEV_ORIGIN}/dev-story/opt037#detail-gallery-no-media`)
+  if (!devSentinel.ok) {
+    throw new Error(`[sentinel] dev-story 页未渲染：${JSON.stringify(devSentinel)}（该路由只在 next dev 下 200）`)
+  }
+  report[`listing-nomedia-${width}-sentinel`] = devSentinel
   const section = await page.$('#detail-gallery-no-media')
   await section.scrollIntoViewIfNeeded()
   await page.waitForTimeout(300)

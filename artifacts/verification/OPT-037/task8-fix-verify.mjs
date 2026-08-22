@@ -16,6 +16,7 @@
  * 输出：artifacts/verification/OPT-037/task8-fix-verify.json + 同目录截图。
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
+import { gotoChecked } from './lib/sentinel.mjs'
 import fs from 'node:fs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
@@ -40,8 +41,11 @@ for (const [w, h] of [
   [375, 812],
 ]) {
   const page = await browser.newPage({ viewport: { width: w, height: h } })
-  await page.goto(URL, { waitUntil: 'networkidle' })
-  const r = (report[w] = {})
+  // ⚠️ 2026-08-22 终审第 3 轮补：原来不读状态码。本脚本量的是 dev-story 演示页，
+  // 而 `/dev-story/opt037` 在 `next start` 下恒 404（页面显式 notFound()）——
+  // 不记状态码时，一次跑错环境就会把整份产物变成「对着 404 页量出来的数字」。
+  const sentinel = await gotoChecked(page, URL)
+  const r = (report[w] = { sentinel })
 
   // ── 1. 页面级横向溢出（进入时） ──────────────────────────────────────
   r.overflowTop = await page.evaluate(() => ({

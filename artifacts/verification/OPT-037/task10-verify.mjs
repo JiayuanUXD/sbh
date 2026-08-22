@@ -16,6 +16,7 @@
  * 输出：artifacts/verification/OPT-037/task10-verify.json + 同目录 task10-*.png。
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
+import { gotoChecked } from './lib/sentinel.mjs'
 import fs from 'node:fs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
@@ -40,6 +41,18 @@ const VIEWPORTS = [
 fs.mkdirSync(OUT, { recursive: true })
 const browser = await chromium.launch()
 const report = {}
+/**
+ * ⚠️ 2026-08-22 终审第 3 轮补：本脚本原本只有「两条路由」那一段读了状态码，
+ * 其余 6 处 `page.goto` 一律不读——一旦跑错环境（例如 config-guard fail-closed
+ * 让房源类路由全线 404），产物里的每个数字都是对着错误页量出来的，而读的人看不出来。
+ * 现在每次导航都过共享哨兵（`lib/sentinel.mjs`），逐条记进 `report.sentinels`。
+ */
+report.sentinels = []
+const goChecked = async (page, url, opts) => {
+  const s = await gotoChecked(page, url, opts)
+  report.sentinels.push(s)
+  return s
+}
 
 /** 页面级横向溢出：判据是 scrollWidth ≤ clientWidth，不是"看起来没横条"。 */
 const overflow = (page) =>
@@ -78,7 +91,7 @@ for (const [w, h] of VIEWPORTS) {
   const page = await browser.newPage({ viewport: { width: w, height: h } })
   const r = (report[w] = {})
 
-  await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
+  await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
   await scrollThrough(page)
 
   r.overflow = await overflow(page)
@@ -177,7 +190,7 @@ for (const [w, h] of VIEWPORTS) {
 // ── 锚点跳转实测（1440）：逐个点击，落点标题不得被吸附条压住，高亮跟随 ────────
 {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
+  await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
   await scrollThrough(page)
   const clicks = []
   const hrefs = await page.$$eval('.dt-anchor-bar__links a', (as) => as.map((a) => a.getAttribute('href')))
@@ -217,7 +230,7 @@ for (const [w, h] of VIEWPORTS) {
 // ── 高亮跟随滚动（不是只跟随点击）+ 供给分组三态 ─────────────────────────────
 {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
+  await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
   await scrollThrough(page)
   // 逐段下滚，记录「当前 scrollY → 高亮项」的轨迹。判据是它**单调推进**且
   // 与几何一致：任一采样点上，高亮项必须是「已越过自己落点的区块里最靠下的
@@ -279,7 +292,7 @@ for (const [name, slug] of STATES) {
   report.states[name] = {}
   for (const [w, h] of VIEWPORTS) {
     const page = await browser.newPage({ viewport: { width: w, height: h } })
-    await page.goto(`${ORIGIN}/buildings/${slug}`, { waitUntil: 'networkidle' })
+    await goChecked(page, `${ORIGIN}/buildings/${slug}`)
     await scrollThrough(page)
     report.states[name][w] = {
       overflow: await overflow(page),
@@ -314,7 +327,7 @@ for (const [name, slug] of STATES) {
 report.longTitle = {}
 for (const [w, h] of VIEWPORTS) {
   const page = await browser.newPage({ viewport: { width: w, height: h } })
-  await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
+  await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
   const LONG = '上海市静安区南京西路超甲级智慧办公综合体一期南楼国际商务中心（含配套商业与会议中心）'
   await page.evaluate((t) => {
     document.querySelector('.dt-titlebar__title').textContent = t
@@ -343,8 +356,8 @@ for (const [w, h] of VIEWPORTS) {
 // ── 两条路由 + 既有行为存活（多城关闭态）─────────────────────────────────────
 {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  const legacy = await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
-  report.routes = { legacyStatus: legacy.status() }
+  const legacy = await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
+  report.routes = { legacyStatus: legacy.status, legacySentinel: legacy }
   // BackToTop 是滚动到一定距离后才挂载的客户端组件——不先滚一遍，
   // 「它还在不在」这条会恒为 0，读起来像回归（第一版脚本就是这么误报的）。
   await scrollThrough(page)
@@ -372,8 +385,9 @@ for (const [w, h] of VIEWPORTS) {
         return acc
       }, {}),
   }))
-  const prefixed = await page.goto(`${ORIGIN}/shanghai/buildings/${MAIN}`, { waitUntil: 'domcontentloaded' })
-  report.routes.prefixedStatus = prefixed.status()
+  const prefixed = await goChecked(page, `${ORIGIN}/shanghai/buildings/${MAIN}`, { waitUntil: 'domcontentloaded' })
+  report.routes.prefixedStatus = prefixed.status
+  report.routes.prefixedSentinel = prefixed
   await page.close()
 }
 
@@ -384,7 +398,7 @@ for (const [w, h] of VIEWPORTS) {
 report.stickyContainingBlock = {}
 for (const [w, h] of [[375, 812], [1440, 900]]) {
   const page = await browser.newPage({ viewport: { width: w, height: h } })
-  await page.goto(`${ORIGIN}/buildings/${MAIN}`, { waitUntil: 'networkidle' })
+  await goChecked(page, `${ORIGIN}/buildings/${MAIN}`)
   await scrollThrough(page)
   report.stickyContainingBlock[w] = await page.evaluate(async () => {
     const last = document.querySelector('#related') ?? document.querySelector('#params')

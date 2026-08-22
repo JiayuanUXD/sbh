@@ -13,10 +13,16 @@
  * MULTI_CITY_ROUTING_ENABLED 必须为空：置 true 时 `/listings/<slug>` 会 307 到
  * `/<city>/listings/<slug>`，legacy 路由那一半就验不到了（两条路由都要过）。
  *
+ * ⚠️ **本脚本只覆盖关闭态。** task-9-report.md 曾拿本脚本的产物去支撑「多城**开启**时
+ * JSON-LD url 与面包屑全部带城市前缀」这句结论——那一轮根本没有产物，入库的 `prefixed`
+ * 记录四断点全都没有城市前缀（因为它是关闭态跑出来的）。开启态的实测在
+ * `final-fix-3/r1-multicity.mjs`（两态各跑一遍互为对照）。
+ *
  * 输出：artifacts/verification/OPT-037/task9-verify.json + 同目录 task9-*.png。
  */
 import { chromium } from 'file:///E:/github/sbh/payload-office-platform/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs'
 import fs from 'node:fs'
+import { gotoChecked } from './lib/sentinel.mjs'
 
 const OUT = 'E:/github/sbh/artifacts/verification/OPT-037'
 const ORIGIN = process.env.VERIFY_ORIGIN ?? 'http://localhost:3731'
@@ -58,8 +64,7 @@ for (const [w, h] of VIEWPORTS) {
   const r = (report[w] = {})
 
   // ── 1. 主力房源（legacy 路由）──────────────────────────────────────────
-  await page.goto(`${ORIGIN}/listings/${MAIN}`, { waitUntil: 'networkidle' })
-  r.main = { overflowTop: await overflow(page) }
+  r.main = { sentinel: await gotoChecked(page, `${ORIGIN}/listings/${MAIN}`), overflowTop: await overflow(page) }
 
   // 骨架落地数值：容器 1180 / 主栏 776 / 决策栏 372（≤1023 单列）、
   // 标题栏 padding 32/24、h2 24/600。全部从计算样式读，不看截图猜。
@@ -140,13 +145,26 @@ for (const [w, h] of VIEWPORTS) {
   // 释放 + 接管：滚到页尾。用「反复滚到底直到 scrollY 稳定」而不是一次算好的
   // 目标值——懒加载图片落位会把文档撑高，一次性 scrollTo 会停在过时的位置
   // （首版脚本就栽在这里：375 下决策卡只上移了 199px，量出来"还在视口里"）。
-  await page.evaluate(async () => {
+  // ⚠️ 终审第 3 轮补：原实现「反复滚到底直到 scrollY 稳定」**接受「从未移动」这个平凡稳定**
+  // （页面根本没滚动时首轮就退出，后面所有「滚到页尾」的判据都是空的）。
+  // 现在把起点/终点/是否可滚一并记进产物，`moved === false && scrollable === true`
+  // 就是脚本失效，不是页面结论。
+  r.main.scrollToBottom = await page.evaluate(async () => {
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()))
+    const startY = window.scrollY
     let previous = -1
     for (let i = 0; i < 40 && window.scrollY !== previous; i += 1) {
       previous = window.scrollY
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })
       await nextFrame()
+    }
+    return {
+      startY,
+      endY: window.scrollY,
+      moved: window.scrollY > startY,
+      scrollable: document.documentElement.scrollHeight > window.innerHeight + 1,
+      docHeight: document.documentElement.scrollHeight,
+      innerHeight: window.innerHeight,
     }
   })
   await page.waitForTimeout(400)
@@ -173,7 +191,26 @@ for (const [w, h] of VIEWPORTS) {
       display: getComputedStyle(bar).display,
       barTop: bar.getBoundingClientRect().top,
       lastContentBottom: last.getBoundingClientRect().bottom,
-      priceVisible: !!document.querySelector('.detail__mobile-bar-rent'),
+      /**
+       * ⚠️ 2026-08-22 终审第 3 轮修：原判据是 `!!querySelector(...)`——量的是**存在性**
+       * 不是可见性，于是 768/1440/1920（底栏 `display:none`）也全记成 true；
+       * 而且只在滚到页尾之后采一次，报告里那句「375 页首 priceVisible=false」
+       * 在 JSON 里根本没有对应采样点。
+       * 现在查「自身及全部祖先都没有 display:none / visibility:hidden / opacity:0，
+       * 且有面积、且在视口内」。**页首 + 页尾两次采样**见
+       * `final-fix-3/r2r3-task9-recheck.mjs`（本脚本只在页尾这一处用）。
+       */
+      priceVisible: (() => {
+        const el = document.querySelector('.detail__mobile-bar-rent')
+        if (!el) return false
+        for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+          const cs = getComputedStyle(n)
+          if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false
+        }
+        const r = el.getBoundingClientRect()
+        return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight
+      })(),
+      priceElementPresent: !!document.querySelector('.detail__mobile-bar-rent'),
       regionLabels: Array.from(document.querySelectorAll('[role="region"]')).map((el) =>
         el.getAttribute('aria-label'),
       ),
@@ -181,8 +218,9 @@ for (const [w, h] of VIEWPORTS) {
   })
 
   // ── 3. 价格面议 ────────────────────────────────────────────────────────
-  await page.goto(`${ORIGIN}/listings/${NO_PRICE}`, { waitUntil: 'networkidle' })
+  const noPriceSentinel = await gotoChecked(page, `${ORIGIN}/listings/${NO_PRICE}`)
   r.noPrice = {
+    sentinel: noPriceSentinel,
     overflow: await overflow(page),
     priceText: await page.evaluate(
       () => document.querySelector('.dt-decision__price-num')?.textContent ?? null,
@@ -201,8 +239,9 @@ for (const [w, h] of VIEWPORTS) {
   await page.screenshot({ path: `${OUT}/task9-noprice-${w}.png`, fullPage: true })
 
   // ── 4. 无坐标：周边与交通整段不渲染，且不留空白 ────────────────────────
-  await page.goto(`${ORIGIN}/listings/${NO_COORD}`, { waitUntil: 'networkidle' })
+  const noCoordSentinel = await gotoChecked(page, `${ORIGIN}/listings/${NO_COORD}`)
   r.noCoord = {
+    sentinel: noCoordSentinel,
     overflow: await overflow(page),
     locationSection: await page.evaluate(() => document.querySelectorAll('#location').length),
     // 描述段底 → 所在楼盘段顶 的间距应恰好是一份 --dt-sec，没有多出的空段
@@ -220,9 +259,13 @@ for (const [w, h] of VIEWPORTS) {
   await page.screenshot({ path: `${OUT}/task9-nocoord-${w}.png`, fullPage: true })
 
   // ── 5. prefixed 路由无回归（同一组件，只有 basePath / JSON-LD 不同）──────
-  await page.goto(`${ORIGIN}/shanghai/listings/${MAIN}`, { waitUntil: 'networkidle' })
+  // ⚠️ 2026-08-22 终审第 3 轮修：这里原本写死 `status: 'rendered'`，**从不读 page.goto()
+  // 的返回码**——404 也会记成 'rendered'。现在走共享哨兵（`lib/sentinel.mjs`：
+  // 状态码 + 该路由族的关键选择器），产物里记的是真状态码。
+  const prefixedSentinel = await gotoChecked(page, `${ORIGIN}/shanghai/listings/${MAIN}`)
   r.prefixed = {
-    status: 'rendered',
+    sentinel: prefixedSentinel,
+    status: prefixedSentinel.status,
     overflow: await overflow(page),
     breadcrumbHrefs: await page.evaluate(() =>
       Array.from(document.querySelectorAll('.breadcrumb a')).map((a) => a.getAttribute('href')),

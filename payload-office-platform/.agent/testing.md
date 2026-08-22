@@ -61,6 +61,46 @@ pnpm build
   （实例：5 条 `/listings?district=<slug>` 全塌进已被导航预取的 `/listings`，整整 5 条收益在证据里消失）。
   只剥框架自己的指纹参数（如 `_rsc`），其余 query 保留。
 
+### HTML / 像素逐字节比对：必须「热 vs 热」并配噪声本底对照组
+
+「改前改后一个字节都没变」这类硬约束，只有把**本底噪声**一起量出来才成立。OPT-037 实测到的三类噪声：
+
+- **RSC flight 载荷的切块边界每次都不一样。** `<script>self.__next_f.push([...])</script>` 是同一份 DOM
+  的第二份序列化，Next 按到达时机切块，**同一个构建连抓两次切块数就不同**。比 DOM 就整段剔除、
+  连续多段折叠成一段再比；比不了就别把它算进「diff 行数」。
+- **高德 POI 子树是非确定性的。** 「周边配套」走高德 Web 服务 + 进程内 24h 缓存
+  （`domain/location-services/cache.ts`：失败不写缓存，下次重试）。冷启动首个请求偶发某个类别拿不到，
+  那条一级 tab 乃至整个 `.location-panel__poi-panel` 就不渲染，HTML 少 6KB，页高抖 280px 以上。
+  **取样前每条 URL 先预热 3 次**，冷抓 vs 热抓比出来的差异一律不算数。
+- **构建指纹**（chunk hash / BUILD_ID）与逐请求数据（`data-supply-as-of`）必须归一。
+
+因此：**两侧都要热抓**，并且必须另跑一组「同一个构建连抓两次」的对照。对照组的差异量就是本底；
+改前改后的差异不大于本底时，「没变」才是结论而不是运气。
+POI 遮罩（`--mask-poi`）是对的解药，但它会**一并吞掉真发生在面板内部的回归**——
+用它就必须配「两侧面板都存在」的对照，两侧存在性不一致时**拒绝出结论**（冷抓与「面板被改没了」在遮罩下不可区分）。
+像素比对同理：两图页高不等时按 `Math.min` 裁齐会**稀释差异率**，只在一侧存在的像素要按「差异」计。
+
+### 「页面真的渲染了」要做成脚本里的断言，不是人的自觉
+
+OPT-037 把它抽成了一份共享哨兵：`../artifacts/verification/OPT-037/lib/sentinel.json`（判据唯一事实源：
+状态码 + 每个路由族的关键选择器/标记）+ `sentinel.mjs` / `sentinel.py` / `sentinel.sh` 三个薄读取器
+（Playwright / difflib / curl 三种运行时无法共用代码，但**判据只有一份**）。
+新写验证脚本时**引用它，不要各写一份**——这批「同一逻辑多处」已经栽过八次，
+截图循环不记状态码正是「四档 0 差异像素」那条假结论的直接成因。
+
+### 本地 `next start` 的两条环境事实（照文档传参会白传）
+
+- **`CI=1` 是真开关**：`lib/storage/cos-config.ts:86` 用它豁免 COS 检查。不设就是
+  `config-guard` fail-closed，症状是「一部分路由 404、一部分 200」（实测 `/listings`、
+  `/listings/<slug>`、`/buildings` 全 404，而 `/buildings/<slug>`、`/news` 仍 200——
+  别按「房源全红楼盘全绿」这句去归因，实际分布比那句更乱）。
+- **`NEXT_PUBLIC_SITE_URL` 在 `next start` 时传是没用的**：`lib/frontend/site-config.ts` 读的是
+  静态成员表达式 `process.env.NEXT_PUBLIC_SITE_URL`，Next 在 **`next build` 时把它内联成字面量**
+  （实测编译产物里是 `let b="http://localhost:3717"`，来自工作树 `.env.local`）。
+  所以页面渲染出来的 canonical / JSON-LD `url` / OG 的 **origin 恒等于构建时的值**，
+  **断言只能打在 path 上**。它在 `next start` 时唯一还起作用的地方是
+  `lib/runtime/config-guard.ts`——那边把整个 `process.env` 当对象传进去，是运行时读。
+
 补两条同源的采样纪律：
 
 - **断言要打在缺陷区内，不要打在「恰好还能用的那一半」。** Playwright 的 `click()` 默认打元素中心；
@@ -89,8 +129,14 @@ pnpm build
 - **本地库夹具厚薄不同会改变结论**：并行 worktree 各自的隔离库房源数、媒体数都不一样，
   「master 上就坏的」「本地没跑 seed:media」这类归因在换库后可能整个不成立。
   写进记忆的环境断言要标注实测日期，被当作硬性指令前必须重新实测。
-- **`unstable_cache` 持久化在 `.next/dev/cache/fetch-cache`，重启 dev server 并不清它**——
-  改库后要在前台看见变化：删该目录**再**重启，两步缺一不可。否则连着三次「状态走查」拿到的是同一份基线数据。
+- **`unstable_cache` 落盘到磁盘，重启 server 并不清它**——改库后要在前台看见变化：
+  删缓存目录**再**重启，两步缺一不可。否则连着三次「状态走查」拿到的是同一份基线数据。
+  ⚠️ **目录别照抄，先 `ls`**（2026-08-22 终审订正，原文写死 `.next/dev/cache/fetch-cache`）：
+  Next 的实现是 `path.join(serverDistDir, '..', 'cache', 'fetch-cache')`
+  （`next/dist/server/lib/incremental-cache/file-system-cache.js:318`），**随 dev / prod 的
+  distDir 变化**。本工作树实测：`next build` + `next start` 落在 **`.next/cache/fetch-cache`**，
+  而 `.next/dev/cache/` 下只有 `turbopack`。照一个写死的路径去删，很可能什么都没删，
+  症状恰好是「删了缓存还是旧数据」。
 - 外部脚本复现不出来的 e2e 失败，差异往往在 fixture / `beforeEach`（例：`route.abort()` 自己会记一条
   `net::ERR_FAILED` 到 console，被 `afterEach` 的控制台守卫拦下）。**直接在 `tests/e2e` 里放一个临时 spec、
   跑完即删**，在真实 runner 里抓，比继续猜便宜。
