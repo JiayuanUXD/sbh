@@ -171,6 +171,211 @@
   text-align: center; text-wrap: pretty; color: var(--ink-2);
 }
 
+/* ── 价值点主栏（Task 3） ─────────────────────────────────────────────────
+ * 稿子 城市招募页.dc.html:80-91（方案 A 左栏）。
+ * 主栏宽 552 不在此声明——它由 `.rc-core` 的 minmax(0,1fr) 推导，见上文。
+ *
+ * h2 **不在这里定义**：节点上挂 `.hm-h2`（home.css:26 的 40/600/1.10，
+ * 且 ≤767 已有一档 32，home.css:64-67）。稿子的 h2 与首页 section h2 逐项同值，
+ * 重抄一遍就是同一个排版决定的第二个事实源；Task 4 的商圈段 h2 还要用第三次。
+ * ⚠️ 已知命名瑕疵：这个「全站 section 标题」基元现在住在 home.css 里、带 `hm-`
+ * 前缀，被首页 7 处 + 招募页复用。正解是提升成 surface.css 的共享基元
+ * （连同 ≤767 那档一起搬），但那要动已上线首页 7 个组件的渲染路径，
+ * 不属于本任务范围——已记入 Task 3 报告，留给 Task 6 文档回写点名。 */
+.rc-vp { display: flex; flex-direction: column; gap: 48px; }
+
+/* 稿子:83「条与条 40」；`<ol>` 的浏览器默认 list-style / padding 要显式清掉。
+   用 ol 而不是 div：三条价值点带 01/02/03 序号，顺序本身是语义。 */
+.rc-vp__list { margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 40px; }
+
+/* 条顶 hairline + padding-top 20（稿子:85）。注意稿子是**每条都有顶线**
+   （含第一条），不是「只在条与条之间」——第一条的顶线同时充当 h2 与列表的
+   分隔，去掉它 h2 下方会突然空一块。 */
+.rc-vp__item { display: flex; flex-direction: column; gap: 12px;
+  padding-top: 20px; border-top: 1px solid var(--line); }
+
+/* 序号 14/600 --ink-3（稿子:86）。tabular-nums **不写在这里**：节点上挂
+   `.sf-num`（surface.css），全站数字一份声明，见本文件头。 */
+.rc-vp__no { font-size: 14px; font-weight: 600; color: var(--ink-3); }
+.rc-vp__name { font-size: 24px; font-weight: 600; line-height: 1.2;
+  letter-spacing: normal; color: var(--ink); }
+.rc-vp__body { font-size: 17px; line-height: 1.47; color: var(--ink-2);
+  text-wrap: pretty; }
+
+/* ── sticky 表单卡（Task 3） ──────────────────────────────────────────────
+ * 被改造的是既有组件 `CityPartnerApplicationForm`（类名写死、且被
+ * `ComingSoonCityView.tsx:145` 共用、挂在 4 条城市路由上）。所以本节全部
+ * 选择器都以 `.rc-page` 起头：
+ *   1. 特异度 (0,2,0)+ 压得住 styles.css 里 `.city-partner-form*` 的 (0,1,0) 基态；
+ *   2. 作用域夹死在招募页外壳内——**在 Task 5 把某个消费面接进 `.rc-page`
+ *      之前，这一整节对它零影响**，不存在「改外观顺手改了别的路由」。
+ *
+ * 卡片**表面**（白底 · 零边框 · radius 18 · padding 40）不在本文件，
+ * 已并入 detail.css 的 `.dt-panel` 选择器组——稿子的表单卡是「白底 radius 18、
+ * 无阴影、无 hover」，与 `.dt-panel` 逐项相同，而与 `.sf-card`（自带 --shadow
+ * 与 hover -2px）冲突；那正是当初单列 `.dt-panel` 的同一个原因。
+ * 这里只放本页专属的**内部布局与控件外观**。
+ *
+ * 卡宽 400 与 `sticky top 68` 也不在本节：前者是 `.rc-core` 的 `--rc-side`
+ * 轨道宽，后者在 `.rc-aside`（含「为何是 68 而非详情页 116」的说明）。
+ * 表单只管填满给它的格子。 */
+.rc-page .city-partner-form,
+.rc-page .city-partner-form__success {
+  display: flex; flex-direction: column;
+  /* 字段间距 20（稿子:94 `gap:20`）。styles.css 给的是 grid + gap 24。 */
+  gap: 20px;
+  /* 复位 styles.css `.city-partner-form` 自带的 --shadow-sm。
+     这不属于「白底面板表面」那个共享决定（`.dt-panel` 的三个消费方都没有
+     阴影要复位），所以留在本页这一节，不并进 detail.css 那条规则。 */
+  box-shadow: none;
+}
+
+/* 卡内标题区：稿子:92-93「标题 24/600/1.2 · 副标 margin-top 8 / 14 / 1.43 / --ink-2」。
+   header 的 margin-bottom 12 + 表单 gap 20 = 稿子:94「字段区 margin-top 32」；
+   12 是为了不把 32 抄成第二个字面量而算出来的差值，不是自选值。 */
+.rc-page .city-partner-form > header,
+.rc-page .city-partner-form__success { display: flex; flex-direction: column; gap: 8px; }
+.rc-page .city-partner-form > header { margin-bottom: 12px; }
+.rc-page .city-partner-form header h2,
+.rc-page .city-partner-form__success h2 {
+  margin: 0; font-size: 24px; font-weight: 600; line-height: 1.2;
+  letter-spacing: normal; color: var(--ink);
+}
+.rc-page .city-partner-form header p,
+.rc-page .city-partner-form__success p {
+  margin: 0; font-size: 14px; line-height: 1.43; color: var(--ink-2);
+}
+
+/* 「第一步 · 必填」步骤标记。styles.css:1151-1156 把它与页面眉标并成一组，
+   给了 `--color-copper-hover`（彩色）+ `letter-spacing: .12em`（中文加字距）
+   ——本页两条都不成立：标签零色相、中文 letter-spacing 一律 normal。
+   参数取 12/500，与 `.rc-hero__eyebrow` 同档但**不共用类**：那个是带底色的
+   pill，这个是裸文字，只有字号字重巧合相同，不是同一个东西。 */
+.rc-page .city-partner-form__step {
+  font-size: 12px; font-weight: 500; line-height: 1.33;
+  letter-spacing: normal; color: var(--ink-3);
+}
+
+/* 字段：label → 控件 8（稿子:96 每个 <label> 的 `gap:8`）；label 14/400 --ink-2。 */
+.rc-page .city-partner-form .field { gap: 8px; }
+.rc-page .city-partner-form .field__label {
+  font-size: 14px; font-weight: 400; letter-spacing: normal; color: var(--ink-2);
+}
+
+/* 错误提示：styles.css 给的是 `--color-danger-soft`(#f7e3d8) 暖底色块，
+   在中性极简的白卡里会是全页唯一的暖色。降成纯文字，保留 --error 的字色
+   （#bf4800 在白底 5.4:1，过 AA）与 role="alert"，只去掉底色与内边距。 */
+.rc-page .city-partner-form .field__error {
+  padding: 0; background: none; border-radius: 0;
+  font-size: 13px; line-height: 1.4; color: var(--error);
+}
+
+/* 输入框：specRows「高 44 · padding 0/14 · radius 8 · 1px --line-strong」。
+   :not(.filter-bar__textarea) 把多行框排除在定高之外——第二步的两个
+   textarea 与 Input 共用 `.filter-bar__input` 类名，定高会把它压成一行。 */
+.rc-page .city-partner-form .filter-bar__input:not(.filter-bar__textarea),
+.rc-page .city-partner-form .filter-bar__select {
+  height: 44px; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-input);
+  background: var(--bg-subtle); color: var(--ink);
+  font-size: 17px; font-weight: 400; letter-spacing: normal;
+}
+.rc-page .city-partner-form .filter-bar__textarea {
+  padding: 12px 14px; border: 1px solid var(--line-strong);
+  border-radius: var(--r-input); background: var(--bg-subtle); color: var(--ink);
+  font-size: 17px; line-height: 1.47; letter-spacing: normal;
+}
+/* hover / focus / invalid 都要在本作用域重述一遍：styles.css 里它们是
+   (0,2,0) / (0,1,0)，被上面的 (0,3,0) 基态压过去后会**静默失效**。
+   这不是复制样式，是补齐被自己的覆写打断的状态链——漏写等于删掉 hover 反馈。 */
+.rc-page .city-partner-form .filter-bar__input:hover,
+.rc-page .city-partner-form .filter-bar__select:hover { border-color: var(--ink-2); }
+/* focus：specRows「边框 accent + 0 0 0 4px rgba(0,113,227,.18)」——后者正是
+   既有 token `--focus-ring`（styles.css:35，逐位相同），不写字面量。 */
+.rc-page .city-partner-form .filter-bar__input:focus-visible,
+.rc-page .city-partner-form .filter-bar__select:focus-visible {
+  outline: none; border-color: var(--accent); box-shadow: var(--focus-ring);
+}
+.rc-page .city-partner-form .filter-bar__input--invalid,
+.rc-page .city-partner-form .filter-bar__select--invalid { border-color: var(--error); }
+
+/* 下拉箭头：稿子只写了 `appearance:none`，等于**没有箭头**——那会让 select
+   看起来和单行输入框一样、失去可展开的提示。保留 styles.css 那个既有的三角
+   background-image，只把它的位置从 var(--sp-3)(12) 挪到与新内边距同齐的 14，
+   并把右内边距让回来（上面的 `padding: 0 14px` 会覆盖掉原来的
+   `padding-right: var(--sp-6)`，不补这一行文字就会压在箭头上）。 */
+.rc-page .city-partner-form .filter-bar__select {
+  padding-right: 36px; background-position: right 14px center;
+}
+
+/* 同意行：稿子:118-121 是「裸复选框 18×18 + 12/1.33 --ink-3 说明」，
+   styles.css 给的是带 1px 边框的可点区块。去掉边框与内边距，保留 44 的触控
+   高度（styles.css:1204-1209 那条 min-height 的意图）与 :focus-within 轮廓
+   （未在此重述，仍由 styles.css:1247-1250 生效）。 */
+.rc-page .city-partner-form__consent {
+  align-items: flex-start; gap: 10px; min-height: 44px;
+  padding: 4px 0 0; border: 0; border-radius: 0;
+}
+.rc-page .city-partner-form__consent input {
+  width: 18px; height: 18px; margin-top: 2px; flex: none;
+  /* 稿子写的是字面 #0071e3，那正是 --accent。 */
+  accent-color: var(--accent);
+}
+.rc-page .city-partner-form__consent span {
+  font-size: 12px; line-height: 1.33; color: var(--ink-3);
+}
+/* 隐私说明里的链接：跟着 12px 正文走同一档字号，只保留可点色。 */
+.rc-page .city-partner-form__consent a { color: var(--accent-link); }
+
+/* 主 CTA：specRows「pill · 高 44 · 17px · accent 底」。
+   底色/字色本来就是 --accent / --on-accent（styles.css 的 `.btn--primary`
+   走的是它们的 1.1b 别名），这里改的是**形状与字号**：radius 12 → pill、
+   字号字重 14/600 → 17/400。 */
+.rc-page .city-partner-form .btn--primary {
+  height: 44px; min-height: 44px; padding: 0 22px; border: 0;
+  border-radius: var(--r-pill);
+  font-size: 17px; font-weight: 400; letter-spacing: normal;
+}
+
+/* 第二步的「暂不补充，完成申请」。specRows「次级按钮 pill · padding 11/21 ·
+   1px --line-strong」——参数照该行，但**不抽公共类**：第二个消费方
+   （Task 5 的次要入口按钮）现在还不存在，此刻抽就是为复用而制造一次使用
+   （同 `.rc-hero__eyebrow` 与「状态标签」那条的处理）。
+   Task 5 落地次要入口时应把两处收敛成一个类，并把本选择器并进去。 */
+.rc-page .city-partner-form__skip {
+  min-height: 44px; padding: 11px 21px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+  background: none; color: var(--ink);
+  font-size: 17px; font-weight: 400; letter-spacing: normal;
+}
+.rc-page .city-partner-form__actions { gap: 12px; }
+
+/* 第二步 · 可选（提交成功后才出现，见 CityPartnerApplicationForm 的 stage-two
+   分支）。它与第一步共用同一张卡，所以也要按卡宽收敛。 */
+.rc-page .city-partner-form__fieldset legend {
+  margin-bottom: 8px; font-size: 14px; font-weight: 400;
+  letter-spacing: normal; color: var(--ink-2);
+}
+/* 卡内可用宽度 = 400 − 40×2 = 320，两列各 156。最长的资源标签
+   「政府/商协会资源」在 15px 下约 120，加 18 的复选框 + 10 的 gap + 28 的
+   左右内边距已是 176 > 156，两列必然参差折行。收成单列。 */
+.rc-page .city-partner-form__checks { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.rc-page .city-partner-form__checks label {
+  align-items: center; gap: 10px; min-height: 44px; padding: 0 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-input);
+  font-size: 15px; letter-spacing: normal; color: var(--ink);
+}
+.rc-page .city-partner-form__checks input {
+  width: 18px; height: 18px; flex: none; accent-color: var(--accent);
+}
+
+/* 提交进度行。min-height 保留（styles.css 的 1.5em 占位防止「正在安全保存
+   申请…」出现/消失时整卡跳动），只换字号与色阶。 */
+.rc-page .city-partner-form__status {
+  font-size: 13px; line-height: 1.4; color: var(--ink-3);
+}
+
 /* ── 断点 ─────────────────────────────────────────────────────────────────
  * 两栏塌单栏 + 取消 sticky 的断口取 1023（与 `.dt-core` 同口径，detail.css:76-78）。
  * 不能等到 767：768–1023 之间主栏只剩 736 − 72 − 400 ≈ 264，价值点正文会碎成

@@ -38,17 +38,32 @@
   column-gap: 32px; row-gap: 0; align-items: start; }
 
 /* 白底面板表面（底 --bg-subtle · 零边框 · radius --r-card）的**唯一**声明处。
- * 三个「组件类名写死、不换皮」的消费方并进本选择器组，而不是各写一份同样的
+ * 「组件类名写死、不换皮」的消费方并进本选择器组，而不是各写一份同样的
  * 三行（终审 V3：同一个视觉决定曾有 4 个事实源）。选择器组里每一支各自保留
  * 自己的特异度，`.dt-page .detail-side-rail__card` 仍是 (0,2,0)，不影响覆写。
  *   - `.location-panel__poi-panel`：LocationPanel 的清单面板；
- *   - `.dt-page .detail-side-rail__card`：密度表下方的留资带。
- * 两者各自的**尺寸/布局**（高度、padding、flex）仍在下方各自的小节里，
+ *   - `.dt-page .detail-side-rail__card`：密度表下方的留资带；
+ *   - `.rc-page .city-partner-form(__success)`：OPT-038 招募页的 sticky 表单卡
+ *     （Task 3 并入）。稿子给的是「白底 · radius 18 · **无阴影、无 hover**」，
+ *     与 `.dt-panel` 逐项相同，而与 `.sf-card`（自带 --shadow + hover -2px）冲突
+ *     ——正是当初单列 `.dt-panel` 的同一个原因，所以复用它、**不在 recruit.css
+ *     里另造第三种白面板**。`CityPartnerApplicationForm` 的类名写死且被 4 条城市
+ *     路由共用，改不了它的 class，只能像上面两支一样按祖先作用域并进来。
+ *     `.rc-page` 前缀把作用域夹死在招募页：(0,2,0) 压得住 styles.css 里
+ *     `.city-partner-form` 的旧表面 (0,1,0)，又不会外溢到还没接线的消费面。
+ * 各自的**尺寸/布局**（高度、flex、栅格）仍在各自的小节里
+ * （招募页那份在 recruit.css 的 `.rc-page .city-partner-form` 一段），
  * 只有「白底卡片表面」这一件事收敛到这里。 */
 .dt-panel,
 .location-panel__poi-panel,
-.dt-page .detail-side-rail__card { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
-.dt-panel--full { padding: 40px; }
+.dt-page .detail-side-rail__card,
+.rc-page .city-partner-form,
+.rc-page .city-partner-form__success { background: var(--bg-subtle); border: 0; border-radius: var(--r-card); }
+/* padding 40 同理：specRows「方案 A 表单卡 400 宽 · **padding 40** · radius 18」
+   与 `.dt-panel--full` 是同一个数，不再抄一遍字面 40。 */
+.dt-panel--full,
+.rc-page .city-partner-form,
+.rc-page .city-partner-form__success { padding: 40px; }
 .dt-panel--side { padding: 32px; }
 
 /* 规格表（§R1）：右列右对齐 + tabular-nums + 500；行线 1px，末行无线 */

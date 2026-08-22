@@ -2,7 +2,20 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import React from 'react'
 
+import CityPartnerApplicationForm from '@/components/frontend/city-partner/CityPartnerApplicationForm'
 import RecruitHero from '@/components/frontend/city-partner/RecruitHero'
+import RecruitValueProps from '@/components/frontend/city-partner/RecruitValueProps'
+import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
+
+/**
+ * 表单预览用的城市 fixture（不读 Payload，符合本页「所有数据为 fixture」的约定）。
+ * 两项而非一项：城市下拉必须能真的展开选择，否则「申请城市」这一档外观走查
+ * 只能看到一个恒定单选项。
+ */
+const PREVIEW_CITIES: readonly PublicCityOption[] = [
+  { slug: 'hangzhou', name: '杭州', serviceStatus: 'coming-soon', sortOrder: 20 },
+  { slug: 'shanghai', name: '上海', serviceStatus: 'live', sortOrder: 10 },
+]
 
 /**
  * OPT-038 城市招募页组件预览（仅开发环境）
@@ -106,7 +119,7 @@ export default function Opt038PreviewPage() {
           仅开发环境可见。Task 1 骨架：容器 <code>1024</code>、正文栏宽上限 <code>702</code>、
           方案 A 两栏 <code>552 / 400</code> 列间 <code>72</code>、section padding-block{' '}
           <code>72</code>（段间 <code>144</code>）、表单卡 <code>sticky top 68</code>。
-          Task 2 起 Hero 已是真组件（三档文案并排）。虚线框是留给 Task 3–5 的槽位。
+          Task 2 起 Hero、Task 3 起价值点与表单卡已是真组件。虚线框是留给 Task 4–5 的槽位。
           本页会出现多个 <code>h1</code>（外壳一个 + 每档 Hero 一个），
           这是并排预览的必然结果，<strong>不是</strong>真实路由的形态——
           真实页面每页只有一个 h1（<code>tests/city-partner-page-seo.test.ts:37</code> 锁着）。
@@ -146,22 +159,38 @@ export default function Opt038PreviewPage() {
       </PreviewSection>
 
       <PreviewSection
-        id="rc-skeleton-core"
-        title="骨架 · 方案 A 两栏（.rc-core / .rc-aside）"
-        note="灰底带（本项目 --bg）· 主栏 minmax(0,1fr) 推导为 552 · 表单卡列定宽 400 · 列间 72 · 右列 sticky top calc(44+24)=68。主栏占位刻意做高，向下滚动即可看到粘附行为；≤1023 塌单栏并取消 sticky。"
+        id="rc-core"
+        title="方案 A 两栏 · 价值点 + sticky 表单卡（RecruitValueProps / CityPartnerApplicationForm）"
+        note="灰底带（本项目 --bg）· 主栏 minmax(0,1fr) 推导为 552 · 表单卡列定宽 400 · 列间 72 · 右列 sticky top calc(44+24)=68（本页无 56 吸附条，故不是详情页的 116）。表单是真组件：提交链路一行未改，只在 .rc-page 作用域内换外观。主栏下方补了占位块把左列拉高，否则左列比卡还矮、sticky 无位移余量（那不是失效，是 sticky 的定义）。≤1023 塌单栏并取消 sticky。"
       >
         <div className="rc-section rc-section--band">
           <div className="rc-container">
             <div className="rc-core">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-                <Slot label="Task 3 · h2「我们带给合伙人什么」+ 3 条价值点（序号 .sf-num · 条间 hairline）" minHeight={200} />
-                <Slot label="主栏占位（拉高以验证右列粘附区间）" minHeight={320} />
+                <RecruitValueProps titleId="rc-core-title" />
+                <Slot label="主栏占位（拉高以验证右列粘附区间；正式页面由商圈段等真实内容承担）" minHeight={320} />
                 <Slot label="主栏占位（拉高以验证右列粘附区间）" minHeight={320} />
               </div>
               <aside className="rc-aside">
-                <Slot label="Task 3 · 表单卡 400 宽 · padding 40 · radius 18 · sticky top 68（本页无 56 吸附条，故不是详情页的 116）" minHeight={420} />
+                <CityPartnerApplicationForm
+                  cities={PREVIEW_CITIES}
+                  initialCity="hangzhou"
+                  invalidExplicitCity={false}
+                />
               </aside>
             </div>
+          </div>
+        </div>
+      </PreviewSection>
+
+      <PreviewSection
+        id="rc-vp-empty"
+        title="价值点 · 空态（points 传空数组）"
+        note="整段不渲染——连 h2 都不留，避免出现一个只剩标题的空货架。下方除了本外壳的标题与分隔线之外应当空无一物。"
+      >
+        <div className="rc-section rc-section--band">
+          <div className="rc-container">
+            <RecruitValueProps points={[]} />
           </div>
         </div>
       </PreviewSection>
