@@ -61,6 +61,19 @@ describe('validateListingRow', () => {
     expect(r.ok === false && r.errors.some((e) => e.code === 'RENT_UNIT_UNKNOWN')).toBe(true)
   })
 
+  it('租金写成总价（如「80万」）判为错误行，不能一路通过预检——评审 Task 7 第 1 轮 Important 3', () => {
+    const r = validateListingRow({ ...goodRow, 租金: '80万' }, 2, ctx)
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.errors.some((e) => e.code === 'RENT_UNIT_UNSUPPORTED')).toBe(true)
+  })
+
+  it('RENT_UNIT_UNKNOWN 的提示不再教运营写会必炸的「万」格式', () => {
+    const r = validateListingRow({ ...goodRow, 租金: '4.5' }, 2, ctx)
+    expect(r.ok).toBe(false)
+    const unknown = r.ok === false && r.errors.find((e) => e.code === 'RENT_UNIT_UNKNOWN')
+    expect(unknown && unknown.message).not.toMatch(/万/)
+  })
+
   it('楼盘匹配不到即错误行，绝不自动建楼盘', () => {
     const r = validateListingRow({ ...goodRow, 楼盘编号或标识: '不存在大厦' }, 2, ctx)
     expect(r.ok).toBe(false)

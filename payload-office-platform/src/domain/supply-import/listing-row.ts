@@ -170,6 +170,11 @@ export function validateListingRow(row: RawRow, rowNumber: number, ctx: RowConte
   }
 
   // --- 租金 ---
+  // parseRent 还会识别「80万」这类总价写法，产出 unit:'rmb-total'——但 Listings
+  // 集合落库的旧版 rentUnit 字段只有元/㎡/天、元/月、元/工位/月三个取值（真实取值域
+  // 见 domain/supply-import/import-task.ts 的 isLegacyRentUnit），rmb-total 传下去
+  // 必炸。评审 Task 7 第 1 轮 Important 3：这类行必须在预检层就判为错误行，不能让
+  // 运营点了执行、同批其它行都上架了才在写入层爆——那是最坏的失败时机。
   const rentRaw = String(row['租金'] ?? '')
   const rent = parseRent(rentRaw)
   if (rent === null) {
@@ -178,7 +183,15 @@ export function validateListingRow(row: RawRow, rowNumber: number, ctx: RowConte
       column: '租金',
       rawValue: rentRaw,
       code: 'RENT_UNIT_UNKNOWN',
-      message: '租金单位无法识别，请填写如「4.5元/㎡/天」「8000元/月」「1.5万元」这类带单位的写法',
+      message: '租金单位无法识别，请填写如「4.5元/㎡/天」「8000元/月」「1500元/工位/月」这类带单位的写法',
+    })
+  } else if (rent.unit === 'rmb-total') {
+    errors.push({
+      rowNumber,
+      column: '租金',
+      rawValue: rentRaw,
+      code: 'RENT_UNIT_UNSUPPORTED',
+      message: '租金列不支持总价写法（如"80万"），请改用元/㎡/天、元/月或元/工位/月这三种单价写法',
     })
   }
 

@@ -414,6 +414,80 @@ function toValidListingRow(value: unknown): ValidListingRow | null {
 }
 
 // ────────────────────────────────────────────────────────────
+// affectedIds / writeErrors 的持久化辅助（评审 Task 7 第 1 轮 Critical 1 + Important 2）
+//
+// Critical 1：崩溃/实例回收后 recoverStaleSupplyImportJobs 会把陈旧 job 重新放回队列，
+// 同一 batchId 的 handler 会再跑一次。整批重跑对行写入本身是幂等安全的（语义 1），
+// 但如果每次 handler 进来都把 affectedIds 从空数组重新累积、再整体覆盖批次字段，
+// 会在下面两种情况下把已经持久化的锚点冲掉：
+//   1) 重跑尚未跑完所有分片就再次崩溃——本次已写的分片数比上次少，覆盖后批次字段
+//      比真实情况小；
+//   2) 某一行在上次成功、这次因为外部条件变化（比如引用的楼盘被删）转为失败——
+//      它对应的已上架房源仍然真实存在，但这次的 chunkResult 不会再产出它的 id，
+//      覆盖式写入会让这个真实存在、正在前台可见的对象永久丢失回滚锚点。
+// 修法：handler 开始时把批次里已持久化的 affectedIds 读出来做种子，此后只做并集
+// 合并（去重、保持已存在项在前），不再整体覆盖——已经落库的锚点只增不减。
+//
+// Important 2：chunkResult.errors 此前直接丢弃，运营只能看到 stats.failed 的数字，
+// 看不到具体是哪几行、为什么失败。这里把错误累积进 rowErrors 这个既有 json 字段的
+// 一个新增子键 writeErrors，与 Task 6 预检阶段写入的 errors/rawRows/rawRowNumbers
+// 并列、互不覆盖——预检错误是"这行数据本身不合法"，写入错误是"数据合法但落库时
+// 出了别的问题（比如并发下彻底失败、引用对象不存在）"，语义不同不能混在一个数组里。
+// writeErrors **不做跨次运行的并集**：不同于 affectedIds（丢了等于丢失真实存在的
+// 回滚锚点），错误信息反映的是"当前这次运行观察到的问题"，跨次保留旧错误反而可能
+// 误导运营去修一个这次其实已经不存在的问题；每次运行以本次结果整体覆盖 writeErrors，
+// 这一点在 Task 8 消费前必须清楚：writeErrors 是"最近一次运行的快照"，不是历史累计。
+// ────────────────────────────────────────────────────────────
+
+interface PersistedWriteError {
+  externalId: string
+  message: string
+}
+
+function isIdValue(value: unknown): value is number | string {
+  return typeof value === 'number' || typeof value === 'string'
+}
+
+/** 从批次的 json 字段里安全取出已持久化的 affectedIds（结构可能损坏/为空）。 */
+function toIdArray(value: unknown): Array<number | string> {
+  if (!Array.isArray(value)) return []
+  return value.filter(isIdValue)
+}
+
+/** 并集合并：已存在的项保持原有顺序在前，新增项按出现顺序追加，去重。 */
+function mergeIds(
+  existing: ReadonlyArray<number | string>,
+  incoming: ReadonlyArray<number | string>,
+): Array<number | string> {
+  const seen = new Set(existing.map(String))
+  const merged = [...existing]
+  for (const id of incoming) {
+    const key = String(id)
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(id)
+  }
+  return merged
+}
+
+/** 批次 rowErrors 是自由 json 字段；取出既有对象形态（非对象/数组时按空对象处理），
+ * 好让本次写入只替换 writeErrors 这一个子键，不动 Task 6 预检阶段写的其它键。 */
+function toRowErrorsRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+/** 行结构守卫失败时（json 字段被外部写坏），尽量取出 externalId 供错误列表定位；取不到就给占位。 */
+function extractExternalIdForError(raw: unknown): string {
+  if (typeof raw === 'object' && raw !== null) {
+    const externalId = (raw as Record<string, unknown>).externalId
+    if (typeof externalId === 'string' && externalId.trim() !== '') return externalId
+  }
+  return '(未知编号)'
+}
+
+// ────────────────────────────────────────────────────────────
 // TaskConfig：读批次 → running → 按 SUPPLY_IMPORT_CHUNK 分片写入 → 每片更新 stats →
 // 完成后 completed；任务整体抛错则 failed，但保留已写入的 affectedIds（Task 9 回滚锚点）。
 // ────────────────────────────────────────────────────────────
@@ -461,11 +535,21 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
 
     const rawRows = Array.isArray(batch.validRows) ? batch.validRows : []
     const rows: Array<ValidBuildingRow | ValidListingRow> = []
+    // Important 2：结构守卫失败的行也要有一条 writeErrors 记录，不能只在 stats.failed
+    // 里加一个数字却不说是哪一行。
+    const writeErrors: PersistedWriteError[] = []
     let structuralFailures = 0
     for (const raw of rawRows) {
       const row = batch.type === 'buildings' ? toValidBuildingRow(raw) : toValidListingRow(raw)
-      if (row) rows.push(row)
-      else structuralFailures += 1
+      if (row) {
+        rows.push(row)
+      } else {
+        structuralFailures += 1
+        writeErrors.push({
+          externalId: extractExternalIdForError(raw),
+          message: '批次行数据结构异常，请重新预检',
+        })
+      }
     }
 
     const stats: SupplyImportBatchStats = {
@@ -474,7 +558,14 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
       updated: 0,
       failed: structuralFailures,
     }
-    const affectedIds: Array<number | string> = []
+    // Critical 1：种子必须来自批次里已经持久化的 affectedIds，不能从空数组重新累积——
+    // 见上方大注释，整体覆盖会在崩溃重跑或行状态转失败时丢失已上架对象的回滚锚点。
+    let affectedIds: Array<number | string> = toIdArray(batch.affectedIds)
+
+    const persistRowErrors = (): Record<string, unknown> => ({
+      ...toRowErrorsRecord(batch.rowErrors),
+      writeErrors,
+    })
 
     try {
       for (let i = 0; i < rows.length; i += SUPPLY_IMPORT_CHUNK) {
@@ -489,13 +580,15 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
         stats.created += chunkResult.created
         stats.updated += chunkResult.updated
         stats.failed += chunkResult.failed
-        affectedIds.push(...chunkResult.affectedIds)
+        // Critical 1：并集合并，绝不整体覆盖——已持久化的锚点只增不减。
+        affectedIds = mergeIds(affectedIds, chunkResult.affectedIds)
+        writeErrors.push(...chunkResult.errors)
 
         // 分片进度：前端轮询靠 stats 显示进度。
         await payload.update({
           collection: 'supply-import-batches',
           id: batchId,
-          data: { stats, affectedIds },
+          data: { stats, affectedIds, rowErrors: persistRowErrors() },
           overrideAccess: true,
           req,
         })
@@ -506,7 +599,13 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
         .update({
           collection: 'supply-import-batches',
           id: batchId,
-          data: { status: 'failed', stats, affectedIds, finishedAt: new Date().toISOString() },
+          data: {
+            status: 'failed',
+            stats,
+            affectedIds,
+            rowErrors: persistRowErrors(),
+            finishedAt: new Date().toISOString(),
+          },
           overrideAccess: true,
           req,
         })
@@ -517,7 +616,13 @@ export const supplyImportTask: TaskConfig<SupplyImportTaskType> = {
     await payload.update({
       collection: 'supply-import-batches',
       id: batchId,
-      data: { status: 'completed', finishedAt: new Date().toISOString(), stats, affectedIds },
+      data: {
+        status: 'completed',
+        finishedAt: new Date().toISOString(),
+        stats,
+        affectedIds,
+        rowErrors: persistRowErrors(),
+      },
       overrideAccess: true,
       req,
     })

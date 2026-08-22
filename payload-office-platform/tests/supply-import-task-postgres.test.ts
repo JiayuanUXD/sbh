@@ -2,7 +2,11 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createLocalReq, getPayload, type Payload, type PayloadRequest } from 'payload'
 
 import config from '@/payload.config'
-import { runSupplyImportBatch } from '@/domain/supply-import/import-task'
+import {
+  SUPPLY_IMPORT_QUEUE,
+  SUPPLY_IMPORT_TASK,
+  runSupplyImportBatch,
+} from '@/domain/supply-import/import-task'
 
 const databaseAvailable =
   typeof process.env.DATABASE_URL === 'string' && process.env.DATABASE_URL.startsWith('postgres')
@@ -10,7 +14,11 @@ const databaseAvailable =
 describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
   let payload: Payload
   let buildingId: number | string
+  let cityId: number | string
+  let districtId: number | string
   const createdListingIds: Array<number | string> = []
+  const createdBuildingIds: Array<number | string> = []
+  const createdBatchIds: Array<number | string> = []
 
   beforeAll(async () => {
     payload = await getPayload({ config })
@@ -21,11 +29,34 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
       overrideAccess: true,
     })
     buildingId = building.docs[0].id
+
+    const district = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'district' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    districtId = district.docs[0].id
+    const city = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'city' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    cityId = city.docs[0].id
   })
 
   afterAll(async () => {
     for (const id of createdListingIds) {
       await payload.delete({ collection: 'listings', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdBuildingIds) {
+      await payload.delete({ collection: 'buildings', id, overrideAccess: true }).catch(() => null)
+    }
+    for (const id of createdBatchIds) {
+      await payload.delete({ collection: 'supply-import-batches', id, overrideAccess: true }).catch(() => null)
     }
   })
 
@@ -47,6 +78,21 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
         floor: 12,
         decorationStatus: null,
         availableFrom: null,
+      },
+    ]
+  }
+
+  function buildingRows(externalId: string) {
+    return [
+      {
+        externalId,
+        name: `导入测试楼盘 ${externalId}`,
+        cityId,
+        districtId,
+        businessAreaId: null,
+        address: null,
+        totalFloors: null,
+        grossFloorArea: null,
       },
     ]
   }
@@ -173,5 +219,173 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     })
     expect(doc.publicationStatus).toBe('published')
     expect(doc.reviewStatus).toBe('approved')
+  })
+
+  it('楼盘写入路径：第一次新建，第二次更新——幂等 + 落地状态 + update 不改 slug（评审 Task 7 第 1 轮 Important 4）', async () => {
+    const first = await runSupplyImportBatch({ payload, type: 'buildings', validRows: buildingRows('E2E-BLDG-1') })
+    expect(first).toMatchObject({ created: 1, updated: 0, failed: 0 })
+    createdBuildingIds.push(...first.affectedIds)
+
+    const second = await runSupplyImportBatch({ payload, type: 'buildings', validRows: buildingRows('E2E-BLDG-1') })
+    expect(second).toMatchObject({ created: 0, updated: 1, failed: 0 })
+    expect(second.affectedIds).toEqual(first.affectedIds)
+
+    const before = await payload.findByID({
+      collection: 'buildings',
+      id: first.affectedIds[0],
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(before.status).toBe('published')
+    expect(before.operationalStatus).toBe('active')
+    expect(before.dataSource?.source).toBe('manual-import')
+    expect(before.dataSource?.externalId).toBe('E2E-BLDG-1')
+
+    await runSupplyImportBatch({
+      payload,
+      type: 'buildings',
+      validRows: [{ ...buildingRows('E2E-BLDG-1')[0], name: '改了名字' }],
+    })
+    const after = await payload.findByID({
+      collection: 'buildings',
+      id: first.affectedIds[0],
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(after.slug).toBe(before.slug)
+    expect(after.name).toBe('改了名字')
+  })
+
+  it('崩溃重跑不丢已持久化的 affectedIds——重跑时某行转失败也不能把它的锚点冲掉（评审 Task 7 第 1 轮 Critical 1）', async () => {
+    const initialValidRows = [
+      { rowNumber: 2, ...rows('E2E-CRASH-1')[0] },
+      { rowNumber: 3, ...rows('E2E-CRASH-2')[0] },
+    ]
+    const batch = await payload.create({
+      collection: 'supply-import-batches',
+      data: {
+        type: 'listings',
+        status: 'queued',
+        fileName: 'crash-recovery-probe.xlsx',
+        rowCount: initialValidRows.length,
+        validRows: initialValidRows,
+        rowErrors: { errors: [], rawRows: [], rawRowNumbers: [] },
+      },
+      overrideAccess: true,
+    })
+    createdBatchIds.push(batch.id)
+
+    await payload.jobs.queue({
+      task: SUPPLY_IMPORT_TASK,
+      queue: SUPPLY_IMPORT_QUEUE,
+      input: { batchId: batch.id },
+      overrideAccess: true,
+    })
+    await payload.jobs.run({ queue: SUPPLY_IMPORT_QUEUE, overrideAccess: true })
+
+    const afterFirstRun = await payload.findByID({
+      collection: 'supply-import-batches',
+      id: batch.id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(afterFirstRun.status).toBe('completed')
+    expect(afterFirstRun.stats).toMatchObject({ created: 2, updated: 0, failed: 0 })
+    const firstAffectedIds = Array.isArray(afterFirstRun.affectedIds) ? afterFirstRun.affectedIds : []
+    expect(firstAffectedIds).toHaveLength(2)
+    for (const id of firstAffectedIds) {
+      if (typeof id === 'number' || typeof id === 'string') createdListingIds.push(id)
+    }
+
+    // 模拟"重跑时这一行的条件变了"（比如引用的楼盘在两次运行之间被删）：
+    // 第二行这次会失败，但它在第一次运行里已经真实创建的房源依然存在，
+    // 回滚锚点绝不能因为这次失败被冲掉。
+    const brokenValidRows = initialValidRows.map((row, index) =>
+      index === 1 ? { ...row, buildingId: 99999999 } : row,
+    )
+    await payload.update({
+      collection: 'supply-import-batches',
+      id: batch.id,
+      data: { status: 'queued', validRows: brokenValidRows },
+      overrideAccess: true,
+    })
+
+    await payload.jobs.queue({
+      task: SUPPLY_IMPORT_TASK,
+      queue: SUPPLY_IMPORT_QUEUE,
+      input: { batchId: batch.id },
+      overrideAccess: true,
+    })
+    await payload.jobs.run({ queue: SUPPLY_IMPORT_QUEUE, overrideAccess: true })
+
+    const afterSecondRun = await payload.findByID({
+      collection: 'supply-import-batches',
+      id: batch.id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(afterSecondRun.status).toBe('completed')
+    // 这次跑：第一行幂等更新成功，第二行因为楼盘不存在而失败。
+    expect(afterSecondRun.stats).toMatchObject({ created: 0, updated: 1, failed: 1 })
+    const secondAffectedIds = Array.isArray(afterSecondRun.affectedIds) ? afterSecondRun.affectedIds : []
+    // 核心断言：并集，不是第二次的子集——两个 id 都还在，第二行这次失败也没把它冲掉。
+    expect(secondAffectedIds).toHaveLength(2)
+    expect(new Set(secondAffectedIds.map(String))).toEqual(new Set(firstAffectedIds.map(String)))
+  })
+
+  it('写入失败的具体原因要能落库，不能只看到 stats.failed 的数字（评审 Task 7 第 1 轮 Important 2）', async () => {
+    const validRows = [{ rowNumber: 2, ...rows('E2E-WRITEERR-1')[0], buildingId: 99999999 }]
+    const preflightErrors = {
+      errors: [
+        {
+          rowNumber: 5,
+          column: '面积',
+          rawValue: 'x',
+          code: 'AREA_INVALID',
+          message: '预检阶段的错误，不该被写入阶段覆盖',
+        },
+      ],
+      rawRows: [],
+      rawRowNumbers: [5],
+    }
+    const batch = await payload.create({
+      collection: 'supply-import-batches',
+      data: {
+        type: 'listings',
+        status: 'queued',
+        fileName: 'write-error-probe.xlsx',
+        rowCount: validRows.length,
+        validRows,
+        rowErrors: preflightErrors,
+      },
+      overrideAccess: true,
+    })
+    createdBatchIds.push(batch.id)
+
+    await payload.jobs.queue({
+      task: SUPPLY_IMPORT_TASK,
+      queue: SUPPLY_IMPORT_QUEUE,
+      input: { batchId: batch.id },
+      overrideAccess: true,
+    })
+    await payload.jobs.run({ queue: SUPPLY_IMPORT_QUEUE, overrideAccess: true })
+
+    const finalBatch = await payload.findByID({
+      collection: 'supply-import-batches',
+      id: batch.id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(finalBatch.stats).toMatchObject({ failed: 1 })
+
+    const rowErrorsValue = finalBatch.rowErrors
+    const record =
+      typeof rowErrorsValue === 'object' && rowErrorsValue !== null && !Array.isArray(rowErrorsValue)
+        ? (rowErrorsValue as Record<string, unknown>)
+        : {}
+    // 写入错误落进新键 writeErrors，能定位是哪一行（externalId）、为什么。
+    expect(JSON.stringify(record.writeErrors)).toContain('E2E-WRITEERR-1')
+    // 预检阶段写的 errors 键必须原样保留，写入阶段绝不能把它覆盖掉——两者语义不同不能混。
+    expect(record.errors).toEqual(preflightErrors.errors)
   })
 })
