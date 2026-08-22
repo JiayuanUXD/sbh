@@ -208,8 +208,13 @@
 **裁定（用户 2026-08-22）**：**自动继承楼盘当前生效的商户**，运营零额外输入。
 
 - 商户来源：`building-merchant-relations` 中 building 匹配、且 `[effectiveFrom, effectiveTo)`
-  覆盖当前时点的那条关系。这与 `.agent/supply.md` 既有语义一致
-  （「Listing 在关系开始时继承当时的 Building 默认商户快照」）。
+  覆盖当前时点的那条关系。
+
+  > **别把这理解成「房源继承楼盘商户」的关系模型。** `.agent/supply.md:44` 明写：OPT-034 起
+  > 房源**不再**「继承 Building 默认商户快照」，半开区间与排斥约束只对 Building—Merchant 生效，
+  > `listings.merchant` 是直接赋值的普通字段。本条只是**导入时取一个合理初值**——
+  > 在写入那一刻查一次楼盘的生效商户并写死，之后两者各自独立演化，不建立任何持续关系。
+  > （本节初稿曾引用那句原话当佐证，是引错了——它描述的是已废除的旧模型；裁定本身不受影响。）
 - 复用既有域函数 `toRelationPeriod` / `isRelationPeriodValid` / `checkMerchantEligibility`
   （`src/domain/supply/building-merchant-relation.ts`），**不得另写一份资质判定**。
 - **校验前移到预检层**：楼盘没有生效商户、或商户不合格（停用/资质过期）时判**错误行**，
