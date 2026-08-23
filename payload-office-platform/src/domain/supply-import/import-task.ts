@@ -18,19 +18,17 @@
  *   4. 单行失败不阻断后续行，也不回滚已成功的行：每行独立 try/catch，失败计入
  *      failed 并记录原因，继续下一行。
  *   5. 唯一索引冲突（PG 23505）视为并发重复：重新按 externalId 查一次改走
- *      update，仍失败才计 failed。判定复用
- *      `domain/supply-submission/submission-notify.ts` 里 `isUniqueViolation`
- *      的写法（逐层看 cause.code，最多 5 层）打底，另加一条 `ValidationError`
- *      识别分支——最终评审 Critical 4 排查发现，这套 Payload + drizzle/postgres
+ *      update，仍失败才计 failed。判定走全仓唯一实现
+ *      `domain/shared/unique-violation.ts`——这套 Payload + drizzle/postgres
  *      适配器会把 23505（含本项目自建的局部唯一索引）在离开 create()/update()
- *      前就转换成 `ValidationError`，原始 pg 错误不再可从 `.cause` 链拿到，
- *      只按 cause.code 找的写法对这个适配器版本恒为 false，见 isUniqueViolation
- *      函数头注释。
+ *      之前就转换成 `ValidationError`，原始 pg 错误不再可从 `.cause` 链拿到，
+ *      只按 cause.code 找的写法对这个适配器版本恒为 false，详见该文件文件头。
  */
 
-import { ValidationError, type Payload, type PayloadRequest, type TaskConfig } from 'payload'
+import type { Payload, PayloadRequest, TaskConfig } from 'payload'
 
 import { isDecorationStatus, isListingType } from '@/domain/review/listing-fields'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
 import type { ValidBuildingRow } from '@/domain/supply-import/building-row'
 import type { ValidListingRow } from '@/domain/supply-import/listing-row'
@@ -56,42 +54,36 @@ export interface ImportRunResult {
 }
 
 // ────────────────────────────────────────────────────────────
-// 唯一索引冲突判定（逐字复用 submission-notify.ts:isUniqueViolation 的写法）
+// 唯一索引冲突判定（调用 domain/shared/unique-violation.ts 的全仓唯一实现）
 // ────────────────────────────────────────────────────────────
 
-/** Payload 把唯一约束冲突的错误消息本地化后仍带的稳定英文短语 + 中文关键字，两者任一命中即可。 */
-const UNIQUE_VALUE_MESSAGE_PATTERN = /must be unique|唯一/i
+/*
+ * 语义 5 撞的是迁移自建的局部唯一索引
+ * `buildings_data_source_external_uniq` / `listings_data_source_external_uniq`
+ *（见 migrations/20260822_001600_supply_import_unique_indexes.ts，
+ * 建在 (data_source_source, data_source_external_id) 上）。
+ *
+ * 不传 `path`：这两个索引不是 Payload 从 `unique: true` 生成的，适配器映射不回字段，
+ * `ValidationError` 条目的 `path` 恒为 `null`。表名之外的收窄由紧随其后的
+ * 「按 externalId 重查一次」承担——查不到就原样 rethrow 原始错误
+ *（见 writeBuildingRow / writeListingRow 的 catch 分支），所以即便撞的是同表另一个
+ * 唯一约束（如 slug），也不会被吞成「并发重复」。
+ *
+ * 比此前那版按错误文案 `/must be unique|唯一/i` 匹配更严：文案匹配会把**任何** collection
+ * 的唯一冲突都判成真，且随 i18n 语言配置漂移；按 tableName 判则只认这两张表。
+ */
+function isBuildingUniqueViolation(error: unknown): boolean {
+  return isUniqueViolation(error, {
+    tableName: 'buildings',
+    column: 'data_source_external_id',
+  })
+}
 
-function isUniqueViolation(error: unknown): boolean {
-  let candidate: unknown = error
-  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
-    const record = candidate as Record<string, unknown>
-    if (record.code === '23505') return true
-    candidate = record.cause
-  }
-  // 最终评审 Critical 4 排查过程中发现：@payloadcms/drizzle 的
-  // upsertRow/handleUpsertError.js 会把**所有** 23505（含本项目迁移自建的
-  // (dataSource.source, externalId) 局部唯一索引，不限于 Payload 自己认识的
-  // `unique: true` 字段）在离开 create()/update() 之前就转换成 `ValidationError`——
-  // 那个错误对象的 `.cause`（= `error.data`）是 `{ id, collection, errors, global }`
-  // 这个 results 对象，不含 `code` 字段，原始 pg 错误已经被吞掉。上面按
-  // cause.code 逐层找 23505 的写法（复用自 submission-notify.ts）对这个真实在跑的
-  // postgres 适配器版本恒为 false——语义 5 的"唯一索引冲突视为并发重复"分支此前
-  // 从未真正被触发过。这里补一条识别分支：`error instanceof ValidationError` 且
-  // 内层某条 message 命中"must be unique / 唯一"。即使误判（比如撞的其实是
-  // 无关字段如 slug 的唯一约束），后续按 externalId 重新查一次找不到匹配行时会
-  // 原样 rethrow 原始错误（见 writeListingRow/writeBuildingRow 的 catch 分支），
-  // 不会把无关错误错误地吞成"并发重复"。
-  if (error instanceof ValidationError) {
-    const errors = (error as { data?: { errors?: Array<{ message?: unknown }> } }).data?.errors
-    if (
-      Array.isArray(errors) &&
-      errors.some((e) => typeof e.message === 'string' && UNIQUE_VALUE_MESSAGE_PATTERN.test(e.message))
-    ) {
-      return true
-    }
-  }
-  return false
+function isListingUniqueViolation(error: unknown): boolean {
+  return isUniqueViolation(error, {
+    tableName: 'listings',
+    column: 'data_source_external_id',
+  })
 }
 
 function errorMessage(error: unknown): string {
@@ -229,7 +221,7 @@ async function writeBuildingRow(
     return { id: created.id, created: true }
   } catch (error) {
     // 语义 5：唯一索引冲突视为并发重复，重新按 externalId 查一次改走 update。
-    if (!isUniqueViolation(error)) throw error
+    if (!isBuildingUniqueViolation(error)) throw error
     const raceId = await findBuildingByExternalId(payload, req, row.externalId)
     if (raceId === null) throw error
     const updated = await payload.update({
@@ -414,7 +406,7 @@ async function writeListingRow(
     return { id: created.id, created: true }
   } catch (error) {
     // 语义 5：唯一索引冲突视为并发重复，重新按 externalId 查一次改走 update。
-    if (!isUniqueViolation(error)) throw error
+    if (!isListingUniqueViolation(error)) throw error
     // 最终评审 Critical 4：补救查询必须含回收站——默认查询（includeTrash:false）
     // 找不到软删文档，才会走到这里撞 23505；补救查询若还是不含 trash 的同一个
     // find，仍会查不到、把裸 Postgres 错误 rethrow 给运营。
