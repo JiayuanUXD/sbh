@@ -1,5 +1,6 @@
 import { createLocalReq, type CollectionAfterChangeHook, type Payload, type PayloadRequest, type TaskConfig } from 'payload'
 import type { DomainEvent } from '@/payload-types'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 
 export const CITY_PARTNER_NOTIFICATION_TASK = 'notify-city-partner-application-created'
 export const CITY_PARTNER_NOTIFICATION_QUEUE = 'city-partner-application-notifications'
@@ -75,14 +76,29 @@ function hasPermission(value: unknown, code: string): boolean {
     (value.includes(code) || value.includes('*'))
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  let candidate = error
-  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
-    const record = candidate as Record<string, unknown>
-    if (record.code === '23505') return true
-    candidate = record.cause
-  }
-  return false
+/**
+ * 入队时撞上 `payload_jobs_city_partner_notify_event_active_uq`
+ *（迁移自建的局部表达式唯一索引：task_slug + input->>'eventId'，仅限未完成且无错误的 job）。
+ *
+ * 判定实现见 `domain/shared/unique-violation.ts`：本项目的 drizzle 适配器会把
+ * 23505 转成 `ValidationError`，只查 `cause.code` 的老写法恒为 false。
+ * 该索引是自建的，适配器映射不回字段，实测 `path` 恒为 `null`，故只按表名收窄；
+ * 调用点随后会 `confirmNotificationJob` 再读一次确认，误判不会被静默吞掉。
+ * 不传 `column`：该索引建在表达式 `input ->> 'eventId'` 上，pg 的 detail 里是
+ * 驼峰 `eventId` 而非某个物理列名，表名已包含在约束名里，足够收窄。
+ */
+function isJobEnqueueUniqueViolation(error: unknown): boolean {
+  return isUniqueViolation(error, { tableName: 'payload_jobs' })
+}
+
+/**
+ * 写通知时撞上 `eventId_recipient_type_idx`（复合唯一索引：event_id + recipient_id + type）。
+ *
+ * 同上：复合索引映射不回字段，`path` 恒为 `null`，按表名收窄；
+ * 调用点随后按 eventId + type + recipient 精确读一次确认。
+ */
+function isNotificationUniqueViolation(error: unknown): boolean {
+  return isUniqueViolation(error, { tableName: 'notifications', column: 'event_id' })
 }
 
 function eventId(applicationId: Identifier): string {
@@ -117,7 +133,7 @@ async function queueNotificationJob(payload: Payload, stableEventId: string): Pr
     })
     return true
   } catch (error) {
-    if (isUniqueViolation(error) && await confirmNotificationJob(payload, stableEventId)) return false
+    if (isJobEnqueueUniqueViolation(error) && await confirmNotificationJob(payload, stableEventId)) return false
     throw error
   }
 }
@@ -476,7 +492,7 @@ export async function consumeCityPartnerApplicationCreated(args: {
         })
         delivered += 1
       } catch (error) {
-        if (!isUniqueViolation(error)) throw error
+        if (!isNotificationUniqueViolation(error)) throw error
         const confirmation = await args.payload.find({
           collection: 'notifications',
           where: { and: [

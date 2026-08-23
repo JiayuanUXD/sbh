@@ -37,6 +37,7 @@ import {
   type InquiryRequest,
 } from '@/domain/inquiry'
 import { mapGlobalToSchedule } from '@/domain/advisor-availability'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
@@ -159,23 +160,22 @@ async function findExistingInquiryResolution(
   }
 }
 
+/**
+ * 幂等键唯一约束冲突判定。
+ *
+ * 判定实现见 `domain/shared/unique-violation.ts`：本项目的 drizzle 适配器会把
+ * 23505 转成 `ValidationError`，只查 `cause.code` 的老写法恒为 false。
+ *
+ * 不传 `path`：leads 的唯一索引是迁移自建的局部索引
+ * `leads_idempotency_key_uniq_idx (idempotency_key) WHERE idempotency_key IS NOT NULL`，
+ * 适配器映射不回字段，实测 `path` 恒为 `null`。leads 表上没有第二个唯一约束，
+ * 表名已足够收窄；且下方 catch 仍会按 idempotencyKey 再读一次确认。
+ */
 function isIdempotencyUniqueViolation(error: unknown): boolean {
-  let candidate: unknown = error
-  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
-    const record = candidate as Record<string, unknown>
-    const marker = [record.constraint, record.detail, record.message]
-      .filter((part): part is string => typeof part === 'string')
-      .join(' ')
-      .toLowerCase()
-    if (
-      record.code === '23505' &&
-      (marker.includes('leads_idempotency_key_idx') || marker.includes('idempotency_key'))
-    ) {
-      return true
-    }
-    candidate = record.cause
-  }
-  return false
+  return isUniqueViolation(error, {
+    tableName: 'leads',
+    column: 'idempotency_key',
+  })
 }
 
 function populatedBuildingSlug(value: unknown): string | null {
