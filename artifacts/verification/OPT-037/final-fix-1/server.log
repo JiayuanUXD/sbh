@@ -1,0 +1,39 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3719
+- Network:       http://198.18.0.1:3719
+✓ Ready in 243ms
+[03:03:37] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[03:06:30] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 0)
+    }
+[03:07:00] [31mERROR[39m: [36mError in job queue cron job handler[39m
+    err: {
+      "type": "TypeError",
+      "message": "Cannot use 'in' operator to search for '_rels' in undefined",
+      "stack":
+          TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+              at M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:13361)
+              at H (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:64:31493)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async Object.h [as updateJobs] (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:119:11025)
+              at async M (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83106)
+              at async L (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:82521)
+              at async E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:128:83358
+              at async $ (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:6164)
+              at async q (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_0vy3l_w._.js:129:10716)
+              at async Promise.all (index 1)
+    }

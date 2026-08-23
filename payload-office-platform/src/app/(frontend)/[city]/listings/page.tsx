@@ -6,6 +6,7 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
+import { parseListingViewMode } from '@/lib/frontend/listing-url'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 
@@ -50,5 +51,7 @@ export default async function CityListingsPage({ params, searchParams }: Props) 
     getCachedSearchListings(city.slug, canonical, input),
     getCachedListingDistrictOptions(city.slug),
   ])
-  return <CityListingsView city={city} result={result} districts={districts} input={input} basePath={`/${city.slug}/listings`} routeMode="prefixed" />
+  // view 不进 ListingSearchInput、不进 canonical（只改渲染不改结果集），因此在
+  // 路由层单独解析后作为 prop 传入，见 lib/frontend/listing-url.ts 的注释。
+  return <CityListingsView city={city} result={result} districts={districts} input={input} basePath={`/${city.slug}/listings`} routeMode="prefixed" view={parseListingViewMode(raw.view)} />
 }

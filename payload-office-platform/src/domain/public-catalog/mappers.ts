@@ -404,6 +404,16 @@ export function mapBuildingSummary(raw: unknown): BuildingSummaryViewModel | nul
     summary: raw.summary ?? undefined,
     coordinates: mapCoordinates(raw.latitude, raw.longitude),
     nearestMetro: mapDistrict(populated?.nearestMetro),
+    completionDate: raw.completionDate ?? undefined,
+    typicalFloorArea:
+      typeof raw.developerAndScale?.typicalFloorArea === 'number'
+        ? raw.developerAndScale.typicalFloorArea
+        : undefined,
+    // 与 mapBuildingFactGroups 的 services 组同一来源字段（buildingServices），
+    // 房源概况面板（OPT-037 Task 3）与楼盘详情页「楼宇服务」不能各读一份。
+    airConditioning: trimPublicText(raw.buildingServices?.airConditioning) ?? undefined,
+    network: trimPublicText(raw.buildingServices?.network) ?? undefined,
+    parkingFee: trimPublicText(raw.buildingServices?.parkingFee) ?? undefined,
   }
 }
 
@@ -536,6 +546,8 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
     title: listing.title,
     price: mapStructuredPrice(listing.price, listing.businessType) ?? mapPrice(listing.rent, listing.rentUnit, listing.businessType),
     area: listing.area ?? null,
+    floor: listing.floor ?? null,
+    seats: listing.seats ?? null,
     businessType: publicBusinessType(listing.businessType),
     decorationStatus: listing.decorationStatus ?? null,
     listingType: listing.listingType,
@@ -596,9 +608,21 @@ function fact(
   value: unknown,
   options: Readonly<{ estimated?: boolean; critical?: boolean; suffix?: string }> = {},
 ) {
+  // `publicValue` 只对有限数字追加后缀，字符串值的后缀被忽略——`magnitude`/
+  // `unit` 必须与那条既有规则完全一致，否则拆分形态与 `value` 会对不上。
+  // 这里不是重算一遍 `value`，而是把 `publicValue` 内部本来就分开的两半
+  // 一起暴露出去（见 contracts.ts `FactValue` 注释）。
+  const magnitude = publicValue(value)
+  const hasUnit =
+    magnitude != null &&
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    Boolean(options.suffix)
   return {
     label,
     value: publicValue(value, options.suffix),
+    magnitude,
+    unit: hasUnit ? options.suffix!.trim() : null,
     estimated: options.estimated === true,
     critical: options.critical === true,
   }

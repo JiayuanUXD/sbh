@@ -8,6 +8,7 @@ import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/pu
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
+import { parseListingViewMode } from '@/lib/frontend/listing-url'
 
 export const dynamic = 'force-dynamic'
 type SearchParams = Record<string, string | string[] | undefined>
@@ -49,5 +50,5 @@ export default async function ListingsPage({ searchParams }: Props) {
     getCachedSearchListings(city.slug, canonical, input),
     getCachedListingDistrictOptions(city.slug),
   ])
-  return <CityListingsView city={city} result={result} districts={districts} input={input} basePath="/listings" routeMode="legacy" />
+  return <CityListingsView city={city} result={result} districts={districts} input={input} basePath="/listings" routeMode="legacy" view={parseListingViewMode(raw.view)} />
 }

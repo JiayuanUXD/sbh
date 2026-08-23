@@ -147,13 +147,28 @@ export default async function ArticleDetailPage({
       {(article.relatedBuildings.length > 0 || article.relatedDistricts.length > 0) && (
         <section className="news-detail__related" aria-label="相关推荐">
           <h2 className="section__title">相关推荐</h2>
+          {/* 下面两组链接都加 `prefetch={false}`：关停判据①高基数 ②内容驱动 ③常驻渲染
+              **三条并列成立**（判据的权威表述见 `components/frontend/ui/Breadcrumb.tsx`）。
+              ①在这里是全站**最强**的一条——`relatedBuildings` / `relatedDistricts` 是
+              `collections/Articles.ts` 的 `relationship … hasMany: true`，**没有 `maxRows`**，
+              `mapArticleDetail`（`domain/public-catalog/mappers.ts`）也没有 `slice`：
+              **条数完全由编辑决定，代码层没有任何上界**（不像 `/news` 列表有 `PAGE_SIZE = 12`、
+              也不像相关楼盘有域层默认 6）。而这两组 href 恰好指向全站最贵的两类 RSC payload
+              （`/buildings/<slug>` 与带筛选 query 的 `/listings`）。
+              ②href 由楼盘 / 商圈 slug 决定；③是「相关推荐」区块的正文，非空即常驻，无交互门槛。
+              （OPT-037 Task 11c/11d 按组件目录扫描，只覆盖到 `/news` 列表页的 `ArticleCard`，
+              漏了详情页这两组；Task 11e 补上。） */}
           {article.relatedBuildings.length > 0 && (
             <div className="news-detail__related-group">
               <h3 className="news-detail__related-label">相关楼盘</h3>
               <ul className="news-detail__related-links" role="list">
                 {article.relatedBuildings.map((b) => (
                   <li key={b.id}>
-                    <Link href={`/buildings/${b.slug}`} className="news-detail__related-link">
+                    <Link
+                      href={`/buildings/${b.slug}`}
+                      prefetch={false}
+                      className="news-detail__related-link"
+                    >
                       {b.name}
                     </Link>
                   </li>
@@ -167,7 +182,11 @@ export default async function ArticleDetailPage({
               <ul className="news-detail__related-links" role="list">
                 {article.relatedDistricts.map((d) => (
                   <li key={d.id}>
-                    <Link href={`/listings?district=${d.slug}`} className="news-detail__related-link">
+                    <Link
+                      href={`/listings?district=${d.slug}`}
+                      prefetch={false}
+                      className="news-detail__related-link"
+                    >
                       {d.name}
                     </Link>
                   </li>

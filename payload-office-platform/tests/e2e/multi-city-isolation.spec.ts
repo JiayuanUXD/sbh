@@ -54,8 +54,10 @@ test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory U
     await expect(actions.getByRole(name === '获取选址方案' ? 'button' : 'link', { name })).toBeVisible()
   }
   await expect(page.locator('[data-listing-city="shanghai"]')).toHaveCount(0)
-  await expect(page.locator('.listing-card')).toHaveCount(0)
-  await expect(page.locator('.filter-bar')).toHaveCount(0)
+  // OPT-036 Task 11 后列表页 DOM 换成 .ls-card / .ls-filterc；断言意图不变——
+  // coming-soon 城市页不得渲染任何房源卡或筛选条。
+  await expect(page.locator('.ls-card')).toHaveCount(0)
+  await expect(page.locator('.ls-filterc')).toHaveCount(0)
 })
 
 test('city switch preserves universal filters and clears geography and page', async ({ page }) => {

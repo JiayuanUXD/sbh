@@ -53,7 +53,7 @@ test.describe('F7.3 可访问性验收', () => {
 
   test('询盘 Modal 焦点锁定 + Esc 关闭', async ({ page }) => {
     await page.goto('/listings')
-    const cards = page.locator('.listing-card')
+    const cards = page.locator('.ls-card')
     const count = await cards.count()
     test.skip(count === 0, '种子数据无有效房源，跳过 Modal 焦点测试')
 
@@ -113,7 +113,7 @@ test.describe('F7.3 可访问性验收', () => {
 
   test('表单字段有 label 关联', async ({ page }) => {
     await page.goto('/listings')
-    const cards = page.locator('.listing-card')
+    const cards = page.locator('.ls-card')
     const count = await cards.count()
     test.skip(count === 0, '无房源，跳过表单 label 测试')
 
@@ -153,7 +153,7 @@ test.describe('F7.3 可访问性验收', () => {
   test('触控目标 ≥ 44×44px（CTA 按钮）', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await page.goto('/listings')
-    const cards = page.locator('.listing-card')
+    const cards = page.locator('.ls-card')
     const count = await cards.count()
     test.skip(count === 0, '无房源，跳过触控目标测试')
 
@@ -179,7 +179,7 @@ test.describe('F7.3 可访问性验收', () => {
 
   test('询盘成功状态有 live region（aria-live）', async ({ page }) => {
     await page.goto('/listings')
-    const cards = page.locator('.listing-card')
+    const cards = page.locator('.ls-card')
     const count = await cards.count()
     test.skip(count === 0, '无房源，跳过 live region 测试')
 

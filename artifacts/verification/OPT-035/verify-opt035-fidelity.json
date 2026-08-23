@@ -1,0 +1,400 @@
+{
+  "probe": {
+    "sectionHeads": [
+      {
+        "cls": "hm-section-head",
+        "alignItems": "flex-end",
+        "h2Left": 130
+      },
+      {
+        "cls": "hm-section-head",
+        "alignItems": "flex-end",
+        "h2Left": 130
+      },
+      {
+        "cls": "hm-container hm-section-head",
+        "alignItems": "flex-end",
+        "h2Left": 130
+      },
+      {
+        "cls": "hm-container hm-section-head",
+        "alignItems": "flex-end",
+        "h2Left": 130
+      },
+      {
+        "cls": "hm-container hm-section-head hm-section-head--stack",
+        "alignItems": "flex-start",
+        "h2Left": 130
+      },
+      {
+        "cls": "hm-section-head",
+        "alignItems": "flex-end",
+        "h2Left": 130
+      }
+    ],
+    "container": {
+      "x": 130,
+      "y": 275,
+      "width": 1180,
+      "height": 253.47
+    },
+    "sectionPad": "72px",
+    "h2": {
+      "fs": "40px",
+      "fw": "600",
+      "lh": "44px",
+      "ls": "normal"
+    },
+    "sectionLink": {
+      "fs": "17px"
+    },
+    "newsLink": {
+      "fs": "14px"
+    },
+    "hero": {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 760
+      },
+      "title": "56px",
+      "lh": "59.92px",
+      "ls": "normal",
+      "leadLs": "0.231px",
+      "text": "把每一平米算清楚。",
+      "lead": "7 座城市 · 在租房源实时同步 · 面积与租金逐条核过"
+    },
+    "typeGrid": {
+      "cols": "226.391px 226.406px 226.391px 226.406px 226.391px",
+      "gap": "12px",
+      "marginTop": "48px"
+    },
+    "typeCard": {
+      "box": {
+        "x": 130,
+        "y": 924,
+        "width": 226.39,
+        "height": 300
+      },
+      "media": {
+        "x": 130,
+        "y": 924,
+        "width": 226.39,
+        "height": 168
+      },
+      "name": "19px",
+      "sub": "13px",
+      "count": {
+        "fs": "13px",
+        "fvn": "tabular-nums"
+      }
+    },
+    "bento": {
+      "main": {
+        "x": 130,
+        "y": 1460,
+        "width": 776,
+        "height": 480
+      },
+      "small": {
+        "x": 922,
+        "y": 1460,
+        "width": 388,
+        "height": 232
+      },
+      "wide": {
+        "x": 130,
+        "y": 1956,
+        "width": 582,
+        "height": 280
+      },
+      "gap": "16px",
+      "radius": "18px",
+      "cardCount": 5
+    },
+    "rails": [
+      {
+        "label": "热门楼盘",
+        "firstCardLeft": 130,
+        "cardWidth": 400,
+        "mediaBox": {
+          "w": 400,
+          "h": 300
+        },
+        "prevHidden": true,
+        "nextHidden": false,
+        "arrowBox": {
+          "w": 44,
+          "h": 44,
+          "top": 150
+        },
+        "arrowBlur": "blur(20px)",
+        "gap": "16px"
+      },
+      {
+        "label": "精选房源",
+        "firstCardLeft": 130,
+        "cardWidth": 400,
+        "mediaBox": {
+          "w": 400,
+          "h": 300
+        },
+        "prevHidden": true,
+        "nextHidden": false,
+        "arrowBox": {
+          "w": 44,
+          "h": 44,
+          "top": 150
+        },
+        "arrowBlur": "blur(20px)",
+        "gap": "16px"
+      },
+      {
+        "label": "核心商圈房源",
+        "firstCardLeft": 130,
+        "cardWidth": 400,
+        "mediaBox": {
+          "w": 400,
+          "h": 300
+        },
+        "prevHidden": true,
+        "nextHidden": true,
+        "arrowBox": {
+          "w": 0,
+          "h": 0,
+          "top": 150
+        },
+        "arrowBlur": "blur(20px)",
+        "gap": "16px"
+      }
+    ],
+    "scrim": {
+      "h": 135,
+      "mediaH": 300,
+      "bg": "linear-gradient(to top, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0))"
+    },
+    "supplyBody": "20px 24px 24px",
+    "price": {
+      "fs": "24px",
+      "fw": "600",
+      "fvn": "tabular-nums"
+    },
+    "priceUnit": {
+      "fs": "14px",
+      "fw": "400"
+    },
+    "stats": {
+      "pad": "56px",
+      "bg": "rgb(255, 255, 255)",
+      "cols": "277px 277px 277px 277px",
+      "gap": "24px",
+      "value": "48px",
+      "lh": "51.84px",
+      "fvn": "tabular-nums",
+      "values": [
+        "10",
+        "6",
+        "5",
+        "2.4"
+      ]
+    },
+    "values": {
+      "pad": "88px",
+      "cols": "377.328px 377.328px 377.344px",
+      "gap": "24px",
+      "bodyMax": "300px",
+      "visible": [
+        {
+          "op": "1",
+          "h": 145
+        },
+        {
+          "op": "1",
+          "h": 145
+        },
+        {
+          "op": "1",
+          "h": 145
+        }
+      ]
+    },
+    "news": {
+      "pad": "88px",
+      "rowH": 76,
+      "dates": [
+        "2026.08.14",
+        "2026.08.09",
+        "2026.07.28",
+        "2026.07.19",
+        "2026.07.05"
+      ],
+      "lastBorder": [
+        "1px",
+        "1px",
+        "1px",
+        "1px",
+        "0px"
+      ],
+      "dateFvn": "tabular-nums"
+    },
+    "header": {
+      "blur": "none",
+      "h": 44
+    },
+    "searchPill": {
+      "box": {
+        "x": 440,
+        "y": 432,
+        "width": 560,
+        "height": 52
+      },
+      "blur": "blur(20px)"
+    },
+    "contrasts": [
+      {
+        "sel": ".hm-type-card__name",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "传统办公"
+      },
+      {
+        "sel": ".hm-type-card__sub",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "独立空间 · 灵活面积"
+      },
+      {
+        "sel": ".hm-type-card__count",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "4 套在租"
+      },
+      {
+        "sel": ".hm-supply-card__title",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "虹桥国际商务中心"
+      },
+      {
+        "sel": ".hm-supply-card__where",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "长宁"
+      },
+      {
+        "sel": ".hm-supply-card__meta",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "面积 360 ㎡"
+      },
+      {
+        "sel": ".hm-supply-card__price-value",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "2800"
+      },
+      {
+        "sel": ".hm-supply-card__price-unit",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "元/工位/月"
+      },
+      {
+        "sel": ".hm-stat__value",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "10"
+      },
+      {
+        "sel": ".hm-stat__unit",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "套"
+      },
+      {
+        "sel": ".hm-stat__label",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "在租房源"
+      },
+      {
+        "sel": ".hm-value__no",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "01"
+      },
+      {
+        "sel": ".hm-value__name",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "真房源实地核验"
+      },
+      {
+        "sel": ".hm-value__body",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "每套房源由本地顾问到场量房拍"
+      },
+      {
+        "sel": ".hm-news__title",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 16.83,
+        "text": "2026 上半年上海甲级写字"
+      },
+      {
+        "sel": ".hm-news__date",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(255,255,255)",
+        "ratio": 5.07,
+        "text": "2026.08.14"
+      },
+      {
+        "sel": ".hm-section-link",
+        "fg": "rgb(0,102,204)",
+        "bg": "rgb(245,245,247)",
+        "ratio": 5.11,
+        "text": "查看全部房源 →"
+      },
+      {
+        "sel": ".hm-section-sub",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(245,245,247)",
+        "ratio": 4.66,
+        "text": "以上海市中心起算 · 最近 "
+      },
+      {
+        "sel": ".site-footer__col-title",
+        "fg": "rgb(110,110,115)",
+        "bg": "rgb(245,245,247)",
+        "ratio": 4.66,
+        "text": "浏览"
+      },
+      {
+        "sel": ".hm-h2",
+        "fg": "rgb(29,29,31)",
+        "bg": "rgb(245,245,247)",
+        "ratio": 15.46,
+        "text": "按类型浏览"
+      }
+    ],
+    "scrollWidth": 1440,
+    "innerWidth": 1440
+  },
+  "pageerrors": []
+}

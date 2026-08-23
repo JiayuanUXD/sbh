@@ -62,8 +62,8 @@ function createFakePageAdapter(options: {
     async findEffectiveListingsByBuilding() {
       return []
     },
-    async sumEffectiveLeasableAreaByBuildings() {
-      return new Map<string, number>()
+    async aggregateEffectiveSupplyByBuildings() {
+      return new Map<string, { area: number; count: number }>()
     },
     async findEffectiveBusinessAreas() {
       return []

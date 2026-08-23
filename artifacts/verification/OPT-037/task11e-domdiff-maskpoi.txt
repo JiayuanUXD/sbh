@@ -1,0 +1,5 @@
+news-detail-related.html     DOM 完全一致（已遮罩 POI 面板）  len=6578
+news-detail-plain.html       DOM 完全一致（已遮罩 POI 面板）  len=5333
+news.html                    DOM 完全一致（已遮罩 POI 面板）  len=6673
+building-detail.html         DOM 完全一致（已遮罩 POI 面板）  len=24908
+listing-detail.html          DOM 完全一致（已遮罩 POI 面板）  len=17585

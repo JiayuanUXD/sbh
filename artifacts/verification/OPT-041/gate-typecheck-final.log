@@ -1,0 +1,5 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 typecheck E:\wt-opt041\payload-office-platform
+> tsc --noEmit --pretty false
+

@@ -29,7 +29,13 @@ export default function ArticleCard({ article }: Props) {
   const date = formatPublishedDate(article.publishedAt)
   return (
     <article className="article-card">
-      <Link href={`/news/${article.slug}`} className="article-card__link">
+      {/* `prefetch={false}`：关停判据①高基数 ②内容驱动 ③常驻渲染**三条并列成立**
+          （表述见 `ui/Breadcrumb.tsx`）。①`/news` 一页最多 12 张卡（该页
+          `PAGE_SIZE = 12`），实测 5 篇 fixture 时 5 条 `/news/<slug>` 全部被自动预取；
+          ②href 由文章 slug 决定；③是 `/news` 列表正文，不是空态/浮层。
+          与 `listing/ListingResultCard` 完全同构，只是不在 `listing/` 目录下——
+          OPT-037 Task 11c 正是按目录划界才漏掉它，Task 11d 补上。 */}
+      <Link href={`/news/${article.slug}`} prefetch={false} className="article-card__link">
         <div className="article-card__media">
           {cover ? (
             <img

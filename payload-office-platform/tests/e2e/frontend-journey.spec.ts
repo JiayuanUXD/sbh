@@ -28,13 +28,18 @@ test.describe('F7.1 全链路 E2E', () => {
     // 1. 首页加载
     await page.goto('/')
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.hero')).toBeVisible()
+    // OPT-035 把首屏容器从 `.hero` 换成了 `.hm-hero`（见 `home/HomeHero.tsx`），
+    // 断言必须同步改名——否则它恒失败并卡在整条链路的第 2 步，
+    // 让后面「列表 → 详情 → 咨询」四步全都跑不到，看起来像整条链路坏了。
+    await expect(page.locator('.hm-hero')).toBeVisible()
 
     // 2. 跳转到列表页
     await page.goto('/listings')
     await expect(page.locator('h1', { hasText: '在租房源' })).toBeVisible()
 
-    const listingCards = page.locator('.listing-card')
+    // OPT-036 Task 11：列表页结果卡换成 .ls-card（ListingResultCard）。
+    // 楼盘详情页内的「在租房源」仍是旧 .listing-card，两者不要混用同一个选择器。
+    const listingCards = page.locator('.ls-card')
     const count = await listingCards.count()
     test.skip(count === 0, '种子数据无有效房源，跳过详情链路')
 
@@ -44,7 +49,8 @@ test.describe('F7.1 全链路 E2E', () => {
     expect(href).toBeTruthy()
     await page.goto(href!)
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.detail__rent').first()).toBeVisible()
+    // OPT-037 Task 9：首屏价格从 `.detail__rent`（旧摘要行）搬进决策卡。
+    await expect(page.locator('.dt-decision__price-num').first()).toBeVisible()
 
     // 4. 打开询价 Modal
     await page
@@ -70,7 +76,7 @@ test.describe('F7.1 全链路 E2E', () => {
   test('楼盘详情 → 楼内房源 → 咨询', async ({ page }) => {
     // 先从列表找到一个楼盘链接
     await page.goto('/listings')
-    const listingCards = page.locator('.listing-card')
+    const listingCards = page.locator('.ls-card')
     const count = await listingCards.count()
     test.skip(count === 0, '种子数据无有效房源，跳过楼盘链路')
 
@@ -131,9 +137,11 @@ test.describe('F7.1 全链路 E2E', () => {
     await page.goto(
       '/listings?rentMin=999999999&rentMax=999999999&areaMin=999999999',
     )
-    // 应显示空状态标题（页面副标题"共 0 套在租房源"也会同时显示，
-    // 用 .first() / 精确 class 避开 strict mode violation）
-    await expect(page.locator('.empty-state__title').first()).toBeVisible()
+    // OPT-036 Task 11：叠加了收窄条件却零结果 → 空态②（EmptyFiltered），
+    // 它必须给出可操作的退路，而不只是一句「没有结果」。这里断言的正是那条
+    // 出口存在（「清除全部条件」永远可点，见 EmptyFiltered.tsx 顶部注释）。
+    await expect(page.locator('.ls-emptyfiltered__title')).toBeVisible()
+    await expect(page.locator('.ls-emptyfiltered__clear-all')).toBeVisible()
     await expect(page.getByText('共 0 套在租房源')).toBeVisible()
   })
 

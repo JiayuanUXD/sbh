@@ -35,16 +35,33 @@ export * from './contracts'
 export {
   buildBuildingSupplySnapshot,
   emptyBuildingSupplySnapshot,
+  availabilityDay,
+  isImmediatelyAvailable,
 } from './building-supply'
 export type { BuildingSupplyInput } from './building-supply'
 export * from './mappers'
 export * from './types'
 export {
+  LISTING_DEFAULT_SORT,
   parseListingSearchInput,
   parseBuildingSupplySearchParams,
+  buildBuildingSupplyCanonicalSearchParams,
   buildCanonicalSearchParams,
   legacyRentUnitToPriceKey,
 } from './search-params'
+export {
+  BUILDING_SORTS,
+  BUILDING_DEFAULT_SORT,
+  BUILDING_CLEARABLE_DIMENSIONS,
+  BUILDING_DIMENSION_PARAM_KEYS,
+  parseBuildingSearchInput,
+  buildBuildingCanonicalParams,
+  applyBuildingFilters,
+  sortBuildings,
+  partitionByStock,
+  omitBuildingSearchDimensions,
+} from './building-search'
+export type { BuildingSort, BuildingSearchInput, BuildingSearchDimension } from './building-search'
 export { normalizePublicMediaUrl } from './media-url'
 export {
   stableSortCards,
@@ -84,6 +101,7 @@ export {
   type BuildingDetailPageResult,
   type BuildingSearchResult,
   type BuildingSearchPageResult,
+  type BuildingFilteredResult,
   // 函数
   parseSearchInput,
   buildCanonical,
@@ -91,6 +109,7 @@ export {
   buildListingSearchSource,
   paginateListingSearchSource,
   searchBuildings,
+  searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
   getListingBySlug,
@@ -107,7 +126,11 @@ export {
   assertEffectiveBuilding,
   getListingDistrictOptions,
   getHomepage,
+  getPlatformHomepageStats,
   getSearchFacets,
+  getSearchFacetsIgnoring,
+  omitListingSearchDimensions,
+  type ListingSearchDimension,
   getPageBySlug,
   listPublishedPages,
   getArticleBySlug,

@@ -1,0 +1,5 @@
+building-detail.html  before=1 after=1
+listing-detail.html  before=1 after=1
+news-detail-plain.html  before=0 after=0
+news-detail-related.html  before=0 after=11
+news.html  before=5 after=5

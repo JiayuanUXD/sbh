@@ -47,11 +47,15 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
     }),
     getListingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getListingDistrictOptions: vi.fn(async (ctx) => [{ citySlug: ctx.city }]),
+    getPlatformHomepageStats: vi.fn(async (citySlugs: readonly string[]) => ({
+      listings: citySlugs.length,
+      buildings: 0,
+      businessAreas: 0,
+    })),
     getRelatedBuildings: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
     getRelatedListings: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
     getSearchFacets: vi.fn(async (_input, ctx) => ({ citySlug: ctx.city })),
     paginateListingSearchSource: vi.fn((source) => source),
-    searchBuildings: vi.fn(async (ctx) => [{ citySlug: ctx.city }]),
     searchBuildingsPage: vi.fn(async (ctx, options) => ({
       docs: [{ citySlug: ctx.city }],
       hasNextPage: false,
@@ -70,16 +74,16 @@ import {
   getCachedListingBySlug,
   getCachedListingDistrictOptions,
   getCachedPageBySlug,
+  getCachedPlatformStats,
   getCachedPublishedArticles,
   getCachedPublishedPages,
   getCachedRelatedBuildings,
   getCachedRelatedListings,
-  getCachedSearchBuildings,
   getCachedSitemapBuildingsPage,
   getCachedSearchFacets,
   getCachedSearchListings,
 } from '@/lib/frontend/cached-queries'
-import { parseSearchInput } from '@/domain/public-catalog'
+import { getPlatformHomepageStats, parseSearchInput } from '@/domain/public-catalog'
 
 describe('per-city public catalog caches', () => {
   beforeEach(() => {
@@ -120,7 +124,6 @@ describe('per-city public catalog caches', () => {
       Parameters<typeof getCachedRelatedListings>,
       Parameters<typeof getCachedDetailRecommendations>,
       Parameters<typeof getCachedRelatedBuildings>,
-      Parameters<typeof getCachedSearchBuildings>,
       Parameters<typeof getCachedSitemapBuildingsPage>,
       Parameters<typeof getCachedBuildingDetail>,
       Parameters<typeof getCachedBuildingBySlug>,
@@ -134,7 +137,6 @@ describe('per-city public catalog caches', () => {
       [citySlug: string, listingSlug: string, limit?: number],
       [citySlug: string, listingSlug: string, limit?: number],
       [citySlug: string, buildingSlug: string, limit?: number],
-      [citySlug: string],
       [citySlug: string, page: number, limit: number],
       [citySlug: string, slug: string],
       [citySlug: string, slug: string],
@@ -162,7 +164,6 @@ describe('per-city public catalog caches', () => {
       getCachedRelatedListings('suzhou', 'listing', 3),
       getCachedDetailRecommendations('suzhou', 'listing', 3),
       getCachedRelatedBuildings('suzhou', 'building', 3),
-      getCachedSearchBuildings('suzhou'),
       getCachedSitemapBuildingsPage('suzhou', 2, 200),
       getCachedBuildingDetail('suzhou', 'building'),
       getCachedBuildingBySlug('suzhou', 'building'),
@@ -177,7 +178,6 @@ describe('per-city public catalog caches', () => {
       'related-listings',
       'detail-recommendations',
       'related-buildings',
-      'search-buildings',
       'sitemap-buildings-page',
       'building-detail',
       'building-by-slug',
@@ -205,6 +205,18 @@ describe('per-city public catalog caches', () => {
       'public:buildings:city:suzhou',
       'public:buildings:city:suzhou:page:2:limit:200',
     ]))
+  })
+
+  it('dedupes duplicate city slugs before hitting getPlatformHomepageStats (Task 9 补充断言)', async () => {
+    vi.mocked(getPlatformHomepageStats).mockClear()
+    const withDuplicate = await getCachedPlatformStats(['shanghai', 'shanghai'])
+    const withoutDuplicate = await getCachedPlatformStats(['shanghai'])
+
+    expect(withDuplicate).toEqual(withoutDuplicate)
+    const calledSlugs = vi.mocked(getPlatformHomepageStats).mock.calls.map(([slugs]) => slugs)
+    for (const slugs of calledSlugs) {
+      expect(slugs).toEqual(['shanghai'])
+    }
   })
 
   it('keeps page and article cache contracts global', () => {

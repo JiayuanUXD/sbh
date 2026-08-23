@@ -8,9 +8,9 @@ test('list → detail → submit inquiry creates a lead', async ({ page }) => {
     }
   })
   await page.goto('/listings')
-  await expect(page.locator('.listing-card').first()).toBeVisible()
+  await expect(page.locator('.ls-card').first()).toBeVisible()
 
-  const href = await page.locator('.listing-card').first().getAttribute('href')
+  const href = await page.locator('.ls-card').first().getAttribute('href')
   expect(href).toBeTruthy()
 
   await page.goto(href!)
@@ -59,7 +59,7 @@ test('list → detail → submit inquiry creates a lead', async ({ page }) => {
 
 test('inquiry validation focuses the first invalid field and describes it with the error summary', async ({ page }) => {
   await page.goto('/listings')
-  const href = await page.locator('.listing-card').first().getAttribute('href')
+  const href = await page.locator('.ls-card').first().getAttribute('href')
   expect(href).toBeTruthy()
   await page.goto(href!)
 

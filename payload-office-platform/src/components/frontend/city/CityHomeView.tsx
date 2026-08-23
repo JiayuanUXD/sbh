@@ -1,58 +1,55 @@
-import Link from 'next/link'
 import React from 'react'
-import CategoryTiles from '@/components/frontend/CategoryTiles'
-import DistrictCards from '@/components/frontend/DistrictCards'
-import FeaturedBuildings from '@/components/frontend/FeaturedBuildings'
-import HomeHeroMedia from '@/components/frontend/HomeHeroMedia'
-import HeroSearch from '@/components/frontend/HeroSearch'
-import ListingCard from '@/components/frontend/ListingCard'
-import NewsSection from '@/components/frontend/NewsSection'
-import ValueProps from '@/components/frontend/ValueProps'
+import HomeHero from '@/components/frontend/home/HomeHero'
+import HomeTypeCards from '@/components/frontend/home/HomeTypeCards'
+import HomeDistrictBento from '@/components/frontend/home/HomeDistrictBento'
+import HomeBuildingsRail from '@/components/frontend/home/HomeBuildingsRail'
+import HomeStatsBand from '@/components/frontend/home/HomeStatsBand'
+import HomeListingsRail from '@/components/frontend/home/HomeListingsRail'
+import HomeValueProps from '@/components/frontend/home/HomeValueProps'
+import HomeNearbyRail from '@/components/frontend/home/HomeNearbyRail'
+import HomeNewsList from '@/components/frontend/home/HomeNewsList'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
+import type { HomepageStats } from '@/domain/public-catalog/contracts'
 import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
 
-export default function CityHomeView({ city, homepage, routeMode }: Readonly<{
+/**
+ * OPT-035 首页编排层（Apple 中性极简）：
+ * Hero → 类型 → 商圈 → 楼盘 → 数据带 → 精选房源 → 选择我们 → 核心商圈 → 资讯
+ * 各 section 自带空态整段不渲染逻辑，这里只做编排与数据分发。
+ *
+ * **两套 stats 口径，故意分开（不要合并回一个 prop）：**
+ *   - 三处 section 链接文案（「全部 N 个商圈」「全部 N 个楼盘」「查看 N 套在租」）
+ *     一律用 `homepage.stats`，即**单城口径**。因为这三个链接的落点
+ *     （`/listings` `/buildings` 或 `/{city}/...`）都是城市域路由：legacy 模式下
+ *     列表页按 `siteConfig.defaultCity` 收敛，prefixed 模式下按路径城市收敛。
+ *     数字与落点必须同口径，否则「查看 N 套」点进去只有其中一部分。
+ *   - 数据带 `bandStats` 可以是**跨城汇总**：它是平台规模陈述，不带链接、不承诺
+ *     任何落地页，根页 `/` 传平台汇总、城市页传本城 stats。这是唯一允许发散的地方。
+ * 回归用例见 `tests/city-home-view.test.ts`。
+ */
+export default function CityHomeView({ city, homepage, routeMode, bandStats }: Readonly<{
   city: CityContext
   homepage: Homepage
   routeMode: 'legacy' | 'prefixed'
+  /** 数据带口径：根页为跨城汇总，城市页为本城 stats。**不驱动任何 section 链接数字。** */
+  bandStats: HomepageStats
 }>) {
-  const { featuredListings, districts, featuredBuildings, districtCards, latestArticles } = homepage
-  const basePath = routeMode === 'prefixed' ? `/${city.slug}` : ''
-
+  const citySlug = routeMode === 'prefixed' ? city.slug : undefined
+  // section 链接数字统一取单城口径，与链接落点保持一致
+  const linkStats = homepage.stats
   return (
-    <div className="home">
-      <section className="hero">
-        <HomeHeroMedia poster={routeMode === 'prefixed' ? city.profile.hero.media : null} />
-        <div className="hero__scrim" aria-hidden="true" />
-        <div className="hero__inner">
-          <p className="hero__eyebrow">{routeMode === 'legacy' ? 'Shanghai Premium Office Leasing' : city.profile.hero.eyebrow || `${city.name} Premium Office Leasing`}</p>
-          <h1 className="hero__heading">{routeMode === 'legacy' ? '汇聚高端商务空间，赋能企业卓越成长' : city.profile.hero.heading || `${city.name}办公选址服务`}</h1>
-          <p className="hero__summary">{routeMode === 'legacy' ? '覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策' : city.profile.hero.body || `为企业提供${city.name}办公空间选择。`}</p>
-          <HeroSearch
-            citySlug={routeMode === 'prefixed' ? city.slug : undefined}
-            districts={districts}
-            featuredBuildings={featuredBuildings.slice(0, 6).map((building) => ({ slug: building.slug, name: building.name }))}
-          />
-        </div>
-      </section>
-      <CategoryTiles citySlug={routeMode === 'prefixed' ? city.slug : undefined} />
-      <DistrictCards districts={districtCards} citySlug={routeMode === 'prefixed' ? city.slug : undefined} />
-      <FeaturedBuildings buildings={featuredBuildings} citySlug={routeMode === 'prefixed' ? city.slug : undefined} />
-      <section className="section" aria-labelledby="featured-listings-title">
-        <div className="section__header">
-          <h2 className="section__title" id="featured-listings-title">推荐房源</h2>
-          <Link href={`${basePath}/listings`} prefetch={false} className="text-copper" data-event-name="home_browse_all_listings">浏览全部房源 →</Link>
-        </div>
-        {featuredListings.length === 0 ? <p className="empty-state empty-state--inline">暂无推荐房源。</p> : (
-          <div className="card-grid">
-            {featuredListings.map((listing) => <ListingCard key={listing.id} listing={listing} showFeaturedTag={false} citySlug={routeMode === 'prefixed' ? city.slug : undefined} />)}
-          </div>
-        )}
-      </section>
-      <ValueProps />
-      <NewsSection articles={latestArticles} />
+    <div className="hm-home">
+      <HomeHero city={city} districts={homepage.districts} routeMode={routeMode} />
+      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} />
+      <HomeDistrictBento cards={homepage.districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
+      <HomeBuildingsRail buildings={homepage.featuredBuildings} citySlug={citySlug} totalCount={linkStats.buildings} />
+      <HomeStatsBand stats={bandStats} avgResponseHours={city.profile.avgResponseHours} />
+      <HomeListingsRail listings={homepage.featuredListings} citySlug={citySlug} totalCount={linkStats.listings} />
+      <HomeValueProps />
+      <HomeNearbyRail listings={homepage.nearbyListings} cityName={city.name} citySlug={citySlug} />
+      <HomeNewsList articles={homepage.latestArticles} citySlug={citySlug} />
     </div>
   )
 }

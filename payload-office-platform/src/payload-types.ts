@@ -96,6 +96,8 @@ export interface Config {
     'audit-logs': AuditLog;
     tasks: Task;
     notifications: Notification;
+    'supply-import-batches': SupplyImportBatch;
+    'location-aliases': LocationAlias;
     search: Search;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -138,6 +140,8 @@ export interface Config {
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     tasks: TasksSelect<false> | TasksSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
+    'supply-import-batches': SupplyImportBatchesSelect<false> | SupplyImportBatchesSelect<true>;
+    'location-aliases': LocationAliasesSelect<false> | LocationAliasesSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -172,6 +176,7 @@ export interface Config {
       'notify-supply-submission-created': TaskNotifySupplySubmissionCreated;
       'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
       'reconcile-city-partner-notification-outbox': TaskReconcileCityPartnerNotificationOutbox;
+      'run-supply-import': TaskRunSupplyImport;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -497,6 +502,10 @@ export interface CitySiteProfile {
   introBody?: string | null;
   contactHeading?: string | null;
   contactBody?: string | null;
+  /**
+   * 首页数据带「平均响应」展示值，运营承诺口径；留空则首页不展示该格。
+   */
+  avgResponseHours?: number | null;
   featuredRegions?: (number | Location)[] | null;
   updatedAt: string;
   createdAt: string;
@@ -595,6 +604,24 @@ export interface Building {
    * 乐观锁版本号，系统维护
    */
   version?: number | null;
+  dataSource?: {
+    /**
+     * 外部抓取或批量导入来源标识
+     */
+    source?: ('huizuxuanzhi' | 'manual-import') | null;
+    /**
+     * 源平台或导入表里的原始楼盘编号
+     */
+    externalId?: string | null;
+    /**
+     * 最后一次同步/导入的时间
+     */
+    syncedAt?: string | null;
+    /**
+     * 详情页原始 URL
+     */
+    sourceUrl?: string | null;
+  };
   city?: (number | null) | Location;
   district: number | Location;
   businessDistrict?: (number | null) | Location;
@@ -810,15 +837,15 @@ export interface Listing {
   version?: number | null;
   dataSource?: {
     /**
-     * 外部抓取来源标识
+     * 外部抓取或批量导入来源标识
      */
-    source?: 'huizuxuanzhi' | null;
+    source?: ('huizuxuanzhi' | 'manual-import') | null;
     /**
-     * 源平台原始房源编号
+     * 源平台或导入表里的原始房源编号
      */
     externalId?: string | null;
     /**
-     * 最后一次从源平台同步的时间
+     * 最后一次同步/导入的时间
      */
     syncedAt?: string | null;
     /**
@@ -1892,6 +1919,78 @@ export interface Notification {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-import-batches".
+ */
+export interface SupplyImportBatch {
+  id: number;
+  type: 'buildings' | 'listings';
+  status: 'preflight' | 'queued' | 'running' | 'completed' | 'failed';
+  operator?: (number | null) | User;
+  city?: (number | null) | Location;
+  fileName?: string | null;
+  rowCount?: number | null;
+  /**
+   * 预检通过行的规范化快照。规格 D9 设想完成 7 天后由清理任务置空以省空间，但该清理任务本期未实现（已作为剩余风险记录），实际会随批次记录永久保留。
+   */
+  validRows?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rowErrors?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  stats?: {
+    processed?: number | null;
+    created?: number | null;
+    updated?: number | null;
+    failed?: number | null;
+  };
+  /**
+   * 回滚锚点
+   */
+  affectedIds?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "location-aliases".
+ */
+export interface LocationAlias {
+  id: number;
+  alias: string;
+  /**
+   * 由 alias 自动派生，导入匹配用的就是它
+   */
+  normalizedAlias: string;
+  kind: 'city' | 'district' | 'business_area' | 'metro_station';
+  location: number | Location;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2246,6 +2345,7 @@ export interface PayloadJob {
           | 'notify-supply-submission-created'
           | 'notify-city-partner-application-created'
           | 'reconcile-city-partner-notification-outbox'
+          | 'run-supply-import'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -2286,6 +2386,7 @@ export interface PayloadJob {
         | 'notify-supply-submission-created'
         | 'notify-city-partner-application-created'
         | 'reconcile-city-partner-notification-outbox'
+        | 'run-supply-import'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -2427,6 +2528,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'notifications';
         value: number | Notification;
+      } | null)
+    | ({
+        relationTo: 'supply-import-batches';
+        value: number | SupplyImportBatch;
+      } | null)
+    | ({
+        relationTo: 'location-aliases';
+        value: number | LocationAlias;
       } | null)
     | ({
         relationTo: 'search';
@@ -2613,6 +2722,7 @@ export interface CitySiteProfilesSelect<T extends boolean = true> {
   introBody?: T;
   contactHeading?: T;
   contactBody?: T;
+  avgResponseHours?: T;
   featuredRegions?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -2687,6 +2797,14 @@ export interface BuildingsSelect<T extends boolean = true> {
   registrationCapability?: T;
   recommendedOrder?: T;
   version?: T;
+  dataSource?:
+    | T
+    | {
+        source?: T;
+        externalId?: T;
+        syncedAt?: T;
+        sourceUrl?: T;
+      };
   city?: T;
   district?: T;
   businessDistrict?: T;
@@ -3301,6 +3419,45 @@ export interface NotificationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-import-batches_select".
+ */
+export interface SupplyImportBatchesSelect<T extends boolean = true> {
+  type?: T;
+  status?: T;
+  operator?: T;
+  city?: T;
+  fileName?: T;
+  rowCount?: T;
+  validRows?: T;
+  rowErrors?: T;
+  stats?:
+    | T
+    | {
+        processed?: T;
+        created?: T;
+        updated?: T;
+        failed?: T;
+      };
+  affectedIds?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "location-aliases_select".
+ */
+export interface LocationAliasesSelect<T extends boolean = true> {
+  alias?: T;
+  normalizedAlias?: T;
+  kind?: T;
+  location?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "search_select".
  */
 export interface SearchSelect<T extends boolean = true> {
@@ -3756,6 +3913,20 @@ export interface TaskReconcileCityPartnerNotificationOutbox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRun-supply-import".
+ */
+export interface TaskRunSupplyImport {
+  input: {
+    batchId: number;
+  };
+  output: {
+    created: number;
+    updated: number;
+    failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -3793,6 +3964,8 @@ export interface TaskCreateCollectionExport {
       | 'audit-logs'
       | 'tasks'
       | 'notifications'
+      | 'supply-import-batches'
+      | 'location-aliases'
       | 'search'
       | 'forms'
       | 'form-submissions'

@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 import CityListingDetailView from '@/components/frontend/city/CityListingDetailView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
-import { getCachedBuildingBySlug, getCachedDetailRecommendations, getCachedListingBySlug } from '@/lib/frontend/cached-queries'
+import { getCachedDetailRecommendations, getCachedListingBySlug } from '@/lib/frontend/cached-queries'
 import { buildListingMetadata } from '@/lib/frontend/detail-metadata'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
@@ -42,13 +42,13 @@ export default async function CityListingDetailPage({ params }: Props) {
   const loaded = await loadCityDetail(await params)
   if (!loaded.city || !loaded.listing) notFound()
   const building = loaded.listing.building
-  const [buildingDetail, recommendations, pois, serviceSchedule] = await Promise.all([
-    building ? getCachedBuildingBySlug(loaded.city.slug, building.slug) : Promise.resolve(null),
+  // OPT-037 Task 9：见 legacy 路由同款注释——楼盘详情文档不再需要。
+  const [recommendations, pois, serviceSchedule] = await Promise.all([
     getCachedDetailRecommendations(loaded.city.slug, loaded.listing.slug, 6),
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])
-  return <CityListingDetailView city={loaded.city} listing={loaded.listing} buildingDetail={buildingDetail}
+  return <CityListingDetailView city={loaded.city} listing={loaded.listing}
     recommendations={recommendations} pois={pois} serviceSchedule={serviceSchedule}
     mapEnabled={building?.coordinates != null && hasAmapJsKey()}
     routeMode={getMultiCityRoutingEnabled() ? 'prefixed' : 'legacy'} />

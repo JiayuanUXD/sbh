@@ -6,7 +6,7 @@ const io = vi.hoisted(() => ({
   getCachedHomepage: vi.fn(),
   getCachedSearchListings: vi.fn(),
   getCachedListingDistrictOptions: vi.fn(),
-  getCachedSearchBuildings: vi.fn(),
+  getCachedSearchBuildingsFiltered: vi.fn(),
   getCachedListingBySlug: vi.fn(),
   getCachedBuildingBySlug: vi.fn(),
   getCachedBuildingDetail: vi.fn(),
@@ -19,6 +19,7 @@ const io = vi.hoisted(() => ({
   resolveListingRouteIdentity: vi.fn(),
   resolveBuildingRouteIdentity: vi.fn(),
   parseListingSearchInput: vi.fn(),
+  parseBuildingSearchInput: vi.fn(),
   parseBuildingSupplySearchParams: vi.fn(),
   createSearchContext: vi.fn(),
   getBuildingDetail: vi.fn(),
@@ -42,7 +43,7 @@ vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedHomepage: io.getCachedHomepage,
   getCachedSearchListings: io.getCachedSearchListings,
   getCachedListingDistrictOptions: io.getCachedListingDistrictOptions,
-  getCachedSearchBuildings: io.getCachedSearchBuildings,
+  getCachedSearchBuildingsFiltered: io.getCachedSearchBuildingsFiltered,
   getCachedListingBySlug: io.getCachedListingBySlug,
   getCachedBuildingBySlug: io.getCachedBuildingBySlug,
   getCachedBuildingDetail: io.getCachedBuildingDetail,
@@ -63,8 +64,11 @@ vi.mock('@/domain/public-catalog', () => ({
   resolveBuildingRouteIdentity: io.resolveBuildingRouteIdentity,
   PUBLIC_CACHE_TAG_PREFIX: 'public',
   buildCanonicalSearchParams: () => new URLSearchParams(),
+  buildBuildingCanonicalParams: () => new URLSearchParams(),
+  parseBuildingSearchInput: io.parseBuildingSearchInput,
   parseListingSearchInput: io.parseListingSearchInput,
   parseBuildingSupplySearchParams: io.parseBuildingSupplySearchParams,
+  buildBuildingSupplyCanonicalSearchParams: () => new URLSearchParams(),
   createSearchContext: io.createSearchContext,
   getBuildingDetail: io.getBuildingDetail,
   normalizePublicMediaUrl: (value: unknown) => typeof value === 'string' ? value : null,
@@ -189,7 +193,9 @@ describe('city route boundaries', () => {
 
     const page = await CityListingDetailPage({ params: Promise.resolve({ city: 'shanghai', slug: 'shanghai-office' }) })
 
-    expect(io.getCachedBuildingBySlug).toHaveBeenCalledWith('shanghai', 'tower')
+    // OPT-037 Task 9：楼盘详情文档随「配套设施」段一并移除（见
+    // CityListingDetailView 文件头），房源详情路由不再取它。
+    expect(io.getCachedBuildingBySlug).not.toHaveBeenCalled()
     expect(io.getCachedDetailRecommendations).toHaveBeenCalledWith('shanghai', 'shanghai-office', 6)
     expect(io.fetchNearbyPois).toHaveBeenCalledWith(9, listing.building.coordinates)
     expect(io.getServiceSchedule).toHaveBeenCalledTimes(1)
@@ -204,7 +210,7 @@ describe('city route boundaries', () => {
   it('returns prefixed listing detail ownership to the exact legacy canonical while the flag is off', async () => {
     const listing = {
       id: 101, slug: 'shanghai-office', title: 'Shanghai Office', citySlug: 'shanghai', cityName: 'Shanghai',
-      price: null, area: 100, businessType: 'lease' as const, decorationStatus: null,
+      price: null, area: 100, floor: null, businessType: 'lease' as const, decorationStatus: null,
       listingType: 'traditional-office' as const, availableFrom: null, isFeatured: false,
       building: { id: 9, slug: 'tower', name: 'Tower', citySlug: 'shanghai', cityName: 'Shanghai', address: 'Road' },
       coverImage: null, highlights: [], stableSortKey: '101', seats: null, gallery: [], mediaItems: [],
@@ -276,7 +282,9 @@ describe('city route boundaries', () => {
     await expect(generateBuildingsMetadata(props)).resolves.toMatchObject({ robots: { index: false, follow: true } })
     await CityBuildingsPage(props)
     expect(buildingsDynamic).toBe('force-dynamic')
-    expect(io.getCachedSearchBuildings).not.toHaveBeenCalled()
+    // 未开城不查库：Task 12 把楼盘列表改成走筛选版查询，断言跟着换成同一个入口
+    // （未筛选版 getCachedSearchBuildings 已在 Task 13 删除，不再需要单独断言其未被调用）
+    expect(io.getCachedSearchBuildingsFiltered).not.toHaveBeenCalled()
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {

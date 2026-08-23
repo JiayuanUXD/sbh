@@ -258,6 +258,8 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
         'title',
         'price',
         'area',
+        'floor',
+        'seats',
         'businessType',
         'citySlug',
         'cityName',
@@ -302,7 +304,7 @@ describe('F7.5 公开 DTO 字段白名单契约', () => {
     // description 是受控字段（PageContent 白名单渲染），允许暴露
     expect(detail).toHaveProperty('description')
     // 但不应有未在 DTO 契约声明的字段
-    const allowed = ['id', 'slug', 'title', 'citySlug', 'cityName', 'price', 'area', 'seats', 'businessType',
+    const allowed = ['id', 'slug', 'title', 'citySlug', 'cityName', 'price', 'area', 'floor', 'seats', 'businessType',
       'decorationStatus', 'listingType', 'availableFrom', 'isFeatured', 'building',
       'coverImage', 'gallery', 'mediaItems', 'factGroups', 'amenityGroups',
       'verification', 'highlights', 'description', 'stableSortKey']

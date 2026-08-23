@@ -35,6 +35,7 @@ import type { PublicCitySiteProfile } from '@/domain/city-site-profile/public-co
 import {
   listPublicCityOptions,
   listPublicCityProfiles,
+  livePlatformStatsSlugs,
   resolveCityContext,
 } from '@/app/(frontend)/_lib/city-context'
 import {
@@ -50,6 +51,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     serviceStatus: 'coming-soon',
     switcherVisible: true,
     sortOrder: 20,
+    avgResponseHours: null,
     seoTitle: 'Hangzhou office leasing',
     seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
     hero: { eyebrow: '', heading: '', body: '', media: null },
@@ -287,11 +289,147 @@ describe('city context resolver', () => {
 
     expect(profiles).toHaveLength(1)
     expect(profiles[0]?.featuredRegions).toEqual([
-      { id: 11, slug: 'pudong', name: 'Pudong', type: 'district' },
+      { id: 11, slug: 'pudong', name: 'Pudong', type: 'district', parentName: null, description: null },
     ])
     expect(findCityProfiles).toHaveBeenLastCalledWith(
       expect.objectContaining({ collection: 'city-site-profiles', depth: 2 }),
     )
+  })
+
+  it('maps the featured region locality from parent and description, dropping the owning city', async () => {
+    // 层级事实：business_area 的 parent 是行政区、district 的 parent 是城市本身。
+    // depth: 2 下 parent 被展开成完整 Location（实测见
+    // scripts/verification/opt038-featured-regions-depth-probe.ts）。
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          featuredRegions: [
+            {
+              id: 4,
+              slug: 'nanjing-west-road',
+              name: 'Nanjing West Road',
+              type: 'business_area',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 1, slug: 'shanghai' },
+              parent: { id: 2, name: "Jing'an", type: 'district' },
+              description: '  Prime HQ office cluster.  ',
+            },
+            {
+              id: 2,
+              slug: 'jingan',
+              name: "Jing'an",
+              type: 'district',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 1, slug: 'shanghai' },
+              // 行政区的上级就是本城 → parentName 折成 null，不把城市名当区位
+              parent: { id: 1, name: 'Shanghai', type: 'city' },
+              description: '   ',
+            },
+          ],
+        }),
+      ],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles[0]?.featuredRegions).toEqual([
+      {
+        id: 4,
+        slug: 'nanjing-west-road',
+        name: 'Nanjing West Road',
+        type: 'business_area',
+        parentName: "Jing'an",
+        description: 'Prime HQ office cluster.',
+      },
+      {
+        id: 2,
+        slug: 'jingan',
+        name: "Jing'an",
+        type: 'district',
+        parentName: null,
+        description: null,
+      },
+    ])
+  })
+
+  it('logs instead of silently dropping a featured region whose parent was not populated', async () => {
+    // 取数 depth 被调小的形状：parent 只剩裸 id。既不能判废整个 profile
+    // （整座城市会从城市页/切换器/平台统计里消失），也不能悄悄少半截区位——
+    // 守卫落在失效点上：打一条带 errorCode 的 error 日志。
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      findCityProfiles.mockResolvedValueOnce({
+        docs: [
+          cityProfileDocument({
+            featuredRegions: [
+              {
+                id: 4,
+                slug: 'nanjing-west-road',
+                name: 'Nanjing West Road',
+                type: 'business_area',
+                status: 'active',
+                frontendVisible: true,
+                city: 1,
+                parent: 2,
+                description: null,
+              },
+            ],
+          }),
+        ],
+      })
+
+      const profiles = await listPublicCityProfiles()
+
+      expect(profiles).toHaveLength(1)
+      expect(profiles[0]?.featuredRegions).toEqual([
+        {
+          id: 4,
+          slug: 'nanjing-west-road',
+          name: 'Nanjing West Road',
+          type: 'business_area',
+          parentName: null,
+          description: null,
+        },
+      ])
+      expect(errorSpy).toHaveBeenCalledWith(
+        '[city-profile-featured-regions] parent_unpopulated',
+        { objectId: 4, errorCode: 'featured_region_parent_unpopulated' },
+      )
+    } finally {
+      errorSpy.mockRestore()
+    }
+  })
+
+  it('rejects a profile whose featured region description is not a string', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument(),
+        cityProfileDocument({
+          id: 2,
+          city: { id: 2, slug: 'hangzhou', name: 'Hangzhou', type: 'city', status: 'active' },
+          seoTitle: 'Hangzhou office leasing',
+          seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
+          featuredRegions: [
+            {
+              id: 12,
+              slug: 'west-lake',
+              name: 'West Lake',
+              type: 'district',
+              status: 'active',
+              frontendVisible: true,
+              city: { id: 2 },
+              description: 42,
+            },
+          ],
+        }),
+      ],
+    })
+
+    await expect(listPublicCityOptions()).resolves.toEqual([
+      { slug: 'shanghai', name: 'Shanghai', serviceStatus: 'live', sortOrder: 10 },
+    ])
   })
 
   it('excludes a profile whose populated city is disabled', async () => {
@@ -421,5 +559,46 @@ describe('city context resolver', () => {
       revalidate: 300,
       tags: ['public:city-profile:hangzhou', 'public:city-profiles'],
     })
+  })
+})
+
+/**
+ * 回归（最终评审 F2）：根页 `/` 数据带的跨城汇总只吃「已开通 + slug 可公开路由」
+ * 的城市。历史实现是 `profiles.filter((p) => p.serviceStatus === 'live')`，
+ * 没有过 `isPublicCitySlug` 这道路由信任边界。
+ */
+describe('livePlatformStatsSlugs（根页平台 stats 城市清单）', () => {
+  it('只保留 serviceStatus 为 live 的城市', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live' }),
+        profile({ citySlug: 'hangzhou', serviceStatus: 'coming-soon' }),
+        profile({ citySlug: 'shenzhen', serviceStatus: 'live' }),
+      ]),
+    ).toEqual(['shanghai', 'shenzhen'])
+  })
+
+  it('剔除不可公开路由的 slug（保留根段 / 非规范形态），不让它们触发跨城查询', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live' }),
+        // 撞上保留根段：前台没有 /listings 城市页，供给点不进去
+        profile({ citySlug: 'listings', serviceStatus: 'live' }),
+        // 非规范 slug：同样不可路由
+        profile({ citySlug: 'Bad_Slug', serviceStatus: 'live' }),
+      ]),
+    ).toEqual(['shanghai'])
+  })
+
+  it('不按 switcherVisible 过滤——那是切换器展示开关，不是开通状态', () => {
+    expect(
+      livePlatformStatsSlugs([
+        profile({ citySlug: 'shanghai', serviceStatus: 'live', switcherVisible: false }),
+      ]),
+    ).toEqual(['shanghai'])
+  })
+
+  it('无 live 城市时返回空清单（getPlatformHomepageStats 据此走全零且零查询）', () => {
+    expect(livePlatformStatsSlugs([profile({ serviceStatus: 'coming-soon' })])).toEqual([])
   })
 })

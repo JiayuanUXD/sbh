@@ -1,0 +1,72 @@
+
+=== /news ===
+  链接数: article=5 mini=0 nearby(<a>)=0 summaryCta=0 ls-card=0 bd-card=0 bd-row=0 listing-card=0
+  ArticleCard hrefs: ["/news/2026-shanghai-office-market-h1","/news/how-to-choose-first-office-for-startup","/news/serviced-vs-traditional-office-cost-compare","/news/jingan-temple-district-why-popular","/news/six-lease-terms-to-read-before-signing"]
+  BuildingCardMini hrefs: []
+  NearbyStrip hrefs: []
+  BuildingSummaryCard CTA: []
+  面包屑: []
+  预取总数: 16
+  其中【详情页 URL】(5): ["/news/2026-shanghai-office-market-h1","/news/how-to-choose-first-office-for-startup","/news/jingan-temple-district-why-popular","/news/serviced-vs-traditional-office-cost-compare","/news/six-lease-terms-to-read-before-signing"]
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/news/2026-shanghai-office-market-h1","/news/how-to-choose-first-office-for-startup","/news/jingan-temple-district-why-popular","/news/serviced-vs-traditional-office-cost-compare","/news/six-lease-terms-to-read-before-signing","/publish","/publish?city=shanghai"]
+
+=== /buildings/west-nanjing-premium-center ===
+  链接数: article=0 mini=1 nearby(<a>)=1 summaryCta=0 ls-card=0 bd-card=0 bd-row=0 listing-card=0
+  ArticleCard hrefs: []
+  BuildingCardMini hrefs: ["/buildings/empty-building"]
+  NearbyStrip hrefs: ["/buildings/empty-building"]
+  BuildingSummaryCard CTA: []
+  面包屑: ["/","/listings"]
+  预取总数: 12
+  其中【详情页 URL】(1): ["/buildings/empty-building"]
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings/empty-building","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /buildings/empty-building ===
+  链接数: article=0 mini=1 nearby(<a>)=1 summaryCta=0 ls-card=0 bd-card=0 bd-row=0 listing-card=0
+  ArticleCard hrefs: []
+  BuildingCardMini hrefs: ["/buildings/west-nanjing-premium-center"]
+  NearbyStrip hrefs: ["/buildings/west-nanjing-premium-center"]
+  BuildingSummaryCard CTA: []
+  面包屑: ["/","/listings"]
+  预取总数: 12
+  其中【详情页 URL】(1): ["/buildings/west-nanjing-premium-center"]
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings/west-nanjing-premium-center","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /listings/lujiazui-grade-a-780sqm ===
+  链接数: article=0 mini=0 nearby(<a>)=0 summaryCta=1 ls-card=0 bd-card=0 bd-row=0 listing-card=1
+  ArticleCard hrefs: []
+  BuildingCardMini hrefs: []
+  NearbyStrip hrefs: []
+  BuildingSummaryCard CTA: ["/buildings/lujiazui-grade-a-river-view"]
+  面包屑: ["/","/listings","/buildings/lujiazui-grade-a-river-view"]
+  预取总数: 12
+  其中【详情页 URL】(1): ["/buildings/lujiazui-grade-a-river-view"]
+  其中【带 query 的 URL】(5): ["/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings/lujiazui-grade-a-river-view","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]
+
+=== /listings ===
+  链接数: article=0 mini=0 nearby(<a>)=0 summaryCta=0 ls-card=10 bd-card=0 bd-row=0 listing-card=0
+  ArticleCard hrefs: []
+  BuildingCardMini hrefs: []
+  NearbyStrip hrefs: []
+  BuildingSummaryCard CTA: []
+  面包屑: []
+  预取总数: 16
+  其中【详情页 URL】(0): []
+  其中【带 query 的 URL】(10): ["/entrust?city=shanghai","/listings?priceUnit=rmb-month","/listings?priceUnit=rmb-seat-month","/listings?priceUnit=rmb-sqm-day","/listings?sort=newest","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/listings?view=row","/publish?city=shanghai"]
+  全量: ["/","/buildings","/entrust","/entrust?city=shanghai","/listings","/listings?priceUnit=rmb-month","/listings?priceUnit=rmb-seat-month","/listings?priceUnit=rmb-sqm-day","/listings?sort=newest","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/listings?view=row","/news","/publish","/publish?city=shanghai"]
+
+=== /buildings ===
+  链接数: article=0 mini=0 nearby(<a>)=0 summaryCta=0 ls-card=0 bd-card=5 bd-row=2 listing-card=0
+  ArticleCard hrefs: []
+  BuildingCardMini hrefs: []
+  NearbyStrip hrefs: []
+  BuildingSummaryCard CTA: []
+  面包屑: []
+  预取总数: 15
+  其中【详情页 URL】(0): []
+  其中【带 query 的 URL】(9): ["/buildings?onlyWithStock=1","/buildings?sort=area-desc","/buildings?sort=completion-desc","/buildings?sort=grade","/entrust?city=shanghai","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/publish?city=shanghai"]
+  全量: ["/","/buildings","/buildings?onlyWithStock=1","/buildings?sort=area-desc","/buildings?sort=completion-desc","/buildings?sort=grade","/entrust","/entrust?city=shanghai","/listings","/listings?type=coworking","/listings?type=full-floor","/listings?type=traditional-office","/news","/publish","/publish?city=shanghai"]

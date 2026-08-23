@@ -1,0 +1,78 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 migrate:status E:\wt-opt041\payload-office-platform
+> node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts
+
+[11:01:35] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+=== Migration Status ===
+Generated: 2026-08-22T03:01:35.550Z
+Database:  postgres
+  URL: postgres://postgres:****@localhost:5432/sbh_dev_opt041
+
+Code migrations:   61
+Applied migrations: 61
+Pending migrations: 0
+
+Code migrations:
+  [✓ applied] 20260723_160143_init
+  [✓ applied] 20260724_080952_add_leads_source
+  [✓ applied] 20260725_103653_m0_schema_sync
+  [✓ applied] 20260725_125851_m2_5_teams_brokers
+  [✓ applied] 20260725_130727_m2_1_locations_geo_node
+  [✓ applied] 20260725_132852_m2_6_display_tags
+  [✓ applied] 20260725_135837_m3_1_building_fields
+  [✓ applied] 20260725_142333_m3_3_building_merchant_relations
+  [✓ applied] 20260725_142500_m3_3_building_merchant_exclude
+  [✓ applied] 20260725_181426_m4_2_listing_merchant_relations
+  [✓ applied] 20260725_181500_m4_2_listing_merchant_exclude
+  [✓ applied] 20260725_185329_m4_4_listing_reviews
+  [✓ applied] 20260726_103500_m6_1_listing_reports
+  [✓ applied] 20260726_103600_m6_3_domain_events
+  [✓ applied] 20260726_103700_m6_4_tasks
+  [✓ applied] 20260726_103800_m6_7_notifications
+  [✓ applied] 20260726_110000_m5_1_crm_collections
+  [✓ applied] 20260726_140000_m5_2_leads_inquiry_context
+  [✓ applied] 20260726_150000_opt017_inquiry_rate_limit
+  [✓ applied] 20260728_175500_locked_docs_audit_logs_rel
+  [✓ applied] 20260728_180000_opt_021_admin_navigation_roles
+  [✓ applied] 20260728_181000_opt_021_form_submission_status
+  [✓ applied] 20260730_125851_detail_page_fields
+  [✓ applied] 20260730_134600_inquiry_detail_context
+  [✓ applied] 20260731_110500_fix_tasks_notifications_relationship
+  [✓ applied] 20260731_120000_information_corrections
+  [✓ applied] 20260731_120838_advisor_service_hours
+  [✓ applied] 20260731_120857_lead_viewing_preference
+  [✓ applied] 20260803_104120_add_articles
+  [✓ applied] 20260805_033418_cos_media_prefix
+  [✓ applied] 20260806_080629_locations_cover_image
+  [✓ applied] 20260808_224000_articles_menu_for_ops
+  [✓ applied] 20260809_142444_supply_submissions_and_entrust_source
+  [✓ applied] 20260809_180000_supply_notification_duplicates_preflight
+  [✓ applied] 20260809_183327_supply_submission_notification_unique
+  [✓ applied] 20260809_203911_supply_submission_notification_jobs
+  [✓ applied] 20260810_003111_align_listings_data_source_with_production
+  [✓ applied] 20260810_090000_supply_submission_role_permissions
+  [✓ applied] 20260810_114857_locations_city_field
+  [✓ applied] 20260810_153500_landing_hero_media_assets
+  [✓ applied] 20260810_170000_public_page_performance_indexes
+  [✓ applied] 20260810_200000_backfill_location_city
+  [✓ applied] 20260813_010000_city_site_profiles
+  [✓ applied] 20260813_011000_seed_city_site_profiles
+  [✓ applied] 20260813_020000_city_partner_applications
+  [✓ applied] 20260813_021000_city_partner_permissions
+  [✓ applied] 20260813_022000_city_partner_notification_jobs
+  [✓ applied] 20260813_060037_city_partner_notification_outbox_reconciler
+  [✓ applied] 20260815_140000_converge_shanghai_city_code
+  [✓ applied] 20260817_172754_sale_price_one_time
+  [✓ applied] 20260817_174500_sale_business_type_index
+  [✓ applied] 20260817_175801_sale_terms_fields
+  [✓ applied] 20260817_180000_sale_publication_status_sold
+  [✓ applied] 20260818_072207_fast_track_review_decision
+  [✓ applied] 20260818_232656_opt033_admin_fast_track_audit
+  [✓ applied] 20260819_113218_listing_hard_delete_nullable_refs
+  [✓ applied] 20260820_055534_drop_listing_merchant_relations
+  [✓ applied] 20260821_161534_supply_import_batches
+  [✓ applied] 20260822_001600_supply_import_unique_indexes
+  [✓ applied] 20260822_001700_supply_import_role_permissions
+  [✓ applied] 20260822_010308_supply_import_job_task
+ ELIFECYCLE  Command failed with exit code 143.

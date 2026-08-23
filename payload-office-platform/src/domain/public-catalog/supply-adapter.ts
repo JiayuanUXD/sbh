@@ -56,7 +56,7 @@ export interface SupplyAdapter {
   /**
    * sitemap 专用：一页有效房源，只取 slug / updatedAt / businessType。
    *
-   * 与 findEffectiveListings 的区别和 sumEffectiveLeasableAreaByBuildings 一样——
+   * 与 findEffectiveListings 的区别和 aggregateEffectiveSupplyByBuildings 一样——
    * 后者「只求一个数」，这里「只求一组 URL」，都不需要把展示模型拼出来。
    *
    * 成本差异是数量级的：findEffectiveListings 走 depth 2，把每套房源的楼盘、城市、
@@ -92,19 +92,28 @@ export interface SupplyAdapter {
   ): Promise<readonly Listing[]>
 
   /**
-   * 批量聚合多个楼盘的在租面积（楼盘卡片「在租 xxx ㎡」用）。
+   * 批量聚合多个楼盘的在租面积与在租套数（楼盘卡片「在租 xxx ㎡」「N 套在租」用）。
    *
-   * 返回 Map<楼盘 id, 面积合计>；无有效房源的楼盘不出现在 Map 中，调用方据此
-   * 判定「暂无在租」。
+   * 曾用名 sumEffectiveLeasableAreaByBuildings——只求一个数时这个名字是准的，
+   * 加了套数以后继续叫它就是误导，改名同时改了返回形状。
    *
-   * 与 findEffectiveListingsByBuilding 的区别：本方法只求一个数，不需要把房源
-   * 文档取出来。实现走 SQL 聚合，口径与逐条精筛一致（见实现处的规则对照与
-   * scripts/verify-leasable-area-parity.ts 的全量比对）。
+   * 返回 Map<楼盘 id, { area: 面积合计, count: 有效房源计数 }>；两者出自同一条
+   * SQL 的同一个 GROUP BY，谓词、asOf、businessType 完全一致，不会出现「面积有数
+   * 但套数没有」这种口径分叉。无有效房源的楼盘不出现在 Map 中，调用方据此判定
+   * 「暂无在租」——不会有某栋楼出现在 Map 里却是 count: 0 的情况。
+   *
+   * 与 findEffectiveListingsByBuilding 的区别：本方法只求两个数，不需要把房源
+   * 文档取出来。两者是两条独立维护的原始 SQL 字符串——不是「SQL 聚合 vs 逐条
+   * isListingEffectivelySupplied 精筛」这种双路径互证，findEffectiveListingsByBuilding
+   * 内部同样是手写 SQL（见该方法实现处），从不调用 isListingEffectivelySupplied。
+   * scripts/verify-leasable-area-parity.ts 比对两条 SQL 的结果是否一致（面积与
+   * 套数都比对），能防住「改一条谓词忘了改另一条」的字符串漂移，但不能替代
+   * 「与 isListingEffectivelySupplied 真正同口径」的证明——那需要另一层测试。
    */
-  sumEffectiveLeasableAreaByBuildings(
+  aggregateEffectiveSupplyByBuildings(
     buildingIds: readonly (number | string)[],
     ctx: SearchContext,
-  ): Promise<ReadonlyMap<string, number>>
+  ): Promise<ReadonlyMap<string, Readonly<{ area: number; count: number }>>>
 
   /** 当前楼盘周边的有效公开楼盘（排除自身，稳定收束）。 */
   findEffectiveBuildingsNear(
@@ -137,6 +146,13 @@ export interface SupplyAdapter {
    * 按需放出。
    */
   findEffectiveBusinessAreas(ctx: SearchContext): Promise<readonly Location[]>
+
+  /**
+   * 城市中心坐标（locations 表 type=city 行的 centerLatitude/Longitude）。
+   * 未配置或不成对时返回 null——首页「核心商圈房源」整段不渲染。
+   * 可选方法：既有测试假适配器无需实现。
+   */
+  findCityCenter?(ctx: SearchContext): Promise<Readonly<{ latitude: number; longitude: number }> | null>
 
   /** 按 listing slug 复核有效性（用于询盘目标校验）；不抛错，失效返回 null */
   assertEffectiveListingBySlug(slug: string, ctx: SearchContext): Promise<Listing | null>
@@ -785,9 +801,9 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       return kept
     },
 
-    async sumEffectiveLeasableAreaByBuildings(buildingIds, ctx) {
-      const sums = new Map<string, number>()
-      if (buildingIds.length === 0) return sums
+    async aggregateEffectiveSupplyByBuildings(buildingIds, ctx) {
+      const aggregates = new Map<string, { area: number; count: number }>()
+      if (buildingIds.length === 0) return aggregates
       const payload = await getPayload()
       const asOf = new Date(ctx.asOf).toISOString()
 
@@ -802,12 +818,15 @@ LIMIT ${PUBLIC_CATALOG_CANDIDATE_LIMIT}
       //   merchants_rels serviceCities = b.city_id → §10 服务城市覆盖楼盘城市
       //   listing_reports.supply_paused            → §5 举报暂停排除
       // scripts/verify-leasable-area-parity.ts 对全部楼盘做的是本方法与
-      // findEffectiveListingsByBuilding（同样是纯 SQL 路径）互相校验，能抓住
-      // 「两处 SQL 只改了一处」这类漂移，但不比对、也不能证明与上面这张
-      // TypeScript 规则表的口径一致性；改动任一处规则后仍应重跑，但结果一致
-      // 不能替代对 TS 精筛层的人工核对。
+      // findEffectiveListingsByBuilding（同样是纯 SQL 路径）互相校验，面积与套数
+      // 都比对，能抓住「两处 SQL 只改了一处」这类漂移，但不比对、也不能证明与
+      // 上面这张 TypeScript 规则表的口径一致性；改动任一处规则后仍应重跑，但结果
+      // 一致不能替代对 TS 精筛层的人工核对。
+      //
+      // COUNT(*) 与 SUM(l.area) 同一个 GROUP BY，天然同谓词、同 asOf、同渠道——
+      // 不会出现「面积聚合漏了某条件、套数聚合又漏了另一条」这种口径分叉。
       const sql = `
-SELECT l.building_id AS bid, SUM(l.area)::float8 AS total
+SELECT l.building_id AS bid, SUM(l.area)::float8 AS total, COUNT(*)::int AS cnt
 FROM listings l
 JOIN buildings  b    ON b.id = l.building_id
 JOIN locations  city ON city.id = b.city_id
@@ -825,7 +844,7 @@ WHERE l.building_id = ANY($2)
   AND city.slug = $3
   AND dist.status = 'active'
   -- 租售维度：$4 为 NULL 时不过滤（保持改造前口径），否则只算该类型。
-  -- 楼盘卡片的「在租 X ㎡」必须传 'lease'，否则一套待售整层会被算进在租面积。
+  -- 楼盘卡片的「在租 X ㎡ / N 套」必须传 'lease'，否则一套待售整层会被算进去。
   -- business_type 是 ENUM，与 text 参数比较必须显式转型：PG 不做
   -- enum = text 的隐式转换，否则报「操作符不存在」。
   AND ($4::text IS NULL OR l.business_type::text = $4::text)
@@ -843,7 +862,7 @@ WHERE l.building_id = ANY($2)
 GROUP BY l.building_id
 `
       const pool = (payload.db as unknown as {
-        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number }> }> }
+        pool: { query: (text: string, values: unknown[]) => Promise<{ rows: Array<{ bid: number; total: number; cnt: number }> }> }
       }).pool
       const result = await pool.query(sql, [
         asOf,
@@ -853,12 +872,18 @@ GROUP BY l.building_id
       ])
 
       for (const row of result.rows) {
+        const cnt = Math.trunc(Number(row.cnt))
+        // GROUP BY 只会为至少有一条匹配行的楼盘产出一行，cnt 恒 >= 1；这里仍防御性
+        // 校验，非法/非正值一律视为该楼盘无有效供给，不进 Map（调用方按缺失判「暂无在租」）。
+        if (!Number.isFinite(cnt) || cnt <= 0) continue
         const total = Number(row.total)
-        if (!Number.isFinite(total) || total <= 0) continue
-        // numeric 逐条相加会积累出 160846.65999999997 这类尾数，收敛到 2 位小数
-        sums.set(String(row.bid), Math.round(total * 100) / 100)
+        // area 单独判定「非正/非法即视为 0」：面积字段的数据质量问题（缺失/0）不该
+        // 连累套数——套数来自同一批真实存在的有效房源行，与面积是否可信无关。
+        // numeric 逐条相加会积累出 160846.65999999997 这类尾数，收敛到 2 位小数。
+        const area = Number.isFinite(total) && total > 0 ? Math.round(total * 100) / 100 : 0
+        aggregates.set(String(row.bid), { area, count: cnt })
       }
-      return sums
+      return aggregates
     },
 
     async findEffectiveBuildingsNear(buildingId, ctx, limit) {
@@ -995,6 +1020,26 @@ GROUP BY l.building_id
         depth: 1, // coverImage 一次填充；缺封面的商圈由 facade 回退到楼盘封面
       })
       return result.docs as readonly Location[]
+    },
+
+    async findCityCenter(ctx) {
+      const payload = await getPayload()
+      const result = await payload.find({
+        collection: 'locations',
+        where: {
+          slug: { equals: ctx.city },
+          type: { equals: 'city' },
+          status: { equals: 'active' },
+        } as unknown as Where,
+        depth: 0,
+        limit: 1,
+      })
+      const doc = result.docs[0] as { centerLatitude?: unknown; centerLongitude?: unknown } | undefined
+      const lat = typeof doc?.centerLatitude === 'number' ? doc.centerLatitude : null
+      const lng = typeof doc?.centerLongitude === 'number' ? doc.centerLongitude : null
+      if (lat == null || lng == null) return null
+      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+      return { latitude: lat, longitude: lng }
     },
 
     async findLatestArticles(limit = 5) {

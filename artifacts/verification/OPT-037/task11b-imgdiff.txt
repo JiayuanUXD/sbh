@@ -1,0 +1,16 @@
+building-nomedia-1440.png      h:4625->4502  diffPx:741392  pct:11.436  diffY:1836..4501
+building-nomedia-1920.png      h:4625->4502  diffPx:742985  pct:8.596  diffY:1836..4501
+building-nomedia-375.png       h:8048->7663  diffPx:592206  pct:20.608  diffY:2282..7648
+building-nomedia-768.png       h:6181->5896  diffPx:911208  pct:20.123  diffY:2360..5883
+building-withmedia-1440.png    h:5405->5282  diffPx:1433846  pct:18.851  diffY:2199..5281
+building-withmedia-1920.png    h:5405->5282  diffPx:1435207  pct:14.152  diffY:2199..5281
+building-withmedia-375.png     h:10318->9934  diffPx:1251193  pct:33.587  diffY:4158..9918
+building-withmedia-768.png     h:7649->7363  diffPx:1832388  pct:32.404  diffY:2825..7350
+listing-1440.png               h:4079->4079  diffPx:12917  pct:0.220  diffY:2487..2658
+listing-1920.png               h:4079->4079  diffPx:10150  pct:0.130  diffY:2517..2816
+listing-375.png                h:4995->4995  diffPx:0  pct:0.000  diffY:-1..-1
+listing-768.png                h:4884->4884  diffPx:200680  pct:5.350  diffY:2767..3126
+listings-index-1440.png        h:1952->1952  diffPx:0  pct:0.000  diffY:-1..-1
+listings-index-1920.png        h:1952->1952  diffPx:0  pct:0.000  diffY:-1..-1
+listings-index-375.png         h:5487->5487  diffPx:0  pct:0.000  diffY:-1..-1
+listings-index-768.png         h:3138->3138  diffPx:0  pct:0.000  diffY:-1..-1

@@ -1,0 +1,90 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 build E:\wt-opt041\payload-office-platform
+> next build
+
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ⨯ turbopackServerFastRefresh
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 22.4s
+  Running TypeScript ...
+  Finished TypeScript in 16.8s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/12) ...
+  Generating static pages using 7 workers (3/12) 
+  Generating static pages using 7 workers (6/12) 
+[11:15:24] [31mERROR[39m: [36mError running onInit function[39m
+    err: {
+      "type": "Error",
+      "message": "[config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost\n  - COS_STORAGE: 生产环境必须配置 COS，禁止将媒体写入 CloudRun 临时磁盘",
+      "stack":
+          Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost
+            - COS_STORAGE: 生产环境必须配置 COS，禁止将媒体写入 CloudRun 临时磁盘
+              at f (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\_1h6dve3._.js:255:218366)
+              at Object.onInit (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\_1h6dve3._.js:256:2370)
+              at aS.init (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:12362)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async aW (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:14024)
+              at async v (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__09l9jzx._.js:1:2613)
+    }
+revalidating cache with key: async()=>v()-public-city-profiles-[] Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https
+  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost
+  - COS_STORAGE: 生产环境必须配置 COS，禁止将媒体写入 CloudRun 临时磁盘
+    at f (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\_1h6dve3._.js:255:218366)
+    at Object.onInit (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\_1h6dve3._.js:256:2370)
+    at async v (E:\wt-opt041\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__09l9jzx._.js:1:2613) {
+  payloadInitError: true
+}
+  Generating static pages using 7 workers (9/12) 
+✓ Generating static pages using 7 workers (12/12) in 182ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /[city]
+├ ƒ /[city]/buildings
+├ ƒ /[city]/buildings/[slug]
+├ ƒ /[city]/listings
+├ ƒ /[city]/listings/[slug]
+├ ƒ /[city]/sale
+├ ƒ /admin/[[...segments]]
+├ ƒ /api/[...slug]
+├ ƒ /api/city-partner-applications
+├ ƒ /api/city-partner-applications/details
+├ ƒ /api/corrections
+├ ƒ /api/graphql
+├ ƒ /api/graphql-playground
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ƒ /api/inquiries/demand
+├ ƒ /api/observability/sli
+├ ƒ /api/routes
+├ ƒ /api/supply-submissions
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /entrust
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+└ ƒ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

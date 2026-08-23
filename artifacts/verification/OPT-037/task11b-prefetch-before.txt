@@ -1,0 +1,18 @@
+
+=== /listings ===
+  页面上房源卡链接数: 0
+  面包屑链接: []
+  BuildingSummaryCard CTA: []
+  实测被 RSC 预取的路径 (16): ["/","/buildings","/entrust","/listings","/listings/changning-hongqiao-serviced","/listings/huangpu-bund-coworking","/listings/huangpu-bund-traditional","/listings/jingan-center-fullfloor","/listings/jingan-price-on-request-300sqm","/listings/jingan-serviced-office-42-seats","/listings/lujiazui-grade-a-780sqm","/listings/media-rich-listing","/listings/pudong-lujiazui-fullfloor","/listings/xuhui-xujiahui-traditional","/news","/publish"]
+
+=== /listings/lujiazui-grade-a-780sqm ===
+  页面上房源卡链接数: 1
+  面包屑链接: ["/","/listings","/buildings/lujiazui-grade-a-river-view"]
+  BuildingSummaryCard CTA: ["/buildings/lujiazui-grade-a-river-view"]
+  实测被 RSC 预取的路径 (6): ["/","/buildings","/entrust","/listings","/news","/publish"]
+
+=== /buildings/west-nanjing-premium-center ===
+  页面上房源卡链接数: 0
+  面包屑链接: ["/","/listings"]
+  BuildingSummaryCard CTA: []
+  实测被 RSC 预取的路径 (7): ["/","/buildings","/buildings/empty-building","/entrust","/listings","/news","/publish"]
