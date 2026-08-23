@@ -36,6 +36,7 @@
     "verify:leasable-area": "node --env-file-if-exists=.env.local --import tsx scripts/verify-leasable-area-parity.ts",
     "verify:location-counts": "node --env-file-if-exists=.env.local --import tsx scripts/verify-location-counts.ts",
     "verify:business-area-boundary": "node --env-file-if-exists=.env.local --import tsx scripts/verify-business-area-boundary.ts",
+    "verify:unique-violation": "node --env-file-if-exists=.env.local --import tsx scripts/verify-unique-violation.ts",
     "import:geography": "node --env-file-if-exists=.env.local --import tsx scripts/import-geography.ts",
     "collect:geography": "node --env-file-if-exists=.env.local --import tsx scripts/collect-geography.ts --all",
     "data:audit": "node --env-file-if-exists=.env.local --import tsx scripts/data-audit.ts"

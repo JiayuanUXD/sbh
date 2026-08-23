@@ -24,6 +24,7 @@ import {
   validateCorrection,
   type CorrectionRequest,
 } from '@/domain/corrections'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { CORRECTION_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
@@ -68,23 +69,18 @@ function isJsonContentType(req: Request): boolean {
   return (req.headers.get('content-type') ?? '').toLowerCase().startsWith('application/json')
 }
 
+/**
+ * 幂等键唯一约束冲突判定。
+ *
+ * 判定实现见 `domain/shared/unique-violation.ts`：本项目的 drizzle 适配器会把
+ * 23505 转成 `ValidationError`，只查 `cause.code` 的老写法恒为 false。
+ */
 function isIdempotencyUniqueViolation(error: unknown): boolean {
-  let candidate: unknown = error
-  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
-    const record = candidate as Record<string, unknown>
-    const marker = [record.constraint, record.detail, record.message]
-      .filter((part): part is string => typeof part === 'string')
-      .join(' ')
-      .toLowerCase()
-    if (
-      record.code === '23505' &&
-      (marker.includes('information_corrections') || marker.includes('idempotency_key'))
-    ) {
-      return true
-    }
-    candidate = record.cause
-  }
-  return false
+  return isUniqueViolation(error, {
+    tableName: 'information_corrections',
+    column: 'idempotency_key',
+    path: 'idempotencyKey',
+  })
 }
 
 export async function POST(req: Request): Promise<Response> {

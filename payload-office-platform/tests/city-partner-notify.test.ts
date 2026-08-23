@@ -21,6 +21,7 @@ import {
   down as outboxMigrationDown,
   up as outboxMigrationUp,
 } from '@/migrations/20260813_060037_city_partner_notification_outbox_reconciler'
+import { payloadJobUniqueViolation } from './helpers/unique-violation-fixtures'
 
 const { default: payloadConfigPromise } = await import('@/payload.config')
 
@@ -174,9 +175,9 @@ describe('city partner notification durable outbox reconciliation', () => {
             throw new Error('temporary sensitive queue failure')
           }
           if (jobExists) {
-            const error = new Error('duplicate') as Error & { code: string }
-            error.code = '23505'
-            throw error
+            // 真实形状：payload_jobs 局部表达式唯一索引冲突经适配器转换后的
+            // ValidationError（见 tests/helpers/unique-violation-fixtures.ts 文件头）。
+            throw payloadJobUniqueViolation()
           }
           jobExists = true
           return { id: 77 }

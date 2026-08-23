@@ -3,6 +3,7 @@ import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import type { CityPartnerIdentity, CityPartnerResourceType } from './schema'
 import {
   CITY_PARTNER_WRITE_STAGE_CONTEXT_KEY,
@@ -118,20 +119,20 @@ function transactionExecutor(payload: Payload, transactionID: number | string): 
   return session && isTransactionExecutor(session.db) ? session.db : null
 }
 
+/**
+ * 幂等键唯一约束冲突判定。
+ *
+ * 判定实现见 `domain/shared/unique-violation.ts`：本项目的 drizzle 适配器会把
+ * 23505 转成 `ValidationError`，只查 `cause.code` 的老写法恒为 false。
+ * 本文件同时存在裸 SQL 路径（下方 `SELECT ... FOR UPDATE`），共享实现保留了
+ * 原始 pg 错误分支，两条路径都能判到。
+ */
 function isIdempotencyUniqueViolation(error: unknown): boolean {
-  let candidate = error
-  for (let depth = 0; depth < 5 && isRecord(candidate); depth += 1) {
-    const marker = [candidate.constraint, candidate.detail, candidate.message]
-      .filter((part): part is string => typeof part === 'string')
-      .join(' ')
-      .toLowerCase()
-    if (
-      candidate.code === '23505' &&
-      (marker.includes('city_partner_applications') || marker.includes('idempotency_key'))
-    ) return true
-    candidate = candidate.cause
-  }
-  return false
+  return isUniqueViolation(error, {
+    tableName: 'city_partner_applications',
+    column: 'idempotency_key',
+    path: 'idempotencyKey',
+  })
 }
 
 async function findExisting(payload: Payload, idempotencyKey: string): Promise<boolean> {
