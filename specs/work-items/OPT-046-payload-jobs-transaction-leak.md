@@ -113,18 +113,59 @@ idle in transaction 5 个，xact_start 分布在 01:19 / 05:03 / 08:49 / 12:29 /
 
 **止损不等于修复**：泄漏还在，只是不再能打满池子。
 
-## 5. 待查（本工作项的正事）
+## 5. 已排除的假设（2026-08-24 实验，别再重复走这两条路）
 
-1. **精确定位泄漏点**：读 `payload@3.86` 的 `runJobs` / `handleSchedules` 实现，
-   找出哪条路径在开启事务后既不 commit 也不 rollback。重点看：
-   - `jobs.access.run: ({ req }) => req.payloadAPI === 'local'` 这个 access 判定
-     是否在 autoRun 路径上被求值并抛错（配置注释假设「autoRun 走可信 Local API、
-     会覆盖 access」，**该假设未经验证**）；
-   - `shouldAutoRun` 里的两个 `recoverStale*` 在池子紧张时会不会阻塞，
-     进而让已开事务的那一轮永远走不完（自我强化的死锁螺旋）；
-   - 三条 autoRun 全带 `silent: true`，错误可能被吞——先把它关掉再复现。
-2. **`payload_jobs_log` 插入失败**那条 aborted 事务的原因，可能是同一个 bug 的另一面。
-3. 定位后判断是**升级 Payload**、**改配置规避**，还是**自己接管 job 轮询**。
+### 5.1 ❌「`updateJob.js` 缺 try/catch，出错即泄漏」——**已证伪**
+
+源码确实有缺陷。`queues/utilities/updateJob.js` 里：
+
+```js
+const jobReq = { transactionID: await req.payload.db.beginTransaction() }
+const updatedJobs = await req.payload.db.updateJobs(args)   // 抛错就到不了下一行
+if (...) { await req.payload.db.commitTransaction(jobReq.transactionID) }
+```
+
+全文没有 `try` / `catch` / `finally`，也从不调 `killTransaction`。看起来完全吻合。
+
+**但实验否定了它。** 做法：注入一个必定抛错的 `db.updateJobs`，调用 `updateJob`，
+再数 `pg_stat_activity` 里的泄漏事务。
+
+- 第一版：错误抛得太早——drizzle 的 `beginTransaction()` 只建会话，
+  **真正的 `BEGIN` 要到首次在该事务上执行语句时才发给 PG**。物理事务没开，自然不漏。
+  （这条本身值得记住，它让「读源码得出的结论」很容易假阳性。）
+- 第二版：先在事务会话上真跑一条 `select 1` 再抛错。**泄漏数仍然纹丝不动（6 → 6）。**
+
+结论：这个缺陷是真的，但**不是本次泄漏的触发路径**。修它（`runHooks: true` 或打 patch）
+解决不了问题。
+
+> 顺带：`jobs.runHooks: true` 确实能绕开这条快速路径、改走事务处理完整的
+> `payload.update()`，但 Payload 官方注释写着「discouraged，drastically affect
+> performance」且 `@deprecated - will be removed in 4.0`。在根因未明前不要拿它当解药。
+
+### 5.2 ❌「进程被强制终止会遗留在途事务」——**已证伪**
+
+做法：记录泄漏数 → `taskkill /F` 硬杀本地 dev server → 等 6 秒 → 再数。
+结果 **6 → 6，没有新增**。TCP 连接被 RST 后 PG 会清掉会话，不构成泄漏来源。
+
+### 5.3 关键的反向证据：cron tick 本身不泄漏
+
+2026-08-24 本地 dev server 连续运行约 90 分钟，三条 cron（30s/30s/10s）打了上百轮，
+**泄漏数全程停在 5-6 没有增长**。而生产是在**流量从 10% 切到 100% 的那 8 分钟里**漏了 9 个。
+
+所以触发条件是**情境性**的，不是「每轮轮询都漏」。
+
+## 5.4 下一步该查什么（按可能性排序）
+
+1. **多实例并发争抢同一队列**。生产切流量时新旧版本实例可能并存，
+   各自按同一 cron 轮询同一张 `payload_jobs`；`updateJobs` 取任务要加锁，
+   争抢路径上可能有不释放的分支。本地单实例复现不出来，正好解释速率差异。
+   验证思路：本地同时起 2-3 个进程指向同一个库，跑 30 分钟看泄漏是否增长。
+2. **`payload_jobs_log` 插入失败**那条 `idle in transaction (aborted)`——
+   本地与生产各有一个，签名一致，是唯一能直接看到「事务已进入 aborted 却没回滚」的样本。
+   查清它为什么失败，很可能顺藤摸到主路径。
+3. 把三条 autoRun 的 `silent: true` 关掉再复现，看有没有被吞掉的错误。
+4. 以上都不成立时，再读 `runJobs/index.js` 与 drizzle 适配器的
+   `beginTransaction` / `commitTransaction` 实现，找有没有「会话被丢弃但连接没归还」的路径。
 
 ## 6. 验收
 
