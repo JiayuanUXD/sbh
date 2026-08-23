@@ -75,6 +75,7 @@ import {
 } from './domain/forms/submission-status'
 import { domainErrorAfterError } from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
+import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
 import {
   SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
@@ -166,7 +167,7 @@ export default buildConfig({
   // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
   // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload
   // （dev/start/migrate/seed 等连库命令）触发，不影响 generate/build 等纯静态命令加载 config。
-  onInit: () => {
+  onInit: (payload) => {
     const dbUrl = process.env.DATABASE_URL?.trim()
     if (!dbUrl || !dbUrl.startsWith('postgres')) {
       throw new Error(
@@ -174,6 +175,7 @@ export default buildConfig({
       )
     }
     assertProductionConfig(process.env)
+    attachPoolErrorHandler(payload)
   },
   i18n: {
     supportedLanguages: { zh },
@@ -356,6 +358,22 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: databaseUrl,
+      // 事故防线（2026-08-24 生产故障）：Payload Jobs 的定时轮询会**泄漏事务**——
+      // 每次泄漏留下一个 `idle in transaction` 连接，PG 侧停在 wait_event=ClientRead
+      // 等一条永远不会来的 COMMIT/ROLLBACK。node-postgres 的池默认 max=10，
+      // 泄漏攒到 9 个时只剩 1 个可用连接，凡是要查库的请求全部排队到超时：
+      // 线上 /api/health 与 /shanghai/listings 挂死 120s+，而 Next 缓存命中的
+      // / 与 /shanghai/buildings 照常 200——「一半页面好、一半页面死」就是这个指纹。
+      //
+      // 泄漏本身在 Payload 的 job runner 内部，未修（见 specs/work-items/OPT-046）。
+      // 这里加的是止损：让 PG 自己回收超时的空闲事务，池子就打不满。
+      // 泄漏速率与数据库延迟正相关——本地 localhost 19 小时才漏 5 个，
+      // 生产走公网 TencentDB 8 分钟漏 9 个，所以这条防线对生产尤其必要。
+      //
+      // 取值 120s：正常事务里两条语句之间的空闲远小于此（导入按 20 行分片，
+      // 每行若干条查询，间隔都是亚秒级）；空闲超过两分钟的事务本身就是缺陷。
+      // 注意这只管「事务内空闲」，正在执行的长语句（如迁移）不受影响。
+      options: '-c idle_in_transaction_session_timeout=120000',
     },
     // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
     // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，
