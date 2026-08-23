@@ -6,6 +6,7 @@ const { revalidateTag } = vi.hoisted(() => ({
 
 vi.mock('next/cache', () => ({ revalidateTag }))
 
+import { IMMEDIATE_CACHE_EXPIRE_PROFILE } from '@/domain/public-catalog/cache-tags'
 import { CitySiteProfiles } from '@/collections/CitySiteProfiles'
 import { Locations } from '@/collections/Locations'
 import {
@@ -64,10 +65,10 @@ describe('city profile cache invalidator', () => {
       req: {},
     }])
 
-    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:hangzhou', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('public:home:hangzhou', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:suzhou', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(revalidateTag).toHaveBeenCalledWith('public:home:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:suzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
 
   it('revalidates both old and new city supply caches when a Location is reassigned', async () => {
@@ -96,10 +97,10 @@ describe('city profile cache invalidator', () => {
     }])
 
     for (const city of ['hangzhou', 'suzhou']) {
-      expect(revalidateTag).toHaveBeenCalledWith(`public:home:${city}`, 'max')
-      expect(revalidateTag).toHaveBeenCalledWith(`public:listings:city:${city}`, 'max')
-      expect(revalidateTag).toHaveBeenCalledWith(`public:buildings:city:${city}`, 'max')
-      expect(revalidateTag).toHaveBeenCalledWith(`public:facets:${city}`, 'max')
+      expect(revalidateTag).toHaveBeenCalledWith(`public:home:${city}`, IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith(`public:listings:city:${city}`, IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith(`public:buildings:city:${city}`, IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith(`public:facets:${city}`, IMMEDIATE_CACHE_EXPIRE_PROFILE)
     }
   })
 
@@ -130,10 +131,10 @@ describe('city profile cache invalidator', () => {
         req: {},
       }])
 
-      expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', 'max')
-      expect(revalidateTag).toHaveBeenCalledWith('public:listings', 'max')
-      expect(revalidateTag).toHaveBeenCalledWith('public:buildings', 'max')
-      expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', 'max')
+      expect(revalidateTag).toHaveBeenCalledWith('public:home:suzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith('public:listings', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith('public:buildings', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+      expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', IMMEDIATE_CACHE_EXPIRE_PROFILE)
     } finally {
       consoleError.mockRestore()
     }
@@ -156,8 +157,8 @@ describe('city profile cache invalidator', () => {
       req: {},
     }])
 
-    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:hangzhou', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('public:facets:hangzhou', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('public:city-profile:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(revalidateTag).toHaveBeenCalledWith('public:facets:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+    expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
 })

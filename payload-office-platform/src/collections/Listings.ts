@@ -1,6 +1,10 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
 import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 
+import {
+  invalidateListingPublicCacheAfterChange,
+  invalidateListingPublicCacheAfterDelete,
+} from '@/domain/public-catalog/supply-cache-hook'
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
   PUBLICATION_STATUSES,
@@ -226,9 +230,13 @@ export const Listings: CollectionConfig = {
     // 早于前两者会判在半成品数据上。
     beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
     // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
-    afterChange: [recordAdminAutoPublish],
+    //
+    // 缓存失效排最后：它只读最终 doc，且失败不阻断写入，放在业务 hook 之后
+    // 才保证失效的是真正落库的那份数据。
+    afterChange: [recordAdminAutoPublish, invalidateListingPublicCacheAfterChange],
     // OPT-034 Task 6：listing_merchant_relations 表已删，房源硬删除不再需要
     // 清理关系行的 beforeDelete hook（原因见迁移文件头注释）。
+    afterDelete: [invalidateListingPublicCacheAfterDelete],
   },
   fields: [
     {

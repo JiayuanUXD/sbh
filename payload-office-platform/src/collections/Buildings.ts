@@ -4,6 +4,10 @@ import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
 import {
+  invalidateBuildingPublicCacheAfterChange,
+  invalidateBuildingPublicCacheAfterDelete,
+} from '@/domain/public-catalog/supply-cache-hook'
+import {
   BUILDING_GALLERY_MAX,
   BUILDING_OPERATIONAL_STATUSES,
   BUILDING_OPERATIONAL_STATUS_LABELS,
@@ -110,6 +114,9 @@ export const Buildings: CollectionConfig = {
     beforeChange: [syncBuildingMedia, protectBuilding],
     // 字段脱敏（tasks.md M1.4）：缺 building:coordinate 权限 → 坐标清空
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
+    // 楼盘停用 / 换城市 / 改展示字段都会改变前台可见性与楼盘详情，必须失效公开缓存。
+    afterChange: [invalidateBuildingPublicCacheAfterChange],
+    afterDelete: [invalidateBuildingPublicCacheAfterDelete],
   },
   fields: [
     {

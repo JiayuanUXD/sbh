@@ -6,6 +6,7 @@ const { revalidateTag } = vi.hoisted(() => ({
 
 vi.mock('next/cache', () => ({ revalidateTag }))
 
+import { IMMEDIATE_CACHE_EXPIRE_PROFILE } from '@/domain/public-catalog'
 import { invalidateSupplyImportPublicCache } from '@/lib/frontend/public-cache-revalidation'
 
 /**
@@ -28,8 +29,11 @@ describe('invalidateSupplyImportPublicCache', () => {
         'public:sitemap',
       ]),
     )
-    // revalidateTag 第二参数 profile 必填（Next 16），沿用既有惯例传 'max'
-    expect(revalidateTag).toHaveBeenCalledWith(expect.any(String), 'max')
+    // 档位必须是硬失效（{ expire: 0 }），不是 'max'——'max' 会放行一次陈旧读，
+    // 而导入落地的是「确认后立即对外可见」，回滚落地的是止血。
+    // 语义与「不要为了消 deprecation 警告改回 'max'」的理由见
+    // domain/public-catalog/cache-tags.ts 的 IMMEDIATE_CACHE_EXPIRE_PROFILE 注释。
+    expect(revalidateTag).toHaveBeenCalledWith(expect.any(String), IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
 
   it('给出多个城市 slug → 每个城市各自失效，去重后调用', () => {
