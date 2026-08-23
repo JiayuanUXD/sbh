@@ -1,6 +1,6 @@
 # Task Packet：OPT-045 批量导入补齐「导入即可上架」的字段与前提
 
-> 状态：**待实施**（范围已由用户裁定，两处实现细节待定，见 §7）
+> 状态：**待实施**（范围与全部 5 条实现细节均已裁定，见 §7）
 > 创建日期：2026-08-23
 > 来源：OPT-041 合并后的本地验收（2026-08-23）+ 用户提出「导入的楼盘/房源要能直接上架」
 > 编号说明：OPT-042 / OPT-043 归 PR #83（跨实例缓存失效 / 事件消费链路未接线），
@@ -133,8 +133,10 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
 1. **楼盘模板补列**：供给商户编号、等级、竣工年份、最近地铁
 2. **房源模板补可选商户列**（留空 → 继承楼盘 → 再回落默认商户）
 3. **批次级默认值**：导入向导加一步「本批默认值」，行内留空即用批次默认
-4. **单价 / 可售路径**：房源支持出售写法；**楼盘新增价格字段**（见 §5.4）
+4. **单价 / 可售路径**：房源支持出售写法 + `sale_terms_*` 四项（D5）；**楼盘新增单值在售单价字段**（D1，涉及迁移）
 5. **默认商户回落 + §10 校验**（见 §5.1）
+6. **平台自营商户体系**：`isPlatformDefault` 字段（D2）+ 七城各建一个（D3）
+7. **三个游离集合收编进导航**（D4）
 
 明确不在范围：图片 / 平面图导入（沿用 OPT-041 非目标）、交互式列映射编辑器、
 抓取式增量同步、`SupplySubmissions` 投放申请链路。
@@ -170,7 +172,7 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
   「商户表没有稳定业务码（只有 name / type）」。七个名字靠约定同步只会更脆。
   建议给 `Merchants` 加一个显式标识字段（如 `isPlatformDefault: boolean`），
   解析条件改成「isPlatformDefault + active + 资质有效 + serviceCities 含该城市」。
-  这是 §7 待裁定项之一。
+  **已裁定为 D2**（见 §7）。
 
 ### 5.3 楼盘模板补列的落库口径
 
@@ -184,11 +186,11 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
 
 - **房源侧**：接通 `price_amount` / `price_currency` / `price_period` / `price_unit`
   四件套，让 `rmb-sqm-total`（单价）与 `rmb-total`（总价）能落库；
-  `sale_terms_*` 是否一并进模板待定。
+  `sale_terms_*` 四项一并进模板（D5）。
   注意 OPT-041 当初拒绝映射 `rmb-total` 的理由是「期间/单位口径不明确，猜错会让前台
   价格错一个数量级」——本工作项要把那个口径**定下来**，不是绕过它。
 - **楼盘侧**：`buildings` 表新增价格字段（用户裁定：新加字段，不做派生展示）。
-  **这是本工作项唯一涉及迁移的部分**，字段名与口径见 §7。
+  **这是本工作项唯一涉及迁移的部分**，已裁定为**单值**在售单价（D1，见 §7）。
 
 ### 5.5 顺带修正的文档漂移
 
@@ -202,26 +204,76 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
 - [ ] `src/domain/supply-import/building-row.ts`：`BUILDING_COLUMNS` +4 列与各自校验
 - [ ] `src/domain/supply-import/listing-row.ts`：`LISTING_COLUMNS` + 可选商户列 + 出售价格列
 - [ ] `src/domain/supply-import/resolve-merchant.ts`：默认商户回落 + §10 校验
-- [ ] `src/domain/supply/default-merchant.ts`：改按显式标识解析（§7 待裁定）+ 订正头注释
+- [ ] `src/domain/supply/default-merchant.ts`：改按 `isPlatformDefault` 解析（D2）+ 订正过期的头注释（§5.5）
 - [ ] `src/domain/supply-import/normalize.ts`：出售价格写法解析
 - [ ] `src/domain/supply-import/import-task.ts`：`LEGACY_RENT_UNITS` 之外接结构化价格
-- [ ] `src/collections/Merchants.ts`：`isPlatformDefault` 字段（§7 待裁定）
-- [ ] `src/collections/Buildings.ts`：新增价格字段
+- [ ] `src/collections/Merchants.ts`：新增 `isPlatformDefault` 布尔字段（D2）
+- [ ] `src/collections/Buildings.ts`：新增**单值**在售单价字段（D1）
 - [ ] `src/migrations/`：楼盘价格字段 + Merchants 标识字段（**必须 `migrate:create` 生成，正文不可手改**）
 - [ ] `src/components/admin/bulk-import/BulkImportView.tsx`：批次级默认值那一步
-- [ ] `src/domain/admin-navigation/navigation-config.ts`：是否把 `building-merchant-relations` 补进导航（§7）
+- [ ] `src/domain/admin-navigation/navigation-config.ts`：收编 `building-merchant-relations`、
+      `supply-import-batches`、`location-aliases` 三个集合（D4），使「集合」兜底区块消失
 - [ ] 各层测试 + `tests/e2e/bulk-import.spec.ts` 扩用例
-- [ ] 数据变更：七城平台自营商户（生产操作步骤要写进上线清单）
+- [ ] 数据变更：七城各建一个平台自营商户并置 `isPlatformDefault=true`（D3）；
+      生产 `官网`(id=1) 保留原名、补 `isPlatformDefault`。生产操作步骤要写进上线清单
 
-## 7. 待裁定
+## 7. 已裁定（用户 2026-08-23）
 
-1. **`buildings` 价格字段的名称与口径**：是「在售单价」单值，还是区间（min/max）？
-   币种 / 单位（元/㎡）是否随字段落库还是固定？涉及迁移，先定再写。
-2. **平台自营商户如何识别**：新增 `isPlatformDefault` 布尔字段（建议），还是继续按名称约定？
-3. **生产 `官网`（id=1）如何处理**：改名「官网-上海」还是保留原名当作上海的那一个？
-4. **`building-merchant-relations` 要不要补进后台导航**：本工作项让导入不再依赖手工建关系，
-   但外部供给方接入后仍需要这个入口；现在补还是等到那时候。
-5. **`sale_terms_*` 是否进房源模板**：产权年限 / 满五唯一 / 车位 / 税费承担四项。
+原「待裁定」五条已全部拍板，逐条落到上面的章节里，此处保留决定与理由。
+
+### D1 `buildings` 价格字段：**单值**
+
+新增一个「在售单价」单值字段，**不做 min/max 区间**，也不做「在售房源单价区间」的派生展示。
+这是本工作项**唯一涉及迁移**的部分。
+
+> 迁移注意：写这条迁移前先读 PR #86 的教训——生产库与迁移链存在历史分叉，
+> `migrate:create` 只对着 `src/migrations/*.json` 快照 diff，生成的裸 DDL 可能对空库正确、
+> 对生产必炸。新迁移应沿用 `20260810_003111` / `20260821_161534` 的幂等写法
+>（`to_regtype` 守卫 + `ADD COLUMN IF NOT EXISTS`），并在**模拟生产形态的库**上实跑验证，
+> 不能只验空库。
+
+### D2 平台自营商户的识别：**新增 `isPlatformDefault` 字段**
+
+给 `Merchants` 加一个显式布尔字段，解析条件为
+「`isPlatformDefault` + `status=active` + 资质有效 + `serviceCities` 含该楼盘城市」。
+
+**不再按名称约定解析。** `default-merchant.ts` 现在按名称找「官网」，其注释自己就承认
+「商户表没有稳定业务码（只有 name / type）」——一个名字尚可将就，D3 之后会有七个，
+靠约定同步必然漂。
+
+### D3 平台自营商户：**按城市分别建**
+
+七个城市各建一个平台自营商户，`serviceCities` 对应各自城市。
+**不把「官网」的服务城市扩到七城。**
+
+理由：停用级联能按城市粒度止血——停掉杭州的平台自营商户，只冻结杭州导入的房源，
+不影响上海。这正是商户体系保留下来的那个合规开关的价值所在（见 §3）。
+
+生产现有 `官网`（id=1，服务城市仅上海）**保留原名不改**，直接当作上海的那一个，
+补上 `isPlatformDefault=true` 即可。2210 条存量房源指向 id=1，不受影响。
+
+### D4 `building-merchant-relations` 进导航 —— 连带修「集合」兜底区块
+
+要补进导航。但实施时注意：**这不是「样式没写好」，是三个集合根本不在导航配置里。**
+
+实测 `navigation-config.ts` 里这三个都没有：
+
+| 集合 | 中文名 | 建议归属 |
+|---|---|---|
+| `supply-import-batches` | 导入批次 | 房源运营组，`requiredOperationCode: 'data:import'` |
+| `location-aliases` | 地理别名 | 区域管理组 |
+| `building-merchant-relations` | 楼盘商户关系 | 商户合作组 |
+
+后台左下角那个挤成一团、与上面九个分组风格明显不一致的「集合 / 导入批次 / 地理别名」区块，
+是**未被自定义导航收编的集合的兜底渲染**——它长得不一样，是因为它根本不走自定义导航那套。
+
+**正确修法是把三个集合收编进正常分组，让兜底区块自然消失**，而不是去调那块 CSS。
+佐证：OPT-041 加两个批量导入入口时就是显式写进 `navigation-config.ts` 的（还带
+`requiredOperationCode` 注释），本仓库的既定做法就是「所有入口显式收编」，这三个是漏了。
+
+### D5 `sale_terms_*` **进**房源模板
+
+产权年限 / 满五唯一 / 车位 / 税费承担四项进模板，与 D1 的出售单价配套。
 
 ## 8. 验收
 
@@ -230,10 +282,20 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
 - 在楼盘列表页任选一个筛选维度（等级 / 竣工年代 / 地铁），新导入的楼盘**不消失**；
 - 出售类房源能导入，详情页价格展示正确（单价与总价两种写法都验）；
 - 默认商户不覆盖楼盘城市时，预检**判错误行**并给出可操作文案，而不是导入成功后前台隐身；
-- 停用某城市的平台自营商户 → 该城市导入的房源被冻结，其它城市不受影响；
+- 停用某城市的平台自营商户 → 该城市导入的房源被冻结，**其它城市不受影响**（D3 的核心验收点）；
+- 后台导航里不再出现「集合」兜底区块，三个集合各自在正常分组里（D4）；
 - 不得回归：`pnpm test` 全绿、`verify:leasable-area` 与 `verify:unique-violation` 通过。
 
 ## 9. 坑
+
+- **加 `buildings` 价格字段的迁移，别只在空库上验。** 2026-08-23 的生产部署
+  （`sbh-104`）就是栽在这上面：`20260821_161534` 用裸 `CREATE TYPE` 建
+  `enum_buildings_data_source_source`，而生产早就有这个类型（`huizuxuanzhi` 那套采集导入
+  的 schema 与数据从未走过迁移链），迁移失败 → 容器启动命令
+  `migrate-locked.ts && pnpm start` 的 `&&` 短路 → 端口没人监听 → `deploy_failed`。
+  本地与 CI 全绿完全不能推出生产跑得通。修复见 PR #86，写法沿用
+  `20260810_003111`（那是同一类分叉的第一次补账，当时只补了 listings，漏了 buildings）。
+  **D1 的新迁移必须用同样的幂等写法，并在模拟生产形态的库上实跑。**
 
 - **别只看「导入成功」就宣布完成**：OPT-041 D10 的教训是房源 `published` 了但前台 404。
   验收必须以「前台能搜到」为准，不是以批次状态为准。
