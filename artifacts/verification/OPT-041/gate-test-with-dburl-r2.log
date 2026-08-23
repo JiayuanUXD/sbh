@@ -1,0 +1,31 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test E:\wt-opt041\payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 E:/wt-opt041/payload-office-platform
+
+[13:16:57] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[13:16:57] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[13:16:58] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[13:16:58] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[13:16:59] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[13:16:59] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[13:17:01] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+[13:17:01] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+[13:17:01] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+
+ Test Files  251 passed (251)
+      Tests  3406 passed (3406)
+   Start at  13:15:49
+   Duration  72.12s (transform 24.94s, setup 0ms, import 225.61s, tests 34.84s, environment 15.23s)
+

@@ -64,6 +64,15 @@ export const ADMIN_NAV_GROUPS = [
       collectionSlug: 'supply-submissions',
       requiredOperationCode: 'supply_submission:read',
     }),
+    // OPT-041 批量导入：两个自定义视图，非 collection 路由，不设 collectionSlug。
+    // menuCodes 沿用对应业务对象的既有码，requiredOperationCode 再收窄到 data:import
+    // ——与 BulkImportView 的 requireImportAccess / endpoint 的 guardImport 判据一致。
+    leaf('import-buildings', '楼盘批量导入', '/admin/import/buildings', ['buildings'], {
+      requiredOperationCode: 'data:import',
+    }),
+    leaf('import-listings', '房源批量导入', '/admin/import/listings', ['listings'], {
+      requiredOperationCode: 'data:import',
+    }),
   ]),
   group('region-management', '区域管理', 'location', [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {

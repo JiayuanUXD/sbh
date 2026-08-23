@@ -49,6 +49,7 @@ import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../co
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
 import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
 import { default as default_b50888e2500c4c0fea379b72eee5b053 } from '../../../components/admin/AuditLogList'
+import { default as default_6caa77cbaa0f3edbf2d18250a4e6b881 } from '../../../components/admin/SupplyImportBatchRollback'
 import { LinkToDoc as LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { ReindexButton as ReindexButton_aead06e4cbf6b2620c5c51c9ab283634 } from '@payloadcms/plugin-search/client'
 import { default as default_4ee5b9c3c360697fc0897e721e7c2c8e } from '../../../components/admin/FormSubmissionsLink'
@@ -76,6 +77,7 @@ import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d
 import { default as default_fe003e590f4f23a58ea1c1c973022f22 } from '../../../components/admin/geography/GeographyListView'
 import { default as default_149bcf953abd30d20a90498c0f5e7731 } from '../../../components/admin/geography/GeographyCityDetail'
 import { default as default_d7899e398b483fc6273e55af42972903 } from '../../../components/admin/geography/GeographyCreateView'
+import { default as default_952d0379668ced5933d0beb083ca332d } from '../../../components/admin/bulk-import/BulkImportView'
 import { default as default_018c8550c7c935ba02e37f496184ad52 } from '../../../components/admin/StatsWidget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
@@ -132,6 +134,7 @@ export const importMap = {
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
   "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,
   "/components/admin/AuditLogList#default": default_b50888e2500c4c0fea379b72eee5b053,
+  "/components/admin/SupplyImportBatchRollback#default": default_6caa77cbaa0f3edbf2d18250a4e6b881,
   "@payloadcms/plugin-search/client#LinkToDoc": LinkToDoc_aead06e4cbf6b2620c5c51c9ab283634,
   "@payloadcms/plugin-search/client#ReindexButton": ReindexButton_aead06e4cbf6b2620c5c51c9ab283634,
   "/components/admin/FormSubmissionsLink#default": default_4ee5b9c3c360697fc0897e721e7c2c8e,
@@ -159,6 +162,7 @@ export const importMap = {
   "/components/admin/geography/GeographyListView#default": default_fe003e590f4f23a58ea1c1c973022f22,
   "/components/admin/geography/GeographyCityDetail#default": default_149bcf953abd30d20a90498c0f5e7731,
   "/components/admin/geography/GeographyCreateView#default": default_d7899e398b483fc6273e55af42972903,
+  "/components/admin/bulk-import/BulkImportView#default": default_952d0379668ced5933d0beb083ca332d,
   "/components/admin/StatsWidget#default": default_018c8550c7c935ba02e37f496184ad52,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

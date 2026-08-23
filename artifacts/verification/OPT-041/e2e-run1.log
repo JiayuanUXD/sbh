@@ -1,0 +1,16 @@
+ReferenceError: __dirname is not defined in ES module scope
+
+   at bulk-import.spec.ts:48
+
+  46 | const EXTERNAL_ID_ERROR = `E2E-OPT041-${RUN_ID}-ERR`
+  47 |
+> 48 | const FIXTURE_DIR = path.join(__dirname, '..', '..', 'test-results')
+     |                               ^
+  49 | const FIXTURE_PATH = path.join(FIXTURE_DIR, `bulk-import-listings-${RUN_ID}.xlsx`)
+  50 |
+  51 | const LISTING_COLUMNS = [
+    at E:\wt-opt041\payload-office-platform\tests\e2e\bulk-import.spec.ts:48:31
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.
+

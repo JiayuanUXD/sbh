@@ -1,0 +1,19 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:3718
+- Network:       http://198.18.0.1:3718
+✓ Ready in 225ms
+[11:06:26] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[11:14:30] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[11:14:30] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[11:15:00] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[12:41:00] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[12:41:00] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[12:52:30] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"
+[12:52:30] [31mERROR[39m: [36mcity_partner_notification_application_missing_permanent[39m
+    [35merrorCode[39m: "city_partner_notification_application_missing_permanent"

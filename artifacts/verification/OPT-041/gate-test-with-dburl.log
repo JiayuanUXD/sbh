@@ -1,0 +1,27 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test E:\wt-opt041\payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 E:/wt-opt041/payload-office-platform
+
+[11:14:26] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[11:14:26] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[11:14:27] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[11:14:27] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+[11:14:28] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+[11:14:28] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+[11:14:28] [32mINFO[39m: [36mRunning 1 jobs.[39m
+    [35mnew[39m: 1
+    [35mretrying[39m: 0
+
+ Test Files  248 passed (248)
+      Tests  3368 passed (3368)
+   Start at  11:13:32
+   Duration  56.53s (transform 15.33s, setup 0ms, import 184.17s, tests 24.97s, environment 11.23s)
+

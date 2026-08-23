@@ -48,6 +48,8 @@ import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
+import { SupplyImportBatches } from './collections/SupplyImportBatches'
+import { LocationAliases } from './collections/LocationAliases'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import {
   EXPORT_LIMIT,
@@ -64,6 +66,7 @@ import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
 import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
 import { createDashboardStatsEndpoint } from './endpoints/dashboard-stats-endpoint'
+import { createBulkImportEndpoints } from './endpoints/bulk-import-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -83,6 +86,11 @@ import {
   cityPartnerNotificationOutboxTask,
   recoverStaleCityPartnerNotificationJobs,
 } from './domain/city-partner-application/application-notify'
+import {
+  SUPPLY_IMPORT_QUEUE,
+  recoverStaleSupplyImportJobs,
+  supplyImportTask,
+} from './domain/supply-import/import-task'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -117,10 +125,12 @@ export default buildConfig({
       supplySubmissionNotificationTask,
       cityPartnerApplicationNotificationTask,
       cityPartnerNotificationOutboxTask,
+      supplyImportTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
       await recoverStaleCityPartnerNotificationJobs(payload)
+      await recoverStaleSupplyImportJobs(payload)
       return true
     },
     autoRun: () => [
@@ -140,6 +150,14 @@ export default buildConfig({
           ? { disableScheduling: true }
           : {}),
         limit: 10,
+        silent: true,
+      },
+      {
+        // 导入是人触发的低频操作，但用户在页面上等结果，10 秒一轮兼顾响应与负载。
+        cron: '*/10 * * * * *',
+        queue: SUPPLY_IMPORT_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
+        limit: 5,
         silent: true,
       },
     ],
@@ -233,6 +251,17 @@ export default buildConfig({
           Component: '/components/admin/geography/GeographyCreateView',
           path: '/geography/districts/new',
         },
+        // OPT-041 Task 8 批量导入两个视图：共享同一组件，按 pathname 解析模式。
+        BulkImportBuildings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/buildings',
+          exact: true,
+        },
+        BulkImportListings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/listings',
+          exact: true,
+        },
       },
     },
     dashboard: {
@@ -280,6 +309,8 @@ export default buildConfig({
     AuditLogs,
     Tasks,
     Notifications,
+    SupplyImportBatches,
+    LocationAliases,
   ],
   globals: [AdvisorServiceHours],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
@@ -297,6 +328,8 @@ export default buildConfig({
     createDictionariesEndpoint(),
     // OPT-021 后台导航行动数量（按当前用户权限与数据范围安全聚合）
     createAdminNavigationEndpoint(),
+    // OPT-041 批量导入（预检 / 执行 / 轮询 / 下载）
+    ...createBulkImportEndpoints(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
