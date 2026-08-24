@@ -107,6 +107,53 @@ describe('parseBatchDefaults', () => {
   })
 })
 
+describe('向后兼容：新增模板列不得让旧表格被拒收', () => {
+  /**
+   * `parseWorkbook` 对期望列做「一个都不能少」的硬校验。OPT-045 往两张模板各加了
+   * 五、六列，如果解析时也要求它们，**运营手上所有已有表格会被整份拒收**
+   *（MISSING_COLUMNS），而那些表格本身完全合法。
+   *
+   * 这条不是假想：本工作项最初就是直接往 XXX_COLUMNS 加列，e2e 的 bulk-import.spec
+   * 立刻红了（夹具就是一份旧格式表）。当时注释、提交信息、单测里都写着
+   * 「旧表格原样继续可用」——那是没验证过的断言。这条测试把它变成可执行的约束。
+   */
+  it('楼盘必需列恰好是 OPT-041 的原八列', async () => {
+    const { REQUIRED_BUILDING_COLUMNS, BUILDING_COLUMNS } = await import(
+      '@/domain/supply-import/building-row'
+    )
+    expect(REQUIRED_BUILDING_COLUMNS).toEqual([
+      '楼盘编号', '楼盘名称', '城市', '行政区', '商圈', '地址', '总楼层', '总建筑面积',
+    ])
+    // 必需列必须是模板列的前缀——顺序也要一致，否则模板下载与解析对不上
+    expect(BUILDING_COLUMNS.slice(0, REQUIRED_BUILDING_COLUMNS.length)).toEqual(
+      REQUIRED_BUILDING_COLUMNS,
+    )
+  })
+
+  it('房源必需列恰好是 OPT-041 的原九列', async () => {
+    const { REQUIRED_LISTING_COLUMNS, LISTING_COLUMNS } = await import(
+      '@/domain/supply-import/listing-row'
+    )
+    expect(REQUIRED_LISTING_COLUMNS).toEqual([
+      '房源编号', '房源标题', '房源类型', '楼盘编号或标识', '面积', '租金', '楼层', '装修', '可租日期',
+    ])
+    expect(LISTING_COLUMNS.slice(0, REQUIRED_LISTING_COLUMNS.length)).toEqual(
+      REQUIRED_LISTING_COLUMNS,
+    )
+  })
+
+  it('OPT-045 新增的列一律不在必需列里', async () => {
+    const { REQUIRED_BUILDING_COLUMNS } = await import('@/domain/supply-import/building-row')
+    const { REQUIRED_LISTING_COLUMNS } = await import('@/domain/supply-import/listing-row')
+    for (const col of ['供给商户', '等级', '竣工年份', '最近地铁', '在售单价']) {
+      expect(REQUIRED_BUILDING_COLUMNS, `「${col}」不该是必需列`).not.toContain(col)
+    }
+    for (const col of ['供给商户', '售价', '产权年限', '满五唯一', '车位', '税费承担']) {
+      expect(REQUIRED_LISTING_COLUMNS, `「${col}」不该是必需列`).not.toContain(col)
+    }
+  })
+})
+
 describe('可设默认值的列必须是模板列的子集', () => {
   // 不是形式主义：白名单里写了一个模板没有的列，运营填了也永远没人读，
   // 而界面上它看起来完全正常——这类「填了没用」的功能最消耗信任。

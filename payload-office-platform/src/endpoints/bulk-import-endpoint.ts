@@ -6,7 +6,12 @@ import type { PermissionContext } from '@/domain/auth/permission-context'
 import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer'
 import { rollbackImportBatch } from '@/domain/supply-import/batch-rollback'
 import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invalidation'
-import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
+import {
+  BUILDING_COLUMNS,
+  REQUIRED_BUILDING_COLUMNS,
+  validateBuildingRow,
+  type ValidBuildingRow,
+} from '@/domain/supply-import/building-row'
 import {
   applyBatchDefaults,
   parseBatchDefaults,
@@ -15,7 +20,12 @@ import {
 } from '@/domain/supply-import/batch-defaults'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
 import { SUPPLY_IMPORT_QUEUE, SUPPLY_IMPORT_TASK } from '@/domain/supply-import/import-task'
-import { LISTING_COLUMNS, validateListingRow, type ValidListingRow } from '@/domain/supply-import/listing-row'
+import {
+  LISTING_COLUMNS,
+  REQUIRED_LISTING_COLUMNS,
+  validateListingRow,
+  type ValidListingRow,
+} from '@/domain/supply-import/listing-row'
 import {
   mapBuildingMerchantRelationDocs,
   type BuildingMerchantRelationInput,
@@ -106,8 +116,20 @@ function parseImportType(url: string | undefined): ImportType | null {
   return raw === 'buildings' || raw === 'listings' ? raw : null
 }
 
+/** 下载模板 / 错误报告回显用的**完整**列。 */
 function columnsForType(type: ImportType): readonly string[] {
   return type === 'buildings' ? BUILDING_COLUMNS : LISTING_COLUMNS
+}
+
+/**
+ * 解析上传文件时**必需**的列（只有 OPT-041 的原始列）。
+ *
+ * `parseWorkbook` 对期望列做「一个都不能少」的硬校验。用完整列去校验会让运营
+ * 手上所有已有表格被整份拒收（`MISSING_COLUMNS`）——它们本身完全合法，只是
+ * 生成时还没有 OPT-045 新增的那几列。新列有就读、没有就当留空。
+ */
+function requiredColumnsForType(type: ImportType): readonly string[] {
+  return type === 'buildings' ? REQUIRED_BUILDING_COLUMNS : REQUIRED_LISTING_COLUMNS
 }
 
 /** PermissionContext.userId 类型上是 number | string；本项目 Postgres 适配器下 ID 恒为 number。 */
@@ -413,7 +435,7 @@ function createPreflightEndpoint(): Endpoint {
       const columns = columnsForType(type)
 
       // 5. 解析工作簿
-      const parsed = await parseWorkbook(file.data, file.name, columns)
+      const parsed = await parseWorkbook(file.data, file.name, requiredColumnsForType(type))
       if (!parsed.ok) {
         return Response.json({ ok: false, code: parsed.code, error: parsed.message }, { status: 400 })
       }

@@ -28,8 +28,9 @@ export type { RowContext } from '@/domain/supply-import/types'
 /**
  * 房源模板列（OPT-041 九列 + OPT-045 新增六列）。
  *
- * 新列一律**追加在末尾**，理由同楼盘模板：旧表格按位置对应列头，中间插一列会让
- * 所有旧表格静默错位。
+ * 这是**下载模板时输出的完整列**；解析上传文件时只要求 `REQUIRED_LISTING_COLUMNS`
+ *（原九列），旧表格因此仍能导入——`parseWorkbook` 对期望列做「一个都不能少」的
+ * 硬校验，用完整列去校验会把所有已有表格整份拒收。
  *
  * **租金与售价至少填一个**——这是本次唯一改变的既有语义。OPT-041 时租金是硬必填，
  * 出售房源没有月租、改不出来，等于压根导不进（§2.4 的缺口三）。
@@ -50,6 +51,23 @@ export const LISTING_COLUMNS: readonly string[] = [
   '满五唯一',
   '车位',
   '税费承担',
+]
+
+/**
+ * 解析上传文件时**必需**的列 —— 只有 OPT-041 的原九列。
+ * 与 `REQUIRED_BUILDING_COLUMNS` 同一理由（见那里的完整说明）：
+ * 把新列算作必需会让运营手上所有旧表格被 `MISSING_COLUMNS` 整份拒收。
+ */
+export const REQUIRED_LISTING_COLUMNS: readonly string[] = [
+  '房源编号',
+  '房源标题',
+  '房源类型',
+  '楼盘编号或标识',
+  '面积',
+  '租金',
+  '楼层',
+  '装修',
+  '可租日期',
 ]
 
 export interface ValidListingRow {
