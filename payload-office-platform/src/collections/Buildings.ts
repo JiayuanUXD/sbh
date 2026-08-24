@@ -18,6 +18,7 @@ import {
   VERIFICATION_STATUSES,
   VERIFICATION_STATUS_LABELS,
 } from '@/domain/supply/building'
+import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
 import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-check-endpoint'
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
@@ -116,6 +117,13 @@ export const Buildings: CollectionConfig = {
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
     // 楼盘停用 / 换城市 / 改展示字段都会改变前台可见性与楼盘详情，必须失效公开缓存。
     afterChange: [invalidateBuildingPublicCacheAfterChange],
+    // OPT-050：楼盘删除守护。还有房源挂着就拦下并说清原因；没有房源则顺手清掉
+    // building-merchant-relations 那些纯关系行。
+    //
+    // 不接这个钩子的后果不是「删不掉」，而是「删不掉且看不懂」——外键
+    // SET NULL 撞上 NOT NULL，PG 中止事务，运营只看到 500，日志里也只剩
+    // `current transaction is aborted`。详见该文件头注释。
+    beforeDelete: [guardBuildingDelete],
     afterDelete: [invalidateBuildingPublicCacheAfterDelete],
   },
   fields: [
