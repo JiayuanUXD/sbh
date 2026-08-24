@@ -158,6 +158,33 @@ export const Merchants: CollectionConfig = {
       ],
     },
     {
+      /**
+       * 平台自营商户标识（OPT-045 D2）。
+       *
+       * 批量导入在楼盘没有生效供给商户时，要回落到「平台自营」的那个商户，
+       * 否则 §8（`listings.merchant` 非空）会把整批房源挡在前台之外。
+       *
+       * **为什么是显式字段而不是按名称约定**：`domain/supply/default-merchant.ts`
+       * 原本按名称找「官网」，其注释自己就承认「商户表没有稳定业务码（只有 name / type）」。
+       * 一个名字尚可将就；D3 之后七城各有一个平台自营商户，靠名字约定同步必然漂
+       *（改个名、多个空格、换个环境就失效，且失效方式是静默的——回落变成 null，
+       * 房源导进来但前台隐身）。
+       *
+       * **不是「唯一」标识**：七城各一个，都为 true。真正的解析条件是
+       * 「`isPlatformDefault` + `status=active` + 资质有效 + `serviceCities` 含该楼盘城市」，
+       * 城市那条由 §10 负责收口，见 `default-merchant.ts`。
+       */
+      name: 'isPlatformDefault',
+      label: '平台自营商户',
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      admin: {
+        description:
+          '批量导入时，楼盘没有生效供给商户则回落到本城市的平台自营商户。同一城市只应有一个，且需在「服务城市」里勾上对应城市，否则该城市的导入会判错误行。',
+      },
+    },
+    {
       name: 'qualificationExpiresAt',
       label: '资质到期时间',
       type: 'date',

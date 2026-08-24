@@ -62,6 +62,16 @@ const ctx: RowContext = {
   ],
   allowedCityIds: new Set([1]),
   buildingMerchantRelations: [ELIGIBLE_RELATION, ELIGIBLE_RELATION_999],
+  merchants: [
+    {
+      id: 77,
+      name: '指定商户',
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+      serviceCityIds: [1],
+    },
+  ],
   now: NOW,
 }
 
@@ -267,5 +277,147 @@ describe('validateListingRow', () => {
     const r = validateListingRow(goodRow, 2, districtDisabledCtx)
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.errors.some((e) => e.code === 'BUILDING_NOT_VISIBLE')).toBe(true)
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // OPT-045 新增六列 + 租金/售价语义变更（§2.4 缺口三：出售类压根导不进来）
+  // ────────────────────────────────────────────────────────────
+
+  describe('租金 / 售价（语义变更：不再是租金硬必填）', () => {
+    it('租赁行照旧通过，并同时产出结构化价格', () => {
+      const r = validateListingRow(goodRow, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value).toMatchObject({
+        rentAmount: 4.5,
+        rentUnit: 'rmb-sqm-day',
+        price: { amount: 4.5, period: 'day', unit: 'sqm' },
+        businessType: 'lease',
+      })
+    })
+
+    it('元/月 → (month, suite)，元/工位/月 → (month, seat)', () => {
+      const monthly = validateListingRow({ ...goodRow, 租金: '8000元/月' }, 2, ctx)
+      expect(monthly.ok && monthly.value.price).toMatchObject({ period: 'month', unit: 'suite' })
+      const seat = validateListingRow({ ...goodRow, 租金: '1500元/工位/月' }, 2, ctx)
+      expect(seat.ok && seat.value.price).toMatchObject({ period: 'month', unit: 'seat' })
+    })
+
+    it('出售总价：租金留空、售价填「800万」→ (one-time, suite)，旧租金字段为 null', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '', 售价: '800万' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value).toMatchObject({
+        rentAmount: null,
+        rentUnit: null,
+        price: { amount: 8000000, period: 'one-time', unit: 'suite' },
+        businessType: 'sale',
+      })
+    })
+
+    it('出售单价：「5.2万元/㎡」→ (one-time, sqm)', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '', 售价: '5.2万元/㎡' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.price).toMatchObject({ amount: 52000, period: 'one-time', unit: 'sqm' })
+    })
+
+    it('两列都空即错误行 PRICE_REQUIRED', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'PRICE_REQUIRED')).toBe(true)
+    })
+
+    it('两列都填即错误行 PRICE_AMBIGUOUS，不静默挑一个', () => {
+      const r = validateListingRow({ ...goodRow, 售价: '800万' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'PRICE_AMBIGUOUS')).toBe(true)
+    })
+
+    it('总价写进租金列 → 文案指向「售价」列，而不是让运营改写法', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '80万' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      const err = r.ok === false && r.errors.find((e) => e.column === '租金')
+      expect(err && err.code).toBe('RENT_UNIT_UNSUPPORTED')
+      expect(err && err.message).toContain('售价')
+    })
+
+    it('租赁写法混进售价列判错误行——当成总价会让价格错四个数量级', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '', 售价: '5.2元/㎡/天' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'SALE_PRICE_INVALID')).toBe(true)
+    })
+
+    it('售价区间写法判错误行', () => {
+      const r = validateListingRow({ ...goodRow, 租金: '', 售价: '800-900万' }, 2, ctx)
+      expect(r.ok).toBe(false)
+    })
+  })
+
+  describe('供给商户列（优先级最高的一级）', () => {
+    it('填了就用它，楼盘关系不参与', () => {
+      const r = validateListingRow({ ...goodRow, 供给商户: '指定商户' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.merchantId).toBe(77)
+    })
+
+    it('留空则 merchantId 为 null，交给「楼盘关系 → 平台自营回落」', () => {
+      const r = validateListingRow(goodRow, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.merchantId).toBeNull()
+    })
+
+    it('填了不存在的商户即错误行', () => {
+      const r = validateListingRow({ ...goodRow, 供给商户: '查无此户' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'MERCHANT_NOT_FOUND')).toBe(true)
+    })
+
+    it('填了商户列时，楼盘没有生效关系也不影响这一行', () => {
+      const noRelationCtx: RowContext = { ...ctx, buildingMerchantRelations: [] }
+      const r = validateListingRow({ ...goodRow, 供给商户: '指定商户' }, 2, noRelationCtx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.merchantId).toBe(77)
+    })
+  })
+
+  describe('出售条款四项（D5）', () => {
+    const saleRow = { ...goodRow, 租金: '', 售价: '800万' }
+
+    it('全部解析成枚举/布尔/数值', () => {
+      const r = validateListingRow(
+        { ...saleRow, 产权年限: '40年', 满五唯一: '是', 车位: '2', 税费承担: '买方承担' },
+        2,
+        ctx,
+      )
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.saleTerms).toEqual({
+        propertyRightYears: '40',
+        saleTaxBearer: 'buyer',
+        saleFiveYearsUnique: true,
+        saleParkingSpaces: 2,
+      })
+    })
+
+    it('填在租赁行上判错误行，不静默忽略——后台表单上永远看不到它们', () => {
+      const r = validateListingRow({ ...goodRow, 产权年限: '40年' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'SALE_TERMS_ON_LEASE_ROW')).toBe(true)
+    })
+
+    it('出售行不填出售条款也合法（四项全部可选）', () => {
+      const r = validateListingRow(saleRow, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.saleTerms).toBeNull()
+    })
+
+    it('产权年限非法取值判错误行', () => {
+      const r = validateListingRow({ ...saleRow, 产权年限: '30年' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.column === '产权年限')).toBe(true)
+    })
+
+    it('满五唯一无法识别时判错误行，不默认成否', () => {
+      const r = validateListingRow({ ...saleRow, 满五唯一: '不清楚' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'BOOLEAN_INVALID')).toBe(true)
+    })
   })
 })

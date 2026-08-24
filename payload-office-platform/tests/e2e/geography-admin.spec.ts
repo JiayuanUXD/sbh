@@ -206,10 +206,13 @@ test.describe.serial('地理管理后台 E2E', () => {
     await ensureDesktopNavigationOpen(page)
     await openTopGroup(page, '区域管理')
     const regionGroup = topGroupButton(page, '区域管理').locator('..')
-    // 5 项：城市管理 / 城市站点配置 / 行政区域 / 商圈管理 / 地铁管理
+    // 6 项：城市管理 / 城市站点配置 / 行政区域 / 商圈管理 / 地铁管理 / 地理别名
     //（见 src/domain/admin-navigation/navigation-config.ts 的 region-management 组）
-    await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(5)
+    // 地理别名由 OPT-045 D4 收编——此前它不在导航配置里，被兜底渲染成左下角
+    // 那个风格不一致的「集合」区块。
+    await expect(regionGroup.locator('.admin-navigation__item')).toHaveCount(6)
     await expect(regionGroup).toContainText('城市管理')
+    await expect(regionGroup).toContainText('地理别名')
     await expect(regionGroup).toContainText('城市站点配置')
     await expect(regionGroup).toContainText('行政区域')
     await expect(regionGroup).toContainText('商圈管理')

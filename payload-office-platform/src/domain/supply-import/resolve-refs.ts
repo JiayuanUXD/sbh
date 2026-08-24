@@ -123,7 +123,7 @@ function normalizeByKind(kind: string, value: string): string {
   return normalizeAliasText(value)
 }
 
-function formatSuggestion(names: string[]): string | undefined {
+export function formatSuggestion(names: string[]): string | undefined {
   if (names.length === 0) return undefined
   return `是否指：${names.join('、')}？`
 }

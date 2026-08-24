@@ -16,17 +16,65 @@ const districts: LocationCandidate[] = [
 const businessAreas: LocationCandidate[] = [
   { id: 100, name: '人民广场', kind: 'business_area', parentId: 10, status: 'active' },
 ]
+const metros: LocationCandidate[] = [
+  { id: 200, name: '人民广场站', kind: 'metro_station', parentId: 1, status: 'active' },
+]
+
+/** 商户候选池（OPT-045「供给商户」列）：一个合格、一个停用、一对重名。 */
+const MERCHANTS = [
+  {
+    id: 1,
+    name: '官网',
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+    serviceCityIds: [1],
+  },
+  {
+    id: 2,
+    name: '已停用渠道',
+    status: 'disabled',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+    serviceCityIds: [1],
+  },
+  {
+    id: 3,
+    name: '不覆盖上海的渠道',
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+    serviceCityIds: [9],
+  },
+  {
+    id: 4,
+    name: '重名商户',
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+    serviceCityIds: [1],
+  },
+  {
+    id: 5,
+    name: '重名商户',
+    status: 'active',
+    qualificationStatus: 'valid',
+    qualificationExpiresAt: '2099-12-31T00:00:00.000Z',
+    serviceCityIds: [1],
+  },
+]
 
 const ctx: RowContext = {
   tables: {
-    locations: { city: cities, district: districts, business_area: businessAreas, metro_station: [] },
+    locations: { city: cities, district: districts, business_area: businessAreas, metro_station: metros },
     aliases: { city: new Map(), district: new Map(), business_area: new Map(), metro_station: new Map() },
   },
   buildings: [],
   allowedCityIds: new Set([1]),
-  // 楼盘导入不涉及商户（D10 只影响房源），这两个字段留空/占位即可——building-row.ts
-  // 与 listing-row.ts 共用同一个 RowContext 类型，不为楼盘单独裁一份。
+  // 楼盘不继承商户（D10 只影响房源），关系表留空；merchants 是 OPT-045 的
+  // 「供给商户」列按名称解析用的候选池。
   buildingMerchantRelations: [],
+  merchants: MERCHANTS,
   now: new Date('2026-08-22T00:00:00.000Z'),
 }
 
@@ -44,8 +92,17 @@ const goodRow = {
 describe('validateBuildingRow', () => {
   it('模板列头固定且以编号打头', () => {
     expect(BUILDING_COLUMNS[0]).toBe('楼盘编号')
+    // OPT-045 在原八列**之后**追加五列。
+    //
+    // 追加而不是插入是硬要求：`REQUIRED_BUILDING_COLUMNS` 断言必需列是模板列的
+    // **前缀**，插在中间会破坏这个关系。
+    //
+    // ⚠️ 光「追加」还不够让旧表格可用——`parseWorkbook` 对期望列做「一个都不能少」
+    // 的硬校验，所以解析时用的是 REQUIRED_BUILDING_COLUMNS（原八列）而不是这里的
+    // 完整列。最初漏了这一步，e2e 的 bulk-import.spec 立刻红了。
     expect(BUILDING_COLUMNS).toEqual([
       '楼盘编号', '楼盘名称', '城市', '行政区', '商圈', '地址', '总楼层', '总建筑面积',
+      '供给商户', '等级', '竣工年份', '最近地铁', '在售单价',
     ])
   })
 
@@ -138,5 +195,147 @@ describe('validateBuildingRow', () => {
     const r = validateBuildingRow({ ...goodRow, 行政区: '停用区', 商圈: '' }, 2, ctx)
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.errors.some((e) => e.column === '行政区' && e.code === 'DISTRICT_NOT_ACTIVE')).toBe(true)
+  })
+
+  // ────────────────────────────────────────────────────────────
+  // OPT-045 新增五列。核心不变量：**全部可留空**——运营手上已有的八列表格
+  // 必须原样继续可用，否则这次改动等于强制全员重做表格。
+  // ────────────────────────────────────────────────────────────
+
+  it('五个新列全部留空时仍然通过，值为 null（旧表格保持可用）', () => {
+    const r = validateBuildingRow(goodRow, 2, ctx)
+    expect(r.ok).toBe(true)
+    expect(r.ok && r.value).toMatchObject({
+      merchantId: null,
+      grade: null,
+      completionDate: null,
+      nearestMetroId: null,
+      saleUnitPrice: null,
+    })
+  })
+
+  describe('供给商户列', () => {
+    it('按名称解析出 id', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '官网' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.merchantId).toBe(1)
+    })
+
+    it('全角空格/大小写差异不影响匹配（与地理别名同一套规范化）', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '　官网　' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.merchantId).toBe(1)
+    })
+
+    it('查无此商户即错误行', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '查无此户' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'MERCHANT_NOT_FOUND')).toBe(true)
+    })
+
+    it('停用商户报「已停用」而不是「未找到」——文案要指对方向', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '已停用渠道' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      const err = r.ok === false && r.errors.find((e) => e.column === '供给商户')
+      expect(err && err.code).toBe('MERCHANT_INELIGIBLE')
+      expect(err && err.message).toContain('已停用')
+    })
+
+    it('商户服务城市不覆盖楼盘城市即错误行（§10）', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '不覆盖上海的渠道' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      const err = r.ok === false && r.errors.find((e) => e.column === '供给商户')
+      expect(err && err.code).toBe('MERCHANT_INELIGIBLE')
+      expect(err && err.message).toContain('服务城市')
+    })
+
+    it('重名商户判错误行，不静默取第一个', () => {
+      const r = validateBuildingRow({ ...goodRow, 供给商户: '重名商户' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'MERCHANT_NAME_AMBIGUOUS')).toBe(true)
+    })
+  })
+
+  describe('等级列', () => {
+    it('中文标签映射成枚举值', () => {
+      const r = validateBuildingRow({ ...goodRow, 等级: '甲级' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.grade).toBe('grade-a')
+    })
+
+    it('非法取值即错误行，并列出合法取值', () => {
+      const r = validateBuildingRow({ ...goodRow, 等级: 'A级' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      const err = r.ok === false && r.errors.find((e) => e.column === '等级')
+      expect(err && err.code).toBe('ENUM_UNKNOWN')
+      expect(err && err.message).toContain('甲级')
+    })
+  })
+
+  describe('竣工年份列', () => {
+    it('四位年份归一成该年 1 月 1 日 UTC', () => {
+      const r = validateBuildingRow({ ...goodRow, 竣工年份: '2010' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.completionDate).toBe('2010-01-01T00:00:00.000Z')
+    })
+
+    it('自由文本判错误行，不猜年份——猜错会让竣工年代筛选归错档且前台无信号', () => {
+      for (const raw of ['2010年', '二〇一〇', '10', '2010-05']) {
+        const r = validateBuildingRow({ ...goodRow, 竣工年份: raw }, 2, ctx)
+        expect(r.ok, raw).toBe(false)
+      }
+    })
+
+    it('超出 [1900, 当年+5] 判错误行', () => {
+      expect(validateBuildingRow({ ...goodRow, 竣工年份: '1899' }, 2, ctx).ok).toBe(false)
+      expect(validateBuildingRow({ ...goodRow, 竣工年份: '2099' }, 2, ctx).ok).toBe(false)
+    })
+
+    it('在建楼盘填未来竣工年（当年+5 以内）是合法的', () => {
+      const r = validateBuildingRow({ ...goodRow, 竣工年份: '2029' }, 2, ctx)
+      expect(r.ok).toBe(true)
+    })
+  })
+
+  describe('最近地铁列', () => {
+    it('解析出地铁站 id', () => {
+      const r = validateBuildingRow({ ...goodRow, 最近地铁: '人民广场站' }, 2, ctx)
+      expect(r.ok).toBe(true)
+      expect(r.ok && r.value.nearestMetroId).toBe(200)
+    })
+
+    it('查无此站即错误行', () => {
+      const r = validateBuildingRow({ ...goodRow, 最近地铁: '不存在站' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.column === '最近地铁')).toBe(true)
+    })
+  })
+
+  describe('在售单价列', () => {
+    it('裸数字与「万」写法都能解析', () => {
+      expect(
+        (validateBuildingRow({ ...goodRow, 在售单价: '52000' }, 2, ctx) as { value: { saleUnitPrice: number } }).value
+          .saleUnitPrice,
+      ).toBe(52000)
+      expect(
+        (validateBuildingRow({ ...goodRow, 在售单价: '5.2万' }, 2, ctx) as { value: { saleUnitPrice: number } }).value
+          .saleUnitPrice,
+      ).toBe(52000)
+      expect(
+        (validateBuildingRow({ ...goodRow, 在售单价: '5.2万元/㎡' }, 2, ctx) as { value: { saleUnitPrice: number } })
+          .value.saleUnitPrice,
+      ).toBe(52000)
+    })
+
+    it('区间写法判错误行，不静默取第一个数', () => {
+      const r = validateBuildingRow({ ...goodRow, 在售单价: '5-6万' }, 2, ctx)
+      expect(r.ok).toBe(false)
+      expect(r.ok === false && r.errors.some((e) => e.code === 'SALE_UNIT_PRICE_INVALID')).toBe(true)
+    })
+
+    it('零和负数判错误行', () => {
+      expect(validateBuildingRow({ ...goodRow, 在售单价: '0' }, 2, ctx).ok).toBe(false)
+      expect(validateBuildingRow({ ...goodRow, 在售单价: '-100' }, 2, ctx).ok).toBe(false)
+    })
   })
 })

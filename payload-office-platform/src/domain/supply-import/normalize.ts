@@ -103,6 +103,65 @@ export function parseRent(value: unknown): { amount: number; unit: string } | nu
   return null
 }
 
+/**
+ * 售价：区分**总价**与**单价**两种口径，返回结构化价格的三件套。
+ *
+ * ## 口径（查代码定死，不是约定俗成）
+ *
+ * | 表格写法 | period | unit | 前台 displayUnit |
+ * |---|---|---|---|
+ * | 总价「800万」「8000000」 | `one-time` | `suite` | `rmb-total` |
+ * | 单价「5.2万元/㎡」「52000元/㎡」 | `one-time` | `sqm` | `rmb-sqm-total` |
+ *
+ * 依据：`public-catalog/mappers.ts` 的 `DISPLAY_UNIT_BY_PERIOD_BASIS['one-time']`
+ * 与同文件 `raw.unit === 'suite' ? 'total'` 的映射。
+ *
+ * ⚠️ **`PricingUnit` 是 `sqm | suite | seat`，`PriceViewBasis` 才是 `sqm | seat | total`**
+ * ——两套取值。直接写 `unit: 'total'` 会静默错（落库是非法枚举值，或被当成未知单位）。
+ * 这正是 OPT-041 当初拒绝映射 `rmb-total` 时说的「期间/单位口径不明确，猜错会让前台
+ * 价格错一个数量级」，本函数把它定下来。
+ *
+ * 带「/㎡」「/平米」「/平」即判为单价，否则判为总价。区间写法返回 null。
+ */
+export function parseSalePrice(
+  value: unknown,
+): { amount: number; period: 'one-time'; unit: 'sqm' | 'suite' } | null {
+  if (typeof value !== 'string') return null
+  const text = toHalfWidth(value).replace(/\s/g, '')
+  if (text === '') return null
+  if (looksLikeRange(text)) return null
+
+  // 租赁写法混进售价列 → 判为无法识别，不静默当成总价。
+  // 「5.2元/㎡/天」若被当成单价 5.2 元/㎡，前台价格会错四个数量级。
+  if (/\/天|\/月|\/年|\/工位|\/人/.test(text)) return null
+
+  const num = extractNumber(text)
+  if (num === null || num <= 0) return null
+  const amount = /万/.test(text) ? num * 10000 : num
+  const isPerSqm = /\/㎡|\/平米|\/平(?!方米)|\/平方米/.test(text)
+  return { amount, period: 'one-time', unit: isPerSqm ? 'sqm' : 'suite' }
+}
+
+/**
+ * 单价（元/㎡）：支持「52000」「52000元/㎡」「5.2万」「5.2万元/㎡」四种写法。
+ *
+ * 与 `parseRent` 不同，这里**单位可以省略**——列名已经写死了「元/㎡」，不存在
+ * `parseRent` 那种「4.5 到底是元/㎡/天还是万元/月」的歧义。「万」是唯一需要识别的
+ * 量级词，因为在售单价的常见口径就是「5.2万/㎡」。
+ *
+ * 区间写法（"5-6万"）判为无法识别，与 parseArea / parseRent 同一原则：识别不出
+ * 必须返回 null，绝不猜。
+ */
+export function parseUnitPrice(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : null
+  if (typeof value !== 'string') return null
+  const text = toHalfWidth(value).replace(/\s/g, '')
+  if (looksLikeRange(text)) return null
+  const num = extractNumber(text)
+  if (num === null || num <= 0) return null
+  return /万/.test(text) ? num * 10000 : num
+}
+
 /** 楼层：`12层` / `12F` → 12；`B2` / `负2层` → -2；识别不了返回 null。 */
 export function parseFloorNumber(value: unknown): number | null {
   if (typeof value !== 'string') return extractNumber(value)

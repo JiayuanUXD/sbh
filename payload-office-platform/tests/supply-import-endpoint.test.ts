@@ -582,7 +582,12 @@ describe('POST /bulk-import/preflight', () => {
     expect(report.rowErrors[0].column).toBe('房源编号')
   })
 
-  it('D10：楼盘没有生效商户关系 → 预检阶段就判错误行，不是等写入才失败', async () => {
+  it('OPT-045：楼盘没有生效商户关系、且该城市也没有平台自营商户 → 预检就判错误行，且原因码指向「补平台自营商户」而不是「配楼盘关系」', async () => {
+    // 这条用例的语义在 OPT-045 变了：D10 时代「楼盘没有生效关系」直接判
+    // NO_SUPPLY_MERCHANT_RELATION；现在先试平台自营回落，回落也拿不到才判错。
+    // 两个原因码分开是因为**该去改的地方不同**——一个去配楼盘关系，
+    // 一个去商户管理补这个城市的平台自营商户。合成一个码只能二选一地说错话。
+    // mock payload 的 merchants 查询返回空，所以这里走的是「回落也没有」分支。
     const endpoints = createBulkImportEndpoints()
     const preflight = endpoints.find((e) => e.path === '/bulk-import/preflight')!
     const { payload } = makeMockPayload([ROLE_ADM], [])
@@ -601,8 +606,10 @@ describe('POST /bulk-import/preflight', () => {
     const report = body.report as { validCount: number; errorCount: number; rowErrors: Array<{ code: string; message: string }> }
     expect(report.validCount).toBe(0)
     expect(report.errorCount).toBe(1)
-    expect(report.rowErrors[0].code).toBe('NO_SUPPLY_MERCHANT_RELATION')
+    expect(report.rowErrors[0].code).toBe('NO_PLATFORM_DEFAULT_MERCHANT')
     expect(report.rowErrors[0].message).toContain('楼盘「环球金融中心」')
+    // 文案必须说清该去哪儿补，否则运营只知道「不行」不知道「怎么办」
+    expect(report.rowErrors[0].message).toContain('平台自营商户')
   })
 
   it('D10：楼盘当前生效商户已停用 → 预检阶段判错误行，message 点出商户不合格', async () => {

@@ -347,6 +347,31 @@ export const Buildings: CollectionConfig = {
               min: 0,
             },
             {
+              /**
+               * 在售单价（OPT-045 D1）。
+               *
+               * **单值，不是区间**，也不做「在售房源单价区间」的派生展示——用户裁定。
+               * 楼盘表此前没有任何价格字段（只有 `totalFloors` 与
+               * `verification_info_price_verified_at`），出售类楼盘无处填单价。
+               *
+               * **口径固定为「元/㎡」**，不带周期与单位选择：
+               * 楼盘层面的在售单价是一个招商口径的参考值，不是可成交的结构化价格。
+               * 真正参与前台价格展示、排序、筛选的是**房源**的
+               * `price.{amount,currency,period,unit}` 四件套（出售走
+               * `period='one-time'` + `unit='sqm'|'suite'`）。这里刻意不做成四件套，
+               * 免得两处价格来源打架——楼盘页的价格聚合一直来自其下房源，
+               * 本字段不进任何聚合。
+               */
+              name: 'saleUnitPrice',
+              label: '在售单价（元/㎡）',
+              type: 'number',
+              min: 0,
+              admin: {
+                description:
+                  '招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。',
+              },
+            },
+            {
               name: 'developerAndScale',
               label: '开发商与规模',
               type: 'group',
