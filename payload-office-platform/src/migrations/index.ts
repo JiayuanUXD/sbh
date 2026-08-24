@@ -60,6 +60,7 @@ import * as migration_20260821_161534_supply_import_batches from './20260821_161
 import * as migration_20260822_001600_supply_import_unique_indexes from './20260822_001600_supply_import_unique_indexes';
 import * as migration_20260822_001700_supply_import_role_permissions from './20260822_001700_supply_import_role_permissions';
 import * as migration_20260822_010308_supply_import_job_task from './20260822_010308_supply_import_job_task';
+import * as migration_20260824_101016_opt048_snapshot_chain_repair from './20260824_101016_opt048_snapshot_chain_repair';
 
 export const migrations = [
   {
@@ -371,5 +372,10 @@ export const migrations = [
     up: migration_20260822_010308_supply_import_job_task.up,
     down: migration_20260822_010308_supply_import_job_task.down,
     name: '20260822_010308_supply_import_job_task',
+  },
+  {
+    up: migration_20260824_101016_opt048_snapshot_chain_repair.up,
+    down: migration_20260824_101016_opt048_snapshot_chain_repair.down,
+    name: '20260824_101016_opt048_snapshot_chain_repair'
   },
 ];

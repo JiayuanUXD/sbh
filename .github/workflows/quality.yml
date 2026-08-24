@@ -193,6 +193,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate migration source before writes
         run: pnpm migrate:dry-run
+      # OPT-048：快照漂移守卫。migrate:create 比对的是 config vs 最后一份 .json 快照，
+      # 从不看真实库；在旧基线上生成迁移会让新快照丢掉旧快照已有的列，而这件事没有
+      # 任何现成信号——直到下一个人跑 migrate:create 凭空多出一条重复迁移（且不带
+      # IF NOT EXISTS），部署到已有该列的生产库上直接失败。这里让它在 PR 阶段就红。
+      - name: Guard against migration snapshot drift
+        run: pnpm migrate:drift
       - name: Apply all migrations to a fresh PostgreSQL database
         run: pnpm exec payload migrate
       - name: Verify fresh database

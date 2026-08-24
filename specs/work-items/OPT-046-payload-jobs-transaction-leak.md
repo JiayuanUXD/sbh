@@ -1,6 +1,6 @@
 # Task Packet：OPT-046 Payload Jobs 定时轮询泄漏数据库事务
 
-> 状态：**已修**（patch 堵住泄漏，上游 issue #17912 已提；待上游修复后可撤 patch）
+> 状态：**已修 + 已上线**（patch 堵住泄漏；jobs 已于 2026-08-24 在生产开启，常态无泄漏；上游 issue #17912 待修复后可撤 patch）
 > 创建日期：2026-08-24
 > 来源：2026-08-24 生产故障（打开 `PAYLOAD_DISABLE_JOB_AUTORUN` 后约 8 分钟线上半瘫）
 > 编号说明：OPT-045 是批量导入覆盖面，故取 046
@@ -261,6 +261,45 @@ PGAPPNAME=repro-1 node --env-file-if-exists=.env.local --import tsx scripts/repr
 - `/api/health` 与 `/shanghai/listings` 全程 200 且响应时间无劣化；
 - 关掉 `silent: true` 后，日志里不再出现被吞掉的 job 错误。
 
+## 6.5 生产验收结果（2026-08-24）
+
+线上 `aa84a26` / `sbh-108`，`PAYLOAD_DISABLE_JOB_AUTORUN="0"`，两个实例并发轮询。
+
+| 项 | 结果 |
+|---|---|
+| 健康探针（15s × 352 次，约 90 分钟） | 0 次非 200，`status=ok` / `db=ok` 全绿，0.05–0.19s |
+| `idle in transaction` | **全程 0** |
+| Job 全链路 | 13 个 job（1 + 12 负载）全部处理完毕，`has_error=0`，生成 39 条站内通知后出队 |
+| 容器日志中的 cron 错误 / `_rels` TypeError / `pg_pool_client_error` | **0 条** |
+
+**但这不等于「patch 在生产被验证过」**——0 条错误说明**争抢没有发生**，不是发生了被接住。
+12 个 job 分 4 轮灌入仍未触发，说明生产的争抢窗口比预想窄得多：
+真实错误要求「赢家完成并**删除** job 行」发生在「输家的 UPDATE」之前
+（`deleteJobOnComplete` 默认开启，行没了 → 0 行 → `docs[0]` undefined）。
+通知任务执行极快，这个窗口只在**部署重叠 / 实例数变化**时才明显放大——
+与 §5.3「稳态不漏、切流量 8 分钟漏 9 个」完全吻合。
+
+因果证明仍然只有本地三进程复现（§5.1，带完整堆栈）。生产侧的结论是：
+**已具备可观测性，真发生了一定看得见**（判据见下），且常态运行无泄漏。
+
+### 怎么查生产日志（踩过的坑）
+
+应用日志**在** CLS 里，`stdout` 和 `stderr` **都采**（`CustomLogs: "stdout"` 的语义是
+采集路径而非只采 stdout；实测 stderr 有 `__TAG__.stream: "stderr"` 的记录）。
+
+**坑：容器名是版本名（`sbh-108`），不是服务名（`sbh`）。** 按 `container_name:"sbh"`
+查恒为空，会误判成「生产没有应用日志」。另外 `NOT container_name:"xxx"` 这种否定过滤
+不按预期生效。
+
+```
+queryLogs(action=searchLogs, service=tcbr,
+          queryString='"job queue cron" OR "_rels" OR "pg_pool_client_error"',
+          startTime=..., endTime=...)
+```
+
+**「查不到」必须先做对照**：拿一条已知存在的日志（如 `"can not be cached"`，
+16:12 那条 stderr）在它自己的时间窗里查一次，命中了才能把空结果当真阴性。
+
 ## 7. 坑
 
 - **别用「首页还好」来判断服务健康。** 这个缺陷下 `/` 和 `/shanghai/buildings`
@@ -273,7 +312,12 @@ PGAPPNAME=repro-1 node --env-file-if-exists=.env.local --import tsx scripts/repr
   `PAYLOAD_DISABLE_JOB_AUTORUN` 只能保持 `1`，也就意味着**批量导入在生产不可用**
   ——这同时是 OPT-045 的前置条件。
 
-## 7.5 顺带发现（独立问题，可单独立项）：迁移快照链已回退
+## 7.5 顺带发现：迁移快照链已回退 → **已立项 OPT-048 并修复**
+
+> **2026-08-24 订正**：本节下面「`20260822_001600` / `001700` 根本没有配套 `.json` 快照」
+> 一句是**误判**。手写的数据/索引迁移不经 `migrate:create`，Payload 本来就不会为它们
+> 生成快照，属正常。真正的问题只有 config↔快照的那一处分叉（`avg_response_hours`）。
+> 完整体检、与生产 schema 的比对、修复方式见 **OPT-048**。
 
 修本工作项时用 `payload migrate:create` 探测「本次改动有无 schema 影响」，
 它却生成了一个**与 `20260820_110024_opt035_city_profile_avg_response_hours`

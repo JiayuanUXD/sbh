@@ -27,7 +27,10 @@ describe('preflight migrations: 纯函数', () => {
     // 与 OPT-041 的 4 份（supply_import_batches / unique_indexes / role_permissions / job_task）。
     // 其中 job_task 那份说明了一件容易误判的事：把 task 注册进 jobs.tasks **需要迁移**——
     // payload_jobs(_log).task_slug 是真实 Postgres 枚举，不是「纯 config 改动」。
-    expect(names.length).toBe(62)
+    // OPT-048 又加了 1 份 opt048_snapshot_chain_repair：它 **不改 schema**（ADD COLUMN
+    // IF NOT EXISTS，任何库上都是空操作），存在的意义是它配套的 .json 快照——
+    // 用来把被旧基线带偏的快照链修回与 config 对齐。详见该迁移的文件头注释与 OPT-048。
+    expect(names.length).toBe(63)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -57,12 +60,13 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260822_001600_supply_import_unique_indexes')
     expect(names).toContain('20260822_001700_supply_import_role_permissions')
     expect(names).toContain('20260822_010308_supply_import_job_task')
+    expect(names).toContain('20260824_101016_opt048_snapshot_chain_repair')
   })
 
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(62)
+    expect(names.length).toBe(63)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
