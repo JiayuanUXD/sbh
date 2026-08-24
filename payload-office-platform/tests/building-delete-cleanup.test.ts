@@ -103,6 +103,29 @@ describe('guardBuildingDelete', () => {
   })
 })
 
+describe('错误必须能透传到运营眼前（isPublic 契约）', () => {
+  /**
+   * Payload 只把 `isPublic === true` 的错误消息交给客户端，其余一律替换成
+   * 「Something went wrong.」。
+   *
+   * 这条不是理论：本地浏览器实测过——初版用项目自己的 `InvalidOperationError`
+   * （继承原生 Error，没有 isPublic），守卫**确实拦住了**（500 → 400），
+   * 但后台显示的仍然是「Something went wrong.」。拦截成功、文案丢失，
+   * 等于本工作项「报错要可读」那半个目标没达成，而所有单测照样全绿。
+   *
+   * 所以这里断言的是**错误对象的形状**，不只是「抛了错」。
+   */
+  it('抛的是 isPublic:true 的 APIError，且状态码 400（业务规则，不是服务端故障）', async () => {
+    const { call } = await run(4)
+    const err = await call().catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(Error)
+    const e = err as { isPublic?: boolean; status?: number; message?: string }
+    expect(e.isPublic, 'isPublic 不为 true → 运营只会看到「Something went wrong.」').toBe(true)
+    expect(e.status, '用 500 会进错误告警，且 Payload 会按内部错误隐藏消息').toBe(400)
+    expect(e.message).toContain('4 套房源')
+  })
+})
+
 describe('Buildings collection 接线', () => {
   it('beforeDelete 挂上了 guardBuildingDelete', () => {
     expect(Buildings.hooks?.beforeDelete).toContain(guardBuildingDelete)

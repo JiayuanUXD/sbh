@@ -38,9 +38,8 @@
  * 删不掉且不说话的系统好得多：前者是产品规则，后者是缺陷。
  */
 
+import { APIError } from 'payload'
 import type { CollectionBeforeDeleteHook } from 'payload'
-
-import { InvalidOperationError } from '@/domain/shared/errors'
 
 /**
  * 楼盘删除守护 + 关系清理。
@@ -81,14 +80,26 @@ export const guardBuildingDelete: CollectionBeforeDeleteHook = async ({ id, req 
       // 忽略：文案退化不影响拦截本身
     }
 
-    throw new InvalidOperationError({
-      domain: 'supply',
-      code: 'BUILDING_HAS_LISTINGS',
-      message:
-        `楼盘「${label}」下还有 ${listings.totalDocs} 套房源，不能删除。` +
+    /**
+     * 必须用 Payload 的 `APIError` 并显式置 `isPublic: true`，**不能用项目自己的
+     * `InvalidOperationError`**。
+     *
+     * Payload 只把 `isPublic === true` 的错误消息透传给客户端，其余一律替换成
+     * 「Something went wrong.」。而 `DomainError` 继承的是原生 `Error`，没有这个标记
+     * ——本地浏览器实测：守卫确实拦住了（500 → 400），但运营看到的仍然是
+     * 「Something went wrong.」，等于本工作项「报错要可读」那半个目标没达成。
+     *
+     * 第二个参数 400：这是**用户可修复的业务规则**，不是服务端故障。
+     * 用 500 会让它进错误告警、也会让 Payload 按「内部错误」默认隐藏消息。
+     */
+    throw new APIError(
+      `楼盘「${label}」下还有 ${listings.totalDocs} 套房源，不能删除。` +
         '请先把这些房源删除或转移到其它楼盘，再删楼盘。' +
         '（如果只是想让它从前台消失，用「下架」即可，不必删除。）',
-    })
+      400,
+      { code: 'BUILDING_HAS_LISTINGS', listingCount: listings.totalDocs },
+      true,
+    )
   }
 
   // —— 2. 没有房源了，清掉纯关系行 ——
