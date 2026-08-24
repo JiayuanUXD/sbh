@@ -1,6 +1,6 @@
 # Task Packet：OPT-046 Payload Jobs 定时轮询泄漏数据库事务
 
-> 状态：**根因已确认，待修**（止损已上线，泄漏本身未消除）
+> 状态：**已修**（patch 堵住泄漏，上游 issue #17912 已提；待上游修复后可撤 patch）
 > 创建日期：2026-08-24
 > 来源：2026-08-24 生产故障（打开 `PAYLOAD_DISABLE_JOB_AUTORUN` 后约 8 分钟线上半瘫）
 > 编号说明：OPT-045 是批量导入覆盖面，故取 046
@@ -190,15 +190,53 @@ PGAPPNAME=repro-1 node --env-file-if-exists=.env.local --import tsx scripts/repr
 打了上百轮，**泄漏数全程停在 5-6 没有增长**。而生产是在**流量从 10% 切到 100%
 的那 8 分钟里**漏了 9 个。触发条件是并发，不是「每轮轮询都漏」。
 
-### 5.4 待定：修复方式
+### 5.4 修复：`pnpm patch` + 上游 issue（2026-08-24 已做）
 
-止损（`idle_in_transaction_session_timeout` + 连接错误处理器，见 §4）已经让泄漏
-自动回收、进程不再崩溃，但**没有消除泄漏本身**。真正的修法三选一，尚未裁定：
+**先说一个反直觉的事实：升级 payload 解决不了这个问题。** 核实的是发布产物本身，
+不是 changelog：
 
-1. 向上游报 issue（缺陷在 payload 与 @payloadcms/drizzle 两侧都有：前者无 try/catch，
-   后者 0 行时 `docs[0]` 未判空）；
-2. `pnpm patch` 给 `payload` 的 `updateJob.js` 补 try/catch + `killTransaction`；
-3. drizzle 侧对 0 行返回做判空（更接近真正的语义错误：并发争抢下 0 行是**正常**结果）。
+| 版本 | drizzle 原子认领（`processingToken`，#17441） | `updateJob.js` 有 try/catch |
+|---|---|---|
+| 3.86.0（我们在用） | ❌ | ❌ |
+| 3.88.0（`latest`） | ❌ | ❌ |
+| 4.0.0-canary.29 | ✅ | **❌** |
+
+- #17441 修的是争抢竞态（#16043），但它是 `feat!`，**只在 4.0 分支，任何 3.x 发布版都没有**。
+- 缺 try/catch 本身**连 4.0-canary 都没修**。4.0 只消掉「争抢」这一个触发器，
+  其它路径（jobs-log 写失败、瞬时 DB 错误、连接中断）照样会泄漏——
+  上游 #17645 从另一个入口撞上同一个 TypeError，结论一致。
+
+所以 patch 是目前唯一的解，不是权宜之计。
+
+**已做**：
+
+1. **`patches/payload@3.86.0.patch`** —— 给 `queues/utilities/updateJob.js` 的
+   `db.updateJobs()` 包一层 try/catch：出错先 `rollbackTransaction` 再重抛。
+   **不吞错、不改错误语义**，只堵泄漏；TypeError 照常向上传，由 `autoRun` cron
+   自带的 `catch` 选项记日志。
+
+2. **`tests/payload-updatejob-patch.test.ts`** —— 直接读 `node_modules` 里的实际产物
+   断言 patch 在位。patch 没有任何编译期保护，升级 payload 时 pnpm 会因版本号变化
+   直接丢掉它，而症状只在生产切流量的几分钟里出现，本地稳态复现不出来。
+   已反向验证：去掉 patch 4 条全红。
+
+3. **上游 issue [payloadcms/payload#17912](https://github.com/payloadcms/payload/issues/17912)**
+   —— 含完整堆栈、三进程复现步骤、跨版本核实结论与建议补丁。
+
+**实测对照**（同一套三进程复现）：
+
+| | patch 前 | patch 后 |
+|---|---|---|
+| 争抢触发 TypeError | 有 | **有（4 次，触发条件不变）** |
+| 泄漏事务峰值 | 11 | **0** |
+| 进程存活 | **0/3**（全崩） | **3/3** |
+| 靠 120s 超时兜底回收 | 24 次 | **0 次（压根没泄漏）** |
+
+`pg_pool_client_error` 一次都没触发——因为连接根本没泄漏，超时兜底无事可做。
+§4 的两条止损从此退居为**纵深防御**：真正堵住泄漏的是这个 patch。
+
+**仍未解决（上游侧）**：`upsertRow` 在 0 行时对 `docs[0]=undefined` 调 `transform` 必抛。
+并发争抢下 0 行是**正常结果**，语义上就不该抛。已在 #17912 里提出，可另开 issue。
 
 > `jobs.runHooks: true` 已排除。它确实能绕开这条快速路径、改走事务处理完整的
 > `payload.update()`，但 Payload 官方注释写着「discouraged，drastically affect
@@ -209,9 +247,12 @@ PGAPPNAME=repro-1 node --env-file-if-exists=.env.local --import tsx scripts/repr
 **本地（快，先过这关）**：起 3 个 `scripts/repro-job-runner.ts` 进程指向同一个库，
 跑 ≥ 10 分钟：
 
-- `pg_stat_activity` 里 `idle in transaction` **不增长**（当前止损下是「涨到几个、
-  120 秒后回落」，修好根因后应当**一个都不涨**）；
-- 三个进程全部存活，日志里没有 `Cannot use 'in' operator` 的 TypeError。
+- 日志里**应当**出现 `Error in job queue cron job handler` + `Cannot use 'in' operator`
+  ——这说明争抢确实发生了，触发条件成立。**没有它反而说明没测到。**
+- `pg_stat_activity` 里 `idle in transaction` **全程为 0**；
+- 三个进程全部存活。
+
+（2026-08-24 实测：4 次争抢，泄漏 0，3/3 存活。）
 
 **生产**：打开 `PAYLOAD_DISABLE_JOB_AUTORUN=0`，并且走一次 **10% → 100% 切流量**
 （新旧实例并存才是真实触发条件，稳态单实例复现不出来），连续运行 ≥ 30 分钟：

@@ -8,6 +8,9 @@ patchedDependencies:
   '@arco-design/web-react@2.66.16':
     hash: qyqxq6idatwtgyu5dyaegcwfuu
     path: patches/@arco-design__web-react@2.66.16.patch
+  payload@3.86.0:
+    hash: evbniv4avtxbmmtrveupioabf4
+    path: patches/payload@3.86.0.patch
 
 dependencies:
   '@arco-design/web-react':
@@ -69,7 +72,7 @@ dependencies:
     version: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0)(react@19.2.0)
   payload:
     specifier: 3.86.0
-    version: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+    version: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
   payload-lexical-typography:
     specifier: ^0.5.2
     version: 0.5.2(@payloadcms/richtext-lexical@3.86.0)(@payloadcms/ui@3.86.0)(react-dom@19.2.0)(react@19.2.0)
@@ -2552,7 +2555,7 @@ packages:
     dependencies:
       colord: 2.9.3
       date-fns-tz: 2.0.1(date-fns@2.30.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       react-colorful: 5.8.0(react-dom@19.2.0)(react@19.2.0)
       react-number-format: 5.4.5(react-dom@19.2.0)(react@19.2.0)
       react-phone-number-input: 3.4.17(react-dom@19.2.0)(react@19.2.0)
@@ -2565,7 +2568,7 @@ packages:
       payload: ^3.15.0
       sharp: ^0.32.6
     dependencies:
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       sharp: 0.34.4
     dev: false
 
@@ -2582,7 +2585,7 @@ packages:
       react-dom: ^19.0.1 || ^19.1.2 || ^19.2.1
     dependencies:
       next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0)(react@19.2.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     dev: false
@@ -2597,7 +2600,7 @@ packages:
       console-table-printer: 2.12.1
       drizzle-kit: 0.31.7
       drizzle-orm: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       pg: 8.20.0
       prompts: 2.4.2
       to-snake-case: 1.0.0
@@ -2642,7 +2645,7 @@ packages:
       console-table-printer: 2.12.1
       dequal: 2.0.3
       drizzle-orm: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       prompts: 2.4.2
       to-snake-case: 1.0.0
       uuid: 13.0.2
@@ -2687,7 +2690,7 @@ packages:
     dependencies:
       graphql: 16.11.0
       graphql-scalars: 1.22.2(graphql@16.11.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       pluralize: 8.0.0
       ts-essentials: 10.0.3(typescript@5.9.3)
       tsx: 4.22.4
@@ -2718,7 +2721,7 @@ packages:
       http-status: 2.1.0
       next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0)(react@19.2.0)
       path-to-regexp: 6.3.0
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       qs-esm: 8.0.1
       sass: 1.77.4
       uuid: 13.0.2
@@ -2740,7 +2743,7 @@ packages:
     dependencies:
       '@payloadcms/ui': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
       find-node-modules: 2.1.3
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       range-parser: 1.2.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -2762,7 +2765,7 @@ packages:
       '@payloadcms/translations': 3.86.0
       '@payloadcms/ui': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
       escape-html: 1.0.3
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     transitivePeerDependencies:
@@ -2784,7 +2787,7 @@ packages:
       '@payloadcms/ui': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
       csv-parse: 5.6.0
       csv-stringify: 6.5.2
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       qs-esm: 8.0.1
     transitivePeerDependencies:
       - react
@@ -2800,7 +2803,7 @@ packages:
     dependencies:
       '@payloadcms/next': 3.86.0(@types/react@19.2.2)(graphql@16.11.0)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
       '@payloadcms/ui': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     transitivePeerDependencies:
@@ -2849,7 +2852,7 @@ packages:
       mdast-util-from-markdown: 2.0.2
       mdast-util-mdx-jsx: 3.1.3
       micromark-extension-mdx-jsx: 3.0.1
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       qs-esm: 8.0.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -2877,7 +2880,7 @@ packages:
       '@aws-sdk/lib-storage': 3.1104.0(@aws-sdk/client-s3@3.1102.0)
       '@aws-sdk/s3-request-presigner': 3.1104.0
       '@payloadcms/plugin-cloud-storage': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
     transitivePeerDependencies:
       - '@types/react'
       - monaco-editor
@@ -2918,7 +2921,7 @@ packages:
       md5: 2.3.0
       next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0)(react@19.2.0)
       object-to-formdata: 4.5.1
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       qs-esm: 8.0.1
       react: 19.2.0
       react-datepicker: 7.6.0(react-dom@19.2.0)(react@19.2.0)
@@ -7114,12 +7117,12 @@ packages:
     dependencies:
       '@payloadcms/ui': 3.86.0(@types/react@19.2.2)(monaco-editor@0.55.1)(next@16.2.10)(payload@3.86.0)(react-dom@19.2.0)(react@19.2.0)(typescript@5.9.3)
       next: 16.2.10(@babel/core@7.29.7)(@playwright/test@1.61.1)(react-dom@19.2.0)(react@19.2.0)
-      payload: 3.86.0(graphql@16.11.0)(typescript@5.9.3)
+      payload: 3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     dev: false
 
-  /payload@3.86.0(graphql@16.11.0)(typescript@5.9.3):
+  /payload@3.86.0(patch_hash=evbniv4avtxbmmtrveupioabf4)(graphql@16.11.0)(typescript@5.9.3):
     resolution: {integrity: sha512-lZRltETrZB+nTOYgXF72+GaT090V9wG6OZVpiZpvo0hr6z7YlcWXvi7vcys/rlsUaaSbwhOpGQLh3oxgNLVh8w==}
     engines: {node: ^18.20.2 || >=20.9.0}
     hasBin: true
@@ -7164,6 +7167,7 @@ packages:
       - typescript
       - utf-8-validate
     dev: false
+    patched: true
 
   /pg-cloudflare@1.4.0:
     resolution: {integrity: sha512-Vo7z/6rrQYxpNRylp4Tlob2elzbh+N/MOQbxFVWCxS7oEx6jF53GTJFxK2WWpKuBRkmiin4Mt+xofFDjx09R0A==}
