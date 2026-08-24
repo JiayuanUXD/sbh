@@ -107,6 +107,22 @@ params: collection-buildings-160,collection-buildings-158
 - 后台删一个**无房源**的楼盘 → 成功，且其 `building-merchant-relations` 一并清掉；
 - 生产上 `OPT045验收楼盘一号/二号` 能按上述路径删掉。
 
+## 6.5 实施期发现：文案差点没传到运营眼前
+
+本地浏览器验收时抓到——守卫确实拦住了（500 → 400），但后台显示的仍然是
+**「Something went wrong.」**，§4.3「错误文案必须可操作」那半个目标其实没达成，
+**而 10 条单测全绿**。
+
+原因：Payload 只把 `isPublic === true` 的错误消息交给客户端。项目自己的
+`DomainError` 继承原生 `Error`，没有这个标记。改用 Payload 的 `APIError`
+（`isPublic: true` + `status: 400`）后文案才真正显示出来。
+
+**这不是本工作项独有的问题**：全仓 `isPublic` 零命中，21 个 `*-protect.ts` 里
+100+ 条中文提示运营都看不到。已立 **OPT-052**。
+
+教训：**单测断言的是「抛了什么错」，而缺陷在于「错误怎么被序列化给客户端」**——
+那一层在 Payload 内部，测试碰不到。这类问题只能在浏览器里发现。
+
 ## 7. 坑
 
 - **`current transaction is aborted` 永远不是根因**，它只说明「更早有语句失败了」。
