@@ -7,6 +7,12 @@ import { writeAuditFailed, writeAuditSuccess } from '@/domain/audit/audit-writer
 import { rollbackImportBatch } from '@/domain/supply-import/batch-rollback'
 import { invalidateSupplyImportCache } from '@/domain/supply-import/cache-invalidation'
 import { BUILDING_COLUMNS, validateBuildingRow, type ValidBuildingRow } from '@/domain/supply-import/building-row'
+import {
+  applyBatchDefaults,
+  parseBatchDefaults,
+  BUILDING_DEFAULTABLE_COLUMNS,
+  LISTING_DEFAULTABLE_COLUMNS,
+} from '@/domain/supply-import/batch-defaults'
 import { markDuplicateExternalIds } from '@/domain/supply-import/duplicate-check'
 import { SUPPLY_IMPORT_QUEUE, SUPPLY_IMPORT_TASK } from '@/domain/supply-import/import-task'
 import { LISTING_COLUMNS, validateListingRow, type ValidListingRow } from '@/domain/supply-import/listing-row'
@@ -411,7 +417,19 @@ function createPreflightEndpoint(): Endpoint {
       if (!parsed.ok) {
         return Response.json({ ok: false, code: parsed.code, error: parsed.message }, { status: 400 })
       }
-      const { rows, rowNumbers } = parsed
+      const { rowNumbers } = parsed
+
+      // OPT-045 §4.3：批次级默认值，行内留空即用它。
+      //
+      // **必须在校验之前填进原始行**——这样默认值走的是与手填值完全相同的校验路径
+      //（城市要解析、商户要判 §9/§10、等级要在枚举里）。反过来做（校验通过后再往
+      // ValidXxxRow 上补）会绕开校验：一个拼错的默认城市名会静默变成 null 或抛在
+      // 写入层，而预检报告显示「全部通过」——正是本工作项要避免的失败形态。
+      const defaults = parseBatchDefaults(
+        (req.data as Record<string, unknown> | undefined)?.defaults,
+        type === 'buildings' ? BUILDING_DEFAULTABLE_COLUMNS : LISTING_DEFAULTABLE_COLUMNS,
+      )
+      const rows = applyBatchDefaults(parsed.rows, defaults)
 
       // 6. 关系解析表 + 楼盘候选 + 楼盘商户关系（D10，只有房源导入需要；楼盘导入
       //    传空数组——楼盘本身不需要商户，不该为它多打一次无谓的查询）（不写业务表，只读）

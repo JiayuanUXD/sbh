@@ -83,6 +83,9 @@ async function readJson(res: Response): Promise<{ ok: boolean; error?: string; [
 
 export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
   const [phase, setPhase] = useState<Phase>('idle')
+  // 批次级默认值（OPT-045 §4.3）。不随 resetAll 清空——运营连着导好几批时
+  // 默认值通常不变，每次清掉等于把「省事」重新变成「每次都要填」。
+  const [defaults, setDefaults] = useState<Record<string, string>>({})
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [batchId, setBatchId] = useState<number | null>(null)
@@ -114,6 +117,10 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
+  const handleDefaultChange = useCallback((column: string, value: string) => {
+    setDefaults((prev) => ({ ...prev, [column]: value }))
+  }, [])
+
   const runPreflight = useCallback(
     async (file: File) => {
       setUploading(true)
@@ -121,6 +128,9 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
       try {
         const form = new FormData()
         form.append('file', file)
+        // 服务端会按模板列白名单再收窄一次（sanitizeBatchDefaults），
+        // 这里全传即可——白名单是硬约束，不是前端的自觉。
+        form.append('defaults', JSON.stringify(defaults))
         const res = await fetch(`/api/bulk-import/preflight?type=${mode}`, {
           method: 'POST',
           body: form,
@@ -139,7 +149,7 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
         setUploading(false)
       }
     },
-    [mode],
+    [mode, defaults],
   )
 
   const confirmImport = useCallback(async () => {
@@ -252,6 +262,8 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
           uploadError={uploadError}
           fileInputRef={fileInputRef}
           onFileChange={handleFileChange}
+          defaults={defaults}
+          onDefaultsChange={handleDefaultChange}
         />
       )}
 
@@ -295,6 +307,67 @@ export default function BulkImportViewClient({ mode }: { mode: ImportMode }) {
   )
 }
 
+/**
+ * 批次级默认值（OPT-045 §4.3）。
+ *
+ * 一批表格通常只涉及一个城市、一个供给商户，逐行重复填是纯粹的浪费。
+ * 这里设一次，行内留空即用它——**行内有值一律不覆盖**。
+ *
+ * 刻意用纯文本输入而不是下拉选择：下拉要拉全量城市/商户列表，是一次额外查询，
+ * 而这些值最终都要经过与手填值**完全相同**的服务端解析与校验（默认值在预检前
+ * 被填进原始行）。拼错了预检会照常报错并给出候选建议，与手填的体验一致。
+ */
+function BatchDefaultsPanel({
+  mode,
+  defaults,
+  onChange,
+}: {
+  mode: ImportMode
+  defaults: Record<string, string>
+  onChange: (column: string, value: string) => void
+}) {
+  const columns =
+    mode === 'buildings'
+      ? ([
+          { key: '城市', placeholder: '如：上海' },
+          { key: '行政区', placeholder: '如：黄浦区' },
+          { key: '供给商户', placeholder: '如：官网' },
+          { key: '等级', placeholder: '如：甲级' },
+        ] as const)
+      : ([
+          { key: '供给商户', placeholder: '如：官网' },
+          { key: '房源类型', placeholder: '如：传统办公室' },
+          { key: '装修', placeholder: '如：精装带家具' },
+        ] as const)
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+        本批默认值（可留空）：表格里对应列留空的行会用这里的值；<strong>行内填了就以行内为准</strong>。
+      </Paragraph>
+      <Space size="medium" wrap>
+        {columns.map(({ key, placeholder }) => (
+          <label key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ whiteSpace: 'nowrap' }}>{key}</span>
+            <input
+              type="text"
+              value={defaults[key] ?? ''}
+              placeholder={placeholder}
+              onChange={(e) => onChange(key, e.target.value)}
+              style={{
+                padding: '4px 8px',
+                border: '1px solid var(--theme-elevation-150, #ccc)',
+                borderRadius: 4,
+                minWidth: 140,
+              }}
+            />
+          </label>
+        ))}
+      </Space>
+    </div>
+  )
+}
+
 function IdlePanel({
   mode,
   label,
@@ -302,6 +375,8 @@ function IdlePanel({
   uploadError,
   fileInputRef,
   onFileChange,
+  defaults,
+  onDefaultsChange,
 }: {
   mode: ImportMode
   label: string
@@ -309,6 +384,8 @@ function IdlePanel({
   uploadError: string | null
   fileInputRef: RefObject<HTMLInputElement | null>
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void
+  defaults: Record<string, string>
+  onDefaultsChange: (column: string, value: string) => void
 }) {
   return (
     <Card>
@@ -328,6 +405,8 @@ function IdlePanel({
           </Button>
         )}
       </Space>
+
+      <BatchDefaultsPanel mode={mode} defaults={defaults} onChange={onDefaultsChange} />
 
       {uploadError && (
         <Alert type="error" content={uploadError} style={{ marginBottom: 16 }} closable onClose={() => {}} />
