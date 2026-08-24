@@ -1097,6 +1097,30 @@ async function seed() {
     },
   )
 
+  // 平台自营商户（OPT-045 D2/D3）：批量导入在楼盘没有生效供给商户时回落到它。
+  //
+  // **本地此前没有这个商户**，所以 resolveDefaultSupplyMerchant 一直返回 null、
+  // 后台新建表单的预选一直空转、导入的回落路径本地根本测不到（OPT-045 §9 已记录）。
+  // 生产的对应记录是 id=1「官网」，D3 裁定保留原名、只补 isPlatformDefault。
+  //
+  // 只建上海这一个：本地 seed 只有上海的完整夹具，七城各建一个是生产的数据变更
+  // （见上线清单），不是本地 seed 的职责。
+  await findOrCreate(
+    'merchants',
+    { name: { equals: '官网' } },
+    {
+      name: '官网',
+      type: 'CHANNEL',
+      contactName: '平台运营',
+      contactPhone: '13800000000',
+      serviceCities: [shanghai.id],
+      status: 'active',
+      qualificationStatus: 'valid',
+      qualificationExpiresAt: oneYearLater,
+      isPlatformDefault: true,
+    },
+  )
+
   // === (d) 楼盘供给关系 ===（building-merchant-relations，merchant 必填；
   //   房源商户归属见下方 (d2)，OPT-034 起是 listings.merchant 直写字段，
   //   不再是独立关系记录）
