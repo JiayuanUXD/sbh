@@ -80,10 +80,31 @@ async function loadWorksheet(buffer: Buffer, fileName: string): Promise<LoadWork
   return { ok: false, code: 'UNSUPPORTED_FORMAT', message: `不支持的文件格式：${fileName}` }
 }
 
+/**
+ * 解析上传的工作簿。
+ *
+ * ## 为什么是两个列参数
+ *
+ * `requiredColumns` 与 `readColumns` 职责完全不同，合成一个必然出错——**已经出过**：
+ *
+ * - `requiredColumns` 用于「一个都不能少」的**存在性校验**。把新增列算进来，
+ *   运营手上所有旧表格会被整份拒收（`MISSING_COLUMNS`）。
+ * - `readColumns` 用于**行映射**。少传一列，那一列的值就被静默丢弃——
+ *   文件里明明填了，导入"成功"，值却凭空消失，没有任何报错。
+ *
+ * 真实教训（2026-08-24）：OPT-045 加了 11 个新列后先是把它们算作必需（旧表格被拒），
+ * 修的时候把两处都改成了「只有原始列」，于是新列的值全部读不出来——
+ * 楼盘的等级/竣工/在售单价落库全 null，出售房源直接进不来。修 A 造出了 B。
+ * 拆成两个参数才是把这两件事分开。
+ *
+ * `readColumns` 里文件中不存在的列会读到空串（`colNumber === undefined`），
+ * 所以传完整列对旧表格是安全的。
+ */
 export async function parseWorkbook(
   buffer: Buffer,
   fileName: string,
-  expectedColumns: readonly string[],
+  requiredColumns: readonly string[],
+  readColumns: readonly string[] = requiredColumns,
 ): Promise<ParseResult> {
   const loaded = await loadWorksheet(buffer, fileName)
   if (!loaded.ok) return { ok: false, code: loaded.code, message: loaded.message }
@@ -92,7 +113,7 @@ export async function parseWorkbook(
   const headers = readHeaderRow(worksheet)
   const columnIndex = buildColumnIndex(headers)
 
-  const missing = expectedColumns.filter((column) => !columnIndex.has(column))
+  const missing = requiredColumns.filter((column) => !columnIndex.has(column))
   if (missing.length > 0) {
     return { ok: false, code: 'MISSING_COLUMNS', message: `缺少必需列：${missing.join('、')}` }
   }
@@ -111,7 +132,8 @@ export async function parseWorkbook(
     const values: Record<string, string> = {}
     let allEmpty = true
 
-    for (const column of expectedColumns) {
+    // 按 readColumns 映射（完整列）；文件里没有的列读到空串，对旧表格安全。
+    for (const column of readColumns) {
       const colNumber = columnIndex.get(column)
       const text = colNumber === undefined ? '' : cellText(row.getCell(colNumber))
       values[column] = text
