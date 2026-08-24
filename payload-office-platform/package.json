@@ -88,7 +88,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@arco-design/web-react@2.66.16": "patches/@arco-design__web-react@2.66.16.patch"
+      "@arco-design/web-react@2.66.16": "patches/@arco-design__web-react@2.66.16.patch",
+      "payload@3.86.0": "patches/payload@3.86.0.patch"
     }
   }
 }
