@@ -435,7 +435,10 @@ function createPreflightEndpoint(): Endpoint {
       const columns = columnsForType(type)
 
       // 5. 解析工作簿
-      const parsed = await parseWorkbook(file.data, file.name, requiredColumnsForType(type))
+      // 两个列参数职责不同，见 parseWorkbook 的文档：
+      //   必需列 → 存在性校验（用原始列，旧表格才不会被整份拒收）
+      //   读取列 → 行映射（用完整列，否则新列的值会被静默丢弃）
+      const parsed = await parseWorkbook(file.data, file.name, requiredColumnsForType(type), columns)
       if (!parsed.ok) {
         return Response.json({ ok: false, code: parsed.code, error: parsed.message }, { status: 400 })
       }
