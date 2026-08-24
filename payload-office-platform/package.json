@@ -18,6 +18,7 @@
     "migrate:dry-run": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-dry-run.ts",
     "migrate:status": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts",
     "migrate:verify": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-verify.ts",
+    "migrate:drift": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-drift-check.ts",
     "migrate:approval-hash": "node --import tsx scripts/destructive-migration-approvals.ts",
     "rollback:supply:preflight": "node --env-file-if-exists=.env.local --import tsx scripts/preflight-supply-rollback.ts",
     "test": "vitest run",

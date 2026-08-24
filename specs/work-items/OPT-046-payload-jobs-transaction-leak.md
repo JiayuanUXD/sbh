@@ -312,7 +312,12 @@ queryLogs(action=searchLogs, service=tcbr,
   `PAYLOAD_DISABLE_JOB_AUTORUN` 只能保持 `1`，也就意味着**批量导入在生产不可用**
   ——这同时是 OPT-045 的前置条件。
 
-## 7.5 顺带发现（独立问题，可单独立项）：迁移快照链已回退
+## 7.5 顺带发现：迁移快照链已回退 → **已立项 OPT-048 并修复**
+
+> **2026-08-24 订正**：本节下面「`20260822_001600` / `001700` 根本没有配套 `.json` 快照」
+> 一句是**误判**。手写的数据/索引迁移不经 `migrate:create`，Payload 本来就不会为它们
+> 生成快照，属正常。真正的问题只有 config↔快照的那一处分叉（`avg_response_hours`）。
+> 完整体检、与生产 schema 的比对、修复方式见 **OPT-048**。
 
 修本工作项时用 `payload migrate:create` 探测「本次改动有无 schema 影响」，
 它却生成了一个**与 `20260820_110024_opt035_city_profile_avg_response_hours`
