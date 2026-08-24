@@ -1,6 +1,6 @@
 # Task Packet：OPT-045 批量导入补齐「导入即可上架」的字段与前提
 
-> 状态：**待实施**（范围与全部 5 条实现细节均已裁定，见 §7）
+> 状态：**已实施**（2026-08-24，7 个提交；生产数据变更与验收未做，见 §11）
 > 创建日期：2026-08-23
 > 来源：OPT-041 合并后的本地验收（2026-08-23）+ 用户提出「导入的楼盘/房源要能直接上架」
 > 编号说明：OPT-042 / OPT-043 归 PR #83（跨实例缓存失效 / 事件消费链路未接线），
@@ -201,21 +201,43 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
 
 ## 6. 需要改什么（清单）
 
-- [ ] `src/domain/supply-import/building-row.ts`：`BUILDING_COLUMNS` +4 列与各自校验
-- [ ] `src/domain/supply-import/listing-row.ts`：`LISTING_COLUMNS` + 可选商户列 + 出售价格列
-- [ ] `src/domain/supply-import/resolve-merchant.ts`：默认商户回落 + §10 校验
-- [ ] `src/domain/supply/default-merchant.ts`：改按 `isPlatformDefault` 解析（D2）+ 订正过期的头注释（§5.5）
-- [ ] `src/domain/supply-import/normalize.ts`：出售价格写法解析
-- [ ] `src/domain/supply-import/import-task.ts`：`LEGACY_RENT_UNITS` 之外接结构化价格
-- [ ] `src/collections/Merchants.ts`：新增 `isPlatformDefault` 布尔字段（D2）
-- [ ] `src/collections/Buildings.ts`：新增**单值**在售单价字段（D1）
-- [ ] `src/migrations/`：楼盘价格字段 + Merchants 标识字段（**必须 `migrate:create` 生成，正文不可手改**）
-- [ ] `src/components/admin/bulk-import/BulkImportView.tsx`：批次级默认值那一步
-- [ ] `src/domain/admin-navigation/navigation-config.ts`：收编 `building-merchant-relations`、
-      `supply-import-batches`、`location-aliases` 三个集合（D4），使「集合」兜底区块消失
-- [ ] 各层测试 + `tests/e2e/bulk-import.spec.ts` 扩用例
-- [ ] 数据变更：七城各建一个平台自营商户并置 `isPlatformDefault=true`（D3）；
-      生产 `官网`(id=1) 保留原名、补 `isPlatformDefault`。生产操作步骤要写进上线清单
+- [x] `building-row.ts`：`BUILDING_COLUMNS` 8 → 13 列与各自校验
+- [x] `listing-row.ts`：`LISTING_COLUMNS` 9 → 15 列（商户列 + 售价 + 出售条款四项）
+- [x] `resolve-merchant.ts`：默认商户回落 + §10 校验 + 按名称解析商户
+- [x] `default-merchant.ts`：改按 `isPlatformDefault` 解析（D2）+ 订正过期头注释（§5.5）
+- [x] `normalize.ts`：`parseSalePrice`（总价/单价）+ `parseUnitPrice`
+- [x] `import-task.ts`：结构化价格四件套 + `businessType` + `saleTerms` + 商户三级解析
+- [x] `Merchants.ts`：`isPlatformDefault`（D2）
+- [x] `Buildings.ts`：`saleUnitPrice` 单值（D1）
+- [x] `20260824_110612_opt045_import_publishable_fields`（幂等写法，见下方订正）
+- [x] `BulkImportViewClient.tsx` + `batch-defaults.ts`：批次级默认值
+- [x] `navigation-config.ts`：收编三个集合（D4）
+- [x] 各层测试（3683 passed，本工作项新增 52 条）+ `tests/e2e/sale-channel.spec.ts`
+- [x] seed / roles 工厂补平台自营商户与 `data:import`（§9 两条坑）
+- [ ] **生产数据变更：七城各建一个平台自营商户**（D3）；生产 `官网`(id=1) 补
+      `isPlatformDefault`。见 §11 上线清单——**未做**
+
+### 6.1 一处与 §7/§9 原文的冲突，已按 D1 处理
+
+§9 写「迁移正文不可手改：`migrate:create` 生成后原样提交」，而 §7 D1 要求
+「沿用 `20260810_003111` 的幂等写法（`to_regtype` 守卫 + `ADD COLUMN IF NOT EXISTS`）」
+——两条直接打架。
+
+按 D1 执行（改成幂等），依据：
+1. `.agent/migrations.md` 里**没有**「正文不可手改」这条通则，真实规则是
+   **破坏性迁移的批准绑定文件 SHA-256**，改内容会让指纹失效。本迁移是新生成的
+   非破坏性 `ADD COLUMN`，不在批准清单里。
+2. PR #86 与 OPT-048 都有同样的先例（把 `up()` 改成幂等）。
+3. D1 自己写明了理由：生产 schema 与迁移链存在历史分叉，裸 DDL 会像 `sbh-104` 那样炸。
+
+已核对生产：`is_platform_default` / `sale_unit_price` / 索引三样都不存在，
+本迁移会真正执行、不是空转。
+
+### 6.2 §4「楼盘模板补供给商户**编号**」改为按**名称**
+
+两张模板在同一个向导里，一张填名称一张填编号会互相打架。统一按名称解析
+（规范化复用 `normalizeAliasText`，与地理别名同口径；重名判错误行）。
+用户 2026-08-24 裁定房源侧填名称，楼盘侧随之统一。
 
 ## 7. 已裁定（用户 2026-08-23）
 
@@ -310,6 +332,47 @@ OPT-036 给楼盘列表加了六个筛选维度，其中**等级 / 竣工年代 
   `BUILTIN_ROLES`，而 `src/test/factory/roles.ts` 里没有 `data:import`——
   先迁移再 seed 会擦掉 OPS 的导入权限（2026-08-23 实测）。这条与本工作项无关但同域，
   实施时顺手修掉可省一次踩坑。
+
+## 11. 上线清单（**未做，验收前必须完成**）
+
+### 11.1 出售频道已随本工作项打开
+
+`NEXT_PUBLIC_SALE_CHANNEL_ENABLED` 由 ff07d21 引入并默认关闭
+（「出售功能需要更长的验证周期」，用开关把代码上线与用户可见解耦）。
+用户 2026-08-24 裁定打开，已改 `Dockerfile` 的 **builder 与 runner 两个阶段**
++ CI + `.env.example`。
+
+**这是本工作项之外的产品变更，连带上线五处**：`/sale` 与 `/[city]/sale` 两个
+公开页、sitemap 出售条目、后台租售类型与出售信息字段组、`mark_sold` 发布动作。
+
+⚠️ 生产的 `NEXT_PUBLIC_*` 一律烤在 Dockerfile 里、**不走 CloudRun 服务级环境变量**
+（`tcb deploy` 不传 `--env-vars`）。构建期内联，所以**必须重新部署一次**才生效，
+改 CloudRun 控制台没用。
+
+出售频道此前**一条 e2e 都没有**（关着时恒 404），已补
+`tests/e2e/sale-channel.spec.ts` 并挂进 CI 的多城市那一趟。
+
+### 11.2 生产数据变更（D3，尚未执行）
+
+七城各建一个平台自营商户，缺任何一个城市，**该城市的导入回落会判错误行**
+（`NO_PLATFORM_DEFAULT_MERCHANT`），文案会指向「去商户管理补」。
+
+| 操作 | 说明 |
+|---|---|
+| `官网`（id=1） | **保留原名**，仅补 `isPlatformDefault=true`。2210 条存量房源指向它，改名不影响外键 |
+| 其余六城 | 各建一个，`serviceCities` 对应各自城市、`status=active`、`qualificationStatus=valid`、`qualificationExpiresAt` 取远期 |
+
+每个都必须满足「`isPlatformDefault` + 启用 + 资质有效 + `serviceCities` 含该城市」
+四条，缺一条解析不到——尤其**别漏勾服务城市**，那是最容易漏且症状最像「没坏」的一条。
+
+### 11.3 部署顺序
+
+1. 合并 → 手动触发 `deploy.yml` 并勾 `promote`（构建期内联出售开关要靠这次构建）
+2. 容器启动自跑迁移（`migrate-locked.ts`，幂等）
+3. 做 §11.2 的数据变更
+4. 再走 §8 验收
+
+**顺序不能颠倒**：数据变更依赖 `is_platform_default` 列存在，而该列由第 2 步的迁移建出。
 
 ## 10. 相关
 
