@@ -41,14 +41,53 @@ export const MERCHANT_RESOLUTION_CODES = {
   NO_SUPPLY_MERCHANT_RELATION: 'NO_SUPPLY_MERCHANT_RELATION',
   /** 楼盘当前生效关系指向的商户不合格（停用 / 资质无效或过期 / 服务城市不覆盖） */
   MERCHANT_INELIGIBLE: 'MERCHANT_INELIGIBLE',
+  /**
+   * 楼盘没有生效关系，且该城市也没有可用的平台自营商户（OPT-045 §5.1）。
+   *
+   * 与 `NO_SUPPLY_MERCHANT_RELATION` 分开，是因为**该去改的地方不同**：
+   * 前者让运营去配楼盘商户关系，后者要去商户管理里补这个城市的平台自营商户
+   *（多半是漏建、或漏勾服务城市）。合成一个码会让文案只能二选一地说错话。
+   */
+  NO_PLATFORM_DEFAULT_MERCHANT: 'NO_PLATFORM_DEFAULT_MERCHANT',
 } as const
 
 export type MerchantResolutionCode =
   (typeof MERCHANT_RESOLUTION_CODES)[keyof typeof MERCHANT_RESOLUTION_CODES]
 
 export type ResolveBuildingMerchantResult =
-  | { ok: true; merchantId: number | string }
+  | {
+      ok: true
+      merchantId: number | string
+      /**
+       * 该商户来自平台自营回落而非楼盘关系（OPT-045）。
+       *
+       * **回落路径只写 `listings.merchant`，不补建 `building-merchant-relations`。**
+       * 理由：合规止血开关 `merchant-stop-listings.ts` 查的就是
+       * `listings.merchant`（OPT-034 起供给商户直接存在该字段，不再经关系表），
+       * 所以 D3 那条验收——「停用杭州的平台自营商户 → 只冻结杭州导入的房源」——
+       * 不依赖关系记录即成立。凭空补关系反而要处理重叠区间保护与 effectiveFrom，
+       * 是白白多出来的可错状态。想要关系记录就用楼盘模板的「供给商户编号」列显式建。
+       *
+       * 本标志供写入层与批次汇总使用（让运营看得见「这批有多少条走了回落」）。
+       */
+      viaPlatformDefault?: boolean
+    }
   | { ok: false; code: MerchantResolutionCode; message: string }
+
+/**
+ * 平台自营商户回落的入参（OPT-045 §5.1）。
+ *
+ * **必须由调用方在查库时就带上城市条件解析好**（`resolveDefaultSupplyMerchant`
+ * 的 `cityId`），这里只消费结果——不在导入层重写一份 §10 判定。
+ *
+ * `merchantId` 为 null 表示「该城市没有可用的平台自营商户」，判错误行；
+ * 整个 `fallback` 为 undefined 表示调用方没启用回落，维持 OPT-041 的旧行为。
+ */
+export interface PlatformDefaultFallback {
+  merchantId: number | string | null | undefined
+  /** 城市名，只用于拼错误文案；拿不到就留空，文案会退化成「该城市」。 */
+  cityLabel?: string | null
+}
 
 /** 不合格原因码 → 中文短语，拼进错误 message，让运营一眼看出该去改哪一类问题。 */
 const INELIGIBLE_LABELS: Record<RelationIneligibleCode, string> = {
@@ -94,9 +133,28 @@ export function resolveBuildingMerchant(
   buildingCityId: number | string | null | undefined,
   relations: readonly BuildingMerchantRelationInput[],
   now: Date,
+  fallback?: PlatformDefaultFallback,
 ): ResolveBuildingMerchantResult {
   const current = findCurrentRelation(buildingId, relations, now)
   if (!current) {
+    // OPT-045 §5.1：楼盘没有生效关系时回落到本城市的平台自营商户。
+    //
+    // 在此之前，「先导楼盘、再导房源」的第二步会全线报
+    // NO_SUPPLY_MERCHANT_RELATION——因为楼盘模板也没有商户列，新导入的楼盘
+    // 一条关系都没有。手工补要每楼盘一条、且那个集合当时还不在导航里（D4）。
+    if (fallback !== undefined) {
+      if (fallback.merchantId !== null && fallback.merchantId !== undefined) {
+        return { ok: true, merchantId: fallback.merchantId, viaPlatformDefault: true }
+      }
+      return {
+        ok: false,
+        code: MERCHANT_RESOLUTION_CODES.NO_PLATFORM_DEFAULT_MERCHANT,
+        message:
+          `楼盘「${buildingLabel}」没有生效的供给商户，且${fallback.cityLabel ? `「${fallback.cityLabel}」` : '该城市'}` +
+          '没有可用的平台自营商户。请在商户管理里为该城市补一个平台自营商户' +
+          '（勾选「平台自营商户」、状态启用、资质有效，并在「服务城市」里勾上该城市），或先配置楼盘商户关系',
+      }
+    }
     return {
       ok: false,
       code: MERCHANT_RESOLUTION_CODES.NO_SUPPLY_MERCHANT_RELATION,

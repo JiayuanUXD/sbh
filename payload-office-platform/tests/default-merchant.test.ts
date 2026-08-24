@@ -19,6 +19,13 @@ import {
 
 const okMerchant = { id: 1, name: '官网', status: 'active', qualificationStatus: 'valid' }
 
+/** 带 D2 标识与服务城市的平台自营商户（serviceCities 已 depth:1 展开）。 */
+const platformMerchant = {
+  ...okMerchant,
+  isPlatformDefault: true,
+  serviceCities: [{ id: 1, name: '上海' }],
+}
+
 describe('default-merchant/名称解析', () => {
   it('缺省为「官网」', () => {
     expect(getDefaultSupplyMerchantName({})).toBe('官网')
@@ -57,24 +64,88 @@ describe('default-merchant/pickDefaultMerchant', () => {
   it('无候选返回 null', () => {
     expect(pickDefaultMerchant([])).toBeNull()
   })
+
+  // ── §10 服务城市覆盖（OPT-045 §5.1）───────────────────────────────
+  // 不判这条的后果不是「没默认值」，而是把 404 换个地方发生：房源 published、
+  // merchant 也填上了，前台照样看不见，只是原因码从 §8 变成 §10。
+
+  it('传 cityId 时要求 serviceCities 覆盖它', () => {
+    expect(pickDefaultMerchant([platformMerchant], 1)).toBe(1)
+    expect(pickDefaultMerchant([platformMerchant], 99)).toBeNull()
+  })
+
+  it('cityId 为 null/undefined 时跳过城市判定（后台表单默认值的旧行为）', () => {
+    expect(pickDefaultMerchant([platformMerchant], null)).toBe(1)
+    expect(pickDefaultMerchant([platformMerchant])).toBe(1)
+  })
+
+  it('serviceCities 缺失或未展开一律视为不覆盖，不放行', () => {
+    expect(pickDefaultMerchant([{ ...okMerchant }], 1)).toBeNull()
+    expect(pickDefaultMerchant([{ ...okMerchant, serviceCities: 'nonsense' }], 1)).toBeNull()
+  })
+
+  it('serviceCities 是裸 id 数组（depth:0）时也能比对', () => {
+    expect(pickDefaultMerchant([{ ...okMerchant, serviceCities: [1, 2] }], 1)).toBe(1)
+  })
+
+  it('id 跨类型比对：字符串 "1" 与数字 1 视为同一城市', () => {
+    expect(pickDefaultMerchant([{ ...okMerchant, serviceCities: ['1'] }], 1)).toBe(1)
+  })
+
+  it('多个平台自营商户时挑覆盖目标城市的那个（D3 七城各一个）', () => {
+    const shanghai = { ...platformMerchant, id: 1, serviceCities: [{ id: 1 }] }
+    const hangzhou = { ...platformMerchant, id: 7, serviceCities: [{ id: 7 }] }
+    expect(pickDefaultMerchant([shanghai, hangzhou], 7)).toBe(7)
+  })
 })
 
 describe('default-merchant/resolveDefaultSupplyMerchant', () => {
-  it('按名称 + 启用 + 资质有效三条件查询', async () => {
-    const find = vi.fn(async () => ({ docs: [okMerchant] }))
+  it('优先按 isPlatformDefault + 启用 + 资质有效查询（D2：不再按名称约定）', async () => {
+    const find = vi.fn(async () => ({ docs: [platformMerchant] }))
     const id = await resolveDefaultSupplyMerchant({ find }, undefined, {})
     expect(id).toBe(1)
     expect(find).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'merchants',
         where: {
-          name: { equals: '官网' },
           status: { equals: 'active' },
           qualificationStatus: { equals: 'valid' },
+          isPlatformDefault: { equals: true },
         },
+        // depth:1 让 serviceCities 展开，否则 §10 判定拿不到城市 id
+        depth: 1,
         overrideAccess: true,
       }),
     )
+    // 命中标记就不该再走名称回落
+    expect(find).toHaveBeenCalledTimes(1)
+  })
+
+  it('一个 isPlatformDefault 商户都没有时，才按名称回落（旧环境过渡）', async () => {
+    const find = vi
+      .fn()
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [okMerchant] })
+    const id = await resolveDefaultSupplyMerchant({ find }, undefined, {})
+    expect(id).toBe(1)
+    expect(find).toHaveBeenCalledTimes(2)
+    expect(find).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ name: { equals: '官网' } }) }),
+    )
+  })
+
+  it('已有 isPlatformDefault 商户但都不覆盖该城市 → 不走名称回落，直接 undefined', async () => {
+    // 这是真实的配置缺口（该城市漏建平台自营商户），用名称路径掩盖它只会让
+    // 房源导进来、前台隐身——原因码从 §8 变成 §10，症状更难查。
+    const find = vi.fn(async () => ({ docs: [platformMerchant] }))
+    const id = await resolveDefaultSupplyMerchant({ find }, { cityId: 99 })
+    expect(id).toBeUndefined()
+    expect(find).toHaveBeenCalledTimes(1)
+  })
+
+  it('传 cityId 时按 §10 过滤：覆盖则命中', async () => {
+    const find = vi.fn(async () => ({ docs: [platformMerchant] }))
+    await expect(resolveDefaultSupplyMerchant({ find }, { cityId: 1 })).resolves.toBe(1)
   })
 
   it('查不到时返回 undefined（不给默认值），而不是抛错', async () => {
