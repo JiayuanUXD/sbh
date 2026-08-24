@@ -30,6 +30,10 @@ import type { Payload, PayloadRequest, TaskConfig } from 'payload'
 import { isDecorationStatus, isListingType } from '@/domain/review/listing-fields'
 import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { ensureUniqueSlug, slugify } from '@/domain/shared/slug'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 import type { ValidBuildingRow } from '@/domain/supply-import/building-row'
 import type { ValidListingRow } from '@/domain/supply-import/listing-row'
 import {
@@ -352,12 +356,23 @@ async function resolveListingMerchant(
   const relations = mapBuildingMerchantRelationDocs(
     result.docs as unknown as RawBuildingMerchantRelationDoc[],
   )
+  // OPT-045：楼盘没有生效关系时回落到本城市的平台自营商户。写入层独立解析一次
+  // （不信任预检结果，见本函数顶部注释），回落也要在这里重新查——预检与执行之间
+  // 运营可能刚把那个商户停用。
+  const fallbackMerchantId =
+    buildingCityId === null
+      ? undefined
+      : await resolveDefaultSupplyMerchant(payload as unknown as MerchantLookupPort, {
+          cityId: buildingCityId,
+          req,
+        })
   const resolved = resolveBuildingMerchant(
     `楼盘（编号 ${buildingId}）`,
     buildingId,
     buildingCityId,
     relations,
     new Date(),
+    { merchantId: fallbackMerchantId ?? null },
   )
   if (!resolved.ok) {
     throw new Error(resolved.message)
@@ -425,7 +440,9 @@ async function writeListingRow(
   if (row.decorationStatus !== null && !isDecorationStatus(row.decorationStatus)) {
     throw new Error(`未知装修状态：${row.decorationStatus}`)
   }
-  if (!isLegacyRentUnit(row.rentUnit)) {
+  // 旧版 rentUnit 只认三个租赁单位；出售行 rentUnit 为 null，跳过这道校验——
+  // 它们的价格走结构化四件套（price.*），不落旧字段。
+  if (row.rentUnit !== null && !isLegacyRentUnit(row.rentUnit)) {
     throw new Error(`租金单位「${row.rentUnit}」暂不支持导入，请改用元/㎡/天、元/月或元/工位/月的写法`)
   }
 
@@ -439,7 +456,12 @@ async function writeListingRow(
   // 这里独立重新解析（不信任预检时的判断，见 resolveListingMerchant 顶部注释）——
   // 解析失败直接抛错，被下面 runSupplyImportBatch 的 per-row try/catch 接住，
   // 计入 failed 且带上可操作的原因，不阻断这一批的其它行。
-  const merchantId = await resolveListingMerchant(payload, req, buildingId, row.cityId)
+  // OPT-045：三级解析。模板「供给商户」列已在预检层解析并合格性校验过，
+  // 直接用——不必再查一次库。留空才走「楼盘关系 → 平台自营回落」。
+  const merchantId =
+    row.merchantId !== null
+      ? numericId(row.merchantId)
+      : await resolveListingMerchant(payload, req, buildingId, row.cityId)
 
   // 最终评审 Critical 3：createData / updateData 拆分（用户裁定方案 A）。此前
   // sharedData 同时用于 create 与 update，导致重传会把 `publicationStatus` /
@@ -453,8 +475,27 @@ async function writeListingRow(
     building: buildingId,
     merchant: merchantId,
     area: row.area,
+    // 旧字段只有租赁行有值（出售行两者均为 null）。保留它们是因为 rentUnit 仍是
+    // C 端价格单位筛选的查询路径，且楼盘聚合的 rentRanges 还在消费。
     rent: row.rentAmount,
     rentUnit,
+    // OPT-045：结构化价格四件套——**这才是前台价格展示、排序、筛选的真实来源**。
+    // currency 固定 CNY（Listings.price.currency 的取值域只有它）。
+    price: {
+      amount: row.price.amount,
+      currency: 'CNY' as const,
+      period: row.price.period,
+      unit: row.price.unit,
+    },
+    businessType: row.businessType,
+    // 出售条款：只有出售行有值。租赁行写 null 而不是跳过——重传时要能把
+    // 误填的出售条款清掉（与其它字段「留空即清空」一致）。
+    saleTerms: row.saleTerms ?? {
+      propertyRightYears: null,
+      saleTaxBearer: null,
+      saleFiveYearsUnique: null,
+      saleParkingSpaces: null,
+    },
     floor: row.floor === null ? null : String(row.floor),
     decorationStatus,
     availableFrom: row.availableFrom,
@@ -620,11 +661,18 @@ function toValidListingRow(value: unknown): ValidListingRow | null {
   if (!isNumberOrString(row.buildingId)) return null
   if (!isNullableNumberOrString(row.cityId)) return null
   if (typeof row.area !== 'number') return null
-  if (typeof row.rentAmount !== 'number') return null
-  if (typeof row.rentUnit !== 'string') return null
+  if (!isNullableNumber(row.rentAmount)) return null
+  if (!isNullableString(row.rentUnit)) return null
   if (!isNullableNumber(row.floor)) return null
   if (!isNullableString(row.decorationStatus)) return null
   if (!isNullableString(row.availableFrom)) return null
+
+  // OPT-045：`price` 是新增的必需字段，但**部署前入队的 job 载荷里没有它**。
+  // 那些 job 一定是租赁行（当时出售根本导不进来），且一定有 rentAmount/rentUnit，
+  // 所以能无损重建出结构化价格——而不是让那批本身合法的 job 整体失败。
+  const price = toPrice(row.price) ?? rebuildLeasePrice(row.rentAmount, row.rentUnit)
+  if (price === null) return null
+
   return {
     externalId: row.externalId,
     title: row.title,
@@ -634,9 +682,64 @@ function toValidListingRow(value: unknown): ValidListingRow | null {
     area: row.area,
     rentAmount: row.rentAmount,
     rentUnit: row.rentUnit,
+    price,
+    businessType: row.businessType === 'sale' ? 'sale' : 'lease',
     floor: row.floor,
     decorationStatus: row.decorationStatus,
     availableFrom: row.availableFrom,
+    merchantId: isNullableNumberOrString(row.merchantId) ? row.merchantId : null,
+    saleTerms: toSaleTerms(row.saleTerms),
+  }
+}
+
+/** 载荷里的 price 三件套；形状不对返回 null（交给调用方回落重建）。 */
+function toPrice(value: unknown): ValidListingRow['price'] | null {
+  if (typeof value !== 'object' || value === null) return null
+  const p = value as Record<string, unknown>
+  if (typeof p.amount !== 'number') return null
+  if (typeof p.period !== 'string' || typeof p.unit !== 'string') return null
+  return {
+    amount: p.amount,
+    period: p.period as ValidListingRow['price']['period'],
+    unit: p.unit as ValidListingRow['price']['unit'],
+  }
+}
+
+/** 从旧版 rentAmount/rentUnit 重建结构化价格（映射表与 listing-row.ts 同源同口径）。 */
+function rebuildLeasePrice(
+  rentAmount: number | null,
+  rentUnit: string | null,
+): ValidListingRow['price'] | null {
+  if (rentAmount === null || rentUnit === null) return null
+  const mapped = LEGACY_TO_PRICE[rentUnit]
+  if (mapped === undefined) return null
+  return { amount: rentAmount, ...mapped }
+}
+
+const LEGACY_TO_PRICE: Record<
+  string,
+  { period: ValidListingRow['price']['period']; unit: ValidListingRow['price']['unit'] }
+> = {
+  'rmb-sqm-day': { period: 'day', unit: 'sqm' },
+  'rmb-month': { period: 'month', unit: 'suite' },
+  'rmb-seat-month': { period: 'month', unit: 'seat' },
+}
+
+/** 载荷里的 saleTerms；缺失或形状不对一律视为 null（租赁行本来就没有）。 */
+function toSaleTerms(value: unknown): ValidListingRow['saleTerms'] {
+  if (typeof value !== 'object' || value === null) return null
+  const t = value as Record<string, unknown>
+  return {
+    propertyRightYears:
+      typeof t.propertyRightYears === 'string'
+        ? (t.propertyRightYears as NonNullable<ValidListingRow['saleTerms']>['propertyRightYears'])
+        : null,
+    saleTaxBearer:
+      typeof t.saleTaxBearer === 'string'
+        ? (t.saleTaxBearer as NonNullable<ValidListingRow['saleTerms']>['saleTaxBearer'])
+        : null,
+    saleFiveYearsUnique: typeof t.saleFiveYearsUnique === 'boolean' ? t.saleFiveYearsUnique : null,
+    saleParkingSpaces: typeof t.saleParkingSpaces === 'number' ? t.saleParkingSpaces : null,
   }
 }
 

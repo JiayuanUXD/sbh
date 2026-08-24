@@ -124,6 +124,11 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           floor: 8,
           decorationStatus: null,
           availableFrom: null,
+        // OPT-045 新增字段：这些用例都是租赁行，price 由 rentAmount/rentUnit 同源换算
+        price: { amount: 5.5, period: 'day' as const, unit: 'sqm' as const },
+        businessType: 'lease' as const,
+        merchantId: null,
+        saleTerms: null,
         },
       ],
     })
@@ -207,6 +212,11 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           floor: 5,
           decorationStatus: null,
           availableFrom: null,
+        // OPT-045 新增字段：这些用例都是租赁行，price 由 rentAmount/rentUnit 同源换算
+        price: { amount: 5.5, period: 'day' as const, unit: 'sqm' as const },
+        businessType: 'lease' as const,
+        merchantId: null,
+        saleTerms: null,
         },
         {
           externalId: 'E2E-ROLLBACK-MIX-TRASH',
@@ -220,6 +230,11 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
           floor: 3,
           decorationStatus: null,
           availableFrom: null,
+        // OPT-045 新增字段：这些用例都是租赁行，price 由 rentAmount/rentUnit 同源换算
+        price: { amount: 5.5, period: 'day' as const, unit: 'sqm' as const },
+        businessType: 'lease' as const,
+        merchantId: null,
+        saleTerms: null,
         },
       ],
     })

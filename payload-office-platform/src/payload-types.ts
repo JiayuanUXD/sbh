@@ -533,6 +533,10 @@ export interface Merchant {
   status: 'active' | 'disabled';
   qualificationStatus: 'pending' | 'valid' | 'rejected';
   /**
+   * 批量导入时，楼盘没有生效供给商户则回落到本城市的平台自营商户。同一城市只应有一个，且需在「服务城市」里勾上对应城市，否则该城市的导入会判错误行。
+   */
+  isPlatformDefault?: boolean | null;
+  /**
    * 资质状态为「已通过」时必填；到期后不再进入有效供给谓词
    */
   qualificationExpiresAt?: string | null;
@@ -637,6 +641,10 @@ export interface Building {
    */
   propertyFee?: number | null;
   parkingSpaces?: number | null;
+  /**
+   * 招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。
+   */
+  saleUnitPrice?: number | null;
   developerAndScale?: {
     developer?: string | null;
     grossFloorArea?: number | null;
@@ -2739,6 +2747,7 @@ export interface MerchantsSelect<T extends boolean = true> {
   serviceCities?: T;
   status?: T;
   qualificationStatus?: T;
+  isPlatformDefault?: T;
   qualificationExpiresAt?: T;
   version?: T;
   updatedAt?: T;
@@ -2817,6 +2826,7 @@ export interface BuildingsSelect<T extends boolean = true> {
   propertyCompany?: T;
   propertyFee?: T;
   parkingSpaces?: T;
+  saleUnitPrice?: T;
   developerAndScale?:
     | T
     | {

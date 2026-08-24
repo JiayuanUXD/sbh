@@ -131,6 +131,11 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
         floor: 12,
         decorationStatus: null,
         availableFrom: null,
+        // OPT-045 新增字段：这些用例都是租赁行，price 由 rentAmount/rentUnit 同源换算
+        price: { amount: 5.5, period: 'day' as const, unit: 'sqm' as const },
+        businessType: 'lease' as const,
+        merchantId: null,
+        saleTerms: null,
       },
     ]
   }
