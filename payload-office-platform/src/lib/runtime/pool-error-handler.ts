@@ -27,8 +27,15 @@
 
 import type { Payload } from 'payload'
 
-type PoolLike = {
+type ClientLike = {
   on?: (event: 'error', listener: (err: Error) => void) => unknown
+}
+
+type PoolLike = {
+  on?: {
+    (event: 'error', listener: (err: Error) => void): unknown
+    (event: 'connect', listener: (client: ClientLike) => void): unknown
+  }
 }
 
 /** 幂等标记：`getPayload` 是单例，但热重载 / 多次 init 时不重复挂。 */
@@ -43,16 +50,39 @@ export function attachPoolErrorHandler(payload: Payload): void {
   if (marked[ATTACHED]) return
   marked[ATTACHED] = true
 
-  pool.on('error', (err: Error) => {
+  const log = (scope: 'pool' | 'client') => (err: Error) => {
     // 固定、不含 PII 的错误文本；连接串与参数一律不进日志。
     payload.logger.error(
       {
         errorCode: 'pg_pool_client_error',
+        scope,
         message: err.message,
         // 空载事务超时是 25P03，单独标出来便于和 OPT-046 的泄漏问题对账
         pgCode: (err as { code?: string }).code ?? null,
       },
       'pg_pool_client_error',
     )
+  }
+
+  // ① 池内空闲连接出错 → pg-pool 的 idleListener 把它 emit 到 pool 上。
+  pool.on('error', log('pool'))
+
+  // ② 已借出但被遗弃的连接出错 → 错误 emit 在 **Client** 实例上，**不经过 pool**。
+  //
+  // 这条是 2026-08-24 多进程复现实测补上的：OPT-046 的泄漏连接正是「借出后再没归还」，
+  // 被 idle_in_transaction_session_timeout 回收时报 25P03，而当时只挂了 ① 的版本
+  // **一次都没触发**，三个复现进程全部以 `throw er; // Unhandled 'error' event` 崩溃。
+  //
+  // 也就是说：只加超时 + 只挂 pool 处理器，会把「连接池被泄漏拖垮」换成
+  // 「每回收一次崩一次容器」——更糟。两条监听必须同时存在。
+  //
+  // 只要 Client 上有 ≥1 个 'error' 监听者，Node 就不会因未处理事件退出；
+  // 借用方自己的 try/catch 照常收到 query 层面的 rejection，不受影响。
+  pool.on('connect', (client: ClientLike) => {
+    if (!client || typeof client.on !== 'function') return
+    const c = client as ClientLike & { [ATTACHED]?: boolean }
+    if (c[ATTACHED]) return
+    c[ATTACHED] = true
+    client.on('error', log('client'))
   })
 }

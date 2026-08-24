@@ -1,6 +1,6 @@
 # Task Packet：OPT-046 Payload Jobs 定时轮询泄漏数据库事务
 
-> 状态：**待排期**（已有止损，根因未修）
+> 状态：**根因已确认，待修**（止损已上线，泄漏本身未消除）
 > 创建日期：2026-08-24
 > 来源：2026-08-24 生产故障（打开 `PAYLOAD_DISABLE_JOB_AUTORUN` 后约 8 分钟线上半瘫）
 > 编号说明：OPT-045 是批量导入覆盖面，故取 046
@@ -107,70 +107,116 @@ idle in transaction 5 个，xact_start 分布在 01:19 / 05:03 / 08:49 / 12:29 /
    也就是说在此之前，**任何连接级错误——网络抖动、TencentDB 主备切换、数据库重启——
    都会崩容器**，与 job 泄漏无关。
 
-   实测（本地真库）：不挂处理器时连接被回收即进程退出；挂上之后
-   `pool 的 error 监听者数量 = 1` → PG 回收（`25P03`）→ 记一条
-   `pg_pool_client_error` 日志 → **进程存活、池子仍可用**。
+   **必须同时挂 pool 和 client 两条监听**。第一版只挂了 `pool.on('error')`，
+   多进程复现里 `pg_pool_client_error` **一次都没触发**，三个进程全部以
+   `throw er; // Unhandled 'error' event` 崩溃——因为泄漏的连接是**已借出但被遗弃**的，
+   被 `idle_in_transaction_session_timeout` 回收时错误 emit 在 **Client** 实例上，
+   **不经过 pool**。补上 `pool.on('connect', client => client.on('error', ...))` 后：
 
-**止损不等于修复**：泄漏还在，只是不再能打满池子。
+   | 复现进程 | 已退出 | 接住的连接错误 | 未处理的 error 事件 |
+   |---|---|---|---|
+   | fix-1 | 0 | 8 | 0 |
+   | fix-2 | 0 | 4 | 0 |
+   | fix-3 | 0 | 12 | 0 |
 
-## 5. 已排除的假设（2026-08-24 实验，别再重复走这两条路）
+   日志形态：`scope: "client"` / `pgCode: "25P03"` / `由于空载事务超时而终止连接`，
+   泄漏在约 120 秒后自动回收、进程存活、池子仍可用。
 
-### 5.1 ❌「`updateJob.js` 缺 try/catch，出错即泄漏」——**已证伪**
+   > **这条是真实的踩坑**：只加超时 + 只挂 pool 处理器，会把「连接池被泄漏拖垮」
+   > 换成「每回收一次崩一次容器」——比原缺陷更糟。两条监听必须同时存在。
 
-源码确实有缺陷。`queues/utilities/updateJob.js` 里：
+**止损不等于修复**：泄漏还在（根因见 §5），只是不再能打满池子、也不再崩进程。
 
-```js
-const jobReq = { transactionID: await req.payload.db.beginTransaction() }
-const updatedJobs = await req.payload.db.updateJobs(args)   // 抛错就到不了下一行
-if (...) { await req.payload.db.commitTransaction(jobReq.transactionID) }
+## 5. 根因（2026-08-24 多进程复现已确认）
+
+### 5.1 完整链条
+
+```
+多进程/多实例并发 → 两个 runner 的 cron 同时轮询同一张 payload_jobs，抢同一个 job
+  → 落败方的 UPDATE ... WHERE id = <已被对方改走的 job> 影响 0 行
+  → @payloadcms/drizzle upsertRow/index.js:108
+      const docs = await drizzle.update(...).returning(...)   // docs = []
+    upsertRow/index.js:109
+      transform({ data: docs[0] })                            // data = undefined
+  → transform/read/index.js:36
+      TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+  → @payloadcms/drizzle updateJobs.js:39 抛出
+  → payload queues/utilities/updateJob.js:108 —— 该函数只有 beginTransaction，
+    没有 try / catch / finally，也从不 killTransaction
+  → 事务既不 commit 也不 rollback，连接停在 idle in transaction 且永不归还
 ```
 
-全文没有 `try` / `catch` / `finally`，也从不调 `killTransaction`。看起来完全吻合。
+现场堆栈（本地 `repro-3` 进程日志，2026-08-24 11:0x）：
 
-**但实验否定了它。** 做法：注入一个必定抛错的 `db.updateJobs`，调用 `updateJob`，
-再数 `pg_stat_activity` 里的泄漏事务。
+```
+TypeError: Cannot use 'in' operator to search for '_rels' in undefined
+    at transform (@payloadcms/drizzle/src/transform/read/index.ts:36)
+    at upsertRow  (@payloadcms/drizzle/src/upsertRow/index.ts:180)
+    at updateJobs (@payloadcms/drizzle/src/updateJobs.ts:39)
+    at updateJob  (payload/src/queues/utilities/updateJob.ts:108)
+    at runJob → runJobs → Cron
+```
 
-- 第一版：错误抛得太早——drizzle 的 `beginTransaction()` 只建会话，
-  **真正的 `BEGIN` 要到首次在该事务上执行语句时才发给 PG**。物理事务没开，自然不漏。
-  （这条本身值得记住，它让「读源码得出的结论」很容易假阳性。）
-- 第二版：先在事务会话上真跑一条 `select 1` 再抛错。**泄漏数仍然纹丝不动（6 → 6）。**
+复现方法（可重跑）：`scripts/repro-job-runner.ts`，起 **3 个**进程指向同一个库，
+用 `PGAPPNAME` 区分归属：
 
-结论：这个缺陷是真的，但**不是本次泄漏的触发路径**。修它（`runHooks: true` 或打 patch）
-解决不了问题。
+```bash
+PGAPPNAME=repro-1 node --env-file-if-exists=.env.local --import tsx scripts/repro-job-runner.ts
+```
 
-> 顺带：`jobs.runHooks: true` 确实能绕开这条快速路径、改走事务处理完整的
+约 2 分钟内即可看到 `pg_stat_activity` 里 `idle in transaction` 按进程增长
+（实测 `repro-1=2 repro-2=4 repro-3=1`）。**单进程复现不出来**——这正是
+§5.3「本地单实例 90 分钟不漏、生产切流量 8 分钟漏 9 个」的原因：
+生产在 10%→100% 切流量时新旧版本实例并存，构成并发争抢。
+
+### 5.2 为什么此前两次实验把它误判成「已证伪」
+
+这两次实验是**设计错误**，不是结论。留档避免重走：
+
+- **实验一**：整体替换 `db.updateJobs` 让它抛错。第一版错误抛得太早——drizzle 的
+  `beginTransaction()` 只建会话，**真正的 `BEGIN` 要到首次在该事务上执行语句时才发给 PG**，
+  物理事务没开当然不漏。第二版补了 `select 1` 再抛，泄漏数仍 6→6。
+  **错在哪**：真实错误发生在 `db.updateJobs` **内部**（`upsertRow` 里），
+  而我把整个 `updateJobs` 换掉了，恰好绕开了真正会开事务的那段语句。
+- **实验二**：`taskkill /F` 硬杀 dev server，6→6 无新增。这条结论本身没错
+  （TCP RST 后 PG 会清会话），只是它排除的不是主路径。
+
+教训：**只读源码得出的「吻合」很容易假阳性，但注入式实验若没打在真实抛错的那一层，
+得出的「证伪」同样是假的。** 判据要落在真实堆栈上，不是构造出来的等价物。
+
+### 5.3 关键的情境性证据（仍然成立）
+
+2026-08-24 本地单进程 dev server 连续运行约 90 分钟，三条 cron（30s/30s/10s）
+打了上百轮，**泄漏数全程停在 5-6 没有增长**。而生产是在**流量从 10% 切到 100%
+的那 8 分钟里**漏了 9 个。触发条件是并发，不是「每轮轮询都漏」。
+
+### 5.4 待定：修复方式
+
+止损（`idle_in_transaction_session_timeout` + 连接错误处理器，见 §4）已经让泄漏
+自动回收、进程不再崩溃，但**没有消除泄漏本身**。真正的修法三选一，尚未裁定：
+
+1. 向上游报 issue（缺陷在 payload 与 @payloadcms/drizzle 两侧都有：前者无 try/catch，
+   后者 0 行时 `docs[0]` 未判空）；
+2. `pnpm patch` 给 `payload` 的 `updateJob.js` 补 try/catch + `killTransaction`；
+3. drizzle 侧对 0 行返回做判空（更接近真正的语义错误：并发争抢下 0 行是**正常**结果）。
+
+> `jobs.runHooks: true` 已排除。它确实能绕开这条快速路径、改走事务处理完整的
 > `payload.update()`，但 Payload 官方注释写着「discouraged，drastically affect
-> performance」且 `@deprecated - will be removed in 4.0`。在根因未明前不要拿它当解药。
-
-### 5.2 ❌「进程被强制终止会遗留在途事务」——**已证伪**
-
-做法：记录泄漏数 → `taskkill /F` 硬杀本地 dev server → 等 6 秒 → 再数。
-结果 **6 → 6，没有新增**。TCP 连接被 RST 后 PG 会清掉会话，不构成泄漏来源。
-
-### 5.3 关键的反向证据：cron tick 本身不泄漏
-
-2026-08-24 本地 dev server 连续运行约 90 分钟，三条 cron（30s/30s/10s）打了上百轮，
-**泄漏数全程停在 5-6 没有增长**。而生产是在**流量从 10% 切到 100% 的那 8 分钟里**漏了 9 个。
-
-所以触发条件是**情境性**的，不是「每轮轮询都漏」。
-
-## 5.4 下一步该查什么（按可能性排序）
-
-1. **多实例并发争抢同一队列**。生产切流量时新旧版本实例可能并存，
-   各自按同一 cron 轮询同一张 `payload_jobs`；`updateJobs` 取任务要加锁，
-   争抢路径上可能有不释放的分支。本地单实例复现不出来，正好解释速率差异。
-   验证思路：本地同时起 2-3 个进程指向同一个库，跑 30 分钟看泄漏是否增长。
-2. **`payload_jobs_log` 插入失败**那条 `idle in transaction (aborted)`——
-   本地与生产各有一个，签名一致，是唯一能直接看到「事务已进入 aborted 却没回滚」的样本。
-   查清它为什么失败，很可能顺藤摸到主路径。
-3. 把三条 autoRun 的 `silent: true` 关掉再复现，看有没有被吞掉的错误。
-4. 以上都不成立时，再读 `runJobs/index.js` 与 drizzle 适配器的
-   `beginTransaction` / `commitTransaction` 实现，找有没有「会话被丢弃但连接没归还」的路径。
+> performance」且 `@deprecated - will be removed in 4.0`。
 
 ## 6. 验收
 
-- 打开 `PAYLOAD_DISABLE_JOB_AUTORUN=0`，在生产形态（公网延迟）下连续运行 ≥ 30 分钟，
-  `pg_stat_activity` 里 `idle in transaction` **不增长**；
+**本地（快，先过这关）**：起 3 个 `scripts/repro-job-runner.ts` 进程指向同一个库，
+跑 ≥ 10 分钟：
+
+- `pg_stat_activity` 里 `idle in transaction` **不增长**（当前止损下是「涨到几个、
+  120 秒后回落」，修好根因后应当**一个都不涨**）；
+- 三个进程全部存活，日志里没有 `Cannot use 'in' operator` 的 TypeError。
+
+**生产**：打开 `PAYLOAD_DISABLE_JOB_AUTORUN=0`，并且走一次 **10% → 100% 切流量**
+（新旧实例并存才是真实触发条件，稳态单实例复现不出来），连续运行 ≥ 30 分钟：
+
+- `idle in transaction` 不增长；
 - `/api/health` 与 `/shanghai/listings` 全程 200 且响应时间无劣化；
 - 关掉 `silent: true` 后，日志里不再出现被吞掉的 job 错误。
 

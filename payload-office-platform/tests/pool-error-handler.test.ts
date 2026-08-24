@@ -48,6 +48,7 @@ describe('attachPoolErrorHandler', () => {
     expect(msg).toBe('pg_pool_client_error')
     expect(payloadArg).toMatchObject({
       errorCode: 'pg_pool_client_error',
+      scope: 'pool',
       pgCode: '25P03',
       message: '由于空载事务超时而终止连接',
     })
@@ -59,6 +60,40 @@ describe('attachPoolErrorHandler', () => {
     attachPoolErrorHandler(payload as never)
     pool.emit('error', new Error('connection terminated unexpectedly'))
     expect(payload.logger.error.mock.calls[0][0]).toMatchObject({ pgCode: null })
+  })
+
+  it('给池子新建的 client 也挂上 error 监听者（被遗弃的借出连接走这条）', () => {
+    const pool = new EventEmitter()
+    const payload = makePayload(pool)
+    attachPoolErrorHandler(payload as never)
+
+    const client = new EventEmitter()
+    pool.emit('connect', client)
+    expect(client.listenerCount('error')).toBe(1)
+
+    // 没有监听者时这一行会 throw —— 那正是 2026-08-24 三个复现进程崩溃的原因
+    const err = Object.assign(new Error('由于空载事务超时而终止连接'), { code: '25P03' })
+    expect(() => client.emit('error', err)).not.toThrow()
+    expect(payload.logger.error).toHaveBeenCalledTimes(1)
+    expect(payload.logger.error.mock.calls[0][0]).toMatchObject({ scope: 'client', pgCode: '25P03' })
+  })
+
+  it('同一个 client 重复 connect 不重复挂', () => {
+    const pool = new EventEmitter()
+    const payload = makePayload(pool)
+    attachPoolErrorHandler(payload as never)
+    const client = new EventEmitter()
+    pool.emit('connect', client)
+    pool.emit('connect', client)
+    expect(client.listenerCount('error')).toBe(1)
+  })
+
+  it('connect 事件带上非 client 对象时不炸', () => {
+    const pool = new EventEmitter()
+    const payload = makePayload(pool)
+    attachPoolErrorHandler(payload as never)
+    expect(() => pool.emit('connect', undefined)).not.toThrow()
+    expect(() => pool.emit('connect', { noOn: true })).not.toThrow()
   })
 
   it('重复调用不重复挂监听者', () => {
