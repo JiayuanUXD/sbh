@@ -9,7 +9,18 @@ export const LOCATION_ALIAS_KINDS = ['city', 'district', 'business_area', 'metro
 export const LocationAliases: CollectionConfig = {
   slug: 'location-aliases',
   labels: { singular: '地理别名', plural: '地理别名' },
-  admin: { useAsTitle: 'alias', defaultColumns: ['alias', 'kind', 'location'] },
+  admin: {
+    // OPT-049：`group: false` 让本集合退出 Payload **原生**导航
+    // （3.86 的 groupNavItems 对 group===false 直接跳过）。
+    //
+    // 不设它的后果就是后台左下角那个「挤成一团、与上面九个分组风格不一致」的区块
+    // ——那不是样式没写好，是本集合落进了 Payload 的默认分组，其 i18n 标签
+    // 恰好就叫「集合」。入口由 navigation-config.ts 的自定义导航提供（OPT-045 D4），
+    // 原生那份是纯粹的重复。
+    group: false,
+    useAsTitle: 'alias',
+    defaultColumns: ['alias', 'kind', 'location'],
+  },
   access: createCollectionAccess({
     read: 'data:import',
     create: 'location:manage',
