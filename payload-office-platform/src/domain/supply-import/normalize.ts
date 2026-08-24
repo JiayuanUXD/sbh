@@ -103,6 +103,26 @@ export function parseRent(value: unknown): { amount: number; unit: string } | nu
   return null
 }
 
+/**
+ * 单价（元/㎡）：支持「52000」「52000元/㎡」「5.2万」「5.2万元/㎡」四种写法。
+ *
+ * 与 `parseRent` 不同，这里**单位可以省略**——列名已经写死了「元/㎡」，不存在
+ * `parseRent` 那种「4.5 到底是元/㎡/天还是万元/月」的歧义。「万」是唯一需要识别的
+ * 量级词，因为在售单价的常见口径就是「5.2万/㎡」。
+ *
+ * 区间写法（"5-6万"）判为无法识别，与 parseArea / parseRent 同一原则：识别不出
+ * 必须返回 null，绝不猜。
+ */
+export function parseUnitPrice(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : null
+  if (typeof value !== 'string') return null
+  const text = toHalfWidth(value).replace(/\s/g, '')
+  if (looksLikeRange(text)) return null
+  const num = extractNumber(text)
+  if (num === null || num <= 0) return null
+  return /万/.test(text) ? num * 10000 : num
+}
+
 /** 楼层：`12层` / `12F` → 12；`B2` / `负2层` → -2；识别不了返回 null。 */
 export function parseFloorNumber(value: unknown): number | null {
   if (typeof value !== 'string') return extractNumber(value)

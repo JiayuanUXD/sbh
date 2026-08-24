@@ -7,12 +7,22 @@
  * 时跳过城市校验（管理员无城市上限）。
  */
 
-import { parseArea, parseFloorNumber } from '@/domain/supply-import/normalize'
+import { BUILDING_GRADE_LABELS, type BuildingGrade } from '@/components/frontend/building-grade'
+import { parseArea, parseFloorNumber, parseUnitPrice } from '@/domain/supply-import/normalize'
 import { resolveLocation } from '@/domain/supply-import/resolve-refs'
+import { resolveMerchantByName } from '@/domain/supply-import/resolve-merchant'
 import type { RawRow, RowContext, RowError } from '@/domain/supply-import/types'
 
 export type { RowContext } from '@/domain/supply-import/types'
 
+/**
+ * 楼盘模板列（OPT-041 八列 + OPT-045 新增四列）。
+ *
+ * **新增列全部可留空**——现有模板的填法保持有效，运营不必重学。留空的后果各不相同：
+ * 「供给商户」留空只是不建关系（房源侧还有平台自营回落兜底）；
+ * 「等级/竣工年份/最近地铁」留空则该楼盘在对应筛选维度下不出现（OPT-045 §2.3 的缺口二，
+ * 症状是「怎么筛不到」而不是 404，比 404 更难被当成缺陷报上来）。
+ */
 export const BUILDING_COLUMNS: readonly string[] = [
   '楼盘编号',
   '楼盘名称',
@@ -22,6 +32,11 @@ export const BUILDING_COLUMNS: readonly string[] = [
   '地址',
   '总楼层',
   '总建筑面积',
+  '供给商户',
+  '等级',
+  '竣工年份',
+  '最近地铁',
+  '在售单价',
 ]
 
 export interface ValidBuildingRow {
@@ -33,6 +48,38 @@ export interface ValidBuildingRow {
   address: string | null
   totalFloors: number | null
   grossFloorArea: number | null
+  /** 供给商户 id；非空时写入层要建一条 building-merchant-relations（effectiveFrom = 导入时点）。 */
+  merchantId: number | string | null
+  grade: BuildingGrade | null
+  /** 竣工时间，落 `buildings.completion_date`；模板填年份，这里归一成该年 1 月 1 日。 */
+  completionDate: string | null
+  nearestMetroId: number | string | null
+  /** 在售单价（元/㎡，D1 单值）。 */
+  saleUnitPrice: number | null
+}
+
+/** 等级中文标签 → 枚举值，与「装修」列同一套 label→value 口径。 */
+const GRADE_BY_LABEL = new Map<string, BuildingGrade>(
+  (Object.keys(BUILDING_GRADE_LABELS) as BuildingGrade[]).map((value) => [
+    BUILDING_GRADE_LABELS[value],
+    value,
+  ]),
+)
+
+/**
+ * 竣工年份：只接受四位年份。
+ *
+ * 不接受「2010年建成」这类自由文本——`buildings.completion_date` 是 date 列，
+ * 猜错年份的代价是竣工年代筛选把楼盘归错档，而这类错误在前台完全没有信号。
+ * 上限取「当年 +5」：在建楼盘填未来竣工年是正常业务，但填 2099 多半是手滑。
+ */
+const COMPLETION_YEAR_MIN = 1900
+
+function parseCompletionYear(text: string, now: Date): number | null {
+  if (!/^\d{4}$/.test(text)) return null
+  const year = Number(text)
+  if (year < COMPLETION_YEAR_MIN || year > now.getUTCFullYear() + 5) return null
+  return year
 }
 
 export type ValidateBuildingRowResult =
@@ -214,6 +261,103 @@ export function validateBuildingRow(row: RawRow, rowNumber: number, ctx: RowCont
     }
   }
 
+  // --- 供给商户（留空合法；填了就按名称解析并做 §9/§10 判定，OPT-045）---
+  //
+  // 留空不是错误：房源侧还有「楼盘关系 → 平台自营回落」两级兜底。这一列存在的
+  // 意义是让运营在导入时就把楼盘挂到指定商户下，省掉事后一楼盘一条手工补关系
+  //（实测三个楼盘约 18 次点击，且那个集合当时还不在导航里）。
+  const merchantText = String(row['供给商户'] ?? '').trim()
+  let merchantId: number | string | null = null
+  if (merchantText !== '') {
+    const resolved = resolveMerchantByName(merchantText, ctx.merchants, cityId, ctx.now)
+    if (!resolved.ok) {
+      errors.push({
+        rowNumber,
+        column: '供给商户',
+        rawValue: merchantText,
+        code: resolved.code,
+        message: resolved.message,
+      })
+    } else {
+      merchantId = resolved.merchantId
+    }
+  }
+
+  // --- 等级（留空合法；中文标签 → 枚举，与「装修」同一套口径）---
+  const gradeText = String(row['等级'] ?? '').trim()
+  let grade: BuildingGrade | null = null
+  if (gradeText !== '') {
+    const mapped = GRADE_BY_LABEL.get(gradeText)
+    if (mapped === undefined) {
+      errors.push({
+        rowNumber,
+        column: '等级',
+        rawValue: gradeText,
+        code: 'ENUM_UNKNOWN',
+        message: `等级「${gradeText}」不是合法取值，合法取值为：${[...GRADE_BY_LABEL.keys()].join('、')}`,
+      })
+    } else {
+      grade = mapped
+    }
+  }
+
+  // --- 竣工年份（留空合法；只接受四位年份，落库归一成该年 1 月 1 日）---
+  const completionText = String(row['竣工年份'] ?? '').trim()
+  let completionDate: string | null = null
+  if (completionText !== '') {
+    const year = parseCompletionYear(completionText, ctx.now)
+    if (year === null) {
+      errors.push({
+        rowNumber,
+        column: '竣工年份',
+        rawValue: completionText,
+        code: 'COMPLETION_YEAR_INVALID',
+        message: `竣工年份必须是 ${COMPLETION_YEAR_MIN} 至 ${ctx.now.getUTCFullYear() + 5} 之间的四位年份，例如「2010」`,
+      })
+    } else {
+      // 用 UTC 构造，避免本地时区把 1 月 1 日推到上一年 12 月 31 日——
+      // 竣工年代筛选按年份分档，差一天就可能归错档。
+      completionDate = new Date(Date.UTC(year, 0, 1)).toISOString()
+    }
+  }
+
+  // --- 最近地铁（留空合法；走 resolveLocation 的 metro_station 解析）---
+  const metroText = String(row['最近地铁'] ?? '').trim()
+  let nearestMetroId: number | string | null = null
+  if (metroText !== '') {
+    const resolved = resolveLocation({ kind: 'metro_station', text: metroText }, ctx.tables)
+    if (!resolved.ok) {
+      errors.push({
+        rowNumber,
+        column: '最近地铁',
+        rawValue: metroText,
+        code: resolved.code,
+        message: resolved.message,
+        ...(resolved.suggestion !== undefined ? { suggestion: resolved.suggestion } : {}),
+      })
+    } else {
+      nearestMetroId = resolved.value.id
+    }
+  }
+
+  // --- 在售单价（留空合法；D1 单值，元/㎡）---
+  const saleUnitPriceRaw = String(row['在售单价'] ?? '').trim()
+  let saleUnitPrice: number | null = null
+  if (saleUnitPriceRaw !== '') {
+    const parsed = parseUnitPrice(saleUnitPriceRaw)
+    if (parsed === null) {
+      errors.push({
+        rowNumber,
+        column: '在售单价',
+        rawValue: saleUnitPriceRaw,
+        code: 'SALE_UNIT_PRICE_INVALID',
+        message: '在售单价必须是大于 0 的数值，单位元/㎡，例如「52000」或「5.2万」',
+      })
+    } else {
+      saleUnitPrice = parsed
+    }
+  }
+
   if (errors.length > 0) {
     return { ok: false, errors }
   }
@@ -229,6 +373,11 @@ export function validateBuildingRow(row: RawRow, rowNumber: number, ctx: RowCont
       address,
       totalFloors,
       grossFloorArea,
+      merchantId,
+      grade,
+      completionDate,
+      nearestMetroId,
+      saleUnitPrice,
     },
   }
 }

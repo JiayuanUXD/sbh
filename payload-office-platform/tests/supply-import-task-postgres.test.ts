@@ -146,6 +146,12 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
         address: null,
         totalFloors: null,
         grossFloorArea: null,
+        // OPT-045 新增的五个可选列，这些用例只验重传幂等性，一律留空
+        merchantId: null,
+        grade: null,
+        completionDate: null,
+        nearestMetroId: null,
+        saleUnitPrice: null,
       },
     ]
   }

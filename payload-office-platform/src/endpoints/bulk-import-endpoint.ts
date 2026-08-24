@@ -14,7 +14,12 @@ import {
   mapBuildingMerchantRelationDocs,
   type BuildingMerchantRelationInput,
   type RawBuildingMerchantRelationDoc,
+  type MerchantCandidate,
 } from '@/domain/supply-import/resolve-merchant'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 import {
   buildResolveTables,
   type BuildingCandidate,
@@ -188,6 +193,71 @@ async function loadBuildingMerchantRelations(req: RequestContext): Promise<Build
 }
 
 /**
+ * 供给商户候选一次性查全（OPT-045）：两张模板的「供给商户」列按名称解析用。
+ *
+ * `depth: 1` 让 `serviceCities` 展开——§10（服务城市覆盖楼盘城市）判定要拿城市 id，
+ * depth:0 只有裸 id 数组时也能比对，但展开后与 `mapBuildingMerchantRelationDocs`
+ * 走同一形状，少一处分支。
+ *
+ * **不按状态过滤**：停用 / 资质失效的商户也要查出来，否则运营填了一个停用商户的名字
+ * 会得到「未找到该商户」——文案指错方向，她会去检查有没有拼错，而真正的问题是商户停用了。
+ * 合格性由 `resolveMerchantByName` 判定并给出准确原因。
+ */
+async function loadMerchantCandidates(req: RequestContext): Promise<MerchantCandidate[]> {
+  const result = await req.payload.find({
+    collection: 'merchants',
+    depth: 1,
+    limit: 0,
+    overrideAccess: true,
+    req,
+  })
+  return (result.docs as unknown as Array<Record<string, unknown>>).map((doc) => ({
+    id: doc.id as number | string,
+    name: String(doc.name ?? ''),
+    status: doc.status,
+    qualificationStatus: doc.qualificationStatus,
+    qualificationExpiresAt: doc.qualificationExpiresAt as string | Date | null | undefined,
+    serviceCityIds: Array.isArray(doc.serviceCities)
+      ? (doc.serviceCities as unknown[])
+          .map((entry) =>
+            typeof entry === 'object' && entry !== null && 'id' in entry
+              ? ((entry as { id: unknown }).id as number | string)
+              : (entry as number | string),
+          )
+          .filter((id) => id !== null && id !== undefined)
+      : [],
+  }))
+}
+
+/**
+ * 逐城市解析平台自营商户（OPT-045 §5.1），结果按城市 id 索引给行校验消费。
+ *
+ * **必须在这里带着 cityId 查**，不能只查一次拿一个全局默认值——D3 是七城各建一个，
+ * 「哪个城市用哪个」正是 §10 要判的东西。行校验是纯函数、不查库，所以查询必须前移到这里。
+ *
+ * 只对本次导入实际出现的城市查（`cityIds`），不是七城全查——一批表格通常只涉及一两个城市。
+ */
+async function loadPlatformDefaultMerchants(
+  req: RequestContext,
+  cityIds: ReadonlyArray<number | string>,
+): Promise<Map<string, number | string | null>> {
+  const unique = [...new Set(cityIds.map((id) => String(id)))]
+  const entries = await Promise.all(
+    unique.map(async (cityId) => {
+      // 与 Listings / BuildingMerchantRelations 两个既有调用点同一写法：
+      // MerchantLookupPort 是刻意收窄的最小端口（便于单测 mock），与 BasePayload
+      // 的完整签名不结构兼容，靠调用点显式转换。
+      const resolved = await resolveDefaultSupplyMerchant(
+        req.payload as unknown as MerchantLookupPort,
+        { cityId, req },
+      )
+      return [cityId, resolved ?? null] as const
+    }),
+  )
+  return new Map(entries)
+}
+
+/**
  * 楼盘候选一次性查全（供 resolveBuilding 匹配用）。不按城市收窄——收窄发生在逐行校验的
  * allowedCityIds。
  *
@@ -345,16 +415,35 @@ function createPreflightEndpoint(): Endpoint {
 
       // 6. 关系解析表 + 楼盘候选 + 楼盘商户关系（D10，只有房源导入需要；楼盘导入
       //    传空数组——楼盘本身不需要商户，不该为它多打一次无谓的查询）（不写业务表，只读）
-      const [tables, buildings, buildingMerchantRelations] = await Promise.all([
+      const [tables, buildings, buildingMerchantRelations, merchants] = await Promise.all([
         buildResolveTables(createRefLookupPort(req)),
         loadBuildingCandidates(req),
         type === 'listings' ? loadBuildingMerchantRelations(req) : Promise.resolve([]),
+        loadMerchantCandidates(req),
       ])
+
+      // OPT-045 §5.1：平台自营商户回落必须按城市解析（D3 七城各一个），而城市要到
+      // 行校验时才从单元格解析出来——鸡生蛋。这里按「本次操作者可导入的城市全集」
+      // 预解析：至多七个城市，且都是走索引的小查询，比把查库塞进行校验（那会让纯函数
+      // 变成异步、还会 N+1）划算得多。
+      //
+      // 只有房源导入需要回落——楼盘本身不挂商户，楼盘模板的商户列是显式填的。
+      const importableCityIds =
+        ctx.cityIds === 'all'
+          ? (tables.locations.city ?? []).map((c) => c.id)
+          : [...ctx.cityIds]
+      const platformDefaultMerchantByCity =
+        type === 'listings'
+          ? await loadPlatformDefaultMerchants(req, importableCityIds)
+          : undefined
+
       const rowCtx: RowContext = {
         tables,
         buildings,
         allowedCityIds: ctx.cityIds,
         buildingMerchantRelations,
+        merchants,
+        platformDefaultMerchantByCity,
         now: new Date(),
       }
 

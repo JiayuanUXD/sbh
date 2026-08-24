@@ -1,10 +1,16 @@
 /**
- * 房源商户解析（OPT-041 D10，规格 §11）。
+ * 导入链路的供给商户解析（OPT-041 D10 + OPT-045 §5.1）。
  *
- * 房源模板九列没有商户列（规格 §5.1），但有效供给谓词 §8 要求 `listings.merchant`
- * 非空（`effective-supply.ts`），否则从所有对外查询排除（`NO_SUPPLY_MERCHANT`）。
- * 唯一来源是**楼盘当前生效的供给商户**——`building-merchant-relations` 中 building
- * 匹配、且 `[effectiveFrom, effectiveTo)` 覆盖当前时点的那条关系。
+ * 有效供给谓词 §8 要求 `listings.merchant` 非空（`effective-supply.ts`），
+ * 否则从所有对外查询排除（`NO_SUPPLY_MERCHANT`）。解析优先级三级：
+ *
+ *   1. **模板「供给商户」列**填了名称 → `resolveMerchantByName`（OPT-045）；
+ *   2. 留空 → **楼盘当前生效的供给商户**（`building-merchant-relations` 中 building
+ *      匹配、且 `[effectiveFrom, effectiveTo)` 覆盖当前时点的那条关系，OPT-041 D10）；
+ *   3. 楼盘也没有 → **本城市的平台自营商户**回落（OPT-045 §5.1）。
+ *
+ * 三级都拿不到才判错误行。OPT-041 只有第 2 级，导致「先导楼盘、再导房源」第二步
+ * 全线报 NO_SUPPLY_MERCHANT_RELATION——楼盘模板当时也没有商户列。
  *
  * 校验前移到预检层：楼盘没有生效商户、或商户不合格（停用 / 资质过期 / 服务城市不覆盖），
  * 在预检阶段就判错误行——失败必须发生在任何东西上架之前（理由同 rent-total 那条）。
@@ -23,6 +29,8 @@ import {
   type RelationIneligibleCode,
 } from '@/domain/supply/building-merchant-relation'
 import { isWithinValidity } from '@/domain/shared/validity'
+import { normalizeAliasText } from '@/domain/supply-import/normalize'
+import { formatSuggestion, suggestClosest } from '@/domain/supply-import/resolve-refs'
 
 /** 一条楼盘-商户关系的最小读模型：判定所需字段的扁平化投影，不绑定 Payload 类型。 */
 export interface BuildingMerchantRelationInput {
@@ -49,6 +57,10 @@ export const MERCHANT_RESOLUTION_CODES = {
    *（多半是漏建、或漏勾服务城市）。合成一个码会让文案只能二选一地说错话。
    */
   NO_PLATFORM_DEFAULT_MERCHANT: 'NO_PLATFORM_DEFAULT_MERCHANT',
+  /** 模板「供给商户」列填了名称，但库里没有这个商户（OPT-045） */
+  MERCHANT_NOT_FOUND: 'MERCHANT_NOT_FOUND',
+  /** 模板「供给商户」列的名称在库里命中多个商户，无法确定用哪个（OPT-045） */
+  MERCHANT_NAME_AMBIGUOUS: 'MERCHANT_NAME_AMBIGUOUS',
 } as const
 
 export type MerchantResolutionCode =
@@ -66,7 +78,7 @@ export type ResolveBuildingMerchantResult =
        * `listings.merchant`（OPT-034 起供给商户直接存在该字段，不再经关系表），
        * 所以 D3 那条验收——「停用杭州的平台自营商户 → 只冻结杭州导入的房源」——
        * 不依赖关系记录即成立。凭空补关系反而要处理重叠区间保护与 effectiveFrom，
-       * 是白白多出来的可错状态。想要关系记录就用楼盘模板的「供给商户编号」列显式建。
+       * 是白白多出来的可错状态。想要关系记录就用楼盘模板的「供给商户」列显式建。
        *
        * 本标志供写入层与批次汇总使用（让运营看得见「这批有多少条走了回落」）。
        */
@@ -180,6 +192,89 @@ export function resolveBuildingMerchant(
   }
 
   return { ok: true, merchantId: current.merchantId }
+}
+
+// ────────────────────────────────────────────────────────────
+// 按名称解析供给商户（OPT-045：两张模板的「供给商户」列）
+// ────────────────────────────────────────────────────────────
+
+/** 候选商户的最小读模型：判定所需字段的扁平化投影。 */
+export interface MerchantCandidate {
+  id: number | string
+  name: string
+  status: unknown
+  qualificationStatus: unknown
+  qualificationExpiresAt: string | Date | null | undefined
+  serviceCityIds: ReadonlyArray<number | string>
+}
+
+/**
+ * 名称规范化：与地理别名同口径（全半角折叠 + 折叠空白 + 小写）。
+ *
+ * 复用 `normalizeAliasText` 而不是自己写 trim/lower——运营从后台复制商户名时
+ * 常带全角空格或大小写差异，两处规范化规则漂了就会出现「明明一样却匹配不上」。
+ */
+function normalizeMerchantName(value: string): string {
+  return normalizeAliasText(value)
+}
+
+/**
+ * 按名称解析供给商户，并就地做 §9（合格）+ §10（服务城市覆盖）判定。
+ *
+ * **为什么填名称而不是 ID**：这一列只在「同一楼盘的房源要拆给不同商户」时才用，
+ * 那时运营手上就是商户名，不是 ID。绝大多数情况靠「楼盘关系 → 平台自营回落」
+ * 两级自动解析，这一列留空即可。
+ *
+ * 名称重复时判错误行而不是取第一个——商户重名本身就是需要人去处理的数据问题，
+ * 静默取一个会让房源挂到错误的商户名下，且完全没有信号。
+ */
+export function resolveMerchantByName(
+  text: string,
+  candidates: readonly MerchantCandidate[],
+  buildingCityId: number | string | null | undefined,
+  now: Date,
+): ResolveBuildingMerchantResult {
+  const normalized = normalizeMerchantName(text)
+  const hits = candidates.filter((c) => normalizeMerchantName(c.name) === normalized)
+
+  if (hits.length === 0) {
+    const suggestion = formatSuggestion(
+      suggestClosest(normalized, candidates.map((c) => c.name)),
+    )
+    return {
+      ok: false,
+      code: MERCHANT_RESOLUTION_CODES.MERCHANT_NOT_FOUND,
+      message: `未找到名为「${text}」的供给商户${suggestion ? `，${suggestion}` : ''}`,
+    }
+  }
+
+  if (hits.length > 1) {
+    return {
+      ok: false,
+      code: MERCHANT_RESOLUTION_CODES.MERCHANT_NAME_AMBIGUOUS,
+      message: `有 ${hits.length} 个商户都叫「${text}」，无法确定用哪个；请先在商户管理里消除重名，或改用楼盘商户关系指定`,
+    }
+  }
+
+  const hit = hits[0]
+  const eligibility = checkMerchantEligibility({
+    status: hit.status,
+    qualificationStatus: hit.qualificationStatus,
+    qualificationExpiresAt: hit.qualificationExpiresAt,
+    serviceCityIds: hit.serviceCityIds,
+    buildingCityId,
+    now,
+  })
+  if (!eligibility.eligible) {
+    const labels = eligibility.reasons.map((code) => INELIGIBLE_LABELS[code]).join('、')
+    return {
+      ok: false,
+      code: MERCHANT_RESOLUTION_CODES.MERCHANT_INELIGIBLE,
+      message: `供给商户「${hit.name}」不合格（${labels}），请先处理商户资质或改填其它商户`,
+    }
+  }
+
+  return { ok: true, merchantId: hit.id }
 }
 
 // ────────────────────────────────────────────────────────────

@@ -62,6 +62,7 @@ const ctx: RowContext = {
   ],
   allowedCityIds: new Set([1]),
   buildingMerchantRelations: [ELIGIBLE_RELATION, ELIGIBLE_RELATION_999],
+  merchants: [],
   now: NOW,
 }
 

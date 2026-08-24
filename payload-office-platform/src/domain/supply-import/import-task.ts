@@ -34,6 +34,7 @@ import type { ValidBuildingRow } from '@/domain/supply-import/building-row'
 import type { ValidListingRow } from '@/domain/supply-import/listing-row'
 import {
   mapBuildingMerchantRelationDocs,
+  MERCHANT_RESOLUTION_CODES,
   resolveBuildingMerchant,
   type RawBuildingMerchantRelationDoc,
 } from '@/domain/supply-import/resolve-merchant'
@@ -162,6 +163,61 @@ async function findBuildingByExternalId(
   return result.docs[0]?.id ?? null
 }
 
+/**
+ * 楼盘模板「供给商户」列的落库（OPT-045 §5.3）：楼盘当前**没有**生效关系时建一条，
+ * `effectiveFrom` 取导入时点、`effectiveTo` 留空（长期有效）。
+ *
+ * ## 只建不改，这是刻意的
+ *
+ * 楼盘已有生效关系时**一律不动**，不管指向的是不是同一个商户：
+ *
+ * - 同一个商户 → 本来就无事可做；
+ * - 不同商户 → 「换供给商户」是有合规含义的业务变更，要走
+ *   `building-merchant-relation-protect.ts` 那套重叠区间保护（关旧区间、开新区间），
+ *   不该由一张表格静默完成。运营真要换，去楼盘商户关系里改。
+ *
+ * 这样重传（D6 鼓励的主路径）天然幂等：不会堆出重复关系，也不会触发重叠拦截。
+ *
+ * **失败不阻断楼盘本身**：关系没建上，房源侧还有平台自营回落兜底，房源照样能上架。
+ * 为了一条锦上添花的关系让整行楼盘失败是错误的取舍。
+ */
+async function ensureBuildingMerchantRelation(
+  payload: Payload,
+  req: PayloadRequest | undefined,
+  buildingId: number,
+  buildingCityId: number | string | null,
+  merchantId: number | string,
+  now: Date,
+): Promise<void> {
+  const existing = await payload.find({
+    collection: 'building-merchant-relations',
+    where: { building: { equals: buildingId } },
+    depth: 1,
+    limit: 0,
+    overrideAccess: true,
+    req,
+  })
+  const relations = mapBuildingMerchantRelationDocs(
+    existing.docs as unknown as RawBuildingMerchantRelationDoc[],
+  )
+  // 复用同一份「当前生效」判定：有生效关系就不动，无论指向谁。
+  const current = resolveBuildingMerchant('', buildingId, buildingCityId, relations, now)
+  const hasEffective =
+    current.ok || current.code !== MERCHANT_RESOLUTION_CODES.NO_SUPPLY_MERCHANT_RELATION
+  if (hasEffective) return
+
+  await payload.create({
+    collection: 'building-merchant-relations',
+    data: {
+      building: buildingId,
+      merchant: numericId(merchantId),
+      effectiveFrom: now.toISOString(),
+    },
+    overrideAccess: true,
+    req,
+  })
+}
+
 async function writeBuildingRow(
   payload: Payload,
   req: PayloadRequest | undefined,
@@ -175,6 +231,12 @@ async function writeBuildingRow(
   // 设置的 `operationalStatus:'inactive'`。update 分支只更新业务字段，完全不传
   // `status` / `operationalStatus`——谁下架的谁负责再上架。batch-rollback.ts:8-10
   // 的注释刻意声明"只动 status 不动 operationalStatus，两条轴独立"，这里与它保持一致。
+  // OPT-045 新增四个业务字段（等级 / 竣工 / 最近地铁 / 在售单价）随 commonData 一起写。
+  //
+  // **留空即清空**——与本函数既有的 address / totalFloors / grossFloorArea 完全一致：
+  // 模板是这些字段的唯一真相，重传一份没填等级的表会把等级清掉。这是刻意保持一致，
+  // 不给新列另立一套「留空=不动」的规则（同一张表里两种语义比任何一种单独的语义都糟）。
+  // 运营若在后台手改过这些字段，重传前要把值补进表格里。
   const commonData = {
     name: row.name,
     city: numericId(row.cityId),
@@ -182,6 +244,10 @@ async function writeBuildingRow(
     businessDistrict: row.businessAreaId === null ? null : numericId(row.businessAreaId),
     address: row.address,
     totalFloors: row.totalFloors,
+    grade: row.grade,
+    completionDate: row.completionDate,
+    nearestMetro: row.nearestMetroId === null ? null : numericId(row.nearestMetroId),
+    saleUnitPrice: row.saleUnitPrice,
     developerAndScale: { grossFloorArea: row.grossFloorArea },
     dataSource: {
       source: 'manual-import' as const,
@@ -197,6 +263,33 @@ async function writeBuildingRow(
   }
   const updateData = commonData
 
+  /**
+   * 楼盘写完后补建供给商户关系（OPT-045）。三条返回路径都要过这里，所以收口成一个
+   * helper——漏掉任何一条都会让「填了商户列却没建关系」这种问题只在部分路径上出现，
+   * 是最难复现的那类缺陷。
+   *
+   * 关系建失败**不让楼盘行失败**：房源侧还有平台自营回落兜底，房源照样能上架；
+   * 为一条锦上添花的关系把整行楼盘判失败是错误的取舍。失败只留日志。
+   */
+  const finish = async (id: number, created: boolean) => {
+    if (row.merchantId !== null) {
+      try {
+        await ensureBuildingMerchantRelation(payload, req, id, row.cityId, row.merchantId, new Date())
+      } catch (error) {
+        payload.logger.warn(
+          {
+            errorCode: 'supply_import_relation_failed',
+            buildingId: id,
+            externalId: row.externalId,
+            message: errorMessage(error),
+          },
+          'supply_import_relation_failed',
+        )
+      }
+    }
+    return { id, created }
+  }
+
   const existingId = await findBuildingByExternalId(payload, req, row.externalId)
   if (existingId !== null) {
     // 语义 3：update 绝不传 slug；Critical 3：update 绝不传 status/operationalStatus。
@@ -207,7 +300,7 @@ async function writeBuildingRow(
       overrideAccess: true,
       req,
     })
-    return { id: updated.id, created: false }
+    return finish(updated.id, false)
   }
 
   try {
@@ -218,7 +311,7 @@ async function writeBuildingRow(
       overrideAccess: true,
       req,
     })
-    return { id: created.id, created: true }
+    return finish(created.id, true)
   } catch (error) {
     // 语义 5：唯一索引冲突视为并发重复，重新按 externalId 查一次改走 update。
     if (!isBuildingUniqueViolation(error)) throw error
@@ -231,7 +324,7 @@ async function writeBuildingRow(
       overrideAccess: true,
       req,
     })
-    return { id: updated.id, created: false }
+    return finish(updated.id, false)
   }
 }
 
@@ -498,6 +591,9 @@ function toValidBuildingRow(value: unknown): ValidBuildingRow | null {
   if (!isNullableString(row.address)) return null
   if (!isNullableNumber(row.totalFloors)) return null
   if (!isNullableNumber(row.grossFloorArea)) return null
+  // OPT-045 新增字段一律「缺失即 null」而不是判非法：本函数重校验的是**已入队 job**
+  // 的载荷，部署前入队、部署后才执行的 job 不带这些键。硬校验会让那批 job 整体失败，
+  // 而它们本身完全合法。
   return {
     externalId: row.externalId,
     name: row.name,
@@ -507,6 +603,11 @@ function toValidBuildingRow(value: unknown): ValidBuildingRow | null {
     address: row.address,
     totalFloors: row.totalFloors,
     grossFloorArea: row.grossFloorArea,
+    merchantId: isNullableNumberOrString(row.merchantId) ? row.merchantId : null,
+    grade: typeof row.grade === 'string' ? (row.grade as ValidBuildingRow['grade']) : null,
+    completionDate: isNullableString(row.completionDate) ? row.completionDate : null,
+    nearestMetroId: isNullableNumberOrString(row.nearestMetroId) ? row.nearestMetroId : null,
+    saleUnitPrice: isNullableNumber(row.saleUnitPrice) ? row.saleUnitPrice : null,
   }
 }
 
