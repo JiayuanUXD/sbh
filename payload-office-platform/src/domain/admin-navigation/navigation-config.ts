@@ -175,10 +175,6 @@ export const ADMIN_NAV_GROUPS = [
     leaf('roles', '角色管理', '/admin/collections/roles', ['roles']),
     subgroup('supply-settings', '基础配置', [
       leaf('amenities', '配套字典', '/admin/collections/amenities', ['dictionaries']),
-      // OPT-049：展示标签（前台卡片上的「地铁旁」「精装」这类角标）此前未收编。
-      leaf('display-tags', '展示标签', '/admin/collections/display-tags', ['dictionaries'], {
-        collectionSlug: 'display-tags',
-      }),
     ]),
     subgroup('advanced-tools', '高级工具', [
       leaf('search', '搜索索引', '/admin/collections/search', ['search']),

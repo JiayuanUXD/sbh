@@ -51,17 +51,36 @@ describe.skipIf(!databaseAvailable)('OPT-050 楼盘删除', () => {
     districtId = district.docs[0].id
   })
 
+  /**
+   * 清理必须**兜底按名字再扫一遍**，不能只靠 createdXxx 数组。
+   *
+   * 实测踩到：用例内部已经删过的文档，afterAll 再删一次会失败，
+   * 而 `.catch(() => null)` 把失败吞了——看起来清理成功，实际有楼盘留在库里，
+   * 污染了 `geography-admin.spec` 的城市完备度计数（期望 0 得到 1）。
+   *
+   * 残留在真库测试里是会传染的：它不影响本文件，却让**另一个 spec** 红，
+   * 而那个 spec 的作者完全看不出与这里有关。
+   */
   afterAll(async () => {
     for (const id of createdListings) {
       await payload
         .delete({ collection: 'listings', id, overrideAccess: true, trash: true })
         .catch(() => null)
     }
-    for (const id of createdBuildings) {
-      await payload.delete({ collection: 'buildings', id, overrideAccess: true }).catch(() => null)
-    }
-    for (const id of createdMerchants) {
-      await payload.delete({ collection: 'merchants', id, overrideAccess: true }).catch(() => null)
+    // 按前缀兜底扫描：覆盖「用例内已删」与「数组漏记」两种情况。
+    for (const collection of ['buildings', 'merchants'] as const) {
+      const leftovers = await payload
+        .find({
+          collection,
+          where: { name: { like: 'OPT050-' } },
+          depth: 0,
+          overrideAccess: true,
+          limit: 100,
+        })
+        .catch(() => ({ docs: [] as Array<{ id: number | string }> }))
+      for (const doc of leftovers.docs) {
+        await payload.delete({ collection, id: doc.id, overrideAccess: true }).catch(() => null)
+      }
     }
   })
 
