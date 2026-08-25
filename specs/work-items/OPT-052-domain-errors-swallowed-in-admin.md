@@ -1,6 +1,6 @@
 # Task Packet：OPT-052 钩子抛出的领域错误在后台一律显示为「Something went wrong.」
 
-> 状态：**待实施**
+> 状态：**已实施**（2026-08-24，方案 A，浏览器实测两条路径）
 > 创建日期：2026-08-24
 > 来源：OPT-050 的本地浏览器验证——守卫拦住了，但运营看不到原因
 > 编号说明：OPT-051 是删除权限，故取 052
@@ -9,10 +9,13 @@
 
 ## 1. 一句话
 
-Payload 只把 `isPublic === true` 的错误消息交给客户端，其余一律替换成
-「Something went wrong.」。而项目自己的 `DomainError` 继承原生 `Error`，
-**没有这个标记**——于是 21 个 `*-protect.ts` 里精心写的 100+ 条中文提示，
-运营一条都看不到。
+`DomainError` 没有 `isPublic` / `status` 标记，于是在 Payload **自己 catch 错误的
+那些路径**（批量删除 / 批量更新）上，消息被 `isErrorPublic()` 判为不可公开、
+替换成「Something went wrong.」。
+
+> **⚠️ 立项时的判断有一半是错的，已订正——见 §2.5。**
+> 项目**早已有** `domainErrorAfterError` 这个 `afterError` 钩子在做映射，
+> 单条操作路径上文案是能正常透传的。真正漏的只是 Payload 自行兜底的批量路径。
 
 ## 2. 怎么发现的
 
@@ -29,6 +32,44 @@ OPT-050 给楼盘加删除守护，文案写的是：
 
 **拦截成功、文案丢失**，而当时 10 条单测全绿——它们只断言「抛了错」，
 没断言「错误能不能被运营看到」。
+
+## 2.5 订正：项目早已有映射钩子，漏的是批量路径
+
+立项时我写「全仓搜 `isPublic` 零命中 → 所有钩子错误都被吞」——**这个推断错了**。
+实施前复核发现：
+
+`src/domain/shared/payload-after-error.ts` 的 `domainErrorAfterError` 已在
+`payload.config.ts:388` 注册，把 `DomainError` 映射成 403/404/409/422 并透传文案，
+还带「匿名请求不透传」的保护。实测该钩子对 `InvalidOperationError` 返回：
+
+```json
+{"status":422,"response":{"errors":[{"message":"楼盘下还有 8 套房源"}]}}
+```
+
+**那 OPT-050 为什么还是看到「Something went wrong.」？**
+
+因为当时走的是**批量删除**（`DELETE /api/buildings?where=...`）。
+`payload/dist/collections/operations/delete.js:223` 自己 catch 每一条错误：
+
+```js
+const isPublic = error instanceof Error ? isErrorPublic(error, config) : false
+errors.push({ id: doc.id, isPublic, message: ... })
+```
+
+这发生在 `afterError` 钩子**之前**，钩子根本轮不到。而 `isErrorPublic` 的判据是：
+
+```js
+if (config.debug) return true
+if (payloadError.isPublic === true) return true
+if (payloadError.isPublic === false) return false
+if (payloadError.status && payloadError.status !== 500) return true
+return false          // ← DomainError 落在这里
+```
+
+`DomainError` 既没有 `isPublic` 也没有 `status`，直接落到最后的 `return false`。
+
+**结论：方案 A 仍然是对的修法**，而且比立项时以为的更值——它能覆盖
+`afterError` 钩子够不到的批量路径；但影响面**不是** 135 处全部，只是走批量操作的那些。
 
 ## 3. 影响面
 
@@ -91,6 +132,35 @@ OPT-050 就是这么做的。语义最直白，但 135 处逐个改，且引入�
 Payload，但需要给每个 collection 都接上，容易漏。
 
 **倾向 A**，但 §5 那条「逐条复核消息」必须真的做，不能只改基类就宣布完成。
+
+## 5.5 实施记录（方案 A）
+
+用户 2026-08-24 裁定方案 A。
+
+**消息复核（§5 要求的那步，已做）**：导出 `src/domain` 下全部错误消息，
+去重 **221 条**，逐类筛查——**无连接串、无密钥、无文件路径、无堆栈、
+无原始错误对象拼接**。唯一命中「疑似内部标识」的 5 条是 `immutableCode`，
+那是运营在后台真实看得到的业务字段（有专门的命名规范文档），不是实现细节。
+
+**改动**：
+- `DomainError` 加 `isPublic`（绑定 `isOperational`）与 `status`（默认 400）
+- 五个子类补与 `payload-after-error.ts` 的 `STATUS_BY_CLASS` **同源**的状态码
+- 收回 OPT-050 的 `APIError` 特例，统一走领域错误
+
+**为什么绑 `isOperational` 而不是无条件 true**：`isOperational: false` 是系统异常，
+message 可能来自底层库、含连接串与堆栈，必须继续隐藏——这正是 Payload 默认
+行为的理由。
+
+**浏览器实测**（两条路径都验，因为它们走的代码完全不同）：
+
+| 路径 | 结果 |
+|---|---|
+| 批量删除（`deleteMany` 自己 catch，afterError 够不到） | HTTP 400，`isPublic: true`，文案完整 |
+| 单条删除（走 `afterError` 钩子） | HTTP 422，文案完整 |
+
+**守卫**：`tests/domain-error-public.test.ts` 24 条，其中一条复刻 Payload 的
+`isErrorPublic` 判据、另一条断言「错误类的 status 与 afterError 钩子的映射一致」
+——两处不同源就会漂。
 
 ## 6. 验收
 

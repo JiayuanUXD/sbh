@@ -115,13 +115,15 @@ describe('错误必须能透传到运营眼前（isPublic 契约）', () => {
    *
    * 所以这里断言的是**错误对象的形状**，不只是「抛了错」。
    */
-  it('抛的是 isPublic:true 的 APIError，且状态码 400（业务规则，不是服务端故障）', async () => {
+  it('抛的错带 isPublic:true 与非 500 状态码（否则批量路径会吞掉文案）', async () => {
     const { call } = await run(4)
     const err = await call().catch((e: unknown) => e)
     expect(err).toBeInstanceOf(Error)
     const e = err as { isPublic?: boolean; status?: number; message?: string }
     expect(e.isPublic, 'isPublic 不为 true → 运营只会看到「Something went wrong.」').toBe(true)
-    expect(e.status, '用 500 会进错误告警，且 Payload 会按内部错误隐藏消息').toBe(400)
+    // 422 来自 InvalidOperationError（与 payload-after-error 的 STATUS_BY_CLASS 同源）。
+    // 关键是**不能是 500**——isErrorPublic 对 500 视为内部错误照样隐藏消息。
+    expect(e.status, '用 500 会进错误告警，且 Payload 会按内部错误隐藏消息').toBe(422)
     expect(e.message).toContain('4 套房源')
   })
 })

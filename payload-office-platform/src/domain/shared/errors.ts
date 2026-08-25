@@ -29,6 +29,54 @@ export class DomainError extends Error {
   readonly isOperational: boolean
   readonly details?: Record<string, unknown>
 
+  /**
+   * Payload 的 `isErrorPublic()` 判据（OPT-052）。
+   *
+   * ## 为什么需要它，而 `domainErrorAfterError` 不够
+   *
+   * `payload-after-error.ts` 的 `afterError` 钩子已经把 DomainError 映射成
+   * 正确的状态码与文案——**但它只在 `routeError` 兜底那条路径上生效**。
+   *
+   * Payload 的**批量操作**（`deleteMany` / `updateMany`）自己 catch 每一条错误：
+   *
+   * ```js
+   * // payload/dist/collections/operations/delete.js:223
+   * const isPublic = error instanceof Error ? isErrorPublic(error, config) : false
+   * errors.push({ id: doc.id, isPublic, message: ... })
+   * ```
+   *
+   * 这发生在 `afterError` **之前**，钩子根本轮不到。而 `isErrorPublic` 的判据是：
+   * `isPublic === true` → 放行；`status && status !== 500` → 放行；否则一律替换成
+   * 「Something went wrong.」。DomainError 两个都没有，直接落到兜底。
+   *
+   * 真实教训（OPT-050）：后台批量删楼盘时守卫确实拦住了，但运营看到的仍然是
+   * 「Something went wrong.」——而 10 条单测全绿，因为它们断言的是「抛了什么错」，
+   * 而缺陷在于「错误怎么被序列化给客户端」。
+   *
+   * ## 为什么绑定到 `isOperational` 而不是无条件 true
+   *
+   * `isOperational: true` 的定义就是「业务可预期错误」——这类消息本来就是写给
+   * 用户看的（「楼盘下还有 N 套房源」「已被他人修改」）。
+   *
+   * 而 `isOperational: false` 表示系统异常，其 message 可能来自底层库，
+   * 含连接串、堆栈、表结构。**那些绝不能给用户看**，所以保持 `isPublic: false`
+   * 让 Payload 继续兜底——这也正是 Payload 默认隐藏的原因。
+   *
+   * 上线前已逐条复核 `src/domain` 下全部 221 条去重后的错误消息：
+   * 无连接串、无密钥、无文件路径、无堆栈、无原始错误对象拼接。
+   */
+  readonly isPublic: boolean
+
+  /**
+   * HTTP 状态码，供 `isErrorPublic` 的第二条判据与批量操作使用。
+   *
+   * 与 `payload-after-error.ts` 的 `STATUS_BY_CLASS` 保持同一套映射——
+   * 两处都改才不会漂。子类各自覆写；基类默认 400（业务错误，不是服务端故障）。
+   * **绝不能用 500**：`isErrorPublic` 对 500 视为内部错误、照样隐藏消息，
+   * 而且会让业务规则进错误告警。
+   */
+  readonly status: number
+
   constructor(params: {
     code: string
     domain: DomainTag
@@ -36,6 +84,7 @@ export class DomainError extends Error {
     isOperational?: boolean
     details?: Record<string, unknown>
     cause?: unknown
+    status?: number
   }) {
     super(params.message)
     this.name = this.constructor.name
@@ -43,6 +92,8 @@ export class DomainError extends Error {
     this.domain = params.domain
     this.isOperational = params.isOperational ?? true
     this.details = params.details
+    this.isPublic = this.isOperational
+    this.status = params.status ?? 400
     if (params.cause !== undefined && 'cause' in Error.prototype) {
       ;(this as { cause?: unknown }).cause = params.cause
     }
@@ -58,6 +109,8 @@ export class ForbiddenError extends DomainError {
   }) {
     super({
       code: 'FORBIDDEN',
+      // 与 payload-after-error.ts 的 STATUS_BY_CLASS 同源，两处都改才不会漂
+      status: 403,
       domain: params.domain,
       message: params.message ?? '权限不足',
       isOperational: true,
@@ -76,6 +129,8 @@ export class NotFoundError extends DomainError {
   }) {
     super({
       code: 'NOT_FOUND',
+      // 与 payload-after-error.ts 的 STATUS_BY_CLASS 同源，两处都改才不会漂
+      status: 404,
       domain: params.domain,
       message: `${params.resource} 不存在`,
       isOperational: true,
@@ -94,6 +149,8 @@ export class InvalidOperationError extends DomainError {
   }) {
     super({
       code: params.code ?? 'INVALID_OPERATION',
+      // 与 payload-after-error.ts 的 STATUS_BY_CLASS 同源，两处都改才不会漂
+      status: 422,
       domain: params.domain,
       message: params.message,
       isOperational: true,
@@ -113,6 +170,8 @@ export class VersionConflictError extends DomainError {
   }) {
     super({
       code: 'VERSION_CONFLICT',
+      // 与 payload-after-error.ts 的 STATUS_BY_CLASS 同源，两处都改才不会漂
+      status: 409,
       domain: params.domain,
       message: `${params.resource} 已被他人修改，请刷新后重试`,
       isOperational: true,
@@ -138,6 +197,8 @@ export class IllegalStateTransitionError extends DomainError {
   }) {
     super({
       code: 'ILLEGAL_TRANSITION',
+      // 与 payload-after-error.ts 的 STATUS_BY_CLASS 同源
+      status: 409,
       domain: params.domain,
       message: `${params.resource} 不允许从 ${params.from} 切换到 ${params.to}`,
       isOperational: true,
