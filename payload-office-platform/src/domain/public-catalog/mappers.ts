@@ -521,12 +521,82 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
   if (!isPopulatedListing(raw)) return null
   const listing = raw as PopulatedListing
 
-  const building = mapBuildingSummary(listing.building)
-  if (!building) return null
-  const coverImage =
-    mapMedia(listing.coverImage, listing.title) ??
-    building?.coverImage ??
-    null
+  const fullBuilding = mapBuildingSummary(listing.building)
+  if (!fullBuilding) return null
+
+  // 楼盘封面是房源封面的兜底来源（房源没自己的图时用楼盘的）。
+  const rawCover = mapMedia(listing.coverImage, listing.title) ?? fullBuilding.coverImage ?? null
+
+  /**
+   * 卡片封面剔掉 `blurDataURL`（OPT-047）。
+   *
+   * 它是一段约 **480 字节**的 base64 内联占位图，而全仓**没有任何一处渲染它**——
+   * `Media.tsx` 只在 props 类型里声明了这个字段，实现里既没传给 `<Image>` 的
+   * `placeholder`/`blurDataURL`，也没做别的用途（2026-08-25 全仓核实）。
+   *
+   * 1000 张卡片 × 480 字节 ≈ **480KB**，占超限前总量的两成以上，纯粹是死重。
+   *
+   * **只在房源卡片这条链路剔**：`MediaViewModel` 是共享类型，详情页等其它消费方
+   * 保持原样——万一将来真要做模糊占位图，那些路径不受影响（它们也不受 2MB 上限
+   * 约束，因为不走全量数组缓存）。
+   */
+  const coverImage = rawCover ? { ...rawCover, blurDataURL: undefined } : null
+
+  /**
+   * 卡片里的 `building` **只保留卡片链路真正读取的字段**（OPT-047）。
+   *
+   * ## 为什么必须收窄
+   *
+   * 列表页的 `unstable_cache` 缓存的是**全量卡片数组**（刻意设计：让 `?page=2`
+   * 不重跑最重的候选集查询）。所以条目体积 ∝ 该城市房源数 × 单张卡片大小。
+   *
+   * 生产实测：2,278,117 字节，**超过 Next.js 的 2MB 硬上限**，缓存写入被拒 →
+   * `revalidate: 300` 完全没生效 → 这个路由每次请求都在真打库。而且**静默失败**：
+   * 页面照常 200、响应时间也不突变，只有一行 stderr。
+   *
+   * 本地量得单张卡片 2160 字节，其中 `building` 占 1034（48%）、`coverImage` 占
+   * 541（25%）。而 `blurDataURL`（约 480 字节的 base64 内联图）**被存了两遍**——
+   * 一遍在 `card.coverImage`，一遍在 `card.building.coverImage`，
+   * 后者在上面兜底用完之后就再没人读了。
+   *
+   * ## 剔掉的三个字段，逐个核实过零消费
+   *
+   * 全仓扫描接收 `ListingCardViewModel` 的 8 个模块，`building` 的实际读取只有：
+   *   - `ListingResultCard` / `ListingResultRow`：`name`
+   *   - `ListingCard`：`name` / `address` / `district` / `grade` / `nearestMetro`
+   *
+   * `coverImage` / `summary` 在卡片链路上引用 **0 次**。
+   *（`coordinates` 起初也判为 0，但那是漏扫——首页「附近房源」在 domain 层用它
+   * 算距离，见下方注释。教训：扫消费方不能只扫组件目录。）
+   *（`leasableArea` / `listingCount` / `completionDate` 等同样是 0，但它们
+   * 本来就只在楼盘卡片那条**另一条缓存**上有值，这里剔不剔无差别）。
+   *
+   * ## 为什么不改类型定义
+   *
+   * `BuildingSummaryViewModel` 同时被楼盘卡片与详情页复用，收窄类型会波及它们。
+   * 这里只在**映射进房源卡片时**丢掉字段，类型保持不变（可选字段，缺失合法）。
+   * 契约注释原本声明的白名单就是「楼盘名、行政区、商圈」——实现此前比契约更宽。
+   */
+  const {
+    // 卡片链路零消费，且体积最大的三个（coverImage 含约 480 字节的 blur base64）
+    coverImage: _buildingCover,
+    summary: _summary,
+    // ⚠️ `coordinates` **不能剔**：首页「附近房源」用它算距城市中心的距离
+    //（facade.ts:983 的 haversineKm(cityCenter, c.building.coordinates)）。
+    // 初版剔掉了，被 opt035-homepage-stats 那条测试抓住——我先前只扫了
+    // src/components/frontend/，漏了 domain 层的消费方。
+    // 它只有约 45 字节，留着无碍。
+    // 楼盘卡片那条**另一条缓存**才用到的聚合字段，房源卡片上恒不读
+    leasableArea: _leasableArea,
+    listingCount: _listingCount,
+    completionDate: _completionDate,
+    typicalFloorArea: _typicalFloorArea,
+    // 详情页字段（ListingOverviewPanel 读的是详情 DTO，不是卡片）
+    airConditioning: _airConditioning,
+    network: _network,
+    parkingFee: _parkingFee,
+    ...building
+  } = fullBuilding
 
   const highlights: string[] = []
   if (Array.isArray(listing.highlights)) {
