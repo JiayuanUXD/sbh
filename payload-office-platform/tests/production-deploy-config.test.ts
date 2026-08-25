@@ -231,6 +231,94 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     expect(yaml).not.toContain('github.event.workflow_run')
   })
 
+  /**
+   * 文档不得再声称「push master 即自动部署」。
+   *
+   * ## 为什么这条值得单独守
+   *
+   * `6e3861b`（2026-08-18）移除自动触发时，**只改了 workflow，没改文档**。于是
+   * `CLAUDE.md`、`AGENTS.md`、`DEPLOYMENT.md` 和 `deploy.yml` 自己的头部注释，
+   * 整整七天都在说「push 到 master 即自动上线」——而上面那条测试是绿的，因为它只
+   * 断言 YAML，不管文档怎么写。
+   *
+   * 代价在 2026-08-25 兑现：合并两个 PR 时据此告知「会触发自动部署到生产」，
+   * 实际什么都没发生，差点把一个未上线的修复当成已上线。
+   *
+   * **陈述性文档也是接口。** 它被人和 agent 当作事实源读取，写错了不会有任何
+   * 运行期信号——这正是它需要测试的理由。
+   *
+   * ## 判据：同一行里「push/合并 master」与「会部署」同时出现
+   *
+   * 不逐字匹配某句话（那样换个说法就绕过去了），而是判**语义组合**。
+   * 带否定词（不会 / 不再 / 已作废 / 注：当时…）的行是刻意保留的历史说明，放行——
+   * 把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分。
+   */
+  it('文档与 workflow 不得再声称「push master 即自动部署」', () => {
+    // 前提：workflow 确实没有 push 触发。哪天真加回来了，本守卫应当整体重来。
+    expect(workflow(), 'deploy.yml 加回了 push 触发 —— 本守卫需要同步更新').not.toMatch(
+      /^\s*push:/m,
+    )
+
+    const DOCS = [
+      'CLAUDE.md',
+      'AGENTS.md',
+      'DEPLOYMENT.md',
+      '.github/workflows/deploy.yml',
+      'payload-office-platform/CLAUDE.md',
+      'payload-office-platform/AGENTS.md',
+    ]
+    /**
+     * 禁止的**断言本身**，而不是「master + 部署」这种词共现。
+     *
+     * 前两版判据都栽在这里，反向验证时才发现：
+     *
+     * 1. 第一版要求同一行出现「合并/push master」与「部署」——把
+     *    「合并即进入发布候选；发布本身是手动触发」这类**正确**表述判成违规（3 条误报）。
+     * 2. 第二版加了自动性要求，却仍然要求出现 push/推送/合并——而当初那句原话是
+     *    「**默认分支 `master` 触发 CI 自动部署**」，一个触发动词都没有，照样漏掉。
+     *
+     * 所以改成直接匹配断言措辞。**这条测试本身就是「绿灯不等于有效」的例子**：
+     * 前两版都是全绿的，把当初的错误原话放回去也依然全绿。
+     */
+    const FORBIDDEN = [
+      /自动部署/,
+      /自动上线/,
+      /自动发布/,
+      /(push|推送|合并|merge).{0,12}master.{0,24}(部署|上线)/i,
+      /master.{0,12}触发.{0,12}(CI|部署|上线|发布)/i,
+    ]
+    /**
+     * 放行：明确说是手动的、或标注为历史/更正的行。
+     * 把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分——所以不是漏洞，是出口。
+     */
+    const NEGATED = /手动|显式|不会|不再|不触发|已移除|已作废|已改为|已于|注：当时|错|~~|❌/
+
+    const offenders: string[] = []
+    for (const rel of DOCS) {
+      const full = resolve(repositoryRoot, rel)
+      let text: string
+      try {
+        text = readFileSync(full, 'utf8')
+      } catch {
+        continue // 文件不存在就跳过，不因为挪了个文件把测试搞红
+      }
+      text.split('\n').forEach((line, i) => {
+        if (NEGATED.test(line)) return
+        if (FORBIDDEN.some((re) => re.test(line))) {
+          offenders.push(`${rel}:${i + 1}  ${line.trim()}`)
+        }
+      })
+    }
+
+    expect(
+      offenders,
+      '这些行声称推送/合并 master 会部署，而 deploy.yml 只有 workflow_dispatch：\n' +
+        offenders.join('\n') +
+        '\n发布是显式动作（gh workflow run deploy.yml -f promote=true）。' +
+        '若确实在描述历史，请把「已作废 / 不再 / 注：当时」写进同一行。',
+    ).toEqual([])
+  })
+
   it('切流量仍然受 SHOULD_PROMOTE 控制（不能顺手把流量门也拆了）', () => {
     const yaml = workflow()
     for (const step of ['切 10% 灰度', 'Promote 全量发布']) {

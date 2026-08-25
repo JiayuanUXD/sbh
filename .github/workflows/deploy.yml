@@ -1,14 +1,17 @@
-# Git 自动部署 -> CloudBase CloudRun
+# 发布到 CloudBase CloudRun（手动触发）
 #
-# 触发：push 到 master 且改动 payload-office-platform/ 或本 workflow 文件；
-#       也可在 Actions 页面手动触发 (workflow_dispatch)。
+# 触发：**只能手动**（workflow_dispatch）。master 合并不会触发任何部署。
+#       2026-08-18 的 6e3861b 移除了自动触发——它一律 promote=false，于是每次合并都
+#       构建一个 0% 流量、永远没人用的 GRAY 版本，白烧约 8 分钟平台构建和一个版本号。
+#       勾 promote 才切流量；不勾只出 GRAY 版本。
+#       tests/production-deploy-config.test.ts 锁住了这一条。
 #
 # 两段式（OPT-016）：
 #   quality  - 在 CI runner 上跑 lint/typecheck/test/build/迁移预检，作为发布质量门。
 #              失败则 deploy 不跑。产物不传递（deploy 重新 checkout 干净源码）。
 #   deploy   - 锁定 @cloudbase/cli@3.6.4；部署新版本（灰度 0% 流量）。
-#              **默认到此为止**：自动触发（master 合并）只提交 GRAY 版本，不碰线上流量。
-#              放量需在 Actions 页面手动触发本工作流并勾选 promote，届时才走
+#              **默认到此为止**：不勾 promote 只提交 GRAY 版本，不碰线上流量。
+#              放量需勾选 promote，届时才走
 #              切 10% 灰度 -> 冒烟（/api/health + /）-> traffic promote 全量，
 #              失败则 traffic rollback。
 #

@@ -19,20 +19,20 @@
 | 3 | 容器化 Dockerfile + PORT | 多阶段**完整镜像**（非 standalone，保留迁移能力）；`ENV PORT=80`+`EXPOSE 80`；启动跑 `payload migrate` 再 `next start` |
 | 4 | PG 迁移 + 修 ENUM bug | `src/migrations/20260723_160143_init.ts` 应用到 CloudBase PG；`Listings.listingType` 默认值 `private-office`→`traditional-office`（PG strict ENUM，SQLite 不报） |
 | 5 | 首次上线（MCP deploy） | CloudRun 服务 `sbh` 已 Running，100% 流量。域名 `https://sbh-286300-10-1253925058.sh.run.tcloudbase.com`；验证 `/`、`/api/listings`(有种子数据)、`/admin` 均 200 |
-| 6 | CI 自动部署 workflow | `.github/workflows/deploy.yml`：push master → `tcb cloudrun deploy` 上传 ZIP 在线构建 + 冒烟测试。已推送（commit `fd5e897`） |
+| 6 | CI 部署 workflow | `.github/workflows/deploy.yml`：`tcb cloudrun deploy` 上传 ZIP 在线构建 + 冒烟测试。已推送（commit `fd5e897`）。**注：当时是 push master 自动触发；2026-08-18 的 `6e3861b` 已改为只能手动触发** |
 | 7 | CI 首次跑通 | 2026-07-24 跑通（run `30073559226`，`tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿）。修三个坑：① 3 个 GitHub secret 之前名字填成了 SecretId 的值（全空）→ 重建 `TCB_SECRET_ID`/`TCB_SECRET_KEY`/`TCB_ENV_ID`；② `tcb login` 后 telemetry `Y/n` 提示无 tty 卡 exit 130 → job 设 `CLOUDBASE_CI: '1'`（isYesMode 自动跳过）；③ 灰度部署 `list` 提示 `--force` 不挡 → `printf '\n\n\n' \|` 喂回车选默认"否"（自动切流量） |
 
 **线上资源**：EnvId `sbh-d9gnr8h5ef7e22e30`；PG 实例 `postgres-ilf7zhts`（公网 `sh-postgres-ilf7zhts.sql.tencentcdb.com:26710`，内网 `172.17.0.8:5432`，db `postgres`，role `sbh`）；迁移 `20260723_160143_init` 已应用，种子数据 5 locations/2 buildings/2 listings/4 amenities/1 page。服务级环境变量 `DATABASE_URL`/`PAYLOAD_SECRET`/`NODE_ENV` 已在 CloudRun 配好（不入 git，存 `.env.local`）。
 
 ## 待完成 ⏳
 
-### ✅ P0 — 让 CI 首次自动部署跑通（2026-07-24 完成）
+### ✅ P0 — 让 CI 首次部署跑通（2026-07-24 完成；当时的自动触发已于 2026-08-18 移除）
 
 - [x] 腾讯云 [CAM](https://console.cloud.tencent.com/cam) 新建子用户（编程访问），拿 SecretId/SecretKey（**勿用主账号**）
 - [x] 给子用户绑定预置策略：`QcloudAccessForTCBRole`、`QcloudAccessForTCBRoleInAccessCloudBaseRun`（能 deploy 成功即已绑对）
 - [x] 仓库 Settings → Secrets → Actions 加 3 个：`TCB_SECRET_ID`、`TCB_SECRET_KEY`、`TCB_ENV_ID`=`sbh-d9gnr8h5ef7e22e30`（用 `gh secret set` 写入）
 - [x] 触发运行确认 `tcb login` + deploy + 冒烟 `GET /api/listings` 200 全绿（run `30073559226`）
-- [x] 验收：以后任意 `git push master`（改 `payload-office-platform/`）即自动上线
+- [x] 验收：`git push master`（改 `payload-office-platform/`）即自动上线 —— **此结论已于 2026-08-18 作废**，见 `6e3861b`：自动触发被移除，发布改为手动
 
 > 踩坑记录（见上表第 7 行）：secret 值误填为名字、telemetry 交互提示、灰度部署 list 提示，三个都会让 CI 在无 tty 下 exit 130。
 
@@ -46,9 +46,30 @@
 
 > **当前状态（2026-08-07）**：生产**强制 COS 存媒体**（`config-guard` 校验，缺 `COS_*` 拒绝启动；CI e2e 豁免）。首页 hero 背景视频已迁到 COS 媒体库（`/api/media/file/hero-bg.mp4?prefix=media`），不再打包进部署包，包体积 2.51MB → 1.02MB。
 
-## Git 自动部署（CI）
+## 发布（CI）
 
-`push` 到 `master` 即自动部署到 CloudRun 服务 `sbh`。Workflow：[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)。
+**发布是显式动作，`master` 不会自动部署任何东西。** Workflow：
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，`on:` 里只有
+`workflow_dispatch`。
+
+| 怎么做 | 结果 |
+|---|---|
+| 合并到 `master` | **什么都不发生**（不构建、不出版本） |
+| Actions 手动触发，`promote` 不勾 | 构建并提交一个 GRAY 版本，**0% 流量**，线上保持当前版本 |
+| Actions 手动触发，`promote` 勾上 | 构建 → 切 10% 灰度 → 冒烟（`/api/health` + `/`）→ 全量切流；失败则 rollback |
+
+```bash
+gh workflow run deploy.yml -f promote=true --ref master
+```
+
+> **为什么不再自动触发**（`6e3861b`，2026-08-18）：自动触发一律 `promote=false`，
+> 于是每次合并都构建一个 0% 流量、永远没人用的 GRAY 版本——白烧约 8 分钟平台构建
+> 和一个 CloudRun 版本号，真要发布时同一个 commit 还得再构建一遍。`sbh-096` 就是
+> 这样一个「为没人用而构建」的版本，而它在镜像推送阶段挂掉了。
+>
+> 代价是失去「master 上能不能构建成功」的常态信号，改由真正发布那次给出。
+>
+> `tests/production-deploy-config.test.ts` 锁住了「只能手动触发」这一条。
 
 > ⚠️ **代码包体积是这条通道的命门**。CI 把 `payload-office-platform/` 打成 ZIP 传到腾讯云 COS，跨境吞吐下体积直接决定成败：
 >
@@ -82,7 +103,7 @@
 - `QcloudAccessForTCBRole`（云开发访问云资源）
 - `QcloudAccessForTCBRoleInAccessCloudBaseRun`（云托管访问 VPC/CVM）
 
-设置完成后,下次 `git push origin master`（改动 `payload-office-platform/`）即触发部署；也可在仓库 Actions 页手动 `Run workflow`。部署日志与冒烟测试（`GET /api/listings` 期望 200）在 Actions 运行记录里查看。
+设置完成后，在仓库 Actions 页 `Run workflow`（或 `gh workflow run deploy.yml -f promote=true --ref master`）即可发布——**push 不会触发**，见上面「发布（CI）」。部署日志与冒烟测试（`GET /api/listings` 期望 200）在 Actions 运行记录里查看。
 
 ## 本地发布（CI 上传通道不可用时的正式路径）
 
