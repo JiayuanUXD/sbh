@@ -1,6 +1,6 @@
 # Task Packet：OPT-047 房源列表页缓存超 2MB 写入失败，`unstable_cache` 形同虚设
 
-> 状态：**待排期**
+> 状态：**已实施**（2026-08-25，方案 1「收窄字段」，浏览器实测）
 > 创建日期：2026-08-24
 > 来源：2026-08-24 排查 OPT-046 时在生产容器日志里发现（顺带发现，与 job 泄漏无关）
 > 编号说明：OPT-046 是 Jobs 事务泄漏，故取 047
@@ -73,6 +73,42 @@ queryLogs(action=searchLogs, service=tcbr, queryString='"can not be cached"',
 - 生产日志中 `"can not be cached"` **不再出现**；
 - `/shanghai/listings` 页面内容与分页/筛选行为无变化（e2e 覆盖）；
 - 冷缓存后连续两次请求，第二次不再打库（可用 `pg_stat_activity` 或查询计数验证）。
+
+## 6.5 实施记录
+
+**根因定位（本地实测，不是推断）**：缓存的是 `buildListingSearchSource` 的**全量卡片
+数组**（刻意设计，让 `?page=2` 不重跑最重的查询），所以体积 ∝ 房源数 × 单张大小。
+本地量得每张 **2160 字节**，生产 1000+ 套 ≈ 2.16MB，与实测 2,278,117 字节吻合。
+
+字段构成：`building` 1034（48%）+ `coverImage` 541（25%）= 73%。
+其中 `blurDataURL`（约 480 字节 base64）**被存了两遍**——`card.coverImage` 与
+`card.building.coverImage` 各一份。
+
+**改动**（方案 1，用户裁定「只剔确实没人用的」）：
+
+| 阶段 | 每张 | 生产推算 |
+|---|---|---|
+| 改动前 | 2160 | 2.16 MB ❌ |
+| 剔 `building` 无用字段 | 1342 | 1.28 MB |
+| 剔 `blurDataURL` | 886 | 0.84 MB |
+| 保留 `coordinates`（见下） | **941** | **0.90 MB** ✅ |
+
+`blurDataURL` 是**彻底的死重**：全仓只在 `Media.tsx` 的 props 类型里声明、
+在 mapper 里赋值，**没有任何一处渲染它**。1000 张 × 480 字节 ≈ 480KB。
+
+**一个我差点犯的错**：初版把 `building.coordinates` 也剔了，被
+`opt035-homepage-stats` 那条测试抓住——首页「附近房源」在 **domain 层**用它算距离
+（`facade.ts:983` 的 `haversineKm`）。我先前扫消费方只扫了 `src/components/frontend/`。
+
+> **教训：扫「谁在用这个字段」不能只扫组件目录，domain 层也会读 DTO。**
+
+**守卫**：`tests/listing-card-payload-size.test.ts` 7 条，断言单张 < 1200 字节
+（改动后 941，留约 27% 余量）+ 不含 `blurDataURL` + `coordinates` 必须保留 +
+剔字段没伤到卡片数据 + 封面兜底逻辑未坏。**双向验证**：把 `blurDataURL` 或完整
+`building` 塞回来，立刻红。
+
+**浏览器实测**：列表页 11 张卡片图全部有 src、楼盘名与价格正常；
+首页「附近房源」距离正常渲染（2.6 / 5.4 / 6.7 km）。
 
 ## 7. 坑
 
