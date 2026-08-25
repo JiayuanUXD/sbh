@@ -38,8 +38,9 @@
  * 删不掉且不说话的系统好得多：前者是产品规则，后者是缺陷。
  */
 
-import { APIError } from 'payload'
 import type { CollectionBeforeDeleteHook } from 'payload'
+
+import { InvalidOperationError } from '@/domain/shared/errors'
 
 /**
  * 楼盘删除守护 + 关系清理。
@@ -92,14 +93,24 @@ export const guardBuildingDelete: CollectionBeforeDeleteHook = async ({ id, req 
      * 第二个参数 400：这是**用户可修复的业务规则**，不是服务端故障。
      * 用 500 会让它进错误告警、也会让 Payload 按「内部错误」默认隐藏消息。
      */
-    throw new APIError(
-      `楼盘「${label}」下还有 ${listings.totalDocs} 套房源，不能删除。` +
+    /**
+     * 用项目自己的 `InvalidOperationError` 即可——**不需要 Payload 的 `APIError`**。
+     *
+     * OPT-050 初版用过 `APIError`，因为当时 `DomainError` 没有 `isPublic` / `status`，
+     * 批量删除路径（`deleteMany` 自己 catch，在 `afterError` 钩子之前）会把文案
+     * 换成「Something went wrong.」。OPT-052 给基类补上这两个标记后，领域错误
+     * 在批量路径上也能正常透出，特例可以收回。
+     *
+     * 浏览器实测（OPT-052 实施时）：`isPublic: true`、HTTP 422、文案完整。
+     */
+    throw new InvalidOperationError({
+      domain: 'supply',
+      code: 'BUILDING_HAS_LISTINGS',
+      message:
+        `楼盘「${label}」下还有 ${listings.totalDocs} 套房源，不能删除。` +
         '请先把这些房源删除或转移到其它楼盘，再删楼盘。' +
         '（如果只是想让它从前台消失，用「下架」即可，不必删除。）',
-      400,
-      { code: 'BUILDING_HAS_LISTINGS', listingCount: listings.totalDocs },
-      true,
-    )
+    })
   }
 
   // —— 2. 没有房源了，清掉纯关系行 ——
