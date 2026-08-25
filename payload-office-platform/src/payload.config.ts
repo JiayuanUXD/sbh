@@ -104,6 +104,28 @@ const dirname = path.dirname(filename)
 const databaseUrl = process.env.DATABASE_URL || ''
 const cosStorageConfig = parseCosStorageConfig(process.env)
 
+/**
+ * autoRun cron 的日志开关（OPT-046 §6.6）。
+ *
+ * `silent` 只作用于 `runJobs` 内部的两类日志（`payload/dist/queues/`）：
+ *
+ * - `info` —— 每轮「跑了几个 job」的汇总（`operations/runJobs/index.js:229`）。
+ *   三个 cron 分别是 30s / 30s / 10s 一轮，**常驻空转**，放开就是纯噪音，
+ *   会把真正的错误埋掉。继续压掉。
+ * - `error` —— 任务与工作流自身抛的错（`errors/handleTaskError.js:67,96`、
+ *   `errors/handleWorkflowError.js:45`）。这些是**真实的业务失败**
+ *   （通知没发出去、导入炸了），压掉等于生产静默失败。必须放开。
+ *
+ * 原先三个 cron 都写 `silent: true`，两类一起压——info 的噪音问题解决了，
+ * 代价是 error 也一起没了。分开控制才是本意。
+ *
+ * **不受 `silent` 影响的那条**：`Error in job queue cron job handler`
+ * 来自 Croner 包装层的 catch（`payload/dist/index.js:267`），无条件打印。
+ * OPT-046 那个多实例争抢错误走的就是这条，所以它一直看得见——
+ * 别因此以为 `silent: true` 是无害的。
+ */
+const JOB_CRON_SILENT = { info: true, error: false } as const
+
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
 if (!metricRegistry.has('listings.total')) {
@@ -142,7 +164,7 @@ export default buildConfig({
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
         disableScheduling: true,
         limit: 10,
-        silent: true,
+        silent: JOB_CRON_SILENT,
       },
       {
         cron: '*/30 * * * * *',
@@ -151,7 +173,7 @@ export default buildConfig({
           ? { disableScheduling: true }
           : {}),
         limit: 10,
-        silent: true,
+        silent: JOB_CRON_SILENT,
       },
       {
         // 导入是人触发的低频操作，但用户在页面上等结果，10 秒一轮兼顾响应与负载。
@@ -159,7 +181,7 @@ export default buildConfig({
         queue: SUPPLY_IMPORT_QUEUE,
         ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
         limit: 5,
-        silent: true,
+        silent: JOB_CRON_SILENT,
       },
     ],
   },
