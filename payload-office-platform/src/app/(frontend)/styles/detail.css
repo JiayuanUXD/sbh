@@ -26,15 +26,25 @@
  * `100% - 32px`），与列表页 `.ls-page` 抵消同一份内边距的动机一致。
  * 只破左右、不动纵向：纵向节奏在下一小节（Task 9 接线）连同标题栏一起定。 */
 .dt-page {
-  --dt-w: 1180px; --dt-main: 776px; --dt-side: 372px;
+  /* 主栏宽度不在这里声明：它由 `--dt-w - 32 - --dt-side` 推导，见 `.dt-core`。 */
+  --dt-w: 1180px; --dt-side: 372px;
   width: 100vw; margin-inline: calc(50% - 50vw);
 }
 .dt-container { width: min(var(--dt-w), 100% - 32px); margin-inline: auto; }
 
-/* align-items:start（Task 4 新增）——两列各自按内容高度定盒，不拉伸到行高。
+/* 主栏是**弹性轨道**，不是定宽：`--dt-main` 曾是 776px 定值，与 `--dt-side`(372)
+ * 加 32 列间恰好等于 `--dt-w`(1180)。两条定宽轨道只在容器拿满 1180 时才装得下，
+ * 而 `.dt-container` 是 `min(--dt-w, 100% - 32px)`——视口 < 1212 时容器已经比
+ * 1180 窄，轨道却不缩，于是 **1024–1195 整段视口横向溢出 172→1px**（1023 及以下
+ * 塌单列所以幸免，1212 及以上容器拿满所以幸免，正好卡在中间这段没人测到）。
+ * 改成 `minmax(0, 1fr)` 后：容器 1180 时主栏仍恰好 776（1180-32-372），容器变窄
+ * 主栏跟着缩，容器加宽主栏自动吃掉增量。与 `.rc-core`（recruit.css）同一手法——
+ * 那边一直是 `minmax(0, 1fr) var(--rc-side)`，所以从没出过这个问题。
+ * 副作用是 776 这个数字不再需要单点声明，`--dt-main` 随之删除。
+ * align-items:start（Task 4 新增）——两列各自按内容高度定盒，不拉伸到行高。
  * 这不只是视觉选择：它是决策卡 sticky 粘附范围的地基，见下方「决策卡 +
  * 吸附询价条」小节的机制说明。 */
-.dt-core { display: grid; grid-template-columns: var(--dt-main) var(--dt-side);
+.dt-core { display: grid; grid-template-columns: minmax(0, 1fr) var(--dt-side);
   column-gap: 32px; row-gap: 0; align-items: start; }
 
 /* 白底面板表面（底 --bg-subtle · 零边框 · radius --r-card）的**唯一**声明处。
@@ -675,15 +685,22 @@
  * mapEnabled=false（无 Key）时地图区域没有实际内容，浮层写法下 .location-panel__map-area
  * 因没有地图撑起高度而塌缩为 0，清单面板的 top/right 绝对定位就失去参照，
  * 网格布局让两列各自按自身内容独立定高，天然规避这个问题。 */
+/* 轨道与 `.dt-core` 同口径：主栏弹性、侧栏定宽 `--dt-side`。原先写死的
+ * `776px 372px` 是 `.dt-core` 那两条轨道的**字面量副本**，同一个视觉决定有了
+ * 两个事实源，也同样在 1024–1195 视口横向溢出（实测 172px，与 `.dt-core` 同值，
+ * 因为两者总宽都是 776+32+372=1180）。改成推导后 776 从本文件彻底消失。 */
 .location-panel__grid {
   display: grid;
-  grid-template-columns: 776px 372px;
+  grid-template-columns: minmax(0, 1fr) var(--dt-side);
   gap: 32px;
   align-items: start;
 }
 
+/* map-only 单列用 `minmax(0, ...)` 而不是裸定宽：无侧栏时地图仍按 776 封顶
+ * （不拉满 1180，否则空 Key 状态下一块灰底会横贯整个容器），但容器变窄时
+ * 跟着缩。上限值写在 calc 里而不是再造一个 token——它只有这一个消费方。 */
 .location-panel__grid--map-only {
-  grid-template-columns: 776px;
+  grid-template-columns: minmax(0, calc(var(--dt-w) - 32px - var(--dt-side)));
 }
 
 @media (max-width: 1023px) {
