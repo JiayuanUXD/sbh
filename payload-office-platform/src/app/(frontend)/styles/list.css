@@ -3,25 +3,32 @@
  * 设计依据：docs/SBH设计任务讨论/{房源列表,楼盘列表}.dc.html
  * 卡片/渐变/标签/动效一律复用 surface.css 的 .sf-* 基元——列表页稿要求的
  * 「零阴影 + hover 只变底色」按跨批次统一口径不采用（见 cross-batch-design-decisions.md）。
- * 与首页仅存的差异：容器 1280（首页 1180）、section padding 32（首页 72）——皆为布局刚需。
+ * 与首页仅存的差异：section padding 32（首页 72）——布局刚需。
+ * （容器宽度曾是本页第二处差异：列表 1280 / 首页 1180，理由是结果网格要放 4 列。
+ * 全站容器统一到 --container-max 后这条差异消失，两页同宽，4 列反而更宽松。）
  * ========================================================================== */
 
-/* `.site-main` 自带 `padding: var(--sp-6) var(--container-pad-x)`（32 / 24）。
- * 不抵消它会有两个后果：页头上方变成 32+32=64（comp 要求 section padding 32），
- * 移动端 375 下 1280 容器被再内缩 24px、左右留白变成 40（comp 要求 16）。
- * 用负外边距抵消，纵向节奏与左右留白完全由本页自己的 --ls-sec / .ls-container 控制。
- * 首页对同一层用的是 100vw 满宽出血（见 home.css 顶部注释），列表页不需要出血，
- * 只需要退回到 `.site-main` 的边界。 */
-.ls-page { --ls-w: 1280px; --ls-sec: 32px;
-  margin: calc(var(--sp-6) * -1) calc(var(--container-pad-x) * -1); }
-.ls-container { width: min(var(--ls-w), 100% - 32px); margin-inline: auto; }
+/* `.site-main` 自带 `padding: var(--sp-6) var(--container-pad-x)`（32 / 24）
+ * **以及 `max-width: var(--container-max)`**，两者都要退掉。
+ * 纵向：不抵消 padding-block 会让页头上方变成 32+32=64（comp 要求 section padding 32）。
+ * 横向：原先只用负外边距退回 `.site-main` 的**边框盒**就够了——那时 --ls-w 是
+ * 1280，比外壳 1440 窄，容器宽度由 --ls-w 绑定，外壳那层帽子碰不到。
+ * 现在 --ls-w = --container-max，两者同宽，绑定的变成 `100% - --gut*2`，
+ * 而这个 100% 在旧写法下是**外壳内宽**、在页眉/首页/详情页那边是**视口**：
+ * 1920 视口下列表页会得到 1440-96=1344、页眉得到 1440，每侧错位 48。
+ * 所以改成与 `.hm-home` / `.dt-page` 同一套 100vw 出血，四者的 100% 统一为视口。
+ * body 已有 overflow-x: clip 兜住 100vw 的滚动条溢出。 */
+.ls-page { --ls-w: var(--container-max); --ls-sec: 32px;
+  width: 100vw; margin-inline: calc(50% - 50vw);
+  margin-block: calc(var(--sp-6) * -1); }
+.ls-container { width: min(var(--ls-w), 100% - var(--gut) * 2); margin-inline: auto; }
 /* `.ls-section` 已删：接线后每个区段（.ls-head / .ls-unitseg / .ls-results）都自带
    padding，通用段落类零使用（运行时 querySelectorAll 全站 0 命中，见终审 D2）。 */
 
 /* ── 页面骨架（Task 11 接线）────────────────────────────────────────────────
  * 纵向节奏照 comp specRows「页头 → 单位段 → 筛选条」：页头 padding-top var(--ls-sec)
  * / bottom 20，单位段 padding-bottom 20，结果区 padding-top 24、bottom var(--ls-sec)。
- * 与首页仅存的差异是容器 1280 与 section padding 32（见文件头注释）。 */
+ * 与首页仅存的差异是 section padding 32（容器已统一，见文件头注释）。 */
 .ls-head { padding-top: var(--ls-sec); padding-bottom: 20px;
   display: flex; flex-direction: column; gap: 10px; }
 

@@ -18,7 +18,7 @@
   margin-block: calc(-1 * var(--sp-6) - var(--header-height)) calc(-1 * var(--sp-6));
 }
 
-.hm-container { width: min(var(--w), 100% - 32px); margin-inline: auto; }
+.hm-container { width: min(var(--w), 100% - var(--gut) * 2); margin-inline: auto; }
 
 .hm-section { position: relative; background: var(--bg); padding-block: var(--pad); }
 .hm-band    { position: relative; background: var(--bg-subtle); }
@@ -71,8 +71,8 @@
 .hm-rail__track {
   display: flex; gap: 16px; overflow-x: auto;
   scroll-snap-type: x mandatory; scroll-behavior: smooth;
-  scroll-padding-inline-start: calc((100% - min(var(--w), 100% - 32px)) / 2);
-  padding: 4px calc((100% - min(var(--w), 100% - 32px)) / 2) 12px;
+  scroll-padding-inline-start: calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2);
+  padding: 4px calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2) 12px;
   scrollbar-width: none;
 }
 .hm-rail__track::-webkit-scrollbar { display: none; }
