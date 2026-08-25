@@ -23,6 +23,10 @@ export const LeadOwnershipHistory: CollectionConfig = {
     plural: '线索归属历史',
   },
   admin: {
+    // group:false 让本集合退出 Payload 原生导航（3.86 的 groupNavItems 对
+    // group===false 直接跳过），同时**保留直达路由**用于排障。
+    // 按既有产品决定它也不进自定义导航，见 admin-navigation-config.test 的
+    // 「不在主导航暴露归属历史或技术分组名」。
     group: false,
     useAsTitle: 'id',
     defaultColumns: ['lead', 'action', 'fromOwner', 'toOwner', 'createdAt'],

@@ -117,6 +117,7 @@ describe('admin navigation config', () => {
           'listing-reviews',
         ]),
         expectedLeaf('listing-reports', '举报处理', '/admin/collections/listing-reports', ['reports']),
+        expectedLeaf('information-corrections', '信息纠错', '/admin/collections/information-corrections', ['reports']),
       ]),
       expectedGroup('crm', '客户运营', [
         expectedLeaf('leads', '咨询线索', '/admin/collections/leads', ['leads', 'my-leads']),
@@ -248,6 +249,8 @@ describe('admin navigation config', () => {
       'supply-import-batches',
       'location-aliases',
       'building-merchant-relations',
+      // OPT-049：三个此前只能靠 Payload 原生导航看到的集合
+      'information-corrections',
     ])
     const collectionSlugs = collectItems(ADMIN_NAV_GROUPS)
       .map((item) => item.collectionSlug)

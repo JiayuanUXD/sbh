@@ -692,12 +692,24 @@ html[data-theme='dark'] {
 // - 移动端（<1024px）：保持 Payload 原生抽屉式导航，不做任何干预
 
 // 始终隐藏 Payload 默认的导航分组（我们的自定义 admin-navigation 已完全替代）
-.nav__groups {
+//
+// ⚠️ 类名是 `nav-group`（连字符），**不是** `nav__groups`。OPT-049 之前这里写的是
+// Payload 2 的 BEM 命名，在 3.86 下一个元素都匹配不到——于是原生导航整个都在，
+// 看起来就是左下角那个「挤成一团、风格不一致」的区块。
+//
+// 这几条 display:none 是**功能**不是样式：Payload 没有「关掉默认导航」的配置项，
+// 自定义导航挂在 admin.components.beforeNavLinks（加在原生导航**之前**，不是替换它），
+// 所以只能靠 CSS 藏。选择器写错 = 原生导航复活，且完全静默（CSS 匹配不到不报错）。
+// tests/admin-nav-hidden-selectors.test.ts 守这条契约。
+.nav-group {
   display: none !important;
 }
 
 // 始终隐藏 Payload 默认的左下角退出按钮（已合并到右上角 AccountMenu 下拉菜单）
-.nav__controls {
+//
+// 3.86 里 Logout 组件的 baseClass 就是 `nav`，退出按钮渲染为 `.nav__log-out`；
+// 旧写法 `.nav__controls` 同样已不存在。
+.nav__log-out {
   display: none !important;
 }
 

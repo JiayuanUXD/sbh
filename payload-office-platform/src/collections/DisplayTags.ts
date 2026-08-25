@@ -22,6 +22,16 @@ export const DisplayTags: CollectionConfig = {
     plural: '展示标签',
   },
   admin: {
+    // OPT-049：group:false 让本集合退出 Payload 原生导航（3.86 的 groupNavItems
+    // 对 group===false 直接跳过），同时保留直达路由。
+    //
+    // **刻意不进自定义导航**：本集合的头注释写着「当前暂无消费字段，作为通用能力
+    // 先就位；M3/M4 再挂接到具体业务对象」——给一个还没有任何业务在用的能力加
+    // 导航入口，只会让运营点进去看到一个不知道拿来干什么的空列表。
+    // 等它真正被业务消费时再收编。
+    //
+    // 另外「基础配置」子分组有明确产品意图「只保留配套字典」
+    //（见 e2e geography-admin.spec 的用例标题），塞第二个进去是越界。
     group: false,
     useAsTitle: 'name',
     defaultColumns: ['name', 'code', 'sortOrder', 'visible', 'status'],

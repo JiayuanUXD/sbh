@@ -113,6 +113,11 @@ export const ADMIN_NAV_GROUPS = [
     leaf('listing-reports', '举报处理', '/admin/collections/listing-reports', ['reports'], {
       badgeKey: 'listingReports',
     }),
+    // OPT-049：前台访客提交的信息纠错，追加式审计轨迹。此前未收编，
+    // 只能靠 Payload 原生导航才看得到——而原生导航本该是隐藏的。
+    leaf('information-corrections', '信息纠错', '/admin/collections/information-corrections', ['reports'], {
+      collectionSlug: 'information-corrections',
+    }),
   ]),
   group('crm', '客户运营', 'user', [
     leaf('leads', '咨询线索', '/admin/collections/leads', ['leads', 'my-leads'], {

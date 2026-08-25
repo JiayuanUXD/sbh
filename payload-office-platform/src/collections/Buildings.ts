@@ -1,4 +1,5 @@
 import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import { createCollectionAccess } from '@/domain/auth/access'
 import { DETAIL_MEDIA_KINDS, DETAIL_MEDIA_KIND_LABELS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
@@ -18,6 +19,7 @@ import {
   VERIFICATION_STATUSES,
   VERIFICATION_STATUS_LABELS,
 } from '@/domain/supply/building'
+import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
 import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-check-endpoint'
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
@@ -105,7 +107,31 @@ export const Buildings: CollectionConfig = {
   },
   trash: true,
   access: {
+    // 前台匿名可读——公开站点靠有效供给谓词在查询层收窄，不靠 access.read。
     read: () => true,
+    /**
+     * OPT-051：删除必须显式收口。
+     *
+     * 此前这里**只有 `read`**，`delete` 缺省 → Payload 默认「任何登录用户都能删」。
+     * 而其余十个集合都显式收了口（`delete: () => false` 或绑权限码），
+     * 供给侧最核心的这两个反倒是例外。
+     *
+     * 三点让它比看起来更危险：
+     *   1. `trash: true` 只影响后台按钮语义，**不影响 `access.delete` 的判定**；
+     *   2. 本项目 `payload.delete` 恒为硬删（`trash` 参数只是查询过滤器），
+     *      任何直接调 API 的路径都是真删；
+     *   3. 这个库上已经真实发生过一次房源硬删。
+     *
+     * `listing:delete` / `building:delete` 两个权限码**早在 permission-codes.ts
+     * 里定义好了**（access.ts 的文档注释甚至拿它当示例），只是从没被任何
+     * collection 消费、也没授予任何角色——一对彻底的死代码。这里把它接上。
+     *
+     * 当前只有 ADM（`operationPermissions: ['*']`）能通过，**无需迁移**：
+     * 通配符由 `hasOperationPermission` 内部处理。将来要放给 OPS，
+     * 走迁移授权 + 同步 `src/test/factory/roles.ts`（不同步会被 seed 擦掉，
+     * 见 OPT-045 §9 的实测教训）。
+     */
+    delete: createCollectionAccess({ delete: 'building:delete' }).delete,
   },
   hooks: {
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
@@ -116,6 +142,13 @@ export const Buildings: CollectionConfig = {
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
     // 楼盘停用 / 换城市 / 改展示字段都会改变前台可见性与楼盘详情，必须失效公开缓存。
     afterChange: [invalidateBuildingPublicCacheAfterChange],
+    // OPT-050：楼盘删除守护。还有房源挂着就拦下并说清原因；没有房源则顺手清掉
+    // building-merchant-relations 那些纯关系行。
+    //
+    // 不接这个钩子的后果不是「删不掉」，而是「删不掉且看不懂」——外键
+    // SET NULL 撞上 NOT NULL，PG 中止事务，运营只看到 500，日志里也只剩
+    // `current transaction is aborted`。详见该文件头注释。
+    beforeDelete: [guardBuildingDelete],
     afterDelete: [invalidateBuildingPublicCacheAfterDelete],
   },
   fields: [

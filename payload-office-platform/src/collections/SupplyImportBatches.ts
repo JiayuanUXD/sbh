@@ -15,6 +15,14 @@ export const SupplyImportBatches: CollectionConfig = {
   slug: 'supply-import-batches',
   labels: { singular: '导入批次', plural: '导入批次' },
   admin: {
+    // OPT-049：`group: false` 让本集合退出 Payload **原生**导航
+    // （3.86 的 groupNavItems 对 group===false 直接跳过）。
+    //
+    // 不设它的后果就是后台左下角那个「挤成一团、与上面九个分组风格不一致」的区块
+    // ——那不是样式没写好，是本集合落进了 Payload 的默认分组，其 i18n 标签
+    // 恰好就叫「集合」。入口由 navigation-config.ts 的自定义导航提供（OPT-045 D4），
+    // 原生那份是纯粹的重复。
+    group: false,
     useAsTitle: 'fileName',
     defaultColumns: ['fileName', 'type', 'status', 'createdAt'],
     components: {
