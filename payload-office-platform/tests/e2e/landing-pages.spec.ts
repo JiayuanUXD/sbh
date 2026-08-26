@@ -76,14 +76,27 @@ test.afterEach(async ({ page }) => {
 })
 
 test.describe('主导航入口调整', () => {
-  test('主导航有 6 项且不含服务式办公', async ({ page }) => {
+  test('主导航有 7 项且不含服务式办公', async ({ page }) => {
     await page.goto('/entrust')
     const nav = page.getByRole('navigation', { name: '主导航' })
 
-    await expect(nav.getByRole('link')).toHaveCount(6)
+    // OPT-054 加了「首页」项后是 7 项。这个数字锁的是**运营什么都不配时**的默认值
+    // （见 SiteSettings.mainNav 的 defaultValue 与 public-nav.ts 的 MAIN_NAV_ITEMS）——
+    // 导航已可后台配置，线上实际项数由配置决定。
+    await expect(nav.getByRole('link')).toHaveCount(7)
     await expect(nav.getByRole('link', { name: '服务式办公' })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: '首页' })).toBeVisible()
     await expect(nav.getByRole('link', { name: '委托找房' })).toBeVisible()
     await expect(nav.getByRole('link', { name: '投放房源' })).toBeVisible()
+  })
+
+  test('子页面上只有一项处于激活态（首页不得前缀命中）', async ({ page }) => {
+    // 多城市模式下 cityAwareHref 把「首页」的 `/` 重写成 `/{city}`，若仍走前缀匹配，
+    // 该城任意子页面都会让「首页」与所属板块同时 aria-current="page"。
+    // 单测在 tests/site-nav-current.test.ts，这里从真实 DOM 再兜一层。
+    await page.goto('/buildings')
+    const nav = page.getByRole('navigation', { name: '主导航' })
+    await expect(nav.locator('[aria-current="page"]')).toHaveCount(1)
   })
 })
 
