@@ -131,9 +131,14 @@ const ROLE_NAVIGATION = {
       group: '房源运营',
       leaf: '房源列表',
       slug: 'listings',
-      // OPT-056 起 listings/buildings 整页换成 Arco 自定义列表视图，**刻意不渲染**
-      // Payload 原生的「所有 房源列表」抬头（见 ListingsListViewClient 文件头注释）。
-      // 所以这里不能再断言 h1——那不是页面坏了，是断言过期了。
+      // OPT-056 起 listings/buildings 整页换成 Arco 自定义列表视图。
+      //
+      // 订正一处措辞：被刻意去掉的是原生抬头里的「所有 房源列表 / 垃圾箱」**标签条**，
+      // 不是 h1 标题——原生抬头是「h1 房源列表 | 创建新条目 | 所有 房源列表 | 垃圾箱」
+      // 四段。h1 后来补回来了（可访问性地标），所以断言 h1 其实也能过。
+      //
+      // 但这里仍按根容器断言：本批改动本身就含「文案净化」，按文案断言的东西下次
+      // 净化时又会挂，容器类名不会。
       rootSelector: '.listings-list',
     },
   },
