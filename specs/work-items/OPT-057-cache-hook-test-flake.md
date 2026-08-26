@@ -1,9 +1,9 @@
-# Task Packet：OPT-056 `supply-public-cache-hook` 在满负载下 5 秒超时，五次中两次
+# Task Packet：OPT-057 `supply-public-cache-hook` 在满负载下 5 秒超时，五次中两次
 
 > 状态：**已确认，未修复**
 > 创建日期：2026-08-26
 > 来源：OPT-053 实施期间反复撞到，一度拦下 `git push`（pre-push 跑全套单测）
-> 编号说明：OPT-055 是缺省 access 一族，故取 056
+> 编号说明：本项原编 OPT-056，与同日另一批后台体验优化（PR #111）撞号，改取 057
 
 ---
 
