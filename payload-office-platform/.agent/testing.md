@@ -46,6 +46,139 @@ pnpm build
 - 触控目标 ≥44px，颜色不是唯一表达。
 - 移动 p75 目标：LCP ≤2.5s、INP ≤200ms、CLS ≤0.1。
 
+## 证据质量（OPT-037 回写：这批出过四次「证据本身有问题」，前三次事后才发现）
+
+前面几节管的是「有没有验」，本节管的是「验出来的东西算不算数」。四条判据，每条都对应一次真实失误：
+
+- **验证脚本必须随证据一起提交——证据文件不能自证。** 出过这样一次：报告称「实测通过」，
+  而它自己提交的 JSON 在 2/3 断点上给出相反的值，报告引用的键在 JSON 里根本不存在，生成脚本又没进仓；
+  事后才查明是**两支脚本的结论被混着写进了一份报告**。没有脚本，没人能复核一个「已附证据」的结论。
+- **截图 / HTML 对比之前，先证明页面真的渲染了。** 出过拿两张 404 页比出「四档 0 差异像素」的空结论
+  （`/dev-story/*` 这类预览路由在 `next start` 下可能显式 `notFound()`）。先断言状态码与一个页面特有的选择器，再比像素。
+- **量之前先确认夹具能产出被测现象。** 空的关系表会让改动前后都是 0，「没变化」被误读成「没生效」或更糟——被当成「已验证」。
+  临时夹具可以用，但要能整段还原，并在报告里写清「量完已移除」。
+- **URL 类证据不要归一成 pathname。** 归一会让带 query 的那一整类链接在证据里隐形
+  （实例：5 条 `/listings?district=<slug>` 全塌进已被导航预取的 `/listings`，整整 5 条收益在证据里消失）。
+  只剥框架自己的指纹参数（如 `_rsc`），其余 query 保留。
+
+### HTML / 像素逐字节比对：必须「热 vs 热」并配噪声本底对照组
+
+「改前改后一个字节都没变」这类硬约束，只有把**本底噪声**一起量出来才成立。OPT-037 实测到的三类噪声：
+
+- **RSC flight 载荷的切块边界每次都不一样。** `<script>self.__next_f.push([...])</script>` 是同一份 DOM
+  的第二份序列化，Next 按到达时机切块，**同一个构建连抓两次切块数就不同**。比 DOM 就整段剔除、
+  连续多段折叠成一段再比；比不了就别把它算进「diff 行数」。
+- **高德 POI 子树是非确定性的。** 「周边配套」走高德 Web 服务 + 进程内 24h 缓存
+  （`domain/location-services/cache.ts`：失败不写缓存，下次重试）。冷启动首个请求偶发某个类别拿不到，
+  那条一级 tab 乃至整个 `.location-panel__poi-panel` 就不渲染，HTML 少 6KB，页高抖 280px 以上。
+  **取样前每条 URL 先预热 3 次**，冷抓 vs 热抓比出来的差异一律不算数。
+- **构建指纹**（chunk hash / BUILD_ID）与逐请求数据（`data-supply-as-of`）必须归一。
+
+因此：**两侧都要热抓**，并且必须另跑一组「同一个构建连抓两次」的对照。对照组的差异量就是本底；
+改前改后的差异不大于本底时，「没变」才是结论而不是运气。
+POI 遮罩（`--mask-poi`）是对的解药，但它会**一并吞掉真发生在面板内部的回归**——
+用它就必须配「两侧面板都存在」的对照，两侧存在性不一致时**拒绝出结论**（冷抓与「面板被改没了」在遮罩下不可区分）。
+像素比对同理：两图页高不等时按 `Math.min` 裁齐会**稀释差异率**，只在一侧存在的像素要按「差异」计。
+
+### 「页面真的渲染了」要做成脚本里的断言，不是人的自觉
+
+OPT-037 把它抽成了一份共享哨兵：`../artifacts/verification/OPT-037/lib/sentinel.json`（判据唯一事实源：
+状态码 + 每个路由族的关键选择器/标记）+ `sentinel.mjs` / `sentinel.py` / `sentinel.sh` 三个薄读取器
+（Playwright / difflib / curl 三种运行时无法共用代码，但**判据只有一份**）。
+新写验证脚本时**引用它，不要各写一份**——这批「同一逻辑多处」已经栽过八次，
+截图循环不记状态码正是「四档 0 差异像素」那条假结论的直接成因。
+
+### 用 `getComputedStyle` / `getBoundingClientRect` 量版式：四条会读出整套假数的陷阱
+
+OPT-038 实地踩出来的，每条都差点导出一个错误结论：
+
+- ★ **改视口后必须 `reload` 再量。** 只调 `resize_window` / `setViewportSize` 不刷新，`100vw` 出血层
+  （`.rc-page` / `.dt-page` / `.hm-home` 都是这个机制）会保持**旧视口宽**，读出「375 视口 / section 宽 1440 /
+  scrollWidth 908」这种自相矛盾的一整套数——曾差点被当成 533px 的真溢出 bug 去修。
+- ★ **pane 不合成帧时（`document.visibilityState === 'hidden'` / 后台标签页），CSS transition 会冻结在起始值。**
+  这时读 `:focus` / `:hover` 这类过渡态，`getComputedStyle` 给的是**基态假象**，看起来像「选择器没生效」——
+  曾差点据此去改特异度。量过渡态前先把元素 `transition: none`，或确保 pane 在前台。
+  ⚠️ **措辞订正（2026-08-22 终审 I3）**：本条最初是凭 OPT-038 Task 3 的一次**临时浏览器会话**写进来的，
+  那次会话的读数**从未落盘**——整个 `artifacts/verification/OPT-038/` 当时 `focus` 零命中，
+  随证据提交的 `task3-form-states-probe.mjs` 里既没有 `.focus()`、也没有 `Tab`、更没有 `transition: none`。
+  规则本身成立（终审时重跑真实测已复现：`artifacts/verification/OPT-038/final-fix-probe-*.json` 的 `focus` 段，
+  程序 `.focus()` 与真键盘 Tab 两条路径都读到 `matches(':focus-visible') === true` +
+  `rgb(0,113,227)` + `rgba(0,113,227,.18) 0 0 0 4px`，与当初报告里的数逐位相同），
+  **但当时没有任何人能验证它**。教训是两条，不是一条：过渡态要关 transition 再读；
+  **凡写进常驻规则的「实测」，读数必须落进 `artifacts/verification/` 且脚本随证据提交**，
+  否则下一个人只能选择相信或从头再做一遍。
+- **全站 `scroll-behavior: smooth` 会把 `window.scrollTo` 变成动画。** 只等两帧就读位置会得到
+  「请求 2400、实际 235」，整段 sticky 采样作废。测滚动前先置 `scroll-behavior: auto`。
+- **同一份数据在两个断点上结论不同 ⇒ 先怀疑缓存的第一拍，不要怀疑断点。** `unstable_cache` 的条目落在
+  `.next/cache`，**换一个 server 进程也还在**：临时写库后新起 server，第一次请求仍拿到旧数据，第二次才对。
+  而「某个 section 渲不渲染」是服务端决定的、与视口无关——出现这种矛盾时结论只有一个方向。
+- 配套：**「还原成观察到的原值」的临时写库探针必须先断言干净起点**，否则会把上一轮的残留当成原值写回去、
+  一路级联。加起始状态守卫 + 还原后自查，任一不满足直接抛。
+
+### 本地 `next start` 的两条环境事实（照文档传参会白传）
+
+- **`CI=1` 是真开关**：`lib/storage/cos-config.ts:86` 用它豁免 COS 检查。不设就是
+  `config-guard` fail-closed，症状是「一部分路由 404、一部分 200」（实测 `/listings`、
+  `/listings/<slug>`、`/buildings` 全 404，而 `/buildings/<slug>`、`/news` 仍 200——
+  别按「房源全红楼盘全绿」这句去归因，实际分布比那句更乱）。
+- **`NEXT_PUBLIC_SITE_URL` 在 `next start` 时传是没用的**：`lib/frontend/site-config.ts` 读的是
+  静态成员表达式 `process.env.NEXT_PUBLIC_SITE_URL`，Next 在 **`next build` 时把它内联成字面量**
+  （实测编译产物里是 `let b="http://localhost:3717"`，来自工作树 `.env.local`）。
+  所以页面渲染出来的 canonical / JSON-LD `url` / OG 的 **origin 恒等于构建时的值**，
+  **断言只能打在 path 上**。它在 `next start` 时唯一还起作用的地方是
+  `lib/runtime/config-guard.ts`——那边把整个 `process.env` 当对象传进去，是运行时读。
+
+- ★ **`MULTI_CITY_ROUTING_ENABLED` 必须在 server 与 Playwright **两个进程**上取同一个值。**
+  7 个 spec（`multi-city-routing` / `multi-city-isolation` / `multi-city-forms` / `detail-pages` /
+  `landing-pages`）直接读**测试进程自己的** `process.env.MULTI_CITY_ROUTING_ENABLED` 来选期望值，
+  server 那边则决定实际行为。只给 `next build` / `next start` 传 `=false`、Playwright 侧不传，
+  测试进程会从工作树 `.env.local` 拿到 `true` → **14 条失败**（「期望 307 实际 200」、
+  「`.city-switcher__trigger` 找不到」），看起来完全像产品回归。
+  实测：同一个构建、同一台 server，只在 Playwright 侧补上 `MULTI_CITY_ROUTING_ENABLED=false`，
+  就从 `128 passed / 14 failed` 回到 `141 passed / 0 failed`。**这类失败先核两侧 flag，再怀疑代码。**
+
+补两条同源的采样纪律：
+
+- **断言要打在缺陷区内，不要打在「恰好还能用的那一半」。** Playwright 的 `click()` 默认打元素中心；
+  一个盖住底部 45% 的装饰层吞掉点击时，中心点恰好避开缺陷区，测试照样绿。修复后要把打在缺陷区的断言常驻化。
+- **对照实验的样本数必须匹配被测对象的稳定性。** 怀疑是竞态时 `n=1` 的对照不构成证据
+  （用 `--repeat-each=N`）。稳定性判据还必须排除「平凡稳定」——「一直没动」也满足「不动」，
+  「反复滚到底直到 scrollY 稳定」会接受「从未移动」这个状态。
+
+## `pnpm test` 不含 E2E——改了 class / role / aria / DOM 结构必须本地实跑 e2e
+
+宪章把 E2E 留给 CI，所以本地三闸门（typecheck / test / lint）全绿在结构上**证明不了**改动安全。
+本批有两次「本地全绿、e2e 红」，其中一次潜伏了 6 个任务才被发现。
+
+本地跑「CI 等价」E2E 的完整环境（缺任一项都会得到误导性结果）：
+
+- 构建：`CI=1` + **https 的 `NEXT_PUBLIC_SITE_URL`** + `MULTI_CITY_ROUTING_ENABLED=false`；
+- 起 server：`next start -p <非 3717 端口>`，curl 预热全部取样路由确认 200 后再跑 Playwright；
+- Playwright 侧**带 `E2E_PROD_SERVER=1`、不带 `CI=1`**（`reuseExistingServer: !CI`）。
+
+典型症状与归因：
+
+- **「房源类路由全红 / 楼盘类全绿」** = 缺 `CI=1` 或 `NEXT_PUBLIC_SITE_URL` 不是 https，
+  `src/lib/runtime/config-guard.ts` fail-closed 让房源类路由全线 404。先查环境，别查被测代码。
+- **「旧详情所有权」用例 307 vs 200** = 工作树 `.env.local` 里的 `MULTI_CITY_ROUTING_ENABLED`
+  被 `next start` 读到而 Playwright 进程读不到，**这个错配本身**就会让用例失败。必须显式设 `=false`。
+- **本地库夹具厚薄不同会改变结论**：并行 worktree 各自的隔离库房源数、媒体数都不一样，
+  「master 上就坏的」「本地没跑 seed:media」这类归因在换库后可能整个不成立。
+  写进记忆的环境断言要标注实测日期，被当作硬性指令前必须重新实测。
+- **`unstable_cache` 落盘到磁盘，重启 server 并不清它**——改库后要在前台看见变化：
+  删缓存目录**再**重启，两步缺一不可。否则连着三次「状态走查」拿到的是同一份基线数据。
+  ⚠️ **目录别照抄，先 `ls`**（2026-08-22 终审订正，原文写死 `.next/dev/cache/fetch-cache`）：
+  Next 的实现是 `path.join(serverDistDir, '..', 'cache', 'fetch-cache')`
+  （`next/dist/server/lib/incremental-cache/file-system-cache.js:318`），**随 dev / prod 的
+  distDir 变化**。本工作树实测：`next build` + `next start` 落在 **`.next/cache/fetch-cache`**，
+  而 `.next/dev/cache/` 下只有 `turbopack`。照一个写死的路径去删，很可能什么都没删，
+  症状恰好是「删了缓存还是旧数据」。
+- 外部脚本复现不出来的 e2e 失败，差异往往在 fixture / `beforeEach`（例：`route.abort()` 自己会记一条
+  `net::ERR_FAILED` 到 console，被 `afterEach` 的控制台守卫拦下）。**直接在 `tests/e2e` 里放一个临时 spec、
+  跑完即删**，在真实 runner 里抓，比继续猜便宜。
+- 定位「是不是我们弄坏的」用**定向对照法**：`git checkout master -- <单个可疑文件>` → 跑用例 →
+  `git checkout HEAD -- <该文件>` 还原。比 worktree / bisect 便宜且能精确到文件（但仍受上面 `n=1` 那条约束）。
+
 ## 证据
 
 详细输出（长日志、截图等）存入 `../artifacts/verification/<工作项编号>/` 或 PR 描述，禁止粘贴长日志到 Tasks。

@@ -2,7 +2,8 @@
  * OPT-035 首页专属样式（Apple 中性极简）
  * 设计依据：docs/SBH设计任务讨论/首页.dc.html 已锁定稿
  * 规则：只准引用 styles.css §1 的 token；命名空间 .hm-*；
- *       中文 letter-spacing normal（全局），唯一例外 .hm-lead 的 +0.011em
+ *       中文 letter-spacing normal（**全局无例外**——原先给 21px 引导副标
+ *       `.hm-lead` 开的 +0.011em 例外，随该类零使用一并删除，见终审 D2）
  * ========================================================================== */
 
 /* 首页外壳出血：.site-main 有区块内边距（padding-block: var(--sp-6)）与容器上限，
@@ -25,7 +26,6 @@
 .hm-h2 { margin: 0; font-size: 40px; font-weight: 600; line-height: 1.1; color: var(--ink); }
 .hm-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px; }
 .hm-section-link { font-size: 17px; color: var(--accent-link); }
-.hm-lead { font-size: 21px; font-weight: 400; line-height: 1.38; letter-spacing: 0.011em; color: var(--ink-2); text-wrap: pretty; }
 
 /* 卡片表面 / 图上渐变 / 图上标签 / tabular 数字已上移到 styles/surface.css 的
    .sf-* 共享基元（OPT-036）：首页、列表页、详情页、招募页共用同一套，

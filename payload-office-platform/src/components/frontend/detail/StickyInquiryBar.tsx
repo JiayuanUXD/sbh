@@ -33,12 +33,18 @@ import { useAnchorVisibility } from '@/lib/frontend/use-anchor-visibility'
  *   两者都是"避免同一价格信息重复出现在视口"的 IntersectionObserver 模式，
  *   但服务的是完全不同的两个物理机制——DetailMobileBarPrice 的宿主
  *   `.detail__mobile-bar` 是移动端固定在视口底部、贯穿全程常驻的操作栏，
- *   只是价格文字的显隐随 `.detail__rent` 滚出与否切换；本组件是桌面端
- *   顶部吸附栏，栏本身的挂载/卸载（不是栏内某个文字的显隐）由决策卡的
- *   sticky 释放点决定，且只在桌面宽度渲染（`@media (max-width:1023px)`
- *   直接 `display:none`，移动端继续用 `.detail__mobile-bar`）。断点、锚点、
- *   触发的对象层级都不同，勉强合并成一个组件只会让两条无关的判断条件绞在
- *   一起，故意保持两个文件。
+ *   只是价格文字的显隐随页内价格元素（房源页现为决策卡 `.dt-decision`）滚出
+ *   与否切换；本组件是顶部吸附栏，栏本身的挂载/卸载（不是栏内某个文字的显隐）
+ *   由决策卡的 sticky 释放点决定，且在 `@media (max-width:767px)` 直接
+ *   `display:none`（见 detail.css `.dt-sticky-bar`），移动端交给
+ *   `.detail__mobile-bar`。断点、锚点、触发的对象层级都不同，勉强合并成一个
+ *   组件只会让两条无关的判断条件绞在一起，故意保持两个文件。
+ *
+ *   ⚠️ 断点是 **767**，不是 1023。本注释与下方 render 里那条曾经都写着 1023
+ *   （Task 4 的取值），Task 9 已把 CSS 收窄到 767 却没同步注释：`.dt-decision`
+ *   在 ≤1023 只是回到普通文档流、并没有常驻入口顶上，而 `.detail__mobile-bar`
+ *   自己只在 ≤767 出现——两条各按各的断点收，768–1023 这一带就没有任何询价
+ *   入口。照着 1023 这个旧数字去「对齐」CSS 会把那个空档重新打开。
  *
  * 询价入口只有一条真实逻辑：本条与决策卡的 CTA 都直接渲染调用方传入的
  * `cta`（同一个 `InquiryModal` 组件，同一份目标房源 props）——本文件不
@@ -82,12 +88,20 @@ export default function StickyInquiryBar({
   if (!visible) return null
 
   return (
-    <div className="dt-sticky-bar" role="region" aria-label="询价操作栏">
-      <div className="dt-container dt-sticky-bar__inner">
+    // dt-bar / dt-bar__inner 是与 AnchorNavBar 共享的吸附栏外壳（高 56 · 毛玻璃
+    // · 底线 · 居中容器），Task 8 抽出，见 detail.css「吸附栏共享外壳」；
+    // dt-sticky-bar / dt-sticky-bar__inner 只保留本条独有的 fixed 定位与 gap。
+    // aria-label 与移动端底栏（`.detail__mobile-bar`，"询价操作栏"）必须不同名
+    // ——Task 9 接线后两者在同一份 DOM 里共存（本条 ≤767 只是 CSS display:none，
+    // 元素仍在），同名会产生两个无法区分的 region 地标：无障碍树里读起来是
+    // 「询价操作栏」出现两次，自动化里 `getByRole('region', { name: '询价操作栏' })`
+    // 直接 strict-mode 撞车。两者本来就是不同断点下的两个入口，分开命名更准确。
+    <div className="dt-bar dt-sticky-bar" role="region" aria-label="吸附询价条">
+      <div className="dt-container dt-bar__inner dt-sticky-bar__inner">
         <span className="dt-sticky-bar__title">{title}</span>
         {priceText != null && (
           <span className="dt-sticky-bar__price">
-            <span className="dt-sticky-bar__price-num">{priceText}</span>
+            <span className="sf-num dt-sticky-bar__price-num">{priceText}</span>
             {priceUnit && <span className="dt-sticky-bar__price-unit">{priceUnit}</span>}
           </span>
         )}

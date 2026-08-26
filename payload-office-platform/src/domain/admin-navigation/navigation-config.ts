@@ -64,6 +64,23 @@ export const ADMIN_NAV_GROUPS = [
       collectionSlug: 'supply-submissions',
       requiredOperationCode: 'supply_submission:read',
     }),
+    // OPT-041 批量导入：两个自定义视图，非 collection 路由，不设 collectionSlug。
+    // menuCodes 沿用对应业务对象的既有码，requiredOperationCode 再收窄到 data:import
+    // ——与 BulkImportView 的 requireImportAccess / endpoint 的 guardImport 判据一致。
+    leaf('import-buildings', '楼盘批量导入', '/admin/import/buildings', ['buildings'], {
+      requiredOperationCode: 'data:import',
+    }),
+    leaf('import-listings', '房源批量导入', '/admin/import/listings', ['listings'], {
+      requiredOperationCode: 'data:import',
+    }),
+    // OPT-045 D4：导入批次此前**不在导航配置里**，只能直敲 URL 才能看到。
+    // 未被自定义导航收编的 collection 会被兜底渲染成后台左下角那个挤成一团、
+    // 与上面九个分组风格明显不一致的「集合」区块——那不是样式没写好，
+    // 是它根本不走自定义导航那套。收编进正常分组，兜底区块自然消失。
+    leaf('supply-import-batches', '导入批次', '/admin/collections/supply-import-batches', ['listings'], {
+      collectionSlug: 'supply-import-batches',
+      requiredOperationCode: 'data:import',
+    }),
   ]),
   group('region-management', '区域管理', 'location', [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
@@ -82,6 +99,12 @@ export const ADMIN_NAV_GROUPS = [
     leaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations'], {
       collectionSlug: 'locations',
     }),
+    // OPT-045 D4：地理别名同样是漏收编的集合（理由见 supply-import-batches 那条）。
+    // 归区域管理：它存的就是城市/行政区/商圈/地铁的别名，导入时按它做名称解析。
+    leaf('location-aliases', '地理别名', '/admin/collections/location-aliases', ['locations'], {
+      collectionSlug: 'location-aliases',
+      requiredOperationCode: 'location:manage',
+    }),
   ]),
   group('risk', '审核与风控', 'shield', [
     leaf('listing-reviews', '审核队列', '/admin/collections/listing-reviews', ['listing-reviews'], {
@@ -89,6 +112,11 @@ export const ADMIN_NAV_GROUPS = [
     }),
     leaf('listing-reports', '举报处理', '/admin/collections/listing-reports', ['reports'], {
       badgeKey: 'listingReports',
+    }),
+    // OPT-049：前台访客提交的信息纠错，追加式审计轨迹。此前未收编，
+    // 只能靠 Payload 原生导航才看得到——而原生导航本该是隐藏的。
+    leaf('information-corrections', '信息纠错', '/admin/collections/information-corrections', ['reports'], {
+      collectionSlug: 'information-corrections',
     }),
   ]),
   group('crm', '客户运营', 'user', [
@@ -110,6 +138,17 @@ export const ADMIN_NAV_GROUPS = [
         requiredOperationCode: 'city_partner_application:read',
         badgeKey: 'cityPartnerApplications',
       },
+    ),
+    // OPT-045 D4：楼盘商户关系此前不在导航里，**任何角色包括 ADM 都看不到**，
+    // 只能直敲 URL。而它是有效供给 §8 的关键配置——楼盘没有生效商户关系，
+    // 其下房源就进不了前台。实测手工补三个楼盘约 18 次点击且没有批量入口，
+    // 这正是 OPT-045 要加默认商户回落的直接动因（§2.2）。
+    leaf(
+      'building-merchant-relations',
+      '楼盘商户关系',
+      '/admin/collections/building-merchant-relations',
+      ['merchants'],
+      { collectionSlug: 'building-merchant-relations' },
     ),
   ]),
   group('team-management', '团队管理', 'team', [

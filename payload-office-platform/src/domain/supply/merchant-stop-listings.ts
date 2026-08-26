@@ -8,7 +8,9 @@
  *   - 商户恢复不自动解除（design §3.5）：运营需逐条显式重新发布
  *
  * 实现策略：
- *   - 通过 listing-merchant-relations 找到当前由该商户供给的有效房源
+ *   - OPT-034 起供给商户直接存在 listings.merchant，按 merchant.equals(merchantId)
+ *     查 listings 即找到当前由该商户供给的房源，不再经 listing-merchant-relations
+ *     关系表 + effectiveFrom/effectiveTo 区间判定
  *   - 对每条 listing 把 reviewStatus=pending（绕过状态机的 submit 动作，
  *     因这是合规冻结而非业务流程；附 _auditReason 标记供审计）
  *   - publicationStatus 不改（保持 draft / published 状态值，仅有效供给谓词
@@ -27,11 +29,12 @@ import type { BasePayload, PayloadRequest } from 'payload'
 export const MERCHANT_STOP_LISTING_REASON = 'MERCHANT_DISABLED_BATCH_REVIEW'
 
 /**
- * 列出商户当前有效供给关系对应的所有房源 ID。
+ * 列出该商户当前供给的所有房源 ID。
  *
- * 「当前有效」口径与 merchant-references.ts 一致：
- *   - effectiveFrom <= now
- *   - effectiveTo 为空或 > now
+ * OPT-034 起供给商户直接存在 listings.merchant：按 merchant.equals(merchantId)
+ * 查 listings 即为该商户当前供给的房源，字段有值即视为供给中，不再有
+ * 「关系尚未生效 / 已过期」的时间窗口判定。同时排除已逻辑删除的房源
+ * （deletedAt 非空），避免把已删除房源也转入待复核。
  *
  * 返回去重后的 listing id 列表。
  */
@@ -40,29 +43,29 @@ export async function listActiveListingIdsForMerchant(
   merchantId: number | string,
   req?: PayloadRequest,
 ): Promise<Array<number | string>> {
-  const now = new Date().toISOString()
-  const res = await payload.find({
-    collection: 'listing-merchant-relations' as never,
-    where: {
-      merchant: { equals: merchantId },
-      effectiveFrom: { less_than_equal: now },
-      or: [{ effectiveTo: { exists: false } }, { effectiveTo: { greater_than: now } }],
-    },
-    limit: 1000,
+  const LIMIT = 1000
+  const res = (await payload.find({
+    collection: 'listings' as never,
+    where: { merchant: { equals: merchantId }, deletedAt: { exists: false } },
+    limit: LIMIT,
     depth: 0,
     overrideAccess: true,
     req,
-  })
-  const docs = (res.docs ?? []) as Array<{ listing?: number | string | { id: number | string } | null }>
-  const ids = new Set<number | string>()
-  for (const doc of docs) {
-    const v = doc.listing
-    if (v === null || v === undefined) continue
-    if (typeof v === 'number' || typeof v === 'string') {
-      ids.add(v)
-    } else if (typeof v === 'object' && 'id' in v) {
-      ids.add((v as { id: number | string }).id)
-    }
+  })) as { docs?: Array<{ id: number | string }>; totalDocs?: number }
+  const docs = res.docs ?? []
+  const ids = new Set<number | string>(docs.map((d) => d.id))
+  // totalDocs 是查询命中总数（不受 limit 截断），docs.length 是实际返回条数。
+  // 二者不一致说明真实供给量超过 LIMIT，本函数会静默漏掉超出部分——这些房源
+  // 不会被转 pending review，商户恢复启用时会绕过人工复核直接重新曝光
+  // （见头注释「商户恢复不自动解除」这条不变量）。分页取全量或放开上限需要
+  // 单独设计（markListingsPendingReview 是逐条 findByID+update 的串行循环，
+  // 且与商户更新共享同一事务，简单放开会把单事务往返次数推到数千级，
+  // 容易超时回滚导致停用动作本身失败）——这里先把静默失败变成有日志线索。
+  if (typeof res.totalDocs === 'number' && res.totalDocs > LIMIT) {
+    payload.logger.warn(
+      { merchantId, totalDocs: res.totalDocs, limit: LIMIT, returned: docs.length },
+      'merchant_stop_listings_truncated',
+    )
   }
   return Array.from(ids)
 }

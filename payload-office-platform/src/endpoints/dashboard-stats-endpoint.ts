@@ -14,7 +14,6 @@ const COUNT_COLLECTIONS = ['listings', 'buildings', 'leads'] as const
 const FIND_COLLECTIONS = [
   ...COUNT_COLLECTIONS,
   'listing-reports',
-  'listing-merchant-relations',
 ] as const
 
 type CountCollection = (typeof COUNT_COLLECTIONS)[number]

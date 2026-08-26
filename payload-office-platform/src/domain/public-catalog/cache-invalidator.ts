@@ -40,6 +40,7 @@ import type { EventConsumer, ConsumerContext } from '@/domain/workflow/event-con
 import type { DomainEvent } from '@/domain/workflow/event-publisher'
 import type { EventType } from '@/domain/workflow/event-types'
 import {
+  IMMEDIATE_CACHE_EXPIRE_PROFILE,
   PUBLIC_CACHE_TAG_PREFIX,
   buildingTag,
   cityLevelSafeInvalidationTags,
@@ -258,8 +259,9 @@ export function registerCacheInvalidatorConsumers(
 export function createNextTagInvalidator(): TagInvalidator {
   return {
     revalidateTag(tag: string): void {
-      // Next 16 起 revalidateTag 第二参数 profile 必填，'max' 表示按最长缓存生命重新验证
-      revalidateTag(tag, 'max')
+      // 档位必须是硬失效，不能用 'max'（那会放行一次陈旧读）。
+      // 完整原因见 cache-tags.ts 的 IMMEDIATE_CACHE_EXPIRE_PROFILE 注释。
+      revalidateTag(tag, IMMEDIATE_CACHE_EXPIRE_PROFILE)
     },
   }
 }

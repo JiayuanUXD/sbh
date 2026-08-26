@@ -16,7 +16,7 @@
  *   - FullPredicateFakeAdapter 模拟生产 SupplyAdapter：
  *     · 查询层条件 §1-§4、§7 从 listing 文档字段判定；
  *     · §5 举报暂停从 pausedIds 集合判定；
- *     · §6/§8/§9/§10 委托生产 isListingEffectivelySupplied（带注入的 relationPeriod）。
+ *     · §6/§8/§9/§10 委托生产 isListingEffectivelySupplied（商户直接读 listing.merchant）。
  *   - 每条 § 条件构造一个失效 fixture + 一个有效基线，断言 7 个消费路径结果一致：
  *     searchListings / getListingBySlug / getRelatedListings / assertEffectiveListing /
  *     getBuildingDetail（listings + priceRanges）/ getHomepage / getSearchFacets。
@@ -41,7 +41,6 @@ import {
   isListingEffectivelySupplied,
   type EffectiveSupplySnapshot,
 } from '@/domain/review/effective-supply'
-import type { ValidityPeriod } from '@/domain/shared/validity'
 import type { Building, Listing, Location, Media, Page } from '@/payload-types'
 import { matchesPriceInput } from './helpers/fake-price-match'
 
@@ -152,12 +151,6 @@ const BUILDING_HANGZHOU: Building = {
   address: '杭州市拱墅区延安路 1 号',
 }
 
-/** 有效关系区间：覆盖 asOf */
-const RELATION_VALID: ValidityPeriod = {
-  startsAt: '2026-01-01T00:00:00.000Z',
-  endsAt: null,
-}
-
 /**
  * 构造有效房源基线（满足全部 §1-§10）。
  * 单条 fixture 通过 overrides 制造单条失效条件。
@@ -234,9 +227,8 @@ function makeHangzhouValidListing(): Listing {
  *      reviewStatus / supplyVisibilityHold / building.operationalStatus /
  *      building.city.status / building.district.status）。
  *   2. §5 举报暂停：从构造时注入的 pausedIds 集合判定。
- *   3. §6/§8/§9/§10 精筛：委托生产 isListingEffectivelySupplied。
- *      relationPeriod 从 listing 文档上的 _relationPeriod（测试注入字段）读取，
- *      模拟生产 loadRelationPeriod 的查询结果。
+ *   3. §6/§8/§9/§10 精筛：委托生产 isListingEffectivelySupplied。OPT-034 起商户
+ *      直接从 listing 文档上的 `merchant` 字段读取，不再模拟关系表查询。
  *
  * 通过此 FakeAdapter，测试既验证 Facade 行为，又交叉验证生产谓词 isListingEffectivelySupplied
  * 对相同 fixture 的判定与 Facade 各路径一致。
@@ -251,8 +243,6 @@ function createFullPredicateAdapter(options: {
   const districts = options.districts ?? [DISTRICT_JINGAN]
   const pausedIds = options.pausedIds ?? []
 
-  /** 测试注入字段：listing 上的关系区间（模拟 loadRelationPeriod 查询结果） */
-  type ListingWithRelation = Listing & { _relationPeriod?: ValidityPeriod | null }
   function resolveBuilding(ref: Listing['building']): Building | null {
     if (typeof ref === 'number') {
       return buildings.find((b) => b.id === ref) ?? null
@@ -287,35 +277,42 @@ function createFullPredicateAdapter(options: {
     // §5 未被有效举报暂停
     if (pausedIds.some((id) => String(id) === String(l.id))) return false
 
-    // §6/§8/§9/§10 精筛：委托生产谓词
-    const withRel = l as ListingWithRelation
+    // §6/§8/§9/§10 精筛：委托生产谓词。商户直接读 listing.merchant——
+    // 未设置（null/缺失）时快照 merchant=null，精筛层判 NO_SUPPLY_MERCHANT。
     const merchant =
       typeof l.merchant === 'object' && l.merchant !== null
         ? (l.merchant as unknown as Record<string, unknown>)
-        : {}
-    const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
+        : null
+    const serviceCities =
+      merchant && Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
     const snapshot: EffectiveSupplySnapshot = {
-      merchant: {
-        status: merchant.status,
-        qualificationStatus: merchant.qualificationStatus,
-        qualificationExpiresAt: (merchant.qualificationExpiresAt ?? null) as
-          | string
-          | Date
-          | null
-          | undefined,
-        serviceCityIds: serviceCities
-          .map((c) => {
-            if (typeof c === 'number' || typeof c === 'string') return c
-            if (typeof c === 'object' && c !== null && 'id' in c) {
-              const id = (c as { id: unknown }).id
-              if (typeof id === 'number' || typeof id === 'string') return id
-            }
-            return null
-          })
-          .filter((id): id is number | string => id !== null),
-      },
+      merchant:
+        merchant === null
+          ? null
+          : {
+              id:
+                typeof merchant.id === 'number' || typeof merchant.id === 'string'
+                  ? merchant.id
+                  : null,
+              status: merchant.status,
+              qualificationStatus: merchant.qualificationStatus,
+              qualificationExpiresAt: (merchant.qualificationExpiresAt ?? null) as
+                | string
+                | Date
+                | null
+                | undefined,
+              serviceCityIds: serviceCities
+                .map((c) => {
+                  if (typeof c === 'number' || typeof c === 'string') return c
+                  if (typeof c === 'object' && c !== null && 'id' in c) {
+                    const id = (c as { id: unknown }).id
+                    if (typeof id === 'number' || typeof id === 'string') return id
+                  }
+                  return null
+                })
+                .filter((id): id is number | string => id !== null),
+            },
       buildingCityId: typeof b.city === 'object' && b.city ? b.city.id : null,
-      relationPeriod: withRel._relationPeriod === undefined ? RELATION_VALID : withRel._relationPeriod,
     }
     const result = isListingEffectivelySupplied(snapshot, new Date(queryCtx.asOf))
     return result.eligible
@@ -842,48 +839,21 @@ describe('F1.2 失效供给一致性（design.md §3.6 十条规则）', () => {
     })
   })
 
-  // §8 商户关系落在有效期
-  it('§8a 关系未生效（effectiveFrom 在未来）在所有路径不可见', async () => {
-    const futureRelation: ValidityPeriod = {
-      startsAt: '2026-12-31T00:00:00.000Z',
-      endsAt: null,
-    }
-    const listing = makeValidListing()
-    ;(listing as Listing & { _relationPeriod?: ValidityPeriod })._relationPeriod = futureRelation
+  // §8 房源已设置供给商户（listings.merchant 非空）
+  //
+  // OPT-034 删除了 listing_merchant_relations 半开区间关系（[effectiveFrom,
+  // effectiveTo) 判定生效商户）。原三条用例（§8a 关系未生效 / §8b 关系已过期 /
+  // §8c 无关系）测的都是这层时间窗口的边界，随概念一起删除、不做等价改写——
+  // 新模型下只有「listing.merchant 有没有值」一个二元问题，已被 §8c 的等价物
+  // （下面这条 merchant=null 用例）覆盖，§8a/§8b 没有留下需要覆盖的新语义。
+  it('§8 房源未设置供给商户（merchant=null）在所有路径不可见', async () => {
+    const listing = makeValidListing({ merchant: null })
     const adapter = createFullPredicateAdapter({ listings: [listing] })
     await assertConsistentVisibility({
       adapter,
       listing,
       expectedVisible: false,
-      scenario: '§8a-relation-not-yet-effective',
-    })
-  })
-
-  it('§8b 关系已过期（effectiveTo 在过去）在所有路径不可见', async () => {
-    const expiredRelation: ValidityPeriod = {
-      startsAt: '2025-01-01T00:00:00.000Z',
-      endsAt: '2026-06-30T00:00:00.000Z',
-    }
-    const listing = makeValidListing()
-    ;(listing as Listing & { _relationPeriod?: ValidityPeriod })._relationPeriod = expiredRelation
-    const adapter = createFullPredicateAdapter({ listings: [listing] })
-    await assertConsistentVisibility({
-      adapter,
-      listing,
-      expectedVisible: false,
-      scenario: '§8b-relation-expired',
-    })
-  })
-
-  it('§8c 无关系（relationPeriod=null）在所有路径不可见', async () => {
-    const listing = makeValidListing()
-    ;(listing as Listing & { _relationPeriod?: ValidityPeriod | null })._relationPeriod = null
-    const adapter = createFullPredicateAdapter({ listings: [listing] })
-    await assertConsistentVisibility({
-      adapter,
-      listing,
-      expectedVisible: false,
-      scenario: '§8c-relation-missing',
+      scenario: '§8-no-supply-merchant',
     })
   })
 
@@ -1044,49 +1014,43 @@ describe('F1.2 交叉验证：FakeAdapter 谓词与生产 isListingEffectivelySu
 
     const baseline: EffectiveSupplySnapshot = {
       merchant: {
+        id: 7001,
         status: 'active',
         qualificationStatus: 'valid',
         qualificationExpiresAt: '2027-12-31T00:00:00.000Z',
         serviceCityIds: [100],
       },
       buildingCityId: 100,
-      relationPeriod: RELATION_VALID,
     }
 
-    // §8 关系过期
-    const relationFail: EffectiveSupplySnapshot = {
-      ...baseline,
-      relationPeriod: {
-        startsAt: '2025-01-01T00:00:00.000Z',
-        endsAt: '2026-06-30T00:00:00.000Z',
-      },
-    }
-    expect(isListingEffectivelySupplied(relationFail, asOf).eligible).toBe(false)
+    // §8 未设置供给商户
+    const noMerchant: EffectiveSupplySnapshot = { ...baseline, merchant: null }
+    expect(isListingEffectivelySupplied(noMerchant, asOf).eligible).toBe(false)
 
     // §9 商户停用
     const merchantDisabled: EffectiveSupplySnapshot = {
       ...baseline,
-      merchant: { ...baseline.merchant, status: 'disabled' },
+      merchant: { ...baseline.merchant!, status: 'disabled' },
     }
     expect(isListingEffectivelySupplied(merchantDisabled, asOf).eligible).toBe(false)
 
     // §10 服务城市不覆盖
     const cityNotCovered: EffectiveSupplySnapshot = {
       ...baseline,
-      merchant: { ...baseline.merchant, serviceCityIds: [999] },
+      merchant: { ...baseline.merchant!, serviceCityIds: [999] },
     }
     expect(isListingEffectivelySupplied(cityNotCovered, asOf).eligible).toBe(false)
 
     // 全有效
     const allValid: EffectiveSupplySnapshot = {
       merchant: {
+        id: 7001,
         status: 'active',
         qualificationStatus: 'valid',
         qualificationExpiresAt: '2027-12-31T00:00:00.000Z',
         serviceCityIds: [100],
       },
       buildingCityId: 100,
-      relationPeriod: RELATION_VALID,
     }
     expect(isListingEffectivelySupplied(allValid, asOf).eligible).toBe(true)
   })

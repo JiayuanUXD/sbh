@@ -1,6 +1,11 @@
 import { NumberField } from '@nouance/payload-better-fields-plugin/Number'
-import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import { createCollectionAccess } from '@/domain/auth/access'
+import type { CollectionBeforeChangeHook, CollectionConfig, Field, Where } from 'payload'
 
+import {
+  invalidateListingPublicCacheAfterChange,
+  invalidateListingPublicCacheAfterDelete,
+} from '@/domain/public-catalog/supply-cache-hook'
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
   PUBLICATION_STATUSES,
@@ -25,6 +30,8 @@ import {
   INVOICE_STATUS_LABELS,
   LISTING_MEDIA_CATEGORIES,
   LISTING_MEDIA_CATEGORY_LABELS,
+  LISTING_TYPES,
+  LISTING_TYPE_LABELS,
   REGISTRATION_STATUSES,
   REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
@@ -35,7 +42,11 @@ import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoi
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
 import { adminAutoPublish, recordAdminAutoPublish } from '@/domain/review/admin-auto-publish-hook'
-import { cleanupListingRelations } from '@/domain/supply/listing-delete-cleanup'
+import { createDataSourceGroup } from '@/domain/supply-import/data-source-field'
+import {
+  resolveDefaultSupplyMerchant,
+  type MerchantLookupPort,
+} from '@/domain/supply/default-merchant'
 
 type MediaResourceInput = number | string | { id?: number | string } | null | undefined
 
@@ -53,6 +64,22 @@ function toMediaId(resource: MediaResourceInput): number | string | null {
     return typeof id === 'number' || typeof id === 'string' ? id : null
   }
   return typeof resource === 'number' || typeof resource === 'string' ? resource : null
+}
+
+/**
+ * 从 relationship 字段的表单值取出 id——值可能是裸 id（正常表单提交），
+ * 也可能是 populate 后的完整对象（例如 depth>0 的编程式调用）。供
+ * merchant 字段 filterOptions 判断「候选是否等于当前值」使用，逻辑与
+ * toMediaId 相同但类型更泛（merchants 关系值不是 MediaResourceInput）。
+ */
+function extractRelationId(value: unknown): number | string | null {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (typeof value === 'object') {
+    const id = (value as { id?: unknown }).id
+    return typeof id === 'number' || typeof id === 'string' ? id : null
+  }
+  return null
 }
 
 /**
@@ -192,7 +219,31 @@ export const Listings: CollectionConfig = {
   },
   trash: true,
   access: {
+    // 前台匿名可读——公开站点靠有效供给谓词在查询层收窄，不靠 access.read。
     read: () => true,
+    /**
+     * OPT-051：删除必须显式收口。
+     *
+     * 此前这里**只有 `read`**，`delete` 缺省 → Payload 默认「任何登录用户都能删」。
+     * 而其余十个集合都显式收了口（`delete: () => false` 或绑权限码），
+     * 供给侧最核心的这两个反倒是例外。
+     *
+     * 三点让它比看起来更危险：
+     *   1. `trash: true` 只影响后台按钮语义，**不影响 `access.delete` 的判定**；
+     *   2. 本项目 `payload.delete` 恒为硬删（`trash` 参数只是查询过滤器），
+     *      任何直接调 API 的路径都是真删；
+     *   3. 这个库上已经真实发生过一次房源硬删。
+     *
+     * `listing:delete` / `building:delete` 两个权限码**早在 permission-codes.ts
+     * 里定义好了**（access.ts 的文档注释甚至拿它当示例），只是从没被任何
+     * collection 消费、也没授予任何角色——一对彻底的死代码。这里把它接上。
+     *
+     * 当前只有 ADM（`operationPermissions: ['*']`）能通过，**无需迁移**：
+     * 通配符由 `hasOperationPermission` 内部处理。将来要放给 OPS，
+     * 走迁移授权 + 同步 `src/test/factory/roles.ts`（不同步会被 seed 擦掉，
+     * 见 OPT-045 §9 的实测教训）。
+     */
+    delete: createCollectionAccess({ delete: 'listing:delete' }).delete,
   },
   // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
   endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
@@ -204,11 +255,13 @@ export const Listings: CollectionConfig = {
     // 早于前两者会判在半成品数据上。
     beforeChange: [syncListingMedia, protectListing, adminAutoPublish],
     // 审核记录要引用房源 id，create 场景下 beforeChange 阶段还没有，只能放 afterChange。
-    afterChange: [recordAdminAutoPublish],
-    // 永久删除前先清掉商户供给关系，否则 PG 会因「SET NULL 碰 NOT NULL」
-    // 报 23502，后台只能看到一句 "Something went wrong."（见 listing-delete-cleanup.ts）。
-    // 软删除（trash）走 update 路径，不经过这里。
-    beforeDelete: [cleanupListingRelations],
+    //
+    // 缓存失效排最后：它只读最终 doc，且失败不阻断写入，放在业务 hook 之后
+    // 才保证失效的是真正落库的那份数据。
+    afterChange: [recordAdminAutoPublish, invalidateListingPublicCacheAfterChange],
+    // OPT-034 Task 6：listing_merchant_relations 表已删，房源硬删除不再需要
+    // 清理关系行的 beforeDelete hook（原因见迁移文件头注释）。
+    afterDelete: [invalidateListingPublicCacheAfterDelete],
   },
   fields: [
     {
@@ -284,14 +337,10 @@ export const Listings: CollectionConfig = {
                   required: true,
                   defaultValue: 'traditional-office',
                   admin: { width: COL_3 },
-                  options: [
-                    { label: '传统办公室', value: 'traditional-office' },
-                    { label: '共享办公', value: 'coworking' },
-                    { label: '整层办公', value: 'full-floor' },
-                    // 该枚举值当初保留是为「只删导航入口、不动数据」，不可改标签作它用：
-                    // 改标签会把存量「服务式办公室」房源静默重标注为另一种业态。
-                    { label: '服务式办公室', value: 'serviced-office' },
-                  ],
+                  options: LISTING_TYPES.map((value) => ({
+                    label: LISTING_TYPE_LABELS[value],
+                    value,
+                  })),
                 }),
                 markPublishRequired({
                   name: 'building',
@@ -685,8 +734,56 @@ export const Listings: CollectionConfig = {
                   label: '供给商户',
                   type: 'relationship',
                   relationTo: 'merchants',
+                  // 新建时预选默认商户（默认「官网」）。只在字段为 undefined 时生效，
+                  // 编辑既有房源不受影响。
+                  //
+                  // OPT-034 之后这个预选是**有实际效果**的：listings.merchant 已是供给
+                  // 商户的唯一真相，填上它房源就真的具备了可见性前提，不再像旧模型那样
+                  // 「填了字段但关系表为空、前台照样 404」（事故案例 #2464）。但仍不等于
+                  // 一定可见——商户还须启用、资质有效、服务城市覆盖楼盘城市（前台精筛
+                  // §9-§10）。下方 filterOptions 挡掉了前两条，第三条由前台兜底。
+                  defaultValue: async ({ req }) =>
+                    await resolveDefaultSupplyMerchant(
+                      req.payload as unknown as MerchantLookupPort,
+                      req,
+                    ),
+                  // 候选限制到启用 + 资质已通过，拦掉「选中已停用/资质过期商户」这类
+                  // 写入即失配的操作（表现与事故案例 #2464 一致：后台三处信号全绿、
+                  // 前台因 MERCHANT_INELIGIBLE 精筛判 404）。服务城市覆盖这一条未覆盖
+                  // ——filterOptions 拿不到房源所属楼盘的城市（跨对象上下文），强做
+                  // 会引入复杂度和误拦，仍由前台精筛 §10 兜底。
+                  //
+                  // 为什么放行「当前值」（终审修复，见 final-fix-report.md）：
+                  // Payload 的 filterOptions 在服务端是无条件校验——只要提交 data 里
+                  // merchant 有值就查库比对，不区分该值是否本次改动；而后台表单保存是
+                  // 全量提交（表单里所有字段的当前值一起进 data）。这撞上了
+                  // merchant-stop-listings.ts 的设计：商户停用时把受影响房源转 pending，
+                  // 但**不清空** listings.merchant（该文件头注释「商户恢复不自动解除，
+                  // 运营需逐条显式重新发布」——就是要留着这个值等运营回来处理）。结果是：
+                  // 运营编辑这批「待复核」房源中的任意字段（哪怕不碰 merchant），data 里
+                  // 仍带着那个已停用商户 ID，若 filterOptions 只放行「启用+资质有效」，
+                  // 就会判「无效选择」→ 整单拒绝保存——待复核状态因此变成事实上的保存
+                  // 死锁，恰好打在这个模块设计的核心场景上。
+                  //
+                  // 取舍：条件改成「合格商户 或 等于当前值」，精确地只放弃「阻止**保留**
+                  // 一个已停用商户」这一点——而那本来就是当前的实际状态（房源已被转
+                  // pending、前台已被精筛 §9 排除，不会因为放行这个值而多曝光什么）。
+                  // 门禁真正要防的「**新选**一个不合格商户」完全保留：候选列表里永远不会
+                  // 出现启用/资质无效的商户，除非它已经是当前值。不要为了「简洁」删掉
+                  // 这个 or 分支——删掉就是重新引入这个死锁。
+                  filterOptions: ({ siblingData }): Where => {
+                    const eligible: Where = {
+                      and: [{ status: { equals: 'active' } }, { qualificationStatus: { equals: 'valid' } }],
+                    }
+                    const current = extractRelationId(
+                      (siblingData as { merchant?: unknown } | null | undefined)?.merchant,
+                    )
+                    return current === null ? eligible : { or: [eligible, { id: { equals: current } }] }
+                  },
                   admin: {
-                    description: '房源供给关系的当前商户;有效期与快照规则见供给关系。',
+                    description:
+                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
+
                     width: COL_4,
                   },
                 }),
@@ -800,49 +897,7 @@ export const Listings: CollectionConfig = {
                 },
               },
             } as unknown as Field,
-            {
-              name: 'dataSource',
-              label: '数据来源',
-              type: 'group',
-              admin: {
-                hideGutter: true,
-                // 仅外部抓取来源已有数据时显示；手工新建的房源不需要维护此组字段
-                condition: (data) => {
-                  const ds = data?.dataSource as
-                    | {
-                        source?: string | null
-                        externalId?: string | null
-                        sourceUrl?: string | null
-                        syncedAt?: string | null
-                      }
-                    | null
-                    | undefined
-                  return Boolean(ds && (ds.source || ds.externalId || ds.sourceUrl || ds.syncedAt))
-                },
-              },
-              fields: [
-                {
-                  type: 'row',
-                  fields: [
-                    {
-                      name: 'source',
-                      label: '来源平台',
-                      type: 'select',
-                      options: [{ label: '汇租选址', value: 'huizuxuanzhi' }],
-                      admin: { description: '外部抓取来源标识', width: COL_4 },
-                    },
-                    { name: 'externalId', label: '外部 ID', type: 'text', admin: { description: '源平台原始房源编号', width: COL_4 } },
-                    {
-                      name: 'syncedAt',
-                      label: '同步时间',
-                      type: 'date',
-                      admin: { readOnly: true, description: '最后一次从源平台同步的时间', width: COL_4 },
-                    },
-                    { name: 'sourceUrl', label: '源地址', type: 'text', admin: { description: '详情页原始 URL', width: COL_4 } },
-                  ],
-                },
-              ],
-            },
+            createDataSourceGroup('房源'),
           ],
         },
         {

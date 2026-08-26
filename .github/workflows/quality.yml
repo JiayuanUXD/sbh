@@ -113,6 +113,12 @@ jobs:
       # next build 期内联入前端 bundle。用例点击后 abort webapi.amap.com 断言降级，真实
       # 请求永不发出，故此处用占位假 key（域名白名单 key，非机密，勿用于生产）。
       NEXT_PUBLIC_AMAP_JS_KEY: e2e-fake-amap-js-key-not-real
+      # 出售频道开关：与 Dockerfile 保持一致（2026-08-24 起线上打开）。
+      #
+      # CI 必须跟着开，否则 e2e 验的是「频道关闭」那条路径——/sale 与 /[city]/sale
+      # 恒 404、sitemap 无出售条目，出售链路的任何回归都测不到，而线上是开着的。
+      # 这正是「CI 绿灯不等于线上正确」最典型的成因：两边跑的根本不是同一个形态。
+      NEXT_PUBLIC_SALE_CHANNEL_ENABLED: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -137,15 +143,20 @@ jobs:
         run: pnpm exec payload migrate
       - name: Seed business data
         run: pnpm seed
-      - name: Seed media（gallery ≥3，否则有效供给精筛 §6 排除全部房源 → 前台 0 套）
+      - name: Seed media（gallery ≥3，否则完整度校验拦截自动发布，房源停在草稿态 → 前台 0 套；§6 媒体数量已于 2026-08-19 从有效供给精筛移除，不再是可见性条件）
         # CI 走 sharp 本地合成占位图（seed-media 里 OFFLINE 分支），不依赖外网 picsum。
         run: pnpm seed:media
       - name: Build production bundle
         run: pnpm build
       - name: Run E2E against next start (production server)
         # playwright.config 的 webServer 自动拉起 `next start -p 3717`（E2E_PROD_SERVER=1）。
-        # 本步不设 MULTI_CITY_ROUTING_ENABLED，与当前生产形态一致（多城市路由关闭）。
-        # 依赖开启态的用例会 test.skip 跳过，由下一步覆盖。
+        # 本步不设 MULTI_CITY_ROUTING_ENABLED，依赖开启态的用例会 test.skip 跳过，
+        # 由下一步覆盖。
+        #
+        # ⚠️ 原注释写「与当前生产形态一致（多城市路由关闭）」——**已过期**：
+        # 2026-08-24 核查生产 EnvParams，MULTI_CITY_ROUTING_ENABLED 是 "true"。
+        # 也就是说这一趟跑的形态与生产已经不一致了。改成「主趟跑关闭态」需要
+        # 重新评估哪些用例该在哪一趟跑，超出 OPT-045 范围，这里只订正描述、不改行为。
         run: pnpm test:e2e
 
       - name: Run multi-city E2E (routing enabled)
@@ -155,7 +166,7 @@ jobs:
         # NEXT_PUBLIC_），不参与 next build 内联，所以无需重新构建。
         env:
           MULTI_CITY_ROUTING_ENABLED: 'true'
-        run: pnpm exec playwright test tests/e2e/multi-city-routing.spec.ts tests/e2e/multi-city-isolation.spec.ts tests/e2e/multi-city-forms.spec.ts
+        run: pnpm exec playwright test tests/e2e/multi-city-routing.spec.ts tests/e2e/multi-city-isolation.spec.ts tests/e2e/multi-city-forms.spec.ts tests/e2e/sale-channel.spec.ts
 
   postgres-migrations:
     runs-on: ubuntu-latest
@@ -193,6 +204,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate migration source before writes
         run: pnpm migrate:dry-run
+      # OPT-048：快照漂移守卫。migrate:create 比对的是 config vs 最后一份 .json 快照，
+      # 从不看真实库；在旧基线上生成迁移会让新快照丢掉旧快照已有的列，而这件事没有
+      # 任何现成信号——直到下一个人跑 migrate:create 凭空多出一条重复迁移（且不带
+      # IF NOT EXISTS），部署到已有该列的生产库上直接失败。这里让它在 PR 阶段就红。
+      - name: Guard against migration snapshot drift
+        run: pnpm migrate:drift
       - name: Apply all migrations to a fresh PostgreSQL database
         run: pnpm exec payload migrate
       - name: Verify fresh database

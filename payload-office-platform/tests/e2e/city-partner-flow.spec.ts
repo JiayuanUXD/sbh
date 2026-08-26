@@ -141,3 +141,44 @@ test('keeps skip disabled and announces progress while stage two is pending', as
   resolveDetails()
   await expect(page.getByRole('status')).toContainText('申请已收到')
 })
+
+/**
+ * OPT-038 终审 I1 · 下拉三角回归守卫。
+ *
+ * 保护的失效点：招募页把 `.filter-bar__select` 的基态覆写在 `.rc-page` 作用域下
+ * （(0,3,0)），而下拉三角是 styles.css 里那条 `.filter-bar__select` 基础规则上的
+ * 一张 `background-image`（styles.css:992，(0,1,0)）。只要有人把本页那条基态写成
+ * `background:` **简写**（Task 3 就这么写过，Task 5 才发现），简写会把
+ * `background-image` 一并复位成 `none` —— select 在 5 条真实路由上和单行输入框
+ * 长得一模一样，而 typecheck / test / lint / 逐像素截图对比**四道闸门全绿**。
+ *
+ * 为什么断计算样式而不是断 CSS 源码文本：
+ * 源码断言只能钉住它自己 grep 的那一种写法与那一个文件，而失效通道是**层叠**
+ * ——`.rc-page` 作用域内任何文件、任何 ≥(0,3,0) 的 `background:` 简写都会打断它。
+ * `getComputedStyle` 读的是层叠的最终结果，与是谁、在哪写的无关，这才是失效点本身。
+ * （本守卫「会红」已实测验证：把 recruit.css 那两处 `background-color` 临时改回
+ * `background` 简写重新 build 后本用例失败，见 OPT-038 final-fix-report。）
+ */
+test('keeps the native-replacement dropdown arrow on every recruit-page select', async ({ page }) => {
+  await page.goto('/city-partner')
+  const selects = page.locator('.city-partner-form .filter-bar__select')
+  await expect(selects).not.toHaveCount(0)
+
+  const count = await selects.count()
+  for (let index = 0; index < count; index += 1) {
+    const styles = await selects.nth(index).evaluate((el) => {
+      const computed = getComputedStyle(el)
+      return {
+        id: el.id,
+        appearance: computed.appearance,
+        backgroundImage: computed.backgroundImage,
+        backgroundRepeat: computed.backgroundRepeat,
+      }
+    })
+    // appearance:none 摘掉了浏览器原生箭头，所以那张背景图是**唯一**的可展开提示
+    expect(styles.appearance).toBe('none')
+    expect(styles.backgroundImage, `select#${styles.id} 丢了下拉三角`).not.toBe('none')
+    expect(styles.backgroundImage).toContain('svg')
+    expect(styles.backgroundRepeat).toBe('no-repeat')
+  }
+})

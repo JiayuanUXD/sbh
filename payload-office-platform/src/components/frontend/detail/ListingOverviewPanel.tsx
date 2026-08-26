@@ -67,6 +67,36 @@ import { formatAvailableDate } from '@/lib/frontend/format'
  *     Listings/Buildings 均无对应字段（域层没有），三项省略。
  *
  * 详见 task-3-report.md 的逐字段核查表与「域层没有 / DTO 没有」的区分记录。
+ *
+ * ---
+ *
+ * **「comp 之外的 5 条」——终审修复补回（2026-08-22）**
+ *
+ * `房源楼层 / 朝向 / 可分割 / 家具 / 其他固定费用` 这 5 条 comp 的 factGroups 没列，
+ * 但 `mapListingFactGroups`（mappers.ts:661,662,664,676,718）一直在产出、改版前的
+ * `DetailFacts`（全量事实清单）一直在房源详情页展示，全仓 grep 确认它们在本页
+ * **再无第二处出处**。首版把这 5 条记成「设计取舍」，理由是「概况面板是按 comp
+ * 逐字段核过的固定行清单」——但那条理由回答的是「comp 没列的要不要**补映射**」，
+ * 回答不了「域层已有、旧页面已展示的要不要**保留**」。同一批次的 Task 10 在楼盘页
+ * 遇到完全同型的情况（`DetailFacts → BuildingSpecPanel` 丢 6 条）判定为「接线造成
+ * 的静默内容删除」，补回并加了守卫与专门测试；两页两套判据不成立，按楼盘页先例
+ * 统一：**它们在组件手里的 DTO 里就有，属本文件三层判定的第 1 层「已在手」，
+ * 不是可省略项。**
+ *
+ * 逐条理由（不用「设计取舍」这种无判据的说法）：
+ *   - `房源楼层`：低区/高区直接决定采光、电梯等待与价格档位，是选址的一级判据；
+ *     供给密度表的副行都在展示它（`BuildingSupplyBrowser` 的 `sub`），详情页反而
+ *     没有，同一事实在列表页有、点进去没有。
+ *   - `其他固定费用`：**费用披露**。删掉一条费用条款与删掉一条装修状态不是一个
+ *     量级——它是用户签约前必须知道、且事后才发现会构成纠纷的那类信息。
+ *   - `朝向`：与楼层同类的空间事实，商办选址里直接关联采光与工位排布。
+ *   - `可分割`：决定「这套能不能只租一半」，是租赁可行性判据，不是装饰性属性。
+ *   - `家具`：与「装修状态」并列的交付口径（带家具 / 无家具直接换算成入驻成本），
+ *     两者同源于 `spaceDetails`，只展示其一才是随意的那一半。
+ * 归组按现有四组就近安放（前三条进「面积与格局」、家具进「交付与资质」、其他固定
+ * 费用进「费用明细」），不新增组、不改版式。
+ * `tests/listing-overview-panel.test.ts` 有一条专门守卫这 5 条的用例，任何
+ * 「按 comp 收敛概况面板」的后续清理会先撞到那条用例，而不是撞到用户。
  */
 
 type ListingOverviewInput = Pick<ListingDetailViewModel, 'factGroups' | 'price' | 'availableFrom' | 'building'>
@@ -94,6 +124,11 @@ export function buildListingOverviewGroups(
         { label: '得房率', value: fact('得房率') },
         { label: '净层高', value: fact('净层高') },
         { label: '工位估算', value: fact('工位数') },
+        // 以下 3 条见文件头「comp 之外的 5 条」：域层已产出、旧 DetailFacts 一直
+        // 在展示，不补回就是接线造成的静默内容删除。
+        { label: '房源楼层', value: fact('房源楼层') },
+        { label: '朝向', value: fact('朝向') },
+        { label: '可分割', value: fact('可分割') },
       ],
     },
     {
@@ -111,6 +146,8 @@ export function buildListingOverviewGroups(
       title: '交付与资质',
       rows: [
         { label: '装修状态', value: fact('装修') },
+        // 与「装修状态」同源于 spaceDetails、同属交付口径，见文件头。
+        { label: '家具', value: fact('家具') },
         { label: '交付时间', value: formatAvailableDate(listing.availableFrom) },
         { label: '可注册', value: fact('注册') },
         { label: '空调', value: listing.building?.airConditioning ?? null },
@@ -124,6 +161,8 @@ export function buildListingOverviewGroups(
         { label: '物业费', value: propertyFeeAmount ?? propertyFeeInclusion },
         { label: '停车费', value: listing.building?.parkingFee ?? null },
         { label: '发票', value: fact('发票') },
+        // 费用披露，见文件头：删一条费用条款与删一条装修状态不是一个量级。
+        { label: '其他固定费用', value: fact('其他固定费用') },
       ],
     },
   ]

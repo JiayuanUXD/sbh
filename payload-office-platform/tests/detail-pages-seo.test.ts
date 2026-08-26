@@ -133,7 +133,9 @@ describe('detail metadata and JSON-LD', () => {
             },
           ],
           areaRange: null,
+          seatRange: null,
           immediateAvailabilityCount: 0,
+          priceSortDegraded: false,
         },
       ],
       availableGroups: [
@@ -141,6 +143,7 @@ describe('detail metadata and JSON-LD', () => {
           key: 'lease',
           totalEffectiveListings: 5,
           areaRange: null,
+          seatRange: null,
           immediateAvailabilityCount: 0,
           priceRanges: [
             {
@@ -173,6 +176,7 @@ describe('detail metadata and JSON-LD', () => {
         key: 'lease',
         totalEffectiveListings: 2,
         areaRange: { min: 80, max: 180 },
+        seatRange: null,
         immediateAvailabilityCount: 1,
         priceRanges: [{
           key: 'lease:CNY:day:sqm',

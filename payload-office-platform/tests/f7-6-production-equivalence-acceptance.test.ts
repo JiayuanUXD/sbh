@@ -41,7 +41,6 @@ import {
   isListingEffectivelySupplied,
   type EffectiveSupplySnapshot,
 } from '@/domain/review/effective-supply'
-import type { ValidityPeriod } from '@/domain/shared/validity'
 import type { Building, Listing, Location, Media, Page } from '@/payload-types'
 import {
   computeAffectedTags,
@@ -124,11 +123,6 @@ const BUILDING_VALID: Building = {
   createdAt: '2026-01-01T00:00:00.000Z',
 }
 
-const RELATION_VALID: ValidityPeriod = {
-  startsAt: '2026-01-01T00:00:00.000Z',
-  endsAt: null,
-}
-
 function makeValidListing(overrides: Partial<Listing> = {}): Listing {
   return {
     id: 1001,
@@ -160,8 +154,6 @@ function makeValidListing(overrides: Partial<Listing> = {}): Listing {
     ...overrides,
   } as unknown as Listing
 }
-
-type ListingWithRelation = Listing & { _relationPeriod?: ValidityPeriod | null }
 
 // ---------------------------------------------------------------------------
 // 最小化全谓词 FakeAdapter（复用 F1.2 同源实现）
@@ -199,35 +191,40 @@ function createFullPredicateAdapter(options: {
     if (typeof b.district === 'object' && b.district && b.district.status !== 'active') return false
     if (pausedIds.some((id) => String(id) === String(l.id))) return false
 
-    const withRel = l as ListingWithRelation
     const merchant =
       typeof l.merchant === 'object' && l.merchant !== null
         ? (l.merchant as unknown as Record<string, unknown>)
-        : {}
-    const serviceCities = Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
+        : null
+    const serviceCities =
+      merchant && Array.isArray(merchant.serviceCities) ? merchant.serviceCities : []
     const snapshot: EffectiveSupplySnapshot = {
-      merchant: {
-        status: merchant.status,
-        qualificationStatus: merchant.qualificationStatus,
-        qualificationExpiresAt: (merchant.qualificationExpiresAt ?? null) as
-          | string
-          | Date
-          | null
-          | undefined,
-        serviceCityIds: serviceCities
-          .map((c) => {
-            if (typeof c === 'number' || typeof c === 'string') return c
-            if (typeof c === 'object' && c !== null && 'id' in c) {
-              const id = (c as { id: unknown }).id
-              if (typeof id === 'number' || typeof id === 'string') return id
-            }
-            return null
-          })
-          .filter((id): id is number | string => id !== null),
-      },
+      merchant:
+        merchant === null
+          ? null
+          : {
+              id:
+                typeof merchant.id === 'number' || typeof merchant.id === 'string'
+                  ? merchant.id
+                  : null,
+              status: merchant.status,
+              qualificationStatus: merchant.qualificationStatus,
+              qualificationExpiresAt: (merchant.qualificationExpiresAt ?? null) as
+                | string
+                | Date
+                | null
+                | undefined,
+              serviceCityIds: serviceCities
+                .map((c) => {
+                  if (typeof c === 'number' || typeof c === 'string') return c
+                  if (typeof c === 'object' && c !== null && 'id' in c) {
+                    const id = (c as { id: unknown }).id
+                    if (typeof id === 'number' || typeof id === 'string') return id
+                  }
+                  return null
+                })
+                .filter((id): id is number | string => id !== null),
+            },
       buildingCityId: typeof b.city === 'object' && b.city ? b.city.id : null,
-      relationPeriod:
-        withRel._relationPeriod === undefined ? RELATION_VALID : withRel._relationPeriod,
     }
     return isListingEffectivelySupplied(snapshot, currentAsOf).eligible
   }
@@ -381,76 +378,19 @@ function createFullPredicateAdapter(options: {
 
 describe('F7.6 时区边界：Asia/Shanghai 自然日切换', () => {
   /**
-   * 关系区间 [start, end) 是 UTC ISO 字符串，跨时区时边界漂移。
-   * SearchContext 固定时区 Asia/Shanghai，asOf 在自然日切换点附近
-   * 不应导致可见性结论差异（design.md §3.1 / §15.2）。
+   * SearchContext 固定时区 Asia/Shanghai，asOf 在自然日切换点附近不应导致
+   * 可见性结论差异（design.md §3.1 / §15.2）。
+   *
+   * OPT-034 删除了 listing_merchant_relations 半开区间关系（[effectiveFrom,
+   * effectiveTo) UTC ISO 字符串，跨时区会有边界漂移）。原两条用例（关系生效
+   * 边界 / 关系过期边界）测的正是这层时间窗口在自然日切换点附近的行为，随
+   * 概念一起删除、不做等价改写——新模型下 listings.merchant 是否设置不带时间
+   * 窗口，没有可漂移的边界。下面这条商户资质到期边界仍然成立，保留。
    *
    * 边界用例：
    *   - 23:59:59 上海时间 → UTC 15:59:59 当日
    *   - 00:00:00 上海时间次日 → UTC 16:00:00 当日
    */
-
-  it('上海时间 23:59:59 与 00:00:00 次日的可见性结论一致（关系在同一天）', async () => {
-    // 关系区间：[2026-07-25 16:00 UTC, null) = 上海 2026-07-26 00:00 起生效
-    const relationStart: ValidityPeriod = {
-      startsAt: '2026-07-25T16:00:00.000Z', // 上海时间 2026-07-26 00:00:00
-      endsAt: null,
-    }
-    const listing = makeValidListing()
-    ;(listing as ListingWithRelation)._relationPeriod = relationStart
-
-    // 上海时间 2026-07-25 23:59:59（关系未生效）→ 不可见
-    const beforeMidnight = createSearchContext(
-      'shanghai',
-      new Date('2026-07-25T15:59:59.000Z'), // 上海 2026-07-25 23:59:59
-    )
-    // 上海时间 2026-07-26 00:00:00（关系生效）→ 可见
-    const atMidnight = createSearchContext(
-      'shanghai',
-      new Date('2026-07-25T16:00:00.000Z'), // 上海 2026-07-26 00:00:00
-    )
-
-    const adapter = createFullPredicateAdapter({ listings: [listing] })
-
-    const beforeSearch = await searchListings(parseSearchInput(new URLSearchParams('')), beforeMidnight, adapter)
-    const atSearch = await searchListings(parseSearchInput(new URLSearchParams('')), atMidnight, adapter)
-
-    // 边界切换前后，可见性结论与时间点预期一致
-    expect(beforeSearch.docs.some((c) => c.id === listing.id)).toBe(false)
-    expect(atSearch.docs.some((c) => c.id === listing.id)).toBe(true)
-
-    // 同一时点多次查询结果稳定（不漂移）
-    const atSearch2 = await searchListings(parseSearchInput(new URLSearchParams('')), atMidnight, adapter)
-    expect(atSearch2.docs.some((c) => c.id === listing.id)).toBe(true)
-  })
-
-  it('关系已过期场景在上海时间自然日切换点附近结论一致', async () => {
-    // 关系区间：[2026-01-01, 2026-07-25 16:00 UTC) = 上海 2026-07-26 00:00 过期
-    const expiredRelation: ValidityPeriod = {
-      startsAt: '2026-01-01T00:00:00.000Z',
-      endsAt: '2026-07-25T16:00:00.000Z', // 上海 2026-07-26 00:00:00 过期
-    }
-    const listing = makeValidListing()
-    ;(listing as ListingWithRelation)._relationPeriod = expiredRelation
-
-    const beforeMidnight = createSearchContext(
-      'shanghai',
-      new Date('2026-07-25T15:59:59.000Z'), // 上海 2026-07-25 23:59:59（关系有效）
-    )
-    const atMidnight = createSearchContext(
-      'shanghai',
-      new Date('2026-07-25T16:00:00.000Z'), // 上海 2026-07-26 00:00:00（关系过期）
-    )
-
-    const adapter = createFullPredicateAdapter({ listings: [listing] })
-
-    const beforeSearch = await searchListings(parseSearchInput(new URLSearchParams('')), beforeMidnight, adapter)
-    const atSearch = await searchListings(parseSearchInput(new URLSearchParams('')), atMidnight, adapter)
-
-    // 过期前可见，过期点不可见
-    expect(beforeSearch.docs.some((c) => c.id === listing.id)).toBe(true)
-    expect(atSearch.docs.some((c) => c.id === listing.id)).toBe(false)
-  })
 
   it('商户资质在上海时间自然日切换点过期：边界点结论一致', async () => {
     // 商户资质 expiresAt = 2026-07-25T16:00:00Z（上海 2026-07-26 00:00:00）

@@ -1,0 +1,839 @@
+{
+  "tag": "before",
+  "shots": [
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 277
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 164
+        },
+        {
+          "sel": "a.building-supply-browser__filter",
+          "over": 51
+        }
+      ],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "343px",
+        "width": 343,
+        "cards": [
+          343,
+          343,
+          343
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "360px 360px",
+        "width": 736,
+        "cards": [
+          360,
+          360,
+          360
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "382.656px 382.672px 382.656px",
+        "width": 1180,
+        "cards": [
+          383,
+          383,
+          383
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-nomedia",
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "382.656px 382.672px 382.656px",
+        "width": 1180,
+        "cards": [
+          383,
+          383,
+          383
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 901
+        },
+        {
+          "sel": "a.nearby-strip__card",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__placeholder",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__name",
+          "over": 901
+        },
+        {
+          "sel": "span.nearby-strip__meta",
+          "over": 901
+        },
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 689
+        }
+      ],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "343px",
+        "width": 343,
+        "cards": [
+          343,
+          343,
+          343
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 508
+        },
+        {
+          "sel": "a.nearby-strip__card",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__placeholder",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__name",
+          "over": 508
+        },
+        {
+          "sel": "span.nearby-strip__meta",
+          "over": 508
+        },
+        {
+          "sel": "li.nearby-strip__item",
+          "over": 296
+        }
+      ],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "360px 360px",
+        "width": 736,
+        "cards": [
+          360,
+          360,
+          360
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "382.656px 382.672px 382.656px",
+        "width": 1180,
+        "cards": [
+          383,
+          383,
+          383
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "building-withmedia",
+      "url": "/dev-story/building-detail-demo",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": {
+        "display": "grid",
+        "gridTemplateColumns": "382.656px 382.672px 382.656px",
+        "width": 1180,
+        "cards": [
+          383,
+          383,
+          383
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [
+        {
+          "sel": "button.location-panel__poi-tab",
+          "over": 66
+        }
+      ],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listing",
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 375,
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 768,
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    },
+    {
+      "case": "listings-index",
+      "url": "/listings",
+      "width": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "overflowPx": 0,
+      "offenders": [],
+      "rail": null,
+      "consoleErrors": []
+    }
+  ],
+  "scan": [
+    {
+      "url": "/",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/listings",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__price": 1,
+        ".detail-side-rail .advisor-card": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 3,
+        ".detail-side-rail__muted": 2,
+        ".hero-summary": 1,
+        ".hero-summary .advisor-card": 1,
+        ".breadcrumb__link": 2
+      }
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__price": 1,
+        ".detail-side-rail .advisor-card": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 3,
+        ".detail-side-rail__muted": 2,
+        ".hero-summary": 1,
+        ".hero-summary .advisor-card": 1,
+        ".breadcrumb__link": 2
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/listings/jingan-price-on-request-300sqm",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/listings/media-rich-listing",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 3
+      }
+    },
+    {
+      "url": "/news",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/news",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 1
+      }
+    },
+    {
+      "url": "/pages/privacy",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".breadcrumb__link": 1
+      }
+    },
+    {
+      "url": "/entrust",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/entrust",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/publish",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/publish",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/sale",
+      "width": 1440,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/sale",
+      "width": 375,
+      "status": 404,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 1440,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/city-partner",
+      "width": 375,
+      "status": 200,
+      "hits": {}
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__price": 1,
+        ".detail-side-rail .advisor-card": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 3,
+        ".detail-side-rail__muted": 2,
+        ".hero-summary": 1,
+        ".hero-summary .advisor-card": 1,
+        ".breadcrumb__link": 2
+      }
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "status": 200,
+      "hits": {
+        ".detail-side-rail__price": 1,
+        ".detail-side-rail .advisor-card": 1,
+        ".detail-side-rail": 1,
+        ".detail-side-rail__card": 3,
+        ".detail-side-rail__muted": 2,
+        ".hero-summary": 1,
+        ".hero-summary .advisor-card": 1,
+        ".breadcrumb__link": 2
+      }
+    }
+  ],
+  "selectorTotals": {
+    ".detail-side-rail__price": 4,
+    ".detail-side-rail .advisor-card": 4,
+    ".detail-side-rail": 4,
+    ".detail-side-rail__card": 12,
+    ".detail-side-rail__muted": 8,
+    ".hero-summary": 4,
+    ".hero-summary .advisor-card": 4,
+    ".breadcrumb__link": 28
+  },
+  "inquiryAudit": [
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 1440,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "building",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "预约看房",
+          "visible": true
+        },
+        {
+          "section": "hero",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "登记需求，顾问回电",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "building",
+          "label": "咨询该楼盘",
+          "visible": false
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        }
+      ]
+    },
+    {
+      "url": "/buildings/west-nanjing-premium-center",
+      "width": 375,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "building",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "预约看房",
+          "visible": false
+        },
+        {
+          "section": "hero",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "登记需求，顾问回电",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "building",
+          "label": "咨询该楼盘",
+          "visible": true
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        }
+      ]
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 1440,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "home",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "预约看房",
+          "visible": true
+        },
+        {
+          "section": "hero",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "登记需求，顾问回电",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "building",
+          "label": "咨询该楼盘",
+          "visible": false
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        }
+      ]
+    },
+    {
+      "url": "/dev-story/building-detail-demo",
+      "width": 375,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "home",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "预约看房",
+          "visible": false
+        },
+        {
+          "section": "hero",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "sticky-card",
+          "pageType": "building",
+          "label": "登记需求，顾问回电",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "building",
+          "label": "咨询该楼盘",
+          "visible": true
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        }
+      ]
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 1440,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "search",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "hero",
+          "pageType": "listing",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "listing",
+          "label": "询价 / 预约看房",
+          "visible": false
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        },
+        {
+          "href": "/buildings/lujiazui-grade-a-river-view",
+          "text": "陆家嘴江景甲级写字楼"
+        }
+      ]
+    },
+    {
+      "url": "/listings/lujiazui-grade-a-780sqm",
+      "width": 375,
+      "triggers": [
+        {
+          "section": null,
+          "pageType": "search",
+          "label": "获取选址方案",
+          "visible": true
+        },
+        {
+          "section": "hero",
+          "pageType": "listing",
+          "label": "询价 / 预约看房",
+          "visible": true
+        },
+        {
+          "section": "mobile-bar",
+          "pageType": "listing",
+          "label": "询价 / 预约看房",
+          "visible": true
+        }
+      ],
+      "breadcrumbLinks": [
+        {
+          "href": "/",
+          "text": "首页"
+        },
+        {
+          "href": "/listings",
+          "text": "办公选址"
+        },
+        {
+          "href": "/buildings/lujiazui-grade-a-river-view",
+          "text": "陆家嘴江景甲级写字楼"
+        }
+      ]
+    }
+  ]
+}

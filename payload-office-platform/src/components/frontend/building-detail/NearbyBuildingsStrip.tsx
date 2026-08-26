@@ -4,6 +4,14 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 
 /**
  * 58 式位置区下方「周边楼盘」横滑条带。
+ *
+ * 这里刻意用**原生 `<a>` 而不是 `next/link`**，所以它**根本不产生 RSC 自动预取**，
+ * `prefetch={false}` 这个 prop 在这里无处可加、也无需加（OPT-037 Task 11d 实测确认：
+ * 本组件渲染的 URL 之所以出现在预取集合里，是同页 `BuildingCardMini` 贡献的——
+ * 两者读同一份 `visibleRelatedBuildings`，产出**同一批 URL**；按 URL 去重的机制
+ * 见 `ui/Breadcrumb.tsx` 判据①的精确表述，此处不再复述）。
+ * 若日后有人把它改成 `<Link>`，请连带按 `BuildingCardMini` 的判据补
+ * `prefetch={false}`，否则同一批楼盘 URL 的预取会从那边悄悄漏回来。
  */
 type NearbyBuildingsStripProps = Readonly<{
   buildings: readonly BuildingSummaryViewModel[]

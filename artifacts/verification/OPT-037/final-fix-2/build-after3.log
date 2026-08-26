@@ -1,0 +1,91 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 build E:\github\sbh\payload-office-platform
+> next build
+
+▲ Next.js 16.2.10 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ⨯ turbopackServerFastRefresh
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 21.0s
+  Running TypeScript ...
+  Finished TypeScript in 18.2s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/12) ...
+[04:02:28] [31mERROR[39m: [36mError running onInit function[39m
+    err: {
+      "type": "Error",
+      "message": "[config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https\n  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost",
+      "stack":
+          Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https
+            - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost
+              at f (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:237:109084)
+              at Object.onInit (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:238:2114)
+              at aS.init (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:12362)
+              at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+              at async aW (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\node_modules__pnpm_16q_euh._.js:8:14024)
+              at async v (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__1spyelw._.js:1:2682)
+    }
+revalidating cache with key: async()=>v()-public-city-profiles-[] Error: [config-guard] 生产配置 fail-closed：启动被拒绝。请补齐以下环境变量：
+  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 必须使用 https
+  - NEXT_PUBLIC_SITE_URL: 生产环境 NEXT_PUBLIC_SITE_URL 不得指向 localhost
+    at f (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:237:109084)
+    at Object.onInit (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\_0vb5c4r._.js:238:2114)
+    at async v (E:\github\sbh\payload-office-platform\.next\server\chunks\ssr\[root-of-the-server]__1spyelw._.js:1:2682) {
+  payloadInitError: true
+}
+  Generating static pages using 7 workers (3/12) 
+  Generating static pages using 7 workers (6/12) 
+  Generating static pages using 7 workers (9/12) 
+✓ Generating static pages using 7 workers (12/12) in 347ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /[city]
+├ ƒ /[city]/buildings
+├ ƒ /[city]/buildings/[slug]
+├ ƒ /[city]/listings
+├ ƒ /[city]/listings/[slug]
+├ ƒ /[city]/sale
+├ ƒ /admin/[[...segments]]
+├ ƒ /api/[...slug]
+├ ƒ /api/city-partner-applications
+├ ƒ /api/city-partner-applications/details
+├ ƒ /api/corrections
+├ ƒ /api/graphql
+├ ƒ /api/graphql-playground
+├ ƒ /api/health
+├ ƒ /api/inquiries
+├ ƒ /api/inquiries/demand
+├ ƒ /api/observability/sli
+├ ƒ /api/routes
+├ ƒ /api/supply-submissions
+├ ƒ /buildings
+├ ƒ /buildings/[slug]
+├ ƒ /city-partner
+├ ƒ /dev-story
+├ ƒ /dev-story/building-detail-demo
+├ ƒ /dev-story/opt036
+├ ƒ /dev-story/opt037
+├ ƒ /entrust
+├ ƒ /listings
+├ ƒ /listings/[slug]
+├ ƒ /news
+├ ƒ /news/[slug]
+├ ƒ /pages/[slug]
+├ ƒ /pages/privacy
+├ ƒ /publish
+├ ○ /robots.txt
+├ ƒ /sale
+└ ƒ /sitemap.xml
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT=0

@@ -35,6 +35,8 @@ export * from './contracts'
 export {
   buildBuildingSupplySnapshot,
   emptyBuildingSupplySnapshot,
+  availabilityDay,
+  isImmediatelyAvailable,
 } from './building-supply'
 export type { BuildingSupplyInput } from './building-supply'
 export * from './mappers'
@@ -143,6 +145,7 @@ export {
   LISTINGS_CATEGORY_TAG,
   BUILDINGS_CATEGORY_TAG,
   ALL_PUBLIC_CACHE_TAG_GROUPS,
+  IMMEDIATE_CACHE_EXPIRE_PROFILE,
   homeTag,
   listingTag,
   buildingTag,

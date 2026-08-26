@@ -34,7 +34,6 @@ import { BusinessAreaExtensions } from './collections/BusinessAreaExtensions'
 import { CitySiteProfiles } from './collections/CitySiteProfiles'
 import { Merchants } from './collections/Merchants'
 import { BuildingMerchantRelations } from './collections/BuildingMerchantRelations'
-import { ListingMerchantRelations } from './collections/ListingMerchantRelations'
 import { Teams } from './collections/Teams'
 import { Brokers } from './collections/Brokers'
 import { Pages } from './collections/Pages'
@@ -49,6 +48,8 @@ import { DomainEvents } from './collections/DomainEvents'
 import { AuditLogs } from './collections/AuditLogs'
 import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
+import { SupplyImportBatches } from './collections/SupplyImportBatches'
+import { LocationAliases } from './collections/LocationAliases'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import {
   EXPORT_LIMIT,
@@ -65,6 +66,7 @@ import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
 import { createAdminNavigationEndpoint } from './endpoints/admin-navigation-endpoint'
 import { createDashboardStatsEndpoint } from './endpoints/dashboard-stats-endpoint'
+import { createBulkImportEndpoints } from './endpoints/bulk-import-endpoint'
 import {
   FORM_SUBMISSION_DEFAULT_COLUMNS,
   appendFormSubmissionStatusFields,
@@ -73,6 +75,7 @@ import {
 } from './domain/forms/submission-status'
 import { domainErrorAfterError } from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
+import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
 import {
   SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
@@ -84,6 +87,11 @@ import {
   cityPartnerNotificationOutboxTask,
   recoverStaleCityPartnerNotificationJobs,
 } from './domain/city-partner-application/application-notify'
+import {
+  SUPPLY_IMPORT_QUEUE,
+  recoverStaleSupplyImportJobs,
+  supplyImportTask,
+} from './domain/supply-import/import-task'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -95,6 +103,28 @@ const dirname = path.dirname(filename)
 // getPayload → onInit，缺省/非 postgres 时在那里抛错（见下方 onInit）。
 const databaseUrl = process.env.DATABASE_URL || ''
 const cosStorageConfig = parseCosStorageConfig(process.env)
+
+/**
+ * autoRun cron 的日志开关（OPT-046 §6.6）。
+ *
+ * `silent` 只作用于 `runJobs` 内部的两类日志（`payload/dist/queues/`）：
+ *
+ * - `info` —— 每轮「跑了几个 job」的汇总（`operations/runJobs/index.js:229`）。
+ *   三个 cron 分别是 30s / 30s / 10s 一轮，**常驻空转**，放开就是纯噪音，
+ *   会把真正的错误埋掉。继续压掉。
+ * - `error` —— 任务与工作流自身抛的错（`errors/handleTaskError.js:67,96`、
+ *   `errors/handleWorkflowError.js:45`）。这些是**真实的业务失败**
+ *   （通知没发出去、导入炸了），压掉等于生产静默失败。必须放开。
+ *
+ * 原先三个 cron 都写 `silent: true`，两类一起压——info 的噪音问题解决了，
+ * 代价是 error 也一起没了。分开控制才是本意。
+ *
+ * **不受 `silent` 影响的那条**：`Error in job queue cron job handler`
+ * 来自 Croner 包装层的 catch（`payload/dist/index.js:267`），无条件打印。
+ * OPT-046 那个多实例争抢错误走的就是这条，所以它一直看得见——
+ * 别因此以为 `silent: true` 是无害的。
+ */
+const JOB_CRON_SILENT = { info: true, error: false } as const
 
 // 应用启动时注册内置指标到单例 metricRegistry（幂等：已注册跳过）
 // 供 GET /api/dashboard 角色化工作台与 M7.3-M7.5 看板复用
@@ -118,10 +148,12 @@ export default buildConfig({
       supplySubmissionNotificationTask,
       cityPartnerApplicationNotificationTask,
       cityPartnerNotificationOutboxTask,
+      supplyImportTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
       await recoverStaleCityPartnerNotificationJobs(payload)
+      await recoverStaleSupplyImportJobs(payload)
       return true
     },
     autoRun: () => [
@@ -132,7 +164,7 @@ export default buildConfig({
         queue: SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
         disableScheduling: true,
         limit: 10,
-        silent: true,
+        silent: JOB_CRON_SILENT,
       },
       {
         cron: '*/30 * * * * *',
@@ -141,7 +173,15 @@ export default buildConfig({
           ? { disableScheduling: true }
           : {}),
         limit: 10,
-        silent: true,
+        silent: JOB_CRON_SILENT,
+      },
+      {
+        // 导入是人触发的低频操作，但用户在页面上等结果，10 秒一轮兼顾响应与负载。
+        cron: '*/10 * * * * *',
+        queue: SUPPLY_IMPORT_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
+        limit: 5,
+        silent: JOB_CRON_SILENT,
       },
     ],
   },
@@ -149,7 +189,7 @@ export default buildConfig({
   // 生产缺强密钥 / 合法站点 URL 时抛错拒绝启动。
   // 统一 PG：onInit 是 DATABASE_URL 必须为 postgres 的 fail-fast 点。onInit 只在 getPayload
   // （dev/start/migrate/seed 等连库命令）触发，不影响 generate/build 等纯静态命令加载 config。
-  onInit: () => {
+  onInit: (payload) => {
     const dbUrl = process.env.DATABASE_URL?.trim()
     if (!dbUrl || !dbUrl.startsWith('postgres')) {
       throw new Error(
@@ -157,6 +197,7 @@ export default buildConfig({
       )
     }
     assertProductionConfig(process.env)
+    attachPoolErrorHandler(payload)
   },
   i18n: {
     supportedLanguages: { zh },
@@ -234,6 +275,17 @@ export default buildConfig({
           Component: '/components/admin/geography/GeographyCreateView',
           path: '/geography/districts/new',
         },
+        // OPT-041 Task 8 批量导入两个视图：共享同一组件，按 pathname 解析模式。
+        BulkImportBuildings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/buildings',
+          exact: true,
+        },
+        BulkImportListings: {
+          Component: '/components/admin/bulk-import/BulkImportView',
+          path: '/import/listings',
+          exact: true,
+        },
       },
     },
     dashboard: {
@@ -264,7 +316,6 @@ export default buildConfig({
     Amenities,
     Buildings,
     BuildingMerchantRelations,
-    ListingMerchantRelations,
     Listings,
     Leads,
     Customers,
@@ -282,6 +333,8 @@ export default buildConfig({
     AuditLogs,
     Tasks,
     Notifications,
+    SupplyImportBatches,
+    LocationAliases,
   ],
   globals: [AdvisorServiceHours],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
@@ -299,6 +352,8 @@ export default buildConfig({
     createDictionariesEndpoint(),
     // OPT-021 后台导航行动数量（按当前用户权限与数据范围安全聚合）
     createAdminNavigationEndpoint(),
+    // OPT-041 批量导入（预检 / 执行 / 轮询 / 下载）
+    ...createBulkImportEndpoints(),
   ],
   editor: lexicalEditor({
     features: ({ defaultFeatures }) => [
@@ -325,6 +380,22 @@ export default buildConfig({
   db: postgresAdapter({
     pool: {
       connectionString: databaseUrl,
+      // 事故防线（2026-08-24 生产故障）：Payload Jobs 的定时轮询会**泄漏事务**——
+      // 每次泄漏留下一个 `idle in transaction` 连接，PG 侧停在 wait_event=ClientRead
+      // 等一条永远不会来的 COMMIT/ROLLBACK。node-postgres 的池默认 max=10，
+      // 泄漏攒到 9 个时只剩 1 个可用连接，凡是要查库的请求全部排队到超时：
+      // 线上 /api/health 与 /shanghai/listings 挂死 120s+，而 Next 缓存命中的
+      // / 与 /shanghai/buildings 照常 200——「一半页面好、一半页面死」就是这个指纹。
+      //
+      // 泄漏本身在 Payload 的 job runner 内部，未修（见 specs/work-items/OPT-046）。
+      // 这里加的是止损：让 PG 自己回收超时的空闲事务，池子就打不满。
+      // 泄漏速率与数据库延迟正相关——本地 localhost 19 小时才漏 5 个，
+      // 生产走公网 TencentDB 8 分钟漏 9 个，所以这条防线对生产尤其必要。
+      //
+      // 取值 120s：正常事务里两条语句之间的空闲远小于此（导入按 20 行分片，
+      // 每行若干条查询，间隔都是亚秒级）；空闲超过两分钟的事务本身就是缺陷。
+      // 注意这只管「事务内空闲」，正在执行的长语句（如迁移）不受影响。
+      options: '-c idle_in_transaction_session_timeout=120000',
     },
     // CloudBase PG 是共享库，public schema 里除 Payload 表外还有腾讯云拨测表
     // (tencentdb_tbl_dial_test_*)。dev 模式下 Payload 默认会 pushDevSchema 扫全库，

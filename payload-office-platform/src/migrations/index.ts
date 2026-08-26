@@ -54,7 +54,14 @@ import * as migration_20260817_180000_sale_publication_status_sold from './20260
 import * as migration_20260818_072207_fast_track_review_decision from './20260818_072207_fast_track_review_decision';
 import * as migration_20260818_232656_opt033_admin_fast_track_audit from './20260818_232656_opt033_admin_fast_track_audit';
 import * as migration_20260819_113218_listing_hard_delete_nullable_refs from './20260819_113218_listing_hard_delete_nullable_refs';
+import * as migration_20260820_055534_drop_listing_merchant_relations from './20260820_055534_drop_listing_merchant_relations';
 import * as migration_20260820_110024_opt035_city_profile_avg_response_hours from './20260820_110024_opt035_city_profile_avg_response_hours';
+import * as migration_20260821_161534_supply_import_batches from './20260821_161534_supply_import_batches';
+import * as migration_20260822_001600_supply_import_unique_indexes from './20260822_001600_supply_import_unique_indexes';
+import * as migration_20260822_001700_supply_import_role_permissions from './20260822_001700_supply_import_role_permissions';
+import * as migration_20260822_010308_supply_import_job_task from './20260822_010308_supply_import_job_task';
+import * as migration_20260824_101016_opt048_snapshot_chain_repair from './20260824_101016_opt048_snapshot_chain_repair';
+import * as migration_20260824_110612_opt045_import_publishable_fields from './20260824_110612_opt045_import_publishable_fields';
 
 export const migrations = [
   {
@@ -338,8 +345,43 @@ export const migrations = [
     name: '20260819_113218_listing_hard_delete_nullable_refs',
   },
   {
+    up: migration_20260820_055534_drop_listing_merchant_relations.up,
+    down: migration_20260820_055534_drop_listing_merchant_relations.down,
+    name: '20260820_055534_drop_listing_merchant_relations',
+  },
+  {
     up: migration_20260820_110024_opt035_city_profile_avg_response_hours.up,
     down: migration_20260820_110024_opt035_city_profile_avg_response_hours.down,
-    name: '20260820_110024_opt035_city_profile_avg_response_hours'
+    name: '20260820_110024_opt035_city_profile_avg_response_hours',
+  },
+  {
+    up: migration_20260821_161534_supply_import_batches.up,
+    down: migration_20260821_161534_supply_import_batches.down,
+    name: '20260821_161534_supply_import_batches',
+  },
+  {
+    up: migration_20260822_001600_supply_import_unique_indexes.up,
+    down: migration_20260822_001600_supply_import_unique_indexes.down,
+    name: '20260822_001600_supply_import_unique_indexes',
+  },
+  {
+    up: migration_20260822_001700_supply_import_role_permissions.up,
+    down: migration_20260822_001700_supply_import_role_permissions.down,
+    name: '20260822_001700_supply_import_role_permissions',
+  },
+  {
+    up: migration_20260822_010308_supply_import_job_task.up,
+    down: migration_20260822_010308_supply_import_job_task.down,
+    name: '20260822_010308_supply_import_job_task',
+  },
+  {
+    up: migration_20260824_101016_opt048_snapshot_chain_repair.up,
+    down: migration_20260824_101016_opt048_snapshot_chain_repair.down,
+    name: '20260824_101016_opt048_snapshot_chain_repair',
+  },
+  {
+    up: migration_20260824_110612_opt045_import_publishable_fields.up,
+    down: migration_20260824_110612_opt045_import_publishable_fields.down,
+    name: '20260824_110612_opt045_import_publishable_fields'
   },
 ];

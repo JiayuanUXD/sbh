@@ -4,10 +4,9 @@ import DetailPanel from '@/components/frontend/detail/DetailPanel'
 import { formatCompletionYear } from '@/components/frontend/detail/fact-lookup'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import { rentUnitLabel } from '@/lib/frontend/format'
+import { priceUnitLabel } from '@/lib/frontend/format'
 import {
   aggregateAreaRange,
-  DISPLAY_UNIT_LABELS,
   findLowestPrice,
   formatAreaRange,
 } from './supply-summary'
@@ -88,24 +87,24 @@ export default function HeroSummaryPanel({
         <p className="hero-summary__price-row">
           {lowest ? (
             <>
-              <span className="hero-summary__price">{lowest.min}</span>
+              <span className="sf-num hero-summary__price">{lowest.min}</span>
               <span className="hero-summary__price-unit">
-                {rentUnitLabel(lowest.displayUnit) || DISPLAY_UNIT_LABELS[lowest.displayUnit]} 起
+                {priceUnitLabel(lowest.displayUnit)} 起
               </span>
             </>
           ) : (
-            <span className="hero-summary__price hero-summary__price--na">价格面议</span>
+            <span className="sf-num hero-summary__price hero-summary__price--na">价格面议</span>
           )}
         </p>
         <p className="hero-summary__disclaimer">页面价格为公开挂牌价，实际价格以顾问报价为准</p>
 
         <div className="hero-summary__stats">
           <div className="hero-summary__stat">
-            <strong>{areaRange ? formatAreaRange(areaRange) : '—'}</strong>
+            <strong className="sf-num">{areaRange ? formatAreaRange(areaRange) : '—'}</strong>
             <span>可租面积</span>
           </div>
           <div className="hero-summary__stat">
-            <strong>{supply.totalEffectiveListings} 套</strong>
+            <strong className="sf-num">{supply.totalEffectiveListings} 套</strong>
             <span>当前有效供给</span>
           </div>
         </div>

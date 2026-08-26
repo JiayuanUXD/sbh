@@ -4,8 +4,10 @@ import React from 'react'
 import HeroSummaryPanel from '@/components/frontend/building-detail/HeroSummaryPanel'
 import BuildingSupplyBrowser from '@/components/frontend/BuildingSupplyBrowser'
 import DetailGallery from '@/components/frontend/DetailGallery'
+import AnchorNavBar, { type AnchorNavItem } from '@/components/frontend/detail/AnchorNavBar'
 import BuildingSpecPanel from '@/components/frontend/detail/BuildingSpecPanel'
 import DetailPanel from '@/components/frontend/detail/DetailPanel'
+import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
 import LocationPanel, { type LocationPanelBuilding } from '@/components/frontend/LocationPanel'
 import SpecTable, { type SpecRow } from '@/components/frontend/detail/SpecTable'
@@ -335,15 +337,17 @@ const STICKY_PRICE_SNAPSHOT = {
   unit: OVERVIEW_PRICE_FULL.displayUnit,
 } as const
 
-/** 核验行前的勾选图标——单色 currentColor，不引入 comp 字面量的双色 hex。 */
-function VerifyCheckIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true" className="dt-decision__verify-icon">
-      <circle cx="7.5" cy="7.5" r="6.75" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M4.4 7.7l2.1 2.1 4.1-4.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
+/**
+ * 决策卡的价格摘要（数值 / 单位 / 月租折算）与生产页共用同一个派生函数——
+ * 预览页不再自己拼 "8.50" / "1,240 ㎡ · 月租 316,200 元/月" 这类字面量，
+ * 否则组件改了口径，预览页还照着旧字面量"演示"，两边说的不是一件事。
+ */
+const STICKY_PRICE_DIGEST = buildListingPriceDigest({
+  price: OVERVIEW_PRICE_FULL,
+  area: 1240,
+  seats: null,
+  businessType: 'lease',
+})
 
 // ---------------------------------------------------------------------------
 // Fixture：LocationPanel + AmapMapCanvas（Task 5）—— 三态：有坐标 / 无坐标 /
@@ -524,6 +528,7 @@ const HERO_SUPPLY_FULL: BuildingSupplySnapshot = {
       key: 'lease',
       totalEffectiveListings: 51,
       areaRange: { min: 320, max: 1860 },
+      seatRange: null,
       immediateAvailabilityCount: 19,
       priceRanges: [
         {
@@ -735,7 +740,9 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
   groups: [
     {
       key: 'lease', listings: SUPPLY_LEASE_LISTINGS, areaRange: { min: 580, max: 1240 },
+      seatRange: null,
       immediateAvailabilityCount: 2,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day',
         basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 8.2, count: 2,
@@ -743,7 +750,9 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
     {
       key: 'sale', listings: SUPPLY_SALE_LISTINGS, areaRange: { min: 1240, max: 1240 },
+      seatRange: null,
       immediateAvailabilityCount: 1,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time',
         basis: 'total', displayUnit: 'rmb-total', min: 114_080_000, max: 114_080_000, count: 1,
@@ -751,7 +760,9 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
     {
       key: 'coworking', listings: SUPPLY_COWORKING_LISTINGS, areaRange: null,
+      seatRange: { min: 12, max: 48 },
       immediateAvailabilityCount: 2,
+      priceSortDegraded: false,
       priceRanges: [{
         key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month',
         basis: 'seat', displayUnit: 'rmb-seat-month', min: 2880, max: 3600, count: 2,
@@ -759,11 +770,11 @@ const SUPPLY_FULL_SNAPSHOT: BuildingSupplySnapshot = {
     },
   ],
   availableGroups: [
-    { key: 'lease', totalEffectiveListings: 42, areaRange: { min: 320, max: 1860 }, immediateAvailabilityCount: 19,
+    { key: 'lease', totalEffectiveListings: 42, areaRange: { min: 320, max: 1860 }, seatRange: null, immediateAvailabilityCount: 19,
       priceRanges: [{ key: 'lease:CNY:day:sqm:rmb-sqm-day', businessType: 'lease', currency: 'CNY', period: 'day', basis: 'sqm', displayUnit: 'rmb-sqm-day', min: 7.2, max: 12, count: 42 }] },
-    { key: 'sale', totalEffectiveListings: 6, areaRange: { min: 620, max: 1860 }, immediateAvailabilityCount: 4,
+    { key: 'sale', totalEffectiveListings: 6, areaRange: { min: 620, max: 1860 }, seatRange: null, immediateAvailabilityCount: 4,
       priceRanges: [{ key: 'sale:CNY:one-time:total:rmb-total', businessType: 'sale', currency: 'CNY', period: 'one-time', basis: 'total', displayUnit: 'rmb-total', min: 63_240_000, max: 219_480_000, count: 6 }] },
-    { key: 'coworking', totalEffectiveListings: 3, areaRange: null, immediateAvailabilityCount: 3,
+    { key: 'coworking', totalEffectiveListings: 3, areaRange: null, seatRange: { min: 6, max: 48 }, immediateAvailabilityCount: 3,
       priceRanges: [{ key: 'coworking:CNY:month:seat:rmb-seat-month', businessType: 'lease', currency: 'CNY', period: 'month', basis: 'seat', displayUnit: 'rmb-seat-month', min: 1880, max: 3600, count: 3 }] },
   ],
   totalEffectiveListings: 51,
@@ -791,6 +802,62 @@ const SUPPLY_EMPTY_SNAPSHOT: BuildingSupplySnapshot = {
   resultCount: 0,
   validationErrors: [],
 }
+
+/* 锚点导航 fixture（Task 8）。
+ * id 前缀 `anchor-demo-<scope>-` 是预览页专用，避免与本页其它区块 / 生产页真实
+ * 区块 id 撞车；生产接线（Task 10）用的是各区块自己的 id。
+ *
+ * **三态各自独立一套 id、各自一个包含块**（Task 8 审查 Issue 10）：早先三条 bar
+ * 共用同一批目标区块、又都是 `sticky top:44`，滚动时三条会叠在一起互相压住，
+ * 预览态本身就是错的，还会误导后续任务照抄这个摆法。sticky 的粘附范围是包含块
+ * ——一条 bar 一个 scope、scope 内含它自己的全部目标区块，才是本组件真正的
+ * 接线形态（也正是 AnchorNavBar 文件头写的那条契约）。
+ *
+ * 四项的顺序与内容照楼盘详情稿的 `anchors` 数组，但**必须由调用方按区块真实
+ * 渲染与否装配**——下面两个降级 fixture 正是在演示这一点，组件内部没有任何
+ * 「默认 4 项」的兜底。 */
+type AnchorDemo = Readonly<{
+  /** scope 标识，同时用作 id 前缀与 `data-anchor-demo`（验证脚本按它定位） */
+  scope: string
+  title: string
+  caption: string
+  items: ReadonlyArray<AnchorNavItem>
+  /** 每个目标区块的高度；末项故意很矮时用来复现「边界 2」 */
+  heights: readonly number[]
+}>
+
+const ANCHOR_DEMOS: readonly AnchorDemo[] = [
+  {
+    scope: 'a',
+    title: '静安嘉里中心',
+    caption: '4 项完整（末区块只有 120px —— 复现「边界 2」：它的 top 永远够不到吸附线）',
+    items: [
+      { id: 'anchor-demo-a-supply', label: '在租房源' },
+      { id: 'anchor-demo-a-location', label: '周边与交通' },
+      { id: 'anchor-demo-a-spec', label: '楼盘参数' },
+      { id: 'anchor-demo-a-nearby', label: '同商圈楼盘' },
+    ],
+    heights: [420, 420, 420, 120],
+  },
+  {
+    scope: 'b',
+    title: '陆家嘴中心',
+    caption: '只剩 2 项（供给区与同商圈楼盘为空态，未渲染 → 调用方不装配这两项）',
+    items: [
+      { id: 'anchor-demo-b-location', label: '周边与交通' },
+      { id: 'anchor-demo-b-spec', label: '楼盘参数' },
+    ],
+    heights: [320, 320],
+  },
+  {
+    scope: 'c',
+    title: '虹桥天地',
+    caption:
+      '只剩 1 项（锚点组整个不渲染，吸附条本体与「预约看房」仍在；≤767 断点下楼盘名与 CTA 也被藏起来 → 整条不含任何内容，由 .dt-anchor-bar--no-links 整条收掉，不占位）',
+    items: [{ id: 'anchor-demo-c-spec', label: '楼盘参数' }],
+    heights: [200],
+  },
+]
 
 export default async function Opt037PreviewPage({
   searchParams,
@@ -872,7 +939,7 @@ export default async function Opt037PreviewPage({
         <PreviewSection
           id="detail-gallery-no-media"
           title="详情画廊 · 无图替代构图（NoImageHeroGrid）"
-          note="mediaItems 为 0，画廊整段不渲染，关键规格 3×2 宫格 + 地址交通条接管首屏；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
+          note="mediaItems 为 0，画廊整段不渲染，关键规格宫格 + 地址交通条接管首屏；宫格 ≥768 为 3 列（6 格排成 3×2）、≤767 收成 2 列且数值降到 24（Task 10b：375 下三列每格只有 72px，32px 的大字排不下）；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
         >
           <div style={{ maxWidth: 776 }}>
             <DetailGallery
@@ -881,8 +948,10 @@ export default async function Opt037PreviewPage({
               pageType="listing"
               noMediaFallback={{
                 keySpecs: NO_IMAGE_KEY_SPECS,
-                address: '静安区南京西路 1515 号 · 嘉里中心南楼',
-                transit: '近静安寺站',
+                meta: [
+                  { label: '地址', value: '静安区南京西路 1515 号 · 嘉里中心南楼' },
+                  { label: '交通', value: '近静安寺站' },
+                ],
               }}
             />
           </div>
@@ -931,9 +1000,9 @@ export default async function Opt037PreviewPage({
               不需要把它挪到整页最顶端就能验证接管行为。 */}
           <StickyInquiryBar
             title={STICKY_LISTING_TITLE}
-            priceText={String(OVERVIEW_PRICE_FULL.amount.toFixed(2))}
-            priceUnit="元/㎡/天"
-            summaryText="1,240 ㎡ · 月租 316,200 元/月"
+            priceText={STICKY_PRICE_DIGEST.value}
+            priceUnit={STICKY_PRICE_DIGEST.unit ?? undefined}
+            summaryText={STICKY_PRICE_DIGEST.summaryText ?? undefined}
             cta={
               <InquiryModal
                 pageType="listing"
@@ -965,36 +1034,17 @@ export default async function Opt037PreviewPage({
             <div className="dt-core">
               <DetailGallery media={MULTI_IMAGE_FIXTURE} title={STICKY_LISTING_TITLE} pageType="listing" />
 
-              <div className="dt-decision">
-                <DetailPanel variant="side">
-                  <span className="dt-decision__label">租金单价</span>
-                  <div className="dt-decision__price-row">
-                    <span className="dt-decision__price-num">{OVERVIEW_PRICE_FULL.amount.toFixed(2)}</span>
-                    <span className="dt-decision__price-unit">元/㎡/天</span>
-                  </div>
-                  <p className="dt-decision__summary">1,240 ㎡ · 月租 316,200 元/月</p>
-
-                  <div className="dt-decision__verify">
-                    {STICKY_VERIFICATION_FIXTURE.verifiedAt && (
-                      <div className="dt-decision__verify-row">
-                        <VerifyCheckIcon />
-                        <span className="dt-decision__verify-label">信息核验</span>
-                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.verifiedAt}>
-                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.verifiedAt)}
-                        </span>
-                      </div>
-                    )}
-                    {STICKY_VERIFICATION_FIXTURE.priceVerifiedAt && (
-                      <div className="dt-decision__verify-row">
-                        <VerifyCheckIcon />
-                        <span className="dt-decision__verify-label">价格核验</span>
-                        <span className="dt-decision__verify-when" title={STICKY_VERIFICATION_FIXTURE.priceVerifiedAt}>
-                          {formatPublishedDate(STICKY_VERIFICATION_FIXTURE.priceVerifiedAt)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
+              {/* 生产页（CityListingDetailView）与本预览页共用同一个
+                  ListingDecisionCard——预览页此前手写了一份 `.dt-decision__*`
+                  markup，Task 9 接线时收敛掉，避免"组件改了、预览页还在演示旧
+                  结构"。`advisor` 不传：AdvisorCard 要读 Payload global，与本
+                  预览页"不读 Payload"的约定冲突；生产页传的就是它。
+                  comp 决策卡里那个次要的"电话咨询"按钮仍然不渲染，理由见
+                  ListingDecisionCard 文件头（仓库里没有可公开展示的号码字段）。 */}
+              <ListingDecisionCard
+                digest={STICKY_PRICE_DIGEST}
+                verification={STICKY_VERIFICATION_FIXTURE}
+                cta={
                   <InquiryModal
                     pageType="listing"
                     targetListingSlug="jing-an-kerry-centre-12f"
@@ -1007,26 +1057,8 @@ export default async function Opt037PreviewPage({
                     activeSupplyGroup="lease"
                     currentFilters={{ group: 'lease', priceUnit: STICKY_PRICE_SNAPSHOT.unit }}
                   />
-                  {/* 生产接线（非本任务范围）：这里应换成
-                      <AdvisorCard cta={<InquiryModal .../>} />，与
-                      CityListingDetailView.tsx 现有 .detail__decision 同款
-                      组合——AdvisorCard 内部会读 Payload global（服务时段），
-                      与本预览页"不读 Payload"的约定冲突，故预览页里只演示
-                      价格/核验/CTA 三块，不拉入 AdvisorCard。 */}
-                  {/* comp 在决策卡与吸附条里都还有一个次要的"电话咨询"按钮，
-                      本组件只渲染了一个 CTA 槽——这不是漏做，是没有字段可填：
-                      仓库里没有任何"平台客服热线/门店座机"配置（搜过
-                      site-config.ts 与全部 *Phone* 字段，只有用户提交表单里
-                      的联系电话，没有一个能公开展示的号码），而
-                      AdvisorCard.tsx 文件头本就明令"不展示个人顾问手机号"——
-                      两条路都走不通。CityListingDetailView.tsx:165-169 现有
-                      的 .detail__decision 同样只有一个 InquiryModal CTA，
-                      从未渲染过 tel: 链接，这不是巧合，是同一个字段缺口。
-                      Task 9（或任何后续任务）如果想"补回"这个按钮，必须先
-                      有一个真实、可公开、非个人的号码字段落地，而不是照抄
-                      comp 的字面量。 */}
-                </DetailPanel>
-              </div>
+                }
+              />
 
               <ListingOverviewPanel
                 listing={{
@@ -1118,10 +1150,11 @@ export default async function Opt037PreviewPage({
           title="供给密度表（BuildingSupplyBrowser，方案 A：分组切换 + 密度表）"
           note="组聚合（3 列 gap 24）→ 筛选 + 排序 → 表头 → 行，网格 1fr/130/150/176/120/44。组切换/筛选/排序状态在 URL 上（本页真的会因为点击而跳转 querystring，刷新后视图复现）；三态：三组齐全 / 出售组为空（tab 整条不渲染）/ 全空（仅一行提示）"
         >
-          {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例（生产页
-             .detail-v2__supply-main 本就有 min-width:0，见 styles.css），这个
-             fixture 外壳自己也要显式声明，否则密度表 920px min-width 会撑开
-             flex item 导致整页横向溢出——只是预览壳的责任，不是组件本身的缺陷。 */}
+          {/* minWidth:0：本预览页用 flex column 并排三个 fixture 实例。生产页
+             （BuildingDetailLayout）里密度表的父级是 `.dt-container .dt-section`
+             块级容器，天然不会被内容撑开；本预览壳是 flex 容器，flex item 的
+             min-width 默认 auto，不显式归零的话密度表会按内容最小尺寸撑开，
+             导致整页横向溢出——预览壳的责任，不是组件的缺陷。 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>三组齐全（租赁 / 出售 / 联合办公）</span>
@@ -1158,6 +1191,90 @@ export default async function Opt037PreviewPage({
 
         {/* 后续任务在此追加 <PreviewSection id="..." title="..."> 区块 */}
       </div>
+
+      {/* ── 吸附锚点导航（AnchorNavBar，Task 8） ─────────────────────────────
+          **本节故意放在上面那个 `.dt-container` 之外**（因此不是 PreviewSection
+          的子节点，而是手写同款外壳）：`.dt-bar` 是全幅块，毛玻璃与底线必须横贯
+          视口宽；塞进定宽容器里会断在容器边界、与正上方全幅的站点 header 脱节，
+          内层 `.dt-bar__inner`（自己也带 .dt-container）还会二次内缩 32px
+          （Task 8 审查 Issue 1）。生产接线（Task 10）同理：本条是站点 header 的
+          邻居，不是页面内容的一部分。节内文字各自套一层 .dt-container，与其它
+          预览节同宽。 */}
+      <section
+        id="anchor-nav-bar"
+        data-preview="anchor-nav-bar"
+        aria-labelledby="anchor-nav-bar-title"
+        style={{
+          display: 'flex', flexDirection: 'column', gap: 32,
+          marginTop: 48, paddingTop: 24, paddingBottom: 32,
+          borderTop: '1px solid var(--line)',
+        }}
+      >
+        <div className="dt-container" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h2 id="anchor-nav-bar-title" style={{ margin: 0, fontSize: 22, fontWeight: 600, color: 'var(--ink)' }}>
+            吸附锚点导航（AnchorNavBar）
+          </h2>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.43, color: 'var(--ink-2)' }}>
+            sticky top 44 · 高 56 · 全幅玻璃 + 内层容器居中 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（平滑滚动与 reduced-motion 由全局 html{'{'}scroll-behavior{'}'} 负责），落点由 .dt-anchor-target 的 scroll-margin-top=44+56+12 补偿。三态各自独立一个 scope（= sticky 的包含块）与一套 id，互不叠压。
+          </p>
+        </div>
+
+        {ANCHOR_DEMOS.map((demo) => (
+          // 一个 scope = 一条 bar + 它自己的全部目标区块。这个 div 就是 bar 的
+          // 包含块，也就是 sticky 的粘附范围——包含块必须覆盖全部被锚点指向的
+          // 区块，否则条会在还有区块没读完时脱附（AnchorNavBar 文件头的接线契约）。
+          <div key={demo.scope} data-anchor-demo={demo.scope}>
+            <div className="dt-container" style={{ paddingBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-3)' }}>{demo.caption}</span>
+            </div>
+            <AnchorNavBar
+              title={demo.title}
+              items={demo.items}
+              cta={
+                <InquiryModal
+                  pageType="building"
+                  targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
+                  targetSummary={demo.title}
+                  triggerLabel="预约看房"
+                  // 不传 triggerClassName：CTA 的尺寸/圆角/配色由
+                  // `.dt-anchor-bar__cta .btn` 按稿定死，调用方无需（也不该）
+                  // 再挑一个全局尺寸修饰符，否则两处会各说各话。
+                  // 'sticky-card' 的选取理由同 StickyInquiryBar：schema 没有
+                  // 「顶部吸附条」枚举，且它与页面其它询价入口本就是同一个
+                  // 产品位的不同呈现形态，不为区分而新造枚举。
+                  sourceSection="sticky-card"
+                />
+              }
+            />
+            <div
+              className="dt-container"
+              style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 16 }}
+            >
+              {demo.items.map((item, index) => (
+                <section
+                  key={item.id}
+                  id={item.id}
+                  // .dt-anchor-target：scroll-margin-top = 导航 44 + 吸附条 56 + 12 呼吸。
+                  // 生产接线（Task 10）必须给每个被锚点指向的区块加上这个类。
+                  className="dt-anchor-target"
+                  style={{
+                    minHeight: demo.heights[index] ?? 240,
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 'var(--r-card)',
+                    padding: 24,
+                  }}
+                >
+                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>{item.label}</h3>
+                  <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-2)' }}>
+                    锚点落点验证块。点击吸附条上的「{item.label}」后，本行上方的标题必须完整可见、不被吸附条压住，且与条底留出呼吸。
+                  </p>
+                </section>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
     </div>
   )
 }

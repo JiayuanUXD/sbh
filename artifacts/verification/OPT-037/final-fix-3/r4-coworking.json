@@ -1,0 +1,535 @@
+{
+  "origin": "http://localhost:3810",
+  "cases": {
+    "coworking-real": {
+      "path": "/buildings/huangpu-bund?group=coworking",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-real-375.png",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": false
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "联合办公1",
+          "activeTabHref": "/buildings/huangpu-bund?group=coworking",
+          "tableRows": 0,
+          "cardRows": 1,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部"
+          ]
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-real-768.png",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": false
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "联合办公1",
+          "activeTabHref": "/buildings/huangpu-bund?group=coworking",
+          "tableRows": 1,
+          "cardRows": 0,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部"
+          ]
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-real-1440.png",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": false
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "联合办公1",
+          "activeTabHref": "/buildings/huangpu-bund?group=coworking",
+          "tableRows": 1,
+          "cardRows": 0,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部"
+          ]
+        }
+      }
+    },
+    "lease-default": {
+      "path": "/buildings/huangpu-bund",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-lease-default-375.png",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 0,
+          "cardRows": 1,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund"
+            }
+          ],
+          "userVisibleActiveFilters": []
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-lease-default-768.png",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 1,
+          "cardRows": 0,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund"
+            }
+          ],
+          "userVisibleActiveFilters": []
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-lease-default-1440.png",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 1,
+          "cardRows": 0,
+          "emptyFiltered": [],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/huangpu-bund"
+            }
+          ],
+          "userVisibleActiveFilters": []
+        }
+      }
+    },
+    "empty-result": {
+      "path": "/buildings/huangpu-bund?areaMin=0&areaMax=100",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-empty-result-375.png",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "0–100 ㎡",
+              "href": "/buildings/huangpu-bund?areaMin=0&areaMax=100"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "0–100 ㎡"
+          ]
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-empty-result-768.png",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "0–100 ㎡",
+              "href": "/buildings/huangpu-bund?areaMin=0&areaMax=100"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "0–100 ㎡"
+          ]
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/huangpu-bund",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-empty-result-1440.png",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁1",
+              "href": "/buildings/huangpu-bund",
+              "active": true
+            },
+            {
+              "label": "联合办公1",
+              "href": "/buildings/huangpu-bund?group=coworking",
+              "active": false
+            }
+          ],
+          "activeTabLabel": "租赁1",
+          "activeTabHref": "/buildings/huangpu-bund",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 1,
+          "activeFilterPills": [
+            {
+              "label": "0–100 ㎡",
+              "href": "/buildings/huangpu-bund?areaMin=0&areaMax=100"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "0–100 ㎡"
+          ]
+        }
+      }
+    },
+    "coworking-absent": {
+      "path": "/buildings/west-nanjing-premium-center?group=coworking",
+      "viewports": {
+        "375": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-absent-375.png",
+          "scrollWidth": 375,
+          "clientWidth": 375,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁4",
+              "href": "/buildings/west-nanjing-premium-center",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "租赁4",
+          "activeTabHref": "/buildings/west-nanjing-premium-center",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 4,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            },
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部",
+            "全部"
+          ]
+        },
+        "768": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-absent-768.png",
+          "scrollWidth": 768,
+          "clientWidth": 768,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁4",
+              "href": "/buildings/west-nanjing-premium-center",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "租赁4",
+          "activeTabHref": "/buildings/west-nanjing-premium-center",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 4,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            },
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部",
+            "全部"
+          ]
+        },
+        "1440": {
+          "sentinel": {
+            "pathname": "/buildings/west-nanjing-premium-center",
+            "status": 200,
+            "statusOk": true,
+            "family": "building-detail",
+            "missing": [],
+            "ok": true
+          },
+          "shot": "r4-coworking-absent-1440.png",
+          "scrollWidth": 1440,
+          "clientWidth": 1440,
+          "overflowPx": 0,
+          "noOverflow": true,
+          "tabs": [
+            {
+              "label": "租赁4",
+              "href": "/buildings/west-nanjing-premium-center",
+              "active": true
+            }
+          ],
+          "activeTabLabel": "租赁4",
+          "activeTabHref": "/buildings/west-nanjing-premium-center",
+          "tableRows": 0,
+          "cardRows": 0,
+          "emptyFiltered": [
+            "当前筛选下暂无匹配空间"
+          ],
+          "activeTabCount": 4,
+          "activeFilterPills": [
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            },
+            {
+              "label": "全部",
+              "href": "/buildings/west-nanjing-premium-center?group=coworking"
+            }
+          ],
+          "userVisibleActiveFilters": [
+            "全部",
+            "全部"
+          ]
+        }
+      }
+    }
+  }
+}

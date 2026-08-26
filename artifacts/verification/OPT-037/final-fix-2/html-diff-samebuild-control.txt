@@ -1,0 +1,63 @@
+SAME  buildings.html
+DIFF  buildings_empty-building.html
+< <div class="location-panel__grid location-panel__grid--map-only">
+> <div class="location-panel__grid">
+> </div>
+> </div>
+> <div class="location-panel__poi-panel" aria-label="周边配套">
+> <div class="location-panel__pois" role="tablist" aria-label="周边配套类别">
+> <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="false">
+> <span class="location-panel__poi-tab-icon" aria-hidden="true">
+> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+> <path d="M6 3v8a2 2 0 002 2v8M6 3v5M9 3v5M18 3c-2 0-3 2-3 5s1 4 3 4v9">
+> </path>
+> </svg>
+> </span>餐饮<!-- -->（<!-- -->5<!-- -->）</button>
+> <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="false">
+> <span class="location-panel__poi-tab-icon" aria-hidden="true">
+> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+> <path d="M4 9l8-5 8 5M5 9v8M19 9v8M5 17h14M9 17v-3M15 17v-3M4 21h16">
+> </path>
+> </svg>
+> </span>银行<!-- -->（<!-- -->5<!-- -->）</button>
+> <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="false">
+> <span class="location-panel__poi-tab-icon" aria-hidden="true">
+> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+> <path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-5h6v5M7 11h.01M17 11h.01">
+> </path>
+> </svg>
+> </span>酒店<!-- -->（<!-- -->5<!-- -->）</button>
+DIFF  buildings_huangpu-bund.html
+> <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="false">
+> <span class="location-panel__poi-tab-icon" aria-hidden="true">
+> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+> <path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-5h6v5M7 11h.01M17 11h.01">
+> </path>
+> </svg>
+> </span>酒店<!-- -->（<!-- -->5<!-- -->）</button>
+SAME  buildings_west-nanjing-premium-center.html
+SAME  city-partner.html
+SAME  dev-story.html
+SAME  dev-story_building-detail-demo.html
+SAME  dev-story_opt036.html
+SAME  dev-story_opt037.html
+SAME  entrust.html
+SAME  listings.html
+SAME  listings_jingan-price-on-request-300sqm.html
+SAME  listings_jingan-serviced-office-42-seats.html
+DIFF  listings_lujiazui-grade-a-780sqm.html
+> <button type="button" role="tab" aria-selected="false" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="false">
+> <span class="location-panel__poi-tab-icon" aria-hidden="true">
+> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+> <path d="M3 21V8l9-5 9 5v13M3 21h18M9 21v-5h6v5M7 11h.01M17 11h.01">
+> </path>
+> </svg>
+> </span>酒店<!-- -->（<!-- -->5<!-- -->）</button>
+SAME  listings_media-rich-listing.html
+SAME  news.html
+SAME  pages_privacy.html
+SAME  publish.html
+SAME  root.html
+SAME  sale.html
+
+HTML DIFFERS — 见上

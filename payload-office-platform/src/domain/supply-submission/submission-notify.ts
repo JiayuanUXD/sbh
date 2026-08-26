@@ -1,5 +1,7 @@
 import type { CollectionAfterChangeHook, Payload, PayloadRequest, TaskConfig } from 'payload'
 
+import { isUniqueViolation } from '@/domain/shared/unique-violation'
+
 export const SUPPLY_SUBMISSION_NOTIFICATION_TASK = 'notify-supply-submission-created'
 export const SUPPLY_SUBMISSION_NOTIFICATION_QUEUE = 'supply-submission-notifications'
 
@@ -61,14 +63,16 @@ function notificationBody(submission: SubmissionNotificationDoc): string {
   return `${buildingName}，${areaText}${commissionText}`
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  let candidate: unknown = error
-  for (let depth = 0; depth < 5 && candidate && typeof candidate === 'object'; depth += 1) {
-    const record = candidate as Record<string, unknown>
-    if (record.code === '23505') return true
-    candidate = record.cause
-  }
-  return false
+/**
+ * 写通知时撞上 `eventId_recipient_type_idx`（复合唯一索引：event_id + recipient_id + type）。
+ *
+ * 判定实现见 `domain/shared/unique-violation.ts`：本项目的 drizzle 适配器会把
+ * 23505 转成 `ValidationError`，只查 `cause.code` 的老写法恒为 false。
+ * 复合索引映射不回字段，实测 `path` 恒为 `null`，故只按表名收窄；
+ * 调用点随后按 eventId + type + recipient 精确读一次确认，误判不会被静默吞掉。
+ */
+function isNotificationUniqueViolation(error: unknown): boolean {
+  return isUniqueViolation(error, { tableName: 'notifications', column: 'event_id' })
 }
 
 function stableEventId(submissionId: Identifier): string {
@@ -335,7 +339,7 @@ export async function consumeSupplySubmissionCreated(args: {
         })
         delivered += 1
       } catch (error) {
-        if (!isUniqueViolation(error)) throw new Error('notification_delivery_failed')
+        if (!isNotificationUniqueViolation(error)) throw new Error('notification_delivery_failed')
 
         // A 23505 aborts its own Local API transaction. Treat it as a replay
         // only after an independent exact read proves the winning row exists.

@@ -5,10 +5,7 @@ import type {
   PayloadQueryPort,
 } from '@/domain/review/effective-supply'
 
-const EFFECTIVE_SUPPLY_COLLECTIONS = [
-  'listing-reports',
-  'listing-merchant-relations',
-] as const
+const EFFECTIVE_SUPPLY_COLLECTIONS = ['listing-reports'] as const
 
 type EffectiveSupplyCollection = (typeof EFFECTIVE_SUPPLY_COLLECTIONS)[number]
 type PayloadQueryDocument = Record<string, unknown> & PausedReportLike
@@ -69,8 +66,11 @@ function queryDocuments(docs: unknown): PayloadQueryDocument[] {
 
 /**
  * Bounded bridge from Payload's collection-generic Local API to the effective
- * supply domain query port. Only the two collections used by the shared
- * predicate are accepted, and external document/request shapes are validated.
+ * supply domain query port. Only the collections used by the shared predicate
+ * are accepted (currently `listing-reports`; `listing-merchant-relations` was
+ * removed from the whitelist when OPT-034 collapsed it into `listings.merchant`
+ * and the predicate stopped querying it), and external document/request
+ * shapes are validated.
  */
 export function createEffectiveSupplyPayloadPort(
   payload: Pick<BasePayload, 'find'>,

@@ -28,7 +28,9 @@ export default function SpecTable({ rows }: Readonly<{ rows: readonly SpecRow[] 
       {rows.map((row, index) => (
         <div key={`${index}-${row.label}`} className="dt-spec__row">
           <span className="dt-spec__label">{row.label}</span>
-          <span className="dt-spec__value">
+          {/* `sf-num`：全站数字基元（surface.css `.sf-num`）——"数字一律 tabular-nums"
+              这条约束此前靠 detail.css 里 9 处内联复制守住，本批收敛到基元。 */}
+          <span className="sf-num dt-spec__value">
             {row.value ?? '—'}
             {row.value != null && row.unit ? <span className="dt-spec__unit">{row.unit}</span> : null}
           </span>

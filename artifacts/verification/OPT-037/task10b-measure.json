@@ -1,0 +1,250 @@
+[
+  {
+    "case": "nomedia",
+    "width": 375,
+    "noOverflow": true,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "hasNoMediaGrid": true,
+    "hasGreyPlaceholder": false,
+    "hasGallery": false,
+    "gridBox": {
+      "w": 343,
+      "h": 617
+    },
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "服务式办公",
+        "unit": null
+      },
+      {
+        "label": "标准层面积",
+        "value": "1500",
+        "unit": "㎡"
+      },
+      {
+        "label": "得房率",
+        "value": "70",
+        "unit": "%"
+      },
+      {
+        "label": "客梯",
+        "value": "6",
+        "unit": "部"
+      },
+      {
+        "label": "停车位",
+        "value": "120",
+        "unit": "个"
+      },
+      {
+        "label": "可注册",
+        "value": "支持注册",
+        "unit": null
+      }
+    ],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "nomedia",
+    "width": 768,
+    "noOverflow": true,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "hasNoMediaGrid": true,
+    "hasGreyPlaceholder": false,
+    "hasGallery": false,
+    "gridBox": {
+      "w": 736,
+      "h": 521
+    },
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "服务式办公",
+        "unit": null
+      },
+      {
+        "label": "标准层面积",
+        "value": "1500",
+        "unit": "㎡"
+      },
+      {
+        "label": "得房率",
+        "value": "70",
+        "unit": "%"
+      },
+      {
+        "label": "客梯",
+        "value": "6",
+        "unit": "部"
+      },
+      {
+        "label": "停车位",
+        "value": "120",
+        "unit": "个"
+      },
+      {
+        "label": "可注册",
+        "value": "支持注册",
+        "unit": null
+      }
+    ],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "nomedia",
+    "width": 1440,
+    "noOverflow": true,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "hasNoMediaGrid": true,
+    "hasGreyPlaceholder": false,
+    "hasGallery": false,
+    "gridBox": {
+      "w": 776,
+      "h": 433
+    },
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "服务式办公",
+        "unit": null
+      },
+      {
+        "label": "标准层面积",
+        "value": "1500",
+        "unit": "㎡"
+      },
+      {
+        "label": "得房率",
+        "value": "70",
+        "unit": "%"
+      },
+      {
+        "label": "客梯",
+        "value": "6",
+        "unit": "部"
+      },
+      {
+        "label": "停车位",
+        "value": "120",
+        "unit": "个"
+      },
+      {
+        "label": "可注册",
+        "value": "支持注册",
+        "unit": null
+      }
+    ],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "nomedia",
+    "width": 1920,
+    "noOverflow": true,
+    "scrollWidth": 1920,
+    "clientWidth": 1920,
+    "hasNoMediaGrid": true,
+    "hasGreyPlaceholder": false,
+    "hasGallery": false,
+    "gridBox": {
+      "w": 776,
+      "h": 433
+    },
+    "cells": [
+      {
+        "label": "物业类型",
+        "value": "服务式办公",
+        "unit": null
+      },
+      {
+        "label": "标准层面积",
+        "value": "1500",
+        "unit": "㎡"
+      },
+      {
+        "label": "得房率",
+        "value": "70",
+        "unit": "%"
+      },
+      {
+        "label": "客梯",
+        "value": "6",
+        "unit": "部"
+      },
+      {
+        "label": "停车位",
+        "value": "120",
+        "unit": "个"
+      },
+      {
+        "label": "可注册",
+        "value": "支持注册",
+        "unit": null
+      }
+    ],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "withmedia",
+    "width": 375,
+    "noOverflow": true,
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "hasNoMediaGrid": false,
+    "hasGreyPlaceholder": false,
+    "hasGallery": true,
+    "gridBox": null,
+    "cells": [],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "withmedia",
+    "width": 768,
+    "noOverflow": true,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "hasNoMediaGrid": false,
+    "hasGreyPlaceholder": false,
+    "hasGallery": true,
+    "gridBox": null,
+    "cells": [],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "withmedia",
+    "width": 1440,
+    "noOverflow": true,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "hasNoMediaGrid": false,
+    "hasGreyPlaceholder": false,
+    "hasGallery": true,
+    "gridBox": null,
+    "cells": [],
+    "zeroValues": [],
+    "consoleErrors": []
+  },
+  {
+    "case": "withmedia",
+    "width": 1920,
+    "noOverflow": true,
+    "scrollWidth": 1920,
+    "clientWidth": 1920,
+    "hasNoMediaGrid": false,
+    "hasGreyPlaceholder": false,
+    "hasGallery": true,
+    "gridBox": null,
+    "cells": [],
+    "zeroValues": [],
+    "consoleErrors": []
+  }
+]

@@ -29,6 +29,12 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve, dirname as pathDirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  isDestructiveMigrationApproved,
+  DESTRUCTIVE_APPROVAL_HINT,
+  type DestructiveRiskKind,
+} from './destructive-migration-approvals'
+
 const here = pathDirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(here, '..')
 
@@ -186,22 +192,27 @@ export type MigrationRisk = {
   severity: 'fail' | 'warn'
   reason: string
   matches: string[]
+  /** 只有落在 DROP_TABLE/DROP_COLUMN 的 fail 风险才带这个字段，才可能被批准清单放行。 */
+  kind?: DestructiveRiskKind
 }
 
 const FORBIDDEN_PATTERNS: Array<{
   pattern: RegExp
   severity: 'fail' | 'warn'
   reason: string
+  kind?: DestructiveRiskKind
 }> = [
   {
     pattern: /DROP\s+TABLE/i,
     severity: 'fail',
-    reason: '删除表 - 必须经过扩展->回填->双读->切换->收敛流程',
+    reason: `删除表 - 必须经过扩展->回填->双读->切换->收敛流程。${DESTRUCTIVE_APPROVAL_HINT}`,
+    kind: 'DROP_TABLE',
   },
   {
     pattern: /DROP\s+COLUMN/i,
     severity: 'fail',
-    reason: '删除列 - 必须经过双读验证和人工确认',
+    reason: `删除列 - 必须经过双读验证和人工确认。${DESTRUCTIVE_APPROVAL_HINT}`,
+    kind: 'DROP_COLUMN',
   },
   {
     pattern: /ALTER\s+TABLE\s+\w+\s+ADD\s+COLUMN\s+\w+\s+\w+\s+NOT\s+NULL(?!.*DEFAULT)/i,
@@ -221,15 +232,35 @@ export function scanMigrationRisks(content: string): MigrationRisk[] {
   for (const p of FORBIDDEN_PATTERNS) {
     const matches = content.match(new RegExp(p.pattern.source, 'gi'))
     if (matches) {
-      risks.push({ severity: p.severity, reason: p.reason, matches })
+      risks.push({ severity: p.severity, reason: p.reason, matches, kind: p.kind })
     }
   }
   return risks
 }
 
-/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则。 */
+/** 扫描某份迁移的 up() 风险；所有迁移统一应用通用阻断规则，不认迁移名。 */
 export function scanMigrationUpRisks(_name: string, migrationContent: string): MigrationRisk[] {
   return scanMigrationRisks(extractMigrationUpBody(migrationContent))
+}
+
+/**
+ * 对一份迁移的风险应用批准清单：整份迁移 .ts 文件内容的 SHA-256 与批准记录
+ * 逐字节一致时，压制所有带 kind 的 DROP_TABLE/DROP_COLUMN fail 项；不一致（含
+ * 未获批准、或文件内容与批准时不同）则原样保留、照常报 fail。不带 kind 的风险
+ * （比如未来若加了 TRUNCATE 之类的 fail 规则）永远不受这份批准清单影响。
+ *
+ * `migrationFileContent` 必须是调用方对该迁移 .ts 文件 readFileSync 得到的
+ * 原始内容，不是提取过的 up() 子串——真正的内容指纹以整份文件为准，见
+ * scripts/destructive-migration-approvals.ts 顶部注释。批准数据来自
+ * DESTRUCTIVE_MIGRATION_APPROVALS.json，本文件不写死任何具体迁移名。
+ */
+export function applyDestructiveMigrationOverride(
+  name: string,
+  risks: MigrationRisk[],
+  migrationFileContent: string,
+): MigrationRisk[] {
+  if (!isDestructiveMigrationApproved(name, migrationFileContent)) return risks
+  return risks.filter((r) => !(r.severity === 'fail' && r.kind))
 }
 
 function checkMigrations() {
@@ -281,7 +312,7 @@ function checkMigrations() {
     // 不可回滚项确定性阻断：缺 down 升级为 fail
     if (!hasDown) fail(`migrations.${name}.down`, '缺少 export async function down（不可回滚）')
 
-    const risks = scanMigrationUpRisks(name, content)
+    const risks = applyDestructiveMigrationOverride(name, scanMigrationUpRisks(name, content), content)
     for (const r of risks) {
       totalRisks += r.matches.length
       const fn = r.severity === 'fail' ? fail : warn

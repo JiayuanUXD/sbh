@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ValidationError } from 'payload'
 
 import { Notifications } from '@/collections/Notifications'
 import {
@@ -8,6 +9,10 @@ import {
   enqueueSupplySubmissionCreated,
   supplySubmissionNotificationTask,
 } from '@/domain/supply-submission/submission-notify'
+import {
+  adapterUniqueViolation,
+  notificationUniqueViolation,
+} from './helpers/unique-violation-fixtures'
 
 const { default: payloadConfigPromise } = await import('@/payload.config')
 
@@ -36,9 +41,11 @@ function enqueueHarness(options?: { failEvent?: boolean | 'unique'; failQueue?: 
     async create(args: Record<string, unknown>) {
       creates.push(args)
       if (options?.failEvent) {
-        const error = new Error('outbox unavailable') as Error & { code?: string }
-        if (options.failEvent === 'unique') error.code = '23505'
-        throw error
+        // 真实形状：drizzle 适配器把 23505 转成 ValidationError（见 helpers 文件头）。
+        if (options.failEvent === 'unique') {
+          throw adapterUniqueViolation('domain-events', 'domain_events', 'eventId')
+        }
+        throw new Error('outbox unavailable')
       }
       return { id: 1 }
     },
@@ -114,7 +121,7 @@ describe('supply submission outbox producer', () => {
 
   it('lets a same-request event 23505 abort the parent transaction instead of swallowing it', async () => {
     const harness = enqueueHarness({ failEvent: 'unique' })
-    await expect(runEnqueue(harness)).rejects.toMatchObject({ code: '23505' })
+    await expect(runEnqueue(harness)).rejects.toBeInstanceOf(ValidationError)
     expect(harness.queues).toEqual([])
   })
 })
@@ -217,9 +224,8 @@ function consumerHarness(options?: {
         await Promise.resolve()
         if (options?.uniqueConflictRecipients?.includes(data.recipient)) {
           conflictedRecipients.add(data.recipient)
-          const error = new Error('duplicate key') as Error & { code: string }
-          error.code = '23505'
-          throw error
+          // 真实形状：notifications 复合唯一索引冲突经适配器转换后的 ValidationError。
+          throw notificationUniqueViolation()
         }
         if (options?.failRecipients?.includes(data.recipient)) {
           throw new Error('sensitive failure content 13800003333')

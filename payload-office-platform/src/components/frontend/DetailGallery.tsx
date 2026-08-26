@@ -6,7 +6,7 @@ import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
 import { formatPublishedDate } from '@/lib/frontend/format'
-import NoImageHeroGrid from './detail/NoImageHeroGrid'
+import NoImageHeroGrid, { type NoImageMetaItem } from './detail/NoImageHeroGrid'
 import type { SpecRow } from './detail/SpecTable'
 import DetailVideo from './DetailVideo'
 
@@ -16,15 +16,16 @@ type DetailGalleryProps = Readonly<{
   /** The containing detail route; used only as an analytics enum. */
   pageType?: 'listing' | 'building'
   /**
-   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」）。调用方按自己
-   * 页面类型（listing/building）选定六项关键规格与地址交通信息传入；本组件
+   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」，Task 10b 起
+   * 楼盘详情页同用）。调用方按自己页面类型（listing/building）选定关键规格
+   * 与底部补充信息条（`meta`——放什么取决于该页旁边已经说了什么，见
+   * NoImageHeroGrid 文件头）传入；本组件
    * 不关心具体字段来源，只负责在 media 为空时用它替换灰底占位图。省略时
    * 回退到原有的通用「暂无图片」占位（保持对未接入调用方的向后兼容）。
    */
   noMediaFallback?: Readonly<{
     keySpecs: readonly SpecRow[]
-    address: string | null
-    transit: string | null
+    meta: readonly NoImageMetaItem[]
   }>
 }>
 
@@ -106,6 +107,30 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
       return next
     })
   }, [])
+
+  /**
+   * 补挂载时的「已经失败了吗」判定——onError 单独不够用。
+   *
+   * SSR 出来的 <img> 一进 HTML 解析器就开始加载，而 React 的 onError 要等这个
+   * 客户端组件 hydration 完成才挂到 DOM 上。图片在这中间的窗口里 404 / 断流时：
+   * error 事件不冒泡（只走捕获阶段直达 target），React 也不会为 hydration 之前
+   * 错过的 load/error 补发事件——于是 onError 永远不触发，用户看到的是浏览器的
+   * 破图框，而不是 MediaFallback。这个窗口在生产构建下是几十到几百毫秒，在
+   * next dev 下可达数秒，绝非理论值。
+   *
+   * 判据用 complete && naturalWidth === 0：加载成功的位图必有 naturalWidth；
+   * 还没开始 / 正在加载（含 loading="lazy" 的缩略图）complete 为 false，会被跳过，
+   * 它们后续真失败时由已经挂好的 onError 接住。
+   *
+   * ref 回调本身保持稳定（id 从 data-media-id 读，而不是按 id 现造闭包），
+   * 否则每次 render 都会 detach/attach 一遍 ref。
+   */
+  const detectPreHydrationFailure = useCallback((node: HTMLImageElement | null) => {
+    if (!node) return
+    const id = node.dataset.mediaId
+    if (!id) return
+    if (node.complete && node.naturalWidth === 0) markFailed(id)
+  }, [markFailed])
 
   const close = useCallback(() => {
     setIsOpen(false)
@@ -199,8 +224,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
         <NoImageHeroGrid
           title={title}
           keySpecs={noMediaFallback.keySpecs}
-          address={noMediaFallback.address}
-          transit={noMediaFallback.transit}
+          meta={noMediaFallback.meta}
         />
       )
     }
@@ -282,6 +306,8 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
                 <MediaFallback />
               ) : (
                 <img
+                  ref={detectPreHydrationFailure}
+                  data-media-id={activeMedia.item.id}
                   src={activeMedia.src}
                   alt={activeMedia.alt}
                   loading="eager"
@@ -301,7 +327,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
           )}
 
           {activeMedia.item.kind !== 'video' && currentList.length > 1 && !failedMediaIds.has(activeMedia.item.id) && (
-            <span className="detail-gallery__main-counter" aria-hidden="true">
+            <span className="sf-num detail-gallery__main-counter" aria-hidden="true">
               {safeActiveIndex + 1} / {currentList.length}
             </span>
           )}
@@ -380,7 +406,14 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
                   {hasFailed ? (
                     <MediaFallback />
                   ) : (
-                    <img src={src} alt={alt} loading="lazy" onError={() => markFailed(item.id)} />
+                    <img
+                      ref={detectPreHydrationFailure}
+                      data-media-id={item.id}
+                      src={src}
+                      alt={alt}
+                      loading="lazy"
+                      onError={() => markFailed(item.id)}
+                    />
                   )}
                 </button>
               )

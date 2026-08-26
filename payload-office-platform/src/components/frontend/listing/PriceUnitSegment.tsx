@@ -49,6 +49,11 @@ import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
  *     「现在看的是哪一类价格」这条最基本的诚实义务；不渲染分段外壳
  *     （`#e9e9ed` 胶囊）与横向说明句——说明句讲的是「三种单位如何互斥切换」，
  *     此刻没有第二个单位可切，讲了也是噪音。
+ *
+ * 关于 `prefetch={false}`：**本组件刻意不加**，理由与 `ResultToolbar` 同（OPT-037
+ * Task 11c 逐个判过）。三条件并列判据（见 `ui/Breadcrumb.tsx`）里只有「常驻渲染」
+ * 成立：`PriceDisplayUnit` 是**三值枚举**，最多两条可点链接，且 href 不由内容决定。
+ * `ExcludedUnitsBar` 与本组件共用 `buildPriceUnitHref`、条数更少，同判同不加。
  */
 
 export type PriceUnitOption = Readonly<{

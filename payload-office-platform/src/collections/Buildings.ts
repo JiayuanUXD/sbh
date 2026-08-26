@@ -1,8 +1,13 @@
 import type { CollectionBeforeChangeHook, CollectionConfig, Field } from 'payload'
+import { createCollectionAccess } from '@/domain/auth/access'
 import { DETAIL_MEDIA_KINDS, DETAIL_MEDIA_KIND_LABELS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
 import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import {
+  invalidateBuildingPublicCacheAfterChange,
+  invalidateBuildingPublicCacheAfterDelete,
+} from '@/domain/public-catalog/supply-cache-hook'
 import {
   BUILDING_GALLERY_MAX,
   BUILDING_OPERATIONAL_STATUSES,
@@ -14,11 +19,13 @@ import {
   VERIFICATION_STATUSES,
   VERIFICATION_STATUS_LABELS,
 } from '@/domain/supply/building'
+import { guardBuildingDelete } from '@/domain/supply/building-delete-cleanup'
 import { protectBuilding } from '@/domain/supply/building-protect'
 import { createBuildingDedupCheckEndpoint } from '@/endpoints/building-dedup-check-endpoint'
 import { createBuildingMergeEndpoint } from '@/endpoints/building-merge-endpoint'
 import { createBuildingDeactivationImpactEndpoint } from '@/endpoints/building-deactivation-impact-endpoint'
 import { createBuildingOperationalToggleEndpoint } from '@/endpoints/building-operational-toggle-endpoint'
+import { createDataSourceGroup } from '@/domain/supply-import/data-source-field'
 
 const BUILDING_MEDIA_CATEGORIES = ['exterior', 'lobby', 'common-area', 'facilities'] as const
 
@@ -100,7 +107,31 @@ export const Buildings: CollectionConfig = {
   },
   trash: true,
   access: {
+    // 前台匿名可读——公开站点靠有效供给谓词在查询层收窄，不靠 access.read。
     read: () => true,
+    /**
+     * OPT-051：删除必须显式收口。
+     *
+     * 此前这里**只有 `read`**，`delete` 缺省 → Payload 默认「任何登录用户都能删」。
+     * 而其余十个集合都显式收了口（`delete: () => false` 或绑权限码），
+     * 供给侧最核心的这两个反倒是例外。
+     *
+     * 三点让它比看起来更危险：
+     *   1. `trash: true` 只影响后台按钮语义，**不影响 `access.delete` 的判定**；
+     *   2. 本项目 `payload.delete` 恒为硬删（`trash` 参数只是查询过滤器），
+     *      任何直接调 API 的路径都是真删；
+     *   3. 这个库上已经真实发生过一次房源硬删。
+     *
+     * `listing:delete` / `building:delete` 两个权限码**早在 permission-codes.ts
+     * 里定义好了**（access.ts 的文档注释甚至拿它当示例），只是从没被任何
+     * collection 消费、也没授予任何角色——一对彻底的死代码。这里把它接上。
+     *
+     * 当前只有 ADM（`operationPermissions: ['*']`）能通过，**无需迁移**：
+     * 通配符由 `hasOperationPermission` 内部处理。将来要放给 OPS，
+     * 走迁移授权 + 同步 `src/test/factory/roles.ts`（不同步会被 seed 擦掉，
+     * 见 OPT-045 §9 的实测教训）。
+     */
+    delete: createCollectionAccess({ delete: 'building:delete' }).delete,
   },
   hooks: {
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
@@ -109,6 +140,16 @@ export const Buildings: CollectionConfig = {
     beforeChange: [syncBuildingMedia, protectBuilding],
     // 字段脱敏（tasks.md M1.4）：缺 building:coordinate 权限 → 坐标清空
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
+    // 楼盘停用 / 换城市 / 改展示字段都会改变前台可见性与楼盘详情，必须失效公开缓存。
+    afterChange: [invalidateBuildingPublicCacheAfterChange],
+    // OPT-050：楼盘删除守护。还有房源挂着就拦下并说清原因；没有房源则顺手清掉
+    // building-merchant-relations 那些纯关系行。
+    //
+    // 不接这个钩子的后果不是「删不掉」，而是「删不掉且看不懂」——外键
+    // SET NULL 撞上 NOT NULL，PG 中止事务，运营只看到 500，日志里也只剩
+    // `current transaction is aborted`。详见该文件头注释。
+    beforeDelete: [guardBuildingDelete],
+    afterDelete: [invalidateBuildingPublicCacheAfterDelete],
   },
   fields: [
     {
@@ -235,6 +276,7 @@ export const Buildings: CollectionConfig = {
               defaultValue: 1,
               admin: { readOnly: true, description: '乐观锁版本号，系统维护' },
             },
+            createDataSourceGroup('楼盘'),
           ],
         },
         {
@@ -336,6 +378,31 @@ export const Buildings: CollectionConfig = {
               label: '停车位数量',
               type: 'number',
               min: 0,
+            },
+            {
+              /**
+               * 在售单价（OPT-045 D1）。
+               *
+               * **单值，不是区间**，也不做「在售房源单价区间」的派生展示——用户裁定。
+               * 楼盘表此前没有任何价格字段（只有 `totalFloors` 与
+               * `verification_info_price_verified_at`），出售类楼盘无处填单价。
+               *
+               * **口径固定为「元/㎡」**，不带周期与单位选择：
+               * 楼盘层面的在售单价是一个招商口径的参考值，不是可成交的结构化价格。
+               * 真正参与前台价格展示、排序、筛选的是**房源**的
+               * `price.{amount,currency,period,unit}` 四件套（出售走
+               * `period='one-time'` + `unit='sqm'|'suite'`）。这里刻意不做成四件套，
+               * 免得两处价格来源打架——楼盘页的价格聚合一直来自其下房源，
+               * 本字段不进任何聚合。
+               */
+              name: 'saleUnitPrice',
+              label: '在售单价（元/㎡）',
+              type: 'number',
+              min: 0,
+              admin: {
+                description:
+                  '招商参考口径的在售单价，单值。前台价格展示与筛选一律来自房源的结构化价格，本字段不参与聚合。',
+              },
             },
             {
               name: 'developerAndScale',

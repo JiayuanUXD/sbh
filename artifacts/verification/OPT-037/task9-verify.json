@@ -1,0 +1,514 @@
+{
+  "375": {
+    "main": {
+      "overflowTop": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyOverflowX": "clip"
+      },
+      "skeleton": {
+        "containerWidth": 343,
+        "coreColumns": "343px",
+        "coreColumnGap": "32px",
+        "titlebarPadding": "20px 16px",
+        "h1": "24px/600/30px",
+        "h1LetterSpacing": "normal",
+        "h2": "24px/600"
+      },
+      "order": [
+        "dt-container",
+        "dt-core",
+        "description",
+        "location",
+        "building",
+        "related"
+      ],
+      "overviewInCore": 1,
+      "overviewText": {
+        "rows": 17,
+        "dashRows": 13,
+        "hasZeroYuan": false
+      },
+      "tabularNums": [
+        ".dt-decision__price-num:tabular-nums",
+        ".dt-spec__value:tabular-nums"
+      ],
+      "sticky": {
+        "atTop": {
+          "decision": {
+            "x": 16,
+            "y": 583.453125,
+            "w": 343,
+            "h": 376.328125,
+            "visible": true
+          },
+          "bar": null
+        },
+        "midway": {
+          "decision": {
+            "x": 16,
+            "y": 163.453125,
+            "w": 343,
+            "h": 376.328125,
+            "visible": true
+          },
+          "bar": null,
+          "stickyTop": "116px"
+        },
+        "afterRelease": {
+          "decision": {
+            "x": 16,
+            "y": -4536.546875,
+            "w": 343,
+            "h": 376.328125,
+            "visible": true
+          },
+          "bar": {
+            "x": 0,
+            "y": 0,
+            "w": 0,
+            "h": 0,
+            "visible": false
+          },
+          "barCount": 1,
+          "decisionFullyAbove": true
+        }
+      },
+      "mobileBar": {
+        "display": "flex",
+        "barTop": 741.609375,
+        "lastContentBottom": -26.796875,
+        "priceVisible": true,
+        "regionLabels": [
+          "吸附询价条",
+          "媒体缩略图列表",
+          "询价操作栏"
+        ]
+      }
+    },
+    "noPrice": {
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyOverflowX": "clip"
+      },
+      "priceText": "价格面议",
+      "priceIsNaVariant": true,
+      "summaryPresent": true,
+      "stickyPriceRendered": false,
+      "hasZeroYuan": false
+    },
+    "noCoord": {
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyOverflowX": "clip"
+      },
+      "locationSection": 0,
+      "gapDescriptionToBuilding": 0,
+      "sectionPaddingTop": "40px"
+    },
+    "prefixed": {
+      "status": "rendered",
+      "overflow": {
+        "scrollWidth": 375,
+        "clientWidth": 375,
+        "bodyOverflowX": "clip"
+      },
+      "breadcrumbHrefs": [
+        "/",
+        "/listings",
+        "/buildings/west-nanjing-premium-center"
+      ],
+      "jsonLdUrl": {
+        "url": "http://localhost:3731/listings/jingan-serviced-office-42-seats",
+        "offersPrice": 2800
+      },
+      "overviewInCore": 1
+    }
+  },
+  "768": {
+    "main": {
+      "overflowTop": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "bodyOverflowX": "clip"
+      },
+      "skeleton": {
+        "containerWidth": 736,
+        "coreColumns": "736px",
+        "coreColumnGap": "32px",
+        "titlebarPadding": "32px 24px",
+        "h1": "32px/600/36.8px",
+        "h1LetterSpacing": "normal",
+        "h2": "24px/600"
+      },
+      "order": [
+        "dt-container",
+        "dt-core",
+        "description",
+        "location",
+        "building",
+        "related"
+      ],
+      "overviewInCore": 1,
+      "overviewText": {
+        "rows": 17,
+        "dashRows": 13,
+        "hasZeroYuan": false
+      },
+      "tabularNums": [
+        ".dt-decision__price-num:tabular-nums",
+        ".dt-spec__value:tabular-nums"
+      ],
+      "sticky": {
+        "atTop": {
+          "decision": {
+            "x": 16,
+            "y": 800.515625,
+            "w": 736,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null
+        },
+        "midway": {
+          "decision": {
+            "x": 16,
+            "y": 380.515625,
+            "w": 736,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null,
+          "stickyTop": "116px"
+        },
+        "afterRelease": {
+          "decision": {
+            "x": 16,
+            "y": -3560.484375,
+            "w": 736,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": {
+            "x": 0,
+            "y": 44,
+            "w": 768,
+            "h": 56,
+            "visible": true
+          },
+          "barCount": 1,
+          "decisionFullyAbove": true
+        }
+      },
+      "mobileBar": {
+        "display": "none",
+        "barTop": 0,
+        "lastContentBottom": 439.84375,
+        "priceVisible": true,
+        "regionLabels": [
+          "吸附询价条",
+          "媒体缩略图列表",
+          "询价操作栏"
+        ]
+      }
+    },
+    "noPrice": {
+      "overflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "bodyOverflowX": "clip"
+      },
+      "priceText": "价格面议",
+      "priceIsNaVariant": true,
+      "summaryPresent": true,
+      "stickyPriceRendered": false,
+      "hasZeroYuan": false
+    },
+    "noCoord": {
+      "overflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "bodyOverflowX": "clip"
+      },
+      "locationSection": 0,
+      "gapDescriptionToBuilding": 0,
+      "sectionPaddingTop": "56px"
+    },
+    "prefixed": {
+      "status": "rendered",
+      "overflow": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "bodyOverflowX": "clip"
+      },
+      "breadcrumbHrefs": [
+        "/",
+        "/listings",
+        "/buildings/west-nanjing-premium-center"
+      ],
+      "jsonLdUrl": {
+        "url": "http://localhost:3731/listings/jingan-serviced-office-42-seats",
+        "offersPrice": 2800
+      },
+      "overviewInCore": 1
+    }
+  },
+  "1440": {
+    "main": {
+      "overflowTop": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyOverflowX": "clip"
+      },
+      "skeleton": {
+        "containerWidth": 1180,
+        "coreColumns": "776px 372px",
+        "coreColumnGap": "32px",
+        "titlebarPadding": "32px 24px",
+        "h1": "32px/600/36.8px",
+        "h1LetterSpacing": "normal",
+        "h2": "24px/600"
+      },
+      "order": [
+        "dt-container",
+        "dt-core",
+        "description",
+        "location",
+        "building",
+        "related"
+      ],
+      "overviewInCore": 1,
+      "overviewText": {
+        "rows": 17,
+        "dashRows": 13,
+        "hasZeroYuan": false
+      },
+      "tabularNums": [
+        ".dt-decision__price-num:tabular-nums",
+        ".dt-spec__value:tabular-nums"
+      ],
+      "sticky": {
+        "atTop": {
+          "decision": {
+            "x": 938,
+            "y": 220.9375,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null
+        },
+        "midway": {
+          "decision": {
+            "x": 938,
+            "y": 116,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null,
+          "stickyTop": "116px"
+        },
+        "afterRelease": {
+          "decision": {
+            "x": 938,
+            "y": -1544.40625,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": {
+            "x": 0,
+            "y": 44,
+            "w": 1440,
+            "h": 56,
+            "visible": true
+          },
+          "barCount": 1,
+          "decisionFullyAbove": true
+        }
+      },
+      "mobileBar": {
+        "display": "none",
+        "barTop": 0,
+        "lastContentBottom": 553.234375,
+        "priceVisible": true,
+        "regionLabels": [
+          "吸附询价条",
+          "媒体缩略图列表",
+          "询价操作栏"
+        ]
+      }
+    },
+    "noPrice": {
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyOverflowX": "clip"
+      },
+      "priceText": "价格面议",
+      "priceIsNaVariant": true,
+      "summaryPresent": true,
+      "stickyPriceRendered": false,
+      "hasZeroYuan": false
+    },
+    "noCoord": {
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyOverflowX": "clip"
+      },
+      "locationSection": 0,
+      "gapDescriptionToBuilding": 0,
+      "sectionPaddingTop": "56px"
+    },
+    "prefixed": {
+      "status": "rendered",
+      "overflow": {
+        "scrollWidth": 1440,
+        "clientWidth": 1440,
+        "bodyOverflowX": "clip"
+      },
+      "breadcrumbHrefs": [
+        "/",
+        "/listings",
+        "/buildings/west-nanjing-premium-center"
+      ],
+      "jsonLdUrl": {
+        "url": "http://localhost:3731/listings/jingan-serviced-office-42-seats",
+        "offersPrice": 2800
+      },
+      "overviewInCore": 1
+    }
+  },
+  "1920": {
+    "main": {
+      "overflowTop": {
+        "scrollWidth": 1920,
+        "clientWidth": 1920,
+        "bodyOverflowX": "clip"
+      },
+      "skeleton": {
+        "containerWidth": 1180,
+        "coreColumns": "776px 372px",
+        "coreColumnGap": "32px",
+        "titlebarPadding": "32px 24px",
+        "h1": "32px/600/36.8px",
+        "h1LetterSpacing": "normal",
+        "h2": "24px/600"
+      },
+      "order": [
+        "dt-container",
+        "dt-core",
+        "description",
+        "location",
+        "building",
+        "related"
+      ],
+      "overviewInCore": 1,
+      "overviewText": {
+        "rows": 17,
+        "dashRows": 13,
+        "hasZeroYuan": false
+      },
+      "tabularNums": [
+        ".dt-decision__price-num:tabular-nums",
+        ".dt-spec__value:tabular-nums"
+      ],
+      "sticky": {
+        "atTop": {
+          "decision": {
+            "x": 1178,
+            "y": 220.9375,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null
+        },
+        "midway": {
+          "decision": {
+            "x": 1178,
+            "y": 116,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": null,
+          "stickyTop": "116px"
+        },
+        "afterRelease": {
+          "decision": {
+            "x": 1178,
+            "y": -1364.40625,
+            "w": 372,
+            "h": 355.9375,
+            "visible": true
+          },
+          "bar": {
+            "x": 0,
+            "y": 44,
+            "w": 1920,
+            "h": 56,
+            "visible": true
+          },
+          "barCount": 1,
+          "decisionFullyAbove": true
+        }
+      },
+      "mobileBar": {
+        "display": "none",
+        "barTop": 0,
+        "lastContentBottom": 733.234375,
+        "priceVisible": true,
+        "regionLabels": [
+          "吸附询价条",
+          "媒体缩略图列表",
+          "询价操作栏"
+        ]
+      }
+    },
+    "noPrice": {
+      "overflow": {
+        "scrollWidth": 1920,
+        "clientWidth": 1920,
+        "bodyOverflowX": "clip"
+      },
+      "priceText": "价格面议",
+      "priceIsNaVariant": true,
+      "summaryPresent": true,
+      "stickyPriceRendered": false,
+      "hasZeroYuan": false
+    },
+    "noCoord": {
+      "overflow": {
+        "scrollWidth": 1920,
+        "clientWidth": 1920,
+        "bodyOverflowX": "clip"
+      },
+      "locationSection": 0,
+      "gapDescriptionToBuilding": 0,
+      "sectionPaddingTop": "56px"
+    },
+    "prefixed": {
+      "status": "rendered",
+      "overflow": {
+        "scrollWidth": 1920,
+        "clientWidth": 1920,
+        "bodyOverflowX": "clip"
+      },
+      "breadcrumbHrefs": [
+        "/",
+        "/listings",
+        "/buildings/west-nanjing-premium-center"
+      ],
+      "jsonLdUrl": {
+        "url": "http://localhost:3731/listings/jingan-serviced-office-42-seats",
+        "offersPrice": 2800
+      },
+      "overviewInCore": 1
+    }
+  }
+}

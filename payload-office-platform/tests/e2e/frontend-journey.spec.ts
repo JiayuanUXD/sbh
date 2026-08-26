@@ -28,7 +28,10 @@ test.describe('F7.1 全链路 E2E', () => {
     // 1. 首页加载
     await page.goto('/')
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.hero')).toBeVisible()
+    // OPT-035 把首屏容器从 `.hero` 换成了 `.hm-hero`（见 `home/HomeHero.tsx`），
+    // 断言必须同步改名——否则它恒失败并卡在整条链路的第 2 步，
+    // 让后面「列表 → 详情 → 咨询」四步全都跑不到，看起来像整条链路坏了。
+    await expect(page.locator('.hm-hero')).toBeVisible()
 
     // 2. 跳转到列表页
     await page.goto('/listings')
@@ -46,7 +49,8 @@ test.describe('F7.1 全链路 E2E', () => {
     expect(href).toBeTruthy()
     await page.goto(href!)
     await expect(page.locator('h1')).toBeVisible()
-    await expect(page.locator('.detail__rent').first()).toBeVisible()
+    // OPT-037 Task 9：首屏价格从 `.detail__rent`（旧摘要行）搬进决策卡。
+    await expect(page.locator('.dt-decision__price-num').first()).toBeVisible()
 
     // 4. 打开询价 Modal
     await page

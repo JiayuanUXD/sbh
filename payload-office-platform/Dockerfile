@@ -28,6 +28,15 @@ COPY . .
 # site-config fail-closed（生产缺此值抛错），必须在此注入（Next.js 内联 NEXT_PUBLIC_*）。
 ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
 ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
+# 出售频道开关（ff07d21 引入时默认关闭，2026-08-24 OPT-045 按用户裁定打开）。
+#
+# **必须同时出现在 builder 与 runner 两个阶段**：Next.js 在构建期把 NEXT_PUBLIC_*
+# 内联进客户端包（后台字段显隐走 admin.condition，在浏览器里执行），运行期服务端
+# 的 getSaleChannelEnabled() 又要再读一次。只改一处会得到「后台能填、前台 404」
+# 或反过来的半开状态。
+#
+# 只认精确的 'true'——'1' / 'yes' / 'TRUE' 一律视为关闭，见 site-config.ts。
+ENV NEXT_PUBLIC_SALE_CHANNEL_ENABLED=true
 # Git 不跟踪空目录；没有静态资源时也要保留 public，供 runner 阶段稳定复制。
 RUN mkdir -p public
 RUN pnpm generate:types && pnpm payload generate:importmap && pnpm build
@@ -42,6 +51,9 @@ ENV NODE_ENV=production
 # 烤进镜像，避免依赖 CloudRun 控制台单独配置（tcb deploy 不传 env-vars）。
 ENV NEXT_PUBLIC_SITE_URL=https://sbh-286300-10-1253925058.sh.run.tcloudbase.com
 ENV NEXT_PUBLIC_AMAP_JS_KEY=1d41019b28b9dc0c7b91b9f7f0927b75
+# 出售频道开关：运行期服务端求值（/sale 与 /[city]/sale 的 notFound、sitemap 条目、
+# mark_sold 动作）。与 builder 阶段那一处必须一致，理由见那里的注释。
+ENV NEXT_PUBLIC_SALE_CHANNEL_ENABLED=true
 ENV NEXT_TELEMETRY_DISABLED=1
 # CloudRun 服务 Port=80，平台把流量发到 80；next start 读 PORT env 监听。
 # 平台注入的 PORT 会覆盖此默认值，二者一致即可。

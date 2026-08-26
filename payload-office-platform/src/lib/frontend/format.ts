@@ -49,6 +49,25 @@ export function priceUnitLabel(unit?: string): string {
     : ''
 }
 
+/**
+ * ISO 日期串 → 四位竣工年份；缺失 / 空串 / 非法日期一律 null（**绝不当 0**）。
+ *
+ * 「解析 + 合法性判定」是全站共有的那一半，故收敛到这里；**展示文案留在各自
+ * 调用点**——三个消费方要的后缀本就不同，硬凑成一个函数反而要加参数分支：
+ *   - `components/frontend/detail/fact-lookup.ts` → "2013 年" / "2013 年（估算）"；
+ *   - `components/frontend/listing/BuildingCompactRow.tsx` → "2013年竣工"；
+ *   - `domain/public-catalog/building-search.ts` → number（筛选与排序用，不展示）。
+ * 收敛前三处各写一份，且校验分支写法还不一样（`new Date(v).getFullYear()` 的
+ * NaN 兜底 vs `Date.parse` 后判 `Number.isFinite`）——同一判断逻辑三个事实源，
+ * 任一处改口径都不会带上另外两处。
+ */
+export function completionYear(iso: string | null | undefined): number | null {
+  if (typeof iso !== 'string' || iso.length === 0) return null
+  const t = Date.parse(iso)
+  if (!Number.isFinite(t)) return null
+  return new Date(t).getFullYear()
+}
+
 export function formatRent(rent?: number | null, unit?: string): string {
   if (rent == null) return '待面议'
   const label = rentUnitLabel(unit)

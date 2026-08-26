@@ -1,0 +1,34 @@
+diff --git a/dist/queues/utilities/updateJob.js b/dist/queues/utilities/updateJob.js
+index 8ec2a5ed69640656aee15c8c59717dbd9239f01a..cef4968db5807937b9caf9e9dbb2537fa15ad0e6 100644
+--- a/dist/queues/utilities/updateJob.js
++++ b/dist/queues/utilities/updateJob.js
+@@ -55,9 +55,26 @@ import { getCurrentDate } from './getCurrentDate.js';
+         sort,
+         where: where
+     };
+-    const updatedJobs = await req.payload.db.updateJobs(args);
+-    if (req.payload.db.name !== 'mongoose' && jobReq.transactionID) {
+-        await req.payload.db.commitTransaction(jobReq.transactionID);
++    // [sbh patch] OPT-046：原实现在 beginTransaction 之后没有任何错误保护，
++    // db.updateJobs 一旦抛错（多实例并发争抢同一 job 时，落败方 UPDATE 影响 0 行，
++    // drizzle upsertRow 对 docs[0]=undefined 调 transform 必抛 TypeError），
++    // 事务既不 commit 也不 rollback，连接永久停在 idle in transaction。
++    // 这里包一层 try/catch：出错先回滚再重抛，错误语义不变，只堵泄漏。
++    let updatedJobs;
++    try {
++        updatedJobs = await req.payload.db.updateJobs(args);
++        if (req.payload.db.name !== 'mongoose' && jobReq.transactionID) {
++            await req.payload.db.commitTransaction(jobReq.transactionID);
++        }
++    } catch (err) {
++        if (req.payload.db.name !== 'mongoose' && jobReq.transactionID) {
++            try {
++                await req.payload.db.rollbackTransaction(jobReq.transactionID);
++            } catch (_rollbackErr) {
++                // 回滚失败不掩盖原始错误
++            }
++        }
++        throw err;
+     }
+     if (returning === false || !updatedJobs?.length) {
+         return null;

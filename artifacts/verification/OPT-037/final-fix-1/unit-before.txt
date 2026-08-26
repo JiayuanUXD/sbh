@@ -1,0 +1,270 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+ RUN  v4.1.10 E:/github/sbh/payload-office-platform
+
+ ❯ tests/supply-summary.test.ts (19 tests | 4 failed) 33ms
+     × basis=total 且 period=year（整套年租）返回 null，不冒充月租 5ms
+     × basis=total 且 period=day（整套日租）按 30 天折算月租，不原样返回 3ms
+     × 不跨业务组比价：联合办公的工位价再低也不会冒充整栋楼的起价 2ms
+     × 同组内多种单位时取房源数最多的那个单位，再在该单位内取 min 1ms
+ ❯ tests/listing-overview-panel.test.ts (6 tests | 2 failed) 9ms
+     × 保留 comp 未列、但域层与旧 DetailFacts 一直在展示的 5 条事实 5ms
+     × 这 5 条同样遵守「缺值渲染 — 不隐藏行」：值为 null 时行仍在 1ms
+ ❯ tests/location-panel.test.ts (3 tests | 1 failed) 18ms
+     × 只有公交没有地铁时，清单展示公交站而不是一片空白 14ms
+ ❯ tests/building-supply.test.ts (16 tests | 4 failed) 55ms
+     × 不同价格单位不合并且不共同排序 7ms
+     × 组内单位唯一时按单价排序真的生效，不因为楼盘另有一个出售组而退化 3ms
+     × 只有真正单位不唯一的那一组被标记降级，同快照的其它组不受牵连 2ms
+     × 非价格排序时任何组都不标记降级（降级只描述价格排序没生效这件事） 3ms
+ ❯ tests/detail-components-contract.test.ts (30 tests | 2 failed) 115ms
+     × 出售组不渲染「可即时过户」聚合格与「可即刻入驻」pill（域层没有过户依据） 13ms
+     × 当前组未降级时不渲染「计价单位不唯一」提示，哪怕快照级 validationErrors 已置位 6ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/building-supply.test.ts > buildBuildingSupplySnapshot > 不同价格单位不合并且不共同排序
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/building-supply.test.ts:161:51
+    159|
+    160|     expect(snapshot.validationErrors).toContain('price_unit_required')
+    161|     expect(snapshot.groups[0]?.priceSortDegraded).toBe(true)
+       |                                                   ^
+    162|     expect(snapshot.groups[0]?.priceRanges).toHaveLength(2)
+    163|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
+
+ FAIL  tests/building-supply.test.ts > buildBuildingSupplySnapshot > 组内单位唯一时按单价排序真的生效，不因为楼盘另有一个出售组而退化
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected:
+false
+
++ Received:
+undefined
+
+ ❯ tests/building-supply.test.ts:198:38
+    196|
+    197|     const lease = snapshot.groups.find((group) => group.key === 'lease…
+    198|     expect(lease?.priceSortDegraded).toBe(false)
+       |                                      ^
+    199|     // 真的按价格升序，而不是退化成 id 序（id 序会是 1, 3）
+    200|     expect(lease?.listings.map((listing) => listing.id)).toEqual([3, 1…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
+
+ FAIL  tests/building-supply.test.ts > buildBuildingSupplySnapshot > 只有真正单位不唯一的那一组被标记降级，同快照的其它组不受牵连
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ tests/building-supply.test.ts:227:87
+    225|     )
+    226|
+    227|     expect(snapshot.groups.find((group) => group.key === 'lease')?.pri…
+       |                                                                                       ^
+    228|     expect(snapshot.groups.find((group) => group.key === 'coworking')?…
+    229|     // 快照级信号是「任一组降级」的汇总，不是组级判据
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
+
+ FAIL  tests/building-supply.test.ts > buildBuildingSupplySnapshot > 非价格排序时任何组都不标记降级（降级只描述价格排序没生效这件事）
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/building-supply.test.ts:244:81
+    242|       AS_OF,
+    243|     )
+    244|     expect(snapshot.groups.every((group) => group.priceSortDegraded ==…
+       |                                                                                 ^
+    245|     expect(snapshot.validationErrors).toEqual([])
+    246|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
+
+ FAIL  tests/detail-components-contract.test.ts > detail component contracts > 出售组不渲染「可即时过户」聚合格与「可即刻入驻」pill（域层没有过户依据）
+AssertionError: expected '<section class="building-supply-brows…' not to contain '可即时过户'
+
+Expected: "可即时过户"
+Received: "<section class="building-supply-browser" aria-label="楼盘房源" data-supply-as-of="2026-07-30T10:00:00.000Z"><div class="building-supply-browser__tabs" role="group" aria-label="按业务组切换"><a aria-current="true" class="building-supply-browser__tab" data-active="true" href="/buildings/jingan-center"><span>出售</span><span class="building-supply-browser__tab-count">1</span></a></div><div class="building-supply-browser__panel"><div class="building-supply-browser__agg"><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">单价区间</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">—</span></span></div><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">面积区间</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">—</span></span></div><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">可即时过户</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">1</span><span class="building-supply-browser__agg-unit">套</span></span></div></div><div class="building-supply-browser__controls"><div class="building-supply-browser__filter-group" role="group" aria-label="按面积筛选"><span class="building-supply-browser__filter-label">面积</span><a class="building-supply-browser__filter" data-active="true" aria-current="true" href="/buildings/jingan-center">全部</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?areaMin=0&amp;areaMax=100">0–100 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?areaMin=100&amp;areaMax=300">100–300 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?areaMin=300&amp;areaMax=500">300–500 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?areaMin=500&amp;areaMax=1000">500–1000 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?areaMin=1000">1000 ㎡ 以上</a></div><a class="building-supply-browser__filter" href="/buildings/jingan-center?availableBefore=2026-07-30">可即刻入驻</a><div class="building-supply-browser__sort" role="group" aria-label="排序"><span class="ls-toolbar__sortlabel">排序</span><a class="ls-toolbar__sort ls-toolbar__sort--active" aria-current="true" href="/buildings/jingan-center">推荐排序</a><a class="ls-toolbar__sort" href="/buildings/jingan-center?sort=area-asc">面积从小到大</a><a class="ls-toolbar__sort" href="/buildings/jingan-center?sort=area-desc">面积从大到小</a></div></div><div class="building-supply-browser__table-wrap"><table class="building-supply-browser__table"><caption class="visually-hidden">出售房源列表</caption><colgroup><col/><col style="width:11.65%"/><col style="width:13.44%"/><col style="width:15.77%"/><col style="width:10.75%"/><col style="width:3.94%"/></colgroup><thead><tr><th scope="col">房源</th><th scope="col" class="building-supply-browser__table-num-head">面积 ㎡</th><th scope="col" class="building-supply-browser__table-num-head">单价</th><th scope="col" class="building-supply-browser__table-num-head">总价 万元</th><th scope="col">装修</th><th scope="col"><span class="visually-hidden">详情</span></th></tr></thead><tbody><tr><td><span class="building-supply-browser__table-primary">静安中心 101 室</span></td><td class="tabular building-supply-browser__table-num">101</td><td class="tabular building-supply-browser__table-num">—</td><td class="tabular building-supply-browser__table-num building-supply-browser__table-total">—</td><td><span class="building-supply-browser__table-status">拎包入住</span></td><td><a href="/listings/jingan-center-101" class="building-supply-browser__table-link" aria-label="查看静安中心 101 室详情"><svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true"><path d="M2 1l6 7-6 7" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></a></td></tr></tbody></table></div><div class="building-supply-browser__footer"><span class="building-supply-browser__footnote">共 <span class="tabular">1</span> 套 · 当前筛选 <span class="tabular">1</span> 条 · 数据截至 <span class="tabular">2026-07-30</span></span></div></div></section>"
+
+ ❯ tests/detail-components-contract.test.ts:370:22
+    368|     )
+    369|
+    370|     expect(html).not.toContain('可即时过户')
+       |                      ^
+    371|     // 「可即刻入驻」是租赁文案，出售组连 pill 都不该有
+    372|     expect(html).not.toContain('可即刻入驻')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
+
+ FAIL  tests/detail-components-contract.test.ts > detail component contracts > 当前组未降级时不渲染「计价单位不唯一」提示，哪怕快照级 validationErrors 已置位
+AssertionError: expected '<section class="building-supply-brows…' not to contain '计价单位不唯一'
+
+Expected: "计价单位不唯一"
+Received: "<section class="building-supply-browser" aria-label="楼盘房源" data-supply-as-of="2026-07-30T10:00:00.000Z"><div class="building-supply-browser__tabs" role="group" aria-label="按业务组切换"><a aria-current="true" class="building-supply-browser__tab" data-active="true" href="/buildings/jingan-center"><span>租赁</span><span class="building-supply-browser__tab-count">1</span></a></div><div class="building-supply-browser__panel"><div class="building-supply-browser__agg"><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">单价区间</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">—</span></span></div><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">面积区间</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">101</span><span class="building-supply-browser__agg-unit">㎡</span></span></div><div class="building-supply-browser__agg-item"><span class="building-supply-browser__agg-label">可即刻入驻</span><span class="building-supply-browser__agg-value-row"><span class="building-supply-browser__agg-value tabular">1</span><span class="building-supply-browser__agg-unit">套</span></span></div></div><div class="building-supply-browser__controls"><div class="building-supply-browser__filter-group" role="group" aria-label="按面积筛选"><span class="building-supply-browser__filter-label">面积</span><a class="building-supply-browser__filter" data-active="true" aria-current="true" href="/buildings/jingan-center?sort=price-asc">全部</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;areaMin=0&amp;areaMax=100">0–100 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;areaMin=100&amp;areaMax=300">100–300 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;areaMin=300&amp;areaMax=500">300–500 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;areaMin=500&amp;areaMax=1000">500–1000 ㎡</a><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;areaMin=1000">1000 ㎡ 以上</a></div><a class="building-supply-browser__filter" href="/buildings/jingan-center?sort=price-asc&amp;availableBefore=2026-07-30">可即刻入驻</a><div class="building-supply-browser__sort" role="group" aria-label="排序"><span class="ls-toolbar__sortlabel">排序</span><a class="ls-toolbar__sort" href="/buildings/jingan-center">推荐排序</a><a class="ls-toolbar__sort" href="/buildings/jingan-center?sort=area-asc">面积从小到大</a><a class="ls-toolbar__sort" href="/buildings/jingan-center?sort=area-desc">面积从大到小</a></div></div><p class="building-supply-browser__notice">该组内房源计价单位不唯一，暂按推荐顺序排列</p><div class="building-supply-browser__table-wrap"><table class="building-supply-browser__table"><caption class="visually-hidden">租赁房源列表</caption><colgroup><col/><col style="width:11.65%"/><col style="width:13.44%"/><col style="width:15.77%"/><col style="width:10.75%"/><col style="width:3.94%"/></colgroup><thead><tr><th scope="col">房源</th><th scope="col" class="building-supply-browser__table-num-head">面积 ㎡</th><th scope="col" class="building-supply-browser__table-num-head">单价</th><th scope="col" class="building-supply-browser__table-num-head">月租 元/月</th><th scope="col">可入驻</th><th scope="col"><span class="visually-hidden">详情</span></th></tr></thead><tbody><tr><td><span class="building-supply-browser__table-primary">静安中心 101 室</span><span class="building-supply-browser__table-sub">拎包入住</span></td><td class="tabular building-supply-browser__table-num">101</td><td class="tabular building-supply-browser__table-num">—</td><td class="tabular building-supply-browser__table-num building-supply-browser__table-total">—</td><td><span class="building-supply-browser__table-status" data-emphasized="true">可即刻</span></td><td><a href="/listings/jingan-center-101" class="building-supply-browser__table-link" aria-label="查看静安中心 101 室详情"><svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true"><path d="M2 1l6 7-6 7" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></a></td></tr></tbody></table></div><div class="building-supply-browser__footer"><span class="building-supply-browser__footnote">共 <span class="tabular">1</span> 套 · 当前筛选 <span class="tabular">1</span> 条 · 数据截至 <span class="tabular">2026-07-30</span></span></div></div></section>"
+
+ ❯ tests/detail-components-contract.test.ts:402:22
+    400|       }),
+    401|     )
+    402|     expect(html).not.toContain('计价单位不唯一')
+       |                      ^
+    403|   })
+    404|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
+
+ FAIL  tests/listing-overview-panel.test.ts > buildListingOverviewGroups > 保留 comp 未列、但域层与旧 DetailFacts 一直在展示的 5 条事实
+AssertionError: expected undefined to be '18' // Object.is equality
+
+- Expected:
+"18"
+
++ Received:
+undefined
+
+ ❯ tests/listing-overview-panel.test.ts:130:33
+    128|     const byLabel = new Map(rows.map((row) => [row.label, row.value]))
+    129|
+    130|     expect(byLabel.get('房源楼层')).toBe('18')
+       |                                 ^
+    131|     expect(byLabel.get('其他固定费用')).toBe('公共能耗费 3 元/㎡/月')
+    132|     expect(byLabel.get('朝向')).toBe('朝南')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  tests/listing-overview-panel.test.ts > buildListingOverviewGroups > 这 5 条同样遵守「缺值渲染 — 不隐藏行」：值为 null 时行仍在
+AssertionError: 房源楼层 行必须存在: expected undefined to be defined
+ ❯ tests/listing-overview-panel.test.ts:146:37
+    144|     for (const label of ['房源楼层', '朝向', '可分割', '家具', '其他固定费用']) {
+    145|       const row = rows.find((item) => item.label === label)
+    146|       expect(row, `${label} 行必须存在`).toBeDefined()
+       |                                     ^
+    147|       expect(row?.value).toBeNull()
+    148|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  tests/location-panel.test.ts > LocationPanel 交通子分类 > 只有公交没有地铁时，清单展示公交站而不是一片空白
+AssertionError: expected '<section id="location" class="locatio…' to contain '南京西路石门一路站'
+
+Expected: "南京西路石门一路站"
+Received: "<section id="location" class="location-panel detail__section" aria-labelledby="location-title"><h2 id="location-title">周边与交通</h2><div class="location-panel__grid"><div class="location-panel__map"></div><div class="location-panel__poi-panel" aria-label="周边配套"><div class="location-panel__pois" role="tablist" aria-label="周边配套类别"><button type="button" role="tab" aria-selected="true" aria-controls="location-panel-poi-list" class="location-panel__poi-tab" data-active="true"><span class="location-panel__poi-tab-icon" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="2"></rect><path d="M4 11h16M7 17v2M17 17v2M8 7h.01M16 7h.01"></path></svg></span>交通（2）</button></div></div></div></section>"
+
+ ❯ tests/location-panel.test.ts:62:18
+     60|
+     61|     expect(html).toContain('交通（2）')
+     62|     expect(html).toContain('南京西路石门一路站')
+       |                  ^
+     63|     expect(html).toContain('成都北路站')
+     64|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
+
+ FAIL  tests/supply-summary.test.ts > estimateRowTotal > basis=total 且 period=year（整套年租）返回 null，不冒充月租
+AssertionError: expected 1200000 to be null
+
+- Expected:
+null
+
++ Received:
+1200000
+
+ ❯ tests/supply-summary.test.ts:78:7
+     76|         { area: 1000, seats: null },
+     77|       ),
+     78|     ).toBeNull()
+       |       ^
+     79|   })
+     80|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
+
+ FAIL  tests/supply-summary.test.ts > estimateRowTotal > basis=total 且 period=day（整套日租）按 30 天折算月租，不原样返回
+AssertionError: expected 400 to be 12000 // Object.is equality
+
+- Expected
++ Received
+
+- 12000
++ 400
+
+ ❯ tests/supply-summary.test.ts:96:7
+     94|         { area: 1000, seats: null },
+     95|       ),
+     96|     ).toBe(400 * 30)
+       |       ^
+     97|   })
+     98|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
+
+ FAIL  tests/supply-summary.test.ts > findLowestPrice > 不跨业务组比价：联合办公的工位价再低也不会冒充整栋楼的起价
+AssertionError: expected { min: 200, …(1) } to deeply equal { min: 300, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "displayUnit": "rmb-sqm-month",
+-   "min": 300,
++   "displayUnit": "rmb-seat-month",
++   "min": 200,
+  }
+
+ ❯ tests/supply-summary.test.ts:213:20
+    211|       }),
+    212|     ])
+    213|     expect(lowest).toEqual({ min: 300, displayUnit: 'rmb-sqm-month' })
+       |                    ^
+    214|   })
+    215|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
+
+ FAIL  tests/supply-summary.test.ts > findLowestPrice > 同组内多种单位时取房源数最多的那个单位，再在该单位内取 min
+AssertionError: expected { min: 8, displayUnit: 'rmb-sqm-day' } to deeply equal { min: 300, …(1) }
+
+- Expected
++ Received
+
+  {
+-   "displayUnit": "rmb-sqm-month",
+-   "min": 300,
++   "displayUnit": "rmb-sqm-day",
++   "min": 8,
+  }
+
+ ❯ tests/supply-summary.test.ts:233:20
+    231|       }),
+    232|     ])
+    233|     expect(lowest).toEqual({ min: 300, displayUnit: 'rmb-sqm-month' })
+       |                    ^
+    234|   })
+    235|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  13 failed | 61 passed (74)
+   Start at  03:09:41
+   Duration  957ms (transform 926ms, setup 0ms, import 1.48s, tests 229ms, environment 1ms)
+

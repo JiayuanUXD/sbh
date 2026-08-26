@@ -1,0 +1,624 @@
+{
+  "origins": {
+    "on": "http://localhost:3811",
+    "off": "http://localhost:3810"
+  },
+  "modes": {
+    "multiCityOn": {
+      "legacyRedirect": {
+        "listing": {
+          "path": "/listings/jingan-serviced-office-42-seats",
+          "status": 307,
+          "location": "/shanghai/listings/jingan-serviced-office-42-seats"
+        },
+        "building": {
+          "path": "/buildings/west-nanjing-premium-center",
+          "status": 307,
+          "location": "/shanghai/buildings/west-nanjing-premium-center"
+        }
+      },
+      "viewports": {
+        "375": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          }
+        },
+        "768": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          }
+        },
+        "1440": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          }
+        },
+        "1920": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings",
+              "/shanghai/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/shanghai/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/shanghai",
+              "/shanghai/listings"
+            ],
+            "breadcrumbAllPrefixed": true,
+            "breadcrumbNonePrefixed": false
+          }
+        }
+      }
+    },
+    "multiCityOff": {
+      "legacyRedirect": {
+        "listing": {
+          "path": "/listings/jingan-serviced-office-42-seats",
+          "status": 200,
+          "location": null
+        },
+        "building": {
+          "path": "/buildings/west-nanjing-premium-center",
+          "status": 200,
+          "location": null
+        }
+      },
+      "viewports": {
+        "375": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          }
+        },
+        "768": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          }
+        },
+        "1440": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          }
+        },
+        "1920": {
+          "legacy": {
+            "sentinel": {
+              "pathname": "/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "index, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "prefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/listings/jingan-serviced-office-42-seats",
+              "status": 200,
+              "statusOk": true,
+              "family": "listing-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/listings/jingan-serviced-office-42-seats",
+            "canonical": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/listings/jingan-serviced-office-42-seats",
+            "jsonLdUrlPath": "/listings/jingan-serviced-office-42-seats",
+            "canonicalPath": "/listings/jingan-serviced-office-42-seats",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings",
+              "/buildings/west-nanjing-premium-center"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          },
+          "buildingPrefixed": {
+            "sentinel": {
+              "pathname": "/shanghai/buildings/west-nanjing-premium-center",
+              "status": 200,
+              "statusOk": true,
+              "family": "building-detail",
+              "missing": [],
+              "ok": true
+            },
+            "finalUrl": "/shanghai/buildings/west-nanjing-premium-center",
+            "canonical": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "robots": "noindex, follow",
+            "jsonLdUrl": "http://localhost:3717/buildings/west-nanjing-premium-center",
+            "jsonLdUrlPath": "/buildings/west-nanjing-premium-center",
+            "canonicalPath": "/buildings/west-nanjing-premium-center",
+            "jsonLdBreadcrumbItems": null,
+            "breadcrumbHrefs": [
+              "/",
+              "/listings"
+            ],
+            "breadcrumbAllPrefixed": false,
+            "breadcrumbNonePrefixed": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { completionYear } from '@/lib/frontend/format'
 import type { FactGroupViewModel, FactValue } from '@/domain/public-catalog'
 
 /**
@@ -35,14 +36,62 @@ export function factValue(fact: FactValue | undefined): string | null {
 }
 
 /**
+ * `FactValue` → 「大数值 + 独立单位」两半（`SpecRow` 的 `value` / `unit`）。
+ *
+ * 与上面的 `factValue` 是**两种版式**而不是两套判断：`factValue` 服务键值行
+ * （`SpecTable` / `DetailFacts`，值与单位同字号同一串），本函数服务无图替代
+ * 构图的宫格（数值 32/600 + 单位 14）。拆分数据由 mapper 的 `fact()` 与
+ * `value` 同源产出，这里**不做任何字符串解析**（见 contracts.ts `FactValue`）。
+ *
+ * 两个刻意的取舍：
+ *   - `magnitude` 缺席（dev-story / 测试里手写的 `FactValue` 字面量没有这两个
+ *     新字段）时退回整串 `value`，不报错也不丢内容——新字段是追加的，老数据
+ *     照样能渲染，只是没有字号分级。
+ *   - `estimated` 的「（估算）」挂到 `unit` 而不是 `value`：挂进 `value` 会让
+ *     32px 的大字变成 "2200（估算）"，把版式撑坏；而整条丢掉估算标记等于把
+ *     "这是估的" 这个事实吞掉（`DetailFacts` 一直显式标它）。
+ */
+export function factMagnitude(
+  fact: FactValue | undefined,
+): Readonly<{ value: string | null; unit?: string }> | null {
+  if (!fact || fact.value == null) return null
+  const estimatedNote = fact.estimated ? '（估算）' : ''
+  const magnitude = fact.magnitude ?? null
+  if (magnitude == null) {
+    return { value: estimatedNote ? `${fact.value}${estimatedNote}` : fact.value }
+  }
+  const unit = `${fact.unit ?? ''}${estimatedNote}`
+  return unit ? { value: magnitude, unit } : { value: magnitude }
+}
+
+/**
  * 「竣工时间」事实的值是 ISO 日期字符串（`mapBuildingFactGroups` 直接
  * `fact('竣工时间', building.completionDate)`，未做展示格式化）——楼盘参数
  * 面板的「竣工年份」行与信息面板挑选出的「竣工时间」关键参数都要把它转成
  * "2013 年" 这样的年份，两处是同一个转换，收敛成一处，不各写一份
  * （顺手修复：这条转换缺失前，两处都会把原始 ISO 字符串直接展示给用户）。
+ *
+ * 「ISO 解析 + 合法性判定」那一半已下沉到 `lib/frontend/format.ts` 的
+ * `completionYear()`——全站第三份实现（本函数、`listing/BuildingCompactRow`、
+ * `domain/public-catalog/building-search`）在终审时被点名，且三份的校验分支
+ * 写法还各不相同。这里只保留本调用点专属的展示后缀（" 年" / " 年（估算）"）。
  */
 export function formatCompletionYear(value: string, estimated = false): string | null {
-  const year = new Date(value).getFullYear()
-  if (!Number.isFinite(year)) return null
+  const year = completionYear(value)
+  if (year == null) return null
   return estimated ? `${year} 年（估算）` : `${year} 年`
+}
+
+/**
+ * 「从 factGroups 里取出格式化好的竣工年份」——`findFact('竣工时间')` +
+ * `formatCompletionYear` 的固定组合。原先只活在 `BuildingSpecPanel` 内部，
+ * Task 10 接线时楼盘标题栏副标（地址 · 等级 · 竣工年）成为第二个消费方，
+ * 按「同一判断逻辑不得存在多处」就地收敛，不在页面层再拼一遍这三行。
+ */
+export function completionYearFromGroups(
+  groups: readonly FactGroupViewModel[],
+): string | null {
+  const fact = findFact(groups, '竣工时间')
+  if (!fact || fact.value == null) return null
+  return formatCompletionYear(fact.value, fact.estimated)
 }

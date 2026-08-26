@@ -1,0 +1,93 @@
+{
+  "_why": [
+    "OPT-037 验证脚本的「页面渲染哨兵」判据——唯一事实源。",
+    "本批被同一个漏洞栽过多次：截图循环/DOM 比对不读 HTTP 状态码，两侧都是 404 页也会打印",
+    "「完全一致 / 0 差异像素」（task-11-report.md 的 /dev-story/opt037 四档 0 差异像素即由此而来）。",
+    "判据两条必须同时成立，缺一不可：",
+    "  ① HTTP 状态码在 okStatus 内（默认只认 200；重定向要断言时显式传 expectStatus）；",
+    "  ② 该路由族的 requiredMarkers 全部出现在 HTML 里 / requiredSelectors 全部能在 DOM 里查到。",
+    "只查状态码不够：Next 的 404 页本身返回 404 但仍是一整张完整站点骨架（site-header/site-footer 都在），",
+    "只查选择器也不够：软 404（200 + 空壳）在本仓的 `/dev-story/*` 一族真实存在。",
+    "",
+    "为什么是 JSON + 三个薄读取器（sentinel.mjs / sentinel.py / sentinel.sh）而不是一份代码：",
+    "本批证据脚本横跨 Playwright(.mjs)、difflib(.py)、curl(.sh) 三种运行时，代码层面无法共用；",
+    "但**判据**可以单点化。三个读取器都只做「读这份 JSON + 断言」，不许各自内联选择器或状态码。",
+    "改判据只改这个文件。"
+  ],
+  "okStatus": [200],
+  "families": [
+    {
+      "id": "listing-detail",
+      "pattern": "^/(?:[a-z][a-z0-9-]*/)?listings/[^/?#]+",
+      "requiredSelectors": [".dt-page", ".dt-titlebar__title", ".dt-decision"],
+      "requiredMarkers": ["dt-page", "dt-titlebar__title", "dt-decision"]
+    },
+    {
+      "id": "building-detail",
+      "pattern": "^/(?:[a-z][a-z0-9-]*/)?buildings/[^/?#]+",
+      "requiredSelectors": [".dt-page", ".dt-titlebar__title", "#supply"],
+      "requiredMarkers": ["dt-page", "dt-titlebar__title", "id=\"supply\""]
+    },
+    {
+      "id": "listings-index",
+      "pattern": "^/(?:[a-z][a-z0-9-]*/)?listings/?(?:[?#]|$)",
+      "requiredSelectors": [".ls-page", ".ls-head__title"],
+      "requiredMarkers": ["ls-page", "ls-head__title"]
+    },
+    {
+      "id": "buildings-index",
+      "pattern": "^/(?:[a-z][a-z0-9-]*/)?buildings/?(?:[?#]|$)",
+      "requiredSelectors": [".ls-page", ".ls-head__title"],
+      "requiredMarkers": ["ls-page", "ls-head__title"]
+    },
+    {
+      "id": "news-detail",
+      "pattern": "^/news/[^/?#]+",
+      "requiredSelectors": [".page-detail", ".page-detail__title"],
+      "requiredMarkers": ["page-detail", "page-detail__title"]
+    },
+    {
+      "id": "news-index",
+      "pattern": "^/news/?(?:[?#]|$)",
+      "requiredSelectors": [".news-page", ".article-grid"],
+      "requiredMarkers": ["news-page", "article-grid"]
+    },
+    {
+      "id": "home",
+      "pattern": "^/(?:[a-z][a-z0-9-]*)?/?(?:[?#]|$)",
+      "requiredSelectors": [".hm-home", ".hm-hero"],
+      "requiredMarkers": ["hm-home", "hm-hero"]
+    }
+  ],
+  "nameHints": {
+    "_why": [
+      "历史 HTML dump（`task11d-*/`、`task11e-*/`）抓取时还没有 status.json 这条纪律，",
+      "拿不到真实 pathname。这里按 dump 文件名推路由族——**先匹配先赢，顺序即优先级**，",
+      "详情页排在同名列表页之前。推错族会把判据放松（配错的关键标记），所以只在缺",
+      "status.json 的降级路径上用，且那条路径的退出码恒为 2（永远不是干净 PASS）。"
+    ],
+    "rules": [
+      ["building-detail", "building-detail"],
+      ["listing-detail", "listing-detail"],
+      ["news-detail", "news-detail"],
+      ["listings", "listings-index"],
+      ["buildings", "buildings-index"],
+      ["news", "news-index"]
+    ]
+  },
+  "fallback": {
+    "id": "generic",
+    "requiredSelectors": ["main.site-main"],
+    "requiredMarkers": ["site-main"]
+  },
+  "poiPanel": {
+    "_why": [
+      "`--mask-poi` 会把整块高德 POI 面板换成占位再比对——这是对的解药（面板走高德 Web 服务，",
+      "冷启动/限流时整块不渲染），但它同时会**吞掉真发生在面板内部的回归**。",
+      "所以遮罩模式必须配一个对照：两侧 HTML 里面板都确实存在，且一级 tab 数一致。",
+      "面板本来就不存在时，遮罩不是解药而是掩盖——脚本必须报出来而不是静默 PASS。"
+    ],
+    "presenceMarker": "location-panel__poi-panel",
+    "tabMarker": "location-panel__poi-tab\""
+  }
+}

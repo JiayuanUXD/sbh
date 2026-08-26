@@ -229,7 +229,29 @@ export type DetailMediaViewModel = Readonly<{
 
 export type FactValue = Readonly<{
   label: string
+  /**
+   * 展示串，**含**单位后缀（"42000 ㎡"、"28 层"）。既有消费方
+   * （`DetailFacts`、`SpecTable` 系列、`HeroSummaryPanel`）读的一直是它，
+   * 语义未变——下面两个字段是**新增的拆分形态**，不是它的替代品。
+   */
   value: string | null
+  /**
+   * 「大数值 + 独立单位」版式用的拆分形态：`value === magnitude + unit`
+   * （无后缀时 `unit` 为 null、`magnitude === value`）。
+   *
+   * 为什么要有它：`fact()` 在 mapper 里把数值与单位后缀拼成一个串，之后
+   * 谁也拆不回来——想把数值排 32px、单位排 14px（无图替代构图
+   * `NoImageHeroGrid` 的宫格）就只剩「对着 value 做字符串解析」这一条路，
+   * 而那正是 Task 2 明确拒绝的做法。所以在**唯一知道后缀是什么的地方**
+   * （`fact()` 自己）把两半一起产出，而不是让消费方去猜。
+   *
+   * 刻意做成**追加**而非改 `value` 的语义：`value` 被四处消费，把它改成
+   * 裸值会让另外三个面板的单位静默消失——正是本项目反复栽的那个坑。
+   * 键值行（`SpecTable` / `DetailFacts`）继续读 `value`，只有需要拆分版式
+   * 的调用方读这两个。
+   */
+  magnitude?: string | null
+  unit?: string | null
   estimated: boolean
   critical: boolean
 }>
@@ -277,6 +299,14 @@ export type BuildingSupplyGroupAvailability = Readonly<{
   key: BuildingSupplyGroup
   totalEffectiveListings: number
   areaRange: BuildingSupplyAreaRange | null
+  /**
+   * 工位数区间（联合办公组的「可选工位」聚合口径）。
+   *
+   * 与 `areaRange` 并列而不是让视图层自己遍历 `listings` 现算：`availableGroups`
+   * 里根本没有 `listings`（它是未过滤口径的概览），视图层要展示未过滤的工位区间
+   * 就只能拿到过滤后的行去算，口径立刻和 `areaRange` 分叉。聚合归聚合层。
+   */
+  seatRange: BuildingSupplyAreaRange | null
   immediateAvailabilityCount: number
   priceRanges: readonly BuildingSupplyPriceRange[]
 }>
@@ -287,7 +317,21 @@ export type BuildingSupplyGroupViewModel = Readonly<{
   listings: readonly ListingCardViewModel[]
   priceRanges: readonly BuildingSupplyPriceRange[]
   areaRange: BuildingSupplyAreaRange | null
+  seatRange: BuildingSupplyAreaRange | null
   immediateAvailabilityCount: number
+  /**
+   * 本组请求了按单价排序、但组内计价单位不唯一，因而**这一组**的排序被降级成
+   * 推荐顺序（`compareIds`）。
+   *
+   * 为什么是组级而不是快照级：`listings` 按组切分、`sortCards` 也按组各排各的，
+   * 「能不能比价」本来就是组内属性。快照级的 `validationErrors` 曾经拿**跨组**的
+   * 结果集算这件事，于是「楼盘同时有租赁与出售」这一个事实就足以让每个组的价格
+   * 排序全部退化，而视图层按当前组算「单位是否唯一」照常渲染排序选项并高亮
+   * `aria-current`，还在下面补一句「该组内房源计价单位不唯一」——该组内是唯一的，
+   * 不唯一的是那个没按组过滤的全集。视图层要判断「当前这一组的排序是不是没生效」
+   * 只能读本字段，不要回头去读 `validationErrors`。
+   */
+  priceSortDegraded: boolean
 }>
 
 /** 楼盘详情页在同一 asOf 时刻生成的供给快照。 */
@@ -301,6 +345,12 @@ export type BuildingSupplySnapshot = Readonly<{
   totalEffectiveListings: number
   /** 当前 query 对应的结果数。 */
   resultCount: number
+  /**
+   * 快照级汇总：`groups` 里**任一**组的价格排序被降级时出现 `price_unit_required`。
+   * 它是「这次请求里有排序没生效」的粗粒度信号（日志 / 调试），**不要**拿它去决定
+   * 某一个组要不要显示「计价单位不唯一」的提示——那是组级事实，读
+   * `BuildingSupplyGroupViewModel.priceSortDegraded`。
+   */
   validationErrors: readonly 'price_unit_required'[]
 }>
 

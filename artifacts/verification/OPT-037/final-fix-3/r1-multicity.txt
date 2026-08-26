@@ -1,0 +1,40 @@
+
+=== multiCityOn ===
+  legacy 房源 → 307 /shanghai/listings/jingan-serviced-office-42-seats
+  legacy 楼盘 → 307 /shanghai/buildings/west-nanjing-premium-center
+   375  legacy落点=/shanghai/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/shanghai/listings/jingan-serviced-office-42-seats canonicalPath=/shanghai/listings/jingan-serviced-office-42-seats robots=index, follow
+                  面包屑=["/shanghai","/shanghai/listings","/shanghai/buildings/west-nanjing-premium-center"] 全前缀=true 零前缀=false sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/shanghai/buildings/west-nanjing-premium-center 面包屑=["/shanghai","/shanghai/listings"] 全前缀=true
+   768  legacy落点=/shanghai/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/shanghai/listings/jingan-serviced-office-42-seats canonicalPath=/shanghai/listings/jingan-serviced-office-42-seats robots=index, follow
+                  面包屑=["/shanghai","/shanghai/listings","/shanghai/buildings/west-nanjing-premium-center"] 全前缀=true 零前缀=false sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/shanghai/buildings/west-nanjing-premium-center 面包屑=["/shanghai","/shanghai/listings"] 全前缀=true
+  1440  legacy落点=/shanghai/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/shanghai/listings/jingan-serviced-office-42-seats canonicalPath=/shanghai/listings/jingan-serviced-office-42-seats robots=index, follow
+                  面包屑=["/shanghai","/shanghai/listings","/shanghai/buildings/west-nanjing-premium-center"] 全前缀=true 零前缀=false sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/shanghai/buildings/west-nanjing-premium-center 面包屑=["/shanghai","/shanghai/listings"] 全前缀=true
+  1920  legacy落点=/shanghai/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/shanghai/listings/jingan-serviced-office-42-seats canonicalPath=/shanghai/listings/jingan-serviced-office-42-seats robots=index, follow
+                  面包屑=["/shanghai","/shanghai/listings","/shanghai/buildings/west-nanjing-premium-center"] 全前缀=true 零前缀=false sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/shanghai/buildings/west-nanjing-premium-center 面包屑=["/shanghai","/shanghai/listings"] 全前缀=true
+
+=== multiCityOff ===
+  legacy 房源 → 200 
+  legacy 楼盘 → 200 
+   375  legacy落点=/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/listings/jingan-serviced-office-42-seats canonicalPath=/listings/jingan-serviced-office-42-seats robots=noindex, follow
+                  面包屑=["/","/listings","/buildings/west-nanjing-premium-center"] 全前缀=false 零前缀=true sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/buildings/west-nanjing-premium-center 面包屑=["/","/listings"] 全前缀=false
+   768  legacy落点=/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/listings/jingan-serviced-office-42-seats canonicalPath=/listings/jingan-serviced-office-42-seats robots=noindex, follow
+                  面包屑=["/","/listings","/buildings/west-nanjing-premium-center"] 全前缀=false 零前缀=true sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/buildings/west-nanjing-premium-center 面包屑=["/","/listings"] 全前缀=false
+  1440  legacy落点=/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/listings/jingan-serviced-office-42-seats canonicalPath=/listings/jingan-serviced-office-42-seats robots=noindex, follow
+                  面包屑=["/","/listings","/buildings/west-nanjing-premium-center"] 全前缀=false 零前缀=true sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/buildings/west-nanjing-premium-center 面包屑=["/","/listings"] 全前缀=false
+  1920  legacy落点=/listings/jingan-serviced-office-42-seats
+        prefixed: jsonLdUrlPath=/listings/jingan-serviced-office-42-seats canonicalPath=/listings/jingan-serviced-office-42-seats robots=noindex, follow
+                  面包屑=["/","/listings","/buildings/west-nanjing-premium-center"] 全前缀=false 零前缀=true sentinel=200/true
+        楼盘prefixed: jsonLdUrlPath=/buildings/west-nanjing-premium-center 面包屑=["/","/listings"] 全前缀=false

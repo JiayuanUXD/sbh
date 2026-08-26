@@ -1,0 +1,14 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test E:\wt-opt041\payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 E:/wt-opt041/payload-office-platform
+
+
+ Test Files  247 passed | 4 skipped (251)
+      Tests  3387 passed | 19 skipped (3406)
+   Start at  13:14:16
+   Duration  84.98s (transform 27.47s, setup 0ms, import 280.57s, tests 19.22s, environment 14.30s)
+

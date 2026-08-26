@@ -93,6 +93,9 @@ describe('admin navigation config', () => {
           '/admin/collections/supply-submissions',
           ['supply-submissions'],
         ),
+        expectedLeaf('import-buildings', '楼盘批量导入', '/admin/import/buildings', ['buildings']),
+        expectedLeaf('import-listings', '房源批量导入', '/admin/import/listings', ['listings']),
+        expectedLeaf('supply-import-batches', '导入批次', '/admin/collections/supply-import-batches', ['listings']),
       ]),
       expectedGroup('region-management', '区域管理', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
@@ -107,12 +110,14 @@ describe('admin navigation config', () => {
           'business-areas',
         ]),
         expectedLeaf('metro-lines', '地铁管理', '/admin/geography/metro-lines', ['locations']),
+        expectedLeaf('location-aliases', '地理别名', '/admin/collections/location-aliases', ['locations']),
       ]),
       expectedGroup('risk', '审核与风控', [
         expectedLeaf('listing-reviews', '审核队列', '/admin/collections/listing-reviews', [
           'listing-reviews',
         ]),
         expectedLeaf('listing-reports', '举报处理', '/admin/collections/listing-reports', ['reports']),
+        expectedLeaf('information-corrections', '信息纠错', '/admin/collections/information-corrections', ['reports']),
       ]),
       expectedGroup('crm', '客户运营', [
         expectedLeaf('leads', '咨询线索', '/admin/collections/leads', ['leads', 'my-leads']),
@@ -129,6 +134,12 @@ describe('admin navigation config', () => {
           '城市合伙人申请',
           '/admin/collections/city-partner-applications',
           ['city-partner-applications'],
+        ),
+        expectedLeaf(
+          'building-merchant-relations',
+          '楼盘商户关系',
+          '/admin/collections/building-merchant-relations',
+          ['merchants'],
         ),
       ]),
       expectedGroup('team-management', '团队管理', [
@@ -233,11 +244,21 @@ describe('admin navigation config', () => {
       'search',
       'forms',
       'form-submissions',
+      // OPT-045 D4：这三个此前不在导航里（未被收编的集合会被兜底渲染成后台左下角
+      // 那个风格不一致的「集合」区块），现已收编进正常分组。
+      'supply-import-batches',
+      'location-aliases',
+      'building-merchant-relations',
+      // OPT-049：三个此前只能靠 Payload 原生导航看到的集合
+      'information-corrections',
     ])
     const collectionSlugs = collectItems(ADMIN_NAV_GROUPS)
       .map((item) => item.collectionSlug)
       .filter((slug): slug is string => typeof slug === 'string')
 
-    expect(collectionSlugs.every((slug) => configuredCollectionSlugs.has(slug))).toBe(true)
+    // 报出具体是哪个 slug 不在清单里。原写法是 `.every(...)` → `expected false to be true`，
+    // 拿到红灯也不知道该去看哪一条，只能自己 diff 两个列表。
+    const unknown = collectionSlugs.filter((slug) => !configuredCollectionSlugs.has(slug))
+    expect(unknown, `导航指向了不存在于 Payload 配置的集合：${unknown.join('、')}`).toEqual([])
   })
 })

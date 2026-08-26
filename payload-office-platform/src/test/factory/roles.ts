@@ -86,6 +86,11 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       'report:read',
       'report:triage',
       'report:resolve',
+      // OPT-045 §9：迁移 20260822_001700 给 ADM 与 OPS 授了 data:import，但这份
+      // 工厂夹具没跟上。而 scripts/seed.ts 的角色 update 分支**无条件**用
+      // BUILTIN_ROLES 覆写，于是「先跑迁移再跑 seed」会把 OPS 刚拿到的导入权限
+      // 擦掉（2026-08-23 实测踩到）。ADM 是 ['*'] 不受影响，只有 OPS 会掉。
+      'data:import',
     ],
     fieldPermissions: [
       'phone:full', // 运营可看完整手机号

@@ -1,6 +1,6 @@
 import React from 'react'
 import DetailPanel from './DetailPanel'
-import { factValue, findFact, formatCompletionYear } from './fact-lookup'
+import { completionYearFromGroups, factValue, findFact } from './fact-lookup'
 import SpecTable, { type SpecRow } from './SpecTable'
 import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-catalog'
 
@@ -57,6 +57,15 @@ import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-
  * 才渲染 —，此时 — 才真正意味着"这栋楼没有可公开的认证"。
  * 这是刻意偏离 comp 字面的「LEED 认证」单项设计，Task 10 接线时不要
  * "恢复"成按认证名称做字符串匹配的写法。
+ *
+ * 「comp 之外的 6 条」——Task 10 接线补充（2026-08-21）：本面板在楼盘详情页
+ * 取代了旧的 `DetailFacts`（全量事实清单）。对账两者的字段清单发现 6 条
+ * （物业类型 / 得房率 / 电梯分区 / 门禁 / 服务时间 / 开发商）comp 没列、
+ * 但 `mapBuildingFactGroups` 一直在产出、旧页面一直在展示、种子数据里也
+ * 都有值——不补进来就是一次接线造成的静默内容删除。它们按 comp 的四个
+ * 语义组就近安放，落在因域层缺字段而空出来的格里，不改版式。
+ * `tests/building-spec-panel.test.ts` 有一条专门守卫它们的用例，任何
+ * 「按 comp 收敛」的后续清理会先撞到那条用例。
  */
 
 type BuildingSpecInput = Readonly<{
@@ -82,19 +91,17 @@ function combineFacts(
   return `${a ?? '—'} / ${b ?? '—'}`
 }
 
-/** 「竣工时间」事实值是 ISO 日期字符串，本行只要年份 + comp 要的"年"后缀。 */
-function completionYear(groups: readonly FactGroupViewModel[]): string | null {
-  const fact = findFact(groups, '竣工时间')
-  if (!fact || fact.value == null) return null
-  return formatCompletionYear(fact.value, fact.estimated)
-}
-
 /**
  * 展示这栋楼实际持有的公开认证（已过滤 publicVisible + 有效期，见
  * `mapBuildingAmenityGroups`），不按特定认证名称做字符串匹配——见文件头
  * review 修正说明。没有认证时返回 null（渲染 —，此时确实是"没有"）。
+ *
+ * Task 10b 起导出：楼盘详情页的无图替代构图（`BuildingDetailLayout` 装配的
+ * `NoImageHeroGrid` 底条）也要这一条，两处必须是同一份「取哪些认证、怎么拼」
+ * 的判断——照抄一份 `items.join(' · ')` 看着只有一行，却会在过滤口径变化时
+ * 静默分叉（本项目在「同一判断逻辑多处」上已栽 7 次）。
  */
-function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
+export function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
   const certifications = amenityGroups.find((group) => group.id === 'certifications')
   const items = certifications?.items ?? []
   return items.length > 0 ? items.join(' · ') : null
@@ -112,14 +119,27 @@ export function buildBuildingSpecGroups(
       id: 'structure',
       title: '建筑',
       rows: [
+        // 以下 6 条（物业类型 / 得房率 / 分区说明 / 门禁 / 服务时间 / 开发商）
+        // comp 的 24 格里没有，但 `mapBuildingFactGroups` 早就产出、且改版前的
+        // `DetailFacts`（全量事实清单）就在楼盘详情页展示着，真实种子数据里全部
+        // 有值（如"服务式办公 / 70% / 低区 1-14 层 · 高区 15-28 层 / 7×24 智能
+        // 门禁 / 7×24 / 上海静安商务开发有限公司"）。Task 10 用本面板替换
+        // `DetailFacts` 时若不补进来，就是一次**接线造成的静默内容删除**。
+        // 按 cross-batch「『域层没有』与『DTO 没有』是两回事」的判定顺序：
+        // 它们在组件手里的 DTO 里就有，属第 1 层「已在手」，不是可省略项。
+        // 归组按 comp 的四个语义组就近安放，comp 每组原本就有 6 格而我们因
+        // 域层缺字段空出了若干格（机电 4/6、费用 4/6、资质 3/6），补进来正好
+        // 落回那些空格，不改版式。
+        { label: '物业类型', value: fact('物业类型') },
         { label: '楼盘等级', value: fact('楼宇等级') },
-        { label: '竣工年份', value: completionYear(groups) },
+        { label: '竣工年份', value: completionYearFromGroups(groups) },
         { label: '总建筑面积', value: fact('总建筑面积') },
         // comp 原文「地上 / 地下」需要楼层拆分字段，Buildings 只有合计楼层
         // （totalFloors），见文件头注释——改用可达的「总楼层」，不拼假拆分。
         { label: '总楼层', value: fact('总楼层') },
         { label: '标准层面积', value: fact('标准层面积') },
         { label: '层高 / 净高', value: combineFacts(groups, '标准层高', '净层高') },
+        { label: '得房率', value: fact('得房率') },
       ],
     },
     {
@@ -133,6 +153,9 @@ export function buildBuildingSpecGroups(
         // （ListingOverviewPanel 「空调/网络/停车费」同一来源同一标签），
         // 两页读同一字段时保持同一标签，不为贴合 comp 另造一个新名字。
         { label: '网络', value: fact('网络') },
+        { label: '门禁', value: fact('门禁') },
+        { label: '电梯分区', value: fact('分区说明') },
+        { label: '服务时间', value: fact('服务时间') },
         // 电梯速度、楼板承重：Buildings.verticalTransport 只有客梯/货梯数量
         // 与分区说明，没有速度/承重字段，域层没有，省略。
       ],
@@ -143,6 +166,7 @@ export function buildBuildingSpecGroups(
       rows: [
         { label: '物业费', value: fact('物业费') },
         { label: '物业公司', value: fact('物业公司') },
+        { label: '开发商', value: fact('开发商') },
         { label: '停车位', value: fact('停车位') },
         { label: '停车费', value: fact('停车费') },
         // 车位配比：现存字段只有车位总数没有配比（与 Task 3 同一结论）；
@@ -176,7 +200,22 @@ export function buildBuildingSpecGroups(
 export default function BuildingSpecPanel({
   building,
   minLeasableArea,
-}: Readonly<{ building: BuildingSpecInput; minLeasableArea: number | null }>) {
+  features = [],
+}: Readonly<{
+  building: BuildingSpecInput
+  minLeasableArea: number | null
+  /**
+   * 「楼盘特色」标签（comp「楼盘参数」面板底部：标签列 104 + gap 32 · 13/500
+   * 底 #f5f5f7），数据是 `BuildingDetailViewModel.amenities`。
+   *
+   * 放在本面板内部而不是由页面层另起一个面板，是照 comp 的分组：它与上方
+   * 参数表共处一张白底面板、只用一条 hairline 分隔。空数组时整段不渲染
+   * （**不是** 渲染一个「楼盘特色 —」的空行）——它不是固定 schema 的规格行，
+   * 而是「有几条列几条」的标签集合，与 SpecTable「缺失显示 — 不隐藏行」
+   * 的约定适用对象不同，同 `HeroSummaryPanel.pickHeroFacts` 的判据。
+   */
+  features?: readonly string[]
+}>) {
   const groups = buildBuildingSpecGroups(building, minLeasableArea)
   return (
     <DetailPanel variant="full" className="dt-building-spec">
@@ -186,6 +225,16 @@ export default function BuildingSpecPanel({
           <SpecTable rows={group.rows} />
         </div>
       ))}
+      {features.length > 0 && (
+        <div className="dt-building-spec__features">
+          <span className="dt-group-title">楼盘特色</span>
+          <ul className="dt-building-spec__feature-list">
+            {features.map((feature) => (
+              <li key={feature}>{feature}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </DetailPanel>
   )
 }

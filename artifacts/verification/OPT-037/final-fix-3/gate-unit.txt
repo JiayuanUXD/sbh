@@ -1,0 +1,15 @@
+ WARN  Unsupported engine: wanted: {"node":"22.x"} (current: {"node":"v24.14.0","pnpm":"8.6.1"})
+
+> payload-office-platform@0.1.0 test E:\github\sbh\payload-office-platform
+> vitest run
+
+
+ RUN  v4.1.10 E:/github/sbh/payload-office-platform
+
+
+ Test Files  243 passed | 2 skipped (245)
+      Tests  3435 passed | 4 skipped (3439)
+   Start at  08:42:42
+   Duration  64.37s (transform 15.98s, setup 0ms, import 203.56s, tests 19.64s, environment 11.42s)
+
+TEST_EXIT=0
