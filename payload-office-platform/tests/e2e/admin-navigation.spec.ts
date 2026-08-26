@@ -127,7 +127,15 @@ const ROLE_NAVIGATION = {
   },
   BRK: {
     groups: ['工作台', '房源运营', '客户运营'],
-    allowed: { group: '房源运营', leaf: '房源列表', slug: 'listings' },
+    allowed: {
+      group: '房源运营',
+      leaf: '房源列表',
+      slug: 'listings',
+      // OPT-056 起 listings/buildings 整页换成 Arco 自定义列表视图，**刻意不渲染**
+      // Payload 原生的「所有 房源列表」抬头（见 ListingsListViewClient 文件头注释）。
+      // 所以这里不能再断言 h1——那不是页面坏了，是断言过期了。
+      rootSelector: '.listings-list',
+    },
   },
   CSR: {
     groups: ['工作台', '客户运营', '表单中心'],
@@ -141,7 +149,15 @@ const ROLE_NAVIGATION = {
       group: string
       leaf: string
       slug: string
+      /** 页面内的唯一文本标识（原生列表视图没有 h1 时用）。 */
       pageMarker?: string
+      /**
+       * 自定义列表视图的根容器选择器。
+       *
+       * 换成自定义视图的 collection 没有 Payload 原生 h1，也不一定有稳定的字面量文本；
+       * 按根容器断言比按文案断言更稳——文案会被"净化"改写，容器类名不会。
+       */
+      rootSelector?: string
     }
   }
 >
@@ -354,7 +370,9 @@ test.describe('后台导航 / 五角色桌面矩阵', () => {
         new RegExp(`/admin/collections/${slug}(?:\\?.*)?$`),
       )
       const allowed = ROLE_NAVIGATION[role].allowed
-      if ('pageMarker' in allowed) {
+      if ('rootSelector' in allowed && allowed.rootSelector) {
+        await expect(page.locator(allowed.rootSelector)).toBeVisible()
+      } else if ('pageMarker' in allowed) {
         await expect(
           page.getByText(allowed.pageMarker, { exact: true }),
         ).toBeVisible()
