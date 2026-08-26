@@ -88,7 +88,8 @@ describe("'use client' 组件不得把服务端模块拖进浏览器包", () => 
   // 显式 60s：本用例遍历 src/ 下每个文件并做 import 传递闭包，是 I/O 密集型。
   // 单独跑 0.6s，但全量并行时实测撞到过 vitest 默认的 5s 上限（5015ms），
   // 表现为超时而非断言失败——那是"机器忙"，不该被读成"守卫红了"。
-  // 同族问题见工作项 OPT-056（supply-public-cache-hook 的动态 import 超时）。
+  // 同族问题见工作项 OPT-057（supply-public-cache-hook 的动态 import 超时）——
+  // 该项原编 OPT-056，与本批（PR #111）撞号后让号，别顺着旧号找错地方。
   it('客户端组件的 import 传递闭包里不出现 payload 运行时', async () => {
     const files = await walk(SRC)
     const violations: string[] = []
