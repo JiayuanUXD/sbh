@@ -90,6 +90,7 @@ export const Buildings: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'city', 'district', 'grade', 'status', 'operationalStatus'],
     preview: (doc) => (doc?.slug ? `/buildings/${doc.slug}` : null),
@@ -102,6 +103,12 @@ export const Buildings: CollectionConfig = {
           // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
           '/components/admin/unsaved-changes/FormModifiedBridge',
         ],
+      },
+      // OPT-056：整页替换默认列表视图（Arco 表格 + 状态标签）。
+      views: {
+        list: {
+          Component: '/components/admin/BuildingsListView',
+        },
       },
     },
   },
@@ -274,7 +281,7 @@ export const Buildings: CollectionConfig = {
               name: 'version',
               type: 'number',
               defaultValue: 1,
-              admin: { readOnly: true, description: '乐观锁版本号，系统维护' },
+              admin: { readOnly: true },
             },
             createDataSourceGroup('楼盘'),
           ],
@@ -337,7 +344,7 @@ export const Buildings: CollectionConfig = {
         },
         {
           label: '楼宇属性',
-          description: '维护竣工时间、楼层、物业和停车等楼宇明细（design §3.4）。',
+          description: '维护竣工时间、楼层、物业和停车等楼宇明细。',
           fields: [
             {
               type: 'row',
@@ -495,7 +502,12 @@ export const Buildings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'verifiedAt', label: '信息核验时间', type: 'date' },
+                    {
+                      name: 'verifiedAt',
+                      label: '信息核验时间',
+                      type: 'date',
+                      defaultValue: () => new Date().toISOString(),
+                    },
                     { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date' },
                   ],
                 },

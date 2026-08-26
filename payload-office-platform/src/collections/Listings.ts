@@ -207,6 +207,7 @@ export const Listings: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
     defaultColumns: ['title', 'building', 'reviewStatus', 'publicationStatus', 'isFeatured'],
     preview: (doc) => (doc?.slug ? `/listings/${doc.slug}` : null),
@@ -214,6 +215,12 @@ export const Listings: CollectionConfig = {
       edit: {
         // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
         beforeDocumentControls: ['/components/admin/unsaved-changes/FormModifiedBridge'],
+      },
+      // OPT-056：整页替换默认列表视图（Arco 表格 + 状态标签 + 推荐位快捷编辑）。
+      views: {
+        list: {
+          Component: '/components/admin/ListingsListView',
+        },
       },
     },
   },
@@ -649,7 +656,7 @@ export const Listings: CollectionConfig = {
                         value,
                       })),
                       admin: {
-                        description: '出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。',
+                        description: '出售房源提交审核必填。',
                         width: COL_4,
                       },
                     }),
@@ -718,7 +725,7 @@ export const Listings: CollectionConfig = {
                 components: {
                   Field: {
                     path: '/components/admin/ListingFormSectionHeading#default',
-                    clientProps: { title: '审核与发布', description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。' },
+                    clientProps: { title: '审核与发布', description: '状态由审核/发布流程驱动，此处只读。' },
                   },
                 },
               },
@@ -782,8 +789,7 @@ export const Listings: CollectionConfig = {
                   },
                   admin: {
                     description:
-                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
-
+                      '房源当前的供给商户，直接决定前台可见性。只能选择启用中且资质有效的商户；商户停用后遗留的旧值仍可正常保存。',
                     width: COL_4,
                   },
                 }),
@@ -804,7 +810,13 @@ export const Listings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'verifiedAt', label: '信息核验时间', type: 'date', admin: { width: COL_4 } },
+                    {
+                      name: 'verifiedAt',
+                      label: '信息核验时间',
+                      type: 'date',
+                      defaultValue: () => new Date().toISOString(),
+                      admin: { width: COL_4 },
+                    },
                     { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date', admin: { width: COL_4 } },
                   ],
                 },
@@ -879,7 +891,6 @@ export const Listings: CollectionConfig = {
                   defaultValue: 1,
                   admin: {
                     readOnly: true,
-                    description: '乐观锁版本号,系统维护。',
                     width: COL_4,
                     components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
@@ -930,7 +941,7 @@ export const Listings: CollectionConfig = {
               type: 'array',
               maxRows: 40,
               admin: {
-                description: '提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。',
+                description: '提交审核要求至少 3 张图片。封面与相册会从这里自动生成。',
                 components: {
                   Field: '/components/admin/ListingMediaManager',
                 },
