@@ -86,7 +86,7 @@ export default function AdminNavigationClient({
 }: AdminNavigationClientProps) {
   const pathname = usePathname()
   const { config } = useConfig()
-  const { navOpen, setNavOpen } = useNav()
+  const { navOpen, navRef, setNavOpen } = useNav()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
@@ -138,6 +138,30 @@ export default function AdminNavigationClient({
       setNavOpen(true)
     }
   }, [isDesktop, navOpen, setNavOpen])
+
+  // 同一不变量的 DOM 兜底：桌面态下 aside.nav 上不允许存在 inert。
+  //
+  // 只靠上面的 setNavOpen 不够——它要求「NavProvider 先置 false、本组件的效果再置回
+  // true」这一时序每次都成立。拖动窗口跨 1440 断点时 resize 事件连续触发、Payload 会
+  // 反复改自己的状态，只要有一轮我们的回置没跑到，inert 就留在 DOM 上，表现正是
+  // 「拖窄之后点不动、刷新才好」（刷新时走的是加载路径，由上面的效果覆盖）。
+  //
+  // MutationObserver 把不变量钉在 DOM 上，与 React 的渲染时序解耦：属性一出现就摘掉。
+  // 移动态（< 1024px）不介入——那里导航是模态，关闭时带 inert 是正确行为。
+  useEffect(() => {
+    if (!isDesktop) return
+    const nav = navRef?.current?.closest('aside') ?? document.querySelector('aside.nav')
+    if (!nav) return
+
+    const stripInert = () => {
+      if (nav.hasAttribute('inert')) nav.removeAttribute('inert')
+    }
+
+    stripInert()
+    const observer = new MutationObserver(stripInert)
+    observer.observe(nav, { attributeFilter: ['inert'] })
+    return () => observer.disconnect()
+  }, [isDesktop, navRef])
 
   // 折叠状态持久化
   useEffect(() => {
