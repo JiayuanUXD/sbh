@@ -15,6 +15,8 @@ vi.mock('next/cache', () => ({ revalidateTag: vi.fn() }))
 
 import { revalidateTag } from 'next/cache'
 
+import { Buildings } from '@/collections/Buildings'
+import { Listings } from '@/collections/Listings'
 import {
   invalidateBuildingPublicCacheAfterChange,
   invalidateBuildingPublicCacheAfterDelete,
@@ -208,16 +210,21 @@ describe('房源 / 楼盘公开缓存失效 hook', () => {
  * 一个调用点都没有——测试全绿，失效从未发生过。
  *
  * 所以光测 hook 函数本身不够，必须锁住"它真的挂在 collection 上"。
+ *
+ * collection 必须在**文件顶部静态导入**，不能在 it() 里 `await import()`。
+ * `@/collections/Listings` 拉起的模块图很大，空机 + 热缓存下仍要 ~3.2s，
+ * 已经吃掉 5000ms 默认 testTimeout 的三分之二；全量 `pnpm test`（278 个文件抢 8 核，
+ * 首次跑还是冷的 Vite transform 缓存）照超不误，而单跑本文件又恒绿——
+ * 看上去很像测试顺序污染，实际就是超时。静态导入把这笔开销挪到文件加载
+ * 阶段（不受 testTimeout 管），也是仓库里另外 19 个导入 collection 的测试文件的写法。
  */
 describe('失效 hook 的 collection 接线', () => {
-  it('Listings 挂了 afterChange / afterDelete 失效 hook', async () => {
-    const { Listings } = await import('@/collections/Listings')
+  it('Listings 挂了 afterChange / afterDelete 失效 hook', () => {
     expect(Listings.hooks?.afterChange).toContain(invalidateListingPublicCacheAfterChange)
     expect(Listings.hooks?.afterDelete).toContain(invalidateListingPublicCacheAfterDelete)
   })
 
-  it('Buildings 挂了 afterChange / afterDelete 失效 hook', async () => {
-    const { Buildings } = await import('@/collections/Buildings')
+  it('Buildings 挂了 afterChange / afterDelete 失效 hook', () => {
     expect(Buildings.hooks?.afterChange).toContain(invalidateBuildingPublicCacheAfterChange)
     expect(Buildings.hooks?.afterDelete).toContain(invalidateBuildingPublicCacheAfterDelete)
   })
