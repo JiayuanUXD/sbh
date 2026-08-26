@@ -3,6 +3,7 @@ import type { AccessArgs, GlobalConfig } from 'payload'
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
+import { NAV_TARGET_OPTIONS } from '@/lib/frontend/nav-targets'
 
 /**
  * OPT-053：站点运营配置（Global）
@@ -209,6 +210,92 @@ export const SiteSettings: GlobalConfig = {
                 { name: 'label', label: '标题', type: 'text', required: true },
                 { name: 'sublabel', label: '副标题', type: 'text' },
                 { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
+              ],
+            },
+          ],
+        },
+        {
+          label: '导航',
+          description:
+            '主导航与页脚分组。**跳转目标只能选、不能填**——它指向真实路由，自由填写就是死链工厂（404 不抛异常也不进告警，带参路由填错枚举更隐蔽，返回的是空结果页而不是 404）。新增可选目标需要发版。',
+          fields: [
+            {
+              name: 'mainNav',
+              label: '主导航',
+              type: 'array',
+              maxRows: 7,
+              admin: {
+                description: '页头横向导航。超过 7 项在窄屏会挤，故设上限。logo 即回首页，不需要「首页」项。',
+              },
+              defaultValue: [
+                { target: 'listings', label: '找办公室', visible: true },
+                { target: 'buildings', label: '找楼盘', visible: true },
+                { target: 'listings-type-coworking', label: '共享办公', visible: true },
+                { target: 'entrust', label: '委托找房', visible: true },
+                { target: 'publish', label: '投放房源', visible: true },
+                { target: 'news', label: '资讯', visible: true },
+              ],
+              fields: [
+                {
+                  name: 'target',
+                  label: '跳转目标',
+                  type: 'select',
+                  required: true,
+                  options: NAV_TARGET_OPTIONS,
+                  admin: { description: '从已上线的页面里选。选项由代码维护，与实际路由有双向守卫。' },
+                },
+                { name: 'label', label: '显示文字', type: 'text', required: true },
+                { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
+              ],
+            },
+            {
+              name: 'footerColumns',
+              label: '页脚分组',
+              type: 'array',
+              maxRows: 5,
+              defaultValue: [
+                {
+                  title: '浏览',
+                  links: [
+                    { target: 'listings', label: '在租房源', visible: true },
+                    { target: 'buildings', label: '找写字楼', visible: true },
+                    { target: 'news', label: '资讯中心', visible: true },
+                  ],
+                },
+                {
+                  title: '按类型',
+                  links: [
+                    { target: 'listings-type-traditional-office', label: '传统办公', visible: true },
+                    { target: 'listings-type-coworking', label: '联合办公', visible: true },
+                    { target: 'listings-type-full-floor', label: '整层办公', visible: true },
+                  ],
+                },
+                {
+                  title: '服务',
+                  links: [
+                    { target: 'entrust', label: '委托找房', visible: true },
+                    { target: 'publish', label: '投放房源', visible: true },
+                  ],
+                },
+              ],
+              fields: [
+                { name: 'title', label: '分组标题', type: 'text', required: true },
+                {
+                  name: 'links',
+                  label: '分组内链接',
+                  type: 'array',
+                  fields: [
+                    {
+                      name: 'target',
+                      label: '跳转目标',
+                      type: 'select',
+                      required: true,
+                      options: NAV_TARGET_OPTIONS,
+                    },
+                    { name: 'label', label: '显示文字', type: 'text', required: true },
+                    { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
+                  ],
+                },
               ],
             },
           ],

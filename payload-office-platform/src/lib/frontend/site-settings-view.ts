@@ -26,6 +26,14 @@ export type SiteSettingsView = Readonly<{
   footerTaglineSuffix: string
   valueProps: ReadonlyArray<Readonly<{ name: string; body: string }>>
   typeCards: ReadonlyArray<Readonly<{ slot: string; label: string; sublabel: string | null }>>
+  /**
+   * 主导航（OPT-054）。**已解析成可直接渲染的 href**——运营配的是目标 id，
+   * 由服务端查 NAV_TARGETS 解析；查不到的项在这里就已经被剔除，
+   * 渲染层拿到的每一条都指向真实路由。
+   */
+  mainNav: ReadonlyArray<Readonly<{ href: string; label: string }>>
+  /** 页脚分组（OPT-054）。同上，href 已解析。空分组不会出现在这里。 */
+  footerColumns: ReadonlyArray<Readonly<{ title: string; links: ReadonlyArray<Readonly<{ href: string; label: string }>> }>>
 }>
 
 /**
@@ -54,6 +62,41 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
     { slot: 'full-floor', label: '整层办公', sublabel: '整层起租 · 定制形象' },
     { slot: 'serviced-office', label: '独栋办公', sublabel: '企业独栋 · 专属形象' },
     { slot: 'creative-park', label: '创意园区', sublabel: '园区生态 · 低密度' },
+  ],
+  // 与 public-nav.ts 的 MAIN_NAV_ITEMS / FOOTER_COLUMNS 逐条对应。
+  // 那两个常量**保留不删**：它们既是这里的默认值来源，也是迁移执行前的兜底。
+  mainNav: [
+    { href: '/listings', label: '找办公室' },
+    { href: '/buildings', label: '找楼盘' },
+    { href: '/listings?type=coworking', label: '共享办公' },
+    { href: '/entrust', label: '委托找房' },
+    { href: '/publish', label: '投放房源' },
+    { href: '/news', label: '资讯' },
+  ],
+  footerColumns: [
+    {
+      title: '浏览',
+      links: [
+        { href: '/listings', label: '在租房源' },
+        { href: '/buildings', label: '找写字楼' },
+        { href: '/news', label: '资讯中心' },
+      ],
+    },
+    {
+      title: '按类型',
+      links: [
+        { href: '/listings?type=traditional-office', label: '传统办公' },
+        { href: '/listings?type=coworking', label: '联合办公' },
+        { href: '/listings?type=full-floor', label: '整层办公' },
+      ],
+    },
+    {
+      title: '服务',
+      links: [
+        { href: '/entrust', label: '委托找房' },
+        { href: '/publish', label: '投放房源' },
+      ],
+    },
   ],
 }
 

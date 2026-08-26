@@ -6,7 +6,6 @@ import React from 'react'
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
-import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
 // 必须从 site-settings-view 取，**不能从 site-settings 取**：后者 import 了 payload，
 // 本组件是 'use client'，那条依赖链会把 sharp 拉进浏览器包，next build 直接失败
 // （57 个 non-ecmascript placeable asset 错误），而 typecheck 与单测全绿。
@@ -47,7 +46,7 @@ function FooterContents({
           </p>
         </div>
         <nav className="site-footer__nav" aria-label="页脚导航">
-          {FOOTER_COLUMNS.map((col) => (
+          {settings.footerColumns.map((col) => (
             <div key={col.title} className="site-footer__col">
               <h3 className="site-footer__col-title">{col.title}</h3>
               <ul className="site-footer__links" role="list">

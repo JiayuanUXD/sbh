@@ -3896,6 +3896,56 @@ export interface SiteSetting {
         id?: string | null;
       }[]
     | null;
+  /**
+   * 页头横向导航。超过 7 项在窄屏会挤，故设上限。logo 即回首页，不需要「首页」项。
+   */
+  mainNav?:
+    | {
+        /**
+         * 从已上线的页面里选。选项由代码维护，与实际路由有双向守卫。
+         */
+        target:
+          | 'listings'
+          | 'buildings'
+          | 'entrust'
+          | 'publish'
+          | 'news'
+          | 'city-partner'
+          | 'sale'
+          | 'listings-type-traditional-office'
+          | 'listings-type-coworking'
+          | 'listings-type-full-floor'
+          | 'listings-type-serviced-office';
+        label: string;
+        visible?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  footerColumns?:
+    | {
+        title: string;
+        links?:
+          | {
+              target:
+                | 'listings'
+                | 'buildings'
+                | 'entrust'
+                | 'publish'
+                | 'news'
+                | 'city-partner'
+                | 'sale'
+                | 'listings-type-traditional-office'
+                | 'listings-type-coworking'
+                | 'listings-type-full-floor'
+                | 'listings-type-serviced-office';
+              label: string;
+              visible?: boolean | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -3978,6 +4028,28 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         label?: T;
         sublabel?: T;
         visible?: T;
+        id?: T;
+      };
+  mainNav?:
+    | T
+    | {
+        target?: T;
+        label?: T;
+        visible?: T;
+        id?: T;
+      };
+  footerColumns?:
+    | T
+    | {
+        title?: T;
+        links?:
+          | T
+          | {
+              target?: T;
+              label?: T;
+              visible?: T;
+              id?: T;
+            };
         id?: T;
       };
   updatedAt?: T;

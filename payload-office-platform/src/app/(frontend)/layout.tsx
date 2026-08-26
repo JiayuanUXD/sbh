@@ -72,7 +72,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo }} />
+        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav }} />
         <main id="main-content" className="site-main">{children}</main>
         <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} settings={siteSettings} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}

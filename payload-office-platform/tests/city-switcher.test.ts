@@ -104,7 +104,11 @@ async function renderShell(
         cities: options,
         defaultCity: 'shanghai',
         multiCityRoutingEnabled,
-        brand: { siteName: SITE_SETTINGS_FALLBACK.siteName, logo: null },
+        brand: {
+          siteName: SITE_SETTINGS_FALLBACK.siteName,
+          logo: null,
+          mainNav: SITE_SETTINGS_FALLBACK.mainNav,
+        },
       }),
       React.createElement(SiteFooter, {
         cities: options,
