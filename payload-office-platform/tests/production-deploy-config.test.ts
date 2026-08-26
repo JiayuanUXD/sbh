@@ -218,46 +218,100 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     expect(block).toContain('exit 1')
   })
 
-  it('部署只能手动触发，不再由 quality 的 workflow_run 自动拉起', () => {
-    // 自动触发一律 promote=false，于是每次合并 master 都构建一个 0% 流量、没人用的
-    // GRAY 版本——白烧约 8 分钟平台构建 + 一个版本号，真发布时还要再构建一遍。
-    // sbh-096 就是这么一个「为没人用而构建」的版本，且它在镜像推送阶段挂掉。
-    // 判 YAML 键与表达式引用，而不是字面出现：文件顶部注释本身就要讲清「为什么不再
-    // 自动触发」，直接 not.toContain 会被自己的注释绊倒（这一条已经踩中两次）。
+  /**
+   * 2026-08-26：本条与下一条**整体反向重写**。
+   *
+   * 上一版守的是「只能手动触发」（`6e3861b`，2026-08-18）。那次改动的真实病根是
+   * **自动触发一律 `promote=false`**——每次合并 master 都构建一个 0% 流量、永远
+   * 没人用的 GRAY 版本，白烧约 8 分钟平台构建和一个版本号，真发布时同一个 commit
+   * 还要再构建一遍（sbh-096 就是这么一个「为没人用而构建」的版本，且它在镜像推送
+   * 阶段挂掉）。当时把「自动」整个砍掉，是把病根和症状一起砍了。
+   *
+   * 现在恢复自动触发，但**带 promote**：构建出来就上线，那笔浪费不复存在。
+   * 所以这一条现在守的是三件事的**组合**，缺一条就退回旧病：
+   *   1. 有 workflow_run 触发（自动）
+   *   2. job 自己判 conclusion（闸门红了不能发）
+   *   3. 自动路径 SHOULD_PROMOTE 为真（构建了就要用）
+   *
+   * 判 YAML 键与表达式引用，而不是字面出现——文件顶部注释要讲清这段来龙去脉，
+   * 直接 toContain/not.toContain 会被自己的注释绊倒（原作者在这上面踩中过两次）。
+   */
+  it('合并 master 自动接力发布：workflow_run + 判 conclusion + 自动路径 promote', () => {
     const yaml = workflow()
+
+    // 1. 自动触发存在，且盯的是 quality.yml 的 master 分支
+    expect(yaml).toMatch(/^\s*workflow_run:/m)
+    expect(yaml).toContain("workflows: ['Quality and migration baseline']")
+    expect(yaml).toMatch(/workflow_run:[\s\S]{0,200}branches:\s*\[master\]/)
+
+    // 2. types: [completed] 上游失败也会触发，job 必须自己判结论。
+    //    少了这一条，闸门红着也会照样发布——这是本次改动最危险的失手方式。
+    expect(yaml).toMatch(
+      /if:[\s\S]{0,160}github\.event\.workflow_run\.conclusion == 'success'/,
+    )
+
+    // 3. 自动路径必须切流量。写成 `github.event_name == 'workflow_run' || inputs.promote`：
+    //    若退化成 `&& inputs.promote` 之类，就又变成「构建了却没人用」。
+    expect(yaml).toMatch(
+      /SHOULD_PROMOTE:\s*\$\{\{\s*github\.event_name == 'workflow_run' \|\|/,
+    )
+
+    // 4. checkout 必须钉上游 run 的 head_sha，否则期间又推一次 master 就会发错代码
+    expect(yaml).toContain('github.event.workflow_run.head_sha')
+
+    // 5. 手动入口保留（重发历史 ref / 只出 GRAY 版本），但不再是唯一入口
     expect(yaml).toContain('workflow_dispatch')
-    expect(yaml).not.toMatch(/^\s*workflow_run:/m)
-    // job 的 if 条件与 checkout 的 ref 也曾引用它，只查触发块会漏掉这两处。
-    expect(yaml).not.toContain('github.event.workflow_run')
+  })
+
+  it('上游 quality.yml 的 paths 覆盖 deploy.yml，否则改本文件时链路静默失联', () => {
+    // workflow_run 只有在上游**真的跑了**的时候才会接力。quality.yml 的 push/PR
+    // 都带 paths 过滤，漏掉 deploy.yml 就会出现「改了发布链路却没人跑闸门、
+    // 也没触发部署」——静默，不报错。
+    const quality = readFileSync(
+      resolve(repositoryRoot, '.github/workflows/quality.yml'),
+      'utf8',
+    )
+    expect(quality).toMatch(/^name: Quality and migration baseline$/m)
+    // push 与 pull_request 两个块各要有一份
+    const hits = quality.match(/'\.github\/workflows\/deploy\.yml'/g) ?? []
+    expect(hits.length, 'quality.yml 的 push 与 pull_request 都应覆盖 deploy.yml')
+      .toBeGreaterThanOrEqual(2)
   })
 
   /**
-   * 文档不得再声称「push master 即自动部署」。
+   * 文档不得再声称「只能手动触发 / 合并 master 什么都不发生」。
    *
-   * ## 为什么这条值得单独守
+   * ## 为什么这条值得单独守（方向变了，理由没变）
    *
-   * `6e3861b`（2026-08-18）移除自动触发时，**只改了 workflow，没改文档**。于是
-   * `CLAUDE.md`、`AGENTS.md`、`DEPLOYMENT.md` 和 `deploy.yml` 自己的头部注释，
-   * 整整七天都在说「push 到 master 即自动上线」——而上面那条测试是绿的，因为它只
-   * 断言 YAML，不管文档怎么写。
+   * `6e3861b`（2026-08-18）移除自动触发时**只改了 workflow，没改文档**，于是四处
+   * 文档整整七天都在说「push 到 master 即自动上线」。上一版守卫是绿的，因为它只
+   * 断言 YAML，不管文档怎么写。代价在 2026-08-25 兑现：合并两个 PR 时据此告知
+   * 「会触发自动部署到生产」，实际什么都没发生，差点把未上线的修复当成已上线。
    *
-   * 代价在 2026-08-25 兑现：合并两个 PR 时据此告知「会触发自动部署到生产」，
-   * 实际什么都没发生，差点把一个未上线的修复当成已上线。
+   * 2026-08-26 把触发改回自动并带 promote，这条守卫**整体反向重写**：现在漂移的
+   * 方向反过来了——文档若还写着「只能手动」「合并什么都不发生」，会让人以为合并
+   * 是安全的、可以先合着放几天，而实际上一合就进生产。这个方向的错更危险：
+   * 上一次的后果是「以为发了其实没发」，这一次是「以为没发其实发了」。
    *
    * **陈述性文档也是接口。** 它被人和 agent 当作事实源读取，写错了不会有任何
    * 运行期信号——这正是它需要测试的理由。
    *
-   * ## 判据：同一行里「push/合并 master」与「会部署」同时出现
+   * ## 判据：直接匹配「手动才会发布」这类断言措辞
    *
-   * 不逐字匹配某句话（那样换个说法就绕过去了），而是判**语义组合**。
-   * 带否定词（不会 / 不再 / 已作废 / 注：当时…）的行是刻意保留的历史说明，放行——
-   * 把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分。
+   * 不逐字匹配某句话（那样换个说法就绕过去了），而是判**断言本身**。
+   * 带否定/历史标记（不再 / 已改为 / 曾经 / 注：当时…）的行是刻意保留的沿革说明，
+   * 放行——把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分。
+   *
+   * 保留原作者踩过的两个坑作为设计约束：
+   *   1. 不能只判词共现（「合并即进入发布候选」这类正确表述会被误判）
+   *   2. 不能要求出现触发动词（原始错句「默认分支 master 触发 CI 自动部署」没有动词）
    */
-  it('文档与 workflow 不得再声称「push master 即自动部署」', () => {
-    // 前提：workflow 确实没有 push 触发。哪天真加回来了，本守卫应当整体重来。
-    expect(workflow(), 'deploy.yml 加回了 push 触发 —— 本守卫需要同步更新').not.toMatch(
-      /^\s*push:/m,
-    )
+  it('文档与 workflow 不得再声称「只能手动触发 / 合并不会部署」', () => {
+    // 前提：workflow 确实是 workflow_run 自动接力。哪天又改回手动，本守卫应当整体重来。
+    expect(
+      workflow(),
+      'deploy.yml 去掉了 workflow_run —— 本守卫方向需要同步反转',
+    ).toMatch(/^\s*workflow_run:/m)
 
     const DOCS = [
       'CLAUDE.md',
@@ -268,30 +322,29 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
       'payload-office-platform/AGENTS.md',
     ]
     /**
-     * 禁止的**断言本身**，而不是「master + 部署」这种词共现。
+     * 禁止的**断言本身**（现在方向反过来了：不得声称发布是手动的 / 合并无事发生），
+     * 而不是「手动 + 部署」这种词共现——deploy.yml 保留了 workflow_dispatch 手动
+     * 入口，正常描述它并不违规，违规的是声称它是**唯一**入口。
      *
-     * 前两版判据都栽在这里，反向验证时才发现：
-     *
-     * 1. 第一版要求同一行出现「合并/push master」与「部署」——把
-     *    「合并即进入发布候选；发布本身是手动触发」这类**正确**表述判成违规（3 条误报）。
-     * 2. 第二版加了自动性要求，却仍然要求出现 push/推送/合并——而当初那句原话是
-     *    「**默认分支 `master` 触发 CI 自动部署**」，一个触发动词都没有，照样漏掉。
-     *
-     * 所以改成直接匹配断言措辞。**这条测试本身就是「绿灯不等于有效」的例子**：
-     * 前两版都是全绿的，把当初的错误原话放回去也依然全绿。
+     * 沿用上一版用血换来的两条设计约束：不判词共现、不要求出现触发动词。
+     * **这条测试本身就是「绿灯不等于有效」的例子**——必须反向验证过才算数，
+     * 见本次提交信息里记录的反验结果。
      */
     const FORBIDDEN = [
-      /自动部署/,
-      /自动上线/,
-      /自动发布/,
-      /(push|推送|合并|merge).{0,12}master.{0,24}(部署|上线)/i,
-      /master.{0,12}触发.{0,12}(CI|部署|上线|发布)/i,
+      /只能手动/,
+      /仅能手动/,
+      /不(会|再)触发任何部署/,
+      /(合并|push|推送|merge).{0,16}master.{0,16}(什么都不|不会).{0,8}(发生|部署|上线)/i,
+      /master.{0,8}(本身)?不触发(任何)?部署/,
+      /发布是显式动作/,
+      /(发布|上线|部署).{0,8}只(能|有).{0,12}(手动|workflow_dispatch)/,
     ]
     /**
-     * 放行：明确说是手动的、或标注为历史/更正的行。
-     * 把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分——所以不是漏洞，是出口。
+     * 放行：标注为历史/沿革/更正的行，或明确在讲手动入口的**附加**用途。
+     * 把「曾经如此、现已改变」写清楚，本身就是防漂移的一部分——不是漏洞，是出口。
      */
-    const NEGATED = /手动|显式|不会|不再|不触发|已移除|已作废|已改为|已于|注：当时|错|~~|❌/
+    const NEGATED =
+      /曾经|原先|此前|不再|已改为|已恢复|已于|已移除|已作废|注：当时|历史|错|~~|❌|20\d\d-\d\d-\d\d/
 
     const offenders: string[] = []
     for (const rel of DOCS) {
@@ -312,10 +365,11 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
 
     expect(
       offenders,
-      '这些行声称推送/合并 master 会部署，而 deploy.yml 只有 workflow_dispatch：\n' +
+      '这些行声称发布只能手动 / 合并 master 不会部署，而 deploy.yml 已由 quality.yml\n' +
+        '的 workflow_run 自动接力并全量切流：\n' +
         offenders.join('\n') +
-        '\n发布是显式动作（gh workflow run deploy.yml -f promote=true）。' +
-        '若确实在描述历史，请把「已作废 / 不再 / 注：当时」写进同一行。',
+        '\n合并到 master 即上线（闸门通过后自动 promote）。' +
+        '若确实在描述沿革，请把「曾经 / 已改为 / 注：当时」或日期写进同一行。',
     ).toEqual([])
   })
 
