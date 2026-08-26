@@ -25,6 +25,11 @@ function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
+/** 待办类计数：无权限时服务端降级为 null（前端隐藏该项）。 */
+function isNullableCount(value: unknown): value is number | null {
+  return value === null || isNonNegativeSafeInteger(value)
+}
+
 export function isDashboardStats(value: unknown): value is DashboardStats {
   if (!isRecord(value)) return false
 
@@ -36,7 +41,11 @@ export function isDashboardStats(value: unknown): value is DashboardStats {
     isNonNegativeSafeInteger(value.leads) &&
     isNonNegativeSafeInteger(value.listings) &&
     isNonNegativeSafeInteger(value.listingsWithoutCover) &&
-    isNonNegativeSafeInteger(value.newLeads)
+    isNonNegativeSafeInteger(value.newLeads) &&
+    isNullableCount(value.openReports) &&
+    isNullableCount(value.pendingRecheck) &&
+    isNullableCount(value.pendingReviews) &&
+    isNullableCount(value.pendingSubmissions)
   )
 }
 
