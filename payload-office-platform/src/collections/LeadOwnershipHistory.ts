@@ -28,6 +28,7 @@ export const LeadOwnershipHistory: CollectionConfig = {
     // 按既有产品决定它也不进自定义导航，见 admin-navigation-config.test 的
     // 「不在主导航暴露归属历史或技术分组名」。
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'id',
     defaultColumns: ['lead', 'action', 'fromOwner', 'toOwner', 'createdAt'],
     description: '线索归属流水：分配/认领/转派/进入公海/回收。记录创建后不可修改或删除。',
@@ -110,7 +111,6 @@ export const LeadOwnershipHistory: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '记录自身版本（append-only，恒为 1）。',
       },
     },
   ],

@@ -38,6 +38,7 @@ export const Users: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'email', 'loginName', 'status', 'roles', 'updatedAt'],
   },
@@ -78,7 +79,7 @@ export const Users: CollectionConfig = {
           type: 'text',
           admin: {
             description:
-              '原始手机号输入。系统自动规范化存入 phone_normalized；查询用 phone_normalized。',
+              '原始手机号输入。系统会自动规范化后存储并用于查询。',
           },
           // 入库前规范化原值（不影响 phone_normalized）
           hooks: {
@@ -150,7 +151,7 @@ export const Users: CollectionConfig = {
           ],
           admin: {
             description:
-              '停用账号无法登录且旧会话失效；锁定账号在 locked_until 之前无法登录。',
+              '停用账号无法登录且旧会话失效；锁定账号在解锁时间之前无法登录。',
           },
         },
       ],
@@ -199,7 +200,7 @@ export const Users: CollectionConfig = {
           required: true,
           admin: {
             readOnly: true,
-            description: '停用账号时递增；旧会话 token 与版本不匹配即失效。',
+            description: '停用账号后旧登录会话自动失效。',
           },
         },
         {

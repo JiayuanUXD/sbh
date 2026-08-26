@@ -53,6 +53,7 @@ export const Tasks: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'taskType',
     defaultColumns: [
       'taskType',
@@ -63,7 +64,7 @@ export const Tasks: CollectionConfig = {
       'assignee',
     ],
     description:
-      '工作流待办：审核 / 举报 / 线索 / 跟进 / 房源维护。状态机 pending → in_progress → completed；pending/in_progress → cancelled。由来源业务事件驱动创建与闭环。',
+      '工作流待办：审核 / 举报 / 线索 / 跟进 / 房源维护。待处理 → 进行中 → 已完成，未完成的可取消。由来源业务事件驱动创建与闭环。',
   },
   access: {
     ...createCollectionAccess({
@@ -130,7 +131,7 @@ export const Tasks: CollectionConfig = {
           index: true,
           admin: {
             readOnly: true,
-            description: '来源版本号（与 taskType / sourceId 共同构成幂等键）。',
+            description: '来源版本号（系统防重标识）。',
           },
         },
         {
@@ -145,7 +146,7 @@ export const Tasks: CollectionConfig = {
           index: true,
           admin: {
             readOnly: true,
-            description: '来源业务对象类型，由 taskType 派生（protect hook 自动填充）。',
+            description: '来源业务对象类型，由 taskType 派生（系统自动填充）。',
           },
         },
       ],
@@ -274,7 +275,7 @@ export const Tasks: CollectionConfig = {
           index: true,
           admin: {
             readOnly: true,
-            description: '完成时关联的来源 domain event ID（Outbox event_id），用于审计回溯。',
+            description: '完成时关联的来源 domain event ID，用于审计回溯。',
           },
         },
       ],
@@ -291,7 +292,7 @@ export const Tasks: CollectionConfig = {
           type: 'json',
           admin: {
             readOnly: true,
-            description: 'buildTask 产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。',
+            description: '系统产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。',
           },
         },
       ],

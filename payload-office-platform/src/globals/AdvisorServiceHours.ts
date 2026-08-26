@@ -46,7 +46,7 @@ export const AdvisorServiceHours: GlobalConfig = {
       name: 'weeklyHours',
       type: 'array',
       label: '每周服务时段',
-      admin: { description: '每行一个时段；同一天可多行。start 含、end 不含（HH:MM）。' },
+      admin: { description: '每行一个时段；同一天可多行。格式 HH:MM，结束时间不含在内。' },
       // 默认周一至周五 09:00-18:00，让平台状态开箱即用（未保存 global 时返回此默认）
       defaultValue: [
         { day: '1', start: '09:00', end: '18:00' },

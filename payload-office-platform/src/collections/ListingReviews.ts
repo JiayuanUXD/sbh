@@ -30,6 +30,7 @@ export const ListingReviews: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'id',
     defaultColumns: ['listing', 'decision', 'taskStatus', 'submittedBy', 'createdAt'],
     description: '房源审核事件流：提交/撤回/通过/驳回。记录创建后不可修改或删除。',
@@ -127,7 +128,7 @@ export const ListingReviews: CollectionConfig = {
           type: 'text',
           admin: {
             readOnly: true,
-            description: '服务端对快照重算的 SHA-256，用于校验一致性。',
+            description: '系统校验摘要，自动生成。',
           },
         },
         {
@@ -173,7 +174,6 @@ export const ListingReviews: CollectionConfig = {
           defaultValue: 1,
           admin: {
             readOnly: true,
-            description: '记录自身版本（append-only，恒为 1）。',
           },
         },
       ],

@@ -17,6 +17,7 @@ export const Brokers: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'displayName',
     defaultColumns: ['displayName', 'user', 'team', 'employmentStatus'],
   },
@@ -97,7 +98,6 @@ export const Brokers: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '乐观锁版本，保存时自动递增',
       },
     },
   ],

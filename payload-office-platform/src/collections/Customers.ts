@@ -15,6 +15,7 @@ export const Customers: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'phoneMaskedSnapshot', 'company', 'status', 'createdAt'],
     description: '客户档案：手机号用于查重但不作为业务主键，一个客户可关联多条线索。',

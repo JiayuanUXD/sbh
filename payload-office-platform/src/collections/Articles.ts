@@ -28,6 +28,7 @@ export const Articles: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'status', 'publishedAt'],
     listSearchableFields: ['title', 'slug'],

@@ -10,6 +10,7 @@ export const Media: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'alt',
   },
   access: {

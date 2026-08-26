@@ -24,6 +24,7 @@ export const FollowUps: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'id',
     defaultColumns: ['lead', 'broker', 'method', 'result', 'createdAt'],
     description: '线索跟进流水：记录创建后不可修改或删除，纠错通过追加修正记录实现。',
@@ -126,7 +127,6 @@ export const FollowUps: CollectionConfig = {
           defaultValue: 1,
           admin: {
             readOnly: true,
-            description: '记录自身版本（append-only，恒为 1）。',
           },
         },
       ],

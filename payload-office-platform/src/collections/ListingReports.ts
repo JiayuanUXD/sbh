@@ -154,6 +154,7 @@ export const ListingReports: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'reason',
     defaultColumns: ['reason', 'targetListing', 'status', 'assignee', 'supplyPaused', 'createdAt'],
     description:
@@ -279,7 +280,6 @@ export const ListingReports: CollectionConfig = {
           defaultValue: 1,
           admin: {
             readOnly: true,
-            description: '每次状态变更 +1，用于乐观锁和审计。',
           },
         },
         {
@@ -323,7 +323,7 @@ export const ListingReports: CollectionConfig = {
           defaultValue: false,
           admin: {
             readOnly: true,
-            description: '有效举报成立时为 true，影响统一有效供给谓词。',
+            description: '举报成立时勾选，房源将暂停对外展示。',
           },
         },
         {

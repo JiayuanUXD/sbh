@@ -69,6 +69,7 @@ export const Merchants: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'status', 'qualificationStatus', 'qualificationExpiresAt'],
   },
@@ -189,7 +190,7 @@ export const Merchants: CollectionConfig = {
       label: '资质到期时间',
       type: 'date',
       admin: {
-        description: '资质状态为「已通过」时必填；到期后不再进入有效供给谓词',
+        description: '资质状态为「已通过」时必填；到期后其供给的房源将不再对外展示',
         date: { pickerAppearance: 'dayAndTime' },
       },
     },
@@ -200,7 +201,6 @@ export const Merchants: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '乐观锁版本，保存时自动递增',
       },
     },
   ],

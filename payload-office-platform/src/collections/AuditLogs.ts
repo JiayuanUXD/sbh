@@ -47,6 +47,7 @@ export const AuditLogs: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'action',
     defaultColumns: [
       'action',
@@ -196,7 +197,7 @@ export const AuditLogs: CollectionConfig = {
                   required: true,
                   admin: {
                     readOnly: true,
-                    description: '操作时对象的版本号（乐观锁）。',
+                    description: '操作时对象的版本号。',
                   },
                 },
                 {
@@ -206,7 +207,7 @@ export const AuditLogs: CollectionConfig = {
                   index: true,
                   admin: {
                     readOnly: true,
-                    description: '关联的领域事件 ID（如已写入 Outbox）。',
+                    description: '关联的系统事件标识（如有）。',
                   },
                 },
               ],
@@ -352,7 +353,7 @@ export const AuditLogs: CollectionConfig = {
                   type: 'text',
                   admin: {
                     readOnly: true,
-                    description: '操作失败时的错误码（result=failed 时有值）。',
+                    description: '操作失败时的错误码（仅失败时有值）。',
                   },
                 },
                 {
@@ -361,7 +362,7 @@ export const AuditLogs: CollectionConfig = {
                   type: 'textarea',
                   admin: {
                     readOnly: true,
-                    description: '操作失败时的错误信息（result=failed 时有值）。',
+                    description: '操作失败时的错误信息（仅失败时有值）。',
                   },
                 },
               ],
@@ -397,7 +398,6 @@ export const AuditLogs: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '审计日志版本（append-only，恒为 1）。',
         position: 'sidebar',
       },
     },
