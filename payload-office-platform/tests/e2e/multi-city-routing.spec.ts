@@ -160,15 +160,18 @@ test.describe('multi-city route ownership', () => {
   })
 
   test('query canonical retains valid filters and strips unknown values', async ({ page }) => {
+    // `rentUnit` 不能省：单位闸门之后，缺单位的 rentMax/priceMax 不再是「valid
+    // filter」——解析层整段丢弃它，canonical 里自然也就没有。省掉单位再断言
+    // canonical 保留 priceMax，测的是闸门之前的行为。
     const response = await page.goto(
-      '/shanghai/listings?district=pudong&areaMin=100&page=3&rentMax=10&unknown=drop',
+      '/shanghai/listings?district=pudong&areaMin=100&page=3&rentUnit=rmb-sqm-day&rentMax=10&unknown=drop',
     )
     expect(response?.status()).toBe(200)
     await expectCanonical(
       page,
       routingEnabled
-        ? '/shanghai/listings?district=pudong&areaMin=100&priceMax=10&page=3'
-        : '/listings?district=pudong&areaMin=100&priceMax=10&page=3',
+        ? '/shanghai/listings?district=pudong&areaMin=100&priceMax=10&priceUnit=rmb-sqm-day&page=3'
+        : '/listings?district=pudong&areaMin=100&priceMax=10&priceUnit=rmb-sqm-day&page=3',
     )
   })
 })

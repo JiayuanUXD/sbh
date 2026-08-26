@@ -133,9 +133,16 @@ test.describe('F7.1 全链路 E2E', () => {
   })
 
   test('无结果状态', async ({ page }) => {
-    // 使用极其严苛的筛选条件确保无结果
+    // 使用极其严苛的筛选条件确保无结果。
+    //
+    // **区间必须带 priceUnit**：单位闸门之后，缺单位的 priceMin/priceMax 在解析层
+    // 整段丢弃（跨计价单位比大小无意义）。这条 URL 原本写的是
+    // `rentMin/rentMax/areaMin` 全塞 999999999，闸门上线后价格两项被丢、areaMin
+    // 又超出合法档位同样被丢，**一个收窄条件都不剩**——于是页面渲染的是空态①
+    // 「这一类还没有收录」而不是空态②，`.ls-emptyfiltered__title` 自然找不到。
+    // 那不是空态坏了，是这条 URL 不再产生它想测的场景。
     await page.goto(
-      '/listings?rentMin=999999999&rentMax=999999999&areaMin=999999999',
+      '/listings?priceUnit=rmb-sqm-day&priceMin=9999&priceMax=99999',
     )
     // OPT-036 Task 11：叠加了收窄条件却零结果 → 空态②（EmptyFiltered），
     // 它必须给出可操作的退路，而不只是一句「没有结果」。这里断言的正是那条
