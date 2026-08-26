@@ -319,6 +319,29 @@ function mapStructuredPrice(
   return createPrice(raw.amount, publicBusinessType(businessType), priceKeyOf(period, basis))
 }
 
+/**
+ * 解析一条 Listing 的价格视图：结构化价格优先，回落到过渡期旧字段。
+ *
+ * 单独导出，是为了让**不构造卡片**的调用方也能拿到同一份口径——`supply-adapter`
+ * 的价格区间精筛就是这样一个调用方（它持有原始 Listing 文档，不需要整张卡片）。
+ *
+ * 两种价格表示的归一只能有一处定义：`price.*` 结构化组是现行字段，`rent` +
+ * `rentUnit` 是过渡期保留的旧列（见 `Listings.ts` 里那段注释）。分成两份的后果是
+ * 「筛出来的」和「显示出来的」对同一条房源给出不同的金额或单位，且全程不报错。
+ */
+export function resolveListingPrice(raw: unknown): PriceViewModel | null {
+  if (!isObject(raw)) return null
+  const businessType = raw.businessType as Listing['businessType']
+  return (
+    mapStructuredPrice(raw.price, businessType) ??
+    mapPrice(
+      typeof raw.rent === 'number' ? raw.rent : null,
+      raw.rentUnit as Listing['rentUnit'],
+      businessType,
+    )
+  )
+}
+
 /** 把 Media 投影为 MediaViewModel；非媒体或无 url 返回 null */
 export function mapMedia(
   raw: unknown,
@@ -614,7 +637,7 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
     id: listing.id,
     slug: listing.slug,
     title: listing.title,
-    price: mapStructuredPrice(listing.price, listing.businessType) ?? mapPrice(listing.rent, listing.rentUnit, listing.businessType),
+    price: resolveListingPrice(listing),
     area: listing.area ?? null,
     floor: listing.floor ?? null,
     seats: listing.seats ?? null,

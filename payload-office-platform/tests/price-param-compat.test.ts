@@ -8,6 +8,10 @@
  * 守护不变量：
  *   - 旧参数仍可解析，语义与改名前一致
  *   - 新参数可解析
+ *
+ * 注意 `priceMin`/`priceMax` 一律带着 `priceUnit` 出现：缺单位的价格区间在解析层
+ * 就被整段丢弃（跨计价单位比 amount 无意义），那条闸门本身由
+ * `tests/listing-price-unit-gate.test.ts` 覆盖，此处只验改名的兼容性。
  *   - 新旧同时出现时新参数优先（canonical 才有唯一解）
  *   - canonical 只输出新名，绝不回吐旧名
  *   - 旧 URL 经解析 → canonical 往返后落到新名，且筛选语义不变
@@ -25,7 +29,7 @@ const canonical = (query: string) => buildCanonicalSearchParams(parse(query)).to
 
 describe('price-param/旧参数兼容', () => {
   it('rentMin / rentMax 仍可解析', () => {
-    const input = parse('rentMin=100&rentMax=500')
+    const input = parse('rentUnit=rmb-month&rentMin=100&rentMax=500')
     expect(input.priceMin).toBe(100)
     expect(input.priceMax).toBe(500)
   })
@@ -46,7 +50,7 @@ describe('price-param/旧参数兼容', () => {
 
 describe('price-param/新参数', () => {
   it('priceMin / priceMax 可解析', () => {
-    const input = parse('priceMin=100&priceMax=500')
+    const input = parse('priceUnit=rmb-month&priceMin=100&priceMax=500')
     expect(input.priceMin).toBe(100)
     expect(input.priceMax).toBe(500)
   })
@@ -64,7 +68,7 @@ describe('price-param/新参数', () => {
 
 describe('price-param/新旧同存', () => {
   it('新参数优先于旧参数', () => {
-    const input = parse('rentMin=100&priceMin=200')
+    const input = parse('priceUnit=rmb-month&rentMin=100&priceMin=200')
     expect(input.priceMin).toBe(200)
   })
 
@@ -75,7 +79,7 @@ describe('price-param/新旧同存', () => {
 
 describe('price-param/canonical 收敛', () => {
   it('canonical 只输出新名，不回吐 rentMin', () => {
-    const query = canonical('rentMin=100&rentMax=500')
+    const query = canonical('rentUnit=rmb-month&rentMin=100&rentMax=500')
     expect(query).toContain('priceMin=100')
     expect(query).toContain('priceMax=500')
     expect(query).not.toContain('rentMin')

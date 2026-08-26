@@ -42,6 +42,7 @@ import {
   type EffectiveSupplySnapshot,
 } from '@/domain/review/effective-supply'
 import type { Building, Listing, Location, Media, Page } from '@/payload-types'
+import { matchesPriceInput } from './helpers/fake-price-match'
 
 // ---------------------------------------------------------------------------
 // 共享常量与基线 fixture
@@ -324,9 +325,9 @@ function createFullPredicateAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
-    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
-    if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
+    // 价格（单位 + 区间）判据见 `./helpers/fake-price-match`：三份假适配器共用一处，
+    // 与生产实现 `supply-adapter.ts#filterByPrice` 同口径。
+    if (!matchesPriceInput(l, input)) return false
     if (input.q && !l.title.includes(input.q)) return false
     return true
   }

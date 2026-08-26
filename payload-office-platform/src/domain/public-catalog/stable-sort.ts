@@ -168,24 +168,26 @@ export function isSameRentUnit(cards: readonly ListingCardViewModel[]): boolean 
 }
 
 /**
- * 按价格排序时安全分组：仅保留与首个非空价格相同单位的卡片
+ * 按价格排序时安全分组：仅保留指定计价单位的卡片
  *
  * 注意：此函数不"丢弃"其他单位的卡片，而是返回同单位子集。
  * 调用方负责在 UI 上提示"价格排序仅显示同单位房源"或单独发起查询。
  *
- * MVP 策略：价格排序按钮仅在用户选定 rentUnit 后可点击；
+ * MVP 策略：价格排序按钮仅在用户选定 priceUnit 后可点击；
  * 未选定时 UI 应禁用按钮（见 search-params.ts normalizeSort）。
+ *
+ * `unit` 直接与 `displayUnit` 比对，**不经中间映射表**。这里曾经握着一张只列了
+ * 旧 `rentUnit` 那 3 个取值的表（`rmb-sqm-day` / `rmb-month` / `rmb-seat-month`），
+ * 是参数改名前的遗产；`PriceDisplayUnit` 有 12 个取值，其余 9 个查表得 `undefined`，
+ * 于是 `c.price?.displayUnit === undefined` 恒为 false，**整页被清空**——用户选了
+ * 「元/总价」再按价格排序，看到的是「一套都没有」，而库里明明有。表和枚举同义却
+ * 各写一份，多出来的那份迟早只覆盖一部分取值；两者本就同名同义，比对即可。
  */
 export function filterByRentUnit(
   cards: readonly ListingCardViewModel[],
   unit: string,
 ): ListingCardViewModel[] {
-  const displayUnit = {
-    'rmb-sqm-day': 'rmb-sqm-day',
-    'rmb-month': 'rmb-month',
-    'rmb-seat-month': 'rmb-seat-month',
-  }[unit]
-  return cards.filter((c) => c.price?.displayUnit === displayUnit)
+  return cards.filter((c) => c.price?.displayUnit === unit)
 }
 
 /** 仅保留完整价格 key 相同的卡片，供价格排序前收束。 */

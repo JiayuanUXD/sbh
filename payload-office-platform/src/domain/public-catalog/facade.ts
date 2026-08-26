@@ -1073,10 +1073,17 @@ export type ListingSearchDimension =
  * 同理适用于筛选条各行的候选计数（算「黄浦有多少套」时必须先剥掉当前已选的
  * 区域）和空态②的逐条退路命中数（算「放宽面积后有多少套」时剥掉面积）。
  *
- * 剥掉 `priceUnit` 时必须连带处理两件事，否则得到的是半剥离的错口径：
+ * 剥掉 `priceUnit` 时必须连带处理三件事，否则得到的是半剥离的错口径：
  *   1. `pricePeriod` / `priceBasis` 是 `priceUnit` 的派生投影，一起删；
  *   2. 价格排序（`price-asc`/`price-desc`）在缺 `priceUnit` 时不可比，
- *      与解析层 `normalizeSort` 同一口径降级为 `recommended`。
+ *      与解析层 `normalizeSort` 同一口径降级为 `recommended`；
+ *   3. 价格区间 `priceMin` / `priceMax` 同样跟着删——区间的量纲**就是**那个被剥掉的
+ *      单位。留着它得到的是一个违反 `ListingSearchInput` 声明约束的半成品输入
+ *      （区间无单位），而且语义上说不通：算「另有 N 套按元/月报价」时，用户那条
+ *      3~6 元/㎡/天 的区间套到元/月的金额上恒为空，提示条会重新退化成 0。
+ *      `supply-adapter#filterByPriceRange` 对缺单位的区间本就整段忽略，所以这一删
+ *      不改变任何计数；它消除的是「缓存键（canonical 已抑制区间）与 input（还带着
+ *      区间）不同构」这个静默错配。
  */
 export function omitListingSearchDimensions(
   input: ListingSearchInput,
@@ -1089,6 +1096,9 @@ export function omitListingSearchDimensions(
     delete next.priceUnit
     delete next.pricePeriod
     delete next.priceBasis
+    // 区间的量纲就是刚被剥掉的那个单位，跟着走（理由见上方注释第 3 条）。
+    delete next.priceMin
+    delete next.priceMax
   }
   if (drop.has('district')) delete next.district
   if (drop.has('businessArea')) delete next.businessArea

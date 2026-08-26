@@ -63,7 +63,9 @@ test('coming-soon list is 200 noindex with four CTAs and no Shanghai inventory U
 test('city switch preserves universal filters and clears geography and page', async ({ page }) => {
   // 依赖城市切换器与城市前缀路由，二者均以多城市路由开启为前提。
   test.skip(!routingEnabled, '多城市路由未开启')
-  await page.goto('/shanghai/listings?areaMin=100&rentMax=10&district=pudong&page=3')
+  // rentUnit 不能省：单位闸门之后，缺单位的 rentMax 在解析层整段丢弃，
+  // 切城后自然也带不过去（见 search-params.ts 的单位闸门）。
+  await page.goto('/shanghai/listings?areaMin=100&rentUnit=rmb-sqm-day&rentMax=10&district=pudong&page=3')
   const switcher = page.locator('.city-switcher')
   // 触发器有 aria-label="切换城市"（CitySwitcher.tsx:143），可访问名被它覆盖、不含城市名；
   // 城市名在子元素 .city-switcher__trigger-city 里。按 class 定位并单独断言当前城市。
@@ -74,8 +76,8 @@ test('city switch preserves universal filters and clears geography and page', as
   const menu = page.getByRole('menu', { name: '切换城市' })
   await expect(menu.getByRole('menuitem').first()).toBeFocused()
   await menu.getByRole('menuitem', { name: /杭州.*正在开通/ }).click()
-  // 输入用旧名 rentMax（已收录 URL 的形态），canonical 输出新名 priceMax
-  await expect(page).toHaveURL(/\/hangzhou\/listings\?areaMin=100&priceMax=10$/)
+  // 输入用旧名 rentUnit/rentMax（已收录 URL 的形态），canonical 输出新名 priceUnit/priceMax
+  await expect(page).toHaveURL(/\/hangzhou\/listings\?areaMin=100&priceMax=10&priceUnit=rmb-sqm-day$/)
 
   await page.goBack()
   await trigger.click()

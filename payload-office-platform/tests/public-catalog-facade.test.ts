@@ -37,6 +37,7 @@ import {
   type SupplyAdapter,
 } from '@/domain/public-catalog'
 import { createSearchContext, type ListingSearchInput } from '@/domain/public-catalog'
+import { matchesPriceInput } from './helpers/fake-price-match'
 import {
   BUILDING_DISABLED,
   BUILDING_JINGAN_CENTER,
@@ -97,9 +98,9 @@ function createFakeAdapter(options: {
     }
     if (input.areaMin != null && (l.area == null || l.area < input.areaMin)) return false
     if (input.areaMax != null && (l.area == null || l.area > input.areaMax)) return false
-    if (input.priceMin != null && (l.rent == null || l.rent < input.priceMin)) return false
-    if (input.priceMax != null && (l.rent == null || l.rent > input.priceMax)) return false
-    if (input.priceUnit && l.rentUnit !== input.priceUnit) return false
+    // 价格（单位 + 区间）判据见 `./helpers/fake-price-match`：三份假适配器共用一处，
+    // 与生产实现 `supply-adapter.ts#filterByPrice` 同口径。
+    if (!matchesPriceInput(l, input)) return false
     if (input.q && !l.title.includes(input.q)) return false
     if (input.district && input.district.length > 0) {
       if (!b || typeof b.district !== 'object' || !b.district) return false
@@ -260,6 +261,62 @@ function fullFixture(overrides: { districts?: readonly Location[]; businessAreas
   })
 }
 
+/**
+ * 一条「结构化价格已回填、旧列仍停在建表默认值」的房源——现行数据的常见形态。
+ *
+ * `rentUnit` 在 `Listings.ts` 里 `condition: () => false`（表单上不出现）且带
+ * `defaultValue: 'rmb-sqm-day'`，所以它既非空、又与实际报价单位无关。
+ */
+const LISTING_STRUCTURED_MONTHLY_STALE_LEGACY: Listing = {
+  ...LISTING_MONTHLY_STANDARD,
+  id: 1004,
+  slug: 'structured-monthly-stale-legacy',
+  title: '结构化定价·旧列漂移',
+  rent: null,
+  rentUnit: 'rmb-sqm-day',
+  price: { amount: 25_000, currency: 'CNY', period: 'month', unit: 'suite' },
+}
+
+/** 出售侧房源：单位落在 `LEGACY_RENT_UNIT_VALUES` 之外的 9 个取值里。 */
+function saleListing(
+  id: number,
+  amount: number,
+  unit: 'sqm' | 'suite' | 'seat',
+): Listing {
+  return {
+    ...LISTING_MONTHLY_STANDARD,
+    id,
+    slug: `sale-${id}`,
+    title: `出售房源 ${id}`,
+    businessType: 'sale',
+    rent: null,
+    rentUnit: null,
+    price: { amount, currency: 'CNY', period: 'one-time', unit },
+  }
+}
+
+function saleUnitFixture() {
+  return createFakeAdapter({
+    listings: [
+      saleListing(1005, 4_800_000, 'suite'), // rmb-total
+      saleListing(1006, 3_000_000, 'suite'), // rmb-total
+      saleListing(1007, 62_000, 'sqm'), // rmb-sqm-total
+    ],
+    buildings: [BUILDING_JINGAN_CENTER, BUILDING_PUDONG_FLAT, BUILDING_DISABLED],
+  })
+}
+
+function staleLegacyUnitFixture() {
+  return createFakeAdapter({
+    listings: [
+      LISTING_MONTHLY_STANDARD, // 旧列 rmb-month，无结构化价格
+      LISTING_DAILY_PER_SQM, // 旧列 rmb-sqm-day
+      LISTING_STRUCTURED_MONTHLY_STALE_LEGACY, // 结构化 rmb-month，旧列 rmb-sqm-day
+    ],
+    buildings: [BUILDING_JINGAN_CENTER, BUILDING_PUDONG_FLAT, BUILDING_DISABLED],
+  })
+}
+
 function defaultInput(overrides: Partial<ListingSearchInput> = {}): ListingSearchInput {
   return {
     ...parseSearchInput(new URLSearchParams('')),
@@ -328,6 +385,28 @@ describe('searchListings', () => {
     expect(r.filteredByRentUnit).toBe(false)
   })
 
+  // `filterByRentUnit` 原先握着一张只有 3 个取值的映射表（旧 rentUnit 参数的遗产），
+  // 非旧值单位查表得 undefined，于是 `c.price?.displayUnit === undefined` 恒为 false
+  // ——整页被清空。这条路径只在「选了非旧值单位 + 价格排序」时触发，页面表现为
+  // 「明明有房源、却说一套都没有」，且不报错。
+  it('price-asc 排序：非旧值单位（rmb-total）不再被清空整页', async () => {
+    const r = await searchListings(
+      defaultInput({ sort: 'price-asc', priceUnit: 'rmb-total', pricePeriod: 'one-time', priceBasis: 'total' }),
+      ctx,
+      saleUnitFixture(),
+    )
+    expect(r.docs.map((c) => c.id)).toEqual([1006, 1005])
+  })
+
+  it('price-asc 排序：非旧值单位下仍禁止跨单位混排', async () => {
+    const r = await searchListings(
+      defaultInput({ sort: 'price-asc', priceUnit: 'rmb-sqm-total', pricePeriod: 'one-time', priceBasis: 'sqm' }),
+      ctx,
+      saleUnitFixture(),
+    )
+    expect(r.docs.map((c) => c.id)).toEqual([1007])
+  })
+
   it('分页：pageSize=2 第 2 页返回剩余房源', async () => {
     const r1 = await searchListings(
       defaultInput({ page: 1, pageSize: 24 }).pageSize
@@ -364,7 +443,9 @@ describe('searchListings', () => {
 
   it('空结果时 docs 为空数组，totalDocs=0，filteredByRentUnit=false', async () => {
     const r = await searchListings(
-      defaultInput({ priceMin: 99999999 }),
+      // 带上 priceUnit：缺单位的价格区间整段不生效（跨单位比价无意义），
+      // 拿它构造空结果集会把这条用例变成「什么都没测」。
+      defaultInput({ priceUnit: 'rmb-month', priceMin: 99999999 }),
       ctx,
       fullFixture(),
     )
@@ -640,6 +721,37 @@ describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
     expect(units['rmb-sqm-day']).toBeUndefined()
   })
 
+  // 单位筛选改判结构化价格（`resolveListingPrice`）之后，这一组锁的是「facet 计数
+  // 与列表结果集出自同一口径」。缺口在于：`rent_unit` 是过渡期旧列且带
+  // `defaultValue: 'rmb-sqm-day'`，现行房源的单位写在结构化 `price.*` 里，两者
+  // 长期不同步。按旧列判会让一条**确实按元/月报价**的房源在选中「元/月」时消失，
+  // 同时又因为 facet 只统计非空价格的 `displayUnit`（= rmb-month），在「另有 N 套
+  // 按 X 报价」里也数不到它——列表里没有、提示条里也没有，静默蒸发。
+  it('结构化按元/月报价、rent_unit 停在 defaultValue 的房源计入 rmb-month', async () => {
+    const facets = await getSearchFacets(
+      defaultInput({ priceUnit: 'rmb-month', pricePeriod: 'month', priceBasis: 'total' }),
+      ctx,
+      staleLegacyUnitFixture(),
+    )
+    const units = Object.fromEntries(facets.rentUnits.map((f) => [f.value, f.count]))
+    expect(units['rmb-month']).toBe(2) // 1001（旧列）+ 1004（结构化，旧列漂移）
+    expect(facets.totalDocs).toBe(2)
+  })
+
+  it('ExcludedUnitsBar 的数据源（剥 priceUnit 的 facet）同样按结构化价格归类', async () => {
+    const facets = await getSearchFacetsIgnoring(
+      defaultInput({ priceUnit: 'rmb-sqm-day', pricePeriod: 'day', priceBasis: 'sqm' }),
+      ctx,
+      ['priceUnit'],
+      staleLegacyUnitFixture(),
+    )
+    const units = Object.fromEntries(facets.rentUnits.map((f) => [f.value, f.count]))
+    // 「另有 2 套按 元/月 报价」——1004 必须算进这个 2，否则它在列表里被筛掉、
+    // 在提示条里又不被提及，用户没有任何入口能找到它。
+    expect(units['rmb-month']).toBe(2)
+    expect(units['rmb-sqm-day']).toBe(1)
+  })
+
   it('剥掉 district 后其余区域计数不被自我擦除', async () => {
     const facets = await getSearchFacetsIgnoring(
       defaultInput({ district: ['pudong'] }),
@@ -650,12 +762,14 @@ describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
     expect(facets.districts.find((d) => d.slug === 'jingan')?.count).toBe(2)
   })
 
-  it('剥 priceUnit 连带剥派生字段并把价格排序降级为 recommended', () => {
+  it('剥 priceUnit 连带剥派生字段、价格区间，并把价格排序降级为 recommended', () => {
     const stripped = omitListingSearchDimensions(
       defaultInput({
         priceUnit: 'rmb-month',
         pricePeriod: 'month',
         priceBasis: 'total',
+        priceMin: 20000,
+        priceMax: 50000,
         sort: 'price-asc',
         district: ['jingan'],
       }),
@@ -664,10 +778,24 @@ describe('getSearchFacetsIgnoring（剥离维度后的 facet）', () => {
     expect(stripped.priceUnit).toBeUndefined()
     expect(stripped.pricePeriod).toBeUndefined()
     expect(stripped.priceBasis).toBeUndefined()
+    // 区间的量纲就是刚被剥掉的那个单位：留着它就是一个无单位区间的半成品输入
+    expect(stripped.priceMin).toBeUndefined()
+    expect(stripped.priceMax).toBeUndefined()
     // 跨单位价格不可比，与解析层 normalizeSort 同一口径
     expect(stripped.sort).toBe('recommended')
     // 未点名的维度原样保留
     expect(stripped.district).toEqual(['jingan'])
+  })
+
+  it('剥离结果永远满足「区间必带单位」：canonical 与 input 同构，缓存键不会错配', () => {
+    for (const dimensions of [['priceUnit'], ['price'], ['priceUnit', 'price'], ['district']] as const) {
+      const stripped = omitListingSearchDimensions(
+        defaultInput({ priceUnit: 'rmb-month', priceMin: 20000, priceMax: 50000, district: ['jingan'] }),
+        dimensions,
+      )
+      const hasRange = stripped.priceMin != null || stripped.priceMax != null
+      expect(hasRange && stripped.priceUnit == null, dimensions.join('+')).toBe(false)
+    }
   })
 
   it('price / area 是一个维度两个字段，必须整体剥离', () => {

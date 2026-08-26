@@ -133,10 +133,18 @@ test.describe('F7.1 全链路 E2E', () => {
   })
 
   test('无结果状态', async ({ page }) => {
-    // 使用极其严苛的筛选条件确保无结果
-    await page.goto(
-      '/listings?rentMin=999999999&rentMax=999999999&areaMin=999999999',
-    )
+    // 用一个必然零命中的关键词制造无结果。
+    //
+    // 这条 URL 原本写的是 `rentMin/rentMax/areaMin` 全塞 999999999。单位闸门上线后
+    // 价格两项因缺 priceUnit 被解析层整段丢弃，areaMin=999999999 又超出合法档位
+    // 同样被丢——**一个收窄条件都不剩**，于是渲染的是空态①「这一类还没有收录」
+    // 而不是空态②，`.ls-emptyfiltered__title` 自然找不到。不是空态坏了，是这条
+    // URL 不再产生它想测的场景。
+    //
+    // 换成 `q` 而不是「带单位的价格区间」：选了 priceUnit 会把页头文案切到
+    // 「共 N 套按 X 报价」那个分支，下面第三条断言的「共 0 套在租房源」就不存在了。
+    // `q` 是收窄维度（空态②成立）且不碰单位分叉，三条断言都保持原样。
+    await page.goto('/listings?q=zzzz-no-such-listing-xyz')
     // OPT-036 Task 11：叠加了收窄条件却零结果 → 空态②（EmptyFiltered），
     // 它必须给出可操作的退路，而不只是一句「没有结果」。这里断言的正是那条
     // 出口存在（「清除全部条件」永远可点，见 EmptyFiltered.tsx 顶部注释）。
