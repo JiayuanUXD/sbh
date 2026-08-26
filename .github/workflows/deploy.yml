@@ -1,10 +1,19 @@
-# 发布到 CloudBase CloudRun（手动触发）
+# 发布到 CloudBase CloudRun
 #
-# 触发：**只能手动**（workflow_dispatch）。master 合并不会触发任何部署。
-#       2026-08-18 的 6e3861b 移除了自动触发——它一律 promote=false，于是每次合并都
-#       构建一个 0% 流量、永远没人用的 GRAY 版本，白烧约 8 分钟平台构建和一个版本号。
-#       勾 promote 才切流量；不勾只出 GRAY 版本。
-#       tests/production-deploy-config.test.ts 锁住了这一条。
+# 触发：quality.yml 在 master 上**整体成功**后自动接力，并且直接全量切流
+#       （SHOULD_PROMOTE 恒为 true）。合并到 master 即上线。
+#
+#       这条链路变过两次，别把中间那一版的理由套到现在：
+#       - 2026-08-18 `6e3861b` 砍掉自动触发，因为当时自动触发一律 promote=false，
+#         每次合并都构建一个 0% 流量、永远没人用的 GRAY 版本，白烧约 8 分钟平台
+#         构建和一个版本号，真发布时同一个 commit 还要再构建一遍（sbh-096 就是
+#         这么一个「为没人用而构建」的版本，且它在镜像推送阶段挂掉）。
+#       - 2026-08-26 改回自动，但**带 promote**。上一版的浪费来自「构建了却不用」，
+#         不是来自「自动」；每次构建都真的上线，那笔浪费就不存在了。
+#
+#       workflow_dispatch 保留，用途是重发某个历史 ref、或临时只出 GRAY 版本
+#       （不勾 promote）。它不再是唯一入口。
+#       tests/production-deploy-config.test.ts 锁住了以上每一条。
 #
 # 两段式（OPT-016）：
 #   quality  - 在 CI runner 上跑 lint/typecheck/test/build/迁移预检，作为发布质量门。
@@ -48,16 +57,15 @@ name: Deploy to CloudBase CloudRun
 #
 # 注意：quality.yml 的 paths 里必须包含本文件，否则只改 deploy.yml 时上游不触发、
 # 部署链路会静默失联。
-# 只能手动触发。
+# 由 quality.yml 在 master 上跑完且整体成功后接力，直接全量切流。
 #
-# 曾经由 quality.yml 的 workflow_run 自动触发，但自动触发一律 promote=false，于是每次
-# 合并 master 都构建一个 GRAY 版本、0% 流量、**然后永远没人用**——白烧约 8 分钟平台构建，
-# 还消耗一个 CloudRun 版本号。真要发布时还得再手动触发一次，同一个 commit 构建两遍。
-# sbh-096 就是这么来的：一个为了没人用而构建的版本，在镜像推送阶段挂掉。
-#
-# 现在合并 master 只跑 quality.yml；发布是显式动作，来这里手动触发并勾选 promote。
-# 代价：失去「master 上能不能构建成功」的常态信号，改由真正发布那次给出。
+# types: [completed] 意味着上游失败/取消时同样会触发本工作流，所以 job 层必须自己判
+# conclusion —— 见下面 deploy.if。少了那一条，闸门红着也会照样发布。
 on:
+  workflow_run:
+    workflows: ['Quality and migration baseline']
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
     inputs:
       promote:
@@ -74,8 +82,13 @@ concurrency:
 jobs:
   # ---------- 部署：灰度 -> 冒烟 -> 全量/回滚 ----------
   # 质量门不在本文件里：lint / typecheck / test / build / 迁移预检 / e2e 全部由
-  # quality.yml 覆盖。本工作流手动触发，触发前请确认目标提交已过闸门。
+  # quality.yml 覆盖，本工作流只在它整体成功后才被触发（见顶部 on.workflow_run）。
   deploy:
+    # workflow_run 在上游失败/取消时同样会触发（types: [completed]），必须自行判定结论；
+    # 手动 workflow_dispatch 走人工确认，不受此限。
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -84,18 +97,23 @@ jobs:
       CLOUDBASE_CI: '1'
       # 是否把流量切到新版本。
       #
-      # 默认 false：不勾选就只构建并提交 GRAY 版本（0% 流量），线上继续由当前稳定版本
-      # 承接，可以单独验证新版本而不影响任何用户。勾选后才走灰度 -> 冒烟 -> 全量。
+      # 自动路径（workflow_run，即合并到 master）**恒为 true**：闸门已整体通过，
+      # 构建出来就是要上线的。这正是 2026-08-26 改回自动的前提——上一版的浪费来自
+      # 「构建了却 0% 流量、永远没人用」，把 promote 一起打开，那笔浪费才真的消失。
+      # 若改成自动但不 promote，等于把 6e3861b 修掉的问题原样搬回来。
       #
-      # 不勾选仍然会构建一个版本，所以别拿它当「空跑」——只在确实要预置版本时用。
-      SHOULD_PROMOTE: ${{ github.event_name == 'workflow_dispatch' && inputs.promote }}
+      # 手动路径仍看勾选：不勾就只构建并提交 GRAY 版本（0% 流量），线上继续由当前
+      # 稳定版本承接，用于重发历史 ref 或预置版本单独验证。
+      # 注意不勾选**仍然会构建**一个版本，别拿它当「空跑」。
+      SHOULD_PROMOTE: ${{ github.event_name == 'workflow_run' || inputs.promote }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # 显式钉到触发时选定的 ref：下面的 `git archive HEAD` 直接决定发布内容，
-          # 不能依赖 checkout 的隐式默认。
-          ref: ${{ github.ref }}
+          # workflow_run 触发时 checkout 默认取默认分支最新提交，而不是触发它的那个
+          # commit —— 若期间又推了一次 master，部署的就不是刚过闸门的代码。下面的
+          # `git archive HEAD` 直接决定发布内容，因此必须显式钉到上游 run 的 head_sha。
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4

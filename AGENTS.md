@@ -17,7 +17,7 @@
 
 即使你只读了本文件，以下四条也不能违反。**前三条已由 `.githooks/` 机器强制**（`cd payload-office-platform && pnpm setup:hooks` 启用），违反时提交/推送会直接失败；禁止用 `--no-verify` 绕过，逃生舱环境变量需先获得用户确认。
 
-- **不在 `master` 上直接写代码**（合并即进入发布候选；发布本身是手动触发的显式动作，见 `CLAUDE.md`）。先从最新 `origin/master` 开分支，命名为 `<类型>/<kebab 描述>-<4~8位随机hex>`（如 `feat/opt-022-dashboard-perf-a3f1`）；可用 `cd payload-office-platform && pnpm branch:new feat <描述>` 自动生成。
+- **不在 `master` 上直接写代码**（合并到 `master` 会在闸门通过后自动全量上线，没准备好就别合，见 `CLAUDE.md`）。先从最新 `origin/master` 开分支，命名为 `<类型>/<kebab 描述>-<4~8位随机hex>`（如 `feat/opt-022-dashboard-perf-a3f1`）；可用 `cd payload-office-platform && pnpm branch:new feat <描述>` 自动生成。
 - **提交只用显式 `git add <具体路径>`**，禁用 `git add -A` / `git add .` / `git commit -am`；仓库里有用户有意搁置的删除（`payload-office-platform/public/prd/*.md`），别恢复也别提交它们。
 - **数据库只走显式迁移**（`push: false`），改 collection 后用 `payload migrate:create` 生成迁移，**迁移文件正文绝不可手改**。
 - **未经用户确认不得提交、推送、创建 PR、部署或执行破坏性迁移。**

@@ -7,7 +7,7 @@
 商办租赁平台（对标 executivecentre.com.cn / shangban.58.com / soolou.com/sh）。单体仓库：
 
 - `payload-office-platform/` — 应用本体（Next.js 16 + Payload 3.86 单体）。含 C 端公开站 `(frontend)`、后台 `(payload)/admin`、API。详见 `payload-office-platform/CLAUDE.md`。
-- `.github/workflows/` — `deploy.yml`（**只能手动触发**发布到 CloudRun，见下）、`quality.yml`（PR 质量闸门）。
+- `.github/workflows/` — `deploy.yml`（发布到 CloudRun，由 `quality.yml` 在 master 上成功后自动接力并全量切流，见下）、`quality.yml`（质量闸门）。
 - `specs/work-items/` — 工作项（`OPT-0xx-*.md`），即 Agent 文档里说的 Task Packet。
 - `artifacts/verification/` — 验证证据目录（按工作项编号分目录）。长日志、截图存这里，别粘进对话或 PR 正文。
 - `docs/geography-code-convention.md` — 七城地理数据 `immutableCode` / `slug` 的唯一权威命名规范。改地理数据前必读。
@@ -44,7 +44,7 @@
 
 ## 分支模型
 
-- **不要在 `master` 上直接写代码**——先开分支。（`master` 本身不触发部署，见下面「发布是显式动作」。）
+- **不要在 `master` 上直接写代码**——先开分支。（合并到 `master` 会直接上线，见下面「合并到 master 即上线」。）
 - **永远从最新 master 开分支**，别基于旧基线（真实教训：`opt` / `codex` 基于旧提交，与 master 分叉后合并才发现惊喜）。
 - 历史实施计划 / PRD 已移除，**以代码为唯一事实源**（collection 配置、`src/domain`、`src/lib/frontend`、`src/migrations`、测试）。
 
@@ -67,27 +67,34 @@ cd payload-office-platform && pnpm branch:new feat multi city search
 
 例：`feat/opt-022-dashboard-perf-a3f1`、`fix/header-cta-portal-7b2c`、`ci/deploy-follow-redirect-1d4e`。
 
-## 发布是显式动作（别以为合并就上线了）
+## 合并到 master 即上线（别把 PR 当草稿箱）
 
-**`master` 不触发任何部署。** `deploy.yml` 的 `on:` 里只有 `workflow_dispatch`：
+**闸门通过后自动全量切流。** `quality.yml` 在 `master` 上整体成功 → `deploy.yml`
+经 `workflow_run` 接力 → 直接 promote：
 
 | 怎么做 | 结果 |
 |---|---|
-| 合并到 `master` | **什么都不发生** |
-| 手动触发、`promote` 不勾 | 出一个 GRAY 版本，0% 流量，线上不变 |
-| 手动触发、`promote` 勾上 | 构建 → 10% 灰度 → 冒烟 → 全量切流（失败 rollback） |
+| 合并到 `master`（改动命中 `quality.yml` 的 paths） | 构建 → 10% 灰度 → 冒烟 → **全量切流**（失败 rollback） |
+| 合并到 `master`（只动 `specs/`、根级 md 等 paths 外文件） | 闸门不跑，因此不部署 |
+| `workflow_dispatch`、`promote` 勾上 | 同上，用于重发某个历史 ref |
+| `workflow_dispatch`、`promote` 不勾 | 只出 GRAY 版本，0% 流量，线上不变 |
 
 ```bash
 gh workflow run deploy.yml -f promote=true --ref master
 ```
 
-自动触发于 2026-08-18 被移除（`6e3861b`）：它一律 `promote=false`，每次合并都白造
-一个没人用的 0% 流量版本。理由与代价见 `DEPLOYMENT.md`。
+推论：**没准备好上线的东西就别合**。想先合着攒一批再发，这条链路不支持——
+要么留在分支，要么接受它进生产。闸门红了不会发（job 自己判 `workflow_run.conclusion`）。
 
-> 这几行长期是错的（写着「push master 自动部署」），直到 2026-08-25 才发现——
-> 期间它误导过判断。**改发布链路时，`CLAUDE.md`、`AGENTS.md`、`DEPLOYMENT.md`
+> 沿革：2026-08-18 `6e3861b` 曾把触发改成手动，因为当时自动触发一律 `promote=false`，
+> 每次合并白造一个 0% 流量、没人用的版本；2026-08-26 改回自动**并带 promote**——
+> 浪费来自「构建了却不用」，不是来自「自动」。
+>
+> 这几行有过前科：2026-08-18 改了 workflow 没改文档，四处文档错了七天，
+> 期间误导过判断。**改发布链路时，`CLAUDE.md`、`AGENTS.md`、`DEPLOYMENT.md`
 > 与 `deploy.yml` 头部注释要一起改**；`tests/production-deploy-config.test.ts`
-> 已加守卫，四处任一再声称「push 即部署」就会红。
+> 已加守卫（2026-08-26 随触发方式反向重写），四处任一再声称「只能手动 /
+> 合并什么都不发生」就会红。
 
 ## CloudBase 部署事实
 

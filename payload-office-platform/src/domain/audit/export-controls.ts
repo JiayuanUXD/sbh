@@ -71,7 +71,7 @@ export function overrideExportsCollection({
   }
 }
 
-/** 覆盖插件生成的 imports 集合：退出默认导航，同时保留插件全部既有配置。 */
+/** 覆盖插件生成的 imports 集合：退出后台导航，同时保留插件全部既有配置。 */
 export function overrideImportsCollection({
   collection,
 }: {

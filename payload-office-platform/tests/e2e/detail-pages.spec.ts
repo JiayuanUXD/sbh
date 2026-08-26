@@ -4,9 +4,18 @@ const LISTING_SLUG = 'jingan-serviced-office-42-seats'
 const PRICE_ON_REQUEST_SLUG = 'jingan-price-on-request-300sqm'
 const PUBLISHED_INEFFECTIVE_SLUG = 'jingan-published-pending-recheck'
 const ROUTING_ENABLED = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
+// 1024 与 1180 不是凑数：详情页两栏（主栏 + `--dt-side` 372 + 列间 32）总宽
+// 1180，而 `.dt-container` 是 min(--dt-w, 100% - 32px)。视口 < 1212 时容器已
+// 比 1180 窄，定宽轨道却不缩 → 横向溢出。区间是 1024–1195：1023 及以下塌单列
+// 幸免，1212 及以上容器拿满幸免，**恰好整段落在原有 768/1440 两档之间**，
+// 所以下面那条 scrollWidth <= clientWidth 断言存在归存在，从没在会红的宽度上
+// 跑过。1024 取区间最左（曾溢出 172px），1180 取接近右端（曾溢出 16px，
+// 用来钉住「差一点点」的回归）。删这两档等于把守卫关掉。
 const DETAIL_VIEWPORTS = [
   { width: 375, height: 812 },
   { width: 768, height: 1024 },
+  { width: 1024, height: 768 },
+  { width: 1180, height: 900 },
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ] as const
