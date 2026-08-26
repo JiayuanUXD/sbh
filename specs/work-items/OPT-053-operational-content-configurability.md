@@ -43,8 +43,10 @@
 | 位置 | 内容 |
 |---|---|
 | `SiteHeader.tsx:32` | 文字标识 `商办租赁`（无图片 logo） |
+| `SiteFooter.tsx:35` | 页脚文字标识 `商办租赁`（与 Header 各写一份） |
+| `SiteFooter.tsx:37` | `聚合**上海**甲级写字楼…` ← **见 §2.4，这是 bug** |
 | `SiteFooter.tsx:59` | `© {year} 商办租赁平台` |
-| `SiteFooter.tsx:60` | `上海 · 商务办公租赁` ← **见 §2.4，这是 bug** |
+| `SiteFooter.tsx:60` | `**上海** · 商务办公租赁` ← **见 §2.4，同一个 bug 的第二处** |
 | `HeroSummaryPanel.tsx:99` | `页面价格为公开挂牌价，实际价格以顾问报价为准` |
 | `DetailGallery.tsx:363,371` | `示意图，以现场实际情况为准`（两处） |
 | `HomeValueProps.tsx:7` | `VALUES` 三条价值主张 |
@@ -62,10 +64,18 @@
 于是也没有动力去填。`ComingSoonCityView.tsx:42` 的注释直陈
 「本地库 7 个 profile 全空」。
 
-### 2.4 顺带捞到的 bug：页脚城市名写死
+### 2.4 顺带捞到的 bug：页脚写死「上海」——**两处，不是一处**
 
-`SiteFooter.tsx:60` 是字面量 `上海 · 商务办公租赁`。这是**七城平台**——
-访问 `/beijing`、`/shenzhen`，页脚照样说「上海」。
+| 行 | 内容 |
+|---|---|
+| `SiteFooter.tsx:37` | `聚合上海甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。` |
+| `SiteFooter.tsx:60` | `上海 · 商务办公租赁` |
+
+这是**七城平台**——访问 `/beijing`、`/shenzhen`，页脚两处照样说「上海」。
+
+> 本节初稿只列了第 60 行。**只修底栏不闭环**：品牌区那句在页脚上方、字号更大、
+> 更像正式声明，非上海城市的用户先看到的是它。两处必须一起修，否则「修好了」
+> 的结论本身是错的。
 
 这不是「不可配置」，是错的。本工作项一并修掉。
 
@@ -121,6 +131,8 @@ Hero 背景媒体要**拆成图片与视频两个独立配置项**，取代现�
 6. 「按类型浏览」五卡文案可配（`type` 枚举保持代码绑定）
 7. 图片 logo（用户明确要求本轮做）
 8. **Hero 背景图与背景视频拆成两个独立配置项**（§4.5），修掉 §2.5 的互斥逻辑
+9. **把 `site-settings` 收编进自定义后台导航**（`navigation-config.ts`）——
+   见 §4.7。不做这一步，运营根本找不到入口
 
 ### 3.2 本轮明确不做
 
@@ -137,6 +149,9 @@ Hero 背景媒体要**拆成图片与视频两个独立配置项**，取代现�
 ---
 
 ## 4. 数据模型：`src/globals/SiteSettings.ts`
+
+> ⚠️ **不要整份照抄 `AdvisorServiceHours` 的 `access`**——它只声明了 `read`，
+> 而那是个**活着的越权缺陷**，不是可以效仿的范例。详见 §4.6。
 
 slug `site-settings`。四个**展示型 tab**（品牌 / 合规 / 页脚 / 首页区块；
 展示型 tab 不产生嵌套表，仍是单张 `site_settings` 表，`array` 字段除外——
@@ -169,22 +184,37 @@ slug `site-settings`。四个**展示型 tab**（品牌 / 合规 / 页脚 / 首�
 
 ### 4.3 页脚 tab
 
-| 字段 | `defaultValue` | 渲染 |
-|---|---|---|
-| `copyrightHolder` | `商办租赁平台` | `© {year} {copyrightHolder}` |
-| `footerTaglineSuffix` | `商务办公租赁` | `{当前城市名} · {suffix}` ← **修掉 §2.4** |
+| 字段 | `defaultValue` | 渲染 | 修掉 |
+|---|---|---|---|
+| `copyrightHolder` | `商办租赁平台` | `© {year} {copyrightHolder}` | — |
+| `footerTaglineSuffix` | `商务办公租赁` | `{当前城市名} · {suffix}` | `SiteFooter.tsx:60` |
+| `footerBrandBlurb` | `聚合{城市}甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。` | 文案里的 `{城市}` 由路由上下文替换 | `SiteFooter.tsx:37` |
 
 城市名取自路由上下文（`CityContext`），不是配置项——它本来就该跟着路由走。
+`footerBrandBlurb` 用 `{城市}` 占位符而不是让运营手写城市名，正是为了防止
+本次这个 bug 以「运营在配置里又写死一次上海」的形式复发。
+
+页脚的文字标识（`SiteFooter.tsx:35`）与 Header 共用 §4.1 的 `siteName` / `logo`，
+不单独设字段——它们各写一份正是当前两处不一致的来源。
 
 ### 4.4 首页区块 tab（§3.1 第 6 项）
 
 | 字段 | 类型 | 约束 |
 |---|---|---|
 | `valueProps` | array（`no` / `name` / `body`） | 默认值取 `HomeValueProps.tsx:7` 的三条 |
-| `typeCards` | array（`label` / `sublabel` / `visible` / 顺序） | **`type` 与 `href` 不开放**——它们绑定 `Listings.listingType` 枚举，运营改了就是死链或空结果 |
+| `typeCards` | array（`slot` / `label` / `sublabel` / `visible` / 顺序） | **`href` 不开放**，`slot` 只读——见下 |
 
-`typeCards` 的每一项以固定 `type` 为主键（代码侧定义五个槽位），
-运营只能改它的展示文案与显隐。**新增槽位需要发版**，这是有意的。
+**`slot` 必须真的存进每一行，且只读。** 五个槽位（`traditional-office` /
+`coworking` / `full-floor` / `serviced-office` / `creative-park`）在代码侧定义，
+数组行里持久化它作为主键。
+
+初稿写的是「以固定 `type` 为主键（代码侧定义五个槽位）」，但字段表里
+**没有这个键**——那样只能按数组下标绑定 href/type。运营一拖拽调序，
+文案就跟另一个房源类型对上了：「联合办公」这张卡链到传统办公。
+**这类错误页面上完全看不出来**，标题和副标题都是对的，只有链接是错的。
+
+服务端校验：`slot` 值必须落在五个已知槽位内，且不可重复。
+运营只能改展示文案、显隐与顺序。**新增槽位需要发版**，这是有意的。
 
 ### 4.5 Hero 背景媒体：图与视频解耦
 
@@ -218,19 +248,94 @@ slug `site-settings`。四个**展示型 tab**（品牌 / 合规 / 页脚 / 首�
 > `filterOptions` 限制媒体类型是本节最容易被漏掉的一条。不加，
 > §2.5 的破图会以另一种形式复发（运营在「Hero 背景图」里选视频）。
 
+### 4.6 访问控制：`access.update` 必须显式声明
+
+**缺 `access.update` 不是「没配」，是「配成了任何登录用户都能改」。**
+
+`payload@3.86.0` 的 `dist/globals/config/sanitize.js:36-37`：
+
+```js
+if (!global.access.update) {
+    global.access.update = defaultAccess;   // = ({ req: { user } }) => Boolean(user)
+}
+```
+
+于是任何已登录账号（BRK 经纪人、CSR 客服等低权限角色）都能直接
+`PATCH /api/globals/site-settings`，改掉全站 logo、品牌文案与合规声明。
+后台菜单里看不见入口**不构成防护**——那只是 UI，API 照样开着。
+
+本 Global 必须显式声明：
+
+```ts
+access: {
+  read: () => true,          // 前台公开消费
+  update: <绑定权限码>,       // 不能省
+}
+```
+
+权限码沿用 `ListingReports` / `LocationAliases` 的既有口径（`OPT-051` 也是这么
+收口的）。具体取哪个码在实施时定，但**不能缺省**。
+
+**测试必须绕过后台 UI 直接打 API**：用各角色的凭据 `PATCH` 该 Global，
+断言非授权角色收到 403。只测「菜单里看不到」是测了个寂寞。
+
+> **顺带发现一个线上缺陷（不属本工作项）**：`AdvisorServiceHours` 同样只声明了
+> `read`，它的注释却写着「后台读写限管理员」——**那句话现在是假的**，任何登录
+> 用户都能改平台服务时段。与 `OPT-051`（`Listings`/`Buildings` 缺 `delete`）
+> 是同一族缺陷。已另开 `OPT-055` 追。
+
+### 4.7 后台入口：必须加导航 leaf
+
+**创建 Global 不等于运营能找到它。**
+
+本仓库的 `custom.scss` 隐藏了 Payload 原生导航（`OPT-049` 的遗留，选择器已修），
+所有入口走自定义导航 `src/domain/admin-navigation/navigation-config.ts`。
+`AdvisorServiceHours` 之所以可发现，是因为那里有一条显式 leaf：
+
+```ts
+// navigation-config.ts:157
+leaf('advisor-service-hours', '顾问服务时间', '/admin/globals/advisor-service-hours', [...])
+```
+
+不给 `site-settings` 加对应 leaf，运营只能靠猜 URL 直敲——
+**本工作项提供的配置入口实际上不可发现**，等于白做。
+
+leaf 需带 `menuCodes` 与 `requiredOperationCode`，与 §4.6 的 `access.update`
+权限码保持一致：**菜单看得见的人，和 API 改得动的人，必须是同一批。**
+
+> `OPT-045 D4` 的教训（`navigation-config.ts:76` 那段注释）：未被自定义导航收编的
+> 集合会被兜底渲染到后台左下角那个「挤成一团」的区块。Global 连那个兜底都没有，
+> 漏收编就是彻底看不见。
+
 ---
 
 ## 5. 读取链路与缓存
 
 logo 与页脚出现在**每一个页面**上，这是整个设计最容易出事的地方。
 
-### 5.1 单次读取
+### 5.1 单次读取：共享缓存读取器，**不是 layout props**
 
-在 `(frontend)/layout.tsx` 层读一次，经 props 下发。
-**绝不允许各组件自行 `findGlobal`**——那是每页 N 次 DB 往返。
+> 本节初稿写的是「在 layout 层读一次，经 props 下发」。**那是错的，而且错得
+> 正好会重现本工作项要修的病**——见下。
 
-复用 `src/lib/frontend/cached-queries.ts` 的既有模式，与
-`service-schedule.ts:46`（现有的 `findGlobal` 消费点）保持一致口径。
+`(frontend)/layout.tsx` 只能给它**直接渲染**的组件传 props，也就是
+`SiteHeader` / `SiteFooter`。页面组件是以不透明的 `{children}` 传进来的，
+layout 无法给它们注入任何东西。而本工作项的消费方大半在 `children` 里：
+`HomeHero`、`HomeValueProps`、`HomeTypeCards`、详情页的合规声明。
+
+按 props 方案实施，结果是 Header/Footer 生效、首页与详情页不生效——
+**又一次「后台配了前台不生效」**。
+
+正确的边界是**共享缓存读取器**，与 `getCachedHomepage` 同一模式：
+
+- `src/lib/frontend/cached-queries.ts` 导出 `getCachedSiteSettings()`；
+- **各路由编排层自行调用**它（首页 `page.tsx`、详情页 `page.tsx`、
+  `layout.tsx` 各调各的），再把结果传给自己那棵子树；
+- 同一请求内多次调用由缓存去重，不产生额外 DB 往返。
+
+判据：**任何消费方都能拿到它，而不依赖谁是谁的父组件。**
+
+口径与 `service-schedule.ts:46`（现有的 `findGlobal` 消费点）保持一致。
 
 ### 5.2 三层兜底
 
@@ -368,13 +473,16 @@ helper 未提交**，且本工作项要改的 `SiteHeader.tsx` / `SiteFooter.tsx
 | 守卫 | 防的是什么 |
 |---|---|
 | 三层兜底逐层断言（Global 空 / 字段默认 / 组件常量） | 迁移前渲染崩溃 |
-| 页脚城市名随路由变化（至少验两个城市） | §2.4 的 bug 复发 |
 | `featuredRegions` 为空时回落到原排序 | 空货架 |
 | `typeCards` 的 `type` 不可被配置覆盖 | 运营改出死链 |
 | `CitySiteProfiles` Hero 文案字段仍只作用于未开城页 | 方案 a 被后续改动悄悄推翻 |
 | **配了 `heroMedia` 后视频仍然渲染** | §2.5 的互斥逻辑复发——这是本轮最容易回退的一条 |
 | **`heroVideoEnabled=false` 时视频不渲染，且背景图仍在** | 新开关把图一起关掉 |
 | **`heroMedia` / `heroVideo` 的 `filterOptions` 拒绝错误媒体类型** | 破图复发 |
+| **各角色直接 `PATCH /api/globals/site-settings`，非授权角色收 403** | §4.6 的越权。**必须绕过后台 UI 打 API**——只测「菜单里看不到」是测了个寂寞 |
+| **`site-settings` 在 `navigation-config` 里有 leaf，且权限码与 `access.update` 一致** | §4.7 的不可发现，以及「菜单看得见但改不动」的错配 |
+| **`typeCards` 调序后 `slot` 与文案仍然对应** | §4.4 的下标绑定错位——页面上看不出来，只有链接是错的 |
+| **页脚两处城市名随路由变化**（`SiteFooter.tsx:37` 与 `:60`） | §2.4 只修一处的假闭环 |
 
 浏览器验收：改一次 logo / slogan / 商圈，确认前台生效，
 证据存 `artifacts/verification/OPT-053/`。
