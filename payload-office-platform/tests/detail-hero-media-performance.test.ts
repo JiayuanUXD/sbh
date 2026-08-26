@@ -45,11 +45,24 @@ describe('OPT-028 detail caching and hero media contracts', () => {
     ])
 
     expect(homePage).toContain('<CityHomeView')
-    expect(homeHero).toContain('<HomeHeroMedia poster={routeMode === \'prefixed\' ? city.profile.hero.media : null} />')
+    // OPT-053：背景图与背景视频拆成两个独立入参，不再互斥。
+    // 断言三个 prop 都从 profile 取，而不是回到「配了图就没视频」的老形态。
+    expect(homeHero).toContain("poster={routeMode === 'prefixed' ? city.profile.hero.media : null}")
+    expect(homeHero).toContain("video={routeMode === 'prefixed' ? city.profile.hero.video : null}")
+    expect(homeHero).toContain('videoEnabled={')
     expect(homePage).not.toContain('<video autoPlay')
     // poster 走 next 构建产物而非 public/（平台在线构建曾剥离 public 二进制致 404）
     expect(heroVideo).toContain("from '@/lib/frontend/hero-poster'")
-    expect(heroVideo).toContain('poster={HERO_POSTER_SRC}')
+    // 视频 poster 与 <img> 同源；HERO_POSTER_SRC 仍是两者共同的最终兜底
+    expect(heroVideo).toContain('HERO_POSTER_SRC')
+    // OPT-053 守卫：`!poster &&` 是图/视频互斥的原形态，回来就是缺陷复发——
+    // 运营配一张背景图，实际效果变成「动态视频背景消失」。
+    // 只看代码不看注释：文件头注释里正是拿这个片段说明历史成因的
+    // （同一手法见 frontend-shell-hydration.test.ts 的 stripComments）。
+    const heroVideoCode = heroVideo
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+    expect(heroVideoCode).not.toContain('!poster &&')
     expect(heroVideo).not.toContain('/hero/poster.jpg')
     expect(heroVideo).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
     expect(heroVideo).toContain("matchMedia('(max-width: 767px)')")

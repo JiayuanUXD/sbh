@@ -11,6 +11,7 @@ import HomeNewsList from '@/components/frontend/home/HomeNewsList'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { HomepageStats } from '@/domain/public-catalog/contracts'
 import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
+import type { SiteSettingsView } from '@/lib/frontend/site-settings'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
 
@@ -29,25 +30,39 @@ type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
  *     任何落地页，根页 `/` 传平台汇总、城市页传本城 stats。这是唯一允许发散的地方。
  * 回归用例见 `tests/city-home-view.test.ts`。
  */
-export default function CityHomeView({ city, homepage, routeMode, bandStats }: Readonly<{
+export default function CityHomeView({ city, homepage, routeMode, bandStats, siteSettings }: Readonly<{
   city: CityContext
   homepage: Homepage
   routeMode: 'legacy' | 'prefixed'
   /** 数据带口径：根页为跨城汇总，城市页为本城 stats。**不驱动任何 section 链接数字。** */
   bandStats: HomepageStats
+  /**
+   * 站点设置（OPT-053）。**由路由层调 `getCachedSiteSettings()` 取好传入。**
+   *
+   * 本组件刻意保持同步的纯编排层：取数放这里会把数据获取塞进展示层，
+   * 也会让「九个 section 的编排顺序」这类断言被迫改成异步渲染。
+   * 需要它的下游（Hero 文案、价值主张、类型卡）从这里分发。
+   */
+  siteSettings: SiteSettingsView
 }>) {
   const citySlug = routeMode === 'prefixed' ? city.slug : undefined
   // section 链接数字统一取单城口径，与链接落点保持一致
   const linkStats = homepage.stats
   return (
     <div className="hm-home">
-      <HomeHero city={city} districts={homepage.districts} routeMode={routeMode} />
-      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} />
+      <HomeHero
+        city={city}
+        districts={homepage.districts}
+        routeMode={routeMode}
+        heading={siteSettings.heroHeading}
+        slogan={siteSettings.slogan}
+      />
+      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={siteSettings.typeCards} />
       <HomeDistrictBento cards={homepage.districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
       <HomeBuildingsRail buildings={homepage.featuredBuildings} citySlug={citySlug} totalCount={linkStats.buildings} />
       <HomeStatsBand stats={bandStats} avgResponseHours={city.profile.avgResponseHours} />
       <HomeListingsRail listings={homepage.featuredListings} citySlug={citySlug} totalCount={linkStats.listings} />
-      <HomeValueProps />
+      <HomeValueProps items={siteSettings.valueProps} />
       <HomeNearbyRail listings={homepage.nearbyListings} cityName={city.name} citySlug={citySlug} />
       <HomeNewsList articles={homepage.latestArticles} citySlug={citySlug} />
     </div>

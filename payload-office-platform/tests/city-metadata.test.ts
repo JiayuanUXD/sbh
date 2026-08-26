@@ -27,7 +27,7 @@ function city(
       avgResponseHours: null,
       seoTitle: `${name}办公租赁`,
       seoDescription: `${name}办公租赁与选址服务。`,
-      hero: { eyebrow: '', heading: '', body: '', media: null },
+      hero: { eyebrow: '', heading: '', body: '', media: null, video: null, videoEnabled: true },
       intro: { heading: '', body: '' },
       contact: { heading: '', body: '' },
       featuredRegions: [],

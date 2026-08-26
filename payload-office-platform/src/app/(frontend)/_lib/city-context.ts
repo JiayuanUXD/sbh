@@ -94,6 +94,18 @@ function mapHeroMedia(value: unknown): MappingResult<PublicCitySiteProfile['hero
 }
 
 /**
+ * 背景视频（`CitySiteProfiles.heroVideo`）→ DTO 的 `hero.video`。
+ *
+ * 比 `mapHeroMedia` 宽松：视频不需要 width/height（`<video>` 靠 poster 定尺寸），
+ * 只要有可用 url 即可。缺失 → null，由组件回落到内置默认视频。
+ */
+function mapHeroVideo(value: unknown): MappingResult<PublicCitySiteProfile['hero']['video']> {
+  if (value === null || value === undefined) return valid(null)
+  if (!isRecord(value) || !isRequiredString(value.url)) return invalid()
+  return valid({ src: value.url })
+}
+
+/**
  * 区域介绍（`Locations.description`）→ DTO 的 `description`。
  *
  * 与 `mapOptionalString` 的两点差别，都是刻意的：
@@ -196,6 +208,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
   const contactHeading = mapOptionalString(value.contactHeading)
   const contactBody = mapOptionalString(value.contactBody)
   const media = mapHeroMedia(value.heroMedia)
+  const heroVideo = mapHeroVideo(value.heroVideo)
   const featuredRegions = isIdentifier(city.id)
     ? mapFeaturedRegions(value.featuredRegions, city.id)
     : invalid()
@@ -221,6 +234,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
     !contactHeading.ok ||
     !contactBody.ok ||
     !media.ok ||
+    !heroVideo.ok ||
     !featuredRegions.ok
   ) {
     return null
@@ -241,6 +255,11 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
       heading: heading.value,
       body: heroBody.value,
       media: media.value,
+      video: heroVideo.value,
+      // 未设时按「播放」处理：字段 defaultValue 是 true，迁移也给存量行回填了 true。
+      // 判 `!== false` 而不是 `=== true`，是为了让 null（理论上的历史行）也走开启态——
+      // 反过来会让这条迁移在某些库上把已开城首页的背景视频当场关掉。
+      videoEnabled: value.heroVideoEnabled !== false,
     },
     intro: { heading: introHeading.value, body: introBody.value },
     contact: { heading: contactHeading.value, body: contactBody.value },
