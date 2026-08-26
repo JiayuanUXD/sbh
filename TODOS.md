@@ -9,50 +9,76 @@
 
 ## P0 — 有明确阻塞关系，必须按顺序做
 
-### T1. 推送 `34f0eeb` 前先在生产迁移账本插一行
+### T1. ~~推送 `34f0eeb` 前先在生产迁移账本插一行~~ ✅ 已完成
 
-**状态**：代码已提交在本地 master（领先远端 1 个提交），**故意未推送**。
+**状态**：**已完成**。2026-08-26 只读核查生产 `payload_migrations`，
+`20260810_003111_align_listings_data_source_with_production` 在账本里（batch 19）。
 
-`34f0eeb` 给 `listings` 补了 `dataSource` 字段声明并生成迁移 `20260810_003111_align_listings_data_source_with_production`。生产上那 4 列**已经存在**（来自失落分支），这条迁移一跑就 `ADD COLUMN` 失败、中断部署。
+原任务是：`34f0eeb` 给 `listings` 补 `dataSource` 字段声明并生成了那条迁移，而生产上
+那 4 列**已经存在**（来自失落分支），迁移一跑就 `ADD COLUMN` 失败、中断部署，
+所以要先插账本行再推。现在账本行已在，本条不再需要动作。
 
-**顺序不能颠倒**：先插账本行，再 `git push origin master`。
-
-```sql
-INSERT INTO payload_migrations (name, batch, created_at, updated_at)
-VALUES ('20260810_003111_align_listings_data_source_with_production',
-        (SELECT COALESCE(MAX(batch), 0) + 1 FROM payload_migrations), NOW(), NOW());
-```
-
-回滚：
-
-```sql
-DELETE FROM payload_migrations WHERE name = '20260810_003111_align_listings_data_source_with_production';
-```
-
-该断言在事实上为真：生产确实有这 4 列，类型、可空性、枚举值（唯一值 `huizuxuanzhi`）都与迁移逐项一致，生成的 SQL 与失落分支原始迁移逐字相同。
-
-**若决定不做**：`34f0eeb` 必须整体保留在本地或 revert，**不能只推 `Listings.ts` 的字段声明**——那会造成 config 声明了字段却没有对应迁移，制造新的不一致。
+> 本节此前长期停留在「代码已提交在本地 master、故意未推送」这个状态描述上，
+> 而事实早已改变。**过期的待办比没有待办更坏**——它会让人以为 master 还压着
+> 一个未推的提交，进而在判断部署风险时把它算进去。
 
 ---
 
-### T2. 追回 4 条共享办公迁移
+### T2. 追回 **6** 条失落迁移（不是 4 条）
 
-生产已应用但仓库任何地方都没有的迁移，做完 T1 后仍剩这 4 条：
+生产已应用、但仓库任何地方都没有的迁移。2026-08-26 只读比对生产
+`payload_migrations`（70 条）与仓库 `src/migrations/`（65 条）得出：
 
 ```
+20260805_063954                                       ← 本节此前从未记录
+20260805_082216_add_listings_data_source              ← 本节此前从未记录
 20260809_180000_import_huizuxuanzhi_shared_offices
 20260809_183000_remove_shared_office_source_branding
 20260809_184000_attach_shared_office_building_covers
 20260809_190000_complete_shared_office_images
 ```
 
-已排查且**确认不在**：28 个远端分支、全部本地分支、`git fsck --lost-found` 的 18 个悬空提交、现存 stash。按时间戳推断是 2026-08-09 在某台机器的未提交工作区里直接跑的。
+后 4 条是本节原本记录的共享办公迁移；**前 2 条是这次核查才发现的**，说明当时的
+清点没有做全库差集，只清点了已知的那一批。
 
-**要做**：向当时执行导入的人索取 `.ts` + 配套 `.json`，**不要改文件名与内容**（时间戳决定执行顺序）。拿到后在全新空库上验证 43 条能从零重放，再合并。
+已排查且**确认不在**（针对后 4 条）：28 个远端分支、全部本地分支、
+`git fsck --lost-found` 的 18 个悬空提交、现存 stash。按时间戳推断是 2026-08-09
+在某台机器的未提交工作区里直接跑的。前 2 条尚未做同等排查。
 
-**若永久丢失**：由 DBA 导出生产 schema，人工编写一次性对齐迁移，并在 `DEPLOYMENT.md` 记录决定与差异清单。
+**要做**：向当时执行的人索取 `.ts` + 配套 `.json`，**不要改文件名与内容**
+（时间戳决定执行顺序）。拿到后在全新空库上验证能从零重放，再合并。
 
-**在 T1+T2 完成前的硬约束**：不要新建从 master 重建的环境并假设它与生产等价；不要对生产启用 dev pushSchema。
+**若永久丢失**：由 DBA 导出生产 schema，人工编写一次性对齐迁移，并在
+`DEPLOYMENT.md` 记录决定与差异清单。
+
+### 这 6 条的实际危害边界（别高估，也别低估）
+
+失落迁移的性质是**生产 schema 领先于仓库**。因此：
+
+- ❌ **不影响**在生产上叠加新迁移。新迁移只要不与既有对象撞名就能正常执行——
+  2026-08-26 的 OPT-053 正是在这个前提下核实后合入的（逐项确认要建的 3 张表、
+  2 个列、1 个枚举在生产上都不存在，再放行）。
+- ⚠️ **影响**「从 master 重建的环境等价于生产」这个假设。空库重放缺这 6 条，
+  得到的 schema 与生产不同。
+
+**硬约束**：不要新建从 master 重建的环境并假设它与生产等价；
+不要对生产启用 dev pushSchema。
+
+### 叠加新迁移前的自查（照做即可）
+
+```sql
+-- 1. 账本差集：确认自己这条不在生产里
+SELECT name FROM payload_migrations ORDER BY name;
+
+-- 2. 撞名检查：把自己迁移要建的对象名填进去，必须返回零行
+SELECT 'table' AS kind, tablename AS name FROM pg_tables
+  WHERE schemaname='public' AND tablename IN ('<你的表名>')
+UNION ALL SELECT 'column', column_name FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='<目标表>' AND column_name IN ('<你的列名>')
+UNION ALL SELECT 'enum', typname FROM pg_type WHERE typname='<你的枚举名>';
+```
+
+第 2 步是 T1 当年出事的直接教训：那次正是生产**已有**目标列而迁移要 `ADD COLUMN`。
 
 ---
 
