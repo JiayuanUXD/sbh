@@ -4,6 +4,7 @@ import type {
   BuildingSupplyPriceRange,
   PriceViewModel,
 } from '@/domain/public-catalog'
+import { estimateMonthlyRent } from '@/domain/public-catalog/monthly-estimate'
 
 type PriceDisplayUnit = BuildingSupplyPriceRange['displayUnit']
 
@@ -90,35 +91,17 @@ export function formatAreaRange(range: { min: number; max: number }): string {
  *     不能用面积代替。旧版实现曾把调用方唯一持有的 `area` 直接当 seats 传入
  *     （此文件曾经的单测注释「按面积（工位数）折算」就是这处误用留下的痕迹），
  *     随 ListingCardViewModel 补齐 `seats` 字段（OPT-037 Task 7）一并订正；
- *   - basis='sqm'：按面积计价（租赁 / 出售单价），用 area；day 按 30 天折算月租。
+ *   - basis='sqm'：租赁按面积计价，用 area；day 按 30 天折算月租。出售价格不进入本月租折算函数。
  * 任一必需维度缺失都返回 null（表格显示「—」），不做静默 0 填充。
  */
 export function estimateRowTotal(
   price: PriceViewModel | null,
   dims: Readonly<{ area: number | null; seats: number | null }>,
 ): number | null {
-  if (!price) return null
-  const { amount, basis, period } = price
-  if (basis === 'total') {
-    // 一次性计价：amount 就是总价本身，不折算（出售组「总价 万元」列的来源）。
-    if (period === 'one-time') return amount
-    // 租赁语境：与 seat/sqm 两条分支同一套折算口径——天 × 30 天成月，月原样，
-    // 「每年」返回 null（另两条分支对 year 也是 null；把年租 /12 折成月租是另
-    // 一个口径决定，要改就三条一起改，不在这里单独开一个特例）。
-    if (period === 'day') return amount * 30
-    if (period === 'month') return amount
-    return null
+  if (price?.businessType === 'sale' && price.period === 'one-time' && price.basis === 'total') {
+    return price.amount
   }
-  if (basis === 'seat') {
-    if (dims.seats == null) return null
-    if (period === 'day') return amount * dims.seats * 30
-    if (period === 'month') return amount * dims.seats
-    return null
-  }
-  if (dims.area == null) return null
-  if (period === 'day') return amount * dims.area * 30
-  if (period === 'month') return amount * dims.area
-  return null
+  return estimateMonthlyRent(price, dims)
 }
 
 /**
