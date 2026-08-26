@@ -10,6 +10,7 @@ import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { fetchNearbyPois } from '@/lib/frontend/location-pois'
 import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import { resolveBuildingRouteIdentity, createSearchContext, getBuildingDetail, parseBuildingSupplySearchParams, buildBuildingSupplyCanonicalSearchParams, type BuildingSupplyInput } from '@/domain/public-catalog'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 
 export const dynamic = 'force-dynamic'
 type Props = Readonly<{ params: Promise<{ city: string; slug: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }>
@@ -53,5 +54,8 @@ export default async function CityBuildingDetailPage({ params, searchParams }: P
   const pois = await fetchNearbyPois(building.id, building.coordinates)
   const citySlug = getMultiCityRoutingEnabled() ? loaded.city.slug : undefined
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin, { citySlug })
-  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()} /></>
+  // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
+  // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
+  const siteSettings = await getCachedSiteSettings()
+  return <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} /><BuildingDetailLayout disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} building={building} supply={supply} relatedBuildings={relatedBuildings} serviceSchedule={serviceSchedule} pois={pois} mapEnabled={building.coordinates != null && hasAmapJsKey()} citySlug={citySlug} supplyCurrentSearch={buildBuildingSupplyCanonicalSearchParams(supplyInput).toString()} /></>
 }

@@ -64,11 +64,18 @@ function pickHeroFacts(building: BuildingDetailViewModel): { label: string; valu
   return picked
 }
 
+/**
+ * OPT-053 三层兜底的第三层：默认值就是接线前这里的硬编码字面量。
+ * Global 表在迁移执行前不存在，dev-story 演示页与单测也不该被迫传这个 prop。
+ */
+const DEFAULT_PRICE_DISCLAIMER = '页面价格为公开挂牌价，实际价格以顾问报价为准'
+
 export default function HeroSummaryPanel({
   building,
   supply,
   serviceSchedule,
-}: HeroSummaryPanelProps) {
+  priceDisclaimer = DEFAULT_PRICE_DISCLAIMER,
+}: HeroSummaryPanelProps & Readonly<{ priceDisclaimer?: string }>) {
   const lowest = findLowestPrice(supply.availableGroups)
   const areaRange = aggregateAreaRange(supply.availableGroups)
   const hasSupply = supply.totalEffectiveListings > 0
@@ -96,7 +103,7 @@ export default function HeroSummaryPanel({
             <span className="sf-num hero-summary__price hero-summary__price--na">价格面议</span>
           )}
         </p>
-        <p className="hero-summary__disclaimer">页面价格为公开挂牌价，实际价格以顾问报价为准</p>
+        <p className="hero-summary__disclaimer">{priceDisclaimer}</p>
 
         <div className="hero-summary__stats">
           <div className="hero-summary__stat">

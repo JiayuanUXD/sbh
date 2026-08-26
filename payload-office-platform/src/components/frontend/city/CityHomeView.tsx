@@ -12,6 +12,7 @@ import type { CityContext } from '@/domain/city-site-profile/resolver'
 import type { HomepageStats } from '@/domain/public-catalog/contracts'
 import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import type { SiteSettingsView } from '@/lib/frontend/site-settings'
+import { orderByFeaturedRegions } from '@/lib/frontend/featured-regions'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
 
@@ -48,17 +49,23 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
   const citySlug = routeMode === 'prefixed' ? city.slug : undefined
   // section 链接数字统一取单城口径，与链接落点保持一致
   const linkStats = homepage.stats
+  // OPT-053：热门商圈与首屏 chips 接运营配置的「精选区域」。
+  // 只重排不过滤——过滤等于把没选中的商圈从首页藏起来，是悄悄减少库存曝光。
+  // 精选区域为空（当前七城 profile 全空）时原样返回，不改变任何现状。
+  const featured = city.profile.featuredRegions
+  const districtCards = orderByFeaturedRegions(homepage.districtCards, featured)
+  const heroDistricts = orderByFeaturedRegions(homepage.districts, featured)
   return (
     <div className="hm-home">
       <HomeHero
         city={city}
-        districts={homepage.districts}
+        districts={heroDistricts}
         routeMode={routeMode}
         heading={siteSettings.heroHeading}
         slogan={siteSettings.slogan}
       />
       <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={siteSettings.typeCards} />
-      <HomeDistrictBento cards={homepage.districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
+      <HomeDistrictBento cards={districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
       <HomeBuildingsRail buildings={homepage.featuredBuildings} citySlug={citySlug} totalCount={linkStats.buildings} />
       <HomeStatsBand stats={bandStats} avgResponseHours={city.profile.avgResponseHours} />
       <HomeListingsRail listings={homepage.featuredListings} citySlug={citySlug} totalCount={linkStats.listings} />

@@ -85,7 +85,14 @@ export default function CityListingDetailView({
   serviceSchedule,
   mapEnabled,
   routeMode,
+  disclaimers,
 }: Readonly<{
+/**
+ * 合规声明（OPT-053）。来自「站点设置 → 合规声明」，由路由层取好传入。
+ * **可选**：缺省时各子组件用自己的字面量兜底——迁移执行前 Global 表不存在，
+ * dev-story 演示页也不该被迫构造这个对象。
+ */
+  disclaimers?: Readonly<{ price?: string; image?: string }>
   city: CityContext
   listing: ListingDetailViewModel
   recommendations: Recommendations
@@ -225,6 +232,7 @@ export default function CityListingDetailView({
       <div className="dt-container">
         <div className="dt-core">
           <DetailGallery
+            imageDisclaimer={disclaimers?.image}
             media={media}
             title={listing.title}
             pageType="listing"
