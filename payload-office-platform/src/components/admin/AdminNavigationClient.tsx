@@ -4,6 +4,7 @@ import {
   Link,
   toast,
   useConfig,
+  useNav,
   useWindowInfo,
 } from '@payloadcms/ui'
 import {
@@ -85,6 +86,7 @@ export default function AdminNavigationClient({
 }: AdminNavigationClientProps) {
   const pathname = usePathname()
   const { config } = useConfig()
+  const { navOpen, setNavOpen } = useNav()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
@@ -109,19 +111,33 @@ export default function AdminNavigationClient({
   const isDesktop = mounted && windowWidth >= DESKTOP_BREAKPOINT
 
   // 标记 mounted + 监听窗口大小变化
+  // 注意：初始化不要放进 requestAnimationFrame——后台/未合成帧的标签页 rAF 不会触发，
+  // mounted 将永远为 false，桌面态逻辑（含强制 navOpen）全部失效。
+  // 用 setTimeout(0) 而非同步 setState：避免效果内级联渲染（lint 规则），
+  // 且定时器在后台标签页依然会执行。
   useEffect(() => {
     const updateWidth = () => setWindowWidth(window.innerWidth)
     window.addEventListener('resize', updateWidth)
-    const initialFrame = window.requestAnimationFrame(() => {
+    const initialTimer = window.setTimeout(() => {
       updateWidth()
       setMounted(true)
       setCollapsed(getInitialCollapsed())
-    })
+    }, 0)
     return () => {
-      window.cancelAnimationFrame(initialFrame)
+      window.clearTimeout(initialTimer)
       window.removeEventListener('resize', updateWidth)
     }
   }, [])
+
+  // 桌面态（≥1024px 侧边栏常驻）强制 Payload 的 navOpen 为 true：
+  // Payload NavProvider 在视口 ≤ 1440px（断点 l）时会自动 setNavOpen(false)，
+  // aside.nav 随之带上 inert 属性，整棵导航子树不可点击——而我们的 CSS 在
+  // ≥1024px 又强制导航可见，造成 1024–1440px 区间「看得见、点不动」。
+  useEffect(() => {
+    if (isDesktop && !navOpen) {
+      setNavOpen(true)
+    }
+  }, [isDesktop, navOpen, setNavOpen])
 
   // 折叠状态持久化
   useEffect(() => {
