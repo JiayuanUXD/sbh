@@ -155,9 +155,22 @@ const cachedSiteSettings = unstable_cache(readSiteSettings, ['site-settings'], {
 /**
  * 取站点设置。**任何服务端消费方都可以直接调**——layout、页面、被页面渲染的
  * server component 一律如此，不需要谁把它当 props 传下来。
+ *
+ * `unstable_cache` 在没有 Next 增量缓存上下文时会抛
+ * `Invariant: incrementalCache missing`（单测直接渲染 layout、脚本里调用等都会撞上）。
+ * 那是「这条链路没有缓存可用」，不是「读取失败」，所以降级为不走缓存的直读，
+ * 而不是让整个页面炸掉。同型处理见 `public-cache-revalidation.ts` 对
+ * `static generation store missing` 的判断。
  */
-export function getCachedSiteSettings(): Promise<SiteSettingsView> {
-  return cachedSiteSettings()
+export async function getCachedSiteSettings(): Promise<SiteSettingsView> {
+  try {
+    return await cachedSiteSettings()
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('incrementalCache missing')) {
+      return readSiteSettings()
+    }
+    throw error
+  }
 }
 
 /** 供测试与非缓存路径使用的默认值出口。 */

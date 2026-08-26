@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Metadata, Viewport } from 'next'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
 import { AnalyticsInit } from '@/lib/frontend/analytics'
@@ -58,9 +59,12 @@ export const viewport: Viewport = {
 
 export default async function RootLayout(props: { children: React.ReactNode }) {
   const { children } = props
-  const [cities, profiles] = await Promise.all([
+  // OPT-053：站点设置在这里读一次喂给页头页脚。页面组件是不透明 children，
+  // **注入不了 props**——它们自己调 getCachedSiteSettings()，同一请求内由缓存去重。
+  const [cities, profiles, siteSettings] = await Promise.all([
     listPublicCityOptions(),
     listPublicCityProfiles(),
+    getCachedSiteSettings(),
   ])
   const multiCityRoutingEnabled = getMultiCityRoutingEnabled()
   return (
@@ -68,9 +72,9 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
       <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>
-        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
+        <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo }} />
         <main id="main-content" className="site-main">{children}</main>
-        <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} />
+        <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} settings={siteSettings} />
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
         <React.Suspense fallback={null}>
           <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} cities={profiles.map((profile) => ({

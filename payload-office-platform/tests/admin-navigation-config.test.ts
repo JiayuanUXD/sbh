@@ -151,6 +151,9 @@ describe('admin navigation config', () => {
         ]),
       ]),
       expectedGroup('content', '内容管理', [
+        // OPT-053：站点设置是 Global，不收编进自定义导航就彻底不可发现
+        // （custom.scss 隐藏了原生导航，而 Global 连集合那个左下角兜底区块都没有）。
+        expectedLeaf('site-settings', '站点设置', '/admin/globals/site-settings', ['site-settings']),
         expectedLeaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
         expectedLeaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
         expectedLeaf('media', '素材库', '/admin/collections/media', ['media']),

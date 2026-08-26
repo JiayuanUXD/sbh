@@ -7,12 +7,15 @@ import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
+import { renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings'
 
 type FooterShellProps = Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
   pathname: string
+  /** 站点设置。本组件是 'use client'，由 layout 从 getCachedSiteSettings() 取好传入。 */
+  settings: SiteSettingsView
 }>
 
 function FooterContents({
@@ -20,6 +23,7 @@ function FooterContents({
   defaultCity,
   multiCityRoutingEnabled,
   pathname,
+  settings,
   searchParams,
 }: FooterShellProps & Readonly<{
   searchParams: Pick<URLSearchParams, 'getAll'>
@@ -27,13 +31,16 @@ function FooterContents({
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   const citySlug = currentCity?.slug
   const year = new Date().getFullYear()
+  // 页脚此前两处写死「上海」（品牌说明与底栏副标题），七城平台上访问 /beijing
+  // 照样宣称服务上海。城市名跟着路由走，不进配置——让运营手写只会换个地方再写死一次。
+  const cityName = currentCity?.name ?? ''
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">商办租赁</Link>
+          <Link href={multiCityRoutingEnabled && citySlug ? `/${citySlug}` : '/'} className="site-footer__logo">{settings.siteName}</Link>
           <p className="site-footer__tagline">
-            聚合上海甲级写字楼、独栋办公、共享办公与整层办公机会，免费帮成长型企业匹配更体面的办公室。
+            {renderCityPlaceholder(settings.footerBrandBlurb, cityName)}
           </p>
         </div>
         <nav className="site-footer__nav" aria-label="页脚导航">
@@ -56,8 +63,8 @@ function FooterContents({
       </div>
       <div className="site-footer__bar">
         <div className="site-footer__bar-inner">
-          <span>© {year} 商办租赁平台</span>
-          <span>上海 · 商务办公租赁</span>
+          <span>© {year} {settings.copyrightHolder}</span>
+          <span>{cityName ? `${cityName} · ` : ''}{settings.footerTaglineSuffix}</span>
         </div>
       </div>
     </footer>
@@ -80,15 +87,18 @@ export default function SiteFooter({
   cities,
   defaultCity,
   multiCityRoutingEnabled,
+  settings,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
+  settings: SiteSettingsView
 }>) {
   const pathname = usePathname() || '/'
   const [searchParams] = useClientSearchParams()
   return (
     <FooterContents
+      settings={settings}
       cities={cities}
       defaultCity={defaultCity}
       multiCityRoutingEnabled={multiCityRoutingEnabled}
