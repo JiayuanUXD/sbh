@@ -31,7 +31,7 @@ import AuditLogListClient, { type AuditLogRow } from './AuditLogListClient'
  * 与默认列表行为一致）；只有用户点开抽屉的单条 REST 读取才被审计。
  */
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 25
 
 /** searchParams 值归一（string | string[] → string | null）。 */
 function firstParam(value: unknown): string | null {

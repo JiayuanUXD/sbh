@@ -16,6 +16,7 @@ export const Teams: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'manager', 'status'],
   },
@@ -65,7 +66,6 @@ export const Teams: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '乐观锁版本，保存时自动递增',
       },
     },
   ],

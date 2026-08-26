@@ -34,6 +34,7 @@ export const Roles: CollectionConfig = {
   ],
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['code', 'name', 'isBuiltin', 'status', 'dataScope', 'updatedAt'],
     description: '内置角色不可删除或改码；自定义角色可编辑菜单/操作/数据/字段四层权限。',
@@ -66,7 +67,7 @@ export const Roles: CollectionConfig = {
       unique: true,
       admin: {
         description:
-          '不可变机器码。内置角色为 ADM/OPS/MGR/BRK/CSR；自定义角色使用大写字母加下划线。',
+          '系统标识，创建后不可修改。内置角色为 ADM/OPS/MGR/BRK/CSR；自定义角色使用大写字母加下划线。',
       },
       // 仅做格式校验。内置角色改码 / 移除 builtin 标记的拦截在 beforeChange
       // （protectBuiltinRole）——那里能拿到 originalDoc 的真实原值做比对；
@@ -100,7 +101,7 @@ export const Roles: CollectionConfig = {
           type: 'checkbox',
           defaultValue: false,
           admin: {
-            description: '内置角色不可删除、改码或改变 builtin 标记。',
+            description: '内置角色不可删除、不可改码。',
             // 内置标记在编辑页只读，避免误改
             readOnly: true,
             condition: (data) => data?.isBuiltin === true,
@@ -141,7 +142,7 @@ export const Roles: CollectionConfig = {
       label: '菜单权限',
       type: 'json',
       admin: {
-        description: '菜单权限编码数组（允许并集）；通配符 * 表示全部菜单。',
+        description: '菜单权限可多选；* 表示全部菜单。',
       },
       // beforeChange 兜底校验：编码必须在注册表中
       validate: (val: unknown) => {
@@ -157,7 +158,7 @@ export const Roles: CollectionConfig = {
       label: '操作权限',
       type: 'json',
       admin: {
-        description: '操作权限编码数组（允许并集）；通配符 * 表示全部操作。',
+        description: '操作权限可多选；* 表示全部操作。',
       },
       validate: (val: unknown) => {
         const result = validatePermissionCodes({ codes: val, type: 'operation' })
@@ -173,7 +174,7 @@ export const Roles: CollectionConfig = {
       type: 'json',
       admin: {
         description:
-          '字段权限编码数组（允许并集）。phone:full 看完整手机号；phone:masked 仅看脱敏值；audit:before_after 看审计前后值。',
+          '字段权限可多选。phone:full 看完整手机号；phone:masked 仅看脱敏值；audit:before_after 看审计前后值。',
       },
       validate: (val: unknown) => {
         const result = validatePermissionCodes({ codes: val, type: 'field' })

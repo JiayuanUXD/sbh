@@ -522,6 +522,22 @@ body.admin-nav-collapsed .admin-brand-title {
   margin-top: 16px;
 }
 
+// OPT-056：审核与风控待办速览卡（计数 + 深链，无权限项由组件层隐藏）
+.arco-admin-dashboard__todos {
+  margin-top: 16px;
+}
+
+.arco-admin-dashboard__todo-item {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  text-decoration: none;
+
+  &:hover .arco-tag {
+    filter: brightness(0.96);
+  }
+}
+
 .arco-admin-dashboard__panel {
   height: 100%;
 }
@@ -950,9 +966,25 @@ html[data-theme='dark'] .arco-admin-dashboard {
   }
 }
 
-// 房源审核队列 / 审计日志列表 - Arco Table/Drawer 在 Payload admin 中的样式微调
+// OPT-056：自定义列表页抬头（标题在左、创建/回收站按钮在右）
+.listings-list__header,
+.buildings-list__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  .list-header__title {
+    margin: 0;
+  }
+}
+
+// 房源审核队列 / 审计日志 / 房源列表 / 楼盘库 - Arco Table 在 Payload admin 中的样式微调
 .listing-review-queue,
-.audit-log-list {
+.audit-log-list,
+.listings-list,
+.buildings-list {
   // Arco 表格使用自身字体，确保在 Payload 后台中继承合理字体
   .arco-table {
     font-size: 14px;

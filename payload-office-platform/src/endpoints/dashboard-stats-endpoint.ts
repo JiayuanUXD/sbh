@@ -10,10 +10,15 @@ import { ForbiddenError } from '@/domain/shared/errors'
 const AUTHENTICATION_ERROR_MESSAGE = '未登录或会话已失效'
 const INTERNAL_ERROR_MESSAGE = '运营数据暂时不可用'
 
-const COUNT_COLLECTIONS = ['listings', 'buildings', 'leads'] as const
+const COUNT_COLLECTIONS = [
+  'listings',
+  'buildings',
+  'leads',
+  'listing-reports',
+  'supply-submissions',
+] as const
 const FIND_COLLECTIONS = [
   ...COUNT_COLLECTIONS,
-  'listing-reports',
 ] as const
 
 type CountCollection = (typeof COUNT_COLLECTIONS)[number]
@@ -88,7 +93,18 @@ export function createDashboardStatsPayloadPort(
         ...requestOption(req),
       })
     },
-    async find({ collection, where, depth, limit, page, pagination, sort, overrideAccess, req }) {
+    async find({
+      collection,
+      where,
+      depth,
+      limit,
+      page,
+      pagination,
+      select,
+      sort,
+      overrideAccess,
+      req,
+    }) {
       const result = await payload.find({
         collection: toFindCollection(collection),
         where: toPayloadWhere(where),
@@ -96,6 +112,7 @@ export function createDashboardStatsPayloadPort(
         limit,
         page,
         pagination,
+        ...(select === undefined ? {} : { select }),
         sort,
         overrideAccess,
         ...requestOption(req),
@@ -115,18 +132,37 @@ export type DashboardStatsResponse =
   | { ok: true; stats: import('@/domain/analytics/dashboard-stats').DashboardStats }
   | { ok: false; error: string }
 
+/** 统计结果按用户短缓存：概览是信息面板，60 秒陈旧可接受，换掉重复的重查询。 */
+const STATS_CACHE_TTL_MS = 60_000
+const STATS_CACHE_MAX_ENTRIES = 200
+
 /** 仅登录用户可读取的非阻塞 Dashboard 统计接口（GET /api/dashboard-stats）。 */
 export function createDashboardStatsEndpoint(): Endpoint {
+  // 缓存放在闭包里：生产环境该工厂只在 payload.config 装配时调用一次（进程级缓存），
+  // 单测每次新建端点即天然隔离。键按用户区分——计数携带 req 走 access，
+  // 不同用户（数据范围不同）绝不能共享一份结果。
+  const cache = new Map<string, { expiresAt: number; stats: unknown }>()
+
   return {
     path: '/dashboard-stats',
     method: 'get',
     handler: async (req) => {
       try {
-        await requireAdminContext(req as RequestContext)
+        const ctx = await requireAdminContext(req as RequestContext)
+        const cacheKey = String(ctx.userId)
+        const cached = cache.get(cacheKey)
+        if (cached && cached.expiresAt > Date.now()) {
+          return Response.json({
+            ok: true,
+            stats: cached.stats,
+          } as DashboardStatsResponse)
+        }
         const stats = await resolveDashboardStats(
           createDashboardStatsPayloadPort(req.payload),
           req,
         )
+        if (cache.size >= STATS_CACHE_MAX_ENTRIES) cache.clear()
+        cache.set(cacheKey, { expiresAt: Date.now() + STATS_CACHE_TTL_MS, stats })
         return Response.json({ ok: true, stats } satisfies DashboardStatsResponse)
       } catch (caught) {
         if (caught instanceof ForbiddenError) {

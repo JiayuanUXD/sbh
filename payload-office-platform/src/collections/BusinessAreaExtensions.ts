@@ -22,6 +22,7 @@ export const BusinessAreaExtensions: CollectionConfig = {
     // collection 与 protect hook 全部保留，直接 URL 仍可访问用于排障。
     hidden: true,
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'businessArea',
     defaultColumns: ['businessArea', 'boundary', 'aliases', 'updatedAt'],
     description: '本页仅供排障；日常配置请在「商圈管理」中打开对应商圈',
@@ -105,7 +106,6 @@ export const BusinessAreaExtensions: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '乐观锁版本，由系统维护',
       },
     },
   ],

@@ -7,7 +7,13 @@ import {
 } from '@/domain/review/effective-supply'
 import { resolveEffectiveSupplies } from '@/domain/review/effective-supply-snapshot'
 
-/** 保持现有 DashboardOverview 的八项数值合同。 */
+/**
+ * DashboardOverview 的数值合同。
+ *
+ * 待办类计数（pendingReviews / pendingRecheck / openReports / pendingSubmissions）
+ * 允许为 null：当前用户对相应集合无读权限时降级为 null（前端隐藏该项），
+ * 不拖垮整个概览响应。
+ */
 export type DashboardStats = {
   activeLeads: number
   availableListings: number
@@ -17,10 +23,15 @@ export type DashboardStats = {
   listings: number
   listingsWithoutCover: number
   newLeads: number
+  openReports: number | null
+  pendingRecheck: number | null
+  pendingReviews: number | null
+  pendingSubmissions: number | null
 }
 
 type DashboardStatsFindParams = Parameters<PayloadQueryPort['find']>[0] & {
   pagination?: boolean
+  select?: Record<string, boolean>
 }
 
 /** Dashboard 所需的最小 Payload Local API 端口，便于在领域层测试。 */
@@ -47,6 +58,9 @@ async function countEffectiveListings(
     ...(getEffectiveSupplyWhere(asOf) as Where),
     ...(pausedIds.length > 0 ? { id: { not_in: pausedIds } } : {}),
   }
+  // depth 1 即可：精筛快照读 building.city / merchant.serviceCities 时接受裸 id
+  // （buildEffectiveSnapshot 的 toId 归一）；select 投影裁掉媒体、富文本等大字段，
+  // 是本查询从「拉全文档 × 500」瘦身的主要来源。
   const candidates = await payload.find({
     collection: 'listings',
     where,
@@ -54,11 +68,25 @@ async function countEffectiveListings(
     req,
     pagination: false,
     limit: LISTING_CANDIDATE_CAP,
-    depth: 2,
+    depth: 1,
+    select: { building: true, merchant: true },
   })
   const supplies = await resolveEffectiveSupplies(payload, candidates.docs, asOf, req)
 
   return [...supplies.values()].filter((supply) => supply.eligible).length
+}
+
+/** 待办类计数：无权限（或集合查询失败）降级为 null，由前端隐藏该项。 */
+async function safeCount(
+  payload: DashboardStatsPayloadPort,
+  params: Parameters<DashboardStatsPayloadPort['count']>[0],
+): Promise<number | null> {
+  try {
+    const result = await payload.count(params)
+    return result.totalDocs
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -80,6 +108,10 @@ export async function resolveDashboardStats(
     leads,
     newLeads,
     activeLeads,
+    pendingReviews,
+    pendingRecheck,
+    openReports,
+    pendingSubmissions,
   ] = await Promise.all([
     payload.count({ collection: 'listings', overrideAccess: false, req }),
     countEffectiveListings(payload, req),
@@ -109,6 +141,31 @@ export async function resolveDashboardStats(
       req,
       where: { status: { in: ['contacted', 'visited'] } },
     }),
+    // —— 以下为 OPT-056 新增的待办类计数（口径与后台列表深链一致） ——
+    safeCount(payload, {
+      collection: 'listings',
+      overrideAccess: false,
+      req,
+      where: { reviewStatus: { equals: 'pending' } },
+    }),
+    safeCount(payload, {
+      collection: 'listings',
+      overrideAccess: false,
+      req,
+      where: { supplyVisibilityHold: { equals: 'pending_recheck' } },
+    }),
+    safeCount(payload, {
+      collection: 'listing-reports',
+      overrideAccess: false,
+      req,
+      where: { status: { not_equals: 'closed' } },
+    }),
+    safeCount(payload, {
+      collection: 'supply-submissions',
+      overrideAccess: false,
+      req,
+      where: { status: { equals: 'pending' } },
+    }),
   ])
 
   return {
@@ -120,5 +177,9 @@ export async function resolveDashboardStats(
     leads: leads.totalDocs,
     newLeads: newLeads.totalDocs,
     activeLeads: activeLeads.totalDocs,
+    pendingReviews,
+    pendingRecheck,
+    openReports,
+    pendingSubmissions,
   }
 }

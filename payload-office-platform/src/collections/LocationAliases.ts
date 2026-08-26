@@ -18,6 +18,7 @@ export const LocationAliases: CollectionConfig = {
     // 恰好就叫「集合」。入口由 navigation-config.ts 的自定义导航提供（OPT-045 D4），
     // 原生那份是纯粹的重复。
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'alias',
     defaultColumns: ['alias', 'kind', 'location'],
   },
@@ -46,7 +47,7 @@ export const LocationAliases: CollectionConfig = {
       type: 'text',
       required: true,
       index: true,
-      admin: { readOnly: true, description: '由 alias 自动派生，导入匹配用的就是它' },
+      admin: { readOnly: true, description: '由别名自动生成，批量导入时按它匹配' },
     },
     {
       name: 'kind',

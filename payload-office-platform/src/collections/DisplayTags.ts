@@ -33,6 +33,7 @@ export const DisplayTags: CollectionConfig = {
     // 另外「基础配置」子分组有明确产品意图「只保留配套字典」
     //（见 e2e geography-admin.spec 的用例标题），塞第二个进去是越界。
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'code', 'sortOrder', 'visible', 'status'],
   },
@@ -102,7 +103,6 @@ export const DisplayTags: CollectionConfig = {
           defaultValue: 1,
           admin: {
             readOnly: true,
-            description: '乐观锁版本号,系统维护',
           },
         },
       ],

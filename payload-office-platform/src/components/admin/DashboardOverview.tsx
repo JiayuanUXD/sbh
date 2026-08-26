@@ -31,8 +31,8 @@ const metricCards = [
     label: '当前可租',
     icon: <IconApps />,
     // 近似 drilldown：卡片数走 M4.7 统一有效供给口径（含媒体/关系/商户逐条精筛),
-    // 但后台原生列表无法逐行跑异步精筛,故链接仅按发布态近似过滤,点进数量可能多于卡片数。
-    href: '/admin/collections/listings?where[publicationStatus][equals]=published',
+    // 但列表无法逐行跑异步精筛,故链接仅按发布态近似过滤,点进数量可能多于卡片数。
+    href: '/admin/collections/listings?publicationStatus=published',
   },
   {
     key: 'buildings',
@@ -43,9 +43,34 @@ const metricCards = [
   { key: 'leads', label: '咨询线索', icon: <IconUserGroup />, href: '/admin/collections/leads' },
 ] as const
 
+/** 待办速览项：count 为 null（无权限）时整项隐藏。 */
+const todoItems = [
+  {
+    key: 'pendingReviews',
+    label: '待审核房源',
+    href: '/admin/collections/listings?reviewStatus=pending',
+  },
+  {
+    key: 'pendingRecheck',
+    label: '待复核供给',
+    href: '/admin/collections/listings?pendingRecheck=1',
+  },
+  {
+    key: 'openReports',
+    label: '未关闭举报',
+    href: '/admin/collections/listing-reports?where[status][not_equals]=closed',
+  },
+  {
+    key: 'pendingSubmissions',
+    label: '待处理投放申请',
+    href: '/admin/collections/supply-submissions?where[status][equals]=pending',
+  },
+] as const
+
 export default function DashboardOverview(props: DashboardOverviewProps) {
   const availabilityRate =
     props.listings > 0 ? Math.round((props.availableListings / props.listings) * 100) : 0
+  const visibleTodos = todoItems.filter((item) => props[item.key] !== null)
 
   return (
     <div className="arco-admin-dashboard">
@@ -78,6 +103,31 @@ export default function DashboardOverview(props: DashboardOverviewProps) {
           </Col>
         ))}
       </Row>
+
+      {visibleTodos.length > 0 && (
+        <Card
+          className="arco-admin-dashboard__panel arco-admin-dashboard__todos"
+          title="审核与风控待办"
+        >
+          <Space size="large" wrap>
+            {visibleTodos.map((item) => {
+              const count = props[item.key] ?? 0
+              return (
+                <a
+                  className="arco-admin-dashboard__todo-item"
+                  href={item.href}
+                  key={item.key}
+                >
+                  <Text>{item.label}</Text>
+                  <Tag color={count > 0 ? 'orange' : 'green'} bordered>
+                    {count}
+                  </Tag>
+                </a>
+              )
+            })}
+          </Space>
+        </Card>
+      )}
 
       <Row gutter={[16, 16]} className="arco-admin-dashboard__detail-row">
         <Col xs={24} lg={16}>
@@ -113,7 +163,7 @@ export default function DashboardOverview(props: DashboardOverviewProps) {
               {props.listingsWithoutCover > 0 && (
                 <Button
                   long
-                  href="/admin/collections/listings?where[coverImage][exists]=false"
+                  href="/admin/collections/listings?missingCover=1"
                 >
                   补充房源图片
                 </Button>

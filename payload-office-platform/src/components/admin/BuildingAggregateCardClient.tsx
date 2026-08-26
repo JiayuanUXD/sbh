@@ -11,8 +11,8 @@ const { Title, Text } = Typography
  * 纯展示 + 一个「查看房源」跳转。数据由服务端父组件按用户权限脱敏后传入,
  * 本组件不再取数(聚合口径与权限已在服务端定稿)。
  *
- * 「查看房源」用原生 Listings 列表的过滤 URL(where[building][equals]=<id>),
- * 不新增端点——列表本身已受 Listings 读权限与字段脱敏约束(R1)。
+ * 「查看房源」跳转 Listings 列表的楼盘过滤 URL(?building=<id>,OPT-056 自定义
+ * 列表视图的深链参数),不新增端点——列表本身已受 Listings 读权限与字段脱敏约束(R1)。
  */
 
 type RentRange = {
@@ -53,9 +53,7 @@ export default function BuildingAggregateCardClient({
   totalArea,
   rentRanges,
 }: Props) {
-  const listingsUrl = `/admin/collections/listings?where[building][equals]=${encodeURIComponent(
-    buildingId,
-  )}`
+  const listingsUrl = `/admin/collections/listings?building=${encodeURIComponent(buildingId)}`
 
   return (
     <div

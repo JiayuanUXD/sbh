@@ -43,6 +43,7 @@ export const Notifications: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
     defaultColumns: [
       'title',
@@ -54,7 +55,7 @@ export const Notifications: CollectionConfig = {
       'createdAt',
     ],
     description:
-      '站内通知：审核驳回 / 线索分配转派 / SLA 超时 / 待办变更。由领域事件消费器幂等生成，与业务状态解耦。',
+      '站内通知：审核驳回 / 线索分配转派 / SLA 超时 / 待办变更。由系统事件自动生成。',
   },
   access: {
     ...createCollectionAccess({
@@ -158,7 +159,7 @@ export const Notifications: CollectionConfig = {
           admin: {
             readOnly: true,
             description:
-              '触发通知的 Outbox event_id。与 recipient + type 共同构成幂等键。',
+              '触发本通知的系统事件标识。',
           },
         },
       ],

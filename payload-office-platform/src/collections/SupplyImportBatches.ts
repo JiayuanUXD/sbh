@@ -23,6 +23,7 @@ export const SupplyImportBatches: CollectionConfig = {
     // 恰好就叫「集合」。入口由 navigation-config.ts 的自定义导航提供（OPT-045 D4），
     // 原生那份是纯粹的重复。
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'fileName',
     defaultColumns: ['fileName', 'type', 'status', 'createdAt'],
     components: {
@@ -99,8 +100,7 @@ export const SupplyImportBatches: CollectionConfig = {
       type: 'json',
       admin: {
         readOnly: true,
-        description:
-          '预检通过行的规范化快照。规格 D9 设想完成 7 天后由清理任务置空以省空间，但该清理任务本期未实现（已作为剩余风险记录），实际会随批次记录永久保留。',
+        description: '预检通过行的数据快照，供导入与回滚使用。',
       },
     },
     { name: 'rowErrors', label: '错误行', type: 'json', admin: { readOnly: true } },

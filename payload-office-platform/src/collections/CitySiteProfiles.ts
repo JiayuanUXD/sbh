@@ -129,6 +129,7 @@ export const CitySiteProfiles: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'seoTitle',
     defaultColumns: ['city', 'serviceStatus', 'switcherVisible', 'sortOrder', 'updatedAt'],
   },
@@ -276,7 +277,7 @@ export const CitySiteProfiles: CollectionConfig = {
               label: '首屏播放背景视频',
               type: 'checkbox',
               defaultValue: true,
-              admin: { description: '关掉则只渲染背景图。这是「只要静态图」的显式开关——以前是靠「配了图就没视频」的副作用实现的。' },
+              admin: { description: '关掉则只展示背景图，不播视频。' },
             },
             { name: 'introHeading', label: '简介标题', type: 'text' },
             { name: 'introBody', label: '简介正文', type: 'textarea' },

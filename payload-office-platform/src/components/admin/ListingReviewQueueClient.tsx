@@ -332,7 +332,7 @@ export default function ListingReviewQueueClient({ rows, canReview, canPublish }
         rowKey="listingId"
         columns={columns}
         data={rows}
-        pagination={{ pageSize: 20, sizeCanChange: true }}
+        pagination={{ pageSize: 25, sizeCanChange: true }}
         scroll={{ x: 900 }}
         noDataElement="暂无待审核房源"
       />
