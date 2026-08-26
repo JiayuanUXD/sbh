@@ -159,10 +159,12 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'advisor-service-hours': AdvisorServiceHour;
+    'site-settings': SiteSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     'advisor-service-hours': AdvisorServiceHoursSelect<false> | AdvisorServiceHoursSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: null;
@@ -494,10 +496,30 @@ export interface CitySiteProfile {
   sortOrder: number;
   seoTitle: string;
   seoDescription: string;
+  /**
+   * 仅用于该城**未开通服务**时的招募页。已开城首页的首屏文案在「内容管理 → 站点设置 → 品牌」里改。
+   */
   heroEyebrow?: string | null;
+  /**
+   * 仅用于该城**未开通服务**时的招募页。已开城首页的首屏文案在「内容管理 → 站点设置 → 品牌」里改。
+   */
   heroHeading?: string | null;
+  /**
+   * 仅用于该城**未开通服务**时的招募页。已开城首页的首屏文案在「内容管理 → 站点设置 → 品牌」里改。
+   */
   heroBody?: string | null;
+  /**
+   * 首页与未开城页共用的背景图。同时用作背景视频的封面与降级底图。
+   */
   heroMedia?: (number | null) | Media;
+  /**
+   * 留空则用内置的默认背景视频。移动端、省流量模式与「减少动态效果」下一律不加载。
+   */
+  heroVideo?: (number | null) | Media;
+  /**
+   * 关掉则只渲染背景图。这是「只要静态图」的显式开关——以前是靠「配了图就没视频」的副作用实现的。
+   */
+  heroVideoEnabled?: boolean | null;
   introHeading?: string | null;
   introBody?: string | null;
   contactHeading?: string | null;
@@ -2726,6 +2748,8 @@ export interface CitySiteProfilesSelect<T extends boolean = true> {
   heroHeading?: T;
   heroBody?: T;
   heroMedia?: T;
+  heroVideo?: T;
+  heroVideoEnabled?: T;
   introHeading?: T;
   introBody?: T;
   contactHeading?: T;
@@ -3804,6 +3828,78 @@ export interface AdvisorServiceHour {
   createdAt?: string | null;
 }
 /**
+ * 全站品牌、合规声明与首页区块文案。保存后最长 60 秒全站生效（多实例缓存失效见 OPT-042）。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * 页头与页脚的文字标识、页脚版权行共用。
+   */
+  siteName?: string | null;
+  /**
+   * 留空则回落为「站点名称」的文字标识（当前线上形态）。
+   */
+  logo?: (number | null) | Media;
+  /**
+   * 首页搜索框上方的 H1。**全站共用一句、不按城市定制**（2026-08-21 产品裁定）——城市差异由 title/description/OG 承担。要改某个未开城页的文案，去「城市站点配置」。
+   */
+  heroHeading?: string | null;
+  /**
+   * 首页搜索框上方、主标题下方的一行说明。
+   */
+  slogan?: string | null;
+  /**
+   * 楼盘详情页首屏摘要面板下方。
+   */
+  priceDisclaimer?: string | null;
+  /**
+   * 详情页图集里标记为示意图的媒体下方。
+   */
+  imageDisclaimer?: string | null;
+  /**
+   * `{城市}` 会替换成当前访问的城市名。**不要手写城市名**——写死会让其它六城的页脚说错城市（这正是本次修掉的 bug）。
+   */
+  footerBrandBlurb?: string | null;
+  /**
+   * 渲染为「© {年份} {版权主体}」。
+   */
+  copyrightHolder?: string | null;
+  /**
+   * 渲染为「{当前城市} · {后缀}」，城市名自动跟随路由。
+   */
+  footerTaglineSuffix?: string | null;
+  /**
+   * 序号（01/02/03）按顺序自动生成，不用手填。
+   */
+  valueProps?:
+    | {
+        name: string;
+        body: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * 只能改文案、显隐与顺序。跳转目标由「槽位」决定且不可编辑——它绑定房源类型枚举，改了就是死链或空结果。
+   */
+  typeCards?:
+    | {
+        /**
+         * 决定这张卡跳去哪里。**必须真的存进每一行**：只按数组下标绑定的话，运营一调序，「联合办公」这张卡就链到传统办公——标题副标题都是对的，只有链接错，页面上完全看不出来。
+         */
+        slot: 'traditional-office' | 'coworking' | 'full-floor' | 'serviced-office' | 'creative-park';
+        label: string;
+        sublabel?: string | null;
+        visible?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
@@ -3850,6 +3946,40 @@ export interface AdvisorServiceHoursSelect<T extends boolean = true> {
       };
   openMessage?: T;
   closedMessage?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  logo?: T;
+  heroHeading?: T;
+  slogan?: T;
+  priceDisclaimer?: T;
+  imageDisclaimer?: T;
+  footerBrandBlurb?: T;
+  copyrightHolder?: T;
+  footerTaglineSuffix?: T;
+  valueProps?:
+    | T
+    | {
+        name?: T;
+        body?: T;
+        id?: T;
+      };
+  typeCards?:
+    | T
+    | {
+        slot?: T;
+        label?: T;
+        sublabel?: T;
+        visible?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

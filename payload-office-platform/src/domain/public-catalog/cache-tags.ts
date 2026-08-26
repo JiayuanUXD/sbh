@@ -33,6 +33,25 @@ export const SITEMAP_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:sitemap` as const
 /** 资讯列表/详情类别 tag */
 export const ARTICLES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:articles` as const
 
+/**
+ * 站点设置（OPT-053）固定 tag。不区分城市——它是全平台单例。
+ *
+ * logo 与页脚出现在**每一个页面**上，所以这条 tag 的失效面是全站。
+ * 注意 `OPT-042` 未解：CloudRun 多实例下 `revalidateTag` 只作用于当前实例，
+ * 其余实例要等 TTL 自然过期。站点设置的 TTL 因此刻意压到 60 秒
+ * （见 `SITE_SETTINGS_REVALIDATE_SECONDS`），后台也明写了「最长 60 秒生效」。
+ */
+export const SITE_SETTINGS_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:site-settings` as const
+
+/**
+ * 站点设置的缓存 TTL（秒）。
+ *
+ * 比其它公开查询的 300 秒短得多，理由不是它变得更频繁——恰恰相反，它极少变。
+ * 短 TTL 买的是**多实例下的收敛速度**：运营改完 logo 却要等五分钟才全站一致，
+ * 会被直接理解成「功能坏了」，而那正是 OPT-053 这个工作项的起因。
+ */
+export const SITE_SETTINGS_REVALIDATE_SECONDS = 60
+
 /** Conservative supply categories used when an owning city cannot be resolved. */
 export const LISTINGS_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:listings` as const
 export const BUILDINGS_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:buildings` as const

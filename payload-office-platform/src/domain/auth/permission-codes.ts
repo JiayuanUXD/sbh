@@ -59,6 +59,8 @@ export const MENU_CODES = [
   'search',
   'domain-events',
   'audit-logs',
+  // 站点运营配置（OPT-053）：品牌 / 合规文案 / 页脚 / 首页区块
+  'site-settings',
   // 个人区
   'my-leads',
   'my-customers',
@@ -129,6 +131,13 @@ export const OPERATION_CODES = [
   'role:manage', // 创建/复制/编辑角色
   'audit:view', // 查看审计日志详情
   'audit:export', // 导出审计日志
+  // 站点运营配置（OPT-053）
+  //
+  // Global 缺 `access.update` 会被 Payload 补成 `defaultAccess`（判据仅 `Boolean(req.user)`），
+  // 于是任何登录账号都能 PATCH /api/globals/site-settings 改掉全站 logo 与合规声明。
+  // 后台菜单看不见入口**不构成防护**——那只是 UI，REST/GraphQL 端点照常开着。
+  // 见 `src/globals/SiteSettings.ts` 的 access 与工作项 OPT-055。
+  'site_settings:manage',
   // 通用导入导出
   'data:import',
   'data:export',

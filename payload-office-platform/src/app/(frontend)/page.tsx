@@ -12,6 +12,7 @@ import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
 import './styles.css'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,13 +32,16 @@ export default async function HomePage() {
     redirect(destination)
   }
   // 两条链彼此独立（单城 homepage vs 跨城汇总 stats），并发拉取
-  const [homepage, bandStats] = await Promise.all([
+  const [homepage, bandStats, siteSettings] = await Promise.all([
     getCachedHomepage(city.slug),
     listPublicCityProfiles().then((profiles) =>
       getCachedPlatformStats(livePlatformStatsSlugs(profiles)),
     ),
+    // OPT-053：路由层取站点设置，往下当 props 传（CityHomeView 保持同步纯编排层）。
+    // 与 layout 那次读取由 unstable_cache 在同一请求内去重，不多打一次库。
+    getCachedSiteSettings(),
   ])
   // bandStats 只喂数据带（平台规模陈述）。三处 section 链接的数字由 CityHomeView
   // 内部改取 homepage.stats（单城口径）——它们的落点是城市域路由，见组件注释。
-  return <CityHomeView city={city} homepage={homepage} routeMode="legacy" bandStats={bandStats} />
+  return <CityHomeView city={city} homepage={homepage} routeMode="legacy" bandStats={bandStats} siteSettings={siteSettings} />
 }

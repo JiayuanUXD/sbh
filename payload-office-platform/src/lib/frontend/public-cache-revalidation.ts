@@ -5,6 +5,7 @@ import {
   IMMEDIATE_CACHE_EXPIRE_PROFILE,
   PUBLIC_CACHE_TAG_PREFIX,
   SITEMAP_TAG,
+  SITE_SETTINGS_TAG,
   cityLevelSafeInvalidationTags,
 } from '@/domain/public-catalog'
 
@@ -67,6 +68,17 @@ export function invalidatePagePublicCache(): void {
     ],
     'page',
   )
+}
+
+/**
+ * 站点设置变更（OPT-053）。失效面是全站——logo 与页脚在每一个页面上。
+ *
+ * ⚠️ 多实例下这只作用于当前实例（`OPT-042` 未解）。其余实例靠
+ * `SITE_SETTINGS_REVALIDATE_SECONDS`（60 秒）自然过期收敛，
+ * 后台编辑页已明写「保存后最长 60 秒全站生效」。
+ */
+export function invalidateSiteSettingsPublicCache(): void {
+  revalidatePublicCacheTags([SITE_SETTINGS_TAG], 'site_settings')
 }
 
 export function invalidateArticlePublicCache(): void {

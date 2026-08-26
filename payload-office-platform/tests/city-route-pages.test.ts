@@ -59,10 +59,26 @@ vi.mock('@/components/frontend/city/CityListingDetailView', () => ({
     return null
   },
 }))
+// OPT-053：路由层现在会读站点设置。本文件不该为此起真实 payload 实例——
+// getPayload 在单测里会挂住，表现为 Unhandled Rejection（用例照样绿，但退出码非零）。
+vi.mock('@/lib/frontend/site-settings', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/frontend/site-settings')>(
+    '@/lib/frontend/site-settings',
+  )
+  return {
+    ...actual,
+    getCachedSiteSettings: async () => actual.SITE_SETTINGS_FALLBACK,
+  }
+})
+
 vi.mock('@/domain/public-catalog', () => ({
   resolveListingRouteIdentity: io.resolveListingRouteIdentity,
   resolveBuildingRouteIdentity: io.resolveBuildingRouteIdentity,
   PUBLIC_CACHE_TAG_PREFIX: 'public',
+  // OPT-053：站点设置的缓存 tag 与 TTL。本文件整体 mock 了 public-catalog，
+  // 新增导出必须在这里补齐，否则 site-settings.ts 的 import 会拿到 undefined。
+  SITE_SETTINGS_TAG: 'public:site-settings',
+  SITE_SETTINGS_REVALIDATE_SECONDS: 60,
   buildCanonicalSearchParams: () => new URLSearchParams(),
   buildBuildingCanonicalParams: () => new URLSearchParams(),
   parseBuildingSearchInput: io.parseBuildingSearchInput,

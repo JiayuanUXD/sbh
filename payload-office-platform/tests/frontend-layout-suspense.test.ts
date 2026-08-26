@@ -31,6 +31,18 @@ vi.mock('@/app/(frontend)/_lib/city-context', () => ({
   ],
 }))
 
+// OPT-053：layout 现在还要读站点设置。与上面的 city-context 同一口径——
+// 本文件验的是 Suspense 边界，不该为此起真实 payload 实例（getPayload 在单测里会挂住）。
+vi.mock('@/lib/frontend/site-settings', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/frontend/site-settings')>(
+    '@/lib/frontend/site-settings',
+  )
+  return {
+    ...actual,
+    getCachedSiteSettings: async () => actual.SITE_SETTINGS_FALLBACK,
+  }
+})
+
 vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
   initWebVitals: async () => () => undefined,
 }))

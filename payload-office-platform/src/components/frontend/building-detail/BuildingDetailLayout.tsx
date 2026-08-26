@@ -97,7 +97,15 @@ export default function BuildingDetailLayout({
   mapEnabled,
   citySlug,
   supplyCurrentSearch,
-}: BuildingDetailLayoutProps) {
+  disclaimers,
+}: BuildingDetailLayoutProps & Readonly<{
+/**
+ * 合规声明（OPT-053）。来自「站点设置 → 合规声明」，由路由层取好传入。
+ * **可选**：缺省时各子组件用自己的字面量兜底——迁移执行前 Global 表不存在，
+ * dev-story 演示页也不该被迫构造这个对象。
+ */
+  disclaimers?: Readonly<{ price?: string; image?: string }>
+}>) {
   const visibleRelatedBuildings = relatedBuildings.filter((item) => item.id !== building.id)
   const hasRelated = visibleRelatedBuildings.length > 0
   // `#location` 的渲染条件必须与 `LocationPanel` 内部的 `if (!coordinates) return null`
@@ -208,12 +216,14 @@ export default function BuildingDetailLayout({
       <div className="dt-container">
         <div className="dt-core">
           <DetailGallery
+            imageDisclaimer={disclaimers?.image}
             media={building.mediaItems}
             title={building.name}
             pageType="building"
             noMediaFallback={{ keySpecs: noMediaKeySpecs, meta: noMediaMeta }}
           />
           <HeroSummaryPanel
+            priceDisclaimer={disclaimers?.price}
             building={building}
             supply={supply}
             serviceSchedule={serviceSchedule}

@@ -7,6 +7,9 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 import CityHomeView from '@/components/frontend/city/CityHomeView'
+// OPT-053：CityHomeView 现在从路由层接收站点设置。本文件验的是编排顺序与
+// 数字口径，拿兜底值即可——顺带保证兜底值本身能渲染出完整九个 section。
+import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings'
 import type {
   ArticleCardViewModel,
   BuildingSummaryViewModel,
@@ -22,7 +25,7 @@ function buildCity(avgResponseHours: number | null) {
     profile: {
       citySlug: 'shanghai', cityName: '上海', serviceStatus: 'live' as const,
       seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1, avgResponseHours,
-      hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null },
+      hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null, video: null, videoEnabled: true },
       intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
     },
   }
@@ -74,8 +77,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('legacy 与 prefixed 的 Hero 文案共用同一句，不读 city.profile.hero', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats }))
-    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     for (const html of [legacy, prefixed]) {
       expect(html).toContain('汇聚高端商务空间，赋能企业卓越成长')
       expect(html).toContain('覆盖核心商务区、总部型整层、精装办公与高规格写字楼资源，帮企业更快完成选址决策')
@@ -87,8 +90,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('legacy 路由不带城市前缀，prefixed 路由带 /shanghai 前缀', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats }))
-    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
+    const legacy = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'legacy', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
+    const prefixed = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     expect(legacy).toContain('href="/listings"')
     expect(legacy).not.toContain('href="/shanghai/listings"')
     expect(prefixed).toContain('href="/shanghai/listings"')
@@ -97,7 +100,7 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('按设计顺序编排九个 section：Hero → 类型 → 商圈 → 楼盘 → 数据带 → 精选房源 → 选择我们 → 核心商圈 → 资讯', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     // 数据带用「收录楼盘」而不是「在租房源」定位：Hero 副标随时可能被产品换掉，
     // 一旦其中出现「在租房源」字样，indexOf 就会被拉到页面最前面（历史上的设计稿
     // 文案「7 座城市 · 在租房源实时同步 · …」正是如此）。
@@ -130,6 +133,7 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
       homepage,
       routeMode: 'legacy',
       bandStats: { listings: 999, buildings: 888, businessAreas: 777 },
+      siteSettings: SITE_SETTINGS_FALLBACK,
     }))
     expect(html).toContain('>12</span> 个商圈')
     expect(html).toContain('>45</span> 个楼盘')
@@ -152,6 +156,7 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
       homepage,
       routeMode: 'legacy',
       bandStats: { listings: 0, buildings: 0, businessAreas: 0 },
+      siteSettings: SITE_SETTINGS_FALLBACK,
     }))
     expect(html).toContain('>12</span> 个商圈')
     expect(html).toContain('>45</span> 个楼盘')
@@ -161,8 +166,8 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
 
   it('avgResponseHours 存在时数据带展示「平均响应」，为 null 时不展示', () => {
     const homepage = buildHomepage()
-    const withResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(3.5), homepage, routeMode: 'prefixed', bandStats }))
-    const withoutResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(null), homepage, routeMode: 'prefixed', bandStats }))
+    const withResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(3.5), homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
+    const withoutResponse = renderToStaticMarkup(createElement(CityHomeView, { city: buildCity(null), homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     expect(withResponse).toContain('平均响应')
     expect(withoutResponse).not.toContain('平均响应')
   })
@@ -170,7 +175,7 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
   it('核心商圈房源以城市名起算，资讯展示传入的文章标题', () => {
     const city = buildCity(2.5)
     const homepage = buildHomepage()
-    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats }))
+    const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     expect(html).toContain('以上海市中心起算')
     expect(html).toContain('首页改版上线')
   })

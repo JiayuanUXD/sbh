@@ -25,6 +25,7 @@ vi.mock('next/navigation', () => ({
 
 import CitySwitcher from '@/components/frontend/CitySwitcher'
 import SiteFooter from '@/components/frontend/SiteFooter'
+import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings'
 import SiteHeader from '@/components/frontend/SiteHeader'
 
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
@@ -97,8 +98,20 @@ async function renderShell(
   root = createRoot(container)
   await act(async () => {
     root?.render(React.createElement(React.Fragment, null,
-      React.createElement(SiteHeader, { cities: options, defaultCity: 'shanghai', multiCityRoutingEnabled }),
-      React.createElement(SiteFooter, { cities: options, defaultCity: 'shanghai', multiCityRoutingEnabled }),
+      // OPT-053：站点标识/页脚文案由 layout 注入；本用例验的是城市切换器，
+      // 拿兜底值即可。
+      React.createElement(SiteHeader, {
+        cities: options,
+        defaultCity: 'shanghai',
+        multiCityRoutingEnabled,
+        brand: { siteName: SITE_SETTINGS_FALLBACK.siteName, logo: null },
+      }),
+      React.createElement(SiteFooter, {
+        cities: options,
+        defaultCity: 'shanghai',
+        multiCityRoutingEnabled,
+        settings: SITE_SETTINGS_FALLBACK,
+      }),
     ))
   })
   return container

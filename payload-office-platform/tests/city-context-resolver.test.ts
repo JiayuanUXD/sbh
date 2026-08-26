@@ -54,7 +54,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     avgResponseHours: null,
     seoTitle: 'Hangzhou office leasing',
     seoDescription: 'A public city profile for Hangzhou office leasing and site selection now.',
-    hero: { eyebrow: '', heading: '', body: '', media: null },
+    hero: { eyebrow: '', heading: '', body: '', media: null, video: null, videoEnabled: true },
     intro: { heading: '', body: '' },
     contact: { heading: '', body: '' },
     featuredRegions: [],

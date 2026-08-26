@@ -19,6 +19,7 @@ import {
   type BuildingSupplyInput,
   resolveBuildingRouteIdentity,
 } from '@/domain/public-catalog'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,6 +71,9 @@ export default async function BuildingDetailPage({
 
   const jsonLd = buildBuildingJsonLd(building, supply, siteConfig.siteOrigin)
 
+  // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
+  // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
+  const siteSettings = await getCachedSiteSettings()
   return (
     <>
       <script
@@ -77,6 +81,7 @@ export default async function BuildingDetailPage({
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <BuildingDetailLayout
+        disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }}
         building={building}
         supply={supply}
         relatedBuildings={relatedBuildings}

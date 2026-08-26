@@ -15,7 +15,23 @@ export type PublicCitySiteProfile = Readonly<{
     eyebrow: string
     heading: string
     body: string
+    /**
+     * 背景**图**。同时用作背景视频的封面与降级底图。
+     *
+     * OPT-053 之前它叫「Hero 媒体」且与视频互斥（`HomeHeroMedia` 里
+     * `{!poster && loadVideo && <video>}`）——运营配了张图，实际效果是把动态
+     * 背景关掉了。图本就是视频的封面，两者不该互斥，现已拆开。
+     */
     media: Readonly<{ src: string; width?: number; height?: number; alt: string }> | null
+    /** 背景**视频**。null 时用内置默认视频。 */
+    video: Readonly<{ src: string }> | null
+    /**
+     * 是否播放背景视频。
+     *
+     * 拆开图/视频之后，「只要静态图」成了需要显式表达的意图——
+     * 以前它是靠「配了图就没视频」这个副作用实现的。
+     */
+    videoEnabled: boolean
   }>
   intro: Readonly<{ heading: string; body: string }>
   contact: Readonly<{ heading: string; body: string }>

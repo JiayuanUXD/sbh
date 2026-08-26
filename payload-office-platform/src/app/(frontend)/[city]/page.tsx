@@ -8,6 +8,7 @@ import { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 
 export const dynamicParams = true
 export const revalidate = 300
@@ -43,6 +44,11 @@ export default async function CityHomePage({ params }: Readonly<{ params: Promis
   if (city.serviceStatus === 'coming-soon') {
     return <ComingSoonCityView city={city} />
   }
-  const homepage = await getCachedHomepage(city.slug)
-  return <CityHomeView city={city} homepage={homepage} routeMode="prefixed" bandStats={homepage.stats} />
+  // OPT-053：站点设置与首页数据并发拉；CityHomeView 保持同步纯编排层，
+  // 由路由层负责取数（与 layout 那次读取在同一请求内由 unstable_cache 去重）。
+  const [homepage, siteSettings] = await Promise.all([
+    getCachedHomepage(city.slug),
+    getCachedSiteSettings(),
+  ])
+  return <CityHomeView city={city} homepage={homepage} routeMode="prefixed" bandStats={homepage.stats} siteSettings={siteSettings} />
 }

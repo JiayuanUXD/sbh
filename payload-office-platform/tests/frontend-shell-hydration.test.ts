@@ -42,6 +42,18 @@ vi.mock('@/app/(frontend)/_lib/city-context', () => ({
   ],
 }))
 
+// OPT-053：layout 现在还要读站点设置。与上面的 city-context 同一口径——
+// 本文件验的是水合边界，不该为此起一个真实 payload 实例（getPayload 在单测里会挂住）。
+vi.mock('@/lib/frontend/site-settings', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/frontend/site-settings')>(
+    '@/lib/frontend/site-settings',
+  )
+  return {
+    ...actual,
+    getCachedSiteSettings: async () => actual.SITE_SETTINGS_FALLBACK,
+  }
+})
+
 vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
   initWebVitals: async () => () => undefined,
 }))
@@ -49,6 +61,7 @@ vi.mock('@/lib/frontend/analytics/web-vitals', () => ({
 import RootLayout from '@/app/(frontend)/layout'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
+import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings'
 
 const CITIES = [
   { slug: 'shanghai', name: '上海', serviceStatus: 'live' as const, sortOrder: 10 },
@@ -99,6 +112,9 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
         cities: CITIES,
         defaultCity: 'shanghai',
         multiCityRoutingEnabled: true,
+        // OPT-053：站点标识由 layout 传入。用兜底值——本用例验的是水合边界，
+        // 不是文案内容，拿默认值即可，也顺带保证兜底值本身能渲染。
+        brand: { siteName: SITE_SETTINGS_FALLBACK.siteName, logo: null },
       }),
     )
     expect(html).toContain('site-header')
@@ -114,6 +130,7 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
         cities: CITIES,
         defaultCity: 'shanghai',
         multiCityRoutingEnabled: true,
+        settings: SITE_SETTINGS_FALLBACK,
       }),
     )
     expect(html).toMatch(/<footer class="site-footer"><div class="site-footer__inner">/)

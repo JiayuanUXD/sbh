@@ -10,6 +10,7 @@ import { hasAmapJsKey } from '@/lib/frontend/amap-public-config'
 import { getServiceSchedule } from '@/lib/frontend/service-schedule'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { resolveListingRouteIdentity } from '@/domain/public-catalog'
+import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +49,10 @@ export default async function CityListingDetailPage({ params }: Props) {
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])
-  return <CityListingDetailView city={loaded.city} listing={loaded.listing}
+  // OPT-053：合规声明来自「站点设置」。与 layout 那次读取在同一请求内由
+  // unstable_cache 去重，不多打一次库；缺省时各子组件用自己的字面量兜底。
+  const siteSettings = await getCachedSiteSettings()
+  return <CityListingDetailView disclaimers={{ price: siteSettings.priceDisclaimer, image: siteSettings.imageDisclaimer }} city={loaded.city} listing={loaded.listing}
     recommendations={recommendations} pois={pois} serviceSchedule={serviceSchedule}
     mapEnabled={building?.coordinates != null && hasAmapJsKey()}
     routeMode={getMultiCityRoutingEnabled() ? 'prefixed' : 'legacy'} />

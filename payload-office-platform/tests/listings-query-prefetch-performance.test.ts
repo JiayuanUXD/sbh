@@ -102,7 +102,9 @@ describe('OPT-026 route cache and prefetch contracts', () => {
       readFile(resolve(ROOT, 'src/components/frontend/listing/FilterPill.tsx'), 'utf8'),
     ])
 
-    expect(homeTypeCards).toContain("href={`${prefix}${t.href}`} prefetch={false}")
+    // OPT-053：跳转目标改由槽位查 SLOT_TARGETS，不再是数组项自带的 t.href
+    // （运营可配文案与顺序，但绝不可配 href——那是死链工厂）。prefetch 契约不变。
+    expect(homeTypeCards).toContain("href={`${prefix}${target.href}`} prefetch={false}")
     expect(homeDistrictBento).toContain('/listings?district=${encodeURIComponent(card.slug)}')
     expect(homeDistrictBento).toContain('prefetch={false}')
     expect(siteNav).toContain(

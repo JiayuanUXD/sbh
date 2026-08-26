@@ -59,7 +59,20 @@ function toRenderableMedia(item: DetailMediaViewModel, title: string): Renderabl
  * switches to the 视频 tab (DetailVideo uses preload="none", no autoplay),
  * keeping third-party media off the first-paint critical path.
  */
-export default function DetailGallery({ media, title, pageType, noMediaFallback }: DetailGalleryProps) {
+/**
+ * OPT-053 三层兜底的第三层：默认值就是接线前这里的硬编码字面量。
+ * 本组件是 'use client'，不能 import 站点设置读取器（那会把 payload 拖进客户端包），
+ * 配置值由服务端父组件传入，缺省时用这个常量。
+ */
+const DEFAULT_IMAGE_DISCLAIMER = '示意图，以现场实际情况为准'
+
+export default function DetailGallery({
+  media,
+  title,
+  pageType,
+  noMediaFallback,
+  imageDisclaimer = DEFAULT_IMAGE_DISCLAIMER,
+}: DetailGalleryProps & Readonly<{ imageDisclaimer?: string }>) {
   const renderableMedia = useMemo(
     () => media.flatMap((item) => {
       const renderable = toRenderableMedia(item, title)
@@ -360,7 +373,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
           </span>
           {activeMedia.item.kind === 'floor-plan' && activeMedia.item.isSchematic && (
             <figcaption className="detail-gallery__caption">
-              <span className="detail-gallery__schematic-note">示意图，以现场实际情况为准</span>
+              <span className="detail-gallery__schematic-note">{imageDisclaimer}</span>
             </figcaption>
           )}
         </figure>
@@ -368,7 +381,7 @@ export default function DetailGallery({ media, title, pageType, noMediaFallback 
 
       {activeKind === 'floor-plan' && (
         <p className="detail-gallery__schematic-declaration" role="note">
-          示意图，以现场实际情况为准
+          {imageDisclaimer}
         </p>
       )}
 

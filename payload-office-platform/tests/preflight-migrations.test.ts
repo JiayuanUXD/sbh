@@ -32,7 +32,11 @@ describe('preflight migrations: 纯函数', () => {
     // 用来把被旧基线带偏的快照链修回与 config 对齐。详见该迁移的文件头注释与 OPT-048。
     // OPT-045 再加 1 份 opt045_import_publishable_fields：merchants.is_platform_default
     // （D2 平台自营商户标识）+ buildings.sale_unit_price（D1 在售单价，单值）。
-    expect(names.length).toBe(64)
+    // OPT-053 再加 1 份 opt_053_site_settings：新建 site_settings 主表 + valueProps /
+    // typeCards 两张 array 子表，另给 city_site_profiles 加 hero_video_id 与
+    // hero_video_enabled 两个可空列（后者带 DEFAULT true，存量行由 PG 回填——
+    // 否则迁移一跑，已开城首页的背景视频当场消失）。
+    expect(names.length).toBe(65)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -69,7 +73,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(64)
+    expect(names.length).toBe(65)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')

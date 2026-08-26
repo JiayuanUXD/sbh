@@ -8,11 +8,19 @@ import CitySwitcher, { resolveTrustedCity } from '@/components/frontend/CitySwit
 import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 
+/** 站点标识。由 layout 从 `getCachedSiteSettings()` 取好传进来——本组件是 'use client'，
+ *  拿不到服务端读取器。缺省时回落为文字站名，那正是接线前的线上形态。 */
+export type SiteBrand = Readonly<{
+  siteName: string
+  logo: Readonly<{ src: string; alt: string }> | null
+}>
+
 type HeaderShellProps = Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
   pathname: string
+  brand: SiteBrand
 }>
 
 function HeaderContents({
@@ -20,6 +28,7 @@ function HeaderContents({
   defaultCity,
   multiCityRoutingEnabled,
   pathname,
+  brand,
   searchParams,
   onRefreshSearchParams,
 }: HeaderShellProps & Readonly<{
@@ -29,7 +38,15 @@ function HeaderContents({
   const currentCity = resolveTrustedCity(pathname, cities, defaultCity, searchParams)
   return (
     <>
-      <Link href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'} className="site-logo" aria-label="商办租赁首页">商办租赁</Link>
+      <Link
+        href={multiCityRoutingEnabled && currentCity ? `/${currentCity.slug}` : '/'}
+        className="site-logo"
+        aria-label={`${brand.siteName}首页`}
+      >
+        {brand.logo
+          ? <img src={brand.logo.src} alt={brand.logo.alt || brand.siteName} className="site-logo__img" />
+          : brand.siteName}
+      </Link>
       {multiCityRoutingEnabled ? (
         <CitySwitcher
           cities={cities}
@@ -66,10 +83,12 @@ export default function SiteHeader({
   cities,
   defaultCity,
   multiCityRoutingEnabled,
+  brand,
 }: Readonly<{
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
+  brand: SiteBrand
 }>) {
   const pathname = usePathname() || '/'
   const [searchParams, refreshSearchParams] = useClientSearchParams()
@@ -101,6 +120,7 @@ export default function SiteHeader({
           defaultCity={defaultCity}
           multiCityRoutingEnabled={multiCityRoutingEnabled}
           pathname={pathname}
+          brand={brand}
           searchParams={searchParams}
           onRefreshSearchParams={refreshSearchParams}
         />
