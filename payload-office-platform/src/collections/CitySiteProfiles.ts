@@ -18,6 +18,16 @@ import { invalidateCitySiteProfilePublicCache } from '@/lib/frontend/public-cach
 
 type Identifier = number | string
 
+/**
+ * OPT-053 §6：Hero 文案三件套的作用域说明。
+ *
+ * 2026-08-21 产品裁定「首屏全站共用一句、不按城市定制」，已开城首页因此**不读**
+ * 这里的 heroHeading/heroBody。裁定本身没问题，问题在于字段标签当时没跟着改——
+ * 运营看到「Hero 标题」就填，填完首页毫无反应，页面上也没有任何线索解释。
+ */
+const HERO_COPY_SCOPE_NOTE =
+  '仅用于该城**未开通服务**时的招募页。已开城首页的首屏文案在「内容管理 → 站点设置 → 品牌」里改。'
+
 function relationshipId(value: unknown): Identifier | null {
   if (typeof value === 'number' || typeof value === 'string') return value
   if (
@@ -213,15 +223,61 @@ export const CitySiteProfiles: CollectionConfig = {
           label: '首页内容',
           description: '城市站首页 Hero、简介、委托卡片与精选区域。',
           fields: [
+            // OPT-053 §6：这三个文案字段**只作用于未开城页**（ComingSoonCityView），
+            // 已开城首页的 H1/副标读全局「站点设置 → 品牌」。
+            // 标签必须带「未开城页」前缀——不带的话它们叫「Hero 标题」，运营看到就填，
+            // 填完首页纹丝不动，而页面上没有任何线索说明原因。**字段没坏，是标签在撒谎。**
             {
               type: 'row',
               fields: [
-                { name: 'heroEyebrow', label: 'Hero 眉题', type: 'text' },
-                { name: 'heroHeading', label: 'Hero 标题', type: 'text' },
+                {
+                  name: 'heroEyebrow',
+                  label: '未开城页 Hero 眉题',
+                  type: 'text',
+                  admin: { description: HERO_COPY_SCOPE_NOTE },
+                },
+                {
+                  name: 'heroHeading',
+                  label: '未开城页 Hero 标题',
+                  type: 'text',
+                  admin: { description: HERO_COPY_SCOPE_NOTE },
+                },
               ],
             },
-            { name: 'heroBody', label: 'Hero 正文', type: 'textarea' },
-            { name: 'heroMedia', label: 'Hero 媒体', type: 'relationship', relationTo: 'media' },
+            {
+              name: 'heroBody',
+              label: '未开城页 Hero 正文',
+              type: 'textarea',
+              admin: { description: HERO_COPY_SCOPE_NOTE },
+            },
+            // 背景媒体与上面三个文案字段的作用域不同：它**首页也生效**，故不加前缀。
+            // OPT-053 §4.5：图与视频拆成两个独立字段。此前 HomeHeroMedia 用
+            // `{!poster && loadVideo && <video>}`，配了图等于把视频关掉——运营想换底图，
+            // 实际效果是动态背景消失。图本就是视频的封面与降级底图，两者不该互斥。
+            {
+              name: 'heroMedia',
+              label: 'Hero 背景图',
+              type: 'relationship',
+              relationTo: 'media',
+              // 不限类型的话，运营选个视频进来会被塞进 <img src=…> 直接破图
+              filterOptions: () => ({ mimeType: { contains: 'image' } }),
+              admin: { description: '首页与未开城页共用的背景图。同时用作背景视频的封面与降级底图。' },
+            },
+            {
+              name: 'heroVideo',
+              label: 'Hero 背景视频',
+              type: 'relationship',
+              relationTo: 'media',
+              filterOptions: () => ({ mimeType: { contains: 'video' } }),
+              admin: { description: '留空则用内置的默认背景视频。移动端、省流量模式与「减少动态效果」下一律不加载。' },
+            },
+            {
+              name: 'heroVideoEnabled',
+              label: '首屏播放背景视频',
+              type: 'checkbox',
+              defaultValue: true,
+              admin: { description: '关掉则只渲染背景图。这是「只要静态图」的显式开关——以前是靠「配了图就没视频」的副作用实现的。' },
+            },
             { name: 'introHeading', label: '简介标题', type: 'text' },
             { name: 'introBody', label: '简介正文', type: 'textarea' },
             { name: 'contactHeading', label: '委托卡片标题', type: 'text' },

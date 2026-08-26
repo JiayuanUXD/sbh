@@ -51,6 +51,7 @@ import { Notifications } from './collections/Notifications'
 import { SupplyImportBatches } from './collections/SupplyImportBatches'
 import { LocationAliases } from './collections/LocationAliases'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
+import { SiteSettings } from './globals/SiteSettings'
 import {
   EXPORT_LIMIT,
   createExportAuditHook,
@@ -336,7 +337,7 @@ export default buildConfig({
     SupplyImportBatches,
     LocationAliases,
   ],
-  globals: [AdvisorServiceHours],
+  globals: [AdvisorServiceHours, SiteSettings],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
   // M7.3 经营概览 endpoint（GET /api/overview，返回卡 / 趋势 / 分布 + asOf）
   // M7.4 房源分析 endpoint（GET /api/listings/analytics，复用统一有效供给谓词）

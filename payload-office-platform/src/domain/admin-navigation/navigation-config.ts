@@ -160,6 +160,14 @@ export const ADMIN_NAV_GROUPS = [
     ]),
   ]),
   group('content', '内容管理', 'file', [
+    // OPT-053：站点设置是 Global，`custom.scss` 隐藏了 Payload 原生导航，
+    // 不在这里收编就**彻底不可发现**——集合漏收编还有左下角那个兜底区块
+    // （见 supply-import-batches 那条），Global 连兜底都没有。
+    // requiredOperationCode 必须与 `SiteSettings.access.update` 用同一个码：
+    // 菜单看得见的人和 API 改得动的人得是同一批。
+    leaf('site-settings', '站点设置', '/admin/globals/site-settings', ['site-settings'], {
+      requiredOperationCode: 'site_settings:manage',
+    }),
     leaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
     leaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
     leaf('media', '素材库', '/admin/collections/media', ['media']),
