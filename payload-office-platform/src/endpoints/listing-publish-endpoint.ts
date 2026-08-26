@@ -10,7 +10,6 @@ import {
   nextPublicationStatus,
   type PublishAction,
 } from '@/domain/review/publication-status'
-import { getSaleChannelEnabled } from '@/lib/frontend/site-config'
 
 /**
  * 房源显式发布 endpoint（tasks.md M4.6「实现显式发布动作」/ R4, R8）
@@ -55,15 +54,6 @@ export function createListingPublishEndpoint(): Endpoint {
       const action = body.action
       if (!isPublishAction(action)) {
         return Response.json({ ok: false, error: '非法发布动作' }, { status: 400 })
-      }
-
-      // 出售功能开关关闭时拒绝标记已售。
-      //
-      // 这里是服务端，能直接读开关——比后台隐藏按钮更实在：真正阻止动作落库，
-      // 而不只是让入口不可见。'sold' 仍保留在 PUBLICATION_STATUSES 里（枚举值
-      // 决定 PG ENUM，条件移除会生成危险迁移），已售房源的状态照常展示。
-      if (action === 'mark_sold' && !getSaleChannelEnabled()) {
-        return Response.json({ ok: false, error: '出售功能未开启' }, { status: 400 })
       }
 
       // 2. 鉴权：按动作区分 publish / unpublish 权限

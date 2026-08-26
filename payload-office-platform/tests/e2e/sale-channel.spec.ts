@@ -5,13 +5,12 @@ import { expect, test } from '@playwright/test'
  *
  * ## 为什么需要这个文件
  *
- * 出售频道由 `NEXT_PUBLIC_SALE_CHANNEL_ENABLED` 控制，2026-08-24 之前生产一直关着
- *（ff07d21：「出售功能需要更长的验证周期」，用开关把代码上线与用户可见解耦）。
- * 打开它等于把 `/sale` 与 `/[city]/sale` 两个公开页放给用户，而在此之前
- * **出售频道一条 e2e 都没有**——关着的时候恒 404，测什么都没意义。
+ * 出售频道曾由 `NEXT_PUBLIC_SALE_CHANNEL_ENABLED` 控制（ff07d21：「出售功能需要更长的
+ * 验证周期」，用开关把代码上线与用户可见解耦），2026-08-24 打开，功能稳定后开关整体
+ * 移除，出售能力现在恒定可用。
  *
- * 开关一开，最需要守住的就是这条：**路由不能静默 404**。
- * 出售频道的失败模式与租赁不同——租赁页坏了会立刻有人报，出售页刚上线、没人常看，
+ * 开关没了，这条冒烟反而更重要：**路由不能静默 404**。
+ * 出售频道的失败模式与租赁不同——租赁页坏了会立刻有人报，出售页没人常看，
  * 404 可以挂很久没人发现。
  *
  * ## 刻意不断言内容
@@ -26,7 +25,7 @@ const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 test.describe('出售频道', () => {
   test('/sale 可达且不是 404', async ({ page }) => {
     const response = await page.goto('/sale')
-    expect(response?.status(), '/sale 返回非 200 说明出售频道开关没生效（NEXT_PUBLIC_* 是构建期内联的，改了要重新构建）').toBe(200)
+    expect(response?.status(), '/sale 返回非 200：出售频道路由挂了').toBe(200)
     // notFound() 会渲染 Next 的 not-found 页；断言标题不是它，比只看状态码更结实——
     // 某些配置下 not-found 也可能返回 200。
     await expect(page.locator('body')).not.toContainText('页面未找到')

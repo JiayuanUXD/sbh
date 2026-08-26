@@ -118,7 +118,6 @@ jobs:
       # CI 必须跟着开，否则 e2e 验的是「频道关闭」那条路径——/sale 与 /[city]/sale
       # 恒 404、sitemap 无出售条目，出售链路的任何回归都测不到，而线上是开着的。
       # 这正是「CI 绿灯不等于线上正确」最典型的成因：两边跑的根本不是同一个形态。
-      NEXT_PUBLIC_SALE_CHANNEL_ENABLED: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
