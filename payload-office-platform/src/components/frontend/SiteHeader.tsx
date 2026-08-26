@@ -13,6 +13,8 @@ import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 export type SiteBrand = Readonly<{
   siteName: string
   logo: Readonly<{ src: string; alt: string }> | null
+  /** 主导航项（OPT-054），href 已在服务端解析完成。 */
+  mainNav: readonly Readonly<{ href: string; label: string }>[]
 }>
 
 type HeaderShellProps = Readonly<{
@@ -55,6 +57,7 @@ function HeaderContents({
         />
       ) : null}
       <SiteNav
+        items={brand.mainNav}
         cities={cities}
         defaultCity={defaultCity}
         multiCityRoutingEnabled={multiCityRoutingEnabled}

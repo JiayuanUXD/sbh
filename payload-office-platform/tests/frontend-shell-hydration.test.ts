@@ -114,7 +114,11 @@ describe('公开站点外壳必须直接水合，不得整体位于流式边界�
         multiCityRoutingEnabled: true,
         // OPT-053：站点标识由 layout 传入。用兜底值——本用例验的是水合边界，
         // 不是文案内容，拿默认值即可，也顺带保证兜底值本身能渲染。
-        brand: { siteName: SITE_SETTINGS_FALLBACK.siteName, logo: null },
+        brand: {
+          siteName: SITE_SETTINGS_FALLBACK.siteName,
+          logo: null,
+          mainNav: SITE_SETTINGS_FALLBACK.mainNav,
+        },
       }),
     )
     expect(html).toContain('site-header')

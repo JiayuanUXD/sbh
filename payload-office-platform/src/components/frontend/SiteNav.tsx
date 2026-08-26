@@ -11,7 +11,7 @@ import {
 } from '@/components/frontend/landing/BottomCtaBar'
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
 import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
-import { MAIN_NAV_ITEMS } from '@/lib/frontend/public-nav'
+import type { PublicNavItem } from '@/lib/frontend/public-nav'
 import {
   cityAwareHref,
   citySwitchHref,
@@ -80,6 +80,7 @@ function isCurrent(
 }
 
 export default function SiteNav({
+  items,
   cities,
   defaultCity,
   multiCityRoutingEnabled,
@@ -87,6 +88,11 @@ export default function SiteNav({
   searchParams,
   onRefreshSearchParams,
 }: Readonly<{
+  /**
+   * 主导航项（OPT-054）。href 已由服务端从目标池解析好——本组件不认识目标 id，
+   * 也不该认识：解析放在客户端等于把路由池也打包进浏览器。
+   */
+  items: readonly PublicNavItem[]
   cities: readonly PublicCityOption[]
   defaultCity: string
   multiCityRoutingEnabled: boolean
@@ -178,7 +184,7 @@ export default function SiteNav({
     <>
       {/* 桌面端导航 */}
       <nav className="site-nav" aria-label="主导航">
-        {MAIN_NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
           const current = isCurrent(pathname, searchParams, href)
           return (
@@ -290,7 +296,7 @@ export default function SiteNav({
             onClick={(e) => e.stopPropagation()}
           >
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
-              {MAIN_NAV_ITEMS.map((item) => {
+              {items.map((item) => {
                 const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
                 const current = isCurrent(pathname, searchParams, href)
                 return (

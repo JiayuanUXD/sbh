@@ -63,6 +63,7 @@ import * as migration_20260822_010308_supply_import_job_task from './20260822_01
 import * as migration_20260824_101016_opt048_snapshot_chain_repair from './20260824_101016_opt048_snapshot_chain_repair';
 import * as migration_20260824_110612_opt045_import_publishable_fields from './20260824_110612_opt045_import_publishable_fields';
 import * as migration_20260826_035602_opt_053_site_settings from './20260826_035602_opt_053_site_settings';
+import * as migration_20260826_065228_opt_054_nav_config from './20260826_065228_opt_054_nav_config';
 
 export const migrations = [
   {
@@ -388,6 +389,11 @@ export const migrations = [
   {
     up: migration_20260826_035602_opt_053_site_settings.up,
     down: migration_20260826_035602_opt_053_site_settings.down,
-    name: '20260826_035602_opt_053_site_settings'
+    name: '20260826_035602_opt_053_site_settings',
+  },
+  {
+    up: migration_20260826_065228_opt_054_nav_config.up,
+    down: migration_20260826_065228_opt_054_nav_config.down,
+    name: '20260826_065228_opt_054_nav_config'
   },
 ];

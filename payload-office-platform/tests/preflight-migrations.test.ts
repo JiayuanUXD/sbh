@@ -36,7 +36,10 @@ describe('preflight migrations: 纯函数', () => {
     // typeCards 两张 array 子表，另给 city_site_profiles 加 hero_video_id 与
     // hero_video_enabled 两个可空列（后者带 DEFAULT true，存量行由 PG 回填——
     // 否则迁移一跑，已开城首页的背景视频当场消失）。
-    expect(names.length).toBe(65)
+    // OPT-054 再加 1 份 opt_054_nav_config：main_nav / footer_columns(_links) 三张
+    // array 子表 + 两个目标枚举。**枚举意味着往 NAV_TARGETS 里加目标要配
+    // ALTER TYPE ADD VALUE 迁移**，不能只改代码（见 nav-targets.ts 文件头）。
+    expect(names.length).toBe(66)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -73,7 +76,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(65)
+    expect(names.length).toBe(66)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
