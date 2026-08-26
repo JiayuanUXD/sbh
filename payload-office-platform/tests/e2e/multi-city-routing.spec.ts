@@ -111,9 +111,10 @@ test.describe('multi-city route ownership', () => {
       await expectRedirect(request, '/buildings', '/shanghai/buildings')
       await expectRedirect(
         request,
-        '/listings?district=pudong&areaMin=100&page=3&rentMax=10',
-        // 输入 rentMax（旧名，仍被解析），canonical 收敛为 priceMax
-        '/shanghai/listings?areaMin=100&priceMax=10',
+        // rentUnit 不能省：缺单位的 rentMax 被闸门整段丢弃，重定向目标里就没有它
+        '/listings?district=pudong&areaMin=100&page=3&rentUnit=rmb-sqm-day&rentMax=10',
+        // 输入 rentUnit/rentMax（旧名，仍被解析），canonical 收敛为 priceUnit/priceMax
+        '/shanghai/listings?areaMin=100&priceMax=10&priceUnit=rmb-sqm-day',
       )
       return
     }
