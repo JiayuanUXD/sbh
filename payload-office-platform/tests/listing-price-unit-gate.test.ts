@@ -165,21 +165,17 @@ function listing(options: Readonly<{
       city: { id: 100, status: 'active' },
       district: { id: 101, status: 'active' },
     },
-  }
-}
-
-function activeRelation(listingId: number): Record<string, unknown> {
-  return {
-    id: listingId + 10_000,
-    listing: listingId,
-    effectiveFrom: '2026-01-01T00:00:00.000Z',
-    effectiveTo: null,
+    // OPT-034 起商户直接挂在 listing 上，不再经 listing-merchant-relations 关系表
+    // （见 `supply-adapter.ts#fineFilter` 的注释）。挂错地方的表现是**全部房源
+    // 被判为无效供给**，每条断言都收到 `[]`——不是筛错，是一条都没进来。
     merchant: {
       id: 50,
+      name: '有效商户',
+      type: 'OWNER',
       status: 'active',
       qualificationStatus: 'valid',
       qualificationExpiresAt: '2027-01-01T00:00:00.000Z',
-      serviceCities: [{ id: 100 }],
+      serviceCities: [100],
     },
   }
 }
@@ -210,13 +206,8 @@ function mockListings(docs: readonly Record<string, unknown>[]): void {
     if (params.collection === 'listings') {
       return { docs: applyRentUnitWhere(docs, params.where), hasNextPage: false, nextPage: null }
     }
-    if (params.collection === 'listing-merchant-relations') {
-      return {
-        docs: docs.map((doc) => activeRelation(doc.id as number)),
-        hasNextPage: false,
-        nextPage: null,
-      }
-    }
+    // 刻意不为 listing-merchant-relations 留分支：OPT-034 之后精筛不再查它，
+    // 留着等于给「下推悄悄回到关系表」留一条静默通过的路。真查了就让它炸。
     throw new Error(`unexpected collection ${String(params.collection)}`)
   })
 }
