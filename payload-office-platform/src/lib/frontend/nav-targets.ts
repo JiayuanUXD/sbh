@@ -45,6 +45,9 @@ export type NavTarget = Readonly<{
 
 /** 静态路由目标。与 `src/app/(frontend)/` 下的顶层公开路由一一对应。 */
 const STATIC_TARGETS: readonly NavTarget[] = [
+  // 首页。多城市前缀不用在这里处理——`cityAwareHref` 认识 `home` 这个 pageType
+  // （CitySwitcher.tsx），会把 `/` 自动变成 `/{city}`。
+  { id: 'home', href: '/', defaultLabel: '首页' },
   { id: 'listings', href: '/listings', defaultLabel: '找办公室' },
   { id: 'buildings', href: '/buildings', defaultLabel: '找楼盘' },
   { id: 'entrust', href: '/entrust', defaultLabel: '委托找房' },

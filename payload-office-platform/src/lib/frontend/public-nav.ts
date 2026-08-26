@@ -18,8 +18,15 @@ export type PublicNavColumn = Readonly<{
   links: readonly PublicNavItem[]
 }>
 
-/** 主导航：logo 即回首页，故不设「首页」项。 */
+/**
+ * 主导航**默认值**（迁移执行前与配置全空时的兜底，见 site-settings-view.ts）。
+ *
+ * 「首页」项：原本刻意不设，理由是 logo 本身就回首页。OPT-054 之后这条不再由
+ * 代码决定——目标池里有 `home`，放不放进主导航是后台配置。这里保留一份含首页的
+ * 默认值，与 `SiteSettings.mainNav` 的 defaultValue 逐条对应。
+ */
 export const MAIN_NAV_ITEMS: readonly PublicNavItem[] = [
+  { href: '/', label: '首页' },
   { href: '/listings', label: '找办公室' },
   { href: '/buildings', label: '找楼盘' },
   { href: '/listings?type=coworking', label: '共享办公' },

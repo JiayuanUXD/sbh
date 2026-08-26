@@ -39,7 +39,9 @@ describe('preflight migrations: 纯函数', () => {
     // OPT-054 再加 1 份 opt_054_nav_config：main_nav / footer_columns(_links) 三张
     // array 子表 + 两个目标枚举。**枚举意味着往 NAV_TARGETS 里加目标要配
     // ALTER TYPE ADD VALUE 迁移**，不能只改代码（见 nav-targets.ts 文件头）。
-    expect(names.length).toBe(66)
+    // opt_054_nav_home_target 就是那句话的第一次兑现：主导航加「首页」目标，
+    // 代码里加一行的同时必须配这条 ALTER TYPE ... ADD VALUE 'home'。
+    expect(names.length).toBe(67)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -76,7 +78,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(66)
+    expect(names.length).toBe(67)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
