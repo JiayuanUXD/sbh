@@ -28,8 +28,10 @@ export const AdvisorServiceHours: GlobalConfig = {
     read: () => true,
   },
   admin: {
-    group: '团队管理',
-    hidden: true,
+    // 同 SiteSettings：`hidden: true` 会连路由一起排除，导致自定义导航里那条
+    // 「顾问服务时间」（navigation-config.ts）点进去是 404。这个缺陷一直都在，
+    // 只是那个入口大概没人点过，直到 OPT-053 照抄本文件才暴露出来。
+    group: false,
     description:
       '平台级服务时间（Asia/Shanghai）。用于前台展示"当前服务中/非服务时段"，不含个人顾问排班或联系方式。',
   },
