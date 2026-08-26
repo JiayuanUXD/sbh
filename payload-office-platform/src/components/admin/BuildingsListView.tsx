@@ -1,4 +1,7 @@
-import type { ListViewServerPropsOnly, Where } from 'payload'
+import type { ListViewServerProps, Where } from 'payload'
+
+import { shouldDeferToDefaultListView } from './list-view-context'
+import { renderDefaultListView } from './payload-default-list-fallback'
 
 import {
   BUILDING_OPERATIONAL_STATUSES,
@@ -13,6 +16,9 @@ import BuildingsListViewClient, { type BuildingRow } from './BuildingsListViewCl
  *
  * 整页替换 buildings 默认列表视图：服务端分页 + 名称搜索 + 状态/城市筛选，
  * 客户端用 Arco Table 呈现。注册：Buildings.admin.components.views.list.Component。
+ *
+ * 仅接管「整页列表」；回收站与关系抽屉让位给 Payload 原生视图，
+ * 判定与理由见 `list-view-context.ts`。
  */
 
 const PAGE_SIZE_DEFAULT = 25
@@ -50,11 +56,12 @@ function locationName(value: Building['city'] | Building['district']): string | 
   return value && typeof value === 'object' ? ((value as Location).name ?? null) : null
 }
 
-export default async function BuildingsListView({
-  payload,
-  user,
-  searchParams,
-}: ListViewServerPropsOnly) {
+export default async function BuildingsListView(props: ListViewServerProps) {
+  if (shouldDeferToDefaultListView(props)) {
+    return renderDefaultListView(props)
+  }
+
+  const { payload, user, searchParams } = props
   if (!user) {
     return <div style={{ padding: 24 }}>请先登录后台。</div>
   }

@@ -360,6 +360,31 @@ export default function ListingsListViewClient({
 
   return (
     <div className="listings-list" style={{ padding: 24 }}>
+      {/*
+        保留 h1 标题：用户要去掉的是原生的「所有 房源列表 / 垃圾箱」标签条，
+        不是页面标题本身。标题同时是可访问性地标，也是后台角色矩阵 E2E
+        判断「是否真的进到了目标页」的依据。
+      */}
+      <div className="listings-list__header">
+        <h1 className="list-header__title">房源列表</h1>
+        <Space size="small">
+          <Button
+            href="/admin/collections/listings/trash"
+            icon={<IconDelete />}
+            type="text"
+          >
+            回收站
+          </Button>
+          <Button
+            href="/admin/collections/listings/create"
+            icon={<IconPlus />}
+            type="primary"
+          >
+            创建房源
+          </Button>
+        </Space>
+      </div>
+
       <div
         style={{
           alignItems: 'center',
@@ -413,22 +438,6 @@ export default function ListingsListViewClient({
             value={activeBusinessType ?? undefined}
             onChange={(v) => navigate({ page: 1, businessType: (v as string | undefined) ?? null })}
           />
-        </Space>
-        <Space size="small">
-          <Button
-            href="/admin/collections/listings/trash"
-            icon={<IconDelete />}
-            type="text"
-          >
-            回收站
-          </Button>
-          <Button
-            href="/admin/collections/listings/create"
-            icon={<IconPlus />}
-            type="primary"
-          >
-            创建房源
-          </Button>
         </Space>
       </div>
 

@@ -1,4 +1,7 @@
-import type { ListViewServerPropsOnly, Where } from 'payload'
+import type { ListViewServerProps, Where } from 'payload'
+
+import { shouldDeferToDefaultListView } from './list-view-context'
+import { renderDefaultListView } from './payload-default-list-fallback'
 
 import {
   BUSINESS_TYPES,
@@ -24,6 +27,9 @@ import ListingsListViewClient, { type ListingRow } from './ListingsListViewClien
  *
  * 权限：collection access 与字段权限仍由服务端强制——列表查询走 Local API
  * （listings read 本就公开），行内快捷编辑走 REST PATCH（access + hooks 全跑）。
+ *
+ * 仅接管「整页列表」；回收站与关系抽屉让位给 Payload 原生视图，
+ * 判定与理由见 `list-view-context.ts`。
  */
 
 const PAGE_SIZE_DEFAULT = 25
@@ -42,11 +48,12 @@ function inOptions(value: string | null, options: readonly string[]): string | n
   return value && (options as readonly string[]).includes(value) ? value : null
 }
 
-export default async function ListingsListView({
-  payload,
-  user,
-  searchParams,
-}: ListViewServerPropsOnly) {
+export default async function ListingsListView(props: ListViewServerProps) {
+  if (shouldDeferToDefaultListView(props)) {
+    return renderDefaultListView(props)
+  }
+
+  const { payload, user, searchParams } = props
   if (!user) {
     return <div style={{ padding: 24 }}>请先登录后台。</div>
   }

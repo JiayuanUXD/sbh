@@ -78,3 +78,53 @@
 字段「看起来没渲染」；真实浏览器无此问题（生产无碍）。同因还发现
 `AdminNavigationClient` 的 mounted 初始化 rAF 在后台标签页永不执行——已顺手改为
 `setTimeout(0)`（见 T1 文档）。
+
+---
+
+## PR 评审追加修复（列表视图的「渲染上下文」）
+
+`views.list.Component` 不只用于整页列表，Payload 3.86 还在两处渲染同一个覆盖组件：
+
+| 场景 | 入口 | 若不处理的后果 | 当前是否可达 |
+|---|---|---|---|
+| 回收站 `/collections/<slug>/trash` | `CollectionTrash` → `renderListView({viewType:'trash'})` | 显示**活跃**文档、无恢复流程 | **是**（我自己加的「回收站」按钮直通） |
+| 关系字段列表抽屉 | `renderListHandler`（带 `drawerSlug`/`enableRowSelections`） | 抽屉里选不中记录 | 否（本仓库无 `appearance:'drawer'` 关系字段，属隐雷） |
+
+浏览器复现（修复前）：`/admin/collections/listings/trash` 标题「房源列表 垃圾箱」，
+表格内容却是活跃房源，无「清空垃圾箱」。
+
+### 修法
+
+只有**确认是整页列表**才接管，其余一律让位给 Payload 原生视图（`DefaultListView`）：
+
+- `viewType !== 'list'` → 让位（覆盖回收站及将来任何新视图类型）；
+- 抽屉：`disableBulkDelete === true && disableBulkEdit === true`
+  （`ListDrawer/DrawerContent` 调 `render-list` 时显式传的两个标志；`drawerSlug`
+  不在传给组件的 props 里，这是服务端唯一可用信号）。
+
+按白名单写的好处是**失败方向安全**：判定若在未来失效，最坏是「看到原生列表」，
+而不是「功能坏了但看起来正常」。回退渲染逐项挑 `ListViewClientProps`，不整包透传
+——`payload` / `i18n` / 带函数的 `collectionConfig` 透传会炸在 RSC 序列化边界。
+
+实测（修复后）：`/trash` 走原生（含「清空垃圾箱」与恢复流程），整页列表仍是 Arco。
+
+## E2E 失败与页面标题
+
+CI 的 `admin-navigation.spec.ts` 角色矩阵红灯：断言
+`getByRole('heading', { level: 1, name: '房源列表', exact: true })` 找不到元素。
+
+原因是我把整个原生抬头删掉了，**连 h1 一起**。查证原生抬头实为：
+
+```
+h1「房源列表」 | 「创建新条目」链接 | 「所有 房源列表」标签 | 「垃圾箱」标签
+```
+
+用户要去掉的是**标签条**（"所有 房源列表"），不是页面标题。已恢复
+`<h1>房源列表</h1>` / `<h1>楼盘库</h1>`：既是可访问性地标，也是该 E2E 判断
+「是否真的进到目标页」的依据；标签条仍不渲染，创建按钮仍在右上。
+
+## 追加守卫
+
+`tests/admin-list-view-context.test.ts`：判定函数的四种上下文、两个视图「取数前先
+判定让位」、以及两个列表页必须有 h1 标题。判定逻辑已拆成无 UI 依赖的
+`list-view-context.ts`（vitest 跑在 node 环境，导入 `@payloadcms/ui` 会因 CSS 解析失败）。

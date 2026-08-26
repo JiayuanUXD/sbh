@@ -270,6 +270,27 @@ export default function BuildingsListViewClient({
 
   return (
     <div className="buildings-list" style={{ padding: 24 }}>
+      {/* 保留 h1 标题，理由同房源列表（去掉的是「所有 楼盘库 / 垃圾箱」标签条）。 */}
+      <div className="buildings-list__header">
+        <h1 className="list-header__title">楼盘库</h1>
+        <Space size="small">
+          <Button
+            href="/admin/collections/buildings/trash"
+            icon={<IconDelete />}
+            type="text"
+          >
+            回收站
+          </Button>
+          <Button
+            href="/admin/collections/buildings/create"
+            icon={<IconPlus />}
+            type="primary"
+          >
+            创建楼盘
+          </Button>
+        </Space>
+      </div>
+
       <div
         style={{
           alignItems: 'center',
@@ -327,22 +348,6 @@ export default function BuildingsListViewClient({
             value={activeGrade ?? undefined}
             onChange={(v) => navigate({ grade: (v as string | undefined) ?? null, page: 1 })}
           />
-        </Space>
-        <Space size="small">
-          <Button
-            href="/admin/collections/buildings/trash"
-            icon={<IconDelete />}
-            type="text"
-          >
-            回收站
-          </Button>
-          <Button
-            href="/admin/collections/buildings/create"
-            icon={<IconPlus />}
-            type="primary"
-          >
-            创建楼盘
-          </Button>
         </Space>
       </div>
 
