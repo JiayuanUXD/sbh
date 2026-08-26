@@ -38,8 +38,14 @@ export const SiteSettings: GlobalConfig = {
     update: canManageSiteSettings,
   },
   admin: {
-    group: '系统管理',
-    hidden: true,
+    // `group: false` 而不是 `hidden: true`——两者差一个字，后果差很远：
+    //   group: false  → 从侧边栏/仪表盘排除，**路由仍可用**
+    //   hidden: true  → 从导航**和路由**一起排除
+    // 用 hidden 的话，`@payloadcms/ui` 的 getVisibleEntities 会把本 global 从
+    // visibleEntities.globals 里整个滤掉，于是 /admin/globals/site-settings
+    // 匹配不到任何视图 → notFound()。表现是「自定义导航里有这一项，点进去是
+    // 『没有找到任何东西』」——菜单和路由分属两套机制，看菜单在就以为没问题会踩空。
+    group: false,
     description:
       '全站品牌、合规声明与首页区块文案。保存后最长 60 秒全站生效（多实例缓存失效见 OPT-042）。',
   },
