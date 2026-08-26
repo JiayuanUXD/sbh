@@ -7,7 +7,10 @@ import { useClientSearchParams } from '@/lib/frontend/use-client-search-params'
 import { cityAwareHref, resolveTrustedCity } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { FOOTER_COLUMNS } from '@/lib/frontend/public-nav'
-import { renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings'
+// 必须从 site-settings-view 取，**不能从 site-settings 取**：后者 import 了 payload，
+// 本组件是 'use client'，那条依赖链会把 sharp 拉进浏览器包，next build 直接失败
+// （57 个 non-ecmascript placeable asset 错误），而 typecheck 与单测全绿。
+import { renderCityPlaceholder, type SiteSettingsView } from '@/lib/frontend/site-settings-view'
 
 type FooterShellProps = Readonly<{
   cities: readonly PublicCityOption[]
