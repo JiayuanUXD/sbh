@@ -422,11 +422,19 @@ export const Listings: CollectionConfig = {
               /**
                * 过渡期旧价格字段：**表单上彻底不出现**，但列与查询路径原样保留。
                *
-               * 不能直接删字段：`rentUnit` 仍是 C 端筛选的查询路径
-               * （`supply-adapter.ts` 的 `where.rentUnit = { equals: input.priceUnit }`，
-               * 走 LEGACY_RENT_UNIT_VALUES）。从 collection 删掉会让价格单位筛选直接抛
-               * `QueryError: path cannot be queried`——本仓库踩过这个坑。存量 `rent`
-               * 数据也还在被楼盘聚合的 rentRanges 消费。
+               * 不能直接删字段：`rent` / `rentUnit` 仍是**读取**路径上的回落来源——
+               * `mappers.ts#resolveListingPrice` 在结构化 `price.*` 缺失时读它们，
+               * 尚未回填结构化价格的存量房源全靠这一路才有价格；存量 `rent` 数据
+               * 也还在被楼盘聚合的 rentRanges 消费。
+               *
+               * 已经不再是**查询**路径：C 端单位筛选一度下推成
+               * `where.rentUnit = { equals: input.priceUnit }`，那是错的——该列带
+               * `defaultValue: 'rmb-sqm-day'` 且与结构化价格长期不同步，会把真按
+               * 元/月报价的房源筛掉，还只覆盖 12 个 `PriceDisplayUnit` 里的 3 个。
+               * 现由 `supply-adapter.ts#filterByPrice` 在内存里按归一后的
+               * `displayUnit` 判定。**别把下推加回来**（顺带：删字段还会让任何残留
+               * 的 `where.rentUnit` 直接抛 `QueryError: path cannot be queried`
+               * ——本仓库踩过这个坑）。
                *
                * 隐藏手段是 `condition: () => false`，不是 `admin.hidden`：后者在 Payload 3
                * 的渲染链路里找不到消费点（`RenderFields` 只看顶层 `hidden` 与

@@ -12,8 +12,14 @@
  *   1. 解析层：缺 priceUnit 的区间整段丢弃，canonical 不再把它带在链接上；
  *   2. 查询层：价格区间**不下推 where**（where 无法表达「同一单位内比大小」，
  *      且 `rent` 是过渡期旧列，结构化价格房源在该列上为空）；
- *   3. 失效点：`filterByPriceRange` 在内存里按 `PriceViewModel.displayUnit` 精筛，
+ *   3. 失效点：`filterByPrice` 在内存里按 `PriceViewModel.displayUnit` 精筛，
  *      给绕过 URL 直接构造 input 的调用方（facet 剥离、内部编排）兜底。
+ *
+ * 第 6 组锁的是同一族的姊妹缺口——**单位筛选自己**。闸门那一轮只处理了区间，
+ * `priceUnit` 仍下推到旧列 `rentUnit`：12 个取值里只有 3 个能落到该列（其余 9 个
+ * 静默放行全部单位），而这 3 个查的还是一个带 `defaultValue`、与结构化价格长期
+ * 不同步的列（把真按元/月报价的房源筛掉）。一个漏筛、一个错杀，根因同一个：
+ * 判据取自过渡期旧列，而不是 `resolveListingPrice` 归一后的 `displayUnit`。
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -135,8 +141,12 @@ function listing(options: Readonly<{
   amount?: number
   period?: 'day' | 'month' | 'year' | 'one-time'
   unit?: 'sqm' | 'seat' | 'suite'
+  /** 过渡期旧列。默认**不写**，只有专门验「旧列漂移」的用例才显式给。 */
+  rent?: number
+  /** 同上。`Listings.ts` 给它留了 defaultValue: 'rmb-sqm-day'，所以线上恒非空。 */
+  rentUnit?: string
 }>): Record<string, unknown> {
-  const { id, amount, period = 'month', unit = 'sqm' } = options
+  const { id, amount, period = 'month', unit = 'sqm', rent, rentUnit } = options
   return {
     id,
     slug: `listing-${id}`,
@@ -148,6 +158,8 @@ function listing(options: Readonly<{
     supplyVisibilityHold: 'normal',
     gallery: [{ image: 1 }, { image: 2 }, { image: 3 }],
     ...(amount == null ? {} : { price: { amount, currency: 'CNY', period, unit } }),
+    ...(rent == null ? {} : { rent }),
+    ...(rentUnit == null ? {} : { rentUnit }),
     building: {
       id: 10,
       city: { id: 100, status: 'active' },
@@ -172,6 +184,23 @@ function activeRelation(listingId: number): Record<string, unknown> {
   }
 }
 
+/**
+ * 模拟 DB 对 `where.rentUnit` 的执行。
+ *
+ * 不模拟它，`where` 上那句下推就成了一条**测不到的代码**：mock 无条件返回全部
+ * docs，于是「按错的列筛掉了正确房源」这个缺陷在测试里表现为通过。缺陷本身就是
+ * 「旧列与结构化价格不同步」，而 `rentUnit` 有 `defaultValue`——线上该列恒非空，
+ * `equals` 一定会真的筛掉东西。
+ */
+function applyRentUnitWhere(
+  docs: readonly Record<string, unknown>[],
+  where: unknown,
+): Record<string, unknown>[] {
+  const clause = (where as { rentUnit?: { equals?: unknown } } | undefined)?.rentUnit
+  if (!clause || clause.equals === undefined) return [...docs]
+  return docs.filter((doc) => doc.rentUnit === clause.equals)
+}
+
 function mockListings(docs: readonly Record<string, unknown>[]): void {
   payloadState.find.mockReset()
   payloadState.find.mockImplementation(async (params) => {
@@ -179,7 +208,7 @@ function mockListings(docs: readonly Record<string, unknown>[]): void {
       return { docs: [], hasNextPage: false, nextPage: null }
     }
     if (params.collection === 'listings') {
-      return { docs: [...docs], hasNextPage: false, nextPage: null }
+      return { docs: applyRentUnitWhere(docs, params.where), hasNextPage: false, nextPage: null }
     }
     if (params.collection === 'listing-merchant-relations') {
       return {
@@ -334,5 +363,149 @@ describe('price-unit-gate/countActivePicks 零候选行', () => {
         { key: 'priceMax', label: '租金上限', options: [{ value: '6', label: '6 元以下' }], activeValue: '6' },
       ]),
     ).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 6. 单位筛选本身（区间闸门的姊妹缺口）
+//
+// 闸门那一轮只处理了「区间」，`priceUnit` 自己的下推没动，留下两个独立缺口：
+//
+//   1. **非旧值单位完全不过滤。** `LEGACY_RENT_UNIT_VALUES` 只有 3 个取值，
+//      `PriceDisplayUnit` 有 12 个。其余 9 个既不下推 where，内存里也没人管
+//      （`facade.ts#prepareCardsForPriceSort` 只在 sort=price-asc/desc 时才按单位
+//      收束）。于是 `?priceUnit=rmb-total&sort=recommended` 静默返回全部单位的
+//      房源——用户以为自己筛过了，页面也没有任何地方说没筛。
+//   2. **旧值单位查的是错的列。** `rentUnit` 是过渡期保留字段
+//      （`Listings.ts`：`condition: () => false`，表单上根本不出现）且带
+//      `defaultValue: 'rmb-sqm-day'`。现行房源的金额与单位写在结构化 `price.*`
+//      组里，`rent_unit` 列停在默认值上。`where.rentUnit = { equals: 'rmb-month' }`
+//      于是把一条**确实按元/月报价**的房源直接排除。
+//
+// 两个缺口的方向相反（一个漏筛、一个错杀），但根因是同一个：判据取自过渡期旧列，
+// 而不是 `resolveListingPrice` 归一后的 `PriceViewModel.displayUnit`。
+// ---------------------------------------------------------------------------
+
+/** DB 结构化字段 (period, unit) → 对外 priceUnit 的全集，12 个一个不少。 */
+const ALL_PRICE_UNITS = [
+  { priceUnit: 'rmb-sqm-day', period: 'day', unit: 'sqm' },
+  { priceUnit: 'rmb-sqm-month', period: 'month', unit: 'sqm' },
+  { priceUnit: 'rmb-sqm-year', period: 'year', unit: 'sqm' },
+  { priceUnit: 'rmb-sqm-total', period: 'one-time', unit: 'sqm' },
+  { priceUnit: 'rmb-seat-day', period: 'day', unit: 'seat' },
+  { priceUnit: 'rmb-seat-month', period: 'month', unit: 'seat' },
+  { priceUnit: 'rmb-seat-year', period: 'year', unit: 'seat' },
+  { priceUnit: 'rmb-seat-total', period: 'one-time', unit: 'seat' },
+  { priceUnit: 'rmb-day', period: 'day', unit: 'suite' },
+  { priceUnit: 'rmb-month', period: 'month', unit: 'suite' },
+  { priceUnit: 'rmb-year', period: 'year', unit: 'suite' },
+  { priceUnit: 'rmb-total', period: 'one-time', unit: 'suite' },
+] as const
+
+describe('price-unit-filter/查询层 where', () => {
+  beforeEach(() => {
+    payloadState.find.mockReset()
+    payloadState.findByID.mockReset()
+  })
+
+  it('priceUnit 不下推到旧 rentUnit 列（旧值单位也不下推）', async () => {
+    mockListings([listing({ id: 1, amount: 25_000, period: 'month', unit: 'suite' })])
+    await search(input({ priceUnit: 'rmb-month' }))
+    expect(listingsWhere()).not.toHaveProperty('rentUnit')
+  })
+
+  it('priceUnit 不下推到旧 rentUnit 列（非旧值单位同样不下推）', async () => {
+    mockListings([listing({ id: 1, amount: 3_000_000, period: 'one-time', unit: 'suite' })])
+    await search(input({ priceUnit: 'rmb-total' }))
+    expect(listingsWhere()).not.toHaveProperty('rentUnit')
+  })
+})
+
+describe('price-unit-filter/失效点精筛', () => {
+  beforeEach(() => {
+    payloadState.find.mockReset()
+    payloadState.findByID.mockReset()
+  })
+
+  it('缺口①：非旧值单位不再静默放行全部单位', async () => {
+    mockListings([
+      listing({ id: 1, amount: 3_000_000, period: 'one-time', unit: 'suite' }), // rmb-total
+      listing({ id: 2, amount: 25_000, period: 'month', unit: 'suite' }), // rmb-month
+      listing({ id: 3, amount: 5, period: 'day', unit: 'sqm' }), // rmb-sqm-day
+    ])
+    expect(await search(input({ priceUnit: 'rmb-total' }))).toEqual([1])
+  })
+
+  it('缺口①：sort=recommended 也守单位，不是只有价格排序才守', async () => {
+    mockListings([
+      listing({ id: 1, amount: 120, period: 'month', unit: 'sqm' }), // rmb-sqm-month
+      listing({ id: 2, amount: 25_000, period: 'month', unit: 'suite' }), // rmb-month
+    ])
+    expect(await search(input({ priceUnit: 'rmb-sqm-month', sort: 'recommended' }))).toEqual([1])
+  })
+
+  it('缺口②：结构化按元/月报价、rent_unit 停在 defaultValue 的房源不再被错杀', async () => {
+    mockListings([
+      // 这就是现行数据的形态：结构化 25000 元/月，旧列 rent_unit 还是建表默认值。
+      listing({
+        id: 1,
+        amount: 25_000,
+        period: 'month',
+        unit: 'suite',
+        rentUnit: 'rmb-sqm-day',
+      }),
+    ])
+    expect(await search(input({ priceUnit: 'rmb-month' }))).toEqual([1])
+  })
+
+  it('缺口②：旧列匹配但结构化价格不匹配时，以结构化价格为准（不反向错放）', async () => {
+    mockListings([
+      listing({
+        id: 1,
+        amount: 5,
+        period: 'day',
+        unit: 'sqm', // 结构化 = rmb-sqm-day
+        rentUnit: 'rmb-month', // 旧列谎称元/月
+      }),
+    ])
+    expect(await search(input({ priceUnit: 'rmb-month' }))).toEqual([])
+  })
+
+  it('只有结构化价格缺失时才回落旧列（与 resolveListingPrice 同一优先级）', async () => {
+    mockListings([listing({ id: 1, rent: 25_000, rentUnit: 'rmb-month' })])
+    expect(await search(input({ priceUnit: 'rmb-month' }))).toEqual([1])
+  })
+
+  it.each(ALL_PRICE_UNITS)(
+    '12 个取值全集逐一生效：$priceUnit',
+    async ({ priceUnit, period, unit }) => {
+      mockListings(
+        ALL_PRICE_UNITS.map((entry, index) =>
+          listing({ id: index + 1, amount: 100, period: entry.period, unit: entry.unit }),
+        ),
+      )
+      const expectedId =
+        ALL_PRICE_UNITS.findIndex((e) => e.period === period && e.unit === unit) + 1
+      expect(await search(input({ priceUnit }))).toEqual([expectedId])
+    },
+  )
+
+  it('「面议」房源在只选单位（不带区间）时仍然可见', async () => {
+    mockListings([
+      listing({ id: 1, amount: 25_000, period: 'month', unit: 'suite' }),
+      listing({ id: 2 }), // 面议：既无结构化价格也无旧列
+    ])
+    // 与 `building-supply.ts#matchesInput` 同一裁定：选单位不是数值断言，面议
+    // 房源没有可被证伪的单位，剔掉它等于让它从列表和「另有 N 套」计数里同时
+    // 消失——那正是本文件反复在堵的「悄悄藏库存」。
+    expect(await search(input({ priceUnit: 'rmb-month' }))).toEqual([1, 2])
+  })
+
+  it('对照：不给 priceUnit 时不按单位过滤', async () => {
+    mockListings([
+      listing({ id: 1, amount: 3_000_000, period: 'one-time', unit: 'suite' }),
+      listing({ id: 2, amount: 25_000, period: 'month', unit: 'suite' }),
+    ])
+    expect(await search(input({}))).toEqual([1, 2])
   })
 })

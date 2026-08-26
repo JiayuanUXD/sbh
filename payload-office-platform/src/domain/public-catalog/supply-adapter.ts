@@ -287,9 +287,6 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 // 生产实现：统一有效供给谓词 + 逐条精筛
 // ---------------------------------------------------------------------------
 
-/** 旧 listings.rentUnit 字段的合法取值，用于判断 priceUnit 能否下推到该列。 */
-const LEGACY_RENT_UNIT_VALUES = new Set(['rmb-sqm-day', 'rmb-month', 'rmb-seat-month'])
-
 const QUERY_PAGE_SIZE = 200
 export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
 const RELATED_BUILDING_CANDIDATE_LIMIT = 500
@@ -318,34 +315,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * 价格区间精筛：**单位闸门是硬前提**，缺 `priceUnit` 时整段不生效。
+ * 价格精筛：`priceUnit` 是单位断言，`priceMin`/`priceMax` 是它之上的数值断言。
  *
- * 「不生效」是刻意的裁定，不是偷懒：元/月、元/㎡/天、元/工位/月三个量纲不可通约，
- * 拿 `amount` 直接比大小得到的既不是「便宜的房源」也不是「贵的房源」，只是一个
- * 随单位分布漂移的随机子集。与其给出一个看起来正常、实则无意义的结果集，不如
- * 让这个条件明确地什么都不做——解析层（`parseListingSearchInput`）已经保证缺单位
- * 的区间连 input 都进不来，这里是失效点上的第二道守卫，供绕过 URL 直接构造
+ * 两件事写在一个函数里，因为它们共用同一个判据来源——`resolveListingPrice` 归一
+ * 出的 `PriceViewModel`——且共享同一个硬前提：**缺 `priceUnit` 时整段不生效**。
+ *
+ * 「缺单位时区间不生效」是刻意的裁定，不是偷懒：元/月、元/㎡/天、元/工位/月三个
+ * 量纲不可通约，拿 `amount` 直接比大小得到的既不是「便宜的房源」也不是「贵的房源」，
+ * 只是一个随单位分布漂移的随机子集。与其给出一个看起来正常、实则无意义的结果集，
+ * 不如让这个条件明确地什么都不做——解析层（`parseListingSearchInput`）已经保证缺
+ * 单位的区间连 input 都进不来，这里是失效点上的第二道守卫，供绕过 URL 直接构造
  * `ListingSearchInput` 的调用方（facet 剥离、测试、未来的内部编排）兜底。
  *
  * 与楼盘详情供给区的 `building-supply.ts#matchesInput` 是同一条不变量、同一套判据：
- *   - 无价格的房源（「面议」）在给定区间时**不入选**——区间是一个数值断言，
- *     面议既不满足也无法比较；
- *   - 单位不等于 `priceUnit` 的房源不入选，即使金额落在区间内。
+ *   - 单位不等于 `priceUnit` 的房源不入选，即使金额落在区间内；
+ *   - 无价格的房源（「面议」）**选单位时仍然入选、给区间时不入选**。两者不矛盾：
+ *     区间是数值断言，面议既不满足也无法比较；而单位断言对一条没有报价的房源
+ *     无从证伪，剔掉它等于让它从列表和「另有 N 套按 X 报价」计数里同时消失
+ *     （facet 只统计非空价格），即本页最该避免的「悄悄藏起库存」。
  *
  * 判 `displayUnit` 而不是判 `rentUnit` 列：`resolveListingPrice` 已经把结构化
  * `price.*` 与过渡期旧列 `rent`/`rentUnit` 归一成同一个 `PriceViewModel`，
- * 两种表示在这里没有分叉。
+ * 两种表示在这里没有分叉。判旧列则会两头出错——现行房源的 `rent_unit` 停在
+ * `defaultValue: 'rmb-sqm-day'` 上（`Listings.ts` 里该字段 `condition: () => false`，
+ * 表单上根本不出现），既会错杀真按元/月报价的房源，也会错放旧列碰巧对上的房源。
  */
-function filterByPriceRange(
+function filterByPrice(
   listings: readonly Listing[],
   input: ListingSearchInput,
 ): Listing[] {
   const { priceMin, priceMax, priceUnit } = input
-  if (priceMin == null && priceMax == null) return [...listings]
   if (!priceUnit) return [...listings]
+  const hasRange = priceMin != null || priceMax != null
   return listings.filter((listing) => {
     const price = resolveListingPrice(listing)
-    if (!price || price.displayUnit !== priceUnit) return false
+    if (!price) return !hasRange
+    if (price.displayUnit !== priceUnit) return false
     if (priceMin != null && price.amount < priceMin) return false
     if (priceMax != null && price.amount > priceMax) return false
     return true
@@ -607,32 +612,33 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
         where.area = areaWhere
       }
-      // 价格区间**故意不下推**到 where，整段交给 `filterByPriceRange` 在内存里做。
-      // 两条理由各自独立成立：
+      // 价格的三个条件（`priceUnit` / `priceMin` / `priceMax`）**整组不下推**到
+      // where，全部交给 `filterByPrice` 在内存里做。三条理由各自独立成立：
       //
       //   1. where 无法表达「同一计价单位内比大小」。缺 `priceUnit` 时，
       //      `where.rent = { greater_than_equal: 3 }` 会把 3 元/㎡/天、3 元/月、
       //      3 元/工位/月 放进同一次比较——三个不可通约的量纲，比出来的结果没有
       //      任何含义，却是一个**看不见的生效条件**（URL 上 `?priceMax=6` 就够了）。
-      //      单位闸门现在由解析层与 `filterByPriceRange` 一起守，与楼盘详情供给区
+      //      单位闸门现在由解析层与 `filterByPrice` 一起守，与楼盘详情供给区
       //      的 `matchesInput` 同一裁定。
-      //   2. 即使给了 `priceUnit`，`rent` 也是错的列。它是过渡期保留的旧字段
-      //      （见 `Listings.ts` 里那段注释），现行房源的金额写在结构化 `price.*`
-      //      组里、`rent` 为空。对 `rent` 做区间会把这些房源整批判为不匹配——
-      //      不是「筛窄了」，是「新数据一条都筛不出来」。
+      //   2. `rent` / `rentUnit` 是错的列。两者都是过渡期保留的旧字段（见
+      //      `Listings.ts` 里那段注释：`rentUnit` 甚至 `condition: () => false`，
+      //      表单上不出现），现行房源的金额与单位写在结构化 `price.*` 组里。
+      //      对 `rent` 做区间会把这些房源整批判为不匹配；`rentUnit` 更糟——它带
+      //      `defaultValue: 'rmb-sqm-day'`，于是一条结构化定价 25000 元/月、旧列
+      //      停在默认值的房源，会被 `where.rentUnit = { equals: 'rmb-month' }`
+      //      直接排除。不是「筛窄了」，是「筛掉的正是该留的」。
+      //   3. `rentUnit` 只覆盖 3 个取值，`PriceDisplayUnit` 有 12 个。按旧列下推
+      //      等于只对 3/12 生效、其余 9 个静默放行——用户选了「元/总价」却拿到
+      //      全部单位的房源，页面上也没有任何地方说没筛。半生效比不生效更坏：
+      //      它看起来正常。
       //
       // 代价是候选集不再被价格预先收窄，多出来的行由 `PUBLIC_CATALOG_CANDIDATE_LIMIT`
       // 兜底。这与有效供给精筛、举报暂停排除本来就在内存里做是同一量级的取舍。
-      if (input.priceUnit) {
-        // where 的 key 是 **Payload 集合字段名**（listings.rentUnit），不是 URL 参数名。
-        // 两者同名不同义：URL 侧已改名为 priceUnit，数据库列仍叫 rent_unit。
-        //
-        // 只有三个租赁单位能落到这个旧字段上；出售的 rmb-total / rmb-sqm-total 等
-        // 取值在旧字段里不存在，此处跳过，由后续内存精筛按结构化价格过滤。
-        if (LEGACY_RENT_UNIT_VALUES.has(input.priceUnit)) {
-          where.rentUnit = { equals: input.priceUnit }
-        }
-      }
+      // 真要把候选集收回来，唯一正确的下推目标是结构化列
+      // （`price.period` + `price.unit`，注意 basis 'total' 对应 DB 的 'suite'），
+      // 且必须与旧列 or 合并才不漏掉尚未回填结构化价格的存量房源——那是一次
+      // 独立的性能改动，不是本次修复的一部分。
       if (input.availableBefore) {
         // availableFrom 为空或早于等于 availableBefore
         where.or = [
@@ -651,7 +657,7 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       // requested global sort and pagination only after the fine filter.
       const docs = await findAllListings(where, 2)
       const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
-      return filterByPriceRange(kept, input)
+      return filterByPrice(kept, input)
     },
 
     async findEffectiveListingsSitemapPage(ctx, options) {

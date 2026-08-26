@@ -54,7 +54,8 @@
 - **筛选激活态零色相**：实体 pill（`.ls-pill--active`，移动抽屉里的筛选项）用黑底白字 `#1d1d1f` / `#fff`；桌面分行文本条件区的行内选项（`.ls-filterc__opt--active`）用 `--accent-link` + 500 —— 两种语境两套规则，别互抄。**全站唯一允许用 `--accent` 底的筛选项**是楼盘页「仅看有在租」开关的 track（桌面 `.ls-filterc__switch--on`、抽屉 `.ls-msheet__switch--on`），它是「暂无在租降权分组」这条产品判断的正面出口；别照抄给第二个筛选项。
 - 排序权重刻意低于筛选：13px 纯文本、无背景无边框、不独占一行高度。筛选改结果集，排序只改顺序。
 - **价格定宽盒**：`.ls-price__value--day` 58px（元/㎡/天）、`--month` 88px（元/月 · 元/工位/月，六位数 `316,200` 需更宽），右对齐 + tabular-nums + 两位小数固定 → 同一单位下各卡小数点落在同一相对位置。这是北极星「能横向比价」的具体落点，不是排版洁癖；改宽度前先想清楚谁还在跟它对齐。楼盘卡在租套数用 `min-width: 36px`（不是 `width`：四位数会粘连）。
-- **租金单位三种彼此不可换算**（元/月 · 元/㎡/天 · 元/工位/月），因此**单位即结果集**：`?priceUnit=` 切的是结果集不是排序。随之而来的诚实义务是 `ExcludedUnitsBar`——必须说出「另有 N 套按 X 报价，因单位不可换算未计入本结果集」，它不是装饰。
+- **计价单位彼此不可换算**，因此**单位即结果集**：`?priceUnit=` 切的是结果集不是排序。随之而来的诚实义务是 `ExcludedUnitsBar`——必须说出「另有 N 套按 X 报价，因单位不可换算未计入本结果集」，它不是装饰。
+  - ★ `PriceDisplayUnit` 是 **12 个取值**（周期 4 × 计价基础 3，含出售侧的 `rmb-total` / `rmb-sqm-total` 等），不是租赁那三个（元/月 · 元/㎡/天 · 元/工位/月）。那三个是**过渡期旧列 `listings.rentUnit` 的枚举**，与对外的 `priceUnit` 同名不同集。凡是按单位做判断的地方（筛选、精筛、排序前收束）都必须覆盖 12 个取值，并且判 `resolveListingPrice` 归一后的 `PriceViewModel.displayUnit`，**绝不判 `rentUnit` 列**——该列 `condition: () => false` 且带 `defaultValue: 'rmb-sqm-day'`，与结构化 `price.*` 长期不同步。这条已经出过三次同型缺陷（单位下推、区间下推、`filterByRentUnit` 的 3 值映射表），一律表现为静默漏筛或整页清空。
   - ★ 算这些计数时**必须先剥掉 `priceUnit` 维度**（`omitListingSearchDimensions` / `getSearchFacetsIgnoring` / `getCachedSearchFacetsIgnoring`），其余条件全部保留。直接用 `getSearchFacets` 会因为 facetInput 保留了 `priceUnit` 而让其余单位计数恒为 0 → 提示条 `return null` → 整个诚实机制**静默失效且不报错**。同型陷阱：facet 候选**清单**取自全集、**计数**取自剥离后的子集——只用子集当清单，会让用户选中的那一项连同整行从筛选条里消失（选中态只活在地址栏，看不见也单独清不掉）。
 - `?view=grid|row` **不进 canonical**（只改渲染不改结果集，两个仅 `view` 不同的 URL 对搜索引擎是同一页），但地址栏保留，分享链接不丢版式。它由路由层单独解析成 prop，`buildCanonicalSearchParams` 完全不认识这个键。
 - 视图切换 / 排序项这类控件**不得成为死控件**：无 `priceUnit` 时价格排序会被 `normalizeSort` 降级为 `recommended`，调用方必须把这两项从 `sorts` 里剔除；同理 `view=row` 必须有真实的行版式组件承载。
