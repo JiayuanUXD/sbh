@@ -63,13 +63,24 @@ name / slug / type / status / frontendVisible / city / parent
 而失效钩子 `invalidateLocationCityCache` 的门禁是
 `affectsPublicCityCache`（`Locations.ts:87-92`）——它用
 `PUBLIC_LOCATION_FIELDS.some((field) => fieldChanged(...))` 判断要不要打标签。
-**`coverImage` 不在这张表里**，所以运营只改商圈封面时，钩子直接 `return doc`，
-一个失效标签都不打。首页只能等 `unstable_cache` 的 `revalidate: 300` 自然过期
-——**最长 5 分钟**。
+**`coverImage` 不在这张表里**，所以运营只改商圈封面时，`affectsPublicCityCache`
+返回 `false`，钩子直接 `return doc`，**一个失效标签都不打**。
 
-这正是 §5.2 里担心的那种失败模式（「运营改完看不到效果，还以为功能坏了」），
-只不过它**今天就已经存在**，不是本工作项引入的。而本工作项恰恰要让运营频繁
-使用这个字段，不修就等于把一个既有的信任杀手放大。
+以上是**读代码可核实的事实**。由此推断的后果是：首页要等 `unstable_cache` 的
+`revalidate: 300` 自然过期，最长 5 分钟才能看到新封面。
+
+> **但这个后果尚未实测确认，别当既成事实用。** 2026-08-27 在本地 dev server 上
+> 试过一次受控实验（只改一个商圈的 `coverImage`、别的都不动），结果是**立刻生效、
+> 没有陈旧**。该结果**不能反证上面的推断**，因为这个环境本身没有证明力：
+> 一来 `next dev` 下 `unstable_cache` 的行为与生产不同；二来当时的数据改动跑在
+> 独立的 tsx 进程里，钩子即便打了标签也到不了 dev server 进程。
+>
+> **要证实或证伪，必须在 `next start`（`NODE_ENV=production`）下、且改动由
+> 后台 UI 发起（与 Next 同进程）时重做这个实验。** 实施本工作项时顺手做掉。
+
+无论实测结果如何，**把 `coverImage` 补进那张表都是对的**——它本来就属于「会影响
+C 端公开呈现」的字段，漏在表外是疏忽。只是「修它能消除多长的陈旧窗口」这件事，
+要等上面那次实测才有数。
 
 > 订正：本文档此前在 §5.2 写过「商圈封面在供给查询里，跟着供给缓存走，现状已如此」
 > ——那句话不成立，已删。
