@@ -1,0 +1,54 @@
+{
+  "baseUrl": "http://localhost:3717",
+  "ranAt": "2026-08-27T03:04:00.319Z",
+  "premise": {
+    "flagInProcessEnv": null,
+    "note": "必须为 null——脚本验的是「没有这个变量时功能仍在」"
+  },
+  "routes": [
+    {
+      "path": "/sale",
+      "status": 307,
+      "location": "/shanghai/sale"
+    },
+    {
+      "path": "/shanghai/sale",
+      "status": 200,
+      "location": null
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "location": null
+    }
+  ],
+  "sitemap": {
+    "saleEntries": 0,
+    "saleListingsInDb": 0,
+    "note": "sitemap 条目阈值是「有效出售房源数 > 0」；库里为 0 时无条目属正确行为，非回归"
+  },
+  "admin": {
+    "loginStatus": 200,
+    "createPage": {
+      "hasBusinessTypeField": true,
+      "priceSectionTitle": "价格与交易参数",
+      "hasSaleTermsField": false,
+      "note": "新建时 businessType 非 sale，saleTerms 不应出现（按 businessType 分流仍在）"
+    }
+  },
+  "mutationProbe": {
+    "allowed": true,
+    "listingId": 56,
+    "originalBusinessType": "lease",
+    "patchedTo": "sale",
+    "hasSaleTermsWhenSale": true,
+    "restored": true
+  },
+  "verdict": {
+    "premiseHolds": true,
+    "routeOk": true,
+    "adminOk": true,
+    "mutationOk": true,
+    "pass": true
+  }
+}
