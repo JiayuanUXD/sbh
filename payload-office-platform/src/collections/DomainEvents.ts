@@ -40,6 +40,7 @@ export const DomainEvents: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'eventType',
     defaultColumns: [
       'eventType',
@@ -50,8 +51,7 @@ export const DomainEvents: CollectionConfig = {
       'processedAt',
       'attemptCount',
     ],
-    description:
-      '事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。',
+    description: '系统业务事件流水，只增不改，供内部流程消费。',
   },
   // Outbox 只追加：不允许删除（trash: false），update/delete 由 events:manage 控制
   // 默认 createCollectionAccess 不配置 update/delete 时要求登录态，但 Outbox
@@ -80,7 +80,7 @@ export const DomainEvents: CollectionConfig = {
       index: true,
       admin: {
         readOnly: true,
-        description: '稳定唯一 ID（nanoid 21 字符）。Outbox 主键，消费器幂等键。',
+        description: '系统生成的唯一标识。',
       },
     },
     {
@@ -132,7 +132,6 @@ export const DomainEvents: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '聚合版本号（乐观锁，每次状态变更 +1）。与 event_id 共同构成幂等键。',
       },
     },
     {
@@ -142,7 +141,7 @@ export const DomainEvents: CollectionConfig = {
       required: true,
       admin: {
         readOnly: true,
-        description: '事件 JSON 负载。Outbox 追加语义：写入后不可变。',
+        description: '事件数据，写入后不可变。',
       },
     },
     {
@@ -169,7 +168,7 @@ export const DomainEvents: CollectionConfig = {
         date: {
           displayFormat: 'yyyy-MM-dd HH:mm:ss',
         },
-        description: '消费器处理完成时间。null 表示未处理；非 null 表示已幂等处理。',
+        description: '处理完成时间，为空表示尚未处理。',
       },
     },
     {

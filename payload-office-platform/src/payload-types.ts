@@ -218,7 +218,7 @@ export interface User {
    */
   name: string;
   /**
-   * 原始手机号输入。系统自动规范化存入 phone_normalized；查询用 phone_normalized。
+   * 原始手机号输入。系统会自动规范化后存储并用于查询。
    */
   phone?: string | null;
   /**
@@ -230,7 +230,7 @@ export interface User {
    */
   phoneNormalized?: string | null;
   /**
-   * 停用账号无法登录且旧会话失效；锁定账号在 locked_until 之前无法登录。
+   * 停用账号无法登录且旧会话失效；锁定账号在解锁时间之前无法登录。
    */
   status: 'active' | 'disabled' | 'locked';
   /**
@@ -246,7 +246,7 @@ export interface User {
    */
   team?: (number | Team)[] | null;
   /**
-   * 停用账号时递增；旧会话 token 与版本不匹配即失效。
+   * 停用账号后旧登录会话自动失效。
    */
   sessionVersion: number;
   /**
@@ -285,13 +285,13 @@ export interface User {
 export interface Role {
   id: number;
   /**
-   * 不可变机器码。内置角色为 ADM/OPS/MGR/BRK/CSR；自定义角色使用大写字母加下划线。
+   * 系统标识，创建后不可修改。内置角色为 ADM/OPS/MGR/BRK/CSR；自定义角色使用大写字母加下划线。
    */
   code: string;
   name: string;
   description?: string | null;
   /**
-   * 内置角色不可删除、改码或改变 builtin 标记。
+   * 内置角色不可删除、不可改码。
    */
   isBuiltin?: boolean | null;
   status: 'active' | 'inactive';
@@ -300,7 +300,7 @@ export interface Role {
    */
   dataScope: 'global' | 'city' | 'team' | 'self' | 'none';
   /**
-   * 菜单权限编码数组（允许并集）；通配符 * 表示全部菜单。
+   * 菜单权限可多选；* 表示全部菜单。
    */
   menuPermissions?:
     | {
@@ -312,7 +312,7 @@ export interface Role {
     | boolean
     | null;
   /**
-   * 操作权限编码数组（允许并集）；通配符 * 表示全部操作。
+   * 操作权限可多选；* 表示全部操作。
    */
   operationPermissions?:
     | {
@@ -324,7 +324,7 @@ export interface Role {
     | boolean
     | null;
   /**
-   * 字段权限编码数组（允许并集）。phone:full 看完整手机号；phone:masked 仅看脱敏值；audit:before_after 看审计前后值。
+   * 字段权限可多选。phone:full 看完整手机号；phone:masked 仅看脱敏值；audit:before_after 看审计前后值。
    */
   fieldPermissions?:
     | {
@@ -384,9 +384,6 @@ export interface Location {
    */
   coverImage?: (number | null) | Media;
   sortOrder?: number | null;
-  /**
-   * 乐观锁版本，由系统维护
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -425,9 +422,6 @@ export interface Team {
   manager?: (number | null) | User;
   cityScope?: (number | Location)[] | null;
   status: 'active' | 'disabled';
-  /**
-   * 乐观锁版本，保存时自动递增
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -477,9 +471,6 @@ export interface BusinessAreaExtension {
    * 仅可关联同城、已启用的既有地铁站；不改变站点基础属性。
    */
   metroStations?: (number | Location)[] | null;
-  /**
-   * 乐观锁版本，由系统维护
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -517,7 +508,7 @@ export interface CitySiteProfile {
    */
   heroVideo?: (number | null) | Media;
   /**
-   * 关掉则只渲染背景图。这是「只要静态图」的显式开关——以前是靠「配了图就没视频」的副作用实现的。
+   * 关掉则只展示背景图，不播视频。
    */
   heroVideoEnabled?: boolean | null;
   introHeading?: string | null;
@@ -559,12 +550,9 @@ export interface Merchant {
    */
   isPlatformDefault?: boolean | null;
   /**
-   * 资质状态为「已通过」时必填；到期后不再进入有效供给谓词
+   * 资质状态为「已通过」时必填；到期后其供给的房源将不再对外展示
    */
   qualificationExpiresAt?: string | null;
-  /**
-   * 乐观锁版本，保存时自动递增
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -590,9 +578,6 @@ export interface Broker {
   employmentStatus: 'active' | 'disabled';
   serviceCities?: (number | Location)[] | null;
   serviceBusinessAreas?: (number | Location)[] | null;
-  /**
-   * 乐观锁版本，保存时自动递增
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -626,9 +611,6 @@ export interface Building {
    * 数值越小越靠前
    */
   recommendedOrder?: number | null;
-  /**
-   * 乐观锁版本号，系统维护
-   */
   version?: number | null;
   dataSource?: {
     /**
@@ -765,9 +747,6 @@ export interface BuildingMerchantRelation {
    * 记录该供给关系建立的业务背景，便于审计与转派追溯
    */
   createdReason?: string | null;
-  /**
-   * 乐观锁版本，保存时自动递增
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -822,7 +801,7 @@ export interface Listing {
    */
   saleTerms?: {
     /**
-     * 出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。
+     * 出售房源提交审核必填。
      */
     propertyRightYears?: ('40' | '50' | '70') | null;
     saleTaxBearer?: ('buyer' | 'seller' | 'split' | 'negotiable') | null;
@@ -841,7 +820,7 @@ export interface Listing {
   };
   isFeatured?: boolean | null;
   /**
-   * 房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。
+   * 房源当前的供给商户，直接决定前台可见性。只能选择启用中且资质有效的商户；商户停用后遗留的旧值仍可正常保存。
    */
   merchant?: (number | null) | Merchant;
   contactBroker?: (number | null) | Broker;
@@ -861,9 +840,6 @@ export interface Listing {
    * 商户停用等场景批量置为待复核,不改动审核/发布状态。
    */
   supplyVisibilityHold?: ('normal' | 'pending_recheck') | null;
-  /**
-   * 乐观锁版本号,系统维护。
-   */
   version?: number | null;
   dataSource?: {
     /**
@@ -891,7 +867,7 @@ export interface Listing {
       }[]
     | null;
   /**
-   * 提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。
+   * 提交审核要求至少 3 张图片。封面与相册会从这里自动生成。
    */
   mediaItems?:
     | {
@@ -999,13 +975,10 @@ export interface Lead {
   claimProtectionSeconds?: number | null;
   dailyClaimLimit?: number | null;
   activeLeadCap?: number | null;
-  /**
-   * 乐观锁版本号，阶段流转/归属变更时递增（服务端维护）。
-   */
   version?: number | null;
   notes?: string | null;
   /**
-   * requestId + 标准化手机号 + 目标对象 的哈希。同键重复请求只创建一条 Lead（FP-05 §5）。数据库唯一约束兜底，防止并发请求绕过应用层软幂等检查。
+   * 系统自动生成的防重标识，重复提交只会创建一条线索。
    */
   idempotencyKey?: string | null;
   /**
@@ -1025,7 +998,7 @@ export interface Lead {
    */
   targetType?: ('listing' | 'building' | 'none') | null;
   /**
-   * 前台传入的房源 slug；通过 assertEffectiveListing 校验后写入。
+   * 前台传入的房源 slug；校验有效后写入。
    */
   targetListingSlug?: string | null;
   /**
@@ -1043,7 +1016,7 @@ export interface Lead {
    */
   activeSupplyGroup?: ('lease' | 'sale' | 'coworking') | null;
   /**
-   * 已白名单化的 group / priceUnit 枚举；不保存自由文本或用户标识。
+   * 仅保存系统允许的选项值。
    */
   currentFilters?:
     | {
@@ -1068,7 +1041,7 @@ export interface Lead {
     | null;
   priceSnapshotSubmittedAt?: string | null;
   /**
-   * 用户必须主动勾选，未勾选不得提交（FP-05 §3.1）。
+   * 用户必须主动勾选，未勾选不得提交。
    */
   consentAccepted?: boolean | null;
   /**
@@ -1076,7 +1049,7 @@ export interface Lead {
    */
   consentPolicyVersion?: string | null;
   /**
-   * 白名单化 UTM 参数（utm_source / utm_medium / utm_campaign / utm_content / utm_term），各键值长度 ≤ 100。
+   * 营销来源参数（utm_source 等），各键值长度 ≤ 100。
    */
   campaign?:
     | {
@@ -1088,7 +1061,7 @@ export interface Lead {
     | boolean
     | null;
   /**
-   * 前台生成的请求唯一标识，用于日志关联与幂等键计算。
+   * 前台生成的请求唯一标识，用于日志关联与防重。
    */
   requestId?: string | null;
   /**
@@ -1147,9 +1120,6 @@ export interface LeadOwnershipHistory {
    */
   reason?: string | null;
   operatedBy?: (number | null) | User;
-  /**
-   * 记录自身版本（append-only，恒为 1）。
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1176,9 +1146,6 @@ export interface FollowUp {
    * 24 小时内纠错时指向被纠正的原跟进记录（追加式，原记录不改）。
    */
   correctionOf?: (number | null) | FollowUp;
-  /**
-   * 记录自身版本（append-only，恒为 1）。
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1289,9 +1256,6 @@ export interface DisplayTag {
   sortOrder?: number | null;
   visible?: boolean | null;
   status?: ('active' | 'disabled') | null;
-  /**
-   * 乐观锁版本号,系统维护
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1327,7 +1291,7 @@ export interface ListingReview {
     | boolean
     | null;
   /**
-   * 服务端对快照重算的 SHA-256，用于校验一致性。
+   * 系统校验摘要，自动生成。
    */
   snapshotHash?: string | null;
   submittedBy?: (number | null) | User;
@@ -1338,9 +1302,6 @@ export interface ListingReview {
    * 提交时锁定的房源工作版本号。
    */
   listingVersion?: number | null;
-  /**
-   * 记录自身版本（append-only，恒为 1）。
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -1390,9 +1351,6 @@ export interface ListingReport {
    * 由状态转换服务推导，不接受外部直接指定。
    */
   status?: ('pending-triage' | 'assigned' | 'verifying' | 'awaiting-info' | 'submitted-review' | 'closed') | null;
-  /**
-   * 每次状态变更 +1，用于乐观锁和审计。
-   */
   statusVersion?: number | null;
   /**
    * 分诊或领取后指派的处理人。
@@ -1407,7 +1365,7 @@ export interface ListingReport {
    */
   conclusionReason?: string | null;
   /**
-   * 有效举报成立时为 true，影响统一有效供给谓词。
+   * 举报成立时勾选，房源将暂停对外展示。
    */
   supplyPaused?: boolean | null;
   supplyPausedAt?: string | null;
@@ -1478,7 +1436,7 @@ export interface SupplySubmission {
   handledAt?: string | null;
   requestId: string;
   /**
-   * requestId + 标准化手机号 + 楼盘名 的哈希。唯一约束防并发重复。
+   * 系统自动生成的防重标识。
    */
   idempotencyKey: string;
   /**
@@ -1530,7 +1488,7 @@ export interface CityPartnerApplication {
   createdAt: string;
 }
 /**
- * 事务 Outbox：业务事件 append-only。消费器按 event_id + aggregate_version 幂等处理，重复投递不生成重复待办/通知/审计。
+ * 系统业务事件流水，只增不改，供内部流程消费。
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domain-events".
@@ -1538,7 +1496,7 @@ export interface CityPartnerApplication {
 export interface DomainEvent {
   id: number;
   /**
-   * 稳定唯一 ID（nanoid 21 字符）。Outbox 主键，消费器幂等键。
+   * 系统生成的唯一标识。
    */
   eventId: string;
   /**
@@ -1584,12 +1542,9 @@ export interface DomainEvent {
    * 聚合根 ID 字符串形式（兼容 number / uuid）。
    */
   aggregateId: string;
-  /**
-   * 聚合版本号（乐观锁，每次状态变更 +1）。与 event_id 共同构成幂等键。
-   */
   aggregateVersion: number;
   /**
-   * 事件 JSON 负载。Outbox 追加语义：写入后不可变。
+   * 事件数据，写入后不可变。
    */
   payload:
     | {
@@ -1605,7 +1560,7 @@ export interface DomainEvent {
    */
   occurredAt: string;
   /**
-   * 消费器处理完成时间。null 表示未处理；非 null 表示已幂等处理。
+   * 处理完成时间，为空表示尚未处理。
    */
   processedAt?: string | null;
   /**
@@ -1702,11 +1657,11 @@ export interface AuditLog {
    */
   objectId: string;
   /**
-   * 操作时对象的版本号（乐观锁）。
+   * 操作时对象的版本号。
    */
   objectVersion: number;
   /**
-   * 关联的领域事件 ID（如已写入 Outbox）。
+   * 关联的系统事件标识（如有）。
    */
   eventId?: string | null;
   /**
@@ -1774,11 +1729,11 @@ export interface AuditLog {
    */
   userAgent?: string | null;
   /**
-   * 操作失败时的错误码（result=failed 时有值）。
+   * 操作失败时的错误码（仅失败时有值）。
    */
   errorCode?: string | null;
   /**
-   * 操作失败时的错误信息（result=failed 时有值）。
+   * 操作失败时的错误信息（仅失败时有值）。
    */
   errorMessage?: string | null;
   /**
@@ -1805,15 +1760,12 @@ export interface AuditLog {
     | number
     | boolean
     | null;
-  /**
-   * 审计日志版本（append-only，恒为 1）。
-   */
   version?: number | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
- * 工作流待办：审核 / 举报 / 线索 / 跟进 / 房源维护。状态机 pending → in_progress → completed；pending/in_progress → cancelled。由来源业务事件驱动创建与闭环。
+ * 工作流待办：审核 / 举报 / 线索 / 跟进 / 房源维护。待处理 → 进行中 → 已完成，未完成的可取消。由来源业务事件驱动创建与闭环。
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tasks".
@@ -1835,11 +1787,11 @@ export interface Task {
    */
   sourceId: string;
   /**
-   * 来源版本号（与 taskType / sourceId 共同构成幂等键）。
+   * 来源版本号（系统防重标识）。
    */
   sourceVersion: number;
   /**
-   * 来源业务对象类型，由 taskType 派生（protect hook 自动填充）。
+   * 来源业务对象类型，由 taskType 派生（系统自动填充）。
    */
   sourceType: 'listing-review' | 'listing-report' | 'lead' | 'followup' | 'listing';
   /**
@@ -1875,11 +1827,11 @@ export interface Task {
    */
   cancellationReason?: string | null;
   /**
-   * 完成时关联的来源 domain event ID（Outbox event_id），用于审计回溯。
+   * 完成时关联的来源 domain event ID，用于审计回溯。
    */
   completionEventId?: string | null;
   /**
-   * buildTask 产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。
+   * 系统产出的扩展字段（如 listingId / leadId / eventId），用于审计与下钻。
    */
   metadata?:
     | {
@@ -1894,7 +1846,7 @@ export interface Task {
   createdAt: string;
 }
 /**
- * 站内通知：审核驳回 / 线索分配转派 / SLA 超时 / 待办变更。由领域事件消费器幂等生成，与业务状态解耦。
+ * 站内通知：审核驳回 / 线索分配转派 / SLA 超时 / 待办变更。由系统事件自动生成。
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications".
@@ -1934,7 +1886,7 @@ export interface Notification {
    */
   sourceId: string;
   /**
-   * 触发通知的 Outbox event_id。与 recipient + type 共同构成幂等键。
+   * 触发本通知的系统事件标识。
    */
   eventId: string;
   /**
@@ -1961,7 +1913,7 @@ export interface SupplyImportBatch {
   fileName?: string | null;
   rowCount?: number | null;
   /**
-   * 预检通过行的规范化快照。规格 D9 设想完成 7 天后由清理任务置空以省空间，但该清理任务本期未实现（已作为剩余风险记录），实际会随批次记录永久保留。
+   * 预检通过行的数据快照，供导入与回滚使用。
    */
   validRows?:
     | {
@@ -2012,7 +1964,7 @@ export interface LocationAlias {
   id: number;
   alias: string;
   /**
-   * 由 alias 自动派生，导入匹配用的就是它
+   * 由别名自动生成，批量导入时按它匹配
    */
   normalizedAlias: string;
   kind: 'city' | 'district' | 'business_area' | 'metro_station';
@@ -3796,7 +3748,7 @@ export interface AdvisorServiceHour {
    */
   timezone?: string | null;
   /**
-   * 每行一个时段；同一天可多行。start 含、end 不含（HH:MM）。
+   * 每行一个时段；同一天可多行。格式 HH:MM，结束时间不含在内。
    */
   weeklyHours?:
     | {
@@ -3828,7 +3780,7 @@ export interface AdvisorServiceHour {
   createdAt?: string | null;
 }
 /**
- * 全站品牌、合规声明与首页区块文案。保存后最长 60 秒全站生效（多实例缓存失效见 OPT-042）。
+ * 全站品牌、合规声明与首页区块文案。保存后最长 60 秒全站生效。
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site-settings".
@@ -3844,7 +3796,7 @@ export interface SiteSetting {
    */
   logo?: (number | null) | Media;
   /**
-   * 首页搜索框上方的 H1。**全站共用一句、不按城市定制**（2026-08-21 产品裁定）——城市差异由 title/description/OG 承担。要改某个未开城页的文案，去「城市站点配置」。
+   * 首页搜索框上方的 H1。**全站共用一句、不按城市定制**——城市差异由 title/description/OG 承担。要改某个未开城页的文案，去「城市站点配置」。
    */
   heroHeading?: string | null;
   /**
@@ -3860,7 +3812,7 @@ export interface SiteSetting {
    */
   imageDisclaimer?: string | null;
   /**
-   * `{城市}` 会替换成当前访问的城市名。**不要手写城市名**——写死会让其它六城的页脚说错城市（这正是本次修掉的 bug）。
+   * `{城市}` 会替换成当前访问的城市名。**不要手写城市名**——写死会让其它六城的页脚说错城市。
    */
   footerBrandBlurb?: string | null;
   /**

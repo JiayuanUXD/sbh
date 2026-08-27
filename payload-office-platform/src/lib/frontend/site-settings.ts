@@ -8,7 +8,6 @@ import {
 } from '@/domain/public-catalog'
 import type { Media, SiteSetting } from '@/payload-types'
 import { navTargetById } from './nav-targets'
-import { getSaleChannelEnabled } from './site-config'
 import { SITE_SETTINGS_FALLBACK, type SiteSettingsView } from './site-settings-view'
 
 // 客户端组件只能从 './site-settings-view' 取（本文件 import 了 payload，
@@ -87,13 +86,10 @@ function mapTypeCards(value: SiteSetting['typeCards']): SiteSettingsView['typeCa
  * 三种情况会让一项被剔除，都不报错、只是不渲染：
  *   - `visible === false`：运营主动隐藏；
  *   - 目标 id 代码不认识：配置比代码新（回滚后可能出现），宁可少一个入口
- *     也不要渲染一个跳不对的链接；
- *   - 目标挂着未开启的功能开关：如出售频道关闭时的 `/sale`。目标仍留在池子里
- *     （后台能选、能提前配好），只是开关打开前不渲染。
+ *     也不要渲染一个跳不对的链接。
  */
 function mapNavLinks(
   rows: unknown,
-  saleChannelEnabled: boolean,
 ): ReadonlyArray<Readonly<{ href: string; label: string }>> {
   if (!Array.isArray(rows)) return []
   const out: Array<{ href: string; label: string }> = []
@@ -104,28 +100,24 @@ function mapNavLinks(
     if (typeof r.target !== 'string') continue
     const target = navTargetById(r.target)
     if (!target) continue
-    if (target.featureFlag === 'saleChannel' && !saleChannelEnabled) continue
     out.push({ href: target.href, label: text(r.label, target.defaultLabel) })
   }
   return out
 }
 
-function mapMainNav(rows: unknown, saleChannelEnabled: boolean): SiteSettingsView['mainNav'] {
-  const links = mapNavLinks(rows, saleChannelEnabled)
+function mapMainNav(rows: unknown): SiteSettingsView['mainNav'] {
+  const links = mapNavLinks(rows)
   // 全空回落到兜底：导航整条消失比显示旧配置糟得多——用户会以为站点坏了
   return links.length > 0 ? links : SITE_SETTINGS_FALLBACK.mainNav
 }
 
-function mapFooterColumns(
-  rows: unknown,
-  saleChannelEnabled: boolean,
-): SiteSettingsView['footerColumns'] {
+function mapFooterColumns(rows: unknown): SiteSettingsView['footerColumns'] {
   if (!Array.isArray(rows)) return SITE_SETTINGS_FALLBACK.footerColumns
   const cols: Array<{ title: string; links: ReadonlyArray<Readonly<{ href: string; label: string }>> }> = []
   for (const row of rows) {
     if (!row || typeof row !== 'object') continue
     const r = row as { title?: unknown; links?: unknown }
-    const links = mapNavLinks(r.links, saleChannelEnabled)
+    const links = mapNavLinks(r.links)
     // 空分组不渲染：只剩一个标题的列在页脚里就是个视觉噪点
     if (links.length === 0) continue
     cols.push({ title: text(r.title, ''), links })
@@ -135,9 +127,6 @@ function mapFooterColumns(
 
 function toView(doc: SiteSetting | null): SiteSettingsView {
   if (!doc) return SITE_SETTINGS_FALLBACK
-  // 出售频道是运行时开关：关闭时 /sale 目标不渲染，但仍留在后台可选项里，
-  // 让运营能在开关打开前先把导航配好。
-  const saleChannelEnabled = getSaleChannelEnabled()
   return {
     siteName: text(doc.siteName, SITE_SETTINGS_FALLBACK.siteName),
     logo: mapLogo(doc.logo),
@@ -150,8 +139,8 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     footerTaglineSuffix: text(doc.footerTaglineSuffix, SITE_SETTINGS_FALLBACK.footerTaglineSuffix),
     valueProps: mapValueProps(doc.valueProps),
     typeCards: mapTypeCards(doc.typeCards),
-    mainNav: mapMainNav(doc.mainNav, saleChannelEnabled),
-    footerColumns: mapFooterColumns(doc.footerColumns, saleChannelEnabled),
+    mainNav: mapMainNav(doc.mainNav),
+    footerColumns: mapFooterColumns(doc.footerColumns),
   }
 }
 

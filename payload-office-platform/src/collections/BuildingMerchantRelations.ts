@@ -24,6 +24,7 @@ export const BuildingMerchantRelations: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'id',
     defaultColumns: ['building', 'merchant', 'effectiveFrom', 'effectiveTo'],
   },
@@ -96,7 +97,6 @@ export const BuildingMerchantRelations: CollectionConfig = {
       defaultValue: 1,
       admin: {
         readOnly: true,
-        description: '乐观锁版本，保存时自动递增',
       },
     },
   ],

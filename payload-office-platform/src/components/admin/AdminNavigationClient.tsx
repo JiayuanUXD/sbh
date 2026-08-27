@@ -4,6 +4,7 @@ import {
   Link,
   toast,
   useConfig,
+  useNav,
   useWindowInfo,
 } from '@payloadcms/ui'
 import {
@@ -85,6 +86,7 @@ export default function AdminNavigationClient({
 }: AdminNavigationClientProps) {
   const pathname = usePathname()
   const { config } = useConfig()
+  const { navOpen, navRef, setNavOpen } = useNav()
   useWindowInfo() // 保持 hook 调用以维持上下文响应
   const [badges, setBadges] = useState<AdminNavigationBadgeCounts>({})
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => {
@@ -109,19 +111,57 @@ export default function AdminNavigationClient({
   const isDesktop = mounted && windowWidth >= DESKTOP_BREAKPOINT
 
   // 标记 mounted + 监听窗口大小变化
+  // 注意：初始化不要放进 requestAnimationFrame——后台/未合成帧的标签页 rAF 不会触发，
+  // mounted 将永远为 false，桌面态逻辑（含强制 navOpen）全部失效。
+  // 用 setTimeout(0) 而非同步 setState：避免效果内级联渲染（lint 规则），
+  // 且定时器在后台标签页依然会执行。
   useEffect(() => {
     const updateWidth = () => setWindowWidth(window.innerWidth)
     window.addEventListener('resize', updateWidth)
-    const initialFrame = window.requestAnimationFrame(() => {
+    const initialTimer = window.setTimeout(() => {
       updateWidth()
       setMounted(true)
       setCollapsed(getInitialCollapsed())
-    })
+    }, 0)
     return () => {
-      window.cancelAnimationFrame(initialFrame)
+      window.clearTimeout(initialTimer)
       window.removeEventListener('resize', updateWidth)
     }
   }, [])
+
+  // 桌面态（≥1024px 侧边栏常驻）强制 Payload 的 navOpen 为 true：
+  // Payload NavProvider 在视口 ≤ 1440px（断点 l）时会自动 setNavOpen(false)，
+  // aside.nav 随之带上 inert 属性，整棵导航子树不可点击——而我们的 CSS 在
+  // ≥1024px 又强制导航可见，造成 1024–1440px 区间「看得见、点不动」。
+  useEffect(() => {
+    if (isDesktop && !navOpen) {
+      setNavOpen(true)
+    }
+  }, [isDesktop, navOpen, setNavOpen])
+
+  // 同一不变量的 DOM 兜底：桌面态下 aside.nav 上不允许存在 inert。
+  //
+  // 只靠上面的 setNavOpen 不够——它要求「NavProvider 先置 false、本组件的效果再置回
+  // true」这一时序每次都成立。拖动窗口跨 1440 断点时 resize 事件连续触发、Payload 会
+  // 反复改自己的状态，只要有一轮我们的回置没跑到，inert 就留在 DOM 上，表现正是
+  // 「拖窄之后点不动、刷新才好」（刷新时走的是加载路径，由上面的效果覆盖）。
+  //
+  // MutationObserver 把不变量钉在 DOM 上，与 React 的渲染时序解耦：属性一出现就摘掉。
+  // 移动态（< 1024px）不介入——那里导航是模态，关闭时带 inert 是正确行为。
+  useEffect(() => {
+    if (!isDesktop) return
+    const nav = navRef?.current?.closest('aside') ?? document.querySelector('aside.nav')
+    if (!nav) return
+
+    const stripInert = () => {
+      if (nav.hasAttribute('inert')) nav.removeAttribute('inert')
+    }
+
+    stripInert()
+    const observer = new MutationObserver(stripInert)
+    observer.observe(nav, { attributeFilter: ['inert'] })
+    return () => observer.disconnect()
+  }, [isDesktop, navRef])
 
   // 折叠状态持久化
   useEffect(() => {

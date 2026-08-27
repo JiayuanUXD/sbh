@@ -8,6 +8,7 @@ export const Amenities: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'category'],
   },

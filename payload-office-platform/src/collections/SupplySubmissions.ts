@@ -56,6 +56,7 @@ export const SupplySubmissions: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'buildingName',
     defaultColumns: [
       'buildingName',
@@ -300,14 +301,14 @@ export const SupplySubmissions: CollectionConfig = {
             },
             {
               name: 'idempotencyKey',
-              label: '幂等键',
+              label: '防重标识',
               type: 'text',
               required: true,
               unique: true,
               index: true,
               admin: {
                 readOnly: true,
-                description: 'requestId + 标准化手机号 + 楼盘名 的哈希。唯一约束防并发重复。',
+                description: '系统自动生成的防重标识。',
               },
             },
             {

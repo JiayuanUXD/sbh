@@ -68,6 +68,7 @@ export const Leads: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: [
       'name',
@@ -202,7 +203,7 @@ export const Leads: CollectionConfig = {
         },
         {
           label: '归属与阶段',
-          description: '客户档案关联、线索阶段、归属状态与团队/城市归属（M5 / design §3.6）。',
+          description: '客户档案关联、线索阶段、归属状态与团队/城市归属。',
           fields: [
             {
               name: 'customer',
@@ -465,7 +466,6 @@ export const Leads: CollectionConfig = {
                   defaultValue: 1,
                   admin: {
                     readOnly: true,
-                    description: '乐观锁版本号，阶段流转/归属变更时递增（服务端维护）。',
                   },
                 },
               ],
@@ -486,8 +486,7 @@ export const Leads: CollectionConfig = {
         },
         {
           label: '前台询盘上下文',
-          description:
-            'F5 咨询表单采集的来源、目标、隐私同意与幂等键（FP-05 §2 / §5 / §8 / design §10）。后台只读，由 /api/inquiries 写入。',
+          description: '咨询表单自动采集的来源与目标信息，后台只读。',
           fields: [
             {
               // 排查“线索从哪来”时才需要：默认折叠
@@ -500,14 +499,13 @@ export const Leads: CollectionConfig = {
                   fields: [
                     {
                       name: 'idempotencyKey',
-                      label: '幂等键',
+                      label: '防重标识',
                       type: 'text',
                       unique: true,
                       index: true,
                       admin: {
                         readOnly: true,
-                        description:
-                          'requestId + 标准化手机号 + 目标对象 的哈希。同键重复请求只创建一条 Lead（FP-05 §5）。数据库唯一约束兜底，防止并发请求绕过应用层软幂等检查。',
+                        description: '系统自动生成的防重标识，重复提交只会创建一条线索。',
                       },
                     },
                     {
@@ -570,7 +568,7 @@ export const Leads: CollectionConfig = {
                       type: 'text',
                       admin: {
                         readOnly: true,
-                        description: '前台传入的房源 slug；通过 assertEffectiveListing 校验后写入。',
+                        description: '前台传入的房源 slug；校验有效后写入。',
                       },
                     },
                   ],
@@ -629,7 +627,7 @@ export const Leads: CollectionConfig = {
                   type: 'json',
                   admin: {
                     readOnly: true,
-                    description: '已白名单化的 group / priceUnit 枚举；不保存自由文本或用户标识。',
+                    description: '仅保存系统允许的选项值。',
                   },
                 },
                 {
@@ -673,7 +671,7 @@ export const Leads: CollectionConfig = {
                       defaultValue: false,
                       admin: {
                         readOnly: true,
-                        description: '用户必须主动勾选，未勾选不得提交（FP-05 §3.1）。',
+                        description: '用户必须主动勾选，未勾选不得提交。',
                       },
                     },
                     {
@@ -693,8 +691,7 @@ export const Leads: CollectionConfig = {
                   type: 'json',
                   admin: {
                     readOnly: true,
-                    description:
-                      '白名单化 UTM 参数（utm_source / utm_medium / utm_campaign / utm_content / utm_term），各键值长度 ≤ 100。',
+                    description: '营销来源参数（utm_source 等），各键值长度 ≤ 100。',
                   },
                 },
                 {
@@ -703,7 +700,7 @@ export const Leads: CollectionConfig = {
                   type: 'text',
                   admin: {
                     readOnly: true,
-                    description: '前台生成的请求唯一标识，用于日志关联与幂等键计算。',
+                    description: '前台生成的请求唯一标识，用于日志关联与防重。',
                   },
                 },
                 {

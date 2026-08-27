@@ -36,7 +36,6 @@ import {
   REGISTRATION_STATUS_LABELS,
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
-import { getSaleChannelEnabled } from '@/lib/frontend/site-config'
 import { protectListing } from '@/domain/review/listing-protect'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
@@ -152,40 +151,16 @@ export const syncListingMedia: CollectionBeforeChangeHook = ({ data, originalDoc
 }
 
 /**
- * 出售相关字段在后台的显隐（受 NEXT_PUBLIC_SALE_CHANNEL_ENABLED 控制）。
+ * 出售相关字段在后台的显隐。
  *
- * 关键设计：**开关在服务端求值，决定"用哪个 condition 函数"**，而不是让 condition
- * 内部去读环境变量——Payload 的 admin.condition 在浏览器里执行，读不到服务端 env。
- * collection config 本身是服务端构建的，所以在这里分支是可靠的。
- *
- * 这一层只改 admin UI，不碰字段定义，因此不产生任何 schema 变化、不触发迁移。
- * 代价是它只挡入口不挡 API：直接调 Local/REST API 仍可写 businessType='sale'。
- * 对功能开关而言够用；若要连写入都禁掉，那是 access control 的范畴。
+ * 出售频道曾由 `NEXT_PUBLIC_SALE_CHANNEL_ENABLED` 控制可见性（代码先上线、功能后放开），
+ * 功能稳定后开关已移除，这里只保留「按 businessType 分流」这一条业务规则：
+ * 出售信息只在出售房源上显示，租期/付款条件只在出租房源上显示。
  */
-const saleChannelEnabled = getSaleChannelEnabled()
 
-/** 租售类型字段的显隐：开关关闭时只对「已经是出售」的记录显示。 */
-const businessTypeCondition = saleChannelEnabled
-  ? undefined
-  : // 不做成一律隐藏：库里已有的出售房源若看不出自己的类型，运营会困惑
-    // 「这条为什么不在租赁列表里」，那是比少一个字段更难查的问题。
-    (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
-
-/**
- * 「价格与交易参数」这个 tab 的文案本身也是功能信号：开关关闭时若仍叫这个名字、
- * 描述里还写着「产权信息只在出售房源显示」，等于在告诉运营「出售功能存在，只是你
- * 看不到」——字段藏干净了，标题却把它供出来。所以文案跟着开关一起回退到出售模式
- * 之前的原样。
- */
-const priceTabLabel = saleChannelEnabled ? '价格与交易参数' : '租赁参数'
-const priceTabDescription = saleChannelEnabled
-  ? '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。'
-  : '集中维护结构化价格、面积、工位、楼层、租期和付款条件。'
-
-/** 出售信息字段组的显隐：开关关闭时一律不显示。 */
-const saleTermsCondition = saleChannelEnabled
-  ? (data: Record<string, unknown> | undefined) => data?.businessType === 'sale'
-  : () => false
+/** 出售信息字段组：只在出售房源上显示。 */
+const saleTermsCondition = (data: Record<string, unknown> | undefined) =>
+  data?.businessType === 'sale'
 
 /**
  * 固定列轴用的字段宽度（OPT-032 §3.3-A3）。
@@ -207,6 +182,7 @@ export const Listings: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
     defaultColumns: ['title', 'building', 'reviewStatus', 'publicationStatus', 'isFeatured'],
     preview: (doc) => (doc?.slug ? `/listings/${doc.slug}` : null),
@@ -214,6 +190,12 @@ export const Listings: CollectionConfig = {
       edit: {
         // OPT-030 P0-2：表单修改态桥，把 useFormModified 同步给根部离开守卫。
         beforeDocumentControls: ['/components/admin/unsaved-changes/FormModifiedBridge'],
+      },
+      // OPT-056：整页替换默认列表视图（Arco 表格 + 状态标签 + 推荐位快捷编辑）。
+      views: {
+        list: {
+          Component: '/components/admin/ListingsListView',
+        },
       },
     },
   },
@@ -360,7 +342,7 @@ export const Listings: CollectionConfig = {
                   label: '租售类型',
                   type: 'select',
                   defaultValue: 'lease',
-                  admin: { condition: businessTypeCondition, width: COL_3 },
+                  admin: { width: COL_3 },
                   options: BUSINESS_TYPES.map((value) => ({
                     label: BUSINESS_TYPE_LABELS[value],
                     value,
@@ -418,7 +400,11 @@ export const Listings: CollectionConfig = {
                 components: {
                   Field: {
                     path: '/components/admin/ListingFormSectionHeading#default',
-                    clientProps: { title: priceTabLabel, description: priceTabDescription },
+                    clientProps: {
+                      title: '价格与交易参数',
+                      description:
+                        '集中维护结构化价格、面积、工位、楼层。租期/付款条件只在出租房源显示，产权信息只在出售房源显示。',
+                    },
                   },
                 },
               },
@@ -649,7 +635,7 @@ export const Listings: CollectionConfig = {
                         value,
                       })),
                       admin: {
-                        description: '出售房源提交审核必填。枚举取值，避免「四十年」这类脏值。',
+                        description: '出售房源提交审核必填。',
                         width: COL_4,
                       },
                     }),
@@ -718,7 +704,7 @@ export const Listings: CollectionConfig = {
                 components: {
                   Field: {
                     path: '/components/admin/ListingFormSectionHeading#default',
-                    clientProps: { title: '审核与发布', description: '三轴状态由审核/发布流程驱动,此处只读;版本号用于并发乐观锁。' },
+                    clientProps: { title: '审核与发布', description: '状态由审核/发布流程驱动，此处只读。' },
                   },
                 },
               },
@@ -782,8 +768,7 @@ export const Listings: CollectionConfig = {
                   },
                   admin: {
                     description:
-                      '房源供给关系的当前商户，直接决定前台可见性（OPT-034 起 listings.merchant 即唯一真相）。新选候选已限制为启用+资质有效；已存在的值（含商户被停用后留下的旧值）不会被此校验挡住保存，避免「待复核」房源因为携带旧商户 ID 而整单存不进去。服务城市是否覆盖房源所在城市未在此校验，仍由前台精筛 §10 判定。',
-
+                      '房源当前的供给商户，直接决定前台可见性。只能选择启用中且资质有效的商户；商户停用后遗留的旧值仍可正常保存。',
                     width: COL_4,
                   },
                 }),
@@ -804,7 +789,13 @@ export const Listings: CollectionConfig = {
                 {
                   type: 'row',
                   fields: [
-                    { name: 'verifiedAt', label: '信息核验时间', type: 'date', admin: { width: COL_4 } },
+                    {
+                      name: 'verifiedAt',
+                      label: '信息核验时间',
+                      type: 'date',
+                      defaultValue: () => new Date().toISOString(),
+                      admin: { width: COL_4 },
+                    },
                     { name: 'priceVerifiedAt', label: '价格核验时间', type: 'date', admin: { width: COL_4 } },
                   ],
                 },
@@ -879,7 +870,6 @@ export const Listings: CollectionConfig = {
                   defaultValue: 1,
                   admin: {
                     readOnly: true,
-                    description: '乐观锁版本号,系统维护。',
                     width: COL_4,
                     components: { Field: '/components/admin/ListingReadonlyValue#default' },
                   },
@@ -930,7 +920,7 @@ export const Listings: CollectionConfig = {
               type: 'array',
               maxRows: 40,
               admin: {
-                description: '提交审核要求至少 3 张有效图片（kind=图片）。封面与相册由这里自动派生。',
+                description: '提交审核要求至少 3 张图片。封面与相册会从这里自动生成。',
                 components: {
                   Field: '/components/admin/ListingMediaManager',
                 },

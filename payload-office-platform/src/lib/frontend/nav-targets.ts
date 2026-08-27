@@ -36,11 +36,6 @@ export type NavTarget = Readonly<{
   href: string
   /** 后台下拉里显示的名字，同时是新建导航项时的默认标签。 */
   defaultLabel: string
-  /**
-   * 该目标是否依赖运行时开关。开关关闭时目标仍留在池子里（后台可选），
-   * 但渲染层会跳过——否则运营配好了却在开关打开前看不到任何反馈。
-   */
-  featureFlag?: 'saleChannel'
 }>
 
 /** 静态路由目标。与 `src/app/(frontend)/` 下的顶层公开路由一一对应。 */
@@ -54,7 +49,7 @@ const STATIC_TARGETS: readonly NavTarget[] = [
   { id: 'publish', href: '/publish', defaultLabel: '投放房源' },
   { id: 'news', href: '/news', defaultLabel: '资讯' },
   { id: 'city-partner', href: '/city-partner', defaultLabel: '城市合伙人' },
-  { id: 'sale', href: '/sale', defaultLabel: '找出售房源', featureFlag: 'saleChannel' },
+  { id: 'sale', href: '/sale', defaultLabel: '找出售房源' },
 ]
 
 /**

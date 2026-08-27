@@ -15,7 +15,7 @@ import {
   getCachedSitemapListingsPage,
 } from '@/lib/frontend/cached-queries'
 import { shouldListSaleChannelInSitemap } from '@/lib/frontend/sale-channel'
-import { getMultiCityRoutingEnabled, getSaleChannelEnabled, siteConfig } from '@/lib/frontend/site-config'
+import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,7 +143,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 两者不一致就是自相矛盾的信号（「别收录」+「快来收录」），noindex 的降噪
     // 作用会被抵消，还白耗抓取预算。
     // 开关关闭时频道页返回 404，出现在 sitemap 里就是让爬虫去撞死链
-    if (getSaleChannelEnabled() && shouldListSaleChannelInSitemap(city.saleListings.length)) {
+    if (shouldListSaleChannelInSitemap(city.saleListings.length)) {
       dynamicUrls.push({
         url: `${prefix}/sale`,
         lastModified: now,

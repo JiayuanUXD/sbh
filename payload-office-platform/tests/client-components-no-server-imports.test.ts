@@ -85,6 +85,16 @@ async function readIfExists(base: string): Promise<string | null> {
 }
 
 describe("'use client' 组件不得把服务端模块拖进浏览器包", () => {
+  // 显式 60s：本用例遍历 src/ 下每个文件并做 import 传递闭包，是 I/O 密集型。
+  // 单独跑 0.6s，但全量并行时实测撞到过 vitest 默认的 5s 上限（5015ms），
+  // 表现为超时而非断言失败——那是"机器忙"，不该被读成"守卫红了"。
+  // 同族问题（大模块图吃满 testTimeout）见 tests/supply-public-cache-hook.test.ts
+  // 「接线契约」那段注释：那边的结论是把 collection 改成文件顶部静态导入，
+  // 把开销挪出 testTimeout 管辖范围。本用例没有那条出路——它必须在用例内遍历
+  // 整棵 import 图，所以只能抬超时。
+  //
+  // 不写工作项编号：该问题已就地解决并在那份测试里写清，没有对应工作项；
+  // 指向真实存在的文件比指向一个号更经得起时间。
   it('客户端组件的 import 传递闭包里不出现 payload 运行时', async () => {
     const files = await walk(SRC)
     const violations: string[] = []
@@ -123,5 +133,5 @@ describe("'use client' 组件不得把服务端模块拖进浏览器包", () => 
         `non-ecmascript placeable asset 失败，但 typecheck 与单测都发现不了）：\n` +
         violations.join('\n'),
     ).toEqual([])
-  })
+  }, 60_000)
 })

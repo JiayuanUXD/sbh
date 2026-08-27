@@ -18,6 +18,7 @@ export const Pages: CollectionConfig = {
   },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', 'status'],
     preview: (doc) => (doc?.slug === 'home' ? '/' : null),

@@ -23,6 +23,7 @@ export const CityPartnerApplications: CollectionConfig = {
   labels: { singular: '城市合伙人申请', plural: '城市合伙人申请' },
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'applicantName',
     defaultColumns: [
       'city', 'applicantName', 'contactPhone', 'applicantIdentity',

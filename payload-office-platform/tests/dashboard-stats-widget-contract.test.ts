@@ -23,6 +23,10 @@ const stats = {
   listings: 9,
   listingsWithoutCover: 10,
   newLeads: 11,
+  pendingReviews: 12,
+  pendingRecheck: 13,
+  openReports: 14,
+  pendingSubmissions: 15,
 }
 
 afterEach(() => {
@@ -51,6 +55,16 @@ describe('dashboard statistics widget contract', () => {
       }),
     ).toBe(false)
     expect(isDashboardStatsResponse({ ok: false, error: '未登录' })).toBe(false)
+    // OPT-056：待办类计数允许 null（无权限降级），但不允许负数/非整数
+    expect(isDashboardStatsResponse({ ok: true, stats: { ...stats, openReports: null } })).toBe(
+      true,
+    )
+    expect(
+      isDashboardStatsResponse({ ok: true, stats: { ...stats, pendingSubmissions: null } }),
+    ).toBe(true)
+    expect(isDashboardStatsResponse({ ok: true, stats: { ...stats, pendingReviews: -1 } })).toBe(
+      false,
+    )
   })
 
   it('respects reduced motion and keeps the retry target at least 44px tall', () => {

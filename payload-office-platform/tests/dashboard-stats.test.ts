@@ -37,10 +37,15 @@ describe('dashboard-stats/resolveDashboardStats', () => {
       countCalls.push({ collection, where, ...input })
       if (collection === 'listings' && where === undefined) return { totalDocs: 12 }
       if (collection === 'listings') {
-        if (JSON.stringify(where).includes('isFeatured')) return { totalDocs: 3 }
-        if (JSON.stringify(where).includes('coverImage')) return { totalDocs: 4 }
+        const serialized = JSON.stringify(where)
+        if (serialized.includes('isFeatured')) return { totalDocs: 3 }
+        if (serialized.includes('coverImage')) return { totalDocs: 4 }
+        if (serialized.includes('reviewStatus')) return { totalDocs: 13 }
+        if (serialized.includes('supplyVisibilityHold')) return { totalDocs: 14 }
       }
       if (collection === 'buildings') return { totalDocs: 5 }
+      if (collection === 'listing-reports') return { totalDocs: 15 }
+      if (collection === 'supply-submissions') return { totalDocs: 16 }
       if (collection === 'leads' && where === undefined) return { totalDocs: 9 }
       if (collection === 'leads' && JSON.stringify(where).includes('"new"')) return { totalDocs: 2 }
       if (collection === 'leads') return { totalDocs: 6 }
@@ -81,23 +86,60 @@ describe('dashboard-stats/resolveDashboardStats', () => {
       leads: 9,
       newLeads: 2,
       activeLeads: 6,
+      pendingReviews: 13,
+      pendingRecheck: 14,
+      openReports: 15,
+      pendingSubmissions: 16,
     })
 
-    expect(countCalls).toHaveLength(7)
+    expect(countCalls).toHaveLength(11)
     for (const call of countCalls) {
       expect(call.overrideAccess).toBe(false)
       expect(call.req).toBe(req)
     }
 
+    // OPT-056：精筛快照只需 depth 1（merchant.serviceCities 的裸 id 可被 toId 归一），
+    // 且用 select 投影裁掉媒体/富文本等大字段——这是概览端点最重查询的主要瘦身点。
     const listingCall = findCalls.find((call) => call.collection === 'listings')
     expect(listingCall).toMatchObject({
       overrideAccess: false,
       req,
       pagination: false,
       limit: 500,
-      depth: 2,
+      depth: 1,
+      select: { building: true, merchant: true },
       where: { id: { not_in: [3] } },
     })
     expect(findCalls.some((call) => call.collection === 'listing-merchant-relations')).toBe(false)
+  })
+
+  it('待办类计数无权限时降级为 null，不拖垮整个概览', async () => {
+    const req = { requestId: 'dashboard-degraded' }
+    const count: DashboardStatsPayloadPort['count'] = async ({ collection, where }) => {
+      if (collection === 'listing-reports' || collection === 'supply-submissions') {
+        throw new Error('Forbidden')
+      }
+      if (collection === 'listings' && where !== undefined) {
+        const serialized = JSON.stringify(where)
+        if (serialized.includes('reviewStatus')) return { totalDocs: 2 }
+        if (serialized.includes('supplyVisibilityHold')) return { totalDocs: 1 }
+      }
+      return { totalDocs: 0 }
+    }
+    const find: DashboardStatsPayloadPort['find'] = async ({ collection }) => {
+      if (collection === 'listing-reports') {
+        return { docs: [], hasNextPage: false, nextPage: null }
+      }
+      return { docs: [], hasNextPage: false, nextPage: null }
+    }
+    const payload = { count, find } satisfies DashboardStatsPayloadPort
+
+    const stats = await resolveDashboardStats(payload, req)
+
+    expect(stats.openReports).toBeNull()
+    expect(stats.pendingSubmissions).toBeNull()
+    expect(stats.pendingReviews).toBe(2)
+    expect(stats.pendingRecheck).toBe(1)
+    expect(stats.listings).toBe(0)
   })
 })

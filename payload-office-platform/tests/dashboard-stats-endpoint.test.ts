@@ -85,10 +85,11 @@ describe('GET /dashboard-stats', () => {
     await port.find({
       collection: 'listings',
       where: { publicationStatus: { equals: 'published' } },
-      depth: 2,
+      depth: 1,
       limit: 500,
       page: 3,
       pagination: false,
+      select: { building: true, merchant: true },
       sort: '-updatedAt',
       overrideAccess: false,
       req,
@@ -103,10 +104,11 @@ describe('GET /dashboard-stats', () => {
     expect(find).toHaveBeenCalledWith({
       collection: 'listings',
       where: { publicationStatus: { equals: 'published' } },
-      depth: 2,
+      depth: 1,
       limit: 500,
       page: 3,
       pagination: false,
+      select: { building: true, merchant: true },
       sort: '-updatedAt',
       overrideAccess: false,
       req,
@@ -158,9 +160,27 @@ describe('GET /dashboard-stats', () => {
         leads: 4,
         newLeads: 4,
         activeLeads: 4,
+        pendingReviews: 7,
+        pendingRecheck: 7,
+        openReports: 4,
+        pendingSubmissions: 4,
       },
     })
-    expect(count).toHaveBeenCalledTimes(7)
+    expect(count).toHaveBeenCalledTimes(11)
     expect(find).toHaveBeenCalled()
+  })
+
+  it('60 秒内同一用户命中缓存，不重复执行统计查询', async () => {
+    const { req, count } = makeRequest(makeUser())
+    const endpoint = createDashboardStatsEndpoint()
+
+    const first = (await endpoint.handler(req)) as Response
+    const countCallsAfterFirst = count.mock.calls.length
+    const second = (await endpoint.handler(req)) as Response
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    expect(count.mock.calls.length).toBe(countCallsAfterFirst)
+    expect(await second.json()).toEqual(await first.json())
   })
 })

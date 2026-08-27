@@ -10,7 +10,7 @@ import {
 import GeographyAdminTemplate from './GeographyAdminTemplate'
 import GeographyListViewClient, { type GeographyRow } from './GeographyListViewClient'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 25
 
 /** relationship 值可能是 id 或已 populate 的对象；只取对象里的 name。 */
 function popName(value: unknown): string | null {

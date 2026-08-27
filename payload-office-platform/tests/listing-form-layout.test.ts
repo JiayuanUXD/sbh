@@ -66,7 +66,7 @@ describe('listing-form-layout/tab 结构', () => {
     const titles = headings.map((h) => h.admin.components.Field.clientProps.title)
     expect(titles).toEqual([
       '基本信息',
-      // 价格分节的标题随 saleChannelEnabled 开关变（价格与交易参数 / 租赁参数）
+      // 价格分节的标题（出售频道常开后固定为「价格与交易参数」）
       titles[1],
       '审核与发布',
       '状态（只读）',

@@ -192,6 +192,7 @@ export const Locations: CollectionConfig = {
   ],
   admin: {
     group: false,
+    pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'name',
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],
   },
@@ -376,7 +377,6 @@ export const Locations: CollectionConfig = {
           defaultValue: 1,
           admin: {
             readOnly: true,
-            description: '乐观锁版本，由系统维护',
           },
         },
       ],
