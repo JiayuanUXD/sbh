@@ -6,7 +6,7 @@
 ## 证据身份
 
 - 分支：`feat/miniprogram-mvp-59f9`
-- 目标代码 commit：`003b4eb`（`feat: 增加小程序验收短时许可`，包含此前 `e3b44d4` 安全闸门）
+- 目标代码 commit：`f490b19`（`feat: 接入小程序验收许可写入口`，包含此前短时许可与安全闸门）
 - 验证时工作树：交付文件已提交；仅保留用户未跟踪的 `docs/SBH小程序页面设计/`，不属于交付物
 - staging API host：未提供
 - staging deployment revision：未提供
@@ -24,9 +24,10 @@
 - 小程序 `project:check`：通过
 - Web Task 3a 定向合同测试（runtime config + attestation route）：15/15 通过；Web typecheck 与相关 lint 通过。
 - Web Task 3b-1 permit 定向合同测试（签发/验证 + route）：52/52 通过；与 Task 3a 合计 68/68。Sol 首轮发现多段 token 解析与跨 run 假阳性后退回，修复并补回归，第二轮 APPROVE，无遗留 P1/P2。
-- Web 全量：304 个测试文件中 299 通过、5 个既有跳过；4166 项中 4141 通过、25 项既有跳过。
+- Web Task 3b-2 定向合同测试（permit intrinsic verifier + run 隔离幂等键 + Mini inquiry route）：105/105 通过。Sol 首轮发现 acceptance 与普通/跨 run 共用幂等键会错归属，修复为独立 run-domain-separated key 后复验 APPROVE，无遗留 P1/P2。
+- Web 全量：304 个测试文件中 299 通过、5 个既有跳过；4180 项中 4155 通过、25 项既有跳过。
 - Web lint：0 错误、23 条既有 warning；production build：退出成功。构建期记录既有 COS fail-closed 日志并按现有城市静态参数降级完成，不视为 staging attestation 证据。
-- 结论范围：只证明 trial 缺少独立配置时 fail-closed、部署 manifest 生成边界、本地预检结构/脱敏合同，以及在 mock Payload/数据库探针下的服务端 attestation 与 10 分钟 run/SHA/revision/数据库指纹绑定 permit 合同；本地预检明确返回 `writeAuthorized=false`，permit 尚未接入普通咨询入口，不证明真实预发布部署、真实数据库隔离、真实写授权或微信运行时可用。
+- 结论范围：只证明 trial 缺少独立配置时 fail-closed、部署 manifest 生成边界、本地预检结构/脱敏合同，以及在 mock Payload/数据库探针下的服务端 attestation、10 分钟 permit 与 Mini inquiry acceptance 分支合同。普通无 header 请求保持原路径；acceptance 使用 run 隔离幂等域并返回 Lead `leadLocator`，但 locator 不是本轮 ownership 证明。自动 runner、精确 ownership manifest 与清理尚未实现，本地预检仍明确返回 `writeAuthorized=false`，因此不证明真实预发布部署、真实数据库隔离、真实写授权或微信运行时可用。
 
 ### 微信开发者工具诊断
 
@@ -42,7 +43,7 @@
 |---|---|---|
 | trial 独立 HTTPS API | 未执行 | 未提供 staging origin 与部署 revision |
 | 服务端 attestation | 真实环境未执行 | 本地 mock 合同已实现并通过；独立部署、真实 revision 与数据库指纹尚未交付 |
-| 隔离数据库咨询写入 | 未执行 | permit 签发/验证合同已完成，但尚未接入咨询入口；无受控真实数据库指纹和 fixture ownership |
+| 隔离数据库咨询写入 | 未执行 | permit 已接入服务端咨询合同，但无自动 runner、受控真实数据库指纹、fixture ownership manifest 与精确清理证据 |
 | iOS 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
 | Android 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
 | 微信后台合法域名/隐私 | 未执行 | 需要管理员在明确目标上配置并留回滚证据 |
