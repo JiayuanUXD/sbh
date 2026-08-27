@@ -26,7 +26,11 @@
 
 /* 图容器：display:block 必须显式声明——span 默认 inline 会让 aspect-ratio 失效、高度塌成 0 */
 .sf-media { position: relative; display: block; background: #8e8e93; }
-.sf-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* object-position 的 50% 回退值 = 改动前的居中裁切；组件只在有焦点时才发
+   --focal-x/--focal-y（OPT-059）。本规则被六处调用共享，未迁移的组件不发变量、
+   行为不变。 */
+.sf-media img { width: 100%; height: 100%; object-fit: cover;
+  object-position: var(--focal-x, 50%) var(--focal-y, 50%); display: block; }
 .sf-media--4x3 { aspect-ratio: 4 / 3; }
 .sf-media--16x10 { aspect-ratio: 16 / 10; }
 

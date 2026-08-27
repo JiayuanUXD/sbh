@@ -48,4 +48,53 @@ describe('frontend media fallback', () => {
     expect(css).toMatch(/\.media-placeholder__text\s*\{[^}]*font-size:\s*var\(--fs-14\)/s)
     expect(css).toMatch(/\.detail-gallery__fallback\s*\{[^}]*linear-gradient/s)
   })
+
+  // --- OPT-059：srcset 与焦点 ---------------------------------------------
+
+  const SIZED = {
+    src: '/media/original.jpg',
+    alt: '静安中心',
+    variants: [
+      { src: '/media/320.webp', width: 320 },
+      { src: '/media/768.webp', width: 768 },
+    ],
+  }
+
+  it('有派生尺寸时渲染 srcSet 与 sizes', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, { media: SIZED, sizes: '(max-width: 767px) 100vw, 320px' }),
+    )
+    expect(html).toContain('/media/320.webp 320w')
+    expect(html).toContain('/media/768.webp 768w')
+    expect(html).toContain('sizes="(max-width: 767px) 100vw, 320px"')
+  })
+
+  it('无派生尺寸时不渲染 srcSet（存量图回落原图）', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, { media: { src: '/media/original.jpg', alt: 'x' } }),
+    )
+    expect(html).not.toContain('srcSet')
+    expect(html).not.toContain('srcset')
+    expect(html).toContain('src="/media/original.jpg"')
+  })
+
+  it('有焦点时写入 CSS 自定义属性', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, { media: { ...SIZED, focal: { x: 30, y: 70 } } }),
+    )
+    expect(html).toContain('--focal-x:30%')
+    expect(html).toContain('--focal-y:70%')
+  })
+
+  it('无焦点时不写变量，交给 CSS 的 50% 回退值（等于改动前的居中裁切）', () => {
+    const html = renderToStaticMarkup(createElement(Media, { media: SIZED }))
+    expect(html).not.toContain('--focal-x')
+  })
+
+  it('cover 语义的共享规则带焦点回退值，缺省行为与改动前一致', () => {
+    const surface = readFileSync('src/app/(frontend)/styles/surface.css', 'utf8')
+    const home = readFileSync('src/app/(frontend)/styles/home.css', 'utf8')
+    expect(surface).toMatch(/\.sf-media img\s*\{[^}]*object-position:\s*var\(--focal-x,\s*50%\)\s*var\(--focal-y,\s*50%\)/s)
+    expect(home).toMatch(/\.hm-bento-card img\s*\{[^}]*object-position:\s*var\(--focal-x,\s*50%\)\s*var\(--focal-y,\s*50%\)/s)
+  })
 })
