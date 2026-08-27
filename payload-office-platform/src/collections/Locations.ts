@@ -27,6 +27,7 @@ type LocationCacheRecord = CityCacheInvalidationRecord & Readonly<{
   parent?: unknown
   status?: unknown
   frontendVisible?: unknown
+  coverImage?: unknown
 }>
 
 const PUBLIC_LOCATION_FIELDS = [
@@ -37,6 +38,10 @@ const PUBLIC_LOCATION_FIELDS = [
   'frontendVisible',
   'city',
   'parent',
+  // OPT-060：首页商圈卡的背景图。漏在表外时，运营只改封面不会打任何失效标签,
+  // 首页只能等 unstable_cache 自然过期。它是 upload 关系字段，故与 city/parent
+  // 一样走 relationshipId 比较（见 fieldChanged）。
+  'coverImage',
 ] as const
 
 function relationshipId(value: unknown): Identifier | null {
@@ -64,6 +69,7 @@ function toLocationCacheRecord(value: unknown): LocationCacheRecord | null {
   return {
     id: value.id,
     city: 'city' in value ? value.city : undefined,
+    coverImage: 'coverImage' in value ? value.coverImage : undefined,
     frontendVisible: 'frontendVisible' in value ? value.frontendVisible : undefined,
     name: 'name' in value ? value.name : undefined,
     parent: 'parent' in value ? value.parent : undefined,
@@ -78,7 +84,9 @@ function fieldChanged(
   current: LocationCacheRecord,
   previous: LocationCacheRecord,
 ): boolean {
-  if (field === 'city' || field === 'parent') {
+  // 三者都是关系字段：depth 不同时可能是裸 id，也可能是展开后的对象，
+  // 直接 Object.is 会把「同一个目标」判成变了。
+  if (field === 'city' || field === 'parent' || field === 'coverImage') {
     return String(relationshipId(current[field]) ?? '') !== String(relationshipId(previous[field]) ?? '')
   }
   return !Object.is(current[field], previous[field])

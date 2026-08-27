@@ -161,4 +161,50 @@ describe('city profile cache invalidator', () => {
     expect(revalidateTag).toHaveBeenCalledWith('public:facets:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
     expect(revalidateTag).toHaveBeenCalledWith('public:sitemap', IMMEDIATE_CACHE_EXPIRE_PROFILE)
   })
+
+  // --- OPT-060：商圈封面变更也要打失效标签 --------------------------------
+
+  // 除 coverImage 外所有字段保持一致——若顺手改了 name/status，PUBLIC_LOCATION_FIELDS
+  // 里原有的字段就会替它打上标签，这三条就全变成恒真了。
+  const AREA_BASE = {
+    id: 707,
+    city: { id: 1, slug: 'hangzhou' },
+    frontendVisible: true,
+    slug: 'wulin',
+    status: 'active',
+    type: 'business_area',
+  } as const
+
+  async function fireLocationChange(doc: unknown, previousDoc: unknown) {
+    const hook = Locations.hooks?.afterChange?.[0]
+    if (!hook) throw new Error('location_after_change_hook_missing')
+    await Reflect.apply(hook, undefined, [{ doc, previousDoc, req: {} }])
+  }
+
+  it('只改 coverImage 也会打失效标签（此前不会，运营改了封面前台不更新）', async () => {
+    revalidateTag.mockClear()
+    await fireLocationChange({ ...AREA_BASE, coverImage: 92 }, { ...AREA_BASE, coverImage: 91 })
+    expect(revalidateTag).toHaveBeenCalledWith('public:home:hangzhou', IMMEDIATE_CACHE_EXPIRE_PROFILE)
+  })
+
+  it('coverImage 未变时不打标签（门禁没有被改成恒真）', async () => {
+    revalidateTag.mockClear()
+    // description 不在 PUBLIC_LOCATION_FIELDS 里，改它不该惊动缓存
+    await fireLocationChange(
+      { ...AREA_BASE, coverImage: 91, description: '改后' },
+      { ...AREA_BASE, coverImage: 91, description: '改前' },
+    )
+    expect(revalidateTag).not.toHaveBeenCalled()
+  })
+
+  it('coverImage 从裸 id 变成展开对象、但指向同一张图 → 不打标签', async () => {
+    revalidateTag.mockClear()
+    // 这条锁的是 relationshipId 比较分支：直接 Object.is 会把同一张图判成变了，
+    // 于是每次保存都白打一轮失效标签。
+    await fireLocationChange(
+      { ...AREA_BASE, coverImage: { id: 91, url: '/media/a.jpg' } },
+      { ...AREA_BASE, coverImage: 91 },
+    )
+    expect(revalidateTag).not.toHaveBeenCalled()
+  })
 })
