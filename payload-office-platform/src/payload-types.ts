@@ -546,6 +546,16 @@ export interface CitySiteProfile {
    */
   avgResponseHours?: number | null;
   featuredRegions?: (number | Location)[] | null;
+  /**
+   * 只覆盖封面图，不覆盖文案。某个槽位没配就用「站点设置」里的全局默认；全局也空则回落到该类型第一条房源的封面。
+   */
+  typeCardOverrides?:
+    | {
+        slot: 'traditional-office' | 'coworking' | 'full-floor' | 'serviced-office' | 'creative-park';
+        coverImage: number | Media;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2768,6 +2778,13 @@ export interface CitySiteProfilesSelect<T extends boolean = true> {
   contactBody?: T;
   avgResponseHours?: T;
   featuredRegions?: T;
+  typeCardOverrides?:
+    | T
+    | {
+        slot?: T;
+        coverImage?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

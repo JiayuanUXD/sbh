@@ -303,6 +303,38 @@ export const CitySiteProfiles: CollectionConfig = {
               maxRows: 12,
               filterOptions: () => activeLocationFilter(['district', 'business_area']),
             },
+            {
+              name: 'typeCardOverrides',
+              label: '「按类型浏览」封面（本城覆盖）',
+              type: 'array',
+              maxRows: 5,
+              admin: {
+                description:
+                  '只覆盖封面图，不覆盖文案。某个槽位没配就用「站点设置」里的全局默认；全局也空则回落到该类型第一条房源的封面。',
+              },
+              fields: [
+                {
+                  name: 'slot',
+                  label: '槽位',
+                  type: 'select',
+                  required: true,
+                  options: [
+                    { value: 'traditional-office', label: '传统办公位' },
+                    { value: 'coworking', label: '联合办公位' },
+                    { value: 'full-floor', label: '整层办公位' },
+                    { value: 'serviced-office', label: '独栋办公位' },
+                    { value: 'creative-park', label: '创意园区位' },
+                  ],
+                },
+                {
+                  name: 'coverImage',
+                  label: '封面图',
+                  type: 'upload',
+                  relationTo: 'media',
+                  required: true,
+                },
+              ],
+            },
           ],
         },
       ],

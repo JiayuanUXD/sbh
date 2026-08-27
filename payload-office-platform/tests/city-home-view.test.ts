@@ -27,6 +27,7 @@ function buildCity(avgResponseHours: number | null) {
       seoTitle: '', seoDescription: '', cityId: 1, switcherVisible: true, sortOrder: 1, avgResponseHours,
       hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null, video: null, videoEnabled: true },
       intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
+      typeCardOverrides: [],
     },
   }
 }

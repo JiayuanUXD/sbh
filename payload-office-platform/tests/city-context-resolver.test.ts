@@ -58,6 +58,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     intro: { heading: '', body: '' },
     contact: { heading: '', body: '' },
     featuredRegions: [],
+    typeCardOverrides: [],
     ...overrides,
   }
 }
