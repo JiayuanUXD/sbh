@@ -51,11 +51,17 @@ describe('sale-channel/开关不得复活', () => {
       readFile(resolve(ROOT, '..', '.github/workflows/quality.yml'), 'utf8'),
       read('.env.example'),
     ])
-    // Dockerfile 曾需要 builder + runner 两处同时设置，漏一处即半开——
-    // 现在两处都不该再有。
-    expect(dockerfile).not.toContain('SALE_CHANNEL')
-    expect(quality).not.toContain('SALE_CHANNEL')
-    expect(envExample).not.toContain('SALE_CHANNEL')
+    // 断言的是「**设置**该变量」而不是「提到它」——与上面源码断言同一考量：
+    // quality.yml 里保留了一段沿革说明（为何曾经必须设、为何现在刻意不设、
+    // 以及「e2e 红了不要把它加回来」），那段文字本身就是防复活的护栏，
+    // 不该被一个过钝的断言逼着删掉。这条测试第一版就是写成 not.toContain('SALE_CHANNEL')
+    // 而把自己的 CI 说明判红的。
+    //
+    // 三种「设置」形态各自锚定：Dockerfile 的 ENV 赋值、YAML 的 env 键、dotenv 赋值
+    //（.env.example 里连注释掉的赋值也不留——模板里留一行注释就是在邀请别人取消注释）。
+    expect(dockerfile).not.toMatch(/NEXT_PUBLIC_SALE_CHANNEL_ENABLED\s*=/)
+    expect(quality).not.toMatch(/NEXT_PUBLIC_SALE_CHANNEL_ENABLED\s*:/)
+    expect(envExample).not.toContain('NEXT_PUBLIC_SALE_CHANNEL_ENABLED=')
   })
 })
 
