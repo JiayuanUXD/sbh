@@ -151,28 +151,41 @@ CPU 和流量」，还附送体验抖动**。派生图的生命周期由插件�
 `card.coverImage` 与 `card.building.coverImage` **各存一份**。
 
 所以在 OPT-047 剔 `blurDataURL` 的同一处（`mappers.ts:566`），把卡片封面的
-`src` **直接替换成 `card` 档派生图的 URL**：
+`src` **直接替换成 `card` 档派生图的 URL**，并剔掉 `variants`：
 
-- 零新增字节（不是加字段，是换值），不会重蹈超限覆辙；
+- **大头是换值不是加字段**——`src` 原地替换、`variants` 整个丢弃，不会重蹈超限覆辙；
 - 列表页却从原图直出变成 768w WebP。
+
+**唯一的净增长是 `focal`**（约 22 字节/卡，1000 张卡约 22KB，占 2MB 上限约 1%）。
+保留它是因为卡片封面正是被 `object-fit: cover` 裁切的地方，焦点在这里收益最高。
+（`building.coverImage` 已被 OPT-047 的解构整个丢弃，故只增一份而非两份。）
 
 完整 `srcSet` 只进**首页十张封面卡**与**详情页**——两者都不受 2MB 上限约束。
 
 ### 5.3 渲染层：升级共享原语 + 两区块接入
 
 - `ui/Media.tsx` 学会渲染 `srcset` / `sizes`，并把 focal 注入为 CSS 自定义属性；
-- 四条 **cover 语义**的共享规则加
-  `object-position: var(--focal-x, 50%) var(--focal-y, 50%)`：
-  `surface.css:29`、`home.css:226`、`list.css:193`、`home.css:129`；
+- **两条** cover 语义的共享规则加
+  `object-position: var(--focal-x, 50%) var(--focal-y, 50%)`——
+  `surface.css:29`（类型卡）与 `home.css:226`（bento）；
 - `HomeTypeCards.tsx:54`、`HomeDistrictBento.tsx:28` 的裸 `<img>` 换用共享原语。
+
+> **为什么只有两条。** `list.css:193`（`.bd-row__thumb img`）与 `home.css:129`
+> （hero poster）服务的组件本轮不迁移（`BuildingCompactRow` / `HomeHeroMedia`），
+> 不会发出 `--focal-x` 变量——给它们加 `object-position: var(--focal-x, 50%)`
+> 是**只有回退值生效的死 CSS**。随各组件迁移时再加。
+>
+> `.sf-media img` 被六处调用共享，加变量后未迁移的调用方同样不发变量、
+> 落到 `50% 50%`，行为不变。
 
 **contain 语义的明确不套 focal**：`SiteHeader.tsx:49` 的 logo、`styles.css:1741/4701`、
 `DetailGallery.tsx:470`（看大图场景）。`styles.css` 是 5000+ 行的旧文件，
 其中 11 处 `object-fit: cover` 需按选择器反查消费组件后再决定是否改，
 **不做全局替换**。
 
-`home.css:129` 同一条规则同时管 hero 的 poster 与 `<video>`——video 没有
-`object-position` 的分焦点等价物，hero 场景 focal 只作用于 img/poster 层。
+**留给 hero 迁移时的坑**（本轮不涉及）：`home.css:129` 同一条规则同时管 hero 的
+poster 与 `<video>`。将来迁移 `HomeHeroMedia` 时须把 poster 的选择器拆出来单独加
+`object-position`——video 没有分焦点的等价语义，focal 只应作用于 img/poster 层。
 
 ### 5.4 已知交互：blur 插件会多跑几次 sharp
 
