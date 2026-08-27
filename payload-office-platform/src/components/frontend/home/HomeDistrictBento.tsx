@@ -13,6 +13,29 @@ import type { DistrictCardViewModel } from '@/domain/public-catalog/contracts'
  *   - 1~2 张：降级为等分一行（高 280，复用 .hm-bento__wide）；
  *   - 0 张：整段不渲染。
  */
+/**
+ * 三档坑位各自的 `sizes`，按 `.hm-bento__row` 的 flex 比例换算成 vw。
+ *
+ * `.hm-bento__main`(flex:2) / `.hm-bento__side`(flex:1，内含两张 `__small`) 同一行
+ * 三等分，`.hm-bento__wide`(flex:1) 单独一行对半分——容器宽度本身随 `--gut`
+ * （16/32/48）跳变、且顶到 `--container-max`（1440）后不再随视口线性增长，
+ * 实测（`artifacts/verification/OPT-059/breakpoints-verification.md`，1440
+ * 视口、容器 1343px）main 885px / small 442px / wide 663px；反推 768–1439px
+ * 视口区间（容器 = vw − 2×32），三档占视口比例分别落在约 60~63vw / 30~31vw /
+ * 45~47vw，故取 62 / 32 / 47vw——比实测略宽松一点，报小了会选到糊图（见下），
+ * 报大了只是多下一档，故意偏保守。候选只有 320/768/1600 三档：main 在这个
+ * vw 比例下于视口约 1280px 处跨过 768px 实际渲染宽度、开始选 1600 档；
+ * small/wide 在常见桌面宽度下落在 320~768px 之间，稳定选 768 档，不再像
+ * 统一 800px 时那样三档一律选中 1600w（小卡 3.6x、宽卡 2.4x 过采样）。
+ * ≤767px 时 `.hm-bento__row` 纵向堆叠、三档卡都是满宽（`home.css:242-245`），
+ * 这一段三档可共用 100vw。
+ */
+const BENTO_SIZES: Readonly<Record<string, string>> = {
+  'hm-bento__main': '(max-width: 767px) 100vw, 62vw',
+  'hm-bento__small': '(max-width: 767px) 100vw, 32vw',
+  'hm-bento__wide': '(max-width: 767px) 100vw, 47vw',
+}
+
 function BentoCard({ card, prefix, sizeClass }: Readonly<{
   card: DistrictCardViewModel
   prefix: string
@@ -26,11 +49,9 @@ function BentoCard({ card, prefix, sizeClass }: Readonly<{
       data-event-name="home_district_click"
     >
       {card.coverImage ? (
-        // bento 三档坑位宽度差得远（大卡约占容器 2/3，小卡/宽卡各约 1/3），
-        // 用最大的那档报 sizes：报小了浏览器会选到糊图，报大了只是多下一档。
         // decorative：商圈名已是同一卡片内的可见文字，图片不承载额外信息
-        // （见 OPT-059 复核）。
-        <Media media={card.coverImage} ratio="auto" sizes="(max-width: 767px) 100vw, 800px" decorative />
+        // （见 OPT-059 复核）。sizes 按坑位区分，见 BENTO_SIZES 注释。
+        <Media media={card.coverImage} ratio="auto" sizes={BENTO_SIZES[sizeClass] ?? '(max-width: 767px) 100vw, 800px'} decorative />
       ) : null}
       <span className="sf-scrim" aria-hidden="true" />
       <span className="hm-bento-card__label">
