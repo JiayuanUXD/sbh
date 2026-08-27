@@ -121,13 +121,12 @@ export function issueAcceptancePermit(
   return { token: `${body}.${sign(body, secret)}`, payload }
 }
 
-export function verifyAcceptancePermit(
+export function verifyAcceptancePermitToken(
   token: string,
-  context: AcceptancePermitContext,
   secret: Uint8Array,
   now = Date.now(),
 ): AcceptancePermitPayload | null {
-  if (!Number.isSafeInteger(now) || now < 0 || !isValidContext(context)) return null
+  if (!Number.isSafeInteger(now) || now < 0) return null
   if (token.length > 4096) return null
 
   const parts = token.split('.')
@@ -154,11 +153,16 @@ export function verifyAcceptancePermit(
   if (
     parsed.version !== 1 ||
     parsed.purpose !== 'acceptance-write' ||
-    parsed.runId !== context.runId ||
-    parsed.fixtureNamespace !== context.fixtureNamespace ||
-    parsed.gitSHA !== context.expectedGitCommitSha ||
-    parsed.revision !== context.expectedDeploymentRevision ||
-    parsed.dbFingerprint !== context.expectedDbFingerprint ||
+    typeof parsed.runId !== 'string' ||
+    typeof parsed.fixtureNamespace !== 'string' ||
+    typeof parsed.gitSHA !== 'string' ||
+    typeof parsed.revision !== 'string' ||
+    typeof parsed.dbFingerprint !== 'string' ||
+    !UUID.test(parsed.runId) ||
+    parsed.fixtureNamespace !== namespace(parsed.runId) ||
+    !SHA.test(parsed.gitSHA) ||
+    !REVISION.test(parsed.revision) ||
+    !FINGERPRINT.test(parsed.dbFingerprint) ||
     !Number.isSafeInteger(parsed.iat) ||
     !Number.isSafeInteger(parsed.exp) ||
     (parsed.exp as number) - (parsed.iat as number) !== PERMIT_TTL_MS ||
@@ -170,6 +174,24 @@ export function verifyAcceptancePermit(
   }
 
   return parsed as AcceptancePermitPayload
+}
+
+export function verifyAcceptancePermit(
+  token: string,
+  context: AcceptancePermitContext,
+  secret: Uint8Array,
+  now = Date.now(),
+): AcceptancePermitPayload | null {
+  if (!isValidContext(context)) return null
+  const payload = verifyAcceptancePermitToken(token, secret, now)
+  if (!payload) return null
+  return payload.runId === context.runId &&
+    payload.fixtureNamespace === context.fixtureNamespace &&
+    payload.gitSHA === context.expectedGitCommitSha &&
+    payload.revision === context.expectedDeploymentRevision &&
+    payload.dbFingerprint === context.expectedDbFingerprint
+    ? payload
+    : null
 }
 
 export { namespace as acceptanceFixtureNamespace }

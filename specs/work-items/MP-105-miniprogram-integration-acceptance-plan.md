@@ -80,9 +80,11 @@
 
 ### Task 3b-2：许可接入咨询写入口
 
-- [ ] 自动 runner 通过仓外专用 header 携带 permit；咨询写请求必须同时绑定活动 run UUID、许可和可精确重算的 submissionRequestId/idempotency key。许可缺失、过期、跨 run、跨部署或跨数据库时拒绝 acceptance fixture 写入。
-- [ ] 不带 acceptance header 的普通咨询路径保持既有合同；生产环境即使收到伪造 acceptance header 也不得进入 fixture 分支。
-- [ ] 真机包不持有 operator/bootstrap 凭据；真机写验收的 permit 只进入当前进程内存，不落 bundle、query、Storage、日志或截图。没有安全注入通道前只允许真机只读走查。
+- [x] 服务端只从仓外专用 header 接收 permit；验签内容内含活动 run UUID、fixture namespace、SHA/revision 与数据库指纹。通过当前配置复核后，再用实际只读数据库探针精确匹配，任一步失败都在询盘业务读写前拒绝。
+- [x] Acceptance 写使用独立幂等域并绑定 `runId + submissionRequestId + listingSlug`，同 run 重试稳定、跨 run 与普通 Mini 询盘均隔离；成功响应返回可重算的 `leadLocator`，但不把它表述为本轮 ownership 证明。
+- [x] 不带 acceptance header 的普通咨询路径保持既有响应与调用顺序，不读取 acceptance 配置、验签或探针；production/disabled 即使收到伪造 header 也同形 404、零 Payload。
+- [x] Task 3b-2 定向 105/105、typecheck 与相关 lint 通过；Sol 首轮发现跨 run 幂等错归属后退回，修复为 run-domain-separated key 并复验 APPROVE。当前仍为 mock/合同层，未连接真实数据库。
+- [ ] 自动 runner 尚未实现；真机包也不持有 operator/bootstrap/permit。permit 未来只允许进入受控 runner 或当前进程内存，不落 bundle、query、Storage、日志或截图；没有安全注入通道前真机只读走查。
 
 ### Task 4：开发者工具只读闭环
 

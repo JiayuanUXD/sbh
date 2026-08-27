@@ -5,6 +5,7 @@ import {
   verifyAcceptancePermit,
   parseAcceptancePermitContext,
   signAcceptancePermitPayloadForTests,
+  verifyAcceptancePermitToken,
 } from '@/domain/mini-program/acceptance-permit'
 
 const context = {
@@ -31,7 +32,14 @@ describe('acceptance permit', () => {
     expect(verifyAcceptancePermit(`${issued.token}x`, context, secret, 1_700_000_001_000)).toBeNull()
     expect(verifyAcceptancePermit(`${issued.token}.`, context, secret, 1_700_000_001_000)).toBeNull()
     expect(verifyAcceptancePermit(`${issued.token}..junk`, context, secret, 1_700_000_001_000)).toBeNull()
-    expect(verifyAcceptancePermit(`${issued.token.split('.')[0]}..${issued.token.split('.')[1]}`, context, secret, 1_700_000_001_000)).toBeNull()
+    expect(
+      verifyAcceptancePermit(
+        `${issued.token.split('.')[0]}..${issued.token.split('.')[1]}`,
+        context,
+        secret,
+        1_700_000_001_000,
+      ),
+    ).toBeNull()
     expect(
       verifyAcceptancePermit(
         issued.token,
@@ -39,6 +47,29 @@ describe('acceptance permit', () => {
         secret,
         1_700_000_001_000,
       ),
+    ).toBeNull()
+  })
+
+  it('独立 token verifier 接受有效 token 并校验 intrinsic context', () => {
+    const issued = issueAcceptancePermit(context, secret, 1_700_000_000_000, () => Buffer.alloc(16, 7))
+    expect(verifyAcceptancePermitToken(issued.token, secret, 1_700_000_001_000)).toEqual(issued.payload)
+    expect(
+      verifyAcceptancePermitToken(
+        signedPayload({ runId: '650e8400-e29b-41d4-a716-446655440000' }),
+        secret,
+        1_700_000_001_000,
+      ),
+    ).toBeNull()
+    expect(
+      verifyAcceptancePermitToken(signedPayload({ fixtureNamespace: 'wrong' }), secret, 1_700_000_001_000),
+    ).toBeNull()
+    expect(verifyAcceptancePermitToken(signedPayload({ gitSHA: 'bad' }), secret, 1_700_000_001_000)).toBeNull()
+    expect(
+      verifyAcceptancePermitToken(signedPayload({ revision: 'bad revision' }), secret, 1_700_000_001_000),
+    ).toBeNull()
+    expect(verifyAcceptancePermitToken(signedPayload({ dbFingerprint: 'bad' }), secret, 1_700_000_001_000)).toBeNull()
+    expect(
+      verifyAcceptancePermitToken(signedPayload({ exp: issued.payload.exp + 1 }), secret, 1_700_000_001_000),
     ).toBeNull()
   })
 
@@ -51,7 +82,13 @@ describe('acceptance permit', () => {
   })
 
   it.each([
-    ['run', { runId: '650e8400-e29b-41d4-a716-446655440000', fixtureNamespace: acceptanceFixtureNamespace('650e8400-e29b-41d4-a716-446655440000') }],
+    [
+      'run',
+      {
+        runId: '650e8400-e29b-41d4-a716-446655440000',
+        fixtureNamespace: acceptanceFixtureNamespace('650e8400-e29b-41d4-a716-446655440000'),
+      },
+    ],
     ['SHA', { expectedGitCommitSha: 'c'.repeat(40) }],
     ['revision', { expectedDeploymentRevision: 'other' }],
     ['fingerprint', { expectedDbFingerprint: 'c'.repeat(64) }],

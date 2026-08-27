@@ -8,6 +8,7 @@ import {
 import {
   computeMiniInquiryIdempotencyKey,
   computeMiniListingInquiryIdempotencyKey,
+  computeMiniAcceptanceListingInquiryIdempotencyKey,
 } from '@/domain/mini-program/inquiry-idempotency'
 
 describe('Mini 询盘幂等键', () => {
@@ -63,5 +64,22 @@ describe('Mini 询盘幂等键', () => {
       'listing',
       'jingan-center-100-monthly',
     ))
+  })
+
+  it('Acceptance key 绑定 run 并使用独立域与固定字段顺序', async () => {
+    await expect(computeMiniAcceptanceListingInquiryIdempotencyKey(
+      'run-1', 'req-123', 'jingan-center-100-monthly',
+    )).resolves.toBe('eb75a315dce4195230b78a65f54e0f0300826072a01eedd1871f2fcfde3eeb2c')
+    const same = await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-123', 'target')
+    expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-123', 'target')).toBe(same)
+    expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-2', 'req-123', 'target')).not.toBe(same)
+    expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-124', 'target')).not.toBe(same)
+    expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-123', 'other')).not.toBe(same)
+    expect(same).not.toBe(await computeMiniInquiryIdempotencyKey('req-123', 'listing', 'target'))
+  })
+
+  it('Acceptance key 保持 InquiryIdempotencyKey 编译期品牌', () => {
+    expectTypeOf<Awaited<ReturnType<typeof computeMiniAcceptanceListingInquiryIdempotencyKey>>>()
+      .toEqualTypeOf<InquiryIdempotencyKey>()
   })
 })

@@ -11,8 +11,19 @@ import {
   type InquiryRequest,
   type PublicInquiryDeps,
 } from '@/domain/inquiry'
-import { computeMiniListingInquiryIdempotencyKey } from '@/domain/mini-program/inquiry-idempotency'
+import {
+  isAllowedDatabaseFingerprint,
+  type AcceptanceRuntimeConfig,
+} from '@/domain/mini-program/acceptance-attestation'
+import {
+  computeMiniAcceptanceListingInquiryIdempotencyKey,
+  computeMiniListingInquiryIdempotencyKey,
+} from '@/domain/mini-program/inquiry-idempotency'
 import { validateMiniInquiryInput, type MiniInquiryInput } from '@/domain/mini-program/inquiry-schema'
+import {
+  verifyAcceptancePermitToken,
+  type AcceptancePermitPayload,
+} from '@/domain/mini-program/acceptance-permit'
 import {
   MINI_CACHE_CONTROL,
   miniError,
@@ -27,6 +38,8 @@ import {
 } from '@/domain/public-catalog'
 import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { getSiteConfig } from '@/lib/frontend/site-config'
+import { probeAcceptanceDatabase } from '@/lib/mini-program/acceptance-db-probe'
+import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
 import {
   readMiniSessionSigningRuntimeConfig,
   readMiniTrustedProxyRuntimeConfig,
@@ -47,6 +60,7 @@ export const runtime = 'nodejs'
 
 const MAX_BODY_BYTES = 16 * 1024
 const MAX_BEARER_LENGTH = 4096
+const ACCEPTANCE_PERMIT_HEADER = 'x-sbh-acceptance-permit'
 const MINI_CAMPAIGN = Object.freeze({
   utm_source: 'wechat-mini-program',
   utm_medium: 'mini-program',
@@ -60,6 +74,19 @@ type SafeLogger = Readonly<{
   info?(entry: unknown, event: string): void
   error?(entry: unknown, event: string): void
   warn?(entry: unknown, event?: string): void
+}>
+type AcceptanceInquiryCandidate = Readonly<{
+  permit: AcceptancePermitPayload
+  runtimeConfig: AcceptanceRuntimeConfig
+}>
+type AcceptanceInquiryGate =
+  | Readonly<{ kind: 'none' }>
+  | Readonly<{ kind: 'invalid' }>
+  | Readonly<{ kind: 'candidate'; value: AcceptanceInquiryCandidate }>
+type AcceptanceReceipt = Readonly<{
+  runId: string
+  fixtureNamespace: string
+  leadLocator: Readonly<{ collection: 'leads'; idempotencyKey: string }>
 }>
 
 function safeLog(
@@ -89,6 +116,38 @@ function response(
       ...headers,
     },
   })
+}
+
+function acceptanceUnavailable(requestId: string): Response {
+  return new NextResponse('Not Found', {
+    status: 404,
+    headers: {
+      'Cache-Control': MINI_CACHE_CONTROL,
+      'X-Request-Id': requestId,
+    },
+  })
+}
+
+function readAcceptanceInquiryGate(request: Request): AcceptanceInquiryGate {
+  if (!request.headers.has(ACCEPTANCE_PERMIT_HEADER)) return { kind: 'none' }
+
+  const token = request.headers.get(ACCEPTANCE_PERMIT_HEADER) ?? ''
+  if (!token || token.length > MAX_BEARER_LENGTH) return { kind: 'invalid' }
+
+  const runtimeConfig = readAcceptanceRuntimeConfig()
+  if (!runtimeConfig) return { kind: 'invalid' }
+
+  const permit = verifyAcceptancePermitToken(token, runtimeConfig.permitSigningSecret)
+  if (
+    !permit ||
+    permit.gitSHA !== runtimeConfig.deploymentGitCommitSha ||
+    permit.revision !== runtimeConfig.deploymentRevision ||
+    !isAllowedDatabaseFingerprint(permit.dbFingerprint, runtimeConfig.dbFingerprintAllowlist)
+  ) {
+    return { kind: 'invalid' }
+  }
+
+  return { kind: 'candidate', value: { permit, runtimeConfig } }
 }
 
 function failure(
@@ -232,16 +291,21 @@ function accepted(
   requestId: string,
   acceptedExisting: boolean,
   targetResolution: 'listing' | 'building' | 'general',
+  acceptance?: AcceptanceReceipt,
 ): Response {
   return response(miniWriteOk({
     accepted: true,
     acceptedExisting,
     targetResolution,
+    ...(acceptance ? { acceptance } : {}),
   }, requestId), 200, requestId)
 }
 
 export async function POST(request: Request): Promise<Response> {
   const requestId = miniRequestId()
+  const acceptanceGate = readAcceptanceInquiryGate(request)
+  if (acceptanceGate.kind === 'invalid') return acceptanceUnavailable(requestId)
+
   const proxyConfig = readMiniTrustedProxyRuntimeConfig()
   const client = proxyConfig.ok
     ? resolveMiniTrustedClientIp(request, proxyConfig.value.trustedProxyHops)
@@ -252,10 +316,22 @@ export async function POST(request: Request): Promise<Response> {
   let payload: PayloadClient
   try {
     payload = await getPayload({ config })
+    const pool = (payload.db as unknown as { pool: PoolLike }).pool
+    if (acceptanceGate.kind === 'candidate') {
+      if (!pool) throw new Error('pool unavailable')
+      const actual = await probeAcceptanceDatabase(
+        pool,
+        acceptanceGate.value.runtimeConfig.attestationSecret,
+        acceptanceGate.value.runtimeConfig.dbFingerprintAllowlist,
+      )
+      if (actual.fingerprint !== acceptanceGate.value.permit.dbFingerprint) {
+        return failure(requestId, 'invalid_request', '请求参数无效', 409)
+      }
+    }
     const rate = await runMiniRateLimit(
       client.clientIp,
       'mini-inquiry',
-      (payload.db as unknown as { pool: PoolLike }).pool,
+      pool,
     )
     if (!rate.allowed) {
       if (rate.storeFailed) {
@@ -313,10 +389,23 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const logger = payload.logger as unknown as SafeLogger
-  const idempotencyKey = await computeMiniListingInquiryIdempotencyKey(
-    parsed.data.submissionRequestId,
-    parsed.data.listingSlug,
-  )
+  const idempotencyKey = acceptanceGate.kind === 'candidate'
+    ? await computeMiniAcceptanceListingInquiryIdempotencyKey(
+        acceptanceGate.value.permit.runId,
+        parsed.data.submissionRequestId,
+        parsed.data.listingSlug,
+      )
+    : await computeMiniListingInquiryIdempotencyKey(
+        parsed.data.submissionRequestId,
+        parsed.data.listingSlug,
+      )
+  const acceptanceReceipt: AcceptanceReceipt | undefined = acceptanceGate.kind === 'candidate'
+    ? {
+        runId: acceptanceGate.value.permit.runId,
+        fixtureNamespace: acceptanceGate.value.permit.fixtureNamespace,
+        leadLocator: { collection: 'leads', idempotencyKey },
+      }
+    : undefined
   const deps = publicInquiryDeps(payload, logger)
   try {
     const existing = await findExistingInquiryResult(idempotencyKey, deps)
@@ -328,7 +417,7 @@ export async function POST(request: Request): Promise<Response> {
         targetResolution: existing.targetResolution,
         errorCode: null,
       }, 'mini_inquiry_success')
-      return accepted(requestId, true, existing.targetResolution)
+      return accepted(requestId, true, existing.targetResolution, acceptanceReceipt)
     }
   } catch {
     safeLog(logger, 'error', {
@@ -400,7 +489,7 @@ export async function POST(request: Request): Promise<Response> {
       targetResolution: submission.targetResolution,
       errorCode: null,
     }, 'mini_inquiry_success')
-    return accepted(requestId, submission.idempotent, submission.targetResolution)
+    return accepted(requestId, submission.idempotent, submission.targetResolution, acceptanceReceipt)
   } catch (error) {
     const isCreateFailure = error instanceof PublicInquirySubmissionError
       && error.code === 'create_failed'

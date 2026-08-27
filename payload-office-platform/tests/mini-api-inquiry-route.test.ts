@@ -21,6 +21,9 @@ const io = vi.hoisted(() => ({
   submitPublicInquiry: vi.fn(),
   resolveCityContext: vi.fn(),
   getSiteConfig: vi.fn(),
+  readAcceptanceConfig: vi.fn(),
+  verifyAcceptancePermitToken: vi.fn(),
+  probeAcceptanceDatabase: vi.fn(),
 }))
 
 vi.mock('payload', async (importOriginal) => {
@@ -83,7 +86,22 @@ vi.mock('@/lib/frontend/site-config', async (importOriginal) => {
   return { ...actual, getSiteConfig: io.getSiteConfig }
 })
 
+vi.mock('@/lib/mini-program/acceptance-runtime-config', () => ({
+  readAcceptanceRuntimeConfig: io.readAcceptanceConfig,
+}))
+
+vi.mock('@/domain/mini-program/acceptance-permit', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/domain/mini-program/acceptance-permit')>()
+  return { ...actual, verifyAcceptancePermitToken: io.verifyAcceptancePermitToken }
+})
+
+vi.mock('@/lib/mini-program/acceptance-db-probe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/mini-program/acceptance-db-probe')>()
+  return { ...actual, probeAcceptanceDatabase: io.probeAcceptanceDatabase }
+})
+
 import { validateMiniInquiryInput } from '@/domain/mini-program/inquiry-schema'
+import { acceptanceFixtureNamespace } from '@/domain/mini-program/acceptance-permit'
 import { POST } from '@/app/api/mini/v1/inquiries/route'
 import {
   __resetMiniRateLimitStateForTests,
@@ -103,6 +121,35 @@ import { WechatGatewayError } from '@/lib/mini-program/wechat-gateway'
 
 const POLICY_VERSION = 'MVP-R1'
 const SUBMISSION_ID = '9d40e795-51e3-4f06-84ab-30be09a5ed0c'
+const ACCEPTANCE_TOKEN = 'acceptance-permit-sensitive-marker'
+const ACCEPTANCE_RUN_ID = '550e8400-e29b-41d4-a716-446655440000'
+const ACCEPTANCE_FIXTURE_NAMESPACE = acceptanceFixtureNamespace(ACCEPTANCE_RUN_ID)
+const ACCEPTANCE_FINGERPRINT = 'b'.repeat(64)
+const ACCEPTANCE_PAYLOAD = {
+  version: 1 as const,
+  purpose: 'acceptance-write' as const,
+  runId: ACCEPTANCE_RUN_ID,
+  fixtureNamespace: ACCEPTANCE_FIXTURE_NAMESPACE,
+  gitSHA: 'a'.repeat(40),
+  revision: 'revision-1',
+  dbFingerprint: ACCEPTANCE_FINGERPRINT,
+  iat: 1_800_000_000_000,
+  exp: 1_800_000_600_000,
+  jti: Buffer.alloc(16, 7).toString('base64url'),
+}
+const ACCEPTANCE_CONFIG = {
+  deploymentGitCommitSha: ACCEPTANCE_PAYLOAD.gitSHA,
+  deploymentRevision: ACCEPTANCE_PAYLOAD.revision,
+  attestationSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
+  operatorBootstrapSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 33),
+  permitSigningSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 65),
+  dbFingerprintAllowlist: [ACCEPTANCE_FINGERPRINT],
+}
+type AcceptanceReceiptForTest = Readonly<{
+  runId: string
+  fixtureNamespace: string
+  leadLocator: Readonly<{ collection: 'leads'; idempotencyKey: string }>
+}>
 
 function validBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -194,6 +241,9 @@ beforeEach(() => {
     io.submitPublicInquiry,
     io.resolveCityContext,
     io.getSiteConfig,
+    io.readAcceptanceConfig,
+    io.verifyAcceptancePermitToken,
+    io.probeAcceptanceDatabase,
   ]) mock.mockReset()
   __resetMiniRateLimitStateForTests()
 
@@ -254,6 +304,15 @@ beforeEach(() => {
     return { idempotent: false, targetResolution: 'listing' }
   })
   io.resolveCityContext.mockResolvedValue({ id: 1, slug: 'shanghai' })
+  io.readAcceptanceConfig.mockReturnValue(ACCEPTANCE_CONFIG)
+  io.verifyAcceptancePermitToken.mockReturnValue(ACCEPTANCE_PAYLOAD)
+  io.probeAcceptanceDatabase.mockImplementation(async () => {
+    io.events.push('acceptance-probe')
+    return {
+      identity: { databaseName: 'sbh_staging', serverAddress: '10.0.0.4', serverPort: 5432 },
+      fingerprint: ACCEPTANCE_FINGERPRINT,
+    }
+  })
 })
 
 describe('Mini inquiry schema', () => {
@@ -428,6 +487,9 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.readWechatConfig).not.toHaveBeenCalled()
     expect(io.createWechatGateway).not.toHaveBeenCalled()
     expect(io.verifyToken).not.toHaveBeenCalled()
+    expect(io.readAcceptanceConfig).not.toHaveBeenCalled()
+    expect(io.verifyAcceptancePermitToken).not.toHaveBeenCalled()
+    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
 
     const [command] = io.submitPublicInquiry.mock.calls[0]!
     expect(command).toMatchObject({
@@ -471,6 +533,191 @@ describe('POST /api/mini/v1/inquiries', () => {
       },
     })
     expect(String(command.trustedIdempotencyKey)).toMatch(/^[a-f0-9]{64}$/)
+  })
+
+  it('有效 acceptance permit 复用既有写链路并返回精确 Lead locator', async () => {
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+    const body = await json(response)
+    const [command] = io.submitPublicInquiry.mock.calls[0]!
+
+    expect(response.status).toBe(200)
+    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'rate', 'precheck', 'city', 'submit'])
+    expect(io.verifyAcceptancePermitToken).toHaveBeenCalledWith(
+      ACCEPTANCE_TOKEN,
+      ACCEPTANCE_CONFIG.permitSigningSecret,
+    )
+    expect(io.probeAcceptanceDatabase).toHaveBeenCalledWith(
+      expect.any(Object),
+      ACCEPTANCE_CONFIG.attestationSecret,
+      ACCEPTANCE_CONFIG.dbFingerprintAllowlist,
+    )
+    expect(body).toMatchObject({
+      ok: true,
+      data: {
+        accepted: true,
+        acceptedExisting: false,
+        acceptance: {
+          runId: ACCEPTANCE_RUN_ID,
+          fixtureNamespace: ACCEPTANCE_FIXTURE_NAMESPACE,
+          leadLocator: {
+            collection: 'leads',
+            idempotencyKey: command.trustedIdempotencyKey,
+          },
+        },
+      },
+    })
+    const serialized = JSON.stringify(body)
+    expect(serialized).not.toContain(ACCEPTANCE_TOKEN)
+    expect(serialized).not.toContain(ACCEPTANCE_FINGERPRINT)
+    expect(serialized).not.toContain('ownership')
+    expect(JSON.stringify([
+      ...io.loggerInfo.mock.calls,
+      ...io.loggerError.mock.calls,
+      ...io.loggerWarn.mock.calls,
+    ])).not.toContain(ACCEPTANCE_TOKEN)
+  })
+
+  it('同 run 同 submission/listing 的 locator 稳定，第二次命中 acceptedExisting', async () => {
+    io.payloadFind
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [{ targetType: 'listing' }] })
+
+    const first = await json(await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    })))
+    const second = await json(await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    })))
+    const firstData = first.data as { acceptedExisting: boolean; acceptance: AcceptanceReceiptForTest }
+    const secondData = second.data as { acceptedExisting: boolean; acceptance: AcceptanceReceiptForTest }
+
+    expect(firstData.acceptedExisting).toBe(false)
+    expect(secondData.acceptedExisting).toBe(true)
+    expect(secondData.acceptance.leadLocator).toEqual(firstData.acceptance.leadLocator)
+    expect(io.submitPublicInquiry).toHaveBeenCalledOnce()
+  })
+
+  it('不同 run 的相同 submission/listing 使用不同 locator', async () => {
+    const secondRunId = '650e8400-e29b-41d4-a716-446655440000'
+    const secondToken = 'second-acceptance-permit-marker'
+    const secondPermit = {
+      ...ACCEPTANCE_PAYLOAD,
+      runId: secondRunId,
+      fixtureNamespace: acceptanceFixtureNamespace(secondRunId),
+    }
+    io.verifyAcceptancePermitToken.mockImplementation((token: string) => (
+      token === secondToken ? secondPermit : ACCEPTANCE_PAYLOAD
+    ))
+
+    const first = await json(await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    })))
+    const second = await json(await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': secondToken },
+    })))
+    const firstReceipt = (first.data as { acceptance: AcceptanceReceiptForTest }).acceptance
+    const secondReceipt = (second.data as { acceptance: AcceptanceReceiptForTest }).acceptance
+
+    expect(firstReceipt.runId).toBe(ACCEPTANCE_RUN_ID)
+    expect(secondReceipt.runId).toBe(secondRunId)
+    expect(firstReceipt.leadLocator.idempotencyKey).not.toBe(secondReceipt.leadLocator.idempotencyKey)
+    expect(io.submitPublicInquiry.mock.calls.map(([command]) => command.trustedIdempotencyKey))
+      .toEqual([
+        firstReceipt.leadLocator.idempotencyKey,
+        secondReceipt.leadLocator.idempotencyKey,
+      ])
+  })
+
+  it('普通 staging Lead 与 acceptance run 使用不同幂等域', async () => {
+    await POST(routeRequest())
+    await POST(routeRequest({ headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN } }))
+
+    const keys = io.submitPublicInquiry.mock.calls.map(([command]) => command.trustedIdempotencyKey)
+    expect(keys).toHaveLength(2)
+    expect(keys[0]).not.toBe(keys[1])
+  })
+
+  it('production/disabled 下伪造 acceptance header 同形 404 且零 Payload', async () => {
+    io.readAcceptanceConfig.mockReturnValue(null)
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(404)
+    expect(await response.text()).toBe('Not Found')
+    expect(io.verifyAcceptancePermitToken).not.toHaveBeenCalled()
+    expect(io.getPayload).not.toHaveBeenCalled()
+  })
+
+  it('空、超长或验签失败的 acceptance permit 均在 Payload 前拒绝', async () => {
+    const empty = await POST(routeRequest({ headers: { 'x-sbh-acceptance-permit': '' } }))
+    expect(empty.status).toBe(404)
+
+    const oversized = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': 'x'.repeat(4097) },
+    }))
+    expect(oversized.status).toBe(404)
+    expect(io.readAcceptanceConfig).not.toHaveBeenCalled()
+
+    io.verifyAcceptancePermitToken.mockReturnValue(null)
+    const invalid = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+    expect(invalid.status).toBe(404)
+    expect(io.getPayload).not.toHaveBeenCalled()
+    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['SHA', { gitSHA: 'c'.repeat(40) }],
+    ['revision', { revision: 'other-revision' }],
+    ['fingerprint', { dbFingerprint: 'c'.repeat(64) }],
+  ])('已签名 permit 的 %s 与当前部署不匹配时零 Payload', async (_label, change) => {
+    io.verifyAcceptancePermitToken.mockReturnValue({ ...ACCEPTANCE_PAYLOAD, ...change })
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(404)
+    expect(io.getPayload).not.toHaveBeenCalled()
+    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
+  })
+
+  it('permit 数据库指纹与实际 probe 不一致时 409 且不消费限流或进入业务', async () => {
+    io.probeAcceptanceDatabase.mockImplementation(async () => {
+      io.events.push('acceptance-probe')
+      return {
+        identity: { databaseName: 'other', serverAddress: '10.0.0.5', serverPort: 5432 },
+        fingerprint: 'd'.repeat(64),
+      }
+    })
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(409)
+    expect(io.events).toEqual(['payload-init', 'acceptance-probe'])
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
+  })
+
+  it('acceptance 数据库 probe 失败时 503 且不泄漏 permit', async () => {
+    io.probeAcceptanceDatabase.mockImplementation(async () => {
+      io.events.push('acceptance-probe')
+      throw new Error(`db failure ${ACCEPTANCE_TOKEN}`)
+    })
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+    const text = await response.text()
+
+    expect(response.status).toBe(503)
+    expect(text).not.toContain(ACCEPTANCE_TOKEN)
+    expect(io.events).toEqual(['payload-init', 'acceptance-probe'])
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
   })
 
   it('getPayload 仅先初始化共享 pool，rate 仍早于 Payload 业务 find/create', async () => {
