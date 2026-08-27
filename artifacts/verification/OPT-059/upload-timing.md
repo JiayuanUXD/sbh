@@ -2,9 +2,9 @@
 
 ## 测试方法
 
-- 测试图：`sharp` 现生成 4000×3000 随机噪点 JPEG，quality=45，实际大小 **4,267,337 字节（约 4.07 MB）**，落在 3~5MB 量级要求内。生成脚本未提交仓库，图片文件也未提交，仅存于系统临时目录。
-- 由于本会话的 Browser pane 处于「未显示（not compositing frames）」状态（见 `focal-point-selector.png` 缺失说明），原生文件选择对话框在此环境下无法通过截图/像素交互驱动，因此改用 **Payload REST API**（`POST /api/media`，走与后台 UI 上传同一条 `multipart/form-data` → collection upload hook → sharp 派生 的服务端链路）直接计时，规避了浏览器文件对话框的交互限制，但计时覆盖的正是花 CPU 的那部分（sharp 生成 webp 派生图），与后台 UI 上传耗时等价。
-- 未按 brief 建议使用 `git stash`（有丢改动风险）；改为：**先测当前分支（有派生）状态，再把 `src/collections/Media.ts` 的 `imageSizes` 临时改成 `[]`，等 Next dev 的 fast-refresh 重新编译后测无派生状态，测完立即 `git diff` 确认已完全还原**，并用一次真实上传验证还原后确实恢复派生行为（`thumb/card/hero` 三档均返回非空 `url`）。
+- 测试图：`sharp` 现生成 4000×3000 **随机噪点** JPEG，quality=45，实际大小 **4,267,337 字节（约 4.07 MB）**，量级落在 3~5MB 要求内，但**不是 brief 要求的「同一张 5MB 照片」**——噪点图像素间几乎不相关，JPEG/WebP 压缩率远低于真实照片（真实照片有大片低频区域，压缩更快），这会让下面的耗时数字**偏向真实场景的上限**，不能直接当作生产环境的典型耗时。
+- 由于本会话的 Browser pane 处于「未显示（not compositing frames）」状态，原生文件选择对话框在此环境下无法通过截图/像素交互驱动，因此改用 **Payload REST API**（`POST /api/media`，走与后台 UI 上传同一条 `multipart/form-data` → collection upload hook → sharp 派生 的服务端链路）直接计时，规避了浏览器文件对话框的交互限制，计时覆盖的是花 CPU 的那部分（sharp 生成 webp 派生图）。
+- 未按 brief 建议使用 `git stash`（有丢改动风险）；改为：**先测当前分支（有派生）状态，再把 `src/collections/Media.ts` 的 `imageSizes` 临时改成 `[]`，等 Next dev 的 fast-refresh 重新编译后测无派生状态，测完立即 `git checkout` 确认已完全还原**，并用一次真实上传验证还原后确实恢复派生行为（`thumb/card/hero` 三档均返回非空 `url`）。
 
 ## 实测数据
 
@@ -15,7 +15,7 @@
 | 1 | 761 ms |
 | 2 | 804 ms |
 | 3 | 754 ms |
-| **均值** | **≈ 773 ms** |
+| **均值（3 次全计入）** | **≈ 773 ms** |
 
 返回体确认三档均生成：`thumb: 320×240 webp 4.3KB`、`card: 768×576 webp 113KB`、`hero: 1600×1200 webp 763KB`。
 
@@ -23,18 +23,28 @@
 
 | 次数 | 耗时 | 备注 |
 |---|---|---|
-| 1 | 742 ms | 含 Next dev fast-refresh 重编译开销，非稳态，不计入均值 |
-| 2 | 214 ms | 稳态 |
-| 3 | 214 ms | 稳态 |
-| **稳态均值（第 2/3 次）** | **≈ 214 ms** | |
+| 1 | 742 ms | 含 Next dev fast-refresh 重编译开销，判为非稳态，**剔除未计入均值** |
+| 2 | 214 ms | |
+| 3 | 214 ms | |
+| **均值（剔除第 1 次后）** | **≈ 214 ms** | |
 
 返回体确认 `sizes: {}`（无派生图生成）。
 
-## 结论
+## 方法论缺陷（审计指出，如实记录，不隐藏）
 
-- 三档 webp 派生带来的耗时增量 ≈ 773 − 214 = **≈ 559 ms/张**，落在 spec §6.1 预估的 0.5~2 秒/张范围内，**未显著超出**，无需按 §6.1 的旋钮（砍 thumb 档 / 降 WebP effort / 收紧 withoutEnlargement）做调整。
-- 还原验证：`git diff --stat payload-office-platform/src/collections/Media.ts` 显示为空；还原后重新上传一次，响应确认 `thumb/card/hero` 三档 URL 均恢复非空。
+这组数据**不足以支撑「是否需要动 spec §6.1 旋钮」这个判断**，原因：
+
+1. **样本量太小**：有派生 3 次、无派生仅 2 次稳态，都远不足以估计方差，"均值"字面上是算术平均，不是统计意义上的稳定值。无派生组的两次耗时完全相同（214ms/214ms），更可能是巧合（两次命中同一缓存/调度路径）而不是真的稳态。
+2. **两组的预热处理不对称**：无派生组把第 1 次（742ms）以「含 fast-refresh 重编译开销」为由剔除了，但有派生组的第 1 次（761ms）**同样可能受一部分预热效应影响**（比如首次请求触发的连接建立、模块懒加载等）却直接计入了均值——同一个「剔除预热」的理由只用在一组身上，两组因此不是在同一基准上比较，∆ 值不干净。
+3. **不是控制变量下的 A/B**：两组测试之间修改过源码（`imageSizes` 改回改去）、经历过 Next dev 的 fast-refresh 重编译，进程内状态（模块缓存、GC 情况等）在两次测量之间发生了变化，不是「其它条件完全相同，只改一个变量」的干净对照。
+4. **测试图是合成噪点图，不是真实照片**（见上）。
+
+## 结论（量级参考，非精确结论）
+
+- **量级参考**：有派生比无派生慢数百毫秒（∆ ≈ 550ms，非精确值，仅供方向性参考），**方向上**落在 spec §6.1 预估的 0.5~2 秒/张区间内。
+- **这组数据不能单独作为「是否需要按 §6.1 的旋钮（砍 thumb 档 / 降 WebP effort / 收紧 withoutEnlargement）调整」的依据**——若要把这件事定下来，需要：用真实照片（而非合成噪点图）、两组对称的预热/剔除处理（要么都剔除首次，要么都不剔除）、更大样本量（建议每组 ≥10 次取中位数而非均值，减少偶发抖动的影响）重新测一轮。
+- 还原验证（与耗时结论无关，独立成立）：`git diff --stat payload-office-platform/src/collections/Media.ts` 显示为空；还原后重新上传一次，响应确认 `thumb/card/hero` 三档 URL 均恢复非空。
 
 ## 环境限制说明
 
-本会话的 Browser pane 报 `the Browser pane is not displayed, so the page is not compositing frames`，`computer.screenshot` / `computer.zoom` 全程不可用（已在焦点选择器截图、桌面/移动断点截图、焦点效果截图三处证据中同样受限，详见对应文件里的说明）。上传耗时这一项因改用 REST API 直接计时而不受影响，实测数字真实可信；但无法产出「点后台上传按钮」的像素级录屏/截图作为佐证，这一环境限制已如实记录，不代表上传流程本身未过手测。
+本会话的 Browser pane 报 `the Browser pane is not displayed, so the page is not compositing frames`，`computer.screenshot` / `computer.zoom` 全程不可用（协调者已复现同一报错，确认是会话级限制）。上传耗时这一项因改用 REST API 直接计时而不依赖截图能力；但方法论上的样本量/对照不严谨问题（见上）与截图能力无关，是这轮测试本身的局限，已如实记录。

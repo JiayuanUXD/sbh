@@ -1,8 +1,8 @@
-# OPT-059 焦点实测（DOM/CSS 证据，无法产出 `focal-effect.png`，见下方环境限制说明）
+# OPT-059 焦点实测（DOM/CSS 证据；肉眼视觉确认见 VISUAL-VERIFICATION-PENDING.md）
 
 ## 环境限制
 
-与本目录其它三份 `.md` 相同：本会话 `computer.screenshot`/`zoom` 全程报 `the Browser pane is not displayed, so the page is not compositing frames`，无法产出 brief 要求的 `focal-effect.png` 像素截图，如实报告"验不到"。改用真实渲染后的 `getComputedStyle` 读值——这条链路（`Media.focalX/focalY` → DTO → `ui/Media.tsx` 写 inline `--focal-x`/`--focal-y` → `.hm-bento-card img { object-position: var(--focal-x, 50%) var(--focal-y, 50%) }`）本身就是"裁切跟不跟焦点走"的机制来源，`object-position` 计算值直接决定浏览器渲染裁切的锚点，读到这个值变化即等价于验证了裁切行为会变，只是没有肉眼像素图可比对。
+与本目录其它文件相同：本会话 `computer.screenshot`/`zoom` 全程报 `the Browser pane is not displayed, so the page is not compositing frames`，无法产出 brief 要求的 `focal-effect.png` 像素截图，如实报告"验不到"（协调者已独立复现同一报错，确认是会话级限制）。改用真实渲染后的 `getComputedStyle` 读值——这条链路（`Media.focalX/focalY` → DTO → `ui/Media.tsx` 写 inline `--focal-x`/`--focal-y` → `.hm-bento-card img { object-position: var(--focal-x, 50%) var(--focal-y, 50%) }`）是"裁切跟不跟焦点走"这件事的数据通路，`object-position` 计算值直接决定浏览器渲染裁切的锚点。
 
 ## 操作路径
 
@@ -28,6 +28,8 @@
 
 `read_console_messages({ onlyErrors: true })` → `No console logs.`，无报错。
 
-## 结论
+## 结论：这里证明了什么，没证明什么
 
-**焦点变化确实端到端生效**：后台改 X%/Y% → `Media.focalX/focalY` 落库 → 前台 `<img>` 的 `object-position` 计算值同步从 `50% 50%` 变成 `20% 80%`。`object-fit: cover` 下，`object-position` 直接决定裁切从图片哪个锚点取景，这一属性变化即是 bento 卡片裁切跟随焦点走的直接证据。**缺的只是肉眼截图确认最终像素观感**，机制层面（数据流 + CSS 属性）已完整验证。
+**证明了输入参数被正确传到了决定裁切的 CSS 属性上**：后台改 X%/Y% → `Media.focalX/focalY` 落库 → 前台 `<img>` 的 `object-position` 计算值同步从 `50% 50%` 变成 `20% 80%`。这条数据通路是端到端打通的，不是配置摆设。
+
+**没有证明、也不能算作已证明的是渲染出来的画面观感是否正确**——`object-position` 数值对了，不代表肉眼能看出裁切确实偏了：这取决于图片内容本身和容器宽高比，理论上存在「数值变了但视觉上看不出差异」或「偏移方向和预期不符」的可能性，这两种情况都只有截图/肉眼查看才能发现。**这不是"只差最后一层薄薄的确认"，这正是这项验收要验的核心结论**，本次没有验到。待补的截图步骤和判断标准见 `VISUAL-VERIFICATION-PENDING.md` 的「3. `focal-effect.png`」一节。
