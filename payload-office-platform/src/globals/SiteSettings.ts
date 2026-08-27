@@ -214,6 +214,16 @@ export const SiteSettings: GlobalConfig = {
                 },
                 { name: 'label', label: '标题', type: 'text', required: true },
                 { name: 'sublabel', label: '副标题', type: 'text' },
+                {
+                  name: 'coverImage',
+                  label: '封面图',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: {
+                    description:
+                      '留空时前台自动取该类型下第一条房源的封面（现状行为）。配了就固定用这张，不再随房源变动。',
+                  },
+                },
                 { name: 'visible', label: '显示', type: 'checkbox', defaultValue: true },
               ],
             },

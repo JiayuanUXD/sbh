@@ -66,6 +66,7 @@ import * as migration_20260826_035602_opt_053_site_settings from './20260826_035
 import * as migration_20260826_065228_opt_054_nav_config from './20260826_065228_opt_054_nav_config';
 import * as migration_20260826_113343_opt_054_nav_home_target from './20260826_113343_opt_054_nav_home_target';
 import * as migration_20260827_113559_media_image_sizes from './20260827_113559_media_image_sizes';
+import * as migration_20260827_233120_site_settings_type_card_cover from './20260827_233120_site_settings_type_card_cover';
 
 export const migrations = [
   {
@@ -406,6 +407,11 @@ export const migrations = [
   {
     up: migration_20260827_113559_media_image_sizes.up,
     down: migration_20260827_113559_media_image_sizes.down,
-    name: '20260827_113559_media_image_sizes'
+    name: '20260827_113559_media_image_sizes',
+  },
+  {
+    up: migration_20260827_233120_site_settings_type_card_cover.up,
+    down: migration_20260827_233120_site_settings_type_card_cover.down,
+    name: '20260827_233120_site_settings_type_card_cover'
   },
 ];

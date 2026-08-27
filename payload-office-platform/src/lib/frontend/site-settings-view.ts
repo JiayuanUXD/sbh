@@ -14,6 +14,8 @@
  * 让服务端消费方仍然只需要认一个模块。
  */
 
+import type { MediaViewModel } from '@/domain/public-catalog/contracts'
+
 export type SiteSettingsView = Readonly<{
   siteName: string
   logo: Readonly<{ src: string; alt: string }> | null
@@ -25,7 +27,18 @@ export type SiteSettingsView = Readonly<{
   copyrightHolder: string
   footerTaglineSuffix: string
   valueProps: ReadonlyArray<Readonly<{ name: string; body: string }>>
-  typeCards: ReadonlyArray<Readonly<{ slot: string; label: string; sublabel: string | null }>>
+  /**
+   * 「按类型浏览」五卡（OPT-053 文案 / OPT-060 封面）。
+   *
+   * `coverImage` 是**全局默认**，可被 `CitySiteProfiles.typeCardOverrides` 单城覆盖；
+   * 两级都空时前台回落到「该类型第一条房源的封面」（`typeSummaries`）。
+   */
+  typeCards: ReadonlyArray<Readonly<{
+    slot: string
+    label: string
+    sublabel: string | null
+    coverImage: MediaViewModel | null
+  }>>
   /**
    * 主导航（OPT-054）。**已解析成可直接渲染的 href**——运营配的是目标 id，
    * 由服务端查 NAV_TARGETS 解析；查不到的项在这里就已经被剔除，
@@ -57,11 +70,11 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
     { name: '全程租约护航', body: '合同条款、免租期、押付方式与交付标准全程跟进到入驻。' },
   ],
   typeCards: [
-    { slot: 'traditional-office', label: '传统办公', sublabel: '独立空间 · 灵活面积' },
-    { slot: 'coworking', label: '联合办公', sublabel: '工位起 · 共享配套' },
-    { slot: 'full-floor', label: '整层办公', sublabel: '整层起租 · 定制形象' },
-    { slot: 'serviced-office', label: '独栋办公', sublabel: '企业独栋 · 专属形象' },
-    { slot: 'creative-park', label: '创意园区', sublabel: '园区生态 · 低密度' },
+    { slot: 'traditional-office', label: '传统办公', sublabel: '独立空间 · 灵活面积', coverImage: null },
+    { slot: 'coworking', label: '联合办公', sublabel: '工位起 · 共享配套', coverImage: null },
+    { slot: 'full-floor', label: '整层办公', sublabel: '整层起租 · 定制形象', coverImage: null },
+    { slot: 'serviced-office', label: '独栋办公', sublabel: '企业独栋 · 专属形象', coverImage: null },
+    { slot: 'creative-park', label: '创意园区', sublabel: '园区生态 · 低密度', coverImage: null },
   ],
   // 与 public-nav.ts 的 MAIN_NAV_ITEMS / FOOTER_COLUMNS 逐条对应。
   // 那两个常量**保留不删**：它们既是这里的默认值来源，也是迁移执行前的兜底。

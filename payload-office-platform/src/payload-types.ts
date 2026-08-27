@@ -3904,6 +3904,10 @@ export interface SiteSetting {
         slot: 'traditional-office' | 'coworking' | 'full-floor' | 'serviced-office' | 'creative-park';
         label: string;
         sublabel?: string | null;
+        /**
+         * 留空时前台自动取该类型下第一条房源的封面（现状行为）。配了就固定用这张，不再随房源变动。
+         */
+        coverImage?: (number | null) | Media;
         visible?: boolean | null;
         id?: string | null;
       }[]
@@ -4041,6 +4045,7 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         slot?: T;
         label?: T;
         sublabel?: T;
+        coverImage?: T;
         visible?: T;
         id?: T;
       };
