@@ -95,11 +95,17 @@
 
 ### Task 5：隔离预发布咨询写闭环
 
+> fixture ownership 与精确清理的已选方案、接口合同和测试顺序见
+> `specs/work-items/MP-105a-acceptance-fixture-ownership-plan.md`。实现采用受保护的 staging
+> 核验/清理接口与 runner 内存 manifest；不修改 Lead 业务模型，不允许 runner 直连数据库。
+
 - [ ] 只在 Task 2/3 attestation 与本轮写许可全部通过后写入；先证明目标 commit/revision、origin 非生产、数据库指纹在 staging 允许名单、run UUID 唯一且 ownership manifest 起点干净。
 - [ ] 每个创建对象进入精确 ownership manifest（对象类型 + 不可变 ID + run UUID），禁止按宽泛前缀或时间范围删除；任何未记录的创建都使验收失败。
 - [ ] 走详情 → 手填测试手机号 → 同 submissionRequestId 重提；验证首次成功语义、第二次 `acceptedExisting=true`、数据库只有一个 Lead。
 - [ ] 覆盖房源有效、降级楼盘、通用需求、限流、session 过期、弱网响应丢失和服务端稳定错误；测试号码和日志必须脱敏。
 - [ ] runner 必须用 `try/finally` 覆盖正常、失败和部分创建，处理 SIGINT/SIGTERM 后执行幂等重清理；分别查询 Lead、关系数据及所有 ownership 对象的清理前后计数。清理失败立即冻结本轮写入并禁止继续验收。
+
+本地代码进度：fixture 严格请求/typed Lead ID codec 与受保护的 staging 核验/精确清理接口已完成 mock 合同；接口在 permit、部署身份和实际数据库探针通过前保持不可见，清理只按服务端复算 locator + 编码后的实际 Lead ID 双匹配，并在删除前后复查 Lead、跟进和归属历史。自动 runner 与真实 staging 执行仍未完成，因此上述验收项继续保持未勾选。
 
 ### Task 6：iOS/Android 与隐私验收
 

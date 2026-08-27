@@ -49,6 +49,7 @@ describe('staging acceptance preflight', () => {
     ['revision', 'MP_E2E_EXPECTED_DEPLOYMENT_REVISION', 'bad revision'],
     ['fingerprint', 'MP_E2E_EXPECTED_DB_FINGERPRINT', 'A'.repeat(64)],
     ['run id', 'MP_E2E_RUN_ID', 'not-a-uuid'],
+    ['uppercase run id', 'MP_E2E_RUN_ID', valid.MP_E2E_RUN_ID.toUpperCase()],
     ['secret', 'MP_E2E_OPERATOR_BOOTSTRAP_SECRET', 'weak'],
   ])('拒绝非法字段：%s', (_label, key, value) => {
     expect(() => parsePreflightEnvironment({ ...valid, [key]: value })).toThrow()

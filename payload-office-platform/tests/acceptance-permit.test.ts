@@ -81,6 +81,25 @@ describe('acceptance permit', () => {
     expect(() => issueAcceptancePermit({ ...context, fixtureNamespace: 'wrong' }, secret)).toThrow()
   })
 
+  it('拒绝 uppercase run UUID，避免签发无法 fixture 清理的 permit', () => {
+    const uppercaseRunId = context.runId.toUpperCase()
+    const uppercaseContext = {
+      ...context,
+      runId: uppercaseRunId,
+      fixtureNamespace: acceptanceFixtureNamespace(uppercaseRunId),
+    }
+    expect(() => issueAcceptancePermit(uppercaseContext, secret)).toThrow('invalid permit context')
+    expect(parseAcceptancePermitContext(uppercaseContext)).toBeNull()
+
+    const issued = issueAcceptancePermit(context, secret, 1_700_000_000_000, () => Buffer.alloc(16, 7))
+    const uppercaseToken = signAcceptancePermitPayloadForTests({
+      ...issued.payload,
+      runId: uppercaseRunId,
+      fixtureNamespace: acceptanceFixtureNamespace(uppercaseRunId),
+    }, secret)
+    expect(verifyAcceptancePermitToken(uppercaseToken, secret, 1_700_000_001_000)).toBeNull()
+  })
+
   it.each([
     [
       'run',

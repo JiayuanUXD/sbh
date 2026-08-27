@@ -1,5 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
+import { isCanonicalMiniUuidV4 } from './inquiry-schema'
+
 export type AcceptancePermitContext = Readonly<{
   runId: string
   fixtureNamespace: string
@@ -41,7 +43,6 @@ const PAYLOAD_KEYS = [
   'jti',
 ] as const
 const PERMIT_TTL_MS = 10 * 60_000
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const SHA = /^[0-9a-f]{40}$/
 const REVISION = /^[A-Za-z0-9._-]{1,128}$/
 const FINGERPRINT = /^[0-9a-f]{64}$/
@@ -82,7 +83,7 @@ function hasExactOwnKeys(value: unknown, expectedKeys: readonly string[]): value
 
 function isValidContext(context: AcceptancePermitContext): boolean {
   return (
-    UUID.test(context.runId) &&
+    isCanonicalMiniUuidV4(context.runId) &&
     context.fixtureNamespace === namespace(context.runId) &&
     SHA.test(context.expectedGitCommitSha) &&
     REVISION.test(context.expectedDeploymentRevision) &&
@@ -158,7 +159,7 @@ export function verifyAcceptancePermitToken(
     typeof parsed.gitSHA !== 'string' ||
     typeof parsed.revision !== 'string' ||
     typeof parsed.dbFingerprint !== 'string' ||
-    !UUID.test(parsed.runId) ||
+    !isCanonicalMiniUuidV4(parsed.runId) ||
     parsed.fixtureNamespace !== namespace(parsed.runId) ||
     !SHA.test(parsed.gitSHA) ||
     !REVISION.test(parsed.revision) ||

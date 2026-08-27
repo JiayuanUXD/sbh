@@ -43,6 +43,14 @@ function own(value: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key)
 }
 
+export function isCanonicalMiniUuidV4(value: unknown): value is string {
+  return typeof value === 'string' && SUBMISSION_ID_PATTERN.test(value)
+}
+
+export function isCanonicalMiniSlug(value: unknown): value is string {
+  return typeof value === 'string' && SAFE_SLUG_PATTERN.test(value)
+}
+
 export function validateMiniInquiryInput(
   value: unknown,
   expectedPolicyVersion: string,
@@ -53,21 +61,21 @@ export function validateMiniInquiryInput(
   }
 
   const errors: string[] = []
-  const submissionRequestId = typeof value.submissionRequestId === 'string'
+  const submissionRequestId = isCanonicalMiniUuidV4(value.submissionRequestId)
     ? value.submissionRequestId
     : ''
-  if (!own(value, 'submissionRequestId') || !SUBMISSION_ID_PATTERN.test(submissionRequestId)) {
+  if (!own(value, 'submissionRequestId') || !isCanonicalMiniUuidV4(submissionRequestId)) {
     errors.push('submission_request_id_invalid')
   }
 
-  const listingSlug = typeof value.listingSlug === 'string' ? value.listingSlug : ''
-  if (!own(value, 'listingSlug') || !SAFE_SLUG_PATTERN.test(listingSlug)) {
+  const listingSlug = isCanonicalMiniSlug(value.listingSlug) ? value.listingSlug : ''
+  if (!own(value, 'listingSlug') || !isCanonicalMiniSlug(listingSlug)) {
     errors.push('listing_slug_invalid')
   }
 
   let buildingSlug: string | null = null
   if (own(value, 'buildingSlug') && value.buildingSlug != null) {
-    if (typeof value.buildingSlug !== 'string' || !SAFE_SLUG_PATTERN.test(value.buildingSlug)) {
+    if (!isCanonicalMiniSlug(value.buildingSlug)) {
       errors.push('building_slug_invalid')
     } else {
       buildingSlug = value.buildingSlug

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 const shaPattern = /^[0-9a-f]{40}$/
 const revisionPattern = /^[A-Za-z0-9._-]{1,128}$/
 const fingerprintPattern = /^[0-9a-f]{64}$/
-const runIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const runIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const base64urlPattern = /^[A-Za-z0-9_-]+$/
 
 function decodeSecret(value) {
