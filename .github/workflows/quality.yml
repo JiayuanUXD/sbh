@@ -113,11 +113,15 @@ jobs:
       # next build 期内联入前端 bundle。用例点击后 abort webapi.amap.com 断言降级，真实
       # 请求永不发出，故此处用占位假 key（域名白名单 key，非机密，勿用于生产）。
       NEXT_PUBLIC_AMAP_JS_KEY: e2e-fake-amap-js-key-not-real
-      # 出售频道开关：与 Dockerfile 保持一致（2026-08-24 起线上打开）。
+      # 出售频道：不再有功能开关（OPT-057 起常开），这里**刻意不设任何相关变量**。
       #
-      # CI 必须跟着开，否则 e2e 验的是「频道关闭」那条路径——/sale 与 /[city]/sale
-      # 恒 404、sitemap 无出售条目，出售链路的任何回归都测不到，而线上是开着的。
-      # 这正是「CI 绿灯不等于线上正确」最典型的成因：两边跑的根本不是同一个形态。
+      # 沿革：曾有 NEXT_PUBLIC_SALE_CHANNEL_ENABLED，CI 必须跟着 Dockerfile 一起开，
+      # 否则 e2e 验的是「频道关闭」那条路径，而线上是开着的——两边跑的不是同一个形态。
+      # 开关拆掉后这条约束消失：CI 无变量即等同线上形态，sale-channel.spec 的
+      # /sale 与 /[city]/sale 断言此时验的正是真实链路。
+      #
+      # 若将来 e2e 出售用例红了，**不要**去加回这个变量——它已不被任何代码读取
+      # （tests/sale-channel-always-on.test.ts 会拦住回流），红灯是真回归。
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

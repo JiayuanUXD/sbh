@@ -2,6 +2,26 @@
 
 日期：2026-08-27 · 分支 `refactor/sale-channel-flag-removal-0afe` · 本地 dev(3717) 浏览器实测
 
+## 如何复现（脚本随证据提交，证据不自证）
+
+```bash
+# 前提：被测服务必须在环境里**没有** NEXT_PUBLIC_SALE_CHANNEL_ENABLED 的情况下启动
+ALLOW_MUTATE=1 node artifacts/verification/OPT-057/verify-sale-channel-always-on.mjs http://localhost:3717 > artifacts/verification/OPT-057/verify.output.json
+```
+
+- 脚本：`verify-sale-channel-always-on.mjs`；本次输出：`verify.output.json`（`verdict.pass: true`）。
+- 脚本**先自证前提**（`premise.flagInProcessEnv` 必须为 null），前提不成立直接非 0 退出——
+  否则「功能可用」可能只是因为变量还在，结论无意义。
+- `ALLOW_MUTATE=1` 那段夹具会把一条房源临时改成 `sale` 验字段组、随后在 `finally` 里还原，
+  输出中 `mutationProbe.restored` 记录还原结果（本次 `true`，listing 56：lease → sale → lease）。
+- 下文所有实测数字均来自该 JSON，不是手抄。
+
+**另有两类证据是自动化的、每次 CI 都会重跑**：
+- `tests/sale-channel-always-on.test.ts`（26 条源码级契约，防开关回流）；
+- `tests/e2e/sale-channel.spec.ts` —— 本 PR 已从 `quality.yml` 删掉该变量，
+  所以 CI 的 e2e 现在跑在**无开关**环境下并断言两条出售路由 200，
+  等价于在 CI 里持续复现本文第 1 节的核心结论。
+
 ## 0. 前置事实核对（改动前，线上实测）
 
 ```
