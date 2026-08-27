@@ -34,7 +34,9 @@ cover: prev?.cover ?? card.coverImage ?? null
 封面本身是可配的：`Locations.ts:346-355` 的 `coverImage`（`business_area` /
 `district` 可见），`facade.ts:938` 优先取它、缺省回退到「该商圈下第一个有封面的楼盘」。
 
-**真正不可控的是哪些商圈能上榜、排第几。** 而且这里有一个隐蔽缺陷：
+**但配了之后最长 5 分钟看不到**（2026-08-27 实测发现，见 §2.3）。
+
+**而且真正不可控的是哪些商圈能上榜、排第几。** 这里有一个隐蔽缺陷：
 
 - `facade.ts:930` 在组装时就 `if (districtCards.length >= districtCardsLimit) break`，
   `DEFAULT_DISTRICT_CARDS_LIMIT = 5`（`facade.ts:332`）——**卡片在 facade 里已被截断到 5 张**；
@@ -49,6 +51,28 @@ cover: prev?.cover ?? card.coverImage ?? null
 上榜排序来自 `Buildings.recommendedOrder` 的聚合（商圈按其下楼盘间接排序），
 这正是 `featured-regions.ts` 开头那段注释说的「间接排序」问题；`OPT-053` 接上了
 `featuredRegions` 这根线，但**没发现它被截断顺序架空了**。
+
+### 2.3 改了封面不会让缓存失效（OPT-059 验收时发现，已独立核实）
+
+`Locations.ts:32` 的 `PUBLIC_LOCATION_FIELDS` 只列了 7 个字段：
+
+```
+name / slug / type / status / frontendVisible / city / parent
+```
+
+而失效钩子 `invalidateLocationCityCache` 的门禁是
+`affectsPublicCityCache`（`Locations.ts:87-92`）——它用
+`PUBLIC_LOCATION_FIELDS.some((field) => fieldChanged(...))` 判断要不要打标签。
+**`coverImage` 不在这张表里**，所以运营只改商圈封面时，钩子直接 `return doc`，
+一个失效标签都不打。首页只能等 `unstable_cache` 的 `revalidate: 300` 自然过期
+——**最长 5 分钟**。
+
+这正是 §5.2 里担心的那种失败模式（「运营改完看不到效果，还以为功能坏了」），
+只不过它**今天就已经存在**，不是本工作项引入的。而本工作项恰恰要让运营频繁
+使用这个字段，不修就等于把一个既有的信任杀手放大。
+
+> 订正：本文档此前在 §5.2 写过「商圈封面在供给查询里，跟着供给缓存走，现状已如此」
+> ——那句话不成立，已删。
 
 ## 3. 目标与非目标
 
@@ -122,9 +146,15 @@ cover: prev?.cover ?? card.coverImage ?? null
    `resolveTypeCardCovers(typeCards, typeCardOverrides, typeSummaries)`
    按 §5.1 的四级优先级吐出每张卡的最终封面；`HomeTypeCards` 只管渲染收到的图，
    **不再自己从 `typeSummaries` 挑**。
-3. **配置的生效时延**：`SiteSettings` / `CitySiteProfiles` 走它们现有的缓存与
-   失效路径，不新增机制。商圈封面（`Locations.coverImage`）在供给查询里，
-   跟着供给缓存走，现状已如此。
+3. **把 `coverImage` 补进 `PUBLIC_LOCATION_FIELDS`**（`Locations.ts:32`）。
+   一行改动，修掉 §2.3 那个「改了封面 5 分钟看不到」的既有缺陷。
+   注意 `fieldChanged`（`Locations.ts:77-85`）对 `city` / `parent` 走
+   `relationshipId` 比较、其余走 `Object.is`——而 `coverImage` **也是 upload 关系字段**，
+   depth 不同时可能是 id 或对象，直接 `Object.is` 会把「同一张图」判成变了
+   （多打一次标签，无害）或把对象比较成恒不等。**照 `city` / `parent` 的分支处理**，
+   别只往数组里加个字符串就以为完事。
+4. **配置的生效时延**：`SiteSettings` / `CitySiteProfiles` 走它们现有的缓存与
+   失效路径，不新增机制。
 
 两个纯函数（重排已有、封面合并新增）都是无 IO 的，直接进单测，**不用碰
 supply adapter 的 mock**。
@@ -165,12 +195,16 @@ supply adapter 的 mock**。
 1. **后台实配一遍**：用 `scripts/seed.ts` 的 E2E 夹具账号登录，实际配一张全局
    类型卡封面、一张城市覆盖、把一个商圈设为精选——确认存盘后前台如实反映，
    且**城市覆盖真的只作用于那个城市**。
-2. **验证截断修复真的生效**：找一个「有在营楼盘但 `recommendedOrder` 排在第 6 名之后」
+2. **只改商圈封面、别的什么都不动，刷新首页确认立刻生效**（§2.3 的修复）。
+   这一项必须单独做：如果顺手改了商圈名或显隐，`PUBLIC_LOCATION_FIELDS` 里
+   原有的字段就会替你打上失效标签，于是**即使 `coverImage` 那行没修好，你也会看到
+   它「生效了」**——对照组失效，结论反了。改完立刻刷新，不要等 5 分钟。
+3. **验证截断修复真的生效**：找一个「有在营楼盘但 `recommendedOrder` 排在第 6 名之后」
    的商圈，设为精选，确认它**确实出现在首页 bento 里**。这是本工作项的核心断言，
    不能只靠单测。
-3. **验证质量门槛仍在**：把一个**无在营楼盘**的商圈设为精选，确认它**不出现**
+4. **验证质量门槛仍在**：把一个**无在营楼盘**的商圈设为精选，确认它**不出现**
    （§4 的裁定）。
-4. **两个断点各验**：`home.css:210` 在 ≤767px 把类型卡图片 `display: none`、
+5. **两个断点各验**：`home.css:210` 在 ≤767px 把类型卡图片 `display: none`、
    bento 三档高度统一成 232px。桌面绿不等于移动绿。
 
 **本地验之前先 `pnpm exec payload migrate`**——本地库落后会看到「缺列 500 →
@@ -190,6 +224,7 @@ supply adapter 的 mock**。
 | `tests/public-catalog-facade.test.ts:625-630` | `unlimited.districtCards.length <= 5` 硬编码上界 → 候选池放宽后**必须改**（连同 `:624-626` 解释「1 大 + 4 小」的注释） |
 | `tests/public-catalog-facade.test.ts:600-604` | 首卡 `buildings.length > 0` → 门槛保留则存活 |
 | `tests/opt035-homepage-stats.test.ts:53-64` | 见 §6，改标题 + 补 cover 断言 |
+| `tests/city-profile-cache-invalidator.test.ts` | §5.2 第 3 条改 `PUBLIC_LOCATION_FIELDS` 的落点。**必须补一条「只改 coverImage 也打失效标签」的用例**——这是 §2.3 缺陷的回归锁；同时确认既有用例（只改无关字段不打标签）仍绿，别把门禁改成恒真 |
 | `tests/listings-query-prefetch-performance.test.ts:107-109` | **读源码字面量的契约测试**（断言 `href={...} prefetch={false}` 那几行）。改封面取值不动 Link 行则不破坏；一旦重排那几行（哪怕只是换行或属性顺序）就必须同步改断言 |
 | `tests/city-home-view.test.ts` | `:67` 传 `typeSummaries: {}`、`:12` 引 `SITE_SETTINGS_FALLBACK`、`:107` 九 section 顺序锚点含「按类型浏览」。`CityHomeView` props 形状若变，需改 84-181 行全部 `createElement` 调用点 |
 | `tests/city-route-pages.test.ts:148` | homepage mock 只有五键（无 `typeSummaries` / `stats` / `nearbyListings`），靠松散类型混过。**首页路由若新读字段而不做可选链，失败会以运行时 `undefined` 出现，排查成本高** |
