@@ -11,7 +11,6 @@ import {
 
 type HomePageData = HomePageSnapshot & Readonly<{
   keyword: string
-  lastOpenedListingSlug: string
 }>
 
 type SearchSubmitEvent = Readonly<{
@@ -55,7 +54,6 @@ Page<HomePageData, HomePageMethods>({
     content: null,
     refreshError: false,
     keyword: '',
-    lastOpenedListingSlug: '',
   },
 
   homeLoadController: null,
@@ -128,11 +126,12 @@ Page<HomePageData, HomePageMethods>({
     const slug = event.detail.slug
     if (typeof slug !== 'string' || !slug) return
 
-    this.setData({ lastOpenedListingSlug: slug })
-    wx.showToast({
-      title: '详情功能即将开放',
-      icon: 'none',
-      duration: 1600,
+    void listingNavigation.openDetail(slug).catch(() => {
+      wx.showToast({
+        title: '暂时无法打开房源详情',
+        icon: 'none',
+        duration: 1600,
+      })
     })
   },
 })

@@ -242,6 +242,7 @@ export function mapMiniListingDetail(
   detail: ListingDetailViewModel,
   related: readonly ListingCardViewModel[],
   mediaOrigin: string,
+  inquiryPolicyVersion: string,
 ): MiniListingDetailData {
   const card = mapMiniListingCard(detail, mediaOrigin)
   const rawRent = card.price?.monthlyEstimate ?? null
@@ -324,6 +325,7 @@ export function mapMiniListingDetail(
       total,
       assumptions,
     },
+    inquiryPolicy: { version: inquiryPolicyVersion },
     relatedListings: related.map((item) => mapMiniListingCard(item, mediaOrigin)),
   }
 }

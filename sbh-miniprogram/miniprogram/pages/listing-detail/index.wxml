@@ -1,0 +1,155 @@
+<page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
+<view
+  class="listing-detail-page"
+  data-page-state="{{state}}"
+  aria-hidden="{{inquiryOpen}}"
+>
+  <view wx:if="{{state === 'loading'}}" class="listing-detail__loading">
+    <sbh-skeleton rows="5" with-media />
+    <sbh-skeleton rows="4" />
+  </view>
+
+  <view wx:elif="{{state === 'error'}}" class="listing-detail__state">
+    <sbh-state
+      kind="error"
+      title="房源详情暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="handleRetry"
+    />
+    <view class="listing-detail__state-exit" aria-role="link" bindtap="handleBackToListings">
+      返回找房
+    </view>
+  </view>
+
+  <view wx:elif="{{state === 'not-found'}}" class="listing-detail__state">
+    <view class="listing-detail__not-found-title">该房源已失效或不存在，可查看其他房源</view>
+    <view
+      class="listing-detail__state-exit"
+      aria-role="link"
+      bindtap="handleBackToListings"
+    >返回找房</view>
+    <view class="listing-detail__fallback">
+      <view class="listing-detail__fallback-title">当前可选房源</view>
+      <view wx:if="{{loadingFallback}}" class="listing-detail__fallback-loading" aria-role="status">
+        正在加载当前可选房源
+      </view>
+      <listing-card
+        wx:for="{{fallbackListings}}"
+        wx:key="id"
+        listing="{{item}}"
+        bindopen="handleRelatedOpen"
+      />
+      <view
+        wx:if="{{!loadingFallback && !fallbackListings.length}}"
+        class="listing-detail__fallback-empty"
+      >可返回找房继续浏览</view>
+    </view>
+  </view>
+
+  <block wx:if="{{content && (state === 'ready' || state === 'refreshing' || state === 'stale')}}">
+    <view wx:if="{{state === 'ready' || state === 'stale'}}" id="listing-detail-ready"></view>
+
+    <view wx:if="{{state === 'refreshing'}}" class="listing-detail__refreshing" aria-role="status">
+      正在核验最新房源状态
+    </view>
+    <view wx:if="{{state === 'stale'}}" class="listing-detail__stale" aria-role="status">
+      <text>刷新失败，以下为上次核验数据</text>
+      <view class="listing-detail__stale-retry" aria-role="button" bindtap="handleRetry">重新刷新</view>
+    </view>
+
+    <view class="listing-detail__main">
+      <view class="listing-detail__gallery">
+        <detail-gallery images="{{content.gallery}}" />
+      </view>
+
+      <view class="listing-detail__summary">
+        <view class="listing-detail__title">{{content.title}}</view>
+        <view class="listing-detail__location">{{content.location}}</view>
+        <view class="listing-detail__verification">
+          <text>房源核验 {{content.verification.verifiedAt}}</text>
+          <text>价格核验 {{content.verification.priceVerifiedAt}}</text>
+        </view>
+      </view>
+
+      <view class="listing-detail__price">
+        <view class="listing-detail__primary-price num">{{content.primaryPrice}}</view>
+        <view wx:if="{{content.secondaryPrice}}" class="listing-detail__unit-price num">
+          {{content.secondaryPrice}}
+        </view>
+      </view>
+
+      <view class="listing-detail__monthly-cost">
+        <monthly-cost-card cost="{{content.monthlyCost}}" />
+      </view>
+
+      <view class="listing-detail__specifications">
+        <spec-grid items="{{content.specifications}}" />
+      </view>
+
+      <view class="listing-detail__facts">
+        <view class="listing-detail__section-title">其他事实</view>
+        <view wx:for="{{content.factGroups}}" wx:key="id" class="listing-detail__fact-group">
+          <view class="listing-detail__fact-group-title">{{item.title}}</view>
+          <view wx:for="{{item.facts}}" wx:key="label" class="listing-detail__fact">
+            <text class="listing-detail__fact-label">{{item.label}}</text>
+            <text class="listing-detail__fact-value">{{item.value}}</text>
+            <text wx:if="{{item.estimated}}" class="listing-detail__fact-estimated">估算</text>
+          </view>
+        </view>
+        <view wx:if="{{!content.factGroups.length}}" class="listing-detail__empty-note">
+          暂无其他公开信息
+        </view>
+      </view>
+
+      <view class="listing-detail__building">
+        <view class="listing-detail__section-title">所在楼盘</view>
+        <block wx:if="{{content.building}}">
+          <view class="listing-detail__building-name">{{content.building.name}}</view>
+          <view class="listing-detail__building-address">{{content.building.address}}</view>
+        </block>
+        <view wx:else class="listing-detail__empty-note">楼盘信息待确认</view>
+      </view>
+
+      <view class="listing-detail__related">
+        <view class="listing-detail__section-title">相关推荐</view>
+        <listing-card
+          wx:for="{{content.relatedListings}}"
+          wx:key="id"
+          listing="{{item}}"
+          bindopen="handleRelatedOpen"
+        />
+        <view wx:if="{{!content.relatedListings.length}}" class="listing-detail__empty-note">
+          暂无相关推荐
+        </view>
+      </view>
+    </view>
+
+    <view class="listing-detail__bar" aria-hidden="{{inquiryOpen}}">
+      <button
+        class="listing-detail__bar-action listing-detail__bar-action--share"
+        open-type="share"
+        disabled="{{inquiryOpen}}"
+      >分享</button>
+      <button
+        class="listing-detail__bar-action listing-detail__bar-action--inquiry"
+        bindtap="handleOpenInquiry"
+        disabled="{{inquiryOpen}}"
+      >{{state === 'stale' ? '咨询当前状态' : '咨询顾问'}}</button>
+    </view>
+  </block>
+</view>
+
+<inquiry-sheet
+  snapshot="{{inquirySheet}}"
+  bindclose="handleInquiryClose"
+  bindprivacy="handleInquiryPrivacy"
+  bindmoveinchange="handleInquiryMoveInChange"
+  bindphonechange="handleInquiryPhoneChange"
+  bindselectmanual="handleInquirySelectManual"
+  bindselectwechat="handleInquirySelectWechat"
+  bindconsentchange="handleInquiryConsentChange"
+  bindphoneauthorize="handleInquiryPhoneAuthorization"
+  bindphonerejected="handleInquiryPhoneRejected"
+  bindmanualsubmit="handleInquiryManualSubmit"
+/>

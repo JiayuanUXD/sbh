@@ -53,7 +53,6 @@ type ListingsPageData = {
   activeFilterCount: number
   sheetOpen: boolean
   sheetSection: 'location' | 'price' | 'area' | 'all'
-  lastOpenedListingSlug: string
 }
 
 type FilterOpenEvent = Readonly<{
@@ -155,7 +154,6 @@ Page<ListingsPageData, ListingsPageMethods>({
     activeFilterCount: 0,
     sheetOpen: false,
     sheetSection: 'all',
-    lastOpenedListingSlug: '',
   },
 
   listingsController: null,
@@ -262,11 +260,12 @@ Page<ListingsPageData, ListingsPageMethods>({
   handleListingOpen(event) {
     const slug = event.detail.slug
     if (typeof slug !== 'string' || !slug) return
-    this.setData({ lastOpenedListingSlug: slug })
-    wx.showToast({
-      title: '详情功能即将开放',
-      icon: 'none',
-      duration: 1600,
+    void listingNavigation.openDetail(slug).catch(() => {
+      wx.showToast({
+        title: '暂时无法打开房源详情',
+        icon: 'none',
+        duration: 1600,
+      })
     })
   },
 })

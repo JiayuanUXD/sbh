@@ -60,6 +60,13 @@ function outputOf(result: ReturnType<typeof spawnSync>): string {
 }
 
 describe('project:check', () => {
+  test('静态检查覆盖详情页四件套与可信详情 ready marker', () => {
+    const source = readFileSync(scripts.checkProject, 'utf8')
+
+    expect(source).toContain("'pages/listing-detail/index'")
+    expect(source).toMatch(/\['pages\/listing-detail\/index',\s*'listing-detail-ready'\]/)
+  })
+
   test('在受支持的 Node 22 下完成纯本地工程检查', () => {
     const result = runScript(scripts.checkProject)
 
@@ -173,6 +180,137 @@ describe('devtools:smoke', () => {
     expect(listingsPage.$).toHaveBeenCalledTimes(2)
     expect(miniProgram.close).toHaveBeenCalledOnce()
     expect(miniProgram.disconnect).not.toHaveBeenCalled()
+  })
+
+  test('真实冒烟入口从找房首条卡片读取 slug 后进入详情页并等待 ready', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const detailPage = { path: 'pages/listing-detail/index', query: { slug: 'listing-one' }, $: vi.fn().mockResolvedValue({ id: 'listing-detail-ready' }) }
+    const listingsPage = {
+      path: 'pages/listings/index',
+      $: vi.fn().mockResolvedValue({ id: 'listings-ready' }),
+    }
+    listingsPage.$.mockImplementation(async (selector) => selector === '#listings-ready'
+      ? { id: 'listings-ready' }
+      : { attribute: vi.fn().mockResolvedValue('listing-one') })
+    const homePage = { path: 'pages/home/index', $: vi.fn().mockResolvedValue({ id: 'home-ready' }) }
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn()
+        .mockResolvedValueOnce(homePage)
+        .mockResolvedValueOnce(detailPage),
+      switchTab: vi.fn().mockResolvedValue(listingsPage),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({
+      automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
+      includeDetail: true,
+      pollIntervalMs: 1,
+      timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20 },
+    })
+
+    await runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })
+    expect(miniProgram.reLaunch).toHaveBeenNthCalledWith(2, '/pages/listing-detail/index?slug=listing-one')
+    expect(detailPage.$).toHaveBeenCalledWith('#listing-detail-ready')
+  })
+
+  test('首条房源暂缺时在总 deadline 内轮询，随后用 pathname/query 验证详情', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    let listingQueries = 0
+    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
+      if (selector === '#listings-ready') return {}
+      listingQueries += 1
+      return listingQueries < 2 ? null : { attribute: vi.fn().mockResolvedValue('listing-two') }
+    }) }
+    const detailPage = { path: 'pages/listing-detail/index', query: { slug: 'listing-two' }, $: vi.fn().mockResolvedValue({}) }
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce(detailPage),
+      switchTab: vi.fn().mockResolvedValue(listingsPage),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({ automator: { launch: vi.fn().mockResolvedValue(miniProgram) }, includeDetail: true, pollIntervalMs: 1, timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 50 } })
+    await runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })
+    expect(listingQueries).toBe(2)
+    expect(detailPage.$).toHaveBeenCalledWith('#listing-detail-ready')
+  })
+
+  test('详情 pathname 正确但 query.slug 缺失或不匹配时失败并清理', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : { attribute: vi.fn().mockResolvedValue('listing-three') }) }
+    const detailPage = { path: 'pages/listing-detail/index', query: {}, $: vi.fn() }
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce(detailPage),
+      switchTab: vi.fn().mockResolvedValue(listingsPage), close: vi.fn().mockResolvedValue(undefined), disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({ automator: { launch: vi.fn().mockResolvedValue(miniProgram) }, includeDetail: true, pollIntervalMs: 1, timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 20 } })
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('房源详情页查询参数不匹配')
+    expect(miniProgram.close).toHaveBeenCalledOnce()
+  })
+
+  test.each(['首条房源查询', '首条房源 slug 属性'] as const)('%s挂起时在明确超时后失败并清理', async (label) => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockResolvedValue({ id: 'listings-ready' }) }
+    listingsPage.$.mockImplementation(async (selector: string) => {
+      if (selector === '#listings-ready') return { id: 'listings-ready' }
+      if (label === '首条房源查询') return new Promise(() => {})
+      return { attribute: () => new Promise(() => {}) }
+    })
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce({ path: 'pages/listing-detail/index', query: { slug: 'x' }, $: vi.fn() }),
+      switchTab: vi.fn().mockResolvedValue(listingsPage),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({
+      automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
+      includeDetail: true,
+      timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 5 },
+    })
+
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('首条房源')
+    expect(miniProgram.close).toHaveBeenCalledOnce()
+  })
+
+  test('读取首条 slug 期间 runtime exception 竞速失败并清理', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce({ path: 'pages/listing-detail/index?slug=x', $: vi.fn() }),
+      switchTab: vi.fn().mockResolvedValue({ path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
+        if (selector === '#listings-ready') return {}
+        setTimeout(() => miniProgram.emit('exception'), 1)
+        return { attribute: () => new Promise(() => {}) }
+      }) }),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({
+      automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
+      includeDetail: true,
+      timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 50 },
+    })
+
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('运行时异常')
+    expect(miniProgram.close).toHaveBeenCalledOnce()
+  })
+
+  test('查询消耗大部分预算后 attribute 挂起仍按原总 deadline 失败', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const startedAt = Date.now()
+    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
+      if (selector === '#listings-ready') return {}
+      await new Promise((resolve) => setTimeout(resolve, 15))
+      return { attribute: () => new Promise(() => {}) }
+    }) }
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }),
+      switchTab: vi.fn().mockResolvedValue(listingsPage),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({ automator: { launch: vi.fn().mockResolvedValue(miniProgram) }, includeDetail: true, pollIntervalMs: 1, timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 20 } })
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('首条房源')
+    expect(Date.now() - startedAt).toBeLessThan(32)
+    expect(miniProgram.close).toHaveBeenCalledOnce()
   })
 
   test('首页实际路由不匹配时失败并清理', async () => {

@@ -73,12 +73,12 @@ describe('首页页面合同', () => {
     expect(source).toContain('stopPullDownRefresh: () => wx.stopPullDownRefresh()')
   })
 
-  it('MP-104 前不导航到不存在的详情页，点击只记录 slug 并给非阻断提示', () => {
+  it('点击精选房源统一调用安全详情导航，失败时给非阻断提示', () => {
     const source = readPageFile('index.ts')
 
-    expect(source).not.toMatch(/pages\/listings\/detail|pages\/listing-detail/)
-    expect(source).toContain('lastOpenedListingSlug')
-    expect(source).toContain('详情功能即将开放')
+    expect(source).toMatch(/handleListingOpen[\s\S]*listingNavigation\.openDetail\(slug\)/)
+    expect(source).not.toContain('详情功能即将开放')
+    expect(source).toContain('暂时无法打开房源详情')
     expect(source).toContain('wx.showToast')
   })
 })

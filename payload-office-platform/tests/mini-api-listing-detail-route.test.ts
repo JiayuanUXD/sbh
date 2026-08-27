@@ -48,11 +48,13 @@ describe('GET /api/mini/v1/listings/[slug]', () => {
     expect(getMiniListingDetailMock).toHaveBeenCalledWith('hangzhou', 'west-lake-office')
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('detail.req-1')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(requestId).not.toBe('detail.req-1')
     expect(body).toEqual({
       ok: true,
       data: DETAIL_DATA,
-      meta: { requestId: 'detail.req-1', asOf: AS_OF, maxAgeSeconds: 300 },
+      meta: { requestId, asOf: AS_OF, maxAgeSeconds: 300 },
     })
     expect(body.meta.requestId).toBe(response.headers.get('x-request-id'))
   })
@@ -70,11 +72,12 @@ describe('GET /api/mini/v1/listings/[slug]', () => {
     expect(getMiniListingDetailMock).toHaveBeenCalledWith('not-live', 'west-lake-office')
     expect(response.status).toBe(404)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('detail.city-not-found')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: { code: 'city_not_found', message: '城市暂未开放' },
-      meta: { requestId: 'detail.city-not-found' },
+      meta: { requestId },
     })
   })
 
@@ -91,11 +94,12 @@ describe('GET /api/mini/v1/listings/[slug]', () => {
     expect(getMiniListingDetailMock).toHaveBeenCalledWith('hangzhou', 'West_Lake')
     expect(response.status).toBe(404)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('detail.listing-not-found')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: { code: 'listing_not_found', message: '房源已失效或不存在' },
-      meta: { requestId: 'detail.listing-not-found' },
+      meta: { requestId },
     })
   })
 
@@ -113,11 +117,12 @@ describe('GET /api/mini/v1/listings/[slug]', () => {
 
     expect(response.status).toBe(503)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('detail.failed')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     expect(body).toEqual({
       ok: false,
       error: { code: 'service_unavailable', message: '服务暂不可用，请稍后重试' },
-      meta: { requestId: 'detail.failed' },
+      meta: { requestId },
     })
     expect(serialized).not.toContain('SELECT')
     expect(serialized).not.toContain('password')

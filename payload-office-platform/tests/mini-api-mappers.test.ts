@@ -131,6 +131,18 @@ function detailWithPropertyFee(
 }
 
 describe('Mini API mappers', () => {
+  it('详情显式注入只读隐私政策版本，不从房源数据推断', () => {
+    const mapped = mapMiniListingDetail(
+      detailWithPropertyFee(),
+      [],
+      MEDIA_ORIGIN,
+      'MVP-R1',
+    )
+
+    expect(mapped.inquiryPolicy).toEqual({ version: 'MVP-R1' })
+    expect(Object.keys(mapped.inquiryPolicy)).toEqual(['version'])
+  })
+
   it('keeps structural price fields and adds the shared monthly estimate', () => {
     expect(mapMiniListingCard(card, MEDIA_ORIGIN).price).toEqual({
       ...card.price,
@@ -227,7 +239,7 @@ describe('Mini API mappers', () => {
       secret: 'gallery-secret',
       output: () => mapMiniListingDetail(detailWithPropertyFee({
         gallery: [unsafeGalleryImage],
-      }), [], MEDIA_ORIGIN),
+      }), [], MEDIA_ORIGIN, 'MVP-R1'),
     },
   ])('recursively whitelists nested $path fields', ({ output, secret }) => {
     expect(JSON.stringify(output())).not.toContain(secret)
@@ -338,7 +350,7 @@ describe('Mini API mappers', () => {
     }, MEDIA_ORIGIN)
     const detail = mapMiniListingDetail(detailWithPropertyFee({
       gallery: [{ src: '/media/gallery.jpg', alt: '办公区' }],
-    }), [], MEDIA_ORIGIN)
+    }), [], MEDIA_ORIGIN, 'MVP-R1')
 
     expect(rootRelative.coverImage?.src).toBe('https://sbh.example/media/cover.jpg')
     expect(absolute.coverImage?.src).toBe('https://cdn.example.com/cover.jpg')
@@ -380,7 +392,7 @@ describe('Mini API mappers', () => {
   })
 
   it('calculates property fee only from a monthly per-sqm amount and complete area', () => {
-    expect(mapMiniListingDetail(detailWithPropertyFee(), [], MEDIA_ORIGIN).monthlyCost).toEqual({
+    expect(mapMiniListingDetail(detailWithPropertyFee(), [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost).toEqual({
       currency: 'CNY',
       period: 'month',
       propertyFeeInclusion: 'excluded',
@@ -404,7 +416,7 @@ describe('Mini API mappers', () => {
         }],
       }],
     })
-    expect(mapMiniListingDetail(wrongUnit, [], MEDIA_ORIGIN).monthlyCost.propertyFee).toBeNull()
+    expect(mapMiniListingDetail(wrongUnit, [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost.propertyFee).toBeNull()
   })
 
   it.each([
@@ -412,7 +424,7 @@ describe('Mini API mappers', () => {
     { name: 'property fee', detail: detailWithPropertyFee({ factGroups: [] }) },
     { name: 'area', detail: detailWithPropertyFee({ area: null }) },
   ])('keeps total null when $name is missing', ({ detail }) => {
-    expect(mapMiniListingDetail(detail, [], MEDIA_ORIGIN).monthlyCost.total).toBeNull()
+    expect(mapMiniListingDetail(detail, [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost.total).toBeNull()
   })
 
   it.each([
@@ -484,7 +496,7 @@ describe('Mini API mappers', () => {
     ]
     const monthlyCost = mapMiniListingDetail(detailWithPropertyFee({
       factGroups: [{ id: 'cost', title: '费用条款', facts }],
-    }), [], MEDIA_ORIGIN).monthlyCost
+    }), [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost
 
     expect(monthlyCost).toMatchObject({
       currency: 'CNY',
@@ -509,7 +521,7 @@ describe('Mini API mappers', () => {
           { label: '物业费金额', value: '0.2 元/㎡/月', magnitude: '0.2', unit: '元/㎡/月', estimated: false, critical: false },
         ],
       }],
-    }), [], MEDIA_ORIGIN)
+    }), [], MEDIA_ORIGIN, 'MVP-R1')
 
     expect(mapped.listing.price?.monthlyEstimate).toBe(9)
     expect(mapped.monthlyCost).toMatchObject({ rent: 9, propertyFee: 0.6, total: 9.6 })
@@ -523,7 +535,7 @@ describe('Mini API mappers', () => {
       audit: { actor: 'internal-user' },
       reviewStatus: 'approved',
     }
-    const mapped = mapMiniListingDetail(unsafeDetail, [card], MEDIA_ORIGIN)
+    const mapped = mapMiniListingDetail(unsafeDetail, [card], MEDIA_ORIGIN, 'MVP-R1')
     const serialized = JSON.stringify(mapped)
 
     expect(mapped.listing.factGroups).toEqual([{

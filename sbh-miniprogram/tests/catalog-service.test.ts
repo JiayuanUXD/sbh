@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   parseMiniHomeData,
+  parseMiniListingDetailData,
   parseMiniListingsData,
 } from '../miniprogram/services/catalog-contracts.js'
 import { createCatalogService, type MiniRequestClient } from '../miniprogram/services/catalog.js'
@@ -14,6 +15,38 @@ function createPendingRequestClient() {
     return new Promise<T>(() => {})
   }
   return { calls, request }
+}
+
+const validDetail = {
+  listing: {
+    id: 'listing-1',
+    slug: 'jing-an-tower-101',
+    title: '静安中心 101',
+    citySlug: 'shanghai',
+    cityName: '上海',
+    price: null,
+    area: null,
+    seats: null,
+    listingType: { value: 'traditional-office', label: '传统办公' },
+    availableFrom: null,
+    building: null,
+    coverImage: null,
+    highlights: [],
+    gallery: [],
+    factGroups: [],
+    verification: { verifiedAt: null, priceVerifiedAt: null },
+  },
+  monthlyCost: {
+    currency: 'CNY',
+    period: 'month',
+    propertyFeeInclusion: null,
+    rent: null,
+    propertyFee: null,
+    total: null,
+    assumptions: [],
+  },
+  relatedListings: [],
+  inquiryPolicy: { version: '2026-08-27' },
 }
 
 describe('Mini API 目录服务', () => {
@@ -63,5 +96,42 @@ describe('Mini API 目录服务', () => {
       path: '/api/mini/v1/listings?city=shanghai&district=jingan',
       parse: parseMiniListingsData,
     })])
+  })
+
+  it('详情请求固定上海并用请求 slug 约束响应解析', () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getListingDetail('jing-an-tower-101')
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.path).toBe(
+      '/api/mini/v1/listings/jing-an-tower-101?city=shanghai',
+    )
+    expect(typeof calls[0]?.parse).toBe('function')
+    const parse = calls[0]?.parse as (value: unknown) => unknown
+    expect(parse(validDetail)).toEqual(parseMiniListingDetailData(validDetail))
+    expect(() => parse({
+      ...validDetail,
+      listing: { ...validDetail.listing, slug: 'other-listing' },
+    })).toThrow(/Mini API 目录响应无效/)
+  })
+
+  it.each([
+    '',
+    'Jing-An-Tower-101',
+    'jing_an_tower_101',
+    '-jing-an-tower-101',
+    'jing-an-tower-101-',
+    'jing--an-tower-101',
+    '../jing-an-tower-101',
+    'jing-an/tower-101',
+    '静安中心',
+  ])('详情请求在网络调用前拒绝非安全 slug：%s', (slug) => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    expect(() => catalog.getListingDetail(slug)).toThrow(/房源标识无效/)
+    expect(calls).toEqual([])
   })
 })

@@ -9,8 +9,9 @@ export type {
   JSONObject,
   JSONValue,
   MiniApiFailure,
-  MiniApiMeta,
+  MiniApiReadMeta,
   MiniApiSuccess,
+  MiniApiWriteMeta,
   RequestData,
   RequestMethod,
   RequestOptions,
@@ -199,20 +200,18 @@ function resolveRequestId(response: RequestTransportResponse): string | null {
   return findRequestIdInBody(response.data) ?? findRequestIdInHeaders(response.headers)
 }
 
-function isMiniApiSuccess(value: unknown): value is {
+function isMiniApiSuccess(value: unknown, method: RequestMethod): value is {
   ok: true
   data: unknown
-  meta: { requestId: string; asOf: string; maxAgeSeconds: number }
+  meta: { requestId: string; asOf?: string; maxAgeSeconds?: number }
 } {
   if (!isRecord(value) || value.ok !== true || !Object.hasOwn(value, 'data') || !isRecord(value.meta)) {
     return false
   }
 
-  return (
-    isSafeRequestId(value.meta.requestId) &&
-    isCanonicalUtcIso(value.meta.asOf) &&
-    value.meta.maxAgeSeconds === 300
-  )
+  if (!isSafeRequestId(value.meta.requestId)) return false
+  if (!isGetMethod(method)) return true
+  return isCanonicalUtcIso(value.meta.asOf) && value.meta.maxAgeSeconds === 300
 }
 
 function isMiniApiFailure(value: unknown): value is {
@@ -352,7 +351,7 @@ async function classifyResponse<T>(
     }
   }
 
-  if (isMiniApiSuccess(response.data)) {
+  if (isMiniApiSuccess(response.data, method)) {
     try {
       return { type: 'success', data: await parse(response.data.data) }
     } catch {
@@ -391,13 +390,29 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
     assertRequestMethod(method)
     assertTimeoutMs(timeoutMs)
     assertRequestData(options.data)
+    if (options.anonymousContextToken !== undefined) {
+      if (method === 'GET' || typeof options.anonymousContextToken !== 'string' || !/^[A-Za-z0-9._~-]{1,4096}$/.test(options.anonymousContextToken)) {
+        throw new MiniApiError({
+          kind: 'protocol',
+          code: 'invalid_authentication',
+          statusCode: null,
+          requestId: null,
+          retryable: false,
+        })
+      }
+    }
     const runtimeEnvironment = dependencies.environment()
     const requestInput: RequestTransportInput = {
       url: `${runtimeEnvironment.apiBaseUrl}${options.path}`,
       method,
       data: options.data,
       timeoutMs,
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(options.anonymousContextToken === undefined
+          ? {}
+          : { Authorization: `Bearer ${options.anonymousContextToken}` }),
+      },
     }
     const attempts = isGetMethod(method) ? 2 : 1
     let lastError: MiniApiError | null = null

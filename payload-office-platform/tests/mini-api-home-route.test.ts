@@ -34,11 +34,13 @@ describe('GET /api/mini/v1/home', () => {
     expect(getMiniHomeMock).toHaveBeenCalledWith('shanghai')
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('home.req-1')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(requestId).not.toBe('home.req-1')
     expect(body).toEqual({
       ok: true,
       data: HOME_DATA,
-      meta: { requestId: 'home.req-1', asOf: AS_OF, maxAgeSeconds: 300 },
+      meta: { requestId, asOf: AS_OF, maxAgeSeconds: 300 },
     })
     expect(body.meta.requestId).toBe(response.headers.get('x-request-id'))
   })
@@ -53,11 +55,12 @@ describe('GET /api/mini/v1/home', () => {
 
     expect(response.status).toBe(404)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('home.not-found')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: { code: 'city_not_found', message: '城市暂未开放' },
-      meta: { requestId: 'home.not-found' },
+      meta: { requestId },
     })
   })
 
@@ -73,11 +76,12 @@ describe('GET /api/mini/v1/home', () => {
 
     expect(response.status).toBe(503)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('home.failed')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     expect(body).toEqual({
       ok: false,
       error: { code: 'service_unavailable', message: '服务暂不可用，请稍后重试' },
-      meta: { requestId: 'home.failed' },
+      meta: { requestId },
     })
     expect(serialized).not.toContain('SELECT')
     expect(serialized).not.toContain('password')
@@ -85,7 +89,9 @@ describe('GET /api/mini/v1/home', () => {
     expect(serialized).not.toContain('stack')
   })
 
-  it.each(['x'.repeat(101), 'bad request id'])('replaces unsafe request ID %s', async (incoming) => {
+  it.each(['x'.repeat(101), 'bad request id', 'mini.req-1', '13800001111.AppSecret.token']) (
+    '忽略任意 caller request ID %s',
+    async (incoming) => {
     getMiniHomeMock.mockResolvedValue({ asOf: AS_OF, data: HOME_DATA })
 
     const response = await GET(new Request(
@@ -95,18 +101,8 @@ describe('GET /api/mini/v1/home', () => {
     const requestId = response.headers.get('x-request-id')
 
     expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(requestId).not.toBe(incoming)
     await expect(response.json()).resolves.toMatchObject({ meta: { requestId } })
-  })
-
-  it('preserves a safe caller request ID in both header and body', async () => {
-    getMiniHomeMock.mockResolvedValue({ asOf: AS_OF, data: HOME_DATA })
-
-    const response = await GET(new Request(
-      'https://example.test/api/mini/v1/home?city=shanghai',
-      { headers: { 'x-request-id': 'mini.req-1' } },
-    ))
-
-    expect(response.headers.get('x-request-id')).toBe('mini.req-1')
-    await expect(response.json()).resolves.toMatchObject({ meta: { requestId: 'mini.req-1' } })
-  })
+    },
+  )
 })

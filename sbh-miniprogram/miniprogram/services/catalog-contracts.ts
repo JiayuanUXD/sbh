@@ -67,7 +67,41 @@ export type MiniListingsData = Readonly<{
   filters: readonly MiniQuickFilter[]
 }>
 
+export type MiniFactGroup = Readonly<{
+  id: string
+  title: string
+  facts: readonly Readonly<{
+    label: string
+    value: string | null
+    estimated: boolean
+  }>[]
+}>
+
+export type MiniListingDetailData = Readonly<{
+  listing: MiniListingCard & Readonly<{
+    gallery: readonly MiniImage[]
+    factGroups: readonly MiniFactGroup[]
+    verification: Readonly<{
+      verifiedAt: string | null
+      priceVerifiedAt: string | null
+    }>
+  }>
+  monthlyCost: Readonly<{
+    currency: 'CNY'
+    period: 'month'
+    propertyFeeInclusion: 'included' | 'excluded' | 'confirm' | null
+    rent: number | null
+    propertyFee: number | null
+    total: number | null
+    assumptions: readonly string[]
+  }>
+  relatedListings: readonly MiniListingCard[]
+  inquiryPolicy: Readonly<{ version: string }>
+}>
+
 const INVALID_CATALOG_RESPONSE = 'Mini API 目录响应无效'
+const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 function invalidCatalogResponse(): never {
   throw new Error(INVALID_CATALOG_RESPONSE)
@@ -87,6 +121,12 @@ function requireRecord(value: unknown): Record<string, unknown> {
 function requireString(value: unknown): string {
   if (typeof value !== 'string') return invalidCatalogResponse()
   return value
+}
+
+function requireNonEmptyString(value: unknown): string {
+  const string = requireString(value)
+  if (!string.trim()) return invalidCatalogResponse()
+  return string
 }
 
 function requireBoolean(value: unknown): boolean {
@@ -115,6 +155,33 @@ function requireNullableString(value: unknown): string | null {
 function requireNullableNonNegativeNumber(value: unknown): number | null {
   if (value === null) return null
   return requireNonNegativeNumber(value)
+}
+
+function requireSafeSlug(value: unknown): string {
+  const slug = requireString(value)
+  if (!SAFE_SLUG_PATTERN.test(slug)) return invalidCatalogResponse()
+  return slug
+}
+
+function requireNullableDateOnly(value: unknown): string | null {
+  if (value === null) return null
+  const date = requireString(value)
+  if (!DATE_ONLY_PATTERN.test(date)) return invalidCatalogResponse()
+  const parsed = new Date(`${date}T00:00:00.000Z`)
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    return invalidCatalogResponse()
+  }
+  return date
+}
+
+function requireNullableIsoTimestamp(value: unknown): string | null {
+  if (value === null) return null
+  const timestamp = requireString(value)
+  const parsed = new Date(timestamp)
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== timestamp) {
+    return invalidCatalogResponse()
+  }
+  return timestamp
 }
 
 function requireArray<T>(value: unknown, parse: (item: unknown) => T): readonly T[] {
@@ -246,6 +313,33 @@ function parseMiniQuickFilter(value: unknown): MiniQuickFilter {
   }
 }
 
+function parseMiniFactGroup(value: unknown): MiniFactGroup {
+  const record = requireRecord(value)
+  return {
+    id: requireString(record.id),
+    title: requireString(record.title),
+    facts: requireArray(record.facts, (fact) => {
+      const factRecord = requireRecord(fact)
+      return {
+        label: requireString(factRecord.label),
+        value: requireNullableString(factRecord.value),
+        estimated: requireBoolean(factRecord.estimated),
+      }
+    }),
+  }
+}
+
+function parsePropertyFeeInclusion(
+  value: unknown,
+): MiniListingDetailData['monthlyCost']['propertyFeeInclusion'] {
+  if (value === null) return null
+  const inclusion = requireString(value)
+  if (inclusion !== 'included' && inclusion !== 'excluded' && inclusion !== 'confirm') {
+    return invalidCatalogResponse()
+  }
+  return inclusion
+}
+
 function parsePagination(value: unknown): MiniListingsData['pagination'] {
   const record = requireRecord(value)
   if (record.pageSize !== 24) return invalidCatalogResponse()
@@ -291,5 +385,63 @@ export function parseMiniListingsData(value: unknown): MiniListingsData {
     canonicalQuery: requireString(record.canonicalQuery),
     currentPriceUnit,
     filters: requireArray(record.filters, parseMiniQuickFilter),
+  }
+}
+
+export function parseMiniListingDetailData(
+  value: unknown,
+  expectedSlug?: string,
+): MiniListingDetailData {
+  const record = requireRecord(value)
+  const listingRecord = requireRecord(record.listing)
+  const listingCard = parseMiniListingCard(listingRecord)
+  const listingSlug = requireSafeSlug(listingCard.slug)
+  if (expectedSlug !== undefined && listingSlug !== requireSafeSlug(expectedSlug)) {
+    return invalidCatalogResponse()
+  }
+  requireNullableDateOnly(listingCard.availableFrom)
+  if (listingCard.building) requireSafeSlug(listingCard.building.slug)
+
+  const verificationRecord = requireRecord(listingRecord.verification)
+  const monthlyCostRecord = requireRecord(record.monthlyCost)
+  const currency = requireString(monthlyCostRecord.currency)
+  const period = requireString(monthlyCostRecord.period)
+  if (currency !== 'CNY' || period !== 'month') return invalidCatalogResponse()
+
+  const relatedListings = requireArray(record.relatedListings, (item) => {
+    const related = parseMiniListingCard(item)
+    requireSafeSlug(related.slug)
+    requireNullableDateOnly(related.availableFrom)
+    if (related.building) requireSafeSlug(related.building.slug)
+    return related
+  })
+  const inquiryPolicyRecord = requireRecord(record.inquiryPolicy)
+
+  return {
+    listing: {
+      ...listingCard,
+      slug: listingSlug,
+      gallery: requireArray(listingRecord.gallery, parseMiniImage),
+      factGroups: requireArray(listingRecord.factGroups, parseMiniFactGroup),
+      verification: {
+        verifiedAt: requireNullableIsoTimestamp(verificationRecord.verifiedAt),
+        priceVerifiedAt: requireNullableIsoTimestamp(verificationRecord.priceVerifiedAt),
+      },
+    },
+    monthlyCost: {
+      currency,
+      period,
+      propertyFeeInclusion: parsePropertyFeeInclusion(
+        monthlyCostRecord.propertyFeeInclusion,
+      ),
+      rent: requireNullableNonNegativeNumber(monthlyCostRecord.rent),
+      propertyFee: requireNullableNonNegativeNumber(monthlyCostRecord.propertyFee),
+      total: requireNullableNonNegativeNumber(monthlyCostRecord.total),
+      assumptions: requireArray(monthlyCostRecord.assumptions, requireString),
+    },
+    relatedListings,
+    inquiryPolicy: {
+      version: requireNonEmptyString(inquiryPolicyRecord.version),
+    },
   }
 }

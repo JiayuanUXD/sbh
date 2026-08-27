@@ -103,6 +103,7 @@ const mappedDetail: MiniListingDetailData = {
     total: null,
     assumptions: [],
   },
+  inquiryPolicy: { version: 'MVP-R1' },
   relatedListings: [],
 }
 
@@ -140,7 +141,10 @@ describe('Mini catalog service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     io.resolveCityContext.mockImplementation(async (slug: string) => cityContext(slug))
-    io.getSiteConfig.mockReturnValue({ siteOrigin: 'https://sbh.example' })
+    io.getSiteConfig.mockReturnValue({
+      siteOrigin: 'https://sbh.example',
+      privacyPolicyVersion: 'MVP-R1',
+    })
     io.getCachedMiniHome.mockResolvedValue({
       asOf: '2026-08-26T01:00:00.000Z',
       data: { home: rawHome, facets: rawHomeFacets },
@@ -301,6 +305,7 @@ describe('Mini catalog service', () => {
       rawDetail,
       rawRelated,
       'https://sbh.example',
+      'MVP-R1',
     )
   })
 })

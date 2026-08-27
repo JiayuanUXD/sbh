@@ -13,7 +13,7 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ slug: string }> },
 ): Promise<Response> {
-  const requestId = miniRequestId(request.headers.get('x-request-id'))
+  const requestId = miniRequestId()
   const city = new URL(request.url).searchParams.get('city') ?? ''
   const { slug } = await context.params
 

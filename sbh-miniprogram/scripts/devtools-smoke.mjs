@@ -9,13 +9,15 @@ const smokeTargets = Object.freeze([
     label: '首页',
     marker: '#home-ready',
     method: 'reLaunch',
-    path: 'pages/home/index',
+    navigationPath: 'pages/home/index',
+    expectedPath: 'pages/home/index',
   },
   {
     label: '找房页',
     marker: '#listings-ready',
     method: 'switchTab',
-    path: 'pages/listings/index',
+    navigationPath: 'pages/listings/index',
+    expectedPath: 'pages/listings/index',
   },
 ])
 
@@ -25,8 +27,10 @@ const defaultTimeouts = Object.freeze({
   launchMs: 45_000,
   readyMs: 10_000,
   routeMs: 10_000,
+  listingSlugMs: 10_000,
 })
 const failureCleanupGraceMs = 250
+const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 class DevtoolsConfigurationError extends Error {}
 
@@ -95,15 +99,24 @@ async function verifyTarget(miniProgram, target, runtimeExceptionPromise, pollIn
 
   const page = await Promise.race([
     withTimeout(
-      Promise.resolve().then(() => navigate.call(miniProgram, `/${target.path}`)),
+      Promise.resolve().then(() => navigate.call(miniProgram, `/${target.navigationPath}`)),
       timeouts.routeMs,
       `${target.label}路由超时`,
     ),
     runtimeExceptionPromise,
   ])
 
-  if (!page || page.path !== target.path) {
+  if (!page || page.path !== target.expectedPath) {
     throw new Error(`${target.label}路由不匹配`)
+  }
+  if (target.expectedQuery && (
+    typeof page.query !== 'object'
+    || page.query === null
+    || !Object.prototype.hasOwnProperty.call(page.query, 'slug')
+    || typeof page.query.slug !== 'string'
+    || page.query.slug !== target.expectedQuery.slug
+  )) {
+    throw new Error(`${target.label}查询参数不匹配`)
   }
 
   await Promise.race([
@@ -111,6 +124,29 @@ async function verifyTarget(miniProgram, target, runtimeExceptionPromise, pollIn
     runtimeExceptionPromise,
   ])
   await Promise.race([delay(timeouts.acceptanceMs), runtimeExceptionPromise])
+  return page
+}
+
+async function readFirstListingSlug(page, runtimeExceptionPromise, pollIntervalMs, listingSlugMs) {
+  const deadline = Date.now() + listingSlugMs
+  while (true) {
+    const remainingMs = deadline - Date.now()
+    if (remainingMs <= 0) throw new Error('首条房源 slug 读取超时')
+    const card = await Promise.race([
+      withTimeout(Promise.resolve().then(() => page.$('[data-listing-slug]')), remainingMs, '首条房源查询超时'),
+      runtimeExceptionPromise,
+    ])
+    if (card && typeof card.attribute === 'function') {
+      const attributeRemainingMs = deadline - Date.now()
+      if (attributeRemainingMs <= 0) throw new Error('首条房源 slug 读取超时')
+      const slug = await Promise.race([
+        withTimeout(Promise.resolve().then(() => card.attribute('data-listing-slug')), attributeRemainingMs, '首条房源 slug 属性超时'),
+        runtimeExceptionPromise,
+      ])
+      if (typeof slug === 'string' && SAFE_SLUG.test(slug)) return slug
+    }
+    await Promise.race([delay(Math.min(pollIntervalMs, Math.max(1, deadline - Date.now()))), runtimeExceptionPromise])
+  }
 }
 
 async function closeSafely(miniProgram, closeMs) {
@@ -135,6 +171,7 @@ export function createDevtoolsSmokeRunner({
   automator,
   pollIntervalMs = 100,
   timeouts: timeoutOverrides = {},
+  includeDetail = false,
 }) {
   if (!automator || typeof automator.launch !== 'function') {
     throw new TypeError('automator.launch 必须可调用')
@@ -179,8 +216,18 @@ export function createDevtoolsSmokeRunner({
         }
       })
 
-      for (const target of smokeTargets) {
-        await verifyTarget(miniProgram, target, runtimeExceptionPromise, pollIntervalMs, timeouts)
+      await verifyTarget(miniProgram, smokeTargets[0], runtimeExceptionPromise, pollIntervalMs, timeouts)
+      const listingsPage = await verifyTarget(miniProgram, smokeTargets[1], runtimeExceptionPromise, pollIntervalMs, timeouts)
+      if (includeDetail) {
+        const slug = await readFirstListingSlug(listingsPage, runtimeExceptionPromise, pollIntervalMs, timeouts.listingSlugMs)
+        await verifyTarget(miniProgram, {
+          label: '房源详情页',
+          marker: '#listing-detail-ready',
+          method: 'reLaunch',
+          navigationPath: `pages/listing-detail/index?slug=${encodeURIComponent(slug)}`,
+          expectedPath: 'pages/listing-detail/index',
+          expectedQuery: { slug },
+        }, runtimeExceptionPromise, pollIntervalMs, timeouts)
       }
     } catch (error) {
       primaryError = error instanceof Error ? error : new Error('开发者工具冒烟失败')
@@ -204,7 +251,7 @@ export async function runDevtoolsSmoke(environment = process.env) {
   const configuration = { cliPath: requireDevtoolsCli(environment) }
   const imported = await import('miniprogram-automator')
   const automator = imported.default ?? imported
-  return createDevtoolsSmokeRunner({ automator })(environment, configuration)
+  return createDevtoolsSmokeRunner({ automator, includeDetail: true })(environment, configuration)
 }
 
 export async function main({
@@ -214,7 +261,7 @@ export async function main({
 } = {}) {
   try {
     await run()
-    console.log('微信开发者工具首页/找房冒烟检查通过')
+    console.log('微信开发者工具首页/找房/详情冒烟检查通过')
   } catch (error) {
     if (error instanceof DevtoolsConfigurationError) {
       console.error(`开发者工具冒烟检查失败：${error.message}`)

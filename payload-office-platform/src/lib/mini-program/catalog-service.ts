@@ -74,6 +74,8 @@ export async function getMiniListingDetail(
   const snapshot = await getCachedMiniListingDetail(trustedCity, slug)
   if (!snapshot.data) return { status: 'listing-not-found' }
 
+  const siteConfig = getSiteConfig()
+
   return {
     status: 'ok',
     snapshot: {
@@ -81,7 +83,8 @@ export async function getMiniListingDetail(
       data: mapMiniListingDetail(
         snapshot.data.detail,
         snapshot.data.related,
-        getSiteConfig().siteOrigin,
+        siteConfig.siteOrigin,
+        siteConfig.privacyPolicyVersion,
       ),
     },
   }

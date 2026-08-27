@@ -21,6 +21,24 @@ export const INQUIRY_RATE_LIMIT_CONFIG: RateLimitConfig = {
   failOpen: true,
 }
 
+/** Mini 匿名上下文签发：独立配额，存储失败必须拒绝。 */
+export const MINI_SESSION_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 5,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: false,
+}
+
+/** Mini 咨询提交：与 Web、Mini session 均使用独立键空间和清理状态。 */
+export const MINI_INQUIRY_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 5,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: false,
+}
+
 /**
  * 纠错端点限流配置（FPD-P1 Task 6）：每 IP 每分钟 3 次。
  *
@@ -65,4 +83,3 @@ export const SUPPLY_SUBMISSION_RATE_LIMIT_CONFIG: RateLimitConfig = {
   pruneIntervalMs: 5 * 60_000,
   failOpen: true,
 }
-

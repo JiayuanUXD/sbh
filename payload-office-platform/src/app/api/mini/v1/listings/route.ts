@@ -10,7 +10,7 @@ import { getMiniListings } from '@/lib/mini-program/catalog-service'
 export const runtime = 'nodejs'
 
 export async function GET(request: Request): Promise<Response> {
-  const requestId = miniRequestId(request.headers.get('x-request-id'))
+  const requestId = miniRequestId()
 
   try {
     const snapshot = await getMiniListings(new URL(request.url))

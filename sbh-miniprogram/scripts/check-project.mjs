@@ -90,6 +90,7 @@ export function checkProject() {
   const expectedPages = [
     'pages/home/index',
     'pages/listings/index',
+    'pages/listing-detail/index',
     'pages/foundation/index',
   ]
   if (
@@ -97,7 +98,7 @@ export function checkProject() {
     appConfig.pages.length !== expectedPages.length ||
     appConfig.pages.some((page, index) => page !== expectedPages[index])
   ) {
-    fail('miniprogram/app.json 必须按首页、找房、foundation 的顺序注册页面')
+    fail('miniprogram/app.json 必须按首页、找房、房源详情、foundation 的顺序注册页面')
   }
 
   const expectedTabs = [
@@ -125,6 +126,7 @@ export function checkProject() {
   for (const [pagePath, marker] of [
     ['pages/home/index', 'home-ready'],
     ['pages/listings/index', 'listings-ready'],
+    ['pages/listing-detail/index', 'listing-detail-ready'],
   ]) {
     const markup = readFileSync(join(projectRoot, `miniprogram/${pagePath}.wxml`), 'utf8')
     if (!markup.includes(`id="${marker}"`)) {

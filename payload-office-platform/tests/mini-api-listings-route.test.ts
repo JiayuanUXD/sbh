@@ -44,11 +44,13 @@ describe('GET /api/mini/v1/listings', () => {
     expect(getMiniListingsMock).toHaveBeenCalledWith(new URL(request.url))
     expect(response.status).toBe(200)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('list.req-1')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(requestId).not.toBe('list.req-1')
     expect(body).toEqual({
       ok: true,
       data: LISTINGS_DATA,
-      meta: { requestId: 'list.req-1', asOf: AS_OF, maxAgeSeconds: 300 },
+      meta: { requestId, asOf: AS_OF, maxAgeSeconds: 300 },
     })
     expect(body.meta.requestId).toBe(response.headers.get('x-request-id'))
   })
@@ -63,11 +65,12 @@ describe('GET /api/mini/v1/listings', () => {
 
     expect(response.status).toBe(404)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('list.not-found')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     await expect(response.json()).resolves.toEqual({
       ok: false,
       error: { code: 'city_not_found', message: '城市暂未开放' },
-      meta: { requestId: 'list.not-found' },
+      meta: { requestId },
     })
   })
 
@@ -83,11 +86,12 @@ describe('GET /api/mini/v1/listings', () => {
 
     expect(response.status).toBe(503)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
-    expect(response.headers.get('x-request-id')).toBe('list.failed')
+    const requestId = response.headers.get('x-request-id')
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/)
     expect(body).toEqual({
       ok: false,
       error: { code: 'service_unavailable', message: '服务暂不可用，请稍后重试' },
-      meta: { requestId: 'list.failed' },
+      meta: { requestId },
     })
     expect(serialized).not.toContain('database')
     expect(serialized).not.toContain('private_table')

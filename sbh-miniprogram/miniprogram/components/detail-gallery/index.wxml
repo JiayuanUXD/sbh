@@ -1,0 +1,29 @@
+<view class="detail-gallery">
+  <swiper
+    wx:if="{{displayImages.length}}"
+    class="detail-gallery__swiper"
+    current="{{current}}"
+    autoplay="{{false}}"
+    circular="{{false}}"
+    bindchange="handleChange"
+  >
+    <swiper-item wx:for="{{displayImages}}" wx:key="src" class="detail-gallery__item">
+      <view class="detail-gallery__media">
+        <image
+          wx:if="{{!failedImages[index]}}"
+          class="detail-gallery__image"
+          src="{{item.src}}"
+          alt="{{item.alt}}"
+          mode="aspectFill"
+          data-index="{{index}}"
+          binderror="handleImageError"
+        />
+        <view wx:else class="detail-gallery__placeholder">暂无图片</view>
+      </view>
+    </swiper-item>
+  </swiper>
+  <view wx:else class="detail-gallery__empty">暂无图片</view>
+  <view wx:if="{{displayImages.length}}" class="detail-gallery__counter num">
+    {{currentLabel}} / {{displayImages.length}}
+  </view>
+</view>

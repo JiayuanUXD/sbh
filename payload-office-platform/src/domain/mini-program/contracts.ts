@@ -4,6 +4,10 @@ export type MiniErrorCode =
   | 'invalid_request'
   | 'city_not_found'
   | 'listing_not_found'
+  | 'login_code_invalid'
+  | 'session_invalid'
+  | 'phone_code_consumed'
+  | 'inquiry_submit_failed'
   | 'rate_limited'
   | 'service_unavailable'
 
@@ -99,6 +103,7 @@ export type MiniListingDetailData = Readonly<{
     total: number | null
     assumptions: readonly string[]
   }>
+  inquiryPolicy: Readonly<{ version: string }>
   relatedListings: readonly MiniListingCard[]
 }>
 
@@ -111,6 +116,12 @@ export type MiniApiSuccess<T> = Readonly<{
 export type MiniApiFailure = Readonly<{
   ok: false
   error: Readonly<{ code: MiniErrorCode; message: string; fields?: readonly string[] }>
+  meta: Readonly<{ requestId: string }>
+}>
+
+export type MiniApiWriteSuccess<T> = Readonly<{
+  ok: true
+  data: T
   meta: Readonly<{ requestId: string }>
 }>
 

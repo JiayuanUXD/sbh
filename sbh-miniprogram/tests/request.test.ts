@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import {
   MiniApiError,
@@ -6,6 +6,12 @@ import {
   type RequestDependencies,
   type RequestTransportResponse,
 } from '../miniprogram/services/request.js'
+import type {
+  MiniApiReadMeta,
+  MiniApiSuccess,
+  MiniApiWriteMeta,
+  RequestOptions,
+} from '../miniprogram/services/mini-api-contracts.js'
 
 const environment = {
   stage: 'development' as const,
@@ -79,6 +85,13 @@ const failure = (
 })
 
 describe('Mini API 请求层', () => {
+  it('MiniApiSuccess 默认 read meta，并可显式约束 write meta', () => {
+    expectTypeOf<MiniApiSuccess<{ listings: number }>['meta']>()
+      .toEqualTypeOf<MiniApiReadMeta>()
+    expectTypeOf<MiniApiSuccess<{ accepted: true }, MiniApiWriteMeta>['meta']>()
+      .toEqualTypeOf<MiniApiWriteMeta>()
+  })
+
   it('发送默认 GET、JSON Accept、十秒超时，并返回 success.data', async () => {
     const { request, transport } = createClient([success({ listingIds: ['listing-1'] })])
 
@@ -92,6 +105,114 @@ describe('Mini API 请求层', () => {
       headers: { Accept: 'application/json' },
       data: undefined,
     })
+  })
+
+  it('POST 成功只要求 write requestId，不要求 GET freshness meta，并按受限 token 生成 Authorization', async () => {
+    const { request, transport } = createClient([{
+      statusCode: 200,
+      data: { ok: true, data: { accepted: true }, meta: { requestId: 'write-request-id' } },
+    }])
+
+    await expect(request({
+      path: '/api/mini/v1/inquiries',
+      method: 'POST',
+      data: { submissionRequestId: 'submission-1' },
+      anonymousContextToken: 'token.with-safe_chars~1',
+      parse: parseUnknown,
+    })).resolves.toEqual({ accepted: true })
+    expect(transport).toHaveBeenCalledWith(expect.objectContaining({
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer token.with-safe_chars~1',
+      },
+    }))
+  })
+
+  it('GET 拒绝 write-only meta，POST 仍校验 outer write requestId 且 parser 只收到 data', async () => {
+    const getClient = createClient([{
+      statusCode: 200,
+      data: { ok: true, data: { listings: 1 }, meta: { requestId: 'read-id' } },
+    }])
+    await expect(getClient.request({ path: '/api/mini/v1/home', parse: parseUnknown }))
+      .rejects.toMatchObject({ kind: 'protocol', code: 'invalid_response' })
+
+    const parser = vi.fn(parseUnknown)
+    const postClient = createClient([{
+      statusCode: 200,
+      data: {
+        ok: true,
+        data: { accepted: true },
+        meta: { requestId: 'write-id' },
+      },
+    }])
+    await expect(postClient.request({
+      path: '/api/mini/v1/inquiries',
+      method: 'POST',
+      data: { submissionRequestId: 'submission-id' },
+      parse: parser,
+    })).resolves.toEqual({ accepted: true })
+    expect(parser).toHaveBeenCalledWith({ accepted: true })
+
+    const invalidWriteClient = createClient([{
+      statusCode: 200,
+      data: { ok: true, data: { accepted: true }, meta: { requestId: '' } },
+    }])
+    await expect(invalidWriteClient.request({
+      path: '/api/mini/v1/inquiries',
+      method: 'POST',
+      data: { submissionRequestId: 'submission-id' },
+      parse: parseUnknown,
+    })).rejects.toMatchObject({ kind: 'protocol', code: 'invalid_response' })
+  })
+
+  it('GET 不允许携带匿名 token', async () => {
+    const { request, transport } = createClient([success({ unreachable: true })])
+
+    await expect(request({
+      path: '/api/mini/v1/home',
+      anonymousContextToken: 'token',
+      parse: parseUnknown,
+    })).rejects.toMatchObject({ kind: 'protocol', code: 'invalid_authentication' })
+    expect(transport).not.toHaveBeenCalled()
+  })
+
+  it.each(['', 'token with spaces', 'x'.repeat(4097)])(
+    '写请求在 transport 前拒绝非法 anonymousContextToken：%s',
+    async (anonymousContextToken) => {
+      const { request, transport } = createClient([success({ unreachable: true })])
+
+      await expect(request({
+        path: '/api/mini/v1/inquiries',
+        method: 'POST',
+        anonymousContextToken,
+        parse: parseUnknown,
+      })).rejects.toMatchObject({ kind: 'protocol', code: 'invalid_authentication' })
+      expect(transport).not.toHaveBeenCalled()
+    },
+  )
+
+  it('强制类型传入任意 headers 也不会覆盖受控 Accept/Authorization', async () => {
+    const { request, transport } = createClient([{
+      statusCode: 200,
+      data: { ok: true, data: { accepted: true }, meta: { requestId: 'write-id' } },
+    }])
+    const unsafeRequest = request as (options: RequestOptions<unknown> & {
+      headers: Readonly<Record<string, string>>
+    }) => Promise<unknown>
+
+    await unsafeRequest({
+      path: '/api/mini/v1/inquiries',
+      method: 'POST',
+      anonymousContextToken: 'trusted-token',
+      headers: { Authorization: 'Bearer attacker', 'X-Admin': 'true' },
+      parse: parseUnknown,
+    })
+    expect(transport).toHaveBeenCalledWith(expect.objectContaining({
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer trusted-token',
+      },
+    }))
   })
 
   it('将 200 业务失败转为只依赖稳定 code 的本地错误文案', async () => {

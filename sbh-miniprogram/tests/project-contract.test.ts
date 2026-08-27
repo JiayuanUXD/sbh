@@ -48,6 +48,7 @@ describe('小程序工程入口合同', () => {
 
     expect(pages[0]).toBe('pages/home/index')
     expect(pages).toContain('pages/listings/index')
+    expect(pages).toContain('pages/listing-detail/index')
     expect(pages).toContain('pages/foundation/index')
     expect(tabBar?.list?.map((item) => item.pagePath)).toEqual([
       'pages/home/index',
@@ -109,15 +110,22 @@ describe('小程序工程入口合同', () => {
     }
   })
 
-  it('为首页和找房页提供自动化就绪标记', () => {
+  it('为首页、找房和可信详情态提供自动化就绪标记', () => {
     const homeMarkup = readFileSync(resolve(miniprogramRoot, 'pages/home/index.wxml'), 'utf8')
     const listingsMarkup = readFileSync(
       resolve(miniprogramRoot, 'pages/listings/index.wxml'),
       'utf8',
     )
+    const detailMarkup = readFileSync(
+      resolve(miniprogramRoot, 'pages/listing-detail/index.wxml'),
+      'utf8',
+    )
 
     expect(homeMarkup).toContain('id="home-ready"')
     expect(listingsMarkup).toContain('id="listings-ready"')
+    expect(detailMarkup).toMatch(
+      /wx:if="\{\{state === 'ready' \|\| state === 'stale'\}\}"\s+id="listing-detail-ready"/,
+    )
   })
 
   it('以空 App 配置作为当前阶段的最小入口', () => {

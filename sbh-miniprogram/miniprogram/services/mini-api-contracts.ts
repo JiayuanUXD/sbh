@@ -1,13 +1,20 @@
-export interface MiniApiMeta {
+export interface MiniApiReadMeta {
   requestId: string
   asOf: string
   maxAgeSeconds: 300
 }
 
-export type MiniApiSuccess<T> = {
+export interface MiniApiWriteMeta {
+  requestId: string
+}
+
+export type MiniApiSuccess<
+  T,
+  M extends MiniApiReadMeta | MiniApiWriteMeta = MiniApiReadMeta,
+> = {
   ok: true
   data: T
-  meta: MiniApiMeta
+  meta: M
 }
 
 export type MiniApiFailure = {
@@ -37,5 +44,6 @@ export interface RequestOptions<T> {
   method?: RequestMethod
   data?: RequestData
   timeoutMs?: number
+  anonymousContextToken?: string
   parse: (value: unknown) => T | PromiseLike<T>
 }

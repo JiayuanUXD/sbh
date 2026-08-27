@@ -1,0 +1,131 @@
+<view
+  wx:if="{{snapshot && snapshot.state !== 'closed'}}"
+  class="inquiry-sheet"
+  aria-role="dialog"
+  aria-modal="true"
+  aria-label="咨询顾问"
+  catchtouchmove="handleTouchMove"
+>
+  <view class="inquiry-sheet__backdrop" catchtap="handleClose"></view>
+  <view
+    class="inquiry-sheet__panel"
+    aria-busy="{{snapshot.busy}}"
+    catchtap="handlePanelTap"
+  >
+    <view class="inquiry-sheet__header">
+      <view class="inquiry-sheet__heading">咨询顾问</view>
+      <button
+        class="inquiry-sheet__close"
+        bindtap="handleClose"
+        disabled="{{snapshot.state === 'authorizing' || snapshot.state === 'submitting'}}"
+        aria-label="关闭咨询弹层"
+      >关闭</button>
+    </view>
+
+    <scroll-view class="inquiry-sheet__body" scroll-y="true" enhanced="true">
+      <view class="inquiry-sheet__summary">
+        <view class="inquiry-sheet__title">{{snapshot.context.title}}</view>
+        <view class="inquiry-sheet__summary-grid">
+          <view class="inquiry-sheet__summary-item">
+            <text class="inquiry-sheet__summary-label">面积</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.area}}</text>
+          </view>
+          <view class="inquiry-sheet__summary-item">
+            <text class="inquiry-sheet__summary-label">单位报价</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.unitPrice}}</text>
+          </view>
+          <view class="inquiry-sheet__summary-item inquiry-sheet__summary-item--wide">
+            <text class="inquiry-sheet__summary-label">月租估算</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.monthlyEstimate}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{snapshot.state !== 'success'}}" class="inquiry-sheet__form">
+        <view class="inquiry-sheet__field">
+          <text class="inquiry-sheet__label">期望入驻时间</text>
+          <input
+            class="inquiry-sheet__input"
+            value="{{snapshot.moveInTime}}"
+            maxlength="100"
+            placeholder="例如：2026 年 10 月"
+            adjust-position="{{true}}"
+            cursor-spacing="20"
+            disabled="{{snapshot.busy}}"
+            bindinput="handleMoveInInput"
+          />
+        </view>
+
+        <view class="inquiry-sheet__field">
+          <text class="inquiry-sheet__label">手机号</text>
+          <button
+            class="inquiry-sheet__wechat"
+            open-type="getPhoneNumber"
+            bindgetphonenumber="handlePhoneAuthorization"
+            disabled="{{snapshot.phoneSubmitDisabled}}"
+          >微信手机号快捷填写</button>
+          <button
+            class="inquiry-sheet__manual-entry"
+            bindtap="handleSelectManual"
+            disabled="{{snapshot.busy}}"
+          >手动填写手机号</button>
+          <input
+            class="inquiry-sheet__input inquiry-sheet__phone num"
+            type="number"
+            value="{{snapshot.phone}}"
+            maxlength="20"
+            placeholder="请输入中国大陆手机号"
+            adjust-position="{{true}}"
+            cursor-spacing="20"
+            disabled="{{snapshot.busy}}"
+            bindfocus="handleSelectManual"
+            bindinput="handlePhoneInput"
+          />
+          <button
+            wx:if="{{snapshot.phoneMode === 'manual'}}"
+            class="inquiry-sheet__switch-wechat"
+            bindtap="handleSelectWechat"
+            disabled="{{snapshot.busy}}"
+          >重新使用微信手机号</button>
+        </view>
+
+        <view class="inquiry-sheet__privacy">
+          <checkbox-group bindchange="handleConsentChange">
+            <label class="inquiry-sheet__privacy-check">
+              <checkbox
+                value="accepted"
+                checked="{{snapshot.consentAccepted}}"
+                disabled="{{snapshot.privacyStatus !== 'available' || snapshot.busy}}"
+              />
+              <text>我已阅读并同意隐私政策（{{snapshot.context.policyVersion}}）</text>
+            </label>
+          </checkbox-group>
+          <button
+            class="inquiry-sheet__privacy-link"
+            bindtap="handlePrivacy"
+            disabled="{{snapshot.privacyStatus === 'checking' || snapshot.busy}}"
+          >{{snapshot.privacyStatus === 'unavailable' ? '重试打开隐私保护指引' : '打开隐私保护指引'}}</button>
+        </view>
+
+        <view
+          wx:if="{{snapshot.errorMessage || snapshot.privacyStatus === 'unavailable'}}"
+          class="inquiry-sheet__live"
+          aria-role="status"
+          aria-live="assertive"
+          aria-atomic="true"
+        >{{snapshot.errorMessage || '暂时无法打开隐私保护指引，请重试'}}</view>
+
+        <button
+          class="inquiry-sheet__submit"
+          bindtap="handleManualSubmit"
+          disabled="{{snapshot.manualSubmitDisabled}}"
+        >{{snapshot.busy ? '正在提交' : '提交咨询'}}</button>
+      </view>
+
+      <view wx:else class="inquiry-sheet__success" aria-role="status" aria-live="polite">
+        <view class="inquiry-sheet__success-title">{{snapshot.successMessage}}</view>
+        <view class="inquiry-sheet__success-follow-up">{{snapshot.successFollowUp}}</view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

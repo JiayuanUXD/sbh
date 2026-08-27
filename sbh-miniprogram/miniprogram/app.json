@@ -1,5 +1,10 @@
 {
-  "pages": ["pages/home/index", "pages/listings/index", "pages/foundation/index"],
+  "pages": [
+    "pages/home/index",
+    "pages/listings/index",
+    "pages/listing-detail/index",
+    "pages/foundation/index"
+  ],
   "window": {
     "navigationBarTitleText": "SBH 商办租赁",
     "navigationBarBackgroundColor": "#ffffff",

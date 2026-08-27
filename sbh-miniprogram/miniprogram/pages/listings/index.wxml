@@ -37,6 +37,7 @@
       <listing-card
         wx:for="{{items}}"
         wx:key="id"
+        data-listing-slug="{{item.slug}}"
         listing="{{item}}"
         bindopen="handleListingOpen"
       />

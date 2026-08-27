@@ -103,14 +103,15 @@ describe('房源列表页面合同', () => {
     expect(markup).toContain('estimate-unavailable="{{estimateUnavailable}}"')
   })
 
-  it('刷新和触底委托控制器，详情只显示固定 toast 而不假导航', () => {
+  it('刷新和触底委托控制器，点击房源统一调用安全详情导航', () => {
     const source = readPageFile('index.ts')
 
     expect(source).toMatch(/onPullDownRefresh\(\)[\s\S]*?\.refresh\(\)/)
     expect(source).toMatch(/onReachBottom\(\)[\s\S]*?\.loadNextPage\(\)/)
-    expect(source).toContain("title: '详情功能即将开放'")
+    expect(source).toMatch(/handleListingOpen[\s\S]*listingNavigation\.openDetail\(slug\)/)
+    expect(source).toContain("title: '暂时无法打开房源详情'")
+    expect(source).not.toContain('详情功能即将开放')
     expect(source).not.toContain('wx.navigateTo')
-    expect(source).not.toMatch(/pages\/listings\/detail|pages\/listing-detail/)
   })
 
   it('页面使用共享 token、灰底白卡和不小于 88rpx 的核心触达区', () => {

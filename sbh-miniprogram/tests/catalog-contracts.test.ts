@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   parseMiniHomeData,
+  parseMiniListingDetailData,
   parseMiniListingsData,
 } from '../miniprogram/services/catalog-contracts.js'
 
@@ -68,6 +69,49 @@ const validListings = {
   filters: [validFilter],
 }
 
+const validDetail = {
+  listing: {
+    ...validListing,
+    gallery: [
+      validListing.coverImage,
+      {
+        src: 'https://cdn.example/listing-1-interior.jpg',
+        width: 1200,
+        height: 900,
+        alt: '办公区',
+      },
+    ],
+    factGroups: [{
+      id: 'core',
+      title: '核心规格',
+      facts: [
+        { label: '楼层', value: '9 层', estimated: false },
+        { label: '工位数', value: null, estimated: true },
+      ],
+    }],
+    verification: {
+      verifiedAt: '2026-08-20T00:00:00.000Z',
+      priceVerifiedAt: '2026-08-21T00:00:00.000Z',
+    },
+  },
+  monthlyCost: {
+    currency: 'CNY',
+    period: 'month',
+    propertyFeeInclusion: 'excluded',
+    rent: 25_500,
+    propertyFee: 2_800,
+    total: 28_300,
+    assumptions: ['日租按 30 天折算月租'],
+  },
+  relatedListings: [{
+    ...validListing,
+    id: 'listing-2',
+    slug: 'jing-an-tower-102',
+    title: '静安中心 102',
+  }],
+  inquiryPolicy: { version: '2026-08-27' },
+}
+
 describe('Mini API 目录运行时契约', () => {
   it('保留合法首页 DTO 的公开字段', () => {
     expect(parseMiniHomeData(validHome)).toEqual(validHome)
@@ -75,6 +119,42 @@ describe('Mini API 目录运行时契约', () => {
 
   it('保留合法列表 DTO 的公开字段', () => {
     expect(parseMiniListingsData(validListings)).toEqual(validListings)
+  })
+
+  it('保留合法详情的画廊、事实、核验时间、推荐和隐私版本', () => {
+    expect(parseMiniListingDetailData(validDetail, validDetail.listing.slug)).toEqual(validDetail)
+  })
+
+  it.each([
+    { propertyFeeInclusion: 'included', total: 25_500 },
+    { propertyFeeInclusion: 'excluded', total: 28_300 },
+    { propertyFeeInclusion: 'confirm', total: null },
+    { propertyFeeInclusion: null, total: null },
+  ])('保留月度成本包含状态 $propertyFeeInclusion', (state) => {
+    const detail = {
+      ...validDetail,
+      monthlyCost: {
+        ...validDetail.monthlyCost,
+        propertyFeeInclusion: state.propertyFeeInclusion,
+        total: state.total,
+      },
+    }
+
+    expect(parseMiniListingDetailData(detail).monthlyCost).toEqual(detail.monthlyCost)
+  })
+
+  it('只解析 API 提供的 total，不在客户端重新计算', () => {
+    const detail = {
+      ...validDetail,
+      monthlyCost: {
+        ...validDetail.monthlyCost,
+        rent: 10,
+        propertyFee: 5,
+        total: 999,
+      },
+    }
+
+    expect(parseMiniListingDetailData(detail).monthlyCost.total).toBe(999)
   })
 
   it('拒绝把缺少分页或价格单位不合法的列表 DTO 交给页面', () => {
@@ -106,5 +186,95 @@ describe('Mini API 目录运行时契约', () => {
     }
 
     expect(() => parseMiniListingsData({ secretResponseValue: 'must-not-leak' })).not.toThrow(/must-not-leak/)
+  })
+
+  it('拒绝详情中的非有限、负数或非数字金额', () => {
+    const fixtures = [
+      {
+        ...validDetail,
+        listing: {
+          ...validDetail.listing,
+          price: { ...validDetail.listing.price, amount: -1 },
+        },
+      },
+      {
+        ...validDetail,
+        listing: {
+          ...validDetail.listing,
+          price: { ...validDetail.listing.price, monthlyEstimate: Number.POSITIVE_INFINITY },
+        },
+      },
+      {
+        ...validDetail,
+        monthlyCost: { ...validDetail.monthlyCost, rent: Number.NaN },
+      },
+      {
+        ...validDetail,
+        monthlyCost: { ...validDetail.monthlyCost, propertyFee: -0.01 },
+      },
+      {
+        ...validDetail,
+        monthlyCost: { ...validDetail.monthlyCost, total: '28300' },
+      },
+    ]
+
+    for (const fixture of fixtures) {
+      expect(() => parseMiniListingDetailData(fixture)).toThrow(/Mini API 目录响应无效/)
+    }
+  })
+
+  it('拒绝非法入驻日期或核验时间', () => {
+    const fixtures = [
+      {
+        ...validDetail,
+        listing: { ...validDetail.listing, availableFrom: '2026-02-30' },
+      },
+      {
+        ...validDetail,
+        listing: {
+          ...validDetail.listing,
+          verification: {
+            ...validDetail.listing.verification,
+            verifiedAt: 'not-a-date',
+          },
+        },
+      },
+      {
+        ...validDetail,
+        listing: {
+          ...validDetail.listing,
+          verification: {
+            ...validDetail.listing.verification,
+            priceVerifiedAt: '2026-08-21',
+          },
+        },
+      },
+    ]
+
+    for (const fixture of fixtures) {
+      expect(() => parseMiniListingDetailData(fixture)).toThrow(/Mini API 目录响应无效/)
+    }
+  })
+
+  it('拒绝请求 slug 与响应房源不同或政策版本为空', () => {
+    expect(() => parseMiniListingDetailData(validDetail, 'other-listing')).toThrow(
+      /Mini API 目录响应无效/,
+    )
+    expect(() => parseMiniListingDetailData({
+      ...validDetail,
+      inquiryPolicy: { version: '' },
+    })).toThrow(/Mini API 目录响应无效/)
+    expect(() => parseMiniListingDetailData({
+      ...validDetail,
+      inquiryPolicy: { version: '   ' },
+    })).toThrow(/Mini API 目录响应无效/)
+  })
+
+  it('详情解析失败不泄漏原响应', () => {
+    expect(() => parseMiniListingDetailData({
+      ...validDetail,
+      monthlyCost: { ...validDetail.monthlyCost, total: -1 },
+      secretResponseValue: 'detail-secret-must-not-leak',
+    })).not.toThrow(/detail-secret-must-not-leak/)
   })
 })

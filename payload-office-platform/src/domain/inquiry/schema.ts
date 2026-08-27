@@ -305,7 +305,7 @@ export function validateInquiry(input: unknown): ValidationResult {
     moveInTime: trimString(demandRaw.moveInTime) || null,
   }
 
-  const priceSnapshotResult = sanitizePriceSnapshot(input.priceSnapshot)
+  const priceSnapshotResult = parseInquiryPriceSnapshot(input.priceSnapshot)
   if (!priceSnapshotResult.ok) errors.push('price_snapshot_invalid')
 
   const activeSupplyGroupResult = sanitizeSupplyGroup(input.activeSupplyGroup)
@@ -573,7 +573,9 @@ function sanitizePriceUnit(value: unknown): { ok: true; data: InquiryPriceUnit |
   return { ok: true, data: unit as InquiryPriceUnit }
 }
 
-function sanitizePriceSnapshot(value: unknown): { ok: true; data: InquiryPriceSnapshot | null } | { ok: false } {
+export function parseInquiryPriceSnapshot(
+  value: unknown,
+): { ok: true; data: InquiryPriceSnapshot | null } | { ok: false } {
   if (value === undefined || value === null) return { ok: true, data: null }
   if (!isObject(value)) return { ok: false }
   const keys = Object.keys(value)

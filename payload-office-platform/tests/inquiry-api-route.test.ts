@@ -127,6 +127,7 @@ import {
   ratePruneRef,
 } from '@/app/api/inquiries/rate-limit-state'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
+import { leadsUniqueViolation } from './helpers/unique-violation-fixtures'
 
 // ---------------------------------------------------------------------------
 // 辅助构造器
@@ -552,6 +553,30 @@ describe('POST /api/inquiries / 幂等', () => {
     expect(assertEffectiveListingMock).not.toHaveBeenCalled()
   })
 
+  it('幂等预查失败只记录固定安全分类，logger 抛错也继续创建', async () => {
+    const sensitive = 'AppSecret:13899998888:敏感姓名'
+    const readError = Object.assign(new Error(sensitive), {
+      cause: { stack: sensitive },
+    })
+    payloadFindMock.mockRejectedValueOnce(readError)
+    payloadCreateMock.mockResolvedValueOnce({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+    payloadLoggerError.mockImplementation(() => {
+      throw new Error(`logger:${sensitive}`)
+    })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(payloadCreateMock).toHaveBeenCalledTimes(1)
+    expect(payloadLoggerError).toHaveBeenCalledWith(
+      { operation: 'inquiry_idempotency_precheck', errorCode: 'lookup_failed' },
+      'inquiry_idempotency_check_failed',
+    )
+    expect(JSON.stringify(payloadLoggerError.mock.calls)).not.toContain(sensitive)
+  })
+
   it('两个并发首提发生唯一约束竞争时都返回首次成功语义且只创建一条 Lead', async () => {
     let leadFindCount = 0
     let persistedLeadCount = 0
@@ -567,10 +592,7 @@ describe('POST /api/inquiries / 幂等', () => {
         persistedLeadCount += 1
         return { id: 1 }
       })
-      .mockRejectedValueOnce(Object.assign(new Error('duplicate key'), {
-        code: '23505',
-        constraint: 'leads_idempotency_key_idx',
-      }))
+      .mockRejectedValueOnce(leadsUniqueViolation())
     assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
 
     const body = makeValidBody()
@@ -783,6 +805,19 @@ describe('POST /api/inquiries / 限流', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/inquiries / 服务失败', () => {
+  it('供给复核未知异常保持原边界向上抛出，不伪装为 Lead 创建失败', async () => {
+    const supplyError = new Error('public catalog unavailable')
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    assertEffectiveListingMock.mockRejectedValue(supplyError)
+
+    await expect(POST(makeReq({ body: makeValidBody() }))).rejects.toBe(supplyError)
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+    expect(payloadLoggerError).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'inquiry_create_failed',
+    )
+  })
+
   it('payload.create 抛错 → 500 server_error', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     payloadCreateMock.mockRejectedValue(new Error('DB down'))
@@ -816,6 +851,39 @@ describe('POST /api/inquiries / 服务失败', () => {
     expect(json).not.toContain('DB connection refused')
     expect(json).not.toContain('10.0.0.1')
     expect(json).not.toContain('5432')
+  })
+
+  it('创建异常日志只记录固定安全分类，不泄露手机号、姓名、AppSecret 或异常链', async () => {
+    const sensitivePhone = '13899998888'
+    const sensitiveName = '敏感姓名张某'
+    const sensitiveSecret = 'AppSecret-super-sensitive-marker'
+    const createError = Object.assign(
+      new Error(`${sensitivePhone}:${sensitiveName}:${sensitiveSecret}`),
+      {
+        cause: { stack: `${sensitiveSecret}:${sensitivePhone}` },
+        leakedPayload: { name: sensitiveName },
+      },
+    )
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockRejectedValue(createError)
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+
+    expect(r.status).toBe(500)
+    expect(r.body).toEqual({ ok: false, error: 'server_error' })
+    const serializedLogs = JSON.stringify([
+      ...payloadLoggerError.mock.calls,
+      ...payloadLoggerInfo.mock.calls,
+      ...payloadLoggerWarn.mock.calls,
+    ])
+    expect(serializedLogs).not.toContain(sensitivePhone)
+    expect(serializedLogs).not.toContain(sensitiveName)
+    expect(serializedLogs).not.toContain(sensitiveSecret)
+    expect(payloadLoggerError).toHaveBeenCalledWith(
+      { category: 'persistence', errorCode: 'inquiry_create_failed' },
+      'inquiry_create_failed',
+    )
   })
 })
 

@@ -37,10 +37,16 @@ describe('Mini API contract', () => {
     })
   })
 
-  it('accepts only bounded transport-safe request IDs', () => {
-    expect(miniRequestId('req_20260826-1')).toBe('req_20260826-1')
-    expect(miniRequestId('x'.repeat(101))).toMatch(/^[0-9a-f-]{36}$/)
-    expect(miniRequestId('bad request id')).toMatch(/^[0-9a-f-]{36}$/)
+  it('每次只生成服务端 UUID，不回显任意客户端 header', () => {
+    const sensitiveIncoming = '13800001111.AppSecret.token-shape'
+    const first = miniRequestId()
+    const second = miniRequestId()
+
+    expectTypeOf<typeof miniRequestId>().parameters.toEqualTypeOf<[]>()
+    expect(first).toMatch(/^[0-9a-f-]{36}$/)
+    expect(second).toMatch(/^[0-9a-f-]{36}$/)
+    expect(first).not.toBe(sensitiveIncoming)
+    expect(second).not.toBe(first)
     expect(MINI_CACHE_CONTROL).toBe('private, no-store')
   })
 })
