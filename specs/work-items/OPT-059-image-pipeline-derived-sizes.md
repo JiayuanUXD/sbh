@@ -157,10 +157,18 @@ CPU 和流量」，还附送体验抖动**。派生图的生命周期由插件�
 - 列表页却从原图直出变成 768w WebP。
 
 **唯一的净增长是 `focal`**（约 22 字节/卡，1000 张卡约 22KB，占 2MB 上限约 1%）。
-保留它是因为卡片封面正是被 `object-fit: cover` 裁切的地方，焦点在这里收益最高。
+保留它**不是因为它现在就在用**——`styles.css` 的 `.listing-card__media img`
+（约 889 行）没有 `object-position: var(--focal-x, …)`，`.sf-media` 的其它调用方
+（`ListingResultCard` / `ListingResultRow` / `BuildingResultCard` /
+`BuildingCardMini` / `HomeSupplyCard` / `BuildingCompactRow`）也都还是裸 `<img>`、
+不发焦点变量，卡片链路里这 22 字节/卡目前没有任何消费方。保留的理由是**为后续
+组件逐个迁移到共享原语预留**——体积占比约 1%，不值得等到那时候再改一轮 DTO。
 （`building.coverImage` 已被 OPT-047 的解构整个丢弃，故只增一份而非两份。）
 
-完整 `srcSet` 只进**首页十张封面卡**与**详情页**——两者都不受 2MB 上限约束。
+完整 `srcSet` 只进**首页十张封面卡**与**详情页**——两者不是不受 2MB 上限约束
+（`getCachedHomepage`、详情页缓存查询同样走 `unstable_cache`，同受这条硬上限
+约束），而是体积够小（量级几 KB，远低于上限），不构成风险。别把这两条链路
+当成可以随便加字段的例外。
 
 ### 5.3 渲染层：升级共享原语 + 两区块接入
 
