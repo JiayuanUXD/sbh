@@ -53,6 +53,28 @@ const BUILDING_HANGZHOU = {
   city: CITY_HANGZHOU,
 }
 
+// OPT-059：卡片链路收窄用的封面夹具（见 mapListingCard describe 块）
+const SIZED_COVER = {
+  ...MEDIA_COVER_A,
+  focalX: 30,
+  focalY: 70,
+  sizes: {
+    thumb: { url: '/media/cover-320.webp', width: 320 },
+    card: { url: '/media/cover-768.webp', width: 768 },
+    hero: { url: '/media/cover-1600.webp', width: 1600 },
+  },
+}
+
+const LISTING_WITH_SIZED_COVER: typeof LISTING_MONTHLY_STANDARD = {
+  ...LISTING_MONTHLY_STANDARD,
+  coverImage: SIZED_COVER,
+}
+
+const LISTING_WITH_PLAIN_COVER: typeof LISTING_MONTHLY_STANDARD = {
+  ...LISTING_MONTHLY_STANDARD,
+  coverImage: MEDIA_COVER_A,
+}
+
 // ---------------------------------------------------------------------------
 // mapPrice
 // ---------------------------------------------------------------------------
@@ -717,6 +739,30 @@ describe('mapListingCard', () => {
     for (const input of INVALID_INPUTS) {
       expect(mapListingCard(input)).toBeNull()
     }
+  })
+
+  // --- OPT-059 × OPT-047：卡片链路的体积纪律 -------------------------------
+
+  it('卡片封面剔掉 variants（OPT-047：unstable_cache 条目有 2MB 硬上限）', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.variants).toBeUndefined()
+    expect(card?.coverImage?.blurDataURL).toBeUndefined()
+  })
+
+  it('卡片封面的 src 换成 768w 派生图而非原图（换值不加字段，零净增长）', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.src).toBe('/media/cover-768.webp')
+  })
+
+  it('卡片封面保留 focal——卡片正是被 cover 裁切的地方，focal 在这里价值最高', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.focal).toEqual({ x: 30, y: 70 })
+  })
+
+  it('存量图无派生 → 卡片封面回落原图，不报错', () => {
+    const card = mapListingCard(LISTING_WITH_PLAIN_COVER)
+    expect(card?.coverImage?.src).toBe('/media/cover-jingan-center.jpg')
+    expect(card?.coverImage?.variants).toBeUndefined()
   })
 })
 

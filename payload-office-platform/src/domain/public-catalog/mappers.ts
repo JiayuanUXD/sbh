@@ -587,6 +587,9 @@ export function mapArticleDetail(raw: unknown): ArticleDetailViewModel | null {
 
 const MAX_CARD_HIGHLIGHTS = 3
 
+/** 房源卡片封面的目标宽度：对齐 Media 的 `card` 档（Task 1） */
+const LISTING_CARD_COVER_WIDTH = 768
+
 /**
  * 把 Payload Listing 文档投影为 ListingCardViewModel。
  *
@@ -616,7 +619,25 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
    * 保持原样——万一将来真要做模糊占位图，那些路径不受影响（它们也不受 2MB 上限
    * 约束，因为不走全量数组缓存）。
    */
-  const coverImage = rawCover ? { ...rawCover, blurDataURL: undefined } : null
+  /**
+   * OPT-059：卡片封面换成 768w 派生图，并剔掉 `variants`。
+   *
+   * **是换值不是加字段**——上面 OPT-047 的注释解释了为什么这条链路一个字节都
+   * 不能乱加：列表页 `unstable_cache` 缓存全量卡片数组，生产实测条目
+   * 2,278,117 字节已经贴着 Next.js 的 2MB 硬上限，超限是**静默失败**
+   * （页面照常 200，只有一行 stderr），revalidate 失效、每请求真打库。
+   *
+   * `focal` 是唯一的净增长（约 22 字节/卡，1000 卡约 22KB，占上限约 1%），
+   * 值得：卡片封面正是被 object-fit: cover 裁切的地方，焦点在这里收益最高。
+   */
+  const coverImage = rawCover
+    ? {
+        ...rawCover,
+        src: pickVariantSrc(rawCover, LISTING_CARD_COVER_WIDTH),
+        blurDataURL: undefined,
+        variants: undefined,
+      }
+    : null
 
   /**
    * 卡片里的 `building` **只保留卡片链路真正读取的字段**（OPT-047）。
