@@ -71,12 +71,18 @@
 - [x] operator bootstrap 在认证前进行长度与 constant-time 摘要比较；缺失、错误、disabled 或 production 同形 404 且不初始化 Payload。认证后探针失败或 allowlist miss 统一 503、不泄密。
 - [x] 本地纯函数/路由 mock 合同 15/15、Web typecheck 与相关 lint 通过，Sol 复核无 P1/P2；真实 staging 探针仍属外部环境门。
 
-### Task 3b：run-scoped 写许可
+### Task 3b-1：run-scoped 写许可签发与验证
 
-- [ ] attestation 通过后，只有经过 operator authentication 的验收操作者才能用一次性 bootstrap 换取短时、run-scoped、revision-scoped 的写许可；公开客户端和匿名微信 session 不能自行领取。bootstrap 凭据由受控环境注入，不进入小程序包、query、Storage、日志或证据。
-- [ ] 自动 runner 通过仓外专用 header 携带写许可；真机包不持有 operator/bootstrap 凭据，由受控验收代理为本轮 run 预注册仅限 fixture namespace 的许可。咨询写请求必须同时携带活动 run UUID、许可和精确 fixture ownership，过期、跨 run、跨 revision 或重放到其它环境均拒绝。
-- [ ] acceptance 开关关闭时不改变普通生产咨询合同；生产部署即使误配客户端开关也不能签发许可或接受 fixture 标记。
-- [ ] 用纯函数和路由合同测试覆盖生产拒绝、错误 revision、数据库不在允许名单、许可过期/篡改/跨 run，以及日志脱敏；不连接真实数据库。
+- [x] attestation 通过后，只有经过 operator authentication 的验收操作者才能每次换取一个 10 分钟、run/SHA/revision/数据库指纹绑定的许可；公开客户端和匿名微信 session 不能自行领取。bootstrap 凭据由受控环境注入，可按验收轮次轮换，不进入小程序包、query、Storage、日志或证据。
+- [x] permit 使用独立高熵签名 secret，与 attestation/operator secret 两两不同；严格验证签名、payload 键集合、purpose、时间、jti 与全部上下文，篡改、过期、未来签发、多段解析或跨上下文均拒绝。
+- [x] acceptance 开关关闭或 deployment environment 非 staging 时不能签发许可；本阶段未修改普通咨询入口，也未接入 fixture 写分支，因此生产咨询合同保持不变。
+- [x] 纯函数和路由合同覆盖认证前零数据库、production/disabled 拒绝、错误 SHA/revision/数据库指纹、许可过期/篡改/跨有效 run，以及响应脱敏；Task 3a/3b-1 定向 68/68、typecheck 与相关 lint 通过，Sol 两轮复核后 APPROVE。全部为 mock/合同层，不连接真实数据库，也不代表真实 staging 写验收。
+
+### Task 3b-2：许可接入咨询写入口
+
+- [ ] 自动 runner 通过仓外专用 header 携带 permit；咨询写请求必须同时绑定活动 run UUID、许可和可精确重算的 submissionRequestId/idempotency key。许可缺失、过期、跨 run、跨部署或跨数据库时拒绝 acceptance fixture 写入。
+- [ ] 不带 acceptance header 的普通咨询路径保持既有合同；生产环境即使收到伪造 acceptance header 也不得进入 fixture 分支。
+- [ ] 真机包不持有 operator/bootstrap 凭据；真机写验收的 permit 只进入当前进程内存，不落 bundle、query、Storage、日志或截图。没有安全注入通道前只允许真机只读走查。
 
 ### Task 4：开发者工具只读闭环
 

@@ -6,6 +6,7 @@ export type AcceptanceRuntimeConfig = Readonly<{
   deploymentRevision: string
   attestationSecret: Uint8Array
   operatorBootstrapSecret: Uint8Array
+  permitSigningSecret: Uint8Array
   dbFingerprintAllowlist: readonly string[]
 }>
 
@@ -18,7 +19,10 @@ const B64URL = /^[A-Za-z0-9_-]+$/
 export function decodeAttestationSecret(value: string): Uint8Array | null {
   if (!B64URL.test(value)) return null
   const bytes = Buffer.from(value, 'base64url')
-  return bytes.length >= 32 && bytes.length <= 64 && Buffer.from(bytes).toString('base64url') === value && new Set(bytes).size >= 16
+  return bytes.length >= 32 &&
+    bytes.length <= 64 &&
+    Buffer.from(bytes).toString('base64url') === value &&
+    new Set(bytes).size >= 16
     ? Uint8Array.from(bytes)
     : null
 }
@@ -34,7 +38,11 @@ export function constantTimeSecretMatches(provided: string, expected: Uint8Array
 }
 
 export function databaseFingerprint(identity: DatabaseIdentity, secret: Uint8Array): string {
-  const canonical = JSON.stringify({ databaseName: identity.databaseName, serverAddress: identity.serverAddress, serverPort: identity.serverPort })
+  const canonical = JSON.stringify({
+    databaseName: identity.databaseName,
+    serverAddress: identity.serverAddress,
+    serverPort: identity.serverPort,
+  })
   return createHmac('sha256', secret).update(canonical).digest('hex')
 }
 
@@ -45,8 +53,30 @@ export function isAllowedDatabaseFingerprint(fingerprint: string, allowlist: rea
 export function validateDatabaseIdentity(value: unknown): DatabaseIdentity | null {
   if (typeof value !== 'object' || value === null) return null
   const candidate = value as Partial<DatabaseIdentity>
-  if (typeof candidate.databaseName !== 'string' || candidate.databaseName.trim().length === 0 || candidate.databaseName.length > 128 || /[\u0000-\u001f\u007f]/.test(candidate.databaseName)) return null
-  if (typeof candidate.serverAddress !== 'string' || candidate.serverAddress.length === 0 || candidate.serverAddress.length > 256 || isIP(candidate.serverAddress) === 0) return null
-  if (typeof candidate.serverPort !== 'number' || !Number.isInteger(candidate.serverPort) || candidate.serverPort < 1 || candidate.serverPort > 65535) return null
-  return { databaseName: candidate.databaseName, serverAddress: candidate.serverAddress, serverPort: candidate.serverPort }
+  if (
+    typeof candidate.databaseName !== 'string' ||
+    candidate.databaseName.trim().length === 0 ||
+    candidate.databaseName.length > 128 ||
+    /[\u0000-\u001f\u007f]/.test(candidate.databaseName)
+  )
+    return null
+  if (
+    typeof candidate.serverAddress !== 'string' ||
+    candidate.serverAddress.length === 0 ||
+    candidate.serverAddress.length > 256 ||
+    isIP(candidate.serverAddress) === 0
+  )
+    return null
+  if (
+    typeof candidate.serverPort !== 'number' ||
+    !Number.isInteger(candidate.serverPort) ||
+    candidate.serverPort < 1 ||
+    candidate.serverPort > 65535
+  )
+    return null
+  return {
+    databaseName: candidate.databaseName,
+    serverAddress: candidate.serverAddress,
+    serverPort: candidate.serverPort,
+  }
 }

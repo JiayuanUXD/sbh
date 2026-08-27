@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { databaseFingerprint, isAllowedDatabaseFingerprint, constantTimeSecretMatches, validateDatabaseIdentity, decodeAttestationSecret } from '@/domain/mini-program/acceptance-attestation'
+import {
+  databaseFingerprint,
+  isAllowedDatabaseFingerprint,
+  constantTimeSecretMatches,
+  validateDatabaseIdentity,
+  decodeAttestationSecret,
+} from '@/domain/mini-program/acceptance-attestation'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
 
 const secret = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 1)).toString('base64url')
 const identity = { databaseName: 'sbh', serverAddress: '10.0.0.4', serverPort: 5432 }
 const commit = 'a'.repeat(40)
 const operatorSecret = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 33)).toString('base64url')
-const fingerprint = databaseFingerprint(identity, Uint8Array.from({ length: 32 }, (_, i) => i + 1))
+const permitSecret = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 65)).toString('base64url')
+const fingerprint = databaseFingerprint(
+  identity,
+  Uint8Array.from({ length: 32 }, (_, i) => i + 1),
+)
 const validEnv = {
   MP_ACCEPTANCE_ENABLED: '1',
   MP_ACCEPTANCE_DEPLOYMENT_ENVIRONMENT: 'staging',
@@ -14,6 +24,7 @@ const validEnv = {
   MP_ACCEPTANCE_DEPLOYMENT_REVISION: 'rev-1',
   MP_ACCEPTANCE_ATTESTATION_SECRET: secret,
   MP_ACCEPTANCE_OPERATOR_BOOTSTRAP_SECRET: operatorSecret,
+  MP_ACCEPTANCE_PERMIT_SIGNING_SECRET: permitSecret,
   MP_ACCEPTANCE_DB_FINGERPRINT_ALLOWLIST: fingerprint,
 }
 
@@ -25,10 +36,12 @@ describe('acceptance attestation', () => {
     expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_DEPLOYMENT_GIT_COMMIT_SHA: 'bad' })).toBeNull()
     expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_ATTESTATION_SECRET: 'weak' })).toBeNull()
     expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_OPERATOR_BOOTSTRAP_SECRET: secret })).toBeNull()
-    expect(readAcceptanceRuntimeConfig({
-      ...validEnv,
-      MP_ACCEPTANCE_OPERATOR_BOOTSTRAP_SECRET: Buffer.from(new Uint8Array(32).fill(7)).toString('base64url'),
-    })).toBeNull()
+    expect(
+      readAcceptanceRuntimeConfig({
+        ...validEnv,
+        MP_ACCEPTANCE_OPERATOR_BOOTSTRAP_SECRET: Buffer.from(new Uint8Array(32).fill(7)).toString('base64url'),
+      }),
+    ).toBeNull()
     expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_ATTESTATION_SECRET: `${secret}=` })).toBeNull()
     expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_DB_FINGERPRINT_ALLOWLIST: 'bad' })).toBeNull()
   })
@@ -41,6 +54,23 @@ describe('acceptance attestation', () => {
     expect(databaseFingerprint({ ...identity, serverPort: 5433 }, key)).not.toBe(fingerprint)
     expect(isAllowedDatabaseFingerprint(fingerprint, [fingerprint])).toBe(true)
     expect(isAllowedDatabaseFingerprint(fingerprint, ['0'.repeat(64)])).toBe(false)
+  })
+
+  it('permit signing secret 缺失/弱/复用任一 secret 都拒绝', () => {
+    expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_PERMIT_SIGNING_SECRET: undefined })).toBeNull()
+    expect(readAcceptanceRuntimeConfig({ ...validEnv, MP_ACCEPTANCE_PERMIT_SIGNING_SECRET: 'weak' })).toBeNull()
+    expect(
+      readAcceptanceRuntimeConfig({
+        ...validEnv,
+        MP_ACCEPTANCE_PERMIT_SIGNING_SECRET: validEnv.MP_ACCEPTANCE_ATTESTATION_SECRET,
+      }),
+    ).toBeNull()
+    expect(
+      readAcceptanceRuntimeConfig({
+        ...validEnv,
+        MP_ACCEPTANCE_PERMIT_SIGNING_SECRET: validEnv.MP_ACCEPTANCE_OPERATOR_BOOTSTRAP_SECRET,
+      }),
+    ).toBeNull()
   })
 
   it('严格拒绝空/超长 identity 与端口边界', () => {
@@ -58,14 +88,21 @@ describe('acceptance attestation', () => {
     const expected = Uint8Array.from({ length: 32 }, (_, i) => i + 1)
     const encoded = Buffer.from(expected).toString('base64url')
     expect(constantTimeSecretMatches(encoded, expected)).toBe(true)
-    expect(constantTimeSecretMatches(Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => i + 2)).toString('base64url'), expected)).toBe(false)
+    expect(
+      constantTimeSecretMatches(
+        Buffer.from(Uint8Array.from({ length: 32 }, (_, i) => i + 2)).toString('base64url'),
+        expected,
+      ),
+    ).toBe(false)
     expect(constantTimeSecretMatches(`${encoded}x`, expected)).toBe(false)
   })
 
   it('secret 解码边界为 32 到 64 bytes', () => {
     for (const length of [31, 32, 64, 65]) {
       const decoded = Uint8Array.from({ length }, (_, i) => (i % 251) + 1)
-      expect(Boolean(decodeAttestationSecret(Buffer.from(decoded).toString('base64url')))).toBe(length >= 32 && length <= 64)
+      expect(Boolean(decodeAttestationSecret(Buffer.from(decoded).toString('base64url')))).toBe(
+        length >= 32 && length <= 64,
+      )
     }
   })
 })
