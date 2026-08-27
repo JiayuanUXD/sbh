@@ -1,0 +1,67 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  parseMiniHomeData,
+  parseMiniListingsData,
+} from '../miniprogram/services/catalog-contracts.js'
+import { createCatalogService, type MiniRequestClient } from '../miniprogram/services/catalog.js'
+import type { RequestOptions } from '../miniprogram/services/request.js'
+
+function createPendingRequestClient() {
+  const calls: Array<Readonly<{ path: string; parse: unknown }>> = []
+  const request: MiniRequestClient = <T>(options: RequestOptions<T>): Promise<T> => {
+    calls.push({ path: options.path, parse: options.parse })
+    return new Promise<T>(() => {})
+  }
+  return { calls, request }
+}
+
+describe('Mini API 目录服务', () => {
+  it('首页请求对城市参数进行路径编码并交给首页契约解析', async () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getHome('shanghai & east')
+
+    expect(calls).toEqual([{
+      path: '/api/mini/v1/home?city=shanghai%20%26%20east',
+      parse: parseMiniHomeData,
+    }])
+  })
+
+  it('列表请求使用规范化查询且不允许覆盖城市', async () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getListings('district=jingan&page=2')
+
+    expect(calls).toEqual([expect.objectContaining({
+      path: '/api/mini/v1/listings?city=shanghai&district=jingan&page=2',
+      parse: parseMiniListingsData,
+    })])
+  })
+
+  it('列表查询序列化器移除城市覆盖并编码用户值', async () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getListings('city=beijing&district=%E9%9D%99%E5%AE%89&q=%23office')
+
+    expect(calls).toEqual([expect.objectContaining({
+      path: '/api/mini/v1/listings?city=shanghai&district=%E9%9D%99%E5%AE%89&q=%23office',
+      parse: parseMiniListingsData,
+    })])
+  })
+
+  it('列表请求无计价单位时移除价格范围并降级价格排序', () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getListings('district=jingan&priceMin=100&priceMax=200&sort=price-desc')
+
+    expect(calls).toEqual([expect.objectContaining({
+      path: '/api/mini/v1/listings?city=shanghai&district=jingan',
+      parse: parseMiniListingsData,
+    })])
+  })
+})

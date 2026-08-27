@@ -1,0 +1,93 @@
+<view wx:if="{{open}}" class="filter-sheet" aria-role="dialog" aria-modal="true">
+  <view class="filter-sheet__backdrop" catchtap="handleClose" catchtouchmove="handleBackdropTouchMove"></view>
+  <view class="filter-sheet__panel" catchtap="handlePanelTap">
+    <view class="filter-sheet__header">
+      <text class="filter-sheet__title">筛选房源</text>
+      <button class="filter-sheet__cancel" bindtap="handleClose">取消</button>
+    </view>
+
+    <scroll-view class="filter-sheet__body" scroll-y="true">
+      <view wx:if="{{resolvedSection === 'price' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__unit">
+        <view class="filter-sheet__section-title">计价单位</view>
+        <view class="filter-sheet__options">
+          <button
+            wx:for="{{unitOptions}}"
+            wx:key="value"
+            class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="handlePriceUnit"
+          >
+            <text>{{item.label}}</text>
+            <text class="filter-sheet__count num">{{item.count}}</text>
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{resolvedSection === 'price' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__price-range">
+        <view class="filter-sheet__section-title">价格区间</view>
+        <view class="filter-sheet__range">
+          <input class="filter-sheet__input num" type="number" value="{{draft.priceMin}}" placeholder="最低价格" data-field="priceMin" bindinput="handlePriceInput" />
+          <text class="filter-sheet__range-separator">至</text>
+          <input class="filter-sheet__input num" type="number" value="{{draft.priceMax}}" placeholder="最高价格" data-field="priceMax" bindinput="handlePriceInput" />
+        </view>
+      </view>
+
+      <view wx:if="{{resolvedSection === 'location' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__location">
+        <view class="filter-sheet__section-title">区域</view>
+        <view class="filter-sheet__options">
+          <button
+            wx:for="{{districtOptions}}"
+            wx:key="value"
+            class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="handleDistrict"
+          >
+            <text>{{item.label}}</text>
+            <text class="filter-sheet__count num">{{item.count}}</text>
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{resolvedSection === 'area' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__area">
+        <view class="filter-sheet__section-title">面积（㎡）</view>
+        <view class="filter-sheet__range">
+          <input class="filter-sheet__input num" type="number" value="{{draft.areaMin}}" placeholder="最小面积" data-field="areaMin" bindinput="handleAreaInput" />
+          <text class="filter-sheet__range-separator">至</text>
+          <input class="filter-sheet__input num" type="number" value="{{draft.areaMax}}" placeholder="最大面积" data-field="areaMax" bindinput="handleAreaInput" />
+        </view>
+      </view>
+
+      <view wx:if="{{resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__type">
+        <view class="filter-sheet__section-title">办公类型</view>
+        <view class="filter-sheet__options">
+          <button
+            wx:for="{{typeOptions}}"
+            wx:key="value"
+            class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="handleType"
+          >
+            <text>{{item.label}}</text>
+            <text class="filter-sheet__count num">{{item.count}}</text>
+          </button>
+        </view>
+      </view>
+
+      <view wx:if="{{resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__available">
+        <view class="filter-sheet__section-title">最晚入驻时间</view>
+        <picker mode="date" value="{{draft.availableBefore}}" bindchange="handleAvailableBefore">
+          <view class="filter-sheet__date num">{{draft.availableBefore || '选择日期'}}</view>
+        </picker>
+      </view>
+    </scroll-view>
+
+    <view class="filter-sheet__footer">
+      <button class="filter-sheet__clear" bindtap="handleClear">清除</button>
+      <button class="filter-sheet__apply {{estimating || estimateUnavailable ? 'filter-sheet__apply--disabled' : ''}}" bindtap="handleApply" disabled="{{estimating || estimateUnavailable}}" aria-busy="{{estimating}}">
+        <text wx:if="{{estimating}}">正在计算</text>
+        <text wx:elif="{{estimateUnavailable}}">暂时无法计算</text>
+        <text wx:else class="num">查看 {{resultCount}} 套</text>
+      </button>
+    </view>
+  </view>
+</view>

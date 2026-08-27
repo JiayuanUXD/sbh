@@ -4,7 +4,20 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
-const foundationPath = 'pages/foundation/index'
+const smokeTargets = Object.freeze([
+  {
+    label: '首页',
+    marker: '#home-ready',
+    method: 'reLaunch',
+    path: 'pages/home/index',
+  },
+  {
+    label: '找房页',
+    marker: '#listings-ready',
+    method: 'switchTab',
+    path: 'pages/listings/index',
+  },
+])
 
 const defaultTimeouts = Object.freeze({
   acceptanceMs: 1_000,
@@ -13,6 +26,7 @@ const defaultTimeouts = Object.freeze({
   readyMs: 10_000,
   routeMs: 10_000,
 })
+const failureCleanupGraceMs = 250
 
 class DevtoolsConfigurationError extends Error {}
 
@@ -56,7 +70,7 @@ async function withTimeout(operation, milliseconds, message) {
   }
 }
 
-async function waitForReadyMarker(page, pollIntervalMs, readyMs) {
+async function waitForReadyMarker(page, markerSelector, pollIntervalMs, readyMs) {
   const deadline = Date.now() + readyMs
 
   while (true) {
@@ -64,13 +78,39 @@ async function waitForReadyMarker(page, pollIntervalMs, readyMs) {
     if (remainingMs <= 0) throw new Error('ready 超时')
 
     const marker = await withTimeout(
-      Promise.resolve().then(() => page.$('#foundation-ready')),
+      Promise.resolve().then(() => page.$(markerSelector)),
       remainingMs,
       'ready 超时',
     )
     if (marker) return
     await delay(Math.min(pollIntervalMs, Math.max(1, deadline - Date.now())))
   }
+}
+
+async function verifyTarget(miniProgram, target, runtimeExceptionPromise, pollIntervalMs, timeouts) {
+  const navigate = miniProgram[target.method]
+  if (typeof navigate !== 'function') {
+    throw new Error(`${target.label}路由方法不可用`)
+  }
+
+  const page = await Promise.race([
+    withTimeout(
+      Promise.resolve().then(() => navigate.call(miniProgram, `/${target.path}`)),
+      timeouts.routeMs,
+      `${target.label}路由超时`,
+    ),
+    runtimeExceptionPromise,
+  ])
+
+  if (!page || page.path !== target.path) {
+    throw new Error(`${target.label}路由不匹配`)
+  }
+
+  await Promise.race([
+    waitForReadyMarker(page, target.marker, pollIntervalMs, timeouts.readyMs),
+    runtimeExceptionPromise,
+  ])
+  await Promise.race([delay(timeouts.acceptanceMs), runtimeExceptionPromise])
 }
 
 async function closeSafely(miniProgram, closeMs) {
@@ -139,25 +179,9 @@ export function createDevtoolsSmokeRunner({
         }
       })
 
-      const page = await Promise.race([
-        withTimeout(
-          miniProgram.reLaunch(`/${foundationPath}`),
-          timeouts.routeMs,
-          '路由超时',
-        ),
-        runtimeExceptionPromise,
-      ])
-
-      if (!page || page.path !== foundationPath) {
-        throw new Error('foundation 路由不匹配')
+      for (const target of smokeTargets) {
+        await verifyTarget(miniProgram, target, runtimeExceptionPromise, pollIntervalMs, timeouts)
       }
-
-      await Promise.race([
-        waitForReadyMarker(page, pollIntervalMs, timeouts.readyMs),
-        runtimeExceptionPromise,
-      ])
-
-      await Promise.race([delay(timeouts.acceptanceMs), runtimeExceptionPromise])
     } catch (error) {
       primaryError = error instanceof Error ? error : new Error('开发者工具冒烟失败')
     } finally {
@@ -183,17 +207,22 @@ export async function runDevtoolsSmoke(environment = process.env) {
   return createDevtoolsSmokeRunner({ automator })(environment, configuration)
 }
 
-export async function main() {
+export async function main({
+  cleanupGraceMs = failureCleanupGraceMs,
+  exit = process.exit,
+  run = runDevtoolsSmoke,
+} = {}) {
   try {
-    await runDevtoolsSmoke()
-    console.log('微信开发者工具 foundation 冒烟检查通过')
+    await run()
+    console.log('微信开发者工具首页/找房冒烟检查通过')
   } catch (error) {
     if (error instanceof DevtoolsConfigurationError) {
       console.error(`开发者工具冒烟检查失败：${error.message}`)
     } else {
       console.error('开发者工具冒烟检查失败：请检查 CLI、登录状态、自动化端口与工程编译结果')
     }
-    process.exitCode = 1
+    await delay(cleanupGraceMs)
+    exit(1)
   }
 }
 

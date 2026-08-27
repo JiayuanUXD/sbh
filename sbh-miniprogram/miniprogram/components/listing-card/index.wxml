@@ -1,0 +1,33 @@
+<view
+  class="listing-card"
+  hover-class="listing-card--pressed"
+  hover-start-time="70"
+  hover-stay-time="120"
+  bindtap="handleOpen"
+  data-slug="{{listing.slug}}"
+  aria-role="button"
+>
+  <view class="listing-card__media">
+    <image
+      wx:if="{{listing.imageUrl && !imageFailed}}"
+      class="listing-card__image"
+      src="{{listing.imageUrl}}"
+      alt="{{listing.imageAlt}}"
+      mode="aspectFill"
+      binderror="handleImageError"
+    />
+    <view wx:else class="listing-card__placeholder">暂无图片</view>
+  </view>
+  <view class="listing-card__body">
+    <view class="listing-card__title">{{listing.title}}</view>
+    <view class="listing-card__facts num">{{listing.facts}}</view>
+    <view class="listing-card__location">{{listing.location}}</view>
+    <view class="listing-card__price-row">
+      <view class="listing-card__price num">{{listing.primaryPrice}}</view>
+      <view wx:if="{{listing.secondaryPrice}}" class="listing-card__quote num">{{listing.secondaryPrice}}</view>
+    </view>
+    <view wx:if="{{displayTags.length}}" class="listing-card__tags">
+      <text wx:for="{{displayTags}}" wx:key="*this" class="listing-card__tag">{{item}}</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,93 @@
+<view id="home-ready" class="home-page">
+  <view class="home-brand">
+    <view class="home-brand__eyebrow">SBH · 尚办好</view>
+    <view class="home-brand__title">在上海，找到合适的办公室</view>
+    <view class="home-brand__description">真实在租房源，清楚比较面积、位置与月租估算。</view>
+    <view wx:if="{{content}}" class="home-brand__stats num">
+      {{content.stats.listings}} 套房源 · {{content.stats.buildings}} 座楼宇 · {{content.stats.businessAreas}} 个商圈
+    </view>
+  </view>
+
+  <view class="home-search">
+    <input
+      class="home-search__input"
+      value="{{keyword}}"
+      placeholder="搜索楼盘、区域或地标"
+      confirm-type="search"
+      bindinput="handleKeywordInput"
+      bindconfirm="handleSearchSubmit"
+    />
+    <view
+      class="home-search__submit"
+      hover-class="home-search__submit--pressed"
+      hover-stay-time="70"
+      aria-role="button"
+      aria-label="提交搜索"
+      bindtap="handleSearchSubmit"
+    >搜索</view>
+  </view>
+
+  <view wx:if="{{state === 'loading'}}" class="home-loading">
+    <sbh-skeleton rows="4" with-media />
+  </view>
+
+  <view wx:elif="{{state === 'error'}}" class="home-error">
+    <sbh-state
+      kind="error"
+      title="首页内容暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="handleRetry"
+    />
+  </view>
+
+  <block wx:elif="{{state === 'ready' && content}}">
+    <view wx:if="{{refreshError}}" class="home-refresh-error" aria-role="status">
+      刷新未完成，当前仍显示上次内容
+    </view>
+
+    <view class="home-quick-filters">
+      <view wx:for="{{content.quickFilters}}" wx:key="id" class="home-quick-filter-group">
+        <view class="home-section-title">{{item.label}}</view>
+        <scroll-view class="home-quick-filter-group__scroll" scroll-x enhanced show-scrollbar="{{false}}">
+          <view class="home-quick-filter-group__options">
+            <view
+              wx:for="{{item.options}}"
+              wx:key="value"
+              class="home-quick-filter"
+              hover-class="home-quick-filter--pressed"
+              hover-stay-time="70"
+              aria-role="link"
+              data-query="{{item.query}}"
+              bindtap="handleQuickFilter"
+            >
+              <text>{{item.label}}</text>
+              <text class="home-quick-filter__count num">{{item.count}}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <view class="home-featured">
+      <view class="home-featured__heading">
+        <view class="home-section-title">精选房源</view>
+        <view class="home-featured__all" aria-role="link" bindtap="handleBrowseAll">查看全部</view>
+      </view>
+      <view wx:if="{{content.featuredListings.length}}" class="home-featured__list">
+        <listing-card
+          wx:for="{{content.featuredListings}}"
+          wx:key="id"
+          listing="{{item}}"
+          bindopen="handleListingOpen"
+        />
+      </view>
+      <sbh-state
+        wx:else
+        kind="empty"
+        title="暂无精选房源"
+        description="可以先查看全部在租房源"
+      />
+    </view>
+  </block>
+</view>

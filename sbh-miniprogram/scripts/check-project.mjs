@@ -87,20 +87,49 @@ export function checkProject() {
   }
 
   const appConfig = readJson('miniprogram/app.json')
-  if (!Array.isArray(appConfig.pages) || appConfig.pages[0] !== 'pages/foundation/index') {
-    fail('miniprogram/app.json 的首个页面必须是 foundation')
+  const expectedPages = [
+    'pages/home/index',
+    'pages/listings/index',
+    'pages/foundation/index',
+  ]
+  if (
+    !Array.isArray(appConfig.pages) ||
+    appConfig.pages.length !== expectedPages.length ||
+    appConfig.pages.some((page, index) => page !== expectedPages[index])
+  ) {
+    fail('miniprogram/app.json 必须按首页、找房、foundation 的顺序注册页面')
   }
 
-  for (const extension of ['ts', 'json', 'wxml', 'wxss']) {
-    assertFile(`miniprogram/pages/foundation/index.${extension}`)
+  const expectedTabs = [
+    { pagePath: 'pages/home/index', text: '首页' },
+    { pagePath: 'pages/listings/index', text: '找房' },
+  ]
+  const tabList = appConfig.tabBar?.list
+  if (
+    !Array.isArray(tabList) ||
+    tabList.length !== expectedTabs.length ||
+    tabList.some(
+      (item, index) =>
+        item?.pagePath !== expectedTabs[index].pagePath || item?.text !== expectedTabs[index].text,
+    )
+  ) {
+    fail('miniprogram/app.json 的 tabBar 必须只包含首页和找房')
   }
 
-  const foundationMarkup = readFileSync(
-    join(projectRoot, 'miniprogram/pages/foundation/index.wxml'),
-    'utf8',
-  )
-  if (!foundationMarkup.includes('id="foundation-ready"')) {
-    fail('foundation 页面缺少 #foundation-ready 自动化就绪标记')
+  for (const pagePath of expectedPages) {
+    for (const extension of ['ts', 'json', 'wxml', 'wxss']) {
+      assertFile(`miniprogram/${pagePath}.${extension}`)
+    }
+  }
+
+  for (const [pagePath, marker] of [
+    ['pages/home/index', 'home-ready'],
+    ['pages/listings/index', 'listings-ready'],
+  ]) {
+    const markup = readFileSync(join(projectRoot, `miniprogram/${pagePath}.wxml`), 'utf8')
+    if (!markup.includes(`id="${marker}"`)) {
+      fail(`${pagePath} 缺少 #${marker} 自动化就绪标记`)
+    }
   }
 
   assertPrivateFilesIgnored()

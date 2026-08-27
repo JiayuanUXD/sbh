@@ -1,0 +1,180 @@
+.listings-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding-bottom: calc(64rpx + env(safe-area-inset-bottom));
+  color: var(--sbh-text-primary);
+  background: var(--sbh-page-background);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.listings-filter-shell {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+}
+
+.listings-loading,
+.listings-error,
+.listings-list,
+.listings-empty {
+  margin: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter) 0;
+}
+
+.listings-loading,
+.listings-error,
+.listings-empty__intro,
+.listings-empty__relaxations,
+.listings-empty__advisor {
+  padding: var(--sbh-layout-surface-padding);
+  background: var(--sbh-surface-background);
+  border-radius: var(--sbh-shape-surface-radius);
+}
+
+.listings-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sbh-layout-space-sm);
+}
+
+.listings-refresh-error,
+.listings-summary {
+  box-sizing: border-box;
+  margin: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter) 0;
+  padding: var(--sbh-layout-space-sm) var(--sbh-layout-surface-padding);
+  background: var(--sbh-surface-background);
+  border-radius: var(--sbh-shape-control-radius);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: var(--sbh-type-body-line-height);
+}
+
+.listings-refresh-error,
+.listings-summary__hint,
+.listings-empty__description,
+.listings-empty__loading,
+.listings-empty__no-relaxation,
+.listings-empty__advisor,
+.listings-end,
+.listings-loading-more {
+  color: var(--sbh-text-secondary);
+}
+
+.listings-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sbh-layout-space-sm);
+}
+
+.listings-summary__hint {
+  text-align: right;
+}
+
+.listings-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sbh-layout-space-sm);
+}
+
+.listings-loading-more,
+.listings-end {
+  padding: var(--sbh-layout-space-md);
+  text-align: center;
+  font-size: var(--sbh-type-auxiliary-size);
+}
+
+.listings-load-more-error {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-md);
+  color: var(--sbh-interaction-primary);
+  background: var(--sbh-surface-background);
+  border-radius: var(--sbh-shape-control-radius);
+  font-size: var(--sbh-type-body-size);
+}
+
+.listings-load-more-error--pressed {
+  background: var(--sbh-surface-pressed);
+}
+
+.listings-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sbh-layout-space-sm);
+}
+
+.listings-empty__title,
+.listings-empty__section-title {
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.listings-empty__title {
+  font-size: var(--sbh-type-card-title-size);
+}
+
+.listings-empty__description,
+.listings-empty__loading,
+.listings-empty__no-relaxation,
+.listings-empty__advisor {
+  margin-top: var(--sbh-layout-space-xs);
+  font-size: var(--sbh-type-body-size);
+  line-height: var(--sbh-type-body-line-height);
+}
+
+.listings-empty__section-title {
+  margin-bottom: var(--sbh-layout-space-sm);
+  font-size: var(--sbh-type-label-size);
+}
+
+.listings-relaxation {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-md);
+  color: var(--sbh-text-primary);
+  background: var(--sbh-surface-background);
+  border: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+  border-radius: var(--sbh-shape-control-radius);
+  font-size: var(--sbh-type-body-size);
+}
+
+.listings-relaxation + .listings-relaxation {
+  margin-top: var(--sbh-layout-space-xs);
+}
+
+.listings-relaxation--pressed,
+.listings-empty__clear--pressed {
+  background: var(--sbh-surface-pressed);
+}
+
+.listings-relaxation__count {
+  margin-left: var(--sbh-layout-space-sm);
+  color: var(--sbh-text-secondary);
+}
+
+.listings-empty__clear {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sbh-size-touch-target);
+  padding: 0 var(--sbh-layout-space-lg);
+  color: var(--sbh-interaction-primary);
+  background: var(--sbh-surface-background);
+  border: var(--sbh-stroke-default) solid var(--sbh-interaction-primary);
+  border-radius: var(--sbh-shape-control-radius);
+  font-size: var(--sbh-type-body-size);
+  font-weight: var(--sbh-type-medium-weight);
+}
+
+.listings-empty__advisor {
+  margin-top: 0;
+  text-align: center;
+}

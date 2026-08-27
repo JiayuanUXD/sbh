@@ -39,10 +39,30 @@ describe('小程序工程入口合同', () => {
     })
   })
 
-  it('以 foundation 页面作为首个路由', () => {
+  it('以首页为首路由并只注册已交付的两项 tab', () => {
     const app = readJson('miniprogram/app.json')
+    const pages = requirePages(app.pages)
+    const tabBar = app.tabBar as
+      | { list?: Array<{ pagePath?: unknown }> }
+      | undefined
 
-    expect(app.pages).toEqual(['pages/foundation/index'])
+    expect(pages[0]).toBe('pages/home/index')
+    expect(pages).toContain('pages/listings/index')
+    expect(pages).toContain('pages/foundation/index')
+    expect(tabBar?.list?.map((item) => item.pagePath)).toEqual([
+      'pages/home/index',
+      'pages/listings/index',
+    ])
+    expect(app.tabBar).toMatchObject({
+      color: '#6e6e73',
+      selectedColor: '#1d1d1f',
+      backgroundColor: '#ffffff',
+      borderStyle: 'black',
+      list: [
+        { pagePath: 'pages/home/index', text: '首页' },
+        { pagePath: 'pages/listings/index', text: '找房' },
+      ],
+    })
   })
 
   it('锁定与 jsdom 和 Vite 兼容的 Node 版本边界', () => {
@@ -87,6 +107,17 @@ describe('小程序工程入口合同', () => {
         expect(existsSync(resolve(miniprogramRoot, `${route}.${extension}`))).toBe(true)
       }
     }
+  })
+
+  it('为首页和找房页提供自动化就绪标记', () => {
+    const homeMarkup = readFileSync(resolve(miniprogramRoot, 'pages/home/index.wxml'), 'utf8')
+    const listingsMarkup = readFileSync(
+      resolve(miniprogramRoot, 'pages/listings/index.wxml'),
+      'utf8',
+    )
+
+    expect(homeMarkup).toContain('id="home-ready"')
+    expect(listingsMarkup).toContain('id="listings-ready"')
   })
 
   it('以空 App 配置作为当前阶段的最小入口', () => {

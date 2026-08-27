@@ -132,14 +132,19 @@ describe('devtools:smoke', () => {
     expect(outputOf(result)).toContain('执行权限')
   })
 
-  test('注入假 automator 后轮询 ready，核对路由、启动参数并关闭连接', async () => {
+  test('注入假 automator 后按首页到找房的顺序轮询 ready 并关闭连接', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
-    const page = {
-      path: 'pages/foundation/index',
-      $: vi.fn().mockResolvedValueOnce(null).mockResolvedValue({ id: 'foundation-ready' }),
+    const homePage = {
+      path: 'pages/home/index',
+      $: vi.fn().mockResolvedValueOnce(null).mockResolvedValue({ id: 'home-ready' }),
+    }
+    const listingsPage = {
+      path: 'pages/listings/index',
+      $: vi.fn().mockResolvedValueOnce(null).mockResolvedValue({ id: 'listings-ready' }),
     }
     const miniProgram = Object.assign(new EventEmitter(), {
-      reLaunch: vi.fn().mockResolvedValue(page),
+      reLaunch: vi.fn().mockResolvedValue(homePage),
+      switchTab: vi.fn().mockResolvedValue(listingsPage),
       close: vi.fn().mockResolvedValue(undefined),
       disconnect: vi.fn(),
     })
@@ -160,13 +165,17 @@ describe('devtools:smoke', () => {
         trustProject: true,
       }),
     )
-    expect(miniProgram.reLaunch).toHaveBeenCalledWith('/pages/foundation/index')
-    expect(page.$).toHaveBeenCalledTimes(2)
+    expect(miniProgram.reLaunch).toHaveBeenCalledWith('/pages/home/index')
+    expect(homePage.$).toHaveBeenCalledWith('#home-ready')
+    expect(homePage.$).toHaveBeenCalledTimes(2)
+    expect(miniProgram.switchTab).toHaveBeenCalledWith('/pages/listings/index')
+    expect(listingsPage.$).toHaveBeenCalledWith('#listings-ready')
+    expect(listingsPage.$).toHaveBeenCalledTimes(2)
     expect(miniProgram.close).toHaveBeenCalledOnce()
     expect(miniProgram.disconnect).not.toHaveBeenCalled()
   })
 
-  test('foundation 实际路由不匹配时失败并清理', async () => {
+  test('首页实际路由不匹配时失败并清理', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
     const page = { path: 'pages/other/index', $: vi.fn() }
     const miniProgram = Object.assign(new EventEmitter(), {
@@ -180,7 +189,30 @@ describe('devtools:smoke', () => {
     })
 
     await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(
-      'foundation 路由不匹配',
+      '首页路由不匹配',
+    )
+    expect(miniProgram.close).toHaveBeenCalledOnce()
+  })
+
+  test('找房页实际路由不匹配时失败并清理', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi
+        .fn()
+        .mockResolvedValue({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }),
+      switchTab: vi
+        .fn()
+        .mockResolvedValue({ path: 'pages/other/index', $: vi.fn() }),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    const runner = module.createDevtoolsSmokeRunner({
+      automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
+      timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20 },
+    })
+
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(
+      '找房页路由不匹配',
     )
     expect(miniProgram.close).toHaveBeenCalledOnce()
   })
@@ -189,17 +221,49 @@ describe('devtools:smoke', () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn(),
+      switchTab: vi.fn(),
       close: vi.fn().mockResolvedValue(undefined),
       disconnect: vi.fn(),
     })
     const page = {
-      path: 'pages/foundation/index',
+      path: 'pages/home/index',
       $: vi.fn().mockImplementation(async () => {
         setTimeout(() => miniProgram.emit('exception', { message: 'secret runtime detail' }), 1)
-        return { id: 'foundation-ready' }
+        return { id: 'home-ready' }
       }),
     }
     miniProgram.reLaunch.mockResolvedValue(page)
+    const runner = module.createDevtoolsSmokeRunner({
+      automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
+      pollIntervalMs: 1,
+      timeouts: { acceptanceMs: 20, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20 },
+    })
+
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(
+      '运行时异常',
+    )
+    expect(miniProgram.close).toHaveBeenCalledOnce()
+  })
+
+  test('找房页 ready 后验收窗口出现运行时异常仍然失败', async () => {
+    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+    const miniProgram = Object.assign(new EventEmitter(), {
+      reLaunch: vi.fn(),
+      switchTab: vi.fn(),
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+    })
+    miniProgram.reLaunch.mockResolvedValue({
+      path: 'pages/home/index',
+      $: vi.fn().mockResolvedValue({ id: 'home-ready' }),
+    })
+    miniProgram.switchTab.mockResolvedValue({
+      path: 'pages/listings/index',
+      $: vi.fn().mockImplementation(async () => {
+        setTimeout(() => miniProgram.emit('exception', { message: 'secret runtime detail' }), 1)
+        return { id: 'listings-ready' }
+      }),
+    })
     const runner = module.createDevtoolsSmokeRunner({
       automator: { launch: vi.fn().mockResolvedValue(miniProgram) },
       pollIntervalMs: 1,
@@ -226,14 +290,24 @@ describe('devtools:smoke', () => {
     )
   })
 
-  test('路由和 ready 各自有明确超时，并在超时后关闭', async () => {
+  test('两个页面的路由和 ready 各自有明确超时，并在超时后关闭', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
 
-    for (const mode of ['route', 'ready'] as const) {
-      const page = { path: 'pages/foundation/index', $: vi.fn().mockResolvedValue(null) }
+    for (const mode of ['home-route', 'home-ready', 'listings-route', 'listings-ready'] as const) {
+      const homePage = {
+        path: 'pages/home/index',
+        $: vi.fn().mockResolvedValue(mode === 'home-ready' ? null : {}),
+      }
+      const listingsPage = {
+        path: 'pages/listings/index',
+        $: vi.fn().mockResolvedValue(mode === 'listings-ready' ? null : {}),
+      }
       const miniProgram = Object.assign(new EventEmitter(), {
         reLaunch: vi.fn().mockImplementation(() =>
-          mode === 'route' ? new Promise(() => {}) : Promise.resolve(page),
+          mode === 'home-route' ? new Promise(() => {}) : Promise.resolve(homePage),
+        ),
+        switchTab: vi.fn().mockImplementation(() =>
+          mode === 'listings-route' ? new Promise(() => {}) : Promise.resolve(listingsPage),
         ),
         close: vi.fn().mockResolvedValue(undefined),
         disconnect: vi.fn(),
@@ -245,7 +319,7 @@ describe('devtools:smoke', () => {
       })
 
       await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(
-        mode === 'route' ? '路由超时' : 'ready 超时',
+        mode.endsWith('route') ? '路由超时' : 'ready 超时',
       )
       expect(miniProgram.close).toHaveBeenCalledOnce()
     }
@@ -270,16 +344,19 @@ describe('devtools:smoke', () => {
     })
 
     await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(
-      'foundation 路由不匹配',
+      '首页路由不匹配',
     )
     expect(miniProgram.disconnect).toHaveBeenCalledOnce()
   })
 
   test('主流程成功但关闭失败时 fail closed 并执行 disconnect', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
-    const page = { path: 'pages/foundation/index', $: vi.fn().mockResolvedValue({}) }
+    const page = { path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn().mockResolvedValue(page),
+      switchTab: vi
+        .fn()
+        .mockResolvedValue({ path: 'pages/listings/index', $: vi.fn().mockResolvedValue({}) }),
       close: vi.fn().mockRejectedValue(new Error('close detail')),
       disconnect: vi.fn(),
     })
@@ -324,6 +401,50 @@ describe('devtools:smoke', () => {
     expect(entry.indexOf('requireDevtoolsCli')).toBeLessThan(
       entry.indexOf("import('miniprogram-automator')"),
     )
+  })
+
+  test('失败入口在存在活跃句柄时仍会在明确上限内以非零码退出', () => {
+    const evaluation = `
+      import { main } from ${JSON.stringify(pathToFileURL(scripts.devtoolsSmoke).href)};
+      setInterval(() => {}, 1_000);
+      await main({
+        cleanupGraceMs: 25,
+        run: async () => { throw new Error('injected launch failure'); },
+      });
+      process.stdout.write('main-returned-without-exit');
+    `
+    const startedAt = Date.now()
+    const result = spawnSync(process.execPath, ['--input-type=module', '--eval', evaluation], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+      env: cleanEnvironment(),
+      timeout: 1_500,
+    })
+    const elapsedMs = Date.now() - startedAt
+
+    expect(result.signal, outputOf(result)).toBeNull()
+    expect(result.status, outputOf(result)).toBe(1)
+    expect(elapsedMs).toBeLessThan(1_000)
+    expect(outputOf(result)).not.toContain('main-returned-without-exit')
+  })
+
+  test('成功入口不强制退出，调用方仍可继续执行', () => {
+    const evaluation = `
+      import { main } from ${JSON.stringify(pathToFileURL(scripts.devtoolsSmoke).href)};
+      await main({ run: async () => {} });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      process.stdout.write('continued-after-success');
+    `
+    const result = spawnSync(process.execPath, ['--input-type=module', '--eval', evaluation], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+      env: cleanEnvironment(),
+      timeout: 1_500,
+    })
+
+    expect(result.signal, outputOf(result)).toBeNull()
+    expect(result.status, outputOf(result)).toBe(0)
+    expect(outputOf(result)).toContain('continued-after-success')
   })
 })
 

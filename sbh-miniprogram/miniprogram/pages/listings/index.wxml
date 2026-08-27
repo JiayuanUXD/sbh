@@ -1,0 +1,111 @@
+<view id="listings-ready" class="listings-page">
+  <view class="listings-filter-shell">
+    <filter-bar
+      query="{{query}}"
+      active-count="{{activeFilterCount}}"
+      bindopen="handleOpenFilter"
+    />
+  </view>
+
+  <view wx:if="{{state === 'loading'}}" class="listings-loading">
+    <sbh-skeleton rows="4" with-media />
+    <sbh-skeleton rows="4" with-media />
+    <sbh-skeleton rows="4" with-media />
+  </view>
+
+  <view wx:elif="{{state === 'error'}}" class="listings-error">
+    <sbh-state
+      kind="error"
+      title="房源暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="handleRetry"
+    />
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{refreshError}}" class="listings-refresh-error" aria-role="status">
+      刷新未完成，当前仍显示上次房源
+    </view>
+
+    <view wx:if="{{state === 'ready'}}" class="listings-summary">
+      <text class="num">共 {{totalDocs}} 套</text>
+      <text class="listings-summary__hint">结果按当前计价单位独立展示</text>
+    </view>
+
+    <view wx:if="{{state === 'ready'}}" class="listings-list">
+      <listing-card
+        wx:for="{{items}}"
+        wx:key="id"
+        listing="{{item}}"
+        bindopen="handleListingOpen"
+      />
+
+      <view wx:if="{{loadingMore}}" class="listings-loading-more" aria-role="status">
+        正在加载更多房源
+      </view>
+      <view
+        wx:elif="{{loadMoreError}}"
+        class="listings-load-more-error"
+        hover-class="listings-load-more-error--pressed"
+        aria-role="button"
+        bindtap="handleRetryLoadMore"
+      >加载更多失败，点此重试</view>
+      <view wx:elif="{{!hasNextPage}}" class="listings-end">已展示全部房源</view>
+    </view>
+
+    <view wx:if="{{state === 'empty'}}" class="listings-empty">
+      <view class="listings-empty__intro">
+        <view class="listings-empty__title">没有找到符合当前条件的房源</view>
+        <view class="listings-empty__description">可以逐项放宽条件，继续查看真实房源数量。</view>
+      </view>
+
+      <view class="listings-empty__relaxations">
+        <view class="listings-empty__section-title">逐项放宽</view>
+        <view wx:if="{{loadingRelaxations}}" class="listings-empty__loading" aria-role="status">
+          正在查询可放宽的条件
+        </view>
+        <view
+          wx:for="{{relaxations}}"
+          wx:key="dimension"
+          class="listings-relaxation"
+          hover-class="listings-relaxation--pressed"
+          aria-role="button"
+          data-query="{{item.query}}"
+          bindtap="handleApplyRelaxation"
+        >
+          <text>{{item.label}}</text>
+          <text class="listings-relaxation__count num">{{item.count}} 套</text>
+        </view>
+        <view wx:if="{{!loadingRelaxations && !relaxations.length}}" class="listings-empty__no-relaxation">
+          暂无可验证的放宽建议
+        </view>
+      </view>
+
+      <view
+        class="listings-empty__clear"
+        hover-class="listings-empty__clear--pressed"
+        aria-role="button"
+        bindtap="handleClearAll"
+      >清除全部条件</view>
+
+      <view class="listings-empty__advisor" aria-role="note">
+        顾问找房功能即将开放
+      </view>
+    </view>
+  </block>
+
+  <filter-sheet
+    open="{{sheetOpen}}"
+    section="{{sheetSection}}"
+    query="{{query}}"
+    filters="{{filters}}"
+    result-count="{{estimatedCount}}"
+    estimating="{{estimating}}"
+    estimate-unavailable="{{estimateUnavailable}}"
+    bindestimate="handleFilterEstimate"
+    bindclear="handleFilterClear"
+    bindapply="handleFilterApply"
+    bindclose="handleFilterClose"
+  />
+</view>

@@ -1,10 +1,20 @@
 {
-  "pages": ["pages/foundation/index"],
+  "pages": ["pages/home/index", "pages/listings/index", "pages/foundation/index"],
   "window": {
     "navigationBarTitleText": "SBH 商办租赁",
     "navigationBarBackgroundColor": "#ffffff",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#f2f2f4"
+  },
+  "tabBar": {
+    "color": "#6e6e73",
+    "selectedColor": "#1d1d1f",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/index", "text": "首页" },
+      { "pagePath": "pages/listings/index", "text": "找房" }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"
