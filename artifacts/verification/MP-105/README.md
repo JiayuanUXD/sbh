@@ -6,8 +6,8 @@
 ## 证据身份
 
 - 分支：`feat/miniprogram-mvp-59f9`
-- 目标 commit：待本轮代码提交后填写
-- 工作树：本轮验证时必须单独记录；用户未跟踪的 `docs/SBH小程序页面设计/` 不属于交付物
+- 目标代码 commit：`e3b44d4`（`feat: 增加小程序预发布安全闸门`）
+- 验证时工作树：交付文件已提交；仅保留用户未跟踪的 `docs/SBH小程序页面设计/`，不属于交付物
 - staging API host：未提供
 - staging deployment revision：未提供
 - staging 数据库指纹：未提供
