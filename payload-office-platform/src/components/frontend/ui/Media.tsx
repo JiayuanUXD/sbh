@@ -38,11 +38,20 @@ type Props = {
   className?: string
   /** HTML sizes 属性：告诉浏览器该图在版面里的显示宽度，指导它从 srcset 选档 */
   sizes?: string
+  /**
+   * 图片是纯装饰：同一可点击区域内已有可见文字表达同样的信息（如卡片标题），
+   * 图片本身不承载额外信息。开启后 `media.alt` / `fallbackAlt` 一律不使用——
+   * 正常渲染时 `alt=""`；加载失败或缺失渲染占位块时整体对辅助技术隐藏
+   * （不发 `role="img"` / `aria-label`），因为占位块的文案是给"图坏了"这件事
+   * 本身的说明，装饰图坏了不该让读屏用户听到一段和卡片主体重复的公告。
+   * OPT-059：首页「按类型浏览」「热门商圈」卡片属此类——图旁边就是类型名/商圈名。
+   */
+  decorative?: boolean
 }
 
-export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, className, sizes }: Props) {
+export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, className, sizes, decorative = false }: Props) {
   const [errored, setErrored] = useState(false)
-  const alt = media?.alt || fallbackAlt || ''
+  const alt = decorative ? '' : media?.alt || fallbackAlt || ''
   const ratioStyle = ratio !== 'auto' ? { aspectRatio: ratio.replace('/', ' / ') } : undefined
 
   if (!media?.src || errored) {
@@ -51,8 +60,9 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
       <div
         className={['media-placeholder', className ?? ''].filter(Boolean).join(' ')}
         style={ratioStyle}
-        role="img"
-        aria-label={alt || (missing ? '暂无图片' : '图片加载失败')}
+        role={decorative ? undefined : 'img'}
+        aria-hidden={decorative ? 'true' : undefined}
+        aria-label={decorative ? undefined : alt || (missing ? '暂无图片' : '图片加载失败')}
         data-media-state={missing ? 'missing' : 'errored'}
       >
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">

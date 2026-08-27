@@ -207,7 +207,10 @@
   /* 图区退成 28px 宽的编号列（DOM 不变，编号本来就挂在图区里） */
   .hm-type-card__media { width: 28px; height: auto; align-self: stretch;
     background: transparent; display: flex; align-items: center; }
-  .hm-type-card__media img, .hm-type-card__media .sf-scrim { display: none; }
+  /* OPT-059 复核：这里现在可能渲染 .media-placeholder（图片加载失败时），
+     不只是 img——占位块自带底色与 100% 宽高，不隐藏的话会在这条 28px 窄的
+     编号列里挤出一块底色。 */
+  .hm-type-card__media img, .hm-type-card__media .sf-scrim, .hm-type-card__media .media-placeholder { display: none; }
   .hm-type-card__no { position: static; color: var(--ink-2); }
   .hm-type-card__body { flex: 1; gap: 4px; padding: 0; }
   .hm-type-card__sub { font-size: 14px; line-height: 1.43; }

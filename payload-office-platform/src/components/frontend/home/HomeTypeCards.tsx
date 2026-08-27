@@ -56,7 +56,9 @@ export default function HomeTypeCards({ typeSummaries, citySlug, cards }: Readon
                       // 类型卡图区固定 168px 高、桌面五等分（1440 视口下约 229px 宽），
                       // ≤767px 时 home.css:210 把图整个 display:none。所以 sizes 只需
                       // 描述桌面档，移动端不会真的去下载。
-                      <Media media={summary.cover} ratio="auto" sizes="(max-width: 767px) 0px, 320px" />
+                      // decorative：类型名/在租套数已是可见文字，图片不承载额外信息，
+                      // 不能让读屏用户听到某条具体房源的标题（见 OPT-059 复核）。
+                      <Media media={summary.cover} ratio="auto" sizes="(max-width: 767px) 0px, 320px" decorative />
                     ) : null}
                     <span className="sf-scrim" aria-hidden="true" />
                     <span className="hm-type-card__no sf-num">{no}</span>

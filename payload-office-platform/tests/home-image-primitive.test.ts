@@ -33,4 +33,13 @@ describe('首页图卡走共享图片原语', () => {
     expect(BENTO).toContain('sf-scrim')
     expect(BENTO).toContain('data-event-name="home_district_click"')
   })
+
+  // OPT-059 复核：两处图旁边都已有可见的类型名/商圈名文字，图片不承载额外
+  // 信息，必须用 decorative 让 Media 对辅助技术完全静默——否则 alt 会取到
+  // 真实数据里某条具体房源的标题，读屏用户会听到一段无关公告。锁住这两个
+  // 调用处确实传了 decorative，防止以后有人在重构时顺手删掉。
+  it('两处调用都显式声明 decorative（图片旁已有可见文字，不能读出无关 alt）', () => {
+    expect(TYPE_CARDS).toMatch(/<Media\b[^>]*\bdecorative\b[^>]*\/>/)
+    expect(BENTO).toMatch(/<Media\b[^>]*\bdecorative\b[^>]*\/>/)
+  })
 })

@@ -97,4 +97,52 @@ describe('frontend media fallback', () => {
     expect(surface).toMatch(/\.sf-media img\s*\{[^}]*object-position:\s*var\(--focal-x,\s*50%\)\s*var\(--focal-y,\s*50%\)/s)
     expect(home).toMatch(/\.hm-bento-card img\s*\{[^}]*object-position:\s*var\(--focal-x,\s*50%\)\s*var\(--focal-y,\s*50%\)/s)
   })
+
+  // --- OPT-059 复核：decorative（装饰图对辅助技术完全静默）--------------------
+  //
+  // 首页「按类型浏览」「热门商圈」两处卡片，图片旁边就是可见的类型名/商圈名，
+  // 图片本身不承载额外信息。改动前两处都是 alt=""；换成 Media 后如果不传
+  // decorative，alt 会取到 media.alt（真实数据里是某条具体房源的标题），读屏
+  // 用户会听到一段和卡片主体无关的公告——这是决不能带来的前台回归。
+
+  it('decorative 正常渲染时 alt 恒为空，忽略 media.alt / fallbackAlt', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, {
+        media: { ...SIZED, alt: '静安中心 · 联合办公详情页标题' },
+        fallbackAlt: '这个也不该出现',
+        decorative: true,
+      }),
+    )
+    expect(html).toContain('alt=""')
+    expect(html).not.toContain('静安中心 · 联合办公详情页标题')
+    expect(html).not.toContain('这个也不该出现')
+  })
+
+  it('decorative 占位分支（缺失或加载失败）整体对辅助技术隐藏，不发 role="img"', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, {
+        media: null,
+        fallbackAlt: '这个也不该被读出来',
+        decorative: true,
+      }),
+    )
+    expect(html).toContain('media-placeholder')
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).not.toContain('role="img"')
+    expect(html).not.toContain('aria-label')
+    expect(html).not.toContain('这个也不该被读出来')
+  })
+
+  it('非 decorative 时占位分支保持原有 role="img" + aria-label 行为不变', () => {
+    const html = renderToStaticMarkup(
+      createElement(Media, { media: null, fallbackAlt: '外滩源 · 共享办公' }),
+    )
+    // 装饰图标 svg 本身一直带 aria-hidden="true"（不受 decorative 影响），所以
+    // 这里只断言外层 .media-placeholder 容器没有被打上 aria-hidden，不能整段
+    // 字符串比对。
+    const containerTag = html.match(/^<div class="media-placeholder"[^>]*>/)?.[0] ?? ''
+    expect(html).toContain('role="img"')
+    expect(html).toContain('aria-label="外滩源 · 共享办公"')
+    expect(containerTag).not.toContain('aria-hidden')
+  })
 })

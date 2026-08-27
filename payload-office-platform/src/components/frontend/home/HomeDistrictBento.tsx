@@ -28,7 +28,9 @@ function BentoCard({ card, prefix, sizeClass }: Readonly<{
       {card.coverImage ? (
         // bento 三档坑位宽度差得远（大卡约占容器 2/3，小卡/宽卡各约 1/3），
         // 用最大的那档报 sizes：报小了浏览器会选到糊图，报大了只是多下一档。
-        <Media media={card.coverImage} ratio="auto" sizes="(max-width: 767px) 100vw, 800px" />
+        // decorative：商圈名已是同一卡片内的可见文字，图片不承载额外信息
+        // （见 OPT-059 复核）。
+        <Media media={card.coverImage} ratio="auto" sizes="(max-width: 767px) 100vw, 800px" decorative />
       ) : null}
       <span className="sf-scrim" aria-hidden="true" />
       <span className="hm-bento-card__label">
