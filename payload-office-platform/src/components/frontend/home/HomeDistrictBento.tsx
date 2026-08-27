@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { Media } from '@/components/frontend/ui/Media'
 import type { DistrictCardViewModel } from '@/domain/public-catalog/contracts'
 
 /**
@@ -25,7 +26,9 @@ function BentoCard({ card, prefix, sizeClass }: Readonly<{
       data-event-name="home_district_click"
     >
       {card.coverImage ? (
-        <img src={card.coverImage.src} alt="" loading="lazy" decoding="async" />
+        // bento 三档坑位宽度差得远（大卡约占容器 2/3，小卡/宽卡各约 1/3），
+        // 用最大的那档报 sizes：报小了浏览器会选到糊图，报大了只是多下一档。
+        <Media media={card.coverImage} ratio="auto" sizes="(max-width: 767px) 100vw, 800px" />
       ) : null}
       <span className="sf-scrim" aria-hidden="true" />
       <span className="hm-bento-card__label">

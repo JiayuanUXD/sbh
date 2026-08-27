@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { Media } from '@/components/frontend/ui/Media'
 import type { HomepageTypeSummary } from '@/domain/public-catalog/contracts'
 
 /**
@@ -51,7 +52,12 @@ export default function HomeTypeCards({ typeSummaries, citySlug, cards }: Readon
               <li key={card.slot}>
                 <Link href={`${prefix}${target.href}`} prefetch={false} className="sf-card hm-type-card" data-event-name={target.event}>
                   <span className="sf-media hm-type-card__media">
-                    {summary?.cover ? <img src={summary.cover.src} alt="" loading="lazy" decoding="async" /> : null}
+                    {summary?.cover ? (
+                      // 类型卡图区固定 168px 高、桌面五等分（1440 视口下约 229px 宽），
+                      // ≤767px 时 home.css:210 把图整个 display:none。所以 sizes 只需
+                      // 描述桌面档，移动端不会真的去下载。
+                      <Media media={summary.cover} ratio="auto" sizes="(max-width: 767px) 0px, 320px" />
+                    ) : null}
                     <span className="sf-scrim" aria-hidden="true" />
                     <span className="hm-type-card__no sf-num">{no}</span>
                   </span>
