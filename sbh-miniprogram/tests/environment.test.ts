@@ -21,10 +21,47 @@ afterEach(() => {
 describe('运行环境选择', () => {
   it.each([
     ['develop', { stage: 'development', apiBaseUrl: 'http://127.0.0.1:3717' }],
-    ['trial', { stage: 'staging', apiBaseUrl: 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com' }],
     ['release', { stage: 'production', apiBaseUrl: 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com' }],
   ] as const)('将 %s 映射为预期的运行环境', (envVersion, expected) => {
     expect(resolveRuntimeEnvironment(envVersion)).toEqual(expected)
+  })
+
+  it('trial 未配置独立预发布 API 时 fail-closed，不返回生产 origin', () => {
+    expect(() => resolveRuntimeEnvironment('trial')).toThrow(/独立预发布 API 未配置/)
+    Object.defineProperty(globalThis, 'wx', {
+      configurable: true,
+      value: { getAccountInfoSync: () => ({ miniProgram: { envVersion: 'trial' } }) },
+    })
+    expect(() => getCurrentRuntimeEnvironment()).toThrow(/独立预发布 API 未配置/)
+  })
+
+  it('trial 未来配置必须是经过基址校验的非本机 HTTPS origin', () => {
+    const manifest = { apiBaseUrl: 'https://staging.example.com/', gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' }
+    expect(resolveRuntimeEnvironment('trial', { trialManifest: manifest })).toEqual({
+      stage: 'staging', apiBaseUrl: 'https://staging.example.com', deploymentIdentity: { gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' },
+    })
+    expect(() => resolveRuntimeEnvironment('trial', { trialManifest: { ...manifest, apiBaseUrl: 'http://staging.example.com' } })).toThrow(/HTTPS/)
+  })
+
+  it('读取完整 manifest seam 后返回 staging 与部署身份', () => {
+    expect(resolveRuntimeEnvironment('trial', {
+      trialManifest: {
+        apiBaseUrl: 'https://staging.example.com',
+        gitCommitSha: 'b'.repeat(40),
+        serverDeploymentRevision: 'rev-manifest',
+      },
+    })).toEqual({
+      stage: 'staging',
+      apiBaseUrl: 'https://staging.example.com',
+      deploymentIdentity: { gitCommitSha: 'b'.repeat(40), serverDeploymentRevision: 'rev-manifest' },
+    })
+  })
+
+  it.each([
+    'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com',
+    'HTTPS://SBH-286300-10-1253925058.SH.RUN.TCLOUDBASE.COM:0443/',
+  ])('trial 拒绝规范化后等同 release 的 API origin：%s', (apiBaseUrl) => {
+    expect(() => resolveRuntimeEnvironment('trial', { trialManifest: { apiBaseUrl, gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' } })).toThrow(/独立预发布 API/)
   })
 
   it('对未知的小程序版本拒绝继续运行', () => {
@@ -38,15 +75,12 @@ describe('运行环境选择', () => {
       configurable: true,
       value: {
         getAccountInfoSync: () => ({
-          miniProgram: { envVersion: 'trial' satisfies MiniProgramEnvVersion },
+          miniProgram: { envVersion: 'develop' satisfies MiniProgramEnvVersion },
         }),
       },
     })
 
-    expect(getCurrentRuntimeEnvironment()).toEqual({
-      stage: 'staging',
-      apiBaseUrl: 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com',
-    })
+    expect(getCurrentRuntimeEnvironment()).toEqual({ stage: 'development', apiBaseUrl: 'http://127.0.0.1:3717' })
   })
 })
 
@@ -83,6 +117,12 @@ describe('API 基址校验', () => {
     'https://[::1]',
     'https://[0:0:0:0:0:0:0:1]',
     'https://127.0.0.2',
+    'https://127.1',
+    'https://2130706433',
+    'https://0x7f000001',
+    'https://017700000001',
+    'https://127.0.1',
+    'https://127.000.000.001',
   ])('在预发布和生产环境拒绝 IP 字面量 %s', (value) => {
     expect(() => assertApiBaseUrl(value, false)).toThrow(/HTTPS 域名/)
   })
