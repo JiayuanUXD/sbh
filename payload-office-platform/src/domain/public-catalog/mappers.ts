@@ -342,6 +342,57 @@ export function resolveListingPrice(raw: unknown): PriceViewModel | null {
   )
 }
 
+/** Task 1 定义的档位，顺序即宽度升序 */
+const MEDIA_SIZE_NAMES = ['thumb', 'card', 'hero'] as const
+
+type RawSize = { url?: string | null; width?: number | null }
+
+/**
+ * 把 `raw.sizes` 投影为按宽度升序的 variants。
+ *
+ * 每档 URL **各自**过一遍 `normalizePublicMediaUrl`：派生图 URL 与主图同构
+ * （COS 模式下插件 afterRead 同样追加 `?prefix=media`），但同构不等于可信，
+ * 未校验的值不得直出 DTO。单档不合格只丢该档，不牵连整张图。
+ */
+function mapMediaVariants(raw: Media): MediaViewModel['variants'] {
+  const sizes = (raw as { sizes?: Record<string, RawSize | null | undefined> }).sizes
+  if (!sizes) return undefined
+  const variants: Array<{ src: string; width: number }> = []
+  for (const name of MEDIA_SIZE_NAMES) {
+    const size = sizes[name]
+    const src = normalizePublicMediaUrl(size?.url)
+    const width = size?.width
+    if (!src || typeof width !== 'number' || !Number.isFinite(width) || width <= 0) continue
+    variants.push({ src, width })
+  }
+  if (variants.length === 0) return undefined
+  variants.sort((a, b) => a.width - b.width)
+  return variants
+}
+
+/** 两轴同时有效才返回，理由见 MediaViewModel.focal 的注释 */
+function mapMediaFocal(raw: Media): MediaViewModel['focal'] {
+  const x = raw.focalX
+  const y = raw.focalY
+  if (typeof x !== 'number' || !Number.isFinite(x)) return undefined
+  if (typeof y !== 'number' || !Number.isFinite(y)) return undefined
+  return { x, y }
+}
+
+/**
+ * 从派生尺寸里挑一个适合目标宽度的 src：宽度 ≥ target 的最小档；
+ * 都不够大就取最大档；没有派生就回落原图。
+ *
+ * 用于卡片链路把封面换成小图（OPT-047 的 2MB 缓存上限不允许在卡片里再加字段，
+ * 所以是**换值**而非加字段，见 mapListingCard）。
+ */
+export function pickVariantSrc(media: MediaViewModel, targetWidth: number): string {
+  const variants = media.variants
+  if (!variants || variants.length === 0) return media.src
+  const enough = variants.find((v) => v.width >= targetWidth)
+  return (enough ?? variants[variants.length - 1]).src
+}
+
 /** 把 Media 投影为 MediaViewModel；非媒体或无 url 返回 null */
 export function mapMedia(
   raw: unknown,
@@ -356,6 +407,8 @@ export function mapMedia(
     height: raw.height ?? undefined,
     alt: raw.alt || fallbackAlt,
     blurDataURL: raw.blurDataUrl ?? undefined,
+    variants: mapMediaVariants(raw),
+    focal: mapMediaFocal(raw),
   }
 }
 
