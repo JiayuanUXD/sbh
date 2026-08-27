@@ -18,7 +18,7 @@
  *
  * 否则名单会退化成「往里塞就绿了」，守卫等于不存在。
  */
-import { readdir } from 'node:fs/promises'
+import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -78,6 +78,25 @@ describe('导航目标池与实际路由双向一致', () => {
       broken.map((t) => `${t.id} → ${t.href}`),
       '这些导航目标指向不存在的路由，运营一旦选中就是线上死链',
     ).toEqual([])
+  })
+
+  /**
+   * 根路径目标（`/`）拆不出首段，会被上一条用例的 `first !== undefined` 直接跳过——
+   * 也就是说它**根本没被那条守卫覆盖**。加「首页」目标时才暴露出这个盲区：
+   * 上一条不是"验过了通过"，而是"没验"。这两种结果在测试报告里长得一模一样，
+   * 正是最容易骗过人的一类假绿。
+   */
+  it('池 → 路由：根路径目标必须对应真实存在的首页文件', async () => {
+    const rootTargets = NAV_TARGETS.filter(
+      (t) => t.href.split('?')[0].split('/').filter(Boolean).length === 0,
+    )
+    if (rootTargets.length === 0) return
+
+    const rootPage = await stat(join(FRONTEND, 'page.tsx')).catch(() => null)
+    expect(
+      rootPage?.isFile() ?? false,
+      `${rootTargets.map((t) => t.id).join(' / ')} 指向根路径，但 (frontend)/page.tsx 不存在`,
+    ).toBe(true)
   })
 
   it('路由 → 池：每个顶层公开路由要么可选为导航目标，要么在豁免名单里', async () => {
