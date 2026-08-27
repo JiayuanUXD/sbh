@@ -21,6 +21,7 @@ import {
   mapListingDetail,
   mapMedia,
   mapPrice,
+  pickVariantSrc,
   setBusinessTypeWarnHandler,
 } from '@/domain/public-catalog'
 import {
@@ -50,6 +51,28 @@ const BUILDING_HANGZHOU = {
   slug: 'hangzhou-center',
   name: '杭州中心',
   city: CITY_HANGZHOU,
+}
+
+// OPT-059：卡片链路收窄用的封面夹具（见 mapListingCard describe 块）
+const SIZED_COVER = {
+  ...MEDIA_COVER_A,
+  focalX: 30,
+  focalY: 70,
+  sizes: {
+    thumb: { url: '/media/cover-320.webp', width: 320 },
+    card: { url: '/media/cover-768.webp', width: 768 },
+    hero: { url: '/media/cover-1600.webp', width: 1600 },
+  },
+}
+
+const LISTING_WITH_SIZED_COVER: typeof LISTING_MONTHLY_STANDARD = {
+  ...LISTING_MONTHLY_STANDARD,
+  coverImage: SIZED_COVER,
+}
+
+const LISTING_WITH_PLAIN_COVER: typeof LISTING_MONTHLY_STANDARD = {
+  ...LISTING_MONTHLY_STANDARD,
+  coverImage: MEDIA_COVER_A,
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +349,104 @@ describe('mapMedia', () => {
       'fallback',
     )
     expect(m?.blurDataURL).toBe('data:image/jpeg;base64,xxx')
+  })
+
+  // --- OPT-059：派生尺寸与焦点 ---------------------------------------------
+
+  const WITH_SIZES = {
+    ...MEDIA_COVER_A,
+    sizes: {
+      thumb: { url: '/media/cover-320.webp', width: 320 },
+      card: { url: '/media/cover-768.webp', width: 768 },
+      hero: { url: '/media/cover-1600.webp', width: 1600 },
+    },
+  }
+
+  it('派生尺寸按宽度升序投影为 variants', () => {
+    const m = mapMedia(WITH_SIZES, 'fallback')
+    expect(m?.variants).toEqual([
+      { src: '/media/cover-320.webp', width: 320 },
+      { src: '/media/cover-768.webp', width: 768 },
+      { src: '/media/cover-1600.webp', width: 1600 },
+    ])
+  })
+
+  it('存量图无派生 → variants 缺省，src 仍是原图（回落契约）', () => {
+    const m = mapMedia(MEDIA_COVER_A, 'fallback')
+    expect(m?.variants).toBeUndefined()
+    expect(m?.src).toBe('/media/cover-jingan-center.jpg')
+  })
+
+  it('withoutEnlargement 导致宽度小于标称值时按实际宽度投影', () => {
+    const m = mapMedia(
+      { ...MEDIA_COVER_A, sizes: { card: { url: '/media/small.webp', width: 500 } } },
+      'fallback',
+    )
+    expect(m?.variants).toEqual([{ src: '/media/small.webp', width: 500 }])
+  })
+
+  it.each([
+    '//cdn.example.com/office.jpg',
+    'javascript:alert(1)',
+    'https://user:pass@cdn.example.com/office.jpg',
+  ])('不安全的派生图 URL 被单独剔除，不污染 variants：%s', (url) => {
+    const m = mapMedia(
+      { ...MEDIA_COVER_A, sizes: { card: { url, width: 768 }, hero: { url: '/media/ok.webp', width: 1600 } } },
+      'fallback',
+    )
+    expect(m?.variants).toEqual([{ src: '/media/ok.webp', width: 1600 }])
+  })
+
+  it('派生图缺 width 或 width 非正 → 该档丢弃（srcset 里没有宽度就没有意义）', () => {
+    const m = mapMedia(
+      { ...MEDIA_COVER_A, sizes: { card: { url: '/media/a.webp' }, hero: { url: '/media/b.webp', width: 0 } } },
+      'fallback',
+    )
+    expect(m?.variants).toBeUndefined()
+  })
+
+  it('焦点投影为 0-100 百分比', () => {
+    const m = mapMedia({ ...MEDIA_COVER_A, focalX: 30, focalY: 70 }, 'fallback')
+    expect(m?.focal).toEqual({ x: 30, y: 70 })
+  })
+
+  it('焦点为 null → 整个 focal 字段缺省（object-position: null% 会让声明整条失效）', () => {
+    const m = mapMedia({ ...MEDIA_COVER_A, focalX: null, focalY: null }, 'fallback')
+    expect(m?.focal).toBeUndefined()
+  })
+
+  it('焦点只有一个轴 → 视为无效，整个 focal 缺省', () => {
+    const m = mapMedia({ ...MEDIA_COVER_A, focalX: 30, focalY: null }, 'fallback')
+    expect(m?.focal).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// pickVariantSrc
+// ---------------------------------------------------------------------------
+
+describe('pickVariantSrc', () => {
+  const media = {
+    src: '/media/original.jpg',
+    alt: 'x',
+    variants: [
+      { src: '/media/320.webp', width: 320 },
+      { src: '/media/768.webp', width: 768 },
+      { src: '/media/1600.webp', width: 1600 },
+    ],
+  } as const
+
+  it('取宽度 ≥ target 的最小档', () => {
+    expect(pickVariantSrc(media, 768)).toBe('/media/768.webp')
+    expect(pickVariantSrc(media, 400)).toBe('/media/768.webp')
+  })
+
+  it('target 超过所有档位 → 取最大档', () => {
+    expect(pickVariantSrc(media, 4000)).toBe('/media/1600.webp')
+  })
+
+  it('无派生 → 回落原图 src', () => {
+    expect(pickVariantSrc({ src: '/media/original.jpg', alt: 'x' }, 768)).toBe('/media/original.jpg')
   })
 })
 
@@ -618,6 +739,30 @@ describe('mapListingCard', () => {
     for (const input of INVALID_INPUTS) {
       expect(mapListingCard(input)).toBeNull()
     }
+  })
+
+  // --- OPT-059 × OPT-047：卡片链路的体积纪律 -------------------------------
+
+  it('卡片封面剔掉 variants（OPT-047：unstable_cache 条目有 2MB 硬上限）', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.variants).toBeUndefined()
+    expect(card?.coverImage?.blurDataURL).toBeUndefined()
+  })
+
+  it('卡片封面的 src 换成 768w 派生图而非原图（换值不加字段，零净增长）', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.src).toBe('/media/cover-768.webp')
+  })
+
+  it('卡片封面保留 focal——卡片正是被 cover 裁切的地方，focal 在这里价值最高', () => {
+    const card = mapListingCard(LISTING_WITH_SIZED_COVER)
+    expect(card?.coverImage?.focal).toEqual({ x: 30, y: 70 })
+  })
+
+  it('存量图无派生 → 卡片封面回落原图，不报错', () => {
+    const card = mapListingCard(LISTING_WITH_PLAIN_COVER)
+    expect(card?.coverImage?.src).toBe('/media/cover-jingan-center.jpg')
+    expect(card?.coverImage?.variants).toBeUndefined()
   })
 })
 

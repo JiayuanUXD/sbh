@@ -34,6 +34,21 @@ export type MediaViewModel = Readonly<{
   height?: number
   alt: string
   blurDataURL?: string
+  /**
+   * 派生尺寸（OPT-059），按宽度升序。渲染层据此拼 srcset。
+   *
+   * **可选且可能缺省**：存量图片没有派生尺寸（不回填，见 spec §7），消费方
+   * 必须回落 `src`。宽度取 `sizes[].width` 的实际值——`withoutEnlargement`
+   * 会让小图的该档宽度小于标称值。
+   */
+  variants?: readonly Readonly<{ src: string; width: number }>[]
+  /**
+   * 裁切焦点百分比（0-100）。缺省表示居中，与改动前的 object-fit: cover 行为一致。
+   *
+   * 两轴必须同时有效才写——只写一轴会渲染出 `object-position: 30% null%`，
+   * 整条声明失效，比不写更糟。
+   */
+  focal?: Readonly<{ x: number; y: number }>
 }>
 
 /**

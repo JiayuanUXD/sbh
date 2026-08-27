@@ -36,5 +36,27 @@ export const Media: CollectionConfig = {
       admin: { hidden: true, readOnly: true },
     },
   ],
-  upload: true,
+  /**
+   * OPT-059：三档宽度型派生 + 焦点。
+   *
+   * 宽度型（只给 width、不给 height）而非定尺寸裁剪：bento 三种坑位
+   * （480 / 232 / 280）比例各不相同，一份派生图配合 CSS 的 object-fit + focal
+   * 定位可以通吃；服务端裁死反而没法适配。
+   *
+   * withoutEnlargement：小于目标宽度的原图跳过放大，避免造出比原图还大的
+   * 「派生图」。此时该档的 width 会小于标称值，故消费方必须按 sizes[].width
+   * 的实际值拼 srcset，不能假定它等于 320/768/1600。
+   *
+   * focalPoint 在 Payload 3.86 默认即为 true（uploads/types.d.ts:210-214），
+   * 显式写出是因为它是前台 object-position 的数据来源，不能被后来者当成
+   * 无用配置删掉。
+   */
+  upload: {
+    focalPoint: true,
+    imageSizes: [
+      { name: 'thumb', width: 320, withoutEnlargement: true, formatOptions: { format: 'webp' } },
+      { name: 'card', width: 768, withoutEnlargement: true, formatOptions: { format: 'webp' } },
+      { name: 'hero', width: 1600, withoutEnlargement: true, formatOptions: { format: 'webp' } },
+    ],
+  },
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { Media } from '@/components/frontend/ui/Media'
 import type { HomepageTypeSummary } from '@/domain/public-catalog/contracts'
 
 /**
@@ -51,7 +52,19 @@ export default function HomeTypeCards({ typeSummaries, citySlug, cards }: Readon
               <li key={card.slot}>
                 <Link href={`${prefix}${target.href}`} prefetch={false} className="sf-card hm-type-card" data-event-name={target.event}>
                   <span className="sf-media hm-type-card__media">
-                    {summary?.cover ? <img src={summary.cover.src} alt="" loading="lazy" decoding="async" /> : null}
+                    {summary?.cover ? (
+                      // 类型卡图区固定 168px 高，三段布局需要各报各的坑位宽：
+                      // ≤767px 时 home.css:213 把图元素 display:none，但主流浏览器
+                      // 对 display:none 的图片元素仍会发起请求——真正让移动端不下载
+                      // 大图的是 sizes 报的 0px 让浏览器选最小档，属无害的副作用，
+                      // 不是 display:none 本身省流量。768–1023px 时 home.css:199 把
+                      // .hm-types 变两列（图仍显示），坑位约容器一半宽，用 50vw
+                      // 近似；≥1024px 桌面五等分（1440 视口下约 229px 宽），320w
+                      // 档够用。
+                      // decorative：类型名/在租套数已是可见文字，图片不承载额外信息，
+                      // 不能让读屏用户听到某条具体房源的标题（见 OPT-059 复核）。
+                      <Media media={summary.cover} ratio="auto" sizes="(max-width: 767px) 0px, (max-width: 1023px) 50vw, 320px" decorative />
+                    ) : null}
                     <span className="sf-scrim" aria-hidden="true" />
                     <span className="hm-type-card__no sf-num">{no}</span>
                   </span>

@@ -22,6 +22,25 @@ export const MEDIA_1: Media = {
   height: 960,
 }
 
+/**
+ * OPT-059 最终审查修复：带派生尺寸 + 焦点的媒体夹具。
+ *
+ * 供 `getHomepage` 的 `typeSummaries.cover` 回归测试用——断言它带完整
+ * `variants`（而房源卡片链路的 `coverImage.variants` 仍必须是 `undefined`，
+ * 见 `tests/opt035-homepage-stats.test.ts`）。
+ */
+export const MEDIA_WITH_SIZES: Media = {
+  ...MEDIA_1,
+  id: 9002,
+  focalX: 30,
+  focalY: 70,
+  sizes: {
+    thumb: { url: '/media/type-thumb.webp', width: 320 },
+    card: { url: '/media/type-card.webp', width: 768 },
+    hero: { url: '/media/type-hero.webp', width: 1600 },
+  },
+} as unknown as Media
+
 export const CITY_SHANGHAI: Location = {
   id: 100,
   name: '上海',

@@ -342,6 +342,57 @@ export function resolveListingPrice(raw: unknown): PriceViewModel | null {
   )
 }
 
+/** Task 1 定义的档位，顺序即宽度升序 */
+const MEDIA_SIZE_NAMES = ['thumb', 'card', 'hero'] as const
+
+type RawSize = { url?: string | null; width?: number | null }
+
+/**
+ * 把 `raw.sizes` 投影为按宽度升序的 variants。
+ *
+ * 每档 URL **各自**过一遍 `normalizePublicMediaUrl`：派生图 URL 与主图同构
+ * （COS 模式下插件 afterRead 同样追加 `?prefix=media`），但同构不等于可信，
+ * 未校验的值不得直出 DTO。单档不合格只丢该档，不牵连整张图。
+ */
+function mapMediaVariants(raw: Media): MediaViewModel['variants'] {
+  const sizes = (raw as { sizes?: Record<string, RawSize | null | undefined> }).sizes
+  if (!sizes) return undefined
+  const variants: Array<{ src: string; width: number }> = []
+  for (const name of MEDIA_SIZE_NAMES) {
+    const size = sizes[name]
+    const src = normalizePublicMediaUrl(size?.url)
+    const width = size?.width
+    if (!src || typeof width !== 'number' || !Number.isFinite(width) || width <= 0) continue
+    variants.push({ src, width })
+  }
+  if (variants.length === 0) return undefined
+  variants.sort((a, b) => a.width - b.width)
+  return variants
+}
+
+/** 两轴同时有效才返回，理由见 MediaViewModel.focal 的注释 */
+function mapMediaFocal(raw: Media): MediaViewModel['focal'] {
+  const x = raw.focalX
+  const y = raw.focalY
+  if (typeof x !== 'number' || !Number.isFinite(x)) return undefined
+  if (typeof y !== 'number' || !Number.isFinite(y)) return undefined
+  return { x, y }
+}
+
+/**
+ * 从派生尺寸里挑一个适合目标宽度的 src：宽度 ≥ target 的最小档；
+ * 都不够大就取最大档；没有派生就回落原图。
+ *
+ * 用于卡片链路把封面换成小图（OPT-047 的 2MB 缓存上限不允许在卡片里再加字段，
+ * 所以是**换值**而非加字段，见 mapListingCard）。
+ */
+export function pickVariantSrc(media: MediaViewModel, targetWidth: number): string {
+  const variants = media.variants
+  if (!variants || variants.length === 0) return media.src
+  const enough = variants.find((v) => v.width >= targetWidth)
+  return (enough ?? variants[variants.length - 1]).src
+}
+
 /** 把 Media 投影为 MediaViewModel；非媒体或无 url 返回 null */
 export function mapMedia(
   raw: unknown,
@@ -356,6 +407,8 @@ export function mapMedia(
     height: raw.height ?? undefined,
     alt: raw.alt || fallbackAlt,
     blurDataURL: raw.blurDataUrl ?? undefined,
+    variants: mapMediaVariants(raw),
+    focal: mapMediaFocal(raw),
   }
 }
 
@@ -534,6 +587,27 @@ export function mapArticleDetail(raw: unknown): ArticleDetailViewModel | null {
 
 const MAX_CARD_HIGHLIGHTS = 3
 
+/** 房源卡片封面的目标宽度：对齐 Media 的 `card` 档（Task 1） */
+const LISTING_CARD_COVER_WIDTH = 768
+
+/**
+ * 房源封面的完整投影（含 `variants` / `focal`），不经卡片链路的收窄。
+ *
+ * 口径与 `mapListingCard` 内的 `rawCover` 完全一致（房源自身封面缺省时回退
+ * 楼盘封面）——两处都要覆盖，否则房源自己没传封面、只能吃楼盘封面兜底的那批
+ * 数据会在某一条链路上漏掉 variants。`mapListingCard` 出于 OPT-047/059 的
+ * 2MB 缓存红线必须把 `variants` 剔掉（见该函数内注释），但同一份完整投影
+ * 别处仍要用（如 OPT-059 facade 的 `typeSummaries` 聚合），故单独导出一份，
+ * 避免两条链路各写一遍取法、日后漂移。
+ */
+export function mapListingCoverFull(raw: unknown): MediaViewModel | null {
+  if (!isPopulatedListing(raw)) return null
+  const listing = raw as PopulatedListing
+  const fullBuilding = mapBuildingSummary(listing.building)
+  if (!fullBuilding) return null
+  return mapMedia(listing.coverImage, listing.title) ?? fullBuilding.coverImage ?? null
+}
+
 /**
  * 把 Payload Listing 文档投影为 ListingCardViewModel。
  *
@@ -547,7 +621,8 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
   const fullBuilding = mapBuildingSummary(listing.building)
   if (!fullBuilding) return null
 
-  // 楼盘封面是房源封面的兜底来源（房源没自己的图时用楼盘的）。
+  // 楼盘封面是房源封面的兜底来源（房源没自己的图时用楼盘的）。取法与
+  // mapListingCoverFull 保持一致（那边是本函数的完整版，专供不需要收窄的消费方）。
   const rawCover = mapMedia(listing.coverImage, listing.title) ?? fullBuilding.coverImage ?? null
 
   /**
@@ -563,7 +638,25 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
    * 保持原样——万一将来真要做模糊占位图，那些路径不受影响（它们也不受 2MB 上限
    * 约束，因为不走全量数组缓存）。
    */
-  const coverImage = rawCover ? { ...rawCover, blurDataURL: undefined } : null
+  /**
+   * OPT-059：卡片封面换成 768w 派生图，并剔掉 `variants`。
+   *
+   * **是换值不是加字段**——上面 OPT-047 的注释解释了为什么这条链路一个字节都
+   * 不能乱加：列表页 `unstable_cache` 缓存全量卡片数组，生产实测条目
+   * 2,278,117 字节已经贴着 Next.js 的 2MB 硬上限，超限是**静默失败**
+   * （页面照常 200，只有一行 stderr），revalidate 失效、每请求真打库。
+   *
+   * `focal` 是唯一的净增长（约 22 字节/卡，1000 卡约 22KB，占上限约 1%），
+   * 值得：卡片封面正是被 object-fit: cover 裁切的地方，焦点在这里收益最高。
+   */
+  const coverImage = rawCover
+    ? {
+        ...rawCover,
+        src: pickVariantSrc(rawCover, LISTING_CARD_COVER_WIDTH),
+        blurDataURL: undefined,
+        variants: undefined,
+      }
+    : null
 
   /**
    * 卡片里的 `building` **只保留卡片链路真正读取的字段**（OPT-047）。

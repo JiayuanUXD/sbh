@@ -60,6 +60,7 @@ import {
   mapArticleCard,
   mapArticleDetail,
   mapListingCard,
+  mapListingCoverFull,
   mapListingDetail,
   mapPageDetail,
   mapPageSummary,
@@ -959,14 +960,31 @@ export async function getHomepage(
     businessAreas: businessAreas.length,
   }
 
+  // typeSummaries 的封面走完整投影（含 variants/focal），不能复用 allCards 里
+  // 的 card.coverImage——那是 mapListingCard 为房源列表页的 unstable_cache 全量
+  // 数组缓存刻意剔掉 variants 后的收窄版（2MB 硬上限红线，见该函数注释），复用
+  // 会让首页类型卡的 srcset 链路整条死掉。getHomepage 本身也经 unstable_cache
+  // 缓存（见 cached-queries.ts 的 getCachedHomepage），但 typeSummaries 最多 5
+  // 个条目、每个多带的 variants 约 300 字节，量级几 KB，远够不到上限，不构成
+  // 体积风险，不必比照卡片链路收窄。
+  const listingById = new Map(allEffectiveListings.map((l) => [l.id, l] as const))
   const typeSummaries: Record<string, HomepageTypeSummary> = {}
   for (const card of allCards) {
     const key = card.listingType
     if (!key) continue
     const prev = typeSummaries[key]
+    if (prev) {
+      typeSummaries[key] = { count: prev.count + 1, cover: prev.cover }
+      continue
+    }
+    // 只在该类型第一次出现时才用完整封面口径重新投影（口径与
+    // mapListingCard 内 rawCover 一致：房源自身封面缺省时回退楼盘封面），
+    // 避免对全集房源逐条重复计算。
+    const rawListing = listingById.get(card.id)
+    const fullCover = rawListing ? mapListingCoverFull(rawListing) : null
     typeSummaries[key] = {
-      count: (prev?.count ?? 0) + 1,
-      cover: prev?.cover ?? card.coverImage ?? null,
+      count: 1,
+      cover: fullCover ?? card.coverImage ?? null,
     }
   }
 
