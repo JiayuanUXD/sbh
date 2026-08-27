@@ -3849,7 +3849,7 @@ export interface SiteSetting {
       }[]
     | null;
   /**
-   * 页头横向导航。超过 7 项在窄屏会挤，故设上限。logo 即回首页，不需要「首页」项。
+   * 页头横向导航。超过 8 项在窄屏会挤，故设上限。logo 本身也可点回首页，「首页」项是否保留由运营决定。
    */
   mainNav?:
     | {
@@ -3857,6 +3857,7 @@ export interface SiteSetting {
          * 从已上线的页面里选。选项由代码维护，与实际路由有双向守卫。
          */
         target:
+          | 'home'
           | 'listings'
           | 'buildings'
           | 'entrust'
@@ -3879,6 +3880,7 @@ export interface SiteSetting {
         links?:
           | {
               target:
+                | 'home'
                 | 'listings'
                 | 'buildings'
                 | 'entrust'

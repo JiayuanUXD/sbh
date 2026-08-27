@@ -66,6 +66,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
   // 与 public-nav.ts 的 MAIN_NAV_ITEMS / FOOTER_COLUMNS 逐条对应。
   // 那两个常量**保留不删**：它们既是这里的默认值来源，也是迁移执行前的兜底。
   mainNav: [
+    { href: '/', label: '首页' },
     { href: '/listings', label: '找办公室' },
     { href: '/buildings', label: '找楼盘' },
     { href: '/listings?type=coworking', label: '共享办公' },

@@ -57,15 +57,29 @@ function isDesktopNavigationViewport(): boolean {
  *   （如 /listings?type=serviced-office 仅在 type=serviced-office 时高亮）
  * - href 无 query 时：pathname 匹配即可，但若当前 URL 含更具体的 type 筛选
  *   则不高亮"在租房源"总览，避免与子分类同时高亮
+ * - `exact` 为真时只认全等，不做前缀匹配（首页专用，理由见下）
+ *
+ * 导出仅供单测：判错的表现是"两项同时高亮"，类型层与构建期都看不出来，
+ * 只能靠断言。见 tests/site-nav-current.test.ts。
  */
-function isCurrent(
+export function isCurrent(
   pathname: string,
   searchParams: Pick<ReadonlyURLSearchParams, 'get' | 'has'>,
   href: string,
+  exact = false,
 ): boolean {
   const [path, query = ''] = href.split('?')
   if (!path) return false
-  if (path === '/') return pathname === '/'
+  // 首页必须精确匹配，否则它会前缀命中自己底下的每一个页面。
+  //
+  // 原来只判 `path === '/'`，单城市模式下是对的。但多城市模式下
+  // `cityAwareHref` 把 `/` 重写成 `/shanghai`，于是落到下面那行前缀匹配——
+  // 在 /shanghai/buildings 上「首页」与「找楼盘」会**同时**带 aria-current="page"、
+  // 同时画激活下划线。移动抽屉共用这份判据，同样受影响。
+  //
+  // `exact` 由调用方按**重写前**的 item.href 是否为 `/` 决定，不靠路径形状去猜——
+  // 猜的话 `/listings`、`/news` 这些单段路径会被误判成首页，反而破坏现有高亮。
+  if (exact || path === '/') return pathname === path
   if (pathname !== path && !pathname.startsWith(path + '/')) return false
   if (query) {
     // href 含 query：当前 search 须包含 href 的全部 query 参数
@@ -186,7 +200,7 @@ export default function SiteNav({
       <nav className="site-nav" aria-label="主导航">
         {items.map((item) => {
           const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
-          const current = isCurrent(pathname, searchParams, href)
+          const current = isCurrent(pathname, searchParams, href, item.href === '/')
           return (
             <Link
               key={item.href}
@@ -298,7 +312,7 @@ export default function SiteNav({
             <nav className="mobile-drawer__nav" aria-label="主导航（移动）">
               {items.map((item) => {
                 const href = citySlug ? cityAwareHref(item.href, citySlug, multiCityRoutingEnabled) : item.href
-                const current = isCurrent(pathname, searchParams, href)
+                const current = isCurrent(pathname, searchParams, href, item.href === '/')
                 return (
                   <Link
                     key={item.href}

@@ -228,11 +228,13 @@ export const SiteSettings: GlobalConfig = {
               name: 'mainNav',
               label: '主导航',
               type: 'array',
-              maxRows: 7,
+              maxRows: 8,
               admin: {
-                description: '页头横向导航。超过 7 项在窄屏会挤，故设上限。logo 即回首页，不需要「首页」项。',
+                description:
+                  '页头横向导航。超过 8 项在窄屏会挤，故设上限。logo 本身也可点回首页，「首页」项是否保留由运营决定。',
               },
               defaultValue: [
+                { target: 'home', label: '首页', visible: true },
                 { target: 'listings', label: '找办公室', visible: true },
                 { target: 'buildings', label: '找楼盘', visible: true },
                 { target: 'listings-type-coworking', label: '共享办公', visible: true },
