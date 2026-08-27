@@ -306,3 +306,60 @@ import `site-settings.ts`**，否则守卫红且 `next build` 失败。
 
 `imageSizes` / `focal` 今天在 `tests/` 与 `src/collections/Media.ts` 均零覆盖
 ——属**新增测试**而非更新测试。
+
+---
+
+## 11. 实施后的遗留事项（2026-08-27 落地时登记）
+
+分支 `feat/opt-059-image-pipeline-4b3c`，11+3 个提交。六个任务各自过审，最终全分支
+审查另抓到一个**跨任务缺陷**（类型卡的 srcset 链路整条是死的——`typeSummaries` 的
+封面取自被 `mapListingCard` 收窄过的卡片，`variants` 早被剔掉；六轮逐任务审查全没
+看见，因为它跨在两个任务的接缝上），已修复并补了正反两条断言。
+
+以下是**明确搁置**的事项，按优先级：
+
+### 11.1 视觉验收未完成（必须在 OPT-060 上线前补）
+
+三张截图（`desktop.png` / `mobile.png` / `focal-effect.png`）因执行环境的
+Browser pane 不合成帧而无法产出。已完成的是**机制证据**：焦点选择器的渲染后 DOM、
+新图走 `.webp` 派生档 / 存量图回落原图的真实网络请求、两个断点的
+`getComputedStyle` 实测值。**没有证据支撑的是视觉结论**——「裁切构图合理、无拉伸」
+「焦点偏移后肉眼能看出裁切确实偏了」。
+
+补做步骤（不依赖当时的会话上下文）见
+`artifacts/verification/OPT-059/VISUAL-VERIFICATION-PENDING.md`。
+
+**为什么可以先合并、但必须在 OPT-060 前补**：这三项要验的东西只有在**运营新上传
+图片并设焦点之后**才可能出问题；而上线瞬间存量图零变化已由回落契约 + 单测 +
+网络请求证据覆盖。OPT-060 正是「让运营开始配图」的那一步。
+
+### 11.2 图片加载失败时的观感变了（错误路径）
+
+改动前两处是裸 `<img>`，失败就露出卡片的 `#8e8e93` 灰底；现在共享原语的
+`errored` 分支会渲染 `.media-placeholder`（浅色渐变 + 图标 + 「图片加载失败」文案）。
+**bento 卡的商圈名是白字**，压在浅色占位块上只有 `sf-scrim` 一层兜底，对比度掉档，
+且多出一段与卡片主体重复的可见文案。
+
+与之相关的还有一条：`HomeTypeCards` 的 `<span class="sf-media">` 内会渲染出
+`<div class="media-placeholder">`，属 HTML5 无效嵌套（浏览器不重排、无 hydration
+mismatch，只有校验器报错）。
+
+**两条一起修最省**：把占位块改成 `<span>` + `display: grid`，嵌套与配色一次解决。
+只在错误路径触发，故未阻塞合并。
+
+### 11.3 可选的小改进
+
+- `mappers.ts` 里 `raw.sizes` 那个 `Record<string, RawSize>` cast 是多余的。
+  **去掉它反而更安全**：`payload-types.ts` 生成的 `Media['sizes']` 已是
+  `{thumb?/card?/hero?}` 的精确形状，去 cast 后**改档位名会变成编译错误**——
+  等于把「档位名对不上 → 静默失效」这条风险从测试兜底升级为编译器兜底。
+- `tests/frontend-media-fallback.test.ts` 缺一条「传了 `sizes` 但无 `variants`」
+  的用例（实现是对的，纯覆盖盲区，约 5 行）。经变异测试确认这个洞是真的。
+- `Media` 的 `upload` 没设 `adminThumbnail: 'thumb'`，后台素材库列表仍在下载
+  原图。一行的收益。
+- `HomeDistrictBento` 的 `BENTO_SIZES` 键类型是 `Record<string, string>` 而非
+  `sizeClass` 的字面量联合——拼错不会被 TS 抓住，只会静默落到兜底值。
+- bento 三档的 `sizes`（`62vw` / `32vw` / `47vw`）只有 1440 视口一个实测点，
+  其余是手算反推取安全上界。复审独立核算确认**不存在选到更小档位的糊图风险**，
+  仅在 vw≈1232–1239 这个约 7px 宽的窗口里 main 卡会选 768 档而非 1600 档，
+  实际放大约 0.5%，肉眼不可感知。
