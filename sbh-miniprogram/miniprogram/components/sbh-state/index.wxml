@@ -1,0 +1,18 @@
+<view class="sbh-state sbh-state--{{resolvedKind}}" aria-role="status">
+  <text wx:if="{{resolvedKind === 'loading'}}" class="sbh-state__marker">加载中</text>
+  <text wx:elif="{{resolvedKind === 'error'}}" class="sbh-state__marker">出现问题</text>
+  <text wx:else class="sbh-state__marker">暂无</text>
+  <text wx:if="{{title}}" class="sbh-state__title">{{title}}</text>
+  <text wx:if="{{description}}" class="sbh-state__description">{{description}}</text>
+  <view
+    wx:if="{{resolvedKind === 'error' && actionLabel}}"
+    class="sbh-state__action"
+    aria-role="button"
+    aria-label="{{actionLabel}}"
+    hover-class="sbh-state__action--pressed"
+    hover-stay-time="70"
+    bindtap="handleRetry"
+  >
+    {{actionLabel}}
+  </view>
+</view>

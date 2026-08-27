@@ -1,0 +1,27 @@
+{
+  "name": "sbh-miniprogram",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "project:check": "node scripts/check-project.mjs",
+    "devtools:smoke": "node scripts/devtools-smoke.mjs",
+    "ci:preview": "node scripts/preview.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --project tsconfig.json --pretty false && tsc --project tsconfig.node.json --pretty false"
+  },
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "packageManager": "pnpm@8.6.1",
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "jsdom": "^28.1.0",
+    "miniprogram-api-typings": "5.2.3",
+    "miniprogram-automator": "0.12.1",
+    "miniprogram-ci": "2.1.31",
+    "miniprogram-simulate": "1.6.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

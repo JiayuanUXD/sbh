@@ -1,0 +1,61 @@
+<view id="foundation-ready" class="foundation-page">
+  <view class="foundation-header">
+    <view class="foundation-title">工程基础已就绪</view>
+    <view class="foundation-status">环境状态：{{environmentStatus}}</view>
+  </view>
+
+  <view class="foundation-card">
+    <sbh-card>
+      <view class="foundation-section-title">按钮状态</view>
+      <view class="foundation-button foundation-button--first">
+        <sbh-button>主要操作</sbh-button>
+      </view>
+      <view class="foundation-button">
+        <sbh-button variant="secondary">次要操作</sbh-button>
+      </view>
+      <view class="foundation-button">
+        <sbh-button loading>提交中</sbh-button>
+      </view>
+      <view class="foundation-button">
+        <sbh-button disabled>暂不可用</sbh-button>
+      </view>
+    </sbh-card>
+  </view>
+
+  <view class="foundation-card">
+    <sbh-card>
+      <view class="foundation-section-title">内容骨架</view>
+      <sbh-skeleton rows="5" with-media />
+    </sbh-card>
+  </view>
+
+  <view class="foundation-card">
+    <sbh-card>
+      <view class="foundation-section-title">加载状态</view>
+      <sbh-state kind="loading" title="正在加载内容" description="请稍候" />
+    </sbh-card>
+  </view>
+
+  <view class="foundation-card">
+    <sbh-card>
+      <view class="foundation-section-title">空状态</view>
+      <sbh-state kind="empty" title="暂无可展示内容" description="稍后再来看看" />
+    </sbh-card>
+  </view>
+
+  <view class="foundation-card">
+    <sbh-card>
+      <view class="foundation-section-title">错误状态</view>
+      <sbh-state
+        kind="error"
+        title="内容加载失败"
+        description="请检查网络后重试"
+        action-label="重新加载"
+        bindretry="handleRetry"
+      />
+      <view class="foundation-retry-feedback" aria-live="polite">
+        重试次数：<text class="num">{{retryCount}}</text> · {{retryStatus}}
+      </view>
+    </sbh-card>
+  </view>
+</view>

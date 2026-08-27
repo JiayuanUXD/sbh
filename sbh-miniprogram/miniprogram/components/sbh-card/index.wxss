@@ -1,0 +1,12 @@
+:host {
+  display: block;
+}
+
+.sbh-card {
+  box-sizing: border-box;
+  color: var(--sbh-card-text);
+  background: var(--sbh-card-background);
+  border-radius: var(--sbh-card-radius);
+  padding: var(--sbh-card-padding);
+  font-size: var(--sbh-card-font-size);
+}

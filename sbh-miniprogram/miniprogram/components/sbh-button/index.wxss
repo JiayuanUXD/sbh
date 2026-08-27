@@ -1,0 +1,55 @@
+:host {
+  display: block;
+}
+
+.sbh-button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sbh-button-min-height);
+  padding: var(--sbh-button-padding-y) var(--sbh-button-padding-x);
+  border-width: var(--sbh-button-border-width);
+  border-style: solid;
+  border-color: var(--sbh-button-transparent-border);
+  border-radius: var(--sbh-button-radius);
+  font-size: var(--sbh-button-font-size);
+  font-weight: var(--sbh-button-font-weight);
+  line-height: var(--sbh-button-line-height);
+  transition: background var(--sbh-button-pressed-duration) ease, transform var(--sbh-button-pressed-duration) ease;
+}
+
+.sbh-button--primary {
+  color: var(--sbh-button-primary-text);
+  background: var(--sbh-button-primary-background);
+}
+
+.sbh-button--secondary {
+  color: var(--sbh-button-secondary-text);
+  background: var(--sbh-button-secondary-background);
+  border-color: var(--sbh-button-secondary-border);
+}
+
+.sbh-button--primary.sbh-button--pressed {
+  background: var(--sbh-button-primary-pressed-background);
+  transform: scale(var(--sbh-button-pressed-scale));
+}
+
+.sbh-button--secondary.sbh-button--pressed {
+  background: var(--sbh-button-secondary-pressed-background);
+  transform: scale(var(--sbh-button-pressed-scale));
+}
+
+.sbh-button.is-disabled,
+.sbh-button.is-loading {
+  opacity: var(--sbh-button-disabled-opacity);
+}
+
+.sbh-button__status {
+  font-size: var(--sbh-button-status-font-size);
+}
+
+.sbh-button__status--suffix {
+  margin-left: var(--sbh-button-status-gap);
+  font-size: var(--sbh-button-status-suffix-font-size);
+}
