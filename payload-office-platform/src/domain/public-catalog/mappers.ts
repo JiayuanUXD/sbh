@@ -591,6 +591,24 @@ const MAX_CARD_HIGHLIGHTS = 3
 const LISTING_CARD_COVER_WIDTH = 768
 
 /**
+ * 房源封面的完整投影（含 `variants` / `focal`），不经卡片链路的收窄。
+ *
+ * 口径与 `mapListingCard` 内的 `rawCover` 完全一致（房源自身封面缺省时回退
+ * 楼盘封面）——两处都要覆盖，否则房源自己没传封面、只能吃楼盘封面兜底的那批
+ * 数据会在某一条链路上漏掉 variants。`mapListingCard` 出于 OPT-047/059 的
+ * 2MB 缓存红线必须把 `variants` 剔掉（见该函数内注释），但同一份完整投影
+ * 别处仍要用（如 OPT-059 facade 的 `typeSummaries` 聚合），故单独导出一份，
+ * 避免两条链路各写一遍取法、日后漂移。
+ */
+export function mapListingCoverFull(raw: unknown): MediaViewModel | null {
+  if (!isPopulatedListing(raw)) return null
+  const listing = raw as PopulatedListing
+  const fullBuilding = mapBuildingSummary(listing.building)
+  if (!fullBuilding) return null
+  return mapMedia(listing.coverImage, listing.title) ?? fullBuilding.coverImage ?? null
+}
+
+/**
  * 把 Payload Listing 文档投影为 ListingCardViewModel。
  *
  * 输入视为 `unknown`，由类型守卫收窄；任何字段缺失都返回 null 而非抛错，
@@ -603,7 +621,8 @@ export function mapListingCard(raw: unknown): ListingCardViewModel | null {
   const fullBuilding = mapBuildingSummary(listing.building)
   if (!fullBuilding) return null
 
-  // 楼盘封面是房源封面的兜底来源（房源没自己的图时用楼盘的）。
+  // 楼盘封面是房源封面的兜底来源（房源没自己的图时用楼盘的）。取法与
+  // mapListingCoverFull 保持一致（那边是本函数的完整版，专供不需要收窄的消费方）。
   const rawCover = mapMedia(listing.coverImage, listing.title) ?? fullBuilding.coverImage ?? null
 
   /**

@@ -17,6 +17,7 @@ import {
   makeBuilding,
   makeHomepageAdapter,
   makeListing,
+  MEDIA_WITH_SIZES,
 } from './helpers/opt035-fixtures'
 
 describe('haversineKm', () => {
@@ -61,6 +62,56 @@ describe('getHomepage stats / typeSummaries / nearbyListings', () => {
     const hp = await getHomepage(ctx, {}, adapter)
     expect(hp.typeSummaries['coworking']?.count).toBe(2)
     expect(hp.typeSummaries['traditional-office']?.count).toBe(1)
+  })
+
+  // --- 最终审查修复 A：typeSummaries 的 srcset 链路 -------------------------
+  //
+  // `HomeTypeCards` 消费 `typeSummaries[type].cover`，靠它发 srcset。此前这个
+  // 封面直接复用 `mapListingCard` 产出的卡片封面——那条链路为了守住 OPT-047 的
+  // 2MB 缓存红线，刻意把 `variants` 设成了 undefined，导致类型卡永远发不出
+  // srcset（连 sizes 也因为 Media.tsx 的 `sizes={srcSet ? sizes : undefined}`
+  // 一并消失），页面 200、无报错、静默失效。facade 现在对 typeSummaries 的封面
+  // 走 `mapListingCoverFull` 单独重新投影，这里锁住两头：typeSummaries 的封面
+  // 必须带 variants，而房源卡片链路（featuredListings）的封面必须继续不带——
+  // 两条一起断言，防止后来者用「把 variants 加回卡片」的方式误修 A。
+  it('typeSummaries.cover 带完整 variants，同一份数据下房源卡片链路的 coverImage.variants 仍是 undefined', async () => {
+    const listing = makeListing({ id: 1, listingType: 'coworking', coverImage: MEDIA_WITH_SIZES })
+    const adapter = makeHomepageAdapter({
+      findFeaturedListings: async () => [listing],
+      findEffectiveListings: async () => [listing],
+    })
+    const hp = await getHomepage(ctx, {}, adapter)
+
+    expect(hp.typeSummaries['coworking']?.cover?.variants).toEqual([
+      { src: '/media/type-thumb.webp', width: 320 },
+      { src: '/media/type-card.webp', width: 768 },
+      { src: '/media/type-hero.webp', width: 1600 },
+    ])
+    expect(hp.typeSummaries['coworking']?.cover?.focal).toEqual({ x: 30, y: 70 })
+
+    // 反向断言：锁住 OPT-047 的红线——卡片链路（featuredListings 的封面走
+    // mapListingCard）不能因为这次修复被顺带打开。
+    expect(hp.featuredListings[0]?.coverImage?.variants).toBeUndefined()
+  })
+
+  it('typeSummaries.cover 的完整封面口径与卡片链路一致：房源自身无封面时回退楼盘封面', async () => {
+    const building = makeBuilding({ id: 2001, coverImage: MEDIA_WITH_SIZES })
+    const listing = makeListing({
+      id: 2,
+      listingType: 'full-floor',
+      building,
+      coverImage: null,
+    })
+    const adapter = makeHomepageAdapter({
+      findEffectiveListings: async () => [listing],
+    })
+    const hp = await getHomepage(ctx, {}, adapter)
+
+    expect(hp.typeSummaries['full-floor']?.cover?.variants).toEqual([
+      { src: '/media/type-thumb.webp', width: 320 },
+      { src: '/media/type-card.webp', width: 768 },
+      { src: '/media/type-hero.webp', width: 1600 },
+    ])
   })
 
   it('nearbyListings 按距城市中心升序、排除精选已展示、上限 5、带 distanceKm', async () => {
