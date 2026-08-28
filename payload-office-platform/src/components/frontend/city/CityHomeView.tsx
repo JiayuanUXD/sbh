@@ -13,6 +13,7 @@ import type { HomepageStats } from '@/domain/public-catalog/contracts'
 import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import type { SiteSettingsView } from '@/lib/frontend/site-settings'
 import { orderByFeaturedRegions } from '@/lib/frontend/featured-regions'
+import { resolveTypeCardCovers } from '@/lib/frontend/type-card-covers'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
 
@@ -55,6 +56,9 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
   const featured = city.profile.featuredRegions
   const districtCards = orderByFeaturedRegions(homepage.districtCards, featured)
   const heroDistricts = orderByFeaturedRegions(homepage.districts, featured)
+  // OPT-060：类型卡封面 = 城市覆盖 → 全局默认（最后一级回落在 HomeTypeCards 里）。
+  // 与精选区域一样，刻意留在 unstable_cache 之外——配置变更不打供给侧失效标签。
+  const typeCards = resolveTypeCardCovers(siteSettings.typeCards, city.profile.typeCardOverrides)
   return (
     <div className="hm-home">
       <HomeHero
@@ -64,7 +68,7 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
         heading={siteSettings.heroHeading}
         slogan={siteSettings.slogan}
       />
-      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={siteSettings.typeCards} />
+      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={typeCards} />
       <HomeDistrictBento cards={districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
       <HomeBuildingsRail buildings={homepage.featuredBuildings} citySlug={citySlug} totalCount={linkStats.buildings} />
       <HomeStatsBand stats={bandStats} avgResponseHours={city.profile.avgResponseHours} />
