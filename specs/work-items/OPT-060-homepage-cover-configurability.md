@@ -255,3 +255,59 @@ supply adapter 的 mock**。
 
 `mapTypeCards`（`site-settings.ts:70-81`）与 `typeSummaries.cover` 目前是
 **零覆盖区**——「配置优先」落在没有安全网的代码上，属新增测试而非更新测试。
+
+---
+
+## 10. 实施后的遗留事项（2026-08-28 落地时登记）
+
+分支 `feat/opt-060-homepage-cover-config-3b8e`，14 个提交。六个任务各自过审
+（其中 Task 3/4/5/6 各经历了修复轮），最终全分支审查结论为**可以合并**，
+并用变异测试另挖出两个**回归防护缺口**（均已补齐）：
+
+- **单城覆盖的接线没有回归锁**：把 `CityHomeView` 里的 `resolveTypeCardCovers(...)`
+  换成 `siteSettings.typeCards`（彻底切断城市覆盖），全量 3916 个用例**零红**。
+  根因是 `city-home-view.test.ts` 的 `buildCity()` 夹具里 `typeCardOverrides` 恒为 `[]`
+  ——纯函数被测得很扎实，但「它有没有被接上」从没走过组件渲染路径。
+  这与 `OPT-059` 最终审查抓到的缺陷是同一型号。
+- **槽位字符串「三处一致」没有机器守卫**：把 `CitySiteProfiles` 的 `'coworking'`
+  改成 `'co-working'`，全量**零红**——运营能选到该槽位、存盘 200、前台完全不生效。
+  现已加 `tests/type-card-slots-consistency.test.ts`，从**真实配置对象**取值做三集合
+  差集比对（不在测试里重抄字符串，否则就是引入第四个漂移点）。
+
+以下是**明确搁置**的事项：
+
+### 10.1 视觉验收未完成
+
+截图能力不可用（Browser pane 不合成帧，与 OPT-059 同一环境限制）。**功能层五项验收
+全部通过且有可复核产物**（真实 HTTP 响应、DOM、`getComputedStyle` 实测值，存
+`artifacts/verification/OPT-060/`），缺的只有**像素级观感**：排版是否整洁、
+图片裁切观感是否合适、有无层叠或溢出。
+
+待补清单与可独立执行的补做步骤见
+`artifacts/verification/OPT-060/VISUAL-VERIFICATION-PENDING.md`。
+
+**风险评估**：本工作项在观感维度的改动面极小——CSS 零改动、`<Media>` 属性零改动、
+bento 结构零改动；唯一的新东西是「图从系统自动挑的房源封面，换成运营在后台自己
+看着选的图」。
+
+### 10.2 `variants` / `focal` 在两条新配置链路上只有代码层保证
+
+`mapTypeCards`（全局默认）与 `mapTypeCardOverrides`（单城覆盖）都直接调 `mapMedia`，
+代码上不可能丢 OPT-059 的派生尺寸与焦点。但：
+
+- `mapTypeCardOverrides` 那条**有单测断言**（`type-card-overrides-mapping.test.ts`）；
+- `mapTypeCards` 那条**连单测都没断言 `variants`**；
+- **两条都没有端到端证据**——验收 HTML 里整页零 `srcset`，因为本地库的 media 行
+  都是 OPT-059 之前上传的、根本没有派生尺寸（这是环境问题，不是回归）。
+
+想要真证据，需要在**有派生尺寸的媒体**上重验一次（上传一张新图再配到类型卡上）。
+
+### 10.3 `cover_image_id` 是 `NOT NULL` 但外键走 `ON DELETE set null`
+
+`src/migrations/20260827_234410_city_profile_type_card_overrides.ts`。删除一张被某城
+覆盖引用的 Media 时，PG 会试图把该列置 NULL → 违反 NOT NULL → 删除以 `23502` 失败，
+运营看到的是一个不友好的报错。
+
+这是 Payload 对 `required: true` 的 upload 字段的**生成物固有行为**，仓库已有同型先例
+（`20260725_181426_m4_2_listing_merchant_relations.ts`），**不是本工作项引入的新模式**，
+故不在本次处理。要改的话是个独立的、跨多张表的工作项。
