@@ -6,6 +6,7 @@
   "scripts": {
     "project:check": "node scripts/check-project.mjs",
     "staging:acceptance:preflight": "node scripts/staging-acceptance-preflight.mjs",
+    "staging:acceptance:run": "node scripts/staging-acceptance-runner.mjs",
     "prepare:trial-deployment": "node scripts/prepare-trial-deployment.mjs",
     "devtools:smoke": "node scripts/devtools-smoke.mjs",
     "ci:preview": "node scripts/preview.mjs",

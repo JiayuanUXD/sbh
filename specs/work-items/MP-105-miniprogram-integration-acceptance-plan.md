@@ -105,7 +105,7 @@
 - [ ] 覆盖房源有效、降级楼盘、通用需求、限流、session 过期、弱网响应丢失和服务端稳定错误；测试号码和日志必须脱敏。
 - [ ] runner 必须用 `try/finally` 覆盖正常、失败和部分创建，处理 SIGINT/SIGTERM 后执行幂等重清理；分别查询 Lead、关系数据及所有 ownership 对象的清理前后计数。清理失败立即冻结本轮写入并禁止继续验收。
 
-本地代码进度：fixture 严格请求/typed Lead ID codec 与受保护的 staging 核验/精确清理接口已完成 mock 合同；接口在 permit、部署身份和实际数据库探针通过前保持不可见，清理只按服务端复算 locator + 编码后的实际 Lead ID 双匹配，并在删除前后复查 Lead、跟进和归属历史。自动 runner 与真实 staging 执行仍未完成，因此上述验收项继续保持未勾选。
+本地代码进度：fixture 严格请求/typed Lead ID codec、受保护的 staging 核验/精确清理接口和显式 runner 已完成 mock 合同；接口在 permit、部署身份和实际数据库探针通过前保持不可见，清理只按服务端复算 locator + 编码后的实际 Lead ID 双匹配，并在删除前后复查 Lead、跟进和归属历史。runner 使用进程内 manifest、同 submission 幂等对账、`try/finally` 与 SIGINT/SIGTERM 单例清理；结果未知时不会宣称 clean。真实 staging 执行仍未完成，因此上述验收项继续保持未勾选。
 
 ### Task 6：iOS/Android 与隐私验收
 

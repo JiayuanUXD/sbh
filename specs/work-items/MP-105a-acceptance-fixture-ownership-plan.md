@@ -1,6 +1,6 @@
 # MP-105a 验收 fixture 归属与精确清理实施计划
 
-> 状态：Task A/B 已完成；Task C runner 待实现
+> 状态：Task A/B/C 本地代码与 mock 合同已完成；真实 staging 执行待环境
 > 日期：2026-08-28
 > 所属工作项：MP-105 Task 5
 > 决策：采用“受保护的 staging 核验/清理接口 + runner 内存 manifest”，不改 Lead 业务模型，不允许 runner 直连数据库
@@ -96,7 +96,7 @@
 4. 实现最小路由。沿用 permit、runtime config、bounded JSON、actual DB probe 和 no-store 响应；Payload 查询始终使用服务端复算 locator。
 5. 定向测试、typecheck、相关 lint 全部通过后再进入 runner。
 
-### Task C：受控 runner 与内存 ownership manifest
+### Task C：受控 runner 与内存 ownership manifest（已完成）
 
 **文件**
 
