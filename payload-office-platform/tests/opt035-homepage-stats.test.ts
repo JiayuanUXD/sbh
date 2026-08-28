@@ -51,7 +51,7 @@ describe('getHomepage stats / typeSummaries / nearbyListings', () => {
     expect(hp.stats).toEqual({ listings: 2, buildings: 3, businessAreas: 1 })
   })
 
-  it('typeSummaries 按 listingType 聚合计数并取首个封面', async () => {
+  it('typeSummaries 按 listingType 聚合计数', async () => {
     const adapter = makeHomepageAdapter({
       findEffectiveListings: async () => [
         makeListing({ id: 1, listingType: 'coworking' }),

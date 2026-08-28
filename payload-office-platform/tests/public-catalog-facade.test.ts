@@ -620,12 +620,14 @@ describe('getHomepage', () => {
   })
 
   /**
-   * 栅格 4 列、大卡跨 2x2，1 大 + 4 小恰好填满 2 行；不设上限时首页会被撑爆。
+   * districtCards 是候选池（OPT-060），不是最终展示张数：视图层
+   * （CityHomeView）会先按精选区域重排、再截到 bento 的 5 个坑位。
+   * 这里只锁池子的上限约束，不设上限时首页 DTO 会被撑爆。
    */
-  it('商圈卡张数受 districtCardsLimit 约束', async () => {
+  it('商圈卡候选池张数受 districtCardPoolLimit 约束', async () => {
     const unlimited = await getHomepage(ctx, {}, fullFixture())
-    const capped = await getHomepage(ctx, { districtCardsLimit: 1 }, fullFixture())
-    expect(unlimited.districtCards.length).toBeLessThanOrEqual(5)
+    const capped = await getHomepage(ctx, { districtCardPoolLimit: 1 }, fullFixture())
+    expect(unlimited.districtCards.length).toBeLessThanOrEqual(20)
     expect(capped.districtCards.length).toBeLessThanOrEqual(1)
   })
 })

@@ -226,4 +226,41 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     expect(html).toContain('src="/media/configured-cover.jpg"')
     expect(html).not.toContain('src="/media/summary-cover.jpg"')
   })
+
+  it('精选区域能把候选池里第 6 名的商圈拉进 bento 的 5 张里（OPT-060）', () => {
+    // 8 张候选，模拟 facade 放宽后的池子。第 6 张（rank-6）是我们要拉上来的。
+    const pool: readonly DistrictCardViewModel[] = Array.from({ length: 8 }, (_, i) => ({
+      id: 100 + i,
+      slug: `rank-${i + 1}`,
+      name: `商圈${i + 1}`,
+      coverImage: null,
+      buildings: [`楼盘${i + 1}`],
+    }))
+
+    const city = buildCity(null)
+    // 精选区域按 slug 匹配（orderByFeaturedRegions 的口径）
+    const cityWithFeatured = {
+      ...city,
+      profile: { ...city.profile, featuredRegions: [{ slug: 'rank-6' }] },
+    }
+
+    const html = renderToStaticMarkup(
+      createElement(CityHomeView, {
+        city: cityWithFeatured,
+        homepage: { ...buildHomepage(), districtCards: pool },
+        routeMode: 'prefixed',
+        bandStats: { listings: 120, buildings: 45, businessAreas: 12 },
+        siteSettings: SITE_SETTINGS_FALLBACK,
+      } as never),
+    )
+
+    // 第 6 名被拉进来了
+    expect(html).toContain('商圈6')
+    // 仍然只渲染 5 张——池子变大不等于卡片变多
+    const rendered = [...html.matchAll(/hm-bento-card__name">([^<]+)</g)].map((m) => m[1])
+    expect(rendered).toHaveLength(5)
+    expect(rendered[0]).toBe('商圈6')
+    // 被挤出去的是原本的第 5 名，不是随便某一张
+    expect(html).not.toContain('商圈5')
+  })
 })
