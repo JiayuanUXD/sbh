@@ -1,0 +1,17 @@
+=== BEFORE (wildcard hostname **) | remotePatterns=[{"protocol":"https","hostname":"**"}] ===
+  external https (gstatic)               -> ACCEPT (proxied)
+  external https (attacker.example)      -> ACCEPT (proxied)
+  same-origin relative /api/media        -> ACCEPT (proxied)
+
+=== AFTER  (remotePatterns empty) | remotePatterns=[] ===
+  external https (gstatic)               -> REJECT: "url" parameter is not allowed
+  external https (attacker.example)      -> REJECT: "url" parameter is not allowed
+  same-origin relative /api/media        -> ACCEPT (proxied)
+
+=== isDev 维度（证明生产是脆弱路径）===
+remotePatterns=wildcard  isDev=true  external -> ACCEPT
+remotePatterns=wildcard  isDev=false external -> ACCEPT   <- 生产 next start 走此路径 => 开放代理
+remotePatterns=empty     isDev=true  external -> REJECT: "url" parameter is not allowed
+remotePatterns=empty     isDev=false external -> REJECT: "url" parameter is not allowed
+说明：live dev server（Turbopack）对 /_next/image 一律拒外部（remotePatterns 未接入 dev 图片处理器），
+故 before/after 差异只在生产 next start 显现，由上述 gate 函数（next-server.js:202 同款）离线锚定。

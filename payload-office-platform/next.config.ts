@@ -18,12 +18,12 @@ const nextConfig: NextConfig = {
   // OPT-019：不暴露 X-Powered-By（收敛公开调试面）
   poweredByHeader: false,
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-    ],
+    // OPT-061：/_next/image 优化端点默认启用，remotePatterns 是它唯一的远程源白名单。
+    // 通配 hostname 会把它变成任意 https 源的公开图片代理（刷出站带宽 + SSRF 探测面）。
+    // 本站媒体一律走同源相对路径 /api/media/file/*，相对路径不受 remotePatterns 约束，
+    // 因此白名单保持为空。将来接入 next/image 且需要远程图源时，按具体域名逐条加白，
+    // 并同步更新 tests/next-image-config.test.ts。
+    remotePatterns: [],
   },
   // OPT-019：生产安全响应头（单一事实源 src/lib/security-headers.ts）
   async headers() {
