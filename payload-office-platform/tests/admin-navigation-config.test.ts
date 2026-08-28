@@ -267,4 +267,26 @@ describe('admin navigation config', () => {
     const unknown = collectionSlugs.filter((slug) => !configuredCollectionSlugs.has(slug))
     expect(unknown, `导航指向了不存在于 Payload 配置的集合：${unknown.join('、')}`).toEqual([])
   })
+
+  it('城市站点配置与站点设置权限码不因相邻而混同（挪位置 ≠ 放权）', () => {
+    // OPT-062：city-site-profiles 从「区域管理」挪进「内容管理」、紧跟 site-settings
+    // 之后，两者视觉相邻但权限必须保持独立。role-matrix 测试只按一级分组
+    // （visibleTopGroups）断言可见性，组内任一叶子可见即算整组可见，从未单独
+    // 校验过某个叶子自己的 requiredOperationCode；expectedLeaf 助手也不接收这个
+    // 字段。也就是说，在这条断言补上之前，「挪位置不放权」这个核心裁定
+    // 没有任何测试防线——把这里的 requiredOperationCode 顺手改成
+    // 'site_settings:manage'，14 个导航测试和全量用例都不会变红。
+    //
+    // 菜单看得见的人和 API 改得动的人必须是同一批（navigation-config.ts 里
+    // city-site-profiles 那条注释是同一个道理）：能改全站默认站点设置的人，
+    // 不该因为这次挪动就顺带拿到「下线某个城市」（location:manage）的权限，反之亦然。
+    const leaves = collectItems(ADMIN_NAV_GROUPS) as ReadonlyArray<
+      NavigationItem & { requiredOperationCode?: string }
+    >
+    const citySiteProfiles = leaves.find((item) => item.id === 'city-site-profiles')
+    const siteSettings = leaves.find((item) => item.id === 'site-settings')
+
+    expect(citySiteProfiles?.requiredOperationCode).toBe('location:manage')
+    expect(siteSettings?.requiredOperationCode).toBe('site_settings:manage')
+  })
 })
