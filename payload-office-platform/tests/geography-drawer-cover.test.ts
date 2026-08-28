@@ -14,8 +14,9 @@ const LIST_VIEW_SRC = readFileSync(
 describe('商圈抽屉的封面字段（OPT-062）', () => {
   it('封面区块按模块能力标记渲染，不是 type 硬编码', () => {
     expect(SRC).toContain('supportsCover')
-    // 硬编码 type 会让「哪些模块有封面」散落两处
-    expect(SRC).not.toMatch(/===\s*'business_area'/)
+    // 硬编码 type 会让「哪些模块有封面」散落两处（终审 F：三种引号都要拦，
+    // 不能只拦单引号字面量——换成模板串就绕过了）
+    expect(SRC).not.toMatch(/===\s*['"`]business_area['"`]/)
   })
 
   it('保存时 PATCH body 带 coverImage', () => {
@@ -28,8 +29,8 @@ describe('商圈抽屉的封面字段（OPT-062）', () => {
 
   it('用的是 CoverPickerModal，没有在抽屉里另写一套上传', () => {
     expect(SRC).toContain('CoverPickerModal')
-    // 上传逻辑应当只在弹层里有一份
-    expect(SRC).not.toContain("'/api/media'")
+    // 上传逻辑应当只在弹层里有一份（终审 F：同时拦单引号/双引号/反引号字面量）
+    expect(SRC).not.toMatch(/['"`]\/api\/media['"`]/)
   })
 
   it('ClientModule 白名单显式收录 supportsCover（否则永远是 undefined）', () => {

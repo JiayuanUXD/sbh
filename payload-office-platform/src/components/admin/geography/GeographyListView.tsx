@@ -137,9 +137,17 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
     parentName: popName(d.parent),
     cityName: popName(d.city),
     hasBoundary: boundaryStatus.get(d.id) ?? false,
-    // OPT-062：两者必须同源——分别算会漂移（列表说有图、抽屉说没有）。
+    // OPT-062 终审 D：`hasCover`（封面列 + 「仅看缺封面」chip 的口径）与 `coverImage`
+    // （抽屉编辑用、要求可渲染的 url）刻意用两条不同的判据，别再拿 toCoverRef 统一算：
+    //   - `hasCover` 只看字段是否非空，与上面 chip 里的 `coverImage: { exists: false }`
+    //     同源——chip 是一条纯 SQL exists 查询，判断不了嵌套 media.url 是否可用；
+    //     若这里改成要求 url 非空（本次新加、已撤销的口径），会出现列表说「缺封面」
+    //     但点「仅看缺封面」筛不出它的分裂（该行的 coverImage 字段非空，chip 侧判它
+    //     「不缺」）。运营因此永远找不到这一条，诊断筛选形同虚设。
+    //   - `coverImage` 仍然要求 url 非空：它直接喂给抽屉的 <img src>，塞一个没有
+    //     url 的引用只会渲染出破图，抽屉这边保留「视为无封面、可重新选」更安全。
     coverImage: toCoverRef(d.coverImage),
-    hasCover: toCoverRef(d.coverImage) != null,
+    hasCover: d.coverImage != null,
     counts: counts.get(d.id) ?? {},
   }))
 

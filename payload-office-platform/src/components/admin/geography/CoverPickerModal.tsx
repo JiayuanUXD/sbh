@@ -34,6 +34,15 @@ export interface CoverPickerModalProps {
   visible: boolean
   /** 上传时用来预填 alt，如「陆家嘴」→「陆家嘴商圈封面」 */
   areaName: string
+  /**
+   * 区域类型文案，用于标题与 alt 预填（OPT-062 终审 C）。
+   *
+   * 弹层被商圈 / 行政区两个模块共用，此前写死了「商圈」——给「浦东新区」这个行政区
+   * 配封面也会写出 alt「浦东新区商圈封面」，而 `Media.admin.useAsTitle = 'alt'`，
+   * 这个错名会长期留在素材库里。调用方（GeographyListViewClient）按 `module.type`
+   * 传下来，弹层本身不 import 模块配置，保持是个不依赖上层的纯组件。
+   */
+  areaKind: '商圈' | '行政区'
   onCancel: () => void
   /** 选定（或上传完成）时回调，交出可直接写进抽屉 state 的引用 */
   onPick: (cover: { id: number; url: string }) => void
@@ -84,6 +93,7 @@ export async function uploadCoverMedia(
 export default function CoverPickerModal({
   visible,
   areaName,
+  areaKind,
   onCancel,
   onPick,
 }: CoverPickerModalProps) {
@@ -92,7 +102,7 @@ export default function CoverPickerModal({
   const [docs, setDocs] = useState<MediaDoc[]>([])
   const [totalDocs, setTotalDocs] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
-  const [altInput, setAltInput] = useState(`${areaName}商圈封面`)
+  const [altInput, setAltInput] = useState(`${areaName}${areaKind}封面`)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -105,13 +115,15 @@ export default function CoverPickerModal({
   // 要防的问题；这里在渲染阶段做，天然避免了那次多余的渲染。
   const [prevVisible, setPrevVisible] = useState(visible)
   const [prevAreaName, setPrevAreaName] = useState(areaName)
-  if (visible !== prevVisible || areaName !== prevAreaName) {
+  const [prevAreaKind, setPrevAreaKind] = useState(areaKind)
+  if (visible !== prevVisible || areaName !== prevAreaName || areaKind !== prevAreaKind) {
     setPrevVisible(visible)
     setPrevAreaName(areaName)
+    setPrevAreaKind(areaKind)
     if (visible) {
       setKeyword('')
       setPage(1)
-      setAltInput(`${areaName}商圈封面`)
+      setAltInput(`${areaName}${areaKind}封面`)
     }
   }
 
@@ -181,7 +193,7 @@ export default function CoverPickerModal({
 
   const handleUpload = useCallback(
     async (file: File) => {
-      const alt = altInput.trim() || `${areaName}商圈封面`
+      const alt = altInput.trim() || `${areaName}${areaKind}封面`
       setIsUploading(true)
       try {
         const cover = await uploadCoverMedia(file, alt)
@@ -193,7 +205,7 @@ export default function CoverPickerModal({
         setIsUploading(false)
       }
     },
-    [altInput, areaName, onPick],
+    [altInput, areaName, areaKind, onPick],
   )
 
   return (
@@ -201,7 +213,7 @@ export default function CoverPickerModal({
       visible={visible}
       onCancel={onCancel}
       footer={null}
-      title="选择商圈封面"
+      title={`选择${areaKind}封面`}
       style={{ width: 640 }}
     >
       <div style={{ marginBottom: 16 }}>
@@ -299,7 +311,7 @@ export default function CoverPickerModal({
           <Input
             value={altInput}
             onChange={(val) => setAltInput(val)}
-            placeholder={`${areaName}商圈封面`}
+            placeholder={`${areaName}${areaKind}封面`}
             style={{ flex: 1 }}
           />
           <Button

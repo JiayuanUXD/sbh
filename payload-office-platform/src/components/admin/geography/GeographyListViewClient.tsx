@@ -218,7 +218,10 @@ export default function GeographyListViewClient({
           sortOrder: detail.sortOrder,
           centerLatitude: detail.centerLatitude,
           centerLongitude: detail.centerLongitude,
-          coverImage: detail.coverImage ? detail.coverImage.id : null,
+          // 不支持封面的模块（城市 / 地铁）PATCH body 里不该出现这个字段：
+          // toCoverRef 拿不到 url 时会把已有的封面引用归一成 null，若这里无条件带上，
+          // 运营在这些模块随手改个排序点保存，就会把 DB 里实际存在的封面引用悄悄清空。
+          ...(module.supportsCover ? { coverImage: detail.coverImage ? detail.coverImage.id : null } : {}),
           version: detail.version,
         }),
       })
@@ -368,7 +371,11 @@ export default function GeographyListViewClient({
         width={440}
         title={detail ? `编辑 ${detail.name}` : '编辑'}
         visible={!!detail}
-        onCancel={() => setDetail(null)}
+        onCancel={() => {
+          setDetail(null)
+          // 抽屉关掉时封面弹层若还开着，下次打开任意一行都会带着它自动弹出（终审 E）
+          setCoverPickerVisible(false)
+        }}
         footer={
           detail ? (
             <Space>
@@ -485,6 +492,7 @@ export default function GeographyListViewClient({
         <CoverPickerModal
           visible={coverPickerVisible}
           areaName={detail.name}
+          areaKind={module.type === 'district' ? '行政区' : '商圈'}
           onCancel={() => setCoverPickerVisible(false)}
           onPick={(cover) => {
             setDetail({ ...detail, coverImage: cover })
