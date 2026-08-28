@@ -9,6 +9,7 @@ import {
 import { ADMIN_NAV_GROUPS } from '@/domain/admin-navigation/navigation-config'
 import { MENU_CODES } from '@/domain/auth/permission-codes'
 import type { LocationType } from '@/domain/geography/location-hierarchy'
+import { Locations } from '@/collections/Locations'
 
 /** 计算列 = count 类列，来自 Task 5 聚合 SQL，**不可排序**（A2 决策）。 */
 const countKeys = (cols: GeographyColumn[]) =>
@@ -165,5 +166,29 @@ describe('geography-modules/四模块共享列表配置', () => {
         }
       }
     })
+  })
+
+  // --- OPT-062：封面能力标记 -------------------------------------------------
+
+  it('只有商圈与行政区支持封面（抽屉四模块共用，城市/地铁没有这个字段）', () => {
+    // Locations.coverImage 的 admin.condition 限定 business_area / district，
+    // 给城市或地铁渲染封面框会得到一个「存了没反应」的静默失效。
+    expect(GEOGRAPHY_MODULES.business_area?.supportsCover).toBe(true)
+    expect(GEOGRAPHY_MODULES.district?.supportsCover).toBe(true)
+    expect(GEOGRAPHY_MODULES.city?.supportsCover).not.toBe(true)
+    expect(GEOGRAPHY_MODULES.metro_line?.supportsCover).not.toBe(true)
+  })
+
+  it('封面能力与 Locations.coverImage 的 admin.condition 保持一致', () => {
+    // 这条是「两处别漂移」的守卫：条件里认哪几种 type，模块标记就该是哪几种。
+    const condition = (Locations.fields.find(
+      (f) => 'name' in f && f.name === 'coverImage',
+    ) as { admin?: { condition?: (data: { type?: unknown }) => boolean } }).admin?.condition
+    expect(condition).toBeTypeOf('function')
+    for (const [type, mod] of Object.entries(GEOGRAPHY_MODULES)) {
+      if (!mod) continue
+      const allowedByField = condition!({ type })
+      expect(mod.supportsCover === true).toBe(allowedByField)
+    }
   })
 })

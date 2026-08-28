@@ -40,8 +40,10 @@ export type GeographyRow = {
   cityName: string | null
   /** 边界列用：该商圈是否有非空 boundary（缺边界=无扩展或 boundary 空） */
   hasBoundary: boolean
-  /** 封面列用：该商圈是否配置了 coverImage */
+  /** 封面列用：该商圈是否配置了 coverImage。从 coverImage 派生，勿另算（OPT-062） */
   hasCover: boolean
+  /** 抽屉编辑用：当前封面的 id 与预览 url（OPT-062）。未配为 null。 */
+  coverImage: { id: number; url: string } | null
   counts: Record<string, number>
 }
 

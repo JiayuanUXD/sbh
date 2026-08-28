@@ -21,6 +21,15 @@ function popName(value: unknown): string | null {
   return null
 }
 
+/** d.coverImage 在 depth 足够时是 Media 对象，否则是裸 id；只有拿得到 url 才算可预览（OPT-062）。 */
+function toCoverRef(value: unknown): { id: number; url: string } | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as { id?: unknown; url?: unknown }
+  if (typeof v.id !== 'number') return null
+  if (typeof v.url !== 'string' || v.url.length === 0) return null
+  return { id: v.id, url: v.url }
+}
+
 /** 拉取某类型 option（供城市 / 行政区筛选下拉），可选按城市收窄。 */
 async function fetchLocationOptions(
   payload: Payload,
@@ -128,7 +137,9 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
     parentName: popName(d.parent),
     cityName: popName(d.city),
     hasBoundary: boundaryStatus.get(d.id) ?? false,
-    hasCover: d.coverImage != null,
+    // OPT-062：两者必须同源——分别算会漂移（列表说有图、抽屉说没有）。
+    coverImage: toCoverRef(d.coverImage),
+    hasCover: toCoverRef(d.coverImage) != null,
     counts: counts.get(d.id) ?? {},
   }))
 
