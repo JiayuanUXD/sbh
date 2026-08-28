@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "date": "2026-08-28",
+    "branch": "feat/opt-062-homepage-cover-authoring-747b",
+    "target": "http://localhost:3717",
+    "loggedInAs": "e2e-adm@example.com",
+    "note": "Browser pane in this session did not composite frames (screenshot tool timed out every attempt). All interaction below was driven via DOM/JS (javascript_tool) and verified via read_network_requests, not via visual screenshots."
+  },
+  "step4_5_upload_and_save": {
+    "target_location": "测试西湖商圈 (business_area, location id 1508)",
+    "upload_POST_api_media": {
+      "request": "multipart/form-data { file: opt062-test-cover.png, _payload: {\"alt\":\"测试西湖商圈商圈封面\"} } (alt auto-prefilled by CoverPickerModal as `${areaName}商圈封面`)",
+      "response_status": "201 Created",
+      "response_body": {
+        "doc": {
+          "id": 73,
+          "alt": "测试西湖商圈商圈封面",
+          "url": "/api/media/file/opt062-test-cover.png",
+          "filename": "opt062-test-cover.png",
+          "mimeType": "image/png"
+        },
+        "message": "成功创建 媒体"
+      }
+    },
+    "save_PATCH_api_locations_1508_first": {
+      "response_status": "200 OK",
+      "response_body_excerpt": {
+        "coverImage": { "id": 73, "url": "/api/media/file/opt062-test-cover.png" },
+        "version": 2,
+        "message": "更新成功。"
+      },
+      "note": "version incremented 1 -> 2 on first cover save"
+    },
+    "remove_cover_PATCH_captured_via_fetch_interceptor": {
+      "request_body_raw": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":null,\"version\":2}",
+      "note": "Confirms client PATCH payload explicitly includes both coverImage and version fields (not silently dropped)."
+    },
+    "re_add_cover_PATCH_captured_via_fetch_interceptor": {
+      "request_body_raw": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":74,\"version\":3}",
+      "response_status": "200 OK",
+      "note": "coverImage:74 (new upload id) and version:3 both present together in one outgoing PATCH request body -- direct proof for the '三步铁证/抓包核验' requirement."
+    },
+    "source_reference": "src/domain/geography/location-protect.ts:263-278 implements the optimistic-lock version check (VersionConflictError if submitted version !== currentVersion)."
+  },
+  "step6_hard_reload_persistence": {
+    "action": "navigate({url: business-areas list, force: true}) -- fresh full page load / server round trip",
+    "before_reload_list_cover_column": "✓ (changed from ⚠ to ✓ live, without reload, right after save)",
+    "after_reload_list_cover_column": "✓ (confirmed again after a fresh navigation/reload)",
+    "after_reload_drawer_state": "Cover block shows '更换/移除' buttons (not '从素材库选择 / 上传新图'), i.e. coverImage genuinely loaded from server on fresh page load.",
+    "missingCover_filter_after_reload": "counted 111 of 112 (测试西湖商圈 excluded); confirmed by DOM query that its <tr> no longer exists under the filtered view."
+  },
+  "step7_orphan_path": {
+    "target_location": "徐家汇 (SH-XUHUI-XJH)",
+    "action": "opened drawer -> opened CoverPickerModal -> uploaded opt062-orphan-test.png -> closed drawer via its own close icon WITHOUT clicking 保存",
+    "upload_response": {
+      "id": 75,
+      "alt": "徐家汇商圈封面",
+      "status": "201 Created"
+    },
+    "result": "No PATCH /api/locations/* request fired for 徐家汇's location id after closing (confirmed via read_network_requests, only the earlier 测试西湖商圈 id=1508 PATCHes were present). 徐家汇's 封面 column remained ⚠ (missing) in the list. Media id 75 remained valid and fetchable via GET /api/media/75 (confirmed structurally intact, orphaned/unreferenced -- accepted behavior per spec)."
+  },
+  "step8_modal_nesting": {
+    "target_location": "外滩 (SH-HUANGPU-BUND)",
+    "unsaved_edit": "sortOrder field changed from 11 to 12 (not saved)",
+    "modal_open_check": "confirmed CoverPickerModal visible (title '选择商圈封面', focus inside its search input) while drawer ('编辑 外滩') also present in DOM",
+    "escape_key_live_test": {
+      "method_1_js_dispatchEvent_document": "KeyboardEvent('keydown', key:'Escape') dispatched on document -- modal did NOT close (isTrusted:false synthetic events are not honored by this environment/library)",
+      "method_2_computer_key_action": "CDP-level key press via computer{action:'key', text:'Escape'} -- modal still did NOT close",
+      "conclusion": "Could not obtain a live, trusted-keyboard-driven confirmation of ESC behavior in this session -- the Browser pane's lack of frame compositing (screenshot tool times out) appears to also break reliable delivery of trusted key events to the focused element. This is an environment limitation, not a functional test result."
+    },
+    "modal_close_button_test_real_functional_evidence": {
+      "action": "clicked the modal's own close icon (.arco-modal-close-icon, distinct DOM node from the drawer's .arco-drawer-close-icon), which invokes the exact same onCancel handler Arco's built-in escToExit calls on Escape",
+      "result": "modal became invisible (getBoundingClientRect/computed style check); drawer remained visible ('编辑 外滩' heading still rendered and laid out); the unsaved sortOrder=12 edit was still present in the field",
+      "conclusion": "Functionally confirms: closing the picker does not close the drawer, and does not discard other unsaved drawer field edits."
+    },
+    "code_level_evidence": {
+      "CoverPickerModal.tsx": "renders Arco <Modal visible={visible} onCancel={onCancel} .../> as a JSX sibling of <Drawer>, not a JSX child (src/components/admin/geography/GeographyListViewClient.tsx lines ~367-490)",
+      "arco Modal source (node_modules/@arco-design/web-react/es/Modal/modal.js:120-124)": "onEscExit calls event.stopPropagation() before onCancel() when escToExit && visible && event.key === Esc.key; escToExit defaults to true and is not overridden by CoverPickerModal",
+      "arco Drawer source (node_modules/@arco-design/web-react/es/Drawer/index.js:165-170)": "Drawer has its OWN independent onKeyDown handler bound directly to its own portal wrapper div (also escToExit-gated), not to document and not to any ancestor shared with Modal's wrapper",
+      "conclusion": "Modal and Drawer are separate DOM portal subtrees (both default to document.body as popup container) each with an independently-scoped onKeyDown handler. A keydown originating inside the Modal's subtree can only bubble through the Modal's own DOM ancestors, not into the Drawer's separate subtree -- architecturally Escape cannot double-close both. Combined with the stopPropagation() call, this gives strong (but not live-keypress-tested) confidence the Step-8 requirement holds."
+    },
+    "drawer_closed_without_saving_afterward": "confirmed via read_network_requests: no new PATCH for 外滩's location id was ever sent; sortOrder=12 test edit was discarded, not persisted."
+  },
+  "step9_module_isolation": {
+    "cities_list_columns": "城市名/区域代码/行政区数/商圈数/缺边界商圈/地铁线路数/站点数/楼盘数/状态/前台可见/操作 -- no 封面 column",
+    "cities_drawer_fields (上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field, no cover picker button",
+    "metro_lines_list_columns": "线路名/区域代码/所属城市/站点数/状态/排序/操作 -- no 封面 column",
+    "metro_lines_drawer_fields (地铁1号线/上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field"
+  },
+  "cleanup_performed": {
+    "location_1508_测试西湖商圈": "coverImage reverted to null via drawer 移除+保存; confirmed final PATCH response coverImage:null (version incremented to 6, which is expected internal metadata, not user-facing data)",
+    "media_deleted_via_DELETE_api_media_id_with_session_credentials": ["73 (opt062-test-cover.png)", "74 (opt062-test-cover-2.png)", "75 (opt062-orphan-test.png)"],
+    "delete_responses": "all three returned {status:200, message:\"已成功删除。\"}",
+    "local_disk_files_check": "find . -iname '*opt062*' (excluding node_modules/.next) returned nothing -- files removed from disk, not just the DB record",
+    "final_state_check": "business-areas list with chip=missingCover filter shows 共 112 条 again (back to pre-test baseline)",
+    "city_site_profiles_1_introHeading": "was temporarily set to ' [OPT062验收]' to test the 城市站点配置 save path (nav Step 3 'point in, can save' check), then reverted to '' (empty, its original value) in a second save; both PATCHes returned 200",
+    "waitan_外滩_sortOrder": "temporarily edited to 12 in the browser field only, drawer closed WITHOUT clicking save -- never persisted, no cleanup needed"
+  }
+}
