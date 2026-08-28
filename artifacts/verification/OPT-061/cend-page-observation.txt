@@ -1,0 +1,23 @@
+OPT-061 C 端页面渲染模型只读观察
+====================================
+方式：对另一会话运行中的主树 dev server（http://localhost:3717，通配配置）做只读 HTTP GET，
+不修改其任何文件。目的：确认 C 端图片渲染模型与 remotePatterns 无关（零 /_next/image 消费方）。
+日期：2026-08-27
+
+根路径 /            -> 307 重定向到 /shanghai（多城路由）
+
+GET /shanghai (首页, follow)          HTTP 200  114576B   <img>=26  /api/media/file=50  /_next/image=0
+GET /shanghai/listings (列表, follow) HTTP 200   75551B   <img>=11  /api/media/file=22  /_next/image=0
+GET /shanghai/buildings (列表, follow) HTTP 200  64021B   <img>= 5  /api/media/file=10  /_next/image=0
+GET /shanghai/listings/huangpu-bund-coworking (详情) HTTP 200  <img>=6  /_next/image=0
+  样本 img src: /api/media/file/cover-huangpu-bund-3.jpg （同源相对路径）
+  该媒体文件: GET /api/media/file/cover-huangpu-bund-3.jpg -> HTTP 200  content-type: image/jpeg
+
+LIVE /_next/image 外部探针（3717，通配配置，dev 模式）:
+  GET /_next/image?url=https://www.gstatic.com/...  -> HTTP 400  "url" parameter is not allowed
+  （dev/Turbopack 一律拒外部，与生产不同——见 image-optimizer-before-after.txt 的 isDev 矩阵）
+
+结论：首页/列表/详情全部 200，图片全走同源原生 <img src="/api/media/file/*">，
+全站 0 处 /_next/image 消费。remotePatterns 仅约束 /_next/image，故本改动对页面渲染惰性。
+本观察针对通配配置的运行实例；因收紧只移除「远程源白名单」、不触碰同源相对路径与原生 <img>，
+带本改动的实例在这些页面上会渲染出字节等价的结果。
