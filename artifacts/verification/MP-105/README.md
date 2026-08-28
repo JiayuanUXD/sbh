@@ -7,7 +7,8 @@
 
 - 分支：`feat/miniprogram-mvp-59f9`
 - 本轮 Node 验证代码 commit：`2aab7a5ba9103c6990431e828f3ed7ba5b288897`
-- 验证范围：只验证该 commit 的小程序代码与本次三份说明文档；用户未跟踪的 `docs/SBH小程序页面设计/` 不属于交付物且未触碰
+- Task 4 文档提交：`1365374af879d7f532820a8e2c0ca7b795c4b0c3`
+- Task 4 最终质量门在提交前运行：当时三份目标文档相对代码基线为 tracked dirty，内容与随后提交的 `1365374` 完全一致；另有用户未跟踪的 `docs/SBH小程序页面设计/`。提交后 tracked 工作树干净，仅保留该用户未跟踪目录；它不属于交付物且未触碰。
 - staging API host：`sbhmini-304306-11-1253925058.sh.run.tcloudbase.com`
 - staging deployment revision：`sbhmini-016`
 - staging 数据库指纹：真实数据库探针计算并命中 staging allowlist；证据不保存原值
@@ -45,10 +46,21 @@
 - CloudBase 独立体验环境：`sbhmini-d5g7d6732b2c64a66`；服务：`sbhmini`。与生产环境和生产服务名称不同，部署与写入过程中未操作生产环境。
 - 隔离数据库：AIDA Supabase 项目；迁移从初始迁移执行到 `20260826_065228_opt_054_nav_config`，随后完成 seed。连接串、账号、密码和数据库指纹原值不归档。
 - runner 在 revision `sbhmini-016` 上完成真实 attestation、10 分钟 run-scoped permit、干净起点证明、首次咨询写入、相同 submission 幂等重试与精确清理。
-- 首次写入核验：Lead 计数 `1`，follow-up `0`，ownership history `0`；幂等重试后计数保持 `1/0/0`。
+- 首次写入核验：Lead 计数 `1`，follow-up `0`，ownership history `0`；幂等重试后计数保持 `1/0/0`。runner 对响应做严格解析，exit 0 要求首次 `acceptedExisting=false`、同 submission 重提 `acceptedExisting=true`；这是由已归档 exit 0 与随仓 runner 合同共同得出的可复验判断，未归档原始响应或敏感请求体。
 - `finally` 清理后再次查询：Lead `0`、follow-up `0`、ownership history `0`；runner 退出码 `0`。
 - 预检期间曾分别命中缺少受信代理跳数（503）和隐私版本不匹配（422）的 fail-closed 分支；两轮均在零写入状态完成清理。最终配置使用 CloudRun 公网入口 1 跳代理和服务端合同版本 `MVP-R1`。
 - 结论范围：真实 staging 的部署身份、隔离数据库、写许可、幂等性与精确清理已经得到运行证据；仍不能替代微信开发者工具、微信后台合法域名、iOS/Android 真机和隐私指引验收。
+
+### Task 5 证据范围
+
+| 子项 | 状态 | 证据边界 |
+|---|---|---|
+| 服务端 attestation、permit 与干净起点 | 已通过 | revision `sbhmini-016` 的真实 runner 已完成，写前 Lead/follow-up/ownership history 均为 0 |
+| 服务端首次写入、同 submission 幂等重提 | 已通过 | runner exit 0 且计数 `1 → 1`；严格响应合同要求第二次 `acceptedExisting=true` |
+| 服务端精确清理 | 已通过 | `finally` 后 Lead/follow-up/ownership history 均为 0，runner exit 0 |
+| 房源详情页手填手机号与重提 UI | 未执行 | 未关联真实 AppID/staging，未运行切换后的微信开发者工具网络 |
+| 真实 staging 完整异常矩阵 | 未执行 | 仅有写前受信代理 503、隐私版本 422 阻断实录；降级楼盘、通用需求、限流、session 过期、弱网响应丢失和稳定服务端错误未完整执行 |
+| 真实 staging 中断/未知结果/清理失败 | 未执行 | `try/finally`、部分创建、结果未知、SIGINT/SIGTERM 和冻结行为已有本地合同测试，但未在真实环境主动制造 |
 
 ### 微信开发者工具诊断
 

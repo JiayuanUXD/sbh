@@ -103,13 +103,17 @@
 > `specs/work-items/MP-105a-acceptance-fixture-ownership-plan.md`。实现采用受保护的 staging
 > 核验/清理接口与 runner 内存 manifest；不修改 Lead 业务模型，不允许 runner 直连数据库。
 
-- [ ] 只在 Task 2/3 attestation 与本轮写许可全部通过后写入；先证明目标 commit/revision、origin 非生产、数据库指纹在 staging 允许名单、run UUID 唯一且 ownership manifest 起点干净。
-- [ ] 每个创建对象进入精确 ownership manifest（对象类型 + 不可变 ID + run UUID），禁止按宽泛前缀或时间范围删除；任何未记录的创建都使验收失败。
-- [ ] 走详情 → 手填测试手机号 → 同 submissionRequestId 重提；验证首次成功语义、第二次 `acceptedExisting=true`、数据库只有一个 Lead。
-- [ ] 覆盖房源有效、降级楼盘、通用需求、限流、session 过期、弱网响应丢失和服务端稳定错误；测试号码和日志必须脱敏。
-- [ ] runner 必须用 `try/finally` 覆盖正常、失败和部分创建，处理 SIGINT/SIGTERM 后执行幂等重清理；分别查询 Lead、关系数据及所有 ownership 对象的清理前后计数。清理失败立即冻结本轮写入并禁止继续验收。
+> 状态边界：服务端 staging 持久化主路径已实测；详情页 UI、微信开发者工具、设备以及真实 staging 的完整异常/中断矩阵尚未执行。以下复选框按证据范围分别记录，不能用已勾选的服务端项替代未勾选项。
 
-本地代码进度：fixture 严格请求/typed Lead ID codec、受保护的 staging 核验/精确清理接口和显式 runner 已完成 mock 合同；接口在 permit、部署身份和实际数据库探针通过前保持不可见，清理只按服务端复算 locator + 编码后的实际 Lead ID 双匹配，并在删除前后复查 Lead、跟进和归属历史。runner 使用进程内 manifest、同 submission 幂等对账、`try/finally` 与 SIGINT/SIGTERM 单例清理；结果未知时不会宣称 clean。真实 staging 执行仍未完成，因此上述验收项继续保持未勾选。
+- [x] 真实 runner 只在 Task 2/3 attestation 与本轮 10 分钟写许可通过后写入；已核对目标 commit/revision、非生产 origin、数据库指纹 allowlist、唯一 run UUID 和三类计数均为 0 的干净起点。
+- [x] 本轮唯一创建的 Lead 已进入 runner 内存 ownership manifest，记录 run、对象类型、不可变 Lead ID 和 locator 摘要；清理使用服务端复算 locator + 编码后的实际 Lead ID 双匹配，未按宽泛前缀或时间范围删除。
+- [x] 服务端 runner 已直接调用咨询 API 完成首次写入与同一 submission 重提。runner exit 0 的严格解析要求首次 `acceptedExisting=false`、重提 `acceptedExisting=true`；数据库计数保持 `1 → 1`，Lead ID 不变，follow-up 和 ownership history 均为 0。
+- [ ] 尚未在微信开发者工具从房源详情页手填测试手机号并重提；因此不能把上述服务端 runner 结果表述为详情页 UI 闭环通过。
+- [ ] 真实 staging 尚未覆盖房源降级楼盘、通用需求、限流、session 过期、弱网响应丢失和服务端稳定错误的完整矩阵。已有受信代理 503、隐私版本 422 的写前 fail-closed 记录，以及本地合同测试，但不能外推其余环境路径。
+- [x] runner 代码与本地合同已覆盖 `try/finally`、失败/部分创建、结果未知、SIGINT/SIGTERM 单例清理和清理失败冻结；真实正常路径已在 `finally` 后复查 Lead、follow-up、ownership history 均为 0，runner exit 0。
+- [ ] 未在真实 staging 主动制造写后响应未知、部分创建、cleanup 失败或 SIGINT/SIGTERM 中断；这些异常路径当前只有本地合同证据，不记为真实环境通过。
+
+已完成范围：fixture 严格请求/typed Lead ID codec、受保护的 staging 核验/精确清理接口、显式 runner、本地 mock 合同，以及一次真实 staging 主路径的 attestation、permit、写入、幂等重提和精确清理。未完成范围继续保留在上方未勾选项及 Task 4/6–8；MP-105 整体状态仍为执行中。
 
 ### Task 6：iOS/Android 与隐私验收
 
