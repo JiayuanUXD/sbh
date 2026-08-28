@@ -70,6 +70,16 @@ export default function HomeTypeCards({ typeSummaries, citySlug, cards }: Readon
                       return cover ? (
                         // 类型卡图区固定 168px 高、桌面五等分（1440 视口下约 229px 宽）；
                         // 768–1023px 是两列（约 350–480px 宽）；≤767px 图整个 display:none。
+                        //
+                        // 注意：≤767px 的 display:none 本身**不省流量**——各主流浏览器
+                        // 对 display:none 的 img 元素仍会发起请求。真正让移动端不下载
+                        // 大图的是 sizes 在该断点报 0px，别以为「反正 display:none 了，
+                        // sizes 随便写」。
+                        //
+                        // decorative 是为了不让读屏用户听到某条具体房源的标题：卡片里
+                        // 本来就有可见的类型名文字，这张图只是装饰性的；不加这个 prop
+                        // 的话，Media 会把封面的 alt（可能是某条房源的标题）读出来，
+                        // 与卡片语义不符。
                         <Media media={cover} ratio="auto" sizes="(max-width: 767px) 0px, (max-width: 1023px) 50vw, 320px" decorative />
                       ) : null
                     })()}
