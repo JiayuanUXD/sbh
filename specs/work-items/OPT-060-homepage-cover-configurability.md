@@ -69,18 +69,28 @@ name / slug / type / status / frontendVisible / city / parent
 以上是**读代码可核实的事实**。由此推断的后果是：首页要等 `unstable_cache` 的
 `revalidate: 300` 自然过期，最长 5 分钟才能看到新封面。
 
-> **但这个后果尚未实测确认，别当既成事实用。** 2026-08-27 在本地 dev server 上
-> 试过一次受控实验（只改一个商圈的 `coverImage`、别的都不动），结果是**立刻生效、
-> 没有陈旧**。该结果**不能反证上面的推断**，因为这个环境本身没有证明力：
-> 一来 `next dev` 下 `unstable_cache` 的行为与生产不同；二来当时的数据改动跑在
-> 独立的 tsx 进程里，钩子即便打了标签也到不了 dev server 进程。
+> **2026-08-28 已在 `next start`（`NODE_ENV=production`）下补做实测，结论：修复后立刻生效。**
+> 做法：`pnpm exec next build` + `next start` 起一个独立进程（`E:\wt-opt060-verify`
+> worktree，端口 3802，同一份本地 Postgres），登录该进程自己的 `/admin`，**只改**
+> 商圈「外滩」（`locations.id=9`）的 `封面图` 一个字段（改前 `coverImage` 为 `null`，
+> 依赖楼盘兜底封面 `cover-huangpu-bund-3.jpg`），存盘后**不等待、立即** `curl` 同一
+> 进程的 `/shanghai`：bento 商圈卡（`href=".../listings?district=bund"`）的 `<img src>`
+> 已经是新图 `landing-hero-entrust-20260810.jpg`，`cover-huangpu-bund-3.jpg` 仍在页面上
+> 但出现在楼盘卡片（`href=".../buildings/huangpu-bund"`），是建筑自己的封面字段，
+> 与本次改动无关。证据存 `artifacts/verification/OPT-060/step4-cache-invalidation-{before,after}.html`。
 >
-> **要证实或证伪，必须在 `next start`（`NODE_ENV=production`）下、且改动由
-> 后台 UI 发起（与 Next 同进程）时重做这个实验。** 实施本工作项时顺手做掉。
+> 该结果满足了两个此前缺失的证明力条件：**`next start` 生产模式**（而非 `next dev`）+
+> **改动由该进程自己的后台 UI 发起**（PATCH 打在同一个 Next 进程里，钩子能真正调用
+> `revalidateTag`，不是独立 tsx 脚本打在进程外）。**「最长 5 分钟」的旧推断到此作废**——
+> 修复后是立即生效，不存在陈旧窗口。
+>
+> 2026-08-27 那次 dev server 上的非正式实验（立刻生效、无陈旧）现在可以解释了：
+> 结论方向凑巧是对的，但证明力仍然不足，不能替代本次实测。
 
-无论实测结果如何，**把 `coverImage` 补进那张表都是对的**——它本来就属于「会影响
-C 端公开呈现」的字段，漏在表外是疏忽。只是「修它能消除多长的陈旧窗口」这件事，
-要等上面那次实测才有数。
+**`coverImage` 补进 `PUBLIC_LOCATION_FIELDS` 这个修复本身是必要且已生效的**——它
+消除的不是「最长 5 分钟」的陈旧窗口（该推断已被上面的实测推翻），而是**在修复前，
+改封面这件事永远不会主动失效，只能等 5 分钟自然过期**；修复后是**立即失效**，
+不存在等待窗口。
 
 > 订正：本文档此前在 §5.2 写过「商圈封面在供给查询里，跟着供给缓存走，现状已如此」
 > ——那句话不成立，已删。
