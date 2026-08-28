@@ -15,7 +15,9 @@ import type {
   BuildingSummaryViewModel,
   DistrictCardViewModel,
   DistrictViewModel,
+  HomepageTypeSummary,
   ListingCardViewModel,
+  MediaViewModel,
   NearbyListingViewModel,
 } from '@/domain/public-catalog/contracts'
 
@@ -57,7 +59,12 @@ const article: ArticleCardViewModel = {
   publishedAt: '2026-08-01T00:00:00.000Z', stableSortKey: 'article-31',
 }
 
-function buildHomepage(stats = { listings: 120, buildings: 45, businessAreas: 12 }) {
+function buildHomepage(
+  stats = { listings: 120, buildings: 45, businessAreas: 12 },
+  // OPT-060 回归：默认 {} 与既有用例保持不变，新用例按需传入让某个 slot 的
+  // summary.cover 非空，才能触到「配置全空回落到该类型首条房源封面」这条链。
+  typeSummaries: Readonly<Record<string, HomepageTypeSummary>> = {},
+) {
   return {
     featuredListings: [listing],
     districts,
@@ -65,7 +72,7 @@ function buildHomepage(stats = { listings: 120, buildings: 45, businessAreas: 12
     districtCards,
     latestArticles: [article],
     stats,
-    typeSummaries: {},
+    typeSummaries,
     nearbyListings: [nearbyListing],
   }
 }
@@ -179,5 +186,44 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     const html = renderToStaticMarkup(createElement(CityHomeView, { city, homepage, routeMode: 'prefixed', bandStats , siteSettings: SITE_SETTINGS_FALLBACK }))
     expect(html).toContain('以上海市中心起算')
     expect(html).toContain('首页改版上线')
+  })
+
+  /**
+   * 回归（OPT-060 Task 4 复核 Important）：类型卡封面的四级优先级里，
+   * 「城市覆盖」「全局默认」两级已被 `type-card-covers.test.ts` 锁住，但组件内
+   * 「都为空才回落到该类型首条房源封面」这最后一级此前完全没有测试覆盖——
+   * 变异测试证实把 HomeTypeCards.tsx 的 `?? summary?.cover` 删掉，全量用例零红。
+   * 下面两条把回落链与优先级方向都锁进契约。
+   */
+  it('类型卡封面全空（SITE_SETTINGS_FALLBACK）时回落到该类型首条房源的封面', () => {
+    const city = buildCity(2.5)
+    const summaryCover: MediaViewModel = { src: '/media/summary-cover.jpg', alt: '联合办公封面' }
+    const homepage = buildHomepage(undefined, {
+      coworking: { count: 8, cover: summaryCover },
+    })
+    const html = renderToStaticMarkup(createElement(CityHomeView, {
+      city, homepage, routeMode: 'prefixed', bandStats, siteSettings: SITE_SETTINGS_FALLBACK,
+    }))
+    expect(html).toContain('src="/media/summary-cover.jpg"')
+  })
+
+  it('类型卡配置了封面时，优先于同类型首条房源的封面', () => {
+    const city = buildCity(2.5)
+    const summaryCover: MediaViewModel = { src: '/media/summary-cover.jpg', alt: '联合办公封面' }
+    const configuredCover: MediaViewModel = { src: '/media/configured-cover.jpg', alt: '运营配置封面' }
+    const siteSettings = {
+      ...SITE_SETTINGS_FALLBACK,
+      typeCards: SITE_SETTINGS_FALLBACK.typeCards.map((card) =>
+        card.slot === 'coworking' ? { ...card, coverImage: configuredCover } : card,
+      ),
+    }
+    const homepage = buildHomepage(undefined, {
+      coworking: { count: 8, cover: summaryCover },
+    })
+    const html = renderToStaticMarkup(createElement(CityHomeView, {
+      city, homepage, routeMode: 'prefixed', bandStats, siteSettings,
+    }))
+    expect(html).toContain('src="/media/configured-cover.jpg"')
+    expect(html).not.toContain('src="/media/summary-cover.jpg"')
   })
 })
