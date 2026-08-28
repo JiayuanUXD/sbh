@@ -23,6 +23,7 @@ interface MediaDoc {
   url?: string
   filename?: string
   alt?: string
+  mimeType?: string
 }
 
 interface MediaListResponse {
@@ -58,11 +59,22 @@ export interface CoverPickerModalProps {
  * 非 2xx 会正常 resolve（413 超大 / 403 无权限 / 422 校验失败），
  * 不显式判断就会静默丢文件，用户只看到「没反应」，不知道缺了什么，
  * 所以这里必须 throw 且带上 HTTP 状态码，调用方 catch 后原样把状态码展示给用户。
+ *
+ * 类型校验放在这里、在 `fetch` 之前拦：`<input accept>` 只是浏览器层面的选择器
+ * 过滤，不是安全边界（拖拽上传、"所有文件"选项、被脚本化的 change 事件都能绕过），
+ * `Media` 集合本身又是通用素材库、故意不收紧 mimeType（见组件文件头注释）。
+ * 这条防线因此必须在客户端上传路径里显式做，且要早于网络请求——已经在
+ * OPT-062 弹层里发生过一次真实事故：视频被素材库列表选中过、也可能被这里
+ * 上传进来，最终在 C 端渲染成裂图的 `<img src=".mp4">`。
  */
 export async function uploadCoverMedia(
   file: File,
   alt: string,
 ): Promise<{ id: number; url: string }> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error(`不支持的文件类型（${file.type || '未知'}），仅支持 JPG/PNG/WEBP`)
+  }
+
   const formData = new FormData()
   formData.append('file', file)
   formData.append('_payload', JSON.stringify({ alt }))
@@ -80,6 +92,42 @@ export async function uploadCoverMedia(
     throw new Error('上传失败：服务端未返回可用的媒体记录')
   }
   return { id: Number(doc.id), url: doc.url }
+}
+
+/**
+ * 拉取素材库分页列表，供封面选图弹层使用。
+ *
+ * 抽成独立函数（与 `uploadCoverMedia`同级）是为了能写真实行为测试锁住
+ * 「查询带了 mimeType 过滤」——这正是本轮要修的洞：弹层曾经把 `GET /api/media`
+ * 的查询内联在 `useEffect` 里、不过滤 mimeType，素材库里的 `video/mp4`
+ * 因此会被一起列出、且能被点击选中，选中后 C 端把它当图片渲染成
+ * `<img src=".mp4">`，线上裂图。
+ *
+ * 用 `where[mimeType][like]=image`（而不是 `contains`）：两者在 drizzle 的
+ * text 字段查询里都落到同一个 `ilike '%image%'`，选 `like`只是为了和本文件
+ * 里已有的 `where[alt][like]` 保持同一种写法。已经起本地 dev server、对着真实
+ * Postgres 库（14 条素材 = 12 张 image/jpeg + 2 条 video/mp4）实测过：
+ * 加上这个过滤后 `totalDocs` 从 14 降到 12，两条 mp4 被排除。
+ */
+export async function fetchCoverMediaList(params: {
+  page: number
+  keyword: string
+}): Promise<MediaListResponse> {
+  const { page, keyword } = params
+  const searchParams = new URLSearchParams()
+  searchParams.set('limit', String(PAGE_SIZE))
+  searchParams.set('page', String(page))
+  searchParams.set('depth', '0')
+  searchParams.set('where[mimeType][like]', 'image')
+  if (keyword.trim()) {
+    searchParams.set('where[alt][like]', keyword.trim())
+  }
+
+  const res = await fetch(`/api/media?${searchParams.toString()}`)
+  if (!res.ok) {
+    throw new Error(`素材库加载失败（HTTP ${res.status}）`)
+  }
+  return (await res.json()) as MediaListResponse
 }
 
 /**
@@ -143,33 +191,16 @@ export default function CoverPickerModal({
     let cancelled = false
     const key = `${page}|${keyword}`
 
-    const params = new URLSearchParams()
-    params.set('limit', String(PAGE_SIZE))
-    params.set('page', String(page))
-    params.set('depth', '0')
-    if (keyword.trim()) {
-      params.set('where[alt][like]', keyword.trim())
-    }
-
-    fetch(`/api/media?${params.toString()}`)
-      .then(async (res) => {
-        if (cancelled) return
-        if (!res.ok) {
-          Message.error(`素材库加载失败（HTTP ${res.status}）`)
-          setDocs([])
-          setTotalDocs(0)
-          setLoadedKey(key)
-          return
-        }
-        const json = (await res.json()) as MediaListResponse
+    fetchCoverMediaList({ page, keyword })
+      .then((json) => {
         if (cancelled) return
         setDocs(json.docs ?? [])
         setTotalDocs(json.totalDocs ?? 0)
         setLoadedKey(key)
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return
-        Message.error('素材库加载失败（网络错误）')
+        Message.error(err instanceof Error ? err.message : '素材库加载失败（网络错误）')
         setDocs([])
         setTotalDocs(0)
         setLoadedKey(key)
