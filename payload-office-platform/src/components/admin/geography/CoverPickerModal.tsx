@@ -40,10 +40,45 @@ export interface CoverPickerModalProps {
 }
 
 /**
+ * 上传一张封面媒体到 `/api/media`，返回可直接写进抽屉 state 的引用。
+ *
+ * 抽成独立函数（而不是内联在组件的 onChange 里）是为了能写**真实行为测试**：
+ * mock `global.fetch` 直接断言「非 2xx 必须 throw、错误信息带状态码」，
+ * 而不是靠字符串匹配源码里出现过 `res.ok`——那种断言防不住「判断逻辑被删掉」。
+ *
+ * 非 2xx 会正常 resolve（413 超大 / 403 无权限 / 422 校验失败），
+ * 不显式判断就会静默丢文件，用户只看到「没反应」，不知道缺了什么，
+ * 所以这里必须 throw 且带上 HTTP 状态码，调用方 catch 后原样把状态码展示给用户。
+ */
+export async function uploadCoverMedia(
+  file: File,
+  alt: string,
+): Promise<{ id: number; url: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('_payload', JSON.stringify({ alt }))
+
+  const res = await fetch('/api/media', {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) {
+    throw new Error(`上传失败（HTTP ${res.status}）`)
+  }
+  const docRes = await res.json()
+  const doc = docRes?.doc
+  if (!doc || !doc.id || !doc.url) {
+    throw new Error('上传失败：服务端未返回可用的媒体记录')
+  }
+  return { id: Number(doc.id), url: doc.url }
+}
+
+/**
  * 封面选图/上传弹层（OPT-062）。
  *
- * 不复用 `MediaWorkbench`：它依赖 Payload 表单上下文的若干 hook（详见该文件顶部 import），
- * 只能活在 Payload 表单里，而商圈抽屉是表单之外的自定义 Arco 视图。
+ * 不复用 `MediaWorkbench`：它依赖 Payload 表单上下文的若干 hook（`useDocumentInfo` /
+ * `useField` / `useForm`，均来自 `@payloadcms/ui`），只能活在 Payload 表单里，
+ * 而商圈抽屉是表单之外的自定义 Arco 视图，import 它会直接崩。
  * 上传范式（FormData + _payload 带 alt，显式判 res.ok）照抄它，不 import 它。
  */
 export default function CoverPickerModal({
@@ -119,32 +154,13 @@ export default function CoverPickerModal({
   const handleUpload = useCallback(
     async (file: File) => {
       const alt = altInput.trim() || `${areaName}商圈封面`
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('_payload', JSON.stringify({ alt }))
-
       setIsUploading(true)
       try {
-        const res = await fetch('/api/media', {
-          method: 'POST',
-          body: formData,
-        })
-        // 非 2xx 会正常 resolve（413 超大 / 403 无权限 / 422 校验失败），
-        // 不显式判断就会静默丢文件，用户只看到「没反应」，不知道缺了什么。
-        if (!res.ok) {
-          Message.error(`上传失败（HTTP ${res.status}）`)
-          return
-        }
-        const docRes = await res.json()
-        const doc = docRes?.doc
-        if (!doc || !doc.id || !doc.url) {
-          Message.error('上传失败：服务端未返回可用的媒体记录')
-          return
-        }
+        const cover = await uploadCoverMedia(file, alt)
         Message.success('上传成功')
-        onPick({ id: Number(doc.id), url: doc.url })
-      } catch {
-        Message.error('上传失败（网络错误）')
+        onPick(cover)
+      } catch (err) {
+        Message.error(err instanceof Error ? err.message : '上传失败（网络错误）')
       } finally {
         setIsUploading(false)
       }
