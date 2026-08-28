@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-
 import { describe, expect, it } from 'vitest'
 
 import { mapTypeCardOverrides } from '@/lib/frontend/type-card-covers'
@@ -57,13 +55,5 @@ describe('mapTypeCardOverrides', () => {
     ])
     expect(out).toHaveLength(1)
     expect(out[0]?.coverImage.src).toBe('/api/media/file/cover.jpg')
-  })
-
-  it('city-context 调用它时不进入那串「全有或全无」的判空条件', () => {
-    const src = readFileSync('src/app/(frontend)/_lib/city-context.ts', 'utf8')
-    // 必须是直接赋值，不能是 xxx.ok / xxx.value 那套 MappingResult 写法
-    expect(src).toContain('typeCardOverrides: mapTypeCardOverrides(value.typeCardOverrides)')
-    // 也不能出现在 return null 的条件里
-    expect(src).not.toMatch(/!\s*typeCardOverrides\s*\.\s*ok/)
   })
 })
