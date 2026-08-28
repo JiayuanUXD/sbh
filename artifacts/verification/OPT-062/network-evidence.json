@@ -4,11 +4,76 @@
     "branch": "feat/opt-062-homepage-cover-authoring-747b",
     "target": "http://localhost:3717",
     "loggedInAs": "e2e-adm@example.com",
-    "note": "Browser pane in this session did not composite frames (screenshot tool timed out every attempt). All interaction below was driven via DOM/JS (javascript_tool) and verified via read_network_requests, not via visual screenshots."
+    "note": "Browser pane in this session did not composite frames (screenshot tool timed out every attempt). All interaction below was driven via DOM/JS (javascript_tool) and verified via read_network_requests, not via visual screenshots.",
+    "revision_note": "Revised after independent audit (2nd pass). Audit verdict on original evidence: 三步铁证/模块隔离/孤儿路径/弹层非-ESC部分 = REAL_EVIDENCE. Four gaps were flagged and are addressed in this revision: (1) navigation item had zero evidence in this file, (2) three response bodies referenced in the report were never actually captured here, (3) version-number chronology had an unexplained jump, (4) ESC sub-claim needed to be split out and explicitly marked NOT_VERIFIED. No new browser testing was performed for this revision except: (a) re-reading the still-open tab's network log for entries that were still retained, (b) a fresh, non-interactive DOM snapshot of the static nav tree (not a re-test of any save/upload workflow)."
+  },
+  "step3_navigation": {
+    "verdict": "REAL_EVIDENCE (nav structure) + PARTIAL_EVIDENCE (city-site-profiles save, status-code-level only, see below)",
+    "trigger_mechanism_explained": {
+      "question": "How was the successful city-site-profiles PATCH actually triggered, given computer left_click is unreliable in this environment?",
+      "answer": "Neither `computer left_click` (CDP coordinate-based, confirmed unreliable in this session) nor `document.dispatchEvent(...)` was used for this save. The actual mechanism, used consistently for every successful button interaction in this session (save buttons, edit links, remove-cover buttons, modal close icons, filter toggles), was: `javascript_tool` executing page-context JS that does `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === '保存').click()` -- i.e. calling the native `HTMLElement.prototype.click()` method directly ON the target DOM node (not on `document`, not via CDP synthetic coordinates). `.click()` called this way dispatches a real (bubbling, but isTrusted:false) click event AT that element, which bubbles up and is picked up by React's delegated synthetic event listener the same way a real user click would be -- React does not check `event.isTrusted` when constructing SyntheticEvent. This is why button-triggered saves worked reliably throughout the session while coordinate-based clicks and document-level keyboard dispatch did not.",
+      "field_edit_mechanism": "Text field edits (e.g. introHeading) used the native property setter trick: `Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(el, newValue)` followed by `el.dispatchEvent(new Event('input', {bubbles:true}))` and `dispatchEvent(new Event('change', {bubbles:true}))` -- this is the standard technique to make a React-controlled input register a change (a plain `el.value = x` assignment does NOT notify React because React overrides the native value setter to track its own state)."
+    },
+    "nav_tree_fresh_snapshot": {
+      "captured": "2026-08-28, this revision pass -- fresh, non-interactive DOM read of http://localhost:3717/admin (dashboard), not a re-test of any workflow, just a structural snapshot",
+      "method": "document.querySelector('[aria-label=\"后台主导航\"]').querySelectorAll('a') -> {text, href} for every leaf link",
+      "full_leaf_list_json": [
+        {"text":"运营概览","href":"/admin"},
+        {"text":"我的待办","href":"/admin/collections/tasks"},
+        {"text":"消息通知1","href":"/admin/collections/notifications"},
+        {"text":"房源列表","href":"/admin/collections/listings"},
+        {"text":"楼盘库","href":"/admin/collections/buildings"},
+        {"text":"房源投放申请","href":"/admin/collections/supply-submissions"},
+        {"text":"楼盘批量导入","href":"/admin/import/buildings"},
+        {"text":"房源批量导入","href":"/admin/import/listings"},
+        {"text":"导入批次","href":"/admin/collections/supply-import-batches"},
+        {"text":"城市管理","href":"/admin/geography/cities"},
+        {"text":"行政区域","href":"/admin/geography/districts"},
+        {"text":"商圈管理","href":"/admin/geography/business-areas"},
+        {"text":"地铁管理","href":"/admin/geography/metro-lines"},
+        {"text":"地理别名","href":"/admin/collections/location-aliases"},
+        {"text":"审核队列","href":"/admin/collections/listing-reviews"},
+        {"text":"举报处理","href":"/admin/collections/listing-reports"},
+        {"text":"信息纠错","href":"/admin/collections/information-corrections"},
+        {"text":"咨询线索","href":"/admin/collections/leads"},
+        {"text":"客户档案","href":"/admin/collections/customers"},
+        {"text":"跟进记录","href":"/admin/collections/follow-ups"},
+        {"text":"商户管理","href":"/admin/collections/merchants"},
+        {"text":"城市合伙人申请","href":"/admin/collections/city-partner-applications"},
+        {"text":"楼盘商户关系","href":"/admin/collections/building-merchant-relations"},
+        {"text":"团队管理","href":"/admin/collections/teams"},
+        {"text":"经纪人管理","href":"/admin/collections/brokers"},
+        {"text":"顾问服务时间","href":"/admin/globals/advisor-service-hours"},
+        {"text":"站点设置","href":"/admin/globals/site-settings"},
+        {"text":"城市站点配置","href":"/admin/collections/city-site-profiles"},
+        {"text":"页面内容","href":"/admin/collections/pages"},
+        {"text":"资讯中心","href":"/admin/collections/articles"},
+        {"text":"素材库","href":"/admin/collections/media"},
+        {"text":"表单管理","href":"/admin/collections/forms"},
+        {"text":"提交数据","href":"/admin/collections/form-submissions"},
+        {"text":"用户管理","href":"/admin/collections/users"},
+        {"text":"角色管理","href":"/admin/collections/roles"},
+        {"text":"配套字典","href":"/admin/collections/amenities"},
+        {"text":"搜索索引","href":"/admin/collections/search"},
+        {"text":"领域事件","href":"/admin/collections/domain-events"},
+        {"text":"审计日志","href":"/admin/collections/audit-logs"}
+      ],
+      "assertions_this_supports": [
+        "'城市站点配置' (href /admin/collections/city-site-profiles) immediately follows '站点设置' (href /admin/globals/site-settings) in list order -- confirms 'placed right next to 站点设置'.",
+        "The 区域管理 group leaves are exactly {城市管理, 行政区域, 商圈管理, 地铁管理, 地理别名} -- exactly 5, no 城市站点配置 among them -- confirms 'only five geography items left'."
+      ]
+    },
+    "city_site_profiles_save_evidence": {
+      "caveat": "IMPORTANT: this is status-code-level (list-line) evidence transcribed from this session's own transcript, NOT a re-captured full response body. By the time this revision pass checked the browser's live network log (read_network_requests with urlPattern city-site-profiles), the entries had already been evicted -- the log only retains a rolling window and many navigations happened since. Per coordinator instruction, no new save/edit action was performed to regenerate a fresh capture; what follows is exactly the level of evidence that was actually obtained during original testing, no more.",
+      "first_save_list_line_captured_during_original_test": "[42816.465] POST http://localhost:3717/admin/collections/city-site-profiles/1 -> 200 OK ; [42816.466] PATCH http://localhost:3717/api/city-site-profiles/1?depth=0&fallback-locale=null -> 200 OK ; [42816.467]/[42816.468] POST .../access/1 -> 200 OK ; [42816.469] POST .../admin/collections/city-site-profiles/1 -> 200 OK",
+      "revert_save_list_line_captured_during_original_test": "[42816.466] PATCH .../api/city-site-profiles/1?depth=0&fallback-locale=null -> 200 OK (repeated) ; [42816.470] POST .../admin/collections/city-site-profiles/1 -> 200 OK ; [42816.471] PATCH .../api/city-site-profiles/1?depth=0&fallback-locale=null -> 200 OK ; [42816.474] POST .../admin/collections/city-site-profiles/1 -> 200 OK",
+      "what_this_proves": "Both PATCHes to /api/city-site-profiles/1 returned HTTP 200 (status only). The introHeading field was confirmed set to the test marker and then back to empty by reading the live DOM input value before/after each save (el.value), not by inspecting the PATCH response body.",
+      "what_this_does_NOT_prove": "The literal PATCH response JSON bodies (e.g. whether the returned doc.introHeading round-tripped correctly) were never fetched via requestId and are no longer retrievable. Full response-body-level confirmation for this specific save flow is NOT available -- downgraded accordingly in the report."
+    }
   },
   "step4_5_upload_and_save": {
     "target_location": "测试西湖商圈 (business_area, location id 1508)",
-    "upload_POST_api_media": {
+    "upload_POST_api_media_first": {
       "request": "multipart/form-data { file: opt062-test-cover.png, _payload: {\"alt\":\"测试西湖商圈商圈封面\"} } (alt auto-prefilled by CoverPickerModal as `${areaName}商圈封面`)",
       "response_status": "201 Created",
       "response_body": {
@@ -20,7 +85,8 @@
           "mimeType": "image/png"
         },
         "message": "成功创建 媒体"
-      }
+      },
+      "evidence_level": "REAL_EVIDENCE -- full response body captured via read_network_requests(requestId)."
     },
     "save_PATCH_api_locations_1508_first": {
       "response_status": "200 OK",
@@ -29,25 +95,50 @@
         "version": 2,
         "message": "更新成功。"
       },
-      "note": "version incremented 1 -> 2 on first cover save"
+      "note": "version incremented 1 -> 2 on first cover save",
+      "evidence_level": "REAL_EVIDENCE -- full response body captured via read_network_requests(requestId=42816.616)."
     },
-    "remove_cover_PATCH_captured_via_fetch_interceptor": {
-      "request_body_raw": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":null,\"version\":2}",
-      "note": "Confirms client PATCH payload explicitly includes both coverImage and version fields (not silently dropped)."
+    "remove_cover_PATCH": {
+      "request_body_raw_captured_via_fetch_interceptor": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":null,\"version\":2}",
+      "response_status": "200 OK (list-line only, requestId=42816.622: 'PATCH http://localhost:3717/api/locations/1508 -> 200 OK'; re-confirmed present in the same list on a later re-check during this revision pass)",
+      "response_body": "NOT AVAILABLE -- attempted to re-fetch via read_network_requests(requestId=42816.622) during this revision pass; got 'Response body not available for request 42816.622' (log had evicted the body by then, kept only the summary line).",
+      "note": "Confirms client PATCH payload explicitly includes both coverImage and version fields (not silently dropped). Status code (200) is corroborated at the list-line level, but the response body was not independently captured -- downgraded accordingly vs. the original report wording.",
+      "evidence_level": "PARTIAL_EVIDENCE -- request body: REAL_EVIDENCE; response body: NOT_VERIFIED (status-only)."
     },
-    "re_add_cover_PATCH_captured_via_fetch_interceptor": {
-      "request_body_raw": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":74,\"version\":3}",
-      "response_status": "200 OK",
-      "note": "coverImage:74 (new upload id) and version:3 both present together in one outgoing PATCH request body -- direct proof for the '三步铁证/抓包核验' requirement."
+    "re_add_cover_PATCH": {
+      "request_body_raw_captured_via_fetch_interceptor": "{\"name\":\"测试西湖商圈\",\"status\":\"active\",\"frontendVisible\":false,\"sortOrder\":0,\"centerLatitude\":null,\"centerLongitude\":null,\"coverImage\":74,\"version\":3}",
+      "response_status": "200 OK (list-line only, requestId=42816.655: 'PATCH http://localhost:3717/api/locations/1508 -> 200 OK')",
+      "response_body": "NOT AVAILABLE -- attempted to re-fetch via read_network_requests(requestId=42816.655) during this revision pass; got 'Response body not available for request 42816.655'.",
+      "note": "coverImage:74 (new upload id) and version:3 both present together in one outgoing PATCH request body -- this is the direct proof for the '三步铁证/抓包核验' requirement (client-sent payload, not a server-echoed value). Status 200 corroborated at list-line level only.",
+      "evidence_level": "PARTIAL_EVIDENCE -- request body: REAL_EVIDENCE (this is the load-bearing evidence for the audit's 'coverImage+version 同框' finding, and it is a request body, immune to this particular gap); response body: NOT_VERIFIED (status-only)."
     },
-    "source_reference": "src/domain/geography/location-protect.ts:263-278 implements the optimistic-lock version check (VersionConflictError if submitted version !== currentVersion)."
+    "upload_POST_api_media_second_id74": {
+      "list_line_captured_during_original_test": "'POST http://localhost:3717/api/media -> 201 Created' immediately followed by 'GET http://localhost:3717/api/media/file/opt062-test-cover-2.png -> 200 OK' in the request list at the time of the second upload",
+      "response_body": "NOT independently captured via requestId at the time (only the first upload's body, id=73, was fetched that way). By the time this revision pass checked, the corresponding requestId was no longer resolvable in the trimmed log.",
+      "id_and_alt_provenance": "id=74 and alt='测试西湖商圈商圈封面' are INFERRED, not directly observed in a POST /api/media response body: (a) id=74 is inferred because the very next PATCH request body (captured via interceptor, see re_add_cover_PATCH above) references coverImage:74, and Payload's media collection assigns ids sequentially (73 was the immediately preceding upload); (b) alt is inferred from the CoverPickerModal's fixed prefill rule (uploadCoverMedia(file, alt) where alt = `${areaName}商圈封面`, same as confirmed for id=73) -- this rule is a single code path shared by every upload in the modal, not per-upload logic, so it is a reasonable but not independently-observed inference for this specific call.",
+      "evidence_level": "NOT_VERIFIED at the individual-response level -- downgraded accordingly vs. the original report wording, which stated 'doc.id/doc.url 都在' for 'both' uploads without qualifying that only the first was response-body-confirmed."
+    },
+    "version_chronology_full_explanation": {
+      "purpose": "Explains the version-number jump the audit flagged (evidence only showed v1->v2->[v2 submitted]->[v3 submitted], but cleanup reported landing on v6).",
+      "chain": [
+        {"version": 1, "event": "baseline, before any test action on location 1508"},
+        {"version": 2, "event": "first cover save (upload id=73, then PATCH)", "how_confirmed": "REAL_EVIDENCE -- full PATCH response body captured (requestId=42816.616), version:2"},
+        {"version": 3, "event": "remove-cover save (submitted coverImage:null, version:2)", "how_confirmed": "INFERRED -- request body captured shows submitted version:2 (i.e. client read v2 before this save); the NEXT captured request body (re-add-cover) shows submitted version:3, which is only possible if this remove-save succeeded and the server incremented 2->3 and the client's local state picked up the new version. Response body for this specific PATCH is not independently available (see remove_cover_PATCH above)."},
+        {"version": 4, "event": "re-add-cover save (upload id=74, submitted coverImage:74, version:3)", "how_confirmed": "INFERRED -- same reasoning: the version:5 seen in the NEXT captured response (see v5 below) is only reachable from a starting point of v4, and a subsequent drawer reload (Step 6 hard-reload check) showed the cover was genuinely persisted (更换/移除 buttons, not the empty-state upload button), confirming this save did succeed server-side. Response body for this specific PATCH is not independently available."},
+        {"version": 5, "event": "CLEANUP ATTEMPT #1 (race condition, did NOT actually remove the cover) -- clicked the 移除 button and the 保存 button back-to-back inside the SAME synchronous javascript_tool call, before React had flushed/re-rendered the state update from the 移除 click. The 保存 click therefore read STALE component state that still held coverImage:{id:74}, so the PATCH it fired unintentionally re-submitted coverImage:74 (unchanged), not null.", "how_confirmed": "REAL_EVIDENCE -- full response body captured (requestId=42816.1316): version:5, coverImage still {id:74, url:'/api/media/file/opt062-test-cover-2.png', ...}. This response is exactly what exposed the race condition and is why a second cleanup attempt was needed."},
+        {"version": 6, "event": "CLEANUP ATTEMPT #2 (correct) -- reopened the drawer fresh (which re-reads server state, so local version state = 5), clicked 移除 as a separate script call, explicitly verified via DOM query that the button row had switched from ['更换','移除'] to ['从素材库选择 / 上传新图'] (i.e. coverImage local state was confirmed null BEFORE proceeding), THEN clicked 保存 as a separate subsequent script call.", "how_confirmed": "REAL_EVIDENCE -- full response body captured (requestId=42816.1320): version:6, coverImage:null. This is the FINAL state of location 1508, matching its original pre-test baseline for the coverImage field (version itself is expected to differ from the original 1, since version is an internal optimistic-lock counter, not user-facing data -- see cleanup_performed below)."}
+      ],
+      "conclusion": "The 'skip' the audit noticed (v3 to v6 with no v4/v5 shown) is fully explained by an accidental race-condition save during the FIRST cleanup attempt (v4->v5), which resubmitted the old cover unchanged and had to be corrected by a second, properly-sequenced cleanup save (v5->v6). This was diagnosed live during the session (the v5 response was the tell) but had not been carried into the evidence file's version narrative in the first pass -- it is now recorded explicitly above."
+    },
+    "source_reference": "src/domain/geography/location-protect.ts:263-278 implements the optimistic-lock version check (VersionConflictError if submitted version !== currentVersion, else data.version = currentVersion + 1)."
   },
   "step6_hard_reload_persistence": {
     "action": "navigate({url: business-areas list, force: true}) -- fresh full page load / server round trip",
     "before_reload_list_cover_column": "✓ (changed from ⚠ to ✓ live, without reload, right after save)",
     "after_reload_list_cover_column": "✓ (confirmed again after a fresh navigation/reload)",
     "after_reload_drawer_state": "Cover block shows '更换/移除' buttons (not '从素材库选择 / 上传新图'), i.e. coverImage genuinely loaded from server on fresh page load.",
-    "missingCover_filter_after_reload": "counted 111 of 112 (测试西湖商圈 excluded); confirmed by DOM query that its <tr> no longer exists under the filtered view."
+    "missingCover_filter_after_reload": "counted 111 of 112 (测试西湖商圈 excluded); confirmed by DOM query that its <tr> no longer exists under the filtered view.",
+    "evidence_level": "REAL_EVIDENCE"
   },
   "step7_orphan_path": {
     "target_location": "徐家汇 (SH-XUHUI-XJH)",
@@ -57,43 +148,62 @@
       "alt": "徐家汇商圈封面",
       "status": "201 Created"
     },
-    "result": "No PATCH /api/locations/* request fired for 徐家汇's location id after closing (confirmed via read_network_requests, only the earlier 测试西湖商圈 id=1508 PATCHes were present). 徐家汇's 封面 column remained ⚠ (missing) in the list. Media id 75 remained valid and fetchable via GET /api/media/75 (confirmed structurally intact, orphaned/unreferenced -- accepted behavior per spec)."
+    "result": "No PATCH /api/locations/* request fired for 徐家汇's location id after closing (confirmed via read_network_requests, only the earlier 测试西湖商圈 id=1508 PATCHes were present). 徐家汇's 封面 column remained ⚠ (missing) in the list. Media id 75 remained valid and fetchable via GET /api/media/75 (confirmed structurally intact, orphaned/unreferenced -- accepted behavior per spec).",
+    "evidence_level": "REAL_EVIDENCE"
   },
   "step8_modal_nesting": {
     "target_location": "外滩 (SH-HUANGPU-BUND)",
     "unsaved_edit": "sortOrder field changed from 11 to 12 (not saved)",
     "modal_open_check": "confirmed CoverPickerModal visible (title '选择商圈封面', focus inside its search input) while drawer ('编辑 外滩') also present in DOM",
-    "escape_key_live_test": {
-      "method_1_js_dispatchEvent_document": "KeyboardEvent('keydown', key:'Escape') dispatched on document -- modal did NOT close (isTrusted:false synthetic events are not honored by this environment/library)",
-      "method_2_computer_key_action": "CDP-level key press via computer{action:'key', text:'Escape'} -- modal still did NOT close",
-      "conclusion": "Could not obtain a live, trusted-keyboard-driven confirmation of ESC behavior in this session -- the Browser pane's lack of frame compositing (screenshot tool times out) appears to also break reliable delivery of trusted key events to the focused element. This is an environment limitation, not a functional test result."
-    },
-    "modal_close_button_test_real_functional_evidence": {
+    "subclaim_A_closing_picker_preserves_drawer_state": {
+      "verdict": "REAL_EVIDENCE",
       "action": "clicked the modal's own close icon (.arco-modal-close-icon, distinct DOM node from the drawer's .arco-drawer-close-icon), which invokes the exact same onCancel handler Arco's built-in escToExit calls on Escape",
       "result": "modal became invisible (getBoundingClientRect/computed style check); drawer remained visible ('编辑 外滩' heading still rendered and laid out); the unsaved sortOrder=12 edit was still present in the field",
-      "conclusion": "Functionally confirms: closing the picker does not close the drawer, and does not discard other unsaved drawer field edits."
+      "conclusion": "Functionally confirms: closing the picker does not close the drawer, and does not discard other unsaved drawer field edits. This is a real, interactive, functional test result -- not code inference."
     },
-    "code_level_evidence": {
-      "CoverPickerModal.tsx": "renders Arco <Modal visible={visible} onCancel={onCancel} .../> as a JSX sibling of <Drawer>, not a JSX child (src/components/admin/geography/GeographyListViewClient.tsx lines ~367-490)",
-      "arco Modal source (node_modules/@arco-design/web-react/es/Modal/modal.js:120-124)": "onEscExit calls event.stopPropagation() before onCancel() when escToExit && visible && event.key === Esc.key; escToExit defaults to true and is not overridden by CoverPickerModal",
-      "arco Drawer source (node_modules/@arco-design/web-react/es/Drawer/index.js:165-170)": "Drawer has its OWN independent onKeyDown handler bound directly to its own portal wrapper div (also escToExit-gated), not to document and not to any ancestor shared with Modal's wrapper",
-      "conclusion": "Modal and Drawer are separate DOM portal subtrees (both default to document.body as popup container) each with an independently-scoped onKeyDown handler. A keydown originating inside the Modal's subtree can only bubble through the Modal's own DOM ancestors, not into the Drawer's separate subtree -- architecturally Escape cannot double-close both. Combined with the stopPropagation() call, this gives strong (but not live-keypress-tested) confidence the Step-8 requirement holds."
+    "subclaim_B_escape_key_only_closes_picker_not_drawer": {
+      "verdict": "NOT_VERIFIED",
+      "why_not_verified": "No live, keyboard-triggered confirmation was obtained in this session. Two attempts were made; on audit review, the two do NOT carry equal evidentiary weight -- see corrected methodology below.",
+      "attempt_1_document_dispatchEvent": {
+        "what_was_done": "document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true}))",
+        "corrected_analysis": "This attempt was methodologically broken from the start and its failure carries ZERO diagnostic information, independent of any environment issue. Dispatching an event with `document` as the target means `document` IS the event's target: the event only travels through document's own capture/target phase and then bubbles toward `window` -- it can NEVER reach listeners on DESCENDANT nodes (such as the Modal's or Drawer's own wrapper divs, which are children of document.body, i.e. descendants of document). The original report incorrectly treated this as informative evidence of an environment limitation; it is not -- it was guaranteed to fail regardless of environment, because it was dispatched at the wrong node in the DOM tree. This correction was pointed out by the independent audit and is accepted.",
+        "evidentiary_weight": "NONE -- excluded from the conclusion."
+      },
+      "attempt_2_computer_key_action": {
+        "what_was_done": "mcp__Claude_Browser__computer{action:'key', text:'Escape'} -- a CDP-level (Chrome DevTools Protocol) key event, which is normally routed to whichever DOM node currently has focus (confirmed via document.activeElement to be the modal's own search input at the time), not dependent on manually picking a dispatch target the way attempt 1 was.",
+        "result": "Modal did not close.",
+        "corrected_analysis": "This is the only one of the two attempts that is actually informative. Because CDP key events target the focused element via the browser's real input pipeline (not a JS-level dispatchEvent target choice), a failure here is more plausibly attributable to the same environment limitation already established by the screenshot-compositing failure (i.e. a tab that is not the 'displayed/composited' surface may not reliably receive synthetic OS-level input at all, regardless of DOM focus state) -- but this is still a plausible explanation for an inconclusive result, NOT proof that the underlying Arco/React code is correct. It only means: no positive confirmation was obtained, and the most likely reason is environmental, not that the code is provably right.",
+        "evidentiary_weight": "LOW / suggestive only -- does not amount to REAL_EVIDENCE for subclaim B."
+      },
+      "code_level_reasoning_supporting_but_not_substituting_for_live_evidence": {
+        "CoverPickerModal.tsx": "renders Arco <Modal visible={visible} onCancel={onCancel} .../> as a JSX sibling of <Drawer>, not a JSX child (src/components/admin/geography/GeographyListViewClient.tsx lines ~367-490)",
+        "arco Modal source (node_modules/@arco-design/web-react/es/Modal/modal.js:120-124)": "onEscExit calls event.stopPropagation() before onCancel() when escToExit && visible && event.key === Esc.key; escToExit defaults to true and is not overridden by CoverPickerModal",
+        "arco Drawer source (node_modules/@arco-design/web-react/es/Drawer/index.js:165-170)": "Drawer has its OWN independent onKeyDown handler bound directly to its own portal wrapper div (also escToExit-gated), not to document and not to any ancestor shared with Modal's wrapper",
+        "reasoning": "Modal and Drawer are separate DOM portal subtrees (both default to document.body as popup container) each with an independently-scoped onKeyDown handler. A keydown originating inside the Modal's subtree can only bubble through the Modal's own DOM ancestors, not into the Drawer's separate subtree -- architecturally Escape cannot double-close both. Combined with the explicit stopPropagation() call, this is a sound architectural argument.",
+        "status": "This remains CODE-LEVEL REASONING, explicitly NOT equivalent to REAL_EVIDENCE. Per the audit's instruction, subclaim B is labeled NOT_VERIFIED and must not be folded into an overall 'passed' summary for Step 8."
+      }
     },
     "drawer_closed_without_saving_afterward": "confirmed via read_network_requests: no new PATCH for 外滩's location id was ever sent; sortOrder=12 test edit was discarded, not persisted."
   },
   "step9_module_isolation": {
-    "cities_list_columns": "城市名/区域代码/行政区数/商圈数/缺边界商圈/地铁线路数/站点数/楼盘数/状态/前台可见/操作 -- no 封面 column",
-    "cities_drawer_fields (上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field, no cover picker button",
-    "metro_lines_list_columns": "线路名/区域代码/所属城市/站点数/状态/排序/操作 -- no 封面 column",
-    "metro_lines_drawer_fields (地铁1号线/上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field"
+    "verdict": "REAL_EVIDENCE, positive and negative control both present (per audit)",
+    "positive_control": "business-area drawer (测试西湖商圈/外滩/etc.): cover block genuinely renders AND can be saved (see step4_5 above) when type=business_area",
+    "negative_control_cities": {
+      "list_columns": "城市名/区域代码/行政区数/商圈数/缺边界商圈/地铁线路数/站点数/楼盘数/状态/前台可见/操作 -- no 封面 column",
+      "drawer_fields (上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field, no cover picker button"
+    },
+    "negative_control_metro_lines": {
+      "list_columns": "线路名/区域代码/所属城市/站点数/状态/排序/操作 -- no 封面 column",
+      "drawer_fields (地铁1号线/上海)": "名称/状态/启用/前台可见/排序/中心纬度/中心经度/完整编辑/保存 -- no 封面图 field"
+    }
   },
   "cleanup_performed": {
-    "location_1508_测试西湖商圈": "coverImage reverted to null via drawer 移除+保存; confirmed final PATCH response coverImage:null (version incremented to 6, which is expected internal metadata, not user-facing data)",
+    "location_1508_测试西湖商圈": "coverImage reverted to null via drawer 移除+保存 (see version_chronology above for the full v1-v6 explanation, including the accidental v4->v5 race-condition save that had to be corrected by a second v5->v6 save); confirmed final PATCH response (requestId=42816.1320) coverImage:null. version itself ended at 6 instead of the original 1 -- this is expected/accepted: version is an internal optimistic-lock counter, not user-facing data, and it is expected to increase monotonically with every save regardless of whether the save was a test action.",
     "media_deleted_via_DELETE_api_media_id_with_session_credentials": ["73 (opt062-test-cover.png)", "74 (opt062-test-cover-2.png)", "75 (opt062-orphan-test.png)"],
-    "delete_responses": "all three returned {status:200, message:\"已成功删除。\"}",
+    "delete_responses": "all three returned {status:200, message:\"已成功删除。\"}; re-confirmed present at list-line level (200 OK) on a later re-check of the network log during this revision pass (requestIds 42816.1448/1449/1450)",
     "local_disk_files_check": "find . -iname '*opt062*' (excluding node_modules/.next) returned nothing -- files removed from disk, not just the DB record",
     "final_state_check": "business-areas list with chip=missingCover filter shows 共 112 条 again (back to pre-test baseline)",
-    "city_site_profiles_1_introHeading": "was temporarily set to ' [OPT062验收]' to test the 城市站点配置 save path (nav Step 3 'point in, can save' check), then reverted to '' (empty, its original value) in a second save; both PATCHes returned 200",
+    "city_site_profiles_1_introHeading": "was temporarily set to ' [OPT062验收]' to test the 城市站点配置 save path (nav Step 3 'point in, can save' check), then reverted to '' (empty, its original value) in a second save; both PATCHes returned 200 at the list-line level (see step3_navigation.city_site_profiles_save_evidence for the caveat on evidence depth); final DOM value read back as '' before moving on.",
     "waitan_外滩_sortOrder": "temporarily edited to 12 in the browser field only, drawer closed WITHOUT clicking save -- never persisted, no cleanup needed"
   }
 }
