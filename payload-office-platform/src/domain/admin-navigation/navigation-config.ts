@@ -86,10 +86,6 @@ export const ADMIN_NAV_GROUPS = [
     leaf('cities', '城市管理', '/admin/geography/cities', ['locations'], {
       collectionSlug: 'locations',
     }),
-    leaf('city-site-profiles', '城市站点配置', '/admin/collections/city-site-profiles', ['locations'], {
-      collectionSlug: 'city-site-profiles',
-      requiredOperationCode: 'location:manage',
-    }),
     leaf('districts', '行政区域', '/admin/geography/districts', ['locations'], {
       collectionSlug: 'locations',
     }),
@@ -167,6 +163,19 @@ export const ADMIN_NAV_GROUPS = [
     // 菜单看得见的人和 API 改得动的人得是同一批。
     leaf('site-settings', '站点设置', '/admin/globals/site-settings', ['site-settings'], {
       requiredOperationCode: 'site_settings:manage',
+    }),
+    // OPT-062：紧挨「站点设置」。两者是「全局默认 → 单城覆盖/单城独有」的两层
+    // （类型卡封面走覆盖，SEO 与开城状态是单城独有）。
+    //
+    // 它此前在「区域管理」里——那组另外五项全是地理层级（城市/行政区/商圈/地铁/别名），
+    // 唯独它是运营配置，名字又与「城市管理」相似且相邻，于是被当成同一件事的两个入口。
+    //
+    // requiredOperationCode 保持 location:manage 不变（与 CitySiteProfiles.access 同码）：
+    // 菜单看得见的人和 API 改得动的人必须是同一批。挪位置不等于放权——「谁该有权把一个
+    // 城市下线」是业务判断，见 spec OPT-062 §5。
+    leaf('city-site-profiles', '城市站点配置', '/admin/collections/city-site-profiles', ['locations'], {
+      collectionSlug: 'city-site-profiles',
+      requiredOperationCode: 'location:manage',
     }),
     leaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
     leaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),

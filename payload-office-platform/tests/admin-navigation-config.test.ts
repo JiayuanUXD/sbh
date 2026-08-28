@@ -99,12 +99,6 @@ describe('admin navigation config', () => {
       ]),
       expectedGroup('region-management', '区域管理', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
-        expectedLeaf(
-          'city-site-profiles',
-          '城市站点配置',
-          '/admin/collections/city-site-profiles',
-          ['locations'],
-        ),
         expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
         expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
           'business-areas',
@@ -154,6 +148,15 @@ describe('admin navigation config', () => {
         // OPT-053：站点设置是 Global，不收编进自定义导航就彻底不可发现
         // （custom.scss 隐藏了原生导航，而 Global 连集合那个左下角兜底区块都没有）。
         expectedLeaf('site-settings', '站点设置', '/admin/globals/site-settings', ['site-settings']),
+        // OPT-062：紧挨「站点设置」——两者是「全局默认 → 单城覆盖/单城独有」的两层
+        // （类型卡封面、SEO、开城状态）。此前它在「区域管理」里夹在五个地理项中间，
+        // 与「城市管理」名字相似又相邻，被误认为是同一件事的两个入口。
+        expectedLeaf(
+          'city-site-profiles',
+          '城市站点配置',
+          '/admin/collections/city-site-profiles',
+          ['locations'],
+        ),
         expectedLeaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
         expectedLeaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
         expectedLeaf('media', '素材库', '/admin/collections/media', ['media']),
