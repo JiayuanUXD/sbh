@@ -18,7 +18,12 @@ import type { HomepageTypeSummary, MediaViewModel } from '@/domain/public-catalo
  * 槽位必须**逐行持久化**，不能靠数组下标绑定：运营一拖拽调序，「联合办公」这张卡
  * 就会链到传统办公——标题和副标题都是对的，只有链接错，页面上完全看不出来。
  */
-const SLOT_TARGETS: Readonly<Record<string, Readonly<{ href: string; type: string | null; event: string }>>> = {
+// 导出仅为可测性（tests/type-card-slots-consistency.test.ts 校验槽位字符串
+// 三处一致）：SiteSettings.typeCards[].slot 的 options、
+// CitySiteProfiles.typeCardOverrides[].slot 的 options，以及这里的键，必须
+// 逐字相同——否则运营能在城市配置里选到一个代码不认识的槽位，存盘 200、
+// 前台却完全不生效，页面上看不出任何异常。渲染逻辑不因此改动。
+export const SLOT_TARGETS: Readonly<Record<string, Readonly<{ href: string; type: string | null; event: string }>>> = {
   'traditional-office': { href: '/listings?type=traditional-office', type: 'traditional-office', event: 'home_cat_traditional' },
   'coworking': { href: '/listings?type=coworking', type: 'coworking', event: 'home_cat_coworking' },
   'full-floor': { href: '/listings?type=full-floor', type: 'full-floor', event: 'home_cat_full_floor' },

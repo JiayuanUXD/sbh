@@ -263,4 +263,38 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     // 被挤出去的是原本的第 5 名，不是随便某一张
     expect(html).not.toContain('商圈5')
   })
+
+  /**
+   * 回归（最终审查 A）：`resolveTypeCardCovers` 这个纯函数本身测得很扎实
+   * （见 type-card-covers.test.ts），但「组件真的把 `city.profile.typeCardOverrides`
+   * 接上了」这件事从未被测过——本文件的 `buildCity()` 夹具里 `typeCardOverrides`
+   * 恒为 `[]`，四级优先级里的第一级（城市覆盖）从没走过组件渲染路径。
+   * 变异测试证实：把 CityHomeView.tsx 里
+   * `resolveTypeCardCovers(siteSettings.typeCards, city.profile.typeCardOverrides)`
+   * 改成 `siteSettings.typeCards`（彻底切断城市覆盖），全量用例零红。
+   */
+  it('城市覆盖优先于全局默认封面（验证真的接线，而非只验纯函数）', () => {
+    const globalCover: MediaViewModel = { src: '/media/global-default.jpg', alt: '全局默认封面' }
+    const cityCover: MediaViewModel = { src: '/media/city-override.jpg', alt: '本城覆盖封面' }
+    const baseCity = buildCity(2.5)
+    const city = {
+      ...baseCity,
+      profile: {
+        ...baseCity.profile,
+        typeCardOverrides: [{ slot: 'coworking', coverImage: cityCover }],
+      },
+    }
+    const siteSettings = {
+      ...SITE_SETTINGS_FALLBACK,
+      typeCards: SITE_SETTINGS_FALLBACK.typeCards.map((card) =>
+        card.slot === 'coworking' ? { ...card, coverImage: globalCover } : card,
+      ),
+    }
+    const homepage = buildHomepage()
+    const html = renderToStaticMarkup(createElement(CityHomeView, {
+      city, homepage, routeMode: 'prefixed', bandStats, siteSettings,
+    }))
+    expect(html).toContain('src="/media/city-override.jpg"')
+    expect(html).not.toContain('src="/media/global-default.jpg"')
+  })
 })
