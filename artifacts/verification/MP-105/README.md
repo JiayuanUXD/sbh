@@ -1,13 +1,13 @@
 # MP-105 验收证据索引
 
-> 状态：部分通过；独立 staging、真实数据库写闭环与自动清理已通过，微信开发者工具、合法域名和真机仍待验收
+> 状态：部分通过；独立 staging 服务端写闭环、自动清理、`callContainer` 代码与 Node 验证已通过，真实 AppID/staging 关联、开发者工具网络、图片/COS、iOS/Android、隐私和正式发布仍待验收
 > 更新日期：2026-08-28
 
 ## 证据身份
 
 - 分支：`feat/miniprogram-mvp-59f9`
-- 目标代码 commit：`bd2902532c3664f2d42f68a94b5e5e186a0b7a6b`
-- 验证时工作树：交付文件已提交；仅保留用户未跟踪的 `docs/SBH小程序页面设计/`，不属于交付物
+- 本轮 Node 验证代码 commit：`2aab7a5ba9103c6990431e828f3ed7ba5b288897`
+- 验证范围：只验证该 commit 的小程序代码与本次三份说明文档；用户未跟踪的 `docs/SBH小程序页面设计/` 不属于交付物且未触碰
 - staging API host：`sbhmini-304306-11-1253925058.sh.run.tcloudbase.com`
 - staging deployment revision：`sbhmini-016`
 - staging 数据库指纹：真实数据库探针计算并命中 staging allowlist；证据不保存原值
@@ -16,6 +16,11 @@
 ## 已执行
 
 ### Node 自动化
+
+- 本轮 `callContainer` 传输层前序定向矩阵：123/123 通过；本轮 brief 未要求重复运行定向命令，最终质量门使用全量 `pnpm test` 覆盖。
+- 本轮 Mini 全量（Node 22.23.2、pnpm 8.6.1）：`Test Files 30 passed (30)`，`Tests 552 passed (552)`，exit 0。
+- 本轮 Mini 双 TypeScript：`tsconfig.json` 与 `tsconfig.node.json` 均通过，`pnpm typecheck` exit 0。
+- 本轮 Mini 工程检查：终端末行为“SBH 小程序工程静态检查通过”，`pnpm project:check` exit 0；仓内 `project.config.json` 继续保持 `urlCheck: true`。
 
 - 运行时：Node 22.23.2
 - Task 1/2 定向测试（trial manifest + 本地预检）：70/70 通过
@@ -31,8 +36,8 @@
 - Sol 最终全量审查先因计划文档仍保留“响应丢失后 0 条即 clean”的旧规则返回 REQUEST_CHANGES；同步为“同 body 幂等对账，不确定或确认后仍为 0 均冻结”，并修正硬删除、runner 状态和当前计数后复核 APPROVE，代码与文档均无剩余 P1/P2。
 - Web 全量：306 个测试文件中 301 通过、5 个既有跳过；4225 项中 4200 通过、25 项既有跳过。
 - Web lint：0 错误、23 条既有 warning；production build：退出成功。构建期记录既有 COS fail-closed 日志并按现有城市静态参数降级完成，不视为 staging attestation 证据。
-- Node 22.23.2 下重新验证安全默认态：小程序 `project:check`、双 TypeScript、29 个测试文件与 521/521 用例全部通过。
-- 在独立临时发布副本中生成 trial manifest，绑定上述 commit、revision 与 staging HTTPS origin；生成后 `project:check` 和双 TypeScript 继续通过。该 manifest 不写入功能分支。
+- Node 22.23.2 下重新验证安全默认态：小程序 `project:check`、双 TypeScript、30 个测试文件与 552/552 用例全部通过。
+- 此前在独立临时发布副本中生成 direct-API trial manifest，绑定当时的 commit、revision 与 staging HTTPS origin；生成后 `project:check` 和双 TypeScript 继续通过。该历史 manifest 未写入功能分支，也不能替代当前 cloud env/service manifest 的 AppID 关联与网络验收。
 - 真实 staging 健康检查返回 HTTP 200，Payload 与数据库均为 `ok`；首页、Mini 首页 API、房源列表 API 和 `jingan-serviced-office-42-seats` 详情 API 均返回 HTTP 200。
 
 ### 真实 staging 写闭环
@@ -50,23 +55,29 @@
 - 版本：Stable 1.06.2409140
 - 基础库：3.17.2
 - 工具服务端口：2026-08-28 再检查时已关闭；重新开启属于待确认的本机安全设置
-- 项目结果：能编译并打开首页；自动化连接成功后，develop API `http://127.0.0.1:3717` 被 request 合法域名校验拒绝，未到达 `#home-ready`。
-- 结论范围：这是阻断证据，不是冒烟通过。没有关闭合法域名校验，没有预览、上传、部署或咨询写入。
+- 历史项目结果：切换前能编译并打开首页；自动化连接成功后，develop API `http://127.0.0.1:3717` 被 request 合法域名校验拒绝，未到达 `#home-ready`。
+- 本轮结果：未执行，待真实 AppID 与 staging CloudBase 环境关联。没有运行 trial `callContainer` 网络、没有关闭合法域名校验，也没有预览、上传、部署或咨询写入。
+- 结论范围：历史 develop 阻断不能证明切换后的 staging 调用通过；Node mock/合同测试也不能替代微信开发者工具网络证据。
 
 ## 未执行与阻断
 
 | 验收项 | 状态 | 阻断条件 |
 |---|---|---|
-| trial 独立 HTTPS API | 已通过 | commit、revision、HTTPS origin、健康检查和三类 Mini 只读 API 已核对 |
+| staging 服务端 HTTPS API 与写闭环 | 已通过 | 既有证据已核对 commit、revision、健康检查、三类 Mini 只读 API、幂等写入与精确清理；不等于小程序 `callContainer` 已通过 |
 | 服务端 attestation | 已通过 | 真实 revision、commit 与数据库指纹 allowlist 匹配 |
 | 隔离数据库咨询写入 | 已通过 | 首次写入、幂等重试与精确清理为 `1 → 1 → 0`，关系残留为 0 |
-| iOS 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
-| Android 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
-| 微信后台合法域名/隐私 | 未执行 | 需要管理员在明确目标上配置并留回滚证据 |
-| 预览/上传 | 未执行 | 已获授权，但微信开发者工具服务端口关闭，CI 私钥尚未发现 |
+| 真实 AppID 与 staging CloudBase 关联 | 未执行 | 需要微信与 CloudBase 管理员确认精确 AppID、env 和 service，并留变更/回滚证据 |
+| 开发者工具 trial `callContainer` 网络 | 未执行 | 待 AppID 与 staging 环境关联后核对首页、列表、详情、错误和网络面板 |
+| 图片/COS 来源与加载 | 未执行 | 待从真实 DTO 核对图片来源、微信平台要求和正常图/坏图；Mini API 传输不能替代 |
+| iOS 真机 | 未执行 | 待可验收 trial 包、AppID/环境关联、账号与隐私条件 |
+| Android 真机 | 未执行 | 待可验收 trial 包、AppID/环境关联、账号与隐私条件 |
+| 微信隐私配置与交互 | 未执行 | 需要管理员配置隐私声明，并在开发者工具和两类真机留证 |
+| 预览/上传 | 未执行 | 本轮未调用 `pnpm ci:preview`，未使用微信 CI 私钥 |
+| 正式发布 | 未执行 | 未正式上传、提审、发布或触碰 production |
 
 ## 安全说明
 
-- 本证据不保存 AppSecret、上传私钥、token、手机号、openid、数据库连接串或完整业务对象 ID。
+- 本证据不保存 AppSecret、上传私钥、token、完整手机号、openid、数据库连接串或完整业务对象 ID。
+- `callContainer` 只替代 Mini API 的 request 服务器域名链路；图片/COS、AppID 关联、隐私、设备和持久化均按独立证据判断。
 - 本地关闭合法域名校验即使未来获批，也只能算 develop 调试，不能替代微信后台合法域名验收。
 - MP-105 全部门通过前，MP-106/107 不进入实现、集成或合并。

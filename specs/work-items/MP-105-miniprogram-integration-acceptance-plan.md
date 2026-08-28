@@ -1,6 +1,6 @@
 # MP-105 小程序集成验收与预发布计划
 
-> 状态：执行中（安全收口、独立 PG 环境与 staging 打包已完成）；CloudRun 计费开关、数据库直连凭据、微信账号与真机验收待环境门
+> 状态：执行中（staging 服务端写闭环与 `callContainer` 代码、Node 验证已完成）；真实 AppID 与 staging 环境关联、开发者工具网络、图片/COS、iOS/Android、隐私和正式发布待环境门
 > 创建日期：2026-08-27
 > 分支：`feat/miniprogram-mvp-59f9`
 > 上游：MP-101–104
@@ -19,11 +19,11 @@
 
 ## 3. 当前已知环境事实
 
-- Node 22.23.2 下，小程序当前 29 个文件、521/521，双 TypeScript 和工程检查通过；Web 当前 306 个文件中 301 通过、5 个既有跳过，4200 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。
-- 微信开发者工具 Stable `1.06.2409140` 能编译并打开首页；工具服务端口当前显示开启。
-- develop 使用 `http://127.0.0.1:3717`，被微信 request 合法域名校验拒绝，真实冒烟无法到达 `#home-ready`。
-- 独立预发布 API origin、隔离数据库直连凭据、测试 AppID/Secret、隐私配置和真机账号尚未提供；不得使用生产域名替代。
-- 已创建独立 CloudBase PG 环境 `sbhmini-d5g7d6732b2c64a66`（上海、体验版）；控制面 SQL 已确认 PostgreSQL 17.11 可用，且与生产环境 ID 完全隔离。当前 CloudRun 环境状态为 `UNAVAILABLE`，体验版 `EnableOverrun=false`；标准 PG 直连地址/密码仍未在控制台开放，部署前不得猜测连接参数或开启公网数据库入口。
+- Node 22.23.2 / pnpm 8.6.1 下，`callContainer` 前序定向矩阵 123/123；本轮小程序全量 30 个文件、552/552，双 TypeScript 和 `project:check` 均 exit 0。Web 既有回归证据保持为 306 个文件中 301 通过、5 个既有跳过，4200 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。
+- develop 保持 `wx.request` → `http://127.0.0.1:3717`；trial 已切换为受控 staging env/service manifest → `wx.cloud.callContainer`；release 已切换为仓内固定 production env/service → `wx.cloud.callContainer`。仓内 trial manifest 空字段继续 fail-closed。
+- 微信开发者工具 Stable `1.06.2409140` 的旧诊断曾能编译并打开首页，但发生在 develop 的 `wx.request` 链路。切换后尚未关联真实 AppID 与 staging CloudBase 环境，也未运行 `callContainer` 网络冒烟，因此开发者工具状态仍是“未执行，待 AppID 与 staging 环境关联”。
+- 独立 staging 服务、隔离数据库、attestation、写许可、幂等写入和精确清理已有服务端执行证据；这些证据不替代小程序 AppID/CloudBase 关联、图片/COS、隐私、开发者工具或真机验收。
+- AppSecret、微信 CI 私钥、真实 AppID 本机配置、隐私后台配置和真机账号仍不得进入仓库；不得使用 production 目标代替尚未执行的小程序环境门。
 
 ## 4. 交付角色与依赖
 
@@ -46,11 +46,12 @@
 - Modify: `sbh-miniprogram/miniprogram/config/environment.ts`
 - Modify/Test: `sbh-miniprogram/tests/environment.test.ts`
 
-- [x] 先写失败测试，证明 trial 不返回生产 origin、不回退 release，并给出稳定的“独立预发布 API 未配置”错误。
-- [x] develop 继续只允许本机 HTTP 或 HTTPS；release 继续只接受非本机 HTTPS；staging origin 必须用标准 URL 规范化并拒绝生产 origin/host 的大小写、默认端口与数字 IP 等价形式，以及 localhost、IPv4/IPv6 和其缩写/整数表示。
-- [x] 增加仓内 fail-closed 的 trial deployment manifest 与生成/校验脚本：上传或预览前由受控环境注入非秘密的 staging origin、目标 Git commit SHA 与期望服务端 deployment revision；字段缺失、工作树不干净或 revision 不符时拒绝生成。当前无环境值时 manifest 保持不可运行状态。
+- [x] 先写失败测试，证明 trial 不使用 production CloudBase 目标、不回退 release，并在 staging env/service manifest 缺失或非法时稳定 fail-closed。
+- [x] develop 继续只允许本机 HTTP 或 HTTPS；release 固定仓内 production env/service；trial 的 cloud env/service 必须精确匹配受控 staging，资源名、Git commit SHA 或 deployment revision 非法时在选择传输前拒绝。
+- [x] 增加仓内 fail-closed 的 trial deployment manifest 与生成/校验脚本：上传或预览前由受控环境注入非秘密的 staging env/service、目标 Git commit SHA 与期望服务端 deployment revision；字段缺失、工作树不干净或 revision 不符时拒绝生成。当前空 manifest 保持不可运行状态。
 - [x] `getCurrentRuntimeEnvironment()` 只能读取已生成并校验的 manifest，不接受页面参数、Storage、远端下发或静默回退；生成物不得包含 Secret、token 或数据库连接串。
-- [x] 小程序全量、双 TypeScript 与工程检查通过；Sol 最终复核无 P1/P2（Task 1 定向 41/41，Mini 442/442）。
+- [x] develop 只走 `wx.request`，trial/release 只走 `wx.cloud.callContainer`；cloud env 只初始化一次、service header 由受控环境覆盖、禁止跟随 3xx，业务请求合同在两类传输下保持一致。
+- [x] 小程序全量、双 TypeScript 与工程检查通过；前序 `callContainer` 定向矩阵 123/123，本轮 Mini 全量 30 个文件、552/552，三条质量门均 exit 0。
 
 ### Task 2：预发布验收预检与证据清单
 
@@ -61,7 +62,7 @@
 - Create: `artifacts/verification/MP-105/README.md`
 
 - [x] 本地结构预检只接受显式 `MP_E2E_ALLOW_STAGING_WRITE=1`、非生产 HTTPS API origin、期望 deployment revision、唯一 run UUID 和专用 fixture namespace；拒绝 release origin、localhost、IP、凭据型 URL、query/hash/path。fixture namespace 由 run UUID 派生；输出明确 `writeAuthorized=false`，不自称证明数据库隔离。
-- [x] 在任何写入前先只读调用服务端 attestation：返回 staging deployment Git SHA、实际 revision、脱敏数据库指纹和 acceptance 能力；服务端对实际数据库探针计算 HMAC 指纹并命中允许名单，生产环境、生产数据库、别名绕过或信息缺失一律拒绝。本地 mock 合同已通过，真实环境调用仍未执行。
+- [x] 在任何写入前先只读调用服务端 attestation：返回 staging deployment Git SHA、实际 revision、脱敏数据库指纹和 acceptance 能力；服务端对实际数据库探针计算 HMAC 指纹并命中允许名单，生产环境、生产数据库、别名绕过或信息缺失一律拒绝。本地 mock 合同已通过，后续真实 staging runner 也已核对 attestation；该服务端证据不替代小程序环境验收。
 - [x] 日志只输出布尔检查项和脱敏 host，不输出 AppSecret、签名密钥、token、手机号或数据库连接串。
 - [x] 未满足环境时返回非零且不发网络请求，不生成“通过”证据；Sol 复核 Task 1/2 定向 70/70、Mini 471/471，无 P1/P2。
 
@@ -70,24 +71,26 @@
 - [x] 新增只读 attestation 合同。服务端同时要求 acceptance 开关开启、`deploymentEnvironment=staging`、部署 Git SHA/revision 非空、两类高熵 secret 职责分离、数据库 HMAC 指纹命中 staging 允许名单；生产环境或生产数据库 fail-closed。
 - [x] 数据库身份来自固定只读 SQL 的实际 `current_database()/inet_server_addr()/inet_server_port()`，不信任客户端或 `DATABASE_URL` 自声明；响应只暴露 opaque HMAC 指纹，不暴露原始数据库身份。
 - [x] operator bootstrap 在认证前进行长度与 constant-time 摘要比较；缺失、错误、disabled 或 production 同形 404 且不初始化 Payload。认证后探针失败或 allowlist miss 统一 503、不泄密。
-- [x] 本地纯函数/路由 mock 合同 15/15、Web typecheck 与相关 lint 通过，Sol 复核无 P1/P2；真实 staging 探针仍属外部环境门。
+- [x] 本地纯函数/路由 mock 合同 15/15、Web typecheck 与相关 lint 通过，Sol 复核无 P1/P2；本阶段交付时真实 staging 探针仍属外部环境门，后续 runner 已完成实际探针，见 MP-105 证据索引。
 
 ### Task 3b-1：run-scoped 写许可签发与验证
 
 - [x] attestation 通过后，只有经过 operator authentication 的验收操作者才能每次换取一个 10 分钟、run/SHA/revision/数据库指纹绑定的许可；公开客户端和匿名微信 session 不能自行领取。bootstrap 凭据由受控环境注入，可按验收轮次轮换，不进入小程序包、query、Storage、日志或证据。
 - [x] permit 使用独立高熵签名 secret，与 attestation/operator secret 两两不同；严格验证签名、payload 键集合、purpose、时间、jti 与全部上下文，篡改、过期、未来签发、多段解析或跨上下文均拒绝。
 - [x] acceptance 开关关闭或 deployment environment 非 staging 时不能签发许可；本阶段未修改普通咨询入口，也未接入 fixture 写分支，因此生产咨询合同保持不变。
-- [x] 纯函数和路由合同覆盖认证前零数据库、production/disabled 拒绝、错误 SHA/revision/数据库指纹、许可过期/篡改/跨有效 run，以及响应脱敏；Task 3a/3b-1 定向 68/68、typecheck 与相关 lint 通过，Sol 两轮复核后 APPROVE。全部为 mock/合同层，不连接真实数据库，也不代表真实 staging 写验收。
+- [x] 纯函数和路由合同覆盖认证前零数据库、production/disabled 拒绝、错误 SHA/revision/数据库指纹、许可过期/篡改/跨有效 run，以及响应脱敏；Task 3a/3b-1 定向 68/68、typecheck 与相关 lint 通过，Sol 两轮复核后 APPROVE。本阶段结论仅来自 mock/合同层；后续真实 staging runner 的独立执行结果另见 MP-105 证据索引。
 
 ### Task 3b-2：许可接入咨询写入口
 
 - [x] 服务端只从仓外专用 header 接收 permit；验签内容内含活动 run UUID、fixture namespace、SHA/revision 与数据库指纹。通过当前配置复核后，再用实际只读数据库探针精确匹配，任一步失败都在询盘业务读写前拒绝。
 - [x] Acceptance 写使用独立幂等域并绑定 `runId + submissionRequestId + listingSlug`，同 run 重试稳定、跨 run 与普通 Mini 询盘均隔离；成功响应返回可重算的 `leadLocator`，但不把它表述为本轮 ownership 证明。
 - [x] 不带 acceptance header 的普通咨询路径保持既有响应与调用顺序，不读取 acceptance 配置、验签或探针；production/disabled 即使收到伪造 header 也同形 404、零 Payload。
-- [x] Task 3b-2 定向 105/105、typecheck 与相关 lint 通过；Sol 首轮发现跨 run 幂等错归属后退回，修复为 run-domain-separated key 并复验 APPROVE。当前仍为 mock/合同层，未连接真实数据库。
+- [x] Task 3b-2 定向 105/105、typecheck 与相关 lint 通过；Sol 首轮发现跨 run 幂等错归属后退回，修复为 run-domain-separated key 并复验 APPROVE。本阶段仍为 mock/合同层；后续真实 staging 的写入、重试和清理结果另见 MP-105 证据索引。
 - [x] 自动 runner 已实现，operator/bootstrap/permit 只进入受控 runner 当前进程内存，不落 bundle、query、Storage、日志或截图；真机包仍不持有这些凭据，没有安全注入通道前真机只读走查。
 
 ### Task 4：开发者工具只读闭环
+
+> 代码传输层与 Node 验证已完成；以下均为独立外部环境门。本轮未关联真实 AppID 与 staging CloudBase 环境，未运行切换后的开发者工具网络，因此继续保持未勾选。
 
 - [ ] 本地关闭合法域名校验只允许用于 develop 调试，且不能计入合法域名验收证据。若需变更本地安全设置，按操作当下取得确认。
 - [ ] 使用开发者工具依次通过首页、真实首条列表、详情 ready；记录 commit SHA/dirty 状态、编译错误、网络错误、包体/分包、基础库版本和性能面板。
@@ -119,7 +122,7 @@
 ### Task 7：预览、回滚与发布前证据
 
 - [x] 新增 staging 专用部署包生成器：只从已提交的 Git 快照打包，校验非生产环境 ID 与独立 HTTPS origin，定向替换包内 Dockerfile 的 build/runtime origin，并注入 `build-info.json`；生产 Dockerfile 保持不变。定向测试与生产部署配置回归 32/32 通过。
-- [ ] 核对 request/downloadFile 合法域名、AppID、服务端 AppSecret/签名密钥、可信代理层数、隐私政策版本和微信后台声明。微信后台配置与部署由环境管理员执行，记录精确目标、变更前后和回滚；Secret/私钥由用户写入受控环境，证据只记录“已配置/未配置”，不收集其值。
+- [ ] 核对真实 AppID 与 trial staging CloudBase 环境关联、图片/COS 来源及 `downloadFile` 要求、服务端 AppSecret/签名密钥、可信代理层数、隐私政策版本和微信后台声明。`callContainer` 解决 Mini API 的 request 服务器域名链路，不代表图片域名或隐私已通过。微信后台配置与部署由环境管理员执行，记录精确目标、变更前后和回滚；Secret/私钥由用户写入受控环境，证据只记录“已配置/未配置”，不收集其值。
 - [ ] 只有获得明确上传/预览授权后才运行 `pnpm ci:preview`；二维码和 CI 私钥均在仓外，结果不得视为正式上传。
 - [ ] 记录回滚到上一个已知良好提交、服务端变量回滚和停止 Mini 写入口的步骤；不实际部署生产。
 
@@ -133,11 +136,11 @@
 
 MP-105 只有在以下全部成立时才能标记完成：
 
-1. trial 使用独立预发布 HTTPS origin，且不会访问生产写接口。
+1. trial 使用受控 staging env/service manifest，经真实 AppID 与 CloudBase 关联后通过 `wx.cloud.callContainer` 访问目标 revision，且不会访问 production 写接口。
 2. 开发者工具、iOS、Android 的上海纵向闭环均有真实证据。
 3. 服务端 attestation 证明目标 revision 与数据库指纹均属受控 staging，run-scoped 写许可无法在生产或其它 run 使用。
 4. 隔离数据库证明同一 submission ID 只产生一个 Lead，ownership manifest 中所有 fixture 清理无残留。
-5. 合法域名、隐私、秘密、可信代理、包体、性能和回滚清单均完成，证据通过敏感信息扫描。
+5. 图片/COS 与微信后台要求、隐私、秘密、可信代理、包体、性能和回滚清单均完成，证据通过敏感信息扫描。
 6. Node/Web 回归保持通过，Sol 最终复核无 P1/P2。
 
-在上述环境门未齐备前，允许把“代码与预检工具完成”提交到功能分支，但状态必须保持“待预发布与真机验收”，不得开始 MP-106/107 的实现、集成或合并；只读的需求讨论、设计与合同草案不受此限制。
+在上述环境门未齐备前，允许把“代码传输层、预检工具与 Node 验证完成”提交到功能分支，但状态必须保持“待 AppID/staging 关联、开发者工具、图片/COS、隐私与真机验收”，不得开始 MP-106/107 的实现、集成或合并；只读的需求讨论、设计与合同草案不受此限制。

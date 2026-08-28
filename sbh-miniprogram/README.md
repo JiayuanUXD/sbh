@@ -60,16 +60,31 @@ CLI 文件必须具有执行权限。脚本会先校验 CLI，再加载自动化
 
 `.github/workflows/miniprogram-quality.yml` 仅在 `sbh-miniprogram/**` 或工作流自身变化时运行。它使用 Node 22 与 pnpm 8.6.1，只执行冻结锁文件安装、测试、类型检查和纯本地工程检查；不读取微信密钥，也不预览、上传或部署。
 
-## API 域名与真机边界
+## 运行环境、传输与真机边界
 
-- 开发版允许 `http://127.0.0.1` 或 `http://localhost`，用于桌面模拟器联调。
-- trial/release 只接受公开 HTTPS 根域名；正式联调还需在微信公众平台配置 Mini API 的 request 合法域名。
-- 房源封面使用 API DTO 返回的真实 HTTPS URL。图片 URL 的 origin 必须按实际返回值单独核对并配置为 downloadFile 合法域名；request 合法域名不代表图片域名已通过。
-- 手机无法把电脑自身的 `127.0.0.1` 当作开发服务。真机需要可访问的 HTTPS 环境、合法域名、真实 AppID、微信账号权限和相应隐私配置。
-- Node 自动化、开发者工具模拟器、真机、request 合法域名和图片域名是五类独立证据，必须分别记录。
+| 小程序版本 | 传输 | 目标 |
+|---|---|---|
+| develop | `wx.request` | `http://127.0.0.1:3717` |
+| trial | `wx.cloud.callContainer` | 受控 staging env/service manifest |
+| release | `wx.cloud.callContainer` | 仓内固定 production env/service |
+
+- develop 只用于桌面模拟器联调；手机不能把自身的 `127.0.0.1` 当作电脑上的开发服务。
+- trial 必须先在干净、已提交的发布副本中生成四字段 manifest，精确绑定受控 staging `env/service`、目标 Git commit 和服务端 deployment revision；仓内空 manifest 必须 fail-closed。release 的 production `env/service` 固定在仓内，不从页面参数、Storage 或远端配置读取。
+- `wx.cloud.callContainer` 只替代 Mini API 的 `wx.request` 服务器合法域名链路，不代表图片来源已经合规，也不替代真实 AppID 与 CloudBase 环境关联、微信隐私配置、开发者工具网络、iOS/Android 真机或服务端持久化验收。
+- 房源封面仍使用 API DTO 返回的真实 HTTPS URL。必须按实际返回值单独核对图片/COS 来源和微信平台要求的图片或 `downloadFile` 域名；Mini API 代码已选择 `callContainer`，不等于图片加载已通过。
+- Node 自动化、AppID/CloudBase 关联、开发者工具网络、图片/COS、iOS、Android、隐私、服务端持久化和正式发布是相互独立的证据，必须分别记录。
+
+### staging 关联与验收清单
+
+- [ ] 环境管理员在微信后台确认验收 AppID，并把它关联到 manifest 指定的 staging CloudBase 环境；AppID 只写入被忽略的本机配置，不提交 AppSecret。
+- [ ] 从干净、已提交的目标快照生成 trial manifest，并对账 staging env、service、Git commit 和 deployment revision；不得用 production 目标替代。
+- [ ] 微信开发者工具使用该 AppID 编译 trial，检查 `callContainer` 的首页、首条列表和详情网络请求、状态码、运行时错误、包体与基础库版本；未执行前不得写成通过。
+- [ ] 按房源 API 实际返回值核对图片/COS 来源，分别记录正常图、坏图和加载失败；不得把 Mini API 传输通过当作图片通过。
+- [ ] iOS 与 Android 分别执行只读、咨询、弱网、权限与隐私流程，并按 MP-105 的写许可和精确清理规则核对持久化；未执行时明确记录“未执行”。
+- [ ] 预览、上传和正式发布分别取得授权并留存回滚证据；本地 Node 或开发者工具结果都不能代替正式发布验收。
 
 ## 敏感文件规则
 
 `.gitignore` 已覆盖 `project.private.config.json`、`*.key`、`*.pem` 和 `*.p12`。AppSecret、CI 私钥、数据库配置、预览二维码和上传产物都不得进入仓库；提交前仍需核对 `git status`。
 
-当前 MP-103 完成的是业务代码与 Node 侧可重复验证入口。微信开发者工具模拟器、真机、request 合法域名与图片域名的真实结果由具备对应环境和账号权限的验收步骤分别补录。
+当前代码已按版本选择 `wx.request` 或 `wx.cloud.callContainer`，Node 侧可重复验证入口已具备。真实 AppID 与 staging 环境关联、开发者工具 `callContainer` 网络、图片/COS、iOS/Android、隐私和正式发布仍由具备对应环境与账号权限的验收步骤分别补录；当前状态见 `artifacts/verification/MP-105/README.md`。
