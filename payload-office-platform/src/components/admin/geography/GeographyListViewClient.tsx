@@ -24,6 +24,7 @@ import type {
   GeographyFilter,
   GeographyModuleConfig,
 } from './geography-modules'
+import CoverPickerModal from './CoverPickerModal'
 
 /** 服务端已归一的行数据（计数已合并进 counts）。 */
 export type GeographyRow = {
@@ -57,6 +58,7 @@ type ClientModule = {
   chips: { key: string; label: string }[]
   emptyHint: string
   create?: { parentFilter: 'city' | 'district' }
+  supportsCover?: boolean
 }
 
 type Props = {
@@ -119,6 +121,7 @@ export default function GeographyListViewClient({
   const [detail, setDetail] = useState<GeographyRow | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [coverPickerVisible, setCoverPickerVisible] = useState(false)
 
   /** 更新单个筛选参数并回到第一页（筛选变化不应停留在旧页码）。 */
   const setFilter = useCallback(
@@ -215,6 +218,7 @@ export default function GeographyListViewClient({
           sortOrder: detail.sortOrder,
           centerLatitude: detail.centerLatitude,
           centerLongitude: detail.centerLongitude,
+          coverImage: detail.coverImage ? detail.coverImage.id : null,
           version: detail.version,
         }),
       })
@@ -410,6 +414,42 @@ export default function GeographyListViewClient({
                 onChange={(v) => setDetail({ ...detail, sortOrder: typeof v === 'number' ? v : 0 })}
               />
             </Form.Item>
+            {module.supportsCover ? (
+              <Form.Item label="封面图">
+                {detail.coverImage ? (
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={detail.coverImage.url}
+                      alt=""
+                      style={{
+                        width: '100%',
+                        maxHeight: 160,
+                        objectFit: 'cover',
+                        borderRadius: 6,
+                        border: '1px solid var(--theme-elevation-150, #e5e5e5)',
+                      }}
+                    />
+                    <Space>
+                      <Button size="mini" onClick={() => setCoverPickerVisible(true)}>
+                        更换
+                      </Button>
+                      <Button
+                        size="mini"
+                        status="danger"
+                        onClick={() => setDetail({ ...detail, coverImage: null })}
+                      >
+                        移除
+                      </Button>
+                    </Space>
+                  </Space>
+                ) : (
+                  <Button size="mini" onClick={() => setCoverPickerVisible(true)}>
+                    从素材库选择 / 上传新图
+                  </Button>
+                )}
+              </Form.Item>
+            ) : null}
             <Form.Item label="中心纬度">
               <InputNumber
                 value={detail.centerLatitude ?? undefined}
@@ -440,6 +480,18 @@ export default function GeographyListViewClient({
           </Form>
         )}
       </Drawer>
+
+      {detail && module.supportsCover ? (
+        <CoverPickerModal
+          visible={coverPickerVisible}
+          areaName={detail.name}
+          onCancel={() => setCoverPickerVisible(false)}
+          onPick={(cover) => {
+            setDetail({ ...detail, coverImage: cover })
+            setCoverPickerVisible(false)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

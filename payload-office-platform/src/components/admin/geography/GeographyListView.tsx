@@ -163,6 +163,7 @@ async function renderGeographyListContent(props: AdminViewServerProps) {
         chips: geoModule.chips ?? [],
         emptyHint: geoModule.emptyHint,
         create: geoModule.create ? { parentFilter: geoModule.create.parentFilter } : undefined,
+        supportsCover: geoModule.supportsCover,
       }}
       rows={rows}
       total={result.totalDocs}
