@@ -6,7 +6,7 @@
 ## 证据身份
 
 - 分支：`feat/miniprogram-mvp-59f9`
-- 目标代码 commit：`c400749`（`feat: 增加验收线索精确清理`，包含此前短时许可、写入口与安全闸门）
+- 目标代码 commit：`752a6cc`（`feat: 增加小程序验收执行器`，包含此前短时许可、写入口、精确清理与安全闸门）
 - 验证时工作树：交付文件已提交；仅保留用户未跟踪的 `docs/SBH小程序页面设计/`，不属于交付物
 - staging API host：未提供
 - staging deployment revision：未提供
@@ -27,9 +27,11 @@
 - Web Task 3b-2 定向合同测试（permit intrinsic verifier + run 隔离幂等键 + Mini inquiry route）：105/105 通过。Sol 首轮发现 acceptance 与普通/跨 run 共用幂等键会错归属，修复为独立 run-domain-separated key 后复验 APPROVE，无遗留 P1/P2。
 - Web Task 5a fixture identity/cleanup 定向合同：8 个文件、185/185 通过；小程序 environment/preflight 回归 56/56，Web typecheck、小程序双 TypeScript 与相关 lint 通过。轻量模型初稿被 Sol 以 4 个 P2 退回后，按用户门槛切换为全部高级模型：补齐 number/string tagged Lead ID、严格联合类型、共享小写 UUID/slug validator、非法 run 拒绝、Symbol/非枚举 own-key，并统一 preflight/permit/locator 的小写 UUID 合同。
 - 受保护的 `POST /api/mini/v1/acceptance/leads` 只在 permit、部署 SHA/revision、数据库 allowlist 与实际探针全部匹配后核验/清理；locator 由服务端重算，清理必须同时匹配 `encode(actual Lead ID)`，且删除前后 Lead、follow-ups、lead-ownership-history 均为 0 才返回成功。Sol 完整路由合同初版 33/33；主审发现删除后未复查两类关系并退回，修复后 Task B 36/36，合并定向矩阵 185/185。
-- Web 全量：304 个测试文件中 299 通过、5 个既有跳过；4180 项中 4155 通过、25 项既有跳过。
+- Task 5a runner 使用显式命令、同源且禁止重定向的 bounded fetch、进程内 ownership manifest、同 submission 幂等对账、`try/finally` 与 SIGINT/SIGTERM 单例清理。高级模型与主审先后捕获过期 permit、响应体超时、信号早于在途写完成、响应未知后晚写、晚到信号误报成功、非规范 permit/Lead ID 等边界；最终 runner 合同 49/49，小程序全量 29 个文件、521/521，Web acceptance 8 个文件、185/185。Node 22.23.2 下小程序双 TypeScript、`project:check`、runner `node --check` 与 Web typecheck 通过。小程序子工程没有独立 ESLint 配置，因此未把会误读用户主目录配置的无效 lint 命令记录为通过。
+- Sol 最终全量审查先因计划文档仍保留“响应丢失后 0 条即 clean”的旧规则返回 REQUEST_CHANGES；同步为“同 body 幂等对账，不确定或确认后仍为 0 均冻结”，并修正硬删除、runner 状态和当前计数后复核 APPROVE，代码与文档均无剩余 P1/P2。
+- Web 全量：306 个测试文件中 301 通过、5 个既有跳过；4225 项中 4200 通过、25 项既有跳过。
 - Web lint：0 错误、23 条既有 warning；production build：退出成功。构建期记录既有 COS fail-closed 日志并按现有城市静态参数降级完成，不视为 staging attestation 证据。
-- 结论范围：只证明 trial 缺少独立配置时 fail-closed、部署 manifest 生成边界、本地预检结构/脱敏合同，以及在 mock Payload/数据库探针下的服务端 attestation、10 分钟 permit、Mini inquiry acceptance 分支与精确 fixture 核验/清理合同。普通无 header 请求保持原路径；acceptance 使用 run 隔离幂等域，受保护接口能够把 locator 归属到唯一不可变 Lead ID 并执行双重精确清理。自动 runner 与进程内 ownership manifest 尚未实现，本地预检仍明确返回 `writeAuthorized=false`，因此不证明真实预发布部署、真实数据库隔离、真实写授权或微信运行时可用。
+- 结论范围：只证明 trial 缺少独立配置时 fail-closed、部署 manifest 生成边界、本地预检结构/脱敏合同，以及在 mock Payload/数据库探针/fake fetch 下的服务端 attestation、10 分钟 permit、Mini inquiry acceptance 分支、精确 fixture 核验/清理和 runner 恢复合同。普通无 header 请求保持原路径；acceptance 使用 run 隔离幂等域，受保护接口能够把 locator 归属到唯一不可变 Lead ID 并执行双重精确清理。runner 已实现但未真实执行，本地预检仍明确返回 `writeAuthorized=false`，因此不证明真实预发布部署、真实数据库隔离、真实写授权或微信运行时可用。
 
 ### 微信开发者工具诊断
 
@@ -45,7 +47,7 @@
 |---|---|---|
 | trial 独立 HTTPS API | 未执行 | 未提供 staging origin 与部署 revision |
 | 服务端 attestation | 真实环境未执行 | 本地 mock 合同已实现并通过；独立部署、真实 revision 与数据库指纹尚未交付 |
-| 隔离数据库咨询写入 | 未执行 | permit 与精确核验/清理接口已完成 mock 合同，但无自动 runner、受控真实数据库指纹与进程内 fixture ownership manifest |
+| 隔离数据库咨询写入 | 未执行 | permit、精确核验/清理与 runner 已完成 mock/fake-fetch 合同，但无受控真实数据库指纹与 staging 执行窗口 |
 | iOS 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
 | Android 真机 | 未执行 | 无可验收 trial 包与安全写环境 |
 | 微信后台合法域名/隐私 | 未执行 | 需要管理员在明确目标上配置并留回滚证据 |

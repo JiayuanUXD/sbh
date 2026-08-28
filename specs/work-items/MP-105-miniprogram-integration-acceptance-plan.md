@@ -19,7 +19,7 @@
 
 ## 3. 当前已知环境事实
 
-- Node 22.23.2 下，小程序当前 471/471、双 TypeScript 和工程检查通过；Web 4088 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。
+- Node 22.23.2 下，小程序当前 29 个文件、521/521，双 TypeScript 和工程检查通过；Web 当前 306 个文件中 301 通过、5 个既有跳过，4200 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。
 - 微信开发者工具 Stable `1.06.2409140` 能编译并打开首页；工具服务端口当前显示开启。
 - develop 使用 `http://127.0.0.1:3717`，被微信 request 合法域名校验拒绝，真实冒烟无法到达 `#home-ready`。
 - 独立预发布 API origin、隔离数据库、测试 AppID/Secret、隐私配置和真机账号尚未提供；不得使用生产域名替代。
@@ -28,8 +28,8 @@
 
 | 角色 | 负责人 | 责任 | 预计投入 | 前置依赖 | 验收证据 |
 |---|---|---|---:|---|---|
-| 小程序实现 | Codex（轻量模型实现、Sol 验收） | trial 配置、预检、开发者工具脚本 | 1.5–2 人日 | 独立 staging origin 与部署 revision | 测试日志、构建清单、DevTools 证据 |
-| 服务端实现 | Codex（轻量模型实现、Sol 验收） | attestation、写许可、fixture ownership/清理 | 2–3 人日 | staging 部署身份、隔离数据库 | API 合同测试、数据库指纹与清理计数 |
+| 小程序实现 | Codex（高级模型实现、Sol 验收） | trial 配置、预检、开发者工具脚本 | 1.5–2 人日 | 独立 staging origin 与部署 revision | 测试日志、构建清单、DevTools 证据 |
+| 服务端实现 | Codex（高级模型实现、Sol 验收） | attestation、写许可、fixture ownership/清理 | 2–3 人日 | staging 部署身份、隔离数据库 | API 合同测试、数据库指纹与清理计数 |
 | 环境交付 | 项目环境管理员（待指定） | 部署目标 commit、配置微信后台、提供隔离数据库 | 0.5–1 人日 | 云环境与微信小程序管理员权限 | 部署 revision、配置变更前后与回滚记录 |
 | 真机验收 | 产品/设计 + Codex 协助 | iOS、Android、隐私和可访问性 | 1 人日 | 可写 staging 门已通过、测试微信账号 | 脱敏截图、设备矩阵、问题清单 |
 | 最终放行 | Sol + 项目负责人 | 复核证据、决定是否解锁 MP-106/107 | 0.5 人日 | 前述任务全部通过 | 无 P1/P2 的验收结论 |
@@ -84,7 +84,7 @@
 - [x] Acceptance 写使用独立幂等域并绑定 `runId + submissionRequestId + listingSlug`，同 run 重试稳定、跨 run 与普通 Mini 询盘均隔离；成功响应返回可重算的 `leadLocator`，但不把它表述为本轮 ownership 证明。
 - [x] 不带 acceptance header 的普通咨询路径保持既有响应与调用顺序，不读取 acceptance 配置、验签或探针；production/disabled 即使收到伪造 header 也同形 404、零 Payload。
 - [x] Task 3b-2 定向 105/105、typecheck 与相关 lint 通过；Sol 首轮发现跨 run 幂等错归属后退回，修复为 run-domain-separated key 并复验 APPROVE。当前仍为 mock/合同层，未连接真实数据库。
-- [ ] 自动 runner 尚未实现；真机包也不持有 operator/bootstrap/permit。permit 未来只允许进入受控 runner 或当前进程内存，不落 bundle、query、Storage、日志或截图；没有安全注入通道前真机只读走查。
+- [x] 自动 runner 已实现，operator/bootstrap/permit 只进入受控 runner 当前进程内存，不落 bundle、query、Storage、日志或截图；真机包仍不持有这些凭据，没有安全注入通道前真机只读走查。
 
 ### Task 4：开发者工具只读闭环
 

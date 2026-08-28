@@ -1,6 +1,6 @@
 # MP-105a 验收 fixture 归属与精确清理实施计划
 
-> 状态：Task A/B/C 本地代码与 mock 合同已完成；真实 staging 执行待环境
+> 状态：Task A–D 本地代码、mock 合同、回归与 Sol 复核已完成；真实 staging 执行待环境
 > 日期：2026-08-28
 > 所属工作项：MP-105 Task 5
 > 决策：采用“受保护的 staging 核验/清理接口 + runner 内存 manifest”，不改 Lead 业务模型，不允许 runner 直连数据库
@@ -64,7 +64,7 @@
 
 ### cleanup
 
-请求在 inspect 参数之外增加 `leadId`。服务端复算幂等键并按 `id + idempotencyKey` 双重匹配；无记录时返回幂等的 `cleaned=false, leadCount=0`，精确命中且无关系数据时 trash 并返回 `cleaned=true, leadCount=0`。ID 不匹配、数量大于 1或存在关系数据均返回 409。
+请求在 inspect 参数之外增加 `leadId`。服务端复算幂等键并按 `encode(actual doc.id) + idempotencyKey` 双重匹配；无记录时返回幂等的 `cleaned=false, leadCount=0`。精确命中且删除前两类关系均为 0 时，才以实际文档的原始 ID 硬删除该隔离测试 Lead；删除后再次查询 Lead、follow-ups 与 lead-ownership-history，三类均为 0 才返回 `cleaned=true, leadCount=0`。ID 不匹配、数量大于 1 或存在关系数据均拒绝清理。
 
 ## 4. 实现任务
 
@@ -108,12 +108,12 @@
 
 1. 先写失败测试，使用注入 fetch 覆盖：预检 → attestation → permit → inspect 起点为 0 → inquiry 首次创建 → inspect 取得唯一 Lead ID → 同 submission 重提 → inspect 仍为同一 ID/数量 1 → finally cleanup → 最终三项计数为 0。
 2. manifest 状态只存在内存，至少记录 `runId`、对象类型、不可变 ID、服务端复算 locator 的公开摘要和状态；格式化输出不得暴露完整值。
-3. 覆盖首次 inquiry 响应丢失：只要 clean-start 已证明为 0，runner 可通过 inspect 收养唯一命中的本轮 Lead 并进入清理；0 条视为无需清理，多条立即冻结。
+3. 覆盖首次或重提 inquiry 在响应头前丢失：runner 先以完全相同的 submission/body 做一次幂等对账，严格验证成功 receipt 后才允许再次 inspect；唯一命中的本轮 Lead 可被收养并精确清理。对账仍不确定、对账确认成功后仍为 0、多条、关系非 0 或 ID 变化均立即冻结，绝不宣称 clean。
 4. 覆盖首次提交失败、重试失败、cleanup 503、关系计数非零、ID 变化、SIGINT/SIGTERM。信号处理只触发一次幂等 cleanup，清理失败设置非零退出码并打印“本轮冻结”，不得继续其它写场景。
 5. runner 默认不写任何网络；只有 Task 2 的全部显式环境变量通过且命令显式执行时才创建网络请求。测试只使用 fake fetch。
 6. package script 仅提供显式入口，不纳入普通测试或构建时自动执行。
 
-### Task D：复核、回归与证据
+### Task D：复核、回归与证据（本地已完成）
 
 **文件**
 
