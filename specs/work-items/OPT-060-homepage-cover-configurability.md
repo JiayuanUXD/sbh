@@ -171,7 +171,7 @@ name / slug / type / status / frontendVisible / city / parent
    按 §5.1 的四级优先级吐出每张卡的最终封面；`HomeTypeCards` 只管渲染收到的图，
    **不再自己从 `typeSummaries` 挑**。
 3. **把 `coverImage` 补进 `PUBLIC_LOCATION_FIELDS`**（`Locations.ts:32`）。
-   一行改动，修掉 §2.3 那个「改了封面 5 分钟看不到」的既有缺陷。
+   一行改动，修掉 §2.3 那个「改封面不会触发 `revalidateTag`、不打失效标签」的既有缺陷。
    注意 `fieldChanged`（`Locations.ts:77-85`）对 `city` / `parent` 走
    `relationshipId` 比较、其余走 `Object.is`——而 `coverImage` **也是 upload 关系字段**，
    depth 不同时可能是 id 或对象，直接 `Object.is` 会把「同一张图」判成变了
