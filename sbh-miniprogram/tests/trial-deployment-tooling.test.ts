@@ -13,9 +13,10 @@ const prepareTrialDeployment = (await import('../scripts/prepare-trial-deploymen
 
 const sha = 'a'.repeat(40)
 const environment = {
-  TRIAL_API_BASE_URL: 'https://staging.example.com',
+  TRIAL_CLOUD_ENV_ID: 'sbhmini-d5g7d6732b2c64a66',
+  TRIAL_CLOUD_SERVICE_NAME: 'sbhmini',
   TRIAL_DEPLOYMENT_COMMIT_SHA: sha,
-  TRIAL_SERVER_DEPLOYMENT_REVISION: 'rev-2026-08-27',
+  TRIAL_SERVER_DEPLOYMENT_REVISION: 'sbhmini-016',
 }
 
 describe('trial deployment manifest tooling', () => {
@@ -25,31 +26,29 @@ describe('trial deployment manifest tooling', () => {
     try {
       prepareTrialDeployment({ environment, currentHeadSha: sha, worktreeStatus: '', outputPath, allowedOutputPath: outputPath })
       const source = readFileSync(outputPath, 'utf8')
-      expect(source).toContain('https://staging.example.com')
+      expect(source).toContain('sbhmini-d5g7d6732b2c64a66')
+      expect(source).toContain('sbhmini')
       expect(source).toContain(sha)
-      expect(source).toContain('rev-2026-08-27')
-      expect(source).not.toMatch(/secret|token|database|postgres/i)
+      expect(source).toContain('sbhmini-016')
+      expect(source).not.toMatch(/https?:|secret|token|database|postgres/i)
     } finally { rmSync(directory, { recursive: true, force: true }) }
   })
 
   it.each([
-    ['missing origin', { ...environment, TRIAL_API_BASE_URL: '' }, sha, 'clean'],
-    ['production origin', { ...environment, TRIAL_API_BASE_URL: 'HTTPS://SBH-286300-10-1253925058.SH.RUN.TCLOUDBASE.COM:443/' }, sha, 'clean'],
-    ['production origin with noncanonical port', { ...environment, TRIAL_API_BASE_URL: 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com:0443' }, sha, 'clean'],
-    ['numeric localhost alias', { ...environment, TRIAL_API_BASE_URL: 'https://2130706433' }, sha, 'clean'],
-    ['short localhost alias', { ...environment, TRIAL_API_BASE_URL: 'https://127.1' }, sha, 'clean'],
-    ['IPv6 localhost', { ...environment, TRIAL_API_BASE_URL: 'https://[::1]' }, sha, 'clean'],
-    ['localhost trailing dot', { ...environment, TRIAL_API_BASE_URL: 'https://localhost.' }, sha, 'clean'],
-    ['localhost subdomain', { ...environment, TRIAL_API_BASE_URL: 'https://fixture.localhost' }, sha, 'clean'],
-    ['DNS absolute-name trailing dot', { ...environment, TRIAL_API_BASE_URL: 'https://staging.example.com.' }, sha, 'clean'],
-    ['percent-encoded dot', { ...environment, TRIAL_API_BASE_URL: 'https://staging%2eexample.com' }, sha, 'clean'],
-    ['wrong sha', environment, 'b'.repeat(40), 'clean'],
-    ['dirty tree', environment, sha, ' M file.ts'],
-  ])('%s 时拒绝生成', (_label, env, currentHeadSha, worktreeStatus) => {
+    ['missing env', { ...environment, TRIAL_CLOUD_ENV_ID: '' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
+    ['missing service', { ...environment, TRIAL_CLOUD_SERVICE_NAME: '' }, sha, 'clean', /trial cloud service 与受控 staging 不一致/],
+    ['production env', { ...environment, TRIAL_CLOUD_ENV_ID: 'sbh-d9gnr8h5ef7e22e30' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
+    ['illegal env character', { ...environment, TRIAL_CLOUD_ENV_ID: 'sbhmini/staging' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
+    ['illegal service character', { ...environment, TRIAL_CLOUD_SERVICE_NAME: 'sbhmini.service' }, sha, 'clean', /trial cloud service 与受控 staging 不一致/],
+    ['uppercase env disguise', { ...environment, TRIAL_CLOUD_ENV_ID: 'SBHMINI-D5G7D6732B2C64A66' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
+    ['uppercase service disguise', { ...environment, TRIAL_CLOUD_SERVICE_NAME: 'SBHMINI' }, sha, 'clean', /trial cloud service 与受控 staging 不一致/],
+    ['wrong sha', environment, 'b'.repeat(40), 'clean', /目标 Git commit SHA 与当前 HEAD 不一致/],
+    ['dirty tree', environment, sha, ' M file.ts', /工作树必须干净/],
+  ])('%s 时拒绝生成', (_label, env, currentHeadSha, worktreeStatus, error) => {
     const directory = mkdtempSync(join(tmpdir(), 'sbh-trial-reject-'))
     const outputPath = join(directory, 'manifest.ts')
     try {
-      expect(() => prepareTrialDeployment({ environment: env, currentHeadSha, worktreeStatus, outputPath, allowedOutputPath: outputPath })).toThrow()
+      expect(() => prepareTrialDeployment({ environment: env, currentHeadSha, worktreeStatus, outputPath, allowedOutputPath: outputPath })).toThrow(error)
     } finally {
       expect(() => readFileSync(outputPath, 'utf8')).toThrow()
       rmSync(directory, { recursive: true, force: true })

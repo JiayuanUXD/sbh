@@ -4,16 +4,23 @@ export type MiniProgramEnvVersion = 'develop' | 'trial' | 'release'
 
 export type RuntimeStage = 'development' | 'staging' | 'production'
 
-export interface RuntimeEnvironment {
-  stage: RuntimeStage
-  apiBaseUrl: string
-  deploymentIdentity?: Readonly<{ gitCommitSha: string; serverDeploymentRevision: string }>
-}
-
-interface EnvironmentConfig {
-  stage: RuntimeStage
-  apiBaseUrl?: string
-}
+export type RuntimeEnvironment =
+  | Readonly<{
+      stage: 'development'
+      transport?: 'http'
+      apiBaseUrl: string
+    }>
+  | Readonly<{
+      stage: 'staging' | 'production'
+      transport: 'cloud-container'
+      cloudEnvId: string
+      cloudServiceName: string
+      apiBaseUrl?: never
+      deploymentIdentity?: Readonly<{
+        gitCommitSha: string
+        serverDeploymentRevision: string
+      }>
+    }>
 
 const LOCALHOST_NAMES = new Set(['localhost', '127.0.0.1'])
 const API_BASE_URL_PATTERN = /^(https?):\/\/([^/?#]+)\/?$/i
@@ -23,22 +30,13 @@ const HOSTNAME_AUTHORITY_PATTERN = /^([^:]+?)(?::([0-9]+))?$/
 const IPV4_LITERAL_PATTERN = /^\d{1,3}(?:\.\d{1,3}){3}$/
 const NUMERIC_IP_PART_PATTERN = /^(?:0x[0-9a-f]+|0[0-7]*|[0-9]+)$/i
 
-const RELEASE_API_BASE_URL = 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com'
+const CLOUD_RESOURCE_NAME = /^[a-z][a-z0-9-]{0,63}$/
+const PRODUCTION_ENV_ID = 'sbh-d9gnr8h5ef7e22e30'
+const PRODUCTION_SERVICE_NAME = 'sbh'
+const STAGING_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
+const STAGING_SERVICE_NAME = 'sbhmini'
 const SHA = /^[0-9a-f]{40}$/
 const REVISION = /^[A-Za-z0-9._-]{1,128}$/
-const ENVIRONMENTS: Record<MiniProgramEnvVersion, EnvironmentConfig> = {
-  develop: {
-    stage: 'development',
-    apiBaseUrl: 'http://127.0.0.1:3717',
-  },
-  trial: {
-    stage: 'staging',
-  },
-  release: {
-    stage: 'production',
-    apiBaseUrl: RELEASE_API_BASE_URL,
-  },
-}
 
 function isNumericIpLike(host: string): boolean {
   if (/^(?:0x[0-9a-f]+|[0-9]+)$/i.test(host)) return true
@@ -98,44 +96,67 @@ export function assertApiBaseUrl(value: string, allowLocalhost: boolean): string
   return normalizedOrigin
 }
 
+export function assertCloudResourceName(value: string, label: string): string {
+  if (value !== value.trim() || !CLOUD_RESOURCE_NAME.test(value)) {
+    throw new Error(`${label} 未配置或非法`)
+  }
+  return value
+}
+
 export function resolveRuntimeEnvironment(
   envVersion: MiniProgramEnvVersion,
   options: Readonly<{
-    trialManifest?: Readonly<{ apiBaseUrl: string; gitCommitSha: string; serverDeploymentRevision: string }>
+    trialManifest?: Readonly<{
+      cloudEnvId: string
+      cloudServiceName: string
+      gitCommitSha: string
+      serverDeploymentRevision: string
+    }>
   }> = {},
 ): RuntimeEnvironment {
-  const configuredEnvironment = ENVIRONMENTS[envVersion]
+  if (envVersion === 'develop') {
+    return {
+      stage: 'development',
+      transport: 'http',
+      apiBaseUrl: assertApiBaseUrl('http://127.0.0.1:3717', true),
+    }
+  }
 
-  if (!configuredEnvironment) {
+  if (envVersion === 'release') {
+    return {
+      stage: 'production',
+      transport: 'cloud-container',
+      cloudEnvId: assertCloudResourceName(PRODUCTION_ENV_ID, 'release cloud env'),
+      cloudServiceName: assertCloudResourceName(PRODUCTION_SERVICE_NAME, 'release cloud service'),
+    }
+  }
+
+  if (envVersion !== 'trial') {
     throw new Error(`未知的小程序环境版本：${String(envVersion)}`)
   }
 
   const manifest = options.trialManifest ?? trialDeploymentManifest
-  const trialConfig = envVersion === 'trial'
-    ? {
-      apiBaseUrl: manifest.apiBaseUrl,
-      gitCommitSha: manifest.gitCommitSha,
-      serverDeploymentRevision: manifest.serverDeploymentRevision,
-    }
-    : null
-  const apiBaseUrl = envVersion === 'trial'
-    ? trialConfig?.apiBaseUrl
-    : configuredEnvironment.apiBaseUrl
-  if (typeof apiBaseUrl !== 'string' || apiBaseUrl.length === 0) {
-    throw new Error('独立预发布 API 未配置')
+  const cloudEnvId = assertCloudResourceName(manifest.cloudEnvId, 'trial cloud env')
+  const cloudServiceName = assertCloudResourceName(manifest.cloudServiceName, 'trial cloud service')
+  if (cloudEnvId !== STAGING_ENV_ID) {
+    throw new Error('trial cloud env 与受控 staging 不一致')
   }
-  const normalizedApiBaseUrl = assertApiBaseUrl(apiBaseUrl, configuredEnvironment.stage === 'development')
-  const normalizedReleaseApiBaseUrl = assertApiBaseUrl(RELEASE_API_BASE_URL, false)
-  if (envVersion === 'trial' && normalizedApiBaseUrl === normalizedReleaseApiBaseUrl) {
-    throw new Error('独立预发布 API 不能复用生产 API')
+  if (cloudServiceName !== STAGING_SERVICE_NAME) {
+    throw new Error('trial cloud service 与受控 staging 不一致')
   }
-  if (envVersion === 'trial' && (!trialConfig || !SHA.test(trialConfig.gitCommitSha) || !REVISION.test(trialConfig.serverDeploymentRevision))) {
+  if (!SHA.test(manifest.gitCommitSha) || !REVISION.test(manifest.serverDeploymentRevision)) {
     throw new Error('trial deployment identity 未配置或非法')
   }
+
   return {
-    stage: configuredEnvironment.stage,
-    apiBaseUrl: normalizedApiBaseUrl,
-    ...(envVersion === 'trial' && trialConfig ? { deploymentIdentity: { gitCommitSha: trialConfig.gitCommitSha, serverDeploymentRevision: trialConfig.serverDeploymentRevision } } : {}),
+    stage: 'staging',
+    transport: 'cloud-container',
+    cloudEnvId,
+    cloudServiceName,
+    deploymentIdentity: {
+      gitCommitSha: manifest.gitCommitSha,
+      serverDeploymentRevision: manifest.serverDeploymentRevision,
+    },
   }
 }
 

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import {
   assertApiBaseUrl,
+  assertCloudResourceName,
   getCurrentRuntimeEnvironment,
   resolveRuntimeEnvironment,
   type MiniProgramEnvVersion,
@@ -19,49 +20,87 @@ afterEach(() => {
 })
 
 describe('运行环境选择', () => {
-  it.each([
-    ['develop', { stage: 'development', apiBaseUrl: 'http://127.0.0.1:3717' }],
-    ['release', { stage: 'production', apiBaseUrl: 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com' }],
-  ] as const)('将 %s 映射为预期的运行环境', (envVersion, expected) => {
-    expect(resolveRuntimeEnvironment(envVersion)).toEqual(expected)
+  it('将 develop 映射为本机 HTTP 运行环境', () => {
+    expect(resolveRuntimeEnvironment('develop')).toEqual({
+      stage: 'development',
+      transport: 'http',
+      apiBaseUrl: 'http://127.0.0.1:3717',
+    })
   })
 
-  it('trial 未配置独立预发布 API 时 fail-closed，不返回生产 origin', () => {
-    expect(() => resolveRuntimeEnvironment('trial')).toThrow(/独立预发布 API 未配置/)
+  it('将 release 映射为受控生产 CloudBase 目标', () => {
+    expect(resolveRuntimeEnvironment('release')).toEqual({
+      stage: 'production',
+      transport: 'cloud-container',
+      cloudEnvId: 'sbh-d9gnr8h5ef7e22e30',
+      cloudServiceName: 'sbh',
+    })
+  })
+
+  it('trial 未生成四字段 manifest 时 fail-closed', () => {
+    expect(() => resolveRuntimeEnvironment('trial')).toThrow(/trial cloud env 未配置或非法/)
     Object.defineProperty(globalThis, 'wx', {
       configurable: true,
       value: { getAccountInfoSync: () => ({ miniProgram: { envVersion: 'trial' } }) },
     })
-    expect(() => getCurrentRuntimeEnvironment()).toThrow(/独立预发布 API 未配置/)
+    expect(() => getCurrentRuntimeEnvironment()).toThrow(/trial cloud env 未配置或非法/)
   })
 
-  it('trial 未来配置必须是经过基址校验的非本机 HTTPS origin', () => {
-    const manifest = { apiBaseUrl: 'https://staging.example.com/', gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' }
+  it('读取四字段 trial manifest 后返回 staging CloudBase 目标与部署身份', () => {
+    const manifest = {
+      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudServiceName: 'sbhmini',
+      gitCommitSha: 'a'.repeat(40),
+      serverDeploymentRevision: 'sbhmini-016',
+    }
+
     expect(resolveRuntimeEnvironment('trial', { trialManifest: manifest })).toEqual({
-      stage: 'staging', apiBaseUrl: 'https://staging.example.com', deploymentIdentity: { gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' },
+      stage: 'staging',
+      transport: 'cloud-container',
+      cloudEnvId: manifest.cloudEnvId,
+      cloudServiceName: manifest.cloudServiceName,
+      deploymentIdentity: {
+        gitCommitSha: manifest.gitCommitSha,
+        serverDeploymentRevision: manifest.serverDeploymentRevision,
+      },
     })
-    expect(() => resolveRuntimeEnvironment('trial', { trialManifest: { ...manifest, apiBaseUrl: 'http://staging.example.com' } })).toThrow(/HTTPS/)
   })
 
-  it('读取完整 manifest seam 后返回 staging 与部署身份', () => {
-    expect(resolveRuntimeEnvironment('trial', {
-      trialManifest: {
-        apiBaseUrl: 'https://staging.example.com',
-        gitCommitSha: 'b'.repeat(40),
-        serverDeploymentRevision: 'rev-manifest',
-      },
-    })).toEqual({
-      stage: 'staging',
-      apiBaseUrl: 'https://staging.example.com',
-      deploymentIdentity: { gitCommitSha: 'b'.repeat(40), serverDeploymentRevision: 'rev-manifest' },
-    })
+  const validTrialManifest = {
+    cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+    cloudServiceName: 'sbhmini',
+    gitCommitSha: 'a'.repeat(40),
+    serverDeploymentRevision: 'sbhmini-016',
+  }
+
+  it.each([
+    ['空 env', 'cloudEnvId', '', /trial cloud env 未配置或非法/],
+    ['空白 env', 'cloudEnvId', ' sbhmini-d5g7d6732b2c64a66', /trial cloud env 未配置或非法/],
+    ['带斜杠 env', 'cloudEnvId', 'sbhmini/staging', /trial cloud env 未配置或非法/],
+    ['带点 env', 'cloudEnvId', 'sbhmini.staging', /trial cloud env 未配置或非法/],
+    ['带协议 env', 'cloudEnvId', 'https://sbhmini', /trial cloud env 未配置或非法/],
+    ['生产 env', 'cloudEnvId', 'sbh-d9gnr8h5ef7e22e30', /trial cloud env 与受控 staging 不一致/],
+    ['大小写伪装 env', 'cloudEnvId', 'SBHMINI-D5G7D6732B2C64A66', /trial cloud env 未配置或非法/],
+    ['空 service', 'cloudServiceName', '', /trial cloud service 未配置或非法/],
+    ['空白 service', 'cloudServiceName', 'sbhmini ', /trial cloud service 未配置或非法/],
+    ['带斜杠 service', 'cloudServiceName', 'sbh/mini', /trial cloud service 未配置或非法/],
+    ['带点 service', 'cloudServiceName', 'sbh.mini', /trial cloud service 未配置或非法/],
+    ['带协议 service', 'cloudServiceName', 'https://sbhmini', /trial cloud service 未配置或非法/],
+    ['生产 service', 'cloudServiceName', 'sbh', /trial cloud service 与受控 staging 不一致/],
+    ['大小写伪装 service', 'cloudServiceName', 'SBHMINI', /trial cloud service 未配置或非法/],
+  ] as const)('trial 在选择 transport 前拒绝%s', (_label, field, value, error) => {
+    expect(() => resolveRuntimeEnvironment('trial', {
+      trialManifest: { ...validTrialManifest, [field]: value },
+    })).toThrow(error)
   })
 
   it.each([
-    'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com',
-    'HTTPS://SBH-286300-10-1253925058.SH.RUN.TCLOUDBASE.COM:0443/',
-  ])('trial 拒绝规范化后等同 release 的 API origin：%s', (apiBaseUrl) => {
-    expect(() => resolveRuntimeEnvironment('trial', { trialManifest: { apiBaseUrl, gitCommitSha: 'a'.repeat(40), serverDeploymentRevision: 'rev-1' } })).toThrow(/独立预发布 API/)
+    ['git commit SHA', 'gitCommitSha', 'b'.repeat(39)],
+    ['deployment revision', 'serverDeploymentRevision', 'bad/revision'],
+  ] as const)('trial 在选择 transport 前拒绝非法%s', (_label, field, value) => {
+    expect(() => resolveRuntimeEnvironment('trial', {
+      trialManifest: { ...validTrialManifest, [field]: value },
+    })).toThrow(/deployment identity 未配置或非法/)
   })
 
   it('对未知的小程序版本拒绝继续运行', () => {
@@ -80,7 +119,35 @@ describe('运行环境选择', () => {
       },
     })
 
-    expect(getCurrentRuntimeEnvironment()).toEqual({ stage: 'development', apiBaseUrl: 'http://127.0.0.1:3717' })
+    expect(getCurrentRuntimeEnvironment()).toEqual({
+      stage: 'development',
+      transport: 'http',
+      apiBaseUrl: 'http://127.0.0.1:3717',
+    })
+  })
+})
+
+describe('CloudBase 资源名校验', () => {
+  it.each([
+    'sbh',
+    'sbhmini-d5g7d6732b2c64a66',
+    `a${'0'.repeat(63)}`,
+  ])('接受合法小写资源名：%s', (value) => {
+    expect(assertCloudResourceName(value, 'cloud resource')).toBe(value)
+  })
+
+  it.each([
+    '',
+    ' ',
+    ' sbhmini',
+    'sbhmini ',
+    'sbh/mini',
+    'sbh.mini',
+    'https://sbhmini',
+    'SBHMINI',
+    `a${'0'.repeat(64)}`,
+  ])('拒绝非法资源名：%j', (value) => {
+    expect(() => assertCloudResourceName(value, 'cloud resource')).toThrow('cloud resource 未配置或非法')
   })
 })
 
