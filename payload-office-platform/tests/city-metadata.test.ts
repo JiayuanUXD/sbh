@@ -31,6 +31,7 @@ function city(
       intro: { heading: '', body: '' },
       contact: { heading: '', body: '' },
       featuredRegions: [],
+      typeCardOverrides: [],
     },
   }
 }

@@ -58,6 +58,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     intro: { heading: '', body: '' },
     contact: { heading: '', body: '' },
     featuredRegions: [],
+    typeCardOverrides: [],
     ...overrides,
   }
 }
@@ -294,6 +295,73 @@ describe('city context resolver', () => {
     expect(findCityProfiles).toHaveBeenLastCalledWith(
       expect.objectContaining({ collection: 'city-site-profiles', depth: 2 }),
     )
+  })
+
+  it('keeps the profile fully populated when a city has no type card overrides configured (OPT-060)', async () => {
+    // 绝大多数城市不会配任何覆盖行。这条锁住「没配 = 空数组」而不是「没配 = profile 失效」——
+    // 后者会让当前七城的大多数城市首页直接塌陷（SEO 标题、Hero 文案、精选区域全没）。
+    findCityProfiles.mockResolvedValueOnce({ docs: [cityProfileDocument()] })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0]?.citySlug).toBe('shanghai')
+    expect(profiles[0]?.seoTitle).toBe('Shanghai office leasing')
+    expect(profiles[0]?.featuredRegions).toEqual([])
+    expect(profiles[0]?.typeCardOverrides).toEqual([])
+  })
+
+  it('drops broken type card override rows instead of failing the whole profile closed (OPT-060)', async () => {
+    // 封面覆盖是装饰性运营配置：一行损坏（不安全 URL / slot 缺失）只该丢那一行，
+    // 不该像 featuredRegions 等结构性字段那样让整份 profile 变 null——即便配置的
+    // 每一行都损坏（本例故意不留一个合格行），profile 本身仍要活着。
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          typeCardOverrides: [
+            { slot: 'coworking', coverImage: { id: 9, alt: '不安全封面', url: 'javascript:alert(1)' } },
+            { coverImage: { id: 10, alt: '缺槽位封面', url: '/api/media/file/missing-slot.jpg' } },
+          ],
+        }),
+      ],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0]?.citySlug).toBe('shanghai')
+    expect(profiles[0]?.seoTitle).toBe('Shanghai office leasing')
+    expect(profiles[0]?.featuredRegions).toEqual([])
+    // 两行都损坏 → 都不出现在结果里，但不是「整份 profile 失效」
+    expect(profiles[0]?.typeCardOverrides).toEqual([])
+  })
+
+  it('keeps a valid type card override row alongside a dropped broken one, in the same profile (OPT-060)', async () => {
+    // 上一条锁的是「全损坏也不塌陷」；这条锁「部分损坏时，合格行必须原样透传」——
+    // 两条合起来才完整覆盖「逐行丢弃」这个真正的行为契约。
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [
+        cityProfileDocument({
+          typeCardOverrides: [
+            { slot: 'coworking', coverImage: { id: 9, alt: '不安全封面', url: 'javascript:alert(1)' } },
+            {
+              slot: 'full-floor',
+              coverImage: { id: 11, alt: '整层封面', url: '/api/media/file/full-floor.jpg' },
+            },
+          ],
+        }),
+      ],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles).toHaveLength(1)
+    expect(profiles[0]?.typeCardOverrides).toEqual([
+      {
+        slot: 'full-floor',
+        coverImage: expect.objectContaining({ src: '/api/media/file/full-floor.jpg' }),
+      },
+    ])
   })
 
   it('maps the featured region locality from parent and description, dropping the owning city', async () => {

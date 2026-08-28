@@ -123,6 +123,7 @@ describe('ComingSoonCityView shell', () => {
         hero: { eyebrow: '', heading: '', body: '', media: null, video: null, videoEnabled: true },
         intro: { heading: '', body: '' }, contact: { heading: '', body: '' },
         featuredRegions: [],
+        typeCardOverrides: [],
       },
     } })))
 

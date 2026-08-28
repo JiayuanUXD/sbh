@@ -7,6 +7,7 @@ import {
   SITE_SETTINGS_TAG,
 } from '@/domain/public-catalog'
 import type { Media, SiteSetting } from '@/payload-types'
+import { mapMedia } from '@/domain/public-catalog/mappers'
 import { navTargetById } from './nav-targets'
 import { SITE_SETTINGS_FALLBACK, type SiteSettingsView } from './site-settings-view'
 
@@ -76,6 +77,12 @@ function mapTypeCards(value: SiteSetting['typeCards']): SiteSettingsView['typeCa
       slot: row.slot as string,
       label: text(row.label, row.slot as string),
       sublabel: text(row.sublabel, '') || null,
+      // OPT-060：**这一步必须在服务端做完**。SiteSettingsView 被 'use client'
+      // 组件消费（有传递闭包守卫 client-components-no-server-imports.test.ts），
+      // 把原始 Media 文档漏到客户端会让守卫红且 next build 失败。
+      // 走 mapMedia 而不是自己拼 url：它是 URL 白名单，并且会带出 OPT-059 的
+      // variants / focal。
+      coverImage: mapMedia(row.coverImage, text(row.label, row.slot as string)) ?? null,
     }))
   return rows.length > 0 ? rows : SITE_SETTINGS_FALLBACK.typeCards
 }

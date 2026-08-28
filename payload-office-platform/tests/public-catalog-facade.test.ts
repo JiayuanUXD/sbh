@@ -262,6 +262,34 @@ function fullFixture(overrides: { districts?: readonly Location[]; businessAreas
 }
 
 /**
+ * OPT-060 候选池 fixture：`count` 个商圈，每个都配一栋在营（active）楼盘，
+ * 质量门槛（无在营楼盘不进卡片区）照样满足，不是绕开它。
+ *
+ * `fullFixture()` 只派生 ≤2 个商圈，永远测不出候选池 > 5 的场景——池子上限
+ * 是 5 还是 20，`fullFixture()` 跑出来的结果都一样，等于没测。本 fixture
+ * 就是为了填这个缺口：`count` 传 > 5，才能验证 facade 真的把池子放宽到了 20，
+ * 而不是仍在组装时截到 5。
+ */
+function poolFixture(count: number) {
+  const areas: Location[] = Array.from({ length: count }, (_, i) => ({
+    ...(BUILDING_JINGAN_CENTER.businessDistrict as Location),
+    id: 9800 + i,
+    name: `候选商圈${i + 1}`,
+    slug: `pool-area-${i + 1}`,
+    immutableCode: `TEST-POOL-${i + 1}`,
+  }))
+  const buildings: Building[] = areas.map((area, i) => ({
+    ...BUILDING_JINGAN_CENTER,
+    id: 9700 + i,
+    name: `候选楼盘${i + 1}`,
+    slug: `pool-building-${i + 1}`,
+    operationalStatus: 'active',
+    businessDistrict: area,
+  }))
+  return createFakeAdapter({ businessAreas: areas, buildings, listings: [] })
+}
+
+/**
  * 一条「结构化价格已回填、旧列仍停在建表默认值」的房源——现行数据的常见形态。
  *
  * `rentUnit` 在 `Listings.ts` 里 `condition: () => false`（表单上不出现）且带
@@ -620,13 +648,34 @@ describe('getHomepage', () => {
   })
 
   /**
-   * 栅格 4 列、大卡跨 2x2，1 大 + 4 小恰好填满 2 行；不设上限时首页会被撑爆。
+   * districtCards 是候选池（OPT-060），不是最终展示张数：视图层
+   * （CityHomeView）会先按精选区域重排、再截到 bento 的 5 个坑位。
+   * 这里只锁池子的上限约束，不设上限时首页 DTO 会被撑爆。
    */
-  it('商圈卡张数受 districtCardsLimit 约束', async () => {
-    const unlimited = await getHomepage(ctx, {}, fullFixture())
-    const capped = await getHomepage(ctx, { districtCardsLimit: 1 }, fullFixture())
-    expect(unlimited.districtCards.length).toBeLessThanOrEqual(5)
-    expect(capped.districtCards.length).toBeLessThanOrEqual(1)
+  it('商圈卡候选池张数受 districtCardPoolLimit 约束', async () => {
+    const unlimited = await getHomepage(ctx, {}, poolFixture(8))
+    const capped = await getHomepage(ctx, { districtCardPoolLimit: 3 }, poolFixture(8))
+    // 8 个商圈全部满足质量门槛（都有在营楼盘），默认池子上限 20 装得下，不截断
+    expect(unlimited.districtCards.length).toBe(8)
+    // 显式传更小的上限，验证截断真的生效
+    expect(capped.districtCards.length).toBe(3)
+  })
+
+  /**
+   * 锁住本次修复放宽的那一半：facade 的候选池上限必须明显大于 bento 的 5 个坑位。
+   *
+   * 回归动机（OPT-060 复审发现的缺口）：`fullFixture()` 只派生 ≤2 个商圈，
+   * 池子上限是 5 还是 20，用它跑出来的结果都一样——之前那条
+   * 「候选池张数受 districtCardPoolLimit 约束」用例因此从未真正测过池子 > 5
+   * 的场景，`DEFAULT_DISTRICT_CARD_POOL_LIMIT` 被误改回 5 也不会有任何测试变红。
+   * 这里用 `poolFixture(8)` 造 8 个「都有在营楼盘」的商圈（质量门槛不绕过），
+   * 断言候选池能完整装下全部 8 个——如果上限被悄悄改回 5，这条会先红。
+   */
+  it('候选池能装下 5 个以上有效商圈（默认上限不应被悄悄改回 5）', async () => {
+    const h = await getHomepage(ctx, {}, poolFixture(8))
+    expect(h.districtCards.length).toBeGreaterThan(5)
+    expect(h.districtCards.length).toBe(8)
+    expect(h.districtCards.length).toBeLessThanOrEqual(20)
   })
 })
 

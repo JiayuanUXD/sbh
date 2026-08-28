@@ -1,3 +1,5 @@
+import type { MediaViewModel } from '@/domain/public-catalog/contracts'
+
 import type { CityServiceStatus } from './schema'
 
 export type PublicCitySiteProfile = Readonly<{
@@ -56,5 +58,19 @@ export type PublicCitySiteProfile = Readonly<{
     parentName: string | null
     /** `Locations.description`「区域介绍」。未填 / 空白为 `null`（不是空串）。 */
     description: string | null
+  }>[]
+  /**
+   * 「按类型浏览」的**单城封面覆盖**（OPT-060）。只覆盖图，不覆盖文案。
+   *
+   * **只收有效行**：`slot` 不合法或封面映射不出安全 URL 的行在映射阶段就被丢掉,
+   * 不会出现在这里。**单行损坏绝不能让整份 profile 失效**——运营配错一张图不该
+   * 让整座城市的 SEO 标题、Hero 文案、精选区域一起降级（本文件其余字段走的是
+   * 全有或全无的校验，这一项刻意不走）。
+   *
+   * 没配时是**空数组**，不是 undefined：消费方只需判一种空。
+   */
+  typeCardOverrides: readonly Readonly<{
+    slot: string
+    coverImage: MediaViewModel
   }>[]
 }>

@@ -19,6 +19,7 @@ import {
   normalizeCityDisplayName,
 } from '@/domain/city-site-profile/schema'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
+import { mapTypeCardOverrides } from '@/lib/frontend/type-card-covers'
 
 export type PublicCityOption = Readonly<{
   slug: string
@@ -264,6 +265,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
     intro: { heading: introHeading.value, body: introBody.value },
     contact: { heading: contactHeading.value, body: contactBody.value },
     featuredRegions: featuredRegions.value,
+    typeCardOverrides: mapTypeCardOverrides(value.typeCardOverrides),
   }
 }
 

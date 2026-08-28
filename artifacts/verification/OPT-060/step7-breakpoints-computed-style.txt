@@ -1,0 +1,117 @@
+OPT-060 验收项⑤ 两个断点 —— getComputedStyle 实测输出
+=========================================================
+
+取数方式：本次（2026-08-28，coordinator 反馈后）重取，非上一轮遗留数据。
+页面：http://localhost:3717/shanghai（复用已登录的共享 dev server，与首轮
+验收同一进程；本文件生成时该商圈候选池已还原为验证前状态，与本项断点结论
+无关——本项测的是 CSS 规则，不依赖具体渲染了哪几个商圈）。
+
+方法：mcp__Claude_Browser__resize_window 依次设视口宽度 375 / 767 / 768 /
+1280px（每次 resize 后不刷新页面，媒体查询随视口宽度变化实时重算），
+用 mcp__Claude_Browser__javascript_tool 对以下两处元素取
+window.getComputedStyle() 的真实返回值（不是读 CSS 源码猜测，是浏览器
+实际布局计算后的值）：
+
+- 类型卡封面图：`.hm-type-card__media img`（首个匹配元素）—— 断言点是
+  spec 提到的 `home.css:210` 附近「≤767px 把类型卡图片 display:none」
+- 五张商圈 bento 卡：`.hm-bento-card`（含三个变体 hm-bento__main /
+  hm-bento__small / hm-bento__wide）—— 断言点是「三档高度统一成 232px」
+
+---
+
+## 视口宽度 = 375px（mobile）
+
+```json
+{
+ "viewportWidth": 375,
+ "devicePixelRatio": 2,
+ "typeCardImgFound": true,
+ "typeCardImgDisplay": "none",
+ "typeCardWrapperDisplay": "flex",
+ "bentoCardCount": 5,
+ "bentoInfo": [
+  { "cls": "hm-bento-card hm-bento__main", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "232px" }
+ ]
+}
+```
+
+## 视口宽度 = 767px（断点边界，应仍隐藏图片）
+
+```json
+{
+ "viewportWidth": 767,
+ "typeCardImgFound": true,
+ "typeCardImgDisplay": "none",
+ "typeCardWrapperDisplay": "flex",
+ "bentoCardCount": 5,
+ "bentoInfo": [
+  { "cls": "hm-bento-card hm-bento__main", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "232px" }
+ ]
+}
+```
+
+## 视口宽度 = 768px（断点边界，应切换为桌面态）
+
+```json
+{
+ "viewportWidth": 768,
+ "typeCardImgFound": true,
+ "typeCardImgDisplay": "block",
+ "typeCardWrapperDisplay": "block",
+ "bentoCardCount": 5,
+ "bentoInfo": [
+  { "cls": "hm-bento-card hm-bento__main", "height": "480px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "280px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "280px" }
+ ]
+}
+```
+
+## 视口宽度 = 1280px（desktop）
+
+```json
+{
+ "viewportWidth": 1280,
+ "typeCardImgFound": true,
+ "typeCardImgDisplay": "block",
+ "typeCardWrapperDisplay": "block",
+ "bentoCardCount": 5,
+ "bentoInfo": [
+  { "cls": "hm-bento-card hm-bento__main", "height": "480px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__small", "height": "232px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "280px" },
+  { "cls": "hm-bento-card hm-bento__wide", "height": "280px" }
+ ]
+}
+```
+
+---
+
+## 结论
+
+| 视口宽度 | 类型卡图片 `display` | bento 高度（main / small×2 / wide×2） |
+|---|---|---|
+| 375px | `none` | 232 / 232 / 232 / 232 / 232 |
+| 767px | `none` | 232 / 232 / 232 / 232 / 232 |
+| 768px | `block` | 480 / 232 / 232 / 280 / 280 |
+| 1280px | `block` | 480 / 232 / 232 / 280 / 280 |
+
+- 断点精确落在 767→768px：≤767px 隐藏类型卡图片，≥768px 显示。
+- 移动端（≤767px）bento 三档高度统一为 232px；桌面端（≥768px）三档各自
+  不同（480 / 232 / 280），与移动端「统一成 232px」形成对照，符合
+  `home.css` 里描述的规则意图。
+- `getComputedStyle` 触发的是浏览器真实的布局计算，不依赖画面合成/截图，
+  因此本轮 Browser pane 不合成帧的限制不影响这组数据的真实性；但这组数据
+  仍然只能证明"CSS 规则在该断点下实际生效"，不能证明"看起来是否整洁/有无
+  视觉层叠错位"——那部分仍然没有证据，见 README.md「截图能力」一节。

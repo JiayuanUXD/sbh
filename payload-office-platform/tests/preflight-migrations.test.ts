@@ -43,7 +43,14 @@ describe('preflight migrations: 纯函数', () => {
     // 代码里加一行的同时必须配这条 ALTER TYPE ... ADD VALUE 'home'。
     // opt_059_media_image_sizes：Media 加三档宽度型派生（thumb/card/hero）与
     // 焦点开关。派生尺寸落在 media_sizes_* 列，focal_x/focal_y 早在 m0 就有。
-    expect(names.length).toBe(68)
+    // OPT-060 再加 1 份 site_settings_type_card_cover：给 site_settings_type_cards
+    // 加可空的 cover_image_id（FK → media），存量行为空即回落到「该类型第一条
+    // 房源的封面」，上线瞬间零变化。
+    // OPT-060 Task 3 再加 1 份 city_profile_type_card_overrides：新建
+    // city_site_profiles_type_card_overrides 子表（slot 枚举 + 必填 cover_image_id
+    // FK → media），给「按类型浏览」封面加单城覆盖层。只覆盖图不覆盖文案，
+    // 映射逐行丢弃不合格行，不参与 mapPublicCityProfile 的全有或全无校验。
+    expect(names.length).toBe(70)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -80,7 +87,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(68)
+    expect(names.length).toBe(70)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')

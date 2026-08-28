@@ -13,8 +13,12 @@ import type { HomepageStats } from '@/domain/public-catalog/contracts'
 import type { getCachedHomepage } from '@/lib/frontend/cached-queries'
 import type { SiteSettingsView } from '@/lib/frontend/site-settings'
 import { orderByFeaturedRegions } from '@/lib/frontend/featured-regions'
+import { resolveTypeCardCovers } from '@/lib/frontend/type-card-covers'
 
 type Homepage = Awaited<ReturnType<typeof getCachedHomepage>>
+
+/** bento 的坑位数：大卡 1 + 竖排小卡 2 + 底行宽卡 2。降级规则见 HomeDistrictBento。 */
+const HOME_BENTO_SLOTS = 5
 
 /**
  * OPT-035 首页编排层（Apple 中性极简）：
@@ -53,8 +57,14 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
   // 只重排不过滤——过滤等于把没选中的商圈从首页藏起来，是悄悄减少库存曝光。
   // 精选区域为空（当前七城 profile 全空）时原样返回，不改变任何现状。
   const featured = city.profile.featuredRegions
-  const districtCards = orderByFeaturedRegions(homepage.districtCards, featured)
+  // OPT-060：facade 现在返回的是候选池（最多 20 张），这里先按精选区域重排、
+  // 再截到 bento 的 5 个坑位。顺序不能反——先截再排就只能调这 5 张的内部顺序,
+  // 拉不进第 6 名的商圈，那正是修复前的缺陷。
+  const districtCards = orderByFeaturedRegions(homepage.districtCards, featured).slice(0, HOME_BENTO_SLOTS)
   const heroDistricts = orderByFeaturedRegions(homepage.districts, featured)
+  // OPT-060：类型卡封面 = 城市覆盖 → 全局默认（最后一级回落在 HomeTypeCards 里）。
+  // 与精选区域一样，刻意留在 unstable_cache 之外——配置变更不打供给侧失效标签。
+  const typeCards = resolveTypeCardCovers(siteSettings.typeCards, city.profile.typeCardOverrides)
   return (
     <div className="hm-home">
       <HomeHero
@@ -64,7 +74,7 @@ export default function CityHomeView({ city, homepage, routeMode, bandStats, sit
         heading={siteSettings.heroHeading}
         slogan={siteSettings.slogan}
       />
-      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={siteSettings.typeCards} />
+      <HomeTypeCards typeSummaries={homepage.typeSummaries} citySlug={citySlug} cards={typeCards} />
       <HomeDistrictBento cards={districtCards} totalAreas={linkStats.businessAreas} citySlug={citySlug} />
       <HomeBuildingsRail buildings={homepage.featuredBuildings} citySlug={citySlug} totalCount={linkStats.buildings} />
       <HomeStatsBand stats={bandStats} avgResponseHours={city.profile.avgResponseHours} />
