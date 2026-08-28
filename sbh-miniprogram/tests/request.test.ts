@@ -139,25 +139,46 @@ describe('Mini API 请求层', () => {
     expect(transport.mock.calls[0]?.[0]).not.toHaveProperty('url')
   })
 
-  it('POST 成功只要求 write requestId，不要求 GET freshness meta，并按受限 token 生成 Authorization', async () => {
+  it('cloud-container POST 保持业务输入，并只将 success.data 交给 parser', async () => {
+    const cloudEnvironment: RuntimeEnvironment = {
+      stage: 'staging',
+      transport: 'cloud-container',
+      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudServiceName: 'sbhmini',
+      deploymentIdentity: {
+        gitCommitSha: 'a'.repeat(40),
+        serverDeploymentRevision: 'sbhmini-016',
+      },
+    }
+    const parser = vi.fn(parseUnknown)
     const { request, transport } = createClient([{
       statusCode: 200,
       data: { ok: true, data: { accepted: true }, meta: { requestId: 'write-request-id' } },
-    }])
+    }], cloudEnvironment)
 
     await expect(request({
       path: '/api/mini/v1/inquiries',
       method: 'POST',
       data: { submissionRequestId: 'submission-1' },
       anonymousContextToken: 'token.with-safe_chars~1',
-      parse: parseUnknown,
+      parse: parser,
     })).resolves.toEqual({ accepted: true })
-    expect(transport).toHaveBeenCalledWith(expect.objectContaining({
-      headers: {
-        Accept: 'application/json',
-        Authorization: 'Bearer token.with-safe_chars~1',
-      },
-    }))
+    expect({
+      transportInput: transport.mock.calls[0]?.[0],
+      parserCalls: parser.mock.calls,
+    }).toEqual({
+      transportInput: expect.objectContaining({
+        environment: expect.objectContaining({ transport: 'cloud-container' }),
+        path: '/api/mini/v1/inquiries',
+        method: 'POST',
+        data: { submissionRequestId: 'submission-1' },
+        headers: {
+          Accept: 'application/json',
+          Authorization: 'Bearer token.with-safe_chars~1',
+        },
+      }),
+      parserCalls: [[{ accepted: true }]],
+    })
   })
 
   it('GET 拒绝 write-only meta，POST 仍校验 outer write requestId 且 parser 只收到 data', async () => {
