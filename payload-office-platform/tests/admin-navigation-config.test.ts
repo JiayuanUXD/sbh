@@ -99,12 +99,6 @@ describe('admin navigation config', () => {
       ]),
       expectedGroup('region-management', '区域管理', [
         expectedLeaf('cities', '城市管理', '/admin/geography/cities', ['locations']),
-        expectedLeaf(
-          'city-site-profiles',
-          '城市站点配置',
-          '/admin/collections/city-site-profiles',
-          ['locations'],
-        ),
         expectedLeaf('districts', '行政区域', '/admin/geography/districts', ['locations']),
         expectedLeaf('business-areas', '商圈管理', '/admin/geography/business-areas', [
           'business-areas',
@@ -154,6 +148,15 @@ describe('admin navigation config', () => {
         // OPT-053：站点设置是 Global，不收编进自定义导航就彻底不可发现
         // （custom.scss 隐藏了原生导航，而 Global 连集合那个左下角兜底区块都没有）。
         expectedLeaf('site-settings', '站点设置', '/admin/globals/site-settings', ['site-settings']),
+        // OPT-062：紧挨「站点设置」——两者是「全局默认 → 单城覆盖/单城独有」的两层
+        // （类型卡封面、SEO、开城状态）。此前它在「区域管理」里夹在五个地理项中间，
+        // 与「城市管理」名字相似又相邻，被误认为是同一件事的两个入口。
+        expectedLeaf(
+          'city-site-profiles',
+          '城市站点配置',
+          '/admin/collections/city-site-profiles',
+          ['locations'],
+        ),
         expectedLeaf('pages', '页面内容', '/admin/collections/pages', ['pages']),
         expectedLeaf('articles', '资讯中心', '/admin/collections/articles', ['articles']),
         expectedLeaf('media', '素材库', '/admin/collections/media', ['media']),
@@ -263,5 +266,27 @@ describe('admin navigation config', () => {
     // 拿到红灯也不知道该去看哪一条，只能自己 diff 两个列表。
     const unknown = collectionSlugs.filter((slug) => !configuredCollectionSlugs.has(slug))
     expect(unknown, `导航指向了不存在于 Payload 配置的集合：${unknown.join('、')}`).toEqual([])
+  })
+
+  it('城市站点配置与站点设置权限码不因相邻而混同（挪位置 ≠ 放权）', () => {
+    // OPT-062：city-site-profiles 从「区域管理」挪进「内容管理」、紧跟 site-settings
+    // 之后，两者视觉相邻但权限必须保持独立。role-matrix 测试只按一级分组
+    // （visibleTopGroups）断言可见性，组内任一叶子可见即算整组可见，从未单独
+    // 校验过某个叶子自己的 requiredOperationCode；expectedLeaf 助手也不接收这个
+    // 字段。也就是说，在这条断言补上之前，「挪位置不放权」这个核心裁定
+    // 没有任何测试防线——把这里的 requiredOperationCode 顺手改成
+    // 'site_settings:manage'，14 个导航测试和全量用例都不会变红。
+    //
+    // 菜单看得见的人和 API 改得动的人必须是同一批（navigation-config.ts 里
+    // city-site-profiles 那条注释是同一个道理）：能改全站默认站点设置的人，
+    // 不该因为这次挪动就顺带拿到「下线某个城市」（location:manage）的权限，反之亦然。
+    const leaves = collectItems(ADMIN_NAV_GROUPS) as ReadonlyArray<
+      NavigationItem & { requiredOperationCode?: string }
+    >
+    const citySiteProfiles = leaves.find((item) => item.id === 'city-site-profiles')
+    const siteSettings = leaves.find((item) => item.id === 'site-settings')
+
+    expect(citySiteProfiles?.requiredOperationCode).toBe('location:manage')
+    expect(siteSettings?.requiredOperationCode).toBe('site_settings:manage')
   })
 })

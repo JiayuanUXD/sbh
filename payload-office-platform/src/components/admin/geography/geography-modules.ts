@@ -71,6 +71,17 @@ export type GeographyModuleConfig = {
   counter: ModuleCounter
   /** 有值则列表页头部出现「新建」按钮，跳 /admin<route>/new 轻量新建视图 */
   create?: GeographyCreateConfig
+  /**
+   * 该模块的编辑抽屉是否提供「封面图」（OPT-062）。
+   *
+   * 抽屉被四个模块共用，而 `Locations.coverImage` 的 admin.condition 只认
+   * business_area / district。给城市或地铁渲染封面框，结果是**存了没反应**
+   * ——不报错、页面上看不出来，正是本仓库反复吃亏的静默失效。
+   *
+   * 放在模块配置里而不是组件里 `if (type === ...)`：`columns` / `filters` /
+   * `chips` 都是按模块配的，这条跟着同一套模式走，「哪些模块有封面」才只有一处。
+   */
+  supportsCover?: boolean
 }
 
 const CITY_COLUMNS: GeographyColumn[] = [
@@ -140,6 +151,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     filters: ['city', 'status', 'keyword'],
     emptyHint: '暂无行政区',
     counter: countForDistricts,
+    supportsCover: true,
     create: {
       type: 'district',
       parentFilter: 'city',
@@ -160,6 +172,7 @@ export const GEOGRAPHY_MODULES: Record<LocationType, GeographyModuleConfig | und
     ],
     emptyHint: '暂无商圈',
     counter: countForBusinessAreas,
+    supportsCover: true,
   },
   metro_line: {
     type: 'metro_line',
