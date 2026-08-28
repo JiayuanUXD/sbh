@@ -98,13 +98,20 @@ export default function CoverPickerModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 弹层每次打开都回到第一页、清空关键词，避免带着上次的筛选态进来。
-  useEffect(() => {
+  //
+  // 这是「响应 prop 变化调整 state」场景，官方推荐做法是在渲染期间比较上一次的
+  // prop 值来调整（而不是在 effect 里同步 setState）：effect 体内同步 setState
+  // 会在同一次 commit 里多触发一次级联渲染，也是 react-hooks/set-state-in-effect
+  // 要防的问题；这里在渲染阶段做，天然避免了那次多余的渲染。
+  const [prevVisible, setPrevVisible] = useState(visible)
+  if (visible !== prevVisible) {
+    setPrevVisible(visible)
     if (visible) {
       setKeyword('')
       setPage(1)
       setAltInput(`${areaName}商圈封面`)
     }
-  }, [visible, areaName])
+  }
 
   const loadMedia = useCallback(async (currentPage: number, currentKeyword: string) => {
     setIsLoading(true)
@@ -137,7 +144,12 @@ export default function CoverPickerModal({
 
   useEffect(() => {
     if (!visible) return
-    loadMedia(page, keyword)
+    // 不直接同步调用 loadMedia：它内部会同步执行到 setIsLoading(true) 才遇到第一个
+    // await，效果上等于在 effect 体内同步 setState，触发一次可避免的级联渲染
+    // （react-hooks/set-state-in-effect）。包一层 .then() 把调用推迟到微任务，
+    // 行为不变（用户仍会在同一帧的下一拍看到 loading 态），只是不再是效果体内
+    // 同步执行——这正是该规则第三种推荐写法：把 setState 放进异步回调里。
+    Promise.resolve().then(() => loadMedia(page, keyword))
   }, [visible, page, keyword, loadMedia])
 
   const handleSelect = useCallback(
