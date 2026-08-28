@@ -91,21 +91,23 @@ export default function CoverPickerModal({
   const [page, setPage] = useState(1)
   const [docs, setDocs] = useState<MediaDoc[]>([])
   const [totalDocs, setTotalDocs] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [altInput, setAltInput] = useState(`${areaName}商圈封面`)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 弹层每次打开都回到第一页、清空关键词，避免带着上次的筛选态进来。
+  // 弹层每次打开都回到第一页、清空关键词，避免带着上次的筛选态进来；
+  // areaName 在打开期间变化（理论上少见，但原实现会响应）也要重置一次 alt 预填。
   //
   // 这是「响应 prop 变化调整 state」场景，官方推荐做法是在渲染期间比较上一次的
   // prop 值来调整（而不是在 effect 里同步 setState）：effect 体内同步 setState
   // 会在同一次 commit 里多触发一次级联渲染，也是 react-hooks/set-state-in-effect
   // 要防的问题；这里在渲染阶段做，天然避免了那次多余的渲染。
   const [prevVisible, setPrevVisible] = useState(visible)
-  if (visible !== prevVisible) {
+  const [prevAreaName, setPrevAreaName] = useState(areaName)
+  if (visible !== prevVisible || areaName !== prevAreaName) {
     setPrevVisible(visible)
+    setPrevAreaName(areaName)
     if (visible) {
       setKeyword('')
       setPage(1)
@@ -113,44 +115,58 @@ export default function CoverPickerModal({
     }
   }
 
-  const loadMedia = useCallback(async (currentPage: number, currentKeyword: string) => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams()
-      params.set('limit', String(PAGE_SIZE))
-      params.set('page', String(currentPage))
-      params.set('depth', '0')
-      if (currentKeyword.trim()) {
-        params.set('where[alt][like]', currentKeyword.trim())
-      }
-      const res = await fetch(`/api/media?${params.toString()}`)
-      if (!res.ok) {
-        Message.error(`素材库加载失败（HTTP ${res.status}）`)
-        setDocs([])
-        setTotalDocs(0)
-        return
-      }
-      const json = (await res.json()) as MediaListResponse
-      setDocs(json.docs ?? [])
-      setTotalDocs(json.totalDocs ?? 0)
-    } catch {
-      Message.error('素材库加载失败（网络错误）')
-      setDocs([])
-      setTotalDocs(0)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  // 加载态不再单独存 state，而是从「当前请求 key 是否已经出结果」派生：
+  // loadedKey 只在 fetch 真正落地（.then/.catch 回调里，已经跨过异步边界）才更新，
+  // effect 体内因此不再有任何同步 setState——这才是把 react-hooks/set-state-in-effect
+  // 要防的「effect 触发多余一次级联渲染」从根上消除，而不是像早前版本那样把同一次
+  // 同步调用包一层 Promise.resolve().then() 推迟到微任务：那只是让 lint 的调用图分析
+  // 追踪不到，setIsLoading(true) 实际还是在同一轮事件循环、绘制之前无条件执行，
+  // 级联渲染并没有真的减少，只是从「effect 同步帧」挪到了「紧随其后的微任务」。
+  const requestKey = `${page}|${keyword}`
+  const [loadedKey, setLoadedKey] = useState<string | null>(null)
+  const isLoading = loadedKey !== requestKey
 
   useEffect(() => {
     if (!visible) return
-    // 不直接同步调用 loadMedia：它内部会同步执行到 setIsLoading(true) 才遇到第一个
-    // await，效果上等于在 effect 体内同步 setState，触发一次可避免的级联渲染
-    // （react-hooks/set-state-in-effect）。包一层 .then() 把调用推迟到微任务，
-    // 行为不变（用户仍会在同一帧的下一拍看到 loading 态），只是不再是效果体内
-    // 同步执行——这正是该规则第三种推荐写法：把 setState 放进异步回调里。
-    Promise.resolve().then(() => loadMedia(page, keyword))
-  }, [visible, page, keyword, loadMedia])
+    let cancelled = false
+    const key = `${page}|${keyword}`
+
+    const params = new URLSearchParams()
+    params.set('limit', String(PAGE_SIZE))
+    params.set('page', String(page))
+    params.set('depth', '0')
+    if (keyword.trim()) {
+      params.set('where[alt][like]', keyword.trim())
+    }
+
+    fetch(`/api/media?${params.toString()}`)
+      .then(async (res) => {
+        if (cancelled) return
+        if (!res.ok) {
+          Message.error(`素材库加载失败（HTTP ${res.status}）`)
+          setDocs([])
+          setTotalDocs(0)
+          setLoadedKey(key)
+          return
+        }
+        const json = (await res.json()) as MediaListResponse
+        if (cancelled) return
+        setDocs(json.docs ?? [])
+        setTotalDocs(json.totalDocs ?? 0)
+        setLoadedKey(key)
+      })
+      .catch(() => {
+        if (cancelled) return
+        Message.error('素材库加载失败（网络错误）')
+        setDocs([])
+        setTotalDocs(0)
+        setLoadedKey(key)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [visible, page, keyword])
 
   const handleSelect = useCallback(
     (doc: MediaDoc) => {
