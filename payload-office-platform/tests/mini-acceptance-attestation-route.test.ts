@@ -72,7 +72,7 @@ describe('GET acceptance attestation', () => {
     )
     expect(response.status).toBe(200)
     expect(query).toHaveBeenCalledWith({
-      text: 'SELECT current_database() AS "databaseName", inet_server_addr()::text AS "serverAddress", inet_server_port() AS "serverPort"',
+      text: 'SELECT current_database() AS "databaseName", host(inet_server_addr()) AS "serverAddress", inet_server_port() AS "serverPort"',
       values: [],
     })
     const body = await response.json()

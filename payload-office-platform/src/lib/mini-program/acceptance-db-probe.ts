@@ -7,7 +7,7 @@ import {
 import type { PoolLike } from '@/lib/rate-limit-pg'
 
 export const ACCEPTANCE_DB_PROBE_SQL =
-  'SELECT current_database() AS "databaseName", inet_server_addr()::text AS "serverAddress", inet_server_port() AS "serverPort"'
+  'SELECT current_database() AS "databaseName", host(inet_server_addr()) AS "serverAddress", inet_server_port() AS "serverPort"'
 
 export async function probeAcceptanceDatabase(
   pool: PoolLike,
