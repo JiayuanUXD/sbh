@@ -22,6 +22,12 @@
 以下证据全部是「配置生效」「DOM 结构 / `getComputedStyle` 实际返回值」「真实
 HTTP 响应内容」，不是视觉截图。
 
+**但不是所有结论都需要截图**：断点验收项（`display:none`、卡片高度）测的是
+CSS 规则在给定视口宽度下的**布局计算结果**，`getComputedStyle()` 触发的正是
+真实布局计算、不依赖画面合成，所以"面板不合成帧"这条限制不影响它的真实性——
+这组数据本身是可信的，第一轮遗漏的只是**没有把它落盘成可复核的文件**（只写在
+报告叙述里）。已在 `step7-breakpoints-computed-style.txt` 补上原始输出。
+
 ## 各文件对应的验收项
 
 | 文件 | 对应验收项 | 证明了什么 |
@@ -32,6 +38,7 @@ HTTP 响应内容」，不是视觉截图。
 | `step5-before-daning-featured.html` | 验收项③截断修复 - 对照组 | 造了一个新商圈「大宁」（有 1 栋在营楼盘，`recommendedOrder` 与其余 7 栋同为 0，但商圈按 `sortOrder=999` 排在原有 5 个成功商圈之后，即"候选池第 6 名"），**未设为精选**时确认 bento 仍是原来 5 张（虹桥/徐家汇/外滩/南京西路/陆家嘴），大宁不在其中 |
 | `step5-after-daning-featured.html` | 验收项③截断修复 - 实验组 | 把「大宁」加进 `CitySiteProfiles.featuredRegions` 并保存后，bento 变为（大宁/虹桥/徐家汇/外滩/南京西路）——大宁进入 `hm-bento__main`（大卡位），陆家嘴被挤出前 5。这是本工作项的核心断言，候选池从 5 放宽到 20 后，「精选」真的能把第 6 名拉进来 |
 | `step6-quality-gate-xinzhuang-excluded.html` | 验收项④质量门槛仍在 | 另造一个零在营楼盘的商圈「莘庄」，同样加入 `featuredRegions`，确认它**没有**出现在 bento 任何位置（`grep -c shanghai-xinzhuang` = 0）——「有货才能上榜」的门槛没有被"精选"绕过 |
+| `step7-breakpoints-computed-style.txt` | 验收项⑤两个断点 | 375/767/768/1280px 四个视口宽度下，`.hm-type-card__media img` 与 `.hm-bento-card`（三档）的 `getComputedStyle()` 原始输出：≤767px 图片 `display:none`、bento 三档高度统一 232px；≥768px 图片 `display:block`、bento 三档恢复各自高度（480/232/280） |
 
 ## 验收项②（改封面立即生效）详细过程
 

@@ -69,9 +69,10 @@ name / slug / type / status / frontendVisible / city / parent
 以上是**读代码可核实的事实**。由此推断的后果是：首页要等 `unstable_cache` 的
 `revalidate: 300` 自然过期，最长 5 分钟才能看到新封面。
 
-> **2026-08-28 已在 `next start`（`NODE_ENV=production`）下补做实测，结论：修复后立刻生效。**
+> **2026-08-28 已在 `next start`（`NODE_ENV=production`）下补做实测。**
 > 做法：`pnpm exec next build` + `next start` 起一个独立进程（`E:\wt-opt060-verify`
-> worktree，端口 3802，同一份本地 Postgres），登录该进程自己的 `/admin`，**只改**
+> worktree，检出的是**本工作项 5 个 Task 全部落地后的代码**，即已带 Task 1 的修复；
+> 端口 3802，同一份本地 Postgres），登录该进程自己的 `/admin`，**只改**
 > 商圈「外滩」（`locations.id=9`）的 `封面图` 一个字段（改前 `coverImage` 为 `null`，
 > 依赖楼盘兜底封面 `cover-huangpu-bund-3.jpg`），存盘后**不等待、立即** `curl` 同一
 > 进程的 `/shanghai`：bento 商圈卡（`href=".../listings?district=bund"`）的 `<img src>`
@@ -79,18 +80,20 @@ name / slug / type / status / frontendVisible / city / parent
 > 但出现在楼盘卡片（`href=".../buildings/huangpu-bund"`），是建筑自己的封面字段，
 > 与本次改动无关。证据存 `artifacts/verification/OPT-060/step4-cache-invalidation-{before,after}.html`。
 >
-> 该结果满足了两个此前缺失的证明力条件：**`next start` 生产模式**（而非 `next dev`）+
-> **改动由该进程自己的后台 UI 发起**（PATCH 打在同一个 Next 进程里，钩子能真正调用
-> `revalidateTag`，不是独立 tsx 脚本打在进程外）。**「最长 5 分钟」的旧推断到此作废**——
-> 修复后是立即生效，不存在陈旧窗口。
+> **本次实测确认的结论仅限于此**：**修复后**、`next start` 生产模式、改动由同进程
+> 后台 UI 发起时，**立即生效，不存在等待窗口**。
 >
-> 2026-08-27 那次 dev server 上的非正式实验（立刻生效、无陈旧）现在可以解释了：
-> 结论方向凑巧是对的，但证明力仍然不足，不能替代本次实测。
+> **pre-fix（修复前代码）的实际陈旧时长，至今没有被独立实测过**——2026-08-27 那次
+> 在 dev server 上的非正式实验证明力不足（`next dev` 下 `unstable_cache` 行为与生产
+> 不同，且改动跑在独立 tsx 进程外），本次 2026-08-28 的实测跑在**已修复**的代码上，
+> 两次都没有构成一次合规的「未修复对照组」实验（根 `CLAUDE.md`「做对照实验时先确认
+> 对照组真的是未修复状态」）。**如实记录：「最长 5 分钟」这条 pre-fix 推断至今未证实
+> 也未证伪。** 代码已经带着 Task 1 的修复合入主分支，往后也没有必要再补一次 revert
+> 掉修复重测 pre-fix 行为的实验——那个代码状态已经不会再上线，测出来不影响任何决策。
 
-**`coverImage` 补进 `PUBLIC_LOCATION_FIELDS` 这个修复本身是必要且已生效的**——它
-消除的不是「最长 5 分钟」的陈旧窗口（该推断已被上面的实测推翻），而是**在修复前，
-改封面这件事永远不会主动失效，只能等 5 分钟自然过期**；修复后是**立即失效**，
-不存在等待窗口。
+**`coverImage` 补进 `PUBLIC_LOCATION_FIELDS` 这个修复本身是必要的**——它让「改封面」
+成为会主动触发 `revalidateTag` 的字段，不再是漏网之鱼；上面的实测确认了修复后这条
+路径立即生效。
 
 > 订正：本文档此前在 §5.2 写过「商圈封面在供给查询里，跟着供给缓存走，现状已如此」
 > ——那句话不成立，已删。
