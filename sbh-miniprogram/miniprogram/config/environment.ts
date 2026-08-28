@@ -7,7 +7,7 @@ export type RuntimeStage = 'development' | 'staging' | 'production'
 export type RuntimeEnvironment =
   | Readonly<{
       stage: 'development'
-      transport?: 'http'
+      transport: 'http'
       apiBaseUrl: string
     }>
   | Readonly<{
@@ -15,7 +15,6 @@ export type RuntimeEnvironment =
       transport: 'cloud-container'
       cloudEnvId: string
       cloudServiceName: string
-      apiBaseUrl?: never
       deploymentIdentity?: Readonly<{
         gitCommitSha: string
         serverDeploymentRevision: string

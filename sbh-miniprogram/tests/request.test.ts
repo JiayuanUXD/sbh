@@ -4,8 +4,10 @@ import {
   MiniApiError,
   createRequestClient,
   type RequestDependencies,
+  type RequestTransportInput,
   type RequestTransportResponse,
 } from '../miniprogram/services/request.js'
+import type { RuntimeEnvironment } from '../miniprogram/config/environment.js'
 import type {
   MiniApiReadMeta,
   MiniApiSuccess,
@@ -15,6 +17,7 @@ import type {
 
 const environment = {
   stage: 'development' as const,
+  transport: 'http' as const,
   apiBaseUrl: 'http://127.0.0.1:3717',
 }
 
@@ -27,9 +30,12 @@ function isRequestTransportResponse(outcome: TransportOutcome): outcome is Reque
   return !(outcome instanceof Error) && 'statusCode' in outcome && 'data' in outcome
 }
 
-function createClient(outcomes: readonly TransportOutcome[]) {
+function createClient(
+  outcomes: readonly TransportOutcome[],
+  runtimeEnvironment: RuntimeEnvironment = environment,
+) {
   let index = 0
-  const transport = vi.fn(async (): Promise<RequestTransportResponse> => {
+  const transport = vi.fn(async (_input: RequestTransportInput): Promise<RequestTransportResponse> => {
     const outcome = outcomes[index]
     index += 1
 
@@ -44,7 +50,7 @@ function createClient(outcomes: readonly TransportOutcome[]) {
     throw outcome
   })
 
-  const environmentProvider = vi.fn(() => environment)
+  const environmentProvider = vi.fn(() => runtimeEnvironment)
   const dependencies: RequestDependencies = {
     environment: environmentProvider,
     transport,
@@ -99,12 +105,38 @@ describe('Mini API 请求层', () => {
       listingIds: ['listing-1'],
     })
     expect(transport).toHaveBeenCalledWith({
-      url: 'http://127.0.0.1:3717/api/mini/v1/listings?city=shanghai',
+      environment,
+      path: '/api/mini/v1/listings?city=shanghai',
       method: 'GET',
       timeoutMs: 10_000,
       headers: { Accept: 'application/json' },
       data: undefined,
     })
+  })
+
+  it('trial 将 CloudBase 环境与原始受控 path 交给 transport，不生成 undefined URL', async () => {
+    const cloudEnvironment: RuntimeEnvironment = {
+      stage: 'staging',
+      transport: 'cloud-container',
+      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudServiceName: 'sbhmini',
+      deploymentIdentity: {
+        gitCommitSha: 'a'.repeat(40),
+        serverDeploymentRevision: 'sbhmini-016',
+      },
+    }
+    const { request, transport } = createClient([success({ listings: [] })], cloudEnvironment)
+
+    await expect(request({ path: '/api/mini/v1/listings?city=shanghai', parse: parseUnknown })).resolves.toEqual({ listings: [] })
+    expect(transport).toHaveBeenCalledWith({
+      environment: cloudEnvironment,
+      path: '/api/mini/v1/listings?city=shanghai',
+      method: 'GET',
+      timeoutMs: 10_000,
+      headers: { Accept: 'application/json' },
+      data: undefined,
+    })
+    expect(transport.mock.calls[0]?.[0]).not.toHaveProperty('url')
   })
 
   it('POST 成功只要求 write requestId，不要求 GET freshness meta，并按受限 token 生成 Authorization', async () => {

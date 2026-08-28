@@ -4,6 +4,7 @@ import {
 } from '../config/environment.js'
 import type { JSONObject, RequestData, RequestMethod, RequestOptions } from './mini-api-contracts.js'
 import { MiniApiError, type MiniApiErrorKind } from './mini-api-error.js'
+import { createWxTransport, type WxTransportApi } from './wx-transport.js'
 
 export type {
   JSONObject,
@@ -19,7 +20,8 @@ export type {
 export { MiniApiError } from './mini-api-error.js'
 
 export interface RequestTransportInput {
-  url: string
+  environment: RuntimeEnvironment
+  path: string
   method: RequestMethod
   data: RequestData | undefined
   timeoutMs: number
@@ -403,7 +405,8 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
     }
     const runtimeEnvironment = dependencies.environment()
     const requestInput: RequestTransportInput = {
-      url: `${runtimeEnvironment.apiBaseUrl}${options.path}`,
+      environment: runtimeEnvironment,
+      path: options.path,
       method,
       data: options.data,
       timeoutMs,
@@ -446,27 +449,21 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
   }
 }
 
-function wxRequestTransport(input: RequestTransportInput): Promise<RequestTransportResponse> {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: input.url,
-      method: input.method,
-      data: input.data,
-      timeout: input.timeoutMs,
-      header: input.headers,
-      success: (response) => {
-        resolve({
-          statusCode: response.statusCode,
-          data: response.data,
-          headers: response.header,
-        })
-      },
-      fail: reject,
-    })
-  })
+const wxTransportApi: WxTransportApi = {
+  request: (input) => {
+    wx.request(input)
+  },
+  cloud: {
+    init: (input) => {
+      wx.cloud.init(input)
+    },
+    callContainer: (input) => {
+      wx.cloud.callContainer(input)
+    },
+  },
 }
 
 export const request = createRequestClient({
   environment: getCurrentRuntimeEnvironment,
-  transport: wxRequestTransport,
+  transport: createWxTransport(wxTransportApi),
 })

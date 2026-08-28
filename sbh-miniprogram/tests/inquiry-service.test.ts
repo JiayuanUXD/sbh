@@ -477,7 +477,7 @@ describe('真实 request client → inquiry 集成', () => {
       input,
     }))
     const request = createRequestClient({
-      environment: () => ({ stage: 'development' as const, apiBaseUrl: 'http://127.0.0.1:3717' }),
+      environment: () => ({ stage: 'development' as const, transport: 'http' as const, apiBaseUrl: 'http://127.0.0.1:3717' }),
       transport,
     })
     const service = createInquiryService({ request })
