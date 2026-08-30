@@ -26,9 +26,14 @@ test.describe('出售频道', () => {
   test('/sale 可达且不是 404', async ({ page }) => {
     const response = await page.goto('/sale')
     expect(response?.status(), '/sale 返回非 200：出售频道路由挂了').toBe(200)
-    // notFound() 会渲染 Next 的 not-found 页；断言标题不是它，比只看状态码更结实——
+    // notFound() 会渲染站内 not-found 页；断言正文不是它，比只看状态码更结实——
     // 某些配置下 not-found 也可能返回 200。
+    // 「页面未找到」是 `(frontend)/not-found.tsx` 的 metadata title，只出现在
+    // <head>，body 里永远查不到——这条断言曾因此变成一条恒真的死守卫。
+    // 真正出现在正文里的是 EmptyState 的标题「这个地址不存在」，两条都留：
+    // 前者兜住"以后有人把标题也渲染进正文"，后者才是当下真正生效的那条。
     await expect(page.locator('body')).not.toContainText('页面未找到')
+    await expect(page.locator('body')).not.toContainText('这个地址不存在')
   })
 
   test('/shanghai/sale 可达且不是 404', async ({ page }) => {

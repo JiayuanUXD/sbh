@@ -128,7 +128,10 @@ test.describe('F7.1 全链路 E2E', () => {
 
   test('404 页面', async ({ page }) => {
     await page.goto('/listings/this-slug-definitely-does-not-exist-xyz')
-    // Next.js 默认 404 页面
+    // 站内 404 页（`(frontend)/not-found.tsx`）——这里原本写的是「Next.js 默认
+    // 404 页面」，那是 not-found.tsx 存在之前的事实，现在渲染的是套了站内页头
+    // 页脚的中文 404。断言只看 URL 不被改写，与渲染哪一版 404 无关，所以用例
+    // 本身不用动，只订正这句会误导人的注释。
     await expect(page).toHaveURL(/this-slug-definitely-does-not-exist-xyz/)
   })
 
