@@ -167,7 +167,11 @@
 .hm-search__panel { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 20;
   background: var(--bg-subtle); border-radius: var(--r-card); box-shadow: var(--shadow-hover);
   padding: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.hm-search__select { height: 44px; border: 1px solid var(--line-strong);
+/* select 每个包一层无 class 的 <div>（HomeSearchPill.tsx）作为 grid item，
+   div 本身是块级元素、天然撑满栅格列（165.328px×3 实测），但 <select> 是
+   shrink-to-fit，内容宽度只有 98–113px——看起来「框窄、间距大」。width:100%
+   让它撑满外层 div 也就是撑满栅格列本身，不需要选择器穿透到 div 上。 */
+.hm-search__select { width: 100%; height: 44px; border: 1px solid var(--line-strong);
   border-radius: var(--r-input); background: var(--bg-subtle); font: inherit; font-size: 14px;
   color: var(--ink); padding: 0 10px; }
 .hm-search__select:focus { border-color: var(--accent); box-shadow: var(--focus-ring); outline: none; }
@@ -179,9 +183,8 @@
    增高，三个下拉全部可达；桌面（≥768）仍是浮层，布局零变化。 */
 @media (max-width: 767px) {
   .hm-search__panel { position: static; grid-template-columns: 1fr; margin-top: 8px; }
-  /* 单列下 select 的内容宽度（约 98px）只占满行的三成，右边一大片空白像是坏了；
-     撑满栅格列，顺带把可点区域从 98px 拉到整行 */
-  .hm-search__select { width: 100%; }
+  /* width:100% 已并入桌面同款基础规则（本文件 .hm-search__select 主声明），
+     这里不再重复——单列下同样撑满整行。 */
 }
 
 /* --- 按类型浏览（五等分图卡 1fr×300 · 图高 168） -------------------------- */

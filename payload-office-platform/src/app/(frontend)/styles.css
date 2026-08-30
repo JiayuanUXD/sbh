@@ -2300,6 +2300,30 @@ ol {
   margin: var(--sp-3) 0 var(--sp-2);
 }
 
+/* 富文本标题字号：`.richtext`（详情页真实 RichText 组件，见 building-detail /
+ * city 两个 DetailLayout）与 `.page-content`（/news、/pages 的手写白名单渲染器，
+ * PageContent.tsx）是两条独立渲染链路。此前只有 `.page-content` 显式设了字号
+ * （22/18），`.richtext h2/h3` 只设了 margin，字号落到全局 `h2`/`h3`
+ * （--fs-h2/--fs-h3，1440 下分别是 36/24）——于是房源/楼盘详情页描述里编辑写的
+ * <h2> 比同页页面级章节标题 `.dt-h2`（24px，detail.css）还大，标题层级倒挂。
+ * 统一到同一组规则而不是两条链路各写一份：
+ *   - h2 用 --fs-20（20px）：低于 `.dt-h2` 的 24px，与 `.dt-richtext` 正文
+ *     （17px）之间也拉开一档；
+ *   - h3 用 --fs-18（18px）：复用系统既有字号 token，不为了凑「17」新造一个
+ *     不在刻度表里的字面量。
+ * 内容页原是 h2:22/h3:18——h3 不变，h2 从 22 收到 20：内容页没有 24px 级别的
+ * 竞争标题，22 本不算错，但两条链路共用一份规则更要紧，且 20 与 22 相差仅 2px，
+ * 可读性不受影响。 */
+.richtext h2,
+.page-content h2 {
+  font-size: var(--fs-20);
+}
+
+.richtext h3,
+.page-content h3 {
+  font-size: var(--fs-18);
+}
+
 
 
 
@@ -3167,8 +3191,14 @@ ol {
  *      - 目录吸顶偏移留作增强项，MVP 不强制。
  * --------------------------------------------------------------------------- */
 
+/* max-width 880：原 760px 在 17px 中文正文下只有约 42 字/行，实测在 1440
+ * 视口正文栏只有 712px、左右各留白 340px，而同页页头/页脚内容条宽 1344px——
+ * 正文像浮在中间的一条窄带。880 约合 50 字/行，仍在长文阅读的舒适区间
+ * （通常引用的上限在 60–75 拉丁字符/约 35–45 中文字），比 760 更好地用满版面，
+ * 又不至于拉到接近页头页脚的 1344 那么宽而显得行太长难扫视。本次只调宽度，
+ * 正文居中（`margin: 0 auto`）是刻意的，不改成靠栅格左对齐。 */
 .page-detail {
-  max-width: 760px;
+  max-width: 880px;
   margin: 0 auto;
   padding: var(--sp-5) var(--container-pad-x) var(--sp-8);
 }
@@ -3244,13 +3274,8 @@ ol {
   margin: var(--sp-5) 0 var(--sp-2);
 }
 
-.page-content h2 {
-  font-size: var(--fs-22);
-}
-
-.page-content h3 {
-  font-size: var(--fs-18);
-}
+/* h2/h3 字号已并入 .richtext 那段的共享规则（本文件「.richtext h2, .page-content
+ * h2」附近），两条渲染链路统一取值，这里不再重复声明。 */
 
 .page-content h4 {
   font-size: var(--fs-16);
@@ -3353,9 +3378,7 @@ ol {
     font-size: var(--fs-16);
   }
 
-  .page-content h2 {
-    font-size: var(--fs-20);
-  }
+  /* h2 桌面/移动同为 --fs-20（见共享规则），这条移动端覆写已冗余，随本次统一一并删除。 */
 }
 
 /* ======== 位置交通面板（P1 Task 3） ======== */
@@ -4079,10 +4102,16 @@ ol {
   background: color-mix(in srgb, var(--color-copper) 12%, transparent);
 }
 
-/* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。 */
+/* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。
+ * align-self: flex-start——它是 `.building-summary-card__body`（display:flex;
+ * flex-direction:column）的直接子项，列方向 flex 容器默认 align-items:stretch，
+ * 会把这个 inline-flex 胶囊在交叉轴（也就是宽度方向）拉伸到整栏宽，视觉上变成
+ * 一条横贯整卡的空胶囊。同一容器里的 `.building-summary-card__cta`
+ * 早就为同一原因加了这条声明，这里补齐即可，不是新手法。 */
 .building-summary-card__district {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
