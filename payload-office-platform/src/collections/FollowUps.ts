@@ -30,7 +30,13 @@ export const FollowUps: CollectionConfig = {
     description: '线索跟进流水：记录创建后不可修改或删除，纠错通过追加修正记录实现。',
   },
   access: {
-    read: () => true,
+    /**
+     * 登录可读、匿名不可读。原为 `read: () => true`，等于把它挂在公开 REST /
+     * GraphQL 端点上——业务员与客户的沟通内容一旦录入就对外可读。
+     * 该集合在 C 端零引用（只被 payload.config 后台导航、admin 组件与其它后台
+     * 集合的关系字段消费），收紧不影响前台。
+     */
+    read: ({ req }) => Boolean(req.user),
     // append-only：跟进记录不可修改、不可物理删除（design §3.6）
     update: () => false,
     delete: () => false,

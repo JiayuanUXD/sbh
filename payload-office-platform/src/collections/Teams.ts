@@ -21,7 +21,13 @@ export const Teams: CollectionConfig = {
     defaultColumns: ['name', 'manager', 'status'],
   },
   access: {
-    read: () => true,
+    /**
+     * 登录可读、匿名不可读。原为 `read: () => true`，等于把它挂在公开 REST /
+     * GraphQL 端点上——团队编制对外可读。
+     * 该集合在 C 端零引用（只被 payload.config 后台导航、admin 组件与其它后台
+     * 集合的关系字段消费），收紧不影响前台。
+     */
+    read: ({ req }) => Boolean(req.user),
   },
   hooks: {
     beforeChange: [protectTeam],

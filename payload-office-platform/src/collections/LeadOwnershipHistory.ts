@@ -34,7 +34,13 @@ export const LeadOwnershipHistory: CollectionConfig = {
     description: '线索归属流水：分配/认领/转派/进入公海/回收。记录创建后不可修改或删除。',
   },
   access: {
-    read: () => true,
+    /**
+     * 登录可读、匿名不可读。原为 `read: () => true`，等于把它挂在公开 REST /
+     * GraphQL 端点上——线索归属、转派轨迹一旦录入就对外可读。
+     * 该集合在 C 端零引用（只被 payload.config 后台导航、admin 组件与其它后台
+     * 集合的关系字段消费），收紧不影响前台。
+     */
+    read: ({ req }) => Boolean(req.user),
     // append-only：归属历史不可修改、不可物理删除（design §3.6）
     update: () => false,
     delete: () => false,

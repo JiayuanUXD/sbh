@@ -103,7 +103,49 @@ describe.each(CASES)('$name 的删除权限', ({ collection, code }) => {
   it('read 仍对匿名开放（不能因为收口 delete 把公开站点也关了）', async () => {
     const readFn = collection.access?.read
     expect(readFn).toBeTypeOf('function')
-    expect(readFn!(argsFor(null))).toBe(true)
+    // 断言的是**行为**（匿名没有被一刀切拒绝），不是「返回值恰好等于 true」这个形状——
+    // 后者正是本文件开头警告过的反面写法。Payload 的 access.read 允许返回
+    // `true` / `false` / `Where` 三种：返回 Where 表示「可读，但只能读到符合条件的行」，
+    // 对公开站点而言它同样是「开放」。原断言写死 toBe(true)，把「开放」窄化成了
+    // 「无条件全量开放」，于是 Listings 一旦把匿名读收窄到有效供给就会误报。
+    const anonymous = readFn!(argsFor(null))
+    expect(anonymous, '匿名被一刀切拒绝 = 公开站点被关掉了').not.toBe(false)
+  })
+
+  it('登录用户 read 不受任何收窄', async () => {
+    const readFn = collection.access!.read!
+    // 后台必须能看到全量（含未发布、待复核）。这条和上一条一起，把
+    // 「匿名收窄、登录全量」这对关系钉死。
+    expect(readFn(argsFor(['*']))).toBe(true)
+  })
+})
+
+describe('Listings 匿名读必须收窄到有效供给', () => {
+  /**
+   * 这一组是 API 暴露面排查的产物，不是重构副产品。
+   *
+   * 生产实测：`read: () => true` 同时打开了 Payload 自带的 REST 与 GraphQL，
+   * 而那两条路不经过 C 端查询层的有效供给谓词——
+   * `GET /api/listings?where[publicationStatus][equals]=draft` 可精确枚举出
+   * 42 条未发布 / 未提审房源并读到全部字段（标题、面积、租金、描述）。
+   *
+   * 因此断言的不是「有没有配 read」，而是**匿名返回的 where 片段确实带上了
+   * 那几条正向谓词**。任何人把它改回 `() => true`，或漏掉其中一条，这里就红。
+   */
+  const readFn = Listings.access!.read!
+
+  it('匿名返回 where 片段而不是 true', () => {
+    expect(readFn(argsFor(null))).not.toBe(true)
+  })
+
+  it.each([
+    ['未逻辑删除', 'deletedAt', { exists: false }],
+    ['已发布', 'publicationStatus', { equals: 'published' }],
+    ['审核通过', 'reviewStatus', { equals: 'approved' }],
+    ['未被可见性冻结', 'supplyVisibilityHold', { equals: 'normal' }],
+  ])('匿名 where 含「%s」条件', (_label, key, expected) => {
+    const where = readFn(argsFor(null)) as Record<string, unknown>
+    expect(where[key]).toEqual(expected)
   })
 })
 

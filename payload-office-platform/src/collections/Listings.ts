@@ -6,6 +6,7 @@ import {
   invalidateListingPublicCacheAfterChange,
   invalidateListingPublicCacheAfterDelete,
 } from '@/domain/public-catalog/supply-cache-hook'
+import { getEffectiveSupplyWhere } from '@/domain/review/effective-supply'
 import { REVIEW_STATUSES, REVIEW_STATUS_LABELS } from '@/domain/review/review-status'
 import {
   PUBLICATION_STATUSES,
@@ -201,8 +202,34 @@ export const Listings: CollectionConfig = {
   },
   trash: true,
   access: {
-    // 前台匿名可读——公开站点靠有效供给谓词在查询层收窄，不靠 access.read。
-    read: () => true,
+    /**
+     * 匿名读收窄到「有效供给」，登录用户（后台）不受影响。
+     *
+     * 这里原本是 `read: () => true`，注释写的是「公开站点靠有效供给谓词在查询层
+     * 收窄，不靠 access.read」。那句话对 C 端成立——C 端走 Local API
+     * （`getPayload()` + `payload.find()`，默认 `overrideAccess: true`），收窄确实
+     * 发生在查询层。但 `read: () => true` 同时打开了 Payload 自带的 REST 与
+     * GraphQL 端点，而那两条路**不经过**任何查询层谓词：
+     *
+     *   GET /api/listings?where[publicationStatus][equals]=draft
+     *
+     * 生产实测可精确枚举出 42 条未发布 / 未提审房源，并读到全部 37 个字段
+     * （标题、面积、租金、描述）。未上架的报价对任何人可读。
+     *
+     * 修法是把那句注释承诺的收窄**真正下沉到 access 层**，复用同一个事实源
+     * `getEffectiveSupplyWhere`，而不是另写一份判据（重复的判据必然分叉——
+     * 本仓库已因此翻车四次，见 .agent/frontend.md）。
+     *
+     * 两点已知边界，不装作它是完备的：
+     *   - §5「未被生效举报冻结」表达不成 where（需先查 listing-reports 拿 ID），
+     *     所以被举报暂停的房源匿名仍可读。C 端另行排除，此处不覆盖。
+     *   - Local API 默认 overrideAccess: true，所以 C 端行为零变化；后台带 user，
+     *     `return true` 走原路。真正被拦的只有匿名 REST / GraphQL。
+     */
+    read: ({ req }) => {
+      if (req.user) return true
+      return getEffectiveSupplyWhere(new Date()) as Where
+    },
     /**
      * OPT-051：删除必须显式收口。
      *
