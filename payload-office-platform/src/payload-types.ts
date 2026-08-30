@@ -820,6 +820,10 @@ export interface Listing {
   area?: number | null;
   seats?: number | null;
   floor?: string | null;
+  /**
+   * 仅后台可见，前台不展示。同一楼盘内不可重复，用于区分同层同面积的房源。
+   */
+  roomNumber?: string | null;
   minimumLeaseMonths?: number | null;
   paymentTerms?: string | null;
   availableFrom?: string | null;
@@ -2993,6 +2997,7 @@ export interface ListingsSelect<T extends boolean = true> {
   area?: T;
   seats?: T;
   floor?: T;
+  roomNumber?: T;
   minimumLeaseMonths?: T;
   paymentTerms?: T;
   availableFrom?: T;

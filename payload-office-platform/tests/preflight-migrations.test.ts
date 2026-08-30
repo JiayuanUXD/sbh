@@ -50,7 +50,11 @@ describe('preflight migrations: 纯函数', () => {
     // city_site_profiles_type_card_overrides 子表（slot 枚举 + 必填 cover_image_id
     // FK → media），给「按类型浏览」封面加单城覆盖层。只覆盖图不覆盖文案，
     // 映射逐行丢弃不合格行，不参与 mapPublicCityProfile 的全有或全无校验。
-    expect(names.length).toBe(70)
+    // OPT-063 再加 1 份 opt_063_listing_room_number：listings 加 room_number
+    // 文本列，并建 (building_id, room_number) 的**唯一**索引。索引刻意覆盖软删行
+    // （PG 唯一索引没法在 Payload 配置里带 WHERE deleted_at IS NULL 谓词），
+    // 即「软删也占号」；人话报错由 listing-room-number.ts 的查重 hook 负责。
+    expect(names.length).toBe(71)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -87,7 +91,7 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(70)
+    expect(names.length).toBe(71)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
