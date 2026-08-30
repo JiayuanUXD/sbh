@@ -133,6 +133,21 @@ test.describe('房源详情 P0', () => {
   })
 
   test('存在但待复核的已发布房源仍统一返回 404', async ({ page, request }) => {
+    // 夹具前置校验必须**带登录态**读。
+    //
+    // `Listings.access.read` 已把匿名读收窄到有效供给（未发布 / 未过审 /
+    // 可见性冻结一律不可见），而本用例的夹具恰恰是「已发布 + 已过审 +
+    // supplyVisibilityHold=pending_recheck」——匿名查它必然返回 []。
+    //
+    // 不能因此把前置校验删掉：它防的是**假绿**。夹具一旦缺失或状态漂了，
+    // 下面那句 404 会因为「房源根本不存在」而通过，测到的就不再是
+    // 「待复核房源被拦」这件事。所以换通道（登录）而不是降标准。
+    const login = await request.post('/api/users/login', {
+      data: { email: 'e2e-adm@example.com', password: 'Test1234!' },
+      failOnStatusCode: false,
+    })
+    expect(login.status(), 'ADM 测试账号应成功登录（夹具前置校验需要登录态）').toBe(200)
+
     const fixture = await request.get(
       `/api/listings?where[slug][equals]=${PUBLISHED_INEFFECTIVE_SLUG}&limit=1`,
     )
