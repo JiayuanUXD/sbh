@@ -651,10 +651,32 @@ export default function BuildingSupplyBrowser({
                     .filter((part): part is string => Boolean(part))
                     .join(' · ')
                   const detailHref = `${citySlug ? `/${citySlug}` : ''}/listings/${encodeURIComponent(listing.slug)}`
+                  // 埋点属性两个链接都要带：DetailClickAnalytics 走的是
+                  // `event.target.closest('[data-detail-analytics-event]')`，属性只挂在
+                  // 箭头上时点标题不会上报。**不能挂到 `<tr>` 上**——那样连选中单元格
+                  // 文字都会命中 closest 而误报一次点击。一次点击只落在一个元素上，
+                  // 两处都带不会重复上报。
+                  const detailAnalyticsAttrs = {
+                    'data-detail-analytics-event': buildingId ? 'building_listing_click' : undefined,
+                    'data-analytics-parent-id': buildingId,
+                    'data-analytics-listing-id': buildingId ? listing.id : undefined,
+                    'data-analytics-supply-group': buildingId ? activeGroupKey : undefined,
+                    'data-analytics-rank': buildingId ? index + 1 : undefined,
+                    'data-analytics-section': buildingId ? 'supply' : undefined,
+                  } as const
                   return (
                     <tr key={`${activeGroupKey}:${listing.id}`}>
                       <td>
-                        <span className="building-supply-browser__table-primary">{listing.title}</span>
+                        {/* 标题即链接：原先整行只有最右侧那个 44px 箭头可点，用户
+                            直觉上会去点标题却没反应（移动端卡片视图的标题本来就在
+                            ListingCard 的整卡链接里，只有桌面密度表缺这一口）。 */}
+                        <a
+                          href={detailHref}
+                          className="building-supply-browser__table-primary"
+                          {...detailAnalyticsAttrs}
+                        >
+                          {listing.title}
+                        </a>
                         {sub && <span className="building-supply-browser__table-sub">{sub}</span>}
                       </td>
                       <td className="tabular building-supply-browser__table-num">{metricValue}</td>
@@ -671,16 +693,18 @@ export default function BuildingSupplyBrowser({
                         </span>
                       </td>
                       <td>
+                        {/* 箭头与标题指向同一个详情页。标题上线后这里若仍暴露给
+                            无障碍树，每行就会出现两条同目的地的链接，读屏要听两遍、
+                            键盘要 Tab 两次。用 aria-hidden + tabIndex=-1 把它降级成
+                            纯鼠标热区：视觉与点击照旧，可达性上只保留标题那一条。
+                            （两者必须同时设：只设 aria-hidden 而元素仍可聚焦，本身
+                            就是一条无障碍错误。） */}
                         <a
                           href={detailHref}
                           className="building-supply-browser__table-link"
-                          aria-label={`查看${listing.title}详情`}
-                          data-detail-analytics-event={buildingId ? 'building_listing_click' : undefined}
-                          data-analytics-parent-id={buildingId}
-                          data-analytics-listing-id={buildingId ? listing.id : undefined}
-                          data-analytics-supply-group={buildingId ? activeGroupKey : undefined}
-                          data-analytics-rank={buildingId ? index + 1 : undefined}
-                          data-analytics-section={buildingId ? 'supply' : undefined}
+                          aria-hidden="true"
+                          tabIndex={-1}
+                          {...detailAnalyticsAttrs}
                         >
                           <svg width="9" height="14" viewBox="0 0 10 16" aria-hidden="true">
                             <path

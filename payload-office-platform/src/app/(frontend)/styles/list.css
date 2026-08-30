@@ -458,7 +458,15 @@
   transition: color var(--duration-base) var(--ease-apple); }
 .ls-toolbar__sort:hover { color: var(--accent-hover); }
 .ls-toolbar__sort--active { color: var(--accent-link); font-weight: 500; }
-.ls-toolbar__sort--active:hover { color: var(--accent-link); }
+/* 当前项 hover 也要变色。这里原本是 `color: var(--accent-link)`（无注释），把
+ * hover 色钉成与静态色相同，等于当前项完全没有 hover 反馈；而排序控件按
+ * `.agent/frontend.md` 列表页小节是「13px 纯文本、无背景无边框」，不能靠底色
+ * 或描边补——变色是它唯一可用的通道，不该自己堵掉。
+ * 用 `--accent-hover`（#0077ed）而不是别的值：非当前项 `.ls-toolbar__sort:hover`
+ * 用的就是它，当前项跟着走，两者 hover 落点一致。
+ * 不用下划线：下划线在本站是「正文文本链接」的语义信号，控件不用（见
+ * styles.css 顶部 a:hover 那段的改造说明）。 */
+.ls-toolbar__sort--active:hover { color: var(--accent-hover); }
 
 .ls-toolbar__divider { align-self: center; flex: none; width: 1px; height: 16px; background: var(--line); }
 

@@ -330,6 +330,36 @@ export default function SiteNav({
                 )
               })}
             </nav>
+            {/* 抽屉可见关闭入口：汉堡按钮此时会盖在抽屉面板下面点不到，抽屉里
+                在此之前没有任何按钮（唯一能关的是左侧窄遮罩或 Esc）。用绝对定位
+                钉在抽屉右上角（见 styles.css .mobile-drawer__close），不影响它
+                在文档流里的位置——放在导航链接之后、城市切换之前，避免变成
+                焦点循环里新的首/尾元素（Tab 到底再回到最前时应落回第一条导航
+                链接，Shift+Tab 从最前应绕到最后一条城市链接，city-switcher
+                测试按这个假设断言）。 */}
+            <button
+              type="button"
+              className="mobile-drawer__close"
+              aria-label="关闭菜单"
+              onClick={() => {
+                setOpen(false)
+                toggleRef.current?.focus()
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+              </svg>
+            </button>
             {multiCityRoutingEnabled && citySlug ? (
               <div className="mobile-drawer__cities" aria-label="切换城市">
                 <p className="mobile-drawer__cities-title">切换城市</p>

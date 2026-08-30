@@ -18,11 +18,18 @@
   --bg: #f5f5f7;            /* 全局底色 */
   --bg-subtle: #ffffff;     /* 白底带、卡片 */
   --ink: #1d1d1f;
-  --ink-2: #6e6e73;
-  --ink-3: #86868b;
+  /* WCAG AA 复核（2026-08-30）：原 --ink-2 #6e6e73 / --ink-3 #86868b 里 #86868b
+   * 白底仅 3.62:1、灰底 #f5f5f7 仅 3.33:1，两底都不达正文 4.5:1。整体下移一档，
+   * 保留两级层次；只改 --ink-3 会和 --ink-2 撞成同一个值。 */
+  --ink-2: #5f5f66;         /* 白底 6.33:1 / 灰底 5.82:1 */
+  --ink-3: #6e6e73;         /* 白底 5.07:1 / 灰底 4.66:1 */
   --accent: #0071e3;
   --accent-hover: #0077ed;
   --accent-link: #0066cc;
+  /* 浅蓝底（--color-copper-soft 等）上的强调色文字：#0071e3 在 #eaf2fb 上只有
+   * 4.16:1，达不到正文 4.5:1；#0062c4 是 5.25:1。只用于浅蓝底文字，不替换
+   * --accent 本身（--accent 仍要保证在按钮等可交互元素上的原有对比与品牌色）。 */
+  --accent-ink: #0062c4;
   --line: rgba(0, 0, 0, 0.08);
   --line-strong: rgba(0, 0, 0, 0.16);
   --on-accent: #ffffff;
@@ -241,10 +248,59 @@ a {
   text-decoration: none;
 }
 
-a:hover {
+/* 2026-08-30 hover 下划线基线改造：这里原先是无差别的 `a:hover { text-decoration:
+ * underline }`，命中站内全部 <a>。真实 Playwright 逐类量过 hover（9 个页面 ×
+ * 1440 视口，覆盖站内 25 个链接类）：站内多数 <a> 其实是按钮/筛选片/tab/整块
+ * 卡片，不是文本链接——下划线是"这是一段文本链接"的语义信号，套在控件上是错的
+ * （25 类里 22 类 hover 后不该出现下划线，只有 3 类该出现）。
+ *
+ * 默认因此翻转为"不加下划线"：新增 <a> 不做任何事就是控件正确的默认值；
+ * 只有下面这些正文/文案语境的容器，以及个别独立的文本链接类，需要显式把下划线
+ * 接回来。`.page-content`（§14 附近）与咨询弹层 `.modal__consent` 已经各自
+ * 显式声明了 `a` / `a:hover`（且是"恒定下划线，hover 只变色"，与本节"默认无
+ * 下划线、hover 才加"不是一回事），本来就不依赖这条全局规则，此处不重复处理。 */
+
+/* 正文/文案容器：容器内的 <a> 是裸标签（组件里没给它单独 class），过去全靠上面
+ * 那条全局规则兜底下划线，翻转默认后必须显式接回来，否则「隐私政策」这类链接
+ * 会和周围正文文字毫无区别。
+ *   - `.richtext`：房源/楼盘详情页富文本描述的外层类，`.dt-richtext` 恒与它
+ *     同时出现（`BuildingDetailLayout.tsx` / `CityListingDetailView.tsx` 都是
+ *     `className="richtext dt-richtext"`），扣住 `.richtext` 两处都覆盖到。
+ *   - `.entrust-form__note` / `.city-partner-form__consent` /
+ *     `.publish-card__group-note`：三个不同表单里"提交即表示同意《隐私政策》"
+ *     那句话的容器，各自组件里都是裸 `<Link>`。
+ *   - `.rc-quick-links`：招募页/城市 coming-soon 页脚部的"委托找房 / 城市合伙人
+ *     政策"文本链接行；`recruit.css` 已经给它配了 `a:not(.visually-hidden):hover
+ *     { color: var(--accent-hover) }`，这里只补下划线，不重复设色，选择器与
+ *     它保持一致（排除 `.visually-hidden` 那个「返回城市首页」辅助链接）。 */
+.richtext a:hover,
+.entrust-form__note a:hover,
+.city-partner-form__consent a:hover,
+.publish-card__group-note a:hover,
+.rc-quick-links a:not(.visually-hidden):hover {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+}
+
+/* 独立文本链接类：本身就是一句可点的文本，不属于上面的正文容器。定义分别在
+ * home.css / list.css，但本次改动只允许动 styles.css，hover 规则因此放在这里
+ * 而不是各自的文件里——`.building-supply-browser__table-primary` 不在此列，
+ * 它自己已经显式声明了 hover 下划线（见本文件对应位置），不受这次改造影响。 */
+.hm-section-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* 首页 hero 商圈快捷标签（home.css `.hm-hero__chip`）：半透明白底 pill 叠在
+ * hero 照片上，此前没有任何 hover 规则，完全靠上面删掉的全局规则给一条下划线；
+ * 删掉后会变成彻底没反馈的死控件。复用同一个 hero 头部里已有的手法——
+ * `.site-header--transparent .city-switcher__trigger:hover` 就是"玻璃感白底
+ * pill 在 hover 时提高背景不透明度"，这里只是把 alpha 从静态的 0.2 提到 0.32，
+ * 不引入新颜色、不发明新效果。 */
+.hm-hero__chip:hover {
+  background: rgba(255, 255, 255, 0.32);
 }
 
 img,
@@ -582,9 +638,17 @@ ol {
   transform: scaleX(1);
 }
 
-.site-nav__link[aria-current="page"] {
-  color: var(--ink);
-}
+/* 选中态**只靠下划线**表达，不再单独指定文字色。
+ *
+ * 这里原本是 `.site-nav__link[aria-current="page"] { color: var(--ink) }`，两个毛病：
+ *   1) 白底头上是死规则——`.site-nav__link` 基础色本来就是 `var(--ink)`，写了等于没写；
+ *   2) 透明头上是**反效果**——`.site-header--transparent .site-nav__link { color:#fff }`
+ *      与它同为 (0,2,0)，靠源码顺序（377 vs 本处）判胜负，结果选中项被拉回深墨色，
+ *      而同排其它项都是白色。首页 hero 是深色照片，于是「选中」成了整排里最看不清的
+ *      那一个，正好把强调关系做反了。
+ * 删掉之后：白底头维持原样（本来就是 --ink），透明头下选中项跟随 #fff，
+ * 与 `.site-header--transparent .site-nav__link::after` 的白色下划线成一套。
+ * 两种头部状态下「选中 vs 未选中」的区分都统一为下划线这一个信号。 */
 
 /* 移动端菜单触发器（F2.2 移动菜单实现） */
 .site-menu-toggle {
@@ -1918,6 +1982,24 @@ ol {
   color: var(--ink);
 }
 
+/* hover 反馈（2026-08-30）：此前这个控件唯一的 hover 表现是全局 `a:hover` 给的
+ * 下划线，翻转全局默认后必须补一个真实反馈，否则整块面积/单价筛选片会变成
+ * hover 无反应的死控件。
+ * 非激活态复用 `.ls-filterc__chip:hover` / `.ls-filterc__switch:hover`
+ * （list.css）同一枚字面量 `#ececf0`——同样是"静态 `var(--bg)` 白灰底、hover
+ * 变深一档"的 pill 手法，不新造颜色。
+ * 激活态单独一档：它的静态底已经是 `var(--line)`，再叠一次 `#ececf0` 看不出
+ * 变化，所以往同一色阶的下一档 `var(--line-strong)` 走——两个都是既有 token，
+ * 不是新造的颜色，也不用下划线（下划线在本站是「正文文本链接」的语义信号，
+ * 控件不用，见本文件顶部 a:hover 那段的改造说明）。 */
+.building-supply-browser__filter:hover:not([data-active='true']) {
+  background: #ececf0;
+}
+
+.building-supply-browser__filter[data-active='true']:hover {
+  background: var(--line-strong);
+}
+
 /* 排序控件本体复用房源列表页的 `.ls-toolbar__sort*`（见 BuildingSupplyBrowser.tsx
    的注释），这里只负责它在筛选行里的定位；gap/对齐与 `.ls-toolbar__right` 一致，
    不在两页之间造第二套间距。 */
@@ -1965,8 +2047,13 @@ ol {
   border-collapse: collapse;
 }
 
+/* padding 只写纵向（padding-block），不用 `padding: 12px 0` 简写——简写会同时
+ * 把 padding-right 定成 0，而 `.building-supply-browser__table-num-head` 的
+ * `padding-right:24px` 特异度只有 (0,1,0)，压不过这条后代选择器的 (0,1,2)，
+ * 结果数值表头的右内边距被静默清零、text-align 也被下面这条 `left` 压成左对齐
+ * ——两条本来写对的规则整条失效，表现为表头与数值错位、相邻列零间距。 */
 .building-supply-browser__table thead th {
-  padding: 12px 0;
+  padding-block: 12px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line-strong);
   font-size: 12px;
@@ -1975,7 +2062,9 @@ ol {
   text-align: left;
 }
 
-.building-supply-browser__table-num-head {
+/* 与基础规则同一具体度不够——需要并入 `thead th` 同一个选择器
+ * （0,2,2 > 基础的 0,1,2），text-align:right 才能真正生效，不依赖源码顺序。 */
+.building-supply-browser__table thead th.building-supply-browser__table-num-head {
   text-align: right;
   padding-right: 24px;
 }
@@ -1987,19 +2076,42 @@ ol {
   height: 56px;
 }
 
+/* 同上：padding 只写纵向，避免简写把 `.building-supply-browser__table-num`
+ * 的 padding-right:24px 一并清零（该修饰类特异度 (0,1,0) 本来就压不过这条
+ * 后代选择器 (0,1,2)）。 */
 .building-supply-browser__table tbody td {
-  padding: 12px 0;
+  padding-block: 12px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
   color: var(--ink);
 }
 
+/* 「可入驻」列（第 5 列）左右都没有专属修饰类——它的右侧本来就不靠 padding-right
+ * 撑间距，紧挨着的「详情」列只是个 44px 图标格。列 4（月租）修复后会在自己列内
+ * 右对齐 + padding-right:24 让出间距，但列 5/6 之间原本零间距，长日期状态徽标
+ * 一旦逼近 120px 列宽就会贴到详情图标上。按列序号定位（表结构固定 6 列，不随
+ * 数据变化），不依赖组件新增 class。 */
+.building-supply-browser__table tbody td:nth-child(5) {
+  padding-right: 16px;
+}
+
+/* 标题即详情页链接（原先是 span，整行只有最右侧 44px 箭头可点）。默认不加下划线
+ * ——密度表里每行一条下划线会把表格拉成"一片蓝"，靠 hover / focus 才显形，与站内
+ * 其它卡片标题的处理一致。focus 环走全局 `:focus-visible`。 */
 .building-supply-browser__table-primary {
   display: block;
   padding-right: 24px;
   font-size: 15px;
   font-weight: 500;
   line-height: 1.35;
+  color: inherit;
+  text-decoration: none;
+}
+
+.building-supply-browser__table-primary:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .building-supply-browser__table-sub {
@@ -2638,6 +2750,9 @@ ol {
 }
 
 .mobile-drawer {
+  /* relative：给 .mobile-drawer__close 的绝对定位提供锚点，钉在抽屉自身右上角
+   * 而不是视口。 */
+  position: relative;
   background: var(--bg-subtle);
   width: min(320px, 85vw);
   height: 100%;
@@ -2645,6 +2760,32 @@ ol {
   box-shadow: var(--shadow-lg);
   overflow-y: auto;
   animation: drawer-slide-in var(--duration-base) var(--ease-standard);
+}
+
+/* 抽屉右上角的可见关闭按钮。绝对定位不占文档流位置，DOM 里它排在导航链接
+ * 之后（见 SiteNav.tsx 注释），但视觉位置由这里的 top/right 决定，与 DOM
+ * 顺序无关。触控目标 44×44（--touch-target）。 */
+.mobile-drawer__close {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-drawer__close:hover {
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 @keyframes drawer-slide-in {
@@ -2666,6 +2807,10 @@ ol {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+  /* .mobile-drawer__close 绝对定位悬在右上角（top:12 + 44 高），会盖住第一条
+   * 导航链接的上半——nav 让出等高的顶部间距，关闭按钮不占文档流所以需要手动
+   * 补这段留白。 */
+  margin-top: calc(var(--sp-3) + var(--touch-target));
 }
 
 .mobile-drawer__cities {
@@ -3688,7 +3833,9 @@ ol {
   padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
   line-height: 1.25rem;
-  color: var(--color-copper);
+  /* --color-copper(=--accent) 在浅蓝底 --color-copper-soft 上只有 4.16:1，
+   * 不达正文 4.5:1，改用 --accent-ink（5.25:1）。 */
+  color: var(--accent-ink);
   background: var(--color-copper-soft);
   border-radius: 0.25rem;
   white-space: nowrap;
@@ -3728,6 +3875,9 @@ ol {
 
 .advisor-card__avatar-text {
   letter-spacing: 0.02em;
+  /* 父级 .advisor-card__avatar 的 color: var(--color-copper-hover) 在浅蓝底
+   * --color-copper-soft 上不达 AA，这里覆写为 --accent-ink（5.25:1）。 */
+  color: var(--accent-ink);
 }
 
 .advisor-card__body {
@@ -3923,7 +4073,9 @@ ol {
   border-radius: var(--radius-pill);
   font-size: var(--fs-12);
   font-weight: 600;
-  color: var(--color-copper);
+  /* 背景是 --color-copper(=--accent) 12% 叠加卡片底色 --color-paper(#f5f5f7)，
+   * 实测合成色上 --color-copper 只有 3.68:1，改用 --accent-ink 达 4.64:1。 */
+  color: var(--accent-ink);
   background: color-mix(in srgb, var(--color-copper) 12%, transparent);
 }
 
@@ -4670,6 +4822,30 @@ ol {
   color: rgba(247, 245, 240, 0.86);
 }
 
+/* 2026-08-30 回归修复：--ink-2/--ink-3（及别名 --color-ink-2/--color-muted）
+ * 是为浅底设计的中性灰色阶，套到这个深底（实测 var(--color-ink)=#1d1d1f）变体
+ * 上方向是反的——复核 WCAG AA 时把 --ink-2/--ink-3 往深里调，浅底达标了，但
+ * .entrust-form（作为 children 挂在 .landing-hero__slot 下）里的
+ * .field__label（原 --ink-2）与 .entrust-form__note（原 --ink-3）就從
+ * 3.32:1 / 4.65:1 跌到 2.66:1 / 3.32:1，两个都不达标。不回退 token（浅底
+ * 的修复是对的），改成这个深底变体自己的浅色，呼应上面 .landing-hero__subtitle
+ * 已经在用的同一个基色 rgba(247,245,240,*)，只降低透明度做次级层次：
+ *   .field__label   rgba(247,245,240,0.8)  在 #1d1d1f 上 10.26:1
+ *   .entrust-form__note rgba(247,245,240,0.65) 在 #1d1d1f 上 7.2:1
+ * 只在 .landing-hero--with-background 范围内覆写（基础 .landing-hero 是浅色
+ * 渐变底，--color-paper→--color-canvas，不需要也不能套这份浅色文字），且只
+ * 影响 .entrust-form 内的这两处，不改 .field__label / .entrust-form__note
+ * 在别处（白底卡片、/publish 的 SupplySubmissionForm——那是 .landing-hero
+ * 的兄弟节点不在 slot 里，本来就不受影响）的默认颜色。.entrust-form__note
+ * 内的 <Link> 靠全局 `a { color: inherit }` 继承同一个浅色，不用单独处理。 */
+.landing-hero--with-background .entrust-form .field__label {
+  color: rgba(247, 245, 240, 0.8);
+}
+
+.landing-hero--with-background .entrust-form__note {
+  color: rgba(247, 245, 240, 0.65);
+}
+
 .landing-hero__slot {
   margin-top: var(--sp-5);
 }
@@ -4708,6 +4884,18 @@ ol {
   gap: var(--sp-3);
   align-items: flex-start;
   max-width: 35rem;
+}
+
+/* 城市/手机号两个 .field 都带 label，整体高 64px（label+gap+44 高输入框，
+ * 输入框在 .field 的 flex 列流末尾即最下方）；提交按钮没有 label 只有 44px，
+ * 顶对齐（父级 align-items:flex-start）会让按钮悬空、与两侧输入框错位约 22px。
+ * 只让这一个 flex item 改用 flex-end：它的底边会对齐整行的最高高度（= 64），
+ * 按钮 44 高又与输入框 44 高相等，两者底边对齐后垂直中线自然重合，不用
+ * 改父级 align-items（那样两个 .field 的 label 会跟着往下坠）。换行后（这行
+ * 靠 flex-wrap 自然换行，不是媒体查询）按钮独占一行，align-self 在单项行里
+ * 不产生可见影响，不需要额外处理小屏。 */
+.entrust-form > .btn {
+  align-self: flex-end;
 }
 
 .landing-hero--centered .entrust-form {
