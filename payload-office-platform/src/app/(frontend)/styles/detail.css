@@ -141,10 +141,23 @@
 .dt-page .location-panel > h2 { margin: 0 0 20px; font-size: 24px; font-weight: 600;
   line-height: 1.2; color: var(--ink); letter-spacing: normal; }
 
-/* 概况面板所在的通栏格：grid 位置留在这层，`.dt-overview`（面板本体）在
+/* 概况面板所在的格：grid 位置留在这层，`.dt-overview`（面板本体）在
  * 它内部已不是 grid item，自身那份 margin-top 24 会与本格重复，就地清零。
- * 面板直接作为 `.dt-core` 子项的用法（dev-story 预览页）不受影响。 */
-.dt-overview-block { grid-column: 1 / -1; grid-row: 2; margin-top: 24px; }
+ * 面板直接作为 `.dt-core` 子项的用法（dev-story 预览页）不受影响。
+ *
+ * **只占主栏（grid-column:1），不再跨列**——这是修 bug，不是审美调整：
+ * 下方「决策卡 + 吸附询价条」小节原本断言"决策卡的 sticky 可移动范围 = 第 1 行
+ * 的 grid area，画廊滚完就自然释放"。实测**不成立**：Chromium 给这张 sticky 卡
+ * 的约束框是整个 `.dt-core`（2098px），不是 row 1 的 grid area（707px）。
+ * 用 Playwright 逐 150px 步进滚动量到——1440 下滚到 scrollY=1050（早已进入第 2 行）
+ * 卡片仍钉在 top:116；1024 下同样，两个视口各有 11–12 个滚动位置命中。
+ * 于是只要概况格跨到第 2 列底下，它右对齐的值就会被这张钉住的卡压住：
+ * 「面积与格局」整组 8 行（建筑面积/得房率/净层高/工位估算/朝向…）在桌面端
+ * 长期不可见，用户看到的是"只有标签没有数字"的空表。
+ * 收进主栏后第 2 列在第 2 行留空、决策卡照常钉在那儿，既消除重叠，也正好
+ * 变成「内容 + 常驻 CTA 栏」的常规详情页版式。
+ * ≤1023 塌单列时只有一条显式列轨，`grid-column:1` 即整行，无需再复位。 */
+.dt-overview-block { grid-column: 1; grid-row: 2; margin-top: 24px; }
 .dt-overview-block > .dt-overview { margin-top: 0; }
 
 .dt-richtext { font-size: 17px; line-height: 1.7; color: var(--ink-2); }
@@ -323,13 +336,31 @@
  * 组区分只用间距（40）+ 组标签，不用顶线不用色块——`.dt-spec` 自身的行线
  * 已经承担了"行与行"的区隔，组与组之间再加一条线是视觉噪音。
  * ========================================================================== */
+/* 分组改双列（原先是单列 flex）：单列时每行铺满 1264px，而实测最长的一行
+ * 内容（「套内参考面积 530.4 ㎡（估算）」）只要 208px——label 与 value 之间
+ * 空出 1056–1188px，22 行撑到 1367px 高。同站楼盘详情的 `.dt-building-spec`
+ * 一直是双列（596+596），同一个 `.dt-spec__row` 组件没理由在两个详情页有
+ * 两种密度。改后 4 个分组两两并排，区块高度约减半。
+ * 断点用 1280 而不是 auto-fit：概况格收进主栏后内容宽 = 主栏 - 面板 padding 80，
+ * 1280 下 732（两列各 350）、1440 下 860（各 414）、1920 下 956（各 462），
+ * 都装得下实测最长的一行内容 208px；而 1024 下只有 476，分两列每列剩 222，
+ * 余量 14px 不够，所以 1279 及以下保持单列。
+ * **不用 `auto-fit`** 的原因是它没法封顶：`.dt-overview` 还有一处是直接当
+ * 面板用（dev-story/opt037 预览页，父级是 flex、宽 1344），auto-fit 在那儿会
+ * 跑出 3 列——分组数只有 4 个，三列会排成 3+1 的残行。显式断点则两处都是
+ * 「≥1280 两列，否则单列」，行为可预期。 */
 .dt-overview {
-  grid-column: 1 / -1;
+  grid-column: 1;
   grid-row: 2;
   margin-top: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: 32px;
+  row-gap: 40px;
+  align-items: start;
+}
+@media (min-width: 1280px) {
+  .dt-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 /* 组标签——房源概况面板（.dt-overview）与楼盘参数面板（.dt-building-spec）
  * 共用同一条规则（comp 两处字面量完全一致：13/600/--ink-3/padding-bottom 6），
@@ -348,17 +379,21 @@
  *
  * 两段交接的实现机制分属两个世界，不要混着理解：
  *
- * 1) 决策卡的粘附区间（core 第 1 行，行末即释放）——纯 CSS，零 JS：
- *    `.dt-core` 的两列子项在 align-items:start 下各自只按内容高度定盒
- *    （不再拉伸到行高），但 CSS Grid 规范里 grid item 的 containing block
- *    取的是它的「grid area」（该列在该行的完整框），不是它自己收缩后的盒子。
- *    `.dt-decision` 显式钉在 grid-column:2 / grid-row:1，这一行的高度由
- *    画廊列撑出来（画廊比决策卡内容高得多）——于是决策卡的 sticky 可移动
- *    范围 = 整个第 1 行的高度，画廊滚完、第 1 行的 grid area 耗尽，
- *    sticky 天然释放，滚去了第 2 行（.dt-overview）也不会被拽住。
- *    这是 grid + sticky 的标准组合技，不是新发明的 hack；align-items:start
- *    是让它生效的必要条件（缺了它两列会被拉伸到同一行高，决策卡自己的盒子
- *    会撑到跟画廊一样高，肉眼看不出粘附与释放的边界）。
+ * 1) 决策卡的粘附区间——纯 CSS，零 JS，**但范围是整个 `.dt-core`，不是第 1 行**：
+ *    ⚠️ 这里原先写的是「grid item 的 containing block 取它的 grid area，
+ *    所以决策卡的 sticky 范围 = 第 1 行高度，画廊滚完就天然释放，滚去第 2 行
+ *    也不会被拽住」。**实测不成立，别再照这个结论推理。**
+ *    用 Playwright 逐 150px 步进滚动量过（1024 与 1440 两个视口）：
+ *      - `.dt-core` 的 gridTemplateRows = 707px(画廊行) + 1391px(概况行)，
+ *        容器总高 2098；决策卡自身高 474。
+ *      - 若约束框真是第 1 行的 grid area，卡片应在 scrollY≈338 后脱钉；
+ *        实测 scrollY=1050（早已进入第 2 行）时卡片仍钉在 top:116。
+ *      - 换算下来 Chromium 用的是整个 `.dt-core` 的 padding box 作约束框
+ *        （221→2319，卡片可钉到 scrollY≈1729）。
+ *    这不是缺陷——「内容滚动时 CTA 常驻」正是想要的行为。真正的缺陷是当时
+ *    `.dt-overview-block` 跨列到了第 2 列底下（见上方该规则的注释），于是
+ *    被这张长期钉住的卡压住。修法是让概况格只占主栏，而不是去改 sticky。
+ *    align-items:start 仍然保留：两列各按内容高度定盒是版式要求。
  *
  * 2) 吸附询价条的「决策卡离屏后接管」——做不到纯 CSS，必须 JS（见
  *    StickyInquiryBar.tsx）：条本身在文档流里天然出现在页面很靠上的位置
