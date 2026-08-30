@@ -136,6 +136,31 @@ UNION ALL SELECT 'enum', typname FROM pg_type WHERE typname='<你的枚举名>';
 
 `/api/supply-submissions`、`/api/inquiries`、`/api/corrections` 三处同一写法：`if (!origin || !host) return true`。能挡浏览器 CSRF，挡不住不带 Origin 的脚本批量提交，实际防线只有每 IP 每分钟 3 次限流。
 
+### T15. `migrate:drift` 守卫会把子进程异常误报成快照漂移
+
+`scripts/migrate-drift-check.ts` 的判据是「`migrate:create` 的输出里有没有
+`No schema changes detected`」——只认 stdout 文本，**不看退出码**。子进程一旦
+异常退出、被 kill、或因环境问题提前返回（stdout 里只剩无关的警告行），守卫就把
+它当成「config 与快照分叉」，红着一整条流水线。
+
+真实发生过：2026-08-30 master `262c934`（5 个 commit **一个 collection 都没碰**）
+被判快照漂移，CI 日志里 `migrate:create 原始输出` 只有一行
+`[site-config] NEXT_PUBLIC_SITE_URL 缺失…` 警告，既没有结论句也没有报错，
+4.5 秒就结束；同一 commit 原样重跑（run 33315406528）1 分 33 秒通过。本地
+`pnpm migrate:drift` 也一直是 OK。整条 quality.yml 因此红了一次，deploy 被
+跳过，15 项前端修复晚上线约 1 小时。
+
+**要做**：把判据从「单看 stdout 文本」改成「先判退出码、非 0 直接报『检查未能执行』
+（与『检测到漂移』区分开），退出码为 0 再匹配 `No schema changes detected`」。
+两种失败的处置完全不同——前者该重跑或查环境，后者必须补迁移，现在被混成同一条
+报错，会诱导人去生成一条根本不需要的迁移（而那正是 OPT-048 要防的快照回退）。
+
+顺带：报错文案里可以带上子进程退出码与 stderr，现在只打印 stdout。
+
+> 守卫本身是对的，防的是 OPT-041 那次真实事故（快照回退 → 重复
+> `ADD COLUMN` 无 `IF NOT EXISTS` → 生产容器起不来）。这里要修的是判据太脆，
+> 不是把守卫拿掉。
+
 ### T10. body 无上界缓冲
 
 省略 `Content-Length`（chunked）即可跳过预检，`req.text()` 会先把整个 body 读进内存再检查字节数。三个公开端点同一写法，**不是本次引入**，建议一处集中修（改成流式读取并在超限时中断）。
