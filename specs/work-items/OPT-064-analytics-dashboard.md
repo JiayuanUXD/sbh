@@ -222,8 +222,19 @@
 | 层 | 内容 | 数量 |
 |---|---|---|
 | 单测 | UmamiAdapter（未就绪抛错/就绪转发/props 透传）、correction 白名单回归、page_engagement 计时与分桶纯逻辑、守卫扫描 | +6~8 |
-| E2E | dev 下 stub `window.umami`，走列表页断言两事件、走纠错弹窗断言 correction_open | +2 |
+| E2E | **跑在生产构建上**（见下），`page.addInitScript` 预置 `window.umami` 桩，走列表页断言两事件、走纠错弹窗断言 `correction_open` | +2 |
 | 浏览器实测 | 按宪章铁律：本地起 Umami（docker）或连测试站点，实点全链路 | — |
+
+⚠️ **E2E 必须跑在生产构建上，不能靠 dev**。本条第 3 点把开发环境的 adapter
+保持为 console，事件根本到不了 `window.umami`，dev 下 stub 什么也观测不到——
+用例要么直接失败，要么退化成与 Umami 接线无关的断言（Codex review P2 指出）。
+
+好在 `quality.yml` 的 e2e job 本来就是 `pnpm build` + `next start` 生产 server。
+落地方式：该 job 的构建步骤加上 `NEXT_PUBLIC_ANALYTICS_ENABLED=true` 与一个
+指向本地桩路径的 `NEXT_PUBLIC_UMAMI_SRC`（构建期内联，见第 4 点），用例侧用
+`page.addInitScript` 在导航前装好 `window.umami = { track, identify }` 收集器。
+真实 Umami 脚本加载失败不影响断言——adapter 调的是 `window.umami.track`，
+桩已经在那儿了。
 
 **Files**：`src/lib/frontend/analytics/{adapter,init,events,engagement(新)}.ts`、
 `src/app/(frontend)/layout.tsx`、`src/lib/security-headers.ts`、`Dockerfile`（NEXT_PUBLIC ENV）、
@@ -287,8 +298,15 @@
           leadsInWindow: number | null; missRate: number | null }
       | { status: 'unavailable' } }
     ```
-  - **60s 进程内缓存，缓存键 = `range`**（只读缓存，多实例各自缓存无一致性
-    问题——区别于 OPT-042 的失效场景）。
+  - **缓存必须分层，禁止把整个响应按 `range` 缓存**：
+    - **Umami 那部分与调用方无关**（PV / UV / series / topReferrers / topPages /
+      funnel）→ 按 `range` 做 60s 进程内缓存。只读缓存，多实例各自缓存无一致性
+      问题（区别于 OPT-042 的失效场景）。
+    - **`leadsInWindow` / `missRate` 与调用方有关**（来自 `overrideAccess: false`
+      的 count，随 `leadReadAccess` 的 dataScope 收窄）→ **每次请求单独算，
+      绝不进缓存**。
+    - 整体按 `range` 缓存会把 A 销售的线索聚合在 60 秒内原样返回给 B 销售
+      ——Codex review P1 指出，属真实越权，不是理论风险。
   - 权限：`analytics:traffic`（`permission-codes.ts` 新增；**同步
     `src/test/factory/roles.ts` 与 `scripts/seed.ts` 内置角色**；生产授予见 §10）。
   - Umami 不可达 → `{ status: 'unavailable' }` 分支——**流量块降级，业务块
@@ -304,9 +322,14 @@
   `/api/inquiries` 链路写入；实施第一步先 grep 证实落地页表单确实不写此字段，
   判据不成立则改用入口枚举区分并记录在 PR）。计数用 `overrideAccess: false`，
   读取范围随 `leadReadAccess` 收窄（`src/domain/crm/lead-read-access.ts:42`，
-  按 dataScope 生成 Where；**没有 `lead:read` 这个权限码**，勿找）；为使口径
-  不随查看者漂移，**漏报率行仅对 dataScope=global 的查看者展示**，其余角色
-  隐藏该行。展示 **埋点漏报率** = 1 − umami_success/线索数；边界：线索数为 0
+  按 dataScope 生成 Where；**没有 `lead:read` 这个权限码**，勿找）。
+
+  为使口径不随查看者漂移，**非 global dataScope 的调用方，`leadsInWindow` 与
+  `missRate` 在服务端就返回 `null`**——不是「前端隐藏那一行」。隐藏 UI 不是
+  权限控制（宪章原文），直接打 API 照样能拿到别人范围内的线索聚合。前端见到
+  `null` 时不渲染该行即可。
+
+  展示 **埋点漏报率** = 1 − umami_success/线索数；边界：线索数为 0
   → `missRate: null`（前端显示「—」）；计算值 < 0（埋点数大于线索数）→ 取 0
   并同时展示两个原始计数。——自建业务库对纯第三方方案的核心优势：
   不信埋点，信线索表。
@@ -316,9 +339,13 @@
 四步漏斗 + 漏报率；2) 无 `analytics:traffic` 的角色流量块整块隐藏且 API 403，
 业务块照常；3) 停掉 Umami 服务 → 流量块显示「暂不可用」，页面其余正常；
 4) global 范围管理员的漏斗末环数字，与后台 leads 列表按同判据（sourcePageType
-非空、Asia/Shanghai 同窗口）过滤的计数一致；team/self 范围角色看不到漏报率行；
+非空、Asia/Shanghai 同窗口）过滤的计数一致；**team/self 范围角色直接打
+`/api/traffic` 拿到的 `leadsInWindow` 与 `missRate` 就是 `null`**（不是"前端不显示"）；
+且先后用两个不同 dataScope 的账号在 60 秒内连打两次，第二次拿到的线索数
+必须是自己范围的，不能是第一次那个账号的缓存值；
 5) 浏览器实测。
-**测试**：单测（token 缓存/重登、响应形状、降级、漏报率计算）+4~5；
+**测试**：单测（token 缓存/重登、响应形状、降级、漏报率计算、**缓存分层：
+Umami 段命中缓存而 lead 段每次重算、非 global 调用方两个字段恒 null**）+6~7；
 E2E（stub /api/traffic 断言两块渲染与降级）+1。
 **Effort**：1 天。**回滚**：revert PR；权限码残留无害。
 
