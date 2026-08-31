@@ -50,7 +50,7 @@ async function createListing(
   buildingId: number,
   roomNumber: string | null,
   suffix: string,
-): Promise<{ id: number; status: number; message: string | null }> {
+): Promise<{ id: number; status: number; message: string | null; raw: string }> {
   const res = await request.post('/api/listings', {
     data: {
       title: `OPT-063 用例房源-${suffix}`,
@@ -61,11 +61,20 @@ async function createListing(
     },
     failOnStatusCode: false,
   })
-  const body = await res.json().catch(() => ({}))
+  const raw = await res.text()
+  let body: any = {}
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    body = {}
+  }
   return {
     id: body?.doc?.id,
     status: res.status(),
     message: body?.errors?.[0]?.data?.errors?.[0]?.message ?? null,
+    // 诊断用：CI 上 message 取到 null 而服务端日志里文案完全正确，
+    // 本地（含 next start 生产 server）复现不出来。留原始响应体让 CI 自己交代。
+    raw: raw.slice(0, 1200),
   }
 }
 
@@ -92,7 +101,7 @@ test.describe('房源房间号', () => {
 
     const dup = await createListing(request, buildingId, room, 'b')
     expect(dup.status, '同楼盘撞号应被拒').toBe(400)
-    expect(dup.message).toContain(room)
+    expect(dup.message, `撞号响应原始体：${dup.raw}`).toContain(room)
     expect(dup.message).toContain('OPT-063 用例房源-a')
     // 报错文案是给人看的，不该带 markdown 星号（Payload 按纯文本渲染）
     expect(dup.message).not.toContain('**')
