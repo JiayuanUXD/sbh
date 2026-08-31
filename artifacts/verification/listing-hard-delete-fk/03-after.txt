@@ -1,0 +1,5 @@
+[19:49:50] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+迁移后列可空性:
+  listing_reports.target_listing_id = YES  ✅
+  listing_reviews.listing_id = YES  ✅
+listing_reviews 行数（应仍为 3，迁移不改数据）: 3
