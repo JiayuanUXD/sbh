@@ -2,6 +2,7 @@ import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
 import { assertSeedTargetFromProcessEnv } from '../src/lib/runtime/seed-target-guard'
+import { upsertBySlug as upsertDocBySlug } from '../src/lib/runtime/upsert-by-slug'
 import type { Lead } from '../src/payload-types'
 import { BUILTIN_ROLES } from '../src/test/factory/roles'
 import { syncBuiltinRoles } from '../src/domain/auth/sync-builtin-roles'
@@ -48,41 +49,19 @@ function richText(heading: string, paragraphs: string[]): Record<string, unknown
   }
 }
 
+/**
+ * 按 slug 幂等 upsert。真正的逻辑（以及「查询为什么必须带 trash: true」这个坑的
+ * 完整说明）在 src/lib/runtime/upsert-by-slug.ts，那里有单测覆盖；这里只做薄封装，
+ * 让 30 多处调用点保持「返回 doc」的旧签名。
+ */
 async function upsertBySlug<T extends AnyDoc>(
   payload: any,
   collection: 'locations' | 'buildings' | 'listings' | 'pages',
   slug: string,
   data: Record<string, unknown>,
 ): Promise<T> {
-  const existing = await payload.find({
-    collection,
-    limit: 1,
-    where: {
-      slug: {
-        equals: slug,
-      },
-    },
-  })
-
-  if (existing.docs[0]) {
-    // immutableCode 由 protectLocation hook 保证不可变，update 时带上它会被直接拒绝
-    // （IMMUTABLE_CODE）。存量库里上海的码是历史遗留的 'SH'，若把它塞进 update，
-    // seed 会在所有已有开发库上失败。更新只写可变字段，建码只在 create 时生效。
-    const { immutableCode: _immutableCode, ...mutableData } = data
-    return (await payload.update({
-      collection,
-      id: existing.docs[0].id,
-      data: mutableData,
-    })) as T
-  }
-
-  return (await payload.create({
-    collection,
-    data: {
-      ...data,
-      slug,
-    },
-  })) as T
+  const { doc } = await upsertDocBySlug<T>(payload, collection, slug, data)
+  return doc
 }
 
 async function upsertAmenity(

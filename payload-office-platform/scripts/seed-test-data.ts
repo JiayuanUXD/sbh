@@ -15,9 +15,11 @@ import { getPayload } from 'payload'
 import sharp from 'sharp'
 
 import config from '../src/payload.config'
+import { type TrashableDoc, withRestore } from '../src/lib/runtime/upsert-by-slug'
 import { applySeedTestListingVisibilityPolicy } from './seed-test-data-policy'
 
 type AnyDoc = { id: number }
+type TrashableAnyDoc = AnyDoc & TrashableDoc
 
 // ---------------------------------------------------------------------------
 // 图片获取（复用 seed-media.ts 模式：在线 picsum / 离线 sharp 纯色）
@@ -105,19 +107,34 @@ async function ensureVideo(payload: any): Promise<AnyDoc> {
 // ---------------------------------------------------------------------------
 // 通用 upsert 辅助
 // ---------------------------------------------------------------------------
+/**
+ * 按 slug 查一行，**含回收站里的行**（`trash: true`）。
+ *
+ * Buildings / Listings 开了 collection 级 `trash: true`，软删的行不出现在默认查询里，
+ * 但 slug 的 unique 约束是库级的、对软删行照样生效。漏掉 `trash: true` 会有两种坏结果：
+ *   1. upsert 分支（NEW_LISTINGS）把软删行判成不存在 → create → 撞唯一约束 → 整个脚本以
+ *      `ValidationError: 下面的字段是无效的： slug` 失败，报错完全看不出根因；
+ *   2. 「补全」分支只会 warn 一句「未找到」并跳过，夹具静默缺项。
+ * 同源修复见 src/lib/runtime/upsert-by-slug.ts（那里有单测）。
+ *
+ * 查到软删行时，调用方必须用 withRestore() 把 deletedAt 置空，并给 update 传
+ * `trash: true`——否则「补全」成功了，东西还躺在回收站里，等同于夹具缺项。
+ * 对没开 trash 的集合（locations）`trash` 是 no-op，deletedAt 恒为 undefined。
+ */
 async function findBySlug(
   payload: any,
   collection: string,
   slug: string,
-): Promise<AnyDoc | null> {
+): Promise<TrashableAnyDoc | null> {
   const res = await payload.find({
     collection,
     where: { slug: { equals: slug } },
     limit: 1,
     depth: 0,
+    trash: true,
     overrideAccess: true,
   })
-  return (res.docs[0] as AnyDoc | undefined) ?? null
+  return (res.docs[0] as TrashableAnyDoc | undefined) ?? null
 }
 
 type LocationSpec = {
@@ -600,7 +617,7 @@ async function main() {
     await payload.update({
       collection: 'buildings',
       id: doc.id,
-      data: {
+      data: withRestore({
         buildingType: b.buildingType,
         completionDate: b.completionDate,
         totalFloors: b.totalFloors,
@@ -623,7 +640,8 @@ async function main() {
         gallery,
         mediaItems,
         seo: b.seo,
-      } as any,
+      } as any, doc),
+      trash: true,
       overrideAccess: true,
     })
     buildingCount++
@@ -655,10 +673,10 @@ async function main() {
       continue
     }
     // 取完整房源读 rent/rentUnit/listingType/seats/building
-    const full = await payload.findByID({ collection: 'listings', id: doc.id, depth: 1, overrideAccess: true }) as any
+    const full = await payload.findByID({ collection: 'listings', id: doc.id, depth: 1, trash: true, overrideAccess: true }) as any
     const price = priceFor(full.rent, full.rentUnit)
     const buildingId = typeof full.building === 'object' ? full.building?.id : full.building
-    const building = buildingId ? await payload.findByID({ collection: 'buildings', id: buildingId, depth: 0, overrideAccess: true }) as any : null
+    const building = buildingId ? await payload.findByID({ collection: 'buildings', id: buildingId, depth: 0, trash: true, overrideAccess: true }) as any : null
     const coverId = building?.coverImage ?? workspaceImg.id
 
     const data: Record<string, unknown> = {
@@ -677,7 +695,7 @@ async function main() {
     if (price) data.price = price
     if (brokers.length > 0) data.contactBroker = brokers[i % brokers.length].id
 
-    await payload.update({ collection: 'listings', id: doc.id, data: data as any, overrideAccess: true })
+    await payload.update({ collection: 'listings', id: doc.id, data: withRestore(data, doc) as any, trash: true, overrideAccess: true })
     listingCount++
     payload.logger.info(`房源已补全: ${f.slug}`)
   }
@@ -698,7 +716,7 @@ async function main() {
   for (const b of BUILDINGS) {
     const doc = await findBySlug(payload, 'buildings', b.slug)
     if (doc) {
-      const full = await payload.findByID({ collection: 'buildings', id: doc.id, depth: 0, overrideAccess: true }) as any
+      const full = await payload.findByID({ collection: 'buildings', id: doc.id, depth: 0, trash: true, overrideAccess: true }) as any
       buildingCache[b.slug] = { id: doc.id, name: full?.name ?? b.slug, coverImage: full?.coverImage ?? null }
     }
   }
@@ -745,7 +763,7 @@ async function main() {
     // 幂等：按 slug 查，存在则 update，不存在则 create
     const existing = await findBySlug(payload, 'listings', n.slug)
     if (existing) {
-      await payload.update({ collection: 'listings', id: existing.id, data: data as any, overrideAccess: true })
+      await payload.update({ collection: 'listings', id: existing.id, data: withRestore(data, existing) as any, trash: true, overrideAccess: true })
     } else {
       await payload.create({ collection: 'listings', data: { ...data, slug: n.slug } as any, overrideAccess: true })
       payload.logger.info(`新房源已创建: ${n.slug}`)

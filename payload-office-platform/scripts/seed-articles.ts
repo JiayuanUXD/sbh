@@ -10,6 +10,7 @@ import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
 import type { Media } from '../src/payload-types'
+import { upsertBySlug } from '../src/lib/runtime/upsert-by-slug'
 
 type AnyDoc = { id: number }
 
@@ -134,22 +135,6 @@ const ARTICLES: readonly ArticleSeed[] = [
   },
 ]
 
-async function upsertBySlug(
-  payload: any,
-  slug: string,
-  data: Record<string, unknown>,
-): Promise<AnyDoc> {
-  const existing = await payload.find({
-    collection: 'articles',
-    limit: 1,
-    where: { slug: { equals: slug } },
-  })
-  if (existing.docs.length > 0) {
-    return payload.update({ collection: 'articles', id: existing.docs[0].id, data })
-  }
-  return payload.create({ collection: 'articles', data })
-}
-
 async function seed() {
   const payload = await getPayload({ config })
 
@@ -178,14 +163,9 @@ async function seed() {
       content: richText(a.heading, a.paragraphs),
     }
     if (cover) data.coverImage = cover.id
-    const existed = await payload.find({
-      collection: 'articles',
-      limit: 1,
-      where: { slug: { equals: a.slug } },
-    })
-    await upsertBySlug(payload, a.slug, data)
-    if (existed.docs.length > 0) updated += 1
-    else created += 1
+    const result = await upsertBySlug<AnyDoc>(payload, 'articles', a.slug, data)
+    if (result.created) created += 1
+    else updated += 1
   }
 
   // biome-ignore lint/suspicious/noConsole: CLI script
