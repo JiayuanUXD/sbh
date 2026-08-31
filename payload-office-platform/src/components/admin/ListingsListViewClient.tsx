@@ -19,7 +19,7 @@ import type { ColumnProps } from '@arco-design/web-react/es/Table'
 /**
  * 房源列表 - 客户端（OPT-056 后台列表 Arco 化）
  *
- * - 列表：服务端分页（默认 25 条）+ 标题/房间号搜索 + 状态筛选，URL searchParams 驱动
+ * - 列表：服务端分页（默认 25 条）+ 标题搜索 + 状态筛选，URL searchParams 驱动
  * - 状态列：审核/发布/待复核 用 Arco Tag 分色呈现
  * - 快捷编辑：首页推荐 Switch 行内切换，REST PATCH 携带版本号走乐观锁，
  *   冲突（409/版本不符）与无权限均以服务端结论为准，前端只做提示与刷新
@@ -39,8 +39,6 @@ export interface ListingRow {
   supplyVisibilityHold: string | null
   isFeatured: boolean
   area: number | null
-  /** OPT-063 房间号。仅后台可见，前台不展示。 */
-  roomNumber: string | null
   version: number | null
   updatedAt: string
 }
@@ -312,13 +310,6 @@ export default function ListingsListViewClient({
         render: (v: number | null) => (v !== null ? `${v}㎡` : '—'),
       },
       {
-        // OPT-063：紧挨面积——「面积 + 房间号」是区分同层多套房源时一起看的一组信息。
-        title: '房间号',
-        dataIndex: 'roomNumber',
-        width: 96,
-        render: (v: string | null) => v ?? '—',
-      },
-      {
         title: '首页推荐',
         dataIndex: 'isFeatured',
         width: 90,
@@ -407,7 +398,7 @@ export default function ListingsListViewClient({
           <Input.Search
             allowClear
             defaultValue={activeQ ?? undefined}
-            placeholder="搜索标题 / 房间号"
+            placeholder="搜索房源标题"
             searchButton
             style={{ width: 240 }}
             onSearch={(value) => navigate({ page: 1, q: value || null })}
@@ -492,11 +483,6 @@ export default function ListingsListViewClient({
           onChange: (nextPage, nextSize) =>
             navigate({ limit: nextSize, page: nextSize !== pageSize ? 1 : nextPage }),
         }}
-        // OPT-063：固定宽列合计 884px（110+96+130+90+96+90+140+132），只有「房源标题」
-        // 是弹性列。1280 视口下侧边栏吃掉约 250px，标题列会被压到几十像素——中文一行一字，
-        // 完全没法读。给一个横向滚动下限：宽度不够时整表横向滚动，而不是牺牲标题列。
-        // 1180 = 884 固定列 + 约 300 的标题列下限。
-        scroll={{ x: 1180 }}
         noDataElement="暂无房源"
       />
     </div>

@@ -68,7 +68,6 @@ import * as migration_20260826_113343_opt_054_nav_home_target from './20260826_1
 import * as migration_20260827_113559_media_image_sizes from './20260827_113559_media_image_sizes';
 import * as migration_20260827_233120_site_settings_type_card_cover from './20260827_233120_site_settings_type_card_cover';
 import * as migration_20260827_234410_city_profile_type_card_overrides from './20260827_234410_city_profile_type_card_overrides';
-import * as migration_20260830_164849_opt_063_listing_room_number from './20260830_164849_opt_063_listing_room_number';
 
 export const migrations = [
   {
@@ -419,11 +418,6 @@ export const migrations = [
   {
     up: migration_20260827_234410_city_profile_type_card_overrides.up,
     down: migration_20260827_234410_city_profile_type_card_overrides.down,
-    name: '20260827_234410_city_profile_type_card_overrides',
-  },
-  {
-    up: migration_20260830_164849_opt_063_listing_room_number.up,
-    down: migration_20260830_164849_opt_063_listing_room_number.down,
-    name: '20260830_164849_opt_063_listing_room_number'
+    name: '20260827_234410_city_profile_type_card_overrides'
   },
 ];

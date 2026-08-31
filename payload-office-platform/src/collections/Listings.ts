@@ -38,10 +38,6 @@ import {
 } from '@/domain/review/listing-fields'
 import { PRICING_PERIODS_UI, PRICING_UNITS_UI } from '@/domain/review/pricing-options'
 import { protectListing } from '@/domain/review/listing-protect'
-import {
-  assertListingRoomNumberUnique,
-  normalizeListingRoomNumber,
-} from '@/domain/review/listing-room-number'
 import { createListingPublishEndpoint } from '@/endpoints/listing-publish-endpoint'
 import { createListingReviewDecisionEndpoint } from '@/endpoints/listing-review-decision-endpoint'
 import { markPublishRequired } from './listing-publish-marks'
@@ -260,21 +256,7 @@ export const Listings: CollectionConfig = {
   },
   // M4.6 显式动作端点：审核轴与发布轴各走独立端点，权限/前置门/乐观锁在 handler 内守护。
   endpoints: [createListingReviewDecisionEndpoint(), createListingPublishEndpoint()],
-  // OPT-063：房间号在同一楼盘内唯一。索引只做并发兜底，人话报错由
-  // assertListingRoomNumberUnique 负责——Payload 3.86 + drizzle 把唯一冲突统一转成
-  // 泛泛的 ValidationError，拿不到 23505，说不清跟谁撞了（见 listing-room-number.ts）。
-  //
-  // 关系字段能进复合索引：drizzle 以**字段名**为 key 挂列（traverseFields.js 的
-  // `targetTable['building'] = { name: 'building_id' }`），build.js 的存在性校验查的正是
-  // 这个 key，所以写 'building' 而不是 'building_id'。
-  //
-  // 索引覆盖软删行（PG 唯一索引无法在 Payload 配置里带 WHERE deleted_at IS NULL），
-  // 即「软删也占号」。这是有意选择：查重 hook 同口径带 trash，并对软删冲突给出
-  // 指路回收站的专门文案。
-  indexes: [{ fields: ['building', 'roomNumber'], unique: true }],
   hooks: {
-    // OPT-063：先归一（空串折 null），再查重——查重读到的必须是归一后的值。
-    beforeValidate: [normalizeListingRoomNumber, assertListingRoomNumberUnique],
     // syncListingMedia 必须排在 protectListing 之前：gallery/coverImage 由 mediaItems 派生，
     // 只有先派生再校验，保护逻辑与审核快照读到的才是最终数据（与楼盘 hook 顺序一致）。
     //
@@ -578,44 +560,6 @@ export const Listings: CollectionConfig = {
                   type: 'text',
                   admin: { width: COL_4 },
                 }),
-                {
-                  // OPT-063 房间号。**本仓库第一处字段级权限**，写法范式：
-                  //
-                  // 为什么不是「前台不渲染就行」：前台 DTO 不映射它只保证不渲染，
-                  // 普通字段仍会原样出现在 /api/listings 与 GraphQL 的匿名响应里
-                  //（依据见 artifacts/verification/api-exposure/影响清单.md）。
-                  //
-                  // 为什么不是把 collection 的 access.read 再收窄：那一层管的是
-                  // 「哪些文档可读」，这里要的是「同一份文档里哪些字段可读」，粒度不同。
-                  //
-                  // 边界：Local API 默认 overrideAccess: true，所以 C 端 Server Component
-                  // 与后台自定义列表视图都读得到（后者正需要读到，见 ListingsListView.tsx）；
-                  // 真正被拦住的只有匿名 REST / GraphQL。
-                  //
-                  // 不加 markPublishRequired：这是内部标识，缺它不该拦发布。
-                  name: 'roomNumber',
-                  label: '房间号',
-                  type: 'text',
-                  maxLength: 30,
-                  admin: {
-                    width: COL_4,
-                    description:
-                      '仅后台可见，前台不展示。同一楼盘内不可重复，用于区分同层同面积的房源。',
-                  },
-                  access: {
-                    read: ({ req }) => Boolean(req.user),
-                  },
-                },
-              ],
-            },
-            {
-              // 三个租赁专属字段收在同一行：切到出售时整行干净收起，上面那行恒定四格不留空档。
-              //
-              // 「最短租期」原本挂在上一行（面积/工位/楼层旁），与本行两个字段的 condition
-              // 字面完全相同却分处两行——出售房源那时上一行会塌成三格。OPT-063 加房间号时
-              // 一并归位。
-              type: 'row',
-              fields: [
                 ...NumberField(
                   {
                     name: 'minimumLeaseMonths',
@@ -628,6 +572,12 @@ export const Listings: CollectionConfig = {
                   },
                   { thousandSeparator: ',', decimalScale: 0 },
                 ).map(markPublishRequired),
+              ],
+            },
+            {
+              // 与上一行的「最短租期」同为租赁专属：切到出售时这两个字段一起消失，整行干净收起。
+              type: 'row',
+              fields: [
                 markPublishRequired({
                   name: 'paymentTerms',
                   label: '付款条件',
