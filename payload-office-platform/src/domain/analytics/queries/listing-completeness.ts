@@ -106,7 +106,11 @@ export function computeListingCompleteness(
   // 不能统一按 minimumLeaseMonths 计分：出售房源没有租期概念，会结构性地白丢 5%，
   // 阈值 0.8 之下就被误标成「待维护」，运营看板上凭空多出一批假的待办。
   if (doc.businessType === 'sale') {
-    if (isNonEmptyString(doc.propertyRightYears)) {
+    // 产权年限嵌在 `saleTerms` group 里（Listings.ts:707），顶层没有这个字段。
+    // 照顶层读恒 undefined，等于把这 5% 对所有出售房源白扣掉——正是上面那段
+    // 注释想避免的「结构性白丢 5%」，只不过换了个路径又发生了一次。
+    const saleTerms = isPlainObject(doc.saleTerms) ? (doc.saleTerms as Record<string, unknown>) : {}
+    if (isNonEmptyString(saleTerms.propertyRightYears)) {
       score += COMPLETENESS_WEIGHTS.businessTypeSpecific
     }
   } else if (isPositiveNumber(doc.minimumLeaseMonths)) {

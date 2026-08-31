@@ -46,6 +46,9 @@ export function toCompletenessSnapshot(listing: Listing): ListingCompletenessSna
     minimumLeaseMonths: listing.minimumLeaseMonths,
     paymentTerms: listing.paymentTerms,
     availableFrom: listing.availableFrom,
+    // 嵌在 saleTerms group 里，不在顶层——漏传会让每一套出售房源在审核队列里
+    // 恒显示缺「产权年限」、完整度分数虚低。
+    propertyRightYears: listing.saleTerms?.propertyRightYears,
     description: listing.description,
     contactBroker: listing.contactBroker,
     galleryCount: Array.isArray(listing.gallery) ? listing.gallery.length : 0,
