@@ -79,7 +79,7 @@
 
 | 事实 | 影响 |
 |---|---|
-| Umami v3 只支持 PostgreSQL ≥ 12.14（不再支持 MySQL） | 可复用 TencentDB 实例；preflight 须确认版本 |
+| Umami v3 只支持 PostgreSQL ≥ 12.14（不再支持 MySQL） | **已核实满足**：生产实例 `postgres-ilf7zhts` 是 **PostgreSQL 17.10**（2026-09-01 查，x86_64 Linux），可复用 |
 | 访客 ID = hash(IP+UA+websiteId) 加盐轮换，无 Cookie；跨天/跨设备天然断链 | 无需 Cookie 弹窗；跨会话关联必须走 `identify()` |
 | Journey 报表聚合展示 3–7 步路径；Sessions 可看单会话活动 | 聚合路径/匿名会话开箱即用 |
 | v3.2 起热图（点击+滚动）自托管可用，需额外挂 `recorder.js` + 网站设置开启，开启后才开始收 | 决策：只开热图，不开回放 |
@@ -394,7 +394,7 @@ OPT-065 业务日报页 ────────────────→ OPT-
 
 | # | 动作 | 说明 |
 |---|---|---|
-| 1 | 确认 `postgres-ilf7zhts` PG 版本 ≥ 12.14 | `SELECT version()`；不满足则 Umami 需独立小实例（阻塞项，先查） |
+| 1 | ~~确认 `postgres-ilf7zhts` PG 版本 ≥ 12.14~~ | ✅ **已完成（2026-09-01）**：实测 PostgreSQL 17.10，远高于下限。原阻塞项解除，「复用现有实例 + 独立 database」方案成立 |
 | 2 | 建 database `umami` + 专用账号 | 与 `postgres` 库隔离权限 |
 | 3 | CloudRun 建服务 `umami` 并配 env | `tcb cloudrun deploy` 无 `--env-vars`，服务级 env 只能控制台/MCP 配（宪章已载） |
 | 4 | Umami 初始化管理员密码、建网站条目 | 产出 website ID 与 API 登录凭据，配进 sbh 服务 env |
