@@ -22,6 +22,8 @@ export type DomainTag =
   | 'analytics'
   | 'audit'
   | 'dictionary'
+  // 跨领域的系统级故障（事务被回滚等），不属于任何业务域
+  | 'system'
 
 export class DomainError extends Error {
   readonly code: string

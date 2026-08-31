@@ -27,6 +27,7 @@ import {
   type LocationType,
 } from '@/domain/geography/location-hierarchy'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 
 /** relationship 值可能是 id 或已 populate 的对象；统一取出 id */
 function toId(value: unknown): number | string | null {
@@ -52,17 +53,15 @@ async function loadNode(
   req: PayloadRequest,
   id: number | string,
 ): Promise<LocationNode | null> {
-  try {
-    const doc = await req.payload.findByID({
-      collection: 'locations',
-      id,
-      depth: 0,
-      req,
-    })
-    return doc as LocationNode
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  return findByIdSafe<LocationNode>({
+    req,
+    collection: 'locations',
+    id,
+    depth: 0,
+    operation: 'location-protect:location',
+  })
 }
 
 /**

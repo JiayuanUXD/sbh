@@ -10,6 +10,7 @@ import {
   type CityCacheInvalidationRecord,
 } from '@/domain/city-site-profile/cache-invalidator'
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 import {
   LOCATION_TYPES,
   LOCATION_TYPE_LABELS,
@@ -114,17 +115,17 @@ async function resolveOwningCitySlug(
   const cityId = relationshipId(record.city)
   if (cityId === null) return null
 
-  try {
-    const city = await req.payload.findByID({
-      collection: 'locations',
-      id: cityId,
-      depth: 0,
-      req,
-    })
-    return city.type === 'city' ? normalizeCitySlug(city.slug) : null
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  const city = await findByIdSafe<{ type?: unknown; slug?: unknown }>({
+    req,
+    collection: 'locations',
+    id: cityId,
+    depth: 0,
+    operation: 'locations-cache:location',
+  })
+  if (!city) return null
+  return city.type === 'city' ? normalizeCitySlug(city.slug) : null
 }
 
 const invalidateLocationCityCache: CollectionAfterChangeHook = async ({

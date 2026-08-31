@@ -20,6 +20,7 @@ import {
   toRelationPeriod,
 } from './building-merchant-relation'
 import type { ValidityPeriod } from '@/domain/shared/validity'
+import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
 import type { Building, BuildingMerchantRelation, Listing } from '@/payload-types'
 
 /** relationship 值 → id（复用 protect hook 的口径）。 */
@@ -188,15 +189,24 @@ async function loadBuilding(
   id: number | string,
   req?: PayloadRequest,
 ): Promise<Building | null> {
+  const captured = req?.transactionID
   try {
-    return await payload.findByID({
-      collection: 'buildings',
-      id,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
+    return (
+      (await payload.findByID({
+        collection: 'buildings',
+        id,
+        depth: 0,
+        overrideAccess: true,
+        // disableErrors：查不到时 Payload 早于 catch 就 return null，不会
+        // killTransaction 把调用方那笔写入一起回滚（见 shared/transaction-safety.ts）
+        disableErrors: true,
+        req,
+      })) ?? null
+    )
   } catch {
+    // 真出别的异常时 Payload 已经回滚了 req 上的事务，必须抛出去，
+    // 否则合并会「返回成功但没落库」。
+    assertTransactionIntact(req, captured, 'building-dedup:building')
     return null
   }
 }

@@ -16,6 +16,7 @@
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
 import type { ValidityPeriod } from '@/domain/shared/validity'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 import {
   checkMerchantEligibility,
   findRelationOverlap,
@@ -56,29 +57,25 @@ type MerchantNode = {
 type RelationNode = { id?: number | string; effectiveFrom?: unknown; effectiveTo?: unknown }
 
 async function loadBuilding(req: PayloadRequest, id: number | string): Promise<BuildingNode | null> {
-  try {
-    return (await req.payload.findByID({
-      collection: 'buildings',
-      id,
-      depth: 0,
-      req,
-    })) as BuildingNode
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  return findByIdSafe<BuildingNode>({
+    req,
+    collection: 'buildings',
+    id,
+    depth: 0,
+    operation: 'building-merchant-relation-protect:building',
+  })
 }
 
 async function loadMerchant(req: PayloadRequest, id: number | string): Promise<MerchantNode | null> {
-  try {
-    return (await req.payload.findByID({
-      collection: 'merchants',
-      id,
-      depth: 0,
-      req,
-    })) as MerchantNode
-  } catch {
-    return null
-  }
+  return findByIdSafe<MerchantNode>({
+    req,
+    collection: 'merchants',
+    id,
+    depth: 0,
+    operation: 'building-merchant-relation-protect:merchant',
+  })
 }
 
 /** 载入同楼盘既有关系区间（排除指定 id，用于更新时排除自身）。 */

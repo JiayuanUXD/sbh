@@ -144,6 +144,88 @@ describe('房源 / 楼盘公开缓存失效 hook', () => {
     errorSpy.mockRestore()
   })
 
+  /**
+   * 2026-08-31 本地夹具库实测：软删楼盘之后，对它旗下房源的任何写入都会
+   * 「返回成功但不落库」。链路是 —— 本 hook 用 `findByID` 反查楼盘，软删楼盘
+   * 默认不可见 → Payload 抛 NotFound，抛之前先 `killTransaction(req)` 把调用方
+   * 那笔 update 的事务整个回滚掉；本 hook 的 `catch { return null }` 把错吞了，
+   * update 结尾拿着已被删掉的 transactionID 去 commit，drizzle 查不到 session
+   * 直接 return —— 于是调用方看到一个字段已更新的 doc，DB 里什么都没变。
+   *
+   * 这里的假 payload 按 Payload 3.86 的真实契约建模（trash 可见性 +
+   * killTransaction 副作用），所以断言 `req.transactionID` 还在，等价于断言
+   * 「调用方那笔写入没有被这个 hook 悄悄回滚」。
+   */
+  function makeTrashAwareReq(docs: Record<string, Record<string, unknown>>) {
+    const calls: Array<{ collection: string; id: number | string; trash?: boolean }> = []
+    const req: Record<string, unknown> = { transactionID: 'txn-1' }
+    req.payload = {
+      findByID: async (args: {
+        collection: string
+        id: number | string
+        trash?: boolean
+        disableErrors?: boolean
+      }) => {
+        calls.push({ collection: args.collection, id: args.id, trash: args.trash })
+        const doc = docs[`${args.collection}:${args.id}`]
+        const visible = doc && (doc.deletedAt == null || args.trash === true)
+        if (!visible) {
+          if (args.disableErrors === true) return null
+          delete req.transactionID
+          throw new Error('NotFound')
+        }
+        return doc
+      },
+    }
+    return { req, calls }
+  }
+
+  it('楼盘被软删后，旗下房源的写入事务不能被这个 hook 回滚', async () => {
+    const { req, calls } = makeTrashAwareReq({
+      'buildings:5': { id: 5, city: 7, deletedAt: '2026-08-31T00:00:00.000Z' },
+      'locations:7': { id: 7, type: 'city', slug: 'shanghai' },
+    })
+
+    await runHook(invalidateListingPublicCacheAfterChange, {
+      doc: { id: 11, building: 5 },
+      req,
+    })
+
+    // 事务还在 = 调用方那笔 update 会真的落库
+    expect(req.transactionID).toBe('txn-1')
+    // 软删楼盘照样要能算出城市：房源下架后旧列表页必须失效
+    expect(calls[0]).toMatchObject({ collection: 'buildings', id: 5, trash: true })
+    expect(invalidatedTags()).toContain(listingsCityTag('shanghai'))
+  })
+
+  it('楼盘外键悬空（真的查不到）时降级兜底，同样不动事务', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { req } = makeTrashAwareReq({})
+
+    await runHook(invalidateListingPublicCacheAfterChange, {
+      doc: { id: 11, building: 5 },
+      req,
+    })
+
+    expect(req.transactionID).toBe('txn-1')
+    expect(invalidatedTags()).toContain(LISTINGS_CATEGORY_TAG)
+    errorSpy.mockRestore()
+  })
+
+  it('楼盘的 city 指向已消失的 location 时也不动事务', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const { req } = makeTrashAwareReq({ 'buildings:5': { id: 5, city: 7 } })
+
+    await runHook(invalidateBuildingPublicCacheAfterChange, {
+      doc: { id: 5, city: 7 },
+      req,
+    })
+
+    expect(req.transactionID).toBe('txn-1')
+    expect(invalidatedTags()).toContain(BUILDINGS_CATEGORY_TAG)
+    errorSpy.mockRestore()
+  })
+
   it('房源删除同样触发失效', async () => {
     const { req } = makeReq({})
     await runHook(invalidateListingPublicCacheAfterDelete, {

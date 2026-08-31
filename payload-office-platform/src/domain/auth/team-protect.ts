@@ -11,6 +11,7 @@
 
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 
 function toId(value: unknown): number | string | null {
   if (value === null || value === undefined) return null
@@ -35,16 +36,15 @@ function toIds(value: unknown): Array<number | string> {
 type LocationNode = { id: number | string; type?: unknown; status?: unknown }
 
 async function loadNode(req: PayloadRequest, id: number | string): Promise<LocationNode | null> {
-  try {
-    return (await req.payload.findByID({
-      collection: 'locations',
-      id,
-      depth: 0,
-      req,
-    })) as LocationNode
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  return findByIdSafe<LocationNode>({
+    req,
+    collection: 'locations',
+    id,
+    depth: 0,
+    operation: 'team-protect:location',
+  })
 }
 
 export const protectTeam: CollectionBeforeChangeHook = async ({

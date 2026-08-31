@@ -1,6 +1,7 @@
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 
 import { InvalidOperationError } from '@/domain/shared/errors'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 
 import {
   hasValidCityProfileSeoLength,
@@ -37,17 +38,15 @@ function cityProfileError(code: string, message: string): InvalidOperationError 
 }
 
 async function loadLocation(req: PayloadRequest, id: Identifier): Promise<LocationNode | null> {
-  try {
-    const location = await req.payload.findByID({
-      collection: 'locations',
-      id,
-      depth: 0,
-      req,
-    })
-    return location
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  return findByIdSafe<LocationNode>({
+    req,
+    collection: 'locations',
+    id,
+    depth: 0,
+    operation: 'city-site-profile-protect:location',
+  })
 }
 
 function assertTextIncludesCity(params: {
