@@ -12,6 +12,26 @@ export const STAGING_RUNTIME_ENV_ID = 'sbhmini-gateway-d3fbrmn8097478b8'
 export const STAGING_DATABASE_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
 
 const ENV_ID_PATTERN = /^[a-z][a-z0-9-]{5,63}$/
+const PRODUCTION_CLOUDRUN_HOSTNAME = normalizeHostname(
+  new URL(PRODUCTION_CLOUDRUN_ORIGIN).hostname,
+)
+
+function normalizeHostname(hostname) {
+  return hostname.toLowerCase().replace(/\.+$/, '')
+}
+
+function isLocalOrIpHostname(hostname) {
+  const normalized = normalizeHostname(hostname)
+  const unbracketed =
+    normalized.startsWith('[') && normalized.endsWith(']')
+      ? normalized.slice(1, -1)
+      : normalized
+  return (
+    normalized === 'localhost' ||
+    normalized.endsWith('.localhost') ||
+    isIP(unbracketed) !== 0
+  )
+}
 
 export function validateStagingOrigin(rawOrigin) {
   if (typeof rawOrigin !== 'string' || rawOrigin.trim() !== rawOrigin || rawOrigin === '') {
@@ -25,16 +45,15 @@ export function validateStagingOrigin(rawOrigin) {
     throw new Error('staging origin 不是合法 URL')
   }
 
+  if (normalizeHostname(parsed.hostname) === PRODUCTION_CLOUDRUN_HOSTNAME) {
+    throw new Error('staging origin 不得指向生产 CloudRun')
+  }
   if (parsed.protocol !== 'https:') throw new Error('staging origin 必须使用 HTTPS')
   if (parsed.username || parsed.password) throw new Error('staging origin 不得包含凭据')
   if (rawOrigin !== parsed.origin) throw new Error('staging origin 不得包含路径、查询或片段')
-  if (parsed.hostname === 'localhost' || isIP(parsed.hostname) !== 0) {
+  if (isLocalOrIpHostname(parsed.hostname)) {
     throw new Error('staging origin 不得使用 localhost 或 IP 地址')
   }
-  if (parsed.origin === PRODUCTION_CLOUDRUN_ORIGIN) {
-    throw new Error('staging origin 不得指向生产 CloudRun')
-  }
-
   return parsed.origin
 }
 

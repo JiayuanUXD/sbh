@@ -26,9 +26,18 @@ describe('staging CloudRun package', () => {
 
   it.each([
     PRODUCTION_CLOUDRUN_ORIGIN,
+    `${PRODUCTION_CLOUDRUN_ORIGIN}.`,
+    `${PRODUCTION_CLOUDRUN_ORIGIN}..`,
+    PRODUCTION_CLOUDRUN_ORIGIN.toUpperCase(),
+    `${PRODUCTION_CLOUDRUN_ORIGIN}:443`,
+    PRODUCTION_CLOUDRUN_ORIGIN.replace('sbh-', '%73bh-'),
     'http://staging.example.com',
     'https://localhost:3717',
+    'https://localhost.',
+    'https://LOCALHOST',
+    'https://preview.localhost',
     'https://127.0.0.1',
+    'https://[::1]',
     'https://user:pass@staging.example.com',
     'https://staging.example.com/api',
     'https://staging.example.com?env=staging',
