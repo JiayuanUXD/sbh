@@ -74,7 +74,10 @@ import {
   formSubmissionUpdateAccess,
   protectFormSubmissionStatus,
 } from './domain/forms/submission-status'
-import { domainErrorAfterError } from './domain/shared/payload-after-error'
+import {
+  domainErrorAfterError,
+  validationErrorDataAfterError,
+} from './domain/shared/payload-after-error'
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
@@ -408,7 +411,10 @@ export default buildConfig({
     // 领域错误 → HTTP 状态码与文案映射（routeError 兜底后执行）。
     // 否则 DomainError 会被 Payload 替换成 500 "Something went wrong."，
     // 前端拿不到版本冲突等业务文案（见 domain/shared/payload-after-error.ts）。
-    afterError: [domainErrorAfterError],
+    // 第二个 hook 补回 ValidationError 在生产构建下被 formatErrors 的 instanceof
+    // 判定丢掉的 data（OPT-063，根因与判据见 payload-after-error.ts 文件内注释）。
+    // 两者作用域不相交：前者认 DomainError，后者认带 data.errors 的公开错误。
+    afterError: [domainErrorAfterError, validationErrorDataAfterError],
   },
   plugins: [
     // 腾讯云 COS 使用 S3 兼容接口。生产由 config-guard 强制完整配置；开发环境只有在
