@@ -5,6 +5,7 @@ import { Listings } from '@/collections/Listings'
 import { buildListingListConditions } from '@/components/admin/listings-list-conditions'
 import {
   assertListingRoomNumberUnique,
+  isRoomNumberInput,
   normalizeRoomNumber,
   normalizeListingRoomNumber,
 } from '@/domain/review/listing-room-number'
@@ -72,6 +73,48 @@ describe('normalizeListingRoomNumber hook', () => {
     const out = normalizeListingRoomNumber({ data } as never) as Record<string, unknown>
     expect(out).toBe(data)
     expect('roomNumber' in out).toBe(false)
+  })
+
+  /**
+   * 非字符串必须拒绝，不能靠 `String(value)` 兜——它会把 `{}` 变成
+   * `"[object Object]"`、把 `[12,1]` 变成 `"12,1"`，这些"看着像标识符"的垃圾
+   * 会真的占住 (building, roomNumber) 唯一索引。REST / Local API 都能构造。
+   */
+  it.each([
+    ['对象', {}],
+    ['数组', [12, 1]],
+    ['数字', 1201],
+    ['布尔', true],
+  ])('拒绝非字符串输入：%s', (_label, value) => {
+    expect(() =>
+      normalizeListingRoomNumber({ data: { roomNumber: value }, req: {} } as never),
+    ).toThrow(ValidationError)
+  })
+
+  it('拒绝时报的是 roomNumber 这个字段，文案说得清是类型问题', () => {
+    try {
+      normalizeListingRoomNumber({ data: { roomNumber: {} }, req: {} } as never)
+      expect.unreachable('应当抛出 ValidationError')
+    } catch (error) {
+      const data = (error as { data?: { errors?: Array<{ path?: string; message?: string }> } }).data
+      expect(data?.errors?.[0]?.path).toBe('roomNumber')
+      expect(data?.errors?.[0]?.message).toContain('文本')
+    }
+  })
+})
+
+describe('isRoomNumberInput', () => {
+  it('放行字符串 / null / undefined', () => {
+    expect(isRoomNumberInput('1201')).toBe(true)
+    expect(isRoomNumberInput('')).toBe(true)
+    expect(isRoomNumberInput(null)).toBe(true)
+    expect(isRoomNumberInput(undefined)).toBe(true)
+  })
+
+  it('挡住其余一切类型', () => {
+    for (const value of [{}, [], 0, 1201, true, false, Symbol('x'), () => {}]) {
+      expect(isRoomNumberInput(value), String(String(value))).toBe(false)
+    }
   })
 })
 

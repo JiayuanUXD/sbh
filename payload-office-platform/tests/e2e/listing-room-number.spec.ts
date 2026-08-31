@@ -50,7 +50,7 @@ async function createListing(
   buildingId: number,
   roomNumber: string | null,
   suffix: string,
-): Promise<{ id: number; status: number; message: string | null; raw: string }> {
+): Promise<{ id: number | null; status: number; message: string | null; raw: string }> {
   const res = await request.post('/api/listings', {
     data: {
       title: `OPT-063 用例房源-${suffix}`,
@@ -62,20 +62,71 @@ async function createListing(
     failOnStatusCode: false,
   })
   const raw = await res.text()
-  let body: any = {}
-  try {
-    body = JSON.parse(raw)
-  } catch {
-    body = {}
-  }
   return {
-    id: body?.doc?.id,
+    id: readCreatedId(parseJson(raw)),
     status: res.status(),
-    message: body?.errors?.[0]?.data?.errors?.[0]?.message ?? null,
-    // 诊断用：CI 上 message 取到 null 而服务端日志里文案完全正确，
-    // 本地（含 next start 生产 server）复现不出来。留原始响应体让 CI 自己交代。
+    message: readFieldErrorMessage(parseJson(raw)),
+    // 诊断用：断言失败时把原始响应体一起打出来。曾因 message 取到 null 而
+    // 服务端日志文案完全正确排查许久（根因见 domain/shared/payload-after-error.ts）。
     raw: raw.slice(0, 1200),
   }
+}
+
+/** 响应体是不受信输入：解析失败返回 undefined，不抛错、不用 any。 */
+function parseJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown
+  } catch {
+    return undefined
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+/** 取 `doc.id`；形状不符一律 null，绝不把 undefined 当成 id 用。 */
+function readCreatedId(body: unknown): number | null {
+  const doc = asRecord(asRecord(body)?.doc)
+  return typeof doc?.id === 'number' ? doc.id : null
+}
+
+/** 取列表响应 `docs[0].id`；空列表或形状不符返回 null（调用方据此 skip）。 */
+function readFirstDocId(body: unknown): number | null {
+  const docs = asRecord(body)?.docs
+  if (!Array.isArray(docs) || docs.length === 0) return null
+  const id = asRecord(docs[0])?.id
+  return typeof id === 'number' ? id : null
+}
+
+/**
+ * 取字段级校验文案：`errors[0].data.errors[0].message`。
+ *
+ * 逐层守卫而不是可选链一把梭——`data` 这一层曾在生产构建下整个消失
+ * （Payload `formatErrors` 的 instanceof 跨 chunk 失效），当时用 `any` 读只得到
+ * 一个 null，看不出是哪一层断的。
+ */
+function readFieldErrorMessage(body: unknown): string | null {
+  const errors = asRecord(body)?.errors
+  if (!Array.isArray(errors) || errors.length === 0) return null
+  const fieldErrors = asRecord(asRecord(errors[0])?.data)?.errors
+  if (!Array.isArray(fieldErrors) || fieldErrors.length === 0) return null
+  const message = asRecord(fieldErrors[0])?.message
+  return typeof message === 'string' ? message : null
+}
+
+/**
+ * 登记待清理的房源 id。
+ *
+ * 创建返回 201 却读不到 `doc.id`，说明响应形状变了——这种情况必须当场失败，
+ * 而不是往清理队列里塞一个 undefined，让后续用例被上一轮的残留数据搞挂。
+ */
+function trackCreated(created: number[], id: number | null): number {
+  expect(typeof id, '创建成功的响应里应带 doc.id').toBe('number')
+  created.push(id as number)
+  return id as number
 }
 
 test.describe('房源房间号', () => {
@@ -97,11 +148,14 @@ test.describe('房源房间号', () => {
 
     const first = await createListing(request, buildingId, room, 'a')
     expect(first.status, '首次写入房间号应成功').toBe(201)
-    created.push(first.id)
+    trackCreated(created, first.id)
 
     const dup = await createListing(request, buildingId, room, 'b')
     expect(dup.status, '同楼盘撞号应被拒').toBe(400)
-    expect(dup.message, `撞号响应原始体：${dup.raw}`).toContain(room)
+    // 先断言类型再断言内容：message 为 null 时 toContain 抛的是 Matcher error，
+    // Playwright 会丢弃自定义消息，原始响应体根本打不出来（曾因此白跑一轮 CI）。
+    expect(typeof dup.message, `撞号响应原始体：${dup.raw}`).toBe('string')
+    expect(dup.message).toContain(room)
     expect(dup.message).toContain('OPT-063 用例房源-a')
     // 报错文案是给人看的，不该带 markdown 星号（Payload 按纯文本渲染）
     expect(dup.message).not.toContain('**')
@@ -112,7 +166,7 @@ test.describe('房源房间号', () => {
     test.skip(typeof otherId !== 'number', '库里只有一个楼盘，跨楼盘用例不适用')
     const cross = await createListing(request, otherId as number, room, 'c')
     expect(cross.status, '不同楼盘用同一房间号应放行').toBe(201)
-    created.push(cross.id)
+    trackCreated(created, cross.id)
   })
 
   test('留空的房间号互不冲突（空串归一为 null）', async ({ page }) => {
@@ -121,39 +175,79 @@ test.describe('房源房间号', () => {
 
     const blank1 = await createListing(request, buildingId, '', 'blank1')
     expect(blank1.status).toBe(201)
-    created.push(blank1.id)
+    trackCreated(created, blank1.id)
 
     const blank2 = await createListing(request, buildingId, '   ', 'blank2')
     expect(blank2.status, '两条都没填房间号的房源必须能共存').toBe(201)
-    created.push(blank2.id)
+    trackCreated(created, blank2.id)
   })
 
-  test('字段级权限：匿名读不到 roomNumber，带登录态读得到', async ({ page, browser }) => {
+  test('字段级权限：带登录态读得到 roomNumber', async ({ page }) => {
     const request = await login(page)
     const buildingId = await pickBuildingId(request)
     const room = `E2E-${Date.now().toString(36)}`
     const made = await createListing(request, buildingId, room, 'acl')
     expect(made.status).toBe(201)
-    created.push(made.id)
+    const madeId = trackCreated(created, made.id)
 
-    const authed = await request.get(`/api/listings/${made.id}?depth=0`)
+    const authed = await request.get(`/api/listings/${madeId}?depth=0`)
     expect(authed.status()).toBe(200)
     expect(await authed.json(), '后台读得到房间号').toMatchObject({ roomNumber: room })
+  })
 
-    // 全新的 context = 没有任何 cookie，才是真匿名
+  /**
+   * 匿名侧必须用**匿名本来就读得到的**房源做夹具。
+   *
+   * 早先这里用的是本用例新建的房源，而新建房源不满足有效供给谓词，匿名请求走的是
+   * 403/404 分支——那条分支下**即使把 `roomNumber.access.read` 整个删掉，用例照样绿**，
+   * 等于没有验证任何东西（Codex review 指出）。
+   *
+   * 改法：先以匿名身份列出有效供给，拿一条真能读到的房源，给它挂上房间号，
+   * 再用匿名读同一条——这次 200 是必须的，断言"200 且响应里没有 roomNumber 这个键"
+   * 才真正锁住字段级权限。用完把房间号还原，不给夹具留残留。
+   */
+  test('字段级权限：匿名读已发布房源，响应里没有 roomNumber 这个键', async ({
+    page,
+    browser,
+  }) => {
+    const request = await login(page)
     const anonCtx = await browser.newContext()
-    const anon = await anonCtx.request.get(`/api/listings/${made.id}?depth=0`)
-    if (anon.status() === 200) {
+
+    // 匿名列表返回的就是有效供给，天然满足 Listings.access.read 的公开谓词
+    const anonList = await anonCtx.request.get('/api/listings?limit=1&depth=0')
+    expect(anonList.status(), '匿名应能列出有效供给').toBe(200)
+    const publishedId = readFirstDocId(await anonList.json())
+    test.skip(publishedId === null, '库里没有匿名可读的房源，字段级权限用例不适用')
+
+    const room = `E2E-ACL-${Date.now().toString(36)}`
+    try {
+      const patch = await request.patch(`/api/listings/${publishedId}?depth=0`, {
+        data: { roomNumber: room },
+        failOnStatusCode: false,
+      })
+      expect(patch.status(), '给已发布房源挂房间号应成功').toBe(200)
+
+      // 带登录态读得到（对照组，确认房间号确实写进去了）
+      const authed = await request.get(`/api/listings/${publishedId}?depth=0`)
+      expect(authed.status()).toBe(200)
+      expect(await authed.json(), '后台读得到刚挂上的房间号').toMatchObject({ roomNumber: room })
+
+      // 匿名读：这次必须是 200，否则夹具选错了，用例会退化成"什么都没验"
+      const anon = await anonCtx.request.get(`/api/listings/${publishedId}?depth=0`)
+      expect(anon.status(), '该房源匿名本来就该读得到').toBe(200)
       const body = await anon.json()
       expect(
         Object.prototype.hasOwnProperty.call(body, 'roomNumber'),
         '匿名响应里不该出现 roomNumber 这个键',
       ).toBe(false)
-    } else {
-      // 新建的房源不满足有效供给，匿名连文档都读不到——同样达到目的
-      expect([403, 404]).toContain(anon.status())
+    } finally {
+      // 还原夹具：断言失败也要还原，否则残留的房间号会挡住后续跑批
+      await request.patch(`/api/listings/${publishedId}?depth=0`, {
+        data: { roomNumber: null },
+        failOnStatusCode: false,
+      })
+      await anonCtx.close()
     }
-    await anonCtx.close()
   })
 
   test('后台列表：有「房间号」列，且能按房间号搜到', async ({ page }) => {
@@ -162,7 +256,7 @@ test.describe('房源房间号', () => {
     const room = `E2E-${Date.now().toString(36)}`
     const made = await createListing(request, buildingId, room, 'list')
     expect(made.status).toBe(201)
-    created.push(made.id)
+    trackCreated(created, made.id)
 
     await page.goto(`/admin/collections/listings?q=${encodeURIComponent(room)}`)
 

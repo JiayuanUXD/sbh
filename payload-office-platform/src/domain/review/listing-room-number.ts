@@ -31,10 +31,34 @@ import type { CollectionBeforeValidateHook, Where } from 'payload'
  * 而 PG 唯一索引里 `NULL` 互不冲突、空串却会互相冲突。不归一就会出现
  * 「两条都没填房间号的房源不能共存」这种荒谬行为。
  */
-export function normalizeRoomNumber(value: unknown): string | null {
+export function normalizeRoomNumber(value: string | null | undefined): string | null {
   if (value === null || value === undefined) return null
-  const trimmed = String(value).trim()
+  const trimmed = value.trim()
   return trimmed === '' ? null : trimmed
+}
+
+/**
+ * 房间号的合法输入类型：字符串、null、undefined（本次未提交该字段）。
+ *
+ * 其余类型必须在归一前就拒掉，**不能靠 `String(value)` 兜**——它会把 `{}` 变成
+ * `"[object Object]"`、把 `[12, 1]` 变成 `"12,1"`、把 `1201` 悄悄变成 `"1201"`。
+ * 前两者是"看起来像标识符"的垃圾，会真的占住 `(building, roomNumber)` 唯一索引，
+ * 事后既说不清是谁写的，也挡住了合法房间号；第三种则是把客户端的类型错误
+ * 掩盖成一次成功写入。REST / Local API 都能构造这些值，后台表单不是唯一入口。
+ */
+export function isRoomNumberInput(value: unknown): value is string | null | undefined {
+  return value === null || value === undefined || typeof value === 'string'
+}
+
+/**
+ * 从「已经过 normalize hook 的 data」或「库里的 originalDoc」读房间号。
+ *
+ * 这两处的值按定义已是 `string | null`（列类型是 text，写入路径已被 hook 收口），
+ * 所以这里遇到非字符串只当作"没有"，不再抛错——真正的类型拒绝发生在
+ * `normalizeListingRoomNumber`，那才是唯一的入口。
+ */
+function readStoredRoomNumber(value: unknown): string | null {
+  return typeof value === 'string' ? normalizeRoomNumber(value) : null
 }
 
 /** 关系字段在 hook 里可能是 id、也可能是已填充的对象，统一取 id。 */
@@ -51,8 +75,16 @@ function toRelationId(value: unknown): number | string | null {
  * 归一化 hook。只在本次提交**确实带了** `roomNumber` 时改写——
  * REST PATCH 是部分更新，没带的字段不能被顺手写成 null。
  */
-export const normalizeListingRoomNumber: CollectionBeforeValidateHook = ({ data }) => {
+export const normalizeListingRoomNumber: CollectionBeforeValidateHook = ({ data, req }) => {
   if (!data || !('roomNumber' in data)) return data
+  if (!isRoomNumberInput(data.roomNumber)) {
+    // 拒绝而不是强转：理由见 isRoomNumberInput 的注释。
+    throw new ValidationError({
+      collection: 'listings',
+      errors: [{ path: 'roomNumber', message: '房间号必须是文本，请检查提交的数据类型。' }],
+      req,
+    })
+  }
   return { ...data, roomNumber: normalizeRoomNumber(data.roomNumber) }
 }
 
@@ -72,8 +104,8 @@ export const assertListingRoomNumberUnique: CollectionBeforeValidateHook = async
 
   const roomNumber =
     'roomNumber' in data
-      ? normalizeRoomNumber(data.roomNumber)
-      : normalizeRoomNumber(originalDoc?.roomNumber)
+      ? readStoredRoomNumber(data.roomNumber)
+      : readStoredRoomNumber(originalDoc?.roomNumber)
   if (roomNumber === null) return data
 
   const buildingId = toRelationId('building' in data ? data.building : originalDoc?.building)
