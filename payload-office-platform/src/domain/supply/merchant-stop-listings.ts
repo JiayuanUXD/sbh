@@ -24,6 +24,7 @@
  */
 
 import type { BasePayload, PayloadRequest } from 'payload'
+import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
 
 /** 商户停用时把关联 Listing 标记为待复核的原因码（写入审计） */
 export const MERCHANT_STOP_LISTING_REASON = 'MERCHANT_DISABLED_BATCH_REVIEW'
@@ -94,14 +95,21 @@ export async function markListingsPendingReview(
   req?: PayloadRequest,
 ): Promise<MarkListingPendingResult[]> {
   const results: MarkListingPendingResult[] = []
+  // 本函数跑在商户停用那笔事务里（Merchants 的 afterChange）。逐条兜底不能吞掉
+  // 「事务被拆」——Payload 每个 operation 的 catch 都会 killTransaction(req)，
+  // 一旦被拆，商户自己那条 status=disabled 也不会落库，而调用方还看到「停用成功」。
+  // 详见 domain/shared/transaction-safety.ts。
+  const transactionId = req?.transactionID
   for (const id of listingIds) {
     try {
       // 1. 载入当前 listing（仅取审核状态字段以判断是否需要更新）
+      //    disableErrors：查不到时 Payload 早于 catch 就 return null，不会拆事务
       const doc = (await payload.findByID({
         collection: 'listings' as never,
         id: id as never,
         depth: 0,
         overrideAccess: true,
+        disableErrors: true,
         req,
       })) as { reviewStatus?: string; version?: number } | null
       if (!doc) {
@@ -126,6 +134,9 @@ export async function markListingsPendingReview(
       })
       results.push({ listingId: id, ok: true })
     } catch (err) {
+      // 单条失败可以吞（这是止血批处理，不该因为一条房源就整体失败）；
+      // 但事务被拆掉不能吞，否则商户停用本身会静默丢失。
+      assertTransactionIntact(req, transactionId, 'merchant-stop-listings')
       results.push({
         listingId: id,
         ok: false,

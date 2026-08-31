@@ -11,6 +11,7 @@ import {
 import { protectMerchant } from '@/domain/supply/merchant-protect'
 import { protectMerchantStop } from '@/domain/supply/merchant-stop-guard'
 import { markListingsPendingReviewOnMerchantStop } from '@/domain/supply/merchant-stop-listings'
+import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = MERCHANT_TYPES.map((value) => ({
@@ -49,12 +50,16 @@ const handleMerchantStopBatchListings: CollectionAfterChangeHook = async ({
   const merchantId = (doc as { id?: number | string } | null)?.id
   if (merchantId === undefined || merchantId === null) return doc
 
+  const transactionId = req.transactionID
   try {
     const report = await markListingsPendingReviewOnMerchantStop(req.payload, merchantId, req)
     // 失败不阻断停用：把 report 挂到 req.context 供 M8.2 审计接入读取
     ;(req.context as Record<string, unknown>).__merchantStopBatchReport = report
   } catch (err) {
-    // 服务整体失败（非单条 Listing 失败）：记录但不抛
+    // 服务整体失败（非单条 Listing 失败）：记录但不抛。
+    // 唯一的例外是事务已被拆掉——那时商户自己那条 status=disabled 也不会落库，
+    // 再吞就成了「停用成功、商户还是 active」（见 domain/shared/transaction-safety.ts）。
+    assertTransactionIntact(req, transactionId, 'merchant-stop-batch')
     ;(req.context as Record<string, unknown>).__merchantStopBatchError =
       err instanceof Error ? err.message : String(err)
   }
