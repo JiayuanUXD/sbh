@@ -12,7 +12,9 @@ import { mergeBuildings, type MergeErrorCode } from '@/domain/supply/building-de
  *
  * 语义：合并是人为决策（查重端点只给候选，不阻断保存）。目标楼盘保留不可变 ID，
  * 接收源的全部供给关系 / 房源外键;源楼盘软删除（deletedAt，非物理删除，R8）。
- * 迁移与软删在同一请求事务内（透传 req），任一步失败整体回滚。
+ * 迁移与软删在同一笔事务内，任一步失败整体回滚——事务由 `mergeBuildings` 自己开，
+ * 本端点只负责把 req 透传下去。**自定义 endpoint 不会自动开事务**（只有 collection
+ * operation 会），所以这件事不能靠透传 req 自动成立，2026-08-31 前它就没成立过。
  *
  * 响应：
  *   - 200: { ok: true, report: { sourceId, targetId, migratedRelations, migratedListings } }
@@ -63,7 +65,7 @@ export function createBuildingMergeEndpoint(): Endpoint {
         )
       }
 
-      // 4. 调用领域服务（同一请求事务内迁移 + 软删）
+      // 4. 调用领域服务（内部开事务：迁移 + 软删要么全成、要么全不成）
       const result = await mergeBuildings(req.payload, { sourceId, targetId }, req)
       if (!result.ok) {
         return Response.json(

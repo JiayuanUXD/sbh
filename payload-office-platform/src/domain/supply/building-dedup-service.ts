@@ -8,12 +8,14 @@
  *   2. mergeBuildings：保留目标不可变 ID，把源的 building-merchant-relations / listings
  *      外键迁移到目标，再软删除源（deletedAt，非物理删除，R8）
  *
- * 合并的原子性：调用方（endpoint）在同一请求事务内传入 req，任一步失败整体回滚。
+ * 合并的原子性：`mergeBuildings` 自己开事务（调用方已开则不抢），任一步失败整体回滚。
+ *   详见该函数的注释——原来把这件事甩给 endpoint，而 endpoint 从来没做。
  * 迁移前先做「目标既有关系 vs 源关系」区间重叠预检：命中即中止且不发生任何写入，
  * 与 PostgreSQL EXCLUDE 约束语义一致（同一楼盘有效期不可重叠）。
  */
 
 import type { BasePayload, PayloadRequest, Where } from 'payload'
+import { commitTransaction, initTransaction, killTransaction } from 'payload'
 import { detectDuplicates, type DuplicateReason } from './building-dedup'
 import {
   findRelationOverlap,
@@ -256,18 +258,64 @@ async function findListingsByBuilding(
  *   5. 迁移房源 building 外键
  *   6. 软删除源楼盘（deletedAt，非物理删除）
  *
- * 原子性由调用方在同一请求事务内传入 req 保证。
+ * ## 原子性由这里负责，不能甩给调用方
+ *
+ * 这段注释原来写的是「原子性由调用方在同一请求事务内传入 req 保证」，
+ * 而**没有任何调用方这么做**：`building-merge-endpoint` 只是把 req 透传下来，
+ * 但 Payload 的自定义 endpoint 不开事务（只有 collection operation 会）。
+ * 于是 4~6 里的每一次 `payload.update` 都在 `initTransaction` 里发现
+ * `req.transactionID` 是空的，各自开一笔、各自提交。第 6 步失败就留下
+ * 「关系和房源都搬到目标了、源楼盘还活着」的半合并状态，而 endpoint 返回 5xx——
+ * 运营看到「合并失败」，数据却已经动了一半，且没有反向操作能还原。
+ *
+ * 所以事务在这里开：`initTransaction` 只在 req 上还没有事务时才开一笔并接管提交权
+ * （调用方已经开了就返回 false，我们不抢），任一步抛错整笔 `killTransaction`。
+ *
+ * 提交前必须 `assertTransactionIntact`：事务一旦被别人拆掉（Payload 每个 operation
+ * 的 catch 都会 `killTransaction(req)`），`commitTransaction` 拿着空 id 会静默 return，
+ * 于是「合并成功」但什么都没落库。原因见 `domain/shared/transaction-safety.ts`。
+ *
+ * 不传 req 时无事务可开，退化成逐条写入——**不假装原子**。生产链路（endpoint）
+ * 一定带 req。
  */
 export async function mergeBuildings(
   payload: BasePayload,
   input: MergeBuildingsInput,
   req?: PayloadRequest,
 ): Promise<MergeBuildingsResult> {
-  const { sourceId, targetId } = input
-
-  if (String(sourceId) === String(targetId)) {
+  // 纯入参校验，不碰库，放在开事务之前
+  if (String(input.sourceId) === String(input.targetId)) {
     return { ok: false, code: 'INVALID_MERGE', error: '源楼盘与目标楼盘不能相同' }
   }
+
+  const ownsTransaction = req ? await initTransaction(req) : false
+  const transactionId = req?.transactionID
+
+  try {
+    const result = await runMerge(payload, input, req)
+
+    if (!result.ok) {
+      // 预检失败时并没有写入，回滚只是把这笔空事务收掉，语义上「整笔合并作废」
+      if (ownsTransaction && req) await killTransaction(req)
+      return result
+    }
+
+    assertTransactionIntact(req, transactionId, 'building-merge')
+    if (ownsTransaction && req) await commitTransaction(req)
+    return result
+  } catch (error) {
+    if (ownsTransaction && req) await killTransaction(req)
+    throw error
+  }
+}
+
+/** 合并的实际步骤。事务边界由 `mergeBuildings` 负责，这里只管业务。 */
+async function runMerge(
+  payload: BasePayload,
+  input: MergeBuildingsInput,
+  req?: PayloadRequest,
+): Promise<MergeBuildingsResult> {
+  const { sourceId, targetId } = input
 
   const source = await loadBuilding(payload, sourceId, req)
   if (!source) {
