@@ -235,7 +235,7 @@ Expected: 所有命令 exit 0，工作树仅允许用户未跟踪设计目录；
 
 - [ ] **Step 3: 从旧版本配置在内存中生成新服务配置**
 
-使用一次 shell 进程读取 `DescribeCloudBaseRunServerVersion` 的 `EnvParams` JSON 字符串，只保留以下 16 个键并在内存中修改环境特定字段：
+使用官方 SDK 单进程执行器读取 `DescribeCloudBaseRunServerVersion` 的 `EnvParams` JSON 字符串，只保留以下 16 个键并在内存中修改环境特定字段。不得把完整请求体传入 CLI `--body`，避免秘密短暂暴露在进程参数中；原始响应、上传签名材料和最终请求体不得写入文件或 stdout/stderr：
 
 ```bash
 current_head_sha=$(git rev-parse HEAD)
@@ -265,22 +265,24 @@ PAYLOAD_SECRET
 ```text
 MP_ACCEPTANCE_DEPLOYMENT_ENVIRONMENT=staging
 MP_ACCEPTANCE_DEPLOYMENT_GIT_COMMIT_SHA=$current_head_sha
-MP_ACCEPTANCE_ENABLED=true
-NODE_ENV=production
-PAYLOAD_DISABLE_JOB_AUTORUN=true
+MP_ACCEPTANCE_ENABLED=1
+NODE_ENV=development
+PAYLOAD_DISABLE_JOB_AUTORUN=1
 ```
 
-`DATABASE_URL`、签名秘密、operator/permit 秘密和数据库指纹 allowlist 原值继承但绝不输出。创建请求只允许 `OA`，不在 bootstrap revision 开放 `PUBLIC` 或 `MINIAPP`。
+`MP_ACCEPTANCE_ENABLED` 和 `PAYLOAD_DISABLE_JOB_AUTORUN` 都必须使用字符串 `1`；服务端对这两个值做严格比较，不能写成布尔语义的 `true`。`NODE_ENV` 继续继承现有 staging 的 `development`：当前 staging 的 16 键配置不含生产模式强制要求的 5 个 COS 凭据，改成 `production` 会被启动期配置守卫拒绝；本次不得因此复用生产 COS 桶或凭据，也不得临时扩大到新的存储迁移。`DATABASE_URL`、签名秘密、operator/permit 秘密和数据库指纹 allowlist 原值继承但绝不输出。创建请求只允许 `OA`，不在 bootstrap revision 开放 `PUBLIC` 或 `MINIAPP`。
 
-- [ ] **Step 4: 创建 bootstrap 服务并取得平台实际编号**
+- [ ] **Step 4: 从当前提交创建 package bootstrap 服务并取得平台实际编号**
 
-使用旧服务当前镜像与上一步内存配置调用 `tcbr.CreateCloudRunServer`，目标精确为新 env/service，规格与旧服务一致：Port 80、CPU 1、内存 2、MinNum 0、MaxNum 1、alwaysScale。等待 `DescribeServerManageTask` 和 `DescribeCloudRunServerDetail` 返回 normal，记录平台实际 bootstrap revision 和默认 origin。
+先从当前 clean commit 生成 bootstrap package；临时 origin 固定使用 `https://bootstrap.invalid`，并把 bootstrap 环境变量精确设置为 `NEXT_PUBLIC_SITE_URL=https://bootstrap.invalid`、`MP_ACCEPTANCE_DEPLOYMENT_REVISION=bootstrap`、`MP_ACCEPTANCE_ENABLED=0`。该版本只允许 `OA`，不得用于 trial。通过 `DescribeCloudBaseBuildService` 上传代码包，再用上一步内存配置调用 `tcbr.CreateCloudRunServer`，目标精确为新 env/service，规格与旧服务一致：Port 80、CPU 1、内存 2、MinNum 0、MaxNum 1、alwaysScale。等待 `DescribeServerManageTask` 和 `DescribeCloudRunServerDetail` 返回 normal，记录平台实际 bootstrap revision、默认 origin 和全部部署记录的最大编号。
+
+不得默认复用旧环境的个人版 CCR 镜像：只有平台明确证明新环境已获得该镜像拉取权限时才可作为失败后的备选。创建前后均应核对新环境没有同名服务和未完成任务。
 
 Expected: 服务只存在于新环境；旧环境服务、流量和数据库未变化。若 bootstrap revision 不是服务的第一个序号，停止并重新计算下一 revision，不生成 trial manifest。
 
 - [ ] **Step 5: 生成当前 commit 的部署包并发布最终 revision**
 
-先把内存配置中的 `NEXT_PUBLIC_SITE_URL` 设置为新服务默认 origin，把 `MP_ACCEPTANCE_DEPLOYMENT_REVISION` 设置为由平台现有 revision 确定的下一个 revision；再从 clean commit 生成部署包：
+先把内存配置中的 `NEXT_PUBLIC_SITE_URL` 设置为新服务默认 origin，把 `MP_ACCEPTANCE_ENABLED` 改回字符串 `1`，并根据全部部署记录最大编号预测下一 revision，将其写入 `MP_ACCEPTANCE_DEPLOYMENT_REVISION`；再从同一 clean commit 生成部署包：
 
 ```bash
 node payload-office-platform/scripts/prepare-cloudrun-staging.mjs \
@@ -288,7 +290,7 @@ node payload-office-platform/scripts/prepare-cloudrun-staging.mjs \
   --origin "$NEW_STAGING_ORIGIN"
 ```
 
-使用 `DescribeCloudBaseBuildService` 上传该临时目录，并以 `UpdateCloudRunServer` 发布 package revision；`Items` 精确包含 Port 80、`AccessTypes=["OA","PUBLIC","MINIAPP"]` 和内存中的完整 `EnvParam`。等待 revision normal 后把 100% 流量切到该 revision。
+使用 `DescribeCloudBaseBuildService` 上传该临时目录，并以 `UpdateCloudRunServer` 的 `GRAY` 模式发布 package revision；`Items` 精确包含 Port 80、`AccessTypes=["OA","PUBLIC","MINIAPP"]` 和内存中的完整 `EnvParam`。先读取任务实际 `VersionName`，只有它与预绑定 revision 完全一致时才等待 normal，并把 10% 流量切给候选版本；若不一致则保持 0% 流量、重新读取最大编号后另发新版本，不得修改已经创建的 revision，也不得生成 trial manifest。
 
 Expected: 实际 revision 与预先绑定的 `MP_ACCEPTANCE_DEPLOYMENT_REVISION` 完全一致；不一致则停止并保持 trial 未生成。
 
@@ -306,7 +308,7 @@ curl --fail --silent --show-error "$NEW_STAGING_ORIGIN/api/health"
 /api/mini/v1/acceptance/attestation
 ```
 
-Expected: health 200；attestation 为 `staging=true`、`acceptanceReady=true`，Git SHA 与 Task 1 commit 相等、revision 与平台实际 revision 相等、数据库指纹与旧 staging 基线相等。原始数据库身份和秘密不进入证据。
+Expected: 10% canary 中至少一次 health 200；受保护 attestation 为 `staging=true`、`acceptanceReady=true`，Git SHA 与当前部署 commit 相等、revision 与平台实际 revision 相等、数据库指纹与旧 staging 基线相等。全部通过后才把候选版本提升到 100%，再重复 health 与 attestation；任一失败立即把流量回滚到 OA-only bootstrap。原始数据库身份和秘密不进入证据。
 
 ---
 
