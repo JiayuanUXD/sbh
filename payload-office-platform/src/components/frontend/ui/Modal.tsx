@@ -51,6 +51,8 @@ export function Modal({
   className,
 }: Props) {
   const dialogRef = useRef<HTMLDivElement | null>(null)
+  // 记录「曾经打开过」，避免首次挂载（open 初值 false）就把焦点抢给触发器
+  const hasOpenedRef = useRef(false)
   const titleId = React.useId()
 
   // Esc 关闭 + 焦点锁定
@@ -100,9 +102,17 @@ export function Modal({
     }
   }, [open, onClose])
 
-  // 关闭时归还焦点到触发器
+  // 归还焦点到触发器：仅在「由 open=true 变为 false」时，首次挂载不动焦点。
+  //
+  // 没有这道闸的话，组件一挂载（open 初值 false）effect 就跑一次，把焦点从用户
+  // 当前所在处抢到触发器上——页面刚加载、用户还没碰过这个弹窗，焦点就被拽走了。
   useEffect(() => {
-    if (open) return
+    if (open) {
+      hasOpenedRef.current = true
+      return
+    }
+    if (!hasOpenedRef.current) return
+    hasOpenedRef.current = false
     triggerRef?.current?.focus()
   }, [open, triggerRef])
 
