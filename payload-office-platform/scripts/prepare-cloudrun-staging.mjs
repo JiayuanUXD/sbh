@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 export const PRODUCTION_CLOUDRUN_ORIGIN =
   'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com'
 export const PRODUCTION_ENV_ID = 'sbh-d9gnr8h5ef7e22e30'
+export const STAGING_RUNTIME_ENV_ID = 'sbhmini-gateway-d3fbrmn8097478b8'
+export const STAGING_DATABASE_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
 
 const ENV_ID_PATTERN = /^[a-z][a-z0-9-]{5,63}$/
 
@@ -51,7 +53,13 @@ export function validateStagingEnvId(rawEnvId) {
   if (typeof rawEnvId !== 'string' || !ENV_ID_PATTERN.test(rawEnvId)) {
     throw new Error('staging 环境 ID 格式不合法')
   }
-  if (rawEnvId === PRODUCTION_ENV_ID) throw new Error('staging 环境 ID 不得指向生产环境')
+  if (rawEnvId !== STAGING_RUNTIME_ENV_ID) {
+    if (rawEnvId === PRODUCTION_ENV_ID) throw new Error('staging 环境 ID 不得指向生产环境')
+    if (rawEnvId === STAGING_DATABASE_ENV_ID) {
+      throw new Error('staging 运行层不得指向 PostgreSQL 数据库环境')
+    }
+    throw new Error('staging 环境 ID 与受控运行环境不一致')
+  }
   return rawEnvId
 }
 

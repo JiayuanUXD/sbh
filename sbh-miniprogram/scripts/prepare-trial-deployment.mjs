@@ -3,7 +3,7 @@ import { lstatSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const STAGING_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
+const STAGING_ENV_ID = 'sbhmini-gateway-d3fbrmn8097478b8'
 const STAGING_SERVICE_NAME = 'sbhmini'
 const shaPattern = /^[0-9a-f]{40}$/
 const revisionPattern = /^[A-Za-z0-9._-]{1,128}$/

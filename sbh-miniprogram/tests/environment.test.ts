@@ -48,10 +48,10 @@ describe('运行环境选择', () => {
 
   it('读取四字段 trial manifest 后返回 staging CloudBase 目标与部署身份', () => {
     const manifest = {
-      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudEnvId: 'sbhmini-gateway-d3fbrmn8097478b8',
       cloudServiceName: 'sbhmini',
       gitCommitSha: 'a'.repeat(40),
-      serverDeploymentRevision: 'sbhmini-016',
+      serverDeploymentRevision: 'sbhmini-002',
     }
 
     expect(resolveRuntimeEnvironment('trial', { trialManifest: manifest })).toEqual({
@@ -67,19 +67,20 @@ describe('运行环境选择', () => {
   })
 
   const validTrialManifest = {
-    cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+    cloudEnvId: 'sbhmini-gateway-d3fbrmn8097478b8',
     cloudServiceName: 'sbhmini',
     gitCommitSha: 'a'.repeat(40),
-    serverDeploymentRevision: 'sbhmini-016',
+    serverDeploymentRevision: 'sbhmini-002',
   }
 
   it.each([
     ['空 env', 'cloudEnvId', '', /trial cloud env 未配置或非法/],
-    ['空白 env', 'cloudEnvId', ' sbhmini-d5g7d6732b2c64a66', /trial cloud env 未配置或非法/],
+    ['空白 env', 'cloudEnvId', ' sbhmini-gateway-d3fbrmn8097478b8', /trial cloud env 未配置或非法/],
     ['带斜杠 env', 'cloudEnvId', 'sbhmini/staging', /trial cloud env 未配置或非法/],
     ['带点 env', 'cloudEnvId', 'sbhmini.staging', /trial cloud env 未配置或非法/],
     ['带协议 env', 'cloudEnvId', 'https://sbhmini', /trial cloud env 未配置或非法/],
     ['生产 env', 'cloudEnvId', 'sbh-d9gnr8h5ef7e22e30', /trial cloud env 与受控 staging 不一致/],
+    ['PostgreSQL 数据库环境', 'cloudEnvId', 'sbhmini-d5g7d6732b2c64a66', /trial cloud env 与受控 staging 不一致/],
     ['大小写伪装 env', 'cloudEnvId', 'SBHMINI-D5G7D6732B2C64A66', /trial cloud env 未配置或非法/],
     ['空 service', 'cloudServiceName', '', /trial cloud service 未配置或非法/],
     ['空白 service', 'cloudServiceName', 'sbhmini ', /trial cloud service 未配置或非法/],
@@ -130,7 +131,7 @@ describe('运行环境选择', () => {
 describe('CloudBase 资源名校验', () => {
   it.each([
     'sbh',
-    'sbhmini-d5g7d6732b2c64a66',
+    'sbhmini-gateway-d3fbrmn8097478b8',
     `a${'0'.repeat(63)}`,
   ])('接受合法小写资源名：%s', (value) => {
     expect(assertCloudResourceName(value, 'cloud resource')).toBe(value)

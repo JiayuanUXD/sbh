@@ -13,7 +13,7 @@ const prepareTrialDeployment = (await import('../scripts/prepare-trial-deploymen
 
 const sha = 'a'.repeat(40)
 const environment = {
-  TRIAL_CLOUD_ENV_ID: 'sbhmini-d5g7d6732b2c64a66',
+  TRIAL_CLOUD_ENV_ID: 'sbhmini-gateway-d3fbrmn8097478b8',
   TRIAL_CLOUD_SERVICE_NAME: 'sbhmini',
   TRIAL_DEPLOYMENT_COMMIT_SHA: sha,
   TRIAL_SERVER_DEPLOYMENT_REVISION: 'sbhmini-016',
@@ -26,7 +26,7 @@ describe('trial deployment manifest tooling', () => {
     try {
       prepareTrialDeployment({ environment, currentHeadSha: sha, worktreeStatus: '', outputPath, allowedOutputPath: outputPath })
       const source = readFileSync(outputPath, 'utf8')
-      expect(source).toContain('sbhmini-d5g7d6732b2c64a66')
+      expect(source).toContain('sbhmini-gateway-d3fbrmn8097478b8')
       expect(source).toContain('sbhmini')
       expect(source).toContain(sha)
       expect(source).toContain('sbhmini-016')
@@ -38,6 +38,7 @@ describe('trial deployment manifest tooling', () => {
     ['missing env', { ...environment, TRIAL_CLOUD_ENV_ID: '' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
     ['missing service', { ...environment, TRIAL_CLOUD_SERVICE_NAME: '' }, sha, 'clean', /trial cloud service 与受控 staging 不一致/],
     ['production env', { ...environment, TRIAL_CLOUD_ENV_ID: 'sbh-d9gnr8h5ef7e22e30' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
+    ['postgres database env', { ...environment, TRIAL_CLOUD_ENV_ID: 'sbhmini-d5g7d6732b2c64a66' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
     ['illegal env character', { ...environment, TRIAL_CLOUD_ENV_ID: 'sbhmini/staging' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],
     ['illegal service character', { ...environment, TRIAL_CLOUD_SERVICE_NAME: 'sbhmini.service' }, sha, 'clean', /trial cloud service 与受控 staging 不一致/],
     ['uppercase env disguise', { ...environment, TRIAL_CLOUD_ENV_ID: 'SBHMINI-D5G7D6732B2C64A66' }, sha, 'clean', /trial cloud env 与受控 staging 不一致/],

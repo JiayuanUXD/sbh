@@ -118,7 +118,7 @@ describe('Mini API 请求层', () => {
     const cloudEnvironment: RuntimeEnvironment = {
       stage: 'staging',
       transport: 'cloud-container',
-      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudEnvId: 'sbhmini-gateway-d3fbrmn8097478b8',
       cloudServiceName: 'sbhmini',
       deploymentIdentity: {
         gitCommitSha: 'a'.repeat(40),
@@ -143,7 +143,7 @@ describe('Mini API 请求层', () => {
     const cloudEnvironment: RuntimeEnvironment = {
       stage: 'staging',
       transport: 'cloud-container',
-      cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+      cloudEnvId: 'sbhmini-gateway-d3fbrmn8097478b8',
       cloudServiceName: 'sbhmini',
       deploymentIdentity: {
         gitCommitSha: 'a'.repeat(40),

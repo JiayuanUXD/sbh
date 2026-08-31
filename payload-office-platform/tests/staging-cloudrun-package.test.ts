@@ -15,7 +15,8 @@ import {
 } from '../scripts/prepare-cloudrun-staging.mjs'
 
 const STAGING_ORIGIN = 'https://sbhmini.ap-shanghai.run.tcloudbase.com'
-const STAGING_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
+const STAGING_RUNTIME_ENV_ID = 'sbhmini-gateway-d3fbrmn8097478b8'
+const STAGING_DATABASE_ENV_ID = 'sbhmini-d5g7d6732b2c64a66'
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
 describe('staging CloudRun package', () => {
@@ -59,7 +60,8 @@ describe('staging CloudRun package', () => {
   })
 
   it('accepts only a non-production CloudBase environment ID', () => {
-    expect(validateStagingEnvId(STAGING_ENV_ID)).toBe(STAGING_ENV_ID)
+    expect(validateStagingEnvId(STAGING_RUNTIME_ENV_ID)).toBe(STAGING_RUNTIME_ENV_ID)
+    expect(() => validateStagingEnvId(STAGING_DATABASE_ENV_ID)).toThrow(/PostgreSQL 数据库环境/)
     expect(() => validateStagingEnvId(PRODUCTION_ENV_ID)).toThrow(/生产环境/)
     expect(() => validateStagingEnvId('not an env id')).toThrow(/环境 ID/)
   })
@@ -71,7 +73,7 @@ describe('staging CloudRun package', () => {
       const result = prepareStagingPackage({
         repositoryRoot,
         outputDirectory,
-        stagingEnvId: STAGING_ENV_ID,
+        stagingEnvId: STAGING_RUNTIME_ENV_ID,
         stagingOrigin: STAGING_ORIGIN,
       })
       const dockerfile = readFileSync(join(outputDirectory, 'Dockerfile'), 'utf8')
@@ -81,7 +83,7 @@ describe('staging CloudRun package', () => {
 
       expect(result.commitSha).toMatch(/^[0-9a-f]{40}$/)
       expect(result.outputDirectory).toBe(outputDirectory)
-      expect(result.stagingEnvId).toBe(STAGING_ENV_ID)
+      expect(result.stagingEnvId).toBe(STAGING_RUNTIME_ENV_ID)
       expect(result.stagingOrigin).toBe(STAGING_ORIGIN)
       expect(buildInfo).toEqual({ commit: result.commitSha })
       expect(dockerfile).toContain(`ENV NEXT_PUBLIC_SITE_URL=${STAGING_ORIGIN}`)

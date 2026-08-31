@@ -19,7 +19,7 @@ const httpEnvironment: HttpRuntimeEnvironment = {
 const stagingEnvironment: CloudRuntimeEnvironment = {
   stage: 'staging',
   transport: 'cloud-container',
-  cloudEnvId: 'sbhmini-d5g7d6732b2c64a66',
+  cloudEnvId: 'sbhmini-gateway-d3fbrmn8097478b8',
   cloudServiceName: 'sbhmini',
 }
 
