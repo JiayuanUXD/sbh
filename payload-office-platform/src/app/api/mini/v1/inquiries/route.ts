@@ -328,21 +328,23 @@ export async function POST(request: Request): Promise<Response> {
         return failure(requestId, 'invalid_request', '请求参数无效', 409)
       }
     }
-    const rate = await runMiniRateLimit(
-      client.clientIp,
-      'mini-inquiry',
-      pool,
-    )
-    if (!rate.allowed) {
-      if (rate.storeFailed) {
-        return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
-      }
-      return response(
-        miniError('rate_limited', '请求过于频繁，请稍后重试', requestId),
-        429,
-        requestId,
-        { 'Retry-After': String(rate.retryAfterSeconds) },
+    if (acceptanceGate.kind !== 'candidate') {
+      const rate = await runMiniRateLimit(
+        client.clientIp,
+        'mini-inquiry',
+        pool,
       )
+      if (!rate.allowed) {
+        if (rate.storeFailed) {
+          return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
+        }
+        return response(
+          miniError('rate_limited', '请求过于频繁，请稍后重试', requestId),
+          429,
+          requestId,
+          { 'Retry-After': String(rate.retryAfterSeconds) },
+        )
+      }
     }
   } catch {
     return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)

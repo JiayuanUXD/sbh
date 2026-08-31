@@ -543,7 +543,8 @@ describe('POST /api/mini/v1/inquiries', () => {
     const [command] = io.submitPublicInquiry.mock.calls[0]!
 
     expect(response.status).toBe(200)
-    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'rate', 'precheck', 'city', 'submit'])
+    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'precheck', 'city', 'submit'])
+    expect(io.rateKeys).toEqual([])
     expect(io.verifyAcceptancePermitToken).toHaveBeenCalledWith(
       ACCEPTANCE_TOKEN,
       ACCEPTANCE_CONFIG.permitSigningSecret,
@@ -577,6 +578,19 @@ describe('POST /api/mini/v1/inquiries', () => {
       ...io.loggerError.mock.calls,
       ...io.loggerWarn.mock.calls,
     ])).not.toContain(ACCEPTANCE_TOKEN)
+  })
+
+  it('有效 acceptance 在共享限流存储失败时仍走既有写链路', async () => {
+    io.rateStoreFails = true
+
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(200)
+    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'precheck', 'city', 'submit'])
+    expect(io.rateKeys).toEqual([])
+    expect(io.submitPublicInquiry).toHaveBeenCalledOnce()
   })
 
   it('同 run 同 submission/listing 的 locator 稳定，第二次命中 acceptedExisting', async () => {
