@@ -35,6 +35,8 @@
  * 是 INNER JOIN，NULL 直接排除）。`Listings.ts` 的对应注释早已订正，本文件此前没跟上。
  */
 
+import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
+
 /**
  * 默认商户名称回落（**仅用于没有任何 `isPlatformDefault` 商户的旧环境**）。
  *
@@ -160,6 +162,8 @@ export async function resolveDefaultSupplyMerchant(
     qualificationStatus: { equals: 'valid' },
   }
 
+  const capturedTransactionId = (req as { transactionID?: unknown } | undefined)?.transactionID
+
   try {
     const byFlag = await payload.find({
       collection: 'merchants',
@@ -187,6 +191,9 @@ export async function resolveDefaultSupplyMerchant(
     })
     return pickDefaultMerchant(byName.docs ?? [], cityId) ?? undefined
   } catch {
+    // payload.find 查不到不会抛；能走到这里的是真异常，而 Payload 的 operation
+    // catch 已经把调用方那笔写入的事务回滚了。再吞掉就成了「保存成功、数据没变」。
+    assertTransactionIntact(req, capturedTransactionId, 'default-merchant:lookup')
     return undefined
   }
 }

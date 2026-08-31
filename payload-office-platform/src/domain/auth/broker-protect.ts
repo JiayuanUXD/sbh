@@ -13,6 +13,7 @@
 
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
 import { InvalidOperationError, VersionConflictError } from '@/domain/shared/errors'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 
 function toId(value: unknown): number | string | null {
   if (value === null || value === undefined) return null
@@ -37,16 +38,15 @@ function toIds(value: unknown): Array<number | string> {
 type LocationNode = { id: number | string; type?: unknown; status?: unknown }
 
 async function loadNode(req: PayloadRequest, id: number | string): Promise<LocationNode | null> {
-  try {
-    return (await req.payload.findByID({
-      collection: 'locations',
-      id,
-      depth: 0,
-      req,
-    })) as LocationNode
-  } catch {
-    return null
-  }
+  // findByIdSafe 而不是 try/catch 吞 NotFound：后者会连带回滚调用方的写入事务
+  // （原因与实测见 domain/shared/transaction-safety.ts）
+  return findByIdSafe<LocationNode>({
+    req,
+    collection: 'locations',
+    id,
+    depth: 0,
+    operation: 'broker-protect:location',
+  })
 }
 
 /** 校验一批 location 节点：存在 + type 命中 + 启用；返回不合法的 id 列表 */
@@ -120,17 +120,13 @@ export const protectBroker: CollectionBeforeChangeHook = async ({
   // —— team 若填写必须存在且启用 ——
   const teamId = toId(data?.team)
   if (teamId !== null) {
-    let team: { id: number | string; status?: unknown } | null = null
-    try {
-      team = (await req.payload.findByID({
-        collection: 'teams',
-        id: teamId,
-        depth: 0,
-        req,
-      })) as { id: number | string; status?: unknown }
-    } catch {
-      team = null
-    }
+    const team = await findByIdSafe<{ id: number | string; status?: unknown }>({
+      req,
+      collection: 'teams',
+      id: teamId,
+      depth: 0,
+      operation: 'broker-protect:team',
+    })
     if (!team || (team.status !== undefined && team.status !== 'active')) {
       throw new InvalidOperationError({
         domain: 'auth',

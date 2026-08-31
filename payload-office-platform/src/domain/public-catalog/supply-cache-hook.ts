@@ -15,6 +15,10 @@
  * 边界与容错：
  *   - 失效失败**不阻断业务写入**。`revalidatePublicCacheTags` 已逐 tag 兜底，
  *     这里额外保证城市解析本身不抛。
+ *   - 城市反查必须走 `findByIdSafe`，**不能**是 `try { findByID } catch { null }`。
+ *     后者查不到时会连带回滚调用方的写入事务（Payload 的 operation catch 里
+ *     `killTransaction(req)` 回滚的是整个 req 的事务），而错被这里吞掉，
+ *     调用方看到「保存成功、数据没变」。原因与实测见 `domain/shared/transaction-safety.ts`。
  *   - 换楼盘 / 换城市要同时失效新旧两侧，否则旧城市的列表会留着一条已经搬走的房源。
  *   - `revalidateTag` 依赖 Next 请求上下文。后台保存走 Next route handler，有上下文；
  *     Job / 脚本里批量写入没有上下文，会被统一降级成一条 warn（见 revalidatePublicCacheTags），
@@ -28,6 +32,7 @@ import type {
 } from 'payload'
 
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
+import { findByIdSafe } from '@/domain/shared/transaction-safety'
 import {
   invalidateSupplyPublicCache,
   type SupplyCacheInvalidationReason,
@@ -55,17 +60,15 @@ async function findCitySlugById(
   req: PayloadRequest,
   cityId: number | string,
 ): Promise<string | null> {
-  try {
-    const city = await req.payload.findByID({
-      collection: 'locations',
-      id: cityId,
-      depth: 0,
-      req,
-    })
-    return city.type === 'city' ? normalizeCitySlug(city.slug) : null
-  } catch {
-    return null
-  }
+  const city = await findByIdSafe<{ type?: unknown; slug?: unknown }>({
+    req,
+    collection: 'locations',
+    id: cityId,
+    depth: 0,
+    operation: 'supply-cache:location',
+  })
+  if (!city) return null
+  return city.type === 'city' ? normalizeCitySlug(city.slug) : null
 }
 
 /** 楼盘文档 → 所属城市 slug。楼盘的 city 是可选 relationship，解析不出返回 null。 */
@@ -95,17 +98,18 @@ async function citySlugOfListingDoc(
 
   const buildingId = relationshipId(listingDoc.building)
   if (buildingId === null) return null
-  try {
-    const building = await req.payload.findByID({
-      collection: 'buildings',
-      id: buildingId,
-      depth: 0,
-      req,
-    })
-    return citySlugOfBuildingDoc(req, building)
-  } catch {
-    return null
-  }
+  const building = await findByIdSafe({
+    req,
+    collection: 'buildings',
+    id: buildingId,
+    depth: 0,
+    // 软删楼盘旗下的房源照样要失效它所在城市的缓存——下架/编辑这类操作
+    // 恰恰发生在楼盘已经被软删之后，漏掉它旧列表页就一直挂着这条房源。
+    trash: true,
+    operation: 'supply-cache:building',
+  })
+  if (!building) return null
+  return citySlugOfBuildingDoc(req, building)
 }
 
 type CitySlugResolver = (req: PayloadRequest, doc: unknown) => Promise<string | null>

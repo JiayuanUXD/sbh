@@ -31,6 +31,7 @@ import {
   NotFoundError,
   VersionConflictError,
 } from '@/domain/shared/errors'
+import { TransactionAbortedError } from '@/domain/shared/transaction-safety'
 
 /** 按错误类映射 HTTP 状态码；未命中的 DomainError 一律 400。 */
 const STATUS_BY_CLASS: Array<[new (...args: never[]) => DomainError, number]> = [
@@ -39,6 +40,8 @@ const STATUS_BY_CLASS: Array<[new (...args: never[]) => DomainError, number]> = 
   [VersionConflictError, 409],
   [IllegalStateTransitionError, 409],
   [InvalidOperationError, 422],
+  // 事务被回滚 = 写入没落库，必须以 5xx 暴露；给的是我们自己写死的固定文案，不含内部细节
+  [TransactionAbortedError, 500],
 ]
 
 export const domainErrorAfterError: AfterErrorHook = async ({ error, req }) => {
