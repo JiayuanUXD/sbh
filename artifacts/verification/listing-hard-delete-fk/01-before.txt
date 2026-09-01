@@ -1,0 +1,7 @@
+[19:48:19] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+迁移前列可空性:
+  listing_reports.target_listing_id = NO
+  listing_reviews.listing_id = NO
+  listing_reviews: 共 3 行，其中 listing_id 为 NULL 的 0 行
+  listing_reports: 共 0 行，其中 target_listing_id 为 NULL 的 0 行
+  listing_merchant_relations: 共 28 行，其中 listing_id 为 NULL 的 0 行
