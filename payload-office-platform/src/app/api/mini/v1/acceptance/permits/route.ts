@@ -3,7 +3,15 @@ import { randomBytes } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import config from '@/payload.config'
 import { constantTimeSecretMatches } from '@/domain/mini-program/acceptance-attestation'
-import { issueAcceptancePermit, parseAcceptancePermitContext } from '@/domain/mini-program/acceptance-permit'
+import {
+  issueAcceptanceInspectPermit,
+  issueAcceptancePermit,
+  issueAcceptanceRecoveryPermit,
+  parseAcceptancePermitRequest,
+  verifyAcceptanceRecoveryReceipt,
+  type AcceptancePermitContext,
+  type AcceptancePermitRequest,
+} from '@/domain/mini-program/acceptance-permit'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
 import { probeAcceptanceDatabase } from '@/lib/mini-program/acceptance-db-probe'
 import { miniRequestId } from '@/domain/mini-program/response'
@@ -13,13 +21,16 @@ import { readBoundedJsonBody } from '../../bounded-json-body'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 const MAX_BODY_BYTES = 16 * 1024
+export const ACCEPTANCE_POSTGRES_CLOCK_SQL =
+  'SELECT floor(extract(epoch from clock_timestamp()) * 1000)::bigint::text AS "nowMs"'
 type RuntimeConfig = NonNullable<ReturnType<typeof readAcceptanceRuntimeConfig>>
 type Deps = Readonly<{
   readConfig: () => RuntimeConfig | null
   getPayload: () => Promise<{ db: { pool?: PoolLike } }>
   probe: typeof probeAcceptanceDatabase
-  issue: typeof issueAcceptancePermit
-  now: () => number
+  issueWrite: typeof issueAcceptancePermit
+  issueInspect: typeof issueAcceptanceInspectPermit
+  issueRecovery: typeof issueAcceptanceRecoveryPermit
   random: Parameters<typeof issueAcceptancePermit>[3]
   requestId: () => string
 }>
@@ -28,6 +39,46 @@ function jsonResponse(body: unknown, status: number, requestId: string): Respons
     status,
     headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId },
   })
+}
+
+async function readPostgresClockMilliseconds(pool: PoolLike): Promise<number> {
+  const result = await pool.query({ text: ACCEPTANCE_POSTGRES_CLOCK_SQL, values: [] })
+  const value = result.rows.length === 1 ? result.rows[0]?.nowMs : null
+  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error('invalid PostgreSQL clock')
+  }
+  const now = Number(value)
+  if (!Number.isSafeInteger(now) || now < 0 || String(now) !== value) {
+    throw new Error('invalid PostgreSQL clock')
+  }
+  return now
+}
+
+function permitContext(request: AcceptancePermitRequest): AcceptancePermitContext {
+  return {
+    runId: request.runId,
+    submissionRequestId: request.submissionRequestId,
+    listingSlug: request.listingSlug,
+    fixtureNamespace: request.fixtureNamespace,
+    expectedGitCommitSha: request.expectedGitCommitSha,
+    expectedDeploymentRevision: request.expectedDeploymentRevision,
+    expectedDbFingerprint: request.expectedDbFingerprint,
+  }
+}
+
+function permitResponse(
+  issued: Readonly<{ token: string; payload: Readonly<{ iat: number; exp: number }> }>,
+  requestId: string,
+  recoveryReceipt?: string,
+): Response {
+  return jsonResponse({
+    ok: true,
+    permit: issued.token,
+    ...(recoveryReceipt === undefined ? {} : { recoveryReceipt }),
+    issuedAt: new Date(issued.payload.iat).toISOString(),
+    expiresAt: new Date(issued.payload.exp).toISOString(),
+    meta: { requestId },
+  }, 200, requestId)
 }
 
 export function createAcceptancePermitPostHandler(deps: Deps) {
@@ -48,8 +99,9 @@ export function createAcceptancePermitPostHandler(deps: Deps) {
           parsed.error === 'body_too_large' ? 413 : 400,
           requestId,
         )
-      const context = parseAcceptancePermitContext(parsed.value)
-      if (!context) return jsonResponse({ ok: false, meta: { requestId } }, 400, requestId)
+      const permitRequest = parseAcceptancePermitRequest(parsed.value)
+      if (!permitRequest) return jsonResponse({ ok: false, meta: { requestId } }, 400, requestId)
+      const context = permitContext(permitRequest)
       const payload = await deps.getPayload()
       if (!payload.db.pool) throw new Error('pool unavailable')
       const actual = await deps.probe(
@@ -63,12 +115,45 @@ export function createAcceptancePermitPostHandler(deps: Deps) {
         context.expectedDbFingerprint !== actual.fingerprint
       )
         return jsonResponse({ ok: false, meta: { requestId } }, 409, requestId)
-      const issued = deps.issue(context, runtimeConfig.permitSigningSecret, deps.now(), deps.random)
-      return jsonResponse(
-        { ok: true, permit: issued.token, expiresAt: new Date(issued.payload.exp).toISOString(), meta: { requestId } },
-        200,
-        requestId,
+      const databaseNow = await readPostgresClockMilliseconds(payload.db.pool)
+      if (permitRequest.mode === 'write') {
+        const issued = deps.issueWrite(
+          context,
+          runtimeConfig.permitSigningSecret,
+          databaseNow,
+          deps.random,
+        )
+        return permitResponse(issued, requestId, issued.recoveryReceipt)
+      }
+      if (permitRequest.mode === 'inspect') {
+        const issued = deps.issueInspect(
+          context,
+          runtimeConfig.permitSigningSecret,
+          databaseNow,
+          deps.random,
+        )
+        return permitResponse(issued, requestId)
+      }
+      const receipt = verifyAcceptanceRecoveryReceipt(
+        permitRequest.recoveryReceipt,
+        context,
+        runtimeConfig.permitSigningSecret,
       )
+      if (!receipt || databaseNow < receipt.writerExp) {
+        return jsonResponse({ ok: false, meta: { requestId } }, 409, requestId)
+      }
+      const issued = deps.issueRecovery(
+        context,
+        permitRequest.recoveryReceipt,
+        {
+          recoveryMode: permitRequest.recoveryMode,
+          expectedLeadId: permitRequest.expectedLeadId,
+        },
+        runtimeConfig.permitSigningSecret,
+        databaseNow,
+        deps.random,
+      )
+      return permitResponse(issued, requestId)
     } catch {
       return jsonResponse({ ok: false, meta: { requestId } }, 503, requestId)
     }
@@ -79,8 +164,9 @@ export const POST = createAcceptancePermitPostHandler({
   readConfig: () => readAcceptanceRuntimeConfig(),
   getPayload: () => getPayload({ config }) as Promise<{ db: { pool?: PoolLike } }>,
   probe: probeAcceptanceDatabase,
-  issue: issueAcceptancePermit,
-  now: () => Date.now(),
+  issueWrite: issueAcceptancePermit,
+  issueInspect: issueAcceptanceInspectPermit,
+  issueRecovery: issueAcceptanceRecoveryPermit,
   random: randomBytes,
   requestId: miniRequestId,
 })

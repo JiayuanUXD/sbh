@@ -10,6 +10,8 @@ import {
 
 const context = {
   runId: '550e8400-e29b-41d4-a716-446655440000',
+  submissionRequestId: '650e8400-e29b-41d4-a716-446655440000',
+  listingSlug: 'jingan-center-100-monthly',
   fixtureNamespace: acceptanceFixtureNamespace('550e8400-e29b-41d4-a716-446655440000'),
   expectedGitCommitSha: 'a'.repeat(40),
   expectedDeploymentRevision: 'rev-1',
@@ -17,12 +19,236 @@ const context = {
 }
 const secret = Uint8Array.from({ length: 32 }, (_, i) => i + 1)
 
+type IssueResult = Readonly<{
+  token: string
+  payload: Readonly<Record<string, unknown>>
+}>
+type WriteIssueResult = IssueResult & Readonly<{
+  recoveryReceipt: string
+  recoveryReceiptPayload: Readonly<Record<string, unknown>>
+}>
+type IssueInspect = (
+  candidate: typeof context,
+  signingSecret: Uint8Array,
+  now: number,
+  random: (size: number) => Buffer,
+) => IssueResult
+type IssueRecovery = (
+  candidate: typeof context,
+  recoveryReceipt: string,
+  recovery: Readonly<{
+    recoveryMode: 'unknown-first-write' | 'known-lead'
+    expectedLeadId: string | null
+  }>,
+  signingSecret: Uint8Array,
+  now: number,
+  random: (size: number) => Buffer,
+) => IssueResult
+type VerifyToken = (token: string, signingSecret: Uint8Array, now: number) => Readonly<Record<string, unknown>> | null
+type VerifyReceipt = (
+  token: string,
+  candidate: typeof context,
+  signingSecret: Uint8Array,
+) => Readonly<Record<string, unknown>> | null
+type SignReceiptForTests = (payload: unknown, signingSecret: Uint8Array) => string
+
+function requiredExport<T>(domainModule: object, name: string): T {
+  const value = (domainModule as Record<string, unknown>)[name]
+  expect(value, `missing domain export ${name}`).toBeTypeOf('function')
+  if (typeof value !== 'function') throw new Error(`missing domain export ${name}`)
+  return value as T
+}
+
 function signedPayload(changes: Record<string, unknown> = {}): string {
   const issued = issueAcceptancePermit(context, secret, 1_700_000_000_000, () => Buffer.alloc(16, 7))
   return signAcceptancePermitPayloadForTests({ ...issued.payload, ...changes }, secret)
 }
 
 describe('acceptance permit', () => {
+  it('完整 identity 要求 submissionRequestId/listingSlug，缺失、错格式与额外字段拒绝', () => {
+    expect(parseAcceptancePermitContext(context)).toEqual(context)
+    for (const field of ['submissionRequestId', 'listingSlug'] as const) {
+      const missing: Record<string, unknown> = { ...context }
+      delete missing[field]
+      expect(parseAcceptancePermitContext(missing)).toBeNull()
+    }
+    expect(parseAcceptancePermitContext({ ...context, submissionRequestId: 'bad' })).toBeNull()
+    expect(parseAcceptancePermitContext({ ...context, listingSlug: 'Jingan-Center' })).toBeNull()
+    expect(parseAcceptancePermitContext({ ...context, listingSlug: 'jingan-center/' })).toBeNull()
+  })
+
+  it('write 同时签发独立 recovery receipt，并绑定 writer 时间与完整 identity', async () => {
+    const issued = issueAcceptancePermit(
+      context,
+      secret,
+      1_700_000_000_000,
+      () => Buffer.alloc(16, 7),
+    ) as WriteIssueResult
+    expect(issued.payload).toMatchObject({
+      purpose: 'acceptance-write',
+      runId: context.runId,
+      submissionRequestId: context.submissionRequestId,
+      listingSlug: context.listingSlug,
+    })
+    expect(issued.recoveryReceipt).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/)
+    expect(issued.recoveryReceiptPayload).toMatchObject({
+      purpose: 'acceptance-recovery-fence',
+      writerJti: issued.payload.jti,
+      writerIat: issued.payload.iat,
+      writerExp: issued.payload.exp,
+      runId: context.runId,
+      submissionRequestId: context.submissionRequestId,
+      listingSlug: context.listingSlug,
+    })
+
+    const domainModule = await import('@/domain/mini-program/acceptance-permit')
+    const verifyReceipt = requiredExport<VerifyReceipt>(domainModule, 'verifyAcceptanceRecoveryReceipt')
+    expect(verifyReceipt(issued.recoveryReceipt, context, secret)).toEqual(issued.recoveryReceiptPayload)
+    expect(verifyReceipt(issued.recoveryReceipt, { ...context, submissionRequestId: '750e8400-e29b-41d4-a716-446655440000' }, secret)).toBeNull()
+    expect(verifyReceipt(issued.recoveryReceipt, { ...context, listingSlug: 'other-listing' }, secret)).toBeNull()
+  })
+
+  it('write、inspect、recovery scope 与 recovery receipt 的 verifier 严格互斥', async () => {
+    const domainModule = await import('@/domain/mini-program/acceptance-permit')
+    const issueInspect = requiredExport<IssueInspect>(domainModule, 'issueAcceptanceInspectPermit')
+    const issueRecovery = requiredExport<IssueRecovery>(domainModule, 'issueAcceptanceRecoveryPermit')
+    const verifyInspect = requiredExport<VerifyToken>(domainModule, 'verifyAcceptanceInspectPermitToken')
+    const verifyRecovery = requiredExport<VerifyToken>(domainModule, 'verifyAcceptanceRecoveryPermitToken')
+    const verifyReceipt = requiredExport<VerifyReceipt>(domainModule, 'verifyAcceptanceRecoveryReceipt')
+
+    const write = issueAcceptancePermit(
+      context,
+      secret,
+      1_700_000_000_000,
+      () => Buffer.alloc(16, 1),
+    ) as WriteIssueResult
+    const inspect = issueInspect(context, secret, 1_700_000_600_000, () => Buffer.alloc(16, 2))
+    const recovery = issueRecovery(
+      context,
+      write.recoveryReceipt,
+      { recoveryMode: 'unknown-first-write', expectedLeadId: null },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 3),
+    )
+
+    expect(verifyAcceptancePermitToken(write.token, secret, 1_700_000_001_000)).toEqual(write.payload)
+    expect(verifyInspect(write.token, secret, 1_700_000_001_000)).toBeNull()
+    expect(verifyRecovery(write.token, secret, 1_700_000_001_000)).toBeNull()
+    expect(verifyReceipt(write.token, context, secret)).toBeNull()
+
+    expect(verifyAcceptancePermitToken(inspect.token, secret, 1_700_000_600_001)).toBeNull()
+    expect(verifyInspect(inspect.token, secret, 1_700_000_600_001)).toEqual(inspect.payload)
+    expect(verifyRecovery(inspect.token, secret, 1_700_000_600_001)).toBeNull()
+    expect(verifyReceipt(inspect.token, context, secret)).toBeNull()
+
+    expect(verifyAcceptancePermitToken(recovery.token, secret, 1_700_000_600_001)).toBeNull()
+    expect(verifyInspect(recovery.token, secret, 1_700_000_600_001)).toBeNull()
+    expect(verifyRecovery(recovery.token, secret, 1_700_000_600_001)).toEqual(recovery.payload)
+    expect(verifyReceipt(recovery.token, context, secret)).toBeNull()
+    expect(verifyAcceptancePermitToken(write.recoveryReceipt, secret, 1_700_000_600_001)).toBeNull()
+  })
+
+  it('receipt 使用独立领域派生 HMAC key，raw permit key 签名不能伪造 receipt', async () => {
+    const domainModule = await import('@/domain/mini-program/acceptance-permit')
+    const verifyReceipt = requiredExport<VerifyReceipt>(domainModule, 'verifyAcceptanceRecoveryReceipt')
+    const signReceiptForTests = requiredExport<SignReceiptForTests>(
+      domainModule,
+      'signAcceptanceRecoveryReceiptPayloadForTests',
+    )
+    const issued = issueAcceptancePermit(
+      context,
+      secret,
+      1_700_000_000_000,
+      () => Buffer.alloc(16, 7),
+    ) as WriteIssueResult
+
+    const rawKeyForgery = signAcceptancePermitPayloadForTests(issued.recoveryReceiptPayload, secret)
+    expect(verifyReceipt(rawKeyForgery, context, secret)).toBeNull()
+    const receiptKeyForgery = signReceiptForTests(issued.payload, secret)
+    expect(verifyAcceptancePermitToken(receiptKeyForgery, secret, 1_700_000_001_000)).toBeNull()
+  })
+
+  it('recovery 必须等旧 writer 到期，并把 receipt digest/mode/expectedLeadId 固化进 token', async () => {
+    const domainModule = await import('@/domain/mini-program/acceptance-permit')
+    const issueRecovery = requiredExport<IssueRecovery>(domainModule, 'issueAcceptanceRecoveryPermit')
+    const verifyRecovery = requiredExport<VerifyToken>(domainModule, 'verifyAcceptanceRecoveryPermitToken')
+    const receiptDigest = requiredExport<(token: string) => string>(
+      domainModule,
+      'acceptanceRecoveryReceiptDigest',
+    )
+    const issued = issueAcceptancePermit(
+      context,
+      secret,
+      1_700_000_000_000,
+      () => Buffer.alloc(16, 7),
+    ) as WriteIssueResult
+
+    expect(() => issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      { recoveryMode: 'unknown-first-write', expectedLeadId: null },
+      secret,
+      1_700_000_599_999,
+      () => Buffer.alloc(16, 8),
+    )).toThrow('recovery receipt not expired')
+
+    const unknown = issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      { recoveryMode: 'unknown-first-write', expectedLeadId: null },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 8),
+    )
+    expect(verifyRecovery(unknown.token, secret, 1_700_000_600_001)).toMatchObject({
+      purpose: 'acceptance-recovery',
+      recoveryReceiptDigest: receiptDigest(issued.recoveryReceipt),
+      recoveryMode: 'unknown-first-write',
+      expectedLeadId: null,
+    })
+
+    const known = issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      { recoveryMode: 'known-lead', expectedLeadId: 'n:42' },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 9),
+    )
+    expect(verifyRecovery(known.token, secret, 1_700_000_600_001)).toMatchObject({
+      recoveryMode: 'known-lead',
+      expectedLeadId: 'n:42',
+    })
+    expect(() => issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      { recoveryMode: 'known-lead', expectedLeadId: null },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 9),
+    )).toThrow('invalid recovery context')
+    expect(() => issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      { recoveryMode: 'unknown-first-write', expectedLeadId: 'n:42' },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 9),
+    )).toThrow('invalid recovery context')
+    expect(() => issueRecovery(
+      context,
+      issued.recoveryReceipt,
+      {
+        recoveryMode: 'known-lead',
+        expectedLeadId: `s:${Buffer.from([0xff]).toString('base64url')}`,
+      },
+      secret,
+      1_700_000_600_000,
+      () => Buffer.alloc(16, 9),
+    )).toThrow('invalid recovery context')
+  })
+
   it('签发后可在同一上下文验证，且跨上下文/篡改拒绝', () => {
     const issued = issueAcceptancePermit(context, secret, 1_700_000_000_000, () => Buffer.alloc(16, 7))
     expect(verifyAcceptancePermit(issued.token, context, secret, 1_700_000_001_000)).toMatchObject({
@@ -108,6 +334,8 @@ describe('acceptance permit', () => {
         fixtureNamespace: acceptanceFixtureNamespace('650e8400-e29b-41d4-a716-446655440000'),
       },
     ],
+    ['submission', { submissionRequestId: '750e8400-e29b-41d4-a716-446655440000' }],
+    ['listing', { listingSlug: 'other-listing' }],
     ['SHA', { expectedGitCommitSha: 'c'.repeat(40) }],
     ['revision', { expectedDeploymentRevision: 'other' }],
     ['fingerprint', { expectedDbFingerprint: 'c'.repeat(64) }],
@@ -133,6 +361,8 @@ describe('acceptance permit', () => {
     const inherited = Object.create({ expectedDbFingerprint: context.expectedDbFingerprint })
     Object.assign(inherited, {
       runId: context.runId,
+      submissionRequestId: context.submissionRequestId,
+      listingSlug: context.listingSlug,
       fixtureNamespace: context.fixtureNamespace,
       expectedGitCommitSha: context.expectedGitCommitSha,
       expectedDeploymentRevision: context.expectedDeploymentRevision,

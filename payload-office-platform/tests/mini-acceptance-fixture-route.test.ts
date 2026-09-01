@@ -20,8 +20,12 @@ const permitSecret = Uint8Array.from({ length: 32 }, (_, index) => index + 65)
 const identity = { databaseName: 'sbh_staging', serverAddress: '10.0.0.4', serverPort: 5432 }
 const fingerprint = databaseFingerprint(identity, attestationSecret)
 const runId = '550e8400-e29b-41d4-a716-446655440000'
+const submissionRequestId = '650e8400-e29b-41d4-a716-446655440000'
+const listingSlug = 'jingan-center-100-monthly'
 const context = {
   runId,
+  submissionRequestId,
+  listingSlug,
   fixtureNamespace: acceptanceFixtureNamespace(runId),
   expectedGitCommitSha: 'a'.repeat(40),
   expectedDeploymentRevision: 'revision-1',
@@ -37,8 +41,8 @@ const runtimeConfig = {
 }
 const inspectRequest = {
   action: 'inspect',
-  submissionRequestId: '650e8400-e29b-41d4-a716-446655440000',
-  listingSlug: 'jingan-center-100-monthly',
+  submissionRequestId,
+  listingSlug,
 } as const satisfies AcceptanceFixtureRequest
 
 type LeadId = number | string

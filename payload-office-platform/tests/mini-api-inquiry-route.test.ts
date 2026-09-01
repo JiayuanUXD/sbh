@@ -129,6 +129,8 @@ const ACCEPTANCE_PAYLOAD = {
   version: 1 as const,
   purpose: 'acceptance-write' as const,
   runId: ACCEPTANCE_RUN_ID,
+  submissionRequestId: SUBMISSION_ID,
+  listingSlug: 'jingan-center-100-monthly',
   fixtureNamespace: ACCEPTANCE_FIXTURE_NAMESPACE,
   gitSHA: 'a'.repeat(40),
   revision: 'revision-1',
