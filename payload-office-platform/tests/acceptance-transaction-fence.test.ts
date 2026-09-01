@@ -84,6 +84,39 @@ function compile(statement: unknown) {
   return new PgDialect().sqlToQuery(statement as Parameters<PgDialect['sqlToQuery']>[0])
 }
 
+type SharedFenceState = { owner: string | null }
+
+function sharedFencePayload(
+  transactionID: string,
+  dbNowMs: number,
+  shared: SharedFenceState,
+) {
+  let executeCalls = 0
+  const execute = vi.fn(async () => {
+    executeCalls += 1
+    if (executeCalls === 1) {
+      if (shared.owner !== null) return { rows: [{ locked: false }] }
+      shared.owner = transactionID
+      return { rows: [{ locked: true }] }
+    }
+    return { rows: [{ nowMs: String(dbNowMs) }] }
+  })
+  const release = () => {
+    if (shared.owner === transactionID) shared.owner = null
+  }
+  const commitTransaction = vi.fn(async () => release())
+  const rollbackTransaction = vi.fn(async () => release())
+  const payload = {
+    db: {
+      sessions: { [transactionID]: { db: { execute } } },
+      beginTransaction: vi.fn(async () => transactionID),
+      commitTransaction,
+      rollbackTransaction,
+    },
+  } as unknown as Payload
+  return { payload, execute, commitTransaction, rollbackTransaction }
+}
+
 beforeEach(() => {
   io.createLocalReq.mockReset()
   io.createLocalReq.mockResolvedValue({ context: {} } as PayloadRequest)
@@ -215,6 +248,80 @@ describe('acceptance transaction fence', () => {
 
     expect(fixture.events).toEqual(['begin', 'lock', 'clock', 'rollback'])
     expect(action).not.toHaveBeenCalled()
+  })
+
+  it('writer 持有同 locator xact lock 时 recovery 立即 busy 且零读取/删除', async () => {
+    const shared: SharedFenceState = { owner: null }
+    const writer = sharedFencePayload('writer-tx', DB_NOW_MS - 1, shared)
+    const recovery = sharedFencePayload('recovery-tx', DB_NOW_MS, shared)
+    let releaseWriter!: () => void
+    let signalWriterStarted!: () => void
+    const writerRelease = new Promise<void>((resolve) => { releaseWriter = resolve })
+    const writerStarted = new Promise<void>((resolve) => { signalWriterStarted = resolve })
+    const writerAction = vi.fn(async () => {
+      signalWriterStarted()
+      await writerRelease
+      return 'writer-finished'
+    })
+    const recoveryAction = vi.fn(async () => 'must-not-run')
+
+    const writerPromise = runAcceptanceFencedTransaction({
+      payload: writer.payload,
+      locator: LOCATOR,
+      verifyLeaseAtDatabaseTime: () => ({ scope: 'write' as const }),
+      action: writerAction,
+    })
+    await writerStarted
+
+    await expect(runAcceptanceFencedTransaction({
+      payload: recovery.payload,
+      locator: LOCATOR,
+      verifyLeaseAtDatabaseTime: () => ({ scope: 'recovery' as const }),
+      action: recoveryAction,
+    })).resolves.toEqual({ kind: 'busy' })
+    expect(recoveryAction).not.toHaveBeenCalled()
+    expect(recovery.execute).toHaveBeenCalledOnce()
+    expect(recovery.rollbackTransaction).toHaveBeenCalledOnce()
+
+    releaseWriter()
+    await expect(writerPromise).resolves.toEqual({
+      kind: 'committed',
+      value: 'writer-finished',
+    })
+    expect(writerAction).toHaveBeenCalledOnce()
+  })
+
+  it('recovery 先 commit 释放同 locator lock 后，旧 writer 以 PG expiry 复验失败且零 create', async () => {
+    const writerExp = DB_NOW_MS
+    const shared: SharedFenceState = { owner: null }
+    const recovery = sharedFencePayload('recovery-tx', writerExp, shared)
+    const writer = sharedFencePayload('writer-tx', writerExp, shared)
+    const recoveryDelete = vi.fn(async () => 'deleted')
+    const writerCreate = vi.fn(async () => 'must-not-create')
+
+    await expect(runAcceptanceFencedTransaction({
+      payload: recovery.payload,
+      locator: LOCATOR,
+      verifyLeaseAtDatabaseTime: (dbNowMs) => dbNowMs >= writerExp
+        ? { scope: 'recovery' as const }
+        : null,
+      action: recoveryDelete,
+    })).resolves.toEqual({ kind: 'committed', value: 'deleted' })
+    expect(recoveryDelete).toHaveBeenCalledOnce()
+    expect(recovery.commitTransaction).toHaveBeenCalledOnce()
+    expect(shared.owner).toBeNull()
+
+    await expect(runAcceptanceFencedTransaction({
+      payload: writer.payload,
+      locator: LOCATOR,
+      verifyLeaseAtDatabaseTime: (dbNowMs) => dbNowMs < writerExp
+        ? { scope: 'write' as const }
+        : null,
+      action: writerCreate,
+    })).resolves.toEqual({ kind: 'lease-invalid' })
+    expect(writer.execute).toHaveBeenCalledTimes(2)
+    expect(writerCreate).not.toHaveBeenCalled()
+    expect(writer.rollbackTransaction).toHaveBeenCalledOnce()
   })
 
   it.each([

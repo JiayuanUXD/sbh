@@ -17,12 +17,17 @@ export type AcceptanceFixtureRequest =
     action: 'cleanup'
     leadId: AcceptanceFixtureLeadId
   }>)
+  | (AcceptanceFixtureRequestIdentity & Readonly<{
+    action: 'recover'
+    recoveryReceipt: string
+  }>)
 
 export type AcceptanceFixtureParseResult =
   | Readonly<{ ok: true; data: AcceptanceFixtureRequest }>
   | Readonly<{ ok: false; error: 'invalid_request' }>
 
 const MAX_STRING_LEAD_ID_UTF8_BYTES = 128
+const MAX_RECOVERY_RECEIPT_BYTES = 4096
 const NUMBER_TOKEN = /^n:[1-9][0-9]*$/
 const STRING_TOKEN = /^s:([A-Za-z0-9_-]+)$/
 const CONTROL = /\p{Cc}/u
@@ -33,7 +38,12 @@ function own(value: Record<string, unknown>, key: string): boolean {
 }
 
 function record(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  )
 }
 
 function hasExactOwnKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
@@ -52,6 +62,21 @@ function validStringLeadId(value: string): boolean {
     !CONTROL.test(value) &&
     !WHITESPACE.test(value)
   )
+}
+
+function canonicalBase64url(value: string): Buffer | null {
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return null
+  const decoded = Buffer.from(value, 'base64url')
+  return decoded.toString('base64url') === value ? decoded : null
+}
+
+function validRecoveryReceipt(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length > MAX_RECOVERY_RECEIPT_BYTES) return false
+  const parts = value.split('.')
+  if (parts.length !== 2) return false
+  const body = canonicalBase64url(parts[0] ?? '')
+  const signature = canonicalBase64url(parts[1] ?? '')
+  return body !== null && body.length > 0 && signature?.length === 32
 }
 
 export function encodeAcceptanceFixtureLeadId(value: number | string): AcceptanceFixtureLeadId {
@@ -80,12 +105,24 @@ function parseCanonicalLeadIdToken(value: unknown): AcceptanceFixtureLeadId | nu
   return encodeAcceptanceFixtureLeadId(id) === value ? value as AcceptanceFixtureLeadId : null
 }
 
+export function decodeAcceptanceFixtureLeadId(value: unknown): number | string | null {
+  const token = parseCanonicalLeadIdToken(value)
+  if (!token) return null
+  if (token.startsWith('n:')) return Number(token.slice(2))
+  const encoded = token.slice(2)
+  return Buffer.from(encoded, 'base64url').toString('utf8')
+}
+
 export function parseAcceptanceFixtureRequest(value: unknown): AcceptanceFixtureParseResult {
   if (!record(value) || !own(value, 'action') || !own(value, 'submissionRequestId') || !own(value, 'listingSlug')) return { ok: false, error: 'invalid_request' }
-  if (value.action !== 'inspect' && value.action !== 'cleanup') return { ok: false, error: 'invalid_request' }
+  if (value.action !== 'inspect' && value.action !== 'cleanup' && value.action !== 'recover') return { ok: false, error: 'invalid_request' }
   if (!isCanonicalMiniUuidV4(value.submissionRequestId)) return { ok: false, error: 'invalid_request' }
   if (!isCanonicalMiniSlug(value.listingSlug)) return { ok: false, error: 'invalid_request' }
-  const expectedKeys = value.action === 'cleanup' ? ['action', 'submissionRequestId', 'listingSlug', 'leadId'] : ['action', 'submissionRequestId', 'listingSlug']
+  const expectedKeys = value.action === 'cleanup'
+    ? ['action', 'submissionRequestId', 'listingSlug', 'leadId']
+    : value.action === 'recover'
+      ? ['action', 'submissionRequestId', 'listingSlug', 'recoveryReceipt']
+      : ['action', 'submissionRequestId', 'listingSlug']
   if (!hasExactOwnKeys(value, expectedKeys)) return { ok: false, error: 'invalid_request' }
   if (value.action === 'cleanup') {
     const leadId = parseCanonicalLeadIdToken(value.leadId)
@@ -97,6 +134,18 @@ export function parseAcceptanceFixtureRequest(value: unknown): AcceptanceFixture
         submissionRequestId: value.submissionRequestId,
         listingSlug: value.listingSlug,
         leadId,
+      },
+    }
+  }
+  if (value.action === 'recover') {
+    if (!validRecoveryReceipt(value.recoveryReceipt)) return { ok: false, error: 'invalid_request' }
+    return {
+      ok: true,
+      data: {
+        action: 'recover',
+        submissionRequestId: value.submissionRequestId,
+        listingSlug: value.listingSlug,
+        recoveryReceipt: value.recoveryReceipt,
       },
     }
   }
