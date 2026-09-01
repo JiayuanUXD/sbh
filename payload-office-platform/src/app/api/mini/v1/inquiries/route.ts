@@ -1,4 +1,4 @@
-import { getPayload } from 'payload'
+import { getPayload, type PayloadRequest } from 'payload'
 import { NextResponse } from 'next/server'
 
 import config from '@/payload.config'
@@ -24,6 +24,7 @@ import {
   verifyAcceptancePermitToken,
   type AcceptancePermitPayload,
 } from '@/domain/mini-program/acceptance-permit'
+import { runAcceptanceFencedTransaction } from '@/domain/mini-program/acceptance-transaction-fence'
 import {
   MINI_CACHE_CONTROL,
   miniError,
@@ -76,6 +77,7 @@ type SafeLogger = Readonly<{
   warn?(entry: unknown, event?: string): void
 }>
 type AcceptanceInquiryCandidate = Readonly<{
+  rawToken: string
   permit: AcceptancePermitPayload
   runtimeConfig: AcceptanceRuntimeConfig
 }>
@@ -140,6 +142,7 @@ function readAcceptanceInquiryGate(request: Request): AcceptanceInquiryGate {
   const permit = verifyAcceptancePermitToken(token, runtimeConfig.permitSigningSecret)
   if (
     !permit ||
+    permit.purpose !== 'acceptance-write' ||
     permit.gitSHA !== runtimeConfig.deploymentGitCommitSha ||
     permit.revision !== runtimeConfig.deploymentRevision ||
     !isAllowedDatabaseFingerprint(permit.dbFingerprint, runtimeConfig.dbFingerprintAllowlist)
@@ -147,7 +150,7 @@ function readAcceptanceInquiryGate(request: Request): AcceptanceInquiryGate {
     return { kind: 'invalid' }
   }
 
-  return { kind: 'candidate', value: { permit, runtimeConfig } }
+  return { kind: 'candidate', value: { rawToken: token, permit, runtimeConfig } }
 }
 
 function failure(
@@ -237,7 +240,12 @@ function isIdempotencyUniqueViolation(error: unknown): boolean {
   })
 }
 
-function publicInquiryDeps(payload: PayloadClient, logger: SafeLogger): PublicInquiryDeps {
+function publicInquiryDeps(
+  payload: PayloadClient,
+  logger: SafeLogger,
+  transactionReq?: PayloadRequest,
+): PublicInquiryDeps {
+  const transaction = transactionReq ? { req: transactionReq } : {}
   const resolveCity = async (slug: string) => {
     const city = await resolveCityContext(slug)
     return city ? { id: city.id, slug: city.slug } : null
@@ -249,6 +257,7 @@ function publicInquiryDeps(payload: PayloadClient, logger: SafeLogger): PublicIn
         where: { idempotencyKey: { equals: trustedKey } },
         limit: 1,
         depth: 0,
+        ...transaction,
       })
       return result.docs[0] ?? null
     },
@@ -262,6 +271,7 @@ function publicInquiryDeps(payload: PayloadClient, logger: SafeLogger): PublicIn
       await payload.create({
         collection: 'leads',
         data: { ...data, name: data.name as string },
+        ...transaction,
       })
     },
     isIdempotencyUniqueViolation,
@@ -372,6 +382,17 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = validateMiniInquiryInput(body.value, siteConfig.privacyPolicyVersion)
   if (!parsed.ok) return invalid(requestId, 422, parsed.errors[0] ?? 'invalid_body')
 
+  if (
+    acceptanceGate.kind === 'candidate' &&
+    (
+      acceptanceGate.value.permit.submissionRequestId !== parsed.data.submissionRequestId ||
+      acceptanceGate.value.permit.listingSlug !== parsed.data.listingSlug ||
+      parsed.data.phone === null
+    )
+  ) {
+    return acceptanceUnavailable(requestId)
+  }
+
   const authorization = bearerToken(request.headers.get('authorization'))
   if (!authorization.ok) {
     return failure(requestId, 'session_invalid', '匿名会话已失效，请重试', 401)
@@ -408,6 +429,112 @@ export async function POST(request: Request): Promise<Response> {
         leadLocator: { collection: 'leads', idempotencyKey },
       }
     : undefined
+
+  if (acceptanceGate.kind === 'candidate') {
+    const candidate = acceptanceGate.value
+    const acceptancePhone = parsed.data.phone
+    if (!acceptancePhone || !acceptanceReceipt) return acceptanceUnavailable(requestId)
+    const inquiry = canonicalInquiry(parsed.data, acceptancePhone, requestId)
+    try {
+      const fenced = await runAcceptanceFencedTransaction({
+        payload,
+        locator: idempotencyKey,
+        verifyLeaseAtDatabaseTime: (dbNowMs) => {
+          const permit = verifyAcceptancePermitToken(
+            candidate.rawToken,
+            candidate.runtimeConfig.permitSigningSecret,
+            dbNowMs,
+          )
+          return permit &&
+            permit.purpose === 'acceptance-write' &&
+            permit.runId === candidate.permit.runId &&
+            permit.submissionRequestId === parsed.data.submissionRequestId &&
+            permit.listingSlug === parsed.data.listingSlug &&
+            permit.fixtureNamespace === candidate.permit.fixtureNamespace &&
+            permit.gitSHA === candidate.runtimeConfig.deploymentGitCommitSha &&
+            permit.revision === candidate.runtimeConfig.deploymentRevision &&
+            permit.dbFingerprint === candidate.permit.dbFingerprint &&
+            permit.iat === candidate.permit.iat &&
+            permit.exp === candidate.permit.exp &&
+            permit.jti === candidate.permit.jti &&
+            isAllowedDatabaseFingerprint(
+              permit.dbFingerprint,
+              candidate.runtimeConfig.dbFingerprintAllowlist,
+            )
+            ? permit
+            : null
+        },
+        action: async ({ req }) => {
+          const deps = publicInquiryDeps(payload, logger, req)
+          try {
+            const existing = await findExistingInquiryResult(idempotencyKey, deps)
+            if (existing) {
+              return {
+                acceptedExisting: true,
+                targetResolution: existing.targetResolution,
+              } as const
+            }
+          } catch {
+            safeLog(logger, 'error', {
+              operation: 'mini_inquiry_idempotency_precheck',
+              requestId,
+              errorCode: 'lookup_failed',
+            }, 'mini_inquiry_idempotency_precheck_failed')
+            throw new Error('acceptance inquiry precheck failed')
+          }
+
+          const trustedCity = await resolveTrustedPublicInquiryCity(
+            inquiry,
+            'shanghai',
+            deps,
+          )
+          const submission = await submitPublicInquiry({
+            inquiry,
+            trustedIdempotencyKey: idempotencyKey,
+            defaultCity: 'shanghai',
+            siteOrigin: siteConfig.siteOrigin,
+            trustedCity,
+            viewingPreference: null,
+          }, deps)
+          return {
+            acceptedExisting: submission.idempotent,
+            targetResolution: submission.targetResolution,
+          } as const
+        },
+      })
+      if (fenced.kind !== 'committed') {
+        return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
+      }
+      safeLog(logger, 'info', {
+        operation: 'mini_inquiry',
+        requestId,
+        acceptedExisting: fenced.value.acceptedExisting,
+        targetResolution: fenced.value.targetResolution,
+        errorCode: null,
+      }, 'mini_inquiry_success')
+      return accepted(
+        requestId,
+        fenced.value.acceptedExisting,
+        fenced.value.targetResolution,
+        acceptanceReceipt,
+      )
+    } catch (error) {
+      const isCreateFailure = error instanceof PublicInquirySubmissionError
+        && error.code === 'create_failed'
+      safeLog(logger, 'error', {
+        operation: 'mini_inquiry_submit',
+        requestId,
+        errorCode: isCreateFailure ? 'inquiry_submit_failed' : 'service_unavailable',
+      }, 'mini_inquiry_submit_failed')
+      return failure(
+        requestId,
+        isCreateFailure ? 'inquiry_submit_failed' : 'service_unavailable',
+        isCreateFailure ? '提交失败，请重试' : '服务暂不可用，请稍后重试',
+        503,
+      )
+    }
+  }
+
   const deps = publicInquiryDeps(payload, logger)
   try {
     const existing = await findExistingInquiryResult(idempotencyKey, deps)

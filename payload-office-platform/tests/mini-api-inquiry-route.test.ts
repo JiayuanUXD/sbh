@@ -6,8 +6,15 @@ const io = vi.hoisted(() => ({
   rateCounts: new Map<string, number>(),
   rateStoreFails: false,
   getPayload: vi.fn(),
+  createLocalReq: vi.fn(),
   payloadFind: vi.fn(),
   payloadCreate: vi.fn(),
+  beginTransaction: vi.fn(),
+  commitTransaction: vi.fn(),
+  rollbackTransaction: vi.fn(),
+  transactionExecute: vi.fn(),
+  transactionSessions: {} as Record<string, { db: { execute: ReturnType<typeof vi.fn> } }>,
+  transactionIndex: 0,
   loggerInfo: vi.fn(),
   loggerError: vi.fn(),
   loggerWarn: vi.fn(),
@@ -28,7 +35,7 @@ const io = vi.hoisted(() => ({
 
 vi.mock('payload', async (importOriginal) => {
   const actual = await importOriginal<typeof import('payload')>()
-  return { ...actual, getPayload: io.getPayload }
+  return { ...actual, createLocalReq: io.createLocalReq, getPayload: io.getPayload }
 })
 
 vi.mock('@/lib/rate-limit-pg', () => ({
@@ -125,6 +132,7 @@ const ACCEPTANCE_TOKEN = 'acceptance-permit-sensitive-marker'
 const ACCEPTANCE_RUN_ID = '550e8400-e29b-41d4-a716-446655440000'
 const ACCEPTANCE_FIXTURE_NAMESPACE = acceptanceFixtureNamespace(ACCEPTANCE_RUN_ID)
 const ACCEPTANCE_FINGERPRINT = 'b'.repeat(64)
+const ACCEPTANCE_DB_NOW_MS = 1_800_000_000_123
 const ACCEPTANCE_PAYLOAD = {
   version: 1 as const,
   purpose: 'acceptance-write' as const,
@@ -228,8 +236,13 @@ beforeEach(() => {
   io.rateStoreFails = false
   for (const mock of [
     io.getPayload,
+    io.createLocalReq,
     io.payloadFind,
     io.payloadCreate,
+    io.beginTransaction,
+    io.commitTransaction,
+    io.rollbackTransaction,
+    io.transactionExecute,
     io.loggerInfo,
     io.loggerError,
     io.loggerWarn,
@@ -247,16 +260,48 @@ beforeEach(() => {
     io.verifyAcceptancePermitToken,
     io.probeAcceptanceDatabase,
   ]) mock.mockReset()
+  io.transactionIndex = 0
+  for (const key of Object.keys(io.transactionSessions)) delete io.transactionSessions[key]
   __resetMiniRateLimitStateForTests()
 
   io.payloadFind.mockImplementation(async () => {
     io.events.push('precheck')
     return { docs: [] }
   })
+  io.createLocalReq.mockResolvedValue({ context: {} })
+  io.transactionExecute.mockImplementation(async () => {
+    const call = io.transactionExecute.mock.calls.length
+    if (call % 2 === 1) {
+      io.events.push('acceptance-lock')
+      return { rows: [{ locked: true }] }
+    }
+    io.events.push('acceptance-clock')
+    return { rows: [{ nowMs: String(ACCEPTANCE_DB_NOW_MS) }] }
+  })
+  io.beginTransaction.mockImplementation(async () => {
+    const transactionID = `acceptance-tx-${++io.transactionIndex}`
+    io.events.push('acceptance-begin')
+    io.transactionSessions[transactionID] = { db: { execute: io.transactionExecute } }
+    return transactionID
+  })
+  io.commitTransaction.mockImplementation(async (transactionID: string) => {
+    io.events.push('acceptance-commit')
+    delete io.transactionSessions[transactionID]
+  })
+  io.rollbackTransaction.mockImplementation(async (transactionID: string) => {
+    io.events.push('acceptance-rollback')
+    delete io.transactionSessions[transactionID]
+  })
   io.getPayload.mockImplementation(async () => {
     io.events.push('payload-init')
     return {
-      db: { pool: {} },
+      db: {
+        pool: {},
+        sessions: io.transactionSessions,
+        beginTransaction: io.beginTransaction,
+        commitTransaction: io.commitTransaction,
+        rollbackTransaction: io.rollbackTransaction,
+      },
       find: io.payloadFind,
       create: io.payloadCreate,
       logger: { info: io.loggerInfo, error: io.loggerError, warn: io.loggerWarn },
@@ -492,6 +537,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.readAcceptanceConfig).not.toHaveBeenCalled()
     expect(io.verifyAcceptancePermitToken).not.toHaveBeenCalled()
     expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
+    expect(io.beginTransaction).not.toHaveBeenCalled()
 
     const [command] = io.submitPublicInquiry.mock.calls[0]!
     expect(command).toMatchObject({
@@ -545,11 +591,28 @@ describe('POST /api/mini/v1/inquiries', () => {
     const [command] = io.submitPublicInquiry.mock.calls[0]!
 
     expect(response.status).toBe(200)
-    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'precheck', 'city', 'submit'])
+    expect(io.events).toEqual([
+      'payload-init',
+      'acceptance-probe',
+      'acceptance-begin',
+      'acceptance-lock',
+      'acceptance-clock',
+      'precheck',
+      'city',
+      'submit',
+      'acceptance-commit',
+    ])
     expect(io.rateKeys).toEqual([])
-    expect(io.verifyAcceptancePermitToken).toHaveBeenCalledWith(
+    expect(io.verifyAcceptancePermitToken).toHaveBeenNthCalledWith(
+      1,
       ACCEPTANCE_TOKEN,
       ACCEPTANCE_CONFIG.permitSigningSecret,
+    )
+    expect(io.verifyAcceptancePermitToken).toHaveBeenNthCalledWith(
+      2,
+      ACCEPTANCE_TOKEN,
+      ACCEPTANCE_CONFIG.permitSigningSecret,
+      ACCEPTANCE_DB_NOW_MS,
     )
     expect(io.probeAcceptanceDatabase).toHaveBeenCalledWith(
       expect.any(Object),
@@ -590,9 +653,158 @@ describe('POST /api/mini/v1/inquiries', () => {
     }))
 
     expect(response.status).toBe(200)
-    expect(io.events).toEqual(['payload-init', 'acceptance-probe', 'precheck', 'city', 'submit'])
+    expect(io.events).toEqual([
+      'payload-init',
+      'acceptance-probe',
+      'acceptance-begin',
+      'acceptance-lock',
+      'acceptance-clock',
+      'precheck',
+      'city',
+      'submit',
+      'acceptance-commit',
+    ])
     expect(io.rateKeys).toEqual([])
     expect(io.submitPublicInquiry).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['submissionRequestId', { submissionRequestId: '650e8400-e29b-41d4-a716-446655440000' }],
+    ['listingSlug', { listingSlug: 'other-listing' }],
+  ])('permit 与请求体 %s 不一致时在 transaction 和 Lead 前拒绝', async (_label, change) => {
+    io.verifyAcceptancePermitToken.mockReturnValue({ ...ACCEPTANCE_PAYLOAD, ...change })
+
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(404)
+    expect(io.beginTransaction).not.toHaveBeenCalled()
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.payloadCreate).not.toHaveBeenCalled()
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
+  })
+
+  it.each(['acceptance-inspect', 'acceptance-recovery'] as const)(
+    'inquiry 明确拒绝 %s scope，即使 verifier 测试替身错误放行',
+    async (purpose) => {
+      io.verifyAcceptancePermitToken.mockReturnValue({ ...ACCEPTANCE_PAYLOAD, purpose })
+
+      const response = await POST(routeRequest({
+        headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+      }))
+
+      expect(response.status).toBe(404)
+      expect(io.getPayload).not.toHaveBeenCalled()
+      expect(io.beginTransaction).not.toHaveBeenCalled()
+    },
+  )
+
+  it('acceptance 禁止一次性 phoneCode，在事务、Lead 与微信网络前 fail-closed', async () => {
+    const response = await POST(routeRequest({
+      body: validBody({ phone: undefined, phoneCode: 'must-not-consume' }),
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(404)
+    expect(io.beginTransaction).not.toHaveBeenCalled()
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.readWechatConfig).not.toHaveBeenCalled()
+    expect(io.exchangePhoneCode).not.toHaveBeenCalled()
+  })
+
+  it('advisory lock busy 时回滚且两个预查、create 与微信网络均为零', async () => {
+    io.transactionExecute.mockResolvedValueOnce({ rows: [{ locked: false }] })
+
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(503)
+    expect(io.rollbackTransaction).toHaveBeenCalledOnce()
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.payloadCreate).not.toHaveBeenCalled()
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
+    expect(io.exchangePhoneCode).not.toHaveBeenCalled()
+  })
+
+  it('拿锁后以 PostgreSQL 时间复验 raw write permit，过期则零 Lead action', async () => {
+    io.verifyAcceptancePermitToken.mockImplementation((
+      _token: string,
+      _secret: Uint8Array,
+      now?: number,
+    ) => now === undefined ? ACCEPTANCE_PAYLOAD : null)
+
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(503)
+    expect(io.verifyAcceptancePermitToken).toHaveBeenNthCalledWith(
+      2,
+      ACCEPTANCE_TOKEN,
+      ACCEPTANCE_CONFIG.permitSigningSecret,
+      ACCEPTANCE_DB_NOW_MS,
+    )
+    expect(io.rollbackTransaction).toHaveBeenCalledOnce()
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.payloadCreate).not.toHaveBeenCalled()
+  })
+
+  it('route 首次预查、domain 二次预查、create 与 unique-race reread 共用同一 transaction req', async () => {
+    const requestsAtCall: unknown[] = []
+    const transactionIDsAtCall: unknown[] = []
+    io.payloadFind.mockImplementation(async (args) => {
+      io.events.push('precheck')
+      requestsAtCall.push(args.req)
+      transactionIDsAtCall.push(args.req?.transactionID)
+      return { docs: [] }
+    })
+    io.payloadCreate.mockImplementation(async (args) => {
+      requestsAtCall.push(args.req)
+      transactionIDsAtCall.push(args.req?.transactionID)
+      return { id: 17 }
+    })
+    io.submitPublicInquiry.mockImplementation(async (command, deps) => {
+      io.events.push('submit')
+      await deps.findExistingLead(command.trustedIdempotencyKey)
+      await deps.createLead({ name: '验收测试' })
+      await deps.findExistingLead(command.trustedIdempotencyKey)
+      return { idempotent: false, targetResolution: 'listing' }
+    })
+
+    const response = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+
+    expect(response.status).toBe(200)
+    expect(io.payloadFind).toHaveBeenCalledTimes(3)
+    expect(io.payloadCreate).toHaveBeenCalledOnce()
+    expect(requestsAtCall.every((req) => req === requestsAtCall[0])).toBe(true)
+    expect(transactionIDsAtCall).toEqual(Array(4).fill('acceptance-tx-1'))
+    expect(Object.prototype.hasOwnProperty.call(requestsAtCall[0], 'transactionID')).toBe(false)
+  })
+
+  it('transaction unavailable 或可观察 commit 失败时绝不返回 accepted', async () => {
+    io.beginTransaction.mockResolvedValueOnce(null)
+    const unavailable = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+    expect(unavailable.status).toBe(503)
+    expect(await json(unavailable)).toMatchObject({ error: { code: 'service_unavailable' } })
+    expect(io.payloadFind).not.toHaveBeenCalled()
+
+    io.commitTransaction.mockImplementationOnce(async () => {
+      throw new Error(`commit ${ACCEPTANCE_TOKEN}`)
+    })
+    const commitUnknown = await POST(routeRequest({
+      headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
+    }))
+    const serialized = JSON.stringify(await json(commitUnknown))
+    expect(commitUnknown.status).toBe(503)
+    expect(serialized).not.toContain(ACCEPTANCE_TOKEN)
+    expect(io.submitPublicInquiry).toHaveBeenCalledOnce()
+    expect(io.rollbackTransaction).not.toHaveBeenCalled()
   })
 
   it('同 run 同 submission/listing 的 locator 稳定，第二次命中 acceptedExisting', async () => {
