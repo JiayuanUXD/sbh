@@ -57,6 +57,50 @@ export function createConsoleAdapter(): AnalyticsAdapter {
   }
 }
 
+/** Umami 全局对象的最小形状；只声明本模块用得到的部分。 */
+interface UmamiGlobal {
+  track: (eventName: string, eventData?: Record<string, AllowedValue>) => void
+}
+
+function readUmami(): UmamiGlobal | null {
+  if (typeof window === 'undefined') return null
+  const candidate = (window as typeof window & { umami?: unknown }).umami
+  if (!candidate || typeof candidate !== 'object') return null
+  const track = (candidate as { track?: unknown }).track
+  return typeof track === 'function' ? (candidate as UmamiGlobal) : null
+}
+
+/**
+ * Umami 适配器：把事件交给自托管 Umami 的 `window.umami.track()`。
+ *
+ * ## 为什么未就绪时要抛错，而不是默默丢弃
+ *
+ * Umami 的 `script.js` 是 `defer` 加载的，而首屏就可能触发埋点（`landing_view`、
+ * `city_page_view` 都在挂载时发）。这段窗口里 `window.umami` 还不存在。
+ *
+ * 抛错会让 `queue.ts` 把整批事件转入 `pendingRetry`，按 1s / 2s / 4s 指数退避重试
+ * ——脚本通常在第一次重试前就绪，事件不丢。默默丢弃则会**稳定地**漏掉每个用户的
+ * 首屏事件，而这恰恰是漏斗第一步。
+ *
+ * 三次重试后仍未就绪（脚本被拦截、域名不可达），队列自己放弃并打一条
+ * `drop_after_retries`。这是可接受的终局：埋点不该拖累业务。
+ */
+export function createUmamiAdapter(): AnalyticsAdapter {
+  return {
+    name: 'umami',
+    send(events) {
+      const umami = readUmami()
+      if (!umami) {
+        // 交给队列重试；见上方注释
+        throw new Error('umami tracker not ready')
+      }
+      for (const e of events) {
+        umami.track(e.eventName, e.props)
+      }
+    },
+  }
+}
+
 /** GTM dataLayer 适配器：写 window.dataLayer */
 export function createDataLayerAdapter(): AnalyticsAdapter {
   return {

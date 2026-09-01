@@ -7,7 +7,9 @@ import ExcludedUnitsBar, { type ExcludedUnitOption } from '@/components/frontend
 import FilterFormC, { rowShowsActivePick } from '@/components/frontend/listing/FilterFormC'
 import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListingResultRow from '@/components/frontend/listing/ListingResultRow'
+import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
 import ListPager from '@/components/frontend/listing/ListPager'
+import ListSearchAnalytics from '@/components/frontend/listing/ListSearchAnalytics'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
@@ -390,6 +392,21 @@ export default async function CityListingsView({
 
   return (
     <div className="ls-page">
+      {/*
+        OPT-064 列表页埋点。两个组件都不渲染 UI：
+        - ListSearchAnalytics：本次搜索的结果数/排序/生效筛选数/页码，按状态去重上报
+        - ListClickAnalytics：一个委托监听器接住整页结果卡的点击，不逐张挂 onClick
+      */}
+      <ListSearchAnalytics
+        event="listing_search"
+        city={city.slug}
+        resultCount={totalDocs}
+        sort={input.sort ?? LISTING_DEFAULT_SORT}
+        filterCompleteness={activeDimensions.length}
+        pageIndex={page}
+        priceUnit={activeUnit ?? undefined}
+      />
+      <ListClickAnalytics />
       <header className="ls-container ls-head">
         <h1 className="ls-head__title">{heading}</h1>
         <p className="ls-head__sub">
@@ -475,14 +492,39 @@ export default async function CityListingsView({
             />
             {view === 'row' ? (
               <div className="ls-rowlist">
-                {docs.map((listing) => (
-                  <ListingResultRow key={listing.slug} listing={listing} citySlug={citySlug} />
+                {docs.map((listing, index) => (
+                  <ListingResultRow
+                    key={listing.slug}
+                    listing={listing}
+                    citySlug={citySlug}
+                    analytics={{
+                      event: 'listing_result_click',
+                      city: listing.citySlug,
+                      // 页内 1 基序号；跨页由 pageIndex 区分
+                      rank: index + 1,
+                      pageIndex: page,
+                      section: 'row',
+                      listingId: listing.id,
+                    }}
+                  />
                 ))}
               </div>
             ) : (
               <div className="ls-grid">
-                {docs.map((listing) => (
-                  <ListingResultCard key={listing.slug} listing={listing} citySlug={citySlug} />
+                {docs.map((listing, index) => (
+                  <ListingResultCard
+                    key={listing.slug}
+                    listing={listing}
+                    citySlug={citySlug}
+                    analytics={{
+                      event: 'listing_result_click',
+                      city: listing.citySlug,
+                      rank: index + 1,
+                      pageIndex: page,
+                      section: 'grid',
+                      listingId: listing.id,
+                    }}
+                  />
                 ))}
               </div>
             )}

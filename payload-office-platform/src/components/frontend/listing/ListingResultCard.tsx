@@ -2,6 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
+import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
 
 /**
@@ -48,9 +49,11 @@ function formatPriceAmount(price: PriceViewModel): string {
     : Math.round(price.amount).toLocaleString('en-US')
 }
 
-export default function ListingResultCard({ listing, citySlug }: Readonly<{
+export default function ListingResultCard({ listing, citySlug, analytics }: Readonly<{
   listing: ListingCardViewModel
   citySlug?: string
+  /** 列表页埋点上下文；不传则该卡不产生点击事件（详情页推荐位复用时即如此） */
+  analytics?: ListResultAnalytics
 }>) {
   const { coverImage, price, area, building, listingType, title, slug } = listing
   const typeLabel = LISTING_TYPE_LABEL[listingType]
@@ -73,6 +76,7 @@ export default function ListingResultCard({ listing, citySlug }: Readonly<{
       // Task 11 曾以为改 `ListingCard` 就覆盖了列表页——`ListingCard` 不在 `/listings`
       // 上，真正的高基数入口是这里；Task 11c 补齐。
       prefetch={false}
+      {...listAnalyticsAttrs(analytics)}
       className="sf-card ls-card"
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >

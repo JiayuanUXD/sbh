@@ -113,6 +113,16 @@ jobs:
       # next build 期内联入前端 bundle。用例点击后 abort webapi.amap.com 断言降级，真实
       # 请求永不发出，故此处用占位假 key（域名白名单 key，非机密，勿用于生产）。
       NEXT_PUBLIC_AMAP_JS_KEY: e2e-fake-amap-js-key-not-real
+      # OPT-064 埋点：E2E 必须跑在**生产构建**上才验得到 Umami 接线——
+      # 开发环境的 adapter 是 ConsoleAdapter，事件根本到不了 window.umami，
+      # 在 dev 下打桩什么也观测不到（用例要么失败，要么退化成与接线无关的断言）。
+      # 这三个 NEXT_PUBLIC_* 是构建期内联的，所以必须在 job 级 env 里给足，
+      # next build 才会把 UmamiAdapter 那条分支编进 bundle。
+      # SRC 指向一个不可达域名：真实脚本加载失败不影响断言，
+      # 用例侧用 page.addInitScript 在导航前就把 window.umami 桩装好了。
+      NEXT_PUBLIC_ANALYTICS_ENABLED: 'true'
+      NEXT_PUBLIC_UMAMI_SRC: https://umami-e2e.invalid
+      NEXT_PUBLIC_UMAMI_WEBSITE_ID: e2e-fake-website-id
       # 出售频道：不再有功能开关（OPT-057 起常开），这里**刻意不设任何相关变量**。
       #
       # 沿革：曾有 NEXT_PUBLIC_SALE_CHANNEL_ENABLED，CI 必须跟着 Dockerfile 一起开，

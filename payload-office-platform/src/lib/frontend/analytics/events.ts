@@ -61,6 +61,47 @@ export const ANALYTICS_EVENTS = {
   city_page_view: ['city', 'status', 'page_type'],
   city_lead_submitted: ['city', 'status', 'form_type'],
   city_partner_cta_clicked: ['city', 'status'],
+
+  // ── 信息纠错弹窗（OPT-064 修复）──────────────────────────────────────────
+  //
+  // 这四个事件的埋点从一开始就打在 CorrectionModal 上（7 个调用点），但从没进过
+  // 本白名单——validateEvent 判 unknown_event 后 collector 直接丢弃，而丢弃日志
+  // 又有 `NODE_ENV !== 'production'` 前置，生产环境连一行线索都不留。
+  // 键以调用点实际传入的 props 为准，不是照着猜的。
+  /** 用户打开信息纠错弹窗 */
+  correction_open: ['target_type', 'has_target'],
+  /** 提交纠错表单 */
+  correction_submit: ['target_type', 'category'],
+  /** 纠错提交成功 */
+  correction_success: ['target_type', 'category', 'idempotent'],
+  /** 纠错提交失败；error_code 是固定枚举（含 network_error），不是原始错误文本 */
+  correction_error: ['target_type', 'error_code'],
+
+  // ── 列表页 / 搜索页（OPT-064 新增）──────────────────────────────────────
+  //
+  // 转化链路最前端此前是盲区：能看到「打开咨询弹窗 → 提交成功」，看不到
+  // 「搜了什么条件 → 看到多少结果 → 点了第几个」。
+  //
+  // 口径（spec §6.1-7，防实施漂移）：
+  //   - filter_completeness = 当前已生效的筛选维度个数（整数 ≥0），不是比率
+  //   - rank = 当前页内 1 基序号；跨页靠 page_index 区分
+  //   - 去重键 = pathname + 规范化后的筛选/排序/页码 query，翻页与改排序都算新事件
+  /** 房源列表页结果呈现（含筛选生效与翻页） */
+  listing_search: ['city', 'result_count', 'sort', 'price_unit', 'filter_completeness', 'page_index'],
+  /** 房源列表页结果点击 */
+  listing_result_click: ['city', 'listing_id', 'rank', 'page_index', 'section'],
+  /** 楼盘列表页结果呈现 */
+  building_search: ['city', 'result_count', 'sort', 'filter_completeness', 'page_index'],
+  /** 楼盘列表页结果点击 */
+  building_result_click: ['city', 'building_id', 'rank', 'page_index', 'section'],
+
+  // ── 页面停留与浏览深度（OPT-064 新增）───────────────────────────────────
+  //
+  // Umami 自己按相邻 pageview 的时间差推算停留时长，会话最后一页恒缺失
+  // （upstream issue #3518 未解决），所以这项必须自埋。
+  // active_ms 是「增量」不是「累计」：同一次浏览可能上报多条，分析端求和。
+  /** 页面活跃停留时长与最大滚动深度 */
+  page_engagement: ['page_type', 'active_ms', 'scroll_bucket'],
 } as const
 
 export type AnalyticsEventName = keyof typeof ANALYTICS_EVENTS

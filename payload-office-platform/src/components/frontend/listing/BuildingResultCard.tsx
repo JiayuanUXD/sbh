@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
@@ -42,9 +43,11 @@ function formatLeasableArea(area: number): string {
   return Math.round(area).toLocaleString('en-US')
 }
 
-export default function BuildingResultCard({ building, citySlug }: Readonly<{
+export default function BuildingResultCard({ building, citySlug, analytics }: Readonly<{
   building: BuildingSummaryViewModel
   citySlug?: string
+  /** 列表页埋点上下文；不传则不产生点击事件 */
+  analytics?: ListResultAnalytics
 }>) {
   const { coverImage, grade, address, nearestMetro, leasableArea, listingCount, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
@@ -68,6 +71,7 @@ export default function BuildingResultCard({ building, citySlug }: Readonly<{
       prefetch={false}
       // .bd-card 本身无样式声明，只作 BEM 块名锚点（下面的 __ 子元素依它命名）；
       // 卡片表面属性全部来自 .sf-card，与 home.css 的 .hm-supply-card 同一惯例。
+      {...listAnalyticsAttrs(analytics)}
       className="sf-card bd-card"
       aria-label={ariaLabel}
     >
