@@ -1,6 +1,6 @@
 # MP-105 小程序集成验收与预发布计划
 
-> 状态：执行中（staging 服务端写闭环与 `callContainer` 代码、Node 验证已完成）；真实 AppID 与 staging 环境关联、开发者工具网络、图片/COS、iOS/Android、隐私和正式发布待环境门
+> 状态：执行中（staging 运行层已迁移到新 CloudBase 环境，003 基线稳定；恢复协议与 Node 门禁已完成，004 部署及真实 PostgreSQL/开发者工具/真机验收待执行）
 > 创建日期：2026-08-27
 > 分支：`feat/miniprogram-mvp-59f9`
 > 上游：MP-101–104
@@ -12,17 +12,18 @@
 ## 2. 强制边界
 
 1. trial 不得继续复用生产 API。没有独立预发布 HTTPS origin 时必须 fail-closed；不能猜域名，也不能静默回退 release。
-2. 自动写入只允许在显式验收开关、非生产 HTTPS origin、隔离测试数据库和可清理 fixture 同时成立时执行；任一条件缺失立即停止。
-3. 本工作项不部署、不正式上传、不创建 PR、不合并 master、不执行生产数据库写入。
-4. 关闭微信合法域名校验、开启网络/安全入口、录入 AppID/Secret 或 CI 私钥属于环境操作，按操作当下的用户确认执行；仓库不保存秘密。
+2. 自动写入只允许在显式验收开关、非生产 HTTPS origin、受控 staging 数据库身份和可清理 fixture 同时成立时执行；任一条件缺失立即停止。
+3. 用户已授权部署独立 staging、配置微信测试环境、执行隔离数据库写入与清理并生成体验版；仍禁止创建 PR、合并 master、正式发布或触碰生产环境及生产数据库。
+4. staging 的 CloudBase 与微信开发者工具环境操作在已授权范围内连续执行；AppSecret、operator bootstrap、签名密钥、数据库连接串和 CI 私钥始终留在仓外受控环境，不进入仓库、日志或证据。
 5. MP-106/107 在 MP-105 验收门通过前不开始，避免用后续功能掩盖当前闭环的环境缺口。
 
 ## 3. 当前已知环境事实
 
-- Node 22.23.2 / pnpm 8.6.1 下，`callContainer` 前序定向矩阵 123/123；本轮小程序全量 30 个文件、552/552，双 TypeScript 和 `project:check` 均 exit 0。Web 既有回归证据保持为 306 个文件中 301 通过、5 个既有跳过，4200 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。
+- Node 22.23.2 / pnpm 8.6.1 下，小程序全量 32 个文件、747/747，双 TypeScript 与 `project:check` 均通过；Web 全量 303 个文件通过、5 个既有跳过，4318 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。跨模块安全终审另行运行 13 个目标文件、561/561，P0/P1/P2 均为 0。
 - develop 保持 `wx.request` → `http://127.0.0.1:3717`；trial 已切换为受控 staging env/service manifest → `wx.cloud.callContainer`；release 已切换为仓内固定 production env/service → `wx.cloud.callContainer`。仓内 trial manifest 空字段继续 fail-closed。
-- 微信开发者工具 Stable `1.06.2409140` 的旧诊断曾能编译并打开首页，但发生在 develop 的 `wx.request` 链路。切换后尚未关联真实 AppID 与 staging CloudBase 环境，也未运行 `callContainer` 网络冒烟，因此开发者工具状态仍是“未执行，待 AppID 与 staging 环境关联”。
-- 独立 staging 服务、隔离数据库、attestation、写许可、幂等写入和精确清理已有服务端执行证据；这些证据不替代小程序 AppID/CloudBase 关联、图片/COS、隐私、开发者工具或真机验收。
+- staging 运行层已迁移到 CloudBase 环境 `sbhmini-gateway-d3fbrmn8097478b8` 的服务 `sbhmini`；当前稳定基线为 `sbhmini-003`（100% 流量，commit `1cd3e41c12352e32eadd8c84f065b3d98e6ffc29`）。数据库按已确认方案不迁移；旧环境与旧 `sbhmini-019` 只读核对无漂移，不再作为新运行层变更目标。
+- 004 将承载当前恢复协议与数据库安全补丁；在 004 完成一次性部署和真实验收前，003 的历史服务端闭环不能替代新代码的物理同连接、advisory-lock 并发、commit outcome unknown、trashed Lead 物理删除及断连/迟到请求验证。
+- 微信开发者工具 Stable `1.06.2409140` 的旧诊断曾能编译并打开首页，但发生在 develop 的 `wx.request` 链路。真实 AppID 已用于本机私有项目配置且体验版已开通；新 staging 环境的 trial `callContainer` 网络与页面闭环仍需在 004 后留证。
 - AppSecret、微信 CI 私钥、真实 AppID 本机配置、隐私后台配置和真机账号仍不得进入仓库；不得使用 production 目标代替尚未执行的小程序环境门。
 
 ## 4. 交付角色与依赖
@@ -35,7 +36,7 @@
 | 真机验收 | 产品/设计 + Codex 协助 | iOS、Android、隐私和可访问性 | 1 人日 | 可写 staging 门已通过、测试微信账号 | 脱敏截图、设备矩阵、问题清单 |
 | 最终放行 | Sol + 项目负责人 | 复核证据、决定是否解锁 MP-106/107 | 0.5 人日 | 前述任务全部通过 | 无 P1/P2 的验收结论 |
 
-环境管理员未指定、独立环境未交付时，代码可以推进到 fail-closed 和本地合同测试，但不能执行写验收或声明 MP-105 完成。
+当前 staging 环境与操作授权已交付；仍只有在 004 身份、数据库指纹和恢复门禁全部通过后才能执行写验收，且在开发者工具、真机、隐私和残留证据齐备前不能声明 MP-105 完成。
 
 ## 5. 工作拆解
 
@@ -51,7 +52,7 @@
 - [x] 增加仓内 fail-closed 的 trial deployment manifest 与生成/校验脚本：上传或预览前由受控环境注入非秘密的 staging env/service、目标 Git commit SHA 与期望服务端 deployment revision；字段缺失、工作树不干净或 revision 不符时拒绝生成。当前空 manifest 保持不可运行状态。
 - [x] `getCurrentRuntimeEnvironment()` 只能读取已生成并校验的 manifest，不接受页面参数、Storage、远端下发或静默回退；生成物不得包含 Secret、token 或数据库连接串。
 - [x] develop 只走 `wx.request`，trial/release 只走 `wx.cloud.callContainer`；cloud env 只初始化一次、service header 由受控环境覆盖、禁止跟随 3xx，业务请求合同在两类传输下保持一致。
-- [x] 小程序全量、双 TypeScript 与工程检查通过；前序 `callContainer` 定向矩阵 123/123，本轮 Mini 全量 30 个文件、552/552，三条质量门均 exit 0。
+- [x] 小程序全量、双 TypeScript 与工程检查通过；前序 `callContainer` 定向矩阵 123/123，当前 Mini 全量 32 个文件、747/747，三条质量门均 exit 0。
 
 ### Task 2：预发布验收预检与证据清单
 
@@ -78,6 +79,7 @@
 - [x] attestation 通过后，只有经过 operator authentication 的验收操作者才能每次换取一个 10 分钟、run/SHA/revision/数据库指纹绑定的许可；公开客户端和匿名微信 session 不能自行领取。bootstrap 凭据由受控环境注入，可按验收轮次轮换，不进入小程序包、query、Storage、日志或证据。
 - [x] permit 使用独立高熵签名 secret，与 attestation/operator secret 两两不同；严格验证签名、payload 键集合、purpose、时间、jti 与全部上下文，篡改、过期、未来签发、多段解析或跨上下文均拒绝。
 - [x] acceptance 开关关闭或 deployment environment 非 staging 时不能签发许可；本阶段未修改普通咨询入口，也未接入 fixture 写分支，因此生产咨询合同保持不变。
+- [x] 签发端使用单条 PostgreSQL 查询从同一连接同时读取 `current_database()/inet_server_addr()/inet_server_port()` 与 `clock_timestamp()`；先计算并核对数据库指纹，再以该数据库时间签发许可，避免连接池切换造成“在 A 库验明、按 B 库时间签发”。
 - [x] 纯函数和路由合同覆盖认证前零数据库、production/disabled 拒绝、错误 SHA/revision/数据库指纹、许可过期/篡改/跨有效 run，以及响应脱敏；Task 3a/3b-1 定向 68/68、typecheck 与相关 lint 通过，Sol 两轮复核后 APPROVE。本阶段结论仅来自 mock/合同层；后续真实 staging runner 的独立执行结果另见 MP-105 证据索引。
 
 ### Task 3b-2：许可接入咨询写入口
@@ -87,10 +89,12 @@
 - [x] 不带 acceptance header 的普通咨询路径保持既有响应与调用顺序，不读取 acceptance 配置、验签或探针；production/disabled 即使收到伪造 header 也同形 404、零 Payload。
 - [x] Task 3b-2 定向 105/105、typecheck 与相关 lint 通过；Sol 首轮发现跨 run 幂等错归属后退回，修复为 run-domain-separated key 并复验 APPROVE。本阶段仍为 mock/合同层；后续真实 staging 的写入、重试和清理结果另见 MP-105 证据索引。
 - [x] 自动 runner 已实现，operator/bootstrap/permit 只进入受控 runner 当前进程内存，不落 bundle、query、Storage、日志或截图；真机包仍不持有这些凭据，没有安全注入通道前真机只读走查。
+- [x] acceptance writer 与 inspect/recover/cleanup 在同一 Payload transaction session 内先取得 locator advisory xact lock，再用同一 executor 单次读取数据库身份与 PostgreSQL 时间并复验 permit/allowlist，最后才允许 Lead 读写；lock busy 路径不读取身份/时钟且业务读写为零。
+- [x] Leads 启用回收站后，fixture 的 initial/final Lead 查询与物理删除全部显式 `trash:true`；fresh inspect 不会把仍含 PII 的 trashed Lead 误报为 `0/0/0`。该项无需数据库迁移。
 
 ### Task 4：开发者工具只读闭环
 
-> 代码传输层与 Node 验证已完成；以下均为独立外部环境门。本轮未关联真实 AppID 与 staging CloudBase 环境，未运行切换后的开发者工具网络，因此继续保持未勾选。
+> 代码传输层与 Node 验证已完成，本机私有配置已使用真实 AppID，体验版能力已开通；新 staging 环境的 trial 关联与 `callContainer` 网络仍未在 004 上完成，因此下列页面/网络项继续保持未勾选。
 
 - [ ] 本地关闭合法域名校验只允许用于 develop 调试，且不能计入合法域名验收证据。若需变更本地安全设置，按操作当下取得确认。
 - [ ] 使用开发者工具依次通过首页、真实首条列表、详情 ready；记录 commit SHA/dirty 状态、编译错误、网络错误、包体/分包、基础库版本和性能面板。
@@ -101,19 +105,21 @@
 
 > fixture ownership 与精确清理的已选方案、接口合同和测试顺序见
 > `specs/work-items/MP-105a-acceptance-fixture-ownership-plan.md`。实现采用受保护的 staging
-> 核验/清理接口与 runner 内存 manifest；不修改 Lead 业务模型，不允许 runner 直连数据库。
+> 核验/清理接口与 runner 本地恢复胶囊；不修改 Lead 业务模型，不允许 runner 直连数据库。
 
-> 状态边界：服务端 staging 持久化主路径已实测；详情页 UI、微信开发者工具、设备以及真实 staging 的完整异常/中断矩阵尚未执行。以下复选框按证据范围分别记录，不能用已勾选的服务端项替代未勾选项。
+> 状态边界：旧 revision 的服务端 staging 正常持久化主路径已有历史实测；当前恢复协议和数据库安全补丁仅完成本地/合同验证，尚未部署 004。详情页 UI、微信开发者工具、设备以及真实 staging 的完整异常/中断矩阵仍未执行。以下复选框按证据范围分别记录，不能用历史服务端项替代 004 未勾选项。
 
 - [x] 真实 runner 只在 Task 2/3 attestation 与本轮 10 分钟写许可通过后写入；已核对目标 commit/revision、非生产 origin、数据库指纹 allowlist、唯一 run UUID 和三类计数均为 0 的干净起点。
-- [x] 本轮唯一创建的 Lead 已进入 runner 内存 ownership manifest，记录 run、对象类型、不可变 Lead ID 和 locator 摘要；清理使用服务端复算 locator + 编码后的实际 Lead ID 双匹配，未按宽泛前缀或时间范围删除。
+- [x] 历史正常路径中唯一创建的 Lead 曾进入 runner ownership manifest；当前实现已升级为本地恢复胶囊，记录固定 run identity、不可变 Lead ID/locator 摘要、writer receipt 和持久阶段。清理仍使用服务端复算 locator + 编码后的实际 Lead ID 双匹配，未按宽泛前缀或时间范围删除。
 - [x] 服务端 runner 已直接调用咨询 API 完成首次写入与同一 submission 重提。runner exit 0 的严格解析要求首次 `acceptedExisting=false`、重提 `acceptedExisting=true`；数据库计数保持 `1 → 1`，Lead ID 不变，follow-up 和 ownership history 均为 0。
 - [ ] 尚未在微信开发者工具从房源详情页手填测试手机号并重提；因此不能把上述服务端 runner 结果表述为详情页 UI 闭环通过。
 - [ ] 真实 staging 尚未覆盖房源降级楼盘、通用需求、限流、session 过期、弱网响应丢失和服务端稳定错误的完整矩阵。已有受信代理 503、隐私版本 422 的写前 fail-closed 记录，以及本地合同测试，但不能外推其余环境路径。
-- [x] runner 代码与本地合同已覆盖 `try/finally`、失败/部分创建、结果未知、SIGINT/SIGTERM 单例清理和清理失败冻结；真实正常路径已在 `finally` 后复查 Lead、follow-up、ownership history 均为 0，runner exit 0。
-- [ ] 未在真实 staging 主动制造写后响应未知、部分创建、cleanup 失败或 SIGINT/SIGTERM 中断；这些异常路径当前只有本地合同证据，不记为真实环境通过。
+- [x] runner 在任何网络前原子创建单活动恢复胶囊，按 `prepared → first_write_dispatched → first_write_observed → idempotency_verified → cleanup_dispatched → cleanup_confirmed` 持久化阶段推进；任何结果未知、状态落盘失败或中断都保留胶囊，不把单次 HTTP 成功当作终态。
+- [x] write permit 只消费一次并携带独立 HMAC recovery receipt；普通 runner 只在幂等性已持久确认后调度清理。独立 recovery CLI 不调用 `/inquiries`，只在旧 writer receipt 按 PostgreSQL 时间到期后领取 recovery permit，并以新请求、新 inspect permit、同 locator 锁确认 `0/0/0` 后才删除胶囊。
+- [x] 本地合同覆盖 SIGKILL 后跨进程恢复、SIGINT/SIGTERM、late signal、lease release 失败、commit outcome unknown、busy、清理失败和敏感能力不泄漏；跨模块安全终审 561/561，P0/P1/P2 均为 0。
+- [ ] 尚未在 004 的真实 staging 主动验证 writer/recovery advisory-lock 竞争、物理同连接、commit outcome unknown 后 fresh inspect、trashed Lead 物理删除、cleanup 失败、SIGKILL/断连与迟到请求；这些异常路径当前只有本地合同证据，不记为真实环境通过。
 
-已完成范围：fixture 严格请求/typed Lead ID codec、受保护的 staging 核验/精确清理接口、显式 runner、本地 mock 合同，以及一次真实 staging 主路径的 attestation、permit、写入、幂等重提和精确清理。未完成范围继续保留在上方未勾选项及 Task 4/6–8；MP-105 整体状态仍为执行中。
+已完成范围：fixture 严格请求/typed Lead ID codec、同事务数据库身份与时间屏障、覆盖回收站的物理清理、恢复胶囊、显式 runner/recovery CLI、本地合同与一次旧 revision 的正常主路径历史实测。当前代码的真实 004 主路径与异常矩阵、Task 4/6–8 仍未完成；MP-105 整体状态保持执行中。
 
 ### Task 6：iOS/Android 与隐私验收
 
@@ -126,8 +132,9 @@
 ### Task 7：预览、回滚与发布前证据
 
 - [x] 新增 staging 专用部署包生成器：只从已提交的 Git 快照打包，校验非生产环境 ID 与独立 HTTPS origin，定向替换包内 Dockerfile 的 build/runtime origin，并注入 `build-info.json`；生产 Dockerfile 保持不变。定向测试与生产部署配置回归 32/32 通过。
+- [ ] 004 只能从最终已推送 commit 生成新包，并使用独立一次性工具：写前连续两轮只读核对 003/旧环境基线，候选部署只调用一次 `UpdateCloudRunServer`，推广只调用一次 `ReleaseGray`；超时或结果不明只做只读对账，绝不重放旧 003 工具、自动重试、回滚或触碰旧环境/生产。
 - [ ] 核对真实 AppID 与 trial staging CloudBase 环境关联、图片/COS 来源及 `downloadFile` 要求、服务端 AppSecret/签名密钥、可信代理层数、隐私政策版本和微信后台声明。`callContainer` 解决 Mini API 的 request 服务器域名链路，不代表图片域名或隐私已通过。微信后台配置与部署由环境管理员执行，记录精确目标、变更前后和回滚；Secret/私钥由用户写入受控环境，证据只记录“已配置/未配置”，不收集其值。
-- [ ] 只有获得明确上传/预览授权后才运行 `pnpm ci:preview`；二维码和 CI 私钥均在仓外，结果不得视为正式上传。
+- [ ] staging 体验版与预览授权已取得；仅在 004 身份和只读/写闭环门通过后执行，二维码和 CI 私钥均在仓外，结果不得视为正式上传或发布。
 - [ ] 记录回滚到上一个已知良好提交、服务端变量回滚和停止 Mini 写入口的步骤；不实际部署生产。
 
 ### Task 8：证据完整性与脱敏

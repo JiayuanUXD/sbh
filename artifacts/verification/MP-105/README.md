@@ -1,20 +1,35 @@
 # MP-105 验收证据索引
 
-> 状态：部分通过；独立 staging 服务端写闭环、自动清理、`callContainer` 代码与 Node 验证已通过，真实 AppID/staging 关联、开发者工具网络、图片/COS、iOS/Android、隐私和正式发布仍待验收
-> 更新日期：2026-08-28
+> 状态：部分通过；staging 运行层 003 稳定，恢复协议与安全补丁已通过离线门禁；004 部署、真实 PostgreSQL 异常矩阵、开发者工具网络、图片/COS、iOS/Android 与隐私仍待验收
+> 更新日期：2026-09-01
 
 ## 证据身份
 
 - 分支：`feat/miniprogram-mvp-59f9`
-- 本轮 Node 验证代码 commit：`2aab7a5ba9103c6990431e828f3ed7ba5b288897`
-- Task 4 文档提交：`1365374af879d7f532820a8e2c0ca7b795c4b0c3`
-- Task 4 最终质量门在提交前运行：当时三份目标文档相对代码基线为 tracked dirty，内容与随后提交的 `1365374` 完全一致；另有用户未跟踪的 `docs/SBH小程序页面设计/`。提交后 tracked 工作树干净，仅保留该用户未跟踪目录；它不属于交付物且未触碰。
-- staging API host：`sbhmini-304306-11-1253925058.sh.run.tcloudbase.com`
-- staging deployment revision：`sbhmini-016`
+- 当前恢复协议代码 commit：`b8ed1f99135757bd9f2a01cc96e5c7113bd86d51`
+- 当前数据库安全补丁 commit：`ad6e018d9dfdc898dd3f458e4eaf8c3ee6c013b0`
+- staging 运行环境/服务：`sbhmini-gateway-d3fbrmn8097478b8` / `sbhmini`
+- staging API host：`sbhmini-305971-11-1253925058.sh.run.tcloudbase.com`
+- 当前稳定 deployment revision：`sbhmini-003`，commit `1cd3e41c12352e32eadd8c84f065b3d98e6ffc29`，100% 流量
+- 待部署 revision：`sbhmini-004`；其 package/commit 尚未冻结，因此本文件不提前记录伪 revision 证据
 - staging 数据库指纹：真实数据库探针计算并命中 staging allowlist；证据不保存原值
-- acceptance run ID：仅记录摘要 `23e57b67`，完整 UUID 不归档
+- 数据库迁移边界：运行层迁移、数据库不迁移；旧环境 `sbhmini-d5g7d6732b2c64a66` 与旧 `sbhmini-019` 仅作只读漂移核对，不是 004 mutation 目标
+- 用户未跟踪的 `docs/SBH小程序页面设计/` 不属于本轮交付物，提交与门禁均未触碰
 
-## 已执行
+## 2026-09-01 恢复协议与安全加固
+
+- runner 在任何网络前原子创建单活动恢复胶囊，并把首次写调度、首次响应、幂等性确认、清理调度和最终清理确认作为独立持久阶段。单次 writer/cleanup 响应、进程信号或 Payload commit 返回均不能单独证明终态。
+- write permit 只使用一次，并附带职责分离的 HMAC recovery receipt；只有在旧 writer receipt 以 PostgreSQL 时间到期后，独立 recovery CLI 才能换取 locator-bound recovery permit。recovery CLI 不调用 `/inquiries`，最终必须用新请求、新 inspect permit 和同 locator advisory lock 观察到 Lead/follow-up/ownership history 为 `0/0/0`，才删除胶囊。
+- writer、inspect、recover、cleanup 在同一 Payload transaction session 内先取得 advisory xact lock，再由同一 executor 单次读取数据库身份与 PostgreSQL 时间，并在任何 Lead 读写前复验 permit、运行环境与数据库指纹。lock busy 路径只执行 lock SQL。
+- permit 签发端改为单条 PostgreSQL 查询同时取得数据库身份与时间；fixture 的 Lead initial/final 查询和物理删除均显式 `trash:true`，避免将回收站 PII 隐藏为零残留；无需数据库迁移。
+- Node 22.23.2 / pnpm 8.6.1：小程序全量 32 个文件、747/747，双 TypeScript 与 `project:check` 通过；Web 全量 303 个文件通过、5 个既有跳过，4318 个用例通过、25 个既有跳过，typecheck/lint/build 通过，lint 仅有 23 条既有 warning。
+- 独立安全终审运行服务端 8 个文件 280/280、客户端 5 个文件 281/281，合计 561/561；最终结论 CLEAN，P0/P1/P2 均为 0。该结论只覆盖代码和合同测试。
+- CloudBase 两轮只读快照业务投影一致：`001=0%`、`002=0%`、`003=100%`，003 的历史 task/release 已 finished/success；旧环境、旧 `019` 与 001/002/003 配置无漂移。尚未调用 004 的 `UpdateCloudRunServer` 或 `ReleaseGray`。
+- 真实 004 仍须验证：Payload session 与 Lead 操作物理同连接、writer/recovery 并发、PG 到期边界、commit outcome unknown 后 fresh inspect、trashed Lead 实库物理删除、断连/迟到请求及生产 acceptance 实际关闭。未执行项不得写为通过。
+
+## 历史已执行证据（保留追溯）
+
+以下条目记录 2026-08-28 及更早的旧运行环境/revision 验收，不能替代上方当前 004 门禁。
 
 ### Node 自动化
 
@@ -41,24 +56,24 @@
 - 此前在独立临时发布副本中生成 direct-API trial manifest，绑定当时的 commit、revision 与 staging HTTPS origin；生成后 `project:check` 和双 TypeScript 继续通过。该历史 manifest 未写入功能分支，也不能替代当前 cloud env/service manifest 的 AppID 关联与网络验收。
 - 真实 staging 健康检查返回 HTTP 200，Payload 与数据库均为 `ok`；首页、Mini 首页 API、房源列表 API 和 `jingan-serviced-office-42-seats` 详情 API 均返回 HTTP 200。
 
-### 真实 staging 写闭环
+### 历史 staging 写闭环（旧运行环境/revision）
 
-- CloudBase 独立体验环境：`sbhmini-d5g7d6732b2c64a66`；服务：`sbhmini`。与生产环境和生产服务名称不同，部署与写入过程中未操作生产环境。
+- 当时的 CloudBase 运行/数据库环境：`sbhmini-d5g7d6732b2c64a66`；服务：`sbhmini`。该记录发生在运行层迁移前；当前只保留数据库连接与只读核对，不再向该环境部署新 revision。
 - 隔离数据库：AIDA Supabase 项目；迁移从初始迁移执行到 `20260826_065228_opt_054_nav_config`，随后完成 seed。连接串、账号、密码和数据库指纹原值不归档。
 - runner 在 revision `sbhmini-016` 上完成真实 attestation、10 分钟 run-scoped permit、干净起点证明、首次咨询写入、相同 submission 幂等重试与精确清理。
 - 首次写入核验：Lead 计数 `1`，follow-up `0`，ownership history `0`；幂等重试后计数保持 `1/0/0`。runner 对响应做严格解析，exit 0 要求首次 `acceptedExisting=false`、同 submission 重提 `acceptedExisting=true`；这是由已归档 exit 0 与随仓 runner 合同共同得出的可复验判断，未归档原始响应或敏感请求体。
 - `finally` 清理后再次查询：Lead `0`、follow-up `0`、ownership history `0`；runner 退出码 `0`。
 - 预检期间曾分别命中缺少受信代理跳数（503）和隐私版本不匹配（422）的 fail-closed 分支；两轮均在零写入状态完成清理。最终配置使用 CloudRun 公网入口 1 跳代理和服务端合同版本 `MVP-R1`。
-- 结论范围：真实 staging 的部署身份、隔离数据库、写许可、幂等性与精确清理已经得到运行证据；仍不能替代微信开发者工具、微信后台合法域名、iOS/Android 真机和隐私指引验收。
+- 结论范围：旧 revision 的部署身份、staging 数据库、写许可、幂等性与正常路径精确清理曾得到运行证据；它既不能替代当前 004 的恢复/回收站/并发异常矩阵，也不能替代微信开发者工具、iOS/Android 真机和隐私指引验收。
 
-### Task 5 证据范围
+### 历史 Task 5 证据范围
 
 | 子项 | 状态 | 证据边界 |
 |---|---|---|
 | 服务端 attestation、permit 与干净起点 | 已通过 | revision `sbhmini-016` 的真实 runner 已完成，写前 Lead/follow-up/ownership history 均为 0 |
 | 服务端首次写入、同 submission 幂等重提 | 已通过 | runner exit 0 且计数 `1 → 1`；严格响应合同要求第二次 `acceptedExisting=true` |
 | 服务端精确清理 | 已通过 | `finally` 后 Lead/follow-up/ownership history 均为 0，runner exit 0 |
-| 房源详情页手填手机号与重提 UI | 未执行 | 未关联真实 AppID/staging，未运行切换后的微信开发者工具网络 |
+| 房源详情页手填手机号与重提 UI | 未执行 | 当时尚未关联真实 AppID/staging，未运行切换后的微信开发者工具网络 |
 | 真实 staging 完整异常矩阵 | 未执行 | 仅有写前受信代理 503、隐私版本 422 阻断实录；降级楼盘、通用需求、限流、session 过期、弱网响应丢失和稳定服务端错误未完整执行 |
 | 真实 staging 中断/未知结果/清理失败 | 未执行 | `try/finally`、部分创建、结果未知、SIGINT/SIGTERM 和冻结行为已有本地合同测试，但未在真实环境主动制造 |
 
@@ -66,20 +81,20 @@
 
 - 版本：Stable 1.06.2409140
 - 基础库：3.17.2
-- 工具服务端口：2026-08-28 再检查时已关闭；重新开启属于待确认的本机安全设置
+- 工具服务端口：2026-08-28 再检查时已关闭；用户随后已授权在本任务中开启，当前是否仍开启需在 004 开发者工具验收前重新只读确认
 - 历史项目结果：切换前能编译并打开首页；自动化连接成功后，develop API `http://127.0.0.1:3717` 被 request 合法域名校验拒绝，未到达 `#home-ready`。
-- 本轮结果：未执行，待真实 AppID 与 staging CloudBase 环境关联。没有运行 trial `callContainer` 网络、没有关闭合法域名校验，也没有预览、上传、部署或咨询写入。
+- 该历史轮结果：当时未执行，且当时尚未完成真实 AppID 与 staging CloudBase 环境关联；没有运行 trial `callContainer` 网络、没有关闭合法域名校验，也没有预览、上传、部署或咨询写入。
 - 结论范围：历史 develop 阻断不能证明切换后的 staging 调用通过；Node mock/合同测试也不能替代微信开发者工具网络证据。
 
 ## 未执行与阻断
 
 | 验收项 | 状态 | 阻断条件 |
 |---|---|---|
-| staging 服务端 HTTPS API 与写闭环 | 已通过 | 既有证据已核对 commit、revision、健康检查、三类 Mini 只读 API、幂等写入与精确清理；不等于小程序 `callContainer` 已通过 |
-| 服务端 attestation | 已通过 | 真实 revision、commit 与数据库指纹 allowlist 匹配 |
-| 隔离数据库咨询写入 | 已通过 | 首次写入、幂等重试与精确清理为 `1 → 1 → 0`，关系残留为 0 |
-| 真实 AppID 与 staging CloudBase 关联 | 未执行 | 需要微信与 CloudBase 管理员确认精确 AppID、env 和 service，并留变更/回滚证据 |
-| 开发者工具 trial `callContainer` 网络 | 未执行 | 待 AppID 与 staging 环境关联后核对首页、列表、详情、错误和网络面板 |
+| staging 服务端 HTTPS API 与写闭环 | 部分通过 | 003 健康与只读基线稳定，旧 revision 正常写闭环有历史证据；当前恢复协议的 004 尚未部署和实测 |
+| 服务端 attestation | 部分通过 | 003 的 revision/commit/数据库指纹已有历史与只读证据；004 必须重新 attestation，不继承旧结论 |
+| staging 数据库咨询写入 | 部分通过 | 旧正常路径为 `1 → 1 → 0`；当前协议的并发、未知提交、回收站物理删除和断连矩阵待 004 验证 |
+| 真实 AppID 与 staging CloudBase 关联 | 部分完成 | 本机私有项目配置使用真实 AppID，目标 env/service 已固定；仍需在开发者工具确认新环境 trial 关联和网络结果 |
+| 开发者工具 trial `callContainer` 网络 | 未执行 | 待 004 完成后核对首页、列表、详情、错误、网络面板与实际命中 revision |
 | 图片/COS 来源与加载 | 未执行 | 待从真实 DTO 核对图片来源、微信平台要求和正常图/坏图；Mini API 传输不能替代 |
 | iOS 真机 | 未执行 | 待可验收 trial 包、AppID/环境关联、账号与隐私条件 |
 | Android 真机 | 未执行 | 待可验收 trial 包、AppID/环境关联、账号与隐私条件 |

@@ -1,6 +1,8 @@
 # MP-105b CloudBase staging 运行层迁移实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **状态：历史迁移记录。** 新环境服务与 001–003 已完成，当前稳定基线为 003=100%。本文件中的 bootstrap/Create/旧 003 发布步骤禁止重放；004 只按 `MP-105-miniprogram-integration-acceptance-plan.md` Task 7 的一次性候选/推广流程执行，结果不明只读对账，不自动重试、回滚或修改旧环境。
+>
+> **历史说明：** 原迁移曾按分任务 agent 流程执行；本文件不得继续逐项实施。004 只能执行 `MP-105-miniprogram-integration-acceptance-plan.md` Task 7 的当前步骤。
 
 **Goal:** 把完整 staging 后端重新部署到传统 CloudBase 环境，使小程序 trial 通过 `wx.cloud.callContainer` 访问同一套 Mini API，同时继续使用原隔离 PostgreSQL。
 
@@ -16,7 +18,7 @@
 - 旧 PostgreSQL 环境不得作为 trial `callContainer` 目标；部署准备脚本必须显式拒绝该环境。
 - 不把 `DATABASE_URL`、`PAYLOAD_SECRET`、微信服务端凭据、operator secret、permit 或手机号写入仓库、终端证据、小程序包或聊天输出。
 - `DATABASE_URL` 只在服务端继承；部署后以受保护 attestation 的数据库指纹证明仍连接原 staging 数据库。
-- 写验收继续使用 run-scoped permit、幂等对账和精确清理；任何失败路径都必须执行 finally 清理。
+- 写验收继续使用 run-scoped permit、幂等对账和精确清理；只有已持久确认幂等性的正常路径可调度清理，结果未知或中断必须保留恢复胶囊，待 writer receipt 到期后由独立 recovery CLI 在同 locator 锁下对账/清理。
 - 严格 TDD；测试先证明旧环境仍被接受的失败，再做最小常量/守卫修改。
 - `git add` 必须逐项写出具体路径；不得暂存用户未跟踪的 `docs/SBH小程序页面设计/`。
 - 实施与审查均使用 GPT-5.6-Sol；不创建 PR、不合并 master、不部署生产。
@@ -272,7 +274,7 @@ PAYLOAD_DISABLE_JOB_AUTORUN=1
 
 `MP_ACCEPTANCE_ENABLED` 和 `PAYLOAD_DISABLE_JOB_AUTORUN` 都必须使用字符串 `1`；服务端对这两个值做严格比较，不能写成布尔语义的 `true`。`NODE_ENV` 继续继承现有 staging 的 `development`：当前 staging 的 16 键配置不含生产模式强制要求的 5 个 COS 凭据，改成 `production` 会被启动期配置守卫拒绝；本次不得因此复用生产 COS 桶或凭据，也不得临时扩大到新的存储迁移。`DATABASE_URL`、签名秘密、operator/permit 秘密和数据库指纹 allowlist 原值继承但绝不输出。创建请求只允许 `OA`，不在 bootstrap revision 开放 `PUBLIC` 或 `MINIAPP`。
 
-- [ ] **Step 4: 从当前提交创建 package bootstrap 服务并取得平台实际编号**
+- [x] **Step 4（历史完成，禁止重放）: 从迁移提交创建 package bootstrap 服务并取得平台实际编号**
 
 先从当前 clean commit 生成 bootstrap package；临时 origin 固定使用 `https://bootstrap.invalid`，并把 bootstrap 环境变量精确设置为 `NEXT_PUBLIC_SITE_URL=https://bootstrap.invalid`、`MP_ACCEPTANCE_DEPLOYMENT_REVISION=bootstrap`、`MP_ACCEPTANCE_ENABLED=0`。该版本只允许 `OA`，不得用于 trial。通过 `DescribeCloudBaseBuildService` 上传代码包，再用上一步内存配置调用 `tcbr.CreateCloudRunServer`，目标精确为新 env/service，规格与旧服务一致：Port 80、CPU 1、内存 2、MinNum 0、MaxNum 1、alwaysScale。等待 `DescribeServerManageTask` 和 `DescribeCloudRunServerDetail` 返回 normal，记录平台实际 bootstrap revision、默认 origin 和全部部署记录的最大编号。
 
@@ -280,7 +282,7 @@ PAYLOAD_DISABLE_JOB_AUTORUN=1
 
 Expected: 服务只存在于新环境；旧环境服务、流量和数据库未变化。若 bootstrap revision 不是服务的第一个序号，停止并重新计算下一 revision，不生成 trial manifest。
 
-- [ ] **Step 5: 生成当前 commit 的部署包并发布最终 revision**
+- [x] **Step 5（历史完成，禁止用于 004）: 生成迁移 commit 的部署包并发布 003**
 
 先把内存配置中的 `NEXT_PUBLIC_SITE_URL` 设置为新服务默认 origin，把 `MP_ACCEPTANCE_ENABLED` 改回字符串 `1`，并根据全部部署记录最大编号预测下一 revision，将其写入 `MP_ACCEPTANCE_DEPLOYMENT_REVISION`；再从同一 clean commit 生成部署包：
 
@@ -290,7 +292,7 @@ node payload-office-platform/scripts/prepare-cloudrun-staging.mjs \
   --origin "$NEW_STAGING_ORIGIN"
 ```
 
-使用 `DescribeCloudBaseBuildService` 上传该临时目录，并以 `UpdateCloudRunServer` 的 `GRAY` 模式发布 package revision；`Items` 精确包含 Port 80、`AccessTypes=["OA","PUBLIC","MINIAPP"]` 和内存中的完整 `EnvParam`。先读取任务实际 `VersionName`，只有它与预绑定 revision 完全一致时才等待 normal，并把 10% 流量切给候选版本；若不一致则保持 0% 流量、重新读取最大编号后另发新版本，不得修改已经创建的 revision，也不得生成 trial manifest。
+历史发布使用 `DescribeCloudBaseBuildService` 上传临时目录，并以 `UpdateCloudRunServer` 的 `GRAY` 模式发布 package revision；`Items` 精确包含 Port 80、`AccessTypes=["OA","PUBLIC","MINIAPP"]` 和内存中的完整 `EnvParam`。004 不继承“编号不符后另发新版本”的旧做法：写调用前必须冻结期望 revision，只允许一次 `UpdateCloudRunServer`；实际身份不符、超时或响应未知时停止并只读对账，不自动重发，也不生成 trial manifest。
 
 Expected: 实际 revision 与预先绑定的 `MP_ACCEPTANCE_DEPLOYMENT_REVISION` 完全一致；不一致则停止并保持 trial 未生成。
 
@@ -308,7 +310,7 @@ curl --fail --silent --show-error "$NEW_STAGING_ORIGIN/api/health"
 /api/mini/v1/acceptance/attestation
 ```
 
-Expected: 10% canary 中至少一次 health 200；受保护 attestation 为 `staging=true`、`acceptanceReady=true`，Git SHA 与当前部署 commit 相等、revision 与平台实际 revision 相等、数据库指纹与旧 staging 基线相等。全部通过后才把候选版本提升到 100%，再重复 health 与 attestation；任一失败立即把流量回滚到 OA-only bootstrap。原始数据库身份和秘密不进入证据。
+Expected（历史 003）：canary health 与受保护 attestation 均通过后才提升到 100%。004 的任何失败或结果未知均不得由脚本立即回滚、重放 `UpdateCloudRunServer` 或重放 `ReleaseGray`；只运行独立只读 reconciler 并冻结 trial，待人工根据精确平台状态决定后续。原始数据库身份和秘密不进入证据。
 
 ---
 
@@ -380,9 +382,9 @@ Expected: 首页、列表和详情成功；网络请求为 `wx.cloud.callContain
 
 - [ ] **Step 1: 运行一次受控咨询写入与精确清理**
 
-通过现有 `staging-acceptance-runner.mjs` 重新取得 bootstrap/permit，使用新的 SHA/revision 完成咨询写入、idempotency 对账和 cleanup。runner 必须在 `finally` 和信号处理路径执行清理。
+通过 `staging-acceptance-runner.mjs` 取得 bootstrap/permit，使用新的 SHA/revision 完成咨询写入、idempotency 对账和 cleanup。runner 必须先持久确认 `idempotency_verified` 才能调度正常清理；结果未知、信号或进程中断保留恢复胶囊，禁止在 `finally` 中无条件清理。
 
-Expected: 写入返回预期成功；server locator 与实际 Lead ID 一致；pre/post Lead、follow-up、ownership 均恢复零残留；失败时同样清理。
+Expected: 写入返回预期成功；server locator 与实际 Lead ID 一致；pre/post Lead、follow-up、ownership 均恢复零残留。失败或未知时不声明清理完成，待 writer receipt 到期后由独立 recovery CLI 在同 locator 锁下对账，并以全新 inspect 的 `0/0/0` 作为唯一终态证据。
 
 - [ ] **Step 2: 更新三份文档的真实状态**
 
@@ -445,4 +447,4 @@ Expected: pre-push 全部通过；远端分支包含设计、计划、实现与�
 - 新服务 SHA/revision 与 private trial manifest 一致，数据库 opaque 指纹与旧 staging 基线一致。
 - 首页、列表、详情无合法域名和权限错误；受控咨询写入对账并零残留清理。
 - 测试、类型检查、工程检查、秘密扫描与独立审查通过。
-- 旧 PostgreSQL 环境未删除，旧服务仅作为回滚入口保留；生产环境完全未变。
+- 旧 PostgreSQL 环境未删除并继续作为 staging 数据库；旧服务只读保留，不作为 004 自动回滚或 mutation 目标；生产环境完全未变。
