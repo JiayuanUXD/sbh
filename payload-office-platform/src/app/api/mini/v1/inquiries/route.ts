@@ -12,6 +12,7 @@ import {
   type PublicInquiryDeps,
 } from '@/domain/inquiry'
 import {
+  databaseFingerprint,
   isAllowedDatabaseFingerprint,
   type AcceptanceRuntimeConfig,
 } from '@/domain/mini-program/acceptance-attestation'
@@ -39,7 +40,6 @@ import {
 } from '@/domain/public-catalog'
 import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { getSiteConfig } from '@/lib/frontend/site-config'
-import { probeAcceptanceDatabase } from '@/lib/mini-program/acceptance-db-probe'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
 import {
   readMiniSessionSigningRuntimeConfig,
@@ -327,17 +327,6 @@ export async function POST(request: Request): Promise<Response> {
   try {
     payload = await getPayload({ config })
     const pool = (payload.db as unknown as { pool: PoolLike }).pool
-    if (acceptanceGate.kind === 'candidate') {
-      if (!pool) throw new Error('pool unavailable')
-      const actual = await probeAcceptanceDatabase(
-        pool,
-        acceptanceGate.value.runtimeConfig.attestationSecret,
-        acceptanceGate.value.runtimeConfig.dbFingerprintAllowlist,
-      )
-      if (actual.fingerprint !== acceptanceGate.value.permit.dbFingerprint) {
-        return failure(requestId, 'invalid_request', '请求参数无效', 409)
-      }
-    }
     if (acceptanceGate.kind !== 'candidate') {
       const rate = await runMiniRateLimit(
         client.clientIp,
@@ -439,7 +428,20 @@ export async function POST(request: Request): Promise<Response> {
       const fenced = await runAcceptanceFencedTransaction({
         payload,
         locator: idempotencyKey,
-        verifyLeaseAtDatabaseTime: (dbNowMs) => {
+        verifyLeaseAtDatabaseTime: (dbNowMs, databaseIdentity) => {
+          const actualFingerprint = databaseFingerprint(
+            databaseIdentity,
+            candidate.runtimeConfig.attestationSecret,
+          )
+          if (
+            actualFingerprint !== candidate.permit.dbFingerprint ||
+            !isAllowedDatabaseFingerprint(
+              actualFingerprint,
+              candidate.runtimeConfig.dbFingerprintAllowlist,
+            )
+          ) {
+            return null
+          }
           const permit = verifyAcceptancePermitToken(
             candidate.rawToken,
             candidate.runtimeConfig.permitSigningSecret,

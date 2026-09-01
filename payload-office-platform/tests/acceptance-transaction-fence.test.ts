@@ -19,11 +19,16 @@ import {
 const LOCATOR = 'a'.repeat(64)
 const OTHER_LOCATOR = 'b'.repeat(64)
 const DB_NOW_MS = 1_800_000_000_000
+const DB_IDENTITY = {
+  databaseName: 'sbh_staging',
+  serverAddress: '10.0.0.4',
+  serverPort: 5432,
+} as const
 
 type HarnessOptions = Readonly<{
   beginResult?: number | string | null
   lockResult?: unknown
-  clockResult?: unknown
+  identityClockResult?: unknown
   executeErrorAt?: 1 | 2
   commitError?: Error
   rollbackError?: Error
@@ -38,10 +43,12 @@ function harness(options: HarnessOptions = {}) {
   const execute = vi.fn(async (statement: unknown) => {
     const call = execute.mock.calls.length
     statements.push(statement)
-    events.push(call === 1 ? 'lock' : 'clock')
+    events.push(call === 1 ? 'lock' : 'identity-clock')
     if (options.executeErrorAt === call) throw new Error(`executor-sensitive-${call}`)
     if (call === 1) return options.lockResult ?? { rows: [{ locked: true }] }
-    return options.clockResult ?? { rows: [{ nowMs: String(DB_NOW_MS) }] }
+    return options.identityClockResult ?? {
+      rows: [{ ...DB_IDENTITY, nowMs: String(DB_NOW_MS) }],
+    }
   })
   const sessions: Record<string, unknown> = {}
   if (transactionID !== null && !options.missingSession) {
@@ -99,7 +106,7 @@ function sharedFencePayload(
       shared.owner = transactionID
       return { rows: [{ locked: true }] }
     }
-    return { rows: [{ nowMs: String(dbNowMs) }] }
+    return { rows: [{ ...DB_IDENTITY, nowMs: String(dbNowMs) }] }
   })
   const release = () => {
     if (shared.owner === transactionID) shared.owner = null
@@ -160,7 +167,7 @@ describe('acceptance transaction fence', () => {
 
     expect(first.statements).toHaveLength(2)
     const lock = compile(first.statements[0])
-    const clock = compile(first.statements[1])
+    const identityClock = compile(first.statements[1])
     const sameLock = compile(second.statements[0])
     const otherLock = compile(other.statements[0])
     expect(lock.sql.toLowerCase()).toContain('pg_try_advisory_xact_lock')
@@ -174,20 +181,25 @@ describe('acceptance transaction fence', () => {
     }
     expect(sameLock.params).toEqual(lock.params)
     expect(otherLock.params).not.toEqual(lock.params)
-    expect(clock.sql.toLowerCase()).toContain('clock_timestamp')
-    expect(clock.sql.toLowerCase()).not.toContain('pg_try_advisory_xact_lock')
-    expect(clock.params).toEqual([])
-    expect(JSON.stringify([lock, clock])).not.toContain(LOCATOR)
+    expect(identityClock.sql.toLowerCase()).toContain('clock_timestamp')
+    expect(identityClock.sql.toLowerCase()).toContain('current_database')
+    expect(identityClock.sql.toLowerCase()).toContain('inet_server_addr')
+    expect(identityClock.sql.toLowerCase()).toContain('inet_server_port')
+    expect(identityClock.sql.toLowerCase()).not.toContain('pg_try_advisory_xact_lock')
+    expect(identityClock.params).toEqual([])
+    expect(JSON.stringify([lock, identityClock])).not.toContain(LOCATOR)
   })
 
-  it('orders lock, database clock, lease verification, action and commit on one request transaction', async () => {
+  it('orders lock, same-connection database identity+clock, lease verification, action and commit', async () => {
     const fixture = harness()
     let actionReq: PayloadRequest | null = null
 
     const result = await runAcceptanceFencedTransaction({
       payload: fixture.payload,
       locator: LOCATOR,
-      verifyLeaseAtDatabaseTime: (dbNowMs) => {
+      verifyLeaseAtDatabaseTime: (dbNowMs, databaseIdentity) => {
+        fixture.events.push('verify-identity')
+        expect(databaseIdentity).toEqual(DB_IDENTITY)
         fixture.events.push(`verify:${dbNowMs}`)
         return { scope: 'acceptance-write' as const }
       },
@@ -206,7 +218,8 @@ describe('acceptance transaction fence', () => {
     expect(fixture.events).toEqual([
       'begin',
       'lock',
-      'clock',
+      'identity-clock',
+      'verify-identity',
       `verify:${DB_NOW_MS}`,
       'action',
       'commit',
@@ -230,6 +243,7 @@ describe('acceptance transaction fence', () => {
     })).resolves.toEqual({ kind: 'busy' })
 
     expect(fixture.events).toEqual(['begin', 'lock', 'rollback'])
+    expect(fixture.execute).toHaveBeenCalledOnce()
     expect(verifyLease).not.toHaveBeenCalled()
     expect(action).not.toHaveBeenCalled()
     expect(fixture.commitTransaction).not.toHaveBeenCalled()
@@ -246,7 +260,7 @@ describe('acceptance transaction fence', () => {
       action,
     })).resolves.toEqual({ kind: 'lease-invalid' })
 
-    expect(fixture.events).toEqual(['begin', 'lock', 'clock', 'rollback'])
+    expect(fixture.events).toEqual(['begin', 'lock', 'identity-clock', 'rollback'])
     expect(action).not.toHaveBeenCalled()
   })
 
@@ -333,12 +347,14 @@ describe('acceptance transaction fence', () => {
     ['malformed lock envelope', { lockResult: [{ locked: true }] }],
     ['malformed lock value', { lockResult: { rows: [{ locked: 'true' }] } }],
     ['multiple lock rows', { lockResult: { rows: [{ locked: true }, { locked: true }] } }],
-    ['malformed clock envelope', { clockResult: [{ nowMs: String(DB_NOW_MS) }] }],
-    ['numeric clock value', { clockResult: { rows: [{ nowMs: DB_NOW_MS }] } }],
-    ['leading-zero clock value', { clockResult: { rows: [{ nowMs: '01800000000000' }] } }],
-    ['unsafe clock value', { clockResult: { rows: [{ nowMs: String(Number.MAX_SAFE_INTEGER + 1) }] } }],
+    ['malformed identity+clock envelope', { identityClockResult: [{ ...DB_IDENTITY, nowMs: String(DB_NOW_MS) }] }],
+    ['missing database identity', { identityClockResult: { rows: [{ nowMs: String(DB_NOW_MS) }] } }],
+    ['invalid database identity', { identityClockResult: { rows: [{ ...DB_IDENTITY, serverAddress: 'not-an-ip', nowMs: String(DB_NOW_MS) }] } }],
+    ['numeric clock value', { identityClockResult: { rows: [{ ...DB_IDENTITY, nowMs: DB_NOW_MS }] } }],
+    ['leading-zero clock value', { identityClockResult: { rows: [{ ...DB_IDENTITY, nowMs: '01800000000000' }] } }],
+    ['unsafe clock value', { identityClockResult: { rows: [{ ...DB_IDENTITY, nowMs: String(Number.MAX_SAFE_INTEGER + 1) }] } }],
     ['lock execution failure', { executeErrorAt: 1 }],
-    ['clock execution failure', { executeErrorAt: 2 }],
+    ['identity+clock execution failure', { executeErrorAt: 2 }],
   ] as const)('fails closed on transaction infrastructure: %s', async (_label, options) => {
     const fixture = harness(options)
     const verifyLease = vi.fn(() => true)
@@ -375,7 +391,7 @@ describe('acceptance transaction fence', () => {
       },
     })).rejects.toBe(sensitive)
 
-    expect(fixture.events).toEqual(['begin', 'lock', 'clock', 'action', 'rollback'])
+    expect(fixture.events).toEqual(['begin', 'lock', 'identity-clock', 'action', 'rollback'])
     expect(Object.prototype.hasOwnProperty.call(actionReq, 'transactionID')).toBe(false)
   })
 
@@ -395,7 +411,7 @@ describe('acceptance transaction fence', () => {
     })).rejects.toBeInstanceOf(AcceptanceTransactionFenceError)
 
     expect(action).toHaveBeenCalledOnce()
-    expect(fixture.events).toEqual(['begin', 'lock', 'clock', 'commit'])
+    expect(fixture.events).toEqual(['begin', 'lock', 'identity-clock', 'commit'])
     expect(fixture.rollbackTransaction).not.toHaveBeenCalled()
     expect(Object.prototype.hasOwnProperty.call(actionReq, 'transactionID')).toBe(false)
   })

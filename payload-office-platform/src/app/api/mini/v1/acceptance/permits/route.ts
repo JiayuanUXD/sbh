@@ -13,7 +13,7 @@ import {
   type AcceptancePermitRequest,
 } from '@/domain/mini-program/acceptance-permit'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
-import { probeAcceptanceDatabase } from '@/lib/mini-program/acceptance-db-probe'
+import { probeAcceptanceDatabaseWithClock } from '@/lib/mini-program/acceptance-db-probe'
 import { miniRequestId } from '@/domain/mini-program/response'
 import type { PoolLike } from '@/lib/rate-limit-pg'
 import { readBoundedJsonBody } from '../../bounded-json-body'
@@ -21,13 +21,11 @@ import { readBoundedJsonBody } from '../../bounded-json-body'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 const MAX_BODY_BYTES = 16 * 1024
-export const ACCEPTANCE_POSTGRES_CLOCK_SQL =
-  'SELECT floor(extract(epoch from clock_timestamp()) * 1000)::bigint::text AS "nowMs"'
 type RuntimeConfig = NonNullable<ReturnType<typeof readAcceptanceRuntimeConfig>>
 type Deps = Readonly<{
   readConfig: () => RuntimeConfig | null
   getPayload: () => Promise<{ db: { pool?: PoolLike } }>
-  probe: typeof probeAcceptanceDatabase
+  probe: typeof probeAcceptanceDatabaseWithClock
   issueWrite: typeof issueAcceptancePermit
   issueInspect: typeof issueAcceptanceInspectPermit
   issueRecovery: typeof issueAcceptanceRecoveryPermit
@@ -39,19 +37,6 @@ function jsonResponse(body: unknown, status: number, requestId: string): Respons
     status,
     headers: { 'Cache-Control': 'private, no-store', 'X-Request-Id': requestId },
   })
-}
-
-async function readPostgresClockMilliseconds(pool: PoolLike): Promise<number> {
-  const result = await pool.query({ text: ACCEPTANCE_POSTGRES_CLOCK_SQL, values: [] })
-  const value = result.rows.length === 1 ? result.rows[0]?.nowMs : null
-  if (typeof value !== 'string' || !/^(?:0|[1-9][0-9]*)$/.test(value)) {
-    throw new Error('invalid PostgreSQL clock')
-  }
-  const now = Number(value)
-  if (!Number.isSafeInteger(now) || now < 0 || String(now) !== value) {
-    throw new Error('invalid PostgreSQL clock')
-  }
-  return now
 }
 
 function permitContext(request: AcceptancePermitRequest): AcceptancePermitContext {
@@ -115,7 +100,7 @@ export function createAcceptancePermitPostHandler(deps: Deps) {
         context.expectedDbFingerprint !== actual.fingerprint
       )
         return jsonResponse({ ok: false, meta: { requestId } }, 409, requestId)
-      const databaseNow = await readPostgresClockMilliseconds(payload.db.pool)
+      const databaseNow = actual.nowMs
       if (permitRequest.mode === 'write') {
         const issued = deps.issueWrite(
           context,
@@ -163,7 +148,7 @@ export function createAcceptancePermitPostHandler(deps: Deps) {
 export const POST = createAcceptancePermitPostHandler({
   readConfig: () => readAcceptanceRuntimeConfig(),
   getPayload: () => getPayload({ config }) as Promise<{ db: { pool?: PoolLike } }>,
-  probe: probeAcceptanceDatabase,
+  probe: probeAcceptanceDatabaseWithClock,
   issueWrite: issueAcceptancePermit,
   issueInspect: issueAcceptanceInspectPermit,
   issueRecovery: issueAcceptanceRecoveryPermit,

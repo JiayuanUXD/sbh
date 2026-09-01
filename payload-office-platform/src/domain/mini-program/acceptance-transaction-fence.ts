@@ -3,8 +3,13 @@ import { createHash } from 'node:crypto'
 import { sql, type SQL } from 'drizzle-orm'
 import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
+import {
+  validateDatabaseIdentityWithClock,
+  type DatabaseIdentity,
+  type DatabaseIdentityWithClock,
+} from './acceptance-attestation'
+
 const LOCATOR_PATTERN = /^[0-9a-f]{64}$/
-const CLOCK_MILLISECONDS_PATTERN = /^(?:0|[1-9][0-9]*)$/
 const LOCK_DOMAIN = 'sbh:mini-program:acceptance-lock:v1\0'
 
 type TransactionIdentifier = number | string
@@ -21,7 +26,7 @@ export type AcceptanceFencedTransactionResult<T> =
 type AcceptanceFencedTransactionArgs<TLease, TValue> = Readonly<{
   payload: Payload
   locator: string
-  verifyLeaseAtDatabaseTime(dbNowMs: number): TLease | null
+  verifyLeaseAtDatabaseTime(dbNowMs: number, databaseIdentity: DatabaseIdentity): TLease | null
   action(args: Readonly<{
     req: PayloadRequest
     lease: TLease
@@ -70,12 +75,9 @@ function lockedFrom(value: unknown): boolean | null {
   return row && typeof row.locked === 'boolean' ? row.locked : null
 }
 
-function databaseNowFrom(value: unknown): number | null {
+function databaseIdentityWithClockFrom(value: unknown): DatabaseIdentityWithClock | null {
   const row = oneRow(value)
-  const raw = row?.nowMs
-  if (typeof raw !== 'string' || !CLOCK_MILLISECONDS_PATTERN.test(raw)) return null
-  const parsed = Number(raw)
-  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+  return row ? validateDatabaseIdentityWithClock(row) : null
 }
 
 function advisoryKeys(locator: string): readonly [number, number] {
@@ -141,19 +143,26 @@ export async function runAcceptanceFencedTransaction<TLease, TValue>({
       return { kind: 'busy' }
     }
 
-    let dbNowMs: number | null
+    let databaseSnapshot: DatabaseIdentityWithClock | null
     try {
-      dbNowMs = databaseNowFrom(await executor.execute(sql`
-        SELECT floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint::text AS "nowMs"
+      databaseSnapshot = databaseIdentityWithClockFrom(await executor.execute(sql`
+        SELECT
+          current_database() AS "databaseName",
+          host(inet_server_addr()) AS "serverAddress",
+          inet_server_port() AS "serverPort",
+          floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint::text AS "nowMs"
       `))
     } catch {
       throw unavailable()
     }
-    if (dbNowMs === null) throw unavailable()
+    if (databaseSnapshot === null) throw unavailable()
 
     let lease: TLease | null
     try {
-      lease = verifyLeaseAtDatabaseTime(dbNowMs)
+      lease = verifyLeaseAtDatabaseTime(
+        databaseSnapshot.nowMs,
+        databaseSnapshot.identity,
+      )
     } catch {
       throw unavailable()
     }
@@ -174,7 +183,7 @@ export async function runAcceptanceFencedTransaction<TLease, TValue>({
       value = await action({
         req: transactionReq,
         lease,
-        dbNowMs,
+        dbNowMs: databaseSnapshot.nowMs,
         transactionID,
       })
     } catch (error) {

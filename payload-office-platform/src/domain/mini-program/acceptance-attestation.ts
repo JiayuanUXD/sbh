@@ -11,10 +11,15 @@ export type AcceptanceRuntimeConfig = Readonly<{
 }>
 
 export type DatabaseIdentity = Readonly<{ databaseName: string; serverAddress: string; serverPort: number }>
+export type DatabaseIdentityWithClock = Readonly<{
+  identity: DatabaseIdentity
+  nowMs: number
+}>
 
 const REVISION = /^[A-Za-z0-9._-]{1,128}$/
 const FINGERPRINT = /^[0-9a-f]{64}$/
 const B64URL = /^[A-Za-z0-9_-]+$/
+const CLOCK_MILLISECONDS = /^(?:0|[1-9][0-9]*)$/
 
 export function decodeAttestationSecret(value: string): Uint8Array | null {
   if (!B64URL.test(value)) return null
@@ -79,4 +84,14 @@ export function validateDatabaseIdentity(value: unknown): DatabaseIdentity | nul
     serverAddress: candidate.serverAddress,
     serverPort: candidate.serverPort,
   }
+}
+
+export function validateDatabaseIdentityWithClock(value: unknown): DatabaseIdentityWithClock | null {
+  const identity = validateDatabaseIdentity(value)
+  if (!identity || typeof value !== 'object' || value === null) return null
+  const rawNowMs = (value as { nowMs?: unknown }).nowMs
+  if (typeof rawNowMs !== 'string' || !CLOCK_MILLISECONDS.test(rawNowMs)) return null
+  const nowMs = Number(rawNowMs)
+  if (!Number.isSafeInteger(nowMs) || nowMs < 0 || String(nowMs) !== rawNowMs) return null
+  return { identity, nowMs }
 }

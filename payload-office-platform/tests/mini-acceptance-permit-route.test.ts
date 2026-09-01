@@ -16,11 +16,11 @@ import {
   verifyAcceptanceInspectPermitToken,
   verifyAcceptanceRecoveryPermitToken,
 } from '@/domain/mini-program/acceptance-permit'
-import { ACCEPTANCE_DB_PROBE_SQL } from '@/lib/mini-program/acceptance-db-probe'
-
+import { probeAcceptanceDatabaseWithClock } from '@/lib/mini-program/acceptance-db-probe'
 const key = Uint8Array.from({ length: 32 }, (_, i) => i + 1)
 const operator = Uint8Array.from({ length: 32 }, (_, i) => i + 33)
 const permit = Uint8Array.from({ length: 32 }, (_, i) => i + 65)
+const databaseIdentity = { databaseName: 'sbh', serverAddress: '10.0.0.4', serverPort: 5432 }
 const context = {
   runId: '550e8400-e29b-41d4-a716-446655440000',
   submissionRequestId: '650e8400-e29b-41d4-a716-446655440000',
@@ -28,7 +28,7 @@ const context = {
   fixtureNamespace: acceptanceFixtureNamespace('550e8400-e29b-41d4-a716-446655440000'),
   expectedGitCommitSha: 'a'.repeat(40),
   expectedDeploymentRevision: 'rev-1',
-  expectedDbFingerprint: databaseFingerprint({ databaseName: 'sbh', serverAddress: '10.0.0.4', serverPort: 5432 }, key),
+  expectedDbFingerprint: databaseFingerprint(databaseIdentity, key),
 }
 const writeRequest = { mode: 'write' as const, ...context }
 const inspectRequest = { mode: 'inspect' as const, ...context }
@@ -75,19 +75,12 @@ function injectedHandler(
     dbTimeQuery: ReturnType<typeof vi.fn>
   }> = {},
 ) {
-  const probe =
-    overrides.probe ??
-    vi
-      .fn()
-      .mockResolvedValue({
-        identity: { databaseName: 'sbh', serverAddress: '10.0.0.4', serverPort: 5432 },
-        fingerprint: context.expectedDbFingerprint,
-      })
+  const probe = overrides.probe ?? vi.fn(probeAcceptanceDatabaseWithClock)
   const issueWrite = overrides.issueWrite ?? vi.fn(issueAcceptancePermit)
   const issueInspect = overrides.issueInspect ?? vi.fn(issueAcceptanceInspectPermit)
   const issueRecovery = overrides.issueRecovery ?? vi.fn(issueAcceptanceRecoveryPermit)
   const dbTimeQuery = overrides.dbTimeQuery ?? vi.fn().mockResolvedValue({
-    rows: [{ nowMs: String(PG_NOW) }],
+    rows: [{ ...databaseIdentity, nowMs: String(PG_NOW) }],
     rowCount: 1,
   })
   return {
@@ -112,9 +105,7 @@ function injectedHandler(
 beforeEach(() => {
   query
     .mockReset()
-    .mockImplementation(async ({ text }: { text: string }) => text.includes('clock_timestamp()')
-      ? { rows: [{ nowMs: String(PG_NOW) }], rowCount: 1 }
-      : { rows: [{ databaseName: 'sbh', serverAddress: '10.0.0.4', serverPort: 5432 }], rowCount: 1 })
+    .mockResolvedValue({ rows: [{ ...databaseIdentity, nowMs: String(PG_NOW) }], rowCount: 1 })
   io.getPayload.mockReset().mockResolvedValue({ db: { pool: { query } } })
   io.readConfig.mockReset().mockReturnValue(config)
 })
@@ -183,17 +174,22 @@ describe('acceptance permit route', () => {
     expect(cancelled).toBe(true)
     expect(io.getPayload).not.toHaveBeenCalled()
   })
-  it('write 使用 PostgreSQL clock_timestamp 签发 exact response 与独立 receipt', async () => {
+  it('write 用单条 PostgreSQL identity+clock 响应签发 exact permit 与独立 receipt', async () => {
     const response = await POST(request(writeRequest))
     expect(response.status).toBe(200)
-    expect(query).toHaveBeenCalledWith({ text: ACCEPTANCE_DB_PROBE_SQL, values: [] })
+    expect(query).toHaveBeenCalledOnce()
+    const [{ text, values }] = query.mock.calls[0] as [{ text: string; values: unknown[] }]
+    expect(text.toLowerCase()).toContain('current_database')
+    expect(text.toLowerCase()).toContain('inet_server_addr')
+    expect(text.toLowerCase()).toContain('inet_server_port')
+    expect(text.toLowerCase()).toContain('clock_timestamp')
+    expect(values).toEqual([])
     const body = await response.json()
     expect(Object.keys(body).sort()).toEqual(['expiresAt', 'issuedAt', 'meta', 'ok', 'permit', 'recoveryReceipt'].sort())
     expect(verifyAcceptancePermit(body.permit, context, permit, PG_NOW + 1)).toBeTruthy()
     expect(body.issuedAt).toBe(new Date(PG_NOW).toISOString())
     expect(body.expiresAt).toBe(new Date(PG_NOW + 600_000).toISOString())
     expect(body.recoveryReceipt).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/)
-    expect(query.mock.calls.some(([params]) => String(params.text).includes('clock_timestamp()'))).toBe(true)
     expect(response.headers.get('cache-control')).toBe('private, no-store')
   })
 
@@ -400,7 +396,7 @@ describe('acceptance permit route', () => {
       vi
         .fn()
         .mockResolvedValue({
-          rows: [{ databaseName: 'other', serverAddress: '10.0.0.4', serverPort: 5432 }],
+          rows: [{ databaseName: 'other', serverAddress: '10.0.0.4', serverPort: 5432, nowMs: String(PG_NOW) }],
           rowCount: 1,
         }),
     ],
@@ -413,8 +409,8 @@ describe('acceptance permit route', () => {
   it.each([
     ['query failure', vi.fn().mockRejectedValue(new Error('clock'))],
     ['no row', vi.fn().mockResolvedValue({ rows: [], rowCount: 0 })],
-    ['unsafe value', vi.fn().mockResolvedValue({ rows: [{ nowMs: '9007199254740992' }], rowCount: 1 })],
-    ['wrong type', vi.fn().mockResolvedValue({ rows: [{ nowMs: PG_NOW }], rowCount: 1 })],
+    ['unsafe value', vi.fn().mockResolvedValue({ rows: [{ ...databaseIdentity, nowMs: '9007199254740992' }], rowCount: 1 })],
+    ['wrong type', vi.fn().mockResolvedValue({ rows: [{ ...databaseIdentity, nowMs: PG_NOW }], rowCount: 1 })],
   ])('PG clock %s 时 503 且 issuer 零调用', async (_label, dbTimeQuery) => {
     const route = injectedHandler({ dbTimeQuery })
     const response = await route.handler(request(writeRequest))

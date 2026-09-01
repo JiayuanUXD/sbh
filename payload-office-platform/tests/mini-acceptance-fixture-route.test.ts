@@ -86,7 +86,6 @@ type PayloadDouble = Readonly<{
 type HandlerDeps = Readonly<{
   readConfig: () => typeof runtimeConfig | null
   getPayload: () => Promise<PayloadDouble>
-  probe: ReturnType<typeof vi.fn>
   requestId: () => string
 }>
 
@@ -193,7 +192,6 @@ function request(options: Readonly<{
 function setup(overrides: Partial<{
   config: typeof runtimeConfig | null
   payload: PayloadDouble
-  probe: ReturnType<typeof vi.fn>
   databaseNowMs: number
   lockResult: boolean
   transactionExecute: ReturnType<typeof vi.fn>
@@ -214,7 +212,7 @@ function setup(overrides: Partial<{
     executeCalls += 1
     return executeCalls % 2 === 1
       ? { rows: [{ locked: overrides.lockResult ?? true }] }
-      : { rows: [{ nowMs: String(overrides.databaseNowMs ?? databaseNowMs) }] }
+      : { rows: [{ ...identity, nowMs: String(overrides.databaseNowMs ?? databaseNowMs) }] }
   })
   const beginTransaction = overrides.beginTransaction ?? vi.fn().mockImplementation(async () => {
     const id = `fixture-tx-${++transactionIndex}`
@@ -238,7 +236,6 @@ function setup(overrides: Partial<{
     },
   }
   const getPayload = vi.fn().mockResolvedValue(payload)
-  const probe = overrides.probe ?? vi.fn().mockResolvedValue({ identity, fingerprint })
   const readConfig = vi.fn().mockReturnValue(
     Object.prototype.hasOwnProperty.call(overrides, 'config') ? overrides.config : runtimeConfig,
   )
@@ -246,10 +243,9 @@ function setup(overrides: Partial<{
     deps: HandlerDeps,
   ) => (request: Request) => Promise<Response>
   return {
-    handler: factory({ readConfig, getPayload, probe, requestId: () => 'fixture-request-id' }),
+    handler: factory({ readConfig, getPayload, requestId: () => 'fixture-request-id' }),
     payload,
     getPayload,
-    probe,
     readConfig,
     transactionExecute,
     beginTransaction,
@@ -365,7 +361,6 @@ describe('POST acceptance fixture leads route', () => {
     expect(await response.text()).toBe('Not Found')
     expectNoStore(response)
     expect(route.getPayload).not.toHaveBeenCalled()
-    expect(route.probe).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -389,34 +384,24 @@ describe('POST acceptance fixture leads route', () => {
     expect(response.status).toBe(status)
     expectNoStore(response)
     expect(route.getPayload).not.toHaveBeenCalled()
-    expect(route.probe).not.toHaveBeenCalled()
   })
 
-  it('actual DB probe 必须与 permit fingerprint 精确一致后才查询', async () => {
-    const probe = vi.fn().mockResolvedValue({ identity, fingerprint: 'd'.repeat(64) })
-    const route = setup({ probe })
+  it('lock 后同一 transaction executor 的数据库身份不匹配时回滚且零业务读写', async () => {
+    const transactionExecute = vi.fn()
+      .mockResolvedValueOnce({ rows: [{ locked: true }] })
+      .mockResolvedValueOnce({
+        rows: [{ ...identity, databaseName: 'other_staging', nowMs: String(databaseNowMs) }],
+      })
+    const route = setup({ transactionExecute })
+
     const response = await route.handler(request())
 
-    expect(response.status).toBe(409)
-    expectNoStore(response)
-    expect(probe).toHaveBeenCalledWith(
-      route.payload.db.pool,
-      attestationSecret,
-      runtimeConfig.dbFingerprintAllowlist,
-    )
-    expect(route.payload.find).not.toHaveBeenCalled()
-  })
-
-  it('probe 异常返回脱敏 503 且不查询业务集合', async () => {
-    const token = permitToken()
-    const route = setup({ probe: vi.fn().mockRejectedValue(new Error(`probe ${token}`)) })
-    const response = await route.handler(request({ token }))
-    const text = await response.text()
-
     expect(response.status).toBe(503)
-    expectNoStore(response)
-    expect(text).not.toContain(token)
+    expect(transactionExecute).toHaveBeenCalledTimes(2)
+    expect(route.rollbackTransaction).toHaveBeenCalledOnce()
     expect(route.payload.find).not.toHaveBeenCalled()
+    expect(route.payload.count).not.toHaveBeenCalled()
+    expect(route.payload.delete).not.toHaveBeenCalled()
   })
 
   it('执行 exact scope-action 能力矩阵，body 不能把能力升级', async () => {
@@ -505,6 +490,7 @@ describe('POST acceptance fixture leads route', () => {
       expect(route.payload.find).not.toHaveBeenCalled()
       expect(route.payload.count).not.toHaveBeenCalled()
       expect(route.payload.delete).not.toHaveBeenCalled()
+      expect(route.transactionExecute).toHaveBeenCalledOnce()
     }
   })
 
@@ -560,6 +546,7 @@ describe('POST acceptance fixture leads route', () => {
       'count:lead-ownership-history',
     ])
     expect(transactionIDs).toEqual(Array(7).fill('fixture-tx-1'))
+    expect(payload.find.mock.calls.every(([args]) => args.trash === true)).toBe(true)
     expect(route.commitTransaction).toHaveBeenCalledWith('fixture-tx-1')
   })
 
@@ -820,10 +807,39 @@ describe('POST acceptance fixture leads route', () => {
       limit: 2,
       depth: 0,
       overrideAccess: true,
+      trash: true,
       req: expect.any(Object),
     })
     expect(route.payload.count).not.toHaveBeenCalled()
     expect(route.payload.delete).not.toHaveBeenCalled()
+  })
+
+  it('inspect 必须包含回收站 Lead，不能把仍含 PII 的 trashed 文档报告为全零', async () => {
+    const payload: PayloadDouble = {
+      db: { pool: { query: vi.fn() } },
+      find: vi.fn().mockImplementation(async ({ trash }) => ({
+        docs: trash === true
+          ? [{ id: 42, deletedAt: '2026-09-01T00:00:00.000Z', phone: '13800001111' }]
+          : [],
+      })),
+      count: vi.fn().mockResolvedValue({ totalDocs: 0 }),
+      delete: vi.fn(),
+    }
+    const route = setup({ payload })
+
+    const response = await route.handler(request())
+
+    expect(response.status).toBe(200)
+    expect(await responseJson(response)).toMatchObject({
+      result: {
+        leadCount: 1,
+        leadId: 'n:42',
+        followUpCount: 0,
+        ownershipHistoryCount: 0,
+      },
+    })
+    expect(payload.find).toHaveBeenCalledWith(expect.objectContaining({ trash: true }))
+    expect(payload.delete).not.toHaveBeenCalled()
   })
 
   it.each<Readonly<[string, LeadId, string]>>([
@@ -993,6 +1009,7 @@ describe('POST acceptance fixture leads route', () => {
       collection: 'leads',
       id,
       overrideAccess: true,
+      trash: true,
       req: expect.any(Object),
     })
     expect(payload.find).toHaveBeenCalledTimes(2)

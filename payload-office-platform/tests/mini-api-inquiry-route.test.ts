@@ -30,7 +30,11 @@ const io = vi.hoisted(() => ({
   getSiteConfig: vi.fn(),
   readAcceptanceConfig: vi.fn(),
   verifyAcceptancePermitToken: vi.fn(),
-  probeAcceptanceDatabase: vi.fn(),
+  transactionIdentity: {
+    databaseName: 'sbh_staging',
+    serverAddress: '10.0.0.4',
+    serverPort: 5432,
+  },
 }))
 
 vi.mock('payload', async (importOriginal) => {
@@ -102,12 +106,8 @@ vi.mock('@/domain/mini-program/acceptance-permit', async (importOriginal) => {
   return { ...actual, verifyAcceptancePermitToken: io.verifyAcceptancePermitToken }
 })
 
-vi.mock('@/lib/mini-program/acceptance-db-probe', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/mini-program/acceptance-db-probe')>()
-  return { ...actual, probeAcceptanceDatabase: io.probeAcceptanceDatabase }
-})
-
 import { validateMiniInquiryInput } from '@/domain/mini-program/inquiry-schema'
+import { databaseFingerprint } from '@/domain/mini-program/acceptance-attestation'
 import { acceptanceFixtureNamespace } from '@/domain/mini-program/acceptance-permit'
 import { POST } from '@/app/api/mini/v1/inquiries/route'
 import {
@@ -131,7 +131,19 @@ const SUBMISSION_ID = '9d40e795-51e3-4f06-84ab-30be09a5ed0c'
 const ACCEPTANCE_TOKEN = 'acceptance-permit-sensitive-marker'
 const ACCEPTANCE_RUN_ID = '550e8400-e29b-41d4-a716-446655440000'
 const ACCEPTANCE_FIXTURE_NAMESPACE = acceptanceFixtureNamespace(ACCEPTANCE_RUN_ID)
-const ACCEPTANCE_FINGERPRINT = 'b'.repeat(64)
+const ACCEPTANCE_IDENTITY = {
+  databaseName: 'sbh_staging',
+  serverAddress: '10.0.0.4',
+  serverPort: 5432,
+} as const
+const ACCEPTANCE_ATTESTATION_SECRET = Uint8Array.from(
+  { length: 32 },
+  (_, index) => index + 1,
+)
+const ACCEPTANCE_FINGERPRINT = databaseFingerprint(
+  ACCEPTANCE_IDENTITY,
+  ACCEPTANCE_ATTESTATION_SECRET,
+)
 const ACCEPTANCE_DB_NOW_MS = 1_800_000_000_123
 const ACCEPTANCE_PAYLOAD = {
   version: 1 as const,
@@ -150,7 +162,7 @@ const ACCEPTANCE_PAYLOAD = {
 const ACCEPTANCE_CONFIG = {
   deploymentGitCommitSha: ACCEPTANCE_PAYLOAD.gitSHA,
   deploymentRevision: ACCEPTANCE_PAYLOAD.revision,
-  attestationSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 1),
+  attestationSecret: ACCEPTANCE_ATTESTATION_SECRET,
   operatorBootstrapSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 33),
   permitSigningSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 65),
   dbFingerprintAllowlist: [ACCEPTANCE_FINGERPRINT],
@@ -258,9 +270,9 @@ beforeEach(() => {
     io.getSiteConfig,
     io.readAcceptanceConfig,
     io.verifyAcceptancePermitToken,
-    io.probeAcceptanceDatabase,
   ]) mock.mockReset()
   io.transactionIndex = 0
+  Object.assign(io.transactionIdentity, ACCEPTANCE_IDENTITY)
   for (const key of Object.keys(io.transactionSessions)) delete io.transactionSessions[key]
   __resetMiniRateLimitStateForTests()
 
@@ -275,8 +287,10 @@ beforeEach(() => {
       io.events.push('acceptance-lock')
       return { rows: [{ locked: true }] }
     }
-    io.events.push('acceptance-clock')
-    return { rows: [{ nowMs: String(ACCEPTANCE_DB_NOW_MS) }] }
+    io.events.push('acceptance-identity-clock')
+    return {
+      rows: [{ ...io.transactionIdentity, nowMs: String(ACCEPTANCE_DB_NOW_MS) }],
+    }
   })
   io.beginTransaction.mockImplementation(async () => {
     const transactionID = `acceptance-tx-${++io.transactionIndex}`
@@ -353,13 +367,6 @@ beforeEach(() => {
   io.resolveCityContext.mockResolvedValue({ id: 1, slug: 'shanghai' })
   io.readAcceptanceConfig.mockReturnValue(ACCEPTANCE_CONFIG)
   io.verifyAcceptancePermitToken.mockReturnValue(ACCEPTANCE_PAYLOAD)
-  io.probeAcceptanceDatabase.mockImplementation(async () => {
-    io.events.push('acceptance-probe')
-    return {
-      identity: { databaseName: 'sbh_staging', serverAddress: '10.0.0.4', serverPort: 5432 },
-      fingerprint: ACCEPTANCE_FINGERPRINT,
-    }
-  })
 })
 
 describe('Mini inquiry schema', () => {
@@ -536,7 +543,6 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.verifyToken).not.toHaveBeenCalled()
     expect(io.readAcceptanceConfig).not.toHaveBeenCalled()
     expect(io.verifyAcceptancePermitToken).not.toHaveBeenCalled()
-    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
     expect(io.beginTransaction).not.toHaveBeenCalled()
 
     const [command] = io.submitPublicInquiry.mock.calls[0]!
@@ -593,10 +599,9 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(response.status).toBe(200)
     expect(io.events).toEqual([
       'payload-init',
-      'acceptance-probe',
       'acceptance-begin',
       'acceptance-lock',
-      'acceptance-clock',
+      'acceptance-identity-clock',
       'precheck',
       'city',
       'submit',
@@ -613,11 +618,6 @@ describe('POST /api/mini/v1/inquiries', () => {
       ACCEPTANCE_TOKEN,
       ACCEPTANCE_CONFIG.permitSigningSecret,
       ACCEPTANCE_DB_NOW_MS,
-    )
-    expect(io.probeAcceptanceDatabase).toHaveBeenCalledWith(
-      expect.any(Object),
-      ACCEPTANCE_CONFIG.attestationSecret,
-      ACCEPTANCE_CONFIG.dbFingerprintAllowlist,
     )
     expect(body).toMatchObject({
       ok: true,
@@ -655,10 +655,9 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(response.status).toBe(200)
     expect(io.events).toEqual([
       'payload-init',
-      'acceptance-probe',
       'acceptance-begin',
       'acceptance-lock',
-      'acceptance-clock',
+      'acceptance-identity-clock',
       'precheck',
       'city',
       'submit',
@@ -711,6 +710,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.payloadFind).not.toHaveBeenCalled()
     expect(io.readWechatConfig).not.toHaveBeenCalled()
     expect(io.exchangePhoneCode).not.toHaveBeenCalled()
+    expect(io.transactionExecute).not.toHaveBeenCalled()
   })
 
   it('advisory lock busy 时回滚且两个预查、create 与微信网络均为零', async () => {
@@ -726,6 +726,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.payloadCreate).not.toHaveBeenCalled()
     expect(io.submitPublicInquiry).not.toHaveBeenCalled()
     expect(io.exchangePhoneCode).not.toHaveBeenCalled()
+    expect(io.transactionExecute).toHaveBeenCalledOnce()
   })
 
   it('拿锁后以 PostgreSQL 时间复验 raw write permit，过期则零 Lead action', async () => {
@@ -895,7 +896,6 @@ describe('POST /api/mini/v1/inquiries', () => {
     }))
     expect(invalid.status).toBe(404)
     expect(io.getPayload).not.toHaveBeenCalled()
-    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -910,32 +910,41 @@ describe('POST /api/mini/v1/inquiries', () => {
 
     expect(response.status).toBe(404)
     expect(io.getPayload).not.toHaveBeenCalled()
-    expect(io.probeAcceptanceDatabase).not.toHaveBeenCalled()
   })
 
-  it('permit 数据库指纹与实际 probe 不一致时 409 且不消费限流或进入业务', async () => {
-    io.probeAcceptanceDatabase.mockImplementation(async () => {
-      io.events.push('acceptance-probe')
-      return {
-        identity: { databaseName: 'other', serverAddress: '10.0.0.5', serverPort: 5432 },
-        fingerprint: 'd'.repeat(64),
-      }
+  it('permit 指纹与 lock 后同 transaction identity 不一致时回滚且零业务', async () => {
+    Object.assign(io.transactionIdentity, {
+      databaseName: 'other',
+      serverAddress: '10.0.0.5',
+      serverPort: 5432,
     })
     const response = await POST(routeRequest({
       headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
     }))
 
-    expect(response.status).toBe(409)
-    expect(io.events).toEqual(['payload-init', 'acceptance-probe'])
+    expect(response.status).toBe(503)
+    expect(io.events).toEqual([
+      'payload-init',
+      'acceptance-begin',
+      'acceptance-lock',
+      'acceptance-identity-clock',
+      'acceptance-rollback',
+    ])
     expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.payloadCreate).not.toHaveBeenCalled()
     expect(io.submitPublicInquiry).not.toHaveBeenCalled()
   })
 
-  it('acceptance 数据库 probe 失败时 503 且不泄漏 permit', async () => {
-    io.probeAcceptanceDatabase.mockImplementation(async () => {
-      io.events.push('acceptance-probe')
-      throw new Error(`db failure ${ACCEPTANCE_TOKEN}`)
-    })
+  it('lock 后 identity+clock 查询失败时 503 且不泄漏 permit', async () => {
+    io.transactionExecute
+      .mockImplementationOnce(async () => {
+        io.events.push('acceptance-lock')
+        return { rows: [{ locked: true }] }
+      })
+      .mockImplementationOnce(async () => {
+        io.events.push('acceptance-identity-clock')
+        throw new Error(`db failure ${ACCEPTANCE_TOKEN}`)
+      })
     const response = await POST(routeRequest({
       headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
     }))
@@ -943,7 +952,13 @@ describe('POST /api/mini/v1/inquiries', () => {
 
     expect(response.status).toBe(503)
     expect(text).not.toContain(ACCEPTANCE_TOKEN)
-    expect(io.events).toEqual(['payload-init', 'acceptance-probe'])
+    expect(io.events).toEqual([
+      'payload-init',
+      'acceptance-begin',
+      'acceptance-lock',
+      'acceptance-identity-clock',
+      'acceptance-rollback',
+    ])
     expect(io.payloadFind).not.toHaveBeenCalled()
     expect(io.submitPublicInquiry).not.toHaveBeenCalled()
   })

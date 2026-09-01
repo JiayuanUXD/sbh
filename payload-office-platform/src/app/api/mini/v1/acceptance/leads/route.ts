@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 import config from '@/payload.config'
 import {
+  databaseFingerprint,
   isAllowedDatabaseFingerprint,
   type AcceptanceRuntimeConfig,
 } from '@/domain/mini-program/acceptance-attestation'
@@ -26,9 +27,7 @@ import {
 } from '@/domain/mini-program/acceptance-permit'
 import { runAcceptanceFencedTransaction } from '@/domain/mini-program/acceptance-transaction-fence'
 import { miniRequestId } from '@/domain/mini-program/response'
-import { probeAcceptanceDatabase } from '@/lib/mini-program/acceptance-db-probe'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
-import type { PoolLike } from '@/lib/rate-limit-pg'
 
 import { readBoundedJsonBody } from '../../bounded-json-body'
 
@@ -51,7 +50,7 @@ type AuthorizedPermit = Readonly<{
   permit: FixturePermit
 }>
 type FixturePayload = Readonly<{
-  db: Readonly<{ pool?: PoolLike }>
+  db: Payload['db']
   find: (args: unknown) => Promise<Readonly<{ docs: readonly LeadDocument[] }>>
   count: (args: unknown) => Promise<Readonly<{ totalDocs: number }>>
   delete: (args: unknown) => Promise<unknown>
@@ -66,7 +65,6 @@ type FixtureActionResult = Readonly<{
 type Deps = Readonly<{
   readConfig: () => AcceptanceRuntimeConfig | null
   getPayload: () => Promise<FixturePayload>
-  probe: typeof probeAcceptanceDatabase
   requestId: () => string
 }>
 
@@ -195,6 +193,7 @@ function leadQuery(locator: string, req: PayloadRequest) {
     limit: 2,
     depth: 0,
     overrideAccess: true,
+    trash: true,
     req,
   }
 }
@@ -324,7 +323,13 @@ async function runFixtureAction(
     throw new FixtureConflictError()
   }
 
-  await payload.delete({ collection: 'leads', id: lead.id, overrideAccess: true, req })
+  await payload.delete({
+    collection: 'leads',
+    id: lead.id,
+    overrideAccess: true,
+    trash: true,
+    req,
+  })
   await assertFinalZero(payload, locator, req, lead.id)
   return zeroResult(true)
 }
@@ -373,17 +378,6 @@ export function createAcceptanceFixturePostHandler(deps: Deps) {
 
     try {
       const payload = await deps.getPayload()
-      const pool = payload.db.pool
-      if (!pool) throw new Error('pool unavailable')
-      const actual = await deps.probe(
-        pool,
-        runtimeConfig.attestationSecret,
-        runtimeConfig.dbFingerprintAllowlist,
-      )
-      if (actual.fingerprint !== authorization.permit.dbFingerprint) {
-        return failure(requestId, 409)
-      }
-
       const locator = await computeAcceptanceFixtureLocator(
         authorization.permit.runId,
         parsed.data,
@@ -391,7 +385,20 @@ export function createAcceptanceFixturePostHandler(deps: Deps) {
       const fenced = await runAcceptanceFencedTransaction({
         payload: payload as unknown as Payload,
         locator,
-        verifyLeaseAtDatabaseTime: (dbNowMs) => {
+        verifyLeaseAtDatabaseTime: (dbNowMs, databaseIdentity) => {
+          const actualFingerprint = databaseFingerprint(
+            databaseIdentity,
+            runtimeConfig.attestationSecret,
+          )
+          if (
+            actualFingerprint !== authorization.permit.dbFingerprint ||
+            !isAllowedDatabaseFingerprint(
+              actualFingerprint,
+              runtimeConfig.dbFingerprintAllowlist,
+            )
+          ) {
+            return null
+          }
           const permit = verifyTokenForPurpose(
             authorization.rawToken,
             authorization.permit.purpose,
@@ -421,6 +428,5 @@ export function createAcceptanceFixturePostHandler(deps: Deps) {
 export const POST = createAcceptanceFixturePostHandler({
   readConfig: () => readAcceptanceRuntimeConfig(),
   getPayload: () => getPayload({ config }) as unknown as Promise<FixturePayload>,
-  probe: probeAcceptanceDatabase,
   requestId: miniRequestId,
 })
