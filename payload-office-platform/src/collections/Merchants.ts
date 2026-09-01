@@ -10,7 +10,7 @@ import {
 } from '@/domain/supply/merchant'
 import { protectMerchant } from '@/domain/supply/merchant-protect'
 import { protectMerchantStop } from '@/domain/supply/merchant-stop-guard'
-import { markListingsPendingReviewOnMerchantStop } from '@/domain/supply/merchant-stop-listings'
+import { enqueueMerchantStopCascade } from '@/domain/supply/merchant-stop-listings'
 import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
@@ -28,12 +28,17 @@ const QUALIFICATION_OPTIONS = QUALIFICATION_STATUSES.map((value) => ({
 }))
 
 /**
- * M4.8 商户停用冻结：商户 active → disabled 后批量标记关联 Listing 为待复核。
+ * M4.8 商户停用冻结：商户 active → disabled 后把关联 Listing 批量转待复核。
+ *
+ * 本 hook 只负责**投递任务**，实际遍历与标记在 jobs 队列里跑。
+ * 为什么不再内联跑：内联版本受 limit: 1000 截断，生产上商户「官网」名下
+ * 2161 条房源会有 1161 条被静默跳过，商户恢复启用时绕过人工复核自动重新
+ * 曝光；而直接放开上限又会把几千次往返压进停用的同一个事务里超时回滚。
+ * 完整推导见 domain/supply/merchant-stop-listings.ts 头注释。
  *
  * 业务不变量（design §3.5 / R2 §56 / R4 / R8）：
- *   - 商户停用是合规动作，不应被 Listing 更新失败阻断
- *   - 失败详情写入 req.context.__merchantStopBatchReport，M8.2 审计接入时统一记录
- *   - 透传 req 保持事务一致性（任一 Listing 更新失败整体回滚）
+ *   - 商户停用是合规动作，不应被 Listing 更新失败阻断 —— 投递失败也只记录不抛
+ *   - enqueue 透传 req：job 行与停用同事务落库，停用回滚则任务一并消失
  */
 const handleMerchantStopBatchListings: CollectionAfterChangeHook = async ({
   doc,
@@ -52,16 +57,23 @@ const handleMerchantStopBatchListings: CollectionAfterChangeHook = async ({
 
   const transactionId = req.transactionID
   try {
-    const report = await markListingsPendingReviewOnMerchantStop(req.payload, merchantId, req)
-    // 失败不阻断停用：把 report 挂到 req.context 供 M8.2 审计接入读取
-    ;(req.context as Record<string, unknown>).__merchantStopBatchReport = report
+    await enqueueMerchantStopCascade(req, merchantId)
+    // 供 M8.2 审计接入读取：这里只能确认「已投递」，处理结果看 payload_jobs
+    ;(req.context as Record<string, unknown>).__merchantStopCascadeQueued = { merchantId }
   } catch (err) {
-    // 服务整体失败（非单条 Listing 失败）：记录但不抛。
-    // 唯一的例外是事务已被拆掉——那时商户自己那条 status=disabled 也不会落库，
-    // 再吞就成了「停用成功、商户还是 active」（见 domain/shared/transaction-safety.ts）。
-    assertTransactionIntact(req, transactionId, 'merchant-stop-batch')
-    ;(req.context as Record<string, unknown>).__merchantStopBatchError =
+    // 投递失败：记录但不抛，停用照常提交（合规动作优先）。
+    //
+    // 唯一的例外是事务已被拆掉。enqueue 透传了 req、与商户更新同事务，
+    // 一旦它把事务拆了，商户自己那条 status=disabled 也不会落库，再吞就成了
+    // 「调用方看到停用成功、商户还是 active」（见 domain/shared/transaction-safety.ts）。
+    // 改走队列不改变这条：投递仍在同一笔事务里，守卫照样要留着。
+    assertTransactionIntact(req, transactionId, 'merchant-stop-cascade-enqueue')
+    ;(req.context as Record<string, unknown>).__merchantStopCascadeError =
       err instanceof Error ? err.message : String(err)
+    req.payload.logger.error(
+      { merchantId, err: err instanceof Error ? err.message : String(err) },
+      'merchant_stop_cascade_enqueue_failed',
+    )
   }
   return doc
 }

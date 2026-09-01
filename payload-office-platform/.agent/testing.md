@@ -15,7 +15,7 @@ pnpm build
 
 顺序与 `.github/workflows/quality.yml` 一致，本地按此自检可避免只在 PR 才暴露的失败。
 
-- 未改 Collection/Global 可省略类型生成；但生成前确认 `.env.local` 有占位 `COS_*`，否则会静默删掉 `Media.prefix`。
+- 未改 Collection/Global 可省略类型生成。**本地不要为此配占位 `COS_*`**（`Media.ts` 已显式声明 `prefix`，该规避早已作废；占位配置反而让本地上传恒 500，换成真实凭据更会酿成「本地库 + 生产桶」事故）——细节见 `CLAUDE.md` 的「生成物纪律」。生成后仍建议 `grep -c "prefix" src/payload-types.ts` 必须是 2。
 - 未改后台组件注册可省略 import map；改了没重生成 → `/admin` 整站 hydration 白屏（资源全 200）。
 - 未改 `src/migrations/` 可省略 `migrate:dry-run`。
 - 不删除、跳过失败测试或新增 suppress。

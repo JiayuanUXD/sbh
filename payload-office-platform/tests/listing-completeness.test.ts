@@ -182,7 +182,8 @@ describe('租赁参数', () => {
     const doc = makeFullDoc()
     doc.businessType = 'sale'
     delete doc.minimumLeaseMonths
-    doc.propertyRightYears = '50'
+    // 产权年限嵌在 saleTerms group 里，顶层没有这个字段（曾按顶层写，锁住了错的取值路径）。
+    doc.saleTerms = { propertyRightYears: '50' }
     const result = computeListingCompleteness(doc)
     expect(result.score).toBeCloseTo(1, 3)
     expect(result.belowThreshold).toBe(false)

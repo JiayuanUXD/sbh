@@ -153,7 +153,8 @@ export function buildListingSnapshot(doc: Record<string, unknown>): ListingRevie
     minimumLeaseMonths: doc.minimumLeaseMonths,
     paymentTerms: doc.paymentTerms,
     availableFrom: doc.availableFrom,
-    propertyRightYears: doc.propertyRightYears,
+    // 嵌在 saleTerms group 里，不在顶层（详见 listing-completeness.ts 同名字段处注释）
+    propertyRightYears: (doc.saleTerms as Record<string, unknown> | undefined)?.propertyRightYears,
     description: doc.description,
     contactBroker: toId(doc.contactBroker),
     merchant: toId(doc.merchant),
