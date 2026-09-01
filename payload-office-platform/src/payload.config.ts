@@ -96,6 +96,10 @@ import {
   recoverStaleSupplyImportJobs,
   supplyImportTask,
 } from './domain/supply-import/import-task'
+import {
+  MERCHANT_STOP_CASCADE_QUEUE,
+  merchantStopCascadeTask,
+} from './domain/supply/merchant-stop-listings'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -153,6 +157,7 @@ export default buildConfig({
       cityPartnerApplicationNotificationTask,
       cityPartnerNotificationOutboxTask,
       supplyImportTask,
+      merchantStopCascadeTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
@@ -185,6 +190,21 @@ export default buildConfig({
         queue: SUPPLY_IMPORT_QUEUE,
         ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
         limit: 5,
+        silent: JOB_CRON_SILENT,
+      },
+      {
+        // 商户停用冻结：低频事件（停用一个商户才产生一个 job），但单个 job
+        // 可能要遍历数千条房源跑上一两分钟。limit: 1 是有意的——同时只跑一个，
+        // 避免多个大级联互相抢连接；正在跑的 job 有 processing 标记，
+        // 下一个 tick 不会重复捡起。
+        cron: '*/30 * * * * *',
+        queue: MERCHANT_STOP_CASCADE_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1'
+          ? { disableScheduling: true }
+          : {}),
+        limit: 1,
+        // 跟上 OPT-046 §6.6 的新约定：压掉每轮空转的 info 汇总，但放开 error。
+        // 本任务的失败是真实业务失败（房源没冻结成），压掉等于生产静默失败。
         silent: JOB_CRON_SILENT,
       },
     ],

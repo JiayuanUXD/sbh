@@ -179,6 +179,7 @@ export interface Config {
       'notify-city-partner-application-created': TaskNotifyCityPartnerApplicationCreated;
       'reconcile-city-partner-notification-outbox': TaskReconcileCityPartnerNotificationOutbox;
       'run-supply-import': TaskRunSupplyImport;
+      'cascade-merchant-stop-listings': TaskCascadeMerchantStopListings;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -2368,6 +2369,7 @@ export interface PayloadJob {
           | 'notify-city-partner-application-created'
           | 'reconcile-city-partner-notification-outbox'
           | 'run-supply-import'
+          | 'cascade-merchant-stop-listings'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -2409,6 +2411,7 @@ export interface PayloadJob {
         | 'notify-city-partner-application-created'
         | 'reconcile-city-partner-notification-outbox'
         | 'run-supply-import'
+        | 'cascade-merchant-stop-listings'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -4175,6 +4178,21 @@ export interface TaskRunSupplyImport {
   output: {
     created: number;
     updated: number;
+    failed: number;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCascade-merchant-stop-listings".
+ */
+export interface TaskCascadeMerchantStopListings {
+  input: {
+    merchantId: string;
+  };
+  output: {
+    total: number;
+    succeeded: number;
+    skipped: number;
     failed: number;
   };
 }
