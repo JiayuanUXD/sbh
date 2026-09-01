@@ -37,15 +37,15 @@ if [ -n "$prd" ] && [ "${ALLOW_PRD_DELETION:-0}" != "1" ]; then
   fail=1
 fi
 
-# ── 3. payload-types.ts 不能丢 Media.prefix（缺 COS 配置重生成会静默删掉） ──
+# ── 3. payload-types.ts 是生成物，不该进仓库 ──────────────────────────────
+# 该文件已 gitignore（且已从索引移除）。CI 的 quality / e2e 两个 job 与
+# Dockerfile 构建阶段都各自跑 generate:types，仓库里不需要留一份。
+# 正常流程下这里永远不会触发；能走到这，说明有人 `git add -f` 强行加了回来。
 if printf '%s\n' "$staged" | grep -qx "$APP/src/payload-types.ts"; then
-  n=$(git show ":$APP/src/payload-types.ts" 2>/dev/null | grep -c 'prefix' || true)
-  if [ "$n" != "2" ]; then
-    red "暂存的 payload-types.ts 里 prefix 出现 $n 次（应为 2），Media.prefix 很可能被删掉了。"
-    echo "  原因：本地 .env.local 缺 COS_* 配置时 generate:types 会静默移除该字段。"
-    echo "  修复：补齐占位 COS_*（格式见 $APP/CLAUDE.md 生成物纪律）后重新 pnpm generate:types。"
-    fail=1
-  fi
+  red "payload-types.ts 是生成物，不应提交进仓库。"
+  echo "  它已被 gitignore；CI 与 Dockerfile 都会自己跑 generate:types 生成。"
+  echo "  取消暂存： git rm --cached $APP/src/payload-types.ts"
+  fail=1
 fi
 
 # ── 4. 改了数据模型就必须带迁移（push:false，只走显式迁移） ─────────────────
