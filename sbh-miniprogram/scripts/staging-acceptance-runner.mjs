@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { parsePreflightEnvironment } from './staging-acceptance-preflight.mjs'
+import { createCapsuleStore } from './staging-acceptance-capsule.mjs'
 
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -235,20 +236,43 @@ function parseAttestation(value, expected) {
   return value
 }
 
-function parsePermit(value) {
-  const now = Date.now()
-  const expiresAt = typeof value?.expiresAt === 'string' ? Date.parse(value.expiresAt) : Number.NaN
+function canonicalIsoMilliseconds(value) {
+  if (typeof value !== 'string') return null
+  const milliseconds = Date.parse(value)
+  if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString() !== value) return null
+  return milliseconds
+}
+
+function parsePermit(value, mode) {
+  const issuedAt = canonicalIsoMilliseconds(value?.issuedAt)
+  const expiresAt = canonicalIsoMilliseconds(value?.expiresAt)
   const parts = typeof value?.permit === 'string' ? value.permit.split('.') : []
   const [body, signature] = parts
+  const expectedKeys = mode === 'write'
+    ? ['ok', 'permit', 'recoveryReceipt', 'issuedAt', 'expiresAt', 'meta']
+    : ['ok', 'permit', 'issuedAt', 'expiresAt', 'meta']
   if (
-    !hasExactKeys(value, ['ok', 'permit', 'expiresAt', 'meta']) ||
+    (mode !== 'write' && mode !== 'inspect') ||
+    !hasExactKeys(value, expectedKeys) ||
     value.ok !== true || typeof value.permit !== 'string' ||
     value.permit.length > 4096 || parts.length !== 2 ||
     !canonicalBase64Url(body, 64, 4000) || !canonicalBase64Url(signature, 43, 43) ||
-    !Number.isFinite(expiresAt) || expiresAt <= now || expiresAt > now + 10 * 60_000 + 30_000 ||
+    issuedAt === null || expiresAt === null || expiresAt <= issuedAt ||
+    expiresAt - issuedAt !== 10 * 60_000 ||
     !hasRequestMeta(value.meta)
   ) fail('permit_invalid')
-  return value.permit
+  if (mode === 'inspect') return Object.freeze({ permit: value.permit })
+  const receiptParts = typeof value.recoveryReceipt === 'string'
+    ? value.recoveryReceipt.split('.')
+    : []
+  const [receiptBody, receiptSignature] = receiptParts
+  if (
+    typeof value.recoveryReceipt !== 'string' || value.recoveryReceipt.length > 4096 ||
+    receiptParts.length !== 2 ||
+    !canonicalBase64Url(receiptBody, 64, 4000) ||
+    !canonicalBase64Url(receiptSignature, 43, 43)
+  ) fail('permit_invalid')
+  return Object.freeze({ permit: value.permit, recoveryReceipt: value.recoveryReceipt })
 }
 
 function canonicalBase64Url(value, minimumLength, maximumLength) {
@@ -308,13 +332,6 @@ function parseInquiry(value, expected, acceptedExisting) {
   return value.data
 }
 
-function parseReconciliationInquiry(value, expected) {
-  if (!isRecord(value) || !isRecord(value.data) || typeof value.data.acceptedExisting !== 'boolean') {
-    fail('inquiry_response_invalid')
-  }
-  return parseInquiry(value, expected, value.data.acceptedExisting)
-}
-
 function isWriteOutcomeUnknown(error) {
   return error instanceof SafeRunnerError && [
     'request_failed',
@@ -368,6 +385,7 @@ function inquiryBody(config, submissionRequestId) {
 export async function runStagingAcceptance({
   environment = process.env,
   fetchImpl = globalThis.fetch,
+  capsuleStore,
   randomUUID = nodeRandomUUID,
   registerSignal,
   logger,
@@ -375,11 +393,13 @@ export async function runStagingAcceptance({
   maxResponseBytes,
 } = {}) {
   const config = parseRunnerEnvironment(environment)
-  if (typeof fetchImpl !== 'function' || typeof randomUUID !== 'function') fail('runner_config_invalid')
+  if (
+    typeof fetchImpl !== 'function' || typeof randomUUID !== 'function' ||
+    !isRecord(capsuleStore) || typeof capsuleStore.acquire !== 'function' ||
+    (registerSignal !== undefined && typeof registerSignal !== 'function')
+  ) fail('runner_config_invalid')
   const timeoutMs = parsePositiveInteger(requestTimeoutMs, DEFAULT_TIMEOUT_MS, 60_000)
   const responseLimit = parsePositiveInteger(maxResponseBytes, DEFAULT_RESPONSE_LIMIT, 1024 * 1024)
-  const submissionRequestId = randomUUID()
-  if (!UUID_V4_PATTERN.test(submissionRequestId)) fail('submission_id_invalid')
 
   const manifest = {
     runId: config.runId,
@@ -392,8 +412,12 @@ export async function runStagingAcceptance({
     clean: false,
     writeOutcomeUnknown: false,
   }
-  let permit = null
-  let cleanupPromise = null
+  let lease = null
+  let submissionRequestId = null
+  let writerPermit = null
+  let durablePhase = null
+  let durableLeadId = null
+  let finalizePromise = null
   let activeWritePromise = null
   let interrupted = false
   const unregister = []
@@ -412,12 +436,34 @@ export async function runStagingAcceptance({
     responseLimit,
   })
 
-  const inspect = async () => parseFixtureInspect(await json(
+  const permitIdentity = () => ({
+    runId: config.runId,
+    submissionRequestId,
+    listingSlug: config.listingSlug,
+    fixtureNamespace: config.fixtureNamespace,
+    expectedGitCommitSha: config.expectedGitCommitSha,
+    expectedDeploymentRevision: config.expectedDeploymentRevision,
+    expectedDbFingerprint: config.expectedDbFingerprint,
+  })
+
+  const issuePermit = async (mode) => parsePermit(await json(
+    PATHS.permit,
+    'POST',
+    { 'x-sbh-acceptance-bootstrap': config.operatorBootstrapSecret },
+    { mode, ...permitIdentity() },
+  ), mode)
+
+  const inspect = async (permit) => parseFixtureInspect(await json(
     PATHS.fixture,
     'POST',
     { 'x-sbh-acceptance-permit': permit },
     inspectBody(config, submissionRequestId),
   ))
+
+  const freshInspect = async () => {
+    const inspectCapability = await issuePermit('inspect')
+    return inspect(inspectCapability.permit)
+  }
 
   const submitInquiry = (acceptedExisting) => {
     const operation = (async () => {
@@ -425,14 +471,10 @@ export async function runStagingAcceptance({
         const value = await json(
           PATHS.inquiry,
           'POST',
-          { 'x-sbh-acceptance-permit': permit },
+          { 'x-sbh-acceptance-permit': writerPermit },
           inquiryBody(config, submissionRequestId),
         )
-        const receipt = acceptedExisting === null
-          ? parseReconciliationInquiry(value, config)
-          : parseInquiry(value, config, acceptedExisting)
-        manifest.writeOutcomeUnknown = false
-        return receipt
+        return parseInquiry(value, config, acceptedExisting)
       } catch (error) {
         if (isWriteOutcomeUnknown(error)) manifest.writeOutcomeUnknown = true
         throw error
@@ -445,87 +487,76 @@ export async function runStagingAcceptance({
     return tracked
   }
 
+  const transition = async (nextPhase, patch = {}) => {
+    try {
+      await lease.transition(nextPhase, patch)
+      durablePhase = nextPhase
+    } catch {
+      fail('scenario_failed')
+    }
+  }
+
   const ensureZeroRelations = (result) => {
     if (result.followUpCount !== 0 || result.ownershipHistoryCount !== 0) {
       freeze('fixture_relations_present')
     }
   }
 
-  const adopt = (result) => {
+  const exactObservedLead = (result, expectedLeadId = null) => {
     ensureZeroRelations(result)
     if (result.leadCount !== 1 || !canonicalLeadId(result.leadId)) freeze('fixture_owner_missing')
-    if (manifest.ownedLeadId !== null && manifest.ownedLeadId !== result.leadId) {
+    if (expectedLeadId !== null && expectedLeadId !== result.leadId) {
       freeze('fixture_owner_changed')
     }
-    manifest.ownedLeadId = result.leadId
+    return result.leadId
   }
 
-  const performCleanup = async () => {
-    if (!manifest.cleanStartProven) return
+  const performFinalize = async () => {
+    if (durablePhase !== 'idempotency_verified') return false
+    await transition('cleanup_dispatched')
     manifest.cleanupAttempted = true
     safeEmit(logger, config, 'cleanup_started', { cleanupAttempted: true })
     try {
-      let reconciledUnknownWrite = false
-      if (manifest.writeOutcomeUnknown) {
-        let receipt
-        try {
-          receipt = await submitInquiry(null)
-        } catch {
-          freeze('write_outcome_unknown')
-        }
-        const reconciledLocatorHash = locatorSummary(receipt.acceptance.leadLocator.idempotencyKey)
-        if (manifest.locatorHash !== null && manifest.locatorHash !== reconciledLocatorHash) {
-          freeze('fixture_locator_changed')
-        }
-        manifest.locatorHash = reconciledLocatorHash
-        reconciledUnknownWrite = true
-      }
-      const current = await inspect()
-      ensureZeroRelations(current)
-      if (current.leadCount === 0) {
-        if (reconciledUnknownWrite) freeze('fixture_owner_missing')
-        manifest.clean = true
-        safeEmit(logger, config, 'cleanup_complete', {
-          clean: true,
-          leadCount: 0,
-          followUpCount: 0,
-          ownershipHistoryCount: 0,
-        })
-        return
-      }
-      adopt(current)
       const cleaned = parseFixtureCleanup(await json(
         PATHS.fixture,
         'POST',
-        { 'x-sbh-acceptance-permit': permit },
-        cleanupBody(config, submissionRequestId, manifest.ownedLeadId),
+        { 'x-sbh-acceptance-permit': writerPermit },
+        cleanupBody(config, submissionRequestId, durableLeadId),
       ))
       if (
         cleaned.cleaned !== true || cleaned.leadCount !== 0 ||
         cleaned.followUpCount !== 0 || cleaned.ownershipHistoryCount !== 0
       ) freeze('cleanup_not_confirmed')
-      const finalState = await inspect()
+      const finalState = await freshInspect()
       if (
         finalState.leadCount !== 0 || finalState.followUpCount !== 0 ||
         finalState.ownershipHistoryCount !== 0
       ) freeze('cleanup_residual')
-      manifest.clean = true
-      safeEmit(logger, config, 'cleanup_complete', {
-        clean: true,
-        leadCount: 0,
-        followUpCount: 0,
-        ownershipHistoryCount: 0,
-      })
-    } catch {
+    } catch (error) {
+      if (error instanceof SafeRunnerError && error.code === 'scenario_failed') throw error
       manifest.clean = false
       safeEmit(logger, config, 'acceptance_frozen', { clean: false })
       freeze('cleanup_failed')
     }
+    await transition('cleanup_confirmed')
+    try {
+      await lease.removeConfirmed()
+    } catch {
+      fail('scenario_failed')
+    }
+    manifest.clean = true
+    safeEmit(logger, config, 'cleanup_complete', {
+      clean: true,
+      leadCount: 0,
+      followUpCount: 0,
+      ownershipHistoryCount: 0,
+    })
+    return true
   }
 
-  const cleanupOnce = () => {
-    if (!cleanupPromise) cleanupPromise = performCleanup()
-    return cleanupPromise
+  const finalizeOnce = () => {
+    if (!finalizePromise) finalizePromise = performFinalize()
+    return finalizePromise
   }
   const signalHandler = async () => {
     interrupted = true
@@ -534,25 +565,62 @@ export async function runStagingAcceptance({
       try {
         await currentWrite
       } catch {
-        // The write result is handled by the main scenario; cleanup still must inspect afterward.
+        // The main scenario classifies the write outcome and preserves its durable phase.
       }
     }
-    if (manifest.cleanStartProven) await cleanupOnce()
+    await finalizeOnce()
   }
   const ensureActive = () => {
     if (interrupted) freeze('interrupted')
   }
 
-  if (registerSignal !== undefined) {
-    if (typeof registerSignal !== 'function') fail('runner_config_invalid')
-    for (const signal of ['SIGINT', 'SIGTERM']) {
-      const remove = registerSignal(signal, signalHandler)
-      if (typeof remove === 'function') unregister.push(remove)
-    }
-  }
-
   let primaryError = null
   try {
+    try {
+      lease = await capsuleStore.acquire('normal')
+    } catch {
+      fail('scenario_failed')
+    }
+    if (
+      !isRecord(lease) || typeof lease.createPrepared !== 'function' ||
+      typeof lease.transition !== 'function' || typeof lease.removeConfirmed !== 'function' ||
+      typeof lease.release !== 'function'
+    ) fail('scenario_failed')
+
+    try {
+      submissionRequestId = randomUUID()
+    } catch {
+      fail('scenario_failed')
+    }
+    if (!UUID_V4_PATTERN.test(submissionRequestId)) fail('submission_id_invalid')
+
+    try {
+      await lease.createPrepared({
+        runId: config.runId,
+        submissionRequestId,
+        listingSlug: config.listingSlug,
+        fixtureNamespace: config.fixtureNamespace,
+        origin: config.origin,
+        expectedGitCommitSha: config.expectedGitCommitSha,
+        expectedDeploymentRevision: config.expectedDeploymentRevision,
+        expectedDbFingerprint: config.expectedDbFingerprint,
+      })
+      durablePhase = 'prepared'
+    } catch {
+      fail('scenario_failed')
+    }
+
+    if (registerSignal !== undefined) {
+      try {
+        for (const signal of ['SIGINT', 'SIGTERM']) {
+          const remove = registerSignal(signal, signalHandler)
+          if (typeof remove === 'function') unregister.push(remove)
+        }
+      } catch {
+        fail('scenario_failed')
+      }
+    }
+
     const attestation = parseAttestation(await json(
       PATHS.attestation,
       'GET',
@@ -561,24 +629,15 @@ export async function runStagingAcceptance({
     ensureActive()
     safeEmit(logger, config, 'attestation_verified', { attestationVerified: true })
 
-    permit = parsePermit(await json(
-      PATHS.permit,
-      'POST',
-      { 'x-sbh-acceptance-bootstrap': config.operatorBootstrapSecret },
-      {
-        runId: config.runId,
-        fixtureNamespace: config.fixtureNamespace,
-        expectedGitCommitSha: attestation.deploymentGitCommitSha,
-        expectedDeploymentRevision: attestation.deploymentRevision,
-        expectedDbFingerprint: attestation.fingerprint,
-      },
-    ))
+    const issuedWriter = await issuePermit('write')
+    writerPermit = issuedWriter.permit
     ensureActive()
     safeEmit(logger, config, 'permit_issued', { permitIssued: true })
 
-    const cleanStart = await inspect()
+    const cleanStart = await inspect(writerPermit)
     ensureZeroRelations(cleanStart)
     if (cleanStart.leadCount !== 0 || cleanStart.leadId !== null) freeze('clean_start_not_empty')
+    await transition('clean_start_proven', { recoveryReceipt: issuedWriter.recoveryReceipt })
     manifest.cleanStartProven = true
     safeEmit(logger, config, 'clean_start_proven', {
       cleanStartProven: true,
@@ -588,12 +647,30 @@ export async function runStagingAcceptance({
     })
     ensureActive()
 
-    const firstReceipt = await submitInquiry(false)
-    manifest.locatorHash = locatorSummary(firstReceipt.acceptance.leadLocator.idempotencyKey)
+    await transition('first_write_dispatched')
+    ensureActive()
+    let firstReceipt = null
+    let firstResponseError = null
+    try {
+      firstReceipt = await submitInquiry(false)
+    } catch (error) {
+      if (manifest.writeOutcomeUnknown) throw error
+      firstResponseError = error
+    }
     ensureActive()
 
-    const afterCreate = await inspect()
-    adopt(afterCreate)
+    const afterCreate = await freshInspect()
+    ensureZeroRelations(afterCreate)
+    if (afterCreate.leadCount === 1) {
+      const observedLeadId = exactObservedLead(afterCreate)
+      await transition('lead_observed', { leadId: observedLeadId })
+      durableLeadId = observedLeadId
+      manifest.ownedLeadId = observedLeadId
+    } else if (firstResponseError === null) {
+      freeze('fixture_owner_missing')
+    }
+    if (firstResponseError !== null) throw firstResponseError
+    manifest.locatorHash = locatorSummary(firstReceipt.acceptance.leadLocator.idempotencyKey)
     safeEmit(logger, config, 'first_write_verified', {
       firstWriteVerified: true,
       locatorHash: manifest.locatorHash,
@@ -603,14 +680,25 @@ export async function runStagingAcceptance({
     })
     ensureActive()
 
-    const retryReceipt = await submitInquiry(true)
-    if (locatorSummary(retryReceipt.acceptance.leadLocator.idempotencyKey) !== manifest.locatorHash) {
-      freeze('fixture_locator_changed')
+    await transition('retry_write_dispatched')
+    ensureActive()
+    let retryReceipt = null
+    let retryResponseError = null
+    try {
+      retryReceipt = await submitInquiry(true)
+      if (locatorSummary(retryReceipt.acceptance.leadLocator.idempotencyKey) !== manifest.locatorHash) {
+        retryResponseError = new FrozenRunnerError('fixture_locator_changed')
+      }
+    } catch (error) {
+      if (manifest.writeOutcomeUnknown) throw error
+      retryResponseError = error
     }
     ensureActive()
 
-    const afterRetry = await inspect()
-    adopt(afterRetry)
+    const afterRetry = await freshInspect()
+    exactObservedLead(afterRetry, durableLeadId)
+    if (retryResponseError !== null) throw retryResponseError
+    await transition('idempotency_verified')
     safeEmit(logger, config, 'idempotency_verified', {
       idempotencyVerified: true,
       locatorHash: manifest.locatorHash,
@@ -621,11 +709,18 @@ export async function runStagingAcceptance({
   } catch (error) {
     primaryError = error instanceof SafeRunnerError ? error : new SafeRunnerError('scenario_failed')
   } finally {
-    if (manifest.cleanStartProven) {
+    try {
+      await finalizeOnce()
+    } catch (error) {
+      if (primaryError === null) {
+        primaryError = error instanceof SafeRunnerError ? error : new SafeRunnerError('scenario_failed')
+      }
+    }
+    if (lease !== null) {
       try {
-        await cleanupOnce()
-      } catch (error) {
-        primaryError = error instanceof FrozenRunnerError ? error : new FrozenRunnerError('cleanup_failed')
+        await lease.release()
+      } catch {
+        if (primaryError === null) primaryError = new SafeRunnerError('scenario_failed')
       }
     }
     for (const remove of unregister) {
@@ -666,6 +761,7 @@ export async function main() {
       randomUUID: nodeRandomUUID,
       registerSignal: registerProcessSignal,
       logger: consoleLogger,
+      capsuleStore: createCapsuleStore(),
     })
   } catch {
     console.error('staging acceptance 运行失败')
