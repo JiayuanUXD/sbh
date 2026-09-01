@@ -10,7 +10,7 @@ const { parsePreflightEnvironment, formatPreflightOutput } = await import('../sc
 
 const valid = {
   MP_E2E_ALLOW_STAGING_WRITE: '1',
-  MP_E2E_API_ORIGIN: 'https://staging.example.com',
+  MP_E2E_API_ORIGIN: 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com',
   MP_E2E_EXPECTED_GIT_COMMIT_SHA: 'a'.repeat(40),
   MP_E2E_EXPECTED_DEPLOYMENT_REVISION: 'deploy-2026-08-27',
   MP_E2E_EXPECTED_DB_FINGERPRINT: 'b'.repeat(64),
@@ -22,23 +22,35 @@ const scriptPath = fileURLToPath(new URL('../scripts/staging-acceptance-prefligh
 describe('staging acceptance preflight', () => {
   it('解析完整配置并由 run ID 派生 fixture namespace', () => {
     const result = parsePreflightEnvironment(valid) as { apiHost: string; fixtureNamespace: string; runId: string }
-    expect(result).toMatchObject({ apiHost: 'staging.example.com', runId: valid.MP_E2E_RUN_ID })
+    expect(result).toMatchObject({
+      apiHost: 'sbhmini-305971-11-1253925058.sh.run.tcloudbase.com',
+      runId: valid.MP_E2E_RUN_ID,
+    })
     expect(result.fixtureNamespace).toMatch(/^mp-e2e-[0-9a-f]{16}$/)
   })
 
   it.each([
+    ['arbitrary HTTPS', 'https://staging.example.com'],
+    ['old placeholder', 'https://sbhmini.ap-shanghai.run.tcloudbase.com'],
     ['production', 'https://sbh-286300-10-1253925058.sh.run.tcloudbase.com'],
     ['production default-port variant', 'HTTPS://SBH-286300-10-1253925058.SH.RUN.TCLOUDBASE.COM:0443/'],
     ['localhost', 'https://localhost'],
     ['localhost trailing dot', 'https://localhost.'],
     ['localhost subdomain', 'https://fixture.localhost'],
-    ['DNS absolute-name trailing dot', 'https://staging.example.com.'],
-    ['percent-encoded dot', 'https://staging%2eexample.com'],
+    ['IP', 'https://127.0.0.1'],
+    ['sibling service', 'https://sbhmini-305971-12-1253925058.sh.run.tcloudbase.com'],
+    ['uppercase exact host', 'https://SBHMINI-305971-11-1253925058.SH.RUN.TCLOUDBASE.COM'],
+    ['explicit default port', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com:443'],
+    ['trailing slash', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com/'],
+    ['DNS absolute-name trailing dot', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com.'],
+    ['percent-encoded dot', 'https://sbhmini-305971-11-1253925058%2esh%2erun%2etcloudbase%2ecom'],
     ['numeric localhost', 'https://2130706433'],
-    ['path', 'https://staging.example.com/api'],
-    ['query', 'https://staging.example.com?x=1'],
-    ['hash', 'https://staging.example.com#x'],
-    ['credentials', 'https://user:pass@staging.example.com'],
+    ['path', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com/api'],
+    ['query', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com?x=1'],
+    ['hash', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com#x'],
+    ['credentials', 'https://user:pass@sbhmini-305971-11-1253925058.sh.run.tcloudbase.com'],
+    ['leading whitespace', ' https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com'],
+    ['trailing whitespace', 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com '],
   ])('拒绝非法 origin：%s', (_label, origin) => {
     expect(() => parsePreflightEnvironment({ ...valid, MP_E2E_API_ORIGIN: origin })).toThrow()
   })
@@ -63,7 +75,7 @@ describe('staging acceptance preflight', () => {
   it('输出只包含安全摘要，不泄漏 secret、完整 run ID、commit 或 fingerprint', () => {
     const result = parsePreflightEnvironment(valid) as { apiHost: string; fixtureNamespace: string; runId: string }
     const output = formatPreflightOutput(result)
-    expect(output).toContain('staging.example.com')
+    expect(output).toContain('sbhmini-305971-11-1253925058.sh.run.tcloudbase.com')
     expect(output).toContain('localStructureValid')
     expect(output).toContain('writeAuthorized')
     expect(output).not.toContain('stagingWriteAllowed')
@@ -92,7 +104,7 @@ describe('staging acceptance preflight', () => {
 
   it('真实 CLI 成功输出脱敏摘要', () => {
     const output = execFileSync(process.execPath, [scriptPath], { env: { ...process.env, ...valid }, encoding: 'utf8' })
-    expect(output).toContain('staging.example.com')
+    expect(output).toContain('sbhmini-305971-11-1253925058.sh.run.tcloudbase.com')
     expect(output).toContain('localStructureValid')
     expect(output).not.toContain('stagingWriteAllowed')
     expect(output).not.toContain(valid.MP_E2E_OPERATOR_BOOTSTRAP_SECRET)

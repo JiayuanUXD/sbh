@@ -3,8 +3,11 @@ import { lstatSync, writeFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const STAGING_ENV_ID = 'sbhmini-gateway-d3fbrmn8097478b8'
-const STAGING_SERVICE_NAME = 'sbhmini'
+import {
+  STAGING_RUNTIME_ENV_ID,
+  STAGING_RUNTIME_SERVICE_NAME,
+} from './trial-origin.mjs'
+
 const shaPattern = /^[0-9a-f]{40}$/
 const revisionPattern = /^[A-Za-z0-9._-]{1,128}$/
 
@@ -12,8 +15,8 @@ export function prepareTrialDeployment({ environment, currentHeadSha, worktreeSt
   const env = environment ?? process.env
   const cloudEnvId = env.TRIAL_CLOUD_ENV_ID ?? ''
   const cloudServiceName = env.TRIAL_CLOUD_SERVICE_NAME ?? ''
-  if (cloudEnvId !== STAGING_ENV_ID) throw new Error('trial cloud env 与受控 staging 不一致')
-  if (cloudServiceName !== STAGING_SERVICE_NAME) throw new Error('trial cloud service 与受控 staging 不一致')
+  if (cloudEnvId !== STAGING_RUNTIME_ENV_ID) throw new Error('trial cloud env 与受控 staging 不一致')
+  if (cloudServiceName !== STAGING_RUNTIME_SERVICE_NAME) throw new Error('trial cloud service 与受控 staging 不一致')
   const targetSha = env.TRIAL_DEPLOYMENT_COMMIT_SHA ?? ''
   if (!shaPattern.test(targetSha) || targetSha !== currentHeadSha) throw new Error('目标 Git commit SHA 与当前 HEAD 不一致')
   const revision = env.TRIAL_SERVER_DEPLOYMENT_REVISION ?? ''

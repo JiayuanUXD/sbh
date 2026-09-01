@@ -19,7 +19,7 @@ const LEAD_ID = 'n:42'
 const FIXTURE_NAMESPACE = `mp-e2e-${createHash('sha256').update(RUN_ID).digest('hex').slice(0, 16)}`
 const validEnvironment = {
   MP_E2E_ALLOW_STAGING_WRITE: '1',
-  MP_E2E_API_ORIGIN: 'https://staging.example.com',
+  MP_E2E_API_ORIGIN: 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com',
   MP_E2E_EXPECTED_GIT_COMMIT_SHA: SHA,
   MP_E2E_EXPECTED_DEPLOYMENT_REVISION: REVISION,
   MP_E2E_EXPECTED_DB_FINGERPRINT: FINGERPRINT,
@@ -222,6 +222,23 @@ describe('staging acceptance runner entrypoint', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['arbitrary HTTPS', 'https://staging.example.com'],
+    ['old placeholder', 'https://sbhmini.ap-shanghai.run.tcloudbase.com'],
+    ['sibling service', 'https://sbhmini-305971-12-1253925058.sh.run.tcloudbase.com'],
+    ['canonicalized variant', 'HTTPS://SBHMINI-305971-11-1253925058.SH.RUN.TCLOUDBASE.COM:443/'],
+  ])('非唯一 staging origin 在零网络阶段 fail closed：%s', async (_label, origin) => {
+    const fetchImpl = vi.fn()
+    const randomUUID = vi.fn(() => SUBMISSION_ID)
+    await expect(runStagingAcceptance({
+      environment: { ...validEnvironment, MP_E2E_API_ORIGIN: origin },
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      randomUUID,
+    })).rejects.toThrow()
+    expect(randomUUID).not.toHaveBeenCalled()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
   it('submission UUID 只从注入生成器取得一次，拒绝非 lowercase UUIDv4 且零网络', async () => {
     const fetchImpl = vi.fn()
     const randomUUID = vi.fn(() => SUBMISSION_ID.toUpperCase())
@@ -315,7 +332,7 @@ describe('staging acceptance runner entrypoint', () => {
       validEnvironment.MP_E2E_TEST_PHONE, FINGERPRINT, SHA]) {
       expect(formatted).not.toContain(secret)
     }
-    expect(formatted).toContain('staging.example.com')
+    expect(formatted).toContain('sbhmini-305971-11-1253925058.sh.run.tcloudbase.com')
     expect(formatted).toContain(RUN_ID.slice(0, 8))
     for (const entry of output) {
       expect(Object.keys(entry).every((key) => [

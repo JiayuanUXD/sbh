@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const prepareTrialDeployment = (await import('../scripts/prepare-trial-deployment.mjs' as never)).prepareTrialDeployment as (options: {
@@ -10,6 +10,17 @@ const prepareTrialDeployment = (await import('../scripts/prepare-trial-deploymen
   outputPath: string
   allowedOutputPath: string
 }) => string
+const trialOriginModule = await import('../scripts/trial-origin.mjs' as never) as {
+  STAGING_RUNTIME_ENV_ID?: unknown
+  STAGING_RUNTIME_SERVICE_NAME?: unknown
+  STAGING_RUNTIME_ORIGIN?: unknown
+}
+
+const expectedStaging = Object.freeze({
+  envId: 'sbhmini-gateway-d3fbrmn8097478b8',
+  serviceName: 'sbhmini',
+  origin: 'https://sbhmini-305971-11-1253925058.sh.run.tcloudbase.com',
+})
 
 const sha = 'a'.repeat(40)
 const environment = {
@@ -20,6 +31,30 @@ const environment = {
 }
 
 describe('trial deployment manifest tooling', () => {
+  it('Node tooling 只暴露一套 staging runtime 常量', () => {
+    expect(trialOriginModule).toMatchObject({
+      STAGING_RUNTIME_ENV_ID: expectedStaging.envId,
+      STAGING_RUNTIME_SERVICE_NAME: expectedStaging.serviceName,
+      STAGING_RUNTIME_ORIGIN: expectedStaging.origin,
+    })
+    const prepareSource = readFileSync(
+      new URL('../scripts/prepare-trial-deployment.mjs', import.meta.url),
+      'utf8',
+    )
+    expect(prepareSource).toMatch(/import\s*\{[^}]*STAGING_RUNTIME_ENV_ID[^}]*STAGING_RUNTIME_SERVICE_NAME[^}]*\}\s*from\s*['"]\.\/trial-origin\.mjs['"]/s)
+    expect(prepareSource).not.toMatch(/const\s+STAGING_(?:ENV_ID|SERVICE_NAME)\s*=/)
+  })
+
+  it('小程序 TS 客户端锁定相同云环境，但不导入 Node-only 工具', () => {
+    const environmentSource = readFileSync(
+      resolve(import.meta.dirname, '../miniprogram/config/environment.ts'),
+      'utf8',
+    )
+    expect(environmentSource).toContain(`const STAGING_ENV_ID = '${expectedStaging.envId}'`)
+    expect(environmentSource).toContain(`const STAGING_SERVICE_NAME = '${expectedStaging.serviceName}'`)
+    expect(environmentSource).not.toMatch(/scripts\/trial-origin|trial-origin\.mjs/)
+  })
+
   it('只在 clean matching commit 上写入 JSON-safe manifest，不写入秘密', () => {
     const directory = mkdtempSync(join(tmpdir(), 'sbh-trial-manifest-'))
     const outputPath = join(directory, 'trial-deployment.generated.ts')
