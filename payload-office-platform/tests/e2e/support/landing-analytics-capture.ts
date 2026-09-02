@@ -59,6 +59,30 @@ export function installAnalyticsDataLayerCapture(captureKey: string): void {
   wrapLayer(currentLayer)
 }
 
+export const UMAMI_CAPTURE_KEY = '__landingAnalyticsUmamiCapture__'
+
+/**
+ * 在页面业务脚本执行前安装 `window.umami` 桩（OPT-064）。
+ *
+ * 生产 adapter 从 DataLayerAdapter 换成 UmamiAdapter 之后，事件不再进
+ * `window.dataLayer`——只装 dataLayer 捕获会读到空数组，然后被误读成
+ * 「埋点没发」。CI 实测踩过这个（run 33586601798）。
+ *
+ * 真实 `script.js` 由 `_umami-stub.blockUmamiScript` 在网络层拦掉，
+ * 所以这个桩不会被后到的真脚本覆盖。
+ */
+export function installAnalyticsUmamiCapture(captureKey: string): void {
+  if (Array.isArray(Reflect.get(window, captureKey))) return
+  const captured: unknown[] = []
+  Reflect.set(window, captureKey, captured)
+  Reflect.set(window, 'umami', {
+    track: (name: string, data: Record<string, unknown> = {}) => {
+      captured.push({ name, props: data })
+    },
+    identify: () => {},
+  })
+}
+
 /** DataLayerAdapter 的 `{ event, ...props, _ts }` 转为 E2E 共用事件形状。 */
 export function normalizeDataLayerEvent(value: unknown): AnalyticsRecord | null {
   if (!isRecord(value) || typeof value.event !== 'string') return null
@@ -69,10 +93,11 @@ export function normalizeDataLayerEvent(value: unknown): AnalyticsRecord | null 
   return { name: value.event, props }
 }
 
-/** 同时支持开发 ConsoleAdapter 与生产 DataLayerAdapter。 */
+/** 同时支持开发 ConsoleAdapter、旧的 DataLayerAdapter 与生产 UmamiAdapter。 */
 export async function captureAnalytics(page: Page): Promise<AnalyticsCapture> {
   const consoleEvents: AnalyticsRecord[] = []
   await page.addInitScript(installAnalyticsDataLayerCapture, ANALYTICS_CAPTURE_KEY)
+  await page.addInitScript(installAnalyticsUmamiCapture, UMAMI_CAPTURE_KEY)
   page.on('console', async (message) => {
     if (message.type() !== 'debug') return
     const args = message.args()
@@ -94,7 +119,14 @@ export async function captureAnalytics(page: Page): Promise<AnalyticsCapture> {
       const dataLayerEvents = capturedEntries
         .map(normalizeDataLayerEvent)
         .filter((event): event is AnalyticsRecord => event !== null)
-      return [...consoleEvents, ...dataLayerEvents]
+      const umamiEntries: unknown[] = await page.evaluate((captureKey) => {
+        const entries = Reflect.get(window, captureKey)
+        return Array.isArray(entries) ? entries : []
+      }, UMAMI_CAPTURE_KEY)
+      const umamiEvents = umamiEntries.filter(
+        (e): e is AnalyticsRecord => isRecord(e) && typeof e.name === 'string' && isRecord(e.props),
+      )
+      return [...consoleEvents, ...dataLayerEvents, ...umamiEvents]
     },
   }
 }
