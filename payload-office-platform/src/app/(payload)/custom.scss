@@ -677,6 +677,17 @@ body.admin-nav-collapsed .admin-brand-title {
     flex: 0 0 25%;
     max-width: 25%;
   }
+
+  /* OPT-065：数据看板的序列卡用 xs=24 md=12（宽屏两列并排）。
+     这条不是冗余——上面 .arco-admin-dashboard .arco-col-xs-24 是**无媒体查询**的
+     `flex: 0 0 100%`，两个 class 的特异性压得过 Arco 自己单 class 的
+     .arco-col-md-12，于是宽屏下序列卡仍被摊成整行。
+     `.arco-admin-dashboard` 里每新用一种响应式列组合，都要在此补一条同款覆盖
+     （md-6 那条存在的理由完全相同）。 */
+  .arco-admin-dashboard .arco-col-md-12 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
 }
 
 @media (min-width: 992px) {
