@@ -382,3 +382,60 @@ describe('部署流水线 / 构建失败必须让 job 变红', () => {
     }
   })
 })
+
+describe('Umami 采集的构建期/运行期环境（OPT-064b）', () => {
+  const dockerfile = () => readFileSync(resolve(appRoot, 'Dockerfile'), 'utf8')
+
+  /** 取某个构建阶段的正文（到下一个 `FROM` 为止） */
+  function stage(text: string, name: 'builder' | 'runner'): string {
+    const start = text.indexOf(`AS ${name}`)
+    expect(start, `Dockerfile 里找不到 ${name} 阶段`).toBeGreaterThan(-1)
+    const next = text.indexOf('\nFROM ', start)
+    return next === -1 ? text.slice(start) : text.slice(start, next)
+  }
+
+  /** 从一段 Dockerfile 里抽出 `ENV KEY=VALUE` 映射 */
+  function envOf(block: string): Record<string, string> {
+    const out: Record<string, string> = {}
+    for (const line of block.split('\n')) {
+      const m = /^ENV\s+([A-Z0-9_]+)=(.*)$/.exec(line.trim())
+      if (m) out[m[1]] = m[2]
+    }
+    return out
+  }
+
+  const UMAMI_KEYS = [
+    'NEXT_PUBLIC_ANALYTICS_ENABLED',
+    'NEXT_PUBLIC_UMAMI_SRC',
+    'NEXT_PUBLIC_UMAMI_WEBSITE_ID',
+  ] as const
+
+  it('builder 阶段提供三个 NEXT_PUBLIC_UMAMI 变量（客户端 bundle 靠构建期内联）', () => {
+    // Next 把 NEXT_PUBLIC_* 内联成字面量。缺了它们，浏览器侧 resolveUmamiConfig()
+    // 恒为 null：脚本不注、adapter 退化 Noop，采集静默归零。
+    const env = envOf(stage(dockerfile(), 'builder'))
+    for (const key of UMAMI_KEYS) {
+      expect(env[key], `builder 阶段缺 ${key}`).toBeTruthy()
+    }
+  })
+
+  it('runner 阶段的三个值与 builder 逐字一致', () => {
+    // next.config.ts 顶层 import 了 security-headers，按 NEXT_PUBLIC_UMAMI_SRC
+    // 往 CSP 的 script-src 追加 Umami origin。两个阶段一旦漂移（典型：换域名只改了
+    // builder），CSP 会拦掉采集脚本——而 CSP 拦截除控制台一行外**没有任何症状**。
+    const text = dockerfile()
+    const builder = envOf(stage(text, 'builder'))
+    const runner = envOf(stage(text, 'runner'))
+    for (const key of UMAMI_KEYS) {
+      expect(runner[key], `runner 阶段缺 ${key}`).toBeTruthy()
+      expect(runner[key], `${key} 在 builder/runner 两个阶段不一致`).toBe(builder[key])
+    }
+  })
+
+  it('CSP 的 script-src 由 NEXT_PUBLIC_UMAMI_SRC 驱动，没有把域名写死', () => {
+    // 写死域名会让预发/本地生产构建的脚本被 CSP 拦掉，且改域名时必然漏改一处。
+    const headers = readFileSync(resolve(appRoot, 'src/lib/security-headers.ts'), 'utf8')
+    expect(headers).toContain('process.env.NEXT_PUBLIC_UMAMI_SRC')
+    expect(headers).not.toContain('umami-286300-10-1253925058')
+  })
+})
