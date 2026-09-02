@@ -1,5 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
+import { blockUmamiScript } from './_umami-stub'
+
 const routingEnabled = process.env.MULTI_CITY_ROUTING_ENABLED === 'true'
 const LISTING_SLUG = 'jingan-serviced-office-42-seats'
 const BUILDING_SLUG = 'west-nanjing-premium-center'
@@ -32,6 +34,9 @@ async function stubKnownUnavailableSeedMedia(page: Page): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
+  // OPT-064：拦掉 Umami 采集脚本请求，否则不可达域名会在控制台留下
+  // ERR_NAME_NOT_RESOLVED，把下面的「零错误」断言拖红。见 _umami-stub.ts。
+  await blockUmamiScript(page)
   const errors: string[] = []
   browserErrors.set(page, errors)
   page.on('console', (message) => {
