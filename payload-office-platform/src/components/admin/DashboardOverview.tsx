@@ -129,7 +129,9 @@ export default function DashboardOverview(props: DashboardOverviewProps) {
         </Card>
       )}
 
-      <Row gutter={[16, 16]} className="arco-admin-dashboard__detail-row">
+      {/* 分节间距挂外层：Row 的内联负 margin 会覆盖类规则（见 custom.scss 注释） */}
+      <div className="arco-admin-dashboard__section">
+        <Row gutter={[16, 16]} className="arco-admin-dashboard__detail-row">
         <Col xs={24} lg={16}>
           <Card
             title="供给与内容健康度"
@@ -184,7 +186,8 @@ export default function DashboardOverview(props: DashboardOverviewProps) {
             </div>
           </Card>
         </Col>
-      </Row>
+        </Row>
+      </div>
     </div>
   )
 }

@@ -249,7 +249,7 @@ export default function AnalyticsDashboardClient(): React.ReactElement {
         用 paddingTop 而非 marginTop：外层若用 margin 会与 Row 的负 margin 折叠，
         又要多绕一圈。
       */}
-      <div className="analytics-section">
+      <div className="arco-admin-dashboard__section">
         <Row gutter={[16, 16]}>
           {[...trends, ...distributions].map((card) => (
             <Col key={card.code} xs={24} md={12}>
