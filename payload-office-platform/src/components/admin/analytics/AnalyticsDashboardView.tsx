@@ -23,7 +23,17 @@ export default async function AnalyticsDashboardView(props: AdminViewServerProps
 
   return (
     <GeographyAdminTemplate {...props}>
-      <AnalyticsDashboardClient />
+      {/*
+        24px 留白是本仓库自定义视图的通行做法：DefaultTemplate 的
+        `.template-default__wrap` 自身 padding 为 0，内容不包一层就会紧贴左侧导航
+        （实测内容起点 275 = 导航右边界，而地理 / 批量导入等页都是 299）。
+        地理与批量导入把它写在各自的 Client 里；这里放在 View 一层包住，
+        加载 / 错误 / 正常三种状态一次覆盖，不必在 Client 的每个 return 分支各写一遍。
+        （权限不足的分支由 requireAnalyticsAccess 提前返回，自带同样的 24px。）
+      */}
+      <div style={{ padding: 24 }}>
+        <AnalyticsDashboardClient />
+      </div>
     </GeographyAdminTemplate>
   )
 }
