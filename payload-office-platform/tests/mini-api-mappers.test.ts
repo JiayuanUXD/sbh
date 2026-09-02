@@ -550,4 +550,13 @@ describe('Mini API mappers', () => {
     expect(serialized).not.toMatch(/"(?:description|merchant|audit|reviewStatus)":/)
     expect(serialized).not.toContain('13800001111')
   })
+
+  it('availableFrom 序列化为上海自然日 date-only，兼容时刻与 date-only 输入', () => {
+    const timestampCard = { ...card, availableFrom: '2026-08-14T16:00:00.000Z' }
+    expect(mapMiniListingCard(timestampCard, MEDIA_ORIGIN).availableFrom).toBe('2026-08-15')
+    const dateOnlyCard = { ...card, availableFrom: '2026-09-01' }
+    expect(mapMiniListingCard(dateOnlyCard, MEDIA_ORIGIN).availableFrom).toBe('2026-09-01')
+    const nullCard = { ...card, availableFrom: null }
+    expect(mapMiniListingCard(nullCard, MEDIA_ORIGIN).availableFrom).toBeNull()
+  })
 })

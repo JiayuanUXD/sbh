@@ -1,3 +1,4 @@
+import { availabilityDay } from '@/domain/public-catalog/building-supply'
 import { estimateMonthlyRent } from '@/domain/public-catalog/monthly-estimate'
 import type {
   HomepageData,
@@ -95,7 +96,7 @@ export function mapMiniListingCard(
       value: String(card.listingType),
       label: LISTING_TYPE_LABELS[card.listingType],
     },
-    availableFrom: card.availableFrom,
+    availableFrom: card.availableFrom === null ? null : availabilityDay(card.availableFrom),
     building: card.building
       ? {
           slug: card.building.slug,
@@ -298,7 +299,7 @@ export function mapMiniListingDetail(
         value: card.listingType.value,
         label: card.listingType.label,
       },
-      availableFrom: card.availableFrom,
+      availableFrom: card.availableFrom === null ? null : availabilityDay(card.availableFrom),
       building: card.building
         ? {
             slug: card.building.slug,
