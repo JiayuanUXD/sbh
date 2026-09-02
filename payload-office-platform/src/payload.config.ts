@@ -62,6 +62,7 @@ import { metricRegistry } from './domain/analytics/metric-registry'
 import { registerBuiltinMetrics } from './domain/analytics/metrics/builtin'
 import { createDashboardEndpoint } from './endpoints/dashboard-endpoint'
 import { createOverviewEndpoint } from './endpoints/overview-endpoint'
+import { createTrafficEndpoint } from './endpoints/traffic-endpoint'
 import { createListingAnalyticsEndpoint } from './endpoints/listing-analytics-endpoint'
 import { createLeadAnalyticsEndpoint } from './endpoints/lead-analytics-endpoint'
 import { createDictionariesEndpoint } from './endpoints/dictionaries-endpoint'
@@ -379,6 +380,8 @@ export default buildConfig({
     createDashboardStatsEndpoint(),
     createDashboardEndpoint(),
     createOverviewEndpoint(),
+    // OPT-066 流量与转化漏斗（GET /api/traffic?range=yesterday|7d|30d）
+    createTrafficEndpoint(),
     createListingAnalyticsEndpoint(),
     createLeadAnalyticsEndpoint(),
     // M2.6 字典发布基线 endpoint（GET /api/dictionaries，只读枚举 + 可选展示标签）

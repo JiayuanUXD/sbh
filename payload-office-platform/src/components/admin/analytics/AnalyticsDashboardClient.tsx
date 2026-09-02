@@ -26,6 +26,7 @@ import {
   type OverviewCardView,
   type OverviewViewModel,
 } from './overview-view-model'
+import TrafficBlock from './TrafficBlock'
 
 const { Row, Col } = Grid
 const { Title, Text } = Typography
@@ -258,6 +259,10 @@ export default function AnalyticsDashboardClient(): React.ReactElement {
           ))}
         </Row>
       </div>
+
+      {/* 流量块（OPT-066）。无 analytics:traffic 时它自己返回 null，
+          Umami 不可达时它自己显示「暂不可用」——两种降级都不牵连上面的业务块。 */}
+      <TrafficBlock />
     </div>
   )
 }
