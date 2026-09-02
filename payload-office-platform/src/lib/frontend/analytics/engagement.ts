@@ -201,6 +201,14 @@ export function createEngagementAccountant(
 // 追踪器：把账本与事件上报串起来（仍不碰 DOM）
 // ────────────────────────────────────────────────────────────
 
+/**
+ * 默认的可见性判据。SSR / 无 document 时按可见处理——那条路径上根本不会计时。
+ */
+export function defaultIsVisible(): boolean {
+  if (typeof document === 'undefined') return true
+  return document.visibilityState === 'visible'
+}
+
 export type EngagementTrack = (name: 'page_engagement', props: {
   page_type: EngagementPageType
   active_ms: number
@@ -223,8 +231,17 @@ export function createEngagementTracker(deps: {
   track: EngagementTrack
   now?: () => number
   accountantOptions?: AccountantOptions
+  /**
+   * 当前文档是否可见。默认读 `document.visibilityState`（SSR 下按可见处理）。
+   *
+   * **必须每次 enter() 都重新读**，不能只在挂载时读一次：页面可能在后台标签页里
+   * 加载（找房的人惯常在列表页 ctrl+click 连开好几套再逐个看），此时从头到尾
+   * 都不会有 visibilitychange 事件，只订阅事件的话账本会一直以为自己可见。
+   */
+  isVisible?: () => boolean
 }): EngagementTracker {
   const now = deps.now ?? (() => Date.now())
+  const isVisible = deps.isVisible ?? defaultIsVisible
   let pageType: EngagementPageType | null = null
   let accountant: EngagementAccountant | null = null
 
@@ -245,7 +262,13 @@ export function createEngagementTracker(deps: {
       const next = resolveEngagementPageType(pathname)
       pageType = next
       // 不在六类页面上就不起表，省掉无意义的计时与监听开销
-      accountant = next ? createEngagementAccountant(now(), deps.accountantOptions) : null
+      accountant = next
+        ? createEngagementAccountant(now(), {
+            ...deps.accountantOptions,
+            // 后台标签页里加载的页面不能一进来就起表，否则会凭空产出满额的空闲预算
+            visible: deps.accountantOptions?.visible ?? isVisible(),
+          })
+        : null
     },
     flush: report,
     setVisible(visible) {

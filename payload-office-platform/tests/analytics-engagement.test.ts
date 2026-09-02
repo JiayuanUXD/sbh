@@ -14,6 +14,7 @@ import {
   computeScrollPercent,
   createEngagementAccountant,
   createEngagementTracker,
+  defaultIsVisible,
   isEngagementPageType,
   resolveEngagementPageType,
   toScrollBucket,
@@ -209,5 +210,112 @@ describe('createEngagementTracker', () => {
     tick(5_000)
     tracker.flush()
     expect(track.mock.calls[0][1]).toMatchObject({ scroll_bucket: 50 })
+  })
+})
+
+describe('后台标签页里加载的页面（OPT-064c 生产实测发现）', () => {
+  /**
+   * ## 这条是怎么发现的
+   *
+   * OPT-064b 上线后在生产页面实测，拿到一条 `page_engagement`：
+   * `page_type: listings`、**`active_ms: 60000`**——而整个过程 `visibilityState`
+   * 一直是 `hidden`，页面一秒都没被看过。60000 正好等于 `IDLE_TIMEOUT_MS`，
+   * 是「一进来就起表、跑满空闲预算才停」的指纹。
+   *
+   * 根因：账本的 `visible` 默认 `true`，而 `attachEngagementListeners` 只订阅
+   * `visibilitychange` **事件**，从不读初始的 `document.visibilityState`。
+   * 页面若在后台标签页里加载，从头到尾不会有这个事件，账本就一直以为自己可见。
+   *
+   * 这个场景在本站尤其常见：找房的人惯常在列表页 ctrl+click 连开好几套房源到
+   * 后台标签，再逐个看。按修复前的行为，每个这样的标签页在**被看之前**就先贡献
+   * 60 秒「活跃停留」；最后没看就关掉的话，那 60 秒纯属捏造——而「详情页停留多久」
+   * 正是 spec 点名最想要的指标。
+   */
+  function setup(visible: boolean) {
+    let clock = 0
+    let isVisible = visible
+    const track = vi.fn()
+    const tracker = createEngagementTracker({
+      track,
+      now: () => clock,
+      isVisible: () => isVisible,
+    })
+    return {
+      track,
+      tracker,
+      tick: (ms: number) => { clock += ms },
+      setVisibility: (v: boolean) => { isVisible = v },
+    }
+  }
+
+  it('后台加载的页面不累计活跃时长（修复前会报满 60s 空闲预算）', () => {
+    const { track, tracker, tick } = setup(false)
+    tracker.enter('/shanghai/listings')
+    tick(120_000) // 远超 IDLE_TIMEOUT_MS，修复前这里会攒出 60_000
+    tracker.flush()
+    expect(track).not.toHaveBeenCalled()
+  })
+
+  it('切到前台后才开始计时，且只计切过来之后的那段', () => {
+    const { track, tracker, tick, setVisibility } = setup(false)
+    tracker.enter('/shanghai/listings')
+    tick(90_000) // 在后台待了 90 秒，一毫秒都不该算
+    setVisibility(true)
+    tracker.setVisible(true)
+    tick(5_000)
+    tracker.flush()
+    expect(track).toHaveBeenCalledWith('page_engagement', {
+      page_type: 'listings',
+      active_ms: 5_000,
+      scroll_bucket: 0,
+    })
+  })
+
+  it('每次 enter 都重新读可见性，而不是只在挂载时读一次', () => {
+    // 前台看完列表页 → 用户 ctrl+click 开了个后台标签，那个文档里的
+    // 客户端导航同样必须按「不可见」起账
+    const { track, tracker, tick, setVisibility } = setup(true)
+    tracker.enter('/shanghai/listings')
+    tick(3_000)
+    setVisibility(false)
+    tracker.enter('/shanghai/listings/some-slug')
+    expect(track).toHaveBeenCalledTimes(1) // 上一页的 3s 正常上报
+    track.mockClear()
+    tick(120_000)
+    tracker.flush()
+    expect(track).not.toHaveBeenCalled() // 新页在后台，不该有任何活跃时长
+  })
+
+  it('显式传入的 accountantOptions.visible 优先于探测结果', () => {
+    // 单测里既有的用例都不传 isVisible，靠默认值；这条锁住覆盖顺序不被改反
+    const { track, tracker, tick } = (() => {
+      let clock = 0
+      const t = vi.fn()
+      const tr = createEngagementTracker({
+        track: t,
+        now: () => clock,
+        isVisible: () => false,
+        accountantOptions: { visible: true },
+      })
+      return { track: t, tracker: tr, tick: (ms: number) => { clock += ms } }
+    })()
+    tracker.enter('/shanghai/listings')
+    tick(4_000)
+    tracker.flush()
+    expect(track).toHaveBeenCalledWith('page_engagement', {
+      page_type: 'listings',
+      active_ms: 4_000,
+      scroll_bucket: 0,
+    })
+  })
+})
+
+describe('defaultIsVisible', () => {
+  it('无 document（SSR）时按可见处理', () => {
+    // 本文件跑在 node 环境，没有 document——正好覆盖 SSR 兜底那条分支。
+    // 读 document.visibilityState 的那半边在 analytics-init-city-page-view
+    // （happy-dom）里验，两条分支各在对的环境里断言。
+    expect(typeof document).toBe('undefined')
+    expect(defaultIsVisible()).toBe(true)
   })
 })
