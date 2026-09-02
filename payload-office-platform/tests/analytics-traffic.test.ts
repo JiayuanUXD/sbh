@@ -335,7 +335,10 @@ describe('countFunnelLeads', () => {
   it('按入口枚举过滤，不是「sourcePageType 非空」', async () => {
     await countFunnelLeads(req as never, permissionWith('global'), { startAt: 0, endAt: 1000 })
     const where = JSON.stringify(counted[0].where)
-    expect(where).toContain('sourcePageType')
+    // 必须是**顶层** sourcePageType：上层容器都是 collapsible（不产生数据层级），
+    // 写成 source.sourcePageType 会被 Payload 拒绝，线上表现为 leadsInWindow 恒 null
+    expect(where).toContain('"sourcePageType"')
+    expect(where).not.toContain('source.sourcePageType')
     expect(where).toContain('listing')
     // entrust 走 landing_* 链路、不发 inquiry_success，不能进分母
     expect(where).not.toContain('entrust')
@@ -643,7 +646,7 @@ describe('Umami 段逐项降级（上线后被一个查询拖垮整块，因此�
     const seg = await fetchUmamiSegment(
       client({
         metrics: async (type: string) => {
-          if (type === 'url') throw new Error('Bad request')
+          if (type === 'path') throw new Error('Bad request')
           if (type === 'event') return [{ x: 'inquiry_open', y: 7 }]
           return [{ x: 'g.com', y: 3 }]
         },
@@ -690,5 +693,29 @@ describe('Umami 段逐项降级（上线后被一个查询拖垮整块，因此�
         { startAt: 1, endAt: 2 },
       ),
     ).rejects.toThrow(/boom/)
+  })
+})
+
+describe('Umami metrics 的 type 取值（v3.3.1 实测）', () => {
+  it('落地页用 path，不是 url——url 在 v3.3.1 返回 400', async () => {
+    // 取值是在 Umami 后台用它自己的会话逐个试出来的，不是照文档猜的：
+    // 合法 path/referrer/event/title/browser/os/device/country/query/tag/channel
+    // 非法 url/host（400 Bad request）
+    const seen: string[] = []
+    const seg = await fetchUmamiSegment(
+      {
+        stats: async () => ({ pageviews: 1, visitors: 1 }),
+        pageviews: async () => [],
+        metrics: async (type: string) => {
+          seen.push(type)
+          return type === 'path' ? [{ x: '/shanghai/listings', y: 2 }] : []
+        },
+        hasToken: true,
+      } as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seen).toContain('path')
+    expect(seen).not.toContain('url')
+    expect(seg.topPages).toEqual([{ path: '/shanghai/listings', pageviews: 2 }])
   })
 })
