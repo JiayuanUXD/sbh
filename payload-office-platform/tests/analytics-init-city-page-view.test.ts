@@ -21,6 +21,8 @@ import { AnalyticsInit, createDefaultCollector } from '@/lib/frontend/analytics/
 import type { AnalyticsAdapter, TrackedEvent } from '@/lib/frontend/analytics/adapter'
 import type { CityAnalyticsTrack } from '@/lib/frontend/analytics/landing'
 
+import { defaultIsVisible } from '@/lib/frontend/analytics/engagement'
+
 Reflect.set(globalThis, 'IS_REACT_ACT_ENVIRONMENT', true)
 
 const cities = [
@@ -137,5 +139,22 @@ describe('AnalyticsInit city page visibility', () => {
     expect(tracker).toHaveBeenLastCalledWith('city_page_view', {
       city: 'hangzhou', status: 'coming-soon', page_type: 'city-partner',
     })
+  })
+})
+
+describe('defaultIsVisible（OPT-064c）', () => {
+  it('跟随 document.visibilityState', () => {
+    // 与 engagement 单测里的 SSR 分支互补：那边验「没有 document 时按可见处理」，
+    // 这边验「有 document 时真的去读它」。发现动机见 analytics-engagement.test.ts
+    // 里「后台标签页里加载的页面」那段——生产实测报出过满额的 active_ms: 60000。
+    const spy = vi.spyOn(document, 'visibilityState', 'get')
+    try {
+      spy.mockReturnValue('hidden')
+      expect(defaultIsVisible()).toBe(false)
+      spy.mockReturnValue('visible')
+      expect(defaultIsVisible()).toBe(true)
+    } finally {
+      spy.mockRestore()
+    }
   })
 })
