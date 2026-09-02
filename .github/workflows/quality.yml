@@ -50,7 +50,25 @@ jobs:
       - name: Generate Payload types & importmap
         # payload-types.ts 被 gitignore，CI 里不存在；typecheck/build 前必须先生成
         #（与 Dockerfile 一致）。generate:types 只读 payload.config、不连库。
-        run: pnpm generate:types && pnpm payload generate:importmap
+        #
+        # ⚠️ 必须断言产出。2026-09-02 一天内三次遇到 `payload generate:types`
+        # **静默 no-op**：不打印 "Compiling TS types" / "Types written to"，
+        # 却退出 0，于是 `&&` 照常往下走、步骤报 success，错误被推迟到 typecheck
+        # 阶段炸成三十几条 `Cannot find module '@/payload-types'`——真正的信息
+        # （类型没生成）被彻底埋掉，排查要绕一大圈。第三次直接卡住了生产部署。
+        #
+        # 三次全部发生在本 job（e2e job 同一条命令从未失败），但两者差异不止
+        # 一处，未足以断定因果，故不据此改环境变量，只做「断言 + 重试一次」：
+        # 间歇性问题自愈，真故障则带着明确信息大声失败。
+        run: |
+          set -euo pipefail
+          gen() { pnpm generate:types && test -s src/payload-types.ts; }
+          if ! gen; then
+            echo "::warning::generate:types 未产出 src/payload-types.ts，3 秒后重试一次"
+            sleep 3
+            gen || { echo "::error::generate:types 连续两次未产出 src/payload-types.ts"; exit 1; }
+          fi
+          pnpm payload generate:importmap
       - run: pnpm typecheck
       # deploy.yml 的 quality 作业跑 lint，而本闸门此前不跑 —— 于是 lint 错误在 PR 上
       # 完全隐身，直到合入 master 才让部署卡在 Lint 步（真实教训：#43 合并后
@@ -145,7 +163,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Generate Payload types & importmap
         # payload-types.ts 被 gitignore；typecheck/build 前必须先生成（与 Dockerfile 一致）。
-        run: pnpm generate:types && pnpm payload generate:importmap
+        # 断言产出的理由见 quality job 同名步骤的注释（静默 no-op 会把故障伪装成
+        # 一堆「找不到模块」）。本 job 至今未复现，但同样的命令没有理由只保护一处。
+        run: |
+          set -euo pipefail
+          gen() { pnpm generate:types && test -s src/payload-types.ts; }
+          if ! gen; then
+            echo "::warning::generate:types 未产出 src/payload-types.ts，3 秒后重试一次"
+            sleep 3
+            gen || { echo "::error::generate:types 连续两次未产出 src/payload-types.ts"; exit 1; }
+          fi
+          pnpm payload generate:importmap
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
