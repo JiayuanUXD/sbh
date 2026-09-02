@@ -119,16 +119,52 @@ export interface UmamiClient {
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
-/** 从 Umami 的错误体里取可读信息；形状不符时回落到状态码。 */
+/**
+ * 从 Umami 的错误体里取可读信息。
+ *
+ * ⚠️ **必须把 `errors[]` 与 `properties` 一起带出来**。Umami 的 400 顶层
+ * `message` 恒为 "Bad request"，真正说明「哪个参数错了」的内容在这两处：
+ *
+ * ```json
+ * { "error": { "message": "Bad request", "errors":
+ *     ["Either startAt+endAt or startDate+endDate must be provided"] } }
+ * { "error": { "message": "Bad request", "properties":
+ *     { "type": { "errors": ["Invalid input: expected string, received undefined"] } } } }
+ * ```
+ *
+ * 初版只取顶层 message，于是线上日志里只有一句无信息量的 "Bad request"——
+ * 抓到了错误却没保留能定位问题的那部分，等于没抓。
+ */
 function describeError(body: unknown, status: number): string {
-  if (typeof body === 'object' && body !== null) {
-    const err = (body as { error?: unknown }).error
-    if (typeof err === 'object' && err !== null) {
-      const msg = (err as { message?: unknown }).message
-      if (typeof msg === 'string' && msg.length > 0) return msg
+  if (typeof body !== 'object' || body === null) return `HTTP ${status}`
+  const err = (body as { error?: unknown }).error
+  if (typeof err !== 'object' || err === null) return `HTTP ${status}`
+
+  const parts: string[] = []
+  const msg = (err as { message?: unknown }).message
+  if (typeof msg === 'string' && msg.length > 0) parts.push(msg)
+
+  const errors = (err as { errors?: unknown }).errors
+  if (Array.isArray(errors) && errors.length > 0) {
+    parts.push(errors.filter((e) => typeof e === 'string').join('; '))
+  }
+
+  // properties 是按字段分组的校验错误：{ type: { errors: [...] } }
+  const props = (err as { properties?: unknown }).properties
+  if (typeof props === 'object' && props !== null) {
+    for (const [field, detail] of Object.entries(props as Record<string, unknown>)) {
+      const fieldErrors =
+        typeof detail === 'object' && detail !== null
+          ? (detail as { errors?: unknown }).errors
+          : undefined
+      const text = Array.isArray(fieldErrors)
+        ? fieldErrors.filter((e) => typeof e === 'string').join('; ')
+        : ''
+      parts.push(text ? `${field}: ${text}` : field)
     }
   }
-  return `HTTP ${status}`
+
+  return parts.length > 0 ? parts.join(' | ') : `HTTP ${status}`
 }
 
 function toNumber(v: unknown): number {
@@ -191,7 +227,10 @@ export function createUmamiClient(deps: {
 
     const body: unknown = await res.json().catch(() => null)
     if (!res.ok) {
-      throw new UmamiRequestError(describeError(body, res.status), res.status)
+      // 带上路径与参数名（不带值）：5 个查询是并发发的，
+      // 不标明是哪一个失败，日志里只有一句 "Bad request"，等于没说
+      const where = `${path}?${Object.keys(params).sort().join(',')}`
+      throw new UmamiRequestError(`${where} → ${describeError(body, res.status)}`, res.status)
     }
     return body
   }

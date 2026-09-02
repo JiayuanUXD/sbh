@@ -569,3 +569,55 @@ describe('环境变量读取的健壮性（OPT-066 线上排障后补）', () =>
     expect(missing.sort()).toEqual(['UMAMI_USERNAME', 'UMAMI_WEBSITE_ID'])
   })
 })
+
+describe('Umami 400 的错误信息必须保留可定位的细节', () => {
+  it('errors[] 数组要带出来，而不只是顶层 "Bad request"', async () => {
+    const mod = await import('@/domain/analytics/umami-client')
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes('/api/auth/login')) return jsonResponse({ token: 't' })
+      return jsonResponse(
+        {
+          error: {
+            message: 'Bad request',
+            errors: ['Either startAt+endAt or startDate+endDate must be provided'],
+          },
+        },
+        400,
+      )
+    })
+    const client = mod.createUmamiClient({ config: CONFIG, fetchImpl })
+    // 顶层 message 恒为 "Bad request"，没有 errors[] 就完全无法定位
+    await expect(client.stats({ startAt: 1, endAt: 2 })).rejects.toThrow(/startAt\+endAt/)
+  })
+
+  it('properties 里按字段分组的校验错误也要带出字段名', async () => {
+    const mod = await import('@/domain/analytics/umami-client')
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes('/api/auth/login')) return jsonResponse({ token: 't' })
+      return jsonResponse(
+        {
+          error: {
+            message: 'Bad request',
+            errors: [],
+            properties: { type: { errors: ['Invalid input: expected string, received undefined'] } },
+          },
+        },
+        400,
+      )
+    })
+    const client = mod.createUmamiClient({ config: CONFIG, fetchImpl })
+    await expect(client.metrics('event', { startAt: 1, endAt: 2 })).rejects.toThrow(/type:/)
+  })
+
+  it('错误里标明是哪个查询失败（5 个查询并发，不标明等于没说）', async () => {
+    const mod = await import('@/domain/analytics/umami-client')
+    const fetchImpl = vi.fn(async (url: string) => {
+      if (url.includes('/api/auth/login')) return jsonResponse({ token: 't' })
+      return jsonResponse({ error: { message: 'Bad request' } }, 400)
+    })
+    const client = mod.createUmamiClient({ config: CONFIG, fetchImpl })
+    await expect(client.metrics('url', { startAt: 1, endAt: 2 })).rejects.toThrow(/\/metrics\?/)
+    // 只带参数名不带值——值可能含时间窗以外的敏感内容
+    await expect(client.metrics('url', { startAt: 1, endAt: 2 })).rejects.toThrow(/endAt,startAt,type/)
+  })
+})
