@@ -12,9 +12,11 @@ import {
   type TrafficBlock,
   type TrafficOk,
   type TrafficRange,
+  type TrafficUnavailableReason,
 } from '@/domain/analytics/traffic'
 import {
   createUmamiClient,
+  missingUmamiEnvKeys,
   resolveUmamiServerConfig,
   type UmamiClient,
 } from '@/domain/analytics/umami-client'
@@ -199,22 +201,41 @@ export function createTrafficEndpoint(deps: TrafficEndpointDeps = {}): Endpoint 
       const window = resolveTrafficWindow(range, now)
 
       // ── Umami 段（可缓存，与调用方无关）─────────────────────────────
+      //
+      // 降级必须留下诊断痕迹。初版这里是裸的 `catch { segment = null }`，
+      // 上线首日就吃了亏：线上显示「暂不可用」，而「没配」「配了连不上」
+      // 「凭据不对」在响应里长得一模一样，只能靠「响应耗时 38ms」这种间接证据
+      // 倒推。静默降级 ≠ 优雅降级——不留线索的降级是把故障藏起来。
       let segment = readCache(range, now.getTime())
+      let reason: TrafficUnavailableReason = 'upstream-error'
+
       if (!segment) {
         const config = resolveConfig()
-        if (config) {
+        if (!config) {
+          reason = 'not-configured'
+          // 只打键名，绝不打值
+          console.error(
+            '[traffic] Umami 未配置，缺失的键：',
+            missingUmamiEnvKeys().join(', ') || '(全部存在但解析失败)',
+          )
+        } else {
           try {
             segment = await fetchUmamiSegment(makeClient(config), window)
             umamiCache.set(range, { at: now.getTime(), value: segment })
-          } catch {
-            // Umami 不可达 / 凭据不对 → 流量块降级，业务块不受牵连
+          } catch (err) {
+            // 原文留在服务端日志（可能含内部主机名或上游返回内容），响应只回枚举
+            reason = 'upstream-error'
+            console.error(
+              '[traffic] 调用 Umami 失败：',
+              err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+            )
             segment = null
           }
         }
       }
 
       if (!segment) {
-        const traffic: TrafficBlock = { status: 'unavailable' }
+        const traffic: TrafficBlock = { status: 'unavailable', reason }
         return Response.json({ ok: true, asOf: now.toISOString(), range, traffic })
       }
 

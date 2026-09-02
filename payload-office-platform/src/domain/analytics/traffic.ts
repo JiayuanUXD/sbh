@@ -181,7 +181,22 @@ export interface TrafficOk {
   missRate: number | null
 }
 
-export type TrafficBlock = TrafficOk | { status: 'unavailable' }
+/**
+ * 流量块不可用的原因（粗粒度，刻意不含任何细节）。
+ *
+ * - `not-configured`：服务端读不到 UMAMI_* 四项（缺项或值为空）
+ * - `upstream-error`：读到了配置，但调用 Umami 失败（不可达 / 凭据不对 / 响应异常）
+ *
+ * 为什么要把原因回给客户端：本端点已被 `analytics:traffic` 挡过，受众是管理员；
+ * 而**没有这个字段时，「没配」和「配了但连不上」在页面上长得一模一样**——
+ * OPT-066 上线首日就因此花了很久靠「响应耗时 38ms」这种间接证据倒推。
+ *
+ * 只回枚举、不回错误原文：原文可能含内部主机名或上游返回的敏感信息，
+ * 那些留在服务端日志里。
+ */
+export type TrafficUnavailableReason = 'not-configured' | 'upstream-error'
+
+export type TrafficBlock = TrafficOk | { status: 'unavailable'; reason: TrafficUnavailableReason }
 
 export interface TrafficResponse {
   ok: true

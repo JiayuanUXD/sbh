@@ -198,7 +198,11 @@ export default function TrafficBlock(): React.ReactElement | null {
         {header}
         <Alert
           type="warning"
-          content="流量数据暂不可用（统计服务未接入或不可达）。本页其余数据不受影响。"
+          content={
+            traffic.reason === 'not-configured'
+              ? '流量统计未接入：服务端缺少 UMAMI_* 配置。本页其余数据不受影响。'
+              : '流量数据暂不可用：统计服务连接失败（不可达或凭据不正确）。本页其余数据不受影响。'
+          }
         />
       </div>
     )

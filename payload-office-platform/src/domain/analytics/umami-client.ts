@@ -39,15 +39,44 @@ export interface UmamiServerConfig {
  *
  * 任一缺失返回 null，调用方据此走 `{ status: 'unavailable' }` 降级。
  */
+export const UMAMI_ENV_KEYS = [
+  'UMAMI_URL',
+  'UMAMI_USERNAME',
+  'UMAMI_PASSWORD',
+  'UMAMI_WEBSITE_ID',
+] as const
+
+/**
+ * 列出缺失（不存在或值为空）的键名。**只回键名，不回值。**
+ *
+ * 供诊断日志使用：「哪几项没读到」是排查的关键信息，而它本身不敏感。
+ */
+export function missingUmamiEnvKeys(env: NodeJS.ProcessEnv = process.env): string[] {
+  const bag = env as unknown as Record<string, string | undefined>
+  return UMAMI_ENV_KEYS.filter((k) => {
+    const v = bag[k]
+    return typeof v !== 'string' || v.trim().length === 0
+  })
+}
+
 export function resolveUmamiServerConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): UmamiServerConfig | null {
-  const url = env.UMAMI_URL?.trim()
-  const username = env.UMAMI_USERNAME?.trim()
-  const password = env.UMAMI_PASSWORD
-  const websiteId = env.UMAMI_WEBSITE_ID?.trim()
+  // ⚠️ 用变量 + 方括号取值，**不要写成 `process.env.UMAMI_URL` 这种静态成员表达式**。
+  // 打包器会对静态成员表达式做构建期替换：构建镜像时容器里没有这些变量，
+  // 静态写法可能被直接替换成 undefined，于是运行时无论怎么配都读不到。
+  // 方括号 + 变量的形式无法被静态分析替换，一定走运行时查表。
+  const bag = env as unknown as Record<string, string | undefined>
+  const url = bag['UMAMI_URL']?.trim()
+  const username = bag['UMAMI_USERNAME']?.trim()
+  const password = bag['UMAMI_PASSWORD']
+  const websiteId = bag['UMAMI_WEBSITE_ID']?.trim()
   if (!url || !username || !password || !websiteId) return null
-  return { url: url.replace(/\/+$/, ''), username, password, websiteId }
+
+  // 容错：漏写协议是最常见的输入错误，而它的表现是 fetch 立刻抛
+  // `Failed to parse URL`——耗时接近 0，和「压根没配」长得一模一样。
+  const withScheme = /^https?:\/\//i.test(url) ? url : `https://${url}`
+  return { url: withScheme.replace(/\/+$/, ''), username, password, websiteId }
 }
 
 export class UmamiRequestError extends Error {
