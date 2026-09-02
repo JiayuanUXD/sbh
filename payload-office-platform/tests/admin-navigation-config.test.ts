@@ -83,6 +83,8 @@ describe('admin navigation config', () => {
         expectedLeaf('notifications', '消息通知', '/admin/collections/notifications', [
           'notifications',
         ]),
+        // OPT-065 数据看板：挂菜单码 analytics，不挂 requiredOperationCode
+        expectedLeaf('analytics', '数据看板', '/admin/analytics', ['analytics']),
       ]),
       expectedGroup('supply', '房源运营', [
         expectedLeaf('listings', '房源列表', '/admin/collections/listings', ['listings']),

@@ -2655,3 +2655,51 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
     padding-right: 30px;
   }
 }
+
+/* OPT-065 数据看板：趋势 / 分布的手绘条形图。
+   刻意不引图表库——一页两张图不值得给整个后台 bundle 加重依赖。
+   颜色全走 Arco token，深浅色主题自动跟随（宪章：Dark Mode 不得残留白底）。 */
+.analytics-buckets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analytics-buckets__row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(64px, 30%) 1fr auto;
+}
+
+.analytics-buckets__label {
+  color: var(--color-text-2);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analytics-buckets__track {
+  background: var(--color-fill-2);
+  border-radius: 4px;
+  display: block;
+  height: 10px;
+  overflow: hidden;
+}
+
+.analytics-buckets__fill {
+  background: rgb(var(--arcoblue-6));
+  border-radius: 4px;
+  display: block;
+  height: 100%;
+  /* 值为 0 时仍留一丝可见宽度，避免「有这个桶」和「没这个桶」在视觉上一样 */
+  min-width: 2px;
+  transition: width 0.2s ease;
+}
+
+.analytics-buckets__value {
+  color: var(--color-text-1);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

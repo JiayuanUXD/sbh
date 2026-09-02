@@ -25,7 +25,7 @@
  *   - 当前 Leads 用 status 字段（new/contacted/visited/won/lost），M5.2 引入 stage 后切换
  */
 
-import type { PermissionContext } from '@/domain/auth/permission-context'
+import { hasOperationPermission, type PermissionContext } from '@/domain/auth/permission-context'
 import { metricRegistry as defaultRegistry, type MetricRegistry } from './metric-registry'
 import type {
   DashboardCardResult,
@@ -171,10 +171,7 @@ export function canViewLeadAnalytics(
   for (const code of allCodes) {
     const def = registry.get(code)
     if (def && def.requiredPermissions.length === 0) return true
-    if (
-      def &&
-      def.requiredPermissions.some((p) => permission.operationPermissions.has(p))
-    ) {
+    if (def && def.requiredPermissions.some((p) => hasOperationPermission(permission, p))) {
       return true
     }
   }
