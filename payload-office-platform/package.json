@@ -26,6 +26,7 @@
     "test:e2e": "playwright test",
     "setup:hooks": "git config core.hooksPath .githooks",
     "branch:new": "node scripts/new-branch.mjs",
+    "icons:build": "node scripts/generate-icons.mjs",
     "preflight": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts",
     "preflight:env": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts env",
     "preflight:migrate": "node --env-file-if-exists=.env.local --import tsx scripts/preflight.ts migrations",
