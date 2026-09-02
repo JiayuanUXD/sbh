@@ -158,9 +158,10 @@ export interface TrafficFunnel {
    * 配齐 UMAMI_* 四个服务端 env 后用真凭据验出契约再补。
    */
   detailView: number | null
-  inquiryOpen: number
-  inquirySubmit: number
-  inquirySuccess: number
+  /** 以下三步：事件查询失败时为 null（「没测到」），与 0（「没发生」）含义相反 */
+  inquiryOpen: number | null
+  inquirySubmit: number | null
+  inquirySuccess: number | null
 }
 
 export interface TrafficOk {

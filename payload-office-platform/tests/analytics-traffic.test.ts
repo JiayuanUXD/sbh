@@ -621,3 +621,74 @@ describe('Umami 400 的错误信息必须保留可定位的细节', () => {
     await expect(client.metrics('url', { startAt: 1, endAt: 2 })).rejects.toThrow(/endAt,startAt,type/)
   })
 })
+
+describe('Umami 段逐项降级（上线后被一个查询拖垮整块，因此改）', () => {
+  function client(overrides: Record<string, unknown> = {}) {
+    return {
+      stats: async () => ({ pageviews: 100, visitors: 40 }),
+      pageviews: async () => [{ t: '2026-09-01', pageviews: 50, visitors: 20 }],
+      metrics: async (type: string) => {
+        if (type === 'event') return [{ x: 'inquiry_open', y: 7 }]
+        if (type === 'referrer') return [{ x: 'g.com', y: 3 }]
+        return [{ x: '/a', y: 9 }]
+      },
+      hasToken: true,
+      ...overrides,
+    }
+  }
+
+  it('单个 metrics 失败不再拖垮整块——PV/UV 与其余各项照常', async () => {
+    // 线上实测：/metrics 的某个 type 取值 v3 不认，初版 Promise.all
+    // 让 PV/UV/趋势/漏斗全都看不到，尽管它们各自的查询是好的
+    const seg = await fetchUmamiSegment(
+      client({
+        metrics: async (type: string) => {
+          if (type === 'url') throw new Error('Bad request')
+          if (type === 'event') return [{ x: 'inquiry_open', y: 7 }]
+          return [{ x: 'g.com', y: 3 }]
+        },
+      }) as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seg.pageviews).toBe(100)
+    expect(seg.visitors).toBe(40)
+    expect(seg.topReferrers).toHaveLength(1)
+    expect(seg.topPages).toEqual([]) // 失败的那项降级为空
+    expect(seg.funnel.inquiryOpen).toBe(7) // 漏斗不受影响
+  })
+
+  it('事件查询失败时漏斗是 null，不是 0', async () => {
+    // 0 会被读成「没人咨询」，null 才是「没测到」——含义相反
+    const seg = await fetchUmamiSegment(
+      client({
+        metrics: async (type: string) => {
+          if (type === 'event') throw new Error('Bad request')
+          return [{ x: 'x', y: 1 }]
+        },
+      }) as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seg.funnel.inquiryOpen).toBeNull()
+    expect(seg.funnel.inquirySubmit).toBeNull()
+    expect(seg.funnel.inquirySuccess).toBeNull()
+  })
+
+  it('趋势查询失败降级为空数组，其余照常', async () => {
+    const seg = await fetchUmamiSegment(
+      client({ pageviews: async () => { throw new Error('boom') } }) as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seg.series).toEqual([])
+    expect(seg.pageviews).toBe(100)
+  })
+
+  it('stats 是硬依赖：它失败则整块 unavailable', async () => {
+    // PV/UV 都没有的话这一块没有意义，此时降级到「暂不可用」比显示半块更诚实
+    await expect(
+      fetchUmamiSegment(
+        client({ stats: async () => { throw new Error('boom') } }) as never,
+        { startAt: 1, endAt: 2 },
+      ),
+    ).rejects.toThrow(/boom/)
+  })
+})
