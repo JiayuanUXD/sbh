@@ -2667,6 +2667,16 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
   }
 }
 
+/* OPT-065 数据看板：卡片块与序列卡块之间的分节间距。
+   用 padding-top 而不是 margin-top：Arco 的 Row 带纵向 gutter 时自带
+   `margin-top: -gutterY/2`，外层若用 margin 会与之折叠，实际间距对不上账；
+   padding 不参与折叠，量多少就是多少。
+   取 24px 与页面内边距同一节奏，且必须大于块内的 16px 行间距——
+   否则块间距比块内还小，视觉层级会反过来（修复前实测块间 8px < 块内 16px）。 */
+.analytics-section {
+  padding-top: 24px;
+}
+
 /* OPT-065 数据看板：趋势 / 分布的手绘条形图。
    刻意不引图表库——一页两张图不值得给整个后台 bundle 加重依赖。
    颜色全走 Arco token，深浅色主题自动跟随（宪章：Dark Mode 不得残留白底）。 */

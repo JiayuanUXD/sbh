@@ -241,13 +241,23 @@ export default function AnalyticsDashboardClient(): React.ReactElement {
         ))}
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        {[...trends, ...distributions].map((card) => (
-          <Col key={card.code} xs={24} md={12}>
-            <SeriesCard card={card} />
-          </Col>
-        ))}
-      </Row>
+      {/*
+        间距挂在外层容器上，不能写成 <Row style={{ marginTop }}>：
+        Arco 的 Row 在 gutter 有纵向值时会给自己加 `margin: -gutterY/2` 抵消列内边距，
+        并且**覆盖掉调用方传入的 marginTop**（实测：传 16，计算值仍是 -8）。
+        结果是「块间距 8px 反而小于块内的 16px」，视觉层级整个反过来。
+        用 paddingTop 而非 marginTop：外层若用 margin 会与 Row 的负 margin 折叠，
+        又要多绕一圈。
+      */}
+      <div className="analytics-section">
+        <Row gutter={[16, 16]}>
+          {[...trends, ...distributions].map((card) => (
+            <Col key={card.code} xs={24} md={12}>
+              <SeriesCard card={card} />
+            </Col>
+          ))}
+        </Row>
+      </div>
     </div>
   )
 }
