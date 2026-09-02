@@ -1,8 +1,14 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { blockUmamiScript } from './_umami-stub'
+
 const browserErrors = new WeakMap<Page, string[]>()
 
 test.beforeEach(async ({ page }) => {
+  // OPT-064：拦掉 Umami 采集脚本请求。CI 给了构建期 NEXT_PUBLIC_UMAMI_*（否则
+  // 埋点接线验不到），于是每页都会去拉一个不可达域名的 script，
+  // 在控制台留下 ERR_NAME_NOT_RESOLVED，把下面的「零错误」断言拖红。
+  await blockUmamiScript(page)
   const errors: string[] = []
   browserErrors.set(page, errors)
   page.on('console', (message) => {

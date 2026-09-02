@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { readUmamiEvents, stubUmami, type CapturedUmamiEvent } from './_umami-stub'
+
 /**
  * 埋点采集链路的端到端验证（OPT-064）
  *
@@ -14,11 +16,17 @@ import { expect, test, type Page } from '@playwright/test'
  * `NEXT_PUBLIC_UMAMI_SRC` / `NEXT_PUBLIC_UMAMI_WEBSITE_ID`，
  * 这样构建产物里编进去的才是 UmamiAdapter 那条分支。
  *
- * ## 桩为什么装在 addInitScript 里
+ * ## 桩要分两层，缺一不可（见 `_umami-stub.ts`）
  *
- * 真实 `script.js` 指向不可达域名，加载必然失败——不影响断言：`addInitScript`
- * 在页面任何脚本执行**之前**就把 `window.umami` 放好了，adapter 找到它就转发。
- * 验的是「我们这边的接线对不对」，不是「Umami 服务通不通」（后者属运维验收）。
+ * 1. `addInitScript` 在页面任何脚本执行**之前**放好 `window.umami`，adapter 找到就转发；
+ * 2. `page.route` 拦掉 `script.js` / `recorder.js` 的网络请求。
+ *
+ * 第 2 层是本 PR 第一次 CI 红了才补上的：桩顶替的是 `window.umami` 这个**对象**，
+ * 它拦不住浏览器去拉那个 `<script src>`。而 CI 里那个域名故意不可达，于是每页都
+ * 留下一条 `ERR_NAME_NOT_RESOLVED`，把另外三个 spec 的「控制台零错误」断言全拖红。
+ *
+ * 验的是「我们这边的接线对不对」，不是「Umami 服务通不通」（后者属运维验收，
+ * 也不该让 CI 依赖一个外部服务的可用性）。
  *
  * ## ⚠️ 整页 goto 会清空捕获
  *
@@ -26,11 +34,6 @@ import { expect, test, type Page } from '@playwright/test'
  * 触发上报」就**必须点 next/link 走客户端导航**（同一个 document，捕获数组存活）。
  * 用 goto 模拟跳转会得到一个永远为空的数组，然后把它误读成「没上报」。
  */
-
-interface CapturedEvent {
-  name: string
-  data: Record<string, unknown>
-}
 
 const ENGAGEMENT_PAGE_TYPES = [
   'listings',
@@ -41,33 +44,16 @@ const ENGAGEMENT_PAGE_TYPES = [
   'publish',
 ]
 
-async function stubUmami(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const captured: Array<{ name: string; data: Record<string, unknown> }> = []
-    Reflect.set(window, '__umamiEvents', captured)
-    Reflect.set(window, 'umami', {
-      track: (name: string, data: Record<string, unknown> = {}) => {
-        captured.push({ name, data })
-      },
-      identify: () => {},
-    })
-  })
-}
-
-async function readEvents(page: Page): Promise<CapturedEvent[]> {
-  return page.evaluate(() => (Reflect.get(window, '__umamiEvents') as CapturedEvent[]) ?? [])
-}
-
 /** 队列是攒批 + 定时 flush，给它时间把事件推给 adapter */
-async function waitForEvent(page: Page, name: string): Promise<CapturedEvent> {
+async function waitForEvent(page: Page, name: string): Promise<CapturedUmamiEvent> {
   await expect
-    .poll(async () => (await readEvents(page)).filter((e) => e.name === name).length, {
+    .poll(async () => (await readUmamiEvents(page)).filter((e) => e.name === name).length, {
       message: `等待埋点事件 ${name}`,
       timeout: 20_000,
     })
     .toBeGreaterThan(0)
-  const all = await readEvents(page)
-  return all.find((e) => e.name === name) as CapturedEvent
+  const all = await readUmamiEvents(page)
+  return all.find((e) => e.name === name) as CapturedUmamiEvent
 }
 
 test.describe('埋点采集链路', () => {
