@@ -310,6 +310,15 @@ export default buildConfig({
           path: '/import/listings',
           exact: true,
         },
+        // OPT-065 数据看板：/admin/analytics。exact 避免前缀匹配吞掉
+        // OPT-066/067 之后可能新增的 /analytics/:sub 子路由。
+        // 页面可见性由导航的 menuCode 控制，路由始终注册——用 admin.hidden 藏会
+        // 连路由一起杀掉（OPT-053 教训）。
+        AnalyticsDashboard: {
+          Component: '/components/admin/analytics/AnalyticsDashboardView',
+          path: '/analytics',
+          exact: true,
+        },
       },
     },
     dashboard: {

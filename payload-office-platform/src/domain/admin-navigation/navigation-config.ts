@@ -54,6 +54,10 @@ export const ADMIN_NAV_GROUPS = [
       requiredOperationCode: 'notification:read',
       badgeKey: 'notifications',
     }),
+    // OPT-065 数据看板。只挂菜单码 analytics（permission-codes.ts 早已注册），
+    // 不挂 requiredOperationCode——导航层不跑 metric registry，块级权限在页面内部
+    // 按 canViewOverviewDashboard 降级（与 /api/overview 同源判据）。
+    leaf('analytics', '数据看板', '/admin/analytics', ['analytics']),
   ]),
   group('supply', '房源运营', 'building', [
     leaf('listings', '房源列表', '/admin/collections/listings', ['listings']),

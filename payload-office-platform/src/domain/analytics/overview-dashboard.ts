@@ -14,7 +14,7 @@
  *   - 单卡失败局部重试并展示数据截至时间
  */
 
-import type { PermissionContext } from '@/domain/auth/permission-context'
+import { hasOperationPermission, type PermissionContext } from '@/domain/auth/permission-context'
 import { buildDrilldownUrl } from './metric-drilldown'
 import { metricRegistry as defaultRegistry, type MetricRegistry } from './metric-registry'
 import { sanitizeFilters } from './metric-context'
@@ -141,7 +141,7 @@ export function canViewOverviewDashboard(
   for (const code of allCodes) {
     const def = registry.get(code)
     if (def && def.requiredPermissions.length === 0) return true
-    if (def && def.requiredPermissions.some((p) => permission.operationPermissions.has(p))) {
+    if (def && def.requiredPermissions.some((p) => hasOperationPermission(permission, p))) {
       return true
     }
   }

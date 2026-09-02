@@ -8,6 +8,12 @@
  * 业务不变量：
  *   - 商户无 city 关联字段，城市过滤不应用于商户指标
  *     （builtin.ts 中 merchants.* 的 allowedScopeDims 不包含 city，sanitize 会丢弃）
+ *   - **不能按 `deletedAt` 过滤**：Merchants 没有启用 trash（启用的只有 Listings /
+ *     Buildings / Leads / Articles / Pages），Payload 会直接拒绝该路径并抛
+ *     `The following path cannot be queried: deletedAt`，两个商户指标因此恒为
+ *     `status=failed`。这是从 listing/lead/building 三个适配器复制过来时带上的——
+ *     那三个 collection 确实有 trash。发现于 OPT-065 的浏览器走查：看板把失败卡
+ *     渲染成占位而不是隐藏，错误原文直接显示在卡上。
  *   - 时间窗口按 Asia/Shanghai
  */
 
@@ -23,7 +29,6 @@ export const countMerchantsActive: MetricQueryAdapter = async (ctx): Promise<Met
   const value = await ctx.payload.count({
     collection: 'merchants',
     where: {
-      deletedAt: { exists: false },
       status: { equals: 'active' },
     },
     overrideAccess: true,
@@ -45,7 +50,6 @@ export const countMerchantsQualificationExpiring: MetricQueryAdapter = async (
   const value = await ctx.payload.count({
     collection: 'merchants',
     where: {
-      deletedAt: { exists: false },
       qualificationExpiredAt: {
         greater_than_equal: now.toISOString(),
         less_than: threshold.toISOString(),
