@@ -91,6 +91,10 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       // BUILTIN_ROLES 覆写，于是「先跑迁移再跑 seed」会把 OPS 刚拿到的导入权限
       // 擦掉（2026-08-23 实测踩到）。ADM 是 ['*'] 不受影响，只有 OPS 会掉。
       'data:import',
+      // OPT-066 数据看板流量块。ADM 是 ['*'] 自动覆盖，此处只需给 OPS。
+      // 生产角色是数据不随代码走，需在「角色管理」手工勾选（spec §10 第 6 项）；
+      // 本文件只覆盖 seed 与 E2E 夹具。
+      'analytics:traffic',
     ],
     fieldPermissions: [
       'phone:full', // 运营可看完整手机号

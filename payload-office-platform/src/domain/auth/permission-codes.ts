@@ -141,6 +141,13 @@ export const OPERATION_CODES = [
   // 通用导入导出
   'data:import',
   'data:export',
+  // 数据看板的流量块（OPT-066）
+  //
+  // 与菜单码 `analytics` 是两件事：菜单码只决定导航项与页面可见性，
+  // 本操作码单独控制**流量与漏斗那一块**——它的数据来自 Umami 与 leads 聚合，
+  // 比业务日报敏感一档，故独立授予。无此码时 /api/traffic 返回 403、
+  // 页面上整块不渲染，业务块不受影响。
+  'analytics:traffic',
 ] as const
 
 export type OperationCode = (typeof OPERATION_CODES)[number]

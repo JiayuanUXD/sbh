@@ -68,3 +68,84 @@ test.describe('/admin/analytics 数据看板', () => {
     expect(page.url()).toContain('redirect=')
   })
 })
+
+test.describe('/admin/analytics 流量块（OPT-066）', () => {
+  /**
+   * 这三条都 stub `/api/traffic`，验的是**前端对三种服务端状态的反应**，
+   * 而不是 Umami 通不通——后者属运维验收，不该让 CI 依赖外部服务可用性。
+   */
+
+  test('ok：渲染 PV/UV、漏斗四步与漏报率对账行', async ({ page }) => {
+    await page.route('**/api/traffic**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          asOf: new Date().toISOString(),
+          range: 'yesterday',
+          traffic: {
+            status: 'ok',
+            pageviews: 1234,
+            visitors: 456,
+            series: [],
+            topReferrers: [{ name: 'google.com', visitors: 120 }],
+            topPages: [{ path: '/shanghai/listings', pageviews: 300 }],
+            funnel: { detailView: null, inquiryOpen: 80, inquirySubmit: 30, inquirySuccess: 22 },
+            leadsInWindow: 25,
+            missRate: 0.12,
+          },
+        }),
+      }),
+    )
+    await loginAs(page, 'ADM')
+    await page.goto('/admin/analytics')
+
+    const block = page.getByTestId('traffic-block')
+    await expect(block).toBeVisible({ timeout: 20_000 })
+    await expect(block).toContainText('1,234')
+    await expect(block).toContainText('打开咨询')
+    // 首步不可测时必须是「—」，不能是 0——两者含义完全相反
+    await expect(block).toContainText('该环暂不可测')
+    await expect(page.getByTestId('traffic-miss-rate')).toContainText('12.0%')
+  })
+
+  test('unavailable：流量块降级但业务块照常（互不牵连）', async ({ page }) => {
+    await page.route('**/api/traffic**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          asOf: new Date().toISOString(),
+          range: 'yesterday',
+          traffic: { status: 'unavailable' },
+        }),
+      }),
+    )
+    await loginAs(page, 'ADM')
+    await page.goto('/admin/analytics')
+
+    await expect(page.getByTestId('traffic-unavailable')).toBeVisible({ timeout: 20_000 })
+    // 关键：业务块不受牵连
+    await expect(page.getByTestId('analytics-dashboard')).toBeVisible()
+    await expect(page.getByTestId('analytics-as-of')).not.toBeEmpty()
+  })
+
+  test('403：整块不渲染，而不是画一个「无权限」的空壳', async ({ page }) => {
+    await page.route('**/api/traffic**', (route) =>
+      route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ ok: false, error: '无流量看板查看权限' }),
+      }),
+    )
+    await loginAs(page, 'ADM')
+    await page.goto('/admin/analytics')
+
+    await expect(page.getByTestId('analytics-dashboard')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByTestId('traffic-block')).toHaveCount(0)
+    await expect(page.getByTestId('traffic-unavailable')).toHaveCount(0)
+    await expect(page.getByTestId('traffic-error')).toHaveCount(0)
+  })
+})
