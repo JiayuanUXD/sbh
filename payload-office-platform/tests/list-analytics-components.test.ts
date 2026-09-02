@@ -142,6 +142,7 @@ describe('ListSearchAnalytics', () => {
   const base = {
     event: 'listing_search' as const,
     city: 'shanghai',
+    stateKey: 'sort=recommended',
     resultCount: 42,
     sort: 'recommended',
     filterCompleteness: 2,
@@ -166,24 +167,23 @@ describe('ListSearchAnalytics', () => {
     expect(trackSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('翻页算新事件', async () => {
-    await mount(React.createElement(ListSearchAnalytics, base))
-    await act(async () => root?.render(React.createElement(ListSearchAnalytics, { ...base, pageIndex: 2 })))
+  it('换筛选条件算新事件（即使结果数等派生属性完全相同）', async () => {
+    // Codex review P2 的反例：切到另一个区，结果数同样是 10、生效筛选数同样是 1、
+    // 排序页码都没变。只靠派生属性拼键会把第二次搜索误判成重复而丢掉。
+    await mount(React.createElement(ListSearchAnalytics, { ...base, stateKey: 'district=jingan' }))
+    await act(async () =>
+      root?.render(React.createElement(ListSearchAnalytics, { ...base, stateKey: 'district=xuhui' })),
+    )
+    expect(trackSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('翻页 / 改排序体现在 stateKey 上，同样算新事件', async () => {
+    await mount(React.createElement(ListSearchAnalytics, { ...base, stateKey: 'page=1' }))
+    await act(async () =>
+      root?.render(React.createElement(ListSearchAnalytics, { ...base, stateKey: 'page=2', pageIndex: 2 })),
+    )
     expect(trackSpy).toHaveBeenCalledTimes(2)
     expect(trackSpy.mock.calls[1][1]).toMatchObject({ page_index: 2 })
-  })
-
-  it('改排序算新事件', async () => {
-    await mount(React.createElement(ListSearchAnalytics, base))
-    await act(async () => root?.render(React.createElement(ListSearchAnalytics, { ...base, sort: 'price-asc' })))
-    expect(trackSpy).toHaveBeenCalledTimes(2)
-  })
-
-  it('结果数变化算新事件（改筛选的可观测后果）', async () => {
-    await mount(React.createElement(ListSearchAnalytics, base))
-    await act(async () => root?.render(React.createElement(ListSearchAnalytics, { ...base, resultCount: 7, filterCompleteness: 3 })))
-    expect(trackSpy).toHaveBeenCalledTimes(2)
-    expect(trackSpy.mock.calls[1][1]).toMatchObject({ result_count: 7, filter_completeness: 3 })
   })
 
   it('楼盘页不带 price_unit 键（而不是带一个空值）', async () => {

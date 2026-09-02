@@ -218,6 +218,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
       <ListSearchAnalytics
         event="building_search"
         city={city.slug}
+        stateKey={currentParams.toString()}
         resultCount={totalDocs}
         sort={input.sort}
         filterCompleteness={activeDimensions.length}
@@ -355,8 +356,10 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                       analytics={{
                         event: 'building_result_click',
                         city: building.citySlug,
-                        // 无在租分组自成一个 section，rank 在组内从 1 起
-                        rank: index + 1,
+                        // rank 是**页内**连续序号，不是组内序号：无在租分组渲染在
+                        // withStock 之后，从 1 重新起会让同一页出现重复 rank，
+                        // 位置分析直接失真（Codex review P2）。
+                        rank: groups.withStock.length + index + 1,
                         pageIndex: page,
                         section: 'row',
                         buildingId: building.id,

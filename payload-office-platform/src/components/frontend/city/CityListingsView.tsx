@@ -400,6 +400,7 @@ export default async function CityListingsView({
       <ListSearchAnalytics
         event="listing_search"
         city={city.slug}
+        stateKey={currentParams.toString()}
         resultCount={totalDocs}
         sort={input.sort ?? LISTING_DEFAULT_SORT}
         filterCompleteness={activeDimensions.length}

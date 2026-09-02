@@ -24,6 +24,7 @@ import { createCollector, type Collector } from './collector'
 import {
   attachEngagementListeners,
   createEngagementTracker,
+  sampleScrollDepth,
   type EngagementTrack,
   type EngagementTracker,
 } from './engagement'
@@ -117,7 +118,12 @@ export function AnalyticsInit({
   useEffect(() => {
     // App Router 的站内跳转既不触发 pagehide 也不触发 visibilitychange，
     // 所以「列表 → 详情 → 下一套」这条主路径上，这里是唯一的上报时机。
-    engagementRef.current?.enter(pathname)
+    const engagement = engagementRef.current
+    if (!engagement) return
+    engagement.enter(pathname)
+    // 换页后立刻量一次滚动深度：目标页若不足一屏、或用户点的是首屏可见的结果
+    // 而后再不滚动，就永远不会有 scroll 事件，那页会恒报 scroll_bucket: 0。
+    sampleScrollDepth(engagement)
   }, [pathname])
 
   useEffect(() => {

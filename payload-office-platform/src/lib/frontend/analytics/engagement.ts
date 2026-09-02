@@ -267,6 +267,28 @@ export function createEngagementTracker(deps: {
 // DOM 接线（唯一碰 window/document 的地方）
 // ────────────────────────────────────────────────────────────
 
+/**
+ * 量一次当前文档的滚动深度并喂给 tracker。
+ *
+ * **每次进入新页面后都必须调一次**，不能只在挂载时调：客户端导航后
+ * `enter()` 会换一本新账本，而如果用户在目标页从不滚动（点的是首屏就能看到的
+ * 结果、或目标页内容不足一屏），就再也不会有 scroll 事件——那页会恒报
+ * `scroll_bucket: 0`，把「整页都看完了」误报成「进来就没往下看」。
+ * 这是 Codex review P2 指出的，初版只在 attach 时量了一次。
+ *
+ * SSR 环境是安全 no-op。
+ */
+export function sampleScrollDepth(tracker: EngagementTracker): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
+  tracker.noteScrollPercent(
+    computeScrollPercent({
+      scrollY: window.scrollY,
+      innerHeight: window.innerHeight,
+      scrollHeight: document.documentElement.scrollHeight,
+    }),
+  )
+}
+
 /** 交互信号：这几类事件都表示人还在看。`scroll` 与 `keydown` 用 passive 减少主线程压力。 */
 const INTERACTION_EVENTS = ['pointerdown', 'keydown', 'scroll', 'wheel', 'touchstart'] as const
 
@@ -283,13 +305,7 @@ export function attachEngagementListeners(tracker: EngagementTracker): () => voi
   const onInteraction = () => tracker.noteInteraction()
   const onScroll = () => {
     tracker.noteInteraction()
-    tracker.noteScrollPercent(
-      computeScrollPercent({
-        scrollY: window.scrollY,
-        innerHeight: window.innerHeight,
-        scrollHeight: document.documentElement.scrollHeight,
-      }),
-    )
+    sampleScrollDepth(tracker)
   }
   const onVisibility = () => {
     const visible = document.visibilityState === 'visible'
@@ -309,9 +325,9 @@ export function attachEngagementListeners(tracker: EngagementTracker): () => voi
   document.addEventListener('visibilitychange', onVisibility)
   window.addEventListener('pagehide', onPageHide)
 
-  // 首屏先量一次：内容不足一屏的页面永远不会触发 scroll，
-  // 不主动量的话它们的 scroll_bucket 会恒为 0（而实际是全看完了）
-  onScroll()
+  // 首屏先量一次；后续每次客户端导航由 AnalyticsInit 在 enter() 之后再量
+  // （见 sampleScrollDepth 的注释）
+  sampleScrollDepth(tracker)
 
   return () => {
     for (const type of INTERACTION_EVENTS) {
