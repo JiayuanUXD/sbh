@@ -4,7 +4,10 @@ import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-conf
 import { getCachedSiteSettings } from '@/lib/frontend/site-settings'
 import SiteHeader from '@/components/frontend/SiteHeader'
 import SiteFooter from '@/components/frontend/SiteFooter'
+import Script from 'next/script'
+
 import { AnalyticsInit } from '@/lib/frontend/analytics'
+import { resolveUmamiConfig } from '@/lib/frontend/analytics/umami-config'
 import { listPublicCityOptions, listPublicCityProfiles } from './_lib/city-context'
 import './styles.css'
 // surface.css 必须在 home.css / list.css 之前：后两者依赖并覆写它的 .sf-* 基元
@@ -67,6 +70,7 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
     getCachedSiteSettings(),
   ])
   const multiCityRoutingEnabled = getMultiCityRoutingEnabled()
+  const umami = resolveUmamiConfig()
   return (
     <html lang="zh-CN">
       <body suppressHydrationWarning>
@@ -75,6 +79,33 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
         <SiteHeader cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} brand={{ siteName: siteSettings.siteName, logo: siteSettings.logo, mainNav: siteSettings.mainNav }} />
         <main id="main-content" className="site-main">{children}</main>
         <SiteFooter cities={cities} defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} settings={siteSettings} />
+        {/*
+          OPT-064：自托管 Umami 采集脚本。未配置 NEXT_PUBLIC_UMAMI_* 时整段不渲染，
+          adapter 那边同步退化为 Noop（判据同源于 resolveUmamiConfig，不会两边打架）。
+
+          注意这三个 NEXT_PUBLIC_* 是**构建期内联**的，配在 CloudRun 的服务级
+          环境变量里对客户端 bundle 不可见——它们的归属是 Dockerfile 的 builder
+          阶段 ENV，改了要重新构建才生效。
+        */}
+        {umami && (
+          <>
+            <Script
+              defer
+              src={`${umami.src}/script.js`}
+              data-website-id={umami.websiteId}
+              strategy="afterInteractive"
+            />
+            {/* 热图（点击 + 滚动）走独立开关：它比普通采集重得多，存储量级也完全不同 */}
+            {umami.heatmap && (
+              <Script
+                defer
+                src={`${umami.src}/recorder.js`}
+                data-website-id={umami.websiteId}
+                strategy="afterInteractive"
+              />
+            )}
+          </>
+        )}
         {/* OPT-010：埋点采集初始化，订阅页面隐藏/卸载 flush */}
         <React.Suspense fallback={null}>
           <AnalyticsInit defaultCity={siteConfig.defaultCity} multiCityRoutingEnabled={multiCityRoutingEnabled} cities={profiles.map((profile) => ({

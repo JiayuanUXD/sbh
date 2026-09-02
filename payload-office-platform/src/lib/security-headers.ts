@@ -21,12 +21,37 @@ export interface SecurityHeaderEnv {
 const PERMISSIONS_POLICY =
   'camera=(), microphone=(), geolocation=(), payment=(), interest-cohort=()'
 
+/**
+ * Umami 统计脚本的 origin（OPT-064）。
+ *
+ * 从 env 读而不是硬编码域名：Umami 部署在自己的 CloudRun 服务上，域名随环境变化，
+ * 写死会让预发/本地生产构建的脚本被 CSP 拦掉——而 CSP 拦截在控制台之外没有任何
+ * 症状，采集会静默归零。
+ *
+ * 未配置时返回空数组：CSP 一个字符都不变，与「未接入 Umami」这个状态一致。
+ */
+function umamiScriptOrigins(): string[] {
+  const src = process.env.NEXT_PUBLIC_UMAMI_SRC
+  if (!src) return []
+  try {
+    return [new URL(src).origin]
+  } catch {
+    // 配了个不合法的值：宁可不放行也不要往 CSP 里拼一段垃圾
+    return []
+  }
+}
+
 /** 生产 CSP：兼容 Payload admin（内联脚本/样式）+ 限制外部资源 */
 const PRODUCTION_CSP = [
   "default-src 'self'",
   // Payload admin bootstrap 需内联脚本；保留 unsafe-eval 兼容 admin 运行时
   // 高德 JS API 由 AmapMapCanvas 在视口内自动注入，需放行 webapi.amap.com
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webapi.amap.com https://jsapi.amap.com https://restapi.amap.com https://mapplugin.amap.com",
+  // 末尾按需追加自托管 Umami 的 origin（见 umamiScriptOrigins）
+  [
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    'https://webapi.amap.com https://jsapi.amap.com https://restapi.amap.com https://mapplugin.amap.com',
+    ...umamiScriptOrigins(),
+  ].join(' '),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",

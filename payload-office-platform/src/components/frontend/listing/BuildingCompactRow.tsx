@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import { completionYear } from '@/lib/frontend/format'
@@ -53,9 +54,11 @@ function typicalFloorAreaLabel(area: number | undefined): string | null {
   return `标准层 ${Math.round(area).toLocaleString('en-US')} ㎡`
 }
 
-export default function BuildingCompactRow({ building, citySlug }: Readonly<{
+export default function BuildingCompactRow({ building, citySlug, analytics }: Readonly<{
   building: BuildingSummaryViewModel
   citySlug?: string
+  /** 列表页埋点上下文；不传则不产生点击事件 */
+  analytics?: ListResultAnalytics
 }>) {
   const { coverImage, grade, completionDate, typicalFloorArea, name, slug } = building
   const gradeLabel = getBuildingGradeLabel(grade)
@@ -72,6 +75,7 @@ export default function BuildingCompactRow({ building, citySlug }: Readonly<{
       // 「暂无在租」不等于「用户不会点」——设计上它就是可查的目录内容（见上方文档
       // 注释），所以这里关的是**自动**预取，hover 触发的预取与点击导航都不受影响。
       prefetch={false}
+      {...listAnalyticsAttrs(analytics)}
       className="bd-row"
       aria-label={name}
     >

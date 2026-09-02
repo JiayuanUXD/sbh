@@ -2,6 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel } from '@/domain/public-catalog'
+import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
 
 /**
@@ -40,9 +41,11 @@ function formatPriceAmount(listing: ListingCardViewModel): string {
     : Math.round(price.amount).toLocaleString('en-US')
 }
 
-export default function ListingResultRow({ listing, citySlug }: Readonly<{
+export default function ListingResultRow({ listing, citySlug, analytics }: Readonly<{
   listing: ListingCardViewModel
   citySlug?: string
+  /** 列表页埋点上下文；不传则该行不产生点击事件 */
+  analytics?: ListResultAnalytics
 }>) {
   const { coverImage, price, area, building, listingType, title, slug } = listing
   const typeLabel = LISTING_TYPE_LABEL[listingType]
@@ -62,6 +65,7 @@ export default function ListingResultRow({ listing, citySlug }: Readonly<{
       // 一旦被选中就是整页正文，若因为它不是默认版式而不关预取，等于让同一批 URL
       // 的预取成本取决于用户选了哪个版式，那不是判据，是漏网。
       prefetch={false}
+      {...listAnalyticsAttrs(analytics)}
       className="sf-card ls-rowcard"
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >

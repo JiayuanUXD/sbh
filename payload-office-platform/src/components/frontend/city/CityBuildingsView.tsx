@@ -1,6 +1,8 @@
 import React from 'react'
 import InquiryModal from '@/components/frontend/InquiryModal'
 import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow'
+import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
+import ListSearchAnalytics from '@/components/frontend/listing/ListSearchAnalytics'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
@@ -212,6 +214,17 @@ export default function CityBuildingsView({ city, result, input, basePath, route
 
   return (
     <div className="ls-page">
+      {/* OPT-064 列表页埋点，两者都不渲染 UI（同 CityListingsView） */}
+      <ListSearchAnalytics
+        event="building_search"
+        city={city.slug}
+        stateKey={currentParams.toString()}
+        resultCount={totalDocs}
+        sort={input.sort}
+        filterCompleteness={activeDimensions.length}
+        pageIndex={page}
+      />
+      <ListClickAnalytics />
       <header className="ls-container ls-head">
         <h1 className="ls-head__title">{heading}</h1>
         <p className="ls-head__sub">
@@ -302,8 +315,20 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                   </div>
                 ) : null}
                 <div className="ls-grid">
-                  {groups.withStock.map((building) => (
-                    <BuildingResultCard key={building.slug} building={building} citySlug={citySlug} />
+                  {groups.withStock.map((building, index) => (
+                    <BuildingResultCard
+                      key={building.slug}
+                      building={building}
+                      citySlug={citySlug}
+                      analytics={{
+                        event: 'building_result_click',
+                        city: building.citySlug,
+                        rank: index + 1,
+                        pageIndex: page,
+                        section: 'grid',
+                        buildingId: building.id,
+                      }}
+                    />
                   ))}
                 </div>
               </>
@@ -323,8 +348,23 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                   </span>
                 </div>
                 <div className="bd-vacant__list">
-                  {groups.withoutStock.map((building) => (
-                    <BuildingCompactRow key={building.slug} building={building} citySlug={citySlug} />
+                  {groups.withoutStock.map((building, index) => (
+                    <BuildingCompactRow
+                      key={building.slug}
+                      building={building}
+                      citySlug={citySlug}
+                      analytics={{
+                        event: 'building_result_click',
+                        city: building.citySlug,
+                        // rank 是**页内**连续序号，不是组内序号：无在租分组渲染在
+                        // withStock 之后，从 1 重新起会让同一页出现重复 rank，
+                        // 位置分析直接失真（Codex review P2）。
+                        rank: groups.withStock.length + index + 1,
+                        pageIndex: page,
+                        section: 'row',
+                        buildingId: building.id,
+                      }}
+                    />
                   ))}
                 </div>
               </section>
