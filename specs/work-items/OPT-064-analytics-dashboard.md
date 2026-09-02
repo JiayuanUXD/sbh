@@ -422,9 +422,9 @@ OPT-065 业务日报页 ────────────────→ OPT-
 | # | 动作 | 说明 |
 |---|---|---|
 | 1 | ~~确认 `postgres-ilf7zhts` PG 版本 ≥ 12.14~~ | ✅ **已完成（2026-09-01）**：实测 PostgreSQL 17.10，远高于下限。原阻塞项解除，「复用现有实例 + 独立 database」方案成立 |
-| 2 | 建 database `umami` + 专用账号 | 与 `postgres` 库隔离权限 |
-| 3 | CloudRun 建服务 `umami` 并配 env | `tcb cloudrun deploy` 无 `--env-vars`，服务级 env 只能控制台/MCP 配（宪章已载） |
-| 4 | Umami 初始化管理员密码、建网站条目 | 产出 website ID 与 API 登录凭据，配进 sbh 服务 env |
+| 2 | ~~建 database `umami` + 专用账号~~ | ✅ **已完成（2026-09-01）**：复用 `postgres-ilf7zhts` 实例上的独立 database `umami`，属主 `umami_app`（`ALTER DATABASE ... OWNER TO`，绕开跨库 GRANT 的限制） |
+| 3 | ~~CloudRun 建服务 `umami` 并配 env~~ | ✅ **已完成（2026-09-02）**：`https://umami-286300-10-1253925058.sh.run.tcloudbase.com`，Umami v3.3.1 |
+| 4 | ~~Umami 初始化管理员密码、建网站条目~~ | ✅ **已完成（2026-09-02）**：website ID `3a281820-ae20-43f9-b082-dc0224ed874f`。已随 OPT-064b 写进 Dockerfile 两个阶段的 ENV |
 | 5 | sbh 服务新增**服务端** env | 仅 `UMAMI_URL/USERNAME/PASSWORD/WEBSITE_ID` 四项（控制台/MCP 配）；`NEXT_PUBLIC_UMAMI_*` 与 `NEXT_PUBLIC_ANALYTICS_ENABLED` 为构建期内联，**随 PR 写进 Dockerfile ENV**，不在此配 |
 | 6 | 生产角色授予 | 平台管理员角色勾选 MENU 码 `analytics`（导航可见）与操作码 `analytics:traffic`（流量块）。角色是数据不随代码走；seed/fixture 仅覆盖 E2E |
 | 7 | 隐私政策文案过目 | §6.1-10 与 §6.4 合规条款上线前确认 |
