@@ -88,25 +88,55 @@ function eventCount(rows: ReadonlyArray<{ x: string; y: number }>, name: string)
   return 0
 }
 
-/** 拉取 Umami 段（与调用方无关，可缓存） */
+/**
+ * 拉取 Umami 段（与调用方无关，可缓存）。
+ *
+ * ## 逐项降级，不是全有或全无
+ *
+ * 初版用 `Promise.all`，任一查询失败整块 unavailable。线上因此被一个查询拖垮：
+ * `/metrics` 的某个 `type` 取值 v3 不认，于是 PV/UV/趋势/漏斗**全都看不到**，
+ * 尽管它们各自的查询是好的。
+ *
+ * 业务块早就是「单卡失败隔离」（resolveSingleCard），流量块没有理由更差。
+ * 现在只有 `stats` 是硬依赖——PV/UV 都没有的话这一块没有意义；
+ * 其余各自降级，失败项按类型单独记日志。
+ *
+ * 降级后的表示遵循同一条原则：**拿不到就是 null，不是 0**。
+ * 漏斗某步为 null 表示「这一环没测到」，与「发生了 0 次」含义相反。
+ */
+async function settle<T>(label: string, p: Promise<T>): Promise<T | null> {
+  try {
+    return await p
+  } catch (err) {
+    console.error(
+      `[traffic] ${label} 查询失败：`,
+      err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+    )
+    return null
+  }
+}
+
 export async function fetchUmamiSegment(
   client: UmamiClient,
   window: { startAt: number; endAt: number },
 ): Promise<UmamiSegment> {
+  // stats 是硬依赖：失败就抛，让整块 unavailable
+  const statsPromise = client.stats(window)
+
   const [stats, series, referrers, pages, events] = await Promise.all([
-    client.stats(window),
-    client.pageviews(window),
-    client.metrics('referrer', window),
-    client.metrics('url', window),
-    client.metrics('event', window),
+    statsPromise,
+    settle('pageviews', client.pageviews(window)),
+    settle('metrics(referrer)', client.metrics('referrer', window)),
+    settle('metrics(url)', client.metrics('url', window)),
+    settle('metrics(event)', client.metrics('event', window)),
   ])
 
   return {
     pageviews: stats.pageviews,
     visitors: stats.visitors,
-    series,
-    topReferrers: referrers.slice(0, 10).map((r) => ({ name: r.x, visitors: r.y })),
-    topPages: pages.slice(0, 10).map((r) => ({ path: r.x, pageviews: r.y })),
+    series: series ?? [],
+    topReferrers: (referrers ?? []).slice(0, 10).map((r) => ({ name: r.x, visitors: r.y })),
+    topPages: (pages ?? []).slice(0, 10).map((r) => ({ path: r.x, pageviews: r.y })),
     funnel: {
       // ⚠️ 首步暂缺：`city_page_view` 在所有城市页都会打（首页/列表/详情），
       // 要取「仅详情页」那部分必须按事件属性 page_type 过滤，而属性过滤走
@@ -117,9 +147,10 @@ export async function fetchUmamiSegment(
       // 首页与列表页的流量算进漏斗口，转化率看起来低得离谱，且没人能发现。
       // 配齐 UMAMI_* 四个服务端 env 后用真凭据验出契约再补。
       detailView: null,
-      inquiryOpen: eventCount(events, 'inquiry_open'),
-      inquirySubmit: eventCount(events, 'inquiry_submit'),
-      inquirySuccess: eventCount(events, 'inquiry_success'),
+      // 事件查询整个失败时，四步全是 null（「没测到」），不是 0（「没发生」）
+      inquiryOpen: events ? eventCount(events, 'inquiry_open') : null,
+      inquirySubmit: events ? eventCount(events, 'inquiry_submit') : null,
+      inquirySuccess: events ? eventCount(events, 'inquiry_success') : null,
     },
   }
 }
@@ -251,7 +282,10 @@ export function createTrafficEndpoint(deps: TrafficEndpointDeps = {}): Endpoint 
         status: 'ok',
         ...segment,
         leadsInWindow,
-        missRate: computeMissRate(segment.funnel.inquirySuccess, leadsInWindow),
+        missRate:
+          segment.funnel.inquirySuccess === null
+            ? null
+            : computeMissRate(segment.funnel.inquirySuccess, leadsInWindow),
       }
 
       return Response.json({ ok: true, asOf: now.toISOString(), range, traffic })
