@@ -506,7 +506,9 @@ describe('createTrafficEndpoint 缓存分层', () => {
     )) as Response
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.traffic).toEqual({ status: 'unavailable' })
+    // reason 区分「没配」与「配了连不上」——没有它，两种故障在页面上长得一模一样，
+    // OPT-066 上线首日就因此只能靠「响应耗时 38ms」这种间接证据倒推
+    expect(body.traffic).toEqual({ status: 'unavailable', reason: 'not-configured' })
   })
 
   it('Umami 抛错 → 同样降级为 unavailable，不把整个请求打挂', async () => {
@@ -524,6 +526,46 @@ describe('createTrafficEndpoint 缓存分层', () => {
       makeReq(permissionWith('global'), 1).req as never,
     )) as Response
     expect(res.status).toBe(200)
-    expect((await res.json()).traffic).toEqual({ status: 'unavailable' })
+    // 配置读到了、调用失败 → upstream-error（与上一条的 not-configured 必须可区分）
+    expect((await res.json()).traffic).toEqual({ status: 'unavailable', reason: 'upstream-error' })
+  })
+})
+
+describe('环境变量读取的健壮性（OPT-066 线上排障后补）', () => {
+  it('URL 漏写协议时自动补 https://', async () => {
+    // 漏写协议的表现是 fetch 立刻抛 Failed to parse URL——耗时接近 0，
+    // 与「压根没配」的症状完全一样，排查时极难分辨
+    const mod = await import('@/domain/analytics/umami-client')
+    const cfg = mod.resolveUmamiServerConfig({
+      UMAMI_URL: 'umami.example.com',
+      UMAMI_USERNAME: 'a',
+      UMAMI_PASSWORD: 'b',
+      UMAMI_WEBSITE_ID: 'w',
+    } as unknown as NodeJS.ProcessEnv)
+    expect(cfg?.url).toBe('https://umami.example.com')
+  })
+
+  it('已有协议时不重复添加', async () => {
+    const mod = await import('@/domain/analytics/umami-client')
+    for (const input of ['https://u.example.com', 'http://u.example.com']) {
+      const cfg = mod.resolveUmamiServerConfig({
+        UMAMI_URL: input,
+        UMAMI_USERNAME: 'a',
+        UMAMI_PASSWORD: 'b',
+        UMAMI_WEBSITE_ID: 'w',
+      } as unknown as NodeJS.ProcessEnv)
+      expect(cfg?.url).toBe(input)
+    }
+  })
+
+  it('missingUmamiEnvKeys 只报键名，且把空串算作缺失', async () => {
+    const mod = await import('@/domain/analytics/umami-client')
+    const missing = mod.missingUmamiEnvKeys({
+      UMAMI_URL: 'https://u.example.com',
+      UMAMI_USERNAME: '   ',
+      UMAMI_PASSWORD: 'b',
+    } as unknown as NodeJS.ProcessEnv)
+    // 空白值与不存在同等对待——控制台里「建了键但没填值」是常见操作失误
+    expect(missing.sort()).toEqual(['UMAMI_USERNAME', 'UMAMI_WEBSITE_ID'])
   })
 })
