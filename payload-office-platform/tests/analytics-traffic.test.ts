@@ -246,6 +246,12 @@ describe('fetchUmamiSegment', () => {
         if (type === 'referrer') return [{ x: 'google.com', y: 9 }]
         return [{ x: '/shanghai/listings', y: 30 }]
       },
+      eventDataValues: async () => [
+        { value: 'home', total: 7 },
+        { value: 'listing-detail', total: 1 },
+        { value: 'building-detail', total: 2 },
+        { value: 'listings', total: 2 },
+      ],
       hasToken: true,
     }
   }
@@ -260,11 +266,11 @@ describe('fetchUmamiSegment', () => {
     expect(seg.funnel.inquirySuccess).toBe(5)
   })
 
-  it('首步 detailView 为 null（不可测），而不是 0', async () => {
-    // 0 会被读成「一个详情页都没人看」，null 才是「这一环量不到」。
-    // 两者在看板上含义完全相反。
+  it('首步只数详情页：listing-detail + building-detail', async () => {
+    // 桩里的分布是 home=7 / listing-detail=1 / building-detail=2 / listings=2，
+    // 首步应为 3——把 home 与 listings 算进去会让转化率看起来低得离谱
     const seg = await fetchUmamiSegment(stubClient([]), { startAt: 1, endAt: 2 })
-    expect(seg.funnel.detailView).toBeNull()
+    expect(seg.funnel.detailView).toBe(3)
   })
 
   it('来源与落地页各取前 10', async () => {
@@ -392,6 +398,7 @@ describe('createTrafficEndpoint 缓存分层', () => {
         pageviews: async () => [],
         metrics: async (type: string) =>
           type === 'event' ? [{ x: 'inquiry_success', y: 5 }] : [],
+        eventDataValues: async () => [{ value: 'listing-detail', total: 1 }],
         hasToken: true,
       }
     }
@@ -522,6 +529,7 @@ describe('createTrafficEndpoint 缓存分层', () => {
         stats: async () => { throw new Error('boom') },
         pageviews: async () => [],
         metrics: async () => [],
+        eventDataValues: async () => [],
         hasToken: false,
       })) as never,
     })
@@ -635,6 +643,7 @@ describe('Umami 段逐项降级（上线后被一个查询拖垮整块，因此�
         if (type === 'referrer') return [{ x: 'g.com', y: 3 }]
         return [{ x: '/a', y: 9 }]
       },
+      eventDataValues: async () => [{ value: 'listing-detail', total: 4 }],
       hasToken: true,
       ...overrides,
     }
@@ -710,6 +719,7 @@ describe('Umami metrics 的 type 取值（v3.3.1 实测）', () => {
           seen.push(type)
           return type === 'path' ? [{ x: '/shanghai/listings', y: 2 }] : []
         },
+        eventDataValues: async () => [],
         hasToken: true,
       } as never,
       { startAt: 1, endAt: 2 },
@@ -717,5 +727,72 @@ describe('Umami metrics 的 type 取值（v3.3.1 实测）', () => {
     expect(seen).toContain('path')
     expect(seen).not.toContain('url')
     expect(seg.topPages).toEqual([{ path: '/shanghai/listings', pageviews: 2 }])
+  })
+})
+
+describe('漏斗首步：只数详情页（event-data/values 实测契约）', () => {
+  function clientWith(pageTypes: unknown) {
+    return {
+      stats: async () => ({ pageviews: 1, visitors: 1 }),
+      pageviews: async () => [],
+      metrics: async () => [],
+      eventDataValues: async (eventName: string, propertyName: string) => {
+        // eventName 不可省：省掉会把 page_engagement 的 page_type 也聚合进来，
+        // 实测差异 3 → 8。桩在这里断言调用方确实传了它。
+        expect(eventName).toBe('city_page_view')
+        expect(propertyName).toBe('page_type')
+        if (pageTypes === null) throw new Error('Bad request')
+        return pageTypes as Array<{ value: string; total: number }>
+      },
+      hasToken: true,
+    }
+  }
+
+  it('只累加 listing-detail 与 building-detail，不含 home / listings', async () => {
+    // 线上真实分布：home=7 building-detail=2 listings=2 listing-detail=1
+    // 首步应为 3，而不是 12（全部 city_page_view）
+    const seg = await fetchUmamiSegment(
+      clientWith([
+        { value: 'home', total: 7 },
+        { value: 'building-detail', total: 2 },
+        { value: 'listings', total: 2 },
+        { value: 'listing-detail', total: 1 },
+      ]) as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seg.funnel.detailView).toBe(3)
+  })
+
+  it('查询失败时是 null，不是 0', async () => {
+    const seg = await fetchUmamiSegment(clientWith(null) as never, { startAt: 1, endAt: 2 })
+    expect(seg.funnel.detailView).toBeNull()
+  })
+
+  it('分布里没有详情页时是 0（真的没人看），与 null 区分', async () => {
+    const seg = await fetchUmamiSegment(
+      clientWith([{ value: 'home', total: 5 }]) as never,
+      { startAt: 1, endAt: 2 },
+    )
+    expect(seg.funnel.detailView).toBe(0)
+  })
+})
+
+describe('取数调用必须在 try 内发生（同步抛不得逃逸）', () => {
+  it('某个 client 方法同步抛时，不产生未处理的拒绝，且整块正常降级', async () => {
+    // 真实踩过：settle 收的是已创建的 Promise，调用发生在 try 之外。
+    // 桩缺 eventDataValues → 同步 TypeError → Promise.all 那句还没构造出来就炸，
+    // 先创建的 stats promise 无人接管 → Node unhandled rejection → vitest 整轮失败，
+    // 而具体测试**照样显示通过**（端点把 TypeError 也当失败，断言恰好成立）。
+    const brokenClient = {
+      stats: async () => ({ pageviews: 5, visitors: 2 }),
+      pageviews: async () => [],
+      metrics: async () => [],
+      // eventDataValues 故意缺席：调用它会同步抛 TypeError
+      hasToken: true,
+    }
+    const seg = await fetchUmamiSegment(brokenClient as never, { startAt: 1, endAt: 2 })
+    // 硬依赖 stats 是好的，所以整块仍可用；缺方法那项降级为 null
+    expect(seg.pageviews).toBe(5)
+    expect(seg.funnel.detailView).toBeNull()
   })
 })
