@@ -1737,12 +1737,18 @@ ol {
 }
 
 /* 无图详情页：与卡片同一套缺省图（.media-placeholder 提供底纹与文字排版），
-   这里只补详情页需要的高度与圆角。
+   这里只补详情页需要的比例与圆角。
    必须写成双类选择器：.media-placeholder 在本文件里排在后面，同为单类时它会赢，
-   height:100% / display:grid 会盖掉这里的回落值。 */
+   height:100% / display:grid 会盖掉这里的回落值。
+
+   比例取 16/10，与 `.detail-gallery__main` 一致——这是「保留图片区域」的落点：
+   有图和无图两种状态下首屏骨架同形，用户一眼看出「这里本来该有照片」。
+   原为 `min-height: 15rem`(240px) 的矮条，与画廊主图（776×485）差了一倍，
+   无图页的首屏会整体上移、右侧信息面板显得悬空。 */
 .detail-gallery.detail-gallery--empty {
   display: grid;
   place-items: center;
+  aspect-ratio: 16 / 10;
   min-height: 15rem;
   height: auto;
   border-radius: var(--radius-md);

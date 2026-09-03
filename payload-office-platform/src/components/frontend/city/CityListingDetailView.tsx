@@ -8,7 +8,6 @@ import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
-import type { NoImageMetaItem } from '@/components/frontend/detail/NoImageHeroGrid'
 import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import DetailGallery from '@/components/frontend/DetailGallery'
@@ -114,37 +113,6 @@ export default function CityListingDetailView({
         capturedAt: null,
         isSchematic: false,
       }))
-  // 无图替代构图（OPT-037 Task 2）：六项关键规格逐一核实可达——全部取自
-  // ListingDetailViewModel 顶层字段或其 building 子对象，不解析 factGroups
-  // 里已拼好 suffix 的字符串（那些是「值嵌单位的键值行」格式，不是这里
-  // 要的「大数值 + 独立单位」格式）。地址取 building.address；「交通」
-  // comp 原稿要的是「地铁站 + 距离 + 步行时间」，但距离/步行时间只有
-  // LocationPanel 消费的 pois（POI 检索结果）里才有，DetailGallery 这一层
-  // 拿不到，也不该为了六个字段把整个 POI 依赖搭进来——因此换成可达的
-  // 「近 {地铁站名}」，不编造距离与步行时间。
-  const noMediaKeySpecs: readonly SpecRow[] = [
-    { label: '建筑面积', value: listing.area != null ? String(listing.area) : null, unit: '㎡' },
-    { label: '工位数', value: listing.seats != null ? String(listing.seats) : null, unit: '个' },
-    {
-      label: '装修状态',
-      value: listing.decorationStatus ? DECORATION_STATUS_LABELS[listing.decorationStatus] : null,
-    },
-    { label: '房源类型', value: LISTING_TYPE_LABEL[listing.listingType] },
-    // 「可入驻」故意不走本组其余五项的 value ?? '—' 兜底：formatAvailableDate
-    // 对缺失统一返回「面议」，是该字段在页面其它位置（概况面板「交付时间」、
-    // ListingCard）已经在用的既有展示口径——两套兜底文案在同一个宫格里
-    // 并存是有意为之，不是遗漏统一。
-    { label: '可入驻', value: formatAvailableDate(listing.availableFrom) },
-    { label: '楼盘等级', value: getBuildingGradeLabel(building?.grade) ?? null },
-  ]
-  // 底条两格（Task 10b 起由调用方装配，见 NoImageHeroGrid 文件头）：房源页
-  // 首屏除画廊外只有决策卡（价格/核验/顾问），地址与交通没有第二处出处，
-  // 所以照旧放这两格；渲染结果与 Task 2 首版逐字节一致。
-  const noMediaMeta: readonly NoImageMetaItem[] = [
-    { label: '地址', value: building?.address ?? null },
-    { label: '交通', value: building?.nearestMetro?.name ? `近${building.nearestMetro.name}` : null },
-  ]
-
   // 价格摘要只算一次，决策卡与吸附询价条共用（两者是同一个询价入口的两种
   // 呈现形态，文案分叉就是两个事实源）。
   const priceDigest = buildListingPriceDigest(listing)
@@ -236,7 +204,6 @@ export default function CityListingDetailView({
             media={media}
             title={listing.title}
             pageType="listing"
-            noMediaFallback={{ keySpecs: noMediaKeySpecs, meta: noMediaMeta }}
           />
 
           <ListingDecisionCard
