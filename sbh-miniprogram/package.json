@@ -11,6 +11,7 @@
     "prepare:trial-deployment": "node scripts/prepare-trial-deployment.mjs",
     "devtools:smoke": "node scripts/devtools-smoke.mjs",
     "ci:preview": "node scripts/preview.mjs",
+    "ci:upload": "node scripts/upload.mjs",
     "test": "vitest run",
     "typecheck": "tsc --project tsconfig.json --pretty false && tsc --project tsconfig.node.json --pretty false"
   },

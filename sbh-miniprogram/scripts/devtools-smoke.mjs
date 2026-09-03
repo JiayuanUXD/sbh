@@ -30,6 +30,7 @@ const defaultTimeouts = Object.freeze({
   listingSlugMs: 10_000,
 })
 const failureCleanupGraceMs = 250
+const LISTING_CARD_XPATH = '//*[contains(@class, "listing-card") and @data-slug]'
 const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 class DevtoolsConfigurationError extends Error {}
@@ -133,14 +134,14 @@ async function readFirstListingSlug(page, runtimeExceptionPromise, pollIntervalM
     const remainingMs = deadline - Date.now()
     if (remainingMs <= 0) throw new Error('首条房源 slug 读取超时')
     const card = await Promise.race([
-      withTimeout(Promise.resolve().then(() => page.$('[data-listing-slug]')), remainingMs, '首条房源查询超时'),
+      withTimeout(Promise.resolve().then(() => page.xpath(LISTING_CARD_XPATH)), remainingMs, '首条房源查询超时'),
       runtimeExceptionPromise,
     ])
     if (card && typeof card.attribute === 'function') {
       const attributeRemainingMs = deadline - Date.now()
       if (attributeRemainingMs <= 0) throw new Error('首条房源 slug 读取超时')
       const slug = await Promise.race([
-        withTimeout(Promise.resolve().then(() => card.attribute('data-listing-slug')), attributeRemainingMs, '首条房源 slug 属性超时'),
+        withTimeout(Promise.resolve().then(() => card.attribute('data-slug')), attributeRemainingMs, '首条房源 slug 属性超时'),
         runtimeExceptionPromise,
       ])
       if (typeof slug === 'string' && SAFE_SLUG.test(slug)) return slug

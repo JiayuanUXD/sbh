@@ -22,6 +22,7 @@ const scripts = {
   checkProject: join(projectRoot, 'scripts/check-project.mjs'),
   devtoolsSmoke: join(projectRoot, 'scripts/devtools-smoke.mjs'),
   preview: join(projectRoot, 'scripts/preview.mjs'),
+  upload: join(projectRoot, 'scripts/upload.mjs'),
 }
 
 const previewVariableNames = [
@@ -32,10 +33,21 @@ const previewVariableNames = [
   'WECHAT_MINIPROGRAM_QRCODE_OUTPUT_PATH',
 ] as const
 
+const uploadVariableNames = [
+  'WECHAT_MINIPROGRAM_EXPECTED_COMMIT',
+  'WECHAT_MINIPROGRAM_UPLOAD_REPORT_PATH',
+  'TRIAL_CLOUD_ENV_ID',
+  'TRIAL_CLOUD_SERVICE_NAME',
+  'TRIAL_SERVER_DEPLOYMENT_REVISION',
+] as const
+
 function cleanEnvironment(): NodeJS.ProcessEnv {
   const environment = { ...process.env }
 
   for (const name of previewVariableNames) {
+    delete environment[name]
+  }
+  for (const name of uploadVariableNames) {
     delete environment[name]
   }
   delete environment.WECHAT_DEVTOOLS_CLI
@@ -182,16 +194,17 @@ describe('devtools:smoke', () => {
     expect(miniProgram.disconnect).not.toHaveBeenCalled()
   })
 
-  test('真实冒烟入口从找房首条卡片读取 slug 后进入详情页并等待 ready', async () => {
+  test('真实冒烟入口用精确 XPath 跨组件边界读取原生卡片 slug 后进入详情页', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
     const detailPage = { path: 'pages/listing-detail/index', query: { slug: 'listing-one' }, $: vi.fn().mockResolvedValue({ id: 'listing-detail-ready' }) }
+    const listingCard = { attribute: vi.fn().mockResolvedValue('listing-one') }
     const listingsPage = {
       path: 'pages/listings/index',
-      $: vi.fn().mockResolvedValue({ id: 'listings-ready' }),
+      $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready'
+        ? { id: 'listings-ready' }
+        : null),
+      xpath: vi.fn().mockResolvedValue(listingCard),
     }
-    listingsPage.$.mockImplementation(async (selector) => selector === '#listings-ready'
-      ? { id: 'listings-ready' }
-      : { attribute: vi.fn().mockResolvedValue('listing-one') })
     const homePage = { path: 'pages/home/index', $: vi.fn().mockResolvedValue({ id: 'home-ready' }) }
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn()
@@ -209,6 +222,11 @@ describe('devtools:smoke', () => {
     })
 
     await runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })
+    expect(listingsPage.$).toHaveBeenCalledTimes(1)
+    expect(listingsPage.$).toHaveBeenCalledWith('#listings-ready')
+    expect(listingsPage.$).not.toHaveBeenCalledWith('[data-listing-slug]')
+    expect(listingsPage.xpath).toHaveBeenCalledWith('//*[contains(@class, "listing-card") and @data-slug]')
+    expect(listingCard.attribute).toHaveBeenCalledWith('data-slug')
     expect(miniProgram.reLaunch).toHaveBeenNthCalledWith(2, '/pages/listing-detail/index?slug=listing-one')
     expect(detailPage.$).toHaveBeenCalledWith('#listing-detail-ready')
   })
@@ -216,11 +234,14 @@ describe('devtools:smoke', () => {
   test('首条房源暂缺时在总 deadline 内轮询，随后用 pathname/query 验证详情', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
     let listingQueries = 0
-    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
-      if (selector === '#listings-ready') return {}
-      listingQueries += 1
-      return listingQueries < 2 ? null : { attribute: vi.fn().mockResolvedValue('listing-two') }
-    }) }
+    const listingsPage = {
+      path: 'pages/listings/index',
+      $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : null),
+      xpath: vi.fn().mockImplementation(async () => {
+        listingQueries += 1
+        return listingQueries < 2 ? null : { attribute: vi.fn().mockResolvedValue('listing-two') }
+      }),
+    }
     const detailPage = { path: 'pages/listing-detail/index', query: { slug: 'listing-two' }, $: vi.fn().mockResolvedValue({}) }
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce(detailPage),
@@ -236,7 +257,11 @@ describe('devtools:smoke', () => {
 
   test('详情 pathname 正确但 query.slug 缺失或不匹配时失败并清理', async () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
-    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : { attribute: vi.fn().mockResolvedValue('listing-three') }) }
+    const listingsPage = {
+      path: 'pages/listings/index',
+      $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : null),
+      xpath: vi.fn().mockResolvedValue({ attribute: vi.fn().mockResolvedValue('listing-three') }),
+    }
     const detailPage = { path: 'pages/listing-detail/index', query: {}, $: vi.fn() }
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce(detailPage),
@@ -247,14 +272,21 @@ describe('devtools:smoke', () => {
     expect(miniProgram.close).toHaveBeenCalledOnce()
   })
 
-  test.each(['首条房源查询', '首条房源 slug 属性'] as const)('%s挂起时在明确超时后失败并清理', async (label) => {
+  test.each([
+    ['首条房源查询', '首条房源查询超时'],
+    ['首条房源 slug 属性', '首条房源 slug 属性超时'],
+  ] as const)('%s挂起时在明确超时后失败并清理', async (label, expectedMessage) => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
-    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockResolvedValue({ id: 'listings-ready' }) }
-    listingsPage.$.mockImplementation(async (selector: string) => {
-      if (selector === '#listings-ready') return { id: 'listings-ready' }
-      if (label === '首条房源查询') return new Promise(() => {})
-      return { attribute: () => new Promise(() => {}) }
-    })
+    const listingsPage = {
+      path: 'pages/listings/index',
+      $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready'
+        ? { id: 'listings-ready' }
+        : null),
+      xpath: vi.fn().mockImplementation(async () => {
+        if (label === '首条房源查询') return new Promise(() => {})
+        return { attribute: () => new Promise(() => {}) }
+      }),
+    }
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce({ path: 'pages/listing-detail/index', query: { slug: 'x' }, $: vi.fn() }),
       switchTab: vi.fn().mockResolvedValue(listingsPage),
@@ -267,7 +299,7 @@ describe('devtools:smoke', () => {
       timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 5 },
     })
 
-    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('首条房源')
+    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow(expectedMessage)
     expect(miniProgram.close).toHaveBeenCalledOnce()
   })
 
@@ -275,11 +307,14 @@ describe('devtools:smoke', () => {
     const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
     const miniProgram = Object.assign(new EventEmitter(), {
       reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }).mockResolvedValueOnce({ path: 'pages/listing-detail/index?slug=x', $: vi.fn() }),
-      switchTab: vi.fn().mockResolvedValue({ path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
-        if (selector === '#listings-ready') return {}
-        setTimeout(() => miniProgram.emit('exception'), 1)
-        return { attribute: () => new Promise(() => {}) }
-      }) }),
+      switchTab: vi.fn().mockResolvedValue({
+        path: 'pages/listings/index',
+        $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : null),
+        xpath: vi.fn().mockImplementation(async () => {
+          setTimeout(() => miniProgram.emit('exception'), 1)
+          return { attribute: () => new Promise(() => {}) }
+        }),
+      }),
       close: vi.fn().mockResolvedValue(undefined),
       disconnect: vi.fn(),
     })
@@ -293,24 +328,48 @@ describe('devtools:smoke', () => {
     expect(miniProgram.close).toHaveBeenCalledOnce()
   })
 
-  test('查询消耗大部分预算后 attribute 挂起仍按原总 deadline 失败', async () => {
-    const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
-    const startedAt = Date.now()
-    const listingsPage = { path: 'pages/listings/index', $: vi.fn().mockImplementation(async (selector: string) => {
-      if (selector === '#listings-ready') return {}
-      await new Promise((resolve) => setTimeout(resolve, 15))
-      return { attribute: () => new Promise(() => {}) }
-    }) }
-    const miniProgram = Object.assign(new EventEmitter(), {
-      reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }),
-      switchTab: vi.fn().mockResolvedValue(listingsPage),
-      close: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn(),
-    })
-    const runner = module.createDevtoolsSmokeRunner({ automator: { launch: vi.fn().mockResolvedValue(miniProgram) }, includeDetail: true, pollIntervalMs: 1, timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 20 } })
-    await expect(runner({ WECHAT_DEVTOOLS_CLI: executableCliPath })).rejects.toThrow('首条房源')
-    expect(Date.now() - startedAt).toBeLessThan(32)
-    expect(miniProgram.close).toHaveBeenCalledOnce()
+  test('XPath 查询与 attribute 读取共享同一个绝对 deadline', async () => {
+    vi.useFakeTimers()
+    try {
+      const module = await import(pathToFileURL(scripts.devtoolsSmoke).href)
+      const attribute = vi.fn(() => new Promise(() => {}))
+      const listingsPage = {
+        path: 'pages/listings/index',
+        $: vi.fn().mockImplementation(async (selector: string) => selector === '#listings-ready' ? {} : null),
+        xpath: vi.fn().mockImplementation(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 15))
+          return { attribute }
+        }),
+      }
+      const miniProgram = Object.assign(new EventEmitter(), {
+        reLaunch: vi.fn().mockResolvedValueOnce({ path: 'pages/home/index', $: vi.fn().mockResolvedValue({}) }),
+        switchTab: vi.fn().mockResolvedValue(listingsPage),
+        close: vi.fn().mockResolvedValue(undefined),
+        disconnect: vi.fn(),
+      })
+      const runner = module.createDevtoolsSmokeRunner({ automator: { launch: vi.fn().mockResolvedValue(miniProgram) }, includeDetail: true, pollIntervalMs: 1, timeouts: { acceptanceMs: 1, closeMs: 20, launchMs: 20, readyMs: 20, routeMs: 20, listingSlugMs: 20 } })
+      let outcome: { error?: unknown; settled: boolean } = { settled: false }
+      const runPromise = runner({ WECHAT_DEVTOOLS_CLI: executableCliPath }).then(
+        () => { outcome = { settled: true } },
+        (error: unknown) => { outcome = { error, settled: true } },
+      )
+
+      await vi.advanceTimersByTimeAsync(2)
+      expect(listingsPage.xpath).toHaveBeenCalledOnce()
+      await vi.advanceTimersByTimeAsync(15)
+      expect(attribute).toHaveBeenCalledWith('data-slug')
+      expect(outcome.settled).toBe(false)
+      await vi.advanceTimersByTimeAsync(4)
+      expect(outcome.settled).toBe(false)
+      await vi.advanceTimersByTimeAsync(1)
+      await runPromise
+
+      expect(outcome.settled).toBe(true)
+      expect(outcome.error).toEqual(expect.objectContaining({ message: '首条房源 slug 属性超时' }))
+      expect(miniProgram.close).toHaveBeenCalledOnce()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   test('首页实际路由不匹配时失败并清理', async () => {
@@ -978,18 +1037,401 @@ describe('ci:preview', () => {
   })
 })
 
+describe('ci:upload', () => {
+  let temporaryDirectory: string
+  let privateKeyPath: string
+
+  const expectedCommit = '8eab1a17cfe5800d1778fbad2d47cf4c54542d87'
+  const cloudEnvId = 'sbhmini-gateway-d3fbrmn8097478b8'
+  const cloudServiceName = 'sbhmini'
+  const serverDeploymentRevision = 'sbhmini-005'
+  const manifest = {
+    cloudEnvId,
+    cloudServiceName,
+    gitCommitSha: expectedCommit,
+    serverDeploymentRevision,
+  }
+  const cleanSnapshot = { dirtyPaths: [], headSha: expectedCommit, manifest }
+  const generatedManifestSnapshot = {
+    dirtyPaths: ['miniprogram/config/trial-deployment.generated.ts'],
+    headSha: expectedCommit,
+    manifest,
+  }
+
+  function uploadEnvironment(reportPath: string): NodeJS.ProcessEnv {
+    return {
+      ...cleanEnvironment(),
+      TRIAL_CLOUD_ENV_ID: cloudEnvId,
+      TRIAL_CLOUD_SERVICE_NAME: cloudServiceName,
+      TRIAL_SERVER_DEPLOYMENT_REVISION: serverDeploymentRevision,
+      WECHAT_MINIPROGRAM_APPID: 'wx1234567890abcdef',
+      WECHAT_MINIPROGRAM_EXPECTED_COMMIT: expectedCommit,
+      WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: privateKeyPath,
+      WECHAT_MINIPROGRAM_ROBOT: '1',
+      WECHAT_MINIPROGRAM_UPLOAD_REPORT_PATH: reportPath,
+      WECHAT_MINIPROGRAM_VERSION: '1.2.3',
+    }
+  }
+
+  beforeAll(() => {
+    temporaryDirectory = mkdtempSync(join(tmpdir(), 'sbh-mp-upload-test-'))
+    privateKeyPath = join(temporaryDirectory, 'private.key')
+    writeFileSync(privateKeyPath, 'test-only-key', { mode: 0o600 })
+    chmodSync(privateKeyPath, 0o600)
+  })
+
+  afterAll(() => {
+    rmSync(temporaryDirectory, { force: true, recursive: true })
+  })
+
+  test('缺少必填环境变量时 fail closed', () => {
+    const result = runScript(scripts.upload)
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('WECHAT_MINIPROGRAM_APPID')
+  })
+
+  test('拒绝 touristappid', () => {
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, 'tourist-report.json')),
+      WECHAT_MINIPROGRAM_APPID: 'touristappid',
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('正式 AppID')
+  })
+
+  test('私钥不存在时失败且不回显路径', () => {
+    const secretPath = join(temporaryDirectory, 'secret-do-not-print.key')
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, 'missing-key-report.json')),
+      WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: secretPath,
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('私钥文件')
+    expect(outputOf(result)).not.toContain(secretPath)
+  })
+
+  test('拒绝使用版本库内的文件充当 CI 私钥', () => {
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, 'inside-repo-key-report.json')),
+      WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: join(projectRoot, 'package.json'),
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('版本库之外')
+    expect(outputOf(result)).not.toContain(join(projectRoot, 'package.json'))
+  })
+
+  test('拒绝从版本库外用符号链接绕过私钥位置门', () => {
+    const linkedKeyPath = join(temporaryDirectory, 'linked.key')
+    symlinkSync(join(projectRoot, 'package.json'), linkedKeyPath)
+
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, 'linked-key-report.json')),
+      WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: linkedKeyPath,
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('符号链接')
+    expect(outputOf(result)).not.toContain(linkedKeyPath)
+  })
+
+  test.each(['0', '31', '1.5', 'abc'])('拒绝越界或非整数 robot=%s', (robot) => {
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, `robot-${robot}-report.json`)),
+      WECHAT_MINIPROGRAM_ROBOT: robot,
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('1 到 30')
+  })
+
+  test('缺少版本号时在加载 miniprogram-ci 前失败', () => {
+    const result = runScript(scripts.upload, {
+      ...uploadEnvironment(join(temporaryDirectory, 'no-version-report.json')),
+      WECHAT_MINIPROGRAM_VERSION: '',
+    })
+
+    expect(result.status).not.toBe(0)
+    expect(outputOf(result)).toContain('WECHAT_MINIPROGRAM_VERSION')
+  })
+
+  test.each(['01.2.3', '1.02.3', '1.2.03', '1.2', '1.2.3-', '1.2.3-alpha..1', '1.2.3-01'])(
+    '拒绝不严格的 SemVer：%s',
+    async (version) => {
+      const module = await import(pathToFileURL(scripts.upload).href)
+
+      expect(() =>
+        module.validateUploadEnvironment(
+          {
+            WECHAT_MINIPROGRAM_APPID: 'wx1234567890abcdef',
+            WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: privateKeyPath,
+            WECHAT_MINIPROGRAM_ROBOT: '1',
+            WECHAT_MINIPROGRAM_VERSION: version,
+          },
+          cleanSnapshot,
+        ),
+      ).toThrow('严格 SemVer')
+    },
+  )
+
+  test('报告路径必须是仓外绝对 .json 新文件', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+
+    for (const outputPath of [
+      'report.json',
+      join(projectRoot, 'report.json'),
+      join(temporaryDirectory, 'missing-parent', 'report.json'),
+      join(temporaryDirectory, 'report.png'),
+    ]) {
+      expect(() =>
+        module.validateUploadEnvironment(uploadEnvironment(outputPath), cleanSnapshot),
+      ).toThrow(/绝对路径|版本库之外|父目录|\.json 扩展名/)
+    }
+  })
+
+  test('拒绝已存在或符号链接的报告输出目标', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const existingOutputPath = join(temporaryDirectory, 'existing-report.json')
+    const linkedOutputPath = join(temporaryDirectory, 'linked-report.json')
+    writeFileSync(existingOutputPath, 'do not overwrite')
+    symlinkSync(existingOutputPath, linkedOutputPath)
+
+    for (const outputPath of [existingOutputPath, linkedOutputPath]) {
+      expect(() =>
+        module.validateUploadEnvironment(uploadEnvironment(outputPath), cleanSnapshot),
+      ).toThrow(/已存在|符号链接/)
+    }
+  })
+
+  test('拒绝 group/other 可写的报告父目录', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const writableByOthersDirectory = join(temporaryDirectory, 'upload-world-writable')
+    mkdirSync(writableByOthersDirectory, { mode: 0o777 })
+    chmodSync(writableByOthersDirectory, 0o777)
+
+    expect(() =>
+      module.validateUploadEnvironment(
+        uploadEnvironment(join(writableByOthersDirectory, 'report.json')),
+        cleanSnapshot,
+      ),
+    ).toThrow('父目录权限')
+  })
+
+  test('期望 commit 与当前 HEAD 不一致时拒绝', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const environment = uploadEnvironment(join(temporaryDirectory, 'commit-mismatch.json'))
+    const otherCommit = 'a'.repeat(40)
+
+    expect(() =>
+      module.validateUploadEnvironment(environment, {
+        dirtyPaths: [],
+        headSha: otherCommit,
+        manifest,
+      }),
+    ).toThrow('目标 Git commit SHA 与当前 HEAD 不一致')
+  })
+
+  test('工作树存在非 manifest 改动时拒绝上传', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const environment = uploadEnvironment(join(temporaryDirectory, 'dirty-tree.json'))
+
+    expect(() =>
+      module.validateUploadEnvironment(environment, {
+        dirtyPaths: [
+          'miniprogram/config/trial-deployment.generated.ts',
+          'miniprogram/pages/home/index.ts',
+        ],
+        headSha: expectedCommit,
+        manifest,
+      }),
+    ).toThrow('上传只允许从干净快照进行')
+  })
+
+  test('已生成的 trial manifest 改动不阻止上传', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const reportPath = join(temporaryDirectory, 'generated-manifest-ok.json')
+
+    const configuration = module.validateUploadEnvironment(
+      uploadEnvironment(reportPath),
+      generatedManifestSnapshot,
+    )
+
+    expect(configuration).toEqual(
+      expect.objectContaining({
+        cloudEnvId,
+        cloudServiceName,
+        gitCommitSha: expectedCommit,
+        serverDeploymentRevision,
+      }),
+    )
+  })
+
+  test('空 manifest 或身份不符的 manifest 阻止上传', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const environment = uploadEnvironment(join(temporaryDirectory, 'bad-manifest.json'))
+
+    for (const candidate of [
+      { cloudEnvId: '', cloudServiceName: '', gitCommitSha: '', serverDeploymentRevision: '' },
+      { ...manifest, serverDeploymentRevision: 'sbhmini-004' },
+      { ...manifest, cloudEnvId: 'sbhmini-d5g7d6732b2c64a66' },
+      { ...manifest, gitCommitSha: 'b'.repeat(40) },
+    ]) {
+      expect(() =>
+        module.validateUploadEnvironment(environment, {
+          dirtyPaths: ['miniprogram/config/trial-deployment.generated.ts'],
+          headSha: expectedCommit,
+          manifest: candidate,
+        }),
+      ).toThrow('trial manifest 与目标 staging 身份不一致')
+    }
+  })
+
+  test('trial cloud env/service 与受控 staging 不一致时拒绝', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const reportPath = join(temporaryDirectory, 'wrong-env.json')
+
+    expect(() =>
+      module.validateUploadEnvironment(
+        { ...uploadEnvironment(reportPath), TRIAL_CLOUD_ENV_ID: 'sbhmini-d5g7d6732b2c64a66' },
+        generatedManifestSnapshot,
+      ),
+    ).toThrow('trial cloud env 与受控 staging 不一致')
+
+    expect(() =>
+      module.validateUploadEnvironment(
+        { ...uploadEnvironment(reportPath), TRIAL_CLOUD_SERVICE_NAME: 'other-service' },
+        generatedManifestSnapshot,
+      ),
+    ).toThrow('trial cloud service 与受控 staging 不一致')
+  })
+
+  test('假 CI 上传成功后写出不含凭据的仓外报告', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const reportPath = join(temporaryDirectory, 'successful-upload-report.json')
+    let projectOptions: Record<string, unknown> | undefined
+    class Project {
+      constructor(options: Record<string, unknown>) {
+        projectOptions = options
+      }
+    }
+    const upload = vi.fn().mockResolvedValue({
+      subPackageInfo: [{ name: '__APP__', size: 1024 }],
+      pluginInfo: [],
+    })
+    const configuration = module.validateUploadEnvironment(
+      uploadEnvironment(reportPath),
+      generatedManifestSnapshot,
+    )
+    const runner = module.createUploadRunner({ ci: { upload, Project } })
+
+    const result = await runner(uploadEnvironment(reportPath), configuration)
+
+    expect(projectOptions).toEqual(
+      expect.objectContaining({
+        appid: 'wx1234567890abcdef',
+        privateKey: 'test-only-key',
+        projectPath: projectRoot,
+        type: 'miniProgram',
+      }),
+    )
+    expect(projectOptions).not.toHaveProperty('privateKeyPath')
+    expect(upload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        desc: 'SBH 小程序 1.2.3 (8eab1a1)',
+        robot: 1,
+        version: '1.2.3',
+      }),
+    )
+    expect(upload.mock.calls[0]?.[0]).not.toHaveProperty('qrcodeOutputDest')
+    expect(result).toEqual({ gitCommitSha: expectedCommit, reportPath, version: '1.2.3' })
+
+    const reportContents = readFileSync(reportPath, 'utf8')
+    expect(reportContents).not.toContain('test-only-key')
+    expect(reportContents).not.toContain(privateKeyPath)
+    const reportStats = lstatSync(reportPath, { bigint: true })
+    expect(reportStats.mode & 0o777n).toBe(0o600n)
+    expect(JSON.parse(reportContents)).toEqual(
+      expect.objectContaining({
+        appid: 'wx1234567890abcdef',
+        cloudEnvId,
+        cloudServiceName,
+        gitCommitSha: expectedCommit,
+        pluginInfo: [],
+        serverDeploymentRevision,
+        subPackageInfo: [{ name: '__APP__', size: 1024 }],
+        version: '1.2.3',
+      }),
+    )
+  })
+
+  test('假 CI 上传失败时不生成报告', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const reportPath = join(temporaryDirectory, 'failed-upload-report.json')
+    class Project {}
+    const upload = vi.fn().mockRejectedValue(new Error('fake network secret detail'))
+    const configuration = module.validateUploadEnvironment(
+      uploadEnvironment(reportPath),
+      generatedManifestSnapshot,
+    )
+    const runner = module.createUploadRunner({ ci: { upload, Project } })
+
+    await expect(runner(uploadEnvironment(reportPath), configuration)).rejects.toThrow(
+      'fake network secret detail',
+    )
+    expect(existsSync(reportPath)).toBe(false)
+  })
+
+  test('私钥在校验与打开之间被替换时按 inode 拒绝且不调用 CI', async () => {
+    const module = await import(pathToFileURL(scripts.upload).href)
+    const raceKeyPath = join(temporaryDirectory, 'race.key')
+    const originalKeyPath = join(temporaryDirectory, 'race-original.key')
+    const reportPath = join(temporaryDirectory, 'race-upload-report.json')
+    writeFileSync(raceKeyPath, 'original-private-key', { mode: 0o600 })
+    chmodSync(raceKeyPath, 0o600)
+    const environment = {
+      ...uploadEnvironment(reportPath),
+      WECHAT_MINIPROGRAM_PRIVATE_KEY_PATH: raceKeyPath,
+    }
+    const configuration = module.validateUploadEnvironment(environment, generatedManifestSnapshot)
+    renameSync(raceKeyPath, originalKeyPath)
+    writeFileSync(raceKeyPath, 'replacement-private-key', { mode: 0o600 })
+    chmodSync(raceKeyPath, 0o600)
+    const upload = vi.fn()
+    class Project {}
+    const runner = module.createUploadRunner({ ci: { upload, Project } })
+
+    await expect(runner(environment, configuration)).rejects.toThrow('读取期间发生变化')
+    expect(upload).not.toHaveBeenCalled()
+    expect(existsSync(reportPath)).toBe(false)
+  })
+
+  test('真实入口在动态导入 miniprogram-ci 前先做轻量配置校验', () => {
+    const source = readFileSync(scripts.upload, 'utf8')
+    const entry = source.slice(source.indexOf('export async function runUpload'))
+
+    expect(entry.indexOf('validateUploadEnvironment')).toBeGreaterThanOrEqual(0)
+    expect(entry.indexOf('validateUploadEnvironment')).toBeLessThan(
+      entry.indexOf("import('miniprogram-ci')"),
+    )
+  })
+})
+
 describe('package scripts 安全边界', () => {
-  test('预览只由显式 ci:preview 命令触发', () => {
+  test('预览与上传只由显式 ci:preview / ci:upload 命令触发', () => {
     const packageJson = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>
     }
 
     expect(packageJson.scripts['ci:preview']).toBe('node scripts/preview.mjs')
+    expect(packageJson.scripts['ci:upload']).toBe('node scripts/upload.mjs')
 
     for (const [name, command] of Object.entries(packageJson.scripts)) {
-      if (name === 'ci:preview') continue
-      expect(command, `${name} 不得触发 preview 或 miniprogram-ci`).not.toMatch(
-        /preview\.mjs|miniprogram-ci|ci:preview/,
+      if (name === 'ci:preview' || name === 'ci:upload') continue
+      expect(command, `${name} 不得触发 preview/upload 或 miniprogram-ci`).not.toMatch(
+        /preview\.mjs|upload\.mjs|miniprogram-ci|ci:preview|ci:upload/,
       )
     }
   })

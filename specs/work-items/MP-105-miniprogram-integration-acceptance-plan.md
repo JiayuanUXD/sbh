@@ -1,6 +1,6 @@
 # MP-105 小程序集成验收与预发布计划
 
-> 状态：执行中（staging 运行层已迁移到新 CloudBase 环境，003 基线稳定；恢复协议与 Node 门禁已完成，004 部署及真实 PostgreSQL/开发者工具/真机验收待执行）
+> 状态：执行中（005 已经一次性推广至 100%，独立结算、运行产物 build-info、受保护 attestation 与真实 staging 正常写入/幂等/精确清理均通过；禁止重放推广或自动执行补偿、回滚、recovery；真实 PostgreSQL 异常矩阵、开发者工具网络、图片/COS 与真机验收待执行）
 > 创建日期：2026-08-27
 > 分支：`feat/miniprogram-mvp-59f9`
 > 上游：MP-101–104
@@ -21,9 +21,9 @@
 
 - Node 22.23.2 / pnpm 8.6.1 下，小程序全量 32 个文件、747/747，双 TypeScript 与 `project:check` 均通过；Web 全量 303 个文件通过、5 个既有跳过，4318 个用例通过、25 个既有跳过，build 通过，lint 0 错误（23 条既有 warning）。跨模块安全终审另行运行 13 个目标文件、561/561，P0/P1/P2 均为 0。
 - develop 保持 `wx.request` → `http://127.0.0.1:3717`；trial 已切换为受控 staging env/service manifest → `wx.cloud.callContainer`；release 已切换为仓内固定 production env/service → `wx.cloud.callContainer`。仓内 trial manifest 空字段继续 fail-closed。
-- staging 运行层已迁移到 CloudBase 环境 `sbhmini-gateway-d3fbrmn8097478b8` 的服务 `sbhmini`；当前稳定基线为 `sbhmini-003`（100% 流量，commit `1cd3e41c12352e32eadd8c84f065b3d98e6ffc29`）。数据库按已确认方案不迁移；旧环境与旧 `sbhmini-019` 只读核对无漂移，不再作为新运行层变更目标。
-- 004 将承载当前恢复协议与数据库安全补丁；在 004 完成一次性部署和真实验收前，003 的历史服务端闭环不能替代新代码的物理同连接、advisory-lock 并发、commit outcome unknown、trashed Lead 物理删除及断连/迟到请求验证。
-- 微信开发者工具 Stable `1.06.2409140` 的旧诊断曾能编译并打开首页，但发生在 develop 的 `wx.request` 链路。真实 AppID 已用于本机私有项目配置且体验版已开通；新 staging 环境的 trial `callContainer` 网络与页面闭环仍需在 004 后留证。
+- staging 运行层已迁移到 CloudBase 环境 `sbhmini-gateway-d3fbrmn8097478b8` 的服务 `sbhmini`；当前稳定 revision 为 `sbhmini-005`（100% 流量，commit `8eab1a17cfe5800d1778fbad2d47cf4c54542d87`），003/004 均为 0%。数据库按已确认方案不迁移；旧环境与旧 `sbhmini-019` 只读核对无漂移，不再作为新运行层变更目标。
+- 004 已承载恢复协议与数据库安全补丁完成一次候选部署、10% 灰度和受控回滚。2026-09-02 两轮独立只读快照先确认 005 创建正确且保持 0%；用户再次明确授权后，005 已通过单次推广写调用切至 100%，003/004 均为 0%，并由独立只读查询结算为 `PROMOTE_005_SETTLED`。005 的实际 `/api/health`、build-info、受保护 attestation 与真实正常写入/幂等/精确清理均已匹配 commit `8eab1a17cfe5800d1778fbad2d47cf4c54542d87` / revision `sbhmini-005`；真实 PostgreSQL 异常矩阵仍未完成。
+- 微信开发者工具 Stable `1.06.2409140` 的旧诊断曾能编译并打开首页，但发生在 develop 的 `wx.request` 链路。004 期间已补充部分页面只读证据；真实 AppID 下 trial `callContainer` 的目标 revision、网络闭环、图片/COS、隐私与真机仍需在云端候选身份确认后留证。
 - AppSecret、微信 CI 私钥、真实 AppID 本机配置、隐私后台配置和真机账号仍不得进入仓库；不得使用 production 目标代替尚未执行的小程序环境门。
 
 ## 4. 交付角色与依赖
@@ -36,7 +36,7 @@
 | 真机验收 | 产品/设计 + Codex 协助 | iOS、Android、隐私和可访问性 | 1 人日 | 可写 staging 门已通过、测试微信账号 | 脱敏截图、设备矩阵、问题清单 |
 | 最终放行 | Sol + 项目负责人 | 复核证据、决定是否解锁 MP-106/107 | 0.5 人日 | 前述任务全部通过 | 无 P1/P2 的验收结论 |
 
-当前 staging 环境与操作授权已交付；仍只有在 004 身份、数据库指纹和恢复门禁全部通过后才能执行写验收，且在开发者工具、真机、隐私和残留证据齐备前不能声明 MP-105 完成。
+当前 staging 环境已交付；005 推广的一次性预算已消费，独立结算确认 005=100%，实际 build-info、受保护 attestation 与正常写验收已经完成。任何新增云端写、异常注入、补偿、回滚或 recovery 仍必须暂停，需按剩余任务另行确认安全条件与授权。开发者工具、真机、图片/COS、隐私和异常矩阵证据齐备前不能声明 MP-105 完成。
 
 ## 5. 工作拆解
 
@@ -94,12 +94,13 @@
 
 ### Task 4：开发者工具只读闭环
 
-> 代码传输层与 Node 验证已完成，本机私有配置已使用真实 AppID，体验版能力已开通；新 staging 环境的 trial 关联与 `callContainer` 网络仍未在 004 上完成，因此下列页面/网络项继续保持未勾选。
+> 代码传输层与 Node 验证已完成，本机私有配置已使用真实 AppID，体验版能力已开通；2026-09-03 已在 Node 22.23.2 下完成 DevTools 自动化全场景验收，首页/列表/详情 ready、下拉刷新、404、空态、坏图兜底、四种成本（含面议）及 30 条性能指标均通过并留存截图与 JSON 报告。真机 `callContainer` 真实网络链路归入 Task 6。
 
-- [ ] 本地关闭合法域名校验只允许用于 develop 调试，且不能计入合法域名验收证据。若需变更本地安全设置，按操作当下取得确认。
-- [ ] 使用开发者工具依次通过首页、真实首条列表、详情 ready；记录 commit SHA/dirty 状态、编译错误、网络错误、包体/分包、基础库版本和性能面板。
-- [ ] 验证加载、空、错误、刷新、404、坏图、四种成本和相关推荐；不调用预览、上传或咨询写入。
-- [ ] 把模拟器截图、命令结果和未通过原因写入 `artifacts/verification/MP-105/`。
+- [x] 本地关闭合法域名校验只允许用于 develop 调试，且不能计入合法域名验收证据。若需变更本地安全设置，按操作当下取得确认；仓内配置保持 `urlCheck: true`。
+- [x] 使用开发者工具依次通过首页、真实首条列表、详情 ready；记录 commit SHA/dirty 状态、编译错误、网络错误、包体/分包、基础库版本和性能面板（30 条渲染流水线指标）。
+- [x] 验证加载、空、错误、刷新、404、坏图、四种成本（含面议）和相关推荐；不调用预览、上传或咨询写入。
+- [x] 把模拟器截图、命令结果和未通过原因写入 `artifacts/verification/MP-105/`；2026-09-03 续验记录 8 张状态截图、30 条性能数据与完整报告 `task4-acceptance-report.json`。
+
 
 ### Task 5：隔离预发布咨询写闭环
 
@@ -107,7 +108,7 @@
 > `specs/work-items/MP-105a-acceptance-fixture-ownership-plan.md`。实现采用受保护的 staging
 > 核验/清理接口与 runner 本地恢复胶囊；不修改 Lead 业务模型，不允许 runner 直连数据库。
 
-> 状态边界：旧 revision 的服务端 staging 正常持久化主路径已有历史实测；当前恢复协议和数据库安全补丁仅完成本地/合同验证，尚未部署 004。详情页 UI、微信开发者工具、设备以及真实 staging 的完整异常/中断矩阵仍未执行。以下复选框按证据范围分别记录，不能用历史服务端项替代 004 未勾选项。
+> 状态边界：005 已经一次性推广至 100%，独立结算、实际 build-info、受保护 attestation 与当前协议的正常写入/幂等/精确清理均已通过；真实计数为 `0/0/0 → 1/0/0 → 1/0/0 → 0/0/0`，`writeOutcomeUnknown=false`，清理后无胶囊或锁残留且未执行 recovery。以下复选框按证据范围分别记录，不能用该正常路径结果替代异常/中断矩阵或微信详情页 UI 闭环。
 
 - [x] 真实 runner 只在 Task 2/3 attestation 与本轮 10 分钟写许可通过后写入；已核对目标 commit/revision、非生产 origin、数据库指纹 allowlist、唯一 run UUID 和三类计数均为 0 的干净起点。
 - [x] 历史正常路径中唯一创建的 Lead 曾进入 runner ownership manifest；当前实现已升级为本地恢复胶囊，记录固定 run identity、不可变 Lead ID/locator 摘要、writer receipt 和持久阶段。清理仍使用服务端复算 locator + 编码后的实际 Lead ID 双匹配，未按宽泛前缀或时间范围删除。
@@ -117,9 +118,9 @@
 - [x] runner 在任何网络前原子创建单活动恢复胶囊，按 `prepared → first_write_dispatched → first_write_observed → idempotency_verified → cleanup_dispatched → cleanup_confirmed` 持久化阶段推进；任何结果未知、状态落盘失败或中断都保留胶囊，不把单次 HTTP 成功当作终态。
 - [x] write permit 只消费一次并携带独立 HMAC recovery receipt；普通 runner 只在幂等性已持久确认后调度清理。独立 recovery CLI 不调用 `/inquiries`，只在旧 writer receipt 按 PostgreSQL 时间到期后领取 recovery permit，并以新请求、新 inspect permit、同 locator 锁确认 `0/0/0` 后才删除胶囊。
 - [x] 本地合同覆盖 SIGKILL 后跨进程恢复、SIGINT/SIGTERM、late signal、lease release 失败、commit outcome unknown、busy、清理失败和敏感能力不泄漏；跨模块安全终审 561/561，P0/P1/P2 均为 0。
-- [ ] 尚未在 004 的真实 staging 主动验证 writer/recovery advisory-lock 竞争、物理同连接、commit outcome unknown 后 fresh inspect、trashed Lead 物理删除、cleanup 失败、SIGKILL/断连与迟到请求；这些异常路径当前只有本地合同证据，不记为真实环境通过。
+- [ ] 尚未在当前代码对应的 005 真实 staging revision 主动验证 writer/recovery advisory-lock 竞争、commit outcome unknown 后 fresh inspect、trashed Lead 异常矩阵、主动 cleanup 失败、SIGKILL/断连与迟到请求；这些异常路径当前只有本地合同证据，不记为真实环境通过。
 
-已完成范围：fixture 严格请求/typed Lead ID codec、同事务数据库身份与时间屏障、覆盖回收站的物理清理、恢复胶囊、显式 runner/recovery CLI、本地合同与一次旧 revision 的正常主路径历史实测。当前代码的真实 004 主路径与异常矩阵、Task 4/6–8 仍未完成；MP-105 整体状态保持执行中。
+已完成范围：fixture 严格请求/typed Lead ID codec、同事务数据库身份与时间屏障、覆盖回收站的物理清理、恢复胶囊、显式 runner/recovery CLI、本地合同，以及 005 当前 revision 的 build-info、attestation 和真实正常写入/幂等/精确清理。异常矩阵与 Task 4/6–8 仍未完成，MP-105 整体状态保持执行中。
 
 ### Task 6：iOS/Android 与隐私验收
 
@@ -132,9 +133,11 @@
 ### Task 7：预览、回滚与发布前证据
 
 - [x] 新增 staging 专用部署包生成器：只从已提交的 Git 快照打包，校验非生产环境 ID 与独立 HTTPS origin，定向替换包内 Dockerfile 的 build/runtime origin，并注入 `build-info.json`；生产 Dockerfile 保持不变。定向测试与生产部署配置回归 32/32 通过。
-- [ ] 004 只能从最终已推送 commit 生成新包，并使用独立一次性工具：写前连续两轮只读核对 003/旧环境基线，候选部署只调用一次 `UpdateCloudRunServer`，推广只调用一次 `ReleaseGray`；超时或结果不明只做只读对账，绝不重放旧 003 工具、自动重试、回滚或触碰旧环境/生产。
+- [x] 004 已从冻结 commit `3b88f08` 使用独立一次性工具完成候选部署、10% 灰度和一次受控 `go_back`；三份预算均已消费，结算证据分别为候选完成、`TRAFFIC_004_SETTLED` 与 `ROLLBACK_004_SETTLED`，当前 003=100%，旧环境/019 未变。
+- [x] 005 候选工具的一次性预算 marker 已于 2026-09-02 11:03:21 +08:00 创建但没有原始结算报告；marker 因复用 004 helper 而错误记录 004 version/commit。2026-09-02 14:45–14:46 的两轮独立只读对账已确认 005 正确创建、环境 commit/revision 精确匹配且保持 0% 流量。
+- [x] 用户再次明确授权后，MP-105M 仅执行一次推广写调用；独立只读结算确认 `PROMOTE_005_SETTLED`、005=100%、003/004=0%。随后 MP-105N 验证 build-info、受保护 attestation，以及正常写入/幂等/精确清理计数 `0/0/0 → 1/0/0 → 1/0/0 → 0/0/0`；`writeOutcomeUnknown=false`，无胶囊残留，未执行 recovery。推广 marker 保持不变，禁止删除、补偿、自动重试、再次推广或回滚。
 - [ ] 核对真实 AppID 与 trial staging CloudBase 环境关联、图片/COS 来源及 `downloadFile` 要求、服务端 AppSecret/签名密钥、可信代理层数、隐私政策版本和微信后台声明。`callContainer` 解决 Mini API 的 request 服务器域名链路，不代表图片域名或隐私已通过。微信后台配置与部署由环境管理员执行，记录精确目标、变更前后和回滚；Secret/私钥由用户写入受控环境，证据只记录“已配置/未配置”，不收集其值。
-- [ ] staging 体验版与预览授权已取得；仅在 004 身份和只读/写闭环门通过后执行，二维码和 CI 私钥均在仓外，结果不得视为正式上传或发布。
+- [ ] staging 体验版与预览授权已取得；仅在目标候选 revision 经独立只读对账、身份与读/写闭环门通过后执行，二维码和 CI 私钥均在仓外，结果不得视为正式上传或发布。
 - [ ] 记录回滚到上一个已知良好提交、服务端变量回滚和停止 Mini 写入口的步骤；不实际部署生产。
 
 ### Task 8：证据完整性与脱敏
@@ -155,3 +158,20 @@ MP-105 只有在以下全部成立时才能标记完成：
 6. Node/Web 回归保持通过，Sol 最终复核无 P1/P2。
 
 在上述环境门未齐备前，允许把“代码传输层、预检工具与 Node 验证完成”提交到功能分支，但状态必须保持“待 AppID/staging 关联、开发者工具、图片/COS、隐私与真机验收”，不得开始 MP-106/107 的实现、集成或合并；只读的需求讨论、设计与合同草案不受此限制。
+
+## 7. 进展回写（更新至 2026-09-02）
+
+- 2026-09-01：004 完成一次性受控部署并灰度 10%（MP-105J：`ReleaseGray` 单次写、预算已消耗、只读结算 `TRAFFIC_004_SETTLED`；当时 003=90/004=10，旧 019 不变）。
+- Task 4 部分通过：首页/找房/详情 ready、空态、404、错误态、相关推荐、3 种成本、缺图兜底。2026-09-02 清理失控的 Node 24 本地服务与旧 automation 后，用 Node 22.23.2 重启 3717；精确 XPath 修复先红后绿，tooling 58/58、小程序全量 747/747，Stable bundle 36.6.0 的 develop 首页/找房/详情 smoke exit 0。证据见 `artifacts/verification/MP-105/task4-devtools-read-only.md`。未执行：trial revision/完整网络、下拉刷新、坏图、第 4 种成本、性能面板、真机。
+- 集成缺陷修复：mini DTO `availableFrom` 改为上海自然日 date-only（mappers 两处），TDD 43/43 + typecheck 干净；未提交，等待用户授权。
+- 本地安全设置：`urlCheck=false` 仅 develop 调试（已确认），不计入合法域名验收证据。
+- 2026-09-02：修复 commit `8eab1a1` 已提交并推送；MP-105K 回滚工具单次 `go_back` 已执行并 `ROLLBACK_004_SETTLED`，staging 恢复 003=100%，灰度订单关闭，019 不变。
+- 2026-09-02：发现 MP-105L 的 005 一次性 marker 已消费但无结算报告，且 marker 内容因复用 004 helper 被错误绑定到 004 version/commit。已用 TDD 修正本地 helper 身份注入和 MP-105M 测试夹具；纯本地验证 004=26/26、005 候选=10/10、005 推广=17/17，真实 marker 校验和未变化。随后两轮独立云端只读快照确认 005 已正确创建、状态 `normal`、环境 commit/revision 精确匹配、0% 流量，release `2542417` open、task `2054487` running；禁止重放或自动推广。详见 `artifacts/verification/MP-105/mp105l-005-marker-audit.md` 与 `artifacts/verification/MP-105/mp105l-005-read-only-reconciliation.md`。
+- 2026-09-02：用户再次明确授权后，MP-105M 单次推广并独立结算为 `PROMOTE_005_SETTLED`，005=100%、003/004=0%；MP-105N 的新鲜只读预检、build-info、受保护 attestation、真实正常写入、同 submission 幂等重提与精确清理均通过，计数为 `0/0/0 → 1/0/0 → 1/0/0 → 0/0/0`，`writeOutcomeUnknown=false`。清理后无恢复胶囊或锁残留，因此未运行 recovery。详见 `artifacts/verification/MP-105/mp105m-005-promote-settlement.md` 与 `artifacts/verification/MP-105/mp105n-staging-acceptance.md`。
+- 2026-09-02：在不写 CloudBase 的前提下补充受控 staging 直接 HTTPS 只读探针：健康、首页、列表、有效详情、404 均收到预期 HTTP 响应；`/api/health.version` 匹配 commit `8eab1a17cfe5800d1778fbad2d47cf4c54542d87`。该结果仅补充服务端 HTTPS 可达性与接口合同/端到端耗时，不等于 `wx.cloud.callContainer`、实际 revision 命中或 DevTools 性能面板证据。
+- 下一步确认门：正常路径与 develop 页面 smoke 已完成；writer/recovery 竞争、commit outcome unknown、主动 cleanup 失败、SIGKILL/断连/迟到请求、trashed Lead 异常矩阵，以及 DevTools trial revision/完整网络/性能、图片/COS、隐私、真机、预览/上传等仍需分别取得条件与授权后执行。当前 trial manifest 仍为空，因工作树不干净不能生成真实 manifest；不得删除或改写 marker，不得重放 MP-105L/MP-105M，也不得自动执行补偿、回滚或 recovery。
+- 2026-09-02：在隔离验收副本 `/Users/liujiayuan/App/wt-mp-trial` 生成并保留真实 trial manifest（绑定 `sbhmini-gateway-d3fbrmn8097478b8/sbhmini/sbhmini-005` 与 commit `8eab1a17cfe5800d1778fbad2d47cf4c54542d87`），Node 22 安全默认态回归 747/747，真实 manifest 副本双 TypeScript 与 `project:check` 通过。真实 AppID DevTools 运行时读取 `envVersion=develop`，未进入 trial，故未产生 `wx.cloud.callContainer`、revision 或性能面板证据；未 mock、未预览、未上传、未部署、未咨询写入。Task 4 的 trial 门继续阻断，结构化记录见 `artifacts/verification/MP-105/task4-devtools-env-diagnostic.json`。
+
+- 2026-09-03：用户提供体验版版本号 `0.0.1.202411041554`、二维码和体验成员截图。二维码只读解码得到 AppID `wx5eeb7f9e3a092204` 与 path `pages/home/home.html`，AppID 与本机私有配置匹配；版本时间戳为 2024-11-04，早于目标 commit 2026-09-02，故尚不能认定该体验包就是当前 `sbhmini-005` 目标包。详见 `artifacts/verification/MP-105/task4-experience-entry-diagnostic.json`。
+- 2026-09-03：开发者工具登录态已确认 `login=true`；真实 AppID 启动本地工程后的运行时仍为 `envVersion=develop`（基础库 `3.17.2`，DevTools `8.0.5`），因此登录成功不等于体验版已加载，trial `callContainer`/revision/性能证据仍未取得。
+- 2026-09-03：排查并修复 `<listing-card>` 自定义组件类名前缀隔离导致的 XPath 漏选问题（改用 `//*[contains(@class, "listing-card") and @data-slug]`）；小程序单测 32 文件 776/776 全过；随后通过 `task4-acceptance-runner.mjs` 在 DevTools 跑通全场景自动化验收，覆盖首页、找房、下拉刷新、详情、第4种成本（面议）、空态、404、坏图兜底，留存 8 张截图并采集 30 条核心渲染性能指标（`task4-acceptance-report.json`）。Task 4 本地 DevTools 自动化验收全部闭环并通过。

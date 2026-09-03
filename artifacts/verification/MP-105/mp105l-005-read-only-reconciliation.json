@@ -1,0 +1,206 @@
+{
+  "observedAt": "2026-09-02T06:45:29.913Z",
+  "mode": "cloud-read-only",
+  "allowedActions": {
+    "tcbr": [
+      "DescribeCloudRunDeployRecord",
+      "DescribeCloudRunServerDetail",
+      "DescribeReleaseOrder",
+      "DescribeServerManageTask",
+      "DescribeVersionDetail"
+    ],
+    "tcb": [
+      "DescribeCloudBaseRunServerVersion"
+    ]
+  },
+  "target": {
+    "environmentRole": "staging",
+    "service": "sbhmini"
+  },
+  "service": {
+    "status": "normal",
+    "online": [
+      {
+        "role": "003",
+        "flowRatio": 100,
+        "hasTraffic": null,
+        "trafficType": "unknown",
+        "isReleasing": null
+      }
+    ]
+  },
+  "versions": {
+    "003": {
+      "present": true,
+      "status": "normal",
+      "environmentKeySetExact": true,
+      "environmentIdentityMatches": true,
+      "actualCommit": "1cd3e41c12352e32eadd8c84f065b3d98e6ffc29",
+      "actualRevision": "sbhmini-003"
+    },
+    "004": {
+      "present": true,
+      "status": "normal",
+      "environmentKeySetExact": true,
+      "environmentIdentityMatches": true,
+      "actualCommit": "3b88f0858399234f204ff7b8668b18c387a5508f",
+      "actualRevision": "sbhmini-004",
+      "inherits003NonIdentity": true,
+      "configExact": true,
+      "responseKeys": [
+        "BuildDir",
+        "BuildPacks",
+        "Cmd",
+        "Cpu",
+        "CreatedTime",
+        "Dockerfile",
+        "EntryPoint",
+        "EnvParams",
+        "LogPath",
+        "MaxNum",
+        "Mem",
+        "MinNum",
+        "Name",
+        "PolicyDetails",
+        "Port",
+        "PublicNetConf",
+        "RequestId",
+        "Status",
+        "UpdatedTime",
+        "VolumesConf",
+        "VpcConf"
+      ]
+    },
+    "005": {
+      "present": true,
+      "status": "normal",
+      "environmentKeySetExact": true,
+      "environmentIdentityMatches": true,
+      "actualCommit": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+      "actualRevision": "sbhmini-005",
+      "inherits003NonIdentity": true,
+      "configExact": true,
+      "responseKeys": [
+        "BuildDir",
+        "BuildPacks",
+        "Cmd",
+        "Cpu",
+        "CreatedTime",
+        "Dockerfile",
+        "EntryPoint",
+        "EnvParams",
+        "LogPath",
+        "MaxNum",
+        "Mem",
+        "MinNum",
+        "Name",
+        "PolicyDetails",
+        "Port",
+        "PublicNetConf",
+        "RequestId",
+        "Status",
+        "UpdatedTime",
+        "VolumesConf",
+        "VpcConf"
+      ]
+    }
+  },
+  "deployRecords": [
+    {
+      "deployId": "001",
+      "versionRole": "unknown",
+      "status": "normal",
+      "hasTraffic": false,
+      "flowRatio": 0,
+      "trafficType": "FLOW",
+      "isReleasing": false
+    },
+    {
+      "deployId": "002",
+      "versionRole": "unknown",
+      "status": "normal",
+      "hasTraffic": false,
+      "flowRatio": 0,
+      "trafficType": "FLOW",
+      "isReleasing": false
+    },
+    {
+      "deployId": "003",
+      "versionRole": "unknown",
+      "status": "normal",
+      "hasTraffic": true,
+      "flowRatio": 100,
+      "trafficType": "FLOW",
+      "isReleasing": true
+    },
+    {
+      "deployId": "004",
+      "versionRole": "unknown",
+      "status": "normal",
+      "hasTraffic": false,
+      "flowRatio": 0,
+      "trafficType": "FLOW",
+      "isReleasing": false
+    },
+    {
+      "deployId": "005",
+      "versionRole": "unknown",
+      "status": "normal",
+      "hasTraffic": false,
+      "flowRatio": 0,
+      "trafficType": "FLOW",
+      "isReleasing": true
+    }
+  ],
+  "releaseOrder": {
+    "exists": true,
+    "releaseId": 2542417,
+    "status": "open",
+    "currentRole": "003",
+    "releaseRole": "005",
+    "isReleasing": true,
+    "trafficType": "FLOW",
+    "flowRatio": 0
+  },
+  "latestTask": {
+    "exists": true,
+    "taskId": 2054487,
+    "releaseId": 2542417,
+    "status": "running",
+    "preRole": "003",
+    "versionRole": "005",
+    "releaseType": "GRAY",
+    "changeType": "CODE",
+    "deployType": "package"
+  },
+  "explicitLatestTask": {
+    "exists": true,
+    "taskId": 2054487,
+    "releaseId": 2542417,
+    "status": "running",
+    "preRole": "003",
+    "versionRole": "005",
+    "releaseType": "GRAY",
+    "changeType": "CODE",
+    "deployType": "package"
+  },
+  "bindingsConsistent": true,
+  "strict005PrePromotionState": true,
+  "old019": {
+    "online": [
+      {
+        "role": "old-019",
+        "flowRatio": 100,
+        "hasTraffic": null,
+        "trafficType": "unknown",
+        "isReleasing": null
+      }
+    ]
+  },
+  "buildInfo": {
+    "candidate005EnvironmentIdentityConfirmed": true,
+    "candidate005ArtifactBuildInfoConfirmed": false,
+    "reason": "005 为零流量 revision；默认域名的 /api/health 不能证明 005，且本轮未执行 revision 定向 HTTP 请求。"
+  },
+  "classification": "005_CREATED_CORRECTLY_WITH_ZERO_TRAFFIC"
+}

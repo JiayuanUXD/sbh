@@ -1,0 +1,69 @@
+{
+  "observedAt": "2026-09-02T11:30:54.413Z",
+  "originHost": "sbhmini-305971-11-1253925058.sh.run.tcloudbase.com",
+  "requests": [
+    {
+      "path": "/api/health",
+      "httpStatus": 200,
+      "timeTotalSeconds": 2.128537,
+      "responseBytes": 162,
+      "upstreamTimeMs": 528,
+      "upstreamStatus": 200,
+      "contentType": "application/json",
+      "status": "ok",
+      "checks": {
+        "payload": "ok",
+        "db": "ok"
+      },
+      "version": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+      "env": "production"
+    },
+    {
+      "path": "/api/mini/v1/home?city=shanghai",
+      "httpStatus": 200,
+      "timeTotalSeconds": 1.917096,
+      "responseBytes": 6105,
+      "upstreamTimeMs": 13,
+      "upstreamStatus": 200,
+      "contentType": "application/json",
+      "ok": true,
+      "featuredCount": 8,
+      "cityCount": null
+    },
+    {
+      "path": "/api/mini/v1/listings?city=shanghai",
+      "httpStatus": 200,
+      "timeTotalSeconds": 0.802391,
+      "responseBytes": 7486,
+      "upstreamTimeMs": 16,
+      "upstreamStatus": 200,
+      "contentType": "application/json",
+      "ok": true,
+      "itemCount": 10,
+      "totalDocs": null
+    },
+    {
+      "path": "/api/mini/v1/listings/huangpu-bund-coworking?city=shanghai",
+      "httpStatus": 200,
+      "timeTotalSeconds": 0.230379,
+      "responseBytes": 3179,
+      "upstreamTimeMs": 11,
+      "upstreamStatus": 200,
+      "contentType": "application/json",
+      "ok": true,
+      "slug": "huangpu-bund-coworking",
+      "relatedCount": 1
+    },
+    {
+      "path": "/api/mini/v1/listings/does-not-exist?city=shanghai",
+      "httpStatus": 404,
+      "timeTotalSeconds": 0.151409,
+      "responseBytes": 149,
+      "upstreamTimeMs": 12,
+      "upstreamStatus": 404,
+      "contentType": "application/json",
+      "ok": false,
+      "errorCode": "listing_not_found"
+    }
+  ]
+}
