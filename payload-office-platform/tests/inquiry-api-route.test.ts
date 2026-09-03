@@ -128,6 +128,24 @@ import {
 } from '@/app/api/inquiries/rate-limit-state'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
 
+/**
+ * ⚠️ 本文件多处断言响应体的**精确形状**，而 `visitorRef` 是否为 null 取决于
+ * 进程里有没有 `PAYLOAD_SECRET`——CI 的 job 设了它，本地 shell 没有。
+ * 于是同一批用例两边行为不同：本地 null、CI 里是真派生值，**本地全绿 CI 才红**。
+ *
+ * 那是写测试的错：断言依赖了环境里碰巧有没有某个变量。
+ * 这里让测试**自己控制**它——主体用例一律在「无密钥」下跑（响应恒 null，
+ * 断言稳定），visitorRef 专属那组自行设置，还原统一交给下面的 afterEach。
+ */
+const AMBIENT_PAYLOAD_SECRET = process.env.PAYLOAD_SECRET
+beforeEach(() => {
+  delete process.env.PAYLOAD_SECRET
+})
+afterEach(() => {
+  if (AMBIENT_PAYLOAD_SECRET === undefined) delete process.env.PAYLOAD_SECRET
+  else process.env.PAYLOAD_SECRET = AMBIENT_PAYLOAD_SECRET
+})
+
 // ---------------------------------------------------------------------------
 // 辅助构造器
 // ---------------------------------------------------------------------------
@@ -1047,12 +1065,7 @@ describe('POST /api/inquiries / visitorRef（OPT-067）', () => {
   // 本文件其余用例都在无 PAYLOAD_SECRET 的环境下跑，响应里 visitorRef 恒为 null。
   // 那条路径固然要覆盖（缺密钥不能阻断提交），但**派生成功的路径同样要覆盖**——
   // 只测 null 等于把真正的业务逻辑放空跑。
-  const ORIGINAL_SECRET = process.env.PAYLOAD_SECRET
-
-  afterEach(() => {
-    if (ORIGINAL_SECRET === undefined) delete process.env.PAYLOAD_SECRET
-    else process.env.PAYLOAD_SECRET = ORIGINAL_SECRET
-  })
+  // 还原由文件级 afterEach 统一负责（见文件头注释），本组只管设置
 
   it('有密钥时派生 32 位十六进制并写入 Lead', async () => {
     process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
