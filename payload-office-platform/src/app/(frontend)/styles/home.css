@@ -288,8 +288,19 @@
    避免 border 挂在始终是自己父节点唯一子元素的 <a> 上导致 :last-child 恒真、行线全灭 */
 .hm-news__item { border-bottom: 1px solid var(--line); }
 .hm-news__item:last-child { border-bottom: 0; }
+/* hover 反馈：改动前这一行**完全没有** hover 态（全局 a:hover 的下划线在
+   styles.css 里已被删掉，只给正文容器与 .hm-section-link 保留）。它和 /news 的
+   ArticleCard 渲染同一批 ArticleCardViewModel、指向同一批 /news/<slug>，
+   一边整卡抬升一边毫无反馈，是同一份数据两套交互。
+   行不是卡，不该抬升；取「标题变深 + 整行底色微亮」这一档，时长用
+   --duration-fast（120ms 交互反馈档），与全站三档动效对齐。
+   负外边距 + 等量内边距：让底色块吃到容器留白，行线仍由 <li> 承担、不被覆盖。 */
 .hm-news__row { display: flex; align-items: center; justify-content: space-between; gap: 32px;
-  min-height: 76px; color: inherit; }
+  min-height: 76px; color: inherit;
+  margin-inline: -12px; padding-inline: 12px; border-radius: 10px;
+  transition: background-color var(--duration-fast) var(--ease-standard); }
+.hm-news__row:hover { background-color: var(--bg-subtle); }
+.hm-news__row:hover .hm-news__title { color: var(--ink); }
 .hm-news__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
 /* 发布日期是真实信息文本，不是占位符/禁用态，需按 --ink-2 达 AA 对比度 */
 .hm-news__date { font-size: 14px; color: var(--ink-2); flex: none; text-align: right; }

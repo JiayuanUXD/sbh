@@ -1,6 +1,7 @@
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * 58 式位置区下方「周边楼盘」横滑条带。
@@ -29,16 +30,23 @@ export default function NearbyBuildingsStrip({ buildings, citySlug }: NearbyBuil
           const gradeLabel = getBuildingGradeLabel(item.grade)
           return (
             <li key={item.id} className="nearby-strip__item">
-              <a className="nearby-strip__card" href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
-                {item.coverImage ? (
-                  <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
-                ) : (
-                  <span className="nearby-strip__placeholder" aria-hidden="true" />
-                )}
-                <span className="nearby-strip__name">{item.name}</span>
-                <span className="nearby-strip__meta">
-                  {item.district?.name ?? ''}
-                  {gradeLabel ? ` · ${gradeLabel}` : ''}
+              {/* 与同页 BuildingCardMini 读同一份 visibleRelatedBuildings，改动前却是
+                  两种完全不同的外观：那边已收敛到 .sf-card，这边没有卡片表面、
+                  hover 只让楼名瞬间变色（连 transition 都没有）。现在同样走共享基元。
+                  等级从文本拼接 ` · 甲级` 改为图上 .sf-phototag，与列表页楼盘卡一致。 */}
+              <a className="sf-card nearby-strip__card" href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
+                <span className="sf-media sf-media--16x10">
+                  {item.coverImage ? (
+                    <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
+                  ) : (
+                    <CardMediaPlaceholder compact />
+                  )}
+                  <span className="sf-scrim" aria-hidden="true" />
+                  {gradeLabel ? <span className="sf-phototag nearby-strip__grade">{gradeLabel}</span> : null}
+                </span>
+                <span className="nearby-strip__body">
+                  <span className="nearby-strip__name">{item.name}</span>
+                  <span className="nearby-strip__meta">{item.district?.name ?? ''}</span>
                 </span>
               </a>
             </li>

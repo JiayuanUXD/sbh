@@ -2,6 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import type { ArticleCardViewModel } from '@/domain/public-catalog'
 import { formatPublishedDate } from '@/lib/frontend/format'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * 资讯卡片（/news 列表页网格用）
@@ -28,7 +29,7 @@ export default function ArticleCard({ article }: Props) {
   const cat = article.category ? CATEGORY_LABEL[article.category] : null
   const date = formatPublishedDate(article.publishedAt)
   return (
-    <article className="article-card">
+    <article className="sf-card article-card">
       {/* `prefetch={false}`：关停判据①高基数 ②内容驱动 ③常驻渲染**三条并列成立**
           （表述见 `ui/Breadcrumb.tsx`）。①`/news` 一页最多 12 张卡（该页
           `PAGE_SIZE = 12`），实测 5 篇 fixture 时 5 条 `/news/<slug>` 全部被自动预取；
@@ -36,7 +37,7 @@ export default function ArticleCard({ article }: Props) {
           与 `listing/ListingResultCard` 完全同构，只是不在 `listing/` 目录下——
           OPT-037 Task 11c 正是按目录划界才漏掉它，Task 11d 补上。 */}
       <Link href={`/news/${article.slug}`} prefetch={false} className="article-card__link">
-        <div className="article-card__media">
+        <div className="article-card__media sf-media sf-media--16x10">
           {cover ? (
             <img
               src={cover.src}
@@ -46,13 +47,13 @@ export default function ArticleCard({ article }: Props) {
               className="article-card__img"
             />
           ) : (
-            <span className="article-card__placeholder" aria-hidden="true" />
+            <CardMediaPlaceholder compact />
           )}
         </div>
         <div className="article-card__body">
           <div className="article-card__meta">
             {cat && <span className="article-card__cat">{cat}</span>}
-            {date && <span className="article-card__date">{date}</span>}
+            {date && <span className="article-card__date sf-num">{date}</span>}
           </div>
           <h3 className="article-card__title">{article.title}</h3>
           {article.excerpt && <p className="article-card__excerpt">{article.excerpt}</p>}
