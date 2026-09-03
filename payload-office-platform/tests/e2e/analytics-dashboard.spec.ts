@@ -105,8 +105,11 @@ test.describe('/admin/analytics 流量块（OPT-066）', () => {
     await expect(block).toBeVisible({ timeout: 20_000 })
     await expect(block).toContainText('1,234')
     await expect(block).toContainText('打开咨询')
-    // 首步不可测时必须是「—」，不能是 0——两者含义完全相反
-    await expect(block).toContainText('该环暂不可测')
+    // 首步为 null 时必须显示「—」并给出说明，不能显示 0——
+    // 0 是「真的没人看详情页」，null 是「没测到」，含义相反。
+    // 断言说明文案存在即可，不锁死具体措辞（改文案不该让这条无谓地红）。
+    await expect(block.locator('.analytics-funnel__step').first()).toContainText('—')
+    await expect(block.locator('.analytics-funnel__step').first()).toContainText('失败')
     await expect(page.getByTestId('traffic-miss-rate')).toContainText('12.0%')
   })
 
