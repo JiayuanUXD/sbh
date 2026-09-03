@@ -1,0 +1,202 @@
+<view id="building-detail-ready" class="building-detail-page">
+  <!-- 加载状态 -->
+  <view wx:if="{{state === 'loading'}}" class="building-detail-loading">
+    <sbh-skeleton rows="6" with-media />
+    <sbh-skeleton rows="4" />
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{state === 'error'}}" class="building-detail-error">
+    <sbh-state
+      kind="error"
+      title="楼盘信息暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="loadBuildingDetail"
+    />
+  </view>
+
+  <!-- 404 状态 -->
+  <view wx:elif="{{state === 'not-found'}}" class="building-detail-not-found">
+    <sbh-state
+      kind="empty"
+      title="该楼盘不存在或暂未收录"
+      description="请返回楼盘列表查看其他楼盘"
+      action-label="返回楼盘列表"
+      bindretry="handleBackToList"
+    />
+  </view>
+
+  <!-- 正常状态 -->
+  <block wx:elif="{{state === 'ready' && building}}">
+    <!-- 楼盘画廊 -->
+    <view class="building-gallery">
+      <swiper
+        class="building-gallery__swiper"
+        circular
+        bindchange="handleGalleryChange"
+      >
+        <swiper-item wx:for="{{building.gallery}}" wx:key="src">
+          <image
+            class="building-gallery__image"
+            src="{{item.src}}"
+            mode="aspectFill"
+          />
+        </swiper-item>
+        <swiper-item wx:if="{{building.gallery.length === 0}}">
+          <view class="building-gallery__placeholder">暂无外立面图片</view>
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{building.gallery.length > 0}}" class="building-gallery__badge num">
+        {{currentGalleryIndex + 1}} / {{building.gallery.length}}
+      </view>
+    </view>
+
+    <!-- 核心标题与标签 -->
+    <view class="building-header-card">
+      <view class="building-title">{{building.name}}</view>
+      <view class="building-address">{{building.district ? building.district + ' · ' : ''}}{{building.address}}</view>
+      <view class="building-tags">
+        <text wx:if="{{building.grade}}" class="sbh-tag">{{gradeLabel}}</text>
+        <text wx:if="{{building.nearestMetro}}" class="sbh-tag">{{building.nearestMetro.line}}</text>
+        <text class="sbh-tag">商办认证</text>
+        <text class="sbh-tag">可注册</text>
+      </view>
+    </view>
+
+    <!-- 核心参数 4 格 -->
+    <view class="building-stats-card">
+      <view class="building-stat-item">
+        <view class="building-stat-label">在租</view>
+        <view class="building-stat-value num">{{building.activeListingCount}} 套</view>
+      </view>
+      <view class="building-stat-item">
+        <view class="building-stat-label">等级</view>
+        <view class="building-stat-value">{{gradeLabel}}</view>
+      </view>
+      <view class="building-stat-item">
+        <view class="building-stat-label">物业费</view>
+        <view class="building-stat-value num">{{building.propertyFee ? building.propertyFee + '元' : '—'}}</view>
+      </view>
+      <view class="building-stat-item">
+        <view class="building-stat-label">车位</view>
+        <view class="building-stat-value num">{{building.parkingSpaces ? building.parkingSpaces + '个' : '—'}}</view>
+      </view>
+    </view>
+
+    <!-- 在租房源分组展示 -->
+    <view wx:if="{{building.groupedListings.length > 0}}" class="building-listings-card">
+      <view class="building-section-title">在租房源</view>
+      <block wx:for="{{building.groupedListings}}" wx:key="areaRange" wx:for-item="group">
+        <view class="building-group-header">
+          <text class="building-group-title num">{{group.areaRange}} · {{group.count}} 套</text>
+        </view>
+        <view class="building-group-list">
+          <view
+            wx:for="{{group.items}}"
+            wx:key="id"
+            class="building-listing-row"
+            hover-class="sbh-pressable"
+            bindtap="handleListingOpen"
+            data-slug="{{item.slug}}"
+          >
+            <view class="building-listing-media">
+              <image
+                wx:if="{{item.coverImage}}"
+                class="building-listing-image"
+                src="{{item.coverImage.src}}"
+                mode="aspectFill"
+              />
+              <view wx:else class="building-listing-placeholder">图</view>
+            </view>
+            <view class="building-listing-info">
+              <view class="building-listing-title">{{item.title}}</view>
+              <view class="building-listing-facts num">{{item.area ? item.area + ' ㎡' : ''}}{{item.seats ? ' · ' + item.seats + ' 工位' : ''}}</view>
+            </view>
+            <view class="building-listing-price-col">
+              <view wx:if="{{item.price}}" class="building-listing-price num">{{item.price.text}}</view>
+              <view wx:else class="building-listing-price">面议</view>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 楼盘参数 -->
+    <view class="building-params-card">
+      <view class="building-section-title">楼盘参数</view>
+      <view class="building-params-list">
+        <view class="building-param-row">
+          <text class="building-param-label">竣工年份</text>
+          <text class="building-param-value num">{{building.completedYear || '—'}}</text>
+        </view>
+        <view class="building-param-row">
+          <text class="building-param-label">总层数 / 标准层</text>
+          <text class="building-param-value num">{{building.totalFloors ? building.totalFloors + ' 层' : '—'}} {{building.standardFloorArea ? '/ ' + building.standardFloorArea + ' ㎡' : ''}}</text>
+        </view>
+        <view class="building-param-row">
+          <text class="building-param-label">物业公司</text>
+          <text class="building-param-value">{{building.propertyManagementCompany || '专业港资/知名物业团队'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 位置与交通 -->
+    <view class="building-location-card">
+      <view class="building-section-title">位置与通勤</view>
+      <view class="building-map-preview">
+        <view class="building-map-placeholder">
+          <text class="building-map-pin">📍</text>
+          <text class="building-map-name">{{building.name}}</text>
+        </view>
+      </view>
+      <view class="building-commute-list">
+        <view wx:if="{{building.nearestMetro}}" class="building-commute-row">
+          <text class="building-commute-label">附近地铁</text>
+          <text class="building-commute-value num">{{building.nearestMetro.station}}</text>
+        </view>
+        <view class="building-commute-row">
+          <text class="building-commute-label">核心商圈</text>
+          <text class="building-commute-value">{{building.district || '上海核心商务区'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 同商圈可比楼盘 -->
+    <view wx:if="{{building.comparableBuildings.length > 0}}" class="building-comparable-card">
+      <view class="building-section-title">同商圈可比楼盘</view>
+      <view class="building-comparable-row">
+        <view
+          wx:for="{{building.comparableBuildings}}"
+          wx:key="id"
+          class="building-comparable-item"
+          bindtap="handleComparableOpen"
+          data-slug="{{item.slug}}"
+        >
+          <view class="building-comparable-media">
+            <image
+              wx:if="{{item.coverImage}}"
+              class="building-comparable-image"
+              src="{{item.coverImage.src}}"
+              mode="aspectFill"
+            />
+            <view wx:else class="building-comparable-placeholder">图</view>
+          </view>
+          <view class="building-comparable-name">{{item.name}}</view>
+          <view class="building-comparable-stock num">{{item.activeListingCount}} 套在租</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部常驻操作栏 -->
+    <view class="building-bottom-bar">
+      <view class="building-bottom-fav" bindtap="handleFav">
+        <text class="building-fav-icon">♡</text>
+        <text class="building-fav-text">收藏</text>
+      </view>
+      <view class="building-bottom-cta" bindtap="handleInquiryAdvisor">
+        找顾问问楼
+      </view>
+    </view>
+  </block>
+</view>

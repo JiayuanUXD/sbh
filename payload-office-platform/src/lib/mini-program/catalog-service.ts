@@ -1,18 +1,24 @@
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import type {
+  MiniBuildingDetailResolution,
+  MiniBuildingsData,
   MiniDetailResolution,
   MiniHomeData,
   MiniListingsData,
   MiniSnapshot,
 } from '@/domain/mini-program/contracts'
 import {
+  mapMiniBuildingDetail,
+  mapMiniBuildings,
   mapMiniHome,
   mapMiniListingDetail,
   mapMiniListings,
 } from '@/domain/mini-program/mappers'
-import { parseSearchInput } from '@/domain/public-catalog'
+import { parseBuildingSearchInput, parseSearchInput } from '@/domain/public-catalog'
 import { getSiteConfig } from '@/lib/frontend/site-config'
 import {
+  getCachedMiniBuildingDetail,
+  getCachedMiniBuildings,
   getCachedMiniHome,
   getCachedMiniListingDetail,
   getCachedMiniListings,
@@ -89,3 +95,44 @@ export async function getMiniListingDetail(
     },
   }
 }
+
+export async function getMiniBuildings(
+  url: URL,
+): Promise<MiniSnapshot<MiniBuildingsData> | null> {
+  const city = url.searchParams.get('city') ?? ''
+  const trustedCity = await liveCity(city)
+  if (!trustedCity) return null
+
+  const input = parseBuildingSearchInput(url.searchParams)
+  const snapshot = await getCachedMiniBuildings(trustedCity, input)
+  return {
+    asOf: snapshot.asOf,
+    data: mapMiniBuildings(snapshot.data.result, getSiteConfig().siteOrigin),
+  }
+}
+
+export async function getMiniBuildingDetail(
+  city: string,
+  slug: string,
+): Promise<MiniBuildingDetailResolution> {
+  const trustedCity = await liveCity(city)
+  if (!trustedCity) return { status: 'city_not_found' }
+  if (!SAFE_SLUG_PATTERN.test(slug)) return { status: 'building_not_found' }
+
+  const snapshot = await getCachedMiniBuildingDetail(trustedCity, slug)
+  if (!snapshot.data) return { status: 'building_not_found' }
+
+  return {
+    status: 'ok',
+    snapshot: {
+      asOf: snapshot.asOf,
+      data: mapMiniBuildingDetail(
+        snapshot.data.detail.building!,
+        snapshot.data.detail.supply,
+        snapshot.data.comparable,
+        getSiteConfig().siteOrigin,
+      ),
+    },
+  }
+}
+

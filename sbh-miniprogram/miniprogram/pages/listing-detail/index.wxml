@@ -105,8 +105,18 @@
       <view class="listing-detail__building">
         <view class="listing-detail__section-title">所在楼盘</view>
         <block wx:if="{{content.building}}">
-          <view class="listing-detail__building-name">{{content.building.name}}</view>
-          <view class="listing-detail__building-address">{{content.building.address}}</view>
+          <view
+            class="listing-detail__building-card"
+            hover-class="listing-detail__building-card--pressed"
+            bindtap="handleBuildingOpen"
+            data-slug="{{content.building.slug}}"
+          >
+            <view class="listing-detail__building-main">
+              <view class="listing-detail__building-name">{{content.building.name}}</view>
+              <view class="listing-detail__building-address">{{content.building.address}}</view>
+            </view>
+            <view class="listing-detail__building-arrow">›</view>
+          </view>
         </block>
         <view wx:else class="listing-detail__empty-note">楼盘信息待确认</view>
       </view>

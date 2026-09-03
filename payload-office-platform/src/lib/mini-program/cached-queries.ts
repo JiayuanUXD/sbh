@@ -4,15 +4,22 @@ import {
   buildCanonicalSearchParams,
   createSearchContext,
   facetsTag,
+  getBuildingDetail,
   getHomepage,
   getListingBySlug,
+  getRelatedBuildings,
   getRelatedListings,
   getSearchFacetsIgnoring,
   homeTag,
   LISTINGS_CATEGORY_TAG,
   listingsCityTag,
   parseListingSearchInput,
+  searchBuildingsFiltered,
   searchListings,
+  type BuildingDetailResult,
+  type BuildingFilteredResult,
+  type BuildingSearchInput,
+  type BuildingSummaryViewModel,
   type HomepageData,
   type ListingCardViewModel,
   type ListingDetailViewModel,
@@ -138,3 +145,60 @@ export function getCachedMiniListingDetail(
 ): Promise<MiniSnapshot<DetailSnapshot | null>> {
   return getCachedMiniListingDetailByCity(city)(slug)
 }
+
+type BuildingsSnapshot = Readonly<{
+  result: BuildingFilteredResult
+  input: BuildingSearchInput
+}>
+
+type BuildingDetailSnapshot = Readonly<{
+  detail: BuildingDetailResult
+  comparable: readonly BuildingSummaryViewModel[]
+}>
+
+const getCachedMiniBuildingsByCity = memoizeByCity((city) => unstable_cache(
+  async (canonical: string, input: BuildingSearchInput): Promise<MiniSnapshot<BuildingsSnapshot>> => {
+    void canonical
+    const context = createSearchContext(city, new Date(), 'lease')
+    const result = await searchBuildingsFiltered(input, context)
+    return {
+      asOf: context.asOf,
+      data: { result, input },
+    }
+  },
+  ['mini-v1-buildings', city],
+  { tags: miniCacheTags(city), revalidate: 300 },
+))
+
+export function getCachedMiniBuildings(
+  city: string,
+  input: BuildingSearchInput,
+): Promise<MiniSnapshot<BuildingsSnapshot>> {
+  const canonical = `city=${city}&page=${input.page}&sort=${input.sort}`
+  return getCachedMiniBuildingsByCity(city)(canonical, input)
+}
+
+const getCachedMiniBuildingDetailByCity = memoizeByCity((city) => unstable_cache(
+  async (slug: string): Promise<MiniSnapshot<BuildingDetailSnapshot | null>> => {
+    const context = createSearchContext(city, new Date(), 'lease')
+    const detail = await getBuildingDetail(slug, context)
+    if (!detail.building) {
+      return { asOf: context.asOf, data: null }
+    }
+    const comparable = await getRelatedBuildings(slug, context, { limit: 3 })
+    return {
+      asOf: context.asOf,
+      data: { detail, comparable },
+    }
+  },
+  ['mini-v1-building-detail', city],
+  { tags: miniCacheTags(city), revalidate: 300 },
+))
+
+export function getCachedMiniBuildingDetail(
+  city: string,
+  slug: string,
+): Promise<MiniSnapshot<BuildingDetailSnapshot | null>> {
+  return getCachedMiniBuildingDetailByCity(city)(slug)
+}
+

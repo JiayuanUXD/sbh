@@ -1,0 +1,84 @@
+<view id="buildings-ready" class="buildings-page">
+  <!-- 顶部筛选栏 -->
+  <view class="buildings-filter-bar">
+    <view class="buildings-filter-item {{districtFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleDistrictFilter">
+      <text>{{districtFilter || '全上海'}}</text>
+      <text class="buildings-filter-arrow">▾</text>
+    </view>
+    <view class="buildings-filter-item {{gradeFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleGradeFilter">
+      <text>{{gradeFilter ? gradeFilter + '级' : '等级'}}</text>
+      <text class="buildings-filter-arrow">▾</text>
+    </view>
+    <view class="buildings-filter-item {{sortFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleSortFilter">
+      <text>{{sortLabel}}</text>
+      <text class="buildings-filter-arrow">▾</text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{state === 'loading'}}" class="buildings-loading">
+    <sbh-skeleton rows="4" with-media />
+    <sbh-skeleton rows="4" with-media />
+    <sbh-skeleton rows="4" with-media />
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:elif="{{state === 'error'}}" class="buildings-error">
+    <sbh-state
+      kind="error"
+      title="楼盘暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="loadBuildings"
+    />
+  </view>
+
+  <!-- 正常/就绪状态 -->
+  <block wx:elif="{{state === 'ready'}}">
+    <view class="buildings-summary">
+      <text class="num">收录 {{totalDocs}} 个 · 其中 {{totalActiveCount}} 个有在租房源</text>
+    </view>
+
+    <!-- 在租楼盘卡块列表 -->
+    <view wx:if="{{items.length > 0}}" class="buildings-card-block">
+      <block wx:for="{{items}}" wx:key="id">
+        <building-card
+          building="{{item}}"
+          bindopen="handleBuildingOpen"
+        />
+        <view wx:if="{{index < items.length - 1}}" class="buildings-card-divider"></view>
+      </block>
+    </view>
+
+    <!-- 暂无在租 · 可留资等通知 独立下沉分组 -->
+    <view wx:if="{{inactiveItems.length > 0}}" class="buildings-inactive-section">
+      <view class="buildings-inactive-header">
+        <view class="buildings-inactive-title">暂无在租 · 可留资等通知</view>
+        <view class="buildings-inactive-desc num">{{totalInactiveCount}} 个楼盘。资料仍可查，有房源时通知你</view>
+      </view>
+
+      <view class="buildings-card-block buildings-card-block--inactive">
+        <block wx:for="{{inactiveItems}}" wx:key="id">
+          <building-card
+            building="{{item}}"
+            bindopen="handleBuildingOpen"
+            bindinquiry="handleBuildingInquiry"
+          />
+          <view wx:if="{{index < inactiveItems.length - 1}}" class="buildings-card-divider"></view>
+        </block>
+      </view>
+    </view>
+
+    <view wx:if="{{items.length === 0 && inactiveItems.length === 0}}" class="buildings-empty">
+      <sbh-state
+        kind="empty"
+        title="未找到匹配的楼盘"
+        description="建议放宽区域或等级筛选条件"
+        action-label="重置筛选"
+        bindretry="handleResetFilters"
+      />
+    </view>
+
+    <view class="buildings-end">已展示全部楼盘</view>
+  </block>
+</view>

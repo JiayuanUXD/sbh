@@ -90,6 +90,8 @@ export function checkProject() {
   const expectedPages = [
     'pages/home/index',
     'pages/listings/index',
+    'pages/buildings/index',
+    'pages/building-detail/index',
     'pages/listing-detail/index',
     'pages/foundation/index',
   ]
@@ -98,12 +100,13 @@ export function checkProject() {
     appConfig.pages.length !== expectedPages.length ||
     appConfig.pages.some((page, index) => page !== expectedPages[index])
   ) {
-    fail('miniprogram/app.json 必须按首页、找房、房源详情、foundation 的顺序注册页面')
+    fail('miniprogram/app.json 必须按首页、找房、楼盘、楼盘详情、房源详情、foundation 的顺序注册页面')
   }
 
   const expectedTabs = [
     { pagePath: 'pages/home/index', text: '首页' },
     { pagePath: 'pages/listings/index', text: '找房' },
+    { pagePath: 'pages/buildings/index', text: '楼盘' },
   ]
   const tabList = appConfig.tabBar?.list
   if (
@@ -114,7 +117,7 @@ export function checkProject() {
         item?.pagePath !== expectedTabs[index].pagePath || item?.text !== expectedTabs[index].text,
     )
   ) {
-    fail('miniprogram/app.json 的 tabBar 必须只包含首页和找房')
+    fail('miniprogram/app.json 的 tabBar 必须包含首页、找房和楼盘')
   }
 
   for (const pagePath of expectedPages) {
@@ -126,6 +129,8 @@ export function checkProject() {
   for (const [pagePath, marker] of [
     ['pages/home/index', 'home-ready'],
     ['pages/listings/index', 'listings-ready'],
+    ['pages/buildings/index', 'buildings-ready'],
+    ['pages/building-detail/index', 'building-detail-ready'],
     ['pages/listing-detail/index', 'listing-detail-ready'],
   ]) {
     const markup = readFileSync(join(projectRoot, `miniprogram/${pagePath}.wxml`), 'utf8')

@@ -2,6 +2,8 @@
   "pages": [
     "pages/home/index",
     "pages/listings/index",
+    "pages/buildings/index",
+    "pages/building-detail/index",
     "pages/listing-detail/index",
     "pages/foundation/index"
   ],
@@ -18,7 +20,8 @@
     "borderStyle": "black",
     "list": [
       { "pagePath": "pages/home/index", "text": "首页" },
-      { "pagePath": "pages/listings/index", "text": "找房" }
+      { "pagePath": "pages/listings/index", "text": "找房" },
+      { "pagePath": "pages/buildings/index", "text": "楼盘" }
     ]
   },
   "style": "v2",

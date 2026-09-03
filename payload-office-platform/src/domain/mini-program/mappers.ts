@@ -1,6 +1,10 @@
 import { availabilityDay } from '@/domain/public-catalog/building-supply'
 import { estimateMonthlyRent } from '@/domain/public-catalog/monthly-estimate'
 import type {
+  BuildingDetailResult,
+  BuildingDetailViewModel,
+  BuildingFilteredResult,
+  BuildingSummaryViewModel,
   HomepageData,
   ListingCardViewModel,
   ListingDetailViewModel,
@@ -10,6 +14,9 @@ import type {
   SearchFacets,
 } from '@/domain/public-catalog'
 import type {
+  MiniBuildingCard,
+  MiniBuildingDetailData,
+  MiniBuildingsData,
   MiniFactGroup,
   MiniHomeData,
   MiniImage,
@@ -328,5 +335,114 @@ export function mapMiniListingDetail(
     },
     inquiryPolicy: { version: inquiryPolicyVersion },
     relatedListings: related.map((item) => mapMiniListingCard(item, mediaOrigin)),
+    buildingInfo: detail.building ? mapMiniBuildingCard(detail.building, mediaOrigin) : null,
   }
 }
+
+export function mapMiniBuildingCard(
+  building: BuildingSummaryViewModel,
+  mediaOrigin: string,
+): MiniBuildingCard {
+  return {
+    id: String(building.id),
+    slug: building.slug,
+    name: building.name,
+    district: building.district?.name ?? null,
+    address: building.address,
+    grade: (building.grade as 'A' | 'B' | 'C') ?? null,
+    completedYear: building.completionDate
+      ? Number.parseInt(building.completionDate.slice(0, 4), 10) || null
+      : null,
+    totalFloors: null,
+    occupancyRate: null,
+    activeListingCount: building.listingCount ?? 0,
+    priceRange: null,
+    coverImage: building.coverImage ? mapMiniImage(building.coverImage, mediaOrigin) : null,
+    nearestMetro: building.nearestMetro
+      ? {
+          line: building.nearestMetro.name,
+          station: building.nearestMetro.name,
+          distanceMeters: 0,
+        }
+      : null,
+  }
+}
+
+export function mapMiniBuildings(
+  result: BuildingFilteredResult,
+  mediaOrigin: string,
+): MiniBuildingsData {
+  const activeItems = (result.groups?.withStock ?? result.docs?.filter(d => (d.listingCount ?? 0) > 0) ?? []).map((doc) =>
+    mapMiniBuildingCard(doc, mediaOrigin),
+  )
+  const inactiveItems = (result.groups?.withoutStock ?? result.docs?.filter(d => (d.listingCount ?? 0) === 0) ?? []).map((doc) =>
+    mapMiniBuildingCard(doc, mediaOrigin),
+  )
+
+  const page = result.page ?? 1
+  const totalPages = result.totalPages ?? 1
+  const totalDocs = result.totalDocs ?? (activeItems.length + inactiveItems.length)
+
+  return {
+    items: activeItems,
+    inactiveItems,
+    pagination: {
+      page,
+      pageSize: 20,
+      totalDocs,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+    totalActiveCount: result.withStockTotal ?? activeItems.length,
+    totalInactiveCount: result.withoutStockTotal ?? inactiveItems.length,
+  }
+}
+
+export function mapMiniBuildingDetail(
+  detail: BuildingDetailViewModel,
+  supply: BuildingDetailResult['supply'],
+  comparable: readonly BuildingSummaryViewModel[],
+  mediaOrigin: string,
+): MiniBuildingDetailData {
+  const allListings = supply.groups.flatMap((g) => g.listings)
+  const activeCards = allListings.map((l) => mapMiniListingCard(l, mediaOrigin))
+
+  const over1000 = activeCards.filter((l) => (l.area ?? 0) >= 1000)
+  const from300to1000 = activeCards.filter((l) => (l.area ?? 0) >= 300 && (l.area ?? 0) < 1000)
+  const under300 = activeCards.filter((l) => (l.area ?? 0) < 300)
+
+  const groupedListings = [
+    { areaRange: '1,000 ㎡ 以上', count: over1000.length, items: over1000 },
+    { areaRange: '300–1,000 ㎡', count: from300to1000.length, items: from300to1000 },
+    { areaRange: '300 ㎡ 以下', count: under300.length, items: under300 },
+  ].filter((g) => g.count > 0)
+
+  return {
+    id: String(detail.id),
+    slug: detail.slug,
+    name: detail.name,
+    address: detail.address,
+    district: detail.district?.name ?? null,
+    grade: (detail.grade as 'A' | 'B' | 'C') ?? null,
+    completedYear: null,
+    totalFloors: null,
+    standardFloorArea: null,
+    elevators: null,
+    parkingSpaces: null,
+    propertyManagementCompany: null,
+    propertyFee: null,
+    gallery: detail.gallery.map((img) => mapMiniImage(img, mediaOrigin)),
+    activeListingCount: activeCards.length,
+    groupedListings,
+    nearestMetro: detail.nearestMetro
+      ? {
+          line: detail.nearestMetro.name,
+          station: detail.nearestMetro.name,
+          distanceMeters: 0,
+        }
+      : null,
+    comparableBuildings: comparable.map((b) => mapMiniBuildingCard(b, mediaOrigin)),
+  }
+}
+

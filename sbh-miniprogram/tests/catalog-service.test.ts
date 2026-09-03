@@ -134,4 +134,35 @@ describe('Mini API 目录服务', () => {
     expect(() => catalog.getListingDetail(slug)).toThrow(/房源标识无效/)
     expect(calls).toEqual([])
   })
+
+  it('楼盘列表请求固定上海并传递查询参数', () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getBuildings('district=jingan&page=1')
+
+    expect(calls).toEqual([
+      {
+        path: '/api/mini/v1/buildings?city=shanghai&district=jingan&page=1',
+        parse: expect.any(Function),
+      },
+    ])
+  })
+
+  it('楼盘详情请求固定上海并在调用前校验安全 slug', () => {
+    const { calls, request } = createPendingRequestClient()
+    const catalog = createCatalogService(request)
+
+    void catalog.getBuildingDetail('heng-long-plaza')
+
+    expect(calls).toEqual([
+      {
+        path: '/api/mini/v1/buildings/heng-long-plaza?city=shanghai',
+        parse: expect.any(Function),
+      },
+    ])
+
+    expect(() => catalog.getBuildingDetail('Heng-Long')).toThrow(/楼盘标识无效/)
+  })
 })
+

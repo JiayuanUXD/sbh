@@ -23,6 +23,8 @@ export type NavigateToTransport = (options: NavigateToOptions) => void
 export type ListingNavigation = Readonly<{
   open(query: string): Promise<void>
   openDetail(slug: string): Promise<void>
+  openBuildings(): Promise<void>
+  openBuildingDetail(slug: string): Promise<void>
   consume(): string | null
 }>
 
@@ -121,6 +123,37 @@ export function createListingNavigation(
           })
         } catch (error) {
           fail(error)
+        }
+      })
+    },
+
+    openBuildings() {
+      return new Promise<void>((resolve, reject) => {
+        try {
+          switchTab({
+            url: '/pages/buildings/index' as any,
+            success: () => resolve(),
+            fail: (error) => reject(error),
+          })
+        } catch (error) {
+          reject(error)
+        }
+      })
+    },
+
+    openBuildingDetail(slug: string) {
+      if (!SAFE_LISTING_SLUG.test(slug)) {
+        return Promise.reject(new TypeError('楼盘标识无效'))
+      }
+      return new Promise<void>((resolve, reject) => {
+        try {
+          navigateTo({
+            url: `/pages/building-detail/index?slug=${encodeURIComponent(slug)}`,
+            success: () => resolve(),
+            fail: (error) => reject(error),
+          })
+        } catch (error) {
+          reject(error)
         }
       })
     },

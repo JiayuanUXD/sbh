@@ -4,6 +4,7 @@ export type MiniErrorCode =
   | 'invalid_request'
   | 'city_not_found'
   | 'listing_not_found'
+  | 'building_not_found'
   | 'login_code_invalid'
   | 'session_invalid'
   | 'phone_code_consumed'
@@ -57,8 +58,87 @@ export type MiniQuickFilter = Readonly<{
   options: readonly Readonly<{ value: string; label: string; count: number }>[]
 }>
 
+export type MiniBuildingCard = Readonly<{
+  id: string
+  slug: string
+  name: string
+  district: string | null
+  address: string
+  grade: 'A' | 'B' | 'C' | null
+  completedYear: number | null
+  totalFloors: number | null
+  occupancyRate: number | null
+  activeListingCount: number
+  priceRange: Readonly<{
+    min: number
+    max: number
+    unit: string
+    displayUnit: PriceDisplayUnit
+    text: string
+  }> | null
+  coverImage: MiniImage | null
+  nearestMetro: Readonly<{
+    line: string
+    station: string
+    distanceMeters: number
+  }> | null
+}>
+
+export type MiniBuildingsData = Readonly<{
+  items: readonly MiniBuildingCard[]
+  inactiveItems: readonly MiniBuildingCard[]
+  pagination: Readonly<{
+    page: number
+    pageSize: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }>
+  totalActiveCount: number
+  totalInactiveCount: number
+}>
+
+export type MiniBuildingDetailData = Readonly<{
+  id: string
+  slug: string
+  name: string
+  address: string
+  district: string | null
+  grade: 'A' | 'B' | 'C' | null
+  completedYear: number | null
+  totalFloors: number | null
+  standardFloorArea: number | null
+  elevators: Readonly<{
+    passenger: number
+    cargo: number
+  }> | null
+  parkingSpaces: number | null
+  propertyManagementCompany: string | null
+  propertyFee: number | null
+  gallery: readonly MiniImage[]
+  activeListingCount: number
+  groupedListings: readonly Readonly<{
+    areaRange: string
+    count: number
+    items: readonly MiniListingCard[]
+  }>[]
+  nearestMetro: Readonly<{
+    line: string
+    station: string
+    distanceMeters: number
+  }> | null
+  comparableBuildings: readonly MiniBuildingCard[]
+}>
+
+export type MiniBuildingDetailResolution =
+  | Readonly<{ status: 'ok'; snapshot: MiniSnapshot<MiniBuildingDetailData> }>
+  | Readonly<{ status: 'city_not_found' }>
+  | Readonly<{ status: 'building_not_found' }>
+
 export type MiniHomeData = Readonly<{
   featuredListings: readonly MiniListingCard[]
+  featuredBuildings?: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
 }>
@@ -105,6 +185,7 @@ export type MiniListingDetailData = Readonly<{
   }>
   inquiryPolicy: Readonly<{ version: string }>
   relatedListings: readonly MiniListingCard[]
+  buildingInfo?: MiniBuildingCard | null
 }>
 
 export type MiniApiSuccess<T> = Readonly<{

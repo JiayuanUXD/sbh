@@ -269,6 +269,14 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     this.openDetail(slug)
   },
 
+  handleBuildingOpen(event) {
+    const slug = event.currentTarget.dataset.slug
+    if (typeof slug !== 'string' || !slug) return
+    void listingNavigation.openBuildingDetail(slug).catch(() => {
+      showNavigationFailure('暂时无法打开楼盘详情')
+    })
+  },
+
   openDetail(slug) {
     void listingNavigation.openDetail(slug).catch(() => {
       showNavigationFailure('暂时无法打开房源详情')

@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "楼盘",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "building-card": "../../components/building-card/index",
+    "sbh-skeleton": "../../components/sbh-skeleton/index",
+    "sbh-state": "../../components/sbh-state/index"
+  }
+}

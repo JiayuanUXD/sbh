@@ -1,7 +1,13 @@
 import {
+  parseMiniBuildingCard,
+  parseMiniBuildingDetailData,
+  parseMiniBuildingsData,
   parseMiniHomeData,
   parseMiniListingDetailData,
   parseMiniListingsData,
+  type MiniBuildingCard,
+  type MiniBuildingDetailData,
+  type MiniBuildingsData,
   type MiniHomeData,
   type MiniListingDetailData,
   type MiniListingsData,
@@ -16,6 +22,13 @@ const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 function requireSafeListingSlug(value: string): string {
   if (!SAFE_SLUG_PATTERN.test(value)) {
     throw new TypeError('房源标识无效')
+  }
+  return value
+}
+
+function requireSafeBuildingSlug(value: string): string {
+  if (!SAFE_SLUG_PATTERN.test(value)) {
+    throw new TypeError('楼盘标识无效')
   }
   return value
 }
@@ -43,6 +56,20 @@ export function createCatalogService(requestClient: MiniRequestClient = request)
         parse: (value) => parseMiniListingDetailData(value, safeSlug),
       })
     },
+    getBuildings(query = ''): Promise<MiniBuildingsData> {
+      const suffix = query ? `&${query.replace(/^\?/, '')}` : ''
+      return requestClient({
+        path: `/api/mini/v1/buildings?city=shanghai${suffix}`,
+        parse: parseMiniBuildingsData,
+      })
+    },
+    getBuildingDetail(slug: string): Promise<MiniBuildingDetailData> {
+      const safeSlug = requireSafeBuildingSlug(slug)
+      return requestClient({
+        path: `/api/mini/v1/buildings/${encodeURIComponent(safeSlug)}?city=shanghai`,
+        parse: (value) => parseMiniBuildingDetailData(value, safeSlug),
+      })
+    },
   }
 }
 
@@ -50,3 +77,6 @@ export const catalog = createCatalogService()
 export const getHome = catalog.getHome
 export const getListings = catalog.getListings
 export const getListingDetail = catalog.getListingDetail
+export const getBuildings = catalog.getBuildings
+export const getBuildingDetail = catalog.getBuildingDetail
+

@@ -134,4 +134,39 @@ Page<HomePageData, HomePageMethods>({
       })
     })
   },
+
+  handleBrowseBuildings() {
+    void listingNavigation.openBuildings().catch(() => {
+      wx.showToast({
+        title: '暂时无法打开楼盘页',
+        icon: 'none',
+        duration: 1600,
+      })
+    })
+  },
+
+  handleBuildingOpenDirect(event) {
+    const slug = event.currentTarget.dataset.slug
+    if (typeof slug !== 'string' || !slug) return
+    void listingNavigation.openBuildingDetail(slug).catch(() => {
+      wx.showToast({
+        title: '暂时无法打开楼盘详情',
+        icon: 'none',
+        duration: 1600,
+      })
+    })
+  },
+
+  handleInquiryCustom() {
+    wx.showModal({
+      title: '委托找房',
+      content: '专属选址顾问将在 30 分钟内致电，提供 1v1 定制房源方案。',
+      confirmText: '立即委托',
+      success: (res) => {
+        if (res.confirm) {
+          wx.showToast({ title: '已收到您的找房委托', icon: 'success' })
+        }
+      },
+    })
+  },
 })

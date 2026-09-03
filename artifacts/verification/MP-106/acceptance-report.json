@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-09-03T11:58:31.658Z",
+  "systemInfo": {
+    "SDKVersion": "3.17.2",
+    "platform": "devtools",
+    "version": "8.0.5",
+    "windowWidth": 430,
+    "windowHeight": 752
+  },
+  "testCases": {
+    "home": {
+      "state": "ready",
+      "passed": true,
+      "screenshot": "mp106-1-home.png"
+    },
+    "listings": {
+      "state": "ready",
+      "totalDocs": 10,
+      "itemCount": 10,
+      "passed": true,
+      "screenshot": "mp106-2-listings.png"
+    },
+    "buildings": {
+      "state": "ready",
+      "totalDocs": 6,
+      "activeCount": 5,
+      "inactiveCount": 1,
+      "passed": true,
+      "screenshot": "mp106-3-buildings.png"
+    },
+    "buildingDetail": {
+      "state": "ready",
+      "name": "南京西路高端商务中心",
+      "activeListingCount": 4,
+      "groupCount": 1,
+      "passed": true,
+      "screenshot": "mp106-4-building-detail.png"
+    },
+    "listingDetail": {
+      "state": "ready",
+      "title": "外滩源 · 共享办公 · 灵活工位",
+      "buildingName": "外滩源大厦",
+      "passed": true,
+      "screenshot": "mp106-5-listing-detail.png"
+    }
+  }
+}

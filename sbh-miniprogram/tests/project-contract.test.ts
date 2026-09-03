@@ -39,7 +39,7 @@ describe('小程序工程入口合同', () => {
     })
   })
 
-  it('以首页为首路由并只注册已交付的两项 tab', () => {
+  it('以首页为首路由并注册已交付的 tab', () => {
     const app = readJson('miniprogram/app.json')
     const pages = requirePages(app.pages)
     const tabBar = app.tabBar as
@@ -48,11 +48,14 @@ describe('小程序工程入口合同', () => {
 
     expect(pages[0]).toBe('pages/home/index')
     expect(pages).toContain('pages/listings/index')
+    expect(pages).toContain('pages/buildings/index')
+    expect(pages).toContain('pages/building-detail/index')
     expect(pages).toContain('pages/listing-detail/index')
     expect(pages).toContain('pages/foundation/index')
     expect(tabBar?.list?.map((item) => item.pagePath)).toEqual([
       'pages/home/index',
       'pages/listings/index',
+      'pages/buildings/index',
     ])
     expect(app.tabBar).toMatchObject({
       color: '#6e6e73',
@@ -62,6 +65,7 @@ describe('小程序工程入口合同', () => {
       list: [
         { pagePath: 'pages/home/index', text: '首页' },
         { pagePath: 'pages/listings/index', text: '找房' },
+        { pagePath: 'pages/buildings/index', text: '楼盘' },
       ],
     })
   })

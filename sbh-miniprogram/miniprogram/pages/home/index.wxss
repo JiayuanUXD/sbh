@@ -9,56 +9,83 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  height: 344rpx;
-  padding: 32rpx var(--sbh-layout-surface-padding);
-  color: var(--sbh-text-primary);
-  background: var(--sbh-surface-background);
+  height: 350rpx;
+  padding: 32rpx 36rpx;
+  color: #ffffff;
+  background: linear-gradient(150deg, #3b3e43 0%, #292b2e 100%);
   border-radius: var(--sbh-shape-surface-radius);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.12);
 }
 
 .home-brand__eyebrow {
-  color: var(--sbh-text-secondary);
+  color: rgba(255, 255, 255, 0.75);
   font-size: var(--sbh-type-auxiliary-size);
   font-weight: var(--sbh-type-medium-weight);
+  letter-spacing: 1rpx;
 }
 
 .home-brand__title {
-  margin-top: var(--sbh-layout-space-sm);
-  font-size: var(--sbh-type-display-size);
+  margin-top: 12rpx;
+  font-size: 42rpx;
   font-weight: var(--sbh-type-semibold-weight);
   line-height: var(--sbh-type-control-line-height);
+  color: #ffffff;
 }
 
 .home-brand__description,
 .home-brand__stats {
-  margin-top: var(--sbh-layout-space-sm);
-  color: var(--sbh-text-secondary);
+  margin-top: 12rpx;
+  color: rgba(255, 255, 255, 0.8);
   font-size: var(--sbh-type-body-size);
   line-height: var(--sbh-type-body-line-height);
 }
 
 .home-brand__stats {
-  color: var(--sbh-text-tertiary);
+  color: rgba(255, 255, 255, 0.65);
   font-size: var(--sbh-type-auxiliary-size);
 }
 
 .home-search {
   display: flex;
-  height: var(--sbh-size-touch-target);
-  margin-top: var(--sbh-layout-content-gap);
+  align-items: center;
+  height: 104rpx;
+  margin-top: -52rpx;
   overflow: hidden;
-  background: var(--sbh-surface-background);
+  background: #ffffff;
   border-radius: var(--sbh-shape-control-radius);
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.home-search__city {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+  white-space: nowrap;
+}
+
+.home-search__arrow {
+  font-size: 18rpx;
+  color: #86868b;
+}
+
+.home-search__divider {
+  width: 2rpx;
+  height: 36rpx;
+  background: #e5e5e7;
 }
 
 .home-search__input {
   box-sizing: border-box;
   flex: 1;
-  height: var(--sbh-size-touch-target);
+  height: 100%;
   min-width: 0;
-  padding: 0 var(--sbh-layout-surface-padding);
+  padding: 0 20rpx;
   color: var(--sbh-text-primary);
-  font-size: var(--sbh-type-body-size);
+  font-size: 26rpx;
 }
 
 .home-search__submit {
@@ -66,17 +93,106 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 120rpx;
-  min-height: var(--sbh-size-touch-target);
-  padding: 0 var(--sbh-layout-space-lg);
-  color: var(--sbh-interaction-on-primary);
+  width: 80rpx;
+  height: 80rpx;
+  margin-right: 12rpx;
+  color: #ffffff;
   background: var(--sbh-interaction-primary);
-  font-size: var(--sbh-type-body-size);
-  font-weight: var(--sbh-type-medium-weight);
+  border-radius: 12rpx;
+}
+
+.home-search__icon {
+  font-size: 28rpx;
 }
 
 .home-search__submit--pressed {
   background: var(--sbh-interaction-primary-pressed);
+}
+
+.home-shortcuts {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 24rpx;
+}
+
+.home-shortcut-card {
+  flex: 1;
+  padding: 24rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.home-shortcut-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.home-shortcut-desc {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #86868b;
+}
+
+.home-buildings-section {
+  margin-top: 28rpx;
+}
+
+.home-buildings__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.home-buildings__all {
+  font-size: 24rpx;
+  color: var(--sbh-interaction-primary, #0071e3);
+}
+
+.home-buildings__scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.home-buildings__list {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.home-building-card {
+  box-sizing: border-box;
+  width: 240rpx;
+  padding: 20rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.home-building-card__badge {
+  display: inline-block;
+  font-size: 20rpx;
+  color: #6e6e73;
+  background: #f5f5f7;
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.home-building-card__name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1d1d1f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-building-card__desc {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #86868b;
 }
 
 .home-loading,

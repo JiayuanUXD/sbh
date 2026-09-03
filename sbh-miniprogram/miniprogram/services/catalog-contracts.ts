@@ -46,8 +46,82 @@ export type MiniQuickFilter = Readonly<{
   options: readonly Readonly<{ value: string; label: string; count: number }>[]
 }>
 
+export type MiniBuildingCard = Readonly<{
+  id: string
+  slug: string
+  name: string
+  district: string | null
+  address: string
+  grade: 'A' | 'B' | 'C' | null
+  completedYear: number | null
+  totalFloors: number | null
+  occupancyRate: number | null
+  activeListingCount: number
+  priceRange: Readonly<{
+    min: number
+    max: number
+    unit: string
+    displayUnit: PriceDisplayUnit
+    text: string
+  }> | null
+  coverImage: MiniImage | null
+  nearestMetro: Readonly<{
+    line: string
+    station: string
+    distanceMeters: number
+  }> | null
+}>
+
+export type MiniBuildingsData = Readonly<{
+  items: readonly MiniBuildingCard[]
+  inactiveItems: readonly MiniBuildingCard[]
+  pagination: Readonly<{
+    page: number
+    pageSize: number
+    totalDocs: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }>
+  totalActiveCount: number
+  totalInactiveCount: number
+}>
+
+export type MiniBuildingDetailData = Readonly<{
+  id: string
+  slug: string
+  name: string
+  address: string
+  district: string | null
+  grade: 'A' | 'B' | 'C' | null
+  completedYear: number | null
+  totalFloors: number | null
+  standardFloorArea: number | null
+  elevators: Readonly<{
+    passenger: number
+    cargo: number
+  }> | null
+  parkingSpaces: number | null
+  propertyManagementCompany: string | null
+  propertyFee: number | null
+  gallery: readonly MiniImage[]
+  activeListingCount: number
+  groupedListings: readonly Readonly<{
+    areaRange: string
+    count: number
+    items: readonly MiniListingCard[]
+  }>[]
+  nearestMetro: Readonly<{
+    line: string
+    station: string
+    distanceMeters: number
+  }> | null
+  comparableBuildings: readonly MiniBuildingCard[]
+}>
+
 export type MiniHomeData = Readonly<{
   featuredListings: readonly MiniListingCard[]
+  featuredBuildings?: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
 }>
@@ -445,3 +519,108 @@ export function parseMiniListingDetailData(
     },
   }
 }
+
+export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
+  const record = requireRecord(value)
+  const coverImage = record.coverImage === null || record.coverImage === undefined ? null : parseMiniImage(record.coverImage)
+  const nearestMetro = record.nearestMetro === null || record.nearestMetro === undefined
+    ? null
+    : (() => {
+        const m = requireRecord(record.nearestMetro)
+        return {
+          line: requireString(m.line),
+          station: requireString(m.station),
+          distanceMeters: requireNonNegativeInteger((m as any).distanceMeters ?? 0),
+        }
+      })()
+
+  return {
+    id: requireString(record.id),
+    slug: requireSafeSlug(requireString(record.slug)),
+    name: requireString(record.name),
+    district: requireNullableString(record.district),
+    address: requireString(record.address),
+    grade: (record.grade as 'A' | 'B' | 'C') ?? null,
+    completedYear: record.completedYear !== null && record.completedYear !== undefined ? requireNonNegativeInteger(record.completedYear) : null,
+    totalFloors: record.totalFloors !== null && record.totalFloors !== undefined ? requireNonNegativeInteger(record.totalFloors) : null,
+    occupancyRate: record.occupancyRate !== null && record.occupancyRate !== undefined ? requireNonNegativeInteger(record.occupancyRate) : null,
+    activeListingCount: requireNonNegativeInteger(record.activeListingCount ?? 0),
+    priceRange: record.priceRange === null || record.priceRange === undefined ? null : (() => {
+      const p = requireRecord(record.priceRange)
+      return {
+        min: requireNonNegativeNumber(p.min),
+        max: requireNonNegativeNumber(p.max),
+        unit: requireString(p.unit),
+        displayUnit: requireString(p.displayUnit) as PriceDisplayUnit,
+        text: requireString(p.text),
+      }
+    })(),
+    coverImage,
+    nearestMetro,
+  }
+}
+
+export function parseMiniBuildingsData(value: unknown): MiniBuildingsData {
+  const record = requireRecord(value)
+  const pagination = requireRecord(record.pagination)
+  return {
+    items: requireArray(record.items, parseMiniBuildingCard),
+    inactiveItems: requireArray(record.inactiveItems ?? [], parseMiniBuildingCard),
+    pagination: {
+      page: requireNonNegativeInteger(pagination.page),
+      pageSize: requireNonNegativeInteger(pagination.pageSize),
+      totalDocs: requireNonNegativeInteger(pagination.totalDocs),
+      totalPages: requireNonNegativeInteger(pagination.totalPages),
+      hasNextPage: requireBoolean(pagination.hasNextPage),
+      hasPrevPage: requireBoolean(pagination.hasPrevPage),
+    },
+    totalActiveCount: requireNonNegativeInteger(record.totalActiveCount ?? 0),
+    totalInactiveCount: requireNonNegativeInteger(record.totalInactiveCount ?? 0),
+  }
+}
+
+export function parseMiniBuildingDetailData(
+  value: unknown,
+  expectedSlug?: string,
+): MiniBuildingDetailData {
+  const record = requireRecord(value)
+  const slug = requireSafeSlug(requireString(record.slug))
+  if (expectedSlug !== undefined && slug !== requireSafeSlug(expectedSlug)) {
+    return invalidCatalogResponse()
+  }
+
+  return {
+    id: requireString(record.id),
+    slug,
+    name: requireString(record.name),
+    address: requireString(record.address),
+    district: requireNullableString(record.district),
+    grade: (record.grade as 'A' | 'B' | 'C') ?? null,
+    completedYear: record.completedYear !== null && record.completedYear !== undefined ? requireNonNegativeInteger(record.completedYear) : null,
+    totalFloors: record.totalFloors !== null && record.totalFloors !== undefined ? requireNonNegativeInteger(record.totalFloors) : null,
+    standardFloorArea: record.standardFloorArea !== null && record.standardFloorArea !== undefined ? requireNonNegativeNumber(record.standardFloorArea) : null,
+    elevators: record.elevators ? { passenger: Number((record.elevators as any).passenger) || 0, cargo: Number((record.elevators as any).cargo) || 0 } : null,
+    parkingSpaces: record.parkingSpaces !== null && record.parkingSpaces !== undefined ? requireNonNegativeInteger(record.parkingSpaces) : null,
+    propertyManagementCompany: requireNullableString(record.propertyManagementCompany),
+    propertyFee: record.propertyFee !== null && record.propertyFee !== undefined ? requireNonNegativeNumber(record.propertyFee) : null,
+    gallery: requireArray(record.gallery ?? [], parseMiniImage),
+    activeListingCount: requireNonNegativeInteger(record.activeListingCount ?? 0),
+    groupedListings: requireArray(record.groupedListings ?? [], (group) => {
+      const g = requireRecord(group)
+      return {
+        areaRange: requireString(g.areaRange),
+        count: requireNonNegativeInteger(g.count),
+        items: requireArray(g.items, parseMiniListingCard),
+      }
+    }),
+    nearestMetro: record.nearestMetro
+      ? {
+          line: requireString((record.nearestMetro as any).line),
+          station: requireString((record.nearestMetro as any).station),
+          distanceMeters: Number((record.nearestMetro as any).distanceMeters) || 0,
+        }
+      : null,
+    comparableBuildings: requireArray(record.comparableBuildings ?? [], parseMiniBuildingCard),
+  }
+}
+

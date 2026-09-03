@@ -1,0 +1,37 @@
+<view
+  class="building-card {{building.activeListingCount === 0 ? 'building-card--inactive' : ''}}"
+  hover-class="building-card--pressed"
+  hover-start-time="70"
+  hover-stay-time="120"
+  bindtap="handleOpen"
+  data-slug="{{building.slug}}"
+  aria-role="button"
+>
+  <view class="building-card__media">
+    <image
+      wx:if="{{building.coverImage && !imageFailed}}"
+      class="building-card__image"
+      src="{{building.coverImage.src}}"
+      alt="{{building.coverImage.alt || building.name}}"
+      mode="aspectFill"
+      binderror="handleImageError"
+    />
+    <view wx:else class="building-card__placeholder">暂无图片</view>
+  </view>
+
+  <view class="building-card__body">
+    <view class="building-card__title">{{building.name}}</view>
+    <view class="building-card__facts num">{{factsText}}</view>
+    <view class="building-card__location">{{locationText}}</view>
+    <view wx:if="{{building.activeListingCount > 0}}" class="building-card__supply">
+      <text class="building-card__supply-label">在租</text>
+      <text class="building-card__supply-count num">{{building.activeListingCount}}</text>
+      <text class="building-card__supply-unit">套</text>
+      <text wx:if="{{building.priceRange}}" class="building-card__supply-price num"> · {{building.priceRange.text}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{building.activeListingCount === 0}}" class="building-card__inquiry-action" catchtap="handleInquiry">
+    留资
+  </view>
+</view>
