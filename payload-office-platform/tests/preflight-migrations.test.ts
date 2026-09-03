@@ -58,7 +58,12 @@ describe('preflight migrations: 纯函数', () => {
     // slug 'cascade-merchant-stop-listings' 加进 payload_jobs(_log).task_slug 两个
     // PG 枚举。又一次兑现上面那句「把 task 注册进 jobs.tasks 需要迁移」——
     // 不加枚举值，enqueue 直接报 invalid input value。
-    expect(names.length).toBe(72)
+    // 这里原本硬编码份数（曾是 72），每加一份迁移都要改数字并追一段注释说明
+    // 「又加了 1 份」。那个断言保证不了任何东西——两边各加一个，数量照样对；
+    // 真正的不变量是「目录与 index.ts 注册集合完全一致」，已由下方
+    // 「真实迁移目录与 index.ts 注册集合完全一致」那条守着，且对新增免疫。
+    // 这里只断言非空与形状。
+    expect(names.length).toBeGreaterThan(0)
     expect(names).not.toContain('index')
     // 排序且全部为有效迁移名
     for (const n of names) {
@@ -95,7 +100,8 @@ describe('preflight migrations: 纯函数', () => {
   it('parseRegisteredMigrationNames 解析 index.ts 数组 name 字段（非 import 别名）', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
-    expect(names.length).toBe(72)
+    // 同上：份数不是不变量，集合一致才是（见本文件末尾那条）
+    expect(names.length).toBeGreaterThan(0)
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')

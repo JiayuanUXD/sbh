@@ -776,12 +776,24 @@ describe('F7.5 HTML 渲染守护不变量（汇总）', () => {
 // ---------------------------------------------------------------------------
 
 describe('F7.5 询盘完整链路守护不变量汇总', () => {
-  it('InquiryRequest 字段清单与 design.md §10.1 契约一致', () => {
+  /**
+   * 请求契约的「有意识变更」闸门。
+   *
+   * 原标题写「与 design.md §10.1 契约一致」——**那份文档已不在仓库**
+   * （宪章：历史实施计划 / PRD 已移除，以代码为唯一事实源）。守卫本身仍有价值：
+   * 前台请求体是外部契约，多一个字段就多一条攻击面与一份兼容负担，
+   * 不该在改别的东西时被顺手带进来。这里让它必须被显式承认。
+   */
+  it('InquiryRequest 字段清单变更必须是有意识的', () => {
     const req = buildValidInquiryRequest()
     expect(Object.keys(req).sort()).toEqual(
       [
         'city',
         'requestId',
+        // OPT-067：可选回传的访客标识（32 hex，非法即忽略）。
+        // 加它是为了让同会话第二条线索复用首个 ID——否则 umami.identify 的
+        // 会话级后写覆盖会让第一条线索的深链失效。
+        'visitorRef',
         'name',
         'phone',
         'phoneNormalized',
