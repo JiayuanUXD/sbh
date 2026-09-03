@@ -529,6 +529,7 @@ describe('createTrafficEndpoint 缓存分层', () => {
         stats: async () => { throw new Error('boom') },
         pageviews: async () => [],
         metrics: async () => [],
+        eventDataValues: async () => [],
         hasToken: false,
       })) as never,
     })
@@ -773,5 +774,25 @@ describe('漏斗首步：只数详情页（event-data/values 实测契约）', (
       { startAt: 1, endAt: 2 },
     )
     expect(seg.funnel.detailView).toBe(0)
+  })
+})
+
+describe('取数调用必须在 try 内发生（同步抛不得逃逸）', () => {
+  it('某个 client 方法同步抛时，不产生未处理的拒绝，且整块正常降级', async () => {
+    // 真实踩过：settle 收的是已创建的 Promise，调用发生在 try 之外。
+    // 桩缺 eventDataValues → 同步 TypeError → Promise.all 那句还没构造出来就炸，
+    // 先创建的 stats promise 无人接管 → Node unhandled rejection → vitest 整轮失败，
+    // 而具体测试**照样显示通过**（端点把 TypeError 也当失败，断言恰好成立）。
+    const brokenClient = {
+      stats: async () => ({ pageviews: 5, visitors: 2 }),
+      pageviews: async () => [],
+      metrics: async () => [],
+      // eventDataValues 故意缺席：调用它会同步抛 TypeError
+      hasToken: true,
+    }
+    const seg = await fetchUmamiSegment(brokenClient as never, { startAt: 1, endAt: 2 })
+    // 硬依赖 stats 是好的，所以整块仍可用；缺方法那项降级为 null
+    expect(seg.pageviews).toBe(5)
+    expect(seg.funnel.detailView).toBeNull()
   })
 })

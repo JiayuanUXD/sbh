@@ -116,9 +116,21 @@ function eventCount(rows: ReadonlyArray<{ x: string; y: number }>, name: string)
  * 降级后的表示遵循同一条原则：**拿不到就是 null，不是 0**。
  * 漏斗某步为 null 表示「这一环没测到」，与「发生了 0 次」含义相反。
  */
-async function settle<T>(label: string, p: Promise<T>): Promise<T | null> {
+/**
+ * 收 thunk 而不是 Promise——**这个区别是必须的**。
+ *
+ * 初版收的是已创建的 Promise：`settle('x', client.x(w))`。这样调用发生在
+ * settle 之外，一旦某个 `client.x` **同步抛**（例如桩缺方法、undefined 不是
+ * 函数），`Promise.all(...)` 那一整句还没构造出来就炸了，数组里先创建的
+ * Promise（stats）没人接管 → Node 报 unhandled rejection，vitest 直接判定
+ * 整轮失败，而具体测试**照样显示通过**（端点把 TypeError 也当失败处理，
+ * 断言恰好成立）。
+ *
+ * 收 thunk 后，调用本身在 try 内发生，同步抛与异步拒绝一视同仁。
+ */
+async function settle<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
-    return await p
+    return await fn()
   } catch (err) {
     console.error(
       `[traffic] ${label} 查询失败：`,
@@ -132,22 +144,20 @@ export async function fetchUmamiSegment(
   client: UmamiClient,
   window: { startAt: number; endAt: number },
 ): Promise<UmamiSegment> {
-  // stats 是硬依赖：失败就抛，让整块 unavailable
-  const statsPromise = client.stats(window)
-
   const [stats, series, referrers, pages, events, pageTypes] = await Promise.all([
-    statsPromise,
-    settle('pageviews', client.pageviews(window)),
-    settle('metrics(referrer)', client.metrics('referrer', window)),
+    // stats 是硬依赖：失败就抛，让整块 unavailable。
+    // 包一层 async IIFE 把同步抛也变成拒绝，避免它在数组构造阶段炸掉整句。
+    (async () => client.stats(window))(),
+    settle('pageviews', () => client.pageviews(window)),
+    settle('metrics(referrer)', () => client.metrics('referrer', window)),
     // ⚠️ 是 'path' 不是 'url'。v3.3.1 实测：type=url 与 type=host 都返回
     // 400 Bad request，type=path 正常返回。取值是在 Umami 后台用它自己的
     // 会话逐个试出来的（合法：path/referrer/event/title/browser/os/device/
     // country/query/tag/channel；非法：url/host），不是照文档猜的。
-    settle('metrics(path)', client.metrics('path', window)),
-    settle('metrics(event)', client.metrics('event', window)),
+    settle('metrics(path)', () => client.metrics('path', window)),
+    settle('metrics(event)', () => client.metrics('event', window)),
     // 漏斗首步：city_page_view 事件里 page_type ∈ {listing-detail, building-detail} 的部分
-    settle(
-      'event-data/values(city_page_view.page_type)',
+    settle('event-data/values(city_page_view.page_type)', () =>
       client.eventDataValues('city_page_view', 'page_type', window),
     ),
   ])
