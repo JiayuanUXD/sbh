@@ -127,7 +127,11 @@ export async function fetchUmamiSegment(
     statsPromise,
     settle('pageviews', client.pageviews(window)),
     settle('metrics(referrer)', client.metrics('referrer', window)),
-    settle('metrics(url)', client.metrics('url', window)),
+    // ⚠️ 是 'path' 不是 'url'。v3.3.1 实测：type=url 与 type=host 都返回
+    // 400 Bad request，type=path 正常返回。取值是在 Umami 后台用它自己的
+    // 会话逐个试出来的（合法：path/referrer/event/title/browser/os/device/
+    // country/query/tag/channel；非法：url/host），不是照文档猜的。
+    settle('metrics(path)', client.metrics('path', window)),
     settle('metrics(event)', client.metrics('event', window)),
   ])
 
@@ -178,7 +182,12 @@ export async function countFunnelLeads(
       and: [
         { createdAt: { greater_than_equal: new Date(window.startAt).toISOString() } },
         { createdAt: { less_than: new Date(window.endAt).toISOString() } },
-        { 'source.sourcePageType': { in: [...INQUIRY_FUNNEL_SOURCE_PAGE_TYPES] } },
+        // 字段是**顶层**的 sourcePageType，不是 source.sourcePageType——
+        // Leads.ts 里它的上层容器全是 collapsible（纯展示，不产生数据层级），
+        // 写入侧 /api/inquiries 也是扁平写 `sourcePageType: ...`。
+        // 写成带层级的路径会被 Payload 拒绝（"path cannot be queried"），
+        // 与 merchants.active 那个 deletedAt 是同一种 bug。
+        { sourcePageType: { in: [...INQUIRY_FUNNEL_SOURCE_PAGE_TYPES] } },
       ],
     },
   })) as unknown as { totalDocs?: number }
@@ -274,7 +283,13 @@ export function createTrafficEndpoint(deps: TrafficEndpointDeps = {}): Endpoint 
       let leadsInWindow: number | null = null
       try {
         leadsInWindow = await countFunnelLeads(req, permission, window)
-      } catch {
+      } catch (err) {
+        // 又一次静默 catch 的教训：上线后 global 范围管理员的 leadsInWindow
+        // 恒为 null，而这里什么都没记，只能靠翻代码猜——实际是字段路径写错了。
+        console.error(
+          '[traffic] 线索计数失败：',
+          err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        )
         leadsInWindow = null
       }
 
