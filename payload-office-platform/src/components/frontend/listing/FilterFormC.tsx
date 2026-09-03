@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
+import { XMarkIcon } from '@/components/frontend/ui/icons'
 
 /**
  * OPT-036 分行文本条件区（筛选形态 C）—— Server Component。
@@ -287,7 +288,7 @@ export default function FilterFormC(props: Readonly<{
             {switchRow?.active ? (
               <Link href={switchRow.href} className="ls-filterc__chip">
                 {switchRow.label}：{switchRow.optionLabel}
-                <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
+                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
               </Link>
             ) : null}
             {picks.map(({ row, option }) => (
@@ -297,13 +298,13 @@ export default function FilterFormC(props: Readonly<{
                 className="ls-filterc__chip"
               >
                 {row.label}：{option.label}
-                <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
+                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
               </Link>
             ))}
             {(extraPicks ?? []).map((pick) => (
               <Link key={pick.key} href={pick.href} className="ls-filterc__chip">
                 {pick.label}
-                <span className="ls-filterc__chip-x" aria-hidden="true">×</span>
+                <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
               </Link>
             ))}
             {/* href 由调用方给定：本组件收到的 rows 只是被渲染出来的那几行，不等于

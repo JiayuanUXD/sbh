@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { XMarkIcon } from '@/components/frontend/ui/icons'
 
 /**
  * 可访问弹层原语
@@ -137,7 +138,7 @@ export function Modal({
           aria-label={closeLabel}
           onClick={onClose}
         >
-          <span aria-hidden="true">×</span>
+          <XMarkIcon size={18} />
         </button>
         <h3 id={titleId} className="modal__title">
           {title}

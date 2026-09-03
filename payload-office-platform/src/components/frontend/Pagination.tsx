@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import React from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/frontend/ui/icons'
 
 /**
  * 语义化分页组件（F3.5）
@@ -56,7 +57,7 @@ export default function Pagination({ page, totalPages, totalDocs, buildPageHref 
         aria-label="上一页"
         prefetch={false}
       >
-        ‹ 上一页
+        <ChevronLeftIcon size={14} /> 上一页
       </Link>
 
       <ol className="pager__pages">
@@ -93,7 +94,7 @@ export default function Pagination({ page, totalPages, totalDocs, buildPageHref 
         aria-label="下一页"
         prefetch={false}
       >
-        下一页 ›
+        下一页 <ChevronRightIcon size={14} />
       </Link>
 
       <span className="pager__count" aria-live="polite">

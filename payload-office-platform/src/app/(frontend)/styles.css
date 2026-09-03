@@ -1090,9 +1090,14 @@ ol {
     background-color var(--duration-fast) var(--ease-standard);
 }
 
+/* 图标与文字之间的间距——上一页/下一页现在是 SVG chevron + 文本两个子节点 */
+.pager__link { gap: 4px; }
+
+/* hover 不再变 --accent：分页是导航控件，全站「唯一彩色 --accent 只给可交互
+   元素」不等于"每个可交互元素都要染蓝"；同排的页码键 hover 也只加深边框。 */
 .pager__link:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
+  border-color: var(--color-line-strong);
+  background-color: var(--color-canvas);
   text-decoration: none;
 }
 
@@ -2386,8 +2391,11 @@ ol {
   height: var(--touch-target);
   border: none;
   background: none;
-  font-size: 24px;
-  line-height: 1;
+  /* `font-size: 24px; line-height: 1` 已删除：关闭键曾是文字字符 `×`，
+     flex 居中的是行盒不是字形墨迹。现用 ui/icons.tsx 的 XMarkIcon。 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: var(--color-muted);
   border-radius: var(--radius-sm);
