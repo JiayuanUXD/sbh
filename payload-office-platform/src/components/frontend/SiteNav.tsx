@@ -4,13 +4,7 @@ import Link from 'next/link'
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import InquiryModal from '@/components/frontend/InquiryModal'
-import {
-  createBrowserFocusEnvironment,
-  focusLandingTarget,
-} from '@/components/frontend/landing/BottomCtaBar'
 import { safeTrackCityEvent, track } from '@/lib/frontend/analytics'
-import { safeTrackLandingEvent } from '@/lib/frontend/analytics/landing'
 import type { PublicNavItem } from '@/lib/frontend/public-nav'
 import {
   cityAwareHref,
@@ -20,18 +14,6 @@ import {
 } from '@/components/frontend/CitySwitcher'
 import type { PublicCityOption } from '@/app/(frontend)/_lib/city-context'
 import { citySwitchPreservedFilters, getCityPageType } from '@/lib/frontend/city-routes'
-
-export type CtaPageType = 'home' | 'search' | 'building' | 'content' | 'entrust'
-
-export function resolveCtaPageType(pathname: string): CtaPageType {
-  const canonicalPathname = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
-  const pageType = getCityPageType(canonicalPathname)
-  if (pageType === 'entrust') return 'entrust'
-  if (pageType === 'buildings' || pageType === 'building-detail') return 'building'
-  if (pageType === 'news' || pageType === 'news-detail' || pageType === 'page-detail') return 'content'
-  if (pageType === 'listings' || pageType === 'listing-detail') return 'search'
-  return 'home'
-}
 
 function isDesktopNavigationViewport(): boolean {
   return typeof window !== 'undefined'
@@ -124,10 +106,6 @@ export default function SiteNav({
   const sourceUrl = searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname
   const cityPageType = getCityPageType(pathname)
 
-  // 顶部 CTA「获取选址方案」是通用选址需求入口（无具体房源/楼盘 target），
-  // pageType 仅记录入口上下文，按当前路径粗分类以便分析。
-  const ctaPageType = resolveCtaPageType(pathname)
-
   // Esc 关闭 + Tab 焦点锁定，归还焦点到触发器
   useEffect(() => {
     if (!open) return
@@ -215,33 +193,12 @@ export default function SiteNav({
         })}
       </nav>
 
-      {/* 右侧动作区：铜色 CTA + 移动端菜单触发器。
-          委托找房页自带零门槛表单，头部 CTA 直接滚动聚焦本页表单，
-          避免同屏出现弹窗重表单与页面轻表单两条转化路径；其余页保留询价弹层。
-          包一层 .site-header__actions，保证移动端 logo 在左、CTA+汉堡整体靠右。 */}
+      {/* 右侧动作区：仅移动端菜单触发器。
+          原先这里还有一个头部 CTA「获取选址方案」（非委托页开询价弹层、委托页滚动
+          聚焦本页表单），2026-09-03 按产品要求全站移除——各页自身的转化入口
+          （委托/发布页的页内表单与吸底 CTA、房源与楼盘详情页的询价入口）保持不变。
+          容器保留：移动端靠它让 logo 在左、汉堡靠右。 */}
       <div className="site-header__actions">
-        {ctaPageType === 'entrust' ? (
-          <button
-            type="button"
-            className="btn btn--primary btn--sm"
-            onClick={() => {
-              safeTrackLandingEvent(track, 'landing_header_cta_click', { page_type: 'entrust' })
-              const focused = focusLandingTarget('entrust-phone', createBrowserFocusEnvironment())
-              if (!focused) window.scrollTo({ top: 0, behavior: 'smooth' })
-            }}
-          >
-            获取选址方案
-          </button>
-        ) : (
-          <InquiryModal
-            pageType={ctaPageType}
-            city={citySlug}
-            triggerLabel="获取选址方案"
-            triggerVariant="primary"
-            triggerClassName="btn--sm"
-          />
-        )}
-
         {/* 移动端菜单触发器 */}
         <button
           ref={toggleRef}

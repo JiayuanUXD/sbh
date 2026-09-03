@@ -329,42 +329,10 @@ describe('CitySwitcher', () => {
     expect(trackSpy).not.toHaveBeenCalledWith('city_switcher_opened', expect.anything())
   })
 
-  it('submits the global header inquiry with the same trusted lead-query city as the shell', async () => {
-    navigationState.pathname = '/publish'
-    navigationState.search = 'city=hangzhou'
-    window.history.replaceState({}, '', '/publish?city=hangzhou')
-    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => ({
-      ok: true,
-      json: async () => ({ targetResolution: 'general' }),
-    }))
-    vi.stubGlobal('fetch', fetchSpy)
-    await renderShell()
-
-    const inquiryTrigger = document.querySelector<HTMLButtonElement>('[data-event-name="inquiry_open_trigger"]')
-    if (!inquiryTrigger) throw new Error('missing header inquiry trigger')
-    await click(inquiryTrigger)
-
-    const contactForm = document.querySelector<HTMLFormElement>('.modal__form')
-    const contactInputs = [...document.querySelectorAll<HTMLInputElement>('.modal__form input')]
-    const [name, phone, teamSize] = contactInputs.filter((input) => input.type !== 'checkbox')
-    const consent = contactInputs.find((input) => input.type === 'checkbox')
-    if (!contactForm || !name || !phone || !teamSize || !consent) throw new Error('missing inquiry contact fields')
-    await changeInput(name, '\u5f20\u4e09')
-    await changeInput(phone, '13800001111')
-    await changeInput(teamSize, '10')
-    await act(async () => consent.click())
-    await act(async () => contactForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-
-    const requirementsForm = document.querySelector<HTMLFormElement>('.modal__form')
-    if (!requirementsForm) throw new Error('missing inquiry requirements form')
-    await act(async () => requirementsForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit
-    const body = JSON.parse(String(init.body)) as Record<string, unknown>
-    expect(body.city).toBe('hangzhou')
-    expect(body.source).toMatchObject({ pageType: 'home', path: '/publish' })
-  })
+  // \u539f\u300csubmits the global header inquiry with the same trusted lead-query city as the shell\u300d
+  // \u65ad\u7684\u662f\u5934\u90e8 CTA\uff08InquiryModal\uff0cdata-event-name="inquiry_open_trigger"\uff09\u2014\u2014
+  // \u8be5 CTA \u5df2\u4e8e 2026-09-03 \u6309\u4ea7\u54c1\u8981\u6c42\u5168\u7ad9\u79fb\u9664\uff0crenderShell()\uff08\u4ec5 SiteHeader + SiteFooter\uff09
+  // \u91cc\u4e0d\u518d\u6709\u4efb\u4f55\u8be2\u4ef7\u89e6\u53d1\u5668\u53ef\u70b9\u3002\u7528\u4f8b\u968f\u7279\u6027\u4e00\u5e76\u5220\u9664\uff0c\u4e0d\u662f\u9057\u6f0f\u3002
 
   it('focuses the first option on open, supports menu navigation, and closes on an outside pointer', async () => {
     await renderSwitcher()

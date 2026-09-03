@@ -669,26 +669,16 @@ ol {
   }
 }
 
-/* 顶部右侧动作区：铜色 CTA + 移动端汉堡（对齐 homepage-preview.html 顶部）。
-   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。 */
+/* 顶部右侧动作区：现只剩移动端汉堡（头部 CTA 已于 2026-09-03 全站移除）。
+   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。
+   ≥1280px 时汉堡 display:none，本容器塌成零宽——原先那条 `margin-left: var(--sp-6)`
+   是用来把 CTA 与导航拉开的，CTA 没了之后它只会把导航末项顶离右边缘 24px，
+   一并删除。`.site-header__actions .btn--sm`（CTA 的 44px 触控高度）同理已无消费方。 */
 .site-header__actions {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   flex-shrink: 0;
-}
-
-@media (min-width: 1280px) {
-  .site-header__actions {
-    margin-left: var(--sp-6);
-  }
-}
-
-/* 顶部 CTA 用 btn--sm，避免撑高 44px 头部 */
-.site-header__actions .btn--sm {
-  white-space: nowrap;
-  /* 44px 触控目标 = 头部高度，撑满而不溢出 */
-  min-height: var(--touch-target);
 }
 
 .site-main {
