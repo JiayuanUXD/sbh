@@ -23,21 +23,11 @@
 
 import { createHmac } from 'node:crypto'
 
-/** visitorRef 的固定长度（十六进制字符数） */
-export const VISITOR_REF_LENGTH = 32
-
-/** 只认 32 位**小写**十六进制 */
-const VISITOR_REF_PATTERN = /^[0-9a-f]{32}$/
-
-/**
- * 严格校验。
- *
- * 大写一律拒绝而不是归一化：合法值只可能来自我们自己发出的小写串，
- * 出现大写说明它在传输链路上被改过——宁可当非法丢弃，也不猜测意图。
- */
-export function isVisitorRef(value: unknown): value is string {
-  return typeof value === 'string' && VISITOR_REF_PATTERN.test(value)
-}
+// 形状定义（长度 + 校验）拆在 visitor-ref-shape.ts：本文件 import 了
+// `node:crypto`，而客户端也要校验同一个形状，从这里 import 会把 node:crypto
+// 拖进浏览器 bundle。re-export 保持调用方无感，同时口径只有一个来源。
+export { isVisitorRef, VISITOR_REF_LENGTH } from './visitor-ref-shape'
+import { isVisitorRef, VISITOR_REF_LENGTH } from './visitor-ref-shape'
 
 /**
  * 从 `idempotencyKey` 派生。

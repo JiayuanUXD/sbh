@@ -14,11 +14,21 @@
  *   siteConfig.siteUrl  // URL 实例
  *   siteConfig.siteOrigin  // 'https://example.com'
  *   siteConfig.defaultCity  // 'shanghai'
- *   siteConfig.privacyPolicyVersion  // 'MVP-R1'
+ *   siteConfig.privacyPolicyVersion  // 'MVP-R2'
  */
 
-/** 隐私政策版本：变更时必须同步 Lead 隐私同意字段和文档 */
-export const PRIVACY_POLICY_VERSION = 'MVP-R1'
+/**
+ * 隐私政策版本：变更时必须同步 Lead 隐私同意字段和文档。
+ *
+ * 每条线索的 `consent.policyVersion` 记录用户当时同意的是哪个版本。
+ * **实质性改动政策文本却不升版本，会让新旧文本下同意的线索在数据里无法区分**
+ * ——真要追溯"这个人当初同意的是什么"，就只能靠猜。
+ *
+ * R2（2026-09-03，OPT-067）：新增「提交咨询后，将本次访问的匿名浏览记录与该条
+ * 咨询关联」。这是实质性扩展——此前政策承诺统计标识「无法识别本人」，
+ * 而关联之后它指向一条含手机号的线索，故必须升版。
+ */
+export const PRIVACY_POLICY_VERSION = 'MVP-R2'
 
 /** 默认运营城市（MVP 单城市） */
 export const DEFAULT_CITY = 'shanghai'

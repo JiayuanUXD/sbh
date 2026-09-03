@@ -2504,6 +2504,16 @@ ol {
   box-shadow: var(--shadow-focus);
 }
 
+/* OPT-067 合规告知：提交后关联本次浏览记录。
+   刻意用次要色 + 小字号——它是知情告知，不该抢在主行动之前吸引注意，
+   但必须可读（不用更浅的色阶，避免对比度不足）。 */
+.modal__consent-note {
+  color: var(--color-muted);
+  font-size: var(--fs-13);
+  line-height: 1.6;
+  margin: var(--sp-2) 0 0;
+}
+
 .modal__error {
   color: var(--color-danger);
   font-size: var(--fs-13);

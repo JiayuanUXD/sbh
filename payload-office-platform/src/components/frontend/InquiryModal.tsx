@@ -10,6 +10,10 @@ import type {
 } from '@/domain/inquiry/schema'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { track } from '@/lib/frontend/analytics'
+import {
+  identifyAfterSubmitSuccess,
+  readStoredVisitorRef,
+} from '@/lib/frontend/analytics/visitor-identity'
 import ViewingSlotPicker, {
   type SelectedViewingPreference,
 } from '@/components/frontend/ViewingSlotPicker'
@@ -425,6 +429,11 @@ export default function InquiryModal(props: Props) {
     const requestBody = {
       city,
       requestId,
+      // OPT-067：同会话已有 ID 则回传，服务端复用它。
+      // 不回传的话，服务端按 idempotencyKey 派生——而该键含 targetSlug，
+      // 咨询两套房源会得到两个不同 ID，umami.identify 的会话级后写覆盖
+      // 会让第一条线索的深链失效。
+      visitorRef: readStoredVisitorRef() ?? undefined,
       name: name.trim(),
       phone: phoneNormalized,
       company: company.trim() || undefined,
@@ -481,12 +490,18 @@ export default function InquiryModal(props: Props) {
         errors?: string[]
         error?: string
         targetResolution?: TargetResolution
+        visitorRef?: string | null
       }
 
       if (res.ok) {
         setTargetResolution(resolveTargetResolution(data.targetResolution))
         setStatus('idle')
         setStep(reduceInquiryStep(step, { type: 'submitted' }))
+        // OPT-067 / spec D5：**只有在这里**才关联身份。
+        // 提交成功之前的任何时点调 identify，都等于在用户还没同意留资时
+        // 把他的匿名浏览挂到持久身份上——「先关联、后征得同意」，
+        // 与隐私声明相悖。E2E 断言匿名浏览全程无 identify 调用。
+        identifyAfterSubmitSuccess(data.visitorRef)
         track('inquiry_success', {
           page_type: pageType,
           target_type: targetType,
@@ -742,6 +757,16 @@ export default function InquiryModal(props: Props) {
                     </a>
                   </span>
                 </label>
+
+                {/*
+                  OPT-067 合规告知：提交后会把本次访问的匿名浏览记录关联到这条咨询。
+                  放在同意勾选之下、提交按钮之上——用户在按下提交前必然看到。
+                  措辞与隐私政策第一节保持一致：只说「本次访问」，不承诺关联历史访问。
+                */}
+                <p className="modal__consent-note">
+                  提交后，我们会将您<strong>本次访问</strong>浏览过的房源与这条咨询关联，
+                  便于顾问了解您的关注点。关联使用假名标识，不含您的手机号或姓名。
+                </p>
 
                 {(errors.length > 0 || serverError) && (
                   <div id={errorSummaryId} ref={feedbackRef} tabIndex={-1}>

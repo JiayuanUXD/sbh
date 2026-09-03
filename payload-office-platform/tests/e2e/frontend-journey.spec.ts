@@ -19,9 +19,15 @@
  */
 import { expect, test } from '@playwright/test'
 
-// 当前隐私政策版本（与 src/lib/frontend/site-config.ts PRIVACY_POLICY_VERSION 对齐）
+// 当前隐私政策版本。这是 src/lib/frontend/site-config.ts PRIVACY_POLICY_VERSION
+// 的**副本**——E2E 不走 @/ 别名，只能抄一份。
+//
+// 抄的东西会漂：本行原为 'MVP-R1'，OPT-067 升到 R2 时没跟着改，
+// 而服务端是精确匹配（version !== 当前版本即拒），于是所有提交表单的用例
+// 都会在 CI 里 422——**而本地闸门只跑 typecheck + test，看不见**。
+// 现由 tests/privacy-policy-version-sync.test.ts 在单测层守着，不会再漂。
 // 拆为常量便于未来政策版本升级时统一更新
-const CONSENT_POLICY_VERSION = 'MVP-R1'
+const CONSENT_POLICY_VERSION = 'MVP-R2'
 
 test.describe('F7.1 全链路 E2E', () => {
   test('首页 → 列表 → 详情 → 咨询成功', async ({ page }) => {

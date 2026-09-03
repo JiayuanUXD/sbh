@@ -84,6 +84,9 @@ export const Leads: CollectionConfig = {
       edit: {
         beforeDocumentControls: [
           '/components/admin/LeadOwnershipHistoryLink',
+          // OPT-067：深链到 Umami 会话视图，按该线索的假名标识过滤。
+          // 组件自己判断「无 visitorRef / 未接入 Umami」时不渲染。
+          '/components/admin/LeadVisitorPathLink',
         ],
       },
     },

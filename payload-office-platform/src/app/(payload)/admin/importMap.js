@@ -49,6 +49,7 @@ import { default as default_e824639d01f5ca07b270b546b9ee9053 } from '../../../co
 import { default as default_5df1f245f9261c4f614a05a75f0ee773 } from '../../../components/admin/ListingMediaManager'
 import { default as default_c4eb0c1818eaaae48f1870533fcd2a2e } from '../../../components/admin/ListingsListView'
 import { default as default_77e13ea43526b61fb90a3c757ab41c9a } from '../../../components/admin/LeadOwnershipHistoryLink'
+import { default as default_d46c8ffd09e050ed893b9d208aa11db9 } from '../../../components/admin/LeadVisitorPathLink'
 import { default as default_73fbccf3986447b916615480ce7e2381 } from '../../../components/admin/ListingReviewQueue'
 import { default as default_b50888e2500c4c0fea379b72eee5b053 } from '../../../components/admin/AuditLogList'
 import { default as default_6caa77cbaa0f3edbf2d18250a4e6b881 } from '../../../components/admin/SupplyImportBatchRollback'
@@ -137,6 +138,7 @@ export const importMap = {
   "/components/admin/ListingMediaManager#default": default_5df1f245f9261c4f614a05a75f0ee773,
   "/components/admin/ListingsListView#default": default_c4eb0c1818eaaae48f1870533fcd2a2e,
   "/components/admin/LeadOwnershipHistoryLink#default": default_77e13ea43526b61fb90a3c757ab41c9a,
+  "/components/admin/LeadVisitorPathLink#default": default_d46c8ffd09e050ed893b9d208aa11db9,
   "/components/admin/ListingReviewQueue#default": default_73fbccf3986447b916615480ce7e2381,
   "/components/admin/AuditLogList#default": default_b50888e2500c4c0fea379b72eee5b053,
   "/components/admin/SupplyImportBatchRollback#default": default_6caa77cbaa0f3edbf2d18250a4e6b881,
