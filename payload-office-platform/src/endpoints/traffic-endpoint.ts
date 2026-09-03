@@ -5,6 +5,7 @@ import { hasOperationPermission } from '@/domain/auth/permission-context'
 import type { PermissionContext } from '@/domain/auth/permission-context'
 import {
   computeMissRate,
+  FUNNEL_ENTRY_PAGE_TYPES,
   INQUIRY_FUNNEL_SOURCE_PAGE_TYPES,
   isTrafficRange,
   resolveTrafficWindow,
@@ -80,6 +81,17 @@ function readCache(range: TrafficRange, now: number): UmamiSegment | null {
   return hit.value
 }
 
+/** 详情页浏览量 = page_type 分布里落在 FUNNEL_ENTRY_PAGE_TYPES 的部分之和 */
+export function sumDetailPageViews(
+  rows: ReadonlyArray<{ value: string; total: number }>,
+): number {
+  let sum = 0
+  for (const row of rows) {
+    if ((FUNNEL_ENTRY_PAGE_TYPES as readonly string[]).includes(row.value)) sum += row.total
+  }
+  return sum
+}
+
 /** 从事件名计数表里取一个事件的量；缺失记 0（没有该事件＝没发生过） */
 function eventCount(rows: ReadonlyArray<{ x: string; y: number }>, name: string): number {
   for (const row of rows) {
@@ -123,7 +135,7 @@ export async function fetchUmamiSegment(
   // stats 是硬依赖：失败就抛，让整块 unavailable
   const statsPromise = client.stats(window)
 
-  const [stats, series, referrers, pages, events] = await Promise.all([
+  const [stats, series, referrers, pages, events, pageTypes] = await Promise.all([
     statsPromise,
     settle('pageviews', client.pageviews(window)),
     settle('metrics(referrer)', client.metrics('referrer', window)),
@@ -133,6 +145,11 @@ export async function fetchUmamiSegment(
     // country/query/tag/channel；非法：url/host），不是照文档猜的。
     settle('metrics(path)', client.metrics('path', window)),
     settle('metrics(event)', client.metrics('event', window)),
+    // 漏斗首步：city_page_view 事件里 page_type ∈ {listing-detail, building-detail} 的部分
+    settle(
+      'event-data/values(city_page_view.page_type)',
+      client.eventDataValues('city_page_view', 'page_type', window),
+    ),
   ])
 
   return {
@@ -142,15 +159,12 @@ export async function fetchUmamiSegment(
     topReferrers: (referrers ?? []).slice(0, 10).map((r) => ({ name: r.x, visitors: r.y })),
     topPages: (pages ?? []).slice(0, 10).map((r) => ({ path: r.x, pageviews: r.y })),
     funnel: {
-      // ⚠️ 首步暂缺：`city_page_view` 在所有城市页都会打（首页/列表/详情），
-      // 要取「仅详情页」那部分必须按事件属性 page_type 过滤，而属性过滤走
-      // Umami 的 event-data API——该接口在本次实测中**鉴权先于参数校验**
-      // （type=bogus 直接回 401），没有凭据无法确定其参数契约。
-      //
-      // 宁可缺一环也不给错数：拿「全部 city_page_view」冒充「详情页浏览」会把
-      // 首页与列表页的流量算进漏斗口，转化率看起来低得离谱，且没人能发现。
-      // 配齐 UMAMI_* 四个服务端 env 后用真凭据验出契约再补。
-      detailView: null,
+      // 首步：只数详情页。用 event-data/values 按 page_type 过滤，
+      // 而不是拿「全部 city_page_view」顶替——后者会把首页与列表页的流量
+      // 算进漏斗口（实测近 7 日 home=7、listings=2，而详情页只有 3），
+      // 转化率会看起来低得离谱且没人能发现。
+      // 查询失败时是 null（「没测到」），不是 0（「没人看详情页」）。
+      detailView: pageTypes === null ? null : sumDetailPageViews(pageTypes),
       // 事件查询整个失败时，四步全是 null（「没测到」），不是 0（「没发生」）
       inquiryOpen: events ? eventCount(events, 'inquiry_open') : null,
       inquirySubmit: events ? eventCount(events, 'inquiry_submit') : null,

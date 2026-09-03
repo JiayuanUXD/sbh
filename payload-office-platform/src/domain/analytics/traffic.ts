@@ -146,16 +146,15 @@ export interface TrafficSeriesPoint {
 
 export interface TrafficFunnel {
   /**
-   * 详情页浏览（漏斗首步）。
+   * 详情页浏览（漏斗首步）= `city_page_view` 事件中
+   * `page_type ∈ {listing-detail, building-detail}` 的部分。
    *
-   * **`null` = 该环当前不可测**，不是 0。`city_page_view` 在所有城市页都会打
-   * （首页 / 列表 / 详情），要取「仅详情页」那部分必须按事件属性 `page_type`
-   * 过滤，而属性过滤走 Umami 的 event-data API——实测该接口鉴权先于参数校验
-   * （`type=bogus` 直接回 401），没有凭据无法确定其参数契约（2026-09-02）。
+   * 数据来自 `event-data/values`（契约见 umami-client 的 `eventDataValues`）。
+   * **`null` = 该查询失败**，不是 0（「真的没人看详情页」）。
    *
-   * 宁可缺一环也不给错数：拿「全部 city_page_view」冒充「详情页浏览」，
-   * 会把首页与列表页的流量算进漏斗口，转化率看起来低得离谱，而且没人能发现。
-   * 配齐 UMAMI_* 四个服务端 env 后用真凭据验出契约再补。
+   * 为什么不拿「全部 city_page_view」顶替：那个事件在首页、列表页也打。
+   * 线上实测近 7 日 home=7 / listings=2 / building-detail=2 / listing-detail=1
+   * ——顶替会让首步从 3 变成 12，转化率看起来低到离谱，而且没人能发现。
    */
   detailView: number | null
   /** 以下三步：事件查询失败时为 null（「没测到」），与 0（「没发生」）含义相反 */

@@ -113,6 +113,25 @@ export interface UmamiClient {
     window: { startAt: number; endAt: number },
     extra?: Record<string, string>,
   ): Promise<UmamiMetric[]>
+  /**
+   * 某个事件的某个属性的取值分布。
+   *
+   * 契约实测确定（v3.3.1，用 Umami 后台自己的会话逐个试出来的）：
+   *
+   *     GET /api/websites/:id/event-data/values
+   *         ?startAt&endAt&eventName&propertyName
+   *     → [{ value: string, total: number }]
+   *
+   * ⚠️ **eventName 不可省**。省掉它会把该属性在**所有事件**上的取值聚合起来：
+   * 实测 page_type 带 eventName=city_page_view 是 home=7/building-detail=2/
+   * listings=2/listing-detail=1，不带则是 19/4/4/4——因为 page_engagement
+   * 也有 page_type。漏掉这个参数数字会偏大，而且从结果上看不出错。
+   */
+  eventDataValues(
+    eventName: string,
+    propertyName: string,
+    window: { startAt: number; endAt: number },
+  ): Promise<Array<{ value: string; total: number }>>
   /** 测试观察用：当前是否持有 token */
   readonly hasToken: boolean
 }
@@ -286,6 +305,23 @@ export function createUmamiClient(deps: {
         const { x, y } = row as { x?: unknown; y?: unknown }
         if (typeof x !== 'string') continue
         out.push({ x, y: toNumber(y) })
+      }
+      return out
+    },
+
+    async eventDataValues(eventName, propertyName, w) {
+      const body = await authedGet(`/api/websites/${config.websiteId}/event-data/values`, {
+        ...win(w),
+        eventName,
+        propertyName,
+      })
+      const rows = Array.isArray(body) ? body : []
+      const out: Array<{ value: string; total: number }> = []
+      for (const row of rows) {
+        if (typeof row !== 'object' || row === null) continue
+        const { value, total } = row as { value?: unknown; total?: unknown }
+        if (typeof value !== 'string') continue
+        out.push({ value, total: toNumber(total) })
       }
       return out
     },

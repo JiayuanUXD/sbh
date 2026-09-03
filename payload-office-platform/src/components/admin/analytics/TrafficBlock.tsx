@@ -238,7 +238,7 @@ export default function TrafficBlock(): React.ReactElement | null {
             <FunnelStep
               label="详情页浏览"
               value={funnel.detailView}
-              hint={funnel.detailView === null ? '该环暂不可测' : undefined}
+              hint={funnel.detailView === null ? '该环查询失败' : '房源/楼盘详情页'}
             />
             <FunnelStep label="打开咨询" value={funnel.inquiryOpen} />
             <FunnelStep label="提交咨询" value={funnel.inquirySubmit} />
