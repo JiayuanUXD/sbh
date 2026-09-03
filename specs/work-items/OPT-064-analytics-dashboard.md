@@ -1,7 +1,9 @@
 # Task Packet：OPT-064 数据看板与用户行为分析（总纲，含 OPT-065/066/067）
 
-> 状态：**待实施**
-> 创建日期：2026-08-31
+> 状态：**OPT-064 / 065 / 066 已上线（2026-09-02~03），OPT-067 待实施**
+> 创建日期：2026-08-31 ｜ 末次更新：2026-09-03
+> **实施与 spec 的偏差记录在 §12，那里是准的**——本文 §6 写于实施前，
+> 其中几处口径已被实测推翻（Umami API 取值、漏报率分母判据、响应形状）。
 > 来源：用户提出——需要一个数据看板，了解网站每日相关数据与用户行为（含关键按钮/表单
 > 的点击转化、核心页面浏览时长/深度、单个用户浏览路径）
 > 编号核对：`specs/work-items/` 最大到 OPT-063；`git branch -a` 无 064+ 在建分支。
@@ -425,9 +427,9 @@ OPT-065 业务日报页 ────────────────→ OPT-
 | 2 | ~~建 database `umami` + 专用账号~~ | ✅ **已完成（2026-09-01）**：复用 `postgres-ilf7zhts` 实例上的独立 database `umami`，属主 `umami_app`（`ALTER DATABASE ... OWNER TO`，绕开跨库 GRANT 的限制） |
 | 3 | ~~CloudRun 建服务 `umami` 并配 env~~ | ✅ **已完成（2026-09-02）**：`https://umami-286300-10-1253925058.sh.run.tcloudbase.com`，Umami v3.3.1 |
 | 4 | ~~Umami 初始化管理员密码、建网站条目~~ | ✅ **已完成（2026-09-02）**：website ID `3a281820-ae20-43f9-b082-dc0224ed874f`。已随 OPT-064b 写进 Dockerfile 两个阶段的 ENV |
-| 5 | sbh 服务新增**服务端** env | 仅 `UMAMI_URL/USERNAME/PASSWORD/WEBSITE_ID` 四项（控制台/MCP 配）；`NEXT_PUBLIC_UMAMI_*` 与 `NEXT_PUBLIC_ANALYTICS_ENABLED` 为构建期内联，**随 PR 写进 Dockerfile ENV**，不在此配 |
-| 6 | 生产角色授予 | 平台管理员角色勾选 MENU 码 `analytics`（导航可见）与操作码 `analytics:traffic`（流量块）。角色是数据不随代码走；seed/fixture 仅覆盖 E2E |
-| 7 | 隐私政策文案过目 | §6.1-10 与 §6.4 合规条款上线前确认 |
+| 5 | ~~sbh 服务新增**服务端** env~~ | ✅ **已完成（2026-09-03）**：四项已配。⚠️ 读取必须用 `bag['UMAMI_URL']` 而非 `process.env.UMAMI_URL` 静态成员表达式——后者会被打包器在构建期替换成 `undefined`，运行时怎么配都读不到（真实故障，见 §12-1） |
+| 6 | ~~生产角色授予~~ | ✅ **已完成（2026-09-03）**：ADM 本就是 `["*"]` 通配符；OPS（运营人员）已追加操作码 `analytics:traffic`（16→17 项，其余权限逐项复核未丢）。MGR/BRK/CSR 菜单里无 `analytics`，无需授予。**注意 OPS 的 dataScope 是 `global`，因此会看到全量线索数与漏报率** |
+| 7 | 隐私政策文案过目 | 「匿名访问统计」条款已随 OPT-064a 上线（`(frontend)/pages/privacy`）。**仍待用户过目**——这是本清单唯一未闭环项 |
 
 ## 11. 效果衡量（怎么知道这事做对了）
 
@@ -435,3 +437,128 @@ OPT-065 业务日报页 ────────────────→ OPT-
   `page_engagement` 中位数可查；漏报率 < 20%（超出则排查拦截/时机）。
 - 运营可在一页回答：昨天来了多少人 → 提了多少咨询 → 上了多少房源。
 - 销售可从任一新线索一键看到其转化前浏览路径。
+
+---
+
+## 12. 实施后订正（2026-09-03）
+
+§6 写于实施前。下面几条在实施中被**实测推翻**，以本节为准。
+留着旧口径不改，正是宪章「多 agent 入口」警告的同义文档漂移。
+
+### 12-1 服务端读 env 不能用静态成员表达式（真实故障，排查了四轮）
+
+`resolveUmamiServerConfig` 最初写 `env.UMAMI_URL`。上线后现象是：
+四个环境变量在控制台里配着、值也对，但流量块恒为 `unavailable`。
+
+**决定性证据是耗时**：`/api/traffic` 三次 38 / 51 / 89ms——快到不可能发生
+任何网络往返，说明它**根本没去连**。改成 `bag['UMAMI_URL']`（变量 + 方括号，
+静态分析无法替换）后，耗时变成 858ms，故障前进到下一层。
+
+打包器会对 `process.env.X` 这类静态成员表达式做构建期替换，而构建镜像时
+容器里没有这些变量 → 被替换成 `undefined`。这与 `NEXT_PUBLIC_*` 是同一机制、
+方向相反：那边**需要**内联，这边**必须避免**。
+
+### 12-2 漏报率分母：不是「sourcePageType 非空」
+
+§6.3 要求实施第一步先核实该判据。**核实结果：不成立。**
+
+| 表单 | 提交到 | 写 leads | 埋点 |
+|---|---|---|---|
+| InquiryModal（咨询弹窗） | `/api/inquiries` | ✅ 五类 pageType | `inquiry_open/submit/success` |
+| **EntrustForm（委托找房）** | `/api/inquiries` | ✅ **`pageType='entrust'`** | **只打 `landing_*`** |
+| SupplySubmissionForm | `/api/supply-submissions` | ❌ | `landing_*` |
+
+委托找房也走同一个端点、也写该字段，但**不发 `inquiry_success`**。
+按「非空」计数会把它算进分母而分子没有它，**漏报率被系统性高估**。
+
+**实际口径**：`sourcePageType ∈ {home, search, listing, building, content}`
+（五类排除 `entrust`），见 `INQUIRY_FUNNEL_SOURCE_PAGE_TYPES`。
+
+另：字段是**顶层** `sourcePageType`，不是 `source.sourcePageType`——
+上层容器全是 `collapsible`（纯展示，不产生数据层级）。写错路径会被 Payload
+拒绝并被 catch 吞掉，线上表现为 `leadsInWindow` 恒 `null`。
+
+### 12-3 Umami v3.3.1 的 metrics type 取值（实测，非文档）
+
+用 Umami 后台自己的会话逐个试出来的：
+
+| | type |
+|---|---|
+| **合法** | `path` `referrer` `event` `title` `browser` `os` `device` `country` `query` `tag` `channel` |
+| **非法（400）** | `url` `host` |
+
+§6.3 写的 `type=referrer|url|event` 里 **`url` 是错的**，「按页面」这个维度
+在 v3.3.1 叫 `path`。
+
+### 12-4 漏斗首步的数据源：`event-data/values`
+
+契约同样是实测确定的：
+
+```
+GET /api/websites/:id/event-data/values
+    ?startAt&endAt&eventName&propertyName
+→ [{ value: string, total: number }]
+```
+
+**`eventName` 不可省**——省掉会把该属性在所有事件上的取值聚合起来。
+实测同一个 `page_type`：带 `eventName=city_page_view` 是
+`home=7 / building-detail=2 / listings=2 / listing-detail=1`，
+不带是 `19 / 4 / 4 / 4`（因为 `page_engagement` 也有 `page_type`）。
+**漏掉这个参数，结果是一堆看起来正常、只是偏大的数字，从数据本身看不出错。**
+
+首步 = `building-detail + listing-detail`。
+
+### 12-5 响应形状的变化（§6.3 那份已过时）
+
+| 字段 | §6.3 原定 | 实际 |
+|---|---|---|
+| `traffic.status='unavailable'` | 无附加字段 | 加 `reason: 'not-configured' \| 'upstream-error'` |
+| `funnel.detailView` | `number` | `number \| null` |
+| `funnel.inquiryOpen/Submit/Success` | `number` | `number \| null` |
+
+新增 `reason` 的理由：没有它，「没配」与「配了连不上」在响应里长得一模一样，
+上线首日就因此只能靠「响应耗时 38ms」这种间接证据倒推。
+
+三个 `null` 的理由：延续本项目一贯口径——**拿不到是 `null`，不是 `0`**。
+`0` 会被读成「没人咨询」，`null` 是「没测到」，含义相反。
+
+### 12-6 Umami 段改为逐项降级
+
+§6.3 只说了「Umami 不可达 → `{status:'unavailable'}`」。实施初版用
+`Promise.all`，结果**一个查询失败拖垮整块**：`metrics(url)` 的 400 让
+PV/UV/趋势/漏斗全都看不到，尽管它们各自的查询是好的。
+
+**现在**：只有 `stats` 是硬依赖（PV/UV 都没有则整块 unavailable），
+其余各自 settle、失败项单独记日志并降级——与业务块的 `resolveSingleCard`
+一致。
+
+### 12-7 运维发现：umami 服务缩容到零会丢访客
+
+Umami 服务最小实例数原为 0。空闲后缩容，下一个请求触发冷启动，容器约 2 秒
+就绪但平台在就绪前直接回 503。`script.js` 一旦 503，`<script>` 标签不会自己
+重试，`window.umami` 永不出现，采集队列那三次退避重试全是空转——**代码侧
+兜不住**。
+
+丢失量取决于**空闲周期个数**而非访客数，所以流量越低丢得越狠（建立基线期
+恰恰最低）。已设 `MinNum=1`，静置 25 分钟后首个请求 200 / 0.11s 验过。
+
+### 12-8 §6.4（OPT-067）的假设已预先验证
+
+§6.4 假设「深链到 Umami Sessions 按 distinct id 过滤的视图」可行。
+趁本轮有 Umami 会话，**提前验了**（2026-09-03，v3.3.1）：
+
+```
+GET /api/websites/:id/sessions?startAt&endAt            → count 4
+GET /api/websites/:id/sessions?...&distinctId=<假 id>   → count 0
+```
+
+计数从 4 变 0，**说明它真的在过滤**，不是忽略未知参数返回 200
+（后者是常见陷阱，光看状态码会误判）。
+
+两点补充：
+- 返回的 session 对象字段里**不含 `distinctId`**（有 id / hostname / browser /
+  os / device / country / firstAt / lastAt / visits / views / events 等）。
+  过滤可用，但若前端要显示该 ID，得自己带。
+- `session-data/properties` 端点存在且可用（当前 0 行，因为还没做 identify）。
+
+OPT-067 可以按 §6.4 的思路开工，这一条不构成阻塞。
