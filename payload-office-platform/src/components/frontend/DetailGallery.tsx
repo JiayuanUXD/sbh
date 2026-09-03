@@ -9,6 +9,7 @@ import { formatPublishedDate } from '@/lib/frontend/format'
 import NoImageHeroGrid, { type NoImageMetaItem } from './detail/NoImageHeroGrid'
 import type { SpecRow } from './detail/SpecTable'
 import DetailVideo from './DetailVideo'
+import { ChevronLeftIcon, ChevronRightIcon, PhotoIcon, XMarkIcon } from './ui/icons'
 
 type DetailGalleryProps = Readonly<{
   media: readonly DetailMediaViewModel[]
@@ -245,16 +246,12 @@ export default function DetailGallery({
       <div
         className="detail-gallery detail-gallery--empty media-placeholder"
         role="img"
-        aria-label={`${title} 暂无图片`}
+        aria-label={`${title} 图片拍摄中`}
         data-media-state="missing"
       >
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="m21 15-5-5L5 21" />
-        </svg>
+        <PhotoIcon size={48} />
         <span className="media-placeholder__text">
-          <strong>暂无图片</strong>
+          <strong>图片拍摄中</strong>
           <span>可先查看房源信息，实景可预约顾问确认</span>
         </span>
       </div>
@@ -353,7 +350,7 @@ export default function DetailGallery({
                 aria-label="上一张图片"
                 onClick={() => goTo(safeActiveIndex - 1)}
               >
-                ‹
+                <ChevronLeftIcon size={22} />
               </button>
               <button
                 type="button"
@@ -361,7 +358,7 @@ export default function DetailGallery({
                 aria-label="下一张图片"
                 onClick={() => goTo(safeActiveIndex + 1)}
               >
-                ›
+                <ChevronRightIcon size={22} />
               </button>
             </div>
           )}
@@ -393,7 +390,7 @@ export default function DetailGallery({
             aria-label="上一个媒体"
             onClick={() => goTo(safeActiveIndex - 1)}
           >
-            ‹
+            <ChevronLeftIcon size={18} />
           </button>
           <div className="detail-gallery__thumbnails" role="tablist" aria-label="缩略图按键">
             {currentList.map((renderable, index) => {
@@ -438,7 +435,7 @@ export default function DetailGallery({
             aria-label="下一个媒体"
             onClick={() => goTo(safeActiveIndex + 1)}
           >
-            ›
+            <ChevronRightIcon size={18} />
           </button>
         </div>
       )}
@@ -453,11 +450,11 @@ export default function DetailGallery({
           aria-labelledby={dialogTitleId}
         >
           <h2 id={dialogTitleId} className="visually-hidden">全屏媒体预览</h2>
-          <button ref={closeRef} type="button" className="detail-gallery__close" aria-label="关闭全屏媒体预览" onClick={close}>×</button>
+          <button ref={closeRef} type="button" className="detail-gallery__close" aria-label="关闭全屏媒体预览" onClick={close}><XMarkIcon size={20} /></button>
           {activeKind === 'image' && currentList.length > 1 && (
             <>
-              <button type="button" className="detail-gallery__nav detail-gallery__nav--previous" aria-label="上一张媒体" onClick={() => goTo(safeActiveIndex - 1)}>‹</button>
-              <button type="button" className="detail-gallery__nav detail-gallery__nav--next" aria-label="下一张媒体" onClick={() => goTo(safeActiveIndex + 1)}>›</button>
+              <button type="button" className="detail-gallery__nav detail-gallery__nav--previous" aria-label="上一张媒体" onClick={() => goTo(safeActiveIndex - 1)}><ChevronLeftIcon size={22} /></button>
+              <button type="button" className="detail-gallery__nav detail-gallery__nav--next" aria-label="下一张媒体" onClick={() => goTo(safeActiveIndex + 1)}><ChevronRightIcon size={22} /></button>
             </>
           )}
           <div className="detail-gallery__dialog-content">
@@ -482,6 +479,10 @@ export default function DetailGallery({
 function MediaFallback() {
   return (
     <span className="detail-gallery__fallback" role="img" aria-label="图片暂未加载">
+      {/* 图标与 ui/Media.tsx 的占位共用 PhotoIcon：改动前这里只有文字，
+          和卡片上的占位块长得不是一回事。失败态文案保持「图片暂未加载」，
+          与缺省态的「图片拍摄中」区分（两者含义不同，见 Media.tsx 文件头）。 */}
+      <PhotoIcon size={36} />
       <strong>图片暂未加载</strong>
       <span>可先查看房源信息，实景可预约顾问确认</span>
     </span>

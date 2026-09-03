@@ -149,7 +149,7 @@ describe('detail component contracts', () => {
     expect(imageHtml).toContain('<img')
     expect(videoHtml).toContain('<video')
     expect(videoHtml).toContain('controls=""')
-    expect(fallback).toContain('暂无图片')
+    expect(fallback).toContain('图片拍摄中')
     expect(fallback).toContain('role="img"')
   })
 
@@ -176,7 +176,7 @@ describe('detail component contracts', () => {
     expect(html).toContain('data-media-state="missing"')
     // 灰底占位的两个标志物都必须消失，否则就是"两块都渲染了"
     expect(html).not.toContain('media-placeholder')
-    expect(html).not.toContain('暂无图片')
+    expect(html).not.toContain('图片拍摄中')
     expect(html).toContain('1500')
     expect(html).toContain('㎡')
     // 缺值 —，不是 0、不是空白，也不是整格消失
@@ -209,7 +209,7 @@ describe('detail component contracts', () => {
       }],
     }))
 
-    expect(html).toContain('暂无图片')
+    expect(html).toContain('图片拍摄中')
     expect(html).not.toContain('javascript:alert')
   })
 

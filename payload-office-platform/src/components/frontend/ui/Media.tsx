@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { PhotoIcon } from './icons'
 
 /**
  * 媒体图片原语
@@ -62,17 +63,17 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
         style={ratioStyle}
         role={decorative ? undefined : 'img'}
         aria-hidden={decorative ? 'true' : undefined}
-        aria-label={decorative ? undefined : alt || (missing ? '暂无图片' : '图片加载失败')}
+        aria-label={decorative ? undefined : alt || (missing ? '图片拍摄中' : '图片加载失败')}
         data-media-state={missing ? 'missing' : 'errored'}
       >
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="m21 15-5-5L5 21" />
-        </svg>
+        <PhotoIcon size={40} />
         <span className="media-placeholder__text">
-          <strong>{missing ? '暂无图片' : '图片暂未加载'}</strong>
-          <span>{missing ? '可查看房源信息或联系顾问' : '可先查看房源信息'}</span>
+          {/* 「本就没有图」与「图加载失败」是两件事，文案必须分开——见本文件头。
+              缺省态从「暂无图片」改成「图片拍摄中」（产品要求）：前者是对状态的
+              陈述，读起来像"这套房就是没有图"；后者说明这是在途工作，与平台
+              「实景可预约顾问确认」的口径一致。失败态保持不变。 */}
+          <strong>{missing ? '图片拍摄中' : '图片暂未加载'}</strong>
+          <span>{missing ? '可先查看房源信息或联系顾问' : '可先查看房源信息'}</span>
         </span>
       </div>
     )

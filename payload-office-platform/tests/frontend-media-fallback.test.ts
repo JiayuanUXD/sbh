@@ -11,6 +11,8 @@ const css = readFileSync('src/app/(frontend)/styles.css', 'utf8')
 describe('frontend media fallback', () => {
   // 无图房源自 2026-08-19 起是常态（前台可见性不再要求图片），所以「本就没图」
   // 与「图没加载出来」必须是两套文案：前者说「暂未加载」会让人一直等。
+  // 2026-09-04 起缺省态文案由「暂无图片」改为「图片拍摄中」（产品要求）——
+  // 两套文案必须不同这条不变，变的只是缺省态那一串。
   it('renders a "no image" placeholder when media is absent', () => {
     const html = renderToStaticMarkup(
       createElement(Media, {
@@ -19,7 +21,7 @@ describe('frontend media fallback', () => {
       }),
     )
 
-    expect(html).toContain('暂无图片')
+    expect(html).toContain('图片拍摄中')
     expect(html).toContain('data-media-state="missing"')
     expect(html).not.toContain('图片暂未加载')
     expect(html).toContain('aria-label="外滩源 · 共享办公"')
@@ -39,9 +41,9 @@ describe('frontend media fallback', () => {
       createElement(DetailGallery, { media: [], title: '外滩源 · 共享办公' }),
     )
 
-    expect(emptyHtml).toContain('暂无图片')
+    expect(emptyHtml).toContain('图片拍摄中')
     expect(emptyHtml).toContain('media-placeholder')
-    expect(emptyHtml).toContain('aria-label="外滩源 · 共享办公 暂无图片"')
+    expect(emptyHtml).toContain('aria-label="外滩源 · 共享办公 图片拍摄中"')
   })
 
   it('styles media placeholders as a designed surface instead of a broken-image gap', () => {

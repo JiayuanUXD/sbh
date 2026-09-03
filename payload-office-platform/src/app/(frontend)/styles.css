@@ -1507,11 +1507,20 @@ ol {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
+  /* 原为字面量 `0.3s ease`。两处都换成 token：时长走 --duration-slow（320ms，
+     与 .sf-card 的 hover 抬升同一个决定），缓动走 --ease-apple。
+     「生硬」来自 `ease`——它是对称的 in-out，起步和收尾都慢、中段陡，
+     放在缩放上像被推了一把；--ease-apple 是 cubic-bezier(.28,.11,.32,1)，
+     起步即走、末端长长收住，这才是全站其余动效的手感。 */
+  transition: transform var(--duration-slow) var(--ease-apple);
+  /* 放大时源图会被拉伸采样，加这一条让浏览器按高质量路径重采样 */
+  transform-origin: center;
 }
 
 .detail-gallery__main-media:hover img {
-  transform: scale(1.02);
+  /* 1.02 → 1.04：16:10 大图上 2% 的位移小到只够让人察觉"抖了一下"而读不出
+     是缩放，反而更像卡顿。配合更长的收尾缓动，4% 才读得出是一个连续动作。 */
+  transform: scale(1.04);
 }
 
 .detail-gallery__main-nav {
@@ -1534,12 +1543,15 @@ ol {
   border-radius: 999px;
   background: rgba(17, 24, 39, 0.42);
   color: var(--color-on-ink);
-  font-size: 30px;
-  line-height: 1;
+  /* `font-size: 30px; line-height: 1` 已删除：箭头曾是文字字符 `‹`/`›`，
+     flex 居中的是行盒不是字形墨迹，视觉上永远偏高一点。现在用
+     ui/icons.tsx 的 SVG chevron，viewBox 是几何盒，flex 居中即真居中。 */
   cursor: pointer;
   pointer-events: auto;
   transform: translateY(-50%);
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition: background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
   backdrop-filter: blur(6px);
 }
 
@@ -1582,34 +1594,34 @@ ol {
   margin-top: var(--sp-1);
 }
 
+/* 缩略图条的左右翻页键。
+   改动前这里是两个 32×60 的圆角矩形，且**左右各一套配色**：prev 用
+   `--color-canvas-subtle` 浅底深字，next 用写死的 `#1e293b` 深底白字、hover 变铜色。
+   同一排里对称的两个控件长得不一样，是这块最不像 Apple 的地方（Apple 的分页箭头
+   一律同形同色，方向由图标本身表达）。现在：等大的 32px 圆形、中性描边、
+   两侧完全同款，hover 只加深一档底色。写死的 #1e293b 一并去掉。 */
 .detail-gallery__arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
-  height: 60px;
-  border: none;
-  background: var(--color-canvas-subtle, #f0ede6);
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
   color: var(--color-ink-2);
-  font-size: var(--fs-20);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-pill);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
 
 .detail-gallery__arrow:hover {
-  background: var(--color-ink);
-  color: var(--color-on-ink);
-}
-
-.detail-gallery__arrow--next {
-  background: #1e293b;
-  color: var(--color-on-ink);
-}
-
-.detail-gallery__arrow--next:hover {
-  background: var(--color-copper);
+  background-color: var(--color-canvas);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
 }
 
 .detail-gallery__thumbnails {
@@ -4331,7 +4343,17 @@ ol {
 
 .detail-gallery__open img {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  /* ★ 这条与本文件上方 `.detail-gallery__main-media img` 的 transition **同特异度**
+     (0,1,1)，且排在后面——主图按钮的 className 同时带 `__main-media` 与 `__open`
+     两个类，于是 `transition` 简写在这里被**整条替换**，hover 缩放长期没有任何
+     过渡、直接跳变到 scale()。用户报的「hover 放大动画有些生硬」就是这个：
+     不是曲线不好，是压根没有曲线。
+     覆写基态必须在同作用域把被打断的那条重述回来（.agent/frontend.md
+     「在窄作用域覆写基态，会静默打断既有声明」）——所以这里两条都写。
+     守卫 tests/detail-gallery-motion.test.ts：判据落在**最后生效的这一条**上
+     （只断言上面那条毫无意义，它本来就写着、照样被盖）。 */
+  transition: opacity var(--duration-slow) var(--ease-apple),
+    transform var(--duration-slow) var(--ease-apple);
 }
 
 .detail-gallery__open img[src]:not([src='']) {
