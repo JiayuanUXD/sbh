@@ -724,6 +724,7 @@ describe('deriveFieldCompleteness', () => {
     return {
       city: null,
       requestId: VALID_REQUEST_ID,
+      visitorRef: null,
       name: 'test',
       phone: VALID_PHONE,
       phoneNormalized: VALID_PHONE,
@@ -784,6 +785,7 @@ describe('buildInquiryLogEntry', () => {
   function validReq(overrides: Partial<InquiryRequest> = {}): InquiryRequest {
     return {
       requestId: VALID_REQUEST_ID,
+      visitorRef: null,
       name: '张三',
       phone: VALID_PHONE,
       phoneNormalized: VALID_PHONE,

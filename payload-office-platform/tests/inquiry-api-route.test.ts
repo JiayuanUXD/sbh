@@ -19,7 +19,7 @@
  *   - 不暴露 Lead ID、内部错误或房源失效原因
  */
 
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Mock：getPayload / assertEffectiveListing
@@ -127,6 +127,24 @@ import {
   ratePruneRef,
 } from '@/app/api/inquiries/rate-limit-state'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
+
+/**
+ * ⚠️ 本文件多处断言响应体的**精确形状**，而 `visitorRef` 是否为 null 取决于
+ * 进程里有没有 `PAYLOAD_SECRET`——CI 的 job 设了它，本地 shell 没有。
+ * 于是同一批用例两边行为不同：本地 null、CI 里是真派生值，**本地全绿 CI 才红**。
+ *
+ * 那是写测试的错：断言依赖了环境里碰巧有没有某个变量。
+ * 这里让测试**自己控制**它——主体用例一律在「无密钥」下跑（响应恒 null，
+ * 断言稳定），visitorRef 专属那组自行设置，还原统一交给下面的 afterEach。
+ */
+const AMBIENT_PAYLOAD_SECRET = process.env.PAYLOAD_SECRET
+beforeEach(() => {
+  delete process.env.PAYLOAD_SECRET
+})
+afterEach(() => {
+  if (AMBIENT_PAYLOAD_SECRET === undefined) delete process.env.PAYLOAD_SECRET
+  else process.env.PAYLOAD_SECRET = AMBIENT_PAYLOAD_SECRET
+})
 
 // ---------------------------------------------------------------------------
 // 辅助构造器
@@ -304,7 +322,7 @@ describe('POST /api/inquiries / 正常提交', () => {
 
     const r = await run(makeReq({ body: makeValidBody() }))
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
   })
 
   it('调用 payload.create 一次', async () => {
@@ -426,7 +444,7 @@ describe('POST /api/inquiries / 正常提交', () => {
     assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
 
     const r = await run(makeReq({ body: makeValidBody() }))
-    expect(r.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
     expect(JSON.stringify(r.body)).not.toContain('99999')
   })
 })
@@ -533,7 +551,7 @@ describe('POST /api/inquiries / 幂等', () => {
     const req2 = makeReq({ body }) // 相同 requestId + phone + target
     const r2 = await run(req2)
     expect(r2.status).toBe(200)
-    expect(r2.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(r2.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
     expect(payloadCreateMock).toHaveBeenCalledTimes(1) // 仍然只调用一次
   })
 
@@ -580,8 +598,8 @@ describe('POST /api/inquiries / 幂等', () => {
     ])
 
     expect([first.status, second.status]).toEqual([200, 200])
-    expect(first.body).toEqual({ ok: true, targetResolution: 'listing' })
-    expect(second.body).toEqual({ ok: true, targetResolution: 'listing' })
+    expect(first.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
+    expect(second.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
     expect(payloadCreateMock).toHaveBeenCalledTimes(2)
     expect(persistedLeadCount).toBe(1)
     expect(payloadFindMock).toHaveBeenCalledTimes(3)
@@ -610,7 +628,7 @@ describe('POST /api/inquiries / 失效房源', () => {
       body: makeValidBody({ listingSlug: 'expired', buildingSlug: 'bund-soho' }),
     }))
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ ok: true, targetResolution: 'building' })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'building', visitorRef: null })
     expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         targetType: 'building',
@@ -635,7 +653,7 @@ describe('POST /api/inquiries / 失效房源', () => {
       body: makeValidBody({ listingSlug: 'expired', buildingSlug: 'bund-soho' }),
     }))
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ ok: true, targetResolution: 'general' })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'general', visitorRef: null })
     expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         targetType: 'none',
@@ -663,7 +681,7 @@ describe('POST /api/inquiries / 失效房源', () => {
     }))
 
     expect(r.status).toBe(200)
-    expect(r.body).toEqual({ ok: true, targetResolution: 'general' })
+    expect(r.body).toEqual({ ok: true, targetResolution: 'general', visitorRef: null })
     expect(assertEffectiveBuildingMock).not.toHaveBeenCalled()
     expect(payloadCreateMock).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
@@ -1036,5 +1054,84 @@ describe('POST /api/inquiries / 偏好看房时段', () => {
     expect(r.status).toBe(200)
     const created = payloadCreateMock.mock.calls[0][0].data
     expect(created.viewingPreference).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// OPT-067 visitorRef
+// ---------------------------------------------------------------------------
+
+describe('POST /api/inquiries / visitorRef（OPT-067）', () => {
+  // 本文件其余用例都在无 PAYLOAD_SECRET 的环境下跑，响应里 visitorRef 恒为 null。
+  // 那条路径固然要覆盖（缺密钥不能阻断提交），但**派生成功的路径同样要覆盖**——
+  // 只测 null 等于把真正的业务逻辑放空跑。
+  // 还原由文件级 afterEach 统一负责（见文件头注释），本组只管设置
+
+  it('有密钥时派生 32 位十六进制并写入 Lead', async () => {
+    process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+    expect(r.status).toBe(200)
+    expect(r.body.visitorRef).toMatch(/^[0-9a-f]{32}$/)
+    // 响应里给出的与落库的必须是同一个——否则客户端 identify 的 ID
+    // 与后台深链用的 ID 对不上，整条关联链断掉
+    const created = payloadCreateMock.mock.calls[0]?.[0]?.data
+    expect(created.visitorRef).toBe(r.body.visitorRef)
+  })
+
+  it('客户端回传合法值时复用它', async () => {
+    process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const provided = '0123456789abcdef0123456789abcdef'
+    const r = await run(makeReq({ body: { ...makeValidBody(), visitorRef: provided } }))
+    expect(r.body.visitorRef).toBe(provided)
+  })
+
+  it('回传非法值时忽略并回落到派生值，不让提交失败', async () => {
+    process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: { ...makeValidBody(), visitorRef: '../../etc/passwd' } }))
+    expect(r.status).toBe(200)
+    expect(r.body.visitorRef).toMatch(/^[0-9a-f]{32}$/)
+    expect(r.body.visitorRef).not.toBe('../../etc/passwd')
+  })
+
+  it('缺密钥时 visitorRef 为 null，但提交照常成功', async () => {
+    // 这条是真实故障的回归：初版把派生放在两个 try 之外且缺密钥即抛，
+    // 于是本文件 31 条一起红——分析功能不该阻断收线索
+    delete process.env.PAYLOAD_SECRET
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockResolvedValue({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+    expect(r.status).toBe(200)
+    expect(r.body.ok).toBe(true)
+    expect(r.body.visitorRef).toBeNull()
+  })
+
+  it('幂等重放读回既有线索的 visitorRef，而不是重新派生', async () => {
+    // 原线索可能用的是客户端回传值，重新派生会得到另一个值，
+    // 同一条线索前后两次响应给出不同 ID → 深链失效
+    process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
+    const stored = 'fedcba9876543210fedcba9876543210'
+    payloadFindMock.mockResolvedValue({
+      docs: [{ targetType: 'listing', visitorRef: stored }],
+    })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+    expect(r.status).toBe(200)
+    expect(r.body.visitorRef).toBe(stored)
+    expect(payloadCreateMock).not.toHaveBeenCalled()
   })
 })

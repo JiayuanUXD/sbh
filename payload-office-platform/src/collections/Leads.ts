@@ -84,6 +84,9 @@ export const Leads: CollectionConfig = {
       edit: {
         beforeDocumentControls: [
           '/components/admin/LeadOwnershipHistoryLink',
+          // OPT-067：深链到 Umami 会话视图，按该线索的假名标识过滤。
+          // 组件自己判断「无 visitorRef / 未接入 Umami」时不渲染。
+          '/components/admin/LeadVisitorPathLink',
         ],
       },
     },
@@ -506,6 +509,26 @@ export const Leads: CollectionConfig = {
                       admin: {
                         readOnly: true,
                         description: '系统自动生成的防重标识，重复提交只会创建一条线索。',
+                      },
+                    },
+                    {
+                      // OPT-067：假名化访客标识，用于把「提交前的匿名浏览路径」
+                      // 接到这条线索上。由 HMAC(PAYLOAD_SECRET, idempotencyKey)
+                      // 派生，不含任何个人信息原文。
+                      name: 'visitorRef',
+                      label: '访客标识',
+                      type: 'text',
+                      index: true,
+                      admin: {
+                        readOnly: true,
+                        description:
+                          '假名化标识，用于关联该客户提交前的匿名浏览记录。不含个人信息。',
+                      },
+                      // 字段级收口（照 OPT-063 roomNumber 范式）：匿名 REST/GraphQL
+                      // 读不到。它虽不含 PII，但能在 Umami 侧定位到一条完整浏览路径，
+                      // 泄露出去等于把「谁看过哪些房源」交出去。
+                      access: {
+                        read: ({ req }) => Boolean(req.user),
                       },
                     },
                     {

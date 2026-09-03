@@ -30,6 +30,7 @@ import {
 import {
   buildInquiryLogEntry,
   computeIdempotencyKey,
+  resolveVisitorRef,
   deriveTargetSlug,
   hashIpForLog,
   validateInquiry,
@@ -133,6 +134,14 @@ type TargetResolution = 'listing' | 'building' | 'general'
 type ExistingInquiryResolution = Readonly<{
   found: boolean
   targetResolution: TargetResolution
+  /**
+   * 既有线索上的 visitorRef（OPT-067）。
+   *
+   * 幂等重放必须**读回**而不是重新派生：原线索可能用的是客户端回传值
+   * （同会话第二条线索复用首个 ID），重新派生会得到另一个值，
+   * 于是同一条线索前后两次响应给出不同 ID，深链失效。
+   */
+  visitorRef: string | null
 }>
 
 async function findExistingInquiryResolution(
@@ -146,11 +155,13 @@ async function findExistingInquiryResolution(
     depth: 0,
   })
   if (existing.docs.length === 0) {
-    return { found: false, targetResolution: 'general' }
+    return { found: false, targetResolution: 'general', visitorRef: null }
   }
   const existingTarget = existing.docs[0]?.targetType
+  const existingVisitorRef = existing.docs[0]?.visitorRef
   return {
     found: true,
+    visitorRef: typeof existingVisitorRef === 'string' ? existingVisitorRef : null,
     targetResolution:
       existingTarget === 'listing'
         ? 'listing'
@@ -201,6 +212,7 @@ function logIdempotentSuccess(
   inquiry: InquiryRequest,
   startedAt: number,
   targetResolution: TargetResolution,
+  visitorRef: string | null,
 ): Response {
   payload.logger.info(
     buildInquiryLogEntry(inquiry, {
@@ -211,7 +223,7 @@ function logIdempotentSuccess(
     }),
     'inquiry_idempotent_hit',
   )
-  return NextResponse.json({ ok: true, targetResolution })
+  return NextResponse.json({ ok: true, targetResolution, visitorRef })
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -342,6 +354,31 @@ export async function POST(req: Request): Promise<Response> {
     targetSlug,
   )
 
+  // OPT-067：访客标识。客户端回传合法值则复用（同会话多线索共用一个 ID），
+  // 否则由 HMAC(PAYLOAD_SECRET, idempotencyKey) 派生。
+  // 声明在两个 try 之外——幂等检查与创建分属不同 try 块，都要用到它。
+  //
+  // ⚠️ 缺密钥时**不派生但照常提交**，绝不让它阻断收线索。
+  // 初版直接调 resolveVisitorRef(..., process.env.PAYLOAD_SECRET ?? '', ...)，
+  // 密钥缺失时 deriveVisitorRef 抛错且不在任何 try 内 → 整个端点 500。
+  // 单测环境没有 PAYLOAD_SECRET，于是 inquiry-api-route 全文件 31 条一起红——
+  // 那不是断言过时，是真把接口打挂了。
+  //
+  // 取舍很清楚：线索是核心业务，visitorRef 只是分析用的附加品。
+  // 让分析功能阻断收线索是完全颠倒的优先级。
+  // （注意这与 deriveVisitorRef 内部「缺密钥即抛」不矛盾：那条防的是
+  //   静默降级成可被反推的弱哈希；这里降级成的是「没有」，不是「弱的」。）
+  const inquirySecret = process.env.PAYLOAD_SECRET ?? ''
+  let visitorRef: string | null = null
+  if (inquirySecret) {
+    visitorRef = resolveVisitorRef(inquiry.visitorRef, inquirySecret, idempotencyKey)
+  } else {
+    payload.logger.warn(
+      { reason: 'missing_payload_secret' },
+      'inquiry_visitor_ref_skipped',
+    )
+  }
+
   // 注：payload 已在限流块（第 1 步）初始化，此处复用同一实例。
   // getPayload 是单例，重复调用廉价，但避免重复声明以保持作用域清晰。
 
@@ -349,7 +386,13 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const existing = await findExistingInquiryResolution(payload, idempotencyKey)
     if (existing.found) {
-      return logIdempotentSuccess(payload, inquiry, startedAt, existing.targetResolution)
+      return logIdempotentSuccess(
+          payload,
+          inquiry,
+          startedAt,
+          existing.targetResolution,
+          existing.visitorRef,
+        )
     }
   } catch (e) {
     payload.logger.error({ err: e }, 'inquiry_idempotency_check_failed')
@@ -404,6 +447,9 @@ export async function POST(req: Request): Promise<Response> {
         notes: inquiry.message ?? undefined,
         // 前台询盘上下文（FP-05 §5 / §8）
         idempotencyKey,
+        // OPT-067：客户端回传合法值则复用（同会话多线索共用一个 ID），
+        // 否则由 HMAC(PAYLOAD_SECRET, idempotencyKey) 派生。
+        visitorRef,
         sourcePageType: inquiry.source.pageType,
         sourcePath: inquiry.source.path,
         sourceUrl: `${siteConfig.siteOrigin}${inquiry.source.path}`,
@@ -434,13 +480,19 @@ export async function POST(req: Request): Promise<Response> {
       'inquiry_success',
     )
     // 不暴露 Lead ID（FP-05 §7）
-    return NextResponse.json({ ok: true, targetResolution })
+    return NextResponse.json({ ok: true, targetResolution, visitorRef })
   } catch (e) {
     if (isIdempotencyUniqueViolation(e)) {
       try {
         const raced = await findExistingInquiryResolution(payload, idempotencyKey)
         if (raced.found) {
-          return logIdempotentSuccess(payload, inquiry, startedAt, raced.targetResolution)
+          return logIdempotentSuccess(
+            payload,
+            inquiry,
+            startedAt,
+            raced.targetResolution,
+            raced.visitorRef,
+          )
         }
       } catch (readError) {
         payload.logger.error({ err: readError }, 'inquiry_idempotency_race_read_failed')

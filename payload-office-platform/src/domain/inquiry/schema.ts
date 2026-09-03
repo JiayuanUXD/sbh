@@ -19,6 +19,7 @@ import { normalizePhone, isValidCnMobile } from '@/domain/shared/phone'
 import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 import { sanitizeCampaign, type CampaignAttribution } from './campaign'
+import { isVisitorRef } from './visitor-ref'
 
 /** 入口页面类型（与 Leads Collection INQUIRY_SOURCE_PAGE_TYPES 对齐） */
 export const SOURCE_PAGE_TYPES = ['home', 'search', 'listing', 'building', 'content', 'entrust'] as const
@@ -132,6 +133,14 @@ export const LIMITS = {
 export type InquiryRequest = Readonly<{
   city: string | null
   requestId: string
+  /**
+   * 客户端回传的访客标识（OPT-067）。
+   *
+   * 同会话第二条线索复用首个 ID 时由客户端从 sessionStorage 带回。
+   * **非法值归一为 null 而不是报错**——那只可能是被改过或旧版本客户端，
+   * 服务端会回落到派生值，不该让用户提交不了咨询。
+   */
+  visitorRef: string | null
   name: string
   phone: string
   phoneNormalized: string
@@ -225,6 +234,9 @@ export function validateInquiry(input: unknown): ValidationResult {
   const requestId = trimString(input.requestId)
   if (!requestId) errors.push('request_id_required')
   else if (requestId.length > LIMITS.REQUEST_ID_MAX) errors.push('request_id_too_long')
+
+  // OPT-067：可选回传的访客标识。严格校验、非法即忽略（不进 errors）。
+  const visitorRef = isVisitorRef(input.visitorRef) ? input.visitorRef : null
 
   // ----- 选填字段 -----
   const company = trimString(input.company) || null
@@ -339,6 +351,7 @@ export function validateInquiry(input: unknown): ValidationResult {
     data: {
       city,
       requestId,
+      visitorRef,
       name,
       phone: phoneNormalized,
       phoneNormalized,

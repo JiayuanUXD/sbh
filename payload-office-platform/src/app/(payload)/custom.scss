@@ -2763,3 +2763,18 @@ $listing-col-targets: '.row__fields > .field-type, .row__fields > .listing-reado
   margin-top: 12px;
   padding-top: 12px;
 }
+
+/* OPT-067 线索详情的「转化前浏览路径」入口。
+   挂在 beforeDocumentControls，与「归属记录」并排；无 visitorRef 或未接入
+   Umami 时组件自己返回 null，这里不需要额外的隐藏规则。 */
+.lead-visitor-path {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lead-visitor-path__hint {
+  color: var(--theme-elevation-600);
+  font-size: 12px;
+}

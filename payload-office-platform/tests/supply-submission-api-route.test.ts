@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { PRIVACY_POLICY_VERSION } from '@/lib/frontend/site-config'
+
 const payloadFindMock = vi.fn()
 const payloadCreateMock = vi.fn()
 const payloadLoggerError = vi.fn()
@@ -52,7 +54,7 @@ function validBody(): Record<string, unknown> {
     address: '测试地址',
     areaSqm: 180,
     contactPhone: '13800001111',
-    consent: { accepted: true, policyVersion: 'MVP-R1' },
+    consent: { accepted: true, policyVersion: PRIVACY_POLICY_VERSION },
     source: { path: '/publish' },
   }
 }
