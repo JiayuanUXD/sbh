@@ -4,6 +4,7 @@ import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
 import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * OPT-036 房源结果卡（列表页网格）
@@ -28,7 +29,9 @@ import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/fron
  *
  * 守护不变量：
  *   - Server Component，只消费 ListingCardViewModel DTO，不接收 Payload 文档；
- *   - 缺图：.sf-media 靠 aspect-ratio 撑住 4:3，不塌陷（不渲染 <img>，留灰底）；
+ *   - 缺图：.sf-media 靠 aspect-ratio 撑住 4:3，不塌陷；内部渲染共享缺省占位
+ *     （CardMediaPlaceholder：图标 +「图片拍摄中」）。2026-09-04 前这里是留一块裸灰底，
+ *     用户侧读不出「这套房还没拍照」还是「图挂了」；
  *   - 缺价格：整行省略定宽盒，渲染「价格面议」纯文本，不渲染 0 或空盒；
  *   - 标题超长：单行省略号，不换行、不挤压价格行。
  */
@@ -90,7 +93,9 @@ export default function ListingResultCard({ listing, citySlug, analytics }: Read
             width={coverImage.width}
             height={coverImage.height}
           />
-        ) : null}
+        ) : (
+          <CardMediaPlaceholder />
+        )}
         <span className="sf-scrim" aria-hidden="true" />
         <span className="sf-phototag ls-card__type-tag">{typeLabel}</span>
       </span>

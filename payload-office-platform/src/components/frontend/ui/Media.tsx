@@ -50,6 +50,62 @@ type Props = {
   decorative?: boolean
 }
 
+/**
+ * 缺省图占位（全站一份）。
+ *
+ * 抽出来的原因：`.sf-card` 那批卡片（HomeSupplyCard / ListingResultCard /
+ * BuildingResultCard / ListingResultRow）在 `image == null` 时**什么都不渲染**，
+ * `.sf-media` 的 `#8e8e93` 底色直接露出来 —— 用户看到的是一个裸灰块，既没有
+ * 图标也没有说明。而走 `Media` 的调用方与详情画廊各自有一份占位。三处形态
+ * 不同，正是「同义实现多处」。现在统一到这里。
+ *
+ * 两种状态含义不同，文案不可合并：
+ *   - `missing`：本就没有图。无图房源自 2026-08-19 起是常态（前台可见性不再
+ *     要求图片），说「暂未加载」会让人以为是网络问题一直等下去。文案
+ *     「图片拍摄中」说明这是在途工作（产品 2026-09-04 指定）。
+ *   - `errored`：有图但没取到。保持「图片暂未加载」。
+ */
+export function MediaPlaceholder({
+  state,
+  iconSize = 40,
+  compact = false,
+}: Readonly<{ state: 'missing' | 'errored'; iconSize?: number; compact?: boolean }>) {
+  const missing = state === 'missing'
+  return (
+    <>
+      <PhotoIcon size={iconSize} />
+      {/* compact 供窄容器（如列表行卡 240×150 的缩略图）使用：只留主文案，
+          副文案在那个宽度下必然折成三行、把图标挤出可视区。 */}
+      <span className="media-placeholder__text">
+        <strong>{missing ? '图片拍摄中' : '图片暂未加载'}</strong>
+        {compact ? null : (
+          <span>{missing ? '可先查看房源信息或联系顾问' : '可先查看房源信息'}</span>
+        )}
+      </span>
+    </>
+  )
+}
+
+/**
+ * `.sf-media` 容器内的缺省图占位（卡片专用）。
+ *
+ * 为什么单独一个包装而不是让四个卡片各写一遍 span：`aria-hidden` 这个决定
+ * 需要一个统一的落点。卡片图在这些组件里是**装饰性**的——旁边就是可见的
+ * 标题、位置、价格，图片不承载额外信息（同 `Media` 的 `decorative` 判据，
+ * 见本文件 Props 注释）。所以占位块整体对辅助技术隐藏：一屏 24 张卡都念一遍
+ * 「图片拍摄中」是纯噪音，而 sighted 用户仍然看得到这块占位在说什么。
+ *
+ * 调用方一律传 `missing`：卡片上的图是「有没有」而不是「加载成没成」——
+ * `<img>` 真加载失败时浏览器渲染破图，那条路径由 `Media` 组件负责。
+ */
+export function CardMediaPlaceholder({ compact = false }: Readonly<{ compact?: boolean }> = {}) {
+  return (
+    <span className="media-placeholder" data-media-state="missing" aria-hidden="true">
+      <MediaPlaceholder state="missing" iconSize={compact ? 28 : 40} compact={compact} />
+    </span>
+  )
+}
+
 export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, className, sizes, decorative = false }: Props) {
   const [errored, setErrored] = useState(false)
   const alt = decorative ? '' : media?.alt || fallbackAlt || ''
@@ -66,15 +122,7 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
         aria-label={decorative ? undefined : alt || (missing ? '图片拍摄中' : '图片加载失败')}
         data-media-state={missing ? 'missing' : 'errored'}
       >
-        <PhotoIcon size={40} />
-        <span className="media-placeholder__text">
-          {/* 「本就没有图」与「图加载失败」是两件事，文案必须分开——见本文件头。
-              缺省态从「暂无图片」改成「图片拍摄中」（产品要求）：前者是对状态的
-              陈述，读起来像"这套房就是没有图"；后者说明这是在途工作，与平台
-              「实景可预约顾问确认」的口径一致。失败态保持不变。 */}
-          <strong>{missing ? '图片拍摄中' : '图片暂未加载'}</strong>
-          <span>{missing ? '可先查看房源信息或联系顾问' : '可先查看房源信息'}</span>
-        </span>
+        <MediaPlaceholder state={missing ? 'missing' : 'errored'} />
       </div>
     )
   }

@@ -1716,10 +1716,14 @@ ol {
   place-items: center;
   padding: var(--sp-4);
   color: var(--color-muted);
-  background:
-    radial-gradient(circle at 30% 26%, color-mix(in srgb, var(--color-copper-soft) 68%, transparent), transparent 34%),
-    linear-gradient(135deg, var(--color-paper), color-mix(in srgb, var(--color-canvas) 78%, var(--color-surface)));
+  /* 与 .media-placeholder 同一张面（零色相），两处别再各调各的 */
+  background: linear-gradient(135deg, var(--bg-subtle), var(--bg));
   text-align: center;
+}
+
+.detail-gallery__fallback svg {
+  color: var(--ink-3);
+  opacity: 0.72;
 }
 
 .detail-gallery__fallback strong {
@@ -2926,10 +2930,14 @@ ol {
 }
 
 /* Media placeholder（图片失败或缺失时） */
+/* 缺省图占位面。
+   底纹与图标原为 `--color-copper-soft`(#eaf2fb 浅蓝) / `--color-copper`(= --accent
+   #0071e3)。占位块是**不可交互**的背景元素，而本体系里「唯一彩色 --accent 只给
+   可交互元素、标签徽章零色相」(.agent/frontend.md)——一屏 24 张无图卡片全是蓝色
+   相机图标时，它们比旁边真正的 CTA 还抢眼。改为零色相：底纹在两级底色之间做
+   极浅的斜向过渡，图标用 --ink-3（白底 5.07:1，够读但不喧宾夺主）。 */
 .media-placeholder {
-  background:
-    radial-gradient(circle at 28% 24%, color-mix(in srgb, var(--color-copper-soft) 70%, transparent), transparent 34%),
-    linear-gradient(135deg, var(--color-paper), color-mix(in srgb, var(--color-canvas) 78%, var(--color-surface)));
+  background: linear-gradient(135deg, var(--bg-subtle), var(--bg));
   display: grid;
   gap: var(--sp-2);
   align-items: center;
@@ -2944,7 +2952,7 @@ ol {
 }
 
 .media-placeholder svg {
-  color: var(--color-copper);
+  color: var(--ink-3);
   opacity: 0.72;
 }
 
