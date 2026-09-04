@@ -202,7 +202,11 @@ function resolveRequestId(response: RequestTransportResponse): string | null {
   return findRequestIdInBody(response.data) ?? findRequestIdInHeaders(response.headers)
 }
 
-function isMiniApiSuccess(value: unknown, method: RequestMethod): value is {
+function isAuthenticatedRead(path: string, method: RequestMethod): boolean {
+  return method === 'GET' && path === '/api/mini/v1/me'
+}
+
+function isMiniApiSuccess(value: unknown, method: RequestMethod, path: string): value is {
   ok: true
   data: unknown
   meta: { requestId: string; asOf?: string; maxAgeSeconds?: number }
@@ -212,7 +216,7 @@ function isMiniApiSuccess(value: unknown, method: RequestMethod): value is {
   }
 
   if (!isSafeRequestId(value.meta.requestId)) return false
-  if (!isGetMethod(method)) return true
+  if (!isGetMethod(method) || isAuthenticatedRead(path, method)) return true
   return isCanonicalUtcIso(value.meta.asOf) && value.meta.maxAgeSeconds === 300
 }
 
@@ -313,6 +317,7 @@ function classifyTransportFailure(error: unknown, method: RequestMethod): MiniAp
 async function classifyResponse<T>(
   response: RequestTransportResponse,
   method: RequestMethod,
+  path: string,
   parse: (value: unknown) => T | PromiseLike<T>,
 ): Promise<ResponseClassification<T>> {
   const requestId = resolveRequestId(response)
@@ -353,7 +358,7 @@ async function classifyResponse<T>(
     }
   }
 
-  if (isMiniApiSuccess(response.data, method)) {
+  if (isMiniApiSuccess(response.data, method, path)) {
     try {
       return { type: 'success', data: await parse(response.data.data) }
     } catch {
@@ -393,7 +398,11 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
     assertTimeoutMs(timeoutMs)
     assertRequestData(options.data)
     if (options.anonymousContextToken !== undefined) {
-      if (method === 'GET' || typeof options.anonymousContextToken !== 'string' || !/^[A-Za-z0-9._~-]{1,4096}$/.test(options.anonymousContextToken)) {
+      if (
+        (method === 'GET' && !isAuthenticatedRead(options.path, method))
+        || typeof options.anonymousContextToken !== 'string'
+        || !/^[A-Za-z0-9._~-]{1,4096}$/.test(options.anonymousContextToken)
+      ) {
         throw new MiniApiError({
           kind: 'protocol',
           code: 'invalid_authentication',
@@ -423,7 +432,7 @@ export function createRequestClient(dependencies: RequestDependencies): <T>(opti
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       try {
         const response = await dependencies.transport(requestInput)
-        const classification = await classifyResponse(response, method, options.parse)
+        const classification = await classifyResponse(response, method, options.path, options.parse)
 
         if (classification.type === 'success') {
           return classification.data

@@ -1,152 +1,144 @@
 import {
-  type FavoritesSummary,
-  getFavoritesSummary,
-} from '../../services/favorites.js'
-import {
-  type InquiryRecord,
-  getPendingInquiryCount,
-  getRecentInquiries,
-} from '../../services/inquiry-tracker.js'
+  loadUserAssets,
+  refreshUserAssets,
+  type UserFavoriteBuilding,
+  type UserFavoriteListing,
+  type UserInquiry,
+} from '../../services/user-assets.js'
+import { inquiryDetailRoute } from '../../services/inquiry-tracker.js'
 
-interface ProfileInquiryItem extends InquiryRecord {
-  formattedDate: string
+type AssetsState = 'loading' | 'ready' | 'error'
+type FavoriteCollection = 'none' | 'listing' | 'building'
+
+type ProfileInquiry = UserInquiry & Readonly<{ formattedDate: string }>
+
+type ProfilePageData = {
+  assetsState: AssetsState
+  favoriteListings: readonly UserFavoriteListing[]
+  favoriteBuildings: readonly UserFavoriteBuilding[]
+  inquiries: readonly ProfileInquiry[]
+  favoriteCollection: FavoriteCollection
 }
 
-interface ProfilePageData {
-  user: {
-    nickname: string
-    city: string
-  }
-  summary: FavoritesSummary
-  inquiries: ProfileInquiryItem[]
-  pendingInquiryCount: number
+type ProfilePageMethods = {
+  assetsRequestVersion: number
+  loadAssets(force?: boolean, pullDown?: boolean): Promise<void>
+  handleRetryAssets(): void
+  handleViewFavorites(event: WechatMiniprogram.BaseEvent): void
+  handleFavoriteItemClick(event: WechatMiniprogram.BaseEvent): void
+  handleCloseFavoriteCollection(): void
+  handleInquiryItemClick(event: WechatMiniprogram.BaseEvent): void
 }
 
-function formatDate(timestamp: number): string {
+function formatDate(timestamp: string): string {
   const date = new Date(timestamp)
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  return `${month} 月 ${day} 日`
+  return `${date.getMonth() + 1} 月 ${date.getDate()} 日`
 }
 
-Page<ProfilePageData, Record<string, any>>({
-  data: {
-    user: {
-      nickname: '微信用户',
-      city: '上海',
-    },
-    summary: {
-      listingCount: 0,
-      buildingCount: 0,
-      historyCount: 0,
-      compareCount: 0,
-    },
+function emptyVisibleAssets(): Pick<
+  ProfilePageData,
+  'favoriteListings' | 'favoriteBuildings' | 'inquiries' | 'favoriteCollection'
+> {
+  return {
+    favoriteListings: [],
+    favoriteBuildings: [],
     inquiries: [],
-    pendingInquiryCount: 0,
+    favoriteCollection: 'none',
+  }
+}
+
+Page<ProfilePageData, ProfilePageMethods>({
+  data: {
+    assetsState: 'loading',
+    ...emptyVisibleAssets(),
   },
+
+  assetsRequestVersion: 0,
 
   onShow() {
-    this.refreshData()
+    void this.loadAssets(false)
   },
 
-  refreshData() {
-    const summary = getFavoritesSummary()
-    const rawInquiries = getRecentInquiries(5)
-    const inquiries: ProfileInquiryItem[] = rawInquiries.map((item) => ({
-      ...item,
-      formattedDate: formatDate(item.submittedAt),
-    }))
-    const pendingInquiryCount = getPendingInquiryCount()
-
-    this.setData({
-      summary,
-      inquiries,
-      pendingInquiryCount,
-    })
+  onHide() {
+    this.assetsRequestVersion += 1
   },
 
-  handleUserClick() {
-    wx.showToast({
-      title: '已通过微信安全授权',
-      icon: 'none',
-    })
+  onUnload() {
+    this.assetsRequestVersion += 1
   },
 
-  handleViewFavorites(event: WechatMiniprogram.BaseEvent) {
-    const type = event.currentTarget.dataset.type
-    if (type === 'listing') {
-      const count = this.data.summary.listingCount
-      if (count === 0) {
-        wx.showToast({ title: '暂未收藏房源，可前往找房添加', icon: 'none' })
-        return
-      }
-      wx.switchTab({ url: '/pages/listings/index' })
-    } else if (type === 'building') {
-      const count = this.data.summary.buildingCount
-      if (count === 0) {
-        wx.showToast({ title: '暂未收藏楼盘，可前往楼盘页添加', icon: 'none' })
-        return
-      }
-      wx.switchTab({ url: '/pages/buildings/index' })
-    }
+  onPullDownRefresh() {
+    return this.loadAssets(true, true)
   },
 
-  handleViewAllInquiries() {
-    const count = this.data.pendingInquiryCount
-    wx.showToast({
-      title: `共 ${count} 条待跟进咨询`,
-      icon: 'none',
-    })
-  },
-
-  handleInquiryItemClick(event: WechatMiniprogram.BaseEvent) {
-    const slug = event.currentTarget.dataset.slug
-    if (slug) {
-      wx.navigateTo({
-        url: `/pages/listing-detail/index?slug=${encodeURIComponent(slug)}`,
+  async loadAssets(force = false, pullDown = false) {
+    const requestVersion = this.assetsRequestVersion + 1
+    this.assetsRequestVersion = requestVersion
+    this.setData({ assetsState: 'loading', ...emptyVisibleAssets() })
+    try {
+      const assets = await (force ? refreshUserAssets() : loadUserAssets())
+      if (requestVersion !== this.assetsRequestVersion) return
+      this.setData({
+        assetsState: 'ready',
+        favoriteListings: assets.favorites.listings,
+        favoriteBuildings: assets.favorites.buildings,
+        inquiries: assets.inquiries.map((item) => ({
+          ...item,
+          formattedDate: formatDate(item.submittedAt),
+        })),
+        favoriteCollection: 'none',
       })
+    } catch {
+      if (requestVersion !== this.assetsRequestVersion) return
+      this.setData({
+        assetsState: 'error',
+        favoriteListings: [],
+        favoriteBuildings: [],
+        inquiries: [],
+        favoriteCollection: 'none',
+      })
+    } finally {
+      if (pullDown && requestVersion === this.assetsRequestVersion) wx.stopPullDownRefresh()
     }
   },
 
-  handleCompareClick() {
-    wx.showToast({
-      title: '对比功能整理中，稍后开放',
-      icon: 'none',
-    })
+  handleRetryAssets() {
+    void this.loadAssets(true)
   },
 
-  handleCityClick() {
-    wx.showActionSheet({
-      itemList: ['上海', '北京（即将开放）', '深圳（即将开放）'],
-      success: (res) => {
-        if (res.tapIndex === 0) {
-          wx.showToast({ title: '已选择：上海', icon: 'success' })
-        } else {
-          wx.showToast({ title: '新城市敬请期待', icon: 'none' })
-        }
-      },
-    })
+  handleViewFavorites(event) {
+    const type = event.currentTarget.dataset.type
+    if (type !== 'listing' && type !== 'building') return
+    const items = type === 'listing' ? this.data.favoriteListings : this.data.favoriteBuildings
+    if (items.length === 0) {
+      wx.showToast({ title: type === 'listing' ? '暂未收藏房源' : '暂未收藏楼盘', icon: 'none' })
+      return
+    }
+    this.setData({ favoriteCollection: type })
   },
 
-  handleAdvisorClick() {
-    wx.showModal({
-      title: '联系商办专属顾问',
-      content: '服务时间：工作日 9:00–20:00\n我们将安排陆家嘴/静安核心商圈资深顾问与您直连。',
-      confirmText: '呼叫顾问',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({ title: '已为您发起专属顾问对接', icon: 'success' })
-        }
-      },
-    })
+  handleFavoriteItemClick(event) {
+    const type = event.currentTarget.dataset.type
+    const slug = event.currentTarget.dataset.slug
+    if ((type !== 'listing' && type !== 'building') || typeof slug !== 'string' || !slug) return
+    const page = type === 'listing' ? 'listing-detail' : 'building-detail'
+    wx.navigateTo({ url: `/pages/${page}/index?slug=${encodeURIComponent(slug)}` })
   },
 
-  handleSettingsClick() {
-    wx.showModal({
-      title: '关于 SBH 与隐私保护',
-      content: 'SBH 严格遵循《商办找房个人信息保护指引》，不读取通讯录，不骚扰推送，保障企业选址隐私安全。',
-      showCancel: false,
-      confirmText: '了解',
-    })
+  handleCloseFavoriteCollection() {
+    this.setData({ favoriteCollection: 'none' })
+  },
+
+  handleInquiryItemClick(event) {
+    const submittedAt = event.currentTarget.dataset.submittedAt
+    if (typeof submittedAt !== 'string') return
+    const inquiry = this.data.inquiries.find((item) => item.submittedAt === submittedAt)
+    if (!inquiry) return
+    const route = inquiryDetailRoute(inquiry)
+    if (route === null) {
+      wx.showToast({ title: '通用需求暂无详情页', icon: 'none' })
+      return
+    }
+    wx.navigateTo({ url: route })
   },
 })

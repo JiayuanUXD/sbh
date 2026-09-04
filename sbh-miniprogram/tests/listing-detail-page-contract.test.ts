@@ -182,4 +182,24 @@ describe('房源详情页面合同', () => {
     expect(source).not.toContain('recordInquiry')
     expect(source).not.toContain("statusLabel: '待带看'")
   })
+
+  it('收藏只在服务端写入与 /me 复核后更新，busy 防止重复点击', () => {
+    const source = readPageFile('index.ts')
+    const markup = readPageFile('index.wxml')
+
+    expect(source).toContain('setFavorite')
+    expect(source).toContain('loadUserAssets')
+    expect(source).toMatch(/async handleToggleFavorite\(\)[\s\S]*if \(this\.data\.favoriteBusy\) return[\s\S]*await setFavorite/)
+    expect(source).toMatch(/catch[\s\S]*收藏状态更新失败/)
+    expect(source).not.toMatch(/toggleListingFavorite|isListingFavorite/)
+    expect(markup).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
+  })
+
+  it('咨询成功后刷新服务端 /me 投影，不在页面内编造记录', () => {
+    const source = readPageFile('index.ts')
+
+    expect(source).toContain('refreshUserAssets')
+    expect(source).toMatch(/snapshot\.state === 'success'[\s\S]*refreshUserAssets\(\)/)
+    expect(source).not.toMatch(/recordInquiry|statusLabel|submissionRequestId:\s*`req_/)
+  })
 })

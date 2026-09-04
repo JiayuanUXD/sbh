@@ -218,15 +218,39 @@ describe('Mini API 请求层', () => {
     })).rejects.toMatchObject({ kind: 'protocol', code: 'invalid_response' })
   })
 
-  it('GET 不允许携带匿名 token', async () => {
-    const { request, transport } = createClient([success({ unreachable: true })])
+  it('/me GET 允许携带受控 session Bearer，普通目录 GET 仍拒绝 token', async () => {
+    const { request, transport } = createClient([{
+      statusCode: 200,
+      data: {
+        ok: true,
+        data: { counts: { favorites: 0, inquiries: 0 } },
+        meta: { requestId: 'me-request-id' },
+      },
+    }])
 
     await expect(request({
+      path: '/api/mini/v1/me',
+      method: 'GET',
+      anonymousContextToken: 'token',
+      parse: parseUnknown,
+    })).resolves.toEqual({ counts: { favorites: 0, inquiries: 0 } })
+    expect(transport).toHaveBeenCalledWith(expect.objectContaining({
+      path: '/api/mini/v1/me',
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer token',
+      },
+    }))
+
+    const catalogClient = createClient([success({ unreachable: true })])
+
+    await expect(catalogClient.request({
       path: '/api/mini/v1/home',
       anonymousContextToken: 'token',
       parse: parseUnknown,
     })).rejects.toMatchObject({ kind: 'protocol', code: 'invalid_authentication' })
-    expect(transport).not.toHaveBeenCalled()
+    expect(catalogClient.transport).not.toHaveBeenCalled()
   })
 
   it.each(['', 'token with spaces', 'x'.repeat(4097)])(

@@ -1,73 +1,104 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import {
-  clearInquiryRecordsForTesting,
-  getPendingInquiryCount,
   getRecentInquiries,
-  recordInquiry,
+  inquiryDetailRoute,
 } from '../miniprogram/services/inquiry-tracker.js'
+import {
+  parseUserAssets,
+  type UserAssets,
+} from '../miniprogram/services/user-assets.js'
 
-describe('留资跟进记录服务 (Inquiry Tracker Service)', () => {
-  beforeEach(() => {
-    clearInquiryRecordsForTesting()
-  })
-
-  it('初始状态下无留资记录且待跟进数为 0', () => {
-    expect(getRecentInquiries()).toHaveLength(0)
-    expect(getPendingInquiryCount()).toBe(0)
-  })
-
-  it('提交留资成功后正确归档并更新待跟进计数', () => {
-    recordInquiry({
-      submissionRequestId: 'req_001',
-      targetType: 'listing',
-      targetSlug: 'wheelock-square-12f',
-      targetTitle: '越洋国际广场 · 12 层整层',
-      status: 'pending',
-      statusLabel: '待带看',
-    })
-
-    const records = getRecentInquiries()
-    expect(records).toHaveLength(1)
-    expect(records[0]?.targetTitle).toBe('越洋国际广场 · 12 层整层')
-    expect(records[0]?.statusLabel).toBe('待带看')
-    expect(getPendingInquiryCount()).toBe(1)
-  })
-
-  it('重复同一 submissionRequestId 幂等处理不重复计数', () => {
-    recordInquiry({
-      submissionRequestId: 'req_dup',
-      targetType: 'listing',
-      targetTitle: '恒隆广场整层',
-      status: 'pending',
-      statusLabel: '进行中',
-    })
-    recordInquiry({
-      submissionRequestId: 'req_dup',
-      targetType: 'listing',
-      targetTitle: '恒隆广场整层',
-      status: 'pending',
-      statusLabel: '进行中',
-    })
-
-    expect(getRecentInquiries()).toHaveLength(1)
-    expect(getPendingInquiryCount()).toBe(1)
-  })
-
-  it('多条记录按提交时间倒序排列并限制最大保留数', () => {
-    for (let i = 1; i <= 5; i++) {
-      recordInquiry({
-        submissionRequestId: `req_${i}`,
+function assetsWithInquiries(): UserAssets {
+  return parseUserAssets({
+    counts: { favorites: 0, inquiries: 3 },
+    favorites: { listings: [], buildings: [] },
+    inquiries: [
+      {
         targetType: 'listing',
-        targetTitle: `房源 ${i}`,
-        status: i % 2 === 0 ? 'contacted' : 'pending',
-        statusLabel: i % 2 === 0 ? '顾问已联系' : '待带看',
-      })
+        targetSlug: 'jing-an-100',
+        targetTitle: '静安中心 100㎡',
+        submittedAt: '2026-09-04T09:10:00.000Z',
+        status: { value: 'following', label: '跟进中' },
+      },
+      {
+        targetType: 'building',
+        targetSlug: 'jing-an-center',
+        targetTitle: '静安中心',
+        submittedAt: '2026-09-04T09:00:00.000Z',
+        status: { value: 'new', label: '新建' },
+      },
+      {
+        targetType: 'general',
+        targetSlug: null,
+        targetTitle: '通用找房需求',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value: 'pending_assignment', label: '待分配' },
+      },
+    ],
+  })
+}
+
+describe('服务端咨询记录投影', () => {
+  it('只从 /me 已确认资产读取历史并支持限制条数', () => {
+    const assets = assetsWithInquiries()
+
+    expect(getRecentInquiries(assets, 2).map((item) => item.targetType)).toEqual([
+      'listing',
+      'building',
+    ])
+  })
+
+  it('房源与楼盘分别导航真实详情，general 不伪造详情', () => {
+    const [listing, building, general] = assetsWithInquiries().inquiries
+
+    expect(listing && inquiryDetailRoute(listing)).toBe('/pages/listing-detail/index?slug=jing-an-100')
+    expect(building && inquiryDetailRoute(building)).toBe('/pages/building-detail/index?slug=jing-an-center')
+    expect(general && inquiryDetailRoute(general)).toBeNull()
+  })
+
+  it.each([
+    { key: 'phone', value: '13800000000' },
+    { key: 'openid', value: 'openid-secret' },
+    { key: 'lead', value: 42 },
+    { key: 'idempotencyKey', value: 'private-key' },
+  ])('拒绝服务端夹带 PII 或内部字段 $key', ({ key, value }) => {
+    const payload = {
+      counts: { favorites: 0, inquiries: 0 },
+      favorites: { listings: [], buildings: [] },
+      inquiries: [],
+      [key]: value,
     }
 
-    const records = getRecentInquiries()
-    expect(records).toHaveLength(5)
-    expect(records[0]?.submissionRequestId).toBe('req_5')
-    expect(getPendingInquiryCount()).toBe(3) // req_1, req_3, req_5
+    expect(() => parseUserAssets(payload)).toThrow('invalid user assets response')
+  })
+
+  it('拒绝 general 伪造 slug 与未知服务端状态', () => {
+    const base = {
+      counts: { favorites: 0, inquiries: 1 },
+      favorites: { listings: [], buildings: [] },
+    }
+
+    expect(() => parseUserAssets({
+      ...base,
+      inquiries: [{
+        targetType: 'general',
+        targetSlug: 'fake-detail',
+        targetTitle: '通用需求',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value: 'new', label: '新建' },
+      }],
+    })).toThrow('invalid user assets response')
+
+    expect(() => parseUserAssets({
+      ...base,
+      inquiries: [{
+        targetType: 'listing',
+        targetSlug: 'jing-an-100',
+        targetTitle: '静安中心 100㎡',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value: 'assigned', label: '顾问已分配' },
+      }],
+    })).toThrow('invalid user assets response')
   })
 })

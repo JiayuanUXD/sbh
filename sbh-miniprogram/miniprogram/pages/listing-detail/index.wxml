@@ -137,12 +137,13 @@
 
     <view class="listing-detail__bar" aria-hidden="{{inquiryOpen}}">
       <view
-        class="listing-detail__bar-fav"
+        class="listing-detail__bar-fav {{favoriteBusy ? 'listing-detail__bar-fav--busy' : ''}}"
         bindtap="handleToggleFavorite"
         hover-class="sbh-pressable"
+        aria-disabled="{{favoriteBusy}}"
       >
         <text class="listing-detail__bar-fav-icon">{{isFavorited ? '♥' : '♡'}}</text>
-        <text class="listing-detail__bar-fav-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
+        <text class="listing-detail__bar-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>
       </view>
       <button
         class="listing-detail__bar-action listing-detail__bar-action--share"

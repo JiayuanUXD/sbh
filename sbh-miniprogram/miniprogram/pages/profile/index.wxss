@@ -1,239 +1,177 @@
 .profile-page {
   min-height: 100vh;
-  background: var(--sbh-color-neutral-subtle, #f2f2f4);
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  padding-bottom: calc(var(--sbh-layout-space-lg) + env(safe-area-inset-bottom));
+  background: var(--sbh-page-background);
+  color: var(--sbh-text-primary);
 }
 
-/* 用户身份卡 */
+.profile-user-card,
+.profile-metrics-card,
+.profile-collection-card,
+.profile-inquiry-card,
+.profile-state {
+  background: var(--sbh-card-background);
+}
+
 .profile-user-card {
-  background: #ffffff;
-  padding: 32rpx 32rpx;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  border-bottom: 2rpx solid #e5e5e7;
+  gap: var(--sbh-layout-content-gap);
+  padding: var(--sbh-layout-space-lg);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
 }
 
 .profile-avatar {
-  flex: none;
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 50%;
-  background: #e8e8ea;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: var(--sbh-size-touch-target);
+  height: var(--sbh-size-touch-target);
+  border-radius: 50%;
+  background: var(--sbh-border-subtle);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
 }
 
-.profile-avatar-icon {
-  font-size: 44rpx;
-}
-
-.profile-user-info {
+.profile-user-info,
+.profile-inquiry-content,
+.profile-asset-title {
   flex: 1;
   min-width: 0;
 }
 
 .profile-username {
-  font-size: 34rpx;
-  font-weight: 600;
-  color: var(--sbh-color-neutral-solid, #1d1d1f);
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
 }
 
-.profile-user-city {
-  margin-top: 6rpx;
-  font-size: 24rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
+.profile-user-state,
+.profile-inquiry-date,
+.profile-card-count,
+.profile-empty {
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
 }
 
-.profile-arrow {
-  font-size: 28rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
-  font-weight: 400;
+.profile-user-state,
+.profile-inquiry-date {
+  margin-top: var(--sbh-layout-space-xs);
 }
 
-/* 4 格核心资产指标卡 */
-.profile-metrics-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  margin: 20rpx 24rpx;
-  padding: 28rpx 0;
+.profile-state,
+.profile-metrics-card,
+.profile-collection-card,
+.profile-inquiry-card {
+  margin: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter) 0;
+  border-radius: var(--sbh-card-radius);
+  overflow: hidden;
+}
+
+.profile-state {
+  padding: var(--sbh-card-padding);
 }
 
 .profile-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .profile-metric-item {
+  min-height: var(--sbh-size-touch-target);
+  padding: var(--sbh-layout-space-lg) var(--sbh-layout-space-xs);
   text-align: center;
-  padding: 8rpx 0;
+}
+
+.profile-metric-item--static {
+  color: var(--sbh-text-secondary);
 }
 
 .profile-metric-num {
-  font-size: 38rpx;
-  font-weight: 600;
-  color: var(--sbh-color-neutral-solid, #1d1d1f);
+  font-size: var(--sbh-type-section-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
 }
 
 .profile-metric-label {
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #6e6e73;
+  margin-top: var(--sbh-layout-space-xs);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
 }
 
-/* 我的留资卡块 */
-.profile-inquiry-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  margin: 0 24rpx 20rpx;
-  padding: 0 28rpx;
-}
-
-.profile-inquiry-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx 0;
-}
-
-.profile-inquiry-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: var(--sbh-color-neutral-solid, #1d1d1f);
-}
-
-.profile-inquiry-status-link {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  font-size: 26rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
-}
-
-.profile-divider {
-  height: 2rpx;
-  background: #e5e5e7;
-}
-
-.profile-inquiry-list {
-  padding: 24rpx 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
+.profile-card-header,
+.profile-asset-row,
 .profile-inquiry-item {
   display: flex;
   align-items: center;
-  gap: 20rpx;
 }
 
-.profile-inquiry-media {
-  flex: none;
-  width: 112rpx;
-  height: 88rpx;
-  border-radius: 12rpx;
-  background: #e8e8ea;
-  overflow: hidden;
+.profile-card-header {
+  min-height: var(--sbh-size-touch-target);
+  justify-content: space-between;
+  padding: 0 var(--sbh-card-padding);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+}
+
+.profile-card-title,
+.profile-inquiry-title,
+.profile-asset-title {
+  font-size: var(--sbh-type-body-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-card-close {
+  min-height: var(--sbh-size-touch-target);
   display: flex;
   align-items: center;
-  justify-content: center;
+  color: var(--sbh-interaction-primary);
+  font-size: var(--sbh-type-body-size);
 }
 
-.profile-inquiry-thumb {
-  width: 100%;
-  height: 100%;
+.profile-asset-row,
+.profile-inquiry-item {
+  min-height: var(--sbh-size-touch-target);
+  gap: var(--sbh-layout-content-gap);
+  padding: var(--sbh-layout-space-md) var(--sbh-card-padding);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
 }
 
-.profile-inquiry-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.profile-asset-image,
+.profile-asset-placeholder {
+  width: 96rpx;
+  height: 72rpx;
+  border-radius: var(--sbh-shape-control-radius);
+  background: var(--sbh-border-subtle);
 }
 
-.profile-inquiry-ph-icon {
-  font-size: 36rpx;
-}
-
-.profile-inquiry-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.profile-inquiry-target-title {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: var(--sbh-color-neutral-solid, #1d1d1f);
+.profile-asset-title,
+.profile-inquiry-title {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.profile-inquiry-date-note {
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
+.profile-arrow {
+  color: var(--sbh-text-tertiary);
 }
 
 .profile-inquiry-badge {
   flex: none;
-  font-size: 22rpx;
-  color: #6e6e73;
-  background: #f5f5f7;
-  border-radius: 6rpx;
-  padding: 6rpx 14rpx;
+  padding: var(--sbh-layout-space-xs) var(--sbh-layout-space-sm);
+  border-radius: var(--sbh-shape-label-radius);
+  background: var(--sbh-page-background);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
 }
 
-.profile-inquiry-empty {
-  padding: 36rpx 0;
+.profile-empty {
+  padding: var(--sbh-layout-space-lg) var(--sbh-card-padding);
   text-align: center;
 }
 
-.profile-inquiry-empty-text {
-  font-size: 24rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
-  line-height: 1.5;
-}
-
-/* 菜单列表卡块 */
-.profile-menu-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  margin: 0 24rpx 20rpx;
-  padding: 0 28rpx;
-}
-
-.profile-menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx 0;
-}
-
-.profile-menu-label {
-  font-size: 30rpx;
-  color: var(--sbh-color-neutral-solid, #1d1d1f);
-}
-
-.profile-menu-value {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  font-size: 26rpx;
-  color: var(--sbh-color-neutral-muted, #86868b);
-}
-
-/* 页脚版本信息 */
 .profile-footer {
+  padding: var(--sbh-layout-space-lg) 0;
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
   text-align: center;
-  font-size: 22rpx;
-  color: #a1a1a6;
-  padding: 24rpx 0 16rpx;
-}
-
-.sbh-pressable:active {
-  transform: scale(0.98);
-  opacity: 0.85;
 }

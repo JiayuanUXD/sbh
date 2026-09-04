@@ -1,4 +1,5 @@
-<view id="building-detail-ready" class="building-detail-page">
+<page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
+<view id="building-detail-ready" class="building-detail-page" aria-hidden="{{inquiryOpen}}">
   <!-- 加载状态 -->
   <view wx:if="{{state === 'loading'}}" class="building-detail-loading">
     <sbh-skeleton rows="6" with-media />
@@ -190,9 +191,9 @@
 
     <!-- 底部常驻操作栏 -->
     <view class="building-bottom-bar">
-      <view class="building-bottom-fav" bindtap="handleFav">
+      <view class="building-bottom-fav" bindtap="handleFav" aria-disabled="{{favoriteBusy}}">
         <text class="building-fav-icon {{isFavorited ? 'building-fav-icon--active' : ''}}">{{isFavorited ? '♥' : '♡'}}</text>
-        <text class="building-fav-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
+        <text class="building-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>
       </view>
       <view
         wx:if="{{building.activeListingCount > 0}}"
@@ -201,9 +202,23 @@
       >
         看全部 {{building.activeListingCount}} 套
       </view>
-      <view class="building-bottom-cta" bindtap="handleInquiryAdvisor">
+      <view class="building-bottom-cta" bindtap="handleInquiryAdvisor" aria-disabled="{{inquiryOpen}}">
         找顾问问楼
       </view>
     </view>
   </block>
 </view>
+
+<inquiry-sheet
+  snapshot="{{inquirySheet}}"
+  bindclose="handleInquiryClose"
+  bindprivacy="handleInquiryPrivacy"
+  bindmoveinchange="handleInquiryMoveInChange"
+  bindphonechange="handleInquiryPhoneChange"
+  bindselectmanual="handleInquirySelectManual"
+  bindselectwechat="handleInquirySelectWechat"
+  bindconsentchange="handleInquiryConsentChange"
+  bindphoneauthorize="handleInquiryPhoneAuthorization"
+  bindphonerejected="handleInquiryPhoneRejected"
+  bindmanualsubmit="handleInquiryManualSubmit"
+/>

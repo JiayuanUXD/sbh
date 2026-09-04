@@ -18,6 +18,7 @@ describe('楼盘详情页面合同', () => {
       usingComponents: {
         'sbh-skeleton': '../../components/sbh-skeleton/index',
         'sbh-state': '../../components/sbh-state/index',
+        'inquiry-sheet': '/components/inquiry-sheet/index',
       },
     })
   })
@@ -44,5 +45,32 @@ describe('楼盘详情页面合同', () => {
     expect(source).toContain('/pages/listing-detail/index?slug=')
     expect(source).toContain('handleComparableOpen')
     expect(source).toContain('/pages/building-detail/index?slug=')
+  })
+
+  it('楼盘咨询复用 Task 4 building target 真实 inquiry sheet', () => {
+    const source = readPageFile('index.ts')
+    const template = readPageFile('index.wxml')
+
+    expect(source).toContain('createInquirySheetController')
+    expect(source).toContain('createInquiryService')
+    expect(source).toContain("targetType: 'building'")
+    expect(source).toContain('buildingSlug: building.slug')
+    expect(source).toMatch(/snapshot\.state === 'success'[\s\S]*refreshUserAssets\(\)/)
+    expect(template).toContain('<inquiry-sheet')
+    expect(template).toContain('snapshot="{{inquirySheet}}"')
+    expect(source).not.toMatch(/recordInquiry|待带看|已接单|30\s*分钟内/)
+    expect(template).not.toMatch(/待带看|已接单|30\s*分钟内/)
+  })
+
+  it('楼盘收藏异步等待服务端确认并用 busy 防重复', () => {
+    const source = readPageFile('index.ts')
+    const template = readPageFile('index.wxml')
+
+    expect(source).toContain('setFavorite')
+    expect(source).toContain('loadUserAssets')
+    expect(source).toMatch(/async handleFav\(\)[\s\S]*if \(this\.data\.favoriteBusy\) return[\s\S]*await setFavorite/)
+    expect(source).toMatch(/catch[\s\S]*收藏状态更新失败/)
+    expect(source).not.toMatch(/toggleBuildingFavorite|isBuildingFavorite/)
+    expect(template).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
   })
 })

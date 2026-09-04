@@ -18,7 +18,12 @@ import {
   createInquiryService,
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
-import { isListingFavorite, toggleListingFavorite } from '../../services/favorites.js'
+import {
+  isFavorite,
+  loadUserAssets,
+  refreshUserAssets,
+  setFavorite,
+} from '../../services/favorites.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
 import {
@@ -43,6 +48,7 @@ type ListingDetailPageData = {
   inquiryOpen: boolean
   inquirySheet: InquirySheetSnapshot
   isFavorited: boolean
+  favoriteBusy: boolean
 }
 
 type ListingOpenEvent = Readonly<{
@@ -62,7 +68,8 @@ type ListingDetailPageMethods = {
   handleBackToListings(): void
   handleRelatedOpen(event: ListingOpenEvent): void
   openDetail(slug: string): void
-  handleToggleFavorite(): void
+  loadFavoriteState(slug: string): Promise<void>
+  handleToggleFavorite(): Promise<void>
   handleOpenInquiry(): void
   handleInquiryClose(): void
   handleInquiryPrivacy(): void
@@ -110,18 +117,8 @@ function requestLoginCode(): Promise<Readonly<{ code: string }>> {
 
 function openPrivacyContract(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const privacyApi = (wx as unknown as {
-      openPrivacyContract?: (options: Readonly<{
-        success(): void
-        fail(error: unknown): void
-      }>) => void
-    }).openPrivacyContract
-    if (!privacyApi) {
-      reject(new Error('privacy contract unavailable'))
-      return
-    }
     try {
-      privacyApi({ success: resolve, fail: reject })
+      wx.openPrivacyContract({ success: () => resolve(), fail: reject })
     } catch {
       reject(new Error('privacy contract unavailable'))
     }
@@ -163,7 +160,6 @@ function projectSnapshot(snapshot: ListingDetailSnapshot): Partial<ListingDetail
   return {
     state: snapshot.state,
     slug: snapshot.slug,
-    isFavorited: isListingFavorite(snapshot.slug),
     fallbackListings: snapshot.fallbackListings.map(presentListingCard),
     loadingFallback: snapshot.loadingFallback,
     content: snapshot.content === null
@@ -189,6 +185,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
     isFavorited: false,
+    favoriteBusy: true,
   },
 
   listingDetailController: null,
@@ -197,6 +194,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
   onLoad(options) {
     const slug = typeof options.slug === 'string' ? options.slug : ''
     void this.ensureListingDetailController().load(slug)
+    void this.loadFavoriteState(slug)
   },
 
   onUnload() {
@@ -251,29 +249,59 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
         ensureAnonymousContext: sessionService.ensureAnonymousContext,
         openPrivacyContract,
         submit: inquiryService.submit,
-        onChange: (snapshot) => this.setData({
-          inquirySheet: snapshot,
-          inquiryOpen: snapshot.state !== 'closed',
-        }),
+        onChange: (snapshot) => {
+          this.setData({
+            inquirySheet: snapshot,
+            inquiryOpen: snapshot.state !== 'closed',
+          })
+          if (snapshot.state === 'success') {
+            void refreshUserAssets().catch(() => undefined)
+          }
+        },
       })
     }
     return this.inquirySheetController
   },
 
-  handleToggleFavorite() {
+  async loadFavoriteState(slug) {
+    if (!slug) {
+      this.setData({ isFavorited: false, favoriteBusy: false })
+      return
+    }
+    this.setData({ favoriteBusy: true })
+    try {
+      const assets = await loadUserAssets()
+      if (this.data.slug !== slug) return
+      this.setData({
+        isFavorited: isFavorite(assets, { targetType: 'listing', targetSlug: slug }),
+      })
+    } catch {
+      if (this.data.slug === slug) this.setData({ isFavorited: false })
+    } finally {
+      if (this.data.slug === slug) this.setData({ favoriteBusy: false })
+    }
+  },
+
+  async handleToggleFavorite() {
     const slug = this.data.slug
-    const content = this.data.content
+    if (this.data.favoriteBusy) return
     if (!slug) return
-    const isNowFav = toggleListingFavorite({
-      slug,
-      title: content?.title || '商办房源',
-      imageUrl: content?.gallery?.[0]?.src,
-    })
-    this.setData({ isFavorited: isNowFav })
-    wx.showToast({
-      title: isNowFav ? '已收藏该房源' : '已取消收藏',
-      icon: 'success',
-    })
+    const target = { targetType: 'listing' as const, targetSlug: slug }
+    const favorite = !this.data.isFavorited
+    this.setData({ favoriteBusy: true })
+    try {
+      const assets = await setFavorite(target, favorite)
+      const isFavorited = isFavorite(assets, target)
+      this.setData({ isFavorited })
+      wx.showToast({
+        title: isFavorited ? '已收藏该房源' : '已取消收藏',
+        icon: 'success',
+      })
+    } catch {
+      wx.showToast({ title: '收藏状态更新失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ favoriteBusy: false })
+    }
   },
 
   handleRetry() {
