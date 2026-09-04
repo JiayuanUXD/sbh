@@ -1,4 +1,7 @@
-import Link from 'next/link'
+// NavLink 而不是 next/link：点击结果卡后到详情页到达之间（线上冷开 2–4 秒）
+// 需要即时反馈——被点的卡自己转圈、结果区压暗。详情路由**不能**用 loading.tsx
+// 补这个反馈：那会把 404 / 307 变成 200（见 tests/opt068-listing-navigation.test.ts）。
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
@@ -68,7 +71,7 @@ export default function BuildingCompactRow({ building, citySlug, analytics }: Re
     .join(' · ')
 
   return (
-    <Link
+    <NavLink
       href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
       // prefetch={false}：与 `BuildingResultCard` 指向同一类 URL、同一个页面，三条件
       // 同样并列成立。而且本行**比在租卡更该关**：行高只有 64（在租卡约 182），同一屏
@@ -97,6 +100,6 @@ export default function BuildingCompactRow({ building, citySlug, analytics }: Re
         {metaText ? <span className="bd-row__meta sf-num">{metaText}</span> : null}
       </span>
       <span className="bd-row__notify">上新通知我</span>
-    </Link>
+    </NavLink>
   )
 }

@@ -35,6 +35,12 @@ const LISTING_COMPONENTS = [
   'PriceUnitSegment.tsx',
   'ListPager.tsx',
   'MobileFilterSheet.tsx',
+  // 结果卡也要有 pending：点卡片进详情是列表页最常用的操作，而详情路由不能靠
+  // loading.tsx 补反馈（会把 404 / 307 变成 200，见下方守卫）。
+  'ListingResultCard.tsx',
+  'ListingResultRow.tsx',
+  'BuildingResultCard.tsx',
+  'BuildingCompactRow.tsx',
 ] as const
 
 const readComponent = (name: string) =>
@@ -88,12 +94,22 @@ describe('OPT-068 列表导航反馈', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{[\s\S]*data-pending[\s\S]*animation: none/)
   })
 
-  it('详情路由有 loading.tsx，列表路由没有', () => {
+  it('详情路由**不得**有 loading.tsx —— 它会把 404 / 307 变成 200', () => {
+    // 本条是 CI 抓出来的真回归（PR #146 首轮 e2e 三红）：给详情路由加 loading.tsx
+    // 之后，Next 立刻把外壳连同 **HTTP 200** 发出去，页面里后来执行的
+    // `notFound()` / `redirect()` 只能以流式补丁的形式送达，改不了状态码。
+    // 于是「错误城市的详情应 307 到正确城市」「回滚下架的房源应 404」全变成 200——
+    // 这是 URL 归属与 SEO 的硬约束，不能为了一个骨架让路。
+    //   - tests/e2e/detail-pages.spec.ts:121（wrongCity 应 307）
+    //   - tests/e2e/multi-city-routing.spec.ts:143（/hangzhou/buildings/<上海楼盘> 应 307）
+    //   - tests/e2e/bulk-import.spec.ts:374（回滚后应 404）
+    // 列表路由不得有 loading.tsx 是另一条理由（抽屉重挂），见
+    // tests/opt036-listings-view-wiring.test.ts 的同名守卫。
     const appDir = path.join(SRC, 'app', '(frontend)')
-    for (const route of ['[city]/listings/[slug]', '[city]/buildings/[slug]']) {
-      expect(existsSync(path.join(appDir, route, 'loading.tsx')), route).toBe(true)
-    }
-    for (const route of ['[city]/listings', 'listings', '[city]/buildings', 'buildings']) {
+    for (const route of [
+      '[city]/listings/[slug]', '[city]/buildings/[slug]', 'listings/[slug]', 'buildings/[slug]',
+      '[city]/listings', 'listings', '[city]/buildings', 'buildings',
+    ]) {
       expect(existsSync(path.join(appDir, route, 'loading.tsx')), route).toBe(false)
     }
   })
