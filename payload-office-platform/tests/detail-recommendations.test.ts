@@ -12,6 +12,7 @@ import {
   createPayloadSupplyAdapter,
   createSearchContext,
   getDetailRecommendations,
+  rowsFromListings,
 } from '@/domain/public-catalog'
 import {
   rankDetailRecommendations,
@@ -79,6 +80,9 @@ describe('rankDetailRecommendations', () => {
       slug: 'recommended-office',
       title: '推荐办公室',
     }
+    // OPT-068：推荐链路是「扫描候选 → 打分 → 回捞获胜卡片」。这份替身从生产
+    // 适配器展开而来，因此**必须**把这三个方法都盖掉——漏掉任何一个，剩下的那个
+    // 会真的去连库（表现为本用例 5 秒超时，不是断言失败）。
     const adapter = {
       ...createPayloadSupplyAdapter(),
       async findEffectiveListingBySlug() {
@@ -86,6 +90,12 @@ describe('rankDetailRecommendations', () => {
       },
       async findEffectiveListings() {
         return [candidateListing]
+      },
+      async scanEffectiveListings() {
+        return rowsFromListings([candidateListing])
+      },
+      async findEffectiveListingsByIds(ids: readonly number[]) {
+        return ids.includes(candidateListing.id) ? [candidateListing] : []
       },
     }
 

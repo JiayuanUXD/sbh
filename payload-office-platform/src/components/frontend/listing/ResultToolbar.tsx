@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 
@@ -131,21 +131,21 @@ export default function ResultToolbar(props: Readonly<{
         {sorts.map((sort) => {
           const isActive = sort.value === activeSort
           return (
-            <Link
+            <NavLink
               key={sort.value}
               href={buildSortHref(basePath, currentParams, sort.value, canonicalDefaultSort)}
               aria-current={isActive ? 'true' : undefined}
               className={isActive ? 'ls-toolbar__sort ls-toolbar__sort--active' : 'ls-toolbar__sort'}
             >
               {sort.label}
-            </Link>
+            </NavLink>
           )
         })}
         {view ? (
           <>
             <span className="ls-toolbar__divider" aria-hidden="true" />
             <span className="ls-toolbar__viewseg">
-              <Link
+              <NavLink
                 href={buildViewHref(basePath, currentParams, 'grid')}
                 title="卡片网格"
                 aria-label="卡片网格"
@@ -160,8 +160,8 @@ export default function ResultToolbar(props: Readonly<{
                   <rect x="0.5" y="8.1" width="5.4" height="5.4" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
                   <rect x="8.1" y="8.1" width="5.4" height="5.4" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
                 </svg>
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 href={buildViewHref(basePath, currentParams, 'row')}
                 title="横向列表"
                 aria-label="横向列表"
@@ -174,7 +174,7 @@ export default function ResultToolbar(props: Readonly<{
                   <rect x="0.5" y="1" width="13" height="4.4" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
                   <rect x="0.5" y="8.6" width="13" height="4.4" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
                 </svg>
-              </Link>
+              </NavLink>
             </span>
           </>
         ) : null}

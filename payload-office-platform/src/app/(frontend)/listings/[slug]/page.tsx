@@ -42,8 +42,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const building = listing.building
   // OPT-037 Task 9：楼盘详情文档（原本只为「配套设施」段取楼盘级配套）随该段
   // 一并移除，这里少一次详情查询，合并层仍是同一个 Promise.all，没有另起 await 段。
-  const [recommendations, pois, serviceSchedule] = await Promise.all([
-    getCachedDetailRecommendations(city.slug, slug, 6),
+  // OPT-068：推荐**不 await**——它作为 Promise 传给视图，由 <Suspense> 流式补上，
+  // 首屏不再等它。这里若写成 await，等于把整页首字节推迟到推荐算完为止。
+  const recommendations = getCachedDetailRecommendations(city.slug, slug, 6)
+  const [pois, serviceSchedule] = await Promise.all([
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])

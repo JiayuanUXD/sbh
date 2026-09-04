@@ -1,9 +1,13 @@
-import Link from 'next/link'
+// NavLink 而不是 next/link：点击结果卡后到详情页到达之间（线上冷开 2–4 秒）
+// 需要即时反馈——被点的卡自己转圈、结果区压暗。详情路由**不能**用 loading.tsx
+// 补这个反馈：那会把 404 / 307 变成 200（见 tests/opt068-listing-navigation.test.ts）。
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
 import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * OPT-036 楼盘结果卡（列表页网格「当前有在租」分组）
@@ -62,7 +66,7 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
   const ariaLabel = hasCount ? `${name}，${listingCount} 套在租` : name
 
   return (
-    <Link
+    <NavLink
       href={citySlug ? `/${citySlug}/buildings/${slug}` : `/buildings/${slug}`}
       // prefetch={false}：三条件并列成立，判据同 `ListingResultCard`。
       // ①高基数：本组件是 `/buildings`「当前有在租」分组的唯一卡片实现，一页 N 张
@@ -80,7 +84,7 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
       <span className="sf-media sf-media--16x10">
         {coverImage ? (
           <img
-            src={coverImage.src}
+            {...cardCoverProps(coverImage, '(max-width: 767px) 100vw, 320px')}
             alt={coverImage.alt || name}
             loading="lazy"
             decoding="async"
@@ -109,6 +113,6 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
           </span>
         ) : null}
       </span>
-    </Link>
+    </NavLink>
   )
 }

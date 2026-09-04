@@ -2,6 +2,7 @@ import Link from 'next/link'
 import React from 'react'
 import type { MediaViewModel } from '@/domain/public-catalog/contracts'
 import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * OPT-035 首页供给卡（400×[300+信息]）：楼盘 / 房源 / 核心商圈三条横滑共用。
@@ -30,8 +31,14 @@ export default function HomeSupplyCard({ href, image, photoTags, title, whereLin
     <Link href={href} prefetch={false} className="sf-card hm-supply-card">
       <span className={`sf-media ${ratio === '16/10' ? 'sf-media--16x10' : 'sf-media--4x3'}`}>
         {image ? (
-          <img src={image.src} alt={image.alt ?? title} loading="lazy" decoding="async"
-            width={image.width ?? 400} height={image.height ?? 300} />
+          <img
+            {...cardCoverProps(image, '(max-width: 767px) 78vw, 360px')}
+            alt={image.alt ?? title}
+            loading="lazy"
+            decoding="async"
+            width={image.width ?? 400}
+            height={image.height ?? 300}
+          />
         ) : (
           <CardMediaPlaceholder />
         )}

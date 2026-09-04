@@ -1,4 +1,7 @@
-import Link from 'next/link'
+// NavLink 而不是 next/link：点击结果卡后到详情页到达之间（线上冷开 2–4 秒）
+// 需要即时反馈——被点的卡自己转圈、结果区压暗。详情路由**不能**用 loading.tsx
+// 补这个反馈：那会把 404 / 307 变成 200（见 tests/opt068-listing-navigation.test.ts）。
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel, PriceViewModel } from '@/domain/public-catalog'
@@ -66,7 +69,7 @@ export default function ListingResultCard({ listing, citySlug, analytics }: Read
   const priceUnitText = price ? (splitPriceText(price)?.unit ?? '') : ''
 
   return (
-    <Link
+    <NavLink
       href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
       // prefetch={false}：三条件并列成立（①高基数 ②内容驱动 ③常驻渲染），判据同
       // `ListingCard` / `BuildingSummaryCard`，反例见 `ui/Breadcrumb.tsx`。
@@ -120,6 +123,6 @@ export default function ListingResultCard({ listing, citySlug, analytics }: Read
           {areaText ? <span className="ls-card__area">{areaText}</span> : null}
         </span>
       </span>
-    </Link>
+    </NavLink>
   )
 }

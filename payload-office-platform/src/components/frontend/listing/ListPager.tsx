@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 
 /**
@@ -67,7 +67,7 @@ export default function ListPager(props: Readonly<{
     <nav className="ls-pager" aria-label="分页">
       <div className="ls-pager__row">
         {hasPrev ? (
-          <Link href={buildPageHref(page - 1)} className="ls-pager__edge">上一页</Link>
+          <NavLink href={buildPageHref(page - 1)} className="ls-pager__edge">上一页</NavLink>
         ) : (
           <span className="ls-pager__edge ls-pager__edge--disabled">上一页</span>
         )}
@@ -79,13 +79,13 @@ export default function ListPager(props: Readonly<{
               {item}
             </span>
           ) : (
-            <Link key={item} href={buildPageHref(item)} className="ls-pager__item">
+            <NavLink key={item} href={buildPageHref(item)} className="ls-pager__item">
               {item}
-            </Link>
+            </NavLink>
           ),
         )}
         {hasNext ? (
-          <Link href={buildPageHref(page + 1)} className="ls-pager__edge">下一页</Link>
+          <NavLink href={buildPageHref(page + 1)} className="ls-pager__edge">下一页</NavLink>
         ) : (
           <span className="ls-pager__edge ls-pager__edge--disabled">下一页</span>
         )}

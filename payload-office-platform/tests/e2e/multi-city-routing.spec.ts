@@ -111,7 +111,12 @@ test.describe('multi-city route ownership', () => {
 
   test('legacy roots have exact flag-dependent status and Location', async ({ request }) => {
     if (routingEnabled) {
-      await expectRedirect(request, '/', '/shanghai')
+      // OPT-068：`/` 改成直出默认城市首页（不再 307）——它是搜索引擎与收藏夹最常见的
+      // 入口，一次多余往返全落在首屏之前。URL 归属没变：canonical 仍是 `/shanghai`
+      // （下一条断言）。其余旧路径照旧重定向。
+      const root = await request.get('/', { maxRedirects: 0 })
+      expect(root.status(), '/').toBe(200)
+      expect(await root.text(), '/ canonical').toMatch(/<link rel="canonical" href="[^"]*\/shanghai"/)
       await expectRedirect(request, '/listings', '/shanghai/listings')
       await expectRedirect(request, '/buildings', '/shanghai/buildings')
       await expectRedirect(

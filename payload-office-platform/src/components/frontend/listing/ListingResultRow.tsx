@@ -1,4 +1,7 @@
-import Link from 'next/link'
+// NavLink 而不是 next/link：点击结果卡后到详情页到达之间（线上冷开 2–4 秒）
+// 需要即时反馈——被点的卡自己转圈、结果区压暗。详情路由**不能**用 loading.tsx
+// 补这个反馈：那会把 404 / 307 变成 200（见 tests/opt068-listing-navigation.test.ts）。
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel } from '@/domain/public-catalog'
@@ -57,7 +60,7 @@ export default function ListingResultRow({ listing, citySlug, analytics }: Reado
   const priceUnitText = price ? (splitPriceText(price)?.unit ?? '') : ''
 
   return (
-    <Link
+    <NavLink
       href={citySlug ? `/${citySlug}/listings/${slug}` : `/listings/${slug}`}
       // prefetch={false}：与 `ListingResultCard` 同一条判据、同一个页面、同一批 URL，
       // 只是版式不同（`?view=row`）。①高基数：实测 `/listings?view=row` 同样渲染 10 条
@@ -106,6 +109,6 @@ export default function ListingResultRow({ listing, citySlug, analytics }: Reado
           <span className="ls-rowcard__price ls-rowcard__price--muted">价格面议</span>
         )}
       </span>
-    </Link>
+    </NavLink>
   )
 }

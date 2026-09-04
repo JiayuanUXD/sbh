@@ -42,6 +42,8 @@ import {
 import { createSearchContext, type SearchContext, type ListingSearchInput } from './types'
 import type { PublicRouteIdentity } from './contracts'
 import { mapBuildingCity, resolveListingPrice } from './mappers'
+import { matchesPriceFilter, rowsFromListings, type ListingScanRow } from './listing-scan'
+import type { ListingsSelect } from '@/payload-types'
 
 /**
  * 公开目录供给适配器契约
@@ -52,6 +54,21 @@ import { mapBuildingCity, resolveListingPrice } from './mappers'
 export interface SupplyAdapter {
   /** 按搜索条件返回有效房源文档（已过谓词，未排序、未分页） */
   findEffectiveListings(input: ListingSearchInput, ctx: SearchContext): Promise<readonly Listing[]>
+
+  /**
+   * OPT-068 轻量扫描：与 `findEffectiveListings` 同一套 where / 举报排除 / 精筛，
+   * 但只 `select` 行模型需要的字段、`populate` 只展开楼盘 / 区域 / 商户的判定字段，
+   * 返回紧凑的 `ListingScanRow`。可选：测试 fake 不实现时，facade 用
+   * `findEffectiveListings` 的结果投影成行（见 facade.ts#scanListings）。
+   */
+  scanEffectiveListings?(input: ListingSearchInput, ctx: SearchContext): Promise<readonly ListingScanRow[]>
+
+  /**
+   * OPT-068 按 id 回捞本页房源（depth 2，供 mapListingCard）。仍过完整有效供给
+   * 谓词：扫描之后才失效的房源在这里被静默丢掉，不会以过期数据出现在页面上。
+   * 结果顺序不保证，调用方按 ids 顺序重排。
+   */
+  findEffectiveListingsByIds?(ids: readonly number[], ctx: SearchContext): Promise<readonly Listing[]>
 
   /**
    * sitemap 专用：一页有效房源，只取 slug / updatedAt / businessType。
@@ -289,6 +306,61 @@ export function __resetDefaultSupplyAdapterForTest(): void {
 
 const QUERY_PAGE_SIZE = 200
 export const PUBLIC_CATALOG_CANDIDATE_LIMIT = 1_000
+
+/**
+ * OPT-068 轻量扫描：每页 1000、封顶 5000。
+ *
+ * 封顶数由 `unstable_cache` 的 2MB 单条硬上限反推：`ListingScanRow` ≤ 300 字节，
+ * 5000 行 ≈ 1.5MB，留有余量；超限时 Next 是**静默**写不进去，页面会退化成每次
+ * 请求都冷扫描，所以这个数不能顺手调大。上海现有 2181 条房源，远未触顶。
+ */
+export const LISTING_SCAN_PAGE_SIZE = 1_000
+export const LISTING_SCAN_CANDIDATE_LIMIT = 5_000
+
+/**
+ * 扫描只取行模型（`listing-scan.ts#rowFromListing`）、精筛（`buildEffectiveSnapshot`
+ * 读 building.city / merchant.*）与价格归一（`resolveListingPrice` 读 price / rent /
+ * rentUnit / businessType）会碰的字段。线上实测：depth 2 全字段每 200 条 1.5 秒
+ * 8.2MB，收窄后 0.27 秒 1.4MB——这份清单就是收益本身，加字段前先量。
+ */
+export const LISTING_SCAN_SELECT = {
+  slug: true,
+  title: true,
+  listingType: true,
+  businessType: true,
+  area: true,
+  price: true,
+  rent: true,
+  rentUnit: true,
+  isFeatured: true,
+  updatedAt: true,
+  building: true,
+  merchant: true,
+} satisfies ListingsSelect<true>
+
+/**
+ * 关联文档同样只展开判定字段：楼盘 → 城市 / 区域 / 商圈 / 坐标（facet、推荐候选、
+ * 首页附近房源），区域 → `isLocation` 守卫要的四个字段，商户 → 精筛 §9–§10 要的
+ * 启停 / 资质 / 到期 / 服务城市。
+ */
+export const LISTING_SCAN_POPULATE = {
+  buildings: {
+    slug: true,
+    name: true,
+    city: true,
+    district: true,
+    businessDistrict: true,
+    latitude: true,
+    longitude: true,
+  },
+  locations: { name: true, slug: true, type: true, status: true },
+  merchants: {
+    status: true,
+    qualificationStatus: true,
+    qualificationExpiresAt: true,
+    serviceCities: true,
+  },
+} satisfies PopulateType
 const RELATED_BUILDING_CANDIDATE_LIMIT = 500
 
 const ROUTE_CITY_POPULATE = {
@@ -344,17 +416,10 @@ function filterByPrice(
   listings: readonly Listing[],
   input: ListingSearchInput,
 ): Listing[] {
-  const { priceMin, priceMax, priceUnit } = input
-  if (!priceUnit) return [...listings]
-  const hasRange = priceMin != null || priceMax != null
-  return listings.filter((listing) => {
-    const price = resolveListingPrice(listing)
-    if (!price) return !hasRange
-    if (price.displayUnit !== priceUnit) return false
-    if (priceMin != null && price.amount < priceMin) return false
-    if (priceMax != null && price.amount > priceMax) return false
-    return true
-  })
+  // OPT-068：判定本体在 listing-scan.ts#matchesPriceFilter（扫描行也用它），
+  // 这里只负责把原始文档的价格归一后交给同一条裁定。
+  if (!input.priceUnit) return [...listings]
+  return listings.filter((listing) => matchesPriceFilter(resolveListingPrice(listing), input))
 }
 
 function readListingRouteProjection(value: unknown): ListingRouteProjection | null {
@@ -422,6 +487,33 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   /** 单一 Payload 查询端口边界，供统一有效供给服务复用。 */
   async function getPayloadQueryPort() {
     return createEffectiveSupplyPayloadPort(await getPayload())
+  }
+
+  /**
+   * OPT-068 轻量扫描分页读取：select + populate 收窄字段，按 id 稳定翻页，
+   * 到 `LISTING_SCAN_CANDIDATE_LIMIT` 封顶。粗筛 where 由调用方给定。
+   */
+  async function scanListingPages(where: Where): Promise<Listing[]> {
+    const payload = await getPayload()
+    // 与 findAllListings 同样写成递归翻页而不是循环：tests/f7-4-6 的 N+1 守卫按
+    // 「循环体内 await find」的形状扫源码，翻页不是 N+1，但形状上分不开。
+    async function readPage(page: number, docs: Listing[]): Promise<Listing[]> {
+      const result = await payload.find({
+        collection: 'listings',
+        where,
+        depth: 2,
+        select: LISTING_SCAN_SELECT,
+        populate: LISTING_SCAN_POPULATE,
+        sort: 'id',
+        limit: LISTING_SCAN_PAGE_SIZE,
+        page,
+      })
+      docs.push(...(result.docs as unknown as Listing[]))
+      if (docs.length >= LISTING_SCAN_CANDIDATE_LIMIT) return docs.slice(0, LISTING_SCAN_CANDIDATE_LIMIT)
+      if (!result.hasNextPage || result.nextPage == null) return docs
+      return readPage(result.nextPage, docs)
+    }
+    return readPage(1, [])
   }
 
   async function findAllListings(
@@ -583,82 +675,121 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
     return kept[0] ?? null
   }
 
+  /**
+   * 列表 / 扫描共用的粗筛 where（OPT-068 起单一来源）。
+   *
+   * 返回 null 表示「区域筛选解析不到任何楼盘」——结果集必然为空，调用方直接短路，
+   * 不再打房源表。
+   */
+  async function buildListingWhere(
+    input: ListingSearchInput,
+    ctx: SearchContext,
+  ): Promise<Where | null> {
+    // 解析 district → building IDs
+    let buildingIds: number[] | undefined
+    if (input.district && input.district.length > 0) {
+      const resolved = await resolveBuildingIdsByDistrict(input.district, ctx)
+      if (!resolved || resolved.length === 0) return null
+      buildingIds = resolved
+    }
+
+    const where = await baseEffectiveWhere(ctx)
+
+    if (input.listingType && input.listingType.length > 0) {
+      where.listingType = { in: [...input.listingType] }
+    }
+    if (input.businessArea && input.businessArea.length > 0) {
+      where['building.businessDistrict.slug'] = { in: [...input.businessArea] }
+    }
+    if (input.metro && input.metro.length > 0) {
+      where['building.nearestMetro.slug'] = { in: [...input.metro] }
+    }
+    if (input.areaMin != null || input.areaMax != null) {
+      const areaWhere: Record<string, number> = {}
+      if (input.areaMin != null) areaWhere.greater_than_equal = input.areaMin
+      if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
+      where.area = areaWhere
+    }
+    // 价格的三个条件（`priceUnit` / `priceMin` / `priceMax`）**整组不下推**到
+    // where，全部交给 `filterByPrice` 在内存里做。三条理由各自独立成立：
+    //
+    //   1. where 无法表达「同一计价单位内比大小」。缺 `priceUnit` 时，
+    //      `where.rent = { greater_than_equal: 3 }` 会把 3 元/㎡/天、3 元/月、
+    //      3 元/工位/月 放进同一次比较——三个不可通约的量纲，比出来的结果没有
+    //      任何含义，却是一个**看不见的生效条件**（URL 上 `?priceMax=6` 就够了）。
+    //      单位闸门现在由解析层与 `filterByPrice` 一起守，与楼盘详情供给区
+    //      的 `matchesInput` 同一裁定。
+    //   2. `rent` / `rentUnit` 是错的列。两者都是过渡期保留的旧字段（见
+    //      `Listings.ts` 里那段注释：`rentUnit` 甚至 `condition: () => false`，
+    //      表单上不出现），现行房源的金额与单位写在结构化 `price.*` 组里。
+    //      对 `rent` 做区间会把这些房源整批判为不匹配；`rentUnit` 更糟——它带
+    //      `defaultValue: 'rmb-sqm-day'`，于是一条结构化定价 25000 元/月、旧列
+    //      停在默认值的房源，会被 `where.rentUnit = { equals: 'rmb-month' }`
+    //      直接排除。不是「筛窄了」，是「筛掉的正是该留的」。
+    //   3. `rentUnit` 只覆盖 3 个取值，`PriceDisplayUnit` 有 12 个。按旧列下推
+    //      等于只对 3/12 生效、其余 9 个静默放行——用户选了「元/总价」却拿到
+    //      全部单位的房源，页面上也没有任何地方说没筛。半生效比不生效更坏：
+    //      它看起来正常。
+    //
+    // 代价是候选集不再被价格预先收窄，多出来的行由 `PUBLIC_CATALOG_CANDIDATE_LIMIT`
+    // 兜底。这与有效供给精筛、举报暂停排除本来就在内存里做是同一量级的取舍。
+    // 真要把候选集收回来，唯一正确的下推目标是结构化列
+    // （`price.period` + `price.unit`，注意 basis 'total' 对应 DB 的 'suite'），
+    // 且必须与旧列 or 合并才不漏掉尚未回填结构化价格的存量房源——那是一次
+    // 独立的性能改动，不是本次修复的一部分。
+    if (input.availableBefore) {
+      // availableFrom 为空或早于等于 availableBefore
+      where.or = [
+        { availableFrom: { exists: false } },
+        { availableFrom: { less_than_equal: input.availableBefore } },
+      ]
+    }
+    if (input.q) {
+      where.title = { contains: input.q }
+    }
+    if (buildingIds) {
+      where.building = { in: buildingIds }
+    }
+
+    // Read every coarse candidate in stable ID order. The Facade performs the
+    // requested global sort and pagination only after the fine filter.
+    return where
+  }
+
   return {
     async findEffectiveListings(input, ctx) {
-      const payload = await getPayload()
       const asOf = new Date(ctx.asOf)
-
-      // 解析 district → building IDs
-      let buildingIds: number[] | undefined
-      if (input.district && input.district.length > 0) {
-        const resolved = await resolveBuildingIdsByDistrict(input.district, ctx)
-        if (!resolved || resolved.length === 0) return []
-        buildingIds = resolved
-      }
-
-      const where = await baseEffectiveWhere(ctx)
-
-      if (input.listingType && input.listingType.length > 0) {
-        where.listingType = { in: [...input.listingType] }
-      }
-      if (input.businessArea && input.businessArea.length > 0) {
-        where['building.businessDistrict.slug'] = { in: [...input.businessArea] }
-      }
-      if (input.metro && input.metro.length > 0) {
-        where['building.nearestMetro.slug'] = { in: [...input.metro] }
-      }
-      if (input.areaMin != null || input.areaMax != null) {
-        const areaWhere: Record<string, number> = {}
-        if (input.areaMin != null) areaWhere.greater_than_equal = input.areaMin
-        if (input.areaMax != null) areaWhere.less_than_equal = input.areaMax
-        where.area = areaWhere
-      }
-      // 价格的三个条件（`priceUnit` / `priceMin` / `priceMax`）**整组不下推**到
-      // where，全部交给 `filterByPrice` 在内存里做。三条理由各自独立成立：
-      //
-      //   1. where 无法表达「同一计价单位内比大小」。缺 `priceUnit` 时，
-      //      `where.rent = { greater_than_equal: 3 }` 会把 3 元/㎡/天、3 元/月、
-      //      3 元/工位/月 放进同一次比较——三个不可通约的量纲，比出来的结果没有
-      //      任何含义，却是一个**看不见的生效条件**（URL 上 `?priceMax=6` 就够了）。
-      //      单位闸门现在由解析层与 `filterByPrice` 一起守，与楼盘详情供给区
-      //      的 `matchesInput` 同一裁定。
-      //   2. `rent` / `rentUnit` 是错的列。两者都是过渡期保留的旧字段（见
-      //      `Listings.ts` 里那段注释：`rentUnit` 甚至 `condition: () => false`，
-      //      表单上不出现），现行房源的金额与单位写在结构化 `price.*` 组里。
-      //      对 `rent` 做区间会把这些房源整批判为不匹配；`rentUnit` 更糟——它带
-      //      `defaultValue: 'rmb-sqm-day'`，于是一条结构化定价 25000 元/月、旧列
-      //      停在默认值的房源，会被 `where.rentUnit = { equals: 'rmb-month' }`
-      //      直接排除。不是「筛窄了」，是「筛掉的正是该留的」。
-      //   3. `rentUnit` 只覆盖 3 个取值，`PriceDisplayUnit` 有 12 个。按旧列下推
-      //      等于只对 3/12 生效、其余 9 个静默放行——用户选了「元/总价」却拿到
-      //      全部单位的房源，页面上也没有任何地方说没筛。半生效比不生效更坏：
-      //      它看起来正常。
-      //
-      // 代价是候选集不再被价格预先收窄，多出来的行由 `PUBLIC_CATALOG_CANDIDATE_LIMIT`
-      // 兜底。这与有效供给精筛、举报暂停排除本来就在内存里做是同一量级的取舍。
-      // 真要把候选集收回来，唯一正确的下推目标是结构化列
-      // （`price.period` + `price.unit`，注意 basis 'total' 对应 DB 的 'suite'），
-      // 且必须与旧列 or 合并才不漏掉尚未回填结构化价格的存量房源——那是一次
-      // 独立的性能改动，不是本次修复的一部分。
-      if (input.availableBefore) {
-        // availableFrom 为空或早于等于 availableBefore
-        where.or = [
-          { availableFrom: { exists: false } },
-          { availableFrom: { less_than_equal: input.availableBefore } },
-        ]
-      }
-      if (input.q) {
-        where.title = { contains: input.q }
-      }
-      if (buildingIds) {
-        where.building = { in: buildingIds }
-      }
-
-      // Read every coarse candidate in stable ID order. The Facade performs the
-      // requested global sort and pagination only after the fine filter.
+      const where = await buildListingWhere(input, ctx)
+      if (!where) return []
       const docs = await findAllListings(where, 2)
       const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
       return filterByPrice(kept, input)
+    },
+
+    async scanEffectiveListings(input, ctx) {
+      const asOf = new Date(ctx.asOf)
+      const where = await buildListingWhere(input, ctx)
+      if (!where) return []
+      const docs = await scanListingPages(where)
+      const kept = await fineFilter(docs as unknown as Record<string, unknown>[], asOf)
+      return rowsFromListings(filterByPrice(kept, input))
+    },
+
+    async findEffectiveListingsByIds(ids, ctx) {
+      if (ids.length === 0) return []
+      const payload = await getPayload()
+      const asOf = new Date(ctx.asOf)
+      // baseEffectiveWhere 可能已经用 `id.not_in` 排除了举报暂停的房源，
+      // 不能直接覆盖 `where.id`，用 and 合并两条 id 约束。
+      const where: Where = { and: [await baseEffectiveWhere(ctx), { id: { in: [...ids] } }] }
+      const result = await payload.find({
+        collection: 'listings',
+        where,
+        depth: 2,
+        limit: ids.length,
+        sort: 'id',
+      })
+      return fineFilter(result.docs as unknown as Record<string, unknown>[], asOf)
     },
 
     async findEffectiveListingsSitemapPage(ctx, options) {

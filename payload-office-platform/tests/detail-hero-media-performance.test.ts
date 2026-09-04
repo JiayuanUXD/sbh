@@ -20,9 +20,12 @@ describe('OPT-028 detail caching and hero media contracts', () => {
 
     expect(page).toContain('getCachedListingBySlug(siteConfig.defaultCity, slug)')
     expect(page).toContain('getCachedDetailRecommendations(city.slug, slug, 6)')
-    // 二级取数必须全部在同一个 Promise.all 里（本守卫的真正命题：不许出现
-    // 串行 await 段导致查询放大）。
-    expect(page).toMatch(/Promise\.all\(\[[\s\S]*getCachedDetailRecommendations\(city\.slug, slug, 6\)[\s\S]*fetchNearbyPois[\s\S]*getServiceSchedule/)
+    // 二级取数不许出现串行 await 段（本守卫的真正命题：不制造查询放大）。
+    // OPT-068 起推荐**不在** Promise.all 里——它根本不 await，作为 Promise 交给
+    // <Suspense> 流式补上；剩下两项仍须并发。推荐的「不得 await」由
+    // tests/opt068-detail-streaming.test.ts 守。
+    expect(page).toMatch(/Promise\.all\(\[[\s\S]*fetchNearbyPois[\s\S]*getServiceSchedule/)
+    expect(page).not.toMatch(/await[^\n]*getCachedDetailRecommendations\(/)
     // OPT-037 Task 9：楼盘详情文档随「配套设施」段一起移除，房源详情页不再取它。
     // 断言"不存在"而不是删掉这行——否则将来有人"顺手补回来"时没有任何声音。
     expect(page).not.toContain('getCachedBuildingBySlug')

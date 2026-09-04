@@ -9,6 +9,7 @@ import ListingResultCard from '@/components/frontend/listing/ListingResultCard'
 import ListingResultRow from '@/components/frontend/listing/ListingResultRow'
 import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
 import ListPager from '@/components/frontend/listing/ListPager'
+import { ListingNavigationProvider, PendingRegion } from '@/components/frontend/listing/ListingNavigation'
 import ListSearchAnalytics from '@/components/frontend/listing/ListSearchAnalytics'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import PriceUnitSegment, { type PriceUnitOption } from '@/components/frontend/listing/PriceUnitSegment'
@@ -391,6 +392,9 @@ export default async function CityListingsView({
   const citySlug = routeMode === 'prefixed' ? city.slug : undefined
 
   return (
+    // OPT-068：筛选 / 排序 / 分页链接在 Provider 内改走 useTransition，点击立即有
+    // 反馈（被点项 spinner + 结果区压暗），不再「点完什么都不动直到新页面到达」。
+    <ListingNavigationProvider>
     <div className="ls-page">
       {/*
         OPT-064 列表页埋点。两个组件都不渲染 UI：
@@ -450,7 +454,7 @@ export default async function CityListingsView({
         />
       </div>
 
-      <div className="ls-container ls-results">
+      <PendingRegion className="ls-container ls-results">
         {isOutOfRange ? (
           <EmptyOutOfRange
             page={page}
@@ -544,7 +548,7 @@ export default async function CityListingsView({
         {!isOutOfRange && !isEmpty ? (
           <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
         ) : null}
-      </div>
+      </PendingRegion>
 
       {/*
         移动筛选：状态容器挂在页面树的固定位置、不带 key、不在会重新 suspend 的
@@ -561,5 +565,6 @@ export default async function CityListingsView({
         resetHref={clearAllHref}
       />
     </div>
+    </ListingNavigationProvider>
   )
 }

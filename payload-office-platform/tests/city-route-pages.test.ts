@@ -307,10 +307,12 @@ describe('city route boundaries', () => {
     expect(io.parseListingSearchInput.mock.calls.map(([value]) => value.get('q'))).toEqual(['first', 'first'])
   })
 
-  it('redirects the legacy home to the configured default city while routing is enabled', async () => {
+  it('renders the default city home at the root while routing is enabled (OPT-068：不再 307)', async () => {
     process.env.MULTI_CITY_ROUTING_ENABLED = 'true'
-    await expect(LegacyHomePage()).rejects.toThrow('redirect:/shanghai')
-    expect(io.getCachedHomepage).not.toHaveBeenCalled()
+    // 根路径是搜索引擎与收藏夹最常见的入口，此前白等一次往返才开始渲染。
+    // 现在直出，canonical 仍由 generateMetadata 指向 /shanghai（e2e 断言）。
+    await expect(LegacyHomePage()).resolves.toBeDefined()
+    expect(io.getCachedHomepage).toHaveBeenCalledWith('shanghai')
   })
 
   it('redirects legacy listing and building roots only when the runtime flag is enabled', async () => {
