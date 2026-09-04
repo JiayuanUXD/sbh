@@ -8,14 +8,13 @@ import CorrectionModal from '@/components/frontend/CorrectionModal'
 import DetailClickAnalytics from '@/components/frontend/DetailClickAnalytics'
 import ListingDecisionCard, { buildListingPriceDigest } from '@/components/frontend/detail/ListingDecisionCard'
 import ListingOverviewPanel from '@/components/frontend/detail/ListingOverviewPanel'
+import RelatedListings, { RelatedListingsSkeleton } from '@/components/frontend/detail/RelatedListings'
 import type { SpecRow } from '@/components/frontend/detail/SpecTable'
 import StickyInquiryBar from '@/components/frontend/detail/StickyInquiryBar'
 import DetailGallery from '@/components/frontend/DetailGallery'
 import DetailMobileBarPrice from '@/components/frontend/DetailMobileBarPrice'
 import InquiryModal from '@/components/frontend/InquiryModal'
-import ListingCard from '@/components/frontend/ListingCard'
 import LocationPanel from '@/components/frontend/LocationPanel'
-import RecommendationReason from '@/components/frontend/RecommendationReason'
 import ShareSaveActions from '@/components/frontend/ShareSaveActions'
 import { Breadcrumb } from '@/components/frontend/ui/Breadcrumb'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
@@ -31,6 +30,8 @@ import type { getCachedDetailRecommendations } from '@/lib/frontend/cached-queri
 
 type RouteMode = 'legacy' | 'prefixed'
 type Recommendations = Awaited<ReturnType<typeof getCachedDetailRecommendations>>
+/** OPT-068：路由层传未 await 的 Promise（推荐区流式输出）；同步值仍然接受（dev-story / 测试）。 */
+type RecommendationsProp = Promise<Recommendations> | Recommendations
 
 /**
  * 房源详情页编排层（OPT-037 Task 9 接线）
@@ -94,7 +95,7 @@ export default function CityListingDetailView({
   disclaimers?: Readonly<{ price?: string; image?: string }>
   city: CityContext
   listing: ListingDetailViewModel
-  recommendations: Recommendations
+  recommendations: RecommendationsProp
   pois: PoiByCategory
   serviceSchedule?: ServiceSchedule
   mapEnabled: boolean
@@ -247,20 +248,14 @@ export default function CityListingDetailView({
         </section>
       )}
 
-      {recommendations.length > 0 && (
-        <section id="related" className="dt-container dt-section">
-          <h2 className="dt-h2">相关推荐</h2>
-          <div className="card-grid">
-            {recommendations.map((rec, index) => (
-              <div key={rec.card.id} className="recommendation-card-wrapper">
-                <ListingCard listing={rec.card} citySlug={citySlug} detailAnalytics={{ event: 'recommendation_click',
-                  parentId: listing.id, rank: index + 1, section: 'related', recommendationType: 'contextual' }} />
-                <RecommendationReason reasonCodes={rec.reasonCodes} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/*
+        OPT-068：推荐区流式输出。路由层把**未 await 的 Promise** 传进来，这里用
+        Suspense 包住——首屏（画廊 / 价格 / 概况 / 周边）不再等推荐算完。
+        零推荐时 RelatedListings 返回 null，整段消失，与改造前行为一致。
+      */}
+      <React.Suspense fallback={<RelatedListingsSkeleton />}>
+        <RelatedListings recommendations={recommendations} listingId={listing.id} citySlug={citySlug} />
+      </React.Suspense>
 
       <div className="detail__mobile-bar" role="region" aria-label="询价操作栏">
         <div className="detail__mobile-bar-info">

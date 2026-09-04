@@ -214,7 +214,12 @@ export function getCachedRelatedListings(
 const getCachedDetailRecommendationsByCity = memoizeByCity((citySlug) =>
   unstable_cache(
     async (listingSlug: string, limit: number = 6) =>
-      getDetailRecommendations(listingSlug, createSearchContext(citySlug), { limit }),
+      // OPT-068：候选来自**已缓存**的整城扫描（与列表页同一条），不再为每个商圈 /
+      // 行政区各打一次不分页 depth 2 查询——详情页冷开 2.8–4.1 秒的主因就在那里。
+      getDetailRecommendations(listingSlug, createSearchContext(citySlug), {
+        limit,
+        scan: (input) => getCachedListingScan(citySlug, input, 'all'),
+      }),
     ['detail-recommendations', citySlug],
     { tags: mixedSupplyCacheTags(citySlug), revalidate: 300 },
   ),

@@ -73,6 +73,7 @@ import { paginate, stableSortCards } from './stable-sort'
 import {
   applyMemoryFilters,
   computeFacets,
+  rowToCandidate,
   rowsFromListings,
   selectListingPage,
   toScanInput,
@@ -1301,49 +1302,10 @@ function extractPriceAmount(listing: Listing): number | null {
   return listing.rent ?? null
 }
 
-/**
- * 把原始 Listing 转为推荐候选
- */
-function listingToCandidate(listing: Listing): RecommendationCandidate {
-  return {
-    id: listing.id,
-    listingType: listing.listingType,
-    businessType: listing.businessType ?? 'lease',
-    area: listing.area ?? null,
-    priceAmount: extractPriceAmount(listing),
-    priceUnit: extractPriceUnit(listing),
-    buildingDistrictId: extractBuildingDistrictId(listing),
-    buildingBusinessDistrictId: extractBuildingBusinessDistrictId(listing),
-  }
-}
-
-/**
- * 从原始 Listing 提取 building.businessDistrict 的 slug（关系在 depth=3 时已展开为 Location 对象）
- */
-function extractBuildingBusinessDistrictSlug(listing: Listing): string | null {
-  const building = listing.building
-  if (typeof building !== 'object' || building === null) return null
-  const bd = (building as Building).businessDistrict
-  if (bd && typeof bd === 'object' && 'slug' in bd) {
-    const slug = (bd as { slug?: unknown }).slug
-    if (typeof slug === 'string' && slug.length > 0) return slug
-  }
-  return null
-}
-
-/**
- * 从原始 Listing 提取 building.district 的 slug
- */
-function extractBuildingDistrictSlug(listing: Listing): string | null {
-  const building = listing.building
-  if (typeof building !== 'object' || building === null) return null
-  const d = (building as Building).district
-  if (d && typeof d === 'object' && 'slug' in d) {
-    const slug = (d as { slug?: unknown }).slug
-    if (typeof slug === 'string' && slug.length > 0) return slug
-  }
-  return null
-}
+// OPT-068：`listingToCandidate` / `extractBuildingBusinessDistrictSlug` /
+// `extractBuildingDistrictSlug` 随推荐改吃扫描行一并删除——候选现在由
+// `listing-scan.ts#rowToCandidate` 产出，商圈 / 行政区按 **id** 匹配（行上就有），
+// 不再需要从 depth 3 文档里刨 slug 再回头查一遍库。
 
 /**
  * 可解释情境推荐（P2 Task 5）
@@ -1357,15 +1319,19 @@ function extractBuildingDistrictSlug(listing: Listing): string | null {
  *   - 确定性：相同输入始终产出相同顺序
  *   - 只使用有效供给（复用 SupplyAdapter 有效供给谓词）
  *
+ * OPT-068：候选不再为每个商圈 / 行政区各打一次全量查询，而是复用整城扫描
+ * （`options.scan` 注入的是**已缓存**的扫描，见 cached-queries.ts），在行上按
+ * 商圈 → 行政区 → 同楼盘的优先级挑候选。打分与理由码不变；获胜的 ≤6 条再回捞卡片。
+ *
  * @param listingSlug - 当前详情页房源 slug
  * @param ctx - 搜索上下文（asOf、city）
- * @param options - 可选参数
+ * @param options - 可选参数；`scan` 缺省用 `scanListings`
  * @param adapter - 供给适配器（可注入测试替身）
  */
 export async function getDetailRecommendations(
   listingSlug: string,
   ctx: SearchContext,
-  options: Readonly<{ limit?: number }> = {},
+  options: Readonly<{ limit?: number; scan?: ListingScanProvider }> = {},
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<readonly DetailRecommendationItem[]> {
   // 1. 加载当前房源原始文档（depth=3，含 building.businessDistrict）
@@ -1384,58 +1350,38 @@ export async function getDetailRecommendations(
     buildingBusinessDistrictId: extractBuildingBusinessDistrictId(currentListing),
   }
 
-  // 3. 获取候选房源：同商圈或同行政区的有效供给
-  //    优先使用 businessDistrict（商圈），fallback 到 district（行政区）
-  //    findEffectiveListings 的 businessArea/district 参数使用 slug 字符串
-  const businessDistrictSlug = extractBuildingBusinessDistrictSlug(currentListing)
-  const districtSlug = extractBuildingDistrictSlug(currentListing)
+  // 3. 候选房源：从整城扫描里按 商圈 → 行政区 → 同楼盘 的优先级挑
+  //    （OPT-068 前是各打一次不分页 depth 2 全量查询，详情页冷开 3–4 秒的主因）
+  const scan = options.scan ?? ((input, scanCtx) => scanListings(input, scanCtx, adapter))
+  const rows = await scan(EMPTY_LISTING_INPUT, ctx)
+  const businessDistrictId = context.buildingBusinessDistrictId
+  const districtId = context.buildingDistrictId
+  const currentBuildingId = toBuildingId(currentListing.building)
 
-  let candidateListings: readonly Listing[]
-  if (businessDistrictSlug != null) {
-    // 同商圈候选
-    candidateListings = await adapter.findEffectiveListings(
-      { businessArea: [businessDistrictSlug], page: 1, pageSize: 24 },
-      ctx,
-    )
-  } else if (districtSlug != null) {
-    // 同行政区候选
-    candidateListings = await adapter.findEffectiveListings(
-      { district: [districtSlug], page: 1, pageSize: 24 },
-      ctx,
-    )
+  let candidateRows: readonly ListingScanRow[]
+  if (businessDistrictId != null) {
+    candidateRows = rows.filter((row) => row.businessDistrictId === businessDistrictId)
+  } else if (districtId != null) {
+    candidateRows = rows.filter((row) => row.district?.id === districtId)
+  } else if (currentBuildingId != null) {
+    candidateRows = rows.filter((row) => row.buildingId === currentBuildingId)
   } else {
-    // 无地理信息，退化为同楼盘
-    const buildingRef = currentListing.building
-    const buildingId =
-      typeof buildingRef === 'object' && buildingRef !== null
-        ? buildingRef.id
-        : (buildingRef as number | string | null)
-    if (buildingId == null) return []
-    candidateListings = await adapter.findEffectiveListingsByBuilding(
-      buildingId,
-      ctx,
-      currentListing.id,
-    )
+    return []
   }
 
-  if (candidateListings.length === 0) return []
+  if (candidateRows.length === 0) return []
 
-  // 4. 转为候选对象并打分
-  const candidates = candidateListings.map(listingToCandidate)
-  const ranked = rankDetailRecommendations(candidates, context)
+  // 4. 转为候选对象并打分（打分本身排除当前房源）
+  const ranked = rankDetailRecommendations(candidateRows.map(rowToCandidate), context)
 
   // 5. 限制数量
   const limit = options.limit ?? 6
   const topResults = ranked.slice(0, limit)
+  if (topResults.length === 0) return []
 
-  // 6. 把获胜候选映射回 ListingCardViewModel
-  const winnerIds = new Set(topResults.map((r) => r.candidate.id))
-  const winnerListings = candidateListings.filter((l) => winnerIds.has(l.id))
-  const cardMap = new Map<number, ListingCardViewModel>()
-  for (const l of winnerListings) {
-    const card = mapListingCard(l)
-    if (card) cardMap.set(l.id, card)
-  }
+  // 6. 只对获胜的 ≤6 条回捞卡片
+  const cards = await hydrateListingCards(topResults.map((r) => r.candidate.id), ctx, adapter)
+  const cardMap = new Map(cards.map((card) => [card.id, card] as const))
 
   // 7. 按打分顺序组装结果
   const items: DetailRecommendationItem[] = []
@@ -1447,4 +1393,13 @@ export async function getDetailRecommendations(
   }
 
   return items
+}
+
+/** 从 Listing.building（可能是 id 或已展开文档）取数字 id。 */
+function toBuildingId(buildingRef: Listing['building']): number | null {
+  if (typeof buildingRef === 'number') return buildingRef
+  if (typeof buildingRef === 'object' && buildingRef !== null && typeof buildingRef.id === 'number') {
+    return buildingRef.id
+  }
+  return null
 }

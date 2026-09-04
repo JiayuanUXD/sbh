@@ -44,8 +44,10 @@ export default async function CityListingDetailPage({ params }: Props) {
   if (!loaded.city || !loaded.listing) notFound()
   const building = loaded.listing.building
   // OPT-037 Task 9：见 legacy 路由同款注释——楼盘详情文档不再需要。
-  const [recommendations, pois, serviceSchedule] = await Promise.all([
-    getCachedDetailRecommendations(loaded.city.slug, loaded.listing.slug, 6),
+  // OPT-068：推荐**不 await**——它作为 Promise 传给视图，由 <Suspense> 流式补上，
+  // 首屏不再等它。这里若写成 await，等于把整页首字节推迟到推荐算完为止。
+  const recommendations = getCachedDetailRecommendations(loaded.city.slug, loaded.listing.slug, 6)
+  const [pois, serviceSchedule] = await Promise.all([
     fetchNearbyPois(building?.id ?? 0, building?.coordinates),
     getServiceSchedule(),
   ])
