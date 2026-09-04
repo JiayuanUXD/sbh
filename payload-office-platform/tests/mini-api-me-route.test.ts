@@ -253,32 +253,42 @@ describe('GET /api/mini/v1/me', () => {
     io.payloadFind.mockImplementation(async (call) => {
       const kinds = requestedKinds(call)
       if (kinds.includes('inquiry')) {
+        const doc = {
+          id: 903,
+          assetKey: 'secret-inquiry-key',
+          subject: subjectFor('openid-a'),
+          kind: 'inquiry',
+          targetType: 'listing',
+          targetSlug: 'jing-an-100',
+          createdAt: '2026-09-04T09:10:00.000Z',
+          lead: { stage: 'following', status: 'contacted' },
+        }
         return {
           totalDocs: 101,
-          docs: [{
-            id: 903,
-            assetKey: 'secret-inquiry-key',
-            subject: subjectFor('openid-a'),
-            kind: 'inquiry',
-            targetType: 'listing',
-            targetSlug: 'jing-an-100',
-            createdAt: '2026-09-04T09:10:00.000Z',
-            lead: { stage: 'following', status: 'contacted' },
-          }],
+          docs: Array.from({ length: 101 }, (_, index) => ({
+            ...doc,
+            id: 903 + index,
+            assetKey: `secret-inquiry-key-${index}`,
+          })),
         }
+      }
+      const doc = {
+        id: 901,
+        assetKey: 'secret-favorite-key',
+        subject: subjectFor('openid-a'),
+        kind: 'favorite-listing',
+        targetType: 'listing',
+        targetSlug: 'jing-an-100',
+        lead: null,
+        createdAt: '2026-09-04T09:00:00.000Z',
       }
       return {
         totalDocs: 201,
-        docs: [{
-          id: 901,
-          assetKey: 'secret-favorite-key',
-          subject: subjectFor('openid-a'),
-          kind: 'favorite-listing',
-          targetType: 'listing',
-          targetSlug: 'jing-an-100',
-          lead: null,
-          createdAt: '2026-09-04T09:00:00.000Z',
-        }],
+        docs: Array.from({ length: 201 }, (_, index) => ({
+          ...doc,
+          id: 901 + index,
+          assetKey: `secret-favorite-key-${index}`,
+        })),
       }
     })
 
@@ -287,11 +297,12 @@ describe('GET /api/mini/v1/me', () => {
 
     expect(response.status).toBe(200)
     expect(io.payloadFind).toHaveBeenCalledTimes(2)
-    expect(io.payloadFind.mock.calls.map(([call]) => call.limit)).toEqual([200, 100])
+    expect(io.payloadFind.mock.calls.map(([call]) => call.limit)).toEqual([201, 101])
+    expect(io.payloadFind.mock.calls.every(([call]) => call.pagination === false)).toBe(true)
     expect(body).toMatchObject({
       ok: true,
       data: {
-        counts: { favorites: 1, inquiries: 1 },
+        counts: { favorites: 200, inquiries: 100 },
         pageInfo: {
           favorites: { limit: 200, hasMore: true },
           inquiries: { limit: 100, hasMore: true },
@@ -347,7 +358,8 @@ describe('GET /api/mini/v1/me', () => {
         populate: { leads: { stage: true, status: true } },
       }))
     }
-    expect(io.payloadFind.mock.calls.map(([call]) => call.limit)).toEqual([200, 100])
+    expect(io.payloadFind.mock.calls.map(([call]) => call.limit)).toEqual([201, 101])
+    expect(io.payloadFind.mock.calls.every(([call]) => call.pagination === false)).toBe(true)
     expect(io.assertListing).not.toHaveBeenCalledWith('other-subject-listing', expect.anything())
     expect(body).toMatchObject({
       ok: true,

@@ -440,7 +440,8 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
           ],
         },
         depth: 1,
-        limit,
+        limit: limit + 1,
+        pagination: false,
         sort: '-createdAt',
         select: {
           assetKey: true,
@@ -458,7 +459,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
         const record = assetRecord(doc)
         return record?.subject === subject && kinds.includes(record.kind) ? [record] : []
       })
-      return { records, hasMore: result.totalDocs > limit || result.docs.length > limit }
+      return { records, hasMore: result.docs.length > limit }
     },
   }
 }
