@@ -852,7 +852,7 @@ export async function getHomepage(
     businessAreas,
     featuredBuildings,
     latestArticles,
-    allEffectiveListings,
+    allEffectiveRows,
     allEffectiveBuildings,
     cityCenter,
   ] = await Promise.all([
@@ -861,9 +861,10 @@ export async function getHomepage(
     adapter.findEffectiveBusinessAreas(ctx),
     adapter.findFeaturedBuildings(ctx, buildingsFetchLimit),
     adapter.findLatestArticles(articlesLimit),
-    // 一次全集查询喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
-    // 口径与列表页 buildListingSearchSource 一致（同 findEffectiveListings + mapListingsToCards）。
-    adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
+    // 一次全集**扫描**喂三个特性：stats.listings 计数、typeSummaries 聚合、nearbyListings。
+    // OPT-068：口径与列表页一致（同 scanListings），但只取行不取整棵关系树——
+    // 这条查询此前是首页冷路径最贵的一段，且每次发版缓存清零后必然重跑。
+    scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
     // 口径与楼盘列表页 searchBuildings 一致（findEffectiveBuildings 默认 limit 200）
     adapter.findEffectiveBuildings(ctx),
     adapter.findCityCenter ? adapter.findCityCenter(ctx) : Promise.resolve(null),
@@ -928,12 +929,10 @@ export async function getHomepage(
     if (vm) latestArticleVMs.push(vm)
   }
 
-  // 全集卡片：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
-  // 与列表页 buildListingSearchSource 共用同一个 findEffectiveListings 口径。
-  const allCards = mapListingsToCards(allEffectiveListings)
-
+  // 全集扫描行：喂 stats.listings / typeSummaries / nearbyListings 三个特性，
+  // 与列表页共用同一个 scanListings 口径（OPT-068）。
   const stats: HomepageStats = {
-    listings: allCards.length,
+    listings: allEffectiveRows.length,
     // 与楼盘列表页 searchBuildings 的 totalDocs = docs.length 同口径：mapBuildingSummary
     // 过滤后计数，不是原始 findEffectiveBuildings 返回长度。
     buildings: allEffectiveBuildings.filter((b) => mapBuildingSummary(b) !== null).length,
@@ -948,41 +947,59 @@ export async function getHomepage(
   // 缓存（见 cached-queries.ts 的 getCachedHomepage），但 typeSummaries 最多 5
   // 个条目、每个多带的 variants 约 300 字节，量级几 KB，远够不到上限，不构成
   // 体积风险，不必比照卡片链路收窄。
-  const listingById = new Map(allEffectiveListings.map((l) => [l.id, l] as const))
-  const typeSummaries: Record<string, HomepageTypeSummary> = {}
-  for (const card of allCards) {
-    const key = card.listingType
+  // 按类型计数 + 每个类型挑一张封面来源（该类型里 id 最小的一条，确定性）。
+  // OPT-068：计数在扫描行上做；封面需要完整投影（含 variants/focal），只对被选中的
+  // 那 ≤4 条回捞——此前是对全集房源建 Map 再逐类型取一条，全集越大越贵。
+  const typeCounts = new Map<string, number>()
+  const typeCoverSourceId = new Map<string, number>()
+  for (const row of allEffectiveRows) {
+    const key = row.listingType
     if (!key) continue
-    const prev = typeSummaries[key]
-    if (prev) {
-      typeSummaries[key] = { count: prev.count + 1, cover: prev.cover }
-      continue
-    }
-    // 只在该类型第一次出现时才用完整封面口径重新投影（口径与
-    // mapListingCard 内 rawCover 一致：房源自身封面缺省时回退楼盘封面），
-    // 避免对全集房源逐条重复计算。
-    const rawListing = listingById.get(card.id)
-    const fullCover = rawListing ? mapListingCoverFull(rawListing) : null
-    typeSummaries[key] = {
-      count: 1,
-      cover: fullCover ?? card.coverImage ?? null,
-    }
+    typeCounts.set(key, (typeCounts.get(key) ?? 0) + 1)
+    const current = typeCoverSourceId.get(key)
+    if (current === undefined || row.id < current) typeCoverSourceId.set(key, row.id)
   }
 
   // 核心商圈附近房源：排除已在精选区展示的房源（避免首页同一张卡片重复出现），
-  // 按到城市中心的直线距离升序，tie-break 用 stableSortKey 保证跨请求稳定。
+  // 按到城市中心的直线距离升序，tie-break 用 id 保证跨请求稳定（此前用 stableSortKey，
+  // 它由 id 派生，同序）。距离在扫描行上算，只对最终 5 条回捞卡片。
   const featuredSlugs = new Set(sorted.map((c) => c.slug))
-  const nearbyListings: NearbyListingViewModel[] =
-    cityCenter == null
-      ? []
-      : allCards
-          .filter((c) => !featuredSlugs.has(c.slug) && c.building?.coordinates != null)
-          .map((c) => ({
-            ...c,
-            distanceKm: Math.round(haversineKm(cityCenter, c.building!.coordinates!) * 10) / 10,
-          }))
-          .sort((a, b) => a.distanceKm - b.distanceKm || a.stableSortKey.localeCompare(b.stableSortKey))
-          .slice(0, 5)
+  const nearbyRows = cityCenter == null
+    ? []
+    : allEffectiveRows
+        .filter((row) => !featuredSlugs.has(row.slug) && row.coordinates != null)
+        .map((row) => ({
+          row,
+          distanceKm: Math.round(haversineKm(cityCenter, row.coordinates!) * 10) / 10,
+        }))
+        .sort((a, b) => a.distanceKm - b.distanceKm || a.row.id - b.row.id)
+        .slice(0, 5)
+
+  // 两处回捞合并成一次（类型封面 ≤4 条 + 附近房源 5 条），并保持各自的顺序。
+  const coverIds = [...typeCoverSourceId.values()]
+  const hydrateIds = [...new Set([...coverIds, ...nearbyRows.map((n) => n.row.id)])]
+  const hydrateIdSet = new Set(hydrateIds)
+  const hydrated = adapter.findEffectiveListingsByIds
+    ? await adapter.findEffectiveListingsByIds(hydrateIds, ctx)
+    : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => hydrateIdSet.has(l.id))
+  const hydratedById = new Map(hydrated.map((doc) => [doc.id, doc] as const))
+
+  const typeSummaries: Record<string, HomepageTypeSummary> = {}
+  for (const [key, count] of typeCounts) {
+    const sourceId = typeCoverSourceId.get(key)
+    const raw = sourceId == null ? null : hydratedById.get(sourceId) ?? null
+    typeSummaries[key] = {
+      count,
+      cover: raw ? mapListingCoverFull(raw) : null,
+    }
+  }
+
+  const nearbyListings: NearbyListingViewModel[] = []
+  for (const { row, distanceKm } of nearbyRows) {
+    const raw = hydratedById.get(row.id)
+    const card = raw ? mapListingCard(raw) : null
+    if (card) nearbyListings.push({ ...card, distanceKm })
+  }
 
   return {
     featuredListings: sorted,
@@ -999,7 +1016,7 @@ export async function getHomepage(
 /**
  * 平台汇总 stats（根页 `/` 口径）：并发拉取各城 stats，按同一口径逐城计数后求和。
  *
- * 与 getHomepage 内 stats 字段同口径（findEffectiveListings + mapListingsToCards /
+ * 与 getHomepage 内 stats 字段同口径（OPT-068 起两边都走 scanListings /
  * findEffectiveBuildings + mapBuildingSummary 过滤 / findEffectiveBusinessAreas），
  * 只是维度从单城换成跨城求和——根页是平台入口，不归属任何单一城市。
  * 空城市清单直接返回全零，不触发任何 adapter 调用。
@@ -1011,13 +1028,14 @@ export async function getPlatformHomepageStats(
   const perCity = await Promise.all(
     citySlugs.map(async (slug) => {
       const ctx = createSearchContext(slug, undefined, 'lease')
-      const [listings, buildings, areas] = await Promise.all([
-        adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx),
+      const [rows, buildings, areas] = await Promise.all([
+        // OPT-068：跨城汇总只要三个数，走扫描而不是全量文档拉取。
+        scanListings(EMPTY_LISTING_INPUT, ctx, adapter),
         adapter.findEffectiveBuildings(ctx),
         adapter.findEffectiveBusinessAreas(ctx),
       ])
       return {
-        listings: mapListingsToCards(listings).length,
+        listings: rows.length,
         buildings: buildings.filter((b) => mapBuildingSummary(b) !== null).length,
         businessAreas: areas.length,
       }
