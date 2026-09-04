@@ -1,12 +1,16 @@
-<view wx:if="{{open}}" class="filter-sheet" aria-role="dialog" aria-modal="true">
-  <view class="filter-sheet__backdrop" catchtap="handleClose" catchtouchmove="handleBackdropTouchMove"></view>
-  <view class="filter-sheet__panel" catchtap="handlePanelTap">
-    <view class="filter-sheet__header">
-      <text class="filter-sheet__title">筛选房源</text>
-      <button class="filter-sheet__cancel" bindtap="handleClose">取消</button>
+<view wx:if="{{open}}" class="filter-sheet sbh-sheet" aria-role="dialog" aria-modal="true" aria-label="筛选房源">
+  <view class="filter-sheet__backdrop sbh-sheet__backdrop" catchtap="handleClose" catchtouchmove="handleBackdropTouchMove"></view>
+  <view class="filter-sheet__panel sbh-sheet__panel" catchtap="handlePanelTap">
+    <view class="filter-sheet__grabber" aria-hidden="true"><view class="filter-sheet__grabber-line"></view></view>
+    <view class="filter-sheet__header sbh-sheet__header">
+      <view class="filter-sheet__header-copy">
+        <text class="filter-sheet__title">{{resolvedSection === 'price' ? '价格筛选' : (resolvedSection === 'location' ? '区域筛选' : (resolvedSection === 'area' ? '面积筛选' : '全部筛选'))}}</text>
+        <text class="filter-sheet__subtitle">当前条件会实时计算可选房源</text>
+      </view>
+      <button class="filter-sheet__close" bindtap="handleClose" aria-label="关闭筛选抽屉">×</button>
     </view>
 
-    <scroll-view class="filter-sheet__body" scroll-y="true">
+    <scroll-view class="filter-sheet__body sbh-sheet__body" scroll-y="true" enhanced="true" show-scrollbar="{{false}}">
       <view wx:if="{{resolvedSection === 'price' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__unit">
         <view class="filter-sheet__section-title">计价单位</view>
         <view class="filter-sheet__options">
@@ -26,9 +30,9 @@
       <view wx:if="{{resolvedSection === 'price' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__price-range">
         <view class="filter-sheet__section-title">价格区间</view>
         <view class="filter-sheet__range">
-          <input class="filter-sheet__input num" type="number" value="{{draft.priceMin}}" placeholder="最低价格" data-field="priceMin" bindinput="handlePriceInput" />
+          <input class="filter-sheet__input num" type="number" value="{{draft.priceMin}}" placeholder="最低价格" data-field="priceMin" adjust-position="{{true}}" cursor-spacing="24" bindinput="handlePriceInput" />
           <text class="filter-sheet__range-separator">至</text>
-          <input class="filter-sheet__input num" type="number" value="{{draft.priceMax}}" placeholder="最高价格" data-field="priceMax" bindinput="handlePriceInput" />
+          <input class="filter-sheet__input num" type="number" value="{{draft.priceMax}}" placeholder="最高价格" data-field="priceMax" adjust-position="{{true}}" cursor-spacing="24" bindinput="handlePriceInput" />
         </view>
       </view>
 
@@ -51,9 +55,9 @@
       <view wx:if="{{resolvedSection === 'area' || resolvedSection === 'all'}}" class="filter-sheet__section filter-sheet__area">
         <view class="filter-sheet__section-title">面积（㎡）</view>
         <view class="filter-sheet__range">
-          <input class="filter-sheet__input num" type="number" value="{{draft.areaMin}}" placeholder="最小面积" data-field="areaMin" bindinput="handleAreaInput" />
+          <input class="filter-sheet__input num" type="number" value="{{draft.areaMin}}" placeholder="最小面积" data-field="areaMin" adjust-position="{{true}}" cursor-spacing="24" bindinput="handleAreaInput" />
           <text class="filter-sheet__range-separator">至</text>
-          <input class="filter-sheet__input num" type="number" value="{{draft.areaMax}}" placeholder="最大面积" data-field="areaMax" bindinput="handleAreaInput" />
+          <input class="filter-sheet__input num" type="number" value="{{draft.areaMax}}" placeholder="最大面积" data-field="areaMax" adjust-position="{{true}}" cursor-spacing="24" bindinput="handleAreaInput" />
         </view>
       </view>
 
@@ -81,7 +85,7 @@
       </view>
     </scroll-view>
 
-    <view class="filter-sheet__footer">
+    <view class="filter-sheet__footer sbh-sheet__footer">
       <button class="filter-sheet__clear" bindtap="handleClear">清除</button>
       <button class="filter-sheet__apply {{estimating || estimateUnavailable ? 'filter-sheet__apply--disabled' : ''}}" bindtap="handleApply" disabled="{{estimating || estimateUnavailable}}" aria-busy="{{estimating}}">
         <text wx:if="{{estimating}}">正在计算</text>

@@ -272,9 +272,19 @@
 }
 
 .listing-detail__bar-fav-icon {
-  font-size: 34rpx;
-  color: #ff3b30;
-  line-height: 1;
+  width: 28rpx;
+  height: 34rpx;
+}
+
+.favorite-icon__glyph {
+  box-sizing: border-box;
+  border: 3rpx solid var(--sbh-text-primary);
+  border-radius: 4rpx 4rpx 8rpx 8rpx;
+  background: var(--sbh-surface-background);
+}
+
+.favorite-icon__glyph--active {
+  background: var(--sbh-text-primary);
 }
 
 .listing-detail__bar-fav-text {

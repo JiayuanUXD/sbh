@@ -282,7 +282,7 @@ describe('filter-sheet', () => {
     })
     expect(host.data.estimateQuery).toEqual(subject?.data.draft)
 
-    subject?.querySelector('.filter-sheet__cancel')?.dispatchEvent('tap')
+    subject?.querySelector('.filter-sheet__close')?.dispatchEvent('tap')
     await simulate.sleep(0)
 
     expect(host.data.appliedQuery).toEqual(originalQuery)
@@ -574,7 +574,7 @@ describe('filter-sheet', () => {
     const template = readFileSync(resolve(filterSheetRoot, 'index.wxml'), 'utf8')
     const styles = readFileSync(resolve(filterSheetRoot, 'index.wxss'), 'utf8')
 
-    expect(styles).toMatch(/\.filter-sheet__panel \{[\s\S]*(?:height|max-height): (?:5\d|6\d|7\d)vh;/)
+    expect(styles).toMatch(/\.filter-sheet__panel \{[\s\S]*height: auto;[\s\S]*max-height: calc\(100vh - 160rpx\);/)
     expect(styles).toMatch(/\.filter-sheet__footer \{[\s\S]*env\(safe-area-inset-bottom\)/)
     expect(template.indexOf('filter-sheet__unit')).toBeLessThan(template.indexOf('filter-sheet__price-range'))
     expect(template).toContain('catchtouchmove="handleBackdropTouchMove"')
@@ -601,5 +601,32 @@ describe('filter-sheet', () => {
     expect(template).toContain('disabled="{{estimating || estimateUnavailable}}"')
     expect(sheetStyles).toContain('.filter-sheet__apply--disabled')
     expect(sheetStyles).not.toContain('[disabled]')
+  })
+
+  it('真实打开态使用共享抽屉骨架、拖拽把手、固定安全区底栏与键盘避让', () => {
+    const template = readFileSync(resolve(filterSheetRoot, 'index.wxml'), 'utf8')
+    const styles = readFileSync(resolve(filterSheetRoot, 'index.wxss'), 'utf8')
+
+    expect(template).toContain('class="filter-sheet sbh-sheet"')
+    expect(template).toContain('class="filter-sheet__backdrop sbh-sheet__backdrop"')
+    expect(template).toContain('class="filter-sheet__panel sbh-sheet__panel"')
+    expect(template).toContain('filter-sheet__grabber')
+    expect(template).toContain('class="filter-sheet__body sbh-sheet__body"')
+    expect(template).toContain('class="filter-sheet__footer sbh-sheet__footer"')
+    expect(template).toMatch(/<scroll-view[\s\S]*scroll-y="true"[\s\S]*enhanced="true"/)
+    expect(template).toMatch(/class="filter-sheet__input num"[\s\S]*adjust-position="\{\{true\}\}"[\s\S]*cursor-spacing="24"/)
+    expect(styles).toContain('var(--sbh-sheet-panel-radius)')
+    expect(styles).toContain('var(--sbh-sheet-motion-duration)')
+    expect(styles).toMatch(/\.filter-sheet__close\s*\{[\s\S]*width:\s*var\(--sbh-sheet-close-size\);[\s\S]*height:\s*var\(--sbh-sheet-close-size\);/)
+    expect(styles).toMatch(/\.filter-sheet__footer\s*\{[\s\S]*position:\s*relative;[\s\S]*env\(safe-area-inset-bottom\)/)
+  })
+
+  it('价格入口仅渲染价格分区，全部入口才渲染区域、面积、类型和日期', () => {
+    const template = readFileSync(resolve(filterSheetRoot, 'index.wxml'), 'utf8')
+
+    expect(template).toContain("resolvedSection === 'price' || resolvedSection === 'all'")
+    expect(template).toContain("resolvedSection === 'location' || resolvedSection === 'all'")
+    expect(template).toContain("resolvedSection === 'area' || resolvedSection === 'all'")
+    expect(template).toContain("resolvedSection === 'all'")
   })
 })

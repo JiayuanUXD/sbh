@@ -4,6 +4,7 @@
   "backgroundColor": "#f2f2f4",
   "usingComponents": {
     "building-card": "/components/building-card/index",
+    "inquiry-sheet": "/components/inquiry-sheet/index",
     "listing-card": "/components/listing-card/index",
     "sbh-skeleton": "/components/sbh-skeleton/index",
     "sbh-state": "/components/sbh-state/index"

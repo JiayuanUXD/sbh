@@ -23,6 +23,7 @@ const scripts = {
   devtoolsSmoke: join(projectRoot, 'scripts/devtools-smoke.mjs'),
   preview: join(projectRoot, 'scripts/preview.mjs'),
   upload: join(projectRoot, 'scripts/upload.mjs'),
+  mp109SheetAcceptance: join(projectRoot, 'scripts/mp109-sheet-acceptance-runner.mjs'),
 }
 
 const previewVariableNames = [
@@ -102,6 +103,18 @@ describe('project:check', () => {
     })
 
     expect(output).toBe('fail,pass,pass,fail,fail')
+  })
+})
+
+describe('MP-109 sheet acceptance runner', () => {
+  test('缺 DevTools 环境时只允许写 environment-unavailable，不得假绿', () => {
+    expect(existsSync(scripts.mp109SheetAcceptance)).toBe(true)
+    if (!existsSync(scripts.mp109SheetAcceptance)) return
+    const source = readFileSync(scripts.mp109SheetAcceptance, 'utf8')
+
+    expect(source).toContain("status: 'environment-unavailable'")
+    expect(source).toContain('process.exitCode = 2')
+    expect(source).not.toMatch(/environment-unavailable[\s\S]{0,180}passed:\s*true/)
   })
 })
 

@@ -1,4 +1,5 @@
-<view id="home-ready" class="home-page">
+<page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
+<view id="home-ready" class="home-page" aria-hidden="{{inquiryOpen}}">
   <view class="home-brand">
     <video
       wx:if="{{heroVideoUrl && !videoFailed}}"
@@ -122,6 +123,14 @@
       </scroll-view>
     </view>
 
+    <view class="home-entrust-card">
+      <view>
+        <view class="home-entrust-card__title">还没找到合适的办公室？</view>
+        <view class="home-entrust-card__description">告诉我们面积、预算与入驻时间，顾问按公开房源匹配。</view>
+      </view>
+      <button class="home-entrust-card__action" bindtap="handleOpenInquiry" disabled="{{inquiryOpen}}">委托找房</button>
+    </view>
+
     <!-- Mini 首页 DTO 返回的精选房源 -->
     <view class="home-featured">
       <view class="home-featured__heading">精选房源</view>
@@ -144,3 +153,18 @@
     </view>
   </block>
 </view>
+
+<inquiry-sheet
+  id="inquiry-sheet"
+  snapshot="{{inquirySheet}}"
+  bindclose="handleInquiryClose"
+  bindprivacy="handleInquiryPrivacy"
+  bindmoveinchange="handleInquiryMoveInChange"
+  bindphonechange="handleInquiryPhoneChange"
+  bindselectmanual="handleInquirySelectManual"
+  bindselectwechat="handleInquirySelectWechat"
+  bindconsentchange="handleInquiryConsentChange"
+  bindphoneauthorize="handleInquiryPhoneAuthorization"
+  bindphonerejected="handleInquiryPhoneRejected"
+  bindmanualsubmit="handleInquiryManualSubmit"
+/>

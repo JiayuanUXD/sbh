@@ -7,6 +7,7 @@ page {
   --sbh-color-gray-600: #86868b;
   --sbh-color-gray-200: #e5e5e7;
   --sbh-color-blue-600: #0071e3;
+  --sbh-color-black-alpha-48: rgba(0, 0, 0, 0.48);
   --sbh-color-transparent: transparent;
   --sbh-space-0: 0;
   --sbh-space-4: 8rpx;
@@ -19,6 +20,7 @@ page {
   --sbh-radius-3: 6rpx;
   --sbh-radius-6: 12rpx;
   --sbh-radius-8: 16rpx;
+  --sbh-radius-12: 24rpx;
   --sbh-size-12: 24rpx;
   --sbh-size-44: 88rpx;
   --sbh-size-120: 240rpx;
@@ -39,6 +41,7 @@ page {
   --sbh-opacity-45: 0.45;
   --sbh-opacity-90: 0.9;
   --sbh-duration-120: 120ms;
+  --sbh-duration-180: 180ms;
   --sbh-duration-1200: 1200ms;
   --sbh-scale-98: 0.98;
 }
@@ -53,6 +56,7 @@ page {
   --sbh-text-tertiary: var(--sbh-color-gray-600);
   --sbh-border-subtle: var(--sbh-color-gray-200);
   --sbh-border-transparent: var(--sbh-color-transparent);
+  --sbh-overlay-background: var(--sbh-color-black-alpha-48);
   --sbh-interaction-primary: var(--sbh-color-blue-600);
   --sbh-interaction-primary-pressed: var(--sbh-color-gray-950);
   --sbh-interaction-on-primary: var(--sbh-color-white);
@@ -67,6 +71,7 @@ page {
   --sbh-shape-label-radius: var(--sbh-radius-3);
   --sbh-shape-control-radius: var(--sbh-radius-6);
   --sbh-shape-surface-radius: var(--sbh-radius-8);
+  --sbh-shape-sheet-radius: var(--sbh-radius-12);
   --sbh-size-skeleton-row: var(--sbh-size-12);
   --sbh-size-touch-target: var(--sbh-size-44);
   --sbh-size-skeleton-media: var(--sbh-size-120);
@@ -88,6 +93,7 @@ page {
   --sbh-state-skeleton-low-opacity: var(--sbh-opacity-45);
   --sbh-state-skeleton-high-opacity: var(--sbh-opacity-90);
   --sbh-motion-interaction-duration: var(--sbh-duration-120);
+  --sbh-motion-sheet-duration: var(--sbh-duration-180);
   --sbh-motion-skeleton-duration: var(--sbh-duration-1200);
   --sbh-motion-pressed-scale: var(--sbh-scale-98);
 }
@@ -156,4 +162,11 @@ page {
   --sbh-state-action-border-width: var(--sbh-stroke-default);
   --sbh-state-action-radius: var(--sbh-shape-control-radius);
   --sbh-state-action-font-size: var(--sbh-type-body-size);
+  --sbh-sheet-backdrop-background: var(--sbh-overlay-background);
+  --sbh-sheet-panel-background: var(--sbh-surface-background);
+  --sbh-sheet-panel-radius: var(--sbh-shape-sheet-radius);
+  --sbh-sheet-close-size: var(--sbh-size-touch-target);
+  --sbh-sheet-header-min-height: var(--sbh-size-touch-target);
+  --sbh-sheet-footer-background: var(--sbh-surface-background);
+  --sbh-sheet-motion-duration: var(--sbh-motion-sheet-duration);
 }

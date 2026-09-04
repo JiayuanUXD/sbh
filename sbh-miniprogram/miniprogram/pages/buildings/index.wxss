@@ -99,3 +99,42 @@
   font-size: 24rpx;
   color: #86868b;
 }
+
+.buildings-advisor-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  margin: 0 24rpx 20rpx;
+  padding: 24rpx 28rpx;
+  gap: 24rpx;
+  background: var(--sbh-surface-background);
+  border-radius: var(--sbh-shape-surface-radius);
+}
+
+.buildings-advisor-card__title {
+  color: var(--sbh-text-primary);
+  font-size: var(--sbh-type-label-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.buildings-advisor-card__description {
+  margin-top: 6rpx;
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: var(--sbh-type-body-line-height);
+}
+
+.buildings-advisor-card__action {
+  flex: 0 0 auto;
+  min-height: var(--sbh-size-touch-target);
+  margin: 0;
+  padding: 0 28rpx;
+  color: var(--sbh-interaction-on-primary);
+  background: var(--sbh-interaction-primary);
+  border-radius: 999rpx;
+  font-size: var(--sbh-type-body-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.buildings-advisor-card__action::after { border: 0; }

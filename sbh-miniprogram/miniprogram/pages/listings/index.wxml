@@ -1,4 +1,5 @@
-<view id="listings-ready" class="listings-page">
+<page-meta page-style="{{sheetOpen ? 'overflow: hidden;' : ''}}" />
+<view id="listings-ready" class="listings-page" aria-hidden="{{sheetOpen}}">
   <view class="listings-header-sticky">
     <!-- 设计稿 34px 独立搜索栏 -->
     <view class="listings-search-wrap">
@@ -21,6 +22,7 @@
     <!-- 吸顶筛选行 -->
     <view class="listings-filter-shell">
       <filter-bar
+        id="filter-bar"
         query="{{query}}"
         active-count="{{activeFilterCount}}"
         bindopen="handleOpenFilter"
@@ -120,7 +122,10 @@
     </view>
   </block>
 
-  <filter-sheet
+</view>
+
+<filter-sheet
+    id="filter-sheet"
     open="{{sheetOpen}}"
     section="{{sheetSection}}"
     query="{{query}}"
@@ -133,4 +138,3 @@
     bindclear="handleFilterClear"
     bindapply="handleFilterApply"
   />
-</view>

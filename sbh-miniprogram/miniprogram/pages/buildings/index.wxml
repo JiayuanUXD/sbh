@@ -1,4 +1,5 @@
-<view id="buildings-ready" class="buildings-page">
+<page-meta page-style="{{inquiryOpen ? 'overflow: hidden;' : ''}}" />
+<view id="buildings-ready" class="buildings-page" aria-hidden="{{inquiryOpen}}">
   <!-- 顶部筛选栏 -->
   <view class="buildings-filter-bar">
     <view class="buildings-filter-item {{districtFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleDistrictFilter">
@@ -79,5 +80,27 @@
     </view>
 
     <view class="buildings-end">已展示全部楼盘</view>
+    <view class="buildings-advisor-card">
+      <view>
+        <view class="buildings-advisor-card__title">需要顾问协助匹配？</view>
+        <view class="buildings-advisor-card__description">提交面积、预算和入驻时间，我们按当前公开楼盘继续筛选。</view>
+      </view>
+      <button class="buildings-advisor-card__action" bindtap="handleOpenInquiry" disabled="{{inquiryOpen}}">找顾问</button>
+    </view>
   </block>
 </view>
+
+<inquiry-sheet
+  id="inquiry-sheet"
+  snapshot="{{inquirySheet}}"
+  bindclose="handleInquiryClose"
+  bindprivacy="handleInquiryPrivacy"
+  bindmoveinchange="handleInquiryMoveInChange"
+  bindphonechange="handleInquiryPhoneChange"
+  bindselectmanual="handleInquirySelectManual"
+  bindselectwechat="handleInquirySelectWechat"
+  bindconsentchange="handleInquiryConsentChange"
+  bindphoneauthorize="handleInquiryPhoneAuthorization"
+  bindphonerejected="handleInquiryPhoneRejected"
+  bindmanualsubmit="handleInquiryManualSubmit"
+/>

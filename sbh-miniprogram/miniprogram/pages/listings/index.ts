@@ -54,6 +54,7 @@ type ListingsPageData = {
   activeFilterCount: number
   sheetOpen: boolean
   sheetSection: 'location' | 'price' | 'area' | 'all'
+  tabBarBoundaryState: 'visible' | 'hidden'
 }
 
 type FilterOpenEvent = Readonly<{
@@ -78,10 +79,13 @@ type ListingsPageMethods = {
   listingsController: ListingsController | null
   initialQuery: ListingQuery
   hasLoaded: boolean
+  modalTabBarHidden: boolean
   ensureListingsController(): ListingsController
+  showModalTabBarBoundary(): Promise<boolean>
+  restoreModalTabBarBoundary(): Promise<void>
   handleRetry(): void
   handleRetryLoadMore(): void
-  handleOpenFilter(event: FilterOpenEvent): void
+  handleOpenFilter(event: FilterOpenEvent): Promise<void>
   handleFilterEstimate(event: FilterQueryEvent): void
   handleFilterClear(event: FilterQueryEvent): void
   handleFilterApply(event: FilterQueryEvent): void
@@ -157,11 +161,13 @@ Page<ListingsPageData, ListingsPageMethods>({
     activeFilterCount: 0,
     sheetOpen: false,
     sheetSection: 'all',
+    tabBarBoundaryState: 'visible',
   },
 
   listingsController: null,
   initialQuery: emptyQuery,
   hasLoaded: false,
+  modalTabBarHidden: false,
 
   onLoad(options) {
     this.initialQuery = parseListingQuery(buildWhitelistedQuery(options))
@@ -184,7 +190,12 @@ Page<ListingsPageData, ListingsPageMethods>({
     }
   },
 
+  onHide() {
+    void this.restoreModalTabBarBoundary()
+  },
+
   onUnload() {
+    void this.restoreModalTabBarBoundary()
     this.listingsController?.dispose()
     this.listingsController = null
   },
@@ -209,6 +220,35 @@ Page<ListingsPageData, ListingsPageMethods>({
     return this.listingsController
   },
 
+  async showModalTabBarBoundary() {
+    if (this.modalTabBarHidden) return true
+    try {
+      await new Promise<void>((resolve, reject) => {
+        wx.hideTabBar({ animation: false, success: () => resolve(), fail: reject })
+      })
+      this.modalTabBarHidden = true
+      this.setData({ tabBarBoundaryState: 'hidden' })
+      return true
+    } catch {
+      await this.restoreModalTabBarBoundary()
+      wx.showToast({ title: '暂时无法打开筛选', icon: 'none', duration: 1600 })
+      return false
+    }
+  },
+
+  async restoreModalTabBarBoundary() {
+    if (!this.modalTabBarHidden) return
+    try {
+      await new Promise<void>((resolve, reject) => {
+        wx.showTabBar({ animation: false, success: () => resolve(), fail: reject })
+      })
+      this.modalTabBarHidden = false
+      this.setData({ tabBarBoundaryState: 'visible' })
+    } catch {
+      // 保留 hidden 标记，让 onHide/onUnload 等后续边界继续尝试恢复。
+    }
+  },
+
   handleRetry() {
     void this.ensureListingsController().load(this.data.query)
   },
@@ -217,11 +257,12 @@ Page<ListingsPageData, ListingsPageMethods>({
     void this.ensureListingsController().loadNextPage()
   },
 
-  handleOpenFilter(event) {
+  async handleOpenFilter(event) {
     const section = event.detail.section
     const sheetSection = section === 'location' || section === 'price' || section === 'area'
       ? section
       : 'all'
+    if (!await this.showModalTabBarBoundary()) return
     this.setData({
       sheetOpen: true,
       sheetSection,
@@ -239,12 +280,14 @@ Page<ListingsPageData, ListingsPageMethods>({
 
   handleFilterApply(event) {
     this.setData({ sheetOpen: false })
+    void this.restoreModalTabBarBoundary()
     void this.ensureListingsController().applyFilters(event.detail.query)
   },
 
   handleFilterClose() {
     this.ensureListingsController().cancelEstimate()
     this.setData({ sheetOpen: false })
+    void this.restoreModalTabBarBoundary()
   },
 
   handleApplyRelaxation(event) {

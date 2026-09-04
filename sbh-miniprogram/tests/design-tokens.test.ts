@@ -65,7 +65,7 @@ describe('三层设计 token', () => {
       expect(primitives.get(token), token).toBe(value)
     }
 
-    const primitiveName = /^--sbh-(?:color-(?:white|transparent|gray-\d+|blue-\d+)|space-\d+|radius-\d+|size-\d+|border-width-\d+|font-size-\d+|font-weight-\d+|line-height-\d+|opacity-\d+|duration-\d+|scale-\d+)$/
+    const primitiveName = /^--sbh-(?:color-(?:white|transparent|black-alpha-\d+|gray-\d+|blue-\d+)|space-\d+|radius-\d+|size-\d+|border-width-\d+|font-size-\d+|font-weight-\d+|line-height-\d+|opacity-\d+|duration-\d+|scale-\d+)$/
     expect([...primitives.keys()].every((name) => primitiveName.test(name))).toBe(true)
     expect([...primitives.values()].every((value) => references(value).length === 0)).toBe(true)
   })

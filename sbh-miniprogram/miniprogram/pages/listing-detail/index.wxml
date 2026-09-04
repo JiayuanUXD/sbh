@@ -142,7 +142,7 @@
         hover-class="sbh-pressable"
         aria-disabled="{{favoriteBusy}}"
       >
-        <text class="listing-detail__bar-fav-icon">{{isFavorited ? '♥' : '♡'}}</text>
+        <view class="favorite-icon__glyph listing-detail__bar-fav-icon {{isFavorited ? 'favorite-icon__glyph--active' : ''}}" aria-hidden="true"></view>
         <text class="listing-detail__bar-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>
       </view>
       <button
@@ -160,6 +160,7 @@
 </view>
 
 <inquiry-sheet
+  id="inquiry-sheet"
   snapshot="{{inquirySheet}}"
   bindclose="handleInquiryClose"
   bindprivacy="handleInquiryPrivacy"

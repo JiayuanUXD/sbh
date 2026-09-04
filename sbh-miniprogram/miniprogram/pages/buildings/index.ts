@@ -1,5 +1,19 @@
+import {
+  createInquirySheetController,
+  type InquirySheetContext,
+  type InquirySheetController,
+  type InquirySheetSnapshot,
+} from '../../components/inquiry-sheet/controller.js'
 import { getBuildings } from '../../services/catalog.js'
 import type { MiniBuildingCard } from '../../services/catalog-contracts.js'
+import { refreshUserAssets } from '../../services/favorites.js'
+import {
+  CURRENT_INQUIRY_POLICY_VERSION,
+  createInquiryService,
+  createSubmissionIntentManager,
+} from '../../services/inquiry.js'
+import { request } from '../../services/request.js'
+import { createSessionService } from '../../services/session.js'
 
 const BUILDING_GRADE_FILTERS = [
   { label: '全部', value: '' },
@@ -16,6 +30,49 @@ const SORTS: Record<string, string> = {
   'grade': '等级最高',
 }
 
+function closedInquirySheet(): InquirySheetSnapshot {
+  return {
+    state: 'closed', context: null, submissionRequestId: null, moveInTime: '', phone: '',
+    consentAccepted: false, privacyStatus: 'unchecked', phoneMode: 'wechat', errorReason: null,
+    errorMessage: '', requiresNewPhoneAuthorization: false, successMessage: '', successFollowUp: '',
+    busy: false, submitDisabled: true, phoneSubmitDisabled: true, manualSubmitDisabled: true,
+  }
+}
+
+function requestLoginCode(): Promise<Readonly<{ code: string }>> {
+  return new Promise((resolve, reject) => wx.login({
+    success: ({ code }) => resolve({ code }),
+    fail: reject,
+  }))
+}
+
+function openPrivacyContract(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      wx.openPrivacyContract({ success: () => resolve(), fail: reject })
+    } catch {
+      reject(new Error('privacy contract unavailable'))
+    }
+  })
+}
+
+function generalInquiryContext(): InquirySheetContext {
+  return {
+    target: { targetType: 'general' },
+    title: '请顾问匹配合适楼盘',
+    facts: { area: '全上海', unitPrice: '多种计价', monthlyEstimate: '按需求匹配' },
+    policyVersion: CURRENT_INQUIRY_POLICY_VERSION,
+  }
+}
+
+const sessionService = createSessionService({ login: requestLoginCode, request })
+const inquiryService = createInquiryService({
+  request,
+  getAnonymousContextToken: sessionService.getToken,
+  clearAnonymousContext: sessionService.clear,
+})
+const submissionIntentManager = createSubmissionIntentManager()
+
 Page({
   data: {
     state: 'loading' as 'loading' | 'ready' | 'error',
@@ -29,7 +86,11 @@ Page({
     gradeFilterLabel: '等级',
     sortFilter: '',
     sortLabel: '在租最多',
+    inquiryOpen: false,
+    inquirySheet: closedInquirySheet(),
   },
+
+  inquirySheetController: null as InquirySheetController | null,
 
   onLoad() {
     this.loadBuildings()
@@ -39,6 +100,13 @@ Page({
     this.loadBuildings().finally(() => {
       wx.stopPullDownRefresh()
     })
+  },
+
+  onUnload() {
+    this.inquirySheetController?.dispose()
+    this.inquirySheetController = null
+    sessionService.clear()
+    submissionIntentManager.invalidate()
   },
 
   async loadBuildings() {
@@ -123,5 +191,42 @@ Page({
       url: `/pages/building-detail/index?slug=${encodeURIComponent(slug)}`,
     })
   },
+
+  ensureInquirySheetController() {
+    if (this.inquirySheetController === null) {
+      this.inquirySheetController = createInquirySheetController({
+        openIntent: submissionIntentManager.open,
+        invalidateIntent: submissionIntentManager.invalidate,
+        ensureAnonymousContext: sessionService.ensureAnonymousContext,
+        openPrivacyContract,
+        submit: inquiryService.submit,
+        onChange: (snapshot) => {
+          this.setData({ inquirySheet: snapshot, inquiryOpen: snapshot.state !== 'closed' })
+          if (snapshot.state === 'success') void refreshUserAssets().catch(() => undefined)
+        },
+      })
+    }
+    return this.inquirySheetController
+  },
+
+  handleOpenInquiry() { void this.ensureInquirySheetController().open(generalInquiryContext()) },
+  handleInquiryClose() { this.inquirySheetController?.close() },
+  handleInquiryPrivacy() { void this.ensureInquirySheetController().verifyPrivacy() },
+  handleInquiryMoveInChange(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
+    if (typeof event.detail.value === 'string') this.ensureInquirySheetController().setMoveInTime(event.detail.value)
+  },
+  handleInquiryPhoneChange(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
+    if (typeof event.detail.value === 'string') this.ensureInquirySheetController().setPhone(event.detail.value)
+  },
+  handleInquirySelectManual() { this.ensureInquirySheetController().selectManual() },
+  handleInquirySelectWechat() { this.ensureInquirySheetController().selectPhoneAuthorization() },
+  handleInquiryConsentChange(event: WechatMiniprogram.CustomEvent<{ accepted: boolean }>) {
+    this.ensureInquirySheetController().setConsent(event.detail.accepted === true)
+  },
+  handleInquiryPhoneAuthorization(event: WechatMiniprogram.CustomEvent<{ phoneCode: string }>) {
+    if (typeof event.detail.phoneCode === 'string') void this.ensureInquirySheetController().submitPhoneCode(event.detail.phoneCode)
+  },
+  handleInquiryPhoneRejected() { this.ensureInquirySheetController().rejectPhoneAuthorization() },
+  handleInquiryManualSubmit() { void this.ensureInquirySheetController().submitManual() },
 
 })
