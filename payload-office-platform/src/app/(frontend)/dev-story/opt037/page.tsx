@@ -1199,7 +1199,7 @@ export default async function Opt037PreviewPage({
             吸附锚点导航（AnchorNavBar）
           </h2>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.43, color: 'var(--ink-2)' }}>
-            sticky top 44 · 高 56 · 全幅玻璃 + 内层容器居中 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（平滑滚动与 reduced-motion 由全局 html{'{'}scroll-behavior{'}'} 负责），落点由 .dt-anchor-target 的 scroll-margin-top=44+56+12 补偿。三态各自独立一个 scope（= sticky 的包含块）与一套 id，互不叠压。
+            sticky top 44 · 高 56 · 全幅玻璃 + 内层容器居中 · 楼盘名 + 锚点 + 「预约看房」；当前项由几何择一（越过吸附线的区块中 top 最大的那个），点击走原生 #id 跳转（2026-09-04 起是**瞬时**跳转：全局 html{'{'}scroll-behavior:smooth{'}'} 已移除，理由见 styles.css），落点由 .dt-anchor-target 的 scroll-margin-top=44+56+12 补偿。三态各自独立一个 scope（= sticky 的包含块）与一套 id，互不叠压。
           </p>
         </div>
 
