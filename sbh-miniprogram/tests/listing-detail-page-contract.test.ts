@@ -26,6 +26,7 @@ describe('房源详情页面合同', () => {
       'pages/building-detail/index',
       'pages/listing-detail/index',
       'pages/foundation/index',
+      'pages/profile/index',
     ])
     expect(app.tabBar?.list?.map((item) => item.pagePath)).not.toContain('pages/listing-detail/index')
     expect(config).toMatchObject({

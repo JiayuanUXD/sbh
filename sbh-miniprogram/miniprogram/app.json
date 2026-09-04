@@ -5,7 +5,8 @@
     "pages/buildings/index",
     "pages/building-detail/index",
     "pages/listing-detail/index",
-    "pages/foundation/index"
+    "pages/foundation/index",
+    "pages/profile/index"
   ],
   "window": {
     "navigationBarTitleText": "SBH 商办租赁",
@@ -21,7 +22,8 @@
     "list": [
       { "pagePath": "pages/home/index", "text": "首页" },
       { "pagePath": "pages/listings/index", "text": "找房" },
-      { "pagePath": "pages/buildings/index", "text": "楼盘" }
+      { "pagePath": "pages/buildings/index", "text": "楼盘" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
     ]
   },
   "style": "v2",

@@ -1,0 +1,138 @@
+<view id="profile-ready" class="profile-page">
+  <!-- 用户身份栏 -->
+  <view class="profile-user-card" hover-class="sbh-pressable" bindtap="handleUserClick">
+    <view class="profile-avatar">
+      <text class="profile-avatar-icon">👤</text>
+    </view>
+    <view class="profile-user-info">
+      <view class="profile-username">{{user.nickname}}</view>
+      <view class="profile-user-city">{{user.city}} · 切换城市</view>
+    </view>
+    <text class="profile-arrow">›</text>
+  </view>
+
+  <!-- 4 格核心资产指标卡 -->
+  <view class="profile-metrics-card">
+    <view class="profile-metrics-grid">
+      <view
+        class="profile-metric-item"
+        hover-class="sbh-pressable"
+        bindtap="handleViewFavorites"
+        data-type="listing"
+      >
+        <view class="profile-metric-num num">{{summary.listingCount}}</view>
+        <view class="profile-metric-label">收藏房源</view>
+      </view>
+
+      <view
+        class="profile-metric-item"
+        hover-class="sbh-pressable"
+        bindtap="handleViewFavorites"
+        data-type="building"
+      >
+        <view class="profile-metric-num num">{{summary.buildingCount}}</view>
+        <view class="profile-metric-label">收藏楼盘</view>
+      </view>
+
+      <view class="profile-metric-item">
+        <view class="profile-metric-num num">{{summary.historyCount}}</view>
+        <view class="profile-metric-label">浏览过</view>
+      </view>
+
+      <view class="profile-metric-item">
+        <view class="profile-metric-num num">{{summary.compareCount}}</view>
+        <view class="profile-metric-label">对比中</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的留资进度卡块 -->
+  <view class="profile-inquiry-card">
+    <view class="profile-inquiry-header" hover-class="sbh-pressable" bindtap="handleViewAllInquiries">
+      <text class="profile-inquiry-title">我的留资</text>
+      <view class="profile-inquiry-status-link">
+        <text class="num">{{pendingInquiryCount}} 条待跟进</text>
+        <text class="profile-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="profile-divider" />
+
+    <view wx:if="{{inquiries.length > 0}}" class="profile-inquiry-list">
+      <view
+        wx:for="{{inquiries}}"
+        wx:key="submissionRequestId"
+        class="profile-inquiry-item"
+        hover-class="sbh-pressable"
+        bindtap="handleInquiryItemClick"
+        data-slug="{{item.targetSlug}}"
+      >
+        <view class="profile-inquiry-media">
+          <image
+            wx:if="{{item.imageUrl}}"
+            class="profile-inquiry-thumb"
+            src="{{item.imageUrl}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="profile-inquiry-placeholder">
+            <text class="profile-inquiry-ph-icon">🏢</text>
+          </view>
+        </view>
+        <view class="profile-inquiry-content">
+          <view class="profile-inquiry-target-title">{{item.targetTitle}}</view>
+          <view class="profile-inquiry-date-note num">{{item.formattedDate}} 提交 · 顾问已分配</view>
+        </view>
+        <text class="profile-inquiry-badge">{{item.statusLabel}}</text>
+      </view>
+    </view>
+
+    <view wx:else class="profile-inquiry-empty">
+      <text class="profile-inquiry-empty-text">暂无咨询记录，提交房源留资后可在专属卡片查看进度</text>
+    </view>
+  </view>
+
+  <!-- 功能菜单列表卡块 -->
+  <view class="profile-menu-card">
+    <view class="profile-menu-item" hover-class="sbh-pressable" bindtap="handleCompareClick">
+      <text class="profile-menu-label">房源对比</text>
+      <view class="profile-menu-value">
+        <text class="num">{{summary.compareCount}} 套 · 按月租估算排序</text>
+        <text class="profile-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="profile-divider" />
+
+    <view class="profile-menu-item" hover-class="sbh-pressable" bindtap="handleCityClick">
+      <text class="profile-menu-label">切换城市</text>
+      <view class="profile-menu-value">
+        <text>{{user.city}}</text>
+        <text class="profile-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="profile-divider" />
+
+    <view class="profile-menu-item" hover-class="sbh-pressable" bindtap="handleAdvisorClick">
+      <text class="profile-menu-label">联系顾问</text>
+      <view class="profile-menu-value">
+        <text>工作日 9–20 时</text>
+        <text class="profile-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="profile-divider" />
+
+    <view class="profile-menu-item" hover-class="sbh-pressable" bindtap="handleSettingsClick">
+      <text class="profile-menu-label">设置</text>
+      <view class="profile-menu-value">
+        <text class="profile-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 版本信息页脚 -->
+  <view class="profile-footer">
+    SBH 商办 · 版本 <text class="num">1.0.0</text>
+  </view>
+</view>

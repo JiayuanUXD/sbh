@@ -1,0 +1,98 @@
+{
+  "timestamp": "2026-09-04T03:57:13.170Z",
+  "systemInfo": {
+    "brand": "devtools",
+    "model": "iPhone 14 Pro Max",
+    "system": "iOS 10.0.1",
+    "platform": "devtools",
+    "benchmarkLevel": -1,
+    "pixelRatio": 3,
+    "screenWidth": 430,
+    "screenHeight": 932,
+    "windowWidth": 430,
+    "windowHeight": 752,
+    "statusBarHeight": 54,
+    "safeArea": {
+      "top": 54,
+      "left": 0,
+      "right": 430,
+      "bottom": 898,
+      "width": 430,
+      "height": 844
+    },
+    "language": "zh_CN",
+    "version": "8.0.5",
+    "fontSizeSetting": 16,
+    "SDKVersion": "3.17.2",
+    "host": {
+      "env": "WeChat"
+    },
+    "enableDebug": false,
+    "mode": "default",
+    "deviceOrientation": "portrait",
+    "bluetoothEnabled": true,
+    "locationEnabled": true,
+    "wifiEnabled": true,
+    "albumAuthorized": true,
+    "cameraAuthorized": true,
+    "locationAuthorized": true,
+    "microphoneAuthorized": true,
+    "notificationAuthorized": true,
+    "notificationAlertAuthorized": true,
+    "notificationBadgeAuthorized": true,
+    "notificationSoundAuthorized": true,
+    "phoneCalendarAuthorized": true,
+    "bluetoothAuthorized": true,
+    "locationReducedAccuracy": true,
+    "devicePixelRatio": 3
+  },
+  "testCases": {
+    "home": {
+      "state": "ready",
+      "passed": true,
+      "screenshot": "mp107-1-home.png"
+    },
+    "listings": {
+      "state": "ready",
+      "itemCount": 10,
+      "passed": true,
+      "screenshot": "mp107-2-listings.png"
+    },
+    "buildings": {
+      "state": "ready",
+      "totalDocs": 6,
+      "activeCount": 5,
+      "passed": true,
+      "screenshot": "mp107-3-buildings.png"
+    },
+    "buildingDetail": {
+      "name": "南京西路高端商务中心",
+      "isFavorited": true,
+      "passed": true,
+      "screenshot": "mp107-4-building-detail-favorited.png"
+    },
+    "listingDetail": {
+      "title": "外滩源 · 共享办公 · 灵活工位",
+      "isFavorited": true,
+      "inquiryOpen": true,
+      "passed": true,
+      "screenshot": "mp107-5-listing-detail-favorited.png"
+    },
+    "profile": {
+      "nickname": "微信用户",
+      "city": "上海",
+      "listingCount": 1,
+      "buildingCount": 1,
+      "inquiriesCount": 0,
+      "passed": true,
+      "screenshot": "mp107-6-profile.png"
+    },
+    "profileWithInquiry": {
+      "pendingCount": 1,
+      "firstInquiryTitle": "越洋国际广场 · 12 层整层",
+      "passed": true,
+      "screenshot": "mp107-6b-profile-with-inquiry.png"
+    }
+  },
+  "interactions": {}
+}

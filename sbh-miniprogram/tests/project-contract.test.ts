@@ -52,10 +52,12 @@ describe('小程序工程入口合同', () => {
     expect(pages).toContain('pages/building-detail/index')
     expect(pages).toContain('pages/listing-detail/index')
     expect(pages).toContain('pages/foundation/index')
+    expect(pages).toContain('pages/profile/index')
     expect(tabBar?.list?.map((item) => item.pagePath)).toEqual([
       'pages/home/index',
       'pages/listings/index',
       'pages/buildings/index',
+      'pages/profile/index',
     ])
     expect(app.tabBar).toMatchObject({
       color: '#6e6e73',
@@ -66,6 +68,7 @@ describe('小程序工程入口合同', () => {
         { pagePath: 'pages/home/index', text: '首页' },
         { pagePath: 'pages/listings/index', text: '找房' },
         { pagePath: 'pages/buildings/index', text: '楼盘' },
+        { pagePath: 'pages/profile/index', text: '我的' },
       ],
     })
   })

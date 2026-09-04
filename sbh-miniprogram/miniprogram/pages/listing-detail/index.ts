@@ -18,6 +18,8 @@ import {
   createInquiryService,
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
+import { isListingFavorite, toggleListingFavorite } from '../../services/favorites.js'
+import { recordInquiry } from '../../services/inquiry-tracker.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
 import {
@@ -41,6 +43,7 @@ type ListingDetailPageData = {
   loadingFallback: boolean
   inquiryOpen: boolean
   inquirySheet: InquirySheetSnapshot
+  isFavorited: boolean
 }
 
 type ListingOpenEvent = Readonly<{
@@ -60,6 +63,7 @@ type ListingDetailPageMethods = {
   handleBackToListings(): void
   handleRelatedOpen(event: ListingOpenEvent): void
   openDetail(slug: string): void
+  handleToggleFavorite(): void
   handleOpenInquiry(): void
   handleInquiryClose(): void
   handleInquiryPrivacy(): void
@@ -154,6 +158,7 @@ function projectSnapshot(snapshot: ListingDetailSnapshot): Partial<ListingDetail
   return {
     state: snapshot.state,
     slug: snapshot.slug,
+    isFavorited: isListingFavorite(snapshot.slug),
     fallbackListings: snapshot.fallbackListings.map(presentListingCard),
     loadingFallback: snapshot.loadingFallback,
     content: snapshot.content === null
@@ -178,6 +183,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     loadingFallback: false,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
+    isFavorited: false,
   },
 
   listingDetailController: null,
@@ -239,7 +245,21 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
         invalidateIntent: submissionIntentManager.invalidate,
         ensureAnonymousContext: sessionService.ensureAnonymousContext,
         openPrivacyContract,
-        submit: inquiryService.submit,
+        submit: async (input) => {
+          const result = await inquiryService.submit(input)
+          if (result.ok) {
+            recordInquiry({
+              submissionRequestId: input.submissionRequestId,
+              targetType: 'listing',
+              targetSlug: input.listingSlug,
+              targetTitle: this.data.content?.title || '商办房源咨询',
+              imageUrl: this.data.content?.gallery?.[0]?.url,
+              status: 'pending',
+              statusLabel: '待带看',
+            })
+          }
+          return result
+        },
         onChange: (snapshot) => this.setData({
           inquirySheet: snapshot,
           inquiryOpen: snapshot.state !== 'closed',
@@ -247,6 +267,22 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
       })
     }
     return this.inquirySheetController
+  },
+
+  handleToggleFavorite() {
+    const slug = this.data.slug
+    const content = this.data.content
+    if (!slug) return
+    const isNowFav = toggleListingFavorite({
+      slug,
+      title: content?.title || '商办房源',
+      imageUrl: content?.gallery?.[0]?.url,
+    })
+    this.setData({ isFavorited: isNowFav })
+    wx.showToast({
+      title: isNowFav ? '已收藏该房源' : '已取消收藏',
+      icon: 'success',
+    })
   },
 
   handleRetry() {
