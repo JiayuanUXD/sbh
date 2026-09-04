@@ -290,6 +290,7 @@
 .listing-detail__bar-action--inquiry {
   color: var(--sbh-interaction-on-primary);
   background: var(--sbh-interaction-primary);
+  border-radius: 999px;
 }
 
 .listing-detail__bar-action[disabled] {

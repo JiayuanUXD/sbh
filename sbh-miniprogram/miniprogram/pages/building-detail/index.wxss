@@ -93,11 +93,17 @@
 .building-stats-card {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx;
+  gap: 0;
+  padding: 28rpx 0;
 }
 
 .building-stat-item {
   text-align: center;
+  padding: 4rpx 0;
+}
+
+.building-stat-item:not(:first-child) {
+  border-left: 2rpx solid #e5e5e7;
 }
 
 .building-stat-label {
@@ -317,6 +323,20 @@
 .building-fav-text {
   font-size: 20rpx;
   color: #6e6e73;
+}
+
+.building-bottom-cta--secondary {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 88rpx;
+  background: #ffffff;
+  color: #1d1d1f;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: 2rpx solid #d7d7db;
+  border-radius: 999rpx;
 }
 
 .building-bottom-cta {

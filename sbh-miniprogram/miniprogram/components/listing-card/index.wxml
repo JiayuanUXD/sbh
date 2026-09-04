@@ -1,5 +1,5 @@
 <view
-  class="listing-card"
+  class="listing-card {{borderless ? 'listing-card--borderless' : ''}}"
   hover-class="listing-card--pressed"
   hover-start-time="70"
   hover-stay-time="120"
@@ -17,6 +17,7 @@
       binderror="handleImageError"
     />
     <view wx:else class="listing-card__placeholder">暂无图片</view>
+    <view wx:if="{{listing.badge || listing.isNew}}" class="listing-card__badge">{{listing.badge || '新上'}}</view>
   </view>
   <view class="listing-card__body">
     <view class="listing-card__title">{{listing.title}}</view>

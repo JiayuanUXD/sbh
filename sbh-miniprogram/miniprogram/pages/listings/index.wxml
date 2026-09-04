@@ -1,10 +1,31 @@
 <view id="listings-ready" class="listings-page">
-  <view class="listings-filter-shell">
-    <filter-bar
-      query="{{query}}"
-      active-count="{{activeFilterCount}}"
-      bindopen="handleOpenFilter"
-    />
+  <view class="listings-header-sticky">
+    <!-- 设计稿 34px 独立搜索栏 -->
+    <view class="listings-search-wrap">
+      <view class="listings-search-bar">
+        <view class="listings-search-icon">
+          <view class="listings-search-icon-circle"></view>
+          <view class="listings-search-icon-handle"></view>
+        </view>
+        <input
+          class="listings-search-input"
+          value="{{query.keyword || ''}}"
+          placeholder="搜楼盘、商圈或地铁站"
+          placeholder-class="listings-search-placeholder"
+          confirm-type="search"
+          bindconfirm="handleSearchSubmit"
+        />
+      </view>
+    </view>
+
+    <!-- 吸顶筛选行 -->
+    <view class="listings-filter-shell">
+      <filter-bar
+        query="{{query}}"
+        active-count="{{activeFilterCount}}"
+        bindopen="handleOpenFilter"
+      />
+    </view>
   </view>
 
   <view wx:if="{{state === 'loading'}}" class="listings-loading">
@@ -29,18 +50,23 @@
     </view>
 
     <view wx:if="{{state === 'ready'}}" class="listings-summary">
-      <text class="num">共 {{totalDocs}} 套</text>
-      <text class="listings-summary__hint">结果按当前计价单位独立展示</text>
+      <text class="num">{{totalDocs}} 套符合条件</text>
+      <text class="listings-summary__sort num" bindtap="handleToggleSort">{{query.sort === 'price_desc' ? '单价降序 ▾' : '单价升序 ▾'}}</text>
     </view>
 
+    <!-- 房源列表大白卡容器（块内用 1px 浅灰细线分隔） -->
     <view wx:if="{{state === 'ready'}}" class="listings-list">
-      <listing-card
-        wx:for="{{items}}"
-        wx:key="id"
-        data-listing-slug="{{item.slug}}"
-        listing="{{item}}"
-        bindopen="handleListingOpen"
-      />
+      <view class="listings-card-block">
+        <block wx:for="{{items}}" wx:key="id">
+          <listing-card
+            borderless="{{true}}"
+            data-listing-slug="{{item.slug}}"
+            listing="{{item}}"
+            bindopen="handleListingOpen"
+          />
+          <view wx:if="{{index < items.length - 1}}" class="listings-card-divider"></view>
+        </block>
+      </view>
 
       <view wx:if="{{loadingMore}}" class="listings-loading-more" aria-role="status">
         正在加载更多房源
@@ -98,15 +124,15 @@
 
   <filter-sheet
     open="{{sheetOpen}}"
-    section="{{sheetSection}}"
-    query="{{query}}"
+    initial-section="{{sheetSection}}"
+    current-query="{{query}}"
     filters="{{filters}}"
-    result-count="{{estimatedCount}}"
+    estimated-count="{{estimatedCount}}"
     estimating="{{estimating}}"
     estimate-unavailable="{{estimateUnavailable}}"
+    bindclose="handleFilterClose"
     bindestimate="handleFilterEstimate"
     bindclear="handleFilterClear"
     bindapply="handleFilterApply"
-    bindclose="handleFilterClose"
   />
 </view>

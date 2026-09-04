@@ -10,10 +10,69 @@
   font-variant-numeric: tabular-nums;
 }
 
-.listings-filter-shell {
+.listings-header-sticky {
   position: sticky;
-  z-index: 30;
   top: 0;
+  z-index: 30;
+  background: #ffffff;
+}
+
+.listings-search-wrap {
+  box-sizing: border-box;
+  padding: 12rpx 24rpx 8rpx;
+  background: #ffffff;
+}
+
+.listings-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  height: 68rpx;
+  padding: 0 20rpx;
+  background: #f2f2f4;
+  border-radius: var(--sbh-shape-control-radius, 12rpx);
+}
+
+.listings-search-icon {
+  position: relative;
+  width: 26rpx;
+  height: 26rpx;
+}
+
+.listings-search-icon-circle {
+  box-sizing: border-box;
+  width: 18rpx;
+  height: 18rpx;
+  border: 3rpx solid #86868b;
+  border-radius: 50%;
+}
+
+.listings-search-icon-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 10rpx;
+  height: 3rpx;
+  background: #86868b;
+  border-radius: 2rpx;
+  transform: rotate(45deg);
+  transform-origin: left center;
+}
+
+.listings-search-input {
+  flex: 1;
+  height: 100%;
+  font-size: 26rpx;
+  color: #1d1d1f;
+}
+
+.listings-search-placeholder {
+  color: #86868b;
+  font-size: 26rpx;
+}
+
+.listings-filter-shell {
+  background: #ffffff;
 }
 
 .listings-loading,
@@ -39,8 +98,7 @@
   gap: var(--sbh-layout-space-sm);
 }
 
-.listings-refresh-error,
-.listings-summary {
+.listings-refresh-error {
   box-sizing: border-box;
   margin: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter) 0;
   padding: var(--sbh-layout-space-sm) var(--sbh-layout-surface-padding);
@@ -51,7 +109,6 @@
 }
 
 .listings-refresh-error,
-.listings-summary__hint,
 .listings-empty__description,
 .listings-empty__loading,
 .listings-empty__no-relaxation,
@@ -65,17 +122,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sbh-layout-space-sm);
+  padding: 16rpx 24rpx 12rpx;
+  font-size: 24rpx;
+  color: #6e6e73;
 }
 
-.listings-summary__hint {
-  text-align: right;
+.listings-summary__sort {
+  color: #1d1d1f;
+  font-weight: 500;
 }
 
 .listings-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sbh-layout-space-sm);
+  margin-top: 0;
+}
+
+.listings-card-block {
+  padding: 0 28rpx;
+  background: var(--sbh-surface-background, #ffffff);
+  border-radius: var(--sbh-shape-surface-radius, 16rpx);
+  overflow: hidden;
+}
+
+.listings-card-divider {
+  height: 2rpx;
+  background: #e5e5e7;
 }
 
 .listings-loading-more,

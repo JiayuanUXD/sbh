@@ -1,10 +1,33 @@
 <view id="home-ready" class="home-page">
   <view class="home-brand">
-    <view class="home-brand__eyebrow">上海 · 在租房源实时同步</view>
-    <view class="home-brand__title">把每一平米算清楚</view>
-    <view class="home-brand__description">清楚比较单价、面积、工位与真实月租估算。</view>
-    <view wx:if="{{content}}" class="home-brand__stats num">
-      {{content.stats.listings}} 套在租房源 · {{content.stats.buildings}} 座精选楼宇
+    <video
+      wx:if="{{heroVideoUrl && !videoFailed}}"
+      class="home-brand__video"
+      src="{{heroVideoUrl}}"
+      autoplay="{{true}}"
+      loop="{{true}}"
+      muted="{{true}}"
+      show-play-btn="{{false}}"
+      controls="{{false}}"
+      show-center-play-btn="{{false}}"
+      enable-progress-gesture="{{false}}"
+      object-fit="cover"
+      binderror="handleVideoError"
+    />
+    <image
+      wx:elif="{{heroPosterUrl && !imageFailed}}"
+      class="home-brand__poster"
+      src="{{heroPosterUrl}}"
+      mode="aspectFill"
+      binderror="handleImageError"
+    />
+    <view class="home-brand__scrim"></view>
+    <view class="home-brand__content">
+      <view class="home-brand__eyebrow">上海 · 在租房源实时同步</view>
+      <view class="home-brand__title">把每一平米算清楚</view>
+      <view wx:if="{{content}}" class="home-brand__stats num">
+        {{content.stats.listings}} 套在租房源 · {{content.stats.buildings}} 座精选楼宇
+      </view>
     </view>
   </view>
 
@@ -14,7 +37,7 @@
     <input
       class="home-search__input"
       value="{{keyword}}"
-      placeholder="搜楼盘、商圈或地铁站"
+      placeholder="商圈 / 楼盘 / 地铁站"
       confirm-type="search"
       bindinput="handleKeywordInput"
       bindconfirm="handleSearchSubmit"
@@ -27,7 +50,10 @@
       aria-label="提交搜索"
       bindtap="handleSearchSubmit"
     >
-      <text class="home-search__icon">🔍</text>
+      <view class="home-search__icon-wrap">
+        <view class="home-search__icon-circle"></view>
+        <view class="home-search__icon-handle"></view>
+      </view>
     </view>
   </view>
 
@@ -50,11 +76,54 @@
       刷新未完成，当前仍显示上次内容
     </view>
 
+    <!-- 快捷双入口 -->
+    <view class="home-shortcuts">
+      <view class="home-shortcut-card" hover-class="home-card--pressed" hover-stay-time="70" bindtap="handleInquiryCustom">
+        <view class="home-shortcut-title">委托找房</view>
+        <view class="home-shortcut-desc">说需求，顾问帮你筛</view>
+      </view>
+      <view class="home-shortcut-card" hover-class="home-card--pressed" hover-stay-time="70" bindtap="handleBrowseAll">
+        <view class="home-shortcut-title">售卖专区</view>
+        <view class="home-shortcut-desc num">最低 12,000 元/㎡</view>
+      </view>
+    </view>
+
+    <!-- 精选好楼横排 3 格 -->
+    <view class="home-buildings-card">
+      <view class="home-buildings__heading">
+        <view class="home-card-title">精选好楼</view>
+        <view class="home-buildings__all" bindtap="handleBrowseBuildings">全部楼盘 ›</view>
+      </view>
+      <view class="home-buildings__grid">
+        <view class="home-building-item" hover-class="home-item--pressed" hover-stay-time="70" bindtap="handleBuildingOpenDirect" data-slug="heng-long-plaza">
+          <view class="home-building-item__media">
+            <text class="home-building-item__img-text">图</text>
+          </view>
+          <view class="home-building-item__name">恒隆广场</view>
+          <view class="home-building-item__desc num">14 套 · 10.2 起</view>
+        </view>
+        <view class="home-building-item" hover-class="home-item--pressed" hover-stay-time="70" bindtap="handleBuildingOpenDirect" data-slug="wheelock-square">
+          <view class="home-building-item__media">
+            <text class="home-building-item__img-text">图</text>
+          </view>
+          <view class="home-building-item__name">越洋国际广场</view>
+          <view class="home-building-item__desc num">9 套 · 6.8 起</view>
+        </view>
+        <view class="home-building-item" hover-class="home-item--pressed" hover-stay-time="70" bindtap="handleBuildingOpenDirect" data-slug="hkri-taikoo-hui">
+          <view class="home-building-item__media">
+            <text class="home-building-item__img-text">图</text>
+          </view>
+          <view class="home-building-item__name">兴业太古汇</view>
+          <view class="home-building-item__desc num">7 套 · 11.4 起</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷筛选维度（单行滑动） -->
     <view class="home-quick-filters">
-      <view wx:for="{{content.quickFilters}}" wx:key="id" class="home-quick-filter-group">
-        <view class="home-section-title">{{item.label}}</view>
-        <scroll-view class="home-quick-filter-group__scroll" scroll-x enhanced show-scrollbar="{{false}}">
-          <view class="home-quick-filter-group__options">
+      <scroll-view class="home-quick-filter-group__scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="home-quick-filter-group__options">
+          <block wx:for="{{content.quickFilters}}" wx:key="id">
             <view
               wx:for="{{item.options}}"
               wx:key="value"
@@ -68,60 +137,29 @@
               <text>{{item.label}}</text>
               <text class="home-quick-filter__count num">{{item.count}}</text>
             </view>
-          </view>
-        </scroll-view>
-      </view>
-
-      <view class="home-shortcuts">
-        <view class="home-shortcut-card" bindtap="handleInquiryCustom">
-          <view class="home-shortcut-title">委托找房</view>
-          <view class="home-shortcut-desc">说需求，顾问帮你筛</view>
+          </block>
         </view>
-        <view class="home-shortcut-card" bindtap="handleBrowseAll">
-          <view class="home-shortcut-title">精选特惠</view>
-          <view class="home-shortcut-desc">免租期长，房东直租</view>
-        </view>
-      </view>
-
-      <view class="home-buildings-section">
-        <view class="home-buildings__heading">
-          <view class="home-section-title">精选好楼</view>
-          <view class="home-buildings__all" bindtap="handleBrowseBuildings">全部楼盘 ›</view>
-        </view>
-        <scroll-view class="home-buildings__scroll" scroll-x enhanced show-scrollbar="{{false}}">
-          <view class="home-buildings__list">
-            <view class="home-building-card" bindtap="handleBuildingOpenDirect" data-slug="heng-long-plaza">
-              <view class="home-building-card__badge">甲级</view>
-              <view class="home-building-card__name">恒隆广场</view>
-              <view class="home-building-card__desc num">静安寺 · 14套在租</view>
-            </view>
-            <view class="home-building-card" bindtap="handleBuildingOpenDirect" data-slug="wheelock-square">
-              <view class="home-building-card__badge">甲级</view>
-              <view class="home-building-card__name">会德丰广场</view>
-              <view class="home-building-card__desc num">静安寺 · 9套在租</view>
-            </view>
-            <view class="home-building-card" bindtap="handleBuildingOpenDirect" data-slug="hkri-taikoo-hui">
-              <view class="home-building-card__badge">甲级</view>
-              <view class="home-building-card__name">兴业太古汇</view>
-              <view class="home-building-card__desc num">南京西路 · 7套在租</view>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
+      </scroll-view>
     </view>
 
+    <!-- 推荐流导航 Tabs -->
+    <view class="home-stream-tabs">
+      <text class="home-stream-tab home-stream-tab--active">推荐</text>
+      <text class="home-stream-tab" bindtap="handleBrowseAll">附近</text>
+      <text class="home-stream-tab" bindtap="handleBrowseAll">新上</text>
+    </view>
+
+    <!-- 精选房源列表容器 -->
     <view class="home-featured">
-      <view class="home-featured__heading">
-        <view class="home-section-title">精选房源</view>
-        <view class="home-featured__all" aria-role="link" bindtap="handleBrowseAll">查看全部</view>
-      </view>
-      <view wx:if="{{content.featuredListings.length}}" class="home-featured__list">
-        <listing-card
-          wx:for="{{content.featuredListings}}"
-          wx:key="id"
-          listing="{{item}}"
-          bindopen="handleListingOpen"
-        />
+      <view wx:if="{{content.featuredListings.length}}" class="home-featured__card">
+        <block wx:for="{{content.featuredListings}}" wx:key="id">
+          <listing-card
+            borderless="{{true}}"
+            listing="{{item}}"
+            bindopen="handleListingOpen"
+          />
+          <view wx:if="{{index < content.featuredListings.length - 1}}" class="home-featured__divider"></view>
+        </block>
       </view>
       <sbh-state
         wx:else

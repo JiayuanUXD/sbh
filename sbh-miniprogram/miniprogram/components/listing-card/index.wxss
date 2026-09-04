@@ -22,13 +22,33 @@
   transform: scale(var(--sbh-motion-pressed-scale));
 }
 
+.listing-card--borderless {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
 .listing-card__media {
+  position: relative;
   flex: 0 0 224rpx;
   width: 224rpx;
   height: 168rpx;
   overflow: hidden;
   border-radius: var(--sbh-shape-control-radius);
   background: var(--sbh-surface-pressed);
+}
+
+.listing-card__badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 4rpx 10rpx;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 20rpx;
+  border-radius: var(--sbh-shape-control-radius, 12rpx) 0 var(--sbh-shape-label-radius, 6rpx) 0;
+  line-height: 1.2;
 }
 
 .listing-card__media image,
@@ -52,6 +72,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  justify-content: space-between;
   height: 168rpx;
   min-width: 0;
   overflow: hidden;
@@ -65,23 +86,18 @@
   color: var(--sbh-text-primary);
   font-size: var(--sbh-type-label-size);
   font-weight: var(--sbh-type-semibold-weight);
-  line-height: var(--sbh-type-control-line-height);
+  line-height: 1.25;
+  word-break: break-all;
 }
 
 .listing-card__facts,
-.listing-card__location,
-.listing-card__price,
-.listing-card__quote {
+.listing-card__location {
   overflow: hidden;
   color: var(--sbh-text-secondary);
   font-size: var(--sbh-type-auxiliary-size);
-  line-height: var(--sbh-type-body-line-height);
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.listing-card__facts {
-  margin-top: var(--sbh-layout-space-xs);
 }
 
 .listing-card__location {
@@ -91,27 +107,31 @@
 .listing-card__price-row {
   display: flex;
   align-items: baseline;
-  margin-top: auto;
   gap: var(--sbh-layout-space-xs);
   min-width: 0;
 }
 
 .listing-card__price {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   color: var(--sbh-text-primary);
   font-size: var(--sbh-type-section-title-size);
   font-weight: var(--sbh-type-semibold-weight);
-  line-height: var(--sbh-type-control-line-height);
+  line-height: 1.1;
 }
 
 .listing-card__quote {
   flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .listing-card__tags {
   display: flex;
   gap: var(--sbh-layout-space-xs);
-  margin-top: var(--sbh-layout-space-xs);
   overflow: hidden;
   white-space: nowrap;
 }
@@ -120,15 +140,15 @@
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  max-width: 33.333%;
-  min-height: 32rpx;
+  flex-shrink: 0;
+  min-height: 28rpx;
   padding: 0 var(--sbh-layout-space-xs);
   overflow: hidden;
   color: var(--sbh-text-secondary);
   background: var(--sbh-surface-pressed);
   border-radius: var(--sbh-shape-label-radius);
   font-size: var(--sbh-type-tag-size);
-  line-height: 32rpx;
+  line-height: 28rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

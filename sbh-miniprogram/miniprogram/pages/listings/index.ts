@@ -88,6 +88,8 @@ type ListingsPageMethods = {
   handleApplyRelaxation(event: RelaxationTapEvent): void
   handleClearAll(): void
   handleListingOpen(event: ListingOpenEvent): void
+  handleSearchSubmit(event: WechatMiniprogram.CustomEvent<{ value: string }>): void
+  handleToggleSort(): void
 }
 
 function buildWhitelistedQuery(options: ListingPageOptions): string {
@@ -267,5 +269,18 @@ Page<ListingsPageData, ListingsPageMethods>({
         duration: 1600,
       })
     })
+  },
+
+  handleSearchSubmit(event) {
+    const keyword = (event.detail.value || '').trim()
+    const query = { ...this.data.query, keyword: keyword || undefined }
+    void this.ensureListingsController().applyFilters(query)
+  },
+
+  handleToggleSort() {
+    const currentSort = this.data.query.sort
+    const nextSort = currentSort === 'price_asc' ? 'price_desc' : 'price_asc'
+    const query = { ...this.data.query, sort: nextSort }
+    void this.ensureListingsController().applyFilters(query)
   },
 })

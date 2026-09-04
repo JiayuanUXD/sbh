@@ -58,7 +58,7 @@
 }
 
 .buildings-card-block--inactive {
-  opacity: 0.85;
+  opacity: 0.72;
 }
 
 .buildings-card-divider {

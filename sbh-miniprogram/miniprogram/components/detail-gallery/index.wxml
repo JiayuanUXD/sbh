@@ -23,6 +23,7 @@
     </swiper-item>
   </swiper>
   <view wx:else class="detail-gallery__empty">暂无图片</view>
+  <view wx:if="{{displayImages.length}}" class="detail-gallery__tag">户型图 · 平面图</view>
   <view wx:if="{{displayImages.length}}" class="detail-gallery__counter num">
     {{currentLabel}} / {{displayImages.length}}
   </view>

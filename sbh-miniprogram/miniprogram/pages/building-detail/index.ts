@@ -99,4 +99,11 @@ Page({
   handleBackToList() {
     wx.switchTab({ url: '/pages/buildings/index' })
   },
+
+  handleScrollToListings() {
+    wx.pageScrollTo({
+      selector: '.building-listings-card',
+      duration: 300,
+    })
+  },
 })

@@ -194,6 +194,13 @@
         <text class="building-fav-icon">♡</text>
         <text class="building-fav-text">收藏</text>
       </view>
+      <view
+        wx:if="{{building.activeListingCount > 0}}"
+        class="building-bottom-cta--secondary"
+        bindtap="handleScrollToListings"
+      >
+        看全部 {{building.activeListingCount}} 套
+      </view>
       <view class="building-bottom-cta" bindtap="handleInquiryAdvisor">
         找顾问问楼
       </view>

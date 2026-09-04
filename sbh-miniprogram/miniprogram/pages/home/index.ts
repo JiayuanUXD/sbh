@@ -11,6 +11,10 @@ import {
 
 type HomePageData = HomePageSnapshot & Readonly<{
   keyword: string
+  heroVideoUrl: string
+  heroPosterUrl: string
+  videoFailed: boolean
+  imageFailed: boolean
 }>
 
 type SearchSubmitEvent = Readonly<{
@@ -38,6 +42,11 @@ type HomePageMethods = {
   handleBrowseAll(): void
   openListings(query: string): void
   handleListingOpen(event: ListingOpenEvent): void
+  handleBrowseBuildings(): void
+  handleBuildingOpenDirect(event: WechatMiniprogram.BaseEvent): void
+  handleInquiryCustom(): void
+  handleVideoError(): void
+  handleImageError(): void
 }
 
 function currentSnapshot(data: HomePageData): HomePageSnapshot {
@@ -54,6 +63,10 @@ Page<HomePageData, HomePageMethods>({
     content: null,
     refreshError: false,
     keyword: '',
+    heroVideoUrl: '/api/media/file/hero-bg.mp4?prefix=media',
+    heroPosterUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1200&auto=format&fit=crop',
+    videoFailed: false,
+    imageFailed: false,
   },
 
   homeLoadController: null,
@@ -168,5 +181,13 @@ Page<HomePageData, HomePageMethods>({
         }
       },
     })
+  },
+
+  handleVideoError() {
+    this.setData({ videoFailed: true })
+  },
+
+  handleImageError() {
+    this.setData({ imageFailed: true })
   },
 })

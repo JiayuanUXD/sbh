@@ -17,6 +17,10 @@ function sameTags(left: readonly string[], right: readonly string[]): boolean {
 
 Component({
   properties: {
+    borderless: {
+      type: Boolean,
+      value: false,
+    },
     listing: {
       type: Object,
       value: null,
