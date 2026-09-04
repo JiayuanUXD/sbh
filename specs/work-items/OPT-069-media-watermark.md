@@ -160,8 +160,13 @@ iStock 敢满铺是因为它靠卖干净图赚钱，预览图**故意**做得没
 - `usage`：`listing-photo` | `brand` | `article` | `other`。**只有 `listing-photo` 走水印。**
   - **默认值 `listing-photo`**。理由：误打可逆（`media-source/` 有干净原件，重刷即可），
     漏打不可逆（无水印图已经流出）。默认值要偏向可恢复的那一侧。
-  - `ListingMediaManager` / `BuildingMediaManager` 上传的强制 `listing-photo`；
-    站点设置的 logo 选择器上传的预填 `brand`。
+  - **不做「按上传入口预填」**（2026-09-04 写实施计划时订正）：`ListingMediaManager` /
+    `BuildingMediaManager` 并不自己发上传请求（不调 `/api/media`、无 FormData），
+    走的是 Payload 内建上传抽屉，没有可挂的落点。而默认值恰好就是房源场景要的值，
+    所以这条本来也只对品牌素材有意义。
+  - 品牌素材（logo、落地页背景）靠两条兜住：存量由 §6.1 的回填脚本纠正，
+    新上传由字段说明提示运营改。**误标的后果是该图被打上水印**——立刻可见，
+    且改 `usage` + 重刷即可从 `media-source/` 复原，不是不可逆损失。
 - `watermark`：只读元数据 `{ version, appliedAt }`，供重刷任务判定幂等。
   - `version` 是**当前水印配置的内容哈希**（对 §5.5 那组参数 + 渲染器版本号求哈希），
     不是人工维护的版本号。运营改任一参数、或渲染器逻辑升级，哈希即变，
