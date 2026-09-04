@@ -80,7 +80,7 @@ async function ensureImage(
   const buffer = await resolveImageBuffer(seed, w, h)
   return payload.create({
     collection: 'media',
-    data: { alt },
+    data: { alt, usage: 'other' },
     file: { data: buffer, mimetype: 'image/jpeg', name: `${filename}.jpg`, size: buffer.length },
     overrideAccess: true,
   }) as Promise<AnyDoc>
@@ -98,7 +98,7 @@ async function ensureVideo(payload: any): Promise<AnyDoc> {
   const buffer = Buffer.from(VIDEO_FIXTURE, 'base64')
   return payload.create({
     collection: 'media',
-    data: { alt },
+    data: { alt, usage: 'other' },
     file: { data: buffer, mimetype: 'video/mp4', name: 'space-tour-sample.mp4', size: buffer.length },
     overrideAccess: true,
   }) as Promise<AnyDoc>
