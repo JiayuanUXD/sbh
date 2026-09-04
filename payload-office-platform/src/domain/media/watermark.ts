@@ -96,9 +96,12 @@ function round(value: number): number {
   return Math.round(value * 10_000) / 10_000
 }
 
-/** 创建空的 overlay SVG 外壳（仅宽高，无内容）。 */
+/** 创建空的 overlay SVG 外壳（仅宽高，无内容）。尺寸必须净化，防止 NaN/Infinity 污染。 */
 function emptyOverlay(width: number, height: number): Buffer {
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"></svg>`)
+  // 非有限值或非正数一律转换为 1，确保 SVG 属性合法
+  const safeWidth = Number.isFinite(width) && width > 0 ? width : 1
+  const safeHeight = Number.isFinite(height) && height > 0 ? height : 1
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}"></svg>`)
 }
 
 export function buildTiledOverlay({
@@ -228,19 +231,14 @@ export function computeWatermarkVersion(config: WatermarkConfig): string {
  * @param fallbackText — 缺省文案（通常是站点名称），为空时用 DEFAULT_WATERMARK_CONFIG 的文案
  */
 export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | null): WatermarkConfig {
-  // 储存配置为 null / undefined / 非对象时回落到默认值
-  if (stored == null || typeof stored !== 'object') {
-    return DEFAULT_WATERMARK_CONFIG
-  }
+  const storedObj = stored != null && typeof stored === 'object' ? (stored as Record<string, any>) : {}
 
-  const storedObj = stored as Record<string, any>
-
-  // 处理文案回落逻辑
-  const resolveFallbackText = (text: unknown): string => {
+  // 处理文案回落逻辑：支持指定每组各自的默认文案
+  const resolveFallbackText = (text: unknown, defaultText: string): string => {
     const trimmedText = typeof text === 'string' ? text.trim() : ''
     if (trimmedText) return trimmedText
     const trimmedFallback = typeof fallbackText === 'string' ? fallbackText.trim() : ''
-    return trimmedFallback || DEFAULT_WATERMARK_CONFIG.tiled.text
+    return trimmedFallback || defaultText
   }
 
   // 辅助函数：带范围夹取的数字合并
@@ -260,7 +258,7 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
   // 合并 tiled 配置
   const tiledStored = storedObj.tiled
   const tiledConfig: TiledWatermarkConfig = {
-    text: resolveFallbackText(tiledStored?.text),
+    text: resolveFallbackText(tiledStored?.text, DEFAULT_WATERMARK_CONFIG.tiled.text),
     density: mergeNumber(tiledStored?.density, DEFAULT_WATERMARK_CONFIG.tiled.density, 2, 6),
     opacity: mergeNumber(tiledStored?.opacity, DEFAULT_WATERMARK_CONFIG.tiled.opacity, 0.01, 1),
     angle: mergeNumber(tiledStored?.angle, DEFAULT_WATERMARK_CONFIG.tiled.angle, -90, 90),
@@ -269,7 +267,7 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
   // 合并 badge 配置
   const badgeStored = storedObj.badge
   const badgeConfig: BadgeWatermarkConfig = {
-    text: resolveFallbackText(badgeStored?.text),
+    text: resolveFallbackText(badgeStored?.text, DEFAULT_WATERMARK_CONFIG.badge.text),
     position: ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(badgeStored?.position)
       ? badgeStored.position
       : DEFAULT_WATERMARK_CONFIG.badge.position,

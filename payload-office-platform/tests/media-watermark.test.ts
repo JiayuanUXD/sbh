@@ -284,4 +284,61 @@ describe('mergeWatermarkConfig', () => {
     expect(merged.badge.opacity).toBe(0.8)
     expect(merged.badge.position).toBe('top-right')
   })
+
+  it('stored 为 null 时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig(null, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('stored 为 undefined 时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig(undefined, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('stored 为非对象时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig('not an object', '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('badge 文案应回落到各自的默认值而非 tiled 的', () => {
+    const stored = { tiled: { text: '' }, badge: { text: '' } }
+    // 这个测试确保即使两个默认值目前相同，逻辑也是隔离的
+    const merged = mergeWatermarkConfig(stored)
+    expect(merged.badge.text).toBe(DEFAULT_WATERMARK_CONFIG.badge.text)
+  })
+})
+
+describe('emptyOverlay 守卫 - NaN/Infinity 必须不出现在 SVG 属性里', () => {
+  it('width 为 NaN 时不产生 NaN 属性值', () => {
+    const svg = buildTiledOverlay({ width: NaN, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('NaN')
+    expect(svg).toContain('width=')
+  })
+
+  it('height 为 Infinity 时不产生 Infinity 属性值', () => {
+    const svg = buildTiledOverlay({ width: 800, height: Infinity, config: TILED }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).toContain('height=')
+  })
+
+  it('width 为 -Infinity 时不产生 Infinity 属性值', () => {
+    const svg = buildTiledOverlay({ width: -Infinity, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).not.toContain('NaN')
+  })
+
+  it('badge 的 NaN width 也不产生 NaN 属性值', () => {
+    const svg = buildBadgeOverlay({ width: NaN, height: 600, config: BADGE }).toString()
+    expect(svg).not.toContain('NaN')
+    expect(svg).toContain('width=')
+  })
+
+  it('badge 的 Infinity height 也不产生 Infinity 属性值', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: Infinity, config: BADGE }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).toContain('height=')
+  })
 })
