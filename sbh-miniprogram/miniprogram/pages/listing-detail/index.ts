@@ -19,7 +19,6 @@ import {
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
 import { isListingFavorite, toggleListingFavorite } from '../../services/favorites.js'
-import { recordInquiry } from '../../services/inquiry-tracker.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
 import {
@@ -251,25 +250,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
         invalidateIntent: submissionIntentManager.invalidate,
         ensureAnonymousContext: sessionService.ensureAnonymousContext,
         openPrivacyContract,
-        submit: async (input) => {
-          const result = await inquiryService.submit(input)
-          if (result.ok) {
-            recordInquiry({
-              submissionRequestId: input.submissionRequestId,
-              targetType: input.target.targetType,
-              targetSlug: input.target.targetType === 'general'
-                ? undefined
-                : input.target.targetType === 'listing'
-                  ? input.target.listingSlug
-                  : input.target.buildingSlug,
-              targetTitle: this.data.content?.title || '商办房源咨询',
-              imageUrl: this.data.content?.gallery?.[0]?.src,
-              status: 'pending',
-              statusLabel: '待带看',
-            })
-          }
-          return result
-        },
+        submit: inquiryService.submit,
         onChange: (snapshot) => this.setData({
           inquirySheet: snapshot,
           inquiryOpen: snapshot.state !== 'closed',

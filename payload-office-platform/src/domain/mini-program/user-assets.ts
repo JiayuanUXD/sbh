@@ -221,6 +221,22 @@ function inquiryTargetSlug(target: MiniInquiryLinkTarget): string | null {
   return null
 }
 
+function computeMiniInquiryAssetKey(
+  subject: string,
+  lead: number,
+  target: MiniInquiryLinkTarget,
+): string {
+  return createHash('sha256')
+    .update(JSON.stringify([
+      subject,
+      'inquiry',
+      target.targetType,
+      inquiryTargetSlug(target),
+      lead,
+    ]), 'utf8')
+    .digest('hex')
+}
+
 function isExactInquiryRecord(
   record: MiniUserAssetRecord,
   subject: string,
@@ -241,8 +257,11 @@ export async function linkInquiry(
   lead: number,
   target: MiniInquiryLinkTarget,
 ): Promise<Readonly<{ created: boolean; assetKey: string }>> {
+  if (!Number.isSafeInteger(lead) || lead <= 0) {
+    throw new Error('mini_inquiry_lead_invalid')
+  }
   const targetSlug = inquiryTargetSlug(target)
-  const assetKey = computeMiniUserAssetKey(subject, 'inquiry', target.targetType, targetSlug)
+  const assetKey = computeMiniInquiryAssetKey(subject, lead, target)
   const existing = await store.findByAssetKey(assetKey)
   if (existing) {
     if (isExactInquiryRecord(existing, subject, lead, target)) {

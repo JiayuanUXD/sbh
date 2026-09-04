@@ -148,6 +148,30 @@ describe('咨询半屏状态机', () => {
     })
   })
 
+  it('每次提交前重新确保 session，失败可原表单重试且不调用 inquiry service', async () => {
+    const ensureAnonymousContext = vi.fn()
+      .mockRejectedValueOnce(new Error('prefetch failed'))
+      .mockRejectedValueOnce(new Error('submit session failed'))
+      .mockResolvedValueOnce('anonymous-token')
+    const submit = vi.fn(async () => success())
+    const { controller } = setup({ ensureAnonymousContext, submit })
+    await prepareManual(controller)
+
+    await expect(controller.submitManual()).resolves.toBe(false)
+    expect(submit).not.toHaveBeenCalled()
+    expect(controller.snapshot()).toMatchObject({
+      state: 'recoverable-error',
+      errorReason: 'session-invalid',
+      phone: '+86 138-0013-(8000)',
+      consentAccepted: true,
+    })
+
+    await expect(controller.submitManual()).resolves.toBe(true)
+    expect(ensureAnonymousContext).toHaveBeenCalledTimes(3)
+    expect(submit).toHaveBeenCalledOnce()
+    expect(controller.snapshot().state).toBe('success')
+  })
+
   it('手工路径精确保留 moveIn/phone/consent/submissionId，并防重复提交', async () => {
     const pending = deferred<InquiryResult>()
     const { controller, submit } = setup({ submit: vi.fn(() => pending.promise) })
@@ -165,6 +189,7 @@ describe('咨询半屏状态机', () => {
       busy: true,
       submitDisabled: true,
     })
+    await Promise.resolve()
     expect(submit).toHaveBeenCalledTimes(1)
     expect(submit).toHaveBeenCalledWith(expect.objectContaining({ target: context.target }))
     await expect(second).resolves.toBe(false)
@@ -435,7 +460,7 @@ describe('咨询半屏状态机', () => {
     controller = createInquirySheetController({
       openIntent: async () => SUBMISSION_A,
       invalidateIntent,
-      ensureAnonymousContext: async () => null,
+      ensureAnonymousContext: async () => 'anonymous-token',
       openPrivacyContract: async () => undefined,
       submit: async () => success(),
       onChange(snapshot) {
@@ -524,7 +549,10 @@ describe('Task7 真实咨询服务接线', () => {
 
   it('微信手机号 POST 网络失败不自动重试，并要求新用户手势授权', async () => {
     const request = vi.fn(async () => { throw new Error('network disconnected') })
-    const service = createInquiryService({ request })
+    const service = createInquiryService({
+      request,
+      getAnonymousContextToken: () => 'anonymous-token',
+    })
     const { controller } = setup({ submit: service.submit })
     await controller.open(context)
     await controller.verifyPrivacy()

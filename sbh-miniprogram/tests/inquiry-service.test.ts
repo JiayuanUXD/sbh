@@ -23,6 +23,17 @@ const SUCCESS_DATA = Object.freeze({
 })
 const SUCCESS_RESULT = Object.freeze({ ok: true as const, ...SUCCESS_DATA })
 
+function createAuthenticatedInquiryService(
+  request: Parameters<typeof createInquiryService>[0]['request'],
+  options: Omit<Parameters<typeof createInquiryService>[0], 'request' | 'getAnonymousContextToken'> = {},
+) {
+  return createInquiryService({
+    request,
+    getAnonymousContextToken: () => 'anonymous-token',
+    ...options,
+  })
+}
+
 function manualInput(overrides: Partial<InquiryInput> = {}): InquiryInput {
   return {
     submissionRequestId: SUBMISSION_ID,
@@ -56,7 +67,7 @@ describe('咨询请求运行时合同', () => {
     { target: { targetType: 'general' } },
   ] as const)('精确序列化 $target.targetType 联合目标', async ({ target }) => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await service.submit({
       submissionRequestId: SUBMISSION_ID,
@@ -77,7 +88,7 @@ describe('咨询请求运行时合同', () => {
     { targetType: 'general', buildingSlug: 'building-1' },
   ])('本地拒绝缺失或互斥目标字段：$targetType', async (target) => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
@@ -98,7 +109,7 @@ describe('咨询请求运行时合同', () => {
 
   it('精确发送白名单 body，并规范化手填手机号与 moveInTime', async () => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit(manualInput({
       target: { targetType: 'listing', listingSlug: 'listing-1', buildingSlug: 'building-1' },
@@ -145,7 +156,7 @@ describe('咨询请求运行时合同', () => {
     ['too-long policy version', { consent: { accepted: true, policyVersion: 'v'.repeat(101) } }],
   ] as const)('本地拒绝 %s，且不调用 transport', async (_label, override) => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({ ...manualInput(), ...override })).resolves.toEqual({
       ok: false,
@@ -167,7 +178,7 @@ describe('咨询请求运行时合同', () => {
     ['bad unit', { amount: 1, currency: 'CNY', period: 'month', unit: 'free-text' }],
   ] as const)('本地拒绝畸形 priceSnapshot：%s', async (_label, priceSnapshot) => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({
       ...manualInput(),
@@ -178,7 +189,7 @@ describe('咨询请求运行时合同', () => {
 
   it('拒绝未知 own key、继承字段、原型污染和嵌套非 own 字段', async () => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
     const unknownTopLevel = { ...manualInput(), name: '客户端伪造姓名' }
     const pollutedTopLevel = Object.assign(Object.create({ role: 'admin' }), manualInput())
     const inheritedConsent = Object.create({ accepted: true, policyVersion: 'MVP-R1' })
@@ -203,7 +214,7 @@ describe('咨询请求运行时合同', () => {
 
   it('严格要求 phoneCode xor phone，并拒绝不合法的手填手机号', async () => {
     const request = parsedSuccessRequest()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
     const attempt = createPhoneCodeAttempt('phone-code')
 
     await expect(service.submit({ ...manualInput(), phoneCode: attempt }))
@@ -220,7 +231,7 @@ describe('咨询请求运行时合同', () => {
   it.each(['', 'x'.repeat(129)])('拒绝非法 phoneCode 长度且不消费 cleanup：%s', async (code) => {
     const request = parsedSuccessRequest()
     const cleanup = vi.fn()
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
@@ -238,7 +249,7 @@ describe('咨询请求运行时合同', () => {
     { accepted: true, acceptedExisting: false, targetResolution: 'listing', meta: {} },
   ])('严格解析 acceptedExisting/targetResolution 且拒绝 data 额外字段', async (response) => {
     const request = vi.fn(async (options: RequestOptions<unknown>) => options.parse(response))
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit(manualInput())).resolves.toEqual({
       ok: false,
@@ -253,7 +264,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
     const request = parsedSuccessRequest()
     const cleanup = vi.fn()
     const attempt = createPhoneCodeAttempt('phone-code', cleanup)
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({
       submissionRequestId: 'invalid-id',
@@ -284,7 +295,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
       phoneCode: attempt,
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     }
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit(input)).resolves.toEqual(SUCCESS_RESULT)
     await expect(service.submit(input)).resolves.toEqual({
@@ -316,7 +327,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
       if (code === 'session_invalid') throw new Error('clear failure with secret')
     })
     const attempt = createPhoneCodeAttempt('phone-code')
-    const service = createInquiryService({ request, clearAnonymousContext })
+    const service = createAuthenticatedInquiryService(request, { clearAnonymousContext })
 
     const input: InquiryInput = {
       submissionRequestId: SUBMISSION_ID,
@@ -341,7 +352,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
   it('手填 POST 失败保留号码，不返回重新授权提示', async () => {
     const request = vi.fn(async () => { throw { code: 'session_invalid', message: 'ignored' } })
     const clearAnonymousContext = vi.fn()
-    const service = createInquiryService({ request, clearAnonymousContext })
+    const service = createAuthenticatedInquiryService(request, { clearAnonymousContext })
 
     await expect(service.submit(manualInput())).resolves.toEqual({
       ok: false,
@@ -352,7 +363,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
 
   it('未知异常稳定折叠为 network_error，且授权 code 仍视为已消费', async () => {
     const request = vi.fn(async () => { throw new Error('private upstream payload') })
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
@@ -366,7 +377,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
     })
   })
 
-  it('匿名 token 只读取一次快照，null 时不附带 Authorization', async () => {
+  it('匿名 token 只读取一次快照，null 时在 transport 与 phoneCode 消费前失败', async () => {
     const request = parsedSuccessRequest()
     const getAnonymousContextToken = vi.fn()
       .mockReturnValueOnce('anonymous-token')
@@ -384,8 +395,14 @@ describe('phoneCode 一次性边界与错误映射', () => {
       request: noTokenRequest,
       getAnonymousContextToken: () => null,
     })
-    await noTokenService.submit(manualInput())
-    expect(noTokenRequest.mock.calls[0]?.[0]).not.toHaveProperty('anonymousContextToken')
+    const cleanup = vi.fn()
+    await expect(noTokenService.submit({
+      ...manualInput(),
+      phone: undefined,
+      phoneCode: createPhoneCodeAttempt('phone-code', cleanup),
+    })).resolves.toEqual({ ok: false, code: 'session_invalid' })
+    expect(noTokenRequest).not.toHaveBeenCalled()
+    expect(cleanup).not.toHaveBeenCalled()
   })
 })
 
@@ -524,7 +541,7 @@ describe('真实 request client → inquiry 集成', () => {
       environment: () => ({ stage: 'development' as const, transport: 'http' as const, apiBaseUrl: 'http://127.0.0.1:3717' }),
       transport,
     })
-    const service = createInquiryService({ request })
+    const service = createAuthenticatedInquiryService(request)
 
     const result = await service.submit(manualInput())
 

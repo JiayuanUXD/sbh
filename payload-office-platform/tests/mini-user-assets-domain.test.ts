@@ -156,14 +156,16 @@ describe('Mini user asset domain', () => {
     }))
   })
 
-  it('相同目标若已链接不同 Lead 则 fail-closed', async () => {
+  it('同 subject 与目标的不同 Lead 各自建立 link，且不会把后一次误判为冲突', async () => {
     const store = new MemoryAssetStore()
     const target = { targetType: 'general' as const }
-    await userAssets.linkInquiry(store, 'subject-a', 41, target)
+    const first = await userAssets.linkInquiry(store, 'subject-a', 41, target)
+    const second = await userAssets.linkInquiry(store, 'subject-a', 42, target)
 
-    await expect(userAssets.linkInquiry(store, 'subject-a', 42, target)).rejects.toThrow(
-      'mini_inquiry_link_conflict',
-    )
+    expect(second.created).toBe(true)
+    expect(second.assetKey).not.toBe(first.assetKey)
+    expect(store.records).toHaveLength(2)
+    expect(store.records.map((record) => record.lead)).toEqual([41, 42])
   })
 
   it('为同一主体与目标生成稳定 SHA-256，并隔离不同 subject', () => {

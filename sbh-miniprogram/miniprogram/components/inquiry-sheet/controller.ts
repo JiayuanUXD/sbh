@@ -364,6 +364,24 @@ export function createInquirySheetController(
     if (path === 'phone') publish({ state: 'authorizing', phoneMode: 'wechat' })
     publish({ state: 'submitting' })
 
+    let sessionReady = false
+    try {
+      const token = await dependencies.ensureAnonymousContext()
+      sessionReady = typeof token === 'string' && token.length > 0
+    } catch {
+      sessionReady = false
+    }
+    if (owner !== version) return false
+    if (!sessionReady) {
+      publish({
+        state: 'recoverable-error',
+        errorReason: 'session-invalid',
+        errorMessage: ERROR_MESSAGES['session-invalid'],
+        requiresNewPhoneAuthorization: false,
+      })
+      return false
+    }
+
     const result = await dependencies.submit({
       submissionRequestId,
       target: context.target,

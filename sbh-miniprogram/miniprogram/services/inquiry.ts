@@ -464,6 +464,11 @@ export function createInquiryService(dependencies: Readonly<{
     const normalized = parseInput(input)
     if (!normalized) return { ok: false, code: 'invalid_request' }
 
+    const anonymousContextToken = dependencies.getAnonymousContextToken?.() ?? null
+    if (anonymousContextToken === null) {
+      return { ok: false, code: 'session_invalid' }
+    }
+
     const hasPhoneCode = normalized.phoneCode !== null
     const code = normalized.phoneCode?.consume() ?? null
     if (hasPhoneCode && code === null) {
@@ -475,11 +480,10 @@ export function createInquiryService(dependencies: Readonly<{
     }
 
     try {
-      const anonymousContextToken = dependencies.getAnonymousContextToken?.() ?? null
       const response = parseResponse(await dependencies.request({
         path: '/api/mini/v1/inquiries',
         method: 'POST',
-        ...(anonymousContextToken === null ? {} : { anonymousContextToken }),
+        anonymousContextToken,
         data: {
           submissionRequestId: normalized.submissionRequestId,
           ...normalized.target,

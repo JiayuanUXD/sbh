@@ -175,4 +175,11 @@ describe('房源详情页面合同', () => {
     expect(componentSource).not.toContain('loginCode')
     expect(componentSource).not.toMatch(/data:\s*\{[\s\S]*phoneCode/)
   })
+
+  it('咨询成功不写入客户端旧 tracker，服务端 targetResolution 保持唯一事实源', () => {
+    const source = readPageFile('index.ts')
+
+    expect(source).not.toContain('recordInquiry')
+    expect(source).not.toContain("statusLabel: '待带看'")
+  })
 })
