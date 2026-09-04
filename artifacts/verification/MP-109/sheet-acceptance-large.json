@@ -1,8 +1,8 @@
 {
   "status": "failed",
-  "timestamp": "2026-09-04T18:57:57.587Z",
+  "timestamp": "2026-09-04T19:10:08.623Z",
   "environment": "local-wechat-devtools-develop-with-controlled-mock",
-  "evidenceRevision": "6480002d4eeacfe4",
+  "evidenceRevision": "b8aa5f48bb13cabe",
   "viewportProfile": {
     "name": "large",
     "passed": false

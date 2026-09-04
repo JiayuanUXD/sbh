@@ -90,7 +90,7 @@ type ListingsPageMethods = {
   ensureListingsController(): ListingsController
   ensureModalTabBarBoundary(): ModalTabBarBoundary
   showModalTabBarBoundary(): Promise<boolean>
-  restoreModalTabBarBoundary(): Promise<void>
+  restoreModalTabBarBoundary(): Promise<boolean>
   handleRetry(): void
   handleRetryLoadMore(): void
   handleOpenFilter(event: FilterOpenEvent): Promise<void>
@@ -186,6 +186,7 @@ Page<ListingsPageData, ListingsPageMethods>({
 
   onShow() {
     this.pageActive = true
+    void this.restoreModalTabBarBoundary()
     const pendingQuery = listingNavigation.consume()
     if (pendingQuery !== null) {
       const controller = this.ensureListingsController()
@@ -262,7 +263,8 @@ Page<ListingsPageData, ListingsPageMethods>({
   },
 
   async restoreModalTabBarBoundary() {
-    await this.modalTabBarBoundary?.restore()
+    if (this.modalTabBarBoundary === null) return true
+    return this.modalTabBarBoundary.restore()
   },
 
   handleRetry() {

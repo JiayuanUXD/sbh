@@ -113,6 +113,7 @@ Page({
 
   onShow() {
     this.pageActive = true
+    void this.restoreModalTabBarBoundary()
   },
 
   onHide() {
@@ -250,7 +251,8 @@ Page({
   },
 
   async restoreModalTabBarBoundary() {
-    await this.modalTabBarBoundary?.restore()
+    if (this.modalTabBarBoundary === null) return true
+    return this.modalTabBarBoundary.restore()
   },
 
   closeInquiryForLifecycle() {

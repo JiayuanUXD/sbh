@@ -82,7 +82,7 @@ type HomePageMethods = {
   ensureInquirySheetController(): InquirySheetController
   ensureModalTabBarBoundary(): ModalTabBarBoundary
   showModalTabBarBoundary(): Promise<boolean>
-  restoreModalTabBarBoundary(): Promise<void>
+  restoreModalTabBarBoundary(): Promise<boolean>
   closeInquiryForLifecycle(): void
   handleOpenInquiry(): Promise<void>
   handleInquiryClose(): void
@@ -176,6 +176,7 @@ Page<HomePageData, HomePageMethods>({
 
   onShow() {
     this.pageActive = true
+    void this.restoreModalTabBarBoundary()
   },
 
   onHide() {
@@ -326,7 +327,8 @@ Page<HomePageData, HomePageMethods>({
   },
 
   async restoreModalTabBarBoundary() {
-    await this.modalTabBarBoundary?.restore()
+    if (this.modalTabBarBoundary === null) return true
+    return this.modalTabBarBoundary.restore()
   },
 
   closeInquiryForLifecycle() {

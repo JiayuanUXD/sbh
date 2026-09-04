@@ -14,6 +14,7 @@ type FilterRegistration = Readonly<{
   ) => Promise<void>
   onHide(this: FilterContext): void
   onShow(this: FilterContext): void
+  handleFilterClose(this: FilterContext): void
 }>
 
 type InquiryContext = {
@@ -24,7 +25,7 @@ type InquiryContext = {
   pageActive: boolean
   showModalTabBarBoundary(): Promise<boolean>
   ensureInquirySheetController(): Readonly<{ open(context: unknown): Promise<void> }>
-  restoreModalTabBarBoundary(): Promise<void>
+  restoreModalTabBarBoundary(): Promise<boolean>
   closeInquiryForLifecycle(): void
 }
 
@@ -42,7 +43,7 @@ type FilterContext = {
   hasLoaded: boolean
   listingsController: Readonly<{ cancelEstimate(): void }> | null
   showModalTabBarBoundary(): Promise<boolean>
-  restoreModalTabBarBoundary(): Promise<void>
+  restoreModalTabBarBoundary(): Promise<boolean>
   ensureListingsController(): Readonly<{ load(query: unknown): Promise<void> }>
   setData(data: Readonly<Record<string, unknown>>): void
 }
@@ -72,6 +73,52 @@ describe('抽屉宿主快速双击', () => {
   it.each([
     ['首页', 0],
     ['楼盘页', 1],
+  ] as const)('%s 每次重新进入都尝试恢复原生 TabBar', (_label, index) => {
+    const restoreModalTabBarBoundary = vi.fn(async () => false)
+    const context: InquiryContext = {
+      data: { inquiryOpen: false },
+      inquiryOpenPromise: null,
+      inquirySheetController: null,
+      modalOpenGeneration: 0,
+      pageActive: false,
+      showModalTabBarBoundary: async () => true,
+      ensureInquirySheetController: () => ({ open: async () => undefined }),
+      restoreModalTabBarBoundary,
+      closeInquiryForLifecycle: vi.fn(),
+    }
+
+    const registration = registrations[index] as InquiryRegistration
+    registration.onShow.call(context)
+
+    expect(context.pageActive).toBe(true)
+    expect(restoreModalTabBarBoundary).toHaveBeenCalledOnce()
+  })
+
+  it('找房页每次重新进入都尝试恢复原生 TabBar', () => {
+    const restoreModalTabBarBoundary = vi.fn(async () => false)
+    const context: FilterContext = {
+      data: { sheetOpen: false, totalDocs: 4 },
+      filterOpenPromise: null,
+      modalOpenGeneration: 0,
+      pageActive: false,
+      hasLoaded: true,
+      listingsController: { cancelEstimate: vi.fn() },
+      showModalTabBarBoundary: async () => true,
+      restoreModalTabBarBoundary,
+      ensureListingsController: () => ({ load: async () => undefined }),
+      setData: vi.fn(),
+    }
+
+    const registration = registrations[2] as FilterRegistration
+    registration.onShow.call(context)
+
+    expect(context.pageActive).toBe(true)
+    expect(restoreModalTabBarBoundary).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['首页', 0],
+    ['楼盘页', 1],
   ] as const)('%s 只隐藏一次 TabBar 并只打开一次咨询 controller', async (_label, index) => {
     const gate = deferredBoolean()
     const showModalTabBarBoundary = vi.fn(() => gate.promise)
@@ -84,7 +131,7 @@ describe('抽屉宿主快速双击', () => {
       pageActive: true,
       showModalTabBarBoundary,
       ensureInquirySheetController: () => ({ open }),
-      restoreModalTabBarBoundary: async () => undefined,
+      restoreModalTabBarBoundary: async () => true,
       closeInquiryForLifecycle: vi.fn(),
     }
     const registration = registrations[index] as InquiryRegistration
@@ -113,7 +160,7 @@ describe('抽屉宿主快速双击', () => {
       hasLoaded: true,
       listingsController: { cancelEstimate: vi.fn() },
       showModalTabBarBoundary,
-      restoreModalTabBarBoundary: async () => undefined,
+      restoreModalTabBarBoundary: async () => true,
       ensureListingsController: () => ({ load: async () => undefined }),
       setData,
     }
@@ -150,7 +197,7 @@ describe('抽屉宿主快速双击', () => {
       pageActive: true,
       showModalTabBarBoundary,
       ensureInquirySheetController: () => ({ open }),
-      restoreModalTabBarBoundary: async () => undefined,
+      restoreModalTabBarBoundary: async () => true,
       closeInquiryForLifecycle: vi.fn(),
     }
     const registration = registrations[index] as InquiryRegistration
@@ -191,6 +238,7 @@ describe('抽屉宿主快速双击', () => {
       },
       snapshot: () => ({ state: controllerState }),
     }
+    const restoreModalTabBarBoundary = vi.fn(async () => true)
     const context: InquiryContext = {
       data: { inquiryOpen: false },
       inquiryOpenPromise: null,
@@ -199,7 +247,7 @@ describe('抽屉宿主快速双击', () => {
       pageActive: true,
       showModalTabBarBoundary: async () => true,
       ensureInquirySheetController: () => controller,
-      restoreModalTabBarBoundary: async () => undefined,
+      restoreModalTabBarBoundary,
       closeInquiryForLifecycle: vi.fn(),
     }
     const registration = registrations[index] as InquiryRegistration
@@ -208,6 +256,7 @@ describe('抽屉宿主快速双击', () => {
     expect(controllerState).toBe('preparing')
     expect(context.inquiryOpenPromise).toBeNull()
     registration.handleInquiryClose.call(context)
+    expect(restoreModalTabBarBoundary).toHaveBeenCalledOnce()
     await registration.handleOpenInquiry.call(context)
     expect(open).toHaveBeenCalledTimes(2)
     expect(context.data.inquiryOpen).toBe(true)
@@ -215,6 +264,32 @@ describe('抽屉宿主快速双击', () => {
     staleIntent.resolve(true)
     await staleIntent.promise
     expect(context.data.inquiryOpen).toBe(true)
+  })
+
+  it('找房页关闭筛选时尝试恢复原生 TabBar', () => {
+    const restoreModalTabBarBoundary = vi.fn(async () => false)
+    const cancelEstimate = vi.fn()
+    const context: FilterContext = {
+      data: { sheetOpen: true, totalDocs: 4 },
+      filterOpenPromise: null,
+      modalOpenGeneration: 0,
+      pageActive: true,
+      hasLoaded: true,
+      listingsController: { cancelEstimate },
+      showModalTabBarBoundary: async () => true,
+      restoreModalTabBarBoundary,
+      ensureListingsController: () => ({ load: async () => undefined, cancelEstimate }),
+      setData: (update) => {
+        if (typeof update.sheetOpen === 'boolean') context.data.sheetOpen = update.sheetOpen
+      },
+    }
+
+    const registration = registrations[2] as FilterRegistration
+    registration.handleFilterClose.call(context)
+
+    expect(context.data.sheetOpen).toBe(false)
+    expect(cancelEstimate).toHaveBeenCalledOnce()
+    expect(restoreModalTabBarBoundary).toHaveBeenCalledOnce()
   })
 
   it('找房页迟到 hide 不会离场后打开筛选，返回后可立即重试', async () => {
@@ -233,7 +308,7 @@ describe('抽屉宿主快速双击', () => {
       hasLoaded: true,
       listingsController: { cancelEstimate: vi.fn() },
       showModalTabBarBoundary,
-      restoreModalTabBarBoundary: async () => undefined,
+      restoreModalTabBarBoundary: async () => true,
       ensureListingsController: () => ({ load: async () => undefined }),
       setData: (update) => {
         updates.push(update)

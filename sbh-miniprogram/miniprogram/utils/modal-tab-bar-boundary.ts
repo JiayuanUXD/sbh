@@ -2,7 +2,7 @@ export type ModalTabBarState = 'visible' | 'hidden'
 
 export type ModalTabBarBoundary = Readonly<{
   hide(): Promise<boolean>
-  restore(): Promise<void>
+  restore(): Promise<boolean>
   snapshot(): Readonly<{ desired: ModalTabBarState; actual: ModalTabBarState }>
 }>
 
@@ -15,12 +15,14 @@ type Dependencies = Readonly<{
 export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabBarBoundary {
   let desired: ModalTabBarState = 'visible'
   let actual: ModalTabBarState = 'visible'
+  let actualTrusted = true
   let revision = 0
   let queue: Promise<void> = Promise.resolve()
   let pending: Readonly<{ target: ModalTabBarState; promise: Promise<boolean> }> | null = null
 
   const publish = (state: ModalTabBarState): void => {
     actual = state
+    actualTrusted = true
     dependencies.onChange?.(state)
   }
 
@@ -33,7 +35,7 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
     let result = false
 
     const operation = queue.then(async () => {
-      if (actual === target) {
+      if (actual === target && actualTrusted) {
         result = owner === revision && desired === target
         return
       }
@@ -45,6 +47,7 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
         result = owner === revision && desired === target
       } catch {
         result = false
+        actualTrusted = false
         if (target !== 'hidden') return
 
         try {
@@ -69,7 +72,7 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
 
   return {
     hide: () => request('hidden'),
-    restore: async () => { await request('visible') },
+    restore: () => request('visible'),
     snapshot: () => ({ desired, actual }),
   }
 }

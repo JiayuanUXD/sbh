@@ -84,4 +84,17 @@ describe('原生 TabBar 模态边界', () => {
     await expect(boundary.hide()).resolves.toBe(false)
     expect(boundary.snapshot()).toEqual({ desired: 'visible', actual: 'visible' })
   })
+
+  it('restore 的原生 show 失败后不信任旧 hidden，下一次打开强制重新 hide', async () => {
+    const hideTabBar = vi.fn(async () => undefined)
+    const showTabBar = vi.fn(async () => { throw new Error('show failed') })
+    const boundary = createModalTabBarBoundary({ hideTabBar, showTabBar })
+
+    await expect(boundary.hide()).resolves.toBe(true)
+    await expect(boundary.restore()).resolves.toBe(false)
+    expect(boundary.snapshot()).toEqual({ desired: 'visible', actual: 'hidden' })
+
+    await expect(boundary.hide()).resolves.toBe(true)
+    expect(hideTabBar).toHaveBeenCalledTimes(2)
+  })
 })

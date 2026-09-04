@@ -1,8 +1,8 @@
 {
   "status": "incomplete",
-  "timestamp": "2026-09-04T18:59:24.488Z",
+  "timestamp": "2026-09-04T19:10:08.625Z",
   "environment": "local-wechat-devtools-develop-with-controlled-mock",
-  "evidenceRevision": "6480002d4eeacfe4",
+  "evidenceRevision": "b8aa5f48bb13cabe",
   "profileReports": {
     "small": "sheet-acceptance-small.json",
     "large": "sheet-acceptance-large.json"
@@ -10,9 +10,9 @@
   "viewportProfiles": {
     "small": {
       "status": "failed",
-      "timestamp": "2026-09-04T18:59:24.486Z",
+      "timestamp": "2026-09-04T19:09:13.172Z",
       "environment": "local-wechat-devtools-develop-with-controlled-mock",
-      "evidenceRevision": "6480002d4eeacfe4",
+      "evidenceRevision": "b8aa5f48bb13cabe",
       "viewportProfile": {
         "name": "small",
         "passed": false
@@ -923,9 +923,9 @@
     },
     "large": {
       "status": "failed",
-      "timestamp": "2026-09-04T18:57:57.587Z",
+      "timestamp": "2026-09-04T19:10:08.623Z",
       "environment": "local-wechat-devtools-develop-with-controlled-mock",
-      "evidenceRevision": "6480002d4eeacfe4",
+      "evidenceRevision": "b8aa5f48bb13cabe",
       "viewportProfile": {
         "name": "large",
         "passed": false
