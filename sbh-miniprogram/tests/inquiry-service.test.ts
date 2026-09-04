@@ -26,7 +26,7 @@ const SUCCESS_RESULT = Object.freeze({ ok: true as const, ...SUCCESS_DATA })
 function manualInput(overrides: Partial<InquiryInput> = {}): InquiryInput {
   return {
     submissionRequestId: SUBMISSION_ID,
-    listingSlug: 'listing-1',
+    target: { targetType: 'listing', listingSlug: 'listing-1' },
     phone: '13800138000',
     consent: { accepted: true, policyVersion: 'MVP-R1' },
     ...overrides,
@@ -48,6 +48,46 @@ afterEach(() => {
 })
 
 describe('咨询请求运行时合同', () => {
+  it.each([
+    {
+      target: { targetType: 'listing', listingSlug: 'listing-1', buildingSlug: 'building-1' },
+    },
+    { target: { targetType: 'building', buildingSlug: 'building-1' } },
+    { target: { targetType: 'general' } },
+  ] as const)('精确序列化 $target.targetType 联合目标', async ({ target }) => {
+    const request = parsedSuccessRequest()
+    const service = createInquiryService({ request })
+
+    await service.submit({
+      submissionRequestId: SUBMISSION_ID,
+      target,
+      phone: '13800138000',
+      consent: { accepted: true, policyVersion: 'MVP-R1' },
+    })
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining(target),
+    }))
+  })
+
+  it.each([
+    { targetType: 'listing', buildingSlug: 'building-1' },
+    { targetType: 'building', listingSlug: 'listing-1', buildingSlug: 'building-1' },
+    { targetType: 'general', listingSlug: 'listing-1' },
+    { targetType: 'general', buildingSlug: 'building-1' },
+  ])('本地拒绝缺失或互斥目标字段：$targetType', async (target) => {
+    const request = parsedSuccessRequest()
+    const service = createInquiryService({ request })
+
+    await expect(service.submit({
+      submissionRequestId: SUBMISSION_ID,
+      target,
+      phone: '13800138000',
+      consent: { accepted: true, policyVersion: 'MVP-R1' },
+    })).resolves.toEqual({ ok: false, code: 'invalid_request' })
+    expect(request).not.toHaveBeenCalled()
+  })
+
   it('导出 Task8 所需输入与结果类型', () => {
     expectTypeOf<InquiryInput>().toMatchTypeOf<object>()
     expectTypeOf<InquiryResult>().toMatchTypeOf<
@@ -61,7 +101,7 @@ describe('咨询请求运行时合同', () => {
     const service = createInquiryService({ request })
 
     await expect(service.submit(manualInput({
-      buildingSlug: 'building-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1', buildingSlug: 'building-1' },
       moveInTime: '  2026 年 10 月  ',
       phone: '+86 138-0013-(8000)',
       priceSnapshot: {
@@ -75,6 +115,7 @@ describe('咨询请求运行时合同', () => {
     expect(request).toHaveBeenCalledWith(expect.objectContaining({
       data: {
         submissionRequestId: SUBMISSION_ID,
+        targetType: 'listing',
         listingSlug: 'listing-1',
         buildingSlug: 'building-1',
         moveInTime: '2026 年 10 月',
@@ -93,8 +134,10 @@ describe('咨询请求运行时合同', () => {
   it.each([
     ['uppercase UUID', { submissionRequestId: SUBMISSION_ID.toUpperCase() }],
     ['non-v4 UUID', { submissionRequestId: '550e8400-e29b-11d4-a716-446655440000' }],
-    ['unsafe listing slug', { listingSlug: '../listing-1' }],
-    ['unsafe building slug', { buildingSlug: 'Building-1' }],
+    ['unsafe listing slug', { target: { targetType: 'listing', listingSlug: '../listing-1' } }],
+    ['unsafe building slug', {
+      target: { targetType: 'listing', listingSlug: 'listing-1', buildingSlug: 'Building-1' },
+    }],
     ['non-string moveInTime', { moveInTime: 123 }],
     ['too-long trimmed moveInTime', { moveInTime: `  ${'入'.repeat(101)}  ` }],
     ['empty policy version', { consent: { accepted: true, policyVersion: '' } }],
@@ -104,7 +147,7 @@ describe('咨询请求运行时合同', () => {
     const request = parsedSuccessRequest()
     const service = createInquiryService({ request })
 
-    await expect(service.submit({ ...manualInput(), ...override } as InquiryInput)).resolves.toEqual({
+    await expect(service.submit({ ...manualInput(), ...override })).resolves.toEqual({
       ok: false,
       code: 'invalid_request',
     })
@@ -126,9 +169,10 @@ describe('咨询请求运行时合同', () => {
     const request = parsedSuccessRequest()
     const service = createInquiryService({ request })
 
-    await expect(service.submit(manualInput({
-      priceSnapshot: priceSnapshot as InquiryInput['priceSnapshot'],
-    }))).resolves.toEqual({ ok: false, code: 'invalid_request' })
+    await expect(service.submit({
+      ...manualInput(),
+      priceSnapshot,
+    })).resolves.toEqual({ ok: false, code: 'invalid_request' })
     expect(request).not.toHaveBeenCalled()
   })
 
@@ -149,7 +193,7 @@ describe('咨询请求运行时合同', () => {
       { ...manualInput(), consent: inheritedConsent },
       { ...manualInput(), priceSnapshot: inheritedPrice },
     ]) {
-      await expect(service.submit(input as InquiryInput)).resolves.toEqual({
+      await expect(service.submit(input)).resolves.toEqual({
         ok: false,
         code: 'invalid_request',
       })
@@ -162,11 +206,11 @@ describe('咨询请求运行时合同', () => {
     const service = createInquiryService({ request })
     const attempt = createPhoneCodeAttempt('phone-code')
 
-    await expect(service.submit({ ...manualInput(), phoneCode: attempt } as InquiryInput))
+    await expect(service.submit({ ...manualInput(), phoneCode: attempt }))
       .resolves.toEqual({ ok: false, code: 'invalid_request' })
     const withoutPhone = { ...manualInput() } as Record<string, unknown>
     delete withoutPhone.phone
-    await expect(service.submit(withoutPhone as unknown as InquiryInput))
+    await expect(service.submit(withoutPhone))
       .resolves.toEqual({ ok: false, code: 'invalid_request' })
     await expect(service.submit(manualInput({ phone: '+86 128-0000-1111' })))
       .resolves.toEqual({ ok: false, code: 'invalid_request' })
@@ -180,7 +224,7 @@ describe('咨询请求运行时合同', () => {
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: createPhoneCodeAttempt(code, cleanup),
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     })).resolves.toEqual({ ok: false, code: 'invalid_request' })
@@ -213,7 +257,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
 
     await expect(service.submit({
       submissionRequestId: 'invalid-id',
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: attempt,
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     })).resolves.toEqual({ ok: false, code: 'invalid_request' })
@@ -221,7 +265,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: attempt,
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     })).resolves.toEqual(SUCCESS_RESULT)
@@ -236,7 +280,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
     })
     const input: InquiryInput = {
       submissionRequestId: SUBMISSION_ID,
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: attempt,
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     }
@@ -276,7 +320,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
 
     const input: InquiryInput = {
       submissionRequestId: SUBMISSION_ID,
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: attempt,
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     }
@@ -312,7 +356,7 @@ describe('phoneCode 一次性边界与错误映射', () => {
 
     await expect(service.submit({
       submissionRequestId: SUBMISSION_ID,
-      listingSlug: 'listing-1',
+      target: { targetType: 'listing', listingSlug: 'listing-1' },
       phoneCode: createPhoneCodeAttempt('phone-code'),
       consent: { accepted: true, policyVersion: 'MVP-R1' },
     })).resolves.toEqual({

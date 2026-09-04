@@ -22,6 +22,7 @@ const io = vi.hoisted(() => ({
   readProxyConfig: vi.fn(),
   readWechatConfig: vi.fn(),
   verifyToken: vi.fn(),
+  linkInquiry: vi.fn(),
   exchangePhoneCode: vi.fn(),
   createWechatGateway: vi.fn(),
   resolveTrustedCity: vi.fn(),
@@ -72,6 +73,11 @@ vi.mock('@/lib/mini-program/runtime-config', async (importOriginal) => {
 vi.mock('@/domain/mini-program/session', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/mini-program/session')>()
   return { ...actual, verifyAnonymousContextToken: io.verifyToken }
+})
+
+vi.mock('@/domain/mini-program/user-assets', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/domain/mini-program/user-assets')>()
+  return { ...actual, linkInquiry: io.linkInquiry }
 })
 
 vi.mock('@/lib/mini-program/wechat-gateway', async (importOriginal) => {
@@ -174,8 +180,9 @@ type AcceptanceReceiptForTest = Readonly<{
 }>
 
 function validBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
+  const body: Record<string, unknown> = {
     submissionRequestId: SUBMISSION_ID,
+    targetType: 'listing',
     listingSlug: 'jingan-center-100-monthly',
     buildingSlug: 'jingan-center',
     moveInTime: '2026-10',
@@ -189,13 +196,26 @@ function validBody(overrides: Record<string, unknown> = {}): Record<string, unkn
     },
     ...overrides,
   }
+  for (const [key, value] of Object.entries(body)) {
+    if (value === undefined) delete body[key]
+  }
+  return body
+}
+
+function acceptanceBody(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const body = validBody(overrides)
+  delete body.targetType
+  return body
 }
 
 function routeRequest(options: Readonly<{
   body?: unknown
   rawBody?: string
   headers?: Record<string, string>
+  authenticated?: boolean
 }> = {}): Request {
+  const acceptanceCandidate = Object.hasOwn(options.headers ?? {}, 'x-sbh-acceptance-permit')
+  const authenticated = options.authenticated ?? !acceptanceCandidate
   return new Request('https://api.example.test/api/mini/v1/inquiries', {
     method: 'POST',
     headers: {
@@ -203,9 +223,12 @@ function routeRequest(options: Readonly<{
       'x-request-id': 'mini-inquiry-http-1',
       'x-real-ip': '192.0.2.200',
       'x-forwarded-for': '203.0.113.20',
+      ...(authenticated ? { authorization: 'Bearer anonymous-context-token' } : {}),
       ...options.headers,
     },
-    body: options.rawBody ?? JSON.stringify(options.body ?? validBody()),
+    body: options.rawBody ?? JSON.stringify(
+      options.body ?? (acceptanceCandidate ? acceptanceBody() : validBody()),
+    ),
   })
 }
 
@@ -262,6 +285,7 @@ beforeEach(() => {
     io.readProxyConfig,
     io.readWechatConfig,
     io.verifyToken,
+    io.linkInquiry,
     io.exchangePhoneCode,
     io.createWechatGateway,
     io.resolveTrustedCity,
@@ -276,7 +300,17 @@ beforeEach(() => {
   for (const key of Object.keys(io.transactionSessions)) delete io.transactionSessions[key]
   __resetMiniRateLimitStateForTests()
 
-  io.payloadFind.mockImplementation(async () => {
+  io.payloadFind.mockImplementation(async (args) => {
+    if (args?.select?.targetListingSlug === true) {
+      return {
+        docs: [{
+          id: 42,
+          targetType: 'listing',
+          targetListingSlug: 'jingan-center-100-monthly',
+          targetBuildingSlug: null,
+        }],
+      }
+    }
     io.events.push('precheck')
     return { docs: [] }
   })
@@ -351,6 +385,7 @@ beforeEach(() => {
       },
     }
   })
+  io.linkInquiry.mockResolvedValue({ created: true, assetKey: 'asset-key' })
   io.exchangePhoneCode.mockImplementation(async () => {
     io.events.push('phone')
     return { phone: '13800001111' }
@@ -370,11 +405,70 @@ beforeEach(() => {
 })
 
 describe('Mini inquiry schema', () => {
+  it.each([
+    {
+      target: {
+        targetType: 'listing',
+        listingSlug: 'jingan-center-100-monthly',
+        buildingSlug: 'jingan-center',
+      },
+      expected: {
+        targetType: 'listing',
+        listingSlug: 'jingan-center-100-monthly',
+        buildingSlug: 'jingan-center',
+      },
+    },
+    {
+      target: { targetType: 'building', buildingSlug: 'jingan-center' },
+      expected: {
+        targetType: 'building',
+        buildingSlug: 'jingan-center',
+      },
+    },
+    {
+      target: { targetType: 'general' },
+      expected: { targetType: 'general' },
+    },
+  ])('严格解析 $target.targetType 联合目标', ({ target, expected }) => {
+    const parsed = validateMiniInquiryInput(validBody({
+      listingSlug: undefined,
+      buildingSlug: undefined,
+      ...target,
+    }), POLICY_VERSION)
+
+    expect(parsed).toMatchObject({ ok: true, data: expected })
+  })
+
+  it.each([
+    { targetType: 'listing', listingSlug: undefined, buildingSlug: 'jingan-center' },
+    { targetType: 'building', listingSlug: 'forged-listing', buildingSlug: 'jingan-center' },
+    { targetType: 'general', listingSlug: 'forged-listing', buildingSlug: undefined },
+    { targetType: 'general', listingSlug: undefined, buildingSlug: 'forged-building' },
+  ])('拒绝目标分支缺失或互斥 slug：$targetType', (target) => {
+    expect(validateMiniInquiryInput(validBody(target), POLICY_VERSION)).toMatchObject({ ok: false })
+  })
+
+  it.each([
+    { targetType: 'building', buildingSlug: 'jingan-center', forbiddenKey: 'listingSlug' },
+    { targetType: 'general', forbiddenKey: 'listingSlug' },
+    { targetType: 'general', forbiddenKey: 'buildingSlug' },
+  ])('$targetType 即使互斥字段值为 undefined 也拒绝该 key', ({ targetType, buildingSlug, forbiddenKey }) => {
+    const body = validBody({
+      targetType,
+      listingSlug: undefined,
+      buildingSlug,
+    })
+    body[forbiddenKey] = undefined
+
+    expect(validateMiniInquiryInput(body, POLICY_VERSION)).toMatchObject({ ok: false })
+  })
+
   it('白名单化并规范化手填手机号，不接收客户端来源或最终幂等键', () => {
     expect(validateMiniInquiryInput(validBody(), POLICY_VERSION)).toEqual({
       ok: true,
       data: {
         submissionRequestId: SUBMISSION_ID,
+        targetType: 'listing',
         listingSlug: 'jingan-center-100-monthly',
         buildingSlug: 'jingan-center',
         moveInTime: '2026-10',
@@ -400,7 +494,7 @@ describe('Mini inquiry schema', () => {
       .toEqual({ ok: false, errors: ['phone_choice_invalid'] })
   })
 
-  it.each(['name', 'source', 'city', 'idempotencyKey', 'targetType', 'requestId']) (
+  it.each(['name', 'source', 'city', 'idempotencyKey', 'requestId']) (
     '拒绝顶层未知或服务端专属字段 %s',
     (field) => {
       expect(validateMiniInquiryInput(validBody({ [field]: 'forged' }), POLICY_VERSION))
@@ -478,6 +572,146 @@ async function json(response: Response): Promise<Record<string, unknown>> {
 }
 
 describe('POST /api/mini/v1/inquiries', () => {
+  it('regular inquiry 缺少 Bearer 时在幂等预查与手机号消费前返回 401', async () => {
+    const response = await POST(routeRequest({
+      body: validBody({ targetType: 'listing' }),
+      authenticated: false,
+    }))
+
+    expect(response.status).toBe(401)
+    expect(await json(response)).toMatchObject({ ok: false, error: { code: 'session_invalid' } })
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
+    expect(io.linkInquiry).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    {
+      body: validBody({ targetType: 'building', listingSlug: undefined, buildingSlug: 'jingan-center' }),
+      resolution: 'building' as const,
+      expectedInquiry: {
+        targetType: 'building',
+        listingSlug: null,
+        buildingSlug: 'jingan-center',
+      },
+      expectedTarget: { targetType: 'building', buildingSlug: 'jingan-center' },
+    },
+    {
+      body: validBody({ targetType: 'general', listingSlug: undefined, buildingSlug: undefined }),
+      resolution: 'general' as const,
+      expectedInquiry: { targetType: 'none', listingSlug: null, buildingSlug: null },
+      expectedTarget: { targetType: 'general' },
+    },
+  ])('regular $resolution 仅在 Lead 回读并 link 后返回成功', async ({
+    body,
+    resolution,
+    expectedInquiry,
+    expectedTarget,
+  }) => {
+    io.submitPublicInquiry.mockResolvedValue({ idempotent: false, targetResolution: resolution })
+    io.payloadFind.mockImplementation(async (args) => {
+      if (args?.select?.targetListingSlug === true) {
+        return {
+          docs: [{
+            id: 42,
+            targetType: resolution === 'general' ? 'none' : resolution,
+            targetListingSlug: null,
+            targetBuildingSlug: resolution === 'building' ? 'jingan-center' : null,
+          }],
+        }
+      }
+      return { docs: [] }
+    })
+
+    const response = await POST(routeRequest({
+      body,
+      headers: { authorization: 'Bearer anonymous-context-token' },
+    }))
+
+    expect(response.status).toBe(200)
+    const [command] = io.submitPublicInquiry.mock.calls[0]!
+    expect(command.inquiry).toMatchObject(expectedInquiry)
+    expect(io.linkInquiry).toHaveBeenCalledWith(
+      expect.anything(),
+      'anonymous-subject',
+      42,
+      expectedTarget,
+    )
+  })
+
+  it('幂等 Lead 已存在但 link 缺失时重试修复 link 后才返回 acceptedExisting', async () => {
+    io.payloadFind.mockResolvedValue({
+      docs: [{
+        id: 73,
+        targetType: 'listing',
+        targetListingSlug: 'jingan-center-100-monthly',
+        targetBuildingSlug: null,
+      }],
+    })
+
+    const response = await POST(routeRequest({
+      body: validBody({ targetType: 'listing' }),
+      headers: { authorization: 'Bearer anonymous-context-token' },
+    }))
+
+    expect(response.status).toBe(200)
+    expect(await json(response)).toMatchObject({
+      data: { accepted: true, acceptedExisting: true, targetResolution: 'listing' },
+    })
+    expect(io.submitPublicInquiry).not.toHaveBeenCalled()
+    expect(io.linkInquiry).toHaveBeenCalledOnce()
+  })
+
+  it('general Lead 回读含伪造 listing 目标时拒绝 link 且不返回 acceptedExisting', async () => {
+    io.payloadFind.mockResolvedValue({
+      docs: [{
+        id: 74,
+        targetType: 'none',
+        targetListingSlug: 'forged-listing',
+        targetBuildingSlug: null,
+      }],
+    })
+
+    const response = await POST(routeRequest({
+      body: validBody({ targetType: 'general', listingSlug: undefined, buildingSlug: undefined }),
+      headers: { authorization: 'Bearer anonymous-context-token' },
+    }))
+    const body = await json(response)
+
+    expect(response.status).toBe(503)
+    expect(body).toMatchObject({ ok: false, error: { code: 'service_unavailable' } })
+    expect(JSON.stringify(body)).not.toContain('accepted')
+    expect(io.linkInquiry).not.toHaveBeenCalled()
+  })
+
+  it('Lead 已创建但 link 未确认时 fail-closed 且响应不含 accepted', async () => {
+    io.submitPublicInquiry.mockResolvedValue({ idempotent: false, targetResolution: 'listing' })
+    io.payloadFind.mockImplementation(async (args) => {
+      if (args?.select?.targetListingSlug === true) {
+        return {
+          docs: [{
+            id: 42,
+            targetType: 'listing',
+            targetListingSlug: 'jingan-center-100-monthly',
+            targetBuildingSlug: null,
+          }],
+        }
+      }
+      return { docs: [] }
+    })
+    io.linkInquiry.mockRejectedValue(new Error('asset store unavailable'))
+
+    const response = await POST(routeRequest({
+      body: validBody({ targetType: 'listing' }),
+      headers: { authorization: 'Bearer anonymous-context-token' },
+    }))
+    const body = await json(response)
+
+    expect(response.status).toBe(503)
+    expect(body).toMatchObject({ ok: false, error: { code: 'service_unavailable' } })
+    expect(JSON.stringify(body)).not.toContain('accepted')
+  })
+
   it('无 Content-Length 的分块 body 超过 16KB 时立即取消流并不进入 schema/业务', async () => {
     const chunked = chunkedOversizedRouteRequest()
     const response = await POST(chunked.request)
@@ -523,7 +757,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(JSON.stringify(body)).not.toContain(SUBMISSION_ID)
   })
 
-  it('手填手机号无需 Bearer 或任何微信配置，并构造固定 canonical InquiryRequest', async () => {
+  it('有效 Bearer 下手填手机号无需微信配置，并构造固定 canonical InquiryRequest', async () => {
     const response = await POST(routeRequest())
 
     expect(response.status).toBe(200)
@@ -536,11 +770,11 @@ describe('POST /api/mini/v1/inquiries', () => {
       data: { accepted: true, acceptedExisting: false, targetResolution: 'listing' },
       meta: { requestId: responseRequestId },
     })
-    expect(io.events).toEqual(['payload-init', 'rate', 'precheck', 'city', 'submit'])
-    expect(io.readSigningConfig).not.toHaveBeenCalled()
+    expect(io.events).toEqual(['payload-init', 'rate', 'verify', 'precheck', 'city', 'submit'])
+    expect(io.readSigningConfig).toHaveBeenCalledOnce()
     expect(io.readWechatConfig).not.toHaveBeenCalled()
     expect(io.createWechatGateway).not.toHaveBeenCalled()
-    expect(io.verifyToken).not.toHaveBeenCalled()
+    expect(io.verifyToken).toHaveBeenCalledOnce()
     expect(io.readAcceptanceConfig).not.toHaveBeenCalled()
     expect(io.verifyAcceptancePermitToken).not.toHaveBeenCalled()
     expect(io.beginTransaction).not.toHaveBeenCalled()
@@ -643,6 +877,7 @@ describe('POST /api/mini/v1/inquiries', () => {
       ...io.loggerError.mock.calls,
       ...io.loggerWarn.mock.calls,
     ])).not.toContain(ACCEPTANCE_TOKEN)
+    expect(io.linkInquiry).not.toHaveBeenCalled()
   })
 
   it('有效 acceptance 在共享限流存储失败时仍走既有写链路', async () => {
@@ -701,7 +936,7 @@ describe('POST /api/mini/v1/inquiries', () => {
 
   it('acceptance 禁止一次性 phoneCode，在事务、Lead 与微信网络前 fail-closed', async () => {
     const response = await POST(routeRequest({
-      body: validBody({ phone: undefined, phoneCode: 'must-not-consume' }),
+      body: acceptanceBody({ phone: undefined, phoneCode: 'must-not-consume' }),
       headers: { 'x-sbh-acceptance-permit': ACCEPTANCE_TOKEN },
     }))
 
@@ -980,6 +1215,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.events).toEqual([
       'payload-init',
       'rate',
+      'verify',
       'precheck',
       'city',
       'submit',
@@ -987,14 +1223,14 @@ describe('POST /api/mini/v1/inquiries', () => {
     ])
   })
 
-  it('手机号 code 无 Bearer 时只读取微信能力，并严格在预查 miss 后消费', async () => {
+  it('手机号 code 在 Bearer 验证后读取微信能力，并严格在预查 miss 后消费', async () => {
     const response = await POST(routeRequest({
       body: validBody({ phone: undefined, phoneCode: 'one-use-phone-code' }),
     }))
 
     expect(response.status).toBe(200)
-    expect(io.events).toEqual(['payload-init', 'rate', 'precheck', 'phone', 'city', 'submit'])
-    expect(io.readSigningConfig).not.toHaveBeenCalled()
+    expect(io.events).toEqual(['payload-init', 'rate', 'verify', 'precheck', 'phone', 'city', 'submit'])
+    expect(io.readSigningConfig).toHaveBeenCalledOnce()
     expect(io.readWechatConfig).toHaveBeenCalledOnce()
     expect(io.exchangePhoneCode).toHaveBeenCalledWith('one-use-phone-code')
   })
@@ -1052,7 +1288,17 @@ describe('POST /api/mini/v1/inquiries', () => {
   )
 
   it('幂等命中直接 acceptedExisting，不消费 phoneCode、不解析城市也不二次提交', async () => {
-    io.payloadFind.mockImplementation(async () => {
+    io.payloadFind.mockImplementation(async (args) => {
+      if (args?.select?.targetListingSlug === true) {
+        return {
+          docs: [{
+            id: 42,
+            targetType: 'building',
+            targetListingSlug: null,
+            targetBuildingSlug: 'jingan-center',
+          }],
+        }
+      }
       io.events.push('precheck')
       return { docs: [{ targetType: 'building' }] }
     })
@@ -1064,7 +1310,7 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(await json(response)).toMatchObject({
       data: { accepted: true, acceptedExisting: true, targetResolution: 'building' },
     })
-    expect(io.events).toEqual(['payload-init', 'rate', 'precheck'])
+    expect(io.events).toEqual(['payload-init', 'rate', 'verify', 'precheck'])
     expect(io.readWechatConfig).not.toHaveBeenCalled()
     expect(io.exchangePhoneCode).not.toHaveBeenCalled()
     expect(io.submitPublicInquiry).not.toHaveBeenCalled()
@@ -1145,6 +1391,10 @@ describe('POST /api/mini/v1/inquiries', () => {
     expect(io.payloadFind).not.toHaveBeenCalled()
 
     io.events.length = 0
+    io.readSigningConfig.mockReturnValue({
+      ok: true,
+      value: { sessionSigningSecret: Uint8Array.from({ length: 32 }, (_, index) => index + 1) },
+    })
     io.readWechatConfig.mockReturnValue({ ok: false, error: 'missing' })
     const phoneCode = await POST(routeRequest({
       body: validBody({ phone: undefined, phoneCode: 'one-use-phone-code' }),

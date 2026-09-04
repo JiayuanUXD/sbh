@@ -145,12 +145,17 @@ function inquiryContext(
   content: ListingDetailPageContent,
 ): InquirySheetContext {
   return {
-    listingSlug: slug,
-    ...(content.building?.slug ? { buildingSlug: content.building.slug } : {}),
+    target: {
+      targetType: 'listing',
+      listingSlug: slug,
+      ...(content.building?.slug ? { buildingSlug: content.building.slug } : {}),
+    },
     title: content.title,
-    area: content.specifications.find((item) => item.id === 'area')?.value ?? '—',
-    unitPrice: content.secondaryPrice || '—',
-    monthlyEstimate: content.primaryPrice,
+    facts: {
+      area: content.specifications.find((item) => item.id === 'area')?.value ?? '—',
+      unitPrice: content.secondaryPrice || '—',
+      monthlyEstimate: content.primaryPrice,
+    },
     policyVersion: content.inquiryPolicyVersion,
   }
 }
@@ -251,8 +256,12 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
           if (result.ok) {
             recordInquiry({
               submissionRequestId: input.submissionRequestId,
-              targetType: 'listing',
-              targetSlug: input.listingSlug,
+              targetType: input.target.targetType,
+              targetSlug: input.target.targetType === 'general'
+                ? undefined
+                : input.target.targetType === 'listing'
+                  ? input.target.listingSlug
+                  : input.target.buildingSlug,
               targetTitle: this.data.content?.title || '商办房源咨询',
               imageUrl: this.data.content?.gallery?.[0]?.src,
               status: 'pending',

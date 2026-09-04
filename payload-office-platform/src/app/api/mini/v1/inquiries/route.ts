@@ -18,9 +18,14 @@ import {
 } from '@/domain/mini-program/acceptance-attestation'
 import {
   computeMiniAcceptanceListingInquiryIdempotencyKey,
-  computeMiniListingInquiryIdempotencyKey,
+  computeMiniInquiryIdempotencyKey,
 } from '@/domain/mini-program/inquiry-idempotency'
-import { validateMiniInquiryInput, type MiniInquiryInput } from '@/domain/mini-program/inquiry-schema'
+import {
+  isCanonicalMiniSlug,
+  validateMiniInquiryInput,
+  type MiniInquiryInput,
+  type MiniInquiryTarget,
+} from '@/domain/mini-program/inquiry-schema'
 import {
   verifyAcceptancePermitToken,
   type AcceptancePermitPayload,
@@ -32,7 +37,11 @@ import {
   miniRequestId,
   miniWriteOk,
 } from '@/domain/mini-program/response'
-import { verifyAnonymousContextToken } from '@/domain/mini-program/session'
+import {
+  createPayloadMiniUserAssetStore,
+  linkInquiry,
+  verifyMiniBearer,
+} from '@/domain/mini-program/user-assets'
 import {
   assertEffectiveBuilding,
   assertEffectiveListing,
@@ -42,7 +51,6 @@ import { isUniqueViolation } from '@/domain/shared/unique-violation'
 import { getSiteConfig } from '@/lib/frontend/site-config'
 import { readAcceptanceRuntimeConfig } from '@/lib/mini-program/acceptance-runtime-config'
 import {
-  readMiniSessionSigningRuntimeConfig,
   readMiniTrustedProxyRuntimeConfig,
   readMiniWechatRuntimeConfig,
 } from '@/lib/mini-program/runtime-config'
@@ -71,11 +79,7 @@ const MINI_CAMPAIGN = Object.freeze({
 })
 
 type PayloadClient = Awaited<ReturnType<typeof getPayload>>
-type SafeLogger = Readonly<{
-  info?(entry: unknown, event: string): void
-  error?(entry: unknown, event: string): void
-  warn?(entry: unknown, event?: string): void
-}>
+type SafeLogger = PayloadClient['logger']
 type AcceptanceInquiryCandidate = Readonly<{
   rawToken: string
   permit: AcceptancePermitPayload
@@ -167,20 +171,28 @@ function invalid(requestId: string, status: number, field: string): Response {
   return failure(requestId, 'invalid_request', '请求参数无效', status, [field])
 }
 
-function bearerToken(header: string | null):
-  | Readonly<{ ok: true; token: string | null }>
-  | Readonly<{ ok: false }> {
-  if (header === null) return { ok: true, token: null }
-  const match = /^Bearer ([^\s]+)$/.exec(header)
-  if (!match || match[1].length > MAX_BEARER_LENGTH) return { ok: false }
-  return { ok: true, token: match[1] }
-}
-
 function canonicalInquiry(
   input: MiniInquiryInput,
   phone: string,
   requestId: string,
 ): InquiryRequest {
+  const target: MiniInquiryTarget = input
+  const listingSlug = target.targetType === 'listing' ? target.listingSlug : null
+  const buildingSlug = target.targetType === 'listing'
+    ? target.buildingSlug ?? null
+    : target.targetType === 'building'
+      ? target.buildingSlug
+      : null
+  const pageType = target.targetType === 'listing'
+    ? 'listing'
+    : target.targetType === 'building'
+      ? 'building'
+      : 'home'
+  const path = target.targetType === 'listing'
+    ? `/listings/${target.listingSlug}`
+    : target.targetType === 'building'
+      ? `/buildings/${target.buildingSlug}`
+      : '/'
   return {
     city: 'shanghai',
     requestId,
@@ -189,9 +201,9 @@ function canonicalInquiry(
     phoneNormalized: phone,
     company: null,
     message: null,
-    listingSlug: input.listingSlug,
-    buildingSlug: input.buildingSlug,
-    targetType: 'listing',
+    listingSlug,
+    buildingSlug,
+    targetType: target.targetType === 'general' ? 'none' : target.targetType,
     demand: {
       district: null,
       budget: null,
@@ -200,8 +212,8 @@ function canonicalInquiry(
     },
     consent: input.consent,
     source: {
-      pageType: 'listing',
-      path: `/listings/${input.listingSlug}`,
+      pageType,
+      path,
       section: 'mobile-bar',
       currentFilters: null,
       campaign: MINI_CAMPAIGN,
@@ -210,6 +222,79 @@ function canonicalInquiry(
     activeSupplyGroup: null,
     viewingPreference: null,
   }
+}
+
+type PersistedLeadLink = Readonly<{
+  id: number
+  target: MiniInquiryTarget
+}>
+
+async function findPersistedLeadLink(
+  payload: PayloadClient,
+  trustedIdempotencyKey: string,
+): Promise<PersistedLeadLink | null> {
+  const result = await payload.find({
+    collection: 'leads',
+    where: { idempotencyKey: { equals: trustedIdempotencyKey } },
+    select: {
+      targetType: true,
+      targetListingSlug: true,
+      targetBuildingSlug: true,
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const lead = result.docs[0]
+  if (!lead || typeof lead.id !== 'number' || !Number.isSafeInteger(lead.id) || lead.id <= 0) {
+    return null
+  }
+  if (
+    lead.targetType === 'listing'
+    && isCanonicalMiniSlug(lead.targetListingSlug)
+    && (lead.targetBuildingSlug === null || lead.targetBuildingSlug === undefined)
+  ) {
+    return {
+      id: lead.id,
+      target: { targetType: 'listing', listingSlug: lead.targetListingSlug },
+    }
+  }
+  if (
+    lead.targetType === 'building'
+    && isCanonicalMiniSlug(lead.targetBuildingSlug)
+    && (lead.targetListingSlug === null || lead.targetListingSlug === undefined)
+  ) {
+    return {
+      id: lead.id,
+      target: { targetType: 'building', buildingSlug: lead.targetBuildingSlug },
+    }
+  }
+  if (
+    lead.targetType === 'none'
+    && (lead.targetListingSlug === null || lead.targetListingSlug === undefined)
+    && (lead.targetBuildingSlug === null || lead.targetBuildingSlug === undefined)
+  ) {
+    return { id: lead.id, target: { targetType: 'general' } }
+  }
+  return null
+}
+
+async function confirmInquiryLink(
+  payload: PayloadClient,
+  subject: string,
+  trustedIdempotencyKey: string,
+  expectedResolution: 'listing' | 'building' | 'general',
+): Promise<void> {
+  const persisted = await findPersistedLeadLink(payload, trustedIdempotencyKey)
+  if (!persisted || persisted.target.targetType !== expectedResolution) {
+    throw new Error('mini_inquiry_lead_link_target_unconfirmed')
+  }
+  await linkInquiry(
+    createPayloadMiniUserAssetStore(payload),
+    subject,
+    persisted.id,
+    persisted.target,
+  )
 }
 
 function populatedBuildingSlug(value: unknown): string | null {
@@ -368,12 +453,17 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
   }
-  const parsed = validateMiniInquiryInput(body.value, siteConfig.privacyPolicyVersion)
+  const parsed = validateMiniInquiryInput(
+    body.value,
+    siteConfig.privacyPolicyVersion,
+    acceptanceGate.kind === 'candidate' ? 'acceptance' : 'regular',
+  )
   if (!parsed.ok) return invalid(requestId, 422, parsed.errors[0] ?? 'invalid_body')
 
   if (
     acceptanceGate.kind === 'candidate' &&
     (
+      parsed.data.targetType !== 'listing' ||
       acceptanceGate.value.permit.submissionRequestId !== parsed.data.submissionRequestId ||
       acceptanceGate.value.permit.listingSlug !== parsed.data.listingSlug ||
       parsed.data.phone === null
@@ -382,35 +472,29 @@ export async function POST(request: Request): Promise<Response> {
     return acceptanceUnavailable(requestId)
   }
 
-  const authorization = bearerToken(request.headers.get('authorization'))
-  if (!authorization.ok) {
-    return failure(requestId, 'session_invalid', '匿名会话已失效，请重试', 401)
-  }
-  if (authorization.token !== null) {
-    const signingConfig = readMiniSessionSigningRuntimeConfig()
-    if (!signingConfig.ok) {
+  const bearer = acceptanceGate.kind === 'candidate' ? null : verifyMiniBearer(request)
+  if (bearer && !bearer.ok) return bearer.response
+  const subject = bearer?.ok ? bearer.subject : null
+
+  const logger = payload.logger
+  let idempotencyKey: Awaited<ReturnType<typeof computeMiniInquiryIdempotencyKey>>
+  if (acceptanceGate.kind === 'candidate') {
+    if (parsed.data.targetType !== 'listing') return acceptanceUnavailable(requestId)
+    idempotencyKey = await computeMiniAcceptanceListingInquiryIdempotencyKey(
+      acceptanceGate.value.permit.runId,
+      parsed.data.submissionRequestId,
+      parsed.data.listingSlug,
+    )
+  } else {
+    if (!bearer?.ok) {
       return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
     }
-    const verification = verifyAnonymousContextToken(authorization.token, {
-      signingSecret: signingConfig.value.sessionSigningSecret,
-      now: () => Date.now(),
-    })
-    if (!verification.ok) {
-      return failure(requestId, 'session_invalid', '匿名会话已失效，请重试', 401)
-    }
+    idempotencyKey = await computeMiniInquiryIdempotencyKey(
+      bearer.subject,
+      parsed.data.submissionRequestId,
+      parsed.data,
+    )
   }
-
-  const logger = payload.logger as unknown as SafeLogger
-  const idempotencyKey = acceptanceGate.kind === 'candidate'
-    ? await computeMiniAcceptanceListingInquiryIdempotencyKey(
-        acceptanceGate.value.permit.runId,
-        parsed.data.submissionRequestId,
-        parsed.data.listingSlug,
-      )
-    : await computeMiniListingInquiryIdempotencyKey(
-        parsed.data.submissionRequestId,
-        parsed.data.listingSlug,
-      )
   const acceptanceReceipt: AcceptanceReceipt | undefined = acceptanceGate.kind === 'candidate'
     ? {
         runId: acceptanceGate.value.permit.runId,
@@ -451,7 +535,7 @@ export async function POST(request: Request): Promise<Response> {
             permit.purpose === 'acceptance-write' &&
             permit.runId === candidate.permit.runId &&
             permit.submissionRequestId === parsed.data.submissionRequestId &&
-            permit.listingSlug === parsed.data.listingSlug &&
+            permit.listingSlug === inquiry.listingSlug &&
             permit.fixtureNamespace === candidate.permit.fixtureNamespace &&
             permit.gitSHA === candidate.runtimeConfig.deploymentGitCommitSha &&
             permit.revision === candidate.runtimeConfig.deploymentRevision &&
@@ -537,19 +621,13 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
+  if (subject === null) {
+    return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
+  }
   const deps = publicInquiryDeps(payload, logger)
+  let existing: Awaited<ReturnType<typeof findExistingInquiryResult>>
   try {
-    const existing = await findExistingInquiryResult(idempotencyKey, deps)
-    if (existing) {
-      safeLog(logger, 'info', {
-        operation: 'mini_inquiry',
-        requestId,
-        acceptedExisting: true,
-        targetResolution: existing.targetResolution,
-        errorCode: null,
-      }, 'mini_inquiry_success')
-      return accepted(requestId, true, existing.targetResolution, acceptanceReceipt)
-    }
+    existing = await findExistingInquiryResult(idempotencyKey, deps)
   } catch {
     safeLog(logger, 'error', {
       operation: 'mini_inquiry_idempotency_precheck',
@@ -557,6 +635,26 @@ export async function POST(request: Request): Promise<Response> {
       errorCode: 'lookup_failed',
     }, 'mini_inquiry_idempotency_precheck_failed')
     return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
+  }
+  if (existing) {
+    try {
+      await confirmInquiryLink(payload, subject, idempotencyKey, existing.targetResolution)
+    } catch {
+      safeLog(logger, 'error', {
+        operation: 'mini_inquiry_link',
+        requestId,
+        errorCode: 'link_failed',
+      }, 'mini_inquiry_link_failed')
+      return failure(requestId, 'service_unavailable', '服务暂不可用，请稍后重试', 503)
+    }
+    safeLog(logger, 'info', {
+      operation: 'mini_inquiry',
+      requestId,
+      acceptedExisting: true,
+      targetResolution: existing.targetResolution,
+      errorCode: null,
+    }, 'mini_inquiry_success')
+    return accepted(requestId, true, existing.targetResolution, acceptanceReceipt)
   }
 
   let phone = parsed.data.phone
@@ -613,6 +711,7 @@ export async function POST(request: Request): Promise<Response> {
       trustedCity,
       viewingPreference: null,
     }, deps)
+    await confirmInquiryLink(payload, subject, idempotencyKey, submission.targetResolution)
     safeLog(logger, 'info', {
       operation: 'mini_inquiry',
       requestId,

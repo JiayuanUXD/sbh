@@ -8,6 +8,7 @@ import type {
   MiniBuildingCard,
   MiniListingCard,
 } from '@/domain/mini-program/contracts'
+import type { MiniInquiryTarget } from '@/domain/mini-program/inquiry-schema'
 import { mapMiniBuildingCard, mapMiniListingCard } from '@/domain/mini-program/mappers'
 import {
   MINI_CACHE_CONTROL,
@@ -40,6 +41,7 @@ export type MiniUserAssetCreate = Readonly<{
   lead?: number | null
 }>
 
+
 export type MiniUserAssetRecord = Readonly<{
   databaseId: number | string
   assetKey: string
@@ -50,6 +52,8 @@ export type MiniUserAssetRecord = Readonly<{
   lead: unknown
   createdAt: string
 }>
+
+export type MiniInquiryLinkTarget = MiniInquiryTarget
 
 export interface MiniUserAssetStore {
   findByAssetKey(assetKey: string): Promise<MiniUserAssetRecord | null>
@@ -209,6 +213,65 @@ export async function removeFavorite(
   const assetKey = computeMiniUserAssetKey(subject, kind, target.targetType, target.targetSlug)
   const deleted = await store.deleteExact(assetKey, subject, kind, target)
   return { removed: deleted > 0, assetKey }
+}
+
+function inquiryTargetSlug(target: MiniInquiryLinkTarget): string | null {
+  if (target.targetType === 'listing') return target.listingSlug
+  if (target.targetType === 'building') return target.buildingSlug
+  return null
+}
+
+function isExactInquiryRecord(
+  record: MiniUserAssetRecord,
+  subject: string,
+  lead: number,
+  target: MiniInquiryLinkTarget,
+): boolean {
+  return record.subject === subject
+    && record.kind === 'inquiry'
+    && record.targetType === target.targetType
+    && record.targetSlug === inquiryTargetSlug(target)
+    && record.lead === lead
+}
+
+/** Lead 已存在也必须确认同 subject 的精确 inquiry link；失败交给调用方 fail-closed。 */
+export async function linkInquiry(
+  store: MiniUserAssetStore,
+  subject: string,
+  lead: number,
+  target: MiniInquiryLinkTarget,
+): Promise<Readonly<{ created: boolean; assetKey: string }>> {
+  const targetSlug = inquiryTargetSlug(target)
+  const assetKey = computeMiniUserAssetKey(subject, 'inquiry', target.targetType, targetSlug)
+  const existing = await store.findByAssetKey(assetKey)
+  if (existing) {
+    if (isExactInquiryRecord(existing, subject, lead, target)) {
+      return { created: false, assetKey }
+    }
+    throw new Error('mini_inquiry_link_conflict')
+  }
+
+  try {
+    const created = await store.create({
+      assetKey,
+      subject,
+      kind: 'inquiry',
+      targetType: target.targetType,
+      targetSlug,
+      lead,
+    })
+    if (!isExactInquiryRecord(created, subject, lead, target)) {
+      throw new Error('mini_inquiry_link_unconfirmed')
+    }
+    return { created: true, assetKey }
+  } catch (error) {
+    const raced = await store.findByAssetKey(assetKey)
+    if (raced && isExactInquiryRecord(raced, subject, lead, target)) {
+      return { created: false, assetKey }
+    }
+    if (raced) throw new Error('mini_inquiry_link_conflict')
+    throw error
+  }
 }
 
 function isAssetKind(value: unknown): value is MiniUserAssetKind {

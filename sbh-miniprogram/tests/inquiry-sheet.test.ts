@@ -23,12 +23,17 @@ const SUBMISSION_A = '550e8400-e29b-41d4-a716-446655440000'
 const SUBMISSION_B = '8d5d0b04-7982-4ac9-940b-68ee15568f31'
 
 const context = Object.freeze({
-  listingSlug: 'jing-an-tower-101',
-  buildingSlug: 'jing-an-tower',
+  target: {
+    targetType: 'listing' as const,
+    listingSlug: 'jing-an-tower-101',
+    buildingSlug: 'jing-an-tower',
+  },
   title: '静安中心 101',
-  area: '100 ㎡',
-  unitPrice: '8.5 元/㎡/天',
-  monthlyEstimate: '约 ¥25,500/月',
+  facts: {
+    area: '100 ㎡',
+    unitPrice: '8.5 元/㎡/天',
+    monthlyEstimate: '约 ¥25,500/月',
+  },
   policyVersion: '2026-08-27',
 }) satisfies InquirySheetContext
 
@@ -161,6 +166,7 @@ describe('咨询半屏状态机', () => {
       submitDisabled: true,
     })
     expect(submit).toHaveBeenCalledTimes(1)
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ target: context.target }))
     await expect(second).resolves.toBe(false)
 
     pending.resolve(success())
@@ -314,21 +320,19 @@ describe('咨询半屏状态机', () => {
     expect(controller.snapshot()).toMatchObject({
       state: 'success',
       successMessage: message,
-      successFollowUp: '顾问将通过您提交的联系方式后续联系',
+      successFollowUp: '已记录本次提交，可稍后查看处理进度',
     })
   })
 
-  it('acceptedExisting 优先提示首次联系方式，不确认当前重输号码', async () => {
+  it('acceptedExisting 不覆盖服务端 targetResolution 成功语义，并提示号码未更新', async () => {
     const { controller } = setup({ submit: vi.fn(async () => success('general', true)) })
     await prepareManual(controller)
     await controller.submitManual()
 
-    expect(controller.snapshot().successMessage).toBe(
-      '已按首次提交的联系方式受理；如需更换号码，请关闭后重新发起',
-    )
+    expect(controller.snapshot().successMessage).toBe('已收到找房需求')
     expect(controller.snapshot().successMessage).not.toContain('13800138000')
     expect(controller.snapshot().successFollowUp).toBe(
-      '顾问将按首次提交的联系方式后续联系',
+      '本次未更新首次提交的联系方式',
     )
   })
 
@@ -372,7 +376,11 @@ describe('咨询半屏状态机', () => {
     })
 
     const older = controller.open(context)
-    const newerContext = { ...context, listingSlug: 'jing-an-tower-102', title: '静安中心 102' }
+    const newerContext = {
+      ...context,
+      target: { ...context.target, listingSlug: 'jing-an-tower-102' },
+      title: '静安中心 102',
+    }
     const newer = controller.open(newerContext)
     newIntent.resolve(SUBMISSION_B)
     await newer
@@ -380,7 +388,7 @@ describe('咨询半屏状态机', () => {
     await older
     expect(controller.snapshot()).toMatchObject({
       state: 'choosing-phone',
-      context: { listingSlug: 'jing-an-tower-102' },
+      context: { target: { targetType: 'listing', listingSlug: 'jing-an-tower-102' } },
       submissionRequestId: SUBMISSION_B,
     })
 
@@ -501,8 +509,9 @@ describe('Task7 真实咨询服务接线', () => {
       anonymousContextToken: 'anonymous-token',
       data: {
         submissionRequestId: SUBMISSION_A,
-        listingSlug: context.listingSlug,
-        buildingSlug: context.buildingSlug,
+        targetType: 'listing',
+        listingSlug: context.target.listingSlug,
+        buildingSlug: context.target.buildingSlug,
         moveInTime: '2026 年 10 月',
         ...(path === 'manual'
           ? { phone: '13800138000' }
@@ -635,9 +644,9 @@ describe('inquiry-sheet 组件运行时与视觉合同', () => {
     const subject = host.querySelector('#subject')
 
     expect(subject?.dom?.textContent).toContain(context.title)
-    expect(subject?.dom?.textContent).toContain(context.area)
-    expect(subject?.dom?.textContent).toContain(context.unitPrice)
-    expect(subject?.dom?.textContent).toContain(context.monthlyEstimate)
+    expect(subject?.dom?.textContent).toContain(context.facts.area)
+    expect(subject?.dom?.textContent).toContain(context.facts.unitPrice)
+    expect(subject?.dom?.textContent).toContain(context.facts.monthlyEstimate)
     expect(subject?.querySelector('.inquiry-sheet__wechat')).toBeDefined()
     expect(subject?.querySelector('.inquiry-sheet__manual-entry')).toBeDefined()
     expect(readFileSync(resolve(sheetRoot, 'index.wxml'), 'utf8')).toContain(

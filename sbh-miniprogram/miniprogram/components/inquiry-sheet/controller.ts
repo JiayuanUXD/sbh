@@ -1,7 +1,9 @@
 import {
   createPhoneCodeAttempt,
+  inquiryTargetDescriptor,
   type InquiryInput,
   type InquiryResult,
+  type InquiryTarget,
 } from '../../services/inquiry.js'
 
 export type InquirySheetState =
@@ -29,12 +31,13 @@ export type InquirySheetPrivacyStatus =
   | 'unavailable'
 
 export type InquirySheetContext = Readonly<{
-  listingSlug: string
-  buildingSlug?: string
+  target: InquiryTarget
   title: string
-  area: string
-  unitPrice: string
-  monthlyEstimate: string
+  facts: Readonly<{
+    area: string
+    unitPrice: string
+    monthlyEstimate: string
+  }>
   policyVersion: string
 }>
 
@@ -167,9 +170,6 @@ function errorReason(result: Extract<InquiryResult, { ok: false }>): InquiryShee
 }
 
 function successMessage(result: Extract<InquiryResult, { ok: true }>): string {
-  if (result.acceptedExisting) {
-    return '已按首次提交的联系方式受理；如需更换号码，请关闭后重新发起'
-  }
   if (result.targetResolution === 'building') return '已转为该楼盘需求'
   if (result.targetResolution === 'general') return '已收到找房需求'
   return '已收到该房源咨询'
@@ -192,10 +192,13 @@ export function createInquirySheetController(
   }
 
   const open = async (context: InquirySheetContext): Promise<void> => {
-    const previousTarget = current.context?.listingSlug ?? null
+    const previousTarget = current.context
+      ? inquiryTargetDescriptor(current.context.target)
+      : null
+    const nextTarget = inquiryTargetDescriptor(context.target)
     version += 1
     const owner = version
-    if (previousTarget !== null && previousTarget !== context.listingSlug) {
+    if (previousTarget !== null && previousTarget !== nextTarget) {
       dependencies.invalidateIntent()
     }
     publish({
@@ -209,7 +212,7 @@ export function createInquirySheetController(
       .catch(() => null)
 
     try {
-      const submissionRequestId = await dependencies.openIntent(context.listingSlug)
+      const submissionRequestId = await dependencies.openIntent(nextTarget)
       if (owner !== version || submissionRequestId === null) return
       publish({ state: 'choosing-phone', submissionRequestId })
     } catch {
@@ -224,7 +227,10 @@ export function createInquirySheetController(
 
   const syncContext = async (context: InquirySheetContext): Promise<void> => {
     if (current.state === 'closed') return
-    if (current.context?.listingSlug !== context.listingSlug) {
+    if (
+      current.context === null
+      || inquiryTargetDescriptor(current.context.target) !== inquiryTargetDescriptor(context.target)
+    ) {
       await open(context)
       return
     }
@@ -360,8 +366,7 @@ export function createInquirySheetController(
 
     const result = await dependencies.submit({
       submissionRequestId,
-      listingSlug: context.listingSlug,
-      ...(context.buildingSlug ? { buildingSlug: context.buildingSlug } : {}),
+      target: context.target,
       ...(moveInTime ? { moveInTime } : {}),
       ...(path === 'phone'
         ? { phoneCode: createPhoneCodeAttempt(phoneCode as string) }
@@ -376,8 +381,8 @@ export function createInquirySheetController(
         state: 'success',
         successMessage: successMessage(result),
         successFollowUp: result.acceptedExisting
-          ? '顾问将按首次提交的联系方式后续联系'
-          : '顾问将通过您提交的联系方式后续联系',
+          ? '本次未更新首次提交的联系方式'
+          : '已记录本次提交，可稍后查看处理进度',
         errorReason: null,
         errorMessage: '',
         requiresNewPhoneAuthorization: false,

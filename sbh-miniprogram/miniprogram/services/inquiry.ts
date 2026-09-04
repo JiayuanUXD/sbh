@@ -40,10 +40,23 @@ export type InquiryPriceSnapshot = Readonly<{
   unit: InquiryPriceUnit
 }>
 
+export type InquiryTarget =
+  | Readonly<{
+      targetType: 'listing'
+      listingSlug: string
+      buildingSlug?: string
+    }>
+  | Readonly<{
+      targetType: 'building'
+      buildingSlug: string
+    }>
+  | Readonly<{
+      targetType: 'general'
+    }>
+
 export type InquiryInput = Readonly<{
   submissionRequestId: string
-  listingSlug: string
-  buildingSlug?: string
+  target: InquiryTarget
   moveInTime?: string
   phoneCode?: PhoneCodeAttempt
   phone?: string
@@ -76,6 +89,7 @@ type PlainRecord = Record<string, unknown>
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const SAFE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const INTENT_TARGET = /^[a-z0-9][a-z0-9:-]{0,299}$/
 const POLICY_VERSION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/
 const PHONE = /^1[3-9]\d{9}$/
 const MAX_MOVE_IN_TIME_LENGTH = 100
@@ -83,8 +97,7 @@ const MAX_PRICE_AMOUNT = 1_000_000_000_000
 const MAX_PHONE_CODE_LENGTH = 128
 const INPUT_KEYS = new Set([
   'submissionRequestId',
-  'listingSlug',
-  'buildingSlug',
+  'target',
   'moveInTime',
   'phoneCode',
   'phone',
@@ -93,6 +106,9 @@ const INPUT_KEYS = new Set([
 ])
 const CONSENT_KEYS = new Set(['accepted', 'policyVersion'])
 const PRICE_KEYS = new Set(['amount', 'currency', 'period', 'unit'])
+const LISTING_TARGET_KEYS = new Set(['targetType', 'listingSlug', 'buildingSlug'])
+const BUILDING_TARGET_KEYS = new Set(['targetType', 'buildingSlug'])
+const GENERAL_TARGET_KEYS = new Set(['targetType'])
 const PRICE_PERIODS = new Set(['day', 'month', 'year', 'one-time'])
 const PRICE_UNITS = new Set<InquiryPriceUnit>([
   'rmb-sqm-day',
@@ -190,8 +206,7 @@ function parsePriceSnapshot(value: unknown): InquiryPriceSnapshot | null {
 
 type NormalizedInquiryInput = Readonly<{
   submissionRequestId: string
-  listingSlug: string
-  buildingSlug: string | null
+  target: InquiryTarget
   moveInTime: string | null
   phoneCode: PhoneCodeAttempt | null
   phone: string | null
@@ -199,24 +214,58 @@ type NormalizedInquiryInput = Readonly<{
   priceSnapshot: InquiryPriceSnapshot | null
 }>
 
+function parseTarget(value: unknown): InquiryTarget | null {
+  if (!isPlainDataRecord(value)) return null
+  if (value.targetType === 'listing') {
+    if (
+      !hasOnlyKeys(value, LISTING_TARGET_KEYS)
+      || typeof value.listingSlug !== 'string'
+      || !SAFE_SLUG.test(value.listingSlug)
+    ) return null
+    if (Object.hasOwn(value, 'buildingSlug')) {
+      if (typeof value.buildingSlug !== 'string' || !SAFE_SLUG.test(value.buildingSlug)) return null
+      return {
+        targetType: 'listing',
+        listingSlug: value.listingSlug,
+        buildingSlug: value.buildingSlug,
+      }
+    }
+    return { targetType: 'listing', listingSlug: value.listingSlug }
+  }
+  if (value.targetType === 'building') {
+    return hasExactKeys(value, BUILDING_TARGET_KEYS)
+      && typeof value.buildingSlug === 'string'
+      && SAFE_SLUG.test(value.buildingSlug)
+      ? { targetType: 'building', buildingSlug: value.buildingSlug }
+      : null
+  }
+  return value.targetType === 'general' && hasExactKeys(value, GENERAL_TARGET_KEYS)
+    ? { targetType: 'general' }
+    : null
+}
+
+export function inquiryTargetDescriptor(target: InquiryTarget): string {
+  if (target.targetType === 'listing') {
+    const building = target.buildingSlug ?? ''
+    return `listing:${target.listingSlug.length}:${target.listingSlug}:${building.length}:${building}`
+  }
+  if (target.targetType === 'building') {
+    return `building:${target.buildingSlug.length}:${target.buildingSlug}`
+  }
+  return 'general'
+}
+
 function parseInput(value: unknown): NormalizedInquiryInput | null {
   if (!isPlainDataRecord(value) || !hasOnlyKeys(value, INPUT_KEYS)) return null
   if (
     !Object.hasOwn(value, 'submissionRequestId')
     || typeof value.submissionRequestId !== 'string'
     || !UUID_V4.test(value.submissionRequestId)
-    || !Object.hasOwn(value, 'listingSlug')
-    || typeof value.listingSlug !== 'string'
-    || !SAFE_SLUG.test(value.listingSlug)
   ) {
     return null
   }
-
-  let buildingSlug: string | null = null
-  if (Object.hasOwn(value, 'buildingSlug') && value.buildingSlug !== undefined) {
-    if (typeof value.buildingSlug !== 'string' || !SAFE_SLUG.test(value.buildingSlug)) return null
-    buildingSlug = value.buildingSlug
-  }
+  const target = parseTarget(value.target)
+  if (!Object.hasOwn(value, 'target') || !target) return null
 
   let moveInTime: string | null = null
   if (Object.hasOwn(value, 'moveInTime') && value.moveInTime !== undefined) {
@@ -253,8 +302,7 @@ function parseInput(value: unknown): NormalizedInquiryInput | null {
 
   return {
     submissionRequestId: value.submissionRequestId,
-    listingSlug: value.listingSlug,
-    buildingSlug,
+    target,
     moveInTime,
     phoneCode,
     phone,
@@ -350,7 +398,7 @@ export function createSubmissionIntentManager(randomValues?: RandomValueSource) 
   let generation = 0
 
   const open = (target: string): Promise<string | null> => {
-    if (!SAFE_SLUG.test(target)) return Promise.reject(new Error('invalid target'))
+    if (!INTENT_TARGET.test(target)) return Promise.reject(new Error('invalid target'))
     if (currentIntent?.target === target) {
       return Promise.resolve(currentIntent.submissionRequestId)
     }
@@ -412,7 +460,7 @@ export function createInquiryService(dependencies: Readonly<{
   getAnonymousContextToken?: () => string | null
   clearAnonymousContext?: () => void
 }>) {
-  const submit = async (input: InquiryInput): Promise<InquiryResult> => {
+  const submit = async (input: unknown): Promise<InquiryResult> => {
     const normalized = parseInput(input)
     if (!normalized) return { ok: false, code: 'invalid_request' }
 
@@ -434,8 +482,7 @@ export function createInquiryService(dependencies: Readonly<{
         ...(anonymousContextToken === null ? {} : { anonymousContextToken }),
         data: {
           submissionRequestId: normalized.submissionRequestId,
-          listingSlug: normalized.listingSlug,
-          ...(normalized.buildingSlug === null ? {} : { buildingSlug: normalized.buildingSlug }),
+          ...normalized.target,
           ...(normalized.moveInTime === null ? {} : { moveInTime: normalized.moveInTime }),
           ...(hasPhoneCode ? { phoneCode: code as string } : { phone: normalized.phone as string }),
           consent: normalized.consent,

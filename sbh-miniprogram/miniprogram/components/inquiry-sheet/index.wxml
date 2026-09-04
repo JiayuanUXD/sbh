@@ -28,15 +28,15 @@
         <view class="inquiry-sheet__summary-grid">
           <view class="inquiry-sheet__summary-item">
             <text class="inquiry-sheet__summary-label">面积</text>
-            <text class="inquiry-sheet__summary-value num">{{snapshot.context.area}}</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.facts.area}}</text>
           </view>
           <view class="inquiry-sheet__summary-item">
             <text class="inquiry-sheet__summary-label">单位报价</text>
-            <text class="inquiry-sheet__summary-value num">{{snapshot.context.unitPrice}}</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.facts.unitPrice}}</text>
           </view>
           <view class="inquiry-sheet__summary-item inquiry-sheet__summary-item--wide">
             <text class="inquiry-sheet__summary-label">月租估算</text>
-            <text class="inquiry-sheet__summary-value num">{{snapshot.context.monthlyEstimate}}</text>
+            <text class="inquiry-sheet__summary-value num">{{snapshot.context.facts.monthlyEstimate}}</text>
           </view>
         </view>
       </view>

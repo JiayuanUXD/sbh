@@ -24,25 +24,46 @@ describe('Mini 询盘幂等键', () => {
 
   it('以 mini-v1 固定域和固定字段顺序产生稳定 64 hex 向量', async () => {
     await expect(computeMiniInquiryIdempotencyKey(
+      'subject-a',
       'req-123',
-      'listing',
-      'jingan-center-100-monthly',
-    )).resolves.toBe('3003d45b835e6a47b8cc78538d67678c19955470e0f90f18ef797af50d870286')
+      { targetType: 'listing', listingSlug: 'jingan-center-100-monthly' },
+    )).resolves.toBe('8d617deb62d5d7032f2df453efe87291fdb9041a9177e0d893e4ee48543eda23')
   })
 
   it('提交时目标类型或 slug 不同不会碰撞', async () => {
-    const listing = await computeMiniInquiryIdempotencyKey('req-123', 'listing', 'target')
-    const building = await computeMiniInquiryIdempotencyKey('req-123', 'building', 'target')
-    const anotherListing = await computeMiniInquiryIdempotencyKey('req-123', 'listing', 'other')
+    const listing = await computeMiniInquiryIdempotencyKey(
+      'subject-a',
+      'req-123',
+      { targetType: 'listing', listingSlug: 'target' },
+    )
+    const building = await computeMiniInquiryIdempotencyKey(
+      'subject-a',
+      'req-123',
+      { targetType: 'building', buildingSlug: 'target' },
+    )
+    const anotherListing = await computeMiniInquiryIdempotencyKey(
+      'subject-a',
+      'req-123',
+      { targetType: 'listing', listingSlug: 'other' },
+    )
 
     expect(new Set([listing, building, anotherListing])).toHaveLength(3)
   })
 
+  it('相同 submission 与目标按稳定 subject 隔离', async () => {
+    const target = { targetType: 'general' as const }
+    const first = await computeMiniInquiryIdempotencyKey('subject-a', 'req-123', target)
+    const second = await computeMiniInquiryIdempotencyKey('subject-b', 'req-123', target)
+
+    expect(first).not.toBe(second)
+    await expect(computeMiniInquiryIdempotencyKey('subject-a', 'req-123', target)).resolves.toBe(first)
+  })
+
   it('相同可见字段也与 Web 幂等域隔离', async () => {
     const mini = await computeMiniInquiryIdempotencyKey(
+      'subject-a',
       'req-123',
-      'listing',
-      'jingan-center-100-monthly',
+      { targetType: 'listing', listingSlug: 'jingan-center-100-monthly' },
     )
     const web = await computeIdempotencyKey(
       'req-123',
@@ -57,12 +78,13 @@ describe('Mini 询盘幂等键', () => {
 
   it('Mini 详情 adapter 只能按提交时 listing 目标计算专属 key', async () => {
     await expect(computeMiniListingInquiryIdempotencyKey(
+      'subject-a',
       'req-123',
       'jingan-center-100-monthly',
     )).resolves.toBe(await computeMiniInquiryIdempotencyKey(
+      'subject-a',
       'req-123',
-      'listing',
-      'jingan-center-100-monthly',
+      { targetType: 'listing', listingSlug: 'jingan-center-100-monthly' },
     ))
   })
 
@@ -75,7 +97,11 @@ describe('Mini 询盘幂等键', () => {
     expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-2', 'req-123', 'target')).not.toBe(same)
     expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-124', 'target')).not.toBe(same)
     expect(await computeMiniAcceptanceListingInquiryIdempotencyKey('run-1', 'req-123', 'other')).not.toBe(same)
-    expect(same).not.toBe(await computeMiniInquiryIdempotencyKey('req-123', 'listing', 'target'))
+    expect(same).not.toBe(await computeMiniInquiryIdempotencyKey(
+      'subject-a',
+      'req-123',
+      { targetType: 'listing', listingSlug: 'target' },
+    ))
   })
 
   it('Acceptance key 保持 InquiryIdempotencyKey 编译期品牌', () => {

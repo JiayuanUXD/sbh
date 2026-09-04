@@ -9,6 +9,17 @@ const SAFE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const SUBMISSION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const TOP_LEVEL_KEYS = new Set([
   'submissionRequestId',
+  'targetType',
+  'listingSlug',
+  'buildingSlug',
+  'moveInTime',
+  'phoneCode',
+  'phone',
+  'consent',
+  'priceSnapshot',
+])
+const ACCEPTANCE_TOP_LEVEL_KEYS = new Set([
+  'submissionRequestId',
   'listingSlug',
   'buildingSlug',
   'moveInTime',
@@ -20,16 +31,30 @@ const TOP_LEVEL_KEYS = new Set([
 const CONSENT_KEYS = new Set(['accepted', 'policyVersion'])
 const PRICE_SNAPSHOT_KEYS = new Set(['amount', 'currency', 'period', 'unit'])
 
-export type MiniInquiryInput = Readonly<{
+export type MiniInquiryTarget =
+  | Readonly<{
+      targetType: 'listing'
+      listingSlug: string
+      buildingSlug?: string
+    }>
+  | Readonly<{
+      targetType: 'building'
+      buildingSlug: string
+    }>
+  | Readonly<{
+      targetType: 'general'
+    }>
+
+type MiniInquiryFields = Readonly<{
   submissionRequestId: string
-  listingSlug: string
-  buildingSlug: string | null
   moveInTime: string | null
   phoneCode: string | null
   phone: string | null
   consent: Readonly<{ accepted: true; policyVersion: string }>
   priceSnapshot: InquiryPriceSnapshot | null
 }>
+
+export type MiniInquiryInput = MiniInquiryFields & MiniInquiryTarget
 
 export type MiniInquiryValidationResult =
   | Readonly<{ ok: true; data: MiniInquiryInput }>
@@ -54,9 +79,11 @@ export function isCanonicalMiniSlug(value: unknown): value is string {
 export function validateMiniInquiryInput(
   value: unknown,
   expectedPolicyVersion: string,
+  mode: 'regular' | 'acceptance' = 'regular',
 ): MiniInquiryValidationResult {
   if (!isRecord(value)) return { ok: false, errors: ['invalid_body'] }
-  if (Object.keys(value).some((key) => !TOP_LEVEL_KEYS.has(key))) {
+  const allowedKeys = mode === 'acceptance' ? ACCEPTANCE_TOP_LEVEL_KEYS : TOP_LEVEL_KEYS
+  if (Object.keys(value).some((key) => !allowedKeys.has(key))) {
     return { ok: false, errors: ['invalid_body_fields'] }
   }
 
@@ -68,18 +95,53 @@ export function validateMiniInquiryInput(
     errors.push('submission_request_id_invalid')
   }
 
-  const listingSlug = isCanonicalMiniSlug(value.listingSlug) ? value.listingSlug : ''
-  if (!own(value, 'listingSlug') || !isCanonicalMiniSlug(listingSlug)) {
-    errors.push('listing_slug_invalid')
-  }
-
-  let buildingSlug: string | null = null
-  if (own(value, 'buildingSlug') && value.buildingSlug != null) {
-    if (!isCanonicalMiniSlug(value.buildingSlug)) {
-      errors.push('building_slug_invalid')
+  let target: MiniInquiryTarget | null = null
+  if (mode === 'acceptance') {
+    if (!own(value, 'listingSlug') || !isCanonicalMiniSlug(value.listingSlug)) {
+      errors.push('listing_slug_invalid')
+    } else if (own(value, 'buildingSlug') && value.buildingSlug != null) {
+      if (!isCanonicalMiniSlug(value.buildingSlug)) errors.push('building_slug_invalid')
+      else target = {
+        targetType: 'listing',
+        listingSlug: value.listingSlug,
+        buildingSlug: value.buildingSlug,
+      }
     } else {
-      buildingSlug = value.buildingSlug
+      target = { targetType: 'listing', listingSlug: value.listingSlug }
     }
+  } else if (value.targetType === 'listing') {
+    if (!own(value, 'listingSlug') || !isCanonicalMiniSlug(value.listingSlug)) {
+      errors.push('listing_slug_invalid')
+    } else if (own(value, 'buildingSlug') && value.buildingSlug !== undefined) {
+      if (!isCanonicalMiniSlug(value.buildingSlug)) errors.push('building_slug_invalid')
+      else target = {
+        targetType: 'listing',
+        listingSlug: value.listingSlug,
+        buildingSlug: value.buildingSlug,
+      }
+    } else {
+      target = { targetType: 'listing', listingSlug: value.listingSlug }
+    }
+  } else if (value.targetType === 'building') {
+    if (own(value, 'listingSlug')) {
+      errors.push('target_fields_invalid')
+    }
+    if (!own(value, 'buildingSlug') || !isCanonicalMiniSlug(value.buildingSlug)) {
+      errors.push('building_slug_invalid')
+    } else if (errors.length === 0) {
+      target = { targetType: 'building', buildingSlug: value.buildingSlug }
+    }
+  } else if (value.targetType === 'general') {
+    if (
+      own(value, 'listingSlug')
+      || own(value, 'buildingSlug')
+    ) {
+      errors.push('target_fields_invalid')
+    } else {
+      target = { targetType: 'general' }
+    }
+  } else {
+    errors.push('target_type_invalid')
   }
 
   let moveInTime: string | null = null
@@ -149,15 +211,14 @@ export function validateMiniInquiryInput(
     : { ok: false as const }
   if (!priceSnapshot.ok) errors.push('price_snapshot_invalid')
 
-  if (errors.length > 0 || !consent || !priceSnapshot.ok) {
+  if (errors.length > 0 || !target || !consent || !priceSnapshot.ok) {
     return { ok: false, errors }
   }
   return {
     ok: true,
     data: {
       submissionRequestId,
-      listingSlug,
-      buildingSlug,
+      ...target,
       moveInTime,
       phoneCode,
       phone,

@@ -11,6 +11,7 @@ import {
   type MiniUserAssetStore,
 } from '@/domain/mini-program/user-assets'
 import { issueAnonymousContextToken } from '@/domain/mini-program/session'
+import * as userAssets from '@/domain/mini-program/user-assets'
 
 const SIGNING_SECRET = Uint8Array.from({ length: 32 }, (_, index) => index + 1)
 const SIGNING_SECRET_ENV = Buffer.from(SIGNING_SECRET).toString('base64url')
@@ -30,7 +31,7 @@ class MemoryAssetStore implements MiniUserAssetStore {
     const record: MiniUserAssetRecord = {
       databaseId: this.records.length + 1,
       ...data,
-      lead: null,
+      lead: data.lead ?? null,
       createdAt: '2026-09-04T10:00:00.000Z',
     }
     this.records.push(record)
@@ -134,6 +135,37 @@ describe('MiniUserAssets collection', () => {
 })
 
 describe('Mini user asset domain', () => {
+  it.each([
+    { target: { targetType: 'listing' as const, listingSlug: 'jing-an-100' }, targetSlug: 'jing-an-100' },
+    { target: { targetType: 'building' as const, buildingSlug: 'jing-an' }, targetSlug: 'jing-an' },
+    { target: { targetType: 'general' as const }, targetSlug: null },
+  ])('创建并幂等确认 $target.targetType inquiry link', async ({ target, targetSlug }) => {
+    const store = new MemoryAssetStore()
+
+    const first = await userAssets.linkInquiry(store, 'subject-a', 42, target)
+    const repeated = await userAssets.linkInquiry(store, 'subject-a', 42, target)
+
+    expect(first.created).toBe(true)
+    expect(repeated).toEqual({ created: false, assetKey: first.assetKey })
+    expect(store.records).toContainEqual(expect.objectContaining({
+      subject: 'subject-a',
+      kind: 'inquiry',
+      targetType: target.targetType,
+      targetSlug,
+      lead: 42,
+    }))
+  })
+
+  it('相同目标若已链接不同 Lead 则 fail-closed', async () => {
+    const store = new MemoryAssetStore()
+    const target = { targetType: 'general' as const }
+    await userAssets.linkInquiry(store, 'subject-a', 41, target)
+
+    await expect(userAssets.linkInquiry(store, 'subject-a', 42, target)).rejects.toThrow(
+      'mini_inquiry_link_conflict',
+    )
+  })
+
   it('为同一主体与目标生成稳定 SHA-256，并隔离不同 subject', () => {
     const first = computeMiniUserAssetKey(
       'subject-a',
