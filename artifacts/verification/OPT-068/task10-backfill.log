@@ -1,0 +1,50 @@
+
+[18:10:13] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+扫描 27 条媒体，其中缺派生尺寸的图片 12 张，原图合计 1.6 MB
+dry-run：未写入任何数据。加 --execute 真正回填，建议配 --limit 分批。
+  #50 cover-west-nanjing-premium-center-3.jpg 61 KB
+  #51 cover-lujiazui-grade-a-river-view-3.jpg 171 KB
+  #52 cover-huangpu-bund-3.jpg 364 KB
+  #53 cover-xuhui-xujiahui-3.jpg 101 KB
+  #54 cover-changning-hongqiao-3.jpg 202 KB
+  #55 gallery-16.jpg 62 KB
+  #56 gallery-17.jpg 186 KB
+  #57 gallery-18.jpg 82 KB
+  #59 floor-plan-2.jpg 58 KB
+  #60 page-about-hero-1.jpg 305 KB
+  ...（其余 2 张略）
+
+[18:11:29] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+扫描 27 条媒体，其中缺派生尺寸的图片 12 张，原图合计 1.6 MB
+开始回填 2 张（--limit=2）...
+回填完成：成功 0，失败 2
+  ✗ #50 GET http://localhost:3000/api/media/file/cover-west-nanjing-premium-center-3.jpg → 500
+  ✗ #51 GET http://localhost:3000/api/media/file/cover-lujiazui-grade-a-river-view-3.jpg → 500
+还剩 10 张，续跑：--execute --limit=2 --start-after=51
+Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+ ELIFECYCLE  Command failed with exit code 3221226505.
+> payload-office-platform@0.1.0 media:backfill-sizes E:\github\sbh\payload-office-platform
+> node --env-file-if-exists=.env.local --import tsx scripts/backfill-media-sizes.ts "--execute" "--limit=2"
+
+[18:14:44] [33mWARN[39m: [36mNo email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.[39m
+扫描 27 条媒体，其中缺派生尺寸的图片 12 张，原图合计 1.6 MB
+开始回填 2 张（--limit=2）...
+回填完成：成功 2，失败 0
+还剩 10 张，续跑：--execute --limit=2 --start-after=51
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+    d=json.load(sys.stdin)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\json\__init__.py", line 298, in load
+    return loads(fp.read(),
+        cls=cls, object_hook=object_hook,
+        parse_float=parse_float, parse_int=parse_int,
+        parse_constant=parse_constant, object_pairs_hook=object_pairs_hook, **kw)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\json\__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\json\decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\json\decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
