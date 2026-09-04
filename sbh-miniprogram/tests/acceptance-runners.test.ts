@@ -35,6 +35,39 @@ describe('验收报告 fail-closed', () => {
     })).toThrow(/testCases\.listing\.detail/)
   })
 
+  it('带 passed:true 的中间节点仍递归检查失败子节点', async () => {
+    const { assertAcceptancePassed } = await loadAcceptanceResult()
+
+    expect(() => assertAcceptancePassed({
+      testCases: {
+        group: {
+          passed: true,
+          child: { passed: false },
+        },
+      },
+      interactions: {},
+    })).toThrow(/testCases\.group\.child\.passed/)
+  })
+
+  it('叶节点中不含 passed 标记的普通元数据不作为验收子节点', async () => {
+    const { assertAcceptancePassed } = await loadAcceptanceResult()
+
+    expect(() => assertAcceptancePassed({
+      testCases: {
+        home: {
+          passed: true,
+          state: 'ready',
+          totalDocs: 3,
+          screenshots: ['home.png'],
+          details: {
+            viewport: { width: 375, height: 812 },
+          },
+        },
+      },
+      interactions: {},
+    })).not.toThrow()
+  })
+
   it('声明必需交互后，空 interactions 明确失败', async () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 

@@ -7,24 +7,38 @@ function hasOwn(value, key) {
   return Object.prototype.hasOwnProperty.call(value, key)
 }
 
+function hasAcceptanceMarker(value) {
+  if (!isPlainObject(value)) return false
+  if (hasOwn(value, 'passed')) return true
+  return Object.entries(value).some(([key, child]) => (
+    key !== 'passed' && hasAcceptanceMarker(child)
+  ))
+}
+
 function inspectAcceptanceNode(value, path, failures) {
   if (!isPlainObject(value)) {
     failures.push(`${path} 不是普通对象叶节点`)
     return
   }
 
-  if (hasOwn(value, 'passed')) {
-    if (value.passed !== true) failures.push(`${path}.passed 不是 true`)
-    return
-  }
+  const hasPassed = hasOwn(value, 'passed')
+  if (hasPassed && value.passed !== true) failures.push(`${path}.passed 不是 true`)
 
-  const entries = Object.entries(value)
-  if (entries.length === 0) {
+  const objectChildren = Object.entries(value).filter(([key, child]) => (
+    key !== 'passed' && isPlainObject(child)
+  ))
+  // A node with its own result may also contain object metadata. Only nested
+  // objects that declare a `passed` marker somewhere in their subtree are
+  // additional acceptance nodes. Marker-less group nodes remain invalid.
+  const childEntries = hasPassed
+    ? objectChildren.filter(([, child]) => hasAcceptanceMarker(child))
+    : objectChildren
+  if (!hasPassed && childEntries.length === 0) {
     failures.push(`${path} 没有验收叶节点`)
     return
   }
 
-  for (const [key, child] of entries) {
+  for (const [key, child] of childEntries) {
     inspectAcceptanceNode(child, `${path}.${key}`, failures)
   }
 }
