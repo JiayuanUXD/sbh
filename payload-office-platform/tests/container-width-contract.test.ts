@@ -98,12 +98,9 @@ describe('详情页两栏轨道', () => {
     expect(files.detail).not.toMatch(/grid-template-columns:\s*776px/)
   })
 
-  it('关键规格宫格用容器查询（全站唯一一处）', () => {
-    // .dt-nomedia 在 .dt-core 主栏内，主栏 1023 塌单列 → 宫格可用宽对视口
-    // 不单调（1023 时 879、1024 时 476），媒体查询表达不了「网格自己窄了」。
-    expect(files.detail).toMatch(/\.dt-nomedia\s*\{\s*container-type:\s*inline-size/)
-    expect(files.detail).toMatch(
-      /@container\s*\(max-width:\s*528px\)\s*\{\s*\.dt-keyspecs\s*\{[^}]*repeat\(2,/s,
-    )
-  })
+  // 原「关键规格宫格用容器查询（全站唯一一处）」已随无图替代构图
+  // （NoImageHeroGrid / .dt-nomedia / .dt-keyspecs）于 2026-09-04 一并移除——
+  // 详情页无图时改为渲染与画廊同比例的图片占位区，理由见 DetailGallery.tsx。
+  // 全站现已没有容器查询；将来再引入时，这条「不单调才用 @container」的判据
+  // 值得重新写一份，而不是把这段复活。
 })

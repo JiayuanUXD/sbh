@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * 房源详情页「所在楼盘」卡片
@@ -30,15 +31,20 @@ export default function BuildingSummaryCard({ building, listingId, citySlug }: B
 
   return (
     <article className="building-summary-card">
-      {coverSrc && (
-        <div className="building-summary-card__media">
+      {/* 图片区恒渲染：无封面时给共享缺省占位，而不是整块消失。
+          缺图时抽掉图片区会让同一个组件在两栋楼上呈现两种版式（左图右文 vs 纯文本），
+          与本次「缺省图片用占位符表达」是同一条口径。 */}
+      <div className="building-summary-card__media">
+        {coverSrc ? (
           <img
             src={coverSrc}
             alt={building.coverImage?.alt?.trim() || `${building.name} 封面`}
             loading="lazy"
           />
-        </div>
-      )}
+        ) : (
+          <CardMediaPlaceholder compact />
+        )}
+      </div>
       <div className="building-summary-card__body">
         <div className="building-summary-card__header">
           <h3 className="building-summary-card__name">{building.name}</h3>

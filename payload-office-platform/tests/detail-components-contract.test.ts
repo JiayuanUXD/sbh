@@ -149,51 +149,30 @@ describe('detail component contracts', () => {
     expect(imageHtml).toContain('<img')
     expect(videoHtml).toContain('<video')
     expect(videoHtml).toContain('controls=""')
-    expect(fallback).toContain('暂无图片')
+    expect(fallback).toContain('图片拍摄中')
     expect(fallback).toContain('role="img"')
   })
 
   /**
-   * 无图替代构图（Task 2 建、Task 10b 参数化）——本项目对这一段的硬约束是
-   * 「不得渲染空占位」：调用方给了替代内容就必须换构图，而不是灰底占位；
-   * 缺值渲染 — 而不是 0，也不是把那一格藏掉。
+   * 2026-09-04：撤销「无图替代构图」。原方案是 media 为空时用六格关键参数宫格
+   * 接管首屏（NoImageHeroGrid），现在两个详情页统一渲染与画廊同比例的图片占位区。
+   * 撤销理由见 DetailGallery.tsx 该分支上方的注释；宫格里那六个字段并未丢失，
+   * 它们本来就在楼盘参数区 / 概况面板里有完整出处。
    */
-  it('提供 noMediaFallback 时用替代构图接管，不渲染灰底占位', () => {
+  it('无媒体时渲染图片占位区，且不再有替代构图', () => {
     const html = renderToStaticMarkup(createElement(DetailGallery, {
       media: [],
       title: '静安中心',
       pageType: 'building',
-      noMediaFallback: {
-        keySpecs: [
-          { label: '标准层面积', value: '1500', unit: '㎡' },
-          { label: '停车位', value: null },
-        ],
-        meta: [{ label: '楼盘简介', value: null }],
-      },
     }))
 
-    expect(html).toContain('dt-nomedia')
+    expect(html).toContain('media-placeholder')
+    expect(html).toContain('detail-gallery--empty')
     expect(html).toContain('data-media-state="missing"')
-    // 灰底占位的两个标志物都必须消失，否则就是"两块都渲染了"
-    expect(html).not.toContain('media-placeholder')
-    expect(html).not.toContain('暂无图片')
-    expect(html).toContain('1500')
-    expect(html).toContain('㎡')
-    // 缺值 —，不是 0、不是空白，也不是整格消失
-    expect(html).toContain('停车位')
-    expect((html.match(/—/g) ?? []).length).toBe(2)
-    expect(html).not.toMatch(/dt-keyspecs__value">0</)
-  })
-
-  it('noMediaFallback.meta 为空数组时底条整条不渲染（不留只有标签的空条）', () => {
-    const html = renderToStaticMarkup(createElement(DetailGallery, {
-      media: [],
-      title: '静安中心',
-      noMediaFallback: { keySpecs: [{ label: '停车位', value: '120', unit: '个' }], meta: [] },
-    }))
-
-    expect(html).toContain('dt-keyspecs')
-    expect(html).not.toContain('dt-nomedia__meta')
+    expect(html).toContain('图片拍摄中')
+    // 替代构图的两个标志物必须消失，否则就是"两块都渲染了"
+    expect(html).not.toContain('dt-nomedia')
+    expect(html).not.toContain('dt-keyspecs')
   })
 
   it('画廊防御性拒绝 mapper 之外流入的不安全媒体 URL', () => {
@@ -209,7 +188,7 @@ describe('detail component contracts', () => {
       }],
     }))
 
-    expect(html).toContain('暂无图片')
+    expect(html).toContain('图片拍摄中')
     expect(html).not.toContain('javascript:alert')
   })
 

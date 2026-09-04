@@ -669,26 +669,16 @@ ol {
   }
 }
 
-/* 顶部右侧动作区：铜色 CTA + 移动端汉堡（对齐 homepage-preview.html 顶部）。
-   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。 */
+/* 顶部右侧动作区：现只剩移动端汉堡（头部 CTA 已于 2026-09-03 全站移除）。
+   与 logo/导航同为 .site-header__inner 的 flex 子项，space-between 下靠右成组。
+   ≥1280px 时汉堡 display:none，本容器塌成零宽——原先那条 `margin-left: var(--sp-6)`
+   是用来把 CTA 与导航拉开的，CTA 没了之后它只会把导航末项顶离右边缘 24px，
+   一并删除。`.site-header__actions .btn--sm`（CTA 的 44px 触控高度）同理已无消费方。 */
 .site-header__actions {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
   flex-shrink: 0;
-}
-
-@media (min-width: 1280px) {
-  .site-header__actions {
-    margin-left: var(--sp-6);
-  }
-}
-
-/* 顶部 CTA 用 btn--sm，避免撑高 44px 头部 */
-.site-header__actions .btn--sm {
-  white-space: nowrap;
-  /* 44px 触控目标 = 头部高度，撑满而不溢出 */
-  min-height: var(--touch-target);
 }
 
 .site-main {
@@ -921,44 +911,21 @@ ol {
   }
 }
 
+/* 表面、圆角、阴影、hover 全部由 .sf-card 提供（surface.css）——本组件的根节点
+   已带上该类。这里只保留 .sf-card 没有、而本卡片版式需要的：纵向 flex。
+   删掉的那套（1px 边框 / radius 12 / 无静态阴影 / hover 变边框色 / :active 下沉
+   1px / 图片 scale）与全站方向相反，是本次「卡片一致性」整改的主要落点。
+   `display: flex` 必须重述：.sf-card 的基态是 display:block（同 .hm-type-card
+   在 home.css 里做的事），顺序上本文件排在 surface.css 之后，同特异度后来者胜。 */
 .listing-card {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: box-shadow var(--duration-base) var(--ease-standard),
-    border-color var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
 }
 
-.listing-card:hover {
-  border-color: var(--color-line-strong);
-  box-shadow: var(--shadow-md);
-  text-decoration: none;
-}
-
-.listing-card:active {
-  transform: translateY(1px);
-}
-
+/* 图容器：比例 / 底色 / object-fit 由 .sf-media 与 .sf-media--4x3 提供，
+   这里只留定位锚点给图上标签。 */
 .listing-card__media {
-  aspect-ratio: 4 / 3;
-  background: var(--color-paper);
   width: 100%;
-  overflow: hidden;
-}
-
-.listing-card__media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--duration-slow) var(--ease-standard);
-}
-
-.listing-card:hover .listing-card__media img {
-  transform: scale(1.03);
 }
 
 /* F-023 的 .building-card--vacant grayscale 方案已随 BuildingListCard.tsx
@@ -1123,9 +1090,14 @@ ol {
     background-color var(--duration-fast) var(--ease-standard);
 }
 
+/* 图标与文字之间的间距——上一页/下一页现在是 SVG chevron + 文本两个子节点 */
+.pager__link { gap: 4px; }
+
+/* hover 不再变 --accent：分页是导航控件，全站「唯一彩色 --accent 只给可交互
+   元素」不等于"每个可交互元素都要染蓝"；同排的页码键 hover 也只加深边框。 */
 .pager__link:hover {
-  border-color: var(--color-copper);
-  color: var(--color-copper);
+  border-color: var(--color-line-strong);
+  background-color: var(--color-canvas);
   text-decoration: none;
 }
 
@@ -1369,35 +1341,15 @@ ol {
 }
 
 /* 媒体容器定位上下文（角标） */
-.listing-card__media {
-  position: relative;
-}
-
-/* 类型角标（左上） */
-.listing-card__type-badge {
+/* 图上标签成组钉在左下，与首页 .hm-supply-card__tags / 列表卡 .ls-card__type-tag
+   同一位置同一配色（.sf-phototag 白底黑字零色相）。改动前是左上黑底 + 右上铜色
+   实心两个方向、两套配色，且「必看好房」用 --accent 实心底违反「标签徽章零色相」。 */
+.listing-card__tags-on-photo {
   position: absolute;
-  top: var(--sp-2);
   left: var(--sp-2);
-  padding: 2px var(--sp-2);
-  background: rgba(0, 0, 0, 0.6);
-  color: var(--color-on-ink);
-  font-size: var(--fs-12);
-  border-radius: var(--radius-pill);
-  backdrop-filter: blur(4px);
-  z-index: 1;
-}
-
-/* 必看好房角标（右上） */
-.listing-card__featured-tag {
-  position: absolute;
-  top: var(--sp-2);
-  right: var(--sp-2);
-  padding: 2px var(--sp-2);
-  background: var(--color-copper);
-  color: var(--color-on-ink);
-  font-size: var(--fs-12);
-  font-weight: 600;
-  border-radius: var(--radius-pill);
+  bottom: var(--sp-2);
+  display: flex;
+  gap: 6px;
   z-index: 1;
 }
 
@@ -1431,16 +1383,6 @@ ol {
 /* list 视图标题单行 */
 .listing-card--list .listing-card__title {
   -webkit-line-clamp: 1;
-}
-
-/* 卡片 hover 增强（copper 边框 + 图片缩放） */
-.listing-card:hover {
-  border-color: var(--color-copper);
-  box-shadow: var(--shadow-md);
-}
-
-.listing-card:hover .listing-card__media img {
-  transform: scale(1.05);
 }
 
 /* 旧「筛选条：标签按钮式」（.filter-bar 重声明 / .filter-bar__row* /
@@ -1517,11 +1459,20 @@ ol {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
+  /* 原为字面量 `0.3s ease`。两处都换成 token：时长走 --duration-slow（320ms，
+     与 .sf-card 的 hover 抬升同一个决定），缓动走 --ease-apple。
+     「生硬」来自 `ease`——它是对称的 in-out，起步和收尾都慢、中段陡，
+     放在缩放上像被推了一把；--ease-apple 是 cubic-bezier(.28,.11,.32,1)，
+     起步即走、末端长长收住，这才是全站其余动效的手感。 */
+  transition: transform var(--duration-slow) var(--ease-apple);
+  /* 放大时源图会被拉伸采样，加这一条让浏览器按高质量路径重采样 */
+  transform-origin: center;
 }
 
 .detail-gallery__main-media:hover img {
-  transform: scale(1.02);
+  /* 1.02 → 1.04：16:10 大图上 2% 的位移小到只够让人察觉"抖了一下"而读不出
+     是缩放，反而更像卡顿。配合更长的收尾缓动，4% 才读得出是一个连续动作。 */
+  transform: scale(1.04);
 }
 
 .detail-gallery__main-nav {
@@ -1544,12 +1495,15 @@ ol {
   border-radius: 999px;
   background: rgba(17, 24, 39, 0.42);
   color: var(--color-on-ink);
-  font-size: 30px;
-  line-height: 1;
+  /* `font-size: 30px; line-height: 1` 已删除：箭头曾是文字字符 `‹`/`›`，
+     flex 居中的是行盒不是字形墨迹，视觉上永远偏高一点。现在用
+     ui/icons.tsx 的 SVG chevron，viewBox 是几何盒，flex 居中即真居中。 */
   cursor: pointer;
   pointer-events: auto;
   transform: translateY(-50%);
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  transition: background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
   backdrop-filter: blur(6px);
 }
 
@@ -1592,34 +1546,34 @@ ol {
   margin-top: var(--sp-1);
 }
 
+/* 缩略图条的左右翻页键。
+   改动前这里是两个 32×60 的圆角矩形，且**左右各一套配色**：prev 用
+   `--color-canvas-subtle` 浅底深字，next 用写死的 `#1e293b` 深底白字、hover 变铜色。
+   同一排里对称的两个控件长得不一样，是这块最不像 Apple 的地方（Apple 的分页箭头
+   一律同形同色，方向由图标本身表达）。现在：等大的 32px 圆形、中性描边、
+   两侧完全同款，hover 只加深一档底色。写死的 #1e293b 一并去掉。 */
 .detail-gallery__arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
-  height: 60px;
-  border: none;
-  background: var(--color-canvas-subtle, #f0ede6);
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
   color: var(--color-ink-2);
-  font-size: var(--fs-20);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-pill);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
 }
 
 .detail-gallery__arrow:hover {
-  background: var(--color-ink);
-  color: var(--color-on-ink);
-}
-
-.detail-gallery__arrow--next {
-  background: #1e293b;
-  color: var(--color-on-ink);
-}
-
-.detail-gallery__arrow--next:hover {
-  background: var(--color-copper);
+  background-color: var(--color-canvas);
+  border-color: var(--color-line-strong);
+  color: var(--color-ink);
 }
 
 .detail-gallery__thumbnails {
@@ -1714,10 +1668,14 @@ ol {
   place-items: center;
   padding: var(--sp-4);
   color: var(--color-muted);
-  background:
-    radial-gradient(circle at 30% 26%, color-mix(in srgb, var(--color-copper-soft) 68%, transparent), transparent 34%),
-    linear-gradient(135deg, var(--color-paper), color-mix(in srgb, var(--color-canvas) 78%, var(--color-surface)));
+  /* 与 .media-placeholder 同一张面（零色相），两处别再各调各的 */
+  background: linear-gradient(135deg, var(--bg-subtle), var(--bg));
   text-align: center;
+}
+
+.detail-gallery__fallback svg {
+  color: var(--ink-3);
+  opacity: 0.72;
 }
 
 .detail-gallery__fallback strong {
@@ -1731,12 +1689,18 @@ ol {
 }
 
 /* 无图详情页：与卡片同一套缺省图（.media-placeholder 提供底纹与文字排版），
-   这里只补详情页需要的高度与圆角。
+   这里只补详情页需要的比例与圆角。
    必须写成双类选择器：.media-placeholder 在本文件里排在后面，同为单类时它会赢，
-   height:100% / display:grid 会盖掉这里的回落值。 */
+   height:100% / display:grid 会盖掉这里的回落值。
+
+   比例取 16/10，与 `.detail-gallery__main` 一致——这是「保留图片区域」的落点：
+   有图和无图两种状态下首屏骨架同形，用户一眼看出「这里本来该有照片」。
+   原为 `min-height: 15rem`(240px) 的矮条，与画廊主图（776×485）差了一倍，
+   无图页的首屏会整体上移、右侧信息面板显得悬空。 */
 .detail-gallery.detail-gallery--empty {
   display: grid;
   place-items: center;
+  aspect-ratio: 16 / 10;
   min-height: 15rem;
   height: auto;
   border-radius: var(--radius-md);
@@ -2427,8 +2391,11 @@ ol {
   height: var(--touch-target);
   border: none;
   background: none;
-  font-size: 24px;
-  line-height: 1;
+  /* `font-size: 24px; line-height: 1` 已删除：关闭键曾是文字字符 `×`，
+     flex 居中的是行盒不是字形墨迹。现用 ui/icons.tsx 的 XMarkIcon。 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: var(--color-muted);
   border-radius: var(--radius-sm);
@@ -2903,11 +2870,15 @@ ol {
  * --------------------------------------------------------------------------- */
 
 /* Price */
+/* 价格与首页基准同口径：--ink / 600 / tabular-nums。
+   改动前是 --color-copper(= --accent #0071e3) + 700——蓝色只该给可交互元素，
+   而价格是信息不是控件；首页卡（home.css .hm-supply-card__price-value）与
+   列表卡（list.css .ls-price__value）都用 --ink。本类的唯一消费方是 ListingCard。 */
 .price {
-  font-family: var(--font-numeric);
-  font-weight: 700;
-  color: var(--color-copper);
+  font-weight: 600;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   display: inline-block;
 }
 
@@ -2924,10 +2895,14 @@ ol {
 }
 
 /* Media placeholder（图片失败或缺失时） */
+/* 缺省图占位面。
+   底纹与图标原为 `--color-copper-soft`(#eaf2fb 浅蓝) / `--color-copper`(= --accent
+   #0071e3)。占位块是**不可交互**的背景元素，而本体系里「唯一彩色 --accent 只给
+   可交互元素、标签徽章零色相」(.agent/frontend.md)——一屏 24 张无图卡片全是蓝色
+   相机图标时，它们比旁边真正的 CTA 还抢眼。改为零色相：底纹在两级底色之间做
+   极浅的斜向过渡，图标用 --ink-3（白底 5.07:1，够读但不喧宾夺主）。 */
 .media-placeholder {
-  background:
-    radial-gradient(circle at 28% 24%, color-mix(in srgb, var(--color-copper-soft) 70%, transparent), transparent 34%),
-    linear-gradient(135deg, var(--color-paper), color-mix(in srgb, var(--color-canvas) 78%, var(--color-surface)));
+  background: linear-gradient(135deg, var(--bg-subtle), var(--bg));
   display: grid;
   gap: var(--sp-2);
   align-items: center;
@@ -2942,7 +2917,7 @@ ol {
 }
 
 .media-placeholder svg {
-  color: var(--color-copper);
+  color: var(--ink-3);
   opacity: 0.72;
 }
 
@@ -4052,22 +4027,33 @@ ol {
 }
 
 /* ===== P1 评审优化：BuildingSummaryCard 所在楼盘卡片 ===== */
+/* 表面对齐卡片体系：白底 --bg-subtle、--r-card 18、静态 --shadow、零边框。
+   改动前是 `--color-paper`(= --bg #f5f5f7) 底 + 1px 边框 + --radius-md 8 ——
+   **卡与页面同底色**，靠一条细边框才看得出边界，和首页/列表页的白卡完全两回事。
+
+   ★ 刻意**不**加 hover：本卡是 <article>，整块不可点，只有内部一个 CTA 按钮。
+   给不可点的块加抬升等于给用户一个假的可点提示（同 detail.css 里 .dt-panel
+   不做 hover 的理由）。所以这里只取 .sf-card 的静态表面，不取它的交互反馈——
+   也正因为如此，不能直接挂 `.sf-card` 类，否则会连 hover 一起继承。 */
 .building-summary-card {
   display: flex;
   gap: var(--sp-4);
   padding: var(--sp-4);
-  background: var(--color-paper);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 0;
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow);
 }
 
+/* 楼盘卡 16:10（全站规则：封面多为横向街景）。改动前是 4:3、≤767 又变 16/9，
+   同一栋楼在这一页被裁三种样子。底色用 .sf-media 的中性灰而不是页面底色。 */
 .building-summary-card__media {
   flex-shrink: 0;
   width: 180px;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: var(--color-paper);
+  border-radius: 10px;
+  background: #8e8e93;
 }
 
 .building-summary-card__media img {
@@ -4108,8 +4094,10 @@ ol {
   font-weight: 600;
   /* 背景是 --color-copper(=--accent) 12% 叠加卡片底色 --color-paper(#f5f5f7)，
    * 实测合成色上 --color-copper 只有 3.68:1，改用 --accent-ink 达 4.64:1。 */
-  color: var(--accent-ink);
-  background: color-mix(in srgb, var(--color-copper) 12%, transparent);
+  /* 零色相：标签徽章不着色（.agent/frontend.md）。改动前是 --accent 12% 软底 +
+     --accent-ink 文字；白卡上改用中性 --bg 底 + --ink-2 文字，对比度 5.07:1。 */
+  color: var(--ink-2);
+  background: var(--bg);
 }
 
 /* 卡片本身就是 --color-paper（= --bg），同色 pill 等于隐形；改白底 + 中性描边。
@@ -4180,7 +4168,7 @@ ol {
 
   .building-summary-card__media {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    /* 比例不随断点变——16/9 是这里唯一一处，同一栋楼不该按视口换裁切 */
   }
 }
 
@@ -4341,7 +4329,17 @@ ol {
 
 .detail-gallery__open img {
   opacity: 0;
-  transition: opacity 0.3s ease;
+  /* ★ 这条与本文件上方 `.detail-gallery__main-media img` 的 transition **同特异度**
+     (0,1,1)，且排在后面——主图按钮的 className 同时带 `__main-media` 与 `__open`
+     两个类，于是 `transition` 简写在这里被**整条替换**，hover 缩放长期没有任何
+     过渡、直接跳变到 scale()。用户报的「hover 放大动画有些生硬」就是这个：
+     不是曲线不好，是压根没有曲线。
+     覆写基态必须在同作用域把被打断的那条重述回来（.agent/frontend.md
+     「在窄作用域覆写基态，会静默打断既有声明」）——所以这里两条都写。
+     守卫 tests/detail-gallery-motion.test.ts：判据落在**最后生效的这一条**上
+     （只断言上面那条毫无意义，它本来就写着、照样被盖）。 */
+  transition: opacity var(--duration-slow) var(--ease-apple),
+    transform var(--duration-slow) var(--ease-apple);
 }
 
 .detail-gallery__open img[src]:not([src='']) {
@@ -4424,20 +4422,11 @@ ol {
   gap: var(--sp-5);
 }
 
+/* 表面 / hover 全部由 .sf-card 提供（根节点已带该类）。改动前是第二套自造卡片：
+   1px 边框 + radius 12 + 无静态阴影 + hover 换 --shadow-md 且多变一次边框色 +
+   200ms/--ease-standard。上浮方向本来就对，差的是那三项取值与时长缓动。 */
 .article-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: border-color var(--duration-base) var(--ease-standard),
-    box-shadow var(--duration-base) var(--ease-standard),
-    transform var(--duration-base) var(--ease-standard);
-}
-
-.article-card:hover {
-  border-color: var(--color-line-strong);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
 }
 
 .article-card__link {
@@ -4451,34 +4440,14 @@ ol {
   text-decoration: none;
 }
 
-.article-card__media {
-  aspect-ratio: 16 / 9;
-  background: var(--color-paper);
-  overflow: hidden;
-}
-
+/* 比例 / 底色 / object-fit 由 .sf-media + .sf-media--16x10 提供。
+   改动前是 16/9——全站只有 4:3（房源）与 16:10（楼盘/详情主图）两档，16/9 是
+   第三档孤例。图片 hover scale(1.04) 一并删除：.sf-card 那批卡都不缩放。
+   斜纹占位（--color-copper 调和）换成共享缺省占位，与其余卡片同一张脸。 */
 .article-card__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform var(--duration-slow) var(--ease-standard);
-}
-
-.article-card:hover .article-card__img {
-  transform: scale(1.04);
-}
-
-.article-card__placeholder {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-paper),
-    var(--color-paper) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 12px,
-    color-mix(in srgb, var(--color-paper) 92%, var(--color-copper)) 24px
-  );
 }
 
 .article-card__body {
@@ -4496,20 +4465,21 @@ ol {
   flex-wrap: wrap;
 }
 
+/* 零色相（标签徽章不着色）。改动前是 --accent 描边 + 浅蓝底 + 蓝调文字。 */
 .article-card__cat {
   display: inline-flex;
   align-items: center;
   font-size: var(--fs-12);
   padding: 2px var(--sp-2);
-  border: 1px solid var(--color-copper);
-  color: color-mix(in srgb, var(--color-copper-hover) 80%, var(--color-ink));
-  background: var(--color-copper-soft);
-  border-radius: var(--radius-pill);
+  border: 0;
+  color: var(--ink-2);
+  background: var(--bg);
+  border-radius: var(--r-pill);
   line-height: 1.4;
 }
 
+/* 数字走 .sf-num（组件已带该类），这里不再内联 font-variant-numeric */
 .article-card__date {
-  font-family: var(--font-numeric);
   font-size: var(--fs-12);
   color: var(--color-muted);
 }
@@ -4523,9 +4493,8 @@ ol {
   transition: color var(--duration-fast) var(--ease-standard);
 }
 
-.article-card:hover .article-card__title {
-  color: var(--color-copper);
-}
+/* 标题不再 hover 变 --accent：整卡已经有抬升 + 阴影加深作为可点反馈，
+   再让标题变蓝是第二套反馈，且蓝色只该给控件不该给正文标题。 */
 
 .article-card__excerpt {
   font-size: var(--fs-14);
@@ -4714,30 +4683,36 @@ ol {
   scroll-snap-align: start;
 }
 
+/* 表面 / 圆角 / 阴影 / hover 由 .sf-card 提供；图容器与压暗、图上标签走 .sf-*。
+   改动前：无卡片表面、图 120px 定高无 aspect-ratio、占位底色是 --color-copper-soft
+   （浅蓝）而不是 .sf-media 的中性灰、hover 只让楼名变色且**没有 transition**
+   （瞬间跳色，与全站 120/200/320 三档动效脱节）。 */
 .nearby-strip__card {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
   color: inherit;
   text-decoration: none;
 }
 
-.nearby-strip__card:hover .nearby-strip__name {
-  color: var(--color-copper);
+.nearby-strip__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 本条带的卡片只有 200px 宽，用不起首页卡的 20/24；取列表卡那一档（14/16），
+     密度优先——它在详情页右下角，是"顺带看看"不是主展示区。 */
+  padding: 12px 14px 14px;
 }
 
-.nearby-strip__card img,
-.nearby-strip__placeholder {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-  background: var(--color-copper-soft);
+.nearby-strip__grade {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
 }
 
 .nearby-strip__name {
   font-size: var(--fs-14);
   font-weight: 600;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

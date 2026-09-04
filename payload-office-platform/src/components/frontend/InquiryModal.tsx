@@ -18,6 +18,7 @@ import ViewingSlotPicker, {
   type SelectedViewingPreference,
 } from '@/components/frontend/ViewingSlotPicker'
 import type { ServiceSchedule } from '@/domain/advisor-availability'
+import { XMarkIcon } from '@/components/frontend/ui/icons'
 
 /**
  * F5.2 可访问咨询 Modal（多入口）
@@ -640,7 +641,7 @@ export default function InquiryModal(props: Props) {
               aria-label="关闭询价弹层"
               onClick={closeModal}
             >
-              <span aria-hidden="true">×</span>
+              <XMarkIcon size={18} />
             </button>
 
             <h3 id={titleId} ref={titleRef} tabIndex={-1} className="modal__title">

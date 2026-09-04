@@ -4,6 +4,7 @@ import { formatArea } from '@/lib/frontend/format'
 import type { ListingCardViewModel } from '@/domain/public-catalog'
 import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/frontend/listing/list-analytics'
 import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/frontend/listing-display'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * OPT-036 房源结果行（列表页「横向列表」版式，comp 稿的布局 B）。
@@ -27,7 +28,8 @@ import { LISTING_TYPE_LABEL, listingWhereLine, splitPriceText } from '@/lib/fron
  *
  * 守护不变量（与卡片版一致）：
  *   - Server Component，只消费 `ListingCardViewModel`，不接触 Payload 文档；
- *   - 缺图：`.sf-media--16x10` 靠 aspect-ratio 撑住 240×150 不塌陷；
+ *   - 缺图：`.sf-media--16x10` 靠 aspect-ratio 撑住 240×150 不塌陷，内部渲染共享缺省
+ *     占位的 compact 变体（240 宽下副文案会折三行，只留主文案）；
  *   - 缺价格：省略定宽数值盒，渲染「价格面议」纯文本，不渲染 0 或空盒；
  *   - 标题/位置超长：单行省略号，不换行、不挤压右侧价格列。
  */
@@ -79,7 +81,9 @@ export default function ListingResultRow({ listing, citySlug, analytics }: Reado
             width={coverImage.width}
             height={coverImage.height}
           />
-        ) : null}
+        ) : (
+          <CardMediaPlaceholder compact />
+        )}
         <span className="sf-scrim" aria-hidden="true" />
         <span className="sf-phototag ls-rowcard__type-tag">{typeLabel}</span>
       </span>

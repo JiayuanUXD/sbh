@@ -3,6 +3,7 @@ import { listAnalyticsAttrs, type ListResultAnalytics } from '@/components/front
 import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
+import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
 
 /**
  * OPT-036 楼盘结果卡（列表页网格「当前有在租」分组）
@@ -27,7 +28,8 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts
  *
  * 守护不变量：
  *   - Server Component，只消费 BuildingSummaryViewModel DTO，不接收 Payload 文档；
- *   - 缺图：.sf-media 靠 aspect-ratio 撑住 16:10，不塌陷（不渲染 <img>，留灰底）；
+ *   - 缺图：.sf-media 靠 aspect-ratio 撑住 16:10，不塌陷；内部渲染共享缺省占位
+ *     （CardMediaPlaceholder：图标 +「图片拍摄中」），不再留裸灰底；
  *   - 缺等级：整个标签省略，不渲染空 pill；
  *   - 缺地址 / 缺地铁：对应行整行省略，不渲染空行；
  *   - 套数与面积各自独立判空——listingCount 与 leasableArea 理论上总是同时出现
@@ -85,7 +87,9 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
             width={coverImage.width}
             height={coverImage.height}
           />
-        ) : null}
+        ) : (
+          <CardMediaPlaceholder />
+        )}
         <span className="sf-scrim" aria-hidden="true" />
         {gradeLabel ? <span className="sf-phototag bd-card__grade-tag">{gradeLabel}</span> : null}
       </span>

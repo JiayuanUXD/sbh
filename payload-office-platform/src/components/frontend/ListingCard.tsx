@@ -103,7 +103,12 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
       // 一两条）。与 `Pagination` / `FilterPill` / `BuildingSupplyBrowser` /
       // `home/*` 已有的同一条判据一致（OPT-037 Task 11 补齐）。
       prefetch={false}
-      className={`listing-card${viewClass}${variantClass}`}
+      // `sf-card` 在前：卡片表面（白底零边框 / --r-card 18 / 静态阴影 / hover 上浮
+      // 2px 换深阴影 / 320ms --ease-apple）一律由共享基元提供，与首页、列表页同一份。
+      // 改动前本组件自带一套：1px 边框 + radius 12 + 无静态阴影 + hover 变蓝边框 +
+      // :active 下沉 1px + 图片 scale(1.05)，方向与全站相反（.agent/frontend.md
+      // 「卡片一律用 styles/surface.css 的共享基元，禁止逐页再写一份」）。
+      className={`sf-card listing-card${viewClass}${variantClass}`}
       data-listing-card-variant={variant}
       data-listing-card-view={view}
       aria-label={`${title}，${price?.text ?? '待面议'}`}
@@ -115,14 +120,21 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
       data-analytics-recommendation-type={detailAnalytics?.recommendationType}
       data-analytics-supply-group={detailAnalytics?.supplyGroup}
     >
-      <div className="listing-card__media">
+      {/* 图容器与图上元素全部走共享基元：.sf-media--4x3（房源卡 4:3）、.sf-scrim
+          （图上有文字必带底部压暗）、.sf-phototag（零色相白底 pill，左下成组）。
+          改动前是自造的 .listing-card__media + 左上黑底类型角标 + 右上铜色实心
+          「必看好房」——位置、配色都与首页/列表卡相反，且没有压暗层。 */}
+      <div className="listing-card__media sf-media sf-media--4x3">
         <Media
           media={coverImage}
           ratio="4/3"
           fallbackAlt={fallbackAlt || title}
         />
-        <span className="listing-card__type-badge">{TYPE_LABEL[listingType]}</span>
-        {featuredTagOn && <span className="listing-card__featured-tag">必看好房</span>}
+        <span className="sf-scrim" aria-hidden="true" />
+        <span className="listing-card__tags-on-photo">
+          <span className="sf-phototag">{TYPE_LABEL[listingType]}</span>
+          {featuredTagOn && <span className="sf-phototag">必看好房</span>}
+        </span>
       </div>
       <div className="listing-card__body">
         <h3 className="listing-card__title">{title}</h3>
@@ -140,9 +152,12 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
             ))}
           </div>
         )}
+        {/* `.tabular` 与 `.sf-num` 声明完全等价（同义副本）；全站唯一落点是
+            `.sf-num`——见 .agent/frontend.md「不要在各页样式里再内联一遍
+            font-variant-numeric」。 */}
         <div className="listing-card__meta">
           {variant === 'building-supply' && price == null ? (
-            <span className="price tabular price--md">价格面议</span>
+            <span className="price sf-num price--md">价格面议</span>
           ) : (
             <Price price={price} size="md" />
           )}

@@ -6,27 +6,14 @@ import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { track } from '@/lib/frontend/analytics'
 import { formatPublishedDate } from '@/lib/frontend/format'
-import NoImageHeroGrid, { type NoImageMetaItem } from './detail/NoImageHeroGrid'
-import type { SpecRow } from './detail/SpecTable'
 import DetailVideo from './DetailVideo'
+import { ChevronLeftIcon, ChevronRightIcon, PhotoIcon, XMarkIcon } from './ui/icons'
 
 type DetailGalleryProps = Readonly<{
   media: readonly DetailMediaViewModel[]
   title: string
   /** The containing detail route; used only as an analytics enum. */
   pageType?: 'listing' | 'building'
-  /**
-   * 无媒体时的替代构图内容（OPT-037 Task 2「无图替代构图」，Task 10b 起
-   * 楼盘详情页同用）。调用方按自己页面类型（listing/building）选定关键规格
-   * 与底部补充信息条（`meta`——放什么取决于该页旁边已经说了什么，见
-   * NoImageHeroGrid 文件头）传入；本组件
-   * 不关心具体字段来源，只负责在 media 为空时用它替换灰底占位图。省略时
-   * 回退到原有的通用「暂无图片」占位（保持对未接入调用方的向后兼容）。
-   */
-  noMediaFallback?: Readonly<{
-    keySpecs: readonly SpecRow[]
-    meta: readonly NoImageMetaItem[]
-  }>
 }>
 
 type RenderableMedia = Readonly<{
@@ -70,7 +57,6 @@ export default function DetailGallery({
   media,
   title,
   pageType,
-  noMediaFallback,
   imageDisclaimer = DEFAULT_IMAGE_DISCLAIMER,
 }: DetailGalleryProps & Readonly<{ imageDisclaimer?: string }>) {
   const renderableMedia = useMemo(
@@ -226,35 +212,28 @@ export default function DetailGallery({
 
   // 无媒体是常态而非异常：前台可见性已不再要求图片数（见 domain/review/
   // effective-supply.ts 头部），所以详情页必须能在 0 张图下正常渲染。
-  // 图片质量本身也不可控（商户上传、尺寸色温水印不统一）——赌图片必输，
-  // 所以但凡调用方能提供关键规格数据，就换一种构图接管首屏（见
-  // NoImageHeroGrid），而不是退化成一块灰底占位图。调用方没提供时（尚未
-  // 接入或页面类型确无对应字段）才回退到与卡片一致的缺省图
-  // （.media-placeholder），保持原有向后兼容行为。
+  //
+  // ── 2026-09-04：撤销「无图替代构图」（OPT-037 Task 2 / Task 10b）──────────
+  // 原方案是：调用方能给出关键规格就换一种构图（NoImageHeroGrid 六格宫格）
+  // 接管首屏，而不是摆一块占位。撤销的理由是产品判断，不是那套论证有错：
+  //   1. 两页在"无图"下长得不一样。房源页多数有媒体记录（哪怕文件取不到，
+  //      走的是失败占位、**图片区还在**），楼盘页 media 为 0 走替代构图、
+  //      **图片区整个消失**——同一个站点两种首屏骨架，用户能直接看出来。
+  //   2. 「这里本来该有照片」本身是要传达的信息。换成参数宫格等于把它藏掉，
+  //      用户不知道是"没拍"还是"这页就长这样"。
+  // 现在两页统一：无媒体 → 渲染与画廊同比例（16:10）的占位区，文案「图片拍摄中」。
+  // 宫格里那六个字段并没有丢——它们本来就在楼盘参数区/概况面板里有完整出处。
   if (renderableMedia.length === 0) {
-    if (noMediaFallback) {
-      return (
-        <NoImageHeroGrid
-          title={title}
-          keySpecs={noMediaFallback.keySpecs}
-          meta={noMediaFallback.meta}
-        />
-      )
-    }
     return (
       <div
         className="detail-gallery detail-gallery--empty media-placeholder"
         role="img"
-        aria-label={`${title} 暂无图片`}
+        aria-label={`${title} 图片拍摄中`}
         data-media-state="missing"
       >
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <circle cx="9" cy="9" r="2" />
-          <path d="m21 15-5-5L5 21" />
-        </svg>
+        <PhotoIcon size={48} />
         <span className="media-placeholder__text">
-          <strong>暂无图片</strong>
+          <strong>图片拍摄中</strong>
           <span>可先查看房源信息，实景可预约顾问确认</span>
         </span>
       </div>
@@ -353,7 +332,7 @@ export default function DetailGallery({
                 aria-label="上一张图片"
                 onClick={() => goTo(safeActiveIndex - 1)}
               >
-                ‹
+                <ChevronLeftIcon size={22} />
               </button>
               <button
                 type="button"
@@ -361,7 +340,7 @@ export default function DetailGallery({
                 aria-label="下一张图片"
                 onClick={() => goTo(safeActiveIndex + 1)}
               >
-                ›
+                <ChevronRightIcon size={22} />
               </button>
             </div>
           )}
@@ -393,7 +372,7 @@ export default function DetailGallery({
             aria-label="上一个媒体"
             onClick={() => goTo(safeActiveIndex - 1)}
           >
-            ‹
+            <ChevronLeftIcon size={18} />
           </button>
           <div className="detail-gallery__thumbnails" role="tablist" aria-label="缩略图按键">
             {currentList.map((renderable, index) => {
@@ -438,7 +417,7 @@ export default function DetailGallery({
             aria-label="下一个媒体"
             onClick={() => goTo(safeActiveIndex + 1)}
           >
-            ›
+            <ChevronRightIcon size={18} />
           </button>
         </div>
       )}
@@ -453,11 +432,11 @@ export default function DetailGallery({
           aria-labelledby={dialogTitleId}
         >
           <h2 id={dialogTitleId} className="visually-hidden">全屏媒体预览</h2>
-          <button ref={closeRef} type="button" className="detail-gallery__close" aria-label="关闭全屏媒体预览" onClick={close}>×</button>
+          <button ref={closeRef} type="button" className="detail-gallery__close" aria-label="关闭全屏媒体预览" onClick={close}><XMarkIcon size={20} /></button>
           {activeKind === 'image' && currentList.length > 1 && (
             <>
-              <button type="button" className="detail-gallery__nav detail-gallery__nav--previous" aria-label="上一张媒体" onClick={() => goTo(safeActiveIndex - 1)}>‹</button>
-              <button type="button" className="detail-gallery__nav detail-gallery__nav--next" aria-label="下一张媒体" onClick={() => goTo(safeActiveIndex + 1)}>›</button>
+              <button type="button" className="detail-gallery__nav detail-gallery__nav--previous" aria-label="上一张媒体" onClick={() => goTo(safeActiveIndex - 1)}><ChevronLeftIcon size={22} /></button>
+              <button type="button" className="detail-gallery__nav detail-gallery__nav--next" aria-label="下一张媒体" onClick={() => goTo(safeActiveIndex + 1)}><ChevronRightIcon size={22} /></button>
             </>
           )}
           <div className="detail-gallery__dialog-content">
@@ -482,6 +461,10 @@ export default function DetailGallery({
 function MediaFallback() {
   return (
     <span className="detail-gallery__fallback" role="img" aria-label="图片暂未加载">
+      {/* 图标与 ui/Media.tsx 的占位共用 PhotoIcon：改动前这里只有文字，
+          和卡片上的占位块长得不是一回事。失败态文案保持「图片暂未加载」，
+          与缺省态的「图片拍摄中」区分（两者含义不同，见 Media.tsx 文件头）。 */}
+      <PhotoIcon size={36} />
       <strong>图片暂未加载</strong>
       <span>可先查看房源信息，实景可预约顾问确认</span>
     </span>

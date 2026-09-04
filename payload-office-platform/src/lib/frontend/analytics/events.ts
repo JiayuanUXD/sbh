@@ -50,8 +50,6 @@ export const ANALYTICS_EVENTS = {
   landing_form_error: ['page_type', 'error_code'],
   /** Landing-page footer CTA click. */
   landing_bottom_cta_click: ['page_type'],
-  /** Site-header CTA click on a landing page (scrolls to the page form). */
-  landing_header_cta_click: ['page_type'],
   city_partner_application_started: ['city_slug', 'stage'],
   city_partner_application_submitted: ['city_slug', 'stage'],
   city_partner_application_completed: ['city_slug', 'stage'],

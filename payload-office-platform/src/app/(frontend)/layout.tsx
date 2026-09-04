@@ -71,8 +71,16 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   ])
   const multiCityRoutingEnabled = getMultiCityRoutingEnabled()
   const umami = resolveUmamiConfig()
+  // `data-scroll-behavior="smooth"` 是给 Next 的显式握手，不是装饰：
+  // styles.css 给 html 设了 `scroll-behavior: smooth`（锚点跳转与「回到顶部」要用）。
+  // Next 的 disableSmoothScrollDuringRouteTransition 只有读到这个属性，才会在路由跳转期间
+  // 把 scroll-behavior 临时压成 auto；没有它就直接执行 `scrollTop = 0`——于是从「上一页滚到
+  // 一半」跳到新页面时，会平滑地一路滚上去，像一段多余的入场动画（只在上一页已经往下滚过时
+  // 出现，所以表现为「有时候」）。dev 下 Next 会就此打印 warning，实现见
+  // next/dist/shared/lib/router/utils/disable-smooth-scroll.js。
+  // 守卫见 tests/frontend-layout-scroll-behavior.test.ts。
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" data-scroll-behavior="smooth">
       <body suppressHydrationWarning>
         {/* F2.2：skip link，键盘用户跳过头部直达主内容（WCAG 2.2 AA） */}
         <a href="#main-content" className="skip-link">跳到主要内容</a>

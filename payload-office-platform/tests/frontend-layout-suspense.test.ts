@@ -60,7 +60,6 @@ describe('layout SSR 输出的外壳完整性', () => {
     expect(markup).toContain('href="/"')
     expect(markup).toContain('class="site-nav__link"')
     expect(markup).toContain('href="/listings"')
-    expect(markup).toContain('data-event-name="inquiry_open_trigger"')
     expect(markup).toContain('class="site-footer"')
     expect(markup).toContain('class="site-footer__logo"')
     expect(markup).toContain('href="/buildings"')

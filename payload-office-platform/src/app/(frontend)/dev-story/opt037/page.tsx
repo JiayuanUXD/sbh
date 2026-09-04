@@ -135,15 +135,6 @@ const SINGLE_IMAGE_FIXTURE: readonly DetailMediaViewModel[] = [
   { id: 's1', kind: 'image', category: '大堂与电梯厅', resource: DEMO_IMAGES[0], capturedAt: null, isSchematic: false },
 ]
 
-const NO_IMAGE_KEY_SPECS: readonly SpecRow[] = [
-  { label: '建筑面积', value: '1,240', unit: '㎡' },
-  { label: '工位数', value: '86', unit: '个' },
-  { label: '装修状态', value: null },
-  { label: '房源类型', value: '整层办公' },
-  { label: '可入驻', value: '2026年9月1日' },
-  { label: '楼盘等级', value: '甲级' },
-]
-
 // ---------------------------------------------------------------------------
 // Fixture：ListingOverviewPanel（Task 3）—— 三态：字段齐全 / 部分缺失 / 整组缺失。
 // factGroups 直接仿 mapListingFactGroups 的既有事实标签（见 mappers.ts），
@@ -938,21 +929,14 @@ export default async function Opt037PreviewPage({
 
         <PreviewSection
           id="detail-gallery-no-media"
-          title="详情画廊 · 无图替代构图（NoImageHeroGrid）"
-          note="mediaItems 为 0，画廊整段不渲染，关键规格宫格 + 地址交通条接管首屏；宫格 ≥768 为 3 列（6 格排成 3×2）、≤767 收成 2 列且数值降到 24（Task 10b：375 下三列每格只有 72px，32px 的大字排不下）；「装修状态」故意为 null，验证渲染为 — 而非空白或 0"
+          title="详情画廊 · 无图占位区"
+          note="mediaItems 为 0 时渲染与画廊同比例（16:10）的图片占位区，文案「图片拍摄中」。2026-09-04 起撤销原「无图替代构图」（六格关键参数宫格接管首屏）——两个详情页在无图时的首屏骨架必须一致，理由见 DetailGallery.tsx 该分支上方注释"
         >
           <div style={{ maxWidth: 776 }}>
             <DetailGallery
               media={[]}
               title="静安嘉里中心 · 12 层整层"
               pageType="listing"
-              noMediaFallback={{
-                keySpecs: NO_IMAGE_KEY_SPECS,
-                meta: [
-                  { label: '地址', value: '静安区南京西路 1515 号 · 嘉里中心南楼' },
-                  { label: '交通', value: '近静安寺站' },
-                ],
-              }}
             />
           </div>
         </PreviewSection>

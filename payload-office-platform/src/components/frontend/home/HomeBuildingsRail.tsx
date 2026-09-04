@@ -29,6 +29,9 @@ export default function HomeBuildingsRail({ buildings, citySlug, totalCount }: R
         {buildings.map((b) => (
           <div className="hm-rail__item" role="listitem" key={b.slug}>
             <HomeSupplyCard
+              // 楼盘卡 16:10（全站规则，见 HomeSupplyCard 的 ratio 注释）——
+              // 这条 rail 是本组件三个消费方里唯一放楼盘的。
+              ratio="16/10"
               href={`${prefix}/buildings/${b.slug}`}
               image={b.coverImage ?? null}
               photoTags={[
