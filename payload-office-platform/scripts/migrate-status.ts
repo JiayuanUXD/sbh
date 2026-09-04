@@ -184,8 +184,24 @@ async function main() {
 // 而 main() 会 getPayload() 连库（在测试进程里会挂住）。判据与 scripts/data-audit.ts、
 // scripts/migrate-dry-run.ts 同款，不新造写法。
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  main().catch((err) => {
-    console.error('[migrate:status] failed:', err)
-    process.exitCode = 1
-  })
+  // ★ 必须显式 process.exit()，不能只设 exitCode 后 return。
+  //
+  // `getPayload()` 之后即便调了 `payload.db.destroy?.()`，进程里仍留着没关干净的
+  // 句柄（pg 连接池等），事件循环排不空 → **node 永远不退出**。作为人工巡检命令
+  // 这只是"跑完要按 Ctrl+C"的小别扭；一旦进了 CI 就是致命的：
+  // 2026-09-04 PR #142 把 `migrate:assert-applied` 接进 e2e job 的
+  // 「Apply migrations to fresh PostgreSQL」步骤后，该步骤挂满 15 分钟被取消，
+  // **此后每一个 PR 的 e2e 都红**（#143 / #144 实录）。
+  // 本文件上方那条注释早就写着「main() 会 getPayload() 连库（在测试进程里会挂住）」
+  // ——当时只为测试 import 加了这道门，却没意识到同一个原因会让 CLI 自己也不退出。
+  //
+  // 判据同 `scripts/seed.ts`（它正因为 `.then(() => process.exit(0))` 才能在
+  // 同一个 job 里正常收尾），不新造写法。exitCode 要透传：--assert-applied
+  // 失败时上面把它设成了 1。
+  main()
+    .then(() => process.exit(process.exitCode ?? 0))
+    .catch((err) => {
+      console.error('[migrate:status] failed:', err)
+      process.exit(1)
+    })
 }
