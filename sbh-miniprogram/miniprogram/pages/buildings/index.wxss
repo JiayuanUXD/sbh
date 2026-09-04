@@ -63,6 +63,7 @@
 
 .buildings-card-divider {
   height: 2rpx;
+  margin-left: 212rpx;
   background: #e5e5e7;
 }
 

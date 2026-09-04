@@ -212,6 +212,48 @@
   font-size: 24rpx;
 }
 
+/* 3.1 真实供给背书条 */
+.home-assurance {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16rpx 24rpx 0;
+  padding: 18rpx 28rpx;
+  background: #ffffff;
+  border-radius: var(--sbh-shape-surface-radius, 16rpx);
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.home-assurance__left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.home-assurance__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  background: #1d1d1f;
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 600;
+  border-radius: 6rpx;
+  line-height: 1.2;
+}
+
+.home-assurance__text {
+  color: #1d1d1f;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.home-assurance__arrow {
+  color: #86868b;
+  font-size: 24rpx;
+}
+
 /* 4. 精选好楼 */
 .home-buildings-card {
   box-sizing: border-box;
@@ -326,18 +368,34 @@
   display: flex;
   align-items: baseline;
   gap: 36rpx;
-  margin: 20rpx 24rpx 0;
+  margin: 24rpx 24rpx 4rpx;
 }
 
 .home-stream-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   color: #86868b;
   font-size: 30rpx;
+  padding-bottom: 8rpx;
 }
 
 .home-stream-tab--active {
   font-size: 34rpx;
   font-weight: 600;
   color: #1d1d1f;
+}
+
+.home-stream-tab__indicator {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32rpx;
+  height: 4rpx;
+  background: #1d1d1f;
+  border-radius: 2rpx;
 }
 
 /* 7. 精选房源卡块容器（内嵌细线分隔） */

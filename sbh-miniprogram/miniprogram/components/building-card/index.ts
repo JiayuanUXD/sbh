@@ -15,10 +15,10 @@ Component({
   properties: {
     building: {
       type: Object,
-      value: null as MiniBuildingCard | null,
-      observer(newVal: MiniBuildingCard | null) {
-        if (!newVal) return
-        this.computeFields(newVal)
+      value: null,
+      observer(newVal: unknown) {
+        if (!newVal || typeof newVal !== 'object') return
+        this.computeFields(newVal as MiniBuildingCard)
       },
     },
   },
@@ -58,14 +58,14 @@ Component({
       this.setData({ imageFailed: true })
     },
 
-    handleOpen() {
-      const building = this.properties.building as MiniBuildingCard | null
-      if (!building?.slug) return
-      this.triggerEvent('open', { slug: building.slug })
+    handleOpen(event: WechatMiniprogram.BaseEvent) {
+      const slug = event?.currentTarget?.dataset?.slug
+      if (typeof slug !== 'string' || !slug) return
+      this.triggerEvent('open', { slug })
     },
 
     handleInquiry() {
-      const building = this.properties.building as MiniBuildingCard | null
+      const building = (this.data as { building?: MiniBuildingCard | null }).building
       if (!building?.slug) return
       this.triggerEvent('inquiry', { slug: building.slug, name: building.name })
     },

@@ -145,7 +145,41 @@
 
 .listings-card-divider {
   height: 2rpx;
+  margin-left: 248rpx;
   background: #e5e5e7;
+}
+
+.listings-map-floating-btn {
+  position: fixed;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 36rpx;
+  background: #1d1d1f;
+  color: #ffffff;
+  font-size: 26rpx;
+  font-weight: 500;
+  border-radius: 999px;
+  box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.22);
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.listings-map-floating-btn--pressed {
+  opacity: 0.85;
+  transform: translateX(-50%) scale(0.96);
+}
+
+.listings-map-floating-icon {
+  font-size: 24rpx;
+}
+
+.listings-map-floating-text {
+  font-size: 26rpx;
+  letter-spacing: 1rpx;
 }
 
 .listings-loading-more,

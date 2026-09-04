@@ -75,6 +75,7 @@ type ListingDetailPageMethods = {
   handleInquiryPhoneAuthorization(event: PhoneAuthorizationEvent): void
   handleInquiryPhoneRejected(): void
   handleInquiryManualSubmit(): void
+  handleBuildingOpen(event: WechatMiniprogram.CustomEvent | WechatMiniprogram.TouchEvent): void
 }
 
 function closedInquirySheet(): InquirySheetSnapshot {
@@ -253,7 +254,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
               targetType: 'listing',
               targetSlug: input.listingSlug,
               targetTitle: this.data.content?.title || '商办房源咨询',
-              imageUrl: this.data.content?.gallery?.[0]?.url,
+              imageUrl: this.data.content?.gallery?.[0]?.src,
               status: 'pending',
               statusLabel: '待带看',
             })
@@ -276,7 +277,7 @@ Page<ListingDetailPageData, ListingDetailPageMethods>({
     const isNowFav = toggleListingFavorite({
       slug,
       title: content?.title || '商办房源',
-      imageUrl: content?.gallery?.[0]?.url,
+      imageUrl: content?.gallery?.[0]?.src,
     })
     this.setData({ isFavorited: isNowFav })
     wx.showToast({

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-04T03:57:13.170Z",
+  "timestamp": "2026-09-04T12:20:54.039Z",
   "systemInfo": {
     "brand": "devtools",
     "model": "iPhone 14 Pro Max",
@@ -54,25 +54,25 @@
     },
     "listings": {
       "state": "ready",
-      "itemCount": 10,
+      "itemCount": 4,
       "passed": true,
       "screenshot": "mp107-2-listings.png"
     },
     "buildings": {
       "state": "ready",
-      "totalDocs": 6,
-      "activeCount": 5,
+      "totalDocs": 4,
+      "activeCount": 3,
       "passed": true,
       "screenshot": "mp107-3-buildings.png"
     },
     "buildingDetail": {
-      "name": "南京西路高端商务中心",
+      "name": "恒隆广场",
       "isFavorited": true,
       "passed": true,
       "screenshot": "mp107-4-building-detail-favorited.png"
     },
     "listingDetail": {
-      "title": "外滩源 · 共享办公 · 灵活工位",
+      "title": "静安嘉里中心二座 · 高区带全套办公家具隔断办公",
       "isFavorited": true,
       "inquiryOpen": true,
       "passed": true,

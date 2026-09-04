@@ -73,7 +73,7 @@
   flex: 1;
   flex-direction: column;
   justify-content: space-between;
-  height: 168rpx;
+  height: 184rpx;
   min-width: 0;
   overflow: hidden;
 }
@@ -84,7 +84,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   color: var(--sbh-text-primary);
-  font-size: var(--sbh-type-label-size);
+  font-size: 28rpx;
   font-weight: var(--sbh-type-semibold-weight);
   line-height: 1.25;
   word-break: break-all;
@@ -94,7 +94,7 @@
 .listing-card__location {
   overflow: hidden;
   color: var(--sbh-text-secondary);
-  font-size: var(--sbh-type-auxiliary-size);
+  font-size: 22rpx;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -114,16 +114,18 @@
 .listing-card__price {
   flex: 0 0 auto;
   color: var(--sbh-text-primary);
-  font-size: var(--sbh-type-section-title-size);
+  font-size: 32rpx;
   font-weight: var(--sbh-type-semibold-weight);
   line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .listing-card__quote {
   flex: 1 1 auto;
   overflow: hidden;
   color: var(--sbh-text-secondary);
-  font-size: var(--sbh-type-auxiliary-size);
+  font-size: 22rpx;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;

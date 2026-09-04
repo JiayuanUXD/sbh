@@ -90,6 +90,7 @@ type ListingsPageMethods = {
   handleListingOpen(event: ListingOpenEvent): void
   handleSearchSubmit(event: WechatMiniprogram.CustomEvent<{ value: string }>): void
   handleToggleSort(): void
+  handleToggleMap(): void
 }
 
 function buildWhitelistedQuery(options: ListingPageOptions): string {
@@ -279,8 +280,16 @@ Page<ListingsPageData, ListingsPageMethods>({
 
   handleToggleSort() {
     const currentSort = this.data.query.sort
-    const nextSort = currentSort === 'price_asc' ? 'price_desc' : 'price_asc'
+    const nextSort: 'price-asc' | 'price-desc' = currentSort === 'price-asc' ? 'price-desc' : 'price-asc'
     const query = { ...this.data.query, sort: nextSort }
     void this.ensureListingsController().applyFilters(query)
+  },
+
+  handleToggleMap() {
+    wx.showToast({
+      title: '地图模式即将开放',
+      icon: 'none',
+      duration: 1600,
+    })
   },
 })

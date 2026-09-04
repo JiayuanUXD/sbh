@@ -2,6 +2,7 @@ import { accessSync, constants, existsSync, statSync, writeFileSync, mkdirSync }
 import { dirname, isAbsolute, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import automator from 'miniprogram-automator'
+import { createAcceptanceServer } from './acceptance-mock-server.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
@@ -20,11 +21,19 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms))
 async function runAcceptance() {
   console.log('🚀 启动 MP-107 全链路资产与“我的”个人中心端到端走查...')
 
-  const mp = await automator.launch({
-    cliPath,
-    projectPath: projectRoot,
-    trustProject: true,
-  })
+  const mockServer = await createAcceptanceServer(3717)
+  let mp
+
+  try {
+    mp = await automator.connect({ wsEndpoint: 'ws://127.0.0.1:9420' })
+    console.log('🔗 已连接到现有开发者工具自动化会话 (9420)...')
+  } catch {
+    mp = await automator.launch({
+      cliPath,
+      projectPath: projectRoot,
+      trustProject: true,
+    })
+  }
 
   try {
     const sysInfo = await mp.systemInfo()
@@ -51,7 +60,16 @@ async function runAcceptance() {
     // 1. 首页走查
     // ==========================================
     console.log('🧪 [Case 1] 走查首页...')
-    const home = await mp.reLaunch('/pages/home/index')
+    await delay(2000)
+    let home = await mp.currentPage()
+    if (!home || home.path !== 'pages/home/index') {
+      try {
+        home = await mp.reLaunch('/pages/home/index')
+      } catch {
+        await delay(2000)
+        home = await mp.currentPage()
+      }
+    }
     await home.waitFor('#home-ready')
     await delay(1000)
     const homeScreenshotPath = join(screenshotsDir, 'mp107-1-home.png')
@@ -122,7 +140,9 @@ async function runAcceptance() {
       passed: bDetailData.isFavorited === true,
       screenshot: 'mp107-4-building-detail-favorited.png',
     }
-    console.log(`   ✅ 楼盘收藏成功：${bDetailData.building?.name}，当前收藏状态: ${bDetailData.isFavorited}`)
+    // 返回上一页（回到楼盘列表 tab）
+    await mp.navigateBack()
+    await delay(600)
 
     // ==========================================
     // 5. 房源详情页走查与房源收藏、留资交互
@@ -165,6 +185,10 @@ async function runAcceptance() {
       await listingDetail.callMethod('handleInquiryClose')
       await delay(400)
     }
+
+    // 返回上一页
+    await mp.navigateBack()
+    await delay(600)
 
     // ==========================================
     // 6. “我的”个人中心页走查与资产汇总验证
@@ -219,8 +243,14 @@ async function runAcceptance() {
     console.error('❌ 自动化走查失败:', err)
     process.exitCode = 1
   } finally {
-    console.log('🧹 断开开发者工具连接...')
-    await mp.disconnect()
+    if (mp) {
+      console.log('🧹 断开开发者工具连接...')
+      try { mp.disconnect() } catch {}
+    }
+    if (mockServer) {
+      console.log('🧹 关闭 Mock 服务...')
+      try { await mockServer.close() } catch {}
+    }
   }
 }
 

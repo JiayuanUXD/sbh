@@ -320,6 +320,10 @@
   color: #1d1d1f;
 }
 
+.building-fav-icon--active {
+  color: #ff3b30;
+}
+
 .building-fav-text {
   font-size: 20rpx;
   color: #6e6e73;

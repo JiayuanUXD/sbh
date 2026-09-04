@@ -45,6 +45,7 @@ type HomePageMethods = {
   handleBrowseBuildings(): void
   handleBuildingOpenDirect(event: WechatMiniprogram.BaseEvent): void
   handleInquiryCustom(): void
+  handleAssuranceTap(): void
   handleVideoError(): void
   handleImageError(): void
 }
@@ -180,6 +181,15 @@ Page<HomePageData, HomePageMethods>({
           wx.showToast({ title: '已收到您的找房委托', icon: 'success' })
         }
       },
+    })
+  },
+
+  handleAssuranceTap() {
+    wx.showModal({
+      title: '真实供给保障',
+      content: '尚办好平台房源面积与租金均逐条实勘核验，确保房源真实有效、一房一价。',
+      showCancel: false,
+      confirmText: '我知道了',
     })
   },
 

@@ -88,6 +88,15 @@
       </view>
     </view>
 
+    <!-- 真实供给背书条 -->
+    <view class="home-assurance" hover-class="home-card--pressed" hover-stay-time="70" bindtap="handleAssuranceTap">
+      <view class="home-assurance__left">
+        <text class="home-assurance__badge">真实供给</text>
+        <text class="home-assurance__text">面积与租金逐条核过</text>
+      </view>
+      <text class="home-assurance__arrow">了解 ›</text>
+    </view>
+
     <!-- 精选好楼横排 3 格 -->
     <view class="home-buildings-card">
       <view class="home-buildings__heading">
@@ -144,9 +153,12 @@
 
     <!-- 推荐流导航 Tabs -->
     <view class="home-stream-tabs">
-      <text class="home-stream-tab home-stream-tab--active">推荐</text>
-      <text class="home-stream-tab" bindtap="handleBrowseAll">附近</text>
-      <text class="home-stream-tab" bindtap="handleBrowseAll">新上</text>
+      <view class="home-stream-tab home-stream-tab--active">
+        <text>推荐</text>
+        <view class="home-stream-tab__indicator"></view>
+      </view>
+      <view class="home-stream-tab" bindtap="handleBrowseAll">附近</view>
+      <view class="home-stream-tab" bindtap="handleBrowseAll">新上</view>
     </view>
 
     <!-- 精选房源列表容器 -->

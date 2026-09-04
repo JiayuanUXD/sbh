@@ -191,7 +191,7 @@
     <!-- 底部常驻操作栏 -->
     <view class="building-bottom-bar">
       <view class="building-bottom-fav" bindtap="handleFav">
-        <text class="building-fav-icon">{{isFavorited ? '♥' : '♡'}}</text>
+        <text class="building-fav-icon {{isFavorited ? 'building-fav-icon--active' : ''}}">{{isFavorited ? '♥' : '♡'}}</text>
         <text class="building-fav-text">{{isFavorited ? '已收藏' : '收藏'}}</text>
       </view>
       <view
