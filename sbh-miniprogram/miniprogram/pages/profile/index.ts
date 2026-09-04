@@ -1,6 +1,7 @@
 import {
   loadUserAssets,
   refreshUserAssets,
+  type UserAssets,
   type UserFavoriteBuilding,
   type UserFavoriteListing,
   type UserInquiry,
@@ -12,12 +13,15 @@ type AssetsState = 'loading' | 'ready' | 'error'
 type FavoriteCollection = 'none' | 'listing' | 'building'
 
 type ProfileInquiry = UserInquiry & Readonly<{ formattedDate: string }>
+type ProfilePageInfo = UserAssets['pageInfo']['favorites']
 
 type ProfilePageData = {
   assetsState: AssetsState
   favoriteListings: readonly UserFavoriteListing[]
   favoriteBuildings: readonly UserFavoriteBuilding[]
   inquiries: readonly ProfileInquiry[]
+  favoritesPageInfo: ProfilePageInfo
+  inquiriesPageInfo: ProfilePageInfo
   favoriteCollection: FavoriteCollection
   favoriteListingImageFailures: ImageFailureState
   favoriteBuildingImageFailures: ImageFailureState
@@ -42,12 +46,19 @@ function formatDate(timestamp: string): string {
 
 function emptyVisibleAssets(): Pick<
   ProfilePageData,
-  'favoriteListings' | 'favoriteBuildings' | 'inquiries' | 'favoriteCollection'
+  | 'favoriteListings'
+  | 'favoriteBuildings'
+  | 'inquiries'
+  | 'favoritesPageInfo'
+  | 'inquiriesPageInfo'
+  | 'favoriteCollection'
 > {
   return {
     favoriteListings: [],
     favoriteBuildings: [],
     inquiries: [],
+    favoritesPageInfo: { limit: 0, hasMore: false },
+    inquiriesPageInfo: { limit: 0, hasMore: false },
     favoriteCollection: 'none',
   }
 }
@@ -89,6 +100,8 @@ Page<ProfilePageData, ProfilePageMethods>({
         assetsState: 'ready',
         favoriteListings: assets.favorites.listings,
         favoriteBuildings: assets.favorites.buildings,
+        favoritesPageInfo: assets.pageInfo.favorites,
+        inquiriesPageInfo: assets.pageInfo.inquiries,
         inquiries: assets.inquiries.map((item) => ({
           ...item,
           formattedDate: formatDate(item.submittedAt),
@@ -104,6 +117,8 @@ Page<ProfilePageData, ProfilePageMethods>({
         favoriteListings: [],
         favoriteBuildings: [],
         inquiries: [],
+        favoritesPageInfo: { limit: 0, hasMore: false },
+        inquiriesPageInfo: { limit: 0, hasMore: false },
         favoriteCollection: 'none',
       })
     } finally {
@@ -136,7 +151,12 @@ Page<ProfilePageData, ProfilePageMethods>({
     if (type !== 'listing' && type !== 'building') return
     const items = type === 'listing' ? this.data.favoriteListings : this.data.favoriteBuildings
     if (items.length === 0) {
-      wx.showToast({ title: type === 'listing' ? '暂未收藏房源' : '暂未收藏楼盘', icon: 'none' })
+      wx.showToast({
+        title: this.data.favoritesPageInfo.hasMore
+          ? '收藏另有更多'
+          : (type === 'listing' ? '暂未收藏房源' : '暂未收藏楼盘'),
+        icon: 'none',
+      })
       return
     }
     this.setData({ favoriteCollection: type })

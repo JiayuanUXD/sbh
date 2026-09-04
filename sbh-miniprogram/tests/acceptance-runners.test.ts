@@ -296,6 +296,25 @@ describe('MP-105/106/107 旧证据不再冒充当前权威验收', () => {
 })
 
 describe('验收 Mock 列表查询合同', () => {
+  it('MP-109 证据索引与任务包必须引用聚合报告的当前源码指纹', () => {
+    const report = JSON.parse(readFileSync(
+      resolve(projectRoot, '../artifacts/verification/MP-109/sheet-acceptance-report.json'),
+      'utf8',
+    )) as { evidenceRevision?: unknown }
+    const readme = readFileSync(
+      resolve(projectRoot, '../artifacts/verification/MP-109/README.md'),
+      'utf8',
+    )
+    const taskPacket = readFileSync(
+      resolve(projectRoot, '../specs/work-items/MP-109-miniprogram-closure-and-sheet-plan.md'),
+      'utf8',
+    )
+
+    expect(report.evidenceRevision).toMatch(/^[a-f0-9]{16,64}$/)
+    expect(readme).toContain(`\`${String(report.evidenceRevision)}\``)
+    expect(taskPacket).toContain(`\`${String(report.evidenceRevision)}\``)
+  })
+
   it('MP-109 UI 任一源码变化都会使旧 profile 指纹失效', async () => {
     const { fingerprintEvidenceSources } = await loadMp109Runner()
     const sources = [

@@ -99,6 +99,13 @@
   font-size: var(--sbh-type-auxiliary-size);
 }
 
+.profile-page-hint {
+  padding: 0 var(--sbh-card-padding) var(--sbh-layout-space-md);
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+  text-align: center;
+}
+
 .profile-card-header,
 .profile-asset-row,
 .profile-inquiry-item {

@@ -3,7 +3,7 @@
 > 状态：代码完成，环境验收待完成
 > 更新日期：2026-09-05
 > 环境：`local-wechat-devtools-develop-with-controlled-mock`
-> 源码证据指纹：`b8aa5f48bb13cabe`
+> 源码证据指纹：`cc0822e1138988b8`
 
 ## 证据文件
 

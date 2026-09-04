@@ -74,6 +74,20 @@ describe('我的页面服务端资产合同', () => {
     expect(source).toContain('/pages/${page}/index?slug=')
   })
 
+  it('截断资产明确显示最近条数与另有更多，不把可见条数冒充总量', () => {
+    const markup = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(source).toContain('favoritesPageInfo: assets.pageInfo.favorites')
+    expect(source).toContain('inquiriesPageInfo: assets.pageInfo.inquiries')
+    expect(markup).toContain('favoritesPageInfo.hasMore')
+    expect(markup).toContain('inquiriesPageInfo.hasMore')
+    expect(markup).toContain("inquiriesPageInfo.hasMore ? '最近咨询记录' : '咨询记录'")
+    expect(markup).toMatch(/最近[\s\S]*favoriteListings\.length[\s\S]*favoriteBuildings\.length[\s\S]*条收藏[\s\S]*另有更多/)
+    expect(markup).toMatch(/最近[\s\S]*inquiries\.length[\s\S]*条[\s\S]*另有更多/)
+    expect(markup).not.toContain('<text class="profile-card-count num">{{inquiries.length}} 条</text>')
+  })
+
   it('收藏房源与楼盘缩略图独立处理坏图并提供 alt', () => {
     const markup = readPageFile('index.wxml')
     const source = readPageFile('index.ts')
