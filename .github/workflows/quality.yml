@@ -181,7 +181,24 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('payload-office-platform/pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium
       - name: Apply migrations to fresh PostgreSQL
-        run: pnpm exec payload migrate
+        # `payload migrate` 有**静默 no-op 且退出 0** 的形态：2026-09-04 PR #141
+        # 实录——该步骤零输出（连 Payload init 的 "No email adapter" WARN 都没有）、
+        # 3.5 秒退出 0、一条迁移都没跑。失败于是被推给下一步的 seed，报成
+        # `relation "roles" does not exist`，排查得从 seed 一路倒推回来才看得出真凶。
+        # 重跑即过，所以不是代码问题；但一个会静默什么都不做的步骤不该判为成功。
+        #
+        # 形状照抄本 job 上面的 generate:types（断言产出 → 重试一次 → 大声失败），
+        # 理由也一样：静默 no-op 会把故障伪装成下游一堆看不懂的报错。
+        # 另两处 `payload migrate`（postgres-migrations job）后面本就跟着
+        # `pnpm migrate:verify`，已有把关，不重复加。
+        run: |
+          set -euo pipefail
+          apply() { pnpm exec payload migrate && pnpm migrate:assert-applied; }
+          if ! apply; then
+            echo "::warning::payload migrate 未真正应用迁移，3 秒后重试一次"
+            sleep 3
+            apply || { echo "::error::payload migrate 连续两次未应用迁移"; exit 1; }
+          fi
       - name: Seed business data
         run: pnpm seed
       - name: Seed media（gallery ≥3，否则完整度校验拦截自动发布，房源停在草稿态 → 前台 0 套；§6 媒体数量已于 2026-08-19 从有效供给精筛移除，不再是可见性条件）
