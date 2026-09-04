@@ -17,6 +17,7 @@
     "baseline:capture": "node --env-file-if-exists=.env.local --import tsx scripts/baseline-snapshot.ts",
     "migrate:dry-run": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-dry-run.ts",
     "migrate:status": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts",
+    "migrate:assert-applied": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts --assert-applied",
     "migrate:verify": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-verify.ts",
     "migrate:drift": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-drift-check.ts",
     "migrate:approval-hash": "node --import tsx scripts/destructive-migration-approvals.ts",

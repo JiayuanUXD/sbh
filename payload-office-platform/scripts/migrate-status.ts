@@ -73,6 +73,41 @@ async function readAppliedFromPg(): Promise<AppliedMigration[] | null> {
   }
 }
 
+/**
+ * `--assert-applied` 的判据（纯函数，与读库、打印分离，便于单测）。
+ *
+ * ── 为什么需要这条守卫 ────────────────────────────────────────────────────
+ * `payload migrate` 存在**静默 no-op 且退出 0** 的形态。2026-09-04 PR #141 的
+ * e2e job 实录：该步骤零输出（连 Payload init 的 "No email adapter" WARN 都没有）、
+ * 3.5 秒退出 0、一条迁移都没跑。失败于是被推给下一步的 seed，报成
+ * `relation "roles" does not exist`——排查要从 seed 一路倒推回 migrate 才看得出
+ * 真凶。重跑即过，所以那不是代码问题；但**一个会静默什么都不做的步骤不该被判为成功**。
+ *
+ * ── 为什么不改默认行为 ────────────────────────────────────────────────────
+ * `migrate:status` 默认是纯报告，有待应用迁移也退出 0——那是它作为人工巡检工具的
+ * 正确语义。CI 要的是相反的语义，所以用显式开关分开，而不是让默认行为对两种
+ * 调用方都半对。
+ *
+ * ── 两条判据缺一不可 ──────────────────────────────────────────────────────
+ * - `appliedCount === 0`：那次故障的指纹（一条都没落库）；
+ * - `pending` 非空：应用了一部分就中断，同样不该放行。
+ *   只判前者会放过「跑了 3 条剩 54 条」；只判后者会放过「代码侧 0 条迁移」这种
+ *   索引文件损坏的情形（此时 pending 恒空，看起来一切正常）。
+ */
+export function findUnappliedProblems({
+  appliedCount,
+  pending,
+}: Readonly<{ appliedCount: number; pending: readonly string[] }>): string[] {
+  const problems: string[] = []
+  if (appliedCount === 0) {
+    problems.push('payload_migrations 表里一条记录都没有——迁移根本没执行')
+  }
+  if (pending.length > 0) {
+    problems.push(`还有 ${pending.length} 条待应用：${pending.join(', ')}`)
+  }
+  return problems
+}
+
 type StatusReport = {
   generatedAt: string
   database: { kind: 'postgres'; urlMasked: string }
@@ -127,9 +162,30 @@ async function main() {
     console.log('  2. Run `npx payload migrate` to apply pending migrations on PG')
     console.log('  3. Run `pnpm migrate:verify` to verify schema and data integrity')
   }
+
+  if (process.argv.includes('--assert-applied')) {
+    const problems = findUnappliedProblems({
+      appliedCount: appliedMigrations.length,
+      pending: pendingMigrations,
+    })
+    if (problems.length > 0) {
+      console.error('')
+      console.error('[migrate:assert-applied] 迁移未真正应用完毕：')
+      for (const p of problems) console.error(`  - ${p}`)
+      process.exitCode = 1
+      return
+    }
+    console.log('')
+    console.log(`[migrate:assert-applied] OK：${appliedMigrations.length} 条已应用，0 条待应用`)
+  }
 }
 
-main().catch((err) => {
-  console.error('[migrate:status] failed:', err)
-  process.exitCode = 1
-})
+// 只在被直接执行时跑 main()——本文件现在还导出 findUnappliedProblems 供单测 import，
+// 而 main() 会 getPayload() 连库（在测试进程里会挂住）。判据与 scripts/data-audit.ts、
+// scripts/migrate-dry-run.ts 同款，不新造写法。
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main().catch((err) => {
+    console.error('[migrate:status] failed:', err)
+    process.exitCode = 1
+  })
+}
