@@ -98,6 +98,7 @@ export interface Config {
     notifications: Notification;
     'supply-import-batches': SupplyImportBatch;
     'location-aliases': LocationAlias;
+    'mini-user-assets': MiniUserAsset;
     search: Search;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -142,6 +143,7 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'supply-import-batches': SupplyImportBatchesSelect<false> | SupplyImportBatchesSelect<true>;
     'location-aliases': LocationAliasesSelect<false> | LocationAliasesSelect<true>;
+    'mini-user-assets': MiniUserAssetsSelect<false> | MiniUserAssetsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1973,6 +1975,23 @@ export interface LocationAlias {
   createdAt: string;
 }
 /**
+ * 内部集合：以不可逆 Mini session subject 关联收藏与咨询记录。
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mini-user-assets".
+ */
+export interface MiniUserAsset {
+  id: number;
+  assetKey: string;
+  subject: string;
+  kind: 'favorite-listing' | 'favorite-building' | 'inquiry';
+  targetType: 'listing' | 'building' | 'general';
+  targetSlug?: string | null;
+  lead?: (number | null) | Lead;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2518,6 +2537,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'location-aliases';
         value: number | LocationAlias;
+      } | null)
+    | ({
+        relationTo: 'mini-user-assets';
+        value: number | MiniUserAsset;
       } | null)
     | ({
         relationTo: 'search';
@@ -3444,6 +3467,20 @@ export interface LocationAliasesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "mini-user-assets_select".
+ */
+export interface MiniUserAssetsSelect<T extends boolean = true> {
+  assetKey?: T;
+  subject?: T;
+  kind?: T;
+  targetType?: T;
+  targetSlug?: T;
+  lead?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "search_select".
  */
 export interface SearchSelect<T extends boolean = true> {
@@ -4130,6 +4167,7 @@ export interface TaskCreateCollectionExport {
       | 'notifications'
       | 'supply-import-batches'
       | 'location-aliases'
+      | 'mini-user-assets'
       | 'search'
       | 'forms'
       | 'form-submissions'

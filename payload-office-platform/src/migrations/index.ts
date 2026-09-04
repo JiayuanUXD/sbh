@@ -64,6 +64,7 @@ import * as migration_20260824_101016_opt048_snapshot_chain_repair from './20260
 import * as migration_20260824_110612_opt045_import_publishable_fields from './20260824_110612_opt045_import_publishable_fields';
 import * as migration_20260826_035602_opt_053_site_settings from './20260826_035602_opt_053_site_settings';
 import * as migration_20260826_065228_opt_054_nav_config from './20260826_065228_opt_054_nav_config';
+import * as migration_20260904_141252_mp109_mini_user_assets from './20260904_141252_mp109_mini_user_assets';
 
 export const migrations = [
   {
@@ -394,6 +395,11 @@ export const migrations = [
   {
     up: migration_20260826_065228_opt_054_nav_config.up,
     down: migration_20260826_065228_opt_054_nav_config.down,
-    name: '20260826_065228_opt_054_nav_config'
+    name: '20260826_065228_opt_054_nav_config',
+  },
+  {
+    up: migration_20260904_141252_mp109_mini_user_assets.up,
+    down: migration_20260904_141252_mp109_mini_user_assets.down,
+    name: '20260904_141252_mp109_mini_user_assets'
   },
 ];

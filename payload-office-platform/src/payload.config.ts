@@ -50,6 +50,7 @@ import { Tasks } from './collections/Tasks'
 import { Notifications } from './collections/Notifications'
 import { SupplyImportBatches } from './collections/SupplyImportBatches'
 import { LocationAliases } from './collections/LocationAliases'
+import { MiniUserAssets } from './collections/MiniUserAssets'
 import { AdvisorServiceHours } from './globals/AdvisorServiceHours'
 import { SiteSettings } from './globals/SiteSettings'
 import {
@@ -336,6 +337,7 @@ export default buildConfig({
     Notifications,
     SupplyImportBatches,
     LocationAliases,
+    MiniUserAssets,
   ],
   globals: [AdvisorServiceHours, SiteSettings],
   // M7.2 角色化工作台 endpoint（GET /api/dashboard）
