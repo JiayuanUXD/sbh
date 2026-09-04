@@ -106,7 +106,7 @@ export default function StickyInquiryBar({
           </span>
         )}
         {summaryText && <span className="dt-sticky-bar__summary">{summaryText}</span>}
-        <div className="dt-sticky-bar__cta">{cta}</div>
+        <div className="dt-bar__cta dt-sticky-bar__cta">{cta}</div>
       </div>
     </div>
   )

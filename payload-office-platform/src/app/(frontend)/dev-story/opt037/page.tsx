@@ -1220,9 +1220,11 @@ export default async function Opt037PreviewPage({
                   targetBuildingSlug={OVERVIEW_BUILDING_FULL.slug}
                   targetSummary={demo.title}
                   triggerLabel="预约看房"
-                  // 不传 triggerClassName：CTA 的尺寸/圆角/配色由
-                  // `.dt-anchor-bar__cta .btn` 按稿定死，调用方无需（也不该）
-                  // 再挑一个全局尺寸修饰符，否则两处会各说各话。
+                  // 不传 triggerClassName：CTA 的尺寸/圆角/配色由共享的
+                  // `.dt-bar__cta .btn` 按稿定死（2026-09-04 从 .dt-anchor-bar__cta
+                  // 提升上来，两条吸附栏共用），调用方无需（也不该）再挑一个
+                  // 全局尺寸修饰符，否则两处会各说各话——房源页吸附条此前正是
+                  // 传了 btn--lg，实测 53px 高、占 56px 栏高的 94%。
                   // 'sticky-card' 的选取理由同 StickyInquiryBar：schema 没有
                   // 「顶部吸附条」枚举，且它与页面其它询价入口本就是同一个
                   // 产品位的不同呈现形态，不为区分而新造枚举。

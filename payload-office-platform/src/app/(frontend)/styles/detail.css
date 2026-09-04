@@ -530,18 +530,26 @@
 /* margin-left:auto 不是冗余：锚点组存在时它被 `flex:1` 顶到右端，但
  * items.length <= 1 时锚点组整个不渲染，靠这一行 CTA 才仍然贴右。 */
 .dt-anchor-bar__cta { flex: none; margin-left: auto; }
-/* 稿中 CTA：h36 · padding 0 20 · radius 980 · --accent · 14/500。
- * 高度取 44 而非稿子的 36——与 Task 5「二级 tab / 清单行 padding 撑到 44」
- * 同一条已确立的取舍：design.md §14.2 的 ≥44×44 触控目标是 token 级约束，
- * 优先于 comp 像素；何况同族的 `.dt-sticky-bar` CTA（btn--lg）本来就比 44 更高，
- * 取 36 反而让两条吸附栏的按钮分量对不上。其余字面量照稿。
+/* 两条吸附栏共享的 CTA 尺寸（挂 `.dt-bar__cta`，与 `.dt-bar` / `.dt-bar__inner`
+ * 那两层共享外壳同一手法）。稿中 CTA：h36 · padding 0 20 · radius 980 ·
+ * --accent · 14/500；高度取 44 而非稿子的 36——与 Task 5「二级 tab / 清单行
+ * padding 撑到 44」同一条已确立的取舍：design.md §14.2 的 ≥44×44 触控目标是
+ * token 级约束，优先于 comp 像素。其余字面量照稿。
  * 定向覆写调用方传入的 `.btn`，不新增全局按钮尺寸档——那会把一处版式需求
- * 升格成全站基元。 */
-.dt-anchor-bar__cta .btn {
+ * 升格成全站基元。
+ *
+ * ★ 2026-09-04：本规则从 `.dt-anchor-bar__cta` 提升到共享的 `.dt-bar__cta`。
+ * 在此之前房源页吸附条的 CTA 由调用方传 `btn--lg`，实测 **53px 高、占 56px
+ * 栏高的 94%**（上下各剩 1.5px），而同族楼盘页锚点条是 44/79%。同一套 chrome
+ * 两种按钮分量，房源页那个看起来"顶满了"。
+ * 原注释里"取 36 会让两条吸附栏对不上"这句的参照物正是那个 btn--lg——参照物
+ * 变了，但 44 这个取值本身由触控目标约束独立支撑，不随之改动。
+ * 尺寸落点收敛到共享层后，两条栏由构造保证一致，调用方不再各传各的尺寸档。 */
+.dt-bar__cta .btn {
   min-height: 44px; padding: 0 20px; border-radius: var(--r-pill);
   background: var(--accent); color: #fff; font-size: 14px; font-weight: 500;
 }
-.dt-anchor-bar__cta .btn:hover { background: var(--accent-hover); }
+.dt-bar__cta .btn:hover { background: var(--accent-hover); }
 
 /* 锚点落点补偿：全局导航 44 + 本条 56 + 12 呼吸 = 112。目标区块必须带这个类，
  * 否则原生 `#id` 跳转会把区块标题送到吸附条底下。前两项走 token，导航高度或

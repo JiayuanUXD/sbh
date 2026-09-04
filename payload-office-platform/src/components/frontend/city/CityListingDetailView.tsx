@@ -194,7 +194,7 @@ export default function CityListingDetailView({
         priceText={priceDigest.value}
         priceUnit={priceDigest.unit ?? undefined}
         summaryText={priceDigest.summaryText ?? undefined}
-        cta={<InquiryModal {...inquiryTarget} sourceSection="sticky-card" triggerClassName="btn--lg" />}
+        cta={<InquiryModal {...inquiryTarget} sourceSection="sticky-card" />}
       />
 
       <div className="dt-container">
