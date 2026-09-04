@@ -4,6 +4,7 @@ import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * 房源详情页「所在楼盘」卡片
@@ -26,7 +27,10 @@ type BuildingSummaryCardProps = Readonly<{
 }>
 
 export default function BuildingSummaryCard({ building, listingId, citySlug }: BuildingSummaryCardProps) {
-  const coverSrc = building.coverImage ? normalizePublicMediaUrl(building.coverImage.src) : null
+  const cover = building.coverImage
+    ? { ...building.coverImage, src: normalizePublicMediaUrl(building.coverImage.src) ?? '' }
+    : null
+  const coverSrc = cover && cover.src ? cover.src : null
   const gradeLabel = getBuildingGradeLabel(building.grade)
 
   return (
@@ -37,7 +41,7 @@ export default function BuildingSummaryCard({ building, listingId, citySlug }: B
       <div className="building-summary-card__media">
         {coverSrc ? (
           <img
-            src={coverSrc}
+            {...cardCoverProps(cover!, '(max-width: 767px) 100vw, 480px')}
             alt={building.coverImage?.alt?.trim() || `${building.name} 封面`}
             loading="lazy"
           />

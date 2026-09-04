@@ -2,6 +2,7 @@ import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * 58 式位置区下方「周边楼盘」横滑条带。
@@ -37,7 +38,11 @@ export default function NearbyBuildingsStrip({ buildings, citySlug }: NearbyBuil
               <a className="sf-card nearby-strip__card" href={`${citySlug ? `/${citySlug}` : ''}/buildings/${encodeURIComponent(item.slug)}`}>
                 <span className="sf-media sf-media--16x10">
                   {item.coverImage ? (
-                    <img src={item.coverImage.src} alt={item.coverImage.alt ?? item.name} loading="lazy" />
+                    <img
+                      {...cardCoverProps(item.coverImage, '(max-width: 767px) 70vw, 280px')}
+                      alt={item.coverImage.alt ?? item.name}
+                      loading="lazy"
+                    />
                   ) : (
                     <CardMediaPlaceholder compact />
                   )}

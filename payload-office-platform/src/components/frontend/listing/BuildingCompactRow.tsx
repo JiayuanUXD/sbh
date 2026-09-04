@@ -4,6 +4,7 @@ import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import { completionYear } from '@/lib/frontend/format'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * OPT-036 暂无在租紧凑行（列表页「暂无在租」分组，方案 A）
@@ -82,7 +83,7 @@ export default function BuildingCompactRow({ building, citySlug, analytics }: Re
       <span className="bd-row__thumb">
         {coverImage ? (
           <img
-            src={coverImage.src}
+            {...cardCoverProps(coverImage, '160px', 320)}
             alt={coverImage.alt || name}
             loading="lazy"
             decoding="async"

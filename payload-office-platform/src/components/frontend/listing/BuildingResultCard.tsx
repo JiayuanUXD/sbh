@@ -4,6 +4,7 @@ import React from 'react'
 import { getBuildingGradeLabel } from '@/components/frontend/building-grade'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog/contracts'
 import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * OPT-036 楼盘结果卡（列表页网格「当前有在租」分组）
@@ -80,7 +81,7 @@ export default function BuildingResultCard({ building, citySlug, analytics }: Re
       <span className="sf-media sf-media--16x10">
         {coverImage ? (
           <img
-            src={coverImage.src}
+            {...cardCoverProps(coverImage, '(max-width: 767px) 100vw, 320px')}
             alt={coverImage.alt || name}
             loading="lazy"
             decoding="async"

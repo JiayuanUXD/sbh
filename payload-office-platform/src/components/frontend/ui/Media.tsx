@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { PhotoIcon } from './icons'
+import { buildSrcSet } from '@/lib/frontend/media-srcset'
 
 /**
  * 媒体图片原语
@@ -129,9 +130,8 @@ export function Media({ media, ratio = '4/3', priority = false, fallbackAlt, cla
 
   // 派生尺寸缺省是常态（存量图不回填，见 OPT-059 spec §7）——此时不发 srcSet，
   // 浏览器就用 src，行为与改动前完全一致。
-  const srcSet = media.variants?.length
-    ? media.variants.map((v) => `${v.src} ${v.width}w`).join(', ')
-    : undefined
+  // OPT-068：拼法收敛到 lib/frontend/media-srcset.ts，与楼盘封面那批手写 <img> 共用。
+  const srcSet = buildSrcSet(media)
 
   // focal 必须两轴齐全（mapMedia 已保证），这里再挡一次是因为本组件的 props
   // 类型对外开放，调用方可能手工构造。

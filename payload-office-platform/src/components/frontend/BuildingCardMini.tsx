@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { BuildingSummaryViewModel } from '@/domain/public-catalog'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
+import { cardCoverProps } from '@/lib/frontend/media-srcset'
 
 /**
  * 相关楼盘紧凑卡片
@@ -22,7 +23,10 @@ type BuildingCardMiniProps = Readonly<{
 }>
 
 export default function BuildingCardMini({ building, parentId, rank, citySlug }: BuildingCardMiniProps) {
-  const coverSrc = building.coverImage ? normalizePublicMediaUrl(building.coverImage.src) : null
+  const cover = building.coverImage
+    ? { ...building.coverImage, src: normalizePublicMediaUrl(building.coverImage.src) ?? '' }
+    : null
+  const coverSrc = cover && cover.src ? cover.src : null
 
   return (
     <Link
@@ -55,7 +59,7 @@ export default function BuildingCardMini({ building, parentId, rank, citySlug }:
       <div className="sf-media sf-media--16x10 building-card-mini__media">
         {coverSrc ? (
           <img
-            src={coverSrc}
+            {...cardCoverProps(cover!, '(max-width: 767px) 60vw, 240px')}
             alt={building.coverImage?.alt?.trim() || `${building.name} 封面`}
             loading="lazy"
           />
