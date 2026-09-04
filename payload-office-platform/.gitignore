@@ -14,6 +14,7 @@ build-info.json
 *.sqlite-journal
 *.sqlite-*
 media
+media-source
 public/images/
 test-results
 playwright-report
