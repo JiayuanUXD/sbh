@@ -69,12 +69,16 @@ import {
   buildCanonicalSearchParams,
   parseListingSearchInput,
 } from './search-params'
+import { paginate, stableSortCards } from './stable-sort'
 import {
-  buildPagination,
-  paginate,
-  prepareForPriceSort,
-  stableSortCards,
-} from './stable-sort'
+  applyMemoryFilters,
+  computeFacets,
+  rowsFromListings,
+  selectListingPage,
+  toScanInput,
+  type ListingPageSelection,
+  type ListingScanRow,
+} from './listing-scan'
 import { createSearchContext } from './types'
 import type { ListingSort, ListingSearchInput, Pagination, SearchContext } from './types'
 import type {
@@ -101,12 +105,6 @@ export type ListingSearchResult = Readonly<{
   /** 用于 canonical URL / sitemap；queryHash 由 canonical 派生 */
   canonical: string
   /** 是否经过 rentUnit 过滤（价格排序时可能缩窄结果集） */
-  filteredByRentUnit: boolean
-}>
-
-/** 房源搜索的昂贵中间结果：已完成有效供给精筛、映射、排序，但尚未分页。 */
-export type ListingSearchSource = Readonly<{
-  docs: readonly ListingCardViewModel[]
   filteredByRentUnit: boolean
 }>
 
@@ -326,15 +324,80 @@ export function buildCanonical(input: ListingSearchInput): string {
   return buildCanonicalSearchParams(input).toString()
 }
 
+/** 扫描提供方：给缓存层注入「已缓存的扫描」用（见 cached-queries.ts#getCachedListingScan）。 */
+export type ListingScanProvider = (
+  input: ListingSearchInput,
+  ctx: SearchContext,
+) => Promise<readonly ListingScanRow[]>
+
+/**
+ * 扫描房源：一次轻量扫描拿到紧凑行（OPT-068）。
+ *
+ * 生产适配器实现了 `scanEffectiveListings`（select / populate 收窄，只收扫描输入——
+ * 剥掉区域 / 类型 / 价格这四个内存维度，见 listing-scan.ts 头注释）。测试 fake 只有
+ * `findEffectiveListings` 时，把**完整** input 交给它、让它按自己的规则过滤（既有
+ * fake 都是这么写的），再把结果投影成行；行上再应用一遍内存维度是幂等的。
+ */
+export async function scanListings(
+  input: ListingSearchInput,
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly ListingScanRow[]> {
+  if (adapter.scanEffectiveListings) return adapter.scanEffectiveListings(toScanInput(input), ctx)
+  return rowsFromListings(await adapter.findEffectiveListings(input, ctx))
+}
+
+/**
+ * 按 id 回捞本页卡片，**按 ids 顺序**返回。
+ *
+ * 回捞再过一次完整有效供给谓词：扫描之后才失效（下架、商户停用、被举报暂停）的
+ * 房源在这里被静默丢掉，页面上少一张卡而不是出现一张过期卡。
+ */
+export async function hydrateListingCards(
+  ids: readonly number[],
+  ctx: SearchContext,
+  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
+): Promise<readonly ListingCardViewModel[]> {
+  if (ids.length === 0) return []
+  const wanted = new Set(ids)
+  const docs = adapter.findEffectiveListingsByIds
+    ? await adapter.findEffectiveListingsByIds(ids, ctx)
+    : (await adapter.findEffectiveListings(EMPTY_LISTING_INPUT, ctx)).filter((l) => wanted.has(l.id))
+  const byId = new Map<number, ListingCardViewModel>()
+  for (const doc of docs) {
+    const card = mapListingCard(doc)
+    if (card) byId.set(card.id, card)
+  }
+  const cards: ListingCardViewModel[] = []
+  for (const id of ids) {
+    const card = byId.get(id)
+    if (card) cards.push(card)
+  }
+  return cards
+}
+
+/** 把「本页选择」与回捞到的卡片拼成列表结果，canonical 仍由完整 input 派生。 */
+export function assembleListingSearchResult(
+  page: ListingPageSelection,
+  cards: readonly ListingCardViewModel[],
+  input: ListingSearchInput,
+): ListingSearchResult {
+  return {
+    docs: cards,
+    pagination: page.pagination,
+    canonical: buildCanonicalSearchParams(input).toString(),
+    filteredByRentUnit: page.filteredByRentUnit,
+  }
+}
+
 /**
  * 搜索房源：返回分页卡片列表与 canonical URL
  *
- * 步骤：
- *   1. adapter.findEffectiveListings → 原始 Listing[]
- *   2. mapListingCard → ListingCardViewModel[]
- *   3. 价格排序预处理（按 rentUnit 分组）
- *   4. stableSortCards（listing_id 收束）
- *   5. paginate → 当前页
+ * 步骤（OPT-068 起）：
+ *   1. scanListings → 紧凑扫描行（有效供给谓词已在适配器内完成）
+ *   2. selectListingPage → 内存里做区域 / 类型 / 价格过滤、价格排序预处理、
+ *      稳定排序（listing_id 收束）、分页，得到本页 id
+ *   3. hydrateListingCards → 只对本页 id 回捞 depth 2 并映射卡片
  *
  * @param input 搜索输入（由 parseListingSearchInput 生成）
  * @param ctx 查询上下文（含 asOf / 时区 / 城市）
@@ -345,44 +408,10 @@ export async function searchListings(
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<ListingSearchResult> {
-  const source = await buildListingSearchSource(input, ctx, adapter)
-  return paginateListingSearchSource(source, input)
-}
-
-/**
- * 构建房源搜索源数据：完成有效供给精筛、卡片映射和全局排序，但不分页。
- *
- * 列表页缓存可复用该结果，使 `/listings?page=2` 不再重复执行最重的候选集查询。
- */
-export async function buildListingSearchSource(
-  input: ListingSearchInput,
-  ctx: SearchContext,
-  adapter: SupplyAdapter = getDefaultSupplyAdapter(),
-): Promise<ListingSearchSource> {
-  const rawListings = await adapter.findEffectiveListings(input, ctx)
-  const cards = mapListingsToCards(rawListings)
-  const { items: sortTarget, filteredByRentUnit } = prepareForPriceSort(cards, input)
-  const lastEffAt = buildLastEffAtLookup(rawListings)
-  const sorted = stableSortCards(sortTarget, input.sort ?? 'recommended', lastEffAt)
-
-  return {
-    docs: sorted,
-    filteredByRentUnit,
-  }
-}
-
-/** 对已缓存的房源搜索源数据做轻量分页，保持原有 canonical 与分页语义。 */
-export function paginateListingSearchSource(
-  source: ListingSearchSource,
-  input: ListingSearchInput,
-): ListingSearchResult {
-  const paged = paginate(source.docs, input.page, input.pageSize)
-  return {
-    docs: paged.docs,
-    pagination: buildPagination(paged.totalDocs, input.page, input.pageSize),
-    canonical: buildCanonicalSearchParams(input).toString(),
-    filteredByRentUnit: source.filteredByRentUnit,
-  }
+  const rows = await scanListings(input, ctx, adapter)
+  const page = selectListingPage(rows, input)
+  const cards = await hydrateListingCards(page.ids, ctx, adapter)
+  return assembleListingSearchResult(page, cards, input)
 }
 
 /**
@@ -1135,46 +1164,10 @@ export async function getSearchFacets(
     page: 1,
     sort: 'recommended',
   }
-  const rawListings = await adapter.findEffectiveListings(facetInput, ctx)
-  const cards = mapListingsToCards(rawListings)
-
-  const districtCounts = new Map<string, { vm: DistrictViewModel; count: number }>()
-  const listingTypeCounts = new Map<string, number>()
-  const rentUnitCounts = new Map<string, number>()
-
-  for (const c of cards) {
-    if (c.building?.district) {
-      const key = c.building.district.slug
-      const existing = districtCounts.get(key)
-      if (existing) {
-        existing.count += 1
-      } else {
-        districtCounts.set(key, { vm: c.building.district, count: 1 })
-      }
-    }
-    if (c.listingType) {
-      listingTypeCounts.set(c.listingType, (listingTypeCounts.get(c.listingType) ?? 0) + 1)
-    }
-    if (c.price) {
-      rentUnitCounts.set(c.price.displayUnit, (rentUnitCounts.get(c.price.displayUnit) ?? 0) + 1)
-    }
-  }
-
-  return {
-    districts: Array.from(districtCounts.values()).map(({ vm, count }) => ({
-      ...vm,
-      count,
-    })),
-    listingTypes: Array.from(listingTypeCounts.entries()).map(([value, count]) => ({
-      value,
-      count,
-    })),
-    rentUnits: Array.from(rentUnitCounts.entries()).map(([value, count]) => ({
-      value,
-      count,
-    })),
-    totalDocs: cards.length,
-  }
+  // OPT-068：与列表共用同一份扫描（同城同频道下区域 / 类型 / 价格的任意组合都
+  // 命中同一条扫描缓存），聚合在 listing-scan.ts#computeFacets，与列表口径逐字段等价。
+  const rows = await scanListings(facetInput, ctx, adapter)
+  return computeFacets(applyMemoryFilters(rows, facetInput))
 }
 
 /**

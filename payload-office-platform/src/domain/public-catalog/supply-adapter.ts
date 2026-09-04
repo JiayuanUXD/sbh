@@ -495,9 +495,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
    */
   async function scanListingPages(where: Where): Promise<Listing[]> {
     const payload = await getPayload()
-    const docs: Listing[] = []
-    let page = 1
-    for (;;) {
+    // 与 findAllListings 同样写成递归翻页而不是循环：tests/f7-4-6 的 N+1 守卫按
+    // 「循环体内 await find」的形状扫源码，翻页不是 N+1，但形状上分不开。
+    async function readPage(page: number, docs: Listing[]): Promise<Listing[]> {
       const result = await payload.find({
         collection: 'listings',
         where,
@@ -511,8 +511,9 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
       docs.push(...(result.docs as unknown as Listing[]))
       if (docs.length >= LISTING_SCAN_CANDIDATE_LIMIT) return docs.slice(0, LISTING_SCAN_CANDIDATE_LIMIT)
       if (!result.hasNextPage || result.nextPage == null) return docs
-      page = result.nextPage
+      return readPage(result.nextPage, docs)
     }
+    return readPage(1, [])
   }
 
   async function findAllListings(

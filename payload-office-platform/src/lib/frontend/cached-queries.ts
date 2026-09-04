@@ -6,11 +6,15 @@ import {
   LISTINGS_CATEGORY_TAG,
   SITEMAP_TAG,
   buildBuildingCanonicalParams,
+  applyMemoryFilters,
+  assembleListingSearchResult,
   buildCanonicalSearchParams,
-  buildListingSearchSource,
+  buildListingScanCacheKey,
   buildingsCityTag,
+  computeFacets,
   createSearchContext,
   facetsTag,
+  hydrateListingCards,
   getArticleBySlug,
   getBuildingBySlug,
   getBuildingDetail,
@@ -22,20 +26,24 @@ import {
   getPlatformHomepageStats,
   getRelatedBuildings,
   getRelatedListings,
-  getSearchFacets,
   homeTag,
   listPublishedArticles,
   listPublishedPages,
   listingsCityTag,
   omitListingSearchDimensions,
-  paginateListingSearchSource,
+  scanListings,
   searchBuildingsFiltered,
   searchBuildingsPage,
   searchListingsSitemapPage,
+  selectListingPage,
+  toScanInput,
   type BuildingSearchInput,
   type HomepageStats,
+  type ListingCardViewModel,
+  type ListingScanRow,
   type ListingSearchDimension,
   type ListingSearchInput,
+  type SearchFacets,
 } from '@/domain/public-catalog'
 
 const PAGES_CATEGORY_TAG = 'public:pages'
@@ -385,23 +393,32 @@ export function getCachedBuildingBySlug(citySlug: string, slug: string) {
   return getCachedBuildingBySlugByCity(city)(slug)
 }
 
-export function buildListingSearchSourceCacheKey(input: ListingSearchInput): string {
-  return buildCanonicalSearchParams({ ...input, page: 1 }).toString()
-}
+/**
+ * 扫描频道：列表页按租 / 售分频道；详情推荐与首页统计不分频道（`'all'`）。
+ * 进缓存键与合并键，不同频道不得互相顶替结果。
+ */
+export type ScanChannel = SearchChannel | 'all'
 
-const getCachedListingSearchSourceByCity = memoizeByCity((citySlug) =>
+/**
+ * 房源扫描缓存（OPT-068）。
+ *
+ * 缓存的是紧凑的 `ListingScanRow[]`（不是整页卡片）：键只含会进 where 的维度
+ * （面积 / 商圈 / 地铁 / 关键词 / 可用日期），区域 / 类型 / 价格单位 / 价格区间 /
+ * 页码 / 排序的任意组合都命中**同一条**。列表页与三份 facet 因此共享一次扫描；
+ * 冷路径从「最多 5 页 depth 2 全字段 × 2–4 次」降到「一次 select/populate 收窄的扫描」。
+ *
+ * 行体积上限见 supply-adapter.ts 的 `LISTING_SCAN_CANDIDATE_LIMIT` 注释（2MB 红线）。
+ * 回调必须返回数组：`unstable_cache` 走 JSON 序列化，`Map` 会静默变成 `{}`。
+ */
+const getCachedListingScanByCity = memoizeByCity((citySlug) =>
   unstable_cache(
-    // businessType 作为函数参数而非 keyParts：unstable_cache 会把参数序列化进
-    // 缓存键，租售两个频道天然分开，不会互相串数据。
-    async (
-      sourceCacheKey: string,
-      input: ListingSearchInput,
-      businessType: SearchChannel,
-    ) => {
-      void sourceCacheKey
-      return buildListingSearchSource(input, createSearchContext(citySlug, undefined, businessType))
+    // scanKey 只为进缓存键；channel 作为函数参数而非 keyParts，同样会被序列化进键。
+    async (scanKey: string, scanInput: ListingSearchInput, channel: ScanChannel) => {
+      void scanKey
+      const ctx = createSearchContext(citySlug, undefined, channel === 'all' ? undefined : channel)
+      return scanListings(scanInput, ctx)
     },
-    ['listing-search-source', citySlug],
+    ['listing-scan', citySlug],
     {
       tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -409,8 +426,51 @@ const getCachedListingSearchSourceByCity = memoizeByCity((citySlug) =>
   ),
 )
 
+export function getCachedListingScan(
+  citySlug: string,
+  input: ListingSearchInput,
+  channel: ScanChannel = 'lease',
+): Promise<readonly ListingScanRow[]> {
+  const city = canonicalCitySlug(citySlug)
+  const scanInput = toScanInput(input)
+  const scanKey = buildListingScanCacheKey(input)
+  // 合并键与缓存键同构（城市 + 频道 + 扫描键），理由见 coalesceInFlight 注释。
+  return coalesceInFlight(
+    ['listing-scan', city, channel, scanKey].join(' '),
+    () => getCachedListingScanByCity(city)(scanKey, scanInput, channel),
+  )
+}
+
 /**
- * 房源列表查询。
+ * 本页卡片缓存：键是本页 id 列表。同一批 id 出现在不同筛选组合的同一页时复用；
+ * 24 张卡片 ≈ 30KB，远在 2MB 之内。回捞不分频道（id 已经是频道内选出来的）。
+ */
+const getCachedListingCardsByIdsByCity = memoizeByCity((citySlug) =>
+  unstable_cache(
+    async (idsKey: string, ids: readonly number[]) => {
+      void idsKey
+      return hydrateListingCards(ids, createSearchContext(citySlug))
+    },
+    ['listing-cards', citySlug],
+    { tags: listingCacheTags(citySlug), revalidate: 300 },
+  ),
+)
+
+export function getCachedListingCardsByIds(
+  citySlug: string,
+  ids: readonly number[],
+): Promise<readonly ListingCardViewModel[]> {
+  if (ids.length === 0) return Promise.resolve([])
+  const city = canonicalCitySlug(citySlug)
+  const idsKey = ids.join(',')
+  return coalesceInFlight(
+    ['listing-cards', city, idsKey].join(' '),
+    () => getCachedListingCardsByIdsByCity(city)(idsKey, ids),
+  )
+}
+
+/**
+ * 房源列表查询：扫描（缓存）→ 内存选页 → 本页卡片（缓存）。
  *
  * @param businessType 频道；缺省 lease 保持既有调用不变。出售频道传 sale——
  *   两者共用同一套查询与组件，只是作用域不同。
@@ -422,15 +482,10 @@ export async function getCachedSearchListings(
   businessType: SearchChannel = 'lease',
 ) {
   void canonicalQuery
-  const city = canonicalCitySlug(citySlug)
-  const sourceInput = { ...input, page: 1 }
-  const sourceCacheKey = buildListingSearchSourceCacheKey(input)
-  const source = await getCachedListingSearchSourceByCity(city)(
-    sourceCacheKey,
-    sourceInput,
-    businessType,
-  )
-  return paginateListingSearchSource(source, input)
+  const rows = await getCachedListingScan(citySlug, input, businessType)
+  const page = selectListingPage(rows, input)
+  const cards = await getCachedListingCardsByIds(citySlug, page.ids)
+  return assembleListingSearchResult(page, cards, input)
 }
 
 const getCachedListingDistrictOptionsByCity = memoizeByCity((citySlug) =>
@@ -449,35 +504,19 @@ export function getCachedListingDistrictOptions(citySlug: string) {
   return getCachedListingDistrictOptionsByCity(city)()
 }
 
-const getCachedSearchFacetsByCity = memoizeByCity((citySlug) =>
-  unstable_cache(
-    async (canonicalQuery: string, input: ListingSearchInput, businessType: SearchChannel) => {
-      void canonicalQuery
-      // facets 必须与列表同口径，否则筛选器会显示另一个频道贡献的计数，
-      // 用户点进去却什么都没有。
-      return getSearchFacets(input, createSearchContext(citySlug, undefined, businessType))
-    },
-    ['search-facets', citySlug],
-    {
-      tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
-      revalidate: 300,
-    },
-  ),
-)
-
-export function getCachedSearchFacets(
+/**
+ * facet：与列表共用同一份扫描缓存（频道进键，租售计数不串），聚合是纯内存操作，
+ * 不再单独建一条 `unstable_cache`——facet 本身已经不是「昂贵查询」了。
+ */
+export async function getCachedSearchFacets(
   citySlug: string,
   canonicalQuery: string,
   input: ListingSearchInput,
   businessType: SearchChannel = 'lease',
-) {
-  const city = canonicalCitySlug(citySlug)
-  // 合并键必须与 unstable_cache 的实际缓存键同构（城市 + 频道 + canonical），
-  // 少一项就会让两次本该分开的查询互相顶替结果，见 coalesceInFlight 注释。
-  return coalesceInFlight(
-    ['search-facets', city, businessType, canonicalQuery].join(' '),
-    () => getCachedSearchFacetsByCity(city)(canonicalQuery, input, businessType),
-  )
+): Promise<SearchFacets> {
+  void canonicalQuery
+  const rows = await getCachedListingScan(citySlug, input, businessType)
+  return computeFacets(applyMemoryFilters(rows, { ...input, page: 1, sort: 'recommended' }))
 }
 
 /**

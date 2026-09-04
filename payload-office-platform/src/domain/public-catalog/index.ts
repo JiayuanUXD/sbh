@@ -99,7 +99,7 @@ export {
 export {
   // 类型
   type ListingSearchResult,
-  type ListingSearchSource,
+  type ListingScanProvider,
   type HomepageData,
   type SearchFacets,
   type BuildingDetailResult,
@@ -111,8 +111,9 @@ export {
   parseSearchInput,
   buildCanonical,
   searchListings,
-  buildListingSearchSource,
-  paginateListingSearchSource,
+  scanListings,
+  hydrateListingCards,
+  assembleListingSearchResult,
   searchBuildings,
   searchBuildingsFiltered,
   searchBuildingsPage,

@@ -37,7 +37,22 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
     ...actual,
-    buildListingSearchSource: vi.fn(async (_input, ctx) => ({ citySlug: ctx.city })),
+    // OPT-068：列表与 facet 走同一份扫描；扫描行必须是真实形状（选页要读 id）
+    scanListings: vi.fn(async (_input, ctx) => [{
+      id: 1,
+      slug: `listing-${ctx.city}`,
+      listingType: 'traditional-office',
+      businessType: 'lease',
+      area: 100,
+      price: null,
+      isFeatured: false,
+      lastEffAt: 0,
+      buildingId: 1,
+      district: null,
+      businessDistrictId: null,
+      coordinates: null,
+    }]),
+    hydrateListingCards: vi.fn(async (_ids, ctx) => [{ citySlug: ctx.city }]),
     getBuildingBySlug: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getBuildingDetail: vi.fn(async (_slug, ctx) => ({ citySlug: ctx.city })),
     getDetailRecommendations: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
@@ -54,8 +69,6 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
     })),
     getRelatedBuildings: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
     getRelatedListings: vi.fn(async (_slug, ctx) => [{ citySlug: ctx.city }]),
-    getSearchFacets: vi.fn(async (_input, ctx) => ({ citySlug: ctx.city })),
-    paginateListingSearchSource: vi.fn((source) => source),
     searchBuildingsPage: vi.fn(async (ctx, options) => ({
       docs: [{ citySlug: ctx.city }],
       hasNextPage: false,
@@ -181,9 +194,10 @@ describe('per-city public catalog caches', () => {
       'sitemap-buildings-page',
       'building-detail',
       'building-by-slug',
-      'listing-search-source',
+      // OPT-068：列表页缓存拆成「扫描行」+「本页卡片」两级；facet 共用扫描，不再单独建缓存
+      'listing-scan',
+      'listing-cards',
       'listing-district-options',
-      'search-facets',
     ]
     for (const resource of supplyKeys) {
       const registration = cacheState.registrations.find(

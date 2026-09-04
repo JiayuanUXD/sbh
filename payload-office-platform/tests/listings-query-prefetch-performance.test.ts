@@ -9,7 +9,7 @@ vi.mock('next/cache', () => ({
 import * as publicCatalog from '@/domain/public-catalog'
 import type { DistrictViewModel, SearchContext, SupplyAdapter } from '@/domain/public-catalog'
 import { createSearchContext } from '@/domain/public-catalog'
-import { buildListingSearchSourceCacheKey } from '@/lib/frontend/cached-queries'
+import { buildListingScanCacheKey } from '@/domain/public-catalog'
 import { DISTRICT_JINGAN } from '@/test/frontend/payload-documents'
 
 const ROOT = process.cwd()
@@ -48,23 +48,30 @@ describe('OPT-026 lightweight listing district options', () => {
 })
 
 describe('OPT-026 route cache and prefetch contracts', () => {
-  it('shares the expensive listing search source cache across pages of the same query', () => {
+  it('shares the expensive listing scan cache across pages, sorts and in-memory dimensions of the same query', () => {
+    // OPT-068：缓存的是扫描行，区域 / 类型 / 价格 / 页码 / 排序都在行上做，
+    // 因此这些维度的变化不得产生新的缓存键；只有会进 where 的维度（面积 / 商圈 /
+    // 地铁 / 关键词 / 可用日期）才分键。
     const base = publicCatalog.parseSearchInput(
       new URLSearchParams('type=traditional-office&sort=newest&page=1'),
     )
 
-    const firstPageKey = buildListingSearchSourceCacheKey(base)
-    const secondPageKey = buildListingSearchSourceCacheKey({ ...base, page: 2 })
-    const differentSortKey = buildListingSearchSourceCacheKey({ ...base, sort: 'price-asc' })
-    const differentFilterKey = buildListingSearchSourceCacheKey({
-      ...base,
-      listingType: ['serviced-office'],
-    })
+    const firstPageKey = buildListingScanCacheKey(base)
+    const secondPageKey = buildListingScanCacheKey({ ...base, page: 2 })
+    const differentSortKey = buildListingScanCacheKey({ ...base, sort: 'price-asc' })
+    const differentTypeKey = buildListingScanCacheKey({ ...base, listingType: ['serviced-office'] })
+    const differentDistrictKey = buildListingScanCacheKey({ ...base, district: ['jingan'] })
+    const differentAreaKey = buildListingScanCacheKey({ ...base, areaMin: 200 })
+    const differentQueryKey = buildListingScanCacheKey({ ...base, q: '陆家嘴' })
 
     expect(secondPageKey).toBe(firstPageKey)
     expect(firstPageKey).not.toContain('page=1')
-    expect(differentSortKey).not.toBe(firstPageKey)
-    expect(differentFilterKey).not.toBe(firstPageKey)
+    expect(firstPageKey).not.toContain('sort=')
+    expect(differentSortKey).toBe(firstPageKey)
+    expect(differentTypeKey).toBe(firstPageKey)
+    expect(differentDistrictKey).toBe(firstPageKey)
+    expect(differentAreaKey).not.toBe(firstPageKey)
+    expect(differentQueryKey).not.toBe(firstPageKey)
   })
 
   it('routes canonical searches through tagged caches without loading the homepage', async () => {
@@ -76,7 +83,8 @@ describe('OPT-026 route cache and prefetch contracts', () => {
     expect(page).toContain('getCachedSearchListings(city.slug, canonical, input)')
     expect(page).toContain('getCachedListingDistrictOptions(city.slug)')
     expect(page).not.toContain('getHomepage(')
-    expect(cachedQueries).toContain('getCachedListingSearchSourceByCity = memoizeByCity(')
+    expect(cachedQueries).toContain('getCachedListingScanByCity = memoizeByCity(')
+    expect(cachedQueries).toContain('getCachedListingCardsByIdsByCity = memoizeByCity(')
     expect(cachedQueries).toContain('revalidate: 300')
   })
 
