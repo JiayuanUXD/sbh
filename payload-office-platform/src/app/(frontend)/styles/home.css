@@ -110,11 +110,20 @@
    surface.css，含「display:block 才能让 aspect-ratio 在 <span> 上生效」那条）。
    元素上仍留 .hm-supply-card 作为 BEM 块名锚点（下面的 __ 子元素依它命名），
    块本身已无声明——不是漏删。 */
+/* 竖排 + 正文吃掉剩余高度 + 价格贴底：同一轨里标题折行数不同的卡，价格仍在同一
+   基线上（等高由 .sf-card 的 height:100% 提供，见 surface.css）。 */
+.hm-supply-card { display: flex; flex-direction: column; }
 .hm-supply-card__tags { position: absolute; left: 14px; bottom: 12px; display: flex; gap: 6px; }
-.hm-supply-card__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 6px; }
-.hm-supply-card__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.hm-supply-card__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+/* 标题最多两行：不封顶的话，一个超长标题会把整条轨道的所有卡一起顶高。
+   与列表卡标题的单行省略（.ls-card__title）是同一取舍，只是这里宽度富裕给到两行。 */
+.hm-supply-card__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  overflow: hidden; }
 .hm-supply-card__where, .hm-supply-card__meta { font-size: 14px; line-height: 1.43; color: var(--ink-2); }
-.hm-supply-card__price { margin-top: 8px; display: flex; align-items: baseline; gap: 6px; }
+/* margin-top:auto 而不是固定 8px：把价格推到卡片底部，短标题的卡多出来的空白
+   落在正文与价格之间，而不是让价格跟着标题上浮。8px 由 __body 的 gap 兜底。 */
+.hm-supply-card__price { margin-top: auto; padding-top: 8px; display: flex; align-items: baseline; gap: 6px; }
 .hm-supply-card__price-value { font-size: 24px; font-weight: 600; color: var(--ink); }
 .hm-supply-card__price-unit { font-size: 14px; font-weight: 400; color: var(--ink-2); }
 

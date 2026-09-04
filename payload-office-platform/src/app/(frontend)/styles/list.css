@@ -128,7 +128,10 @@
  * .sf-scrim / .sf-phototag，本节只补列表页专属的图上标签定位与卡体版式。 */
 .ls-card__type-tag { position: absolute; left: 12px; bottom: 10px; }
 
-.ls-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
+/* 竖排 + 正文吃掉剩余高度：网格里同一行的卡等高（.sf-card height:100%），
+   价格行由下面的 margin-top:auto 贴底对齐。 */
+.ls-card { display: flex; flex-direction: column; }
+.ls-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; flex: 1; }
 
 .ls-card__title { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -137,7 +140,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* 价格与面积同一行（specRows「卡片信息六项排布」） */
-.ls-card__meta { margin-top: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ls-card__meta { margin-top: auto; padding-top: 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 
 .ls-card__area { flex: none; font-size: 13px; color: var(--ink-2);
   font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
@@ -154,7 +157,8 @@
  * 万一出现四位数会自然撑开而不是重新收窄挤在一起。 */
 .bd-card__grade-tag { position: absolute; left: 12px; bottom: 10px; }
 
-.bd-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; }
+.bd-card { display: flex; flex-direction: column; }
+.bd-card__body { display: flex; flex-direction: column; gap: 5px; padding: 14px 16px 16px; flex: 1; }
 
 .bd-card__title { font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -162,7 +166,7 @@
 .bd-card__line { font-size: 13px; line-height: 1.4; color: var(--ink-2);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.bd-card__stats { margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line);
+.bd-card__stats { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line);
   display: flex; align-items: baseline; gap: 10px; }
 
 .bd-card__stock-group { display: flex; align-items: baseline; gap: 5px; }

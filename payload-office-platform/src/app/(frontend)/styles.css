@@ -4216,11 +4216,19 @@ ol {
   color: var(--color-muted);
 }
 
+.building-card-mini {
+  display: flex;
+  flex-direction: column;
+}
+
 .building-card-mini__body {
   padding: var(--sp-3);
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+  /* 吃掉剩余高度：楼盘详情「相关楼盘」是等宽网格，卡片等高由 .sf-card 的
+     height:100% 提供（styles/surface.css），正文不撑开就会在卡里留一段空白。 */
+  flex: 1;
 }
 
 .building-card-mini__name {
@@ -4718,6 +4726,8 @@ ol {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* 同 .building-card-mini__body：条带里楼名折行数不同的卡片仍等高 */
+  flex: 1;
   /* 本条带的卡片只有 200px 宽，用不起首页卡的 20/24；取列表卡那一档（14/16），
      密度优先——它在详情页右下角，是"顺带看看"不是主展示区。 */
   padding: 12px 14px 14px;

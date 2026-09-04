@@ -10,6 +10,15 @@
 
 .sf-card {
   display: block; color: inherit;
+  /* 等高：撑满所在网格格子 / 轨道项的高度。
+     多列容器（grid 的 .ls-grid / .card-grid、flex 的 .hm-rail__track）默认就把
+     每个格子拉到该行最高，但卡片自身是 auto 高度，于是在格子里「缩着」——
+     同一行两张卡只要标题差一行折行就一高一矮（用户 2026-09-04 反馈的现象）。
+     height:100% 只在父级有确定高度时才生效；单独摆放时父高是 auto，这条等于没写。
+     ⚠️ 这里**不能**顺手加 display:flex + flex-direction:column：`.ls-rowcard`
+     是横排卡（只写了 display:flex，没写 direction），基元写死 column 会把它整张
+     翻成竖排。需要「价格贴底」的竖排变体各自声明 flex 列，见 home.css / list.css。 */
+  height: 100%;
   background: var(--bg-subtle);
   border: 0; border-radius: var(--r-card);
   overflow: hidden;
