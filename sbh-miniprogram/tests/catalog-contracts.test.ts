@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  parseMiniBuildingCard,
+  parseMiniBuildingDetailData,
+  parseMiniBuildingsData,
   parseMiniHomeData,
   parseMiniListingDetailData,
   parseMiniListingsData,
@@ -48,10 +51,67 @@ const validFilter = {
   options: [{ value: 'jingan', label: '静安区', count: 3 }],
 }
 
+const validBuilding = {
+  id: 'building-1',
+  slug: 'jing-an-center',
+  name: '静安中心',
+  district: '静安区',
+  address: '南京西路 1 号',
+  grade: 'super-grade-a',
+  completedYear: 2013,
+  totalFloors: 66,
+  occupancyRate: null,
+  activeListingCount: 3,
+  priceRange: null,
+  coverImage: null,
+  nearestMetro: {
+    station: '南京西路站',
+    line: null,
+    distanceMeters: null,
+  },
+}
+
 const validHome = {
   featuredListings: [validListing],
+  featuredBuildings: [validBuilding],
   quickFilters: [validFilter],
   stats: { listings: 3, buildings: 2, businessAreas: 1 },
+}
+
+const validBuildings = {
+  items: [validBuilding],
+  inactiveItems: [{ ...validBuilding, id: 'building-2', slug: 'empty-building', activeListingCount: 0 }],
+  pagination: {
+    page: 1,
+    pageSize: 24,
+    totalDocs: 2,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+  totalActiveCount: 1,
+  totalInactiveCount: 1,
+}
+
+const validBuildingDetail = {
+  id: 'building-1',
+  slug: 'jing-an-center',
+  name: '静安中心',
+  address: '南京西路 1 号',
+  district: '静安区',
+  grade: 'super-grade-a',
+  completedYear: 2013,
+  totalFloors: 66,
+  standardFloorArea: 2_000,
+  elevators: { passenger: 12, cargo: null },
+  parkingSpaces: 600,
+  propertyManagementCompany: '第一太平戴维斯',
+  propertyFee: 38,
+  gallery: [],
+  activeListingCount: 3,
+  groupedListings: [],
+  nearestMetro: validBuilding.nearestMetro,
+  comparableBuildings: [],
 }
 
 const validListings = {
@@ -115,6 +175,46 @@ const validDetail = {
 describe('Mini API 目录运行时契约', () => {
   it('保留合法首页 DTO 的公开字段', () => {
     expect(parseMiniHomeData(validHome)).toEqual(validHome)
+  })
+
+  it('保留合法楼盘列表与详情 DTO 的可空事实', () => {
+    expect(parseMiniBuildingsData(validBuildings)).toEqual(validBuildings)
+    expect(parseMiniBuildingDetailData(validBuildingDetail, validBuildingDetail.slug)).toEqual(
+      validBuildingDetail,
+    )
+  })
+
+  it('要求首页显式提供精选楼盘', () => {
+    const { featuredBuildings: _featuredBuildings, ...missingFeaturedBuildings } = validHome
+    expect(() => parseMiniHomeData(missingFeaturedBuildings)).toThrow(/Mini API 目录响应无效/)
+  })
+
+  it('拒绝楼盘坏枚举、非法单位、负数与非有限数', () => {
+    const fixtures = [
+      { ...validBuilding, grade: 'A' },
+      { ...validBuilding, activeListingCount: -1 },
+      { ...validBuilding, totalFloors: Number.NaN },
+      { ...validBuilding, nearestMetro: { ...validBuilding.nearestMetro, distanceMeters: -1 } },
+      {
+        ...validBuilding,
+        priceRange: {
+          min: 8,
+          max: 9,
+          unit: '元/㎡/天',
+          displayUnit: 'rmb-unknown',
+          text: '8–9 元/㎡/天',
+        },
+      },
+    ]
+
+    for (const fixture of fixtures) {
+      expect(() => parseMiniBuildingCard(fixture)).toThrow(/Mini API 目录响应无效/)
+    }
+
+    expect(() => parseMiniBuildingDetailData({
+      ...validBuildingDetail,
+      elevators: { passenger: Number.NaN, cargo: null },
+    })).toThrow(/Mini API 目录响应无效/)
   })
 
   it('保留合法列表 DTO 的公开字段', () => {

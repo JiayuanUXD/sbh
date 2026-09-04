@@ -5,6 +5,7 @@ import type {
   BuildingDetailViewModel,
   BuildingFilteredResult,
   BuildingSummaryViewModel,
+  FactGroupViewModel,
   HomepageData,
   ListingCardViewModel,
   ListingDetailViewModel,
@@ -16,6 +17,7 @@ import type {
 import type {
   MiniBuildingCard,
   MiniBuildingDetailData,
+  MiniBuildingGrade,
   MiniBuildingsData,
   MiniFactGroup,
   MiniHomeData,
@@ -47,6 +49,90 @@ const PRICE_UNIT_LABELS: Readonly<Record<PriceDisplayUnit, string>> = {
   'rmb-month': '元/月',
   'rmb-year': '元/年',
   'rmb-total': '元',
+}
+
+function miniBuildingGrade(
+  value: BuildingSummaryViewModel['grade'],
+): MiniBuildingGrade | null {
+  switch (value) {
+    case 'grade-a':
+    case 'super-grade-a':
+    case 'creative-park':
+    case 'serviced-office':
+      return value
+    default:
+      return null
+  }
+}
+
+function normalizedBuildingCount(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null
+}
+
+function completedYear(value: string | null | undefined): number | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/.exec(normalized)
+  if (!match) return null
+  const timestamp = Date.parse(normalized)
+  if (!Number.isFinite(timestamp)) return null
+  const parsed = new Date(timestamp)
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  if (
+    parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() + 1 !== month
+    || parsed.getUTCDate() !== day
+  ) {
+    return null
+  }
+  return year
+}
+
+function findBuildingFact(
+  groups: readonly FactGroupViewModel[],
+  label: string,
+): FactGroupViewModel['facts'][number] | undefined {
+  return groups.flatMap((group) => group.facts).find((fact) => fact.label === label)
+}
+
+function buildingFactNumber(
+  groups: readonly FactGroupViewModel[],
+  label: string,
+  unit: string,
+  integer = false,
+): number | null {
+  const fact = findBuildingFact(groups, label)
+  if (fact?.unit !== unit || typeof fact.magnitude !== 'string') return null
+  const normalized = fact.magnitude.trim().replaceAll(',', '')
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(normalized)) return null
+  const value = Number(normalized)
+  if (!Number.isFinite(value) || value < 0 || (integer && !Number.isSafeInteger(value))) {
+    return null
+  }
+  return value
+}
+
+function buildingFactString(
+  groups: readonly FactGroupViewModel[],
+  label: string,
+): string | null {
+  const value = findBuildingFact(groups, label)?.value
+  if (typeof value !== 'string') return null
+  const normalized = value.trim()
+  return normalized || null
+}
+
+function buildingNearestMetro(
+  building: Pick<BuildingSummaryViewModel, 'nearestMetro'>,
+): MiniBuildingCard['nearestMetro'] {
+  const station = building.nearestMetro?.name.trim()
+  return station
+    ? { station, line: null, distanceMeters: null }
+    : null
 }
 
 export type MiniListingFacetBundle = Readonly<{
@@ -169,6 +255,9 @@ export function mapMiniHome(
 ): MiniHomeData {
   return {
     featuredListings: home.featuredListings.map((card) => mapMiniListingCard(card, mediaOrigin)),
+    featuredBuildings: home.featuredBuildings.map((building) => (
+      mapMiniBuildingCard(building, mediaOrigin)
+    )),
     quickFilters: filtersFromFacetParts(facets.districts, facets.listingTypes, facets.rentUnits),
     stats: {
       listings: home.stats.listings,
@@ -349,22 +438,14 @@ export function mapMiniBuildingCard(
     name: building.name,
     district: building.district?.name ?? null,
     address: building.address,
-    grade: (building.grade as 'A' | 'B' | 'C') ?? null,
-    completedYear: building.completionDate
-      ? Number.parseInt(building.completionDate.slice(0, 4), 10) || null
-      : null,
+    grade: miniBuildingGrade(building.grade),
+    completedYear: completedYear(building.completionDate),
     totalFloors: null,
     occupancyRate: null,
-    activeListingCount: building.listingCount ?? 0,
+    activeListingCount: normalizedBuildingCount(building.listingCount),
     priceRange: null,
     coverImage: building.coverImage ? mapMiniImage(building.coverImage, mediaOrigin) : null,
-    nearestMetro: building.nearestMetro
-      ? {
-          line: building.nearestMetro.name,
-          station: building.nearestMetro.name,
-          distanceMeters: 0,
-        }
-      : null,
+    nearestMetro: buildingNearestMetro(building),
   }
 }
 
@@ -372,30 +453,28 @@ export function mapMiniBuildings(
   result: BuildingFilteredResult,
   mediaOrigin: string,
 ): MiniBuildingsData {
-  const activeItems = (result.groups?.withStock ?? result.docs?.filter(d => (d.listingCount ?? 0) > 0) ?? []).map((doc) =>
+  const activeItems = result.groups.withStock.map((doc) =>
     mapMiniBuildingCard(doc, mediaOrigin),
   )
-  const inactiveItems = (result.groups?.withoutStock ?? result.docs?.filter(d => (d.listingCount ?? 0) === 0) ?? []).map((doc) =>
-    mapMiniBuildingCard(doc, mediaOrigin),
-  )
-
-  const page = result.page ?? 1
-  const totalPages = result.totalPages ?? 1
-  const totalDocs = result.totalDocs ?? (activeItems.length + inactiveItems.length)
+  const inactiveItems = result.groups.withoutStock.map((doc) => ({
+    ...mapMiniBuildingCard(doc, mediaOrigin),
+    // 分组来自完整的有效供给快照；即使摘要省略 listingCount，此处的 0 也是已知事实。
+    activeListingCount: 0,
+  }))
 
   return {
     items: activeItems,
     inactiveItems,
     pagination: {
-      page,
-      pageSize: 20,
-      totalDocs,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
+      page: result.page,
+      pageSize: 24,
+      totalDocs: result.totalDocs,
+      totalPages: result.totalPages,
+      hasNextPage: result.page < result.totalPages,
+      hasPrevPage: result.page > 1,
     },
-    totalActiveCount: result.withStockTotal ?? activeItems.length,
-    totalInactiveCount: result.withoutStockTotal ?? inactiveItems.length,
+    totalActiveCount: result.withStockTotal,
+    totalInactiveCount: result.withoutStockTotal,
   }
 }
 
@@ -408,9 +487,14 @@ export function mapMiniBuildingDetail(
   const allListings = supply.groups.flatMap((g) => g.listings)
   const activeCards = allListings.map((l) => mapMiniListingCard(l, mediaOrigin))
 
-  const over1000 = activeCards.filter((l) => (l.area ?? 0) >= 1000)
-  const from300to1000 = activeCards.filter((l) => (l.area ?? 0) >= 300 && (l.area ?? 0) < 1000)
-  const under300 = activeCards.filter((l) => (l.area ?? 0) < 300)
+  const over1000 = activeCards.filter((listing) => listing.area !== null && listing.area >= 1000)
+  const from300to1000 = activeCards.filter((listing) => (
+    listing.area !== null && listing.area >= 300 && listing.area < 1000
+  ))
+  const under300 = activeCards.filter((listing) => listing.area !== null && listing.area < 300)
+
+  const passengerElevators = buildingFactNumber(detail.factGroups, '客梯', '部', true)
+  const cargoElevators = buildingFactNumber(detail.factGroups, '货梯', '部', true)
 
   const groupedListings = [
     { areaRange: '1,000 ㎡ 以上', count: over1000.length, items: over1000 },
@@ -424,25 +508,20 @@ export function mapMiniBuildingDetail(
     name: detail.name,
     address: detail.address,
     district: detail.district?.name ?? null,
-    grade: (detail.grade as 'A' | 'B' | 'C') ?? null,
-    completedYear: null,
-    totalFloors: null,
-    standardFloorArea: null,
-    elevators: null,
-    parkingSpaces: null,
-    propertyManagementCompany: null,
-    propertyFee: null,
+    grade: miniBuildingGrade(detail.grade),
+    completedYear: completedYear(buildingFactString(detail.factGroups, '竣工时间')),
+    totalFloors: buildingFactNumber(detail.factGroups, '总楼层', '层', true),
+    standardFloorArea: buildingFactNumber(detail.factGroups, '标准层面积', '㎡'),
+    elevators: passengerElevators === null && cargoElevators === null
+      ? null
+      : { passenger: passengerElevators, cargo: cargoElevators },
+    parkingSpaces: buildingFactNumber(detail.factGroups, '停车位', '个', true),
+    propertyManagementCompany: buildingFactString(detail.factGroups, '物业公司'),
+    propertyFee: buildingFactNumber(detail.factGroups, '物业费', '元/㎡/月'),
     gallery: detail.gallery.map((img) => mapMiniImage(img, mediaOrigin)),
     activeListingCount: activeCards.length,
     groupedListings,
-    nearestMetro: detail.nearestMetro
-      ? {
-          line: detail.nearestMetro.name,
-          station: detail.nearestMetro.name,
-          distanceMeters: 0,
-        }
-      : null,
+    nearestMetro: buildingNearestMetro(detail),
     comparableBuildings: comparable.map((b) => mapMiniBuildingCard(b, mediaOrigin)),
   }
 }
-

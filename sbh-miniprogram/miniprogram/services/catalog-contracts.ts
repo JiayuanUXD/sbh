@@ -46,17 +46,26 @@ export type MiniQuickFilter = Readonly<{
   options: readonly Readonly<{ value: string; label: string; count: number }>[]
 }>
 
+export const MINI_BUILDING_GRADES = [
+  'grade-a',
+  'super-grade-a',
+  'creative-park',
+  'serviced-office',
+] as const
+
+export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
+
 export type MiniBuildingCard = Readonly<{
   id: string
   slug: string
   name: string
   district: string | null
   address: string
-  grade: 'A' | 'B' | 'C' | null
+  grade: MiniBuildingGrade | null
   completedYear: number | null
   totalFloors: number | null
   occupancyRate: number | null
-  activeListingCount: number
+  activeListingCount: number | null
   priceRange: Readonly<{
     min: number
     max: number
@@ -66,9 +75,9 @@ export type MiniBuildingCard = Readonly<{
   }> | null
   coverImage: MiniImage | null
   nearestMetro: Readonly<{
-    line: string
     station: string
-    distanceMeters: number
+    line: string | null
+    distanceMeters: number | null
   }> | null
 }>
 
@@ -77,7 +86,7 @@ export type MiniBuildingsData = Readonly<{
   inactiveItems: readonly MiniBuildingCard[]
   pagination: Readonly<{
     page: number
-    pageSize: number
+    pageSize: 24
     totalDocs: number
     totalPages: number
     hasNextPage: boolean
@@ -93,13 +102,13 @@ export type MiniBuildingDetailData = Readonly<{
   name: string
   address: string
   district: string | null
-  grade: 'A' | 'B' | 'C' | null
+  grade: MiniBuildingGrade | null
   completedYear: number | null
   totalFloors: number | null
   standardFloorArea: number | null
   elevators: Readonly<{
-    passenger: number
-    cargo: number
+    passenger: number | null
+    cargo: number | null
   }> | null
   parkingSpaces: number | null
   propertyManagementCompany: string | null
@@ -112,16 +121,16 @@ export type MiniBuildingDetailData = Readonly<{
     items: readonly MiniListingCard[]
   }>[]
   nearestMetro: Readonly<{
-    line: string
     station: string
-    distanceMeters: number
+    line: string | null
+    distanceMeters: number | null
   }> | null
   comparableBuildings: readonly MiniBuildingCard[]
 }>
 
 export type MiniHomeData = Readonly<{
   featuredListings: readonly MiniListingCard[]
-  featuredBuildings?: readonly MiniBuildingCard[]
+  featuredBuildings: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
 }>
@@ -231,6 +240,11 @@ function requireNullableNonNegativeNumber(value: unknown): number | null {
   return requireNonNegativeNumber(value)
 }
 
+function requireNullableNonNegativeInteger(value: unknown): number | null {
+  if (value === null) return null
+  return requireNonNegativeInteger(value)
+}
+
 function requireSafeSlug(value: unknown): string {
   const slug = requireString(value)
   if (!SAFE_SLUG_PATTERN.test(slug)) return invalidCatalogResponse()
@@ -275,6 +289,17 @@ function optionalString(value: unknown): string | undefined {
 
 function isPriceDisplayUnit(value: string): value is PriceDisplayUnit {
   return (PRICE_DISPLAY_UNITS as readonly string[]).includes(value)
+}
+
+function isMiniBuildingGrade(value: string): value is MiniBuildingGrade {
+  return MINI_BUILDING_GRADES.some((grade) => grade === value)
+}
+
+function requireNullableMiniBuildingGrade(value: unknown): MiniBuildingGrade | null {
+  if (value === null) return null
+  const grade = requireString(value)
+  if (!isMiniBuildingGrade(grade)) return invalidCatalogResponse()
+  return grade
 }
 
 function optionalPriceUnit(value: unknown): PriceDisplayUnit | null {
@@ -432,6 +457,7 @@ export function parseMiniHomeData(value: unknown): MiniHomeData {
   const stats = requireRecord(record.stats)
   return {
     featuredListings: requireArray(record.featuredListings, parseMiniListingCard),
+    featuredBuildings: requireArray(record.featuredBuildings, parseMiniBuildingCard),
     quickFilters: requireArray(record.quickFilters, parseMiniQuickFilter),
     stats: {
       listings: requireNonNegativeInteger(stats.listings),
@@ -522,15 +548,32 @@ export function parseMiniListingDetailData(
 
 export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
   const record = requireRecord(value)
-  const coverImage = record.coverImage === null || record.coverImage === undefined ? null : parseMiniImage(record.coverImage)
-  const nearestMetro = record.nearestMetro === null || record.nearestMetro === undefined
+  const coverImage = record.coverImage === null ? null : parseMiniImage(record.coverImage)
+  const nearestMetro = record.nearestMetro === null
     ? null
     : (() => {
-        const m = requireRecord(record.nearestMetro)
+        const metro = requireRecord(record.nearestMetro)
         return {
-          line: requireString(m.line),
-          station: requireString(m.station),
-          distanceMeters: requireNonNegativeInteger((m as any).distanceMeters ?? 0),
+          station: requireNonEmptyString(metro.station),
+          line: requireNullableString(metro.line),
+          distanceMeters: requireNullableNonNegativeInteger(metro.distanceMeters),
+        }
+      })()
+
+  const priceRange = record.priceRange === null
+    ? null
+    : (() => {
+        const range = requireRecord(record.priceRange)
+        const min = requireNonNegativeNumber(range.min)
+        const max = requireNonNegativeNumber(range.max)
+        const displayUnit = optionalPriceUnit(range.displayUnit)
+        if (displayUnit === null || min > max) return invalidCatalogResponse()
+        return {
+          min,
+          max,
+          unit: requireString(range.unit),
+          displayUnit,
+          text: requireString(range.text),
         }
       })()
 
@@ -540,21 +583,12 @@ export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
     name: requireString(record.name),
     district: requireNullableString(record.district),
     address: requireString(record.address),
-    grade: (record.grade as 'A' | 'B' | 'C') ?? null,
-    completedYear: record.completedYear !== null && record.completedYear !== undefined ? requireNonNegativeInteger(record.completedYear) : null,
-    totalFloors: record.totalFloors !== null && record.totalFloors !== undefined ? requireNonNegativeInteger(record.totalFloors) : null,
-    occupancyRate: record.occupancyRate !== null && record.occupancyRate !== undefined ? requireNonNegativeInteger(record.occupancyRate) : null,
-    activeListingCount: requireNonNegativeInteger(record.activeListingCount ?? 0),
-    priceRange: record.priceRange === null || record.priceRange === undefined ? null : (() => {
-      const p = requireRecord(record.priceRange)
-      return {
-        min: requireNonNegativeNumber(p.min),
-        max: requireNonNegativeNumber(p.max),
-        unit: requireString(p.unit),
-        displayUnit: requireString(p.displayUnit) as PriceDisplayUnit,
-        text: requireString(p.text),
-      }
-    })(),
+    grade: requireNullableMiniBuildingGrade(record.grade),
+    completedYear: requireNullableNonNegativeInteger(record.completedYear),
+    totalFloors: requireNullableNonNegativeInteger(record.totalFloors),
+    occupancyRate: requireNullableNonNegativeNumber(record.occupancyRate),
+    activeListingCount: requireNullableNonNegativeInteger(record.activeListingCount),
+    priceRange,
     coverImage,
     nearestMetro,
   }
@@ -563,19 +597,20 @@ export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
 export function parseMiniBuildingsData(value: unknown): MiniBuildingsData {
   const record = requireRecord(value)
   const pagination = requireRecord(record.pagination)
+  if (pagination.pageSize !== 24) return invalidCatalogResponse()
   return {
     items: requireArray(record.items, parseMiniBuildingCard),
-    inactiveItems: requireArray(record.inactiveItems ?? [], parseMiniBuildingCard),
+    inactiveItems: requireArray(record.inactiveItems, parseMiniBuildingCard),
     pagination: {
       page: requireNonNegativeInteger(pagination.page),
-      pageSize: requireNonNegativeInteger(pagination.pageSize),
+      pageSize: 24,
       totalDocs: requireNonNegativeInteger(pagination.totalDocs),
       totalPages: requireNonNegativeInteger(pagination.totalPages),
       hasNextPage: requireBoolean(pagination.hasNextPage),
       hasPrevPage: requireBoolean(pagination.hasPrevPage),
     },
-    totalActiveCount: requireNonNegativeInteger(record.totalActiveCount ?? 0),
-    totalInactiveCount: requireNonNegativeInteger(record.totalInactiveCount ?? 0),
+    totalActiveCount: requireNonNegativeInteger(record.totalActiveCount),
+    totalInactiveCount: requireNonNegativeInteger(record.totalInactiveCount),
   }
 }
 
@@ -589,23 +624,43 @@ export function parseMiniBuildingDetailData(
     return invalidCatalogResponse()
   }
 
+  const elevators = record.elevators === null
+    ? null
+    : (() => {
+        const elevatorRecord = requireRecord(record.elevators)
+        const passenger = requireNullableNonNegativeInteger(elevatorRecord.passenger)
+        const cargo = requireNullableNonNegativeInteger(elevatorRecord.cargo)
+        if (passenger === null && cargo === null) return invalidCatalogResponse()
+        return { passenger, cargo }
+      })()
+  const nearestMetro = record.nearestMetro === null
+    ? null
+    : (() => {
+        const metro = requireRecord(record.nearestMetro)
+        return {
+          station: requireNonEmptyString(metro.station),
+          line: requireNullableString(metro.line),
+          distanceMeters: requireNullableNonNegativeInteger(metro.distanceMeters),
+        }
+      })()
+
   return {
     id: requireString(record.id),
     slug,
     name: requireString(record.name),
     address: requireString(record.address),
     district: requireNullableString(record.district),
-    grade: (record.grade as 'A' | 'B' | 'C') ?? null,
-    completedYear: record.completedYear !== null && record.completedYear !== undefined ? requireNonNegativeInteger(record.completedYear) : null,
-    totalFloors: record.totalFloors !== null && record.totalFloors !== undefined ? requireNonNegativeInteger(record.totalFloors) : null,
-    standardFloorArea: record.standardFloorArea !== null && record.standardFloorArea !== undefined ? requireNonNegativeNumber(record.standardFloorArea) : null,
-    elevators: record.elevators ? { passenger: Number((record.elevators as any).passenger) || 0, cargo: Number((record.elevators as any).cargo) || 0 } : null,
-    parkingSpaces: record.parkingSpaces !== null && record.parkingSpaces !== undefined ? requireNonNegativeInteger(record.parkingSpaces) : null,
+    grade: requireNullableMiniBuildingGrade(record.grade),
+    completedYear: requireNullableNonNegativeInteger(record.completedYear),
+    totalFloors: requireNullableNonNegativeInteger(record.totalFloors),
+    standardFloorArea: requireNullableNonNegativeNumber(record.standardFloorArea),
+    elevators,
+    parkingSpaces: requireNullableNonNegativeInteger(record.parkingSpaces),
     propertyManagementCompany: requireNullableString(record.propertyManagementCompany),
-    propertyFee: record.propertyFee !== null && record.propertyFee !== undefined ? requireNonNegativeNumber(record.propertyFee) : null,
-    gallery: requireArray(record.gallery ?? [], parseMiniImage),
-    activeListingCount: requireNonNegativeInteger(record.activeListingCount ?? 0),
-    groupedListings: requireArray(record.groupedListings ?? [], (group) => {
+    propertyFee: requireNullableNonNegativeNumber(record.propertyFee),
+    gallery: requireArray(record.gallery, parseMiniImage),
+    activeListingCount: requireNonNegativeInteger(record.activeListingCount),
+    groupedListings: requireArray(record.groupedListings, (group) => {
       const g = requireRecord(group)
       return {
         areaRange: requireString(g.areaRange),
@@ -613,14 +668,7 @@ export function parseMiniBuildingDetailData(
         items: requireArray(g.items, parseMiniListingCard),
       }
     }),
-    nearestMetro: record.nearestMetro
-      ? {
-          line: requireString((record.nearestMetro as any).line),
-          station: requireString((record.nearestMetro as any).station),
-          distanceMeters: Number((record.nearestMetro as any).distanceMeters) || 0,
-        }
-      : null,
-    comparableBuildings: requireArray(record.comparableBuildings ?? [], parseMiniBuildingCard),
+    nearestMetro,
+    comparableBuildings: requireArray(record.comparableBuildings, parseMiniBuildingCard),
   }
 }
-

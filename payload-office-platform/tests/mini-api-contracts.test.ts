@@ -4,13 +4,13 @@ import type { MiniApiSuccess, MiniHomeData } from '@/domain/mini-program/contrac
 
 describe('Mini API contract', () => {
   it('success carries requestId, data asOf and fixed cache age', () => {
-    const result = miniOk({ featuredListings: [], quickFilters: [], stats: { listings: 0, buildings: 0, businessAreas: 0 } }, {
+    const result = miniOk({ featuredListings: [], featuredBuildings: [], quickFilters: [], stats: { listings: 0, buildings: 0, businessAreas: 0 } }, {
       requestId: 'req-1',
       asOf: '2026-08-26T00:00:00.000Z',
     })
     expect(result).toEqual({
       ok: true,
-      data: { featuredListings: [], quickFilters: [], stats: { listings: 0, buildings: 0, businessAreas: 0 } },
+      data: { featuredListings: [], featuredBuildings: [], quickFilters: [], stats: { listings: 0, buildings: 0, businessAreas: 0 } },
       meta: { requestId: 'req-1', asOf: '2026-08-26T00:00:00.000Z', maxAgeSeconds: 300 },
     })
     expectTypeOf(result).toMatchTypeOf<MiniApiSuccess<MiniHomeData>>()

@@ -9,7 +9,11 @@ import {
   succeedHomeLoad,
   type HomePageSnapshot,
 } from '../miniprogram/pages/home/model.js'
-import type { MiniHomeData, MiniListingCard } from '../miniprogram/services/catalog-contracts.js'
+import type {
+  MiniBuildingCard,
+  MiniHomeData,
+  MiniListingCard,
+} from '../miniprogram/services/catalog-contracts.js'
 
 const featuredListing: MiniListingCard = {
   id: 'listing-101',
@@ -41,8 +45,29 @@ const featuredListing: MiniListingCard = {
   highlights: ['近地铁'],
 }
 
+const featuredBuilding: MiniBuildingCard = {
+  id: 'building-1',
+  slug: 'jing-an-center',
+  name: '静安中心',
+  district: '静安区',
+  address: '静安区南京西路 1 号',
+  grade: 'super-grade-a',
+  completedYear: 2013,
+  totalFloors: 66,
+  occupancyRate: null,
+  activeListingCount: 3,
+  priceRange: null,
+  coverImage: null,
+  nearestMetro: {
+    station: '南京西路站',
+    line: null,
+    distanceMeters: null,
+  },
+}
+
 const validHome: MiniHomeData = {
   featuredListings: [featuredListing],
+  featuredBuildings: [featuredBuilding],
   quickFilters: [
     {
       id: 'district',
@@ -89,6 +114,7 @@ describe('首页展示模型', () => {
       slug: 'jing-an-center-101',
       primaryPrice: '约 ¥36,500/月',
     })
+    expect(model.featuredBuildings).toEqual([featuredBuilding])
     expect(model.stats).toEqual({ listings: 31, buildings: 9, businessAreas: 6 })
   })
 

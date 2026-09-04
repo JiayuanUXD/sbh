@@ -31,6 +31,7 @@ export type HomeQuickFilterGroup = Readonly<{
 
 export type HomePresentation = Readonly<{
   featuredListings: readonly ListingCardPresentation[]
+  featuredBuildings: MiniHomeData['featuredBuildings']
   quickFilters: readonly HomeQuickFilterGroup[]
   stats: MiniHomeData['stats']
 }>
@@ -94,6 +95,7 @@ export function presentHome(home: MiniHomeData): HomePresentation {
 
   return {
     featuredListings: home.featuredListings.map(presentListingCard),
+    featuredBuildings: home.featuredBuildings,
     quickFilters,
     stats: home.stats,
   }

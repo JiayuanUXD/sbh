@@ -121,13 +121,15 @@ export async function getMiniBuildingDetail(
 
   const snapshot = await getCachedMiniBuildingDetail(trustedCity, slug)
   if (!snapshot.data) return { status: 'building_not_found' }
+  const building = snapshot.data.detail.building
+  if (!building) return { status: 'building_not_found' }
 
   return {
     status: 'ok',
     snapshot: {
       asOf: snapshot.asOf,
       data: mapMiniBuildingDetail(
-        snapshot.data.detail.building!,
+        building,
         snapshot.data.detail.supply,
         snapshot.data.comparable,
         getSiteConfig().siteOrigin,
@@ -135,4 +137,3 @@ export async function getMiniBuildingDetail(
     },
   }
 }
-

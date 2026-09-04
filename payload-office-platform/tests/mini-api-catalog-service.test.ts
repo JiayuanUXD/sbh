@@ -56,6 +56,7 @@ const rawRelated = Object.freeze([{ source: 'related-listing' }])
 
 const mappedHome: MiniHomeData = {
   featuredListings: [],
+  featuredBuildings: [],
   quickFilters: [],
   stats: { listings: 3, buildings: 2, businessAreas: 1 },
 }

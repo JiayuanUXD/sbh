@@ -32,6 +32,7 @@ function homeWithSlug(slug: string): MiniHomeData {
   }
   return {
     featuredListings: [listing],
+    featuredBuildings: [],
     quickFilters: [],
     stats: { listings: 1, buildings: 1, businessAreas: 1 },
   }

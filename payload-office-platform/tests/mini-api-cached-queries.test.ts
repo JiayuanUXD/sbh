@@ -66,6 +66,22 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       city: context.city,
       page: input.page,
     })),
+    searchBuildingsFiltered: vi.fn(async (input, context) => ({
+      kind: 'buildings',
+      city: context.city,
+      page: input.page,
+    })),
+    getBuildingDetail: vi.fn(async (slug, context) => ({
+      building: slug === 'missing'
+        ? null
+        : { kind: 'building-detail', slug, city: context.city },
+      supply: { groups: [] },
+    })),
+    getRelatedBuildings: vi.fn(async (_slug, context, options) => ([{
+      kind: 'related-building',
+      city: context.city,
+      limit: options?.limit,
+    }])),
   }
 })
 
@@ -76,10 +92,13 @@ import {
   getListingBySlug,
   getRelatedListings,
   getSearchFacetsIgnoring,
+  parseBuildingSearchInput,
   parseListingSearchInput,
   searchListings,
 } from '@/domain/public-catalog'
 import {
+  getCachedMiniBuildingDetail,
+  getCachedMiniBuildings,
   getCachedMiniHome,
   getCachedMiniListingDetail,
   getCachedMiniListings,
@@ -212,5 +231,19 @@ describe('Mini API cached queries', () => {
     expect(registration('mini-v1-listing-detail', 'guangzhou')).not.toBe(
       registration('mini-v1-listing-detail', 'shenzhen'),
     )
+  })
+
+  it('adds building category and city tags to building list and detail caches', async () => {
+    const input = parseBuildingSearchInput(new URLSearchParams('page=1'))
+
+    await getCachedMiniBuildings('shanghai', input)
+    await getCachedMiniBuildingDetail('shanghai', 'jing-an-center')
+
+    for (const resource of ['mini-v1-buildings', 'mini-v1-building-detail']) {
+      expect(registration(resource, 'shanghai').options.tags).toEqual(expect.arrayContaining([
+        'public:buildings',
+        'public:buildings:city:shanghai',
+      ]))
+    }
   })
 })

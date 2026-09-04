@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import {
+  mapMiniBuildingCard,
+  mapMiniBuildingDetail,
+  mapMiniBuildings,
   mapMiniHome,
   mapMiniListingCard,
   mapMiniListingDetail,
   mapMiniListings,
 } from '@/domain/mini-program/mappers'
 import type {
+  BuildingDetailViewModel,
+  BuildingFilteredResult,
+  BuildingSummaryViewModel,
   HomepageData,
   ListingCardViewModel,
   ListingDetailViewModel,
@@ -81,6 +87,69 @@ const listingFacetBundle = {
   listingType: facets,
   priceUnit: facets,
 }
+
+const buildingSummary = {
+  id: 7,
+  slug: 'jing-an-center',
+  name: '静安中心',
+  address: '南京西路 1 号',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  grade: 'super-grade-a',
+  district: { id: 8, slug: 'jing-an', name: '静安区' },
+  nearestMetro: { id: 9, slug: 'west-nanjing-road', name: '南京西路站' },
+  completionDate: '2013-01-01T00:00:00.000Z',
+  coverImage: { src: '/building.jpg', alt: '静安中心外观' },
+} satisfies BuildingSummaryViewModel
+
+function buildingFact(
+  label: string,
+  value: string | null,
+  magnitude: string | null = null,
+  unit: string | null = null,
+) {
+  return { label, value, magnitude, unit, estimated: false, critical: false }
+}
+
+const buildingDetail = {
+  ...buildingSummary,
+  coverImage: buildingSummary.coverImage,
+  gallery: [buildingSummary.coverImage],
+  mediaItems: [],
+  factGroups: [
+    {
+      id: 'building',
+      title: '建筑信息',
+      facts: [
+        buildingFact('竣工时间', '2013-01-01T00:00:00.000Z', '2013-01-01T00:00:00.000Z'),
+        buildingFact('总楼层', '66 层', '66', '层'),
+        buildingFact('标准层面积', '2,000 ㎡', '2,000', '㎡'),
+      ],
+    },
+    {
+      id: 'property',
+      title: '开发物业',
+      facts: [
+        buildingFact('物业公司', ' 第一太平戴维斯 '),
+        buildingFact('物业费', '38 元/㎡/月', '38', '元/㎡/月'),
+      ],
+    },
+    {
+      id: 'transport',
+      title: '电梯与停车',
+      facts: [
+        buildingFact('客梯', '12 部', '12', '部'),
+        buildingFact('货梯', null),
+        buildingFact('停车位', '600 个', '600', '个'),
+      ],
+    },
+  ],
+  amenityGroups: [],
+  verification: { verifiedAt: null, priceVerifiedAt: null },
+  amenities: [],
+  summary: '',
+  description: null,
+} satisfies BuildingDetailViewModel
 
 function detailWithPropertyFee(
   overrides: Partial<ListingDetailViewModel> = {},
@@ -279,6 +348,7 @@ describe('Mini API mappers', () => {
 
     expect(mapMiniHome(home, facets, MEDIA_ORIGIN)).toEqual({
       featuredListings: [mapMiniListingCard(card, MEDIA_ORIGIN)],
+      featuredBuildings: [],
       quickFilters: expect.any(Array),
       stats: home.stats,
     })
@@ -289,6 +359,97 @@ describe('Mini API mappers', () => {
       currentPriceUnit: 'rmb-sqm-day',
       filters: expect.any(Array),
     })
+  })
+
+  it('maps real building enums without inventing metro or stock facts', () => {
+    expect(mapMiniBuildingCard(buildingSummary, MEDIA_ORIGIN)).toMatchObject({
+      grade: 'super-grade-a',
+      completedYear: 2013,
+      activeListingCount: null,
+      nearestMetro: {
+        station: '南京西路站',
+        line: null,
+        distanceMeters: null,
+      },
+    })
+  })
+
+  it('maps homepage featured buildings from the public catalog snapshot', () => {
+    const home = {
+      featuredListings: [],
+      districts: [],
+      featuredBuildings: [{ ...buildingSummary, listingCount: 3 }],
+      districtCards: [],
+      latestArticles: [],
+      stats: { listings: 10, buildings: 3, businessAreas: 2 },
+      typeSummaries: {},
+      nearbyListings: [],
+    } satisfies HomepageData
+
+    expect(mapMiniHome(home, facets, MEDIA_ORIGIN).featuredBuildings).toEqual([
+      mapMiniBuildingCard(home.featuredBuildings[0], MEDIA_ORIGIN),
+    ])
+  })
+
+  it('uses the public building page size instead of the historical hard-coded 20', () => {
+    const result = {
+      docs: [{ ...buildingSummary, listingCount: 3 }],
+      groups: { withStock: [{ ...buildingSummary, listingCount: 3 }], withoutStock: [] },
+      totalDocs: 25,
+      withStockTotal: 24,
+      withoutStockTotal: 1,
+      unfilteredTotalDocs: 25,
+      page: 1,
+      totalPages: 2,
+      facets: { districts: [], grades: [], metros: [] },
+      dimensionHits: {
+        district: 25,
+        grade: 25,
+        metro: 25,
+        leasableArea: 25,
+        completedAfter: 25,
+        onlyWithStock: 25,
+      },
+    } satisfies BuildingFilteredResult
+
+    expect(mapMiniBuildings(result, MEDIA_ORIGIN).pagination.pageSize).toBe(24)
+  })
+
+  it('maps reliable detail facts and leaves unknown counts nullable', () => {
+    const unknownAreaListing = { ...card, id: 43, slug: 'unknown-area', area: null }
+    const supply = {
+      asOf: '2026-09-04T00:00:00.000Z',
+      groups: [{
+        key: 'lease' as const,
+        listings: [card, unknownAreaListing],
+        priceRanges: [],
+        areaRange: null,
+        seatRange: null,
+        immediateAvailabilityCount: 2,
+        priceSortDegraded: false,
+      }],
+      availableGroups: [],
+      totalEffectiveListings: 2,
+      resultCount: 2,
+      validationErrors: [],
+    }
+
+    const mapped = mapMiniBuildingDetail(buildingDetail, supply, [], MEDIA_ORIGIN)
+
+    expect(mapped).toMatchObject({
+      grade: 'super-grade-a',
+      completedYear: 2013,
+      totalFloors: 66,
+      standardFloorArea: 2_000,
+      elevators: { passenger: 12, cargo: null },
+      parkingSpaces: 600,
+      propertyManagementCompany: '第一太平戴维斯',
+      propertyFee: 38,
+      nearestMetro: { station: '南京西路站', line: null, distanceMeters: null },
+    })
+    expect(mapped.groupedListings.flatMap((group) => group.items).map((item) => item.slug)).toEqual([
+      card.slug,
+    ])
   })
 
   it('builds each list filter from the facet snapshot that ignored that same dimension', () => {

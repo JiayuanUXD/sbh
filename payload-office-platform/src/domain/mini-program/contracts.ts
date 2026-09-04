@@ -58,17 +58,26 @@ export type MiniQuickFilter = Readonly<{
   options: readonly Readonly<{ value: string; label: string; count: number }>[]
 }>
 
+export const MINI_BUILDING_GRADES = [
+  'grade-a',
+  'super-grade-a',
+  'creative-park',
+  'serviced-office',
+] as const
+
+export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
+
 export type MiniBuildingCard = Readonly<{
   id: string
   slug: string
   name: string
   district: string | null
   address: string
-  grade: 'A' | 'B' | 'C' | null
+  grade: MiniBuildingGrade | null
   completedYear: number | null
   totalFloors: number | null
   occupancyRate: number | null
-  activeListingCount: number
+  activeListingCount: number | null
   priceRange: Readonly<{
     min: number
     max: number
@@ -78,9 +87,9 @@ export type MiniBuildingCard = Readonly<{
   }> | null
   coverImage: MiniImage | null
   nearestMetro: Readonly<{
-    line: string
     station: string
-    distanceMeters: number
+    line: string | null
+    distanceMeters: number | null
   }> | null
 }>
 
@@ -89,7 +98,7 @@ export type MiniBuildingsData = Readonly<{
   inactiveItems: readonly MiniBuildingCard[]
   pagination: Readonly<{
     page: number
-    pageSize: number
+    pageSize: 24
     totalDocs: number
     totalPages: number
     hasNextPage: boolean
@@ -105,13 +114,13 @@ export type MiniBuildingDetailData = Readonly<{
   name: string
   address: string
   district: string | null
-  grade: 'A' | 'B' | 'C' | null
+  grade: MiniBuildingGrade | null
   completedYear: number | null
   totalFloors: number | null
   standardFloorArea: number | null
   elevators: Readonly<{
-    passenger: number
-    cargo: number
+    passenger: number | null
+    cargo: number | null
   }> | null
   parkingSpaces: number | null
   propertyManagementCompany: string | null
@@ -124,9 +133,9 @@ export type MiniBuildingDetailData = Readonly<{
     items: readonly MiniListingCard[]
   }>[]
   nearestMetro: Readonly<{
-    line: string
     station: string
-    distanceMeters: number
+    line: string | null
+    distanceMeters: number | null
   }> | null
   comparableBuildings: readonly MiniBuildingCard[]
 }>
@@ -138,7 +147,7 @@ export type MiniBuildingDetailResolution =
 
 export type MiniHomeData = Readonly<{
   featuredListings: readonly MiniListingCard[]
-  featuredBuildings?: readonly MiniBuildingCard[]
+  featuredBuildings: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
 }>

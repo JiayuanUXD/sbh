@@ -42,7 +42,8 @@ Component({
       const locParts: string[] = []
       if (building.district) locParts.push(building.district)
       if (building.nearestMetro) {
-        locParts.push(`${building.nearestMetro.station} ${building.nearestMetro.distanceMeters > 0 ? building.nearestMetro.distanceMeters + 'm' : ''}`.trim())
+        const distance = building.nearestMetro.distanceMeters
+        locParts.push(`${building.nearestMetro.station} ${distance !== null ? `${distance}m` : ''}`.trim())
       } else if (building.address) {
         locParts.push(building.address)
       }

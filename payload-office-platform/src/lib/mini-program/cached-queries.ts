@@ -2,6 +2,8 @@ import { unstable_cache } from 'next/cache'
 
 import {
   buildCanonicalSearchParams,
+  BUILDINGS_CATEGORY_TAG,
+  buildingsCityTag,
   createSearchContext,
   facetsTag,
   getBuildingDetail,
@@ -52,6 +54,14 @@ function miniCacheTags(city: string): string[] {
     listingsCityTag(city),
     homeTag(city),
     facetsTag(city),
+  ]
+}
+
+function miniBuildingCacheTags(city: string): string[] {
+  return [
+    ...miniCacheTags(city),
+    BUILDINGS_CATEGORY_TAG,
+    buildingsCityTag(city),
   ]
 }
 
@@ -167,7 +177,7 @@ const getCachedMiniBuildingsByCity = memoizeByCity((city) => unstable_cache(
     }
   },
   ['mini-v1-buildings', city],
-  { tags: miniCacheTags(city), revalidate: 300 },
+  { tags: miniBuildingCacheTags(city), revalidate: 300 },
 ))
 
 export function getCachedMiniBuildings(
@@ -192,7 +202,7 @@ const getCachedMiniBuildingDetailByCity = memoizeByCity((city) => unstable_cache
     }
   },
   ['mini-v1-building-detail', city],
-  { tags: miniCacheTags(city), revalidate: 300 },
+  { tags: miniBuildingCacheTags(city), revalidate: 300 },
 ))
 
 export function getCachedMiniBuildingDetail(
@@ -201,4 +211,3 @@ export function getCachedMiniBuildingDetail(
 ): Promise<MiniSnapshot<BuildingDetailSnapshot | null>> {
   return getCachedMiniBuildingDetailByCity(city)(slug)
 }
-
