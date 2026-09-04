@@ -484,6 +484,7 @@ export function mapMiniBuildingDetail(
   supply: BuildingDetailResult['supply'],
   comparable: readonly BuildingSummaryViewModel[],
   mediaOrigin: string,
+  inquiryPolicyVersion: string,
 ): MiniBuildingDetailData {
   const allListings = supply.groups.flatMap((g) => g.listings)
   const activeCards = allListings.map((l) => mapMiniListingCard(l, mediaOrigin))
@@ -524,5 +525,6 @@ export function mapMiniBuildingDetail(
     groupedListings,
     nearestMetro: buildingNearestMetro(detail),
     comparableBuildings: comparable.map((b) => mapMiniBuildingCard(b, mediaOrigin)),
+    inquiryPolicy: { version: inquiryPolicyVersion },
   }
 }

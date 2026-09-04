@@ -127,6 +127,7 @@ export async function getMiniBuildingDetail(
   if (!snapshot.data) return { status: 'building_not_found' }
   const building = snapshot.data.detail.building
   if (!building) return { status: 'building_not_found' }
+  const siteConfig = getSiteConfig()
 
   return {
     status: 'ok',
@@ -136,7 +137,8 @@ export async function getMiniBuildingDetail(
         building,
         snapshot.data.detail.supply,
         snapshot.data.comparable,
-        getSiteConfig().siteOrigin,
+        siteConfig.siteOrigin,
+        siteConfig.privacyPolicyVersion,
       ),
     },
   }

@@ -113,6 +113,7 @@ const validBuildingDetail = {
   groupedListings: [],
   nearestMetro: validBuilding.nearestMetro,
   comparableBuildings: [],
+  inquiryPolicy: { version: 'policy-building-v2' },
 }
 
 const validListings = {
@@ -184,6 +185,20 @@ describe('Mini API 目录运行时契约', () => {
     expect(parseMiniBuildingDetailData(validBuildingDetail, validBuildingDetail.slug)).toEqual(
       validBuildingDetail,
     )
+  })
+
+  it('楼盘详情要求严格、非空且唯一的咨询政策版本字段', () => {
+    const { inquiryPolicy: _inquiryPolicy, ...missingPolicy } = validBuildingDetail
+
+    expect(() => parseMiniBuildingDetailData(missingPolicy)).toThrow(/Mini API 目录响应无效/)
+    expect(() => parseMiniBuildingDetailData({
+      ...validBuildingDetail,
+      inquiryPolicy: { version: '' },
+    })).toThrow(/Mini API 目录响应无效/)
+    expect(() => parseMiniBuildingDetailData({
+      ...validBuildingDetail,
+      inquiryPolicy: { version: 'policy-building-v2', extra: 'internal' },
+    })).toThrow(/Mini API 目录响应无效/)
   })
 
   it('要求首页显式提供精选楼盘', () => {

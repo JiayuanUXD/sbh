@@ -462,6 +462,7 @@ describe('Mini API mappers', () => {
       },
       [],
       MEDIA_ORIGIN,
+      'policy-building-v2',
     )
 
     expect(mapped).toMatchObject({
@@ -473,6 +474,7 @@ describe('Mini API mappers', () => {
       parkingSpaces: 600,
       propertyManagementCompany: '第一太平戴维斯',
       propertyFee: 38,
+      inquiryPolicy: { version: 'policy-building-v2' },
     })
   })
 
@@ -495,7 +497,13 @@ describe('Mini API mappers', () => {
       validationErrors: [],
     }
 
-    const mapped = mapMiniBuildingDetail(buildingDetail, supply, [], MEDIA_ORIGIN)
+    const mapped = mapMiniBuildingDetail(
+      buildingDetail,
+      supply,
+      [],
+      MEDIA_ORIGIN,
+      'policy-building-v2',
+    )
 
     expect(mapped).toMatchObject({
       grade: 'super-grade-a',
@@ -507,6 +515,7 @@ describe('Mini API mappers', () => {
       propertyManagementCompany: '第一太平戴维斯',
       propertyFee: 38,
       nearestMetro: { station: '南京西路站', line: null, distanceMeters: null },
+      inquiryPolicy: { version: 'policy-building-v2' },
     })
     expect(mapped.groupedListings.flatMap((group) => group.items).map((item) => item.slug)).toEqual([
       card.slug,

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { RequestOptions } from '../miniprogram/services/mini-api-contracts.js'
+import { MiniApiError } from '../miniprogram/services/request.js'
 import {
   createUserAssetsService,
   isFavorite,
@@ -68,12 +69,101 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => null,
+      clearAnonymousContext: () => undefined,
     })
 
     await expect(service.loadUserAssets()).rejects.toMatchObject({ code: 'session_invalid' })
     await expect(service.setFavorite({ targetType: 'listing', targetSlug: 'jing-an-100' }, true))
       .rejects.toMatchObject({ code: 'session_invalid' })
     expect(requestCalls).toBe(0)
+  })
+
+  it('/me 返回 session_invalid 时清理会话且本次不重试，用户下次重试才重新登录', async () => {
+    let token = 'expired-token'
+    let clearCalls = 0
+    const requestTokens: string[] = []
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => {
+      requestTokens.push(options.anonymousContextToken ?? '')
+      if (options.anonymousContextToken === 'expired-token') {
+        throw new MiniApiError({
+          kind: 'business',
+          code: 'session_invalid',
+          statusCode: 401,
+          requestId: 'expired-request',
+          retryable: false,
+        })
+      }
+      return parseThrough(options, emptyAssets())
+    }
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => token,
+      clearAnonymousContext: () => {
+        clearCalls += 1
+        token = 'fresh-token'
+      },
+    })
+
+    await expect(service.loadUserAssets()).rejects.toMatchObject({ code: 'session_invalid' })
+    expect(requestTokens).toEqual(['expired-token'])
+    expect(clearCalls).toBe(1)
+
+    await expect(service.loadUserAssets()).resolves.toEqual(emptyAssets())
+    expect(requestTokens).toEqual(['expired-token', 'fresh-token'])
+  })
+
+  it('/favorites 返回 session_invalid 时清理会话且不自动重试写请求', async () => {
+    let token = 'expired-token'
+    let clearCalls = 0
+    const requestTokens: string[] = []
+    const serverListings = new Set<string>()
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => {
+      requestTokens.push(options.anonymousContextToken ?? '')
+      if (options.anonymousContextToken === 'expired-token') {
+        throw new MiniApiError({
+          kind: 'business',
+          code: 'session_invalid',
+          statusCode: 401,
+          requestId: 'expired-write',
+          retryable: false,
+        })
+      }
+      if (options.path === '/api/mini/v1/favorites') {
+        serverListings.add('jing-an-100')
+        return parseThrough(options, {
+          favorite: true,
+          created: true,
+          targetType: 'listing',
+          targetSlug: 'jing-an-100',
+        })
+      }
+      return parseThrough(options, {
+        counts: { favorites: serverListings.size, inquiries: 0 },
+        favorites: {
+          listings: [...serverListings].map((slug) => listingFavorite(slug)),
+          buildings: [],
+        },
+        inquiries: [],
+      })
+    }
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => token,
+      clearAnonymousContext: () => {
+        clearCalls += 1
+        token = 'fresh-token'
+      },
+    })
+    const target = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+
+    await expect(service.setFavorite(target, true)).rejects.toMatchObject({ code: 'session_invalid' })
+    expect(requestTokens).toEqual(['expired-token'])
+    expect(clearCalls).toBe(1)
+
+    await expect(service.setFavorite(target, true)).resolves.toSatisfy((assets: UserAssets) => (
+      isFavorite(assets, target)
+    ))
+    expect(requestTokens).toEqual(['expired-token', 'fresh-token', 'fresh-token'])
   })
 
   it('服务端重载恢复收藏，且不同 service 实例读取同一服务端状态', async () => {
@@ -117,6 +207,7 @@ describe('服务端用户收藏', () => {
     const dependencies = {
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     }
     const first = createUserAssetsService(dependencies)
     const second = createUserAssetsService(dependencies)
@@ -146,6 +237,7 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     })
 
     await expect(service.setFavorite({ targetType: 'building', targetSlug: 'jing-an-center' }, true))
@@ -170,6 +262,7 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     })
 
     await expect(service.setFavorite(
@@ -194,6 +287,7 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     })
 
     await expect(service.setFavorite(
@@ -254,6 +348,7 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     })
 
     const assets = await service.loadUserAssets()
@@ -271,13 +366,150 @@ describe('服务端用户收藏', () => {
     expect(setStorageSync).toHaveBeenCalledWith('sbh_user_assets_migrated_v1', true)
   })
 
+  it('Storage 已迁移状态不再读取或改写旧 key', async () => {
+    const getStorageSync = vi.fn((key: string) => (
+      key === 'sbh_user_assets_migrated_v1' ? true : undefined
+    ))
+    const removeStorageSync = vi.fn()
+    const setStorageSync = vi.fn()
+    vi.stubGlobal('wx', { getStorageSync, removeStorageSync, setStorageSync })
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => (
+      parseThrough(options, emptyAssets())
+    )
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
+    })
+
+    await expect(service.loadUserAssets()).resolves.toEqual(emptyAssets())
+    expect(getStorageSync).toHaveBeenCalledTimes(1)
+    expect(removeStorageSync).not.toHaveBeenCalled()
+    expect(setStorageSync).not.toHaveBeenCalled()
+  })
+
+  it('Storage 读取失败时仍返回服务端确认资产，但保留旧 key 且不标记迁移', async () => {
+    const removeStorageSync = vi.fn()
+    const setStorageSync = vi.fn()
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) => {
+        if (key === 'sbh_user_assets_migrated_v1') return false
+        throw new Error('storage read unavailable')
+      }),
+      removeStorageSync,
+      setStorageSync,
+    })
+    const serverAssets: UserAssets = {
+      counts: { favorites: 1, inquiries: 0 },
+      favorites: {
+        listings: [{ slug: 'jing-an-100', title: '静安中心 100㎡', coverImage: null }],
+        buildings: [],
+      },
+      inquiries: [],
+    }
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => (
+      parseThrough(options, {
+        ...serverAssets,
+        favorites: { listings: [listingFavorite()], buildings: [] },
+      })
+    )
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
+    })
+
+    await expect(service.loadUserAssets()).resolves.toEqual(serverAssets)
+    expect(removeStorageSync).not.toHaveBeenCalled()
+    expect(setStorageSync).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { targetType: 'listing' as const, targetSlug: 'removed-listing', code: 'listing_not_found' },
+    { targetType: 'building' as const, targetSlug: 'removed-building', code: 'building_not_found' },
+  ])('确定性失效候选 $code 不阻塞 profile，并在服务端确认后完成迁移', async (candidate) => {
+    const removeStorageSync = vi.fn()
+    const setStorageSync = vi.fn()
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) => {
+        if (key === 'sbh_user_assets_migrated_v1') return false
+        if (key === 'sbh_fav_listings_v1' && candidate.targetType === 'listing') {
+          return [{ slug: candidate.targetSlug }]
+        }
+        if (key === 'sbh_fav_buildings_v1' && candidate.targetType === 'building') {
+          return [{ slug: candidate.targetSlug }]
+        }
+        return undefined
+      }),
+      removeStorageSync,
+      setStorageSync,
+    })
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => {
+      if (options.path === '/api/mini/v1/favorites') {
+        throw new MiniApiError({
+          kind: 'business',
+          code: candidate.code,
+          statusCode: 404,
+          requestId: 'removed-target',
+          retryable: false,
+        })
+      }
+      return parseThrough(options, emptyAssets())
+    }
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
+    })
+
+    await expect(service.loadUserAssets()).resolves.toEqual(emptyAssets())
+    expect(removeStorageSync).toHaveBeenCalledWith('sbh_fav_listings_v1')
+    expect(removeStorageSync).toHaveBeenCalledWith('sbh_fav_buildings_v1')
+    expect(setStorageSync).toHaveBeenCalledWith('sbh_user_assets_migrated_v1', true)
+  })
+
+  it('迁移遇到 503 时失败关闭并保留候选供后续重试', async () => {
+    const removeStorageSync = vi.fn()
+    const setStorageSync = vi.fn()
+    vi.stubGlobal('wx', {
+      getStorageSync: vi.fn((key: string) => (
+        key === 'sbh_fav_listings_v1' ? [{ slug: 'jing-an-100' }] : undefined
+      )),
+      removeStorageSync,
+      setStorageSync,
+    })
+    const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => {
+      if (options.path === '/api/mini/v1/favorites') {
+        throw new MiniApiError({
+          kind: 'http',
+          code: 'service_unavailable',
+          statusCode: 503,
+          requestId: 'migration-unavailable',
+          retryable: false,
+        })
+      }
+      return parseThrough(options, emptyAssets())
+    }
+    const service = createUserAssetsService({
+      request,
+      ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
+    })
+
+    await expect(service.loadUserAssets()).rejects.toMatchObject({ code: 'service_unavailable' })
+    expect(removeStorageSync).not.toHaveBeenCalled()
+    expect(setStorageSync).not.toHaveBeenCalled()
+  })
+
   it('迁移 PUT 未确认时拒绝加载，绝不把本地候选回填为可见收藏', async () => {
+    const removeStorageSync = vi.fn()
+    const setStorageSync = vi.fn()
     vi.stubGlobal('wx', {
       getStorageSync: vi.fn((key: string) => key === 'sbh_fav_listings_v1'
         ? [{ slug: 'local-only', title: '本地旧收藏' }]
         : undefined),
-      setStorageSync: vi.fn(),
-      removeStorageSync: vi.fn(),
+      setStorageSync,
+      removeStorageSync,
     })
     const request: UserAssetsRequestClient = async <T>(options: RequestOptions<T>) => {
       if (options.path === '/api/mini/v1/favorites') throw new Error('write unconfirmed')
@@ -286,9 +518,12 @@ describe('服务端用户收藏', () => {
     const service = createUserAssetsService({
       request,
       ensureAnonymousContext: async () => 'server-session',
+      clearAnonymousContext: () => undefined,
     })
 
     await expect(service.loadUserAssets()).rejects.toThrow('write unconfirmed')
     await expect(service.refreshUserAssets()).resolves.toEqual(emptyAssets())
+    expect(removeStorageSync).not.toHaveBeenCalled()
+    expect(setStorageSync).not.toHaveBeenCalled()
   })
 })

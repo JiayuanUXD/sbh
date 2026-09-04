@@ -55,6 +55,8 @@ describe('楼盘详情页面合同', () => {
     expect(source).toContain('createInquiryService')
     expect(source).toContain("targetType: 'building'")
     expect(source).toContain('buildingSlug: building.slug')
+    expect(source).toContain('policyVersion: building.inquiryPolicy.version')
+    expect(source).not.toContain("policyVersion: 'MVP-R1'")
     expect(source).toMatch(/snapshot\.state === 'success'[\s\S]*refreshUserAssets\(\)/)
     expect(template).toContain('<inquiry-sheet')
     expect(template).toContain('snapshot="{{inquirySheet}}"')

@@ -137,6 +137,7 @@ export type MiniBuildingDetailData = Readonly<{
     distanceMeters: number | null
   }> | null
   comparableBuildings: readonly MiniBuildingCard[]
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniHomeData = Readonly<{
@@ -574,7 +575,6 @@ export function parseMiniBuildingCard(value: unknown): MiniBuildingCard {
           distanceMeters: requireNullableNonNegativeInteger(metro.distanceMeters),
         }
       })()
-
   const priceRange = record.priceRange === null
     ? null
     : (() => {
@@ -658,6 +658,10 @@ export function parseMiniBuildingDetailData(
           distanceMeters: requireNullableNonNegativeInteger(metro.distanceMeters),
         }
       })()
+  const inquiryPolicy = requireRecord(record.inquiryPolicy)
+  if (Object.keys(inquiryPolicy).length !== 1 || !Object.hasOwn(inquiryPolicy, 'version')) {
+    return invalidCatalogResponse()
+  }
 
   return {
     id: requireString(record.id),
@@ -685,5 +689,6 @@ export function parseMiniBuildingDetailData(
     }),
     nearestMetro,
     comparableBuildings: requireArray(record.comparableBuildings, parseMiniBuildingCard),
+    inquiryPolicy: { version: requireNonEmptyString(inquiryPolicy.version) },
   }
 }

@@ -101,4 +101,44 @@ describe('服务端咨询记录投影', () => {
       }],
     })).toThrow('invalid user assets response')
   })
+
+  it('拒绝合法状态 value 携带不一致或伪造的服务端 label', () => {
+    expect(() => parseUserAssets({
+      counts: { favorites: 0, inquiries: 1 },
+      favorites: { listings: [], buildings: [] },
+      inquiries: [{
+        targetType: 'listing',
+        targetSlug: 'jing-an-100',
+        targetTitle: '静安中心 100㎡',
+        submittedAt: '2026-09-04T08:00:00.000Z',
+        status: { value: 'following', label: '顾问已分配' },
+      }],
+    })).toThrow('invalid user assets response')
+  })
+
+  it('穷尽接受本地权威的八种 Lead 状态标签', () => {
+    const statuses = [
+      { value: 'new', label: '新建' },
+      { value: 'pending_assignment', label: '待分配' },
+      { value: 'following', label: '跟进中' },
+      { value: 'qualified', label: '有效商机' },
+      { value: 'viewing', label: '带看' },
+      { value: 'negotiation', label: '谈判' },
+      { value: 'converted', label: '已转化' },
+      { value: 'lost', label: '已流失' },
+    ]
+    const assets = parseUserAssets({
+      counts: { favorites: 0, inquiries: statuses.length },
+      favorites: { listings: [], buildings: [] },
+      inquiries: statuses.map((status, index) => ({
+        targetType: 'general',
+        targetSlug: null,
+        targetTitle: '通用找房需求',
+        submittedAt: `2026-09-04T0${index}:00:00.000Z`,
+        status,
+      })),
+    })
+
+    expect(assets.inquiries.map((inquiry) => inquiry.status)).toEqual(statuses)
+  })
 })

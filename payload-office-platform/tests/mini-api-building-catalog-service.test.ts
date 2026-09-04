@@ -95,7 +95,10 @@ describe('Mini 楼盘 catalog service 编排', () => {
       slug: 'shanghai',
       serviceStatus: 'live',
     })
-    io.getSiteConfig.mockReturnValue({ siteOrigin: 'https://sbh.example' })
+    io.getSiteConfig.mockReturnValue({
+      siteOrigin: 'https://sbh.example',
+      privacyPolicyVersion: 'policy-building-v2',
+    })
   })
 
   it('把 URL 解析结果和缓存快照的权威 pageSize 贯通到真实 Mini mapper', async () => {
@@ -141,6 +144,7 @@ describe('Mini 楼盘 catalog service 编排', () => {
           slug: 'jingan-center',
           grade: 'grade-a',
           completedYear: 2013,
+          inquiryPolicy: { version: 'policy-building-v2' },
           comparableBuildings: [{ slug: 'jingan-center', grade: 'grade-a' }],
         },
       },

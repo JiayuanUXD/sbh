@@ -138,6 +138,7 @@ export type MiniBuildingDetailData = Readonly<{
     distanceMeters: number | null
   }> | null
   comparableBuildings: readonly MiniBuildingCard[]
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniBuildingDetailResolution =

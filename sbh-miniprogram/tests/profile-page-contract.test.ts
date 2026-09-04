@@ -36,6 +36,15 @@ describe('我的页面服务端资产合同', () => {
     expect(source).not.toMatch(/phone|openid|handleUserClick|已通过微信安全授权/)
   })
 
+  it('只在服务端资产 ready 后声明已连接，加载与失败使用真实状态文案', () => {
+    const markup = readPageFile('index.wxml')
+
+    expect(markup).toContain("assetsState === 'ready' ? '已连接当前微信'")
+    expect(markup).toContain("assetsState === 'loading' ? '正在连接当前微信'")
+    expect(markup).toContain("'未能连接当前微信'")
+    expect(markup.match(/已连接当前微信/g)).toHaveLength(1)
+  })
+
   it('具有 loading/ready/error 三态，错误可重试且失败时清空可见资产', () => {
     const markup = readPageFile('index.wxml')
     const source = readPageFile('index.ts')

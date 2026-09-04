@@ -1,4 +1,5 @@
 import type { RequestOptions } from './mini-api-contracts.js'
+import { MiniApiError } from './mini-api-error.js'
 import { request } from './request.js'
 import { createSessionService } from './session.js'
 
@@ -8,7 +9,7 @@ const MIGRATION_MARKER = 'sbh_user_assets_migrated_v1'
 const LEGACY_LISTINGS_KEY = 'sbh_fav_listings_v1'
 const LEGACY_BUILDINGS_KEY = 'sbh_fav_buildings_v1'
 
-const LEAD_STAGES = new Set([
+const USER_INQUIRY_STATUS_VALUES = [
   'new',
   'pending_assignment',
   'following',
@@ -17,7 +18,20 @@ const LEAD_STAGES = new Set([
   'negotiation',
   'converted',
   'lost',
-])
+] as const
+
+type UserInquiryStatusValue = (typeof USER_INQUIRY_STATUS_VALUES)[number]
+
+export const USER_INQUIRY_STATUS_LABELS: Readonly<Record<UserInquiryStatusValue, string>> = {
+  new: '新建',
+  pending_assignment: '待分配',
+  following: '跟进中',
+  qualified: '有效商机',
+  viewing: '带看',
+  negotiation: '谈判',
+  converted: '已转化',
+  lost: '已流失',
+}
 
 export type FavoriteTarget = Readonly<{
   targetType: 'listing' | 'building'
@@ -41,7 +55,7 @@ export type UserInquiry = Readonly<{
   targetSlug: string | null
   targetTitle: string
   submittedAt: string
-  status: Readonly<{ value: string; label: string }>
+  status: Readonly<{ value: UserInquiryStatusValue; label: string }>
 }>
 
 export type UserAssets = Readonly<{
@@ -243,6 +257,11 @@ function canonicalTimestamp(value: unknown): string {
   return timestamp
 }
 
+function isUserInquiryStatusValue(value: unknown): value is UserInquiryStatusValue {
+  return typeof value === 'string'
+    && USER_INQUIRY_STATUS_VALUES.some((candidate) => candidate === value)
+}
+
 function parseInquiry(value: unknown): UserInquiry {
   const inquiry = exact(value, ['targetType', 'targetSlug', 'targetTitle', 'submittedAt', 'status'])
   const targetType = inquiry.targetType
@@ -252,14 +271,15 @@ function parseInquiry(value: unknown): UserInquiry {
   const targetSlug = inquiry.targetSlug === null ? null : safeSlug(inquiry.targetSlug)
   if ((targetType === 'general') !== (targetSlug === null)) return invalidResponse()
   const status = exact(inquiry.status, ['value', 'label'])
-  const statusValue = nonEmptyString(status.value)
-  if (!LEAD_STAGES.has(statusValue)) return invalidResponse()
+  if (!isUserInquiryStatusValue(status.value)) return invalidResponse()
+  const statusLabel = nonEmptyString(status.label)
+  if (statusLabel !== USER_INQUIRY_STATUS_LABELS[status.value]) return invalidResponse()
   return {
     targetType,
     targetSlug,
     targetTitle: nonEmptyString(inquiry.targetTitle),
     submittedAt: canonicalTimestamp(inquiry.submittedAt),
-    status: { value: statusValue, label: nonEmptyString(status.label) },
+    status: { value: status.value, label: statusLabel },
   }
 }
 
@@ -331,10 +351,16 @@ function storageAvailable(): boolean {
     && typeof wx.removeStorageSync === 'function'
 }
 
-function legacyTargets(): readonly FavoriteTarget[] {
-  if (!storageAvailable()) return []
+type LegacyTargetsResult =
+  | Readonly<{ state: 'unavailable' | 'already_migrated' | 'read_failed' }>
+  | Readonly<{ state: 'read_ok'; targets: readonly FavoriteTarget[] }>
+
+function legacyTargets(): LegacyTargetsResult {
+  if (!storageAvailable()) return { state: 'unavailable' }
   try {
-    if (wx.getStorageSync(MIGRATION_MARKER) === true) return []
+    if (wx.getStorageSync(MIGRATION_MARKER) === true) return { state: 'already_migrated' }
+    const storedListings: unknown = wx.getStorageSync(LEGACY_LISTINGS_KEY)
+    const storedBuildings: unknown = wx.getStorageSync(LEGACY_BUILDINGS_KEY)
     const result: FavoriteTarget[] = []
     const append = (value: unknown, targetType: FavoriteTarget['targetType']): void => {
       if (!Array.isArray(value)) return
@@ -346,12 +372,25 @@ function legacyTargets(): readonly FavoriteTarget[] {
         }
       }
     }
-    append(wx.getStorageSync(LEGACY_LISTINGS_KEY), 'listing')
-    append(wx.getStorageSync(LEGACY_BUILDINGS_KEY), 'building')
-    return [...new Map(result.map((target) => [`${target.targetType}:${target.targetSlug}`, target])).values()]
+    append(storedListings, 'listing')
+    append(storedBuildings, 'building')
+    return {
+      state: 'read_ok',
+      targets: [...new Map(
+        result.map((target) => [`${target.targetType}:${target.targetSlug}`, target]),
+      ).values()],
+    }
   } catch {
-    return []
+    return { state: 'read_failed' }
   }
+}
+
+function isConfirmedUnavailable(error: unknown, target: FavoriteTarget): boolean {
+  return error instanceof MiniApiError
+    && error.statusCode === 404
+    && error.code === (target.targetType === 'listing'
+      ? 'listing_not_found'
+      : 'building_not_found')
 }
 
 function settleMigrationStorage(): void {
@@ -369,6 +408,7 @@ function settleMigrationStorage(): void {
 export function createUserAssetsService(dependencies: Readonly<{
   request: UserAssetsRequestClient
   ensureAnonymousContext(): Promise<string | null>
+  clearAnonymousContext(): void
 }>): UserAssetsService {
   let confirmedCache: UserAssets | null = null
   let loadInFlight: Promise<UserAssets> | null = null
@@ -379,8 +419,22 @@ export function createUserAssetsService(dependencies: Readonly<{
     return token
   }
 
+  const authenticatedRequest: UserAssetsRequestClient = async <T>(
+    options: RequestOptions<T>,
+  ): Promise<T> => {
+    try {
+      return await dependencies.request(options)
+    } catch (error: unknown) {
+      if (error instanceof MiniApiError && error.code === 'session_invalid') {
+        confirmedCache = null
+        dependencies.clearAnonymousContext()
+      }
+      throw error
+    }
+  }
+
   const readConfirmed = async (token: string): Promise<UserAssets> => {
-    const assets = await dependencies.request({
+    const assets = await authenticatedRequest({
       path: '/api/mini/v1/me',
       method: 'GET',
       anonymousContextToken: token,
@@ -392,7 +446,7 @@ export function createUserAssetsService(dependencies: Readonly<{
 
   const mutate = async (token: string, target: FavoriteTarget, favorite: boolean): Promise<void> => {
     if (!validTarget(target)) throw new TypeError('收藏目标无效')
-    await dependencies.request({
+    await authenticatedRequest({
       path: '/api/mini/v1/favorites',
       method: favorite ? 'PUT' : 'DELETE',
       anonymousContextToken: token,
@@ -408,10 +462,20 @@ export function createUserAssetsService(dependencies: Readonly<{
     const task = Promise.resolve().then(async () => {
       const token = await sessionToken()
       const initial = await readConfirmed(token)
-      const candidates = legacyTargets().filter((target) => !isFavorite(initial, target))
-      for (const target of candidates) await mutate(token, target, true)
-      const confirmed = candidates.length > 0 ? await readConfirmed(token) : initial
-      if (candidates.some((target) => !isFavorite(confirmed, target))) {
+      const legacy = legacyTargets()
+      if (legacy.state !== 'read_ok') return initial
+      const candidates = legacy.targets.filter((target) => !isFavorite(initial, target))
+      const written: FavoriteTarget[] = []
+      for (const target of candidates) {
+        try {
+          await mutate(token, target, true)
+          written.push(target)
+        } catch (error: unknown) {
+          if (!isConfirmedUnavailable(error, target)) throw error
+        }
+      }
+      const confirmed = written.length > 0 ? await readConfirmed(token) : initial
+      if (written.some((target) => !isFavorite(confirmed, target))) {
         confirmedCache = initial
         throw new UserAssetsError('favorite_unconfirmed')
       }
@@ -441,6 +505,7 @@ const defaultSessionService = createSessionService({ login: requestLoginCode, re
 const defaultUserAssetsService = createUserAssetsService({
   request,
   ensureAnonymousContext: defaultSessionService.ensureAnonymousContext,
+  clearAnonymousContext: defaultSessionService.clear,
 })
 
 export const loadUserAssets = defaultUserAssetsService.loadUserAssets

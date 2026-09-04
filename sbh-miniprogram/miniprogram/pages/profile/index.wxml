@@ -3,7 +3,7 @@
     <view class="profile-avatar" aria-hidden="true">微</view>
     <view class="profile-user-info">
       <view class="profile-username">微信用户</view>
-      <view class="profile-user-state">已连接当前微信</view>
+      <view class="profile-user-state">{{assetsState === 'ready' ? '已连接当前微信' : (assetsState === 'loading' ? '正在连接当前微信' : '未能连接当前微信')}}</view>
     </view>
   </view>
 

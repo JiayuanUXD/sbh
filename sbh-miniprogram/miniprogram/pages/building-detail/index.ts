@@ -114,7 +114,7 @@ function inquiryContext(building: MiniBuildingDetailData): InquirySheetContext {
       unitPrice: '—',
       monthlyEstimate: '—',
     },
-    policyVersion: 'MVP-R1',
+    policyVersion: building.inquiryPolicy.version,
   }
 }
 
