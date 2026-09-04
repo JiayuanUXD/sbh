@@ -15,6 +15,10 @@ import { listingNavigation } from '../../services/listing-navigation.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
 import {
+  createModalTabBarBoundary,
+  type ModalTabBarBoundary,
+} from '../../utils/modal-tab-bar-boundary.js'
+import {
   createHomeLoadController,
   type HomeLoadController,
 } from './controller.js'
@@ -31,6 +35,7 @@ type HomePageData = HomePageSnapshot & Readonly<{
   imageFailed: boolean
   inquiryOpen: boolean
   inquirySheet: InquirySheetSnapshot
+  tabBarBoundaryState: 'visible' | 'hidden'
 }>
 
 type SearchSubmitEvent = Readonly<{
@@ -58,6 +63,7 @@ type PhoneAuthorizationEvent = Readonly<{ detail: Readonly<{ phoneCode?: unknown
 type HomePageMethods = {
   homeLoadController: HomeLoadController | null
   inquirySheetController: InquirySheetController | null
+  modalTabBarBoundary: ModalTabBarBoundary | null
   ensureHomeLoadController(): HomeLoadController
   loadHome(refresh?: boolean): Promise<void>
   handleKeywordInput(event: WechatMiniprogram.Input): void
@@ -71,7 +77,11 @@ type HomePageMethods = {
   handleVideoError(): void
   handleImageError(): void
   ensureInquirySheetController(): InquirySheetController
-  handleOpenInquiry(): void
+  ensureModalTabBarBoundary(): ModalTabBarBoundary
+  showModalTabBarBoundary(): Promise<boolean>
+  restoreModalTabBarBoundary(): Promise<void>
+  closeInquiryForLifecycle(): void
+  handleOpenInquiry(): Promise<void>
   handleInquiryClose(): void
   handleInquiryPrivacy(): void
   handleInquiryMoveInChange(event: ValueEvent): void
@@ -147,22 +157,26 @@ Page<HomePageData, HomePageMethods>({
     imageFailed: false,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
+    tabBarBoundaryState: 'visible',
   },
 
   homeLoadController: null,
   inquirySheetController: null,
+  modalTabBarBoundary: null,
 
   onLoad() {
     void this.loadHome(false)
   },
 
+  onHide() {
+    this.closeInquiryForLifecycle()
+  },
+
   onUnload() {
     this.homeLoadController?.invalidate()
-    this.inquirySheetController?.dispose()
+    this.closeInquiryForLifecycle()
     sessionService.clear()
-    submissionIntentManager.invalidate()
     this.homeLoadController = null
-    this.inquirySheetController = null
   },
 
   onPullDownRefresh() {
@@ -276,8 +290,48 @@ Page<HomePageData, HomePageMethods>({
     return this.inquirySheetController
   },
 
-  handleOpenInquiry() { void this.ensureInquirySheetController().open(generalInquiryContext()) },
-  handleInquiryClose() { this.inquirySheetController?.close() },
+  ensureModalTabBarBoundary() {
+    if (this.modalTabBarBoundary === null) {
+      this.modalTabBarBoundary = createModalTabBarBoundary({
+        hideTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.hideTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        showTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.showTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        onChange: (state) => this.setData({ tabBarBoundaryState: state }),
+      })
+    }
+    return this.modalTabBarBoundary
+  },
+
+  showModalTabBarBoundary() {
+    return this.ensureModalTabBarBoundary().hide()
+  },
+
+  async restoreModalTabBarBoundary() {
+    await this.modalTabBarBoundary?.restore()
+  },
+
+  closeInquiryForLifecycle() {
+    this.inquirySheetController?.dispose()
+    this.inquirySheetController = null
+    submissionIntentManager.invalidate()
+    this.setData({ inquiryOpen: false, inquirySheet: closedInquirySheet() })
+    void this.restoreModalTabBarBoundary()
+  },
+
+  async handleOpenInquiry() {
+    if (!await this.showModalTabBarBoundary()) {
+      wx.showToast({ title: '暂时无法打开咨询', icon: 'none', duration: 1600 })
+      return
+    }
+    await this.ensureInquirySheetController().open(generalInquiryContext())
+  },
+  handleInquiryClose() {
+    this.inquirySheetController?.close()
+    if (this.inquirySheetController?.snapshot().state === 'closed') void this.restoreModalTabBarBoundary()
+  },
   handleInquiryPrivacy() { void this.ensureInquirySheetController().verifyPrivacy() },
   handleInquiryMoveInChange(event) {
     if (typeof event.detail.value === 'string') this.ensureInquirySheetController().setMoveInTime(event.detail.value)

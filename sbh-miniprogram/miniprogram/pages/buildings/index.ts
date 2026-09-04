@@ -14,6 +14,10 @@ import {
 } from '../../services/inquiry.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
+import {
+  createModalTabBarBoundary,
+  type ModalTabBarBoundary,
+} from '../../utils/modal-tab-bar-boundary.js'
 
 const BUILDING_GRADE_FILTERS = [
   { label: '全部', value: '' },
@@ -88,9 +92,11 @@ Page({
     sortLabel: '在租最多',
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
+    tabBarBoundaryState: 'visible' as 'visible' | 'hidden',
   },
 
   inquirySheetController: null as InquirySheetController | null,
+  modalTabBarBoundary: null as ModalTabBarBoundary | null,
 
   onLoad() {
     this.loadBuildings()
@@ -102,11 +108,13 @@ Page({
     })
   },
 
+  onHide() {
+    this.closeInquiryForLifecycle()
+  },
+
   onUnload() {
-    this.inquirySheetController?.dispose()
-    this.inquirySheetController = null
+    this.closeInquiryForLifecycle()
     sessionService.clear()
-    submissionIntentManager.invalidate()
   },
 
   async loadBuildings() {
@@ -209,8 +217,48 @@ Page({
     return this.inquirySheetController
   },
 
-  handleOpenInquiry() { void this.ensureInquirySheetController().open(generalInquiryContext()) },
-  handleInquiryClose() { this.inquirySheetController?.close() },
+  ensureModalTabBarBoundary() {
+    if (this.modalTabBarBoundary === null) {
+      this.modalTabBarBoundary = createModalTabBarBoundary({
+        hideTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.hideTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        showTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.showTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        onChange: (state) => this.setData({ tabBarBoundaryState: state }),
+      })
+    }
+    return this.modalTabBarBoundary
+  },
+
+  showModalTabBarBoundary() {
+    return this.ensureModalTabBarBoundary().hide()
+  },
+
+  async restoreModalTabBarBoundary() {
+    await this.modalTabBarBoundary?.restore()
+  },
+
+  closeInquiryForLifecycle() {
+    this.inquirySheetController?.dispose()
+    this.inquirySheetController = null
+    submissionIntentManager.invalidate()
+    this.setData({ inquiryOpen: false, inquirySheet: closedInquirySheet() })
+    void this.restoreModalTabBarBoundary()
+  },
+
+  async handleOpenInquiry() {
+    if (!await this.showModalTabBarBoundary()) {
+      wx.showToast({ title: '暂时无法打开咨询', icon: 'none', duration: 1600 })
+      return
+    }
+    await this.ensureInquirySheetController().open(generalInquiryContext())
+  },
+  handleInquiryClose() {
+    this.inquirySheetController?.close()
+    if (this.inquirySheetController?.snapshot().state === 'closed') void this.restoreModalTabBarBoundary()
+  },
   handleInquiryPrivacy() { void this.ensureInquirySheetController().verifyPrivacy() },
   handleInquiryMoveInChange(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
     if (typeof event.detail.value === 'string') this.ensureInquirySheetController().setMoveInTime(event.detail.value)

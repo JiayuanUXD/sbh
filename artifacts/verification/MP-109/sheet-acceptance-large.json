@@ -1,0 +1,530 @@
+{
+  "status": "failed",
+  "timestamp": "2026-09-04T18:29:43.018Z",
+  "environment": "local-wechat-devtools-develop-with-controlled-mock",
+  "evidenceRevision": "d9c4abf078b149af",
+  "viewportProfile": {
+    "name": "large",
+    "screenWidth": 430,
+    "passed": true
+  },
+  "systemInfo": {
+    "SDKVersion": "3.17.2",
+    "platform": "devtools",
+    "version": "8.0.5",
+    "windowWidth": 430,
+    "windowHeight": 752,
+    "filterPageWidth": 430,
+    "filterPageHeight": 834,
+    "inquiryPageWidth": 430,
+    "inquiryPageHeight": 834,
+    "safeAreaBottomInset": 34
+  },
+  "states": {
+    "filterPrice": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 412,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 430,
+          "right": 430,
+          "bottom": 486
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 430,
+          "right": 417,
+          "bottom": 480
+        },
+        "body": {
+          "left": 0,
+          "top": 486,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 151.6640625,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "resultCount": 4,
+      "nativeTabBar": {
+        "tabBarVisible": false,
+        "current": {
+          "width": 430,
+          "height": 834
+        },
+        "expandedViewport": {
+          "width": 430,
+          "height": 834
+        },
+        "visibleViewport": {
+          "width": 430,
+          "height": 752
+        }
+      },
+      "screenshot": "large/filter-price-open.png"
+    },
+    "filterAll": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 91,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 109,
+          "right": 430,
+          "bottom": 165
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 109,
+          "right": 417,
+          "bottom": 159
+        },
+        "body": {
+          "left": 0,
+          "top": 165,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 151.6640625,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "scrollHeight": 843,
+      "footerFixed": true,
+      "screenshot": "large/filter-all-open.png"
+    },
+    "homeInquiry": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "openedByRealTap": true,
+      "nativeTabBar": {
+        "tabBarVisible": false,
+        "current": {
+          "width": 430,
+          "height": 834
+        },
+        "expandedViewport": {
+          "width": 430,
+          "height": 834
+        },
+        "visibleViewport": {
+          "width": 430,
+          "height": 752
+        }
+      },
+      "screenshot": "large/home-inquiry-open.png"
+    },
+    "buildingsInquiry": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "openedByRealTap": true,
+      "nativeTabBar": {
+        "tabBarVisible": false,
+        "current": {
+          "width": 430,
+          "height": 834
+        },
+        "expandedViewport": {
+          "width": 430,
+          "height": 834
+        },
+        "visibleViewport": {
+          "width": 430,
+          "height": 752
+        }
+      },
+      "screenshot": "large/buildings-inquiry-open.png"
+    },
+    "inquiryWechat": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "openedByRealTap": true,
+      "actualOpenState": "recoverable-error",
+      "evidenceMode": "real-tap-open-with-local-devtools-visual-fixture",
+      "nativeTabBar": {
+        "tabBarVisible": false,
+        "current": {
+          "width": 430,
+          "height": 834
+        },
+        "expandedViewport": {
+          "width": 430,
+          "height": 834
+        },
+        "visibleViewport": null
+      },
+      "screenshot": "large/inquiry-wechat.png"
+    },
+    "inquiryManual": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "phoneMode": "manual",
+      "openedByRealTap": true,
+      "evidenceMode": "real-mode-tap-with-local-devtools-visual-fixture",
+      "screenshot": "large/inquiry-manual.png"
+    },
+    "inquiryKeyboard": {
+      "passed": false,
+      "failures": [
+        "keyboard did not materially shrink viewport or focused controls are obscured"
+      ],
+      "focusedField": "",
+      "focusedByRealTap": false,
+      "inputVisibleBeforeTap": true,
+      "preFocusViewport": {
+        "width": 430,
+        "height": 834
+      },
+      "viewport": {
+        "width": 430,
+        "height": 834
+      },
+      "keyboardViewportDelta": 0,
+      "input": {
+        "left": 29,
+        "top": 621.2109375,
+        "right": 401,
+        "bottom": 671.2109375
+      },
+      "footer": {
+        "left": 0,
+        "top": 737,
+        "right": 430,
+        "bottom": 834
+      },
+      "screenshot": "large/inquiry-keyboard-focus.png"
+    },
+    "inquiryError": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "evidenceMode": "local-devtools-visual-fixture",
+      "visibleError": {
+        "text": "网络连接失败，请检查网络后重试",
+        "rect": {
+          "left": 29,
+          "top": 700.2109375,
+          "right": 401,
+          "bottom": 721.2109375
+        },
+        "visiblyRendered": true
+      },
+      "screenshot": "large/inquiry-error.png"
+    },
+    "inquirySubmitting": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "evidenceMode": "local-devtools-visual-fixture",
+      "screenshot": "large/inquiry-submitting.png"
+    },
+    "inquirySuccess": {
+      "passed": true,
+      "failures": [],
+      "geometry": {
+        "panel": {
+          "left": 0,
+          "top": 233.5234375,
+          "right": 430,
+          "bottom": 834
+        },
+        "header": {
+          "left": 0,
+          "top": 251.5234375,
+          "right": 430,
+          "bottom": 307.5234375
+        },
+        "footer": {
+          "left": 0,
+          "top": 737,
+          "right": 430,
+          "bottom": 834
+        },
+        "close": {
+          "left": 367,
+          "top": 251.5234375,
+          "right": 417,
+          "bottom": 301.5234375
+        },
+        "body": {
+          "left": 0,
+          "top": 307.5234375,
+          "right": 430,
+          "bottom": 737
+        },
+        "primaryAction": {
+          "left": 13,
+          "top": 744,
+          "right": 417,
+          "bottom": 794
+        }
+      },
+      "evidenceMode": "local-devtools-visual-fixture",
+      "screenshot": "large/inquiry-success.png"
+    }
+  },
+  "limitations": [
+    "首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具",
+    "键盘态证明输入发生真实 focus 且输入与 footer 位于 DevTools 收缩后的可视区；不等同于 iOS/Android 真机键盘验收",
+    "未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收"
+  ],
+  "reason": "Error: MP-109 抽屉验收失败或缺失：inquiryKeyboard\n    at assertMp109SheetAcceptance (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:138:13)\n    at main (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:846:5)\n    at async file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:880:3"
+}

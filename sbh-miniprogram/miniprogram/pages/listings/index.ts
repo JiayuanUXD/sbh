@@ -12,6 +12,10 @@ import { catalog } from '../../services/catalog.js'
 import type { MiniQuickFilter } from '../../services/catalog-contracts.js'
 import { listingNavigation } from '../../services/listing-navigation.js'
 import {
+  createModalTabBarBoundary,
+  type ModalTabBarBoundary,
+} from '../../utils/modal-tab-bar-boundary.js'
+import {
   createListingsController,
   type ListingsController,
   type ListingsLoadState,
@@ -79,8 +83,9 @@ type ListingsPageMethods = {
   listingsController: ListingsController | null
   initialQuery: ListingQuery
   hasLoaded: boolean
-  modalTabBarHidden: boolean
+  modalTabBarBoundary: ModalTabBarBoundary | null
   ensureListingsController(): ListingsController
+  ensureModalTabBarBoundary(): ModalTabBarBoundary
   showModalTabBarBoundary(): Promise<boolean>
   restoreModalTabBarBoundary(): Promise<void>
   handleRetry(): void
@@ -167,7 +172,7 @@ Page<ListingsPageData, ListingsPageMethods>({
   listingsController: null,
   initialQuery: emptyQuery,
   hasLoaded: false,
-  modalTabBarHidden: false,
+  modalTabBarBoundary: null,
 
   onLoad(options) {
     this.initialQuery = parseListingQuery(buildWhitelistedQuery(options))
@@ -191,10 +196,14 @@ Page<ListingsPageData, ListingsPageMethods>({
   },
 
   onHide() {
+    this.listingsController?.cancelEstimate()
+    this.setData({ sheetOpen: false })
     void this.restoreModalTabBarBoundary()
   },
 
   onUnload() {
+    this.listingsController?.cancelEstimate()
+    this.setData({ sheetOpen: false })
     void this.restoreModalTabBarBoundary()
     this.listingsController?.dispose()
     this.listingsController = null
@@ -220,33 +229,31 @@ Page<ListingsPageData, ListingsPageMethods>({
     return this.listingsController
   },
 
-  async showModalTabBarBoundary() {
-    if (this.modalTabBarHidden) return true
-    try {
-      await new Promise<void>((resolve, reject) => {
-        wx.hideTabBar({ animation: false, success: () => resolve(), fail: reject })
+  ensureModalTabBarBoundary() {
+    if (this.modalTabBarBoundary === null) {
+      this.modalTabBarBoundary = createModalTabBarBoundary({
+        hideTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.hideTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        showTabBar: () => new Promise<void>((resolve, reject) => {
+          wx.showTabBar({ animation: false, success: () => resolve(), fail: reject })
+        }),
+        onChange: (state) => this.setData({ tabBarBoundaryState: state }),
       })
-      this.modalTabBarHidden = true
-      this.setData({ tabBarBoundaryState: 'hidden' })
-      return true
-    } catch {
-      await this.restoreModalTabBarBoundary()
-      wx.showToast({ title: '暂时无法打开筛选', icon: 'none', duration: 1600 })
-      return false
     }
+    return this.modalTabBarBoundary
+  },
+
+  async showModalTabBarBoundary() {
+    const hidden = await this.ensureModalTabBarBoundary().hide()
+    if (!hidden) {
+      wx.showToast({ title: '暂时无法打开筛选', icon: 'none', duration: 1600 })
+    }
+    return hidden
   },
 
   async restoreModalTabBarBoundary() {
-    if (!this.modalTabBarHidden) return
-    try {
-      await new Promise<void>((resolve, reject) => {
-        wx.showTabBar({ animation: false, success: () => resolve(), fail: reject })
-      })
-      this.modalTabBarHidden = false
-      this.setData({ tabBarBoundaryState: 'visible' })
-    } catch {
-      // 保留 hidden 标记，让 onHide/onUnload 等后续边界继续尝试恢复。
-    }
+    await this.modalTabBarBoundary?.restore()
   },
 
   handleRetry() {

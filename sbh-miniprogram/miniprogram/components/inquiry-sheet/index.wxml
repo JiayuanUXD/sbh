@@ -42,6 +42,9 @@
             adjust-position="{{true}}"
             cursor-spacing="24"
             disabled="{{snapshot.busy}}"
+            data-field="moveInTime"
+            bindfocus="handleFieldFocus"
+            bindblur="handleFieldBlur"
             bindinput="handleMoveInInput"
           />
         </view>
@@ -52,11 +55,13 @@
             <button
               class="inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'wechat' ? 'inquiry-sheet__phone-segment-option--active' : ''}}"
               bindtap="handleSelectWechat"
+              aria-pressed="{{snapshot.phoneMode === 'wechat'}}"
               disabled="{{snapshot.busy}}"
             >微信手机号</button>
             <button
               class="inquiry-sheet__manual-entry inquiry-sheet__phone-segment-option {{snapshot.phoneMode === 'manual' ? 'inquiry-sheet__phone-segment-option--active' : ''}}"
               bindtap="handleSelectManual"
+              aria-pressed="{{snapshot.phoneMode === 'manual'}}"
               disabled="{{snapshot.busy}}"
             >手动填写</button>
           </view>
@@ -73,6 +78,9 @@
             adjust-position="{{true}}"
             cursor-spacing="24"
             disabled="{{snapshot.busy}}"
+            data-field="phone"
+            bindfocus="handleFieldFocus"
+            bindblur="handleFieldBlur"
             bindinput="handlePhoneInput"
           />
         </view>

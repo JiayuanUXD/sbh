@@ -1,16 +1,23 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import automator from 'miniprogram-automator'
 
-import { createAcceptanceServer } from './acceptance-mock-server.mjs'
+import {
+  ACCEPTANCE_FIXTURE_ID,
+  createAcceptanceServer,
+} from './acceptance-mock-server.mjs'
 
 const stateNames = [
   'filterPrice',
   'filterAll',
+  'homeInquiry',
+  'buildingsInquiry',
   'inquiryWechat',
   'inquiryManual',
+  'inquiryKeyboard',
   'inquiryError',
   'inquirySubmitting',
   'inquirySuccess',
@@ -21,6 +28,19 @@ const projectRoot = resolve(scriptDirectory, '..')
 const artifactsDir = resolve(projectRoot, '../artifacts/verification/MP-109')
 const screenshotsDir = join(artifactsDir, 'sheet-screenshots')
 const reportPath = join(artifactsDir, 'sheet-acceptance-report.json')
+const profileReportPaths = Object.freeze({
+  small: join(artifactsDir, 'sheet-acceptance-small.json'),
+  large: join(artifactsDir, 'sheet-acceptance-large.json'),
+})
+const viewportProfiles = Object.freeze({
+  small: Object.freeze({ maxWidth: 375 }),
+  large: Object.freeze({ minWidth: 400 }),
+})
+let activeViewportProfile = 'current'
+const evidenceRevision = createHash('sha256')
+  .update(readFileSync(fileURLToPath(import.meta.url)))
+  .digest('hex')
+  .slice(0, 16)
 
 function finite(value) {
   const parsed = typeof value === 'string' ? Number.parseFloat(value) : value
@@ -37,6 +57,22 @@ function safeRect(value) {
   return { left, right, top, bottom }
 }
 
+function positiveRect(rect) {
+  return typeof rect === 'object'
+    && rect !== null
+    && rect.right > rect.left
+    && rect.bottom > rect.top
+}
+
+function rectInsideRect(rect, container, tolerance = 1) {
+  return positiveRect(rect)
+    && positiveRect(container)
+    && rect.left >= container.left - tolerance
+    && rect.right <= container.right + tolerance
+    && rect.top >= container.top - tolerance
+    && rect.bottom <= container.bottom + tolerance
+}
+
 export function evaluateSheetGeometry(input) {
   const failures = []
   if (typeof input !== 'object' || input === null) {
@@ -49,6 +85,8 @@ export function evaluateSheetGeometry(input) {
     bottom: input.viewport?.height,
   })
   const panel = safeRect(input.panel)
+  const header = safeRect(input.header)
+  const body = safeRect(input.body)
   const footer = safeRect(input.footer)
   const close = safeRect(input.close)
   const primaryAction = input.primaryAction ? safeRect(input.primaryAction) : null
@@ -56,25 +94,30 @@ export function evaluateSheetGeometry(input) {
   if (input.requiredSelectorsPresent !== true) failures.push('required selector missing')
   if (input.tabBarVisible !== false) failures.push('native TabBar still visible')
   if (input.expectedSectionOnly !== true) failures.push('unexpected filter section visible')
-  if (!viewport || !panel || !footer || !close) failures.push('invalid geometry')
+  if (![viewport, panel, header, body, footer, close].every(positiveRect)) failures.push('invalid or non-positive geometry')
 
   if (viewport && panel) {
     if (panel.left < -1 || panel.right > viewport.right + 1) failures.push('panel horizontally clipped')
     if (panel.top < -1 || panel.bottom > viewport.bottom + 1) failures.push('panel outside viewport')
   }
   if (viewport && footer && panel) {
-    if (footer.left < panel.left - 1 || footer.right > panel.right + 1) failures.push('footer outside panel')
+    if (!rectInsideRect(footer, panel)) failures.push('footer outside panel')
     if (footer.top < panel.top || footer.bottom > viewport.bottom + 1) failures.push('footer outside safe viewport')
   }
-  if (viewport && close && panel) {
-    if (close.left < panel.left - 1 || close.right > panel.right + 1) failures.push('close target outside panel')
+  if (header && panel && !rectInsideRect(header, panel)) failures.push('header outside panel')
+  if (body && panel && !rectInsideRect(body, panel)) failures.push('body outside panel')
+  if (body && header && body.top < header.bottom - 1) failures.push('body overlaps header')
+  if (body && footer && body.bottom > footer.top + 1) failures.push('body overlaps footer')
+  if (viewport && close && panel && header) {
+    if (!rectInsideRect(close, panel) || !rectInsideRect(close, header)) failures.push('close target outside panel header')
     if (close.right - close.left < 44 || close.bottom - close.top < 44) failures.push('close target below 44pt')
     if (panel.right - close.right > 32) failures.push('close target not right-aligned')
   }
   if (input.primaryAction && viewport) {
     const safeAreaBottomInset = finite(input.safeAreaBottomInset) ?? 0
-    if (!primaryAction) failures.push('invalid primary CTA geometry')
+    if (!positiveRect(primaryAction)) failures.push('invalid primary CTA geometry')
     else {
+      if (!rectInsideRect(primaryAction, footer) || !rectInsideRect(primaryAction, panel)) failures.push('primary CTA outside footer panel')
       if (primaryAction.left < -1 || primaryAction.right > viewport.right + 1) failures.push('primary CTA horizontally clipped')
       if (primaryAction.bottom > viewport.bottom - safeAreaBottomInset + 1) failures.push('primary CTA overlaps bottom safe area')
     }
@@ -132,8 +175,9 @@ async function elementRect(element) {
 
 async function sheetGeometry({ page, componentName, selectors, viewport, safeAreaBottomInset, tabBarVisible, expectedSectionOnly }) {
   const component = await requireSelector(page, componentName)
-  const [panel, footer, close, body, primaryAction] = await Promise.all([
+  const [panel, header, footer, close, body, primaryAction] = await Promise.all([
     requireSelector(component, selectors.panel),
+    requireSelector(component, selectors.header),
     requireSelector(component, selectors.footer),
     requireSelector(component, selectors.close),
     requireSelector(component, selectors.body),
@@ -142,11 +186,13 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
   const result = evaluateSheetGeometry({
     viewport,
     panel: await elementRect(panel),
+    header: await elementRect(header),
+    body: await elementRect(body),
     footer: await elementRect(footer),
     close: await elementRect(close),
     primaryAction: await elementRect(primaryAction),
     safeAreaBottomInset,
-    requiredSelectorsPresent: Boolean(body && primaryAction),
+    requiredSelectorsPresent: Boolean(header && body && primaryAction),
     tabBarVisible,
     expectedSectionOnly,
   })
@@ -154,6 +200,7 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
     ...result,
     geometry: {
       panel: await elementRect(panel),
+      header: await elementRect(header),
       footer: await elementRect(footer),
       close: await elementRect(close),
       body: await elementRect(body),
@@ -164,12 +211,87 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
 
 async function screenshot(miniProgram, name) {
   const fileName = `${name}.png`
-  await miniProgram.screenshot({ path: join(screenshotsDir, fileName) })
-  return fileName
+  const profileDirectory = join(screenshotsDir, activeViewportProfile)
+  mkdirSync(profileDirectory, { recursive: true })
+  await miniProgram.screenshot({ path: join(profileDirectory, fileName) })
+  return `${activeViewportProfile}/${fileName}`
+}
+
+function resolveViewportProfile(system) {
+  const requested = process.env.MP109_VIEWPORT_PROFILE
+  if (requested !== 'small' && requested !== 'large') {
+    throw new Error('MP109_VIEWPORT_PROFILE 必须显式设置为 small 或 large')
+  }
+  const screenWidth = finite(system.screenWidth)
+  if (screenWidth === null) throw new Error('MP-109 无法读取设备屏幕宽度')
+  const definition = viewportProfiles[requested]
+  const passed = requested === 'small'
+    ? screenWidth <= definition.maxWidth
+    : screenWidth >= definition.minWidth
+  if (!passed) {
+    throw new Error(`MP-109 ${requested} 设备宽度不符合门槛：${screenWidth}`)
+  }
+  activeViewportProfile = requested
+  return { name: requested, screenWidth, passed: true }
+}
+
+async function clientViewport(page) {
+  const size = await page.size()
+  const normalized = { width: finite(size?.width), height: finite(size?.height) }
+  if (normalized.width === null || normalized.height === null) {
+    throw new Error(`MP-109 无法读取 WebView 可视区：${JSON.stringify(size)}`)
+  }
+  return normalized
+}
+
+async function observeNativeTabBar(page, expandedViewport, visibleViewport = null) {
+  const current = await clientViewport(page)
+  const tabBarVisible = visibleViewport
+    ? Math.abs(current.height - visibleViewport.height) <= 2
+    : current.height < expandedViewport.height - 24
+  return {
+    tabBarVisible,
+    current,
+    expandedViewport,
+    visibleViewport,
+  }
+}
+
+export async function probeAcceptanceServer(port) {
+  const response = await fetch(`http://127.0.0.1:${port}/__acceptance-health`, {
+    signal: AbortSignal.timeout(1_500),
+  })
+  const payload = await response.json()
+  const fixtureHeader = response.headers.get('x-sbh-acceptance-fixture-id')
+  if (
+    response.status !== 200
+    || fixtureHeader !== ACCEPTANCE_FIXTURE_ID
+    || payload?.fixtureId !== ACCEPTANCE_FIXTURE_ID
+    || payload?.ok !== true
+  ) {
+    throw new Error(`3717 端口不是受控 MP-109 fixture：${JSON.stringify({ fixtureHeader, payload })}`)
+  }
+}
+
+function cleanInquiryFixture(snapshot, phoneMode) {
+  return {
+    ...snapshot,
+    state: phoneMode === 'manual' ? 'manual' : 'choosing-phone',
+    submissionRequestId: snapshot?.submissionRequestId ?? '00000000-0000-4000-8000-000000000109',
+    phoneMode,
+    privacyStatus: 'available',
+    errorReason: null,
+    errorMessage: '',
+    busy: false,
+    submitDisabled: true,
+    phoneSubmitDisabled: true,
+    manualSubmitDisabled: true,
+  }
 }
 
 async function runInteractiveAcceptance(miniProgram) {
   const system = await miniProgram.systemInfo()
+  const viewportProfile = resolveViewportProfile(system)
   const systemViewport = {
     width: finite(system.windowWidth),
     height: finite(system.windowHeight),
@@ -187,6 +309,7 @@ async function runInteractiveAcceptance(miniProgram) {
   if (!listings) throw new Error('MP-109 无法打开找房页')
   await listings.waitFor('#listings-ready')
   await waitUntil('找房页 ready', () => listings.data(), (data) => data.state === 'ready')
+  const visibleTabViewport = await clientViewport(listings)
 
   const filterBar = await requireSelector(listings, '#filter-bar')
   const priceFilter = await requireSelector(filterBar, '.filter-bar__item[data-section="price"]')
@@ -197,7 +320,8 @@ async function runInteractiveAcceptance(miniProgram) {
     (data) => data.sheetOpen === true && data.sheetSection === 'price' && data.tabBarBoundaryState === 'hidden',
   )
   await delay(240)
-  const filterViewport = await listings.size()
+  const filterViewport = await clientViewport(listings)
+  const priceTabBar = await observeNativeTabBar(listings, filterViewport, visibleTabViewport)
   const priceSheet = await requireSelector(listings, '#filter-sheet')
   const priceOnly = Boolean(await priceSheet.$('.filter-sheet__unit'))
     && Boolean(await priceSheet.$('.filter-sheet__price-range'))
@@ -209,15 +333,16 @@ async function runInteractiveAcceptance(miniProgram) {
       page: listings,
       componentName: '#filter-sheet',
       selectors: {
-        panel: '.filter-sheet__panel', footer: '.filter-sheet__footer',
+        panel: '.filter-sheet__panel', header: '.filter-sheet__header', footer: '.filter-sheet__footer',
         close: '.filter-sheet__close', body: '.filter-sheet__body', primaryAction: '.filter-sheet__apply',
       },
       viewport: filterViewport,
       safeAreaBottomInset,
-      tabBarVisible: priceData.tabBarBoundaryState !== 'hidden',
+      tabBarVisible: priceTabBar.tabBarVisible,
       expectedSectionOnly: priceOnly,
     })),
     resultCount: priceData.estimatedCount,
+    nativeTabBar: priceTabBar,
     screenshot: await screenshot(miniProgram, 'filter-price-open'),
   }
 
@@ -227,6 +352,8 @@ async function runInteractiveAcceptance(miniProgram) {
     () => listings.data(),
     (data) => data.sheetOpen === false && data.tabBarBoundaryState === 'visible',
   )
+  const priceCloseTabBar = await observeNativeTabBar(listings, filterViewport, visibleTabViewport)
+  if (!priceCloseTabBar.tabBarVisible) throw new Error('价格抽屉关闭后原生 TabBar 未恢复')
 
   const allFilter = await requireSelector(filterBar, '.filter-bar__item[data-section="all"]')
   await allFilter.tap()
@@ -254,12 +381,12 @@ async function runInteractiveAcceptance(miniProgram) {
     page: listings,
     componentName: '#filter-sheet',
     selectors: {
-      panel: '.filter-sheet__panel', footer: '.filter-sheet__footer',
+      panel: '.filter-sheet__panel', header: '.filter-sheet__header', footer: '.filter-sheet__footer',
       close: '.filter-sheet__close', body: '.filter-sheet__body', primaryAction: '.filter-sheet__apply',
     },
     viewport: filterViewport,
     safeAreaBottomInset,
-    tabBarVisible: allData.tabBarBoundaryState !== 'hidden',
+    tabBarVisible: (await observeNativeTabBar(listings, filterViewport, visibleTabViewport)).tabBarVisible,
     expectedSectionOnly: allSections,
   })
   if (Math.abs(footerBeforeScroll.top - footerAfterScroll.top) > 1) {
@@ -278,8 +405,91 @@ async function runInteractiveAcceptance(miniProgram) {
     () => listings.data(),
     (data) => data.sheetOpen === false && data.tabBarBoundaryState === 'visible',
   )
+  const allCloseTabBar = await observeNativeTabBar(listings, filterViewport, visibleTabViewport)
+  if (!allCloseTabBar.tabBarVisible) throw new Error('全部筛选关闭后原生 TabBar 未恢复')
 
-  const listingsData = await listings.data()
+  const inquirySelectors = {
+    panel: '.inquiry-sheet__panel', header: '.inquiry-sheet__header', footer: '.inquiry-sheet__footer',
+    close: '.inquiry-sheet__close', body: '.inquiry-sheet__body', primaryAction: '.inquiry-sheet__submit',
+  }
+
+  const home = await miniProgram.switchTab('/pages/home/index')
+  if (!home) throw new Error('MP-109 无法打开首页')
+  await home.waitFor('#home-ready')
+  await waitUntil('首页 ready', () => home.data(), (data) => data.state === 'ready')
+  const homeVisibleViewport = await clientViewport(home)
+  const homeInquiryCta = await requireSelector(home, '.home-entrust-card__action')
+  await homeInquiryCta.tap()
+  const homeOpened = await waitUntil(
+    '首页咨询抽屉打开',
+    () => home.data(),
+    (data) => data.inquiryOpen === true && data.tabBarBoundaryState === 'hidden',
+  )
+  const homeCleanFixture = cleanInquiryFixture(homeOpened.inquirySheet, 'wechat')
+  await home.setData({ inquiryOpen: true, inquirySheet: homeCleanFixture })
+  await delay(180)
+  const homeTabBar = await observeNativeTabBar(home, filterViewport, homeVisibleViewport)
+  const homeSheet = await requireSelector(home, '#inquiry-sheet')
+  states.homeInquiry = {
+    ...(await sheetGeometry({
+      page: home,
+      componentName: '#inquiry-sheet',
+      selectors: inquirySelectors,
+      viewport: filterViewport,
+      safeAreaBottomInset,
+      tabBarVisible: homeTabBar.tabBarVisible,
+      expectedSectionOnly: Boolean(await homeSheet.$('.inquiry-sheet__wechat-submit')),
+    })),
+    openedByRealTap: true,
+    nativeTabBar: homeTabBar,
+    screenshot: await screenshot(miniProgram, 'home-inquiry-open'),
+  }
+  await (await requireSelector(homeSheet, '.inquiry-sheet__backdrop')).tap()
+  await waitUntil('首页咨询关闭', () => home.data(), (data) => data.inquiryOpen === false)
+  const homeRestoredTabBar = await observeNativeTabBar(home, filterViewport, homeVisibleViewport)
+  if (!homeRestoredTabBar.tabBarVisible) throw new Error('首页咨询关闭后原生 TabBar 未恢复')
+
+  const buildings = await miniProgram.switchTab('/pages/buildings/index')
+  if (!buildings) throw new Error('MP-109 无法打开楼盘页')
+  await buildings.waitFor('#buildings-ready')
+  await waitUntil('楼盘页 ready', () => buildings.data(), (data) => data.state === 'ready')
+  const buildingsVisibleViewport = await clientViewport(buildings)
+  const buildingsInquiryCta = await requireSelector(buildings, '.buildings-advisor-card__action')
+  await buildingsInquiryCta.tap()
+  const buildingsOpened = await waitUntil(
+    '楼盘咨询抽屉打开',
+    () => buildings.data(),
+    (data) => data.inquiryOpen === true && data.tabBarBoundaryState === 'hidden',
+  )
+  const buildingsCleanFixture = cleanInquiryFixture(buildingsOpened.inquirySheet, 'wechat')
+  await buildings.setData({ inquiryOpen: true, inquirySheet: buildingsCleanFixture })
+  await delay(180)
+  const buildingsTabBar = await observeNativeTabBar(buildings, filterViewport, buildingsVisibleViewport)
+  const buildingsSheet = await requireSelector(buildings, '#inquiry-sheet')
+  states.buildingsInquiry = {
+    ...(await sheetGeometry({
+      page: buildings,
+      componentName: '#inquiry-sheet',
+      selectors: inquirySelectors,
+      viewport: filterViewport,
+      safeAreaBottomInset,
+      tabBarVisible: buildingsTabBar.tabBarVisible,
+      expectedSectionOnly: Boolean(await buildingsSheet.$('.inquiry-sheet__wechat-submit')),
+    })),
+    openedByRealTap: true,
+    nativeTabBar: buildingsTabBar,
+    screenshot: await screenshot(miniProgram, 'buildings-inquiry-open'),
+  }
+  await (await requireSelector(buildingsSheet, '.inquiry-sheet__backdrop')).tap()
+  await waitUntil('楼盘咨询关闭', () => buildings.data(), (data) => data.inquiryOpen === false)
+  const buildingsRestoredTabBar = await observeNativeTabBar(buildings, filterViewport, buildingsVisibleViewport)
+  if (!buildingsRestoredTabBar.tabBarVisible) throw new Error('楼盘咨询关闭后原生 TabBar 未恢复')
+
+  const activeListings = await miniProgram.switchTab('/pages/listings/index')
+  if (!activeListings) throw new Error('MP-109 无法返回找房页')
+  await activeListings.waitFor('#listings-ready')
+  await waitUntil('返回找房页 ready', () => activeListings.data(), (data) => data.state === 'ready')
+  const listingsData = await activeListings.data()
   const targetSlug = listingsData.items?.[0]?.slug
   if (typeof targetSlug !== 'string' || !targetSlug) throw new Error('MP-109 缺少可打开的房源夹具')
   const listingDetail = await miniProgram.navigateTo(`/pages/listing-detail/index?slug=${encodeURIComponent(targetSlug)}`)
@@ -308,12 +518,9 @@ async function runInteractiveAcceptance(miniProgram) {
   }
   await listingDetail.setData({ inquiryOpen: true, inquirySheet: cleanWechatFixture })
   await delay(240)
-  const inquiryViewport = await listingDetail.size()
+  const inquiryViewport = await clientViewport(listingDetail)
+  const detailTabBar = await observeNativeTabBar(listingDetail, filterViewport)
 
-  const inquirySelectors = {
-    panel: '.inquiry-sheet__panel', footer: '.inquiry-sheet__footer',
-    close: '.inquiry-sheet__close', body: '.inquiry-sheet__body', primaryAction: '.inquiry-sheet__submit',
-  }
   states.inquiryWechat = {
     ...(await sheetGeometry({
       page: listingDetail,
@@ -321,12 +528,13 @@ async function runInteractiveAcceptance(miniProgram) {
       selectors: inquirySelectors,
       viewport: inquiryViewport,
       safeAreaBottomInset,
-      tabBarVisible: false,
+      tabBarVisible: detailTabBar.tabBarVisible,
       expectedSectionOnly: Boolean(await (await requireSelector(listingDetail, '#inquiry-sheet')).$('.inquiry-sheet__wechat-submit')),
     })),
     openedByRealTap: true,
     actualOpenState: openedInquiry.inquirySheet?.state,
     evidenceMode: 'real-tap-open-with-local-devtools-visual-fixture',
+    nativeTabBar: detailTabBar,
     screenshot: await screenshot(miniProgram, 'inquiry-wechat'),
   }
 
@@ -361,7 +569,7 @@ async function runInteractiveAcceptance(miniProgram) {
       selectors: inquirySelectors,
       viewport: inquiryViewport,
       safeAreaBottomInset,
-      tabBarVisible: false,
+      tabBarVisible: (await observeNativeTabBar(listingDetail, filterViewport)).tabBarVisible,
       expectedSectionOnly: Boolean(await inquirySheet.$('.inquiry-sheet__phone')),
     })),
     phoneMode: manualData.inquirySheet.phoneMode,
@@ -369,6 +577,51 @@ async function runInteractiveAcceptance(miniProgram) {
     evidenceMode: 'real-mode-tap-with-local-devtools-visual-fixture',
     screenshot: await screenshot(miniProgram, 'inquiry-manual'),
   }
+
+  const phoneInput = await requireSelector(inquirySheet, '.inquiry-sheet__phone')
+  const preFocusInputRect = await elementRect(phoneInput)
+  const inputVisibleBeforeTap = preFocusInputRect.top >= 0
+    && preFocusInputRect.bottom <= inquiryViewport.height + 1
+  await phoneInput.tap()
+  let focusedByRealTap = false
+  try {
+    await waitUntil(
+      '咨询手机号输入聚焦',
+      () => inquirySheet.data(),
+      (data) => data.focusedField === 'phone',
+      1_500,
+    )
+    focusedByRealTap = true
+  } catch {
+    // DevTools 不支持真实软键盘时保留失败态，继续收集其余视觉证据。
+  }
+  await delay(320)
+  const keyboardViewport = await clientViewport(listingDetail)
+  const keyboardInputRect = await elementRect(phoneInput)
+  const keyboardFooter = await elementRect(await requireSelector(inquirySheet, '.inquiry-sheet__footer'))
+  const keyboardViewportDelta = inquiryViewport.height - keyboardViewport.height
+  const keyboardVisible = keyboardInputRect.bottom <= keyboardViewport.height + 1
+    && keyboardFooter.bottom <= keyboardViewport.height + 1
+    && keyboardViewportDelta >= 80
+    && inputVisibleBeforeTap
+    && focusedByRealTap
+  states.inquiryKeyboard = {
+    passed: keyboardVisible,
+    failures: keyboardVisible
+      ? []
+      : ['keyboard did not materially shrink viewport or focused controls are obscured'],
+    focusedField: focusedByRealTap ? 'phone' : '',
+    focusedByRealTap,
+    inputVisibleBeforeTap,
+    preFocusViewport: inquiryViewport,
+    viewport: keyboardViewport,
+    keyboardViewportDelta,
+    input: keyboardInputRect,
+    footer: keyboardFooter,
+    screenshot: await screenshot(miniProgram, 'inquiry-keyboard-focus'),
+  }
+  await miniProgram.callWxMethod('hideKeyboard').catch(() => undefined)
+  await delay(220)
 
   const visualBase = manualData.inquirySheet
   const visualFixtures = [
@@ -400,19 +653,37 @@ async function runInteractiveAcceptance(miniProgram) {
       : name === 'inquiryError'
         ? '.inquiry-sheet__live'
         : '.inquiry-sheet__submit'
-    const hasRequiredState = Boolean(await activeSheet.$(requiredStateSelector))
+    const requiredStateElement = await activeSheet.$(requiredStateSelector)
+    const hasRequiredState = Boolean(requiredStateElement)
+    let visibleError = null
+    if (name === 'inquiryError') {
+      const errorBody = await requireSelector(activeSheet, '.inquiry-sheet__body')
+      await errorBody.scrollTo(0, await errorBody.scrollHeight())
+      await delay(120)
+      const liveError = await requireSelector(activeSheet, '.inquiry-sheet__live')
+      const liveErrorText = await liveError.text()
+      const liveErrorRect = await elementRect(liveError)
+      visibleError = {
+        text: liveErrorText,
+        rect: liveErrorRect,
+        visiblyRendered: liveErrorText.includes('网络连接失败')
+          && liveErrorRect.top >= 0
+          && liveErrorRect.bottom <= inquiryViewport.height,
+      }
+    }
     const geometry = await sheetGeometry({
       page: listingDetail,
       componentName: '#inquiry-sheet',
       selectors: inquirySelectors,
       viewport: inquiryViewport,
       safeAreaBottomInset,
-      tabBarVisible: false,
-      expectedSectionOnly: hasRequiredState,
+      tabBarVisible: (await observeNativeTabBar(listingDetail, filterViewport)).tabBarVisible,
+      expectedSectionOnly: hasRequiredState && (visibleError?.visiblyRendered ?? true),
     })
     states[name] = {
       ...geometry,
       evidenceMode: 'local-devtools-visual-fixture',
+      ...(visibleError ? { visibleError } : {}),
       screenshot: await screenshot(miniProgram, screenshotName),
     }
     if (name === 'inquirySubmitting') {
@@ -430,6 +701,8 @@ async function runInteractiveAcceptance(miniProgram) {
     status: 'passed',
     timestamp: new Date().toISOString(),
     environment: 'local-wechat-devtools-develop-with-controlled-mock',
+    evidenceRevision,
+    viewportProfile,
     systemInfo: {
       SDKVersion: system.SDKVersion,
       platform: system.platform,
@@ -444,22 +717,96 @@ async function runInteractiveAcceptance(miniProgram) {
     },
     states,
     limitations: [
-      '咨询错误、提交中、成功为真实交互打开后的受控视觉状态夹具，不代表真实服务写入验收',
-      '本报告不等同于 trial、iOS/Android 真机或生产验收',
+      '首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具',
+      '键盘态证明输入发生真实 focus 且输入与 footer 位于 DevTools 收缩后的可视区；不等同于 iOS/Android 真机键盘验收',
+      '未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收',
     ],
   }
 }
 
-function writeReport(report) {
+function writeJson(path, report) {
   mkdirSync(screenshotsDir, { recursive: true })
-  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`)
+  writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`)
+}
+
+function writeProfileReport(report) {
+  const name = report?.viewportProfile?.name
+  if (name !== 'small' && name !== 'large') {
+    throw new Error('MP-109 profile 报告缺少 small/large 视口标识')
+  }
+  writeJson(profileReportPaths[name], report)
+}
+
+function readProfileReport(name) {
+  const path = profileReportPaths[name]
+  if (!existsSync(path)) return null
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch (error) {
+    return {
+      status: 'failed',
+      viewportProfile: { name },
+      reason: `profile 报告不可解析：${error instanceof Error ? error.message : String(error)}`,
+      states: {},
+    }
+  }
+}
+
+function aggregateProfileReports() {
+  const reports = {
+    small: readProfileReport('small'),
+    large: readProfileReport('large'),
+  }
+  const failures = []
+  for (const name of ['small', 'large']) {
+    const report = reports[name]
+    if (!report) {
+      failures.push(`缺少 ${name} 视口报告`)
+      continue
+    }
+    if (report.viewportProfile?.name !== name) failures.push(`${name} 报告视口标识不匹配`)
+    if (report.evidenceRevision !== evidenceRevision) failures.push(`${name} 报告来自不同 runner 版本`)
+    try {
+      assertMp109SheetAcceptance(report)
+    } catch (error) {
+      failures.push(`${name}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  const states = Object.fromEntries(stateNames.map((stateName) => {
+    const smallState = reports.small?.states?.[stateName]
+    const largeState = reports.large?.states?.[stateName]
+    return [stateName, {
+      passed: smallState?.passed === true && largeState?.passed === true,
+      profiles: { small: smallState ?? null, large: largeState ?? null },
+    }]
+  }))
+  const report = {
+    status: failures.length === 0 ? 'passed' : 'incomplete',
+    timestamp: new Date().toISOString(),
+    environment: 'local-wechat-devtools-develop-with-controlled-mock',
+    evidenceRevision,
+    profileReports: {
+      small: 'sheet-acceptance-small.json',
+      large: 'sheet-acceptance-large.json',
+    },
+    viewportProfiles: reports,
+    states,
+    failures,
+    limitations: [
+      '两档证据均来自微信开发者工具 develop 模式与受控 Mock；不等同于 trial、隐私后台、iOS/Android 真机或生产验收',
+      '咨询展示状态使用真实点击打开后的本地视觉夹具，未执行真实业务写入',
+    ],
+  }
+  writeJson(reportPath, report)
+  return report
 }
 
 async function main() {
   mkdirSync(screenshotsDir, { recursive: true })
   const cliPath = process.env.WECHAT_DEVTOOLS_CLI || '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
   if (!existsSync(cliPath)) {
-    writeReport({
+    writeJson(reportPath, {
       status: 'environment-unavailable',
       timestamp: new Date().toISOString(),
       reason: `DevTools CLI not found: ${cliPath}`,
@@ -477,7 +824,8 @@ async function main() {
     try {
       controlledServer = await createAcceptanceServer(3717)
     } catch (error) {
-      if (error?.code !== 'EADDRINUSE') throw error
+      if (error?.code === 'EADDRINUSE') await probeAcceptanceServer(3717)
+      else throw error
     }
     const wsEndpoint = process.env.WECHAT_DEVTOOLS_WS_ENDPOINT || 'ws://127.0.0.1:9420'
     try {
@@ -496,8 +844,11 @@ async function main() {
     }
     acceptanceReport = await runInteractiveAcceptance(miniProgram)
     assertMp109SheetAcceptance(acceptanceReport)
-    writeReport(acceptanceReport)
-    console.log(`MP-109 抽屉真实打开态验收通过：${reportPath}`)
+    writeProfileReport(acceptanceReport)
+    const aggregateReport = aggregateProfileReports()
+    console.log(`MP-109 ${acceptanceReport.viewportProfile.name} 视口验收通过：${profileReportPaths[acceptanceReport.viewportProfile.name]}`)
+    console.log(`MP-109 双视口聚合状态 ${aggregateReport.status}：${reportPath}`)
+    if (aggregateReport.status !== 'passed') process.exitCode = 1
   } catch (error) {
     const reason = error instanceof Error ? error.stack ?? error.message : String(error)
     const unavailable = miniProgram === null && /(?:launch|DevTools|connection|CLI|closed)/i.test(reason)
@@ -508,7 +859,12 @@ async function main() {
       reason,
       states: acceptanceReport?.states ?? {},
     }
-    writeReport(report)
+    if (report.viewportProfile?.name === 'small' || report.viewportProfile?.name === 'large') {
+      writeProfileReport({ ...report, evidenceRevision })
+      aggregateProfileReports()
+    } else {
+      writeJson(reportPath, { ...report, evidenceRevision })
+    }
     console.error(reason)
     process.exitCode = unavailable ? 2 : 1
   } finally {

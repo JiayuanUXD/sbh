@@ -83,7 +83,7 @@
     <view class="buildings-advisor-card">
       <view>
         <view class="buildings-advisor-card__title">需要顾问协助匹配？</view>
-        <view class="buildings-advisor-card__description">提交面积、预算和入驻时间，我们按当前公开楼盘继续筛选。</view>
+        <view class="buildings-advisor-card__description">留下期望入驻时间和联系方式，顾问将按当前信息跟进。</view>
       </view>
       <button class="buildings-advisor-card__action" bindtap="handleOpenInquiry" disabled="{{inquiryOpen}}">找顾问</button>
     </view>

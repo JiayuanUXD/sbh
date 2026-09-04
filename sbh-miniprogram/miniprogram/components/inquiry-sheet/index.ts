@@ -21,6 +21,15 @@ Component({
       // catchtouchmove 锁定详情页背景滚动。
     },
 
+    handleFieldFocus(event: WechatMiniprogram.CustomEvent<Record<string, never>>) {
+      const field = event.currentTarget.dataset.field
+      this.setData({ focusedField: typeof field === 'string' ? field : '' })
+    },
+
+    handleFieldBlur() {
+      this.setData({ focusedField: '' })
+    },
+
     handleMoveInInput(event: WechatMiniprogram.CustomEvent<{ value: string }>) {
       this.triggerEvent('moveinchange', { value: event.detail.value })
     },

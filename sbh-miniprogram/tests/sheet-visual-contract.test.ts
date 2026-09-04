@@ -38,8 +38,9 @@ describe('MP-109 抽屉共享设计系统', () => {
     expect(source).toMatch(/handleFilterApply[\s\S]*restoreModalTabBarBoundary/)
     expect(source).toMatch(/handleFilterClose[\s\S]*restoreModalTabBarBoundary/)
     expect(source).toMatch(/onHide\(\)[\s\S]*restoreModalTabBarBoundary/)
+    expect(source).toMatch(/onHide\(\)[\s\S]*cancelEstimate[\s\S]*sheetOpen:\s*false/)
     expect(source).toMatch(/onUnload\(\)[\s\S]*restoreModalTabBarBoundary/)
-    expect(source).toMatch(/showModalTabBarBoundary[\s\S]*catch[\s\S]*restoreModalTabBarBoundary/)
+    expect(source).toContain('createModalTabBarBoundary')
   })
 
   it('所有咨询宿主页均锁背景且接入真实 inquiry-sheet，首页和楼盘页不再用 toast 冒充委托', () => {
@@ -55,6 +56,27 @@ describe('MP-109 抽屉共享设计系统', () => {
 
     expect(read('miniprogram/pages/home/index.ts')).toContain("targetType: 'general'")
     expect(read('miniprogram/pages/buildings/index.ts')).toContain("targetType: 'general'")
+  })
+
+  it('首页与楼盘 tab 页咨询抽屉同样使用竞态安全的原生 TabBar 边界并在生命周期关闭', () => {
+    for (const page of ['home', 'buildings']) {
+      const source = read(`miniprogram/pages/${page}/index.ts`)
+      expect(source, page).toContain('createModalTabBarBoundary')
+      expect(source, page).toMatch(/handleOpenInquiry[\s\S]*await this\.showModalTabBarBoundary/)
+      expect(source, page).toMatch(/handleInquiryClose[\s\S]*restoreModalTabBarBoundary/)
+      expect(source, page).toMatch(/onHide\(\)[\s\S]*closeInquiryForLifecycle/)
+      expect(source, page).toMatch(/onUnload\(\)[\s\S]*closeInquiryForLifecycle/)
+    }
+  })
+
+  it('通用咨询卡文案只承诺实际收集的入驻时间与联系方式', () => {
+    const copy = [
+      read('miniprogram/pages/home/index.wxml'),
+      read('miniprogram/pages/buildings/index.wxml'),
+    ].join('\n')
+    expect(copy).not.toMatch(/提交面积、预算/)
+    expect(copy).toContain('入驻时间')
+    expect(copy).toContain('联系方式')
   })
 
   it('详情收藏使用中性 CSS 图标，不含红色或心形 emoji', () => {
@@ -80,16 +102,38 @@ describe('MP-109 runner fail-closed 合同', () => {
     expect(source).toContain('priceFilter.tap()')
     expect(source).toContain('allFilter.tap()')
     expect(source).toContain('inquiryCta.tap()')
+    expect(source).toContain('homeInquiryCta.tap()')
+    expect(source).toContain('buildingsInquiryCta.tap()')
     expect(source).not.toMatch(/callMethod\(['"]handleOpen(?:Filter|Inquiry)/)
     for (const name of [
       'filterPrice',
       'filterAll',
+      'homeInquiry',
+      'buildingsInquiry',
       'inquiryWechat',
       'inquiryManual',
+      'inquiryKeyboard',
       'inquiryError',
       'inquirySubmitting',
       'inquirySuccess',
     ]) expect(source).toContain(name)
+    expect(source).toContain('observeNativeTabBar')
+    expect(source).toContain('viewportProfiles')
+    expect(source).toContain('acceptance-fixture-id')
+    expect(source).toContain("await liveError.text()")
+    expect(source).toContain('keyboardViewportDelta')
+    expect(source).toMatch(/keyboardViewportDelta\s*>?=\s*80/)
+    expect(source).toMatch(
+      /const priceData = await waitUntil\(\s*['"]价格抽屉打开['"],\s*\(\) => listings\.data\(\),\s*\(data\) => data\.sheetOpen === true/,
+    )
+    expect(source).toMatch(
+      /const activeListings = await miniProgram\.switchTab\(['"]\/pages\/listings\/index['"]\)[\s\S]*const listingsData = await activeListings\.data\(\)/,
+    )
+    expect(source).not.toContain("if (error?.code !== 'EADDRINUSE')")
+    expect(source).toContain('probeAcceptanceServer(3717)')
+    expect(source).toContain('sheet-acceptance-small.json')
+    expect(source).toContain('sheet-acceptance-large.json')
+    expect(source).toMatch(/if \(aggregateReport\.status !== ['"]passed['"]\) process\.exitCode = 1/)
   })
 
   it('缺 selector、几何越界或 TabBar 可见时一律失败', async () => {
@@ -101,6 +145,8 @@ describe('MP-109 runner fail-closed 合同', () => {
     const valid = {
       viewport: { width: 375, height: 812 },
       panel: { left: 0, right: 375, top: 160, bottom: 812 },
+      header: { left: 0, right: 375, top: 176, bottom: 240 },
+      body: { left: 0, right: 375, top: 240, bottom: 724 },
       footer: { left: 0, right: 375, top: 724, bottom: 790 },
       close: { left: 315, right: 359, top: 180, bottom: 224 },
       primaryAction: { left: 16, right: 359, top: 730, bottom: 790 },
@@ -114,8 +160,13 @@ describe('MP-109 runner fail-closed 合同', () => {
     expect(module.evaluateSheetGeometry({ ...valid, requiredSelectorsPresent: false }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, panel: { ...valid.panel, right: 391 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, footer: { ...valid.footer, bottom: 820 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, footer: { ...valid.footer, top: 790, bottom: 790 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, close: { ...valid.close, right: 350 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, close: { ...valid.close, top: 150, bottom: 194 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, close: { ...valid.close, left: 250, right: 294 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, body: { ...valid.body, top: 220 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, body: { ...valid.body, bottom: 740 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, primaryAction: { ...valid.primaryAction, top: 700 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, primaryAction: { ...valid.primaryAction, bottom: 800 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, tabBarVisible: true }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, expectedSectionOnly: false }).passed).toBe(false)
@@ -130,8 +181,11 @@ describe('MP-109 runner fail-closed 合同', () => {
     const passingStates = Object.fromEntries([
       'filterPrice',
       'filterAll',
+      'homeInquiry',
+      'buildingsInquiry',
       'inquiryWechat',
       'inquiryManual',
+      'inquiryKeyboard',
       'inquiryError',
       'inquirySubmitting',
       'inquirySuccess',

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import type { Server } from 'node:http'
+import { createServer, type Server } from 'node:http'
 import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -17,10 +17,15 @@ type AcceptanceResultModule = Readonly<{
 }>
 
 type AcceptanceMockServerModule = Readonly<{
+  ACCEPTANCE_FIXTURE_ID: string
   createAcceptanceServer(port?: number): Promise<Readonly<{
     server: Server
     close(): Promise<void>
   }>>
+}>
+
+type Mp109RunnerModule = Readonly<{
+  probeAcceptanceServer(port: number): Promise<void>
 }>
 
 async function loadAcceptanceResult(): Promise<AcceptanceResultModule> {
@@ -29,6 +34,10 @@ async function loadAcceptanceResult(): Promise<AcceptanceResultModule> {
 
 async function loadAcceptanceMockServer(): Promise<AcceptanceMockServerModule> {
   return await import('../scripts/acceptance-mock-server.mjs' as never) as AcceptanceMockServerModule
+}
+
+async function loadMp109Runner(): Promise<Mp109RunnerModule> {
+  return await import('../scripts/mp109-sheet-acceptance-runner.mjs' as never) as Mp109RunnerModule
 }
 
 function readScript(filename: string): string {
@@ -225,6 +234,44 @@ describe('MP-106/107 runner 失败传播', () => {
 })
 
 describe('验收 Mock 列表查询合同', () => {
+  it('暴露可探测且不可混淆的验收 fixture 身份', async () => {
+    const { ACCEPTANCE_FIXTURE_ID, createAcceptanceServer } = await loadAcceptanceMockServer()
+    const mockServer = await createAcceptanceServer(0)
+
+    try {
+      const address = mockServer.server.address()
+      if (!address || typeof address === 'string') throw new Error('Mock 服务未返回 TCP 监听地址')
+      const response = await fetch(`http://127.0.0.1:${address.port}/__acceptance-health`)
+      expect(response.headers.get('x-sbh-acceptance-fixture-id')).toBe(ACCEPTANCE_FIXTURE_ID)
+      await expect(response.json()).resolves.toEqual({
+        ok: true,
+        fixtureId: ACCEPTANCE_FIXTURE_ID,
+      })
+    } finally {
+      await mockServer.close()
+    }
+  })
+
+  it('拒绝复用占用端口但身份不匹配的任意旧服务', async () => {
+    const staleServer = createServer((_request, response) => {
+      response.setHeader('content-type', 'application/json')
+      response.end(JSON.stringify({ ok: true, fixtureId: 'stale-or-unrelated' }))
+    })
+    await new Promise<void>((resolveListen) => staleServer.listen(0, '127.0.0.1', resolveListen))
+
+    try {
+      const address = staleServer.address()
+      if (!address || typeof address === 'string') throw new Error('旧服务未返回 TCP 监听地址')
+      const { probeAcceptanceServer } = await loadMp109Runner()
+      await expect(probeAcceptanceServer(address.port)).rejects.toThrow('不是受控 MP-109 fixture')
+    } finally {
+      await new Promise<void>((resolveClose, rejectClose) => staleServer.close((error) => {
+        if (error) rejectClose(error)
+        else resolveClose()
+      }))
+    }
+  })
+
   it('所有广告计价单位都返回可解析且语义一致的价格投影', async () => {
     const { createAcceptanceServer } = await loadAcceptanceMockServer()
     const mockServer = await createAcceptanceServer(0)

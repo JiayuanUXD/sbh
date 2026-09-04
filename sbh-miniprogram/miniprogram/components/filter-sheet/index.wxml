@@ -20,6 +20,7 @@
             class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
             data-value="{{item.value}}"
             bindtap="handlePriceUnit"
+            aria-pressed="{{item.active}}"
           >
             <text>{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>
@@ -45,6 +46,7 @@
             class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
             data-value="{{item.value}}"
             bindtap="handleDistrict"
+            aria-pressed="{{item.active}}"
           >
             <text>{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>
@@ -70,6 +72,7 @@
             class="filter-sheet__option {{item.active ? 'filter-sheet__option--active' : ''}}"
             data-value="{{item.value}}"
             bindtap="handleType"
+            aria-pressed="{{item.active}}"
           >
             <text>{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>

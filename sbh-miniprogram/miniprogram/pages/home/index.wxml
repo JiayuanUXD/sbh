@@ -126,7 +126,7 @@
     <view class="home-entrust-card">
       <view>
         <view class="home-entrust-card__title">还没找到合适的办公室？</view>
-        <view class="home-entrust-card__description">告诉我们面积、预算与入驻时间，顾问按公开房源匹配。</view>
+        <view class="home-entrust-card__description">留下期望入驻时间和联系方式，顾问将按当前信息跟进。</view>
       </view>
       <button class="home-entrust-card__action" bindtap="handleOpenInquiry" disabled="{{inquiryOpen}}">委托找房</button>
     </view>

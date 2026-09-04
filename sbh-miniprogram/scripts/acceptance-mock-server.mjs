@@ -1,6 +1,8 @@
 import http from 'node:http'
 import { URL } from 'node:url'
 
+export const ACCEPTANCE_FIXTURE_ID = 'sbh-mini-acceptance-v1'
+
 const sampleCover = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&auto=format&fit=crop&q=80'
 const sampleInterior = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop&q=80'
 const sampleWorkstation = 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=600&auto=format&fit=crop&q=80'
@@ -222,6 +224,7 @@ export function createAcceptanceServer(port = 3717) {
     const parsedUrl = new URL(req.url || '/', `http://127.0.0.1:${port}`)
     const pathname = parsedUrl.pathname
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    res.setHeader('x-sbh-acceptance-fixture-id', ACCEPTANCE_FIXTURE_ID)
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
@@ -229,6 +232,12 @@ export function createAcceptanceServer(port = 3717) {
     if (req.method === 'OPTIONS') {
       res.statusCode = 204
       res.end()
+      return
+    }
+
+    if (pathname === '/__acceptance-health') {
+      res.statusCode = 200
+      res.end(JSON.stringify({ ok: true, fixtureId: ACCEPTANCE_FIXTURE_ID }))
       return
     }
 
