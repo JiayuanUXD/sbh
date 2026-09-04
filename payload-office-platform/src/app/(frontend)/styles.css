@@ -202,17 +202,37 @@
   margin: 0;
 }
 
+/* ★ 根元素上**不设** `scroll-behavior: smooth`，这是一条刻意的缺席，别加回来。
+ *
+ * 它管的不只是锚点跳转——根元素上的 scroll-behavior 会给**每一次**程序化滚动
+ * 加动画，其中包括浏览器自己的**历史滚动恢复**。于是从详情页按返回时，首页被
+ * 恢复到原来的滚动位置这一下会一路平滑滑过去，看起来像页面自己在动。
+ *
+ * 为什么 `data-scroll-behavior="smooth"` 解决不了这一半（2026-09-04 查证）：
+ * Next 的 disableSmoothScrollDuringRouteTransition 只在 `layout-router.js` 被调用，
+ * 那是**前进导航**那条路径；App Router 的 `onPopState` 只 dispatch 状态、不碰滚动，
+ * Next 也从不设 `history.scrollRestoration`（线上实测是 `auto`）。返回时的滚动是
+ * **浏览器做的**，Next 压制不到，那个属性也就管不到。
+ *
+ * 代价是全站唯一有意义的消费方——楼盘详情页锚点导航条（AnchorNavBar）与
+ * layout 的 skip link——点击变成瞬间跳转。这是产品在 2026-09-04 权衡后的选择：
+ * 一处锚点的平滑效果，换掉全站每一次程序化滚动都可能被动画化的风险。
+ * skip link 那处瞬间跳转对键盘用户反而更好。
+ *
+ * 想恢复锚点的平滑效果，正解**不是**把这条加回来，而是只在锚点点击那一刻把
+ * scroll-behavior 临时打开；那要另行验证浏览器恢复与 popstate 的先后顺序。
+ * 守卫见 tests/frontend-layout-scroll-behavior.test.ts。 */
 html {
-  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
+  /* 原本这里还有一条 `html { scroll-behavior: auto }` 作为减少动效下的回落。
+     根元素已经不设 smooth，它无物可回落；且下面的通配规则带 `!important`、
+     `*` 也匹配 html，真需要时照样覆盖。删掉，不留一条重置从不存在的值的规则。
+     通配那条**保留**：`.hm-rail__track`（首页横滑轨道）等嵌套滚动容器仍设了
+     smooth，它们靠这条在减少动效下回落。 */
   *,
   *::before,
   *::after {

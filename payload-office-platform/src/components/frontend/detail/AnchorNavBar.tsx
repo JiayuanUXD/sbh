@@ -77,12 +77,18 @@ import { useEffect, useState, type ReactNode } from 'react'
  * 几何更短、更好解释，而且**不依赖 IO 是否可用**：老浏览器 / IO 被禁用时本条
  * 只是不高亮，锚点链接本身是原生 `<a href="#id">`，照常可点可跳（不 fail-closed）。
  *
- * ── 平滑滚动走 CSS，不走 JS ──────────────────────────────────────────────
- * `styles.css` 已全局 `html { scroll-behavior: smooth }`，并在
- * `@media (prefers-reduced-motion: reduce)` 下回落 `auto`。原生 `#id` 跳转
- * 因此免费拿到「平滑 + 尊重 reduced-motion」，同时保留浏览器的 hash 更新与
- * 后退栈行为。改写成 JS `scrollIntoView` 要自己 `preventDefault`、自己
- * `matchMedia`、自己补 hash 与历史记录，是纯粹的净损失。落点靠 CSS
+ * ── 跳转是**瞬时**的，不是平滑的（2026-09-04 起）─────────────────────────
+ * 本条曾写着「平滑滚动走 CSS 不走 JS」，依据是 `styles.css` 的全局
+ * `html { scroll-behavior: smooth }`。那条规则**已被移除**：它给根元素上每一次
+ * 程序化滚动都加动画，其中包括浏览器的历史滚动恢复——从详情页按返回时，首页
+ * 恢复滚动位置那一下会一路平滑滑过去，看起来像页面自己在动。产品权衡后选择
+ * 用「一处锚点的平滑效果」换掉这个风险（理由全文见 styles.css 的 html 规则上方）。
+ * 所以这里的原生 `#id` 跳转现在是瞬时的。
+ *
+ * 仍然**不要**改写成 JS `scrollIntoView`：那要自己 `preventDefault`、自己
+ * `matchMedia`、自己补 hash 与历史记录，原来的判断在这一点上没变。真要恢复平滑，
+ * 正解是只在锚点点击那一刻临时打开 scroll-behavior，且必须先验证它与浏览器
+ * 历史恢复的先后顺序。落点仍靠 CSS
  * `.dt-anchor-target { scroll-margin-top }`（= 导航 44 + 本条 56 + 12 呼吸），
  * 目标区块必须带这个类，否则会滚到吸附条底下——而且择一规则的「落点」也读它，
  * 漏加会让高亮与落点一起偏。

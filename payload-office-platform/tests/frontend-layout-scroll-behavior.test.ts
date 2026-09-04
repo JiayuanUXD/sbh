@@ -1,27 +1,36 @@
 /**
- * 守卫：`html { scroll-behavior: smooth }` 必须配一个 `data-scroll-behavior="smooth"`
+ * 守卫：根元素**不得**设 `scroll-behavior: smooth`
  *
- * ## 这条守卫防的是什么
+ * ## 沿革（这条守卫翻过一次面，两段都要读）
  *
- * Next 16 的 `disableSmoothScrollDuringRouteTransition`
- * （next/dist/shared/lib/router/utils/disable-smooth-scroll.js）只有在
- * `document.documentElement.dataset.scrollBehavior === 'smooth'` 时，才会在路由跳转期间
- * 把 `scroll-behavior` 临时压成 `auto`。**没有这个属性它就直接执行 `scrollTop = 0`**，
- * 而全局 CSS 的 smooth 仍然生效——于是从「上一页已经往下滚过」跳到新页面时，
- * 页面会平滑地一路滚上去，看起来像一段多余的入场动画。
+ * 2026-09-03：`styles.css` 有全局 `html { scroll-behavior: smooth }`，而 layout 没给
+ * `<html>` 加 `data-scroll-behavior="smooth"`。Next 16 的
+ * `disableSmoothScrollDuringRouteTransition` 判的是这个**属性**而不是计算样式：
+ * 没有它就直接执行 `scrollTop = 0` 不做压制，于是**前进导航**（首页 → 详情页）
+ * 会从上一页的滚动位置一路平滑滚到顶。当时的修法是补上那个属性，本文件
+ * 相应断言「CSS 是 smooth 且属性存在」。
  *
- * 现场表现（2026-09-04 实测）：首页滚到 3200 处点房源卡 → 详情页从 2402 一路滚到顶。
- * 它只在上一页滚动过时出现，所以用户侧的描述是「有时候」。
+ * 2026-09-04：用户报告**返回**（详情页 → 首页）仍有滚动动画。查证：
+ *   - `disableSmoothScrollDuringRouteTransition` 只在 `layout-router.js` 被调用，
+ *     那是前进导航那条路径；
+ *   - App Router 的 `onPopState` 只 dispatch 状态，**不碰滚动**；
+ *   - Next 从不设 `history.scrollRestoration`（线上实测是 `auto`）。
+ * 所以返回时的滚动是**浏览器做的历史滚动恢复**，Next 压制不到，那个属性也管不到。
+ * 根元素上的 `scroll-behavior` 会给每一次程序化滚动加动画，历史恢复也在其中。
  *
- * ## 为什么两条断言缺一不可
+ * 处置（产品 2026-09-04 权衡）：**移除全局 smooth**，连带移除已无物可压制的
+ * `data-scroll-behavior` 属性。代价是全站唯一有意义的消费方——楼盘详情页锚点
+ * 导航条与 layout 的 skip link——变成瞬时跳转。
  *
- * 只断言属性存在 → 将来有人把 CSS 的 smooth 删了，属性变成无意义残留，没人知道能不能清。
- * 只断言 CSS → 正是回归本身。**两条一起断言，才表达「这两件事必须同进同退」。**
- * 若哪天决定不再要全局平滑滚动（把 styles.css 的 smooth 删掉），本测试会指着第一条断言
- * 失败，那时连同属性与本文件一起删，是有意识的决定而不是漂移。
+ * ## 为什么两条都要断言
  *
- * 注意 reduced-motion 分支（styles.css 的 `@media (prefers-reduced-motion: reduce)`）
- * 把 scroll-behavior 回落成 auto，那条不受本守卫约束——属性在那种环境下无害。
+ * 只断言 CSS → 属性会作为无人敢清的残留留在 layout 里，下一个人看到它会以为
+ * 全站还有平滑滚动。
+ * 只断言属性 → CSS 那条被加回来时，前进导航的动画立刻复发（2026-09-03 的原始故障），
+ * 而属性不在，Next 连压制的机会都没有。
+ * 两条一起断言，表达的是「这两件事必须同进同退」——将来若要恢复平滑滚动，
+ * 本测试会同时指着两条失败，那时应当重新设计（只在锚点点击那一刻临时打开），
+ * 而不是把断言删掉了事。
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -64,28 +73,34 @@ const STYLES_PATH = path.resolve(
   'styles.css',
 )
 
-/** 取出 `@media (prefers-reduced-motion: reduce)` 之外的那份 html 规则。 */
-function baseHtmlRuleHasSmoothScroll(css: string): boolean {
-  // 去掉所有 reduced-motion 媒体块后再找，避免把回落规则误当基态。
-  const withoutReducedMotion = css.replace(
-    /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{(?:[^{}]|\{[^{}]*\})*\}/g,
+/** 取根元素规则的声明体（排除注释与 @media 块里的同名规则）。 */
+function baseHtmlRuleBody(css: string): string {
+  const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const withoutMedia = withoutComments.replace(
+    /@media[^{]*\{(?:[^{}]|\{[^{}]*\})*\}/g,
     '',
   )
-  return /(^|\})\s*html\s*\{[^}]*scroll-behavior:\s*smooth/m.test(withoutReducedMotion)
+  return withoutMedia.match(/(?:^|\})\s*html\s*\{([^}]*)\}/m)?.[1] ?? ''
 }
 
-describe('全局平滑滚动必须向 Next 显式声明', () => {
-  it('styles.css 的 html 基态规则确实设了 scroll-behavior: smooth', () => {
-    const css = readFileSync(STYLES_PATH, 'utf8')
-    expect(baseHtmlRuleHasSmoothScroll(css)).toBe(true)
+describe('根元素不得设 scroll-behavior: smooth', () => {
+  it('styles.css 的 html 基态规则里没有 scroll-behavior', () => {
+    const body = baseHtmlRuleBody(readFileSync(STYLES_PATH, 'utf8'))
+
+    // 规则本身还在（放 text-size-adjust），只是不该再有 scroll-behavior
+    expect(body).toContain('text-size-adjust')
+    expect(body).not.toMatch(/scroll-behavior/)
   })
 
-  it('layout 渲染的 <html> 必须带 data-scroll-behavior="smooth"', async () => {
+  // 该属性只对「根元素设了 smooth」这个前提有意义（Next 靠它决定是否压制）。
+  // 前提没了还留着，就是会误导人的残留。
+  it('SSR 输出的 <html> 标签不带 data-scroll-behavior', async () => {
     const element = await RootLayout({
       children: React.createElement('section', null, 'content'),
     })
     const markup = renderToStaticMarkup(element)
 
-    expect(markup).toMatch(/<html[^>]*\sdata-scroll-behavior="smooth"/)
+    expect(markup).toMatch(/<html[^>]*lang="zh-CN"/)
+    expect(markup).not.toContain('data-scroll-behavior')
   })
 })
