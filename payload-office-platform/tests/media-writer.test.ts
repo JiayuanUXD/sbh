@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'fs'
+import { mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -64,4 +64,20 @@ describe('createLocalMediaWriter', () => {
       }),
     ).rejects.toThrow(/文件名/)
   })
+
+  it.each([['../escape'], ['/abs'], ['..\\win']])(
+    '拒绝带路径穿越的 prefix：%s',
+    async (prefix) => {
+      const writer = createLocalMediaWriter(root)
+      await expect(
+        writer.put({
+          prefix,
+          filename: 'x.jpg',
+          body: Buffer.from('x'),
+          mimeType: 'image/jpeg',
+        }),
+      ).rejects.toThrow()
+      await expect(writer.get({ prefix, filename: 'x.jpg' })).rejects.toThrow()
+    },
+  )
 })

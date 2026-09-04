@@ -35,22 +35,30 @@ export type MediaWriter = {
   get(args: { prefix: string; filename: string }): Promise<Buffer | null>
 }
 
-function assertSafeFilename(filename: string): void {
-  if (!filename || filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
-    throw new Error(`[media-writer] 非法文件名：${filename}`)
+/**
+ * `prefix`（目录名/对象键前缀）与 `filename`（文件名）的合法字符集本可以不同，
+ * 但 `..`、绝对路径、`\` 这三类必须两者都拦——本地后端会把它们拼进真实文件系统
+ * 路径，放过 `prefix` 会导致目录穿越写到 `rootDir` 外面；COS 后端虽然只是拼字符串
+ * 键、没有文件系统语义，但两个后端从调用方看必须同行为，不能一个拦一个不拦。
+ */
+function assertSafePathSegment(value: string, kind: '文件名' | '前缀'): void {
+  if (!value || value.includes('/') || value.includes('\\') || value.includes('..')) {
+    throw new Error(`[media-writer] 非法${kind}：${value}`)
   }
 }
 
 export function createLocalMediaWriter(rootDir: string): MediaWriter {
   return {
     async put({ prefix, filename, body }) {
-      assertSafeFilename(filename)
+      assertSafePathSegment(prefix, '前缀')
+      assertSafePathSegment(filename, '文件名')
       const dir = path.join(rootDir, prefix)
       await mkdir(dir, { recursive: true })
       await writeFile(path.join(dir, filename), body)
     },
     async get({ prefix, filename }) {
-      assertSafeFilename(filename)
+      assertSafePathSegment(prefix, '前缀')
+      assertSafePathSegment(filename, '文件名')
       try {
         return await readFile(path.join(rootDir, prefix, filename))
       } catch (error) {
@@ -78,7 +86,8 @@ function createCosMediaWriter(config: Extract<ReturnType<typeof parseCosStorageC
 
   return {
     async put({ prefix, filename, body, mimeType }) {
-      assertSafeFilename(filename)
+      assertSafePathSegment(prefix, '前缀')
+      assertSafePathSegment(filename, '文件名')
       const { PutObjectCommand } = await import('@aws-sdk/client-s3')
       const client = await clientPromise
       await client.send(
@@ -91,7 +100,8 @@ function createCosMediaWriter(config: Extract<ReturnType<typeof parseCosStorageC
       )
     },
     async get({ prefix, filename }) {
-      assertSafeFilename(filename)
+      assertSafePathSegment(prefix, '前缀')
+      assertSafePathSegment(filename, '文件名')
       const { GetObjectCommand, NoSuchKey } = await import('@aws-sdk/client-s3')
       const client = await clientPromise
       try {
