@@ -4,6 +4,11 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import {
+  parseMiniHomeData,
+  parseMiniListingsData,
+} from '../miniprogram/services/catalog-contracts.js'
+
 const projectRoot = resolve(import.meta.dirname, '..')
 const scriptsRoot = resolve(projectRoot, 'scripts')
 
@@ -28,6 +33,13 @@ async function loadAcceptanceMockServer(): Promise<AcceptanceMockServerModule> {
 
 function readScript(filename: string): string {
   return readFileSync(resolve(scriptsRoot, filename), 'utf8')
+}
+
+function responseData(payload: unknown): unknown {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload) || !('data' in payload)) {
+    throw new Error('Mock 响应缺少 data')
+  }
+  return payload.data
 }
 
 describe('验收报告 fail-closed', () => {
@@ -213,46 +225,67 @@ describe('MP-106/107 runner 失败传播', () => {
 })
 
 describe('验收 Mock 列表查询合同', () => {
-  it('从请求参数返回 canonicalQuery、currentPriceUnit 和匹配计价单位', async () => {
+  it('所有广告计价单位都返回可解析且语义一致的价格投影', async () => {
     const { createAcceptanceServer } = await loadAcceptanceMockServer()
     const mockServer = await createAcceptanceServer(0)
 
     try {
       const address = mockServer.server.address()
       if (!address || typeof address === 'string') throw new Error('Mock 服务未返回 TCP 监听地址')
-      const query = new URLSearchParams({
-        q: '静安',
-        priceUnit: 'rmb-sqm-day',
-        sort: 'price-asc',
-      })
-      const response = await fetch(`http://127.0.0.1:${address.port}/api/mini/v1/listings?${query}`)
-      const payload: unknown = await response.json()
+      const baseUrl = `http://127.0.0.1:${address.port}/api/mini/v1`
+      const homeResponse = await fetch(`${baseUrl}/home`)
+      const homePayload: unknown = await homeResponse.json()
+      const home = parseMiniHomeData(responseData(homePayload))
+      const advertisedPriceUnits = home.quickFilters
+        .find((filter) => filter.id === 'priceUnit')
+        ?.options ?? []
 
-      expect(payload).toMatchObject({
-        ok: true,
-        data: {
-          canonicalQuery: query.toString(),
-          currentPriceUnit: 'rmb-sqm-day',
-        },
-      })
-      const listingItems = (payload as Readonly<{
-        data: Readonly<{
-          items: readonly Readonly<{
-            price: Readonly<{ displayUnit: string }>
-          }>[]
-        }>
-      }>).data.items
-      expect(listingItems.length).toBeGreaterThan(0)
-      expect(listingItems.every((item) => item.price.displayUnit === 'rmb-sqm-day')).toBe(true)
+      expect(advertisedPriceUnits.map((option) => option.value)).toEqual([
+        'rmb-sqm-day',
+        'rmb-month',
+      ])
 
-      const initialResponse = await fetch(`http://127.0.0.1:${address.port}/api/mini/v1/listings`)
+      for (const option of advertisedPriceUnits) {
+        const query = new URLSearchParams({
+          q: '静安',
+          priceUnit: option.value,
+          sort: 'price-asc',
+        })
+        const response = await fetch(`${baseUrl}/listings?${query}`)
+        const payload: unknown = await response.json()
+        const listings = parseMiniListingsData(responseData(payload))
+
+        expect(listings.canonicalQuery, option.value).toBe(query.toString())
+        expect(listings.currentPriceUnit, option.value).toBe(option.value)
+        expect(listings.items.length, option.value).toBeGreaterThan(0)
+        expect(
+          listings.items.every((item) => item.price?.displayUnit === option.value),
+          option.value,
+        ).toBe(true)
+
+        for (const item of listings.items) {
+          if (option.value === 'rmb-sqm-day') {
+            expect(item.price, option.value).toMatchObject({
+              period: 'day',
+              basis: 'sqm',
+            })
+            expect(item.price?.text, option.value).toContain('元/㎡/天')
+          } else if (option.value === 'rmb-month') {
+            expect(item.price, option.value).toMatchObject({
+              amount: item.price?.monthlyEstimate,
+              period: 'month',
+              basis: 'total',
+            })
+            expect(item.price?.text, option.value).toContain('元/月')
+          }
+        }
+      }
+
+      const initialResponse = await fetch(`${baseUrl}/listings`)
       const initialPayload: unknown = await initialResponse.json()
-      expect(initialPayload).toMatchObject({
-        data: {
-          canonicalQuery: '',
-          currentPriceUnit: null,
-        },
-      })
+      const initialListings = parseMiniListingsData(responseData(initialPayload))
+      expect(initialListings.canonicalQuery).toBe('')
+      expect(initialListings.currentPriceUnit).toBeNull()
     } finally {
       await mockServer.close()
     }

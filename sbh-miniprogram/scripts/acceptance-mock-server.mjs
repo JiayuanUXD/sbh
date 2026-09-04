@@ -50,6 +50,23 @@ const mockListings = [
   makeListing('l-4', 'taikoo-hui-180sqm', '兴业太古汇 · 精装现房拎包入驻多功能独立洽谈室', 180, 12.0, '12.0 元/㎡/天', '静安区', '兴业太古汇', 64800, ['地铁上盖', '商业配套', '精装全配']),
 ]
 
+function projectListingPrice(listing, priceUnit) {
+  if (priceUnit !== 'rmb-month') return listing
+  const monthlyAmount = listing.price.monthlyEstimate
+  return {
+    ...listing,
+    price: {
+      ...listing.price,
+      amount: monthlyAmount,
+      period: 'month',
+      basis: 'total',
+      displayUnit: 'rmb-month',
+      text: `${monthlyAmount} 元/月`,
+      monthlyEstimate: monthlyAmount,
+    },
+  }
+}
+
 const mockBuildings = [
   {
     id: 'b-1',
@@ -242,15 +259,16 @@ export function createAcceptanceServer(port = 3717) {
     if (pathname === '/api/mini/v1/listings') {
       const canonicalQuery = parsedUrl.searchParams.toString()
       const currentPriceUnit = parsedUrl.searchParams.get('priceUnit')
+      const responseListings = mockListings.map((listing) => projectListingPrice(listing, currentPriceUnit))
       res.statusCode = 200
       res.end(JSON.stringify({
         ok: true,
         data: {
-          items: mockListings,
+          items: responseListings,
           pagination: {
             page: 1,
             pageSize: 24,
-            totalDocs: mockListings.length,
+            totalDocs: responseListings.length,
             totalPages: 1,
             hasNextPage: false,
             hasPrevPage: false,
