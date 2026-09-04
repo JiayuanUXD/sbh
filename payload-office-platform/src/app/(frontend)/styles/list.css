@@ -793,3 +793,34 @@
 @media (prefers-reduced-motion: reduce) {
   .ls-msheet__reset, .ls-msheet__footer-reset, .ls-msheet__footer-apply { transition: none; }
 }
+
+/* ── OPT-068 导航反馈 ─────────────────────────────────────────────────────────
+   筛选 / 排序 / 分页点击后到新页面到达之间，用户此前得不到任何页面内反馈
+   （冷路径线上实测 5–20 秒）。现在：被点的那一项自己转圈，结果区整体压暗并
+   屏蔽二次点击。零色相——压暗靠透明度、spinner 用 --ink 系列，不引入强调色。 */
+.ls-results { transition: opacity .18s ease; }
+.ls-results[aria-busy='true'] { opacity: .45; pointer-events: none; }
+
+[data-pending='true'] { position: relative; padding-right: 22px; }
+[data-pending='true']::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border: 2px solid var(--ink-3);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: ls-pending-spin .7s linear infinite;
+}
+
+@keyframes ls-pending-spin { to { transform: rotate(360deg); } }
+
+/* 减少动效偏好：不转圈也不做透明度过渡，改为静态描边加深表示「正在处理」。
+   注意 Browser pane 里 prefers-reduced-motion 恒为 true，走查动效要用真实窗口。 */
+@media (prefers-reduced-motion: reduce) {
+  .ls-results { transition: none; }
+  [data-pending='true']::after { animation: none; border-top-color: var(--ink-3); }
+}

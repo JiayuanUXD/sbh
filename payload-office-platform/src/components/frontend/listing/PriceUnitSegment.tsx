@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 import type { PriceDisplayUnit } from '@/domain/public-catalog'
 import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
@@ -112,7 +112,7 @@ export default function PriceUnitSegment(props: Readonly<{
             )
           }
           return (
-            <Link
+            <NavLink
               key={unit.value}
               href={buildPriceUnitHref(basePath, currentParams, unit.value)}
               className="ls-unitseg__item"
@@ -120,7 +120,7 @@ export default function PriceUnitSegment(props: Readonly<{
               {unit.label}
               {/* 非当前单位已被上方过滤为 count > 0，这里不需要再判空 */}
               <span className="ls-unitseg__count">{unit.count}</span>
-            </Link>
+            </NavLink>
           )
         })}
       </div>

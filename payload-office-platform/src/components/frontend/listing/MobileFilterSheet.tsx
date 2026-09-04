@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React, { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
@@ -45,7 +45,7 @@ import FilterPill from './FilterPill'
  *
  * ## 抽屉内筛选项点击后的处置（brief 允许调用方自行决定，含理由）
  *
- * **不自动关闭。** 选项本身仍是导航 `<Link>`——点击立即改 URL、删 `page`
+ * **不自动关闭。** 选项本身仍是导航 `<NavLink>`——点击立即改 URL、删 `page`
  * （与 FilterFormC/PriceUnitSegment 同一套约定），但不调用 `onClose`。
  * 理由：comp 的抽屉允许一次勾选多个分组（区域 + 类型 + 价格……）再统一查看
  * 结果，若每点一项就关闭，用户势必要来回重新打开好几次。
@@ -239,14 +239,14 @@ export default function MobileFilterSheet(props: Readonly<{
           <div className="ls-msheet__head-row">
             <span className="ls-msheet__picked">{pickCount > 0 ? `已选 ${pickCount} 项` : ''}</span>
             <h2 id={titleId} className="ls-msheet__title">筛选</h2>
-            <Link href={resetHref} className="ls-msheet__reset">重置</Link>
+            <NavLink href={resetHref} className="ls-msheet__reset">重置</NavLink>
           </div>
         </div>
 
         <div className="ls-msheet__body">
           {switchRow ? (
             <div className="ls-msheet__group">
-              <Link
+              <NavLink
                 href={switchRow.href}
                 aria-current={switchRow.active ? 'true' : undefined}
                 className={
@@ -262,7 +262,7 @@ export default function MobileFilterSheet(props: Readonly<{
                 <span className="ls-msheet__switch-track" aria-hidden="true">
                   <span className="ls-msheet__switch-knob" />
                 </span>
-              </Link>
+              </NavLink>
             </div>
           ) : null}
           {visibleRows.map((row) => (
@@ -287,7 +287,7 @@ export default function MobileFilterSheet(props: Readonly<{
         </div>
 
         <div className="ls-msheet__footer">
-          <Link href={resetHref} className="ls-msheet__footer-reset">重置</Link>
+          <NavLink href={resetHref} className="ls-msheet__footer-reset">重置</NavLink>
           <button type="button" className="ls-msheet__footer-apply" onClick={onClose}>
             查看 <span className="ls-msheet__footer-count">{totalDocs}</span> {countNoun}
           </button>

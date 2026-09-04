@@ -9,6 +9,7 @@ import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
 import FilterFormC, { rowShowsActivePick, type FilterSwitch } from '@/components/frontend/listing/FilterFormC'
 import ListPager from '@/components/frontend/listing/ListPager'
+import { ListingNavigationProvider, PendingRegion } from '@/components/frontend/listing/ListingNavigation'
 import MobileFilterShell from '@/components/frontend/listing/MobileFilterShell'
 import ResultToolbar, { type ResultToolbarSort } from '@/components/frontend/listing/ResultToolbar'
 import type { CityContext } from '@/domain/city-site-profile/resolver'
@@ -213,6 +214,8 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   const citySlug = routeMode === 'prefixed' ? city.slug : undefined
 
   return (
+    // OPT-068：与房源列表同一套导航反馈（被点项 spinner + 结果区压暗）。
+    <ListingNavigationProvider>
     <div className="ls-page">
       {/* OPT-064 列表页埋点，两者都不渲染 UI（同 CityListingsView） */}
       <ListSearchAnalytics
@@ -255,7 +258,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         />
       </div>
 
-      <div className="ls-container ls-results">
+      <PendingRegion className="ls-container ls-results">
         {isOutOfRange ? (
           <EmptyOutOfRange
             page={page}
@@ -375,7 +378,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         {!isOutOfRange && !isEmpty ? (
           <ListPager page={page} totalPages={totalPages} buildPageHref={buildPageHref} />
         ) : null}
-      </div>
+      </PendingRegion>
 
       {/*
         移动筛选：状态容器挂在页面树的固定位置、不带 key、不在会重新 suspend 的
@@ -392,5 +395,6 @@ export default function CityBuildingsView({ city, result, input, basePath, route
         resetHref={clearAllHref}
       />
     </div>
+    </ListingNavigationProvider>
   )
 }

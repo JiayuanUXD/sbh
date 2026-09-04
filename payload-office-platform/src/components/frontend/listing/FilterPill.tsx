@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 
 /**
@@ -33,7 +33,7 @@ export default function FilterPill({ href, label, active, count }: Readonly<{
   count?: number
 }>) {
   return (
-    <Link
+    <NavLink
       href={href}
       aria-current={active ? 'true' : undefined}
       className={active ? 'ls-pill ls-pill--active' : 'ls-pill'}
@@ -41,6 +41,6 @@ export default function FilterPill({ href, label, active, count }: Readonly<{
     >
       <span>{label}</span>
       {count != null ? <span className="ls-pill__count">{count}</span> : null}
-    </Link>
+    </NavLink>
   )
 }

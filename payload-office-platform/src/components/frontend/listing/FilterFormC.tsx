@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavLink } from '@/components/frontend/listing/ListingNavigation'
 import React from 'react'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 import { XMarkIcon } from '@/components/frontend/ui/icons'
@@ -233,7 +233,7 @@ export default function FilterFormC(props: Readonly<{
             {row.options.map((option) => {
               const isActive = row.activeValue === option.value
               return (
-                <Link
+                <NavLink
                   key={option.value}
                   href={buildOptionHref(basePath, currentParams, row.key, option.value, isActive)}
                   className={isActive ? 'ls-filterc__opt ls-filterc__opt--active' : 'ls-filterc__opt'}
@@ -247,7 +247,7 @@ export default function FilterFormC(props: Readonly<{
                   {option.count != null ? (
                     <span className="ls-filterc__opt-count">{option.count}</span>
                   ) : null}
-                </Link>
+                </NavLink>
               )
             })}
           </div>
@@ -260,7 +260,7 @@ export default function FilterFormC(props: Readonly<{
             {/* 导航链接，不是 <button>：状态写进 URL（与本页其它筛选项同一口径），
                 因此当前态用 aria-current 而不是 aria-pressed——后者加在 role=link
                 上是无效属性（Task 9 已全站清零，别在这里重新引入）。 */}
-            <Link
+            <NavLink
               href={switchRow.href}
               aria-current={switchRow.active ? 'true' : undefined}
               className={
@@ -276,7 +276,7 @@ export default function FilterFormC(props: Readonly<{
               {switchRow.count != null && switchRow.count > 0 ? (
                 <span className="ls-filterc__switch-count sf-num">{switchRow.count}</span>
               ) : null}
-            </Link>
+            </NavLink>
           </div>
         </div>
       ) : null}
@@ -286,33 +286,33 @@ export default function FilterFormC(props: Readonly<{
           <>
             <span className="ls-filterc__divider" aria-hidden="true" />
             {switchRow?.active ? (
-              <Link href={switchRow.href} className="ls-filterc__chip">
+              <NavLink href={switchRow.href} className="ls-filterc__chip">
                 {switchRow.label}：{switchRow.optionLabel}
                 <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </Link>
+              </NavLink>
             ) : null}
             {picks.map(({ row, option }) => (
-              <Link
+              <NavLink
                 key={row.key}
                 href={buildClearRowHref(basePath, currentParams, row.key)}
                 className="ls-filterc__chip"
               >
                 {row.label}：{option.label}
                 <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </Link>
+              </NavLink>
             ))}
             {(extraPicks ?? []).map((pick) => (
-              <Link key={pick.key} href={pick.href} className="ls-filterc__chip">
+              <NavLink key={pick.key} href={pick.href} className="ls-filterc__chip">
                 {pick.label}
                 <span className="ls-filterc__chip-x" aria-hidden="true"><XMarkIcon size={10} /></span>
-              </Link>
+              </NavLink>
             ))}
             {/* href 由调用方给定：本组件收到的 rows 只是被渲染出来的那几行，不等于
                 URL 上真正生效的全部筛选维度——理由与那次「同一屏两个清除全部、作用域
                 不同」的缺陷见 clearAllHref 的 prop 注释。 */}
-            <Link href={clearAllHref} className="ls-filterc__clear-all">
+            <NavLink href={clearAllHref} className="ls-filterc__clear-all">
               清除全部
-            </Link>
+            </NavLink>
           </>
         ) : (
           <span className="ls-filterc__hint">每行单选，选中即写入地址栏；未选的行保持「全部」</span>
