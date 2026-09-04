@@ -546,8 +546,26 @@
  * 变了，但 44 这个取值本身由触控目标约束独立支撑，不随之改动。
  * 尺寸落点收敛到共享层后，两条栏由构造保证一致，调用方不再各传各的尺寸档。 */
 .dt-bar__cta .btn {
-  min-height: 44px; padding: 0 20px; border-radius: var(--r-pill);
+  /* ★ 2026-09-04（第二次收小）：44 → 36，回到稿子的 h36。
+   * 上一轮把房源页从 btn--lg(53px) 收到 44 时，44 是被「≥44×44 触控目标」这条
+   * token 级约束顶住的下限。现在改用伪元素把**可点区域**补到 44，视觉高度就能
+   * 回到稿子的 36——两个约束不再互相绑架。56 高的栏里由 79% 降到 64%。
+   * padding / radius / 字号字重照旧（稿中 CTA：h36 · padding 0 20 · radius 980 ·
+   * --accent · 14/500），只动高度这一个变量。 */
+  min-height: 36px; padding: 0 20px; border-radius: var(--r-pill);
   background: var(--accent); color: #fff; font-size: 14px; font-weight: 500;
+  position: relative;
+}
+
+/* 触控目标补偿：视觉 36，可点区域仍 ≥44×44（design.md §14.2，token 级约束）。
+ * 上下各外扩 (44-36)/2 = 4px，用 calc 从 --touch-target 推导而不是写死 -4px，
+ * 触控下限改了这里自动跟着变。
+ * 只扩纵向：横向 97px 已远超 44，再外扩会让相邻元素的可点区互相咬到。
+ * `.btn` 基态没有任何 ::after（已 grep 确认），不存在被占用的风险。 */
+.dt-bar__cta .btn::after {
+  content: '';
+  position: absolute;
+  inset: calc((36px - var(--touch-target)) / 2) 0;
 }
 .dt-bar__cta .btn:hover { background: var(--accent-hover); }
 
