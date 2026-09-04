@@ -70,11 +70,9 @@ import {
   parseListingSearchInput,
 } from './search-params'
 import {
-  filterByRentUnit,
-  filterByPriceKey,
-  isSameRentUnit,
+  buildPagination,
   paginate,
-  priceKeyOf,
+  prepareForPriceSort,
   stableSortCards,
 } from './stable-sort'
 import { createSearchContext } from './types'
@@ -254,41 +252,6 @@ function buildLastEffAtLookup(
 }
 
 /**
- * 价格排序预处理：若卡片价格单位不一致，按首个非空单位过滤。
- *
- * 守护不变量（design.md §7.4、FRONTEND_AGENT.md §6.3）：
- *   - 禁止跨 rentUnit 价格排序；
- *   - UI 应在 sort=rent-asc/rent-desc 且未指定 rentUnit 时提示"已按统一单位显示"。
- */
-function prepareCardsForPriceSort(
-  cards: readonly ListingCardViewModel[],
-  input: ListingSearchInput,
-): { cards: ListingCardViewModel[]; filteredByRentUnit: boolean } {
-  if (input.sort !== 'price-asc' && input.sort !== 'price-desc') {
-    return { cards: cards.slice(), filteredByRentUnit: false }
-  }
-  // 已显式选定 rentUnit：直接按该单位过滤
-  if (input.priceUnit) {
-    return {
-      cards: filterByRentUnit(cards, input.priceUnit),
-      filteredByRentUnit: cards.some((card) => card.price != null && card.price.displayUnit !== input.priceUnit),
-    }
-  }
-  // 未指定 rentUnit 但请求价格排序：取首个非空单位
-  if (isSameRentUnit(cards)) {
-    return { cards: cards.slice(), filteredByRentUnit: false }
-  }
-  const firstWithPrice = cards.find((c) => c.price != null)
-  if (!firstWithPrice?.price) {
-    return { cards: cards.slice(), filteredByRentUnit: false }
-  }
-  return {
-    cards: filterByPriceKey(cards, priceKeyOf(firstWithPrice.price)!),
-    filteredByRentUnit: true,
-  }
-}
-
-/**
  * 给楼盘 VM 批量补上在租面积与在租套数（一次 SQL 聚合覆盖全部楼盘）。
  *
  * 曾用名 attachLeasableArea——只补面积时这个名字是准的，加了套数以后继续叫它
@@ -342,26 +305,6 @@ const DEFAULT_DISTRICT_CARD_POOL_LIMIT = 20
 
 /** 每张商圈卡最多列出的代表楼盘名数量 */
 const AREA_CARD_BUILDINGS_MAX = 4
-
-/** 计算分页元数据 */
-function buildPagination(
-  totalDocs: number,
-  page: number,
-  pageSize: number,
-): Pagination {
-  const safePageSize = pageSize > 0 ? pageSize : 1
-  const totalPages = Math.max(1, Math.ceil(totalDocs / safePageSize))
-  // page < 1 视为非法 → 回退为 1；page > totalPages 不 clamp（与 paginate 一致）
-  const safePage = Math.max(1, page)
-  return {
-    page: safePage,
-    pageSize: pageSize as 24,
-    totalDocs,
-    totalPages,
-    hasNextPage: safePage < totalPages,
-    hasPrevPage: safePage > 1,
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Facade 函数
@@ -418,7 +361,7 @@ export async function buildListingSearchSource(
 ): Promise<ListingSearchSource> {
   const rawListings = await adapter.findEffectiveListings(input, ctx)
   const cards = mapListingsToCards(rawListings)
-  const { cards: sortTarget, filteredByRentUnit } = prepareCardsForPriceSort(cards, input)
+  const { items: sortTarget, filteredByRentUnit } = prepareForPriceSort(cards, input)
   const lastEffAt = buildLastEffAtLookup(rawListings)
   const sorted = stableSortCards(sortTarget, input.sort ?? 'recommended', lastEffAt)
 

@@ -42,6 +42,7 @@ import {
 import { createSearchContext, type SearchContext, type ListingSearchInput } from './types'
 import type { PublicRouteIdentity } from './contracts'
 import { mapBuildingCity, resolveListingPrice } from './mappers'
+import { matchesPriceFilter } from './listing-scan'
 
 /**
  * 公开目录供给适配器契约
@@ -344,17 +345,10 @@ function filterByPrice(
   listings: readonly Listing[],
   input: ListingSearchInput,
 ): Listing[] {
-  const { priceMin, priceMax, priceUnit } = input
-  if (!priceUnit) return [...listings]
-  const hasRange = priceMin != null || priceMax != null
-  return listings.filter((listing) => {
-    const price = resolveListingPrice(listing)
-    if (!price) return !hasRange
-    if (price.displayUnit !== priceUnit) return false
-    if (priceMin != null && price.amount < priceMin) return false
-    if (priceMax != null && price.amount > priceMax) return false
-    return true
-  })
+  // OPT-068：判定本体在 listing-scan.ts#matchesPriceFilter（扫描行也用它），
+  // 这里只负责把原始文档的价格归一后交给同一条裁定。
+  if (!input.priceUnit) return [...listings]
+  return listings.filter((listing) => matchesPriceFilter(resolveListingPrice(listing), input))
 }
 
 function readListingRouteProjection(value: unknown): ListingRouteProjection | null {

@@ -65,12 +65,17 @@ export type { BuildingSort, BuildingSearchInput, BuildingSearchDimension } from 
 export { normalizePublicMediaUrl } from './media-url'
 export {
   stableSortCards,
+  stableSortListings,
+  prepareForPriceSort,
   priceKeyOf,
   isSameRentUnit,
   filterByRentUnit,
   filterByPriceKey,
   paginate,
+  buildPagination,
 } from './stable-sort'
+export type { PricedItem, SortableListing } from './stable-sort'
+export * from './listing-scan'
 export {
   computeUsableArea,
   deriveSeatRange,
