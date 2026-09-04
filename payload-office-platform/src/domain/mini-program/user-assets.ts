@@ -195,6 +195,7 @@ export async function upsertFavorite(
     ) {
       return { created: false, assetKey }
     }
+    if (raced) throw new Error('mini_user_asset_key_collision')
     throw error
   }
 }

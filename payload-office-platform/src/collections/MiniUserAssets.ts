@@ -15,6 +15,7 @@ export function denyMiniUserAssetAccess(): false {
 
 export const MiniUserAssets: CollectionConfig = {
   slug: 'mini-user-assets',
+  lockDocuments: false,
   labels: { singular: '小程序用户资产', plural: '小程序用户资产' },
   admin: {
     group: false,

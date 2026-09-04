@@ -60,6 +60,49 @@ class MemoryAssetStore implements MiniUserAssetStore {
   }
 }
 
+class RaceAssetStore implements MiniUserAssetStore {
+  readonly createError = new Error('race create failed')
+  findCalls = 0
+  createCalls = 0
+
+  constructor(private readonly racedRecord: MiniUserAssetRecord | null) {}
+
+  async findByAssetKey(): Promise<MiniUserAssetRecord | null> {
+    this.findCalls += 1
+    return this.findCalls === 1 ? null : this.racedRecord
+  }
+
+  async create(): Promise<MiniUserAssetRecord> {
+    this.createCalls += 1
+    throw this.createError
+  }
+
+  async deleteExact(): Promise<number> {
+    return 0
+  }
+
+  async findBySubject(): Promise<readonly MiniUserAssetRecord[]> {
+    return []
+  }
+}
+
+function favoriteRecord(
+  assetKey: string,
+  subject: string,
+  targetSlug = 'jing-an-100',
+): MiniUserAssetRecord {
+  return {
+    databaseId: 1,
+    assetKey,
+    subject,
+    kind: 'favorite-listing',
+    targetType: 'listing',
+    targetSlug,
+    lead: null,
+    createdAt: '2026-09-04T10:00:00.000Z',
+  }
+}
+
 function tokenFor(openId: string, now: number): string {
   return issueAnonymousContextToken(openId, {
     signingSecret: SIGNING_SECRET,
@@ -86,6 +129,7 @@ describe('MiniUserAssets collection', () => {
       update: denyMiniUserAssetAccess,
       delete: denyMiniUserAssetAccess,
     })
+    expect(MiniUserAssets.lockDocuments).toBe(false)
   })
 })
 
@@ -163,6 +207,50 @@ describe('Mini user asset domain', () => {
       'mini_user_asset_key_collision',
     )
   })
+
+  it('创建发生唯一键竞态后，二次 find 到同一完整元组则幂等成功', async () => {
+    const target = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+    const assetKey = computeMiniUserAssetKey(
+      'subject-a',
+      'favorite-listing',
+      target.targetType,
+      target.targetSlug,
+    )
+    const store = new RaceAssetStore(favoriteRecord(assetKey, 'subject-a'))
+
+    await expect(upsertFavorite(store, 'subject-a', target)).resolves.toEqual({
+      created: false,
+      assetKey,
+    })
+    expect(store.createCalls).toBe(1)
+    expect(store.findCalls).toBe(2)
+  })
+
+  it('创建竞态二次 find 到不同 subject/元组时以碰撞错误 fail-closed', async () => {
+    const target = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+    const assetKey = computeMiniUserAssetKey(
+      'subject-a',
+      'favorite-listing',
+      target.targetType,
+      target.targetSlug,
+    )
+    const store = new RaceAssetStore(favoriteRecord(assetKey, 'subject-b', 'other-listing'))
+
+    await expect(upsertFavorite(store, 'subject-a', target)).rejects.toThrow(
+      'mini_user_asset_key_collision',
+    )
+    expect(store.createCalls).toBe(1)
+    expect(store.findCalls).toBe(2)
+  })
+
+  it('创建竞态二次 find 仍为空时原始错误上抛', async () => {
+    const store = new RaceAssetStore(null)
+    const target = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+
+    await expect(upsertFavorite(store, 'subject-a', target)).rejects.toBe(store.createError)
+    expect(store.createCalls).toBe(1)
+    expect(store.findCalls).toBe(2)
+  })
 })
 
 describe('verifyMiniBearer', () => {
@@ -196,5 +284,29 @@ describe('verifyMiniBearer', () => {
     expect(expired.ok).toBe(false)
     if (expired.ok) throw new Error('expected expired bearer rejection')
     expect(expired.response.status).toBe(401)
+  })
+
+  it('签名配置缺失返回 503，错误签名返回 401', async () => {
+    delete process.env.MINI_SESSION_SIGNING_SECRET
+    const missingConfig = verifyMiniBearer(new Request('https://example.test', {
+      headers: { authorization: `Bearer ${tokenFor('openid-a', Date.now())}` },
+    }))
+    expect(missingConfig.ok).toBe(false)
+    if (missingConfig.ok) throw new Error('expected missing config rejection')
+    expect(missingConfig.response.status).toBe(503)
+
+    process.env.MINI_SESSION_SIGNING_SECRET = SIGNING_SECRET_ENV
+    const otherSecret = Uint8Array.from({ length: 32 }, (_, index) => index + 2)
+    const badSignature = issueAnonymousContextToken('openid-a', {
+      signingSecret: otherSecret,
+      now: () => Date.now(),
+      randomBytes: (size) => Uint8Array.from({ length: size }, (_, index) => index + 1),
+    }).token
+    const invalid = verifyMiniBearer(new Request('https://example.test', {
+      headers: { authorization: `Bearer ${badSignature}` },
+    }))
+    expect(invalid.ok).toBe(false)
+    if (invalid.ok) throw new Error('expected invalid signature rejection')
+    expect(invalid.response.status).toBe(401)
   })
 })

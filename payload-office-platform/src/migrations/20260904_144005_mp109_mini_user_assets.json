@@ -13585,12 +13585,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "mini_user_assets_id": {
-          "name": "mini_user_assets_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "search_id": {
           "name": "search_id",
           "type": "integer",
@@ -14121,21 +14115,6 @@
           "method": "btree",
           "with": {}
         },
-        "payload_locked_documents_rels_mini_user_assets_id_idx": {
-          "name": "payload_locked_documents_rels_mini_user_assets_id_idx",
-          "columns": [
-            {
-              "expression": "mini_user_assets_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "payload_locked_documents_rels_search_id_idx": {
           "name": "payload_locked_documents_rels_search_id_idx",
           "columns": [
@@ -14592,19 +14571,6 @@
           "tableTo": "location_aliases",
           "columnsFrom": [
             "location_aliases_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "payload_locked_documents_rels_mini_user_assets_fk": {
-          "name": "payload_locked_documents_rels_mini_user_assets_fk",
-          "tableFrom": "payload_locked_documents_rels",
-          "tableTo": "mini_user_assets",
-          "columnsFrom": [
-            "mini_user_assets_id"
           ],
           "columnsTo": [
             "id"
@@ -17064,6 +17030,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "78c84624-d209-4bb1-9b8c-de7d220f4447",
+  "id": "f1adf166-b936-4efb-8948-3da40d467530",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

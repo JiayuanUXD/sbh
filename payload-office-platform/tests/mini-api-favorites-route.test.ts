@@ -214,6 +214,38 @@ describe('PUT/DELETE /api/mini/v1/favorites', () => {
     expect(io.calls.every((call) => call.collection !== 'mini-user-assets' || call.overrideAccess === true)).toBe(true)
   })
 
+  it('创建竞态重查到错误 subject 时 fail-closed 为 503', async () => {
+    io.payloadFind
+      .mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({
+        docs: [{
+          id: 99,
+          assetKey: 'collision-key',
+          subject: 'other-subject',
+          kind: 'favorite-listing',
+          targetType: 'listing',
+          targetSlug: 'other-listing',
+          lead: null,
+          createdAt: '2026-09-04T10:00:00.000Z',
+          updatedAt: '2026-09-04T10:00:00.000Z',
+        }],
+      })
+    io.payloadCreate.mockRejectedValueOnce(new Error('unique constraint violation'))
+
+    const result = await PUT(bodyRequest('PUT', subjectToken('openid-a'), {
+      targetType: 'listing',
+      targetSlug: 'jing-an-100',
+    }))
+
+    expect(result.status).toBe(503)
+    await expect(result.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'service_unavailable' },
+    })
+    expect(io.payloadFind).toHaveBeenCalledTimes(2)
+    expect(io.payloadCreate).toHaveBeenCalledTimes(1)
+  })
+
   it('DELETE 精确取消当前 subject 且重复调用幂等，不删除另一 subject', async () => {
     const tokenA = subjectToken('openid-a')
     const tokenB = subjectToken('openid-b')

@@ -77,7 +77,7 @@ describe('preflight migrations: 纯函数', () => {
     const indexContent = readFileSync(indexPath, 'utf-8')
     const names = parseRegisteredMigrationNames(indexContent)
     expect(names.length).toBe(67)
-    expect(names).toContain('20260904_141252_mp109_mini_user_assets')
+    expect(names).toContain('20260904_144005_mp109_mini_user_assets')
     expect(names).toContain('20260810_003111_align_listings_data_source_with_production')
     expect(names).toContain('20260726_103800_m6_7_notifications')
     expect(names).toContain('20260726_140000_m5_2_leads_inquiry_context')
@@ -101,6 +101,16 @@ describe('preflight migrations: 纯函数', () => {
     expect(names).toContain('20260822_010308_supply_import_job_task')
     // 不应误把 import 别名 migration_xxx 当成迁移名
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
+  })
+
+  it('MP-109 用户资产迁移不生成 locked-doc 关系，避免 down 重复删除 CASCADE 外键', () => {
+    const miniMigrationName = listMigrationFiles(migrationsDir)
+      .find((name) => name.endsWith('_mp109_mini_user_assets'))
+    if (!miniMigrationName) throw new Error('MP-109 mini user assets migration not found')
+    const migrationSource = readFileSync(resolve(migrationsDir, `${miniMigrationName}.ts`), 'utf-8')
+
+    expect(migrationSource).not.toContain('mini_user_assets_id')
+    expect(migrationSource).not.toContain('payload_locked_documents_rels_mini_user_assets_fk')
   })
 
   it('diffMigrationSets 双向差异：漏注册与悬空引用', () => {
