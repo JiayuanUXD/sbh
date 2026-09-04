@@ -6,6 +6,7 @@ import {
   computeWatermarkVersion,
   DEFAULT_WATERMARK_CONFIG,
   estimateTextWidth,
+  mergeWatermarkConfig,
 } from '@/domain/media/watermark'
 
 const TILED = { text: '商办荟 SHANGBANHUI', density: 3, opacity: 0.38, angle: -30 }
@@ -117,5 +118,170 @@ describe('computeWatermarkVersion', () => {
       tiled: { ...DEFAULT_WATERMARK_CONFIG.tiled, opacity: 0.99 },
     })
     expect(changed).not.toBe(base)
+  })
+})
+
+describe('buildTiledOverlay 退化输入守卫', () => {
+  it('空文案返回空 overlay 而不是 NaN SVG', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, text: '' } }).toString()
+    expect(svg).toContain('width="800"')
+    expect(svg).toContain('height="600"')
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('NaN')
+    expect(svg).not.toContain('Infinity')
+  })
+
+  it('仅空白文案返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, text: '   ' } }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('density 为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: 0 } }).toString()
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('Infinity')
+  })
+
+  it('density 为负数返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: -1 } }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('宽度为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 0, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('高度为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 0, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('负数尺寸返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: -100, height: -100, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('非有限 density 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: Infinity } }).toString()
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('Infinity')
+  })
+})
+
+describe('buildBadgeOverlay 退化输入守卫', () => {
+  it('空文案返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: '' } }).toString()
+    expect(svg).toContain('width="1000"')
+    expect(svg).toContain('height="800"')
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('仅空白文案返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: '  ' } }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('零宽度返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 0, height: 800, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('零高度返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 0, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('负数尺寸返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: -100, height: -100, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+})
+
+describe('mergeWatermarkConfig', () => {
+  it('null 配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig(null)
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('undefined 配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig(undefined)
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('非对象配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig('not an object')
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('全 null group 不能用 spread 覆盖默认值', () => {
+    const stored = { tiled: { density: null, text: null, opacity: null, angle: null }, badge: { text: null, opacity: null, position: null } }
+    const merged = mergeWatermarkConfig(stored)
+    // density null 应该回落到默认 3，不能用 null 覆盖默认值
+    expect(merged.tiled.density).toBe(DEFAULT_WATERMARK_CONFIG.tiled.density)
+  })
+
+  it('文案空白时回落到 fallbackText', () => {
+    const stored = { tiled: { density: 3, text: '  ', opacity: 0.5, angle: -30 }, badge: { text: '', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('fallbackText 也为空时回落到默认文案', () => {
+    const stored = { tiled: { density: 3, text: '', opacity: 0.5, angle: -30 }, badge: { text: '  ', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, '')
+    expect(merged.tiled.text).toBe(DEFAULT_WATERMARK_CONFIG.tiled.text)
+    expect(merged.badge.text).toBe(DEFAULT_WATERMARK_CONFIG.badge.text)
+  })
+
+  it('fallbackText 为 null 时回落到默认文案', () => {
+    const stored = { tiled: { density: 3, text: '', opacity: 0.5, angle: -30 }, badge: { text: '', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, null)
+    expect(merged.tiled.text).toBe(DEFAULT_WATERMARK_CONFIG.tiled.text)
+  })
+
+  it('density 夹到 [2, 6]', () => {
+    expect(mergeWatermarkConfig({ tiled: { density: 0 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 1 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 2 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 6 } }).tiled.density).toBe(6)
+    expect(mergeWatermarkConfig({ tiled: { density: 10 } }).tiled.density).toBe(6)
+  })
+
+  it('opacity 夹到 (0, 1]', () => {
+    expect(mergeWatermarkConfig({ tiled: { opacity: 0 } }).tiled.opacity).toBe(0.01)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 0.5 } }).tiled.opacity).toBe(0.5)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 1 } }).tiled.opacity).toBe(1)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 2 } }).tiled.opacity).toBe(1)
+  })
+
+  it('angle 夹到 [-90, 90]', () => {
+    expect(mergeWatermarkConfig({ tiled: { angle: -180 } }).tiled.angle).toBe(-90)
+    expect(mergeWatermarkConfig({ tiled: { angle: -30 } }).tiled.angle).toBe(-30)
+    expect(mergeWatermarkConfig({ tiled: { angle: 90 } }).tiled.angle).toBe(90)
+    expect(mergeWatermarkConfig({ tiled: { angle: 180 } }).tiled.angle).toBe(90)
+  })
+
+  it('非有限值回落到默认值', () => {
+    expect(mergeWatermarkConfig({ tiled: { density: Infinity } }).tiled.density).toBe(DEFAULT_WATERMARK_CONFIG.tiled.density)
+    expect(mergeWatermarkConfig({ tiled: { opacity: NaN } }).tiled.opacity).toBe(DEFAULT_WATERMARK_CONFIG.tiled.opacity)
+    expect(mergeWatermarkConfig({ tiled: { angle: Infinity } }).tiled.angle).toBe(DEFAULT_WATERMARK_CONFIG.tiled.angle)
+  })
+
+  it('储存配置的有效值完全回落', () => {
+    const stored = {
+      tiled: { density: 4, text: '我的项目', opacity: 0.5, angle: -45 },
+      badge: { text: '我的项目', opacity: 0.8, position: 'top-right' as const },
+    }
+    const merged = mergeWatermarkConfig(stored)
+    expect(merged.tiled.density).toBe(4)
+    expect(merged.tiled.text).toBe('我的项目')
+    expect(merged.tiled.opacity).toBe(0.5)
+    expect(merged.tiled.angle).toBe(-45)
+    expect(merged.badge.text).toBe('我的项目')
+    expect(merged.badge.opacity).toBe(0.8)
+    expect(merged.badge.position).toBe('top-right')
   })
 })

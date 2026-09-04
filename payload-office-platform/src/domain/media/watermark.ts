@@ -96,6 +96,11 @@ function round(value: number): number {
   return Math.round(value * 10_000) / 10_000
 }
 
+/** 创建空的 overlay SVG 外壳（仅宽高，无内容）。 */
+function emptyOverlay(width: number, height: number): Buffer {
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"></svg>`)
+}
+
 export function buildTiledOverlay({
   width,
   height,
@@ -105,6 +110,20 @@ export function buildTiledOverlay({
   height: number
   config: TiledWatermarkConfig
 }): Buffer {
+  // 输入守卫：文案为空、尺寸无效或密度无效时返回空 overlay
+  const trimmedText = config.text.trim()
+  if (
+    !trimmedText ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0 ||
+    !Number.isFinite(config.density) ||
+    config.density <= 0
+  ) {
+    return emptyOverlay(width, height)
+  }
+
   const text = escapeXml(config.text)
   const unitWidth = estimateTextWidth(config.text, 1)
   // 图宽切成 density 列，每列容纳一条文字 + 余量
@@ -149,6 +168,18 @@ export function buildBadgeOverlay({
   height: number
   config: BadgeWatermarkConfig
 }): Buffer {
+  // 输入守卫：文案为空或尺寸无效时返回空 overlay
+  const trimmedText = config.text.trim()
+  if (
+    !trimmedText ||
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return emptyOverlay(width, height)
+  }
+
   const text = escapeXml(config.text)
   const fontSize = Math.max(8, Math.round(width * BADGE_FONT_RATIO))
   const padX = Math.round(fontSize * 0.85)
@@ -185,4 +216,69 @@ export function computeWatermarkVersion(config: WatermarkConfig): string {
     badge: config.badge,
   })
   return createHash('sha256').update(payload).digest('hex').slice(0, 16)
+}
+
+/**
+ * 合并储存配置与缺省值，避免 null 覆盖。
+ *
+ * 后续任务（应用于房源/楼盘上传）都需要这个入口，确保「首次部署配置为空」
+ * 与「运营已设置」两种情况下文案回落行为一致。
+ *
+ * @param stored — 从 `SiteSettings.watermark` 读出的配置，可能有 null / undefined 字段
+ * @param fallbackText — 缺省文案（通常是站点名称），为空时用 DEFAULT_WATERMARK_CONFIG 的文案
+ */
+export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | null): WatermarkConfig {
+  // 储存配置为 null / undefined / 非对象时回落到默认值
+  if (stored == null || typeof stored !== 'object') {
+    return DEFAULT_WATERMARK_CONFIG
+  }
+
+  const storedObj = stored as Record<string, any>
+
+  // 处理文案回落逻辑
+  const resolveFallbackText = (text: unknown): string => {
+    const trimmedText = typeof text === 'string' ? text.trim() : ''
+    if (trimmedText) return trimmedText
+    const trimmedFallback = typeof fallbackText === 'string' ? fallbackText.trim() : ''
+    return trimmedFallback || DEFAULT_WATERMARK_CONFIG.tiled.text
+  }
+
+  // 辅助函数：带范围夹取的数字合并
+  const mergeNumber = (
+    value: unknown,
+    defaultValue: number,
+    min?: number,
+    max?: number,
+  ): number => {
+    if (!Number.isFinite(value)) return defaultValue
+    let result = value as number
+    if (min !== undefined) result = Math.max(result, min)
+    if (max !== undefined) result = Math.min(result, max)
+    return result
+  }
+
+  // 合并 tiled 配置
+  const tiledStored = storedObj.tiled
+  const tiledConfig: TiledWatermarkConfig = {
+    text: resolveFallbackText(tiledStored?.text),
+    density: mergeNumber(tiledStored?.density, DEFAULT_WATERMARK_CONFIG.tiled.density, 2, 6),
+    opacity: mergeNumber(tiledStored?.opacity, DEFAULT_WATERMARK_CONFIG.tiled.opacity, 0.01, 1),
+    angle: mergeNumber(tiledStored?.angle, DEFAULT_WATERMARK_CONFIG.tiled.angle, -90, 90),
+  }
+
+  // 合并 badge 配置
+  const badgeStored = storedObj.badge
+  const badgeConfig: BadgeWatermarkConfig = {
+    text: resolveFallbackText(badgeStored?.text),
+    position: ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(badgeStored?.position)
+      ? badgeStored.position
+      : DEFAULT_WATERMARK_CONFIG.badge.position,
+    opacity: mergeNumber(badgeStored?.opacity, DEFAULT_WATERMARK_CONFIG.badge.opacity, 0.01, 1),
+  }
+
+  return {
+    enabled: storedObj.enabled !== false,
+    tiled: tiledConfig,
+    badge: badgeConfig,
+  }
 }
