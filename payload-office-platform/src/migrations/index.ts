@@ -71,6 +71,7 @@ import * as migration_20260827_234410_city_profile_type_card_overrides from './2
 import * as migration_20260830_164849_opt_063_listing_room_number from './20260830_164849_opt_063_listing_room_number';
 import * as migration_20260901_021249_merchant_stop_cascade_job from './20260901_021249_merchant_stop_cascade_job';
 import * as migration_20260903_084339_opt_067_lead_visitor_ref from './20260903_084339_opt_067_lead_visitor_ref';
+import * as migration_20260904_170123_city_profile_type_card_cover_nullable from './20260904_170123_city_profile_type_card_cover_nullable';
 
 export const migrations = [
   {
@@ -436,6 +437,11 @@ export const migrations = [
   {
     up: migration_20260903_084339_opt_067_lead_visitor_ref.up,
     down: migration_20260903_084339_opt_067_lead_visitor_ref.down,
-    name: '20260903_084339_opt_067_lead_visitor_ref'
+    name: '20260903_084339_opt_067_lead_visitor_ref',
+  },
+  {
+    up: migration_20260904_170123_city_profile_type_card_cover_nullable.up,
+    down: migration_20260904_170123_city_profile_type_card_cover_nullable.down,
+    name: '20260904_170123_city_profile_type_card_cover_nullable'
   },
 ];
