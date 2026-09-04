@@ -23,6 +23,9 @@ import type {
 import { readMiniSessionSigningRuntimeConfig } from '@/lib/mini-program/runtime-config'
 
 const MAX_BEARER_LENGTH = 4096
+export const MINI_FAVORITES_PER_SUBJECT_LIMIT = 200
+export const MINI_ME_FAVORITES_PAGE_LIMIT = MINI_FAVORITES_PER_SUBJECT_LIMIT
+export const MINI_ME_INQUIRIES_PAGE_LIMIT = 100
 
 export type MiniUserAssetKind = 'favorite-listing' | 'favorite-building' | 'inquiry'
 export type MiniUserAssetTargetType = 'listing' | 'building' | 'general'
@@ -53,18 +56,31 @@ export type MiniUserAssetRecord = Readonly<{
   createdAt: string
 }>
 
+export type MiniUserAssetPage = Readonly<{
+  records: readonly MiniUserAssetRecord[]
+  hasMore: boolean
+}>
+
 export type MiniInquiryLinkTarget = MiniInquiryTarget
 
 export interface MiniUserAssetStore {
   findByAssetKey(assetKey: string): Promise<MiniUserAssetRecord | null>
   create(data: MiniUserAssetCreate): Promise<MiniUserAssetRecord>
+  countBySubjectAndKinds(
+    subject: string,
+    kinds: readonly MiniUserAssetKind[],
+  ): Promise<number>
   deleteExact(
     assetKey: string,
     subject: string,
     kind: MiniUserAssetKind,
     target: MiniFavoriteTarget,
   ): Promise<number>
-  findBySubject(subject: string): Promise<readonly MiniUserAssetRecord[]>
+  findBySubjectAndKinds(
+    subject: string,
+    kinds: readonly MiniUserAssetKind[],
+    limit: number,
+  ): Promise<MiniUserAssetPage>
 }
 
 export type MiniBearerVerification =
@@ -87,6 +103,10 @@ export type MiniInquiryHistoryItem = Readonly<{
 
 export type MiniMeData = Readonly<{
   counts: Readonly<{ favorites: number; inquiries: number }>
+  pageInfo: Readonly<{
+    favorites: Readonly<{ limit: number; hasMore: boolean }>
+    inquiries: Readonly<{ limit: number; hasMore: boolean }>
+  }>
   favorites: Readonly<{
     listings: readonly SafeListingFavorite[]
     buildings: readonly SafeBuildingFavorite[]
@@ -171,7 +191,15 @@ export async function upsertFavorite(
   store: MiniUserAssetStore,
   subject: string,
   target: MiniFavoriteTarget,
+  maxFavorites: number = MINI_FAVORITES_PER_SUBJECT_LIMIT,
 ): Promise<Readonly<{ created: boolean; assetKey: string }>> {
+  if (
+    !Number.isSafeInteger(maxFavorites)
+    || maxFavorites < 1
+    || maxFavorites > MINI_FAVORITES_PER_SUBJECT_LIMIT
+  ) {
+    throw new Error('mini_user_asset_limit_invalid')
+  }
   const kind = favoriteKind(target.targetType)
   const assetKey = computeMiniUserAssetKey(subject, kind, target.targetType, target.targetSlug)
   const existing = await store.findByAssetKey(assetKey)
@@ -181,6 +209,12 @@ export async function upsertFavorite(
     }
     throw new Error('mini_user_asset_key_collision')
   }
+
+  const favoriteCount = await store.countBySubjectAndKinds(
+    subject,
+    ['favorite-listing', 'favorite-building'],
+  )
+  if (favoriteCount >= maxFavorites) throw new Error('mini_user_asset_limit_reached')
 
   try {
     await store.create({
@@ -358,6 +392,19 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
       if (!record) throw new Error('mini_user_asset_create_invalid')
       return record
     },
+    async countBySubjectAndKinds(subject, kinds) {
+      const result = await payload.count({
+        collection: 'mini-user-assets',
+        where: {
+          and: [
+            { subject: { equals: subject } },
+            { kind: { in: [...kinds] } },
+          ],
+        },
+        overrideAccess: true,
+      })
+      return result.totalDocs
+    },
     async deleteExact(assetKey, subject, kind, target) {
       const result = await payload.delete({
         collection: 'mini-user-assets',
@@ -374,12 +421,26 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
       })
       return result.docs.length
     },
-    async findBySubject(subject) {
+    async findBySubjectAndKinds(subject, kinds, limit) {
+      if (
+        !Number.isSafeInteger(limit)
+        || limit < 1
+        || limit > MINI_ME_FAVORITES_PAGE_LIMIT
+        || kinds.length < 1
+        || kinds.some((kind) => !isAssetKind(kind))
+      ) {
+        throw new Error('mini_user_asset_query_limit_invalid')
+      }
       const result = await payload.find({
         collection: 'mini-user-assets',
-        where: { subject: { equals: subject } },
+        where: {
+          and: [
+            { subject: { equals: subject } },
+            { kind: { in: [...kinds] } },
+          ],
+        },
         depth: 1,
-        pagination: false,
+        limit,
         sort: '-createdAt',
         select: {
           assetKey: true,
@@ -393,10 +454,11 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
         populate: { leads: { stage: true, status: true } },
         overrideAccess: true,
       })
-      return result.docs.flatMap((doc) => {
+      const records = result.docs.slice(0, limit).flatMap((doc) => {
         const record = assetRecord(doc)
-        return record?.subject === subject ? [record] : []
+        return record?.subject === subject && kinds.includes(record.kind) ? [record] : []
       })
+      return { records, hasMore: result.totalDocs > limit || result.docs.length > limit }
     },
   }
 }
@@ -521,6 +583,7 @@ function safeLeadStatus(value: unknown): MiniInquiryHistoryItem['status'] | null
 export async function projectMiniMeData(
   assets: readonly MiniUserAssetRecord[],
   deps: MiniMeProjectionDeps,
+  pageInfo: MiniMeData['pageInfo'],
 ): Promise<MiniMeData> {
   const listingFavorites: SafeListingFavorite[] = []
   const buildingFavorites: SafeBuildingFavorite[] = []
@@ -565,6 +628,7 @@ export async function projectMiniMeData(
       favorites: listingFavorites.length + buildingFavorites.length,
       inquiries: inquiries.length,
     },
+    pageInfo,
     favorites: { listings: listingFavorites, buildings: buildingFavorites },
     inquiries,
   }

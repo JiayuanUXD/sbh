@@ -5,13 +5,20 @@ import { MiniApiError } from '../miniprogram/services/request.js'
 import {
   createUserAssetsService,
   isFavorite,
+  parseUserAssets,
   type UserAssets,
   type UserAssetsRequestClient,
 } from '../miniprogram/services/user-assets.js'
 
+const COMPLETE_PAGE_INFO = {
+  favorites: { limit: 200, hasMore: false },
+  inquiries: { limit: 100, hasMore: false },
+} as const
+
 function emptyAssets(): UserAssets {
   return {
     counts: { favorites: 0, inquiries: 0 },
+    pageInfo: COMPLETE_PAGE_INFO,
     favorites: { listings: [], buildings: [] },
     inquiries: [],
   }
@@ -60,6 +67,29 @@ afterEach(() => {
 })
 
 describe('服务端用户收藏', () => {
+  it('严格接收服务端分类型有界读取的 pageInfo 合同', () => {
+    expect(parseUserAssets({
+      counts: { favorites: 0, inquiries: 0 },
+      pageInfo: {
+        favorites: { limit: 200, hasMore: true },
+        inquiries: { limit: 100, hasMore: false },
+      },
+      favorites: { listings: [], buildings: [] },
+      inquiries: [],
+    })).toMatchObject({
+      pageInfo: {
+        favorites: { limit: 200, hasMore: true },
+        inquiries: { limit: 100, hasMore: false },
+      },
+    })
+
+    expect(() => parseUserAssets({
+      counts: { favorites: 0, inquiries: 0 },
+      favorites: { listings: [], buildings: [] },
+      inquiries: [],
+    })).toThrow('invalid user assets response')
+  })
+
   it('session 缺失时不发请求且 fail-closed', async () => {
     let requestCalls = 0
     const request: UserAssetsRequestClient = async <T>(_options: RequestOptions<T>) => {
@@ -139,6 +169,7 @@ describe('服务端用户收藏', () => {
       }
       return parseThrough(options, {
         counts: { favorites: serverListings.size, inquiries: 0 },
+        pageInfo: COMPLETE_PAGE_INFO,
         favorites: {
           listings: [...serverListings].map((slug) => listingFavorite(slug)),
           buildings: [],
@@ -338,6 +369,7 @@ describe('服务端用户收藏', () => {
       }
       return parseThrough(options, {
         counts: { favorites: serverListings.size + serverBuildings.size, inquiries: 0 },
+        pageInfo: COMPLETE_PAGE_INFO,
         favorites: {
           listings: [...serverListings].map((slug) => listingFavorite(slug)),
           buildings: [...serverBuildings].map((slug) => buildingFavorite(slug)),
@@ -401,6 +433,7 @@ describe('服务端用户收藏', () => {
     })
     const serverAssets: UserAssets = {
       counts: { favorites: 1, inquiries: 0 },
+      pageInfo: COMPLETE_PAGE_INFO,
       favorites: {
         listings: [{ slug: 'jing-an-100', title: '静安中心 100㎡', coverImage: null }],
         buildings: [],

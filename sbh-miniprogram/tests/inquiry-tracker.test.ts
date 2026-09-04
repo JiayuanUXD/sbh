@@ -9,9 +9,15 @@ import {
   type UserAssets,
 } from '../miniprogram/services/user-assets.js'
 
+const COMPLETE_PAGE_INFO = {
+  favorites: { limit: 200, hasMore: false },
+  inquiries: { limit: 100, hasMore: false },
+} as const
+
 function assetsWithInquiries(): UserAssets {
   return parseUserAssets({
     counts: { favorites: 0, inquiries: 3 },
+    pageInfo: COMPLETE_PAGE_INFO,
     favorites: { listings: [], buildings: [] },
     inquiries: [
       {
@@ -65,6 +71,7 @@ describe('服务端咨询记录投影', () => {
   ])('拒绝服务端夹带 PII 或内部字段 $key', ({ key, value }) => {
     const payload = {
       counts: { favorites: 0, inquiries: 0 },
+      pageInfo: COMPLETE_PAGE_INFO,
       favorites: { listings: [], buildings: [] },
       inquiries: [],
       [key]: value,
@@ -76,6 +83,7 @@ describe('服务端咨询记录投影', () => {
   it('拒绝 general 伪造 slug 与未知服务端状态', () => {
     const base = {
       counts: { favorites: 0, inquiries: 1 },
+      pageInfo: COMPLETE_PAGE_INFO,
       favorites: { listings: [], buildings: [] },
     }
 
@@ -105,6 +113,7 @@ describe('服务端咨询记录投影', () => {
   it('拒绝合法状态 value 携带不一致或伪造的服务端 label', () => {
     expect(() => parseUserAssets({
       counts: { favorites: 0, inquiries: 1 },
+      pageInfo: COMPLETE_PAGE_INFO,
       favorites: { listings: [], buildings: [] },
       inquiries: [{
         targetType: 'listing',
@@ -129,6 +138,7 @@ describe('服务端咨询记录投影', () => {
     ]
     const assets = parseUserAssets({
       counts: { favorites: 0, inquiries: statuses.length },
+      pageInfo: COMPLETE_PAGE_INFO,
       favorites: { listings: [], buildings: [] },
       inquiries: statuses.map((status, index) => ({
         targetType: 'general',

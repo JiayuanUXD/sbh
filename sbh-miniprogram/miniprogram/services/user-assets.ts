@@ -60,6 +60,10 @@ export type UserInquiry = Readonly<{
 
 export type UserAssets = Readonly<{
   counts: Readonly<{ favorites: number; inquiries: number }>
+  pageInfo: Readonly<{
+    favorites: Readonly<{ limit: number; hasMore: boolean }>
+    inquiries: Readonly<{ limit: number; hasMore: boolean }>
+  }>
   favorites: Readonly<{
     listings: readonly UserFavoriteListing[]
     buildings: readonly UserFavoriteBuilding[]
@@ -115,6 +119,31 @@ function nullableString(value: unknown): string | null {
 function nonNegativeNumber(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return invalidResponse()
   return value
+}
+
+function positiveSafeInteger(value: unknown): number {
+  const number = nonNegativeNumber(value)
+  if (!Number.isSafeInteger(number) || number < 1) return invalidResponse()
+  return number
+}
+
+function parsePageInfo(value: unknown): UserAssets['pageInfo'] {
+  const pageInfo = exact(value, ['favorites', 'inquiries'])
+  const favoritePage = exact(pageInfo.favorites, ['limit', 'hasMore'])
+  const inquiryPage = exact(pageInfo.inquiries, ['limit', 'hasMore'])
+  if (typeof favoritePage.hasMore !== 'boolean' || typeof inquiryPage.hasMore !== 'boolean') {
+    return invalidResponse()
+  }
+  return {
+    favorites: {
+      limit: positiveSafeInteger(favoritePage.limit),
+      hasMore: favoritePage.hasMore,
+    },
+    inquiries: {
+      limit: positiveSafeInteger(inquiryPage.limit),
+      hasMore: inquiryPage.hasMore,
+    },
+  }
 }
 
 function nullableNonNegativeNumber(value: unknown): number | null {
@@ -284,8 +313,9 @@ function parseInquiry(value: unknown): UserInquiry {
 }
 
 export function parseUserAssets(value: unknown): UserAssets {
-  const root = exact(value, ['counts', 'favorites', 'inquiries'])
+  const root = exact(value, ['counts', 'pageInfo', 'favorites', 'inquiries'])
   const counts = exact(root.counts, ['favorites', 'inquiries'])
+  const pageInfo = parsePageInfo(root.pageInfo)
   const favorites = exact(root.favorites, ['listings', 'buildings'])
   if (!Array.isArray(favorites.listings) || !Array.isArray(favorites.buildings) || !Array.isArray(root.inquiries)) {
     return invalidResponse()
@@ -300,9 +330,12 @@ export function parseUserAssets(value: unknown): UserAssets {
     || !Number.isSafeInteger(inquiryCount)
     || favoriteCount !== listingFavorites.length + buildingFavorites.length
     || inquiryCount !== inquiries.length
+    || favoriteCount > pageInfo.favorites.limit
+    || inquiryCount > pageInfo.inquiries.limit
   ) return invalidResponse()
   return {
     counts: { favorites: favoriteCount, inquiries: inquiryCount },
+    pageInfo,
     favorites: { listings: listingFavorites, buildings: buildingFavorites },
     inquiries,
   }

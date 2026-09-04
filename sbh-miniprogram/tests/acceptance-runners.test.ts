@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { resolve } from 'node:path'
 
@@ -58,11 +58,19 @@ function responseData(payload: unknown): unknown {
   return payload.data
 }
 
+const acceptanceMetadata = {
+  environment: 'local-wechat-devtools-develop-with-controlled-mock',
+  evidenceRevision: 'a'.repeat(16),
+  limitations: ['仅覆盖 develop 与受控 Mock，不等同于 trial 或真实写入'],
+} as const
+
 describe('验收报告 fail-closed', () => {
   it('递归发现任意 passed:false，并在错误中列出完整路径', async () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
+      requiredInteractions: ['filter'],
       testCases: {
         home: { passed: true },
         listing: {
@@ -79,13 +87,15 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
+      requiredInteractions: ['smoke'],
       testCases: {
         group: {
           passed: true,
           child: { passed: false },
         },
       },
-      interactions: {},
+      interactions: { smoke: { passed: true } },
     })).toThrow(/testCases\.group\.child\.passed/)
   })
 
@@ -93,6 +103,8 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
+      requiredInteractions: ['smoke'],
       testCases: {
         home: {
           passed: true,
@@ -104,7 +116,7 @@ describe('验收报告 fail-closed', () => {
           },
         },
       },
-      interactions: {},
+      interactions: { smoke: { passed: true } },
     })).not.toThrow()
   })
 
@@ -112,6 +124,8 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
+      requiredInteractions: ['smoke'],
       testCases: {
         suite: {
           details: {
@@ -120,7 +134,7 @@ describe('验收报告 fail-closed', () => {
           child: { passed: true },
         },
       },
-      interactions: {},
+      interactions: { smoke: { passed: true } },
     })).not.toThrow()
   })
 
@@ -128,12 +142,14 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
+      requiredInteractions: ['smoke'],
       testCases: {
         suite: {
           details: { state: 'ready' },
         },
       },
-      interactions: {},
+      interactions: { smoke: { passed: true } },
     })).toThrow(/testCases 没有验收结果/)
   })
 
@@ -141,6 +157,7 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
       requiredInteractions: ['filterSheet'],
       testCases: { listings: { passed: true } },
       interactions: {},
@@ -151,6 +168,7 @@ describe('验收报告 fail-closed', () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
     expect(() => assertAcceptancePassed({
+      ...acceptanceMetadata,
       requiredInteractions: ['filter.sheet'],
       testCases: {
         home: { passed: true },
@@ -162,6 +180,22 @@ describe('验收报告 fail-closed', () => {
     })).not.toThrow()
   })
 
+  it.each(['environment', 'evidenceRevision', 'limitations', 'requiredInteractions'] as const)(
+    '缺失权威证据字段 %s 时 fail-closed',
+    async (field) => {
+      const { assertAcceptancePassed } = await loadAcceptanceResult()
+      const report: Record<string, unknown> = {
+        ...acceptanceMetadata,
+        requiredInteractions: ['filter'],
+        testCases: { home: { passed: true } },
+        interactions: { filter: { passed: true } },
+      }
+      delete report[field]
+
+      expect(() => assertAcceptancePassed(report)).toThrow(new RegExp(field))
+    },
+  )
+
   it('拒绝非普通对象报告', async () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
@@ -170,7 +204,7 @@ describe('验收报告 fail-closed', () => {
   })
 })
 
-describe('MP-106/107 runner 失败传播', () => {
+describe('MP-106/107 legacy runner 退役', () => {
   it.each([
     ['mp106-acceptance-runner.mjs', [
       '.home-search__input',
@@ -189,42 +223,19 @@ describe('MP-106/107 runner 失败传播', () => {
       '.listing-detail__bar-fav',
       '.listing-detail__bar-action--inquiry',
     ]],
-  ] as const)('%s 对关键 selector 缺失显式抛错，并在写报告前断言通过', (filename, selectors) => {
+  ] as const)('%s 启动时先使旧报告失效并 fail-closed', (filename, _selectors) => {
     const source = readScript(filename)
-    const assertionOffset = source.lastIndexOf('assertAcceptancePassed(results)')
-    const reportWriteOffset = source.lastIndexOf('writeFileSync(reportPath')
-
-    expect(source).toContain("import { assertAcceptancePassed } from './acceptance-result.mjs'")
-    expect(source).toMatch(/function requireSelector[\s\S]*throw new Error/)
-    for (const selector of selectors) {
-      expect(source).toMatch(new RegExp(`requireSelector\\([^\\n]*['\"]${selector.replaceAll('.', '\\.')}`))
-    }
-    expect(assertionOffset).toBeGreaterThan(-1)
-    expect(reportWriteOffset).toBeGreaterThan(assertionOffset)
+    expect(source).toContain('LEGACY_ACCEPTANCE_RETIRED')
+    expect(source).toContain("rmSync(reportPath, { force: true })")
+    expect(source).toContain('process.exitCode = 1')
+    expect(source).not.toContain('miniprogram-automator')
+    expect(source).not.toContain('passed: true')
   })
 
   it('MP-106 对 q、无单位排序保护和价格升降序真实交互 fail-closed', () => {
     const runner = readScript('mp106-acceptance-runner.mjs')
-
-    expect(runner).toContain("'sortGuard'")
-    expect(runner).toContain("'sortAsc'")
-    expect(runner).toContain("'sortDesc'")
-    expect(runner).not.toContain("'sortToggle'")
-    expect(runner).toMatch(/homeSearch\s*=\s*\{[\s\S]*queryQ:\s*lData\.query\.q[\s\S]*passed:[\s\S]*lData\.query\.q\s*===\s*'静安'/)
-    expect(runner).toMatch(/sortGuard\s*=\s*\{[\s\S]*passed:\s*guardData\.query\.sort\s*===\s*'recommended'/)
-    expect(runner).toContain("const filterBar = await requireSelector(listings, 'filter-bar')")
-    expect(runner).toContain("const priceFilter = await requireSelector(filterBar, '.filter-bar__item[data-section=\"price\"]')")
-    expect(runner).toContain('await priceFilter.tap()')
-    expect(runner).toContain("const sheet = await requireSelector(listings, 'filter-sheet')")
-    expect(runner).toContain("const option = await requireSelector(sheet, '.filter-sheet__option')")
-    expect(runner).toContain('await option.tap()')
-    expect(runner).toContain("const apply = await requireSelector(sheet, '.filter-sheet__apply')")
-    expect(runner).toContain('await apply.tap()')
-    expect(runner).not.toContain("callMethod('handleOpenFilter'")
-    expect(runner).not.toContain("callMethod('handleFilterApply'")
-    expect(runner).toMatch(/priceUnit:\s*filteredData\.query\.priceUnit[\s\S]*passed:\s*typeof filteredData\.query\.priceUnit === 'string'/)
-    expect(runner).toMatch(/sortAsc\s*=\s*\{[\s\S]*passed:\s*ascendingData\.query\.sort\s*===\s*'price-asc'/)
-    expect(runner).toMatch(/sortDesc\s*=\s*\{[\s\S]*passed:\s*descendingData\.query\.sort\s*===\s*'price-desc'/)
+    expect(runner).toContain('由 MP-109 验收替代')
+    expect(runner).not.toContain('sortToggle')
   })
 
   it('MP-107 不再调用或依赖页面测试专用留资方法', () => {
@@ -235,8 +246,52 @@ describe('MP-106/107 runner 失败传播', () => {
     )
 
     expect(runner).not.toContain('addSampleInquiryForDemo')
+    expect(runner).not.toContain('profileData.summary')
     expect(profile).not.toContain('addSampleInquiryForDemo')
     expect(profile).not.toContain('req_demo_01')
+  })
+})
+
+describe('MP-105/106/107 旧证据不再冒充当前权威验收', () => {
+  it('退役 MP-106/107 runner 并删除旧全绿报告，只保留明确的 legacy 说明', () => {
+    for (const task of ['MP-106', 'MP-107']) {
+      const root = resolve(projectRoot, `../artifacts/verification/${task}`)
+      expect(existsSync(resolve(root, 'acceptance-report.json'))).toBe(false)
+      expect(existsSync(resolve(root, 'screenshots'))).toBe(false)
+      const readme = readFileSync(resolve(root, 'README.md'), 'utf8')
+      expect(readme).toMatch(/legacy/i)
+      expect(readme).toMatch(/non-authoritative/i)
+      expect(readme).toMatch(/incomplete/i)
+    }
+  })
+
+  it('MP-105 手工手机反馈不冒充 trial、callContainer、设备矩阵或发布条件', () => {
+    const root = resolve(projectRoot, '../artifacts/verification/MP-105')
+    const readme = readFileSync(resolve(root, 'README.md'), 'utf8')
+    const summary = readme.split('## 2026-09-02 develop')[0]
+    const task6 = readFileSync(resolve(root, 'task6-real-device.md'), 'utf8')
+
+    expect(summary).toMatch(/用户手工冒烟反馈/)
+    expect(summary).toMatch(/不可审计/)
+    expect(task6).toMatch(/平台.*未知|设备.*未知/)
+    expect(task6).not.toContain('wx.cloud.callContainer')
+    expect(task6).not.toContain('具备发布条件')
+    expect(task6).not.toMatch(/真机验收通过|顺利通过/)
+  })
+
+  it('路线图不再用历史 MP-105 门阻止已完成的代码实现，只保留真实集成与发布门', () => {
+    const roadmap = readFileSync(
+      resolve(projectRoot, '../specs/work-items/MP-002-miniprogram-delivery-roadmap.md'),
+      'utf8',
+    )
+    const mp105Plan = readFileSync(
+      resolve(projectRoot, '../specs/work-items/MP-105-miniprogram-integration-acceptance-plan.md'),
+      'utf8',
+    )
+    expect(roadmap).not.toContain('MP-106/107 不进入实现、集成或合并')
+    expect(roadmap).toMatch(/MP-106\/107.*不得进入真实集成验收或合并发布/)
+    expect(mp105Plan).not.toContain('不得开始 MP-106/107 的实现、集成或合并')
+    expect(mp105Plan).toMatch(/MP-106\/107.*不得进入真实集成验收或合并发布/)
   })
 })
 

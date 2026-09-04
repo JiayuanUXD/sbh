@@ -20,8 +20,11 @@ import {
   assertEffectiveListing,
   createSearchContext,
 } from '@/domain/public-catalog'
+import { readMiniTrustedProxyRuntimeConfig } from '@/lib/mini-program/runtime-config'
+import type { PoolLike } from '@/lib/rate-limit-pg'
 
 import { readBoundedJsonBody } from '../bounded-json-body'
+import { resolveMiniTrustedClientIp, runMiniSubjectRateLimit } from '../rate-limit-state'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -30,12 +33,18 @@ const MAX_BODY_BYTES = 4 * 1024
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const MAX_SLUG_LENGTH = 160
 
-function response(body: unknown, status: number, requestId: string): Response {
+function response(
+  body: unknown,
+  status: number,
+  requestId: string,
+  headers: Record<string, string> = {},
+): Response {
   return NextResponse.json(body, {
     status,
     headers: {
       'Cache-Control': MINI_CACHE_CONTROL,
       'X-Request-Id': requestId,
+      ...headers,
     },
   })
 }
@@ -78,6 +87,50 @@ async function mutate(request: Request, action: 'put' | 'delete'): Promise<Respo
   if (!bearer.ok) return bearer.response
   const requestId = miniRequestId()
 
+  const proxyConfig = readMiniTrustedProxyRuntimeConfig()
+  const client = proxyConfig.ok
+    ? resolveMiniTrustedClientIp(request, proxyConfig.value.trustedProxyHops)
+    : { ok: false as const }
+  if (!client.ok) {
+    return response(
+      miniError('service_unavailable', '服务暂不可用，请稍后重试', requestId),
+      503,
+      requestId,
+    )
+  }
+
+  let payload: Awaited<ReturnType<typeof getPayload>>
+  try {
+    payload = await getPayload({ config })
+    const rate = await runMiniSubjectRateLimit(
+      client.clientIp,
+      bearer.subject,
+      'mini-favorites-write',
+      (payload.db as unknown as { pool: PoolLike }).pool,
+    )
+    if (!rate.allowed) {
+      if (rate.storeFailed) {
+        return response(
+          miniError('service_unavailable', '服务暂不可用，请稍后重试', requestId),
+          503,
+          requestId,
+        )
+      }
+      return response(
+        miniError('rate_limited', '请求过于频繁，请稍后重试', requestId),
+        429,
+        requestId,
+        { 'Retry-After': String(rate.retryAfterSeconds) },
+      )
+    }
+  } catch {
+    return response(
+      miniError('service_unavailable', '服务暂不可用，请稍后重试', requestId),
+      503,
+      requestId,
+    )
+  }
+
   const contentType = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase() ?? ''
   if (contentType !== 'application/json') return invalid(requestId, 415, 'invalid_content_type')
   const body = await readBoundedJsonBody(request, MAX_BODY_BYTES)
@@ -88,7 +141,8 @@ async function mutate(request: Request, action: 'put' | 'delete'): Promise<Respo
   if (!target) return invalid(requestId, 422, 'invalid_body')
 
   try {
-    if (!(await verifiedTarget(target))) {
+    const targetIsEffective = await verifiedTarget(target)
+    if (action === 'put' && !targetIsEffective) {
       const code = target.targetType === 'listing' ? 'listing_not_found' : 'building_not_found'
       return response(
         miniError(code, '收藏目标已失效或不存在', requestId),
@@ -96,7 +150,6 @@ async function mutate(request: Request, action: 'put' | 'delete'): Promise<Respo
         requestId,
       )
     }
-    const payload = await getPayload({ config })
     const store = createPayloadMiniUserAssetStore(payload)
     if (action === 'put') {
       const result = await upsertFavorite(store, bearer.subject, target)

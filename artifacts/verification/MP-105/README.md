@@ -1,6 +1,6 @@
 # MP-105 验收证据索引
 
-> 状态：MVP 核心链路通过；005 已经一次性推广至 100%，独立结算、运行产物 build-info、受保护 attestation 与真实 staging 正常写入/幂等/精确清理均通过；Task 4 本地 DevTools 8 项全场景自动化验收与性能指标闭环；Task 6 手机微信真机走查顺利通过；禁止重放推广或自动执行补偿、回滚、recovery。
+> 状态：005 的历史推广结算、运行产物身份与受控 staging 正常写入/幂等/精确清理已有对应证据；Task 4 仅有本地 develop DevTools 自动化证据；Task 6 只有用户手工冒烟反馈（不可审计，平台与实际环境未知）。trial revision/网络、图片/COS、隐私、iOS/Android 和发布门仍未通过；禁止重放推广或自动执行补偿、回滚、recovery。
 > 更新日期：2026-09-03
 
 ## 证据身份
@@ -16,11 +16,11 @@
 - 数据库迁移边界：运行层迁移、数据库不迁移；旧环境 `sbhmini-d5g7d6732b2c64a66` 与旧 `sbhmini-019` 仅作只读漂移核对，不是后续 mutation 目标
 - 用户未跟踪的 `docs/SBH小程序页面设计/` 不属于本轮交付物，提交与门禁均未触碰
 
-## 2026-09-03 Task 4 自动化全项闭环与 Task 6 真机验收通过
+## 2026-09-03 Task 4 develop 自动化与 Task 6 用户手工冒烟反馈（不可审计）
 
 - **XPath 样式隔离修复**：微信编译器为自定义组件前缀加上 `card-index--listing-card`，原正则缺少匹配。修复为 `//*[contains(@class, "listing-card") and @data-slug]`，单测 32 文件 776/776 全过。
 - **Task 4 全场景自动化走查**：编写并执行 `scripts/task4-acceptance-runner.mjs`，覆盖首页、找房、下拉刷新、详情、第4种成本（面议）、空态、404、坏图兜底，截取 8 张证据图；并通过 `wx.getPerformance()` 提取 30 条核心渲染性能指标（`task4-acceptance-report.json`）。
-- **Task 6 真机验收通过**：用户通过手机微信扫码最新体验版，完成真机首页、列表、详情与网络调用链路的走查验证，无白屏与网络异常，详见 `task6-real-device.md`。
+- **Task 6 用户手工冒烟反馈**：用户反馈手机扫码后首页、列表和详情可打开，未观察到明显白屏或网络报错；没有设备/OS、`envVersion=trial`、Network、目标 revision 或截图，不能证明目标传输、设备矩阵或发布条件，详见 `task6-real-device.md`。
 
 ## 2026-09-02 develop DevTools 首页/找房/详情 smoke 续验
 
@@ -145,7 +145,7 @@
 - 本证据不保存 AppSecret、上传私钥、token、完整手机号、openid、数据库连接串或完整业务对象 ID。
 - `callContainer` 只替代 Mini API 的 request 服务器域名链路；图片/COS、AppID 关联、隐私、设备和持久化均按独立证据判断。
 - 本地关闭合法域名校验即使未来获批，也只能算 develop 调试，不能替代微信后台合法域名验收。
-- MP-105 全部门通过前，MP-106/107 不进入实现、集成或合并。
+- 本条原本是 MP-105 的历史原始门；当前 MP-106/107 代码已经实现，但在 MP-105 外部环境门齐备前，MP-106/107 不得进入真实集成验收或合并发布。
 
 
 ## 2026-09-02 staging 直接 HTTPS 只读探针（补充，不计为 trial DevTools 通过）

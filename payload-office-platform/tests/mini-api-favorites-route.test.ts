@@ -27,8 +27,12 @@ const io = vi.hoisted(() => {
   return {
     assets,
     calls,
+    rateKeys: [] as string[],
+    rateCounts: new Map<string, number>(),
+    rateStoreFails: false,
     getPayload: vi.fn(),
     payloadFind: vi.fn(),
+    payloadCount: vi.fn(),
     payloadCreate: vi.fn(),
     payloadDelete: vi.fn(),
     assertListing: vi.fn(),
@@ -43,6 +47,22 @@ vi.mock('payload', async (importOriginal) => {
 
 vi.mock('@/payload.config', () => ({ default: {} }))
 
+vi.mock('@/lib/rate-limit-pg', () => ({
+  createPgRateLimitDeps: () => ({
+    acquire: async (key: string, windowStart: number) => {
+      io.rateKeys.push(key)
+      if (io.rateStoreFails) throw new Error('rate-store-sensitive')
+      const count = (io.rateCounts.get(key) ?? 0) + 1
+      io.rateCounts.set(key, count)
+      return { count, windowStart }
+    },
+    pruneExpired: async () => 0,
+    countKeys: async () => io.rateCounts.size,
+    keyExists: async (key: string) => io.rateCounts.has(key),
+    now: () => 1_800_000_000_000,
+  }),
+}))
+
 vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
   return {
@@ -53,10 +73,12 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
 })
 
 import { DELETE, PUT, runtime } from '@/app/api/mini/v1/favorites/route'
+import { __resetMiniRateLimitStateForTests } from '@/app/api/mini/v1/rate-limit-state'
 
 const SIGNING_SECRET = Uint8Array.from({ length: 32 }, (_, index) => index + 1)
 const SIGNING_SECRET_ENV = Buffer.from(SIGNING_SECRET).toString('base64url')
 const ORIGINAL_SIGNING_SECRET = process.env.MINI_SESSION_SIGNING_SECRET
+const ORIGINAL_TRUSTED_PROXY_HOPS = process.env.MINI_TRUSTED_PROXY_HOPS
 
 function subjectToken(openId: string): string {
   return issueAnonymousContextToken(openId, {
@@ -66,12 +88,19 @@ function subjectToken(openId: string): string {
   }).token
 }
 
-function bodyRequest(method: 'PUT' | 'DELETE', token: string | null, body: unknown): Request {
+function bodyRequest(
+  method: 'PUT' | 'DELETE',
+  token: string | null,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Request {
   return new Request('https://example.test/api/mini/v1/favorites', {
     method,
     headers: {
       'content-type': 'application/json',
+      'x-forwarded-for': '203.0.113.10',
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...headers,
     },
     body: JSON.stringify(body),
   })
@@ -125,10 +154,15 @@ function requireCreateData(value: unknown): Omit<StoredAsset, 'id' | 'createdAt'
 
 beforeEach(() => {
   process.env.MINI_SESSION_SIGNING_SECRET = SIGNING_SECRET_ENV
+  process.env.MINI_TRUSTED_PROXY_HOPS = '1'
   io.assets.length = 0
   io.calls.length = 0
+  io.rateKeys.length = 0
+  io.rateCounts.clear()
+  io.rateStoreFails = false
   io.getPayload.mockReset()
   io.payloadFind.mockReset()
+  io.payloadCount.mockReset()
   io.payloadCreate.mockReset()
   io.payloadDelete.mockReset()
   io.assertListing.mockReset()
@@ -138,6 +172,9 @@ beforeEach(() => {
     io.calls.push(call)
     return { docs: io.assets.filter((asset) => matches(asset, call.where)) }
   })
+  io.payloadCount.mockImplementation(async (call: LocalApiCall) => ({
+    totalDocs: io.assets.filter((asset) => matches(asset, call.where)).length,
+  }))
   io.payloadCreate.mockImplementation(async (call: LocalApiCall) => {
     io.calls.push(call)
     const data = requireCreateData(call.data)
@@ -154,7 +191,9 @@ beforeEach(() => {
     return { docs: deleted }
   })
   io.getPayload.mockResolvedValue({
+    db: { pool: {} },
     find: io.payloadFind,
+    count: io.payloadCount,
     create: io.payloadCreate,
     delete: io.payloadDelete,
   })
@@ -169,9 +208,73 @@ beforeEach(() => {
 afterEach(() => {
   if (ORIGINAL_SIGNING_SECRET === undefined) delete process.env.MINI_SESSION_SIGNING_SECRET
   else process.env.MINI_SESSION_SIGNING_SECRET = ORIGINAL_SIGNING_SECRET
+  if (ORIGINAL_TRUSTED_PROXY_HOPS === undefined) delete process.env.MINI_TRUSTED_PROXY_HOPS
+  else process.env.MINI_TRUSTED_PROXY_HOPS = ORIGINAL_TRUSTED_PROXY_HOPS
 })
 
 describe('PUT/DELETE /api/mini/v1/favorites', () => {
+  beforeEach(() => {
+    __resetMiniRateLimitStateForTests()
+  })
+
+  it('同 subject 与可信 client IP 的第 31 次写请求返回 429，且不同 subject 不共享配额', async () => {
+    const tokenA = subjectToken('openid-a')
+    const tokenB = subjectToken('openid-b')
+    const input = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+
+    for (let index = 0; index < 30; index += 1) {
+      const allowed = await PUT(bodyRequest('PUT', tokenA, input))
+      expect(allowed.status).toBe(200)
+    }
+    const blocked = await PUT(bodyRequest('PUT', tokenA, input))
+    const otherSubject = await PUT(bodyRequest('PUT', tokenB, input))
+
+    expect(blocked.status).toBe(429)
+    expect(blocked.headers.get('retry-after')).toMatch(/^\d+$/)
+    await expect(blocked.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'rate_limited' },
+    })
+    expect(otherSubject.status).toBe(200)
+    expect(new Set(io.rateKeys)).toHaveLength(2)
+    expect(io.rateKeys.every((key) => /^mini-favorites-write:[a-f0-9]{32}$/.test(key))).toBe(true)
+    expect(io.rateKeys.join('|')).not.toContain('openid')
+    expect(io.rateKeys.join('|')).not.toContain('203.0.113.10')
+  })
+
+  it('限流存储失败时 fail-closed，且不查询公开供给或写用户资产', async () => {
+    io.rateStoreFails = true
+
+    const result = await PUT(bodyRequest('PUT', subjectToken('openid-a'), {
+      targetType: 'listing',
+      targetSlug: 'jing-an-100',
+    }))
+
+    expect(result.status).toBe(503)
+    await expect(result.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'service_unavailable' },
+    })
+    expect(io.assertListing).not.toHaveBeenCalled()
+    expect(io.payloadFind).not.toHaveBeenCalled()
+    expect(io.payloadCreate).not.toHaveBeenCalled()
+  })
+
+  it('只信任 XFF 右侧代理链中的 client，伪造左侧与 x-real-ip 不能轮换配额', async () => {
+    process.env.MINI_TRUSTED_PROXY_HOPS = '2'
+    const token = subjectToken('openid-a')
+    const input = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+
+    for (let index = 0; index < 31; index += 1) {
+      const result = await PUT(bodyRequest('PUT', token, input, {
+        'x-real-ip': `192.0.2.${index + 1}`,
+        'x-forwarded-for': `198.51.100.${index + 1}, 203.0.113.10, 10.0.0.8`,
+      }))
+      expect(result.status).toBe(index < 30 ? 200 : 429)
+    }
+    expect(new Set(io.rateKeys)).toHaveLength(1)
+  })
+
   it('无 Bearer 与过期 Bearer 均 401，且不初始化 Payload', async () => {
     const missing = await PUT(bodyRequest('PUT', null, {
       targetType: 'listing',
@@ -212,6 +315,28 @@ describe('PUT/DELETE /api/mini/v1/favorites', () => {
       data: { favorite: true, created: false, targetType: 'listing', targetSlug: 'jing-an-100' },
     })
     expect(io.calls.every((call) => call.collection !== 'mini-user-assets' || call.overrideAccess === true)).toBe(true)
+  })
+
+  it('单 subject 已有 200 个收藏时 fail-closed 拒绝新增，且不执行 create', async () => {
+    io.payloadCount.mockResolvedValueOnce({ totalDocs: 200 })
+
+    const result = await PUT(bodyRequest('PUT', subjectToken('openid-a'), {
+      targetType: 'listing',
+      targetSlug: 'jing-an-100',
+    }))
+
+    expect(result.status).toBe(503)
+    expect(io.payloadCount).toHaveBeenCalledWith(expect.objectContaining({
+      collection: 'mini-user-assets',
+      where: {
+        and: [
+          { subject: { equals: expect.stringMatching(/^[A-Za-z0-9_-]+$/) } },
+          { kind: { in: ['favorite-listing', 'favorite-building'] } },
+        ],
+      },
+      overrideAccess: true,
+    }))
+    expect(io.payloadCreate).not.toHaveBeenCalled()
   })
 
   it('创建竞态重查到错误 subject 时 fail-closed 为 503', async () => {
@@ -275,6 +400,28 @@ describe('PUT/DELETE /api/mini/v1/favorites', () => {
         ],
       },
     }))
+  })
+
+  it('收藏目标失效后仍允许幂等 DELETE，避免用户资产超过上限时无法恢复', async () => {
+    const token = subjectToken('openid-a')
+    const input = { targetType: 'building' as const, targetSlug: 'jing-an-center' }
+    const created = await PUT(bodyRequest('PUT', token, input))
+    expect(created.status).toBe(200)
+    io.assertBuilding.mockResolvedValue(null)
+
+    const removed = await DELETE(bodyRequest('DELETE', token, input))
+    const repeated = await DELETE(bodyRequest('DELETE', token, input))
+
+    expect(removed.status).toBe(200)
+    expect(repeated.status).toBe(200)
+    await expect(removed.json()).resolves.toMatchObject({
+      ok: true,
+      data: { favorite: false, removed: true },
+    })
+    await expect(repeated.json()).resolves.toMatchObject({
+      ok: true,
+      data: { favorite: false, removed: false },
+    })
   })
 
   it('拒绝额外字段、无效 slug 和失效公开供给，且不写 collection', async () => {

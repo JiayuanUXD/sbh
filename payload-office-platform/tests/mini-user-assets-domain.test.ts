@@ -38,6 +38,15 @@ class MemoryAssetStore implements MiniUserAssetStore {
     return record
   }
 
+  async countBySubjectAndKinds(
+    subject: string,
+    kinds: readonly MiniUserAssetRecord['kind'][],
+  ): Promise<number> {
+    return this.records.filter(
+      (record) => record.subject === subject && kinds.includes(record.kind),
+    ).length
+  }
+
   async deleteExact(
     assetKey: string,
     subject: string,
@@ -56,8 +65,15 @@ class MemoryAssetStore implements MiniUserAssetStore {
     return before - kept.length
   }
 
-  async findBySubject(subject: string): Promise<readonly MiniUserAssetRecord[]> {
-    return this.records.filter((record) => record.subject === subject)
+  async findBySubjectAndKinds(
+    subject: string,
+    kinds: readonly MiniUserAssetRecord['kind'][],
+    limit: number,
+  ) {
+    const matches = this.records.filter(
+      (record) => record.subject === subject && kinds.includes(record.kind),
+    )
+    return { records: matches.slice(0, limit), hasMore: matches.length > limit }
   }
 }
 
@@ -78,12 +94,16 @@ class RaceAssetStore implements MiniUserAssetStore {
     throw this.createError
   }
 
+  async countBySubjectAndKinds(): Promise<number> {
+    return 0
+  }
+
   async deleteExact(): Promise<number> {
     return 0
   }
 
-  async findBySubject(): Promise<readonly MiniUserAssetRecord[]> {
-    return []
+  async findBySubjectAndKinds() {
+    return { records: [], hasMore: false }
   }
 }
 
@@ -215,6 +235,44 @@ describe('Mini user asset domain', () => {
     })
     expect(store.records).toHaveLength(1)
     expect(store.records[0]?.subject).toBe('subject-b')
+  })
+
+  it('收藏达到单 subject 上限后拒绝新增，但已存在收藏仍保持幂等且可取消', async () => {
+    const store = new MemoryAssetStore()
+    const first = { targetType: 'listing' as const, targetSlug: 'jing-an-100' }
+    const second = { targetType: 'building' as const, targetSlug: 'jing-an-center' }
+    const overflow = { targetType: 'listing' as const, targetSlug: 'jing-an-101' }
+    await upsertFavorite(store, 'subject-a', first, 2)
+    await upsertFavorite(store, 'subject-a', second, 2)
+
+    await expect(upsertFavorite(store, 'subject-a', overflow, 2)).rejects.toThrow(
+      'mini_user_asset_limit_reached',
+    )
+    await expect(upsertFavorite(store, 'subject-a', first, 2)).resolves.toMatchObject({
+      created: false,
+    })
+    await expect(removeFavorite(store, 'subject-a', first)).resolves.toMatchObject({
+      removed: true,
+    })
+  })
+
+  it('Lead 创建后的 inquiry link 不执行资产总量拒绝，避免永久半成功', async () => {
+    class InquiryStore extends MemoryAssetStore {
+      override async countBySubjectAndKinds(): Promise<number> {
+        throw new Error('inquiry link must not count assets after Lead creation')
+      }
+    }
+    const store = new InquiryStore()
+
+    await expect(
+      userAssets.linkInquiry(store, 'subject-a', 41, { targetType: 'general' }),
+    ).resolves.toMatchObject({ created: true })
+    await expect(
+      userAssets.linkInquiry(store, 'subject-a', 42, { targetType: 'general' }),
+    ).resolves.toMatchObject({ created: true })
+    await expect(
+      userAssets.linkInquiry(store, 'subject-a', 41, { targetType: 'general' }),
+    ).resolves.toMatchObject({ created: false })
   })
 
   it('同 assetKey 若对应身份不一致则 fail-closed，不误判为幂等成功', async () => {

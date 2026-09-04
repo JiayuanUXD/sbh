@@ -41,6 +41,27 @@ export function assertAcceptancePassed(report) {
   const testCases = report.testCases
   const interactions = report.interactions
 
+  if (
+    typeof report.environment !== 'string'
+    || report.environment.trim() !== report.environment
+    || report.environment.length < 1
+    || report.environment.length > 160
+  ) {
+    failures.push('environment 必须是明确的非空环境标识')
+  }
+  if (typeof report.evidenceRevision !== 'string' || !/^[a-f0-9]{16,64}$/.test(report.evidenceRevision)) {
+    failures.push('evidenceRevision 必须是源码证据指纹')
+  }
+  if (
+    !Array.isArray(report.limitations)
+    || report.limitations.length === 0
+    || report.limitations.some(
+      (item) => typeof item !== 'string' || item.trim() !== item || item.length < 1 || item.length > 500,
+    )
+  ) {
+    failures.push('limitations 必须是非空限制说明数组')
+  }
+
   if (!isPlainObject(testCases)) {
     failures.push('testCases 必须是普通对象')
   } else if (inspectAcceptanceNode(testCases, 'testCases', failures) === 0) {
@@ -57,18 +78,20 @@ export function assertAcceptancePassed(report) {
   }
 
   const requiredInteractions = report.requiredInteractions
-  if (requiredInteractions !== undefined) {
-    if (
-      !Array.isArray(requiredInteractions)
-      || requiredInteractions.some((path) => typeof path !== 'string' || path.length === 0)
-    ) {
-      failures.push('requiredInteractions 必须是非空路径字符串数组')
-    } else if (isPlainObject(interactions)) {
-      for (const path of requiredInteractions) {
-        const result = resolvePath(interactions, path)
-        if (!isPlainObject(result) || result.passed !== true) {
-          failures.push(`interactions.${path} 缺失或未通过`)
-        }
+  if (
+    !Array.isArray(requiredInteractions)
+    || requiredInteractions.length === 0
+    || requiredInteractions.some(
+      (path) => typeof path !== 'string' || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(path),
+    )
+    || new Set(requiredInteractions).size !== requiredInteractions.length
+  ) {
+    failures.push('requiredInteractions 必须是非空且不重复的路径字符串数组')
+  } else if (isPlainObject(interactions)) {
+    for (const path of requiredInteractions) {
+      const result = resolvePath(interactions, path)
+      if (!isPlainObject(result) || result.passed !== true) {
+        failures.push(`interactions.${path} 缺失或未通过`)
       }
     }
   }

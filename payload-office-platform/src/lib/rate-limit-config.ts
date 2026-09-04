@@ -39,6 +39,24 @@ export const MINI_INQUIRY_RATE_LIMIT_CONFIG: RateLimitConfig = {
   failOpen: false,
 }
 
+/** Mini 收藏写入：按匿名 subject + 可信 client IP，每分钟 30 次，存储失败拒绝。 */
+export const MINI_FAVORITES_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 30,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: false,
+}
+
+/** Mini「我的」读取：独立于写入和咨询的配额，每分钟 30 次，存储失败拒绝。 */
+export const MINI_ME_RATE_LIMIT_CONFIG: RateLimitConfig = {
+  windowMs: 60_000,
+  max: 30,
+  maxKeys: 100_000,
+  pruneIntervalMs: 5 * 60_000,
+  failOpen: false,
+}
+
 /**
  * 纠错端点限流配置（FPD-P1 Task 6）：每 IP 每分钟 3 次。
  *
