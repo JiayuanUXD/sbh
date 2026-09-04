@@ -451,6 +451,7 @@ export function mapMiniBuildingCard(
 
 export function mapMiniBuildings(
   result: BuildingFilteredResult,
+  pageSize: MiniBuildingsData['pagination']['pageSize'],
   mediaOrigin: string,
 ): MiniBuildingsData {
   const activeItems = result.groups.withStock.map((doc) =>
@@ -467,7 +468,7 @@ export function mapMiniBuildings(
     inactiveItems,
     pagination: {
       page: result.page,
-      pageSize: 24,
+      pageSize,
       totalDocs: result.totalDocs,
       totalPages: result.totalPages,
       hasNextPage: result.page < result.totalPages,

@@ -46,6 +46,7 @@ const validDetail = {
     assumptions: [],
   },
   relatedListings: [],
+  buildingInfo: null,
   inquiryPolicy: { version: '2026-08-27' },
 }
 
@@ -165,4 +166,3 @@ describe('Mini API 目录服务', () => {
     expect(() => catalog.getBuildingDetail('Heng-Long')).toThrow(/楼盘标识无效/)
   })
 })
-

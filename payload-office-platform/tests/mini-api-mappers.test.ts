@@ -9,6 +9,11 @@ import {
   mapMiniListings,
 } from '@/domain/mini-program/mappers'
 import type {
+  MiniBuildingCard,
+  MiniListingDetailData,
+} from '@/domain/mini-program/contracts'
+import { mapBuildingDetail } from '@/domain/public-catalog'
+import type {
   BuildingDetailViewModel,
   BuildingFilteredResult,
   BuildingSummaryViewModel,
@@ -18,6 +23,11 @@ import type {
   ListingSearchResult,
   SearchFacets,
 } from '@/domain/public-catalog'
+import { BUILDING_JINGAN_CENTER } from '@/test/frontend/payload-documents'
+
+function requiredBuildingInfo(detail: MiniListingDetailData): MiniBuildingCard | null {
+  return detail.buildingInfo
+}
 
 const card = {
   id: 42,
@@ -200,6 +210,17 @@ function detailWithPropertyFee(
 }
 
 describe('Mini API mappers', () => {
+  it('房源详情合同要求显式返回完整楼盘信息或 null', () => {
+    const mapped = mapMiniListingDetail(
+      detailWithPropertyFee(),
+      [],
+      MEDIA_ORIGIN,
+      'MVP-R1',
+    )
+
+    expect(requiredBuildingInfo(mapped)).toEqual(mapMiniBuildingCard(card.building, MEDIA_ORIGIN))
+  })
+
   it('详情显式注入只读隐私政策版本，不从房源数据推断', () => {
     const mapped = mapMiniListingDetail(
       detailWithPropertyFee(),
@@ -412,7 +433,47 @@ describe('Mini API mappers', () => {
       },
     } satisfies BuildingFilteredResult
 
-    expect(mapMiniBuildings(result, MEDIA_ORIGIN).pagination.pageSize).toBe(24)
+    expect(mapMiniBuildings).toHaveLength(3)
+    expect(mapMiniBuildings(result, 24, MEDIA_ORIGIN).pagination.pageSize).toBe(24)
+  })
+
+  it('consumes facts produced by the real public building mapper', () => {
+    const publicDetail = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      completionDate: '2013-01-01T00:00:00.000Z',
+      totalFloors: 66,
+      developerAndScale: { typicalFloorArea: 2_000 },
+      propertyCompany: '第一太平戴维斯',
+      propertyFee: 38,
+      verticalTransport: { passengerElevators: 12, freightElevators: 2 },
+      parkingSpaces: 600,
+    }, '2026-09-04T00:00:00.000Z')
+    if (publicDetail === null) throw new Error('公共楼盘 fixture 映射失败')
+
+    const mapped = mapMiniBuildingDetail(
+      publicDetail,
+      {
+        asOf: '2026-09-04T00:00:00.000Z',
+        groups: [],
+        availableGroups: [],
+        totalEffectiveListings: 0,
+        resultCount: 0,
+        validationErrors: [],
+      },
+      [],
+      MEDIA_ORIGIN,
+    )
+
+    expect(mapped).toMatchObject({
+      grade: 'grade-a',
+      completedYear: 2013,
+      totalFloors: 66,
+      standardFloorArea: 2_000,
+      elevators: { passenger: 12, cargo: 2 },
+      parkingSpaces: 600,
+      propertyManagementCompany: '第一太平戴维斯',
+      propertyFee: 38,
+    })
   })
 
   it('maps reliable detail facts and leaves unknown counts nullable', () => {

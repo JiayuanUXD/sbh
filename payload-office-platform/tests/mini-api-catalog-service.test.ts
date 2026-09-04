@@ -106,6 +106,7 @@ const mappedDetail: MiniListingDetailData = {
   },
   inquiryPolicy: { version: 'MVP-R1' },
   relatedListings: [],
+  buildingInfo: null,
 }
 
 function cityContext(

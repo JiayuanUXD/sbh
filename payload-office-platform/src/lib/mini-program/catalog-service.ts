@@ -107,7 +107,11 @@ export async function getMiniBuildings(
   const snapshot = await getCachedMiniBuildings(trustedCity, input)
   return {
     asOf: snapshot.asOf,
-    data: mapMiniBuildings(snapshot.data.result, getSiteConfig().siteOrigin),
+    data: mapMiniBuildings(
+      snapshot.data.result,
+      snapshot.data.input.pageSize,
+      getSiteConfig().siteOrigin,
+    ),
   }
 }
 

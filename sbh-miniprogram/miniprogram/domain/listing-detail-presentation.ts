@@ -44,7 +44,7 @@ export type ListingDetailPresentation = Readonly<{
     verifiedAt: string
     priceVerifiedAt: string
   }>
-  building: MiniListingDetailData['listing']['building']
+  building: MiniListingDetailData['buildingInfo']
   relatedListings: MiniListingDetailData['relatedListings']
   inquiryPolicyVersion: string
 }>
@@ -158,7 +158,7 @@ export function presentListingDetail(
       verifiedAt: formatIsoDate(detail.listing.verification.verifiedAt),
       priceVerifiedAt: formatIsoDate(detail.listing.verification.priceVerifiedAt),
     },
-    building: detail.listing.building,
+    building: detail.buildingInfo,
     relatedListings: detail.relatedListings,
     inquiryPolicyVersion: detail.inquiryPolicy.version,
   }

@@ -71,6 +71,7 @@ function listingDetail(slug: string, monthlyEstimate = 25_500): MiniListingDetai
       assumptions: ['物业费另计'],
     },
     relatedListings: [],
+    buildingInfo: null,
     inquiryPolicy: { version: '2026-08-27' },
   }
 }

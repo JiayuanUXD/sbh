@@ -1,18 +1,10 @@
 import { getBuildingDetail } from '../../services/catalog.js'
-import type { MiniBuildingDetailData } from '../../services/catalog-contracts.js'
+import {
+  buildingGradeLabel,
+  type MiniBuildingDetailData,
+} from '../../services/catalog-contracts.js'
 import { isBuildingFavorite, toggleBuildingFavorite } from '../../services/favorites.js'
 import { recordInquiry } from '../../services/inquiry-tracker.js'
-
-const GRADE_LABELS: Record<string, string> = {
-  'super-grade-a': '超甲级',
-  'grade-a': '甲级',
-  'grade-b': '乙级',
-  'grade-c': '丙级',
-  'serviced-office': '商务中心',
-  'A': '甲级',
-  'B': '乙级',
-  'C': '丙级',
-}
 
 Page({
   data: {
@@ -42,7 +34,7 @@ Page({
     try {
       const building = await getBuildingDetail(slug)
       const gradeLabel = building.grade
-        ? (GRADE_LABELS[building.grade] || (building.grade.endsWith('级') ? building.grade : `${building.grade}级`))
+        ? buildingGradeLabel(building.grade)
         : '—'
       this.setData({
         state: 'ready',

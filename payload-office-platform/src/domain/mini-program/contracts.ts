@@ -194,7 +194,7 @@ export type MiniListingDetailData = Readonly<{
   }>
   inquiryPolicy: Readonly<{ version: string }>
   relatedListings: readonly MiniListingCard[]
-  buildingInfo?: MiniBuildingCard | null
+  buildingInfo: MiniBuildingCard | null
 }>
 
 export type MiniApiSuccess<T> = Readonly<{

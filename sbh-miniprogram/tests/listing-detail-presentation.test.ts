@@ -77,6 +77,21 @@ const validDetail: MiniListingDetailData = {
     assumptions,
   },
   relatedListings: [],
+  buildingInfo: {
+    id: 'building-1',
+    slug: 'jing-an-tower',
+    name: '静安中心完整楼盘卡',
+    district: '静安区',
+    address: '静安区南京西路 1 号',
+    grade: 'super-grade-a',
+    completedYear: 2013,
+    totalFloors: 66,
+    occupancyRate: null,
+    activeListingCount: 3,
+    priceRange: null,
+    coverImage: null,
+    nearestMetro: null,
+  },
   inquiryPolicy: { version: '2026-08-27' },
 }
 
@@ -102,6 +117,10 @@ describe('房源详情展示模型', () => {
       inclusionLabel: '物业费已包含',
     })
     expect(presented.monthlyCost.assumptions).toBe(assumptions)
+  })
+
+  it('所在楼盘消费详情 DTO 的完整楼盘卡', () => {
+    expect(presentListingDetail(validDetail).building).toBe(validDetail.buildingInfo)
   })
 
   it('租金、物业费和合计分别缺失时都显示破折号', () => {

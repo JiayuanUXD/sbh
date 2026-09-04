@@ -1,15 +1,7 @@
-import type { MiniBuildingCard } from '../../services/catalog-contracts.js'
-
-const GRADE_LABELS: Record<string, string> = {
-  'super-grade-a': '超甲级',
-  'grade-a': '甲级',
-  'grade-b': '乙级',
-  'grade-c': '丙级',
-  'serviced-office': '商务中心',
-  'A': '甲级',
-  'B': '乙级',
-  'C': '丙级',
-}
+import {
+  buildingGradeLabel,
+  type MiniBuildingCard,
+} from '../../services/catalog-contracts.js'
 
 Component({
   properties: {
@@ -33,8 +25,7 @@ Component({
     computeFields(building: MiniBuildingCard) {
       const parts: string[] = []
       if (building.grade) {
-        const label = GRADE_LABELS[building.grade] || (building.grade.endsWith('级') ? building.grade : `${building.grade}级`)
-        parts.push(label)
+        parts.push(buildingGradeLabel(building.grade))
       }
       if (building.completedYear) parts.push(`${building.completedYear}年`)
       if (building.totalFloors) parts.push(`${building.totalFloors}层`)

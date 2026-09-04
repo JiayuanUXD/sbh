@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import * as catalogContracts from '../miniprogram/services/catalog-contracts.js'
 import {
   parseMiniBuildingCard,
   parseMiniBuildingDetailData,
@@ -169,6 +170,7 @@ const validDetail = {
     slug: 'jing-an-tower-102',
     title: '静安中心 102',
   }],
+  buildingInfo: validBuilding,
   inquiryPolicy: { version: '2026-08-27' },
 }
 
@@ -223,6 +225,31 @@ describe('Mini API 目录运行时契约', () => {
 
   it('保留合法详情的画廊、事实、核验时间、推荐和隐私版本', () => {
     expect(parseMiniListingDetailData(validDetail, validDetail.listing.slug)).toEqual(validDetail)
+  })
+
+  it('要求房源详情显式携带完整楼盘卡或 null', () => {
+    const { buildingInfo: _buildingInfo, ...missingBuildingInfo } = validDetail
+
+    expect(() => parseMiniListingDetailData(missingBuildingInfo)).toThrow(
+      /Mini API 目录响应无效/,
+    )
+    expect(parseMiniListingDetailData({ ...validDetail, buildingInfo: null }).buildingInfo).toBeNull()
+  })
+
+  it('穷尽映射服务端真实楼盘等级中文文案', () => {
+    const formatter = Object.entries(catalogContracts)
+      .find(([name]) => name === 'buildingGradeLabel')?.[1]
+
+    expect(formatter).toBeTypeOf('function')
+    if (typeof formatter !== 'function') return
+
+    const labels: unknown[] = [
+      formatter('grade-a'),
+      formatter('super-grade-a'),
+      formatter('creative-park'),
+      formatter('serviced-office'),
+    ]
+    expect(labels).toEqual(['甲级', '超甲级', '创意园区', '服务式办公'])
   })
 
   it.each([

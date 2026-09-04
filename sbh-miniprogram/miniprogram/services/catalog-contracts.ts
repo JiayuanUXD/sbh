@@ -55,6 +55,17 @@ export const MINI_BUILDING_GRADES = [
 
 export type MiniBuildingGrade = (typeof MINI_BUILDING_GRADES)[number]
 
+const MINI_BUILDING_GRADE_LABELS: Readonly<Record<MiniBuildingGrade, string>> = {
+  'grade-a': '甲级',
+  'super-grade-a': '超甲级',
+  'creative-park': '创意园区',
+  'serviced-office': '服务式办公',
+}
+
+export function buildingGradeLabel(grade: MiniBuildingGrade): string {
+  return MINI_BUILDING_GRADE_LABELS[grade]
+}
+
 export type MiniBuildingCard = Readonly<{
   id: string
   slug: string
@@ -179,6 +190,7 @@ export type MiniListingDetailData = Readonly<{
     assumptions: readonly string[]
   }>
   relatedListings: readonly MiniListingCard[]
+  buildingInfo: MiniBuildingCard | null
   inquiryPolicy: Readonly<{ version: string }>
 }>
 
@@ -540,6 +552,9 @@ export function parseMiniListingDetailData(
       assumptions: requireArray(monthlyCostRecord.assumptions, requireString),
     },
     relatedListings,
+    buildingInfo: record.buildingInfo === null
+      ? null
+      : parseMiniBuildingCard(record.buildingInfo),
     inquiryPolicy: {
       version: requireNonEmptyString(inquiryPolicyRecord.version),
     },
