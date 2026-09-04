@@ -331,7 +331,10 @@ export default function AnchorNavBar({
             ))}
           </nav>
         )}
-        {cta != null && <div className="dt-anchor-bar__cta">{cta}</div>}
+        {/* dt-bar__cta 是与 StickyInquiryBar 共享的 CTA 尺寸落点（同 dt-bar /
+            dt-bar__inner 那两层共享外壳的做法）——两条吸附栏高度都是 56，
+            按钮分量必须由构造保证一致，而不是各传各的 btn 尺寸档。 */}
+        {cta != null && <div className="dt-bar__cta dt-anchor-bar__cta">{cta}</div>}
       </div>
     </div>
   )
