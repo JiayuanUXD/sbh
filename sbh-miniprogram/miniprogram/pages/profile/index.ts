@@ -6,7 +6,6 @@ import {
   type InquiryRecord,
   getPendingInquiryCount,
   getRecentInquiries,
-  recordInquiry,
 } from '../../services/inquiry-tracker.js'
 
 interface ProfileInquiryItem extends InquiryRecord {
@@ -149,18 +148,5 @@ Page<ProfilePageData, Record<string, any>>({
       showCancel: false,
       confirmText: '了解',
     })
-  },
-
-  addSampleInquiryForDemo() {
-    recordInquiry({
-      submissionRequestId: 'req_demo_01',
-      targetType: 'listing',
-      targetSlug: 'wheelock-square-12f',
-      targetTitle: '越洋国际广场 · 12 层整层',
-      imageUrl: '',
-      status: 'pending',
-      statusLabel: '待带看',
-    })
-    this.refreshData()
   },
 })

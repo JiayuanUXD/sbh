@@ -138,10 +138,10 @@
 
   <filter-sheet
     open="{{sheetOpen}}"
-    initial-section="{{sheetSection}}"
-    current-query="{{query}}"
+    section="{{sheetSection}}"
+    query="{{query}}"
     filters="{{filters}}"
-    estimated-count="{{estimatedCount}}"
+    result-count="{{estimatedCount}}"
     estimating="{{estimating}}"
     estimate-unavailable="{{estimateUnavailable}}"
     bindclose="handleFilterClose"

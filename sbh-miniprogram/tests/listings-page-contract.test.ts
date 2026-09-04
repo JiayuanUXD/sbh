@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 const projectRoot = resolve(import.meta.dirname, '..')
 const pageRoot = resolve(projectRoot, 'miniprogram/pages/listings')
+const filterSheetRoot = resolve(projectRoot, 'miniprogram/components/filter-sheet')
 
 function readPageFile(filename: string): string {
   return readFileSync(resolve(pageRoot, filename), 'utf8')
@@ -101,6 +102,22 @@ describe('房源列表页面合同', () => {
     expect(source).toContain('estimateUnavailable: snapshot.estimateUnavailable')
     expect(source).toMatch(/data:[\s\S]*estimateUnavailable: false/)
     expect(markup).toContain('estimate-unavailable="{{estimateUnavailable}}"')
+  })
+
+  it('父页使用筛选组件真实属性名传递分区、查询与结果数', () => {
+    const markup = readPageFile('index.wxml')
+    const component = readFileSync(resolve(filterSheetRoot, 'index.ts'), 'utf8')
+    const filterSheet = /<filter-sheet[\s\S]*?\/>/.exec(markup)?.[0] ?? ''
+
+    expect(filterSheet).toContain('\n    section="{{sheetSection}}"')
+    expect(filterSheet).toContain('\n    query="{{query}}"')
+    expect(filterSheet).toContain('\n    result-count="{{estimatedCount}}"')
+    expect(component).toMatch(/properties:[\s\S]*?\bsection:\s*\{/)
+    expect(component).toMatch(/properties:[\s\S]*?\bquery:\s*\{/)
+    expect(component).toMatch(/properties:[\s\S]*?\bresultCount:\s*\{/)
+    expect(filterSheet).not.toContain('initial-section=')
+    expect(filterSheet).not.toContain('current-query=')
+    expect(filterSheet).not.toContain('estimated-count=')
   })
 
   it('刷新和触底委托控制器，点击房源统一调用安全详情导航', () => {

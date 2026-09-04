@@ -2,6 +2,7 @@ import { accessSync, constants, existsSync, statSync, writeFileSync } from 'node
 import { dirname, isAbsolute, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import automator from 'miniprogram-automator'
+import { assertAcceptancePassed } from './acceptance-result.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
@@ -18,6 +19,12 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+async function requireSelector(page, selector) {
+  const element = await page.$(selector)
+  if (!element) throw new Error(`MP-106 关键 selector 缺失：${selector}`)
+  return element
+}
+
 async function runAcceptance() {
   console.log('🚀 启动 MP-106 找房主链路交互与高保真端到端走查...')
   const mp = await automator.launch({
@@ -31,6 +38,13 @@ async function runAcceptance() {
     systemInfo: {},
     testCases: {},
     interactions: {},
+    requiredInteractions: [
+      'homeSearch',
+      'filterSheet',
+      'sortToggle',
+      'buildingListingOpen',
+      'inquirySheet',
+    ],
   }
 
   try {
@@ -62,28 +76,24 @@ async function runAcceptance() {
     console.log(`   ✅ 首页高保真渲染完成`)
 
     console.log('   🔄 [Interaction 1-1] 首页搜索关键字并提交跳转...')
-    const searchInput = await home.$('.home-search__input')
-    if (searchInput) {
-      await searchInput.input('静安')
-      await delay(300)
-      const searchBtn = await home.$('.home-search__submit')
-      if (searchBtn) {
-        await searchBtn.tap()
-        await delay(1200)
-        const currentListingsPage = await mp.currentPage()
-        const searchResultScreenshot = join(screenshotsDir, 'mp106-1b-home-search-result.png')
-        await mp.screenshot({ path: searchResultScreenshot })
-        const lData = await currentListingsPage.data()
-        results.interactions.homeSearch = {
-          keyword: '静安',
-          navigatedPath: currentListingsPage.path,
-          totalDocs: lData.totalDocs,
-          passed: currentListingsPage.path.includes('listings') && lData.totalDocs > 0,
-          screenshot: 'mp106-1b-home-search-result.png',
-        }
-        console.log(`   ✅ 搜索交互成功：导航至找房列表，匹配房源 ${lData.totalDocs} 套`)
-      }
+    const searchInput = await requireSelector(home, '.home-search__input')
+    await searchInput.input('静安')
+    await delay(300)
+    const searchBtn = await requireSelector(home, '.home-search__submit')
+    await searchBtn.tap()
+    await delay(1200)
+    const currentListingsPage = await mp.currentPage()
+    const searchResultScreenshot = join(screenshotsDir, 'mp106-1b-home-search-result.png')
+    await mp.screenshot({ path: searchResultScreenshot })
+    const lData = await currentListingsPage.data()
+    results.interactions.homeSearch = {
+      keyword: '静安',
+      navigatedPath: currentListingsPage.path,
+      totalDocs: lData.totalDocs,
+      passed: currentListingsPage.path.includes('listings') && lData.totalDocs > 0,
+      screenshot: 'mp106-1b-home-search-result.png',
     }
+    console.log(`   ✅ 搜索交互成功：导航至找房列表，匹配房源 ${lData.totalDocs} 套`)
 
     // ==========================================
     // 2. 找房列表页走查与筛选/排序交互链路
@@ -105,41 +115,37 @@ async function runAcceptance() {
     console.log(`   ✅ 找房列表页就绪，在租房源 ${listingsData.totalDocs} 套`)
 
     console.log('   🔄 [Interaction 2-1] 唤起半屏筛选弹层 (filter-sheet)...')
-    const filterShell = await listings.$('.listings-filter-shell')
-    if (filterShell) {
-      await listings.callMethod('handleOpenFilter', { detail: { section: 'price' } })
-      await delay(800)
-      const filterSheetScreenshot = join(screenshotsDir, 'mp106-2b-filter-sheet-opened.png')
-      await mp.screenshot({ path: filterSheetScreenshot })
-      const postOpenData = await listings.data()
-      results.interactions.filterSheet = {
-        sheetOpen: postOpenData.sheetOpen,
-        sheetSection: postOpenData.sheetSection,
-        passed: postOpenData.sheetOpen === true,
-        screenshot: 'mp106-2b-filter-sheet-opened.png',
-      }
-      console.log(`   ✅ 筛选弹层成功唤起，当前定位分区: ${postOpenData.sheetSection}`)
-
-      // 关闭筛选弹层
-      await listings.callMethod('handleFilterClose')
-      await delay(500)
+    await requireSelector(listings, '.listings-filter-shell')
+    await listings.callMethod('handleOpenFilter', { detail: { section: 'price' } })
+    await delay(800)
+    const filterSheetScreenshot = join(screenshotsDir, 'mp106-2b-filter-sheet-opened.png')
+    await mp.screenshot({ path: filterSheetScreenshot })
+    const postOpenData = await listings.data()
+    results.interactions.filterSheet = {
+      sheetOpen: postOpenData.sheetOpen,
+      sheetSection: postOpenData.sheetSection,
+      passed: postOpenData.sheetOpen === true,
+      screenshot: 'mp106-2b-filter-sheet-opened.png',
     }
+    console.log(`   ✅ 筛选弹层成功唤起，当前定位分区: ${postOpenData.sheetSection}`)
+
+    // 关闭筛选弹层
+    await listings.callMethod('handleFilterClose')
+    await delay(500)
 
     console.log('   🔄 [Interaction 2-2] 点击排序切换单价排序 (handleToggleSort)...')
-    const sortBtn = await listings.$('.listings-summary__sort')
-    if (sortBtn) {
-      await sortBtn.tap()
-      await delay(800)
-      const sortedScreenshot = join(screenshotsDir, 'mp106-2c-sorted-listings.png')
-      await mp.screenshot({ path: sortedScreenshot })
-      const sortedData = await listings.data()
-      results.interactions.sortToggle = {
-        sortOrder: sortedData.query.sort,
-        passed: sortedData.query.sort === 'price_desc',
-        screenshot: 'mp106-2c-sorted-listings.png',
-      }
-      console.log(`   ✅ 排序切换成功：当前排序为 ${sortedData.query.sort}`)
+    const sortBtn = await requireSelector(listings, '.listings-summary__sort')
+    await sortBtn.tap()
+    await delay(800)
+    const sortedScreenshot = join(screenshotsDir, 'mp106-2c-sorted-listings.png')
+    await mp.screenshot({ path: sortedScreenshot })
+    const sortedData = await listings.data()
+    results.interactions.sortToggle = {
+      sortOrder: sortedData.query.sort,
+      passed: sortedData.query.sort === 'price-desc',
+      screenshot: 'mp106-2c-sorted-listings.png',
     }
+    console.log(`   ✅ 排序切换成功：当前排序为 ${sortedData.query.sort}`)
 
     // ==========================================
     // 3. 楼盘列表页走查 (在租楼盘 + 暂无在租独立下沉)
@@ -183,13 +189,15 @@ async function runAcceptance() {
     console.log(`   ✅ 楼盘详情就绪: ${bDetailData.building?.name}，在租 ${bDetailData.building?.activeListingCount} 套`)
 
     console.log('   🔄 [Interaction 4-1] 点击楼盘在租房源行，跳转至房源详情...')
-    const firstRow = await buildingDetail.$('.building-listing-row')
-    if (firstRow) {
-      await firstRow.tap()
-      await delay(1200)
-      const afterJumpPage = await mp.currentPage()
-      console.log(`   ✅ 成功从楼盘在租房源跳转至: ${afterJumpPage.path}`)
+    const firstRow = await requireSelector(buildingDetail, '.building-listing-row')
+    await firstRow.tap()
+    await delay(1200)
+    const afterJumpPage = await mp.currentPage()
+    results.interactions.buildingListingOpen = {
+      navigatedPath: afterJumpPage.path,
+      passed: afterJumpPage.path.includes('listing-detail'),
     }
+    console.log(`   ✅ 成功从楼盘在租房源跳转至: ${afterJumpPage.path}`)
 
     // ==========================================
     // 5. 房源详情页与留资转化交互链路
@@ -212,27 +220,26 @@ async function runAcceptance() {
     console.log(`   ✅ 房源详情就绪: ${lDetailData.content?.title}，所在楼盘: ${lDetailData.content?.building?.name}`)
 
     console.log('   🔄 [Interaction 5-1] 点击底部主 CTA (咨询顾问/预约看房)，呼出留资半屏弹层...')
-    const inquiryCta = await listingDetail.$('.listing-detail__bar-action--inquiry')
-    if (inquiryCta) {
-      await inquiryCta.tap()
-      await delay(800)
-      const inquiryScreenshotPath = join(screenshotsDir, 'mp106-5b-inquiry-sheet-opened.png')
-      await mp.screenshot({ path: inquiryScreenshotPath })
-      const postInquiryData = await listingDetail.data()
-      results.interactions.inquirySheet = {
-        inquiryOpen: postInquiryData.inquiryOpen,
-        prefilledTitle: postInquiryData.inquirySheet?.listingTitle,
-        passed: postInquiryData.inquiryOpen === true,
-        screenshot: 'mp106-5b-inquiry-sheet-opened.png',
-      }
-      console.log(`   ✅ 留资弹层成功呼出，已自动预填房源: ${postInquiryData.inquirySheet?.listingTitle}`)
-
-      // 关闭留资弹层
-      await listingDetail.callMethod('handleInquiryClose')
-      await delay(400)
+    const inquiryCta = await requireSelector(listingDetail, '.listing-detail__bar-action--inquiry')
+    await inquiryCta.tap()
+    await delay(800)
+    const inquiryScreenshotPath = join(screenshotsDir, 'mp106-5b-inquiry-sheet-opened.png')
+    await mp.screenshot({ path: inquiryScreenshotPath })
+    const postInquiryData = await listingDetail.data()
+    results.interactions.inquirySheet = {
+      inquiryOpen: postInquiryData.inquiryOpen,
+      prefilledTitle: postInquiryData.inquirySheet?.listingTitle,
+      passed: postInquiryData.inquiryOpen === true,
+      screenshot: 'mp106-5b-inquiry-sheet-opened.png',
     }
+    console.log(`   ✅ 留资弹层成功呼出，已自动预填房源: ${postInquiryData.inquirySheet?.listingTitle}`)
+
+    // 关闭留资弹层
+    await listingDetail.callMethod('handleInquiryClose')
+    await delay(400)
 
     const reportPath = join(artifactsDir, 'acceptance-report.json')
+    assertAcceptancePassed(results)
     writeFileSync(reportPath, JSON.stringify(results, null, 2))
     console.log(`🎉 全链路走查与交互验收完成！测试报告已写入: ${reportPath}`)
   } catch (err) {

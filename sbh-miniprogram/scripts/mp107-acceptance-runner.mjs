@@ -3,6 +3,7 @@ import { dirname, isAbsolute, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import automator from 'miniprogram-automator'
 import { createAcceptanceServer } from './acceptance-mock-server.mjs'
+import { assertAcceptancePassed } from './acceptance-result.mjs'
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(scriptDirectory, '..')
@@ -17,6 +18,12 @@ if (!existsSync(cliPath)) {
 }
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms))
+
+async function requireSelector(page, selector) {
+  const element = await page.$(selector)
+  if (!element) throw new Error(`MP-107 关键 selector 缺失：${selector}`)
+  return element
+}
 
 async function runAcceptance() {
   console.log('🚀 启动 MP-107 全链路资产与“我的”个人中心端到端走查...')
@@ -44,6 +51,11 @@ async function runAcceptance() {
       systemInfo: sysInfo,
       testCases: {},
       interactions: {},
+      requiredInteractions: [
+        'buildingFavorite',
+        'listingFavorite',
+        'inquirySheet',
+      ],
     }
 
     // 清理存储以建立确定性测试基线
@@ -126,11 +138,9 @@ async function runAcceptance() {
 
     // 点击收藏楼盘
     console.log('   🔄 [Interaction 4-1] 点击楼盘底栏【♡ 收藏】...')
-    const bFavBtn = await buildingDetail.$('.building-bottom-fav')
-    if (bFavBtn) {
-      await bFavBtn.tap()
-      await delay(600)
-    }
+    const bFavBtn = await requireSelector(buildingDetail, '.building-bottom-fav')
+    await bFavBtn.tap()
+    await delay(600)
     const bDetailData = await buildingDetail.data()
     const bDetailScreenshotPath = join(screenshotsDir, 'mp107-4-building-detail-favorited.png')
     await mp.screenshot({ path: bDetailScreenshotPath })
@@ -139,6 +149,9 @@ async function runAcceptance() {
       isFavorited: bDetailData.isFavorited,
       passed: bDetailData.isFavorited === true,
       screenshot: 'mp107-4-building-detail-favorited.png',
+    }
+    results.interactions.buildingFavorite = {
+      passed: bDetailData.isFavorited === true,
     }
     // 返回上一页（回到楼盘列表 tab）
     await mp.navigateBack()
@@ -155,19 +168,15 @@ async function runAcceptance() {
 
     // 点击收藏房源
     console.log('   🔄 [Interaction 5-1] 点击房源底栏【♡ 收藏】...')
-    const lFavBtn = await listingDetail.$('.listing-detail__bar-fav')
-    if (lFavBtn) {
-      await lFavBtn.tap()
-      await delay(600)
-    }
+    const lFavBtn = await requireSelector(listingDetail, '.listing-detail__bar-fav')
+    await lFavBtn.tap()
+    await delay(600)
 
     // 呼出留资弹层
     console.log('   🔄 [Interaction 5-2] 点击【咨询顾问】呼出留资并模拟预约...')
-    const inquiryCta = await listingDetail.$('.listing-detail__bar-action--inquiry')
-    if (inquiryCta) {
-      await inquiryCta.tap()
-      await delay(800)
-    }
+    const inquiryCta = await requireSelector(listingDetail, '.listing-detail__bar-action--inquiry')
+    await inquiryCta.tap()
+    await delay(800)
 
     const lDetailData = await listingDetail.data()
     const lDetailScreenshotPath = join(screenshotsDir, 'mp107-5-listing-detail-favorited.png')
@@ -178,6 +187,12 @@ async function runAcceptance() {
       inquiryOpen: lDetailData.inquiryOpen,
       passed: lDetailData.isFavorited === true,
       screenshot: 'mp107-5-listing-detail-favorited.png',
+    }
+    results.interactions.listingFavorite = {
+      passed: lDetailData.isFavorited === true,
+    }
+    results.interactions.inquirySheet = {
+      passed: lDetailData.inquiryOpen === true,
     }
     console.log(`   ✅ 房源收藏与留资就绪：${lDetailData.content?.title}，收藏: ${lDetailData.isFavorited}，留资弹层呼出: ${lDetailData.inquiryOpen}`)
 
@@ -216,27 +231,8 @@ async function runAcceptance() {
     console.log(`      - 用户: ${profileData.user?.nickname} (${profileData.user?.city})`)
     console.log(`      - 资产指标: 收藏房源 ${profileData.summary?.listingCount} 套，收藏楼盘 ${profileData.summary?.buildingCount} 座`)
 
-    // 录入留资记录后走查“我的留资”跟进卡
-    console.log('   🔄 [Interaction 6-1] 产生留资后验证【我的留资】待跟进卡块渲染...')
-    await profile.callMethod('addSampleInquiryForDemo')
-    await delay(800)
-
-    const profileDataWithInquiry = await profile.data()
-    const profileInquiryScreenshot = join(screenshotsDir, 'mp107-6b-profile-with-inquiry.png')
-    await mp.screenshot({ path: profileInquiryScreenshot })
-
-    results.testCases.profileWithInquiry = {
-      pendingCount: profileDataWithInquiry.pendingInquiryCount,
-      firstInquiryTitle: profileDataWithInquiry.inquiries?.[0]?.targetTitle,
-      passed: profileDataWithInquiry.pendingInquiryCount === 1,
-      screenshot: 'mp107-6b-profile-with-inquiry.png',
-    }
-
-    console.log(`   ✅ 【我的留资】跟进卡渲染成功：`)
-    console.log(`      - 待跟进计数: ${profileDataWithInquiry.pendingInquiryCount} 条`)
-    console.log(`      - 首条意向: ${profileDataWithInquiry.inquiries?.[0]?.targetTitle}（${profileDataWithInquiry.inquiries?.[0]?.statusLabel}）`)
-
     const reportPath = join(artifactsDir, 'acceptance-report.json')
+    assertAcceptancePassed(results)
     writeFileSync(reportPath, JSON.stringify(results, null, 2))
     console.log(`🎉 MP-107 全链路走查与交互验收完成！报告已保存至: ${reportPath}`)
   } catch (err) {
