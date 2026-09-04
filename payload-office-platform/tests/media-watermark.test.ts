@@ -215,6 +215,12 @@ describe('mergeWatermarkConfig', () => {
     expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
   })
 
+  it('enabled 缺省 false，未保存的 group 不得被判成开启——水印必须 opt-in', () => {
+    expect(DEFAULT_WATERMARK_CONFIG.enabled).toBe(false)
+    expect(mergeWatermarkConfig({ enabled: null }).enabled).toBe(false)
+    expect(mergeWatermarkConfig({ enabled: true }).enabled).toBe(true)
+  })
+
   it('全 null group 不能用 spread 覆盖默认值', () => {
     const stored = { tiled: { density: null, text: null, opacity: null, angle: null }, badge: { text: null, opacity: null, position: null } }
     const merged = mergeWatermarkConfig(stored)

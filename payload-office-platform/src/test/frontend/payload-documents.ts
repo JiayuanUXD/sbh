@@ -32,6 +32,7 @@ export const TIMEZONE = 'Asia/Shanghai'
 function makeMedia(overrides: Partial<Media> & { id: number }): Media {
   return {
     alt: '',
+    usage: 'listing-photo',
     updatedAt: '2026-07-01T00:00:00.000Z',
     createdAt: '2026-07-01T00:00:00.000Z',
     url: `/media/test-${overrides.id}.jpg`,

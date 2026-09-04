@@ -52,9 +52,15 @@ export type WatermarkConfig = {
 /**
  * 缺省配置。OPT-053 立的三层兜底里的最后一层——`SiteSettings` 的水印 tab
  * 尚未写入、或迁移还没跑时，用这一份。
+ *
+ * OPT-069：`enabled` 缺省 `false`，整个水印功能 opt-in。本仓库合并即全量上线，
+ * `media.usage` 的迁移会把约 1.7 万条存量媒体（含 logo、文章封面、landing hero）
+ * 按默认值全部回填成 `listing-photo`，而重新分类的脚本只能在合并**之后**跑。
+ * 缺省开启意味着这段窗口里运营新传的品牌素材会被水印烘进像素——水印永久改写图片，
+ * 理应由运营在回填跑完、看过预览之后主动打开。
  */
 export const DEFAULT_WATERMARK_CONFIG: WatermarkConfig = {
-  enabled: true,
+  enabled: false,
   tiled: { text: '商办荟', density: 3, opacity: 0.38, angle: -30 },
   badge: { text: '商办荟', position: 'bottom-right', opacity: 0.95 },
 }
@@ -275,7 +281,11 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
   }
 
   return {
-    enabled: storedObj.enabled !== false,
+    // 只认布尔值，其余（null / undefined / 非布尔）一律回落常量。
+    // 不能写 `storedObj.enabled !== false`：站点设置的水印 group 从没保存过时
+    // `enabled` 是 null，`null !== false` 得到 true，缺省关闭的开关会被绕过，
+    // 水印在首次部署时就是开着的。
+    enabled: typeof storedObj.enabled === 'boolean' ? storedObj.enabled : DEFAULT_WATERMARK_CONFIG.enabled,
     tiled: tiledConfig,
     badge: badgeConfig,
   }
