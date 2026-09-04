@@ -240,6 +240,8 @@ export function createAcceptanceServer(port = 3717) {
 
     // 2. Listings endpoint
     if (pathname === '/api/mini/v1/listings') {
+      const canonicalQuery = parsedUrl.searchParams.toString()
+      const currentPriceUnit = parsedUrl.searchParams.get('priceUnit')
       res.statusCode = 200
       res.end(JSON.stringify({
         ok: true,
@@ -253,8 +255,8 @@ export function createAcceptanceServer(port = 3717) {
             hasNextPage: false,
             hasPrevPage: false,
           },
-          canonicalQuery: '',
-          currentPriceUnit: 'rmb-sqm-day',
+          canonicalQuery,
+          currentPriceUnit,
           filters: quickFilters,
         },
         meta,

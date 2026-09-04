@@ -41,7 +41,9 @@ async function runAcceptance() {
     requiredInteractions: [
       'homeSearch',
       'filterSheet',
-      'sortToggle',
+      'sortGuard',
+      'sortAsc',
+      'sortDesc',
       'buildingListingOpen',
       'inquirySheet',
     ],
@@ -87,10 +89,12 @@ async function runAcceptance() {
     await mp.screenshot({ path: searchResultScreenshot })
     const lData = await currentListingsPage.data()
     results.interactions.homeSearch = {
-      keyword: '静安',
+      queryQ: lData.query.q,
       navigatedPath: currentListingsPage.path,
       totalDocs: lData.totalDocs,
-      passed: currentListingsPage.path.includes('listings') && lData.totalDocs > 0,
+      passed: currentListingsPage.path.includes('listings')
+        && lData.query.q === '静安'
+        && lData.totalDocs > 0,
       screenshot: 'mp106-1b-home-search-result.png',
     }
     console.log(`   ✅ 搜索交互成功：导航至找房列表，匹配房源 ${lData.totalDocs} 套`)
@@ -99,7 +103,7 @@ async function runAcceptance() {
     // 2. 找房列表页走查与筛选/排序交互链路
     // ==========================================
     console.log('🧪 [Case 2] 走查找房列表页 (34px独立搜索栏/吸顶筛选/大白卡内嵌分割线/排序)...')
-    const listings = await mp.switchTab('/pages/listings/index')
+    const listings = currentListingsPage
     await listings.waitFor('#listings-ready')
     await delay(1000)
     const listingsData = await listings.data()
@@ -114,38 +118,76 @@ async function runAcceptance() {
     }
     console.log(`   ✅ 找房列表页就绪，在租房源 ${listingsData.totalDocs} 套`)
 
-    console.log('   🔄 [Interaction 2-1] 唤起半屏筛选弹层 (filter-sheet)...')
+    console.log('   🔄 [Interaction 2-1] 无计价单位时验证排序保护...')
+    const initialSortButton = await requireSelector(listings, '.listings-summary__sort')
+    await initialSortButton.tap()
+    await delay(500)
+    const guardData = await listings.data()
+    results.interactions.sortGuard = {
+      priceUnit: guardData.query.priceUnit ?? null,
+      sortOrder: guardData.query.sort,
+      passed: guardData.query.sort === 'recommended' && !guardData.query.priceUnit,
+    }
+    console.log(`   ✅ 无计价单位排序保持：${guardData.query.sort}`)
+
+    console.log('   🔄 [Interaction 2-2] 通过真实筛选组件选择首个计价单位并应用...')
     await requireSelector(listings, '.listings-filter-shell')
-    await listings.callMethod('handleOpenFilter', { detail: { section: 'price' } })
+    const filterBar = await requireSelector(listings, 'filter-bar')
+    const priceFilter = await requireSelector(filterBar, '.filter-bar__item[data-section="price"]')
+    await priceFilter.tap()
     await delay(800)
     const filterSheetScreenshot = join(screenshotsDir, 'mp106-2b-filter-sheet-opened.png')
     await mp.screenshot({ path: filterSheetScreenshot })
     const postOpenData = await listings.data()
+    const sheet = await requireSelector(listings, 'filter-sheet')
+    const option = await requireSelector(sheet, '.filter-sheet__option')
+    const selectedPriceUnit = await option.attribute('data-value')
+    await option.tap()
+    await delay(800)
+    const apply = await requireSelector(sheet, '.filter-sheet__apply')
+    await apply.tap()
+    await delay(1200)
+    const filteredData = await listings.data()
     results.interactions.filterSheet = {
       sheetOpen: postOpenData.sheetOpen,
       sheetSection: postOpenData.sheetSection,
-      passed: postOpenData.sheetOpen === true,
+      selectedPriceUnit,
+      priceUnit: filteredData.query.priceUnit,
+      passed: typeof filteredData.query.priceUnit === 'string'
+        && filteredData.query.priceUnit === selectedPriceUnit
+        && postOpenData.sheetOpen === true
+        && postOpenData.sheetSection === 'price',
       screenshot: 'mp106-2b-filter-sheet-opened.png',
     }
-    console.log(`   ✅ 筛选弹层成功唤起，当前定位分区: ${postOpenData.sheetSection}`)
+    console.log(`   ✅ 筛选弹层已应用计价单位：${filteredData.query.priceUnit}`)
 
-    // 关闭筛选弹层
-    await listings.callMethod('handleFilterClose')
-    await delay(500)
-
-    console.log('   🔄 [Interaction 2-2] 点击排序切换单价排序 (handleToggleSort)...')
-    const sortBtn = await requireSelector(listings, '.listings-summary__sort')
-    await sortBtn.tap()
+    console.log('   🔄 [Interaction 2-3] 点击排序切换为价格升序...')
+    const ascendingSortButton = await requireSelector(listings, '.listings-summary__sort')
+    await ascendingSortButton.tap()
     await delay(800)
-    const sortedScreenshot = join(screenshotsDir, 'mp106-2c-sorted-listings.png')
-    await mp.screenshot({ path: sortedScreenshot })
-    const sortedData = await listings.data()
-    results.interactions.sortToggle = {
-      sortOrder: sortedData.query.sort,
-      passed: sortedData.query.sort === 'price-desc',
-      screenshot: 'mp106-2c-sorted-listings.png',
+    const ascendingScreenshot = join(screenshotsDir, 'mp106-2c-price-ascending.png')
+    await mp.screenshot({ path: ascendingScreenshot })
+    const ascendingData = await listings.data()
+    results.interactions.sortAsc = {
+      sortOrder: ascendingData.query.sort,
+      passed: ascendingData.query.sort === 'price-asc',
+      screenshot: 'mp106-2c-price-ascending.png',
     }
-    console.log(`   ✅ 排序切换成功：当前排序为 ${sortedData.query.sort}`)
+    console.log(`   ✅ 排序切换成功：当前排序为 ${ascendingData.query.sort}`)
+
+    console.log('   🔄 [Interaction 2-4] 再次点击排序切换为价格降序...')
+    const descendingSortButton = await requireSelector(listings, '.listings-summary__sort')
+    await descendingSortButton.tap()
+    await delay(800)
+    const descendingScreenshot = join(screenshotsDir, 'mp106-2d-price-descending.png')
+    await mp.screenshot({ path: descendingScreenshot })
+    const descendingData = await listings.data()
+    results.interactions.sortDesc = {
+      sortOrder: descendingData.query.sort,
+      passed: descendingData.query.sort === 'price-desc',
+      screenshot: 'mp106-2d-price-descending.png',
+    }
+    console.log(`   ✅ 排序切换成功：当前排序为 ${descendingData.query.sort}`)
 
     // ==========================================
     // 3. 楼盘列表页走查 (在租楼盘 + 暂无在租独立下沉)
