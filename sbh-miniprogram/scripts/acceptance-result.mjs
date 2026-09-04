@@ -7,40 +7,20 @@ function hasOwn(value, key) {
   return Object.prototype.hasOwnProperty.call(value, key)
 }
 
-function hasAcceptanceMarker(value) {
-  if (!isPlainObject(value)) return false
-  if (hasOwn(value, 'passed')) return true
-  return Object.entries(value).some(([key, child]) => (
-    key !== 'passed' && hasAcceptanceMarker(child)
-  ))
-}
-
 function inspectAcceptanceNode(value, path, failures) {
-  if (!isPlainObject(value)) {
-    failures.push(`${path} 不是普通对象叶节点`)
-    return
-  }
-
+  let markerCount = 0
   const hasPassed = hasOwn(value, 'passed')
-  if (hasPassed && value.passed !== true) failures.push(`${path}.passed 不是 true`)
-
-  const objectChildren = Object.entries(value).filter(([key, child]) => (
-    key !== 'passed' && isPlainObject(child)
-  ))
-  // A node with its own result may also contain object metadata. Only nested
-  // objects that declare a `passed` marker somewhere in their subtree are
-  // additional acceptance nodes. Marker-less group nodes remain invalid.
-  const childEntries = hasPassed
-    ? objectChildren.filter(([, child]) => hasAcceptanceMarker(child))
-    : objectChildren
-  if (!hasPassed && childEntries.length === 0) {
-    failures.push(`${path} 没有验收叶节点`)
-    return
+  if (hasPassed) {
+    markerCount += 1
+    if (value.passed !== true) failures.push(`${path}.passed 不是 true`)
   }
 
-  for (const [key, child] of childEntries) {
-    inspectAcceptanceNode(child, `${path}.${key}`, failures)
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'passed' || !isPlainObject(child)) continue
+    markerCount += inspectAcceptanceNode(child, `${path}.${key}`, failures)
   }
+
+  return markerCount
 }
 
 function resolvePath(value, path) {
@@ -63,14 +43,17 @@ export function assertAcceptancePassed(report) {
 
   if (!isPlainObject(testCases)) {
     failures.push('testCases 必须是普通对象')
-  } else {
-    inspectAcceptanceNode(testCases, 'testCases', failures)
+  } else if (inspectAcceptanceNode(testCases, 'testCases', failures) === 0) {
+    failures.push('testCases 没有验收结果')
   }
 
   if (!isPlainObject(interactions)) {
     failures.push('interactions 必须是普通对象')
-  } else if (Object.keys(interactions).length > 0) {
-    inspectAcceptanceNode(interactions, 'interactions', failures)
+  } else if (
+    Object.keys(interactions).length > 0
+    && inspectAcceptanceNode(interactions, 'interactions', failures) === 0
+  ) {
+    failures.push('interactions 没有验收结果')
   }
 
   const requiredInteractions = report.requiredInteractions

@@ -68,6 +68,35 @@ describe('验收报告 fail-closed', () => {
     })).not.toThrow()
   })
 
+  it('无 passed 的 group 可同时包含普通对象元数据与合法验收 child', async () => {
+    const { assertAcceptancePassed } = await loadAcceptanceResult()
+
+    expect(() => assertAcceptancePassed({
+      testCases: {
+        suite: {
+          details: {
+            viewport: { width: 375, height: 812 },
+          },
+          child: { passed: true },
+        },
+      },
+      interactions: {},
+    })).not.toThrow()
+  })
+
+  it('testCases 整棵树没有任何 passed 标记时 fail-closed', async () => {
+    const { assertAcceptancePassed } = await loadAcceptanceResult()
+
+    expect(() => assertAcceptancePassed({
+      testCases: {
+        suite: {
+          details: { state: 'ready' },
+        },
+      },
+      interactions: {},
+    })).toThrow(/testCases 没有验收结果/)
+  })
+
   it('声明必需交互后，空 interactions 明确失败', async () => {
     const { assertAcceptancePassed } = await loadAcceptanceResult()
 
