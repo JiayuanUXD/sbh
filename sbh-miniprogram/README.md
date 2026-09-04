@@ -1,12 +1,13 @@
 # SBH 微信小程序工程
 
-这是 SBH 商办租赁项目的原生微信小程序工程，与 Web 应用共用仓库，但拥有独立的依赖、锁文件和微信项目配置。MP-103 已把首页、搜索与房源列表接成首个匿名用户浏览闭环；MP-104 继续接入真实房源详情、月度成本展示、微信或手工手机号咨询，以及服务端幂等写入。预发布与微信环境验收状态见本文末尾的证据链接。
+这是 SBH 商办租赁项目的原生微信小程序工程，与 Web 应用共用仓库，但拥有独立的依赖、锁文件和微信项目配置。当前代码已覆盖首页、找房、楼盘、房源/楼盘详情、“我的”、收藏与三类咨询；预发布与微信环境验收状态见本文末尾的证据链接。
 
 ## 业务入口与范围
 
-- `pages/home/index` 是应用首路由，`pages/listings/index` 是找房列表，`pages/listing-detail/index` 是房源详情与咨询入口。原 `pages/foundation/index` 仅作为工程基础诊断页保留，不在 tabBar 中。
-- 当前 tabBar 只有“首页”和“找房”两项。楼盘和“我的”分别属于 MP-106、MP-107 后续范围，本阶段不创建无功能空页。
-- 当前不实现收藏、地图、咨询记录或顾问排期；这些能力按后续工作项独立建设，不在详情页放置无功能按钮。
+- tabBar 为“首页、找房、楼盘、我的”四项；`pages/foundation/index` 仅作为工程基础诊断页保留，不在 tabBar 中。
+- `pages/listing-detail/index` 与 `pages/building-detail/index` 双向连接房源和楼盘；首页真实精选楼盘也可进入楼盘详情。
+- 收藏与咨询记录以服务端用户资产为事实源；网络或服务端未确认时不显示成功。本地 Storage 只作一次性迁移候选。
+- 当前不实现地图、顾问排期、监控、提审或正式发布；这些能力不得用占位按钮或承诺文案冒充。
 
 ## Codex 与微信开发者工具的职责
 
@@ -35,6 +36,19 @@ pnpm devtools:smoke
 CLI 文件必须具有执行权限。脚本会先校验 CLI，再加载自动化依赖；它以可信工程模式打开当前工程，先进入首页并等待 `#home-ready`，再进入找房页并从首条页面层 `[data-listing-slug]` 标记读取真实 slug，最后进入对应详情页并等待 `#listing-detail-ready`。启动、三次路由、三个 ready、房源标记轮询、查询参数、每页验收窗口与关闭都有超时或严格校验，任一阶段的运行时异常都使结果失败。成功或失败都会尝试关闭连接，关闭失败时再安全断开；即使启动已超时，迟到建立的连接也会尝试被回收。它不预览、上传或部署代码。
 
 如果 IDE 服务端口关闭、本机尚未登录，或其他微信环境条件不满足，应将模拟器自动化记录为“未执行 + 具体原因”。Node 测试不能替代开发者工具或真机验收。MP-103 与 MP-104 当前证据分别在 `artifacts/verification/MP-103/README.md`、`artifacts/verification/MP-104/README.md`。
+
+## MP-109 抽屉双视口验收
+
+MP-109 runner 会真实点击价格/全部筛选、首页委托、楼盘委托和详情咨询入口，检查抽屉结构、固定 footer、内部滚动、44pt 命中、内部控件几何、原生 TabBar 隐藏，以及错误/提交中/成功态。两档必须分别运行：
+
+```sh
+MP109_VIEWPORT_PROFILE=small WECHAT_DEVTOOLS_CLI="/Applications/wechatwebdevtools.app/Contents/MacOS/cli" npx --yes --package=node@22 -c 'node scripts/mp109-sheet-acceptance-runner.mjs'
+MP109_VIEWPORT_PROFILE=large WECHAT_DEVTOOLS_CLI="/Applications/wechatwebdevtools.app/Contents/MacOS/cli" npx --yes --package=node@22 -c 'node scripts/mp109-sheet-acceptance-runner.mjs'
+```
+
+报告环境固定记录为 `local-wechat-devtools-develop-with-controlled-mock`。它验证的是 develop 模式下的真实页面交互和受控视觉状态，不等同于 trial、目标 staging revision、真机、隐私或生产验收；咨询状态未执行真实业务写入。桌面 DevTools 无法显示可审计软键盘时，`inquiryKeyboard` 必须保持失败，聚合报告保持 `incomplete`，由 iOS/Android 真机补证。
+
+当前证据见 `artifacts/verification/MP-109/README.md`。
 
 ## 显式生成预览
 

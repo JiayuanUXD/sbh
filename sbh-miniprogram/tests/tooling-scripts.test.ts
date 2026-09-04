@@ -18,6 +18,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vitest'
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)))
+const repositoryRoot = resolve(projectRoot, '..')
 const scripts = {
   checkProject: join(projectRoot, 'scripts/check-project.mjs'),
   devtoolsSmoke: join(projectRoot, 'scripts/devtools-smoke.mjs'),
@@ -124,6 +125,78 @@ describe('MP-109 sheet acceptance runner', () => {
       states: {},
     })
     expect(JSON.stringify(report)).not.toMatch(/"passed":true/)
+  })
+})
+
+describe('MP-109 工作项与验收证据归档', () => {
+  const readRepositoryFile = (relativePath: string): string =>
+    readFileSync(resolve(repositoryRoot, relativePath), 'utf8')
+
+  test('MP-107 与 MP-109 工作项存在，并将代码完成与环境验收明确分开', () => {
+    for (const filename of [
+      'specs/work-items/MP-107-favorites-and-inquiry-history-plan.md',
+      'specs/work-items/MP-109-miniprogram-closure-and-sheet-plan.md',
+    ]) {
+      const absolutePath = resolve(repositoryRoot, filename)
+      expect(existsSync(absolutePath), filename).toBe(true)
+      if (!existsSync(absolutePath)) continue
+      const content = readFileSync(absolutePath, 'utf8')
+      expect(content, filename).toContain('代码完成，环境验收待完成')
+      expect(content, filename).toMatch(/未执行|待完成/)
+    }
+  })
+
+  test('路线图保留 MP-108 为上线加固，并准确回写 MP-106/107/109 状态', () => {
+    const roadmap = readRepositoryFile('specs/work-items/MP-002-miniprogram-delivery-roadmap.md')
+
+    expect(roadmap).toMatch(/\| MP-106 \|[^\n]+\| 代码完成，环境验收待完成 \|/)
+    expect(roadmap).toMatch(/\| MP-107 \|[^\n]+\| 代码完成，环境验收待完成 \|/)
+    expect(roadmap).toMatch(/\| MP-108 \| 上线加固与正式发布 \| 待执行 \|/)
+    expect(roadmap).toMatch(/\| MP-109 \|[^\n]+\| 代码完成，环境验收待完成 \|/)
+  })
+
+  test('README 给出双视口命令，并禁止把 develop Mock 证据表述成真实环境通过', () => {
+    const readme = readRepositoryFile('sbh-miniprogram/README.md')
+
+    expect(readme).toContain('MP109_VIEWPORT_PROFILE=small')
+    expect(readme).toContain('MP109_VIEWPORT_PROFILE=large')
+    expect(readme).toContain('local-wechat-devtools-develop-with-controlled-mock')
+    expect(readme).toMatch(/不等同于.*trial/)
+    expect(readme).toMatch(/不执行真实业务写入|未执行真实业务写入/)
+  })
+
+  test('双视口证据只有软键盘保持失败，其他必需状态均有截图且通过', () => {
+    const aggregate = JSON.parse(readRepositoryFile(
+      'artifacts/verification/MP-109/sheet-acceptance-report.json',
+    )) as {
+      status?: unknown
+      states?: Record<string, { passed?: unknown }>
+    }
+    expect(aggregate.status).toBe('incomplete')
+
+    for (const profile of ['small', 'large'] as const) {
+      const report = JSON.parse(readRepositoryFile(
+        `artifacts/verification/MP-109/sheet-acceptance-${profile}.json`,
+      )) as {
+        status?: unknown
+        states?: Record<string, { passed?: unknown; screenshot?: unknown }>
+      }
+      expect(report.status).toBe('failed')
+      expect(Object.keys(report.states ?? {})).toHaveLength(10)
+      const failedStates = Object.entries(report.states ?? {})
+        .filter(([, state]) => state.passed !== true)
+        .map(([name]) => name)
+      expect(failedStates).toEqual(['inquiryKeyboard'])
+      for (const [name, state] of Object.entries(report.states ?? {})) {
+        expect(typeof state.screenshot, `${profile}/${name}`).toBe('string')
+        expect(String(state.screenshot).length, `${profile}/${name}`).toBeGreaterThan(0)
+        expect(existsSync(resolve(
+          repositoryRoot,
+          'artifacts/verification/MP-109/sheet-screenshots',
+          String(state.screenshot),
+        )), `${profile}/${name}`).toBe(true)
+      }
+    }
   })
 })
 

@@ -1,9 +1,11 @@
 # MP-106 楼盘闭环与前端 UI 高保真重塑实施计划
 
-> **状态**：草案已就绪，待评审  
-> **上游设计**：`specs/work-items/MP-001-miniprogram-mvp-design.md`、`specs/work-items/MP-002-miniprogram-delivery-roadmap.md`  
-> **设计事实源**：`docs/xcx/SBH小程序页面设计/uploads/miniprogram-design.md` 与 `docs/xcx/SBH小程序页面设计/SBH 小程序页面.dc.html`  
+> **状态**：代码完成，环境验收待完成
+> **上游设计**：`specs/work-items/MP-001-miniprogram-mvp-design.md`、`specs/work-items/MP-002-miniprogram-delivery-roadmap.md`
+> **设计事实源**：`docs/xcx/SBH小程序页面设计/uploads/miniprogram-design.md` 与 `docs/xcx/SBH小程序页面设计/SBH 小程序页面.dc.html`
 > **技术栈**：原生微信小程序（TypeScript 5.9 + WXML + WXSS）、Next.js 16 + Payload 3.86 服务端 Mini API、Vitest 4 单元测试
+
+> **结算说明（2026-09-05）**：本文件保留最初设计任务作为历史计划，实际完成范围以代码事实和 MP-109 收口为准。为遵守数据真实性，实施中移除了无真实 DTO 支撑的售卖专区、地图占位、库存/价格和认证承诺，而不是照搬占位内容。当前未部署、未执行真实数据库写入，trial、图片/COS、隐私与真机验收仍待完成。
 
 ---
 
@@ -257,4 +259,28 @@ tabBar（4 项标准导航）
 1. **视觉一致性**：所有页面严格遵循 `#f2f2f4` 灰底、8px 白卡、6px 图片/输入、3px 标签、999px 底部胶囊；无多余彩标与装饰性色彩。
 2. **完整双向闭环**：用户可从首页/搜索/找房列表看到楼盘信息并进入楼盘详情；在楼盘详情可浏览所有在租房源并跳转房源详情。
 3. **数据真实与健壮性**：楼盘无在租房源时展示下沉保留分组与留资通知；房源无所在楼盘时平稳降级，不抛出异常。
-4. **质量门通过**：全量单元测试通过、双 TypeScript 配置通过、`project:check` 静态检查通过、DevTools 自动化验收全绿。
+4. **质量门通过**：全量单元测试、双 TypeScript 配置与 `project:check` 静态检查通过；DevTools 可本地审计状态按 MP-109 留证，软键盘、trial 网络、图片/COS、隐私与 iOS/Android 真机仍须单独验收，不得以 develop Mock 代替。
+
+---
+
+## 6. 2026-09-05 实施结算
+
+### 已完成代码
+
+- [x] 四项 tabBar、首页、找房、楼盘列表、楼盘详情、房源详情与“我的”页面闭环。
+- [x] 服务端楼盘列表/详情和首页 `featuredBuildings` DTO；未知事实保持空值，不伪造套数、距离或面积。
+- [x] 首页、楼盘、房源双向跳转与 `q` 搜索；价格排序受计价单位保护。
+- [x] 楼盘无有效在租供给时的降级展示与通用咨询入口。
+- [x] 灰底白卡、真实数据卡片、筛选抽屉与咨询抽屉的交互后状态。
+- [x] 原生 TabBar 在抽屉打开时隐藏，并覆盖连续点击、切页重入与原生 API 失败竞态。
+- [x] Node 22 单元、合同、类型与工程静态检查。
+
+### 环境验收待完成
+
+- [ ] trial `wx.cloud.callContainer` 命中目标 staging revision 的网络证据。
+- [ ] 真实图片/COS 正常、坏图与加载失败证据。
+- [ ] iOS/Android 真机页面穿梭、软键盘、安全区、弱网与性能。
+- [ ] 微信隐私配置与手机号授权拒绝/手工输入。
+- [ ] 与 MP-107 用户资产迁移及真实持久化的集成验收。
+
+完整收口、证据路径与剩余门见 `specs/work-items/MP-109-miniprogram-closure-and-sheet-plan.md` 和 `artifacts/verification/MP-109/README.md`。
