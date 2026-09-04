@@ -218,32 +218,6 @@
   font-weight: 500;
 }
 
-.building-map-preview {
-  height: 200rpx;
-  border-radius: 12rpx;
-  background: #ececed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16rpx;
-}
-
-.building-map-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.building-map-pin {
-  font-size: 36rpx;
-}
-
-.building-map-name {
-  font-size: 24rpx;
-  color: #6e6e73;
-}
-
 .building-comparable-row {
   display: flex;
   gap: 20rpx;

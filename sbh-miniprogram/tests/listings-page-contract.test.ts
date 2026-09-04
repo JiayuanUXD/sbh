@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 const projectRoot = resolve(import.meta.dirname, '..')
 const pageRoot = resolve(projectRoot, 'miniprogram/pages/listings')
 const filterSheetRoot = resolve(projectRoot, 'miniprogram/components/filter-sheet')
+const listingCardRoot = resolve(projectRoot, 'miniprogram/components/listing-card')
 
 function readPageFile(filename: string): string {
   return readFileSync(resolve(pageRoot, filename), 'utf8')
@@ -44,22 +45,20 @@ describe('房源列表页面合同', () => {
     expect(markup).toContain('bindtap="handleRetryLoadMore"')
   })
 
-  it('空态按零结果、真实逐项放宽、清除全部、顾问即将开放的顺序出现', () => {
+  it('空态按零结果、真实逐项放宽与清除全部的顺序出现', () => {
     const markup = readPageFile('index.wxml')
     const zeroResult = markup.indexOf('没有找到符合当前条件的房源')
     const relaxations = markup.indexOf('逐项放宽')
     const clearAll = markup.indexOf('清除全部条件')
-    const advisor = markup.indexOf('顾问找房功能即将开放')
 
     expect(zeroResult).toBeGreaterThan(-1)
     expect(relaxations).toBeGreaterThan(zeroResult)
     expect(clearAll).toBeGreaterThan(relaxations)
-    expect(advisor).toBeGreaterThan(clearAll)
     expect(markup).toContain('wx:for="{{relaxations}}"')
     expect(markup).toContain('{{item.count}} 套')
     expect(markup).toContain('data-query="{{item.query}}"')
     expect(markup).toContain('bindtap="handleApplyRelaxation"')
-    expect(markup).not.toMatch(/<button[^>]*>\s*顾问找房功能即将开放/)
+    expect(markup).not.toContain('顾问找房功能即将开放')
   })
 
   it('onLoad 只从白名单构造分享查询，真正加载由 onShow consume 决定且手动切 tab 保持现状', () => {
@@ -129,6 +128,49 @@ describe('房源列表页面合同', () => {
     expect(source).toContain("title: '暂时无法打开房源详情'")
     expect(source).not.toContain('详情功能即将开放')
     expect(source).not.toContain('wx.navigateTo')
+  })
+
+  it('搜索框与提交处理只使用领域字段 q，不再读写不存在的 keyword', () => {
+    const markup = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(markup).toContain("value=\"{{query.q || ''}}\"")
+    expect(source).toMatch(/handleSearchSubmit\(event\)[\s\S]*applyListingPatch\(this\.data\.query,\s*\{\s*q:/)
+    expect(markup).not.toContain('query.keyword')
+    expect(source).not.toMatch(/\bkeyword\s*:/)
+  })
+
+  it('价格排序无计价单位时保持推荐并提示，有单位时只切换 canonical 升降序', () => {
+    const markup = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(markup).toContain("query.sort === 'price-desc'")
+    expect(markup).toContain("query.sort === 'price-asc'")
+    expect(markup).toContain('推荐排序')
+    expect(source).toMatch(/handleToggleSort\(\)[\s\S]*if \(!this\.data\.query\.priceUnit\)/)
+    expect(source).toContain("title: '请先选择计价单位'")
+    expect(source).toMatch(/currentSort === 'price-asc'[\s\S]*'price-desc'[\s\S]*'price-asc'/)
+    expect(source).not.toMatch(/price_asc|price_desc|rent-asc|rent-desc/)
+  })
+
+  it('未实现的地图模式不占据列表主界面或页面方法', () => {
+    const markup = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(markup).not.toContain('listings-map-floating-btn')
+    expect(markup).not.toContain('bindtap="handleToggleMap"')
+    expect(source).not.toContain('handleToggleMap')
+    expect(source).not.toContain('地图模式即将开放')
+  })
+
+  it('共享房源卡缺图使用不含“图”字的中性品牌占位', () => {
+    const cardTemplate = readFileSync(resolve(listingCardRoot, 'index.wxml'), 'utf8')
+
+    expect(cardTemplate).toContain('class="listing-card__placeholder">尚办好</view>')
+    expect(cardTemplate).not.toContain('暂无图片')
+    expect(cardTemplate).not.toContain('listing.badge')
+    expect(cardTemplate).not.toContain('listing.isNew')
+    expect(cardTemplate).not.toContain("'新上'")
   })
 
   it('页面使用共享 token、灰底白卡和不小于 88rpx 的核心触达区', () => {

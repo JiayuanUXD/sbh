@@ -6,7 +6,7 @@
       <text class="buildings-filter-arrow">▾</text>
     </view>
     <view class="buildings-filter-item {{gradeFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleGradeFilter">
-      <text>{{gradeFilter ? gradeFilter + '级' : '等级'}}</text>
+      <text>{{gradeFilterLabel}}</text>
       <text class="buildings-filter-arrow">▾</text>
     </view>
     <view class="buildings-filter-item {{sortFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleSortFilter">
@@ -50,11 +50,11 @@
       </block>
     </view>
 
-    <!-- 暂无在租 · 可留资等通知 独立下沉分组 -->
+    <!-- 暂无在租楼盘独立下沉分组 -->
     <view wx:if="{{inactiveItems.length > 0}}" class="buildings-inactive-section">
       <view class="buildings-inactive-header">
-        <view class="buildings-inactive-title">暂无在租 · 可留资等通知</view>
-        <view class="buildings-inactive-desc num">{{totalInactiveCount}} 个楼盘。资料仍可查，有房源时通知你</view>
+        <view class="buildings-inactive-title">暂无在租楼盘</view>
+        <view class="buildings-inactive-desc num">{{totalInactiveCount}} 个楼盘当前暂无公开在租房源</view>
       </view>
 
       <view class="buildings-card-block buildings-card-block--inactive">
@@ -62,7 +62,6 @@
           <building-card
             building="{{item}}"
             bindopen="handleBuildingOpen"
-            bindinquiry="handleBuildingInquiry"
           />
           <view wx:if="{{index < inactiveItems.length - 1}}" class="buildings-card-divider"></view>
         </block>

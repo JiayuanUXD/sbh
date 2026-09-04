@@ -85,8 +85,7 @@
 .listings-loading,
 .listings-error,
 .listings-empty__intro,
-.listings-empty__relaxations,
-.listings-empty__advisor {
+.listings-empty__relaxations {
   padding: var(--sbh-layout-surface-padding);
   background: var(--sbh-surface-background);
   border-radius: var(--sbh-shape-surface-radius);
@@ -112,7 +111,6 @@
 .listings-empty__description,
 .listings-empty__loading,
 .listings-empty__no-relaxation,
-.listings-empty__advisor,
 .listings-end,
 .listings-loading-more {
   color: var(--sbh-text-secondary);
@@ -147,39 +145,6 @@
   height: 2rpx;
   margin-left: 248rpx;
   background: #e5e5e7;
-}
-
-.listings-map-floating-btn {
-  position: fixed;
-  bottom: calc(48rpx + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 25;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: 16rpx 36rpx;
-  background: #1d1d1f;
-  color: #ffffff;
-  font-size: 26rpx;
-  font-weight: 500;
-  border-radius: 999px;
-  box-shadow: 0 6rpx 24rpx rgba(0, 0, 0, 0.22);
-  transition: transform 120ms ease, opacity 120ms ease;
-}
-
-.listings-map-floating-btn--pressed {
-  opacity: 0.85;
-  transform: translateX(-50%) scale(0.96);
-}
-
-.listings-map-floating-icon {
-  font-size: 24rpx;
-}
-
-.listings-map-floating-text {
-  font-size: 26rpx;
-  letter-spacing: 1rpx;
 }
 
 .listings-loading-more,
@@ -223,8 +188,7 @@
 
 .listings-empty__description,
 .listings-empty__loading,
-.listings-empty__no-relaxation,
-.listings-empty__advisor {
+.listings-empty__no-relaxation {
   margin-top: var(--sbh-layout-space-xs);
   font-size: var(--sbh-type-body-size);
   line-height: var(--sbh-type-body-line-height);
@@ -276,9 +240,4 @@
   border-radius: var(--sbh-shape-control-radius);
   font-size: var(--sbh-type-body-size);
   font-weight: var(--sbh-type-medium-weight);
-}
-
-.listings-empty__advisor {
-  margin-top: 0;
-  text-align: center;
 }

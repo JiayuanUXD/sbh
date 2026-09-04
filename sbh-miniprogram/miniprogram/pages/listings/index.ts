@@ -1,4 +1,5 @@
 import {
+  applyListingPatch,
   parseListingQuery,
   type ListingQuery,
 } from '../../domain/listing-query.js'
@@ -90,7 +91,6 @@ type ListingsPageMethods = {
   handleListingOpen(event: ListingOpenEvent): void
   handleSearchSubmit(event: WechatMiniprogram.CustomEvent<{ value: string }>): void
   handleToggleSort(): void
-  handleToggleMap(): void
 }
 
 function buildWhitelistedQuery(options: ListingPageOptions): string {
@@ -273,23 +273,23 @@ Page<ListingsPageData, ListingsPageMethods>({
   },
 
   handleSearchSubmit(event) {
-    const keyword = (event.detail.value || '').trim()
-    const query = { ...this.data.query, keyword: keyword || undefined }
+    const q = (event.detail.value || '').trim()
+    const query = applyListingPatch(this.data.query, { q: q || undefined })
     void this.ensureListingsController().applyFilters(query)
   },
 
   handleToggleSort() {
+    if (!this.data.query.priceUnit) {
+      wx.showToast({
+        title: '请先选择计价单位',
+        icon: 'none',
+        duration: 1600,
+      })
+      return
+    }
     const currentSort = this.data.query.sort
     const nextSort: 'price-asc' | 'price-desc' = currentSort === 'price-asc' ? 'price-desc' : 'price-asc'
-    const query = { ...this.data.query, sort: nextSort }
+    const query = applyListingPatch(this.data.query, { sort: nextSort })
     void this.ensureListingsController().applyFilters(query)
-  },
-
-  handleToggleMap() {
-    wx.showToast({
-      title: '地图模式即将开放',
-      icon: 'none',
-      duration: 1600,
-    })
   },
 })

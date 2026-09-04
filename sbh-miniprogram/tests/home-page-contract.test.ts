@@ -18,6 +18,7 @@ describe('首页页面合同', () => {
       navigationBarTitleText: '尚办好',
       enablePullDownRefresh: true,
       usingComponents: {
+        'building-card': '/components/building-card/index',
         'listing-card': '/components/listing-card/index',
         'sbh-skeleton': '/components/sbh-skeleton/index',
         'sbh-state': '/components/sbh-state/index',
@@ -80,5 +81,49 @@ describe('首页页面合同', () => {
     expect(source).not.toContain('详情功能即将开放')
     expect(source).toContain('暂时无法打开房源详情')
     expect(source).toContain('wx.showToast')
+  })
+
+  it('精选楼盘循环消费 content.featuredBuildings，并为真实空数组展示空态', () => {
+    const template = readPageFile('index.wxml')
+
+    expect(template).toContain('wx:for="{{content.featuredBuildings}}"')
+    expect(template).toContain('<building-card')
+    expect(template).toContain('building="{{item}}"')
+    expect(template).toContain('bindopen="handleBuildingOpenDirect"')
+    expect(template).toContain('!content.featuredBuildings.length')
+    expect(template).toContain('暂无精选楼盘')
+    expect(template).not.toMatch(/heng-long-plaza|wheelock-square|hkri-taikoo-hui/)
+    expect(template).not.toMatch(/恒隆广场|越洋国际广场|兴业太古汇/)
+    expect(template).not.toMatch(/14 套|9 套|7 套|10\.2 起|6\.8 起|11\.4 起/)
+  })
+
+  it('首页不展示无真实 DTO 的售卖、认证背书、伪筛选或时效承诺', () => {
+    const template = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+    const combined = `${template}\n${source}`
+
+    for (const unsupportedCopy of [
+      '售卖专区',
+      '12,000 元/㎡',
+      '在租房源实时同步',
+      '逐条核过',
+      '逐条实勘',
+      '30 分钟内',
+    ]) {
+      expect(combined).not.toContain(unsupportedCopy)
+    }
+    expect(template).not.toMatch(/bindtap="handleAssuranceTap"/)
+    expect(template).not.toMatch(/>附近<|>新上</)
+    expect(source).not.toContain('handleAssuranceTap')
+    expect(source).not.toContain("icon: 'success'")
+  })
+
+  it('本地验收路由 mock 使用当前楼盘枚举、24 条分页和必填精选楼盘', () => {
+    const mockServer = readFileSync(resolve(projectRoot, 'scripts/acceptance-mock-server.mjs'), 'utf8')
+
+    expect(mockServer).toContain('featuredBuildings: mockBuildings')
+    expect(mockServer).toMatch(/pageSize:\s*24/)
+    expect(mockServer).toMatch(/grade:\s*'grade-a'/)
+    expect(mockServer).not.toMatch(/grade:\s*'[ABC]'/)
   })
 })

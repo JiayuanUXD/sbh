@@ -171,7 +171,7 @@ describe('listing-card', () => {
     await simulate.sleep(0)
 
     expect(subject?.data.imageFailed).toBe(true)
-    expect(subject?.querySelectorAll('.listing-card__placeholder')[0]?.dom?.textContent).toContain('暂无图片')
+    expect(subject?.querySelectorAll('.listing-card__placeholder')[0]?.dom?.textContent).toContain('尚办好')
     expect(host.data.openedSlug).toBe('jing-an-center-101')
     host.detach()
   })

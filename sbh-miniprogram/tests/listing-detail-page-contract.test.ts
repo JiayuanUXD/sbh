@@ -87,6 +87,23 @@ describe('房源详情页面合同', () => {
     expect(markup).toContain('bindopen="handleRelatedOpen"')
   })
 
+  it('房源详情只呈现 DTO 事实，缺失值不补认证、注册或虚构物业承诺', () => {
+    const markup = readPageFile('index.wxml')
+
+    for (const unsupportedCopy of ['商办认证', '可注册', '专业港资', '知名物业', '30分钟内', '30 分钟内']) {
+      expect(markup).not.toContain(unsupportedCopy)
+    }
+  })
+
+  it('详情画廊缺图使用不含“图”字的中性品牌占位', () => {
+    const gallery = readFileSync(resolve(miniprogramRoot, 'components/detail-gallery/index.wxml'), 'utf8')
+
+    expect(gallery).toContain('class="detail-gallery__placeholder">尚办好</view>')
+    expect(gallery).toContain('class="detail-gallery__empty">尚办好</view>')
+    expect(gallery).not.toContain('暂无图片')
+    expect(gallery).not.toContain('户型图 · 平面图')
+  })
+
   it('loading/error/not-found 不展示旧价，404 提供返回出口和无关普通推荐', () => {
     const markup = readPageFile('index.wxml')
     const source = readPageFile('index.ts')

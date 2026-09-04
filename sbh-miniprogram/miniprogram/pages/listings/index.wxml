@@ -9,7 +9,7 @@
         </view>
         <input
           class="listings-search-input"
-          value="{{query.keyword || ''}}"
+          value="{{query.q || ''}}"
           placeholder="搜楼盘、商圈或地铁站"
           placeholder-class="listings-search-placeholder"
           confirm-type="search"
@@ -51,7 +51,7 @@
 
     <view wx:if="{{state === 'ready'}}" class="listings-summary">
       <text class="num">{{totalDocs}} 套符合条件</text>
-      <text class="listings-summary__sort num" bindtap="handleToggleSort">{{query.sort === 'price_desc' ? '单价降序 ▾' : '单价升序 ▾'}}</text>
+      <text class="listings-summary__sort num" bindtap="handleToggleSort">{{query.sort === 'price-desc' ? '价格降序 ▾' : (query.sort === 'price-asc' ? '价格升序 ▾' : '推荐排序 ▾')}}</text>
     </view>
 
     <!-- 房源列表大白卡容器（块内用 1px 浅灰细线分隔） -->
@@ -81,18 +81,6 @@
         加载失败，点击重试
       </view>
       <view wx:elif="{{!hasNextPage}}" class="listings-end">已展示全部房源</view>
-
-      <!-- 浮动地图找房入口 -->
-      <view
-        class="listings-map-floating-btn"
-        hover-class="listings-map-floating-btn--pressed"
-        hover-stay-time="70"
-        bindtap="handleToggleMap"
-        aria-role="button"
-      >
-        <text class="listings-map-floating-icon">📍</text>
-        <text class="listings-map-floating-text">地图</text>
-      </view>
     </view>
 
     <view wx:if="{{state === 'empty'}}" class="listings-empty">
@@ -129,10 +117,6 @@
         aria-role="button"
         bindtap="handleClearAll"
       >清除全部条件</view>
-
-      <view class="listings-empty__advisor" aria-role="note">
-        顾问找房功能即将开放
-      </view>
     </view>
   </block>
 

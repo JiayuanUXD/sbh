@@ -45,7 +45,7 @@
           />
         </swiper-item>
         <swiper-item wx:if="{{building.gallery.length === 0}}">
-          <view class="building-gallery__placeholder">暂无外立面图片</view>
+          <view class="building-gallery__placeholder">尚办好</view>
         </swiper-item>
       </swiper>
       <view wx:if="{{building.gallery.length > 0}}" class="building-gallery__badge num">
@@ -57,11 +57,9 @@
     <view class="building-header-card">
       <view class="building-title">{{building.name}}</view>
       <view class="building-address">{{building.district ? building.district + ' · ' : ''}}{{building.address}}</view>
-      <view class="building-tags">
+      <view wx:if="{{building.grade || (building.nearestMetro && building.nearestMetro.line)}}" class="building-tags">
         <text wx:if="{{building.grade}}" class="sbh-tag">{{gradeLabel}}</text>
-        <text wx:if="{{building.nearestMetro}}" class="sbh-tag">{{building.nearestMetro.line}}</text>
-        <text class="sbh-tag">商办认证</text>
-        <text class="sbh-tag">可注册</text>
+        <text wx:if="{{building.nearestMetro && building.nearestMetro.line}}" class="sbh-tag">{{building.nearestMetro.line}}</text>
       </view>
     </view>
 
@@ -77,11 +75,11 @@
       </view>
       <view class="building-stat-item">
         <view class="building-stat-label">物业费</view>
-        <view class="building-stat-value num">{{building.propertyFee ? building.propertyFee + '元' : '—'}}</view>
+        <view class="building-stat-value num">{{building.propertyFee !== null ? building.propertyFee + ' 元/㎡/月' : '—'}}</view>
       </view>
       <view class="building-stat-item">
         <view class="building-stat-label">车位</view>
-        <view class="building-stat-value num">{{building.parkingSpaces ? building.parkingSpaces + '个' : '—'}}</view>
+        <view class="building-stat-value num">{{building.parkingSpaces !== null ? building.parkingSpaces + ' 个' : '—'}}</view>
       </view>
     </view>
 
@@ -108,7 +106,7 @@
                 src="{{item.coverImage.src}}"
                 mode="aspectFill"
               />
-              <view wx:else class="building-listing-placeholder">图</view>
+              <view wx:else class="building-listing-placeholder">尚办好</view>
             </view>
             <view class="building-listing-info">
               <view class="building-listing-title">{{item.title}}</view>
@@ -129,36 +127,30 @@
       <view class="building-params-list">
         <view class="building-param-row">
           <text class="building-param-label">竣工年份</text>
-          <text class="building-param-value num">{{building.completedYear || '—'}}</text>
+          <text class="building-param-value num">{{building.completedYear !== null ? building.completedYear : '—'}}</text>
         </view>
         <view class="building-param-row">
           <text class="building-param-label">总层数 / 标准层</text>
-          <text class="building-param-value num">{{building.totalFloors ? building.totalFloors + ' 层' : '—'}} {{building.standardFloorArea ? '/ ' + building.standardFloorArea + ' ㎡' : ''}}</text>
+          <text class="building-param-value num">{{building.totalFloors !== null ? building.totalFloors + ' 层' : '—'}} {{building.standardFloorArea !== null ? '/ ' + building.standardFloorArea + ' ㎡' : ''}}</text>
         </view>
         <view class="building-param-row">
           <text class="building-param-label">物业公司</text>
-          <text class="building-param-value">{{building.propertyManagementCompany || '专业港资/知名物业团队'}}</text>
+          <text class="building-param-value">{{building.propertyManagementCompany || '—'}}</text>
         </view>
       </view>
     </view>
 
     <!-- 位置与交通 -->
-    <view class="building-location-card">
+    <view wx:if="{{building.nearestMetro || building.district}}" class="building-location-card">
       <view class="building-section-title">位置与通勤</view>
-      <view class="building-map-preview">
-        <view class="building-map-placeholder">
-          <text class="building-map-pin">📍</text>
-          <text class="building-map-name">{{building.name}}</text>
-        </view>
-      </view>
       <view class="building-commute-list">
         <view wx:if="{{building.nearestMetro}}" class="building-commute-row">
           <text class="building-commute-label">附近地铁</text>
           <text class="building-commute-value num">{{building.nearestMetro.station}}</text>
         </view>
         <view class="building-commute-row">
-          <text class="building-commute-label">核心商圈</text>
-          <text class="building-commute-value">{{building.district || '上海核心商务区'}}</text>
+          <text class="building-commute-label">所在区域</text>
+          <text class="building-commute-value">{{building.district || '—'}}</text>
         </view>
       </view>
     </view>
@@ -181,10 +173,10 @@
               src="{{item.coverImage.src}}"
               mode="aspectFill"
             />
-            <view wx:else class="building-comparable-placeholder">图</view>
+            <view wx:else class="building-comparable-placeholder">尚办好</view>
           </view>
           <view class="building-comparable-name">{{item.name}}</view>
-          <view class="building-comparable-stock num">{{item.activeListingCount}} 套在租</view>
+          <view wx:if="{{item.activeListingCount !== null}}" class="building-comparable-stock num">{{item.activeListingCount}} 套在租</view>
         </view>
       </view>
     </view>

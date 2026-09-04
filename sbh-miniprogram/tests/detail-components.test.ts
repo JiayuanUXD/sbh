@@ -149,7 +149,7 @@ describe('detail-gallery', () => {
 
     subject?.querySelector('.detail-gallery__image')?.dispatchEvent('error')
     await simulate.sleep(0)
-    expect(subject?.querySelector('.detail-gallery__placeholder')?.dom?.textContent).toContain('暂无图片')
+    expect(subject?.querySelector('.detail-gallery__placeholder')?.dom?.textContent).toContain('尚办好')
     expect(subject?.data.failedImages).toEqual([true])
 
     host.setData({ images: [{ src: 'https://cdn.example/new.jpg', alt: '新房源' }] })

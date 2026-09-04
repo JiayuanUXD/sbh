@@ -16,7 +16,7 @@
       mode="aspectFill"
       binderror="handleImageError"
     />
-    <view wx:else class="building-card__placeholder">暂无图片</view>
+    <view wx:else class="building-card__placeholder">尚办好</view>
   </view>
 
   <view class="building-card__body">
@@ -31,7 +31,7 @@
     </view>
   </view>
 
-  <view wx:if="{{building.activeListingCount === 0}}" class="building-card__inquiry-action" catchtap="handleInquiry">
+  <view wx:if="{{inquiryEnabled && building.activeListingCount === 0}}" class="building-card__inquiry-action" catchtap="handleInquiry">
     留资
   </view>
 </view>

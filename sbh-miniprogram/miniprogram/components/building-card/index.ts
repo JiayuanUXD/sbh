@@ -5,6 +5,10 @@ import {
 
 Component({
   properties: {
+    inquiryEnabled: {
+      type: Boolean,
+      value: false,
+    },
     building: {
       type: Object,
       value: null,

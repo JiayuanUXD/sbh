@@ -118,6 +118,14 @@ describe('首页展示模型', () => {
     expect(model.stats).toEqual({ listings: 31, buildings: 9, businessAreas: 6 })
   })
 
+  it('精选楼盘仅透传 Mini DTO，空数组保持为空而不补演示楼盘', () => {
+    const populated = presentHome(validHome)
+    const empty = presentHome({ ...validHome, featuredBuildings: [] })
+
+    expect(populated.featuredBuildings).toEqual(validHome.featuredBuildings)
+    expect(empty.featuredBuildings).toEqual([])
+  })
+
   it('每组都只保留 API 返回的正计数前四项，并移除空组', () => {
     const model = presentHome({
       ...validHome,

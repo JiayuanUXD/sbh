@@ -16,8 +16,7 @@
       mode="aspectFill"
       binderror="handleImageError"
     />
-    <view wx:else class="listing-card__placeholder">暂无图片</view>
-    <view wx:if="{{listing.badge || listing.isNew}}" class="listing-card__badge">{{listing.badge || '新上'}}</view>
+    <view wx:else class="listing-card__placeholder">尚办好</view>
   </view>
   <view class="listing-card__body">
     <view class="listing-card__title">{{listing.title}}</view>

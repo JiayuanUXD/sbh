@@ -178,83 +178,7 @@
   border-radius: var(--sbh-shape-surface-radius, 16rpx);
 }
 
-/* 3. 快捷双入口 */
-.home-shortcuts {
-  display: flex;
-  gap: 20rpx;
-  margin: 20rpx 24rpx 0;
-}
-
-.home-shortcut-card {
-  flex: 1;
-  box-sizing: border-box;
-  padding: 28rpx;
-  background: #ffffff;
-  border-radius: var(--sbh-shape-surface-radius, 16rpx);
-  transition: background 120ms ease, transform 120ms ease;
-}
-
-.home-card--pressed,
-.home-item--pressed {
-  background: #f2f2f4;
-  transform: scale(0.98);
-}
-
-.home-shortcut-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1d1d1f;
-}
-
-.home-shortcut-desc {
-  margin-top: 10rpx;
-  color: #86868b;
-  font-size: 24rpx;
-}
-
-/* 3.1 真实供给背书条 */
-.home-assurance {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 16rpx 24rpx 0;
-  padding: 18rpx 28rpx;
-  background: #ffffff;
-  border-radius: var(--sbh-shape-surface-radius, 16rpx);
-  transition: background 120ms ease, transform 120ms ease;
-}
-
-.home-assurance__left {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.home-assurance__badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4rpx 12rpx;
-  background: #1d1d1f;
-  color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 600;
-  border-radius: 6rpx;
-  line-height: 1.2;
-}
-
-.home-assurance__text {
-  color: #1d1d1f;
-  font-size: 26rpx;
-  font-weight: 500;
-}
-
-.home-assurance__arrow {
-  color: #86868b;
-  font-size: 24rpx;
-}
-
-/* 4. 精选好楼 */
+/* 3. 精选好楼 */
 .home-buildings-card {
   box-sizing: border-box;
   margin: 20rpx 24rpx 0;
@@ -280,49 +204,17 @@
   color: var(--sbh-interaction-primary, #0071e3);
 }
 
-.home-buildings__grid {
-  display: flex;
-  gap: 20rpx;
+.home-buildings__list {
   margin-top: 24rpx;
 }
 
-.home-building-item {
-  flex: 1;
-  min-width: 0;
+.home-buildings__divider {
+  height: 2rpx;
+  margin-left: 212rpx;
+  background: #e5e5e7;
 }
 
-.home-building-item__media {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 152rpx;
-  background: #e8e8ea;
-  border-radius: var(--sbh-shape-control-radius, 12rpx);
-}
-
-.home-building-item__img-text {
-  font-size: 20rpx;
-  color: #a1a1a6;
-}
-
-.home-building-item__name {
-  margin-top: 14rpx;
-  overflow: hidden;
-  color: #1d1d1f;
-  font-size: 26rpx;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-building-item__desc {
-  margin-top: 4rpx;
-  color: #6e6e73;
-  font-size: 22rpx;
-  white-space: nowrap;
-}
-
-/* 5. 快捷筛选维度（横向轻量滑动） */
+/* 4. 快捷筛选维度（横向轻量滑动） */
 .home-quick-filters {
   margin: 16rpx 24rpx 0;
 }
@@ -363,44 +255,16 @@
   font-size: 22rpx;
 }
 
-/* 6. 推荐流 Tabs */
-.home-stream-tabs {
-  display: flex;
-  align-items: baseline;
-  gap: 36rpx;
-  margin: 24rpx 24rpx 4rpx;
+/* 5. 精选房源卡块容器（内嵌细线分隔） */
+.home-featured {
+  margin-top: 24rpx;
 }
 
-.home-stream-tab {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #86868b;
-  font-size: 30rpx;
-  padding-bottom: 8rpx;
-}
-
-.home-stream-tab--active {
+.home-featured__heading {
+  margin: 0 24rpx 12rpx;
+  color: #1d1d1f;
   font-size: 34rpx;
   font-weight: 600;
-  color: #1d1d1f;
-}
-
-.home-stream-tab__indicator {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32rpx;
-  height: 4rpx;
-  background: #1d1d1f;
-  border-radius: 2rpx;
-}
-
-/* 7. 精选房源卡块容器（内嵌细线分隔） */
-.home-featured {
-  margin-top: 20rpx;
 }
 
 .home-featured__card {

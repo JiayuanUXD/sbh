@@ -1,8 +1,16 @@
 import { getBuildings } from '../../services/catalog.js'
 import type { MiniBuildingCard } from '../../services/catalog-contracts.js'
 
+const BUILDING_GRADE_FILTERS = [
+  { label: '全部', value: '' },
+  { label: '甲级', value: 'grade-a' },
+  { label: '超甲级', value: 'super-grade-a' },
+  { label: '创意园区', value: 'creative-park' },
+  { label: '服务式办公', value: 'serviced-office' },
+] as const
+
 const SORTS: Record<string, string> = {
-  '': '综合排序',
+  '': '在租最多',
   'stock-desc': '在租最多',
   'completion-desc': '最新竣工',
   'grade': '等级最高',
@@ -18,8 +26,9 @@ Page({
     totalInactiveCount: 0,
     districtFilter: '',
     gradeFilter: '',
+    gradeFilterLabel: '等级',
     sortFilter: '',
-    sortLabel: '综合排序',
+    sortLabel: '在租最多',
   },
 
   onLoad() {
@@ -67,27 +76,29 @@ Page({
   },
 
   handleGradeFilter() {
-    const grades = ['全部', '甲级', '乙级']
     wx.showActionSheet({
-      itemList: grades,
+      itemList: BUILDING_GRADE_FILTERS.map((grade) => grade.label),
       success: (res) => {
-        const gradeMap: Record<number, string> = { 0: '', 1: 'A', 2: 'B' }
-        this.setData({ gradeFilter: gradeMap[res.tapIndex] ?? '' })
+        const selected = BUILDING_GRADE_FILTERS[res.tapIndex] ?? BUILDING_GRADE_FILTERS[0]
+        this.setData({
+          gradeFilter: selected.value,
+          gradeFilterLabel: selected.value ? selected.label : '等级',
+        })
         this.loadBuildings()
       },
     })
   },
 
   handleSortFilter() {
-    const sortKeys = ['', 'stock-desc', 'completion-desc', 'grade']
-    const sortLabels = ['综合排序', '在租最多', '最新竣工', '等级最高']
+    const sortKeys = ['', 'completion-desc', 'grade']
+    const sortLabels = ['在租最多', '最新竣工', '等级最高']
     wx.showActionSheet({
       itemList: sortLabels,
       success: (res) => {
         const key = sortKeys[res.tapIndex] ?? ''
         this.setData({
           sortFilter: key,
-          sortLabel: SORTS[key] || '综合排序',
+          sortLabel: SORTS[key] || '在租最多',
         })
         this.loadBuildings()
       },
@@ -98,8 +109,9 @@ Page({
     this.setData({
       districtFilter: '',
       gradeFilter: '',
+      gradeFilterLabel: '等级',
       sortFilter: '',
-      sortLabel: '综合排序',
+      sortLabel: '在租最多',
     })
     this.loadBuildings()
   },
@@ -112,10 +124,4 @@ Page({
     })
   },
 
-  handleBuildingInquiry(event: WechatMiniprogram.CustomEvent<{ slug: string; name: string }>) {
-    wx.showToast({
-      title: `已记录${event.detail.name || '楼盘'}关注`,
-      icon: 'success',
-    })
-  },
 })

@@ -72,18 +72,6 @@
   line-height: 1.2;
 }
 
-.detail-gallery__tag {
-  position: absolute;
-  left: 24rpx;
-  bottom: 24rpx;
-  padding: 6rpx 14rpx;
-  color: #ffffff;
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 6rpx;
-  font-size: 20rpx;
-  line-height: 1.2;
-}
-
 .num {
   font-variant-numeric: tabular-nums;
 }

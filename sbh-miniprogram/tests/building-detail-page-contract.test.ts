@@ -75,4 +75,26 @@ describe('楼盘详情页面合同', () => {
     expect(source).not.toMatch(/toggleBuildingFavorite|isBuildingFavorite/)
     expect(template).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
   })
+
+  it('只展示 DTO 支持的楼盘事实，缺失值使用横线或隐藏且不渲染地图占位', () => {
+    const template = readPageFile('index.wxml')
+
+    for (const unsupportedCopy of [
+      '商办认证',
+      '可注册',
+      '专业港资',
+      '知名物业',
+      '上海核心商务区',
+      '30分钟内',
+      '30 分钟内',
+    ]) {
+      expect(template).not.toContain(unsupportedCopy)
+    }
+    expect(template).not.toContain('building-map-preview')
+    expect(template).not.toContain('building-map-placeholder')
+    expect(template).not.toContain('building-map-pin')
+    expect(template).not.toMatch(/placeholder[^>]*>[^<]*图/)
+    expect(template).toContain("building.propertyManagementCompany || '—'")
+    expect(template).toContain("building.district || '—'")
+  })
 })

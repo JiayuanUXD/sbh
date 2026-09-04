@@ -31,6 +31,10 @@ type ListingOpenEvent = Readonly<{
   detail: Readonly<{ slug?: unknown }>
 }>
 
+type BuildingOpenEvent = Readonly<{
+  detail: Readonly<{ slug?: unknown }>
+}>
+
 type HomePageMethods = {
   homeLoadController: HomeLoadController | null
   ensureHomeLoadController(): HomeLoadController
@@ -39,13 +43,10 @@ type HomePageMethods = {
   handleSearchSubmit(event?: SearchSubmitEvent): void
   handleRetry(): void
   handleQuickFilter(event: NavigationTapEvent): void
-  handleBrowseAll(): void
   openListings(query: string): void
   handleListingOpen(event: ListingOpenEvent): void
   handleBrowseBuildings(): void
-  handleBuildingOpenDirect(event: WechatMiniprogram.BaseEvent): void
-  handleInquiryCustom(): void
-  handleAssuranceTap(): void
+  handleBuildingOpenDirect(event: BuildingOpenEvent): void
   handleVideoError(): void
   handleImageError(): void
 }
@@ -122,10 +123,6 @@ Page<HomePageData, HomePageMethods>({
     this.openListings(query)
   },
 
-  handleBrowseAll() {
-    this.openListings('')
-  },
-
   openListings(query) {
     void listingNavigation.open(query).catch(() => {
       wx.showToast({
@@ -160,7 +157,7 @@ Page<HomePageData, HomePageMethods>({
   },
 
   handleBuildingOpenDirect(event) {
-    const slug = event.currentTarget.dataset.slug
+    const slug = event.detail.slug
     if (typeof slug !== 'string' || !slug) return
     void listingNavigation.openBuildingDetail(slug).catch(() => {
       wx.showToast({
@@ -168,28 +165,6 @@ Page<HomePageData, HomePageMethods>({
         icon: 'none',
         duration: 1600,
       })
-    })
-  },
-
-  handleInquiryCustom() {
-    wx.showModal({
-      title: '委托找房',
-      content: '专属选址顾问将在 30 分钟内致电，提供 1v1 定制房源方案。',
-      confirmText: '立即委托',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({ title: '已收到您的找房委托', icon: 'success' })
-        }
-      },
-    })
-  },
-
-  handleAssuranceTap() {
-    wx.showModal({
-      title: '真实供给保障',
-      content: '尚办好平台房源面积与租金均逐条实勘核验，确保房源真实有效、一房一价。',
-      showCancel: false,
-      confirmText: '我知道了',
     })
   },
 
