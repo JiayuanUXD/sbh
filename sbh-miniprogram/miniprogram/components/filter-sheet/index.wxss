@@ -160,11 +160,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   padding: 0 var(--sbh-layout-space-md);
   color: var(--sbh-text-primary);
   background: var(--sbh-surface-background);
   border: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+}
+
+.filter-sheet__option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-sheet__option--active {
@@ -177,6 +187,7 @@
 .filter-sheet__option--active .filter-sheet__count { color: var(--sbh-interaction-on-primary); }
 
 .filter-sheet__count {
+  flex: 0 0 auto;
   margin-left: var(--sbh-layout-space-xs);
   color: var(--sbh-text-secondary);
   font-size: var(--sbh-type-auxiliary-size);

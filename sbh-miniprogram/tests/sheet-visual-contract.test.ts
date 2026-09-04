@@ -79,6 +79,17 @@ describe('MP-109 抽屉共享设计系统', () => {
     expect(copy).toContain('联系方式')
   })
 
+  it('小视口的筛选选项与手机号分段按钮显式收缩到网格单元内', () => {
+    const filterBarStyles = read('miniprogram/components/filter-bar/index.wxss')
+    const filterStyles = read('miniprogram/components/filter-sheet/index.wxss')
+    const inquiryStyles = read('miniprogram/components/inquiry-sheet/index.wxss')
+
+    expect(filterBarStyles).toMatch(/\.filter-bar__item\s*\{[\s\S]*?width:\s*100%;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow:\s*hidden;/)
+    expect(filterStyles).toMatch(/\.filter-sheet__option\s*\{[\s\S]*?width:\s*100%;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow:\s*hidden;/)
+    expect(filterStyles).toMatch(/\.filter-sheet__option-label\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?text-overflow:\s*ellipsis;/)
+    expect(inquiryStyles).toMatch(/\.inquiry-sheet__phone-segment-option\s*\{[\s\S]*?width:\s*100%;[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/)
+  })
+
   it('详情收藏使用中性 CSS 图标，不含红色或心形 emoji', () => {
     const detailSources = [
       'miniprogram/pages/listing-detail/index.wxml',
@@ -131,8 +142,14 @@ describe('MP-109 runner fail-closed 合同', () => {
     )
     expect(source).not.toContain("if (error?.code !== 'EADDRINUSE')")
     expect(source).toContain('probeAcceptanceServer(3717)')
+    expect(source).toContain('prepareProfileEvidence')
+    expect(source).toContain('fingerprintEvidenceSources')
     expect(source).toContain('sheet-acceptance-small.json')
     expect(source).toContain('sheet-acceptance-large.json')
+    expect(source).toContain("'.filter-sheet__unit .filter-sheet__option'")
+    expect(source).toContain("'.filter-sheet__location .filter-sheet__option'")
+    expect(source).toContain("'.inquiry-sheet__phone-segment-option'")
+    expect(source).toContain("'.filter-bar__item'")
     expect(source).toMatch(/if \(aggregateReport\.status !== ['"]passed['"]\) process\.exitCode = 1/)
   })
 
@@ -154,9 +171,20 @@ describe('MP-109 runner fail-closed 合同', () => {
       requiredSelectorsPresent: true,
       tabBarVisible: false,
       expectedSectionOnly: true,
+      requireInternalGroups: true,
+      internalGroups: [{
+        container: { left: 16, right: 359, top: 260, bottom: 312 },
+        section: { left: 12, right: 363, top: 248, bottom: 324 },
+        items: [
+          { left: 16, right: 184, top: 260, bottom: 312 },
+          { left: 191, right: 359, top: 260, bottom: 312 },
+        ],
+      }],
     }
 
     expect(module.evaluateSheetGeometry(valid).passed).toBe(true)
+    expect(module.evaluateSheetGeometry({ ...valid, internalGroups: [] }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({ ...valid, internalGroups: [], requireInternalGroups: false }).passed).toBe(true)
     expect(module.evaluateSheetGeometry({ ...valid, requiredSelectorsPresent: false }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, panel: { ...valid.panel, right: 391 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, footer: { ...valid.footer, bottom: 820 } }).passed).toBe(false)
@@ -168,6 +196,23 @@ describe('MP-109 runner fail-closed 合同', () => {
     expect(module.evaluateSheetGeometry({ ...valid, body: { ...valid.body, bottom: 740 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, primaryAction: { ...valid.primaryAction, top: 700 } }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, primaryAction: { ...valid.primaryAction, bottom: 800 } }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({
+      ...valid,
+      internalGroups: [{
+        ...valid.internalGroups[0],
+        items: [
+          { left: 16, right: 210, top: 260, bottom: 312 },
+          { left: 190, right: 359, top: 260, bottom: 312 },
+        ],
+      }],
+    }).passed).toBe(false)
+    expect(module.evaluateSheetGeometry({
+      ...valid,
+      internalGroups: [{
+        ...valid.internalGroups[0],
+        items: [{ left: 8, right: 184, top: 260, bottom: 312 }],
+      }],
+    }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, tabBarVisible: true }).passed).toBe(false)
     expect(module.evaluateSheetGeometry({ ...valid, expectedSectionOnly: false }).passed).toBe(false)
   })

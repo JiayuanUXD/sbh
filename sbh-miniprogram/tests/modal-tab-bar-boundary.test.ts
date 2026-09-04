@@ -17,6 +17,24 @@ function deferred(): Readonly<{
 }
 
 describe('原生 TabBar 模态边界', () => {
+  it('连续 hide 复用同一原生请求且两个调用者都得到成功', async () => {
+    const hide = deferred()
+    const hideTabBar = vi.fn(async () => { await hide.promise })
+    const boundary = createModalTabBarBoundary({
+      hideTabBar,
+      showTabBar: async () => undefined,
+    })
+
+    const first = boundary.hide()
+    const second = boundary.hide()
+    hide.resolve()
+
+    await expect(first).resolves.toBe(true)
+    await expect(second).resolves.toBe(true)
+    expect(hideTabBar).toHaveBeenCalledOnce()
+    expect(boundary.snapshot()).toEqual({ desired: 'hidden', actual: 'hidden' })
+  })
+
   it('hide 尚未完成时 restore 会串行补偿，不会遗留隐藏状态', async () => {
     const hide = deferred()
     const calls: string[] = []

@@ -97,6 +97,9 @@ Page({
 
   inquirySheetController: null as InquirySheetController | null,
   modalTabBarBoundary: null as ModalTabBarBoundary | null,
+  inquiryOpenPromise: null as Promise<void> | null,
+  modalOpenGeneration: 0,
+  pageActive: true,
 
   onLoad() {
     this.loadBuildings()
@@ -108,11 +111,21 @@ Page({
     })
   },
 
+  onShow() {
+    this.pageActive = true
+  },
+
   onHide() {
+    this.pageActive = false
+    this.modalOpenGeneration += 1
+    this.inquiryOpenPromise = null
     this.closeInquiryForLifecycle()
   },
 
   onUnload() {
+    this.pageActive = false
+    this.modalOpenGeneration += 1
+    this.inquiryOpenPromise = null
     this.closeInquiryForLifecycle()
     sessionService.clear()
   },
@@ -248,12 +261,27 @@ Page({
     void this.restoreModalTabBarBoundary()
   },
 
-  async handleOpenInquiry() {
-    if (!await this.showModalTabBarBoundary()) {
-      wx.showToast({ title: '暂时无法打开咨询', icon: 'none', duration: 1600 })
-      return
-    }
-    await this.ensureInquirySheetController().open(generalInquiryContext())
+  handleOpenInquiry() {
+    if (this.data.inquiryOpen) return Promise.resolve()
+    if (this.inquiryOpenPromise !== null) return this.inquiryOpenPromise
+
+    const owner = ++this.modalOpenGeneration
+    let opening!: Promise<void>
+    opening = (async () => {
+      const hidden = await this.showModalTabBarBoundary()
+      if (owner !== this.modalOpenGeneration || !this.pageActive) return
+      if (!hidden) {
+        wx.showToast({ title: '暂时无法打开咨询', icon: 'none', duration: 1600 })
+        return
+      }
+      const controller = this.ensureInquirySheetController()
+      if (owner !== this.modalOpenGeneration || !this.pageActive) return
+      void controller.open(generalInquiryContext())
+    })().finally(() => {
+      if (this.inquiryOpenPromise === opening) this.inquiryOpenPromise = null
+    })
+    this.inquiryOpenPromise = opening
+    return opening
   },
   handleInquiryClose() {
     this.inquirySheetController?.close()

@@ -17,6 +17,7 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
   let actual: ModalTabBarState = 'visible'
   let revision = 0
   let queue: Promise<void> = Promise.resolve()
+  let pending: Readonly<{ target: ModalTabBarState; promise: Promise<boolean> }> | null = null
 
   const publish = (state: ModalTabBarState): void => {
     actual = state
@@ -24,6 +25,8 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
   }
 
   const request = (target: ModalTabBarState): Promise<boolean> => {
+    if (pending?.target === target && desired === target) return pending.promise
+
     desired = target
     revision += 1
     const owner = revision
@@ -55,7 +58,13 @@ export function createModalTabBarBoundary(dependencies: Dependencies): ModalTabB
     })
 
     queue = operation.catch(() => undefined)
-    return operation.then(() => result)
+    const resultPromise = operation.then(() => result)
+    const requestRecord = { target, promise: resultPromise }
+    pending = requestRecord
+    void resultPromise.finally(() => {
+      if (pending === requestRecord) pending = null
+    }).catch(() => undefined)
+    return resultPromise
   }
 
   return {

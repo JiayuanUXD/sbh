@@ -1,12 +1,11 @@
 {
   "status": "failed",
-  "timestamp": "2026-09-04T18:29:43.018Z",
+  "timestamp": "2026-09-04T18:57:57.587Z",
   "environment": "local-wechat-devtools-develop-with-controlled-mock",
-  "evidenceRevision": "d9c4abf078b149af",
+  "evidenceRevision": "6480002d4eeacfe4",
   "viewportProfile": {
     "name": "large",
-    "screenWidth": 430,
-    "passed": true
+    "passed": false
   },
   "systemInfo": {
     "SDKVersion": "3.17.2",
@@ -60,7 +59,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "price-units",
+            "container": {
+              "left": 29,
+              "top": 541,
+              "right": 401,
+              "bottom": 591
+            },
+            "section": {
+              "left": 13,
+              "top": 495,
+              "right": 417,
+              "bottom": 607
+            },
+            "items": [
+              {
+                "left": 29,
+                "top": 541,
+                "right": 213,
+                "bottom": 591
+              },
+              {
+                "left": 217,
+                "top": 541,
+                "right": 401,
+                "bottom": 591
+              }
+            ]
+          }
+        ]
       },
       "resultCount": 4,
       "nativeTabBar": {
@@ -77,6 +107,53 @@
           "width": 430,
           "height": 752
         }
+      },
+      "filterBarGeometry": {
+        "passed": true,
+        "failures": [],
+        "internalGroups": [
+          {
+            "name": "filter-bar-items",
+            "container": {
+              "left": 0,
+              "top": 48,
+              "right": 430,
+              "bottom": 107
+            },
+            "section": {
+              "left": 0,
+              "top": 48,
+              "right": 430,
+              "bottom": 107
+            },
+            "items": [
+              {
+                "left": 13,
+                "top": 52,
+                "right": 111,
+                "bottom": 102
+              },
+              {
+                "left": 115,
+                "top": 52,
+                "right": 213,
+                "bottom": 102
+              },
+              {
+                "left": 217,
+                "top": 52,
+                "right": 315,
+                "bottom": 102
+              },
+              {
+                "left": 319,
+                "top": 52,
+                "right": 417,
+                "bottom": 102
+              }
+            ]
+          }
+        ]
       },
       "screenshot": "large/filter-price-open.png"
     },
@@ -119,10 +196,129 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "all-price-units",
+            "container": {
+              "left": 29,
+              "top": 220,
+              "right": 401,
+              "bottom": 270
+            },
+            "section": {
+              "left": 13,
+              "top": 174,
+              "right": 417,
+              "bottom": 286
+            },
+            "items": [
+              {
+                "left": 29,
+                "top": 220,
+                "right": 213,
+                "bottom": 270
+              },
+              {
+                "left": 217,
+                "top": 220,
+                "right": 401,
+                "bottom": 270
+              }
+            ]
+          },
+          {
+            "name": "all-districts",
+            "container": {
+              "left": 29,
+              "top": 462,
+              "right": 401,
+              "bottom": 566
+            },
+            "section": {
+              "left": 13,
+              "top": 416,
+              "right": 417,
+              "bottom": 582
+            },
+            "items": [
+              {
+                "left": 29,
+                "top": 462,
+                "right": 213,
+                "bottom": 512
+              },
+              {
+                "left": 217,
+                "top": 462,
+                "right": 401,
+                "bottom": 512
+              },
+              {
+                "left": 29,
+                "top": 516,
+                "right": 213,
+                "bottom": 566
+              },
+              {
+                "left": 217,
+                "top": 516,
+                "right": 401,
+                "bottom": 566
+              }
+            ]
+          }
+        ]
       },
       "scrollHeight": 843,
       "footerFixed": true,
+      "filterBarGeometry": {
+        "passed": true,
+        "failures": [],
+        "internalGroups": [
+          {
+            "name": "filter-bar-items",
+            "container": {
+              "left": 0,
+              "top": 48,
+              "right": 430,
+              "bottom": 107
+            },
+            "section": {
+              "left": 0,
+              "top": 48,
+              "right": 430,
+              "bottom": 107
+            },
+            "items": [
+              {
+                "left": 13,
+                "top": 52,
+                "right": 111,
+                "bottom": 102
+              },
+              {
+                "left": 115,
+                "top": 52,
+                "right": 213,
+                "bottom": 102
+              },
+              {
+                "left": 217,
+                "top": 52,
+                "right": 315,
+                "bottom": 102
+              },
+              {
+                "left": 319,
+                "top": 52,
+                "right": 417,
+                "bottom": 102
+              }
+            ]
+          }
+        ]
+      },
       "screenshot": "large/filter-all-open.png"
     },
     "homeInquiry": {
@@ -164,7 +360,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 532.6171875,
+              "right": 401,
+              "bottom": 590.6171875
+            },
+            "section": {
+              "left": 13,
+              "top": 408.6171875,
+              "right": 417,
+              "bottom": 745.1171875
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 536.6171875,
+                "right": 215,
+                "bottom": 586.6171875
+              },
+              {
+                "left": 215,
+                "top": 536.6171875,
+                "right": 397,
+                "bottom": 586.6171875
+              }
+            ]
+          }
+        ]
       },
       "openedByRealTap": true,
       "nativeTabBar": {
@@ -223,7 +450,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 532.6171875,
+              "right": 401,
+              "bottom": 590.6171875
+            },
+            "section": {
+              "left": 13,
+              "top": 408.6171875,
+              "right": 417,
+              "bottom": 745.1171875
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 536.6171875,
+                "right": 215,
+                "bottom": 586.6171875
+              },
+              {
+                "left": 215,
+                "top": 536.6171875,
+                "right": 397,
+                "bottom": 586.6171875
+              }
+            ]
+          }
+        ]
       },
       "openedByRealTap": true,
       "nativeTabBar": {
@@ -282,7 +540,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 559.2109375,
+              "right": 401,
+              "bottom": 617.2109375
+            },
+            "section": {
+              "left": 13,
+              "top": 435.2109375,
+              "right": 417,
+              "bottom": 771.7109375
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 563.2109375,
+                "right": 215,
+                "bottom": 613.2109375
+              },
+              {
+                "left": 215,
+                "top": 563.2109375,
+                "right": 397,
+                "bottom": 613.2109375
+              }
+            ]
+          }
+        ]
       },
       "openedByRealTap": true,
       "actualOpenState": "recoverable-error",
@@ -340,7 +629,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 559.2109375,
+              "right": 401,
+              "bottom": 617.2109375
+            },
+            "section": {
+              "left": 13,
+              "top": 435.2109375,
+              "right": 417,
+              "bottom": 802.2109375
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 563.2109375,
+                "right": 215,
+                "bottom": 613.2109375
+              },
+              {
+                "left": 215,
+                "top": 563.2109375,
+                "right": 397,
+                "bottom": 613.2109375
+              }
+            ]
+          }
+        ]
       },
       "phoneMode": "manual",
       "openedByRealTap": true,
@@ -417,7 +737,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 462.2109375,
+              "right": 401,
+              "bottom": 520.2109375
+            },
+            "section": {
+              "left": 13,
+              "top": 338.2109375,
+              "right": 417,
+              "bottom": 737.2109375
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 466.2109375,
+                "right": 215,
+                "bottom": 516.2109375
+              },
+              {
+                "left": 215,
+                "top": 466.2109375,
+                "right": 397,
+                "bottom": 516.2109375
+              }
+            ]
+          }
+        ]
       },
       "evidenceMode": "local-devtools-visual-fixture",
       "visibleError": {
@@ -471,7 +822,38 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": [
+          {
+            "name": "phone-segment",
+            "container": {
+              "left": 29,
+              "top": 494.2109375,
+              "right": 401,
+              "bottom": 552.2109375
+            },
+            "section": {
+              "left": 13,
+              "top": 370.2109375,
+              "right": 417,
+              "bottom": 737.2109375
+            },
+            "items": [
+              {
+                "left": 33,
+                "top": 498.2109375,
+                "right": 215,
+                "bottom": 548.2109375
+              },
+              {
+                "left": 215,
+                "top": 498.2109375,
+                "right": 397,
+                "bottom": 548.2109375
+              }
+            ]
+          }
+        ]
       },
       "evidenceMode": "local-devtools-visual-fixture",
       "screenshot": "large/inquiry-submitting.png"
@@ -515,7 +897,8 @@
           "top": 744,
           "right": 417,
           "bottom": 794
-        }
+        },
+        "internalGroups": []
       },
       "evidenceMode": "local-devtools-visual-fixture",
       "screenshot": "large/inquiry-success.png"
@@ -523,8 +906,8 @@
   },
   "limitations": [
     "首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具",
-    "键盘态证明输入发生真实 focus 且输入与 footer 位于 DevTools 收缩后的可视区；不等同于 iOS/Android 真机键盘验收",
+    "键盘态已尝试真实点击输入框，但没有可审计焦点信号且 DevTools 可视区未收缩（delta=0px），键盘遮挡仍未验证",
     "未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收"
   ],
-  "reason": "Error: MP-109 抽屉验收失败或缺失：inquiryKeyboard\n    at assertMp109SheetAcceptance (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:138:13)\n    at main (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:846:5)\n    at async file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:880:3"
+  "reason": "Error: MP-109 抽屉验收失败或缺失：inquiryKeyboard\n    at assertMp109SheetAcceptance (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:232:13)\n    at main (file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1061:5)\n    at async file:///Users/liujiayuan/App/wt-mp-59f9/sbh-miniprogram/scripts/mp109-sheet-acceptance-runner.mjs:1087:3"
 }

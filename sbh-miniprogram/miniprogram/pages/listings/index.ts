@@ -84,6 +84,9 @@ type ListingsPageMethods = {
   initialQuery: ListingQuery
   hasLoaded: boolean
   modalTabBarBoundary: ModalTabBarBoundary | null
+  filterOpenPromise: Promise<void> | null
+  modalOpenGeneration: number
+  pageActive: boolean
   ensureListingsController(): ListingsController
   ensureModalTabBarBoundary(): ModalTabBarBoundary
   showModalTabBarBoundary(): Promise<boolean>
@@ -173,12 +176,16 @@ Page<ListingsPageData, ListingsPageMethods>({
   initialQuery: emptyQuery,
   hasLoaded: false,
   modalTabBarBoundary: null,
+  filterOpenPromise: null,
+  modalOpenGeneration: 0,
+  pageActive: true,
 
   onLoad(options) {
     this.initialQuery = parseListingQuery(buildWhitelistedQuery(options))
   },
 
   onShow() {
+    this.pageActive = true
     const pendingQuery = listingNavigation.consume()
     if (pendingQuery !== null) {
       const controller = this.ensureListingsController()
@@ -196,12 +203,18 @@ Page<ListingsPageData, ListingsPageMethods>({
   },
 
   onHide() {
+    this.pageActive = false
+    this.modalOpenGeneration += 1
+    this.filterOpenPromise = null
     this.listingsController?.cancelEstimate()
     this.setData({ sheetOpen: false })
     void this.restoreModalTabBarBoundary()
   },
 
   onUnload() {
+    this.pageActive = false
+    this.modalOpenGeneration += 1
+    this.filterOpenPromise = null
     this.listingsController?.cancelEstimate()
     this.setData({ sheetOpen: false })
     void this.restoreModalTabBarBoundary()
@@ -245,11 +258,7 @@ Page<ListingsPageData, ListingsPageMethods>({
   },
 
   async showModalTabBarBoundary() {
-    const hidden = await this.ensureModalTabBarBoundary().hide()
-    if (!hidden) {
-      wx.showToast({ title: '暂时无法打开筛选', icon: 'none', duration: 1600 })
-    }
-    return hidden
+    return this.ensureModalTabBarBoundary().hide()
   },
 
   async restoreModalTabBarBoundary() {
@@ -264,17 +273,33 @@ Page<ListingsPageData, ListingsPageMethods>({
     void this.ensureListingsController().loadNextPage()
   },
 
-  async handleOpenFilter(event) {
+  handleOpenFilter(event) {
+    if (this.data.sheetOpen) return Promise.resolve()
+    if (this.filterOpenPromise !== null) return this.filterOpenPromise
+
     const section = event.detail.section
     const sheetSection = section === 'location' || section === 'price' || section === 'area'
       ? section
       : 'all'
-    if (!await this.showModalTabBarBoundary()) return
-    this.setData({
-      sheetOpen: true,
-      sheetSection,
-      estimatedCount: this.data.totalDocs,
+    const owner = ++this.modalOpenGeneration
+    let opening!: Promise<void>
+    opening = (async () => {
+      const hidden = await this.showModalTabBarBoundary()
+      if (owner !== this.modalOpenGeneration || !this.pageActive) return
+      if (!hidden) {
+        wx.showToast({ title: '暂时无法打开筛选', icon: 'none', duration: 1600 })
+        return
+      }
+      this.setData({
+        sheetOpen: true,
+        sheetSection,
+        estimatedCount: this.data.totalDocs,
+      })
+    })().finally(() => {
+      if (this.filterOpenPromise === opening) this.filterOpenPromise = null
     })
+    this.filterOpenPromise = opening
+    return opening
   },
 
   handleFilterEstimate(event) {

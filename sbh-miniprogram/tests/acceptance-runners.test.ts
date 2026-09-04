@@ -26,6 +26,13 @@ type AcceptanceMockServerModule = Readonly<{
 
 type Mp109RunnerModule = Readonly<{
   probeAcceptanceServer(port: number): Promise<void>
+  fingerprintEvidenceSources(sources: readonly Readonly<{ path: string; content: string }>[] ): string
+  evaluateProfileReports(
+    reports: Readonly<Record<'small' | 'large', unknown>>,
+    expectedRevision: string,
+  ): Readonly<{ status: string; failures: readonly string[] }>
+  resolveRequestedProfile(environment: Readonly<Record<string, string | undefined>>): 'small' | 'large'
+  buildInvalidInvocationReport(reason: string): Readonly<{ status: string; reason: string; states: unknown }>
 }>
 
 async function loadAcceptanceResult(): Promise<AcceptanceResultModule> {
@@ -234,6 +241,63 @@ describe('MP-106/107 runner 失败传播', () => {
 })
 
 describe('验收 Mock 列表查询合同', () => {
+  it('MP-109 UI 任一源码变化都会使旧 profile 指纹失效', async () => {
+    const { fingerprintEvidenceSources } = await loadMp109Runner()
+    const sources = [
+      { path: 'runner.mjs', content: 'runner' },
+      { path: 'filter/index.wxss', content: '.option{width:100%}' },
+      { path: 'pages/home/index.ts', content: 'Page({})' },
+      { path: 'acceptance-mock-server.mjs', content: 'fixture-v1' },
+    ]
+    const baseline = fingerprintEvidenceSources(sources)
+    const uiChanged = fingerprintEvidenceSources(sources.map((source) => source.path === 'pages/home/index.ts'
+      ? { ...source, content: 'Page({changed:true})' }
+      : source))
+    const mockChanged = fingerprintEvidenceSources(sources.map((source) => source.path === 'acceptance-mock-server.mjs'
+      ? { ...source, content: 'fixture-v2' }
+      : source))
+
+    expect(uiChanged).not.toBe(baseline)
+    expect(mockChanged).not.toBe(baseline)
+  })
+
+  it('MP-109 中途失败 profile 会覆盖同指纹旧通过态并使聚合保持 incomplete', async () => {
+    const { evaluateProfileReports } = await loadMp109Runner()
+    const names = [
+      'filterPrice', 'filterAll', 'homeInquiry', 'buildingsInquiry', 'inquiryWechat',
+      'inquiryManual', 'inquiryKeyboard', 'inquiryError', 'inquirySubmitting', 'inquirySuccess',
+    ]
+    const states = Object.fromEntries(names.map((name) => [name, { passed: true }]))
+    const stalePassed = {
+      status: 'passed', evidenceRevision: 'same-revision', viewportProfile: { name: 'small' }, states,
+    }
+    const failedReplacement = {
+      ...stalePassed,
+      status: 'failed',
+      reason: 'mid-run selector failure',
+      states: {},
+    }
+    const largePassed = {
+      status: 'passed', evidenceRevision: 'same-revision', viewportProfile: { name: 'large' }, states,
+    }
+
+    expect(evaluateProfileReports({ small: stalePassed, large: largePassed }, 'same-revision').status).toBe('passed')
+    const aggregate = evaluateProfileReports({ small: failedReplacement, large: largePassed }, 'same-revision')
+    expect(aggregate.status).toBe('incomplete')
+    expect(aggregate.failures.join('\n')).toContain('small')
+  })
+
+  it('MP-109 缺少视口参数时生成 invalid-invocation 报告而不是保留旧聚合', async () => {
+    const { resolveRequestedProfile, buildInvalidInvocationReport } = await loadMp109Runner()
+    expect(() => resolveRequestedProfile({})).toThrow('MP109_VIEWPORT_PROFILE')
+    const report = buildInvalidInvocationReport('missing profile')
+    expect(report).toMatchObject({
+      status: 'invalid-invocation',
+      reason: 'missing profile',
+      states: {},
+    })
+  })
+
   it('暴露可探测且不可混淆的验收 fixture 身份', async () => {
     const { ACCEPTANCE_FIXTURE_ID, createAcceptanceServer } = await loadAcceptanceMockServer()
     const mockServer = await createAcceptanceServer(0)

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -37,10 +37,63 @@ const viewportProfiles = Object.freeze({
   large: Object.freeze({ minWidth: 400 }),
 })
 let activeViewportProfile = 'current'
-const evidenceRevision = createHash('sha256')
-  .update(readFileSync(fileURLToPath(import.meta.url)))
-  .digest('hex')
-  .slice(0, 16)
+const evidenceSourcePaths = Object.freeze([
+  'scripts/mp109-sheet-acceptance-runner.mjs',
+  'scripts/acceptance-mock-server.mjs',
+  'miniprogram/app.json',
+  'miniprogram/app.wxss',
+  'miniprogram/styles/tokens.wxss',
+  'miniprogram/components/filter-bar/index.ts',
+  'miniprogram/components/filter-bar/index.json',
+  'miniprogram/components/filter-bar/index.wxml',
+  'miniprogram/components/filter-bar/index.wxss',
+  'miniprogram/components/filter-sheet/index.ts',
+  'miniprogram/components/filter-sheet/index.json',
+  'miniprogram/components/filter-sheet/index.wxml',
+  'miniprogram/components/filter-sheet/index.wxss',
+  'miniprogram/components/inquiry-sheet/index.ts',
+  'miniprogram/components/inquiry-sheet/index.json',
+  'miniprogram/components/inquiry-sheet/index.wxml',
+  'miniprogram/components/inquiry-sheet/index.wxss',
+  'miniprogram/components/inquiry-sheet/controller.ts',
+  'miniprogram/pages/home/index.ts',
+  'miniprogram/pages/home/index.json',
+  'miniprogram/pages/home/index.wxml',
+  'miniprogram/pages/home/index.wxss',
+  'miniprogram/pages/buildings/index.ts',
+  'miniprogram/pages/buildings/index.json',
+  'miniprogram/pages/buildings/index.wxml',
+  'miniprogram/pages/buildings/index.wxss',
+  'miniprogram/pages/listings/index.ts',
+  'miniprogram/pages/listings/index.json',
+  'miniprogram/pages/listings/index.wxml',
+  'miniprogram/pages/listings/index.wxss',
+  'miniprogram/pages/listing-detail/index.ts',
+  'miniprogram/pages/listing-detail/index.json',
+  'miniprogram/pages/listing-detail/index.wxml',
+  'miniprogram/pages/listing-detail/index.wxss',
+  'miniprogram/pages/building-detail/index.ts',
+  'miniprogram/pages/building-detail/index.json',
+  'miniprogram/pages/building-detail/index.wxml',
+  'miniprogram/pages/building-detail/index.wxss',
+  'miniprogram/services/inquiry.ts',
+  'miniprogram/utils/modal-tab-bar-boundary.ts',
+])
+
+export function fingerprintEvidenceSources(sources) {
+  const normalized = [...sources]
+    .map((source) => ({ path: String(source.path), content: String(source.content) }))
+    .sort((left, right) => left.path.localeCompare(right.path))
+  return createHash('sha256')
+    .update(JSON.stringify(normalized))
+    .digest('hex')
+    .slice(0, 16)
+}
+
+const evidenceRevision = fingerprintEvidenceSources(evidenceSourcePaths.map((path) => ({
+  path,
+  content: readFileSync(resolve(projectRoot, path), 'utf8'),
+})))
 
 function finite(value) {
   const parsed = typeof value === 'string' ? Number.parseFloat(value) : value
@@ -73,6 +126,41 @@ function rectInsideRect(rect, container, tolerance = 1) {
     && rect.bottom <= container.bottom + tolerance
 }
 
+export function evaluateInternalGroups(internalGroups, outerRect) {
+  const failures = []
+  const outer = safeRect(outerRect)
+  if (!positiveRect(outer)) return { passed: false, failures: ['internal geometry outer rect invalid'] }
+  for (const [groupIndex, rawGroup] of internalGroups.entries()) {
+    const container = safeRect(rawGroup?.container)
+    const section = safeRect(rawGroup?.section)
+    const items = Array.isArray(rawGroup?.items) ? rawGroup.items.map(safeRect) : []
+    if (!positiveRect(container) || !positiveRect(section) || items.length < 2 || !items.every(positiveRect)) {
+      failures.push(`internal group ${groupIndex} has invalid geometry`)
+      continue
+    }
+    if (!rectInsideRect(container, section) || !rectInsideRect(container, outer)) {
+      failures.push(`internal group ${groupIndex} container outside section panel`)
+    }
+    for (const item of items) {
+      if (!rectInsideRect(item, container) || !rectInsideRect(item, section) || !rectInsideRect(item, outer)) {
+        failures.push(`internal group ${groupIndex} item outside container section panel`)
+      }
+    }
+    for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+        const left = items[leftIndex]
+        const right = items[rightIndex]
+        const horizontalOverlap = Math.min(left.right, right.right) - Math.max(left.left, right.left)
+        const verticalOverlap = Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top)
+        if (horizontalOverlap > 1 && verticalOverlap > 1) {
+          failures.push(`internal group ${groupIndex} sibling items overlap`)
+        }
+      }
+    }
+  }
+  return { passed: failures.length === 0, failures }
+}
+
 export function evaluateSheetGeometry(input) {
   const failures = []
   if (typeof input !== 'object' || input === null) {
@@ -90,10 +178,12 @@ export function evaluateSheetGeometry(input) {
   const footer = safeRect(input.footer)
   const close = safeRect(input.close)
   const primaryAction = input.primaryAction ? safeRect(input.primaryAction) : null
+  const internalGroups = Array.isArray(input.internalGroups) ? input.internalGroups : []
 
   if (input.requiredSelectorsPresent !== true) failures.push('required selector missing')
   if (input.tabBarVisible !== false) failures.push('native TabBar still visible')
   if (input.expectedSectionOnly !== true) failures.push('unexpected filter section visible')
+  if (input.requireInternalGroups === true && internalGroups.length === 0) failures.push('required internal geometry missing')
   if (![viewport, panel, header, body, footer, close].every(positiveRect)) failures.push('invalid or non-positive geometry')
 
   if (viewport && panel) {
@@ -121,6 +211,10 @@ export function evaluateSheetGeometry(input) {
       if (primaryAction.left < -1 || primaryAction.right > viewport.right + 1) failures.push('primary CTA horizontally clipped')
       if (primaryAction.bottom > viewport.bottom - safeAreaBottomInset + 1) failures.push('primary CTA overlaps bottom safe area')
     }
+  }
+
+  if (internalGroups.length > 0 && panel) {
+    failures.push(...evaluateInternalGroups(internalGroups, panel).failures)
   }
 
   return { passed: failures.length === 0, failures }
@@ -173,6 +267,25 @@ async function elementRect(element) {
   return { left, top, right: left + width, bottom: top + height }
 }
 
+async function collectInternalGroups(component, definitions = []) {
+  return Promise.all(definitions.map(async (definition) => {
+    const [container, section, items] = await Promise.all([
+      requireSelector(component, definition.container),
+      requireSelector(component, definition.section),
+      component.$$(definition.items),
+    ])
+    if (!Array.isArray(items) || items.length < 2) {
+      throw new Error(`MP-109 内部选项 selector 数量不足：${definition.items}`)
+    }
+    return {
+      name: definition.name,
+      container: await elementRect(container),
+      section: await elementRect(section),
+      items: await Promise.all(items.map(elementRect)),
+    }
+  }))
+}
+
 async function sheetGeometry({ page, componentName, selectors, viewport, safeAreaBottomInset, tabBarVisible, expectedSectionOnly }) {
   const component = await requireSelector(page, componentName)
   const [panel, header, footer, close, body, primaryAction] = await Promise.all([
@@ -183,6 +296,7 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
     requireSelector(component, selectors.body),
     requireSelector(component, selectors.primaryAction),
   ])
+  const internalGroups = await collectInternalGroups(component, selectors.internalGroups)
   const result = evaluateSheetGeometry({
     viewport,
     panel: await elementRect(panel),
@@ -195,6 +309,8 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
     requiredSelectorsPresent: Boolean(header && body && primaryAction),
     tabBarVisible,
     expectedSectionOnly,
+    internalGroups,
+    requireInternalGroups: selectors.requireInternalGroups === true,
   })
   return {
     ...result,
@@ -205,6 +321,7 @@ async function sheetGeometry({ page, componentName, selectors, viewport, safeAre
       close: await elementRect(close),
       body: await elementRect(body),
       primaryAction: await elementRect(primaryAction),
+      internalGroups,
     },
   }
 }
@@ -312,6 +429,14 @@ async function runInteractiveAcceptance(miniProgram) {
   const visibleTabViewport = await clientViewport(listings)
 
   const filterBar = await requireSelector(listings, '#filter-bar')
+  const filterBarRoot = await requireSelector(filterBar, '.filter-bar')
+  const filterBarInternalGroups = await collectInternalGroups(filterBar, [{
+    name: 'filter-bar-items', container: '.filter-bar', section: '.filter-bar', items: '.filter-bar__item',
+  }])
+  const filterBarGeometry = evaluateInternalGroups(filterBarInternalGroups, await elementRect(filterBarRoot))
+  if (!filterBarGeometry.passed) {
+    throw new Error(`MP-109 顶部筛选栏内部几何失败：${filterBarGeometry.failures.join('; ')}`)
+  }
   const priceFilter = await requireSelector(filterBar, '.filter-bar__item[data-section="price"]')
   await priceFilter.tap()
   const priceData = await waitUntil(
@@ -335,6 +460,11 @@ async function runInteractiveAcceptance(miniProgram) {
       selectors: {
         panel: '.filter-sheet__panel', header: '.filter-sheet__header', footer: '.filter-sheet__footer',
         close: '.filter-sheet__close', body: '.filter-sheet__body', primaryAction: '.filter-sheet__apply',
+        internalGroups: [{
+          name: 'price-units', container: '.filter-sheet__unit .filter-sheet__options',
+          section: '.filter-sheet__unit', items: '.filter-sheet__unit .filter-sheet__option',
+        }],
+        requireInternalGroups: true,
       },
       viewport: filterViewport,
       safeAreaBottomInset,
@@ -343,6 +473,7 @@ async function runInteractiveAcceptance(miniProgram) {
     })),
     resultCount: priceData.estimatedCount,
     nativeTabBar: priceTabBar,
+    filterBarGeometry: { ...filterBarGeometry, internalGroups: filterBarInternalGroups },
     screenshot: await screenshot(miniProgram, 'filter-price-open'),
   }
 
@@ -367,11 +498,6 @@ async function runInteractiveAcceptance(miniProgram) {
   const allBody = await requireSelector(allSheet, '.filter-sheet__body')
   const allFooter = await requireSelector(allSheet, '.filter-sheet__footer')
   const footerBeforeScroll = await elementRect(allFooter)
-  const allScreenshot = await screenshot(miniProgram, 'filter-all-open')
-  const scrollHeight = await allBody.scrollHeight()
-  await allBody.scrollTo(0, Math.max(200, finite(scrollHeight) ?? 200))
-  await delay(120)
-  const footerAfterScroll = await elementRect(allFooter)
   const allSections = Boolean(await allSheet.$('.filter-sheet__unit'))
     && Boolean(await allSheet.$('.filter-sheet__location'))
     && Boolean(await allSheet.$('.filter-sheet__area'))
@@ -383,12 +509,28 @@ async function runInteractiveAcceptance(miniProgram) {
     selectors: {
       panel: '.filter-sheet__panel', header: '.filter-sheet__header', footer: '.filter-sheet__footer',
       close: '.filter-sheet__close', body: '.filter-sheet__body', primaryAction: '.filter-sheet__apply',
+      internalGroups: [
+        {
+          name: 'all-price-units', container: '.filter-sheet__unit .filter-sheet__options',
+          section: '.filter-sheet__unit', items: '.filter-sheet__unit .filter-sheet__option',
+        },
+        {
+          name: 'all-districts', container: '.filter-sheet__location .filter-sheet__options',
+          section: '.filter-sheet__location', items: '.filter-sheet__location .filter-sheet__option',
+        },
+      ],
+      requireInternalGroups: true,
     },
     viewport: filterViewport,
     safeAreaBottomInset,
     tabBarVisible: (await observeNativeTabBar(listings, filterViewport, visibleTabViewport)).tabBarVisible,
     expectedSectionOnly: allSections,
   })
+  const allScreenshot = await screenshot(miniProgram, 'filter-all-open')
+  const scrollHeight = await allBody.scrollHeight()
+  await allBody.scrollTo(0, Math.max(200, finite(scrollHeight) ?? 200))
+  await delay(120)
+  const footerAfterScroll = await elementRect(allFooter)
   if (Math.abs(footerBeforeScroll.top - footerAfterScroll.top) > 1) {
     allGeometry.failures.push('footer moved with internal scroll')
     allGeometry.passed = false
@@ -397,6 +539,7 @@ async function runInteractiveAcceptance(miniProgram) {
     ...allGeometry,
     scrollHeight: finite(scrollHeight),
     footerFixed: Math.abs(footerBeforeScroll.top - footerAfterScroll.top) <= 1,
+    filterBarGeometry: { ...filterBarGeometry, internalGroups: filterBarInternalGroups },
     screenshot: allScreenshot,
   }
   await (await requireSelector(allSheet, '.filter-sheet__backdrop')).tap()
@@ -411,6 +554,11 @@ async function runInteractiveAcceptance(miniProgram) {
   const inquirySelectors = {
     panel: '.inquiry-sheet__panel', header: '.inquiry-sheet__header', footer: '.inquiry-sheet__footer',
     close: '.inquiry-sheet__close', body: '.inquiry-sheet__body', primaryAction: '.inquiry-sheet__submit',
+    internalGroups: [{
+      name: 'phone-segment', container: '.inquiry-sheet__phone-segment',
+      section: '.inquiry-sheet__form', items: '.inquiry-sheet__phone-segment-option',
+    }],
+    requireInternalGroups: true,
   }
 
   const home = await miniProgram.switchTab('/pages/home/index')
@@ -674,7 +822,9 @@ async function runInteractiveAcceptance(miniProgram) {
     const geometry = await sheetGeometry({
       page: listingDetail,
       componentName: '#inquiry-sheet',
-      selectors: inquirySelectors,
+      selectors: name === 'inquirySuccess'
+        ? { ...inquirySelectors, internalGroups: [], requireInternalGroups: false }
+        : inquirySelectors,
       viewport: inquiryViewport,
       safeAreaBottomInset,
       tabBarVisible: (await observeNativeTabBar(listingDetail, filterViewport)).tabBarVisible,
@@ -718,7 +868,11 @@ async function runInteractiveAcceptance(miniProgram) {
     states,
     limitations: [
       '首页、楼盘和房源详情咨询均通过真实页面点击打开；微信、手填、错误、提交中和成功展示随后使用本地受控视觉状态夹具',
-      '键盘态证明输入发生真实 focus 且输入与 footer 位于 DevTools 收缩后的可视区；不等同于 iOS/Android 真机键盘验收',
+      states.inquiryKeyboard.passed
+        ? '键盘态通过真实点击聚焦，且输入与 footer 位于 DevTools 收缩后的可视区；不等同于 iOS/Android 真机键盘验收'
+        : states.inquiryKeyboard.focusedByRealTap
+          ? `键盘态通过真实点击聚焦输入框，但 DevTools 可视区未收缩（delta=${states.inquiryKeyboard.keyboardViewportDelta}px），键盘遮挡仍未验证`
+          : `键盘态已尝试真实点击输入框，但没有可审计焦点信号且 DevTools 可视区未收缩（delta=${states.inquiryKeyboard.keyboardViewportDelta}px），键盘遮挡仍未验证`,
       '未执行真实咨询服务写入、trial、隐私后台、iOS/Android 真机或生产验收',
     ],
   }
@@ -752,11 +906,7 @@ function readProfileReport(name) {
   }
 }
 
-function aggregateProfileReports() {
-  const reports = {
-    small: readProfileReport('small'),
-    large: readProfileReport('large'),
-  }
+export function evaluateProfileReports(reports, expectedRevision = evidenceRevision) {
   const failures = []
   for (const name of ['small', 'large']) {
     const report = reports[name]
@@ -765,7 +915,7 @@ function aggregateProfileReports() {
       continue
     }
     if (report.viewportProfile?.name !== name) failures.push(`${name} 报告视口标识不匹配`)
-    if (report.evidenceRevision !== evidenceRevision) failures.push(`${name} 报告来自不同 runner 版本`)
+    if (report.evidenceRevision !== expectedRevision) failures.push(`${name} 报告来自不同源码指纹`)
     try {
       assertMp109SheetAcceptance(report)
     } catch (error) {
@@ -781,8 +931,21 @@ function aggregateProfileReports() {
       profiles: { small: smallState ?? null, large: largeState ?? null },
     }]
   }))
-  const report = {
+  return {
     status: failures.length === 0 ? 'passed' : 'incomplete',
+    failures,
+    states,
+  }
+}
+
+function aggregateProfileReports() {
+  const reports = {
+    small: readProfileReport('small'),
+    large: readProfileReport('large'),
+  }
+  const evaluation = evaluateProfileReports(reports)
+  const report = {
+    status: evaluation.status,
     timestamp: new Date().toISOString(),
     environment: 'local-wechat-devtools-develop-with-controlled-mock',
     evidenceRevision,
@@ -791,8 +954,8 @@ function aggregateProfileReports() {
       large: 'sheet-acceptance-large.json',
     },
     viewportProfiles: reports,
-    states,
-    failures,
+    states: evaluation.states,
+    failures: evaluation.failures,
     limitations: [
       '两档证据均来自微信开发者工具 develop 模式与受控 Mock；不等同于 trial、隐私后台、iOS/Android 真机或生产验收',
       '咨询展示状态使用真实点击打开后的本地视觉夹具，未执行真实业务写入',
@@ -802,16 +965,68 @@ function aggregateProfileReports() {
   return report
 }
 
+export function resolveRequestedProfile(environment = process.env) {
+  const requested = environment.MP109_VIEWPORT_PROFILE
+  if (requested !== 'small' && requested !== 'large') {
+    throw new Error('MP109_VIEWPORT_PROFILE 必须显式设置为 small 或 large')
+  }
+  return requested
+}
+
+function failedProfileReport(name, status, reason, states = {}) {
+  return {
+    status,
+    timestamp: new Date().toISOString(),
+    environment: 'local-wechat-devtools-develop-with-controlled-mock',
+    evidenceRevision,
+    viewportProfile: { name, passed: false },
+    reason,
+    states,
+  }
+}
+
+export function buildEnvironmentUnavailableProfile(name, reason) {
+  return failedProfileReport(name, 'environment-unavailable', reason)
+}
+
+export function buildInvalidInvocationReport(reason) {
+  return {
+    status: 'invalid-invocation',
+    timestamp: new Date().toISOString(),
+    evidenceRevision,
+    reason,
+    states: {},
+  }
+}
+
+function prepareProfileEvidence(name) {
+  activeViewportProfile = name
+  const profileDirectory = join(screenshotsDir, name)
+  rmSync(profileDirectory, { recursive: true, force: true })
+  mkdirSync(profileDirectory, { recursive: true })
+  writeProfileReport(failedProfileReport(name, 'pending', '验收运行中，旧证据已失效'))
+  aggregateProfileReports()
+}
+
 async function main() {
   mkdirSync(screenshotsDir, { recursive: true })
+  let requestedProfile
+  try {
+    requestedProfile = resolveRequestedProfile()
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    writeJson(reportPath, buildInvalidInvocationReport(reason))
+    process.exitCode = 1
+    return
+  }
+  prepareProfileEvidence(requestedProfile)
   const cliPath = process.env.WECHAT_DEVTOOLS_CLI || '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
   if (!existsSync(cliPath)) {
-    writeJson(reportPath, {
-      status: 'environment-unavailable',
-      timestamp: new Date().toISOString(),
-      reason: `DevTools CLI not found: ${cliPath}`,
-      states: {},
-    })
+    writeProfileReport(buildEnvironmentUnavailableProfile(
+      requestedProfile,
+      `DevTools CLI not found: ${cliPath}`,
+    ))
+    aggregateProfileReports()
     process.exitCode = 2
     return
   }
@@ -852,19 +1067,11 @@ async function main() {
   } catch (error) {
     const reason = error instanceof Error ? error.stack ?? error.message : String(error)
     const unavailable = miniProgram === null && /(?:launch|DevTools|connection|CLI|closed)/i.test(reason)
-    const report = {
-      ...(acceptanceReport ?? {}),
-      status: unavailable ? 'environment-unavailable' : 'failed',
-      timestamp: new Date().toISOString(),
-      reason,
-      states: acceptanceReport?.states ?? {},
-    }
-    if (report.viewportProfile?.name === 'small' || report.viewportProfile?.name === 'large') {
-      writeProfileReport({ ...report, evidenceRevision })
-      aggregateProfileReports()
-    } else {
-      writeJson(reportPath, { ...report, evidenceRevision })
-    }
+    const report = unavailable
+      ? { ...buildEnvironmentUnavailableProfile(requestedProfile, reason), states: acceptanceReport?.states ?? {} }
+      : failedProfileReport(requestedProfile, 'failed', reason, acceptanceReport?.states ?? {})
+    writeProfileReport({ ...acceptanceReport, ...report })
+    aggregateProfileReports()
     console.error(reason)
     process.exitCode = unavailable ? 2 : 1
   } finally {

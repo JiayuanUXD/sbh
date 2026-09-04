@@ -107,14 +107,23 @@ describe('project:check', () => {
 })
 
 describe('MP-109 sheet acceptance runner', () => {
-  test('缺 DevTools 环境时只允许写 environment-unavailable，不得假绿', () => {
+  test('缺 DevTools 环境时只允许写 environment-unavailable，不得假绿', async () => {
     expect(existsSync(scripts.mp109SheetAcceptance)).toBe(true)
     if (!existsSync(scripts.mp109SheetAcceptance)) return
-    const source = readFileSync(scripts.mp109SheetAcceptance, 'utf8')
+    const module = await import('../scripts/mp109-sheet-acceptance-runner.mjs' as never) as {
+      buildEnvironmentUnavailableProfile(
+        name: 'small' | 'large',
+        reason: string,
+      ): Readonly<{ status: string; reason: string; states: unknown }>
+    }
+    const report = module.buildEnvironmentUnavailableProfile('small', 'DevTools CLI not found')
 
-    expect(source).toContain("status: 'environment-unavailable'")
-    expect(source).toContain('process.exitCode = 2')
-    expect(source).not.toMatch(/environment-unavailable[\s\S]{0,180}passed:\s*true/)
+    expect(report).toMatchObject({
+      status: 'environment-unavailable',
+      reason: 'DevTools CLI not found',
+      states: {},
+    })
+    expect(JSON.stringify(report)).not.toMatch(/"passed":true/)
   })
 })
 

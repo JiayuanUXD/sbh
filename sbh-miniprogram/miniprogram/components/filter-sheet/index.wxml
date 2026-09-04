@@ -22,7 +22,7 @@
             bindtap="handlePriceUnit"
             aria-pressed="{{item.active}}"
           >
-            <text>{{item.label}}</text>
+            <text class="filter-sheet__option-label">{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>
           </button>
         </view>
@@ -48,7 +48,7 @@
             bindtap="handleDistrict"
             aria-pressed="{{item.active}}"
           >
-            <text>{{item.label}}</text>
+            <text class="filter-sheet__option-label">{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>
           </button>
         </view>
@@ -74,7 +74,7 @@
             bindtap="handleType"
             aria-pressed="{{item.active}}"
           >
-            <text>{{item.label}}</text>
+            <text class="filter-sheet__option-label">{{item.label}}</text>
             <text class="filter-sheet__count num">{{item.count}}</text>
           </button>
         </view>
