@@ -5,10 +5,9 @@ import {
   type InquirySheetSnapshot,
 } from '../../components/inquiry-sheet/controller.js'
 import { getBuildings } from '../../services/catalog.js'
-import type { MiniBuildingCard } from '../../services/catalog-contracts.js'
+import type { MiniBuildingCard, MiniBuildingsData } from '../../services/catalog-contracts.js'
 import { refreshUserAssets } from '../../services/favorites.js'
 import {
-  CURRENT_INQUIRY_POLICY_VERSION,
   createInquiryService,
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
@@ -60,13 +59,29 @@ function openPrivacyContract(): Promise<void> {
   })
 }
 
-function generalInquiryContext(): InquirySheetContext {
+function generalInquiryContext(policyVersion: string): InquirySheetContext {
   return {
     target: { targetType: 'general' },
     title: '请顾问匹配合适楼盘',
     facts: { area: '全上海', unitPrice: '多种计价', monthlyEstimate: '按需求匹配' },
-    policyVersion: CURRENT_INQUIRY_POLICY_VERSION,
+    policyVersion,
   }
+}
+
+function appendUniqueBuildings(
+  current: readonly MiniBuildingCard[],
+  incoming: readonly MiniBuildingCard[],
+  excludedIds: ReadonlySet<string> = new Set(),
+): MiniBuildingCard[] {
+  const seen = new Set([...excludedIds, ...current.map((item) => item.id)])
+  return [
+    ...current,
+    ...incoming.filter((item) => {
+      if (seen.has(item.id)) return false
+      seen.add(item.id)
+      return true
+    }),
+  ]
 }
 
 const sessionService = createSessionService({ login: requestLoginCode, request })
@@ -85,11 +100,17 @@ Page({
     totalDocs: 0,
     totalActiveCount: 0,
     totalInactiveCount: 0,
+    page: 0,
+    hasNextPage: false,
+    loadMoreState: 'idle' as 'idle' | 'loading' | 'error',
     districtFilter: '',
+    districtFilterLabel: '全上海',
+    districtOptions: [] as MiniBuildingsData['districtOptions'],
     gradeFilter: '',
     gradeFilterLabel: '等级',
     sortFilter: '',
     sortLabel: '在租最多',
+    inquiryPolicyVersion: null as string | null,
     inquiryOpen: false,
     inquirySheet: closedInquirySheet(),
     tabBarBoundaryState: 'visible' as 'visible' | 'hidden',
@@ -100,6 +121,9 @@ Page({
   inquiryOpenPromise: null as Promise<void> | null,
   modalOpenGeneration: 0,
   pageActive: true,
+  buildingRequestGeneration: 0,
+  buildingRequestPending: false,
+  buildingReloadRequired: false,
 
   onLoad() {
     this.loadBuildings()
@@ -114,10 +138,16 @@ Page({
   onShow() {
     this.pageActive = true
     void this.restoreModalTabBarBoundary()
+    if (this.buildingReloadRequired) {
+      this.buildingReloadRequired = false
+      void this.loadBuildings()
+    }
   },
 
   onHide() {
     this.pageActive = false
+    if (this.buildingRequestPending) this.buildingReloadRequired = true
+    this.buildingRequestGeneration += 1
     this.modalOpenGeneration += 1
     this.inquiryOpenPromise = null
     this.closeInquiryForLifecycle()
@@ -125,41 +155,89 @@ Page({
 
   onUnload() {
     this.pageActive = false
+    this.buildingReloadRequired = false
+    this.buildingRequestGeneration += 1
     this.modalOpenGeneration += 1
     this.inquiryOpenPromise = null
     this.closeInquiryForLifecycle()
     sessionService.clear()
   },
 
-  async loadBuildings() {
-    this.setData({ state: 'loading' })
+  loadBuildings() {
+    return this.requestBuildings(1, false)
+  },
+
+  onReachBottom() {
+    if (
+      this.data.state !== 'ready'
+      || !this.data.hasNextPage
+      || this.data.loadMoreState === 'loading'
+    ) return Promise.resolve()
+    return this.requestBuildings(this.data.page + 1, true)
+  },
+
+  handleRetryLoadMore() {
+    if (this.data.loadMoreState !== 'error') return Promise.resolve()
+    return this.requestBuildings(this.data.page + 1, true)
+  },
+
+  async requestBuildings(page: number, append: boolean) {
+    const owner = ++this.buildingRequestGeneration
+    this.buildingRequestPending = true
+    if (append) {
+      this.setData({ loadMoreState: 'loading' })
+    } else {
+      this.setData({ state: 'loading', loadMoreState: 'idle', page: 0, hasNextPage: false })
+    }
     try {
       const queryParts: string[] = []
       if (this.data.districtFilter) queryParts.push(`district=${encodeURIComponent(this.data.districtFilter)}`)
       if (this.data.gradeFilter) queryParts.push(`grade=${encodeURIComponent(this.data.gradeFilter)}`)
       if (this.data.sortFilter) queryParts.push(`sort=${encodeURIComponent(this.data.sortFilter)}`)
+      queryParts.push(`page=${page}`)
 
       const res = await getBuildings(queryParts.join('&'))
+      if (owner !== this.buildingRequestGeneration || !this.pageActive) return
+      if (res.pagination.page !== page) throw new Error('楼盘分页响应与请求页不一致')
+      const active = append
+        ? appendUniqueBuildings(this.data.items, res.items)
+        : appendUniqueBuildings([], res.items)
+      const inactive = append
+        ? appendUniqueBuildings(this.data.inactiveItems, res.inactiveItems, new Set(active.map((item) => item.id)))
+        : appendUniqueBuildings([], res.inactiveItems, new Set(active.map((item) => item.id)))
       this.setData({
         state: 'ready',
-        items: [...res.items],
-        inactiveItems: [...res.inactiveItems],
+        items: active,
+        inactiveItems: inactive,
         totalDocs: res.pagination.totalDocs,
         totalActiveCount: res.totalActiveCount,
         totalInactiveCount: res.totalInactiveCount,
+        page: res.pagination.page,
+        hasNextPage: res.pagination.hasNextPage,
+        loadMoreState: 'idle',
+        districtOptions: [...res.districtOptions],
+        inquiryPolicyVersion: res.inquiryPolicy.version,
       })
     } catch {
-      this.setData({ state: 'error' })
+      if (owner !== this.buildingRequestGeneration || !this.pageActive) return
+      this.setData(append
+        ? { loadMoreState: 'error' }
+        : { state: 'error', loadMoreState: 'idle' })
+    } finally {
+      if (owner === this.buildingRequestGeneration) this.buildingRequestPending = false
     }
   },
 
   handleDistrictFilter() {
-    const districts = ['全部', '黄浦区', '静安区', '浦东新区', '长宁区', '徐汇区']
+    const districts = [{ label: '全部', value: '' }, ...this.data.districtOptions]
     wx.showActionSheet({
-      itemList: districts,
+      itemList: districts.map((district) => district.label),
       success: (res) => {
-        const selected = res.tapIndex === 0 ? '' : districts[res.tapIndex] ?? ''
-        this.setData({ districtFilter: selected })
+        const selected = districts[res.tapIndex] ?? districts[0]
+        this.setData({
+          districtFilter: selected.value,
+          districtFilterLabel: selected.value ? selected.label : '全上海',
+        })
         this.loadBuildings()
       },
     })
@@ -198,6 +276,7 @@ Page({
   handleResetFilters() {
     this.setData({
       districtFilter: '',
+      districtFilterLabel: '全上海',
       gradeFilter: '',
       gradeFilterLabel: '等级',
       sortFilter: '',
@@ -278,7 +357,13 @@ Page({
       }
       const controller = this.ensureInquirySheetController()
       if (owner !== this.modalOpenGeneration || !this.pageActive) return
-      void controller.open(generalInquiryContext())
+      const policyVersion = this.data.inquiryPolicyVersion
+      if (!policyVersion) {
+        void this.restoreModalTabBarBoundary()
+        wx.showToast({ title: '咨询服务暂不可用', icon: 'none', duration: 1600 })
+        return
+      }
+      void controller.open(generalInquiryContext(policyVersion))
     })().finally(() => {
       if (this.inquiryOpenPromise === opening) this.inquiryOpenPromise = null
     })

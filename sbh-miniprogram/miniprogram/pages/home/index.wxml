@@ -33,8 +33,7 @@
   </view>
 
   <view class="home-search">
-    <view class="home-search__city">上海<text class="home-search__arrow">▾</text></view>
-    <view class="home-search__divider"></view>
+    <view class="home-search__city">当前城市 · 上海</view>
     <input
       class="home-search__input"
       value="{{keyword}}"

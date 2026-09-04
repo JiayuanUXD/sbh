@@ -7,7 +7,6 @@ import {
 } from '../../components/inquiry-sheet/controller.js'
 import { refreshUserAssets } from '../../services/favorites.js'
 import {
-  CURRENT_INQUIRY_POLICY_VERSION,
   createInquiryService,
   createSubmissionIntentManager,
 } from '../../services/inquiry.js'
@@ -123,12 +122,12 @@ function openPrivacyContract(): Promise<void> {
   })
 }
 
-function generalInquiryContext(): InquirySheetContext {
+function generalInquiryContext(policyVersion: string): InquirySheetContext {
   return {
     target: { targetType: 'general' },
     title: '告诉我们办公需求',
     facts: { area: '全上海', unitPrice: '多种计价', monthlyEstimate: '按需求匹配' },
-    policyVersion: CURRENT_INQUIRY_POLICY_VERSION,
+    policyVersion,
   }
 }
 
@@ -354,7 +353,13 @@ Page<HomePageData, HomePageMethods>({
       }
       const controller = this.ensureInquirySheetController()
       if (owner !== this.modalOpenGeneration || !this.pageActive) return
-      void controller.open(generalInquiryContext())
+      const policyVersion = this.data.content?.inquiryPolicy.version
+      if (!policyVersion) {
+        void this.restoreModalTabBarBoundary()
+        wx.showToast({ title: '咨询服务暂不可用', icon: 'none', duration: 1600 })
+        return
+      }
+      void controller.open(generalInquiryContext(policyVersion))
     })().finally(() => {
       if (this.inquiryOpenPromise === opening) this.inquiryOpenPromise = null
     })

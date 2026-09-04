@@ -77,6 +77,7 @@ const validHome = {
   featuredBuildings: [validBuilding],
   quickFilters: [validFilter],
   stats: { listings: 3, buildings: 2, businessAreas: 1 },
+  inquiryPolicy: { version: 'policy-home-v2' },
 }
 
 const validBuildings = {
@@ -92,6 +93,8 @@ const validBuildings = {
   },
   totalActiveCount: 1,
   totalInactiveCount: 1,
+  districtOptions: [{ value: 'jing-an', label: '静安区', count: 2 }],
+  inquiryPolicy: { version: 'policy-building-v2' },
 }
 
 const validBuildingDetail = {
@@ -199,6 +202,23 @@ describe('Mini API 目录运行时契约', () => {
       ...validBuildingDetail,
       inquiryPolicy: { version: 'policy-building-v2', extra: 'internal' },
     })).toThrow(/Mini API 目录响应无效/)
+  })
+
+  it('首页和楼盘列表仅接受严格、非空的服务端咨询政策版本', () => {
+    for (const [parser, fixture] of [
+      [parseMiniHomeData, validHome],
+      [parseMiniBuildingsData, validBuildings],
+    ] as const) {
+      const { inquiryPolicy: _policy, ...missing } = fixture
+      expect(() => parser(missing)).toThrow(/Mini API 目录响应无效/)
+      expect(() => parser({ ...fixture, inquiryPolicy: { version: '' } })).toThrow(/Mini API 目录响应无效/)
+      expect(() => parser({ ...fixture, inquiryPolicy: { version: ' policy-v2 ' } })).toThrow(/Mini API 目录响应无效/)
+      expect(() => parser({ ...fixture, inquiryPolicy: { version: 'x'.repeat(129) } })).toThrow(/Mini API 目录响应无效/)
+      expect(() => parser({
+        ...fixture,
+        inquiryPolicy: { version: fixture.inquiryPolicy.version, internal: true },
+      })).toThrow(/Mini API 目录响应无效/)
+    }
   })
 
   it('要求首页显式提供精选楼盘', () => {

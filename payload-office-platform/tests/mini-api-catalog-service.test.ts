@@ -59,6 +59,7 @@ const mappedHome: MiniHomeData = {
   featuredBuildings: [],
   quickFilters: [],
   stats: { listings: 3, buildings: 2, businessAreas: 1 },
+  inquiryPolicy: { version: 'policy-home-v2' },
 }
 
 const mappedListings: MiniListingsData = {
@@ -172,7 +173,28 @@ describe('Mini catalog service', () => {
 
     expect(io.resolveCityContext).toHaveBeenCalledWith('shanghai')
     expect(io.getCachedMiniHome).toHaveBeenCalledWith('shanghai')
-    expect(io.mapMiniHome).toHaveBeenCalledWith(rawHome, rawHomeFacets, 'https://sbh.example')
+    expect(io.mapMiniHome).toHaveBeenCalledWith(
+      rawHome,
+      rawHomeFacets,
+      'https://sbh.example',
+      'MVP-R1',
+    )
+  })
+
+  it('首页咨询版本每次来自服务端权威配置', async () => {
+    io.getSiteConfig.mockReturnValue({
+      siteOrigin: 'https://sbh.example',
+      privacyPolicyVersion: 'policy-home-v3',
+    })
+
+    await getMiniHome('shanghai')
+
+    expect(io.mapMiniHome).toHaveBeenCalledWith(
+      rawHome,
+      rawHomeFacets,
+      'https://sbh.example',
+      'policy-home-v3',
+    )
   })
 
   it('rejects a city that is not live before reading the home cache', async () => {

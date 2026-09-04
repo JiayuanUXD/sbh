@@ -267,7 +267,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 80rpx;
+  min-width: var(--sbh-size-touch-target);
+  min-height: var(--sbh-size-touch-target);
   padding: 0 8rpx;
 }
 

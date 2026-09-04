@@ -202,6 +202,11 @@ describe('parseListingSearchInput', () => {
     expect(input.q).toBeUndefined()
   })
 
+  it('q 含控制字符或孤立代理项时 fail-closed', () => {
+    expect(parseListingSearchInput(new URLSearchParams({ q: 'jing\u0000an' })).q).toBeUndefined()
+    expect(parseListingSearchInput(new URLSearchParams({ q: '\uD800' })).q).toBeUndefined()
+  })
+
   it('数组字段超长被截断至 20', () => {
     const sp = new URLSearchParams()
     for (let i = 0; i < 30; i++) sp.append('district', `d${i}`)

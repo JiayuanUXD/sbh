@@ -501,11 +501,8 @@ function buildBuildingFacets(
  * 才排暂无在租」）。两组各自分页会让第 2 页同时出现「有在租第 25–48 个」和
  * 「暂无在租第 25–48 个」，翻页语义变成两条互不相干的游标。
  *
- * **200 条上限**：底层 `adapter.findEffectiveBuildings(ctx)` 默认 `limit = 200`
- * （见 supply-adapter.ts），本函数继承这个上限、不在此处放宽。当一个城市的有效
- * 公开楼盘超过 200 个时，筛选/排序/分页都只作用于前 200 条，结果会静默截断——
- * 放宽上限需要先评估查询成本，届时应改走分页适配器（类似 findEffectiveBuildingsPage），
- * 而不是简单调大这个数字。
+ * 底层生产适配器按稳定 ID 顺序受控分页枚举，只有拿到完整集合后才计算
+ * facets/total/视图分页。枚举达安全上限仍有后续页时 fail-closed，不静默伪称“全部”。
  */
 export async function searchBuildingsFiltered(
   input: BuildingSearchInput,

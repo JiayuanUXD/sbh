@@ -106,6 +106,8 @@ export type MiniBuildingsData = Readonly<{
   }>
   totalActiveCount: number
   totalInactiveCount: number
+  districtOptions: readonly Readonly<{ value: string; label: string; count: number }>[]
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniBuildingDetailData = Readonly<{
@@ -151,6 +153,7 @@ export type MiniHomeData = Readonly<{
   featuredBuildings: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniListingsData = Readonly<{

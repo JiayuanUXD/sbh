@@ -74,6 +74,15 @@ describe('我的页面服务端资产合同', () => {
     expect(source).toContain('/pages/${page}/index?slug=')
   })
 
+  it('收藏房源与楼盘缩略图独立处理坏图并提供 alt', () => {
+    const markup = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(markup).toMatch(/favoriteListingImageFailures\[item\.slug\][\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.title\}\}"[\s\S]*binderror="handleFavoriteListingImageError"/)
+    expect(markup).toMatch(/favoriteBuildingImageFailures\[item\.slug\][\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.name\}\}"[\s\S]*binderror="handleFavoriteBuildingImageError"/)
+    expect(source).toContain('markImageFailed')
+  })
+
   it('咨询历史按 targetType 导航，general 明确不伪造详情', () => {
     const markup = readPageFile('index.wxml')
     const source = readPageFile('index.ts')

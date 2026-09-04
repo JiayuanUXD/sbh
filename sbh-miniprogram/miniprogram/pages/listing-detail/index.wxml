@@ -141,6 +141,8 @@
         bindtap="handleToggleFavorite"
         hover-class="sbh-pressable"
         aria-disabled="{{favoriteBusy}}"
+        aria-role="button"
+        aria-label="{{favoriteBusy ? '收藏处理中' : (isFavorited ? '取消收藏' : '收藏')}}"
       >
         <view class="favorite-icon__glyph listing-detail__bar-fav-icon {{isFavorited ? 'favorite-icon__glyph--active' : ''}}" aria-hidden="true"></view>
         <text class="listing-detail__bar-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>

@@ -258,6 +258,7 @@ export function createAcceptanceServer(port = 3717) {
           featuredBuildings: mockBuildings,
           quickFilters,
           stats: { listings: 88, buildings: 12, businessAreas: 8 },
+          inquiryPolicy: { version: 'MVP-R1' },
         },
         meta,
       }))
@@ -309,6 +310,11 @@ export function createAcceptanceServer(port = 3717) {
           },
           totalActiveCount: mockBuildings.length,
           totalInactiveCount: mockInactiveBuildings.length,
+          districtOptions: [
+            { value: 'jingan', label: '静安区', count: mockBuildings.length },
+            { value: 'huangpu', label: '黄浦区', count: mockInactiveBuildings.length },
+          ],
+          inquiryPolicy: { version: 'MVP-R1' },
         },
         meta,
       }))

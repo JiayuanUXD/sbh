@@ -39,10 +39,15 @@
       >
         <swiper-item wx:for="{{building.gallery}}" wx:key="src">
           <image
+            wx:if="{{!galleryImageFailures[index]}}"
             class="building-gallery__image"
             src="{{item.src}}"
+            alt="{{item.alt || building.name}}"
             mode="aspectFill"
+            data-index="{{index}}"
+            binderror="handleGalleryImageError"
           />
+          <view wx:else class="building-gallery__placeholder">尚办好</view>
         </swiper-item>
         <swiper-item wx:if="{{building.gallery.length === 0}}">
           <view class="building-gallery__placeholder">尚办好</view>
@@ -101,16 +106,19 @@
           >
             <view class="building-listing-media">
               <image
-                wx:if="{{item.coverImage}}"
+                wx:if="{{item.coverImage && !listingImageFailures[item.id]}}"
                 class="building-listing-image"
                 src="{{item.coverImage.src}}"
+                alt="{{item.coverImage.alt || item.title}}"
                 mode="aspectFill"
+                data-id="{{item.id}}"
+                binderror="handleListingImageError"
               />
               <view wx:else class="building-listing-placeholder">尚办好</view>
             </view>
             <view class="building-listing-info">
               <view class="building-listing-title">{{item.title}}</view>
-              <view class="building-listing-facts num">{{item.area ? item.area + ' ㎡' : ''}}{{item.seats ? ' · ' + item.seats + ' 工位' : ''}}</view>
+              <view class="building-listing-facts num">{{item.area !== null ? item.area + ' ㎡' : '面积待确认'}}{{item.seats ? ' · ' + item.seats + ' 工位' : ''}}</view>
             </view>
             <view class="building-listing-price-col">
               <view wx:if="{{item.price}}" class="building-listing-price num">{{item.price.text}}</view>
@@ -168,10 +176,13 @@
         >
           <view class="building-comparable-media">
             <image
-              wx:if="{{item.coverImage}}"
+              wx:if="{{item.coverImage && !comparableImageFailures[item.id]}}"
               class="building-comparable-image"
               src="{{item.coverImage.src}}"
+              alt="{{item.coverImage.alt || item.name}}"
               mode="aspectFill"
+              data-id="{{item.id}}"
+              binderror="handleComparableImageError"
             />
             <view wx:else class="building-comparable-placeholder">尚办好</view>
           </view>
@@ -183,7 +194,13 @@
 
     <!-- 底部常驻操作栏 -->
     <view class="building-bottom-bar">
-      <view class="building-bottom-fav" bindtap="handleFav" aria-disabled="{{favoriteBusy}}">
+      <view
+        class="building-bottom-fav"
+        bindtap="handleFav"
+        aria-disabled="{{favoriteBusy}}"
+        aria-role="button"
+        aria-label="{{favoriteBusy ? '收藏处理中' : (isFavorited ? '取消收藏' : '收藏')}}"
+      >
         <view class="favorite-icon__glyph building-fav-icon {{isFavorited ? 'favorite-icon__glyph--active' : ''}}" aria-hidden="true"></view>
         <text class="building-fav-text">{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}</text>
       </view>

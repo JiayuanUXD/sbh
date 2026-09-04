@@ -18,7 +18,9 @@ import {
   createPayloadSupplyAdapter,
   createSearchContext,
   parseSearchInput,
+  searchBuildingsFiltered,
 } from '@/domain/public-catalog'
+import { DISTRICT_JINGAN, makeBuilding, makeHomepageAdapter } from './helpers/opt035-fixtures'
 
 function listing(id: number): Record<string, unknown> {
   return {
@@ -56,6 +58,8 @@ function building(id: number): Record<string, unknown> {
     updatedAt: '2026-08-13T00:00:00.000Z',
     city: { id: 100, slug: 'shanghai', name: '上海市', status: 'active' },
     district: { id: 101, slug: 'jing-an', name: '静安区', status: 'active' },
+    businessDistrict: { id: 102, slug: 'nanjing-west-road', name: '南京西路商圈', status: 'active' },
+    nearestMetro: { id: 103, slug: 'west-nanjing-road', name: '南京西路站', status: 'active' },
   }
 }
 
@@ -119,6 +123,81 @@ describe('Payload public catalog supply adapter', () => {
     ).toHaveLength(5)
   })
 
+  it.each([
+    ['楼盘名称', '静安嘉里中心', 'name'],
+    ['行政区', '静安区', 'district.name'],
+    ['商圈', '南京西路商圈', 'businessDistrict.name'],
+    ['地铁站', '南京西路站', 'nearestMetro.name'],
+  ] as const)('用受控楼盘关联查询命中%s后返回有效房源', async (_label, keyword, field) => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'buildings') {
+        const where = params.where as Record<string, unknown>
+        const alternatives = where.or as readonly Record<string, unknown>[]
+        expect(alternatives).toEqual(expect.arrayContaining([
+          { [field]: { contains: keyword } },
+        ]))
+        expect(params).toEqual(expect.objectContaining({ depth: 0, limit: 1000 }))
+        return { docs: [{ id: 10 }], hasNextPage: false, nextPage: null }
+      }
+      if (params.collection === 'listing-reports') {
+        return { docs: [], hasNextPage: false, nextPage: null }
+      }
+      if (params.collection === 'listings') {
+        const where = params.where as Record<string, unknown>
+        expect(where.and).toEqual(expect.arrayContaining([
+          {
+            or: [
+              { title: { contains: keyword } },
+              { building: { in: [10] } },
+            ],
+          },
+        ]))
+        return { docs: [listing(1)], hasNextPage: false, nextPage: null }
+      }
+      throw new Error(`unexpected collection ${String(params.collection)}`)
+    })
+
+    const adapter = createPayloadSupplyAdapter()
+    const docs = await adapter.findEffectiveListings(
+      parseSearchInput(new URLSearchParams({ q: keyword })),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
+    )
+
+    expect(docs.map((doc) => doc.id)).toEqual([1])
+  })
+
+  it('房源标题可直接命中，不因无关联楼盘命中而漏空', async () => {
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection === 'buildings') {
+        return { docs: [], hasNextPage: false, nextPage: null }
+      }
+      if (params.collection === 'listing-reports') {
+        return { docs: [], hasNextPage: false, nextPage: null }
+      }
+      if (params.collection === 'listings') {
+        const where = params.where as Record<string, unknown>
+        expect(where.or).toEqual([
+          { availableFrom: { exists: false } },
+          { availableFrom: { less_than_equal: '2026-08-01' } },
+        ])
+        expect(where.and).toEqual(expect.arrayContaining([
+          { or: [{ title: { contains: '东南角景观办公室' } }] },
+        ]))
+        return { docs: [{ ...listing(1), title: '东南角景观办公室' }], hasNextPage: false, nextPage: null }
+      }
+      throw new Error(`unexpected collection ${String(params.collection)}`)
+    })
+
+    const docs = await createPayloadSupplyAdapter().findEffectiveListings(
+      parseSearchInput(new URLSearchParams({
+        q: '东南角景观办公室',
+        availableBefore: '2026-08-01',
+      })),
+      createSearchContext('shanghai', new Date('2026-07-30T00:00:00.000Z')),
+    )
+    expect(docs).toHaveLength(1)
+  })
+
   it('uses a unique compound sort so equal timestamps stay stable across building pages', async () => {
     const fixtures = [building(1), building(2), building(3), building(4)]
     payloadState.find.mockImplementation(async (params) => {
@@ -147,5 +226,51 @@ describe('Payload public catalog supply adapter', () => {
       ['-updatedAt', 'id'],
       ['-updatedAt', 'id'],
     ])
+  })
+
+  it('枚举超过 200 个公开楼盘后再统计、分面与分页，不静默截断', async () => {
+    const fixtures = Array.from({ length: 250 }, (_, index) => makeBuilding({
+      id: index + 1,
+      slug: `building-${String(index + 1).padStart(3, '0')}`,
+      district: index < 225
+        ? DISTRICT_JINGAN
+        : { ...DISTRICT_JINGAN, id: 102, slug: 'huang-pu', name: '黄浦区' },
+    }))
+    payloadState.find.mockImplementation(async (params) => {
+      if (params.collection !== 'buildings') {
+        throw new Error(`unexpected collection ${String(params.collection)}`)
+      }
+      const page = typeof params.page === 'number' ? params.page : 1
+      const limit = typeof params.limit === 'number' ? params.limit : 200
+      const start = (page - 1) * limit
+      const docs = fixtures.slice(start, start + limit)
+      return {
+        docs,
+        hasNextPage: start + limit < fixtures.length,
+        nextPage: start + limit < fixtures.length ? page + 1 : null,
+      }
+    })
+
+    const context = createSearchContext('shanghai')
+    const production = createPayloadSupplyAdapter()
+    const all = await production.findEffectiveBuildings(context)
+    const result = await searchBuildingsFiltered(
+      { sort: 'stock-desc', page: 11, pageSize: 24 },
+      context,
+      makeHomepageAdapter({
+        findEffectiveBuildings: async () => all,
+        aggregateEffectiveSupplyByBuildings: async () => new Map(),
+      }),
+    )
+
+    expect(all).toHaveLength(250)
+    expect(result.totalDocs).toBe(250)
+    expect(result.totalPages).toBe(11)
+    expect(result.docs.map((doc) => doc.slug)).toEqual([
+      ...Array.from({ length: 10 }, (_, index) => `building-${241 + index}`),
+    ])
+    expect(new Map(result.facets.districts.map((item) => [item.slug, item.count]))).toEqual(
+      new Map([['jingan', 225], ['huang-pu', 25]]),
+    )
   })
 })

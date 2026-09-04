@@ -62,6 +62,16 @@ describe('首页页面合同', () => {
     expect(source).toContain('暂时无法打开找房页')
   })
 
+  it('单城市阶段不伪装可交互城市下拉', () => {
+    const template = readPageFile('index.wxml')
+    const styles = readPageFile('index.wxss')
+
+    expect(template).toContain('当前城市 · 上海')
+    expect(template).not.toContain('home-search__arrow')
+    expect(template).not.toContain('home-search__divider')
+    expect(styles).not.toMatch(/\.home-search__(?:arrow|divider)\s*\{/)
+  })
+
   it('品牌区保持 320–360rpx，页面加载具备请求版本守卫且刷新最终停止', () => {
     const styles = readPageFile('index.wxss')
     const source = readPageFile('index.ts')

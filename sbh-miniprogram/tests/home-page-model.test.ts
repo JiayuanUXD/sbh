@@ -97,6 +97,7 @@ const validHome: MiniHomeData = {
     },
   ],
   stats: { listings: 31, buildings: 9, businessAreas: 6 },
+  inquiryPolicy: { version: 'policy-home-v2' },
 }
 
 describe('首页展示模型', () => {

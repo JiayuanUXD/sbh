@@ -3,7 +3,7 @@
   <!-- 顶部筛选栏 -->
   <view class="buildings-filter-bar">
     <view class="buildings-filter-item {{districtFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleDistrictFilter">
-      <text>{{districtFilter || '全上海'}}</text>
+      <text>{{districtFilterLabel}}</text>
       <text class="buildings-filter-arrow">▾</text>
     </view>
     <view class="buildings-filter-item {{gradeFilter ? 'buildings-filter-item--active' : ''}}" bindtap="handleGradeFilter">
@@ -79,7 +79,14 @@
       />
     </view>
 
-    <view class="buildings-end">已展示全部楼盘</view>
+    <view wx:if="{{!hasNextPage}}" class="buildings-end">已展示全部楼盘</view>
+    <view wx:elif="{{loadMoreState === 'loading'}}" class="buildings-load-more">正在加载更多楼盘…</view>
+    <button
+      wx:elif="{{loadMoreState === 'error'}}"
+      class="buildings-load-more buildings-load-more--retry"
+      bindtap="handleRetryLoadMore"
+    >加载失败，点击重试</button>
+    <view wx:else class="buildings-load-more">上拉加载更多楼盘</view>
     <view class="buildings-advisor-card">
       <view>
         <view class="buildings-advisor-card__title">需要顾问协助匹配？</view>

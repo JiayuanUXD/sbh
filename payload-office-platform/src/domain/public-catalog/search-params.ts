@@ -242,8 +242,13 @@ function parseWhitelistedArray(
 function parseQ(sp: URLSearchParams): string | undefined {
   const raw = sp.get('q')
   if (raw == null) return undefined
-  // 截断超长关键词，避免 where 注入
-  const trimmed = raw.trim().slice(0, MAX_Q_LEN)
+  // Payload contains 只接收可展示文本：控制字符和孤立 UTF-16
+  // 代理项都不应进入 where，否则既无业务含义也可能在日志/编码边界失真。
+  if (/\p{Cc}|\uFFFD/u.test(raw) || /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/u.test(raw)) {
+    return undefined
+  }
+  // 按 Unicode 码点截断，避免在 emoji/扩展字中间切断一对代理项。
+  const trimmed = Array.from(raw.trim()).slice(0, MAX_Q_LEN).join('')
   return trimmed.length > 0 ? trimmed : undefined
 }
 

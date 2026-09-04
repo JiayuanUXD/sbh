@@ -53,8 +53,16 @@
           data-type="listing"
           data-slug="{{item.slug}}"
         >
-          <image wx:if="{{item.coverImage}}" class="profile-asset-image" src="{{item.coverImage.src}}" mode="aspectFill" />
-          <view wx:else class="profile-asset-placeholder" />
+          <image
+            wx:if="{{item.coverImage && !favoriteListingImageFailures[item.slug]}}"
+            class="profile-asset-image"
+            src="{{item.coverImage.src}}"
+            alt="{{item.coverImage.alt || item.title}}"
+            mode="aspectFill"
+            data-slug="{{item.slug}}"
+            binderror="handleFavoriteListingImageError"
+          />
+          <view wx:else class="profile-asset-placeholder">尚办好</view>
           <text class="profile-asset-title">{{item.title}}</text>
           <text class="profile-arrow">›</text>
         </view>
@@ -68,8 +76,16 @@
           data-type="building"
           data-slug="{{item.slug}}"
         >
-          <image wx:if="{{item.coverImage}}" class="profile-asset-image" src="{{item.coverImage.src}}" mode="aspectFill" />
-          <view wx:else class="profile-asset-placeholder" />
+          <image
+            wx:if="{{item.coverImage && !favoriteBuildingImageFailures[item.slug]}}"
+            class="profile-asset-image"
+            src="{{item.coverImage.src}}"
+            alt="{{item.coverImage.alt || item.name}}"
+            mode="aspectFill"
+            data-slug="{{item.slug}}"
+            binderror="handleFavoriteBuildingImageError"
+          />
+          <view wx:else class="profile-asset-placeholder">尚办好</view>
           <text class="profile-asset-title">{{item.name}}</text>
           <text class="profile-arrow">›</text>
         </view>

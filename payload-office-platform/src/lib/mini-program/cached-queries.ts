@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache'
 
 import {
   buildCanonicalSearchParams,
+  buildBuildingCanonicalParams,
   BUILDINGS_CATEGORY_TAG,
   buildingsCityTag,
   createSearchContext,
@@ -184,7 +185,7 @@ export function getCachedMiniBuildings(
   city: string,
   input: BuildingSearchInput,
 ): Promise<MiniSnapshot<BuildingsSnapshot>> {
-  const canonical = `city=${city}&page=${input.page}&sort=${input.sort}`
+  const canonical = buildBuildingCanonicalParams({ ...input, city }).toString()
   return getCachedMiniBuildingsByCity(city)(canonical, input)
 }
 

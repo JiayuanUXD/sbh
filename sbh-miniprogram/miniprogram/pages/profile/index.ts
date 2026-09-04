@@ -6,6 +6,7 @@ import {
   type UserInquiry,
 } from '../../services/user-assets.js'
 import { inquiryDetailRoute } from '../../services/inquiry-tracker.js'
+import { markImageFailed, type ImageFailureState } from '../../utils/image-failure-state.js'
 
 type AssetsState = 'loading' | 'ready' | 'error'
 type FavoriteCollection = 'none' | 'listing' | 'building'
@@ -18,6 +19,8 @@ type ProfilePageData = {
   favoriteBuildings: readonly UserFavoriteBuilding[]
   inquiries: readonly ProfileInquiry[]
   favoriteCollection: FavoriteCollection
+  favoriteListingImageFailures: ImageFailureState
+  favoriteBuildingImageFailures: ImageFailureState
 }
 
 type ProfilePageMethods = {
@@ -26,6 +29,8 @@ type ProfilePageMethods = {
   handleRetryAssets(): void
   handleViewFavorites(event: WechatMiniprogram.BaseEvent): void
   handleFavoriteItemClick(event: WechatMiniprogram.BaseEvent): void
+  handleFavoriteListingImageError(event: WechatMiniprogram.BaseEvent): void
+  handleFavoriteBuildingImageError(event: WechatMiniprogram.BaseEvent): void
   handleCloseFavoriteCollection(): void
   handleInquiryItemClick(event: WechatMiniprogram.BaseEvent): void
 }
@@ -51,6 +56,8 @@ Page<ProfilePageData, ProfilePageMethods>({
   data: {
     assetsState: 'loading',
     ...emptyVisibleAssets(),
+    favoriteListingImageFailures: {},
+    favoriteBuildingImageFailures: {},
   },
 
   assetsRequestVersion: 0,
@@ -87,6 +94,8 @@ Page<ProfilePageData, ProfilePageMethods>({
           formattedDate: formatDate(item.submittedAt),
         })),
         favoriteCollection: 'none',
+        favoriteListingImageFailures: {},
+        favoriteBuildingImageFailures: {},
       })
     } catch {
       if (requestVersion !== this.assetsRequestVersion) return
@@ -100,6 +109,22 @@ Page<ProfilePageData, ProfilePageMethods>({
     } finally {
       if (pullDown && requestVersion === this.assetsRequestVersion) wx.stopPullDownRefresh()
     }
+  },
+
+  handleFavoriteListingImageError(event) {
+    const slug = event.currentTarget.dataset.slug
+    if (typeof slug !== 'string' || !slug) return
+    this.setData({
+      favoriteListingImageFailures: markImageFailed(this.data.favoriteListingImageFailures, slug),
+    })
+  },
+
+  handleFavoriteBuildingImageError(event) {
+    const slug = event.currentTarget.dataset.slug
+    if (typeof slug !== 'string' || !slug) return
+    this.setData({
+      favoriteBuildingImageFailures: markImageFailed(this.data.favoriteBuildingImageFailures, slug),
+    })
   },
 
   handleRetryAssets() {

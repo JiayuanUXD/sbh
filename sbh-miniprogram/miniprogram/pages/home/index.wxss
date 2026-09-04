@@ -91,23 +91,12 @@
 .home-search__city {
   display: flex;
   align-items: center;
-  gap: 6rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1d1d1f;
+  flex: 0 0 auto;
+  margin-right: 20rpx;
+  font-size: 22rpx;
+  font-weight: var(--sbh-type-medium-weight, 500);
+  color: var(--sbh-text-secondary, #6e6e73);
   white-space: nowrap;
-}
-
-.home-search__arrow {
-  font-size: 18rpx;
-  color: #86868b;
-}
-
-.home-search__divider {
-  width: 2rpx;
-  height: 36rpx;
-  margin: 0 20rpx;
-  background: #e5e5e7;
 }
 
 .home-search__input {

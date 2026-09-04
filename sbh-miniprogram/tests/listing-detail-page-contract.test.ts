@@ -150,6 +150,8 @@ describe('房源详情页面合同', () => {
     expect(styles).toMatch(/\.listing-detail__main\s*\{[\s\S]*padding-bottom:\s*calc\(112rpx \+ env\(safe-area-inset-bottom\)\);/)
     expect(styles).toMatch(/\.listing-detail__bar\s*\{[\s\S]*position:\s*fixed;[\s\S]*padding-bottom:\s*env\(safe-area-inset-bottom\);/)
     expect(styles).toMatch(/\.listing-detail__bar-action\s*\{[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
+    expect(markup).toMatch(/listing-detail__bar-fav[\s\S]*aria-role="button"[\s\S]*aria-label="\{\{favoriteBusy \? '收藏处理中' : \(isFavorited \? '取消收藏' : '收藏'\)\}\}"/)
+    expect(styles).toMatch(/\.listing-detail__bar-fav\s*\{[\s\S]*min-width:\s*var\(--sbh-size-touch-target\);[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
   })
 
   it('分享路径只由安全 slug 构造，且相关房源真实走详情导航', () => {

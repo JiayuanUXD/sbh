@@ -18,7 +18,11 @@ type FilterRegistration = Readonly<{
 }>
 
 type InquiryContext = {
-  data: { inquiryOpen: boolean }
+  data: {
+    inquiryOpen: boolean
+    inquiryPolicyVersion?: string
+    content?: Readonly<{ inquiryPolicy: Readonly<{ version: string }> }>
+  }
   inquiryOpenPromise: Promise<void> | null
   inquirySheetController: InquiryController | null
   modalOpenGeneration: number
@@ -76,7 +80,7 @@ describe('抽屉宿主快速双击', () => {
   ] as const)('%s 每次重新进入都尝试恢复原生 TabBar', (_label, index) => {
     const restoreModalTabBarBoundary = vi.fn(async () => false)
     const context: InquiryContext = {
-      data: { inquiryOpen: false },
+      data: { inquiryOpen: false, inquiryPolicyVersion: 'policy-v3', content: { inquiryPolicy: { version: 'policy-v3' } } },
       inquiryOpenPromise: null,
       inquirySheetController: null,
       modalOpenGeneration: 0,
@@ -124,7 +128,7 @@ describe('抽屉宿主快速双击', () => {
     const showModalTabBarBoundary = vi.fn(() => gate.promise)
     const open = vi.fn(async () => undefined)
     const context: InquiryContext = {
-      data: { inquiryOpen: false },
+      data: { inquiryOpen: false, inquiryPolicyVersion: 'policy-v3', content: { inquiryPolicy: { version: 'policy-v3' } } },
       inquiryOpenPromise: null,
       inquirySheetController: null,
       modalOpenGeneration: 0,
@@ -143,6 +147,7 @@ describe('抽屉宿主快速双击', () => {
 
     expect(showModalTabBarBoundary).toHaveBeenCalledOnce()
     expect(open).toHaveBeenCalledOnce()
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ policyVersion: 'policy-v3' }))
     expect(context.inquiryOpenPromise).toBeNull()
   })
 
@@ -190,7 +195,7 @@ describe('抽屉宿主快速双击', () => {
       .mockImplementationOnce(() => secondGate.promise)
     const open = vi.fn(async () => undefined)
     const context: InquiryContext = {
-      data: { inquiryOpen: false },
+      data: { inquiryOpen: false, inquiryPolicyVersion: 'policy-v3', content: { inquiryPolicy: { version: 'policy-v3' } } },
       inquiryOpenPromise: null,
       inquirySheetController: null,
       modalOpenGeneration: 0,
@@ -240,7 +245,7 @@ describe('抽屉宿主快速双击', () => {
     }
     const restoreModalTabBarBoundary = vi.fn(async () => true)
     const context: InquiryContext = {
-      data: { inquiryOpen: false },
+      data: { inquiryOpen: false, inquiryPolicyVersion: 'policy-v3', content: { inquiryPolicy: { version: 'policy-v3' } } },
       inquiryOpenPromise: null,
       inquirySheetController: controller,
       modalOpenGeneration: 0,

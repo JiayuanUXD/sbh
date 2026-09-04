@@ -516,6 +516,41 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
   }
 
   /**
+   * 关键词关联命中只在当前城市的前台可见楼盘中执行，且受公共目录
+   * 候选上限约束。这里只返回 ID，不展开媒体/供给，避免把一次首页搜索
+   * 变成无界全表水合。
+   */
+  async function resolveBuildingIdsByKeyword(
+    keyword: string,
+    ctx: SearchContext,
+  ): Promise<number[]> {
+    const payload = await getPayload()
+    const result = await payload.find({
+      collection: 'buildings',
+      where: {
+        ...getPublicBuildingWhere(),
+        'city.slug': { equals: ctx.city },
+        or: [
+          { name: { contains: keyword } },
+          { 'district.name': { contains: keyword } },
+          { 'businessDistrict.name': { contains: keyword } },
+          { 'nearestMetro.name': { contains: keyword } },
+        ],
+      },
+      depth: 0,
+      limit: PUBLIC_CATALOG_CANDIDATE_LIMIT,
+      sort: 'id',
+    })
+    if (result.hasNextPage) {
+      throw new Error('关键词匹配楼盘超过安全候选上限')
+    }
+    return result.docs.flatMap((doc) => {
+      const id = toId(doc.id)
+      return typeof id === 'number' ? [id] : []
+    })
+  }
+
+  /**
    * 有效供给 where 片段（查询层粗筛）+ 举报暂停排除。
    * 与 method-specific 约束合并后作为 payload.find 的 where。
    */
@@ -648,7 +683,17 @@ export function createPayloadSupplyAdapter(): SupplyAdapter {
         ]
       }
       if (input.q) {
-        where.title = { contains: input.q }
+        const keywordBuildingIds = await resolveBuildingIdsByKeyword(input.q, ctx)
+        const keywordWhere: Where = {
+          or: [
+            { title: { contains: input.q } },
+            ...(keywordBuildingIds.length > 0
+              ? [{ building: { in: keywordBuildingIds } }]
+              : []),
+          ],
+        }
+        const existingAnd = Array.isArray(where.and) ? where.and : []
+        where.and = [...existingAnd, keywordWhere]
       }
       if (buildingIds) {
         where.building = { in: buildingIds }
@@ -979,8 +1024,25 @@ GROUP BY l.building_id
       )
     },
 
-    async findEffectiveBuildings(ctx, limit = 200) {
-      return (await findPublicBuildingsPage(ctx, { page: 1, limit }, false)).docs
+    async findEffectiveBuildings(ctx, limit) {
+      if (limit !== undefined) {
+        return (await findPublicBuildingsPage(ctx, { page: 1, limit }, false)).docs
+      }
+
+      const docs: Building[] = []
+      let page = 1
+      const pageSize = 200
+      while (true) {
+        const result = await findPublicBuildingsPage(ctx, { page, limit: pageSize }, true)
+        docs.push(...result.docs)
+        if (!result.hasNextPage) return docs
+        // 公开目录不允许无界扫库，也不允许在触顶时伪装成“全部”。
+        // 超过安全上限就显式失败，由路由返回可重试的服务错误。
+        if (page * pageSize >= PUBLIC_CATALOG_CANDIDATE_LIMIT) {
+          throw new Error('公开楼盘目录超过安全枚举上限')
+        }
+        page = result.nextPage ?? page + 1
+      }
     },
 
     async findEffectiveBuildingsPage(ctx, options) {

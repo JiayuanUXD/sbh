@@ -317,7 +317,7 @@ describe('Mini API mappers', () => {
     {
       path: 'home.stats',
       secret: 'stats-secret',
-      output: () => mapMiniHome(unsafeHome, facets, MEDIA_ORIGIN),
+      output: () => mapMiniHome(unsafeHome, facets, MEDIA_ORIGIN, 'policy-v2'),
     },
     {
       path: 'listings.pagination',
@@ -367,11 +367,12 @@ describe('Mini API mappers', () => {
       filteredByRentUnit: true,
     } satisfies ListingSearchResult
 
-    expect(mapMiniHome(home, facets, MEDIA_ORIGIN)).toEqual({
+    expect(mapMiniHome(home, facets, MEDIA_ORIGIN, 'policy-v2')).toEqual({
       featuredListings: [mapMiniListingCard(card, MEDIA_ORIGIN)],
       featuredBuildings: [],
       quickFilters: expect.any(Array),
       stats: home.stats,
+      inquiryPolicy: { version: 'policy-v2' },
     })
     expect(mapMiniListings(result, listingFacetBundle, 'rmb-sqm-day', MEDIA_ORIGIN)).toEqual({
       items: [mapMiniListingCard(card, MEDIA_ORIGIN)],
@@ -407,7 +408,7 @@ describe('Mini API mappers', () => {
       nearbyListings: [],
     } satisfies HomepageData
 
-    expect(mapMiniHome(home, facets, MEDIA_ORIGIN).featuredBuildings).toEqual([
+    expect(mapMiniHome(home, facets, MEDIA_ORIGIN, 'policy-v2').featuredBuildings).toEqual([
       mapMiniBuildingCard(home.featuredBuildings[0], MEDIA_ORIGIN),
     ])
   })
@@ -433,8 +434,12 @@ describe('Mini API mappers', () => {
       },
     } satisfies BuildingFilteredResult
 
-    expect(mapMiniBuildings).toHaveLength(3)
-    expect(mapMiniBuildings(result, 24, MEDIA_ORIGIN).pagination.pageSize).toBe(24)
+    expect(mapMiniBuildings).toHaveLength(4)
+    expect(mapMiniBuildings(result, 24, MEDIA_ORIGIN, 'policy-v2')).toMatchObject({
+      pagination: { pageSize: 24 },
+      inquiryPolicy: { version: 'policy-v2' },
+      districtOptions: [],
+    })
   })
 
   it('consumes facts produced by the real public building mapper', () => {
@@ -478,13 +483,14 @@ describe('Mini API mappers', () => {
     })
   })
 
-  it('maps reliable detail facts and leaves unknown counts nullable', () => {
+  it('每套有效房源恰好进入一个面积分组，未知面积不丢失也不重复', () => {
     const unknownAreaListing = { ...card, id: 43, slug: 'unknown-area', area: null }
+    const duplicateUnknownAreaListing = { ...unknownAreaListing }
     const supply = {
       asOf: '2026-09-04T00:00:00.000Z',
       groups: [{
         key: 'lease' as const,
-        listings: [card, unknownAreaListing],
+        listings: [card, unknownAreaListing, duplicateUnknownAreaListing],
         priceRanges: [],
         areaRange: null,
         seatRange: null,
@@ -492,8 +498,8 @@ describe('Mini API mappers', () => {
         priceSortDegraded: false,
       }],
       availableGroups: [],
-      totalEffectiveListings: 2,
-      resultCount: 2,
+      totalEffectiveListings: 3,
+      resultCount: 3,
       validationErrors: [],
     }
 
@@ -517,9 +523,13 @@ describe('Mini API mappers', () => {
       nearestMetro: { station: '南京西路站', line: null, distanceMeters: null },
       inquiryPolicy: { version: 'policy-building-v2' },
     })
-    expect(mapped.groupedListings.flatMap((group) => group.items).map((item) => item.slug)).toEqual([
-      card.slug,
-    ])
+    const grouped = mapped.groupedListings.flatMap((group) => group.items)
+    expect(grouped.map((item) => item.slug)).toEqual([card.slug, 'unknown-area'])
+    expect(mapped.groupedListings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ areaRange: '面积待确认', count: 1 }),
+    ]))
+    expect(new Set(grouped.map((item) => item.id)).size).toBe(mapped.activeListingCount)
+    expect(grouped).toHaveLength(mapped.activeListingCount)
   })
 
   it('builds each list filter from the facet snapshot that ignored that same dimension', () => {
@@ -598,7 +608,7 @@ describe('Mini API mappers', () => {
       stats: { listings: 0, buildings: 0, businessAreas: 0 },
       typeSummaries: {},
       nearbyListings: [],
-    }, facets, MEDIA_ORIGIN).quickFilters
+    }, facets, MEDIA_ORIGIN, 'policy-v2').quickFilters
 
     expect(filters.find((filter) => filter.id === 'listingType')?.options).toEqual([
       { value: 'traditional-office', label: '传统办公', count: 1 },

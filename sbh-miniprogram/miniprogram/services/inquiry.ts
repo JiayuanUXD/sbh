@@ -1,7 +1,6 @@
 import type { RequestOptions } from './mini-api-contracts.js'
 
 export type InquiryTargetResolution = 'listing' | 'building' | 'general'
-export const CURRENT_INQUIRY_POLICY_VERSION = 'MVP-R1'
 export type InquiryErrorCode =
   | 'phone_code_consumed'
   | 'inquiry_submit_failed'

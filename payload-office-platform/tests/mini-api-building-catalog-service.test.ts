@@ -65,7 +65,11 @@ function resultFixture(): BuildingFilteredResult {
     unfilteredTotalDocs: 1,
     page: 2,
     totalPages: 2,
-    facets: { districts: [], grades: [], metros: [] },
+    facets: {
+      districts: [{ slug: 'jing-an', name: '静安区', count: 1 }],
+      grades: [],
+      metros: [],
+    },
     dimensionHits: {
       district: 1,
       grade: 1,
@@ -120,6 +124,10 @@ describe('Mini 楼盘 catalog service 编排', () => {
     expect(pageSizeReads).toBe(1)
     expect(snapshot?.data.pagination).toMatchObject({ page: 2, pageSize: 24 })
     expect(snapshot?.data.items[0]).toMatchObject({ grade: 'grade-a', activeListingCount: 3 })
+    expect(snapshot?.data.inquiryPolicy).toEqual({ version: 'policy-building-v2' })
+    expect(snapshot?.data.districtOptions).toEqual([
+      { value: 'jing-an', label: '静安区', count: 1 },
+    ])
   })
 
   it('只 mock 查询边界并用真实公共 mapper 输出完成楼盘详情编排', async () => {

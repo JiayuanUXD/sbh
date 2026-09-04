@@ -1,8 +1,8 @@
 {
   "status": "incomplete",
-  "timestamp": "2026-09-04T19:10:08.625Z",
+  "timestamp": "2026-09-04T19:55:33.615Z",
   "environment": "local-wechat-devtools-develop-with-controlled-mock",
-  "evidenceRevision": "b8aa5f48bb13cabe",
+  "evidenceRevision": "cc0822e1138988b8",
   "profileReports": {
     "small": "sheet-acceptance-small.json",
     "large": "sheet-acceptance-large.json"
@@ -10,9 +10,9 @@
   "viewportProfiles": {
     "small": {
       "status": "failed",
-      "timestamp": "2026-09-04T19:09:13.172Z",
+      "timestamp": "2026-09-04T19:54:40.272Z",
       "environment": "local-wechat-devtools-develop-with-controlled-mock",
-      "evidenceRevision": "b8aa5f48bb13cabe",
+      "evidenceRevision": "cc0822e1138988b8",
       "viewportProfile": {
         "name": "small",
         "passed": false
@@ -22,11 +22,11 @@
         "platform": "devtools",
         "version": "8.0.5",
         "windowWidth": 375,
-        "windowHeight": 642,
+        "windowHeight": 639,
         "filterPageWidth": 375,
-        "filterPageHeight": 724,
+        "filterPageHeight": 721,
         "inquiryPageWidth": 375,
-        "inquiryPageHeight": 724,
+        "inquiryPageHeight": 721,
         "safeAreaBottomInset": 34
       },
       "states": {
@@ -36,67 +36,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 344.5,
+              "top": 341.5,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 360.5,
+              "top": 357.5,
               "right": 375,
-              "bottom": 411
+              "bottom": 408
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 360.5,
+              "top": 357.5,
               "right": 363,
-              "bottom": 404.5
+              "bottom": 401.5
             },
             "body": {
               "left": 0,
-              "top": 411,
+              "top": 408,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 133,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "price-units",
                 "container": {
                   "left": 26,
-                  "top": 460,
+                  "top": 457,
                   "right": 349,
-                  "bottom": 504
+                  "bottom": 501
                 },
                 "section": {
                   "left": 12,
-                  "top": 419,
+                  "top": 416,
                   "right": 363,
-                  "bottom": 518
+                  "bottom": 515
                 },
                 "items": [
                   {
                     "left": 26,
-                    "top": 460,
+                    "top": 457,
                     "right": 185.5,
-                    "bottom": 504
+                    "bottom": 501
                   },
                   {
                     "left": 189.5,
-                    "top": 460,
+                    "top": 457,
                     "right": 349,
-                    "bottom": 504
+                    "bottom": 501
                   }
                 ]
               }
@@ -107,15 +107,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "filterBarGeometry": {
@@ -175,7 +175,7 @@
               "left": 0,
               "top": 80,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
@@ -185,9 +185,9 @@
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
@@ -199,13 +199,13 @@
               "left": 0,
               "top": 146.5,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 133,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
@@ -337,67 +337,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 471.3203125,
+                  "top": 470.4765625,
                   "right": 349,
-                  "bottom": 523.3203125
+                  "bottom": 522.4765625
                 },
                 "section": {
                   "left": 12,
-                  "top": 359.3203125,
+                  "top": 358.4765625,
                   "right": 363,
-                  "bottom": 661.3203125
+                  "bottom": 660.4765625
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 187.5,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   },
                   {
                     "left": 187.5,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 345,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   }
                 ]
               }
@@ -408,15 +408,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "screenshot": "small/home-inquiry-open.png"
@@ -427,67 +427,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 471.3203125,
+                  "top": 470.4765625,
                   "right": 349,
-                  "bottom": 523.3203125
+                  "bottom": 522.4765625
                 },
                 "section": {
                   "left": 12,
-                  "top": 359.3203125,
+                  "top": 358.4765625,
                   "right": 363,
-                  "bottom": 661.3203125
+                  "bottom": 660.4765625
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 187.5,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   },
                   {
                     "left": 187.5,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 345,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   }
                 ]
               }
@@ -498,15 +498,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "screenshot": "small/buildings-inquiry-open.png"
@@ -517,67 +517,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 495.1171875,
+                  "top": 494.2734375,
                   "right": 349,
-                  "bottom": 547.1171875
+                  "bottom": 546.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 383.1171875,
+                  "top": 382.2734375,
                   "right": 363,
-                  "bottom": 685.1171875
+                  "bottom": 684.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 187.5,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 345,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   }
                 ]
               }
@@ -590,11 +590,11 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": null
           },
@@ -606,67 +606,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 495.1171875,
+                  "top": 494.2734375,
                   "right": 349,
-                  "bottom": 547.1171875
+                  "bottom": 546.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 383.1171875,
+                  "top": 382.2734375,
                   "right": 363,
-                  "bottom": 711.1171875
+                  "bottom": 710.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 187.5,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 345,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   }
                 ]
               }
@@ -687,24 +687,24 @@
           "inputVisibleBeforeTap": true,
           "preFocusViewport": {
             "width": 375,
-            "height": 724
+            "height": 721
           },
           "viewport": {
             "width": 375,
-            "height": 724
+            "height": 721
           },
           "keyboardViewportDelta": 0,
           "input": {
             "left": 26,
-            "top": 551.1171875,
+            "top": 550.2734375,
             "right": 349,
-            "bottom": 595.1171875
+            "bottom": 594.2734375
           },
           "footer": {
             "left": 0,
-            "top": 633,
+            "top": 630,
             "right": 375,
-            "bottom": 724
+            "bottom": 721
           },
           "screenshot": "small/inquiry-keyboard-focus.png"
         },
@@ -714,67 +714,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 387.6171875,
+                  "top": 384.7734375,
                   "right": 349,
-                  "bottom": 439.6171875
+                  "bottom": 436.7734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 275.6171875,
+                  "top": 272.7734375,
                   "right": 363,
-                  "bottom": 633.1171875
+                  "bottom": 630.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 391.6171875,
+                    "top": 388.7734375,
                     "right": 187.5,
-                    "bottom": 435.6171875
+                    "bottom": 432.7734375
                   },
                   {
                     "left": 187.5,
-                    "top": 391.6171875,
+                    "top": 388.7734375,
                     "right": 345,
-                    "bottom": 435.6171875
+                    "bottom": 432.7734375
                   }
                 ]
               }
@@ -785,9 +785,9 @@
             "text": "网络连接失败，请检查网络后重试",
             "rect": {
               "left": 26,
-              "top": 599.6171875,
+              "top": 596.7734375,
               "right": 349,
-              "bottom": 619.1171875
+              "bottom": 616.2734375
             },
             "visiblyRendered": true
           },
@@ -799,67 +799,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 417.1171875,
+                  "top": 414.2734375,
                   "right": 349,
-                  "bottom": 469.1171875
+                  "bottom": 466.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 305.1171875,
+                  "top": 302.2734375,
                   "right": 363,
-                  "bottom": 633.1171875
+                  "bottom": 630.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 421.1171875,
+                    "top": 418.2734375,
                     "right": 187.5,
-                    "bottom": 465.1171875
+                    "bottom": 462.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 421.1171875,
+                    "top": 418.2734375,
                     "right": 345,
-                    "bottom": 465.1171875
+                    "bottom": 462.2734375
                   }
                 ]
               }
@@ -874,39 +874,39 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": []
           },
@@ -923,9 +923,9 @@
     },
     "large": {
       "status": "failed",
-      "timestamp": "2026-09-04T19:10:08.623Z",
+      "timestamp": "2026-09-04T19:55:33.614Z",
       "environment": "local-wechat-devtools-develop-with-controlled-mock",
-      "evidenceRevision": "b8aa5f48bb13cabe",
+      "evidenceRevision": "cc0822e1138988b8",
       "viewportProfile": {
         "name": "large",
         "passed": false
@@ -1845,67 +1845,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 344.5,
+              "top": 341.5,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 360.5,
+              "top": 357.5,
               "right": 375,
-              "bottom": 411
+              "bottom": 408
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 360.5,
+              "top": 357.5,
               "right": 363,
-              "bottom": 404.5
+              "bottom": 401.5
             },
             "body": {
               "left": 0,
-              "top": 411,
+              "top": 408,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 133,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "price-units",
                 "container": {
                   "left": 26,
-                  "top": 460,
+                  "top": 457,
                   "right": 349,
-                  "bottom": 504
+                  "bottom": 501
                 },
                 "section": {
                   "left": 12,
-                  "top": 419,
+                  "top": 416,
                   "right": 363,
-                  "bottom": 518
+                  "bottom": 515
                 },
                 "items": [
                   {
                     "left": 26,
-                    "top": 460,
+                    "top": 457,
                     "right": 185.5,
-                    "bottom": 504
+                    "bottom": 501
                   },
                   {
                     "left": 189.5,
-                    "top": 460,
+                    "top": 457,
                     "right": 349,
-                    "bottom": 504
+                    "bottom": 501
                   }
                 ]
               }
@@ -1916,15 +1916,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "filterBarGeometry": {
@@ -2126,7 +2126,7 @@
               "left": 0,
               "top": 80,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
@@ -2136,9 +2136,9 @@
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
@@ -2150,13 +2150,13 @@
               "left": 0,
               "top": 146.5,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 133,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
@@ -2457,67 +2457,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 471.3203125,
+                  "top": 470.4765625,
                   "right": 349,
-                  "bottom": 523.3203125
+                  "bottom": 522.4765625
                 },
                 "section": {
                   "left": 12,
-                  "top": 359.3203125,
+                  "top": 358.4765625,
                   "right": 363,
-                  "bottom": 661.3203125
+                  "bottom": 660.4765625
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 187.5,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   },
                   {
                     "left": 187.5,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 345,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   }
                 ]
               }
@@ -2528,15 +2528,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "screenshot": "small/home-inquiry-open.png"
@@ -2642,67 +2642,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 471.3203125,
+                  "top": 470.4765625,
                   "right": 349,
-                  "bottom": 523.3203125
+                  "bottom": 522.4765625
                 },
                 "section": {
                   "left": 12,
-                  "top": 359.3203125,
+                  "top": 358.4765625,
                   "right": 363,
-                  "bottom": 661.3203125
+                  "bottom": 660.4765625
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 187.5,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   },
                   {
                     "left": 187.5,
-                    "top": 475.3203125,
+                    "top": 474.4765625,
                     "right": 345,
-                    "bottom": 519.3203125
+                    "bottom": 518.4765625
                   }
                 ]
               }
@@ -2713,15 +2713,15 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": {
               "width": 375,
-              "height": 642
+              "height": 639
             }
           },
           "screenshot": "small/buildings-inquiry-open.png"
@@ -2827,67 +2827,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 495.1171875,
+                  "top": 494.2734375,
                   "right": 349,
-                  "bottom": 547.1171875
+                  "bottom": 546.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 383.1171875,
+                  "top": 382.2734375,
                   "right": 363,
-                  "bottom": 685.1171875
+                  "bottom": 684.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 187.5,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 345,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   }
                 ]
               }
@@ -2900,11 +2900,11 @@
             "tabBarVisible": false,
             "current": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "expandedViewport": {
               "width": 375,
-              "height": 724
+              "height": 721
             },
             "visibleViewport": null
           },
@@ -3010,67 +3010,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 495.1171875,
+                  "top": 494.2734375,
                   "right": 349,
-                  "bottom": 547.1171875
+                  "bottom": 546.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 383.1171875,
+                  "top": 382.2734375,
                   "right": 363,
-                  "bottom": 711.1171875
+                  "bottom": 710.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 187.5,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 499.1171875,
+                    "top": 498.2734375,
                     "right": 345,
-                    "bottom": 543.1171875
+                    "bottom": 542.2734375
                   }
                 ]
               }
@@ -3173,24 +3173,24 @@
           "inputVisibleBeforeTap": true,
           "preFocusViewport": {
             "width": 375,
-            "height": 724
+            "height": 721
           },
           "viewport": {
             "width": 375,
-            "height": 724
+            "height": 721
           },
           "keyboardViewportDelta": 0,
           "input": {
             "left": 26,
-            "top": 551.1171875,
+            "top": 550.2734375,
             "right": 349,
-            "bottom": 595.1171875
+            "bottom": 594.2734375
           },
           "footer": {
             "left": 0,
-            "top": 633,
+            "top": 630,
             "right": 375,
-            "bottom": 724
+            "bottom": 721
           },
           "screenshot": "small/inquiry-keyboard-focus.png"
         },
@@ -3236,67 +3236,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 387.6171875,
+                  "top": 384.7734375,
                   "right": 349,
-                  "bottom": 439.6171875
+                  "bottom": 436.7734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 275.6171875,
+                  "top": 272.7734375,
                   "right": 363,
-                  "bottom": 633.1171875
+                  "bottom": 630.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 391.6171875,
+                    "top": 388.7734375,
                     "right": 187.5,
-                    "bottom": 435.6171875
+                    "bottom": 432.7734375
                   },
                   {
                     "left": 187.5,
-                    "top": 391.6171875,
+                    "top": 388.7734375,
                     "right": 345,
-                    "bottom": 435.6171875
+                    "bottom": 432.7734375
                   }
                 ]
               }
@@ -3307,9 +3307,9 @@
             "text": "网络连接失败，请检查网络后重试",
             "rect": {
               "left": 26,
-              "top": 599.6171875,
+              "top": 596.7734375,
               "right": 349,
-              "bottom": 619.1171875
+              "bottom": 616.2734375
             },
             "visiblyRendered": true
           },
@@ -3411,67 +3411,67 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": [
               {
                 "name": "phone-segment",
                 "container": {
                   "left": 26,
-                  "top": 417.1171875,
+                  "top": 414.2734375,
                   "right": 349,
-                  "bottom": 469.1171875
+                  "bottom": 466.2734375
                 },
                 "section": {
                   "left": 12,
-                  "top": 305.1171875,
+                  "top": 302.2734375,
                   "right": 363,
-                  "bottom": 633.1171875
+                  "bottom": 630.2734375
                 },
                 "items": [
                   {
                     "left": 30,
-                    "top": 421.1171875,
+                    "top": 418.2734375,
                     "right": 187.5,
-                    "bottom": 465.1171875
+                    "bottom": 462.2734375
                   },
                   {
                     "left": 187.5,
-                    "top": 421.1171875,
+                    "top": 418.2734375,
                     "right": 345,
-                    "bottom": 465.1171875
+                    "bottom": 462.2734375
                   }
                 ]
               }
@@ -3566,39 +3566,39 @@
           "geometry": {
             "panel": {
               "left": 0,
-              "top": 202.7265625,
+              "top": 201.8828125,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "header": {
               "left": 0,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 375,
-              "bottom": 269.0234375
+              "bottom": 268.1796875
             },
             "footer": {
               "left": 0,
-              "top": 633,
+              "top": 630,
               "right": 375,
-              "bottom": 724
+              "bottom": 721
             },
             "close": {
               "left": 319,
-              "top": 218.7265625,
+              "top": 217.8828125,
               "right": 363,
-              "bottom": 262.7265625
+              "bottom": 261.8828125
             },
             "body": {
               "left": 0,
-              "top": 269.0234375,
+              "top": 268.1796875,
               "right": 375,
-              "bottom": 633
+              "bottom": 630
             },
             "primaryAction": {
               "left": 12,
-              "top": 640,
+              "top": 637,
               "right": 363,
-              "bottom": 684
+              "bottom": 681
             },
             "internalGroups": []
           },

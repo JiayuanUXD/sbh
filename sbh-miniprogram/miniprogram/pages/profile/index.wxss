@@ -138,10 +138,15 @@
 
 .profile-asset-image,
 .profile-asset-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 96rpx;
   height: 72rpx;
   border-radius: var(--sbh-shape-control-radius);
   background: var(--sbh-border-subtle);
+  color: var(--sbh-text-tertiary);
+  font-size: 18rpx;
 }
 
 .profile-asset-title,

@@ -285,8 +285,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4rpx;
-  width: 88rpx;
+  min-width: var(--sbh-size-touch-target);
+  min-height: var(--sbh-size-touch-target);
 }
 
 .building-fav-icon {

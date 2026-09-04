@@ -37,6 +37,17 @@ describe('楼盘详情页面合同', () => {
     expect(template).toContain('handleListingOpen')
   })
 
+  it('画廊、房源与可比楼盘图片都按独立身份降级并保留可读替代文本', () => {
+    const template = readPageFile('index.wxml')
+    const source = readPageFile('index.ts')
+
+    expect(template).toMatch(/building-gallery__image[\s\S]*alt="\{\{item\.alt \|\| building\.name\}\}"[\s\S]*binderror="handleGalleryImageError"/)
+    expect(template).toMatch(/building-listing-image[\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.title\}\}"[\s\S]*binderror="handleListingImageError"/)
+    expect(template).toMatch(/building-comparable-image[\s\S]*alt="\{\{item\.coverImage\.alt \|\| item\.name\}\}"[\s\S]*binderror="handleComparableImageError"/)
+    expect(source).toContain('markImageFailed')
+    expect(template.match(/>尚办好<\/view>/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
+  })
+
   it('脚本包含跳转房源详情与可比楼盘的穿梭逻辑', () => {
     const source = readPageFile('index.ts')
 
@@ -67,6 +78,7 @@ describe('楼盘详情页面合同', () => {
   it('楼盘收藏异步等待服务端确认并用 busy 防重复', () => {
     const source = readPageFile('index.ts')
     const template = readPageFile('index.wxml')
+    const styles = readPageFile('index.wxss')
 
     expect(source).toContain('setFavorite')
     expect(source).toContain('loadUserAssets')
@@ -74,6 +86,8 @@ describe('楼盘详情页面合同', () => {
     expect(source).toMatch(/catch[\s\S]*收藏状态更新失败/)
     expect(source).not.toMatch(/toggleBuildingFavorite|isBuildingFavorite/)
     expect(template).toContain("{{favoriteBusy ? '处理中' : (isFavorited ? '已收藏' : '收藏')}}")
+    expect(template).toMatch(/building-bottom-fav[\s\S]*aria-role="button"[\s\S]*aria-label="\{\{favoriteBusy \? '收藏处理中' : \(isFavorited \? '取消收藏' : '收藏'\)\}\}"/)
+    expect(styles).toMatch(/\.building-bottom-fav\s*\{[\s\S]*min-width:\s*var\(--sbh-size-touch-target\);[\s\S]*min-height:\s*var\(--sbh-size-touch-target\);/)
   })
 
   it('只展示 DTO 支持的楼盘事实，缺失值使用横线或隐藏且不渲染地图占位', () => {

@@ -21,6 +21,7 @@ import {
 } from '../../services/inquiry.js'
 import { request } from '../../services/request.js'
 import { createSessionService } from '../../services/session.js'
+import { markImageFailed, type ImageFailureState } from '../../utils/image-failure-state.js'
 
 type BuildingDetailState = 'loading' | 'ready' | 'error' | 'not-found'
 
@@ -30,6 +31,9 @@ type BuildingDetailPageData = {
   building: MiniBuildingDetailData | null
   gradeLabel: string
   currentGalleryIndex: number
+  galleryImageFailures: ImageFailureState
+  listingImageFailures: ImageFailureState
+  comparableImageFailures: ImageFailureState
   isFavorited: boolean
   favoriteBusy: boolean
   inquiryOpen: boolean
@@ -47,6 +51,9 @@ type BuildingDetailPageMethods = {
   loadFavoriteState(slug: string): Promise<void>
   handleFav(): Promise<void>
   handleGalleryChange(event: WechatMiniprogram.CustomEvent): void
+  handleGalleryImageError(event: WechatMiniprogram.BaseEvent): void
+  handleListingImageError(event: WechatMiniprogram.BaseEvent): void
+  handleComparableImageError(event: WechatMiniprogram.BaseEvent): void
   handleListingOpen(event: WechatMiniprogram.BaseEvent): void
   handleComparableOpen(event: WechatMiniprogram.BaseEvent): void
   handleInquiryAdvisor(): void
@@ -133,6 +140,9 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
     building: null,
     gradeLabel: '—',
     currentGalleryIndex: 0,
+    galleryImageFailures: {},
+    listingImageFailures: {},
+    comparableImageFailures: {},
     isFavorited: false,
     favoriteBusy: true,
     inquiryOpen: false,
@@ -166,6 +176,9 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
         building,
         gradeLabel: building.grade ? buildingGradeLabel(building.grade) : '—',
         currentGalleryIndex: 0,
+        galleryImageFailures: {},
+        listingImageFailures: {},
+        comparableImageFailures: {},
       })
       wx.setNavigationBarTitle({ title: building.name })
       void this.loadFavoriteState(building.slug)
@@ -180,6 +193,30 @@ Page<BuildingDetailPageData, BuildingDetailPageMethods>({
         favoriteBusy: false,
       })
     }
+  },
+
+  handleGalleryImageError(event) {
+    const index = Number(event.currentTarget.dataset.index)
+    if (!Number.isSafeInteger(index) || index < 0) return
+    this.setData({
+      galleryImageFailures: markImageFailed(this.data.galleryImageFailures, String(index)),
+    })
+  },
+
+  handleListingImageError(event) {
+    const id = event.currentTarget.dataset.id
+    if (typeof id !== 'string' || !id) return
+    this.setData({
+      listingImageFailures: markImageFailed(this.data.listingImageFailures, id),
+    })
+  },
+
+  handleComparableImageError(event) {
+    const id = event.currentTarget.dataset.id
+    if (typeof id !== 'string' || !id) return
+    this.setData({
+      comparableImageFailures: markImageFailed(this.data.comparableImageFailures, id),
+    })
   },
 
   async loadFavoriteState(slug) {

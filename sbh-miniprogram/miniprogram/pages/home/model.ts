@@ -34,6 +34,7 @@ export type HomePresentation = Readonly<{
   featuredBuildings: MiniHomeData['featuredBuildings']
   quickFilters: readonly HomeQuickFilterGroup[]
   stats: MiniHomeData['stats']
+  inquiryPolicy: MiniHomeData['inquiryPolicy']
 }>
 
 export type HomePageSnapshot = Readonly<{
@@ -98,6 +99,7 @@ export function presentHome(home: MiniHomeData): HomePresentation {
     featuredBuildings: home.featuredBuildings,
     quickFilters,
     stats: home.stats,
+    inquiryPolicy: home.inquiryPolicy,
   }
 }
 

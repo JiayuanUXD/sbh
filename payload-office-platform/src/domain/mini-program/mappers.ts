@@ -252,6 +252,7 @@ export function mapMiniHome(
   home: HomepageData,
   facets: SearchFacets,
   mediaOrigin: string,
+  inquiryPolicyVersion: string,
 ): MiniHomeData {
   return {
     featuredListings: home.featuredListings.map((card) => mapMiniListingCard(card, mediaOrigin)),
@@ -264,6 +265,7 @@ export function mapMiniHome(
       buildings: home.stats.buildings,
       businessAreas: home.stats.businessAreas,
     },
+    inquiryPolicy: { version: inquiryPolicyVersion },
   }
 }
 
@@ -453,6 +455,7 @@ export function mapMiniBuildings(
   result: BuildingFilteredResult,
   pageSize: MiniBuildingsData['pagination']['pageSize'],
   mediaOrigin: string,
+  inquiryPolicyVersion: string,
 ): MiniBuildingsData {
   const activeItems = result.groups.withStock.map((doc) =>
     mapMiniBuildingCard(doc, mediaOrigin),
@@ -476,6 +479,12 @@ export function mapMiniBuildings(
     },
     totalActiveCount: result.withStockTotal,
     totalInactiveCount: result.withoutStockTotal,
+    districtOptions: result.facets.districts.map((district) => ({
+      value: district.slug,
+      label: district.name,
+      count: district.count,
+    })),
+    inquiryPolicy: { version: inquiryPolicyVersion },
   }
 }
 
@@ -487,13 +496,19 @@ export function mapMiniBuildingDetail(
   inquiryPolicyVersion: string,
 ): MiniBuildingDetailData {
   const allListings = supply.groups.flatMap((g) => g.listings)
-  const activeCards = allListings.map((l) => mapMiniListingCard(l, mediaOrigin))
+  // 同一房源不应因上游组投影重叠而被计数/展示多次。
+  const activeCards = Array.from(new Map(
+    allListings
+      .map((listing) => mapMiniListingCard(listing, mediaOrigin))
+      .map((listing) => [listing.id, listing] as const),
+  ).values())
 
   const over1000 = activeCards.filter((listing) => listing.area !== null && listing.area >= 1000)
   const from300to1000 = activeCards.filter((listing) => (
     listing.area !== null && listing.area >= 300 && listing.area < 1000
   ))
   const under300 = activeCards.filter((listing) => listing.area !== null && listing.area < 300)
+  const unknownArea = activeCards.filter((listing) => listing.area === null)
 
   const passengerElevators = buildingFactNumber(detail.factGroups, '客梯', '部', true)
   const cargoElevators = buildingFactNumber(detail.factGroups, '货梯', '部', true)
@@ -502,6 +517,7 @@ export function mapMiniBuildingDetail(
     { areaRange: '1,000 ㎡ 以上', count: over1000.length, items: over1000 },
     { areaRange: '300–1,000 ㎡', count: from300to1000.length, items: from300to1000 },
     { areaRange: '300 ㎡ 以下', count: under300.length, items: under300 },
+    { areaRange: '面积待确认', count: unknownArea.length, items: unknownArea },
   ].filter((g) => g.count > 0)
 
   return {

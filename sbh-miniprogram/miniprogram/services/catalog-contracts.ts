@@ -105,6 +105,8 @@ export type MiniBuildingsData = Readonly<{
   }>
   totalActiveCount: number
   totalInactiveCount: number
+  districtOptions: readonly Readonly<{ value: string; label: string; count: number }>[]
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniBuildingDetailData = Readonly<{
@@ -145,6 +147,7 @@ export type MiniHomeData = Readonly<{
   featuredBuildings: readonly MiniBuildingCard[]
   quickFilters: readonly MiniQuickFilter[]
   stats: Readonly<{ listings: number; buildings: number; businessAreas: number }>
+  inquiryPolicy: Readonly<{ version: string }>
 }>
 
 export type MiniListingsData = Readonly<{
@@ -288,6 +291,18 @@ function requireNullableIsoTimestamp(value: unknown): string | null {
 function requireArray<T>(value: unknown, parse: (item: unknown) => T): readonly T[] {
   if (!Array.isArray(value)) return invalidCatalogResponse()
   return value.map(parse)
+}
+
+function parseInquiryPolicy(value: unknown): Readonly<{ version: string }> {
+  const policy = requireRecord(value)
+  if (Object.keys(policy).length !== 1 || !Object.hasOwn(policy, 'version')) {
+    return invalidCatalogResponse()
+  }
+  const version = requireNonEmptyString(policy.version)
+  if (version.length > 128 || version.trim() !== version || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(version)) {
+    return invalidCatalogResponse()
+  }
+  return { version }
 }
 
 function optionalNonNegativeNumber(value: unknown): number | undefined {
@@ -468,6 +483,7 @@ function parsePagination(value: unknown): MiniListingsData['pagination'] {
 export function parseMiniHomeData(value: unknown): MiniHomeData {
   const record = requireRecord(value)
   const stats = requireRecord(record.stats)
+  const inquiryPolicy = parseInquiryPolicy(record.inquiryPolicy)
   return {
     featuredListings: requireArray(record.featuredListings, parseMiniListingCard),
     featuredBuildings: requireArray(record.featuredBuildings, parseMiniBuildingCard),
@@ -477,6 +493,7 @@ export function parseMiniHomeData(value: unknown): MiniHomeData {
       buildings: requireNonNegativeInteger(stats.buildings),
       businessAreas: requireNonNegativeInteger(stats.businessAreas),
     },
+    inquiryPolicy,
   }
 }
 
@@ -626,6 +643,16 @@ export function parseMiniBuildingsData(value: unknown): MiniBuildingsData {
     },
     totalActiveCount: requireNonNegativeInteger(record.totalActiveCount),
     totalInactiveCount: requireNonNegativeInteger(record.totalInactiveCount),
+    districtOptions: requireArray(record.districtOptions, (option) => {
+      const entry = requireRecord(option)
+      if (Object.keys(entry).length !== 3) return invalidCatalogResponse()
+      return {
+        value: requireSafeSlug(requireString(entry.value)),
+        label: requireNonEmptyString(entry.label),
+        count: requireNonNegativeInteger(entry.count),
+      }
+    }),
+    inquiryPolicy: parseInquiryPolicy(record.inquiryPolicy),
   }
 }
 
@@ -658,10 +685,7 @@ export function parseMiniBuildingDetailData(
           distanceMeters: requireNullableNonNegativeInteger(metro.distanceMeters),
         }
       })()
-  const inquiryPolicy = requireRecord(record.inquiryPolicy)
-  if (Object.keys(inquiryPolicy).length !== 1 || !Object.hasOwn(inquiryPolicy, 'version')) {
-    return invalidCatalogResponse()
-  }
+  const inquiryPolicy = parseInquiryPolicy(record.inquiryPolicy)
 
   return {
     id: requireString(record.id),
@@ -689,6 +713,6 @@ export function parseMiniBuildingDetailData(
     }),
     nearestMetro,
     comparableBuildings: requireArray(record.comparableBuildings, parseMiniBuildingCard),
-    inquiryPolicy: { version: requireNonEmptyString(inquiryPolicy.version) },
+    inquiryPolicy,
   }
 }

@@ -39,12 +39,14 @@ export async function getMiniHome(
   if (!trustedCity) return null
 
   const snapshot = await getCachedMiniHome(trustedCity)
+  const siteConfig = getSiteConfig()
   return {
     asOf: snapshot.asOf,
     data: mapMiniHome(
       snapshot.data.home,
       snapshot.data.facets,
-      getSiteConfig().siteOrigin,
+      siteConfig.siteOrigin,
+      siteConfig.privacyPolicyVersion,
     ),
   }
 }
@@ -105,12 +107,14 @@ export async function getMiniBuildings(
 
   const input = parseBuildingSearchInput(url.searchParams)
   const snapshot = await getCachedMiniBuildings(trustedCity, input)
+  const siteConfig = getSiteConfig()
   return {
     asOf: snapshot.asOf,
     data: mapMiniBuildings(
       snapshot.data.result,
       snapshot.data.input.pageSize,
-      getSiteConfig().siteOrigin,
+      siteConfig.siteOrigin,
+      siteConfig.privacyPolicyVersion,
     ),
   }
 }
