@@ -13,8 +13,10 @@ build-info.json
 *.sqlite
 *.sqlite-journal
 *.sqlite-*
-media
-media-source
+# 本地上传目录只在本包根下，必须锚定 `/`：裸 `media` 会命中任意层级的同名
+# 目录（如 src/domain/media/），让该目录下的新文件被 git add 静默拒收
+/media/
+/media-source/
 public/images/
 test-results
 playwright-report
