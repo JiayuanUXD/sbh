@@ -1,6 +1,6 @@
 # Task Packet：OPT-068 C 端可感知性能——房源扫描层、详情流式、导航反馈、根路径直出、封面派生图
 
-> 状态：**待合并**（Task 1–11 已实施并本地验证；生产回填与线上复测待上线后进行）
+> 状态：**已上线**（2026-09-04 12:35 CloudRun 发布成功，构建 `a994f6b`；线上复测见 §上线后实测。存量媒体回填仍待执行）
 > 创建日期：2026-09-04
 > 来源：本日性能讨论（线上实测），用户裁定「域名/CDN 另行处理，其余写成计划开工」
 > 分支：`perf/opt-068-listing-scan-df70`
@@ -566,9 +566,29 @@ node --env-file=.env.production --import tsx scripts/backfill-media-sizes.ts --e
   排序、翻页、ctrl+click 放行均实测通过；详情页 HTML 同时含骨架与流式补上的 `id="related"`；
   根路径 200 且 canonical 指向 `/shanghai`；首页热门楼盘与楼盘列表卡带 `srcset`。
 
+## 上线后实测（2026-09-04 12:48，线上默认域名，构建 `a994f6b`）
+
+| 场景 | 上线前（冷） | 上线后（冷） | 上线后（热） |
+|---|---|---|---|
+| `/shanghai/listings?areaMax=500` | 20.4 s | **1.02 s** | 0.07 s |
+| `/shanghai/listings?areaMin=100&areaMax=300` | 10.8 s | **1.19 s** | 0.10 s |
+| `/shanghai/listings?district=pudong` | 5.5 s | **0.28 s** | 0.07 s |
+| `/shanghai/listings?areaMin=200&page=3` | 17.8 s | **0.73 s** | 0.17 s |
+| 房源详情冷开 | 2.8 / 4.1 s | **0.42 s** | 0.25 s |
+| `/` | 307 再跳一次 | **200 直出** | — |
+
+区域筛选降到 0.28 s 是因为它已是内存维度，与无筛选页共用同一份扫描——上线前它是
+一次独立的全量扫描。
+
+契约同时复核通过：`/hangzhou/listings/<上海房源>` → 307 且 Location 正确、
+不存在的房源 → 404、正常详情 → 200、首页 canonical → `/shanghai`。
+这正是上线前那次 e2e 三红（详情路由 `loading.tsx` 把状态码锁成 200）所保护的东西。
+
+首页 42 张卡片正常渲染；`srcset` 目前只出现 2 处——线上存量媒体尚未回填派生尺寸，
+回填后才会全面生效（见下方待办）。
+
 ## 待办（上线后）
 
-- [ ] 合并 PR 上线后，用线上默认域名复测 §0 那组 URL 并回写对照表。
 - [ ] 在持有生产 `DATABASE_URL` + `COS_*` 的环境分批跑 `pnpm media:backfill-sizes --execute --limit=500`
       （线上约 9–10k 张缺派生），跑完再复测首页与楼盘列表的图片字节。
 - [ ] 域名绑定 + CDN 之后处理静态资源与图片的 `cache-control: no-store`（不在本工作项范围）。
