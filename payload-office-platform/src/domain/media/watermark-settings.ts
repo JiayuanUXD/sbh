@@ -15,15 +15,33 @@
 
 import type { Payload } from 'payload'
 
-import { DEFAULT_WATERMARK_CONFIG, mergeWatermarkConfig, type WatermarkConfig } from './watermark'
+import {
+  DEFAULT_WATERMARK_CONFIG,
+  mergeWatermarkConfig,
+  type WatermarkConfig,
+  type WatermarkImageAsset,
+} from './watermark'
+import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
+import type { MediaWriter } from '@/lib/storage/media-writer'
 
 /** `SiteSettings` 里与水印有关的两个字段。`siteName` 是文案的回落值。 */
 export type WatermarkSiteSettings = { watermark?: unknown; siteName?: string | null }
 
+/**
+ * `depth: 1` 是硬要求，不是随手写的。
+ *
+ * OPT-071 起水印可以用上传的图片当水印源，而 `normalizeImageRef` **只认展开后的对象形态**：
+ * depth 0 读出来的 upload 关系只有一个裸 id，拿不到 `updatedAt`——运营同名覆盖上传时
+ * id 不变而像素全变，只哈希 id 等于「换了 logo 但版本没变」，之后每一轮重刷都判 skip，
+ * 新旧 logo 永久共存。depth 1 顺带把 filename / width / height 一起带回来，
+ * `resolveWatermarkRenderContext` 因此不需要为读素材再查一次库。
+ *
+ * `tests/watermark-config-resolution.test.ts` 钉住这条：改回 depth 0 会红。
+ */
 export async function readWatermarkSiteSettings(payload: Payload): Promise<WatermarkSiteSettings> {
   return (await payload.findGlobal({
     slug: 'site-settings',
-    depth: 0,
+    depth: 1,
     overrideAccess: true,
   })) as WatermarkSiteSettings
 }
@@ -77,4 +95,102 @@ export function buildPreviewWatermarkConfig(
     },
     fallbackText,
   )
+}
+
+
+/** 两种版式各自的图片素材。为 null 表示这一版式用文字（或素材取不到，已回落）。 */
+export type WatermarkAssets = {
+  tiled: WatermarkImageAsset | null
+  badge: WatermarkImageAsset | null
+}
+
+/** 渲染一次水印需要的全部输入：配置 + 素材字节。四条渲染路径共用。 */
+export type WatermarkRenderContext = {
+  config: WatermarkConfig
+  assets: WatermarkAssets
+}
+
+/**
+ * depth 1 展开后的 media 文档里，读字节与算比例需要的那几个字段。
+ *
+ * 缺任何一项就返回 null → 回落到文字。`width` / `height` 尤其不能少：
+ * `<image>` 只给宽度时由 `preserveAspectRatio` 决定高度，不同 librsvg 版本行为不一致，
+ * 显式给两个值才稳（见 `WatermarkImageAsset` 的注释）。
+ */
+type WatermarkMediaDoc = {
+  filename: string
+  mimeType: string
+  width: number
+  height: number
+}
+
+function readMediaDoc(value: unknown): WatermarkMediaDoc | null {
+  if (value == null || typeof value !== 'object') return null
+  const doc = value as Record<string, unknown>
+  const { filename, mimeType, width, height } = doc
+  if (typeof filename !== 'string' || !filename) return null
+  if (typeof mimeType !== 'string' || !mimeType) return null
+  if (typeof width !== 'number' || typeof height !== 'number') return null
+  if (width <= 0 || height <= 0) return null
+  return { filename, mimeType, width, height }
+}
+
+/**
+ * 读一枚水印图片的字节，做成 data URI。
+ *
+ * 走 `MediaWriter` 按对象键直读，与重刷任务、回刷脚本同一条通道——**不走站点文件路由**。
+ * 理由与 `backfill-watermark.ts` 头注释「读原图字节」一节相同：这里要的是存储里实际存着的
+ * 字节，而文件路由端出来的是 Payload 愿意返回的东西（过 access control、按记录的 prefix 找键、
+ * COS 模式下还要站点自己转发一次）。烘焙发生在上传管线内部，此刻站点未必能自己请求自己。
+ *
+ * 取不到就返回 null → 上层回落到文字。**刻意不抛错**：水印图读不到不该让整条上传失败，
+ * 而回落到文字仍然保证「有水印」这条不变量。
+ */
+async function loadAsset(doc: WatermarkMediaDoc, writer: MediaWriter): Promise<WatermarkImageAsset | null> {
+  const bytes = await writer.get({ prefix: MEDIA_COS_PREFIX, filename: doc.filename })
+  if (!bytes || bytes.length === 0) return null
+  return {
+    dataUri: `data:${doc.mimeType};base64,${bytes.toString('base64')}`,
+    width: doc.width,
+    height: doc.height,
+  }
+}
+
+/**
+ * 配置 + 素材，一次读齐。**烘焙、重刷、回刷脚本、后台预览四条路都必须走这里。**
+ *
+ * 四处各读各的会在「素材取不到时怎么办」这件事上给出不同答案，表现为「新上传带 logo、
+ * 重刷后变成文字」这种极难查的错位；而 `watermark.version` 是配置的哈希，读法不同还会让
+ * 版本判定永远不命中。`tests/watermark-config-resolution.test.ts` 有源码守卫钉住这条。
+ *
+ * 两种版式指向同一张图时只读一次字节——满铺 + 角标用同一个 logo 是最常见的配法，
+ * 而每张被烘焙的图都要付这次读取。
+ */
+export async function resolveWatermarkRenderContext(
+  payload: Payload,
+  writer: MediaWriter,
+): Promise<WatermarkRenderContext> {
+  const settings = await readWatermarkSiteSettings(payload)
+  const config = mergeWatermarkConfig(settings?.watermark, settings?.siteName)
+
+  const stored = (settings?.watermark ?? {}) as Record<string, any>
+  const tiledDoc = config.tiled.source === 'image' ? readMediaDoc(stored?.tiled?.image) : null
+  const badgeDoc = config.badge.source === 'image' ? readMediaDoc(stored?.badge?.image) : null
+
+  const cache = new Map<string, WatermarkImageAsset | null>()
+  const load = async (doc: WatermarkMediaDoc): Promise<WatermarkImageAsset | null> => {
+    const key = doc.filename
+    if (cache.has(key)) return cache.get(key) ?? null
+    const asset = await loadAsset(doc, writer)
+    cache.set(key, asset)
+    return asset
+  }
+
+  return {
+    config,
+    assets: {
+      tiled: tiledDoc ? await load(tiledDoc) : null,
+      badge: badgeDoc ? await load(badgeDoc) : null,
+    },
+  }
 }

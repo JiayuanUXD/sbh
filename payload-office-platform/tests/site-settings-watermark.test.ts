@@ -36,11 +36,49 @@ describe('SiteSettings 图片水印 tab', () => {
     expect(fieldByName(tiledFields, 'density')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.tiled.density)
     expect(fieldByName(tiledFields, 'opacity')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.tiled.opacity)
     expect(fieldByName(tiledFields, 'angle')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.tiled.angle)
+    expect(fieldByName(tiledFields, 'source')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.tiled.source)
+    expect(fieldByName(tiledFields, 'imageScale')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.tiled.imageScale)
 
     const badge = fieldByName(groupFields, 'badge') as AnyField
     const badgeFields = badge.fields as AnyField[]
     expect(fieldByName(badgeFields, 'position')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.badge.position)
     expect(fieldByName(badgeFields, 'opacity')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.badge.opacity)
+    expect(fieldByName(badgeFields, 'source')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.badge.source)
+    expect(fieldByName(badgeFields, 'imageScale')?.defaultValue).toBe(DEFAULT_WATERMARK_CONFIG.badge.imageScale)
+  })
+
+  /**
+   * OPT-071：水印图片字段**必须可空**。required 的 upload 字段会生成 NOT NULL +
+   * ON DELETE SET NULL，被引用的 media 从此删不掉——OPT-070 为这个死结把四列收口过
+   * （见 domain/media/media-delete-cleanup.ts）。谁以后加个 required 想「保证选了图」，
+   * 这条会红，并把代价摆在他面前。
+   */
+  it('水印图片字段可空——required 的 upload 会造成删不掉 media 的死结', () => {
+    const group = fieldByName(watermarkTab().fields as AnyField[], 'watermark') as AnyField
+    const groupFields = group.fields as AnyField[]
+    for (const layout of ['tiled', 'badge']) {
+      const layoutFields = (fieldByName(groupFields, layout) as AnyField).fields as AnyField[]
+      const image = fieldByName(layoutFields, 'image') as AnyField
+      expect(image, `${layout} 缺 image 字段`).toBeTruthy()
+      expect(image.type).toBe('upload')
+      expect((image as { relationTo?: string }).relationTo).toBe('media')
+      expect((image as { required?: boolean }).required).toBeFalsy()
+    }
+  })
+
+  it('source 的默认值在 options 里（PG ENUM 严格校验）', () => {
+    const group = fieldByName(watermarkTab().fields as AnyField[], 'watermark') as AnyField
+    const groupFields = group.fields as AnyField[]
+    for (const layout of ['tiled', 'badge'] as const) {
+      const layoutFields = (fieldByName(groupFields, layout) as AnyField).fields as AnyField[]
+      const source = fieldByName(layoutFields, 'source') as AnyField & {
+        options?: Array<{ value: string }>
+        defaultValue?: string
+      }
+      const values = (source.options ?? []).map((o) => o.value)
+      expect(values).toContain(source.defaultValue)
+      expect(values).toEqual(['text', 'image'])
+    }
   })
 
   it('position 的默认值在 options 里（PG ENUM 严格校验）', () => {

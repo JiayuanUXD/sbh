@@ -89,7 +89,16 @@ const GLOBAL_REFERENCE_SOURCES: Array<{
   global: string
   paths: string[]
   bucket: keyof MediaReferenceCounts
-}> = [{ global: 'site-settings', paths: ['logo', 'typeCards.coverImage'], bucket: 'brand' }]
+}> = [
+  {
+    global: 'site-settings',
+    // OPT-071：水印图片（logo）也是 media，必须归 brand。漏在这里的后果不是分类不准而已——
+    // 查无引用会落到 other，而运营若手动把它改成 listing-photo，回刷会给 logo 自己烘上水印，
+    // 然后这张被烘过的 logo 再去给别人当水印源，套娃且不可逆。
+    paths: ['logo', 'typeCards.coverImage', 'watermark.tiled.image', 'watermark.badge.image'],
+    bucket: 'brand',
+  },
+]
 
 async function main(): Promise<void> {
   const payload = await getPayload({ config })

@@ -76,6 +76,7 @@ import * as migration_20260904_170123_city_profile_type_card_cover_nullable from
 import * as migration_20260905_025659_opt_069_watermark_rebake_task from './20260905_025659_opt_069_watermark_rebake_task';
 import * as migration_20260905_033034_opt_069_site_settings_watermark from './20260905_033034_opt_069_site_settings_watermark';
 import * as migration_20260905_121042_opt069_snapshot_chain_repair from './20260905_121042_opt069_snapshot_chain_repair';
+import * as migration_20260905_172526_opt_071_watermark_image_source from './20260905_172526_opt_071_watermark_image_source';
 
 export const migrations = [
   {
@@ -466,6 +467,11 @@ export const migrations = [
   {
     up: migration_20260905_121042_opt069_snapshot_chain_repair.up,
     down: migration_20260905_121042_opt069_snapshot_chain_repair.down,
-    name: '20260905_121042_opt069_snapshot_chain_repair'
+    name: '20260905_121042_opt069_snapshot_chain_repair',
+  },
+  {
+    up: migration_20260905_172526_opt_071_watermark_image_source.up,
+    down: migration_20260905_172526_opt_071_watermark_image_source.down,
+    name: '20260905_172526_opt_071_watermark_image_source'
   },
 ];

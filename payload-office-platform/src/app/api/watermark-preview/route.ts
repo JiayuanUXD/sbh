@@ -17,10 +17,12 @@ import { buildBadgeOverlay, buildTiledOverlay } from '@/domain/media/watermark'
 import {
   buildPreviewWatermarkConfig,
   readWatermarkSiteSettings,
+  resolveWatermarkRenderContext,
 } from '@/domain/media/watermark-settings'
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { respondWithRouteError } from '@/lib/runtime/admin-route-error'
+import { createMediaWriter } from '@/lib/storage/media-writer'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,11 +135,31 @@ export async function GET(request: Request): Promise<Response> {
     const settings = await readWatermarkSiteSettings(payload)
     const watermarkConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
 
+    // 图片素材取**已保存**的那份，不跟表单实时值走：upload 字段在表单里是一个 id，
+    // 预览端点拿 id 也读不到字节以外的东西，而运营选完图必然要保存才生效。
+    // 与烘焙同一个入口（resolveWatermarkRenderContext），保证所见即所得。
+    const { config: savedConfig, assets } = await resolveWatermarkRenderContext(payload, createMediaWriter())
+    const previewConfig = {
+      ...watermarkConfig,
+      tiled: { ...watermarkConfig.tiled, source: savedConfig.tiled.source, imageRef: savedConfig.tiled.imageRef },
+      badge: { ...watermarkConfig.badge, source: savedConfig.badge.source, imageRef: savedConfig.badge.imageRef },
+    }
+
     const base = await sharp(sampleSvg()).jpeg({ quality: 88 }).toBuffer()
     const overlay =
       mode === 'badge'
-        ? buildBadgeOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.badge })
-        : buildTiledOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.tiled })
+        ? buildBadgeOverlay({
+            width: SAMPLE_WIDTH,
+            height: SAMPLE_HEIGHT,
+            config: previewConfig.badge,
+            image: assets.badge,
+          })
+        : buildTiledOverlay({
+            width: SAMPLE_WIDTH,
+            height: SAMPLE_HEIGHT,
+            config: previewConfig.tiled,
+            image: assets.tiled,
+          })
 
     const composed = await sharp(base).composite([{ input: overlay, blend: 'over' }]).jpeg({ quality: 88 }).toBuffer()
     return new NextResponse(new Uint8Array(composed), {

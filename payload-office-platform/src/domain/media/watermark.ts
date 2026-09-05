@@ -214,7 +214,7 @@ function clampScale(value: number, min: number, max: number): number {
  * 之后每一轮重刷都判「已是当前版本」跳过，这批没水印的图永久留在生产里。
  * 回落到文字至少保证「有水印」这条不变量，运营也会立刻从预览里看出不对。
  */
-function useImageSource(source: WatermarkSource, image?: WatermarkImageAsset | null): boolean {
+function hasUsableImage(source: WatermarkSource, image?: WatermarkImageAsset | null): boolean {
   if (source !== 'image') return false
   if (!image || typeof image.dataUri !== 'string' || !image.dataUri) return false
   return (
@@ -316,11 +316,11 @@ export function buildTiledOverlay({
   config: TiledWatermarkConfig
   /**
    * `config.source === 'image'` 时的素材。**缺素材时回落到文字**，不是不打水印——
-   * 见 `useImageSource` 的注释：静默不打水印是这个功能最危险的失败模式。
+   * 见 `hasUsableImage` 的注释：静默不打水印是这个功能最危险的失败模式。
    */
   image?: WatermarkImageAsset | null
 }): Buffer {
-  const useImage = useImageSource(config.source, image)
+  const renderImage = hasUsableImage(config.source, image)
 
   // 尺寸与密度守卫对两种源都适用；文案守卫只在文字源下生效
   // （图片源下文案为空是正常的，运营切到图片就不会再去填文字）。
@@ -335,7 +335,7 @@ export function buildTiledOverlay({
     return emptyOverlay(width, height)
   }
 
-  if (useImage) return buildTiledImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
+  if (renderImage) return buildTiledImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
 
   const trimmedText = config.text.trim()
   if (!trimmedText) return emptyOverlay(width, height)
@@ -386,13 +386,13 @@ export function buildBadgeOverlay({
   config: BadgeWatermarkConfig
   image?: WatermarkImageAsset | null
 }): Buffer {
-  const useImage = useImageSource(config.source, image)
+  const renderImage = hasUsableImage(config.source, image)
 
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
     return emptyOverlay(width, height)
   }
 
-  if (useImage) return buildBadgeImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
+  if (renderImage) return buildBadgeImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
 
   const trimmedText = config.text.trim()
   if (!trimmedText) return emptyOverlay(width, height)
@@ -550,7 +550,7 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
   const tiledStored = storedObj.tiled
   const tiledImageRef = normalizeImageRef(tiledStored?.image)
   const tiledConfig: TiledWatermarkConfig = {
-    // 选了图片源却没有可用的图时落回文字，与 `useImageSource` 同一条规则，
+    // 选了图片源却没有可用的图时落回文字，与 `hasUsableImage` 同一条规则，
     // 在这里就落定，好让**版本哈希也反映真实渲染源**：否则配置说 image、实际画的是
     // 文字，而哈希按 image 算，改文案不会触发重刷。
     source: tiledStored?.source === 'image' && tiledImageRef ? 'image' : 'text',
