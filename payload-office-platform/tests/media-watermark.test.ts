@@ -8,6 +8,7 @@ import {
   estimateTextWidth,
   isBakeableImage,
   mergeWatermarkConfig,
+  WATERMARK_FONT_FAMILY,
 } from '@/domain/media/watermark'
 
 const TILED = { text: '商办荟 SHANGBANHUI', density: 3, opacity: 0.38, angle: -30 }
@@ -119,6 +120,26 @@ describe('computeWatermarkVersion', () => {
       tiled: { ...DEFAULT_WATERMARK_CONFIG.tiled, opacity: 0.99 },
     })
     expect(changed).not.toBe(base)
+  })
+
+  /**
+   * 字体栈直接进 SVG 的 `font-family`，换一个字体渲染出来的像素就不一样，
+   * 所以它属于「产出这批字节的配置」的一部分。
+   *
+   * 不哈希它的后果不是理论问题：在缺中文字体的环境里打开开关，图会被烘成方框
+   * （librsvg 不报错），然后**盖上一个 version**；装好字体之后每一轮重刷都把它们
+   * 判成 skip，方框永远留在生产图片里，除非改代码。
+   */
+  it('字体栈变了版本必须跟着变——否则方框图会被永久判成「已是当前版本」', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, 'WenQuanYi Zen Hei, sans-serif')
+    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, 'Noto Sans CJK SC, sans-serif')
+    expect(changed).not.toBe(base)
+  })
+
+  it('字体参数只是测试注入点，缺省就是当前的 WATERMARK_FONT_FAMILY', () => {
+    expect(computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG)).toBe(
+      computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, WATERMARK_FONT_FAMILY),
+    )
   })
 })
 

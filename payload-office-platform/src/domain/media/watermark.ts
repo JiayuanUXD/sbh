@@ -17,8 +17,17 @@
 
 import { createHash } from 'crypto'
 
-/** 渲染逻辑版本。改动本文件的几何算法时必须 +1，否则重刷任务认不出旧图。 */
-export const WATERMARK_RENDERER_VERSION = '1'
+/**
+ * 渲染逻辑版本。**任何会改变渲染结果的改动都必须 +1**，不只是几何算法：字号推导、
+ * 间距系数、描边、元素结构、乃至换一个默认字体栈——凡是同一份配置烘出来的像素会变的，
+ * 都算。否则存量图的 `watermark.version` 与新逻辑烘出来的完全一致，重刷任务把它们判成
+ * 「已是当前版本」跳过，新旧两种效果永久共存，且没有任何报错。
+ *
+ * `1` → `2`：6a6fbd5 在版本 `1` 下改了字体栈（`WATERMARK_FONT_FAMILY`），
+ * 那次没有跟着 +1，这里补上。字体栈现在也进哈希（见 `computeWatermarkVersion`），
+ * 以后换字体会自动改变版本，不再依赖人记得改这个常量。
+ */
+export const WATERMARK_RENDERER_VERSION = '2'
 
 /**
  * 字体栈。生产是 Linux 容器，`Microsoft YaHei` 只在本地存在——
@@ -27,6 +36,9 @@ export const WATERMARK_RENDERER_VERSION = '1'
  * `WenQuanYi Zen Hei` 是该 Debian 包注册的字体族名（非本文件猜测——
  * 见 Dockerfile 同一 RUN 行的注释），必须排在栈首才会被生产实际选中，
  * 后面几项只是本地 Windows/macOS 开发时的兜底，容器里并不存在。
+ *
+ * 本常量进 `computeWatermarkVersion` 的哈希：改它等于改渲染结果，存量图会自动被判成
+ * 旧版本、下一轮重刷从 `media-source/` 重烘，不需要谁记得去 +1 渲染器版本号。
  */
 export const WATERMARK_FONT_FAMILY =
   'WenQuanYi Zen Hei, Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
@@ -245,10 +257,22 @@ export function isBakeableImage(mimeType: string | null | undefined): boolean {
  *
  * 刻意**不用人工维护的版本号**：人会忘记改，届时重刷任务会静默跳过该跑的图，
  * 而这种错误没有任何报错、只表现为「点了重刷但有些图没变」。
+ *
+ * **字体栈也进哈希**：它直接进 SVG 的 `font-family`，换一个字体像素就不一样，
+ * 属于「产出这批字节的配置」。不哈希它的后果不是理论问题——在缺中文字体的环境里
+ * 打开开关，图会被烘成方框（librsvg 不报错），然后盖上一个 version；事后装好字体，
+ * 每一轮重刷都把它们判成 skip，方框永久留在生产图片里，只能靠改代码解。
+ *
+ * `fontFamily` 只是**测试注入点**（与 `createWriter` 同一手法：没有它就写不出
+ * 「换字体 → 版本变」这条断言）。生产不传，走当前的 `WATERMARK_FONT_FAMILY`。
  */
-export function computeWatermarkVersion(config: WatermarkConfig): string {
+export function computeWatermarkVersion(
+  config: WatermarkConfig,
+  fontFamily: string = WATERMARK_FONT_FAMILY,
+): string {
   const payload = JSON.stringify({
     renderer: WATERMARK_RENDERER_VERSION,
+    font: fontFamily,
     tiled: config.tiled,
     badge: config.badge,
   })
