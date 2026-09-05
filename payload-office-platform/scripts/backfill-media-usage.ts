@@ -19,13 +19,16 @@
  * pnpm media:backfill-usage --execute    # 真回填
  * ```
  *
- * 幂等：重复跑结果一致（分类只依赖引用关系，不依赖当前 usage 值）。
+ * 幂等：重复跑结果一致（分类只依赖引用关系，不依赖当前 usage 值）。这也是为什么
+ * `--execute` 的写入循环故意不做 `--limit`/`--start-after` 续跑游标（对比
+ * `backfill-media-sizes.ts`）：单条失败直接重跑整个 `--execute` 就会重新算出剩余
+ * delta 并完成，游标反而是多余的机制。
  */
 
 import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
-import { classifyMediaUsage, type MediaReferenceCounts, type MediaUsage } from '../src/domain/media/usage-classify'
+import { classifyMediaUsage, extractMediaIds, type MediaReferenceCounts, type MediaUsage } from '../src/domain/media/usage-classify'
 
 const EXECUTE = process.argv.includes('--execute')
 const PAGE_SIZE = 200
@@ -166,48 +169,48 @@ async function main(): Promise<void> {
     return
   }
 
+  // 逐条写入、逐条错误隔离：一条 update 抛错（hook 异常、瞬时 DB 错误）不能冲垮整个
+  // ~1.7 万条的 run。失败的 id 记下来但继续处理后面的，跑完打印成功/失败汇总——
+  // 对齐 backfill-media-sizes.ts 的既有写法。故意不加 --limit/--start-after 续跑游标：
+  // 分类只依赖引用关系、不依赖当前 usage，崩了直接重跑 --execute 就会自动补齐剩余 delta。
+  let succeeded = 0
+  const failures: Array<{ id: number; reason: string }> = []
   for (const [usage, ids] of planned) {
+    let bucketSucceeded = 0
     for (const id of ids) {
-      await payload.update({
-        collection: 'media',
-        id,
-        data: { usage },
-        depth: 0,
-        overrideAccess: true,
-        // 不带 file，watermarkPlugin 的 afterChange 会因为 context 里没有干净母版直接返回
-      })
-    }
-    console.log(`已把 ${ids.length} 张改为 ${usage}`)
-  }
-}
-
-/** 从文档里取出某个路径下的 media id，兼容单值与数组（array 字段展开后是数组）。 */
-function extractMediaIds(doc: Record<string, unknown>, path: string): number[] {
-  const segments = path.split('.')
-  let current: unknown[] = [doc]
-  for (const segment of segments) {
-    const next: unknown[] = []
-    for (const node of current) {
-      if (node && typeof node === 'object') {
-        const value = (node as Record<string, unknown>)[segment]
-        if (Array.isArray(value)) next.push(...value)
-        else if (value != null) next.push(value)
+      try {
+        await payload.update({
+          collection: 'media',
+          id,
+          data: { usage },
+          depth: 0,
+          overrideAccess: true,
+          // 不带 file，watermarkPlugin 的 afterChange 会因为 context 里没有干净母版直接返回
+        })
+        bucketSucceeded += 1
+        succeeded += 1
+      } catch (error) {
+        failures.push({ id, reason: error instanceof Error ? error.message : String(error) })
       }
     }
-    current = next
+    console.log(`${usage}：尝试 ${ids.length} 张，成功 ${bucketSucceeded} 张`)
   }
-  const ids: number[] = []
-  for (const value of current) {
-    if (typeof value === 'number') ids.push(value)
-    else if (value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'number') {
-      ids.push((value as { id: number }).id)
-    }
+
+  console.log(`回填完成：成功 ${succeeded}，失败 ${failures.length}`)
+  for (const failure of failures.slice(0, 20)) {
+    console.log(`  ✗ #${failure.id} ${failure.reason}`)
   }
-  return ids
+  if (failures.length > 20) {
+    console.log(`  ...（其余 ${failures.length - 20} 条略）`)
+  }
+  if (failures.length > 0) {
+    console.log('分类只依赖引用关系、不依赖当前 usage：直接重跑 --execute 会重新算出剩余 delta 并完成。')
+    process.exitCode = 1
+  }
 }
 
 main()
-  .then(() => process.exit(0))
+  .then(() => process.exit(process.exitCode ?? 0))
   .catch((error) => {
     console.error(error)
     process.exit(1)
