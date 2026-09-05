@@ -323,15 +323,25 @@ describe('rebakeChunk 的存储编排', () => {
 describe('rebakeWatermarkTask 的游标推进', () => {
   type QueuedJob = { task: string; queue: string; input: { startAfterId: number } }
 
-  function taskHarness({ docs, hasNextPage }: { docs: RebakeCandidate[]; hasNextPage: boolean }) {
+  function taskHarness({
+    docs,
+    hasNextPage,
+    enabled = true,
+  }: {
+    docs: RebakeCandidate[]
+    hasNextPage: boolean
+    enabled?: boolean
+  }) {
     const findByIdCalls: number[] = []
     const queued: QueuedJob[] = []
+    const warnings: string[] = []
     const byId = new Map(docs.map((doc) => [doc.id, doc]))
 
     const payload = {
-      // 站点设置留空 → mergeWatermarkConfig 回落缺省，currentVersion 是个确定的哈希。
-      // 本组用例的候选全是 watermark: null，与具体哈希无关。
-      findGlobal: async () => ({}),
+      // 开关必须显式打开：缺省是关的（功能 opt-in），而关着时任务直接早退，
+      // 游标算术一行都跑不到。currentVersion 是个确定的哈希，本组候选全是
+      // watermark: null，与具体哈希无关。
+      findGlobal: async () => ({ watermark: { enabled } }),
       find: async () => ({ docs, hasNextPage }),
       findByID: async ({ id }: { id: number }) => {
         findByIdCalls.push(id)
@@ -345,10 +355,15 @@ describe('rebakeWatermarkTask 的游标推进', () => {
           queued.push(args)
         },
       },
-      logger: { error: () => {} },
+      logger: {
+        error: () => {},
+        warn: (...args: unknown[]) => {
+          warnings.push(args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' '))
+        },
+      },
     } as unknown as Payload
 
-    return { payload, findByIdCalls, queued }
+    return { payload, findByIdCalls, queued, warnings }
   }
 
   /**
@@ -429,6 +444,30 @@ describe('rebakeWatermarkTask 的游标推进', () => {
     expect(harness.queued).toEqual([
       { task: MEDIA_WATERMARK_TASK, queue: MEDIA_WATERMARK_QUEUE, input: { startAfterId: 209 } },
     ])
+  })
+
+  /**
+   * 回刷脚本在开关关着时拒跑（`--execute` 会直接退出并写明理由），重刷任务却没有对应的守卫。
+   * 开关关着时点「重刷全部房源图」，任务会走完整张 media 表，对每张实景图做一次备份 put、
+   * 一次 get、外加整条上传管线（母版 + 三档派生）——**看不到任何变化，而且永不收敛**：
+   * 开关关着 `bakeAfterUpload` 不烘、`clearIfStale()` 让 version 保持为空，下一次点击
+   * 又把这一切重做一遍。前端还照样弹「已加入队列」。
+   */
+  it('开关关闭 → 立刻早退：不查任何一行、不续投，与回刷脚本拒跑同一个态度', async () => {
+    const harness = taskHarness({
+      docs: Array.from({ length: 30 }, (_, index) => candidate(100 + index)),
+      hasNextPage: true,
+      enabled: false,
+    })
+
+    const output = await run(harness.payload)
+
+    expect(harness.findByIdCalls).toEqual([])
+    expect(harness.queued).toEqual([])
+    expect(output.hasNextPage).toBe(false)
+    expect(output.processed).toBe(0)
+    // 静默早退等于骗人：前端弹的是「已加入队列」，日志里必须留下真实原因。
+    expect(harness.warnings.join('\n')).toContain('水印开关')
   })
 
   it('扫到空页 → 游标不动、不续投，链条终止', async () => {

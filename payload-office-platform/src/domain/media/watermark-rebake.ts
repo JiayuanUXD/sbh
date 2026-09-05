@@ -14,6 +14,12 @@
  * 按 `media.watermark.version`（配置的内容哈希）判定，已是当前版本的跳过。
  * 重跑安全，中断后重投也安全。
  *
+ * ## 开关关着时不做事
+ *
+ * 与 `scripts/backfill-watermark.ts` 拒跑 `--execute` 同一个理由：开关关着时烘焙不发生，
+ * 这个任务却会把整张表走一遍并重跑上传管线，既看不到变化也永不收敛（version 一直是空的，
+ * 下次点击原样重做）。所以 handler 一开头就查 `config.enabled`，关着就记一条 warn 早退。
+ *
  * ## 三种情形：只在 `decideRebakeAction` 里定义一次
  *
  * 一张图该怎么处理只看 `watermark.version`（不变量见 plugins/watermark.ts：有 version ⟺
@@ -223,8 +229,31 @@ export const rebakeWatermarkTask: TaskConfig<typeof MEDIA_WATERMARK_TASK> = {
   handler: async ({ input, req }) => {
     const payload = req.payload
     const config = await resolveWatermarkConfig(payload)
-    const currentVersion = computeWatermarkVersion(config)
     const startAfterId = Number(input?.startAfterId ?? 0)
+
+    // 开关关着时早退，与 `scripts/backfill-watermark.ts` 拒跑 `--execute` 同一个理由：
+    // 关着时 `bakeAfterUpload` 不烘，这个任务却会走完整张 media 表，对每张实景图做一次
+    // 备份 put、一次 get、外加整条上传管线（母版 + 三档派生），**看不到任何变化，而且
+    // 永不收敛**——`clearIfStale()` 让 version 保持为空，下次点击把这一切重做一遍。
+    // 前端弹的是「已加入队列」，所以日志里必须留下真实原因，否则运营只会觉得「点了没反应」。
+    if (!config.enabled) {
+      payload.logger.warn(
+        '[watermark] 水印开关当前关闭，重刷任务不做任何处理。' +
+          '先去「站点设置 → 图片水印」勾上「启用水印」并保存，再点「重刷全部房源图」。',
+      )
+      return {
+        output: {
+          processed: 0,
+          skipped: 0,
+          failed: 0,
+          unrecoverable: 0,
+          lastScannedId: startAfterId,
+          hasNextPage: false,
+        },
+      }
+    }
+
+    const currentVersion = computeWatermarkVersion(config)
 
     const page = await payload.find({
       collection: 'media',
