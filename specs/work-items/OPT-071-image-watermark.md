@@ -54,21 +54,29 @@ logo 是一条 Media 记录。如果它的 `usage` 是 `listing-photo`，回刷�
 **必须同步加进那张表**，否则查无引用会落到 `other`（不危险，但分类不准），
 而运营手动改成 `listing-photo` 就会中招。
 
-### 4.3 容器里 librsvg 能不能渲染内嵌位图，没人验过
+### 4.3 SVG 内嵌位图这条路——已验证可行（2026-09-06）
 
-现有两个 overlay 都是 SVG 文本，交给 sharp 栅格化。图片水印最省事的做法是沿用同一条路径——
-SVG 里放 `<image href="data:image/png;base64,...">`。**但 librsvg 对内嵌栅格图的支持在生产容器里
-从未验证过。**
+原始担心：现有两个 overlay 都是 SVG 文本交给 sharp 栅格化，图片水印最省事的做法是沿用
+同一条路（SVG 里放 `<image href="data:image/png;base64,...">`），但**容器里的 librsvg
+支不支持内嵌栅格图，当时没人验过**。
 
-这与 OPT-069 的中文字体是同一类风险：本地能渲染不代表容器能。**上线前必须在生产的
-`/api/watermark-preview` 上肉眼确认**，判据与字体那次相同。
+实测结论：**可行。**
 
-若 librsvg 不支持，退路是 **sharp 原生 composite**：把 logo 预缩放后按网格生成多个
-`{ input, top, left }` 条目。满铺需要旋转，用 `sharp(logo).rotate(angle)` 预处理一次再平铺。
-这条路更稳但要两套代码路径，且与文字版式的参数语义要对齐。
+- 本地 sharp 0.34.4 / libvips 8.17.2 / **librsvg 2.61.1**，`href` 与 `xlink:href`
+  两种写法都渲染正确（造纯红方块内嵌，数输出红像素 1600/1600）。
+- 各平台 `@img/sharp-libvips-*` 同为 `1.2.3`——容器（linux-x64）与本地（win32-x64）
+  是同一次构建产出的同一套 libvips。
+- **与字体那次风险不同类**：字体是基础镜像缺失的系统文件，而位图解码是编译进 libvips
+  的能力，不依赖任何外部资源。
 
-**建议：先花半天用 `next build` + `next start` 在本机把 SVG 内嵌位图这条路验通再动手**
-（OPT-069 的教训：跑 tsx 源码不算数，缺陷只在打包产物与容器里出现）。
+**体积问题必须处理**（原文没提到，实施时才暴露）：满铺在 3 倍画布上会生成几十到上百个格子，
+逐格内嵌 data URI 的话一份 30 KB 的 logo 能把 overlay 撑到几 MB，而这是**每张图烘一次
+都要付**的代价。做法是 base64 只放进 `<defs>`、格子用 `<use href="#wm">` 引用——
+实测 800×600 / density 3 的满铺 overlay 只有 4954 字节。
+
+仍然保留的判据：**上线后要在生产的 `/api/watermark-preview` 上肉眼确认**。
+本地已用 `next build` + `next start` 生产构建验过两种版式（这是 OPT-069 的教训：
+跑 tsx 源码不算数），但容器是最后一环。
 
 ## 5. 还要改的地方
 
