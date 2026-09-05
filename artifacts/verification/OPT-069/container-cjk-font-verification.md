@@ -179,6 +179,29 @@ fontconfig 的匹配语义不是「命中或失败」，而是**永远返回当�
 请求 `Noto Sans CJK SC` 而容器里只有 WQY 时，它照样会落到 WQY 上，
 再叠加 pango 的逐字回退（DejaVu 无 CJK 字形 → 回退到 WQY）。
 
+原始命令与输出（两次渲染只差 `font-family` 一个字符串，其余入参、画布、配置全同）：
+
+```
+$ FONTCONFIG_FILE=sim-wqy.conf node --experimental-strip-types render.mts \
+    D1-sim-wqy-newstack  'WenQuanYi Zen Hei, Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
+  ink=7.881%  (75654 px)
+
+$ FONTCONFIG_FILE=sim-wqy.conf node --experimental-strip-types render.mts \
+    D2-sim-wqy-origstack 'Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
+  ink=7.881%  (75654 px)
+
+$ cmp out/D1-sim-wqy-newstack.png out/D2-sim-wqy-origstack.png ; echo $?
+0
+
+$ md5sum out/D1-sim-wqy-newstack.png out/D2-sim-wqy-origstack.png
+80647b7663985519995e09eddf7b945b *out/D1-sim-wqy-newstack.png
+80647b7663985519995e09eddf7b945b *out/D2-sim-wqy-origstack.png
+```
+
+早一轮**未加载 conf.d** 的极简环境（§5 里那个不等价的对照组）下，同一对比也是
+逐字节相同（两者 md5 均为 `5632b682021035f9b65d3f0078c6b38b`）——
+即这个结论不依赖合成粗体是否启用，两种字体环境下都成立。
+
 这**不代表那处改动有害**——把实际安装的族名写在栈首是有价值的意图声明，
 守卫测试也确实能在有人删掉 Dockerfile 那行时变红。但它的**理由**是错的：
 字体栈的顺序在这里不是承重结构。留着这条错误理由的风险是，
