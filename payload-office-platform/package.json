@@ -15,6 +15,7 @@
     "seed": "node --env-file-if-exists=.env.local --import tsx scripts/seed.ts",
     "seed:media": "node --env-file-if-exists=.env.local --import tsx scripts/seed-media.ts",
     "media:backfill-sizes": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-media-sizes.ts",
+    "media:backfill-usage": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-media-usage.ts",
     "baseline:capture": "node --env-file-if-exists=.env.local --import tsx scripts/baseline-snapshot.ts",
     "migrate:dry-run": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-dry-run.ts",
     "migrate:status": "node --env-file-if-exists=.env.local --import tsx scripts/migrate-status.ts",
