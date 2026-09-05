@@ -34,6 +34,16 @@ export const SITEMAP_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:sitemap` as const
 export const ARTICLES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:articles` as const
 
 /**
+ * 内容页类别 tag。
+ *
+ * 与 `pageTag(slug)` 并存：具体页面的缓存项挂的是这条类别 tag（`Pages` 的
+ * afterChange / afterDelete 一直只失效它），`pageTag` 留给将来按 slug 缓存时用。
+ * 放在这里而不是 `lib/frontend/public-cache-revalidation.ts`：媒体删除的反查
+ * （`domain/media/media-cache-hook.ts`）也要用它，tag 常量该有唯一事实源。
+ */
+export const PAGES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:pages` as const
+
+/**
  * 站点设置（OPT-053）固定 tag。不区分城市——它是全平台单例。
  *
  * logo 与页脚出现在**每一个页面**上，所以这条 tag 的失效面是全站。

@@ -1,0 +1,14 @@
+{
+  "variant": "control (Media.hooks 的两段钩子已摘掉)",
+  "server": "next build --webpack + CI=1 next start -p 3719 (NODE_ENV=production)",
+  "baseUrl": "http://localhost:3719",
+  "cityPath": "/shanghai",
+  "mediaId": 44,
+  "profileId": 1,
+  "filename": "walkthrough-1788578781138.jpg",
+  "renderedBeforeDelete": true,
+  "cacheHeldDuringOutOfBandChange": true,
+  "deleteStatus": 200,
+  "stillRenderedAfterDelete": true,
+  "capturedAt": "2026-09-05T03:27:44.491Z"
+}

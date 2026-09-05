@@ -42,8 +42,8 @@
  *
  * ## 两条护栏
  *
- * 1. `findByIdSafe` 走 `disableErrors: true`——Payload 在这条路径上
- *    **早于 catch 就 return null**，压根不进 `killTransaction`。
+ * 1. `findByIdSafe` / `findSafe` / `findGlobalSafe` 走 `disableErrors: true`——
+ *    Payload 在这条路径上**早于 catch 就 return null**，压根不进 `killTransaction`。
  * 2. 万一还是被拆了（别的异常路径、或将来 Payload 改实现），
  *    `assertTransactionIntact` 直接抛错。**宁可让调用方收到 500，
  *    也不能再返回一次假成功**——静默丢数据比报错难查一个数量级。
@@ -55,7 +55,7 @@
  * 那里没有别人的事务可拆。
  */
 
-import type { CollectionSlug, PayloadRequest } from 'payload'
+import type { CollectionSlug, GlobalSlug, PayloadRequest, Where } from 'payload'
 
 import { DomainError } from './errors'
 
@@ -136,6 +136,84 @@ export async function findByIdSafe<T = Record<string, unknown>>(
   } catch {
     // disableErrors 只挡「查不到」。真出别的异常（权限、DB 故障）时 Payload
     // 已经 killTransaction 过了，下面那句会把它变成一个响亮的错误。
+    doc = null
+  }
+
+  assertTransactionIntact(req, captured, operation)
+  return (doc as T | null) ?? null
+}
+
+export interface FindSafeArgs {
+  req: PayloadRequest
+  collection: CollectionSlug
+  where: Where
+  /** 定位标签，进 TransactionAbortedError.details，便于从日志反查是哪一段拆的事务。 */
+  operation: string
+  depth?: number
+  limit?: number
+  /** 软删文档是否可见。反查引用关系时通常要开：软删的文档照样握着外键。 */
+  trash?: boolean
+}
+
+/**
+ * hook 内的旁路列表查询：出错返回 null，且**保证不动调用方的事务**。
+ *
+ * 与 `findByIdSafe` 的两点差别：
+ *   - 返回 `null` 表示「这次查询没成功」，`[]` 表示「查成功了，没有命中」。
+ *     调用方要能区分——把查询失败当成「没有引用」会静默漏掉副作用，
+ *     那正是本仓库反复栽跟头的失效形状。
+ *   - `find` 的 `disableErrors` 只挡「集合/字段找不到」这类错误，
+ *     真出 DB 故障时 Payload 已经 `killTransaction` 过了，由
+ *     `assertTransactionIntact` 把它变成一个响亮的错误而不是静默丢写入。
+ */
+export async function findSafe<T = Record<string, unknown>>(
+  args: FindSafeArgs,
+): Promise<T[] | null> {
+  const { req, collection, where, operation, depth, limit, trash } = args
+  const captured = transactionIdOf(req)
+
+  let docs: unknown[] | null = null
+  try {
+    const result = await req.payload.find({
+      collection,
+      where,
+      depth,
+      limit,
+      trash,
+      overrideAccess: true,
+      disableErrors: true,
+      req,
+    })
+    docs = Array.isArray(result?.docs) ? result.docs : []
+  } catch {
+    docs = null
+  }
+
+  assertTransactionIntact(req, captured, operation)
+  return docs as T[] | null
+}
+
+export interface FindGlobalSafeArgs {
+  req: PayloadRequest
+  slug: GlobalSlug
+  operation: string
+  depth?: number
+}
+
+/**
+ * hook 内的旁路 Global 查询。语义与 `findSafe` 一致：`null` = 查询失败，
+ * 而不是「这个 Global 没内容」（从没保存过的 Global 会返回一个空对象）。
+ */
+export async function findGlobalSafe<T = Record<string, unknown>>(
+  args: FindGlobalSafeArgs,
+): Promise<T | null> {
+  const { req, slug, operation, depth } = args
+  const captured = transactionIdOf(req)
+
+  let doc: unknown = null
+  try {
+    doc = await req.payload.findGlobal({ slug, depth, overrideAccess: true, req })
+  } catch {
     doc = null
   }
 

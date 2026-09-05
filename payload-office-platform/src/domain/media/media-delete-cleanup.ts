@@ -65,21 +65,22 @@
  * `pages.hero_image_id` / `site_settings.logo_id` / `articles.cover_image_id` 等 14 列）：
  * 它们本来可空，SET NULL 就是正确语义——字段置空、文档还在、前台走缺省图降级。
  * 这是现在已经在跑的行为，不改。
+ *
+ * ## 缓存失效不在本模块
+ *
+ * 本模块只做摘除。删 media 之后的公开缓存失效由 `domain/media/media-cache-hook.ts`
+ * 统一承担——它覆盖全部七个消费方（城市站点配置 / 站点设置 / 内容页 / 资讯 / 区域 /
+ * 楼盘 / 房源），本模块原先自带的那半只覆盖房源与楼盘，是它的真子集。
+ *
+ * 两者在 `Media.hooks.beforeDelete` 里的顺序是硬约束：**反查必须排在摘除之前**
+ * （`[collectMediaCacheTagsBeforeDelete, unmountMediaReferences]`）。反过来的话，
+ * 行已经被摘掉，按 media id 反查就找不到那条房源了；而 `coverImage` 是标量列、
+ * 本模块不动它，于是「这张图正好是封面」的房源仍会被查到——**漏的是「只经
+ * gallery / mediaItems 引用、封面是别的图」那一类，部分静默漏，最难发现**。
  */
 
 import { sql, type SQL } from 'drizzle-orm'
-import type {
-  CollectionAfterDeleteHook,
-  CollectionBeforeDeleteHook,
-  Payload,
-  PayloadRequest,
-} from 'payload'
-
-import { resolveSupplyCitySlugs } from '@/domain/public-catalog/supply-cache-hook'
-import {
-  invalidateSupplyPublicCache,
-  type SupplyCacheInvalidationReason,
-} from '@/lib/frontend/public-cache-revalidation'
+import type { CollectionBeforeDeleteHook, Payload, PayloadRequest } from 'payload'
 
 /** 可执行原生 SQL 的最小接口；drizzle 的事务 session 与 `payload.db.drizzle` 都满足。 */
 type Queryable = {
@@ -91,21 +92,14 @@ type ReferencingTable = {
   table: string
   /** 指向 media 的外键列 */
   column: string
-  /** 该子表挂在哪个父 collection 上——决定缓存失效算的是哪一侧的城市 */
-  scope: SupplyCacheInvalidationReason
 }
 
 const REFERENCING_TABLES: readonly ReferencingTable[] = [
-  { table: 'listings_media_items', column: 'resource_id', scope: 'listing' },
-  { table: 'listings_gallery', column: 'image_id', scope: 'listing' },
-  { table: 'buildings_media_items', column: 'resource_id', scope: 'building' },
-  { table: 'buildings_gallery', column: 'image_id', scope: 'building' },
+  { table: 'listings_media_items', column: 'resource_id' },
+  { table: 'listings_gallery', column: 'image_id' },
+  { table: 'buildings_media_items', column: 'resource_id' },
+  { table: 'buildings_gallery', column: 'image_id' },
 ]
-
-/** req.context 上的标记键：beforeDelete 算出受影响城市，afterDelete 消费。 */
-const AFFECTED_CITIES_MARK = '__opt070MediaUnmountCities'
-
-type AffectedCities = Record<SupplyCacheInvalidationReason, string[]>
 
 function isQueryable(value: unknown): value is Queryable {
   return typeof (value as Queryable | undefined)?.execute === 'function'
@@ -130,13 +124,6 @@ function transactionExecutor(payload: Payload, req: PayloadRequest): Queryable |
   return isQueryable(payload.db.drizzle) ? payload.db.drizzle : null
 }
 
-function toParentId(value: unknown): number | string | null {
-  if (typeof value === 'number' && Number.isSafeInteger(value)) return value
-  // PG 的 bigint / numeric 经 pg 驱动会以字符串回来，直接透传即可。
-  if (typeof value === 'string' && value.trim() !== '') return value
-  return null
-}
-
 /**
  * 删 media 之前，把引用它的数组子表行摘掉，让 PG 的 SET NULL 无行可置。
  *
@@ -148,60 +135,11 @@ export const unmountMediaReferences: CollectionBeforeDeleteHook = async ({ id, r
   const db = transactionExecutor(payload, req)
   if (!db) return
 
-  const affected: AffectedCities = { listing: [], building: [] }
-  const parentsByScope: Record<SupplyCacheInvalidationReason, Set<number | string>> = {
-    listing: new Set(),
-    building: new Set(),
-  }
-
-  for (const { table, column, scope } of REFERENCING_TABLES) {
-    const tableRef = sql.identifier(table)
-    const columnRef = sql.identifier(column)
-
-    // 先查父文档 id，再删行：删完就查不到了，而缓存失效需要知道动了谁。
-    const found = await db.execute(
-      sql`SELECT DISTINCT "_parent_id" FROM ${tableRef} WHERE ${columnRef} = ${id}`,
-    )
-    for (const row of found.rows) {
-      const parentId = toParentId(row._parent_id)
-      if (parentId !== null) parentsByScope[scope].add(parentId)
-    }
-
+  for (const { table, column } of REFERENCING_TABLES) {
     // 失败必须抛出、不能吞：吞掉的话删除会继续走到 PG，然后撞上 SET NULL + NOT NULL
     // 那个死结，运营又会看到一个无法理解的 500。
-    await db.execute(sql`DELETE FROM ${tableRef} WHERE ${columnRef} = ${id}`)
+    await db.execute(
+      sql`DELETE FROM ${sql.identifier(table)} WHERE ${sql.identifier(column)} = ${id}`,
+    )
   }
-
-  // 城市在 beforeDelete 里就解析好：此刻文档还完整，afterDelete 只做纯失效、不再打库。
-  for (const scope of ['listing', 'building'] as const) {
-    affected[scope] = await resolveSupplyCitySlugs(req, scope, [...parentsByScope[scope]])
-  }
-
-  const context = ((req as { context?: Record<string, unknown> }).context ??= {})
-  context[AFFECTED_CITIES_MARK] = affected
-}
-
-/**
- * 摘除完成后失效受影响城市的公开目录缓存。
- *
- * 为什么本工作项要带上它：改之前，删一张被图集引用的图**必然失败**，所以从来不会
- * 出现「缓存里挂着已删图片 URL」的窗口；改之后删除会成功，这个窗口是本次改动
- * 造出来的（`lib/frontend/cached-queries.ts` 的 `revalidate: 300`，最长陈旧 5 分钟）。
- *
- * 只对**真的摘掉过行**的城市失效：没有引用时 beforeDelete 不置位，这里直接返回。
- * 标量封面列（coverImage / hero / logo）的删除不在此列——它们本来就能删，
- * 其缓存行为与本次改动无关，不在此扩大范围。
- */
-export const invalidateSupplyCacheAfterMediaDelete: CollectionAfterDeleteHook = async ({
-  doc,
-  req,
-}) => {
-  const context = (req as { context?: Record<string, unknown> }).context
-  const affected = context?.[AFFECTED_CITIES_MARK] as AffectedCities | undefined
-  if (!affected) return doc
-
-  for (const scope of ['listing', 'building'] as const) {
-    if (affected[scope].length > 0) invalidateSupplyPublicCache(affected[scope], scope)
-  }
-  return doc
 }

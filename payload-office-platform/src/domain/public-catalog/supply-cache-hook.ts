@@ -71,8 +71,14 @@ async function findCitySlugById(
   return city.type === 'city' ? normalizeCitySlug(city.slug) : null
 }
 
-/** 楼盘文档 → 所属城市 slug。楼盘的 city 是可选 relationship，解析不出返回 null。 */
-async function citySlugOfBuildingDoc(
+/**
+ * 楼盘文档 → 所属城市 slug。楼盘的 city 是可选 relationship，解析不出返回 null。
+ *
+ * 导出是给「不经过 Buildings 自己写入路径」的链路复用的——目前是删除 media 时的
+ * 反查（`domain/media/media-cache-hook.ts`）。城市解析这段逻辑只该有一份：
+ * 它同时要处理已展开 / 裸 id 两种形态，并且必须走 `findByIdSafe` 才不会拆掉调用方事务。
+ */
+export async function citySlugOfBuildingDoc(
   req: PayloadRequest,
   buildingDoc: unknown,
 ): Promise<string | null> {
@@ -83,8 +89,8 @@ async function citySlugOfBuildingDoc(
   return cityId === null ? null : findCitySlugById(req, cityId)
 }
 
-/** 房源文档 → 所属城市 slug。房源不直接挂城市，要经楼盘。 */
-async function citySlugOfListingDoc(
+/** 房源文档 → 所属城市 slug。房源不直接挂城市，要经楼盘。导出理由同上。 */
+export async function citySlugOfListingDoc(
   req: PayloadRequest,
   listingDoc: unknown,
 ): Promise<string | null> {
@@ -184,33 +190,3 @@ export const invalidateBuildingPublicCacheAfterChange =
   createAfterChangeHook(citySlugOfBuildingDoc, 'building')
 export const invalidateBuildingPublicCacheAfterDelete =
   createAfterDeleteHook(citySlugOfBuildingDoc, 'building')
-
-/**
- * 按父文档 id 解析受影响城市，供「不是文档自身写入」的链路复用。
- *
- * 现有消费方：媒体删除时摘除房源 / 楼盘的图集与媒体工作台引用
- * （`domain/media/media-delete-cleanup.ts`，OPT-070）。那条链路直接删数组子表行、
- * 不经过 Listings / Buildings 的 afterChange，因此拿不到 doc，只有 `_parent_id`。
- *
- * 走一次 `payload.find` 而不是逐条 `findByID`：一次删图可能牵动多条房源，
- * 而 `findByID` 查不到时会连带回滚调用方的事务（原因见 `shared/transaction-safety.ts`）。
- * 带 `trash: true`——软删的房源 / 楼盘照样引用着这张图，它们所在城市的缓存照样要失效。
- */
-export async function resolveSupplyCitySlugs(
-  req: PayloadRequest,
-  reason: SupplyCacheInvalidationReason,
-  ids: readonly (number | string)[],
-): Promise<string[]> {
-  if (ids.length === 0) return []
-  const found = await req.payload.find({
-    collection: reason === 'listing' ? 'listings' : 'buildings',
-    where: { id: { in: [...ids] } },
-    depth: 0,
-    limit: ids.length,
-    overrideAccess: true,
-    trash: true,
-    req,
-  })
-  const resolve = reason === 'listing' ? citySlugOfListingDoc : citySlugOfBuildingDoc
-  return collectCitySlugs(req, resolve, found.docs)
-}
