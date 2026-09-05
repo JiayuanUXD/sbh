@@ -90,16 +90,12 @@
  * ```
  */
 
-import { getPayload, type Payload } from 'payload'
+import { getPayload } from 'payload'
 
 import config from '../src/payload.config'
-import {
-  computeWatermarkVersion,
-  isBakeableImage,
-  mergeWatermarkConfig,
-  type WatermarkConfig,
-} from '../src/domain/media/watermark'
+import { computeWatermarkVersion, isBakeableImage } from '../src/domain/media/watermark'
 import { decideRebakeAction } from '../src/domain/media/watermark-rebake'
+import { resolveWatermarkConfig } from '../src/domain/media/watermark-settings'
 import { MEDIA_COS_PREFIX } from '../src/lib/storage/cos-config'
 import { createMediaWriter, MEDIA_SOURCE_PREFIX } from '../src/lib/storage/media-writer'
 
@@ -122,25 +118,13 @@ function readNumberFlag(prefix: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback
 }
 
-/**
- * 与 `plugins/watermark.ts`、`watermark-rebake.ts` 两处的 resolveConfig 同一条读取路径：
- * 读 site-settings，连同 siteName 一起过 `mergeWatermarkConfig`。插件写进
- * `watermark.version` 的就是这份配置的哈希——本脚本若换一种读法算出另一个哈希，
- * 版本判定永远不命中，续跑退化成全量重烘，且没有任何报错。
- */
-async function resolveWatermarkConfig(payload: Payload): Promise<WatermarkConfig> {
-  const global = (await payload.findGlobal({
-    slug: 'site-settings',
-    depth: 0,
-    overrideAccess: true,
-  })) as { watermark?: unknown; siteName?: string | null }
-  return mergeWatermarkConfig(global?.watermark, global?.siteName)
-}
-
 async function main(): Promise<void> {
   const payload = await getPayload({ config })
   const writer = createMediaWriter()
   // 配置只读一次：开关状态与当前版本都从这一份来，循环里逐张比对。
+  // 读取路径与烘焙插件、重刷任务共用（`domain/media/watermark-settings.ts`）——
+  // `watermark.version` 是这份配置的哈希，本脚本若换一种读法算出另一个哈希，版本判定
+  // 永远不命中，续跑退化成全量重烘，且没有任何报错。
   const watermarkConfig = await resolveWatermarkConfig(payload)
   const currentVersion = computeWatermarkVersion(watermarkConfig)
 

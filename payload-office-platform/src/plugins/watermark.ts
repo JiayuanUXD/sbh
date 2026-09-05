@@ -43,9 +43,12 @@ import {
   buildTiledOverlay,
   computeWatermarkVersion,
   isBakeableImage,
-  mergeWatermarkConfig,
   type WatermarkConfig,
 } from '@/domain/media/watermark'
+// 配置读取只有一条路（`domain/media/watermark-settings.ts`）：上传、重刷、回刷、预览
+// 四处若各读各的，会在「配置缺省 / 文案回落」上给出不同答案，表现为「新上传带水印、
+// 重刷后不带」或「预览与实际烘出来的不一样」，而且没有任何报错。
+import { resolveWatermarkConfig } from '@/domain/media/watermark-settings'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 import { createMediaWriter, MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-writer'
 
@@ -148,26 +151,6 @@ function collectSizes(doc: MediaDocShape): BakeSizeInput[] {
     sizes.push({ name, filename: value.filename, width: value.width, height: value.height })
   }
   return sizes
-}
-
-/**
- * 从 SiteSettings 读配置。合并逻辑走 `mergeWatermarkConfig`（Task 1 的纯函数），
- * **不要在这里手写展开**：Payload 对从没保存过的 group 返回的是
- * `{ density: null, text: null }` 这类全 null 对象，`...stored.tiled` 会让 null
- * 覆盖掉默认值，`width / null` 得到 Infinity，水印静默失效——librsvg 拿到非法数值
- * 不报错，sharp 照常返回一张没有水印的图。
- *
- * 本函数与 `domain/media/watermark-rebake.ts` 的读取路径必须调用同一个
- * `mergeWatermarkConfig`，否则两条路会在「配置缺省」这件事上给出不同答案，
- * 表现为「新上传带水印、重刷后不带」这种极难查的错位。
- */
-async function resolveConfig(payload: PayloadRequest['payload']): Promise<WatermarkConfig> {
-  const global = (await payload.findGlobal({
-    slug: 'site-settings',
-    depth: 0,
-    overrideAccess: true,
-  })) as { watermark?: unknown; siteName?: string | null }
-  return mergeWatermarkConfig(global?.watermark, global?.siteName)
 }
 
 const captureCleanMaster: CollectionBeforeOperationHook = async ({ args, operation }) => {
@@ -321,7 +304,7 @@ export function createBakeAfterUpload(
         mimeType: target.mimeType,
       })
 
-      const config = await resolveConfig(req.payload)
+      const config = await resolveWatermarkConfig(req.payload)
       if (!config.enabled) {
         await clearIfStale()
         return doc

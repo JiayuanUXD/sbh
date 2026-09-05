@@ -13,12 +13,11 @@ import sharp from 'sharp'
 import { getPayload } from 'payload'
 
 import config from '@/payload.config'
+import { buildBadgeOverlay, buildTiledOverlay } from '@/domain/media/watermark'
 import {
-  buildBadgeOverlay,
-  buildTiledOverlay,
-  DEFAULT_WATERMARK_CONFIG,
-  mergeWatermarkConfig,
-} from '@/domain/media/watermark'
+  buildPreviewWatermarkConfig,
+  readWatermarkSiteSettings,
+} from '@/domain/media/watermark-settings'
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 
@@ -60,37 +59,21 @@ export async function GET(request: Request): Promise<Response> {
 
   const params = new URL(request.url).searchParams
   const mode = params.get('mode') === 'badge' ? 'badge' : 'tiled'
-  const number = (key: string, fallback: number): number => {
-    const raw = Number(params.get(key))
-    return Number.isFinite(raw) ? raw : fallback
-  }
 
-  // 关键：查询参数必须过 `mergeWatermarkConfig` 再喂给构造器，**不能自己拼 config**。
-  // 烘焙路径（plugins/watermark.ts）走的是 mergeWatermarkConfig 的夹取与回落规则；
+  // 关键：查询参数必须过 `buildPreviewWatermarkConfig`（内部就是烘焙那套
+  // `mergeWatermarkConfig`），**不能自己拼 config**。烘焙路径走的是它的夹取与回落规则；
   // 预览若自己拼一套，两边对「超范围值 / 空文案 / 缺字段」的处理就会分叉——
   // 那样预览显示的是 A、实际烘出来的是 B，而这个 tab 存在的唯一意义就是所见即所得。
-  // 走同一个函数还顺带拿到 opacity / angle 的有限性与范围保证：两个 overlay 构造器
-  // 自身不校验这两个字段（Task 1 re-review 的 out-of-scope 观察 1）。
+  //
+  // `siteName` 必须从站点设置读出来当回落文案：字段说明写着「留空则回落为『站点名称』」，
+  // 而这里此前传的是 `null`，于是运营清空文案后**预览渲染 `商办荟`（DEFAULT 常量）、
+  // 烘焙渲染站点名称**——正是本注释声称已经消除的那种错位。
+  //
   // 命名为 watermarkConfig 而非 config：本文件顶部已 import config from '@/payload.config'
   // 给 getPayload 用，同名局部变量会在整个函数体内 TDZ 遮蔽那个 import（用早于声明即报错），
   // 这不是风格选择，是避免一个真实的「块作用域变量用在声明之前」编译错误。
-  const watermarkConfig = mergeWatermarkConfig(
-    {
-      enabled: true,
-      tiled: {
-        text: params.get('text'),
-        density: number('density', DEFAULT_WATERMARK_CONFIG.tiled.density),
-        opacity: number('opacity', DEFAULT_WATERMARK_CONFIG.tiled.opacity),
-        angle: number('angle', DEFAULT_WATERMARK_CONFIG.tiled.angle),
-      },
-      badge: {
-        text: params.get('text'),
-        position: params.get('position'),
-        opacity: number('opacity', DEFAULT_WATERMARK_CONFIG.badge.opacity),
-      },
-    },
-    null,
-  )
+  const settings = await readWatermarkSiteSettings(payload)
+  const watermarkConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
 
   const base = await sharp(sampleSvg()).jpeg({ quality: 88 }).toBuffer()
   const overlay =

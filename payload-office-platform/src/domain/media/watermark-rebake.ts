@@ -36,12 +36,8 @@
 
 import type { Payload, TaskConfig } from 'payload'
 
-import {
-  computeWatermarkVersion,
-  isBakeableImage,
-  mergeWatermarkConfig,
-  type WatermarkConfig,
-} from './watermark'
+import { computeWatermarkVersion, isBakeableImage } from './watermark'
+import { resolveWatermarkConfig } from './watermark-settings'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 import { createMediaWriter, MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-writer'
 
@@ -111,17 +107,6 @@ export function decideRebakeAction({
   if (!storedVersion) return 'backup-and-bake'
   if (storedVersion === currentVersion) return 'skip'
   return hasBackup ? 'bake-from-backup' : 'unrecoverable'
-}
-
-/** 与 `plugins/watermark.ts` 的 resolveConfig 共用 `mergeWatermarkConfig`——两条路
- *  必须对「配置缺省」给出同一个答案，否则会出现「新上传带水印、重刷后不带」的错位。 */
-async function resolveConfig(payload: Payload): Promise<WatermarkConfig> {
-  const global = (await payload.findGlobal({
-    slug: 'site-settings',
-    depth: 0,
-    overrideAccess: true,
-  })) as { watermark?: unknown; siteName?: string | null }
-  return mergeWatermarkConfig(global?.watermark, global?.siteName)
 }
 
 /** `unrecoverable` 是 `failed` 的子集：计入失败总数，同时单独点名，不许淹没在失败计数里。 */
@@ -237,7 +222,7 @@ export const rebakeWatermarkTask: TaskConfig<typeof MEDIA_WATERMARK_TASK> = {
   retries: { attempts: 2 },
   handler: async ({ input, req }) => {
     const payload = req.payload
-    const config = await resolveConfig(payload)
+    const config = await resolveWatermarkConfig(payload)
     const currentVersion = computeWatermarkVersion(config)
     const startAfterId = Number(input?.startAfterId ?? 0)
 
