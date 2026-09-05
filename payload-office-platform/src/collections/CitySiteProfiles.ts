@@ -327,12 +327,31 @@ export const CitySiteProfiles: CollectionConfig = {
                     { value: 'creative-park', label: '创意园区位' },
                   ],
                 },
+                /**
+                 * **不要加 `required: true`。**
+                 *
+                 * Payload 的 drizzle 适配器（`traverseFields.js`）对每一个单值
+                 * upload 列都写死 `onDelete: 'set null'`，同时只要 `field.required`
+                 * 就给列加 `notNull`——两者互斥，且没有任何配置开关能改 `onDelete`。
+                 * 加上 required 的后果不是「运营必须配图」，而是**这张图从此删不掉**：
+                 * 删 media 时 PG 按外键置 NULL，撞上非空约束报 23502，后台只显示
+                 * 「Something went wrong.」，`pnpm seed:media` 直接中断。
+                 * 与楼盘侧 OPT-050、房源侧迁移 `20260819_113218` 是同一个死结。
+                 *
+                 * 可空也正是这里应有的语义：全局默认那份
+                 * （`SiteSettings.typeCards[].coverImage`）本来就可空，单城覆盖只是
+                 * 它的按城市版本，没有理由更严。读侧 `mapTypeCardOverrides` 对映射不出
+                 * 封面的行**逐行丢弃**，自然回落到全局默认 → 该类型首条房源封面。
+                 */
                 {
                   name: 'coverImage',
                   label: '封面图',
                   type: 'upload',
                   relationTo: 'media',
-                  required: true,
+                  admin: {
+                    description:
+                      '留空（或图片被删）时这一行不生效，该槽位按上面的顺序回落到全局默认。',
+                  },
                 },
               ],
             },

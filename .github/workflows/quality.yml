@@ -280,3 +280,14 @@ jobs:
         run: pnpm migrate:verify
       - name: Capture sanitized PostgreSQL baseline
         run: pnpm baseline:capture
+      # 真库回归套件。`tests/*-postgres.test.ts` 都用
+      # `describe.skipIf(!process.env.DATABASE_URL)` 自我禁用，而唯一跑 `pnpm test`
+      # 的 quality 作业**没有** DATABASE_URL（它只有 PAYLOAD_SECRET），e2e 与本作业
+      # 又都不跑 vitest —— 于是这 6 个套件在 CI 里从来没跑过一次，它们守的东西
+      # （如 media 外键 `SET NULL` 撞 `NOT NULL` 的死结）可以静默回归而三闸门全绿。
+      #
+      # 放在本作业而不是 quality：这些用例要的正是「migrate + seed 过的真库」，
+      # 上面几步刚好把库准备成这个状态。放在 baseline:capture **之后**：用例会建/删
+      # 楼盘、房源、媒体等临时数据，跑在前面会污染基线快照。
+      - name: Run PostgreSQL-dependent regression suites
+        run: pnpm exec vitest run tests/*-postgres.test.ts

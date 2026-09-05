@@ -1,5 +1,10 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  collectMediaCacheTagsBeforeDelete,
+  invalidateMediaConsumerCacheAfterDelete,
+} from '@/domain/media/media-cache-hook'
+import { unmountMediaReferences } from '@/domain/media/media-delete-cleanup'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 
 /**
@@ -26,6 +31,31 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  /**
+   * 删 media 要做两件互相独立的事，各自的病理见对应模块的头注释：
+   *
+   *   - `unmountMediaReferences`（OPT-070，`media-delete-cleanup.ts`）：先摘掉房源 /
+   *     楼盘图集与媒体工作台里指向它的行，否则撞上 `NOT NULL` + `ON DELETE SET NULL`
+   *     的死结（23502），后台只显示「Something went wrong.」。
+   *   - `collectMediaCacheTagsBeforeDelete` / `invalidateMediaConsumerCacheAfterDelete`
+   *     （`media-cache-hook.ts`）：失效引用它的公开页面缓存。引用 media 的外键是
+   *     `ON DELETE SET NULL`，父文档不经过 Payload 写入路径，它们自己的失效钩子
+   *     一次都不会触发。
+   *
+   * ## 两条顺序约束，都不能反
+   *
+   * 1. **`beforeDelete` 里反查必须排在摘除之前。** 摘除直接删图集 / 工作台子表行，
+   *    排在前面会让反查查不到那条房源。`coverImage` 是标量列、摘除不动它，所以
+   *    「这张图正好是封面」的房源仍能查到——漏的是「只经 gallery / mediaItems 引用、
+   *    封面是别的图」那一类，**部分静默漏，最难发现**。
+   * 2. **反查在 `beforeDelete`、失效在 `afterDelete`。** `SET NULL` 在 DELETE 语句
+   *    执行时就生效，放到 `afterDelete` 再反查是恒空的；而删除可能失败，失败时不该动缓存。
+   *    两段之间用 `req.context` 按 media id 分桶传递。
+   */
+  hooks: {
+    beforeDelete: [collectMediaCacheTagsBeforeDelete, unmountMediaReferences],
+    afterDelete: [invalidateMediaConsumerCacheAfterDelete],
   },
   fields: [
     {

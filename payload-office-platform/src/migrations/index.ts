@@ -72,6 +72,7 @@ import * as migration_20260830_164849_opt_063_listing_room_number from './202608
 import * as migration_20260901_021249_merchant_stop_cascade_job from './20260901_021249_merchant_stop_cascade_job';
 import * as migration_20260903_084339_opt_067_lead_visitor_ref from './20260903_084339_opt_067_lead_visitor_ref';
 import * as migration_20260904_163535_opt_069_media_watermark_fields from './20260904_163535_opt_069_media_watermark_fields';
+import * as migration_20260904_170123_city_profile_type_card_cover_nullable from './20260904_170123_city_profile_type_card_cover_nullable';
 import * as migration_20260905_025659_opt_069_watermark_rebake_task from './20260905_025659_opt_069_watermark_rebake_task';
 import * as migration_20260905_033034_opt_069_site_settings_watermark from './20260905_033034_opt_069_site_settings_watermark';
 
@@ -445,6 +446,11 @@ export const migrations = [
     up: migration_20260904_163535_opt_069_media_watermark_fields.up,
     down: migration_20260904_163535_opt_069_media_watermark_fields.down,
     name: '20260904_163535_opt_069_media_watermark_fields',
+  },
+  {
+    up: migration_20260904_170123_city_profile_type_card_cover_nullable.up,
+    down: migration_20260904_170123_city_profile_type_card_cover_nullable.down,
+    name: '20260904_170123_city_profile_type_card_cover_nullable',
   },
   {
     up: migration_20260905_025659_opt_069_watermark_rebake_task.up,

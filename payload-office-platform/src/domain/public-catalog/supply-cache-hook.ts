@@ -71,8 +71,14 @@ async function findCitySlugById(
   return city.type === 'city' ? normalizeCitySlug(city.slug) : null
 }
 
-/** 楼盘文档 → 所属城市 slug。楼盘的 city 是可选 relationship，解析不出返回 null。 */
-async function citySlugOfBuildingDoc(
+/**
+ * 楼盘文档 → 所属城市 slug。楼盘的 city 是可选 relationship，解析不出返回 null。
+ *
+ * 导出是给「不经过 Buildings 自己写入路径」的链路复用的——目前是删除 media 时的
+ * 反查（`domain/media/media-cache-hook.ts`）。城市解析这段逻辑只该有一份：
+ * 它同时要处理已展开 / 裸 id 两种形态，并且必须走 `findByIdSafe` 才不会拆掉调用方事务。
+ */
+export async function citySlugOfBuildingDoc(
   req: PayloadRequest,
   buildingDoc: unknown,
 ): Promise<string | null> {
@@ -83,8 +89,8 @@ async function citySlugOfBuildingDoc(
   return cityId === null ? null : findCitySlugById(req, cityId)
 }
 
-/** 房源文档 → 所属城市 slug。房源不直接挂城市，要经楼盘。 */
-async function citySlugOfListingDoc(
+/** 房源文档 → 所属城市 slug。房源不直接挂城市，要经楼盘。导出理由同上。 */
+export async function citySlugOfListingDoc(
   req: PayloadRequest,
   listingDoc: unknown,
 ): Promise<string | null> {

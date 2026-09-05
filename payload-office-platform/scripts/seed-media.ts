@@ -120,37 +120,16 @@ async function uploadHeroBackgroundVideo(payload: any): Promise<AnyDoc> {
 }
 
 async function deleteAllMedia(payload: any): Promise<void> {
-  // seed.ts 幂等更新(非重建)后,listings/buildings/pages 仍持有对旧 media 的引用。
-  // listings_gallery.image_id 为 NOT NULL,直接删 media 会触发外键约束失败,
-  // 因此先解除所有引用(gallery 置空、coverImage/hero.image 置 null)再删。
-  const unmountFromCollection = async (
-    collection: 'listings' | 'buildings',
-  ): Promise<void> => {
-    const docs = await payload.find({ collection, limit: 1000, overrideAccess: true })
-    for (const doc of docs.docs) {
-      await payload.update({
-        collection,
-        id: doc.id,
-        data: { coverImage: null, gallery: [], mediaItems: [] },
-        overrideAccess: true,
-      })
-    }
-  }
-  await unmountFromCollection('listings')
-  await unmountFromCollection('buildings')
-
-  const pages = await payload.find({ collection: 'pages', limit: 1000, overrideAccess: true })
-  for (const page of pages.docs) {
-    if (page.hero?.image) {
-      await payload.update({
-        collection: 'pages',
-        id: page.id,
-        data: { hero: { ...page.hero, image: null } },
-        overrideAccess: true,
-      })
-    }
-  }
-
+  // 这里曾有一段手工解引用（把 listings/buildings 的 gallery、mediaItems 清空，
+  // 再把 pages.hero.image 置 null），理由是「listings_gallery.image_id 为 NOT NULL，
+  // 直接删 media 会触发外键约束失败」。
+  //
+  // OPT-070 起不需要了：`Media` 的 beforeDelete（domain/media/media-delete-cleanup.ts）
+  // 统一摘除数组子表引用，标量封面列本来就可空、由 PG 的 SET NULL 处理。
+  //
+  // 顺带去掉的是一个**维护陷阱**：那份清单要人肉跟着新表更新，OPT-060 新增
+  // `city_site_profiles_type_card_overrides` 时没跟上，本脚本就断在那里
+  //（见迁移 20260904_170123 的头注释）。钩子在数据库那一侧兜底，不会漏表。
   const all = await payload.find({ collection: 'media', limit: 1000 })
   for (const doc of all.docs) {
     await payload.delete({ collection: 'media', id: doc.id })

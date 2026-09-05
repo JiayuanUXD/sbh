@@ -3,13 +3,11 @@ import { revalidateTag } from 'next/cache'
 import {
   ARTICLES_CATEGORY_TAG,
   IMMEDIATE_CACHE_EXPIRE_PROFILE,
-  PUBLIC_CACHE_TAG_PREFIX,
+  PAGES_CATEGORY_TAG,
   SITEMAP_TAG,
   SITE_SETTINGS_TAG,
   cityLevelSafeInvalidationTags,
 } from '@/domain/public-catalog'
-
-const PAGES_CATEGORY_TAG = `${PUBLIC_CACHE_TAG_PREFIX}:pages`
 
 /**
  * `revalidateTag` 在没有 Next 请求上下文时抛的 invariant 文案。
@@ -96,6 +94,24 @@ export function invalidateCitySiteProfilePublicCache(
   reason: 'city_site_profile' | 'location',
 ): void {
   revalidatePublicCacheTags(tags, reason)
+}
+
+/**
+ * 删除 media 后的公开缓存失效。
+ *
+ * 为什么单开一个入口而不是复用上面那些：媒体删除**一次会牵动多个不同类型的消费方**
+ * （城市站点配置 / 站点设置 / 内容页 / 资讯 / 区域 / 楼盘 / 房源），
+ * tag 由 `domain/media/media-cache-hook.ts` 反查后合并成一份，这里只负责统一发出去，
+ * 这样日志里 `reason: 'media'` 一条就能对上一次删除，而不是散成七条互相看不出关联的记录。
+ *
+ * 为什么必须有这条链路：引用 media 的外键几乎都是 `ON DELETE SET NULL`，
+ * PG 在删除时直接把父表的引用列置空，**父文档根本不经过 Payload 的写入路径**，
+ * 它们自己的 afterChange 失效钩子一次都不会触发。没有这条链路，
+ * 前台会在缓存过期前继续渲染已经删掉的文件 URL（图片 404）。
+ */
+export function invalidateMediaConsumersPublicCache(tags: readonly string[]): void {
+  if (tags.length === 0) return
+  revalidatePublicCacheTags(tags, 'media')
 }
 
 /** 触发供给缓存失效的来源。房源与楼盘的公开可见性口径不同，日志要能分辨。 */
