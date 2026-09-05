@@ -102,6 +102,10 @@ import {
   MERCHANT_STOP_CASCADE_QUEUE,
   merchantStopCascadeTask,
 } from './domain/supply/merchant-stop-listings'
+import {
+  MEDIA_WATERMARK_QUEUE,
+  rebakeWatermarkTask,
+} from './domain/media/watermark-rebake'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -160,6 +164,7 @@ export default buildConfig({
       cityPartnerNotificationOutboxTask,
       supplyImportTask,
       merchantStopCascadeTask,
+      rebakeWatermarkTask,
     ],
     shouldAutoRun: async (payload) => {
       if (process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1') return false
@@ -207,6 +212,15 @@ export default buildConfig({
         limit: 1,
         // 跟上 OPT-046 §6.6 的新约定：压掉每轮空转的 info 汇总，但放开 error。
         // 本任务的失败是真实业务失败（房源没冻结成），压掉等于生产静默失败。
+        silent: JOB_CRON_SILENT,
+      },
+      {
+        // 重刷是人触发的低频批处理，跑起来后靠自投游标推进。60 秒一轮足够，
+        // 不值得为它给共享生产库加高频轮询。
+        cron: '0 * * * * *',
+        queue: MEDIA_WATERMARK_QUEUE,
+        ...(process.env.PAYLOAD_DISABLE_JOB_AUTORUN === '1' ? { disableScheduling: true } : {}),
+        limit: 1,
         silent: JOB_CRON_SILENT,
       },
     ],
