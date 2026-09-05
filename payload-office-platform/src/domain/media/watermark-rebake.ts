@@ -40,7 +40,7 @@ import {
   type WatermarkConfig,
 } from './watermark'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
-import { createMediaWriter, MEDIA_SOURCE_PREFIX } from '@/lib/storage/media-writer'
+import { createMediaWriter, MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-writer'
 
 export const MEDIA_WATERMARK_TASK = 'rebake-media-watermark'
 export const MEDIA_WATERMARK_QUEUE = 'media-watermark'
@@ -121,17 +121,26 @@ async function resolveConfig(payload: Payload): Promise<WatermarkConfig> {
 /** `unrecoverable` 是 `failed` 的子集：计入失败总数，同时单独点名，不许淹没在失败计数里。 */
 export type RebakeResult = { processed: number; skipped: number; failed: number; unrecoverable: number }
 
-/** 重刷一批。单张失败不阻断后续（同 import-task.ts 语义 4）。 */
+/**
+ * 重刷一批。单张失败不阻断后续（同 import-task.ts 语义 4）。
+ *
+ * `createWriter` 只为测试注入假写入器而存在（与 `plugins/watermark.ts` 的
+ * `createBakeAfterUpload` 同一手法）。这段是本任务唯一**不可逆改写字节**的代码，
+ * 没有注入点就一行都覆盖不到：调换「先备份后覆盖」的顺序、把 unrecoverable 错记成
+ * skip、拿当前带水印的字节去覆盖备份，全都能在纯函数单测下全绿通过。生产不传。
+ */
 export async function rebakeChunk({
   payload,
   ids,
   currentVersion,
+  createWriter = createMediaWriter,
 }: {
   payload: Payload
   ids: number[]
   currentVersion: string
+  createWriter?: () => MediaWriter
 }): Promise<RebakeResult> {
-  const writer = createMediaWriter()
+  const writer = createWriter()
   const result: RebakeResult = { processed: 0, skipped: 0, failed: 0, unrecoverable: 0 }
 
   for (const id of ids) {
