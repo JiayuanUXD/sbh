@@ -79,31 +79,68 @@ describe('buildTiledOverlay', () => {
 })
 
 describe('buildBadgeOverlay', () => {
+  const textPos = (svg: string) => ({
+    x: Number(/<text x="(-?[\d.]+)"/.exec(svg)![1]),
+    y: Number(/<text x="-?[\d.]+" y="(-?[\d.]+)"/.exec(svg)![1]),
+  })
+
   it('bottom-right 时角标贴右下', () => {
-    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
-    const rectX = Number(/<rect x="([\d.]+)"/.exec(svg)![1])
-    const rectY = Number(/<rect x="[\d.]+" y="([\d.]+)"/.exec(svg)![1])
-    expect(rectX).toBeGreaterThan(500)
-    expect(rectY).toBeGreaterThan(400)
+    const { x, y } = textPos(buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString())
+    expect(x).toBeGreaterThan(500)
+    expect(y).toBeGreaterThan(400)
   })
 
   it('top-left 时角标贴左上', () => {
+    const { x, y } = textPos(
+      buildBadgeOverlay({
+        width: 1000,
+        height: 800,
+        config: { ...BADGE, position: 'top-left' },
+      }).toString(),
+    )
+    expect(x).toBeLessThan(100)
+    expect(y).toBeLessThan(100)
+  })
+
+  // 产品 2026-09-05 裁定：角标不要底板。底板一去，可读性全压在描边上，
+  // 所以下面两条比位置断言更要紧——它们是这个改动之后唯一撑住明暗两端的东西。
+  it('不画底板——只有文字，没有任何 rect', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('必须带描边——没有底板之后，这是高亮区里唯一让白字不消失的东西', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).toContain('paint-order="stroke"')
+    expect(svg).toContain('stroke="#000"')
+  })
+
+  // 右对齐必须靠 text-anchor 而不是「自己算 宽 - 估算文字宽 - 边距」：
+  // estimateTextWidth 是估算，有底板时误差被内边距吸收，底板去掉后就直接表现为
+  // 文字右侧被裁出画布（2026-09-05 真实渲染复现过，SHANGBANHUI 少了最后一个 I）。
+  it('右对齐用 text-anchor="end"，x 固定在右边距上，不依赖宽度估算', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).toContain('text-anchor="end"')
+    // x 与文案长度无关——估算误差从此不参与右对齐
+    const xOf = (text: string) =>
+      textPos(buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text } }).toString()).x
+    expect(xOf('ABCDEFGHIJ')).toBe(xOf('AB'))
+    expect(xOf('AB')).toBe(1000 - Math.round(1000 * 0.025))
+  })
+
+  it('左对齐不发 text-anchor，起点就是左边距', () => {
     const svg = buildBadgeOverlay({
       width: 1000,
       height: 800,
       config: { ...BADGE, position: 'top-left' },
     }).toString()
-    const rectX = Number(/<rect x="([\d.]+)"/.exec(svg)![1])
-    const rectY = Number(/<rect x="[\d.]+" y="([\d.]+)"/.exec(svg)![1])
-    expect(rectX).toBeLessThan(100)
-    expect(rectY).toBeLessThan(100)
+    expect(svg).not.toContain('text-anchor')
+    expect(textPos(svg).x).toBe(Math.round(1000 * 0.025))
   })
 
-  it('底板宽度随文案长度增长', () => {
-    const short = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: 'AB' } }).toString()
-    const long = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: 'ABCDEFGHIJ' } }).toString()
-    const widthOf = (svg: string) => Number(/<rect [^>]*width="([\d.]+)"/.exec(svg)![1])
-    expect(widthOf(long)).toBeGreaterThan(widthOf(short))
+  it('贴下边时给下伸部留余量，基线不压在画布底边上', () => {
+    const { y } = textPos(buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString())
+    expect(y).toBeLessThan(800)
   })
 })
 

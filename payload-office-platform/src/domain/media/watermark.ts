@@ -230,24 +230,35 @@ export function buildBadgeOverlay({
 
   const text = escapeXml(config.text)
   const fontSize = Math.max(8, Math.round(width * BADGE_FONT_RATIO))
-  const padX = Math.round(fontSize * 0.85)
-  const padY = Math.round(fontSize * 0.55)
-  const boxWidth = Math.round(estimateTextWidth(config.text, fontSize)) + padX * 2
-  const boxHeight = fontSize + padY * 2
   const margin = Math.round(width * 0.025)
 
   const alignRight = config.position === 'bottom-right' || config.position === 'top-right'
   const alignBottom = config.position === 'bottom-right' || config.position === 'bottom-left'
-  const x = alignRight ? width - boxWidth - margin : margin
-  const y = alignBottom ? height - boxHeight - margin : margin
+  // 右对齐用 text-anchor="end" 而不是自己算 x = 宽 - 文字宽 - 边距：
+  // `estimateTextWidth` 是估算（CJK 按 1em、拉丁按 0.62em），有底板时误差被内边距
+  // 吸收，底板一去就直接表现为文字右侧被裁出画布。交给渲染器按真实排版宽度对齐，
+  // 估算误差与这条路径彻底无关。
+  const x = alignRight ? width - margin : margin
+  const anchor = alignRight ? ' text-anchor="end"' : ''
+  // 基线：贴下边时给下伸部（拉丁的 g/y，中文没有）留 0.2em，否则会被裁掉半截
+  const baselineY = alignBottom
+    ? Math.round(height - margin - fontSize * 0.2)
+    : Math.round(margin + fontSize)
 
+  // 无底板。可读性靠白字 + 黑描边（paint-order="stroke" 让描边画在字下面），
+  // 与满铺水印同一套手段——设计阶段实测过：纯白半透明字在落地窗那类高亮区会
+  // 完全消失，纯黑字在近黑家具上同理，两端都要靠这层描边撑住。
+  // 描边比满铺水印粗、也更浓（0.1em / 0.85 倍不透明度，满铺是 0.04em / 0.5 倍）。
+  // 原因是字号差一个数量级：满铺在 2400px 母版上约 62px，0.04em 就有 2.5px；
+  // 角标只有图宽的 3%（768px 上约 23px），同比例只剩 0.9px，在纯白底上实测几乎看不见。
+  const strokeWidth = Math.max(1, round(fontSize * 0.1))
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
-      `<rect x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}"` +
-      ` rx="${Math.round(boxHeight * 0.28)}" fill="#000" fill-opacity="0.45"/>` +
-      `<text x="${x + padX}" y="${round(y + padY + fontSize * 0.82)}" font-size="${fontSize}"` +
+      `<text x="${x}" y="${baselineY}"${anchor} font-size="${fontSize}"` +
       ` font-family="${WATERMARK_FONT_FAMILY}" font-weight="700"` +
-      ` fill="#fff" fill-opacity="${round(config.opacity)}">${text}</text></svg>`,
+      ` fill="#fff" fill-opacity="${round(config.opacity)}"` +
+      ` stroke="#000" stroke-opacity="${round(config.opacity * 0.85)}"` +
+      ` stroke-width="${strokeWidth}" paint-order="stroke">${text}</text></svg>`,
   )
 }
 
