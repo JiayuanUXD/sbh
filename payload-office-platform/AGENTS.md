@@ -2,7 +2,7 @@
 
 本文件适用于 `payload-office-platform/` 全部目录。它只负责上下文路由；具体规则按任务读取 `.agent/` 中的专项文件，禁止每次加载全部规则。
 
-> **常驻约束在两份 `CLAUDE.md` 里**：仓库根 `../CLAUDE.md`（部署、分支、CI 坑、工作树纪律）与 `./CLAUDE.md`（技术栈、命令、生成物纪律、数据库、并行 worktree）。文件名是历史原因，内容对所有 agent 同等生效——Claude Code 会自动加载它们，**Antigravity / Gemini CLI / Codex 等必须显式读取**（通用入口见仓库根 `../AGENTS.md`）。
+> **常驻约束在两份** **`CLAUDE.md`** **里**：仓库根 `../CLAUDE.md`（部署、分支、CI 坑、工作树纪律）与 `./CLAUDE.md`（技术栈、命令、生成物纪律、数据库、并行 worktree）。文件名是历史原因，内容对所有 agent 同等生效——Claude Code 会自动加载它们，**Antigravity / Gemini CLI / Codex 等必须显式读取**（通用入口见仓库根 `../AGENTS.md`）。
 >
 > 本文件与 `.agent/` 任何 agent 都不会自动加载，需按下表显式读取。
 
@@ -15,14 +15,14 @@
 
 ## 2. 按任务增量读取
 
-| 任务类型 | 额外读取 |
-|---|---|
-| Payload 后台页面、Collection、Hook、Custom View | [`.agent/backend.md`](./.agent/backend.md) |
-| C 端页面、组件、公开查询、SEO、咨询 | [`.agent/frontend.md`](./.agent/frontend.md) |
-| 有效供给、楼盘、房源、商户关系 | [`.agent/supply.md`](./.agent/supply.md) |
-| 登录、角色、菜单、操作、数据或字段权限 | [`.agent/permissions.md`](./.agent/permissions.md) |
-| Collection、字段、索引、约束或生产数据变化 | [`.agent/migrations.md`](./.agent/migrations.md) |
-| 测试、浏览器验收、构建或完成声明 | [`.agent/testing.md`](./.agent/testing.md) |
+| 任务类型                                     | 额外读取                                               |
+| ---------------------------------------- | -------------------------------------------------- |
+| Payload 后台页面、Collection、Hook、Custom View | [`.agent/backend.md`](./.agent/backend.md)         |
+| C 端页面、组件、公开查询、SEO、咨询                     | [`.agent/frontend.md`](./.agent/frontend.md)       |
+| 有效供给、楼盘、房源、商户关系                          | [`.agent/supply.md`](./.agent/supply.md)           |
+| 登录、角色、菜单、操作、数据或字段权限                      | [`.agent/permissions.md`](./.agent/permissions.md) |
+| Collection、字段、索引、约束或生产数据变化               | [`.agent/migrations.md`](./.agent/migrations.md)   |
+| 测试、浏览器验收、构建或完成声明                         | [`.agent/testing.md`](./.agent/testing.md)         |
 
 只在任务实际跨域时组合读取。例如前台房源卡片读取 `frontend + supply + testing`，后台角色页读取 `backend + permissions + testing`。
 
@@ -35,15 +35,25 @@
 ## 4. 不可协商的总规则
 
 - 包管理器固定为 pnpm；不得用 npm/yarn 改写锁文件。
+
 - 禁止用 `any`、`as any`、`@ts-ignore`、`@ts-nocheck` 绕过类型。
+
 - 外部输入使用 `unknown` 并以 schema/类型守卫收口。
+
 - 权限必须在服务端执行；隐藏按钮不是权限控制。
+
 - 不得物理删除已引用主数据、业务历史、审核、举报、跟进、归属或审计。
+
 - 前台、预览、楼盘聚合、推荐、咨询候选和看板必须复用统一有效供给服务。
+
 - 禁止重新引入 shadcn-ui、Tailwind reset、全局第三方 CSS reset、S3 或 SEO 插件。
+
 - 未经用户确认不得跨越当前获批里程碑、执行破坏性迁移、提交、推送或创建 PR。
+
 - 保留工作树中用户和其他任务的修改；禁止 `git reset --hard`、`git checkout --`。
+
 - 用户可见页面、路由、表单、权限和状态变化必须真实浏览器验证。
+
 - 只有代码、测试、构建、浏览器和必要数据校验均有证据时，才可标记任务完成。
 
 ## 5. 标准工作流
@@ -60,15 +70,24 @@
 ## 6. 上下文预算
 
 - 单次任务只激活一个主任务编号。
+
 - 优先修改 3–8 个核心文件；超出时拆分任务包。
+
 - 搜索先于整文件读取；日志只返回失败摘要，完整输出存证据目录。
+
 - 当前会话只保留目标、决策、文件、验证和下一步；历史细节写入 Task Packet。
+
 - 当同一任务需要超过三个专项规则时，先判断是否应拆成两个任务。
 
 ## 7. 子代理授权与协作
 
 - 用户已授权所有任务根据实际情况使用子代理，无需逐次申请；是否委派由主 Agent 按任务依赖、风险、上下文成本和并发收益判断。
+
 - 有书面实施计划时，优先使用子代理完成单任务实现、规格符合性审查、代码质量审查、测试或浏览器验收；主 Agent 负责拆分、调度、裁决和最终验收。
+
 - 依赖关系明确的任务串行推进；禁止多个子代理并发修改同一文件或同一有状态资源。可并行的只读调查、独立审查和互不重叠验证可以并行。
+
 - 子代理不得扩大任务范围，不得自行执行破坏性操作、迁移生产数据、推送、创建 PR 或部署；这些动作仍遵循本文件的用户确认要求。
+
 - 主 Agent 必须检查子代理产生的 diff、测试证据与报告，不得仅凭子代理的完成声明标记任务完成。
+
