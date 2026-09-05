@@ -70,6 +70,10 @@ RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 # （上传/重刷接口调用 sharp），builder 阶段的 next build 不连库、不会触发渲染。
 # 谁以后为瘦身把这行删掉，唯一会拦住这个改动的是 tests/media-watermark-font-guard.test.ts；
 # 没有它，typecheck/lint/build 全绿，线上水印会悄悄变回方框，且不报错。
+# 换包也一样要走那条守卫：包名在 src/domain/media/watermark.ts 里有一份
+# WATERMARK_FONT_PACKAGE，两边必须一致（守卫测试钉住），而那个常量进水印版本哈希——
+# 换成 fonts-noto-cjk 字形全变，哈希不跟着变的话，存量图会被每一轮重刷判成
+# 「已是当前版本」跳过，新旧字形永久共存。
 RUN apt-get update && apt-get install -y --no-install-recommends fonts-wqy-zenhei \
   && rm -rf /var/lib/apt/lists/*
 

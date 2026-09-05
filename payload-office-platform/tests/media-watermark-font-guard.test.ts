@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import path from 'path'
 import { describe, expect, it } from 'vitest'
 
-import { WATERMARK_FONT_FAMILY } from '@/domain/media/watermark'
+import { WATERMARK_FONT_FAMILY, WATERMARK_FONT_PACKAGE } from '@/domain/media/watermark'
 
 function read(relative: string): string {
   return readFileSync(path.join(process.cwd(), relative), 'utf8')
@@ -41,12 +41,37 @@ describe('生产容器的中文字体安装（Dockerfile）', () => {
     expect(fontLineIndex).toBeGreaterThan(runnerStageStart)
   })
 
-  it('WATERMARK_FONT_FAMILY 首选项必须是 Dockerfile 实际安装的那个字体族名，两者不能各说各话', () => {
+  /**
+   * 装的**包名**必须与 `WATERMARK_FONT_PACKAGE` 一致，因为那个常量进版本哈希。
+   *
+   * 缺了这条守卫，把这一行从 `fonts-wqy-zenhei` 换成 `fonts-noto-cjk`（两者字形差异很大）
+   * 的后果与「改了渲染逻辑却没 +1 版本号」完全同构：像素全变，而
+   * `computeWatermarkVersion` 的输入一个字节没动 → 哈希不变 → 之后每一轮重刷都判
+   * 「已是当前版本」跳过 → 新旧两种字形永久共存，没有任何报错。
+   * `artifacts/verification/OPT-069/` 里那份容器字体验收把 WQY 与 Noto 的权衡明确摆了出来，
+   * 客观上提高了有人真去换的概率。
+   *
+   * 有了它：Dockerfile 一改 → 本测试红 → 必须同步改常量 → 哈希自动变 → 重刷自动重烘。
+   */
+  it('Dockerfile 装的字体包必须与 WATERMARK_FONT_PACKAGE 一致——它进版本哈希，换包=换字形=存量图必须重刷', () => {
+    const installLine = dockerfile
+      .split('\n')
+      .find((line) => line.includes('apt-get install') && /fonts-\S+/.test(line))
+    expect(installLine, 'Dockerfile 里找不到安装字体包的 apt-get install 行').toBeTruthy()
+    const installed = /fonts-[A-Za-z0-9.+-]+/.exec(installLine!)?.[0]
+    expect(installed).toBe(WATERMARK_FONT_PACKAGE)
+  })
+
+  it('WATERMARK_FONT_FAMILY 首选项与 Dockerfile 装的那个包对得上，两者不各说各话', () => {
     // fonts-wqy-zenhei 这个 Debian 包注册的字体族名是 `WenQuanYi Zen Hei`
     // （非本文件猜测，见 watermark.ts 顶部注释与 Dockerfile 同一行注释的交叉引用）。
-    // 装的包和代码选的字体名必须是同一个东西，否则装了也白装：生产容器里
-    // librsvg 找不到 `WATERMARK_FONT_FAMILY` 第一项，直接跳到下一项——而下一项
-    // （Noto Sans CJK SC / Microsoft YaHei）在容器里同样不存在，照样方框。
+    //
+    // **别把这条读成「不点名就会渲染成方框」**——那是错的，已被实测推翻：只改 font-family
+    // 字符串、其余入参全同，两次渲染逐字节相同。fontconfig 做的是最佳匹配而非精确匹配失败，
+    // 系统里只要有覆盖该码点的字体就会被选中，是否在 family 列表里点名无关。
+    // 当前镜像只装了一个 CJK 字体，fontconfig 无从选择，所以栈的顺序不是失效点。
+    // **但若将来镜像里多了第二个 CJK 字体，栈首会重新成为决定因素**（fontconfig 要在候选间
+    // 排序，点名的那个会赢）。这条断言就是为那一天留的：它保证「点名的」与「装的」是同一个。
     expect(WATERMARK_FONT_FAMILY.split(',')[0].trim()).toBe('WenQuanYi Zen Hei')
   })
 })

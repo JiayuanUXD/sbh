@@ -9,6 +9,7 @@ import {
   isBakeableImage,
   mergeWatermarkConfig,
   WATERMARK_FONT_FAMILY,
+  WATERMARK_FONT_PACKAGE,
 } from '@/domain/media/watermark'
 
 const TILED = { text: '商办荟 SHANGBANHUI', density: 3, opacity: 0.38, angle: -30 }
@@ -130,15 +131,35 @@ describe('computeWatermarkVersion', () => {
    * （librsvg 不报错），然后**盖上一个 version**；装好字体之后每一轮重刷都把它们
    * 判成 skip，方框永远留在生产图片里，除非改代码。
    */
-  it('字体栈变了版本必须跟着变——否则方框图会被永久判成「已是当前版本」', () => {
-    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, 'WenQuanYi Zen Hei, sans-serif')
-    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, 'Noto Sans CJK SC, sans-serif')
+  it('字体栈变了版本必须跟着变', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+      fontFamily: 'WenQuanYi Zen Hei, sans-serif',
+    })
+    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+      fontFamily: 'Noto Sans CJK SC, sans-serif',
+    })
     expect(changed).not.toBe(base)
   })
 
-  it('字体参数只是测试注入点，缺省就是当前的 WATERMARK_FONT_FAMILY', () => {
+  /**
+   * 真正决定像素的是**容器里装了哪个字体包**，不是代码里那串 family 名
+   * （实测：只改 font-family 字符串、其余入参全同，两次渲染逐字节相同——fontconfig
+   * 做最佳匹配，系统里只有一个 CJK 字体时点不点名都选它）。所以包名必须进哈希：
+   * 把 Dockerfile 那行从 fonts-wqy-zenhei 换成 fonts-noto-cjk，字形全变，
+   * 而哈希若不变，之后每一轮重刷都判「已是当前版本」跳过，新旧字形永久共存。
+   */
+  it('字体包变了版本必须跟着变——否则换包后存量图永远重刷不动', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, { fontPackage: 'fonts-wqy-zenhei' })
+    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, { fontPackage: 'fonts-noto-cjk' })
+    expect(changed).not.toBe(base)
+  })
+
+  it('字体参数只是测试注入点，缺省就是当前的字体栈与字体包', () => {
     expect(computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG)).toBe(
-      computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, WATERMARK_FONT_FAMILY),
+      computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+        fontFamily: WATERMARK_FONT_FAMILY,
+        fontPackage: WATERMARK_FONT_PACKAGE,
+      }),
     )
   })
 })

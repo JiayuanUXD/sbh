@@ -32,16 +32,39 @@ export const WATERMARK_RENDERER_VERSION = '2'
 /**
  * 字体栈。生产是 Linux 容器，`Microsoft YaHei` 只在本地存在——
  * 容器缺中文字体时 librsvg 渲染成方框且**不报错**，见 spec §7.3。
- * 该风险由 Dockerfile 装 fonts-wqy-zenhei 承担，不在本文件解决；
- * `WenQuanYi Zen Hei` 是该 Debian 包注册的字体族名（非本文件猜测——
- * 见 Dockerfile 同一 RUN 行的注释），必须排在栈首才会被生产实际选中，
- * 后面几项只是本地 Windows/macOS 开发时的兜底，容器里并不存在。
+ * 该风险由 Dockerfile 装 `WATERMARK_FONT_PACKAGE` 承担，不在本文件解决；
+ * `WenQuanYi Zen Hei` 是那个 Debian 包注册的字体族名（非本文件猜测——
+ * 见 Dockerfile 同一 RUN 行的注释），后面几项是本地 Windows/macOS 开发时的兜底，
+ * 容器里并不存在。
  *
- * 本常量进 `computeWatermarkVersion` 的哈希：改它等于改渲染结果，存量图会自动被判成
- * 旧版本、下一轮重刷从 `media-source/` 重烘，不需要谁记得去 +1 渲染器版本号。
+ * **别以为「不点名栈首就会渲染成方框」**——实测（容器等价的 fontconfig 环境）推翻了它：
+ * 只改这串 family、其余入参全同，两次渲染逐字节相同。fontconfig 做的是最佳匹配，
+ * 系统里只要有覆盖该码点的字体就会被选中，是否在 family 列表里点名无关。
+ * 当前镜像只装一个 CJK 字体，fontconfig 无从选择，所以**栈的顺序不是失效点**；
+ * 一旦镜像里多了第二个 CJK 字体，栈首才会重新成为决定因素（候选间要排序，点名的会赢）。
+ * 真正必须锁住的两条是「Dockerfile 装了 CJK 字体包」与「该包与常量一致」，
+ * 见 `tests/media-watermark-font-guard.test.ts`。
+ *
+ * 本常量仍进 `computeWatermarkVersion` 的哈希：多字体场景下它确实影响像素，
+ * 而哈希多包一个不变的字符串没有任何代价。
  */
 export const WATERMARK_FONT_FAMILY =
   'WenQuanYi Zen Hei, Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
+
+/**
+ * 生产容器实际安装的 CJK 字体包（Dockerfile 的 `apt-get install` 那一行）。
+ *
+ * **真正决定水印像素的是它，不是上面那串 family 名**（见上：只改 family 字符串，
+ * 渲染结果逐字节不变）。所以它必须进版本哈希：把 Dockerfile 从 `fonts-wqy-zenhei`
+ * 换成 `fonts-noto-cjk`（两者字形差异很大）会让所有图的像素改变，而
+ * `computeWatermarkVersion` 的输入若一个字节没动 → 哈希不变 → 之后每一轮重刷都判
+ * 「已是当前版本」跳过 → 新旧两种字形永久共存，且没有任何报错。这正是本功能刻意
+ * 不用人工版本号要摆脱的那种依赖。
+ *
+ * 与 Dockerfile 的一致性由 `tests/media-watermark-font-guard.test.ts` 钉住：
+ * 那边一改、这边不改，测试就红；改了这边，哈希自动变，存量图下一轮重刷自动重烘。
+ */
+export const WATERMARK_FONT_PACKAGE = 'fonts-wqy-zenhei'
 
 export type TiledWatermarkConfig = {
   text: string
@@ -258,21 +281,29 @@ export function isBakeableImage(mimeType: string | null | undefined): boolean {
  * 刻意**不用人工维护的版本号**：人会忘记改，届时重刷任务会静默跳过该跑的图，
  * 而这种错误没有任何报错、只表现为「点了重刷但有些图没变」。
  *
- * **字体栈也进哈希**：它直接进 SVG 的 `font-family`，换一个字体像素就不一样，
- * 属于「产出这批字节的配置」。不哈希它的后果不是理论问题——在缺中文字体的环境里
- * 打开开关，图会被烘成方框（librsvg 不报错），然后盖上一个 version；事后装好字体，
- * 每一轮重刷都把它们判成 skip，方框永久留在生产图片里，只能靠改代码解。
+ * **字体也进哈希**，两项都进：
  *
- * `fontFamily` 只是**测试注入点**（与 `createWriter` 同一手法：没有它就写不出
- * 「换字体 → 版本变」这条断言）。生产不传，走当前的 `WATERMARK_FONT_FAMILY`。
+ *   - `WATERMARK_FONT_PACKAGE`（容器实际装的字体包）——**真正决定像素的是它**。换包
+ *     等于换字形，若哈希不动，之后每一轮重刷都判「已是当前版本」跳过，新旧字形永久共存；
+ *   - `WATERMARK_FONT_FAMILY`（SVG 里那串 family 名）——单字体环境下它不影响渲染结果
+ *     （实测逐字节相同，fontconfig 走最佳匹配），但镜像里一旦有第二个 CJK 字体它就会
+ *     决定选谁。多包一个字符串没有代价。
+ *
+ * 不哈希字体的后果不是理论问题：缺中文字体的环境里打开开关，图会被烘成方框
+ * （librsvg 不报错）却照样盖上一个 version；事后把字体装好，每一轮重刷都把它们判成
+ * skip，方框永久留在生产图片里，只能靠改代码解。
+ *
+ * 第二个参数只是**测试注入点**（与 `createWriter` 同一手法：没有它就写不出
+ * 「换字体 → 版本变」这两条断言）。生产不传，走当前两个常量。
  */
 export function computeWatermarkVersion(
   config: WatermarkConfig,
-  fontFamily: string = WATERMARK_FONT_FAMILY,
+  fonts: { fontFamily?: string; fontPackage?: string } = {},
 ): string {
   const payload = JSON.stringify({
     renderer: WATERMARK_RENDERER_VERSION,
-    font: fontFamily,
+    font: fonts.fontFamily ?? WATERMARK_FONT_FAMILY,
+    fontPackage: fonts.fontPackage ?? WATERMARK_FONT_PACKAGE,
     tiled: config.tiled,
     badge: config.badge,
   })
