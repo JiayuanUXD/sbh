@@ -49,9 +49,15 @@ export const Media: CollectionConfig = {
     /**
      * OPT-069：素材用途。只有 `listing-photo` 走水印烘焙。
      *
-     * **默认值刻意取 `listing-photo`**：误打可逆（`media-source/` 留着干净原件，
-     * 重刷即可复原），漏打不可逆（无水印图已经流出且已被谁抓走无从知晓）。
-     * 默认值要偏向可恢复的那一侧。
+     * **默认值刻意取 `listing-photo`**：误打的图**留得下退路**（干净原件在 `media-source/`，
+     * 需要人工取回来覆盖回去），漏打则不可逆（无水印图已经流出，被谁抓走无从知晓）。
+     * 默认值要偏向留得下退路的那一侧。
+     *
+     * 退路是**人工**的，别指望「改 usage + 点重刷」：`selectRebakeTargets` 只处理
+     * `usage === 'listing-photo'`，把一张误打的图改成 `brand` 之后重刷根本不会选中它，
+     * 那张水印图会原样留着。正确做法是从 `media-source/<filename>` 取回干净原件，
+     * 以同名重新上传（`usage` 先改对，`bakeAfterUpload` 见 usage 不是实景图就只落干净字节、
+     * 顺手清掉 version）。本仓库刻意不做「反烘焙」分支——它只会多一条要维护的写字节路径。
      */
     {
       name: 'usage',

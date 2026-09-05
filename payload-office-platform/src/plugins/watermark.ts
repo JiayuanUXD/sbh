@@ -55,8 +55,15 @@ import { createMediaWriter, MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/
 export const WATERMARK_CONTEXT_KEY = '__opt069CleanMaster'
 export const WATERMARK_SKIP_KEY = '__opt069Skip'
 
-/** 不打水印的派生档。320px 图无盗用价值，见 spec §4.5。 */
-const SKIPPED_SIZE_NAMES = new Set(['thumb'])
+/**
+ * 不打水印的派生档。320px 图无盗用价值，9px 角标只会变成脏点，见 spec §4.5。
+ *
+ * 这里写的是字面量档名，与 `Media.upload.imageSizes` 之间没有编译期联系：那边改名
+ * 或删档，这边不会报错，只会**默默开始给 320px 图打角标**。导出是为了让
+ * `tests/media-usage-field.test.ts` 把两者钉在一起（同一文件里「任何一档都不得同时
+ * 声明 width 和 height」那条守卫的兄弟）。
+ */
+export const SKIPPED_SIZE_NAMES = new Set(['thumb'])
 
 export type BakeSizeInput = { name: string; filename: string; width: number; height: number }
 

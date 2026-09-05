@@ -88,6 +88,10 @@
  * pnpm media:backfill-watermark                      # dry-run：按三种情形统计张数，不写任何东西；开关关着也能跑
  * pnpm media:backfill-watermark --execute --limit=50 # 真回刷，烘焙满 50 张即停；情形 2 跳过、不计入 limit；开关关着拒跑
  * ```
+ *
+ * `--execute` 不带 `--limit` 时**默认只做 50 张**（生产约 1.7 万张）。脚本会在开跑前把
+ * 「本轮上限」与「待处理总数」明写出来、跑完再报剩余量——不然那句「烘焙 50 张、失败 0 张」
+ * 读起来就像已经干完了。重复跑同一条命令即可续跑，已完成的走情形 2、一次存储都不碰。
  */
 
 import { getPayload } from 'payload'
@@ -109,6 +113,8 @@ type MediaDoc = {
 
 const EXECUTE = process.argv.includes('--execute')
 const LIMIT = readNumberFlag('--limit=', EXECUTE ? 50 : Number.POSITIVE_INFINITY)
+/** `--limit` 是不是运营自己指定的。没指定时 `--execute` 会**静默**只做 50 张（见 main 里的提示）。 */
+const LIMIT_EXPLICIT = process.argv.some((arg) => arg.startsWith('--limit='))
 const PAGE_SIZE = 200
 
 function readNumberFlag(prefix: string, fallback: number): number {
@@ -170,6 +176,19 @@ async function main(): Promise<void> {
     console.error('拒绝执行：水印开关关闭。先去「站点设置 → 图片水印」勾上「启用水印」并保存，再跑 --execute。未写入任何数据。')
     process.exit(1)
   }
+
+  // 本轮真正要处理的张数（已是当前版本的不算）。`--limit` 默认只有 50，而生产有约 1.7 万张：
+  // 不把「本轮上限」和「还剩多少」明写出来，运营跑一条光秃秃的 `--execute` 会拿到
+  // 「烘焙 50 张、失败 0 张」这种读起来像干完了的汇总，然后以为存量处理完了。
+  const pending = candidates.length - alreadyCurrent
+  console.log(
+    `本轮最多烘焙 ${Number.isFinite(LIMIT) ? LIMIT : '不限'} 张` +
+      `${LIMIT_EXPLICIT ? '（--limit）' : '（未指定 --limit，用默认 50）'}，` +
+      `待处理共 ${pending} 张。` +
+      (pending > LIMIT
+        ? `本轮跑完还会剩约 ${pending - LIMIT} 张，重复跑同一条命令即可续（已完成的会被跳过、不碰存储）。`
+        : ''),
+  )
 
   let backedUp = 0
   let baked = 0
@@ -271,6 +290,14 @@ async function main(): Promise<void> {
   console.log(
     `新备份 ${backedUp} 张，烘焙 ${baked} 张，已是当前版本跳过 ${skipped} 张，失败 ${failures.length} 张`,
   )
+  const remaining = pending - baked - failures.length
+  if (remaining > 0) {
+    // 不写这一行，上面那句汇总读起来就像「干完了」。
+    console.log(
+      `还剩约 ${remaining} 张没处理（本轮 --limit=${LIMIT} 到顶）。重复跑同一条命令续跑：` +
+        `pnpm media:backfill-watermark --execute --limit=${Number.isFinite(LIMIT) ? LIMIT : 500}`,
+    )
+  }
   if (unrecoverable > 0) {
     console.error(
       `其中 ${unrecoverable} 张已烘过但缺 ${MEDIA_SOURCE_PREFIX}/ 备份，干净原件已不可恢复——这是数据丢失，不是跳过，须人工排查（清单见上方 error 行）`,

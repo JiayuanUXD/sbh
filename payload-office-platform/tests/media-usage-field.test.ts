@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import { Media } from '@/collections/Media'
+import { SKIPPED_SIZE_NAMES } from '@/plugins/watermark'
+
+function imageSizes(): Array<{ name: string; width?: number; height?: number }> {
+  const sizes = (Media.upload as { imageSizes?: Array<{ name: string; width?: number; height?: number }> })
+    .imageSizes
+  expect(sizes?.length).toBeGreaterThan(0)
+  return sizes ?? []
+}
 
 function findField(name: string) {
   return Media.fields.find((field) => 'name' in field && field.name === name)
@@ -46,14 +54,38 @@ describe('Media.upload.imageSizes 守卫', () => {
   it('任何一档都不得同时声明 width 和 height', () => {
     // 同时声明会走 createImageSizes 的 resizeWithFocalPoint 真裁切分支，
     // 右下角标可能被裁掉（spec §9 守卫 1）。
-    const sizes = (Media.upload as { imageSizes?: Array<{ name: string; width?: number; height?: number }> })
-      .imageSizes
-    expect(sizes?.length).toBeGreaterThan(0)
-    for (const size of sizes ?? []) {
+    for (const size of imageSizes()) {
       expect(
         size.width !== undefined && size.height !== undefined,
         `imageSizes["${size.name}"] 同时声明了 width 和 height`,
       ).toBe(false)
+    }
+  })
+
+  /**
+   * `SKIPPED_SIZE_NAMES` 里写的是字面量 `'thumb'`，与这份配置之间没有任何编译期联系。
+   * 把那一档改名（或删掉），插件那边不会有任何报错——只会**默默开始给 320px 图打角标**，
+   * 正是 spec §4.5 判定不该发生的结果（9px 角标在缩略图上只是脏点）。
+   */
+  it('SKIPPED_SIZE_NAMES 的每一档都必须是真实存在的派生档名', () => {
+    const names = imageSizes().map((size) => size.name)
+    for (const skipped of SKIPPED_SIZE_NAMES) {
+      expect(names, `SKIPPED_SIZE_NAMES 里的 "${skipped}" 在 imageSizes 里不存在`).toContain(skipped)
+    }
+  })
+
+  it('被跳过的档必须比所有要打角标的档都小——否则等于把角标从大图上撤了', () => {
+    const sizes = imageSizes()
+    const widthOf = (name: string) => sizes.find((size) => size.name === name)?.width ?? 0
+    const badged = sizes.filter((size) => !SKIPPED_SIZE_NAMES.has(size.name))
+    expect(badged.length).toBeGreaterThan(0)
+    for (const skipped of SKIPPED_SIZE_NAMES) {
+      for (const size of badged) {
+        expect(
+          widthOf(skipped),
+          `跳过的 "${skipped}" 不比要打角标的 "${size.name}" 小`,
+        ).toBeLessThan(size.width ?? 0)
+      }
     }
   })
 })
