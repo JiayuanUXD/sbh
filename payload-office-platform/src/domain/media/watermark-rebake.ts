@@ -19,7 +19,10 @@
  * 一张图该怎么处理只看 `watermark.version`（不变量见 plugins/watermark.ts：有 version ⟺
  * 存储字节带着那个版本的水印）：
  *
- *   - 没有 version → 从没烘过，当前文件就是干净原件：备份（覆盖写）后烘；
+ *   - 没有 version → 没烘成过。`media-source/` 里有备份就以备份为准（**不覆盖**），没有才
+ *     把当前文件当干净原件存进去，然后烘。「没有 version」不等于「当前文件一定干净」：
+ *     烘焙不是原子的，覆盖写母版之后、写 version 之前被打断，行会回滚成 version=null，
+ *     而存储里已经是带水印的母版了；那一刻的干净原件只剩备份里那一份；
  *   - 等于当前哈希 → 跳过；
  *   - 旧哈希 → 当前文件带旧水印，只能从 `media-source/` 的备份重烘；**没有备份就已不可恢复**
  *     ——既不能拿带水印的当前文件当原件备份，也不能再烘（会叠第二层）。记 error、计入 failed，
@@ -92,6 +95,9 @@ export type RebakeAction = 'skip' | 'backup-and-bake' | 'bake-from-backup' | 'un
  *
  * `skip` 只看 version、不看 `hasBackup`——调用方靠这条性质在碰存储之前排除已完成的图
  * （回刷脚本续跑时上万张已完成的图一次存储都不该碰），单测锁住了它。
+ *
+ * `backup-and-bake` 同样不看 `hasBackup`：备份在不在不改变「该烘」这个裁决，只改变
+ * **烘焙源从哪来**（有备份就用备份、且不覆盖它）。那一步属于调用方的存储编排，本函数不碰存储。
  */
 export function decideRebakeAction({
   storedVersion,
@@ -178,17 +184,25 @@ export async function rebakeChunk({
           result.failed++
           continue
         case 'backup-and-bake': {
-          // 从没烘过：当前文件就是干净原件。备份**覆盖写**——media-source/ 里若有旧副本，
-          // 那是上一次上传的原件（此图后来被重新上传、插件清掉了 version），拿它重烘会把
-          // 新上传的图换回旧图。
-          const current = await writer.get({ prefix: MEDIA_COS_PREFIX, filename: doc.filename })
+          // 「没有 version」**不等于**「当前文件一定干净」：烘焙不是原子的（先备份、再覆盖写
+          // 母版与派生、最后才写 version），中途容器被换掉 / 事务回滚，这一行会退回
+          // version=null，而存储里已经是带水印的母版。所以：
+          //
+          //   - 备份已存在 → 以备份为准，**一个字节都不许往 media-source/ 写**。备份由
+          //     bakeAfterUpload 维护（新字节落地时无论开关开关都写），它就是这张图最新的
+          //     干净原件；拿当前文件盖过去等于把上一次中断前刚存下的原件永久换成带水印的字节，
+          //     并在重烘时叠上第二层。
+          //   - 备份不存在 → 才把当前文件当干净原件存进去（首次回刷的常态）。
+          const current = backup ?? (await writer.get({ prefix: MEDIA_COS_PREFIX, filename: doc.filename }))
           if (!current) throw new Error(`读不到当前文件 ${MEDIA_COS_PREFIX}/${doc.filename}`)
-          await writer.put({
-            prefix: MEDIA_SOURCE_PREFIX,
-            filename: doc.filename,
-            body: current,
-            mimeType: doc.mimeType,
-          })
+          if (!backup) {
+            await writer.put({
+              prefix: MEDIA_SOURCE_PREFIX,
+              filename: doc.filename,
+              body: current,
+              mimeType: doc.mimeType,
+            })
+          }
           clean = current
           break
         }

@@ -95,7 +95,9 @@ describe('decideRebakeAction', () => {
     expect(decideRebakeAction({ storedVersion: undefined, currentVersion: CURRENT, hasBackup: false })).toBe('backup-and-bake')
   })
 
-  it('没有 storedVersion 时不看 hasBackup——media-source/ 里的旧副本属于上一次上传，备份要覆盖写', () => {
+  it('没有 storedVersion 时不看 hasBackup——裁决仍是 backup-and-bake，「备份已存在怎么办」由调用方处理', () => {
+    // 备份在不在不改变裁决（预筛选按 hasBackup=false 问的性质靠它），但**已存在的备份不许被覆盖**：
+    // 那是上一次烘焙中断前写下的干净原件，当前文件反而可能已经是带水印的（见 rebakeChunk 用例）。
     expect(decideRebakeAction({ storedVersion: null, currentVersion: CURRENT, hasBackup: true })).toBe('backup-and-bake')
   })
 
@@ -190,19 +192,46 @@ describe('rebakeChunk 的存储编排', () => {
     ])
   })
 
-  it('从没烘过时备份是覆盖写——media-source/ 里的旧副本属于上一次上传，留着会把新图换回旧图', async () => {
+  /**
+   * 「没有 version」**不等于**「当前文件一定干净」。烘焙不是原子的：
+   * `bakeAfterUpload` 先备份、再覆盖写母版与派生，最后才写 version。容器在覆盖写之后、
+   * 写 version 之前被换掉（CloudRun 部署、或 `retries` 重投），事务回滚让这一行退回
+   * version=null，而存储里已经躺着一张带水印的母版。此时若还按「当前文件就是干净原件」
+   * 覆盖备份，那次中断前刚写下的干净原件就被带水印的字节永久盖掉，并且叠上第二层水印。
+   *
+   * 所以备份存在就以备份为准：它由「唯一知道字节是新的」那条路径（bakeAfterUpload，
+   * 新字节落地时无论开关开关都会写）维护，永远是这张图最新的干净原件。
+   */
+  it('从没烘过但已有备份 → 拿备份当烘焙源，绝不用当前字节覆盖它（中断重跑会把干净原件永久盖掉）', async () => {
     const h = harness({
       docs: [photo()],
       storage: {
-        [`${MEDIA_COS_PREFIX}/a.jpg`]: 'new-upload',
-        [`${MEDIA_SOURCE_PREFIX}/a.jpg`]: 'previous-upload',
+        // 上一次烘焙覆盖写了母版却没来得及写 version（容器被换掉 / 事务回滚）
+        [`${MEDIA_COS_PREFIX}/a.jpg`]: 'watermarked-by-interrupted-bake',
+        [`${MEDIA_SOURCE_PREFIX}/a.jpg`]: 'clean',
       },
     })
 
     await rebakeChunk({ payload: h.payload, ids: [1], currentVersion: CURRENT, createWriter: h.createWriter })
 
-    expect(h.store.get(`${MEDIA_SOURCE_PREFIX}/a.jpg`)?.toString()).toBe('new-upload')
-    expect(h.writes()).toContainEqual({ op: 'update', id: 1, body: 'new-upload' })
+    expect(h.store.get(`${MEDIA_SOURCE_PREFIX}/a.jpg`)?.toString()).toBe('clean')
+    // 一次 put 都不该有：备份已经在了，写它只会把干净原件换成带水印的字节。
+    expect(h.writes()).toEqual([{ op: 'update', id: 1, body: 'clean' }])
+  })
+
+  it('从没烘过且没有备份 → 才拿当前字节写备份', async () => {
+    const h = harness({
+      docs: [photo()],
+      storage: { [`${MEDIA_COS_PREFIX}/a.jpg`]: 'clean' },
+    })
+
+    await rebakeChunk({ payload: h.payload, ids: [1], currentVersion: CURRENT, createWriter: h.createWriter })
+
+    expect(h.store.get(`${MEDIA_SOURCE_PREFIX}/a.jpg`)?.toString()).toBe('clean')
+    expect(h.writes()).toEqual([
+      { op: 'put', key: `${MEDIA_SOURCE_PREFIX}/a.jpg`, body: 'clean' },
+      { op: 'update', id: 1, body: 'clean' },
+    ])
   })
 
   it('旧哈希且有备份 → 从备份重烘，且不碰备份本身（当前字节带旧水印，写回去就把它固化成原件了）', async () => {

@@ -262,6 +262,13 @@ function pickBakeTarget(media: MediaDocShape): { filename: string; mimeType: str
  *   「从没烘过」，重刷走情形 1——备份当前干净字节再烘——正确且自愈。
  *
  * 没有新字节（只改 alt / usage 等）时什么都不碰：存储字节没变，记录的 version 与它仍一致。
+ *
+ * ## 第二条义务：`media-source/` 里永远是这张图最新的干净原件
+ *
+ * 只要新字节属于「可烘的实景图」，就把它备份进 `media-source/`——**烘不烘、开关开没开都备份**。
+ * 本 hook 是唯一知道手里字节是新上传、确知无水印的地方；重刷任务与回刷脚本只能从
+ * `watermark.version` 反推，而中断过的烘焙会让那个推断出错（见 watermark-rebake.ts）。
+ * 备份归口在这里之后，那两条路就能一律「有备份就用备份、绝不覆盖」。
  */
 export function createBakeAfterUpload(
   createWriter: () => MediaWriter = createMediaWriter,
@@ -288,26 +295,37 @@ export function createBakeAfterUpload(
         return doc
       }
 
-      const config = await resolveConfig(req.payload)
-      if (!config.enabled) {
-        await clearIfStale()
-        return doc
-      }
-
       const writer = createWriter()
 
       // 顺序铁律：先备份、再烘焙。备份失败必须中止，否则干净原件永久丢失。
       // 这里刻意不 try/catch —— Payload 的 killTransaction 会回滚整个 req 事务，
       // 吞掉异常等于「返回成功但没落库」。（下面那个 try 只带 finally、不带 catch，
       // 异常照常冒泡。）
-      // 备份是**覆盖写**：这是这张图当前的干净原件；media-source/ 里的旧副本（若有）属于
-      // 上一次上传的字节，留着只会让重刷把图换回旧版。
+      //
+      // 备份是**覆盖写**，且**在读开关之前**——本 hook 是全仓库唯一知道「手里这份字节是
+      // 刚上传的、确知没有水印」的地方，别处（重刷任务、回刷脚本）只能从 version 去推断，
+      // 而推断在「烘到一半被打断」时会推错。所以：
+      //
+      //   - 开关关着照样备份。功能默认关闭、要等存量回填跑完运营才打开，这段窗口期上传的图
+      //     若不备份，日后第一次烘焙一旦中断在「覆盖写母版」与「写 version」之间，就再也
+      //     拿不回干净原件——重刷只会去 media-source/ 找，那里空着。
+      //   - 覆盖写是对的：这份字节就是这张图当前的干净原件，media-source/ 里的旧副本属于
+      //     上一次上传，留着只会让重刷把图换回旧版。
+      //
+      // 反过来，重刷/回刷那两条路**不许**覆盖备份（见 watermark-rebake.ts 的
+      // backup-and-bake 分支）：它们手里的字节来路不明，只有这里知道字节是新的。
       await writer.put({
         prefix: MEDIA_SOURCE_PREFIX,
         filename: target.filename,
         body: cleanMaster,
         mimeType: target.mimeType,
       })
+
+      const config = await resolveConfig(req.payload)
+      if (!config.enabled) {
+        await clearIfStale()
+        return doc
+      }
 
       const baked = await bakeWatermark({
         cleanMaster,

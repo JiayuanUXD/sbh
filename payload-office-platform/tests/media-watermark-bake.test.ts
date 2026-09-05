@@ -14,6 +14,7 @@ import { MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-write
 import {
   bakeAfterUpload,
   bakeWatermark,
+  createBakeAfterUpload,
   watermarkPlugin,
   WATERMARK_CONTEXT_KEY,
   WATERMARK_SKIP_KEY,
@@ -186,12 +187,20 @@ describe('bakeAfterUpload 维持 watermark.version 不变量', () => {
   const CLEARED = { watermark: { version: null, appliedAt: null } }
   const photo = { id: 1, filename: 'office.jpg', mimeType: 'image/jpeg', usage: 'listing-photo', watermark: STALE }
 
+  /**
+   * 必须注入假写入器：开关关着时本 hook 现在**照样写备份**（见下面那条用例），
+   * 用默认实例会真往仓库目录写 `media-source/office.jpg`。
+   */
   async function run(args: {
     doc: Record<string, unknown>
     freshBytes: boolean
     enabled: boolean
-  }): Promise<Array<Record<string, unknown>>> {
+  }): Promise<{
+    updates: Array<Record<string, unknown>>
+    puts: Array<{ prefix: string; filename: string; body: string }>
+  }> {
     const updates: Array<Record<string, unknown>> = []
+    const puts: Array<{ prefix: string; filename: string; body: string }> = []
     const context: Record<string, unknown> = {}
     if (args.freshBytes) context[WATERMARK_CONTEXT_KEY] = Buffer.from('fresh')
     const req = {
@@ -204,35 +213,81 @@ describe('bakeAfterUpload 维持 watermark.version 不变量', () => {
         },
       },
     }
-    await bakeAfterUpload({ doc: args.doc, req, operation: 'update' } as unknown as Parameters<typeof bakeAfterUpload>[0])
-    return updates
+    const hook = createBakeAfterUpload(() => ({
+      put: async ({ prefix, filename, body }) => {
+        puts.push({ prefix, filename, body: body.toString() })
+      },
+      get: async () => null,
+    }))
+    await hook({ doc: args.doc, req, operation: 'update' } as unknown as Parameters<typeof bakeAfterUpload>[0])
+    return { updates, puts }
   }
 
   it('新字节落地但开关关闭 → 清掉 version / appliedAt，让它读作「从没烘过」', async () => {
-    const updates = await run({ doc: photo, freshBytes: true, enabled: false })
+    const { updates } = await run({ doc: photo, freshBytes: true, enabled: false })
     expect(updates).toHaveLength(1)
     expect(updates[0]).toMatchObject({ collection: 'media', id: 1, data: CLEARED })
   })
 
+  /**
+   * 备份归口在这里：本 hook 是唯一**知道手里的字节是刚上传的干净原件**的地方。
+   * 开关关着的窗口期（功能默认关闭、要等回填跑完运营才打开）里上传的图，若不备份，
+   * 日后开关打开、第一次烘焙中断在「覆盖写母版」与「写 version」之间，就再也拿不回
+   * 干净原件——重刷只能从 `media-source/` 取，那里空着。
+   */
+  it('开关关闭时也写备份——这是唯一知道字节是新的地方，错过就没有第二次机会', async () => {
+    const { updates, puts } = await run({ doc: photo, freshBytes: true, enabled: false })
+    expect(puts).toEqual([
+      { prefix: MEDIA_SOURCE_PREFIX, filename: 'office.jpg', body: 'fresh' },
+    ])
+    // 只写备份，绝不写 media/：开关关着时不烘，存储里的母版仍是干净的。
+    expect(puts.filter((put) => put.prefix === MEDIA_COS_PREFIX)).toEqual([])
+    // version 照旧清掉：存储字节没被烘过。
+    expect(updates[0]).toMatchObject({ data: CLEARED })
+  })
+
+  it('本来就没有 version 时开关关闭也照样写备份——不写库不代表不备份', async () => {
+    const { updates, puts } = await run({
+      doc: { ...photo, watermark: null },
+      freshBytes: true,
+      enabled: false,
+    })
+    expect(puts).toEqual([
+      { prefix: MEDIA_SOURCE_PREFIX, filename: 'office.jpg', body: 'fresh' },
+    ])
+    expect(updates).toEqual([])
+  })
+
+  it('usage 不是实景图 / 格式不可烘 → 不备份（media-source/ 只为可烘的实景图存在）', async () => {
+    expect((await run({ doc: { ...photo, usage: 'brand' }, freshBytes: true, enabled: true })).puts).toEqual([])
+    expect((await run({ doc: { ...photo, mimeType: 'image/gif' }, freshBytes: true, enabled: true })).puts).toEqual([])
+  })
+
   it('新字节落地但 usage 不是 listing-photo → 同样清掉', async () => {
-    const updates = await run({ doc: { ...photo, usage: 'brand' }, freshBytes: true, enabled: true })
+    const { updates } = await run({ doc: { ...photo, usage: 'brand' }, freshBytes: true, enabled: true })
     expect(updates).toHaveLength(1)
     expect(updates[0]).toMatchObject({ data: CLEARED })
   })
 
   it('新字节落地但格式不可烘（gif）→ 同样清掉', async () => {
-    const updates = await run({ doc: { ...photo, mimeType: 'image/gif' }, freshBytes: true, enabled: true })
+    const { updates } = await run({ doc: { ...photo, mimeType: 'image/gif' }, freshBytes: true, enabled: true })
     expect(updates).toHaveLength(1)
     expect(updates[0]).toMatchObject({ data: CLEARED })
   })
 
   it('没有新字节（只改 alt / usage）→ 什么都不碰，存储字节与记录的 version 仍一致', async () => {
-    const updates = await run({ doc: { ...photo, usage: 'brand' }, freshBytes: false, enabled: false })
+    const { updates, puts } = await run({ doc: { ...photo, usage: 'brand' }, freshBytes: false, enabled: false })
     expect(updates).toEqual([])
+    // 没有新字节就没有「新的干净原件」，备份也不该动。
+    expect(puts).toEqual([])
   })
 
   it('本来就没有 version → 无事可清，不多写一次库', async () => {
-    const updates = await run({ doc: { ...photo, usage: 'brand', watermark: null }, freshBytes: true, enabled: true })
+    const { updates } = await run({
+      doc: { ...photo, usage: 'brand', watermark: null },
+      freshBytes: true,
+      enabled: true,
+    })
     expect(updates).toEqual([])
   })
 })
@@ -256,6 +311,12 @@ describe('bakeAfterUpload 的递归守卫必须解引用 live 的 req.context', 
     watermark: { version: 'stale0000stale00', appliedAt: '2026-09-01T00:00:00.000Z' },
   }
 
+  /**
+   * 注入假写入器：开关关着时 hook 仍会写一次备份，用默认实例会真往仓库目录落盘。
+   * 本组只关心 `req.context` 的解引用，写入器只要不报错即可。
+   */
+  const hook = createBakeAfterUpload(() => ({ put: async () => {}, get: async () => null }))
+
   /** 复刻 Payload：嵌套 update 后 req.context 变成一个新对象（内容延续）。 */
   function makeReq(enabled: boolean) {
     const req: Record<string, unknown> = {
@@ -275,13 +336,13 @@ describe('bakeAfterUpload 的递归守卫必须解引用 live 的 req.context', 
 
   it('嵌套 update 换掉 req.context 之后，守卫不残留', async () => {
     const req = makeReq(false)
-    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    await hook({ doc: photo, req, operation: 'update' } as never)
     expect(ctx(req)[WATERMARK_SKIP_KEY]).toBeUndefined()
   })
 
   it('守卫残留会让同一个 req 的下一条媒体被静默跳过——这里断言它不会', async () => {
     const req = makeReq(false)
-    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    await hook({ doc: photo, req, operation: 'update' } as never)
     // 第二条媒体：重新放入干净母版，它必须仍然被处理（陈旧 version 被清）。
     ctx(req)[WATERMARK_CONTEXT_KEY] = Buffer.from('fresh-2')
     let secondUpdated = false
@@ -290,13 +351,13 @@ describe('bakeAfterUpload 的递归守卫必须解引用 live 的 req.context', 
       req.context = { ...ctx(req) }
       return {}
     }
-    await bakeAfterUpload({ doc: { ...photo, id: 8 }, req, operation: 'update' } as never)
+    await hook({ doc: { ...photo, id: 8 }, req, operation: 'update' } as never)
     expect(secondUpdated).toBe(true)
   })
 
   it('消费后清掉干净母版——同一个 req 的第二条媒体不能拿第一条的字节去烘', async () => {
     const req = makeReq(false)
-    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    await hook({ doc: photo, req, operation: 'update' } as never)
     expect(ctx(req)[WATERMARK_CONTEXT_KEY]).toBeUndefined()
   })
 })
