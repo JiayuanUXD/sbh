@@ -23,9 +23,13 @@ export const WATERMARK_RENDERER_VERSION = '1'
 /**
  * 字体栈。生产是 Linux 容器，`Microsoft YaHei` 只在本地存在——
  * 容器缺中文字体时 librsvg 渲染成方框且**不报错**，见 spec §7.3。
- * 该风险由 Dockerfile 装 fonts-noto-cjk 承担，不在本文件解决。
+ * 该风险由 Dockerfile 装 fonts-wqy-zenhei 承担，不在本文件解决；
+ * `WenQuanYi Zen Hei` 是该 Debian 包注册的字体族名（非本文件猜测——
+ * 见 Dockerfile 同一 RUN 行的注释），必须排在栈首才会被生产实际选中，
+ * 后面几项只是本地 Windows/macOS 开发时的兜底，容器里并不存在。
  */
-export const WATERMARK_FONT_FAMILY = 'Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
+export const WATERMARK_FONT_FAMILY =
+  'WenQuanYi Zen Hei, Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif'
 
 export type TiledWatermarkConfig = {
   text: string

@@ -63,6 +63,16 @@ ENV PORT=80
 ENV HOSTNAME=0.0.0.0
 RUN corepack enable && corepack prepare pnpm@8.6.1 --activate
 
+# OPT-069：水印合成靠 sharp/librsvg 把中文文案画进 SVG 再栅格化，
+# node:22-slim 不带任何中文字体，缺字体时 librsvg 把文字渲染成方框/空白且不报错。
+# 选 fonts-wqy-zenhei（~15MB）而非 fonts-noto-cjk（~55-60MB）：水印只用到「商办荟」
+# 等寥寥数字，不需要 Noto CJK 的全字库覆盖。只装在 runner 阶段——水印在请求时烘焙
+# （上传/重刷接口调用 sharp），builder 阶段的 next build 不连库、不会触发渲染。
+# 谁以后为瘦身把这行删掉，唯一会拦住这个改动的是 tests/media-watermark-font-guard.test.ts；
+# 没有它，typecheck/lint/build 全绿，线上水印会悄悄变回方框，且不报错。
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-wqy-zenhei \
+  && rm -rf /var/lib/apt/lists/*
+
 # 完整 node_modules（含 tsx，供 payload CLI 加载 ts 配置跑迁移）
 COPY --from=deps /app/node_modules ./node_modules
 # 构建产物

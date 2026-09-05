@@ -238,14 +238,36 @@ iStock 敢满铺是因为它靠卖干净图赚钱，预览图**故意**做得没
 ### 7.3 生产容器的中文字体（最可能的线上翻车点）
 
 本地 Windows 有 `Microsoft YaHei`，**CloudRun 的 Linux 容器不一定有任何中文字体**。
-缺字体时 librsvg 会渲染成方框或空白，而且**不报错**。
+缺字体时 librsvg 会渲染成方框或空白，而且**不报错**——typecheck、单测、lint、build、
+CI 三项、甚至本地浏览器走查全部照常通过（本地能看见字是因为 Windows 有雅黑，
+不是因为水印逻辑本身验证了字体存在）。这个坑不会被任何自动化信号拦住，
+只会在生产环境的真实图片上现出方框或空白。
 
-对策二选一，实施时定：
+**已定案（2026-09-05）：`fonts-wqy-zenhei`（文泉驿正黑，~15MB）**，
+不用 `fonts-noto-cjk`（~55–60MB）。水印文案只有「商办荟」等寥寥数字，
+不需要 Noto CJK 覆盖全字库的代价；`fonts-noto-cjk` 更适合需要生僻字/多语种
+兜底覆盖的场景，这里用不上。
 
-- Dockerfile 装 `fonts-noto-cjk`（增加镜像体积，注意 `DEPLOYMENT.md` 强调的包体积命门）
-- 字体随仓库带，或把文案预渲染为 SVG 路径，彻底去掉字体依赖
+**§7.4/§7.5/`DEPLOYMENT.md` 强调的镜像体积命门在这里不成立**——那条命门说的是
+`tcb cloudrun deploy` 上传的**源码 ZIP**（COS 桶里的部署包），`apt-get install`
+发生在云端构建镜像的阶段，根本不在这份 ZIP 里。真正变大的是**构建产物镜像**
+本身（多 ~15MB 的字体文件），这是两个不同的东西，此前的风险描述把二者混为一谈。
 
-**验收必须包含「在生产同构的容器里烘一张中文水印图并肉眼确认」**，不能只在本地验。
+落地方式：
+- Dockerfile **仅 runner 阶段**装 `fonts-wqy-zenhei`（`deps`/`builder` 阶段的
+  `next build` 不连库、不会触发水印渲染，装了也用不上）。
+- `src/domain/media/watermark.ts` 的 `WATERMARK_FONT_FAMILY` 把该包注册的字体族名
+  `WenQuanYi Zen Hei`（Debian 包元数据确认，非猜测）放在栈首，原有的
+  `Noto Sans CJK SC, Microsoft YaHei, SimHei, sans-serif` 保留作本地
+  Windows/macOS 开发时的兜底——生产容器里这几项都不存在，不放在首位就白装。
+- 新增守卫测试 `tests/media-watermark-font-guard.test.ts`：断言 Dockerfile 确实
+  装了 CJK 字体包，且断言其字体族名与 `WATERMARK_FONT_FAMILY` 首项一致。
+  这是唯一会在「以后有人为镜像瘦身删掉这行」时变红的信号——没有它，
+  这个悄无声息的回归会一路绿灯到生产。
+
+**验收仍然必须包含「在生产同构的容器里烘一张中文水印图并肉眼确认」**——
+守卫测试只保证 Dockerfile 里那行还在、字体名对得上，**不能**证明字体文件真的
+在镜像里生效渲染正确（本任务未跑 Docker build，容器内实测是后续验收任务）。
 
 ### 7.4 上传耗时增加
 
@@ -305,4 +327,7 @@ iStock 敢满铺是因为它靠卖干净图赚钱，预览图**故意**做得没
 1. **COS 桶 ACL**：`media-source/` 必须不可匿名访问。桶若为公有读，
    需加 bucket policy 或换独立私有桶。**实施第一步先验证。**
 2. **存量 `listing-photo` 的量级**：决定重刷分块与耗时预估。
-3. **字体方案**（§7.3）：装 `fonts-noto-cjk` 还是预渲染为路径。
+3. ~~**字体方案**（§7.3）：装 `fonts-noto-cjk` 还是预渲染为路径。~~
+   **已解决（2026-09-05）**：装 `fonts-wqy-zenhei`，详见 §7.3。容器内实测
+   （在与生产同构的镜像里烘图肉眼确认）仍未做，是后续验收任务，不在本次
+   静态改动范围内。
