@@ -82,6 +82,7 @@ import {
 import { assertProductionConfig } from './lib/runtime/config-guard'
 import { attachPoolErrorHandler } from './lib/runtime/pool-error-handler'
 import { MEDIA_COS_PREFIX, parseCosStorageConfig } from './lib/storage/cos-config'
+import { watermarkPlugin } from './plugins/watermark'
 import {
   SUPPLY_SUBMISSION_NOTIFICATION_QUEUE,
   supplySubmissionNotificationTask,
@@ -468,6 +469,9 @@ export default buildConfig({
           }
         : {},
     }),
+    // OPT-069：必须排在 s3Storage 之后——插件按数组顺序追加 hook，
+    // 本插件的 afterChange 要跑在云存储上传之后才能覆盖到已落地的文件。
+    watermarkPlugin(),
     // 将 Media 后台列表页替换为响应式卡片网格视图(带 lightbox / 拖拽批量上传 / 元数据侧栏)
     mediaGalleryPlugin({
       collectionSlug: 'media',

@@ -213,6 +213,30 @@ export function buildBadgeOverlay({
 }
 
 /**
+ * sharp 能**原地改写**的图片格式白名单。
+ *
+ * 刻意不用 `mimeType.startsWith('image/')`：
+ *
+ * - **gif / 动态 webp**：`composite()` 不带 `{ animated: true }` 只读第一帧，
+ *   烘下去会把动图静默改写成静止图。webp 静态与动态共用 `image/webp`，MIME 层
+ *   分不开，那一层由烘焙函数按 `metadata().pages` 兜底；gif 恒为多帧容器，直接拒。
+ * - **svg**：sharp 写不出 SVG，吐的是 PNG 字节——母版会被静默改成另一种格式，
+ *   而 `media.filename` 仍是 `.svg`。
+ *
+ * 且此判据必须与「谁能拿到 `watermark.version`」严格一致：这里拒掉的图永远写不上
+ * version，重刷任务若认得比这里宽，会每轮重新选中它、每轮再失败一次，永远如此。
+ * 所以 `bakeAfterUpload` / `selectRebakeTargets` / 回刷脚本三处共用本函数，不各写一份。
+ */
+const BAKEABLE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+export function isBakeableImage(mimeType: string | null | undefined): boolean {
+  if (typeof mimeType !== 'string') return false
+  // mimeType 由上传方给出，不保证规范化：切掉 `; charset=` 之类参数再比。
+  const essence = mimeType.split(';')[0].trim().toLowerCase()
+  return BAKEABLE_MIME_TYPES.has(essence)
+}
+
+/**
  * 配置的内容哈希，写进 `media.watermark.version`。
  *
  * 刻意**不用人工维护的版本号**：人会忘记改，届时重刷任务会静默跳过该跑的图，

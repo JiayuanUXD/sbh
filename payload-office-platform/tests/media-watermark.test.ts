@@ -6,6 +6,7 @@ import {
   computeWatermarkVersion,
   DEFAULT_WATERMARK_CONFIG,
   estimateTextWidth,
+  isBakeableImage,
   mergeWatermarkConfig,
 } from '@/domain/media/watermark'
 
@@ -346,5 +347,39 @@ describe('emptyOverlay 守卫 - NaN/Infinity 必须不出现在 SVG 属性里', 
     const svg = buildBadgeOverlay({ width: 1000, height: Infinity, config: BADGE }).toString()
     expect(svg).not.toContain('Infinity')
     expect(svg).toContain('height=')
+  })
+})
+
+/**
+ * OPT-069 烘焙准入谓词。`bakeAfterUpload` / `selectRebakeTargets` / 回刷脚本三处共用同一个，
+ * 三处必须同答案：这里拒掉的图永远写不上 `watermark.version`，重刷若认得比它宽，
+ * 会每轮重新选中、每轮再失败一次，永远如此。
+ */
+describe('isBakeableImage', () => {
+  it('放行 sharp 能原地改写的 jpeg / png / webp', () => {
+    expect(isBakeableImage('image/jpeg')).toBe(true)
+    expect(isBakeableImage('image/png')).toBe(true)
+    expect(isBakeableImage('image/webp')).toBe(true)
+  })
+
+  it('拒绝 gif——多帧，composite 只读第一帧，烘下去会静默变成静止图', () => {
+    expect(isBakeableImage('image/gif')).toBe(false)
+  })
+
+  it('拒绝 svg——sharp 写不出 SVG，吐的是 PNG 字节，母版会被静默改格式', () => {
+    expect(isBakeableImage('image/svg+xml')).toBe(false)
+  })
+
+  it('拒绝非图片与空值', () => {
+    expect(isBakeableImage('application/pdf')).toBe(false)
+    expect(isBakeableImage('video/mp4')).toBe(false)
+    expect(isBakeableImage(null)).toBe(false)
+    expect(isBakeableImage(undefined)).toBe(false)
+    expect(isBakeableImage('')).toBe(false)
+  })
+
+  it('容忍大小写与 charset 参数——mimeType 来自上传方，不保证规范化', () => {
+    expect(isBakeableImage('IMAGE/JPEG')).toBe(true)
+    expect(isBakeableImage('image/webp; charset=binary')).toBe(true)
   })
 })
