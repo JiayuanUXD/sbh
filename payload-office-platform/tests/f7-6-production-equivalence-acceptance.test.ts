@@ -56,6 +56,7 @@ import { matchesPriceInput } from './helpers/fake-price-match'
 const MEDIA_1: Media = {
   id: 9001,
   alt: '图1',
+  usage: 'listing-photo',
   url: '/media/m1.jpg',
   filename: 'm1.jpg',
   mimeType: 'image/jpeg',

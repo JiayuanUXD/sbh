@@ -4,6 +4,7 @@ import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { NAV_TARGET_OPTIONS } from '@/lib/frontend/nav-targets'
+import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
 
 /**
  * OPT-053：站点运营配置（Global）
@@ -315,6 +316,114 @@ export const SiteSettings: GlobalConfig = {
                 },
               ],
             },
+          ],
+        },
+        {
+          label: '图片水印',
+          description: '房源/楼盘实景图的水印样式。只影响「素材用途 = 房源/楼盘实景」的图片。',
+          fields: [
+            {
+              name: 'watermark',
+              type: 'group',
+              label: '水印参数',
+              admin: {
+                description:
+                  '保存**只影响之后新上传的图片**。已有图片要在下方点「重刷全部房源图」才会按新参数重新烘焙——水印是烘进像素的，改配置不会追溯生效。',
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  label: '启用水印',
+                  type: 'checkbox',
+                  defaultValue: DEFAULT_WATERMARK_CONFIG.enabled,
+                },
+                {
+                  name: 'tiled',
+                  label: '详情大图（满铺）',
+                  type: 'group',
+                  fields: [
+                    {
+                      name: 'text',
+                      label: '文案',
+                      type: 'text',
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.text,
+                      admin: { description: '留空则回落为「站点名称」。' },
+                    },
+                    {
+                      name: 'density',
+                      label: '密度（横向列数）',
+                      type: 'number',
+                      min: 2,
+                      max: 6,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.density,
+                    },
+                    {
+                      name: 'opacity',
+                      label: '透明度',
+                      type: 'number',
+                      min: 0.05,
+                      max: 0.8,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.opacity,
+                    },
+                    {
+                      name: 'angle',
+                      label: '旋转角（度）',
+                      type: 'number',
+                      min: -90,
+                      max: 90,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.angle,
+                    },
+                  ],
+                },
+                {
+                  name: 'badge',
+                  label: '卡片缩略图（角标）',
+                  type: 'group',
+                  fields: [
+                    {
+                      name: 'text',
+                      label: '文案',
+                      type: 'text',
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.badge.text,
+                    },
+                    {
+                      name: 'position',
+                      label: '位置',
+                      type: 'select',
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.badge.position,
+                      options: [
+                        { label: '右下', value: 'bottom-right' },
+                        { label: '左下', value: 'bottom-left' },
+                        { label: '右上', value: 'top-right' },
+                        { label: '左上', value: 'top-left' },
+                      ],
+                    },
+                    {
+                      name: 'opacity',
+                      label: '透明度',
+                      type: 'number',
+                      min: 0.2,
+                      max: 1,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.badge.opacity,
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'watermarkPreview',
+              type: 'ui',
+              admin: {
+                components: { Field: '/components/admin/WatermarkPreview' },
+              },
+            } as unknown as (typeof SiteSettings)['fields'][number],
+            {
+              name: 'watermarkRebake',
+              type: 'ui',
+              admin: {
+                components: { Field: '/components/admin/WatermarkRebakeButton' },
+              },
+            } as unknown as (typeof SiteSettings)['fields'][number],
           ],
         },
       ],

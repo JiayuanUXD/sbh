@@ -5,6 +5,7 @@
 ## 技术栈与包管理
 
 - Next.js 16 + Payload 3.86 单体。富文本 Lexical。媒体走 `@payloadcms/storage-s3`（腾讯云 COS）。后台部分 UI 用 `@arco-design/web-react`（带 pnpm patch）。
+
 - **包管理器是 pnpm**（`packageManager: pnpm@8.6.1`，用 `pnpm-lock.yaml`）。装依赖用 `pnpm`，不用 `npm`/`yarn`。
 
 ## 按任务读取的领域规则
@@ -13,7 +14,7 @@
 
 ## 命令与预检顺序
 
-本地按**与 `quality.yml` 同一顺序**自检，别攒到 PR 才炸：
+本地按**与** **`quality.yml`** **同一顺序**自检，别攒到 PR 才炸：
 
 ```bash
 pnpm generate:types && pnpm payload generate:importmap
@@ -25,67 +26,108 @@ pnpm build
 ```
 
 - 首次克隆：`pnpm setup:hooks` 启用 `.githooks/`（提交/推送闸门，说明见仓库根 `CLAUDE.md`）。
+
 - 开发：`pnpm dev`（固定 3717，多 worktree 必须换 `PORT`）。
+
 - E2E：`pnpm test:e2e`（Playwright；`E2E_PROD_SERVER=1` 走 `next start` 生产 server，避开 dev JIT 超时）。
+
 - 迁移：`pnpm exec payload migrate` / `migrate:status` / `migrate:verify`；上线前 `pnpm preflight`（环境变量 + 迁移完整性 + 风险扫描）。
+
 - 种子：`pnpm seed`；`pnpm seed:media`（前台可见性已不再要求图片数，但 E2E 断言的是「有图的正常渲染」，只跑 `seed` 会让那批用例空跑）。
 
-`next start`（NODE_ENV=production）首个请求会触发 `src/lib/runtime/config-guard.ts` 的 fail-closed 校验：缺 PG 连接串 / 弱或短于 32 位 `PAYLOAD_SECRET` / 非 https 或 localhost 的 `NEXT_PUBLIC_SITE_URL`，任一不满足直接拒绝启动。
+`next start`（NODE\_ENV=production）首个请求会触发 `src/lib/runtime/config-guard.ts` 的 fail-closed 校验：缺 PG 连接串 / 弱或短于 32 位 `PAYLOAD_SECRET` / 非 https 或 localhost 的 `NEXT_PUBLIC_SITE_URL`，任一不满足直接拒绝启动。
 
 ## 生成物纪律（最贵的坑，动 payload.config 前先读）
 
-- **`src/payload-types.ts` 是生成物，已不再被 git 跟踪**（2026-09-01 起）。此前它虽然列在 `.gitignore:7` 却仍在索引里——gitignore 对已跟踪文件无效，于是 `quality.yml` / `Dockerfile` 的注释与仓库真实状态长期矛盾。现已 `git rm --cached` 收口：CI 的 `quality` / `e2e` 两个 job 与 Dockerfile 构建阶段都各自跑 `generate:types`，仓库里不需要留一份。**克隆或切分支后先跑 `pnpm generate:types`**，否则 `typecheck` 会因找不到该模块直接报错（这是预期行为，不是环境坏了）。
-- **本地不要配 COS**：五项 `COS_*` 全部留空即走本地磁盘存储（`parseCosStorageConfig` 判 `enabled:false`）。旧文档曾要求填**占位 COS_\***来防 `generate:types` 删掉 `Media.prefix`——**该规避已作废**：`Media.ts` 现在显式声明了 `prefix` 字段，各存储模式下都在（2026-08-19 实测：无 COS 时仍为 2）。占位配置反而有害：本地上传恒 500（打向不存在的桶），而一旦有人把占位换成真实生产凭据，就变成「本地库 + 生产桶」——正是 2026-08-15 覆盖掉生产首页 hero 视频那次事故的组合（复盘见 `src/lib/runtime/seed-target-guard.ts`）。生成后仍可用 `grep -c "prefix" src/payload-types.ts` **必须是 2** 自查（该文件已不入库，这条从提交前检查降级为本地自查）。
-- **`src/app/(payload)/admin/importMap.js` 是提交进仓库的源文件，不是构建产物**。payload.config 新增任何 client 组件（富文本 feature、存储适配器、自定义字段 UI）后没重生成，**整个 `/admin` SPA 会在 hydration 阶段白屏（含 login 页）**，而 HTML 与所有 JS/CSS 都返回 200。诊断口诀：白屏 + 资源全 200 = client hydration 失败，不是 404。修复：`pnpm payload generate:importmap`。
+- **`src/payload-types.ts`** **是生成物，已不再被 git 跟踪**（2026-09-01 起）。此前它虽然列在 `.gitignore:7` 却仍在索引里——gitignore 对已跟踪文件无效，于是 `quality.yml` / `Dockerfile` 的注释与仓库真实状态长期矛盾。现已 `git rm --cached` 收口：CI 的 `quality` / `e2e` 两个 job 与 Dockerfile 构建阶段都各自跑 `generate:types`，仓库里不需要留一份。**克隆或切分支后先跑** **`pnpm generate:types`**，否则 `typecheck` 会因找不到该模块直接报错（这是预期行为，不是环境坏了）。
+
+  更阴的一种：该文件**存在但过期**（比如 worktree 里还是 master 那版，而分支新加了字段），此时 `typecheck` / pre-push 会报一堆「某字段/某类型不存在」，而**错误全部集中在你根本没碰过的文件里**——很容易被误判成依赖问题或分支冲突，往完全错误的方向查。指纹就是「报错文件与本次改动无交集」，解法仍是 `pnpm generate:types`。2026-09-05 一个 worktree 会话踩过。
+
+- **本地不要配 COS**：五项 `COS_*` 全部留空即走本地磁盘存储（`parseCosStorageConfig` 判 `enabled:false`）。旧文档曾要求填**占位 COS\_\***来防 `generate:types` 删掉 `Media.prefix`——**该规避已作废**：`Media.ts` 现在显式声明了 `prefix` 字段，各存储模式下都在（2026-08-19 实测：无 COS 时仍为 2）。占位配置反而有害：本地上传恒 500（打向不存在的桶），而一旦有人把占位换成真实生产凭据，就变成「本地库 + 生产桶」——正是 2026-08-15 覆盖掉生产首页 hero 视频那次事故的组合（复盘见 `src/lib/runtime/seed-target-guard.ts`）。生成后仍可用 `grep -c "prefix" src/payload-types.ts` **必须是 2** 自查（该文件已不入库，这条从提交前检查降级为本地自查）。
+
+- **`src/app/(payload)/admin/importMap.js`** **是提交进仓库的源文件，不是构建产物**。payload.config 新增任何 client 组件（富文本 feature、存储适配器、自定义字段 UI）后没重生成，**整个** **`/admin`** **SPA 会在 hydration 阶段白屏（含 login 页）**，而 HTML 与所有 JS/CSS 都返回 200。诊断口诀：白屏 + 资源全 200 = client hydration 失败，不是 404。修复：`pnpm payload generate:importmap`。
 
 ## 并行开发纪律（多 worktree / 多 IDE，别踩）
 
 本仓库常多任务并行，以下几条是硬约束，专治"幽灵 bug、分支漂移、重复劳动"：
 
 - **一任务一 worktree，运行时资源必须隔离**：每个 worktree 用**独立 dev 端口**（`PORT` 区分，别都抢 3717）和**独立 PG 库**。并行任务之间**不共享任何有状态资源**（端口 / DB / 缓存）——否则 API 会静默打到别的服务上（真实教训：主树 3717 与 worktree 3718 混用，E2E 一度假失败，误判"安全修复没生效"）。
-- **每个 worktree 独立 `.env.local`**：端口、DB 各自配；别在多个树间复制同一份、别指向共享的 `sbh_dev`。
+
+- **每个 worktree 独立** **`.env.local`**：端口、DB 各自配；别在多个树间复制同一份、别指向共享的 `sbh_dev`。
+
 - **永远从最新 master 开分支**：`pnpm branch:new <类型> <短描述>`（自动 fetch + 基于 `origin/master` + 生成合规分支名，规范见仓库根 `CLAUDE.md`）。别基于旧基线（真实教训：`opt`/`codex` 基于旧提交，与 master 分叉后合并才发现惊喜）。
+
 - **每天至少推一次 WIP**：`git push -u origin <branch>`，哪怕没做完。防"本地黑洞"、让在建工作可见（真实教训：大量本地未推送提交，且重写了别的分支早已完成的部署修复）。
+
 - **开工前先查在建**：`git branch -a` + `gh pr list`，确认没人在做同一件事，避免重复劳动。
+
 - **短命分支 + 勤 rebase**：分支活 1–3 天，常 `git rebase origin/master`，把大冲突拆成每天的小冲突。
+
 - **早开 draft PR**：让 `quality.yml` 尽早在小改动上跑，别攒到最后一起爆（CI 坑常只在 PR 才触发）。
+
 - **真正"在写"的任务 ≤ 2 件**；有依赖关系的任务串行做，别并行。
-- **worktree 路径要短，别嵌太深**：`next build` / `next dev` 报几十条 `Module not found`（而包在 `node_modules` 里明明存在）时，先量路径长度，不要去查依赖。Windows 260 字符上限 + pnpm `.pnpm/` 里带 peer 哈希的超长目录名，很容易把 `<worktree>/payload-office-platform/node_modules/.pnpm/<长包名>/node_modules/<pkg>/dist/...` 顶爆；Node（tsc / vitest / tsx / seed）走长路径 API 不受影响，**Rust 写的 Turbopack 会直接解析失败**——所以"测试和 typecheck 全绿、只有构建炸"就是这个坑的典型指纹。**解法就一条：worktree 建在 `E:\wt-<短名>` 这类根级短路径**（`git worktree add` 的路径可以随便挑，不必放仓库里）。实测：79 字符的 worktree 路径 → 最深文件 272 字符 → 45 个 `Module not found`；主树 37 字符 → 正常。
-- **别试图用 `.npmrc` 绕过路径长度**（两条路都实测过，各有硬伤，别重复踩）：
+
+- **worktree 路径要短，别嵌太深**：`next build` / `next dev` 报几十条 `Module not found`（而包在 `node_modules` 里明明存在）时，先量路径长度，不要去查依赖。Windows 260 字符上限 + pnpm `.pnpm/` 里带 peer 哈希的超长目录名，很容易把 `<worktree>/payload-office-platform/node_modules/.pnpm/<长包名>/node_modules/<pkg>/dist/...` 顶爆；Node（tsc / vitest / tsx / seed）走长路径 API 不受影响，**Rust 写的 Turbopack 会直接解析失败**——所以"测试和 typecheck 全绿、只有构建炸"就是这个坑的典型指纹。**解法就一条：worktree 建在** **`E:\wt-<短名>`** **这类根级短路径**（`git worktree add` 的路径可以随便挑，不必放仓库里）。实测：79 字符的 worktree 路径 → 最深文件 272 字符 → 45 个 `Module not found`；主树 37 字符 → 正常。
+
+- **别试图用** **`.npmrc`** **绕过路径长度**（两条路都实测过，各有硬伤，别重复踩）：
+
   - `virtual-store-dir=C:\pv`：45 个错降到 1 个，但包的真实路径全跑到项目根之外，Turbopack **拒绝编译项目目录外的文件**（`next.config.ts` 里 `turbopack.root` 早已设为 `import.meta.dirname`，救不了）。
+
   - `node-linker=hoisted`：最深路径 272→234 落回 260 内，45 个错也降到 1 个，但 `--frozen-lockfile` 下**丢失传递依赖** `react-number-format`（默认布局有、hoisted 布局整个包不存在）。要修得重生成 lockfile，波及 CI 与 Dockerfile——为本地便利改全员依赖布局，不划算。
+
   - 真要根治，正路是把 pnpm 升到 ≥9.1 用 `virtual-store-dir-max-length`（store 留在项目内、只缩短目录名，不触发上面两个问题）。仓库 `packageManager` 现钉 8.6.1，升级要连 lockfile 版本一起过 CI 与 Dockerfile，属单独工作项。
-- **`git` 的长路径要单独开**，和 Windows 内核那个开关是两回事：`LongPathsEnabled=1` 已在本机开启，但 git for Windows 走 MSYS 运行时不吃它，于是 `git worktree remove` / `rm -rf` 会报 `Filename too long`（真实教训：一个 955M 的残留 worktree 删不掉）。每台机器执行一次即可：`git config --global core.longpaths true`。注意它只影响 git 自己，**修不了上面 Turbopack 那类构建失败**。
+
+- **`git`** **的长路径要单独开**，和 Windows 内核那个开关是两回事：`LongPathsEnabled=1` 已在本机开启，但 git for Windows 走 MSYS 运行时不吃它，于是 `git worktree remove` / `rm -rf` 会报 `Filename too long`（真实教训：一个 955M 的残留 worktree 删不掉）。每台机器执行一次即可：`git config --global core.longpaths true`。注意它只影响 git 自己，**修不了上面 Turbopack 那类构建失败**。
 
 ## 数据库（关键，别踩）
 
 - **本地/CI/生产统一 PostgreSQL，`push: false`**：`src/payload.config.ts` 只留 postgres 单路径，`DATABASE_URL` 缺省或非 `postgres` 一律 fail-fast（onInit 抛错），**SQLite 回退已移除**。本地也必须设 `DATABASE_URL=postgres://...`。
+
 - **生产 Postgres 是共享 TencentDB，`push: false`**：Payload 默认的 dev pushSchema 扫全库会误删腾讯云拨测表、并在非 TTY 下卡死。**本地/CI/生产一律只走显式迁移**（`npx payload migrate`），禁用 dev push。改 collection 配置后必须 `npx payload migrate:create` 生成迁移并提交 `src/migrations/`，**迁移文件正文绝不可手改**。
+
 - PG 的 ENUM 校验比 SQLite 严：字段 `defaultValue` 必须在 `options` 里，否则插入被拒（真实教训：`Listings.listingType` 默认值不在选项内）。
+
 - 多 worktree 并行各用独立 PG 库（如主树 `sbh_dev`、其它树 `sbh_dev_<task>`），别共用、别指向生产 TencentDB。
 
 ## 路由分组
 
 - `src/app/(frontend)/` — C 端公开站（React Server Components，读 DB 的页面一律 `export const dynamic = 'force-dynamic'`，禁止构建期连库）。
+
 - `src/app/(payload)/admin` — 后台。`src/app/(payload)/api` — Payload REST/GraphQL。
+
 - 路径别名 `@/*` → `./src/*`；Local API：`import { getPayload } from 'payload'` + `import config from '@/payload.config'`。
 
 ## C 端读数据只走 Local API
 
-C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不要调 REST `/api/*`**。唯一新增的 HTTP 端点是 `/api/inquiries`（询价留电）。查询/筛选/格式化逻辑集中在 `src/lib/frontend/`（`queries.ts` / `filters.ts` / `format.ts` / `validation.ts`），纯函数有 Vitest 单测。
+C 端 Server Component 用 `getPayload()` + `payload.find()/findOne()`，**不要调 REST** **`/api/*`**。唯一新增的 HTTP 端点是 `/api/inquiries`（询价留电）。查询/筛选/格式化逻辑集中在 `src/lib/frontend/`（`queries.ts` / `filters.ts` / `format.ts` / `validation.ts`），纯函数有 Vitest 单测。
 
 ## 设计系统
 
-`(frontend)/styles.css` 是奶油+金色设计系统，CSS 变量：`--ink --muted --line --paper --cream --gold --deep --green`。C 端组件复用这些变量与现有 class，**不引新 UI 库**（后台的 Arco 不外溢到 C 端）。
+`(frontend)/styles.css` + `styles/{home,list,detail,recruit,surface}.css` 是 **OPT-035 起的蓝/中性 token 体系**（约 113 个 token），**不是**早期的奶油+金色。底层：`--bg #f5f5f7`（全局底）/ `--bg-subtle #ffffff`（卡片）/ `--ink #1d1d1f` / `--ink-2` / `--ink-3` / `--accent #0071e3` / `--line` / `--line-strong`，另有 `--fs-*`（字号）、`--duration-* --ease-*`（动效）、`--container-* --breakpoint-*`（栅格）。
+
+- **`--color-*`** **是兼容别名层，名字已不代表颜色**——`--color-copper` 是蓝色、`--color-forest` 就是墨色（新体系没有第二彩色）、`--font-display` 不再是宋体。两层都在活跃使用（约 357 : 469 处），**新代码用底层 token**，别按字面意思挑 `--color-copper` / `--color-forest`。
+
+- 颜色/字号/间距/圆角/阴影/动效**一律走 token，禁止散落字面量**；仅 light 基线（前台不强制 dark）；尊重 `prefers-reduced-motion`。
+
+- **不引新 UI 库**，也不引 shadcn-ui / Tailwind reset / 任何全局第三方 reset（后台的 Arco 不外溢到 C 端）。
+
+- `--ink-2` / `--ink-3` 是 2026-08-30 按 WCAG AA 整体下移过的（原 `#86868b` 白底 3.62:1、灰底 3.33:1，两底都不达正文 4.5:1）。改这两个值前先复核对比度，且只改一个会与另一个撞成同值。
 
 ## 测试与验收铁律（血泪教训，必须严格执行）
 
 - **纯逻辑严格 TDD**（`filters`/`format`/`validation`）：Vitest 先红后绿。
+
 - **UI 与深色模式：严禁全局盲视**：必须在 Playwright 中截取全屏像素图；严禁仅看“大背景是否变黑”，必须逐个对账微观控件（Select/Radio/Tab/Popup/Modal），严禁在 Dark Mode 下残留 `#FFFFFF` 白底；必须主动点击展开下拉浮层并截取展开态。
+
 - **表单保存与持久化：三步铁证**：
+
   1. 抓包核验：拦截并打印实际发出的 `POST/PATCH` 请求体（Request Payload），确保行级数据完整序列化；
   2. 响应核验：确认 HTTP `200/201` 且响应文档结构正确；
   3. 强刷重载核验：执行 `page.reload` / `page.goto` 重新进入目标区域，核验 DOM 回显与数量 100% 保持，杜绝删图残留或调序瞬态复原。
+
 - **复杂拖拽交互**：外层 `draggable` 容器必须隔离子控件事件（`stopPropagation`）。
-- **自定义 array 字段组件**：本地 state 只作展示投影，增删改序一律走 Payload 行级 action（`addFieldRow` / `removeFieldRow` / `moveFieldRow` / 针对 `<path>.<行号>.<子字段>` 的 `UPDATE`）。**严禁用 `setValue` 往 array 父路径写整个数组**——有行的 array 会被标记 `disableFormData`，该路径提交时整体跳过，内容不会落库。
+
+- **自定义 array 字段组件**：本地 state 只作展示投影，增删改序一律走 Payload 行级 action（`addFieldRow` / `removeFieldRow` / `moveFieldRow` / 针对 `<path>.<行号>.<子字段>` 的 `UPDATE`）。**严禁用** **`setValue`** **往 array 父路径写整个数组**——有行的 array 会被标记 `disableFormData`，该路径提交时整体跳过，内容不会落库。
+
 - 完成判据与详细浏览器验收清单见 `.agent/testing.md`。无真实证据严禁宣布完成。
+

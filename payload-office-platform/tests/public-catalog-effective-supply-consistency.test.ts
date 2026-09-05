@@ -54,6 +54,7 @@ const ctx = createSearchContext('shanghai', new Date('2026-07-25T00:00:00Z'))
 const MEDIA_1: Media = {
   id: 9001,
   alt: '图1',
+  usage: 'listing-photo',
   url: '/media/m1.jpg',
   filename: 'm1.jpg',
   mimeType: 'image/jpeg',

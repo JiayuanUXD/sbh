@@ -23,7 +23,7 @@ async function main(): Promise<void> {
 
   const media = await payload.create({
     collection: 'media',
-    data: { alt: `走查用 hero 背景图 ${label}` },
+    data: { alt: `走查用 hero 背景图 ${label}`, usage: 'other' },
     file: { data, mimetype: 'image/jpeg', name: `${label}.jpg`, size: data.length },
     overrideAccess: true,
   })

@@ -60,7 +60,7 @@ describe.skipIf(!databaseAvailable)('删除 media 的公开缓存失效（真库
     const data = await tinyJpeg()
     const media = await payload.create({
       collection: 'media',
-      data: { alt: `${ALT_PREFIX}${label}` },
+      data: { alt: `${ALT_PREFIX}${label}`, usage: 'other' },
       file: { data, mimetype: 'image/jpeg', name: `${ALT_PREFIX}${label}.jpg`, size: data.length },
       overrideAccess: true,
     })
@@ -283,7 +283,7 @@ describe.skipIf(!databaseAvailable)('删除被媒体工作台引用的 media（O
     const data = await tinyJpeg()
     const media = await payload.create({
       collection: 'media',
-      data: { alt: `${ALT_PREFIX}${label}` },
+      data: { alt: `${ALT_PREFIX}${label}`, usage: 'other' },
       file: { data, mimetype: 'image/jpeg', name: `${ALT_PREFIX}${label}.jpg`, size: data.length },
       overrideAccess: true,
     })

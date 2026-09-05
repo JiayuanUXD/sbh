@@ -101,7 +101,7 @@ describe.skipIf(!databaseAvailable)('媒体删除：被单城「按类型浏览�
       .toBuffer()
     return payload.create({
       collection: 'media',
-      data: { alt: `${MEDIA_ALT_PREFIX}${tag}` },
+      data: { alt: `${MEDIA_ALT_PREFIX}${tag}`, usage: 'other' },
       file: {
         data: buffer,
         mimetype: 'image/jpeg',

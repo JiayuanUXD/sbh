@@ -1,0 +1,464 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  buildBadgeOverlay,
+  buildTiledOverlay,
+  computeWatermarkVersion,
+  DEFAULT_WATERMARK_CONFIG,
+  estimateTextWidth,
+  isBakeableImage,
+  mergeWatermarkConfig,
+  WATERMARK_FONT_FAMILY,
+  WATERMARK_FONT_PACKAGE,
+} from '@/domain/media/watermark'
+
+const TILED = { text: '商办荟 SHANGBANHUI', density: 3, opacity: 0.38, angle: -30 }
+const BADGE = { text: '商办荟 SHANGBANHUI', position: 'bottom-right' as const, opacity: 0.95 }
+
+function countOccurrences(haystack: string, needle: string): number {
+  return haystack.split(needle).length - 1
+}
+
+describe('estimateTextWidth', () => {
+  it('CJK 按 1em、拉丁按 0.62em、空格按 0.3em 估算', () => {
+    expect(estimateTextWidth('商办荟', 100)).toBeCloseTo(300, 5)
+    expect(estimateTextWidth('AB', 100)).toBeCloseTo(124, 5)
+    expect(estimateTextWidth('商 A', 100)).toBeCloseTo(192, 5)
+  })
+})
+
+describe('buildTiledOverlay', () => {
+  it('字号随图宽等比缩放——任何母版尺寸下版式一致', () => {
+    const big = buildTiledOverlay({ width: 2400, height: 1600, config: TILED }).toString()
+    const small = buildTiledOverlay({ width: 1200, height: 800, config: TILED }).toString()
+    const fontSizeOf = (svg: string) => Number(/font-size="([\d.]+)"/.exec(svg)![1])
+    expect(fontSizeOf(big) / fontSizeOf(small)).toBeCloseTo(2, 1)
+  })
+
+  it('必须带描边——纯白半透明字在落地窗那类高亮区会完全消失', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: TILED }).toString()
+    expect(svg).toContain('paint-order="stroke"')
+    expect(svg).toContain('stroke="#000"')
+  })
+
+  it('整幅统一旋转，而不是逐字旋转', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: TILED }).toString()
+    expect(svg).toContain('rotate(-30 400 300)')
+    expect(countOccurrences(svg, '<g transform="rotate')).toBe(1)
+  })
+
+  it('density 越大，铺的文字越多', () => {
+    const sparse = buildTiledOverlay({ width: 2400, height: 1600, config: { ...TILED, density: 2 } }).toString()
+    const dense = buildTiledOverlay({ width: 2400, height: 1600, config: { ...TILED, density: 5 } }).toString()
+    expect(countOccurrences(dense, '<text')).toBeGreaterThan(countOccurrences(sparse, '<text'))
+  })
+
+  it('网格范围超出画布，保证旋转后四角也被盖到', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: TILED }).toString()
+    const xs = [...svg.matchAll(/<text x="(-?[\d.]+)"/g)].map((m) => Number(m[1]))
+    expect(Math.min(...xs)).toBeLessThan(0)
+    expect(Math.max(...xs)).toBeGreaterThan(800)
+  })
+
+  it('opacity 同时作用于填充与描边', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, opacity: 0.4 } }).toString()
+    expect(svg).toContain('fill-opacity="0.4"')
+    expect(svg).toContain('stroke-opacity="0.2"')
+  })
+
+  it('SVG 宽高等于传入的画布尺寸', () => {
+    const svg = buildTiledOverlay({ width: 1234, height: 567, config: TILED }).toString()
+    expect(svg).toContain('width="1234"')
+    expect(svg).toContain('height="567"')
+  })
+
+  it('文案里的 XML 特殊字符被转义', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, text: 'A&B<C>' } }).toString()
+    expect(svg).toContain('A&amp;B&lt;C&gt;')
+  })
+})
+
+describe('buildBadgeOverlay', () => {
+  const textPos = (svg: string) => ({
+    x: Number(/<text x="(-?[\d.]+)"/.exec(svg)![1]),
+    y: Number(/<text x="-?[\d.]+" y="(-?[\d.]+)"/.exec(svg)![1]),
+  })
+
+  it('bottom-right 时角标贴右下', () => {
+    const { x, y } = textPos(buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString())
+    expect(x).toBeGreaterThan(500)
+    expect(y).toBeGreaterThan(400)
+  })
+
+  it('top-left 时角标贴左上', () => {
+    const { x, y } = textPos(
+      buildBadgeOverlay({
+        width: 1000,
+        height: 800,
+        config: { ...BADGE, position: 'top-left' },
+      }).toString(),
+    )
+    expect(x).toBeLessThan(100)
+    expect(y).toBeLessThan(100)
+  })
+
+  // 产品 2026-09-05 裁定：角标不要底板。底板一去，可读性全压在描边上，
+  // 所以下面两条比位置断言更要紧——它们是这个改动之后唯一撑住明暗两端的东西。
+  it('不画底板——只有文字，没有任何 rect', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('必须带描边——没有底板之后，这是高亮区里唯一让白字不消失的东西', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).toContain('paint-order="stroke"')
+    expect(svg).toContain('stroke="#000"')
+  })
+
+  // 右对齐必须靠 text-anchor 而不是「自己算 宽 - 估算文字宽 - 边距」：
+  // estimateTextWidth 是估算，有底板时误差被内边距吸收，底板去掉后就直接表现为
+  // 文字右侧被裁出画布（2026-09-05 真实渲染复现过，SHANGBANHUI 少了最后一个 I）。
+  it('右对齐用 text-anchor="end"，x 固定在右边距上，不依赖宽度估算', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString()
+    expect(svg).toContain('text-anchor="end"')
+    // x 与文案长度无关——估算误差从此不参与右对齐
+    const xOf = (text: string) =>
+      textPos(buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text } }).toString()).x
+    expect(xOf('ABCDEFGHIJ')).toBe(xOf('AB'))
+    expect(xOf('AB')).toBe(1000 - Math.round(1000 * 0.025))
+  })
+
+  it('左对齐不发 text-anchor，起点就是左边距', () => {
+    const svg = buildBadgeOverlay({
+      width: 1000,
+      height: 800,
+      config: { ...BADGE, position: 'top-left' },
+    }).toString()
+    expect(svg).not.toContain('text-anchor')
+    expect(textPos(svg).x).toBe(Math.round(1000 * 0.025))
+  })
+
+  it('贴下边时给下伸部留余量，基线不压在画布底边上', () => {
+    const { y } = textPos(buildBadgeOverlay({ width: 1000, height: 800, config: BADGE }).toString())
+    expect(y).toBeLessThan(800)
+  })
+})
+
+describe('computeWatermarkVersion', () => {
+  it('配置相同则版本相同', () => {
+    expect(computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG)).toBe(
+      computeWatermarkVersion({ ...DEFAULT_WATERMARK_CONFIG }),
+    )
+  })
+
+  it('任一参数变化都会改变版本——否则重刷任务会静默跳过该跑的图', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG)
+    const changed = computeWatermarkVersion({
+      ...DEFAULT_WATERMARK_CONFIG,
+      tiled: { ...DEFAULT_WATERMARK_CONFIG.tiled, opacity: 0.99 },
+    })
+    expect(changed).not.toBe(base)
+  })
+
+  /**
+   * 字体栈直接进 SVG 的 `font-family`，换一个字体渲染出来的像素就不一样，
+   * 所以它属于「产出这批字节的配置」的一部分。
+   *
+   * 不哈希它的后果不是理论问题：在缺中文字体的环境里打开开关，图会被烘成方框
+   * （librsvg 不报错），然后**盖上一个 version**；装好字体之后每一轮重刷都把它们
+   * 判成 skip，方框永远留在生产图片里，除非改代码。
+   */
+  it('字体栈变了版本必须跟着变', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+      fontFamily: 'WenQuanYi Zen Hei, sans-serif',
+    })
+    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+      fontFamily: 'Noto Sans CJK SC, sans-serif',
+    })
+    expect(changed).not.toBe(base)
+  })
+
+  /**
+   * 真正决定像素的是**容器里装了哪个字体包**，不是代码里那串 family 名
+   * （实测：只改 font-family 字符串、其余入参全同，两次渲染逐字节相同——fontconfig
+   * 做最佳匹配，系统里只有一个 CJK 字体时点不点名都选它）。所以包名必须进哈希：
+   * 把 Dockerfile 那行从 fonts-wqy-zenhei 换成 fonts-noto-cjk，字形全变，
+   * 而哈希若不变，之后每一轮重刷都判「已是当前版本」跳过，新旧字形永久共存。
+   */
+  it('字体包变了版本必须跟着变——否则换包后存量图永远重刷不动', () => {
+    const base = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, { fontPackage: 'fonts-wqy-zenhei' })
+    const changed = computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, { fontPackage: 'fonts-noto-cjk' })
+    expect(changed).not.toBe(base)
+  })
+
+  it('字体参数只是测试注入点，缺省就是当前的字体栈与字体包', () => {
+    expect(computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG)).toBe(
+      computeWatermarkVersion(DEFAULT_WATERMARK_CONFIG, {
+        fontFamily: WATERMARK_FONT_FAMILY,
+        fontPackage: WATERMARK_FONT_PACKAGE,
+      }),
+    )
+  })
+})
+
+describe('buildTiledOverlay 退化输入守卫', () => {
+  it('空文案返回空 overlay 而不是 NaN SVG', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, text: '' } }).toString()
+    expect(svg).toContain('width="800"')
+    expect(svg).toContain('height="600"')
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('NaN')
+    expect(svg).not.toContain('Infinity')
+  })
+
+  it('仅空白文案返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, text: '   ' } }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('density 为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: 0 } }).toString()
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('Infinity')
+  })
+
+  it('density 为负数返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: -1 } }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('宽度为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 0, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('高度为 0 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 0, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('负数尺寸返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: -100, height: -100, config: TILED }).toString()
+    expect(svg).not.toContain('<text')
+  })
+
+  it('非有限 density 返回空 overlay', () => {
+    const svg = buildTiledOverlay({ width: 800, height: 600, config: { ...TILED, density: Infinity } }).toString()
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('Infinity')
+  })
+})
+
+describe('buildBadgeOverlay 退化输入守卫', () => {
+  it('空文案返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: '' } }).toString()
+    expect(svg).toContain('width="1000"')
+    expect(svg).toContain('height="800"')
+    expect(svg).not.toContain('<text')
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('仅空白文案返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 800, config: { ...BADGE, text: '  ' } }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('零宽度返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 0, height: 800, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('零高度返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: 0, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+
+  it('负数尺寸返回空 overlay', () => {
+    const svg = buildBadgeOverlay({ width: -100, height: -100, config: BADGE }).toString()
+    expect(svg).not.toContain('<rect')
+  })
+})
+
+describe('mergeWatermarkConfig', () => {
+  it('null 配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig(null)
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('undefined 配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig(undefined)
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('非对象配置回落到默认值', () => {
+    const merged = mergeWatermarkConfig('not an object')
+    expect(merged).toEqual(DEFAULT_WATERMARK_CONFIG)
+  })
+
+  it('enabled 缺省 false，未保存的 group 不得被判成开启——水印必须 opt-in', () => {
+    expect(DEFAULT_WATERMARK_CONFIG.enabled).toBe(false)
+    expect(mergeWatermarkConfig({ enabled: null }).enabled).toBe(false)
+    expect(mergeWatermarkConfig({ enabled: true }).enabled).toBe(true)
+  })
+
+  it('全 null group 不能用 spread 覆盖默认值', () => {
+    const stored = { tiled: { density: null, text: null, opacity: null, angle: null }, badge: { text: null, opacity: null, position: null } }
+    const merged = mergeWatermarkConfig(stored)
+    // density null 应该回落到默认 3，不能用 null 覆盖默认值
+    expect(merged.tiled.density).toBe(DEFAULT_WATERMARK_CONFIG.tiled.density)
+  })
+
+  it('文案空白时回落到 fallbackText', () => {
+    const stored = { tiled: { density: 3, text: '  ', opacity: 0.5, angle: -30 }, badge: { text: '', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('fallbackText 也为空时回落到默认文案', () => {
+    const stored = { tiled: { density: 3, text: '', opacity: 0.5, angle: -30 }, badge: { text: '  ', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, '')
+    expect(merged.tiled.text).toBe(DEFAULT_WATERMARK_CONFIG.tiled.text)
+    expect(merged.badge.text).toBe(DEFAULT_WATERMARK_CONFIG.badge.text)
+  })
+
+  it('fallbackText 为 null 时回落到默认文案', () => {
+    const stored = { tiled: { density: 3, text: '', opacity: 0.5, angle: -30 }, badge: { text: '', opacity: 0.5, position: 'bottom-right' as const } }
+    const merged = mergeWatermarkConfig(stored, null)
+    expect(merged.tiled.text).toBe(DEFAULT_WATERMARK_CONFIG.tiled.text)
+  })
+
+  it('density 夹到 [2, 6]', () => {
+    expect(mergeWatermarkConfig({ tiled: { density: 0 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 1 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 2 } }).tiled.density).toBe(2)
+    expect(mergeWatermarkConfig({ tiled: { density: 6 } }).tiled.density).toBe(6)
+    expect(mergeWatermarkConfig({ tiled: { density: 10 } }).tiled.density).toBe(6)
+  })
+
+  it('opacity 夹到 (0, 1]', () => {
+    expect(mergeWatermarkConfig({ tiled: { opacity: 0 } }).tiled.opacity).toBe(0.01)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 0.5 } }).tiled.opacity).toBe(0.5)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 1 } }).tiled.opacity).toBe(1)
+    expect(mergeWatermarkConfig({ tiled: { opacity: 2 } }).tiled.opacity).toBe(1)
+  })
+
+  it('angle 夹到 [-90, 90]', () => {
+    expect(mergeWatermarkConfig({ tiled: { angle: -180 } }).tiled.angle).toBe(-90)
+    expect(mergeWatermarkConfig({ tiled: { angle: -30 } }).tiled.angle).toBe(-30)
+    expect(mergeWatermarkConfig({ tiled: { angle: 90 } }).tiled.angle).toBe(90)
+    expect(mergeWatermarkConfig({ tiled: { angle: 180 } }).tiled.angle).toBe(90)
+  })
+
+  it('非有限值回落到默认值', () => {
+    expect(mergeWatermarkConfig({ tiled: { density: Infinity } }).tiled.density).toBe(DEFAULT_WATERMARK_CONFIG.tiled.density)
+    expect(mergeWatermarkConfig({ tiled: { opacity: NaN } }).tiled.opacity).toBe(DEFAULT_WATERMARK_CONFIG.tiled.opacity)
+    expect(mergeWatermarkConfig({ tiled: { angle: Infinity } }).tiled.angle).toBe(DEFAULT_WATERMARK_CONFIG.tiled.angle)
+  })
+
+  it('储存配置的有效值完全回落', () => {
+    const stored = {
+      tiled: { density: 4, text: '我的项目', opacity: 0.5, angle: -45 },
+      badge: { text: '我的项目', opacity: 0.8, position: 'top-right' as const },
+    }
+    const merged = mergeWatermarkConfig(stored)
+    expect(merged.tiled.density).toBe(4)
+    expect(merged.tiled.text).toBe('我的项目')
+    expect(merged.tiled.opacity).toBe(0.5)
+    expect(merged.tiled.angle).toBe(-45)
+    expect(merged.badge.text).toBe('我的项目')
+    expect(merged.badge.opacity).toBe(0.8)
+    expect(merged.badge.position).toBe('top-right')
+  })
+
+  it('stored 为 null 时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig(null, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('stored 为 undefined 时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig(undefined, '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('stored 为非对象时仍应用 fallbackText 到文案', () => {
+    const merged = mergeWatermarkConfig('not an object', '万千楼盘')
+    expect(merged.tiled.text).toBe('万千楼盘')
+    expect(merged.badge.text).toBe('万千楼盘')
+  })
+
+  it('badge 文案应回落到各自的默认值而非 tiled 的', () => {
+    const stored = { tiled: { text: '' }, badge: { text: '' } }
+    // 这个测试确保即使两个默认值目前相同，逻辑也是隔离的
+    const merged = mergeWatermarkConfig(stored)
+    expect(merged.badge.text).toBe(DEFAULT_WATERMARK_CONFIG.badge.text)
+  })
+})
+
+describe('emptyOverlay 守卫 - NaN/Infinity 必须不出现在 SVG 属性里', () => {
+  it('width 为 NaN 时不产生 NaN 属性值', () => {
+    const svg = buildTiledOverlay({ width: NaN, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('NaN')
+    expect(svg).toContain('width=')
+  })
+
+  it('height 为 Infinity 时不产生 Infinity 属性值', () => {
+    const svg = buildTiledOverlay({ width: 800, height: Infinity, config: TILED }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).toContain('height=')
+  })
+
+  it('width 为 -Infinity 时不产生 Infinity 属性值', () => {
+    const svg = buildTiledOverlay({ width: -Infinity, height: 600, config: TILED }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).not.toContain('NaN')
+  })
+
+  it('badge 的 NaN width 也不产生 NaN 属性值', () => {
+    const svg = buildBadgeOverlay({ width: NaN, height: 600, config: BADGE }).toString()
+    expect(svg).not.toContain('NaN')
+    expect(svg).toContain('width=')
+  })
+
+  it('badge 的 Infinity height 也不产生 Infinity 属性值', () => {
+    const svg = buildBadgeOverlay({ width: 1000, height: Infinity, config: BADGE }).toString()
+    expect(svg).not.toContain('Infinity')
+    expect(svg).toContain('height=')
+  })
+})
+
+/**
+ * OPT-069 烘焙准入谓词。`bakeAfterUpload` / `selectRebakeTargets` / 回刷脚本三处共用同一个，
+ * 三处必须同答案：这里拒掉的图永远写不上 `watermark.version`，重刷若认得比它宽，
+ * 会每轮重新选中、每轮再失败一次，永远如此。
+ */
+describe('isBakeableImage', () => {
+  it('放行 sharp 能原地改写的 jpeg / png / webp', () => {
+    expect(isBakeableImage('image/jpeg')).toBe(true)
+    expect(isBakeableImage('image/png')).toBe(true)
+    expect(isBakeableImage('image/webp')).toBe(true)
+  })
+
+  it('拒绝 gif——多帧，composite 只读第一帧，烘下去会静默变成静止图', () => {
+    expect(isBakeableImage('image/gif')).toBe(false)
+  })
+
+  it('拒绝 svg——sharp 写不出 SVG，吐的是 PNG 字节，母版会被静默改格式', () => {
+    expect(isBakeableImage('image/svg+xml')).toBe(false)
+  })
+
+  it('拒绝非图片与空值', () => {
+    expect(isBakeableImage('application/pdf')).toBe(false)
+    expect(isBakeableImage('video/mp4')).toBe(false)
+    expect(isBakeableImage(null)).toBe(false)
+    expect(isBakeableImage(undefined)).toBe(false)
+    expect(isBakeableImage('')).toBe(false)
+  })
+
+  it('容忍大小写与 charset 参数——mimeType 来自上传方，不保证规范化', () => {
+    expect(isBakeableImage('IMAGE/JPEG')).toBe(true)
+    expect(isBakeableImage('image/webp; charset=binary')).toBe(true)
+  })
+})

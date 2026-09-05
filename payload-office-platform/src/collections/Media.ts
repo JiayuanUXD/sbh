@@ -7,6 +7,17 @@ import {
 import { unmountMediaReferences } from '@/domain/media/media-delete-cleanup'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 
+/**
+ * OPT-069：素材用途选项。导出是为了让后续需要展示用途标签的地方复用同一份，
+ * 不必再抄一遍中文标签——抄一遍就会漂移。
+ */
+export const MEDIA_USAGE_OPTIONS = [
+  { label: '房源/楼盘实景', value: 'listing-photo' },
+  { label: '品牌素材', value: 'brand' },
+  { label: '文章配图', value: 'article' },
+  { label: '其他', value: 'other' },
+] as const
+
 export const Media: CollectionConfig = {
   slug: 'media',
   labels: {
@@ -64,6 +75,48 @@ export const Media: CollectionConfig = {
       type: 'text',
       defaultValue: MEDIA_COS_PREFIX,
       admin: { hidden: true, readOnly: true },
+    },
+    /**
+     * OPT-069：素材用途。只有 `listing-photo` 走水印烘焙。
+     *
+     * **默认值刻意取 `listing-photo`**：误打的图**留得下退路**（干净原件在 `media-source/`，
+     * 需要人工取回来覆盖回去），漏打则不可逆（无水印图已经流出，被谁抓走无从知晓）。
+     * 默认值要偏向留得下退路的那一侧。
+     *
+     * 退路是**人工**的，别指望「改 usage + 点重刷」：`selectRebakeTargets` 只处理
+     * `usage === 'listing-photo'`，把一张误打的图改成 `brand` 之后重刷根本不会选中它，
+     * 那张水印图会原样留着。正确做法是从 `media-source/<filename>` 取回干净原件，
+     * 以同名重新上传（`usage` 先改对，`bakeAfterUpload` 见 usage 不是实景图就只落干净字节、
+     * 顺手清掉 version）。本仓库刻意不做「反烘焙」分支——它只会多一条要维护的写字节路径。
+     */
+    {
+      name: 'usage',
+      label: '素材用途',
+      type: 'select',
+      required: true,
+      defaultValue: 'listing-photo',
+      // 展开成可变数组：MEDIA_USAGE_OPTIONS 用 `as const` 保留字面量类型给消费方，
+      // 而 Payload 的 `options` 要的是可变 `Option[]`，直接传只读元组过不了 typecheck。
+      options: [...MEDIA_USAGE_OPTIONS],
+      admin: {
+        description: '只有「房源/楼盘实景」会打水印。品牌素材（logo、页面背景）务必改成对应用途。',
+      },
+    },
+    /**
+     * OPT-069：水印烘焙元数据，由 `watermarkPlugin` 写入，人不要手改。
+     *
+     * `version` 是**水印配置的内容哈希**而非人工版本号——人工版本号会漏更新，
+     * 届时重刷任务静默跳过该跑的图，且没有任何报错。
+     */
+    {
+      name: 'watermark',
+      label: '水印状态',
+      type: 'group',
+      admin: { readOnly: true, description: '由系统写入。要改水印样式请去「站点设置 → 图片水印」。' },
+      fields: [
+        { name: 'version', label: '配置版本', type: 'text' },
+        { name: 'appliedAt', label: '烘焙时间', type: 'date' },
+      ],
     },
   ],
   /**

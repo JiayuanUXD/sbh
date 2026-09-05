@@ -33,10 +33,20 @@
  *
  *   - 只处理 `mimeType` 以 `image/` 开头、且**缺 `sizes.card.url`** 的记录；
  *     已有派生的一律跳过（幂等，重复跑不会重复生成）。
+ *   - **已烘过水印的记录（`watermark.version` 有值）一律跳过**（OPT-069）。本脚本靠
+ *     「HTTP 读回当前母版 → 同名 `payload.update({ file })` 回写」补派生，而水印是烘进
+ *     像素的：烘过之后那个母版**已经带着水印**，回写等于把带水印的字节当成一次新上传，
+ *     `watermarkPlugin` 会把它备份进 `media-source/` 当「干净原件」（干净副本就此永久丢失），
+ *     再在上面叠第二层水印。规定的上线顺序（usage 回填 → 本脚本 → 打开水印开关 → 水印回刷）
+ *     里本脚本跑在开关打开之前，那时一张都没烘过，所以顺序没问题；这条守卫是为了**顺序被打乱**
+ *     ——比如上线后有人补跑一次本脚本——那时它必须自己拒绝，而不是靠运维记得。
  *   - 原图字节从 `media.url` 同源读取（本地存储走磁盘路由、COS 走 Payload 的文件
  *     路由回源），不直接依赖 COS SDK，因此本地与生产同一条代码路径。
  *   - 视频不处理：`imageSizes` 对非图片无意义。
  */
+
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
 
 import { getPayload } from 'payload'
 import config from '../src/payload.config'
@@ -48,6 +58,8 @@ type MediaDoc = {
   filesize?: number | null
   url?: string | null
   sizes?: Record<string, { url?: string | null } | null | undefined> | null
+  /** OPT-069：有值 = 存储里的母版已带水印，本脚本不能碰它（见头注释「边界」）。 */
+  watermark?: { version?: string | null } | null
 }
 
 const EXECUTE = process.argv.includes('--execute')
@@ -62,9 +74,18 @@ function readNumberFlag(prefix: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback
 }
 
-function needsBackfill(doc: MediaDoc): boolean {
+export function needsBackfill(doc: MediaDoc): boolean {
   if (!doc.mimeType || !doc.mimeType.startsWith('image/')) return false
+  // OPT-069：已烘过水印的母版不是干净原件。把它读回来同名回写，watermarkPlugin 会把这份
+  // 带水印的字节当成新上传备份进 media-source/（干净副本永久丢失），并叠上第二层水印。
+  // 这类记录要补派生只能走 `pnpm media:backfill-watermark`（它从 media-source/ 的备份重烘）。
+  if (isWatermarkBaked(doc)) return false
   return !doc.sizes?.card?.url
+}
+
+/** 已烘过水印 = 存储里的母版被改写过，不能再当原件读回写回。 */
+export function isWatermarkBaked(doc: MediaDoc): boolean {
+  return typeof doc.watermark?.version === 'string' && doc.watermark.version.length > 0
 }
 
 /** 站点自身的文件路由基址：本地 dev 与生产各自读自己的库，不跨环境取字节。 */
@@ -88,6 +109,9 @@ async function main(): Promise<void> {
   const candidates: MediaDoc[] = []
   let page = 1
   let scanned = 0
+  // 缺派生、但已经烘过水印，因此本脚本不能处理的记录。单独报出来，别让它们悄悄消失在
+  // 「缺派生 N 张」与实际回填数的差值里。
+  let watermarkedSkipped = 0
 
   for (;;) {
     const result = await payload.find({
@@ -102,6 +126,7 @@ async function main(): Promise<void> {
     scanned += docs.length
     for (const doc of docs) {
       if (doc.id <= START_AFTER) continue
+      if (isWatermarkBaked(doc) && !doc.sizes?.card?.url) watermarkedSkipped++
       if (needsBackfill(doc)) candidates.push(doc)
     }
     if (!result.hasNextPage || result.nextPage == null) break
@@ -110,6 +135,12 @@ async function main(): Promise<void> {
 
   const totalBytes = candidates.reduce((sum, doc) => sum + (doc.filesize ?? 0), 0)
   console.log(`扫描 ${scanned} 条媒体，其中缺派生尺寸的图片 ${candidates.length} 张，原图合计 ${(totalBytes / 1024 / 1024).toFixed(1)} MB`)
+  if (watermarkedSkipped > 0) {
+    console.log(
+      `另有 ${watermarkedSkipped} 张缺派生但已烘过水印，本脚本一律跳过：它们的母版已带水印，` +
+        '读回同名回写会被当成新上传，干净原件被覆盖、水印叠第二层。要补派生请用 pnpm media:backfill-watermark（从 media-source/ 备份重烘）。',
+    )
+  }
 
   if (!EXECUTE) {
     console.log('dry-run：未写入任何数据。加 --execute 真正回填，建议配 --limit 分批。')
@@ -165,9 +196,13 @@ async function main(): Promise<void> {
   }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error)
-    process.exit(1)
-  })
+// 仅在作为脚本直接运行时执行；被测试 import 时不触发全库扫描
+// （与 scripts/migrate-dry-run.ts、scripts/preflight.ts 同一写法）。
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error)
+      process.exit(1)
+    })
+}

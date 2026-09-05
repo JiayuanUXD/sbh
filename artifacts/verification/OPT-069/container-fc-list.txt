@@ -1,0 +1,71 @@
+OPT-069 Task 10 Step 7：容器内中文字体验收
+================================================
+
+尝试执行（按 brief 要求）：
+  docker build -t sbh-watermark-check .
+  docker run --rm sbh-watermark-check fc-list :lang=zh
+
+结果：本次验收环境（Windows agent 沙箱）未安装任何容器运行时，命令本身无法执行。
+
+实测排查过程与输出（原样保留）：
+
+$ docker --version
+/usr/bin/bash: line 1: docker: command not found
+
+$ (PowerShell) docker --version
+docker : The term 'docker' is not recognized as the name of a cmdlet, function, script file, or operable program.
+
+$ (PowerShell) wsl --version
+wsl : The term 'wsl' is not recognized as the name of a cmdlet, function, script file, or operable program.
+
+$ which docker docker.exe podman nerdctl containerd
+（均未找到，PATH 中不存在任何容器运行时）
+
+$ ls "/c/Program Files/Docker"
+ls: cannot access '/c/Program Files/Docker': No such file or directory
+
+结论：本环境既没有 Docker Desktop，也没有 WSL、podman、nerdctl 等替代容器运行时。
+无法literally 构建镜像、无法在容器内跑 fc-list，也无法在容器内烘一张水印图导出验证。
+这一项**未能验证**，不是"跑了但结果是空"，而是命令根本没有执行环境。
+
+----------------------------------------------------------------------
+静态分析（退而求其次，检查 Dockerfile 本身，具备较高置信度但不是容器内实测）：
+----------------------------------------------------------------------
+
+$ grep -n "apt-get\|apt install\|fontconfig\|fonts-\|FROM " payload-office-platform/Dockerfile
+4:FROM node:22-slim AS deps
+13:FROM node:22-slim AS builder
+45:FROM node:22-slim AS runner
+
+发现：
+  - Dockerfile 全部三个构建阶段（deps / builder / runner）都基于 `node:22-slim`。
+  - 全文件搜索 `apt-get` / `apt install` / `fontconfig` / `fonts-`：零匹配。
+    即整份 Dockerfile 里没有任何一行安装系统包（含字体包）。
+  - `node:*-slim` 基于 Debian slim，该基础镜像本身不含 fontconfig，也不含任何字体文件
+    （这是 slim 变体的公开、稳定属性，不是本次实测结果）。
+
+据此推断（不等于容器内实测）：生产容器大概率既没有 fontconfig 也没有任何中文字体，
+`fc-list :lang=zh` 大概率要么报 command not found（fontconfig 未装），要么返回空
+（若 fontconfig 恰好被某个依赖间接装上但字体文件仍缺失）。这与 brief 预判的
+"生产最可能翻车点"一致——但这是基于代码/镜像定义的静态判断，不是本次容器内实测结果。
+
+----------------------------------------------------------------------
+建议（人工决策，不代为修改 Dockerfile）：
+----------------------------------------------------------------------
+若确认 fc-list 返回为空，需要在 runner 阶段（或 builder 阶段，只要最终 runner 镜像里
+librsvg 渲染时能读到）加装中文字体包，例如：
+  RUN apt-get update && apt-get install -y --no-install-recommends fonts-noto-cjk \
+      && rm -rf /var/lib/apt/lists/*
+或体积更小的替代（如 fonts-wqy-zenhei / fonts-wqy-microhei），是否加、加哪个是关于
+镜像体积的权衡，留给人工决定；本任务不代为修改 Dockerfile。
+
+----------------------------------------------------------------------
+本机（Windows dev 环境）层面的间接佐证：
+----------------------------------------------------------------------
+本次验收在 Windows 开发机上通过 sharp/librsvg 直接生成并渲染了多张中文水印图
+（见 media-master-tiled-full-cover.jpg、media-master-tiled-after-rebake-density5.jpg、
+detail-tiled-master.png、detail-lightbox-tiled.png 等），中文「商办荟」清晰可读，
+证明**渲染逻辑本身**（SVG 拼装、字号计算、描边）在有中文字体的环境下是正确的。
+Windows 开发机预装了系统中文字体（Microsoft YaHei / SimHei），这不能代表 Linux
+生产容器的字体可用性——问题的关键正在于生产容器（node:22-slim）是否具备同类字体，
+而这一点在本次环境下无法直接验证。

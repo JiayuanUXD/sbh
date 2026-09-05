@@ -13,6 +13,7 @@ import type { SupplyAdapter } from '@/domain/public-catalog/supply-adapter'
 export const MEDIA_1: Media = {
   id: 9001,
   alt: '图1',
+  usage: 'listing-photo',
   url: '/media/m1.jpg',
   filename: 'm1.jpg',
   mimeType: 'image/jpeg',

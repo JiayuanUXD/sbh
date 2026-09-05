@@ -80,7 +80,7 @@ async function uploadMedia(
   const buffer = await resolveImageBuffer(seed, w, h)
   const media = await payload.create({
     collection: 'media',
-    data: { alt },
+    data: { alt, usage: 'other' },
     file: {
       data: buffer,
       mimetype: 'image/jpeg',
@@ -95,7 +95,7 @@ async function uploadDetailGalleryVideoFixture(payload: any): Promise<AnyDoc> {
   const buffer = Buffer.from(DETAIL_GALLERY_VIDEO_FIXTURE, 'base64')
   return payload.create({
     collection: 'media',
-    data: { alt: '详情页媒体画廊视频样本' },
+    data: { alt: '详情页媒体画廊视频样本', usage: 'other' },
     file: {
       data: buffer,
       mimetype: 'video/mp4',
@@ -109,7 +109,7 @@ async function uploadHeroBackgroundVideo(payload: any): Promise<AnyDoc> {
   const buffer = Buffer.from(DETAIL_GALLERY_VIDEO_FIXTURE, 'base64')
   return payload.create({
     collection: 'media',
-    data: { alt: '首页 hero 背景视频占位' },
+    data: { alt: '首页 hero 背景视频占位', usage: 'other' },
     file: {
       data: buffer,
       mimetype: 'video/mp4',
