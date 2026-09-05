@@ -12,8 +12,23 @@ import {
   WATERMARK_FONT_PACKAGE,
 } from '@/domain/media/watermark'
 
-const TILED = { text: '商办荟 SHANGBANHUI', density: 3, opacity: 0.38, angle: -30 }
-const BADGE = { text: '商办荟 SHANGBANHUI', position: 'bottom-right' as const, opacity: 0.95 }
+const TILED = {
+  source: 'text' as const,
+  text: '商办荟 SHANGBANHUI',
+  imageRef: null,
+  imageScale: 0.18,
+  density: 3,
+  opacity: 0.38,
+  angle: -30,
+}
+const BADGE = {
+  source: 'text' as const,
+  text: '商办荟 SHANGBANHUI',
+  imageRef: null,
+  imageScale: 0.12,
+  position: 'bottom-right' as const,
+  opacity: 0.95,
+}
 
 function countOccurrences(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1

@@ -27,7 +27,7 @@ import { createHash } from 'crypto'
  * 那次没有跟着 +1，这里补上。字体栈现在也进哈希（见 `computeWatermarkVersion`），
  * 以后换字体会自动改变版本，不再依赖人记得改这个常量。
  */
-export const WATERMARK_RENDERER_VERSION = '2'
+export const WATERMARK_RENDERER_VERSION = '3'
 
 /**
  * 字体栈。生产是 Linux 容器，`Microsoft YaHei` 只在本地存在——
@@ -66,8 +66,49 @@ export const WATERMARK_FONT_FAMILY =
  */
 export const WATERMARK_FONT_PACKAGE = 'fonts-wqy-zenhei'
 
+/** 一种版式的水印源：文字，或上传的图片。 */
+export type WatermarkSource = 'text' | 'image'
+
+/**
+ * 图片水印素材的**身份**（进版本哈希），不含字节。
+ *
+ * `id` 统一存成字符串：Payload 的 relationship 在 depth 0 下给数字、depth>0 下给对象，
+ * 两种形态若分别哈希成 `3` 和 `"3"` 会得到不同版本，存量图会被无谓地全量重刷一遍。
+ */
+export type WatermarkImageRef = { id: string; updatedAt: string } | null
+
+/**
+ * 图片水印的实际素材，由调用方从存储读出后传入。
+ *
+ * `width` / `height` 是源图固有尺寸，用来按比例算 `<image>` 的高度——
+ * SVG 的 `<image>` 只给宽度会按 `preserveAspectRatio` 自行决定高度，
+ * 不同 librsvg 版本行为不一致，显式给两个值最稳。
+ */
+export type WatermarkImageAsset = {
+  /** `data:image/png;base64,...`。base64 字母表不含需要 XML 转义的字符。 */
+  dataUri: string
+  width: number
+  height: number
+}
+
 export type TiledWatermarkConfig = {
+  /** 这一版式画文字还是画图片。两种版式各自独立选（OPT-071 决策）。 */
+  source: WatermarkSource
   text: string
+  /**
+   * 图片水印的素材身份。**只有身份，没有字节**——字节由调用方从存储读出后
+   * 以 `WatermarkImageAsset` 传进构造器，本模块保持纯函数。
+   *
+   * 它必须留在 config 里：`computeWatermarkVersion` 把 `config.tiled` / `config.badge`
+   * 整体序列化进哈希，于是换 logo 自动改变版本、存量图自动重刷。若把它挪到 config 外
+   * 另行传递，就要在哈希那边单独接线——而那正是「有人忘了接」的地方
+   * （`WATERMARK_FONT_PACKAGE` 的注释记着同一类事故）。
+   *
+   * `updatedAt` 不可省：运营可以同名覆盖上传，id 不变而像素全变。
+   */
+  imageRef: WatermarkImageRef
+  /** 图片宽度占目标图宽的比例，0.05–0.5。source==='text' 时无意义。 */
+  imageScale: number
   /** 横向列数，2–6。越大越密。 */
   density: number
   /** 0–1 */
@@ -77,7 +118,11 @@ export type TiledWatermarkConfig = {
 }
 
 export type BadgeWatermarkConfig = {
+  source: WatermarkSource
   text: string
+  imageRef: WatermarkImageRef
+  /** 图片宽度占目标图宽的比例，0.03–0.4。 */
+  imageScale: number
   position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
   opacity: number
 }
@@ -100,8 +145,8 @@ export type WatermarkConfig = {
  */
 export const DEFAULT_WATERMARK_CONFIG: WatermarkConfig = {
   enabled: false,
-  tiled: { text: '商办荟', density: 3, opacity: 0.38, angle: -30 },
-  badge: { text: '商办荟', position: 'bottom-right', opacity: 0.95 },
+  tiled: { source: 'text', text: '商办荟', imageRef: null, imageScale: 0.18, density: 3, opacity: 0.38, angle: -30 },
+  badge: { source: 'text', text: '商办荟', imageRef: null, imageScale: 0.12, position: 'bottom-right', opacity: 0.95 },
 }
 
 /** 相邻两条文字之间留的横向余量倍数。1 = 紧贴，1.55 = 留半个身位。 */
@@ -149,19 +194,137 @@ function emptyOverlay(width: number, height: number): Buffer {
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${safeWidth}" height="${safeHeight}"></svg>`)
 }
 
-export function buildTiledOverlay({
+/** 图片满铺时相邻两枚 logo 的横向余量倍数。 */
+const TILE_IMAGE_GAP_RATIO = 1.6
+/** 图片满铺的行距相对 logo 高度的倍数。文字用 4.2 是因为字高远小于字宽，图片不适用。 */
+const TILE_IMAGE_LINE_RATIO = 2.2
+
+/** 把比例夹到合法区间；非有限值回落到下限（宁可小，不可 NaN 污染 SVG）。 */
+function clampScale(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.min(Math.max(value, min), max)
+}
+
+/**
+ * 这一版式此刻是否真的走图片。
+ *
+ * **缺素材时回落到文字，而不是不打水印。** 静默不打水印是这个功能最危险的失败模式：
+ * 运营把版式切到「图片」却还没选图（或选的图后来被删了），如果这里返回「什么都不画」，
+ * 一整批上传就在毫无提示的情况下裸奔，而 `watermark.version` 照样会被写上——
+ * 之后每一轮重刷都判「已是当前版本」跳过，这批没水印的图永久留在生产里。
+ * 回落到文字至少保证「有水印」这条不变量，运营也会立刻从预览里看出不对。
+ */
+function useImageSource(source: WatermarkSource, image?: WatermarkImageAsset | null): boolean {
+  if (source !== 'image') return false
+  if (!image || typeof image.dataUri !== 'string' || !image.dataUri) return false
+  return (
+    Number.isFinite(image.width) &&
+    Number.isFinite(image.height) &&
+    image.width > 0 &&
+    image.height > 0
+  )
+}
+
+/**
+ * 图片满铺。
+ *
+ * **base64 只出现一次**：放进 `<defs>`，每个格子用 `<use>` 引用。
+ * 直接在每个 `<text>` 位置内嵌一份 data URI 的话，满铺在 3 倍画布上会生成几十到上百个
+ * 格子，一份 30 KB 的 logo 就能把 overlay SVG 撑到好几 MB——librsvg 要解析它、
+ * sharp 要吃下它，每张图烘一次。`<use>` 让体积与格子数无关。
+ *
+ * 不透明度挂在 `<g>` 上而不是逐格：所有格子同一个值，挂一次省掉 N 个属性。
+ */
+function buildTiledImageOverlay({
   width,
   height,
   config,
+  image,
 }: {
   width: number
   height: number
   config: TiledWatermarkConfig
+  image: WatermarkImageAsset
 }): Buffer {
-  // 输入守卫：文案为空、尺寸无效或密度无效时返回空 overlay
-  const trimmedText = config.text.trim()
+  const logoWidth = Math.max(1, Math.round(width * clampScale(config.imageScale, 0.05, 0.5)))
+  const logoHeight = Math.max(1, Math.round(logoWidth * (image.height / image.width)))
+  const stepX = Math.max(1, Math.round(logoWidth * TILE_IMAGE_GAP_RATIO))
+  const stepY = Math.max(1, Math.round(logoHeight * TILE_IMAGE_LINE_RATIO))
+
+  const cells: string[] = []
+  let row = 0
+  // 与文字满铺同一套网格：铺到画布 3 倍范围保证旋转后四角仍被覆盖，奇数行错开半格。
+  for (let y = -height; y < height * 2; y += stepY) {
+    for (let x = -width; x < width * 2; x += stepX) {
+      const offsetX = (row % 2) * (stepX / 2)
+      cells.push(`<use href="#wm" x="${round(x + offsetX)}" y="${round(y)}"/>`)
+    }
+    row++
+  }
+
+  const rotation = `rotate(${config.angle} ${round(width / 2)} ${round(height / 2)})`
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">` +
+      `<defs><image id="wm" width="${logoWidth}" height="${logoHeight}" href="${image.dataUri}"/></defs>` +
+      `<g transform="${rotation}" opacity="${round(config.opacity)}">${cells.join('')}</g></svg>`,
+  )
+}
+
+/**
+ * 图片角标。只有一枚，直接内嵌，不需要 `<defs>`。
+ *
+ * 与文字角标不同，这里**不加描边**——描边只对矢量字形有意义，栅格 logo 描不了。
+ * logo 在亮底/暗底上都要读得出来是素材自身的责任（建议用带白边或带底色的版本），
+ * 后台字段说明里要写清楚这一条。
+ */
+function buildBadgeImageOverlay({
+  width,
+  height,
+  config,
+  image,
+}: {
+  width: number
+  height: number
+  config: BadgeWatermarkConfig
+  image: WatermarkImageAsset
+}): Buffer {
+  const logoWidth = Math.max(1, Math.round(width * clampScale(config.imageScale, 0.03, 0.4)))
+  const logoHeight = Math.max(1, Math.round(logoWidth * (image.height / image.width)))
+  const margin = Math.round(width * 0.025)
+
+  const alignRight = config.position === 'bottom-right' || config.position === 'top-right'
+  const alignBottom = config.position === 'bottom-right' || config.position === 'bottom-left'
+  // 图片有确切宽高，直接算坐标即可——不像文字那样要靠 text-anchor 规避宽度估算误差。
+  const x = alignRight ? width - margin - logoWidth : margin
+  const y = alignBottom ? height - margin - logoHeight : margin
+
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">` +
+      `<image x="${x}" y="${y}" width="${logoWidth}" height="${logoHeight}"` +
+      ` opacity="${round(config.opacity)}" href="${image.dataUri}"/></svg>`,
+  )
+}
+
+export function buildTiledOverlay({
+  width,
+  height,
+  config,
+  image,
+}: {
+  width: number
+  height: number
+  config: TiledWatermarkConfig
+  /**
+   * `config.source === 'image'` 时的素材。**缺素材时回落到文字**，不是不打水印——
+   * 见 `useImageSource` 的注释：静默不打水印是这个功能最危险的失败模式。
+   */
+  image?: WatermarkImageAsset | null
+}): Buffer {
+  const useImage = useImageSource(config.source, image)
+
+  // 尺寸与密度守卫对两种源都适用；文案守卫只在文字源下生效
+  // （图片源下文案为空是正常的，运营切到图片就不会再去填文字）。
   if (
-    !trimmedText ||
     !Number.isFinite(width) ||
     !Number.isFinite(height) ||
     width <= 0 ||
@@ -171,6 +334,11 @@ export function buildTiledOverlay({
   ) {
     return emptyOverlay(width, height)
   }
+
+  if (useImage) return buildTiledImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
+
+  const trimmedText = config.text.trim()
+  if (!trimmedText) return emptyOverlay(width, height)
 
   const text = escapeXml(config.text)
   const unitWidth = estimateTextWidth(config.text, 1)
@@ -211,22 +379,23 @@ export function buildBadgeOverlay({
   width,
   height,
   config,
+  image,
 }: {
   width: number
   height: number
   config: BadgeWatermarkConfig
+  image?: WatermarkImageAsset | null
 }): Buffer {
-  // 输入守卫：文案为空或尺寸无效时返回空 overlay
-  const trimmedText = config.text.trim()
-  if (
-    !trimmedText ||
-    !Number.isFinite(width) ||
-    !Number.isFinite(height) ||
-    width <= 0 ||
-    height <= 0
-  ) {
+  const useImage = useImageSource(config.source, image)
+
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
     return emptyOverlay(width, height)
   }
+
+  if (useImage) return buildBadgeImageOverlay({ width, height, config, image: image as WatermarkImageAsset })
+
+  const trimmedText = config.text.trim()
+  if (!trimmedText) return emptyOverlay(width, height)
 
   const text = escapeXml(config.text)
   const fontSize = Math.max(8, Math.round(width * BADGE_FONT_RATIO))
@@ -330,6 +499,28 @@ export function computeWatermarkVersion(
  * @param stored — 从 `SiteSettings.watermark` 读出的配置，可能有 null / undefined 字段
  * @param fallbackText — 缺省文案（通常是站点名称），为空时用 DEFAULT_WATERMARK_CONFIG 的文案
  */
+/**
+ * 把 `SiteSettings` 里的 upload 关系字段归一成 `WatermarkImageRef`。
+ *
+ * **只认展开后的对象形态**（`depth >= 1`）。depth 0 读出来的是一个裸 id，
+ * 拿不到 `updatedAt`——而运营可以同名覆盖上传，id 不变而像素全变，只哈希 id
+ * 等于「换了 logo 但版本没变」，之后每一轮重刷都判 skip，新旧 logo 永久共存。
+ *
+ * 拿到裸 id 时返回 null（→ 回落到文字），是**刻意选的响亮失败**：预览里立刻
+ * 显示成文字，运营一眼看出不对；相比之下「按 id 硬凑一个 ref」会一路正常直到
+ * 某天换 logo 不生效，那时没人查得出来。`readWatermarkSiteSettings` 因此必须用
+ * depth 1，`tests/watermark-config-resolution.test.ts` 钉住这条。
+ */
+function normalizeImageRef(value: unknown): WatermarkImageRef {
+  if (value == null || typeof value !== 'object') return null
+  const doc = value as Record<string, unknown>
+  const id = doc.id
+  const updatedAt = doc.updatedAt
+  if (typeof id !== 'number' && typeof id !== 'string') return null
+  if (typeof updatedAt !== 'string' || !updatedAt) return null
+  return { id: String(id), updatedAt }
+}
+
 export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | null): WatermarkConfig {
   const storedObj = stored != null && typeof stored === 'object' ? (stored as Record<string, any>) : {}
 
@@ -357,8 +548,15 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
 
   // 合并 tiled 配置
   const tiledStored = storedObj.tiled
+  const tiledImageRef = normalizeImageRef(tiledStored?.image)
   const tiledConfig: TiledWatermarkConfig = {
+    // 选了图片源却没有可用的图时落回文字，与 `useImageSource` 同一条规则，
+    // 在这里就落定，好让**版本哈希也反映真实渲染源**：否则配置说 image、实际画的是
+    // 文字，而哈希按 image 算，改文案不会触发重刷。
+    source: tiledStored?.source === 'image' && tiledImageRef ? 'image' : 'text',
     text: resolveFallbackText(tiledStored?.text, DEFAULT_WATERMARK_CONFIG.tiled.text),
+    imageRef: tiledImageRef,
+    imageScale: mergeNumber(tiledStored?.imageScale, DEFAULT_WATERMARK_CONFIG.tiled.imageScale, 0.05, 0.5),
     density: mergeNumber(tiledStored?.density, DEFAULT_WATERMARK_CONFIG.tiled.density, 2, 6),
     opacity: mergeNumber(tiledStored?.opacity, DEFAULT_WATERMARK_CONFIG.tiled.opacity, 0.01, 1),
     angle: mergeNumber(tiledStored?.angle, DEFAULT_WATERMARK_CONFIG.tiled.angle, -90, 90),
@@ -366,8 +564,12 @@ export function mergeWatermarkConfig(stored: unknown, fallbackText?: string | nu
 
   // 合并 badge 配置
   const badgeStored = storedObj.badge
+  const badgeImageRef = normalizeImageRef(badgeStored?.image)
   const badgeConfig: BadgeWatermarkConfig = {
+    source: badgeStored?.source === 'image' && badgeImageRef ? 'image' : 'text',
     text: resolveFallbackText(badgeStored?.text, DEFAULT_WATERMARK_CONFIG.badge.text),
+    imageRef: badgeImageRef,
+    imageScale: mergeNumber(badgeStored?.imageScale, DEFAULT_WATERMARK_CONFIG.badge.imageScale, 0.03, 0.4),
     position: ['bottom-right', 'bottom-left', 'top-right', 'top-left'].includes(badgeStored?.position)
       ? badgeStored.position
       : DEFAULT_WATERMARK_CONFIG.badge.position,
