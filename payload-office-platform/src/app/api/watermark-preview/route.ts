@@ -27,21 +27,63 @@ export const dynamic = 'force-dynamic'
 const SAMPLE_WIDTH = 900
 const SAMPLE_HEIGHT = 600
 
+/**
+ * 预览样张。**必须用数组 join 拼，不能用 `+` 串模板字面量**——这不是风格洁癖，
+ * 是一个真实事故的修复。
+ *
+ * ## 曾经发生过什么
+ *
+ * 本函数原先写成十来个模板字面量用 `+` 相连，宽高插的是模块级常量
+ * `SAMPLE_WIDTH` / `SAMPLE_HEIGHT`。源码完全正确、`tsx` 直接跑也完全正确，
+ * 但 `next build` 的常量折叠会把这条 `+` 链压成一个普通字符串字面量，
+ * **压的过程中丢片段**：实测产物是
+ *
+ *     <svg xmlns="..." width="900" height="600<rect width="900" height="600<rect x="0" ...
+ *
+ * 每个「含插值的模板字面量」的尾部、连同其后不含插值的整段，全被吃掉了
+ * （`">`、`<defs>…</defs>`、`" fill="url(#w)"/>`、三个玻璃幕墙 rect）。
+ * 于是 `<svg>` 开始标签永远闭合不了，librsvg 报
+ * `XML parse error … line 1 column 77 … Couldn't find end of Start Tag svg`，
+ * 端点在生产恒 500。
+ *
+ * `watermark.ts` 里的三个 overlay 构造器同样是 `+` 串模板字面量却**没事**，
+ * 因为它们的插值是运行时参数、打包器不折叠——差别只在「插值是不是编译期常量」。
+ *
+ * ## 为什么单测拦不住
+ *
+ * vitest / tsx 跑的是源码，源码本来就是对的。这个缺陷**只存在于打包产物里**，
+ * 只有跑 `next build` + `next start` 才看得见。回归防线是
+ * `tests/e2e/watermark-preview.spec.ts`（CI 的 e2e 走 `next start` 生产 server）
+ * 加上下面那道运行时自检。
+ */
 function sampleSvg(): Buffer {
-  return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${SAMPLE_WIDTH}" height="${SAMPLE_HEIGHT}">` +
-      `<defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1">` +
-      `<stop offset="0%" stop-color="#e2dccf"/><stop offset="100%" stop-color="#a89f8e"/></linearGradient>` +
-      `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">` +
-      `<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#cfe4f5"/></linearGradient></defs>` +
-      `<rect width="${SAMPLE_WIDTH}" height="${SAMPLE_HEIGHT}" fill="url(#w)"/>` +
-      `<rect x="40" y="40" width="240" height="320" fill="url(#g)"/>` +
-      `<rect x="320" y="40" width="240" height="320" fill="url(#g)"/>` +
-      `<rect x="600" y="40" width="260" height="320" fill="url(#g)"/>` +
-      `<rect x="0" y="400" width="${SAMPLE_WIDTH}" height="200" fill="#3a332c"/>` +
-      `<rect x="80" y="420" width="320" height="130" rx="10" fill="#1a1613"/>` +
-      `<rect x="480" y="430" width="330" height="120" rx="10" fill="#241f1a"/></svg>`,
-  )
+  const parts = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${SAMPLE_WIDTH}" height="${SAMPLE_HEIGHT}">`,
+    `<defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1">`,
+    `<stop offset="0%" stop-color="#e2dccf"/><stop offset="100%" stop-color="#a89f8e"/></linearGradient>`,
+    `<linearGradient id="g" x1="0" y1="0" x2="0" y2="1">`,
+    `<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#cfe4f5"/></linearGradient></defs>`,
+    `<rect width="${SAMPLE_WIDTH}" height="${SAMPLE_HEIGHT}" fill="url(#w)"/>`,
+    `<rect x="40" y="40" width="240" height="320" fill="url(#g)"/>`,
+    `<rect x="320" y="40" width="240" height="320" fill="url(#g)"/>`,
+    `<rect x="600" y="40" width="260" height="320" fill="url(#g)"/>`,
+    `<rect x="0" y="400" width="${SAMPLE_WIDTH}" height="200" fill="#3a332c"/>`,
+    `<rect x="80" y="420" width="320" height="130" rx="10" fill="#1a1613"/>`,
+    `<rect x="480" y="430" width="330" height="120" rx="10" fill="#241f1a"/></svg>`,
+  ]
+  const svg = parts.join('')
+
+  // 运行时自检：不依赖「我搞懂了打包器为什么会丢片段」这个前提。
+  // 只要开始标签里混进了 `<`（上次事故的确切形态）或收尾不对，就在这里带着
+  // 可读信息炸掉，而不是把坏字节喂给 sharp 换一句 librsvg 的天书。
+  const openTag = svg.slice(0, svg.indexOf('>') + 1)
+  if (!openTag.startsWith('<svg ') || openTag.includes('<', 1) || !svg.endsWith('</svg>')) {
+    throw new Error(
+      `预览样张 SVG 在构建产物里被破坏（开始标签：${openTag.slice(0, 120)}）——` +
+        '这是打包器折叠字符串导致的，见本函数头注释',
+    )
+  }
+  return Buffer.from(svg)
 }
 
 export async function GET(request: Request): Promise<Response> {
