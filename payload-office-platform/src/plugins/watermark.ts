@@ -253,12 +253,23 @@ function pickBakeTarget(media: MediaDocShape): { filename: string; mimeType: str
  *
  * 没有新字节（只改 alt / usage 等）时什么都不碰：存储字节没变，记录的 version 与它仍一致。
  *
- * ## 第二条义务：`media-source/` 里永远是这张图最新的干净原件
+ * ## 第二条义务：`media-source/` 备份——保证范围止于「落地时可烘」，不是任何时候都最新
  *
- * 只要新字节属于「可烘的实景图」，就把它备份进 `media-source/`——**烘不烘、开关开没开都备份**。
- * 本 hook 是唯一知道手里字节是新上传、确知无水印的地方；重刷任务与回刷脚本只能从
- * `watermark.version` 反推，而中断过的烘焙会让那个推断出错（见 watermark-rebake.ts）。
- * 备份归口在这里之后，那两条路就能一律「有备份就用备份、绝不覆盖」。
+ * 只要新字节落地那一刻 `pickBakeTarget` 判它是「可烘的实景图」，就把它备份进
+ * `media-source/`——**烘不烘、开关开没开都备份**。本 hook 是唯一知道手里字节是新上传、
+ * 确知无水印的地方；重刷任务与回刷脚本只能从 `watermark.version` 反推，而中断过的烘焙
+ * 会让那个推断出错（见 watermark-rebake.ts）。备份归口在这里之后，那两条路就能一律
+ * 「有备份就用备份、绝不覆盖」。
+ *
+ * **已知窗口（刻意不堵，见下）：`media-source/` 可能落后于当前存储字节。** 若新字节落地时
+ * `usage !== 'listing-photo'`（或格式不可烘），`pickBakeTarget` 返回 null——本次**不写备份**，
+ * 且 `version`/`appliedAt` 被清掉。此后若这条记录被改回 `usage: 'listing-photo'`（纯元数据
+ * 变更、没有新字节，本 hook 直接 no-op），下一次重刷会看到「无 version」而走
+ * backup-and-bake，用的却是**这次替换之前**留在 `media-source/` 的旧备份——把刚上传的新图
+ * 静默盖回旧图。触发条件是「在 usage 非 listing-photo 期间换文件、再把 usage 改回
+ * listing-photo」，需要人为操作两步，不会自然发生。这是取舍不是待修 bug：备份范围收窄到
+ * 「可烘的实景图」正是为了不让品牌素材等非实景图走上 `media-source/` 的写路径；代价就是这条
+ * 窄窗口。别在这条注释之外假设它是无条件成立的。
  */
 export function createBakeAfterUpload(
   createWriter: () => MediaWriter = createMediaWriter,

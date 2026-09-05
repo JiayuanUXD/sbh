@@ -250,15 +250,18 @@ CI 三项、甚至本地浏览器走查全部照常通过（本地能看见字�
 不是因为水印逻辑本身验证了字体存在）。这个坑不会被任何自动化信号拦住，
 只会在生产环境的真实图片上现出方框或空白。
 
-**已定案（2026-09-05）：`fonts-wqy-zenhei`（文泉驿正黑，~15MB）**，
-不用 `fonts-noto-cjk`（~55–60MB）。水印文案只有「商办荟」等寥寥数字，
-不需要 Noto CJK 覆盖全字库的代价；`fonts-noto-cjk` 更适合需要生僻字/多语种
-兜底覆盖的场景，这里用不上。
+**已定案（2026-09-05）：`fonts-wqy-zenhei`（文泉驿正黑，实测安装后 23.0 MiB）**，
+不用 `fonts-noto-cjk`（实测安装后 88.9 MiB）。数字来自依赖闭包实测（`apt-get install`
+新增包体积，扣除 `node:22-slim` 已有的包），详见
+`artifacts/verification/OPT-069/container-cjk-font-verification.md` §4，
+**不是估算**。水印文案只有「商办荟」等寥寥数字，不需要 Noto CJK 覆盖全字库的
+代价；`fonts-noto-cjk` 更适合需要生僻字/多语种兜底覆盖的场景，这里用不上。
 
 **§7.4/§7.5/`DEPLOYMENT.md` 强调的镜像体积命门在这里不成立**——那条命门说的是
 `tcb cloudrun deploy` 上传的**源码 ZIP**（COS 桶里的部署包），`apt-get install`
 发生在云端构建镜像的阶段，根本不在这份 ZIP 里。真正变大的是**构建产物镜像**
-本身（多 ~15MB 的字体文件），这是两个不同的东西，此前的风险描述把二者混为一谈。
+本身（实测多 23.0 MiB，含字体本体与 `Depends: fontconfig` 拉进来的整条依赖链，
+详见上引验收文档 §4），这是两个不同的东西，此前的风险描述把二者混为一谈。
 
 落地方式：
 - Dockerfile **仅 runner 阶段**装 `fonts-wqy-zenhei`（`deps`/`builder` 阶段的
