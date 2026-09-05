@@ -90,12 +90,14 @@ export async function GET(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams
   const mode = params.get('mode') === 'badge' ? 'badge' : 'tiled'
 
-  // 整个函数体包在 try 里（含 getPayload 与 sharp 合成）。理由见
-  // `lib/runtime/admin-route-error.ts` 头注释：本端点在生产恒 500 过，而当时
-  // 「前端只显示权限提示」+「应用日志不进 CLS」两条观测通道同时断，异常成了黑盒。
+  // **鉴权段与渲染段分开 catch**，因为两段的调用方身份不同（见
+  // `lib/runtime/admin-route-error.ts` 的 `exposeDetail`）：这一段跑在权限判定之前，
+  // 抛错时调用方可能还是匿名的，`getPayload` / `payload.auth` 的异常里带着 DB 主机、
+  // 端口、缺哪些环境变量——一个 try 包到底就会把这些送给未经授权的请求。
   // 401/403 是 return 而不是 throw，不受影响。
+  let payload: Awaited<ReturnType<typeof getPayload>>
   try {
-    const payload = await getPayload({ config })
+    payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: request.headers })
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
@@ -107,7 +109,15 @@ export async function GET(request: Request): Promise<Response> {
     if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
+  } catch (error) {
+    return respondWithRouteError('watermark-preview', error, {
+      exposeDetail: false,
+      context: { mode, phase: 'authorize' },
+    })
+  }
 
+  // 到这里权限已确认，调用方持有 site_settings:manage，可以回真实原因了。
+  try {
     // 关键：查询参数必须过 `buildPreviewWatermarkConfig`（内部就是烘焙那套
     // `mergeWatermarkConfig`），**不能自己拼 config**。烘焙路径走的是它的夹取与回落规则；
     // 预览若自己拼一套，两边对「超范围值 / 空文案 / 缺字段」的处理就会分叉——
@@ -134,6 +144,9 @@ export async function GET(request: Request): Promise<Response> {
       headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' },
     })
   } catch (error) {
-    return respondWithRouteError('watermark-preview', error, { mode })
+    return respondWithRouteError('watermark-preview', error, {
+      exposeDetail: true,
+      context: { mode, phase: 'render' },
+    })
   }
 }

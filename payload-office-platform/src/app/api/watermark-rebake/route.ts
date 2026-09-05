@@ -18,11 +18,12 @@ import { respondWithRouteError } from '@/lib/runtime/admin-route-error'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request): Promise<Response> {
-  // 与预览端点同样包进 try（理由见 `lib/runtime/admin-route-error.ts` 头注释）。
-  // 这里比预览更要紧：投递失败时前端只会看到一个失败的请求，而「任务到底排上没有」
-  // 是运营唯一能据以判断要不要重试的信息。
+  // 鉴权段与业务段分开 catch，理由同预览端点：这一段跑在权限判定之前，
+  // 抛错时调用方可能还是匿名的，不能把原始异常消息送出去
+  // （见 `lib/runtime/admin-route-error.ts` 的 `exposeDetail`）。
+  let payload: Awaited<ReturnType<typeof getPayload>>
   try {
-    const payload = await getPayload({ config })
+    payload = await getPayload({ config })
     const { user } = await payload.auth({ headers: request.headers })
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
@@ -31,7 +32,14 @@ export async function POST(request: Request): Promise<Response> {
     if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
+  } catch (error) {
+    return respondWithRouteError('watermark-rebake', error, {
+      exposeDetail: false,
+      context: { phase: 'authorize' },
+    })
+  }
 
+  try {
     // 开关关着时 `rebakeWatermarkTask` 会立刻早退、什么都不处理（见该任务顶部注释）——
     // 排了也是白排，还会让任务把早退原因埋进服务日志，运营只看得到前端一句「已加入队列」。
     // 这里提前查一次同一份配置，不排队、如实告知，而不是谎报排队成功。
@@ -47,6 +55,11 @@ export async function POST(request: Request): Promise<Response> {
     })
     return NextResponse.json({ queued: true })
   } catch (error) {
-    return respondWithRouteError('watermark-rebake', error)
+    // 投递失败时前端只会看到一个失败的请求，而「任务到底排上没有」是运营唯一能据以
+    // 判断要不要重试的信息——这一段在权限确认之后，可以回真实原因。
+    return respondWithRouteError('watermark-rebake', error, {
+      exposeDetail: true,
+      context: { phase: 'queue' },
+    })
   }
 }

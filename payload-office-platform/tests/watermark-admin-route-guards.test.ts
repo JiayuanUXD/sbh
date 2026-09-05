@@ -185,3 +185,60 @@ describe('后台水印端点的异常出口', () => {
     consoleError.mockRestore()
   })
 })
+
+/**
+ * PR #153 code review（P1）：初版把整个处理函数包进一个 try，于是 `getPayload` /
+ * `payload.auth` / `getPermissionContext` 抛错时，原始异常消息会回给一个**尚未通过
+ * 权限校验、甚至可能是匿名**的调用方——DB 连接失败带主机与端口，config-guard 的
+ * 报错逐条列出环境变量名。
+ *
+ * 这里钉住修复后的分界：鉴权链路上的异常只回通用错误，现场全部留在服务端日志里；
+ * 只有确认调用方持有 `site_settings:manage` 之后才回 name/message。
+ */
+describe('鉴权通过之前的异常不得泄露细节', () => {
+  it('预览端点：会话校验抛错时 500 不带 message，但日志留全量现场', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockRejectedValue(new Error('connect ECONNREFUSED sh-postgres-xxxx.tencentcdb.com:26710'))
+
+    const request = new Request('http://localhost/api/watermark-preview?mode=tiled')
+    const response = await watermarkPreviewGet(request)
+    const body = (await response.json()) as Record<string, unknown>
+
+    expect(response.status).toBe(500)
+    expect(body).toEqual({ error: 'internal_error' })
+    expect(body).not.toHaveProperty('message')
+    expect(body).not.toHaveProperty('name')
+    // 日志不受影响：无论鉴权到哪一步，服务端都要能查到真实原因。
+    const logged = JSON.stringify(consoleError.mock.calls)
+    expect(logged).toContain('ECONNREFUSED')
+    expect(logged).toContain('sh-postgres')
+    consoleError.mockRestore()
+  })
+
+  it('重刷端点：会话校验抛错时 500 不带 message，且不投递任务', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockRejectedValue(new Error('DATABASE_URL 未配置'))
+
+    const request = new Request('http://localhost/api/watermark-rebake', { method: 'POST' })
+    const response = await watermarkRebakePost(request)
+    const body = (await response.json()) as Record<string, unknown>
+
+    expect(response.status).toBe(500)
+    expect(body).toEqual({ error: 'internal_error' })
+    expect(jobsQueueMock).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('权限不足的用户拿不到细节——403 先于任何异常出口', async () => {
+    authMock.mockResolvedValue({ user: NO_PERMISSION_USER })
+    findGlobalMock.mockRejectedValue(new Error('不该被读到的内部错误'))
+
+    const response = await watermarkPreviewGet(
+      new Request('http://localhost/api/watermark-preview?mode=tiled'),
+    )
+    const body = (await response.json()) as Record<string, unknown>
+
+    expect(response.status).toBe(403)
+    expect(JSON.stringify(body)).not.toContain('不该被读到')
+  })
+})
