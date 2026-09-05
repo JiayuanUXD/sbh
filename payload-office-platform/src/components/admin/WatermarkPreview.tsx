@@ -53,7 +53,6 @@ function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Ele
 
   React.useEffect(() => {
     let cancelled = false
-    let objectUrl: string | null = null
 
     void (async () => {
       try {
@@ -63,11 +62,19 @@ function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Ele
           if (!cancelled) setState({ status: 'error', message })
           return
         }
+        // 读成 data: URL 而不是 `URL.createObjectURL`。objectURL 需要有人负责 revoke，
+        // 而 `src` 是从表单实时值拼出来的、挂载后会变一次，effect 清理函数就会把**当前
+        // 正在显示的那个 blob** 撤掉，`<img>` 留着一个死 URL、naturalWidth 恒为 0
+        // （实测：生产构建下三条 E2E 里这条稳定失败，dev 下因时序不同反而看不出来）。
+        // 样张只有几十 KB，data: URL 没有生命周期、重挂载也不会失效，整类问题直接消失。
         const blob = await response.blob()
-        // 组件已卸载 / src 已变时不再建 objectURL，否则这一个永远没人 revoke。
-        if (cancelled) return
-        objectUrl = URL.createObjectURL(blob)
-        setState({ status: 'ok', url: objectUrl })
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(reader.error ?? new Error('读取预览图失败'))
+          reader.readAsDataURL(blob)
+        })
+        if (!cancelled) setState({ status: 'ok', url: dataUrl })
       } catch {
         // fetch 本身抛错 = 请求没送达（断网、被拦截），与「服务端返回了错误」不是一回事。
         if (!cancelled) setState({ status: 'error', message: '预览请求未能送达服务端（网络中断或被拦截）。' })
@@ -76,7 +83,6 @@ function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Ele
 
     return () => {
       cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [src])
 
@@ -88,7 +94,7 @@ function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Ele
   if (state.status === 'error') {
     return <p style={{ ...boxStyle, fontSize: 13, color: 'var(--theme-error-500, #a33)' }}>{state.message}</p>
   }
-  // eslint-disable-next-line @next/next/no-img-element -- blob: URL 无法过 next/image 优化
+  // eslint-disable-next-line @next/next/no-img-element -- data: URL 无法过 next/image 优化
   return <img src={state.url} alt={alt} style={boxStyle} />
 }
 

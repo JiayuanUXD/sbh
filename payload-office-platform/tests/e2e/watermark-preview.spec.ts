@@ -37,9 +37,9 @@ test.describe('站点设置 → 图片水印 预览', () => {
     for (const alt of ['详情大图满铺水印预览', '卡片角标水印预览']) {
       const img = page.getByAltText(alt)
       await expect(img).toBeVisible()
-      // 组件走 fetch → blob → objectURL，src 必然是 blob:；
+      // 组件走 fetch → data: URL（不用 objectURL，见组件内注释）；
       // 同时断言图片真的解码出了非零尺寸——`<img>` 存在不等于图出来了。
-      await expect(img).toHaveAttribute('src', /^blob:/)
+      await expect(img).toHaveAttribute('src', /^data:image\/jpeg;base64,/)
       await expect
         .poll(async () => img.evaluate((el: HTMLImageElement) => el.naturalWidth))
         .toBeGreaterThan(0)
