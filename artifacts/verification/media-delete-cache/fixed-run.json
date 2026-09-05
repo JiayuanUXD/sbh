@@ -1,0 +1,14 @@
+{
+  "variant": "fixed（rebase 到 #151 之后重跑：Media.hooks.beforeDelete = [collectMediaCacheTagsBeforeDelete, unmountMediaReferences]）",
+  "server": "next build --webpack + CI=1 next start -p 3719 (NODE_ENV=production)",
+  "baseUrl": "http://localhost:3719",
+  "cityPath": "/shanghai",
+  "mediaId": 94,
+  "profileId": 1,
+  "filename": "walkthrough-1788594328506.jpg",
+  "renderedBeforeDelete": true,
+  "cacheHeldDuringOutOfBandChange": true,
+  "deleteStatus": 200,
+  "stillRenderedAfterDelete": false,
+  "capturedAt": "2026-09-05T07:46:44.510Z"
+}
