@@ -186,22 +186,37 @@ const captureCleanMaster: CollectionBeforeOperationHook = async ({ args, operati
 type WatermarkState = { version: string; appliedAt: string } | { version: null; appliedAt: null }
 
 /**
- * 写 / 清 `media.watermark`。设 skip 标记防递归——写法同云存储插件的 skipCloudStorage
- * （plugin-cloud-storage/dist/hooks/afterChange.js）。写与清必须走同一个出口，
+ * `req.context` 的读写**必须每次重新解引用，不能缓存成局部变量**。
+ *
+ * Payload 的 Local API 每次嵌套调用都会把 `req.context` 换成**新对象**：
+ * `utilities/createLocalReq.js:86` 的 `req.context = getRequestContext(req, context)`，
+ * 而 `getRequestContext`（同文件 4-20 行）三个分支分别返回 `context`、
+ * `{...req.context, ...context}`、`context`——没有一个复用原引用；且 `createLocalReq`
+ * 解构出 `req` 后是**在调用方传进来的那个 req 上原地赋值**。
+ *
+ * 云存储插件之所以没踩这个坑，正是因为它从不缓存：
+ * `plugin-cloud-storage/dist/hooks/afterChange.js` 每次都写
+ * `req.context.skipCloudStorage = true` / `delete req.context.skipCloudStorage`。
+ */
+function requestContext(req: PayloadRequest): Record<string, unknown> {
+  if (!req.context) req.context = {}
+  return req.context as unknown as Record<string, unknown>
+}
+
+/**
+ * 写 / 清 `media.watermark`。设 skip 标记防递归。写与清必须走同一个出口，
  * 免得哪一边忘了设标记、递归进 bakeAfterUpload。
  */
 async function writeWatermarkState({
   req,
-  context,
   id,
   state,
 }: {
   req: PayloadRequest
-  context: Record<string, unknown>
   id: MediaDocShape['id']
   state: WatermarkState
 }): Promise<void> {
-  context[WATERMARK_SKIP_KEY] = true
+  requestContext(req)[WATERMARK_SKIP_KEY] = true
   try {
     await req.payload.update({
       collection: 'media',
@@ -212,7 +227,10 @@ async function writeWatermarkState({
       req,
     })
   } finally {
-    delete context[WATERMARK_SKIP_KEY]
+    // 重新解引用：上面那次 update 已经把 req.context 换成新对象了，
+    // 删缓存下来的旧对象等于没删，守卫会永久置位——之后同一个 req 里的
+    // 媒体一张都不会被烘，而且不报错。
+    delete requestContext(req)[WATERMARK_SKIP_KEY]
   }
 }
 
@@ -245,87 +263,105 @@ function pickBakeTarget(media: MediaDocShape): { filename: string; mimeType: str
  *
  * 没有新字节（只改 alt / usage 等）时什么都不碰：存储字节没变，记录的 version 与它仍一致。
  */
-export const bakeAfterUpload: CollectionAfterChangeHook = async ({ doc, req }) => {
-  const context = (req.context ?? {}) as Record<string, unknown>
-  if (context[WATERMARK_SKIP_KEY]) return doc
+export function createBakeAfterUpload(
+  createWriter: () => MediaWriter = createMediaWriter,
+): CollectionAfterChangeHook {
+  return async ({ doc, req }) => {
+    if (requestContext(req)[WATERMARK_SKIP_KEY]) return doc
 
-  const cleanMaster = context[WATERMARK_CONTEXT_KEY]
-  // 没有新字节 = 本次不是文件上传（改 alt、改 usage 等）。存储字节没变，不烘也不清。
-  if (!Buffer.isBuffer(cleanMaster)) return doc
+    const cleanMaster = requestContext(req)[WATERMARK_CONTEXT_KEY]
+    // 没有新字节 = 本次不是文件上传（改 alt、改 usage 等）。存储字节没变，不烘也不清。
+    if (!Buffer.isBuffer(cleanMaster)) return doc
 
-  const media = doc as unknown as MediaDocShape
-  const clearIfStale = async (): Promise<void> => {
-    // 新字节落地了但没烘。本来就没有 version 时无事可清，不多写一次库
-    // （品牌素材每次上传都走到这里）。
-    if (!media.watermark?.version && !media.watermark?.appliedAt) return
-    await writeWatermarkState({ req, context, id: media.id, state: { version: null, appliedAt: null } })
+    try {
+      const media = doc as unknown as MediaDocShape
+      const clearIfStale = async (): Promise<void> => {
+        // 新字节落地了但没烘。本来就没有 version 时无事可清，不多写一次库
+        // （品牌素材每次上传都走到这里）。
+        if (!media.watermark?.version && !media.watermark?.appliedAt) return
+        await writeWatermarkState({ req, id: media.id, state: { version: null, appliedAt: null } })
+      }
+
+      const target = pickBakeTarget(media)
+      if (!target) {
+        await clearIfStale()
+        return doc
+      }
+
+      const config = await resolveConfig(req.payload)
+      if (!config.enabled) {
+        await clearIfStale()
+        return doc
+      }
+
+      const writer = createWriter()
+
+      // 顺序铁律：先备份、再烘焙。备份失败必须中止，否则干净原件永久丢失。
+      // 这里刻意不 try/catch —— Payload 的 killTransaction 会回滚整个 req 事务，
+      // 吞掉异常等于「返回成功但没落库」。（下面那个 try 只带 finally、不带 catch，
+      // 异常照常冒泡。）
+      // 备份是**覆盖写**：这是这张图当前的干净原件；media-source/ 里的旧副本（若有）属于
+      // 上一次上传的字节，留着只会让重刷把图换回旧版。
+      await writer.put({
+        prefix: MEDIA_SOURCE_PREFIX,
+        filename: target.filename,
+        body: cleanMaster,
+        mimeType: target.mimeType,
+      })
+
+      const baked = await bakeWatermark({
+        cleanMaster,
+        masterFilename: target.filename,
+        masterMimeType: target.mimeType,
+        sizes: collectSizes(media),
+        config,
+      })
+
+      await writer.put({
+        prefix: MEDIA_COS_PREFIX,
+        filename: baked.master.filename,
+        body: baked.master.body,
+        mimeType: baked.master.mimeType,
+      })
+      for (const derivative of baked.derivatives) {
+        await writer.put({
+          prefix: MEDIA_COS_PREFIX,
+          filename: derivative.filename,
+          body: derivative.body,
+          mimeType: derivative.mimeType,
+        })
+      }
+
+      // 记录烘焙状态：从这一刻起存储里的字节带着这个版本的水印。
+      await writeWatermarkState({
+        req,
+        id: media.id,
+        state: { version: computeWatermarkVersion(config), appliedAt: new Date().toISOString() },
+      })
+
+      return doc
+    } finally {
+      // 这份干净母版只属于本条 media。同一个 req 若再处理第二条（Task 7 的批量重刷
+      // 就是一个 req 跑几十行），留着会让第二条拿第一条的字节去烘，静默串图。
+      // 必须清在所有嵌套 update **之后**：那些调用会重跑 beforeOperation。
+      delete requestContext(req)[WATERMARK_CONTEXT_KEY]
+    }
   }
-
-  const target = pickBakeTarget(media)
-  if (!target) {
-    await clearIfStale()
-    return doc
-  }
-
-  const config = await resolveConfig(req.payload)
-  if (!config.enabled) {
-    await clearIfStale()
-    return doc
-  }
-
-  const writer: MediaWriter = createMediaWriter()
-
-  // 顺序铁律：先备份、再烘焙。备份失败必须中止，否则干净原件永久丢失。
-  // 这里刻意不 try/catch —— Payload 的 killTransaction 会回滚整个 req 事务，
-  // 吞掉异常等于「返回成功但没落库」。
-  // 备份是**覆盖写**：这是这张图当前的干净原件；media-source/ 里的旧副本（若有）属于
-  // 上一次上传的字节，留着只会让重刷把图换回旧版。
-  await writer.put({
-    prefix: MEDIA_SOURCE_PREFIX,
-    filename: target.filename,
-    body: cleanMaster,
-    mimeType: target.mimeType,
-  })
-
-  const baked = await bakeWatermark({
-    cleanMaster,
-    masterFilename: target.filename,
-    masterMimeType: target.mimeType,
-    sizes: collectSizes(media),
-    config,
-  })
-
-  await writer.put({
-    prefix: MEDIA_COS_PREFIX,
-    filename: baked.master.filename,
-    body: baked.master.body,
-    mimeType: baked.master.mimeType,
-  })
-  for (const derivative of baked.derivatives) {
-    await writer.put({
-      prefix: MEDIA_COS_PREFIX,
-      filename: derivative.filename,
-      body: derivative.body,
-      mimeType: derivative.mimeType,
-    })
-  }
-
-  // 记录烘焙状态：从这一刻起存储里的字节带着这个版本的水印。
-  await writeWatermarkState({
-    req,
-    context,
-    id: media.id,
-    state: { version: computeWatermarkVersion(config), appliedAt: new Date().toISOString() },
-  })
-
-  return doc
 }
+
+/** 默认实例（走真实存储）。集合 hook 与既有测试都用它。 */
+export const bakeAfterUpload: CollectionAfterChangeHook = createBakeAfterUpload()
 
 /**
  * 必须放在 `s3Storage(...)` **之后**——插件按数组顺序追加 hook，
  * 排在前面会让本插件的 afterChange 跑在文件落地之前，覆盖写打空。
+ *
+ * `createWriter` 只为测试注入假写入器而存在（备份/覆盖写那段否则没有任何自动化证据，
+ * 而「备份先于覆盖」是本功能可逆性的唯一保障）。生产不传，走真实 `createMediaWriter`。
  */
-export function watermarkPlugin(): Plugin {
+export function watermarkPlugin(options: { createWriter?: () => MediaWriter } = {}): Plugin {
+  // 不传注入时复用默认实例，保持 hook 的函数身份稳定（挂载用例按引用断言）。
+  const hook = options.createWriter ? createBakeAfterUpload(options.createWriter) : bakeAfterUpload
   return (config) => ({
     ...config,
     collections: (config.collections ?? []).map((collection) => {
@@ -335,7 +371,7 @@ export function watermarkPlugin(): Plugin {
         hooks: {
           ...(collection.hooks ?? {}),
           beforeOperation: [...(collection.hooks?.beforeOperation ?? []), captureCleanMaster],
-          afterChange: [...(collection.hooks?.afterChange ?? []), bakeAfterUpload],
+          afterChange: [...(collection.hooks?.afterChange ?? []), hook],
         },
       }
     }),

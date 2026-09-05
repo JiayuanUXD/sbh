@@ -4,12 +4,19 @@ import path from 'path'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
+import {
+  computeWatermarkVersion,
+  DEFAULT_WATERMARK_CONFIG,
+  mergeWatermarkConfig,
+} from '@/domain/media/watermark'
+import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
+import { MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-writer'
 import {
   bakeAfterUpload,
   bakeWatermark,
   watermarkPlugin,
   WATERMARK_CONTEXT_KEY,
+  WATERMARK_SKIP_KEY,
 } from '@/plugins/watermark'
 
 async function makeBase(width: number, height: number): Promise<Buffer> {
@@ -226,6 +233,179 @@ describe('bakeAfterUpload 维持 watermark.version 不变量', () => {
 
   it('本来就没有 version → 无事可清，不多写一次库', async () => {
     const updates = await run({ doc: { ...photo, usage: 'brand', watermark: null }, freshBytes: true, enabled: true })
+    expect(updates).toEqual([])
+  })
+})
+
+/**
+ * Payload 的 Local API **每次**嵌套调用都会把 `req.context` 换成新对象
+ * （`utilities/createLocalReq.js:86` 调 `getRequestContext`，第 4-20 行三个分支
+ * 全部返回新对象，从不复用同一个引用），并且是在**调用方传进去的那个 req 上原地改**
+ * （`createLocalReq` 解构 `req = {}` 后直接赋值）。
+ *
+ * 所以任何缓存了 `req.context` 引用的收尾逻辑都会删错对象。守卫一旦残留，
+ * 同一个 req 里后续的媒体全部静默跳过烘焙——Task 7 的批量重刷正是这种
+ * 一个 req 跑几十行的场景。
+ */
+describe('bakeAfterUpload 的递归守卫必须解引用 live 的 req.context', () => {
+  const photo = {
+    id: 7,
+    filename: 'office.jpg',
+    mimeType: 'image/jpeg',
+    usage: 'listing-photo',
+    watermark: { version: 'stale0000stale00', appliedAt: '2026-09-01T00:00:00.000Z' },
+  }
+
+  /** 复刻 Payload：嵌套 update 后 req.context 变成一个新对象（内容延续）。 */
+  function makeReq(enabled: boolean) {
+    const req: Record<string, unknown> = {
+      context: { [WATERMARK_CONTEXT_KEY]: Buffer.from('fresh') } as Record<string, unknown>,
+      payload: {
+        findGlobal: async () => ({ watermark: { enabled }, siteName: '商办荟' }),
+        update: async () => {
+          req.context = { ...(req.context as Record<string, unknown>) }
+          return {}
+        },
+      },
+    }
+    return req
+  }
+
+  const ctx = (req: Record<string, unknown>) => req.context as Record<string, unknown>
+
+  it('嵌套 update 换掉 req.context 之后，守卫不残留', async () => {
+    const req = makeReq(false)
+    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    expect(ctx(req)[WATERMARK_SKIP_KEY]).toBeUndefined()
+  })
+
+  it('守卫残留会让同一个 req 的下一条媒体被静默跳过——这里断言它不会', async () => {
+    const req = makeReq(false)
+    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    // 第二条媒体：重新放入干净母版，它必须仍然被处理（陈旧 version 被清）。
+    ctx(req)[WATERMARK_CONTEXT_KEY] = Buffer.from('fresh-2')
+    let secondUpdated = false
+    ;(req.payload as Record<string, unknown>).update = async () => {
+      secondUpdated = true
+      req.context = { ...ctx(req) }
+      return {}
+    }
+    await bakeAfterUpload({ doc: { ...photo, id: 8 }, req, operation: 'update' } as never)
+    expect(secondUpdated).toBe(true)
+  })
+
+  it('消费后清掉干净母版——同一个 req 的第二条媒体不能拿第一条的字节去烘', async () => {
+    const req = makeReq(false)
+    await bakeAfterUpload({ doc: photo, req, operation: 'update' } as never)
+    expect(ctx(req)[WATERMARK_CONTEXT_KEY]).toBeUndefined()
+  })
+})
+
+/**
+ * 烘焙成功路径。写入器可注入，否则这一段（备份 → 覆盖写 → 写 version）没有任何
+ * 自动化证据：有人调换 put 顺序、删掉备份、或改坏 resolveConfig 的接线，全量测试照样绿。
+ * 而「备份先于覆盖」是这个功能可逆性的唯一保障。
+ */
+describe('bakeAfterUpload 烘焙成功路径（注入假写入器）', () => {
+  type Put = { prefix: string; filename: string; mimeType: string; size: number }
+
+  function makeWriter(failOnPrefix?: string) {
+    const puts: Put[] = []
+    const writer: MediaWriter = {
+      put: async ({ prefix, filename, body, mimeType }) => {
+        if (prefix === failOnPrefix) throw new Error('[test] 写入失败')
+        puts.push({ prefix, filename, mimeType, size: body.length })
+      },
+      get: async () => null,
+    }
+    return { puts, writer }
+  }
+
+  const doc = {
+    id: 42,
+    filename: 'office.jpg',
+    mimeType: 'image/jpeg',
+    usage: 'listing-photo',
+    watermark: null,
+    sizes: {
+      thumb: { filename: 'office-320x213.webp', width: 320, height: 213 },
+      card: { filename: 'office-768x512.webp', width: 768, height: 512 },
+      hero: { filename: 'office-1600x1067.webp', width: 1600, height: 1067 },
+    },
+  }
+
+  function hookWith(writer: MediaWriter) {
+    const applied = watermarkPlugin({ createWriter: () => writer })({
+      collections: [{ slug: 'media' }],
+    } as never) as unknown as {
+      collections: Array<{ slug: string; hooks: { afterChange: Array<(a: unknown) => Promise<unknown>> } }>
+    }
+    return applied.collections[0].hooks.afterChange.at(-1)!
+  }
+
+  async function makeReq(cleanMaster: Buffer, updates: Array<Record<string, unknown>>) {
+    const req: Record<string, unknown> = {
+      context: { [WATERMARK_CONTEXT_KEY]: cleanMaster } as Record<string, unknown>,
+      payload: {
+        findGlobal: async () => ({ watermark: { enabled: true }, siteName: '商办荟' }),
+        update: async (update: Record<string, unknown>) => {
+          updates.push(update)
+          req.context = { ...(req.context as Record<string, unknown>) }
+          return {}
+        },
+      },
+    }
+    return req
+  }
+
+  async function run(writer: MediaWriter) {
+    const updates: Array<Record<string, unknown>> = []
+    const cleanMaster = await makeBase(2400, 1600)
+    const req = await makeReq(cleanMaster, updates)
+    await hookWith(writer)({ doc, req, operation: 'create' })
+    return { updates, cleanMaster }
+  }
+
+  it('备份写在任何覆盖写之前——顺序反了就丢掉干净原件', async () => {
+    const { puts, writer } = makeWriter()
+    await run(writer)
+    expect(puts[0]).toMatchObject({ prefix: MEDIA_SOURCE_PREFIX, filename: 'office.jpg' })
+    const firstCos = puts.findIndex((put) => put.prefix === MEDIA_COS_PREFIX)
+    const lastBackup = puts.map((put) => put.prefix).lastIndexOf(MEDIA_SOURCE_PREFIX)
+    expect(lastBackup).toBeLessThan(firstCos)
+  })
+
+  it('备份的是干净原件本身，不是烘过的字节', async () => {
+    const { puts, writer } = makeWriter()
+    const { cleanMaster } = await run(writer)
+    expect(puts[0].size).toBe(cleanMaster.length)
+  })
+
+  it('覆盖写母版与 card / hero，thumb 的 key 从不被写', async () => {
+    const { puts, writer } = makeWriter()
+    await run(writer)
+    const cosKeys = puts.filter((put) => put.prefix === MEDIA_COS_PREFIX).map((put) => put.filename)
+    expect(cosKeys).toEqual(['office.jpg', 'office-768x512.webp', 'office-1600x1067.webp'])
+    expect(puts.map((put) => put.filename)).not.toContain('office-320x213.webp')
+  })
+
+  it('写回的 watermark.version 等于当前配置的哈希', async () => {
+    const { writer } = makeWriter()
+    const { updates } = await run(writer)
+    const expected = computeWatermarkVersion(mergeWatermarkConfig({ enabled: true }, '商办荟'))
+    expect(updates).toHaveLength(1)
+    const data = updates[0].data as { watermark: { version: string; appliedAt: string } }
+    expect(data.watermark.version).toBe(expected)
+    expect(typeof data.watermark.appliedAt).toBe('string')
+  })
+
+  it('备份失败时中止：一个 media/ 的 key 都不许被写，version 也不写', async () => {
+    const { puts, writer } = makeWriter(MEDIA_SOURCE_PREFIX)
+    const updates: Array<Record<string, unknown>> = []
+    const req = await makeReq(await makeBase(1200, 800), updates)
+    // 不吞错：Payload 的 killTransaction 要靠异常冒泡才会回滚整个 req 事务。
+    await expect(hookWith(writer)({ doc, req, operation: 'create' })).rejects.toThrow('[test] 写入失败')
+    expect(puts.filter((put) => put.prefix === MEDIA_COS_PREFIX)).toEqual([])
     expect(updates).toEqual([])
   })
 })
