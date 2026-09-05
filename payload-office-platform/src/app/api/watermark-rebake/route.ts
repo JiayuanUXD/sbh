@@ -10,7 +10,7 @@ import { getPayload } from 'payload'
 
 import config from '@/payload.config'
 import { MEDIA_WATERMARK_QUEUE, MEDIA_WATERMARK_TASK } from '@/domain/media/watermark-rebake'
-import { getPermissionContext } from '@/domain/auth/access'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<Response> {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
   // 与「站点设置」同权限：能改水印参数的人才能触发重刷。
-  const ctx = await getPermissionContext({ user, payload } as never)
+  const ctx = await getPermissionContext({ user, payload } as RequestContext)
   if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }

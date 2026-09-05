@@ -14,6 +14,27 @@ function useValue(path: string): unknown {
   return useFormFields(([fields]) => fields?.[path]?.value)
 }
 
+/** 收紧预览端点权限后（code review 第 1 轮 Important），无权限/会话过期会拿到 403——
+ * 不加处理浏览器只会显示一个破图图标，运营看不出发生了什么。加载失败就换成一句
+ * 中文提示，不做更细的错误分类（404 与 403 都按「预览不可用」处理即可）。 */
+function ImageOrFallback({
+  src,
+  alt,
+}: {
+  src: string
+  alt: string
+}): React.JSX.Element {
+  const [failed, setFailed] = React.useState(false)
+  if (failed) {
+    return (
+      <p style={{ width: 420, maxWidth: '100%', fontSize: 13, opacity: 0.7 }}>
+        预览需要「站点设置」管理权限
+      </p>
+    )
+  }
+  return <img src={src} alt={alt} style={{ width: 420, maxWidth: '100%' }} onError={() => setFailed(true)} />
+}
+
 export default function WatermarkPreview(): React.JSX.Element {
   const tiledText = useValue('watermark.tiled.text')
   const tiledDensity = useValue('watermark.tiled.density')
@@ -46,11 +67,11 @@ export default function WatermarkPreview(): React.JSX.Element {
       </p>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <figure style={{ margin: 0 }}>
-          <img src={tiledUrl} alt="详情大图满铺水印预览" style={{ width: 420, maxWidth: '100%' }} />
+          <ImageOrFallback src={tiledUrl} alt="详情大图满铺水印预览" />
           <figcaption style={{ fontSize: 12, opacity: 0.7 }}>详情大图（满铺）</figcaption>
         </figure>
         <figure style={{ margin: 0 }}>
-          <img src={badgeUrl} alt="卡片角标水印预览" style={{ width: 420, maxWidth: '100%' }} />
+          <ImageOrFallback src={badgeUrl} alt="卡片角标水印预览" />
           <figcaption style={{ fontSize: 12, opacity: 0.7 }}>卡片缩略图（角标）</figcaption>
         </figure>
       </div>

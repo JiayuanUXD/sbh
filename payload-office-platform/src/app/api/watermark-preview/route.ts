@@ -19,6 +19,8 @@ import {
   DEFAULT_WATERMARK_CONFIG,
   mergeWatermarkConfig,
 } from '@/domain/media/watermark'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import { hasOperationPermission } from '@/domain/auth/permission-context'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,10 +45,18 @@ function sampleSvg(): Buffer {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  // 与「站点设置」同权限：能改配置的人才能看预览。
   const payload = await getPayload({ config })
   const { user } = await payload.auth({ headers: request.headers })
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  // 与「站点设置」同权限：能改配置的人才能看预览，与 watermark-rebake/route.ts 一致。
+  // code review 第 1 轮 Important：本端点此前只查了登录态，注释却写着「与站点设置
+  // 同权限」——注释承诺了代码没做到的事。收紧到与重刷端点相同的 site_settings:manage：
+  // 本端点只服务那一个 tab，且每次调用都跑一次 sharp 合成，收紧顺带减少算力滥用面。
+  const ctx = await getPermissionContext({ user, payload } as RequestContext)
+  if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
 
   const params = new URL(request.url).searchParams
   const mode = params.get('mode') === 'badge' ? 'badge' : 'tiled'
