@@ -6,8 +6,10 @@ import {
   decideRebakeAction,
   MEDIA_WATERMARK_CHUNK,
   MEDIA_WATERMARK_QUEUE,
+  MEDIA_WATERMARK_TASK,
   rebakeChunk,
   type RebakeCandidate,
+  rebakeWatermarkTask,
   selectRebakeTargets,
 } from '@/domain/media/watermark-rebake'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
@@ -275,6 +277,160 @@ describe('rebakeChunk 的存储编排', () => {
 
     expect(result).toEqual({ processed: 1, skipped: 0, failed: 1, unrecoverable: 0 })
     expect(h.writes()).toContainEqual({ op: 'update', id: 2, body: 'clean-b' })
+  })
+})
+
+/**
+ * 游标语义：**判定过的都推进过，处理过的都不再回头。**
+ *
+ * 游标取「本轮实际做出判定的最后一行的 id」，不是「本页扫到的最后一行的 id」。
+ * 后者会在「本页候选数 > 分块上限」时把第 CHUNK+1 个及其之后的候选连同游标一起跨过去，
+ * 一趟链条走完全表却只处理了其中一部分，运营得反复点好几次。
+ *
+ * 反过来取「最后一个**成功**处理的 id」则会在 unrecoverable（永远写不上 version）
+ * 这类图上原地打转。取「最后一个判定过的 id」两头都避开：判定与结果无关，
+ * 所以失败/跳过的行同样被跨过，游标严格递增，链条必然终止。
+ */
+describe('rebakeWatermarkTask 的游标推进', () => {
+  type QueuedJob = { task: string; queue: string; input: { startAfterId: number } }
+
+  function taskHarness({ docs, hasNextPage }: { docs: RebakeCandidate[]; hasNextPage: boolean }) {
+    const findByIdCalls: number[] = []
+    const queued: QueuedJob[] = []
+    const byId = new Map(docs.map((doc) => [doc.id, doc]))
+
+    const payload = {
+      // 站点设置留空 → mergeWatermarkConfig 回落缺省，currentVersion 是个确定的哈希。
+      // 本组用例的候选全是 watermark: null，与具体哈希无关。
+      findGlobal: async () => ({}),
+      find: async () => ({ docs, hasNextPage }),
+      findByID: async ({ id }: { id: number }) => {
+        findByIdCalls.push(id)
+        return byId.get(id)
+      },
+      update: async () => {
+        throw new Error('本组用例不该走到 update')
+      },
+      jobs: {
+        queue: async (args: QueuedJob) => {
+          queued.push(args)
+        },
+      },
+      logger: { error: () => {} },
+    } as unknown as Payload
+
+    return { payload, findByIdCalls, queued }
+  }
+
+  /**
+   * 刻意不给 filename。`selectRebakeTargets` 只看 usage / mimeType / watermark 就会选中它，
+   * 而 `rebakeChunk` 拿到无 filename 的记录会在碰存储之前 `skipped++` 走掉——于是本组用例
+   * 一次存储都不碰（既不读本地磁盘也不连 COS），锁的纯粹是游标算术。
+   *
+   * 附带好处：这些行「判定了但没成功重刷」，游标照样跨过它们，正是不会死循环的那条性质。
+   */
+  const candidate = (id: number): RebakeCandidate => ({
+    id,
+    usage: 'listing-photo',
+    mimeType: 'image/jpeg',
+    watermark: null,
+  })
+  const nonCandidate = (id: number): RebakeCandidate => ({
+    id,
+    usage: 'brand',
+    mimeType: 'image/jpeg',
+    watermark: null,
+  })
+
+  async function run(payload: Payload, startAfterId?: number) {
+    const { handler } = rebakeWatermarkTask
+    if (typeof handler !== 'function') throw new Error('handler 必须是函数')
+    const result = (await handler({ input: { startAfterId }, req: { payload } } as never)) as {
+      output: { lastScannedId: number; hasNextPage: boolean; skipped: number; processed: number }
+    }
+    return result.output
+  }
+
+  it('候选数超过分块上限 → 游标停在第 CHUNK 个候选上，而不是页尾；第 CHUNK+1 个候选本轮不碰', async () => {
+    // 一页 30 条全是候选，分块上限 20。页尾 id 是 129。
+    const docs = Array.from({ length: 30 }, (_, index) => candidate(100 + index))
+    const harness = taskHarness({ docs, hasNextPage: false })
+
+    const output = await run(harness.payload)
+
+    // 第 20 个候选是 119；取页尾 129 就会把 120–129 这 10 个候选连同游标一起跨过去
+    expect(output.lastScannedId).toBe(119)
+    expect(harness.findByIdCalls).toHaveLength(MEDIA_WATERMARK_CHUNK)
+    expect(harness.findByIdCalls.at(-1)).toBe(119)
+    expect(harness.findByIdCalls).not.toContain(120)
+  })
+
+  it('本页被截断时即使 hasNextPage=false 也必须续投——否则整张表最后一页的余量永久没人处理', async () => {
+    const docs = Array.from({ length: 30 }, (_, index) => candidate(100 + index))
+    const harness = taskHarness({ docs, hasNextPage: false })
+
+    const output = await run(harness.payload)
+
+    expect(output.hasNextPage).toBe(true)
+    expect(harness.queued).toEqual([
+      { task: MEDIA_WATERMARK_TASK, queue: MEDIA_WATERMARK_QUEUE, input: { startAfterId: 119 } },
+    ])
+  })
+
+  it('候选数没超上限 → 游标推进到页尾，页尾那些非候选行下一轮不用再看', async () => {
+    // 5 个候选夹在 10 行里，页尾 209 是非候选：候选没被截断，整页都判定过了。
+    const docs = [
+      candidate(200),
+      nonCandidate(201),
+      candidate(202),
+      nonCandidate(203),
+      candidate(204),
+      candidate(205),
+      nonCandidate(206),
+      candidate(207),
+      nonCandidate(208),
+      nonCandidate(209),
+    ]
+    const harness = taskHarness({ docs, hasNextPage: true })
+
+    const output = await run(harness.payload)
+
+    expect(output.lastScannedId).toBe(209)
+    expect(harness.findByIdCalls).toEqual([200, 202, 204, 205, 207])
+    expect(harness.queued).toEqual([
+      { task: MEDIA_WATERMARK_TASK, queue: MEDIA_WATERMARK_QUEUE, input: { startAfterId: 209 } },
+    ])
+  })
+
+  it('扫到空页 → 游标不动、不续投，链条终止', async () => {
+    const harness = taskHarness({ docs: [], hasNextPage: false })
+
+    const output = await run(harness.payload, 999)
+
+    expect(output.lastScannedId).toBe(999)
+    expect(output.hasNextPage).toBe(false)
+    expect(harness.queued).toEqual([])
+  })
+
+  it('游标严格递增：连着两轮，第二轮从第一轮的游标之后接着走', async () => {
+    const first = taskHarness({
+      docs: Array.from({ length: 30 }, (_, index) => candidate(100 + index)),
+      hasNextPage: false,
+    })
+    const firstOutput = await run(first.payload)
+
+    // 第二轮拿到的是「游标之后」的那一页（120–129），由 find 的 where 保证，这里直接喂。
+    const second = taskHarness({
+      docs: Array.from({ length: 10 }, (_, index) => candidate(120 + index)),
+      hasNextPage: false,
+    })
+    const secondOutput = await run(second.payload, firstOutput.lastScannedId)
+
+    expect(secondOutput.lastScannedId).toBeGreaterThan(firstOutput.lastScannedId)
+    expect(secondOutput.lastScannedId).toBe(129)
+    // 这一页候选没超上限，全部判定完 → 链条终止
+    expect(secondOutput.hasNextPage).toBe(false)
+    expect(second.queued).toEqual([])
   })
 })
 

@@ -236,12 +236,30 @@ export const rebakeWatermarkTask: TaskConfig<typeof MEDIA_WATERMARK_TASK> = {
       where: { id: { greater_than: startAfterId } },
     })
     const docs = page.docs as unknown as RebakeCandidate[]
-    const ids = selectRebakeTargets({ docs, currentVersion }).slice(0, MEDIA_WATERMARK_CHUNK)
+    const candidates = selectRebakeTargets({ docs, currentVersion })
+    const ids = candidates.slice(0, MEDIA_WATERMARK_CHUNK)
     const result = await rebakeChunk({ payload, ids, currentVersion })
 
-    const lastScannedId = docs.length > 0 ? docs[docs.length - 1].id : startAfterId
-    // 还有下一页就把游标投回队列，直到扫完全表。
-    if (page.hasNextPage) {
+    // 本页候选比分块上限多，说明第 CHUNK+1 个及其之后的行本轮根本没检查。
+    const truncated = candidates.length > ids.length
+
+    // 游标 = 本轮**实际做出判定**的最后一行，不是本页扫到的最后一行。
+    //
+    // 取页尾会在 truncated 时把没检查过的候选连同游标一起跨过去：一趟链条走完全表却
+    // 只处理了其中一部分（一页扫 100 只做 20，1.7 万张要人点五次）。
+    // 反过来取「最后一个**成功**的 id」又会在 unrecoverable（永远写不上 version）这类图上
+    // 原地打转。取「最后一个判定过的 id」两头都避开——判定与结果无关，失败/跳过的行同样
+    // 被跨过，游标严格递增（docs 按 id 升序，ids 保序，故它恒 > startAfterId），链条必然终止。
+    const lastScannedId = truncated
+      ? ids[ids.length - 1]
+      : docs.length > 0
+        ? docs[docs.length - 1].id
+        : startAfterId
+
+    // truncated 时即使 hasNextPage=false 也必须续投：页内还有候选没处理。
+    // 只按 page.hasNextPage 判，会把整张表**最后一页**的余量永久丢掉。
+    const hasMore = truncated || page.hasNextPage
+    if (hasMore) {
       await payload.jobs.queue({
         task: MEDIA_WATERMARK_TASK,
         queue: MEDIA_WATERMARK_QUEUE,
@@ -249,6 +267,8 @@ export const rebakeWatermarkTask: TaskConfig<typeof MEDIA_WATERMARK_TASK> = {
       })
     }
 
-    return { output: { ...result, lastScannedId, hasNextPage: page.hasNextPage } }
+    // hasNextPage 报的是「游标之后还有活要干、已续投」，不是那次 find 的原始分页标志——
+    // truncated 时两者不同，而调用方关心的是链条有没有继续。
+    return { output: { ...result, lastScannedId, hasNextPage: hasMore } }
   },
 }
