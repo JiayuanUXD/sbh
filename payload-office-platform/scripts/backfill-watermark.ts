@@ -282,10 +282,20 @@ async function main(): Promise<void> {
   for (const failure of failures.slice(0, 20)) {
     console.log(`  #${failure.id} ${failure.reason}`)
   }
+  if (failures.length > 20) {
+    console.log(`  ...（其余 ${failures.length - 20} 条略）`)
+  }
+  // unrecoverable 是数据丢失，须人工介入；failures 也可能是瞬时错误。两者都必须体现在退出码上——
+  // 这是一次要在约 1.7 万行上无人值守分批跑的脚本，任何基于退出码的告警/cron/CI 闸门都只看
+  // exit code，日志再响亮也救不了一次被读成「干净成功」的失败运行。与 backfill-media-usage.ts
+  // 同一写法：先设 process.exitCode，主流程末尾沿用它，不被 process.exit(0) 覆盖。
+  if (failures.length > 0) {
+    process.exitCode = 1
+  }
 }
 
 main()
-  .then(() => process.exit(0))
+  .then(() => process.exit(process.exitCode ?? 0))
   .catch((error) => {
     console.error(error)
     process.exit(1)
