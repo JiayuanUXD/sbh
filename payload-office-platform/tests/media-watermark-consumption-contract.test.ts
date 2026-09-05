@@ -26,9 +26,12 @@ describe('详情/卡片的文件消费分工', () => {
   })
 
   it('卡片链路通过 pickVariantSrc 取派生图，默认落在 card 档', () => {
+    // alt 为空字符串（不是 null）：domain 的 MediaViewModel 要求 alt: string，
+    // 与 ui/Media.tsx 里那份同名类型（alt: string | null）不同。pickVariantSrc 本身
+    // 不读 alt，但参数必须满足类型约束。
     const media = {
       src: '/api/media/file/office.jpg',
-      alt: null,
+      alt: '',
       variants: [
         { src: '/api/media/file/office-320x213.webp', width: 320 },
         { src: '/api/media/file/office-768x512.webp', width: 768 },
@@ -42,7 +45,8 @@ describe('详情/卡片的文件消费分工', () => {
   it('存量图没有派生时卡片会回落母版——上线前必须先跑派生回填', () => {
     // 这条不是断言 bug，是把 spec §8.1 的上线顺序约束固化下来：
     // 母版将带满铺水印，缺派生的存量图会让列表页出现满铺卡片。
-    const media = { src: '/api/media/file/legacy.jpg', alt: null, variants: undefined }
+    // alt 为空字符串（不是 null）：domain 的 MediaViewModel 要求 alt: string。
+    const media = { src: '/api/media/file/legacy.jpg', alt: '', variants: undefined }
     expect(pickVariantSrc(media, 768)).toBe('/api/media/file/legacy.jpg')
   })
 })
