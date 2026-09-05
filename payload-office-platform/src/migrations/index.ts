@@ -73,6 +73,7 @@ import * as migration_20260901_021249_merchant_stop_cascade_job from './20260901
 import * as migration_20260903_084339_opt_067_lead_visitor_ref from './20260903_084339_opt_067_lead_visitor_ref';
 import * as migration_20260904_163535_opt_069_media_watermark_fields from './20260904_163535_opt_069_media_watermark_fields';
 import * as migration_20260905_025659_opt_069_watermark_rebake_task from './20260905_025659_opt_069_watermark_rebake_task';
+import * as migration_20260905_033034_opt_069_site_settings_watermark from './20260905_033034_opt_069_site_settings_watermark';
 
 export const migrations = [
   {
@@ -448,6 +449,11 @@ export const migrations = [
   {
     up: migration_20260905_025659_opt_069_watermark_rebake_task.up,
     down: migration_20260905_025659_opt_069_watermark_rebake_task.down,
-    name: '20260905_025659_opt_069_watermark_rebake_task'
+    name: '20260905_025659_opt_069_watermark_rebake_task',
+  },
+  {
+    up: migration_20260905_033034_opt_069_site_settings_watermark.up,
+    down: migration_20260905_033034_opt_069_site_settings_watermark.down,
+    name: '20260905_033034_opt_069_site_settings_watermark'
   },
 ];

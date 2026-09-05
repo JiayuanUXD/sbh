@@ -68,6 +68,8 @@ import { ExportPreview as ExportPreview_cdf7e044479f899a31f804427d568b36 } from 
 import { ExportSaveButton as ExportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportPreview as ImportPreview_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportSaveButton as ImportSaveButton_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { default as default_a834ef219dd13f8567f7e25091fb3843 } from '../../../components/admin/WatermarkPreview'
+import { default as default_6498e37569e43e5c630206db64fd55ac } from '../../../components/admin/WatermarkRebakeButton'
 import { default as default_fc85bd5ac375c29cf24795ab8778bf43 } from '../../../components/admin/ThemeToggle'
 import { default as default_b93c325b2a001186130a7950fae795ee } from '../../../components/admin/AccountMenu'
 import { default as default_ac23024ecc4af7b353c926fc0aafc2f3 } from '../../../components/admin/GeographyQuickSearch'
@@ -157,6 +159,8 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportSaveButton": ExportSaveButton_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportPreview": ImportPreview_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportSaveButton": ImportSaveButton_cdf7e044479f899a31f804427d568b36,
+  "/components/admin/WatermarkPreview#default": default_a834ef219dd13f8567f7e25091fb3843,
+  "/components/admin/WatermarkRebakeButton#default": default_6498e37569e43e5c630206db64fd55ac,
   "/components/admin/ThemeToggle#default": default_fc85bd5ac375c29cf24795ab8778bf43,
   "/components/admin/AccountMenu#default": default_b93c325b2a001186130a7950fae795ee,
   "/components/admin/GeographyQuickSearch#default": default_ac23024ecc4af7b353c926fc0aafc2f3,
