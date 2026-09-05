@@ -128,3 +128,60 @@ describe('POST /api/watermark-rebake 水印开关状态', () => {
     expect(jobsQueueMock).toHaveBeenCalledTimes(1)
   })
 })
+
+/**
+ * OPT-069 上线后的真实故障：`/api/watermark-preview` 在生产恒 500，而当时
+ *   - 前端 `<img onError>` 把它显示成「预览需要『站点设置』管理权限」（指错方向），
+ *   - 应用日志不进 CLS（服务配置里 LogSetId / LogTopicId 都是空串），
+ * 两条观测通道同时断，异常成了纯黑盒，只能靠本地复现做排除法。
+ *
+ * 这里钉住修复后的契约：**渲染路径抛错必须变成带原因的 500 JSON**，
+ * 而不是让异常冒泡成一个没有响应体的失败请求。谁以后把 try/catch 拿掉，这两条会红。
+ */
+describe('后台水印端点的异常出口', () => {
+  it('预览渲染抛错时返回 500 与可读原因，而不是空响应体', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockRejectedValue(new Error('librsvg 渲染失败：no fonts configured'))
+
+    const request = new Request('http://localhost/api/watermark-preview?mode=tiled')
+    const response = await watermarkPreviewGet(request)
+    const body = (await response.json()) as { error: string; name: string; message: string }
+
+    expect(response.status).toBe(500)
+    expect(body.error).toBe('internal_error')
+    expect(body.message).toContain('librsvg')
+    // 日志仍然照发：响应里这份是兜底，不是替代。
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('500 响应体不带 stack——stack 只进日志，不送出进程', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockRejectedValue(new Error('boom'))
+
+    const request = new Request('http://localhost/api/watermark-preview?mode=badge')
+    const response = await watermarkPreviewGet(request)
+    const body = (await response.json()) as Record<string, unknown>
+
+    expect(body).not.toHaveProperty('stack')
+    consoleError.mockRestore()
+  })
+
+  it('重刷投递抛错时返回 500 而不是让前端以为排队成功', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    authMock.mockResolvedValue({ user: PERMITTED_USER })
+    findGlobalMock.mockResolvedValue({ watermark: { enabled: true }, siteName: '商办荟' })
+    jobsQueueMock.mockRejectedValue(new Error('队列不可用'))
+
+    const request = new Request('http://localhost/api/watermark-rebake', { method: 'POST' })
+    const response = await watermarkRebakePost(request)
+    const body = (await response.json()) as { error: string; message: string }
+
+    expect(response.status).toBe(500)
+    expect(body.error).toBe('internal_error')
+    expect(body.message).toContain('队列不可用')
+    consoleError.mockRestore()
+  })
+})

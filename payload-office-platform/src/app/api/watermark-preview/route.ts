@@ -20,6 +20,7 @@ import {
 } from '@/domain/media/watermark-settings'
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
+import { respondWithRouteError } from '@/lib/runtime/admin-route-error'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,45 +45,53 @@ function sampleSvg(): Buffer {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const payload = await getPayload({ config })
-  const { user } = await payload.auth({ headers: request.headers })
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-
-  // 与「站点设置」同权限：能改配置的人才能看预览，与 watermark-rebake/route.ts 一致。
-  // code review 第 1 轮 Important：本端点此前只查了登录态，注释却写着「与站点设置
-  // 同权限」——注释承诺了代码没做到的事。收紧到与重刷端点相同的 site_settings:manage：
-  // 本端点只服务那一个 tab，且每次调用都跑一次 sharp 合成，收紧顺带减少算力滥用面。
-  const ctx = await getPermissionContext({ user, payload } as RequestContext)
-  if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  }
-
   const params = new URL(request.url).searchParams
   const mode = params.get('mode') === 'badge' ? 'badge' : 'tiled'
 
-  // 关键：查询参数必须过 `buildPreviewWatermarkConfig`（内部就是烘焙那套
-  // `mergeWatermarkConfig`），**不能自己拼 config**。烘焙路径走的是它的夹取与回落规则；
-  // 预览若自己拼一套，两边对「超范围值 / 空文案 / 缺字段」的处理就会分叉——
-  // 那样预览显示的是 A、实际烘出来的是 B，而这个 tab 存在的唯一意义就是所见即所得。
-  //
-  // `siteName` 必须从站点设置读出来当回落文案：字段说明写着「留空则回落为『站点名称』」，
-  // 而这里此前传的是 `null`，于是运营清空文案后**预览渲染 `商办荟`（DEFAULT 常量）、
-  // 烘焙渲染站点名称**——正是本注释声称已经消除的那种错位。
-  //
-  // 命名为 watermarkConfig 而非 config：本文件顶部已 import config from '@/payload.config'
-  // 给 getPayload 用，同名局部变量会在整个函数体内 TDZ 遮蔽那个 import（用早于声明即报错），
-  // 这不是风格选择，是避免一个真实的「块作用域变量用在声明之前」编译错误。
-  const settings = await readWatermarkSiteSettings(payload)
-  const watermarkConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
+  // 整个函数体包在 try 里（含 getPayload 与 sharp 合成）。理由见
+  // `lib/runtime/admin-route-error.ts` 头注释：本端点在生产恒 500 过，而当时
+  // 「前端只显示权限提示」+「应用日志不进 CLS」两条观测通道同时断，异常成了黑盒。
+  // 401/403 是 return 而不是 throw，不受影响。
+  try {
+    const payload = await getPayload({ config })
+    const { user } = await payload.auth({ headers: request.headers })
+    if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const base = await sharp(sampleSvg()).jpeg({ quality: 88 }).toBuffer()
-  const overlay =
-    mode === 'badge'
-      ? buildBadgeOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.badge })
-      : buildTiledOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.tiled })
+    // 与「站点设置」同权限：能改配置的人才能看预览，与 watermark-rebake/route.ts 一致。
+    // code review 第 1 轮 Important：本端点此前只查了登录态，注释却写着「与站点设置
+    // 同权限」——注释承诺了代码没做到的事。收紧到与重刷端点相同的 site_settings:manage：
+    // 本端点只服务那一个 tab，且每次调用都跑一次 sharp 合成，收紧顺带减少算力滥用面。
+    const ctx = await getPermissionContext({ user, payload } as RequestContext)
+    if (!ctx || !hasOperationPermission(ctx, 'site_settings:manage')) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
 
-  const composed = await sharp(base).composite([{ input: overlay, blend: 'over' }]).jpeg({ quality: 88 }).toBuffer()
-  return new NextResponse(new Uint8Array(composed), {
-    headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' },
-  })
+    // 关键：查询参数必须过 `buildPreviewWatermarkConfig`（内部就是烘焙那套
+    // `mergeWatermarkConfig`），**不能自己拼 config**。烘焙路径走的是它的夹取与回落规则；
+    // 预览若自己拼一套，两边对「超范围值 / 空文案 / 缺字段」的处理就会分叉——
+    // 那样预览显示的是 A、实际烘出来的是 B，而这个 tab 存在的唯一意义就是所见即所得。
+    //
+    // `siteName` 必须从站点设置读出来当回落文案：字段说明写着「留空则回落为『站点名称』」，
+    // 而这里此前传的是 `null`，于是运营清空文案后**预览渲染 `商办荟`（DEFAULT 常量）、
+    // 烘焙渲染站点名称**——正是本注释声称已经消除的那种错位。
+    //
+    // 命名为 watermarkConfig 而非 config：本文件顶部已 import config from '@/payload.config'
+    // 给 getPayload 用，同名局部变量会在整个函数体内 TDZ 遮蔽那个 import（用早于声明即报错），
+    // 这不是风格选择，是避免一个真实的「块作用域变量用在声明之前」编译错误。
+    const settings = await readWatermarkSiteSettings(payload)
+    const watermarkConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
+
+    const base = await sharp(sampleSvg()).jpeg({ quality: 88 }).toBuffer()
+    const overlay =
+      mode === 'badge'
+        ? buildBadgeOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.badge })
+        : buildTiledOverlay({ width: SAMPLE_WIDTH, height: SAMPLE_HEIGHT, config: watermarkConfig.tiled })
+
+    const composed = await sharp(base).composite([{ input: overlay, blend: 'over' }]).jpeg({ quality: 88 }).toBuffer()
+    return new NextResponse(new Uint8Array(composed), {
+      headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store' },
+    })
+  } catch (error) {
+    return respondWithRouteError('watermark-preview', error, { mode })
+  }
 }
