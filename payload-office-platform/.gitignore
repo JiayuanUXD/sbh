@@ -13,7 +13,10 @@ build-info.json
 *.sqlite
 *.sqlite-journal
 *.sqlite-*
-media
+# 本地磁盘存储的上传目录。**必须带前导斜杠锚定到项目根**：裸 `media` 会匹配任意层级
+# 名为 media 的目录，`src/domain/media/` 曾因此被静默忽略——文件在本地好好的，
+# 提交里却没有，CI 直接 module not found（OPT-070 实施时踩到）。
+/media/
 public/images/
 test-results
 playwright-report
