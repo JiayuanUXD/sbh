@@ -1,0 +1,27 @@
+  ok     articles.cover_image_id notnull=false ondel=n
+  ok     buildings.cover_image_id notnull=false ondel=n
+  ok     buildings_gallery.image_id notnull=false ondel=n
+DEADLOCK buildings_media_items.resource_id notnull=true ondel=n
+  ok     city_site_profiles.hero_media_id notnull=false ondel=n
+  ok     city_site_profiles.hero_video_id notnull=false ondel=n
+DEADLOCK city_site_profiles_type_card_overrides.cover_image_id notnull=true ondel=n
+  ok     listing_reports_evidence.image_id notnull=false ondel=n
+  ok     listings.cover_image_id notnull=false ondel=n
+DEADLOCK listings_gallery.image_id notnull=true ondel=n
+DEADLOCK listings_media_items.resource_id notnull=true ondel=n
+  ok     locations.cover_image_id notnull=false ondel=n
+  ok     media_rels.parent_id notnull=true ondel=c
+  ok     pages.hero_image_id notnull=false ondel=n
+  ok     payload_locked_documents_rels.media_id notnull=false ondel=c
+  ok     site_settings.logo_id notnull=false ondel=n
+  ok     site_settings_type_cards.cover_image_id notnull=false ondel=n
+--- counts ---
+listings_gallery: 22
+listings_media_items: 7
+buildings_media_items: 0
+buildings_gallery: 0
+media: 13
+listings: 11
+buildings: 6
+--- listings with gallery but no mediaItems (legacy) ---
+legacy listings: 9

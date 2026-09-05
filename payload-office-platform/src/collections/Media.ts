@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  invalidateSupplyCacheAfterMediaDelete,
+  unmountMediaReferences,
+} from '@/domain/media/media-delete-cleanup'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 
 export const Media: CollectionConfig = {
@@ -15,6 +19,20 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+  },
+  /**
+   * OPT-070：删 media 前先摘掉房源 / 楼盘图集与媒体工作台里指向它的行。
+   *
+   * 不摘就会撞上 `NOT NULL` + `ON DELETE SET NULL` 的死结（23502），后台只显示
+   * 「Something went wrong.」。完整病理与「为什么是摘除而不是放宽 NOT NULL」
+   * 见 `domain/media/media-delete-cleanup.ts` 的头注释。
+   *
+   * afterDelete 的缓存失效必须排在 beforeDelete 之后消费它算好的城市——
+   * 两者用 `req.context` 传递，删除真正成功了才会失效。
+   */
+  hooks: {
+    beforeDelete: [unmountMediaReferences],
+    afterDelete: [invalidateSupplyCacheAfterMediaDelete],
   },
   fields: [
     {
