@@ -123,24 +123,32 @@ Windows 端的 `libvips-42.dll` 同样含 `FONTCONFIG_FILE` 等常量，说明�
    `/etc/fonts`（fontconfig 退到无别名的 fallback），也没有 `fc-list`——
    「装了 Noto 结果 `fc-list` 仍然 not found」会是个很费解的现场。
 
-### ⚠️ 想照着这张表换字体包的话，先读这段
+### 想照着这张表换字体包的话，先读这段
 
-**换字体包会改变所有存量图的像素，但（截至本文写作时）不会改变水印版本哈希。**
+**换字体包会改变所有存量图的像素。** 这件事现在已经被机制接住了，但要知道它是怎么接的，
+否则容易在改 Dockerfile 时被守卫测试拦下却不明白为什么。
 
-`computeWatermarkVersion` 的输入是 `{ renderer, font, tiled, badge }`，其中 `font` 是
-`WATERMARK_FONT_FAMILY` 这个**字符串**。而 §6 实测过：在只装一个 CJK 字体的镜像里，
-改这个字符串**不改变渲染结果**；真正决定字形的是 Dockerfile 里实际装的那个包，
-它不在哈希输入里，也没法在应用代码里被感知。
+换包的正确做法是**同时改两处**：
 
-于是「照着上表把 `fonts-wqy-zenhei` 换成 `fonts-noto-cjk`」这个动作的后果是：
-新图用 Noto 烘、存量图仍是 WQY 的字形，而重刷任务比对版本哈希时发现「没变」，
-**每一轮都把存量图判成 skip**，两种字形永久共存，且没有任何报错——
-这正是 `b5c66a6` 想堵的失效模式，只是触发端在容器而不在代码。
+```
+payload-office-platform/Dockerfile         apt-get install ... <包名>
+payload-office-platform/src/domain/media/watermark.ts:67
+                                           export const WATERMARK_FONT_PACKAGE = '<同一个包名>'
+```
 
-所以换包时**必须**同时做一件事，让存量图重新被判成旧版本：要么把已安装的字体包名
-接进 `computeWatermarkVersion` 的哈希输入，要么手动 `WATERMARK_RENDERER_VERSION` +1。
-前者正在由 OPT-069 修复波实现（常量 + 进哈希 + 守卫测试从 Dockerfile 正则抓包名比对），
-落地后本节会更新为指向那个常量；**在它落地之前，这里只能靠人记得**。
+`WATERMARK_FONT_PACKAGE` 进 `computeWatermarkVersion` 的哈希输入，
+`tests/media-watermark-font-guard.test.ts` 有一条断言从 Dockerfile 的 `apt-get install`
+行正则抓出包名、要求与该常量逐字相等（该断言做过变异检查，确认改包名真会红）。
+于是链条是闭合的：改 Dockerfile → 守卫测试红 → 必须同步改常量 → 哈希自动变 →
+存量图被判成旧版本 → 下一轮重刷从 `media-source/` 重烘。**没有「靠人记得」的环节。**
+
+如果这一环缺失会怎样（这就是它被加上的原因）：新图用新包烘、存量图仍是旧字形，
+而重刷任务比对哈希发现「没变」，**每一轮都把存量图判成 skip**，两种字形永久共存、
+没有任何报错。这与 `b5c66a6` 想堵的失效模式同构，只是触发端在容器而不在代码。
+
+> 哈希 payload 里现在**同时**有 `font`（`WATERMARK_FONT_FAMILY` 字符串）和
+> `fontPackage`（`WATERMARK_FONT_PACKAGE`）两项，读代码时容易困惑。按 §6 的实测，
+> 前者在当前镜像下改了不改变渲染结果、留着只是无害的冗余；**后者才是真正决定像素的那一头**。
 
 ## 5. 渲染实测（等价环境，非容器内）
 
@@ -227,9 +235,9 @@ $ md5sum out/D1-sim-wqy-newstack.png out/D2-sim-wqy-origstack.png
 以后有人据此以为「换字体包必须同步改字体栈否则线上变方框」，
 从而在真正该动的地方（Dockerfile）之外做无谓的耦合改动。
 
-建议：保留断言，把 `watermark.ts` 顶部注释与该测试里「否则照样方框」的措辞
-改成「让代码与镜像里实际装的包互为对照，便于排查」之类的准确表述。
-本次未代改——`watermark.ts` 是本任务的免动区，且该文件正被另一会话编辑。
+处理结果（`7116aff`）：断言保留，理由订正。`watermark.ts` 顶部注释与守卫测试的措辞
+都已改成「别以为不点名栈首就会渲染成方框——实测推翻了它」，并保留了下面那条边界；
+该断言的定位也从「失效点」改成「为多字体那一天留的一致性保证」。spec §7.3 同步订正。
 
 措辞上有个边界不要矫枉过正：字体栈顺序**在当前镜像里**不构成失效点，
 是因为镜像只装了 `fonts-wqy-zenhei` 一个 CJK 字体、fontconfig 无从选择；
@@ -240,16 +248,25 @@ $ md5sum out/D1-sim-wqy-newstack.png out/D2-sim-wqy-origstack.png
 ### 这条结论的真正用途
 
 它不只是「那处注释措辞误导」。把它和 `b5c66a6`（把字体栈纳入水印版本哈希）
-放在一起看，会发现哈希接错了一头：
+放在一起看，会发现当时的哈希接错了一头：
 
-| | 改了会不会改变像素 | 进不进版本哈希 |
-|---|---|---|
-| `WATERMARK_FONT_FAMILY` 字符串 | **不会**（本节实测） | **进** |
-| Dockerfile 实际装的字体包 | **会** | **不进** |
+| | 改了会不会改变像素 | `b5c66a6` 时 | `7116aff` 之后 |
+|---|---|---|---|
+| `WATERMARK_FONT_FAMILY` 字符串 | **不会**（本节实测） | 进哈希 | 仍进哈希（无害冗余） |
+| 容器实际装的字体包 | **会** | **不进哈希** ← 缺口 | 以 `WATERMARK_FONT_PACKAGE` 进哈希 |
 
 第一行的代价只是浪费（改字体栈会触发约 1.7 万张图全量重刷，烘出来字节相同）；
-第二行才是缺口，后果见 §4 那段警告。`b5c66a6` 的提交信息明写要摆脱
-「靠人记得 +1」这个依赖，但对真正决定字形的那一头，这个依赖原封不动地留着。
+第二行才是缺口：`b5c66a6` 的提交信息明写要摆脱「靠人记得 +1」这个依赖，
+但对真正决定字形的那一头，当时这个依赖原封不动地留着。
+
+`7116aff` 已按此收口——新增常量 `WATERMARK_FONT_PACKAGE`（`watermark.ts:67`）进哈希，
+守卫测试从 Dockerfile 正则抓包名比对（做过变异检查），并把上面提到的三处错误理由
+（`watermark.ts` 顶部注释、守卫测试措辞、spec §7.3）一并订正。具体操作见 §4。
+`watermark.ts:286` 附近的注释是本表的代码侧对应。
+
+> 一个容易看漏的点：`WATERMARK_RENDERER_VERSION` 已在 `b5c66a6` 提到 `'2'`，
+> `7116aff` 没有再 +1——把字体包纳入哈希这件事本身就让所有已烘图的版本发生变化，
+> 再 bump 是重复计数，还会让人误以为渲染几何也变了。
 
 ## 7. 未覆盖的风险（诚实列出）
 
