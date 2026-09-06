@@ -25,18 +25,28 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    // 先取行政区，城市从它的反范式 city 字段读——保证二者同城。
-    // 原先独立取「第一个城市」和「第一个行政区」并不保证同城：CI 上分别取到
-    // 嘉兴市与上海的长宁，OPT-074 的地理一致性 guard 会拦下这种跨城混搭。
+    const city = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'city' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    cityId = city.docs[0].id
+    // 行政区必须限定在上面那个城市之内。原先独立取「第一个行政区」不保证同城
+    // （CI 上取到嘉兴市 + 上海的长宁），OPT-074 的地理一致性 guard 会拦下跨城混搭。
+    //
+    // 别反过来写成「先取行政区、城市读它的 city」——那会改掉 cityId 的取值，
+    // 而本文件的 D10 用例依赖「该城市没有平台默认商户」这个前提：换成上海后
+    // resolve-merchant 的平台默认回落会成功，断言的 failed:1 就变成 created:1。
     const district = await payload.find({
       collection: 'locations',
-      where: { type: { equals: 'district' } },
+      where: { and: [{ type: { equals: 'district' } }, { city: { equals: cityId } }] },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
     districtId = district.docs[0].id
-    cityId = Number(district.docs[0].city)
 
     // D10 测试夹具：专用楼盘（而不是随便挑数据库里已存在的第一栋楼）+ 专用商户 +
     // 当前生效关系。用专属楼盘而不是共享的"第一栋楼"，是因为本文件与

@@ -33,18 +33,24 @@ describe.skipIf(!databaseAvailable)('OPT-050 楼盘删除', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    // 先取行政区，城市从它的反范式 city 字段读——保证二者同城。
-    // 原先独立取「第一个城市」和「第一个行政区」并不保证同城：CI 上分别取到
-    // 嘉兴市与上海的长宁，OPT-074 的地理一致性 guard 会拦下这种跨城混搭。
+    const city = await payload.find({
+      collection: 'locations',
+      where: { type: { equals: 'city' } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    cityId = city.docs[0].id
+    // 行政区必须限定在上面那个城市之内：原先独立取「第一个行政区」不保证同城
+    // （CI 上取到嘉兴市 + 上海的长宁），OPT-074 的地理一致性 guard 会拦下跨城混搭。
     const district = await payload.find({
       collection: 'locations',
-      where: { type: { equals: 'district' } },
+      where: { and: [{ type: { equals: 'district' } }, { city: { equals: cityId } }] },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
     districtId = district.docs[0].id
-    cityId = Number(district.docs[0].city)
   })
 
   /**

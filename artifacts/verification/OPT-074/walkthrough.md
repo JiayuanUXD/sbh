@@ -76,7 +76,27 @@ const district = await payload.find({ where: { type: { equals: 'district' } }, l
 嘉兴市(#14) 与上海的长宁(#8)；本地取到上海(#1) + 静安区(#2)，恰好同城，
 于是四套在本地全绿、只在 CI 炸。
 
-改为先取行政区、城市从它的反范式 `city` 字段读，必然同城。
+### 第一次修法是错的，值得记一笔
+
+先改成了「先取行政区、城市读它的反范式 `city`」——同城是保证了，但它**改掉了 `cityId` 的取值**
+（CI 上从嘉兴市变成上海）。于是 `supply-import-task-postgres` 的 D10 用例翻车：
+
+```
+D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败
+AssertionError: expected { created: 1, … } to match object { created: 0, failed: 1 }
+```
+
+该用例依赖「这个城市没有平台默认商户」这个隐含前提——换成上海后
+`resolve-merchant.ts` 的平台默认回落成功了，本该 `failed:1` 的行变成 `created:1`。
+
+正确修法是**只收窄 district、不动 cityId**：
+
+```ts
+where: { and: [{ type: { equals: 'district' } }, { city: { equals: cityId } }] }
+```
+
+教训：改共享夹具时，先问「这个变量还被谁的隐含前提依赖着」，
+挑改动面最小的那种改法。
 
 这件事本身是 guard 有效性的佐证：**它在上线前就抓出了存量的跨城混搭**，
 而这类数据在改动前是能一路写进库的。
