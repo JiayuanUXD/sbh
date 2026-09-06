@@ -14,6 +14,19 @@ function useValue(path: string): unknown {
   return useFormFields(([fields]) => fields?.[path]?.value)
 }
 
+/**
+ * upload 字段在表单里可能是裸 id，也可能是展开后的文档（取决于 Payload 何时回填）。
+ * 两种都要认——只认一种的话，预览会在「刚选完图」与「刷新后」两个时刻表现不同。
+ */
+function idOf(value: unknown): string {
+  if (typeof value === 'number' || typeof value === 'string') return String(value)
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id
+    if (typeof id === 'number' || typeof id === 'string') return String(id)
+  }
+  return ''
+}
+
 type PreviewState =
   | { status: 'loading' }
   | { status: 'ok'; url: string }
@@ -46,6 +59,22 @@ async function describeFailure(response: Response): Promise<string> {
     // 响应体不是 JSON（例如平台网关直接返回的错误页），只报状态码即可。
   }
   return `预览渲染失败（HTTP ${response.status}）${detail}`
+}
+
+/**
+ * 「选了图片但没选素材」的明示。
+ *
+ * 烘焙侧此时会回落成文字——那是对的（保住「有水印」这条不变量）。但**从运营视角看，
+ * 回落是完全静默的**：面板上写着「图片」，预览里却是文字，没有任何东西说明为什么。
+ * 代码注释里管它叫「响亮的失败」，而它在 UI 上一点都不响亮，2026-09-06 的生产验收
+ * 就是这么判失败的。这一行把它真正变响亮。
+ */
+function MissingImageNotice(): React.JSX.Element {
+  return (
+    <p style={{ width: 420, maxWidth: '100%', fontSize: 13, marginTop: 0, color: 'var(--theme-warning-600, #a66300)' }}>
+      水印源选了「图片」但还没选素材：实际烘焙会回落为文字，下面预览的就是回落后的样子。
+    </p>
+  )
 }
 
 function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Element {
@@ -99,16 +128,29 @@ function PreviewImage({ src, alt }: { src: string; alt: string }): React.JSX.Ele
 }
 
 export default function WatermarkPreview(): React.JSX.Element {
+  const tiledSource = String(useValue('watermark.tiled.source') ?? 'text')
+  const tiledImageId = idOf(useValue('watermark.tiled.image'))
+  const tiledImageScale = useValue('watermark.tiled.imageScale')
   const tiledText = useValue('watermark.tiled.text')
   const tiledDensity = useValue('watermark.tiled.density')
   const tiledOpacity = useValue('watermark.tiled.opacity')
   const tiledAngle = useValue('watermark.tiled.angle')
+
+  const badgeSource = String(useValue('watermark.badge.source') ?? 'text')
+  const badgeImageId = idOf(useValue('watermark.badge.image'))
+  const badgeImageScale = useValue('watermark.badge.imageScale')
   const badgeText = useValue('watermark.badge.text')
   const badgePosition = useValue('watermark.badge.position')
   const badgeOpacity = useValue('watermark.badge.opacity')
 
+  // source 与 imageId 也进查询串，与文字参数一样实时。缺了它们，运营切到「图片」后
+  // 预览仍画文字，而同一面板的密度/透明度改一下立刻就变——没有任何东西能区分
+  // 「还没保存」和「图片水印坏了」（2026-09-06 生产验收正是栽在这里）。
   const tiledUrl = `/api/watermark-preview?${new URLSearchParams({
     mode: 'tiled',
+    source: tiledSource,
+    imageId: tiledImageId,
+    imageScale: String(tiledImageScale ?? ''),
     text: String(tiledText ?? ''),
     density: String(tiledDensity ?? ''),
     opacity: String(tiledOpacity ?? ''),
@@ -117,6 +159,9 @@ export default function WatermarkPreview(): React.JSX.Element {
 
   const badgeUrl = `/api/watermark-preview?${new URLSearchParams({
     mode: 'badge',
+    source: badgeSource,
+    imageId: badgeImageId,
+    imageScale: String(badgeImageScale ?? ''),
     text: String(badgeText ?? ''),
     position: String(badgePosition ?? ''),
     opacity: String(badgeOpacity ?? ''),
@@ -126,14 +171,16 @@ export default function WatermarkPreview(): React.JSX.Element {
     <div style={{ marginTop: 24 }}>
       <h4 style={{ marginBottom: 4 }}>效果预览</h4>
       <p style={{ marginTop: 0, opacity: 0.7, fontSize: 13 }}>
-        样张含高亮玻璃幕墙与近黑家具——水印在这两端都要读得出来。改完参数保存后刷新本页更新预览。
+        样张含高亮玻璃幕墙与近黑家具——水印在这两端都要读得出来。预览跟随上方参数实时更新，不必先保存。
       </p>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <figure style={{ margin: 0 }}>
+          {tiledSource === 'image' && !tiledImageId ? <MissingImageNotice /> : null}
           <PreviewImage src={tiledUrl} alt="详情大图满铺水印预览" />
           <figcaption style={{ fontSize: 12, opacity: 0.7 }}>详情大图（满铺）</figcaption>
         </figure>
         <figure style={{ margin: 0 }}>
+          {badgeSource === 'image' && !badgeImageId ? <MissingImageNotice /> : null}
           <PreviewImage src={badgeUrl} alt="卡片角标水印预览" />
           <figcaption style={{ fontSize: 12, opacity: 0.7 }}>卡片缩略图（角标）</figcaption>
         </figure>

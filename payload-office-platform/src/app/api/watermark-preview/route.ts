@@ -16,8 +16,8 @@ import config from '@/payload.config'
 import { buildBadgeOverlay, buildTiledOverlay } from '@/domain/media/watermark'
 import {
   buildPreviewWatermarkConfig,
+  loadPreviewImageAsset,
   readWatermarkSiteSettings,
-  resolveWatermarkRenderContext,
 } from '@/domain/media/watermark-settings'
 import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
 import { hasOperationPermission } from '@/domain/auth/permission-context'
@@ -133,17 +133,15 @@ export async function GET(request: Request): Promise<Response> {
     // 给 getPayload 用，同名局部变量会在整个函数体内 TDZ 遮蔽那个 import（用早于声明即报错），
     // 这不是风格选择，是避免一个真实的「块作用域变量用在声明之前」编译错误。
     const settings = await readWatermarkSiteSettings(payload)
-    const watermarkConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
+    const previewConfig = buildPreviewWatermarkConfig(params, settings?.siteName)
 
-    // 图片素材取**已保存**的那份，不跟表单实时值走：upload 字段在表单里是一个 id，
-    // 预览端点拿 id 也读不到字节以外的东西，而运营选完图必然要保存才生效。
-    // 与烘焙同一个入口（resolveWatermarkRenderContext），保证所见即所得。
-    const { config: savedConfig, assets } = await resolveWatermarkRenderContext(payload, createMediaWriter())
-    const previewConfig = {
-      ...watermarkConfig,
-      tiled: { ...watermarkConfig.tiled, source: savedConfig.tiled.source, imageRef: savedConfig.tiled.imageRef },
-      badge: { ...watermarkConfig.badge, source: savedConfig.badge.source, imageRef: savedConfig.badge.imageRef },
-    }
+    // 素材按**表单里此刻选中的 id** 读，不是已保存那份。
+    //
+    // 初版取已保存的配置，结果是同一个面板里一半参数实时、一半不实时：运营切到「图片」
+    // 并选好 logo，预览还在画文字，而密度/透明度改一下立刻就变。没有任何东西能区分
+    // 「还没保存」和「图片水印坏了」——2026-09-06 的生产验收因此判失败。
+    // 混着来比全都不实时更误导人。
+    const image = await loadPreviewImageAsset(payload, createMediaWriter(), params.get('imageId'))
 
     const base = await sharp(sampleSvg()).jpeg({ quality: 88 }).toBuffer()
     const overlay =
@@ -152,13 +150,13 @@ export async function GET(request: Request): Promise<Response> {
             width: SAMPLE_WIDTH,
             height: SAMPLE_HEIGHT,
             config: previewConfig.badge,
-            image: assets.badge,
+            image,
           })
         : buildTiledOverlay({
             width: SAMPLE_WIDTH,
             height: SAMPLE_HEIGHT,
             config: previewConfig.tiled,
-            image: assets.tiled,
+            image,
           })
 
     const composed = await sharp(base).composite([{ input: overlay, blend: 'over' }]).jpeg({ quality: 88 }).toBuffer()

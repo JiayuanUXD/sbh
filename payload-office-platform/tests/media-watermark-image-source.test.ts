@@ -21,7 +21,11 @@ import {
   DEFAULT_WATERMARK_CONFIG,
   type WatermarkImageAsset,
 } from '@/domain/media/watermark'
-import { resolveWatermarkRenderContext } from '@/domain/media/watermark-settings'
+import {
+  buildPreviewWatermarkConfig,
+  loadPreviewImageAsset,
+  resolveWatermarkRenderContext,
+} from '@/domain/media/watermark-settings'
 
 const ASSET: WatermarkImageAsset = {
   dataUri: 'data:image/png;base64,AAAABBBBCCCC',
@@ -223,5 +227,87 @@ describe('resolveWatermarkRenderContext', () => {
     const ctx = await resolveWatermarkRenderContext(payload, writer)
     expect(get).not.toHaveBeenCalled()
     expect(ctx.config.enabled).toBe(DEFAULT_WATERMARK_CONFIG.enabled)
+  })
+})
+
+/**
+ * 2026-09-06 生产验收失败的那条：预览对图片源不实时。
+ *
+ * 初版只有文字参数走查询串，`source` 与图片取的是**已保存**的配置。运营在表单里把版式
+ * 切到「图片」、选好 logo，预览却还在画文字——而同一个面板里密度、透明度、角度改一下
+ * 立刻就变。没有任何东西能区分「还没保存」和「图片水印是坏的」。
+ *
+ * 混着来是最糟的形态：一半实时一半不实时，比全都不实时更误导人。
+ */
+describe('预览配置必须吃实时的 source 与 imageId', () => {
+  const build = (qs: string) => buildPreviewWatermarkConfig(new URLSearchParams(qs), '商办荟')
+
+  it('source=image + imageId → 两种版式都立住图片源', () => {
+    const config = build('source=image&imageId=42&imageScale=0.25')
+    expect(config.tiled.source).toBe('image')
+    expect(config.badge.source).toBe('image')
+    expect(config.tiled.imageRef?.id).toBe('42')
+    expect(config.badge.imageRef?.id).toBe('42')
+  })
+
+  it('imageScale 跟随表单实时值', () => {
+    expect(build('source=image&imageId=42&imageScale=0.25').tiled.imageScale).toBe(0.25)
+  })
+
+  it('source=image 但没有 imageId → 回落文字（运营还没选素材）', () => {
+    const config = build('source=image&imageScale=0.25')
+    expect(config.tiled.source).toBe('text')
+    expect(config.tiled.imageRef).toBeNull()
+  })
+
+  it('不传 source → 保持文字，行为与改动前一致', () => {
+    expect(build('text=%E5%95%86%E5%8A%9E%E8%8D%9F&density=3').tiled.source).toBe('text')
+  })
+
+  it('文字参数仍然实时——这条从一开始就是对的，别在重构里弄丢', () => {
+    const config = build('text=ACME&density=5&opacity=0.6&angle=45')
+    expect(config.tiled.text).toBe('ACME')
+    expect(config.tiled.density).toBe(5)
+    expect(config.tiled.angle).toBe(45)
+  })
+})
+
+describe('loadPreviewImageAsset', () => {
+  function fake(doc: unknown, bytes: Buffer | null = Buffer.from('BYTES')) {
+    const findByID = vi.fn(async () => {
+      if (doc === null) throw new Error('Not Found')
+      return doc
+    })
+    return {
+      payload: { findByID } as never,
+      writer: { get: vi.fn(async () => bytes), put: vi.fn() } as never,
+      findByID,
+    }
+  }
+  const DOC = { id: 9, filename: 'logo.png', mimeType: 'image/png', width: 100, height: 50 }
+
+  it('按 id 读出素材', async () => {
+    const { payload, writer } = fake(DOC)
+    const asset = await loadPreviewImageAsset(payload, writer, '9')
+    expect(asset?.width).toBe(100)
+    expect(asset?.dataUri.startsWith('data:image/png;base64,')).toBe(true)
+  })
+
+  it('id 为空时不查库', async () => {
+    const { payload, writer, findByID } = fake(DOC)
+    expect(await loadPreviewImageAsset(payload, writer, '')).toBeNull()
+    expect(await loadPreviewImageAsset(payload, writer, null)).toBeNull()
+    expect(findByID).not.toHaveBeenCalled()
+  })
+
+  /** media 被删了不是异常，是「没有素材」——预览回落到文字，不应该 500。 */
+  it('media 不存在时返回 null 而不是抛错', async () => {
+    const { payload, writer } = fake(null)
+    expect(await loadPreviewImageAsset(payload, writer, '999')).toBeNull()
+  })
+
+  it('存储里读不到字节时返回 null', async () => {
+    const { payload, writer } = fake(DOC, null)
+    expect(await loadPreviewImageAsset(payload, writer, '9')).toBeNull()
   })
 })

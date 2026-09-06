@@ -78,16 +78,40 @@ export function buildPreviewWatermarkConfig(
     return Number.isFinite(raw) ? raw : fallback
   }
 
+  /**
+   * `source` 与图片 id 也从查询参数来，**和文字参数一样实时**。
+   *
+   * 沿革（真实事故，2026-09-06 生产验收）：初版只有文字参数走查询串，`source` 与
+   * 图片取的是**已保存**的配置。运营在表单里把版式切到「图片」、选好 logo，预览却还在
+   * 画文字——而同一个面板里密度、透明度、角度改一下立刻就变。于是没有任何东西能区分
+   * 「还没保存」和「图片水印是坏的」，验收直接判失败。
+   *
+   * 混着来是最糟的形态：一半实时一半不实时，比全都不实时更误导人。
+   *
+   * `updatedAt` 在这里填占位值：它存在的意义是让**版本哈希**能察觉同名覆盖上传，
+   * 而预览不参与哈希、不写 version，只需要 source 能立住。
+   */
+  const imageId = (params.get('imageId') ?? '').trim()
+  const previewImageRef = imageId ? { id: imageId, updatedAt: 'preview' } : null
+  const sourceOf = (key: string): 'text' | 'image' =>
+    params.get(key) === 'image' && previewImageRef ? 'image' : 'text'
+
   return mergeWatermarkConfig(
     {
       enabled: true,
       tiled: {
+        source: sourceOf('source'),
+        image: previewImageRef,
+        imageScale: number('imageScale', DEFAULT_WATERMARK_CONFIG.tiled.imageScale),
         text: params.get('text'),
         density: number('density', DEFAULT_WATERMARK_CONFIG.tiled.density),
         opacity: number('opacity', DEFAULT_WATERMARK_CONFIG.tiled.opacity),
         angle: number('angle', DEFAULT_WATERMARK_CONFIG.tiled.angle),
       },
       badge: {
+        source: sourceOf('source'),
+        image: previewImageRef,
+        imageScale: number('imageScale', DEFAULT_WATERMARK_CONFIG.badge.imageScale),
         text: params.get('text'),
         position: params.get('position'),
         opacity: number('opacity', DEFAULT_WATERMARK_CONFIG.badge.opacity),
@@ -95,6 +119,34 @@ export function buildPreviewWatermarkConfig(
     },
     fallbackText,
   )
+}
+
+/**
+ * 按 media id 读一枚水印素材，**供预览使用**。
+ *
+ * 与烘焙那条路（`resolveWatermarkRenderContext`）分开：烘焙读的是已保存配置指向的图，
+ * 预览读的是运营此刻在表单里选中的图——后者还没落库，只有一个 id。
+ * 两者共用 `loadAsset`，所以「怎么把字节做成 data URI」仍然只有一处定义。
+ *
+ * 调用方已过 `site_settings:manage`，因此 `overrideAccess: true` 是安全的：
+ * 能改站点配置的人本来就能看全部媒体。
+ */
+export async function loadPreviewImageAsset(
+  payload: Payload,
+  writer: MediaWriter,
+  imageId: string | null | undefined,
+): Promise<WatermarkImageAsset | null> {
+  const id = (imageId ?? '').trim()
+  if (!id) return null
+  try {
+    const media = await payload.findByID({ collection: 'media', id, depth: 0, overrideAccess: true })
+    const doc = readMediaDoc(media)
+    if (!doc) return null
+    return await loadAsset(doc, writer)
+  } catch {
+    // 找不到这条 media（被删了 / id 非法）不是异常，是「没有素材」——回落到文字。
+    return null
+  }
 }
 
 
