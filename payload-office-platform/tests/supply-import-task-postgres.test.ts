@@ -25,28 +25,21 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const city = await payload.find({
-      collection: 'locations',
-      where: { type: { equals: 'city' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    cityId = city.docs[0].id
-    // 行政区必须限定在上面那个城市之内。原先独立取「第一个行政区」不保证同城
-    // （CI 上取到嘉兴市 + 上海的长宁），OPT-074 的地理一致性 guard 会拦下跨城混搭。
+    // 先取行政区、城市读它的反范式 city——保证二者同城且必然存在。
     //
-    // 别反过来写成「先取行政区、城市读它的 city」——那会改掉 cityId 的取值，
-    // 而本文件的 D10 用例依赖「该城市没有平台默认商户」这个前提：换成上海后
-    // resolve-merchant 的平台默认回落会成功，断言的 failed:1 就变成 created:1。
+    // 不能反过来「取第一个城市再找它的行政区」：scripts/seed.ts 只给上海造了
+    // 行政区，其它城市光秃秃，CI 上「第一个城市」查不到任何 district。
+    // 也不能各取各的第一个：那不保证同城（CI 上是嘉兴市 + 上海长宁），
+    // OPT-074 的地理一致性 guard 会拦下跨城混搭。
     const district = await payload.find({
       collection: 'locations',
-      where: { and: [{ type: { equals: 'district' } }, { city: { equals: cityId } }] },
+      where: { type: { equals: 'district' } },
       limit: 1,
       depth: 0,
       overrideAccess: true,
     })
     districtId = district.docs[0].id
+    cityId = Number(district.docs[0].city)
 
     // D10 测试夹具：专用楼盘（而不是随便挑数据库里已存在的第一栋楼）+ 专用商户 +
     // 当前生效关系。用专属楼盘而不是共享的"第一栋楼"，是因为本文件与
@@ -200,12 +193,16 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
   })
 
   it('D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败（failed），不阻断同批其它行', async () => {
+    // 刻意不设 city：本用例要测的是「既没有生效商户关系、也没有可回落的商户」。
+    // import-task.ts 的回落是按楼盘所在城市查平台自营商户的
+    // （buildingCityId === null → fallbackMerchantId 直接是 undefined），
+    // 楼盘挂上城市反而可能因为该城恰好配了平台自营商户而回落成功，
+    // 断言的 failed:1 就会变成 created:1。city 在 Buildings 上非必填，可以留空。
     const orphanBuilding = await payload.create({
       collection: 'buildings',
       data: {
         name: `D10-无商户楼盘-${Date.now()}`,
         slug: `d10-no-merchant-building-${Date.now()}`,
-        city: Number(cityId),
         district: Number(districtId),
         status: 'published',
         operationalStatus: 'active',
