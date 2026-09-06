@@ -56,12 +56,39 @@
 3. 跨城混搭（上海楼盘 + 外市行政区）→ 被拦，报「行政区『测试滨江区』不属于所选城市『上海』」（改动前**存得进去**）
 4. 同城合法改动 → 正常保存，无误杀
 
-## 五、自动化闸门
+## 五、guard 在 CI 上抓出 4 处夹具脏数据
+
+第一次 PR 跑 CI 时 `postgres-migrations` 失败：
+
+```
+InvalidOperationError: 行政区「长宁」不属于所选城市「嘉兴市」
+details: { field: 'district', id: 8, parentField: 'city', parentIds: [ 14 ] }
+```
+
+不是 guard 的 bug——4 个 `tests/*-postgres.test.ts` 的夹具都在造跨城混搭数据：
+
+```ts
+const city     = await payload.find({ where: { type: { equals: 'city'     } }, limit: 1 })
+const district = await payload.find({ where: { type: { equals: 'district' } }, limit: 1 })
+```
+
+**独立取「第一个城市」和「第一个行政区」并不保证二者同城。** CI 上分别取到
+嘉兴市(#14) 与上海的长宁(#8)；本地取到上海(#1) + 静安区(#2)，恰好同城，
+于是四套在本地全绿、只在 CI 炸。
+
+改为先取行政区、城市从它的反范式 `city` 字段读，必然同城。
+
+这件事本身是 guard 有效性的佐证：**它在上线前就抓出了存量的跨城混搭**，
+而这类数据在改动前是能一路写进库的。
+
+## 六、自动化闸门
 
 | 检查 | 结果 |
 |---|---|
 | `pnpm typecheck` | 干净 |
 | `pnpm lint` | 0 errors（22 个既有 `<img>` warning，与本次无关） |
-| `pnpm test` | 4625 项通过 |
+| `pnpm test` | 4584 项通过 |
+| `tests/*-postgres.test.ts` | 41 项通过（需注入 `DATABASE_URL` 才不被 skip） |
 | `pnpm migrate:dry-run` | 通过（4 条既有 warning） |
 | `pnpm build` | 通过 |
+| CI `quality` / `e2e` | 通过 |
