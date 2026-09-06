@@ -77,6 +77,7 @@ import * as migration_20260905_025659_opt_069_watermark_rebake_task from './2026
 import * as migration_20260905_033034_opt_069_site_settings_watermark from './20260905_033034_opt_069_site_settings_watermark';
 import * as migration_20260905_121042_opt069_snapshot_chain_repair from './20260905_121042_opt069_snapshot_chain_repair';
 import * as migration_20260905_172526_opt_071_watermark_image_source from './20260905_172526_opt_071_watermark_image_source';
+import * as migration_20260906_064958_opt_073_featured_district_count from './20260906_064958_opt_073_featured_district_count';
 
 export const migrations = [
   {
@@ -472,6 +473,11 @@ export const migrations = [
   {
     up: migration_20260905_172526_opt_071_watermark_image_source.up,
     down: migration_20260905_172526_opt_071_watermark_image_source.down,
-    name: '20260905_172526_opt_071_watermark_image_source'
+    name: '20260905_172526_opt_071_watermark_image_source',
+  },
+  {
+    up: migration_20260906_064958_opt_073_featured_district_count.up,
+    down: migration_20260906_064958_opt_073_featured_district_count.down,
+    name: '20260906_064958_opt_073_featured_district_count'
   },
 ];
