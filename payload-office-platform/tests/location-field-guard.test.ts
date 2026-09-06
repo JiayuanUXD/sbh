@@ -247,6 +247,13 @@ describe('createLocationFieldGuard', () => {
     await expect(run({ district: 2 }, { city: null })).resolves.toBeTruthy()
   })
 
+  it('本次显式清空父字段 → 按清空处理，不回退到 originalDoc 的旧值', async () => {
+    // 原本是北京(6)+朝阳区(7)，本次把城市清空并改选长宁区(2)。
+    // 若父值取成 `doc.city ?? originalDoc.city`，null 会回退成北京，
+    // 长宁区就会被误判为「不属于北京」而拦下。
+    await expect(run({ city: null, district: 2 }, { city: 6, district: 7 })).resolves.toBeTruthy()
+  })
+
   it('没有待校验项时完全不打库', async () => {
     const req = makeReq()
     await run({ summary: '只改摘要' }, { district: 2 }, req)
