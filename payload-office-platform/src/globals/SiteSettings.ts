@@ -343,11 +343,53 @@ export const SiteSettings: GlobalConfig = {
                   type: 'group',
                   fields: [
                     {
+                      name: 'source',
+                      label: '水印源',
+                      type: 'select',
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.source,
+                      options: [
+                        { label: '文字', value: 'text' },
+                        { label: '图片（logo）', value: 'image' },
+                      ],
+                      admin: {
+                        description:
+                          '两种版式各自独立选。选「图片」但没选图（或图后来被删了）时会**回落为文字**——不是不打水印：静默不打会让 version 照样写上，之后每轮重刷都判「已是当前版本」跳过，裸奔的图会永久留在生产。',
+                      },
+                    },
+                    {
                       name: 'text',
                       label: '文案',
                       type: 'text',
                       defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.text,
-                      admin: { description: '留空则回落为「站点名称」。' },
+                      admin: {
+                        description: '留空则回落为「站点名称」。水印源选「图片」时，这里仍是缺图时的回落文案。',
+                      },
+                    },
+                    {
+                      name: 'image',
+                      label: '水印图片',
+                      type: 'upload',
+                      relationTo: 'media',
+                      // **刻意不设 required**：required 的 upload 字段会生成 NOT NULL +
+                      // ON DELETE SET NULL，被引用的 media 从此删不掉（OPT-070 为此把四列
+                      // 收口过，见 domain/media/media-delete-cleanup.ts）。
+                      admin: {
+                        condition: (_data, siblingData) => siblingData?.source === 'image',
+                        description:
+                          '建议用带白边或带底色的 PNG：栅格图没法像文字那样加描边，纯色 logo 在亮底或暗底上都可能读不出来。',
+                      },
+                    },
+                    {
+                      name: 'imageScale',
+                      label: '图片宽度占比',
+                      type: 'number',
+                      min: 0.05,
+                      max: 0.5,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.tiled.imageScale,
+                      admin: {
+                        condition: (_data, siblingData) => siblingData?.source === 'image',
+                        description: '相对被打水印那张图的宽度。0.18 表示每枚 logo 占图宽的 18%。',
+                      },
                     },
                     {
                       name: 'density',
@@ -381,10 +423,51 @@ export const SiteSettings: GlobalConfig = {
                   type: 'group',
                   fields: [
                     {
+                      name: 'source',
+                      label: '水印源',
+                      type: 'select',
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.badge.source,
+                      options: [
+                        { label: '文字', value: 'text' },
+                        { label: '图片（logo）', value: 'image' },
+                      ],
+                      admin: {
+                        description:
+                          '两种版式各自独立选。选「图片」但没选图（或图后来被删了）时会**回落为文字**——不是不打水印：静默不打会让 version 照样写上，之后每轮重刷都判「已是当前版本」跳过，裸奔的图会永久留在生产。',
+                      },
+                    },
+                    {
                       name: 'text',
                       label: '文案',
                       type: 'text',
                       defaultValue: DEFAULT_WATERMARK_CONFIG.badge.text,
+                      admin: { description: '水印源选「图片」时，这里仍是缺图时的回落文案。' },
+                    },
+                    {
+                      name: 'image',
+                      label: '水印图片',
+                      type: 'upload',
+                      relationTo: 'media',
+                      // **刻意不设 required**：required 的 upload 字段会生成 NOT NULL +
+                      // ON DELETE SET NULL，被引用的 media 从此删不掉（OPT-070 为此把四列
+                      // 收口过，见 domain/media/media-delete-cleanup.ts）。
+                      admin: {
+                        condition: (_data, siblingData) => siblingData?.source === 'image',
+                        description:
+                          '建议用带白边或带底色的 PNG：栅格图没法像文字那样加描边，纯色 logo 在亮底或暗底上都可能读不出来。',
+                      },
+                    },
+                    {
+                      name: 'imageScale',
+                      label: '图片宽度占比',
+                      type: 'number',
+                      min: 0.03,
+                      max: 0.4,
+                      defaultValue: DEFAULT_WATERMARK_CONFIG.badge.imageScale,
+                      admin: {
+                        condition: (_data, siblingData) => siblingData?.source === 'image',
+                        description: '相对被打水印那张图的宽度。0.12 表示角标 logo 占图宽的 12%。',
+                      },
                     },
                     {
                       name: 'position',

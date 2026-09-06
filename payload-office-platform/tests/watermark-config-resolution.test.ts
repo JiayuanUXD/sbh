@@ -38,12 +38,18 @@ function read(relative: string): string {
 }
 
 describe('resolveWatermarkConfig', () => {
-  it('读 site-settings（depth 0 / overrideAccess），把 siteName 当文案回落', async () => {
+  /**
+   * depth 从 0 改成 1 是 OPT-071 的硬要求，不是随手改的：图片水印的 `imageRef` 必须
+   * 带上 `updatedAt`（运营可同名覆盖上传，id 不变而像素全变），而 depth 0 读出来的
+   * upload 关系只有一个裸 id。改回 depth 0 会让换 logo 不改变版本哈希，之后每一轮
+   * 重刷都判「已是当前版本」跳过，新旧 logo 永久共存且不报错。
+   */
+  it('读 site-settings（depth 1 / overrideAccess），把 siteName 当文案回落', async () => {
     const { payload, calls } = fakePayload({ watermark: { enabled: true }, siteName: '示例站点' })
 
     const config = await resolveWatermarkConfig(payload)
 
-    expect(calls).toEqual([{ slug: 'site-settings', depth: 0, overrideAccess: true }])
+    expect(calls).toEqual([{ slug: 'site-settings', depth: 1, overrideAccess: true }])
     expect(config.enabled).toBe(true)
     expect(config.tiled.text).toBe('示例站点')
     expect(config.badge.text).toBe('示例站点')

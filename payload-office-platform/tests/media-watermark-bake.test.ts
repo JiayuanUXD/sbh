@@ -48,6 +48,9 @@ const SIZES = [
   { name: 'hero', filename: 'office-1600x1067.webp', width: 1600, height: 1067 },
 ]
 
+/** 文字水印场景下的空素材。图片水印的渲染在 media-watermark.test.ts 里单测。 */
+const NO_ASSETS = { tiled: null, badge: null }
+
 describe('bakeWatermark', () => {
   it('母版被满铺水印改写——差异像素占比显著', async () => {
     const cleanMaster = await makeBase(2400, 1600)
@@ -56,6 +59,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })
     const ratio = await differenceRatio(cleanMaster, result.master.body)
@@ -69,6 +73,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })
     const meta = await sharp(result.master.body).metadata()
@@ -85,6 +90,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })
     const filenames = result.derivatives.map((item) => item.filename)
@@ -99,6 +105,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })
     for (const derivative of result.derivatives) {
@@ -118,6 +125,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })
     const hero = result.derivatives.find((item) => item.filename.includes('1600'))!
@@ -143,6 +151,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'office.jpg',
       masterMimeType: 'image/jpeg',
       sizes: SIZES,
+      assets: NO_ASSETS,
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: false },
     })
     expect(result.master.body).toEqual(cleanMaster)
@@ -169,6 +178,7 @@ describe('bakeWatermark', () => {
       masterFilename: 'loop.webp',
       masterMimeType: 'image/webp',
       sizes: SIZES,
+      assets: NO_ASSETS,
       // 显式 enabled: true——否则走的是 enabled 早退分支，验不到 pages 判定。
       config: { ...DEFAULT_WATERMARK_CONFIG, enabled: true },
     })

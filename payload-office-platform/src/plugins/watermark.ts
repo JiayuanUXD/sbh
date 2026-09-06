@@ -48,7 +48,11 @@ import {
 // 配置读取只有一条路（`domain/media/watermark-settings.ts`）：上传、重刷、回刷、预览
 // 四处若各读各的，会在「配置缺省 / 文案回落」上给出不同答案，表现为「新上传带水印、
 // 重刷后不带」或「预览与实际烘出来的不一样」，而且没有任何报错。
-import { resolveWatermarkConfig } from '@/domain/media/watermark-settings'
+import {
+  resolveWatermarkConfig,
+  resolveWatermarkRenderContext,
+  type WatermarkAssets,
+} from '@/domain/media/watermark-settings'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
 import { createMediaWriter, MEDIA_SOURCE_PREFIX, type MediaWriter } from '@/lib/storage/media-writer'
 
@@ -73,6 +77,11 @@ export type BakeInput = {
   masterMimeType: string
   sizes: BakeSizeInput[]
   config: WatermarkConfig
+  /**
+   * 图片水印的字节。与 config 分开传是刻意的：config 进版本哈希，字节不进——
+   * 同一张 logo 的字节在每次烘焙时重新读出，哈希只认它的 id + updatedAt。
+   */
+  assets: WatermarkAssets
 }
 
 export type BakeOutput = {
@@ -117,7 +126,12 @@ export async function bakeWatermark(input: BakeInput): Promise<BakeOutput> {
   }
 
   const master = await sharp(input.cleanMaster)
-    .composite([{ input: buildTiledOverlay({ width, height, config: input.config.tiled }), blend: 'over' }])
+    .composite([
+      {
+        input: buildTiledOverlay({ width, height, config: input.config.tiled, image: input.assets.tiled }),
+        blend: 'over',
+      },
+    ])
     .toBuffer()
 
   const derivatives: BakeOutput['derivatives'] = []
@@ -127,7 +141,12 @@ export async function bakeWatermark(input: BakeInput): Promise<BakeOutput> {
       .resize({ width: size.width, height: size.height, fit: 'fill' })
       .composite([
         {
-          input: buildBadgeOverlay({ width: size.width, height: size.height, config: input.config.badge }),
+          input: buildBadgeOverlay({
+            width: size.width,
+            height: size.height,
+            config: input.config.badge,
+            image: input.assets.badge,
+          }),
           blend: 'over',
         },
       ])
@@ -322,7 +341,9 @@ export function createBakeAfterUpload(
         mimeType: target.mimeType,
       })
 
-      const config = await resolveWatermarkConfig(req.payload)
+      // 配置与素材一次读齐（OPT-071）。四条渲染路径共用这一个入口，
+      // 各读各的会在「素材取不到怎么办」上分叉，表现为「新上传带 logo、重刷后变文字」。
+      const { config, assets } = await resolveWatermarkRenderContext(req.payload, writer)
       if (!config.enabled) {
         await clearIfStale()
         return doc
@@ -334,6 +355,7 @@ export function createBakeAfterUpload(
         masterMimeType: target.mimeType,
         sizes: collectSizes(media),
         config,
+        assets,
       })
 
       await writer.put({
