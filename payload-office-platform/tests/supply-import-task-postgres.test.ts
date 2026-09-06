@@ -25,15 +25,9 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const city = await payload.find({
-      collection: 'locations',
-      where: { type: { equals: 'city' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    cityId = city.docs[0].id
-
+    // 先取行政区，城市从它的反范式 city 字段读——保证二者同城。
+    // 原先独立取「第一个城市」和「第一个行政区」并不保证同城：CI 上分别取到
+    // 嘉兴市与上海的长宁，OPT-074 的地理一致性 guard 会拦下这种跨城混搭。
     const district = await payload.find({
       collection: 'locations',
       where: { type: { equals: 'district' } },
@@ -42,6 +36,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
       overrideAccess: true,
     })
     districtId = district.docs[0].id
+    cityId = Number(district.docs[0].city)
 
     // D10 测试夹具：专用楼盘（而不是随便挑数据库里已存在的第一栋楼）+ 专用商户 +
     // 当前生效关系。用专属楼盘而不是共享的"第一栋楼"，是因为本文件与
