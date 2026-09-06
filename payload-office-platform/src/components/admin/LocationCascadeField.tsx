@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Cascader, Spin, Typography } from '@arco-design/web-react'
-import { useField, useFormFields } from '@payloadcms/ui'
+import { useField, useForm, useFormFields } from '@payloadcms/ui'
 
 import { buildChildrenIndex, type FlatLocationNode } from '@/domain/geography/location-tree'
 
@@ -40,6 +40,16 @@ export type LocationCascadeClientProps = {
   /** 候选限定在该字段（多值城市关系）所选城市之内 */
   scopeCitiesField?: string
   placeholder?: string
+  /**
+   * 多字段控制器模式：一次级联选择写回多个真实字段（楼盘的 city / district /
+   * businessDistrict 是三个独立的 relationship 列）。
+   *
+   * 给定时组件不再读写自身 path，改为通过 useForm().dispatchFields 直接操作
+   * 这些字段；被接管的字段在 collection 里设 admin.hidden。
+   * 落库形态因此完全不变 —— C 端查询、public-catalog 的 facade / adapter /
+   * mappers、既有迁移统统不用动。
+   */
+  writeBackFields?: Array<{ type: AdministrativeType; field: string }>
   /** Payload 注入 */
   path?: string
 }
@@ -115,11 +125,27 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
     scopeCityField,
     scopeCitiesField,
     placeholder = '选择城市 / 行政区 / 商圈',
+    writeBackFields,
     path,
   } = props
 
   const fieldPath = path ?? ''
   const { value, setValue } = useField<unknown>({ path: fieldPath })
+  const { dispatchFields, setModified } = useForm()
+
+  /**
+   * 多字段模式下当前值不在自身 path 上，而是散在 writeBackFields 里。
+   * 订阅时压成一个字符串而不是数组 —— useFormFields 每次返回新数组引用会
+   * 触发无谓的重渲染。
+   */
+  const writeBackKey = useFormFields(([fields]) =>
+    (writeBackFields ?? [])
+      .map((w) => {
+        const v = fields?.[w.field]?.value
+        return v === null || v === undefined ? '' : String(v)
+      })
+      .join('|'),
+  )
 
   const [nodes, setNodes] = useState<FlatLocationNode[] | null>(null)
   useEffect(() => {
@@ -200,30 +226,76 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
 
   const cascaderValue = useMemo(() => {
     if (!nodes) return undefined
-    const keys = toKeys(value)
+    // 多字段模式取被接管字段里最深的那一级作为叶子；单字段模式读自身 path
+    const keys = writeBackFields
+      ? (() => {
+          const parts = writeBackKey.split('|')
+          for (let i = parts.length - 1; i >= 0; i--) if (parts[i]) return [parts[i]]
+          return []
+        })()
+      : toKeys(value)
     if (keys.length === 0) return undefined
     const paths = keys.map((k) => pathOf(byId, k)).filter((p) => p.length > 0)
-    return many ? paths : paths[0]
-  }, [value, byId, nodes, many])
+    return many && !writeBackFields ? paths : paths[0]
+  }, [value, byId, nodes, many, writeBackFields, writeBackKey])
+
+  /** id 归一化：Payload 的 relationship 在 PG 下是整数主键 */
+  const numericId = useCallback(
+    (k: string): number => {
+      const n = byId.get(k)
+      return typeof n?.id === 'number' ? n.id : Number(k)
+    },
+    [byId],
+  )
 
   const handleChange = useCallback(
     (next: unknown) => {
+      // —— 多字段控制器：把路径上每一级分发到各自的字段 ——
+      if (writeBackFields) {
+        const path = (Array.isArray(next) ? next : []) as string[]
+        const idByType = new Map<AdministrativeType, number>()
+        for (const k of path) {
+          const n = byId.get(k)
+          if (n) idByType.set(n.type as AdministrativeType, numericId(k))
+        }
+        /**
+         * 先按字段聚合再分发。同一个字段可以被多个类型映射——供给提报的
+         * `district` 标签就是「区域/商圈」，行政区和商圈都往它里面存。
+         * 这种情况下取路径上最细的那一级：直接按顺序 dispatch 会让排在后面的
+         * business_area 用 null 把前面写进去的行政区覆盖掉。
+         */
+        const valueByField = new Map<string, number | null>()
+        for (const w of writeBackFields) {
+          const v = idByType.get(w.type) ?? null
+          valueByField.set(w.field, v ?? valueByField.get(w.field) ?? null)
+        }
+        for (const [field, value] of valueByField) {
+          // 路径变短时下级要显式写 null，否则会留下上一次选择的残值
+          dispatchFields({ type: 'UPDATE', path: field, value })
+        }
+        /**
+         * 必须显式置脏。2026-09-06 浏览器实测：dispatchFields 只改字段值，
+         * 不动表单的 modified 状态 —— 于是级联框显示已经变了、form state 也变了，
+         * 但右上角「保存」按钮始终是 disabled，改动根本提交不出去。
+         * useField().setValue 会自己置脏，dispatchFields 不会。
+         */
+        setModified(true)
+        return
+      }
+
+      // —— 单字段 ——
       if (next === undefined || next === null) {
         setValue(many ? [] : null)
         return
       }
       const paths = (many ? next : [next]) as string[][]
-      const leaves = paths
+      const ids = paths
         .map((p) => (Array.isArray(p) ? p[p.length - 1] : undefined))
         .filter((v): v is string => typeof v === 'string')
-      // 回写数字 id：Payload 的 relationship 在 PG 下是整数主键
-      const ids = leaves.map((k) => {
-        const n = byId.get(k)
-        return typeof n?.id === 'number' ? n.id : Number(k)
-      })
+        .map(numericId)
       setValue(many ? ids : (ids[0] ?? null))
     },
-    [setValue, many, byId],
+    [setValue, many, byId, writeBackFields, dispatchFields, setModified, numericId],
   )
 
   if (!nodes) {
