@@ -193,16 +193,12 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
   })
 
   it('D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败（failed），不阻断同批其它行', async () => {
-    // 刻意不设 city：本用例要测的是「既没有生效商户关系、也没有可回落的商户」。
-    // import-task.ts 的回落是按楼盘所在城市查平台自营商户的
-    // （buildingCityId === null → fallbackMerchantId 直接是 undefined），
-    // 楼盘挂上城市反而可能因为该城恰好配了平台自营商户而回落成功，
-    // 断言的 failed:1 就会变成 created:1。city 在 Buildings 上非必填，可以留空。
     const orphanBuilding = await payload.create({
       collection: 'buildings',
       data: {
         name: `D10-无商户楼盘-${Date.now()}`,
         slug: `d10-no-merchant-building-${Date.now()}`,
+        city: Number(cityId),
         district: Number(districtId),
         status: 'published',
         operationalStatus: 'active',
@@ -211,7 +207,19 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     })
     createdBuildingIds.push(orphanBuilding.id)
 
-    const badRow = { ...rows('E2E-D10-NOMERCHANT')[0], buildingId: orphanBuilding.id }
+    // cityId 显式置 null：本用例要测的是「既没有生效商户关系、也没有可回落的商户」。
+    // import-task.ts 的平台自营商户回落是按**导入行的 cityId**（不是楼盘的 city
+    // 字段）查的，buildingCityId 为 null 时 fallbackMerchantId 直接是 undefined、
+    // 回落根本不启用。
+    //
+    // 原先这里靠「夹具恰好取到一个没有配平台自营商户的城市」隐式成立——
+    // 而夹具的城市取法一旦变动（OPT-074 为修跨城混搭改过），断言就会从
+    // failed:1 变成 created:1。置 null 让这个前提变成显式的、与数据无关。
+    const badRow = {
+      ...rows('E2E-D10-NOMERCHANT')[0],
+      buildingId: orphanBuilding.id,
+      cityId: null,
+    }
     const result = await runSupplyImportBatch({ payload, type: 'listings', validRows: [badRow] })
     expect(result).toMatchObject({ created: 0, updated: 0, failed: 1 })
     expect(result.errors[0]).toMatchObject({ externalId: 'E2E-D10-NOMERCHANT' })

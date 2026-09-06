@@ -94,9 +94,30 @@ AssertionError: expected { created: 1, … } to match object { created: 0, faile
 
 两条约束正面冲突：*要有行政区* ⇒ 只能是上海；*D10 要没有平台自营商户* ⇒ 不能是上海。
 
-**最终**：夹具取「第一个行政区 + 它的城市」（必然存在且同城），而 D10 的 `orphanBuilding`
-**不设 city**——`buildingCityId === null` 时回落根本不启用，这恰恰就是该用例想测的
-「既无生效关系、也无可回落商户」。`city` 在 Buildings 上非必填，留空合法。
+**第三轮**：改成 `orphanBuilding` 不设 city。仍然 `created:1`——因为回落读的是
+**导入行的 `row.cityId`**（`import-task.ts:464` 把 `row.cityId` 传进
+`resolveListingMerchant`），跟楼盘的 `city` 字段无关。
+
+**最终**：夹具取「第一个行政区 + 它的城市」（必然存在且同城），
+而 D10 的 `badRow` 显式 `cityId: null`。`import-task.ts:362`：
+
+```ts
+const fallbackMerchantId =
+  buildingCityId === null ? undefined : await resolveDefaultSupplyMerchant(...)
+```
+
+`null` 时那次查询**根本不发生**，fallback 必然为空——与 CI 上配了什么商户无关。
+这把原先「靠夹具恰好取到一个没配平台自营商户的城市」的隐式前提变成了显式的。
+
+### 一个本地复现不出来的差异
+
+为验证修复，本地造了一个覆盖上海、`isPlatformDefault: true` 的商户来复现 CI 条件。
+探针直接调 `resolveDefaultSupplyMerchant({cityId: 上海})` 能拿到它（返回商户 id），
+但走真实导入路径时两种 `cityId` **都是 `failed=1`**，错误都是「该城市没有可用的平台自营商户」。
+
+差别在 `req`：导入路径带着事务 `req` 调用，探针没有。所以本地跑对照组看不出差异——
+**这类"本地怎么试都一样"的情况不代表修复无效**，判据要回到代码路径本身（`null` 时那次
+查询压根不执行），而不是本地的绿灯。
 
 教训：改共享夹具前先问「这个变量还被谁的隐含前提依赖着」；
 两条约束打架时，往往说明该改的是那个隐含依赖本身，而不是继续在取值上腾挪。
