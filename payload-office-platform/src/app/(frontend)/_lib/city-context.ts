@@ -17,6 +17,7 @@ import {
   isValidCityProfileSeoText,
   normalizeAvgResponseHours,
   normalizeCityDisplayName,
+  normalizeFeaturedDistrictCount,
 } from '@/domain/city-site-profile/schema'
 import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 import { mapTypeCardOverrides } from '@/lib/frontend/type-card-covers'
@@ -266,6 +267,7 @@ function mapPublicCityProfile(value: unknown): PublicCitySiteProfile | null {
     contact: { heading: contactHeading.value, body: contactBody.value },
     featuredRegions: featuredRegions.value,
     typeCardOverrides: mapTypeCardOverrides(value.typeCardOverrides),
+    featuredDistrictCount: normalizeFeaturedDistrictCount(value.featuredDistrictCount),
   }
 }
 

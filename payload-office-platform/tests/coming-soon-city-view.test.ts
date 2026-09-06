@@ -124,6 +124,7 @@ describe('ComingSoonCityView shell', () => {
         intro: { heading: '', body: '' }, contact: { heading: '', body: '' },
         featuredRegions: [],
         typeCardOverrides: [],
+        featuredDistrictCount: 5,
       },
     } })))
 

@@ -59,6 +59,7 @@ function profile(overrides: Partial<PublicCitySiteProfile> = {}): PublicCitySite
     contact: { heading: '', body: '' },
     featuredRegions: [],
     typeCardOverrides: [],
+    featuredDistrictCount: 5,
     ...overrides,
   }
 }
@@ -73,6 +74,7 @@ function cityProfileDocument(overrides: Record<string, unknown> = {}): Record<st
     seoTitle: 'Shanghai office leasing',
     seoDescription: 'A public city profile for Shanghai office leasing and site selection now.',
     featuredRegions: [],
+    featuredDistrictCount: '5',
     ...overrides,
   }
 }
@@ -362,6 +364,35 @@ describe('city context resolver', () => {
         coverImage: expect.objectContaining({ src: '/api/media/file/full-floor.jpg' }),
       },
     ])
+  })
+
+  it('OPT-073：featuredDistrictCount 为 "3" 时映射成数字 3', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [cityProfileDocument({ featuredDistrictCount: '3' })],
+    })
+
+    const profiles = await listPublicCityProfiles()
+
+    expect(profiles[0]?.featuredDistrictCount).toBe(3)
+  })
+
+  it('OPT-073：缺失或非法档位回落 5，且不会让整份 profile 变 null', async () => {
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [cityProfileDocument({ featuredDistrictCount: undefined })],
+    })
+
+    const missing = await listPublicCityProfiles()
+    expect(missing[0]?.featuredDistrictCount).toBe(5)
+
+    findCityProfiles.mockResolvedValueOnce({
+      docs: [cityProfileDocument({ featuredDistrictCount: '7' })],
+    })
+
+    const bogus = await listPublicCityProfiles()
+    // 关键断言：非法档位只回落自己，不能把整份 profile 判废
+    expect(bogus).toHaveLength(1)
+    expect(bogus[0]?.featuredDistrictCount).toBe(5)
+    expect(bogus[0]?.seoTitle).toBe('Shanghai office leasing')
   })
 
   it('maps the featured region locality from parent and description, dropping the owning city', async () => {

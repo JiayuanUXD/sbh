@@ -30,6 +30,7 @@ function buildCity(avgResponseHours: number | null) {
       hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null, video: null, videoEnabled: true },
       intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
       typeCardOverrides: [],
+      featuredDistrictCount: 5 as const,
     },
   }
 }
