@@ -32,6 +32,7 @@ function city(
       contact: { heading: '', body: '' },
       featuredRegions: [],
       typeCardOverrides: [],
+      featuredDistrictCount: 5,
     },
   }
 }

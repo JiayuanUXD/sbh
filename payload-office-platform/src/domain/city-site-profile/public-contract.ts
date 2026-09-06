@@ -1,6 +1,6 @@
 import type { MediaViewModel } from '@/domain/public-catalog/contracts'
 
-import type { CityServiceStatus } from './schema'
+import type { CityServiceStatus, FeaturedDistrictCount } from './schema'
 
 export type PublicCitySiteProfile = Readonly<{
   cityId: number | string
@@ -73,4 +73,12 @@ export type PublicCitySiteProfile = Readonly<{
     slot: string
     coverImage: MediaViewModel
   }>[]
+  /**
+   * 首页「热门商圈」显示张数（OPT-073）。只会是 3 或 5。
+   *
+   * 缺失 / 非法在映射阶段就回落到 5（`normalizeFeaturedDistrictCount`），
+   * 所以消费方不需要再判空。**不参与全有或全无校验**：一个展示张数
+   * 不该让整座城市的 SEO 标题、Hero 文案、精选区域一起降级为 null。
+   */
+  featuredDistrictCount: FeaturedDistrictCount
 }>

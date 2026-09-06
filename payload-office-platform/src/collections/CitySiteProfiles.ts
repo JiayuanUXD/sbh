@@ -305,6 +305,20 @@ export const CitySiteProfiles: CollectionConfig = {
               filterOptions: () => activeLocationFilter(['district', 'business_area']),
             },
             {
+              name: 'featuredDistrictCount',
+              label: '热门商圈显示数量',
+              type: 'select',
+              defaultValue: '5',
+              options: [
+                { value: '5', label: '5 张' },
+                { value: '3', label: '3 张' },
+              ],
+              admin: {
+                description:
+                  '首页热门商圈展示 3 张或 5 张。该城可见且有在营楼盘的商圈不足时会自动减少。',
+              },
+            },
+            {
               name: 'typeCardOverrides',
               label: '「按类型浏览」封面（本城覆盖）',
               type: 'array',

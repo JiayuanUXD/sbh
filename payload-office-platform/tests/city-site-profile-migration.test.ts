@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -158,6 +158,23 @@ describe('city site profile migrations', () => {
       expect(db.insertCount).toBe(0)
     },
   )
+
+  it('OPT-073：热门商圈张数列带默认值 5，down 会把 enum 一起删掉', () => {
+    const files = readdirSync(migrationsDir).filter((f) => f.endsWith('opt_073_featured_district_count.ts'))
+    expect(files.length, 'expected one OPT-073 migration file').toBe(1)
+
+    const migrationName = files[0]!.replace(/\.ts$/, '')
+    const text = readFileSync(resolve(migrationsDir, files[0]!), 'utf8')
+
+    expect(text).toContain('featured_district_count')
+    expect(text).toMatch(/DEFAULT\s+'5'/i)
+    expect(text).toMatch(/DROP\s+TYPE[^;]*featured_district_count/i)
+
+    // 迁移文件存在不等于会被执行——src/migrations/index.ts 才是 payload migrate 实际读取的
+    // 注册表，漏掉注册条目会让上面这些断言全部继续通过，却在真实环境里从未跑过这份迁移。
+    const indexText = readFileSync(resolve(migrationsDir, 'index.ts'), 'utf8')
+    expect(indexText).toContain(migrationName)
+  })
 })
 
 const INSERT_EXPECTATIONS = [

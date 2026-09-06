@@ -30,6 +30,7 @@ function buildCity(avgResponseHours: number | null) {
       hero: { eyebrow: 'Custom eyebrow', heading: 'Custom heading', body: 'Custom summary', media: null, video: null, videoEnabled: true },
       intro: { heading: '', body: '' }, contact: { heading: '', body: '' }, featuredRegions: [],
       typeCardOverrides: [],
+      featuredDistrictCount: 5 as const,
     },
   }
 }
@@ -296,5 +297,68 @@ describe('CityHomeView 编排层（OPT-035 Task 9）', () => {
     }))
     expect(html).toContain('src="/media/city-override.jpg"')
     expect(html).not.toContain('src="/media/global-default.jpg"')
+  })
+
+  it('OPT-073：配置 3 张时只渲染三张商圈卡', () => {
+    const pool: readonly DistrictCardViewModel[] = Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      slug: `rank-${i + 1}`,
+      name: `商圈${i + 1}`,
+      coverImage: null,
+      buildings: [`楼盘${i + 1}`],
+    }))
+
+    const city = buildCity(null)
+    const cityWithThree = {
+      ...city,
+      profile: { ...city.profile, featuredDistrictCount: 3 },
+    }
+
+    const html = renderToStaticMarkup(
+      createElement(CityHomeView, {
+        city: cityWithThree,
+        homepage: { ...buildHomepage(), districtCards: pool },
+        routeMode: 'prefixed',
+        bandStats: { listings: 120, buildings: 45, businessAreas: 12 },
+        siteSettings: SITE_SETTINGS_FALLBACK,
+      } as never),
+    )
+
+    const rendered = [...html.matchAll(/hm-bento-card__name">([^<]+)</g)].map((m) => m[1])
+    expect(rendered).toEqual(['商圈1', '商圈2', '商圈3'])
+  })
+
+  it('OPT-073：配置 3 张时，精选区域仍先重排再截取（第 6 名能进前三）', () => {
+    const pool: readonly DistrictCardViewModel[] = Array.from({ length: 8 }, (_, i) => ({
+      id: i + 1,
+      slug: `rank-${i + 1}`,
+      name: `商圈${i + 1}`,
+      coverImage: null,
+      buildings: [`楼盘${i + 1}`],
+    }))
+
+    const city = buildCity(null)
+    const cityWithFeatured = {
+      ...city,
+      profile: {
+        ...city.profile,
+        featuredDistrictCount: 3,
+        featuredRegions: [{ slug: 'rank-6' }],
+      },
+    }
+
+    const html = renderToStaticMarkup(
+      createElement(CityHomeView, {
+        city: cityWithFeatured,
+        homepage: { ...buildHomepage(), districtCards: pool },
+        routeMode: 'prefixed',
+        bandStats: { listings: 120, buildings: 45, businessAreas: 12 },
+        siteSettings: SITE_SETTINGS_FALLBACK,
+      } as never),
+    )
+
+    const rendered = [...html.matchAll(/hm-bento-card__name">([^<]+)</g)].map((m) => m[1])
+    // 先排后截：被运营置顶的第 6 名进了前三，而不是「先截前三再排」的 1/2/3
+    expect(rendered).toEqual(['商圈6', '商圈1', '商圈2'])
   })
 })
