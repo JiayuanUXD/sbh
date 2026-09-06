@@ -149,14 +149,23 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
 
   const options = useMemo<CascaderOption[]>(() => {
     if (!nodes) return []
-    const selectable = new Set<string>(selectableTypes)
     // 复用地理域的分组排序（sortOrder 升序 → 名称 zh 次级稳定），避免两处排序规则漂移
     const index = buildChildrenIndex(nodes)
 
     const build = (parentId: number | string | null): CascaderOption[] =>
       (index.get(parentId) ?? []).map((n) => {
         const children = build(n.id)
-        const disabled = n.status === 'disabled' || !selectable.has(n.type)
+        /**
+         * disabled 只表达「该节点已停用」这一个含义。
+         *
+         * 别拿它表达「该层级不可选」——2026-09-06 浏览器实测：Arco Cascader 的
+         * disabled 会向下继承，把城市/行政区标成 disabled 会让它们底下的商圈
+         * 全部连带禁用，于是「只能选商圈」的配置反而一个商圈都选不了。
+         * 层级策略改由 changeOnSelect 表达（见下）。
+         *
+         * status 维度上的这种继承恰好是对的：停用行政区底下的商圈本来也不该选。
+         */
+        const disabled = n.status === 'disabled'
         return {
           value: String(n.id),
           label:
@@ -178,9 +187,14 @@ export default function LocationCascadeField(props: LocationCascadeClientProps) 
   }, [nodes, selectableTypes, scopeCityKeys])
 
   /**
-   * 只选叶子还是可停中间层：由 selectableTypes 推导。
-   * 允许选 city / district（非叶子）时必须 changeOnSelect，否则那 14 个
-   * 没有商圈的行政区就选不中。
+   * 层级策略全靠这一个开关（不能用 disabled，理由见 options 里的注释）：
+   *
+   *   - 允许选 city / district 这类非叶子 → changeOnSelect，点哪层就选哪层。
+   *     那 14 个没有启用商圈的行政区必须靠它才选得中。
+   *   - 只允许选 business_area（叶子）→ 关掉它，Arco 默认就只让选到叶子。
+   *
+   * 代价：changeOnSelect 打开时用户也能停在比预期更浅的层（例如只选到城市）。
+   * 这由字段自身的 required 与 location-field-guard 兜底，不在组件里拦。
    */
   const changeOnSelect = selectableTypes.some((t) => t !== 'business_area')
 
