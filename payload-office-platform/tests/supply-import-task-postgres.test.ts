@@ -25,15 +25,12 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const city = await payload.find({
-      collection: 'locations',
-      where: { type: { equals: 'city' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    cityId = city.docs[0].id
-
+    // 先取行政区、城市读它的反范式 city——保证二者同城且必然存在。
+    //
+    // 不能反过来「取第一个城市再找它的行政区」：scripts/seed.ts 只给上海造了
+    // 行政区，其它城市光秃秃，CI 上「第一个城市」查不到任何 district。
+    // 也不能各取各的第一个：那不保证同城（CI 上是嘉兴市 + 上海长宁），
+    // OPT-074 的地理一致性 guard 会拦下跨城混搭。
     const district = await payload.find({
       collection: 'locations',
       where: { type: { equals: 'district' } },
@@ -42,6 +39,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
       overrideAccess: true,
     })
     districtId = district.docs[0].id
+    cityId = Number(district.docs[0].city)
 
     // D10 测试夹具：专用楼盘（而不是随便挑数据库里已存在的第一栋楼）+ 专用商户 +
     // 当前生效关系。用专属楼盘而不是共享的"第一栋楼"，是因为本文件与
@@ -209,7 +207,19 @@ describe.skipIf(!databaseAvailable)('OPT-041 导入写入层', () => {
     })
     createdBuildingIds.push(orphanBuilding.id)
 
-    const badRow = { ...rows('E2E-D10-NOMERCHANT')[0], buildingId: orphanBuilding.id }
+    // cityId 显式置 null：本用例要测的是「既没有生效商户关系、也没有可回落的商户」。
+    // import-task.ts 的平台自营商户回落是按**导入行的 cityId**（不是楼盘的 city
+    // 字段）查的，buildingCityId 为 null 时 fallbackMerchantId 直接是 undefined、
+    // 回落根本不启用。
+    //
+    // 原先这里靠「夹具恰好取到一个没有配平台自营商户的城市」隐式成立——
+    // 而夹具的城市取法一旦变动（OPT-074 为修跨城混搭改过），断言就会从
+    // failed:1 变成 created:1。置 null 让这个前提变成显式的、与数据无关。
+    const badRow = {
+      ...rows('E2E-D10-NOMERCHANT')[0],
+      buildingId: orphanBuilding.id,
+      cityId: null,
+    }
     const result = await runSupplyImportBatch({ payload, type: 'listings', validRows: [badRow] })
     expect(result).toMatchObject({ created: 0, updated: 0, failed: 1 })
     expect(result.errors[0]).toMatchObject({ externalId: 'E2E-D10-NOMERCHANT' })

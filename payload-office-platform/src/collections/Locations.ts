@@ -19,6 +19,7 @@ import { protectLocation } from '@/domain/geography/location-protect'
 import { protectLocationDelete } from '@/domain/geography/location-delete-guard'
 import { createLocationReferencesEndpoint } from '@/endpoints/location-references-endpoint'
 import { createLocationSearchEndpoint } from '@/endpoints/location-search-endpoint'
+import { createLocationTreeEndpoint } from '@/endpoints/location-tree-endpoint'
 import { invalidateCitySiteProfilePublicCache } from '@/lib/frontend/public-cache-revalidation'
 
 type Identifier = number | string
@@ -198,6 +199,8 @@ export const Locations: CollectionConfig = {
     createLocationReferencesEndpoint(),
     // Task 13 全局搜索：GET /api/locations/search?q=&limit=
     createLocationSearchEndpoint(),
+    // OPT-074 级联选择数据源：GET /api/locations/tree
+    createLocationTreeEndpoint(),
   ],
   admin: {
     group: false,

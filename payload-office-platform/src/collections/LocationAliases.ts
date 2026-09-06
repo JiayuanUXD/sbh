@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload'
 
 import { createCollectionAccess } from '@/domain/auth/access'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { normalizeAliasText } from '@/domain/supply-import/normalize'
 
 /** 别名只覆盖导入表里会出现的四类；metro_line 运营不会手填，不开放。 */
@@ -29,6 +31,13 @@ export const LocationAliases: CollectionConfig = {
     delete: 'location:manage',
   }),
   hooks: {
+    // OPT-074：location 原先没有任何 filterOptions，任意类型任意状态的节点都能指。
+    // 这里不挂级联组件——kind 覆盖 metro_station，而级联数据源只有行政链。
+    beforeChange: [
+      createLocationFieldGuard([
+        { field: 'location', type: LOCATION_ALIAS_KINDS, label: '指向区域' },
+      ]),
+    ],
     // 规范化在入库前完成：查询侧只用规范化值做等值匹配，不做运行时转换
     beforeValidate: [
       ({ data }) => {
@@ -61,7 +70,15 @@ export const LocationAliases: CollectionConfig = {
         { label: '地铁站', value: 'metro_station' },
       ],
     },
-    { name: 'location', label: '指向区域', type: 'relationship', relationTo: 'locations', required: true },
+    {
+      name: 'location',
+      label: '指向区域',
+      type: 'relationship',
+      relationTo: 'locations',
+      required: true,
+      // OPT-074：补上缺失的类型收窄（与 kind 的四类对齐）
+      filterOptions: () => locationTypeFilter(LOCATION_ALIAS_KINDS),
+    },
   ],
   indexes: [{ fields: ['normalizedAlias', 'kind'], unique: true }],
 }

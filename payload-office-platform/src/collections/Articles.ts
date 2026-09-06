@@ -4,6 +4,8 @@ import type {
   CollectionConfig,
 } from 'payload'
 
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
 
 const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
@@ -39,6 +41,18 @@ export const Articles: CollectionConfig = {
     read: () => true,
   },
   hooks: {
+    // OPT-074：relatedDistricts 原先完全没有 filterOptions，任意类型任意城市的
+    // 节点都能塞进来（含地铁站）。
+    beforeChange: [
+      createLocationFieldGuard([
+        {
+          field: 'relatedDistricts',
+          type: ['district', 'business_area'],
+          many: true,
+          label: '关联商圈',
+        },
+      ]),
+    ],
     afterChange: [invalidateArticlePublicCache],
     afterDelete: [invalidateArticlePublicCache],
   },
@@ -155,6 +169,20 @@ export const Articles: CollectionConfig = {
               type: 'relationship',
               relationTo: 'locations',
               hasMany: true,
+              // OPT-074：补上缺失的类型收窄
+              filterOptions: () => locationTypeFilter(['district', 'business_area']),
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/LocationCascadeField',
+                    clientProps: {
+                      selectableTypes: ['district', 'business_area'],
+                      many: true,
+                      placeholder: '选择关联的行政区 / 商圈',
+                    },
+                  },
+                },
+              },
             },
           ],
         },

@@ -44,14 +44,12 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config })
-    const city = await payload.find({
-      collection: 'locations',
-      where: { type: { equals: 'city' } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    })
-    cityId = city.docs[0].id
+    // 先取行政区、城市读它的反范式 city——保证二者同城且必然存在。
+    //
+    // 不能反过来「取第一个城市再找它的行政区」：scripts/seed.ts 只给上海造了
+    // 行政区，其它城市光秃秃，CI 上「第一个城市」查不到任何 district。
+    // 也不能各取各的第一个：那不保证同城（CI 上是嘉兴市 + 上海长宁），
+    // OPT-074 的地理一致性 guard 会拦下跨城混搭。
     const district = await payload.find({
       collection: 'locations',
       where: { type: { equals: 'district' } },
@@ -60,6 +58,7 @@ describe.skipIf(!databaseAvailable)('OPT-041 按批次回滚', () => {
       overrideAccess: true,
     })
     const districtId = district.docs[0].id
+    cityId = Number(district.docs[0].city)
 
     // D10：房源写入层要求楼盘有当前生效且合格的商户关系。用专属楼盘（而不是共享
     // 的"数据库里第一栋楼"）+ 专用商户 + 关系——与 supply-import-task-postgres 同

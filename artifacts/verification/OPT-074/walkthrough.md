@@ -1,0 +1,138 @@
+# OPT-074 浏览器走查记录
+
+> 环境：本地 dev（`pnpm dev`，端口 3717），本地 PG 已 `payload migrate` 至最新（`migrate:status` 全 Yes）
+> 账号：`e2e-adm@example.com`（`scripts/seed.ts` 的公开夹具）
+> 日期：2026-09-06 ~ 09-07
+
+## 一、八处入口渲染
+
+| 入口 | 结果 | 备注 |
+|---|---|---|
+| 楼盘（Buildings） | ✅ 级联框 1，回显「上海 / 长宁 / 虹桥」 | 多字段控制器 |
+| 投放申请（SupplySubmissions） | ✅ 级联框 1，回显「上海 / 崇明区」 | 后台不允许 create（access 拒绝，设计如此），造了一条测试数据后验证，验完已删 |
+| 线索（Leads） | ✅ 级联框 1 | 单字段，三层任选 |
+| 城市站点配置（CitySiteProfiles） | ✅ 级联框 1 | 多选 + 按 profile 城市裁剪 |
+| 资讯（Articles） | ✅ 级联框 1 | 多选 |
+| 经纪人（Brokers） | ✅ 级联框 1 | 多选 + 按服务城市裁剪 |
+| 地理别名（LocationAliases） | ✅ 无级联框（设计如此），4 个字段正常 | kind 含 metro_station，级联数据源只有行政链，故只补 filterOptions + guard |
+| 商圈扩展（BusinessAreaExtensions） | ⚠️ 页面不可达 | **既有缺陷**，非本次引入，见下 |
+
+## 二、既有缺陷：collection 级 `admin.hidden` 会杀掉路由
+
+`BusinessAreaExtensions` 的注释写着「直接 URL 仍可访问用于排障」。实测访问
+`/admin/collections/business-area-extensions/create` 得到「没有找到任何东西」。
+
+对照实验：把 `hidden` 临时改为 `false` → 页面立刻正常（6 个字段、级联框 1 个）；改回 `true` → 又 404。
+
+结论：Payload 3.86 的 **collection 级 `admin.hidden: true` 会连 `/admin/collections/<slug>/*` 路由一起排除**，
+与 OPT-053 里 Global 的 `admin.hidden` 是同一个坑。
+
+本工作项只订正了那句错误注释，未改行为（改导航超出范围）。已另开工作项跟踪。
+
+## 三、级联交互
+
+- 三列逐级展开正常，第一列按 `scopeCityField` 收窄到单个城市
+- 「上海 / 长宁 / 古北」→ 保存 → 库中 `city_id=1, district_id=8, business_district_id=806`，三个字段全部正确写入
+- 修复前后对照见 `regression-proof.txt`
+
+### 两个只有真机点击才暴露的问题
+
+1. **Arco Cascader 的 `disabled` 向下继承**：原本用 `disabled` 同时表达「节点停用」和「该层不可选」，
+   结果把城市/行政区标 disabled 后，它们底下的商圈全被连带禁用 ——「只能选商圈」的配置反而一个商圈都点不了。
+   改为 `disabled` 只表达 status，层级策略交给 `changeOnSelect`。
+2. **`dispatchFields` 不置脏**：多字段写回后级联框显示已变、form state 也变了，
+   但右上角「保存」按钮始终 `btn--disabled`，改动提交不出去。`useField().setValue` 会自己置脏，
+   `dispatchFields` 不会，必须显式调 `setModified(true)`。
+
+> 方法论备注：JS `document.click()` 触发不了 Arco 列表项的选择逻辑（console 无 onChange 日志），
+> 必须用真实鼠标事件。上面两个问题都是换成真实点击后才暴露的。
+
+## 四、回归取证
+
+见同目录 `regression-proof.txt`。四个场景全部通过：
+
+1. 停用被引用的商圈后改楼盘摘要 → **保存成功**（改动前会被拦，报「该字段有以下无效的选择：11」）
+2. 主动改选已停用商圈 → 被拦，报「商圈『虹桥』已停用，不能选用」
+3. 跨城混搭（上海楼盘 + 外市行政区）→ 被拦，报「行政区『测试滨江区』不属于所选城市『上海』」（改动前**存得进去**）
+4. 同城合法改动 → 正常保存，无误杀
+
+## 五、guard 在 CI 上抓出 4 处夹具脏数据
+
+第一次 PR 跑 CI 时 `postgres-migrations` 失败：
+
+```
+InvalidOperationError: 行政区「长宁」不属于所选城市「嘉兴市」
+details: { field: 'district', id: 8, parentField: 'city', parentIds: [ 14 ] }
+```
+
+不是 guard 的 bug——4 个 `tests/*-postgres.test.ts` 的夹具都在造跨城混搭数据：
+
+```ts
+const city     = await payload.find({ where: { type: { equals: 'city'     } }, limit: 1 })
+const district = await payload.find({ where: { type: { equals: 'district' } }, limit: 1 })
+```
+
+**独立取「第一个城市」和「第一个行政区」并不保证二者同城。** CI 上分别取到
+嘉兴市(#14) 与上海的长宁(#8)；本地取到上海(#1) + 静安区(#2)，恰好同城，
+于是四套在本地全绿、只在 CI 炸。
+
+### 改这个夹具试错了两轮，两条约束互相打架
+
+**第一轮**：改成「先取行政区、城市读它的反范式 `city`」。同城保证了，但它**改掉了 `cityId`**
+（CI 上嘉兴市 → 上海），于是 D10 用例翻车：
+
+```
+D10 兜底守卫：楼盘没有生效商户关系时，房源行写入失败
+AssertionError: expected { created: 1, … } to match object { created: 0, failed: 1 }
+```
+
+`import-task.ts` 的商户回落是**按楼盘所在城市**查平台自营商户的。该用例隐含依赖
+「这个城市没有平台自营商户」，换成上海后回落成功，本该 `failed:1` 的行变成 `created:1`。
+
+**第二轮**：改成只收窄 district、保持 `cityId` 取「第一个城市」。结果 `docs[0]` 是 undefined ——
+**`scripts/seed.ts` 只给上海造了行政区**，其余城市光秃秃，CI 上「第一个城市」根本没有 district。
+
+两条约束正面冲突：*要有行政区* ⇒ 只能是上海；*D10 要没有平台自营商户* ⇒ 不能是上海。
+
+**第三轮**：改成 `orphanBuilding` 不设 city。仍然 `created:1`——因为回落读的是
+**导入行的 `row.cityId`**（`import-task.ts:464` 把 `row.cityId` 传进
+`resolveListingMerchant`），跟楼盘的 `city` 字段无关。
+
+**最终**：夹具取「第一个行政区 + 它的城市」（必然存在且同城），
+而 D10 的 `badRow` 显式 `cityId: null`。`import-task.ts:362`：
+
+```ts
+const fallbackMerchantId =
+  buildingCityId === null ? undefined : await resolveDefaultSupplyMerchant(...)
+```
+
+`null` 时那次查询**根本不发生**，fallback 必然为空——与 CI 上配了什么商户无关。
+这把原先「靠夹具恰好取到一个没配平台自营商户的城市」的隐式前提变成了显式的。
+
+### 一个本地复现不出来的差异
+
+为验证修复，本地造了一个覆盖上海、`isPlatformDefault: true` 的商户来复现 CI 条件。
+探针直接调 `resolveDefaultSupplyMerchant({cityId: 上海})` 能拿到它（返回商户 id），
+但走真实导入路径时两种 `cityId` **都是 `failed=1`**，错误都是「该城市没有可用的平台自营商户」。
+
+差别在 `req`：导入路径带着事务 `req` 调用，探针没有。所以本地跑对照组看不出差异——
+**这类"本地怎么试都一样"的情况不代表修复无效**，判据要回到代码路径本身（`null` 时那次
+查询压根不执行），而不是本地的绿灯。
+
+教训：改共享夹具前先问「这个变量还被谁的隐含前提依赖着」；
+两条约束打架时，往往说明该改的是那个隐含依赖本身，而不是继续在取值上腾挪。
+
+这件事本身是 guard 有效性的佐证：**它在上线前就抓出了存量的跨城混搭**，
+而这类数据在改动前是能一路写进库的。
+
+## 六、自动化闸门
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm typecheck` | 干净 |
+| `pnpm lint` | 0 errors（22 个既有 `<img>` warning，与本次无关） |
+| `pnpm test` | 4584 项通过 |
+| `tests/*-postgres.test.ts` | 41 项通过（需注入 `DATABASE_URL` 才不被 skip） |
+| `pnpm migrate:dry-run` | 通过（4 条既有 warning） |
+| `pnpm build` | 通过 |
+| CI `quality` / `e2e` | 通过 |

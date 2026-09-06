@@ -3,7 +3,8 @@ import type { CollectionConfig } from 'payload'
 import { createCollectionAccess } from '@/domain/auth/access'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getSupplySubmissionMaskRules } from '@/domain/auth/field-mask'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import {
   SUBMISSION_PRICE_UNIT_LABELS,
   SUBMISSION_PRICE_UNITS,
@@ -83,7 +84,18 @@ export const SupplySubmissions: CollectionConfig = {
     delete: () => false,
   },
   hooks: {
-    beforeChange: [protectSupplySubmission],
+    beforeChange: [
+      // OPT-074：地理一致性。district 原先连 filterOptions 都没有，
+      // 任意类型、任意城市的节点都能塞进来。
+      createLocationFieldGuard([
+        { field: 'city', type: 'city', label: '城市' },
+        // 不设 parentField：该字段行政区和商圈都收，而商圈的 parent 是行政区、
+        // 与 city 隔了一级，用单一 parentField 表达不了。同城约束交给组件层
+        // 的 scopeCityField 裁剪候选，服务端只保证类型正确且已启用。
+        { field: 'district', type: ['district', 'business_area'], label: '区域/商圈' },
+      ]),
+      protectSupplySubmission,
+    ],
     afterChange: [enqueueSupplySubmissionCreated],
     // 字段脱敏：缺 phone:full 权限 → contactPhone 返回 138****1111。
     // 与 Leads 的 afterRead 口径一致；房东联系手机号不因集合不同而失去保护。
@@ -250,13 +262,36 @@ export const SupplySubmissions: CollectionConfig = {
                   typescriptSchema: [({ jsonSchema }) => ({
                     anyOf: [jsonSchema, { type: 'string' }],
                   })],
-                  filterOptions: () => activeLocationFilter(['city']),
+                  filterOptions: () => locationTypeFilter(['city']),
+                  // OPT-074：级联控制器，一次选择写回 city + district
+                  admin: {
+                    components: {
+                      Field: {
+                        path: '/components/admin/LocationCascadeField',
+                        clientProps: {
+                          selectableTypes: ['city', 'district', 'business_area'],
+                          writeBackFields: [
+                            { type: 'city', field: 'city' },
+                            { type: 'district', field: 'district' },
+                            // 同一字段被两个类型映射：选到商圈就存商圈，
+                            // 只选到区就存区（组件按最细的一级聚合）
+                            { type: 'business_area', field: 'district' },
+                          ],
+                          placeholder: '选择城市 / 区域 / 商圈',
+                        },
+                      },
+                    },
+                  },
                 },
                 {
                   name: 'district',
                   label: '区域/商圈',
                   type: 'relationship',
                   relationTo: 'locations',
+                  // OPT-074：本来完全没有 filterOptions，任意类型任意城市的节点都能塞进来
+                  filterOptions: () => locationTypeFilter(['district', 'business_area']),
+                  // 由 city 字段上的级联控制器接管
+                  admin: { hidden: true },
                 },
               ],
             },

@@ -70,6 +70,30 @@ export function activeLocationFilter(types?: readonly LocationType[]): {
   return { and: conditions }
 }
 
+/**
+ * 只按类型收窄的候选条件（OPT-074）。
+ *
+ * 与 activeLocationFilter 的区别：**不含 status**。
+ *
+ * 为什么要有这么一个变体：Payload 的 filterOptions 在保存时是硬校验
+ * （payload/dist/fields/validations.js 的 validateFilterOptions 会拿它返回的
+ * where 去查库比对当前值），但它拿不到 originalDoc，分不清「用户这次选的新值」
+ * 和「文档里躺着的旧值」。于是只要把 status 写进去，停用一个正被引用的商圈，
+ * 引用它的楼盘连改摘要都会被拦，报错还是看不懂的
+ * 「该字段有以下无效的选择：11」（2026-09-06 实测，见 OPT-074 §2.2）。
+ *
+ * type 是不变量——历史值不可能违反它——留在这里安全。
+ * status 与父子一致性改由 createLocationFieldGuard 在 beforeChange 校验，
+ * 那里能拿到 originalDoc，只校验本次真正改动的值。
+ */
+export function locationTypeFilter(types: readonly LocationType[]): {
+  and: Array<{ [key: string]: { equals?: string; in?: readonly string[] } }>
+} {
+  return {
+    and: [types.length === 1 ? { type: { equals: types[0] } } : { type: { in: types } }],
+  }
+}
+
 /** 该类型要求的父级类型；city 返回 null（无上级） */
 export function getRequiredParentType(type: LocationType): LocationType | null {
   return PARENT_TYPE_RULE[type]

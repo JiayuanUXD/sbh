@@ -10,7 +10,8 @@ import {
   tagsForProfileChange,
   type CityCacheInvalidationRecord,
 } from '@/domain/city-site-profile/cache-invalidator'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { findByIdSafe } from '@/domain/shared/transaction-safety'
 import { protectCitySiteProfile } from '@/domain/city-site-profile/profile-protect'
 import { CITY_SERVICE_STATUSES } from '@/domain/city-site-profile/schema'
@@ -143,7 +144,22 @@ export const CitySiteProfiles: CollectionConfig = {
     delete: () => false,
   },
   hooks: {
-    beforeChange: [protectCitySiteProfile],
+    beforeChange: [
+      // OPT-074：精选区域只校验类型与启用。
+      // 「必须属于本 profile 的城市」这条无法用 parentField 表达——商圈的 parent
+      // 是行政区，与 city 隔了一级——交给组件层的 scopeCityField 裁剪候选。
+      // 生产实测该项为 0，且 profile 的 city 建后不可改，风险可接受。
+      createLocationFieldGuard([
+        { field: 'city', type: 'city', label: '城市' },
+        {
+          field: 'featuredRegions',
+          type: ['district', 'business_area'],
+          many: true,
+          label: '精选区域',
+        },
+      ]),
+      protectCitySiteProfile,
+    ],
     afterChange: [invalidateCitySiteProfileAfterChange],
     afterDelete: [invalidateCitySiteProfileAfterDelete],
   },
@@ -167,7 +183,7 @@ export const CitySiteProfiles: CollectionConfig = {
                   relationTo: 'locations',
                   required: true,
                   unique: true,
-                  filterOptions: () => activeLocationFilter(['city']),
+                  filterOptions: () => locationTypeFilter(['city']),
                 },
                 {
                   name: 'serviceStatus',
@@ -302,7 +318,21 @@ export const CitySiteProfiles: CollectionConfig = {
               relationTo: 'locations',
               hasMany: true,
               maxRows: 12,
-              filterOptions: () => activeLocationFilter(['district', 'business_area']),
+              filterOptions: () => locationTypeFilter(['district', 'business_area']),
+              // OPT-074：级联多选，候选按本 profile 的城市裁剪
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/LocationCascadeField',
+                    clientProps: {
+                      selectableTypes: ['district', 'business_area'],
+                      many: true,
+                      scopeCityField: 'city',
+                      placeholder: '选择精选的行政区 / 商圈',
+                    },
+                  },
+                },
+              },
             },
             {
               name: 'featuredDistrictCount',
