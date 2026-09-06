@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { activeLocationFilter, locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { protectBusinessAreaExtension } from '@/domain/geography/business-area-extension-protect'
 
 /**
@@ -19,7 +20,14 @@ export const BusinessAreaExtensions: CollectionConfig = {
   },
   admin: {
     // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板。
-    // collection 与 protect hook 全部保留，直接 URL 仍可访问用于排障。
+    // collection 与 protect hook 全部保留。
+    //
+    // 注意（OPT-074 实测订正）：原注释称「直接 URL 仍可访问用于排障」——**不成立**。
+    // Payload 3.86 的 collection 级 hidden:true 会连 /admin/collections/<slug>/* 路由
+    // 一起排除，直接访问得到「没有找到任何东西」，与 OPT-053 里 Global 的
+    // admin.hidden 是同一个坑。下面 businessArea 上挂的级联组件因此在当前配置下
+    // 不会被渲染（日常配置走 BusinessAreaExtensionPanel 内嵌面板）；
+    // 保留它是为了这里一旦改用其它方式暴露表单页时无需再补。
     hidden: true,
     group: false,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
@@ -31,7 +39,14 @@ export const BusinessAreaExtensions: CollectionConfig = {
     read: () => true,
   },
   hooks: {
-    beforeChange: [protectBusinessAreaExtension],
+    beforeChange: [
+      // OPT-074：只管 businessArea 的类型与启用。metroStations 的同城校验、
+      // businessArea 不可变、版本锁仍归 protectBusinessAreaExtension，职责不重叠。
+      createLocationFieldGuard([
+        { field: 'businessArea', type: 'business_area', label: '所属商圈' },
+      ]),
+      protectBusinessAreaExtension,
+    ],
   },
   fields: [
     {
@@ -41,10 +56,22 @@ export const BusinessAreaExtensions: CollectionConfig = {
       relationTo: 'locations',
       required: true,
       unique: true,
-      // 仅启用的商圈可配置扩展；创建后不可改（保护 hook 兜底）
-      filterOptions: () => activeLocationFilter(['business_area']),
+      // 创建后不可改（保护 hook 兜底）。
+      // OPT-074：status 移出 filterOptions（保存时它是硬校验，会误伤历史值），
+      // 改由 createLocationFieldGuard 只校验本次改动的值。
+      filterOptions: () => locationTypeFilter(['business_area']),
+      // OPT-074：级联选择，逐级收窄到商圈
       admin: {
         description: '仅可选择已启用商圈；创建后不可更改。基础字段只读同步，不在此页编辑。',
+        components: {
+          Field: {
+            path: '/components/admin/LocationCascadeField',
+            clientProps: {
+              selectableTypes: ['business_area'],
+              placeholder: '选择所属商圈',
+            },
+          },
+        },
       },
     },
     {

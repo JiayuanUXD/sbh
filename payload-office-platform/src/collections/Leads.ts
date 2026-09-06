@@ -1,7 +1,8 @@
 import type { CollectionConfig } from 'payload'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getLeadMaskRules } from '@/domain/auth/field-mask'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
 import { leadReadAccess } from '@/domain/crm/lead-read-access'
@@ -98,6 +99,13 @@ export const Leads: CollectionConfig = {
   hooks: {
     // 委托找房零门槛渠道：无姓名线索填兜底姓名，早于必填校验。
     beforeValidate: [fillEntrustLeadName],
+    // OPT-074：地理一致性。意向区域三层任选，故只校验类型与启用、不比对父子。
+    beforeChange: [
+      createLocationFieldGuard([
+        { field: 'city', type: 'city', label: '归属城市' },
+        { field: 'district', type: ['city', 'district', 'business_area'], label: '意向区域' },
+      ]),
+    ],
     // 字段脱敏（tasks.md M1.4）：缺 phone:full 权限 → 返回 138****1111
     // 业务不变量：经纪人只能看自己负责线索的完整手机号（M5 进一步收窄）
     afterRead: createFieldMaskHooks(getLeadMaskRules()),
@@ -182,9 +190,22 @@ export const Leads: CollectionConfig = {
                   label: '意向区域',
                   type: 'relationship',
                   relationTo: 'locations',
-                  // M2.2：意向区域取行政层级（城市/行政区/商圈），仅启用节点进候选
+                  // 意向区域取行政层级（城市/行政区/商圈）。
+                  // OPT-074：status 移出 filterOptions（保存时它是硬校验，会误伤
+                  // 历史值），改由 createLocationFieldGuard 只校验本次改动的值。
                   filterOptions: () =>
-                    activeLocationFilter(['city', 'district', 'business_area']),
+                    locationTypeFilter(['city', 'district', 'business_area']),
+                  admin: {
+                    components: {
+                      Field: {
+                        path: '/components/admin/LocationCascadeField',
+                        clientProps: {
+                          selectableTypes: ['city', 'district', 'business_area'],
+                          placeholder: '选择意向区域（城市 / 行政区 / 商圈任一层）',
+                        },
+                      },
+                    },
+                  },
                 },
                 { name: 'budget', label: '预算', type: 'text' },
               ],
@@ -264,7 +285,7 @@ export const Leads: CollectionConfig = {
                   typescriptSchema: [({ jsonSchema }) => ({
                     anyOf: [jsonSchema, { type: 'string' }],
                   })],
-                  filterOptions: () => activeLocationFilter(['city']),
+                  filterOptions: () => locationTypeFilter(['city']),
                 },
               ],
             },

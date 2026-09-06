@@ -150,7 +150,9 @@ async function loadNodes(
 export function createLocationFieldGuard(
   specs: readonly LocationFieldSpec[],
 ): CollectionBeforeChangeHook {
-  return async ({ data, originalDoc, req }) => {
+  // 具名函数：hook 在各 collection 的 beforeChange 数组里可辨认（边界守卫测试
+  // 按 name 断言身份而不只是数量），出错时堆栈也能直接指到这里。
+  return async function locationFieldGuard({ data, originalDoc, req }) {
     const doc = (data ?? {}) as Record<string, unknown>
     const pending = pendingLocationChecks(specs, doc, originalDoc)
     if (pending.length === 0) return data

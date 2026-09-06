@@ -6,6 +6,7 @@ import { default as default_b3a30fd964c8ef5325a0c9cb68de576b } from '../../../co
 import { default as default_53f14d1d17ec4cdae999bca8a04d34c3 } from '../../../components/admin/MetroLineStationsPanel'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
+import { default as default_7a2881d0f1b3170eb0d9bf10761aa35d } from '../../../components/admin/LocationCascadeField'
 import { default as default_32cd175b11a507bc1d2e1118d0c77c0b } from '../../../components/admin/BuildingAggregateCard'
 import { default as default_7614944393d31d9bb0b1ff1f9ac564e2 } from '../../../components/admin/BuildingMediaManager'
 import { default as default_e656613ffd999162e9cb4b0ea24b8fca } from '../../../components/admin/AmenitiesChipSelector'
@@ -97,6 +98,7 @@ export const importMap = {
   "/components/admin/MetroLineStationsPanel#default": default_53f14d1d17ec4cdae999bca8a04d34c3,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
+  "/components/admin/LocationCascadeField#default": default_7a2881d0f1b3170eb0d9bf10761aa35d,
   "/components/admin/BuildingAggregateCard#default": default_32cd175b11a507bc1d2e1118d0c77c0b,
   "/components/admin/BuildingMediaManager#default": default_7614944393d31d9bb0b1ff1f9ac564e2,
   "/components/admin/AmenitiesChipSelector#default": default_e656613ffd999162e9cb4b0ea24b8fca,

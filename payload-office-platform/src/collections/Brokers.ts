@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { EMPLOYMENT_STATUS_LABELS, EMPLOYMENT_STATUSES } from '@/domain/auth/org'
 import { protectBroker } from '@/domain/auth/broker-protect'
 import { protectBrokerStop } from '@/domain/auth/broker-stop-guard'
@@ -26,7 +27,16 @@ export const Brokers: CollectionConfig = {
   },
   hooks: {
     // 先跑业务校验（user 唯一/城市/商圈/团队/版本），再跑停用守卫（未完成线索）
-    beforeChange: [protectBroker, protectBrokerStop],
+    beforeChange: [
+      // OPT-074：服务商圈只校验类型与启用。「必须落在 serviceCities 之内」是
+      // 多值对多值的关系，parentField 表达不了；组件层用 scopeCitiesField 裁剪候选。
+      createLocationFieldGuard([
+        { field: 'serviceCities', type: 'city', many: true, label: '服务城市' },
+        { field: 'serviceBusinessAreas', type: 'business_area', many: true, label: '服务商圈' },
+      ]),
+      protectBroker,
+      protectBrokerStop,
+    ],
   },
   fields: [
     {
@@ -81,7 +91,7 @@ export const Brokers: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       hasMany: true,
-      filterOptions: () => activeLocationFilter(['city']),
+      filterOptions: () => locationTypeFilter(['city']),
     },
     {
       name: 'serviceBusinessAreas',
@@ -89,7 +99,22 @@ export const Brokers: CollectionConfig = {
       type: 'relationship',
       relationTo: 'locations',
       hasMany: true,
-      filterOptions: () => activeLocationFilter(['business_area']),
+      filterOptions: () => locationTypeFilter(['business_area']),
+      // OPT-074：级联多选，候选按该经纪人的服务城市裁剪。
+      // 只选叶子，故 changeOnSelect 关闭（组件按 selectableTypes 自行推导）。
+      admin: {
+        components: {
+          Field: {
+            path: '/components/admin/LocationCascadeField',
+            clientProps: {
+              selectableTypes: ['business_area'],
+              many: true,
+              scopeCitiesField: 'serviceCities',
+              placeholder: '选择服务商圈',
+            },
+          },
+        },
+      },
     },
     {
       name: 'version',

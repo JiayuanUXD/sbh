@@ -3,7 +3,8 @@ import { createCollectionAccess } from '@/domain/auth/access'
 import { DETAIL_MEDIA_KINDS, DETAIL_MEDIA_KIND_LABELS } from '@/domain/review/listing-fields'
 import { createFieldMaskHooks } from '@/domain/auth/field-hooks'
 import { getBuildingMaskRules } from '@/domain/auth/field-mask'
-import { activeLocationFilter } from '@/domain/geography/location-hierarchy'
+import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
+import { activeLocationFilter, locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import {
   invalidateBuildingPublicCacheAfterChange,
   invalidateBuildingPublicCacheAfterDelete,
@@ -144,7 +145,18 @@ export const Buildings: CollectionConfig = {
     // 楼盘保护（M3.1）：枚举双保险、city 校验、图集上限、版本乐观锁
     // syncBuildingMedia 必须排在 protectBuilding 之前：gallery 由 mediaItems 派生，
     // 只有先派生再校验，protectBuilding 的 BUILDING_GALLERY_MAX 兜底才拦得住 API 直传。
-    beforeChange: [syncBuildingMedia, protectBuilding],
+    // OPT-074：地理一致性校验排在 protectBuilding 之前——先确认城市/行政区/商圈
+    // 这条链自洽，再走楼盘自身的保护规则。guard 只校验本次真正改动的地理字段，
+    // 历史值即便指向已停用节点也放行（filterOptions 做不到这点，见该文件注释）。
+    beforeChange: [
+      syncBuildingMedia,
+      createLocationFieldGuard([
+        { field: 'city', type: 'city', label: '城市' },
+        { field: 'district', type: 'district', parentField: 'city', label: '行政区' },
+        { field: 'businessDistrict', type: 'business_area', parentField: 'district', label: '商圈' },
+      ]),
+      protectBuilding,
+    ],
     // 字段脱敏（tasks.md M1.4）：缺 building:coordinate 权限 → 坐标清空
     afterRead: createFieldMaskHooks(getBuildingMaskRules()),
     // 楼盘停用 / 换城市 / 改展示字段都会改变前台可见性与楼盘详情，必须失效公开缓存。
@@ -294,10 +306,28 @@ export const Buildings: CollectionConfig = {
               // M3.1：城市维度（design §3.4 buildings.city）。protect hook 校验
               // 存在 + type=city + 启用；仅启用城市可作为新建候选。
               name: 'city',
-              label: '城市',
+              label: '城市 / 行政区 / 商圈',
               type: 'relationship',
               relationTo: 'locations',
-              filterOptions: () => activeLocationFilter(['city']),
+              // OPT-074：filterOptions 降级为只收窄 type。status 与父子一致性
+              // 下沉到 createLocationFieldGuard（见 hooks.beforeChange）。
+              filterOptions: () => locationTypeFilter(['city']),
+              // OPT-074：级联控制器，一次选择写回 city / district / businessDistrict
+              admin: {
+                components: {
+                  Field: {
+                    path: '/components/admin/LocationCascadeField',
+                    clientProps: {
+                      selectableTypes: ['city', 'district', 'business_area'],
+                      writeBackFields: [
+                        { type: 'city', field: 'city' },
+                        { type: 'district', field: 'district' },
+                        { type: 'business_area', field: 'businessDistrict' },
+                      ],
+                    },
+                  },
+                },
+              },
             },
             {
               type: 'row',
@@ -308,15 +338,21 @@ export const Buildings: CollectionConfig = {
                   type: 'relationship',
                   relationTo: 'locations',
                   required: true,
-                  // M2.2：仅启用的行政区可作为新建候选；历史已存值不受影响
-                  filterOptions: () => activeLocationFilter(['district']),
+                  // OPT-074：原注释称「历史已存值不受影响（filterOptions 仅约束下拉候选）」，
+                  // 2026-09-06 实测证伪——filterOptions 在保存时是硬校验，停用一个正被
+                  // 引用的行政区，引用它的楼盘连改摘要都会被拦。故这里只留 type。
+                  filterOptions: () => locationTypeFilter(['district']),
+                  // 由 city 字段上的级联控制器接管
+                  admin: { hidden: true },
                 },
                 {
                   name: 'businessDistrict',
                   label: '商圈',
                   type: 'relationship',
                   relationTo: 'locations',
-                  filterOptions: () => activeLocationFilter(['business_area']),
+                  filterOptions: () => locationTypeFilter(['business_area']),
+                  // 由 city 字段上的级联控制器接管
+                  admin: { hidden: true },
                 },
               ],
             },

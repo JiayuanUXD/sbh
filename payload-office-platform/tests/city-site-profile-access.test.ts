@@ -53,6 +53,12 @@ describe('CitySiteProfiles collection boundary', () => {
       hasMany: true,
       maxRows: 12,
     })
-    expect(CitySiteProfiles.hooks?.beforeChange).toHaveLength(1)
+    // OPT-074 起是两个：地理一致性 guard 在前，原有的 protectCitySiteProfile 在后。
+    // 断言身份而不只是数量——数量守卫挡不住「换了个 hook 但个数没变」。
+    const beforeChange = CitySiteProfiles.hooks?.beforeChange ?? []
+    expect(beforeChange.map((h) => h.name)).toEqual([
+      'locationFieldGuard',
+      'protectCitySiteProfile',
+    ])
   })
 })
