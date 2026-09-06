@@ -58,10 +58,11 @@ export function normalizeAvgResponseHours(value: unknown): number | null {
  * 后台存的是 select 的字符串，历史行与意外值都可能出现，故一律收敛：
  * **只有明确的 3 才是 3，其余全部回落 5**——5 是本特性上线前的写死值，
  * 回落到它等于「配置没生效时保持现状」，而不是把首页改成另一副样子。
+ *
+ * 后台那份字符串档位（`'5'` / `'3'`）定义在 `src/collections/CitySiteProfiles.ts`
+ * 的 select options 里，与这里的数字契约值形状不同，没有共享常量；改档位要两处一起改。
  */
-export const FEATURED_DISTRICT_COUNTS = [3, 5] as const
-
-export type FeaturedDistrictCount = (typeof FEATURED_DISTRICT_COUNTS)[number]
+export type FeaturedDistrictCount = 3 | 5
 
 export function normalizeFeaturedDistrictCount(value: unknown): FeaturedDistrictCount {
   if (value === 3 || value === '3') return 3

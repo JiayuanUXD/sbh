@@ -6,7 +6,10 @@ import type { DistrictCardViewModel } from '@/domain/public-catalog/contracts'
 /**
  * OPT-035 首页「热门商圈」bento（方案 1：大卡 2fr×480 + 2×232 + 2×280）。
  *
- * 降级规则（cards 按 recommendedOrder 已排好，这里只取前 5）：
+ * 调用方（`CityHomeView.tsx`）已按城市配置把 cards 截到对应张数（3 或 5），
+ * 本组件只按拿到的张数选择下面的布局形态，不做任何截取。
+ *
+ * 降级规则：
  *   - 5 张：完整 bento（大卡 + 竖排 2 小卡 + 底行 2 宽卡）；
  *   - 3~4 张：只渲染第一行（大卡 + 竖排 2 小卡），多出的第 4 张不展示——
  *     宁可少一张也不凑单卡宽底行；
