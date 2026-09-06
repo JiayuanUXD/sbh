@@ -23,7 +23,10 @@
  * `filterOptions` 相应降级为只收窄 `type`——type 是不变量，历史值不可能违反它。
  */
 
-import type { LocationType } from './location-hierarchy'
+import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload'
+
+import { InvalidOperationError } from '@/domain/shared/errors'
+import { LOCATION_TYPE_LABELS, type LocationType } from './location-hierarchy'
 
 export type LocationFieldSpec = {
   /** 文档上的字段名 */
@@ -91,4 +94,139 @@ export function pendingLocationChecks(
   }
 
   return out
+}
+
+type LoadedNode = {
+  id: number | string
+  name?: unknown
+  type?: unknown
+  parent?: unknown
+  status?: unknown
+}
+
+const nameOf = (node: LoadedNode | undefined, fallback: number | string): string =>
+  typeof node?.name === 'string' && node.name !== '' ? node.name : `#${fallback}`
+
+const labelOf = (type: unknown): string =>
+  LOCATION_TYPE_LABELS[type as LocationType] ?? '未知类型'
+
+/**
+ * 批量加载节点。合并成一次 find —— 楼盘表单一次可能要校验 3 个字段外加它们的父级。
+ *
+ * 用 find 而不是 findByID：查不到只是 docs 里缺项，不会走 Payload 的 NotFound 路径，
+ * 因此不需要 findByIdSafe 那层防护（后者是为了避免 killTransaction 回滚调用方事务）。
+ * overrideAccess 显式为 true：这是服务端不变量校验，必须看得见全部地理节点，
+ * 不能因为当前用户的数据权限收窄而误判「父级不存在」。
+ */
+async function loadNodes(
+  req: PayloadRequest,
+  ids: Array<number | string>,
+): Promise<Map<string, LoadedNode>> {
+  if (ids.length === 0) return new Map()
+
+  const { docs } = await req.payload.find({
+    collection: 'locations' as never,
+    where: { id: { in: ids } },
+    depth: 0,
+    limit: ids.length,
+    pagination: false,
+    overrideAccess: true,
+    req,
+  })
+
+  return new Map((docs as LoadedNode[]).map((d) => [String(d.id), d]))
+}
+
+/**
+ * 产出 beforeChange hook：校验「类型正确 + 已启用 + 父子一致」，
+ * 但**只对本次真正改动的值**生效（理由见 pendingLocationChecks 的注释）。
+ *
+ * 错误一律抛 InvalidOperationError（422），文案说人话 —— 替代 Payload 原生的
+ * 「该字段有以下无效的选择：11」，那句话运营看不懂。
+ *
+ * 不在这里 try/catch：hook 里吞异常会让 Payload 的 killTransaction 回滚整个
+ * req 事务，写入会「成功返回但没落库」（见 domain/shared/transaction-safety.ts）。
+ */
+export function createLocationFieldGuard(
+  specs: readonly LocationFieldSpec[],
+): CollectionBeforeChangeHook {
+  return async ({ data, originalDoc, req }) => {
+    const doc = (data ?? {}) as Record<string, unknown>
+    const pending = pendingLocationChecks(specs, doc, originalDoc)
+    if (pending.length === 0) return data
+
+    /** 父字段的当前值：本次改了用新的，没改用 originalDoc 的 */
+    const parentValueOf = (spec: LocationFieldSpec): Array<number | string> =>
+      spec.parentField
+        ? toLocationIds(
+            spec.parentField in doc ? doc[spec.parentField] : originalDoc?.[spec.parentField],
+          )
+        : []
+
+    // 待校验节点 + 它们各自父字段的当前值，合并成一次查询
+    const seen = new Set<string>()
+    const ids: Array<number | string> = []
+    const push = (id: number | string) => {
+      if (seen.has(key(id))) return
+      seen.add(key(id))
+      ids.push(id)
+    }
+    for (const { spec, id } of pending) {
+      push(id)
+      for (const pid of parentValueOf(spec)) push(pid)
+    }
+
+    const nodes = await loadNodes(req, ids)
+
+    for (const { spec, id } of pending) {
+      const node = nodes.get(key(id))
+      const label = spec.label
+
+      if (!node) {
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'LOCATION_NOT_FOUND',
+          message: `${label}指向的地理节点不存在（#${id}）`,
+          details: { field: spec.field, id },
+        })
+      }
+
+      const allowed = Array.isArray(spec.type) ? spec.type : [spec.type as LocationType]
+      if (!allowed.includes(node.type as LocationType)) {
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'LOCATION_TYPE_MISMATCH',
+          message: `${label}只能选择${allowed.map(labelOf).join(' / ')}，「${nameOf(node, id)}」是${labelOf(node.type)}`,
+          details: { field: spec.field, id, expected: allowed, actual: node.type },
+        })
+      }
+
+      if (node.status !== 'active') {
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'LOCATION_DISABLED',
+          message: `${label}「${nameOf(node, id)}」已停用，不能选用`,
+          details: { field: spec.field, id },
+        })
+      }
+
+      const parentIds = parentValueOf(spec)
+      if (parentIds.length === 0) continue
+
+      const nodeParent = toLocationIds(node.parent)[0]
+      if (nodeParent === undefined || !parentIds.some((p) => key(p) === key(nodeParent))) {
+        const parentNode = nodes.get(key(parentIds[0]))
+        // 用父节点自身的 type 取标签：spec.type 可能是数组，索引不进 LABELS
+        const parentTypeLabel = parentNode ? labelOf(parentNode.type) : '上级'
+        throw new InvalidOperationError({
+          domain: 'geography',
+          code: 'LOCATION_PARENT_MISMATCH',
+          message: `${label}「${nameOf(node, id)}」不属于所选${parentTypeLabel}「${nameOf(parentNode, parentIds[0])}」`,
+          details: { field: spec.field, id, parentField: spec.parentField, parentIds },
+        })
+      }
+    }
+
+    return data
+  }
 }
