@@ -127,6 +127,7 @@ import {
   ratePruneRef,
 } from '@/app/api/inquiries/rate-limit-state'
 import { PRIVACY_POLICY_VERSION, siteConfig } from '@/lib/frontend/site-config'
+import { leadsUniqueViolation } from './helpers/unique-violation-fixtures'
 
 /**
  * ⚠️ 本文件多处断言响应体的**精确形状**，而 `visitorRef` 是否为 null 取决于
@@ -570,6 +571,30 @@ describe('POST /api/inquiries / 幂等', () => {
     expect(assertEffectiveListingMock).not.toHaveBeenCalled()
   })
 
+  it('幂等预查失败只记录固定安全分类，logger 抛错也继续创建', async () => {
+    const sensitive = 'AppSecret:13899998888:敏感姓名'
+    const readError = Object.assign(new Error(sensitive), {
+      cause: { stack: sensitive },
+    })
+    payloadFindMock.mockRejectedValueOnce(readError)
+    payloadCreateMock.mockResolvedValueOnce({ id: 1 })
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+    payloadLoggerError.mockImplementation(() => {
+      throw new Error(`logger:${sensitive}`)
+    })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'listing', visitorRef: null })
+    expect(payloadCreateMock).toHaveBeenCalledTimes(1)
+    expect(payloadLoggerError).toHaveBeenCalledWith(
+      { operation: 'inquiry_idempotency_precheck', errorCode: 'lookup_failed' },
+      'inquiry_idempotency_check_failed',
+    )
+    expect(JSON.stringify(payloadLoggerError.mock.calls)).not.toContain(sensitive)
+  })
+
   it('两个并发首提发生唯一约束竞争时都返回首次成功语义且只创建一条 Lead', async () => {
     let leadFindCount = 0
     let persistedLeadCount = 0
@@ -585,10 +610,7 @@ describe('POST /api/inquiries / 幂等', () => {
         persistedLeadCount += 1
         return { id: 1 }
       })
-      .mockRejectedValueOnce(Object.assign(new Error('duplicate key'), {
-        code: '23505',
-        constraint: 'leads_idempotency_key_idx',
-      }))
+      .mockRejectedValueOnce(leadsUniqueViolation())
     assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
 
     const body = makeValidBody()
@@ -801,6 +823,19 @@ describe('POST /api/inquiries / 限流', () => {
 // ---------------------------------------------------------------------------
 
 describe('POST /api/inquiries / 服务失败', () => {
+  it('供给复核未知异常保持原边界向上抛出，不伪装为 Lead 创建失败', async () => {
+    const supplyError = new Error('public catalog unavailable')
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    assertEffectiveListingMock.mockRejectedValue(supplyError)
+
+    await expect(POST(makeReq({ body: makeValidBody() }))).rejects.toBe(supplyError)
+    expect(payloadCreateMock).not.toHaveBeenCalled()
+    expect(payloadLoggerError).not.toHaveBeenCalledWith(
+      expect.anything(),
+      'inquiry_create_failed',
+    )
+  })
+
   it('payload.create 抛错 → 500 server_error', async () => {
     payloadFindMock.mockResolvedValue({ docs: [] })
     payloadCreateMock.mockRejectedValue(new Error('DB down'))
@@ -834,6 +869,39 @@ describe('POST /api/inquiries / 服务失败', () => {
     expect(json).not.toContain('DB connection refused')
     expect(json).not.toContain('10.0.0.1')
     expect(json).not.toContain('5432')
+  })
+
+  it('创建异常日志只记录固定安全分类，不泄露手机号、姓名、AppSecret 或异常链', async () => {
+    const sensitivePhone = '13899998888'
+    const sensitiveName = '敏感姓名张某'
+    const sensitiveSecret = 'AppSecret-super-sensitive-marker'
+    const createError = Object.assign(
+      new Error(`${sensitivePhone}:${sensitiveName}:${sensitiveSecret}`),
+      {
+        cause: { stack: `${sensitiveSecret}:${sensitivePhone}` },
+        leakedPayload: { name: sensitiveName },
+      },
+    )
+    payloadFindMock.mockResolvedValue({ docs: [] })
+    payloadCreateMock.mockRejectedValue(createError)
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: makeValidBody() }))
+
+    expect(r.status).toBe(500)
+    expect(r.body).toEqual({ ok: false, error: 'server_error' })
+    const serializedLogs = JSON.stringify([
+      ...payloadLoggerError.mock.calls,
+      ...payloadLoggerInfo.mock.calls,
+      ...payloadLoggerWarn.mock.calls,
+    ])
+    expect(serializedLogs).not.toContain(sensitivePhone)
+    expect(serializedLogs).not.toContain(sensitiveName)
+    expect(serializedLogs).not.toContain(sensitiveSecret)
+    expect(payloadLoggerError).toHaveBeenCalledWith(
+      { category: 'persistence', errorCode: 'inquiry_create_failed' },
+      'inquiry_create_failed',
+    )
   })
 })
 
@@ -1091,6 +1159,9 @@ describe('POST /api/inquiries / visitorRef（OPT-067）', () => {
     const provided = '0123456789abcdef0123456789abcdef'
     const r = await run(makeReq({ body: { ...makeValidBody(), visitorRef: provided } }))
     expect(r.body.visitorRef).toBe(provided)
+    expect(payloadCreateMock.mock.calls[0]?.[0]?.data.visitorRef).toBe(provided)
+    expect(JSON.stringify([payloadLoggerInfo.mock.calls, payloadLoggerWarn.mock.calls, payloadLoggerError.mock.calls]))
+      .not.toContain(provided)
   })
 
   it('回传非法值时忽略并回落到派生值，不让提交失败', async () => {
@@ -1103,6 +1174,7 @@ describe('POST /api/inquiries / visitorRef（OPT-067）', () => {
     expect(r.status).toBe(200)
     expect(r.body.visitorRef).toMatch(/^[0-9a-f]{32}$/)
     expect(r.body.visitorRef).not.toBe('../../etc/passwd')
+    expect(payloadCreateMock.mock.calls[0]?.[0]?.data.visitorRef).toBe(r.body.visitorRef)
   })
 
   it('缺密钥时 visitorRef 为 null，但提交照常成功', async () => {
@@ -1133,5 +1205,25 @@ describe('POST /api/inquiries / visitorRef（OPT-067）', () => {
     expect(r.status).toBe(200)
     expect(r.body.visitorRef).toBe(stored)
     expect(payloadCreateMock).not.toHaveBeenCalled()
+  })
+
+  it('唯一键竞争时响应首次落库 visitorRef，日志不泄漏 visitorRef 或原始 PII', async () => {
+    process.env.PAYLOAD_SECRET = 'test-secret-at-least-32-chars-long-000000'
+    const stored = 'fedcba9876543210fedcba9876543210'
+    const provided = '0123456789abcdef0123456789abcdef'
+    payloadFindMock.mockResolvedValueOnce({ docs: [] })
+      .mockResolvedValueOnce({ docs: [{ targetType: 'building', visitorRef: stored }] })
+    payloadCreateMock.mockRejectedValue(leadsUniqueViolation())
+    assertEffectiveListingMock.mockResolvedValue({ id: 1001 })
+
+    const r = await run(makeReq({ body: { ...makeValidBody(), visitorRef: provided } }))
+
+    expect(r.status).toBe(200)
+    expect(r.body).toEqual({ ok: true, targetResolution: 'building', visitorRef: stored })
+    expect(payloadCreateMock.mock.calls[0]?.[0]?.data.visitorRef).toBe(provided)
+    const logs = JSON.stringify([payloadLoggerInfo.mock.calls, payloadLoggerWarn.mock.calls, payloadLoggerError.mock.calls])
+    expect(logs).not.toContain(stored)
+    expect(logs).not.toContain(provided)
+    expect(logs).not.toContain('13800001111')
   })
 })

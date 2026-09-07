@@ -1,0 +1,803 @@
+import { describe, expect, it } from 'vitest'
+import {
+  mapMiniBuildingCard,
+  mapMiniBuildingDetail,
+  mapMiniBuildings,
+  mapMiniHome,
+  mapMiniListingCard,
+  mapMiniListingDetail,
+  mapMiniListings,
+} from '@/domain/mini-program/mappers'
+import type {
+  MiniBuildingCard,
+  MiniListingDetailData,
+} from '@/domain/mini-program/contracts'
+import { mapBuildingDetail } from '@/domain/public-catalog'
+import type {
+  BuildingDetailViewModel,
+  BuildingFilteredResult,
+  BuildingSummaryViewModel,
+  HomepageData,
+  ListingCardViewModel,
+  ListingDetailViewModel,
+  ListingSearchResult,
+  SearchFacets,
+} from '@/domain/public-catalog'
+import { BUILDING_JINGAN_CENTER } from '@/test/frontend/payload-documents'
+
+function requiredBuildingInfo(detail: MiniListingDetailData): MiniBuildingCard | null {
+  return detail.buildingInfo
+}
+
+const card = {
+  id: 42,
+  slug: 'jing-an-100',
+  title: '静安中心 100㎡',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  price: {
+    amount: 8.5,
+    currency: 'CNY',
+    businessType: 'lease',
+    period: 'day',
+    basis: 'sqm',
+    displayUnit: 'rmb-sqm-day',
+    text: '8.5 元/㎡/天',
+  },
+  area: 100,
+  floor: '9',
+  seats: null,
+  businessType: 'lease',
+  decorationStatus: 'fully_fitted',
+  listingType: 'traditional-office',
+  availableFrom: '2026-09-01',
+  isFeatured: true,
+  building: {
+    id: 7,
+    slug: 'jing-an-center',
+    name: '静安中心',
+    address: '南京西路',
+    citySlug: 'shanghai',
+    cityName: '上海',
+    district: { id: 8, slug: 'jing-an', name: '静安区' },
+  },
+  coverImage: null,
+  highlights: ['近地铁'],
+  stableSortKey: '42',
+} satisfies ListingCardViewModel
+
+const facets = {
+  districts: [{ id: 8, slug: 'jing-an', name: '静安区', count: 6 }],
+  listingTypes: [
+    { value: 'traditional-office', count: 1 },
+    { value: 'coworking', count: 2 },
+    { value: 'full-floor', count: 3 },
+    { value: 'serviced-office', count: 4 },
+  ],
+  rentUnits: [
+    { value: 'rmb-sqm-day', count: 1 },
+    { value: 'rmb-sqm-month', count: 2 },
+    { value: 'rmb-sqm-year', count: 3 },
+    { value: 'rmb-sqm-total', count: 4 },
+    { value: 'rmb-seat-day', count: 5 },
+    { value: 'rmb-seat-month', count: 6 },
+    { value: 'rmb-seat-year', count: 7 },
+    { value: 'rmb-seat-total', count: 8 },
+    { value: 'rmb-day', count: 9 },
+    { value: 'rmb-month', count: 10 },
+    { value: 'rmb-year', count: 11 },
+    { value: 'rmb-total', count: 12 },
+  ],
+  totalDocs: 10,
+} satisfies SearchFacets
+
+const MEDIA_ORIGIN = 'https://sbh.example'
+const listingFacetBundle = {
+  district: facets,
+  listingType: facets,
+  priceUnit: facets,
+}
+
+const buildingSummary = {
+  id: 7,
+  slug: 'jing-an-center',
+  name: '静安中心',
+  address: '南京西路 1 号',
+  citySlug: 'shanghai',
+  cityName: '上海',
+  grade: 'super-grade-a',
+  district: { id: 8, slug: 'jing-an', name: '静安区' },
+  nearestMetro: { id: 9, slug: 'west-nanjing-road', name: '南京西路站' },
+  completionDate: '2013-01-01T00:00:00.000Z',
+  coverImage: { src: '/building.jpg', alt: '静安中心外观' },
+} satisfies BuildingSummaryViewModel
+
+function buildingFact(
+  label: string,
+  value: string | null,
+  magnitude: string | null = null,
+  unit: string | null = null,
+) {
+  return { label, value, magnitude, unit, estimated: false, critical: false }
+}
+
+const buildingDetail = {
+  ...buildingSummary,
+  coverImage: buildingSummary.coverImage,
+  gallery: [buildingSummary.coverImage],
+  mediaItems: [],
+  factGroups: [
+    {
+      id: 'building',
+      title: '建筑信息',
+      facts: [
+        buildingFact('竣工时间', '2013-01-01T00:00:00.000Z', '2013-01-01T00:00:00.000Z'),
+        buildingFact('总楼层', '66 层', '66', '层'),
+        buildingFact('标准层面积', '2,000 ㎡', '2,000', '㎡'),
+      ],
+    },
+    {
+      id: 'property',
+      title: '开发物业',
+      facts: [
+        buildingFact('物业公司', ' 第一太平戴维斯 '),
+        buildingFact('物业费', '38 元/㎡/月', '38', '元/㎡/月'),
+      ],
+    },
+    {
+      id: 'transport',
+      title: '电梯与停车',
+      facts: [
+        buildingFact('客梯', '12 部', '12', '部'),
+        buildingFact('货梯', null),
+        buildingFact('停车位', '600 个', '600', '个'),
+      ],
+    },
+  ],
+  amenityGroups: [],
+  verification: { verifiedAt: null, priceVerifiedAt: null },
+  amenities: [],
+  summary: '',
+  description: null,
+} satisfies BuildingDetailViewModel
+
+function detailWithPropertyFee(
+  overrides: Partial<ListingDetailViewModel> = {},
+): ListingDetailViewModel {
+  return {
+    ...card,
+    gallery: [{ src: '/gallery.jpg', alt: '办公区' }],
+    mediaItems: [],
+    factGroups: [{
+      id: 'cost',
+      title: '费用条款',
+      facts: [
+        {
+          label: '物业费',
+          value: '不包含',
+          magnitude: null,
+          unit: null,
+          estimated: false,
+          critical: false,
+        },
+        {
+          label: '物业费金额',
+          value: '28 元/㎡/月',
+          magnitude: '28',
+          unit: '元/㎡/月',
+          estimated: false,
+          critical: false,
+        },
+      ],
+    }],
+    amenityGroups: [],
+    verification: {
+      verifiedAt: '2026-08-20T00:00:00.000Z',
+      priceVerifiedAt: '2026-08-21T00:00:00.000Z',
+    },
+    description: {
+      root: {
+        type: 'root',
+        children: [],
+        direction: null,
+        format: '',
+        indent: 0,
+        version: 1,
+      },
+    },
+    ...overrides,
+  }
+}
+
+describe('Mini API mappers', () => {
+  it('房源详情合同要求显式返回完整楼盘信息或 null', () => {
+    const mapped = mapMiniListingDetail(
+      detailWithPropertyFee(),
+      [],
+      MEDIA_ORIGIN,
+      'MVP-R1',
+    )
+
+    expect(requiredBuildingInfo(mapped)).toEqual(mapMiniBuildingCard(card.building, MEDIA_ORIGIN))
+  })
+
+  it('详情显式注入只读隐私政策版本，不从房源数据推断', () => {
+    const mapped = mapMiniListingDetail(
+      detailWithPropertyFee(),
+      [],
+      MEDIA_ORIGIN,
+      'MVP-R1',
+    )
+
+    expect(mapped.inquiryPolicy).toEqual({ version: 'MVP-R1' })
+    expect(Object.keys(mapped.inquiryPolicy)).toEqual(['version'])
+  })
+
+  it('keeps structural price fields and adds the shared monthly estimate', () => {
+    expect(mapMiniListingCard(card, MEDIA_ORIGIN).price).toEqual({
+      ...card.price,
+      monthlyEstimate: 25_500,
+    })
+  })
+
+  it('only exposes the explicit mini card whitelist', () => {
+    expect(Object.keys(mapMiniListingCard(card, MEDIA_ORIGIN)).sort()).toEqual([
+      'area', 'availableFrom', 'building', 'cityName', 'citySlug', 'coverImage', 'highlights',
+      'id', 'listingType', 'price', 'seats', 'slug', 'title',
+    ])
+    expect(mapMiniListingCard(card, MEDIA_ORIGIN)).toMatchObject({
+      id: '42',
+      listingType: { value: 'traditional-office', label: '传统办公' },
+      building: {
+        slug: 'jing-an-center',
+        name: '静安中心',
+        address: '南京西路',
+        district: '静安区',
+      },
+    })
+  })
+
+  const unsafeCard = {
+    ...card,
+    price: { ...card.price, internalRateCode: 'price-secret' },
+    coverImage: {
+      src: '/cover.jpg',
+      alt: '封面',
+      storageAudit: 'cover-secret',
+    },
+  }
+  const unsafeStats = {
+    listings: 10,
+    buildings: 3,
+    businessAreas: 2,
+    auditTotal: 'stats-secret',
+  }
+  const unsafePagination = {
+    page: 1,
+    pageSize: 24 as const,
+    totalDocs: 1,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+    internalCursor: 'pagination-secret',
+  }
+  const unsafeGalleryImage = {
+    src: '/gallery.jpg',
+    alt: '办公区',
+    merchantAssetId: 'gallery-secret',
+  }
+  const unsafeHome = {
+    featuredListings: [unsafeCard],
+    districts: [],
+    featuredBuildings: [],
+    districtCards: [],
+    latestArticles: [],
+    stats: unsafeStats,
+    typeSummaries: {},
+    nearbyListings: [],
+  }
+  const unsafeResult = {
+    docs: [unsafeCard],
+    pagination: unsafePagination,
+    canonical: '',
+    filteredByRentUnit: false,
+  }
+
+  it.each([
+    {
+      path: 'price',
+      secret: 'price-secret',
+      output: () => mapMiniListingCard(unsafeCard, MEDIA_ORIGIN),
+    },
+    {
+      path: 'coverImage',
+      secret: 'cover-secret',
+      output: () => mapMiniListingCard(unsafeCard, MEDIA_ORIGIN),
+    },
+    {
+      path: 'home.stats',
+      secret: 'stats-secret',
+      output: () => mapMiniHome(unsafeHome, facets, MEDIA_ORIGIN, 'policy-v2'),
+    },
+    {
+      path: 'listings.pagination',
+      secret: 'pagination-secret',
+      output: () => mapMiniListings(unsafeResult, listingFacetBundle, null, MEDIA_ORIGIN),
+    },
+    {
+      path: 'detail.gallery',
+      secret: 'gallery-secret',
+      output: () => mapMiniListingDetail(detailWithPropertyFee({
+        gallery: [unsafeGalleryImage],
+      }), [], MEDIA_ORIGIN, 'MVP-R1'),
+    },
+  ])('recursively whitelists nested $path fields', ({ output, secret }) => {
+    expect(JSON.stringify(output())).not.toContain(secret)
+  })
+
+  it.each([
+    { price: null, area: 100, expected: null },
+    { price: card.price, area: null, expected: null },
+  ])('does not fabricate monthly estimate: $expected', ({ price, area, expected }) => {
+    expect(mapMiniListingCard({ ...card, price, area }, MEDIA_ORIGIN).price?.monthlyEstimate ?? null).toBe(expected)
+  })
+
+  it('maps home and listings through explicit transport fields', () => {
+    const home = {
+      featuredListings: [card],
+      districts: [],
+      featuredBuildings: [],
+      districtCards: [],
+      latestArticles: [],
+      stats: { listings: 10, buildings: 3, businessAreas: 2 },
+      typeSummaries: {},
+      nearbyListings: [],
+    } satisfies HomepageData
+    const result = {
+      docs: [card],
+      pagination: {
+        page: 1,
+        pageSize: 24,
+        totalDocs: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+      canonical: 'district=jing-an',
+      filteredByRentUnit: true,
+    } satisfies ListingSearchResult
+
+    expect(mapMiniHome(home, facets, MEDIA_ORIGIN, 'policy-v2')).toEqual({
+      featuredListings: [mapMiniListingCard(card, MEDIA_ORIGIN)],
+      featuredBuildings: [],
+      quickFilters: expect.any(Array),
+      stats: home.stats,
+      inquiryPolicy: { version: 'policy-v2' },
+    })
+    expect(mapMiniListings(result, listingFacetBundle, 'rmb-sqm-day', MEDIA_ORIGIN)).toEqual({
+      items: [mapMiniListingCard(card, MEDIA_ORIGIN)],
+      pagination: result.pagination,
+      canonicalQuery: 'district=jing-an',
+      currentPriceUnit: 'rmb-sqm-day',
+      filters: expect.any(Array),
+    })
+  })
+
+  it('maps real building enums without inventing metro or stock facts', () => {
+    expect(mapMiniBuildingCard(buildingSummary, MEDIA_ORIGIN)).toMatchObject({
+      grade: 'super-grade-a',
+      completedYear: 2013,
+      activeListingCount: null,
+      nearestMetro: {
+        station: '南京西路站',
+        line: null,
+        distanceMeters: null,
+      },
+    })
+  })
+
+  it('maps homepage featured buildings from the public catalog snapshot', () => {
+    const home = {
+      featuredListings: [],
+      districts: [],
+      featuredBuildings: [{ ...buildingSummary, listingCount: 3 }],
+      districtCards: [],
+      latestArticles: [],
+      stats: { listings: 10, buildings: 3, businessAreas: 2 },
+      typeSummaries: {},
+      nearbyListings: [],
+    } satisfies HomepageData
+
+    expect(mapMiniHome(home, facets, MEDIA_ORIGIN, 'policy-v2').featuredBuildings).toEqual([
+      mapMiniBuildingCard(home.featuredBuildings[0], MEDIA_ORIGIN),
+    ])
+  })
+
+  it('uses the public building page size instead of the historical hard-coded 20', () => {
+    const result = {
+      docs: [{ ...buildingSummary, listingCount: 3 }],
+      groups: { withStock: [{ ...buildingSummary, listingCount: 3 }], withoutStock: [] },
+      totalDocs: 25,
+      withStockTotal: 24,
+      withoutStockTotal: 1,
+      unfilteredTotalDocs: 25,
+      page: 1,
+      totalPages: 2,
+      facets: { districts: [], grades: [], metros: [] },
+      dimensionHits: {
+        district: 25,
+        grade: 25,
+        metro: 25,
+        leasableArea: 25,
+        completedAfter: 25,
+        onlyWithStock: 25,
+      },
+    } satisfies BuildingFilteredResult
+
+    expect(mapMiniBuildings).toHaveLength(4)
+    expect(mapMiniBuildings(result, 24, MEDIA_ORIGIN, 'policy-v2')).toMatchObject({
+      pagination: { pageSize: 24 },
+      inquiryPolicy: { version: 'policy-v2' },
+      districtOptions: [],
+    })
+  })
+
+  it('consumes facts produced by the real public building mapper', () => {
+    const publicDetail = mapBuildingDetail({
+      ...BUILDING_JINGAN_CENTER,
+      completionDate: '2013-01-01T00:00:00.000Z',
+      totalFloors: 66,
+      developerAndScale: { typicalFloorArea: 2_000 },
+      propertyCompany: '第一太平戴维斯',
+      propertyFee: 38,
+      verticalTransport: { passengerElevators: 12, freightElevators: 2 },
+      parkingSpaces: 600,
+    }, '2026-09-04T00:00:00.000Z')
+    if (publicDetail === null) throw new Error('公共楼盘 fixture 映射失败')
+
+    const mapped = mapMiniBuildingDetail(
+      publicDetail,
+      {
+        asOf: '2026-09-04T00:00:00.000Z',
+        groups: [],
+        availableGroups: [],
+        totalEffectiveListings: 0,
+        resultCount: 0,
+        validationErrors: [],
+      },
+      [],
+      MEDIA_ORIGIN,
+      'policy-building-v2',
+    )
+
+    expect(mapped).toMatchObject({
+      grade: 'grade-a',
+      completedYear: 2013,
+      totalFloors: 66,
+      standardFloorArea: 2_000,
+      elevators: { passenger: 12, cargo: 2 },
+      parkingSpaces: 600,
+      propertyManagementCompany: '第一太平戴维斯',
+      propertyFee: 38,
+      inquiryPolicy: { version: 'policy-building-v2' },
+    })
+  })
+
+  it('每套有效房源恰好进入一个面积分组，未知面积不丢失也不重复', () => {
+    const unknownAreaListing = { ...card, id: 43, slug: 'unknown-area', area: null }
+    const duplicateUnknownAreaListing = { ...unknownAreaListing }
+    const supply = {
+      asOf: '2026-09-04T00:00:00.000Z',
+      groups: [{
+        key: 'lease' as const,
+        listings: [card, unknownAreaListing, duplicateUnknownAreaListing],
+        priceRanges: [],
+        areaRange: null,
+        seatRange: null,
+        immediateAvailabilityCount: 2,
+        priceSortDegraded: false,
+      }],
+      availableGroups: [],
+      totalEffectiveListings: 3,
+      resultCount: 3,
+      validationErrors: [],
+    }
+
+    const mapped = mapMiniBuildingDetail(
+      buildingDetail,
+      supply,
+      [],
+      MEDIA_ORIGIN,
+      'policy-building-v2',
+    )
+
+    expect(mapped).toMatchObject({
+      grade: 'super-grade-a',
+      completedYear: 2013,
+      totalFloors: 66,
+      standardFloorArea: 2_000,
+      elevators: { passenger: 12, cargo: null },
+      parkingSpaces: 600,
+      propertyManagementCompany: '第一太平戴维斯',
+      propertyFee: 38,
+      nearestMetro: { station: '南京西路站', line: null, distanceMeters: null },
+      inquiryPolicy: { version: 'policy-building-v2' },
+    })
+    const grouped = mapped.groupedListings.flatMap((group) => group.items)
+    expect(grouped.map((item) => item.slug)).toEqual([card.slug, 'unknown-area'])
+    expect(mapped.groupedListings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ areaRange: '面积待确认', count: 1 }),
+    ]))
+    expect(new Set(grouped.map((item) => item.id)).size).toBe(mapped.activeListingCount)
+    expect(grouped).toHaveLength(mapped.activeListingCount)
+  })
+
+  it('builds each list filter from the facet snapshot that ignored that same dimension', () => {
+    const bundle = {
+      district: {
+        ...facets,
+        districts: [{ id: 18, slug: 'huang-pu', name: '黄浦区', count: 8 }],
+      },
+      listingType: {
+        ...facets,
+        listingTypes: [{ value: 'coworking', count: 7 }],
+      },
+      priceUnit: {
+        ...facets,
+        rentUnits: [{ value: 'rmb-month', count: 6 }],
+      },
+    }
+    const mapped = mapMiniListings({
+      docs: [],
+      pagination: {
+        page: 1,
+        pageSize: 24,
+        totalDocs: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+      canonical: 'district=jing-an&listingType=traditional-office&priceUnit=rmb-sqm-day',
+      filteredByRentUnit: true,
+    }, bundle, 'rmb-sqm-day', MEDIA_ORIGIN)
+
+    expect(mapped.filters).toEqual([
+      {
+        id: 'district',
+        label: '区域',
+        options: [{ value: 'huang-pu', label: '黄浦区', count: 8 }],
+      },
+      {
+        id: 'listingType',
+        label: '类型',
+        options: [{ value: 'coworking', label: '共享办公', count: 7 }],
+      },
+      {
+        id: 'priceUnit',
+        label: '计价单位',
+        options: [{ value: 'rmb-month', label: '元/月', count: 6 }],
+      },
+    ])
+  })
+
+  it('turns root-relative media into absolute URLs and preserves absolute CDN URLs', () => {
+    const rootRelative = mapMiniListingCard({
+      ...card,
+      coverImage: { src: '/media/cover.jpg', alt: '封面' },
+    }, MEDIA_ORIGIN)
+    const absolute = mapMiniListingCard({
+      ...card,
+      coverImage: { src: 'https://cdn.example.com/cover.jpg', alt: '封面' },
+    }, MEDIA_ORIGIN)
+    const detail = mapMiniListingDetail(detailWithPropertyFee({
+      gallery: [{ src: '/media/gallery.jpg', alt: '办公区' }],
+    }), [], MEDIA_ORIGIN, 'MVP-R1')
+
+    expect(rootRelative.coverImage?.src).toBe('https://sbh.example/media/cover.jpg')
+    expect(absolute.coverImage?.src).toBe('https://cdn.example.com/cover.jpg')
+    expect(detail.listing.gallery[0]?.src).toBe('https://sbh.example/media/gallery.jpg')
+  })
+
+  it('covers every Chinese listing type and price unit label', () => {
+    const filters = mapMiniHome({
+      featuredListings: [],
+      districts: [],
+      featuredBuildings: [],
+      districtCards: [],
+      latestArticles: [],
+      stats: { listings: 0, buildings: 0, businessAreas: 0 },
+      typeSummaries: {},
+      nearbyListings: [],
+    }, facets, MEDIA_ORIGIN, 'policy-v2').quickFilters
+
+    expect(filters.find((filter) => filter.id === 'listingType')?.options).toEqual([
+      { value: 'traditional-office', label: '传统办公', count: 1 },
+      { value: 'coworking', label: '共享办公', count: 2 },
+      { value: 'full-floor', label: '整层办公', count: 3 },
+      { value: 'serviced-office', label: '独栋办公', count: 4 },
+    ])
+    expect(filters.find((filter) => filter.id === 'priceUnit')?.options).toEqual([
+      { value: 'rmb-sqm-day', label: '元/㎡/天', count: 1 },
+      { value: 'rmb-sqm-month', label: '元/㎡/月', count: 2 },
+      { value: 'rmb-sqm-year', label: '元/㎡/年', count: 3 },
+      { value: 'rmb-sqm-total', label: '元/㎡', count: 4 },
+      { value: 'rmb-seat-day', label: '元/工位/天', count: 5 },
+      { value: 'rmb-seat-month', label: '元/工位/月', count: 6 },
+      { value: 'rmb-seat-year', label: '元/工位/年', count: 7 },
+      { value: 'rmb-seat-total', label: '元/工位', count: 8 },
+      { value: 'rmb-day', label: '元/天', count: 9 },
+      { value: 'rmb-month', label: '元/月', count: 10 },
+      { value: 'rmb-year', label: '元/年', count: 11 },
+      { value: 'rmb-total', label: '元', count: 12 },
+    ])
+  })
+
+  it('calculates property fee only from a monthly per-sqm amount and complete area', () => {
+    expect(mapMiniListingDetail(detailWithPropertyFee(), [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost).toEqual({
+      currency: 'CNY',
+      period: 'month',
+      propertyFeeInclusion: 'excluded',
+      rent: 25_500,
+      propertyFee: 2_800,
+      total: 28_300,
+      assumptions: ['日租按 30 天折算月租', '物业费不包含：仅在租金、物业费金额与面积齐全时计算合计'],
+    })
+
+    const wrongUnit = detailWithPropertyFee({
+      factGroups: [{
+        id: 'cost',
+        title: '费用条款',
+        facts: [{
+          label: '物业费金额',
+          value: '28 元/天',
+          magnitude: '28',
+          unit: '元/天',
+          estimated: false,
+          critical: false,
+        }],
+      }],
+    })
+    expect(mapMiniListingDetail(wrongUnit, [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost.propertyFee).toBeNull()
+  })
+
+  it.each([
+    { name: 'rent', detail: detailWithPropertyFee({ price: null }) },
+    { name: 'property fee', detail: detailWithPropertyFee({ factGroups: [] }) },
+    { name: 'area', detail: detailWithPropertyFee({ area: null }) },
+  ])('keeps total null when $name is missing', ({ detail }) => {
+    expect(mapMiniListingDetail(detail, [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost.total).toBeNull()
+  })
+
+  it.each([
+    {
+      name: 'included with a displayable amount',
+      inclusion: '包含',
+      amount: '28',
+      expected: {
+        propertyFeeInclusion: 'included',
+        propertyFee: 2_800,
+        total: 25_500,
+        assumption: '物业费已包含在租金中，不重复加总',
+      },
+    },
+    {
+      name: 'included without an amount',
+      inclusion: '包含',
+      amount: null,
+      expected: {
+        propertyFeeInclusion: 'included',
+        propertyFee: null,
+        total: 25_500,
+        assumption: '物业费已包含在租金中，不重复加总',
+      },
+    },
+    {
+      name: 'excluded',
+      inclusion: '不包含',
+      amount: '28',
+      expected: {
+        propertyFeeInclusion: 'excluded',
+        propertyFee: 2_800,
+        total: 28_300,
+        assumption: '物业费不包含：仅在租金、物业费金额与面积齐全时计算合计',
+      },
+    },
+    {
+      name: 'confirm',
+      inclusion: '待确认',
+      amount: '28',
+      expected: {
+        propertyFeeInclusion: 'confirm',
+        propertyFee: 2_800,
+        total: null,
+        assumption: '物业费包含情况待确认，暂不计算合计',
+      },
+    },
+    {
+      name: 'missing inclusion',
+      inclusion: null,
+      amount: '28',
+      expected: {
+        propertyFeeInclusion: null,
+        propertyFee: 2_800,
+        total: null,
+        assumption: '物业费包含情况缺失，暂不计算合计',
+      },
+    },
+  ])('models property fee state: $name', ({ inclusion, amount, expected }) => {
+    const facts = [
+      ...(inclusion == null ? [] : [{
+        label: '物业费', value: inclusion, magnitude: null, unit: null,
+        estimated: false, critical: false,
+      }]),
+      ...(amount == null ? [] : [{
+        label: '物业费金额', value: `${amount} 元/㎡/月`, magnitude: amount,
+        unit: '元/㎡/月', estimated: false, critical: false,
+      }]),
+    ]
+    const monthlyCost = mapMiniListingDetail(detailWithPropertyFee({
+      factGroups: [{ id: 'cost', title: '费用条款', facts }],
+    }), [], MEDIA_ORIGIN, 'MVP-R1').monthlyCost
+
+    expect(monthlyCost).toMatchObject({
+      currency: 'CNY',
+      period: 'month',
+      propertyFeeInclusion: expected.propertyFeeInclusion,
+      rent: 25_500,
+      propertyFee: expected.propertyFee,
+      total: expected.total,
+    })
+    expect(monthlyCost.assumptions).toContain(expected.assumption)
+  })
+
+  it('rounds rent, property fee and total to CNY cents', () => {
+    const mapped = mapMiniListingDetail(detailWithPropertyFee({
+      area: 3,
+      price: { ...card.price, amount: 0.1 },
+      factGroups: [{
+        id: 'cost',
+        title: '费用条款',
+        facts: [
+          { label: '物业费', value: '不包含', magnitude: null, unit: null, estimated: false, critical: false },
+          { label: '物业费金额', value: '0.2 元/㎡/月', magnitude: '0.2', unit: '元/㎡/月', estimated: false, critical: false },
+        ],
+      }],
+    }), [], MEDIA_ORIGIN, 'MVP-R1')
+
+    expect(mapped.listing.price?.monthlyEstimate).toBe(9)
+    expect(mapped.monthlyCost).toMatchObject({ rent: 9, propertyFee: 0.6, total: 9.6 })
+    expect(mapped.listing.price?.monthlyEstimate).toBe(mapped.monthlyCost.rent)
+  })
+
+  it('projects detail facts and excludes rich text and internal-looking fields', () => {
+    const unsafeDetail = {
+      ...detailWithPropertyFee(),
+      merchant: { id: 9, phone: '13800001111' },
+      audit: { actor: 'internal-user' },
+      reviewStatus: 'approved',
+    }
+    const mapped = mapMiniListingDetail(unsafeDetail, [card], MEDIA_ORIGIN, 'MVP-R1')
+    const serialized = JSON.stringify(mapped)
+
+    expect(mapped.listing.factGroups).toEqual([{
+      id: 'cost',
+      title: '费用条款',
+      facts: [
+        { label: '物业费', value: '不包含', estimated: false },
+        { label: '物业费金额', value: '28 元/㎡/月', estimated: false },
+      ],
+    }])
+    expect(mapped.relatedListings).toEqual([mapMiniListingCard(card, MEDIA_ORIGIN)])
+    expect(serialized).not.toMatch(/"(?:description|merchant|audit|reviewStatus)":/)
+    expect(serialized).not.toContain('13800001111')
+  })
+
+  it('availableFrom 序列化为上海自然日 date-only，兼容时刻与 date-only 输入', () => {
+    const timestampCard = { ...card, availableFrom: '2026-08-14T16:00:00.000Z' }
+    expect(mapMiniListingCard(timestampCard, MEDIA_ORIGIN).availableFrom).toBe('2026-08-15')
+    const dateOnlyCard = { ...card, availableFrom: '2026-09-01' }
+    expect(mapMiniListingCard(dateOnlyCard, MEDIA_ORIGIN).availableFrom).toBe('2026-09-01')
+    const nullCard = { ...card, availableFrom: null }
+    expect(mapMiniListingCard(nullCard, MEDIA_ORIGIN).availableFrom).toBeNull()
+  })
+})

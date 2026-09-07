@@ -1,5 +1,7 @@
 # 中高端商务办公租赁平台 Payload CMS
 
+> MP-104：Node 侧代码与静态合同已验证；预发布写入、微信开发者工具、真机、合法域名、隐私配置与正式发布均未执行，待环境验收。
+
 本地 Payload CMS + Next.js 原型，用于商业办公租赁平台的后台内容管理和前台展示。
 
 ## 本地启动
@@ -36,7 +38,7 @@ pnpm dev
 - Payload CMS 3
 - Next.js 16
 - React 19
-- SQLite 本地数据库
+- PostgreSQL（本地/CI/生产统一，显式迁移，`push: false`）
 - Lexical 富文本编辑器
 
-生产环境建议将 SQLite 替换为 PostgreSQL，并接入对象存储、地图 API 和搜索服务。
+媒体、地图 API 和搜索服务按各自工作项配置；本任务不写入生产数据库。

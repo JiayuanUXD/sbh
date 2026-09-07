@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-02",
+  "scope": "read-only DevTools environment diagnostic",
+  "workspace": "/Users/liujiayuan/App/wt-mp-trial",
+  "gitCommitSha": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+  "manifest": {
+    "cloudEnvId": "sbhmini-gateway-d3fbrmn8097478b8",
+    "cloudServiceName": "sbhmini",
+    "gitCommitSha": "8eab1a17cfe5800d1778fbad2d47cf4c54542d87",
+    "serverDeploymentRevision": "sbhmini-005"
+  },
+  "devtools": {
+    "cliPath": "/Applications/wechatwebdevtools.app/Contents/MacOS/cli",
+    "automator": "miniprogram-automator@0.12.1",
+    "appIdPresent": true,
+    "envVersion": "develop",
+    "systemPlatform": "devtools",
+    "systemInfoVersion": "8.0.5",
+    "initialPage": "pages/home/index"
+  },
+  "result": "blocked-trial-not-loaded",
+  "interpretation": "本地工程自动化启动实际读取 develop；没有产生 wx.cloud.callContainer、目标 revision 或性能面板证据。",
+  "actionsNotTaken": [
+    "未 mock wx.getAccountInfoSync",
+    "未执行预览或上传",
+    "未部署、未提交、未推送",
+    "未执行咨询写入"
+  ],
+  "devtoolsSmoke": {
+    "command": "WECHAT_DEVTOOLS_CLI=/Applications/wechatwebdevtools.app/Contents/MacOS/cli npx --yes --package=node@22 -c 'node --version && pnpm devtools:smoke'",
+    "exitCode": 1,
+    "error": "首条房源查询超时",
+    "interpretation": "该 detached HEAD 副本包含提交快照中的旧 CSS selector；原工作树中已存在但未提交的 XPath 修复不属于本次从 HEAD 生成的候选副本。"
+  }
+}

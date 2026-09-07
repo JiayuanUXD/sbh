@@ -1,0 +1,13 @@
+<view
+  class="sbh-button sbh-button--{{resolvedVariant}} {{disabled ? 'is-disabled' : ''}} {{loading ? 'is-loading' : ''}}"
+  hover-class="{{disabled || loading ? 'none' : 'sbh-button--pressed'}}"
+  hover-stay-time="70"
+  aria-role="button"
+  aria-disabled="{{disabled || loading}}"
+  aria-busy="{{loading}}"
+  catchtap="handleTap"
+>
+  <text wx:if="{{loading}}" class="sbh-button__status">处理中</text>
+  <block wx:else><slot /></block>
+  <text wx:if="{{disabled && !loading}}" class="sbh-button__status sbh-button__status--suffix">不可用</text>
+</view>

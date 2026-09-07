@@ -1,0 +1,350 @@
+{
+  "timestamp": "2026-09-03T10:50:54.774Z",
+  "systemInfo": {
+    "SDKVersion": "2.27.3",
+    "platform": "devtools",
+    "version": "8.0.5",
+    "windowWidth": 430,
+    "windowHeight": 752,
+    "pixelRatio": 3
+  },
+  "performanceEntries": [
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432655241,
+      "path": "pages/home/index",
+      "pageId": 7
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432655241,
+      "path": "pages/home/index",
+      "pageId": 7
+    },
+    {
+      "entryType": "navigation",
+      "name": "route",
+      "startTime": 1788432659475,
+      "duration": 777,
+      "navigationType": "switchTab",
+      "path": "pages/listings/index",
+      "pageId": 9,
+      "referrerPath": "pages/home/index",
+      "referrerPageId": 7,
+      "navigationStart": 1788432659842
+    },
+    {
+      "entryType": "render",
+      "name": "firstRender",
+      "startTime": 1788432659842,
+      "duration": 27,
+      "path": "pages/listings/index",
+      "pageId": 9,
+      "viewLayerReadyTime": 1788432659837,
+      "initDataSendTime": 1788432659846,
+      "initDataRecvTime": 1788432659851,
+      "viewLayerRenderStartTime": 1788432659851,
+      "viewLayerRenderEndTime": 1788432659866
+    },
+    {
+      "entryType": "render",
+      "name": "firstPaint",
+      "startTime": 1788432659891,
+      "path": "pages/listings/index",
+      "pageId": 9
+    },
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432659891,
+      "path": "pages/listings/index",
+      "pageId": 9
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432659891,
+      "path": "pages/listings/index",
+      "pageId": 9
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432659935,
+      "path": "pages/listings/index",
+      "pageId": 9
+    },
+    {
+      "entryType": "navigation",
+      "name": "route",
+      "startTime": 1788432666219,
+      "duration": 762,
+      "navigationType": "reLaunch",
+      "path": "pages/listing-detail/index",
+      "pageId": 10,
+      "referrerPath": "pages/listings/index",
+      "referrerPageId": 9,
+      "navigationStart": 1788432666588
+    },
+    {
+      "entryType": "render",
+      "name": "firstRender",
+      "startTime": 1788432666588,
+      "duration": 16,
+      "path": "pages/listing-detail/index",
+      "pageId": 10,
+      "viewLayerReadyTime": 1788432666584,
+      "initDataSendTime": 1788432666591,
+      "initDataRecvTime": 1788432666596,
+      "viewLayerRenderStartTime": 1788432666596,
+      "viewLayerRenderEndTime": 1788432666603
+    },
+    {
+      "entryType": "render",
+      "name": "firstPaint",
+      "startTime": 1788432666835,
+      "path": "pages/listing-detail/index",
+      "pageId": 10
+    },
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432666835,
+      "path": "pages/listing-detail/index",
+      "pageId": 10
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432666835,
+      "path": "pages/listing-detail/index",
+      "pageId": 10
+    },
+    {
+      "entryType": "navigation",
+      "name": "route",
+      "startTime": 1788432670818,
+      "duration": 737,
+      "navigationType": "reLaunch",
+      "path": "pages/listing-detail/index",
+      "pageId": 11,
+      "referrerPath": "pages/listing-detail/index",
+      "referrerPageId": 10,
+      "navigationStart": 1788432671163
+    },
+    {
+      "entryType": "render",
+      "name": "firstRender",
+      "startTime": 1788432671163,
+      "duration": 15,
+      "path": "pages/listing-detail/index",
+      "pageId": 11,
+      "viewLayerReadyTime": 1788432671159,
+      "initDataSendTime": 1788432671166,
+      "initDataRecvTime": 1788432671171,
+      "viewLayerRenderStartTime": 1788432671171,
+      "viewLayerRenderEndTime": 1788432671177
+    },
+    {
+      "entryType": "render",
+      "name": "firstPaint",
+      "startTime": 1788432671241,
+      "path": "pages/listing-detail/index",
+      "pageId": 11
+    },
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432671241,
+      "path": "pages/listing-detail/index",
+      "pageId": 11
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432671241,
+      "path": "pages/listing-detail/index",
+      "pageId": 11
+    },
+    {
+      "entryType": "navigation",
+      "name": "route",
+      "startTime": 1788432675402,
+      "duration": 763,
+      "navigationType": "reLaunch",
+      "path": "pages/listings/index",
+      "pageId": 12,
+      "referrerPath": "pages/listing-detail/index",
+      "referrerPageId": 11,
+      "navigationStart": 1788432675763
+    },
+    {
+      "entryType": "render",
+      "name": "firstRender",
+      "startTime": 1788432675763,
+      "duration": 26,
+      "path": "pages/listings/index",
+      "pageId": 12,
+      "viewLayerReadyTime": 1788432675759,
+      "initDataSendTime": 1788432675765,
+      "initDataRecvTime": 1788432675770,
+      "viewLayerRenderStartTime": 1788432675770,
+      "viewLayerRenderEndTime": 1788432675785
+    },
+    {
+      "entryType": "render",
+      "name": "firstPaint",
+      "startTime": 1788432675809,
+      "path": "pages/listings/index",
+      "pageId": 12
+    },
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432675809,
+      "path": "pages/listings/index",
+      "pageId": 12
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432675809,
+      "path": "pages/listings/index",
+      "pageId": 12
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432675885,
+      "path": "pages/listings/index",
+      "pageId": 12
+    },
+    {
+      "entryType": "navigation",
+      "name": "route",
+      "startTime": 1788432681219,
+      "duration": 769,
+      "navigationType": "reLaunch",
+      "path": "pages/listing-detail/index",
+      "pageId": 13,
+      "referrerPath": "pages/listings/index",
+      "referrerPageId": 12,
+      "navigationStart": 1788432681592
+    },
+    {
+      "entryType": "render",
+      "name": "firstRender",
+      "startTime": 1788432681592,
+      "duration": 13,
+      "path": "pages/listing-detail/index",
+      "pageId": 13,
+      "viewLayerReadyTime": 1788432681588,
+      "initDataSendTime": 1788432681594,
+      "initDataRecvTime": 1788432681599,
+      "viewLayerRenderStartTime": 1788432681599,
+      "viewLayerRenderEndTime": 1788432681604
+    },
+    {
+      "entryType": "render",
+      "name": "firstPaint",
+      "startTime": 1788432681699,
+      "path": "pages/listing-detail/index",
+      "pageId": 13
+    },
+    {
+      "entryType": "render",
+      "name": "firstContentfulPaint",
+      "startTime": 1788432681699,
+      "path": "pages/listing-detail/index",
+      "pageId": 13
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432681699,
+      "path": "pages/listing-detail/index",
+      "pageId": 13
+    },
+    {
+      "entryType": "render",
+      "name": "largestContentfulPaint",
+      "startTime": 1788432681719,
+      "path": "pages/listing-detail/index",
+      "pageId": 13
+    }
+  ],
+  "testCases": {
+    "home": {
+      "state": "ready",
+      "featuredCount": 0,
+      "passed": false,
+      "screenshot": "task4-home.png"
+    },
+    "listings": {
+      "state": "ready",
+      "totalDocs": 10,
+      "itemCount": 10,
+      "firstSlug": "huangpu-bund-coworking",
+      "passed": true,
+      "screenshot": "task4-listings.png"
+    },
+    "pullDownRefresh": {
+      "state": "ready",
+      "totalDocs": 10,
+      "passed": true,
+      "screenshot": "task4-listings-refreshed.png"
+    },
+    "detail": {
+      "state": "ready",
+      "title": "外滩源 · 共享办公 · 灵活工位",
+      "primaryPrice": "约 ¥36,000/月",
+      "monthlyCost": {
+        "rent": "¥36,000",
+        "propertyFee": "—",
+        "total": "—",
+        "inclusionLabel": "物业费包含情况待确认",
+        "assumptions": [
+          "物业费包含情况缺失，暂不计算合计"
+        ]
+      },
+      "specCount": 4,
+      "relatedCount": 1,
+      "passed": true,
+      "screenshot": "task4-detail.png"
+    },
+    "costUnspecified": {
+      "state": "ready",
+      "title": "静安 · 精装办公 300㎡ · 价格面议",
+      "primaryPrice": "—",
+      "monthlyCost": {
+        "rent": "—",
+        "propertyFee": "—",
+        "total": "—",
+        "inclusionLabel": "物业费包含情况待确认",
+        "assumptions": [
+          "物业费包含情况缺失，暂不计算合计"
+        ]
+      },
+      "passed": true,
+      "screenshot": "task4-detail-cost-unspecified.png"
+    },
+    "emptyState": {
+      "state": "empty",
+      "totalDocs": 0,
+      "passed": true,
+      "screenshot": "task4-listings-empty.png"
+    },
+    "notFound": {
+      "state": "not-found",
+      "fallbackCount": 3,
+      "passed": true,
+      "screenshot": "task4-detail-404.png"
+    },
+    "imageFallback": {
+      "passed": true,
+      "screenshot": "task4-detail-image-fallback.png"
+    }
+  }
+}

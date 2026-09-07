@@ -1,0 +1,189 @@
+.profile-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: calc(var(--sbh-layout-space-lg) + env(safe-area-inset-bottom));
+  background: var(--sbh-page-background);
+  color: var(--sbh-text-primary);
+}
+
+.profile-user-card,
+.profile-metrics-card,
+.profile-collection-card,
+.profile-inquiry-card,
+.profile-state {
+  background: var(--sbh-card-background);
+}
+
+.profile-user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sbh-layout-content-gap);
+  padding: var(--sbh-layout-space-lg);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+}
+
+.profile-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sbh-size-touch-target);
+  height: var(--sbh-size-touch-target);
+  border-radius: 50%;
+  background: var(--sbh-border-subtle);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-user-info,
+.profile-inquiry-content,
+.profile-asset-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-username {
+  font-size: var(--sbh-type-card-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-user-state,
+.profile-inquiry-date,
+.profile-card-count,
+.profile-empty {
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+}
+
+.profile-user-state,
+.profile-inquiry-date {
+  margin-top: var(--sbh-layout-space-xs);
+}
+
+.profile-state,
+.profile-metrics-card,
+.profile-collection-card,
+.profile-inquiry-card {
+  margin: var(--sbh-layout-content-gap) var(--sbh-layout-page-gutter) 0;
+  border-radius: var(--sbh-card-radius);
+  overflow: hidden;
+}
+
+.profile-state {
+  padding: var(--sbh-card-padding);
+}
+
+.profile-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.profile-metric-item {
+  min-height: var(--sbh-size-touch-target);
+  padding: var(--sbh-layout-space-lg) var(--sbh-layout-space-xs);
+  text-align: center;
+}
+
+.profile-metric-item--static {
+  color: var(--sbh-text-secondary);
+}
+
+.profile-metric-num {
+  font-size: var(--sbh-type-section-title-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-metric-label {
+  margin-top: var(--sbh-layout-space-xs);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
+}
+
+.profile-page-hint {
+  padding: 0 var(--sbh-card-padding) var(--sbh-layout-space-md);
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+  text-align: center;
+}
+
+.profile-card-header,
+.profile-asset-row,
+.profile-inquiry-item {
+  display: flex;
+  align-items: center;
+}
+
+.profile-card-header {
+  min-height: var(--sbh-size-touch-target);
+  justify-content: space-between;
+  padding: 0 var(--sbh-card-padding);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+}
+
+.profile-card-title,
+.profile-inquiry-title,
+.profile-asset-title {
+  font-size: var(--sbh-type-body-size);
+  font-weight: var(--sbh-type-semibold-weight);
+}
+
+.profile-card-close {
+  min-height: var(--sbh-size-touch-target);
+  display: flex;
+  align-items: center;
+  color: var(--sbh-interaction-primary);
+  font-size: var(--sbh-type-body-size);
+}
+
+.profile-asset-row,
+.profile-inquiry-item {
+  min-height: var(--sbh-size-touch-target);
+  gap: var(--sbh-layout-content-gap);
+  padding: var(--sbh-layout-space-md) var(--sbh-card-padding);
+  border-bottom: var(--sbh-stroke-default) solid var(--sbh-border-subtle);
+}
+
+.profile-asset-image,
+.profile-asset-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 72rpx;
+  border-radius: var(--sbh-shape-control-radius);
+  background: var(--sbh-border-subtle);
+  color: var(--sbh-text-tertiary);
+  font-size: 18rpx;
+}
+
+.profile-asset-title,
+.profile-inquiry-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-arrow {
+  color: var(--sbh-text-tertiary);
+}
+
+.profile-inquiry-badge {
+  flex: none;
+  padding: var(--sbh-layout-space-xs) var(--sbh-layout-space-sm);
+  border-radius: var(--sbh-shape-label-radius);
+  background: var(--sbh-page-background);
+  color: var(--sbh-text-secondary);
+  font-size: var(--sbh-type-auxiliary-size);
+}
+
+.profile-empty {
+  padding: var(--sbh-layout-space-lg) var(--sbh-card-padding);
+  text-align: center;
+}
+
+.profile-footer {
+  padding: var(--sbh-layout-space-lg) 0;
+  color: var(--sbh-text-tertiary);
+  font-size: var(--sbh-type-auxiliary-size);
+  text-align: center;
+}

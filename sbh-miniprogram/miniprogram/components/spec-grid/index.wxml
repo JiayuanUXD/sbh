@@ -1,0 +1,7 @@
+<view class="spec-grid">
+  <view wx:for="{{displayItems}}" wx:key="id" class="spec-grid__item">
+    <view class="spec-grid__label">{{item.label}}</view>
+    <view class="spec-grid__value num">{{item.value}}</view>
+    <text wx:if="{{item.estimated}}" class="spec-grid__estimated">估算</text>
+  </view>
+</view>

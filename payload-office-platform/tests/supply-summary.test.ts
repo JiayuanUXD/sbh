@@ -55,7 +55,7 @@ describe('estimateRowTotal', () => {
   it('basis=total 且 period=one-time（出售一口价）返回原值，不乘面积也不乘工位数', () => {
     expect(
       estimateRowTotal(
-        price({ basis: 'total', period: 'one-time', displayUnit: 'rmb-total', amount: 50000 }),
+        price({ businessType: 'sale', basis: 'total', period: 'one-time', displayUnit: 'rmb-total', amount: 50000 }),
         { area: 100, seats: 20 },
       ),
     ).toBe(50000)

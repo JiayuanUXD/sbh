@@ -127,6 +127,16 @@ describe('preflight migrations: 纯函数', () => {
     expect(names.every((n) => !n.startsWith('migration_'))).toBe(true)
   })
 
+  it('MP-108 用户资产迁移不生成 locked-doc 关系，避免 down 重复删除 CASCADE 外键', () => {
+    const miniMigrationName = listMigrationFiles(migrationsDir)
+      .find((name) => name.endsWith('_mp108_mini_user_assets'))
+    if (!miniMigrationName) throw new Error('MP-108 mini user assets migration not found')
+    const migrationSource = readFileSync(resolve(migrationsDir, `${miniMigrationName}.ts`), 'utf-8')
+
+    expect(migrationSource).not.toContain('mini_user_assets_id')
+    expect(migrationSource).not.toContain('payload_locked_documents_rels_mini_user_assets_fk')
+  })
+
   it('diffMigrationSets 双向差异：漏注册与悬空引用', () => {
     expect(diffMigrationSets(['a', 'b', 'c'], ['a', 'b'])).toEqual({
       missingFromIndex: ['c'],
@@ -204,6 +214,15 @@ describe('preflight migrations: 纯函数', () => {
 })
 
 describe('preflight migrations: 目录与索引集合一致性（OPT-014 核心断言）', () => {
+  it('MP-108 用户资产迁移按最终后缀存在并注册，不依赖迁移总数', () => {
+    const migrationName = listMigrationFiles(migrationsDir)
+      .find((name) => /^\d{8}_\d{6}_mp108_mini_user_assets$/.test(name))
+    // 时间戳由迁移工具生成；只锁定业务后缀，不硬编码时间戳或全目录迁移总数。
+    expect(migrationName, '缺少工具生成的 mp108_mini_user_assets 迁移').toBeDefined()
+    const registeredNames = parseRegisteredMigrationNames(readFileSync(indexPath, 'utf-8'))
+    expect(registeredNames).toContain(migrationName)
+  })
+
   it('真实迁移目录与 index.ts 注册集合完全一致', () => {
     const directoryNames = listMigrationFiles(migrationsDir)
     const indexContent = readFileSync(indexPath, 'utf-8')

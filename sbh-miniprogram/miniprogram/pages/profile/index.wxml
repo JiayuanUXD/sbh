@@ -1,0 +1,124 @@
+<view id="profile-ready" class="profile-page">
+  <view class="profile-user-card">
+    <view class="profile-avatar" aria-hidden="true">微</view>
+    <view class="profile-user-info">
+      <view class="profile-username">微信用户</view>
+      <view class="profile-user-state">{{assetsState === 'ready' ? '已连接当前微信' : (assetsState === 'loading' ? '正在连接当前微信' : '未能连接当前微信')}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{assetsState === 'loading'}}" class="profile-state" aria-role="status">
+    <sbh-skeleton rows="3" />
+  </view>
+
+  <view wx:elif="{{assetsState === 'error'}}" class="profile-state">
+    <sbh-state
+      kind="error"
+      title="个人资产暂时无法加载"
+      description="请检查网络后重试"
+      action-label="重新加载"
+      bindretry="handleRetryAssets"
+    />
+  </view>
+
+  <block wx:elif="{{assetsState === 'ready'}}">
+    <view class="profile-metrics-card">
+      <view class="profile-metrics-grid">
+        <view class="profile-metric-item" bindtap="handleViewFavorites" data-type="listing">
+          <view class="profile-metric-num num">{{favoriteListings.length}}</view>
+          <view class="profile-metric-label">{{favoritesPageInfo.hasMore ? '最近收藏房源' : '收藏房源'}}</view>
+        </view>
+        <view class="profile-metric-item" bindtap="handleViewFavorites" data-type="building">
+          <view class="profile-metric-num num">{{favoriteBuildings.length}}</view>
+          <view class="profile-metric-label">{{favoritesPageInfo.hasMore ? '最近收藏楼盘' : '收藏楼盘'}}</view>
+        </view>
+        <view class="profile-metric-item profile-metric-item--static">
+          <view class="profile-metric-num num">{{inquiries.length}}</view>
+          <view class="profile-metric-label">{{inquiriesPageInfo.hasMore ? '最近咨询记录' : '咨询记录'}}</view>
+        </view>
+      </view>
+      <view wx:if="{{favoritesPageInfo.hasMore}}" class="profile-page-hint">
+        已展示最近 {{favoriteListings.length + favoriteBuildings.length}} 条收藏，另有更多
+      </view>
+    </view>
+
+    <view wx:if="{{favoriteCollection !== 'none'}}" class="profile-collection-card">
+      <view class="profile-card-header">
+        <text class="profile-card-title">{{favoriteCollection === 'listing' ? '收藏房源' : '收藏楼盘'}}</text>
+        <view class="profile-card-close" bindtap="handleCloseFavoriteCollection">收起</view>
+      </view>
+      <view wx:if="{{favoriteCollection === 'listing'}}">
+        <view
+          wx:for="{{favoriteListings}}"
+          wx:key="slug"
+          class="profile-asset-row"
+          bindtap="handleFavoriteItemClick"
+          data-type="listing"
+          data-slug="{{item.slug}}"
+        >
+          <image
+            wx:if="{{item.coverImage && !favoriteListingImageFailures[item.slug]}}"
+            class="profile-asset-image"
+            src="{{item.coverImage.src}}"
+            alt="{{item.coverImage.alt || item.title}}"
+            mode="aspectFill"
+            data-slug="{{item.slug}}"
+            binderror="handleFavoriteListingImageError"
+          />
+          <view wx:else class="profile-asset-placeholder">尚办好</view>
+          <text class="profile-asset-title">{{item.title}}</text>
+          <text class="profile-arrow">›</text>
+        </view>
+      </view>
+      <view wx:elif="{{favoriteCollection === 'building'}}">
+        <view
+          wx:for="{{favoriteBuildings}}"
+          wx:key="slug"
+          class="profile-asset-row"
+          bindtap="handleFavoriteItemClick"
+          data-type="building"
+          data-slug="{{item.slug}}"
+        >
+          <image
+            wx:if="{{item.coverImage && !favoriteBuildingImageFailures[item.slug]}}"
+            class="profile-asset-image"
+            src="{{item.coverImage.src}}"
+            alt="{{item.coverImage.alt || item.name}}"
+            mode="aspectFill"
+            data-slug="{{item.slug}}"
+            binderror="handleFavoriteBuildingImageError"
+          />
+          <view wx:else class="profile-asset-placeholder">尚办好</view>
+          <text class="profile-asset-title">{{item.name}}</text>
+          <text class="profile-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="profile-inquiry-card">
+      <view class="profile-card-header">
+        <text class="profile-card-title">咨询记录</text>
+        <text class="profile-card-count num">{{inquiriesPageInfo.hasMore ? '最近 ' + inquiries.length + ' 条 · 另有更多' : inquiries.length + ' 条'}}</text>
+      </view>
+      <view wx:if="{{inquiries.length > 0}}">
+        <view
+          wx:for="{{inquiries}}"
+          wx:key="submittedAt"
+          class="profile-inquiry-item"
+          bindtap="handleInquiryItemClick"
+          data-target-type="{{item.targetType}}"
+          data-submitted-at="{{item.submittedAt}}"
+        >
+          <view class="profile-inquiry-content">
+            <view class="profile-inquiry-title">{{item.targetTitle}}</view>
+            <view class="profile-inquiry-date num">{{item.formattedDate}} 提交</view>
+          </view>
+          <text class="profile-inquiry-badge">{{item.status.label}}</text>
+        </view>
+      </view>
+      <view wx:else class="profile-empty">暂无咨询记录</view>
+    </view>
+  </block>
+
+  <view class="profile-footer">SBH 商办 · 版本 <text class="num">1.0.0</text></view>
+</view>

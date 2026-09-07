@@ -1,0 +1,59 @@
+{
+  "verifiedAt": "2026-08-26T11:46:38.039Z",
+  "baseUrl": "http://localhost:3729",
+  "home": {
+    "path": "/api/mini/v1/home?city=shanghai",
+    "status": 200,
+    "requestId": "49b73494-2c2f-41ef-a305-6aaac10e8118",
+    "cacheControl": "private, no-store",
+    "asOf": "2026-08-26T11:44:58.068Z",
+    "errorCode": null,
+    "itemCount": null,
+    "firstSlug": null,
+    "listingSlug": null
+  },
+  "list": {
+    "path": "/api/mini/v1/listings?city=shanghai&priceUnit=rmb-sqm-day&page=1",
+    "status": 200,
+    "requestId": "c341364b-9d87-4734-be00-737d9ceaf65e",
+    "cacheControl": "private, no-store",
+    "asOf": "2026-08-26T11:46:35.759Z",
+    "errorCode": null,
+    "itemCount": 4,
+    "firstSlug": "lujiazui-grade-a-780sqm",
+    "listingSlug": null
+  },
+  "detail": {
+    "path": "/api/mini/v1/listings/lujiazui-grade-a-780sqm?city=shanghai",
+    "status": 200,
+    "requestId": "c75340f2-33b8-49b4-a1a3-92d1e1e959a9",
+    "cacheControl": "private, no-store",
+    "asOf": "2026-08-26T11:46:37.910Z",
+    "errorCode": null,
+    "itemCount": null,
+    "firstSlug": null,
+    "listingSlug": "lujiazui-grade-a-780sqm"
+  },
+  "invalidCity": {
+    "path": "/api/mini/v1/home?city=unknown-city",
+    "status": 404,
+    "requestId": "d78bd464-65d7-4b35-96d1-180b1463e1ef",
+    "cacheControl": "private, no-store",
+    "asOf": null,
+    "errorCode": "city_not_found",
+    "itemCount": null,
+    "firstSlug": null,
+    "listingSlug": null
+  },
+  "invalidListing": {
+    "path": "/api/mini/v1/listings/not-a-real-listing?city=shanghai",
+    "status": 404,
+    "requestId": "ba51b867-8df6-40e4-82d9-096d4fc56c42",
+    "cacheControl": "private, no-store",
+    "asOf": null,
+    "errorCode": "listing_not_found",
+    "itemCount": null,
+    "firstSlug": null,
+    "listingSlug": null
+  }
+}

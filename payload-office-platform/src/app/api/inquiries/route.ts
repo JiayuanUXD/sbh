@@ -19,7 +19,7 @@
  *   - 不暴露 Lead ID、内部错误或房源失效原因（FP-05 §6、§7）。
  */
 
-import { getPayload, type Payload } from 'payload'
+import { getPayload } from 'payload'
 import { NextResponse } from 'next/server'
 import config from '@/payload.config'
 import {
@@ -30,12 +30,16 @@ import {
 import {
   buildInquiryLogEntry,
   computeIdempotencyKey,
-  resolveVisitorRef,
   deriveTargetSlug,
   hashIpForLog,
+  PublicInquirySubmissionError,
+  resolveTrustedPublicInquiryCity,
+  resolveVisitorRef,
+  submitPublicInquiry,
   validateInquiry,
   validateViewingPreference,
   type InquiryRequest,
+  type TrustedInquiryCity,
 } from '@/domain/inquiry'
 import { mapGlobalToSchedule } from '@/domain/advisor-availability'
 import { isUniqueViolation } from '@/domain/shared/unique-violation'
@@ -43,7 +47,6 @@ import { runDistributedRateLimit } from '@/lib/rate-limit-distributed'
 import { createPgRateLimitDeps, type PoolLike } from '@/lib/rate-limit-pg'
 import { INQUIRY_RATE_LIMIT_CONFIG as RATE_LIMIT_CONFIG } from '@/lib/rate-limit-config'
 import { siteConfig } from '@/lib/frontend/site-config'
-import { isPublicCitySlug } from '@/lib/frontend/city-routes'
 import { ratePruneRef } from './rate-limit-state'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 
@@ -101,73 +104,18 @@ function isJsonContentType(req: Request): boolean {
   return ct.toLowerCase().startsWith('application/json')
 }
 
-function approvedLegacyInquiryCity(source: InquiryRequest['source']): string | null {
-  const segments = source.path.split('/').filter(Boolean)
-  const prefixedCity = isPublicCitySlug(segments[0]) ? segments[0] : null
-  if (source.pageType === 'entrust') {
-    return source.path === '/entrust' ? siteConfig.defaultCity : null
-  }
-  if (source.pageType === 'home') {
-    if (source.path === '/') return siteConfig.defaultCity
-    return segments.length === 1 ? prefixedCity : null
-  }
-  if (source.pageType === 'search') {
-    if (segments.length === 1 && (segments[0] === 'listings' || segments[0] === 'buildings')) {
-      return siteConfig.defaultCity
-    }
-    return segments.length === 2 && (segments[1] === 'listings' || segments[1] === 'buildings')
-      ? prefixedCity
-      : null
-  }
-  if (source.pageType === 'listing' || source.pageType === 'building') {
-    const resource = source.pageType === 'listing' ? 'listings' : 'buildings'
-    if (segments.length === 2 && segments[0] === resource) return siteConfig.defaultCity
-    return segments.length === 3 && segments[1] === resource ? prefixedCity : null
-  }
-  return source.pageType === 'content' && /^\/(?:news|pages)\/[^/]+$/.test(source.path)
-    ? siteConfig.defaultCity
-    : null
-}
-
 type TargetResolution = 'listing' | 'building' | 'general'
 
-type ExistingInquiryResolution = Readonly<{
-  found: boolean
-  targetResolution: TargetResolution
-  /**
-   * 既有线索上的 visitorRef（OPT-067）。
-   *
-   * 幂等重放必须**读回**而不是重新派生：原线索可能用的是客户端回传值
-   * （同会话第二条线索复用首个 ID），重新派生会得到另一个值，
-   * 于是同一条线索前后两次响应给出不同 ID，深链失效。
-   */
-  visitorRef: string | null
-}>
-
-async function findExistingInquiryResolution(
-  payload: Payload,
-  idempotencyKey: string,
-): Promise<ExistingInquiryResolution> {
-  const existing = await payload.find({
-    collection: 'leads',
-    where: { idempotencyKey: { equals: idempotencyKey } },
-    limit: 1,
-    depth: 0,
-  })
-  if (existing.docs.length === 0) {
-    return { found: false, targetResolution: 'general', visitorRef: null }
-  }
-  const existingTarget = existing.docs[0]?.targetType
-  const existingVisitorRef = existing.docs[0]?.visitorRef
-  return {
-    found: true,
-    visitorRef: typeof existingVisitorRef === 'string' ? existingVisitorRef : null,
-    targetResolution:
-      existingTarget === 'listing'
-        ? 'listing'
-        : existingTarget === 'building'
-          ? 'building'
-          : 'general',
+function safePayloadLog(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  level: 'error' | 'warn',
+  entry: Readonly<{ operation: string; errorCode: string }>,
+  event: string,
+): void {
+  try {
+    payload.logger[level](entry, event)
+  } catch {
+    // 日志设施异常不得改变公开询盘的原有 HTTP 语义。
   }
 }
 
@@ -195,7 +143,10 @@ function populatedBuildingSlug(value: unknown): string | null {
   return typeof slug === 'string' && slug.length > 0 ? slug : null
 }
 
-async function findOwningBuildingSlug(payload: Payload, listingSlug: string): Promise<string | null> {
+async function findOwningBuildingSlug(
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  listingSlug: string,
+): Promise<string | null> {
   const result = await payload.find({
     collection: 'listings',
     where: { slug: { equals: listingSlug } },
@@ -208,7 +159,7 @@ async function findOwningBuildingSlug(payload: Payload, listingSlug: string): Pr
 }
 
 function logIdempotentSuccess(
-  payload: Payload,
+  payload: Awaited<ReturnType<typeof getPayload>>,
   inquiry: InquiryRequest,
   startedAt: number,
   targetResolution: TargetResolution,
@@ -303,9 +254,20 @@ export async function POST(req: Request): Promise<Response> {
   }
   const inquiry: InquiryRequest = result.data
 
-  const submittedCity = inquiry.city ?? approvedLegacyInquiryCity(inquiry.source)
-  const trustedCity = submittedCity ? await resolveCityContext(submittedCity) : null
-  if (!trustedCity || trustedCity.slug !== submittedCity) {
+  const resolveTrustedCity = async (slug: string) => {
+    const city = await resolveCityContext(slug)
+    return city ? { id: city.id, slug: city.slug } : null
+  }
+  let trustedCity: TrustedInquiryCity
+  try {
+    // 保持既有 HTTP 优先级：城市错误先于 Web 特有看房时段错误返回。
+    trustedCity = await resolveTrustedPublicInquiryCity(inquiry, siteConfig.defaultCity, {
+      resolveCity: resolveTrustedCity,
+    })
+  } catch (error) {
+    if (!(error instanceof PublicInquirySubmissionError) || error.code !== 'city_invalid') {
+      throw error
+    }
     return NextResponse.json({ ok: false, errors: ['city_invalid'] }, { status: 422 })
   }
 
@@ -354,157 +316,96 @@ export async function POST(req: Request): Promise<Response> {
     targetSlug,
   )
 
-  // OPT-067：访客标识。客户端回传合法值则复用（同会话多线索共用一个 ID），
-  // 否则由 HMAC(PAYLOAD_SECRET, idempotencyKey) 派生。
-  // 声明在两个 try 之外——幂等检查与创建分属不同 try 块，都要用到它。
-  //
-  // ⚠️ 缺密钥时**不派生但照常提交**，绝不让它阻断收线索。
-  // 初版直接调 resolveVisitorRef(..., process.env.PAYLOAD_SECRET ?? '', ...)，
-  // 密钥缺失时 deriveVisitorRef 抛错且不在任何 try 内 → 整个端点 500。
-  // 单测环境没有 PAYLOAD_SECRET，于是 inquiry-api-route 全文件 31 条一起红——
-  // 那不是断言过时，是真把接口打挂了。
-  //
-  // 取舍很清楚：线索是核心业务，visitorRef 只是分析用的附加品。
-  // 让分析功能阻断收线索是完全颠倒的优先级。
-  // （注意这与 deriveVisitorRef 内部「缺密钥即抛」不矛盾：那条防的是
-  //   静默降级成可被反推的弱哈希；这里降级成的是「没有」，不是「弱的」。）
-  const inquirySecret = process.env.PAYLOAD_SECRET ?? ''
-  let visitorRef: string | null = null
-  if (inquirySecret) {
-    visitorRef = resolveVisitorRef(inquiry.visitorRef, inquirySecret, idempotencyKey)
-  } else {
-    payload.logger.warn(
-      { reason: 'missing_payload_secret' },
-      'inquiry_visitor_ref_skipped',
-    )
-  }
-
-  // 注：payload 已在限流块（第 1 步）初始化，此处复用同一实例。
-  // getPayload 是单例，重复调用廉价，但避免重复声明以保持作用域清晰。
-
-  // ----- 6. 幂等检查：同键已存在 Lead → 返回首次成功语义（FP-05 §5） -----
+  // ----- 6-8. 共享领域服务：二次预查、供给复核、归属防伪与 Lead 创建 -----
+  // 分析标识缺密钥时降级为 null，不阻断询盘；客户端值由既有解析器收口。
+  let trustedVisitorRef: string | null = null
   try {
-    const existing = await findExistingInquiryResolution(payload, idempotencyKey)
-    if (existing.found) {
-      return logIdempotentSuccess(
-          payload,
-          inquiry,
-          startedAt,
-          existing.targetResolution,
-          existing.visitorRef,
-        )
-    }
-  } catch (e) {
-    payload.logger.error({ err: e }, 'inquiry_idempotency_check_failed')
-    // 幂等检查失败时继续创建：最坏情况下重复 Lead，但避免阻塞用户
+    trustedVisitorRef = resolveVisitorRef(inquiry.visitorRef, process.env.PAYLOAD_SECRET ?? '', idempotencyKey)
+  } catch {
+    // 不回退到可反推的普通哈希，也不记录客户端值或密钥。
   }
-
-  // ----- 7. 目标有效性复核（同一 ctx；listing → building → general） -----
-  const ctx = createSearchContext(trustedCity.slug)
-  const listing = inquiry.listingSlug
-    ? await assertEffectiveListing(inquiry.listingSlug, ctx)
-    : null
-  let building = null
-  if (!listing && inquiry.buildingSlug) {
-    if (inquiry.listingSlug) {
-      // 房源失效时客户端 buildingSlug 不可信：只允许降级到该房源真实所属楼盘。
-      let owningBuildingSlug: string | null = null
-      try {
-        owningBuildingSlug = await findOwningBuildingSlug(payload, inquiry.listingSlug)
-      } catch {
-        payload.logger.warn('inquiry_listing_building_resolution_failed')
-      }
-      if (owningBuildingSlug === inquiry.buildingSlug) {
-        building = await assertEffectiveBuilding(owningBuildingSlug, ctx)
-      }
-    } else {
-      // 直接楼盘咨询没有房源归属可比对，仍按统一有效楼盘服务复核。
-      building = await assertEffectiveBuilding(inquiry.buildingSlug, ctx)
-    }
-  }
-  const targetResolution = listing ? 'listing' : building ? 'building' : 'general'
-
-  // ----- 8. 创建 Lead（含完整询盘上下文） -----
   try {
-    await payload.create({
-      collection: 'leads',
-      data: {
-        // entrust 渠道无姓名：传 undefined，交给 fillEntrustLeadName 兜底。
-        // Payload 的静态生成类型无法表示 beforeValidate 会补齐 required 字段。
-        name: (inquiry.name || undefined) as string,
-        phone: inquiry.phone,
-        company: inquiry.company ?? undefined,
-        status: 'new',
-        source: 'frontend-form',
-        city: trustedCity.id,
-        // 租赁需求（demand）
-        budget: inquiry.demand.budget ?? undefined,
-        area: inquiry.demand.area ?? undefined,
-        moveInTime: inquiry.demand.moveInTime ?? undefined,
-        // 意向房源（仅有效供给时关联）
-        interestedListing: listing?.id,
-        // 留言（与跟进记录区分：留言进 notes，跟进记录由经纪人后续填写）
-        notes: inquiry.message ?? undefined,
-        // 前台询盘上下文（FP-05 §5 / §8）
-        idempotencyKey,
-        // OPT-067：客户端回传合法值则复用（同会话多线索共用一个 ID），
-        // 否则由 HMAC(PAYLOAD_SECRET, idempotencyKey) 派生。
-        visitorRef,
-        sourcePageType: inquiry.source.pageType,
-        sourcePath: inquiry.source.path,
-        sourceUrl: `${siteConfig.siteOrigin}${inquiry.source.path}`,
-        targetType: targetResolution === 'general' ? 'none' : targetResolution,
-        targetListingSlug: targetResolution === 'listing' ? inquiry.listingSlug : null,
-        targetBuildingSlug: targetResolution === 'building' ? building?.slug ?? null : null,
-        sourceSection: inquiry.source.section,
-        activeSupplyGroup: inquiry.activeSupplyGroup,
-        currentFilters: inquiry.source.currentFilters,
-        priceSnapshot: inquiry.priceSnapshot,
-        priceSnapshotSubmittedAt: inquiry.priceSnapshot ? new Date().toISOString() : null,
-        consentAccepted: inquiry.consent.accepted,
-        consentPolicyVersion: inquiry.consent.policyVersion,
-        campaign: inquiry.source.campaign,
-        requestId: inquiry.requestId,
-        // P2 Task 4：偏好看房时段（已服务端复核，恒 pending-confirmation）
-        viewingPreference: viewingPreferenceToPersist ?? undefined,
+    const submission = await submitPublicInquiry({
+      inquiry,
+      trustedIdempotencyKey: idempotencyKey,
+      trustedVisitorRef,
+      defaultCity: siteConfig.defaultCity,
+      siteOrigin: siteConfig.siteOrigin,
+      trustedCity,
+      viewingPreference: viewingPreferenceToPersist,
+    }, {
+      findExistingLead: async (trustedKey) => {
+        const existing = await payload.find({
+          collection: 'leads',
+          where: { idempotencyKey: { equals: trustedKey } },
+          limit: 1,
+          depth: 0,
+        })
+        return existing.docs[0] ?? null
+      },
+      resolveCity: resolveTrustedCity,
+      assertEffectiveListing: async (slug, citySlug) =>
+        assertEffectiveListing(slug, createSearchContext(citySlug)),
+      assertEffectiveBuilding: async (slug, citySlug) =>
+        assertEffectiveBuilding(slug, createSearchContext(citySlug)),
+      findOwningBuildingSlug: (slug) => findOwningBuildingSlug(payload, slug),
+      createLead: async (data) => {
+        await payload.create({
+          collection: 'leads',
+          data: { ...data, name: data.name as string },
+        })
+      },
+      isIdempotencyUniqueViolation,
+      nowIso: () => new Date().toISOString(),
+      onIdempotencyCheckError: () => {
+        safePayloadLog(payload, 'error', {
+          operation: 'inquiry_idempotency_precheck',
+          errorCode: 'lookup_failed',
+        }, 'inquiry_idempotency_check_failed')
+      },
+      onListingBuildingResolutionError: () => {
+        safePayloadLog(payload, 'warn', {
+          operation: 'inquiry_listing_building_resolution',
+          errorCode: 'lookup_failed',
+        }, 'inquiry_listing_building_resolution_failed')
+      },
+      onIdempotencyRaceReadError: () => {
+        safePayloadLog(payload, 'error', {
+          operation: 'inquiry_idempotency_race_read',
+          errorCode: 'lookup_failed',
+        }, 'inquiry_idempotency_race_read_failed')
       },
     })
 
+    if (submission.idempotent) {
+      return logIdempotentSuccess(payload, inquiry, startedAt, submission.targetResolution, submission.visitorRef)
+    }
     payload.logger.info(
       buildInquiryLogEntry(inquiry, {
         idempotent: false,
         errorCode: null,
         durationMs: Date.now() - startedAt,
-        targetResolution,
+        targetResolution: submission.targetResolution,
       }),
       'inquiry_success',
     )
     // 不暴露 Lead ID（FP-05 §7）
-    return NextResponse.json({ ok: true, targetResolution, visitorRef })
-  } catch (e) {
-    if (isIdempotencyUniqueViolation(e)) {
-      try {
-        const raced = await findExistingInquiryResolution(payload, idempotencyKey)
-        if (raced.found) {
-          return logIdempotentSuccess(
-            payload,
-            inquiry,
-            startedAt,
-            raced.targetResolution,
-            raced.visitorRef,
-          )
-        }
-      } catch (readError) {
-        payload.logger.error({ err: readError }, 'inquiry_idempotency_race_read_failed')
-      }
+    return NextResponse.json({ ok: true, targetResolution: submission.targetResolution, visitorRef: submission.visitorRef })
+  } catch (error) {
+    if (!(error instanceof PublicInquirySubmissionError)) throw error
+    if (error.code === 'city_invalid') {
+      return NextResponse.json({ ok: false, errors: ['city_invalid'] }, { status: 422 })
     }
-    payload.logger.error({ err: e }, 'inquiry_create_failed')
+    payload.logger.error(
+      { category: 'persistence', errorCode: 'inquiry_create_failed' },
+      'inquiry_create_failed',
+    )
     payload.logger.info(
       buildInquiryLogEntry(inquiry, {
         idempotent: false,
         errorCode: 'server_error',
         durationMs: Date.now() - startedAt,
-        targetResolution,
+        targetResolution: error.targetResolution,
       }),
       'inquiry_error',
     )

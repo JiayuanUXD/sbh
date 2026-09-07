@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "工程基础",
+  "usingComponents": {
+    "sbh-button": "/components/sbh-button/index",
+    "sbh-card": "/components/sbh-card/index",
+    "sbh-skeleton": "/components/sbh-skeleton/index",
+    "sbh-state": "/components/sbh-state/index"
+  }
+}

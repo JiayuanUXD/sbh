@@ -21,6 +21,13 @@
 import { createHash } from 'node:crypto'
 import type { TargetType } from './schema'
 
+declare const inquiryIdempotencyKeyBrand: unique symbol
+
+/** 只能由服务端幂等算法返回；普通 string 不能直接进入共享落库服务。 */
+export type InquiryIdempotencyKey = string & {
+  readonly [inquiryIdempotencyKeyBrand]: 'InquiryIdempotencyKey'
+}
+
 /**
  * 计算询盘幂等键。
  *
@@ -35,11 +42,11 @@ export async function computeIdempotencyKey(
   phoneNormalized: string,
   targetType: TargetType,
   targetSlug: string,
-): Promise<string> {
+): Promise<InquiryIdempotencyKey> {
   const raw = `${requestId}|${phoneNormalized}|${targetType}|${targetSlug}`
   const buf = new TextEncoder().encode(raw)
   const hashBuf = await crypto.subtle.digest('SHA-256', buf)
-  return bufferToHex(hashBuf)
+  return bufferToHex(hashBuf) as InquiryIdempotencyKey
 }
 
 /**
@@ -53,9 +60,9 @@ export function computeIdempotencyKeySync(
   phoneNormalized: string,
   targetType: TargetType,
   targetSlug: string,
-): string {
+): InquiryIdempotencyKey {
   const raw = `${requestId}|${phoneNormalized}|${targetType}|${targetSlug}`
-  return createHash('sha256').update(raw, 'utf8').digest('hex')
+  return createHash('sha256').update(raw, 'utf8').digest('hex') as InquiryIdempotencyKey
 }
 
 /**

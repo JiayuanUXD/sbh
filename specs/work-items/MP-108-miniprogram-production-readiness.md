@@ -26,6 +26,7 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 - `sbhmini-005@8eab1a17` 的代码 migration index 只有 66 条，而最新 master 有 80 条；实际 staging 数据库是否另行升级必须只读核对，不能假定仅缺 Mini user assets 迁移。
 - 旧分支的 `20260904_144005_mp109_mini_user_assets` 生成于 master 最新快照之前，不能原样作为集成链末项；它会被保留哈希证据后移除，并从最新 master 快照重新生成新的 additive Mini user assets 迁移。新迁移正文不手改，down 的删除影响只记录、不自动执行。
 - 历史 staging 005 提交早于该旧迁移提交；仍须在任何 staging 写前通过数据库只读查询证明旧迁移未应用，不能只凭 Git ancestry 推断。
+- 集成已由 Payload CLI 生成 `20260907_050043_mp108_mini_user_assets`：TS SHA-256 为 `04a165e7...f2330e9`（与旧生成体一致），新 JSON snapshot 相对 master 最新快照只增加 Mini user assets schema，`migrate:drift` 已通过。
 
 ## 3. 不变量
 
@@ -52,12 +53,12 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 
 ### Task 2：合并与冲突收敛
 
-- [ ] 使用普通 merge 把 `feat/miniprogram-mvp-59f9` 引入集成分支。
-- [ ] 对 6 个已知冲突逐文件采用双方语义并集，不整文件盲选 ours/theirs。
-- [ ] 保留 master 的 `visitorRef` 链路和供给扫描优化，同时接入共享公开询盘服务与 Mini 查询。
-- [ ] 移除旧基线生成的 Mini 迁移对，从最新 master 快照用 Payload CLI 重新生成且不手改正文；通过 drift、up/down 风险与迁移集合检查。
-- [ ] 保持 `payload-types.ts` 删除状态，重新生成并确认 `Media.prefix` 出现 2 次。
-- [ ] 用聚焦测试证明 Web 既有语义、Mini 语义和组合语义均通过。
+- [x] 使用普通 merge 把 `feat/miniprogram-mvp-59f9` 引入集成分支。
+- [x] 对 6 个已知冲突逐文件采用双方语义并集，不整文件盲选 ours/theirs。
+- [x] 保留 master 的 `visitorRef` 链路和供给扫描优化，同时接入共享公开询盘服务与 Mini 查询。
+- [x] 移除旧基线生成的 Mini 迁移对，从最新 master 快照用 Payload CLI 重新生成且不手改正文；通过 drift、up/down 风险与迁移集合检查。
+- [x] 保持 `payload-types.ts` 删除状态，重新生成并确认 `Media.prefix` 出现 2 次。
+- [x] 用聚焦测试证明 Web 既有语义、Mini 语义和组合语义均通过。
 
 ### Task 3：小程序与 Web 本地质量门
 

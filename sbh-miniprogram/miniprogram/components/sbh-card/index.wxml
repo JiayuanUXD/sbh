@@ -1,0 +1,1 @@
+<view class="sbh-card"><slot /></view>

@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "楼盘详情",
+  "usingComponents": {
+    "sbh-skeleton": "../../components/sbh-skeleton/index",
+    "sbh-state": "../../components/sbh-state/index",
+    "inquiry-sheet": "/components/inquiry-sheet/index"
+  }
+}
