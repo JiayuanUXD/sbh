@@ -61,6 +61,7 @@ function readStyleRule(styles: string, className: string): string {
     expect(iconWrap).toMatch(/position:\s*relative;/)
     expect(iconWrap).toMatch(/width:\s*32rpx;/)
     expect(iconWrap).toMatch(/height:\s*32rpx;/)
+    expect(iconCircle).toMatch(/box-sizing:\s*border-box;/)
     expect(iconCircle).toMatch(/position:\s*absolute;/)
     expect(iconCircle).toMatch(/left:\s*2rpx;/)
     expect(iconCircle).toMatch(/top:\s*2rpx;/)
@@ -72,6 +73,7 @@ function readStyleRule(styles: string, className: string): string {
     expect(iconHandle).toMatch(/width:\s*12rpx;/)
     expect(iconHandle).toMatch(/height:\s*4rpx;/)
     expect(iconHandle).toMatch(/transform:\s*rotate\(45deg\);/)
+    expect(iconHandle).toMatch(/transform-origin:\s*left center;/)
     expect(iconHandle).not.toMatch(/(?:right|bottom):\s*0;/)
   })
 ```
