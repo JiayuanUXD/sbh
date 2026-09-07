@@ -1,0 +1,18 @@
+{"phase":"devtools","database":"sbh_dev_mp108_prod","candidateSha":"e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f","startedAt":"2026-09-07T06:42:19.997Z","ci":true,"instrumentation":"Node HTTP finish observer; no bodies or query logged"}
+▲ Next.js 16.2.10
+- Local:         http://127.0.0.1:3717
+- Network:       http://127.0.0.1:3717
+✓ Ready in 134ms
+[14:42:21] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.
+[MP108_ACCESS] {"at":"2026-09-07T06:42:21.190Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:47:21.699Z","method":"GET","path":"/api/mini/v1/home","status":200,"requestId":["65ba34e9-dc1e-4537-9366-ae923fdfc62a"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:47:26.798Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["170cdd6d-d52e-4f4d-bc0d-d93cfd033b9b"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:47:31.900Z","method":"GET","path":"/api/mini/v1/listings/huangpu-bund-coworking","status":200,"requestId":["485b4dea-cd08-4c3e-9721-c947e01490fa"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:47:32.677Z","method":"POST","path":"/api/mini/v1/session","status":503,"requestId":["53b9fb5b-da66-4305-8dc4-79c2e33e83eb"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:48:48.062Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:48:54.478Z","method":"GET","path":"/api/mini/v1/home","status":200,"requestId":["711f0604-407f-4d91-8f9a-911e8142a07d"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:48:57.910Z","method":"GET","path":"/api/mini/v1/home","status":200,"requestId":["b3510519-0954-4364-ae31-ce99f01094eb"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:49:02.875Z","method":"GET","path":"/api/mini/v1/listings","status":200,"requestId":["c98db4db-d9e4-4e38-ae2f-4121a332551d"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:49:07.787Z","method":"GET","path":"/api/mini/v1/listings/huangpu-bund-coworking","status":200,"requestId":["c1768188-ad19-45f5-95e8-e62f0a78a3b5"]}
+[MP108_ACCESS] {"at":"2026-09-07T06:49:07.789Z","method":"POST","path":"/api/mini/v1/session","status":503,"requestId":["affdd5a4-247c-4bc6-a59f-36f5b0256e8c"]}
+{"stoppedAt":"2026-09-07T06:49:54.975Z","exitCode":130,"signal":null}

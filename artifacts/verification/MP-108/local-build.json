@@ -1,0 +1,18 @@
+{
+  "candidateSha": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+  "recordedAt": "2026-09-07T06:12:50.337Z",
+  "status": "PASS",
+  "commands": [
+    {
+      "command": "pnpm build",
+      "startedAt": "2026-09-07T06:12:50.344Z",
+      "finishedAt": "2026-09-07T06:13:39.314Z",
+      "exitCode": 0,
+      "output": "\n> payload-office-platform@0.1.0 build payload-office-platform\n> next build\n\n▲ Next.js 16.2.10 (Turbopack)\n- Experiments (use with caution):\n  ⨯ turbopackServerFastRefresh\n\n  Creating an optimized production build ...\n✓ Compiled successfully in 8.9s\n  Running TypeScript ...\n  Finished TypeScript in 10.4s ...\n  Collecting page data using 13 workers ...\n  Generating static pages using 13 workers (0/18) ...\n  Generating static pages using 13 workers (4/18) \r\n  Generating static pages using 13 workers (8/18) \r\n  Generating static pages using 13 workers (13/18) \r\n✓ Generating static pages using 13 workers (18/18) in 156ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ƒ /\n├ ○ /_not-found\n├ ƒ /[city]\n├ ƒ /[city]/[...rest]\n├ ƒ /[city]/buildings\n├ ƒ /[city]/buildings/[slug]\n├ ƒ /[city]/listings\n├ ƒ /[city]/listings/[slug]\n├ ƒ /[city]/sale\n├ ƒ /admin/[[...segments]]\n├ ƒ /api/[...slug]\n├ ƒ /api/city-partner-applications\n├ ƒ /api/city-partner-applications/details\n├ ƒ /api/corrections\n├ ƒ /api/graphql\n├ ƒ /api/graphql-playground\n├ ƒ /api/health\n├ ƒ /api/inquiries\n├ ƒ /api/inquiries/demand\n├ ƒ /api/mini/v1/acceptance/attestation\n├ ƒ /api/mini/v1/acceptance/leads\n├ ƒ /api/mini/v1/acceptance/permits\n├ ƒ /api/mini/v1/buildings\n├ ƒ /api/mini/v1/buildings/[slug]\n├ ƒ /api/mini/v1/favorites\n├ ƒ /api/mini/v1/home\n├ ƒ /api/mini/v1/inquiries\n├ ƒ /api/mini/v1/listings\n├ ƒ /api/mini/v1/listings/[slug]\n├ ƒ /api/mini/v1/me\n├ ƒ /api/mini/v1/session\n├ ƒ /api/observability/sli\n├ ƒ /api/routes\n├ ƒ /api/supply-submissions\n├ ƒ /api/watermark-preview\n├ ƒ /api/watermark-rebake\n├ ○ /apple-icon.png\n├ ƒ /buildings\n├ ƒ /buildings/[slug]\n├ ƒ /city-partner\n├ ƒ /dev-story\n├ ƒ /dev-story/building-detail-demo\n├ ƒ /dev-story/opt036\n├ ƒ /dev-story/opt037\n├ ƒ /dev-story/opt038\n├ ƒ /entrust\n├ ○ /icon.svg\n├ ƒ /listings\n├ ƒ /listings/[slug]\n├ ƒ /news\n├ ƒ /news/[slug]\n├ ƒ /pages/[slug]\n├ ƒ /pages/privacy\n├ ƒ /publish\n├ ○ /robots.txt\n├ ƒ /sale\n└ ƒ /sitemap.xml\n\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n"
+    }
+  ],
+  "priorBuildCommit": "unknown",
+  "buildCommit": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+  "buildId": "D-ScHG0xic-L2kLpHXRDJ",
+  "temporaryBuildInfoRemoved": true
+}

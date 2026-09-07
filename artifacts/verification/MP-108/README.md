@@ -1,5 +1,64 @@
 # MP-108 验证证据
 
+## Task 5：本机集成验收（2026-09-07）
+
+本轮候选为 `e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f`，业务集成为 `7fdd91afb24891a8ad0d9560ccf8927c0c055e72`。证据均本轮新采，不复用旧截图。数据库保留供复核，禁止删除或把已存在 fresh 库重新当作空库运行。
+
+- [local-postgres.json](./local-postgres.json)：升级库明确 80 → 81；新库不存在证明、创建、完整 81 迁移、seed/离线 seed:media、幂等复跑、8 files / 41 tests 实连全通过。旧 baseline 的 49 是每个 collection 最多 3 条的脚本口径，不是全库总记录；各表真实 count 另列。fresh 后续 baseline 为 42 collections / 有界 50。
+- [local-build.json](./local-build.json)：受控临时 build-info 注入当前完整 SHA，构建退出 0 后删除。Task 5 的重建替换了 Task 4 的 `.next` 指纹；Task 4 的 JSON 是历史证据，其 verifier 对当前构建拒绝旧指纹是预期行为。
+- [local-mini-api.json](./local-mini-api.json)、[local-mini-api-probe.json](./local-mini-api-probe.json)：只读访问升级库；health 200 / 精确 SHA，首页、列表、真实详情、非法城市、无效详情、request ID、no-store、asOf、固定 pageSize=24 与 slug 对账。
+- [local-e2e.json](./local-e2e.json)：所有可写 E2E 仅连接 fresh。原关闭态 `127.0.0.1` 配置错误导致 158 passed / 15 skipped / 9 failed / 5 did not run，原输出完整保留。Playwright 1.61.1 的 Secure-cookie HTTP 例外只认 localhost；改回 CI 原本的 localhost 后，18 个登录/批量导入证伪用例全通过，再完整重跑关闭态，并运行开启态四 spec。不得把条件跳过当通过。
+- `local-e2e-cleanup-*.json`：只按本轮精确 request ID、externalId、文件名和地理 slug 清理自身夹具，前后真实 count 与残留另列；缺少可复核唯一标记关联的事件不擅自删除。
+- 最终 E2E：关闭态 **172 passed / 15 skipped / 0 failed**；开启态 **20 passed / 2 skipped / 0 failed**，两趟均无 flaky/did-not-run。跳过是既有 flag 条件分支，不计通过。
+- [local-devtools.json](./local-devtools.json)：最终 `pnpm devtools:smoke` exit 0，develop 首页/列表/真实详情 ready 全通过，并与本轮 server 日志 request ID 对应。初次 Launcher 失败、CLI 登录检查、显式打开当前项目后的直连诊断均保留在 priorAttempts；在当前项目正常关闭释放 9420 后原命令成功。应用附带的 session POST 为 503：未设置 `MINI_TRUSTED_PROXY_HOPS`，在路由最前段 fail-closed，未进入数据库限流或微信 gateway；不将本地冒烟外推为微信登录/资产写链路通过。
+- [local-settlement.json](./local-settlement.json)：两个数据库均保留；112 个 public 表真实 count 已记录；升级库 HTTP 开始以来所有带 updated_at 表的新增更新计数均为 0，users_sessions/限流/资产表也为 0。3717 已释放，临时 build-info 已删除。fresh 精确业务夹具标记归零，leads=8/listings=11/locations=14，供给/合伙人/表单均为 0；另保留 3 条孤立供给事件及对应 3 jobs、21 audit_logs、6 listing_reviews、148 users_sessions、11 preferences 等运行副产物，详见逐表 count。缺少原始 request ID 可复核归属者未广删，fresh **不是字节级恢复到 seed 状态**。
+
+最终 `task5-verify.mjs verify` 退出 0，独立重解析四次 E2E 摘要（含原失败）、核验候选/构建/12 路由 bundle、41 实连用例、HTTP/DevTools 请求关联和端口结算；验证脚本自身 11 个纯函数反例测试通过。既有 E2E 自动生成的 20 张未脱敏截图已移至忽略的 `.superpowers/sdd/task5-unreviewed-visuals`，可恢复但不交付为脱敏验收截图；最初失败 trace/video 未另行归档，后续 Playwright 运行会清理 test-results，不能声称仍保留。原失败的完整脱敏终端输出已保留，未引用旧 MP-109 图。
+
+复现脚本均位于本目录。先使用上文固定 Node 22 PATH；以下命令从工作树根执行。脚本白名单继承环境、随机强 secret 仅进入子进程，严格校验本机数据库身份，不加载未知 env，不注入 COS。`prod` 只准第 81 迁移写入；后续只读服务增加已有的 `PAYLOAD_DISABLE_JOB_AUTORUN=1` 与 PostgreSQL `default_transaction_read_only=on` 保护。所有服务只绑定 127.0.0.1:3717；Playwright 以 localhost 访问以保持 CI cookie 语义。
+
+```sh
+# preflight/upgrade/fresh 仅在数据库满足原始前置时运行；当前两库已保留，不能再次重放创建。
+node artifacts/verification/MP-108/task5-local.mjs preflight
+node artifacts/verification/MP-108/task5-local.mjs upgrade
+node artifacts/verification/MP-108/task5-local.mjs fresh
+node artifacts/verification/MP-108/task5-build.mjs
+
+# 每个 server 在独立终端启动；阶段结束后仅对该进程 Ctrl-C，确认3717释放再启动下一阶段。
+node artifacts/verification/MP-108/task5-server.mjs http
+node artifacts/verification/MP-108/task5-http.mjs
+node artifacts/verification/MP-108/task5-server.mjs e2e-false
+node artifacts/verification/MP-108/task5-e2e.mjs diagnostic
+node artifacts/verification/MP-108/task5-e2e.mjs false-corrected
+node artifacts/verification/MP-108/task5-server.mjs e2e-true
+node artifacts/verification/MP-108/task5-e2e.mjs true
+# 历史清理已完成；旧 initial/final 模式现禁用。不得重跑现存数据库清理。
+node artifacts/verification/MP-108/task5-server.mjs devtools
+node artifacts/verification/MP-108/task5-devtools.mjs
+# 停止本任务server后
+node artifacts/verification/MP-108/task5-settle.mjs
+
+# 仅只读复核，不运行测试、不连接数据库、不写文件
+node artifacts/verification/MP-108/task5-local.mjs verify
+node artifacts/verification/MP-108/task5-verify.mjs verify
+node --test artifacts/verification/MP-108/task5-*.test.mjs
+```
+
+首次 server 未设 CI 触发 COS guard 503，按仓库已有本地 CI 离线例外设置 CI=1 后通过；未修改守卫。初始补充分页探针错误假设 pageSize=2，阅读真实固定 24 契约后纠正，所有补跑均为只读 GET。服务端访问观察器只记录 Mini 路径（去掉 query/body）、状态码与 request ID；不改业务源码。验证脚本的数据库身份、前置状态、脱敏路径、清理标记与摘要冲突反例均先 RED 后 GREEN。
+
+本轮不包含云端、生产、staging、trial、正式上传或真机验收。没有 Git 写操作；`.planning/` 与忽略的 `.superpowers/` 是本地过程文件，不计入候选源码。
+
+### Task 5 审查修复（四项 Important）
+
+本次只修验证脚本与单元反例，没有连接数据库、启动服务、运行 E2E/DevTools，所有实际验收 JSON/log 均未重采或改写。
+
+- `task5-local.mjs verify` 现在直接调用 `task5-verify.mjs verify`，两个入口采用同一完整判据。固定非空命令及目标；重解析实际迁移/verify/baseline/Vitest输出，核验80→81、fresh81、41测试与41表前后count；HTTP五合同、固定24分页、五request ID集合与真实日志；DevTools固定三marker、三类路由访问及命令时间窗口内唯一request ID。允许真实的“自动首页+导航首页”多一次GET，不以空数组every为PASS。
+- E2E capture与verify共用严格摘要解析器；PASS要求非零passed且failed/flaky/didNotRun全部为0。原首次FAILED仍保留，不会覆盖成成功。
+- 所有执行脚本共用的identity先比对完整HEAD，然后分别检查索引、工作树、未跟踪文件；仅放行本证据目录和`.planning/`、`.superpowers/`过程文件，业务/迁移dirty立即拒绝。
+- cleanup旧无参数期望值模式关闭。未来只有额外明确授权后才可 `task5-cleanup.mjs apply <已审批计划.json>`；计划须含candidateSha、database、evidenceFile、evidenceSha256、candidateEvidenceSha256、markers、expectedDelete、expectedRemaining。证据文件固定绑定`local-e2e-cleanup-initial.json`或`local-e2e-cleanup-final.json`与`local-e2e.json`，双SHA-256、候选/目标/唯一标记/9类精确删除数量全部在连接前校验；缺计划或篡改即拒绝。端口3717必须无人监听；BEGIN后锁定相关表，先核验每个删除集合及表总数，再逐条核验实际rowCount和事务内剩余count，最后才COMMIT；任一异常ROLLBACK。当前历史库已经清理过，不可用旧计划重放；不通过放宽expected值绕过。
+
+严格RED：原完整证据对照通过，25个反例暴露原误判/缺失边界；另一次证据绑定篡改反例RED。修复后全部Task5脚本单元测试 **41 passed / 0 failed / 0 skipped**（含30个新审查案例），两个只读verify均exit0。数据库执行边界仅用内存事务替身；dirty身份使用受控临时目录与Git命令输出替身，没有Git写操作。此处41个脚本单元测试与此前41个真实PostgreSQL业务用例是两组不同证据，不应混为一组。
+
 ## Task 4：本地质量门
 
 本轮于 2026-09-07（Asia/Shanghai）验证已提交候选 `7fdd91afb24891a8ad0d9560ccf8927c0c055e72`。Task 4 的全部 11 条命令退出码为 0；既有警告及条件跳过如下。本结论只覆盖本地自动化门，不等于 MP-108 整体完成或生产放行。

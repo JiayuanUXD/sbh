@@ -1,0 +1,104 @@
+{
+  "status": "PASS",
+  "phase": "final",
+  "recordedAt": "2026-09-07T06:42:20.419Z",
+  "database": "sbh_dev_mp108_fresh",
+  "before": {
+    "recordedAt": "2026-09-07T06:42:18.614Z",
+    "counts": {
+      "leads": 14,
+      "supply_submissions": 0,
+      "city_partner_applications": 0,
+      "locations": 21,
+      "location_aliases": 0,
+      "business_area_extensions": 1,
+      "forms": 0,
+      "listings": 15,
+      "domain_events": 5,
+      "notifications": 0,
+      "payload_jobs": 3,
+      "users": 5
+    },
+    "markers": {
+      "leadRequestIds": [
+        "8bbc432d-8446-465e-853e-d479d92f9a49",
+        "bd975b0e-9aff-49b0-ac03-7f73bd9b1229",
+        "def4ed27-777d-4327-a239-2d3e2aae95d4",
+        "e2e-idempotent-1788763134642-4f1h2d",
+        "e4d30fe8-895d-432e-b355-699f6374f7ed",
+        "f37b1eda-2ba6-4958-baa3-0cfcd3f1227b"
+      ],
+      "supplyRequestIds": [],
+      "partnerRequestIds": [],
+      "locationSlugs": [
+        "e2e-ba-xihu",
+        "e2e-binjiang",
+        "e2e-metro-1",
+        "e2e-metro-2",
+        "e2e-metro-2-st1",
+        "e2e-test-city",
+        "e2e-xihu"
+      ],
+      "formTitles": [],
+      "listingRooms": []
+    }
+  },
+  "exactMarkers": {
+    "requests": [
+      "8bbc432d-8446-465e-853e-d479d92f9a49",
+      "bd975b0e-9aff-49b0-ac03-7f73bd9b1229",
+      "def4ed27-777d-4327-a239-2d3e2aae95d4",
+      "e2e-idempotent-1788763134642-4f1h2d",
+      "e4d30fe8-895d-432e-b355-699f6374f7ed",
+      "f37b1eda-2ba6-4958-baa3-0cfcd3f1227b"
+    ],
+    "externalIds": [
+      "E2E-OPT041-mtqv7iq0-1",
+      "E2E-OPT041-mtqv7iq0-2",
+      "E2E-OPT041-mtqvbv3d-1",
+      "E2E-OPT041-mtqvbv3d-2"
+    ],
+    "files": [
+      "bulk-import-listings-mtqv7iq0.xlsx",
+      "bulk-import-listings-mtqvbv3d.xlsx",
+      "bulk-import-listings-reimport-mtqv7iq0.xlsx",
+      "bulk-import-listings-reimport-mtqvbv3d.xlsx"
+    ],
+    "locationSlugs": [
+      "e2e-ba-xihu",
+      "e2e-binjiang",
+      "e2e-metro-1",
+      "e2e-metro-2",
+      "e2e-metro-2-st1",
+      "e2e-test-city",
+      "e2e-xihu"
+    ]
+  },
+  "output": "BEGIN\nDELETE 4\nDELETE 4\nDELETE 4\nDELETE 0\nDELETE 0\nDELETE 6\nDELETE 1\nDELETE 0\nDELETE 7\nCOMMIT",
+  "after": {
+    "recordedAt": "2026-09-07T06:42:19.936Z",
+    "counts": {
+      "leads": 8,
+      "supply_submissions": 0,
+      "city_partner_applications": 0,
+      "locations": 14,
+      "location_aliases": 0,
+      "business_area_extensions": 0,
+      "forms": 0,
+      "listings": 11,
+      "domain_events": 5,
+      "notifications": 0,
+      "payload_jobs": 3,
+      "users": 5
+    },
+    "markers": {
+      "leadRequestIds": [],
+      "supplyRequestIds": [],
+      "partnerRequestIds": [],
+      "locationSlugs": [],
+      "formTitles": [],
+      "listingRooms": []
+    }
+  },
+  "concern": "剩余供给事件只有submissionId、无requestId且源记录已由测试删除；没有可复核唯一标记归属，未擅自删除。"
+}

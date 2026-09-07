@@ -1,6 +1,6 @@
 # Task Packet：MP-108 小程序生产就绪与切换
 
-> 状态：执行中（集成候选与本地自动化质量门已通过，正在补 PostgreSQL、HTTP/E2E 与开发者工具验收）
+> 状态：执行中（本地自动化、PostgreSQL、HTTP/E2E 与开发者工具验收已通过，等待整分支终审与 staging）
 > 更新日期：2026-09-07
 > 集成分支：`feat/mp-108-production-readiness-a7c3d2`
 > 基线：`origin/master@4d5c5af54692b555564c80a56d2f05a4ea6eae25`
@@ -64,11 +64,11 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 
 - [x] 小程序冻结安装、全量测试、双 TypeScript 和 `project:check` 通过（46 files / 938 tests）。
 - [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过（363 files / 5151 tests；8 files / 41 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证）。
-- [ ] 在 master 80 迁移的已填充库上执行集成后的新增迁移，验证 upgrade path、幂等重跑和 PostgreSQL 专项测试；最终数量以 CLI 生成结果为准。
-- [ ] 在第二个全新库从零执行完整迁移链与 seed，证明 fresh path。
+- [x] 在 master 80 迁移的已填充库上只应用第 81 条迁移，验证 upgrade path、原表真实 count 不减少、幂等重跑和迁移核验。
+- [x] 在第二个全新库从零执行 81 条完整迁移链、seed、幂等复跑和 PostgreSQL 专项测试（8 files / 41 tests，零跳过）。
 - [x] production build 通过，12 条 Mini API 动态路由全部进入构建 manifest 且 bundle 存在。
-- [ ] Mini API 本地真实 HTTP 探针通过。
-- [ ] Web E2E 与小程序开发者工具 develop 冒烟通过；develop 固定由当前候选 worktree 占用 3717，并以 health commit、服务端访问日志和 request ID 证明真实网络身份，任何环境限制单独记录。
+- [x] Mini API 本地真实 HTTP 探针通过：health 为完整候选 SHA，五条合同路径、request ID、no-store、asOf 与固定 24 分页均有本轮日志证据。
+- [x] Web 双态 E2E 与小程序开发者工具 develop 冒烟通过；develop 由当前候选 worktree 占用 3717，并以 health commit、服务端访问日志和 request ID 证明真实网络身份。微信 session/login 因本地可信代理与网关未配置返回 fail-closed 503，不计为已验证。
 
 ### Task 4：独立审查与候选固化
 

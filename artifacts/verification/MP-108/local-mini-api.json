@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "candidateSha": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+  "recordedAt": "2026-09-07T06:21:45.003Z",
+  "database": "sbh_dev_mp108_prod",
+  "commands": [
+    {
+      "command": "/Users/liujiayuan/.npm/_npx/52027bd8fc0022aa/node_modules/node/bin/node scripts/verify-mini-api.mjs http://127.0.0.1:3717 /Users/liujiayuan/App/wt-mp-108-prod/artifacts/verification/MP-108/local-mini-api-probe.json",
+      "startedAt": "2026-09-07T06:21:45.057Z",
+      "finishedAt": "2026-09-07T06:21:45.131Z",
+      "exitCode": 0,
+      "output": "artifacts/verification/MP-108/local-mini-api-probe.json\n"
+    }
+  ],
+  "initialDiagnostic": "首次未设 CI 导致 COS guard 503；按仓库 CI 本地离线例外添加 CI=1，未设置 COS 或修改守卫。初始日志保留。",
+  "health": {
+    "status": "ok",
+    "checks": {
+      "payload": "ok",
+      "db": "ok"
+    },
+    "timestamp": "2026-09-07T06:21:45.053Z",
+    "version": "e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f",
+    "env": "production"
+  },
+  "probe": {
+    "verifiedAt": "2026-09-07T06:21:45.118Z",
+    "baseUrl": "http://127.0.0.1:3717",
+    "home": {
+      "path": "/api/mini/v1/home?city=shanghai",
+      "status": 200,
+      "requestId": "9a809093-52fa-4efd-a95d-f6f9ab33ca65",
+      "cacheControl": "private, no-store",
+      "asOf": "2026-09-07T06:20:31.460Z",
+      "errorCode": null,
+      "itemCount": null,
+      "firstSlug": null,
+      "listingSlug": null
+    },
+    "list": {
+      "path": "/api/mini/v1/listings?city=shanghai&priceUnit=rmb-sqm-day&page=1",
+      "status": 200,
+      "requestId": "2947c0ee-e4e6-4786-ac83-c6fb04a60749",
+      "cacheControl": "private, no-store",
+      "asOf": "2026-09-07T06:20:31.681Z",
+      "errorCode": null,
+      "itemCount": 4,
+      "firstSlug": "lujiazui-grade-a-780sqm",
+      "listingSlug": null
+    },
+    "detail": {
+      "path": "/api/mini/v1/listings/lujiazui-grade-a-780sqm?city=shanghai",
+      "status": 200,
+      "requestId": "21c6caec-df59-4aa8-b523-472930444107",
+      "cacheControl": "private, no-store",
+      "asOf": "2026-09-07T06:20:31.783Z",
+      "errorCode": null,
+      "itemCount": null,
+      "firstSlug": null,
+      "listingSlug": "lujiazui-grade-a-780sqm"
+    },
+    "invalidCity": {
+      "path": "/api/mini/v1/home?city=unknown-city",
+      "status": 404,
+      "requestId": "e0c6d640-bc30-461a-a2e5-0d5c447ff196",
+      "cacheControl": "private, no-store",
+      "asOf": null,
+      "errorCode": "city_not_found",
+      "itemCount": null,
+      "firstSlug": null,
+      "listingSlug": null
+    },
+    "invalidListing": {
+      "path": "/api/mini/v1/listings/not-a-real-listing?city=shanghai",
+      "status": 404,
+      "requestId": "cfe6f3ef-6de5-4d32-9c13-d806f6d6ca7d",
+      "cacheControl": "private, no-store",
+      "asOf": null,
+      "errorCode": "listing_not_found",
+      "itemCount": null,
+      "firstSlug": null,
+      "listingSlug": null
+    }
+  },
+  "pagination": {
+    "page": 1,
+    "pageSize": 24,
+    "totalDocs": 10,
+    "totalPages": 1,
+    "hasNextPage": false,
+    "hasPrevPage": false
+  },
+  "paginationContract": "源码 public-catalog/types.ts 固定 pageSize=24；初始补充探针误设2已纠正，仅重跑只读GET。",
+  "paginationRequestId": "c7cf1cb3-d853-4b1e-a815-9b6c9daf72b4",
+  "correlatedRequestIds": [
+    "9a809093-52fa-4efd-a95d-f6f9ab33ca65",
+    "2947c0ee-e4e6-4786-ac83-c6fb04a60749",
+    "21c6caec-df59-4aa8-b523-472930444107",
+    "e0c6d640-bc30-461a-a2e5-0d5c447ff196",
+    "cfe6f3ef-6de5-4d32-9c13-d806f6d6ca7d"
+  ]
+}

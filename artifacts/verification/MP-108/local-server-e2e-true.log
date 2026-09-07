@@ -1,0 +1,607 @@
+{"phase":"e2e-true","database":"sbh_dev_mp108_fresh","candidateSha":"e2d2666eaf8d6d1ec1850c7d0fff8eb8f3d4e09f","startedAt":"2026-09-07T06:41:12.115Z","ci":true,"instrumentation":"Node HTTP finish observer; no bodies or query logged"}
+▲ Next.js 16.2.10
+- Local:         http://127.0.0.1:3717
+- Network:       http://127.0.0.1:3717
+✓ Ready in 154ms
+[14:41:13] WARN: No email adapter provided. Email will be written to console. More info at https://payloadcms.com/docs/email/overview.
+[MP108_ACCESS] {"at":"2026-09-07T06:41:13.503Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:41:13.979Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[MP108_ACCESS] {"at":"2026-09-07T06:41:13.988Z","method":"GET","path":"/api/health","status":200,"requestId":null}
+[14:41:15] INFO: inquiry_success
+    requestId: "entrust-00000000-0000-4000-8000-000000000002"
+    pageType: "entrust"
+    path: "/entrust"
+    targetType: "none"
+    targetSlug: null
+    phoneMasked: "139****0002"
+    consentPolicyVersion: "MVP-R2"
+    idempotent: false
+    fieldCompleteness: "required_only"
+    campaignKeys: []
+    errorCode: null
+    durationMs: 73
+    hasPriceSnapshot: false
+    section: null
+    targetResolution: "general"
+[14:41:15] INFO: supply_submission_success
+    requestId: "publish-00000000-0000-4000-8000-000000000002"
+    areaBucket: "100-300"
+    hasRent: false
+    rentUnit: null
+    commissionMonths: "none"
+    sourcePath: "/publish"
+    idempotent: false
+    errorCode: null
+    durationMs: 48
+[14:41:30] ERROR: Error running task 1. Attempt 4
+    job: {
+      "id": 48,
+      "input": {
+        "eventId": "supply-submission-created:2"
+      },
+      "completedAt": null,
+      "totalTried": 3,
+      "hasError": false,
+      "error": null,
+      "log": [
+        {
+          "id": "6a9e5c40618b7c28866e010b",
+          "executedAt": "2026-09-07T06:40:00.127Z",
+          "completedAt": "2026-09-07T06:40:00.141Z",
+          "taskSlug": "notify-supply-submission-created",
+          "taskID": "1",
+          "input": {
+            "eventId": "supply-submission-created:2"
+          },
+          "output": {},
+          "state": "failed",
+          "error": {
+            "name": "Error",
+            "stack": "Error: supply_submission_notification_delivery_failed\n    at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)\n    at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)\n    at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)\n    at async Promise.all (index 0)\n    at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)\n    at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)\n    at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)\n    at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)",
+            "message": "supply_submission_notification_delivery_failed",
+            "cancelled": false
+          }
+        },
+        {
+          "id": "6a9e5c5e618b7c28866e0176",
+          "executedAt": "2026-09-07T06:40:30.134Z",
+          "completedAt": "2026-09-07T06:40:30.148Z",
+          "taskSlug": "notify-supply-submission-created",
+          "taskID": "1",
+          "input": {
+            "eventId": "supply-submission-created:2"
+          },
+          "output": {},
+          "state": "failed",
+          "error": {
+            "name": "Error",
+            "stack": "Error: supply_submission_notification_delivery_failed\n    at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)\n    at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)\n    at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)\n    at async Promise.all (index 0)\n    at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)\n    at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)\n    at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)\n    at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)",
+            "message": "supply_submission_notification_delivery_failed",
+            "cancelled": false
+          }
+        },
+        {
+          "id": "6a9e5c7c618b7c28866e0178",
+          "executedAt": "2026-09-07T06:41:00.143Z",
+          "completedAt": "2026-09-07T06:41:00.161Z",
+          "taskSlug": "notify-supply-submission-created",
+          "taskID": "1",
+          "input": {
+            "eventId": "supply-submission-created:2"
+          },
+          "output": {},
+          "state": "failed",
+          "error": {
+            "name": "Error",
+            "stack": "Error: supply_submission_notification_delivery_failed\n    at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)\n    at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)\n    at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)\n    at async Promise.all (index 0)\n    at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)\n    at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)\n    at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)\n    at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)",
+            "message": "supply_submission_notification_delivery_failed",
+            "cancelled": false
+          }
+        }
+      ],
+      "taskSlug": "notify-supply-submission-created",
+      "queue": "supply-submission-notifications",
+      "processing": true,
+      "meta": null,
+      "updatedAt": "2026-09-07T06:41:30.005Z",
+      "createdAt": "2026-09-07T06:39:38.155Z",
+      "taskStatus": {
+        "notify-supply-submission-created": {
+          "1": {
+            "complete": false,
+            "input": {
+              "eventId": "supply-submission-created:2"
+            },
+            "output": {},
+            "taskSlug": "notify-supply-submission-created",
+            "totalTried": 3
+          }
+        }
+      },
+      "waitUntil": "2026-09-07T06:42:10.051Z"
+    }
+    taskSlug: "notify-supply-submission-created"
+    err: {
+      "type": "U",
+      "message": "supply_submission_notification_delivery_failed",
+      "stack":
+          Error: supply_submission_notification_delivery_failed
+              at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+              at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+              at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+              at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+              at async Promise.all (index 0)
+              at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+              at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+              at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+              at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+      "args": {
+        "type": "Object",
+        "message": "supply_submission_notification_delivery_failed",
+        "stack":
+
+        "executedAt": "2026-09-07T06:41:30.028Z",
+        "input": {
+          "eventId": "supply-submission-created:2"
+        },
+        "job": {
+          "id": 48,
+          "input": {
+            "eventId": "supply-submission-created:2"
+          },
+          "completedAt": null,
+          "totalTried": 3,
+          "hasError": false,
+          "error": null,
+          "log": [
+            {
+              "id": "6a9e5c40618b7c28866e010b",
+              "executedAt": "2026-09-07T06:40:00.127Z",
+              "completedAt": "2026-09-07T06:40:00.141Z",
+              "taskSlug": "notify-supply-submission-created",
+              "taskID": "1",
+              "input": {
+                "eventId": "supply-submission-created:2"
+              },
+              "output": {},
+              "state": "failed",
+              "error": {
+                "name": "Error",
+                "stack":
+                    Error: supply_submission_notification_delivery_failed
+                        at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+                        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+                        at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+                        at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+                        at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+                        at async Promise.all (index 0)
+                        at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+                        at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+                        at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+                        at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+                "message": "supply_submission_notification_delivery_failed",
+                "cancelled": false
+              }
+            },
+            {
+              "id": "6a9e5c5e618b7c28866e0176",
+              "executedAt": "2026-09-07T06:40:30.134Z",
+              "completedAt": "2026-09-07T06:40:30.148Z",
+              "taskSlug": "notify-supply-submission-created",
+              "taskID": "1",
+              "input": {
+                "eventId": "supply-submission-created:2"
+              },
+              "output": {},
+              "state": "failed",
+              "error": {
+                "name": "Error",
+                "stack":
+                    Error: supply_submission_notification_delivery_failed
+                        at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+                        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+                        at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+                        at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+                        at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+                        at async Promise.all (index 0)
+                        at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+                        at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+                        at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+                        at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+                "message": "supply_submission_notification_delivery_failed",
+                "cancelled": false
+              }
+            },
+            {
+              "id": "6a9e5c7c618b7c28866e0178",
+              "executedAt": "2026-09-07T06:41:00.143Z",
+              "completedAt": "2026-09-07T06:41:00.161Z",
+              "taskSlug": "notify-supply-submission-created",
+              "taskID": "1",
+              "input": {
+                "eventId": "supply-submission-created:2"
+              },
+              "output": {},
+              "state": "failed",
+              "error": {
+                "name": "Error",
+                "stack":
+                    Error: supply_submission_notification_delivery_failed
+                        at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+                        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+                        at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+                        at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+                        at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+                        at async Promise.all (index 0)
+                        at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+                        at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+                        at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+                        at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+                "message": "supply_submission_notification_delivery_failed",
+                "cancelled": false
+              }
+            }
+          ],
+          "taskSlug": "notify-supply-submission-created",
+          "queue": "supply-submission-notifications",
+          "processing": true,
+          "meta": null,
+          "updatedAt": "2026-09-07T06:41:30.005Z",
+          "createdAt": "2026-09-07T06:39:38.155Z",
+          "taskStatus": {
+            "notify-supply-submission-created": {
+              "1": {
+                "complete": false,
+                "input": {
+                  "eventId": "supply-submission-created:2"
+                },
+                "output": {},
+                "taskSlug": "notify-supply-submission-created",
+                "totalTried": 3
+              }
+            }
+          },
+          "waitUntil": "2026-09-07T06:42:10.051Z"
+        },
+        "output": {},
+        "retriesConfig": {
+          "attempts": 5,
+          "backoff": {
+            "type": "exponential",
+            "delay": 5000
+          }
+        },
+        "taskConfig": {
+          "slug": "notify-supply-submission-created",
+          "label": "投放申请通知",
+          "inputSchema": [
+            {
+              "name": "eventId",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "outputSchema": [
+            {
+              "name": "delivered",
+              "type": "number",
+              "required": true
+            }
+          ],
+          "retries": {
+            "attempts": 5,
+            "backoff": {
+              "type": "exponential",
+              "delay": 5000
+            }
+          }
+        },
+        "taskID": "1",
+        "taskSlug": "notify-supply-submission-created",
+        "taskStatus": {
+          "complete": false,
+          "input": {
+            "eventId": "supply-submission-created:2"
+          },
+          "output": {},
+          "taskSlug": "notify-supply-submission-created",
+          "totalTried": 3
+        },
+        "workflowConfig": {
+          "slug": "singleTask"
+        }
+      }
+    }
+[14:41:30] ERROR: Error running task 1. Attempt 1
+    job: {
+      "id": 52,
+      "input": {
+        "eventId": "supply-submission-created:3"
+      },
+      "completedAt": null,
+      "totalTried": 0,
+      "hasError": false,
+      "error": null,
+      "log": [],
+      "taskSlug": "notify-supply-submission-created",
+      "queue": "supply-submission-notifications",
+      "waitUntil": "2026-09-07T06:41:35.058Z",
+      "processing": true,
+      "meta": null,
+      "updatedAt": "2026-09-07T06:41:30.005Z",
+      "createdAt": "2026-09-07T06:41:15.635Z",
+      "taskStatus": {}
+    }
+    taskSlug: "notify-supply-submission-created"
+    err: {
+      "type": "U",
+      "message": "supply_submission_notification_delivery_failed",
+      "stack":
+          Error: supply_submission_notification_delivery_failed
+              at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+              at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+              at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+              at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+              at async Promise.all (index 1)
+              at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+              at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+              at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+              at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+      "args": {
+        "type": "Object",
+        "message": "supply_submission_notification_delivery_failed",
+        "stack":
+
+        "executedAt": "2026-09-07T06:41:30.028Z",
+        "input": {
+          "eventId": "supply-submission-created:3"
+        },
+        "job": {
+          "id": 52,
+          "input": {
+            "eventId": "supply-submission-created:3"
+          },
+          "completedAt": null,
+          "totalTried": 0,
+          "hasError": false,
+          "error": null,
+          "log": [],
+          "taskSlug": "notify-supply-submission-created",
+          "queue": "supply-submission-notifications",
+          "waitUntil": "2026-09-07T06:41:35.058Z",
+          "processing": true,
+          "meta": null,
+          "updatedAt": "2026-09-07T06:41:30.005Z",
+          "createdAt": "2026-09-07T06:41:15.635Z",
+          "taskStatus": {}
+        },
+        "output": {},
+        "retriesConfig": {
+          "attempts": 5,
+          "backoff": {
+            "type": "exponential",
+            "delay": 5000
+          }
+        },
+        "taskConfig": {
+          "slug": "notify-supply-submission-created",
+          "label": "投放申请通知",
+          "inputSchema": [
+            {
+              "name": "eventId",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "outputSchema": [
+            {
+              "name": "delivered",
+              "type": "number",
+              "required": true
+            }
+          ],
+          "retries": {
+            "attempts": 5,
+            "backoff": {
+              "type": "exponential",
+              "delay": 5000
+            }
+          }
+        },
+        "taskID": "1",
+        "taskSlug": "notify-supply-submission-created",
+        "taskStatus": null,
+        "workflowConfig": {
+          "slug": "singleTask"
+        }
+      }
+    }
+[14:42:00] ERROR: Error running task 1. Attempt 2
+    job: {
+      "id": 52,
+      "input": {
+        "eventId": "supply-submission-created:3"
+      },
+      "completedAt": null,
+      "totalTried": 1,
+      "hasError": false,
+      "error": null,
+      "log": [
+        {
+          "id": "6a9e5c9a86e7df7c8b8dfe22",
+          "executedAt": "2026-09-07T06:41:30.028Z",
+          "completedAt": "2026-09-07T06:41:30.058Z",
+          "taskSlug": "notify-supply-submission-created",
+          "taskID": "1",
+          "input": {
+            "eventId": "supply-submission-created:3"
+          },
+          "output": {},
+          "state": "failed",
+          "error": {
+            "name": "Error",
+            "stack": "Error: supply_submission_notification_delivery_failed\n    at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)\n    at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)\n    at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)\n    at async Promise.all (index 1)\n    at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)\n    at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)\n    at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)\n    at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)",
+            "message": "supply_submission_notification_delivery_failed",
+            "cancelled": false
+          }
+        }
+      ],
+      "taskSlug": "notify-supply-submission-created",
+      "queue": "supply-submission-notifications",
+      "processing": true,
+      "meta": null,
+      "updatedAt": "2026-09-07T06:42:00.076Z",
+      "createdAt": "2026-09-07T06:41:15.635Z",
+      "taskStatus": {
+        "notify-supply-submission-created": {
+          "1": {
+            "complete": false,
+            "input": {
+              "eventId": "supply-submission-created:3"
+            },
+            "output": {},
+            "taskSlug": "notify-supply-submission-created",
+            "totalTried": 1
+          }
+        }
+      },
+      "waitUntil": "2026-09-07T06:42:10.132Z"
+    }
+    taskSlug: "notify-supply-submission-created"
+    err: {
+      "type": "U",
+      "message": "supply_submission_notification_delivery_failed",
+      "stack":
+          Error: supply_submission_notification_delivery_failed
+              at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+              at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+              at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+              at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+              at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+              at async Promise.all (index 0)
+              at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+              at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+              at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+              at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+      "args": {
+        "type": "Object",
+        "message": "supply_submission_notification_delivery_failed",
+        "stack":
+
+        "executedAt": "2026-09-07T06:42:00.114Z",
+        "input": {
+          "eventId": "supply-submission-created:3"
+        },
+        "job": {
+          "id": 52,
+          "input": {
+            "eventId": "supply-submission-created:3"
+          },
+          "completedAt": null,
+          "totalTried": 1,
+          "hasError": false,
+          "error": null,
+          "log": [
+            {
+              "id": "6a9e5c9a86e7df7c8b8dfe22",
+              "executedAt": "2026-09-07T06:41:30.028Z",
+              "completedAt": "2026-09-07T06:41:30.058Z",
+              "taskSlug": "notify-supply-submission-created",
+              "taskID": "1",
+              "input": {
+                "eventId": "supply-submission-created:3"
+              },
+              "output": {},
+              "state": "failed",
+              "error": {
+                "name": "Error",
+                "stack":
+                    Error: supply_submission_notification_delivery_failed
+                        at Object.notify-supply-submission-created (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:4771)
+                        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+                        at async handler (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:9780)
+                        at async Z (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:5663)
+                        at async p (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:10716)
+                        at async Promise.all (index 1)
+                        at async ee (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:129:11427)
+                        at async Object.run (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:5757)
+                        at async T.Cron.catch.logger.error.err [as fn] (payload-office-platform/.next/server/chunks/node_modules__pnpm_11o3zr1._.js:8:8113)
+                        at async y._trigger (payload-office-platform/.next/server/chunks/node_modules__pnpm_0_6pd12._.js:128:79201)
+                "message": "supply_submission_notification_delivery_failed",
+                "cancelled": false
+              }
+            }
+          ],
+          "taskSlug": "notify-supply-submission-created",
+          "queue": "supply-submission-notifications",
+          "processing": true,
+          "meta": null,
+          "updatedAt": "2026-09-07T06:42:00.076Z",
+          "createdAt": "2026-09-07T06:41:15.635Z",
+          "taskStatus": {
+            "notify-supply-submission-created": {
+              "1": {
+                "complete": false,
+                "input": {
+                  "eventId": "supply-submission-created:3"
+                },
+                "output": {},
+                "taskSlug": "notify-supply-submission-created",
+                "totalTried": 1
+              }
+            }
+          },
+          "waitUntil": "2026-09-07T06:42:10.132Z"
+        },
+        "output": {},
+        "retriesConfig": {
+          "attempts": 5,
+          "backoff": {
+            "type": "exponential",
+            "delay": 5000
+          }
+        },
+        "taskConfig": {
+          "slug": "notify-supply-submission-created",
+          "label": "投放申请通知",
+          "inputSchema": [
+            {
+              "name": "eventId",
+              "type": "text",
+              "required": true
+            }
+          ],
+          "outputSchema": [
+            {
+              "name": "delivered",
+              "type": "number",
+              "required": true
+            }
+          ],
+          "retries": {
+            "attempts": 5,
+            "backoff": {
+              "type": "exponential",
+              "delay": 5000
+            }
+          }
+        },
+        "taskID": "1",
+        "taskSlug": "notify-supply-submission-created",
+        "taskStatus": {
+          "complete": false,
+          "input": {
+            "eventId": "supply-submission-created:3"
+          },
+          "output": {},
+          "taskSlug": "notify-supply-submission-created",
+          "totalTried": 1
+        },
+        "workflowConfig": {
+          "slug": "singleTask"
+        }
+      }
+    }
+{"stoppedAt":"2026-09-07T06:42:18.108Z","exitCode":130,"signal":null}
