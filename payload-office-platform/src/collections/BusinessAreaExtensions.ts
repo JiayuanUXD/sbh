@@ -1,7 +1,39 @@
-import type { CollectionConfig } from 'payload'
+import type { AccessArgs, CollectionConfig } from 'payload'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import {
+  hasMenuPermission,
+  hasOperationPermission,
+} from '@/domain/auth/permission-context'
 import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
 import { activeLocationFilter, locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { protectBusinessAreaExtension } from '@/domain/geography/business-area-extension-protect'
+import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
+
+/**
+ * 写侧准入（2026-09-07 收口）
+ *
+ * 缺 create/update/delete 时 Payload 3.86 会补上 `defaultAccess`
+ * （`collections/config/sanitize.js`，判据仅 `Boolean(req.user)`）——任何登录账号
+ * 都能改商圈边界 / 扩展中心点 / 别名 / 站点关联，delete 还是硬删（本仓库
+ * `payload.delete` 恒为物理删除）。`admin.hidden` 只影响后台 UI，
+ * REST/GraphQL 端点照常开放，挡不住这条路径。同族缺陷：OPT-051（collection 缺
+ * delete）、OPT-053/055（Global 缺 update）。
+ *
+ * 为什么不是「只认 location:manage」：内置角色里只有 ADM 持有该操作码（OPS 没有），
+ * 而 OPS 有 `business-areas` 菜单码、今天就在用「商圈管理」页里的内嵌面板配置扩展。
+ * 只认操作码等于顺手砍掉运营的现有能力，把面板打回 403。
+ *
+ * 口径改为对齐**承载这张表的那个模块**：
+ *   - 页面：`requireGeographyAccess(req, module.menuCodes)`（商圈模块为 `business-areas`）
+ *   - 面板自己调的两个 endpoint：`GEOGRAPHY_MENU_CODES`（`locations` | `business-areas`）
+ * 再并上 `location:manage`，让「有地理操作码但没配菜单码」的自定义角色不被误伤。
+ */
+async function canManageBusinessAreaExtension(args: AccessArgs): Promise<boolean> {
+  const ctx = await getPermissionContext(args.req as RequestContext)
+  if (!ctx) return false
+  if (hasOperationPermission(ctx, 'location:manage')) return true
+  return GEOGRAPHY_MENU_CODES.some((code) => hasMenuPermission(ctx, code))
+}
 
 /**
  * 商圈扩展（tasks.md M2.3 / PRD 02-02 商圈配置）
@@ -39,7 +71,13 @@ export const BusinessAreaExtensions: CollectionConfig = {
     description: '本页仅供排障；日常配置请在「商圈管理」中打开对应商圈',
   },
   access: {
+    // 边界/别名是 C 端地理展示的一部分，读侧维持公开（与 locations 同口径）。
     read: () => true,
+    // 见文件头 canManageBusinessAreaExtension 的注释：这三条缺一条就等于对所有
+    // 登录账号开放对应动作。
+    create: canManageBusinessAreaExtension,
+    update: canManageBusinessAreaExtension,
+    delete: canManageBusinessAreaExtension,
   },
   hooks: {
     beforeChange: [
