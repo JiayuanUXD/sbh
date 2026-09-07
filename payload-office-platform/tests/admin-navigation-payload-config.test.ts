@@ -68,14 +68,12 @@ describe('Payload custom admin navigation config', () => {
       if (!collection) continue
 
       expect(collection.admin.group, `${slug} must opt out via admin.group=false`).toBe(false)
-      // Task 11：business-area-extensions 从默认导航隐藏（admin.hidden=true）以腾出
-      // 「商圈管理」给编辑页内嵌面板，但 collection 与 hook 全部保留、直接 URL 仍可访问
-      // 用于排障。其余 custom-navigation collection 需保留直接路由可见。
-      if (slug === 'business-area-extensions') {
-        expect(collection.admin.hidden, `${slug} must be hidden from default nav per Task 11`).toBe(true)
-      } else {
-        expect(collection.admin.hidden, `${slug} must keep its direct admin route visible`).not.toBe(true)
-      }
+      // 退出默认导航一律只靠 admin.group=false。business-area-extensions 曾额外写
+      // admin.hidden=true 并在此开特例，注释还声称「直接 URL 仍可访问用于排障」——
+      // 2026-09-06 实测证伪（hidden 会连 /admin/collections/<slug>/* 一起 404），
+      // 特例连同 hidden 一并移除。为什么 hidden ≠ 只藏导航，见
+      // tests/admin-entity-route-visibility.test.ts。
+      expect(collection.admin.hidden, `${slug} must keep its direct admin route visible`).not.toBe(true)
     }
   })
 
