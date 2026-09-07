@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 
 import { requireAdminContext, type RequestContext } from '@/domain/auth/access'
 import { hasMenuPermission } from '@/domain/auth/permission-context'
+import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
 import { searchLocations } from '@/domain/geography/location-search'
 
 /**
@@ -21,9 +22,6 @@ import { searchLocations } from '@/domain/geography/location-search'
  *   - 查询以 overrideAccess:false 继承当前用户数据权限（PRD 脱敏口径）
  *   - q 去空格后 <2 直接返回空数组，不打库
  */
-
-/** 与 navigation-config.ts 的地理叶子一致；任一命中即放行。 */
-const GEOGRAPHY_MENU_CODES = ['locations', 'business-areas'] as const
 
 export function createLocationSearchEndpoint(): Endpoint {
   return {
