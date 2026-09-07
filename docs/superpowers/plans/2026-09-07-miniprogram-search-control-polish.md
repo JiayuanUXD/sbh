@@ -35,18 +35,44 @@
 
 - [ ] **Step 1: 新增会失败的首页搜索视觉合同**
 
-在 `sbh-miniprogram/tests/home-page-contract.test.ts` 的“单城市阶段”测试之后新增：
+先在 `readPageFile` 后新增只读取单个 CSS 规则块的辅助函数：
+
+```ts
+function readStyleRule(styles: string, className: string): string {
+  return new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`).exec(styles)?.[1] ?? ''
+}
+```
+
+再在“单城市阶段”测试之后新增：
 
 ```ts
   it('搜索条为胶囊、提交按钮为正圆，CSS 放大镜在统一坐标系中连续', () => {
     const styles = readPageFile('index.wxss')
+    const search = readStyleRule(styles, 'home-search')
+    const submit = readStyleRule(styles, 'home-search__submit')
+    const iconWrap = readStyleRule(styles, 'home-search__icon-wrap')
+    const iconCircle = readStyleRule(styles, 'home-search__icon-circle')
+    const iconHandle = readStyleRule(styles, 'home-search__icon-handle')
 
-    expect(styles).toMatch(/\.home-search\s*\{[\s\S]*?border-radius:\s*999rpx;/)
-    expect(styles).toMatch(/\.home-search__submit\s*\{[\s\S]*?width:\s*80rpx;[\s\S]*?height:\s*80rpx;[\s\S]*?border-radius:\s*999rpx;/)
-    expect(styles).toMatch(/\.home-search__icon-wrap\s*\{[\s\S]*?position:\s*relative;[\s\S]*?width:\s*32rpx;[\s\S]*?height:\s*32rpx;/)
-    expect(styles).toMatch(/\.home-search__icon-circle\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?left:\s*2rpx;[\s\S]*?top:\s*2rpx;[\s\S]*?width:\s*22rpx;[\s\S]*?height:\s*22rpx;[\s\S]*?border:\s*4rpx solid #ffffff;/)
-    expect(styles).toMatch(/\.home-search__icon-handle\s*\{[\s\S]*?left:\s*20rpx;[\s\S]*?top:\s*22rpx;[\s\S]*?width:\s*12rpx;[\s\S]*?height:\s*4rpx;[\s\S]*?transform:\s*rotate\(45deg\);/)
-    expect(styles).not.toMatch(/\.home-search__icon-handle\s*\{[\s\S]*?(?:right|bottom):\s*0;/)
+    expect(search).toMatch(/border-radius:\s*999rpx;/)
+    expect(submit).toMatch(/width:\s*80rpx;/)
+    expect(submit).toMatch(/height:\s*80rpx;/)
+    expect(submit).toMatch(/border-radius:\s*999rpx;/)
+    expect(iconWrap).toMatch(/position:\s*relative;/)
+    expect(iconWrap).toMatch(/width:\s*32rpx;/)
+    expect(iconWrap).toMatch(/height:\s*32rpx;/)
+    expect(iconCircle).toMatch(/position:\s*absolute;/)
+    expect(iconCircle).toMatch(/left:\s*2rpx;/)
+    expect(iconCircle).toMatch(/top:\s*2rpx;/)
+    expect(iconCircle).toMatch(/width:\s*22rpx;/)
+    expect(iconCircle).toMatch(/height:\s*22rpx;/)
+    expect(iconCircle).toMatch(/border:\s*4rpx solid #ffffff;/)
+    expect(iconHandle).toMatch(/left:\s*20rpx;/)
+    expect(iconHandle).toMatch(/top:\s*22rpx;/)
+    expect(iconHandle).toMatch(/width:\s*12rpx;/)
+    expect(iconHandle).toMatch(/height:\s*4rpx;/)
+    expect(iconHandle).toMatch(/transform:\s*rotate\(45deg\);/)
+    expect(iconHandle).not.toMatch(/(?:right|bottom):\s*0;/)
   })
 ```
 
