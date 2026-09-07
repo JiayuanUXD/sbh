@@ -19,16 +19,19 @@ export const BusinessAreaExtensions: CollectionConfig = {
     plural: '商圈管理',
   },
   admin: {
-    // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板。
-    // collection 与 protect hook 全部保留。
+    // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板
+    // （BusinessAreaExtensionPanel）；collection、protect hook 与直接 URL 全部保留，
+    // 排障时可打开 /admin/collections/business-area-extensions。
     //
-    // 注意（OPT-074 实测订正）：原注释称「直接 URL 仍可访问用于排障」——**不成立**。
-    // Payload 3.86 的 collection 级 hidden:true 会连 /admin/collections/<slug>/* 路由
-    // 一起排除，直接访问得到「没有找到任何东西」，与 OPT-053 里 Global 的
-    // admin.hidden 是同一个坑。下面 businessArea 上挂的级联组件因此在当前配置下
-    // 不会被渲染（日常配置走 BusinessAreaExtensionPanel 内嵌面板）；
-    // 保留它是为了这里一旦改用其它方式暴露表单页时无需再补。
-    hidden: true,
+    // 退出导航只用 `group: false`，**不能**再叠 `hidden: true`——两者差一个字，
+    // 后果差很远，因为分属 `@payloadcms/ui` 里两套互不相干的机制：
+    //   group: false → groupNavItems 跳过它 → 从侧边栏/仪表盘排除，路由仍可用
+    //   hidden: true → getVisibleEntities 把它从 visibleEntities.collections 滤掉，
+    //                  而 List/Document 两个 view 都在 `!visibleEntities.collections
+    //                  .includes(slug)` 时 notFound() → 列表页和表单页一起 404
+    // 与 OPT-053 里 Global 的 admin.hidden 是同一个坑。本文件此前两个字段同时写，
+    // 注释还声称「直接 URL 仍可访问用于排障」，2026-09-06 实测证伪后移除 hidden。
+    // 守卫：tests/admin-entity-route-visibility.test.ts。
     group: false,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'businessArea',
