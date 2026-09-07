@@ -1,4 +1,5 @@
 import type {
+  AccessArgs,
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
   CollectionConfig,
@@ -11,6 +12,12 @@ import {
 } from '@/domain/city-site-profile/cache-invalidator'
 import { normalizeCitySlug } from '@/domain/city-site-profile/resolver'
 import { findByIdSafe } from '@/domain/shared/transaction-safety'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import {
+  hasMenuPermission,
+  hasOperationPermission,
+} from '@/domain/auth/permission-context'
+import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
 import {
   LOCATION_TYPES,
   LOCATION_TYPE_LABELS,
@@ -185,6 +192,67 @@ const TYPE_OPTIONS = LOCATION_TYPES.map((value) => ({
   value,
 }))
 
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前本集合只写了 `read`，create/update/delete 落到 Payload 3.86 的 `defaultAccess`
+ * （`collections/config/sanitize.js`，判据仅 `Boolean(req.user)`）——**任何登录账号**
+ * （经纪人、客服都算）都能通过 REST/GraphQL 增删改城市 / 行政区 / 商圈 / 地铁线路 / 站点。
+ * 自定义视图的 `requireGeographyAccess` 只挡 `/admin/geography/*` 这四个页面路由，
+ * 挡不住直接打 `/api/locations`。同族缺陷：BusinessAreaExtensions（2026-09-07 已收）、
+ * OPT-051（collection 缺 delete）、OPT-053/055（Global 缺 update）。
+ *
+ * 危害面比商圈扩展大：地理树是楼盘、房源、线索、账号城市范围、城市站点配置的公共上游。
+ */
+
+/**
+ * create / update：地理菜单码任一命中，或显式持有 `location:manage`。
+ *
+ * 与 BusinessAreaExtensions 同口径，理由也同：内置角色里只有 ADM 持有 `location:manage`
+ * （OPS 没有），而 OPS 有 `locations` / `business-areas` 两个菜单码、今天就在用
+ * `/admin/geography/*` 四个模块维护地理数据——那些页面的新建与编辑走的正是客户端
+ * `fetch('/api/locations', { method: 'POST' | 'PATCH' })`（GeographyCreateViewClient、
+ * GeographyListViewClient、MetroLineStationsPanel），会实打实经过本函数。
+ * 只认操作码等于把 OPS 打回 403，顺手砍掉运营现有能力。
+ *
+ * 并上 `location:manage`，让「有地理操作码但没配菜单码」的自定义角色不被误伤。
+ */
+async function canManageLocation(args: AccessArgs): Promise<boolean> {
+  const ctx = await getPermissionContext(args.req as RequestContext)
+  if (!ctx) return false
+  if (hasOperationPermission(ctx, 'location:manage')) return true
+  return GEOGRAPHY_MENU_CODES.some((code) => hasMenuPermission(ctx, code))
+}
+
+/**
+ * delete：**只认 `location:manage`**，比 create/update 严一档。
+ *
+ * 为什么不跟 create/update 同口径：
+ *   - 本仓库 `payload.delete` 恒为物理删除（无软删，`trash` 只是查询过滤器），
+ *     而地理节点是业务上游，删掉不可恢复；
+ *   - `beforeDelete` 的 `protectLocationDelete` 只挡**有引用**的节点（抛
+ *     `LOCATION_REFERENCED`），**无引用的叶子仍会被真删**——保护 hook 不是准入控制；
+ *   - 四个地理模块页面里根本没有删除入口（`protectLocationDelete` 的注释写着
+ *     「MVP 不提供删除入口」，已逐个 grep 确认 UI 无删除按钮），OPS 今天的能力里
+ *     本来就不含删除。收到 `location:manage` **不减少任何在用能力**，只是把
+ *     「绕过 UI 直接打 REST DELETE」这条路从「所有拿到地理菜单的人」收回给 ADM。
+ *
+ * 为什么不干脆 `() => false`：`immutableCode` 全局唯一、创建后不可改
+ * （`protectLocation` 抛 `IMMUTABLE_CODE`），`type` 同理。录错代码时唯一的补救就是
+ * 删掉重建——「停用」救不了，那个代码仍被占着。把最后这条通道关死等于逼人直接改库，
+ * 比留给 ADM 更糟。PRD L113/L114 的口径是「**有引用**只能停用不能删」，
+ * 也不是「一律不许删」。
+ *
+ * 当前只有 ADM（`operationPermissions: ['*']`）能通过，**无需迁移**：通配符由
+ * `hasOperationPermission` 内部处理。将来要放给 OPS，走迁移授权 + 同步
+ * `src/test/factory/roles.ts`（不同步会被 seed 擦掉，见 OPT-045 §9 的实测教训）。
+ */
+async function canDeleteLocation(args: AccessArgs): Promise<boolean> {
+  const ctx = await getPermissionContext(args.req as RequestContext)
+  if (!ctx) return false
+  return hasOperationPermission(ctx, 'location:manage')
+}
+
 export const Locations: CollectionConfig = {
   slug: 'locations',
   labels: {
@@ -209,7 +277,13 @@ export const Locations: CollectionConfig = {
     defaultColumns: ['name', 'type', 'immutableCode', 'parent', 'status', 'sortOrder'],
   },
   access: {
+    // 读侧维持公开：C 端城市/商圈/地铁的展示直接依赖它，不能动。
     read: () => true,
+    // 见上方 canManageLocation / canDeleteLocation 的注释：这三条缺一条
+    // 就等于对所有登录账号开放对应动作。
+    create: canManageLocation,
+    update: canManageLocation,
+    delete: canDeleteLocation,
   },
   hooks: {
     beforeChange: [protectLocation],
