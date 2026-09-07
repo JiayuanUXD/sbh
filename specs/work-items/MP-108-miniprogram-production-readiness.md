@@ -1,6 +1,6 @@
 # Task Packet：MP-108 小程序生产就绪与切换
 
-> 状态：执行中（最新 master 基线已通过，等待集成小程序分支）
+> 状态：执行中（集成候选与本地自动化质量门已通过，正在补 PostgreSQL、HTTP/E2E 与开发者工具验收）
 > 更新日期：2026-09-07
 > 集成分支：`feat/mp-108-production-readiness-a7c3d2`
 > 基线：`origin/master@4d5c5af54692b555564c80a56d2f05a4ea6eae25`
@@ -49,7 +49,7 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 - [x] 用 Node 22、pnpm 8.6.1 和独立 PostgreSQL 验证 master 基线。
 - [x] 从空库完成 80 条迁移、seed、二次迁移和 verify。
 - [x] 通过 typecheck、lint、4584 项普通测试、41 项 PostgreSQL 测试、迁移 dry-run/drift/preflight 和 production build。
-- [ ] 审查本 Task Packet 与本地设计/实施计划，只提交并推送 Task Packet。
+- [x] 审查本 Task Packet 与本地设计/实施计划，只提交并推送 Task Packet。
 
 ### Task 2：合并与冲突收敛
 
@@ -62,11 +62,12 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 
 ### Task 3：小程序与 Web 本地质量门
 
-- [ ] 小程序冻结安装、全量测试、双 TypeScript 和 `project:check` 通过。
-- [ ] Web 生成 types/importmap，typecheck、lint、全量 test、迁移 dry-run/drift/preflight 通过。
+- [x] 小程序冻结安装、全量测试、双 TypeScript 和 `project:check` 通过（46 files / 938 tests）。
+- [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过（363 files / 5151 tests；8 files / 41 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证）。
 - [ ] 在 master 80 迁移的已填充库上执行集成后的新增迁移，验证 upgrade path、幂等重跑和 PostgreSQL 专项测试；最终数量以 CLI 生成结果为准。
 - [ ] 在第二个全新库从零执行完整迁移链与 seed，证明 fresh path。
-- [ ] production build 和 Mini API 本地真实 HTTP 探针通过。
+- [x] production build 通过，12 条 Mini API 动态路由全部进入构建 manifest 且 bundle 存在。
+- [ ] Mini API 本地真实 HTTP 探针通过。
 - [ ] Web E2E 与小程序开发者工具 develop 冒烟通过；develop 固定由当前候选 worktree 占用 3717，并以 health commit、服务端访问日志和 request ID 证明真实网络身份，任何环境限制单独记录。
 
 ### Task 4：独立审查与候选固化

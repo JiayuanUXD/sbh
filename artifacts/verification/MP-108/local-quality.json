@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "workItem": "MP-108",
+  "task": 4,
+  "reproducibility": {
+    "script": "artifacts/verification/MP-108/local-quality.mjs",
+    "originalCapture": "11 条命令由本轮 Agent 分别执行并记录；原始捕获时尚无完整独立脚本。脚本为审查修复补齐，不声称原 JSON 由该脚本生成。",
+    "verifyCommand": "node artifacts/verification/MP-108/local-quality.mjs verify",
+    "verifyResult": "Node v22.23.2 实跑 exit 0；schema、11 条命令及统计、候选源码、12 条动态路由与 bundle、manifest SHA256/BUILD_ID 全部匹配。",
+    "captureMode": "显式 capture 模式可重放恰好 11 条门禁，脱敏结果独立写入 local-quality.capture.json；审查修复轮未重跑 capture。"
+  },
+  "status": "PASS_WITH_WARNINGS_AND_EXPLICIT_SKIPS",
+  "candidateSha": "7fdd91afb24891a8ad0d9560ccf8927c0c055e72",
+  "recordedAt": "2026-09-07T05:27:22.907Z",
+  "timezone": "Asia/Shanghai",
+  "toolchain": {
+    "node": "v22.23.2",
+    "pnpm": "8.6.1",
+    "next": "16.2.10",
+    "nodeBin": "/Users/liujiayuan/.npm/_npx/52027bd8fc0022aa/node_modules/node/bin"
+  },
+  "candidateBoundary": {
+    "trackedSourceDirtyBefore": [],
+    "trackedSourceDirtyAfter": [],
+    "untrackedBefore": [
+      ".planning/"
+    ],
+    "ignoredProcessFiles": [
+      ".superpowers/"
+    ],
+    "newEvidence": [
+      "artifacts/verification/MP-108/README.md",
+      "artifacts/verification/MP-108/local-quality.json"
+    ],
+    "note": "候选源码均来自上述已提交 SHA；.planning 与 .superpowers 为本地过程文件，不属于候选源码。生成类型已存在且 prefix 计数为 2；本轮未重新生成类型/import map。"
+  },
+  "environment": {
+    "envFiles": {
+      "web": [
+        ".env.example"
+      ],
+      "mini": []
+    },
+    "inheritedSensitiveEnvironmentKeys": [],
+    "cosConfigured": false,
+    "quality": {
+      "PAYLOAD_SECRET": "每次进程用 crypto.randomBytes(48) 生成的强本地值，不记录原值",
+      "DATABASE_URL": "未设置"
+    },
+    "build": {
+      "PAYLOAD_SECRET": "强本地随机值，已脱敏",
+      "DATABASE_URL": "仅本地隔离 PostgreSQL，完整连接串不记录",
+      "database": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "name": "sbh_dev_mp108_prod"
+      },
+      "CI": "1",
+      "NEXT_PUBLIC_SITE_URL": "https://mp108.local.test",
+      "MULTI_CITY_ROUTING_ENABLED": "false"
+    },
+    "networkScope": "无生产或 CloudBase/COS 访问命令；依赖安装复用 1123 个缓存包并从包源下载 1 个包。"
+  },
+  "commands": [
+    {
+      "cwd": "sbh-miniprogram",
+      "command": "pnpm install --frozen-lockfile",
+      "exitCode": 0,
+      "summary": "lockfile up to date；1124 packages，1123 reused / 1 downloaded；4.1s"
+    },
+    {
+      "cwd": "sbh-miniprogram",
+      "command": "pnpm test",
+      "exitCode": 0,
+      "testFiles": {
+        "passed": 46,
+        "total": 46
+      },
+      "tests": {
+        "passed": 938,
+        "total": 938
+      },
+      "output": "Test Files  46 passed (46)\n      Tests  938 passed (938)\n   Start at  13:22:35\n   Duration  2.72s (transform 3.18s, setup 0ms, import 8.83s, tests 9.04s, environment 2ms)"
+    },
+    {
+      "cwd": "sbh-miniprogram",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "summary": "tsconfig.json 与 tsconfig.node.json 均通过"
+    },
+    {
+      "cwd": "sbh-miniprogram",
+      "command": "pnpm project:check",
+      "exitCode": 0,
+      "summary": "SBH 小程序工程静态检查通过"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm typecheck",
+      "exitCode": 0,
+      "summary": "tsc --noEmit --pretty false"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": 22,
+      "output": "payload-office-platform/src/app/(frontend)/news/[slug]/page.tsx\n  126:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/app/(frontend)/pages/[slug]/page.tsx\n  106:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/admin/LocationCascadeField.tsx\n  213:6  warning  React Hook useMemo has an unnecessary dependency: 'selectableTypes'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps\n\npayload-office-platform/src/components/frontend/ArticleCard.tsx\n  42:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/BuildingCardMini.tsx\n  61:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/BuildingSummaryCard.tsx\n  43:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/DetailGallery.tsx\n  300:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n  401:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n  449:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/HomeHeroMedia.tsx\n  63:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/InquiryModal.tsx\n  301:6  warning  React Hook useMemo has an unnecessary dependency: 'open'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps\n\npayload-office-platform/src/components/frontend/PageContent.tsx\n  276:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/SiteHeader.tsx\n  49:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/building-detail/NearbyBuildingsStrip.tsx\n  41:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/city/ComingSoonCityView.tsx\n  104:42  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/home/HomeSupplyCard.tsx\n  34:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/landing/LandingHero.tsx\n  65:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/listing/BuildingCompactRow.tsx\n  88:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/listing/BuildingResultCard.tsx\n  86:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/listing/ListingResultCard.tsx\n  91:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/listing/ListingResultRow.tsx\n  79:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\npayload-office-platform/src/components/frontend/ui/Media.tsx\n  144:5  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element\n\n✖ 22 problems (0 errors, 22 warnings)"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm test",
+      "exitCode": 0,
+      "testFiles": {
+        "passed": 363,
+        "skipped": 8,
+        "total": 371
+      },
+      "tests": {
+        "passed": 5151,
+        "skipped": 41,
+        "total": 5192
+      },
+      "output": "Test Files  363 passed | 8 skipped (371)\n      Tests  5151 passed | 41 skipped (5192)\n   Start at  13:23:53\n   Duration  19.48s (transform 21.02s, setup 0ms, import 133.24s, tests 42.25s, environment 4.31s)"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm migrate:dry-run",
+      "exitCode": 0,
+      "recordedAt": "2026-09-07T05:53:13.748Z",
+      "source": "Task 4 v2 审查修复：获准独立重跑本地 migrate:dry-run 补采真实 output；其余 10 条门禁未重跑。",
+      "output": "\n> payload-office-platform@0.1.0 migrate:dry-run payload-office-platform\n> node --env-file-if-exists=.env.local --import tsx scripts/migrate-dry-run.ts\n\n=== Migration Dry-Run Report ===\nGenerated: 2026-09-07T05:53:13.733Z\nDatabase:  postgres\nTotal migrations: 81\nBlocking hits:    0\nWarning hits:     4\n\n- 20260723_160143_init\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260724_080952_add_leads_source\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_103653_m0_schema_sync\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_125851_m2_5_teams_brokers\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_130727_m2_1_locations_geo_node\n    up: true, down: true, json: true\n    [WARN] L6: ALTER COLUMN \"type\" SET DATA TYPE\n      reason:  修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换\n      snippet: ALTER TABLE \"locations\" ALTER COLUMN \"type\" SET DATA TYPE text;\n    [WARN] L15: ALTER COLUMN \"type\" SET DATA TYPE \"public\".\"enum_locations_type\" USING \"type\"::\"public\".\"enum_locations_type\n      reason:  修改字段类型可能丢数据；建议新增字段 + 回填 + 双读 + 切换\n      snippet: ALTER TABLE \"locations\" ALTER COLUMN \"type\" SET DATA TYPE \"public\".\"enum_locations_type\" USING \"type\"::\"public\".\"enum_lo\n- 20260725_132852_m2_6_display_tags\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_135837_m3_1_building_fields\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_142333_m3_3_building_merchant_relations\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_142500_m3_3_building_merchant_exclude\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260725_181426_m4_2_listing_merchant_relations\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260725_181500_m4_2_listing_merchant_exclude\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260725_185329_m4_4_listing_reviews\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260726_103500_m6_1_listing_reports\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_103600_m6_3_domain_events\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_103700_m6_4_tasks\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_103800_m6_7_notifications\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_110000_m5_1_crm_collections\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_140000_m5_2_leads_inquiry_context\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260726_150000_opt017_inquiry_rate_limit\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260728_175500_locked_docs_audit_logs_rel\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260728_180000_opt_021_admin_navigation_roles\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260728_181000_opt_021_form_submission_status\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260730_125851_detail_page_fields\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260730_134600_inquiry_detail_context\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260731_110500_fix_tasks_notifications_relationship\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260731_120000_information_corrections\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260731_120838_advisor_service_hours\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260731_120857_lead_viewing_preference\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260803_104120_add_articles\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260805_033418_cos_media_prefix\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260806_080629_locations_cover_image\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260808_224000_articles_menu_for_ops\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260809_142444_supply_submissions_and_entrust_source\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260809_180000_supply_notification_duplicates_preflight\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260809_183327_supply_submission_notification_unique\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260809_203911_supply_submission_notification_jobs\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260810_003111_align_listings_data_source_with_production\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260810_090000_supply_submission_role_permissions\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260810_114857_locations_city_field\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260810_153500_landing_hero_media_assets\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260810_170000_public_page_performance_indexes\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260810_200000_backfill_location_city\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260813_010000_city_site_profiles\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260813_011000_seed_city_site_profiles\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260813_020000_city_partner_applications\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260813_021000_city_partner_permissions\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260813_022000_city_partner_notification_jobs\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260813_060037_city_partner_notification_outbox_reconciler\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260815_140000_converge_shanghai_city_code\n    up: true, down: true, json: false\n    [WARN] L128: DELETE FROM\n      reason:  DELETE 需要白名单条件；不可变历史不得物理删除\n      snippet: DELETE FROM \"locations\"\n- 20260817_172754_sale_price_one_time\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260817_174500_sale_business_type_index\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260817_175801_sale_terms_fields\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260817_180000_sale_publication_status_sold\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260818_072207_fast_track_review_decision\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260818_232656_opt033_admin_fast_track_audit\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260819_113218_listing_hard_delete_nullable_refs\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260820_055534_drop_listing_merchant_relations\n    up: true, down: true, json: true\n    [WARN] L39: DROP INDEX\n      reason:  删除索引需确认是否影响查询性能；建议先停用再删除\n      snippet: DROP INDEX \"payload_locked_documents_rels_listing_merchant_relations_idx\";\n    [APPROVED] L38: DROP TABLE —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json\n      note:    该模式默认禁止，已按批准清单人工核准放行\n      snippet: DROP TABLE \"listing_merchant_relations\" CASCADE;\n    [APPROVED] L40: DROP COLUMN —— 见 DESTRUCTIVE_MIGRATION_APPROVALS.json\n      note:    该模式默认禁止，已按批准清单人工核准放行\n      snippet: ALTER TABLE \"payload_locked_documents_rels\" DROP COLUMN \"listing_merchant_relations_id\";`)\n- 20260820_110024_opt035_city_profile_avg_response_hours\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260821_161534_supply_import_batches\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260822_001600_supply_import_unique_indexes\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260822_001700_supply_import_role_permissions\n    up: true, down: true, json: false\n    no forbidden patterns\n- 20260822_010308_supply_import_job_task\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260824_101016_opt048_snapshot_chain_repair\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260824_110612_opt045_import_publishable_fields\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260826_035602_opt_053_site_settings\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260826_065228_opt_054_nav_config\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260826_113343_opt_054_nav_home_target\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260827_113559_media_image_sizes\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260827_233120_site_settings_type_card_cover\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260827_234410_city_profile_type_card_overrides\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260830_164849_opt_063_listing_room_number\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260901_021249_merchant_stop_cascade_job\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260903_084339_opt_067_lead_visitor_ref\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260904_163535_opt_069_media_watermark_fields\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260904_170123_city_profile_type_card_cover_nullable\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260905_025659_opt_069_watermark_rebake_task\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260905_033034_opt_069_site_settings_watermark\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260905_121042_opt069_snapshot_chain_repair\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260905_172526_opt_071_watermark_image_source\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260906_064958_opt_073_featured_district_count\n    up: true, down: true, json: true\n    no forbidden patterns\n- 20260907_050043_mp108_mini_user_assets\n    up: true, down: true, json: true\n    no forbidden patterns\n\nRollback guidance:\n  每个迁移必须提供 down() 函数；回滚前先在 PG 数据副本验证。高风险回滚（含 DELETE / DROP）需用户明确确认。回滚后立即执行 migrate:verify 校验数据完整性。\n\n⚠️  4 warning(s) — 复核后可继续\n.env.local not found. Continuing without it.\n",
+      "migrations": 81,
+      "blockingHits": 0,
+      "warningHits": 4,
+      "summary": "81 个迁移已扫描；新 MP-108 迁移无 forbidden patterns；.env.local not found 为预期提示"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm exec tsx scripts/preflight.ts migrations",
+      "exitCode": 0,
+      "passed": 3,
+      "warnings": 1,
+      "failed": 0,
+      "output": "========== F7.8 上线 Preflight 检查报告 ==========\n\n时间: 2026-09-07T05:25:30.933Z\n环境: development\n\n通过: 3\n警告: 1\n失败: 0\n\n── 警告项 ──\n  ⚠️  migrations.20260725_130727_m2_1_locations_geo_node.risk: WARN: 修改字段类型 - 可能导致数据丢失或转换失败\n     ↳ ALTER COLUMN \"type\" SET DATA TYPE\n     ↳ ALTER COLUMN \"type\" SET DATA TYPE\n\n── 结果: 有警告 ──\n\n👉 警告项不阻断部署，但建议在部署前确认。"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm migrate:drift",
+      "exitCode": 0,
+      "output": "[migrate:drift] OK —— config 与最新快照一致。",
+      "summary": "config 与最新快照一致；结束后候选迁移文件无 diff"
+    },
+    {
+      "cwd": "payload-office-platform",
+      "command": "pnpm build",
+      "exitCode": 0,
+      "staticPages": 18,
+      "output": "✓ Compiled successfully in 8.6s\n  Running TypeScript ...\n  Finished TypeScript in 10.8s ...\n  Collecting page data using 13 workers ...\n  Generating static pages using 13 workers (0/18) ...\n  Generating static pages using 13 workers (4/18) \r\n  Generating static pages using 13 workers (8/18) \r\n  Generating static pages using 13 workers (13/18) \r\n✓ Generating static pages using 13 workers (18/18) in 218ms\n  Finalizing page optimization ...\n\nRoute (app)\n┌ ƒ /\n├ ○ /_not-found\n├ ƒ /[city]\n├ ƒ /[city]/[...rest]\n├ ƒ /[city]/buildings\n├ ƒ /[city]/buildings/[slug]\n├ ƒ /[city]/listings\n├ ƒ /[city]/listings/[slug]\n├ ƒ /[city]/sale\n├ ƒ /admin/[[...segments]]\n├ ƒ /api/[...slug]\n├ ƒ /api/city-partner-applications\n├ ƒ /api/city-partner-applications/details\n├ ƒ /api/corrections\n├ ƒ /api/graphql\n├ ƒ /api/graphql-playground\n├ ƒ /api/health\n├ ƒ /api/inquiries\n├ ƒ /api/inquiries/demand\n├ ƒ /api/mini/v1/acceptance/attestation\n├ ƒ /api/mini/v1/acceptance/leads\n├ ƒ /api/mini/v1/acceptance/permits\n├ ƒ /api/mini/v1/buildings\n├ ƒ /api/mini/v1/buildings/[slug]\n├ ƒ /api/mini/v1/favorites\n├ ƒ /api/mini/v1/home\n├ ƒ /api/mini/v1/inquiries\n├ ƒ /api/mini/v1/listings\n├ ƒ /api/mini/v1/listings/[slug]\n├ ƒ /api/mini/v1/me\n├ ƒ /api/mini/v1/session\n├ ƒ /api/observability/sli\n├ ƒ /api/routes\n├ ƒ /api/supply-submissions\n├ ƒ /api/watermark-preview\n├ ƒ /api/watermark-rebake\n├ ○ /apple-icon.png\n├ ƒ /buildings\n├ ƒ /buildings/[slug]\n├ ƒ /city-partner\n├ ƒ /dev-story\n├ ƒ /dev-story/building-detail-demo\n├ ƒ /dev-story/opt036\n├ ƒ /dev-story/opt037\n├ ƒ /dev-story/opt038\n├ ƒ /entrust\n├ ○ /icon.svg\n├ ƒ /listings\n├ ƒ /listings/[slug]\n├ ƒ /news\n├ ƒ /news/[slug]\n├ ƒ /pages/[slug]\n├ ƒ /pages/privacy\n├ ƒ /publish\n├ ○ /robots.txt\n├ ƒ /sale\n└ ƒ /sitemap.xml\n\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand",
+      "summary": "Next.js production 构建通过；12 条 Mini API 全部为动态路由"
+    }
+  ],
+  "warningAssessment": {
+    "comparisonRef": "origin/master",
+    "comparisonSha": "4d5c5af54692b555564c80a56d2f05a4ea6eae25",
+    "method": "只读 git diff origin/master HEAD 核对：所有告警文件、eslint.config.mjs、pnpm-lock.yaml 和迁移扫描脚本内容均未变；未另跑主线基准命令。",
+    "lint": {
+      "existing": 22,
+      "newInCandidate": 0,
+      "types": {
+        "@next/next/no-img-element": 20,
+        "react-hooks/exhaustive-deps": 2
+      },
+      "files": [
+        "payload-office-platform/src/app/(frontend)/news/[slug]/page.tsx",
+        "payload-office-platform/src/app/(frontend)/pages/[slug]/page.tsx",
+        "payload-office-platform/src/components/admin/LocationCascadeField.tsx",
+        "payload-office-platform/src/components/frontend/ArticleCard.tsx",
+        "payload-office-platform/src/components/frontend/BuildingCardMini.tsx",
+        "payload-office-platform/src/components/frontend/BuildingSummaryCard.tsx",
+        "payload-office-platform/src/components/frontend/DetailGallery.tsx",
+        "payload-office-platform/src/components/frontend/HomeHeroMedia.tsx",
+        "payload-office-platform/src/components/frontend/InquiryModal.tsx",
+        "payload-office-platform/src/components/frontend/PageContent.tsx",
+        "payload-office-platform/src/components/frontend/SiteHeader.tsx",
+        "payload-office-platform/src/components/frontend/building-detail/NearbyBuildingsStrip.tsx",
+        "payload-office-platform/src/components/frontend/city/ComingSoonCityView.tsx",
+        "payload-office-platform/src/components/frontend/home/HomeSupplyCard.tsx",
+        "payload-office-platform/src/components/frontend/landing/LandingHero.tsx",
+        "payload-office-platform/src/components/frontend/listing/BuildingCompactRow.tsx",
+        "payload-office-platform/src/components/frontend/listing/BuildingResultCard.tsx",
+        "payload-office-platform/src/components/frontend/listing/ListingResultCard.tsx",
+        "payload-office-platform/src/components/frontend/listing/ListingResultRow.tsx",
+        "payload-office-platform/src/components/frontend/ui/Media.tsx"
+      ]
+    },
+    "migrationDryRun": [
+      {
+        "file": "20260725_130727_m2_1_locations_geo_node.ts",
+        "lines": [
+          6,
+          15
+        ],
+        "type": "ALTER COLUMN type SET DATA TYPE",
+        "count": 2
+      },
+      {
+        "file": "20260815_140000_converge_shanghai_city_code.ts",
+        "lines": [
+          128
+        ],
+        "type": "DELETE FROM",
+        "count": 1
+      },
+      {
+        "file": "20260820_055534_drop_listing_merchant_relations.ts",
+        "lines": [
+          39
+        ],
+        "type": "DROP INDEX",
+        "count": 1
+      }
+    ],
+    "preflight": "既有 locations_geo_node 字段类型变更，1 条聚合警告；不包含新 MP-108 迁移",
+    "build": "无 warning；turbopackServerFastRefresh 实验项为状态展示"
+  },
+  "manifest": {
+    "recordedAt": "2026-09-07T05:27:22.907Z",
+    "manifest": "payload-office-platform/.next/server/app-paths-manifest.json",
+    "sha256": "6f97051da08607fd953da209ce09aff19afbfaf32e334503aff9e6cf494f5031",
+    "buildId": "vcXv0XMqSLgtpD5XZFc8N",
+    "count": 12,
+    "sourceCount": 12,
+    "allSourceRoutesPresent": true,
+    "routes": [
+      {
+        "path": "/api/mini/v1/acceptance/attestation",
+        "manifestKey": "/api/mini/v1/acceptance/attestation/route",
+        "bundle": "app/api/mini/v1/acceptance/attestation/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/acceptance/leads",
+        "manifestKey": "/api/mini/v1/acceptance/leads/route",
+        "bundle": "app/api/mini/v1/acceptance/leads/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/acceptance/permits",
+        "manifestKey": "/api/mini/v1/acceptance/permits/route",
+        "bundle": "app/api/mini/v1/acceptance/permits/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/buildings/[slug]",
+        "manifestKey": "/api/mini/v1/buildings/[slug]/route",
+        "bundle": "app/api/mini/v1/buildings/[slug]/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/buildings",
+        "manifestKey": "/api/mini/v1/buildings/route",
+        "bundle": "app/api/mini/v1/buildings/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/favorites",
+        "manifestKey": "/api/mini/v1/favorites/route",
+        "bundle": "app/api/mini/v1/favorites/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/home",
+        "manifestKey": "/api/mini/v1/home/route",
+        "bundle": "app/api/mini/v1/home/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/inquiries",
+        "manifestKey": "/api/mini/v1/inquiries/route",
+        "bundle": "app/api/mini/v1/inquiries/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/listings/[slug]",
+        "manifestKey": "/api/mini/v1/listings/[slug]/route",
+        "bundle": "app/api/mini/v1/listings/[slug]/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/listings",
+        "manifestKey": "/api/mini/v1/listings/route",
+        "bundle": "app/api/mini/v1/listings/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/me",
+        "manifestKey": "/api/mini/v1/me/route",
+        "bundle": "app/api/mini/v1/me/route.js",
+        "bundleExists": true
+      },
+      {
+        "path": "/api/mini/v1/session",
+        "manifestKey": "/api/mini/v1/session/route",
+        "bundle": "app/api/mini/v1/session/route.js",
+        "bundleExists": true
+      }
+    ]
+  },
+  "uncovered": [
+    "普通 Web quality 未设置 DATABASE_URL，8 个 PostgreSQL 文件/41 个用例按现有 describe.skipIf 条件跳过；没有改动或禁用测试。",
+    "本轮不执行 PostgreSQL 实际迁移、约束/并发集成验证、浏览器 E2E、微信开发者工具、真机、预览上传或 staging/生产访问。",
+    "production build/route manifest 不证明 API 运行时响应、权限与持久化，也不构成生产放行。",
+    "没有复用 MP-109 截图作为候选新证据。"
+  ]
+}
