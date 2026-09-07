@@ -14,6 +14,7 @@
 - 蓝色提交按钮保持 `80rpx × 80rpx` 和现有主交互蓝色，圆角改为 `999rpx`，形成圆形按钮。
 - 放大镜继续使用 CSS 绘制，不依赖字体、emoji、远程图片或平台图标。
 - 圆环与手柄在同一个 `32rpx × 32rpx` 坐标系中使用显式 `top/left` 定位；手柄起点与圆环右下边缘重叠，避免像素取整后断裂。
+- 圆环固定 `left: 2rpx; top: 2rpx; width: 22rpx; height: 22rpx; border: 4rpx solid #ffffff`，手柄固定 `left: 20rpx; top: 18rpx; width: 12rpx; height: 4rpx; transform: rotate(45deg); transform-origin: left center`。手柄旋转原点 `(20, 20)` 与圆环外缘重叠。原实施坐标 `top: 22rpx` 虽通过初版静态合同，但 375/430 两档截图仍显示间隙，已按视觉验收修正。
 - 保留 `aria-role="button"`、`aria-label="提交搜索"`、44pt 以上命中区和现有按压反馈。
 
 ## 3. 非目标

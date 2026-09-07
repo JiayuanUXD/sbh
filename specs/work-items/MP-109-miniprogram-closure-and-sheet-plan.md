@@ -1,7 +1,7 @@
 # Task Packet：MP-109 小程序真实闭环与交互抽屉修复
 
 > 状态：代码完成，环境验收待完成
-> 更新日期：2026-09-05
+> 更新日期：2026-09-07
 > 分支：`feat/miniprogram-mvp-59f9`
 > 设计规格：`docs/superpowers/specs/2026-09-04-mp-109-miniprogram-closure-and-sheet-design.md`
 > 实施计划：`docs/superpowers/plans/2026-09-04-mp-109-miniprogram-closure-and-sheet.md`
@@ -42,7 +42,7 @@ runner 启动时会立即使当前档旧报告失效、清空该档旧截图，�
 ## 4. 当前证据结论
 
 - 环境：`local-wechat-devtools-develop-with-controlled-mock`。
-- 小屏 375 与大屏 430 使用同一源码指纹 `cc0822e1138988b8`。
+- 小屏 375 与大屏 430 使用同一源码指纹 `9097f583e8078af4`。
 - 每档 10 个状态中 9 个通过；唯一未通过的是 `inquiryKeyboard`。
 - 桌面微信开发者工具点击输入框后没有出现可审计软键盘，焦点字段和视口收缩均不足以证明键盘避让，因此两档 profile 为 `failed`，聚合为 `incomplete`。
 - 该证据验证真实页面点击、原生 TabBar 边界、抽屉结构与几何；咨询的错误/提交/成功展示由受控视觉夹具驱动，未执行真实业务写入。

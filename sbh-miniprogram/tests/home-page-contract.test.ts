@@ -10,6 +10,10 @@ function readPageFile(filename: string): string {
   return readFileSync(resolve(pageRoot, filename), 'utf8')
 }
 
+function readStyleRule(styles: string, className: string): string {
+  return new RegExp(`\\.${className}\\s*\\{([^}]*)\\}`).exec(styles)?.[1] ?? ''
+}
+
 describe('首页页面合同', () => {
   it('注册下拉刷新、状态组件与房源卡', () => {
     const config = JSON.parse(readPageFile('index.json')) as Record<string, unknown>
@@ -70,6 +74,35 @@ describe('首页页面合同', () => {
     expect(template).not.toContain('home-search__arrow')
     expect(template).not.toContain('home-search__divider')
     expect(styles).not.toMatch(/\.home-search__(?:arrow|divider)\s*\{/)
+  })
+
+  it('搜索条为胶囊、提交按钮为正圆，CSS 放大镜在统一坐标系中连续', () => {
+    const styles = readPageFile('index.wxss')
+    const search = readStyleRule(styles, 'home-search')
+    const submit = readStyleRule(styles, 'home-search__submit')
+    const iconWrap = readStyleRule(styles, 'home-search__icon-wrap')
+    const iconCircle = readStyleRule(styles, 'home-search__icon-circle')
+    const iconHandle = readStyleRule(styles, 'home-search__icon-handle')
+
+    expect(search).toMatch(/border-radius:\s*999rpx;/)
+    expect(submit).toMatch(/width:\s*80rpx;/)
+    expect(submit).toMatch(/height:\s*80rpx;/)
+    expect(submit).toMatch(/border-radius:\s*999rpx;/)
+    expect(iconWrap).toMatch(/position:\s*relative;/)
+    expect(iconWrap).toMatch(/width:\s*32rpx;/)
+    expect(iconWrap).toMatch(/height:\s*32rpx;/)
+    expect(iconCircle).toMatch(/position:\s*absolute;/)
+    expect(iconCircle).toMatch(/left:\s*2rpx;/)
+    expect(iconCircle).toMatch(/top:\s*2rpx;/)
+    expect(iconCircle).toMatch(/width:\s*22rpx;/)
+    expect(iconCircle).toMatch(/height:\s*22rpx;/)
+    expect(iconCircle).toMatch(/border:\s*4rpx solid #ffffff;/)
+    expect(iconHandle).toMatch(/left:\s*20rpx;/)
+    expect(iconHandle).toMatch(/top:\s*18rpx;/)
+    expect(iconHandle).toMatch(/width:\s*12rpx;/)
+    expect(iconHandle).toMatch(/height:\s*4rpx;/)
+    expect(iconHandle).toMatch(/transform:\s*rotate\(45deg\);/)
+    expect(iconHandle).not.toMatch(/(?:right|bottom):\s*0;/)
   })
 
   it('品牌区保持 320–360rpx，页面加载具备请求版本守卫且刷新最终停止', () => {

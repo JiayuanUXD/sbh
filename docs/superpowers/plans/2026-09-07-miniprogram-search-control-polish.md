@@ -68,7 +68,7 @@ function readStyleRule(styles: string, className: string): string {
     expect(iconCircle).toMatch(/height:\s*22rpx;/)
     expect(iconCircle).toMatch(/border:\s*4rpx solid #ffffff;/)
     expect(iconHandle).toMatch(/left:\s*20rpx;/)
-    expect(iconHandle).toMatch(/top:\s*22rpx;/)
+    expect(iconHandle).toMatch(/top:\s*18rpx;/)
     expect(iconHandle).toMatch(/width:\s*12rpx;/)
     expect(iconHandle).toMatch(/height:\s*4rpx;/)
     expect(iconHandle).toMatch(/transform:\s*rotate\(45deg\);/)
@@ -115,7 +115,7 @@ npx --yes --package=node@22 -c 'pnpm exec vitest run tests/home-page-contract.te
 .home-search__icon-handle {
   position: absolute;
   left: 20rpx;
-  top: 22rpx;
+  top: 18rpx;
   width: 12rpx;
   height: 4rpx;
   background: #ffffff;
@@ -125,7 +125,7 @@ npx --yes --package=node@22 -c 'pnpm exec vitest run tests/home-page-contract.te
 }
 ```
 
-这组坐标让手柄起点落在圆环右下边缘内，旋转后的最远端仍位于 32rpx 包裹框内，避免设备像素取整后出现断裂或裁切。
+这组坐标让手柄旋转原点落在 `(20, 20)`，距圆心 `(13, 13)` 约 `9.90rpx`，与外半径 `11rpx` 的圆环右下边缘重叠；旋转后的最远端仍位于 32rpx 包裹框内，避免设备像素取整后出现断裂或裁切。原计划的 `top: 22rpx` 在 375/430 两档实测仍有间隙，故按真实视觉证据修正；合同转绿后仍必须检查两档截图。
 
 - [ ] **Step 4: 运行聚焦测试并确认 GREEN**
 
