@@ -73,10 +73,10 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 
 ### Task 4：独立审查与候选固化
 
-- [ ] 高级模型进行规格符合性审查，P0/P1 全部关闭。
-- [ ] 高级模型进行代码质量、安全、迁移和发布边界审查，P0/P1 全部关闭。
-- [ ] 主 Agent 复核完整 diff、测试证据和未验证项。
-- [ ] 提交并推送唯一候选 SHA；候选冻结前把未跟踪 `.planning/` 安全归档到工作树外，并证明包含未跟踪文件在内的完整工作树干净；后续 staging/trial 证据必须绑定该 SHA。
+- [x] 高级模型进行规格符合性审查，P0/P1 全部关闭。
+- [x] 高级模型进行代码质量、安全、迁移和发布边界审查，P0/P1 全部关闭；供给快照与收藏事务终审均为 Critical 0 / Important 0 / Minor 0。
+- [x] 主 Agent 复核完整 diff、测试证据和未验证项；明确旧 HTTP/E2E/DevTools 证据不替代新候选的 staging/trial 绑定证据。
+- [x] 实现与证据提交 `c92f004b8e8eabd31a37951f32102dfd98cc6bcb` 已推送；未跟踪 `.planning/` 已安全归档到仓外 `/Users/liujiayuan/App/mp108-local-archive-20260908-1842/.planning`，归档后完整 untracked 状态为空。本状态提交推送后的远端分支 HEAD 是唯一冻结候选，后续 staging/trial manifest 必须解析并绑定其完整 SHA。
 
 ### Task 5：staging 候选与隔离数据验收
 
