@@ -1,7 +1,39 @@
-import type { CollectionConfig } from 'payload'
+import type { AccessArgs, CollectionConfig } from 'payload'
+import { getPermissionContext, type RequestContext } from '@/domain/auth/access'
+import {
+  hasMenuPermission,
+  hasOperationPermission,
+} from '@/domain/auth/permission-context'
 import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
 import { activeLocationFilter, locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { protectBusinessAreaExtension } from '@/domain/geography/business-area-extension-protect'
+import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
+
+/**
+ * 写侧准入（2026-09-07 收口）
+ *
+ * 缺 create/update/delete 时 Payload 3.86 会补上 `defaultAccess`
+ * （`collections/config/sanitize.js`，判据仅 `Boolean(req.user)`）——任何登录账号
+ * 都能改商圈边界 / 扩展中心点 / 别名 / 站点关联，delete 还是硬删（本仓库
+ * `payload.delete` 恒为物理删除）。`admin.hidden` 只影响后台 UI，
+ * REST/GraphQL 端点照常开放，挡不住这条路径。同族缺陷：OPT-051（collection 缺
+ * delete）、OPT-053/055（Global 缺 update）。
+ *
+ * 为什么不是「只认 location:manage」：内置角色里只有 ADM 持有该操作码（OPS 没有），
+ * 而 OPS 有 `business-areas` 菜单码、今天就在用「商圈管理」页里的内嵌面板配置扩展。
+ * 只认操作码等于顺手砍掉运营的现有能力，把面板打回 403。
+ *
+ * 口径改为对齐**承载这张表的那个模块**：
+ *   - 页面：`requireGeographyAccess(req, module.menuCodes)`（商圈模块为 `business-areas`）
+ *   - 面板自己调的两个 endpoint：`GEOGRAPHY_MENU_CODES`（`locations` | `business-areas`）
+ * 再并上 `location:manage`，让「有地理操作码但没配菜单码」的自定义角色不被误伤。
+ */
+async function canManageBusinessAreaExtension(args: AccessArgs): Promise<boolean> {
+  const ctx = await getPermissionContext(args.req as RequestContext)
+  if (!ctx) return false
+  if (hasOperationPermission(ctx, 'location:manage')) return true
+  return GEOGRAPHY_MENU_CODES.some((code) => hasMenuPermission(ctx, code))
+}
 
 /**
  * 商圈扩展（tasks.md M2.3 / PRD 02-02 商圈配置）
@@ -19,16 +51,19 @@ export const BusinessAreaExtensions: CollectionConfig = {
     plural: '商圈管理',
   },
   admin: {
-    // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板。
-    // collection 与 protect hook 全部保留。
+    // Task 11：从 Payload 自带导航隐藏，日常配置走「商圈管理」编辑页的内嵌面板
+    // （BusinessAreaExtensionPanel）；collection、protect hook 与直接 URL 全部保留，
+    // 排障时可打开 /admin/collections/business-area-extensions。
     //
-    // 注意（OPT-074 实测订正）：原注释称「直接 URL 仍可访问用于排障」——**不成立**。
-    // Payload 3.86 的 collection 级 hidden:true 会连 /admin/collections/<slug>/* 路由
-    // 一起排除，直接访问得到「没有找到任何东西」，与 OPT-053 里 Global 的
-    // admin.hidden 是同一个坑。下面 businessArea 上挂的级联组件因此在当前配置下
-    // 不会被渲染（日常配置走 BusinessAreaExtensionPanel 内嵌面板）；
-    // 保留它是为了这里一旦改用其它方式暴露表单页时无需再补。
-    hidden: true,
+    // 退出导航只用 `group: false`，**不能**再叠 `hidden: true`——两者差一个字，
+    // 后果差很远，因为分属 `@payloadcms/ui` 里两套互不相干的机制：
+    //   group: false → groupNavItems 跳过它 → 从侧边栏/仪表盘排除，路由仍可用
+    //   hidden: true → getVisibleEntities 把它从 visibleEntities.collections 滤掉，
+    //                  而 List/Document 两个 view 都在 `!visibleEntities.collections
+    //                  .includes(slug)` 时 notFound() → 列表页和表单页一起 404
+    // 与 OPT-053 里 Global 的 admin.hidden 是同一个坑。本文件此前两个字段同时写，
+    // 注释还声称「直接 URL 仍可访问用于排障」，2026-09-06 实测证伪后移除 hidden。
+    // 守卫：tests/admin-entity-route-visibility.test.ts。
     group: false,
     pagination: { defaultLimit: 25, limits: [10, 25, 50, 100] },
     useAsTitle: 'businessArea',
@@ -36,7 +71,13 @@ export const BusinessAreaExtensions: CollectionConfig = {
     description: '本页仅供排障；日常配置请在「商圈管理」中打开对应商圈',
   },
   access: {
+    // 边界/别名是 C 端地理展示的一部分，读侧维持公开（与 locations 同口径）。
     read: () => true,
+    // 见文件头 canManageBusinessAreaExtension 的注释：这三条缺一条就等于对所有
+    // 登录账号开放对应动作。
+    create: canManageBusinessAreaExtension,
+    update: canManageBusinessAreaExtension,
+    delete: canManageBusinessAreaExtension,
   },
   hooks: {
     beforeChange: [

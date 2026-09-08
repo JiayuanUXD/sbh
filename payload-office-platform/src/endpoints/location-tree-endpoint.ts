@@ -2,6 +2,7 @@ import type { Endpoint } from 'payload'
 
 import { requireAdminContext, type RequestContext } from '@/domain/auth/access'
 import { hasMenuPermission } from '@/domain/auth/permission-context'
+import { GEOGRAPHY_MENU_CODES } from '@/domain/geography/geography-menu-codes'
 import { loadAdministrativeNodes } from '@/domain/geography/location-tree-source'
 
 /**
@@ -23,9 +24,6 @@ import { loadAdministrativeNodes } from '@/domain/geography/location-tree-source
  *   - 需 `locations` 或 `business-areas` 菜单权限之一（否则任意后台账号可跨模块检索地理数据）
  *   - 查询以 overrideAccess:false 继承当前用户数据权限
  */
-
-/** 与 navigation-config.ts 的地理叶子一致；任一命中即放行。 */
-const GEOGRAPHY_MENU_CODES = ['locations', 'business-areas'] as const
 
 export function createLocationTreeEndpoint(): Endpoint {
   return {
