@@ -63,12 +63,13 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 ### Task 3：小程序与 Web 本地质量门
 
 - [x] 小程序冻结安装、全量测试、双 TypeScript 和 `project:check` 通过（46 files / 938 tests）。
-- [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过（363 files / 5151 tests；8 files / 41 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证）。
+- [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过；终审修复后复验为 366 files / 5175 tests，另有 9 files / 44 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证。
 - [x] 在 master 80 迁移的已填充库上只应用第 81 条迁移，验证 upgrade path、原表真实 count 不减少、幂等重跑和迁移核验。
-- [x] 在第二个全新库从零执行 81 条完整迁移链、seed、幂等复跑和 PostgreSQL 专项测试（8 files / 41 tests，零跳过）。
+- [x] 在第二个全新库从零执行 81 条完整迁移链、seed、幂等复跑；终审新增收藏并发用例后，以串行共享库命令复验 PostgreSQL 专项测试（9 files / 44 tests，零跳过）。
 - [x] production build 通过，12 条 Mini API 动态路由全部进入构建 manifest 且 bundle 存在。
 - [x] Mini API 本地真实 HTTP 探针通过：health 为完整候选 SHA，五条合同路径、request ID、no-store、asOf 与固定 24 分页均有本轮日志证据。
 - [x] Web 双态 E2E 与小程序开发者工具 develop 冒烟通过；develop 由当前候选 worktree 占用 3717，并以 health commit、服务端访问日志和 request ID 证明真实网络身份。微信 session/login 因本地可信代理与网关未配置返回 fail-closed 503，不计为已验证。
+- [x] 终审修复 Mini/Web 供给快照重复扫描与收藏 200 条上限并发竞态；新增提交后主库精确确认，数据库结果不可确认时 fail-closed 且不重放。复验证据见 `artifacts/verification/MP-108/task6-terminal-fixes.md`。
 
 ### Task 4：独立审查与候选固化
 

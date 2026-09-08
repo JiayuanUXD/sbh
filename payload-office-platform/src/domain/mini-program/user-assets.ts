@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 
+import { sql, type SQL } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import type { Payload } from 'payload'
+import { createLocalReq, type Payload, type PayloadRequest } from 'payload'
 
 import { LEAD_STAGE_LABELS, isLeadStage, mapLegacyStatusToStage } from '@/domain/crm/lead-stage'
 import type {
@@ -21,8 +22,10 @@ import type {
   ListingCardViewModel,
 } from '@/domain/public-catalog'
 import { readMiniSessionSigningRuntimeConfig } from '@/lib/mini-program/runtime-config'
+import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
 
 const MAX_BEARER_LENGTH = 4096
+const FAVORITE_SUBJECT_LOCK_DOMAIN = 'sbh:mini-program:favorite-subject-limit:v1\0'
 export const MINI_FAVORITES_PER_SUBJECT_LIMIT = 200
 export const MINI_ME_FAVORITES_PAGE_LIMIT = MINI_FAVORITES_PER_SUBJECT_LIMIT
 export const MINI_ME_INQUIRIES_PAGE_LIMIT = 100
@@ -64,6 +67,10 @@ export type MiniUserAssetPage = Readonly<{
 export type MiniInquiryLinkTarget = MiniInquiryTarget
 
 export interface MiniUserAssetStore {
+  runFavoriteSubjectTransaction<T>(
+    subject: string,
+    action: (transactionStore: MiniUserAssetStore) => Promise<T>,
+  ): Promise<T>
   findByAssetKey(assetKey: string): Promise<MiniUserAssetRecord | null>
   create(data: MiniUserAssetCreate): Promise<MiniUserAssetRecord>
   countBySubjectAndKinds(
@@ -81,6 +88,133 @@ export interface MiniUserAssetStore {
     kinds: readonly MiniUserAssetKind[],
     limit: number,
   ): Promise<MiniUserAssetPage>
+}
+
+type TransactionIdentifier = number | string
+
+type TransactionExecutor = Readonly<{
+  execute(statement: SQL): Promise<unknown>
+}>
+
+function transactionUnavailable(): Error {
+  return new Error('mini_user_asset_transaction_unavailable')
+}
+
+function transactionIdentifier(value: unknown): TransactionIdentifier | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null
+  }
+  return typeof value === 'string' && value.trim() === value && value.length > 0
+    ? value
+    : null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function transactionExecutor(
+  payload: Payload,
+  transactionID: TransactionIdentifier,
+): TransactionExecutor | null {
+  const session = payload.db.sessions?.[String(transactionID)]
+  if (!session || !isRecord(session.db) || typeof session.db.execute !== 'function') return null
+  return session.db as TransactionExecutor
+}
+
+function lockConfirmed(value: unknown): boolean {
+  return isRecord(value)
+    && Array.isArray(value.rows)
+    && value.rows.length === 1
+    && isRecord(value.rows[0])
+    && value.rows[0].locked === true
+}
+
+function favoriteSubjectLockKeys(subject: string): readonly [number, number] {
+  const digest = createHash('sha256')
+    .update(FAVORITE_SUBJECT_LOCK_DOMAIN, 'utf8')
+    .update(subject, 'utf8')
+    .digest()
+  return [digest.readInt32BE(0), digest.readInt32BE(4)]
+}
+
+async function runPayloadFavoriteSubjectTransaction<T>(
+  payload: Payload,
+  subject: string,
+  action: (store: MiniUserAssetStore) => Promise<T>,
+): Promise<T> {
+  const [key1, key2] = favoriteSubjectLockKeys(subject)
+  let transactionID: TransactionIdentifier
+  try {
+    const parsed = transactionIdentifier(await payload.db.beginTransaction())
+    if (parsed === null) throw transactionUnavailable()
+    transactionID = parsed
+  } catch {
+    throw transactionUnavailable()
+  }
+
+  let transactionReq: PayloadRequest | null = null
+  let actionFailure: unknown
+  let commitAttempted = false
+  let rollbackAttempted = false
+  let committed = false
+
+  const rollback = async (): Promise<void> => {
+    rollbackAttempted = true
+    if (transactionReq && transactionReq.transactionID !== transactionID) {
+      throw transactionUnavailable()
+    }
+    try {
+      await payload.db.rollbackTransaction(transactionID)
+    } catch {
+      throw transactionUnavailable()
+    }
+  }
+
+  try {
+    const executor = transactionExecutor(payload, transactionID)
+    if (!executor) throw transactionUnavailable()
+    let lockResult: unknown
+    try {
+      lockResult = await executor.execute(sql`
+        SELECT pg_advisory_xact_lock(${key1}, ${key2}), true AS "locked"
+      `)
+    } catch {
+      throw transactionUnavailable()
+    }
+    if (!lockConfirmed(lockResult)) throw transactionUnavailable()
+
+    try {
+      transactionReq = await createLocalReq({}, payload)
+    } catch {
+      throw transactionUnavailable()
+    }
+    transactionReq.transactionID = transactionID
+
+    let value: T
+    try {
+      value = await action(createPayloadMiniUserAssetStore(payload, transactionReq))
+    } catch (error) {
+      actionFailure = error
+      throw error
+    }
+    assertTransactionIntact(transactionReq, transactionID, 'mini-user-assets:favorite-subject')
+
+    try {
+      commitAttempted = true
+      await payload.db.commitTransaction(transactionID)
+      committed = true
+    } catch {
+      throw transactionUnavailable()
+    }
+    return value
+  } catch (error) {
+    if (!committed && !rollbackAttempted && !commitAttempted) await rollback()
+    if (actionFailure !== undefined && error === actionFailure) throw error
+    throw transactionUnavailable()
+  } finally {
+    if (transactionReq) delete transactionReq.transactionID
+  }
 }
 
 export type MiniBearerVerification =
@@ -200,6 +334,45 @@ export async function upsertFavorite(
   ) {
     throw new Error('mini_user_asset_limit_invalid')
   }
+  const result = await store.runFavoriteSubjectTransaction(
+    subject,
+    (transactionStore) => upsertFavoriteLocked(transactionStore, subject, target, maxFavorites),
+  )
+  if (!result.created) return result
+
+  // Payload 3.86 的 commitTransaction 可能吞掉底层 COMMIT 失败。
+  // 必须用未绑定事务的 store 回读；当前 PG 配置无只读副本，Local API 直读主库。
+  // 精确比对本次创建的行，不能把另一请求随后创建的同 key 行当成本次提交成功。
+  try {
+    const confirmed = await store.findByAssetKey(result.assetKey)
+    if (
+      !confirmed
+      || confirmed.assetKey !== result.assetKey
+      || !isExactFavoriteRecord(confirmed, subject, favoriteKind(target.targetType), target)
+      || transactionIdentifier(confirmed.databaseId) === null
+      || confirmed.databaseId !== result.record.databaseId
+      || !Number.isFinite(Date.parse(confirmed.createdAt))
+      || confirmed.createdAt !== result.record.createdAt
+      || confirmed.lead !== null
+    ) {
+      throw transactionUnavailable()
+    }
+  } catch {
+    // 提交已尝试：不重放写入，也不把 rollback 当补偿。
+    throw transactionUnavailable()
+  }
+  return { created: true, assetKey: result.assetKey }
+}
+
+async function upsertFavoriteLocked(
+  store: MiniUserAssetStore,
+  subject: string,
+  target: MiniFavoriteTarget,
+  maxFavorites: number,
+): Promise<
+  | Readonly<{ created: false; assetKey: string }>
+  | Readonly<{ created: true; assetKey: string; record: MiniUserAssetRecord }>
+> {
   const kind = favoriteKind(target.targetType)
   const assetKey = computeMiniUserAssetKey(subject, kind, target.targetType, target.targetSlug)
   const existing = await store.findByAssetKey(assetKey)
@@ -217,14 +390,14 @@ export async function upsertFavorite(
   if (favoriteCount >= maxFavorites) throw new Error('mini_user_asset_limit_reached')
 
   try {
-    await store.create({
+    const record = await store.create({
       assetKey,
       subject,
       kind,
       targetType: target.targetType,
       targetSlug: target.targetSlug,
     })
-    return { created: true, assetKey }
+    return { created: true, assetKey, record }
   } catch (error) {
     const raced = await store.findByAssetKey(assetKey)
     if (
@@ -369,8 +542,15 @@ function assetRecord(doc: MiniUserAssetDocument): MiniUserAssetRecord | null {
   }
 }
 
-export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAssetStore {
+export function createPayloadMiniUserAssetStore(
+  payload: Payload,
+  transactionReq: PayloadRequest | null = null,
+): MiniUserAssetStore {
   return {
+    async runFavoriteSubjectTransaction(subject, action) {
+      if (transactionReq) throw transactionUnavailable()
+      return runPayloadFavoriteSubjectTransaction(payload, subject, action)
+    },
     async findByAssetKey(assetKey) {
       const result = await payload.find({
         collection: 'mini-user-assets',
@@ -378,6 +558,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
         limit: 1,
         depth: 0,
         overrideAccess: true,
+        req: transactionReq ?? undefined,
       })
       const doc = result.docs[0]
       return doc ? assetRecord(doc) : null
@@ -387,6 +568,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
         collection: 'mini-user-assets',
         data,
         overrideAccess: true,
+        req: transactionReq ?? undefined,
       })
       const record = assetRecord(doc)
       if (!record) throw new Error('mini_user_asset_create_invalid')
@@ -402,6 +584,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
           ],
         },
         overrideAccess: true,
+        req: transactionReq ?? undefined,
       })
       return result.totalDocs
     },
@@ -418,6 +601,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
           ],
         },
         overrideAccess: true,
+        req: transactionReq ?? undefined,
       })
       return result.docs.length
     },
@@ -454,6 +638,7 @@ export function createPayloadMiniUserAssetStore(payload: Payload): MiniUserAsset
         },
         populate: { leads: { stage: true, status: true } },
         overrideAccess: true,
+        req: transactionReq ?? undefined,
       })
       const records = result.docs.slice(0, limit).flatMap((doc) => {
         const record = assetRecord(doc)

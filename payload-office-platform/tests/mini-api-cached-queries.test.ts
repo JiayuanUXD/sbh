@@ -40,6 +40,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/domain/public-catalog', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/domain/public-catalog')>()
+  const { LISTING_MONTHLY_STANDARD } = await import('@/test/frontend/payload-documents')
   return {
     ...actual,
     createSearchContext: vi.fn((city: string, now: Date, businessType: 'lease' | 'sale') => {
@@ -61,11 +62,8 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
       city: context.city,
       dimensions,
     })),
-    searchListings: vi.fn(async (input, context) => ({
-      kind: 'listings',
-      city: context.city,
-      page: input.page,
-    })),
+    scanListings: vi.fn(async () => actual.rowsFromListings([LISTING_MONTHLY_STANDARD])),
+    hydrateListingCards: vi.fn(async () => [actual.mapListingCard(LISTING_MONTHLY_STANDARD)]),
     searchBuildingsFiltered: vi.fn(async (input, context) => ({
       kind: 'buildings',
       city: context.city,
@@ -85,6 +83,12 @@ vi.mock('@/domain/public-catalog', async (importOriginal) => {
   }
 })
 
+// 单元测试禁止漏过 mock 后初始化真实 Payload / 数据库。
+vi.mock('@/domain/public-catalog/supply-adapter', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/domain/public-catalog/supply-adapter')>(),
+  getDefaultSupplyAdapter: () => { throw new Error('单元测试不得使用默认数据库适配器') },
+}))
+
 import {
   buildCanonicalSearchParams,
   createSearchContext,
@@ -94,7 +98,8 @@ import {
   getSearchFacetsIgnoring,
   parseBuildingSearchInput,
   parseListingSearchInput,
-  searchListings,
+  scanListings,
+  toScanInput,
 } from '@/domain/public-catalog'
 import {
   getCachedMiniBuildingDetail,
@@ -151,9 +156,9 @@ describe('Mini API cached queries', () => {
     ]))
   })
 
-  it('puts the canonical listing query in the stable cache call and computes self-omitting facets', async () => {
+  it('preserves canonical results and uses the shared tagged scan cache for self-omitting facets', async () => {
     const input = parseListingSearchInput(new URLSearchParams(
-      'district=jing-an&priceUnit=rmb-sqm-day',
+      'district=jingan&priceUnit=rmb-month',
     ))
     const canonical = buildCanonicalSearchParams(input).toString()
     const first = await getCachedMiniListings('hangzhou', input)
@@ -162,20 +167,22 @@ describe('Mini API cached queries', () => {
 
     expect(first.asOf).toBe('2026-08-26T00:00:00.000Z')
     expect(cached).toEqual(first)
-    expect(createSearchContext).toHaveBeenCalledTimes(1)
-    expect(searchListings).toHaveBeenCalledWith(input, cacheState.contexts[0])
-    expect(getSearchFacetsIgnoring).toHaveBeenCalledTimes(3)
-    expect(getSearchFacetsIgnoring).toHaveBeenNthCalledWith(1, input, cacheState.contexts[0], ['district'])
-    expect(getSearchFacetsIgnoring).toHaveBeenNthCalledWith(2, input, cacheState.contexts[0], ['listingType'])
-    expect(getSearchFacetsIgnoring).toHaveBeenNthCalledWith(3, input, cacheState.contexts[0], ['priceUnit'])
-    expect(first.data.facets).toEqual({
-      district: { kind: 'facets', city: 'hangzhou', dimensions: ['district'] },
-      listingType: { kind: 'facets', city: 'hangzhou', dimensions: ['listingType'] },
-      priceUnit: { kind: 'facets', city: 'hangzhou', dimensions: ['priceUnit'] },
+    expect(scanListings).toHaveBeenCalledTimes(1)
+    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({
+      city: 'hangzhou', businessType: 'lease', asOf: first.asOf,
+    }))
+    expect(getSearchFacetsIgnoring).not.toHaveBeenCalled()
+    expect(first.data.facets).toMatchObject({
+      district: { totalDocs: 1, districts: [{ slug: 'jingan', count: 1 }] },
+      listingType: { totalDocs: 1, listingTypes: [{ value: 'traditional-office', count: 1 }] },
+      priceUnit: { totalDocs: 1, rentUnits: [{ value: 'rmb-month', count: 1 }] },
     })
 
-    const listingsCache = registration('mini-v1-listings', 'hangzhou')
-    expect(listingsCache.calls).toEqual([[canonical, input], [canonical, input]])
+    expect(first.data.result.canonical).toBe(canonical)
+    const listingsCache = registration('listing-scan', 'hangzhou')
+    expect(listingsCache.calls).toEqual([
+      ['', toScanInput(input), 'lease'], ['', toScanInput(input), 'lease'],
+    ])
     expect(listingsCache.options.revalidate).toBe(300)
     expect(listingsCache.options.tags).toEqual(expect.arrayContaining([
       'public:listings',
@@ -221,12 +228,14 @@ describe('Mini API cached queries', () => {
     const guangzhouDetail = await getCachedMiniListingDetail('guangzhou', 'central-office')
     const shenzhenDetail = await getCachedMiniListingDetail('shenzhen', 'central-office')
 
-    expect(guangzhou.data.result).toMatchObject({ city: 'guangzhou' })
-    expect(shenzhen.data.result).toMatchObject({ city: 'shenzhen' })
+    expect(guangzhou.data.result.pagination.totalDocs).toBe(1)
+    expect(shenzhen.data.result.pagination.totalDocs).toBe(1)
+    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'guangzhou' }))
+    expect(scanListings).toHaveBeenCalledWith(toScanInput(input), expect.objectContaining({ city: 'shenzhen' }))
     expect(guangzhouDetail.data?.detail).toMatchObject({ city: 'guangzhou' })
     expect(shenzhenDetail.data?.detail).toMatchObject({ city: 'shenzhen' })
-    expect(registration('mini-v1-listings', 'guangzhou')).not.toBe(
-      registration('mini-v1-listings', 'shenzhen'),
+    expect(registration('listing-scan', 'guangzhou')).not.toBe(
+      registration('listing-scan', 'shenzhen'),
     )
     expect(registration('mini-v1-listing-detail', 'guangzhou')).not.toBe(
       registration('mini-v1-listing-detail', 'shenzhen'),

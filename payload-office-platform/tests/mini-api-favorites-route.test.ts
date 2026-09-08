@@ -19,6 +19,7 @@ type LocalApiCall = Readonly<{
   overrideAccess?: boolean
   where?: unknown
   data?: unknown
+  req?: Readonly<{ transactionID?: unknown }>
 }>
 
 const io = vi.hoisted(() => {
@@ -30,7 +31,14 @@ const io = vi.hoisted(() => {
     rateKeys: [] as string[],
     rateCounts: new Map<string, number>(),
     rateStoreFails: false,
+    transactionIndex: 0,
+    transactionSessions: {} as Record<string, unknown>,
     getPayload: vi.fn(),
+    createLocalReq: vi.fn(),
+    beginTransaction: vi.fn(),
+    commitTransaction: vi.fn(),
+    rollbackTransaction: vi.fn(),
+    transactionExecute: vi.fn(),
     payloadFind: vi.fn(),
     payloadCount: vi.fn(),
     payloadCreate: vi.fn(),
@@ -42,7 +50,7 @@ const io = vi.hoisted(() => {
 
 vi.mock('payload', async (importOriginal) => {
   const actual = await importOriginal<typeof import('payload')>()
-  return { ...actual, getPayload: io.getPayload }
+  return { ...actual, createLocalReq: io.createLocalReq, getPayload: io.getPayload }
 })
 
 vi.mock('@/payload.config', () => ({ default: {} }))
@@ -160,13 +168,34 @@ beforeEach(() => {
   io.rateKeys.length = 0
   io.rateCounts.clear()
   io.rateStoreFails = false
+  io.transactionIndex = 0
+  for (const key of Object.keys(io.transactionSessions)) delete io.transactionSessions[key]
   io.getPayload.mockReset()
+  io.createLocalReq.mockReset()
+  io.beginTransaction.mockReset()
+  io.commitTransaction.mockReset()
+  io.rollbackTransaction.mockReset()
+  io.transactionExecute.mockReset()
   io.payloadFind.mockReset()
   io.payloadCount.mockReset()
   io.payloadCreate.mockReset()
   io.payloadDelete.mockReset()
   io.assertListing.mockReset()
   io.assertBuilding.mockReset()
+
+  io.createLocalReq.mockResolvedValue({ context: {} })
+  io.transactionExecute.mockResolvedValue({ rows: [{ locked: true }] })
+  io.beginTransaction.mockImplementation(async () => {
+    const transactionID = `favorite-tx-${++io.transactionIndex}`
+    io.transactionSessions[transactionID] = { db: { execute: io.transactionExecute } }
+    return transactionID
+  })
+  io.commitTransaction.mockImplementation(async (transactionID: string) => {
+    delete io.transactionSessions[transactionID]
+  })
+  io.rollbackTransaction.mockImplementation(async (transactionID: string) => {
+    delete io.transactionSessions[transactionID]
+  })
 
   io.payloadFind.mockImplementation(async (call: LocalApiCall) => {
     io.calls.push(call)
@@ -191,7 +220,13 @@ beforeEach(() => {
     return { docs: deleted }
   })
   io.getPayload.mockResolvedValue({
-    db: { pool: {} },
+    db: {
+      pool: {},
+      sessions: io.transactionSessions,
+      beginTransaction: io.beginTransaction,
+      commitTransaction: io.commitTransaction,
+      rollbackTransaction: io.rollbackTransaction,
+    },
     find: io.payloadFind,
     count: io.payloadCount,
     create: io.payloadCreate,

@@ -413,7 +413,7 @@ export type ScanChannel = SearchChannel | 'all'
  * 冷路径从「最多 5 页 depth 2 全字段 × 2–4 次」降到「一次 select/populate 收窄的扫描」。
  *
  * 行体积上限见 supply-adapter.ts 的 `LISTING_SCAN_CANDIDATE_LIMIT` 注释（2MB 红线）。
- * 回调必须返回数组：`unstable_cache` 走 JSON 序列化，`Map` 会静默变成 `{}`。
+ * 快照包含真实扫描 asOf 与行数组，均可 JSON 序列化（不能返回 Map）。
  */
 const getCachedListingScanByCity = memoizeByCity((citySlug) =>
   unstable_cache(
@@ -421,9 +421,10 @@ const getCachedListingScanByCity = memoizeByCity((citySlug) =>
     async (scanKey: string, scanInput: ListingSearchInput, channel: ScanChannel) => {
       void scanKey
       const ctx = createSearchContext(citySlug, undefined, channel === 'all' ? undefined : channel)
-      return scanListings(scanInput, ctx)
+      return { asOf: ctx.asOf, rows: await scanListings(scanInput, ctx) }
     },
-    ['listing-scan', citySlug],
+    // 版本隔离旧的纯数组条目，避免热缓存被误读为快照。
+    ['listing-scan', citySlug, 'snapshot-v1'],
     {
       tags: [...listingCacheTags(citySlug), facetsTag(citySlug)],
       revalidate: 300,
@@ -431,11 +432,11 @@ const getCachedListingScanByCity = memoizeByCity((citySlug) =>
   ),
 )
 
-export function getCachedListingScan(
+export function getCachedListingScanSnapshot(
   citySlug: string,
   input: ListingSearchInput,
   channel: ScanChannel = 'lease',
-): Promise<readonly ListingScanRow[]> {
+): Promise<Readonly<{ asOf: string; rows: readonly ListingScanRow[] }>> {
   const city = canonicalCitySlug(citySlug)
   const scanInput = toScanInput(input)
   const scanKey = buildListingScanCacheKey(input)
@@ -444,6 +445,15 @@ export function getCachedListingScan(
     ['listing-scan', city, channel, scanKey].join(' '),
     () => getCachedListingScanByCity(city)(scanKey, scanInput, channel),
   )
+}
+
+/** 既有 Web 消费者仍只取行；与 Mini 的快照共享缓存及同一个 in-flight promise。 */
+export async function getCachedListingScan(
+  citySlug: string,
+  input: ListingSearchInput,
+  channel: ScanChannel = 'lease',
+): Promise<readonly ListingScanRow[]> {
+  return (await getCachedListingScanSnapshot(citySlug, input, channel)).rows
 }
 
 /**

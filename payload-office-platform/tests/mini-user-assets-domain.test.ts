@@ -20,6 +20,13 @@ const ORIGINAL_SIGNING_SECRET = process.env.MINI_SESSION_SIGNING_SECRET
 class MemoryAssetStore implements MiniUserAssetStore {
   readonly records: MiniUserAssetRecord[] = []
 
+  async runFavoriteSubjectTransaction<T>(
+    _subject: string,
+    action: (transactionStore: MiniUserAssetStore) => Promise<T>,
+  ): Promise<T> {
+    return action(this)
+  }
+
   async findByAssetKey(assetKey: string): Promise<MiniUserAssetRecord | null> {
     return this.records.find((record) => record.assetKey === assetKey) ?? null
   }
@@ -83,6 +90,13 @@ class RaceAssetStore implements MiniUserAssetStore {
   createCalls = 0
 
   constructor(private readonly racedRecord: MiniUserAssetRecord | null) {}
+
+  async runFavoriteSubjectTransaction<T>(
+    _subject: string,
+    action: (transactionStore: MiniUserAssetStore) => Promise<T>,
+  ): Promise<T> {
+    return action(this)
+  }
 
   async findByAssetKey(): Promise<MiniUserAssetRecord | null> {
     this.findCalls += 1

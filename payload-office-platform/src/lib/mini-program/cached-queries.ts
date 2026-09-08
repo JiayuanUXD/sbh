@@ -1,10 +1,12 @@
 import { unstable_cache } from 'next/cache'
 
 import {
-  buildCanonicalSearchParams,
+  applyMemoryFilters,
+  assembleListingSearchResult,
   buildBuildingCanonicalParams,
   BUILDINGS_CATEGORY_TAG,
   buildingsCityTag,
+  computeFacets,
   createSearchContext,
   facetsTag,
   getBuildingDetail,
@@ -16,9 +18,10 @@ import {
   homeTag,
   LISTINGS_CATEGORY_TAG,
   listingsCityTag,
+  omitListingSearchDimensions,
   parseListingSearchInput,
   searchBuildingsFiltered,
-  searchListings,
+  selectListingPage,
   type BuildingDetailResult,
   type BuildingFilteredResult,
   type BuildingSearchInput,
@@ -32,6 +35,10 @@ import {
 } from '@/domain/public-catalog'
 import type { MiniSnapshot } from '@/domain/mini-program/contracts'
 import type { MiniListingFacetBundle } from '@/domain/mini-program/mappers'
+import {
+  getCachedListingCardsByIds,
+  getCachedListingScanSnapshot,
+} from '@/lib/frontend/cached-queries'
 
 type HomeSnapshot = Readonly<{
   home: HomepageData
@@ -100,38 +107,29 @@ export function getCachedMiniHome(city: string): Promise<MiniSnapshot<HomeSnapsh
   return getCachedMiniHomeByCity(city)()
 }
 
-const getCachedMiniListingsByCity = memoizeByCity((city) => unstable_cache(
-  async (
-    canonical: string,
-    input: ListingSearchInput,
-  ): Promise<MiniSnapshot<ListingSnapshot>> => {
-    void canonical
-    const context = createSearchContext(city, new Date(), 'lease')
-    const [result, district, listingType, priceUnit] = await Promise.all([
-      searchListings(input, context),
-      getSearchFacetsIgnoring(input, context, ['district']),
-      getSearchFacetsIgnoring(input, context, ['listingType']),
-      getSearchFacetsIgnoring(input, context, ['priceUnit']),
-    ])
-    return {
-      asOf: context.asOf,
-      data: {
-        result,
-        facets: { district, listingType, priceUnit },
-        input,
-      },
-    }
-  },
-  ['mini-v1-listings', city],
-  { tags: miniCacheTags(city), revalidate: 300 },
-))
-
-export function getCachedMiniListings(
+/** 仅缓存共享扫描及本页卡片；不叠加整页 TTL，避免给旧扫描重新续期。 */
+export async function getCachedMiniListings(
   city: string,
   input: ListingSearchInput,
 ): Promise<MiniSnapshot<ListingSnapshot>> {
-  const canonical = buildCanonicalSearchParams(input).toString()
-  return getCachedMiniListingsByCity(city)(canonical, input)
+  const { asOf, rows } = await getCachedListingScanSnapshot(city, input, 'lease')
+  const page = selectListingPage(rows, input)
+  const cards = await getCachedListingCardsByIds(city, page.ids)
+  const result = assembleListingSearchResult(page, cards, input)
+  const facet = (dimension: 'district' | 'listingType' | 'priceUnit') =>
+    computeFacets(applyMemoryFilters(rows, omitListingSearchDimensions(input, [dimension])))
+  return {
+    asOf,
+    data: {
+      result,
+      facets: {
+        district: facet('district'),
+        listingType: facet('listingType'),
+        priceUnit: facet('priceUnit'),
+      },
+      input,
+    },
+  }
 }
 
 const getCachedMiniListingDetailByCity = memoizeByCity((city) => unstable_cache(
