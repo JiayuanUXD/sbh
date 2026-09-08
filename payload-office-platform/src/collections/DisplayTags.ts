@@ -4,6 +4,7 @@ import {
   DISPLAY_TAG_STATUS_LABELS,
 } from '@/domain/dictionary/display-tag'
 import { protectDisplayTag } from '@/domain/dictionary/display-tag-protect'
+import { createMenuAccess } from '@/domain/auth/access'
 
 /**
  * 可维护展示标签集合（tasks.md M2.6 Part B / Requirement R2）
@@ -15,6 +16,18 @@ import { protectDisplayTag } from '@/domain/dictionary/display-tag-protect'
  * 当前暂无消费字段，作为通用能力先就位；M3/M4 再挂接到具体业务对象。
  * admin.group=false：退出 Payload 默认导航，由自定义导航按权限承载。
  */
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前只写了 `read`，其余三个动作落到 Payload 3.86 的 `defaultAccess`
+ * （判据仅 `Boolean(req.user)`）——任何登录账号都能增删改展示标签字典。
+ *
+ * 与 Amenities 同口径（菜单码 `dictionaries`）。注意本集合**在自定义导航里没有
+ * 叶子**，只能从 `/admin/collections/display-tags` 直接进；这恰恰说明写侧准入只能
+ * 落在 access 上——没有页面守卫可依赖。对外供读的是 `dictionaries-endpoint`。
+ */
+const canManageDisplayTag = createMenuAccess(['dictionaries'])
+
 export const DisplayTags: CollectionConfig = {
   slug: 'display-tags',
   labels: {
@@ -38,7 +51,11 @@ export const DisplayTags: CollectionConfig = {
     defaultColumns: ['name', 'code', 'sortOrder', 'visible', 'status'],
   },
   access: {
+    // 读侧维持公开：dictionaries-endpoint 与 C 端筛选器要列标签。
     read: () => true,
+    create: canManageDisplayTag,
+    update: canManageDisplayTag,
+    delete: canManageDisplayTag,
   },
   hooks: {
     beforeChange: [protectDisplayTag],

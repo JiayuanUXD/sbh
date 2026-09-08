@@ -139,6 +139,33 @@ export const Buildings: CollectionConfig = {
      * 走迁移授权 + 同步 `src/test/factory/roles.ts`（不同步会被 seed 擦掉，
      * 见 OPT-045 §9 的实测教训）。
      */
+    /**
+     * 楼盘：绑 `building:create` / `building:update`（2026-09-08 收口）。
+     *
+     * 与上面 delete 同一个毛病、同一手法：此前这两条**也是缺省**，落到 Payload
+     * 3.86 的 `defaultAccess`（判据仅 `Boolean(req.user)`）——任何登录账号
+     * （经纪人、客服都算）都能新建和改写楼盘。UI 上那个「首页推荐」开关走的
+     * 正是客户端 `PATCH /api/buildings/:id`，它本身没有任何权限条件。
+     *
+     * `building:create` / `building:update` 与 `building:delete` 一样，早就注册在
+     * permission-codes.ts 里却从没被消费过。区别在于 delete 收口时只有 ADM 能过、
+     * 且注释写着「将来要放给 OPS，走迁移授权」——create/update 就是那个「将来」：
+     * OPS 的职责本含楼盘与房源维护，只收 access 不授权等于砍掉运营现有能力，
+     * 故同时补了迁移 20260908_150000_grant_ops_supply_write_codes 把四个码授予 OPS，
+     * 并同步了 src/test/factory/roles.ts（不同步会被 seed 擦掉，OPT-045 §9）。
+     *
+     * 为什么不用菜单码（本次 Locations / Customers 用的「承载模块」口径）：
+     * `listings` 菜单码 MGR 与 BRK 也有——那是给他们**浏览**房源做推荐用的
+     * （BRK 的职责是「推荐房源」，不是维护房源）。用菜单码等于把现在的过度授权
+     * 原样保留，只挡住没有菜单的角色。这里有精确表达职责的操作码，就该用它。
+     *
+     * 不受影响的路径（改之前逐条核过）：审核 / 发布 / 下架走
+     * listing-review-decision-endpoint 与 listing-publish-endpoint，它们调的是
+     * Local API（`req.payload.update`，payload 3.86 默认 `overrideAccess = true`）；
+     * 供给导入 supply-import/import-task.ts 显式 `overrideAccess: true`。
+     */
+    create: createCollectionAccess({ create: 'building:create' }).create,
+    update: createCollectionAccess({ update: 'building:update' }).update,
     delete: createCollectionAccess({ delete: 'building:delete' }).delete,
   },
   hooks: {

@@ -6,6 +6,7 @@ import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from '@/domain/crm/lead-stage'
 import { OWNERSHIP_STATUSES, OWNERSHIP_STATUS_LABELS } from '@/domain/crm/ownership'
 import { leadReadAccess } from '@/domain/crm/lead-read-access'
+import { leadCreateAccess, leadUpdateAccess } from '@/domain/crm/lead-write-access'
 import { fillEntrustLeadName } from '@/domain/inquiry/entrust-name-fallback'
 import {
   SOURCE_SECTIONS,
@@ -94,6 +95,31 @@ export const Leads: CollectionConfig = {
   },
   access: {
     read: leadReadAccess,
+    // 写侧三条的判据与理由见 domain/crm/lead-write-access.ts 的文件头注释。
+    // 收口前它们全是缺省值（`Boolean(req.user)`）——读侧按数据范围收窄、写侧却
+    // 对任何登录账号敞开，「读比写严」本身就说明是漏写。
+    create: leadCreateAccess,
+    update: leadUpdateAccess,
+    /**
+     * 一律禁止物理删除。
+     *
+     * `trash: true` **不构成防护**：它只影响后台按钮语义，不参与 `access.delete`
+     * 的判定，而本仓库 `payload.delete` 恒为硬删（`trash` 参数只是查询过滤器）——
+     * 与 Listings / Buildings 在 OPT-051 里认定的是同一件事。
+     *
+     * 真删一条线索会**静默摧毁两条 append-only 审计链**：
+     * `follow_ups.lead_id` 与 `lead_ownership_history.lead_id` 的外键都是
+     * `ON DELETE SET NULL`，删完那些记录还在、却再也指不回任何线索。
+     * 而这两个集合各自写着 `update: () => false` / `delete: () => false`，
+     * 注释是「append-only：不可修改、不可物理删除（design §3.6）」——
+     * 把 Leads 的 delete 敞着，等于给那两条保证留了一个后门。
+     *
+     * 也没有「非删不可」的压力：permission-codes.ts 里没有 `lead:delete`，
+     * 全仓库没有任何代码删 leads（只有 seed 与 verify-unique-violation 自清理，
+     * 都走 overrideAccess）。要做「线索作废」应当走状态位（已有 status /
+     * ownershipStatus）而不是物理删除。
+     */
+    delete: () => false,
   },
   trash: true,
   hooks: {

@@ -12,6 +12,7 @@ import { protectMerchant } from '@/domain/supply/merchant-protect'
 import { protectMerchantStop } from '@/domain/supply/merchant-stop-guard'
 import { enqueueMerchantStopCascade } from '@/domain/supply/merchant-stop-listings'
 import { assertTransactionIntact } from '@/domain/shared/transaction-safety'
+import { createMenuAccess } from '@/domain/auth/access'
 
 /** 从固定枚举生成 select options，保持类型与标签单一真源 */
 const TYPE_OPTIONS = MERCHANT_TYPES.map((value) => ({
@@ -78,6 +79,22 @@ const handleMerchantStopBatchListings: CollectionAfterChangeHook = async ({
   return doc
 }
 
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 本集合此前只写了 `read`，create/update/delete 落到 Payload 3.86 的
+ * `defaultAccess`（判据仅 `Boolean(req.user)`）——任何登录账号都能新建、改写、
+ * 物理删除商户。
+ *
+ * 口径取承载它的后台模块的菜单码 `merchants`（导航里「商户管理」与「楼盘商户关系」
+ * 两个叶子都用它）。**不用 `merchant:create` / `merchant:update`**：这两个操作码
+ * 虽已注册，却没有任何内置角色持有（OPS 只有 freeze/restore），绑上去会把运营的
+ * 商户维护能力整个砍掉；而 `merchants` 菜单码的持有者恰好是 ADM 与 OPS，
+ * 与「谁该维护商户」完全重合，不存在过度授权。
+ */
+/** 见文件头注释：判据是承载模块的菜单码，不是 merchant:create/update。 */
+const canManageMerchant = createMenuAccess(['merchants'])
+
 export const Merchants: CollectionConfig = {
   slug: 'merchants',
   labels: {
@@ -91,7 +108,26 @@ export const Merchants: CollectionConfig = {
     defaultColumns: ['name', 'type', 'status', 'qualificationStatus', 'qualificationExpiresAt'],
   },
   access: {
+    // 读侧维持公开：C 端楼盘/房源详情要展示商户信息。
     read: () => true,
+    create: canManageMerchant,
+    update: canManageMerchant,
+    /**
+     * 一律禁止物理删除。
+     *
+     * 三条事实叠在一起才是理由，缺一条我都不会关死：
+     *   1. 本仓库 `payload.delete` 恒为硬删，删完不可恢复；
+     *   2. **本表没有任何 `beforeDelete` 守卫**（不像 Locations 有
+     *      `protectLocationDelete`），删除完全不做引用检查；
+     *   3. 全仓库没有任何代码删本表，所以关死不夺走任何在用能力。
+     *
+     * 产品口径也不是删：`listings.merchant_id` 与
+     * `building_merchant_relations.merchant_id` 的外键都是 `ON DELETE SET NULL`，
+     * 删一个商户会把名下房源与楼盘关系静默解绑——而 `listings.merchant` 是有效供给
+     * 判据之一（OPT-034），解绑等于房源从前台悄悄消失。商户下线的设计答案是**冻结**
+     * （`merchant:freeze` + `merchant-stop-guard` 会数引用并拦截），不是删除。
+     */
+    delete: () => false,
   },
   hooks: {
     // 先跑业务校验（类型/电话/服务城市/资质/版本），再跑停用影响保护

@@ -4,6 +4,7 @@ import {
   resolveDefaultSupplyMerchant,
   type MerchantLookupPort,
 } from '@/domain/supply/default-merchant'
+import { createMenuAccess } from '@/domain/auth/access'
 
 /**
  * 楼盘-商户有效期关系（tasks.md M3.3 / design §3.3 供给关系 / R2, R3）
@@ -16,6 +17,21 @@ import {
  * 生产 PostgreSQL 另有 EXCLUDE USING gist 区间排斥约束(单独手写迁移)兜底并发;
  * SQLite 无此约束,仅靠 protect hook 的事务内等价校验。
  */
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前只写了 `read`，其余三个动作落到 Payload 3.86 的 `defaultAccess`
+ * （判据仅 `Boolean(req.user)`）——任何登录账号都能增删改楼盘与商户的绑定关系。
+ * 这条关系直接决定房源能不能进前台（OPT-045 §2.2），不是无关紧要的连接表。
+ *
+ * 与 Merchants 同口径（菜单码 `merchants`）：导航里「楼盘商户关系」这个叶子用的
+ * 就是它。delete 这里**保留**——删掉一行正是「解绑某楼盘的某商户」的正常操作，
+ * 外键只级联到 Payload 自己的 rels 表，不会波及别的业务对象。导入链路
+ * （import-task / building-dedup-service / building-delete-cleanup）全部显式
+ * `overrideAccess: true`，不受影响。
+ */
+const canManageBuildingMerchantRelation = createMenuAccess(['merchants'])
+
 export const BuildingMerchantRelations: CollectionConfig = {
   slug: 'building-merchant-relations',
   labels: {
@@ -30,6 +46,9 @@ export const BuildingMerchantRelations: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: canManageBuildingMerchantRelation,
+    update: canManageBuildingMerchantRelation,
+    delete: canManageBuildingMerchantRelation,
   },
   hooks: {
     beforeChange: [protectBuildingMerchantRelation],

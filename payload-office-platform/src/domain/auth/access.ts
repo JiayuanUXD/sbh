@@ -245,6 +245,42 @@ export function createCollectionAccess(params: {
   }
 }
 
+/**
+ * 创建基于**菜单权限**的 Collection access 判据（「承载模块」口径）。
+ *
+ * 用法：
+ *   ```ts
+ *   const canManage = createMenuAccess(['merchants'])
+ *   access: { read: () => true, create: canManage, update: canManage, delete: canManage }
+ *   ```
+ *
+ * 什么时候用它、什么时候用 `createCollectionAccess`（操作码）：
+ *   - **有精确表达该动作的操作码、且真正干这活的角色已经持有它** → 用操作码。
+ *     例：Brokers 的写侧用 `broker:manage`（MGR 持有）；Listings 的写侧用
+ *     `listing:create` / `listing:update`。
+ *   - **没有对应操作码，或有但没有任何在用角色持有** → 用承载这张表的后台模块的
+ *     菜单码。这是「谁在导航里看得见这个模块，谁就能维护它」，与
+ *     `navigation-config.ts` 的叶子一一对应。
+ *
+ * 关键前提（选口径前必须逐个核对，别套公式）：菜单码的持有者集合必须**恰好**是
+ * 应该有写权限的角色。`merchants` / `teams` / `media` / `pages` / `articles` /
+ * `dictionaries` 这几个码只有 ADM 与对应的运营/主管角色持有，所以成立；而
+ * `listings` 菜单码 MGR 与 BRK 也有（那是给他们浏览房源做推荐用的），用它就会
+ * 过度授权——那里就必须用操作码。
+ *
+ * 语义与 `resolve-navigation.ts` 的叶子过滤一致：任一命中即放行。
+ * 未登录 / 停用账号一律拒绝（`getPermissionContext` 对二者返回 null）。
+ */
+export function createMenuAccess(
+  menuCodes: readonly string[],
+): (args: AccessArgs) => Promise<boolean> {
+  return async (args: AccessArgs) => {
+    const ctx = await getPermissionContext(args.req as RequestContext)
+    if (!ctx) return false
+    return menuCodes.some((code) => hasMenuPermission(ctx, code))
+  }
+}
+
 // ────────────────────────────────────────────────────────────
 // 内部辅助
 // ────────────────────────────────────────────────────────────
