@@ -315,7 +315,7 @@ export default function FilterFormC(props: Readonly<{
             </NavLink>
           </>
         ) : (
-          <span className="ls-filterc__hint">每行单选，选中即写入地址栏；未选的行保持「全部」</span>
+          <span className="ls-filterc__hint">每行只能选一个条件；未选的行保持「全部」</span>
         )}
       </div>
     </div>

@@ -90,7 +90,6 @@ export default function ListPager(props: Readonly<{
           <span className="ls-pager__edge ls-pager__edge--disabled">下一页</span>
         )}
       </div>
-      <span className="ls-pager__hint">共 {totalPages} 页 · 页码写入 ?page=，可直接分享当前这一页结果</span>
     </nav>
   )
 }

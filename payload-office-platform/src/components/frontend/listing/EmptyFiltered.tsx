@@ -96,7 +96,7 @@ export default function EmptyFiltered(props: Readonly<{
               </Link>
             ))}
           </div>
-          <span className="ls-emptyfiltered__hint">点任一行只改那一个参数，其余条件与排序保留在地址栏里</span>
+          <span className="ls-emptyfiltered__hint">点任一行只放宽这一个条件，其余条件和排序保持不变</span>
         </>
       ) : null}
     </div>

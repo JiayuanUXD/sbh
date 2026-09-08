@@ -523,8 +523,6 @@
 .ls-pager__ellipsis { width: 36px; height: 36px; font-size: 13px; color: var(--ink-3);
   display: flex; align-items: center; justify-content: center; }
 
-.ls-pager__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
-
 @media (prefers-reduced-motion: reduce) {
   .ls-pager__edge, .ls-pager__item { transition: none; }
 }
