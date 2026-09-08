@@ -7,6 +7,7 @@ import type {
 import { createLocationFieldGuard } from '@/domain/geography/location-field-guard'
 import { locationTypeFilter } from '@/domain/geography/location-hierarchy'
 import { invalidateArticlePublicCache as revalidateArticlePublicCache } from '@/lib/frontend/public-cache-revalidation'
+import { createMenuAccess } from '@/domain/auth/access'
 
 const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
   revalidateArticlePublicCache()
@@ -22,6 +23,18 @@ const invalidateArticlePublicCache: CollectionAfterChangeHook & CollectionAfterD
  * 缓存失效说明：首页已通过 getCachedHomepage 启用 unstable_cache；
  * 资讯变更后失效首页与 sitemap 相关 tag。失效失败只记录日志，不回滚内容写入。
  */
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前只写了 `read`，其余三个动作落到 Payload 3.86 的 `defaultAccess`
+ * （判据仅 `Boolean(req.user)`）——任何登录账号都能增删改资讯内容。
+ *
+ * 没有 `article:*` 操作码，故取承载它的模块菜单码 `articles`（导航「内容管理 →
+ * 资讯中心」叶子）。该码是迁移 20260808_224000_articles_menu_for_ops 专门授予
+ * OPS 的，持有者正是 ADM 与 OPS。
+ */
+const canManageArticle = createMenuAccess(['articles'])
+
 export const Articles: CollectionConfig = {
   slug: 'articles',
   labels: {
@@ -39,6 +52,10 @@ export const Articles: CollectionConfig = {
   access: {
     // 与 Pages 一致：前台读公开；published 过滤由 facade 查询承担。
     read: () => true,
+    create: canManageArticle,
+    update: canManageArticle,
+    // delete 保留，理由同 Pages。
+    delete: canManageArticle,
   },
   hooks: {
     // OPT-074：relatedDistricts 原先完全没有 filterOptions，任意类型任意城市的

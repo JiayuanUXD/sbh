@@ -6,6 +6,7 @@ import {
 } from '@/domain/media/media-cache-hook'
 import { unmountMediaReferences } from '@/domain/media/media-delete-cleanup'
 import { MEDIA_COS_PREFIX } from '@/lib/storage/cos-config'
+import { createMenuAccess } from '@/domain/auth/access'
 
 /**
  * OPT-069：素材用途选项。导出是为了让后续需要展示用途标签的地方复用同一份，
@@ -17,6 +18,25 @@ export const MEDIA_USAGE_OPTIONS = [
   { label: '文章配图', value: 'article' },
   { label: '其他', value: 'other' },
 ] as const
+
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前只写了 `read`，其余三个动作落到 Payload 3.86 的 `defaultAccess`
+ * （判据仅 `Boolean(req.user)`）——任何登录账号都能上传、改写、删除素材。
+ *
+ * 没有 `media:*` 操作码，故取承载它的模块菜单码 `media`（导航「素材库」叶子，
+ * 持有者是 ADM 与 OPS）。后台两个上传入口 MediaWorkbench 与
+ * geography/CoverPickerModal 走的都是客户端 `POST /api/media`，会实打实经过这里；
+ * 服务端的水印重烘焙等任务走 Local API（默认 `overrideAccess = true`），不受影响。
+ *
+ * delete **保留**（不像 Merchants / Brokers / Teams 关死）：本表的删除是被设计
+ * 支持的动作——`beforeDelete` 挂了 `unmountMediaReferences` 主动摘除引用、
+ * `afterDelete` 负责消费方缓存失效，与「删了会静默破坏引用」正相反。
+ *
+ * 读侧不动：`/api/media/file/*` 的静态文件分发依赖它，C 端首页视频等直接引用。
+ */
+const canManageMedia = createMenuAccess(['media'])
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -31,6 +51,9 @@ export const Media: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: canManageMedia,
+    update: canManageMedia,
+    delete: canManageMedia,
   },
   /**
    * 删 media 要做两件互相独立的事，各自的病理见对应模块的头注释：

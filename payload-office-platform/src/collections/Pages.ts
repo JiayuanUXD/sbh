@@ -5,10 +5,22 @@ import type {
 } from 'payload'
 
 import { invalidatePagePublicCache as revalidatePagePublicCache } from '@/lib/frontend/public-cache-revalidation'
+import { createMenuAccess } from '@/domain/auth/access'
 
 const invalidatePagePublicCache: CollectionAfterChangeHook & CollectionAfterDeleteHook = async () => {
   revalidatePagePublicCache()
 }
+
+/**
+ * 写侧准入（2026-09-08 收口）
+ *
+ * 此前只写了 `read`，其余三个动作落到 Payload 3.86 的 `defaultAccess`
+ * （判据仅 `Boolean(req.user)`）——任何登录账号都能增删改前台页面内容。
+ *
+ * 没有 `page:*` 操作码，故取承载它的模块菜单码 `pages`（导航「内容管理 →
+ * 页面内容」叶子，持有者是 ADM 与 OPS）。
+ */
+const canManagePage = createMenuAccess(['pages'])
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -25,7 +37,14 @@ export const Pages: CollectionConfig = {
   },
   trash: true,
   access: {
+    // 读侧维持公开：C 端页面渲染直接读它。
     read: () => true,
+    create: canManagePage,
+    update: canManagePage,
+    // delete 保留：内容页就是要能删的，外键只级联到 Payload 自己的 rels 表；
+    // afterDelete 已挂前台缓存失效。`trash: true` 只影响后台按钮语义，
+    // 不参与 access.delete 判定（OPT-051 的结论，本轮在 Leads 上实测复验过）。
+    delete: canManagePage,
   },
   hooks: {
     afterChange: [invalidatePagePublicCache],
