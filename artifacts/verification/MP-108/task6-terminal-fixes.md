@@ -21,7 +21,7 @@
 | 范围 | 结果 |
 | --- | --- |
 | 小程序 | 46 files / 938 tests；双 TypeScript 与 `project:check` 通过 |
-| Web 普通全量 | 366 files passed、9 skipped；5175 tests passed、44 skipped |
+| Web 普通全量 | 合入最新 master 后 368 files passed、9 skipped；5188 tests passed、44 skipped |
 | Web PostgreSQL | `pnpm test:postgres`：9 files / 44 tests，零失败、零跳过 |
 | Web 静态门 | typecheck 通过；lint 0 errors / 22 个既有 warnings |
 | 迁移门 | 81 migrations；dry-run 0 blocking / 4 个既有 warnings；preflight 0 fail / 1 个既有 warning；drift 通过 |
@@ -37,3 +37,9 @@ pnpm test:postgres
 该命令为 `vitest run tests/*-postgres.test.ts --no-file-parallelism`。配置守卫先 RED（脚本缺失），再随 `package.json` 与 `quality.yml` 修复转 GREEN；最终通过该仓库命令重新取得 44/44 真库结果。
 
 本轮未访问或修改 staging、trial、生产数据库、生产 CloudRun 或正式小程序。此前 HTTP/E2E/DevTools 证据绑定旧提交，仅作为已完成链路证据；新冻结候选仍需重新绑定 build-info，并在 staging/trial 阶段采集对应 SHA/revision 的真实证据。
+
+## 冻结前主线同步
+
+首次状态提交后只读 fetch 发现 `origin/master` 已从 `4d5c5af5` 前进到 `d62e7912`（4 个提交）。候选通过普通合并 `a5247ddc` 吸收最新主线，没有改写已推送历史。主线新增的后台实体路由守卫随即发现 `mini-user-assets` 同时配置 `group: false` 与 `hidden: true`，后者会让排障直达页 404；移除 `hidden` 后，集合仍退出原生导航，且四种 collection access 继续全部拒绝。
+
+针对该集成问题，先保留完整 Web RED（2 项失败），再以 3 files / 23 tests 聚焦验证转 GREEN，最后重新执行本表全部门禁。最终数据库仍为 81 条迁移，`mp108-favorite-%` 标记为 0。

@@ -19,9 +19,8 @@ export const MiniUserAssets: CollectionConfig = {
   labels: { singular: '小程序用户资产', plural: '小程序用户资产' },
   admin: {
     group: false,
-    hidden: true,
     useAsTitle: 'assetKey',
-    description: '内部集合：以不可逆 Mini session subject 关联收藏与咨询记录。',
+    description: '内部只读排障集合：以不可逆 Mini session subject 关联收藏与咨询记录。',
   },
   access: {
     read: denyMiniUserAssetAccess,

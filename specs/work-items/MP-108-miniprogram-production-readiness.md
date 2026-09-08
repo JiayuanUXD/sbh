@@ -63,7 +63,7 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 ### Task 3：小程序与 Web 本地质量门
 
 - [x] 小程序冻结安装、全量测试、双 TypeScript 和 `project:check` 通过（46 files / 938 tests）。
-- [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过；终审修复后复验为 366 files / 5175 tests，另有 9 files / 44 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证。
+- [x] Web 的 typecheck、lint、普通全量 test、迁移 dry-run/drift/preflight 通过；合入最新 master 后复验为 368 files / 5188 tests，另有 9 files / 44 个 PostgreSQL 用例按既有条件跳过，未计为数据库验证。
 - [x] 在 master 80 迁移的已填充库上只应用第 81 条迁移，验证 upgrade path、原表真实 count 不减少、幂等重跑和迁移核验。
 - [x] 在第二个全新库从零执行 81 条完整迁移链、seed、幂等复跑；终审新增收藏并发用例后，以串行共享库命令复验 PostgreSQL 专项测试（9 files / 44 tests，零跳过）。
 - [x] production build 通过，12 条 Mini API 动态路由全部进入构建 manifest 且 bundle 存在。
@@ -76,7 +76,7 @@ MP-108 不是“把 trial 指到生产数据库”。trial 始终使用独立 st
 - [x] 高级模型进行规格符合性审查，P0/P1 全部关闭。
 - [x] 高级模型进行代码质量、安全、迁移和发布边界审查，P0/P1 全部关闭；供给快照与收藏事务终审均为 Critical 0 / Important 0 / Minor 0。
 - [x] 主 Agent 复核完整 diff、测试证据和未验证项；明确旧 HTTP/E2E/DevTools 证据不替代新候选的 staging/trial 绑定证据。
-- [x] 实现与证据提交 `c92f004b8e8eabd31a37951f32102dfd98cc6bcb` 已推送；未跟踪 `.planning/` 已安全归档到仓外 `/Users/liujiayuan/App/mp108-local-archive-20260908-1842/.planning`，归档后完整 untracked 状态为空。本状态提交推送后的远端分支 HEAD 是唯一冻结候选，后续 staging/trial manifest 必须解析并绑定其完整 SHA。
+- [ ] 实现与证据提交 `c92f004b8e8eabd31a37951f32102dfd98cc6bcb` 已推送；未跟踪 `.planning/` 已安全归档到仓外 `/Users/liujiayuan/App/mp108-local-archive-20260908-1842/.planning`。冻结前发现主线前进并已合入 `origin/master@d62e7912`，待提交主线兼容修复并再次确认远端 HEAD 与干净状态后重新冻结。
 
 ### Task 5：staging 候选与隔离数据验收
 
