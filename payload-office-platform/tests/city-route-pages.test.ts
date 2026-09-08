@@ -321,20 +321,25 @@ describe('city route boundaries', () => {
     expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
   })
 
-  it('楼盘列表：交给视图的是查询层真正生效的条件（appliedInput）', async () => {
-    // 楼盘页的区域 / 地铁词表在查询层内部（全城 facet 全集），路由层拿不到，
-    // 因此由 searchBuildingsFiltered 回报它实际用了哪一份条件。路由把解析结果
-    // 直接传给视图，就会让 chip 与 canonical 说的和结果集用的不是同一件事。
-    const parsed = { page: 1, pageSize: 24, sort: 'stock-desc', district: ['not-a-real-district'] }
-    const applied = { page: 1, pageSize: 24, sort: 'stock-desc' }
-    io.parseBuildingSearchInput.mockReturnValue(parsed)
-    io.getCachedSearchBuildingsFiltered.mockResolvedValue({ appliedInput: applied })
+  it('楼盘列表：本城不存在的区域取值同样在查询之前就被丢掉', async () => {
+    // 与房源页同一份地点表（`getCachedListingDistrictOptions`），刻意不用查询层
+    // 算出的 facet：那份数据受 200 条扫描上限约束，查不到不等于不存在。
+    io.parseBuildingSearchInput.mockReturnValue({
+      page: 1, pageSize: 24, sort: 'stock-desc', district: ['not-a-real-district'],
+    })
+    io.getCachedListingDistrictOptions.mockResolvedValue([{ id: 1, slug: 'jingan', name: '静安' }])
+    io.getCachedSearchBuildingsFiltered.mockResolvedValue({ groups: {}, facets: {} })
 
     const page = await CityBuildingsPage({
       params: Promise.resolve({ city: 'shanghai' }),
       searchParams: Promise.resolve({ district: 'not-a-real-district' }),
     })
-    expect((page.props as { input: unknown }).input).toBe(applied)
+
+    const queried = io.getCachedSearchBuildingsFiltered.mock.calls[0]?.[1] as { district?: unknown }
+    expect(queried.district).toBeUndefined()
+    expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
+    // 视图拿到的必须就是查询用的那一份，不能是两个来源
+    expect((page.props as { input: unknown }).input).toBe(queried)
   })
 
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {

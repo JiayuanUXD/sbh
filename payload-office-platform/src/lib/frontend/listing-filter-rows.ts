@@ -149,7 +149,7 @@ export function buildListingFilterDimensions(params: Readonly<{
       paramKeys: ['district'],
       active: activeDistrict != null,
       // 城市区域表是这一页的权威词表：查不到即「这个城市没有这个区」。路由层
-      // （`_lib/listing-search-input.ts`）已经据此把未知取值从 input 里丢掉，
+      // （`_lib/search-input.ts`）已经据此把未知取值从 input 里丢掉，
       // 因此正常链路下走到这里的 district 一定查得到名字；这里的 null 分支是
       // 绕过路由层直接构造 input 的调用方（测试、内部编排）的兜底，仍然不回显取值。
       activeText: vocabularyName(activeDistrict, districts),

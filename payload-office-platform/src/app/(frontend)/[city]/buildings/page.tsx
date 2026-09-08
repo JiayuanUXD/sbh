@@ -6,6 +6,7 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
 import { buildBuildingCanonicalParams, parseBuildingSearchInput } from '@/domain/public-catalog'
+import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 
@@ -36,27 +37,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
-  const parsed = parseBuildingSearchInput(toUrlSearchParams(raw))
-  // 未开城分支先短路：这一页渲染的是 ComingSoonCityView，根本不消费筛选参数，
-  // 且 buildCityPageMetadata 对未开城一律 noindex，canonical 精确与否无从被索引到。
-  // 为它查一次库会打破「未开城不查库」这条断言（tests/city-route-pages.test.ts）。
-  if (city.serviceStatus === 'coming-soon') {
-    const comingSoonQuery = buildBuildingCanonicalParams(parsed).toString()
-    return buildCityPageMetadata({
-      city,
-      pageType: 'buildings',
-      canonicalQuery: comingSoonQuery || undefined,
-      multiCityRoutingEnabled: getMultiCityRoutingEnabled(),
-    })
-  }
   // canonical 走规范化后的查询串：同一组筛选无论书写顺序如何都指向同一个 canonical。
-  // 且必须用**真正生效的**那一份（`appliedInput`）：本城不存在的区域 / 地铁取值已被
-  // 查询层丢掉，canonical 再把它带上就等于替一个页面上并不存在的筛选去要索引——
-  // 而这类 URL 是可索引的（见 buildCityPageMetadata 的 noindex 判据），任意取值都能
-  // 铸出一个自指 canonical 的页面。查询走 unstable_cache，与下方页面渲染同参数命中
-  // 同一份缓存，不产生额外的库往返。
-  const result = await getCachedSearchBuildingsFiltered(city.slug, parsed)
-  const query = buildBuildingCanonicalParams(result.appliedInput).toString()
+  // 区域取值的合法性也要在这里判一次，否则 `?district=<不存在的区>` 会被 canonical
+  // 当成一个有效筛选收录进索引（这类 URL 是可索引的，见 buildCityPageMetadata 的
+  // noindex 判据），而页面上它根本没生效。未开城的城市除外：那一页渲染
+  // ComingSoonCityView、不消费筛选参数、且一律 noindex，不该为了校正 canonical 去取
+  // 区域词表（「未开城不查库」，见 tests/city-route-pages.test.ts）。
+  const input = city.serviceStatus === 'coming-soon'
+    ? parseBuildingSearchInput(toUrlSearchParams(raw))
+    : await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
+  const query = buildBuildingCanonicalParams(input).toString()
   return buildCityPageMetadata({
     city,
     pageType: 'buildings',
@@ -73,9 +63,7 @@ export default async function CityBuildingsPage({ params, searchParams }: Props)
     return <ComingSoonCityView city={city} />
   }
   // 筛选 / 排序 / 分页 / 分组全在查询层完成，视图只消费结果（OPT-036 Task 12）。
-  const input = parseBuildingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
-  // 交给视图的是 `appliedInput` 而不是解析结果：canonical、每个 href、筛选 chip 与
-  // 空态退路都从它派生，必须与结果集用的是同一份条件（见 `BuildingFilteredResult`）。
-  return <CityBuildingsView city={city} result={result} input={result.appliedInput} basePath={`/${city.slug}/buildings`} routeMode="prefixed" />
+  return <CityBuildingsView city={city} result={result} input={input} basePath={`/${city.slug}/buildings`} routeMode="prefixed" />
 }

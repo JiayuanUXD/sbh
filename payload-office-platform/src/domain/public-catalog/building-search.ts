@@ -147,8 +147,9 @@ export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInp
   // priceUnit 的处置同一口径：非法参数静默丢弃，canonical 对外规范化）。此前它走
   // 的是无白名单的 `parseDedupedStringArray`，于是 `?grade=<任意字符串>` 既真的把
   // 结果集筛成 0，又被筛选 chip 当成一个等级名原样印出来。
-  // 区域 / 地铁是**按城市变化**的词表，解析层拿不到，改在查询层收口，见
-  // `withKnownBuildingVocabulary`。
+  // 区域是**按城市变化**的词表，解析层拿不到，改在路由层按地点表收口，见
+  // `(frontend)/_lib/search-input.ts`。地铁没有可用的词表，判定不了存在性，
+  // 因此不丢弃、只在展示时不回显取值（见 `lib/frontend/filter-dimension.ts`）。
   const grade = keepWhitelisted(parseDedupedStringArray(sp, 'grade'), BUILDING_GRADE_VALUES)
   const metro = parseDedupedStringArray(sp, 'metro')
 
@@ -198,50 +199,6 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   if (input.sort !== DEFAULT_SORT) sp.set('sort', input.sort)
   if (input.page > 1) sp.set('page', String(input.page))
   return sp
-}
-
-/**
- * 丢掉本城词表里不存在的区域 / 地铁取值。
- *
- * ## 为什么这一步必须在查询层，而不是解析层或视图层
- *
- * 区域与地铁的合法取值**按城市变化**，纯解析层拿不到（`grade` 那种静态枚举才能在
- * 解析层白名单里挡掉）。而视图层更晚——结果集那时已经按未知取值筛过一遍了，视图
- * 再把 chip 藏起来只会造出「看不见的生效条件」。因此收口点只能是查询层：它既拿得到
- * 全城词表（`buildBuildingFacets(allDocs)`，本来就要算），又在 `applyBuildingFilters`
- * 之前。
- *
- * ## 为什么是「丢弃」而不是「照筛出 0 条」
- *
- * `?district=<不存在的 slug>` 不是一个收得太紧的条件，而是一个**不指向任何地方**的
- * 条件。照筛的结果是：结果集 0 条、筛选 chip 上印着这段任意 URL 输入（旧实现
- * `?? activeDistrict` 的回落）、canonical 还把它当成一个有效筛选收录进索引。丢弃之后
- * 它与 `?type=<非法值>` 走同一条既有裁定——非法参数静默降级，canonical 对外规范化
- * （`search-params.ts` 顶部注释）。
- *
- * 判据是**全城全集**而不是当前筛选后的子集：`vocabulary` 必须来自未经筛选的
- * `allDocs`，否则「静安 + 甲级 一个都不剩」会让静安本身从词表里消失，进而被当成
- * 不存在的区丢掉——用户点了一个真实存在的区，条件却自己没了。
- */
-export function withKnownBuildingVocabulary(
-  input: BuildingSearchInput,
-  vocabulary: Readonly<{
-    districts: readonly Readonly<{ slug: string }>[]
-    metros: readonly Readonly<{ slug: string }>[]
-  }>,
-): BuildingSearchInput {
-  const district = keepWhitelisted(
-    input.district,
-    new Set(vocabulary.districts.map((entry) => entry.slug)),
-  )
-  const metro = keepWhitelisted(input.metro, new Set(vocabulary.metros.map((entry) => entry.slug)))
-  if (district === input.district && metro === input.metro) return input
-  const next: { -readonly [K in keyof BuildingSearchInput]: BuildingSearchInput[K] } = { ...input }
-  delete next.district
-  delete next.metro
-  if (district) next.district = district
-  if (metro) next.metro = metro
-  return next
 }
 
 // ---------------------------------------------------------------------------

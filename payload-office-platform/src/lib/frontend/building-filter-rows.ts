@@ -152,11 +152,12 @@ export function buildBuildingFilterRows(params: Readonly<{
     { key: 'completedAfter', label: '竣工年代', options: completionOptions, ...(activeCompletedAfter ? { activeValue: activeCompletedAfter } : {}) },
   ]
 
-  // 区域 / 地铁的名称只能来自 facets，且 facets 的**候选清单取自全集**
+  // 区域 / 地铁的名称只能来自 facets。facets 的候选清单取自这次扫描的全集
   // （`searchBuildingsFiltered` 里 `overlay(allFacets.x, ...)`，计数才取自剥离后的
-  // 子集）。因此「facets 里查不到」等价于「本城的有效楼盘里没有这个区/这个站」，
-  // 而不是「被别的筛选条件挡掉了」——查询层已经据此把这类取值从生效条件里丢掉
-  // （见 `searchBuildingsFiltered` 的 `appliedInput`），这里的 null 分支只是不回显。
+  // 子集），因此正常情况下查得到名字；查不到时**只表示这一页叫不出它的名字**，
+  // 不表示它不存在——那次扫描有 200 条上限，超过上限的城市里真实存在的区/站
+  // 同样会缺席。存在性判定不在这里做（区域在路由层按地点表判，见
+  // `(frontend)/_lib/search-input.ts`；地铁没有词表可判，一律保留过滤）。
   const districtName = vocabularyName(activeDistrict, facets.districts)
   const metroName = vocabularyName(activeMetro, facets.metros)
 

@@ -33,6 +33,9 @@ const resolveCityContext = vi.fn()
 
 vi.mock('@/lib/frontend/cached-queries', () => ({
   getCachedSearchBuildingsFiltered: (...args: unknown[]) => getCachedSearchBuildingsFiltered(...args),
+  // 路由层现在按地点表校验 `?district=`（未知区域不是条件，见
+  // `(frontend)/_lib/search-input.ts`）。只有带了该参数的用例会走到这里。
+  getCachedListingDistrictOptions: async () => [{ id: 1, slug: 'jingan', name: '静安' }],
 }))
 vi.mock('@/app/(frontend)/_lib/city-context', () => ({
   resolveCityContext: (...args: unknown[]) => resolveCityContext(...args),

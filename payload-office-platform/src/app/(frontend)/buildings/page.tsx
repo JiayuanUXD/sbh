@@ -4,7 +4,8 @@ import React from 'react'
 import CityBuildingsView from '@/components/frontend/city/CityBuildingsView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
-import { buildBuildingCanonicalParams, parseBuildingSearchInput } from '@/domain/public-catalog'
+import { buildBuildingCanonicalParams } from '@/domain/public-catalog'
+import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
@@ -32,13 +33,10 @@ function toUrlSearchParams(value: SearchParams): URLSearchParams {
 }
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const raw = await searchParams
-  // 与 `[city]/buildings` 同一口径：canonical 用真正生效的条件（`appliedInput`），
-  // 本城不存在的区域 / 地铁取值不进 canonical。无前缀路由只服务默认城市。
-  const result = await getCachedSearchBuildingsFiltered(
-    siteConfig.defaultCity,
-    parseBuildingSearchInput(toUrlSearchParams(raw)),
-  )
-  const query = buildBuildingCanonicalParams(result.appliedInput).toString()
+  // 与 `[city]/buildings` 同一口径：本城不存在的区域取值不进 canonical。
+  // 无前缀路由只服务默认城市（多城开启时页面会 307 到带前缀的那条）。
+  const input = await resolveBuildingSearchInput(siteConfig.defaultCity, toUrlSearchParams(raw))
+  const query = buildBuildingCanonicalParams(input).toString()
   return buildPageMetadata({ title: '找写字楼', canonicalPath: query ? `/buildings?${query}` : '/buildings' })
 }
 export default async function BuildingsPage({ searchParams }: Props) {
@@ -51,8 +49,7 @@ export default async function BuildingsPage({ searchParams }: Props) {
     redirect(destination)
   }
   // 与前缀路由同一条链路：解析 → 查询层筛选/排序/分页/分组 → 视图只消费结果。
-  const input = parseBuildingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
-  // 同前缀路由：视图消费的是真正生效的条件，见 `[city]/buildings/page.tsx` 的注释。
-  return <CityBuildingsView city={city} result={result} input={result.appliedInput} basePath="/buildings" routeMode="legacy" />
+  return <CityBuildingsView city={city} result={result} input={input} basePath="/buildings" routeMode="legacy" />
 }

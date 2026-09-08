@@ -50,7 +50,6 @@ import {
   omitBuildingSearchDimensions,
   partitionByStock,
   sortBuildings,
-  withKnownBuildingVocabulary,
 } from './building-search'
 import {
   mapBuildingDetail,
@@ -184,16 +183,6 @@ export type BuildingFilteredResult = Readonly<{
    * 六个维度恒有值，未生效的维度其值等于当前 `totalDocs`（放宽一个没生效的条件不改变结果）。
    */
   dimensionHits: Readonly<Record<BuildingSearchDimension, number>>
-  /**
-   * **真正被应用的**筛选条件——传入的 input 去掉本城词表里不存在的区域 / 地铁取值
-   * 之后的样子（见 `withKnownBuildingVocabulary`）。
-   *
-   * 路由层必须把这一份、而不是它自己解析出来的那一份交给视图：canonical、每一个
-   * href、筛选 chip、空态②的退路全部从它派生。否则会出现「结果集按 A 筛、页面按 B
-   * 说」——URL 上写着一个不存在的区、页面却渲染着全量结果，或者反过来把一个已经
-   * 不生效的条件继续画成 chip。
-   */
-  appliedInput: BuildingSearchInput
 }>
 
 /** One public building page for bounded catalog enumeration. */
@@ -501,18 +490,11 @@ function buildBuildingFacets(
  * 而不是简单调大这个数字。
  */
 export async function searchBuildingsFiltered(
-  rawInput: BuildingSearchInput,
+  input: BuildingSearchInput,
   ctx: SearchContext,
   adapter: SupplyAdapter = getDefaultSupplyAdapter(),
 ): Promise<BuildingFilteredResult> {
   const { docs: allDocs } = await searchBuildings(ctx, adapter)
-
-  // 全城词表：候选清单与「这个取值到底存不存在」都取自**未经任何筛选**的全集。
-  // 下面 facets 的候选清单也复用它（计数才取自剥离后的子集），两处同一份，不重算。
-  const allFacets = buildBuildingFacets(allDocs)
-  // 本城不存在的区域 / 地铁取值不是条件，先丢掉再筛（理由见该函数注释）。
-  // 这一行之后，`input` 就是本次真正生效的条件；`rawInput` 不再被任何人使用。
-  const input = withKnownBuildingVocabulary(rawInput, allFacets)
 
   // 逐维度剥离：每个维度算一次「不含这一条时还剩什么」。同一次结果同时供给
   // 两处用途——筛选候选的计数（districts/grades/metros）与空态②的退路命中数——
@@ -530,6 +512,13 @@ export async function searchBuildingsFiltered(
   // 「静安」都不见了，选中状态只活在地址栏里，用户看不见也单独清不掉）。
   // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
   // 「不显示 0」丢弃，选中项保留。
+  //
+  // ⚠️ 「全集」是**这次扫描的全集**，不是这个城市的地点全集：`allDocs` 受上面那条
+  // 200 条上限约束，且库查之后还过了一道 `isPublicBuilding`。因此它可以用来取名字
+  // （取不到就不印，见 `building-filter-rows.ts`），但**不能用来判定某个区/站
+  // 「不存在」**——超过 200 个公开楼盘的城市里，只出现在第 200 名之后的真实行政区
+  // 在这里同样查不到。判定存在性要用地点表，见 `(frontend)/_lib/search-input.ts`。
+  const allFacets = buildBuildingFacets(allDocs)
   const overlay = <T extends { count: number }>(
     universe: readonly T[],
     subset: readonly T[],
@@ -570,7 +559,6 @@ export async function searchBuildingsFiltered(
     totalPages,
     facets,
     dimensionHits,
-    appliedInput: input,
   }
 }
 

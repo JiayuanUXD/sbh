@@ -11,10 +11,14 @@
  * 本文件把两条规则钉死：
  *   1. **任何词表型维度的文案都不得出现 URL 原始取值**（`q` 除外——它是自由文本，
  *      取值本身就是内容）。这一条是逐维度全量扫的，新增维度时漏了会红。
- *   2. **查不到名称的取值不能继续悄悄筛**：能判定「不存在」的（房源页区域走路由层
- *      词表、楼盘页区域/地铁走查询层全城 facet、等级走解析层静态白名单）一律丢弃，
- *      判定不了的（房源页 metro / businessArea，本页从不加载那两张名表）保留过滤但
- *      不回显取值，且必须仍然是一个**可见可清除**的条件（`active: true`）。
+ *   2. **查不到名称的取值不能继续悄悄筛**：能判定「不存在」的一律丢弃——区域走路由层
+ *      的**地点表**（两条列表路由同一份），等级走解析层静态白名单；判定不了的
+ *      （地铁 / 商圈，没有任何词表可查）保留过滤但不回显取值，且必须仍然是一个
+ *      **可见可清除**的条件（`active: true`）。
+ *
+ *   判定存在性**只能用地点表，不能用结果集里出现过的取值**：楼盘扫描有 200 条上限
+ *   且库查后还会再过一道 `isPublicBuilding`，拿它当词表会把「只出现在第 200 名之后
+ *   的真实行政区」判成不存在，进而丢掉一个完全合法的筛选（Codex review P2）。
  */
 
 import { describe, expect, it, vi } from 'vitest'
@@ -23,7 +27,6 @@ import {
   buildCanonicalSearchParams,
   parseBuildingSearchInput,
   parseListingSearchInput,
-  withKnownBuildingVocabulary,
 } from '@/domain/public-catalog'
 import { buildBuildingFilterRows } from '@/lib/frontend/building-filter-rows'
 import { buildListingFilterDimensions } from '@/lib/frontend/listing-filter-rows'
@@ -118,7 +121,7 @@ describe('房源列表路由层：未知区域从查询与 canonical 一起丢�
     vi.doMock('@/lib/frontend/cached-queries', () => ({
       getCachedListingDistrictOptions: vi.fn(async () => districts),
     }))
-    const { resolveListingSearchInput } = await import('@/app/(frontend)/_lib/listing-search-input')
+    const { resolveListingSearchInput } = await import('@/app/(frontend)/_lib/search-input')
     return resolveListingSearchInput('shanghai', new URLSearchParams(query))
   }
 
@@ -143,7 +146,7 @@ describe('房源列表路由层：未知区域从查询与 canonical 一起丢�
     vi.resetModules()
     const getCachedListingDistrictOptions = vi.fn(async () => SHANGHAI_DISTRICTS)
     vi.doMock('@/lib/frontend/cached-queries', () => ({ getCachedListingDistrictOptions }))
-    const { resolveListingSearchInput } = await import('@/app/(frontend)/_lib/listing-search-input')
+    const { resolveListingSearchInput } = await import('@/app/(frontend)/_lib/search-input')
     await resolveListingSearchInput('shanghai', new URLSearchParams('?q=整层'))
     expect(getCachedListingDistrictOptions).not.toHaveBeenCalled()
   })
@@ -187,21 +190,52 @@ describe('楼盘列表：同一类回落在三个维度上一起收口', () => {
     expect(parseBuildingSearchInput(new URLSearchParams('?grade=grade-a')).grade).toEqual(['grade-a'])
   })
 
-  it('withKnownBuildingVocabulary 丢掉本城不存在的区域 / 地铁，保留存在的', () => {
-    const input = parseBuildingSearchInput(
-      new URLSearchParams(`?district=jingan&district=${HOSTILE}&metro=${HOSTILE}`),
-    )
-    const applied = withKnownBuildingVocabulary(input, FACETS)
-    expect(applied.district).toEqual(['jingan'])
-    expect(applied.metro).toBeUndefined()
-    expect(buildBuildingCanonicalParams(applied).toString()).not.toContain(HOSTILE)
+  it('地铁在楼盘页同样不回显取值，但仍是生效且可清除的条件', () => {
+    // 楼盘页也没有地铁词表可判存在性：facets 只是「这次扫描里出现过的站」，
+    // 而那次扫描有 200 条上限，查不到 ≠ 不存在。因此保留过滤、只不印取值。
+    const metro = dimensionsFor(`?metro=${HOSTILE}`).find((d) => d.dimension === 'metro')!
+    expect(metro.active).toBe(true)
+    expect(metro.activeText).toBeNull()
+  })
+})
+
+describe('楼盘列表路由层：未知区域按地点表丢弃（与房源页同一份词表）', () => {
+  async function resolve(query: string, districts: readonly { slug: string }[]) {
+    vi.resetModules()
+    vi.doMock('@/lib/frontend/cached-queries', () => ({
+      getCachedListingDistrictOptions: vi.fn(async () => districts),
+    }))
+    const { resolveBuildingSearchInput } = await import('@/app/(frontend)/_lib/search-input')
+    return resolveBuildingSearchInput('shanghai', new URLSearchParams(query))
+  }
+
+  it('未知区域被丢掉：既不进查询 input，也不进 canonical', async () => {
+    const input = await resolve(`?district=${HOSTILE}`, SHANGHAI_DISTRICTS)
+    expect(input.district).toBeUndefined()
+    expect(buildBuildingCanonicalParams(input).toString()).not.toContain(HOSTILE)
   })
 
-  it('判据是全城全集，不是当前筛选后的子集（否则真实存在的区会被当成不存在丢掉）', () => {
-    // `searchBuildingsFiltered` 传进来的必须是 `buildBuildingFacets(allDocs)`：
-    // 用剥离后的子集当词表，「静安 + 甲级 一个都不剩」会让静安自己从词表里消失。
-    const input = parseBuildingSearchInput(new URLSearchParams('?district=jingan'))
-    expect(withKnownBuildingVocabulary(input, { districts: [], metros: [] }).district).toBeUndefined()
-    expect(withKnownBuildingVocabulary(input, FACETS).district).toEqual(['jingan'])
+  it('已知区域原样保留（正常筛选不受影响）', async () => {
+    const input = await resolve('?district=jingan', SHANGHAI_DISTRICTS)
+    expect(input.district).toEqual(['jingan'])
+  })
+
+  it('判据是地点表而不是结果集：楼盘扫描有 200 条上限，查不到 ≠ 不存在', async () => {
+    // 这条钉住 Codex review 的 P2：曾用 `buildBuildingFacets(allDocs)` 当词表，
+    // 一个公开楼盘超过 200 个的城市里，只出现在第 200 名之后的真实行政区会被
+    // 判成「不存在」而丢掉筛选，页面转而渲染未筛选的前 200 个楼盘。
+    // 地点表（getCachedListingDistrictOptions → findEffectiveDistricts）与楼盘
+    // 扫描无关，因此这里传一个「facets 里绝不会出现」的区也照样保留。
+    const input = await resolve('?district=jingan', [{ slug: 'jingan' }])
+    expect(input.district).toEqual(['jingan'])
+  })
+
+  it('没有区域筛选时不去取区域词表', async () => {
+    vi.resetModules()
+    const getCachedListingDistrictOptions = vi.fn(async () => SHANGHAI_DISTRICTS)
+    vi.doMock('@/lib/frontend/cached-queries', () => ({ getCachedListingDistrictOptions }))
+    const { resolveBuildingSearchInput } = await import('@/app/(frontend)/_lib/search-input')
+    await resolveBuildingSearchInput('shanghai', new URLSearchParams('?grade=grade-a'))
+    expect(getCachedListingDistrictOptions).not.toHaveBeenCalled()
   })
 })
