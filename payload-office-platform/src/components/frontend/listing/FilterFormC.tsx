@@ -114,8 +114,8 @@ function buildClearRowHref(basePath: string, currentParams: URLSearchParams, row
  * 完全合法、真的收窄结果集，但 750 不等于 500/1000/2000/5000 任何一档）。
  * 这种值不会渲染出行内 chip，因此**编排层判断「这一行是否已经把某个条件显示
  * 出来了」必须用同一个判据**——用 `activeValue != null` 会误判成「已显示」，
- * 于是行 chip、补充 chip、底栏三处一起把一个正在生效的条件藏起来，底栏还写着
- * 「未选的行保持『全部』」（OPT-036 Task 12 第二轮审查抓到的真实缺陷）。
+ * 于是行 chip、补充 chip、底栏三处一起把一个正在生效的条件藏起来，底栏退化成
+ * 「一个条件都没选」的空态（OPT-036 Task 12 第二轮审查抓到的真实缺陷）。
  *
  * 导出而不是让调用方各写一份：本批次已经被「同一段逻辑存在多份」咬过好几次
  * （`MobileFilterSheet` 曾经自带一份同名副本，现已改为从这里导入）。
@@ -221,7 +221,7 @@ export default function FilterFormC(props: Readonly<{
   }, [])
   // 开关打开时也算一个已选条件：否则「只开了开关」这种状态下底栏既不显示 chip
   // 也不显示「清除全部」，用户没有出口把它关掉（pill 本身可以再点一次关掉，但
-  // 底栏说「每行单选，未选的行保持全部」就成了一句与屏幕不符的话）。
+  // 底栏会呈现成「一个条件都没选」，与屏幕上明明开着的开关不符）。
   const hasPicks = picks.length > 0 || switchRow?.active === true || (extraPicks?.length ?? 0) > 0
 
   return (
@@ -314,9 +314,7 @@ export default function FilterFormC(props: Readonly<{
               清除全部
             </NavLink>
           </>
-        ) : (
-          <span className="ls-filterc__hint">每行只能选一个条件；未选的行保持「全部」</span>
-        )}
+        ) : null}
       </div>
     </div>
   )

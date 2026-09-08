@@ -320,8 +320,6 @@
   transition: color var(--duration-base) var(--ease-apple); }
 .ls-filterc__clear-all:hover { color: var(--ink); }
 
-.ls-filterc__hint { font-size: 12px; color: var(--ink-3); letter-spacing: normal; }
-
 /* ── 开关型筛选项（FilterFormC.switchRow：楼盘页「仅看有在租」）──────────────
  * 楼盘列表.dc.html specRows「开关 pill」：36 高 pill 内嵌 34×20 开关。
  * **本批次唯一用 accent 底的筛选项**——它是「暂无在租降权分组」这条产品判断的
@@ -373,8 +371,7 @@
 /* ink-2 而非 comp 标注的 ink-3：这是识别控件用途的信息文本（与 FilterFormC 的
    `.ls-filterc__label` 同一角色，那处已用 ink-2），不是占位符/禁用态——按
    payload-office-platform/.agent/frontend.md「真实信息文本至少 ink-2，设计稿
-   标 ink-3 处对比度优先于照稿」改用 ink-2。下方 `.ls-unitrow__hint`（补充说明
-   句，非识别信息）与 `.ls-filterc__hint` 同角色，保持 ink-3。 */
+   标 ink-3 处对比度优先于照稿」改用 ink-2。 */
 .ls-unitrow__label { font-size: 13px; font-weight: 600; color: var(--ink-2); letter-spacing: normal; }
 
 /* 外壳色 #e9e9ed 是 comp 稿字面值（房源列表.dc.html:112），与视图切换控件同一色，
@@ -402,9 +399,6 @@
    规则须写在 `.ls-unitseg__item--active` 之后才能覆盖它的 background。 */
 .ls-unitseg__item--solo { height: auto; padding: 0; border-radius: 0; background: none; }
 .ls-unitseg__item--solo:hover { background: none; }
-
-.ls-unitrow__hint { max-width: 520px; font-size: 12px; line-height: 1.5; color: var(--ink-3);
-  letter-spacing: normal; text-wrap: pretty; }
 
 /* 结果区末尾白底条：radius 14 是 comp 字面值，比卡片 --r-card(18) 略收——与
    FilterFormC 同容器不共用同一个圆角变量，属刻意的视觉层级区分。 */
@@ -627,9 +621,6 @@
   transition: color var(--duration-base) var(--ease-apple); }
 
 .ls-emptyfiltered__row-chevron { flex: none; color: var(--accent-link); }
-
-.ls-emptyfiltered__hint { margin-top: 16px; display: block; font-size: 12px; color: var(--ink-3);
-  letter-spacing: normal; }
 
 @media (prefers-reduced-motion: reduce) {
   .ls-emptyfiltered__clear-all, .ls-emptyfiltered__row-hit { transition: none; }

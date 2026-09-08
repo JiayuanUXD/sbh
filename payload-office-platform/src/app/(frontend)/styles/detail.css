@@ -1118,7 +1118,6 @@
  * 否则 h2 与说明之间会多出 20px。 */
 .dt-sectionhead { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
 .dt-sectionhead > .dt-h2 { margin-bottom: 0; }
-.dt-sectionhead__note { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 
 /* 三级标题（楼盘介绍）：comp 没有这一级，取 h2(24) 与正文(17) 之间的 19/600，
  * 19/600 这一档原本与已移除的 `.dt-nomedia__title` 同源，现由本规则单独承载。 */

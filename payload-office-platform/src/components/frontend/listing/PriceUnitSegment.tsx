@@ -47,8 +47,7 @@ import { buildPriceUnitHref } from '@/lib/frontend/listing-url'
  *     的「分段切换控件」名不副实——没有第二个单位可切，继续渲染成看起来能点
  *     的胶囊分段反而误导用户去点。这种情况下退化为一行非交互文本标签，只保留
  *     「现在看的是哪一类价格」这条最基本的诚实义务；不渲染分段外壳
- *     （`#e9e9ed` 胶囊）与横向说明句——说明句讲的是「三种单位如何互斥切换」，
- *     此刻没有第二个单位可切，讲了也是噪音。
+ *     （`#e9e9ed` 胶囊）。
  *
  * 关于 `prefetch={false}`：**本组件刻意不加**，理由与 `ResultToolbar` 同（OPT-037
  * Task 11c 逐个判过）。三条件并列判据（见 `ui/Breadcrumb.tsx`）里只有「常驻渲染」
@@ -124,9 +123,6 @@ export default function PriceUnitSegment(props: Readonly<{
           )
         })}
       </div>
-      <span className="ls-unitrow__hint">
-        三种报价单位之间缺少面积或工位数，无法换算，因此不合并排序。切换单位会更换整个结果集。
-      </span>
     </div>
   )
 }

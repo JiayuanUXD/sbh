@@ -54,7 +54,7 @@ test.describe('详情页分享与本地收藏 P1', () => {
     })
     await page.goto(`/listings/${LISTING_SLUG}`)
 
-    await expect(page.getByText('本地存储不可用，无法收藏')).toBeVisible()
+    await expect(page.getByText('浏览器限制了保存，收藏暂时用不了')).toBeVisible()
     // 非阻断：分享仍可用，收藏按钮禁用
     await expect(page.getByRole('button', { name: '分享' })).toBeEnabled()
     await expect(page.getByRole('button', { name: '收藏' })).toBeDisabled()
