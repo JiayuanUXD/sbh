@@ -32,7 +32,13 @@ function toUrlSearchParams(value: SearchParams): URLSearchParams {
 }
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const raw = await searchParams
-  const query = buildBuildingCanonicalParams(parseBuildingSearchInput(toUrlSearchParams(raw))).toString()
+  // 与 `[city]/buildings` 同一口径：canonical 用真正生效的条件（`appliedInput`），
+  // 本城不存在的区域 / 地铁取值不进 canonical。无前缀路由只服务默认城市。
+  const result = await getCachedSearchBuildingsFiltered(
+    siteConfig.defaultCity,
+    parseBuildingSearchInput(toUrlSearchParams(raw)),
+  )
+  const query = buildBuildingCanonicalParams(result.appliedInput).toString()
   return buildPageMetadata({ title: '找写字楼', canonicalPath: query ? `/buildings?${query}` : '/buildings' })
 }
 export default async function BuildingsPage({ searchParams }: Props) {
@@ -47,5 +53,6 @@ export default async function BuildingsPage({ searchParams }: Props) {
   // 与前缀路由同一条链路：解析 → 查询层筛选/排序/分页/分组 → 视图只消费结果。
   const input = parseBuildingSearchInput(toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
-  return <CityBuildingsView city={city} result={result} input={input} basePath="/buildings" routeMode="legacy" />
+  // 同前缀路由：视图消费的是真正生效的条件，见 `[city]/buildings/page.tsx` 的注释。
+  return <CityBuildingsView city={city} result={result} input={result.appliedInput} basePath="/buildings" routeMode="legacy" />
 }

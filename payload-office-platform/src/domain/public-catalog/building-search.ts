@@ -80,6 +80,21 @@ function parseDedupedStringArray(sp: URLSearchParams, key: string): readonly str
   return out.length > 0 ? out : undefined
 }
 
+/**
+ * 只保留白名单里的取值；一个都不剩时返回 undefined（= 该维度未生效）。
+ *
+ * 返回 undefined 而不是空数组：`BuildingSearchInput` 的可选数组字段一律以
+ * 「缺省 = 未生效」建模，空数组会让 `if (input.district)` 一类判空全部翻车。
+ */
+function keepWhitelisted(
+  values: readonly string[] | undefined,
+  whitelist: ReadonlySet<string>,
+): readonly string[] | undefined {
+  if (!values) return undefined
+  const kept = values.filter((value) => whitelist.has(value))
+  return kept.length > 0 ? kept : undefined
+}
+
 function parsePositiveNumber(sp: URLSearchParams, key: string): number | undefined {
   const raw = sp.get(key)
   // 与 search-params.ts 的 parseBuildingSupplyNumber 同一惯例：前后空白一律拒绝，
@@ -128,7 +143,13 @@ function parseSort(sp: URLSearchParams): BuildingSort {
 export function parseBuildingSearchInput(sp: URLSearchParams): BuildingSearchInput {
   const city = sp.get('city') || undefined
   const district = parseDedupedStringArray(sp, 'district')
-  const grade = parseDedupedStringArray(sp, 'grade')
+  // 等级是**静态**词表，解析层就能判定合法性（与 search-params.ts 对 type / sort /
+  // priceUnit 的处置同一口径：非法参数静默丢弃，canonical 对外规范化）。此前它走
+  // 的是无白名单的 `parseDedupedStringArray`，于是 `?grade=<任意字符串>` 既真的把
+  // 结果集筛成 0，又被筛选 chip 当成一个等级名原样印出来。
+  // 区域 / 地铁是**按城市变化**的词表，解析层拿不到，改在查询层收口，见
+  // `withKnownBuildingVocabulary`。
+  const grade = keepWhitelisted(parseDedupedStringArray(sp, 'grade'), BUILDING_GRADE_VALUES)
   const metro = parseDedupedStringArray(sp, 'metro')
 
   let leasableAreaMin = parsePositiveNumber(sp, 'leasableAreaMin')
@@ -179,6 +200,50 @@ export function buildBuildingCanonicalParams(input: BuildingSearchInput): URLSea
   return sp
 }
 
+/**
+ * 丢掉本城词表里不存在的区域 / 地铁取值。
+ *
+ * ## 为什么这一步必须在查询层，而不是解析层或视图层
+ *
+ * 区域与地铁的合法取值**按城市变化**，纯解析层拿不到（`grade` 那种静态枚举才能在
+ * 解析层白名单里挡掉）。而视图层更晚——结果集那时已经按未知取值筛过一遍了，视图
+ * 再把 chip 藏起来只会造出「看不见的生效条件」。因此收口点只能是查询层：它既拿得到
+ * 全城词表（`buildBuildingFacets(allDocs)`，本来就要算），又在 `applyBuildingFilters`
+ * 之前。
+ *
+ * ## 为什么是「丢弃」而不是「照筛出 0 条」
+ *
+ * `?district=<不存在的 slug>` 不是一个收得太紧的条件，而是一个**不指向任何地方**的
+ * 条件。照筛的结果是：结果集 0 条、筛选 chip 上印着这段任意 URL 输入（旧实现
+ * `?? activeDistrict` 的回落）、canonical 还把它当成一个有效筛选收录进索引。丢弃之后
+ * 它与 `?type=<非法值>` 走同一条既有裁定——非法参数静默降级，canonical 对外规范化
+ * （`search-params.ts` 顶部注释）。
+ *
+ * 判据是**全城全集**而不是当前筛选后的子集：`vocabulary` 必须来自未经筛选的
+ * `allDocs`，否则「静安 + 甲级 一个都不剩」会让静安本身从词表里消失，进而被当成
+ * 不存在的区丢掉——用户点了一个真实存在的区，条件却自己没了。
+ */
+export function withKnownBuildingVocabulary(
+  input: BuildingSearchInput,
+  vocabulary: Readonly<{
+    districts: readonly Readonly<{ slug: string }>[]
+    metros: readonly Readonly<{ slug: string }>[]
+  }>,
+): BuildingSearchInput {
+  const district = keepWhitelisted(
+    input.district,
+    new Set(vocabulary.districts.map((entry) => entry.slug)),
+  )
+  const metro = keepWhitelisted(input.metro, new Set(vocabulary.metros.map((entry) => entry.slug)))
+  if (district === input.district && metro === input.metro) return input
+  const next: { -readonly [K in keyof BuildingSearchInput]: BuildingSearchInput[K] } = { ...input }
+  delete next.district
+  delete next.metro
+  if (district) next.district = district
+  if (metro) next.metro = metro
+  return next
+}
+
 // ---------------------------------------------------------------------------
 // 筛选 / 排序 / 分组纯函数（OPT-036 Task 2）
 // ---------------------------------------------------------------------------
@@ -205,6 +270,20 @@ const BUILDING_GRADE_ORDER: readonly string[] = [
   'creative-park',
   'serviced-office',
 ]
+
+/**
+ * 楼盘等级取值全集（解析层白名单 + 跨城参数白名单共用）。
+ *
+ * 从 `BUILDING_GRADE_ORDER` 派生，而不是再抄一份字面量：这个枚举的取值域此前在
+ * 仓库里有三份（本文件的排序表、`lib/frontend/city-routes.ts` 的跨城白名单、
+ * 组件层的 `BUILDING_GRADE_LABELS`），OPT-040 的坑单点名过「别把取值域抄第三份」。
+ * 这里只取**集合**语义，与那个常量的**顺序**语义互不干扰——新增等级时两处都要动，
+ * 顺序需要重新判断（见上方注释），取值域则必然跟着枚举走。
+ *
+ * 组件层的标签表不在此列：域层不能反向导入 `components/`（层次边界），它与这里
+ * 靠 `BuildingGrade` 联合类型对齐。
+ */
+export const BUILDING_GRADE_VALUES: ReadonlySet<string> = new Set(BUILDING_GRADE_ORDER)
 
 /** 未识别的 grade 值排到末尾（既不在白名单里，也不能当作最高优先级）。 */
 const UNKNOWN_GRADE_RANK = BUILDING_GRADE_ORDER.length

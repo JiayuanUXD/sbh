@@ -5,6 +5,7 @@ import {
   type BuildingSearchDimension,
   type BuildingSearchInput,
 } from '@/domain/public-catalog'
+import { enumLabel, vocabularyName } from './filter-dimension'
 
 /**
  * 楼盘列表页筛选行（形态 C）的构造。
@@ -39,7 +40,17 @@ export type BuildingFilterDimensionSpec = Readonly<{
   label: string
   /** 该维度占用的 URL 参数键（构造「去掉这一个条件」的 href 时全部删掉）。 */
   paramKeys: readonly string[]
-  /** 当前生效值的可读文案；未生效时为 null。 */
+  /**
+   * 这个维度此刻是否在收窄结果集。判据与 `activeText != null` 刻意分开，
+   * 理由见 `listing-filter-rows.ts` 同名字段的注释（词表里查不到名称的取值
+   * 仍然可能是一个生效条件，不能因为叫不出名字就从 UI 上整个消失）。
+   */
+  active: boolean
+  /**
+   * 当前生效值的可读文案；未生效、或生效但词表里查不到名称时为 null。
+   *
+   * **绝不回落成 URL 上的原始取值**，理由见 `filter-dimension.ts` 顶部注释。
+   */
   activeText: string | null
   /**
    * 一个维度占多个 URL 键时，各键各自的可读文案（如
@@ -141,36 +152,43 @@ export function buildBuildingFilterRows(params: Readonly<{
     { key: 'completedAfter', label: '竣工年代', options: completionOptions, ...(activeCompletedAfter ? { activeValue: activeCompletedAfter } : {}) },
   ]
 
-  const districtName = activeDistrict
-    ? (facets.districts.find((d) => d.slug === activeDistrict)?.name ?? activeDistrict)
-    : null
-  const metroName = activeMetro
-    ? (facets.metros.find((m) => m.slug === activeMetro)?.name ?? activeMetro)
-    : null
+  // 区域 / 地铁的名称只能来自 facets，且 facets 的**候选清单取自全集**
+  // （`searchBuildingsFiltered` 里 `overlay(allFacets.x, ...)`，计数才取自剥离后的
+  // 子集）。因此「facets 里查不到」等价于「本城的有效楼盘里没有这个区/这个站」，
+  // 而不是「被别的筛选条件挡掉了」——查询层已经据此把这类取值从生效条件里丢掉
+  // （见 `searchBuildingsFiltered` 的 `appliedInput`），这里的 null 分支只是不回显。
+  const districtName = vocabularyName(activeDistrict, facets.districts)
+  const metroName = vocabularyName(activeMetro, facets.metros)
 
   const dimensions: BuildingFilterDimensionSpec[] = [
     {
       dimension: 'district',
       label: '位置',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.district,
+      active: activeDistrict != null,
       activeText: districtName,
     },
     {
       dimension: 'grade',
       label: '等级',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.grade,
-      activeText: activeGrade ? (BUILDING_GRADE_LABELS[activeGrade as BuildingGrade] ?? activeGrade) : null,
+      active: activeGrade != null,
+      // 解析层 `BUILDING_GRADE_VALUES` 白名单已挡住非法值，null 分支正常链路不可达；
+      // 照样不写 `?? activeGrade`，理由同 `listing-filter-rows.ts` 的 listingType。
+      activeText: enumLabel(activeGrade, BUILDING_GRADE_LABELS),
     },
     {
       dimension: 'metro',
       label: '地铁',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.metro,
+      active: activeMetro != null,
       activeText: metroName,
     },
     {
       dimension: 'leasableArea',
       label: '在租面积',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.leasableArea,
+      active: input.leasableAreaMin != null || input.leasableAreaMax != null,
       activeText:
         input.leasableAreaMin != null || input.leasableAreaMax != null
           ? [
@@ -193,12 +211,14 @@ export function buildBuildingFilterRows(params: Readonly<{
       dimension: 'completedAfter',
       label: '竣工年代',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.completedAfter,
+      active: input.completedAfter != null,
       activeText: input.completedAfter != null ? `${input.completedAfter} 年后` : null,
     },
     {
       dimension: 'onlyWithStock',
       label: '在租状态',
       paramKeys: BUILDING_DIMENSION_PARAM_KEYS.onlyWithStock,
+      active: input.onlyWithStock === true,
       activeText: input.onlyWithStock ? '仅看有在租' : null,
     },
   ]

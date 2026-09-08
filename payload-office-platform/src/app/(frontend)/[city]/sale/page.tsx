@@ -5,7 +5,8 @@ import CityListingsView from '@/components/frontend/city/CityListingsView'
 import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
-import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
+import { buildCanonicalSearchParams } from '@/domain/public-catalog'
+import { resolveListingSearchInput } from '@/app/(frontend)/_lib/listing-search-input'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { parseListingViewMode } from '@/lib/frontend/listing-url'
 import { saleChannelPath, shouldIndexSaleChannel } from '@/lib/frontend/sale-channel'
@@ -36,7 +37,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
-  const input = parseListingSearchInput(toUrlSearchParams(raw))
+  // 与页面同一份 input（含区域词表校验），理由见 `[city]/listings/page.tsx` 同处注释。
+  const input = await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const query = buildCanonicalSearchParams(input).toString()
   const base = buildCityPageMetadata({
     city,
@@ -65,7 +67,7 @@ export default async function CitySalePage({ params, searchParams }: Props) {
   if (city.serviceStatus === 'coming-soon') {
     return <ComingSoonCityView city={city} />
   }
-  const input = parseListingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const canonical = buildCanonicalSearchParams(input).toString()
   const [result, districts] = await Promise.all([
     getCachedSearchListings(city.slug, canonical, input, 'sale'),

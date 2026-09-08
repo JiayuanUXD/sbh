@@ -4,7 +4,8 @@ import React from 'react'
 import CityListingsView from '@/components/frontend/city/CityListingsView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
-import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
+import { buildCanonicalSearchParams } from '@/domain/public-catalog'
+import { resolveListingSearchInput } from '@/app/(frontend)/_lib/listing-search-input'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
@@ -31,7 +32,9 @@ function sourceUrl(pathname: string, value: SearchParams): string {
   return query ? `${pathname}?${query}` : pathname
 }
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const input = parseListingSearchInput(toUrlSearchParams(await searchParams))
+  // 无前缀路由只服务默认城市（多城开启时页面会 307 到带前缀的那条），区域词表
+  // 因此取默认城市的那一份，与下方页面同一口径。
+  const input = await resolveListingSearchInput(siteConfig.defaultCity, toUrlSearchParams(await searchParams))
   const query = buildCanonicalSearchParams(input).toString()
   return buildPageMetadata({ title: '在租房源', canonicalPath: query ? `/listings?${query}` : '/listings' })
 }
@@ -44,7 +47,7 @@ export default async function ListingsPage({ searchParams }: Props) {
     if (!destination) notFound()
     redirect(destination)
   }
-  const input = parseListingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const canonical = buildCanonicalSearchParams(input).toString()
   const [result, districts] = await Promise.all([
     getCachedSearchListings(city.slug, canonical, input),

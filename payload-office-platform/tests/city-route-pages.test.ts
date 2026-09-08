@@ -300,6 +300,43 @@ describe('city route boundaries', () => {
     expect(io.getCachedSearchBuildingsFiltered).not.toHaveBeenCalled()
   })
 
+  // ── 词表型取值收口（2026-09-08：?district=<任意字符串> 被当成条件名展示）──────
+  // 两条守卫都落在**路由层**，因为收口点在这里：视图拿到的 input 必须与结果集用的
+  // 是同一份，否则会出现「URL 写着筛了、页面却按另一份条件渲染」。
+
+  it('房源列表：本城不存在的区域取值在查询之前就被丢掉（不进查询、不进 canonical）', async () => {
+    io.parseListingSearchInput.mockReturnValue({ page: 1, district: ['not-a-real-district'] })
+    io.getCachedListingDistrictOptions.mockResolvedValue([{ id: 1, slug: 'jingan', name: '静安' }])
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 0 } })
+
+    const page = await CityListingsPage({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ district: 'not-a-real-district' }),
+    })
+
+    // 查询侧：district 已经不在 input 里，结果集因此是未筛选的全量
+    const queried = io.getCachedSearchListings.mock.calls[0]?.[2] as { district?: unknown }
+    expect(queried.district).toBeUndefined()
+    // 视图侧：拿到的是同一份 input（不是路由自己解析的那一份）
+    expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
+  })
+
+  it('楼盘列表：交给视图的是查询层真正生效的条件（appliedInput）', async () => {
+    // 楼盘页的区域 / 地铁词表在查询层内部（全城 facet 全集），路由层拿不到，
+    // 因此由 searchBuildingsFiltered 回报它实际用了哪一份条件。路由把解析结果
+    // 直接传给视图，就会让 chip 与 canonical 说的和结果集用的不是同一件事。
+    const parsed = { page: 1, pageSize: 24, sort: 'stock-desc', district: ['not-a-real-district'] }
+    const applied = { page: 1, pageSize: 24, sort: 'stock-desc' }
+    io.parseBuildingSearchInput.mockReturnValue(parsed)
+    io.getCachedSearchBuildingsFiltered.mockResolvedValue({ appliedInput: applied })
+
+    const page = await CityBuildingsPage({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ district: 'not-a-real-district' }),
+    })
+    expect((page.props as { input: unknown }).input).toBe(applied)
+  })
+
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {
     const props = { searchParams: Promise.resolve({ q: ['first', 'second'] }) }
     await LegacyListingsPage(props)
