@@ -95,6 +95,16 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRoleCode, RoleFixture>> = Obj
       // 生产角色是数据不随代码走，需在「角色管理」手工勾选（spec §10 第 6 项）；
       // 本文件只覆盖 seed 与 E2E 夹具。
       'analytics:traffic',
+      // 供给侧写权限：Buildings / Listings 的 create/update 收口后绑到了这四个码
+      // （此前缺省 = 任何登录账号都能建能改）。OPS 的职责本就含楼盘与房源维护，
+      // 故由迁移 20260908_150000_grant_ops_supply_write_codes 授予。
+      // **这份夹具必须与那个迁移同步**：seed 的角色 update 分支无条件用
+      // BUILTIN_ROLES 覆写，只改迁移不改这里，「先跑迁移再跑 seed」会把权限擦掉
+      // （OPT-045 §9 的实测教训，data:import 就这么掉过）。
+      'building:create',
+      'building:update',
+      'listing:create',
+      'listing:update',
     ],
     fieldPermissions: [
       'phone:full', // 运营可看完整手机号
