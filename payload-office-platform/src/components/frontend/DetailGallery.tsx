@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { DetailMediaViewModel } from '@/domain/public-catalog/contracts'
 import { normalizePublicMediaUrl } from '@/domain/public-catalog/media-url'
+import { buildSrcSet } from '@/lib/frontend/media-srcset'
 import { track } from '@/lib/frontend/analytics'
 import { formatPublishedDate } from '@/lib/frontend/format'
 import DetailVideo from './DetailVideo'
@@ -19,6 +20,8 @@ type DetailGalleryProps = Readonly<{
 type RenderableMedia = Readonly<{
   item: DetailMediaViewModel
   src: string
+  /** 派生尺寸拼成的 srcset；存量图没有派生时为 undefined，此时一律不发 srcset/sizes。 */
+  srcSet?: string
   alt: string
 }>
 
@@ -36,9 +39,26 @@ function toRenderableMedia(item: DetailMediaViewModel, title: string): Renderabl
   return {
     item,
     src,
+    /* variants 的每一档 URL 已在 mapper 层各自过过 normalizePublicMediaUrl
+       （mappers.ts 的 mapMediaVariants），单档不合格只丢该档，所以这里可以直接用，
+       不需要再校验一遍。 */
+    srcSet: buildSrcSet(item.resource),
     alt: item.resource.alt?.trim() || `${title} ${item.category}`,
   }
 }
+
+/* 主图 sizes：主栏是弹性轨道，宽度按 .dt-core 推导——
+     ≥1440：容器 1440 − 侧栏 372 − 列间 32 = 1036px
+     1024–1439：100vw − 64(gut) − 404(侧栏+列间)
+     ≤1023：.dt-core 塌成单列，主栏即容器宽（gut 在 <768 是 16、768+ 是 32）
+   写歪了不会报错、只会让浏览器选错档，所以逐档跟着断点写。 */
+const MAIN_IMAGE_SIZES =
+  '(max-width: 767px) 100vw, (max-width: 1023px) calc(100vw - 64px), (max-width: 1439px) calc(100vw - 468px), 1036px'
+
+/* 缩略图轨道一行 5 格（detail.css 的 flex: 0 0 calc((100% - 32px) / 5)），
+   ≥1440 时约 201px。这里刻意不写成主图那样的逐档 calc：所有断点下的值都远小于
+   最小派生档 320w，浏览器无论如何都会选同一档，多写的精度不产生任何差别。 */
+const THUMB_IMAGE_SIZES = '(max-width: 1023px) 20vw, 201px'
 
 /**
  * Public-detail gallery with classified tabs, failure placeholders and an
@@ -123,6 +143,13 @@ export default function DetailGallery({
    *
    * ref 回调本身保持稳定（id 从 data-media-id 读，而不是按 id 现造闭包），
    * 否则每次 render 都会 detach/attach 一遍 ref。
+   *
+   * ⚠️ 验证这段逻辑**必须用有真实视口宽度的浏览器**。Claude Browser pane 的
+   * `innerWidth` 是 0，而 `sizes` 正是按视口宽度解析的：0 宽视口下带 srcset 的图
+   * `load` 事件照常触发、`naturalWidth` 却恒为 0，正好撞上本函数的失败指纹，
+   * 于是主图被误判成加载失败、渲染成「图片暂未加载」。2026-09-09 在那个面板里
+   * 复现过一次并差点据此改这里的判据——换真实 Chrome（视口 976）即一切正常，
+   * 选中 1200w 档。**那是环境假象，不是缺陷。**
    */
   const detectPreHydrationFailure = useCallback((node: HTMLImageElement | null) => {
     if (!node) return
@@ -301,8 +328,15 @@ export default function DetailGallery({
                   ref={detectPreHydrationFailure}
                   data-media-id={activeMedia.item.id}
                   src={activeMedia.src}
+                  {...(activeMedia.srcSet
+                    ? { srcSet: activeMedia.srcSet, sizes: MAIN_IMAGE_SIZES }
+                    : {})}
                   alt={activeMedia.alt}
                   loading="eager"
+                  /* 详情页的 LCP 元素几乎总是这张主图。它虽然在 SSR 的 HTML 里、
+                     预扫描器找得到，但排在图集 DOM 深处，默认优先级与页面上其它
+                     图片同级；显式提到 high 让它先于缩略图与推荐位取。 */
+                  fetchPriority="high"
                   onError={() => markFailed(activeMedia.item.id)}
                 />
               )}
@@ -376,7 +410,7 @@ export default function DetailGallery({
           </button>
           <div className="detail-gallery__thumbnails" role="tablist" aria-label="缩略图按键">
             {currentList.map((renderable, index) => {
-              const { item, src, alt } = renderable
+              const { item, src, srcSet, alt } = renderable
               const isActive = index === safeActiveIndex
               const hasFailed = failedMediaIds.has(item.id)
               return (
@@ -402,6 +436,7 @@ export default function DetailGallery({
                       ref={detectPreHydrationFailure}
                       data-media-id={item.id}
                       src={src}
+                      {...(srcSet ? { srcSet, sizes: THUMB_IMAGE_SIZES } : {})}
                       alt={alt}
                       loading="lazy"
                       onError={() => markFailed(item.id)}
@@ -446,7 +481,13 @@ export default function DetailGallery({
                 抱歉，你的浏览器不支持视频播放。
               </video>
             ) : (
-              <img src={activeMedia.src} alt={activeMedia.alt} onError={() => markFailed(activeMedia.item.id)} />
+              /* 全屏查看器：图铺满视口，sizes 给 100vw 让浏览器取最大的一档。 */
+              <img
+                src={activeMedia.src}
+                {...(activeMedia.srcSet ? { srcSet: activeMedia.srcSet, sizes: '100vw' } : {})}
+                alt={activeMedia.alt}
+                onError={() => markFailed(activeMedia.item.id)}
+              />
             )}
             <p className="detail-gallery__dialog-caption">{activeMedia.alt}</p>
             <p className="detail-gallery__counter" role="status" aria-live="polite">第 {safeActiveIndex + 1} 个，共 {currentList.length} 个 · {activeMedia.item.category}</p>
