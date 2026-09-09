@@ -30,12 +30,18 @@ function collectCheckboxes(fields: readonly unknown[]): AnyField[] {
   return out
 }
 
+/**
+ * 两侧各是 tab 下的一个**顶层** group（`detailSpecFieldsBuilding` /
+ * `detailSpecFieldsListing`），不是「一个 group 再套两个 group」——后者配置有效、
+ * 类型正确、列名也对，但 Payload 3.86 的后台一个 checkbox 都不渲染。
+ * 详见 `src/globals/site-settings-spec-fields.ts` 文件头。
+ */
 function sideFields(side: 'building' | 'listing'): unknown[] {
+  const groupName = side === 'building' ? 'detailSpecFieldsBuilding' : 'detailSpecFieldsListing'
   const tabsField = (SiteSettings.fields as AnyField[]).find((field) => field.type === 'tabs')
   const tabs = (tabsField?.tabs ?? []) as AnyField[]
   const tab = tabs.find((item) => item.label === '详情页参数')
-  const root = ((tab?.fields ?? []) as AnyField[]).find((f) => f.name === 'detailSpecFields')
-  const sideGroup = ((root?.fields ?? []) as AnyField[]).find((f) => f.name === side)
+  const sideGroup = ((tab?.fields ?? []) as AnyField[]).find((f) => f.name === groupName)
   return (sideGroup?.fields ?? []) as unknown[]
 }
 

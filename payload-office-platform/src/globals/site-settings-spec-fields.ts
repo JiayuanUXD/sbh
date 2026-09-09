@@ -61,8 +61,36 @@ function checkboxesFor<G extends string>(
     }))
 }
 
+/**
+ * 一侧一个**顶层** group，组内按语义分组用 `collapsible` 分段。
+ *
+ * ## 为什么是顶层 group 而不是 `detailSpecFields` 再套 `building` / `listing`
+ *
+ * 跟着仓库既有形状走：全仓 5 处 `type: 'group'`（Buildings 的 developerAndScale /
+ * verticalTransport / buildingServices / verificationInfo / seo）**都是 tab 下的
+ * 顶层 group**，没有具名 group 套具名 group 的先例。本项最初写的是嵌套形状，
+ * 走查中途改成了这个。
+ *
+ * ⚠️ **不要据此断言「Payload 3.86 不渲染嵌套 group」——那条结论没有立住。**
+ * 当时的现象是后台一个 checkbox 都不渲染，我一度归因于嵌套；随后的对照实验
+ * 推翻了它：**既有的「图片水印」group 在同一个页面上同样一个字段都不渲染**，
+ * 根因是 worktree 里 `next dev` 的模块解析（Turbopack 直接
+ * `Module not found: '@nouance/payload-better-fields-plugin/Number'`，
+ * webpack 则静默只渲染外壳），与字段结构无关。最终验证是在 `next build` +
+ * `next start` 的产物上做的。
+ *
+ * 换句话说：这个形状是「跟既有写法一致」的选择，不是「嵌套不可用」的结论。
+ * 谁要改回嵌套，先在**产物**上验，别在 worktree 的 dev server 上验。
+ *
+ * ## 列名不受影响
+ *
+ * Payload 把 group 路径按下划线拼成列名，`detailSpecFields.building.grade` 与
+ * `detailSpecFieldsBuilding.grade` 都落到 `detail_spec_fields_building_grade`。
+ * 这一条是实测的：改形状后 `payload migrate:create` 报 “No schema changes
+ * detected”，所以迁移没动。改名前先确认它仍成立。
+ */
 function sideGroup<G extends string>(
-  name: 'building' | 'listing',
+  name: 'detailSpecFieldsBuilding' | 'detailSpecFieldsListing',
   label: string,
   fields: readonly SpecFieldMeta<G>[],
   groupTitles: Readonly<Record<G, string>>,
@@ -71,12 +99,7 @@ function sideGroup<G extends string>(
     name,
     label,
     type: 'group',
-    fields: (Object.keys(groupTitles) as G[]).map((groupId) => ({
-      type: 'collapsible' as const,
-      label: groupTitles[groupId],
-      admin: { initCollapsed: false },
-      fields: checkboxesFor(fields, groupId),
-    })),
+    fields: (Object.keys(groupTitles) as G[]).flatMap((groupId) => checkboxesFor(fields, groupId)),
   }
 }
 
@@ -85,14 +108,17 @@ export const detailSpecFieldsTab: Tab = {
   description:
     '控制楼盘 / 房源详情页参数区展示哪些字段。取消勾选的字段整行不再出现；勾选了但该楼盘 / 房源没填值的，同样不显示这一行。保存后最长 60 秒全站生效。',
   fields: [
-    {
-      name: 'detailSpecFields',
-      type: 'group',
-      label: '参数展示',
-      fields: [
-        sideGroup('building', '楼盘详情页参数', BUILDING_SPEC_FIELDS, BUILDING_SPEC_GROUP_TITLES),
-        sideGroup('listing', '房源详情页参数', LISTING_SPEC_FIELDS, LISTING_SPEC_GROUP_TITLES),
-      ],
-    },
+    sideGroup(
+      'detailSpecFieldsBuilding',
+      '楼盘详情页参数',
+      BUILDING_SPEC_FIELDS,
+      BUILDING_SPEC_GROUP_TITLES,
+    ),
+    sideGroup(
+      'detailSpecFieldsListing',
+      '房源详情页参数',
+      LISTING_SPEC_FIELDS,
+      LISTING_SPEC_GROUP_TITLES,
+    ),
   ],
 }

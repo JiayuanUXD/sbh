@@ -175,8 +175,8 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     mainNav: mapMainNav(doc.mainNav),
     footerColumns: mapFooterColumns(doc.footerColumns),
     detailSpecFields: {
-      building: mapSpecVisibility(doc.detailSpecFields?.building, BUILDING_SPEC_FIELDS),
-      listing: mapSpecVisibility(doc.detailSpecFields?.listing, LISTING_SPEC_FIELDS),
+      building: mapSpecVisibility(doc.detailSpecFieldsBuilding, BUILDING_SPEC_FIELDS),
+      listing: mapSpecVisibility(doc.detailSpecFieldsListing, LISTING_SPEC_FIELDS),
     },
   }
 }
