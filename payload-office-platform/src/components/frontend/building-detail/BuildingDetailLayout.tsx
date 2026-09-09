@@ -228,11 +228,11 @@ export default function BuildingDetailLayout({
         data-supply-as-of={supply.asOf}
       >
         <div className="dt-sectionhead">
+          {/* comp 的副标（快照口径说明）已撤：它回答的是「同屏这几个数字是否同源」
+              这个工程问题，用户不会提。副标原本也不是又一份统计数字——起价 /
+              可租面积 / 套数在本页已出现两次（信息面板 + 供给区聚合行），旧
+              `SupplySectionSummary` 那第三份在接线时就并掉了。 */}
           <h2 className="dt-h2">在租房源</h2>
-          {/* comp 副标是快照口径说明，不是又一份统计数字：起价 / 可租面积 /
-              套数在本页已经出现两次（信息面板 + 供给区聚合行），旧
-              `SupplySectionSummary` 是第三份，接线时并掉。 */}
-          <p className="dt-sectionhead__note">同一时刻生成的一份快照，组内数字互相可比</p>
         </div>
         <BuildingSupplyBrowser
           snapshot={supply}

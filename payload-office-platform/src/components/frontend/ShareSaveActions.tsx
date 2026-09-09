@@ -131,7 +131,7 @@ export default function ShareSaveActions({ canonicalUrl, savedDetail }: ShareSav
       )}
       {!lsAvailable && (
         <span className="share-save-actions__hint" role="note">
-          本地存储不可用，无法收藏
+          浏览器限制了保存，收藏暂时用不了
         </span>
       )}
     </div>

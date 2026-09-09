@@ -84,8 +84,7 @@ export default function EmptyFiltered(props: Readonly<{
       </div>
 
       {hasRelaxations ? (
-        <>
-          <div className="ls-emptyfiltered__rows">
+        <div className="ls-emptyfiltered__rows">
             {visible.map((r) => (
               <Link key={r.href} href={r.href} className="ls-emptyfiltered__row">
                 <span className="ls-emptyfiltered__row-label">{r.label}</span>
@@ -95,9 +94,7 @@ export default function EmptyFiltered(props: Readonly<{
                 </svg>
               </Link>
             ))}
-          </div>
-          <span className="ls-emptyfiltered__hint">点任一行只改那一个参数，其余条件与排序保留在地址栏里</span>
-        </>
+        </div>
       ) : null}
     </div>
   )
