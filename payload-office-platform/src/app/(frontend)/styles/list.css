@@ -52,7 +52,10 @@
 
 @media (max-width: 1199px) { .ls-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 899px) { .ls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 599px) { .ls-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* 移动端结果卡改横排，规则见本文件下方「移动端横排收敛」一节——
+   **必须写在 `.ls-card` 基础声明之后**，否则同特异度下被 `flex-direction: column`
+   覆盖掉（写在这里试过一次，静默失效）。 */
 
 /* ── 横向列表行（comp 布局 B）──────────────────────────────────────────────
  * specRows：整宽 · 高 182 · padding 16 · 行间 gap 12 · radius 18；图 240×150
@@ -93,11 +96,19 @@
 
 .ls-rowcard__price--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
 
+/* 移动端与默认网格卡收敛到同一套横排（OPT-078）。
+ * 原先这里是「转竖排 + 整宽大图」，与本次改横排的默认卡正好相反：同一页里
+ * `?view=grid` 密集横排、`?view=row` 反而变成一屏一张的大图，切换等于变差。
+ * 图与默认卡同为 132 定宽；价格列容不下 176（375 视口减去图与间距只剩约 200），
+ * 落到信息下方整宽一行，仍靠 tabular-nums 在各卡同一相对位置对齐。 */
 @media (max-width: 767px) {
-  .ls-rowcard { flex-direction: column; gap: 12px; }
-  .ls-rowcard__media { width: 100%; height: auto; aspect-ratio: 16 / 10; }
-  .ls-rowcard__pricecol { width: auto; align-items: flex-start; padding-right: 0;
-    border-left: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+  .ls-rowcard { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 10px; }
+  .ls-rowcard__media { flex: none; width: 132px; height: auto; aspect-ratio: 4 / 3;
+    border-radius: 12px; }
+  .ls-rowcard__body { gap: 4px; padding: 0; }
+  .ls-rowcard__pricecol { flex: 1 0 100%; width: auto; align-items: flex-start;
+    justify-content: flex-start; padding-right: 0; padding-top: 10px;
+    border-left: 0; border-top: 1px solid var(--line); }
 }
 
 /* 定宽右对齐价格盒——R1「能横向比价」的落点：同单位下各卡小数点落在同一相对位置 */
@@ -486,6 +497,46 @@
    语义最接近的既有阴影 token，不新增一个只服务这一处的字面值。 */
 .ls-toolbar__viewbtn--active { background: var(--bg-subtle); color: var(--ink); box-shadow: var(--shadow-sm); }
 .ls-toolbar__viewbtn--active:hover { color: var(--ink); }
+
+/* ============================================================================
+ * 移动端横排收敛（OPT-078）
+ *
+ * 产品决定「比价优先于看图」（2026-09-09）。此前 ≤599 是一列 4:3 大图，一屏
+ * 只看得到一张半，比两套房要来回滚；改成图左信息右后一屏 3–4 条，价格落在各卡
+ * 同一相对位置纵向对齐，与桌面横向列表是同一个比价逻辑。
+ *
+ * **本节必须整体排在被覆写的基础声明之后**：`.ls-card`（flex-direction: column）、
+ * `.ls-toolbar__viewseg`（display: flex）都是 (0,1,0)，同特异度靠源码顺序定胜负。
+ * 第一版把这些规则写在文件上方的网格区，媒体查询在前、基础声明在后，
+ * **一条都没生效且不报错**——本仓库 CSS 的头号静默失败形态。
+ *
+ * **为什么是 CSS 而不是按视口换组件**：`view` 由服务端从 URL 解析，服务端拿不到
+ * 视口；要按视口换组件只能上客户端探测，带来水合不一致与首帧闪烁。CSS 改版式
+ * 没有这些问题，DOM 一份，`?view=` 的语义也不受影响。
+ *
+ * 断点取 767 而不是 599：600–767 原本是两列，横排卡在那个宽度并排会挤成两团。
+ * ========================================================================== */
+@media (max-width: 767px) {
+  .ls-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+
+  /* 图定宽 132（4:3 → 99 高），卡高约 119 —— 一屏 3–4 条 */
+  .ls-card { flex-direction: row; align-items: stretch; gap: 12px; padding: 10px; }
+  .ls-card > .sf-media { flex: none; width: 116px; border-radius: 12px; overflow: hidden; }
+  /* min-width: 0 不可省：flex 子项默认 min-width:auto，正文列会被最长的那行标题
+     撑到未截断宽度，`text-overflow: ellipsis` 于是永远不触发、内容直接溢出卡片
+     右缘。与本文件 `.ls-grid` 用 `minmax(0,1fr)` 而非裸 `1fr` 是同一个坑
+     （375 实测：不加时标题穿出卡片、被 .sf-card 的 overflow 裁成断字）。 */
+  .ls-card__body { padding: 0; gap: 4px; min-width: 0; }
+  /* 正文列在 375 下只有约 195px，「2,800 元/工位/月」加「360 ㎡」放不进一行；
+     允许换行让面积落到第二行，价格盒保持定宽，跨卡对齐不受影响。 */
+  .ls-card__meta { flex-wrap: wrap; row-gap: 2px; }
+  .ls-card__type-tag { left: 8px; bottom: 7px; }
+
+  /* 视图切换隐藏：两种视图在 ≤767 已收敛为同一套横排，留着就是本文件明令禁止的
+     死控件（点了什么都不变）。只隐藏控件、不动 `?view=` 解析——带 view 的分享
+     链接在移动端仍正常渲染，只是渲染成同一套横排。 */
+  .ls-toolbar__viewseg { display: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ls-toolbar__sort, .ls-toolbar__viewbtn { transition: none; }
