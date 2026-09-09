@@ -222,9 +222,44 @@
  * 想恢复锚点的平滑效果，正解**不是**把这条加回来，而是只在锚点点击那一刻把
  * scroll-behavior 临时打开；那要另行验证浏览器恢复与 popstate 的先后顺序。
  * 守卫见 tests/frontend-layout-scroll-behavior.test.ts。 */
+
+/* 横向溢出的裁剪：`html` 与 `body` **两条都要在**，缺一不可。
+ *
+ * 全站有五处 `width: 100vw` 的全幅出血（`.hm-home` / `.ls-page` / `.dt-page` /
+ * `.rc-page` / `.landing-hero`），都要从 `.site-main`（`max-width: 1440` +
+ * `padding-inline: 24`）里破出来。`100vw` **含**经典滚动条宽度，而
+ * `documentElement.clientWidth` 不含；再配合 `margin-inline: calc(50% - 50vw)`
+ * 居中，出血盒每侧各探出半条滚动条（实测 7.67px）。这是出血机制的固有找零，
+ * 不是哪一处写错了。
+ *
+ * **为什么 body 单独一条不够**（2026-09-09 之前就是只有 body 那条，全站能横向
+ * 拖 8px）：body 的 overflow 只有在**根元素为 `visible`** 时才会被提升到视口，
+ * 而提升之后 body 自己按 `visible` 用——等于没裁；被提升上去的 `clip` 又不消除
+ * 视口的可滚动性。于是那条 clip 写了等于没写。把根元素也设成非 `visible`，
+ * 这次提升就不再发生，body 那条才真正开始裁。两条是一对，别单独删任何一条。
+ *
+ * 实测四组（本地 dev，视口 1920 / 经典滚动条 15px，`documentElement.scrollLeft`
+ * 置 9999 后读回；1440 与 768 同结论，375 走覆盖式滚动条本就不复现）：
+ *     html visible + body clip     →  8   ← 修复前的状态
+ *     html clip    + body visible  →  8
+ *     html clip    + body clip     →  0   ← 现在
+ *     html hidden  + body clip     →  0   （但 hidden 见下，不能用）
+ *
+ * 根元素用 `clip` 不用 `hidden`：`hidden` 会把另一轴的 `visible` 连带升成 `auto`、
+ * 让根元素变成滚动容器，吸顶的 `.site-header` 与 `.dt-bar` 当场失效。`clip` 不
+ * 建立滚动容器——已实测：纵向滚动正常、吸顶头部照常吸住。
+ *
+ * 顺带记一条量到的事实，免得下一个人当成 bug 重查：出血页的容器与页眉容器**不**
+ * 严格同宽。页眉/页脚的 `100%` 是 body 内宽（不含滚动条），出血页的是 `100vw`
+ * （含），1440 下 `.hm-container` 是 1344 @ left 40.33、`.site-header__inner` 是
+ * 1328.67 @ left 48：中心重合，边缘差 7.67px。要消这 7.67px 得连 `.site-main`
+ * 的宽度上限一起动，不在本次修复范围内。
+ *
+ * 守卫见 `tests/frontend-horizontal-bleed-overflow.test.ts`。 */
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: clip;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -252,7 +287,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* 配合 hero 100vw 全幅出血，裁掉滚动条宽度造成的横向溢出 */
+  /* 配合 100vw 全幅出血，裁掉滚动条宽度造成的横向溢出。
+     **这条只在根元素的 overflow-x 也非 visible 时才生效**——否则它会被提升到视口、
+     body 自己按 visible 用，等于没裁（2026-09-09 之前的线上状态就是如此）。
+     它与本文件 html 规则那条是一对，理由与实测见那条上方的注释。 */
   overflow-x: clip;
 }
 

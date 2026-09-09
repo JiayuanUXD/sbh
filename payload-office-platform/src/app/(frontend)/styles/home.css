@@ -11,7 +11,9 @@
    .hm-home 撑满视口宽度，让每个 section 的背景带在所有断点保持满宽出血
    （设计系统 §7）；Hero 额外上探 --header-height，使其延伸到吸顶头部下方，
    透明态头部的白字才能压在 Hero 暗色遮罩上而不是页面浅灰底上。
-   body 已有 overflow-x: clip 配合裁掉 100vw 带来的横向滚动条溢出。 */
+   100vw 带来的横向溢出由 styles.css 的 `html` + `body` **两条** overflow-x: clip 一起裁掉，缺一不可
+   （只有 body 那条时它会被提升到视口、body 自己按 visible 用，等于没裁——
+   2026-09-09 之前全站因此能横向拖 8px）。理由与实测见那两条规则上方的注释。 */
 .hm-home {
   width: 100vw;
   margin-inline: calc(50% - 50vw);
