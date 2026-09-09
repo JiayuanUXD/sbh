@@ -103,7 +103,10 @@
  * 落到信息下方整宽一行，仍靠 tabular-nums 在各卡同一相对位置对齐。 */
 @media (max-width: 767px) {
   .ls-rowcard { flex-direction: row; flex-wrap: wrap; gap: 12px; padding: 10px; }
-  .ls-rowcard__media { flex: none; width: 132px; height: auto; aspect-ratio: 4 / 3;
+  /* 比例保持 16:10，不在断点上换档（OPT-082）：这里原本是 4/3，于是同一套房源
+     在桌面横排是 16:10、缩到手机变 4:3——「同一张图按视口换裁切」正是
+     `.building-summary-card__media` 那条注释里已经判过一次的毛病。 */
+  .ls-rowcard__media { flex: none; width: 132px; height: auto; aspect-ratio: 16 / 10;
     border-radius: 12px; }
   .ls-rowcard__body { gap: 4px; padding: 0; }
   .ls-rowcard__pricecol { flex: 1 0 100%; width: auto; align-items: flex-start;
@@ -573,9 +576,16 @@
 @media (max-width: 767px) {
   .ls-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
-  /* 图定宽 132（4:3 → 99 高），卡高约 119 —— 一屏 3–4 条 */
+  /* 图定宽 116（16:10 → 72.5 高）—— OPT-082 统一比例后卡更矮，一屏更多条 */
   .ls-card { flex-direction: row; align-items: stretch; gap: 12px; padding: 10px; }
-  .ls-card > .sf-media { flex: none; width: 116px; border-radius: 12px; overflow: hidden; }
+  /* `align-self: flex-start` 不可省（2026-09-10 用户走查发现）：`.ls-card` 是
+     `align-items: stretch` 的横排，图作为定宽 flex 子项会被**拉伸到卡片高度**，
+     于是 `aspect-ratio` 完全不生效——同一页里卡片文案长短不同，图就被拉成不同
+     比例。实测 375 下同屏并存 1.128 / 1.427 / 1.461 三种。这与 4:3→16:10 无关，
+     换比例只是把「统一的错」换成「另一个统一的错」，根因是拉伸。
+     改成不拉伸后由 `.sf-media--16x10` 定高：116 → 72.5，每张卡恒等。 */
+  .ls-card > .sf-media { flex: none; align-self: flex-start; width: 116px;
+    border-radius: 12px; overflow: hidden; }
   /* min-width: 0 不可省：flex 子项默认 min-width:auto，正文列会被最长的那行标题
      撑到未截断宽度，`text-overflow: ellipsis` 于是永远不触发、内容直接溢出卡片
      右缘。与本文件 `.ls-grid` 用 `minmax(0,1fr)` 而非裸 `1fr` 是同一个坑

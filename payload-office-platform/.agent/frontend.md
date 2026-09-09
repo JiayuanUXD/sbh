@@ -55,7 +55,7 @@
   - `surface.css` 必须在 `home.css` / `list.css` **之前** import：后两者靠「同特异度、后来者胜」覆写基态（如 `.hm-type-card` 把 `display:block` 改回 flex），顺序反了静默失效。
   - 唯一豁免 `.sf-card` 的是首页 `.hm-bento-card`（满幅图瓷砖非内容卡：加阴影显脏、抬升破坏 bento 咬合），它仍复用 `.sf-scrim` / `.sf-phototag`。
 - 图上有文字必带底部 45% 渐变压暗（`.sf-scrim`，`rgba(0,0,0,.42)` → 透明）——图上白字按此规则核对，不逐张测 4.5:1。
-- 房源卡 4:3、楼盘卡 16:10（封面多为横向街景）、详情主图 16:10；图容器要 `display: block` + `aspect-ratio`（`span` 默认 inline 会让 aspect-ratio 失效、高度塌成 0），声明尺寸禁 CLS，有 alt 与失败占位。
+- **卡片媒体一律 16:10**（房源卡、楼盘卡、资讯卡、详情主图同一档）。2026-09-10 由 4:3（房源）/ 16:10（楼盘）两档统一而来——两种卡在首页与详情页同屏并排，比例不同一眼就看得出不齐；且房源自己内部本就不统一（横排行早已是 16:10，网格卡才是 4:3）。**不要按视口或版式换比例**：同一张图按断点换裁切是已判过两次的毛病（见 `styles.css` 的 `.building-summary-card__media` 与 `styles/list.css` 的 `.ls-rowcard__media` 注释）。图容器要 `display: block` + `aspect-ratio`（`span` 默认 inline 会让 aspect-ratio 失效、高度塌成 0），声明尺寸禁 CLS，有 alt 与失败占位。
 - `backdrop-filter` 只写 unprefixed 一条：手写 `-webkit-` 兄弟声明会被 lightningcss 连同 unprefixed 一起丢弃，玻璃效果整体失效（前缀由构建按 browserslist 自动补）。
 - 滚动进场用原生 `animation-timeline: view()`，必须 `@supports (animation-timeline: view())` 包裹且**不写 `fill-mode: both`**——时间线未激活时 both 会把元素锁死在 `opacity: .001`，整段内容隐形。
 - 动效：常规交互用 token 三档 120/200/320ms（交互反馈 120、状态切换 200、卡片抬升 320），滚动进场 400–800ms；避免自动轮播、阻挡搜索的视频、大面积阴影；一律尊重 `prefers-reduced-motion`。

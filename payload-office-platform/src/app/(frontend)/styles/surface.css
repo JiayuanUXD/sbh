@@ -40,6 +40,10 @@
    行为不变。 */
 .sf-media img { width: 100%; height: 100%; object-fit: cover;
   object-position: var(--focal-x, 50%) var(--focal-y, 50%); display: block; }
+/* --4x3 目前**没有产品消费方**（OPT-082 把房源卡统一到 16:10）。保留基元本身：
+   `ui/Media.tsx` 的 ratio 联合类型与 dev-story 的基元陈列仍引用它，删了就是把一个
+   通用比例基元砍成「只有一档」。新页面别默认挑它——卡片媒体一律 16:10，见
+   `.agent/frontend.md`。 */
 .sf-media--4x3 { aspect-ratio: 4 / 3; }
 .sf-media--16x10 { aspect-ratio: 16 / 10; }
 
