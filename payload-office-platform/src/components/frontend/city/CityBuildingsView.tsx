@@ -4,6 +4,7 @@ import BuildingCompactRow from '@/components/frontend/listing/BuildingCompactRow
 import ListClickAnalytics from '@/components/frontend/listing/ListClickAnalytics'
 import ListSearchAnalytics from '@/components/frontend/listing/ListSearchAnalytics'
 import BuildingResultCard from '@/components/frontend/listing/BuildingResultCard'
+import BuildingResultRow from '@/components/frontend/listing/BuildingResultRow'
 import EmptyFiltered, { type Relaxation } from '@/components/frontend/listing/EmptyFiltered'
 import EmptyNoStock from '@/components/frontend/listing/EmptyNoStock'
 import EmptyOutOfRange from '@/components/frontend/listing/EmptyOutOfRange'
@@ -22,7 +23,7 @@ import {
 import type { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
 import { buildBuildingFilterRows } from '@/lib/frontend/building-filter-rows'
 import { dimensionPickText } from '@/lib/frontend/filter-dimension'
-import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
+import { buildHref, cloneSearchParams, type ListingViewMode } from '@/lib/frontend/listing-url'
 
 type BuildingsResult = Awaited<ReturnType<typeof getCachedSearchBuildingsFiltered>>
 
@@ -46,11 +47,28 @@ type BuildingsResult = Awaited<ReturnType<typeof getCachedSearchBuildingsFiltere
  * 不同：
  *   - **没有计价单位分段与被排除单位提示条**：楼盘本身没有报价（报价属于楼内
  *     各房源），这一页不存在「三种不可换算单位」的问题。
- *   - **没有视图切换（`?view=`）**：comp 楼盘稿里布局 B（横向行）是与卡片网格
- *     二选一的**结果布局**，而这一页的横向紧凑行已经被用作「暂无在租」组的降权
- *     表达（182 : 64 的高度反差就是降权本身）。再给用户一个把有在租组也切成
- *     横向行的开关，会让两组的高度反差消失、分组语义随之失效。
  *   - **多了「有在租 / 暂无在租」两组**，分页作用于合并后的序列。
+ *
+ * ## 视图切换（`?view=grid|row`）：从「刻意不做」改成「做，但只切有在租组」
+ *
+ * 这里原先写着「本页刻意没有视图切换」，理由是：横向紧凑行已经被用作「暂无在租」
+ * 组的降权表达（高度反差就是降权本身），再给用户一个把有在租组也切成横向行的开关，
+ * 会让两组的高度反差**消失**、分组语义随之失效。
+ *
+ * 那条理由的前提是「切成横向行 = 让有在租组也去用紧凑行 `BuildingCompactRow`」。
+ * OPT-081 不走这条路：row 版式下有在租组渲染的是 `BuildingResultRow`——182 高的
+ * **整宽**横排卡（与房源页 `.ls-rowcard` 同一套度量），而**暂无在租组恒定不受
+ * `view` 影响**，仍是两列紧凑行。
+ *
+ * 1440 实测（本地夹具）：grid 是 340 : 72、四列 vs 两列；row 是 182 : 72、整宽 1344
+ * vs 半宽 664。反差从 4.7x 收窄到 2.5x，但**没有消失**，且 row 版式多出「整宽 vs
+ * 半宽」这条 grid 没有的区分；两组之间还有 48px 外边距 + 1px 分隔线 + 分组标题。
+ * 旧决定要防的是「两组长得一样」（那需要有在租组去复用紧凑行），这条没有发生。
+ * 顺带更正：仓库多处写的「182 : 64」是设计稿标称值，与实际渲染对不上，详见
+ * BuildingResultRow.tsx 顶部。
+ *
+ * `view` 与房源页同一口径：只改渲染方式、不改结果集，**不进 canonical**
+ * （两个仅 view 不同的 URL 对搜索引擎是同一个页面），由路由层单独解析后传入。
  */
 
 /**
@@ -96,13 +114,20 @@ function buildDropDimensionHref(
   return buildHref(basePath, sp)
 }
 
-export default function CityBuildingsView({ city, result, input, basePath, routeMode }: Readonly<{
+export default function CityBuildingsView({ city, result, input, basePath, routeMode, view = 'grid' }: Readonly<{
   city: CityContext
   result: BuildingsResult
   /** 已解析的搜索输入（路由层 `parseBuildingSearchInput` 的产物），URL 的唯一事实源。 */
   input: BuildingSearchInput
   basePath: string
   routeMode: 'legacy' | 'prefixed'
+  /**
+   * 结果区版式（`?view=grid|row`），只作用于「当前有在租」组——「暂无在租」组恒为
+   * 紧凑行，理由见本文件顶部。由路由层用 `parseListingViewMode` 从原始 searchParams
+   * 解析后传入，**刻意不进 `BuildingSearchInput`、也不进 canonical**（与房源页同一
+   * 裁定）。缺省 `grid`：省略该 prop 的调用方（含既有单测）行为不变。
+   */
+  view?: ListingViewMode
 }>) {
   const heading = routeMode === 'legacy' ? '找写字楼' : `${city.name}写字楼`
   const {
@@ -126,6 +151,11 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   // ── URL ─────────────────────────────────────────────────────────────────
   // 页内每一个 href 都从这一份 canonical 克隆而来，不存在只活在内存里的筛选态。
   const currentParams = buildBuildingCanonicalParams(input)
+  // canonical 之外再挂 view（与 CityListingsView 逐字同一处置）：canonical 不含 view
+  // （SEO 上两个只差版式的 URL 是同一页面），但页内所有 href 都从 currentParams 克隆，
+  // 不挂上去的话点任何筛选 / 排序 / 分页都会把用户刚选的版式丢掉。grid 是默认版式，
+  // 不写入 URL。
+  if (view === 'row') currentParams.set('view', 'row')
 
   const buildPageHref = (targetPage: number) => {
     const params = cloneSearchParams(currentParams)
@@ -307,6 +337,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
               defaultSort={BUILDING_DEFAULT_SORT}
               basePath={basePath}
               currentParams={currentParams}
+              view={view}
             />
 
             {/* 有在租组：完整卡片网格。分组标题只在两组同时存在时才有意义——
@@ -320,29 +351,54 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                     <span className="bd-group__count sf-num">{withStockTotal} 个</span>
                   </div>
                 ) : null}
-                <div className="ls-grid">
-                  {groups.withStock.map((building, index) => (
-                    <BuildingResultCard
-                      key={building.slug}
-                      building={building}
-                      citySlug={citySlug}
-                      analytics={{
-                        event: 'building_result_click',
-                        city: building.citySlug,
-                        rank: index + 1,
-                        pageIndex: page,
-                        section: 'grid',
-                        buildingId: building.id,
-                      }}
-                    />
-                  ))}
-                </div>
+                {/* 版式只切这一组（见文件顶部）。两个分支的 rank / pageIndex /
+                    buildingId 完全一致，只有 section 跟着版式走——同一栋楼在两个
+                    版式下是同一条结果，位置分析不该因为换了皮而对不上。 */}
+                {view === 'row' ? (
+                  <div className="bd-rowlist">
+                    {groups.withStock.map((building, index) => (
+                      <BuildingResultRow
+                        key={building.slug}
+                        building={building}
+                        citySlug={citySlug}
+                        analytics={{
+                          event: 'building_result_click',
+                          city: building.citySlug,
+                          rank: index + 1,
+                          pageIndex: page,
+                          section: 'row',
+                          buildingId: building.id,
+                        }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="ls-grid">
+                    {groups.withStock.map((building, index) => (
+                      <BuildingResultCard
+                        key={building.slug}
+                        building={building}
+                        citySlug={citySlug}
+                        analytics={{
+                          event: 'building_result_click',
+                          city: building.citySlug,
+                          rank: index + 1,
+                          pageIndex: page,
+                          section: 'grid',
+                          buildingId: building.id,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </>
             ) : null}
 
             {/* 暂无在租组（方案 A：降权分组 + 换紧凑行）。楼盘本身是内容，不能像
-                空货架那样隐藏；靠 182 : 64 的高度反差降权，不靠灰度（楼名仍是
-                满墨 15/600，见 BuildingCompactRow.tsx）。 */}
+                空货架那样隐藏；靠高度反差降权，不靠灰度（楼名仍是满墨 15/600，
+                见 BuildingCompactRow.tsx）。
+                **这一组恒定不受 `view` 影响**：紧凑行是降权表达，不是「行版式」的
+                一个实例。让它跟着 view 变，等于把降权信号交给用户的版式偏好去开关。 */}
             {groups.withoutStock.length > 0 ? (
               <section className="bd-vacant">
                 <div className="bd-group bd-group--vacant">
@@ -367,7 +423,12 @@ export default function CityBuildingsView({ city, result, input, basePath, route
                         // 位置分析直接失真（Codex review P2）。
                         rank: groups.withStock.length + index + 1,
                         pageIndex: page,
-                        section: 'row',
+                        // 'vacant' 而不是 'row'（OPT-081 改）：本页新增 `?view=row`
+                        // 之后，有在租组也会发 'row'，两组在同一页撞成同一个取值，
+                        // section 这个维度就再也分不出「用户选的横排」与「降权紧凑
+                        // 行」——而它存在的理由正是「区分同一页的两种呈现」。
+                        // 口径变更已记在 list-analytics.ts 的枚举注释里。
+                        section: 'vacant',
                         buildingId: building.id,
                       }}
                     />

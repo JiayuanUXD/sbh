@@ -193,6 +193,60 @@
 .bd-card__area-total { margin-inline-start: auto; font-size: 13px; color: var(--ink-2);
   letter-spacing: normal; white-space: nowrap; }
 
+/* ── 楼盘横排行（BuildingResultRow，`?view=row`）─────────────────────────────
+ * OPT-081。度量逐条对齐房源页的 `.ls-rowcard`（整宽 · 高 182 = padding 16×2 +
+ * 图 150 · 行间 gap 12 · 图 240×150 radius 14 · 右侧数值列定宽 176 右对齐 +
+ * 左侧 1px 分隔线 · 主数值 26/600）——同一页面族的两个列表页，横排行不该各有
+ * 一套尺度。差别只有右列装的东西：房源是价格，楼盘是「N 套在租」（楼盘本身没有
+ * 报价，可比的数就是在租套数）。
+ *
+ * 与「暂无在租」紧凑行（`.bd-row`，64 高）的关系：本行 182 高且整宽，紧凑行
+ * 64 高且两列——row 版式下两组的反差比 grid 版式只强不弱，分组降权语义不受影响。
+ * 这正是「楼盘页刻意不做视图切换」那条旧决定的前提（切 row = 复用 64 高紧凑行）
+ * 不再成立的地方，详见 BuildingResultRow.tsx 顶部。
+ *
+ * 数字不内联 font-variant-numeric：节点上挂 `.sf-num`（surface.css），全站数字
+ * 一份声明——同 `.bd-card__stock` / recruit.css 文件头的既有约定。上方
+ * `.ls-rowcard__price-value` 那几处内联是先于该约定的旧写法，不作为新代码的样板。 */
+.bd-rowlist { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+
+.bd-rowcard { display: flex; align-items: stretch; gap: 24px; padding: 16px;
+  color: inherit; text-decoration: none; }
+
+/* aspect-ratio: auto 覆写 `.sf-media--16x10`：桌面这里是定死的 240×150（16:10 的
+   整数解），不再由比例撑高。移动端会把这条改回去，见文件下方移动端一节。 */
+.bd-rowcard__media { flex: none; width: 240px; height: 150px; border-radius: 14px;
+  overflow: hidden; aspect-ratio: auto; }
+
+.bd-rowcard__grade-tag { position: absolute; left: 10px; bottom: 9px; }
+
+.bd-rowcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column;
+  gap: 7px; padding: 6px 0; }
+
+.bd-rowcard__title { font-size: 19px; font-weight: 600; line-height: 1.3; color: var(--ink);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-rowcard__line { font-size: 14px; line-height: 1.45; color: var(--ink-2);
+  letter-spacing: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.bd-rowcard__statcol { flex: none; width: 176px; display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center; gap: 6px; padding-right: 8px;
+  border-left: 1px solid var(--line); }
+
+.bd-rowcard__stock { display: flex; align-items: baseline; gap: 5px; }
+
+.bd-rowcard__stock-value { font-size: 26px; font-weight: 600; line-height: 1.1;
+  color: var(--ink); letter-spacing: normal; }
+
+.bd-rowcard__stock-unit { font-size: 13px; color: var(--ink-2); letter-spacing: normal; }
+
+/* 缺套数时的降级文本（防御性，正常流程走不到——见组件顶部）。字号与
+   `.ls-rowcard__price--muted` 同一档：两页的「这一格没有可比的数」长一个样。 */
+.bd-rowcard__stock--muted { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+
+.bd-rowcard__area-total { font-size: 13px; color: var(--ink-2); letter-spacing: normal;
+  white-space: nowrap; }
+
 /* ── 暂无在租紧凑行（BuildingCompactRow）───────────────────────────────────
  * 不复用 .sf-card：这是密集清单行不是内容卡——64 高的行加阴影+抬升会和上方
  * 182 高的在租卡打架，也会削弱「靠密度差降权」的效果（与 .hm-bento-card 的例外
@@ -532,9 +586,40 @@
   .ls-card__meta { flex-wrap: wrap; row-gap: 2px; }
   .ls-card__type-tag { left: 8px; bottom: 7px; }
 
-  /* 视图切换隐藏：两种视图在 ≤767 已收敛为同一套横排，留着就是本文件明令禁止的
-     死控件（点了什么都不变）。只隐藏控件、不动 `?view=` 解析——带 view 的分享
-     链接在移动端仍正常渲染，只是渲染成同一套横排。 */
+  /* 楼盘横排行（OPT-081）在 ≤767 收敛回竖排卡：度量逐条对齐 `.bd-card`，两种
+     视图在移动端渲染成同一个样子。
+     **为什么必须收敛**：下面那条 `.ls-toolbar__viewseg { display: none }` 是全局的，
+     楼盘页用的是同一个 `ResultToolbar`，因此移动端两页都没有切换控件。房源页收敛过
+     （OPT-078），楼盘页若不收敛，带 `?view=row` 的分享链接在手机上会渲染成另一种
+     版式**且没有任何控件切回去**——那不是「隐藏了一个死控件」，是把用户锁在一个
+     版式里。收敛之后隐藏才是诚实的。
+     房源页那次是「两种视图都收敛成横排」，这里反过来收敛成竖排卡：楼盘网格卡在
+     ≤767 本来就是整宽竖排（`.bd-card` 未参与 OPT-078 的横排改造），默认版式是谁，
+     收敛就落到谁身上。 */
+  .bd-rowcard { flex-direction: column; gap: 0; padding: 0; }
+  /* 把桌面那条 `aspect-ratio: auto` 交还给 `.sf-media--16x10`，图重新按比例撑高 */
+  .bd-rowcard__media { width: 100%; height: auto; aspect-ratio: 16 / 10; border-radius: 0; }
+  .bd-rowcard__grade-tag { left: 12px; bottom: 10px; }
+  .bd-rowcard__body { gap: 5px; padding: 14px 16px 0; }
+  .bd-rowcard__title { font-size: 17px; line-height: 1.35; }
+  .bd-rowcard__line { font-size: 13px; line-height: 1.4; }
+  /* 右侧数值列落到卡底整宽一行：分隔线从左边框改成上边框，与 `.bd-card__stats`
+     同形（padding-top 10 + 1px 上线 + baseline 对齐 + 面积靠右）。 */
+  /* margin-top 取 5 而不是 10：`.bd-card__stats` 在卡片里是 `.bd-card__body` 的
+     末位子项，与上一行之间隔的是 body 的 `gap: 5px`（分隔线之上 5、之下
+     padding-top 10）。这里 statcol 是 body 的兄弟节点、拿不到那个 gap，得自己补，
+     补 10 就会比网格卡整整高 5px（实测 375 下 357 vs 352）——收敛就不再是收敛。 */
+  .bd-rowcard__statcol { flex-direction: row; width: auto; align-items: baseline;
+    justify-content: flex-start; gap: 10px; margin: 5px 16px 16px; padding-right: 0;
+    padding-top: 10px; border-left: 0; border-top: 1px solid var(--line); }
+  .bd-rowcard__stock-value { font-size: 19px; }
+  .bd-rowcard__stock-unit { font-size: 12px; }
+  .bd-rowcard__area-total { margin-inline-start: auto; }
+
+  /* 视图切换隐藏：两种视图在 ≤767 已收敛为同一套版式（房源页横排、楼盘页竖排卡，
+     各自收敛到本页的默认版式），留着就是本文件明令禁止的死控件（点了什么都不变）。
+     只隐藏控件、不动 `?view=` 解析——带 view 的分享链接在移动端仍正常渲染，
+     只是渲染成与默认版式相同的样子。 */
   .ls-toolbar__viewseg { display: none; }
 }
 
