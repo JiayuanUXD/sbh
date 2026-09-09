@@ -1,9 +1,12 @@
 import React from 'react'
 import DetailPanel from './DetailPanel'
-import { factValue, findFact } from './fact-lookup'
-import SpecTable, { type SpecRow } from './SpecTable'
-import type { ListingDetailViewModel } from '@/domain/public-catalog'
-import { formatAvailableDate } from '@/lib/frontend/format'
+import SpecTable from './SpecTable'
+import {
+  buildListingOverviewGroupsFromRegistry,
+  type ListingSpecContext,
+  type ListingSpecGroup,
+} from '@/lib/frontend/detail-spec/listing-rows'
+import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 
 /**
  * 房源概况面板 —— 通栏，取代原稿「房源概况 / 租金账」双 tab。
@@ -99,74 +102,34 @@ import { formatAvailableDate } from '@/lib/frontend/format'
  * 「按 comp 收敛概况面板」的后续清理会先撞到那条用例，而不是撞到用户。
  */
 
-type ListingOverviewInput = Pick<ListingDetailViewModel, 'factGroups' | 'price' | 'availableFrom' | 'building'>
 
-export type ListingOverviewGroup = Readonly<{
-  id: string
-  title: string
-  rows: readonly SpecRow[]
-}>
+/**
+ * ── OPT-082：行清单已搬到 `src/lib/frontend/detail-spec/` ──
+ *
+ * 上面那份「域层没有 / DTO 没有」的逐项核查**依然有效**，只是它描述的对象从本
+ * 文件里的数组字面量变成了 registry：
+ *   - 元数据（key / 标签 / 分组 / 默认是否展示）→ `detail-spec/fields.ts`
+ *   - 取值表达式（原样搬过去，一个字没改）    → `detail-spec/listing-rows.ts`
+ *
+ * 「comp 之外的 5 条」与「押金 / 付款方式不硬拼」这两处是复盘后写下的结论，
+ * 改动前先读上面那段。
+ */
 
+export type ListingOverviewGroup = ListingSpecGroup
+
+type ListingOverviewInput = ListingSpecContext
+
+/**
+ * 保留本函数的导出名与首参：`CityListingDetailView` 与既有测试都在用。
+ * 第二个参数是 OPT-082 新增的运营可见性配置，缺省时按 registry 默认走。
+ */
 export function buildListingOverviewGroups(
   listing: ListingOverviewInput,
+  visibility?: SpecVisibilityMap,
 ): readonly ListingOverviewGroup[] {
-  const fact = (label: string) => factValue(findFact(listing.factGroups, label))
-  const propertyFeeAmount = factValue(findFact(listing.factGroups, '物业费金额'))
-  const propertyFeeInclusion = factValue(findFact(listing.factGroups, '物业费'))
-
-  return [
-    {
-      id: 'space',
-      title: '面积与格局',
-      rows: [
-        { label: '建筑面积', value: fact('建筑面积') },
-        { label: '套内参考面积', value: fact('套内参考面积') },
-        { label: '得房率', value: fact('得房率') },
-        { label: '净层高', value: fact('净层高') },
-        { label: '工位估算', value: fact('工位数') },
-        // 以下 3 条见文件头「comp 之外的 5 条」：域层已产出、旧 DetailFacts 一直
-        // 在展示，不补回就是接线造成的静默内容删除。
-        { label: '房源楼层', value: fact('房源楼层') },
-        { label: '朝向', value: fact('朝向') },
-        { label: '可分割', value: fact('可分割') },
-      ],
-    },
-    {
-      id: 'terms',
-      title: '租赁条件',
-      rows: [
-        { label: '合同单价', value: listing.price?.text ?? null },
-        { label: '起租期', value: fact('最短租期') },
-        { label: '押金', value: fact('押金月数') },
-        { label: '付款方式', value: fact('付款方式') },
-      ],
-    },
-    {
-      id: 'delivery',
-      title: '交付与资质',
-      rows: [
-        { label: '装修状态', value: fact('装修') },
-        // 与「装修状态」同源于 spaceDetails、同属交付口径，见文件头。
-        { label: '家具', value: fact('家具') },
-        { label: '交付时间', value: formatAvailableDate(listing.availableFrom) },
-        { label: '可注册', value: fact('注册') },
-        { label: '空调', value: listing.building?.airConditioning ?? null },
-        { label: '网络', value: listing.building?.network ?? null },
-      ],
-    },
-    {
-      id: 'cost',
-      title: '费用明细',
-      rows: [
-        { label: '物业费', value: propertyFeeAmount ?? propertyFeeInclusion },
-        { label: '停车费', value: listing.building?.parkingFee ?? null },
-        { label: '发票', value: fact('发票') },
-        // 费用披露，见文件头：删一条费用条款与删一条装修状态不是一个量级。
-        { label: '其他固定费用', value: fact('其他固定费用') },
-      ],
-    },
-  ]
+  return buildListingOverviewGroupsFromRegistry(listing, visibility)
 }
+
 
 /**
  * 整组字段全缺时依然渲染该组（含组标签）——与行级「不隐藏」同一判断逻辑，

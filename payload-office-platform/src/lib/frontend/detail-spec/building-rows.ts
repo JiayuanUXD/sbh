@@ -4,7 +4,9 @@ import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-
 import {
   BUILDING_SPEC_FIELDS,
   BUILDING_SPEC_GROUP_TITLES,
+  isFieldVisible,
   type BuildingSpecGroupId,
+  type SpecVisibilityMap,
 } from './fields'
 
 /**
@@ -109,17 +111,26 @@ export const BUILDING_SPEC_RESOLVERS: Readonly<Record<string, BuildingResolver>>
  * 组的渲染顺序取自 `BUILDING_SPEC_GROUP_TITLES` 的键序，组内行序取自
  * `BUILDING_SPEC_FIELDS` 的数组序——两者合起来就是改造前那份硬编码清单的顺序，
  * `tests/opt082-detail-spec-registry.test.ts` 的零变化守卫逐字盯着它。
+ *
+ * `.filter((group) => group.rows.length > 0)`：**未勾选 ⇒ 不渲染**。楼盘侧 23 项
+ * 默认全部可见，所以默认配置下四组都在、输出与改造前完全一致；只有运营真的关掉
+ * 一整组时才会少一组。这与「没值 ⇒ 不渲染」是两条独立规则。
  */
 export function buildBuildingSpecGroupsFromRegistry(
   ctx: BuildingSpecContext,
+  visibility?: SpecVisibilityMap,
 ): readonly BuildingSpecGroup[] {
   const groupIds = Object.keys(BUILDING_SPEC_GROUP_TITLES) as BuildingSpecGroupId[]
-  return groupIds.map((id) => ({
-    id,
-    title: BUILDING_SPEC_GROUP_TITLES[id],
-    rows: BUILDING_SPEC_FIELDS.filter((field) => field.group === id).map((field) => ({
-      label: field.label,
-      value: BUILDING_SPEC_RESOLVERS[field.key](ctx),
-    })),
-  }))
+  return groupIds
+    .map((id) => ({
+      id,
+      title: BUILDING_SPEC_GROUP_TITLES[id],
+      rows: BUILDING_SPEC_FIELDS.filter(
+        (field) => field.group === id && isFieldVisible(field, visibility),
+      ).map((field) => ({
+        label: field.label,
+        value: BUILDING_SPEC_RESOLVERS[field.key](ctx),
+      })),
+    }))
+    .filter((group) => group.rows.length > 0)
 }

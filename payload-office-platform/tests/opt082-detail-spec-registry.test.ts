@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { BUILDING_SPEC_FIELDS } from '@/lib/frontend/detail-spec/fields'
+import { BUILDING_SPEC_FIELDS, LISTING_SPEC_FIELDS } from '@/lib/frontend/detail-spec/fields'
+import { BUILDING_SPEC_RESOLVERS } from '@/lib/frontend/detail-spec/building-rows'
+import { LISTING_SPEC_RESOLVERS, formatSpecDate } from '@/lib/frontend/detail-spec/listing-rows'
 
 /**
  * OPT-082 零变化守卫。
@@ -39,5 +41,67 @@ describe('BUILDING_SPEC_FIELDS 零变化守卫', () => {
 
   it('楼盘侧全部默认可见（候选池 = 现状清单，无富余项）', () => {
     expect(BUILDING_SPEC_FIELDS.every((field) => field.defaultVisible)).toBe(true)
+  })
+})
+
+const LISTING_EXPECTED: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ['space', ['建筑面积', '套内参考面积', '得房率', '净层高', '工位估算', '房源楼层', '朝向', '可分割']],
+  ['terms', ['合同单价', '起租期', '押金', '付款方式']],
+  ['delivery', ['装修状态', '家具', '交付时间', '可注册', '空调', '网络']],
+  ['cost', ['物业费', '停车费', '发票', '其他固定费用']],
+]
+
+describe('LISTING_SPEC_FIELDS 零变化守卫', () => {
+  it('默认可见项按组归并后，逐字等于改造前的硬编码行清单', () => {
+    const visible = LISTING_SPEC_FIELDS.filter((field) => field.defaultVisible)
+    const actual = LISTING_EXPECTED.map(([groupId]) => [
+      groupId,
+      visible.filter((field) => field.group === groupId).map((field) => field.label),
+    ])
+    expect(actual).toEqual(LISTING_EXPECTED.map(([groupId, labels]) => [groupId, [...labels]]))
+  })
+
+  it('共 24 项：22 项默认可见 + 「信息时效」2 项默认关闭', () => {
+    expect(LISTING_SPEC_FIELDS).toHaveLength(24)
+    expect(LISTING_SPEC_FIELDS.filter((field) => field.defaultVisible)).toHaveLength(22)
+    const verification = LISTING_SPEC_FIELDS.filter((field) => field.group === 'verification')
+    expect(verification.map((field) => field.label)).toEqual(['信息核验时间', '价格核验时间'])
+    expect(verification.every((field) => field.defaultVisible)).toBe(false)
+  })
+
+  it('key 唯一', () => {
+    expect(new Set(LISTING_SPEC_FIELDS.map((field) => field.key)).size).toBe(24)
+  })
+})
+
+/**
+ * 元数据（`fields.ts`，零 import、客户端安全）与取值函数（`*-rows.ts`，需要
+ * `factGroups` 类型）分在两个文件，理由见 `fields.ts` 文件头。分开就有漂移风险
+ * ——这两条用例是防漂移的钉子：每个 key 必须恰有一个 resolver，反之亦然。
+ */
+describe('resolver 覆盖守卫', () => {
+  it('楼盘：key 与 resolver 一一对应', () => {
+    expect(Object.keys(BUILDING_SPEC_RESOLVERS).sort()).toEqual(
+      BUILDING_SPEC_FIELDS.map((field) => field.key).sort(),
+    )
+  })
+
+  it('房源：key 与 resolver 一一对应', () => {
+    expect(Object.keys(LISTING_SPEC_RESOLVERS).sort()).toEqual(
+      LISTING_SPEC_FIELDS.map((field) => field.key).sort(),
+    )
+  })
+})
+
+describe('formatSpecDate', () => {
+  it('ISO 串转成年-月-日', () => {
+    // 断言用正则而不是定值：Date.parse 的 UTC 串按本地时区渲染，CI 与本机
+    // 时区不同会让定值断言随机红。这条宽松是刻意的，不要「收紧」。
+    expect(formatSpecDate('2026-03-14T00:00:00.000Z')).toMatch(/^2026-03-1[34]$/)
+  })
+
+  it('非法值与 null 都返回 null（不把 ISO 原串甩给用户）', () => {
+    expect(formatSpecDate('不是日期')).toBeNull()
+    expect(formatSpecDate(null)).toBeNull()
   })
 })
