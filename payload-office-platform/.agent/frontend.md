@@ -59,6 +59,8 @@
 - `backdrop-filter` 只写 unprefixed 一条：手写 `-webkit-` 兄弟声明会被 lightningcss 连同 unprefixed 一起丢弃，玻璃效果整体失效（前缀由构建按 browserslist 自动补）。
 - 滚动进场用原生 `animation-timeline: view()`，必须 `@supports (animation-timeline: view())` 包裹且**不写 `fill-mode: both`**——时间线未激活时 both 会把元素锁死在 `opacity: .001`，整段内容隐形。
 - 动效：常规交互用 token 三档 120/200/320ms（交互反馈 120、状态切换 200、卡片抬升 320），滚动进场 400–800ms；避免自动轮播、阻挡搜索的视频、大面积阴影；一律尊重 `prefers-reduced-motion`。
+- **「面板出现」一律用 `--ease-enter`**（OPT-077）：抽屉、移动筛选面板、弹层、返回顶部四处同曲线。此前抽屉用 `--ease-standard`、筛选面板用 `--ease-apple`、弹层干脆没有动画，是散落不是设计选择。新增此类元素时跟这条，别再挑曲线。
+- **退场目前全站无动画**，React 直接卸载。所以**没有 `--ease-exit` 这个 token**——没有消费方的 token 是死重。真要做退场得先给每个组件引入延迟卸载，且必须同时验焦点归还（OPT-075 踩过：对仍是 `display:none` 的元素调 `focus()` 会静默失败），那是独立工作项，不要顺手加。
 - 旧 `--color-*` 名（`--color-copper`、`--color-paper` 等）现在只是新 token 的**别名**，只为未改版内页过渡而存在。新代码一律用新名；改版某页时顺手把该页引用换成新名。
   - **例外：`--color-on-ink: #f5f5f7` 不是别名，是字面量。** `--color-canvas`/`--color-surface`/
     `--color-copper`/`--color-ink` 各自 `var()` 指向 1.1 体系的 token，换掉它们是纯粹解引用；

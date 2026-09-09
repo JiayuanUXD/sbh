@@ -151,6 +151,12 @@
   --duration-slow: 320ms;
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  /* 进场专用曲线（OPT-077）。起步即最快、收尾贴着终点减速，元素「已经到位」的
+     感觉比对称曲线强得多；用于抽屉 / 面板 / 弹层这类「从无到有」的出现。
+     取值来自 eBay Evo 的 --motion-easing-quick-enter，2026-09-09 实测其弹层与
+     折叠头都在用它。**退场目前全站没有动画**（React 直接卸载），所以这里刻意
+     不配对造一个 --ease-exit：没有消费方的 token 是死重，等真做退场时再加。 */
+  --ease-enter: cubic-bezier(0, 0, 0, 1);
 
   /* 1.10 层级 z-index */
   --z-raised: 10;              /* 局部叠加：地图浮层等，低于全局层 */
@@ -2389,6 +2395,31 @@ ol {
   z-index: var(--z-modal);
   padding: var(--sp-4);
   overscroll-behavior: contain;
+  /* OPT-077：此前弹层是硬切出现，而同为「面板出现」的移动抽屉与筛选面板都有
+     滑入——同一个站点两种出现方式。遮罩淡入、面板轻微上浮，都走 --ease-enter。
+     退场仍是硬切（React 直接卸载），全站一致，见该 token 的注释。
+     减少动效由 §2 的通配 !important 规则兜住，不必单独写 @media。 */
+  animation: modal-overlay-in var(--duration-base) var(--ease-enter);
+}
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .modal {
@@ -2401,6 +2432,7 @@ ol {
   max-height: 92vh;
   max-height: 92dvh;
   overflow-y: auto;
+  animation: modal-panel-in var(--duration-slow) var(--ease-enter);
 }
 
 .modal__close {
@@ -2780,7 +2812,10 @@ ol {
   padding: var(--sp-5) var(--sp-4);
   box-shadow: var(--shadow-lg);
   overflow-y: auto;
-  animation: drawer-slide-in var(--duration-base) var(--ease-standard);
+  /* OPT-077：曲线统一到 --ease-enter。此前抽屉用 --ease-standard、移动筛选面板
+     用 --ease-apple——同一类「面板滑入」用两条不同曲线，是散落而非设计选择。
+     时长保持 --duration-base 不动（本次只统一曲线，不改节奏）。 */
+  animation: drawer-slide-in var(--duration-base) var(--ease-enter);
 }
 
 /* 抽屉右上角的可见关闭按钮。绝对定位不占文档流位置，DOM 里它排在导航链接
@@ -4328,6 +4363,21 @@ ol {
   cursor: pointer;
   box-shadow: var(--shadow-md);
   transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  /* 组件是挂载/卸载式的（滚过 400px 才 return 元素），所以纯 CSS 的进场动画
+     一挂上就会跑，不需要改组件。退场仍是硬切——卸载是同步的，要做淡出得先引入
+     延迟卸载，那是退场动画那件事的范围（OPT-077 未做，见 --ease-enter 注释）。 */
+  animation: back-to-top-in var(--duration-base) var(--ease-enter);
+}
+
+@keyframes back-to-top-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .back-to-top:hover {

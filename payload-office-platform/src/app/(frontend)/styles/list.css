@@ -749,7 +749,8 @@
 
 .ls-msheet { width: 100%; max-width: 480px; height: 88%; background: var(--bg);
   border-radius: 24px 24px 0 0; display: flex; flex-direction: column; overflow: hidden;
-  animation: ls-msheet-slide-up var(--duration-base) var(--ease-apple); }
+  /* 曲线统一到 --ease-enter（OPT-077），与 .mobile-drawer 同一条；时长不动。 */
+  animation: ls-msheet-slide-up var(--duration-base) var(--ease-enter); }
 
 @keyframes ls-msheet-slide-up {
   from { transform: translateY(100%); }
