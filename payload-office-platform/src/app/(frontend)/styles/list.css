@@ -310,7 +310,7 @@
   background: var(--bg); font-size: 12px; font-weight: 500; color: var(--ink);
   letter-spacing: normal; display: inline-flex; align-items: center; gap: 6px;
   transition: background var(--duration-base) var(--ease-apple); }
-.ls-filterc__chip:hover { background: #ececf0; }
+.ls-filterc__chip:hover { background: var(--bg-hover); }
 
 .ls-filterc__chip-x { flex: none; width: 16px; height: 16px; border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.06); color: var(--ink-3); font-size: 11px;
@@ -338,7 +338,7 @@
   letter-spacing: normal; display: inline-flex; align-items: center; gap: 8px;
   box-shadow: inset 0 0 0 1px var(--line);
   transition: background var(--duration-base) var(--ease-apple); }
-.ls-filterc__switch:hover { background: #ececf0; color: var(--ink); }
+.ls-filterc__switch:hover { background: var(--bg-hover); color: var(--ink); }
 
 .ls-filterc__switch-track { flex: none; width: 34px; height: 20px; border-radius: var(--r-pill);
   background: rgba(0, 0, 0, 0.16); display: flex; align-items: center; padding: 0 2px;
@@ -541,7 +541,7 @@
    深一级的灰，唯一匹配的项目 token 是 --bg（页面级底色 #f5f5f7），语义与
    comp 标注的字面值一致（见 ls-page 顶部 --bg 定义）。 */
 .ls-empty__btn--secondary { background: var(--bg); color: var(--ink); }
-.ls-empty__btn--secondary:hover { background: #ececf0; }
+.ls-empty__btn--secondary:hover { background: var(--bg-hover); }
 
 @media (prefers-reduced-motion: reduce) { .ls-empty__btn { transition: none; } }
 
@@ -563,7 +563,7 @@
   height: 40px; min-height: 0; padding: 0 20px; border: none; border-radius: var(--r-pill);
   background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; line-height: normal;
   letter-spacing: normal; transition: background var(--duration-base) var(--ease-apple); }
-.ls-empty .ls-empty__btn-slot > *:hover { background: #ececf0; }
+.ls-empty .ls-empty__btn-slot > *:hover { background: var(--bg-hover); }
 
 @media (prefers-reduced-motion: reduce) { .ls-empty .ls-empty__btn-slot > * { transition: none; } }
 
@@ -601,7 +601,7 @@
   background: var(--bg); color: var(--ink); font-size: 14px; font-weight: 500; letter-spacing: normal;
   display: inline-flex; align-items: center;
   transition: background var(--duration-base) var(--ease-apple); }
-.ls-emptyfiltered__clear-all:hover { background: #ececf0; }
+.ls-emptyfiltered__clear-all:hover { background: var(--bg-hover); }
 
 /* 按钮里的数字（comp 稿「清除全部条件 · 1,893 套」）：与 .ls-empty__btn-count
    同一规则，见 EmptyFiltered.tsx `clearAllCount` 注释。 */
@@ -773,7 +773,7 @@
   background: var(--bg-subtle); color: var(--ink-2); font-size: 15px; font-weight: 500; letter-spacing: normal;
   display: flex; align-items: center; justify-content: center;
   transition: background var(--duration-base) var(--ease-apple); }
-.ls-msheet__footer-reset:hover { background: #ececf0; }
+.ls-msheet__footer-reset:hover { background: var(--bg-hover); }
 
 .ls-msheet__footer-apply { flex: 1; height: 48px; padding: 0; border: none; border-radius: var(--r-pill);
   background: var(--accent); color: #fff; font-size: 15px; font-weight: 500; letter-spacing: normal;

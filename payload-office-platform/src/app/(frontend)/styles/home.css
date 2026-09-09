@@ -68,15 +68,14 @@
 
 /* --- HorizontalRail ------------------------------------------------------- */
 .hm-rail { position: relative; margin-top: 48px; }
+/* 横滑 / 吸附 / 隐藏滚动条走 `.sf-rail`（surface.css）。这里只留本页专属的两条：
+   轨道两端的留白要跟 `.hm-container` 的居中容器对齐，卡宽 400 是首页版式。 */
 .hm-rail__track {
-  display: flex; gap: 16px; overflow-x: auto;
-  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  gap: 16px;
   scroll-padding-inline-start: calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2);
   padding: 4px calc((100% - min(var(--w), 100% - var(--gut) * 2)) / 2) 12px;
-  scrollbar-width: none;
 }
-.hm-rail__track::-webkit-scrollbar { display: none; }
-.hm-rail__item { flex: 0 0 400px; scroll-snap-align: start; }
+.hm-rail__item { flex: 0 0 400px; }
 .hm-rail__arrow {
   position: absolute; top: 150px; width: 44px; height: 44px; border: none;
   border-radius: var(--r-pill); background: rgba(255, 255, 255, 0.82);
@@ -237,7 +236,7 @@
 .hm-bento__small { height: 232px; }
 .hm-bento__wide { flex: 1; height: 280px; }
 .hm-bento-card { position: relative; border-radius: var(--r-card); overflow: hidden;
-  background: #8e8e93; display: block; color: inherit; }
+  background: var(--media-placeholder); display: block; color: inherit; }
 .hm-bento-card img { width: 100%; height: 100%; object-fit: cover;
   object-position: var(--focal-x, 50%) var(--focal-y, 50%); display: block; }
 /* 三种卡的标签内缩与字号各不相同（设计稿：大卡 32/28/gap 6，小卡 20/18/gap 4，

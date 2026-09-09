@@ -35,6 +35,17 @@
   --on-accent: #ffffff;
   --error: #bf4800;
   --warning: #b25000;
+  /* pill 型控件在 `--bg` 白灰底上的 hover 档（OPT-079）。
+     语义是「静态 --bg、hover 变深一档」，不是新造的颜色——收 token 之前它以字面量
+     `#ececf0` 散落在 7 处（筛选 chip / 开关 / 空态按钮 / 移动面板重置 / 供给筛选片），
+     违反本文件顶部「颜色一律走 token、禁止散落字面量」。取值未变，纯粹收口。
+     同色阶的下一档是 `--line`（激活态底）与 `--line-strong`（激活态 hover）。 */
+  --bg-hover: #ececf0;
+  /* 图片容器的占位底色（OPT-079）。同为收口，此前字面量散落 4 处
+     （`.sf-media` / `.building-summary-card__media` / `.hm-bento-card` 等）。
+     **刻意是中深灰而不是浅灰**：图上标签 `.sf-phototag` 是 rgba(255,255,255,.92)
+     的白 pill，浅底会让它糊掉；对标分析里「跟 eBay 一样换成浅灰」的提议因此不采纳。 */
+  --media-placeholder: #8e8e93;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   --shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.12);
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
@@ -1970,14 +1981,15 @@ ol {
  * 下划线，翻转全局默认后必须补一个真实反馈，否则整块面积/单价筛选片会变成
  * hover 无反应的死控件。
  * 非激活态复用 `.ls-filterc__chip:hover` / `.ls-filterc__switch:hover`
- * （list.css）同一枚字面量 `#ececf0`——同样是"静态 `var(--bg)` 白灰底、hover
+ * （list.css）同一个 `--bg-hover`——同样是"静态 `var(--bg)` 白灰底、hover
  * 变深一档"的 pill 手法，不新造颜色。
- * 激活态单独一档：它的静态底已经是 `var(--line)`，再叠一次 `#ececf0` 看不出
+ *（本注释原文写的是字面量 `#ececf0`：它当时散落 7 处，OPT-079 收成 token。）
+ * 激活态单独一档：它的静态底已经是 `var(--line)`，再叠一次 `--bg-hover` 看不出
  * 变化，所以往同一色阶的下一档 `var(--line-strong)` 走——两个都是既有 token，
  * 不是新造的颜色，也不用下划线（下划线在本站是「正文文本链接」的语义信号，
  * 控件不用，见本文件顶部 a:hover 那段的改造说明）。 */
 .building-supply-browser__filter:hover:not([data-active='true']) {
-  background: #ececf0;
+  background: var(--bg-hover);
 }
 
 .building-supply-browser__filter[data-active='true']:hover {
@@ -4073,7 +4085,7 @@ ol {
   aspect-ratio: 16 / 10;
   overflow: hidden;
   border-radius: 10px;
-  background: #8e8e93;
+  background: var(--media-placeholder);
 }
 
 .building-summary-card__media img {
@@ -4696,19 +4708,18 @@ ol {
   font-size: var(--fs-16);
 }
 
+/* 横滑 / 吸附 / 隐藏滚动条走 `.sf-rail`（surface.css）；这里只留列表语义与本条带
+   专属的间距与卡宽。收口前本条带缺 `scrollbar-width: none`，是全站唯一挂着原生
+   滚动条的横滑轨道。 */
 .nearby-strip {
   list-style: none;
   margin: 0;
   padding: var(--sp-1);
-  display: flex;
   gap: var(--sp-3);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
 }
 
 .nearby-strip__item {
   flex: 0 0 200px;
-  scroll-snap-align: start;
 }
 
 /* 表面 / 圆角 / 阴影 / hover 由 .sf-card 提供；图容器与压暗、图上标签走 .sf-*。
