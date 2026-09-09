@@ -5,6 +5,7 @@ import { hasOperationPermission } from '@/domain/auth/permission-context'
 import { invalidateSiteSettingsPublicCache } from '@/lib/frontend/public-cache-revalidation'
 import { NAV_TARGET_OPTIONS } from '@/lib/frontend/nav-targets'
 import { DEFAULT_WATERMARK_CONFIG } from '@/domain/media/watermark'
+import { detailSpecFieldsTab } from './site-settings-spec-fields'
 
 /**
  * OPT-053：站点运营配置（Global）
@@ -509,6 +510,10 @@ export const SiteSettings: GlobalConfig = {
             } as unknown as (typeof SiteSettings)['fields'][number],
           ],
         },
+        // OPT-082：47 个开关由 registry 生成，不在这里手抄。见
+        // `site-settings-spec-fields.ts` 文件头与
+        // `tests/opt082-detail-spec-settings-coverage.test.ts`。
+        detailSpecFieldsTab,
       ],
     },
   ],
