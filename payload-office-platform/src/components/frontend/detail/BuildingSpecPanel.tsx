@@ -1,8 +1,11 @@
 import React from 'react'
 import DetailPanel from './DetailPanel'
-import { completionYearFromGroups, factValue, findFact } from './fact-lookup'
-import SpecTable, { type SpecRow } from './SpecTable'
-import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-catalog'
+import SpecTable from './SpecTable'
+import {
+  buildBuildingSpecGroupsFromRegistry,
+  type BuildingSpecContext,
+  type BuildingSpecGroup,
+} from '@/lib/frontend/detail-spec/building-rows'
 
 /**
  * 楼盘参数面板（OPT-037 Task 6）—— 通栏，对应 comp「楼盘参数（完整）」，
@@ -68,130 +71,34 @@ import type { AmenityGroupViewModel, FactGroupViewModel } from '@/domain/public-
  * 「按 comp 收敛」的后续清理会先撞到那条用例。
  */
 
-type BuildingSpecInput = Readonly<{
-  factGroups: readonly FactGroupViewModel[]
-  amenityGroups: readonly AmenityGroupViewModel[]
-}>
-
-export type BuildingSpecGroup = Readonly<{
-  id: string
-  title: string
-  rows: readonly SpecRow[]
-}>
-
-/** 两个同单位的既有事实拼一行（如"18 部 / 2 部"）；两者都缺时该行整体为 —。 */
-function combineFacts(
-  groups: readonly FactGroupViewModel[],
-  labelA: string,
-  labelB: string,
-): string | null {
-  const a = factValue(findFact(groups, labelA))
-  const b = factValue(findFact(groups, labelB))
-  if (a == null && b == null) return null
-  return `${a ?? '—'} / ${b ?? '—'}`
-}
 
 /**
- * 展示这栋楼实际持有的公开认证（已过滤 publicVisible + 有效期，见
- * `mapBuildingAmenityGroups`），不按特定认证名称做字符串匹配——见文件头
- * review 修正说明。没有认证时返回 null（渲染 —，此时确实是"没有"）。
+ * ── OPT-082：行清单已搬到 `src/lib/frontend/detail-spec/` ──
  *
- * Task 10b 起导出：楼盘详情页的无图替代构图（`BuildingDetailLayout` 装配的
- * `NoImageHeroGrid` 底条）也要这一条，两处必须是同一份「取哪些认证、怎么拼」
- * 的判断——照抄一份 `items.join(' · ')` 看着只有一行，却会在过滤口径变化时
- * 静默分叉（本项目在「同一判断逻辑多处」上已栽 7 次）。
+ * 上面那份「哪些字段可达、哪些域层没有、哪些是漏查」的逐项判定**依然有效**，
+ * 只是它描述的对象从本文件里的数组字面量变成了 registry：
+ *   - 元数据（key / 标签 / 分组 / 默认是否展示）→ `detail-spec/fields.ts`
+ *   - 取值表达式（原样搬过去，一个字没改）    → `detail-spec/building-rows.ts`
+ *
+ * 改字段前仍然先读上面那段，不要凭直觉「恢复」已经确认拿不到的字段。
  */
-export function publicCertificationsText(amenityGroups: readonly AmenityGroupViewModel[]): string | null {
-  const certifications = amenityGroups.find((group) => group.id === 'certifications')
-  const items = certifications?.items ?? []
-  return items.length > 0 ? items.join(' · ') : null
-}
 
+export type { BuildingSpecGroup }
+
+type BuildingSpecInput = Omit<BuildingSpecContext, 'minLeasableArea'>
+
+/**
+ * 保留本函数的导出名与前两个参数：`BuildingDetailLayout` 拿它当纯函数判断
+ * 「这栋楼到底有没有参数可展示」，签名一变那边就得跟着改，而那正是本次重构
+ * 最不该牵动的地方。
+ */
 export function buildBuildingSpecGroups(
   building: BuildingSpecInput,
   minLeasableArea: number | null,
 ): readonly BuildingSpecGroup[] {
-  const groups = building.factGroups
-  const fact = (label: string) => factValue(findFact(groups, label))
-
-  return [
-    {
-      id: 'structure',
-      title: '建筑',
-      rows: [
-        // 以下 6 条（物业类型 / 得房率 / 分区说明 / 门禁 / 服务时间 / 开发商）
-        // comp 的 24 格里没有，但 `mapBuildingFactGroups` 早就产出、且改版前的
-        // `DetailFacts`（全量事实清单）就在楼盘详情页展示着，真实种子数据里全部
-        // 有值（如"服务式办公 / 70% / 低区 1-14 层 · 高区 15-28 层 / 7×24 智能
-        // 门禁 / 7×24 / 上海静安商务开发有限公司"）。Task 10 用本面板替换
-        // `DetailFacts` 时若不补进来，就是一次**接线造成的静默内容删除**。
-        // 按 cross-batch「『域层没有』与『DTO 没有』是两回事」的判定顺序：
-        // 它们在组件手里的 DTO 里就有，属第 1 层「已在手」，不是可省略项。
-        // 归组按 comp 的四个语义组就近安放，comp 每组原本就有 6 格而我们因
-        // 域层缺字段空出了若干格（机电 4/6、费用 4/6、资质 3/6），补进来正好
-        // 落回那些空格，不改版式。
-        { label: '物业类型', value: fact('物业类型') },
-        { label: '楼盘等级', value: fact('楼宇等级') },
-        { label: '竣工年份', value: completionYearFromGroups(groups) },
-        { label: '总建筑面积', value: fact('总建筑面积') },
-        // comp 原文「地上 / 地下」需要楼层拆分字段，Buildings 只有合计楼层
-        // （totalFloors），见文件头注释——改用可达的「总楼层」，不拼假拆分。
-        { label: '总楼层', value: fact('总楼层') },
-        { label: '标准层面积', value: fact('标准层面积') },
-        { label: '层高 / 净高', value: combineFacts(groups, '标准层高', '净层高') },
-        { label: '得房率', value: fact('得房率') },
-      ],
-    },
-    {
-      id: 'mep',
-      title: '机电与设施',
-      rows: [
-        { label: '客梯 / 货梯', value: combineFacts(groups, '客梯', '货梯') },
-        { label: '空调', value: fact('空调') },
-        { label: '供电', value: fact('供电') },
-        // 「通信」comp 字面标签，Buildings 上对应字段站内既有标签是「网络」
-        // （ListingOverviewPanel 「空调/网络/停车费」同一来源同一标签），
-        // 两页读同一字段时保持同一标签，不为贴合 comp 另造一个新名字。
-        { label: '网络', value: fact('网络') },
-        { label: '门禁', value: fact('门禁') },
-        { label: '电梯分区', value: fact('分区说明') },
-        { label: '服务时间', value: fact('服务时间') },
-        // 电梯速度、楼板承重：Buildings.verticalTransport 只有客梯/货梯数量
-        // 与分区说明，没有速度/承重字段，域层没有，省略。
-      ],
-    },
-    {
-      id: 'cost',
-      title: '费用与管理',
-      rows: [
-        { label: '物业费', value: fact('物业费') },
-        { label: '物业公司', value: fact('物业公司') },
-        { label: '开发商', value: fact('开发商') },
-        { label: '停车位', value: fact('停车位') },
-        { label: '停车费', value: fact('停车费') },
-        // 车位配比：现存字段只有车位总数没有配比（与 Task 3 同一结论）；
-        // 空调加时费：buildingServices 上无对应字段。均域层没有，省略。
-      ],
-    },
-    {
-      id: 'qualification',
-      title: '资质与运营',
-      rows: [
-        // 「认证」——不按名称匹配特定认证体系（如"LEED"），展示这栋楼实际
-        // 持有的全部公开有效认证，见文件头 review 修正说明。
-        { label: '认证', value: publicCertificationsText(building.amenityGroups) },
-        // 「可注册」comp 字面标签，取自既有「注册能力」事实（REGISTRATION_
-        // CAPABILITY_LABELS 已产出"支持注册/有条件支持/不支持注册"）。
-        { label: '可注册', value: fact('注册能力') },
-        { label: '最小可租面积', value: minLeasableArea != null ? `${minLeasableArea} ㎡` : null },
-        // 出租率、主要租户行业：Buildings/供给快照均无对应字段或聚合基线
-        // （出租率需要「总可用工位/面积」基线，仓库没有），域层没有，省略。
-        // 最短租期：需要跨房源聚合 minimumLeaseMonths，超出低成本映射范围
-        // （详见文件头注释），省略。
-      ],
-    },
-  ]
+  return buildBuildingSpecGroupsFromRegistry({ ...building, minLeasableArea })
 }
+
 
 /**
  * 整组字段部分省略时仍渲染该组（与 ListingOverviewPanel 同一判断逻辑：组是
