@@ -12,7 +12,7 @@ import { navTargetById } from './nav-targets'
 import {
   BUILDING_SPEC_FIELDS,
   LISTING_SPEC_FIELDS,
-  type SpecVisibilityMap,
+  resolveSpecVisibility,
 } from './detail-spec/fields'
 import { SITE_SETTINGS_FALLBACK, type SiteSettingsView } from './site-settings-view'
 
@@ -137,27 +137,6 @@ function mapFooterColumns(rows: unknown): SiteSettingsView['footerColumns'] {
   return cols.length > 0 ? cols : SITE_SETTINGS_FALLBACK.footerColumns
 }
 
-/**
- * 详情页参数开关（OPT-083）：把 Global 上的一堆 boolean 列补成**完整映射**。
- *
- * 逐条按 registry 展开而不是把 `doc.detailSpecFields.building` 原样透出，是因为
- * 存量行上这些列是 NULL、且配置可能比代码旧（发版新增了候选项而运营还没保存过）。
- * 两种情形都不该被读成「关闭」——那会让新字段在一次发版后集体消失，而后台显示的
- * 却是勾选态，前后台说法不一致且没有任何报错。判据与 `isFieldVisible` 同一条。
- */
-function mapSpecVisibility(
-  raw: unknown,
-  fields: readonly Readonly<{ key: string; defaultVisible: boolean }>[],
-): SpecVisibilityMap {
-  const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  return Object.fromEntries(
-    fields.map((field) => [
-      field.key,
-      typeof row[field.key] === 'boolean' ? (row[field.key] as boolean) : field.defaultVisible,
-    ]),
-  )
-}
-
 function toView(doc: SiteSetting | null): SiteSettingsView {
   if (!doc) return SITE_SETTINGS_FALLBACK
   return {
@@ -174,9 +153,11 @@ function toView(doc: SiteSetting | null): SiteSettingsView {
     typeCards: mapTypeCards(doc.typeCards),
     mainNav: mapMainNav(doc.mainNav),
     footerColumns: mapFooterColumns(doc.footerColumns),
+    // 「缺键 / NULL 落回 registry 默认」这条判断收在 detail-spec/fields.ts 里，
+    // 与 isFieldVisible 共用同一个实现——此前这里有一份重复实现（见该文件注释）。
     detailSpecFields: {
-      building: mapSpecVisibility(doc.detailSpecFieldsBuilding, BUILDING_SPEC_FIELDS),
-      listing: mapSpecVisibility(doc.detailSpecFieldsListing, LISTING_SPEC_FIELDS),
+      building: resolveSpecVisibility(doc.detailSpecFieldsBuilding, BUILDING_SPEC_FIELDS),
+      listing: resolveSpecVisibility(doc.detailSpecFieldsListing, LISTING_SPEC_FIELDS),
     },
   }
 }

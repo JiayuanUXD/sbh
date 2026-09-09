@@ -136,8 +136,38 @@ export function isFieldVisible(
   field: Readonly<{ key: string; defaultVisible: boolean }>,
   visibility: SpecVisibilityMap | undefined,
 ): boolean {
-  const configured = visibility?.[field.key]
-  return typeof configured === 'boolean' ? configured : field.defaultVisible
+  return readVisibilityFlag(visibility?.[field.key], field)
+}
+
+/**
+ * 「一个原始值 → 这个字段显不显」的**唯一**判定。
+ *
+ * `isFieldVisible`（读已解析的映射）与 `resolveSpecVisibility`（把 Global 上的原始行
+ * 补成完整映射）是同一条规则的两个调用形状，**必须共用这一个实现**。它们此前各写了
+ * 一遍——本仓库在「同一判断逻辑存在多处」上已栽 7 次，而这条尤其阴：两份实现里只要有
+ * 一份把 `undefined` 读成 `false`，症状是「发版后新字段在前台集体消失，而后台显示的
+ * 却是勾选态」，没有任何报错。
+ */
+function readVisibilityFlag(
+  raw: unknown,
+  field: Readonly<{ defaultVisible: boolean }>,
+): boolean {
+  return typeof raw === 'boolean' ? raw : field.defaultVisible
+}
+
+/**
+ * 把 Global 上那一行原始列值补成**完整**的可见性映射。
+ *
+ * 逐条按 registry 展开而不是把原始对象透出：存量行上这些列是 NULL，且配置可能比代码旧
+ * （发版新增了候选项而运营还没保存过）。两种情形都不该被读成「关闭」，判据同
+ * `isFieldVisible`。
+ */
+export function resolveSpecVisibility(
+  raw: unknown,
+  fields: readonly Readonly<{ key: string; defaultVisible: boolean }>[],
+): SpecVisibilityMap {
+  const row = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  return Object.fromEntries(fields.map((field) => [field.key, readVisibilityFlag(row[field.key], field)]))
 }
 
 /** registry 默认值展开成配置形状。兜底常量与后台字段 defaultValue 共用，不手抄。 */
