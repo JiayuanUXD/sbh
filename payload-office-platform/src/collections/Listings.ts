@@ -593,7 +593,13 @@ export const Listings: CollectionConfig = {
               fields: [
                 ...NumberField(
                   { name: 'area', label: '面积（㎡）', admin: { width: COL_4 } },
-                  { thousandSeparator: ',', decimalScale: 1 },
+                  // decimalScale 透传给 react-number-format，它**截断输入**而不只是格式化显示：
+                  // 原值 1 会让运营敲「288.75」当场变成「288.7」，且不给任何提示。
+                  // 改 2 与同表价格字段（rent / price.amount）一致。
+                  // 库侧不需要迁移：`listings.area` 是无精度约束的 `numeric`
+                  // （20260723_160143_init.ts:123），decimalScale 只影响 admin 组件，
+                  // 不参与 schema 生成——已用 `generate:types` 无 diff 证实。
+                  { thousandSeparator: ',', decimalScale: 2 },
                 ).map(markPublishRequired),
                 ...NumberField(
                   { name: 'seats', label: '建议工位数', admin: { width: COL_4 } },
