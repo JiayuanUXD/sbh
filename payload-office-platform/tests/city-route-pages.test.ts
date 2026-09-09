@@ -300,6 +300,48 @@ describe('city route boundaries', () => {
     expect(io.getCachedSearchBuildingsFiltered).not.toHaveBeenCalled()
   })
 
+  // ── 词表型取值收口（2026-09-08：?district=<任意字符串> 被当成条件名展示）──────
+  // 两条守卫都落在**路由层**，因为收口点在这里：视图拿到的 input 必须与结果集用的
+  // 是同一份，否则会出现「URL 写着筛了、页面却按另一份条件渲染」。
+
+  it('房源列表：本城不存在的区域取值在查询之前就被丢掉（不进查询、不进 canonical）', async () => {
+    io.parseListingSearchInput.mockReturnValue({ page: 1, district: ['not-a-real-district'] })
+    io.getCachedListingDistrictOptions.mockResolvedValue([{ id: 1, slug: 'jingan', name: '静安' }])
+    io.getCachedSearchListings.mockResolvedValue({ docs: [], pagination: { page: 1, totalPages: 1, totalDocs: 0 } })
+
+    const page = await CityListingsPage({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ district: 'not-a-real-district' }),
+    })
+
+    // 查询侧：district 已经不在 input 里，结果集因此是未筛选的全量
+    const queried = io.getCachedSearchListings.mock.calls[0]?.[2] as { district?: unknown }
+    expect(queried.district).toBeUndefined()
+    // 视图侧：拿到的是同一份 input（不是路由自己解析的那一份）
+    expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
+  })
+
+  it('楼盘列表：本城不存在的区域取值同样在查询之前就被丢掉', async () => {
+    // 与房源页同一份地点表（`getCachedListingDistrictOptions`），刻意不用查询层
+    // 算出的 facet：那份数据受 200 条扫描上限约束，查不到不等于不存在。
+    io.parseBuildingSearchInput.mockReturnValue({
+      page: 1, pageSize: 24, sort: 'stock-desc', district: ['not-a-real-district'],
+    })
+    io.getCachedListingDistrictOptions.mockResolvedValue([{ id: 1, slug: 'jingan', name: '静安' }])
+    io.getCachedSearchBuildingsFiltered.mockResolvedValue({ groups: {}, facets: {} })
+
+    const page = await CityBuildingsPage({
+      params: Promise.resolve({ city: 'shanghai' }),
+      searchParams: Promise.resolve({ district: 'not-a-real-district' }),
+    })
+
+    const queried = io.getCachedSearchBuildingsFiltered.mock.calls[0]?.[1] as { district?: unknown }
+    expect(queried.district).toBeUndefined()
+    expect((page.props as { input: { district?: unknown } }).input.district).toBeUndefined()
+    // 视图拿到的必须就是查询用的那一份，不能是两个来源
+    expect((page.props as { input: unknown }).input).toBe(queried)
+  })
+
   it('uses the first Next.js array query value for legacy and prefixed listings', async () => {
     const props = { searchParams: Promise.resolve({ q: ['first', 'second'] }) }
     await LegacyListingsPage(props)

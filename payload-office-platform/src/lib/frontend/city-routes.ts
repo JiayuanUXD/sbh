@@ -4,6 +4,7 @@
  * canonical slugs and whitelists every path/query fragment it emits.
  */
 
+import { BUILDING_GRADE_VALUES } from '@/domain/public-catalog/building-search'
 import { parseListingSearchInput } from '@/domain/public-catalog/search-params'
 import type { ListingSearchInput } from '@/domain/public-catalog/types'
 
@@ -48,12 +49,6 @@ const RESERVED_CITY_ROOT_SEGMENTS = new Set([
 
 const PRICE_PERIOD_VALUES = new Set(['day', 'month'])
 const PRICE_BASIS_VALUES = new Set(['sqm', 'seat', 'total'])
-const BUILDING_GRADE_VALUES = new Set([
-  'grade-a',
-  'super-grade-a',
-  'creative-park',
-  'serviced-office',
-])
 
 const LISTING_QUERY_KEYS = [
   'type',

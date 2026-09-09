@@ -6,6 +6,7 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
 import { buildBuildingCanonicalParams, parseBuildingSearchInput } from '@/domain/public-catalog'
+import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
 
@@ -37,7 +38,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
   // canonical 走规范化后的查询串：同一组筛选无论书写顺序如何都指向同一个 canonical。
-  const query = buildBuildingCanonicalParams(parseBuildingSearchInput(toUrlSearchParams(raw))).toString()
+  // 区域取值的合法性也要在这里判一次，否则 `?district=<不存在的区>` 会被 canonical
+  // 当成一个有效筛选收录进索引（这类 URL 是可索引的，见 buildCityPageMetadata 的
+  // noindex 判据），而页面上它根本没生效。未开城的城市除外：那一页渲染
+  // ComingSoonCityView、不消费筛选参数、且一律 noindex，不该为了校正 canonical 去取
+  // 区域词表（「未开城不查库」，见 tests/city-route-pages.test.ts）。
+  const input = city.serviceStatus === 'coming-soon'
+    ? parseBuildingSearchInput(toUrlSearchParams(raw))
+    : await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
+  const query = buildBuildingCanonicalParams(input).toString()
   return buildCityPageMetadata({
     city,
     pageType: 'buildings',
@@ -54,7 +63,7 @@ export default async function CityBuildingsPage({ params, searchParams }: Props)
     return <ComingSoonCityView city={city} />
   }
   // 筛选 / 排序 / 分页 / 分组全在查询层完成，视图只消费结果（OPT-036 Task 12）。
-  const input = parseBuildingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
   return <CityBuildingsView city={city} result={result} input={input} basePath={`/${city.slug}/buildings`} routeMode="prefixed" />
 }

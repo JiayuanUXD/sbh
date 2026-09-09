@@ -5,6 +5,7 @@ import type {
   ListingSearchInput,
   PriceDisplayUnit,
 } from '@/domain/public-catalog'
+import { enumLabel, vocabularyName } from './filter-dimension'
 import { LISTING_TYPE_LABEL } from './listing-display'
 import { priceUnitLabel } from './format'
 
@@ -45,7 +46,22 @@ export type ListingFilterDimensionSpec = Readonly<{
   label: string
   /** 该维度占用的 URL 参数键（构造「去掉这一个条件」的 href 时全部删掉）。 */
   paramKeys: readonly string[]
-  /** 当前生效值的可读文案；未生效时为 null。 */
+  /**
+   * 这个维度此刻是否在收窄结果集。
+   *
+   * 与 `activeText != null` **不是同一回事**，两者刻意分开：词表型维度可能生效
+   * 却叫不出名字（`?metro=<未知站点>`——本页从不加载地铁站名表，判定不了它存不存在，
+   * 因此不能替用户丢掉这个真的在收窄结果集的条件）。若继续用 `activeText != null`
+   * 当「是否生效」的判据，这类条件会同时从 chip、空态②退路和「清除全部」的作用域里
+   * 消失，变成一个**看不见的生效条件**——正是 `.agent/frontend.md` 反复点名的那一类。
+   */
+  active: boolean
+  /**
+   * 当前生效值的可读文案；未生效、或生效但词表里查不到名称时为 null。
+   *
+   * **绝不回落成 URL 上的原始取值**——理由与两种「查不到」的处置见
+   * `filter-dimension.ts` 顶部注释。
+   */
   activeText: string | null
   /**
    * 一个维度占多个 URL 键时，各键各自的可读文案（价格 `priceMin`/`priceMax`、
@@ -123,22 +139,30 @@ export function buildListingFilterDimensions(params: Readonly<{
   const activeDistrict = firstOrUndefined(input.district)
   const activeType = firstOrUndefined(input.listingType)
   const unitText = input.priceUnit ? priceUnitLabel(input.priceUnit) : ''
-  const activeDistrictName = activeDistrict
-    ? (districts.find((d) => d.slug === activeDistrict)?.name ?? activeDistrict)
-    : null
+  const activeBusinessArea = firstOrUndefined(input.businessArea)
+  const activeMetro = firstOrUndefined(input.metro)
 
   return [
     {
       dimension: 'district',
       label: '位置',
       paramKeys: ['district'],
-      activeText: activeDistrictName,
+      active: activeDistrict != null,
+      // 城市区域表是这一页的权威词表：查不到即「这个城市没有这个区」。路由层
+      // （`_lib/search-input.ts`）已经据此把未知取值从 input 里丢掉，
+      // 因此正常链路下走到这里的 district 一定查得到名字；这里的 null 分支是
+      // 绕过路由层直接构造 input 的调用方（测试、内部编排）的兜底，仍然不回显取值。
+      activeText: vocabularyName(activeDistrict, districts),
     },
     {
       dimension: 'listingType',
       label: '类型',
       paramKeys: ['type'],
-      activeText: activeType ? LISTING_TYPE_LABEL[activeType as keyof typeof LISTING_TYPE_LABEL] ?? activeType : null,
+      active: activeType != null,
+      // 解析层 `LISTING_TYPE_WHITELIST` 已经挡住了非法值，因此 null 分支在正常
+      // 链路下不可达；照样不写 `?? activeType`——一个不可达的回显兜底一旦被
+      // 白名单的变动激活，就是同一个缺陷原地复活。
+      activeText: enumLabel(activeType, LISTING_TYPE_LABEL),
     },
     {
       dimension: 'price',
@@ -151,6 +175,7 @@ export function buildListingFilterDimensions(params: Readonly<{
       // 漏删就会让「放宽租金」点完条件又原样长回来，且不报错。删这两个键要连同
       // 解析层的旧名兼容一起删，不能只删这一半。
       paramKeys: ['priceMin', 'priceMax', 'rentMin', 'rentMax'],
+      active: input.priceMin != null || input.priceMax != null,
       activeText:
         input.priceMin != null || input.priceMax != null
           ? [
@@ -173,6 +198,7 @@ export function buildListingFilterDimensions(params: Readonly<{
       dimension: 'area',
       label: '面积',
       paramKeys: ['areaMin', 'areaMax'],
+      active: input.areaMin != null || input.areaMax != null,
       activeText:
         input.areaMin != null || input.areaMax != null
           ? [
@@ -188,27 +214,53 @@ export function buildListingFilterDimensions(params: Readonly<{
       },
     },
     {
+      // 商圈 / 地铁两个维度是本页唯一「词表型却拿不到词表」的一类：
+      // URL 上是 `locations` 的 slug（`buildListingWhere` 按
+      // `building.businessDistrict.slug` / `building.nearestMetro.slug` 下推），
+      // 而本页从来不加载商圈 / 地铁站名表（`getCachedListingDistrictOptions`
+      // 只给行政区，facet 也只统计行政区 / 类型 / 计价单位）。
+      //
+      // 因此这两个维度：**既叫不出名字，也判定不了取值存不存在**。
+      //   - 不能回显取值：旧实现直接把 slug 当成名称印出「地铁：jingansi」，
+      //     合法值非法值一律如此；任意 URL 输入也就直接成了页面上的条件名。
+      //   - 也不能丢掉：它们真的在收窄结果集，没有词表就无法区分
+      //     「不存在的站」与「存在但本城没房源的站」，替用户丢掉就变成
+      //     「URL 写着筛了、结果却是全量」。
+      // 取两者的交集：条件照旧生效、照旧可见可清除（`active: true`），
+      // 但 chip 与退路只印维度名「商圈」/「地铁」，不印取值。
+      // 要让它们能说出名字，得先给本页接上商圈 / 地铁站词表（各多一次查询），
+      // 那是单独的产品决定，不在本次修复范围内。
       dimension: 'businessArea',
       label: '商圈',
       paramKeys: ['businessArea'],
-      activeText: firstOrUndefined(input.businessArea) ?? null,
+      active: activeBusinessArea != null,
+      activeText: null,
     },
     {
+      /** 与 `businessArea` 同一处置，理由见上一个维度的注释。 */
       dimension: 'metro',
       label: '地铁',
       paramKeys: ['metro'],
-      activeText: firstOrUndefined(input.metro) ?? null,
+      active: activeMetro != null,
+      activeText: null,
     },
     {
+      // 日期不是词表型：解析层 `parseDate` 已按 ISO 格式 + 真实日期校验过，
+      // 能走到这里的只可能是 `YYYY-MM-DD`，直接展示是安全且正确的。
       dimension: 'availableBefore',
       label: '可入驻时间',
       paramKeys: ['availableBefore'],
+      active: input.availableBefore != null,
       activeText: input.availableBefore ?? null,
     },
     {
+      // 关键词是**自由文本**，不适用词表规则：取值本身就是内容，
+      // 用户输入什么就该回显什么（否则他看不出自己搜的是什么）。
+      // 解析层 `parseQ` 已 trim + 100 字截断，渲染侧是 React 文本节点。
       dimension: 'q',
       label: '关键词',
       paramKeys: ['q'],
+      active: input.q != null,
       activeText: input.q ?? null,
     },
   ]

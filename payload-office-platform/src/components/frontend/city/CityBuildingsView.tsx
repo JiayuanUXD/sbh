@@ -21,6 +21,7 @@ import {
 } from '@/domain/public-catalog'
 import type { getCachedSearchBuildingsFiltered } from '@/lib/frontend/cached-queries'
 import { buildBuildingFilterRows } from '@/lib/frontend/building-filter-rows'
+import { dimensionPickText } from '@/lib/frontend/filter-dimension'
 import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
 
 type BuildingsResult = Awaited<ReturnType<typeof getCachedSearchBuildingsFiltered>>
@@ -117,7 +118,9 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   } = result
 
   const { rows, dimensions } = buildBuildingFilterRows({ input, facets })
-  const activeDimensions = dimensions.filter((d) => d.activeText != null)
+  // 判据是 `active` 而不是 `activeText != null`，理由见
+  // `BuildingFilterDimensionSpec.active` 与 `CityListingsView` 的同名判据。
+  const activeDimensions = dimensions.filter((d) => d.active)
   const hasActiveFilters = activeDimensions.length > 0
 
   // ── URL ─────────────────────────────────────────────────────────────────
@@ -184,13 +187,13 @@ export default function CityBuildingsView({ city, result, input, basePath, route
     if (d.paramTexts == null) {
       return [{
         key: d.dimension,
-        label: `${d.label}：${d.activeText}`,
+        label: dimensionPickText(d.label, d.activeText),
         href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
       }]
     }
     return hidden.map((key) => ({
       key,
-      label: `${d.label}：${d.paramTexts?.[key] ?? d.activeText}`,
+      label: dimensionPickText(d.label, d.paramTexts?.[key] ?? d.activeText),
       href: buildDropDimensionHref(basePath, currentParams, [key]),
     }))
   })
@@ -204,7 +207,7 @@ export default function CityBuildingsView({ city, result, input, basePath, route
   const showEmptyNoStock = isEmpty && !hasActiveFilters
 
   const relaxations: readonly Relaxation[] = activeDimensions.map((d) => ({
-    label: `取消「${d.label}：${d.activeText}」这一个条件`,
+    label: `取消「${dimensionPickText(d.label, d.activeText)}」这一个条件`,
     hitCount: dimensionHits[d.dimension],
     href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
   }))

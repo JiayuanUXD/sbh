@@ -54,6 +54,7 @@ export {
   BUILDING_DEFAULT_SORT,
   BUILDING_CLEARABLE_DIMENSIONS,
   BUILDING_DIMENSION_PARAM_KEYS,
+  BUILDING_GRADE_VALUES,
   parseBuildingSearchInput,
   buildBuildingCanonicalParams,
   applyBuildingFilters,

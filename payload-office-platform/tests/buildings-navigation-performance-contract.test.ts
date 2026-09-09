@@ -36,7 +36,10 @@ describe('OPT-025 楼盘列表导航性能合同', () => {
       expect(source).not.toContain('defaultSearchContext')
       expect(source).not.toContain('createSearchContext')
       // 视图层不再收原始 searchParams 自己过滤：路由必须先解析成 BuildingSearchInput
-      expect(source).toContain('parseBuildingSearchInput(')
+      // 解析入口有两个，断言意图不变——`resolveBuildingSearchInput` 内部就是
+      // `parseBuildingSearchInput` 再按地点表丢掉本城不存在的区域取值
+      // （见 `(frontend)/_lib/search-input.ts`），两者都产出结构化 input。
+      expect(source).toMatch(/\b(parse|resolve)BuildingSearchInput\s*\(/)
       expect(source).not.toMatch(/\bsearchBuildingsFiltered\s*\(/)
     }
   })

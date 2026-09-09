@@ -34,6 +34,7 @@ import {
   buildListingFilterRows,
   type ListingFilterDimensionSpec,
 } from '@/lib/frontend/listing-filter-rows'
+import { dimensionPickText } from '@/lib/frontend/filter-dimension'
 import { buildHref, cloneSearchParams, type ListingViewMode } from '@/lib/frontend/listing-url'
 
 type ListingResult = Awaited<ReturnType<typeof getCachedSearchListings>>
@@ -220,10 +221,14 @@ export default async function CityListingsView({
     // canonical 不输出，因此当前调用链下删不到东西。保留它描述的是「这个维度
     // 占用哪些 URL 键」，理由见 listing-filter-rows.ts 里 price 维度的注释。
     paramKeys: ['priceUnit', 'rentUnit'],
+    active: activeUnit != null,
     activeText: activeUnit ? priceUnitLabel(activeUnit) : null,
   }
   const allDimensions: readonly ListingFilterDimensionSpec[] = [...dimensions, unitDimension]
-  const activeDimensions = allDimensions.filter((d) => d.activeText != null)
+  // 判据是 `active` 而不是 `activeText != null`：词表型维度可能生效却叫不出名字
+  // （见 `ListingFilterDimensionSpec.active` 的注释）。用后者会让那类条件从 chip、
+  // 空态②退路和「清除全部」的作用域里一起消失，变成看不见的生效条件。
+  const activeDimensions = allDimensions.filter((d) => d.active)
 
   // ── URL ─────────────────────────────────────────────────────────────────
   // canonical 之外再挂 view：canonical 不含 view（SEO 上两者是同一页面），
@@ -331,7 +336,7 @@ export default async function CityListingsView({
   // 空态②：逐条退路（查询已在上方那一次 fan-out 里发出，这里只做投影）。
   const relaxations: readonly Relaxation[] = showEmptyFiltered
     ? activeDimensions.map((d, index) => ({
-        label: `取消「${d.label}：${d.activeText}」这一个条件`,
+        label: `取消「${dimensionPickText(d.label, d.activeText)}」这一个条件`,
         hitCount: relaxationFacets[index]?.totalDocs ?? 0,
         href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
       }))
@@ -378,13 +383,13 @@ export default async function CityListingsView({
     if (d.paramTexts == null) {
       return [{
         key: d.dimension,
-        label: `${d.label}：${d.activeText}`,
+        label: dimensionPickText(d.label, d.activeText),
         href: buildDropDimensionHref(basePath, currentParams, d.paramKeys),
       }]
     }
     return hidden.map((key) => ({
       key,
-      label: `${d.label}：${d.paramTexts?.[key] ?? d.activeText}`,
+      label: dimensionPickText(d.label, d.paramTexts?.[key] ?? d.activeText),
       href: buildDropDimensionHref(basePath, currentParams, [key]),
     }))
   })

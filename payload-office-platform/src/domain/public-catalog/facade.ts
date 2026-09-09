@@ -512,6 +512,12 @@ export async function searchBuildingsFiltered(
   // 「静安」都不见了，选中状态只活在地址栏里，用户看不见也单独清不掉）。
   // 用全集当清单则永远认得每个候选的名字，计数为 0 的非选中项由视图层按
   // 「不显示 0」丢弃，选中项保留。
+  //
+  // ⚠️ 「全集」是**这次扫描的全集**，不是这个城市的地点全集：`allDocs` 受上面那条
+  // 200 条上限约束，且库查之后还过了一道 `isPublicBuilding`。因此它可以用来取名字
+  // （取不到就不印，见 `building-filter-rows.ts`），但**不能用来判定某个区/站
+  // 「不存在」**——超过 200 个公开楼盘的城市里，只出现在第 200 名之后的真实行政区
+  // 在这里同样查不到。判定存在性要用地点表，见 `(frontend)/_lib/search-input.ts`。
   const allFacets = buildBuildingFacets(allDocs)
   const overlay = <T extends { count: number }>(
     universe: readonly T[],

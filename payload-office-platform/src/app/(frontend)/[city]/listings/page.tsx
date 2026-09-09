@@ -6,6 +6,7 @@ import ComingSoonCityView from '@/components/frontend/city/ComingSoonCityView'
 import { listPublicCityOptions, resolveCityContext } from '@/app/(frontend)/_lib/city-context'
 import { getCachedListingDistrictOptions, getCachedSearchListings } from '@/lib/frontend/cached-queries'
 import { buildCanonicalSearchParams, parseListingSearchInput } from '@/domain/public-catalog'
+import { resolveListingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { parseListingViewMode } from '@/lib/frontend/listing-url'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
@@ -28,7 +29,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const [{ city: slug }, raw] = await Promise.all([params, searchParams])
   const city = await resolveCityContext(slug)
   if (!city) return { title: '页面未找到', robots: { index: false, follow: false } }
-  const input = parseListingSearchInput(toUrlSearchParams(raw))
+  // canonical 与页面必须解析出同一份 input：区域取值的合法性也要在这里判一次，
+  // 否则 `?district=<不存在的区>` 会被 canonical 当成一个有效筛选收录进索引
+  // （这类 URL 是可索引的，见 buildCityPageMetadata 的 noindex 判据），而页面上它
+  // 根本没生效。未开城的城市除外：那一页渲染 ComingSoonCityView、不消费筛选参数、
+  // 且一律 noindex，不该为了校正 canonical 去取区域词表（「未开城不查库」，
+  // 见 tests/city-route-pages.test.ts）。
+  const input = city.serviceStatus === 'coming-soon'
+    ? parseListingSearchInput(toUrlSearchParams(raw))
+    : await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const query = buildCanonicalSearchParams(input).toString()
   return buildCityPageMetadata({
     city,
@@ -45,7 +54,7 @@ export default async function CityListingsPage({ params, searchParams }: Props) 
   if (city.serviceStatus === 'coming-soon') {
     return <ComingSoonCityView city={city} />
   }
-  const input = parseListingSearchInput(toUrlSearchParams(raw))
+  const input = await resolveListingSearchInput(city.slug, toUrlSearchParams(raw))
   const canonical = buildCanonicalSearchParams(input).toString()
   const [result, districts] = await Promise.all([
     getCachedSearchListings(city.slug, canonical, input),
