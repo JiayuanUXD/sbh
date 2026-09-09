@@ -42,7 +42,7 @@ export default function HorizontalRail({ ariaLabel, children }: Readonly<{
 
   return (
     <div className="hm-rail">
-      <div className="hm-rail__track" ref={trackRef} onScroll={sync} role="list" aria-label={ariaLabel}>
+      <div className="sf-rail hm-rail__track" ref={trackRef} onScroll={sync} role="list" aria-label={ariaLabel}>
         {children}
       </div>
       <button type="button" className="hm-rail__arrow hm-rail__arrow--prev" hidden={!canPrev}

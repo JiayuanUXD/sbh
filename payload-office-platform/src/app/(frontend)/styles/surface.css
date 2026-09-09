@@ -34,7 +34,7 @@
 .sf-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
 
 /* 图容器：display:block 必须显式声明——span 默认 inline 会让 aspect-ratio 失效、高度塌成 0 */
-.sf-media { position: relative; display: block; background: #8e8e93; }
+.sf-media { position: relative; display: block; background: var(--media-placeholder); }
 /* object-position 的 50% 回退值 = 改动前的居中裁切；组件只在有焦点时才发
    --focal-x/--focal-y（OPT-059）。本规则被六处调用共享，未迁移的组件不发变量、
    行为不变。 */
@@ -59,6 +59,30 @@
 .sf-phototag--num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
 .sf-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* 横滑轨道（OPT-079）。只放两个消费方**都需要且行为必须一致**的那几条：
+ * 横向滚动 + 逐卡吸附 + 隐藏原生滚动条 + 容器内平滑滚动。
+ *
+ * 收口前的实际偏差：首页轨道（`.hm-rail__track`）隐藏了滚动条、周边楼盘条带
+ * （`.nearby-strip`）没有——同一个「横滑看卡」的手势，一个干净一个挂着灰条。
+ * 用户要求卡片/投影/动效全站统一，这条属于同一类。
+ *
+ * **不放进来的**：轨道两端的对齐留白与卡片宽度。首页要跟 `.hm-container` 的
+ * 居中容器对齐（`scroll-padding-inline-start` 那串 calc），详情页条带是在
+ * `.dt-container` 内部整宽排布，两者的参照系不同，硬统一只会让其中一边错位。
+ *
+ * `scroll-behavior: smooth` 放在这里是安全的：全站禁用的是**根元素**的平滑滚动
+ * （会把浏览器的历史滚动恢复也动画化，见 styles.css §2 那段长注释），
+ * 嵌套滚动容器不受那条约束，且减少动效下由通配 `!important` 规则回落。 */
+.sf-rail {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+.sf-rail::-webkit-scrollbar { display: none; }
+.sf-rail > * { scroll-snap-align: start; }
 
 @media (prefers-reduced-motion: reduce) {
   .sf-card, .sf-card:hover { transition: none; transform: none; }

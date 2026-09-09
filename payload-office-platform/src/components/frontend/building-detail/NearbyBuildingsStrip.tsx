@@ -26,7 +26,9 @@ export default function NearbyBuildingsStrip({ buildings, citySlug }: NearbyBuil
   return (
     <div className="nearby-strip-wrap">
       <h3 className="nearby-strip-wrap__title">周边楼盘</h3>
-      <ul className="nearby-strip" aria-label="周边楼盘">
+      {/* sf-rail：横滑 + 吸附 + 隐藏滚动条的共享基元（surface.css）。收口前本条带
+          与首页轨道只有这里不一致——它挂着一条原生滚动条。 */}
+      <ul className="sf-rail nearby-strip" aria-label="周边楼盘">
         {buildings.map((item) => {
           const gradeLabel = getBuildingGradeLabel(item.grade)
           return (
