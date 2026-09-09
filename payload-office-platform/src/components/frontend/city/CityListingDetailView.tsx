@@ -98,7 +98,7 @@ export default function CityListingDetailView({
  */
   disclaimers?: Readonly<{ price?: string; image?: string }>
   /**
-   * 概况区展示哪些字段（OPT-082）。来自「站点设置 → 详情页参数」，由路由层
+   * 概况区展示哪些字段（OPT-083）。来自「站点设置 → 详情页参数」，由路由层
    * 取好传入。**可选**：缺省时按 registry 默认走（即改造前的现状）。
    */
   specVisibility?: SpecVisibilityMap
@@ -232,7 +232,7 @@ export default function CityListingDetailView({
               取消后没有 tab 壳，见 ListingOverviewPanel 文件头）。h2 由本层给：
               comp 那里的「房源概况」是 tab pill 的文字，tab 没了就得有个真标题，
               否则这一整块在无障碍树里没有名字。 */}
-          {/* OPT-082：全部字段被运营关掉、或这套房源一个值都没有时，**整块不渲染**
+          {/* OPT-083：全部字段被运营关掉、或这套房源一个值都没有时，**整块不渲染**
               ——只留一个「房源概况」标题加一张空面板，比不渲染更糟（空货架，与
               `BuildingDetailLayout` 的 `hasSpecValues` 同一口径）。判断复用同一个
               纯函数，不在这里另写一套「哪些字段算概况」的逻辑。 */}

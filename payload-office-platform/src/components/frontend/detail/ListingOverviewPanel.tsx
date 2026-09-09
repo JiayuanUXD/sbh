@@ -104,7 +104,7 @@ import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 
 
 /**
- * ── OPT-082：行清单已搬到 `src/lib/frontend/detail-spec/` ──
+ * ── OPT-083：行清单已搬到 `src/lib/frontend/detail-spec/` ──
  *
  * 上面那份「域层没有 / DTO 没有」的逐项核查**依然有效**，只是它描述的对象从本
  * 文件里的数组字面量变成了 registry：
@@ -121,7 +121,7 @@ type ListingOverviewInput = ListingSpecContext
 
 /**
  * 保留本函数的导出名与首参：`CityListingDetailView` 与既有测试都在用。
- * 第二个参数是 OPT-082 新增的运营可见性配置，缺省时按 registry 默认走。
+ * 第二个参数是 OPT-083 新增的运营可见性配置，缺省时按 registry 默认走。
  */
 export function buildListingOverviewGroups(
   listing: ListingOverviewInput,
@@ -132,7 +132,7 @@ export function buildListingOverviewGroups(
 
 
 /**
- * 组的收起（OPT-082 起，与 `BuildingSpecPanel` 同一判断逻辑）：
+ * 组的收起（OPT-083 起，与 `BuildingSpecPanel` 同一判断逻辑）：
  * 一组内**没有任何可见且有值的行**时，连组标签一起不渲染。
  *
  * 旧口径是「不为『组』另开一套隐藏规则，缺值渲染的『—』本身就是信息」——那与

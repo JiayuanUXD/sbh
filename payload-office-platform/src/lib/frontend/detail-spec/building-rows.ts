@@ -10,11 +10,11 @@ import {
 } from './fields'
 
 /**
- * OPT-082：楼盘参数面板的**取值**层。
+ * OPT-083：楼盘参数面板的**取值**层。
  *
  * 元数据（key / label / group / 默认可见）在 `fields.ts`，本文件只挂 `resolve`。
  * 两文件分开的理由见 `fields.ts` 文件头（客户端安全边界）；不会漂移是因为本文件的
- * resolver 表以 `fields.ts` 的 key 为索引，`tests/opt082-detail-spec-registry.test.ts`
+ * resolver 表以 `fields.ts` 的 key 为索引，`tests/opt083-detail-spec-registry.test.ts`
  * 断言每个 key 都有对应 resolver、且没有多余 resolver。
  *
  * 每条 `resolve` 都是从改造前 `BuildingSpecPanel.buildBuildingSpecGroups` 的对象
@@ -110,7 +110,7 @@ export const BUILDING_SPEC_RESOLVERS: Readonly<Record<string, BuildingResolver>>
  *
  * 组的渲染顺序取自 `BUILDING_SPEC_GROUP_TITLES` 的键序，组内行序取自
  * `BUILDING_SPEC_FIELDS` 的数组序——两者合起来就是改造前那份硬编码清单的顺序，
- * `tests/opt082-detail-spec-registry.test.ts` 的零变化守卫逐字盯着它。
+ * `tests/opt083-detail-spec-registry.test.ts` 的零变化守卫逐字盯着它。
  *
  * `.filter((group) => group.rows.length > 0)`：**未勾选 ⇒ 不渲染**。楼盘侧 23 项
  * 默认全部可见，所以默认配置下四组都在、输出与改造前完全一致；只有运营真的关掉
@@ -132,10 +132,10 @@ export function buildBuildingSpecGroupsFromRegistry(
           label: field.label,
           value: BUILDING_SPEC_RESOLVERS[field.key](ctx),
         }))
-        // OPT-082：**没值就不显这行**。这是对 `SpecTable` 旧契约（缺值渲染 —、
+        // OPT-083：**没值就不显这行**。这是对 `SpecTable` 旧契约（缺值渲染 —、
         // 不隐藏行）的刻意反转，产品裁定与已知代价见
-        // `specs/work-items/OPT-082-detail-spec-field-visibility.md` §2 / §11，
-        // 行为守卫见 `tests/opt082-detail-spec-hiding.test.ts`。
+        // `specs/work-items/OPT-083-detail-spec-field-visibility.md` §2 / §11，
+        // 行为守卫见 `tests/opt083-detail-spec-hiding.test.ts`。
         .filter((row) => row.value != null),
     }))
     .filter((group) => group.rows.length > 0)

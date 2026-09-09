@@ -4,7 +4,7 @@ import { buildListingOverviewGroups } from '@/components/frontend/detail/Listing
 import type { FactGroupViewModel, FactValue } from '@/domain/public-catalog'
 
 /**
- * OPT-082：详情页参数区的「逐级收起」。
+ * OPT-083：详情页参数区的「逐级收起」。
  *
  * ## 这条规则是对既有不变量的**刻意反转**
  *
@@ -13,7 +13,7 @@ import type { FactGroupViewModel, FactValue } from '@/domain/public-catalog'
  * 维度上没有可核实的值，此时 `—` 本身是信息。
  *
  * 本工作项引入的是**运营的编辑决策**：全站范围内决定不披露某个维度。两者不是
- * 一回事，但产品裁定（见 `specs/work-items/OPT-082-detail-spec-field-visibility.md`
+ * 一回事，但产品裁定（见 `specs/work-items/OPT-083-detail-spec-field-visibility.md`
  * §2）把两种「不显示」统一成了同一种呈现——没值就不显这行。代价已在规格 §11
  * 记录（「未勾选」与「没值」在前台不可区分、「资料不全」的信号被弱化），是已知
  * 且被接受的取舍，不是漏考虑。

@@ -41,8 +41,8 @@ describe('buildListingOverviewGroups', () => {
     expect(areaRow?.value).toBe('1,240 ㎡')
   })
 
-  // OPT-082 起规则反转：缺值的行不再渲染 — 而是整行不出现。
-  // 裁定与已知代价见 specs/work-items/OPT-082-detail-spec-field-visibility.md §2 / §11。
+  // OPT-083 起规则反转：缺值的行不再渲染 — 而是整行不出现。
+  // 裁定与已知代价见 specs/work-items/OPT-083-detail-spec-field-visibility.md §2 / §11。
   it('listing.factGroups 里查不到值时，该行不出现（同组内有值的行照常在）', () => {
     const groups = buildListingOverviewGroups({
       factGroups: BASE_FACT_GROUPS,
@@ -134,14 +134,14 @@ describe('buildListingOverviewGroups', () => {
   })
 
   /**
-   * OPT-082 起规则反转：这 5 条与其它字段一样，值为 null 时该行不出现。
+   * OPT-083 起规则反转：这 5 条与其它字段一样，值为 null 时该行不出现。
    *
    * **本用例守的仍然是「这 5 条不许从清单里消失」**，只是判据从「行在、值为 null」
    * 换成了「有值时行在」——那一半由上一条用例断言，本条断言的是反面：它们参与
    * 同一套隐藏规则，没有被偷偷改成「永远显示」或「永远不显示」。
    * 不要因为断言变成 toBeUndefined 就把整条用例删掉，那样这 5 条就再没有守卫了。
    */
-  it('这 5 条同样遵守 OPT-082 的新规则：值为 null 时该行不出现', () => {
+  it('这 5 条同样遵守 OPT-083 的新规则：值为 null 时该行不出现', () => {
     const rows = buildListingOverviewGroups({
       factGroups: BASE_FACT_GROUPS,
       price: null,

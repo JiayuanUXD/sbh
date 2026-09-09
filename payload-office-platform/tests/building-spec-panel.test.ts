@@ -80,8 +80,8 @@ describe('buildBuildingSpecGroups', () => {
     expect(structureGroup?.rows.find((r) => r.label === '总建筑面积')?.value).toBe('108,000 ㎡')
   })
 
-  // OPT-082 起规则反转：缺值的行不再渲染 — 而是整行不出现。
-  // 裁定与已知代价见 specs/work-items/OPT-082-detail-spec-field-visibility.md §2 / §11。
+  // OPT-083 起规则反转：缺值的行不再渲染 — 而是整行不出现。
+  // 裁定与已知代价见 specs/work-items/OPT-083-detail-spec-field-visibility.md §2 / §11。
   it('factGroups 里查不到值时，该行不出现（同组内有值的行照常在）', () => {
     const groups = buildBuildingSpecGroups(
       { factGroups: BASE_FACT_GROUPS, amenityGroups: AMENITY_GROUPS_MULTI_CERT },
@@ -145,7 +145,7 @@ describe('buildBuildingSpecGroups', () => {
       null,
     )
     const mepGroup = groups.find((g) => g.id === 'mep')
-    // OPT-082：两个字段都缺 → 整行 value 为 null → 该行不出现
+    // OPT-083：两个字段都缺 → 整行 value 为 null → 该行不出现
     expect(mepGroup?.rows.find((r) => r.label === '客梯 / 货梯')).toBeUndefined()
   })
 
@@ -168,7 +168,7 @@ describe('buildBuildingSpecGroups', () => {
   })
 
   // 本条守的仍是「不做 LEED 名称匹配」那件事的另一半：真正没有认证时不能凭空
-  // 编一个值出来。OPT-082 起「没有值」的呈现从 — 变成整行不出现。
+  // 编一个值出来。OPT-083 起「没有值」的呈现从 — 变成整行不出现。
   it('认证：真正没有任何认证（空数组）时该行不出现', () => {
     const groups = buildBuildingSpecGroups(
       { factGroups: BASE_FACT_GROUPS, amenityGroups: AMENITY_GROUPS_NO_CERT },
@@ -193,7 +193,7 @@ describe('buildBuildingSpecGroups', () => {
     expect(qualGroupWithoutArea?.rows.find((r) => r.label === '最小可租面积')).toBeUndefined()
   })
 
-  // OPT-082 起规则反转：整组无可见行时连组标题一起收掉。旧口径「组是固定行清单、
+  // OPT-083 起规则反转：整组无可见行时连组标题一起收掉。旧口径「组是固定行清单、
   // 不随数据完整度变化」被产品裁定推翻（见规格 §2 空值行一栏），保留一个只剩标题
   // 的空组在新规则下就是空货架。
   it('整组字段全缺时该组不出现（含组标题）', () => {

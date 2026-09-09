@@ -3,7 +3,7 @@ import { SiteSettings } from '@/globals/SiteSettings'
 import { BUILDING_SPEC_FIELDS, LISTING_SPEC_FIELDS } from '@/lib/frontend/detail-spec/fields'
 
 /**
- * OPT-082：registry ↔ SiteSettings 字段的一一对应守卫。
+ * OPT-083：registry ↔ SiteSettings 字段的一一对应守卫。
  *
  * 47 个 checkbox 由 registry 生成而不是手抄（见 `site-settings-spec-fields.ts`
  * 文件头）。这份用例盯的是「生成器有没有真的把每一项都生成出来」——生成器写错

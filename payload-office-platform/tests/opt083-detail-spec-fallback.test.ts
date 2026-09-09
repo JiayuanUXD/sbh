@@ -3,7 +3,7 @@ import { SITE_SETTINGS_FALLBACK } from '@/lib/frontend/site-settings-view'
 import { BUILDING_SPEC_FIELDS, LISTING_SPEC_FIELDS } from '@/lib/frontend/detail-spec/fields'
 
 /**
- * OPT-082 三层兜底的第三层。
+ * OPT-083 三层兜底的第三层。
  *
  * `site_settings` 表在迁移执行前不存在，构建期预渲染与迁移前的渲染都会走
  * `SITE_SETTINGS_FALLBACK`（`readSiteSettings` 的 catch 分支）。此时前台必须仍是

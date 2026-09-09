@@ -74,7 +74,7 @@ import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 
 
 /**
- * ── OPT-082：行清单已搬到 `src/lib/frontend/detail-spec/` ──
+ * ── OPT-083：行清单已搬到 `src/lib/frontend/detail-spec/` ──
  *
  * 上面那份「哪些字段可达、哪些域层没有、哪些是漏查」的逐项判定**依然有效**，
  * 只是它描述的对象从本文件里的数组字面量变成了 registry：
@@ -103,7 +103,7 @@ export function buildBuildingSpecGroups(
 
 
 /**
- * 组的收起（OPT-082 起，与 `ListingOverviewPanel` 同一判断逻辑）：
+ * 组的收起（OPT-083 起，与 `ListingOverviewPanel` 同一判断逻辑）：
  * 一组内**没有任何可见且有值的行**时，连组标题一起不渲染。
  *
  * 旧口径是「组是代码里依据字段可达性定好的固定行清单，不随某一栋楼的数据完整度
@@ -119,7 +119,7 @@ export default function BuildingSpecPanel({
 }: Readonly<{
   building: BuildingSpecInput
   minLeasableArea: number | null
-  /** 运营配置的字段可见性（OPT-082）。缺省按 registry 默认走，即改造前的现状。 */
+  /** 运营配置的字段可见性（OPT-083）。缺省按 registry 默认走，即改造前的现状。 */
   visibility?: SpecVisibilityMap
   /**
    * 「楼盘特色」标签（comp「楼盘参数」面板底部：标签列 104 + gap 32 · 13/500
@@ -129,7 +129,7 @@ export default function BuildingSpecPanel({
    * 参数表共处一张白底面板、只用一条 hairline 分隔。空数组时整段不渲染
    * （**不是** 渲染一个「楼盘特色 —」的空行）——它不是固定 schema 的规格行，
    * 而是「有几条列几条」的标签集合，同 `HeroSummaryPanel.pickHeroFacts` 的判据。
-   * （OPT-082 起参数行本身也是「没值就不显」，两者的呈现于是一致了，但理由不同：
+   * （OPT-083 起参数行本身也是「没值就不显」，两者的呈现于是一致了，但理由不同：
    * 这里从来就不是规格行，不受那条规则反转的影响。）
    */
   features?: readonly string[]

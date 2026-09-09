@@ -1,5 +1,5 @@
 /**
- * OPT-082：详情页参数登记表的**元数据**——每一项的稳定键、前台标签、所属组与
+ * OPT-083：详情页参数登记表的**元数据**——每一项的稳定键、前台标签、所属组与
  * 默认是否展示。
  *
  * ## 为什么元数据与取值函数分在两个文件
@@ -13,13 +13,13 @@
  * 所以本文件**零 import**，是客户端安全的下界；需要 `factGroups` 类型与查值函数的
  * `resolve` 全部落在 `building-rows.ts` / `listing-rows.ts`，那两个文件只被服务端
  * 组件消费。两处不会漂移：resolver 表以本文件的 key 为索引，
- * `tests/opt082-detail-spec-registry.test.ts` 断言每个 key 都有对应 resolver。
+ * `tests/opt083-detail-spec-registry.test.ts` 断言每个 key 都有对应 resolver。
  *
  * ## 改动须知
  *
  *   - `key` 是 `SiteSettings` 的字段名与 DB 列名基，**改名即运营已存的配置失效**。
  *   - `label` 只影响前台显示，改它不影响配置（配置认 key 不认 label）。
- *   - 新增一项要同时：加迁移列、更新 `tests/opt082-detail-spec-registry.test.ts`
+ *   - 新增一项要同时：加迁移列、更新 `tests/opt083-detail-spec-registry.test.ts`
  *     的零变化清单（如果它默认可见）、补 resolver。
  */
 

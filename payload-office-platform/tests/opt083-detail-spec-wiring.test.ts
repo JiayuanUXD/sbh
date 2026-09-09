@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * OPT-082：详情页参数配置的接线守卫。
+ * OPT-083：详情页参数配置的接线守卫。
  *
  * 守卫落在**失效点那一层**：registry、后台字段、读取层、隐藏规则各自都有单测，
  * 但没有一条能阻止「某个路由忘了把配置传下去」。那种漏接的症状是——运营在后台关掉

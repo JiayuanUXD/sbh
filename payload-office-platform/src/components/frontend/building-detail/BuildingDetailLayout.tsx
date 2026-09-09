@@ -104,7 +104,7 @@ export default function BuildingDetailLayout({
  */
   disclaimers?: Readonly<{ price?: string; image?: string }>
   /**
-   * 参数区展示哪些字段（OPT-082）。来自「站点设置 → 详情页参数」，由路由层
+   * 参数区展示哪些字段（OPT-083）。来自「站点设置 → 详情页参数」，由路由层
    * 取好传入。**可选**：缺省时按 registry 默认走（即改造前的现状），
    * dev-story 演示页与单测同理不必构造它。
    */
@@ -127,7 +127,7 @@ export default function BuildingDetailLayout({
   // 函数判断，不在页面层另写一套「哪些字段算参数」的逻辑（多算一次纯函数，
   // 换掉一份会漂移的重复判断）。
   //
-  // OPT-082：判据从「某行 value 非 null」改成「还剩不剩组」——registry 消费函数
+  // OPT-083：判据从「某行 value 非 null」改成「还剩不剩组」——registry 消费函数
   // 现在自己就把未勾选的与无值的行滤掉、空组也收掉了，剩下的组必然有内容。
   // 不改这一句的话，运营把字段全关掉后这里仍判 true，页面会留一张空白面板。
   const specGroups = buildBuildingSpecGroups(specInput, minLeasableArea, specVisibility)

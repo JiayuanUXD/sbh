@@ -4,7 +4,7 @@ import { BUILDING_SPEC_RESOLVERS } from '@/lib/frontend/detail-spec/building-row
 import { LISTING_SPEC_RESOLVERS, formatSpecDate } from '@/lib/frontend/detail-spec/listing-rows'
 
 /**
- * OPT-082 零变化守卫。
+ * OPT-083 零变化守卫。
  *
  * registry 的默认可见集合，必须逐字等于改造前 `BuildingSpecPanel` /
  * `ListingOverviewPanel` 里那份硬编码行清单（组序、行序、标签全部对齐）。

@@ -138,7 +138,7 @@ function mapFooterColumns(rows: unknown): SiteSettingsView['footerColumns'] {
 }
 
 /**
- * 详情页参数开关（OPT-082）：把 Global 上的一堆 boolean 列补成**完整映射**。
+ * 详情页参数开关（OPT-083）：把 Global 上的一堆 boolean 列补成**完整映射**。
  *
  * 逐条按 registry 展开而不是把 `doc.detailSpecFields.building` 原样透出，是因为
  * 存量行上这些列是 NULL、且配置可能比代码旧（发版新增了候选项而运营还没保存过）。

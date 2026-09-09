@@ -510,9 +510,9 @@ export const SiteSettings: GlobalConfig = {
             } as unknown as (typeof SiteSettings)['fields'][number],
           ],
         },
-        // OPT-082：47 个开关由 registry 生成，不在这里手抄。见
+        // OPT-083：47 个开关由 registry 生成，不在这里手抄。见
         // `site-settings-spec-fields.ts` 文件头与
-        // `tests/opt082-detail-spec-settings-coverage.test.ts`。
+        // `tests/opt083-detail-spec-settings-coverage.test.ts`。
         detailSpecFieldsTab,
       ],
     },

@@ -11,11 +11,11 @@ import {
 } from './fields'
 
 /**
- * OPT-082：房源概况面板的**取值**层。
+ * OPT-083：房源概况面板的**取值**层。
  *
  * 元数据（key / label / group / 默认可见）在 `fields.ts`，本文件只挂 `resolve`。
  * 两文件分开的理由见 `fields.ts` 文件头（客户端安全边界）；不会漂移是因为本文件的
- * resolver 表以 `fields.ts` 的 key 为索引，`tests/opt082-detail-spec-registry.test.ts`
+ * resolver 表以 `fields.ts` 的 key 为索引，`tests/opt083-detail-spec-registry.test.ts`
  * 的「resolver 覆盖守卫」两头对着盯。
  *
  * 每条 `resolve` 都是从改造前 `ListingOverviewPanel.buildListingOverviewGroups` 的
@@ -105,7 +105,7 @@ export const LISTING_SPEC_RESOLVERS: Readonly<Record<string, ListingResolver>> =
  *
  * `.filter((group) => group.rows.length > 0)`：**未勾选 ⇒ 不渲染**。默认配置下
  * 「信息时效」两项都是关的，于是整组不出现，改造前后的输出因此完全一致。
- * 这与「没值 ⇒ 不渲染」是两条独立规则，后者在 OPT-082 的下一步才加。
+ * 这与「没值 ⇒ 不渲染」是两条独立规则，后者在 OPT-083 的下一步才加。
  */
 export function buildListingOverviewGroupsFromRegistry(
   ctx: ListingSpecContext,
@@ -123,9 +123,9 @@ export function buildListingOverviewGroupsFromRegistry(
           label: field.label,
           value: LISTING_SPEC_RESOLVERS[field.key](ctx),
         }))
-        // OPT-082：**没值就不显这行**。对 `SpecTable` 旧契约的刻意反转，
-        // 裁定与代价见 `specs/work-items/OPT-082-detail-spec-field-visibility.md`
-        // §2 / §11，守卫见 `tests/opt082-detail-spec-hiding.test.ts`。
+        // OPT-083：**没值就不显这行**。对 `SpecTable` 旧契约的刻意反转，
+        // 裁定与代价见 `specs/work-items/OPT-083-detail-spec-field-visibility.md`
+        // §2 / §11，守卫见 `tests/opt083-detail-spec-hiding.test.ts`。
         .filter((row) => row.value != null),
     }))
     .filter((group) => group.rows.length > 0)

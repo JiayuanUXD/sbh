@@ -55,7 +55,7 @@ export type SiteSettingsView = Readonly<{
   /** 页脚分组（OPT-054）。同上，href 已解析。空分组不会出现在这里。 */
   footerColumns: ReadonlyArray<Readonly<{ title: string; links: ReadonlyArray<Readonly<{ href: string; label: string }>> }>>
   /**
-   * 详情页参数区展示哪些字段（OPT-082）。key → 是否展示，key 取自
+   * 详情页参数区展示哪些字段（OPT-083）。key → 是否展示，key 取自
    * `detail-spec/fields.ts` 的 registry。
    *
    * 这里存的是**已经补齐过的完整映射**（缺键在 `toView` 就落回 registry 默认），
@@ -127,7 +127,7 @@ export const SITE_SETTINGS_FALLBACK: SiteSettingsView = {
       ],
     },
   ],
-  // OPT-082：兜底即 registry 默认，不手抄一份。迁移执行前 `site_settings` 表上
+  // OPT-083：兜底即 registry 默认，不手抄一份。迁移执行前 `site_settings` 表上
   // 没有这些列，此时前台必须仍是改造前的现状——这就是「上线零变化」的另一半。
   detailSpecFields: DETAIL_SPEC_VISIBILITY_DEFAULTS,
 }

@@ -9,14 +9,14 @@ import {
 } from '@/lib/frontend/detail-spec/fields'
 
 /**
- * OPT-082：「站点设置 → 详情页参数」这一 tab 的字段树。
+ * OPT-083：「站点设置 → 详情页参数」这一 tab 的字段树。
  *
  * ## 47 个开关**由 registry 生成**，不在本文件手抄一遍
  *
  * 手抄必然与 registry 漂移。本仓库在「同一判断逻辑存在多处」上已栽 7 次，
  * 同义清单是同一类问题的另一张脸：两份清单刚写完时一定是一致的，出问题的是
  * 三个月后只改了其中一份的那个人。
- * `tests/opt082-detail-spec-settings-coverage.test.ts` 在任何一侧漏项、多项、
+ * `tests/opt083-detail-spec-settings-coverage.test.ts` 在任何一侧漏项、多项、
  * 或 defaultValue 与 registry 不符时会红。
  *
  * ## 为什么是一堆 checkbox 而不是一个 hasMany select
@@ -99,7 +99,12 @@ function sideGroup<G extends string>(
     name,
     label,
     type: 'group',
-    fields: (Object.keys(groupTitles) as G[]).flatMap((groupId) => checkboxesFor(fields, groupId)),
+    fields: (Object.keys(groupTitles) as G[]).map((groupId) => ({
+      type: 'collapsible' as const,
+      label: groupTitles[groupId],
+      admin: { initCollapsed: false },
+      fields: checkboxesFor(fields, groupId),
+    })),
   }
 }
 
