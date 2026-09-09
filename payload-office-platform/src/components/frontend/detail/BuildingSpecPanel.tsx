@@ -6,6 +6,7 @@ import {
   type BuildingSpecContext,
   type BuildingSpecGroup,
 } from '@/lib/frontend/detail-spec/building-rows'
+import type { SpecVisibilityMap } from '@/lib/frontend/detail-spec/fields'
 
 /**
  * 楼盘参数面板（OPT-037 Task 6）—— 通栏，对应 comp「楼盘参数（完整）」，
@@ -95,14 +96,20 @@ type BuildingSpecInput = Omit<BuildingSpecContext, 'minLeasableArea'>
 export function buildBuildingSpecGroups(
   building: BuildingSpecInput,
   minLeasableArea: number | null,
+  visibility?: SpecVisibilityMap,
 ): readonly BuildingSpecGroup[] {
-  return buildBuildingSpecGroupsFromRegistry({ ...building, minLeasableArea })
+  return buildBuildingSpecGroupsFromRegistry({ ...building, minLeasableArea }, visibility)
 }
 
 
 /**
- * 整组字段部分省略时仍渲染该组（与 ListingOverviewPanel 同一判断逻辑：组是
- * 代码里依据字段可达性定好的固定行清单，不随某一栋楼的数据完整度变化）。
+ * 组的收起（OPT-082 起，与 `ListingOverviewPanel` 同一判断逻辑）：
+ * 一组内**没有任何可见且有值的行**时，连组标题一起不渲染。
+ *
+ * 旧口径是「组是代码里依据字段可达性定好的固定行清单，不随某一栋楼的数据完整度
+ * 变化」——那是「缺值渲染 —」时代的配套：既然每行都在，组自然也在。规则反转后
+ * 若还保留空组，页面上就是一个只剩标题的空货架。判断在
+ * `buildBuildingSpecGroupsFromRegistry` 里做，本组件只渲染拿到的组。
  */
 export default function BuildingSpecPanel({
   building,

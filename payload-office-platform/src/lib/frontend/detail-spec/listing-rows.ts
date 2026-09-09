@@ -118,10 +118,15 @@ export function buildListingOverviewGroupsFromRegistry(
       title: LISTING_SPEC_GROUP_TITLES[id],
       rows: LISTING_SPEC_FIELDS.filter(
         (field) => field.group === id && isFieldVisible(field, visibility),
-      ).map((field) => ({
-        label: field.label,
-        value: LISTING_SPEC_RESOLVERS[field.key](ctx),
-      })),
+      )
+        .map((field) => ({
+          label: field.label,
+          value: LISTING_SPEC_RESOLVERS[field.key](ctx),
+        }))
+        // OPT-082：**没值就不显这行**。对 `SpecTable` 旧契约的刻意反转，
+        // 裁定与代价见 `specs/work-items/OPT-082-detail-spec-field-visibility.md`
+        // §2 / §11，守卫见 `tests/opt082-detail-spec-hiding.test.ts`。
+        .filter((row) => row.value != null),
     }))
     .filter((group) => group.rows.length > 0)
 }

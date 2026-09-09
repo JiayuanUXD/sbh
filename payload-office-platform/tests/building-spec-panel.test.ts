@@ -80,15 +80,17 @@ describe('buildBuildingSpecGroups', () => {
     expect(structureGroup?.rows.find((r) => r.label === '总建筑面积')?.value).toBe('108,000 ㎡')
   })
 
-  it('factGroups 里查不到值时，行的 value 为 null（交给 SpecTable 渲染 —），不隐藏该行', () => {
+  // OPT-082 起规则反转：缺值的行不再渲染 — 而是整行不出现。
+  // 裁定与已知代价见 specs/work-items/OPT-082-detail-spec-field-visibility.md §2 / §11。
+  it('factGroups 里查不到值时，该行不出现（同组内有值的行照常在）', () => {
     const groups = buildBuildingSpecGroups(
       { factGroups: BASE_FACT_GROUPS, amenityGroups: AMENITY_GROUPS_MULTI_CERT },
       null,
     )
     const mepGroup = groups.find((g) => g.id === 'mep')
-    const supplyRow = mepGroup?.rows.find((r) => r.label === '供电')
-    expect(supplyRow).toBeDefined()
-    expect(supplyRow?.value).toBeNull()
+    expect(mepGroup?.rows.find((r) => r.label === '供电')).toBeUndefined()
+    // 同组的「空调」有值，不受影响——过滤是逐行的，不是整组的
+    expect(mepGroup?.rows.find((r) => r.label === '空调')?.value).toBe('VAV + VRV 分户')
   })
 
   it('竣工时间事实值（ISO 字符串）转成年份 + "年" 后缀', () => {
@@ -143,7 +145,8 @@ describe('buildBuildingSpecGroups', () => {
       null,
     )
     const mepGroup = groups.find((g) => g.id === 'mep')
-    expect(mepGroup?.rows.find((r) => r.label === '客梯 / 货梯')?.value).toBeNull()
+    // OPT-082：两个字段都缺 → 整行 value 为 null → 该行不出现
+    expect(mepGroup?.rows.find((r) => r.label === '客梯 / 货梯')).toBeUndefined()
   })
 
   it('认证：多条持有认证按 " · " 拼成一行展示，不挑一条丢其余的', () => {
@@ -164,16 +167,18 @@ describe('buildBuildingSpecGroups', () => {
     expect(qualificationGroup?.rows.find((r) => r.label === '认证')?.value).toBe('绿色建筑三星')
   })
 
-  it('认证：真正没有任何认证（空数组）时渲染 —', () => {
+  // 本条守的仍是「不做 LEED 名称匹配」那件事的另一半：真正没有认证时不能凭空
+  // 编一个值出来。OPT-082 起「没有值」的呈现从 — 变成整行不出现。
+  it('认证：真正没有任何认证（空数组）时该行不出现', () => {
     const groups = buildBuildingSpecGroups(
       { factGroups: BASE_FACT_GROUPS, amenityGroups: AMENITY_GROUPS_NO_CERT },
       null,
     )
     const qualificationGroup = groups.find((g) => g.id === 'qualification')
-    expect(qualificationGroup?.rows.find((r) => r.label === '认证')?.value).toBeNull()
+    expect(qualificationGroup?.rows.find((r) => r.label === '认证')).toBeUndefined()
   })
 
-  it('最小可租面积：调用方传入数值时拼 "㎡" 后缀，传 null 时渲染 —', () => {
+  it('最小可租面积：调用方传入数值时拼 "㎡" 后缀，传 null 时该行不出现', () => {
     const withArea = buildBuildingSpecGroups(
       { factGroups: BASE_FACT_GROUPS, amenityGroups: AMENITY_GROUPS_MULTI_CERT },
       320,
@@ -185,10 +190,13 @@ describe('buildBuildingSpecGroups', () => {
     const qualGroupWithArea = withArea.find((g) => g.id === 'qualification')
     const qualGroupWithoutArea = withoutArea.find((g) => g.id === 'qualification')
     expect(qualGroupWithArea?.rows.find((r) => r.label === '最小可租面积')?.value).toBe('320 ㎡')
-    expect(qualGroupWithoutArea?.rows.find((r) => r.label === '最小可租面积')?.value).toBeNull()
+    expect(qualGroupWithoutArea?.rows.find((r) => r.label === '最小可租面积')).toBeUndefined()
   })
 
-  it('整组字段全缺时该组仍存在（不整组隐藏）', () => {
+  // OPT-082 起规则反转：整组无可见行时连组标题一起收掉。旧口径「组是固定行清单、
+  // 不随数据完整度变化」被产品裁定推翻（见规格 §2 空值行一栏），保留一个只剩标题
+  // 的空组在新规则下就是空货架。
+  it('整组字段全缺时该组不出现（含组标题）', () => {
     const factGroupsMepAllMissing: readonly FactGroupViewModel[] = [
       ...BASE_FACT_GROUPS.filter((g) => g.id !== 'transport' && g.id !== 'services'),
       {
@@ -206,9 +214,9 @@ describe('buildBuildingSpecGroups', () => {
       { factGroups: factGroupsMepAllMissing, amenityGroups: AMENITY_GROUPS_MULTI_CERT },
       null,
     )
-    const mepGroup = groups.find((g) => g.id === 'mep')
-    expect(mepGroup).toBeDefined()
-    expect(mepGroup?.rows.every((r) => r.value === null)).toBe(true)
+    expect(groups.find((g) => g.id === 'mep')).toBeUndefined()
+    // 其余有值的组不受影响——收起是逐组判断的，不是一荣俱荣
+    expect(groups.map((g) => g.id)).toContain('structure')
   })
 
   /**

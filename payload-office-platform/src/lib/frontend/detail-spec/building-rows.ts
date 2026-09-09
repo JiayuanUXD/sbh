@@ -127,10 +127,16 @@ export function buildBuildingSpecGroupsFromRegistry(
       title: BUILDING_SPEC_GROUP_TITLES[id],
       rows: BUILDING_SPEC_FIELDS.filter(
         (field) => field.group === id && isFieldVisible(field, visibility),
-      ).map((field) => ({
-        label: field.label,
-        value: BUILDING_SPEC_RESOLVERS[field.key](ctx),
-      })),
+      )
+        .map((field) => ({
+          label: field.label,
+          value: BUILDING_SPEC_RESOLVERS[field.key](ctx),
+        }))
+        // OPT-082：**没值就不显这行**。这是对 `SpecTable` 旧契约（缺值渲染 —、
+        // 不隐藏行）的刻意反转，产品裁定与已知代价见
+        // `specs/work-items/OPT-082-detail-spec-field-visibility.md` §2 / §11，
+        // 行为守卫见 `tests/opt082-detail-spec-hiding.test.ts`。
+        .filter((row) => row.value != null),
     }))
     .filter((group) => group.rows.length > 0)
 }
