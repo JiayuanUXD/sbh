@@ -39,9 +39,11 @@
  * 出血到视口宽：本页有整幅背景带（价值点 + 表单卡那段是灰底带，其余是白底），
  * 而祖先 `.site-main` 带 `max-width: 1440 + padding-inline: 24`（styles.css 的 .site-main），
  * 不破掉这层，背景带就断在容器边界上。照 `.hm-home`（home.css 的 .hm-home）与
- * `.dt-page`（detail.css 的 `.dt-page`）的既有做法，不新造机制；
- * styles.css 的 `html` + `body` 两条 `overflow-x: clip` 是配套用来裁掉 100vw
- * 与滚动条宽度之差的，缺一不可（只有 body 那条时不生效，见那里的注释）。
+ * `.dt-page`（detail.css 的 `.dt-page`）的既有做法，不新造机制。
+ * **主路径已不是这里的 100vw**：styles.css 的 `.site-main:has(...)` 对出血页取消
+ * 限宽（`.city-coming-soon` 在那份清单里单列，因为城市路由是
+ * `.site-main > .city-coming-soon > .rc-page`），本壳 `width: auto` 直接等于 body
+ * 内宽；这里的 100vw 是 `:has()` 不可用时的回退，别删。
  * 纵向同时抵消 `.site-main` 的 `padding-block: var(--sp-6)`——不抵消的话第一段
  * section 的 72 会叠成 104。不像 `.hm-home` 那样再上探 `--header-height`：
  * 首页 Hero 是暗色满图、要压到透明态头部底下，本页 Hero 是白底常规段，

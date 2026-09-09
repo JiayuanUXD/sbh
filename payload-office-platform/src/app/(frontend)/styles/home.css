@@ -11,9 +11,12 @@
    .hm-home 撑满视口宽度，让每个 section 的背景带在所有断点保持满宽出血
    （设计系统 §7）；Hero 额外上探 --header-height，使其延伸到吸顶头部下方，
    透明态头部的白字才能压在 Hero 暗色遮罩上而不是页面浅灰底上。
-   100vw 带来的横向溢出由 styles.css 的 `html` + `body` **两条** overflow-x: clip 一起裁掉，缺一不可
-   （只有 body 那条时它会被提升到视口、body 自己按 visible 用，等于没裁——
-   2026-09-09 之前全站因此能横向拖 8px）。理由与实测见那两条规则上方的注释。 */
+   出血的**主路径不是这里的 100vw**：styles.css 的
+   `.site-main:has(...)` 会对出血页取消限宽，本壳用 `width: auto` 直接等于 body
+   内宽，与页眉页脚共用同一个 `100%`（实测 1440：容器与页眉都是 1329 @ left 48）。
+   这里的 `100vw` 是 `:has()` 不可用时的**回退**，别删；两条路径的取舍、以及为什么
+   回退仍需要 html/body 那对 overflow-x: clip 兜住，都写在 styles.css 的 `.site-main`
+   下方。 */
 .hm-home {
   width: 100vw;
   margin-inline: calc(50% - 50vw);

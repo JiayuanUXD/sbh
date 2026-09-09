@@ -37,6 +37,26 @@ import { describe, expect, it } from 'vitest'
  * 所以修复是**给根元素补一条**，不是把 body 那条挪走。谁把 body 那条删了，
  * 故障原样复发。
  *
+ * ## 第二半：7.5px 的参照系错位（2026-09-10 收口）
+ *
+ * 上面那对 clip 只消除了**可滚动性**，没消除**探出**——出血盒照旧比可视区宽一条
+ * 滚动条，于是壳内容器 `min(--w, 100% - --gut*2)` 的那个 `100%` 是「视口+滚动条」，
+ * 而页眉 `.site-header__inner` / 页脚的 `100%` 是 body 内宽（不含）。1440 下
+ * `.hm-container` 1344 @ left 40.5 对页眉 1329 @ left 48：中心重合，边缘差 7.5px。
+ *
+ * 收口办法是**不再从限宽里破出来**：`.site-main:has(> 出血壳)` 直接取消限宽，壳用
+ * `width: auto` 等于 body 内宽，与页眉共用同一个 `100%`（实测：两者都是 1329 @ 48）。
+ * 四个壳页因此**根本不溢出**，不再依赖裁剪；`.landing-hero` 例外——它与需要限宽的
+ * 兄弟同级，仍走 100vw，所以那对 clip 仍然必要。
+ *
+ * 三条相关断言各自防一种静默失效：
+ *   - `:has()` 清单漏 `.city-coming-soon` → 城市路由退回错位（它是嵌套两层）；
+ *   - 复位写成裸 `.hm-home` 而非 `.site-main > .hm-home` → 被壳文件的 100vw 盖掉；
+ *   - 少了 `@supports` 包裹 → 老浏览器整幅背景带塌回 1440、两侧露灰边。
+ * 三种都「页面看着正常」，只有量几何才看得出来。
+ *
+ * 行为侧的回归守卫在探针里：容器与页眉必须逐像素相同（见下方分工一节）。
+ *
  * ## 为什么现有 E2E 没能发现，以及本文件与探针的分工
  *
  * `tests/e2e/detail-pages.spec.ts` 早就在 1440 / 1920 上断言
@@ -59,6 +79,16 @@ import { describe, expect, it } from 'vitest'
 const ROOT = 'src/app/(frontend)'
 const base = readFileSync(`${ROOT}/styles.css`, 'utf8')
 
+/**
+ * 去掉 CSS 注释后的正文。**结构性断言必须用它**，不能直接用 `base`。
+ *
+ * 真实教训（2026-09-10，本文件自己）：「宽度复位靠特异性取胜」那条原本直接在
+ * `base` 上匹配 `.site-main > .hm-home`，而上方注释里恰好逐字写着这个选择器。
+ * 把规则改成裸 `.hm-home`（即真的退化成会被壳文件覆盖的写法）时，断言**照样
+ * 通过**——它匹配的是注释而不是规则。注释越写越细，这个坑越容易踩。
+ */
+const code = base.replace(/\/\*[\s\S]*?\*\//g, '')
+
 /** 取顶层 `html { ... }` / `body { ... }` 规则体（媒体查询里的同名规则不参与）。 */
 const RULE = {
   html: /^html\s*\{([^}]*)\}/m,
@@ -74,18 +104,44 @@ const ruleBody = (css: string, selector: 'html' | 'body'): string => {
 describe('全幅出血的横向溢出裁剪', () => {
   it('根元素带 overflow-x: clip', () => {
     // 缺了它，body 那条会被提升到视口而失效，全站恢复可横向拖 8px。
-    expect(ruleBody(base, 'html')).toMatch(/overflow-x:\s*clip/)
+    expect(ruleBody(code, 'html')).toMatch(/overflow-x:\s*clip/)
   })
 
   it('body 也带 overflow-x: clip —— 真正做裁剪的是它', () => {
     // 根元素那条负责「阻止提升」，实际把出血盒裁掉的是 body 这条。两条是一对。
-    expect(ruleBody(base, 'body')).toMatch(/overflow-x:\s*clip/)
+    expect(ruleBody(code, 'body')).toMatch(/overflow-x:\s*clip/)
   })
 
   it('根元素用的是 clip 不是 hidden —— hidden 会让它变成滚动容器，吸顶失效', () => {
     // `overflow-x: hidden` 会把 `overflow-y` 的 visible 连带升成 auto，
     // 根元素成为滚动容器后 `.site-header` / `.dt-bar` 的 position: sticky 当场失效。
-    expect(ruleBody(base, 'html')).not.toMatch(/overflow-x:\s*hidden/)
+    expect(ruleBody(code, 'html')).not.toMatch(/overflow-x:\s*hidden/)
+  })
+
+  it('出血页取消限宽的 :has() 清单覆盖全部五个入口', () => {
+    // `.site-main` 由 layout.tsx 统一渲染，页面无法向上传信号，所以用 :has() 反向识别。
+    // `.city-coming-soon` 必须单列：城市路由是 .site-main > .city-coming-soon > .rc-page，
+    // `:has(> .rc-page)` 命中不了它——漏了它，/hangzhou 这类页会退回 7.5px 错位。
+    for (const sel of ['.hm-home', '.ls-page', '.dt-page', '.rc-page', '.city-coming-soon']) {
+      expect(code).toMatch(new RegExp('\\.site-main:has\\(>\\s*\\' + sel + '\\)'))
+    }
+  })
+
+  it('宽度复位靠特异性取胜 —— styles.css 先于四个壳文件导入', () => {
+    // layout.tsx 的导入顺序是 styles.css → home/list/detail/recruit。同特异性下
+    // 后者的 `width: 100vw`（0,1,0）会盖掉这里的复位，所以必须写成 `.site-main >`（0,2,0）。
+    // 写成裸 `.hm-home` 会静默失效：页面看着正常，只是又错位 7.5px。
+    for (const sel of ['.hm-home', '.ls-page', '.dt-page', '.rc-page']) {
+      expect(code).toMatch(new RegExp('\\.site-main >\\s*\\' + sel))
+    }
+    expect(code).toMatch(/\.site-main > \.city-coming-soon > \.rc-page/)
+  })
+
+  it('整段包在 @supports selector(:has(*)) 里 —— 老浏览器要能回退到 100vw', () => {
+    // 不支持 :has() 的浏览器（Firefox <121 / Safari <15.4 / Chrome <105）走各壳文件
+    // 里保留的 100vw 出血，行为与收口前一致。宁可在那些浏览器上差 7.5px，
+    // 也不能让整幅背景带塌回 1440、两侧露出灰边。
+    expect(code).toMatch(/@supports selector\(:has\(\*\)\)/)
   })
 
   it('出血点仍是已知的五处 —— 新增一处就来读这里', () => {

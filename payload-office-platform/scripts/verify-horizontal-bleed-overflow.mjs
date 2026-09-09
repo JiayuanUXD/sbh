@@ -31,13 +31,23 @@ const BASE = process.env.BASE_URL || 'http://localhost:3717'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const OUT = path.resolve(HERE, '../../artifacts/verification/frontend-horizontal-scroll-clip')
 
-/** 五处 `width: 100vw` 出血点各取一个真实消费路由。marker 用来证明页面真渲染了。 */
+/**
+ * 五处 `width: 100vw` 出血点各取一个真实消费路由。marker 用来证明页面真渲染了。
+ *
+ * alignsWithHeader：该页容器是否应与页眉容器逐像素相同。
+ *   - 四个出血壳页走 `.site-main:has(...)` 取消限宽，容器与页眉共用同一个 `100%`，
+ *     必须相同——这条就是 7.5px 错位的回归守卫。
+ *   - recruit 例外：`--rc-w` 有意是 1024（552+72+400 的推导值，见 recruit.css 文件头），
+ *     与页眉的 --container-max 本就不同宽，只要求居中一致。
+ *   - landing 例外：`.landing-hero` 仍是 100vw 出血（父级有需要限宽的兄弟）。
+ */
 const ROUTES = [
-  { name: 'home', url: '/shanghai', marker: '.hm-home' },
-  { name: 'list', url: '/shanghai/listings', marker: '.ls-page' },
-  { name: 'detail', url: '/shanghai/listings/changning-hongqiao-serviced', marker: '.dt-page' },
-  { name: 'recruit', url: '/city-partner', marker: '.rc-page' },
-  { name: 'landing', url: '/entrust', marker: '.landing-hero' },
+  { name: 'home', url: '/shanghai', marker: '.hm-home', alignsWithHeader: true },
+  { name: 'list', url: '/shanghai/listings', marker: '.ls-page', alignsWithHeader: true },
+  { name: 'detail', url: '/shanghai/listings/changning-hongqiao-serviced', marker: '.dt-page', alignsWithHeader: true },
+  { name: 'coming-soon', url: '/hangzhou', marker: '.rc-page', alignsWithHeader: false },
+  { name: 'recruit', url: '/city-partner', marker: '.rc-page', alignsWithHeader: false },
+  { name: 'landing', url: '/entrust', marker: '.landing-hero', alignsWithHeader: false },
 ]
 const VIEWPORTS = [375, 768, 1440, 1920]
 const CONTAINERS = '.hm-container, .ls-container, .dt-container, .rc-container, .landing-hero__inner'
@@ -94,17 +104,26 @@ const measure = ([markerSel, containerSel]) => {
       : null,
     container: rect(document.querySelector(containerSel)),
     headerInner: rect(document.querySelector('.site-header__inner')),
+    hasSupport: CSS.supports('selector(:has(> div))'),
+    siteMainMaxWidth: getComputedStyle(document.querySelector('.site-main')).maxWidth,
     uncontainedOverflowCount: offenders.length,
     uncontainedOverflowTop: offenders.slice(0, 5),
   }
 }
 
-/** html/body 的 overflow-x 四组组合，证明「两条缺一不可」。 */
+/**
+ * html/body 的 overflow-x 四组组合，证明这对 clip「两条缺一不可」。
+ *
+ * **必须在 `/entrust` 上跑，不能用首页。** 四个出血壳页已经改走
+ * `.site-main:has(...)` 取消限宽，`width: auto` 后根本不溢出，在那里切 overflow-x
+ * 四组恒为 0，什么也证明不了。`.landing-hero` 是全站仅剩的 `100vw` 出血
+ * （父级有需要限宽的兄弟，见 styles.css），也就是这对 clip 现在唯一的服务对象。
+ */
 const mechanism = async (page) => {
   const combos = [
-    ['visible', 'clip', '修复前的状态'],
-    ['clip', 'visible', ''],
-    ['clip', 'clip', '本次修复'],
+    ['visible', 'clip', '这对 clip 修复前的状态：能横向拖'],
+    ['clip', 'visible', '只有根元素那条，同样能拖'],
+    ['clip', 'clip', '现在：两条都在'],
     ['hidden', 'clip', 'hidden 会让根元素变成滚动容器、吸顶失效，不能用'],
   ]
   const out = []
@@ -185,6 +204,16 @@ const run = async () => {
         if (m.bandCoversViewport === false) {
           failures.push(route.name + '@' + width + ': 出血带未覆盖可视宽度')
         }
+        // 7.5px 错位的回归守卫：出血壳页的容器必须与页眉容器逐像素相同
+        if (route.alignsWithHeader && m.container && m.headerInner) {
+          const dl = +(m.container.left - m.headerInner.left).toFixed(2)
+          const dw = +(m.container.width - m.headerInner.width).toFixed(2)
+          if (dl !== 0 || dw !== 0) {
+            failures.push(
+              route.name + '@' + width + ': 容器与页眉错位 left 差 ' + dl + ' / width 差 ' + dw,
+            )
+          }
+        }
       }
       report.routes[route.name][width] = {
         url: route.url,
@@ -198,11 +227,22 @@ const run = async () => {
     }
   }
 
-  // 机制对照 + 纵向滚动 / 吸顶回归，都在首页 1440 上做
+  // 机制对照在 /entrust 上做（全站仅剩的 100vw 出血，见 mechanism 的注释）
+  const mechPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  await mechPage.goto(BASE + '/entrust', { waitUntil: 'domcontentloaded', timeout: 120000 })
+  await mechPage.waitForSelector('.landing-hero', { timeout: 15000 })
+  report.mechanism = { page: '/entrust', viewport: 1440, combos: await mechanism(mechPage) }
+  if (report.mechanism.combos[0].maxScrollLeft === 0) {
+    // 对照组失效就等于没有对照组：这一定是 /entrust 也不再溢出了，
+    // 说明该换个还在用 100vw 的页面，而不是默默报通过。
+    failures.push('机制对照失效：/entrust 的 html visible + body clip 未复现横向溢出')
+  }
+  await mechPage.close()
+
+  // 纵向滚动 / 吸顶回归在首页 1440 上做
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
   await page.goto(BASE + '/shanghai', { waitUntil: 'domcontentloaded', timeout: 120000 })
   await page.waitForSelector('.hm-home', { timeout: 15000 })
-  report.mechanism = await mechanism(page)
   report.sticky = await page.evaluate(() => {
     const d = document.documentElement
     d.scrollTop = 800
@@ -224,8 +264,8 @@ const run = async () => {
 
   const sample = report.routes.home && report.routes.home[1440]
   console.log('滚动条宽度(home@1440):', sample ? sample.scrollbarWidth : 'n/a', '（应为 15）')
-  console.log('机制对照（首页 1440）:')
-  for (const c of report.mechanism) {
+  console.log('机制对照（' + report.mechanism.page + ' @' + report.mechanism.viewport + '）:')
+  for (const c of report.mechanism.combos) {
     console.log('  html:' + c.html.padEnd(8) + ' body:' + c.body.padEnd(8) + ' -> maxScrollLeft ' + c.maxScrollLeft + '  ' + c.note)
   }
   console.log(failures.length ? '✗ 失败 ' + failures.length + ' 项:\n  ' + failures.join('\n  ') : '✓ 全部通过')
