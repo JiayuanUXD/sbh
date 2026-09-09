@@ -57,13 +57,14 @@ describe('OPT-068 楼盘封面消费方', () => {
   const CONSUMERS = [
     'components/frontend/home/HomeSupplyCard.tsx',
     'components/frontend/listing/BuildingResultCard.tsx',
+    'components/frontend/listing/BuildingResultRow.tsx',
     'components/frontend/listing/BuildingCompactRow.tsx',
     'components/frontend/BuildingSummaryCard.tsx',
     'components/frontend/BuildingCardMini.tsx',
     'components/frontend/building-detail/NearbyBuildingsStrip.tsx',
   ] as const
 
-  it('六处手写 <img> 全部改走 cardCoverProps，不再直出原图 src', () => {
+  it('七处手写 <img> 全部改走 cardCoverProps，不再直出原图 src', () => {
     for (const rel of CONSUMERS) {
       const source = readFileSync(path.join(SRC, rel), 'utf8')
       expect(source, rel).toContain('cardCoverProps(')

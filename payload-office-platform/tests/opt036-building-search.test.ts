@@ -65,4 +65,20 @@ describe('buildBuildingCanonicalParams', () => {
     const b = buildBuildingCanonicalParams(parse('district=jingan&district=huangpu&grade=a'))
     expect(a.toString()).toBe(b.toString())
   })
+  /**
+   * OPT-081：`?view=` 只改版式、不改结果集，两个只差 view 的 URL 对搜索引擎必须是
+   * **同一个页面**，因此 canonical 里不能出现它（同房源页裁定）。
+   *
+   * 这条防的是一个很自然的「修法」：有人发现点筛选会丢版式，于是把 view 塞进
+   * `buildBuildingCanonicalParams` 就地解决——那会让 `?view=grid` 与 `?view=row`
+   * 变成两个可索引 URL、互为重复内容。正确做法是在视图层把 view 挂回 currentParams
+   * （CityBuildingsView 里那一行），canonical 保持干净。
+   */
+  it('view 不进 canonical（版式不是结果集，两个版式是同一个可索引页面）', () => {
+    expect(buildBuildingCanonicalParams(parse('view=row')).toString()).toBe('')
+    expect(buildBuildingCanonicalParams(parse('view=grid')).toString()).toBe('')
+    expect(buildBuildingCanonicalParams(parse('district=jingan&view=row')).toString()).toBe(
+      buildBuildingCanonicalParams(parse('district=jingan')).toString(),
+    )
+  })
 })

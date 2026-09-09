@@ -123,6 +123,9 @@ function buildResult(over: Partial<{
 function renderView(
   query: string,
   result: Parameters<typeof CityBuildingsView>[0]['result'],
+  // 省略即走组件默认值 grid——刻意保留「不传」这条路径，它就是既有调用方与本文件
+  // 其余全部用例走的那条（OPT-081 把 view 做成可选 prop 的原因）。
+  view?: 'grid' | 'row',
 ): ReactElement {
   return CityBuildingsView({
     city: CITY,
@@ -130,6 +133,7 @@ function renderView(
     input: parseBuildingSearchInput(new URLSearchParams(query)),
     basePath: '/shanghai/buildings',
     routeMode: 'prefixed',
+    ...(view ? { view } : {}),
   }) as ReactElement
 }
 
@@ -515,5 +519,110 @@ describe('CityBuildingsView 编排层守卫', () => {
     expect(shell).toBeDefined()
     expect(shell!.node.key).toBeNull()
     expect(shell!.ancestorClassNames.join(' ')).not.toContain('ls-results')
+  })
+})
+
+/**
+ * OPT-081 卡片样式切换（`?view=grid|row`）。
+ *
+ * 这一组守卫的是三条**产品裁定**，不是渲染细节：
+ *   1. 版式只作用于「当前有在租」组——「暂无在租」的紧凑行是降权表达，不是版式的
+ *      一个实例，它恒定不变（这是本页当初「刻意不做视图切换」那条决定真正要保护
+ *      的东西，见 CityBuildingsView 顶部）；
+ *   2. `view` 不进 canonical，但必须挂进页内 href，否则一点筛选/排序/翻页就丢版式；
+ *   3. 埋点 `section` 三态互不相撞（grid / row / vacant）。
+ */
+describe('OPT-081 楼盘列表卡片样式切换', () => {
+  const twoGroups = () =>
+    buildResult({ withStock: [doc('a', 8), doc('b', 3)], withoutStock: [doc('v1'), doc('v2')] })
+
+  it('默认（不传 view）走网格：渲染 BuildingResultCard，不渲染 BuildingResultRow', () => {
+    const tree = renderView('', twoGroups())
+    expect(findAllByDisplayName(tree, 'BuildingResultCard')).toHaveLength(2)
+    expect(findAllByDisplayName(tree, 'BuildingResultRow')).toHaveLength(0)
+  })
+
+  it('view=row 时有在租组换成 BuildingResultRow，且是同一批楼盘、同一顺序', () => {
+    const tree = renderView('', twoGroups(), 'row')
+    const rows = findAllByDisplayName(tree, 'BuildingResultRow')
+    expect(findAllByDisplayName(tree, 'BuildingResultCard')).toHaveLength(0)
+    expect(rows.map((r) => (r.node.props as { building: { slug: string } }).building.slug)).toEqual(['a', 'b'])
+  })
+
+  it('「暂无在租」组恒为紧凑行：两种版式下都是 BuildingCompactRow，条数一致', () => {
+    for (const view of [undefined, 'row'] as const) {
+      const tree = renderView('', twoGroups(), view)
+      const vacant = findAllByDisplayName(tree, 'BuildingCompactRow')
+      expect(vacant.map((r) => (r.node.props as { building: { slug: string } }).building.slug), String(view))
+        .toEqual(['v1', 'v2'])
+    }
+  })
+
+  it('埋点 section 三态互不相撞：grid / row / vacant', () => {
+    const sectionOf = (v: Visited) => (v.node.props as { analytics: { section: string } }).analytics.section
+    const gridTree = renderView('', twoGroups())
+    expect(findAllByDisplayName(gridTree, 'BuildingResultCard').map(sectionOf)).toEqual(['grid', 'grid'])
+    expect(findAllByDisplayName(gridTree, 'BuildingCompactRow').map(sectionOf)).toEqual(['vacant', 'vacant'])
+
+    const rowTree = renderView('', twoGroups(), 'row')
+    expect(findAllByDisplayName(rowTree, 'BuildingResultRow').map(sectionOf)).toEqual(['row', 'row'])
+    // 关键：有在租组变成 'row' 之后，暂无在租组**不能**还是 'row'，否则同一页里
+    // 同一个取值指两件事，section 这个维度就废了。
+    expect(findAllByDisplayName(rowTree, 'BuildingCompactRow').map(sectionOf)).toEqual(['vacant', 'vacant'])
+  })
+
+  it('rank 是页内连续序号，换版式不改变它（同一栋楼在两个版式下是同一条结果）', () => {
+    const rankOf = (v: Visited) => (v.node.props as { analytics: { rank: number } }).analytics.rank
+    const gridTree = renderView('', twoGroups())
+    const rowTree = renderView('', twoGroups(), 'row')
+    expect(findAllByDisplayName(gridTree, 'BuildingResultCard').map(rankOf)).toEqual([1, 2])
+    expect(findAllByDisplayName(rowTree, 'BuildingResultRow').map(rankOf)).toEqual([1, 2])
+    for (const tree of [gridTree, rowTree]) {
+      expect(findAllByDisplayName(tree, 'BuildingCompactRow').map(rankOf)).toEqual([3, 4])
+    }
+  })
+
+  it('工具条拿到 view，并渲染出网格 / 横向列表两个入口（grid 不写 URL、row 写 ?view=row）', () => {
+    const toolbar = findByDisplayName(renderView('', twoGroups(), 'row'), 'ResultToolbar')!
+    const props = toolbar.node.props as Parameters<typeof ResultToolbar>[0]
+    expect(props.view).toBe('row')
+    const html = renderToStaticMarkup(createElement(ResultToolbar, props))
+    expect(html).toContain('aria-label="卡片网格"')
+    expect(html).toContain('aria-label="横向列表"')
+    expect(html).toContain('href="/shanghai/buildings?view=row"')
+    // grid 是默认版式，切回去的 href 不带 view
+    expect(html).toContain('href="/shanghai/buildings"')
+  })
+
+  it('默认版式不渲染视图切换以外的差异：grid 态 view prop 仍传下去（否则控件不出现）', () => {
+    const props = findByDisplayName(renderView('', twoGroups()), 'ResultToolbar')!.node
+      .props as Parameters<typeof ResultToolbar>[0]
+    expect(props.view).toBe('grid')
+  })
+
+  it('view 挂进页内 href：筛选 / 排序 / 翻页都保住版式（canonical 本身不含 view）', () => {
+    const tree = renderView('?district=jingan', twoGroups(), 'row')
+    const toolbar = findByDisplayName(tree, 'ResultToolbar')!.node.props as Parameters<typeof ResultToolbar>[0]
+    // currentParams 是页内所有 href 的唯一来源
+    expect(toolbar.currentParams.get('view')).toBe('row')
+    expect(toolbar.currentParams.get('district')).toBe('jingan')
+
+    const filterForm = findByDisplayName(tree, 'FilterFormC')!.node.props as { clearAllHref: string }
+    expect(filterForm.clearAllHref).toContain('view=row')
+
+    const pager = findByDisplayName(tree, 'ListPager')!.node.props as {
+      buildPageHref: (page: number) => string
+    }
+    expect(pager.buildPageHref(2)).toBe('/shanghai/buildings?district=jingan&view=row&page=2')
+  })
+
+  it('grid 态不把 view 写进任何 href（默认值不入 URL，与 canonical 同一口径）', () => {
+    const tree = renderView('?district=jingan', twoGroups())
+    const toolbar = findByDisplayName(tree, 'ResultToolbar')!.node.props as Parameters<typeof ResultToolbar>[0]
+    expect(toolbar.currentParams.has('view')).toBe(false)
+    const pager = findByDisplayName(tree, 'ListPager')!.node.props as {
+      buildPageHref: (page: number) => string
+    }
+    expect(pager.buildPageHref(2)).toBe('/shanghai/buildings?district=jingan&page=2')
   })
 })

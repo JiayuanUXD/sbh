@@ -9,6 +9,11 @@ import { buildBuildingCanonicalParams, parseBuildingSearchInput } from '@/domain
 import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { buildCityPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled } from '@/lib/frontend/site-config'
+// 版式解析复用房源页那一份（`lib/frontend/listing-url` 是两个列表页共用的 URL 基元
+// 模块，本文件已经在用它的 buildHref/cloneSearchParams 家族）。刻意**不**新做一个
+// 域层导出：`tests/city-route-pages.test.ts` 把 `@/domain/public-catalog` 整个 mock 成
+// 固定导出表，新增域层函数在那里会 undefined，把楼盘路由整组用例带崩。
+import { parseListingViewMode } from '@/lib/frontend/listing-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,5 +70,5 @@ export default async function CityBuildingsPage({ params, searchParams }: Props)
   // 筛选 / 排序 / 分页 / 分组全在查询层完成，视图只消费结果（OPT-036 Task 12）。
   const input = await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
-  return <CityBuildingsView city={city} result={result} input={input} basePath={`/${city.slug}/buildings`} routeMode="prefixed" />
+  return <CityBuildingsView city={city} result={result} input={input} basePath={`/${city.slug}/buildings`} routeMode="prefixed" view={parseListingViewMode(raw.view)} />
 }

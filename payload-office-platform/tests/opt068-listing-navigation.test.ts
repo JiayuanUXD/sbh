@@ -40,6 +40,7 @@ const LISTING_COMPONENTS = [
   'ListingResultCard.tsx',
   'ListingResultRow.tsx',
   'BuildingResultCard.tsx',
+  'BuildingResultRow.tsx',
   'BuildingCompactRow.tsx',
 ] as const
 

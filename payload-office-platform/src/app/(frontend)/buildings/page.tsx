@@ -9,6 +9,8 @@ import { resolveBuildingSearchInput } from '@/app/(frontend)/_lib/search-input'
 import { buildPageMetadata } from '@/lib/frontend/metadata'
 import { getMultiCityRoutingEnabled, siteConfig } from '@/lib/frontend/site-config'
 import { prefixedCanonicalPath } from '@/lib/frontend/city-routes'
+// 版式解析：与 `[city]/buildings/page.tsx` 同一份，理由见那个文件的同名 import。
+import { parseListingViewMode } from '@/lib/frontend/listing-url'
 
 export const dynamic = 'force-dynamic'
 type SearchParams = Record<string, string | string[] | undefined>
@@ -51,5 +53,5 @@ export default async function BuildingsPage({ searchParams }: Props) {
   // 与前缀路由同一条链路：解析 → 查询层筛选/排序/分页/分组 → 视图只消费结果。
   const input = await resolveBuildingSearchInput(city.slug, toUrlSearchParams(raw))
   const result = await getCachedSearchBuildingsFiltered(city.slug, input)
-  return <CityBuildingsView city={city} result={result} input={input} basePath="/buildings" routeMode="legacy" />
+  return <CityBuildingsView city={city} result={result} input={input} basePath="/buildings" routeMode="legacy" view={parseListingViewMode(raw.view)} />
 }

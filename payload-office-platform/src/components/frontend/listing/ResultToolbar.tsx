@@ -46,6 +46,11 @@ import { buildHref, cloneSearchParams } from '@/lib/frontend/listing-url'
  * （`?sort=` ×3 + `?onlyWithStock=1`）。**条数恒定**，且这些恰是用户下一步最可能点的
  * 控件——预取命中率高，不是净损失。要改也该拿命中率数据另开工作项，别当成本任务的
  * 顺手清理。
+ *
+ * OPT-081 更新：楼盘页开始传 `view`，于是 `/buildings` 那一档从 4 条变成 **5 条**
+ * （多出未选中的那个版式，grid 态是 `?view=row`、row 态是回到无 view 的 `/buildings`）。
+ * 上面那份 JSON 是 OPT-037 时点的实测，**没有重跑**——引用它时按「4 是 OPT-081 之前
+ * 的值」读。判据本身不变：条数仍恒定（版式是硬编码二选一，不随内容增长）。
  */
 
 export type ResultToolbarSort = Readonly<{ value: string; label: string }>

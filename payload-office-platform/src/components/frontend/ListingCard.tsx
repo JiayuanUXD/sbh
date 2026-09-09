@@ -10,7 +10,7 @@ import { Media, Price, Tag } from '@/components/frontend/ui'
  * 设计依据：specs/frontend-mvp/design.md §6.5、§7.2；FP-02 §4.1
  * 守护不变量：
  *   - 只消费 ListingCardViewModel DTO，不接收 Payload 文档；
- *   - 媒体比例：grid 视图 4:3，list 视图 16:10（由 CSS 覆盖）；
+ *   - 媒体比例：16:10（OPT-082 起全站一档，房源与楼盘同比例）；
  *   - 卡片整体可点击，保留语义化 <a>（Cmd/Ctrl+click / 中键支持）；
  *   - alt 缺失时由"楼盘名 + 类型"生成可读替代；
  *   - 价格使用 tabular-nums，标签分类着色。
@@ -120,14 +120,14 @@ export default function ListingCard({ listing, variant = 'default', view = 'grid
       data-analytics-recommendation-type={detailAnalytics?.recommendationType}
       data-analytics-supply-group={detailAnalytics?.supplyGroup}
     >
-      {/* 图容器与图上元素全部走共享基元：.sf-media--4x3（房源卡 4:3）、.sf-scrim
+      {/* 图容器与图上元素全部走共享基元：.sf-media--16x10（全站一档，见 surface.css）、.sf-scrim
           （图上有文字必带底部压暗）、.sf-phototag（零色相白底 pill，左下成组）。
           改动前是自造的 .listing-card__media + 左上黑底类型角标 + 右上铜色实心
           「必看好房」——位置、配色都与首页/列表卡相反，且没有压暗层。 */}
-      <div className="listing-card__media sf-media sf-media--4x3">
+      <div className="listing-card__media sf-media sf-media--16x10">
         <Media
           media={coverImage}
-          ratio="4/3"
+          ratio="16/10"
           fallbackAlt={fallbackAlt || title}
         />
         <span className="sf-scrim" aria-hidden="true" />

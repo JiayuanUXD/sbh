@@ -40,6 +40,10 @@
    行为不变。 */
 .sf-media img { width: 100%; height: 100%; object-fit: cover;
   object-position: var(--focal-x, 50%) var(--focal-y, 50%); display: block; }
+/* --4x3 目前**没有产品消费方**（OPT-082 把房源卡统一到 16:10）。保留基元本身：
+   `ui/Media.tsx` 的 ratio 联合类型与 dev-story 的基元陈列仍引用它，删了就是把一个
+   通用比例基元砍成「只有一档」。新页面别默认挑它——卡片媒体一律 16:10，见
+   `.agent/frontend.md`。 */
 .sf-media--4x3 { aspect-ratio: 4 / 3; }
 .sf-media--16x10 { aspect-ratio: 16 / 10; }
 
@@ -47,7 +51,7 @@
  * pointer-events: none 是本次 review 补的——压暗层定义上就是纯装饰，绝不该挡在
  * 可点击元素前面吞掉点击。这里用到的六处调用（HomeDistrictBento /
  * HomeSupplyCard / HomeTypeCards / BuildingResultCard / ListingResultCard /
- * ListingResultRow）都是整卡包在一个 <Link> 里，scrim 是 Link 的子元素，
+ * ListingResultRow，OPT-081 起再加 BuildingResultRow）都是整卡包在一个 <Link> 里，scrim 是 Link 的子元素，
  * 加了 pointer-events:none 后点击直接穿透到 Link 本身或其内部图片，不影响
  * 现有可点击行为（验证见 OPT-037 Task 2 报告）。 */
 .sf-scrim { position: absolute; inset: auto 0 0 0; height: 45%; pointer-events: none;

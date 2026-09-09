@@ -32,7 +32,7 @@ import { CardMediaPlaceholder } from '@/components/frontend/ui/Media'
  *
  * 守护不变量：
  *   - Server Component，只消费 ListingCardViewModel DTO，不接收 Payload 文档；
- *   - 缺图：.sf-media 靠 aspect-ratio 撑住 4:3，不塌陷；内部渲染共享缺省占位
+ *   - 缺图：.sf-media 靠 aspect-ratio 撑住 16:10，不塌陷；内部渲染共享缺省占位
  *     （CardMediaPlaceholder：图标 +「图片拍摄中」）。2026-09-04 前这里是留一块裸灰底，
  *     用户侧读不出「这套房还没拍照」还是「图挂了」；
  *   - 缺价格：整行省略定宽盒，渲染「价格面议」纯文本，不渲染 0 或空盒；
@@ -86,7 +86,7 @@ export default function ListingResultCard({ listing, citySlug, analytics }: Read
       className="sf-card ls-card"
       aria-label={`${title}，${price?.text ?? '待面议'}`}
     >
-      <span className="sf-media sf-media--4x3">
+      <span className="sf-media sf-media--16x10">
         {coverImage ? (
           <img
             src={coverImage.src}
